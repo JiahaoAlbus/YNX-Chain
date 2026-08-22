@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "ynx-code-public-probe/v1",
+  "observedAt": "2026-08-13T14:41:32Z",
+  "source": {
+    "observerBranch": "codex/ynx-code-platform-v1",
+    "observerCommit": "50b41f673d1e6654b93fcab77d00d611305941ef"
+  },
+  "target": {
+    "origin": "https://developer.ynxweb4.com",
+    "resolvedIPv4": "43.153.202.237"
+  },
+  "health": {
+    "httpStatus": 200,
+    "service": "ynx-code-gateway",
+    "version": "0.2.0-testnet-preview-17ee9ae5-candidate",
+    "sandbox": "linux-bubblewrap-prlimit",
+    "sandboxReady": true
+  },
+  "runtime": {
+    "httpStatus": 200,
+    "protocolVersion": "ynx-code/v1",
+    "workspacePersistence": "sqlite-wal",
+    "maxConcurrent": 8,
+    "maxQueued": 128,
+    "compilers": {
+      "cpp": true,
+      "javascript": true,
+      "typescript": true,
+      "python": true,
+      "go": true,
+      "rust": true,
+      "java": false,
+      "solidity": true
+    },
+    "languageServers": {
+      "cpp": true,
+      "typescript": true,
+      "python": true,
+      "go": true,
+      "rust": true,
+      "java": false,
+      "solidity": true
+    }
+  },
+  "operatorAccessProbe": {
+    "strictHostKeyChecking": true,
+    "batchMode": true,
+    "documentedHostPinned": true,
+    "authenticated": false,
+    "changedRemoteState": false,
+    "credentialMaterialRecorded": false
+  },
+  "conclusion": {
+    "javaImplementedLocal": true,
+    "javaTestedLocal": true,
+    "javaCloudImageBuilt": false,
+    "javaDeployedPublic": false,
+    "nextGate": "Run the exact-source transactional deploy on the reviewed Linux operator host and capture its immutable image fingerprint and hashed live/restart evidence."
+  }
+}

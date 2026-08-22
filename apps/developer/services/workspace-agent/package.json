@@ -1,0 +1,16 @@
+{
+  "name": "@ynx-code/workspace-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.mjs",
+    "test": "node --test --test-concurrency=1 test/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "solc": "0.8.36"
+  }
+}

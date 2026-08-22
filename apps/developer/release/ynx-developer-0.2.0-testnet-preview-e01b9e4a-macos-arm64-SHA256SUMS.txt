@@ -1,0 +1,3 @@
+af4c57b89ad5d7cca6c42af47f33d156d182a92870e4d43ed1d558f51de1b01f  ynx-developer-0.2.0-testnet-preview-e01b9e4a-macos-arm64-unsigned.zip
+37436588278850c5052d2032f917572dade2af7cf56c4228d4f79f5359568e9f  ynx-developer-0.2.0-testnet-preview-e01b9e4a-macos-arm64-sbom.cdx.json
+3bd603666528dc9b14a7b7b4fc77a941e62db624fb42cbeb88fcdf6d2cc12419  ynx-developer-0.2.0-testnet-preview-e01b9e4a-macos-arm64-PROVENANCE.json

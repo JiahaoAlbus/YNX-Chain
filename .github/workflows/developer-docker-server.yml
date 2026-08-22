@@ -1,0 +1,42 @@
+name: Developer Docker server image proof
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/final-developer, codex/ynx-code-platform-v1]
+    paths:
+      - "apps/developer/**"
+      - "packages/developer-client/**"
+      - ".github/workflows/developer-docker-server.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: developer-docker-server-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-cold-launch:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build source-bound Docker server image
+        run: |
+          runtime_checkpoint=$(node -p "require('./apps/developer/product-release.json').currentPublicCandidate.sourceCommit")
+          docker build --pull --build-arg SOURCE_COMMIT="$GITHUB_SHA" --build-arg RUNTIME_CHECKPOINT="$runtime_checkpoint" --tag ynx-code-server:"$GITHUB_SHA" --file apps/developer/Dockerfile .
+      - name: Cold-launch unprivileged Docker server image
+        run: |
+          runtime_checkpoint=$(node -e 'const fs=require("fs");process.stdout.write(JSON.parse(fs.readFileSync("apps/developer/product-release.json","utf8")).currentPublicCandidate.sourceCommit)')
+          bash ./apps/developer/scripts/verify-docker-server-image.sh "ynx-code-server:$GITHUB_SHA" "$GITHUB_SHA" "$runtime_checkpoint" ./apps/developer/.ynx-developer-docker
+      - name: Export Docker image archive
+        run: docker save ynx-code-server:"$GITHUB_SHA" | gzip -n > apps/developer/.ynx-developer-docker/ynx-code-server-linux-amd64.tar.gz
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ynx-code-server-linux-amd64-unsigned
+          path: |
+            apps/developer/.ynx-developer-docker/ynx-code-server-linux-amd64.tar.gz
+            apps/developer/.ynx-developer-docker/docker-image-evidence.json
+          if-no-files-found: error
+          retention-days: 14

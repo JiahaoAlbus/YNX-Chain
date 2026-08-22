@@ -9,10 +9,13 @@
     "owner": "11-developer"
   },
   "source": {
-    "branch": "codex/final-developer",
-    "commit": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
-    "releaseCandidateCommit": "7f976c1e06292360160325b00fa0875e6a2567f6",
-    "generatedAt": "2026-07-29T02:47:07Z"
+    "branch": "codex/ynx-code-platform-v1",
+    "commit": "bc8a37bc6f2bcfcbe9415cb0e9da17a5294046a3",
+    "releaseCandidateCommit": "76322af5e8c26a64fb6425c51d96c67d2b3df65f",
+    "generatedAt": "2026-08-20T16:12:04Z",
+    "auditedRepositoryCheckpoint": "e061a30e801a9075dfea212a854b3d7d578d7e85",
+    "auditedAt": "2026-08-20T16:12:04Z",
+    "recoveryAudit": "apps/developer/docs/RECOVERY_AUDIT_2026-08-13.md"
   },
   "walletBinding": {
     "productClientId": "ynx-developer-v1",
@@ -24,8 +27,24 @@
       "account:read",
       "developer:deploy"
     ],
-    "status": "delivered-not-accepted-centrally",
+    "status": "accepted-source-products-unmigrated",
     "owner": "02-wallet-auth"
+  },
+  "walletProductSessionV2": {
+    "acceptedSourceCommit": "203be5e108be468350591615a64d5d36ab87a8f1",
+    "acceptedSourceTree": "94e291a6757447f89c7cf6b8f01bbf811cb7d1f7",
+    "acceptedPackageTree": "02eb7176e2de175a68cf5a5ef27e55968cc17fea",
+    "rootFactory": "createProductWalletConnection",
+    "origin": "https://wallet-auth.ynxweb4.com",
+    "developerRuntimeIntegration": "apps/developer/frontend/src/wallet/product-session-v2.ts",
+    "callerEndpointInjection": false,
+    "callerCallbackInjection": false,
+    "callerOriginInjection": false,
+    "callerSessionInjection": false,
+    "publicMountVerified": true,
+    "runtimeFactoryVerified": false,
+    "visibleLifecycleVerified": false,
+    "migratedV2": false
   },
   "apiStudio": {
     "contractVersion": "1.0.0",
@@ -45,23 +64,26 @@
       "macosArm64": true,
       "windowsX64": true
     },
-    "macosArtifactSourceCommit": "7f976c1e06292360160325b00fa0875e6a2567f6",
-    "macosArtifactSourceTree": "0cf68963a1678e6611296684d522b471add4f652",
-    "macosArtifactSha256": "ff9ae3d473f961f38294679a7bdb21c7cc0c905d7791efe9d4b114fc1df903f7",
-    "macosArtifactBytes": 38450128,
-    "windowsArtifactSourceCommit": "7f976c1e06292360160325b00fa0875e6a2567f6",
-    "windowsArtifactSourceTree": "0cf68963a1678e6611296684d522b471add4f652",
-    "windowsArtifactRuntimeCheckpoint": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
-    "windowsArtifactSha256": "1efaf486164da71d907a8869e5e749fe46bf0bb1a74625f12ddab1692d07fb29",
-    "windowsArtifactBytes": 106341644,
-    "windowsArtifactSbomSha256": "15a29bf7e746a9b8cb9cfa10eed21c24c6bb53686cb3f45c00384390c2897e4c",
+    "macosArtifactSourceCommit": "76322af5e8c26a64fb6425c51d96c67d2b3df65f",
+    "macosArtifactSourceTree": "dc7e76e917da31ac27f5fe45fac1513a0e26d0bc",
+    "macosArtifactRuntimeCheckpoint": "17ee9ae5bf50677a3316b0838884dd135de80599",
+    "macosArtifactSha256": "a7254bf0a4ecf3054d761a28d410ad956753a8ec0ff459ec7ba16192dff4449b",
+    "macosArtifactBytes": 177942906,
+    "macosArtifactSbomSha256": "1ce156c73e3c9b1bd6543111d387ecb31bb05a3db92295574644c8390daaba8c",
+    "windowsArtifactSourceCommit": "76322af5e8c26a64fb6425c51d96c67d2b3df65f",
+    "windowsArtifactSourceTree": "dc7e76e917da31ac27f5fe45fac1513a0e26d0bc",
+    "windowsArtifactRuntimeCheckpoint": "17ee9ae5bf50677a3316b0838884dd135de80599",
+    "windowsArtifactSha256": "289a1f48ed0fa37ec1027fc746ce283a407daba8e2544618eb42c50dfd39d57c",
+    "windowsArtifactBytes": 72538906,
+    "windowsArtifactSbomSha256": "1365778910b256c988d6553ff9b76876f9eb4965fcd965fb9d2e40424bd5f189",
+    "windowsDeliveryMode": "hosted-workspace-client",
     "windowsSigningClass": "unsigned-no-authenticode",
     "windowsAuthenticodeStatus": "NotSigned",
-    "windowsWorkflowRunId": 30417693593,
-    "windowsWorkflowJobId": 90467659180,
-    "windowsWorkflowArtifactId": 8710756758,
-    "windowsWorkflowArtifactOuterDigest": "sha256:5c52a2f911525732fb8ded1e5f72ba79d8f8b48ff1907899870afa355c54c289",
-    "windowsWorkflowArtifactExpiresAt": "2026-08-12T02:46:59Z",
+    "windowsWorkflowRunId": 31513885748,
+    "windowsWorkflowJobId": 93854111720,
+    "windowsWorkflowArtifactId": 9110259455,
+    "windowsWorkflowArtifactOuterDigest": "sha256:7daec768b13c0871f2cc13fef5ba1f845938288827233733f40bba6c14c5f715",
+    "windowsWorkflowArtifactExpiresAt": "2026-08-25T16:44:45Z",
     "requestFlow": [
       "import",
       "validate",
@@ -222,7 +244,7 @@
     },
     "developerWeb": {
       "command": "cd apps/developer && npm test",
-      "result": "21 passed locally; artifact-source Windows CI passed 20"
+      "result": "24 passed locally and on current-source Windows CI"
     },
     "staticCheck": {
       "command": "cd apps/developer && npm run check",
@@ -248,26 +270,44 @@
       "command": "make no-placeholder-check && make secret-scan",
       "result": "passed through verified grep fallback because rg was unavailable"
     },
+    "javaRuntimeCandidate": {
+      "command": "cd apps/developer && npm run code:check && npm run code:build && npm test",
+      "result": "real packaged Java compile/run passed locally; workspace agent 10 passed and 1 Rust skip; runtime profiles 6 passed; Web release tests 26 passed; production Web build passed",
+      "cloudImageBuilt": false,
+      "deployedStaging": false,
+      "deployedPublic": false,
+      "javaLsp": false,
+      "operatorGate": "run apps/developer/scripts/deploy-public-candidate-transaction.sh on the reviewed Linux host with the exact pushed commit; record immutable image fingerprint, package manifest, eight-runtime, restart and public-health evidence",
+      "publicProbe20260813": {
+        "version": "0.2.0-testnet-preview-17ee9ae5-candidate",
+        "javaCompiler": false,
+        "changedRemoteState": false
+      },
+      "transactionScript": "apps/developer/scripts/deploy-public-candidate-transaction.sh"
+    },
     "macosCurrentSourcePackage": {
-      "sourceCommit": "7f976c1e06292360160325b00fa0875e6a2567f6",
-      "sourceTree": "0cf68963a1678e6611296684d522b471add4f652",
-      "sha256": "ff9ae3d473f961f38294679a7bdb21c7cc0c905d7791efe9d4b114fc1df903f7",
-      "bytes": 38450128,
+      "sourceCommit": "76322af5e8c26a64fb6425c51d96c67d2b3df65f",
+      "sourceTree": "dc7e76e917da31ac27f5fe45fac1513a0e26d0bc",
+      "runtimeCheckpoint": "17ee9ae5bf50677a3316b0838884dd135de80599",
+      "sha256": "a7254bf0a4ecf3054d761a28d410ad956753a8ec0ff459ec7ba16192dff4449b",
+      "bytes": 177942906,
+      "sbomSha256": "1ce156c73e3c9b1bd6543111d387ecb31bb05a3db92295574644c8390daaba8c",
       "signingClass": "adhoc-no-team-id",
-      "result": "embedded provenance, extracted resource self-test, GUI cold launch, bundled server observation and child cleanup passed"
+      "result": "full YNX Code resources, embedded provenance, precise 267-component SBOM, extracted resource self-test, GUI cold launch, JavaScript/C++ toolchain discovery, real bounded C++ compile, workspace persistence, second runtime launch and child cleanup passed"
     },
     "windowsCurrentSourcePackage": {
-      "runId": 30417693593,
-      "jobId": 90467659180,
-      "sourceCommit": "7f976c1e06292360160325b00fa0875e6a2567f6",
-      "sourceTree": "0cf68963a1678e6611296684d522b471add4f652",
-      "runtimeCheckpoint": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
-      "sha256": "1efaf486164da71d907a8869e5e749fe46bf0bb1a74625f12ddab1692d07fb29",
-      "bytes": 106341644,
-      "sbomSha256": "15a29bf7e746a9b8cb9cfa10eed21c24c6bb53686cb3f45c00384390c2897e4c",
+      "runId": 31513885748,
+      "jobId": 93854111720,
+      "sourceCommit": "76322af5e8c26a64fb6425c51d96c67d2b3df65f",
+      "sourceTree": "dc7e76e917da31ac27f5fe45fac1513a0e26d0bc",
+      "runtimeCheckpoint": "17ee9ae5bf50677a3316b0838884dd135de80599",
+      "sha256": "289a1f48ed0fa37ec1027fc746ce283a407daba8e2544618eb42c50dfd39d57c",
+      "bytes": 72538906,
+      "sbomSha256": "1365778910b256c988d6553ff9b76876f9eb4965fcd965fb9d2e40424bd5f189",
+      "deliveryMode": "hosted-workspace-client",
       "signingClass": "unsigned-no-authenticode",
       "authenticodeStatus": "NotSigned",
-      "result": "compile, embedded provenance, native self-test, portable extraction, WPF cold launch, bundled server observation, child cleanup and transient Artifact upload passed"
+      "result": "client and Web tests, build, precise runtime inventory, portable extraction, WPF cold launch, public workspace connection, real remote C++ compile, second GUI launch and transient Artifact upload passed"
     }
   },
   "releaseStatus": {

@@ -25,12 +25,9 @@ public partial class App : Application
     {
         try
         {
-            var runtime = Path.Combine(resources, "runtime", "node.exe");
-            var server = Path.Combine(resources, "server.mjs");
-            var web = Path.Combine(resources, "web", "index.html");
             var provenance = Path.Combine(resources, "build-provenance.json");
             var sbom = Path.Combine(resources, "sbom.cdx.json");
-            if (!File.Exists(runtime) || !File.Exists(server) || !File.Exists(web) || !File.Exists(provenance) || !File.Exists(sbom)) return 2;
+            if (!File.Exists(provenance) || !File.Exists(sbom)) return 2;
 
             using var provenanceDocument = JsonDocument.Parse(File.ReadAllText(provenance));
             using var sbomDocument = JsonDocument.Parse(File.ReadAllText(sbom));
@@ -38,23 +35,18 @@ public partial class App : Application
             if (provenanceRoot.GetProperty("productId").GetString() != "ynx-developer-v1" ||
                 provenanceRoot.GetProperty("platform").GetString() != "windows-x64" ||
                 provenanceRoot.GetProperty("signingClass").GetString() != "unsigned-no-authenticode" ||
+                provenanceRoot.GetProperty("deliveryMode").GetString() != "hosted-workspace-client" ||
+                provenanceRoot.GetProperty("workspaceUrl").GetString() != YNXDeveloper.MainWindow.WorkspaceUrl ||
                 provenanceRoot.GetProperty("sourceDirty").GetBoolean()) return 2;
             var sourceCommit = provenanceRoot.GetProperty("sourceCommit").GetString();
             var runtimeCheckpoint = provenanceRoot.GetProperty("runtimeCheckpoint").GetString();
             if (string.IsNullOrWhiteSpace(sourceCommit) || string.IsNullOrWhiteSpace(runtimeCheckpoint)) return 2;
 
-            var start = new ProcessStartInfo(runtime) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardOutput = true };
-            start.ArgumentList.Add("--version");
-            using var node = Process.Start(start);
-            if (node == null) return 3;
-            var version = node.StandardOutput.ReadToEnd().Trim();
-            node.WaitForExit(10_000);
-            if (node.ExitCode != 0 || !version.StartsWith("v22.")) return 4;
-
             File.WriteAllText(evidencePath, JsonSerializer.Serialize(new
             {
                 product = "YNX Developer Testnet Preview",
-                runtime = version,
+                runtime = ".NET 8 WPF + WebView2 hosted workspace client",
+                workspaceUrl = YNXDeveloper.MainWindow.WorkspaceUrl,
                 resourcesVerified = true,
                 signingClass = "unsigned-no-authenticode",
                 sourceCommit,

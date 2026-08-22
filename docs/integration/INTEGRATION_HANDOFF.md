@@ -3,10 +3,13 @@
 ## Source checkpoint
 
 - Product: `11-developer`
-- Branch: `codex/final-developer`
-- Runtime source commit: `8f352d0159eef0ab60fb6411e949cfcf3aafb551`
+- Branch: `codex/ynx-code-platform-v1`
+- Audited repository checkpoint: `e061a30e801a9075dfea212a854b3d7d578d7e85`
+- Runtime source checkpoint: `17ee9ae5bf50677a3316b0838884dd135de80599`
+- Published desktop artifact source: `76322af5e8c26a64fb6425c51d96c67d2b3df65f`
 - Current browser-evidence source: `f38aa95a9ec7ebff68b4d915f41b20ad8f903769`
 - Contract: `release/integration/developer-contract.json`
+- Recovery matrix: `apps/developer/docs/RECOVERY_AUDIT_2026-08-13.md`
 - Current phase: `FREEZE`
 
 ## Delivered in this checkpoint

@@ -14,9 +14,9 @@ async function jsonRequest(fetcher, url, options = {}) {
 }
 
 export class YNXChainClient {
-  constructor({ baseURL = "http://127.0.0.1:6420", fetcher = fetch } = {}) { this.baseURL = baseURL.replace(/\/$/, ""); this.fetcher = fetcher; }
+  constructor({ baseURL = "http://127.0.0.1:6420", compilerURL = null, fetcher = fetch } = {}) { this.baseURL = baseURL.replace(/\/$/, ""); this.compilerURL = compilerURL?.replace(/\/$/, "") || `${this.baseURL}/ide`; this.fetcher = fetcher; }
   health() { return jsonRequest(this.fetcher, `${this.baseURL}/status`); }
-  compiler() { return jsonRequest(this.fetcher, `${this.baseURL}/ide/compiler`); }
+  compiler() { return jsonRequest(this.fetcher, `${this.compilerURL}/compiler`); }
   async assertPinnedCompiler() {
     const config = await this.compiler();
     invariant(String(config.version ?? config.compilerVersion) === PINNED.version, "compiler_mismatch", `YNX Developer requires pinned Solidity ${PINNED.version}.`, { config });
@@ -27,7 +27,7 @@ export class YNXChainClient {
     invariant(typeof source === "string" && source.length > 0 && source.length <= 512 * 1024, "invalid_source", "Compile requires a Solidity source up to 512 KiB.");
     invariant(/pragma\s+solidity\s+(?:=\s*)?0\.8\.24\s*;/u.test(source), "unsupported_compiler_path", "Only exact pragma Solidity 0.8.24 is supported by this product.");
     await this.assertPinnedCompiler();
-    const result = await jsonRequest(this.fetcher, `${this.baseURL}/ide/compile`, { method: "POST", body: JSON.stringify({ name, source }) });
+    const result = await jsonRequest(this.fetcher, `${this.compilerURL}/compile`, { method: "POST", body: JSON.stringify({ name, source }) });
     invariant(result.ok === true || result.OK === true, "compile_failed", "Compiler did not return successful evidence.", { result });
     return result;
   }

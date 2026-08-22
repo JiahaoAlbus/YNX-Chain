@@ -14,17 +14,91 @@ import { WalletDeployment } from "/client/wallet.js";
 const $ = (selector) => document.querySelector(selector);
 const $$ = (selector) => [...document.querySelectorAll(selector)];
 const node = (tag, className, text) => { const item = document.createElement(tag); if (className) item.className = className; if (text !== undefined) item.textContent = text; return item; };
-const config = { chainURL: localStorage.getItem("ynx.developer.v1.chainURL") || "/chain", aiURL: localStorage.getItem("ynx.developer.v1.aiURL") || "/ai-gateway" };
+const config = { chainURL: localStorage.getItem("ynx.developer.v1.chainURL") || "/chain", compilerURL: "/compiler", aiURL: "/ai-build" };
 const workspace = new ProjectWorkspace({ persistence: new IndexedDBPersistence() });
-const chain = new YNXChainClient({ baseURL: config.chainURL });
-const ai = new AICodingAgent({ gatewayURL: config.aiURL });
+const chain = new YNXChainClient({ baseURL: config.chainURL, compilerURL: config.compilerURL });
+const ai = new AICodingAgent({ gatewayURL: config.aiURL, managedSession: true });
 const i18n = new DeveloperI18n();
-const walletSession = new DeveloperWalletSession({ wallet: globalThis.ynxWallet, gatewayURL: "/app-gateway" });
-const commands = new CommandAudit({ executor: globalThis.ynxDesktop?.executeApprovedCommand });
+const walletSession = new DeveloperWalletSession({ transport: globalThis.ynxDesktopWallet, authorizationBuilder: globalThis.ynxWalletAuthorization?.encodeRequestDeepLink, authorizationCallbackParser: globalThis.ynxWalletAuthorization?.parseAuthorizationCallbackURL });
+const commands = new CommandAudit({ executor: globalThis.ynxDesktop?.executeApprovedCommand || executeDesktopTask });
 const deployment = new WalletDeployment({ wallet: globalThis.ynxWallet, chainClient: chain });
 const apiStudio = new OpenAPIStudio({ defaultOrigin: location.origin, allowedOrigins: [location.origin], credentialBroker: globalThis.ynxCredentialBroker });
 const aiBuildPersistence = new AIBuildPersistence(localStorage);
 const state = { project: null, path: null, artifact: null, aiPrepared: null, aiResult: null, aiBuild: null, aiProposalId: null, deployReview: null, apiPreview: null, apiConnector: "oracle", saveTimer: null };
+let monacoAPI = null;
+let codeEditor = null;
+const editorModels = new Map();
+const customLanguageExtensions = new Map();
+const BUILTIN_LANGUAGE_EXTENSIONS = Object.freeze({
+  ".sol": "solidity", ".js": "javascript", ".mjs": "javascript", ".cjs": "javascript",
+  ".ts": "typescript", ".tsx": "typescript", ".jsx": "javascript", ".json": "json",
+  ".html": "html", ".css": "css", ".scss": "scss", ".md": "markdown",
+  ".c": "c", ".h": "cpp", ".cc": "cpp", ".cpp": "cpp", ".cxx": "cpp", ".hpp": "cpp",
+  ".py": "python", ".java": "java", ".cs": "csharp", ".go": "go", ".rs": "rust",
+  ".sh": "shell", ".bash": "shell", ".sql": "sql", ".xml": "xml", ".yaml": "yaml", ".yml": "yaml"
+});
+const languageForPath = (path = "") => { const lower=path.toLowerCase();const custom=[...customLanguageExtensions].find(([extension])=>lower.endsWith(extension));if(custom)return custom[1];const extension=Object.keys(BUILTIN_LANGUAGE_EXTENSIONS).find((item)=>lower.endsWith(item));return BUILTIN_LANGUAGE_EXTENSIONS[extension]||"plaintext"; };
+
+function editorText() { return codeEditor?.getValue() ?? $("#editor").dataset.editorValue ?? $("#editor").textContent ?? ""; }
+function modelKey(path) { return `${state.project?.id || "detached"}:${path}`; }
+function setEditorText(value, path) {
+  const host = $("#editor"); host.dataset.editorValue = value;
+  if (!codeEditor || !monacoAPI) { host.textContent = value; return; }
+  const key = modelKey(path); let model = editorModels.get(key);
+  if (!model) {
+    const uri = monacoAPI.Uri.from({ scheme: "ynx-project", authority: state.project?.id || "detached", path: `/${path}` });
+    model = monacoAPI.editor.getModel(uri) || monacoAPI.editor.createModel(value, languageForPath(path), uri);
+    editorModels.set(key, model);
+  } else if (model.getValue() !== value) model.setValue(value);
+  codeEditor.setModel(model);
+}
+
+function registerSolidityLanguage(monaco) {
+  if (monaco.languages.getLanguages().some((item) => item.id === "solidity")) return;
+  monaco.languages.register({ id: "solidity", extensions: [".sol"], aliases: ["Solidity", "sol"] });
+  monaco.languages.setMonarchTokensProvider("solidity", {
+    defaultToken: "", tokenPostfix: ".sol",
+    keywords: ["pragma","solidity","contract","interface","library","function","constructor","modifier","event","error","struct","enum","mapping","address","bool","string","bytes","uint","uint256","int","int256","public","private","internal","external","view","pure","payable","returns","return","if","else","for","while","emit","revert","require","assert","memory","storage","calldata","immutable","constant","override","virtual","is","new","delete","this","super"],
+    tokenizer: { root: [[/[a-zA-Z_$][\w$]*/, { cases: { "@keywords": "keyword", "@default": "identifier" } }], [/0x[0-9a-fA-F]+/, "number.hex"], [/\d+(?:\.\d+)?/, "number"], [/"([^"\\]|\\.)*$/, "string.invalid"], [/"/, { token: "string.quote", bracket: "@open", next: "@string" }], [/\/\//, "comment", "@lineComment"], [/\/\*/, "comment", "@comment"], [/[{}()\[\]]/, "@brackets"], [/[;,.]/, "delimiter"]], string: [[/[^\\"]+/, "string"], [/\\./, "string.escape"], [/"/, { token: "string.quote", bracket: "@close", next: "@pop" }]], comment: [[/[^/*]+/, "comment"], [/\*\//, "comment", "@pop"], [/[/*]/, "comment"]], lineComment: [[/.*$/, "comment", "@pop"]] }
+  });
+  monaco.languages.setLanguageConfiguration("solidity", { comments: { lineComment: "//", blockComment: ["/*", "*/"] }, brackets: [["{","}"],["[","]"],["(",")"]], autoClosingPairs: [{open:"{",close:"}"},{open:"[",close:"]"},{open:"(",close:")"},{open:'"',close:'"'}] });
+  const words = ["contract","function","constructor","modifier","event","mapping","address","uint256","bytes32","public","private","internal","external","view","pure","payable","returns","memory","storage","calldata","require","revert","emit"];
+  monaco.languages.registerCompletionItemProvider("solidity", { provideCompletionItems(model, position) { const word=model.getWordUntilPosition(position); const range={startLineNumber:position.lineNumber,endLineNumber:position.lineNumber,startColumn:word.startColumn,endColumn:word.endColumn}; return { suggestions: words.map((label)=>({label,kind:monaco.languages.CompletionItemKind.Keyword,insertText:label,range})) }; } });
+}
+
+function registerCppCompletions(monaco) {
+  const words = ["#include","namespace","using","class","struct","template","typename","auto","const","constexpr","public","private","protected","virtual","override","std::string","std::vector","std::cout","std::cin","nullptr","return"];
+  monaco.languages.registerCompletionItemProvider("cpp", { provideCompletionItems(model, position) { const word=model.getWordUntilPosition(position); const range={startLineNumber:position.lineNumber,endLineNumber:position.lineNumber,startColumn:word.startColumn,endColumn:word.endColumn}; return { suggestions: words.map((label)=>({label,kind:monaco.languages.CompletionItemKind.Keyword,insertText:label,range})) }; } });
+}
+
+function validateLanguagePack(value) {
+  if(!value||typeof value!=="object"||!/^[-a-z0-9]{2,40}$/.test(value.id))throw new Error("Language pack id must contain 2-40 lowercase letters, numbers or hyphens.");
+  const extensions=Array.isArray(value.extensions)?value.extensions:[];if(!extensions.length||extensions.length>16||extensions.some((item)=>!/^\.[a-z0-9][a-z0-9+_-]{0,11}$/.test(item)))throw new Error("Language pack requires 1-16 safe file extensions.");
+  const keywords=Array.isArray(value.keywords)?value.keywords:[];if(keywords.length>512||keywords.some((item)=>typeof item!=="string"||item.length>64))throw new Error("Language pack keywords are invalid.");
+  return{id:value.id,aliases:Array.isArray(value.aliases)?value.aliases.filter((item)=>typeof item==="string").slice(0,8):[value.id],extensions:[...new Set(extensions)],keywords:[...new Set(keywords)],lineComment:typeof value.lineComment==="string"&&value.lineComment.length<=4?value.lineComment:"//"};
+}
+function registerLanguagePack(monaco, pack) {
+  if(!monaco.languages.getLanguages().some((item)=>item.id===pack.id))monaco.languages.register({id:pack.id,extensions:pack.extensions,aliases:pack.aliases});
+  monaco.languages.setMonarchTokensProvider(pack.id,{keywords:pack.keywords,tokenizer:{root:[[/[a-zA-Z_$][\w$]*/,{cases:{"@keywords":"keyword","@default":"identifier"}}],[/\d+(?:\.\d+)?/,"number"],[/"([^"\\]|\\.)*"/,"string"],[new RegExp(`${pack.lineComment.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")}.*$`),"comment"],[/[{}()\[\]]/,"@brackets"]]}});
+  monaco.languages.registerCompletionItemProvider(pack.id,{provideCompletionItems(model,position){const word=model.getWordUntilPosition(position);const range={startLineNumber:position.lineNumber,endLineNumber:position.lineNumber,startColumn:word.startColumn,endColumn:word.endColumn};return{suggestions:pack.keywords.map((label)=>({label,kind:monaco.languages.CompletionItemKind.Keyword,insertText:label,range}))};}});
+  for(const extension of pack.extensions)customLanguageExtensions.set(extension,pack.id);
+}
+function loadLanguagePacks(monaco){let packs=[];try{packs=JSON.parse(localStorage.getItem("ynx.developer.language-packs.v1")||"[]");}catch{localStorage.removeItem("ynx.developer.language-packs.v1");}for(const value of Array.isArray(packs)?packs.slice(0,32):[])try{registerLanguagePack(monaco,validateLanguagePack(value));}catch{}}
+function storedLanguagePacks(){try{const packs=JSON.parse(localStorage.getItem("ynx.developer.language-packs.v1")||"[]");return Array.isArray(packs)?packs:[];}catch{return[];}}
+
+function initializeCodeEditor() {
+  return new Promise((resolve, reject) => {
+    if (!globalThis.require?.config) { reject(new Error("Monaco loader is unavailable.")); return; }
+    globalThis.require.config({ paths: { vs: "/monaco/vs" } });
+    globalThis.require(["vs/editor/editor.main"], (monaco) => {
+      monacoAPI = monaco; registerSolidityLanguage(monaco); registerCppCompletions(monaco); loadLanguagePacks(monaco);
+      codeEditor = monaco.editor.create($("#editor"), { value: "", language: "plaintext", automaticLayout: true, ariaLabel: "Source editor", accessibilitySupport: "auto", fontSize: document.documentElement.dataset.textSize === "large" ? 16 : 13, lineHeight: document.documentElement.dataset.textSize === "large" ? 25 : 20, minimap: { enabled: true }, bracketPairColorization: { enabled: true }, guides: { bracketPairs: true, indentation: true }, stickyScroll: { enabled: true }, quickSuggestions: { other: true, comments: false, strings: true }, suggestOnTriggerCharacters: true, tabCompletion: "on", formatOnPaste: true, formatOnType: true, scrollBeyondLastLine: false, theme: document.documentElement.dataset.theme === "dark" ? "vs-dark" : "vs" });
+      codeEditor.onDidChangeModelContent(() => { $("#editor").dataset.editorValue = codeEditor.getValue(); $("#editor").dispatchEvent(new Event("input")); });
+      globalThis.ynxDeveloperEditor = { engine: "monaco", version: "0.55.1", getValue: () => codeEditor.getValue(), focus: () => codeEditor.focus(), supportedLanguageIds: () => monaco.languages.getLanguages().map((item) => item.id).sort() };
+      resolve();
+    }, reject);
+  });
+}
 
 function toast(message) { const item = $("#toast"); item.textContent = message; item.classList.add("show"); setTimeout(() => item.classList.remove("show"), 2500); }
 function localizedErrorMessage(error) { const key = apiMessageKeyForError(error?.code); return key ? i18n.t(key) : errorMessage(error); }
@@ -40,14 +114,24 @@ function modal({ title, content, confirm = "Continue", danger = false }) {
 
 function field(label, input) { const wrap = node("label", "field"); wrap.append(node("span", "", label), input); return wrap; }
 
+async function executeDesktopTask(payload, { signal, onChunk } = {}) {
+  const response=await fetch("/runtime/task",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(payload),signal});
+  const value=await response.json().catch(()=>({error:`Runtime returned HTTP ${response.status}.`}));
+  if(!response.ok)throw Object.assign(new Error(value.error||"Desktop runtime task failed."),{code:value.code||"desktop_runtime_unavailable"});
+  onChunk?.(value.output||""); return value;
+}
+
 async function bootstrap() {
   applyTheme(localStorage.getItem("ynx.developer.theme") || "system");
   document.documentElement.dataset.textSize=localStorage.getItem("ynx.developer.text-size")||"normal";
   try { state.aiBuild = aiBuildPersistence.load(); } catch { aiBuildPersistence.clear(); }
   configureLanguages(); configureAPIStudio(); bindNavigation(); bindActions(); syncResponsiveSurfaces(); addEventListener("resize",syncResponsiveSurfaces);
+  try { await initializeCodeEditor(); }
+  catch (error) { const host=$("#editor"); host.contentEditable="plaintext-only"; host.setAttribute("role","textbox"); host.addEventListener("input",()=>{host.dataset.editorValue=host.textContent||"";}); toast(`Code editor fallback: ${error.message}`); }
   const projects = await workspace.list();
   if (projects.length) await loadProject(projects.sort((a,b) => b.updatedAt.localeCompare(a.updatedAt))[0].id);
   renderAIBuild();
+  await refreshExtensionView();
   $("#artifact-output").textContent=JSON.stringify({integration:GROK_BUILD_ACP,truthfulStatus:"adapter-contract-tested-local; official binary not bundled"},null,2);
   await Promise.allSettled([refreshNetwork(), refreshProvider()]);
 }
@@ -56,6 +140,13 @@ function configureLanguages() {
   const labels={en:"English","zh-CN":"简体中文","zh-TW":"繁體中文",ja:"日本語",ko:"한국어",es:"Español",fr:"Français",de:"Deutsch",pt:"Português",ru:"Русский",ar:"العربية",id:"Bahasa Indonesia"};
   for (const id of ["locale-select","ai-language"]) for (const locale of SUPPORTED_LOCALES) $(`#${id}`).append(new Option(labels[locale],locale));
   $("#locale-select").value=i18n.locale; $("#ai-language").value=localStorage.getItem("ynx.developer.ai-language")||i18n.locale; applyLocale();
+  $("#model-select").addEventListener("change", configureAIProviderFields); configureAIProviderFields();
+}
+
+function configureAIProviderFields() {
+  const provider=$("#model-select").value; const byo=provider==="xai"||provider==="openai";
+  $("#byo-provider-fields").hidden=!byo;
+  $("#provider-model").placeholder=provider==="xai"?"grok-code-fast-1":provider==="openai"?"gpt-4.1-mini":"Provider model";
 }
 
 function jsonField(id, label, { optional = false } = {}) {
@@ -155,9 +246,9 @@ function applyLocale() {
   const output=$("#api-output");
   if(output?.dataset.apiState === "empty") output.textContent=i18n.t("apiEmptyState");
 }
-function applyTheme(theme) { if (theme === "system") delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = theme; localStorage.setItem("ynx.developer.theme", theme); $("#theme-toggle")?.setAttribute("data-mode", theme); }
+function applyTheme(theme) { if (theme === "system") delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = theme; localStorage.setItem("ynx.developer.theme", theme); $("#theme-toggle")?.setAttribute("data-mode", theme); const dark=theme==="dark"||(theme==="system"&&matchMedia("(prefers-color-scheme: dark)").matches); monacoAPI?.editor.setTheme(dark?"vs-dark":"vs"); }
 function toggleTheme() { const current=localStorage.getItem("ynx.developer.theme")||"system"; applyTheme(current === "system" ? "light" : current === "light" ? "dark" : "system"); toast(`Appearance: ${localStorage.getItem("ynx.developer.theme")}`); }
-function toggleTextSize(){const large=document.documentElement.dataset.textSize!=="large";document.documentElement.dataset.textSize=large?"large":"normal";localStorage.setItem("ynx.developer.text-size",large?"large":"normal");toast(large?"Large interface text enabled":"Standard interface text enabled");}
+function toggleTextSize(){const large=document.documentElement.dataset.textSize!=="large";document.documentElement.dataset.textSize=large?"large":"normal";localStorage.setItem("ynx.developer.text-size",large?"large":"normal");codeEditor?.updateOptions({fontSize:large?16:13,lineHeight:large?25:20});codeEditor?.layout();toast(large?"Large interface text enabled":"Standard interface text enabled");}
 
 async function loadProject(id) {
   state.project = await workspace.get(id); state.path = Object.keys(state.project.files).find((path) => path.endsWith(".sol")) || Object.keys(state.project.files)[0];
@@ -179,13 +270,15 @@ function renderProject() {
 
 function openFile(path, line) {
   if (!state.project || !(path in state.project.files)) return;
-  state.path = path; $("#editor").value = state.project.files[path]; $("#active-tab").textContent = path; renderLines(); renderDiagnostics(); renderProject();
-  if (line) { const editor = $("#editor"); const position = editor.value.split("\n").slice(0, line - 1).join("\n").length + (line > 1 ? 1 : 0); editor.focus(); editor.setSelectionRange(position, position); }
+  state.path = path; setEditorText(state.project.files[path], path); $("#active-tab").textContent = path; renderLines(); renderDiagnostics(); renderProject();
+  if (line && codeEditor) { codeEditor.revealLineInCenter(line); codeEditor.setPosition({ lineNumber: line, column: 1 }); codeEditor.focus(); }
+  else if (line) $("#editor").focus();
 }
 
-function renderLines() { $("#line-numbers").textContent = Array.from({ length: Math.max(1, $("#editor").value.split("\n").length) }, (_, index) => index + 1).join("\n"); }
+function renderLines() { codeEditor?.layout(); }
 function renderDiagnostics() {
-  const list = state.path ? sourceDiagnostics(state.path, $("#editor").value) : []; const container = $("#diagnostics"); container.replaceChildren(); $("#problem-count").textContent = String(list.length);
+  const list = state.path ? sourceDiagnostics(state.path, editorText()) : []; const container = $("#diagnostics"); container.replaceChildren(); $("#problem-count").textContent = String(list.length);
+  if (monacoAPI && codeEditor?.getModel()) { const model=codeEditor.getModel(); monacoAPI.editor.setModelMarkers(model, "ynx-local", list.map((item)=>{const line=Math.max(1,Math.min(item.line,model.getLineCount()));return { startLineNumber:line,startColumn:1,endLineNumber:line,endColumn:Math.max(2,model.getLineMaxColumn(line)),severity:item.severity==="error"?monacoAPI.MarkerSeverity.Error:monacoAPI.MarkerSeverity.Warning,code:item.code,message:item.message };})); }
   if (!list.length) { container.className = "diagnostics empty"; container.textContent = "No local diagnostics. Compile output remains authoritative."; return; }
   container.className = "diagnostics";
   for (const item of list) { const row = node("button", "diagnostic"); row.append(node("span", `severity ${item.severity}`, item.severity), node("span", "", `${item.code} · ${item.message}`), node("span", "muted", `${item.path}:${item.line}`)); row.onclick = () => openFile(item.path, item.line); container.append(row); }
@@ -259,6 +352,7 @@ function bindNavigation() {
     else { $(".agent").classList.remove("mobile-open"); $$(".side-view").forEach((view)=>view.classList.toggle("active",view.id===`view-${button.dataset.view}`)); if(mobile)setMobileSidebar(!(wasActive&&$(".sidebar").classList.contains("mobile-open"))); }
     $$(".activity-button").forEach((item)=>item.classList.toggle("active",item===button));
     if(button.dataset.view === "source")renderSourceControl();
+    if(button.dataset.view === "extensions")refreshExtensionView();
   });
   $("#close-agent").onclick = () => $("aside.agent").classList.remove("mobile-open");
   $(".workspace").addEventListener("pointerdown",()=>{if(matchMedia("(max-width:740px)").matches)setMobileSidebar(false);});
@@ -279,11 +373,12 @@ function bindNavigation() {
 
 function bindActions() {
   $("#editor").addEventListener("input", () => { renderLines(); renderDiagnostics(); $("#save-state").textContent = "Saving…"; clearTimeout(state.saveTimer); state.saveTimer = setTimeout(saveEditor, 350); });
-  $("#editor").addEventListener("scroll", () => { $("#line-numbers").scrollTop = $("#editor").scrollTop; });
   $("#ai-intent").addEventListener("input", updateEstimate);
   $("#create-project").onclick = createProject; $("#import-project").onclick = () => $("#file-import").click(); $("#file-import").onchange = importProject; $("#export-project").onclick = exportProject; $("#new-file").onclick = newFile;
   $("#run-search").onclick = runSearch; $("#create-checkpoint").onclick = checkpoint; $("#revert-checkpoint").onclick = revert;
   $("#compile").onclick = compile; $("#run-tests").onclick = () => runTask("test"); $("#run-task").onclick = () => runTask("check"); $("#run-rpc").onclick = runRPC;
+  $("#install-package").onclick = installPackage;
+  $("#refresh-toolchains").onclick=refreshToolchains;$("#refresh-extensions").onclick=refreshExtensionView;$("#import-language-pack").onclick=()=>$("#language-pack-file").click();$("#sidebar-add-language").onclick=()=>$("#language-pack-file").click();$("#language-pack-file").onchange=importLanguagePack;$("#import-toolchain-adapter").onclick=()=>$("#toolchain-adapter-file").click();$("#sidebar-add-compiler").onclick=()=>$("#toolchain-adapter-file").click();$("#toolchain-adapter-file").onchange=importToolchainAdapter;
   $("#api-template").onchange = loadAPIConnectorTemplate; $("#api-load-template").onclick = loadAPIConnectorTemplate; $("#api-import").onclick = importAPISpec; $("#api-preview").onclick = previewAPIRequest; $("#api-send").onclick = sendAPISandboxRequest; $("#api-simulate").onclick = simulateAPIRequest; $("#api-generate-client").onclick = generateAPIClient; $("#api-generate-manifest").onclick = generateAPIAdapterManifest;
   $("#ask-ai").onclick = askAI; $("#cancel-ai").onclick = () => { try { ai.cancel(); } catch (error) { showError(error, $("#ai-output")); } }; $("#apply-ai").onclick = applyAI; $("#reject-ai").onclick = rejectAI;
   $("#clear-ai-history").onclick = clearAIHistory;
@@ -316,7 +411,7 @@ async function newFile() {
 
 async function saveEditor() {
   if (!state.project || !state.path) return;
-  try { state.project = await workspace.write(state.project.id, state.path, $("#editor").value); $("#save-state").textContent = "Saved"; renderContext(); }
+  try { state.project = await workspace.write(state.project.id, state.path, editorText()); $("#save-state").textContent = "Saved"; renderContext(); }
   catch (error) { $("#save-state").textContent = "Save failed"; showError(error); }
 }
 
@@ -347,9 +442,17 @@ async function revert() {
 }
 
 async function compile() {
-  if (!state.project || !state.path?.endsWith(".sol")) return toast("Open a Solidity file to compile."); await saveEditor(); activatePanel("output"); const output = $("#command-output"); output.textContent = `Checking pinned compiler at ${config.chainURL}…`;
-  try { const source = state.project.files[state.path]; const name = source.match(/contract\s+([A-Za-z_]\w*)/u)?.[1] || state.path.split("/").pop().replace(/\.sol$/, ""); state.artifact = await chain.compile({ name, source }); output.textContent = JSON.stringify({ evidence: "real /ide/compile response", compiler: "Solidity 0.8.24", boundedExecution: true, artifact: state.artifact }, null, 2); $("#deployment-state").textContent = "Real compile evidence available. Deployment still requires Wallet review, authorization, final approval and authoritative receipt."; $("#deployment-state").className = "state-card success"; toast("Compile succeeded with returned evidence."); }
-  catch (error) { state.artifact = null; showError(error, output); }
+  if (!state.project || !state.path) return toast("Open a source file to compile."); await saveEditor(); activatePanel("output"); const output = $("#command-output");
+  if(state.path.endsWith(".sol")){
+    output.textContent = `Checking pinned compiler at ${config.chainURL}…`;
+    try { const source = state.project.files[state.path]; const name = source.match(/contract\s+([A-Za-z_]\w*)/u)?.[1] || state.path.split("/").pop().replace(/\.sol$/, ""); state.artifact = await chain.compile({ name, source }); output.textContent = JSON.stringify({ evidence: "real solc 0.8.24 standard-json compiler output", compiler: state.artifact.compiler, boundedExecution: true, artifact: state.artifact }, null, 2); $("#deployment-state").textContent = "Real ABI and EVM bytecode are compiled. Deployment still requires Wallet review, authorization, final approval and an authoritative receipt; unsupported chain execution remains blocked."; $("#deployment-state").className = "state-card success"; toast("Solidity compilation succeeded."); }
+    catch (error) { state.artifact = null; showError(error, output); } return;
+  }
+  const preview={task:"compile-active",activePath:state.path,cwd:`/projects/${state.project.id}`,command:"Resolve the registered desktop toolchain and compile/type-check the active file",environmentClass:"desktop-project-sandbox",risk:"write-build-artifacts",approval:"compile-once",network:false};
+  const content=node("div");content.append(node("pre","",JSON.stringify(preview,null,2)),node("p","muted compact","The desktop runtime resolves only a registered installed toolchain, disables network access, limits the workspace and execution time, and returns the real exit code and diagnostics. The Web Product cannot claim a local compiler."));
+  if(!await modal({title:`Compile ${state.path}`,content,confirm:"Compile once"}))return;
+  output.textContent="Resolving installed desktop toolchain…";
+  try{const result=await executeDesktopTask({...preview,projectId:state.project.id,files:state.project.files});output.textContent=JSON.stringify(result,null,2);toast(result.ok?`${result.language} compile passed.`:`${result.language} compiler returned errors.`);}catch(error){showError(error,output);}
 }
 
 async function runTask(task) {
@@ -357,6 +460,57 @@ async function runTask(task) {
   const content = node("div"); content.append(node("pre", "", JSON.stringify(preview, null, 2)), node("p", "muted compact", "Web Product cannot execute local commands. An installed unsigned desktop package may provide an allowlisted sandbox executor; destructive, network and deploy actions are not in this task allowlist."));
   if (!await modal({ title: "Approve terminal task", content, confirm: "Approve command" })) return;
   try { const result = await commands.run(preview, { command: true, write: preview.risk !== "read" }, { projectId: state.project?.id, files: state.project?.files }); $("#terminal-preview").textContent = JSON.stringify(result, null, 2); } catch (error) { showError(error, $("#terminal-preview")); }
+}
+
+async function installPackage() {
+  if(!state.project)return toast("Open a project first."); const spec=$("#package-spec").value.trim();
+  if(!/^(?:@[a-z0-9][a-z0-9._-]*\/)?[a-z0-9][a-z0-9._-]*(?:@[0-9]+(?:\.[0-9]+){0,2})?$/i.test(spec))return showError(Object.assign(new Error("Enter one npm package name with an optional exact numeric version."),{code:"package_spec_invalid"}),$("#terminal-preview"));
+  const preview={task:"install",cwd:`/projects/${state.project.id}`,command:`npm install --ignore-scripts --save-exact ${spec}`,environmentClass:"desktop-project-sandbox",risk:"network-and-write",approval:"package-install"};
+  activatePanel("terminal"); $("#terminal-preview").textContent=JSON.stringify(preview,null,2);
+  const content=node("div");content.append(node("pre","",JSON.stringify(preview,null,2)),node("p","muted compact","The desktop runtime creates a project-isolated workspace, disables lifecycle scripts, applies package/time/size limits, and never installs globally."));
+  if(!await modal({title:"Approve one package installation",content,confirm:"Install exact package"}))return;
+  try{const result=await executeDesktopTask({...preview,projectId:state.project.id,files:state.project.files,packageSpec:spec});$("#terminal-preview").textContent=JSON.stringify(result,null,2);toast("Package installed in the isolated desktop workspace.");}catch(error){showError(error,$("#terminal-preview"));}
+}
+
+async function refreshToolchains(){
+  const output=$("#toolchain-status");output.textContent="Detecting installed desktop toolchains…";
+  try{const response=await fetch("/runtime/toolchains");const value=await response.json().catch(()=>({}));if(!response.ok)throw Object.assign(new Error("Installed desktop runtime is required for local toolchain detection."),{code:"desktop_runtime_required"});output.textContent=JSON.stringify({platform:value.platform,model:value.model,available:value.adapters?.filter((item)=>item.available).map((item)=>({language:item.id,extensions:item.extensions,command:item.command})),unavailable:value.adapters?.filter((item)=>!item.available).map((item)=>({language:item.id,extensions:item.extensions,installHint:item.installHint,installForCurrentUser:true})),extensionBoundary:"Like VS Code, editing support and executable toolchains are separate. Import a declarative language pack for colors/completion and a reviewed compiler adapter for any additional installed language toolchain."},null,2);}catch(error){showError(error,output);}
+}
+
+async function refreshExtensionView(){
+  const list=$("#extension-list"),summary=$("#extension-summary");if(!list||!summary)return;list.replaceChildren();summary.textContent="Detecting languages and installed compilers…";
+  const languagePacks=storedLanguagePacks();let adapters=[];let runtime="Web editing only";
+  try{const response=await fetch("/runtime/toolchains");if(response.ok){const value=await response.json();adapters=value.adapters||[];runtime=`Desktop runtime · ${value.platform}`;}}catch{}
+  const builtInIds=monacoAPI?[...new Set(monacoAPI.languages.getLanguages().map((item)=>item.id))].sort():[];
+  const sections=[{title:`Built-in editing (${builtInIds.length})`,items:builtInIds.map((id)=>({id,detail:"Syntax/editing support",kind:"builtin"}))},{title:`Installed language packs (${languagePacks.length})`,items:languagePacks.map((pack)=>({id:pack.id,detail:(pack.extensions||[]).join(" · "),kind:"language"}))},{title:`Compiler adapters (${adapters.length})`,items:adapters.map((adapter)=>({id:adapter.id,detail:`${adapter.extensions.join(" · ")} · ${adapter.available?"ready":adapter.installHint||"toolchain missing"}`,kind:adapter.custom?"compiler":"builtin-compiler",ready:adapter.available}))}];
+  for(const section of sections){list.append(node("h3","extension-heading",section.title));if(!section.items.length){list.append(node("p","muted compact","None installed."));continue;}for(const item of section.items){const card=node("div",`extension-card ${item.ready?"ready":""}`);const copy=node("div");copy.append(node("strong","",item.id),node("small","",item.detail));card.append(copy);if(item.kind==="language"||item.kind==="compiler"){const remove=node("button","icon-button","×");remove.setAttribute("aria-label",`Remove ${item.id}`);remove.onclick=()=>item.kind==="language"?removeLanguagePack(item.id):removeCompilerAdapter(item.id);card.append(remove);}list.append(card);}}
+  summary.textContent=`${runtime}. VS Code-style model: editing extensions and compiler toolchains are independent; users may add both.`;
+}
+
+async function removeLanguagePack(id){
+  if(!await modal({title:`Remove ${id}`,content:"Remove this declarative editing pack from the current browser profile?",confirm:"Remove pack",danger:true}))return;
+  const packs=storedLanguagePacks().filter((item)=>item.id!==id);localStorage.setItem("ynx.developer.language-packs.v1",JSON.stringify(packs));location.reload();
+}
+
+async function removeCompilerAdapter(id){
+  if(!await modal({title:`Remove ${id}`,content:"Remove this compiler adapter from the current desktop user? Built-in adapters cannot be removed.",confirm:"Remove adapter",danger:true}))return;
+  const response=await fetch("/runtime/toolchains/remove",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({approval:"remove-local-toolchain-once",id})});const value=await response.json().catch(()=>({}));if(!response.ok)return showError(Object.assign(new Error(value.error||"Adapter removal failed."),{code:value.code||"adapter_removal_failed"}),$("#toolchain-status"));toast(`Compiler adapter ${id} removed.`);await refreshExtensionView();
+}
+
+async function importLanguagePack(event){
+  const file=event.target.files?.[0];event.target.value="";if(!file)return;if(file.size>128*1024)return showError(Object.assign(new Error("Language pack exceeds 128 KiB."),{code:"language_pack_too_large"}),$("#toolchain-status"));
+  try{const pack=validateLanguagePack(JSON.parse(await file.text()));if(!monacoAPI)throw new Error("Editor engine is not ready.");registerLanguagePack(monacoAPI,pack);let packs=storedLanguagePacks().filter((item)=>item.id!==pack.id);packs.push(pack);if(packs.length>32)packs=packs.slice(-32);localStorage.setItem("ynx.developer.language-packs.v1",JSON.stringify(packs));if(state.path&&pack.extensions.some((extension)=>state.path.toLowerCase().endsWith(extension)))monacoAPI.editor.setModelLanguage(codeEditor.getModel(),pack.id);$("#toolchain-status").textContent=JSON.stringify({installed:true,id:pack.id,extensions:pack.extensions,editing:["highlighting","keyword completion"],execution:false,security:"declarative-only; no extension code executed"},null,2);toast(`Language pack ${pack.id} installed locally.`);await refreshExtensionView();}catch(error){showError(Object.assign(error,{code:"language_pack_invalid"}),$("#toolchain-status"));}
+}
+
+async function importToolchainAdapter(event){
+  const file=event.target.files?.[0];event.target.value="";if(!file)return;if(file.size>64*1024)return showError(Object.assign(new Error("Compiler adapter exceeds 64 KiB."),{code:"adapter_too_large"}),$("#toolchain-status"));
+  try{
+    const adapter=JSON.parse(await file.text());const review={schemaVersion:adapter.schemaVersion,id:adapter.id,extensions:adapter.extensions,executable:adapter.executable,args:adapter.args,execution:{surface:"installed desktop only",shell:false,network:false,workspace:"project isolated",timeoutSeconds:30,approval:"every compile"}};
+    const content=node("div");content.append(node("pre","",JSON.stringify(review,null,2)),node("p","muted compact","Registration stores this adapter for the current desktop user. It may invoke only the named installed executable with literal argument tokens plus ${file}/${build}; it may explicitly override the compiler choice for a built-in file extension, remains removable, and cannot use shell syntax."));
+    if(!await modal({title:"Register local compiler adapter",content,confirm:"Register adapter"}))return;
+    const response=await fetch("/runtime/toolchains/register",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({approval:"register-local-toolchain-once",adapter})});const value=await response.json().catch(()=>({}));if(!response.ok)throw Object.assign(new Error(value.error||"Compiler adapter registration failed."),{code:value.code||"adapter_registration_failed"});
+    $("#toolchain-status").textContent=JSON.stringify(value,null,2);toast(`Compiler adapter ${value.adapter.id} registered.`);await refreshExtensionView();
+  }catch(error){showError(Object.assign(error,{code:error.code||"adapter_invalid"}),$("#toolchain-status"));}
 }
 
 async function runRPC() {
@@ -368,8 +522,8 @@ async function refreshNetwork() {
 }
 
 async function refreshProvider() {
-  const status = await ai.status(); const pill = $("#provider-status"); pill.textContent = status.available ? `${status.model} · ready` : "Unavailable"; pill.className = `provider ${status.available ? "available" : "unavailable"}`;
-  const select=$("#model-select"); select.options[0].textContent=status.available?`YNX Gateway · ${status.model}`:"YNX Gateway · unavailable";
+  const status = await ai.status(); const pill = $("#provider-status"); const unavailableLabel=status.error === "provider_rate_limited" ? "Provider quota unavailable" : "Unavailable"; pill.textContent = status.available ? `${status.model} · ready` : unavailableLabel; pill.className = `provider ${status.available ? "available" : "unavailable"}`;
+  const select=$("#model-select"); select.options[0].textContent=status.available?`YNX hosted · ${status.model}`:`YNX hosted · ${unavailableLabel.toLowerCase()}`;
 }
 
 async function askAI() {
@@ -381,7 +535,10 @@ async function askAI() {
     if (!await modal({ title: "Approve AI context and estimated cost", content: review, confirm: "Stream from Gateway" })) return;
     const network=state.aiBuild.requestPermission("network",{reason:"Send only the approved context through the selected provider interface",scope:{provider:$("#model-select").value,paths:state.aiPrepared.files.map((file)=>file.path)}}); state.aiBuild.decidePermission(network.requestId,"allow-once"); saveAIBuild();
     $("#ask-ai").disabled = true; $("#cancel-ai").disabled = false; $("#ai-output").textContent = "";
-    state.aiResult = await ai.stream(state.aiPrepared, { accessToken: $("#gateway-token").value, model: $("#model-select").value, outputLanguage: $("#ai-language").value, approved: true, onToken: (token) => { $("#ai-output").textContent += token; } });
+    const provider=$("#model-select").value;
+    if(provider==="grok-build-acp")throw Object.assign(new Error("The Grok Build ACP sidecar is available only in the desktop runtime after its separately verified official binary is configured."),{code:"desktop_sidecar_required"});
+    const requestedModel=$("#provider-model").value.trim();
+    state.aiResult = await ai.stream(state.aiPrepared, { provider, accessToken: $("#provider-api-key").value, model: requestedModel || (provider==="xai"?"grok-code-fast-1":provider==="openai"?"gpt-4.1-mini":"gateway-policy"), outputLanguage: $("#ai-language").value, approved: true, onToken: (token) => { $("#ai-output").textContent += token; } });
     state.aiBuild.recordTool({name:"provider.stream",permission:"network",requestId:network.requestId,inputSummary:`${state.aiPrepared.files.length} approved files`,status:"passed",outputSummary:`${state.aiResult.output.length} output characters`});
     const providerProposals=proposedFiles(state.aiResult.output); if(providerProposals.length){const proposal=state.aiBuild.proposeDiff(providerProposals.map((file)=>({path:file.path,before:state.project.files[file.path]??"",after:file.content})),"Provider-proposed bounded file changes");state.aiProposalId=proposal.id;} saveAIBuild();
     state.project = await workspace.recordConversation(state.project.id, { intent: state.aiPrepared.intent, approvedPaths: state.aiPrepared.files.map((file) => file.path), model: $("#model-select").value, status: state.aiResult.status, output: state.aiResult.output }); renderAIHistory();
@@ -429,8 +586,8 @@ async function clearAIHistory() {
 async function signInWallet() {
   const stateBox=$("#wallet-state");
   if (!await modal({title:i18n.t("walletSignIn"),content:"Developer requests only public account access and deployment-review scope. The Wallet private key never leaves Wallet; this product device must complete a separate central Gateway challenge.",confirm:i18n.t("continue")})) return;
-  stateBox.textContent="Waiting for Wallet authorization and central verifier…";
-  try { const session=await walletSession.signIn({approved:true}); $("#deploy-account").value=session.account; stateBox.textContent=`${session.account} · ${i18n.date(session.expiresAt)}`; stateBox.className="state-card success"; }
+  stateBox.textContent="Opening the exact reviewed request in YNX Wallet…";
+  try { const result=await walletSession.open({approved:true}); stateBox.textContent=`Wallet review opened · expires ${i18n.date(result.expiresAt)}. No Developer session exists until the registered desktop callback and central Gateway completion both pass.`; stateBox.className="state-card"; }
   catch(error){ stateBox.textContent=`${errorMessage(error)} ${i18n.t("retry")}`; stateBox.className="state-card"; toast(errorMessage(error)); }
 }
 

@@ -33,6 +33,7 @@
       <button class="activity-button" data-view="source" aria-label="Source control"><span data-i18n="diff">Diff</span></button>
       <button class="activity-button" data-view="deploy" aria-label="Deployment"><span data-i18n="deploy">Deploy</span></button>
       <button class="activity-button" data-view="docs" aria-label="Documentation"><span data-i18n="docs">Docs</span></button>
+      <button class="activity-button" data-view="extensions" aria-label="Language and compiler extensions"><span>Extensions</span></button>
       <button id="mobile-agent" class="activity-button mobile-agent" data-view="agent" aria-label="Open YNX AI Build"><span data-i18n="aiBuild">AI Build</span></button>
     </nav>
 
@@ -61,7 +62,7 @@
         <div class="pane-heading"><strong>Deployment</strong></div>
         <div class="boundary"><span>Signing boundary</span><strong data-i18n="walletOnly">YNX Wallet only</strong><small data-i18n="privateKeyBoundary">No private key enters Developer.</small></div>
         <button id="wallet-sign-in" class="button full" data-i18n="walletSignIn">Sign in with YNX Wallet</button>
-        <div id="wallet-state" class="state-card">Wallet provider and central verifier are required.</div>
+        <div id="wallet-state" class="state-card">The Web surface cannot receive the registered desktop Wallet callback. Install the reviewed desktop Developer client to authorize; no injected browser signer is accepted.</div>
         <label class="field"><span>Wallet account</span><input id="deploy-account" placeholder="ynx1..."></label>
         <label class="field"><span>Constructor args (JSON)</span><input id="constructor-args" value="[]"></label>
         <button id="review-deployment" class="button primary full" data-i18n="reviewDeployment">Review deployment</button>
@@ -77,6 +78,14 @@
           <button data-doc="recovery">Recovery & checkpoints</button>
         </div>
       </section>
+      <section id="view-extensions" class="side-view">
+        <div class="pane-heading"><div><span class="eyebrow">EXTENSIONS</span><strong>Languages & compilers</strong></div><button id="refresh-extensions" class="icon-button" aria-label="Refresh extensions">↻</button></div>
+        <p class="muted compact">VS Code-style model: editing packs add file recognition, colors and completion; compiler adapters connect any real locally installed toolchain and require approval for every run. Editing support never implies a compiler is installed.</p>
+        <div class="extension-actions"><button id="sidebar-add-language" class="button full">Install language pack</button><button id="sidebar-add-compiler" class="button full">Install compiler adapter</button></div>
+        <div id="extension-summary" class="extension-summary" role="status">Loading extension inventory…</div>
+        <div id="extension-list" class="extension-list" aria-label="Installed language and compiler extensions"></div><p class="muted compact">Need another language? Import its declarative editing pack and a reviewed compiler adapter JSON. Missing compilers are shown as missing, never as successful builds.</p>
+        <div class="side-footer"><span>Execution</span><strong>Desktop · bounded</strong></div>
+      </section>
     </aside>
 
     <main class="workspace">
@@ -85,8 +94,7 @@
         <div class="run-actions"><span id="save-state">Saved</span><button id="compile" class="button primary" data-i18n="compile">Compile</button><button id="run-tests" class="button" data-i18n="runTests">Run tests</button><button id="run-task" class="button"><span data-i18n="tasks">Tasks</span> ▾</button></div>
       </div>
       <section class="editor-area" aria-label="Editor">
-        <div class="gutter" id="line-numbers" aria-hidden="true">1</div>
-        <textarea id="editor" spellcheck="false" aria-label="Source editor" placeholder="Create or open a project to edit files."></textarea>
+        <div id="editor" role="code" aria-label="Source editor" tabindex="0" data-editor-engine="monaco" data-editor-value=""></div>
       </section>
       <section class="bottom-panel" aria-label="Output panel">
         <div class="panel-tabs" role="tablist">
@@ -101,7 +109,7 @@
         </div>
         <div id="panel-problems" class="panel-body active"><div id="diagnostics" class="diagnostics empty">No diagnostics. Open a Solidity file to analyze.</div></div>
         <div id="panel-output" class="panel-body"><pre id="command-output">Command output is evidence-backed. Nothing has run.</pre></div>
-        <div id="panel-terminal" class="panel-body"><div class="terminal-boundary"><strong>Terminal availability</strong><span>Web Product: preview only</span><span>Unsigned local desktop package: allowlisted executor when installed</span><span>Signed production desktop release: not claimed</span></div><pre id="terminal-preview">Select a task to review command, cwd and environment class.</pre></div>
+        <div id="panel-terminal" class="panel-body"><div class="terminal-boundary"><strong>Terminal availability</strong><span>Web Product: Solidity compile and AI; local toolchains stay disabled</span><span>Desktop: isolated compile, check, tests and package installation</span><span>Signed production desktop release: not claimed</span></div><div class="toolchain-actions"><button id="refresh-toolchains" class="button">Detect installed toolchains</button><button id="import-language-pack" class="button">Add language pack</button><input id="language-pack-file" type="file" accept="application/json,.json" hidden><button id="import-toolchain-adapter" class="button">Add compiler adapter</button><input id="toolchain-adapter-file" type="file" accept="application/json,.json" hidden></div><pre id="toolchain-status">Toolchains are detected by the installed desktop runtime. Language packs add declarative highlighting/completion. Compiler adapters require explicit review, use shell-free arguments, and compile inside the bounded desktop workspace.</pre><div class="rpc-row"><input id="package-spec" placeholder="Package, for example ethers@6.17.0" aria-label="npm package to install"><button id="install-package" class="button">Review & install package</button></div><pre id="terminal-preview">Select a task to review command, cwd and environment class.</pre></div>
         <div id="panel-rpc" class="panel-body"><div class="rpc-row"><select id="rpc-method" class="select"><option>eth_chainId</option><option>eth_blockNumber</option><option>net_version</option><option>eth_getTransactionReceipt</option><option>eth_getLogs</option></select><input id="rpc-params" value="[]" aria-label="RPC parameters JSON"><button id="run-rpc" class="button primary">Run read-only RPC</button></div><pre id="rpc-output">RPC methods are allowlisted and read-only.</pre></div>
         <div id="panel-api-studio" class="panel-body api-studio">
           <div class="api-toolbar">
@@ -148,9 +156,14 @@
           <div class="agent-actions"><button id="create-ai-run" class="button primary" data-i18n="previewPlan">Preview plan</button><button id="resume-ai-run" class="button" data-i18n="resume" disabled>Resume</button><button id="export-ai-audit" class="button" data-i18n="exportAudit" disabled>Export audit</button></div>
         </div>
         <fieldset id="context-files" class="context"><legend data-i18n="approvedContext">Approved context</legend><p class="muted compact">Open a project to select files.</p></fieldset>
-        <label class="field"><span data-i18n="modelProvider">Model / provider</span><select id="model-select" class="select"><option value="ynx-gateway">YNX Gateway policy</option><option value="grok-build-acp">Approved Grok via ACP sidecar</option><option value="local-inference">Local inference (when configured)</option></select></label>
+        <label class="field"><span data-i18n="modelProvider">Model / provider</span><select id="model-select" class="select"><option value="ynx-local">YNX hosted open model</option><option value="ynx-cloud">YNX managed cloud fallback</option><option value="xai">Your xAI API</option><option value="openai">Your OpenAI API</option><option value="grok-build-acp">Official Grok Build ACP sidecar (desktop)</option></select></label>
+        <div id="byo-provider-fields" hidden>
+          <label class="field"><span>Session-only API key</span><input id="provider-api-key" type="password" autocomplete="off" spellcheck="false" placeholder="Never saved to project or browser storage"></label>
+          <label class="field"><span>Provider model</span><input id="provider-model" autocomplete="off" spellcheck="false" placeholder="Use the reviewed default, or enter a model ID"></label>
+          <div class="agent-note">The key remains only in this page's memory and is sent through the allowlisted YNX broker for this request. It is never written to IndexedDB, localStorage, project exports, or server audit logs.</div>
+        </div>
         <label class="field"><span data-i18n="aiLanguage">AI output language</span><select id="ai-language" class="select"></select></label>
-        <label class="field"><span>Session-only Gateway access</span><input id="gateway-token" type="password" autocomplete="off" placeholder="Not persisted"></label>
+        <div class="agent-note">Public Testnet AI session · the server keeps the provider credential private and applies per-user rate limits.</div>
         <label class="field"><span>Coding intent</span><textarea id="ai-intent" rows="5" placeholder="Explain a diagnostic, propose a diff, or generate tests…"></textarea></label>
         <div id="cost-estimate" class="estimate"><span>Cost estimate</span><strong>Select context</strong><small>Provider billing is unavailable until reported.</small></div>
         <div class="permission-matrix"><span class="eyebrow" data-i18n="permissions">Permissions</span><div>Read · context scoped</div><div>Write · review + allow once</div><div>Execute / network / package · allow once</div><div>Secrets / Git / deploy · separate approval</div></div>
@@ -169,6 +182,7 @@
   <dialog id="palette"><form method="dialog"><div class="modal-heading"><strong>Command Palette</strong><button value="cancel" class="icon-button" aria-label="Close">×</button></div><label class="field"><span>Find an action</span><input id="palette-query" autocomplete="off" placeholder="Compile, test, checkpoint, deploy review…"></label><div class="command-list"><button value="cancel" data-command="compile">Compile active Solidity file</button><button value="cancel" data-command="test">Run approved tests</button><button value="cancel" data-command="checkpoint">Create checkpoint</button><button value="cancel" data-command="ai">Open YNX AI Build</button><button value="cancel" data-command="deploy">Review Wallet-only deployment</button></div></form></dialog>
   <div id="toast" role="status" aria-live="polite"></div>
   <input id="file-import" type="file" accept="application/json,.json" hidden>
-  <script type="module" src="/app.js?v=12"></script>
+  <script src="/monaco/vs/loader.js"></script>
+  <script type="module" src="/app.js?v=13"></script>
 </body>
 </html>

@@ -44,6 +44,14 @@ context selection, permission decisions, diff approval, checkpoints and audit.
 The sidecar cannot receive Wallet keys, PEM material, deployment signers,
 service secrets, unchecked files, Git push or deployment authority.
 
+The YNX workflow follows the useful boundaries in the upstream architecture,
+not its branding or unrestricted terminal surface: an editor speaks to an ACP
+sidecar; tools are separated from workspace/checkpoint state; permission rules
+are evaluated before execution; unknown methods deny by default; and every
+write remains a reviewable diff. YNX keeps chain access, Wallet signing,
+compiler workers, package installation and AI providers behind distinct
+adapters so a model cannot silently inherit any of those authorities.
+
 ## Update and rollback
 
 An upstream change requires all of the following before the pin moves:

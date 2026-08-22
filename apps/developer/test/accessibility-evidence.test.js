@@ -57,7 +57,7 @@ test("committed accessibility evidence and public metadata preserve exact hashes
   assert.equal(metadata.canonicalUrl, "https://ynxweb4.com/developer");
   assert.equal(metadata.deployedPublic, true);
   assert.equal(metadata.publicRouteVerified, true);
-  assert.equal(metadata.publicEvidence.immutableArtifactUrls.length, 5);
+  assert.equal(metadata.publicEvidence.immutableArtifactUrls.length, 6);
   assert.ok(metadata.publicEvidence.immutableArtifactUrls.every((url) => url.startsWith("https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-")));
   assert.equal(release.browserAccessibilityEvidence.status, "passed");
   assert.equal(release.browserAccessibilityEvidence.independentCertification, false);
@@ -89,8 +89,8 @@ test("release manifests, provenance and website metadata agree on current unsign
   assert.equal(windowsManifest.sha256, release.sha256.windowsX64UnsignedZip);
   assert.equal(macManifest.sha256, metadata.localEvidence.macosArm64.sha256);
   assert.equal(windowsManifest.sha256, metadata.localEvidence.windowsX64.sha256);
-  assert.equal(macManifest.sourceCommit, provenance.sourceCommit);
-  assert.equal(windowsManifest.sourceCommit, provenance.sourceCommit);
+  assert.equal(macManifest.sourceCommit, macProvenance.sourceCommit);
+  assert.equal(windowsManifest.sourceCommit, windowsProvenance.sourceCommit);
   assert.equal(windowsManifest.ciRunId, windowsProvenance.ci.runId);
   assert.equal(windowsManifest.ciArtifactId, windowsProvenance.ci.artifactId);
   assert.equal(contract.source.releaseCandidateCommit, provenance.sourceCommit);
@@ -108,7 +108,14 @@ test("release manifests, provenance and website metadata agree on current unsign
   assert.equal(metadata.release.targetCommit, "fc7e9b5146d514aaae02bb01e4e20c62ff32867a");
   assert.equal(metadata.localEvidence.macosArm64.hosted, true);
   assert.equal(metadata.localEvidence.windowsX64.hosted, true);
-  assert.equal(metadata.routeStatus, "public-testnet-verified");
+  assert.equal(metadata.routeStatus, "protected-public-candidate-live; independent-browser-proof-pending");
+  assert.equal(metadata.fullPlatformPublicEvidence.nineRuntimes, true);
+  assert.equal(metadata.fullPlatformPublicEvidence.sevenLanguageServers, true);
+  assert.equal(metadata.fullPlatformPublicEvidence.independentBrowserVisible, false);
+  assert.equal(metadata.fullPlatformPublicEvidence.concurrentTenantsVerified, 12);
+  assert.equal(metadata.fullPlatformPublicEvidence.restartPersistence, true);
+  assert.equal(metadata.fullPlatformPublicEvidence.walletPublicDeploymentReady, false);
+  assert.equal(metadata.fullPlatformPublicEvidence.bftIdeActionPublicReady, false);
   assert.equal(provenance.truthBoundaries.productionSigned, false);
-  assert.equal(provenance.truthBoundaries.deployedPublic, false);
+  assert.equal(provenance.truthBoundaries.deployedPublic, true);
 });

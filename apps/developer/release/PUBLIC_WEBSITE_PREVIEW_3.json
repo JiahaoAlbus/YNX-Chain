@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-developer-v1",
+  "applicationVersion": "0.2.0",
+  "websiteReleaseId": "developer-v0.2.0-testnet-preview.3",
+  "packageSourceCommit": "4013995f12bf65603a9889b29bb8d674cdc2028d",
+  "packageSourceTree": "18b6a20a10a058f3fcaa71e5f1cc31487319969f",
+  "publicWebCommit": "ad2b43ec",
+  "publicWebUpdatedByThisRelease": false,
+  "compilerExtensionModel": {
+    "builtInAdapters": "Detected real local toolchains only.",
+    "customAdapters": "Current-user JSON manifests with explicit registration approval.",
+    "manifestFields": ["schemaVersion", "id", "extensions", "executable", "args"],
+    "argumentPlaceholders": ["${file}", "${build}"],
+    "security": [
+      "executable command name only; no path",
+      "no shell syntax",
+      "cannot replace built-in extensions",
+      "per-compile approval",
+      "project-isolated workspace",
+      "network denied during compilation",
+      "30 second timeout",
+      "1 MiB output bound"
+    ],
+    "truthBoundary": "Editing support does not imply an installed compiler; availability is reported only after executable detection."
+  },
+  "artifacts": [
+    {
+      "platform": "macos-arm64",
+      "url": "https://www.ynxweb4.com/downloads/ynx-developer-testnet-preview-macos-unsigned.zip",
+      "sha256": "85e308dc4ff5f369b23373cb16f5f2a10f7e5471692591ee3e7663c8bbcfc3e8",
+      "bytes": 48250583,
+      "signingClass": "adhoc-no-team-id-not-notarized",
+      "verification": "Archive integrity, embedded source provenance, self-test, cold launch, real bounded C++ compile, second launch, child cleanup, public ranged download reconstruction and public SHA-256 passed."
+    },
+    {
+      "platform": "windows-x64",
+      "url": "https://www.ynxweb4.com/downloads/ynx-developer-testnet-preview-windows-x64-unsigned.zip",
+      "sha256": "e63056b0a75b60c738b58918302448b3b04d49b71db4cc60ea92407b2e1e9342",
+      "bytes": 114786550,
+      "signingClass": "unsigned-no-authenticode",
+      "githubActions": {
+        "runId": 31267261759,
+        "jobId": 93127321429,
+        "artifactId": 9024539720,
+        "artifactOuterDigest": "sha256:2903e9b3c8b79b1632e0b097b87219a61ba63dcd7d3692b311873fd6194c6a5b"
+      },
+      "verification": "Twenty-three tests, portable extraction, Authenticode NotSigned classification, cold launch, bundled server, child cleanup, Actions artifact digest, public ranged download reconstruction and public SHA-256 passed."
+    }
+  ],
+  "truthBoundaries": {
+    "allVSCodeLanguageServicesBundled": false,
+    "allCompilersBundled": false,
+    "arbitraryVSCodeExtensionExecution": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "publishedAt": "2026-08-09T00:56:00+08:00"
+}
