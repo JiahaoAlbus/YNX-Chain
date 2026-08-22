@@ -6431,6 +6431,24 @@
       "currentSourceBoundPublic": false,
       "productsConnected": "0/12",
       "nextAction": "Do not reuse P0-177 or issue a routing lease. Website/Vercel authority must remove deployment protection for an exact-source candidate or deploy the exact artifact into an approved public project, then independently pass all four resources."
+    },
+    {
+      "taskId": "P0-178",
+      "owner": "website",
+      "status": "ACTIVE_SINGLE_USE_PROJECT_SSO_PREFLIGHT_WINDOW_RESTORE_REQUIRED",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/leases/wallet-web-sso-preflight-window-p0178-20260822.json",
+        "vercel-project:prj_K4emrdkST7sdb0K9mhmLM0QZh0I3:ssoProtection"
+      ],
+      "dependencies": ["P0-177"],
+      "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-web-sso-preflight-20260822T081205Z",
+      "expiresAt": "2026-08-22T08:27:05Z",
+      "candidateDeployment": "dpl_G6gTg2a3CVS1siTRqQg5XjQfPR9q",
+      "officialAliasMutationAllowed": false,
+      "restoreSsoRequired": true,
+      "currentSourceBoundPublic": false,
+      "productsConnected": "0/12",
+      "nextAction": "Temporarily disable only wallet-web SSO, independently freeze all four candidate resources, always restore all_except_custom_domains, then release. A separate routing lease remains required."
     }
   ]
 }

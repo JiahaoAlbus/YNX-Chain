@@ -1,26 +1,26 @@
 {
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "epoch": 75,
-  "updatedAt": "2026-08-22T08:09:09Z",
+  "epoch": 76,
+  "updatedAt": "2026-08-22T08:12:05Z",
   "heavy": {
-    "owner": null,
-    "status": "CONSUMED_RELEASED_FAILED_CLOSED_CANDIDATE_DEPLOYMENT_NOT_PUBLIC",
-    "branch": "codex/website-wallet-public-candidate-reachability-20260822",
+    "owner": "website",
+    "status": "ACTIVE_SINGLE_USE_PROJECT_SSO_PREFLIGHT_WINDOW_RESTORE_REQUIRED",
+    "branch": "codex/website-wallet-web-sso-preflight-20260822",
     "worktree": "/Users/huangjiahao/Desktop/ynx-web4-website-new",
-    "taskId": "P0-177",
-    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-candidate-reachability-20260822T080354Z",
-    "leasedAt": "2026-08-22T08:03:54Z",
-    "expiresAt": "2026-08-22T08:33:54Z",
-    "releasedAt": "2026-08-22T08:09:09Z",
+    "taskId": "P0-178",
+    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-web-sso-preflight-20260822T081205Z",
+    "leasedAt": "2026-08-22T08:12:05Z",
+    "expiresAt": "2026-08-22T08:27:05Z",
+    "releasedAt": null,
     "previousOwner": null,
-    "previousTaskId": "P0-175",
-    "previousCheckpoint": "f36385519115c8268e11750633911d0178dafe99",
-    "executionScope": "VERCEL_WALLET_WEB_CANDIDATE_REDEPLOY_AND_INDEPENDENT_PREFLIGHT_ONLY",
-    "releaseReason": "Exact redeploy succeeded once and preserved source/artifact identity, but Vercel reports public=false and all four independent resource requests returned HTTP 000 with zero bytes. Official alias remained unchanged.",
+    "previousTaskId": "P0-177",
+    "previousCheckpoint": "ffefd9b627237c6183f449f40867cb0b0332736c",
+    "executionScope": "VERCEL_PROJECT_WALLET_WEB_SSO_TEMPORARY_DISABLE_FOUR_RESOURCE_PREFLIGHT_AND_RESTORE",
+    "releaseReason": null,
     "onSafeCheckpoint": [
-      "redeploy only the exact reviewed wallet-web deployment without changing the official alias",
-      "independently verify the new immutable deployment four-resource HTTPS surface",
-      "release with official wallet.ynxweb4.com unchanged on success or failure"
+      "disable only wallet-web SSO protection for the bounded preflight window",
+      "independently freeze the exact candidate four-resource HTTPS surface",
+      "restore SSO to all_except_custom_domains on every terminal path and keep the official alias unchanged"
     ]
   },
   "light": {

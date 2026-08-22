@@ -1330,6 +1330,23 @@
         "inspect and independently preflight the new immutable deployment",
         "no official alias or Website route mutation"
       ]
+    },
+    {
+      "path": "vercel-project:prj_K4emrdkST7sdb0K9mhmLM0QZh0I3:ssoProtection",
+      "owner": "website",
+      "branch": "codex/website-wallet-web-sso-preflight-20260822",
+      "worktree": "/Users/huangjiahao/Desktop/ynx-web4-website-new",
+      "taskId": "P0-178",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_SINGLE_USE_PROJECT_SSO_PREFLIGHT_WINDOW_RESTORE_REQUIRED",
+      "acquiredAt": "2026-08-22T08:12:05Z",
+      "expiresAt": "2026-08-22T08:27:05Z",
+      "productionMutationAllowed": true,
+      "allowedExceptions": [
+        "disable only wallet-web SSO protection once",
+        "preflight only dpl_G6gTg2a3CVS1siTRqQg5XjQfPR9q",
+        "restore SSO to all_except_custom_domains on every terminal path"
+      ]
     }
   ]
 }
