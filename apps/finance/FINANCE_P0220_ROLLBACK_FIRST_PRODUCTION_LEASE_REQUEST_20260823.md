@@ -4,13 +4,13 @@
 
 ## Fixed source and isolated-preflight provenance
 
-- owner remote source: `565b96cef09efbabfe719d44333f98f229473d7c` / tree `12bd26d328866415ebf4ebf819626e7302d0a9b3`;
+- reviewed command checkpoint: `7555f2c865166c90139107cc3ba5cee3bf2cdeaa` / tree `fe14a15a8c62972fa1deff328fd50d2dea74646f`; this successor request is deliberately a separate, non-self-referential handoff commit;
 - runtime source: `7824af677dd052d20321431381523ab302614d98`;
 - Linux amd64 archive: SHA-256 `d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d`, 3,937,491 bytes;
 - `ynx-finance` Linux amd64 binary: SHA-256 `cccdae8ae5b5f694ca7db68540da30582564ff741978e616f7435d448a20fe3e`, 8,573,112 bytes;
 - P0-220 Central release: `8c0172f6fb1c0d1220aa74298601b43e73d4e6a8` / tree `e6f59443039e43fc6a0252cb6941208497325649`, status `CONSUMED_RELEASED_SUCCESS_FINANCE_ISOLATED_LINUX_AMD64_PREFLIGHT_ONLY`.
 
-The signed lease must carry the full retained P0-220 receipt digests whose confirmed prefixes are `a4581e24` (manifest) and `b8c5cf7d` (result), together with receipt paths and readback bytes. Prefixes are not sufficient authorization values.
+The signed lease must carry the retained P0-220 receipt directory `/opt/ynx/preflight/finance/runs/P0-WALLET-CONNECTIVITY-2026-08-finance-isolated-linux-preflight-20260822T211600Z/receipts`, manifest `/opt/ynx/preflight/finance/runs/P0-WALLET-CONNECTIVITY-2026-08-finance-isolated-linux-preflight-20260822T211600Z/receipts/SHA256SUMS` (1,062 bytes, SHA-256 `a4581e24da7d9208d4d5b1f067134ed52fbdfd5cbfb0f143d5e1311d489ded63`) and `result.txt` in that exact directory (144 bytes, SHA-256 `b8c5cf7d9e4174f6f46f128fa6cf4844ac159c7d74177b6fdf51467f35b7fad5`). Central must read back those exact paths and bytes before authorizing execution.
 
 ## Mandatory dynamic bindings before any write
 
