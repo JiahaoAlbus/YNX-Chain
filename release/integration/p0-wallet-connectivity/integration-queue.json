@@ -6457,7 +6457,7 @@
     {
       "taskId": "P0-179",
       "owner": "integration,wallet-web,website",
-      "status": "ACTIVE_SINGLE_USE_HOSTED_FOUR_RESOURCE_PREFLIGHT",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_INVALID_LOCAL_REFSPEC_PRE_REMOTE",
       "paths": [
         "release/integration/p0-wallet-connectivity/leases/wallet-web-hosted-public-preflight-p0179-20260822.json",
         "release/integration/p0-wallet-connectivity/templates/wallet-web-public-preflight-p0179.yml",
@@ -6467,15 +6467,16 @@
       "dependencies": ["P0-178"],
       "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-web-hosted-preflight-20260822T083814Z",
       "expiresAt": "2026-08-22T09:08:14Z",
+      "releasedAt": "2026-08-22T08:45:27Z",
       "expectedRemoteParent": "4f1e1b8ebdbc5e67900f675d970421d73d3a574b",
       "workflowSha256": "6c33895ff17e858028dbacc5c7c0b032cb1348d8375ddde0d181dbe59a29901e",
-      "pushAllowedExactlyOnce": true,
+      "pushAllowedExactlyOnce": false,
       "workflowDispatchAllowed": false,
       "ssoRestoreRequired": true,
       "aliasMutationAllowed": false,
       "currentSourceBoundPublic": false,
       "productsConnected": "0/12",
-      "nextAction": "Execute only the ordered SSO disable, exact workflow push, single hosted run and mandatory SSO restore; then return raw four-resource evidence or terminal fail-closed release."
+      "nextAction": "Do not reuse P0-179. Preserve or bundle the unpushed exact commit, then request a wholly new lease with a corrected literal refspec push and the otherwise unchanged hosted-preflight contract."
     }
   ]
 }

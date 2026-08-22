@@ -427,26 +427,26 @@
     }
   ],
   "heavy": {
-    "owner": "wallet-web+website",
+    "owner": null,
     "taskId": "P0-179",
-    "status": "ACTIVE_SINGLE_USE",
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_INVALID_LOCAL_REFSPEC_PRE_REMOTE",
     "acquiredAt": "2026-08-22T08:38:14Z",
     "expiresAt": "2026-08-22T09:08:14Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-22T08:45:27Z",
     "sourceCommit": "a9653f9f73eb79f77b45f04c845c4f56c012ab4b",
     "evidenceCommit": "4f1e1b8ebdbc5e67900f675d970421d73d3a574b",
     "runtimeHost": "wallet.ynxweb4.com",
     "currentRuntime": "dpl_Got2m9m84Sc3QDsrH8yu51W93JAe",
     "candidateRuntime": "dpl_G6gTg2a3CVS1siTRqQg5XjQfPR9q",
     "artifactSha256": "4d8e2e011f7113a80fb5a9541f710b86b2355f5e2fc176fd76a4a46ff94b0e7b",
-    "productionMutationAllowed": "WALLET_WEB_SSO_TEMPORARY_DISABLE_AND_RESTORE_ONLY",
+    "productionMutationAllowed": false,
     "singleUse": true,
     "reusable": false,
     "previousOwner": null,
     "previousTaskId": "P0-178",
     "checkpointCommit": "f04231d9dbd58c19e37f731d4b9f2bd02a8ad494",
-    "reviewDecision": "GO_EXACT_PUSH_TRIGGERED_HOSTED_PREFLIGHT_WITH_ORDERED_SSO_WINDOW",
-    "reason": "The frozen workflow has no inputs or secrets, permits only four hardcoded HTTPS GETs, and runs exactly once from the sole path push while Website SSO is temporarily disabled and mandatorily restored."
+    "reviewDecision": "FAILED_CLOSED_INVALID_LOCAL_REFSPEC_PRE_REMOTE_SSO_RESTORED",
+    "reason": "The single push attempt failed before remote write because the shell transformed the refspec. No retry or workflow run occurred; SSO is restored and the owner branch remains unchanged."
   },
   "wave": {
     "id": "B-financial-apps-quant",
