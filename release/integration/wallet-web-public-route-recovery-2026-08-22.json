@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "1.0.0",
+  "scope": "wallet-web-public-route-recovery",
+  "source": {
+    "walletPwaSource": "f2f509a083d7cede899ea57f03e50d993657b55c",
+    "reproducibleLockfileCommit": "197774f1a8fc82541188ddb098a6d27545399387"
+  },
+  "deployment": {
+    "project": "wallet-web",
+    "id": "dpl_Got2m9m84Sc3QDsrH8yu51W93JAe",
+    "url": "https://wallet-mgwrbzwuy-jiahaoalbus-projects.vercel.app",
+    "target": "production",
+    "alias": "https://wallet.ynxweb4.com"
+  },
+  "publicReadback": {
+    "root": {"http": 200, "bytes": 821, "sha256": "2df10866a35b074a6fb366439197646dd4e979bc83bdae3aba0ba6db3802986c"},
+    "app": {"http": 200, "bytes": 16803, "sha256": "65fb87b5eec304366a8603d5e33c203120f1b28659a18af96d417a4ca70d57a7"},
+    "serviceWorker": {"http": 200, "bytes": 2973, "sha256": "4fa1ebb72a76ce81dd92130da7d8662f63b7cbb6b6a1012971111db27d1c0025", "cacheControl": "no-store, max-age=0, must-revalidate"},
+    "assetIntegrity": {"http": 200, "bytes": 1824, "sha256": "aec048a0028081bcbf2d84015d6acbef0dffbb600880bf6a2a61586d83e9bd63", "cacheControl": "no-store, max-age=0, must-revalidate"},
+    "provider": {"http": 200, "bytes": 18553, "sha256": "82cb2532ce59dd930619df4045b9e4836aa3f3fd7540962204a2ae87a499b4e6"}
+  },
+  "visibleBrowserRead": {
+    "url": "https://wallet.ynxweb4.com/?verify=wallet-route-recovery-20260822&lang=en",
+    "locale": "en",
+    "metaMaskDetected": true,
+    "status": "Not connected",
+    "rpcUnavailableDisplayed": false,
+    "accountRequestTriggered": false,
+    "accountApproved": false,
+    "networkAddedOrSwitched": false,
+    "signing": false,
+    "transaction": false
+  },
+  "boundary": "This proves the dedicated public Wallet PWA route and provider discovery only. A live EIP-1193 account approval, Testnet switch, refresh recovery and disconnect still require a user-approved test account action."
+}
