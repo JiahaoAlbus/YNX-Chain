@@ -1,0 +1,90 @@
+{
+  "schemaVersion": "ynx.wallet.native.walletconnect-dapp-identity-binding-ci-evidence.v1",
+  "recordedAt": "2026-08-22T06:52:00Z",
+  "scope": "HOSTED_CI_AND_MAIN_REGISTRATION",
+  "implementation": {
+    "branch": "codex/wallet-ios-macos-20260813",
+    "commit": "40280e03b318eb7b9c9866fffd09fda7e2688365",
+    "tree": "c0f455db16284cbe945991a154ea628d01b4cc65",
+    "parent": "932d2d23c4293a1c5fa73af1de09825e73e771b5",
+    "stateStoreBlob": "7a00fada326f7b820c695dbae511ea060f77c501",
+    "stateStoreTestsBlob": "102f1015e93113092388a7e0a21003cc5b7f00a2",
+    "consumers": ["macOS native", "iOS native Xcode source reference"]
+  },
+  "walletMacOSRun": {
+    "runId": 32557940319,
+    "jobId": 96994995980,
+    "headSha": "40280e03b318eb7b9c9866fffd09fda7e2688365",
+    "status": "completed",
+    "conclusion": "success",
+    "createdAt": "2026-08-22T06:49:00Z",
+    "startedAt": "2026-08-22T06:49:03Z",
+    "completedAt": "2026-08-22T06:51:02Z",
+    "publishEngineeringDMGJob": "skipped",
+    "tests": {
+      "passed": 31,
+      "failed": 0,
+      "walletConnectStateStorePassed": 7,
+      "dappClassAndNameSubstitutionRejected": true,
+      "persistedUnsupportedMethodRejectedAsCorrupt": true
+    },
+    "allBuildSecurityNetworkAndLifecycleSteps": true
+  },
+  "verifiedEngineeringCapabilities": {
+    "approvedTopicBindsDAppClass": true,
+    "approvedTopicBindsDAppName": true,
+    "requestIdentitySubstitutionFailsClosed": true,
+    "persistedSessionMethodsMustRemainSupported": true,
+    "persistedRequestMustMatchApprovedSessionIdentity": true,
+    "restartValidationFailsClosedOnSemanticCorruption": true
+  },
+  "artifact": {
+    "actionsArtifactId": 9471977714,
+    "name": "ynx-wallet-macos-native",
+    "bytes": 2722729,
+    "actionsDigest": "sha256:b57844d483b9dc3fd3de42695d134dab44d3e6ad30b53f7ec0f86103b186d2a9",
+    "downloadInspected": false,
+    "engineeringDMGSha256FromPublicActionsLog": "9a9f70d8d06d44d46220af62a4b38ca78b69b66ab8c7f35ff138f85caa7dd830",
+    "engineeringDMGBytesFromPublicActionsLog": 680070,
+    "checksumValid": true,
+    "minimumOS": "13.0",
+    "architectures": ["x86_64", "arm64"],
+    "bundleIdentifier": "com.ynxweb4.wallet.macos",
+    "signingClass": "AD_HOC",
+    "teamIdentifier": null,
+    "gatekeeperAccepted": false,
+    "developerIDSigned": false,
+    "notarized": false,
+    "publicRelease": false
+  },
+  "localValidation": {
+    "identitySubstitutionExecutableProbe": true,
+    "coreModuleTypecheck": true,
+    "appTypecheck": true,
+    "testSourceParse": true,
+    "ciOwnershipVerifier": true
+  },
+  "unprovedGates": {
+    "authoritativeFirstPartyClassificationRuntime": false,
+    "realReownProjectID": false,
+    "relayConnection": false,
+    "pairing": false,
+    "sessionApprovalRuntime": false,
+    "sessionRejectRuntime": false,
+    "sessionRestoreRuntime": false,
+    "firstPartyDAppRuntime": false,
+    "externalDAppRuntime": false,
+    "installedProvider": false,
+    "authorizationSuccess": false,
+    "approvedAccount": false,
+    "signRuntime": false,
+    "eip712Runtime": false,
+    "sendTransactionRuntime": false,
+    "universalLink": false,
+    "developerIDSigned": false,
+    "notarized": false,
+    "publicNativeWalletPublished": false,
+    "downloadHosted": false,
+    "appStore": false
+  }
+}
