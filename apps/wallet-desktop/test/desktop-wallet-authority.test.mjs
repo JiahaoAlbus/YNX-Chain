@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
+import { createECDH } from "node:crypto";
 import { mkdtemp, readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { verifyMessage, verifyTypedData } from "ethers";
+import { parseCallbackURL, requestDigest, verifyAuthorization } from "@ynx-chain/wallet-auth";
 import { DesktopWalletAuthority, MemoryPermissionStore, YNX_EIP155_CHAIN, YNX_EVM_CHAIN_ID } from "../src/desktop-wallet-authority.mjs";
 import { FilePermissionStore } from "../src/desktop-permission-store.mjs";
 import { DesktopWalletVault } from "../src/desktop-wallet-vault.mjs";
@@ -52,6 +54,33 @@ test("approved personal_sign and EIP-712 signatures recover only the approved ac
   const request = await authority.request({ origin: ORIGIN, method: "eth_signTypedData_v4", params: [status.account, JSON.stringify(typed)] });
   const signature = (await authority.approve(request.request.id)).result;
   assert.equal(verifyTypedData(typed.domain, { Action: typed.types.Action }, typed.message, signature).toLowerCase(), status.account);
+});
+
+test("canonical authorize approval signs and returns only the registered callback payload", async () => {
+  const { authority, status } = await fixture();
+  const productDeviceKey = createECDH("prime256v1");
+  productDeviceKey.setPrivateKey(Buffer.alloc(32, 0x42));
+  const authorization = {
+    version: "1",
+    nonce: "nonce_abcdefghijklmnopqrstuvwxyz12",
+    chainId: "ynx_6423-1",
+    requestingProduct: "social",
+    productClientId: "ynx-social-v1",
+    bundleId: "com.ynx.social",
+    productDeviceAlgorithm: "p256-sha256",
+    productDeviceKey: productDeviceKey.getPublicKey(null, "compressed").toString("base64url"),
+    callback: "ynx-social://com.ynx.social",
+    scopes: ["account:read", "profile:link"],
+    purpose: "Link this YNX account to the selected Social profile on this device.",
+    issuedAt: "2026-08-22T00:00:00.000Z",
+    expiresAt: "2026-08-22T00:05:00.000Z"
+  };
+  const approved = await authority.approveCanonicalAuthorization(authorization, "2026-08-22T00:01:00.000Z");
+  const response = parseCallbackURL(approved.callbackUrl, authorization.callback);
+  const verified = verifyAuthorization(response, { ...authorization, requestDigest: requestDigest(authorization), now: new Date("2026-08-22T00:01:00.000Z") });
+  assert.equal(verified.account, status.ynxAccount);
+  assert.deepEqual(verified.grantedScopes, authorization.scopes);
+  assert.match(approved.callbackUrl, /^ynx-social:\/\/com\.ynx\.social\?response=/);
 });
 
 test("transaction review binds account, chain and exact values before transport", async () => {

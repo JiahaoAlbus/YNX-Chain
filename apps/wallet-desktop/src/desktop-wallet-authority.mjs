@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { Wallet, getBytes, isAddress, isHexString } from "ethers";
-import { STANDARD_WALLET_CHAIN_ID } from "@ynx-chain/wallet-auth";
+import { createCallbackURL, signAuthorization, STANDARD_WALLET_CHAIN_ID } from "@ynx-chain/wallet-auth";
 import { providerError } from "./desktop-wallet-vault.mjs";
 
 export const YNX_EIP155_CHAIN = "eip155:6423";
@@ -25,6 +25,12 @@ export class DesktopWalletAuthority {
 
   async accountStatus() { return this.vault.status(); }
   async createAccount() { return this.vault.createAccount(); }
+  async approveCanonicalAuthorization(request, issuedAt) {
+    return this.vault.withSecret(secret => {
+      const response = signAuthorization(request, { accountSecret: secret, issuedAt });
+      return Object.freeze({ response, callbackUrl: createCallbackURL(response) });
+    });
+  }
   async approveOrigin(originInput) {
     const origin = exactHttpsOrigin(originInput);
     const status = await this.vault.status();

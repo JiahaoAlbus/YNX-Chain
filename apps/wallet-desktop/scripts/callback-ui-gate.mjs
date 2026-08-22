@@ -44,15 +44,17 @@ if (action === "invalid") {
   process.exit(0);
 }
 await evaluate(`document.querySelector("#${action}-auth").click(); true`);
-const expected = action === "reject" ? "USER_REJECTED" : "CANONICAL_AUTH_BRIDGE_UNAVAILABLE";
+const expected = action === "reject" ? "USER_REJECTED" : "CANONICAL_AUTHORIZATION_APPROVED";
+const expectedCallback = action === "approve";
+const expectedAuthority = action === "approve";
 let after;
 for (let attempt = 0; attempt < 30; attempt += 1) {
   after = JSON.parse(await evaluate(`JSON.stringify({ result: document.querySelector("#auth-result").textContent })`));
-  if (after.result.includes("callbackEmitted=false")) break;
+  if (after.result.includes(`callbackEmitted=${expectedCallback}`)) break;
   await new Promise(resolve => setTimeout(resolve, 500));
 }
-if (!after.result.includes(expected) || !after.result.includes("callbackEmitted=false") || !after.result.includes("authorityGranted=false")) {
+if (!after.result.includes(expected) || !after.result.includes(`callbackEmitted=${expectedCallback}`) || !after.result.includes(`authorityGranted=${expectedAuthority}`) || !after.result.includes("productSessionCreated=false")) {
   throw new Error(`fail-closed action result mismatch: ${JSON.stringify(after)}`);
 }
 socket.close();
-console.log(JSON.stringify({ action, before, after, callbackEmitted: false, authorityGranted: false }, null, 2));
+console.log(JSON.stringify({ action, before, after, callbackEmitted: expectedCallback, callbackReceivedProved: false, authorityGranted: expectedAuthority, productSessionCreated: false }, null, 2));

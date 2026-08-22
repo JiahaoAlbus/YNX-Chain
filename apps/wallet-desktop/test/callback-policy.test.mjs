@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { createECDH } from "node:crypto";
 import { test } from "node:test";
 import { encodeRequestDeepLink } from "@ynx-chain/wallet-auth";
-import { CANONICAL_AUTH_BRIDGE_UNAVAILABLE, CALLBACK_PROTOCOL_SOURCE, decisionForReview, evaluateWalletCallback } from "../src/callback-policy.mjs";
+import { CANONICAL_AUTH_BRIDGE_UNAVAILABLE, CALLBACK_PROTOCOL_SOURCE, evaluateWalletCallback } from "../src/callback-policy.mjs";
 
 const now = new Date("2026-08-21T08:00:00.000Z");
 const productDevice = createECDH("prime256v1");
@@ -33,16 +33,6 @@ test("macOS consumes the exact frozen callback route and identity", () => {
   assert.equal(review.displayName, "YNX Social");
   assert.equal(review.callbackEmitted, false);
   assert.equal(review.authorityGranted, false);
-});
-
-test("reject and approve actions both preserve the frozen no-callback boundary", () => {
-  const review = evaluateWalletCallback(encodeRequestDeepLink(request), { now });
-  assert.deepEqual(decisionForReview(review, "reject"), {
-    acceptedForReview: true, action: "reject", code: "USER_REJECTED", callbackEmitted: false, authorityGranted: false
-  });
-  assert.deepEqual(decisionForReview(review, "approve"), {
-    acceptedForReview: true, action: "approve", code: CANONICAL_AUTH_BRIDGE_UNAVAILABLE, callbackEmitted: false, authorityGranted: false
-  });
 });
 
 test("missing, malformed, expired and substituted routes fail closed", () => {

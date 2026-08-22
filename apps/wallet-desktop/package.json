@@ -1,6 +1,6 @@
 {
   "name": "@ynx-chain/wallet-desktop",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Fail-closed YNX Testnet Wallet desktop engineering preview",
   "homepage": "https://www.ynxweb4.com/wallet",
   "author": {

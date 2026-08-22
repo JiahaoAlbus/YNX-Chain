@@ -9,6 +9,7 @@ export const CALLBACK_PROTOCOL_SOURCE = Object.freeze({
   associatedDomainsAuthorized: false
 });
 export const CANONICAL_AUTH_BRIDGE_UNAVAILABLE = "CANONICAL_AUTH_BRIDGE_UNAVAILABLE";
+export const CANONICAL_AUTHORIZATION_APPROVED = "CANONICAL_AUTHORIZATION_APPROVED";
 
 const registryDocument = parseCentralRegistryDocument(JSON.parse(readFileSync(
   new URL("../central-registry.json", import.meta.resolve("@ynx-chain/wallet-auth")), "utf8"
@@ -36,11 +37,4 @@ export function evaluateWalletCallback(rawValue, { now = new Date() } = {}) {
   } catch (error) {
     return reject(error instanceof WalletAuthError ? error.code : "INVALID_AUTHORIZATION_REQUEST");
   }
-}
-
-export function decisionForReview(review, action) {
-  if (!review?.acceptedForReview) return reject("NO_PENDING_AUTHORIZATION_REQUEST");
-  if (action === "reject") return Object.freeze({ acceptedForReview: true, action, code: "USER_REJECTED", callbackEmitted: false, authorityGranted: false });
-  if (action === "approve") return Object.freeze({ acceptedForReview: true, action, code: CANONICAL_AUTH_BRIDGE_UNAVAILABLE, callbackEmitted: false, authorityGranted: false });
-  return reject("INVALID_AUTHORIZATION_ACTION");
 }

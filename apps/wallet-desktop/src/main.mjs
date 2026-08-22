@@ -1,10 +1,10 @@
-import { app, BrowserWindow, ipcMain, safeStorage } from "electron";
+import { app, BrowserWindow, ipcMain, safeStorage, shell } from "electron";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { CANONICAL_RPC_URL, probeYNXTestnetRPC } from "./rpc.mjs";
 import { YNX_TESTNET_CHAIN_QUANTITY } from "./wallet-auth-contract.mjs";
-import { decisionForReview, evaluateWalletCallback } from "./callback-policy.mjs";
+import { CANONICAL_AUTHORIZATION_APPROVED, evaluateWalletCallback } from "./callback-policy.mjs";
 import { DesktopWalletVault } from "./desktop-wallet-vault.mjs";
 import { DesktopWalletAuthority } from "./desktop-wallet-authority.mjs";
 import { FilePermissionStore } from "./desktop-permission-store.mjs";
@@ -67,13 +67,41 @@ async function recordEvidence(status, window, { launch = false } = {}) {
 
 ipcMain.handle("wallet:status", rpcStatus);
 ipcMain.handle("wallet:authorization-action", async (_event, action) => {
-  const result = decisionForReview(pendingReview, action);
-  lastCallback = { ...(lastCallback ?? {}), action, result, callbackEmitted: false, authorityGranted: false };
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    mainWindow.setTitle(`YNX Wallet · ${result.code}`);
-    await recordEvidence(await rpcStatus(), mainWindow);
+  if (!pendingReview?.acceptedForReview) return { acceptedForReview: false, code: "NO_PENDING_AUTHORIZATION_REQUEST", callbackEmitted: false, authorityGranted: false };
+  if (action !== "approve" && action !== "reject") return { acceptedForReview: false, code: "INVALID_AUTHORIZATION_ACTION", callbackEmitted: false, authorityGranted: false };
+  if (action === "reject") {
+    const result = Object.freeze({ acceptedForReview: true, action, code: "USER_REJECTED", callbackEmitted: false, callbackReceivedProved: false, authorityGranted: false, productSessionCreated: false });
+    lastCallback = { ...(lastCallback ?? {}), action, result, callbackEmitted: false, callbackReceivedProved: false, authorityGranted: false, productSessionCreated: false };
+    pendingReview = null;
+    if (mainWindow && !mainWindow.isDestroyed()) await recordEvidence(await rpcStatus(), mainWindow);
+    return result;
   }
-  return result;
+  const at = new Date().toISOString();
+  try {
+    const callback = await walletAuthority.approveCanonicalAuthorization(pendingReview.request, at);
+    await shell.openExternal(callback.callbackUrl);
+    const result = Object.freeze({
+      acceptedForReview: true,
+      action,
+      code: CANONICAL_AUTHORIZATION_APPROVED,
+      callbackEmitted: true,
+      callbackReceivedProved: false,
+      authorityGranted: true,
+      productSessionCreated: false
+    });
+    lastCallback = { ...(lastCallback ?? {}), action, result, callbackEmitted: true, callbackReceivedProved: false, authorityGranted: result.authorityGranted, productSessionCreated: false };
+    pendingReview = null;
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.setTitle(`YNX Wallet · ${result.code}`);
+      await recordEvidence(await rpcStatus(), mainWindow);
+    }
+    return result;
+  } catch (error) {
+    const result = { acceptedForReview: true, action, code: safeCode(error), callbackEmitted: false, callbackReceivedProved: false, authorityGranted: false, productSessionCreated: false };
+    lastCallback = { ...(lastCallback ?? {}), action, result, callbackEmitted: false, callbackReceivedProved: false, authorityGranted: false, productSessionCreated: false };
+    if (mainWindow && !mainWindow.isDestroyed()) await recordEvidence(await rpcStatus(), mainWindow);
+    return result;
+  }
 });
 
 ipcMain.handle("wallet:account-status", () => safeIPC(() => walletAuthority.accountStatus()));

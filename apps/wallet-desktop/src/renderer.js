@@ -23,7 +23,7 @@ window.ynxWallet.onAuthorizationRequest(review => {
   document.querySelector("#auth-product").textContent = `Authorization request from ${review.displayName}`;
   document.querySelector("#auth-purpose").textContent = review.request.purpose;
   document.querySelector("#auth-scopes").textContent = review.request.scopes.join(", ");
-  authResult.textContent = `${review.code}: review is visible, but account, signing authority and callback remain unavailable.`;
+  authResult.textContent = `${review.code}: no account, scope, signature or callback is granted until you approve this exact request.`;
 });
 window.ynxWallet.onAuthorizationError(result => {
   authorization.hidden = false;
@@ -35,7 +35,7 @@ window.ynxWallet.onAuthorizationError(result => {
 
 async function act(action) {
   const result = await window.ynxWallet.authorizationAction(action);
-  authResult.textContent = `${result.code}: callbackEmitted=${result.callbackEmitted}; authorityGranted=${result.authorityGranted}`;
+  authResult.textContent = `${result.code}: callbackEmitted=${result.callbackEmitted}; callbackReceivedProved=${result.callbackReceivedProved ?? false}; authorityGranted=${result.authorityGranted}; productSessionCreated=${result.productSessionCreated ?? false}`;
 }
 
 document.querySelector("#reject-auth").addEventListener("click", () => act("reject"));
