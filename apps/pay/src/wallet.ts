@@ -4,7 +4,7 @@ import {launchCanonicalAuthorization} from '@ynx-chain/wallet-auth/src/authorize
 import {parseAuthorizationCallbackURL,parseAuthorizationRequest} from '@ynx-chain/wallet-auth/src/protocol.js';
 import {createStandardWalletConnectState,reduceStandardWalletConnectState,STANDARD_WALLET_CONNECT_STATUS,STANDARD_WALLET_RPC_PROBE_TRANSPORT} from '../node_modules/@ynx-chain/wallet-auth/src/standard-wallet-connect-state.js';
 import type {AuthorizationLaunchResult,AuthorizationRequest} from '@ynx-chain/wallet-auth';
-import * as SecureStore from 'expo-secure-store';
+import {getProductState,removeProductState,setProductState} from './platformStorage';
 import {getRandomValues} from 'expo-crypto';
 import {Linking,NativeModules,Platform} from 'react-native';
 import {assertPayConsumerContract} from './endpoint-manifest';
@@ -142,7 +142,7 @@ function secureRandomRuntime(){const cryptoValue=globalThis.crypto as Crypto|und
 function authorizationNonce(){const bytes=new Uint8Array(32);globalThis.crypto.getRandomValues(bytes);return Array.from(bytes,value=>value.toString(16).padStart(2,'0')).join('')}
 function secureDevice():PaySecureDevice{const bridge=NativeModules.PaySecureDevice as PaySecureDevice|undefined;if(Platform.OS!=='android'||!bridge?.descriptor||!bridge?.sign)throw privateError('This Pay build has no registered OS-protected P-256 signing bridge. No canonical Wallet authorization request was opened.');return bridge}
 function validDescriptor(descriptor:DeviceDescriptor){if(!/^[A-Za-z0-9._:-]{8,128}$/.test(descriptor.id)||!/^[A-Za-z0-9_-]{44}$/.test(descriptor.key))throw privateError('The Pay secure-device bridge returned an invalid public key.');return descriptor}
-const canonicalAuthorizationStorage={get:()=>SecureStore.getItemAsync(CANONICAL_AUTHORIZATION_PENDING_KEY),set:(value:string)=>SecureStore.setItemAsync(CANONICAL_AUTHORIZATION_PENDING_KEY,value,{keychainAccessible:SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY}),remove:()=>SecureStore.deleteItemAsync(CANONICAL_AUTHORIZATION_PENDING_KEY)};
+const canonicalAuthorizationStorage={get:()=>getProductState(CANONICAL_AUTHORIZATION_PENDING_KEY),set:(value:string)=>setProductState(CANONICAL_AUTHORIZATION_PENDING_KEY,value),remove:()=>removeProductState(CANONICAL_AUTHORIZATION_PENDING_KEY)};
 
 async function authorizationCapabilities():Promise<PayAuthorizationCapabilities>{
   secureRandomRuntime();
