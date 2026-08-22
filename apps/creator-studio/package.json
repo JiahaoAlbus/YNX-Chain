@@ -1,1 +1,1 @@
-{"name":"@ynx/creator-studio","private":true,"type":"module","scripts":{"dev":"node server.mjs","check":"node --check app.js && node --check wallet-auth.js && node --check standard-wallet-connect-state.js && node --test *.test.mjs","smoke":"node smoke.mjs"}}
+{"name":"@ynx/creator-studio","private":true,"type":"module","scripts":{"dev":"node server.mjs","build":"node build.mjs","check":"node --check app.js && node --check wallet-auth.js && node --check standard-wallet-connect-state.js && node --check build.mjs && node --test *.test.mjs","smoke":"node smoke.mjs"}}
