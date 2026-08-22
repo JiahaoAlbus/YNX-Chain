@@ -1,0 +1,49 @@
+name: Wallet Web immutable candidate public preflight P0
+
+on:
+  push:
+    branches:
+      - codex/wallet-web-pwa-extensions-20260813
+    paths:
+      - .github/workflows/wallet-web-public-preflight-p0.yml
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    if: "github.event.head_commit.message == 'evidence(wallet-web): externally preflight immutable candidate'"
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - name: Fetch and verify four immutable resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://wallet-aitthgkni-jiahaoalbus-projects.vercel.app'
+          mkdir -p evidence
+          fetch() {
+            name="$1"
+            path="$2"
+            status="$(curl --proto '=https' --tlsv1.2 --silent --show-error --max-time 20 --connect-timeout 8 --max-redirs 0 --dump-header "evidence/${name}.headers" --output "evidence/${name}.body" --write-out '%{http_code}' "${base}${path}")"
+            printf '%s\n' "$status" > "evidence/${name}.status"
+            wc -c < "evidence/${name}.body" | tr -d ' ' > "evidence/${name}.bytes"
+            sha256sum "evidence/${name}.body" | awk '{print $1}' > "evidence/${name}.sha256"
+            test "$status" = 200
+          }
+          fetch root '/'
+          fetch build-identity '/build-identity.json'
+          fetch manifest '/manifest.webmanifest'
+          fetch sw '/sw.js'
+          node -e "const fs=require('fs');const value=JSON.parse(fs.readFileSync('evidence/build-identity.body','utf8'));if(value.sourceCommit!=='a9653f9f73eb79f77b45f04c845c4f56c012ab4b')process.exit(1)"
+          awk 'BEGIN{IGNORECASE=1;ok=0} /^cache-control:/ && /no-store/{ok=1} END{exit ok?0:1}' evidence/sw.headers
+          find evidence -maxdepth 1 -type f -print0 | sort -z | xargs -0 sha256sum > evidence/SHA256SUMS
+
+      - name: Upload immutable preflight evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: wallet-web-public-preflight-p0179
+          path: evidence
+          if-no-files-found: error
+          retention-days: 7
