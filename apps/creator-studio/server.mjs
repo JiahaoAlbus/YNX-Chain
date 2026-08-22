@@ -4,7 +4,8 @@ import { extname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = fileURLToPath(new URL('.', import.meta.url));
-const catalog = fileURLToPath(new URL('../video/i18n/catalog.json', import.meta.url));
+const bundledCatalog = fileURLToPath(new URL('./i18n/catalog.json', import.meta.url));
+const developmentCatalog = fileURLToPath(new URL('../video/i18n/catalog.json', import.meta.url));
 const walletCallback = fileURLToPath(new URL('./wallet-callback.html', import.meta.url));
 const walletAuth = fileURLToPath(new URL('./wallet-auth.js', import.meta.url));
 const types = {
@@ -29,13 +30,12 @@ createServer(async (req, res) => {
     if (path === 'video/studio/wallet-auth/callback' || path === 'wallet-callback.html') {
       data = await readFile(walletCallback);
     } else {
-      const shared =
-        path === 'i18n/catalog.json'
-          ? catalog
-          : path === 'wallet-auth.js'
-            ? walletAuth
-            : null;
-      data = await readFile(shared || join(root, path));
+      if (path === 'i18n/catalog.json') {
+        data = await readFile(bundledCatalog).catch(() => readFile(developmentCatalog));
+      } else {
+        const shared = path === 'wallet-auth.js' ? walletAuth : null;
+        data = await readFile(shared || join(root, path));
+      }
     }
 
     res.writeHead(200, {
