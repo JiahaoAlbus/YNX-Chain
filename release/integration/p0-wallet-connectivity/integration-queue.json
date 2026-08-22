@@ -7055,6 +7055,35 @@
       "productionMutationAllowed": false,
       "sensitiveActionsAllowed": false,
       "nextAction": "Do not reuse P0-198. Calendar owner must first fix the unauthenticated 401 resource in product source and freeze a bounded harness that always closes Chromium, then request a new source-build/deploy/browser authority chain."
+    },
+    {
+      "taskId": "P0-199",
+      "owner": "social",
+      "status": "ACTIVE_SINGLE_USE",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/execution/p0-199-social-public-single-use-deployment-lease-20260822.json",
+        "vercel-project:prj_QGgUyxilarbPPLZyoES83m2aneQN",
+        "https://social.ynxweb4.com/**",
+        "/tmp/ynx-social-p0199-exec/**"
+      ],
+      "dependencies": [
+        "P0-198"
+      ],
+      "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-social-public-single-use-deployment-20260822T164300Z",
+      "expiresAt": "2026-08-22T17:13:00Z",
+      "executor": "social-vercel-release",
+      "request": "353ad3b40a0ed6772dbd10daaec265455bc966c2",
+      "source": "d9337ddc5ffcbddaad463eef968c3d52c05272dc",
+      "carrierSha256": "57c07dd0135598c1158fa482a45ffa8ac9da4297f3e065deb031fc6111739a36",
+      "projectId": "prj_QGgUyxilarbPPLZyoES83m2aneQN",
+      "canonicalAlias": "social.ynxweb4.com",
+      "rollbackDeployment": "dpl_2sei8CpmoN1Gi5YKnc6FdvNRyXGy",
+      "deploymentAttemptLimit": 1,
+      "aliasAttemptLimit": 1,
+      "rollbackAttemptLimit": 1,
+      "retryAllowed": false,
+      "sensitiveActionsAllowed": false,
+      "nextAction": "Named executor must fresh-read this lease and all bindings, execute the exact carrier extraction and single candidate deployment, pass immutable candidate raw/browser gates before at most one alias, and rollback exactly once on any post-alias failure."
     }
   ]
 }
