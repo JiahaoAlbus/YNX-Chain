@@ -37,7 +37,17 @@ final class MalformedCallbackUITests: XCTestCase {
 
   func testCanonicalRegistryRequestStopsAtNativeBridge() throws {
     let wallet = XCUIApplication()
+    // The preceding malformed-link proof intentionally leaves its rejection
+    // visible.  xcodebuild runs this proof as a separate invocation against
+    // the same simulator, so launch() may only activate that existing process
+    // and mistake the stale INVALID_DEEP_LINK alert for canonical delivery.
+    // Establish a real process boundary before accepting any delivery signal.
+    wallet.terminate()
     wallet.launch()
+    XCTAssertFalse(
+      wallet.alerts["Request rejected"].exists,
+      "A rejection from an earlier authorization request survived the clean launch boundary"
+    )
     FileHandle.standardError.write(Data("YNX_WALLET_CANONICAL_UI_READY_FOR_SIMCTL_OPENURL\n".utf8))
 
     let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
@@ -66,8 +76,20 @@ final class MalformedCallbackUITests: XCTestCase {
     )
 
     XCTAssertTrue(rejection.waitForExistence(timeout: 45))
-    XCTAssertTrue(wallet.staticTexts["CANONICAL_AUTH_BRIDGE_UNAVAILABLE"].exists)
-    XCTAssertTrue(wallet.buttons["Dismiss"].exists)
+    let exactFailureCode = wallet.staticTexts["YNX native authorization error code"]
+    XCTAssertTrue(
+      exactFailureCode.waitForExistence(timeout: 10),
+      "Canonical rejection alert appeared before its exact failure code became accessibility-visible"
+    )
+    XCTAssertEqual(
+      exactFailureCode.label,
+      "CANONICAL_AUTH_BRIDGE_UNAVAILABLE",
+      "The native rejection UI exposed an accessibility marker without the exact canonical failure code"
+    )
+    XCTAssertTrue(
+      rejection.buttons["Dismiss"].waitForExistence(timeout: 10),
+      "Canonical rejection alert did not expose its semantic dismiss action"
+    )
     let screenshot = XCTAttachment(screenshot: wallet.screenshot())
     screenshot.name = "canonical-registry-native-bridge-fail-closed"
     screenshot.lifetime = .keepAlways
@@ -95,28 +117,32 @@ final class MalformedCallbackUITests: XCTestCase {
       "Recovery input did not expose its semantic authorization submit action"
     )
 
+    semanticSubmit.tap()
     let persist = wallet.buttons["Recover into secure storage"]
-    let enabled = NSPredicate(format: "enabled == true")
-    let enabledExpectation = expectation(for: enabled, evaluatedWith: persist)
+    let readyToRecover = XCTNSPredicateExpectation(
+      predicate: NSPredicate { _, _ in persist.exists && persist.isEnabled },
+      object: nil
+    )
     XCTAssertEqual(
-      XCTWaiter.wait(for: [enabledExpectation], timeout: 15),
+      XCTWaiter.wait(for: [readyToRecover], timeout: 15),
       .completed,
       "Recovery action did not accept the isolated 32-byte test vector"
     )
-    semanticSubmit.tap()
-    XCTAssertTrue(
-      persist.waitForExistence(timeout: 5),
-      "Recovery sheet disappeared before authorization produced a result"
-    )
+    persist.tap()
 
     let failure = wallet.staticTexts["Recovery authorization failed"]
-    if !failure.waitForExistence(timeout: 5) {
-      let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
-      let cancel = springboard.buttons["Cancel"]
-      XCTAssertTrue(
-        cancel.waitForExistence(timeout: 15),
-        "Recovery neither failed closed nor exposed a semantic biometric cancellation action"
-      )
+    let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+    let cancel = springboard.buttons["Cancel"]
+    let authorizationOutcome = XCTNSPredicateExpectation(
+      predicate: NSPredicate { _, _ in failure.exists || cancel.exists },
+      object: nil
+    )
+    XCTAssertEqual(
+      XCTWaiter.wait(for: [authorizationOutcome], timeout: 20),
+      .completed,
+      "Recovery neither failed closed nor exposed a semantic biometric cancellation action"
+    )
+    if cancel.exists && !failure.exists {
       cancel.tap()
       FileHandle.standardError.write(
         Data("YNX_WALLET_RECOVERY_AUTHORIZATION_NOT_COMPLETED mode=system-prompt-cancelled\n".utf8)

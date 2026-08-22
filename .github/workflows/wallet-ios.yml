@@ -270,10 +270,10 @@ jobs:
           const now = Date.now();
           const request = {
             version:"1", nonce:"ci_native_bridge_boundary_nonce_01", chainId:"ynx_6423-1",
-            requestingProduct:"social", productClientId:"ynx-social-v1", bundleId:"com.ynx.social",
+            requestingProduct:"shop", productClientId:"ynx-shop-v1", bundleId:"com.ynxweb4.shop",
             productDeviceAlgorithm:"p256-sha256",
             productDeviceKey:"AzrThhqVYhOSUWu1k-8FWD7S5YZvXLYmCjAXI3_Ym5Cv",
-            callback:"ynx-social://com.ynx.social", scopes:["account:read","profile:link"],
+            callback:"ynxshop://wallet-auth/callback", scopes:["account:read","shop:orders:write"],
             purpose:"Verify the frozen native bridge fail-closed boundary.",
             issuedAt:new Date(now-5000).toISOString(), expiresAt:new Date(now+240000).toISOString(),
           };
@@ -370,21 +370,53 @@ jobs:
           DEVICE="$(xcrun simctl list devices booted | awk -F '[()]' '/iPhone/{print $2; exit}')"
           test -n "$DEVICE"
           grep -F "device=$DEVICE erased=true" proof/ci-ios/simulator-reset.txt
-          simulator_face_id_menu() {
+          # Xcode 26.3 does not expose the historical `simctl biometric`
+          # subcommand. Drive Simulator's supported Face ID menu instead, but
+          # observe the checkmark before clicking: "Enrolled" is a toggle and
+          # blindly clicking it can silently unenroll an already-enrolled boot.
+          simulator_face_id_enrolled() {
+            osascript <<'APPLESCRIPT'
+          tell application "Simulator" to activate
+          delay 0.5
+          tell application "System Events"
+            tell process "Simulator"
+              set frontmost to true
+              set enrolledItem to menu item "Enrolled" of menu 1 of menu item "Face ID" of menu 1 of menu bar item "Features" of menu bar 1
+              set markValue to value of attribute "AXMenuItemMarkChar" of enrolledItem
+              if markValue is missing value then return "false"
+              if (markValue as text) is "" then return "false"
+              return "true"
+            end tell
+          end tell
+          APPLESCRIPT
+          }
+          simulator_face_id_select() {
             local menu_item="$1"
             osascript - "$menu_item" <<'APPLESCRIPT'
           on run argv
             set requestedItem to item 1 of argv
             tell application "Simulator" to activate
+            delay 0.5
             tell application "System Events"
               tell process "Simulator"
+                set frontmost to true
                 click menu item requestedItem of menu 1 of menu item "Face ID" of menu 1 of menu bar item "Features" of menu bar 1
               end tell
             end tell
           end run
           APPLESCRIPT
           }
-          simulator_face_id_menu "Enrolled"
+          ENROLLED=false
+          for _ in $(seq 1 10); do
+            if test "$(simulator_face_id_enrolled)" = true; then
+              ENROLLED=true
+              break
+            fi
+            simulator_face_id_select "Enrolled"
+            sleep 1
+          done
+          test "$ENROLLED" = true
+          printf 'device=%s face_id_enrolled=true\n' "$DEVICE" | tee proof/ci-ios/simulator-biometric-state.txt
           xcodebuild test \
             -workspace ios/YNXWallet.xcworkspace \
             -scheme YNXWallet \
@@ -409,7 +441,7 @@ jobs:
             done
             test "$READY" = true
             sleep 2
-            simulator_face_id_menu "Matching Face"
+            simulator_face_id_select "Matching Face"
           done
           wait "$XCODEBUILD_PID"
           grep -F "YNX_WALLET_SIMULATED_BIOMETRIC_MATCHED recovery=true unlock=true" \
