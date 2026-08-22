@@ -557,16 +557,21 @@ func TestCentralGatewayIntrospectionScopeAndBinding(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	centralSession.WalletPublicKey = publicKey
 	s, _, _ := newTestService(t)
 	if _, err := s.CreditTestQuote(adminKey, account, 10*AmountScale, "central-action-credit"); err != nil {
 		t.Fatal(err)
 	}
-	req := PlaceOrderRequest{Market: DefaultMarket, Side: "buy", Type: "limit", PriceMicro: AmountScale, AmountMicro: AmountScale, IdempotencyKey: "central-action-order"}
+	req := PlaceOrderRequest{Market: DefaultMarket, Side: "buy", Type: "limit", PriceMicro: AmountScale, AmountMicro: AmountScale, IdempotencyKey: "central-action-order", WalletPublicKey: publicKey}
 	req.WalletSignature = signAction(key, OrderAuthorizationPayload(account, req))
 	order, err := s.PlaceOrder(centralSession, req)
 	if err != nil || order.Status != "open" || !order.WalletAuthorized {
 		t.Fatalf("central Wallet action order=%+v err=%v", order, err)
+	}
+	req.IdempotencyKey = "central-action-wrong-key"
+	req.WalletPublicKey = hex.EncodeToString(secp256k1.PrivKeyFromBytes(append(make([]byte, 31), 43)).PubKey().SerializeCompressed())
+	req.WalletSignature = signAction(key, OrderAuthorizationPayload(account, req))
+	if _, err := s.PlaceOrder(centralSession, req); err != ErrUnauthorized {
+		t.Fatalf("substituted Wallet key err=%v", err)
 	}
 }
 

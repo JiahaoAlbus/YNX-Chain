@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "kind": "exchange-public-artifact-preflight",
+  "capturedAt": "2026-08-21T08:49:02Z",
+  "source": {
+    "commit": "bd5edc662d383ed1cf707d28bf6ef97d5168e121",
+    "tree": "e843d5287a8d96389a86b2ff1acefcc62e51d6a2",
+    "branch": "codex/exchange-wallet-actions-20260809"
+  },
+  "immutableArtifact": {
+    "path": "apps/exchange/evidence/release-candidates/ynx-exchange-web-bd5edc66.tar.gz",
+    "bytes": 12233,
+    "sha256": "31c29f7e14fdb1e89c1054a89fb724254409bfcbfc2e5514aabf740821cd017f",
+    "files": {
+      "/index.html": {"bytes": 10785, "sha256": "83d949bf3905518c4884590ea4d0fd943f59fd0a3db86cfca1e37f9f3ca11437", "contentType": "text/html; charset=utf-8"},
+      "/app.js": {"bytes": 10661, "sha256": "60eb68365efec9a46dc4143ac6f3b42e4a334fde61ed01443ee78ab3d16e2aff", "contentType": "text/javascript; charset=utf-8"},
+      "/styles.css": {"bytes": 8094, "sha256": "df8a4f6d1d3644b1d9a0a6386e59b85ce4fb4a7a1576d0b1569f25d98214b34e", "contentType": "text/css; charset=utf-8"},
+      "/wallet-connect.js": {"bytes": 7041, "sha256": "a26451965ba25ca510857dbcdb0d4838fe58f7cc96e103347e67795f884914fb", "contentType": "text/javascript; charset=utf-8"}
+    },
+    "containsSecrets": false,
+    "classification": "PUBLIC_WEB_CANDIDATE_NOT_DEPLOYED"
+  },
+  "readOnlyRuntime": {
+    "target": "https://exchange.ynxweb4.com/",
+    "service": "Caddy",
+    "health": {
+      "url": "https://exchange.ynxweb4.com/api/health",
+      "httpStatus": 200,
+      "bytes": 215,
+      "sha256": "bcf22421b76c03b9da4fa401c56405b123a6f8b7eaa49d942391dfec25ee3ee8",
+      "runtimeCommit": "443286487e057d78cb6b1a686d14bb37be8b3c23",
+      "status": "live"
+    },
+    "currentHomepage": {
+      "httpStatus": 200,
+      "bytes": 18603,
+      "sha256": "64c5b7862099eb06a316fbc6d1c665e81355f427fa27b26584bbf586ac4eacde",
+      "lastModified": "2026-08-15T05:46:10Z"
+    },
+    "mismatch": {
+      "source": "Current homepage references /wallet-auth.js; the candidate references /wallet-connect.js.",
+      "observed": "GET /wallet-connect.js returned the 18,603-byte homepage HTML with the same SHA-256, not the candidate JavaScript artifact. The live /wallet-auth.js is 74,683 bytes with SHA-256 8a6a898d27d100b05fe535bf1d864bacda30150cf6d5ee1c81c16cc6910b4f99 and still contains legacy custom-scheme/session behavior.",
+      "publicSourceBoundToCandidate": false
+    }
+  },
+  "failClosedDeploymentPlan": {
+    "authorityRequired": "An Exchange-only deployment lease naming this domain, source commit/tree, artifact SHA-256, release writer and a verified rollback snapshot.",
+    "preflight": [
+      "Re-read the live health document and homepage hashes above; stop if the target or rollback pointer changed.",
+      "Verify the candidate archive SHA-256 and all four extracted file hashes before upload.",
+      "Create and verify a rollback snapshot of the exact currently served files before replacing any file."
+    ],
+    "atomicPublish": "Atomically publish only the four candidate files to the Exchange static-document root; do not alter Wallet/Auth, API routes, secrets, Caddy configuration or Product Session state.",
+    "postDeploy": [
+      "Require HTTP 200, exact byte count, SHA-256 and content type for every file in immutableArtifact.files.",
+      "Require /api/health to remain HTTP 200 and preserve its testnet-only custody boundary.",
+      "In a real browser, verify the English guest market remains visible; no-provider YNX Wallet and MetaMask fallback links remain on the same tab and leave the URL stable."
+    ],
+    "rollback": "Atomically restore the verified pre-deployment static snapshot identified by the deployment lease, then recheck its file hashes and /api/health. A Git revert alone is not a runtime rollback."
+  },
+  "truth": {
+    "deployedPublic": false,
+    "publicVerified": false,
+    "installed": false,
+    "accountApproval": false,
+    "walletCallback": false,
+    "productSession": false,
+    "orderOrTrade": false
+  }
+}

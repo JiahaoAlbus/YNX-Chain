@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "checkpoint": "P0-105",
+  "classification": "SOURCE_BUILD_CHECKPOINT_DEVICE_EVIDENCE_PENDING",
+  "product": "YNX Exchange",
+  "owner": "financial-apps",
+  "scope": "apps/exchange/** only",
+  "lease": "P0-WALLET-CONNECTIVITY-2026-08-exchange-canonical-authorize-20260821T040305Z",
+  "baseline": "ffc5cf89fbba81bf439835350bb91d09ece158ab",
+  "canonicalWalletAuthorize": {
+    "contract": "canonicalWalletAuthorize@1.0.0-p0.0",
+    "contractSha256": "e572042f18c1e32dfe86da26ee2ab52f9372c9803eae3b492c26932e50251c03",
+    "sourceCommit": "46386ae8eeaa7633923ae762a5a9634b5eac98d9",
+    "sourceTree": "f5bffcf4b775d4a88af9fe3a6b53fa60d271912c",
+    "packageTarSha256": "55abb0c23dfdcefc9c53d0d7682b0f01126384380f4f73122b87cb28b8fa0e97",
+    "packageIntegrity": "sha512-FkRx5FJ3pg4TSsAqcVgDj9N3IBOBQ6P2c8B3Gij5HxRzbDKC7Bnz+iqYW6+dxLlEYD2EtOGhmX8Dg21TbWzeag=="
+  },
+  "controls": {
+    "canonicalAuthorization": "Uses package-root encodeRequestDeepLink and parseAuthorizationCallbackURL; a complete request is persisted to OS-protected storage before launch and parsed against the exact pending request on return.",
+    "nakedRoute": "Rejected by source scanner and test; no direct bare ynxwallet://authorize launcher remains.",
+    "metaMask": "connectMetaMaskWallet uses EIP-6963 discovery or an EIP-1193 MetaMask provider only; it has no YNX Wallet URL path.",
+    "standardWallet": "Standard Wallet connection is independent. Product Session failures are PRIVATE_SERVICE_DEGRADED and do not disconnect it.",
+    "productSession": "No Gateway route, callback, origin, endpoint, or session value is injected by the product. No Product Session is asserted."
+  },
+  "verification": {
+    "typecheck": "PASS",
+    "mobileTests": "PASS 11/11",
+    "i18n": "PASS 12 locales, 59 keys, Arabic RTL",
+    "canonicalSourceScan": "PASS 7 non-test source files",
+    "mobileCheck": "PASS; includes Android and iOS Expo export",
+    "releaseEvidenceTest": "PASS",
+    "androidDebugAssemble": "PASS; independent no-daemon Gradle build"
+  },
+  "artifacts": {
+    "androidDebugApk": {
+      "path": "apps/exchange/mobile/android/app/build/outputs/apk/debug/app-debug.apk",
+      "sha256": "8d9c95b0fe908e818cb3bd64e1e9383feea2733023c970ba967d347bbc0d1aa7",
+      "bytes": 155458696,
+      "classification": "LOCAL_DEBUG_BUILD_ONLY"
+    },
+    "androidBundle": {
+      "path": "apps/exchange/mobile/dist/_expo/static/js/android/index-76e686ab74c29909b0b7653777e1a48c.hbc",
+      "sha256": "65e0649fd8f76babef6ce6b5b6a09e34f3883bb281c5f77068351901c88af6a9"
+    },
+    "iosBundle": {
+      "path": "apps/exchange/mobile/dist/_expo/static/js/ios/index-576b8b0a6ad0e31b92aee688fe5ff105.hbc",
+      "sha256": "38fcf9a7c697225b7523f469b4845989f35b980bdd8d3ce66c1d3e006736c796"
+    }
+  },
+  "visibleEvidence": {
+    "androidDeviceDetected": false,
+    "apkInstalled": false,
+    "walletApprove": false,
+    "walletReject": false,
+    "callback": false,
+    "coldStartRecovery": false,
+    "browserVisible": false,
+    "computerControl": false,
+    "reason": "adb reported no connected device. No Exchange APK installation or Wallet authorization result is claimed for this checkpoint."
+  },
+  "releaseStates": {
+    "migratedV2": false,
+    "productSessionActivated": false,
+    "publicVerified": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storePublished": false,
+    "orderExecutionVerified": false
+  },
+  "remainingBlocker": "A bootable Android device or real browser/product host plus an Wallet build that accepts canonicalWalletAuthorize@1.0.0-p0.0 is required for approve/reject/callback/cold-start/Retry evidence. Product endpoint manifest remains PENDING."
+}
