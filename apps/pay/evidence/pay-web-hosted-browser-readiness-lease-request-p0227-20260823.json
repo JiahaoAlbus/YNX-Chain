@@ -1,0 +1,131 @@
+{
+  "schemaVersion": 1,
+  "requestType": "pay-only-single-use-hosted-chromium-readiness-predeploy-lease",
+  "productId": "pay",
+  "owner": "pay",
+  "remoteParent": {
+    "branch": "codex/p0-pay-wallet-connectivity-20260821",
+    "commit": "56ed9a4ba7a7eceae3ac47a78cbb0ede12a73573"
+  },
+  "p0226Terminal": {
+    "centralReleaseCommit": "0283d444a3b046d76607b3e5c3d7b8904f790053",
+    "centralReleaseTree": "2878962e6e6636c197cd7611e8a36d2b90d3a5c9",
+    "leaseBlob": "b942800476f53782d92e033407b431bdc3443ad8",
+    "leaseBytes": 10042,
+    "leaseSha256": "eeefb02f83fbf8c2d6cc63ce8c25fd7116776bb24faeadf3d3462e31f92b5d9f",
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_PAY_HOSTED_CHROMIUM_PREDEPLOY_PREFLIGHT",
+    "heavyOwner": null,
+    "run": 32605043796,
+    "job": 97108779578,
+    "attempt": 1,
+    "artifact": {
+      "id": 9483914375,
+      "apiBytes": 3440,
+      "downloadedZipBytes": 3440,
+      "downloadedZipSha256": "702cf8c153917d58fc2d1b5b6af268279c9cd9e3b811b2cbd69358725d28d115"
+    },
+    "exactFailure": "The candidate rendered YNX Pay and loaded all raw resources, but the workflow waited for the exact text Waiting for Wallet. That text is used only while an account request is pending and is not the idle disconnected state."
+  },
+  "workflowCheckpoint": {
+    "implementationCommit": "d490150246275785b5ca544bf2c3bdf19efb490f",
+    "implementationTree": "2d9ed653cef5c49d49917fabaa12284aaf7b183d",
+    "path": ".github/workflows/pay-web-hosted-browser-preflight-p0226.yml",
+    "blob": "90964b1503ba899a86f6801e338a0abd14889722",
+    "bytes": 12645,
+    "sha256": "e2a69af956895d68f21bd8e59ce62a9247d75ad3130e26057ad804fb14f2db2d"
+  },
+  "candidate": {
+    "sourceCommit": "5f4ce98eb458550b976c17e3bc6d77cce4081a59",
+    "sourceTree": "8f0c25c4d86eb22a564f3c7aeff9db6709a9b9f0",
+    "archivePath": "release/pay/ynx-pay-web-5f4ce98e-static.tar.gz",
+    "archiveBlob": "cca37d7b48c1c37266a4141c7b79f44f1cf09f29",
+    "archiveBytes": 608368,
+    "archiveSha256": "ae552951d8e569f04aced60db69e3c11422910cc1098a6e7061b0e84005ad09e",
+    "origin": "http://127.0.0.1:4189"
+  },
+  "readinessCorrection": {
+    "positiveDisconnectedSignal": "visible button with accessible name Sign in",
+    "additionalPositiveSignals": [
+      "YNX Pay exact visible brand",
+      "Settings exact visible button",
+      "Invoice, Split, or service bill exact visible textbox",
+      "Confirm before you pay copy",
+      "document language en"
+    ],
+    "negativeSignals": [
+      "Connection details absent",
+      "Connect a wallet chooser absent",
+      "0x1917 absent",
+      "0x account absent",
+      "exactly one stable localhost page",
+      "console/page/request failures zero"
+    ],
+    "captureBeforeEveryWait": true,
+    "capturedFields": ["DOM outerHTML", "body text", "URL", "title", "language", "console errors", "page errors", "failed requests", "response URLs and statuses", "screenshot"],
+    "allowedLoadStates": ["domcontentloaded", "load"],
+    "forbiddenLoadState": "networkidle",
+    "coldBrowserClosedBeforeSecond": true,
+    "samePersistentProfile": true
+  },
+  "localEquivalentFixture": {
+    "exactArchiveOrigin": "http://127.0.0.1:4189",
+    "fixtureRoot": "/tmp/pay-p0227-fixture.F6ZUld",
+    "workflowBrowserBlockExtractedByteForByte": true,
+    "cold": {
+      "jsonSha256": "ea2390e2d65404bd7e0baf40d5d523444bad3593a2a6fc3d4853b4b876c38ed8",
+      "terminalScreenshotSha256": "8513df9eb9e5191a9b32567a9adb67170417a0d44565ecf5332bc68af7481a01",
+      "url": "http://127.0.0.1:4189/",
+      "title": "YNX Pay",
+      "language": "en",
+      "pages": 1,
+      "consoleErrors": 0,
+      "pageErrors": 0,
+      "failedRequests": 0,
+      "signInVisible": true,
+      "fabricatedAccountOrChain": false
+    },
+    "second": {
+      "jsonSha256": "fd480933d7ffb81b4845c22a5ead33d598de5eb273f10b1cc031ffcb54abcb2a",
+      "terminalScreenshotSha256": "8513df9eb9e5191a9b32567a9adb67170417a0d44565ecf5332bc68af7481a01",
+      "url": "http://127.0.0.1:4189/",
+      "title": "YNX Pay",
+      "language": "en",
+      "pages": 1,
+      "consoleErrors": 0,
+      "pageErrors": 0,
+      "failedRequests": 0,
+      "signInVisible": true,
+      "fabricatedAccountOrChain": false
+    },
+    "summarySha256": "9703196da3dbf7f1eecd78a226981d66b79ab3f13dcff00b4d6c52901ea5568c",
+    "existingPayWebTests": "2/2 PASS on PAY_WEB_PORT=4191"
+  },
+  "requestedLease": {
+    "singleUse": true,
+    "retryAllowed": false,
+    "productionMutationAllowed": false,
+    "branch": "codex/p0-pay-wallet-connectivity-20260821",
+    "requiredRemoteParent": "56ed9a4ba7a7eceae3ac47a78cbb0ede12a73573",
+    "expectedHeadCommitMessage": "evidence(pay): capture hosted Chromium readiness",
+    "writablePaths": [
+      ".github/workflows/pay-web-hosted-browser-preflight-p0226.yml",
+      "apps/pay/evidence/pay-web-hosted-browser-readiness-lease-request-p0227-20260823.json",
+      "apps/pay/PAY_P0227_HOSTED_BROWSER_READINESS_LEASE_REQUEST_20260823.md"
+    ],
+    "allowedMutation": "one force=false push and exactly one resulting push-triggered hosted run",
+    "workflowDispatchAllowed": false,
+    "secretsAllowed": false,
+    "inputsAllowed": false,
+    "dynamicUrlAllowed": false,
+    "sshAllowed": false,
+    "deploymentAllowed": false,
+    "accountActionsAllowed": false,
+    "signingAllowed": false,
+    "transactionsAllowed": false
+  },
+  "terminalRules": {
+    "success": "CONSUMED_RELEASED_SUCCESS_PAY_HOSTED_CHROMIUM_READINESS_PREDEPLOY",
+    "failure": "CONSUMED_RELEASED_FAILED_CLOSED_PAY_HOSTED_CHROMIUM_READINESS_PREDEPLOY",
+    "truthBoundary": "A successful run proves only the exact static candidate renders cold and second non-sensitive disconnected UI. Production and every provider/account/sign/transaction gate remain separate and false."
+  }
+}
