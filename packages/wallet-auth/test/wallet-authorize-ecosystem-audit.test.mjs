@@ -801,3 +801,22 @@ test("Central P0-156 through P0-158 accept Router source evidence without granti
   assert.equal(accepted.productsConnected, 0);
   assert.equal(accepted.productsMigratedV2, 0);
 });
+
+test("Central P0-159 binds Router regression evidence without lifting an installed-wallet gate", () => {
+  const accepted = auditV3.centralP0159RouterRegressionBinding;
+  assert.equal(accepted.commit, "347a202564035e902e945b7308bbb5c5397964a4");
+  assert.equal(accepted.tree, "36e53d4405e57fe0a3093a38eb952f8790e3e2f2");
+  assert.equal(accepted.acceptanceSha256, "7fcf3cb29a3f754d8a90255f4cac3ee0e9c71a434f2f9786d73facf31415f374");
+  assert.equal(accepted.matrixSha256, "deee43f5f12197411ae12757aa939ab687a52615650e4688c66b2fc2b128a026");
+  assert.equal(accepted.routerRegressionCommit, "762ebb08810af807a8626ca59aea02e7a39c56e8");
+  assert.equal(accepted.decision, "SOURCE_EVIDENCE_ONLY_REGRESSION_BINDING");
+  assert.equal(accepted.p0150VerifierPassed, true);
+  assert.equal(accepted.p0155VerifierPassed, true);
+  assert.equal(accepted.leaseIssued, false);
+  assert.equal(accepted.chromeLaunchOrInstall, false);
+  assert.equal(accepted.deployedOrDistributed, false);
+  assert.equal(accepted.installedProvider, false);
+  assert.equal(accepted.realDapp, false);
+  assert.equal(accepted.productsConnected, 0);
+  assert.equal(accepted.productsMigratedV2, 0);
+});
