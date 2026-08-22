@@ -168,13 +168,14 @@
     {
       "id": "macos",
       "owner": "wallet-macos",
-      "latestAcceptedSource": "25fc6771acd437c4b2a78c4ee279758f5bbd45da",
-      "latestAcceptedTree": "1de7bb47df40fd32b9dd62212a1e4b1ab98ba4e0",
-      "latestEvidence": "58076b0154196349699696f64a616f5727c7c9cd",
-      "latestEvidenceTree": "125068622f7d64aef68dff0bef62738b4810332b",
-      "latestEvidenceBlob": "59c5de9142bd0a275d980eca28a34c0812a5bd45",
-      "latestEvidenceSha256": "edbd46b50e135cd6e47418593fe9625dca56b9cfefc3ca98aa308d36f7ad3d12",
-      "evidenceTier": "HOSTED_CI_ONLY",
+      "latestAcceptedSource": "bea12cd61997ea0b868967ed573c3c31b981c1e1",
+      "latestAcceptedTree": null,
+      "latestAcceptedTreePrefixReported": "1d8f5eef",
+      "latestEvidence": "5d57ba0706b0b77c1b323c5eebdad4dddbb83e63",
+      "latestEvidenceTree": "75b1422fb6ee4197cf05a66c2ed5345a7900de81",
+      "latestEvidenceBlob": "08c4030ca8faf3a64d85c19495f6067235730cb3",
+      "latestEvidenceSha256": "008a44cba3c521599990191216ae1ed0f2243be8a0b5f01bc3909e97f51aee9f",
+      "evidenceTier": "DIRECT_ISOLATED_HOSTED_INSTALL_FAIL_CLOSED_ONLY",
       "acceptedFacts": [
         "walletconnect-v2-strict-policy-source",
         "eip155-6423-namespace-policy",
@@ -182,10 +183,16 @@
         "walletconnect-local-state-core-source",
         "pending-proposal-and-request-restart-persistence-source",
         "approved-account-result-validation-source",
-        "disconnect-revoke-purge-source"
+        "disconnect-revoke-purge-source",
+        "isolated-temp-applications-cold-second-lifecycle",
+        "canonical-auth-custom-scheme-same-pid-visible-fail-closed",
+        "canonical-walletconnect-custom-scheme-same-pid-visible-fail-closed",
+        "public-chain-0x1917-and-gateway-fail-closed-readback"
       ],
       "blockers": [
         "real-project-id-absent",
+        "system-applications-install-unproved",
+        "browser-quarantine-and-gatekeeper-acceptance-false",
         "relay-pairing-approval-session-runtime-unproved",
         "developer-id-notary-gatekeeper-publication-false"
       ],

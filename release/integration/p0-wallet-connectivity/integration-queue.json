@@ -6144,6 +6144,25 @@
       "productsMigratedV2": "0/12",
       "parityComplete": false,
       "nextAction": "Require real project ID, relay/pairing, successful approval/session and installed real-DApp flows; Simulator fail-close does not count toward parity."
+    },
+    {
+      "taskId": "P0-164",
+      "owner": "integration,wallet-macos",
+      "status": "ISOLATED_HOSTED_INSTALL_CANONICAL_AUTH_WC_VISIBLE_FAIL_CLOSED_ACCEPTED_REAL_RUNTIME_FALSE",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/acceptance/wallet-macos-isolated-callback-fail-closed-p0164-20260822.json"
+      ],
+      "dependencies": ["P0-158", "P0-162"],
+      "source": "bea12cd61997ea0b868967ed573c3c31b981c1e1",
+      "evidence": "5d57ba0706b0b77c1b323c5eebdad4dddbb83e63",
+      "executionLeaseIssued": false,
+      "distributionDispatched": false,
+      "isolatedHostedCallbacksFailClosed": true,
+      "realRelayRuntime": false,
+      "productsConnected": "0/12",
+      "productsMigratedV2": "0/12",
+      "parityComplete": false,
+      "nextAction": "Require exact full implementation tree plus real project ID, relay/pairing, successful approval/session, real DApp, system install and signed/public evidence before further promotion."
     }
   ]
 }
