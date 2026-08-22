@@ -20,6 +20,8 @@ The exact freshly-read active release, environment bytes, state receipt, unit, C
 
 ## Single-use rollback-first execution contract
 
+The frozen executor is `apps/finance/scripts/finance-production-rollback-first.sh`, 3,513 bytes, SHA-256 `74c6df3b72c2c24beb92bbec8d940b24660ff4be15d2c14b00a5757897da9c16`; its static safety regression is `apps/finance/scripts/test-finance-production-command-object.mjs`, 550 bytes, SHA-256 `a1c3613ac6b27f575467b67515bea27519b45556e494af5f805d94efb8d43dbc`. Future Central lease input must be absolute under `/opt/ynx/leases/finance/`, signed, and include every field used by this object.
+
 The future lease must bind absent/no-symlink tuples for immutable stage, backup and candidate-release paths; archive upload bytes/SHA/ELF validation; extracted binary and asset inventory validation; atomic release materialization; same-directory verified env backup/replacement; atomic symlink switch; one service restart; then exact source-bound loopback/public `/health`, `/version` and asset verification.
 
 On the first failed prewrite, switch, restart or verifier check, execution stops permanently: restore exact old env bytes, state, active symlink and service, then verify the signed old loopback/public response hashes. The lease is nonreusable after either success or failure. It authorizes no DEX, Exchange, Quant, Wallet/Auth, account request, signature, transaction, or Product Session claim.
