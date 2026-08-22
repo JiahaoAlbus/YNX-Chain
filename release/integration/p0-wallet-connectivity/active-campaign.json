@@ -427,25 +427,25 @@
     }
   ],
   "heavy": {
-    "owner": "shop",
-    "taskId": "P0-210",
-    "status": "ACTIVE_SINGLE_USE",
+    "owner": null,
+    "taskId": null,
+    "status": "IDLE",
     "acquiredAt": "2026-08-22T18:52:00Z",
     "expiresAt": "2026-08-22T19:37:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-22T19:08:00Z",
     "sourceCommit": "4ecbdba1fee7b919f5d0c65d0907ca4727e37496",
     "evidenceCommit": "7c2e32837225d450a85257467c98b73a1ca72570",
     "runtimeHost": "43.153.202.237",
     "currentRuntime": "/opt/ynx-shop/releases/p0-shop-controls-99b2185f",
     "candidateRuntime": "/opt/ynx-shop/releases/4ecbdba1fee7b919f5d0c65d0907ca4727e37496",
     "artifactSha256": "821922165d8a4210ae2267bdd9e97abe63dbbd23f44016078819bba83ffb26a8",
-    "productionMutationAllowed": true,
+    "productionMutationAllowed": false,
     "singleUse": true,
     "reusable": false,
     "previousOwner": "shop",
     "previousTaskId": "P0-209",
-    "reviewDecision": "GO_NEW_SHOP_SCHEMA7_ROLLBACK_FIRST_SINGLE_USE",
-    "reason": "P0-209 is nonreusable and rollback-restored. P0-210 independently binds the live nested commerce snapshot.Version=7, the new directly tested schema7 reader/migration implementation, exact carrier and commands, a fresh root-only backup, cold no-rewrite/no-bak proof, one switch/restart and one conditional rollback."
+    "reviewDecision": "CONSUMED_RELEASED_FAILED_CLOSED_BROWSER_NON_SENSITIVE_GATE_ROLLED_BACK",
+    "reason": "P0-210 directly proved cold and switched schema7 compatibility without state rewrite or migration backup, but the mandatory browser showed zh-Hans and only the YNX login action; default English and simultaneous distinct YNX/MetaMask visible identities were not proved. The sole exact rollback restored the old release, state, service and public identity; no retry or sensitive action occurred."
   },
   "wave": {
     "id": "B-financial-apps-quant",

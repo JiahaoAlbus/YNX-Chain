@@ -3,15 +3,16 @@
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "taskId": "P0-210",
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-shop-schema7-rollback-first-source-bound-public-release-20260822T185200Z",
-  "owner": "shop",
+  "owner": null,
   "executor": "shop-linux-release",
-  "status": "ACTIVE_SINGLE_USE",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_BROWSER_NON_SENSITIVE_GATE_ROLLED_BACK",
   "issuedAt": "2026-08-22T18:52:00Z",
   "expiresAt": "2026-08-22T19:37:00Z",
+  "releasedAt": "2026-08-22T19:08:00Z",
   "singleUse": true,
   "reusable": false,
-  "executionAuthorized": true,
-  "productionMutationAllowed": true,
+  "executionAuthorized": false,
+  "productionMutationAllowed": false,
   "scope": "Shop-only root-protected state backup, one exact schema7 carrier transfer, one cold-tested atomic release switch/restart, exact public non-sensitive verification and one conditional rollback",
   "predecessor": {"taskId":"P0-209","centralReleaseCommit":"074d697b25fea32483febf123d36f2dc07536e03","status":"CONSUMED_RELEASED_FAILED_CLOSED_SHOP_PUBLIC_RELEASE_ROLLED_BACK","reusable":false},
   "ownerAuthority": {
@@ -20,7 +21,7 @@
     "requestTree": "167fb3d7739e0c271de0ff689d992aaa9662d19b",
     "remoteReadbackExact": true,
     "implementationCommit": "4ecbdba1fee7b919f5d0c65d0907ca4727e37496",
-    "implementationTree": "70d11d80",
+    "implementationTree": "70d11d80aea8ea2083ed9036d335d1a919437322",
     "commandCommit": "2488369a5b0f9010703a03e9d0feabc9bd23c326",
     "commandTree": "e0a5ec2b"
   },
@@ -135,5 +136,67 @@
     "rollbackFailure": "EMERGENCY_BLOCKED_SHOP_EXACT_ROLLBACK_REQUIRED_NO_FURTHER_ACTION",
     "requiredReturn": "backup inventory, transfer receipt, cold schema7/no-rewrite/no-bak proof, exact deploy/rollback attempts, current link/service/state/runtime/public hashes, browser flags and sensitive-action false boundary before expiry"
   },
-  "truthBeforeExecution": {"sourceBoundPublic":false,"installedProvider":false,"accountApprovalOrReject":false,"signingOrTypedData":false,"transaction":false,"productComplete":false,"productsConnected":"0/12"}
+  "truthBeforeExecution": {"sourceBoundPublic":false,"installedProvider":false,"accountApprovalOrReject":false,"signingOrTypedData":false,"transaction":false,"productComplete":false,"productsConnected":"0/12"},
+  "terminalEvidence": {
+    "classification": "FAILED_CLOSED_BROWSER_NON_SENSITIVE_GATE_EXACT_ROLLBACK_RESTORED",
+    "owner": {
+      "branch": "codex/final-shop",
+      "commit": "34fdbc677282fe4e67e5cd369b69c0720d62a65f",
+      "tree": "9cedd129c7c5952f8c40eaeaf973014b0a9dcff7",
+      "parent": "7c2e32837225d450a85257467c98b73a1ca72570",
+      "evidencePath": "apps/shop/evidence/shop-schema7-rollback-first-public-release-terminal-20260823.json",
+      "evidenceBlob": "041073a0886d2be3a15296c2062eead2196f8579",
+      "evidenceBytes": 4524,
+      "evidenceSha256": "c39dbd7281859d7a7bd2b6b38ea5dbd97cd7d0617ff335e3b0c5269818b71a25",
+      "remoteReadbackExact": true
+    },
+    "counts": {"carrierTransfer":1,"deploy":1,"rollback":1,"retry":0},
+    "candidate": {
+      "sourceCommit": "4ecbdba1fee7b919f5d0c65d0907ca4727e37496",
+      "archiveBytes": 15125474,
+      "archiveSha256": "821922165d8a4210ae2267bdd9e97abe63dbbd23f44016078819bba83ffb26a8",
+      "coldSchema7Accepted": true,
+      "coldStateBytes": 23562,
+      "coldStateSha256": "cb2f468f3e3afd9a3fd63becdca14351e8a3603054c37a36674411d94d1a986c",
+      "coldSnapshotVersion": 7,
+      "coldStateRewritten": false,
+      "migrationBakCreated": false,
+      "postSwitchServiceActive": true,
+      "postSwitchNRestarts": 0,
+      "publicVersion": {"http":200,"bytes":153,"sha256":"c0a63fb89519b91ec99fdcc25fc6d505717299035e92fcd2b420f6e14aba56cb","sourceExact":true},
+      "publicHealth": {"http":200,"bytes":387,"sha256":"7938b59b4ad65c08f08cbb0c23472fe206706a4d0201d8b4fc6cf9478ff250a9","healthy":true,"integrity":true,"persistence":true},
+      "allPublicAssetsExact": true,
+      "sourceBoundPublicCurrentlyTrue": false
+    },
+    "browserFailure": {
+      "stableUrl": "https://shop.ynxweb4.com/shop/",
+      "shopTabCount": 1,
+      "consoleErrors": 0,
+      "shopCreatedBlankTab": false,
+      "observedLanguage": "zh-Hans",
+      "observedWalletAction": "使用 YNX 钱包登录",
+      "defaultEnglishProved": false,
+      "simultaneousDistinctYnxAndMetaMaskNamesLogosProved": false,
+      "forbiddenAccountBoundaryCrossed": false
+    },
+    "rollback": {
+      "executedExactlyOnce": true,
+      "restoredRelease": "/opt/ynx-shop/releases/p0-shop-controls-99b2185f",
+      "restoredBinary": {"bytes":19632312,"sha256":"c41654634eb6d7137f03b8e7afa71f72598b2675eacca52aa7c16e94e841a860"},
+      "restoredState": {"bytes":23562,"sha256":"cb2f468f3e3afd9a3fd63becdca14351e8a3603054c37a36674411d94d1a986c","owner":"ynx:ynx","mode":"0600","nlink":1,"freshDeviceInode":"64770:1329782"},
+      "service": {"active":"active","subState":"running","mainPid":1904496,"nRestarts":0},
+      "rollbackTemporaryStateAbsent": true,
+      "nextSymlinkAbsent": true,
+      "candidateReleaseRetainedInactive": true,
+      "publicVersion": {"http":200,"bytes":121,"sha256":"7e6b2ffad252284073373b9c5c93cc4bea1acf511a21e9a5c7b1676aa1bf73ef","commit":"88c0f3a5"},
+      "publicHealth": {"http":200,"bytes":355,"sha256":"81e3ca8c9e5a703e31f3835e7f6a09a82cf65b39fe6793cb7dac9c171a0e68e9","healthy":true,"persistence":true,"hashVolatileAfterRequiredRestart":true}
+    },
+    "accountRequestTriggered": false,
+    "approvalOrRejectTriggered": false,
+    "signatureOrTypedDataTriggered": false,
+    "transactionOrderOrSettlementTriggered": false,
+    "productComplete": false,
+    "productsConnected": "0/12",
+    "singleExecutableBlocker": "SHOP_DEFAULT_ENGLISH_AND_SIMULTANEOUS_DISTINCT_YNX_METAMASK_VISIBLE_NON_SENSITIVE_GATE_UNPROVED"
+  }
 }
