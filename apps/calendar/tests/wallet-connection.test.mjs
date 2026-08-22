@@ -6,6 +6,7 @@ import {
   calendarWalletState,
   connectCalendarWallet,
   restoreCalendarWallet,
+  restoreCalendarWalletAfterLateInjection,
   switchCalendarWalletAccount,
   WALLET_INSTALLATION_OPTIONS,
   YNX_TESTNET_ADD_CHAIN,
@@ -130,6 +131,44 @@ test("rejection and unavailable injection fail closed with truthful codes", asyn
   await assert.rejects(connectCalendarWallet(browser([], provider({reject: true})), {timeoutMs: 0}), (error) => error.code === "WALLET_USER_REJECTED");
   await assert.rejects(connectCalendarWallet(browser(), {timeoutMs: 0}), (error) => error.code === "PROVIDER_NOT_INJECTED" && error.details.downloads === WALLET_INSTALLATION_OPTIONS);
   assert.equal(calendarWalletState().chooserOpen, false);
+  assert.equal(calendarWalletState().status, "disconnected");
+  assert.equal(calendarWalletState().pendingIntent, null);
+  assert.equal(calendarWalletState().providerKind, null);
+  assert.equal(calendarWalletState().account, null);
+  assert.equal(calendarWalletState().chainId, null);
+});
+
+test("provider announced after the initial 160ms window restores read-only", async () => {
+  const wallet = provider();
+  const announcements = [];
+  const scope = browser(announcements);
+  setTimeout(() => {
+    announcements.push(announcement(wallet, "metamask", "03"));
+    scope.dispatchEvent({type: "eip6963:announceProvider", detail: announcements[0]});
+  }, 170);
+  const restored = await restoreCalendarWalletAfterLateInjection(scope);
+  assert.equal(restored.standardConnection, "CONNECTED");
+  assert.equal(restored.chainId, "0x1917");
+  assert.equal(wallet.calls.some((call) => call.method === "eth_accounts"), true);
+  assert.equal(wallet.calls.some((call) => call.method === "eth_chainId"), true);
+  assert.equal(wallet.calls.some((call) => call.method === "eth_requestAccounts"), false);
+});
+
+test("ethereum initialized signal triggers bounded read-only rediscovery", async () => {
+  const wallet = provider();
+  const scope = browser();
+  setTimeout(() => {
+    scope.ethereum = wallet;
+    scope.dispatchEvent(new Event("ethereum#initialized"));
+  }, 5);
+  const restored = await restoreCalendarWalletAfterLateInjection(scope, {timeoutMs: 0, retryDelays: [10, 20, 30]});
+  assert.equal(restored.standardConnection, "CONNECTED");
+  assert.equal(wallet.calls.some((call) => call.method === "eth_requestAccounts"), false);
+});
+
+test("late injection recovery never navigates or launches a custom scheme", () => {
+  const source = readFileSync(new URL("../web/wallet-connection.js", import.meta.url), "utf8");
+  assert.doesNotMatch(source, /window\.open|location\.(?:href|assign|replace)|ynxwallet:/);
 });
 
 test("accepted shared Provider and connect-state sources are byte-identical", () => {

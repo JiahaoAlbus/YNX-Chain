@@ -28,6 +28,8 @@ let activeProvider = null;
 let activeCandidate = null;
 let activeListeners = null;
 
+const LATE_INJECTION_REDISCOVERY_MS = Object.freeze([250, 750, 1500]);
+
 function transition(event) {
   walletState = reduceStandardWalletConnectState(walletState, event);
   if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("ynx-calendar-standard-wallet-state", {detail: walletState}));
@@ -89,6 +91,24 @@ async function discover(windowLike, timeoutMs) {
   return result;
 }
 
+function waitForLateProviderSignal(windowLike, milliseconds) {
+  return new Promise((resolve) => {
+    let settled = false;
+    let timer = null;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      if (timer !== null) clearTimeout(timer);
+      try { windowLike.removeEventListener?.("eip6963:announceProvider", finish); } catch {}
+      try { windowLike.removeEventListener?.("ethereum#initialized", finish); } catch {}
+      resolve();
+    };
+    try { windowLike.addEventListener?.("eip6963:announceProvider", finish); } catch {}
+    try { windowLike.addEventListener?.("ethereum#initialized", finish, {once: true}); } catch {}
+    timer = setTimeout(finish, milliseconds);
+  });
+}
+
 function selectProvider(discovery, preferred) {
   if (preferred === WALLET_PROVIDER_KIND.YNX) return discovery.ynx;
   if (preferred === WALLET_PROVIDER_KIND.METAMASK) return discovery.metamask;
@@ -127,7 +147,7 @@ export async function connectCalendarWallet(windowLike = window, {timeoutMs = 16
     const discovery = await discover(windowLike, timeoutMs);
     const selected = selectProvider(discovery, providerKind);
     if (!selected) {
-      transition({type: "CLOSE_CHOOSER"});
+      transition({type: "DISCONNECT"});
       const code = discovery.status === WALLET_PROVIDER_DISCOVERY_STATUS.NOT_INJECTED ? "PROVIDER_NOT_INJECTED" : "UNSUPPORTED_INJECTED_PROVIDER";
       throw new DAppConnectError(code, "No supported Wallet provider was injected into this page. Unlock the extension, grant site access, enable it, then retry.", {details: {discovery, downloads: WALLET_INSTALLATION_OPTIONS}});
     }
@@ -154,7 +174,11 @@ export async function connectCalendarWallet(windowLike = window, {timeoutMs = 16
 export async function restoreCalendarWallet(windowLike = window, {timeoutMs = 160, providerKind = null} = {}) {
   const discovery = await discover(windowLike, timeoutMs);
   const selected = selectProvider(discovery, providerKind);
-  if (!selected) return Object.freeze({status: "not-restored", connectionState: walletState});
+  if (!selected) {
+    removeProviderListeners();
+    transition({type: "DISCONNECT"});
+    return Object.freeze({status: "not-restored", connectionState: walletState});
+  }
   try {
     const [accounts, chainId] = await Promise.all([
       selected.provider.request({method: "eth_accounts"}),
@@ -165,8 +189,32 @@ export async function restoreCalendarWallet(windowLike = window, {timeoutMs = 16
     listen(selected.provider, selected);
     return connectedResult(selected, selected.provider);
   } catch (error) {
+    removeProviderListeners();
+    transition({type: "DISCONNECT"});
     return Object.freeze({status: "not-restored", code: errorCode(error), connectionState: walletState});
   }
+}
+
+export async function restoreCalendarWalletAfterLateInjection(windowLike = window, {
+  timeoutMs = 160,
+  providerKind = null,
+  retryDelays = LATE_INJECTION_REDISCOVERY_MS,
+} = {}) {
+  if (!Array.isArray(retryDelays) || retryDelays.some((value, index) => !Number.isSafeInteger(value) || value < 0 || (index > 0 && value <= retryDelays[index - 1]))) {
+    throw new TypeError("Calendar Wallet rediscovery delays must be ascending non-negative integers");
+  }
+  const startedAt = Date.now();
+  let restored = await restoreCalendarWallet(windowLike, {timeoutMs, providerKind});
+  if (restored?.standardConnection === "CONNECTED") return restored;
+
+  for (const checkpoint of retryDelays) {
+    while (Date.now() - startedAt < checkpoint) {
+      await waitForLateProviderSignal(windowLike, checkpoint - (Date.now() - startedAt));
+      restored = await restoreCalendarWallet(windowLike, {timeoutMs, providerKind});
+      if (restored?.standardConnection === "CONNECTED") return restored;
+    }
+  }
+  return restored;
 }
 
 export function disconnectCalendarWallet() {

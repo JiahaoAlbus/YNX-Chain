@@ -1,10 +1,11 @@
 import {
   connectCalendarWallet,
   disconnectCalendarWallet,
-  restoreCalendarWallet,
+  restoreCalendarWalletAfterLateInjection,
   switchCalendarWalletAccount,
   WALLET_INSTALLATION_OPTIONS,
 } from "./wallet-connection.js";
+import {createCalendarToastController} from "./toast.js";
 
 const state = {
   token: "",
@@ -45,12 +46,8 @@ const escapeHTML = (v) =>
         c
       ],
   );
-function toast(m) {
-  const el = $("#toast");
-  el.textContent = m;
-  el.classList.add("show");
-  setTimeout(() => el.classList.remove("show"), 2600);
-}
+const toastController = createCalendarToastController($("#toast"));
+const toast = (message) => toastController.show(message);
 function startOfWeek(d) {
   const x = new Date(d);
   x.setHours(0, 0, 0, 0);
@@ -177,8 +174,10 @@ function clearStandardWallet(reason = "Wallet disconnected. Guest trial remains 
   $("#signin-state").textContent = reason;
 }
 async function restoreStandardWallet() {
-  const restored = await restoreCalendarWallet(window);
-  if (restored?.standardConnection === "CONNECTED") applyStandardWallet(restored);
+  const restored = await restoreCalendarWalletAfterLateInjection(window);
+  if (restored?.standardConnection === "CONNECTED") return applyStandardWallet(restored);
+  toastController.clear();
+  clearStandardWallet("Wallet disconnected. Guest trial remains available.");
 }
 async function restoreSession() {
   try {

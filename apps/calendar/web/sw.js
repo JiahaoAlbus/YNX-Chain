@@ -1,10 +1,11 @@
-const CACHE = "ynx-calendar-v5";
+const CACHE = "ynx-calendar-v6";
 const ASSETS = [
   "/",
   "/styles.css",
   "/i18n.js",
   "/locales.json",
   "/app.js",
+  "/toast.js",
   "/wallet-connection.js",
   "/ynx-dapp-connect-sdk/constants.js",
   "/ynx-dapp-connect-sdk/discovery.js",

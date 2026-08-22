@@ -70,6 +70,7 @@ test("Calendar offline, explicit approval, conflict and AI boundaries are wired"
   assert.match(js, /the calendar was not changed/);
   assert.match(js, /state\.wallet \? showWalletConnection\(\) : state\.guest \? showGuestAccount\(\) : showAccount\(\)/);
   assert.match(sw, /caches\.open/);
+  assert.match(sw, /\/toast\.js/);
   assert.match(sw, /self\.skipWaiting\(\)/);
   assert.match(sw, /self\.clients\.claim\(\)/);
   assert.match(sw, /ynx-logo\.png/);
