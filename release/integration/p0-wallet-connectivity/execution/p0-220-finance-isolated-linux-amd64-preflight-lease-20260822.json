@@ -3,16 +3,17 @@
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "taskId": "P0-220",
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-isolated-linux-preflight-20260822T211600Z",
-  "owner": "finance",
+  "owner": null,
   "executor": "finance-linux-preflight",
-  "status": "ACTIVE_SINGLE_USE",
+  "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_ISOLATED_LINUX_AMD64_PREFLIGHT_ONLY",
   "issuedAt": "2026-08-22T21:16:00Z",
   "expiresAt": "2026-08-22T22:01:00Z",
+  "releasedAt": "2026-08-22T21:25:00Z",
   "singleUse": true,
   "reusable": false,
-  "executionAuthorized": true,
+  "executionAuthorized": false,
   "productionMutationAllowed": false,
-  "preflightMutationAllowed": true,
+  "preflightMutationAllowed": false,
   "scope": "Finance-only new-carrier isolated Linux amd64 preflight with signed three-level carrier tuples and two mandatory Linux regressions before one candidate execution",
   "predecessors": [
     {
@@ -218,6 +219,104 @@
       "command exit status"
     ],
     "successRequires": "Exit zero, full verified receipts, candidate/mock stopped, no listener on 45263, isolated state absent after exact-inode cleanup, protected residue unchanged and no production mutation."
+  },
+  "terminalEvidence": {
+    "decision": "DIRECT_SUCCESS",
+    "observedAt": "2026-08-22T21:24:56Z",
+    "counts": {
+      "prepare": 1,
+      "upload": 1,
+      "finalize": 1,
+      "carrierRegression": 1,
+      "manifestRegression": 1,
+      "candidateExecution": 1,
+      "retry": 0,
+      "productionAction": 0
+    },
+    "regressions": {
+      "carrier": "PASS",
+      "manifest": "PASS"
+    },
+    "candidate": {
+      "exitCode": 0,
+      "sourceCommit": "7824af677dd052d20321431381523ab302614d98",
+      "release": "ynx-finance-7824af677dd0",
+      "healthExact": true,
+      "versionExact": true,
+      "categoryPostHttpStatus": 201
+    },
+    "receipts": {
+      "directory": "/opt/ynx/preflight/finance/runs/P0-WALLET-CONNECTIVITY-2026-08-finance-isolated-linux-preflight-20260822T211600Z/receipts",
+      "manifestBytes": 1062,
+      "manifestSha256": "a4581e24da7d9208d4d5b1f067134ed52fbdfd5cbfb0f143d5e1311d489ded63",
+      "manifestVerifier": "PASS",
+      "resultBytes": 144,
+      "resultSha256": "b8c5cf7d9e4174f6f46f128fa6cf4844ac159c7d74177b6fdf51467f35b7fad5",
+      "result": "PREFLIGHT_OK",
+      "retainedReceiptCountExcludingManifest": 12
+    },
+    "candidateCreatedState": {
+      "device": "64770",
+      "inode": "4620852",
+      "uid": 0,
+      "gid": 0,
+      "mode": "600",
+      "nlink": 1,
+      "bytes": 1059,
+      "sha256": "833312c7958cf2ce960dbb3ddea00ad0249e9884004007dbaaaf1cef8d97fabc"
+    },
+    "cleanup": {
+      "candidateStopped": true,
+      "mockStopped": true,
+      "matchedDevice": "64770",
+      "matchedInode": "4620852",
+      "exactInodeDeleted": true,
+      "finalStateJsonAbsent": true,
+      "zeroByteStateLockRetained": true,
+      "loopbackPort45263Free": true,
+      "isolatedCandidateProcessAbsent": true
+    },
+    "signedTuplesReadback": {
+      "carrierRoot": "0:0:755:3",
+      "digestDirectory": "0:0:755:2",
+      "archive": "0:0:644:1",
+      "exact": true
+    },
+    "protectedResidue": {
+      "p0217CarrierDeviceInode": "64770:2663578",
+      "p0217RunDeviceInode": "64770:2663582",
+      "p0218CarrierDeviceInode": "64770:3450039",
+      "unchanged": true
+    },
+    "production": {
+      "financePid": 877083,
+      "processUntouched": true,
+      "publicVersionHttpStatus": 200,
+      "publicVersionBytes": 130,
+      "publicVersionSha256": "39789776da47e60b7a7df845789e02ebba16707ad8951eb6f27c84c1b40bb226",
+      "publicSourceCommit": "3b2383f5c18ab3eb5ce7f7f6a267d2cfe7c7e6a4",
+      "publicRelease": "ynx-finance-3b2383f5c18a",
+      "systemctlAction": false,
+      "stateMutation": false,
+      "symlinkMutation": false,
+      "environmentMutation": false,
+      "caddyMutation": false,
+      "publicRouteMutation": false
+    },
+    "sensitiveActions": {
+      "account": false,
+      "sign": false,
+      "transaction": false
+    },
+    "truthBoundary": "This promotes only exact Finance isolated Linux amd64 preflight evidence. It does not authorize or prove production deployment, source-bound public, installed provider, account, signing or transaction behavior."
+  },
+  "releasedLocks": {
+    "releasedAt": "2026-08-22T21:25:00Z",
+    "heavyOwner": null,
+    "hostPreflightOwner": null,
+    "p0220CarrierRootOwner": null,
+    "p0220RunDirectoryOwner": null,
+    "loopbackPortOwner": null
   },
   "forbidden": [
     "write, delete, overwrite or reuse any P0-217 or P0-218 evidence",

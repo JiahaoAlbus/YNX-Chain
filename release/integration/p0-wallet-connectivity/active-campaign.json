@@ -427,12 +427,12 @@
     }
   ],
   "heavy": {
-    "owner": "finance",
-    "taskId": "P0-220",
-    "status": "ACTIVE_SINGLE_USE",
+    "owner": null,
+    "taskId": null,
+    "status": "IDLE",
     "acquiredAt": "2026-08-22T21:16:00Z",
     "expiresAt": "2026-08-22T22:01:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-22T21:25:00Z",
     "sourceCommit": "7824af677dd052d20321431381523ab302614d98",
     "evidenceCommit": "565b96cef09efbabfe719d44333f98f229473d7c",
     "runtimeHost": "43.153.202.237",
@@ -444,8 +444,8 @@
     "reusable": false,
     "previousOwner": "finance",
     "previousTaskId": "P0-218",
-    "reviewDecision": "GO_NEW_FINANCE_ISOLATED_LINUX_AMD64_PREFLIGHT_THREE_LEVEL_SIGNED_TUPLES_SINGLE_USE",
-    "reason": "P0-217 and P0-218 are released and nonreusable; P0-219 issued no lease. P0-220 binds new p0220 carrier and run paths, unused loopback port 45263, exact six carrier files and separate carrier-root, digest-directory and archive tuples 0:0:755:3, 0:0:755:2 and 0:0:644:1. One Linux carrier regression and one Linux manifest regression must pass before the sole seven-argument candidate execution. Production mutation and public completion remain false."
+    "reviewDecision": "CONSUMED_RELEASED_SUCCESS_FINANCE_ISOLATED_LINUX_AMD64_PREFLIGHT_ONLY",
+    "reason": "P0-220 consumed one prepare, upload, finalize, carrier regression, manifest regression and candidate execution with no retry. Both regressions and all signed tuples passed; direct cold health/version bind source 7824af677, the isolated write produced exact state receipts, candidate/mock stopped and exact device/inode cleanup removed state.json. Port 45263 is free, protected P0-217/P0-218 evidence and production Finance PID/public source remain unchanged. Heavy and every P0-220 lock are released. Only isolated Linux preflight truth is promoted."
   },
   "wave": {
     "id": "B-financial-apps-quant",
