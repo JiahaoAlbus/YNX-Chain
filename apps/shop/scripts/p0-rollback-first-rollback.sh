@@ -10,12 +10,12 @@ readonly EXPECTED_OLD_RELEASE="$1"
 readonly BACKUP_STATE_PATH="$2"
 readonly BACKUP_STATE_SHA256="$3"
 readonly EXPECTED_STATE_OWNER_GROUP="$4"
-readonly SOURCE_COMMIT="80212e16d6b504f0363cda523b705907c2b56073"
+readonly SOURCE_COMMIT="4ecbdba1fee7b919f5d0c65d0907ca4727e37496"
 readonly CANDIDATE_RELEASE="/opt/ynx-shop/releases/${SOURCE_COMMIT}"
 readonly CURRENT_LINK="/opt/ynx-shop/current"
-readonly NEXT_LINK="/opt/ynx-shop/.current-p0209-rollback"
+readonly NEXT_LINK="/opt/ynx-shop/.current-schema7-rollback"
 readonly STATE_PATH="/var/lib/ynx-shop/state.json"
-readonly STATE_NEXT="/var/lib/ynx-shop/.state.json.p0209-rollback"
+readonly STATE_NEXT="/var/lib/ynx-shop/.state.json.schema7-rollback"
 readonly SERVICE="ynx-shopd.service"
 
 [[ "$(id -u)" == "0" ]] || { echo "root required" >&2; exit 77; }
@@ -39,4 +39,4 @@ systemctl start "$SERVICE"
 systemctl is-active --quiet "$SERVICE"
 [[ "$(readlink -f "$CURRENT_LINK")" == "$EXPECTED_OLD_RELEASE" ]] || { echo "old release restore mismatch" >&2; exit 74; }
 echo "$BACKUP_STATE_SHA256  $STATE_PATH" | sha256sum -c -
-echo "SHOP_P0209_ROLLED_BACK release=$EXPECTED_OLD_RELEASE"
+echo "SHOP_SCHEMA7_ROLLED_BACK release=$EXPECTED_OLD_RELEASE"

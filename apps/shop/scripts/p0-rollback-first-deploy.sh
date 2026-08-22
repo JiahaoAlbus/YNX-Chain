@@ -9,17 +9,18 @@ fi
 readonly EXPECTED_OLD_RELEASE="$1"
 readonly BACKUP_STATE_PATH="$2"
 readonly BACKUP_STATE_SHA256="$3"
-readonly SOURCE_COMMIT="80212e16d6b504f0363cda523b705907c2b56073"
-readonly ARCHIVE_SHA256="66c7ba685c76ebe58855923415bd8c03d2595a4284177d54874d1e941b575baf"
-readonly BINARY_SHA256="c37975049e5e9c6d040ab933481bab2bc6820280f26e48aa9fb46a1d1cc4acd6"
+readonly SOURCE_COMMIT="4ecbdba1fee7b919f5d0c65d0907ca4727e37496"
+readonly ARCHIVE_SHA256="baf11e312085f0aa8b32f4ff1eb6fc189754d9a5f7b6e6da067b3ccd379d4650"
+readonly BINARY_SHA256="ca19460320baa9b12b8b326fefe9c06be6a7c8caa5ab146bd1b955ec09a343f0"
 readonly ARCHIVE_PATH="/var/tmp/ynx-shop-${SOURCE_COMMIT}.tar.gz"
 readonly RELEASE_DIR="/opt/ynx-shop/releases/${SOURCE_COMMIT}"
 readonly CURRENT_LINK="/opt/ynx-shop/current"
-readonly NEXT_LINK="/opt/ynx-shop/.current-p0209-next"
+readonly NEXT_LINK="/opt/ynx-shop/.current-schema7-next"
 readonly SERVICE="ynx-shopd.service"
 readonly COLD_PORT="28095"
 readonly COLD_STATE="/var/tmp/ynx-shop-${SOURCE_COMMIT}-cold-state.json"
 readonly COLD_LOG="/var/tmp/ynx-shop-${SOURCE_COMMIT}-cold.log"
+readonly ENV_FILE="/etc/ynx/ynx-shopd.env"
 
 [[ "$(id -u)" == "0" ]] || { echo "root required" >&2; exit 77; }
 [[ "$EXPECTED_OLD_RELEASE" == /opt/ynx-shop/releases/* ]] || { echo "invalid old release" >&2; exit 65; }
@@ -28,6 +29,7 @@ readonly COLD_LOG="/var/tmp/ynx-shop-${SOURCE_COMMIT}-cold.log"
 [[ -L "$CURRENT_LINK" ]] || { echo "current is not a symlink" >&2; exit 66; }
 [[ "$(readlink -f "$CURRENT_LINK")" == "$EXPECTED_OLD_RELEASE" ]] || { echo "current release changed" >&2; exit 67; }
 [[ -f "$ARCHIVE_PATH" ]] || { echo "archive missing" >&2; exit 66; }
+[[ -f "$ENV_FILE" ]] || { echo "Shop environment file missing" >&2; exit 66; }
 echo "$ARCHIVE_SHA256  $ARCHIVE_PATH" | sha256sum -c -
 [[ -f "$BACKUP_STATE_PATH" ]] || { echo "state backup missing" >&2; exit 66; }
 echo "$BACKUP_STATE_SHA256  $BACKUP_STATE_PATH" | sha256sum -c -
@@ -39,7 +41,13 @@ tar -xzf "$ARCHIVE_PATH" --strip-components=1 -C "$RELEASE_DIR"
 (cd "$RELEASE_DIR" && sha256sum -c SHA256SUMS)
 echo "$BINARY_SHA256  $RELEASE_DIR/bin/ynx-shopd" | sha256sum -c -
 
-rm -f "$COLD_STATE" "$COLD_LOG"
+rm -f "$COLD_STATE" "$COLD_LOG" "$COLD_STATE.bak"
+install -m 0600 "$BACKUP_STATE_PATH" "$COLD_STATE"
+echo "$BACKUP_STATE_SHA256  $COLD_STATE" | sha256sum -c -
+set -a
+# shellcheck disable=SC1091
+source "$ENV_FILE"
+set +a
 "$RELEASE_DIR/bin/ynx-shopd" \
   -http "127.0.0.1:${COLD_PORT}" \
   -state "$COLD_STATE" \
@@ -49,7 +57,7 @@ cold_pid=$!
 cleanup_cold() {
   kill "$cold_pid" 2>/dev/null || true
   wait "$cold_pid" 2>/dev/null || true
-  rm -f "$COLD_STATE"
+  rm -f "$COLD_STATE" "$COLD_STATE.bak"
 }
 trap cleanup_cold EXIT
 for _ in {1..30}; do
@@ -59,6 +67,8 @@ for _ in {1..30}; do
 done
 curl -fsS --max-time 2 "http://127.0.0.1:${COLD_PORT}/health" >/dev/null
 curl -fsS --max-time 2 "http://127.0.0.1:${COLD_PORT}/version" | grep -F "$SOURCE_COMMIT" >/dev/null
+echo "$BACKUP_STATE_SHA256  $COLD_STATE" | sha256sum -c -
+[[ ! -e "$COLD_STATE.bak" ]] || { echo "current schema 7 preflight unexpectedly migrated state" >&2; exit 75; }
 cleanup_cold
 trap - EXIT
 
@@ -67,4 +77,4 @@ mv -Tf "$NEXT_LINK" "$CURRENT_LINK"
 systemctl restart "$SERVICE"
 systemctl is-active --quiet "$SERVICE"
 [[ "$(readlink -f "$CURRENT_LINK")" == "$RELEASE_DIR" ]] || { echo "candidate switch mismatch" >&2; exit 74; }
-echo "SHOP_P0209_DEPLOYED source=$SOURCE_COMMIT release=$RELEASE_DIR"
+echo "SHOP_SCHEMA7_DEPLOYED source=$SOURCE_COMMIT release=$RELEASE_DIR"
