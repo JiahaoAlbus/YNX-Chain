@@ -45,6 +45,18 @@ export function parseEip1193Request(input:unknown,session:Eip1193Session,now=new
   const details=validateParams(method,params,session.account);return Object.freeze({sessionId:session.sessionId,requestId,transport:session.transport,origin:session.origin,chainId:YNX_EVM_CAIP2,method,params,account:session.account,issuedAt:issued.toISOString(),expiresAt:expires.toISOString(),review:Object.freeze({title:reviewTitle(method),origin:session.origin,account:session.account,network:"YNX Testnet · 6423 · 0x1917 · YNXT",details:Object.freeze(details)})});
 }
 
+export function restoreEip1193Session(input:unknown,selectedYNXAccount:string,now=new Date()):Eip1193Session{
+  const value=record(input,"Persisted DApp session");exact(value,["sessionId","transport","origin","name","account","caip10Account","methods","events","expiresAt","productSession","privateService","authority"],"Persisted DApp session");
+  const restored=approveEip1193Session({sessionId:value.sessionId,transport:value.transport,origin:value.origin,name:value.name,chains:[YNX_EVM_CAIP2],methods:value.methods,events:value.events,expiresAt:value.expiresAt},selectedYNXAccount,now);
+  if(JSON.stringify(value)!==JSON.stringify(restored))fail("SESSION_RESTORE_MISMATCH","Persisted DApp session failed canonical verification");return restored;
+}
+
+export function restoreEip1193Request(input:unknown,session:Eip1193Session,now=new Date()):Eip1193Request{
+  const value=record(input,"Persisted EIP-1193 request");exact(value,["sessionId","requestId","transport","origin","chainId","method","params","account","issuedAt","expiresAt","review"],"Persisted EIP-1193 request");
+  const restored=parseEip1193Request({sessionId:value.sessionId,requestId:restoredWireId(value.requestId),transport:value.transport,origin:value.origin,chainId:value.chainId,method:value.method,params:value.params,issuedAt:value.issuedAt,expiresAt:value.expiresAt},session,now);
+  if(JSON.stringify(value)!==JSON.stringify(restored))fail("REQUEST_RESTORE_MISMATCH","Persisted EIP-1193 request failed canonical verification");return restored;
+}
+
 export function answerEip1193Read(request:Eip1193Request):unknown{
   if(request.method==="eth_accounts"||request.method==="eth_requestAccounts")return Object.freeze([request.account]);
   if(request.method==="eth_chainId")return YNX_EVM_CHAIN_QUANTITY;
@@ -91,6 +103,7 @@ function address(value:unknown){if(typeof value!=="string"||!/^0x[0-9a-fA-F]{40}
 function quantity(value:unknown,label:string){if(typeof value!=="string"||!/^0x(?:0|[1-9a-fA-F][0-9a-fA-F]*)$/.test(value))fail("INVALID_TRANSACTION",`${label} must be a canonical hex quantity`);return BigInt(value)}
 function canonicalHex(value:unknown,label:string,maxBytes:number):string{if(typeof value!=="string"||!/^0x(?:[0-9a-fA-F]{2})*$/.test(value)||(value.length-2)/2>maxBytes)fail("INVALID_HEX",`${label} must be bounded even-length hex bytes`);return value.toLowerCase()}
 function id(value:unknown){if(typeof value==="number"&&Number.isSafeInteger(value)&&value>=0)return`n:${value}`;if(typeof value==="string"&&/^[A-Za-z0-9_-]{1,128}$/.test(value))return`s:${value}`;fail("INVALID_REQUEST_ID","EIP-1193 request ID is invalid")}
+function restoredWireId(value:unknown){if(typeof value!=="string")fail("INVALID_REQUEST_ID","Persisted EIP-1193 request ID is invalid");if(/^n:(?:0|[1-9][0-9]{0,15})$/.test(value)){const parsed=Number(value.slice(2));if(Number.isSafeInteger(parsed))return parsed}if(/^s:[A-Za-z0-9_-]{1,128}$/.test(value))return value.slice(2);fail("INVALID_REQUEST_ID","Persisted EIP-1193 request ID is invalid")}
 function token(value:unknown,label:string){if(typeof value!=="string"||!/^[A-Za-z0-9:_-]{16,160}$/.test(value))fail("INVALID_TOKEN",`${label} is invalid`);return value}
 function text(value:unknown,label:string,min:number,max:number){if(typeof value!=="string"||value.trim()!==value||value.length<min||value.length>max||/[\u0000-\u001f\u007f]/.test(value))fail("INVALID_TEXT",`${label} is invalid`);return value}
 function strings(value:unknown,label:string,min:number,max:number){if(!Array.isArray(value)||value.length<min||value.length>max||value.some(item=>typeof item!=="string"))fail("INVALID_LIST",`${label} is invalid`);return value as string[]}
