@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet Desktop/CLI/SDK",
+  "artifactSourceCommit": "26402ff61488274584d8c385a6ce5596cd5ae1c7",
+  "evidencePath": "apps/wallet-desktop/evidence/macos-wallet-authority-0.5-callback-lifecycle-20260822.json",
+  "artifact": {
+    "filename": "ynx-wallet-macos-0.5.0-universal.dmg",
+    "sourcePath": "/private/tmp/ynx-wallet-desktop-installers-p0-20260821/apps/wallet-desktop/dist-wallet-authority-0.5-final-dmg/ynx-wallet-macos-0.5.0-universal.dmg",
+    "bytes": 229454247,
+    "sha256": "3088f1186df0fc70ac89c7d9e154a787aac4d49aea3aba90d173a6e7ba9f2cf0",
+    "minimumOS": "macOS 13.0",
+    "architectures": ["x86_64", "arm64"],
+    "signingClass": "unsigned-testnet-preview-dmg; contained Electron app ad-hoc signed"
+  },
+  "publicationContract": {
+    "directDmgRequired": true,
+    "zipOrGzipSubstitutionAllowed": false,
+    "contentAddressedOfficialUrlRequired": true,
+    "publicHttp200AndFullRemoteRehashRequiredBeforeHosted": true,
+    "downloadHosted": false,
+    "deployedPublic": false
+  },
+  "proved": {
+    "mountedInstalledColdSecond": true,
+    "chainId0x1917": true,
+    "rpcFailureClosed": true,
+    "rollbackAndRestoreUpgrade": true,
+    "canonicalAuthorizeReject": true,
+    "canonicalAuthorizeApprove": true,
+    "isolatedNativeCallbackReceiptAndSignature": true,
+    "isolatedUninstall": true
+  },
+  "falseBoundary": {
+    "officialFirstPartyReceipt": false,
+    "walletConnectRelay": false,
+    "walletConnectSession": false,
+    "firstPartyEvmDapp": false,
+    "externalEvmDapp": false,
+    "livePersonalSign": false,
+    "liveEip712Sign": false,
+    "liveTransactionBroadcast": false,
+    "productionSigned": false,
+    "notarized": false,
+    "storeReleased": false
+  }
+}
