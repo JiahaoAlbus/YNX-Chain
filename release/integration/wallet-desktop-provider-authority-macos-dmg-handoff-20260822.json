@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "handoffId": "wallet-desktop-provider-authority-macos-dmg-20260822",
+  "owner": "Wallet Desktop/CLI/SDK",
+  "consumer": "Website release owner",
+  "releaseChannel": "testnet-preview",
+  "sourceCommit": "7c18f403420e71274521c68af18e7d67e70311ca",
+  "implementationCommit": "9df04c15a3ebd64a25344c700856390c268ea5f3",
+  "evidencePath": "apps/wallet-desktop/evidence/macos-provider-authority-dmg-lifecycle-20260822.json",
+  "artifact": {
+    "filename": "ynx-wallet-macos-0.2.0-universal.dmg",
+    "absoluteOwnerPath": "/private/tmp/ynx-wallet-desktop-installers-p0-20260821/apps/wallet-desktop/dist-provider-authority/ynx-wallet-macos-0.2.0-universal.dmg",
+    "bytes": 256369610,
+    "sha256": "3ae6b9f424764a470d830aa672fbe79aa3fad6e164bfff553ce9b8de189b383d",
+    "architectures": ["x86_64", "arm64"],
+    "minimumOS": "macOS 13.0",
+    "bundleIdentifier": "com.ynxweb4.wallet.macos",
+    "version": "0.2.0",
+    "signingClass": "unsigned-testnet-preview-dmg; contained Electron executable ad-hoc only",
+    "productionSigned": false,
+    "notarized": false,
+    "storeReleased": false
+  },
+  "officialPublication": {
+    "requiredPath": "/wallet/sha256-3ae6b9f424764a470d830aa672fbe79aa3fad6e164bfff553ce9b8de189b383d/ynx-wallet-macos-0.2.0-universal.dmg",
+    "requiredUrl": "https://downloads.ynxweb4.com/wallet/sha256-3ae6b9f424764a470d830aa672fbe79aa3fad6e164bfff553ce9b8de189b383d/ynx-wallet-macos-0.2.0-universal.dmg",
+    "requiredContentType": "application/x-apple-diskimage",
+    "requiredContentDisposition": "attachment; filename=\"ynx-wallet-macos-0.2.0-universal.dmg\"",
+    "requiredContentLength": 256369610,
+    "fullGetSha256Required": true,
+    "websiteSourceMayBeEditedByThisOwner": false,
+    "downloadHosted": false,
+    "deployedPublic": false
+  },
+  "replacement": {
+    "supersedesVersion": "0.1.2",
+    "supersedesSha256": "69b4fa5db7b8a9ab105af6633de44f5a5a4a9fceeaa0925a306f77b22381b044",
+    "rollback": "Retain the immutable 0.1.2 object and Website deployment. If full public GET rehash, mount, launch, or authority metadata fails, restore the preceding Website deployment and keep 0.2.0 disabled."
+  },
+  "postDeployGate": {
+    "requireHttp200": true,
+    "requireContentTypeExact": true,
+    "requireContentDispositionFilenameExact": true,
+    "requireContentLengthExact": true,
+    "requireFullResponseSha256Exact": true,
+    "requireMountAndBundleIdentityExact": true,
+    "requireColdLaunch": true,
+    "requireSecondLaunch": true,
+    "requiredCanonicalRpcChainId": "0x1917",
+    "downloadHosted": false,
+    "deployedPublic": false
+  }
+}
