@@ -1,0 +1,157 @@
+{
+  "schema": "cardNestedStaticDeploymentLeaseRequest@1.0.0-p0.0",
+  "requestId": "P0-CARD-NESTED-STATIC-ENVELOPE-DEPLOYMENT-20260822",
+  "owner": "card",
+  "priority": "P0",
+  "requestedState": "CARD_ONLY_SINGLE_USE_PRODUCTION_DEPLOYMENT",
+  "requestedExecutor": "Central-issued single executor only",
+  "scope": {
+    "repositoryPaths": [
+      "apps/card/**"
+    ],
+    "vercelProject": "jiahaoalbus-projects/ynx-card-testnet-simulation",
+    "vercelProjectId": "prj_DU37JeDK4Rx0MjxIV745veV5Qgxp",
+    "canonicalUrl": "https://card.ynxweb4.com/",
+    "forbidden": [
+      "other product source or routes",
+      "Vercel project settings",
+      "DNS changes",
+      "Wallet source",
+      "Gateway source",
+      "account approval",
+      "signature",
+      "transaction"
+    ]
+  },
+  "candidate": {
+    "branch": "codex/p0-card-static-deploy-envelope-20260822",
+    "sourceCommit": "2183b8d7a18dec3c7e7773f3c777882deeac6f82",
+    "sourceTree": "9a217df3da768afce32b29edbc5efa87947d5e22",
+    "baseSemanticSource": "45c4013a95008027cf55f2ac4d7bdded70640ae1",
+    "deploymentRoot": "apps/card/deployment-envelope",
+    "remoteBuildCommand": "npm run build:web",
+    "fixedOutputDirectory": "dist-web",
+    "purpose": "Provides a nested dist-web output under a zero-dependency root package so the existing project setting succeeds without changing project settings or Card runtime semantics.",
+    "files": [
+      {
+        "path": "dist-web/_expo/static/js/web/Crypto-18806bcac3c286e8ea55353192d1639a.js",
+        "bytes": 10118,
+        "sha256": "882258d8b8dec360da902cac6af9b85ef5ecddae27739742b26360f4946adfbb"
+      },
+      {
+        "path": "dist-web/_expo/static/js/web/index-6a16f2a248e25355f9aa7ee9626133a0.js",
+        "bytes": 2911045,
+        "sha256": "f59fa3d43e4d855a91f224f239e8fc39bf4ffa73e83e42d5c0203aa70deae92e"
+      },
+      {
+        "path": "dist-web/assets/assets/icon.ac64b115433cc62063b01bbab973bec7.png",
+        "bytes": 863227,
+        "sha256": "6252153a2fd0d12cb61a1223cea3277ceff863eb82b6073049419459b359f86f"
+      },
+      {
+        "path": "dist-web/assets/assets/metamask-fox.024a98855742a7b85946088532e2d4c1.png",
+        "bytes": 3682,
+        "sha256": "25f2f224f9d01c78ae3dc2d07a339053cc402961a59cf818f2753c12db9ec796"
+      },
+      {
+        "path": "dist-web/card-testnet-icon.png",
+        "bytes": 863227,
+        "sha256": "6252153a2fd0d12cb61a1223cea3277ceff863eb82b6073049419459b359f86f"
+      },
+      {
+        "path": "dist-web/favicon.ico",
+        "bytes": 14510,
+        "sha256": "1eda72df0357a4a4b6d396d79ca0ab775c230723473b47e8195d2e629972ceb3"
+      },
+      {
+        "path": "dist-web/index.html",
+        "bytes": 1717,
+        "sha256": "f8b59f7bb084fa22573df186b2f47fa35d3f85d6e078f09f1d3b1b53c764c695"
+      },
+      {
+        "path": "dist-web/manifest.webmanifest",
+        "bytes": 460,
+        "sha256": "f3e634129abe79c5b81b7fc8dac3950e5cb21f1d1263b1938fcd06a58e2c686f"
+      },
+      {
+        "path": "dist-web/metadata.json",
+        "bytes": 49,
+        "sha256": "aa5f19cc84d41c0f8c70ececb2bc82e863227ea1e121632aca879eb616056991"
+      },
+      {
+        "path": "dist-web/package.json",
+        "bytes": 74,
+        "sha256": "b4973b4a419ac0bcab4e76ffe0a0a02f55938986d162b853429e1115086bbe75"
+      },
+      {
+        "path": "dist-web/pwa-register.js",
+        "bytes": 201,
+        "sha256": "87671daaddfae6a98e473eedf34a8844d5fd82676f2111808057e98d9b4012a6"
+      },
+      {
+        "path": "dist-web/sw.js",
+        "bytes": 364,
+        "sha256": "1a9acfe442d2920040a1999f4fe4efe3f97d7a42a9debef047d469972889638f"
+      },
+      {
+        "path": "package.json",
+        "bytes": 83,
+        "sha256": "272f57205d44cf347719b013fda538dae2d93a359f291654b0bffcff5d3282a0"
+      },
+      {
+        "path": "build-static.mjs",
+        "bytes": 71,
+        "sha256": "f608b78fb7478405278923e5b739988aa9a6fbc6575a08b84d0ee7e8d486e961"
+      }
+    ]
+  },
+  "validation": {
+    "tests": "PASS_46_OF_46",
+    "typecheck": "PASS",
+    "webBuild": "PASS",
+    "nestedEnvelopeBuild": "PASS",
+    "nestedEnvelopeFileParity": "PASS_12_STATIC_FILES",
+    "accountAccessRequested": false,
+    "signatureRequested": false,
+    "transactionRequested": false
+  },
+  "priorAttempt": {
+    "leaseRequestHead": "e4213d6e17ca2eac6791e9b0838c24d8dcebd569",
+    "failedDeploymentId": "dpl_H5eZZHGGfBPYuUE8KiHx5FsnKJNY",
+    "failure": "Project fixed Output Directory dist-web was absent beneath a static-root deployment.",
+    "retried": false
+  },
+  "rollback": {
+    "deploymentId": "dpl_DqMuEhno65bLFTNKBu9gs52soVri",
+    "deploymentUrl": "https://ynx-card-testnet-simulation-bmeabqkk1-jiahaoalbus-projects.vercel.app",
+    "canonicalUrl": "https://card.ynxweb4.com/",
+    "status": "READY",
+    "canonicalHashes": {
+      "html": "56827ca95005951ae791245b6c3021691beace32683209936c7519324c28ed24",
+      "javascript": "2103aba7f844d4a3c067eac0ecbf0acbc9ebf8fb8831c44fd248df90261a8568",
+      "manifest": "f3e634129abe79c5b81b7fc8dac3950e5cb21f1d1263b1938fcd06a58e2c686f",
+      "serviceWorker": "1a9acfe442d2920040a1999f4fe4efe3f97d7a42a9debef047d469972889638f"
+    }
+  },
+  "requestedLease": {
+    "singleUse": true,
+    "requiresCentralActiveLease": true,
+    "forbidsDeploymentBeforeLease": true,
+    "requiredPrewrite": [
+      "Remote-read candidate source/tree",
+      "Clean rebuild and all 14 envelope hashes",
+      "Read Ready rollback deployment and canonical hashes",
+      "Bind only Card Vercel project and canonical Card domain"
+    ],
+    "onFailure": "Rollback exactly once to dpl_DqMuEhno65bLFTNKBu9gs52soVri and report terminal evidence"
+  },
+  "truth": {
+    "deploymentAuthorized": false,
+    "deploymentExecuted": false,
+    "sourceBoundPublic": false,
+    "cleanBrowserValidated": false,
+    "accountApproved": false,
+    "signatureExecuted": false,
+    "transactionExecuted": false
+  }
+}
