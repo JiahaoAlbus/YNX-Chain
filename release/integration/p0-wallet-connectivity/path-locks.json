@@ -1366,6 +1366,27 @@
         "preserve run 32568870997 and artifact 9474798791 as immutable evidence",
         "no retry, dispatch or further workflow mutation under P0-185"
       ]
+    },
+    {
+      "path": "{apps/calendar/**,internal/calendar/**,production:https://calendar-testnet.43.153.202.237.sslip.io/**,production:ynx-calendar.service,production:/usr/local/bin/ynx-calendard,production:/var/lib/ynx-chain/calendar/state.json,production:/var/lib/ynx-chain/calendar/state.json.hmac-key,production:/var/tmp/ynx-calendar-7db160aa-p0186/**,production:/var/backups/ynx-chain/calendar-7db160aa-p0186-20260822T112000Z/**}",
+      "owner": "calendar",
+      "branch": "codex/calendar-fable5-completion-20260821",
+      "worktree": null,
+      "taskId": "P0-186",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_SINGLE_USE",
+      "acquiredAt": "2026-08-22T11:16:00Z",
+      "expiresAt": "2026-08-22T11:46:00Z",
+      "releasedAt": null,
+      "sourceCommit": "7db160aa0bd589097e63190a260a343aafe4854c",
+      "sourceTree": "d72d49bc7bc6ee135cae867aa6edbe34b4cfc489",
+      "artifactSha256": "9cad944f63fb7fae49bf947166075b9617e0dac5807d9d9c43cab1791379c426",
+      "productionMutationAllowed": "CALENDAR_ONLY_PAIRED_ROLLBACK_TRANSACTION",
+      "allowedExceptions": [
+        "one exact candidate stage and one source-owned transaction only",
+        "unit, Caddy, DNS and other product paths remain immutable",
+        "no eth_requestAccounts, approval, switch, disconnect, signing or transaction"
+      ]
     }
   ]
 }
