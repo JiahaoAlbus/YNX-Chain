@@ -1,0 +1,195 @@
+{
+  "schemaVersion": 1,
+  "requestType": "pay-only-single-use-rollback-first-production-plus-hosted-browser-validation-lease",
+  "productId": "pay",
+  "owner": "pay",
+  "ownerCheckpoint": {
+    "workflowCommit": "8f5eaafeb8c4ea269d70aeb626982ba1fe76adb8",
+    "workflowTree": "0abb03b891f72894b3374fd75a1daddcfcc0f466",
+    "remoteParent": "6f7d1525df3ee6e70e01e4c953cf8364e6355e64"
+  },
+  "candidate": {
+    "sourceCommit": "5f4ce98eb458550b976c17e3bc6d77cce4081a59",
+    "sourceTree": "8f0c25c4d86eb22a564f3c7aeff9db6709a9b9f0",
+    "archive": {
+      "path": "release/pay/ynx-pay-web-5f4ce98e-static.tar.gz",
+      "blob": "cca37d7b48c1c37266a4141c7b79f44f1cf09f29",
+      "bytes": 608368,
+      "sha256": "ae552951d8e569f04aced60db69e3c11422910cc1098a6e7061b0e84005ad09e"
+    },
+    "buildIdentity": {
+      "bytes": 322,
+      "sha256": "7b57cc88fc9287c546ba41d0e61a00c13665cdfd8aa8cc34c2f7347f8abb0b81"
+    },
+    "index": {
+      "bytes": 1174,
+      "sha256": "22f743c62a976928abd8a6bc3d123d366b5e1cac774b6ad3d20c21cfa07d917e"
+    },
+    "candidateCaddy": {
+      "path": "release/pay/ynx-chain-pay-static-5f4ce98e.caddy",
+      "blob": "c0a4ccabc8750837c815172626dc60b5e63fd8cc",
+      "bytes": 3412,
+      "sha256": "b606d1bdced436a984aed19981788f1a9471b4ccb7ad7f2c49b32015b729afa7"
+    }
+  },
+  "p0227HostedReadiness": {
+    "centralReleaseCommit": "5edaa0efe9d30cc4e033105a46b62eb46184ce14",
+    "centralReleaseTree": "904faefaa5d177306db5e9131b310d889bcef1dc",
+    "terminalLeaseBlob": "9b292e21955198fb0ea5c9b12b9ba03a926a3fd6",
+    "terminalLeaseBytes": 11574,
+    "terminalLeaseSha256": "69c4e4b4b699cc2254bc0679c4f812eb6a336788849e6eff2a0abecb94c5065a",
+    "status": "CONSUMED_RELEASED_SUCCESS_PAY_HOSTED_CHROMIUM_READINESS_PREDEPLOY",
+    "run": 32605605681,
+    "job": 97110081981,
+    "attempt": 1,
+    "artifact": {
+      "id": 9484042566,
+      "zipBytes": 571712,
+      "zipSha256": "6121587534a45ac0dd7e3c16be3263fa82b551cf3f74624a31dfd381b8b02bfa",
+      "isolatedFiles": 40,
+      "unzipIntegrity": true
+    },
+    "coldJsonSha256": "ea2390e2d65404bd7e0baf40d5d523444bad3593a2a6fc3d4853b4b876c38ed8",
+    "secondJsonSha256": "fd480933d7ffb81b4845c22a5ead33d598de5eb273f10b1cc031ffcb54abcb2a",
+    "summarySha256": "9703196da3dbf7f1eecd78a226981d66b79ab3f13dcff00b4d6c52901ea5568c",
+    "coldScreenshotSha256": "c64faa6c5318a1f57f2a04c19d99875279052c2115710e8cc3ed0496c929a588",
+    "secondScreenshotSha256": "c64faa6c5318a1f57f2a04c19d99875279052c2115710e8cc3ed0496c929a588",
+    "directTruth": "Exact extracted candidate reached visible English disconnected Pay UI on cold and second persistent-profile launches, one stable tab, console/page/request failures zero, and no fabricated account or 0x1917. No sensitive action occurred."
+  },
+  "p0222Baseline": {
+    "centralReleaseCommit": "6c8d394736ebf4c6d771bc0a5d57a7b841a4212f",
+    "centralReleaseTree": "912297a29d369251f3d23668139d0f0137007667",
+    "leaseBlob": "6de4592a01434f0636654dd296f7672abdee4453",
+    "leaseSha256": "cccd6fbef08ee6fcdee6bead69139f636f792a547c2cc03dfc90b74d557709ce",
+    "status": "CONSUMED_RELEASED_SUCCESS_PAY_PUBLIC_ZERO_WRITE_READONLY_BASELINE_PREFLIGHT",
+    "evidenceArchiveBytes": 8932,
+    "evidenceArchiveSha256": "68b663210ccae1493994c591316797c2e0cb938b0957ad4e488b9a090ef5cdbc",
+    "activeCaddySha256": "df5f7ad73dd2631c0e934514e05a30ac97c75dc9efe2ec568b049c71c4024396",
+    "paydBinarySha256": "9793542dba1dd3a70f0a035edb26efa7611563e0f684a276405571dc5fe2735c"
+  },
+  "priorRollbackReceipts": [
+    {
+      "lease": "P0-224",
+      "centralReleaseCommit": "f384af6871a18d24abd0007825fa0923eec4efcf",
+      "centralReleaseTree": "aa922582fa9e849c41589d94f34066a0d8f51d90",
+      "terminalLeaseBlob": "7601f534f0e75ba6ed43d0a2c0f6cd168a603921",
+      "terminalLeaseBytes": 13786,
+      "terminalLeaseSha256": "c602321ea345ffd47ed93b5ab749b29f2602b1f61786190bb2da0b91f3d03182",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_LOCAL_POST_SWITCH_COLLECTOR_PATH_VARIABLE_COLLISION_ROLLED_BACK",
+      "rollbackCount": 1,
+      "restoredCaddySha256": "df5f7ad73dd2631c0e934514e05a30ac97c75dc9efe2ec568b049c71c4024396",
+      "productionRestored": true
+    },
+    {
+      "lease": "P0-225",
+      "centralReleaseCommit": "a1b2c3141423dfbbcb9b50f75d214434969ab127",
+      "centralReleaseTree": "7c39a96a70577585bd95f894126d56e8bf543c88",
+      "terminalLeaseBlob": "b66af120608e5910fa4507967c92aff706cbfde9",
+      "terminalLeaseBytes": 14262,
+      "terminalLeaseSha256": "30a47463a41f2f3a3b5aeca1875e1a00482130b5fd9ea815ffe527080c7c0f39",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_BROWSER_UNSUPPORTED_NETWORKIDLE_WAIT_ROLLED_BACK",
+      "rollbackCount": 1,
+      "evidenceArchiveBytes": 615704,
+      "evidenceArchiveSha256": "a247f0bfebc182f210bf4d2ddf7fb75f6a7902079c9e8fd5658164579c67f0ea",
+      "restoredCaddySha256": "df5f7ad73dd2631c0e934514e05a30ac97c75dc9efe2ec568b049c71c4024396",
+      "productionRestored": true
+    }
+  ],
+  "freshRestoredBaseline": {
+    "observedAt": "2026-08-22T23:39:36Z",
+    "host": "43.153.202.237",
+    "caddySha256": "df5f7ad73dd2631c0e934514e05a30ac97c75dc9efe2ec568b049c71c4024396",
+    "parents": [
+      {"path":"/opt/ynx-pay-web","dev":64770,"ino":1483757,"uid":0,"gid":0,"mode":"0755","nlink":4,"bytes":4096,"children":["incoming","releases"]},
+      {"path":"/opt/ynx-pay-web/releases","dev":64770,"ino":1483839,"uid":0,"gid":0,"mode":"0755","nlink":2,"bytes":4096,"empty":true},
+      {"path":"/opt/ynx-pay-web/incoming","dev":64770,"ino":1483758,"uid":0,"gid":0,"mode":"0755","nlink":2,"bytes":4096,"empty":true}
+    ],
+    "releaseTargetAbsent": true,
+    "stageTargetAbsent": true,
+    "payd": {"mainPid":2734498,"nRestarts":0,"activeState":"active","subState":"running","listener":"127.0.0.1:6430"},
+    "payProductListener": "127.0.0.1:6484",
+    "public": {
+      "root": "404/19B/b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793",
+      "buildIdentity": "404/19B/b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793",
+      "releaseManifest": "404/19B/b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793",
+      "callback": "404/19B/b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793",
+      "health": "200/589B/acd445aff81973e90a33deb0c1d0923f09c630b6e8b8d6d4b4f35b48fca45ee9/service=ynx-payd/network=YNX Testnet/chainId=6423"
+    }
+  },
+  "executors": {
+    "deploy": {
+      "path": "apps/pay/scripts/pay-public-deploy-p0224.sh",
+      "blob": "b10354101ded4318dac96cf567859d06bf1c5aae",
+      "bytes": 7015,
+      "sha256": "bb30f2d1ad28761efbf88de6b9b83fe2f81458a76a5042e08b1d3d8b23985802",
+      "literalCommand": "'/Users/huangjiahao/Desktop/YNX Final Worktrees/04-pay-p0-clean/apps/pay/scripts/pay-public-deploy-p0224.sh' /tmp/ynx-pay-p0228-public-release-20260823T000000Z"
+    },
+    "rollback": {
+      "path": "apps/pay/scripts/pay-public-rollback-p0224.sh",
+      "blob": "8a4952ba55c758330d1684032ff647d733f4f331",
+      "bytes": 3610,
+      "sha256": "0bee0650f2aa351aba785c95369a0116bdd0d1da7a6ff2a3d3c8613e7365ce9e",
+      "literalCommand": "'/Users/huangjiahao/Desktop/YNX Final Worktrees/04-pay-p0-clean/apps/pay/scripts/pay-public-rollback-p0224.sh' /tmp/ynx-pay-p0228-public-release-20260823T000000Z"
+    },
+    "fixture": {
+      "path": "apps/pay/scripts/test-pay-public-deploy-fixture.sh",
+      "blob": "b156ec0c6665709a0a51c7759d805e8a21605ecf",
+      "bytes": 3482,
+      "sha256": "34e0645884594cb755745da23ee7bef309a26cd787035fefa61c2ce3b0931848",
+      "passed": true
+    }
+  },
+  "officialHostedValidation": {
+    "workflow": {
+      "path": ".github/workflows/pay-web-hosted-browser-preflight-p0226.yml",
+      "implementationCommit": "8f5eaafeb8c4ea269d70aeb626982ba1fe76adb8",
+      "implementationTree": "0abb03b891f72894b3374fd75a1daddcfcc0f466",
+      "blob": "f232f63bd904e2656b38957c0c8102a16e48fa85",
+      "bytes": 16787,
+      "sha256": "3a732cec381cc44ae50efdf5156fb4e2d8c2deaef9b9dfd2ad0d658316907aa4",
+      "trigger": "one force=false push after successful deployment",
+      "expectedHeadMessage": "evidence(pay): validate official public candidate",
+      "dispatch": false,
+      "secrets": false,
+      "inputs": false,
+      "dynamicUrl": false,
+      "origin": "https://pay.ynxweb4.com"
+    },
+    "requiredDirectEvidence": [
+      "official index, build identity, metadata, release manifest and every manifest file are HTTP 200 with exact candidate bytes and SHA-256",
+      "build identity is JSON with no-store and exact source commit/tree",
+      "health is HTTP 200 with ynx-payd, YNX Testnet and chainId 6423",
+      "persistent-profile hosted Chromium cold launch closes before second launch",
+      "cold and second launch each show English YNX Pay disconnected UI, Sign in, Settings and Confirm before you pay",
+      "one stable official tab, console/page/request failures zero, and no chooser, connected details, account address or 0x1917 fabrication",
+      "raw DOM, console, request/response logs, screenshots, byte counts and SHA-256 are uploaded from an isolated runner-temp directory"
+    ]
+  },
+  "requestedOrderedLease": {
+    "singleUse": true,
+    "retryAllowed": false,
+    "owner": "pay",
+    "prewrite": "Fresh-match P0-222 plus the restored parent tuples, exact old public 404/health baseline, exact remote parent, exact workflow carrier and Heavy/path locks.",
+    "deployAttemptLimit": 1,
+    "workflowPushAttemptLimit": 1,
+    "hostedRunAttemptLimit": 1,
+    "rollbackAttemptLimit": 1,
+    "order": [
+      "execute the literal deploy command once",
+      "after deploy success only, execute the Central-frozen literal force=false push of the carrier head once",
+      "bind exactly one push-triggered official hosted browser run",
+      "on run success freeze artifact and direct official evidence and retain publication",
+      "on any deploy, push, run or public gate failure execute the literal rollback command at most once and prove the restored old baseline"
+    ],
+    "forbidden": [
+      "retry or workflow_dispatch",
+      "any non-Pay production path",
+      "provider selection or eth_requestAccounts",
+      "account approval or rejection",
+      "signature or typed data",
+      "transaction",
+      "private key or recovery material"
+    ]
+  },
+  "truthBoundary": "Success proves only exact-source Pay static publication and non-sensitive official-domain cold/second browser visibility. Installed provider discovery, account approval/rejection, 0x1917 provider readback, events, signing, transaction, WalletConnect and product completion remain false until separate direct evidence."
+}
