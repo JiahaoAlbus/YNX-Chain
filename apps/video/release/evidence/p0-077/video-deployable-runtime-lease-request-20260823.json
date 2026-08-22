@@ -1,0 +1,181 @@
+{
+  "schemaVersion": "ynx-video-isolated-runtime-lease-request/1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-VIDEO-ISOLATED-RUNTIME-PUBLICATION-20260823",
+  "productId": "ynx-video",
+  "owner": "video",
+  "generatedAt": "2026-08-22T23:20:45Z",
+  "status": "REQUESTED_NOT_AUTHORIZED",
+  "supersedesBlocker": "VIDEO_DEPLOYABLE_SOURCE_BOUND_RUNTIME_OBJECT_UNFROZEN",
+  "scope": {
+    "writableProductPaths": [
+      "apps/video/**"
+    ],
+    "productionRuntimeRoot": "/opt/ynx-video-viewer-wallet",
+    "productionViewerPort": 6494,
+    "apiPortPreserved": 6493,
+    "creatorPortPreserved": 6495,
+    "sharedRuntimePathForbidden": "/opt/ynx-video/current",
+    "otherProductMutationAllowed": false,
+    "accountRequestAllowed": false,
+    "signatureAllowed": false,
+    "transactionAllowed": false
+  },
+  "routerAcceptance": {
+    "commit": "875be208e8a7ddb60345d55b93fc299949664e5c",
+    "tree": "3499ddfbe2a4bb08cbbcaef8c71b911aca51dde4",
+    "sourceConsumerGate": "PASS",
+    "completionClaimed": false
+  },
+  "source": {
+    "branch": "codex/video-p0-wallet-router",
+    "commit": "12606124dad61f5cb8032e302087c2d00c040b4d",
+    "tree": "b039e5e8e3afc239e833669a329e9423cf07be1f",
+    "parent": "c2153bf6ca5d58ce8e393bfac07dc389bbb49ee9",
+    "remoteReadbackExact": true
+  },
+  "deployableRuntime": {
+    "carrierPath": "/private/tmp/ynx-video-12606124-runtime-1.tar.gz",
+    "bytes": 24469,
+    "sha256": "f799c17ecc14511940e14c4ea7b44a632f7e860580720f3f7633ec48c9995db5",
+    "repeatBuildPath": "/private/tmp/ynx-video-12606124-runtime-2.tar.gz",
+    "repeatBuildByteExact": true,
+    "normalization": {
+      "entryOrder": "GNU_TAR_SORT_NAME",
+      "mtime": "1970-01-01T00:00:00Z",
+      "uid": 0,
+      "gid": 0,
+      "numericOwner": true,
+      "gzipHeaderNameAndMtime": "OMITTED_BY_GZIP_N"
+    },
+    "entrypoint": {
+      "path": "runtime/server.mjs",
+      "bytes": 1180,
+      "sha256": "ed5b3dce7df13aa1c5695bfb69987bad9046a4121fc82fb38221a1d8938703d6",
+      "dependencies": "NODE_STANDARD_LIBRARY_ONLY",
+      "servesRoot": true,
+      "servesVideoPrefix": true
+    },
+    "manifest": {
+      "path": "runtime/runtime-manifest.json",
+      "bytes": 2459,
+      "sha256": "f69ced38c26aa0de1fb21659d2d3e8567b90e2f77f82b952bff7bee93e770422"
+    },
+    "topology": {
+      "path": "runtime/runtime/topology.json",
+      "bytes": 682,
+      "sha256": "1a2fcc2e6967d0c6a3036c1fdc7ffc9b22eeed161c3cd7c8f7d3bc545636d0e7",
+      "viewer": 6494,
+      "api": 6493,
+      "creator": 6495
+    },
+    "rebuild": {
+      "script": "apps/video/scripts/build-runtime.sh",
+      "bytes": 3009,
+      "sha256": "113042ccae5b2c42e7b467ef66d3a92d30aaca0d1b4aea134e03dd5ab08b1057",
+      "command": "bash apps/video/scripts/build-runtime.sh 12606124dad61f5cb8032e302087c2d00c040b4d /private/tmp/ynx-video-12606124-runtime-rebuilt.tar.gz"
+    }
+  },
+  "deployRollbackExecutor": {
+    "path": "apps/video/scripts/video-runtime-executor.sh",
+    "bytes": 5959,
+    "sha256": "0cd30bc681b4e8649bb8b9a87f9ca1e494c0ac2123d36ad38cc7b429a6c2a21e",
+    "productionRootExact": "/opt/ynx-video-viewer-wallet",
+    "viewerUnitExact": "ynx-video-viewer-wallet.service",
+    "releaseIdExact": "ynx-video-12606124dad61f5cb8032e302087c2d00c040b4d",
+    "deployAction": "bash apps/video/scripts/video-runtime-executor.sh deploy",
+    "rollbackAction": "bash apps/video/scripts/video-runtime-executor.sh rollback",
+    "requiredBindings": [
+      "YNX_VIDEO_EXECUTION_MODE=production",
+      "YNX_VIDEO_LEASE_AUTHORIZED=P0_VIDEO_SINGLE_USE",
+      "YNX_VIDEO_VIEWER_ROOT=/opt/ynx-video-viewer-wallet",
+      "YNX_VIDEO_VIEWER_UNIT=ynx-video-viewer-wallet.service",
+      "YNX_VIDEO_VIEWER_PORT=6494",
+      "YNX_VIDEO_API_PORT=6493",
+      "YNX_VIDEO_CREATOR_PORT=6495",
+      "YNX_VIDEO_RELEASE_ID=ynx-video-12606124dad61f5cb8032e302087c2d00c040b4d",
+      "YNX_VIDEO_SOURCE_COMMIT=12606124dad61f5cb8032e302087c2d00c040b4d",
+      "YNX_VIDEO_CARRIER=/private/tmp/ynx-video-12606124-runtime-1.tar.gz",
+      "YNX_VIDEO_CARRIER_SHA256=f799c17ecc14511940e14c4ea7b44a632f7e860580720f3f7633ec48c9995db5",
+      "YNX_VIDEO_RECEIPT=<LEASE_FROZEN_ABSOLUTE_RECEIPT_PATH>"
+    ],
+    "safety": [
+      "Refuses /opt/ynx-video and /opt/ynx-video/current",
+      "Requires an exact pre-existing Viewer rollback symlink target",
+      "Creates a new immutable Viewer-only release directory",
+      "Switches only /opt/ynx-video-viewer-wallet/current",
+      "Restarts only ynx-video-viewer-wallet.service",
+      "Hashes API 6493 and Creator 6495 responses before and after and requires equality",
+      "Automatically restores the exact previous Viewer target on a post-switch failure",
+      "Rollback requires the source-bound receipt and candidate current-link match"
+    ]
+  },
+  "actualShellFixture": {
+    "test": "actual shell deploy and rollback touch only isolated Viewer binding",
+    "testFile": "apps/video/runtime.test.mjs",
+    "bytes": 6580,
+    "sha256": "ad253c2c9ce97e0a457830716d8b0d6495df1dd6355d365a07508bc2d58ea1e6",
+    "result": "PASS",
+    "facts": {
+      "candidateImmutableReleaseCreated": true,
+      "viewerCurrentChangedThenRestored": true,
+      "viewerRestartCount": 2,
+      "apiSentinelUnchanged": true,
+      "creatorSentinelUnchanged": true,
+      "sharedRuntimeTouched": false
+    }
+  },
+  "verification": {
+    "npmCheck": "PASS_11_OF_11",
+    "npmSmoke": "PASS",
+    "repeatBuilds": 2,
+    "repeatBuildByteExact": true,
+    "productionMutationPerformed": false,
+    "accountRequested": false,
+    "signatureRequested": false,
+    "transactionRequested": false
+  },
+  "freshPrewriteRequired": [
+    "Bind the exact host and prove 127.0.0.1:6494 is the Viewer, 6493 is the API and 6495 is Creator",
+    "Bind the existing ynx-video-viewer-wallet.service unit bytes and SHA or create only that dedicated unit under the lease",
+    "Bind the exact /video Caddy route and prove /video/api remains routed to 6493 while Viewer remains routed to 6494",
+    "Bind /opt/ynx-video-viewer-wallet/current to an exact existing rollback target and freeze its inode, owner, mode and content digest",
+    "Re-read the current public /video/, app.js, wallet-connection.js and /video/api/health rollback hashes before any write",
+    "Require /opt/ynx-video/current and the 6493/6495 processes, units, paths and routes to be outside the writable set"
+  ],
+  "requestedSingleUseLease": {
+    "owner": "video-deploy-owner",
+    "writablePaths": [
+      "/opt/ynx-video-viewer-wallet/releases/ynx-video-12606124dad61f5cb8032e302087c2d00c040b4d",
+      "/opt/ynx-video-viewer-wallet/current"
+    ],
+    "allowedUnit": "ynx-video-viewer-wallet.service",
+    "forbiddenUnitsAndPorts": [
+      "API_6493",
+      "CREATOR_6495"
+    ],
+    "deployCommandCount": 1,
+    "rollbackCommandCountOnFailure": 1,
+    "leaseReusable": false,
+    "postwrite": [
+      "Prove the source-bound runtime manifest and exact carrier SHA on the active Viewer target",
+      "Prove Viewer 6494 serves /video/ while API 6493 and Creator 6495 retain exact prewrite response digests",
+      "Prove the four public resources and clean-browser non-sensitive Wallet discovery gates",
+      "Do not invoke eth_requestAccounts, personal_sign, eth_signTypedData_v4 or eth_sendTransaction"
+    ]
+  },
+  "truth": {
+    "deployableSourceBoundRuntimeFrozen": true,
+    "deterministicCarrierFrozen": true,
+    "deployRollbackExecutorFrozen": true,
+    "actualShellFixturePassed": true,
+    "productionDeployed": false,
+    "sourceBoundPublic": false,
+    "realInstalledProvider": false,
+    "accountApproved": false,
+    "signature": false,
+    "transaction": false,
+    "productComplete": false
+  },
+  "singleExecutableBlocker": "Central must issue one Video-only lease after freshly binding the dedicated Viewer unit/current target and the 6493/6494/6495 plus Caddy topology."
+}
