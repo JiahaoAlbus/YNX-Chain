@@ -33,7 +33,7 @@ func TestHealthReportsExactRuntimeAndDependencyBoundaries(t *testing.T) {
 		t.Fatal(err)
 	}
 	text := string(body)
-	for _, expected := range []string{`"status":"healthy"`, `"version":"0.2.0-testnet-preview"`, `"commit":"development"`, `"startedAt":`, `"integrityProtected":false`, `"walletGateway":"unavailable"`, `"pay":"unavailable"`, `"trust":"unavailable"`, `"ai":"unavailable"`} {
+	for _, expected := range []string{`"status":"healthy"`, `"version":"0.3.0-testnet-preview"`, `"commit":"development"`, `"startedAt":`, `"integrityProtected":false`, `"walletGateway":"unavailable"`, `"pay":"unavailable"`, `"trust":"unavailable"`, `"ai":"unavailable"`} {
 		if !strings.Contains(text, expected) {
 			t.Fatalf("health missing %q in %s", expected, text)
 		}
@@ -72,12 +72,12 @@ func TestPrometheusMetricsExposeBoundedRuntimeAndState(t *testing.T) {
 	}
 	text := string(body)
 	for _, expected := range []string{
-		`ynx_shop_build_info{version="0.2.0-testnet-preview",commit="development"} 1`,
+		`ynx_shop_build_info{version="0.3.0-testnet-preview",commit="development"} 1`,
 		`ynx_shop_http_requests_total{method="GET",route_group="health",status_class="2xx"} 1`,
 		`ynx_shop_http_requests_total{method="GET",route_group="api_products",status_class="2xx"} 1`,
 		`ynx_shop_http_requests_total{method="GET",route_group="not_found",status_class="4xx"} 1`,
 		`ynx_shop_http_request_duration_seconds_count{route_group="health"} 1`,
-		`ynx_shop_persistence_schema_version 2`,
+		fmt.Sprintf(`ynx_shop_persistence_schema_version %d`, CurrentPersistenceSchemaVersion),
 		`ynx_shop_state_products 0`,
 		`ynx_shop_state_reserved_units 0`,
 		`ynx_shop_provider_available{provider="wallet_gateway"} 0`,

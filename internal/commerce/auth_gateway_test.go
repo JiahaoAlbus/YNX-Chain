@@ -81,6 +81,45 @@ func TestCentralGatewayIntrospectionRejectsTamperExpiryAndCrossProduct(t *testin
 	}
 }
 
+func TestCentralGatewayStoreAuthorizationRevocationBindsAccountAndReceipt(t *testing.T) {
+	_, account := actor(t, 62)
+	now := time.Now().UTC()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/v1/product-authorizations/revocations" || r.Method != http.MethodPost || r.Header.Get("X-YNX-Product-Key") != "service-key" {
+			http.Error(w, "wrong revocation contract", http.StatusBadRequest)
+			return
+		}
+		var body struct {
+			RequestID, Account, ProductClientID, BundleID string
+			ResourceType, ResourceID, Reason              string
+		}
+		decoder := json.NewDecoder(r.Body)
+		decoder.DisallowUnknownFields()
+		if err := decoder.Decode(&body); err != nil || body.RequestID != "seller-revoke-request-001" || body.Account != account || body.ProductClientID != SellerClientID || body.BundleID != SellerBundleID || body.ResourceType != "seller_store" || body.ResourceID != "store_scope_001" || body.Reason != "Member access removed" {
+			http.Error(w, "bad revocation binding", http.StatusBadRequest)
+			return
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{"revoked": true, "revocationId": "wallet-revoke-001", "requestId": body.RequestID, "account": body.Account, "productClientId": body.ProductClientID, "bundleId": body.BundleID, "resourceType": body.ResourceType, "resourceId": body.ResourceID, "sessionCount": 2, "revokedAt": now.Format(time.RFC3339Nano)})
+	}))
+	defer server.Close()
+	gateway := HTTPAuthGateway{BaseURL: server.URL, ServiceKey: "service-key", Client: server.Client()}
+	receipt, err := gateway.RevokeProductAuthorization(context.Background(), ProductAuthorizationRevocationRequest{RequestID: "seller-revoke-request-001", Account: account, ProductClientID: SellerClientID, BundleID: SellerBundleID, ResourceType: "seller_store", ResourceID: "store_scope_001", Reason: "Member access removed"})
+	if err != nil || !receipt.Revoked || receipt.RevocationID != "wallet-revoke-001" || receipt.SessionCount != 2 || receipt.Account != account || receipt.ResourceType != "seller_store" || receipt.ResourceID != "store_scope_001" {
+		t.Fatalf("valid revocation receipt rejected: %+v err=%v", receipt, err)
+	}
+}
+
+func TestCentralGatewayStoreAuthorizationRevocationUnavailableWhenContractMissing(t *testing.T) {
+	_, account := actor(t, 63)
+	server := httptest.NewServer(http.NotFoundHandler())
+	defer server.Close()
+	gateway := HTTPAuthGateway{BaseURL: server.URL, Client: server.Client()}
+	_, err := gateway.RevokeProductAuthorization(context.Background(), ProductAuthorizationRevocationRequest{RequestID: "seller-revoke-request-002", Account: account, ProductClientID: SellerClientID, BundleID: SellerBundleID, ResourceType: "seller_store", ResourceID: "store_scope_002", Reason: "Member access removed"})
+	if err == nil || !strings.Contains(err.Error(), "not deployed") {
+		t.Fatalf("missing revocation contract was not reported unavailable: %v", err)
+	}
+}
+
 func TestCentralGatewayProxyPreservesReplayAndTamperRejection(t *testing.T) {
 	var mu sync.Mutex
 	seen := map[string]bool{}
