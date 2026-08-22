@@ -1,17 +1,18 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ $# -ne 6 ]]; then
-  echo "usage: $0 <signed-carrier-root> <signed-archive-basename> <signed-carrier-stat> <signed-archive-stat> <signed-run-directory> <signed-loopback-port>" >&2
+if [[ $# -ne 7 ]]; then
+  echo "usage: $0 <signed-carrier-root> <signed-archive-basename> <signed-carrier-stat> <signed-digest-dir-stat> <signed-archive-stat> <signed-run-directory> <signed-loopback-port>" >&2
   exit 64
 fi
 
 carrier_root=$1
 archive_name=$2
 carrier_stat=$3
-archive_stat=$4
-run_dir=$5
-port=$6
+digest_dir_stat=$4
+archive_stat=$5
+run_dir=$6
+port=$7
 archive_sha=d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d
 binary_sha=cccdae8ae5b5f694ca7db68540da30582564ff741978e616f7435d448a20fe3e
 run_root=/opt/ynx/preflight/finance/runs
@@ -23,7 +24,7 @@ case "$carrier_root" in "$artifact_root"/*) ;; *) exit 65;; esac
 carrier_name=${carrier_root#"$artifact_root"/}
 case "$carrier_name" in p0[0-9][0-9][0-9]|p0[0-9][0-9][0-9][0-9]* ) ;; *) exit 65;; esac
 test "$archive_name" = ynx-finance-7824af677dd0-linux-amd64-p0146.tar.gz
-for signed_stat in "$carrier_stat" "$archive_stat"; do [[ "$signed_stat" =~ ^[0-9]+:[0-9]+:[0-7]{3,4}:[1-9][0-9]*$ ]] || exit 65; done
+for signed_stat in "$carrier_stat" "$digest_dir_stat" "$archive_stat"; do [[ "$signed_stat" =~ ^[0-9]+:[0-9]+:[0-7]{3,4}:[1-9][0-9]*$ ]] || exit 65; done
 test -d "$artifact_root" && test ! -L "$artifact_root"
 test -d "$carrier_root" && test ! -L "$carrier_root"
 artifact_root_real=$(realpath -e "$artifact_root")
@@ -33,6 +34,7 @@ test "$(stat -Lc '%u:%g:%a:%h' "$carrier_root")" = "$carrier_stat"
 carrier_digest_dir="$carrier_root/sha256-$archive_sha"
 test -d "$carrier_digest_dir" && test ! -L "$carrier_digest_dir"
 test "$(realpath -e "$carrier_digest_dir")" = "$carrier_root_real/sha256-$archive_sha"
+test "$(stat -Lc '%u:%g:%a:%h' "$carrier_digest_dir")" = "$digest_dir_stat"
 archive="$carrier_digest_dir/$archive_name"
 test -f "$archive" && test ! -L "$archive"
 test "$(realpath -e "$archive")" = "$carrier_root_real/sha256-$archive_sha/$archive_name"
