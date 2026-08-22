@@ -6068,6 +6068,23 @@
       "productsMigratedV2": "0/12",
       "parityComplete": false,
       "nextAction": "Continue collecting direct installed E2E evidence; this checkpoint proves only regression binding to the accepted Central matrix."
+    },
+    {
+      "taskId": "P0-160",
+      "owner": "integration,wallet-protocol",
+      "status": "ROUTER_RECEIPT_ACCEPTED_RECURSIVE_CHECKPOINT_LOOP_CLOSED",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/acceptance/wallet-router-receipt-loop-closure-p0160-20260822.json"
+      ],
+      "dependencies": ["P0-159"],
+      "routerReceiptCheckpoint": "747c63c7e3ee84843f1b770f9f3d3b1d390c3c02",
+      "centralCheckpoint": "347a202564035e902e945b7308bbb5c5397964a4",
+      "executionLeaseIssued": false,
+      "receiptLoopClosed": true,
+      "productsConnected": "0/12",
+      "productsMigratedV2": "0/12",
+      "parityComplete": false,
+      "nextAction": "Do not create another checkpoint for a receipt-only echo; resume Central acceptance only for a new capability, direct installed E2E evidence, or a security-semantic change."
     }
   ]
 }
