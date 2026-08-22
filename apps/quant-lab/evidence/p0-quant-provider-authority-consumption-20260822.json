@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "kind": "QUANT_PROVIDER_AUTHORITY_CONSUMPTION",
+  "recordedAt": "2026-08-22",
+  "supersedes": "p0-quant-provider-connect-state-20260821.json for the authoritative provider source binding only",
+  "authoritativeProvider": {
+    "sourceCommit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+    "repositoryTree": "51a60a362d4ad5dd748bcdefb101f71b1d9e0cee",
+    "evidenceCommit": "c3ab255c32bdeb9c8e056882c315f8ad43c29c7f"
+  },
+  "consumedPackage": {
+    "provenance": "npm pack --ignore-scripts from packages/wallet-auth at authoritativeProvider.sourceCommit",
+    "path": "vendor/ynx-chain-wallet-auth-1.1.0-provider-connect-state-p0.tgz",
+    "bytes": 139938,
+    "sha256": "7daad592f6d8aec7419f29cbba18cb2458053e673788c690613038983a7da34c",
+    "lockIntegrity": "sha512-h7G+Cv/LLEW2QOrag4XAL1hqoF3WqqwT+C5tbZ4FroJxVzXdS0wsbxet60qwsqLLJBVYgADWgja/EaOz7nqBgA=="
+  },
+  "rebuiltBundle": {
+    "path": "web/wallet-auth.js",
+    "bytes": 73872,
+    "sha256": "7b01fb837eb9e7e8690cfc38dfb902bd401598a992153384cb5e1ac76a4d2b30"
+  },
+  "controls": {
+    "transport": "selected-provider EIP-6963/EIP-1193 only",
+    "connectionSuccess": ["selected provider", "user-approved account", "provider eth_chainId 0x1917"],
+    "chainFlow": "wallet_switchEthereumChain -> 4902 wallet_addEthereumChain -> re-switch -> eth_chainId",
+    "directBrowserRpcFetch": false,
+    "rpcProbeDegradationPreservesStandardConnection": true,
+    "defaultLanguage": "en",
+    "noProviderFallback": "in-page official YNX Wallet and MetaMask download routes"
+  },
+  "localVerification": {
+    "unit": "5/5 pass",
+    "browser": "4/4 pass",
+    "canonicalAuthorizeVerifier": "pass"
+  },
+  "directE2E": {
+    "routerGate": "875be208e8a7ddb60345d55b93fc299949664e5c",
+    "sourceBoundPublicRuntime": false,
+    "installedWallet": false,
+    "providerApproval": false,
+    "callback": false,
+    "signing": false,
+    "testnetTrade": false,
+    "walletConnectLifecycle": false,
+    "executableBlocker": "A fresh Quant-only signed deployment lease binding current runtime target, rollback state, and this exact source/artifact is required before any public E2E flow."
+  }
+}

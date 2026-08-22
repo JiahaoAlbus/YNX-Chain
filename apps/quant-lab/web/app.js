@@ -9,7 +9,7 @@ if (!/^[0-9a-f]{64}$/.test(tenantId || "")) {
   localStorage.setItem(tenantKey, tenantId);
 }
 const supportedLocales = QuantI18n.locales;
-let locale = localStorage.getItem("ynx.quant.locale") || navigator.languages.find((value) => supportedLocales.includes(value)) || navigator.language.split("-")[0];
+let locale = localStorage.getItem("ynx.quant.locale") || "en";
 if (!supportedLocales.includes(locale)) locale = "en";
 const t = (key) => QuantI18n.t(locale, key);
 const localDate = (value) => new Intl.DateTimeFormat(locale, {dateStyle:"medium",timeStyle:"medium"}).format(new Date(value));
