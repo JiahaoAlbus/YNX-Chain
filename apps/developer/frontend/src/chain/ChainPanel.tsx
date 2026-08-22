@@ -3,7 +3,7 @@ import { Button } from "../components/ui/button";
 import { broadcastDeveloperDeployment, chainRpc, completeDeveloperWalletSession, debugChainBlock, debugChainTransaction, introspectDeveloperWalletSession, loadChainCompiler, loadChainStatus, loadWalletReadiness, type ChainStatus, type WalletReadiness } from "../runtime/client";
 import { canonicalJSON, consumeDeveloperDeploymentRequest, consumeDeveloperWalletRequest, createDeveloperSessionIntrospection, createDeveloperWalletCompletion, desktopWalletBridge, openDeveloperDeploymentReview, openDeveloperWalletReview, parseDeveloperDeploymentCallback, saveDeveloperWalletSession, subscribeDeveloperDeploymentCallbacks, subscribeDeveloperWalletCallbacks, ynxAccountToEVM } from "../wallet/transport";
 import { enterDeveloperWalletV2Guest, inspectDeveloperWalletV2Runtime } from "../wallet/product-session-v2";
-import { connectDeveloperWebWallet, disconnectDeveloperWebWallet, discoverDeveloperWebWalletChoices, openDeveloperWebWalletConnectionDetails, restoreDeveloperWebWallet, subscribeDeveloperWebWalletEvents } from "../wallet/safe-authorize-launcher";
+import { closeDeveloperWebWalletConnectionDetails, connectDeveloperWebWallet, disconnectDeveloperWebWallet, discoverDeveloperWebWalletChoices, openDeveloperWebWalletConnectionDetails, restoreDeveloperWebWallet, subscribeDeveloperWebWalletEvents, switchDeveloperWebWalletAccount } from "../wallet/safe-authorize-launcher";
 import { StandardWalletDappCompatibilityLab } from "../dapp/StandardWalletDappCompatibilityLab";
 import type { StandardWalletConnectState } from "../../../vendor/wallet-auth/src/index.js";
 
@@ -217,6 +217,11 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
   };
   const openWallet = async (providerKind?: "ynx-wallet" | "metamask") => {
     if (!wallet) {
+      if (webWalletConnection?.status === "connected") {
+        setWebWalletConnection(openDeveloperWebWalletConnectionDetails(webWalletConnection));
+        setWalletState("Wallet connection details opened locally. No account request, custom authorization URI, callback or Product Session was created.");
+        return;
+      }
       setBusy(true);
       setError("");
       try {
@@ -254,6 +259,13 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
     setWebWalletAccount(undefined);
     clearStoredWebWalletProvider();
     setWalletState("This page forgot its local Standard Wallet connection. The Wallet extension keeps its own permissions; reconnect requires an explicit product click.");
+  };
+  const switchWebWalletAccount = () => {
+    if (!webWalletConnection || webWalletConnection.status !== "connected") return;
+    setWebWalletConnection(switchDeveloperWebWalletAccount(webWalletConnection));
+    setWebWalletAccount(undefined);
+    clearStoredWebWalletProvider();
+    setWalletState("Switch the account in the selected Wallet, then reconnect from this page. No account picker, custom URI, callback or Product Session was created.");
   };
   const enterWalletV2Guest = async () => {
     setBusy(true); setError("");
@@ -392,8 +404,20 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
                 </>
               ) : <Button disabled={busy} onClick={() => openWallet()}>{webWalletAccount ? "Reconnect browser Wallet" : "Connect browser Wallet"}</Button>}
               <p>{webWalletAccount ? `Standard Wallet account ${webWalletAccount} is connected on YNX Testnet 0x1917. Product Session remains optional and separate.` : webWalletDiscovery?.status === "ready" ? "Choose a listed Wallet before any account request is sent." : "No browser Wallet provider is available. The official download and MetaMask choices remain on this page."}</p>
-              {webWalletConnection?.status === "connected" && <><Button variant="ghost" disabled={busy} onClick={() => setWebWalletConnection(openDeveloperWebWalletConnectionDetails(webWalletConnection))}>Wallet connection details</Button><Button variant="ghost" disabled={busy} onClick={disconnectWebWallet}>Disconnect this app</Button></>}
-              {webWalletConnection?.chooserOpen && <p>Wallet details are local to this page. No account request, custom URI, popup or Product Session is created.</p>}
+              {webWalletConnection?.status === "connected" && <Button variant="ghost" disabled={busy} onClick={() => setWebWalletConnection(openDeveloperWebWalletConnectionDetails(webWalletConnection))}>Wallet connection details</Button>}
+              {webWalletConnection?.chooserOpen && webWalletConnection.chooserMode === "connection-details" && (
+                <div className="chain-tool" aria-label="Wallet connection details">
+                  <b>Wallet connection details</b>
+                  <p>Provider: <b>{webWalletConnection.providerKind === "ynx-wallet" ? "YNX Wallet" : "MetaMask"}</b></p>
+                  <p>Account: <code>{webWalletConnection.account}</code></p>
+                  <p>Network: <b>YNX Testnet</b> · <code>{webWalletConnection.chainId}</code></p>
+                  <p>Product Session: {webWalletConnection.privateService === "degraded" ? "Optional service degraded; Standard Wallet remains connected." : "Optional and separate from this Standard Wallet connection."}</p>
+                  <Button variant="ghost" disabled={busy} onClick={disconnectWebWallet}>Disconnect this app</Button>
+                  <Button variant="ghost" disabled={busy} onClick={switchWebWalletAccount}>Switch account</Button>
+                  <Button variant="ghost" disabled={busy} onClick={() => setWebWalletConnection(closeDeveloperWebWalletConnectionDetails(webWalletConnection))}>Close details</Button>
+                  <p>These controls are local to this page. They never request accounts, launch a custom URI, open a popup, or create a Product Session.</p>
+                </div>
+              )}
               <a href={webWalletDiscovery?.launch.fallbackActions[0]?.url || "https://www.ynxweb4.com/dapp/download"}>Download YNX Wallet</a>{" · "}
               <a href={webWalletDiscovery?.launch.fallbackActions[1]?.url || "https://metamask.io/download/"}>Use MetaMask</a>
             </>

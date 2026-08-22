@@ -7,7 +7,7 @@ import {
   launchNativeAuthorization,
   launchWebAuthorization,
 } from "../vendor/wallet-auth/src/index.js";
-import { connectDeveloperWebWallet, disconnectDeveloperWebWallet, discoverDeveloperWebWalletChoices, reduceDeveloperWalletPrivateServiceDegraded, reduceDeveloperWalletRpcProbeDegraded, restoreDeveloperWebWallet, subscribeDeveloperWebWalletEvents } from "../frontend/src/wallet/safe-authorize-launcher.ts";
+import { closeDeveloperWebWalletConnectionDetails, connectDeveloperWebWallet, disconnectDeveloperWebWallet, discoverDeveloperWebWalletChoices, openDeveloperWebWalletConnectionDetails, reduceDeveloperWalletPrivateServiceDegraded, reduceDeveloperWalletRpcProbeDegraded, restoreDeveloperWebWallet, subscribeDeveloperWebWalletEvents, switchDeveloperWebWalletAccount } from "../frontend/src/wallet/safe-authorize-launcher.ts";
 
 const request = () => Object.freeze({ version:"1", nonce:"A".repeat(43), chainId:"ynx_6423-1", requestingProduct:"developer", productClientId:"ynx-developer-v1", bundleId:"com.ynxweb4.developer.testnetpreview", productDeviceAlgorithm:"p256-sha256", productDeviceKey:"A".repeat(44), callback:"ynxdeveloper://wallet-auth/callback", scopes:["account:read","developer:deploy"], purpose:"Developer launcher v2 contract test", issuedAt:"2026-08-21T00:00:00.000Z", expiresAt:"2026-08-21T00:05:00.000Z" });
 
@@ -83,6 +83,23 @@ test("Developer restores only approved accounts on the selected provider and pre
   assert.equal(rpcDegraded.status, "connected");
   assert.equal(rpcDegraded.chooserOpen, false);
   assert.equal(rpcDegraded.rpcProbe, "degraded");
+  const details = openDeveloperWebWalletConnectionDetails(rpcDegraded);
+  assert.equal(details.status, "connected");
+  assert.equal(details.chooserOpen, true);
+  assert.equal(details.chooserMode, "connection-details");
+  assert.deepEqual(details.chooserActions, ["disconnect", "switch-account", "close"]);
+  assert.equal(details.account, "0x2222222222222222222222222222222222222222");
+  assert.equal(details.chainId, "0x1917");
+  assert.equal(details.privateService, "degraded");
+  const closed = closeDeveloperWebWalletConnectionDetails(details);
+  assert.equal(closed.status, "connected");
+  assert.equal(closed.chooserMode, "closed");
+  const switchAccount = switchDeveloperWebWalletAccount(details);
+  assert.equal(switchAccount.status, "disconnected");
+  assert.equal(switchAccount.account, null);
+  const disconnectedChooser = openDeveloperWebWalletConnectionDetails(switchAccount);
+  assert.equal(disconnectedChooser.chooserOpen, true);
+  assert.equal(disconnectedChooser.chooserMode, "connect");
   const locallyDisconnected = disconnectDeveloperWebWallet(rpcDegraded);
   assert.equal(locallyDisconnected.status, "disconnected");
   assert.equal(locallyDisconnected.account, null);
@@ -140,6 +157,11 @@ test("launcher and Developer Web adapter contain no frame, popup, blank target o
   assert.match(panel, /Connect MetaMask/);
   assert.match(panel, /No Wallet is selected automatically/);
   assert.match(panel, /Disconnect this app/);
+  assert.match(panel, /Switch account/);
+  assert.match(panel, /chooserMode === "connection-details"/);
+  assert.match(panel, /Provider:/);
+  assert.match(panel, /Network:/);
+  assert.match(adapter, /switchDeveloperWebWalletAccount/);
   assert.match(adapter, /disconnectDeveloperWebWallet/);
   assert.match(mac, /URLForApplicationToOpenURL:parts\.URL/);
   assert.doesNotMatch(mac, /availability_probe_not_opened/);

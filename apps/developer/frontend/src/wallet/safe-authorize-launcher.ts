@@ -135,9 +135,18 @@ export function reduceDeveloperWalletPrivateServiceDegraded(connection: Standard
   return reduceStandardWalletConnectState(connection, { type: "PRIVATE_SESSION_DEGRADED", code });
 }
 
-/** A connected Wallet may expose its local details without creating another request. */
+/**
+ * This product control opens details for a completed connection. The shared
+ * reducer intentionally opens a connection chooser for every other state, so
+ * callers never use a stale connected-account surface after disconnect.
+ */
 export function openDeveloperWebWalletConnectionDetails(connection: StandardWalletConnectState): StandardWalletConnectState {
   return reduceStandardWalletConnectState(connection, { type: "OPEN_CHOOSER" });
+}
+
+/** Close local connection details without touching Wallet permissions. */
+export function closeDeveloperWebWalletConnectionDetails(connection: StandardWalletConnectState): StandardWalletConnectState {
+  return reduceStandardWalletConnectState(connection, { type: "CLOSE_CHOOSER" });
 }
 
 /**
@@ -146,7 +155,16 @@ export function openDeveloperWebWalletConnectionDetails(connection: StandardWall
  * method, so the next connection still requires an explicit product click.
  */
 export function disconnectDeveloperWebWallet(connection: StandardWalletConnectState): StandardWalletConnectState {
-  return reduceStandardWalletConnectState(connection, { type: "PROVIDER_DISCONNECT" });
+  return reduceStandardWalletConnectState(connection, { type: "DISCONNECT" });
+}
+
+/**
+ * EIP-1193 has no portable account-picker API. Switching is therefore local:
+ * forget this app's selected account, let the user select another account in
+ * the independently installed Wallet, then require an explicit reconnect.
+ */
+export function switchDeveloperWebWalletAccount(connection: StandardWalletConnectState): StandardWalletConnectState {
+  return reduceStandardWalletConnectState(connection, { type: "DISCONNECT" });
 }
 
 /** No browser RPC fetch is permitted: this accepts only a reviewed, CORS-safe probe result. */
