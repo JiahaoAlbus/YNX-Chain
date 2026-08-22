@@ -71,6 +71,7 @@
     "auditRound": "2026-08-22-first-wave",
     "rule": "These are reported routing and scope facts only. They never promote source-bound public runtime, installed lifecycle, Wallet approval, Product Session, direct E2E, aggregate completion, or frozen branch/path ownership.",
     "merchant-console": {"routeCandidates":["pay","shop"],"blocker":"CENTRAL_CALLBACK_AND_SESSION_MISSING","runtimePromoted":false},
+    "social": {"reportedSourceCommit":"ecffe336a3a380e8b13b6a7926720efb1bfe4ae2","reportedSourceTree":"a7289a70cb7464b4debdb24163f93572194681eb","reportedAppsTreePrefix":"00bd532e","reportedEvidenceCommit":"f0f1120000302a035b5f2dd6df5ff973457b36","ephemeralArtifactBytes":921443,"ephemeralArtifactSha256":"ff94c7ab3b93b6f953b2ec25af896a6408219809f9df9ea59933f53eebb1235e","ephemeralArtifactAccepted":false,"durableArtifactBlocker":"CENTRAL_DURABLE_ARTIFACT_URI_DIGEST_ACCEPTANCE_REQUIRED","currentPublicGuestObservation":{"url":"https://social.ynxweb4.com/","title":"YNX Social — Private by design","guestAndConnectControlsVisible":true,"consoleSampleErrors":0,"accountAccessRequested":false},"sourceBoundPublic":false,"runtimePromoted":false},
     "seller-console": {"reportedSourceCommit":"88c0f3a5","integratedCentral":false,"walletRegisteredDeployed":false,"runtimePromoted":false},
     "trust-center": {"sourceState":"PENDING","publicRuntime":false,"integratedCentral":false,"runtimePromoted":false},
     "search": {"currentTreeMissingAppsPath":true,"publicContractPresent":false,"runtimePromoted":false},
