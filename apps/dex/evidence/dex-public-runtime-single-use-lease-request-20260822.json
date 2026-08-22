@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-dex",
+  "requestType": "single-use-public-runtime-deployment-lease",
+  "requestState": "PENDING_P0_179_RELEASE_AND_CENTRAL_APPROVAL",
+  "scope": "DEX only; no Wallet approval, signature, transaction, liquidity operation, or cross-product mutation",
+  "source": {
+    "commit": "7563dc6604540715f87d4e1e46b4ed41feaf6235",
+    "tree": "a7edd2575d8f6f6d21abbd10baec26dcfbdbddbb"
+  },
+  "candidate": {
+    "archivePath": "release/dex/ynx-dex-7563dc660454-runtime.tar.gz",
+    "archiveSha256": "4d80b76890191ff93feb75e3bd4214078d1ad9e269d54829f4c3781e082fd092",
+    "archiveBytes": 3124626,
+    "releaseDirectory": "/opt/ynx/dex-7563dc660454",
+    "indexer": {
+      "path": "ynx-dex-indexerd",
+      "sha256": "b3a558af9bf2a8491a6e54b843687db461decfc9ff49748bdcf845d6f5141605",
+      "bytes": 6942868,
+      "platform": "linux/amd64"
+    },
+    "inventory": {
+      "path": "release/dex/ynx-dex-7563dc660454-runtime.inventory.json",
+      "sha256": "b7e55c11e64638993d2980db5be781693f11a2b14a73b43752b5da9fea3405a0",
+      "bytes": 3533
+    }
+  },
+  "commands": {
+    "releaseScript": {
+      "path": "scripts/dex-public-runtime-release.sh",
+      "sha256": "2d5716c6cd241c0df63c26d134507e7efae93e59ef57a08c0bf1c1d9e825be48",
+      "bytes": 7936,
+      "deploy": "scripts/dex-public-runtime-release.sh deploy /opt/ynx/stage/dex/leases/<signed-lease-id>.json",
+      "rollback": "scripts/dex-public-runtime-release.sh rollback /opt/ynx/stage/dex/leases/<signed-lease-id>.json"
+    },
+    "packager": {
+      "path": "scripts/package-public-runtime.mjs",
+      "sha256": "70658ea608cf4a44f70f54782dc61f3b64e9c111e6a388687ec0a01eb15a75d4",
+      "bytes": 4202
+    }
+  },
+  "verification": {
+    "webUnitTests": {"passed": 24, "failed": 0},
+    "canonicalAuthorizeScan": "passed: 14 DEX source files",
+    "indexerRaceTests": "passed: ./internal/dex ./cmd/ynx-dex-indexerd",
+    "binaryReproducibility": "two linux/amd64 builds matched",
+    "archiveReproducibility": "two runtime archives matched",
+    "archiveIntegrity": "extraction and SHA256SUMS verification passed",
+    "servedAssetBareAuthorizeScan": "passed; source maps excluded from runtime archive",
+    "releaseCommandFailClosed": "passed; unsigned/missing stage archive stopped before release or backup creation"
+  },
+  "centralMustFreshlyReadAndSign": [
+    "current dex-current realpath, indexer binary and served Web asset hashes",
+    "public root/version/health status, bytes, hashes and parsed source/release identity",
+    "ynx-dex-indexerd active state, PID/restart count, unit/env/Caddy paths and hashes",
+    "state path plus exact hash or explicit absence receipt",
+    "immutable archive stage path, candidate release path and previously absent backup path",
+    "candidate local/public root/version/health hashes and rollback verifier hashes"
+  ],
+  "allowedAfterApproval": [
+    "fresh read-only binding", "exact archive staging", "new candidate release directory", "atomic dex-current switch", "one indexer restart", "local/public verification", "first-failure rollback", "receipt retention"
+  ],
+  "forbidden": [
+    "deployment while P0-179 is active", "editing unit/env/Caddy", "Wallet approval", "signature", "transaction", "liquidity operation", "cross-product mutation", "retry after first failed lease", "public completion claim before direct E2E"
+  ],
+  "requiredReceipts": [
+    "fresh preflight binding", "archive/inventory/SHA256SUMS verification", "state absence-or-backup", "candidate-created inode when applicable", "service status", "local and public root/version/health hash checks", "rollback and restored-public verification when applicable"
+  ],
+  "truth": {
+    "deployedPublic": false,
+    "sourceBoundPublicRuntime": false,
+    "providerApproval": false,
+    "walletConnect": false,
+    "personalSign": false,
+    "eip712": false,
+    "testnetTransaction": false,
+    "productComplete": false
+  }
+}

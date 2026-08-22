@@ -1,0 +1,108 @@
+{
+  "release": "ynx-dex-7563dc660454",
+  "sourceCommit": "7563dc6604540715f87d4e1e46b4ed41feaf6235",
+  "sourceTree": "a7edd2575d8f6f6d21abbd10baec26dcfbdbddbb",
+  "archive": {
+    "path": "release/dex-candidate-runtime/ynx-dex-7563dc660454-runtime.tar.gz",
+    "sha256": "4d80b76890191ff93feb75e3bd4214078d1ad9e269d54829f4c3781e082fd092",
+    "bytes": 3124626
+  },
+  "entries": [
+    {
+      "path": "ynx-dex-7563dc660454/BUNDLE_MANIFEST.json",
+      "sha256": "c1372a84444b74a11dfbaf00a1ae9153beed3b01a53251b1a45bda978795d0e3",
+      "bytes": 2993,
+      "mode": "644"
+    },
+    {
+      "path": "ynx-dex-7563dc660454/deploy/dex.env.example",
+      "sha256": "5844b56b96d8a8a0aea112970d24e68e2d087fcddcbf533ca30bc30f80f64f86",
+      "bytes": 290,
+      "mode": "644"
+    },
+    {
+      "path": "ynx-dex-7563dc660454/deploy/ynx-dex-indexerd.service",
+      "sha256": "cd7cf539c7cea377497264d7d26b0068ef641e7a64dd5749fe241465832ef90c",
+      "bytes": 506,
+      "mode": "644"
+    },
+    {
+      "path": "ynx-dex-7563dc660454/deploy/ynx-dex.caddy",
+      "sha256": "bc81e7c03bd119f596b611b1a135d130acdcf85d1178c1f174c36984feb05cb4",
+      "bytes": 1009,
+      "mode": "644"
+    },
+    {
+      "path": "ynx-dex-7563dc660454/SHA256SUMS",
+      "sha256": "407dd2acf9455737933e5c970b9e04784296236b32ec9829344fcd7b6503c7f5",
+      "bytes": 1310,
+      "mode": "644"
+    },
+    {
+      "path": "ynx-dex-7563dc660454/token-lists/dex-testnet.json",
+      "sha256": "c6b0c02b2060b6dbb4655e5fc80eff64227e72248dfcce9ba50a673cd07ba7b3",
+      "bytes": 151,
+      "mode": "644"
+    },
+    {
+      "path": "ynx-dex-7563dc660454/web/assets/index-ApUVdDTU.css",
+      "sha256": "59f658b729701e80ab3f35a09fbe7d09eb6a8913e23d8a73ba2ff4daa145ff5c",
+      "bytes": 24670,
+      "mode": "644"
+    },
+    {
+      "path": "ynx-dex-7563dc660454/web/assets/index-CgqCvd-H.js",
+      "sha256": "9e38453e0a0b757d02f120e14326a07c9cfa44e90e89e8b1da584771dad5adc0",
+      "bytes": 328336,
+      "mode": "644"
+    },
+    {
+      "path": "ynx-dex-7563dc660454/web/icon-maskable.svg",
+      "sha256": "2ba8f11d99864f01d4843060919763445a95c145d9b70fdfabaf954227ed169b",
+      "bytes": 227,
+      "mode": "644"
+    },
+    {
+      "path": "ynx-dex-7563dc660454/web/icon.svg",
+      "sha256": "7c7cbbfc59b020135254a6c95202309c91509ce60db667fc224dcc1b4993f04b",
+      "bytes": 238,
+      "mode": "644"
+    },
+    {
+      "path": "ynx-dex-7563dc660454/web/index.html",
+      "sha256": "a008b418fbd0163be4ebbf7530af2441891980e38bb02065b9682718cbcb9073",
+      "bytes": 931,
+      "mode": "644"
+    },
+    {
+      "path": "ynx-dex-7563dc660454/web/LICENSE.txt",
+      "sha256": "3f266069edf35c5c922e5c970d5e66b3e9857e2f76c5d8b5a1e7488b8a3e4540",
+      "bytes": 1079,
+      "mode": "644"
+    },
+    {
+      "path": "ynx-dex-7563dc660454/web/manifest.webmanifest",
+      "sha256": "71c323689b9199f44b8389fd580f76a38b01b002fc1902229be535ca7b2755ef",
+      "bytes": 496,
+      "mode": "644"
+    },
+    {
+      "path": "ynx-dex-7563dc660454/web/sw.js",
+      "sha256": "f7f91c296092d226859a248e017e160c6cd0cfb05e9001f65f3d5443df273024",
+      "bytes": 1124,
+      "mode": "644"
+    },
+    {
+      "path": "ynx-dex-7563dc660454/web/ynx-logo.png",
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+      "bytes": 104171,
+      "mode": "644"
+    },
+    {
+      "path": "ynx-dex-7563dc660454/ynx-dex-indexerd",
+      "sha256": "b3a558af9bf2a8491a6e54b843687db461decfc9ff49748bdcf845d6f5141605",
+      "bytes": 6942868,
+      "mode": "755"
+    }
+  ]
+}
