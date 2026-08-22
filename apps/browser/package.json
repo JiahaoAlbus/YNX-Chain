@@ -13,6 +13,7 @@
     "build:macos": "bash scripts/build-macos-app.sh",
     "verify:macos-reproducible": "bash scripts/verify-macos-reproducible.sh",
     "verify:macos-install": "node scripts/install-macos-evidence.mjs",
+    "verify:macos-preinstall-executor": "node --test test/preinstall-executor.test.js",
     "verify:macos-window": "bash scripts/verify-macos-window-visual.sh"
   },
   "ynxEngine": "Apple WebKit via WKWebView; no custom web engine"
