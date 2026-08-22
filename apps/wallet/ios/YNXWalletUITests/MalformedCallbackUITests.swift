@@ -194,6 +194,112 @@ final class MalformedCallbackUITests: XCTestCase {
     )
   }
 
+  func testWalletConnectPendingDecisionsRestoreAndFailClosedWithoutRelay() throws {
+    let now = Date(timeIntervalSince1970: 2_000_000_000)
+    let approvedAccount = "0x1111111111111111111111111111111111111111"
+    let digest = "0x" + String(repeating: "b", count: 64)
+    let signature = "0x" + String(repeating: "1", count: 130)
+    let typedSignature = "0x" + String(repeating: "2", count: 130)
+    let transactionHash = "0x" + String(repeating: "3", count: 64)
+
+    XCTAssertThrowsError(
+      try WalletConnectV2Policy.parseDeepLink("ynxwallet://wc?uri=wc%3Ainvalid", projectID: nil)
+    ) {
+      XCTAssertEqual($0 as? WalletConnectV2PolicyError, .invalidProjectID)
+    }
+
+    for (index, dappClass) in [WalletConnectV2DAppClass.firstParty, .external].enumerated() {
+      let topic = String(repeating: index == 0 ? "a" : "c", count: 64)
+      let file = FileManager.default.temporaryDirectory
+        .appendingPathComponent("ynx-ios-walletconnect-\(UUID().uuidString)")
+        .appendingPathComponent("state.json")
+      let proposal = WalletConnectV2PendingRequest(
+        id: "proposal-\(index)", topic: topic, kind: .sessionProposal,
+        dappClass: dappClass,
+        dappName: dappClass == .firstParty ? "YNX First Party" : "External EVM DApp",
+        method: "wc_sessionPropose", paramsDigest: digest,
+        receivedAt: now.addingTimeInterval(-1), expiresAt: now.addingTimeInterval(300)
+      )
+      let initial = try WalletConnectV2StateStore(fileURL: file)
+      try initial.enqueue(proposal, now: now)
+      let restarted = try WalletConnectV2StateStore(fileURL: file)
+      XCTAssertEqual(try restarted.restoredPending(now: now), [proposal])
+
+      let approval = try WalletConnectV2Policy.approve(
+        requiredChains: [WalletConnectV2Policy.chain],
+        requiredMethods: [
+          "eth_requestAccounts", "personal_sign", "eth_signTypedData_v4", "eth_sendTransaction",
+        ],
+        requiredEvents: ["accountsChanged", "disconnect"],
+        approvedAccount: approvedAccount
+      )
+      XCTAssertEqual(
+        try restarted.approveProposal(requestID: proposal.id, approval: approval, now: now).result,
+        .success("eip155:6423:\(approvedAccount)")
+      )
+
+      func request(_ id: String, _ method: String) -> WalletConnectV2PendingRequest {
+        WalletConnectV2PendingRequest(
+          id: "\(id)-\(index)", topic: topic, kind: .sessionRequest,
+          dappClass: dappClass,
+          dappName: dappClass == .firstParty ? "YNX First Party" : "External EVM DApp",
+          method: method, paramsDigest: digest,
+          receivedAt: now.addingTimeInterval(-1), expiresAt: now.addingTimeInterval(300)
+        )
+      }
+
+      let accounts = request("accounts", "eth_requestAccounts")
+      try restarted.enqueue(accounts, now: now)
+      XCTAssertThrowsError(
+        try restarted.resolveRequest(
+          requestID: accounts.id,
+          executionResult: "[\"0x2222222222222222222222222222222222222222\"]",
+          now: now
+        )
+      )
+      XCTAssertEqual(
+        try restarted.resolveRequest(
+          requestID: accounts.id,
+          executionResult: "[\"\(approvedAccount)\"]",
+          now: now
+        ).result,
+        .success("[\"\(approvedAccount)\"]")
+      )
+
+      for (id, method, result) in [
+        ("sign", "personal_sign", signature),
+        ("typed", "eth_signTypedData_v4", typedSignature),
+        ("send", "eth_sendTransaction", transactionHash),
+      ] {
+        let pending = request(id, method)
+        try restarted.enqueue(pending, now: now)
+        XCTAssertThrowsError(
+          try restarted.resolveRequest(requestID: pending.id, executionResult: "0xfake", now: now)
+        )
+        XCTAssertEqual(
+          try restarted.resolveRequest(requestID: pending.id, executionResult: result, now: now).result,
+          .success(result)
+        )
+      }
+
+      let rejected = request("reject", "personal_sign")
+      try restarted.enqueue(rejected, now: now)
+      XCTAssertEqual(
+        try restarted.reject(requestID: rejected.id, now: now).result,
+        .rejected(code: 4001, message: "User rejected the request")
+      )
+      XCTAssertTrue(try restarted.disconnect(topic: topic))
+      let disconnected = try WalletConnectV2StateStore(fileURL: file)
+      XCTAssertTrue(disconnected.restoredSessions().isEmpty)
+      XCTAssertTrue(try disconnected.restoredPending(now: now).isEmpty)
+      XCTAssertFalse(try disconnected.revoke(topic: topic))
+    }
+
+    FileHandle.standardError.write(Data(
+      "YNX_WALLETCONNECT_NATIVE_STATE_CONTRACT firstParty=true external=true restart=true approve=true reject=true personalSign=true eip712=true send=true disconnect=true revoke=true relay=false\n".utf8
+    ))
+  }
+
   func testUniversalLinkRemainsFailClosedWithoutFrozenAssociatedDomain() throws {
     XCTAssertFalse(InboundLinkPolicy.associatedDomainFrozen)
     XCTAssertEqual(

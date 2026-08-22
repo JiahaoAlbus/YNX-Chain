@@ -314,6 +314,25 @@ jobs:
           xcrun xcresulttool export attachments \
             --path proof/ci-ios/CanonicalRegistryNativeBridge.xcresult \
             --output-path proof/ci-ios/canonical-registry-xcresult-attachments
+      - name: Prove native WalletConnect decisions persist without claiming relay runtime
+        timeout-minutes: 10
+        working-directory: apps/wallet
+        run: |
+          set -euo pipefail
+          DEVICE="$(xcrun simctl list devices booted | awk -F '[()]' '/iPhone/{print $2; exit}')"
+          test -n "$DEVICE"
+          xcodebuild test \
+            -workspace ios/YNXWallet.xcworkspace \
+            -scheme YNXWallet \
+            -configuration Release \
+            -destination "platform=iOS Simulator,id=$DEVICE" \
+            -only-testing:YNXWalletUITests/MalformedCallbackUITests/testWalletConnectPendingDecisionsRestoreAndFailClosedWithoutRelay \
+            -resultBundlePath proof/ci-ios/WalletConnectNativeState.xcresult \
+            2>&1 | tee proof/ci-ios/walletconnect-native-state-xctest.log
+          grep -F "YNX_WALLETCONNECT_NATIVE_STATE_CONTRACT firstParty=true external=true restart=true approve=true reject=true personalSign=true eip712=true send=true disconnect=true revoke=true relay=false" \
+            proof/ci-ios/walletconnect-native-state-xctest.log
+          grep -F "Test Case '-[YNXWalletUITests.MalformedCallbackUITests testWalletConnectPendingDecisionsRestoreAndFailClosedWithoutRelay]' passed" \
+            proof/ci-ios/walletconnect-native-state-xctest.log
       - name: Prove Universal Link remains fail-closed without a frozen associated domain
         timeout-minutes: 10
         working-directory: apps/wallet
