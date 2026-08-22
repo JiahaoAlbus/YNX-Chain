@@ -1,0 +1,141 @@
+{
+  "schemaVersion": "shopSchema7RollbackFirstLeaseRequest@1.0.0",
+  "recordedAt": "2026-08-22T19:03:00Z",
+  "status": "PENDING_WHOLELY_NEW_CENTRAL_SINGLE_USE_LEASE",
+  "scope": "YNX Shop only",
+  "supersedes": {
+    "taskId": "P0-209",
+    "terminalStatus": "CONSUMED_RELEASED_FAILED_CLOSED_SHOP_PUBLIC_RELEASE_ROLLED_BACK",
+    "centralCommit": "074d697b25fea32483febf123d36f2dc07536e03",
+    "centralTree": "114c805394954e158bff4782579d117167a3a4cc",
+    "heavyOwner": null,
+    "reusable": false,
+    "failure": "unsupported commerce persistence schema version: 7"
+  },
+  "source": {
+    "implementationCommit": "4ecbdba1fee7b919f5d0c65d0907ca4727e37496",
+    "implementationTree": "70d11d80aea8ea2083ed9036d335d1a919437322",
+    "commandObjectCommit": "2488369a5b0f9010703a03e9d0feabc9bd23c326",
+    "commandObjectTree": "e0a5ec2b9ec1f34fd2f6dc668b297152dd593103",
+    "branch": "codex/final-shop",
+    "productionSchema7Upstream": {
+      "commit": "88c0f3a546b463fb270c4bea5d944178865660a5",
+      "commerceTree": "8a235e409372ffe7574bf9f3dd2ce5aaddd36ae7"
+    },
+    "candidateCommerceTree": "4a665ea13b61fecc0610c7645f97579d81397643",
+    "schema7TestBlob": "eed8f4af3617019548fab3d87677b039b08d1a78",
+    "storeBlob": "44e1129720cf1ca68636b3ae35fb2b85ae670352"
+  },
+  "schemaCompatibility": {
+    "currentPersistenceSchemaVersion": 7,
+    "productionSchema7ReadAccepted": true,
+    "productionSchema7ReadBytePreserving": true,
+    "schema2ToSchema7MigrationVerified": true,
+    "preMigrationBackupExactBytesVerified": true,
+    "currentSchema7ReadCreatesNoBackup": true,
+    "futureSchemaRejectedWithoutMutation": true,
+    "rollbackRecoveryWritesExactBytes": true,
+    "unknownFieldDropByVersionConstantOnly": false,
+    "tests": {
+      "goRaceCommerce": "PASS",
+      "shopWeb": "13/13",
+      "sellerWeb": "3/3",
+      "shopBuild": "PASS",
+      "sellerBuild": "PASS",
+      "deployRollbackSyntax": "PASS"
+    }
+  },
+  "deterministicLinuxAmd64Carrier": {
+    "localPath": "/tmp/ynx-shop-schema7.Fppn6L/ynx-shop-4ecbdba1fee7b919f5d0c65d0907ca4727e37496.tar.gz",
+    "sourceDateEpoch": 1787424212,
+    "bytes": 15125474,
+    "sha256": "821922165d8a4210ae2267bdd9e97abe63dbbd23f44016078819bba83ffb26a8",
+    "target": "linux-amd64-cgo-disabled",
+    "archiveFormat": "deterministic-ustar-gzip",
+    "extractionVerifiedInFreshDirectory": true,
+    "sha256SumsVerified": true,
+    "inventory": {
+      "bytes": 506,
+      "sha256": "13a2f39733aa133d68a1f17c13a74f82464c97a075ada1da656cc2d5937cef99"
+    },
+    "sha256Sums": {
+      "bytes": 1565,
+      "sha256": "f23c8ac8908bf99a54071f9bbd99ce247090317fcbdd4613bd449bb5d4b96e3a"
+    },
+    "binary": {
+      "path": "bin/ynx-shopd",
+      "bytes": 27660465,
+      "sha256": "ca19460320baa9b12b8b326fefe9c06be6a7c8caa5ab146bd1b955ec09a343f0"
+    },
+    "productionSigned": false,
+    "deployedPublic": false
+  },
+  "commandObjects": {
+    "deploy": {
+      "path": "apps/shop/scripts/p0-rollback-first-deploy.sh",
+      "blob": "fa5039fd162b74c4008255ca9dc0efd03fb46547",
+      "bytes": 3780,
+      "sha256": "ada030777eb3fec4144cbff5fed05906389d52e891a43a66db9cb9efa24085d8",
+      "preSwitchSchema7Gate": "copies the fresh protected production backup to an isolated state path, starts the exact candidate with the protected environment, requires source-bound health/version, requires the state SHA-256 to remain exact and requires no migration .bak before the one symlink switch"
+    },
+    "rollback": {
+      "path": "apps/shop/scripts/p0-rollback-first-rollback.sh",
+      "blob": "e130c8cd20927d81629e685e7e48377c0f6a871a",
+      "bytes": 2332,
+      "sha256": "ad11b868468fc074ba4b71e4e044c17f711991b7275cd0a5536b69aafc05f102"
+    }
+  },
+  "currentProductionBaseline": {
+    "host": "43.153.202.237",
+    "officialUrl": "https://shop.ynxweb4.com/shop/",
+    "resolvedRelease": "/opt/ynx-shop/releases/p0-shop-controls-99b2185f",
+    "sourceCommit": "88c0f3a546b463fb270c4bea5d944178865660a5",
+    "reportedCommit": "88c0f3a5",
+    "binarySha256": "c41654634eb6d7137f03b8e7afa71f72598b2675eacca52aa7c16e94e841a860",
+    "state": {
+      "path": "/var/lib/ynx-shop/state.json",
+      "bytesAtP0209Rollback": 23562,
+      "sha256AtP0209Rollback": "cb2f468f3e3afd9a3fd63becdca14351e8a3603054c37a36674411d94d1a986c",
+      "schemaVersion": 7,
+      "mustBeFreshlyReReadBeforeAnyWrite": true
+    },
+    "version": {
+      "http": 200,
+      "bytes": 121,
+      "sha256": "7e6b2ffad252284073373b9c5c93cc4bea1acf511a21e9a5c7b1676aa1bf73ef"
+    },
+    "healthyAfterExactRollback": true,
+    "mustReReadReleaseBinaryStateEnvUnitCaddyAndPublicAssets": true
+  },
+  "requestedLease": {
+    "owner": "shop",
+    "singleUse": true,
+    "rollbackFirst": true,
+    "retryAllowed": false,
+    "candidateRelease": "/opt/ynx-shop/releases/4ecbdba1fee7b919f5d0c65d0907ca4727e37496",
+    "carrierDestination": "/var/tmp/ynx-shop-4ecbdba1fee7b919f5d0c65d0907ca4727e37496.tar.gz",
+    "freshBackupRoot": "/var/backups/ynx-shop/predeploy-4ecbdba1fee7b919f5d0c65d0907ca4727e37496",
+    "requiredPrewriteReceipts": [
+      "current release path and exact old binary hash",
+      "live state bytes/hash/owner/group/mode/nlink and schema 7 integrity verification without secret disclosure",
+      "root-only exact state backup plus restore receipt",
+      "sanitized environment file hash without values",
+      "active systemd unit and Caddy/import hashes",
+      "official public version, health and static asset hashes",
+      "exact carrier, deploy command and rollback command hashes"
+    ],
+    "authorizedMutationIfIssued": "one carrier transfer, one exact deploy command, at most one exact rollback command on any post-switch failure",
+    "postSwitchNonSensitiveOnly": true
+  },
+  "truth": {
+    "productionMutationThisRequest": false,
+    "productionCurrentlyOldHealthyRuntime": true,
+    "candidateSourceBoundPublic": false,
+    "accountRequestTriggered": false,
+    "approvalOrRejectTriggered": false,
+    "signatureOrTypedDataTriggered": false,
+    "transactionOrderOrSettlementTriggered": false,
+    "productComplete": false
+  },
+  "singleExecutableBlocker": "A wholly new Central Shop-only lease must independently re-read and bind the current production release, schema 7 state, environment, unit, Caddy, public baseline, exact carrier and command objects before any second deployment attempt."
+}
