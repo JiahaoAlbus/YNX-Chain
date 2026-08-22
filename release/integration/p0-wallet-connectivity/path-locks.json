@@ -1538,6 +1538,28 @@
         "preserve run 32605605681, job 97110081981 and artifact 9484042566 as immutable candidate-readiness evidence",
         "no production, provider, account, signature, typed data or transaction promotion under P0-227"
       ]
+    },
+    {
+      "path": "{production:host:43.153.202.237:finance-phase1-bootstrap,production:/opt/ynx/stage,production:/opt/ynx/stage/finance,production:/opt/ynx/leases,production:/opt/ynx/leases/finance-preparation,production:/opt/ynx/stage/finance/p0228-finance-phase1-20260822T234100Z,local:/tmp/ynx-finance-p0228-phase1-receipt-20260822T234100Z.txt}",
+      "owner": "financial-apps",
+      "branch": "codex/p0-finance-wallet-connectivity-20260820",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
+      "taskId": "P0-228",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_SINGLE_USE",
+      "acquiredAt": "2026-08-22T23:40:00Z",
+      "expiresAt": "2026-08-23T00:10:00Z",
+      "releasedAt": null,
+      "sourceCommit": "7824af677dd052d20321431381523ab302614d98",
+      "sourceTree": "3db34ee2397a49852bbdf15e3841e7c9cecf9444",
+      "evidenceCommit": "4f50537a98791aa5c72211e6533da058a22b6522",
+      "artifactSha256": null,
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "one exact stdin-only Phase 1 bootstrap invocation and secret-safe tuple receipt",
+        "create only the five exact empty Finance preparation directories with bound modes",
+        "no object, archive, environment, service, current, unit, Caddy, public or sensitive Wallet action"
+      ]
     }
   ]
 }
