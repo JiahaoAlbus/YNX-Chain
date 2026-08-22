@@ -6155,6 +6155,7 @@
       "dependencies": ["P0-158", "P0-162"],
       "source": "bea12cd61997ea0b868967ed573c3c31b981c1e1",
       "evidence": "5d57ba0706b0b77c1b323c5eebdad4dddbb83e63",
+      "routerCheckpoint": "47b824aa571ba3c57867e7ae4ea6767f47ff814f",
       "executionLeaseIssued": false,
       "distributionDispatched": false,
       "isolatedHostedCallbacksFailClosed": true,
