@@ -67,6 +67,7 @@ const buildIdentity={schemaVersion:1,product:"YNX Wallet Companion",sourceCommit
 await writeFile(join(dist,"pwa","build-identity.json"),`${JSON.stringify(buildIdentity)}\n`);
 await writeFile(join(dist,"pwa","core-auth-binding.js"),`export const CORE_WALLET_AUTH_BINDING=Object.freeze(${JSON.stringify(coreAuthBinding)});\n`);
 for (const file of ["index.html", "manifest.webmanifest", "sw.js", "styles.css", "accessibility.css", "app.js"]) await cp(join(root, "public", file), join(dist, "pwa", file));
+await cp(join(root,"public","vercel.json"),join(dist,"pwa","vercel.json"));
 for (const file of ["provider.js", "i18n.js", "preferences.js", "mobile-wallet-routing.js", "core-auth-consumer.js", "wallet-web-companion-lifecycle.js", "standard-wallet-connect-state.js"]) await cp(join(root, "src", file), join(dist, "pwa", file));
 await cp(join(root, "src", "service-worker-policy.js"), join(dist, "pwa", "service-worker-policy.js"));
 for(const icon of ["ynx-logo.png","ynx-icon-192.png","ynx-icon-512.png","ynx-icon-maskable-512.png"])await cp(join(root,"public",icon),join(dist,"pwa",icon));
