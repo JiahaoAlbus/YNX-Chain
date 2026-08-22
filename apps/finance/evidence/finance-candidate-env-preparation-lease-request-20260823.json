@@ -1,0 +1,14 @@
+{
+  "kind": "FINANCE_CANDIDATE_ENV_PREPARATION_REQUEST_ONLY",
+  "reviewedCheckpoint": {"commit": "8122e6614c1ffd281338a8b833ea745cecee21a5", "tree": "f882c00a136bd7230d8a704b43b7ed94688278fd", "rule": "Successor request must remain non-self-referential."},
+  "candidate": {"sourceCommit": "7824af677dd052d20321431381523ab302614d98", "archiveSha256": "d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d", "archiveBytes": 3937491},
+  "commandObjects": [
+    {"path": "apps/finance/scripts/finance-candidate-env-generator.sh", "bytes": 1698, "sha256": "cf7b804be50e8f75765f52b67e39e62a67e211add8bb17edcadf2b4e25940c07"},
+    {"path": "apps/finance/scripts/finance-candidate-env-preparation.sh", "bytes": 2900, "sha256": "6c758b2861cff04ba06da5a0913133c7f28d9c14410360730964be0c0c7c250e"},
+    {"path": "apps/finance/scripts/test-finance-production-fixture.mjs", "bytes": 16336, "sha256": "d12e9e7f065e99571ba2e296b8025119f227b7bea93d8b6f60123284c310b8a6"}
+  ],
+  "preparationReceipts": ["carrier path and full stat tuple", "archive path bytes sha256", "candidate-env path bytes sha256 owner/mode/nlink", "generator target path", "fresh env bytes sha256 exactly-one-key check"],
+  "forbidden": ["service restart", "Caddy change", "current symlink switch", "release/state/public route mutation", "account request", "signature", "transaction"],
+  "failureContract": "Remove only the validated just-created carrier, verify its absence, retain no secret env output.",
+  "truth": {"leaseIssued": false, "productionMutation": false, "deployedPublic": false, "walletApproval": false, "signature": false, "transaction": false}
+}
