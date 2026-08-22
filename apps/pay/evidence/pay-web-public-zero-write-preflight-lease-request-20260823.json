@@ -12,22 +12,27 @@
     "leaseContentSha256": "4a1f4b9465c767d6d412789e9f019a1ae6f5855ef9719c101c6e7204eb884eac",
     "reusable": false
   },
+  "centralNoGoCorrection": {
+    "priorRequestCommit": "8c30efc4acd03f1eeba74390f133b2797b75c5d3",
+    "blocker": "PAY_ZERO_WRITE_PREFLIGHT_EXECUTOR_IDENTITY_UNBOUND",
+    "resolution": "The exact local identity file is now fixed in the script, passed to ssh with -i while IdentitiesOnly=yes, required to exist with mode 0600, and asserted by the static verifier."
+  },
   "payProductSource": {
     "commit": "5f4ce98eb458550b976c17e3bc6d77cce4081a59",
     "tree": "8f0c25c4d86eb22a564f3c7aeff9db6709a9b9f0"
   },
   "preflightImplementation": {
-    "commit": "5ba8dcecaf9d9f4efeea030f808ff02bd8dc0052",
-    "tree": "95e8685e8a562e30efe1e00f3d83992be45de2c7",
+    "commit": "deedb329a7572ce3f378a8828c8e75d4bc570b2e",
+    "tree": "d1d3d3f475c85d657b2aeb5cb90e134358b2ae77",
     "script": {
       "path": "apps/pay/scripts/pay-public-zero-write-preflight.sh",
-      "blob": "430cf1e947a96cd480410a049518da7d2d660c94",
-      "sha256": "948d89313c8fa9c56eb0560ab6bd37db0ffa64179f1ac5aa892692d22ca6b591"
+      "blob": "2baa7e25cdef1c87b547f5adf12ae9a85072e8a8",
+      "sha256": "54b95eef6c0c0afe94da4d6926e97aedeb2da474794ebdf6115fdd319a03e625"
     },
     "verifier": {
       "path": "apps/pay/scripts/verify-pay-public-zero-write-preflight.mjs",
-      "blob": "32a239bd903b4210707b2cb61941d8cce36ad49a",
-      "sha256": "1d8d61abb7ea3446b2ba17bf4d032ccee95f581a157311560d501e8301ad1ddb"
+      "blob": "911002410fcc9f4f78cf1e05393afe3cae399523",
+      "sha256": "84dc06cd3bd11cc2bbecb3640a02fe3efc5adf5972b28021e4d2168269f603b3"
     },
     "localValidation": {
       "bashSyntax": true,
@@ -44,6 +49,8 @@
   "executor": {
     "host": "43.153.202.237",
     "user": "ubuntu",
+    "identityFile": "/Users/huangjiahao/Downloads/Huang.pem",
+    "identityFileRequiredMode": "0600",
     "sshHostKeyFingerprint": "SHA256:7wrOak1OZoD6oDAr0e3En+UD4fs8QnAM1n0Jvwi6Ha8",
     "knownHostsMustBeLocalAndPinned": true
   },
