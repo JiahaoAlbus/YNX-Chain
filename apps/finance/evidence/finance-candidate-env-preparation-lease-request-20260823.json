@@ -3,12 +3,12 @@
   "reviewedCheckpoint": {"commit": "fb0aa3b91f02a31733f9554ce4f5319c8fc1a393", "tree": "3a18e8e418a5b10fb55559eac9b9ff1bb650d790", "rule": "Successor request must remain non-self-referential."},
   "candidate": {"sourceCommit": "7824af677dd052d20321431381523ab302614d98", "phase": "later Phase 2 only; no archive transfer is authorized here"},
   "commandObjects": [
-    {"path": "apps/finance/scripts/finance-candidate-env-placement-bootstrap.sh", "bytes": 1753, "sha256": "4a27f9eaed67ea17ab1476c516ba7fbda8cc95c99d03e23af37f04592823b4e4"},
-    {"path": "apps/finance/scripts/test-finance-production-fixture.mjs", "bytes": 21028, "sha256": "4cd9f8286f56db7731f45661857ce8c9159dd1b1bc0b2d838bbeda6af7c4c480"}
+    {"path": "apps/finance/scripts/finance-candidate-env-placement-bootstrap.sh", "bytes": 3101, "sha256": "afe97c3abec3ba01e0a9b3d0feee46096a603427dc80c8f7da59a24368108a96"},
+    {"path": "apps/finance/scripts/test-finance-production-fixture.mjs", "bytes": 21499, "sha256": "11940f402a1a77fb62bfc70d4dd29699c05ae1b694baa3a469932e42eb8d2a43"}
   ],
-  "preparationReceipts": ["signed initial absence", "stage and lease-parent device/inode/uid/gid/mode/nlink/bytes/type tuples", "empty carrier device/inode/uid/gid/mode/nlink/bytes/type tuple", "secret-safe Phase 1 receipt"],
+  "preparationReceipts": ["signed existing /opt/ynx root tuple", "signed initial absence of stage/leases intermediates and leaf roots", "stage/leases intermediate and leaf device/inode/uid/gid/mode/nlink/bytes/type tuples", "empty carrier device/inode/uid/gid/mode/nlink/bytes/type tuple", "secret-safe Phase 1 receipt"],
   "forbidden": ["service restart", "Caddy change", "current symlink switch", "archive, generator, preparation executor or candidate-env transfer", "release/state/public route mutation", "account request", "signature", "transaction"],
-  "placement": {"initiallyAbsent": ["/opt/ynx/stage/finance", "/opt/ynx/leases/finance-preparation"], "transfer": "none in Phase 1; observed tuples are dynamic receipts, never pre-signed", "cleanup": "reverse-order inode-bound empty-directory deletion only; substituted/sibling/symlink paths are refused and preserved"},
-  "failureContract": "Remove only captured inode/hash-matching run objects and empty created parents; verify final absence and retain no secret env output.",
+  "placement": {"existingRoot": {"path": "/opt/ynx", "tuple": "64770:1312502:0:0:755:47:4096:directory"}, "initiallyAbsent": ["/opt/ynx/stage", "/opt/ynx/stage/finance", "/opt/ynx/leases", "/opt/ynx/leases/finance-preparation"], "transfer": "none in Phase 1; observed intermediate and leaf tuples are dynamic receipts, never pre-signed", "cleanup": "reverse-order inode-bound empty-directory deletion includes created intermediates; substituted/sibling/symlink paths are refused and preserved"},
+  "failureContract": "Remove only captured tuple-matching empty run directories and created intermediates; verify final absence and retain no secret env output.",
   "truth": {"leaseIssued": false, "productionMutation": false, "deployedPublic": false, "walletApproval": false, "signature": false, "transaction": false}
 }

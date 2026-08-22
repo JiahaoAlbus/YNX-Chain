@@ -15,6 +15,7 @@ const bytes = path => Number(shell('/usr/bin/wc', ['-c', path]).trim().split(/\s
 const write = (path, value) => { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, value); };
 const tuple = path => shell('/opt/homebrew/bin/gstat', ['-Lc', '%u:%g:%a:%h', path]);
 const fullTuple = path => shell('/opt/homebrew/bin/gstat', ['-Lc', '%d:%i:%u:%g:%a:%h', path]);
+const phase1DirectoryTuple = path => shell('/opt/homebrew/bin/gstat', ['-Lc', '%d:%i:%u:%g:%a:%h:%s:%F', path]);
 const stateTuple = path => shell('/opt/homebrew/bin/gstat', ['-Lc', '%d:%i:%u:%g:%a:%h', path]);
 const receipt = (url, body) => ({ url, status: '200', bytes: Buffer.byteLength(body), sha256: createHash('sha256').update(body).digest('hex') });
 
@@ -57,36 +58,37 @@ function generatorNegative(kind) {
 }
 function phase1Fixture() {
   const newPhase1 = () => {
-    const dir = mkdtempSync(join(root, 'phase1-')); const ynx = join(dir, 'opt', 'ynx'); const bin = join(dir, 'bin'); mkdirSync(bin); makeWrappers(bin);
+    const dir = mkdtempSync(join(root, 'phase1-')); const ynx = join(dir, 'opt', 'ynx'); const bin = join(dir, 'bin'); mkdirSync(ynx, { recursive: true }); mkdirSync(bin); makeWrappers(bin);
     const bootstrap = join(dir, 'bootstrap.sh'); writeFileSync(bootstrap, readFileSync(new URL('./finance-candidate-env-placement-bootstrap.sh', import.meta.url), 'utf8').replaceAll('/opt/ynx', ynx)); chmodSync(bootstrap, 0o755);
     return { dir, ynx, bin, bootstrap, env: { ...process.env, PATH: `${bin}:${process.env.PATH}` } };
   };
-  const run = (fixture, id, extra = {}) => spawnSync('/bin/bash', [fixture.bootstrap, id], { env: { ...fixture.env, ...extra }, encoding: 'utf8' });
+  const run = (fixture, id, extra = {}) => spawnSync('/bin/bash', [fixture.bootstrap, id, phase1DirectoryTuple(fixture.ynx)], { env: { ...fixture.env, ...extra }, encoding: 'utf8' });
 
   const success = newPhase1(); const result = run(success, 'phase1-run'); const carrier = join(success.ynx, 'stage', 'finance', 'phase1-run');
-  assert.equal(result.status, 0, result.stderr); assert.ok(result.stdout.includes(`carrier=${carrier}`) && result.stdout.includes('carrierEmpty=true'), 'phase1 tuple receipt'); assert.ok(result.stdout.includes(':directory'), 'phase1 receipt binds directory type'); assert.ok(lstatSync(carrier).isDirectory(), 'phase1 retains carrier');
+  assert.equal(result.status, 0, result.stderr); assert.ok(result.stdout.includes(`root=${success.ynx}`) && result.stdout.includes(`carrier=${carrier}`) && result.stdout.includes('carrierEmpty=true'), 'phase1 tuple receipt'); assert.ok(result.stdout.includes(':directory'), 'phase1 receipt binds directory type'); assert.ok(lstatSync(carrier).isDirectory(), 'phase1 retains carrier');
   assert.notEqual(run(success, '../bad').status, 0, 'traversal refused');
 
-  const mkdirFailure = newPhase1(); const leases = join(mkdirFailure.ynx, 'leases', 'finance-preparation');
-  wrapper(mkdirFailure.bin, 'mkdir', 'for arg in "$@"; do [[ "$arg" == "${FINANCE_PHASE1_FAIL_MKDIR_PATH:-}" ]] && exit 73; done\nexec /bin/mkdir "$@"');
-  assert.notEqual(run(mkdirFailure, 'mkdir-failure', { FINANCE_PHASE1_FAIL_MKDIR_PATH: leases }).status, 0, 'partial mkdir failure fails');
-  assert.equal(lstatSync(join(mkdirFailure.ynx, 'stage', 'finance'), { throwIfNoEntry: false }), undefined, 'partial failure removes created stage in reverse');
-  assert.equal(lstatSync(leases, { throwIfNoEntry: false }), undefined, 'partial failure leaves leases absent');
+  for (const level of ['stage', 'stage/finance', 'leases', 'leases/finance-preparation', 'stage/finance/mkdir-failure']) {
+    const mkdirFailure = newPhase1(); const failurePath = join(mkdirFailure.ynx, level);
+    wrapper(mkdirFailure.bin, 'mkdir', 'for arg in "$@"; do [[ "$arg" == "${FINANCE_PHASE1_FAIL_MKDIR_PATH:-}" ]] && exit 73; done\nexec /bin/mkdir "$@"');
+    assert.notEqual(run(mkdirFailure, 'mkdir-failure', { FINANCE_PHASE1_FAIL_MKDIR_PATH: failurePath }).status, 0, `partial mkdir failure fails at ${level}`);
+    for (const path of [join(mkdirFailure.ynx, 'stage', 'finance'), join(mkdirFailure.ynx, 'stage'), join(mkdirFailure.ynx, 'leases', 'finance-preparation'), join(mkdirFailure.ynx, 'leases')]) assert.equal(lstatSync(path, { throwIfNoEntry: false }), undefined, `partial failure removes ${path} in reverse`);
+  }
 
-  const symlink = newPhase1(); const symlinkStage = join(symlink.ynx, 'stage', 'finance'); const preservedTarget = join(symlink.dir, 'preserved'); mkdirSync(dirname(symlinkStage), { recursive: true }); mkdirSync(preservedTarget); write(join(preservedTarget, 'sentinel'), 'keep'); symlinkSync(preservedTarget, symlinkStage);
-  assert.notEqual(run(symlink, 'symlink-refusal').status, 0, 'stage symlink refused'); assert.equal(readFileSync(join(preservedTarget, 'sentinel'), 'utf8'), 'keep', 'symlink target preserved'); assert.ok(lstatSync(symlinkStage).isSymbolicLink(), 'symlink preserved');
+  const symlink = newPhase1(); const symlinkStageParent = join(symlink.ynx, 'stage'); const preservedTarget = join(symlink.dir, 'preserved'); mkdirSync(preservedTarget); write(join(preservedTarget, 'sentinel'), 'keep'); symlinkSync(preservedTarget, symlinkStageParent);
+  assert.notEqual(run(symlink, 'symlink-refusal').status, 0, 'intermediate symlink refused'); assert.equal(readFileSync(join(preservedTarget, 'sentinel'), 'utf8'), 'keep', 'symlink target preserved'); assert.ok(lstatSync(symlinkStageParent).isSymbolicLink(), 'symlink preserved');
 
   const substituted = newPhase1(); const substitutedCarrier = join(substituted.ynx, 'stage', 'finance', 'substituted'); const substituteTarget = join(substituted.dir, 'substitute-target'); mkdirSync(substituteTarget); write(join(substituteTarget, 'sentinel'), 'keep');
   // The real bootstrap observes an attacker substitution before tuple capture.
   wrapper(substituted.bin, 'mkdir', '/bin/mkdir "$@"\nfor arg in "$@"; do if [[ "$arg" == "${FINANCE_PHASE1_SUBSTITUTE_PATH:-}" ]]; then /bin/rmdir "$arg"; /bin/ln -s "$FINANCE_PHASE1_SUBSTITUTE_TARGET" "$arg"; fi; done');
   assert.notEqual(run(substituted, 'substituted', { FINANCE_PHASE1_SUBSTITUTE_PATH: substitutedCarrier, FINANCE_PHASE1_SUBSTITUTE_TARGET: substituteTarget }).status, 0, 'post-create substitution refused'); assert.ok(lstatSync(substitutedCarrier).isSymbolicLink(), 'substituted symlink preserved'); assert.equal(readFileSync(join(substituteTarget, 'sentinel'), 'utf8'), 'keep', 'substitution target preserved');
 
-  const sibling = newPhase1(); const siblingStage = join(sibling.ynx, 'stage', 'finance'); const siblingPath = join(siblingStage, 'unowned-sibling'); const siblingLeases = join(sibling.ynx, 'leases', 'finance-preparation');
+  const sibling = newPhase1(); const siblingStage = join(sibling.ynx, 'stage', 'finance'); const siblingPath = join(siblingStage, 'unowned-sibling'); const siblingLeasesParent = join(sibling.ynx, 'leases');
   // Inject after the first created directory tuple is captured, then fail the
   // next mkdir: the trap must refuse to remove an unowned sibling.
   wrapper(sibling.bin, 'stat', 'if [[ "$*" == *"' + siblingStage + '"* && ! -e "' + siblingPath + '" ]]; then /bin/mkdir -p "' + siblingPath + '"; fi\nexec /opt/homebrew/bin/gstat "$@"');
   wrapper(sibling.bin, 'mkdir', 'for arg in "$@"; do [[ "$arg" == "${FINANCE_PHASE1_FAIL_MKDIR_PATH:-}" ]] && exit 73; done\nexec /bin/mkdir "$@"');
-  assert.notEqual(run(sibling, 'sibling-refusal', { FINANCE_PHASE1_FAIL_MKDIR_PATH: siblingLeases }).status, 0, 'unowned sibling blocks cleanup'); assert.ok(lstatSync(siblingPath).isDirectory(), 'unowned sibling preserved'); assert.ok(lstatSync(siblingStage).isDirectory(), 'parent preserved rather than deleting sibling');
+  assert.notEqual(run(sibling, 'sibling-refusal', { FINANCE_PHASE1_FAIL_MKDIR_PATH: siblingLeasesParent }).status, 0, 'unowned sibling blocks cleanup'); assert.ok(lstatSync(siblingPath).isDirectory(), 'unowned sibling preserved'); assert.ok(lstatSync(siblingStage).isDirectory(), 'parent preserved rather than deleting sibling'); assert.ok(lstatSync(join(sibling.ynx, 'stage')).isDirectory(), 'intermediate parent preserved rather than deleting sibling');
 }
 function preparationFixture() {
   const fixture = makeFixture(false); const p = fixture.paths; const ynx = dirname(dirname(p.env)); const id = 'prep-id'; const carrier = join(ynx, 'stage', 'finance', id); const input = join(ynx, 'incoming', 'finance', id, 'candidate.tgz'); mkdirSync(dirname(input), { recursive: true }); cpSync(p.archive, input);
