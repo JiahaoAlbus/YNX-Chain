@@ -1297,20 +1297,20 @@
     },
     {
       "path": "vercel:wallet.ynxweb4.com",
-      "owner": "website",
+      "owner": null,
       "branch": "codex/website-wallet-public-identity-routing-20260822",
       "worktree": "/Users/huangjiahao/Desktop/ynx-web4-website-new",
       "taskId": "P0-191",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE_SINGLE_USE",
+      "status": "CONSUMED_RELEASED_SUCCESS_SOURCE_BOUND_OFFICIAL_WALLET_PUBLIC_LIFECYCLE",
       "acquiredAt": "2026-08-22T12:53:00Z",
       "expiresAt": "2026-08-22T13:23:00Z",
-      "releasedAt": null,
-      "productionMutationAllowed": "EXACT_SINGLE_OFFICIAL_ALIAS_SWITCH_WITH_ONE_BOUND_ROLLBACK",
+      "releasedAt": "2026-08-22T13:01:26Z",
+      "productionMutationAllowed": false,
       "allowedExceptions": [
-        "switch once to exact dpl_EhSH and execute frozen verifier once",
-        "rollback once to exact dpl_Got2 on any verifier/post-alias failure",
-        "no SSO, project setting, product, account, signing or transaction mutation"
+        "P0-191 forward/verifier quotas are consumed and nonreusable",
+        "official alias remains exact dpl_EhSH/source 7df37ca3 after direct success",
+        "no new alias or other production mutation without a wholly new lease"
       ]
     },
     {

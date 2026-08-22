@@ -6762,7 +6762,7 @@
     {
       "taskId": "P0-191",
       "owner": "integration,website",
-      "status": "ACTIVE_SINGLE_USE",
+      "status": "CONSUMED_RELEASED_SUCCESS_SOURCE_BOUND_OFFICIAL_WALLET_PUBLIC_LIFECYCLE",
       "paths": [
         "release/integration/p0-wallet-connectivity/leases/wallet-official-frozen-verifier-routing-p0191-20260822.json",
         "vercel:wallet.ynxweb4.com"
@@ -6770,7 +6770,7 @@
       "dependencies": ["P0-189", "P0-190"],
       "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-official-frozen-verifier-routing-20260822T125300Z",
       "expiresAt": "2026-08-22T13:23:00Z",
-      "releasedAt": null,
+      "releasedAt": "2026-08-22T13:01:26Z",
       "source": "7df37ca32a643a403bd23a7f555354261f789441",
       "candidateDeployment": "dpl_EhSHsjrfQ17dzuTegLCqGvELeBte",
       "rollbackDeployment": "dpl_Got2m9m84Sc3QDsrH8yu51W93JAe",
@@ -6778,10 +6778,14 @@
       "aliasCommandAllowedExactlyOnce": true,
       "verifierAllowedExactlyOnce": true,
       "rollbackAllowedExactlyOnceOnFailure": true,
-      "currentSourceBoundPublic": false,
+      "currentSourceBoundPublic": true,
       "installedProvider": false,
       "productsConnected": "0/12",
-      "nextAction": "Execute one exact alias switch and the exact frozen verifier once; on failure rollback once, otherwise retain the candidate alias and return terminal direct evidence."
+      "forwardAliasCount": 1,
+      "verifierCount": 1,
+      "rollbackCount": 0,
+      "browserPassed": true,
+      "nextAction": "P0-191 is consumed and nonreusable. Preserve exact official source-bound lifecycle; installed provider, account approval, sign/tx, parity and products remain separate false gates."
     }
   ]
 }

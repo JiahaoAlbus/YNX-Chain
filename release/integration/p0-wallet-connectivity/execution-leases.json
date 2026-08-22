@@ -1,26 +1,26 @@
 {
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "epoch": 100,
-  "updatedAt": "2026-08-22T12:53:00Z",
+  "epoch": 101,
+  "updatedAt": "2026-08-22T13:01:26Z",
   "heavy": {
-    "owner": "website",
-    "status": "ACTIVE_SINGLE_USE",
+    "owner": null,
+    "status": "CONSUMED_RELEASED_SUCCESS_SOURCE_BOUND_OFFICIAL_WALLET_PUBLIC_LIFECYCLE",
     "branch": "codex/website-wallet-public-identity-routing-20260822",
     "worktree": "/Users/huangjiahao/Desktop/ynx-web4-website-new",
     "taskId": "P0-191",
     "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-official-frozen-verifier-routing-20260822T125300Z",
     "leasedAt": "2026-08-22T12:53:00Z",
     "expiresAt": "2026-08-22T13:23:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-22T13:01:26Z",
     "previousOwner": null,
     "previousTaskId": "P0-190",
     "previousCheckpoint": "9d6cc0b7dccc282c0390daa5a1f8b31c98f0f6b2",
     "executionScope": "WALLET_OFFICIAL_ALIAS_ONLY_WITH_FROZEN_POSITIVE_BROWSER_VERIFIER",
-    "releaseReason": null,
+    "releaseReason": "The single forward alias and frozen verifier both succeeded. Official four resources match exact source 7df37ca3, and a fresh persistent Chrome profile passed first launch, full process close and same-profile second launch with stable English ready/controller-v11/v11-only state. No rollback or product/account action occurred.",
     "onSafeCheckpoint": [
-      "execute one exact alias switch and the exact frozen verifier once",
-      "accept only exact official resources plus first/process-close/second browser success",
-      "rollback once to dpl_Got2 on any failure"
+      "preserve official wallet.ynxweb4.com at exact dpl_EhSH/source 7df37ca3",
+      "currentSourceBoundPublic is true only for this exact official lifecycle",
+      "installed provider, account, signing, parity and products remain separate false gates"
     ]
   },
   "light": {
