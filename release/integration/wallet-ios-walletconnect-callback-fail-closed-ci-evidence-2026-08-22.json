@@ -1,0 +1,133 @@
+{
+  "schemaVersion": "ynx.wallet.ios.walletconnect-callback-fail-closed-ci-evidence.v1",
+  "recordedAt": "2026-08-22T06:26:50Z",
+  "scope": "HOSTED_CI_AND_MAIN_REGISTRATION",
+  "implementation": {
+    "branch": "codex/wallet-ios-macos-20260813",
+    "commit": "aba683d5dc90ee6a8df339240510e77680c9fa9c",
+    "tree": "a2cc5db128d4f492408689e6b3ad5834d1ff02de",
+    "parent": "e829f38b9f35d47be1afd924cf609cf2e59e3be7",
+    "workflowBlob": "8d612e256be14afa41e85a7739999567672548a2",
+    "projectBlob": "daa8eff43e0f30a15933ce91c61f31bad1d1ec88",
+    "appDelegateBlob": "2c1a4a3002cd63ebfcd5db726ca4fafe4d083b94",
+    "infoPlistBlob": "d8aa9226a1562faf1f3eb278028755f5decdccd4",
+    "walletConnectInboundPolicyBlob": "a6f14453de28bb3cc4402ec45e407ced5bf8ce51",
+    "uiTestBlob": "1c57bbae1e29bcef01823183fdecf75681296fff"
+  },
+  "walletIOSRun": {
+    "runId": 32556002628,
+    "jobId": 96990092738,
+    "headSha": "aba683d5dc90ee6a8df339240510e77680c9fa9c",
+    "status": "completed",
+    "conclusion": "failure",
+    "createdAt": "2026-08-22T06:04:27Z",
+    "startedAt": "2026-08-22T06:04:29Z",
+    "completedAt": "2026-08-22T06:23:57Z",
+    "walletConnectDecisionStateStep": {
+      "number": 18,
+      "conclusion": "success"
+    },
+    "canonicalWalletConnectCallbackStep": {
+      "number": 19,
+      "name": "Deliver canonical WalletConnect callback and prove missing relay inputs fail closed",
+      "startedAt": "2026-08-22T06:18:12Z",
+      "completedAt": "2026-08-22T06:19:03Z",
+      "conclusion": "success",
+      "test": "YNXWalletUITests.MalformedCallbackUITests.testWalletConnectCallbackFailsClosedWithoutProjectID",
+      "testDurationSeconds": 8.179,
+      "simulator": "iPhone 16 Pro / iOS 18.5",
+      "callbackScheme": "ynxwallet",
+      "callbackHost": "wc",
+      "delivery": "direct-after-prior-scheme-confirmation",
+      "appPID": 40166,
+      "uiTitle": "WalletConnect unavailable",
+      "uiCode": "WALLETCONNECT_PROJECT_ID_UNAVAILABLE",
+      "screenshotAttachment": "walletconnect-project-id-relay-fail-closed",
+      "screenshotInspected": false,
+      "nativeLog": [
+        "YNX_WALLET_CALLBACK_RECEIVED pid=40166 scheme=ynxwallet",
+        "YNX_WALLET_WALLETCONNECT_REJECTED pid=40166 code=WALLETCONNECT_PROJECT_ID_UNAVAILABLE relay=false pairing=false approval=false callbackEmitted=false",
+        "YNX_WALLET_WALLETCONNECT_UI_VISIBLE pid=40166 code=WALLETCONNECT_PROJECT_ID_UNAVAILABLE relay=false pairing=false approval=false"
+      ],
+      "testSignpost": "YNX_WALLET_WALLETCONNECT_CALLBACK_VISIBLE projectID=false relay=false pairing=false approval=false delivery=direct-after-prior-scheme-confirmation"
+    },
+    "otherDirectSteps": {
+      "xcode263SimulatorBuild": true,
+      "simulatorInstallColdSecondLaunchAndGateway": true,
+      "malformedCallbackFailClosed": true,
+      "canonicalAuthorizationBridgeFailClosed": true,
+      "universalLinkNegative": true,
+      "recoveryWithoutAuthorizationEmpty": true,
+      "positiveBiometricRecoveryAndUnlock": false,
+      "artifactFactsRecorded": true,
+      "artifactUploaded": true
+    },
+    "terminalFailureBoundary": {
+      "stepNumber": 22,
+      "test": "testRecoveryAndUnlockWithSimulatedBiometricMatches",
+      "sourceLine": 173,
+      "assertion": "Matched Simulator biometric did not persist and lock the recovered account",
+      "testDurationSeconds": 60.331,
+      "biometricRecoveryPositive": false,
+      "biometricUnlockPositive": false
+    }
+  },
+  "artifact": {
+    "id": 9471670805,
+    "name": "ynx-wallet-ios-simulator",
+    "bytes": 98807310,
+    "actionsDigest": "sha256:bf679cc21aa4b4827e9142b0e45de64696e2794ccd54355a8d96f2040dcc1af4",
+    "downloadAttempted": true,
+    "downloadAttemptResult": "bounded_timeout_after_60_seconds_no_semantic_output",
+    "downloadInspected": false,
+    "innerSimulatorZipSha256FromPublicActionsLog": "a839ab300420a6e46fbcbbba6904616733b9cce381cab641088200329be322a6",
+    "innerSimulatorZipBytesFromPublicActionsLog": 17049523,
+    "platform": "iOS Simulator",
+    "minimumOS": "16.4",
+    "architecturesFromBuild": ["arm64", "x86_64"],
+    "bundleIdentifier": "com.ynxweb4.wallet",
+    "signingClass": "AD_HOC_SIMULATOR_SIGN_TO_RUN_LOCALLY",
+    "teamIdentifier": "FAKETEAMID",
+    "strictDeepCodesignStep": true,
+    "productionSigned": false,
+    "appStoreArtifact": false
+  },
+  "verifiedEngineeringCapabilities": {
+    "canonicalCustomSchemeDeliveredToInstalledSimulatorApp": true,
+    "walletConnectCallbackVisibleFailClosed": true,
+    "samePIDCallbackRejectAndVisibleUI": true,
+    "missingProjectIDFailsClosed": true,
+    "missingRelayFailsClosed": true,
+    "callbackEmitted": false
+  },
+  "localValidation": {
+    "jsonParse": true,
+    "walletAppTests": {
+      "passed": 40,
+      "failed": 0
+    }
+  },
+  "unprovedGates": {
+    "realReownProjectID": false,
+    "relayConnection": false,
+    "pairing": false,
+    "sessionApprovalRuntime": false,
+    "sessionRejectRuntime": false,
+    "sessionRestoreRuntime": false,
+    "firstPartyDAppRuntime": false,
+    "externalDAppRuntime": false,
+    "installedProvider": false,
+    "walletConnectSuccessCallback": false,
+    "authorizationSuccess": false,
+    "approvedAccount": false,
+    "signRuntime": false,
+    "eip712Runtime": false,
+    "sendTransactionRuntime": false,
+    "biometricRecovery": false,
+    "universalLink": false,
+    "publicNativeWalletPublished": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "appStore": false
+  }
+}
