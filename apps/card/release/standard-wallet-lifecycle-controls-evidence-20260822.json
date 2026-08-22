@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "product": "YNX Card",
+  "scope": "Testnet simulation only",
+  "source": {
+    "commit": "68bddc3492a82c61c05f7531b85e513b1ee9f3c2",
+    "sharedProviderConnectSource": "98c6d5d784d212df8981a53b17118a511e246ad2",
+    "sharedProviderConnectTree": "51a60a362d4ad5dd748bcdefb101f71b1d9e0cee",
+    "routerPlanCommit": "875be208e8a7ddb60345d55b93fc299949664e5c"
+  },
+  "publicRuntime": {
+    "deploymentId": "dpl_DqMuEhno65bLFTNKBu9gs52soVri",
+    "deploymentUrl": "https://ynx-card-testnet-simulation-bmeabqkk1-jiahaoalbus-projects.vercel.app",
+    "canonicalUrl": "https://card.ynxweb4.com/",
+    "html": {"bytes": 1717, "sha256": "56827ca95005951ae791245b6c3021691beace32683209936c7519324c28ed24"},
+    "bundle": {"path": "/_expo/static/js/web/index-250c974606522c0feefa0bf082cc41a1.js", "bytes": 2907885, "sha256": "2103aba7f844d4a3c067eac0ecbf0acbc9ebf8fb8831c44fd248df90261a8568"},
+    "chromePreApproval": {"englishDefaultSelected": true, "guestVisible": true, "registrationEntry": true, "ynxChoiceVisible": true, "metaMaskChoiceVisible": true, "metaMaskFoxVisible": true, "consoleErrors": 0, "noWalletLaunchPerformed": true}
+  },
+  "sourceGates": {"tests": "41/41", "typecheck": true, "webBuild": true, "genericProviderEvents": true, "connectedDetailsReplaceChooser": true, "explicitDisconnectControl": true, "recheckYnxtNetworkControl": true},
+  "falseGates": {"providerDiscoveryDirect": false, "approve": false, "reject": false, "chainReadback": false, "chooserClosedAfterConnection": false, "refreshRestore": false, "accountsChanged": false, "chainChanged": false, "disconnect": false, "revoke": false, "walletCallback": false, "productSessionMigration": false, "realYnxtTopup": false, "realCard": false, "personalSign": false, "eip712": false, "testnetSend": false}
+}
