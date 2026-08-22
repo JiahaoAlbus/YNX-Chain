@@ -420,6 +420,12 @@ test("Wallet Web/PWA and macOS DMG publication remain outside product authority"
   assert.equal(vaultSigner.approveReject, false);
   assert.equal(vaultSigner.transaction, false);
   assert.equal(vaultSigner.parityComplete, false);
+  const packagingGate = auditV3.standardWalletParityConformance.walletWebSourceIdentityPackagingGate;
+  assert.equal(packagingGate.sourceCommit, "2357ae576abb14a25db261f94f63b3d4c71add83");
+  assert.equal(packagingGate.rejectsUncommittedFallback, true);
+  assert.equal(packagingGate.currentSourceBoundPublic, false);
+  assert.equal(packagingGate.releaseBlocked, true);
+  assert.equal(packagingGate.installedParity, false);
   assert.equal(companion.macosDmgPublication.websitePublished, true);
   assert.equal(companion.macosDmgPublication.artifactSha256, "ad6e4077bc001743cf1a4163ceaca5a009a3c8a4d8a809cc4896798976cf56c0");
   assert.equal(companion.macosDmgPublication.isolatedTempApplicationsCopyVerified, true);

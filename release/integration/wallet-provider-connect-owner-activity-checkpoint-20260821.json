@@ -181,6 +181,23 @@
         "parityComplete": false,
         "currentSourceBoundPublic": false,
         "nextActionRequiresImmediateUserConfirmation": true
+      },
+      "sourceIdentityPackagingGate": {
+        "sourceCommit": "2357ae576abb14a25db261f94f63b3d4c71add83",
+        "sourceTree": "d1bfecaa5d71c11f2b566c0aadf661a9e7c33e68",
+        "evidenceCommit": "0828b2a834142face4f035269e21c81ae666f8c7",
+        "evidencePath": "apps/wallet-web/evidence/contracts/package-source-identity-gate-20260822.json",
+        "evidenceBlob": "1697d837cc29ce2990b5bbc161ad062a34f77844",
+        "evidenceSha256": "e1b944300cff1b593722233aed9e6821f1e88056593e021012099f60bf994680",
+        "sourceTests": "112/112",
+        "packageInternal": "112/112",
+        "packageVerification": "3/3",
+        "rejectsUncommittedSourceTree": true,
+        "missingIdentityFailsBeforeMutation": true,
+        "currentSourceBoundPublic": false,
+        "releaseBlocked": true,
+        "deploymentLease": false,
+        "installedParity": false
       }
     },
     "macosDmg": {
