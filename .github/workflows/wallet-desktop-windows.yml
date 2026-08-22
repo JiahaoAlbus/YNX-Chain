@@ -3,7 +3,7 @@ name: Wallet desktop Windows
 on:
   workflow_dispatch:
   push:
-    branches: [codex/wallet-desktop-cli-sdk-20260813]
+    branches: [codex/wallet-desktop-cli-sdk-20260813, codex/wallet-desktop-provider-authority-p0-20260822]
     paths:
       - apps/wallet-desktop/**
       - packages/wallet-auth/**
@@ -46,7 +46,7 @@ jobs:
           $preflight = (Get-ChildItem 'apps/wallet-desktop/dist-preflight/*.exe' | Select-Object -First 1).FullName
           $current = (Get-ChildItem 'apps/wallet-desktop/dist/*.exe' | Where-Object Name -NotLike '*blockmap*' | Select-Object -First 1).FullName
           Start-Process -FilePath $preflight -ArgumentList '/S' -Wait
-          $appExe = (Get-ChildItem $env:LOCALAPPDATA -Filter 'YNX Wallet Testnet Preview.exe' -File -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1).FullName
+          $appExe = (Get-ChildItem $env:LOCALAPPDATA -Filter 'YNX Wallet.exe' -File -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1).FullName
           if (-not $appExe -or -not (Test-Path $appExe)) { throw 'preflight installer did not install the application' }
           $installRoot = Split-Path $appExe -Parent
           $preflightVersion = (Get-Item $appExe).VersionInfo.ProductVersion
@@ -56,26 +56,44 @@ jobs:
           if ($preflightVersion -eq $currentVersion) { throw 'upgrade did not change installed version' }
 
           $env:YNX_WALLET_EVIDENCE_PATH = $env:EVIDENCE
-          $cold = Start-Process -FilePath $appExe -PassThru
+          $cold = Start-Process -FilePath $appExe -ArgumentList '--remote-debugging-port=9334' -PassThru
           for ($i=0; $i -lt 30 -and -not (Test-Path $env:EVIDENCE); $i++) { Start-Sleep 1 }
           if (-not (Test-Path $env:EVIDENCE)) { throw 'cold launch did not write evidence' }
           $coldEvidence = Get-Content $env:EVIDENCE -Raw | ConvertFrom-Json
-          if ($coldEvidence.launches -ne 1 -or -not $coldEvidence.visibleShellReady -or -not $coldEvidence.rpc.available -or $coldEvidence.rpc.chainId -ne '0x1917' -or $coldEvidence.signingEnabled -or $coldEvidence.accountCreated -or $coldEvidence.balanceClaimed -or $coldEvidence.transactionCreated) { throw 'cold launch evidence failed' }
+          if ($coldEvidence.launches -ne 1 -or -not $coldEvidence.visibleShellReady -or -not $coldEvidence.rpc.available -or $coldEvidence.rpc.chainId -ne '0x1917' -or $coldEvidence.providerAuthority.accountCreated -or $coldEvidence.signingEnabled -or $coldEvidence.balanceClaimed -or $coldEvidence.transactionCreated) { throw 'fresh cold launch evidence failed' }
           $cold.Refresh()
           if ($cold.HasExited) { throw 'cold launch process exited' }
-          $coldTitle = (Get-Process | Where-Object MainWindowTitle -eq 'YNX Wallet Testnet Preview' | Select-Object -First 1).MainWindowTitle
+          $coldTitle = (Get-Process | Where-Object MainWindowTitle -eq 'YNX Wallet' | Select-Object -First 1).MainWindowTitle
+          $targets = Join-Path $env:RUNNER_TEMP 'wallet-desktop-targets.json'
+          for ($i=0; $i -lt 30; $i++) {
+            try { Invoke-RestMethod 'http://127.0.0.1:9334/json/list' | ConvertTo-Json -Depth 8 | Set-Content $targets; break } catch { Start-Sleep 1 }
+          }
+          if (-not (Test-Path $targets)) { throw 'cold launch DevTools target was unavailable' }
+          $createGate = Join-Path $env:RUNNER_TEMP 'wallet-desktop-create-gate.json'
+          node apps/wallet-desktop/scripts/provider-authority-ui-gate.mjs $targets create | Set-Content $createGate
+          $created = Get-Content $createGate -Raw | ConvertFrom-Json
+          $coldEvidence = Get-Content $env:EVIDENCE -Raw | ConvertFrom-Json
+          if (-not $created.visibleAuthority -or -not $created.osEncryptedCustodyVisible -or -not $created.walletConnectFailClosedVisible -or $created.walletConnectConfigured -or -not $coldEvidence.providerAuthority.accountCreated -or $coldEvidence.providerAuthority.approvedAccount -ne $created.account -or -not $coldEvidence.signingEnabled) { throw 'provider authority creation gate failed' }
           Stop-Process -Id $cold.Id -Force
 
-          $second = Start-Process -FilePath $appExe -PassThru
+          Remove-Item $targets -ErrorAction SilentlyContinue
+          $second = Start-Process -FilePath $appExe -ArgumentList '--remote-debugging-port=9334' -PassThru
           for ($i=0; $i -lt 30; $i++) {
             Start-Sleep 1
             $secondEvidence = Get-Content $env:EVIDENCE -Raw | ConvertFrom-Json
             if ($secondEvidence.launches -eq 2) { break }
           }
-          if ($secondEvidence.launches -ne 2 -or -not $secondEvidence.rpc.available -or $secondEvidence.rpc.chainId -ne '0x1917') { throw 'second launch evidence failed' }
+          if ($secondEvidence.launches -ne 2 -or -not $secondEvidence.rpc.available -or $secondEvidence.rpc.chainId -ne '0x1917' -or -not $secondEvidence.providerAuthority.accountCreated -or $secondEvidence.providerAuthority.approvedAccount -ne $created.account -or -not $secondEvidence.signingEnabled) { throw 'second launch evidence failed' }
           $second.Refresh()
           if ($second.HasExited) { throw 'second launch process exited' }
-          $secondTitle = (Get-Process | Where-Object MainWindowTitle -eq 'YNX Wallet Testnet Preview' | Select-Object -First 1).MainWindowTitle
+          $secondTitle = (Get-Process | Where-Object MainWindowTitle -eq 'YNX Wallet' | Select-Object -First 1).MainWindowTitle
+          for ($i=0; $i -lt 30; $i++) {
+            try { Invoke-RestMethod 'http://127.0.0.1:9334/json/list' | ConvertTo-Json -Depth 8 | Set-Content $targets; break } catch { Start-Sleep 1 }
+          }
+          $restoreGate = Join-Path $env:RUNNER_TEMP 'wallet-desktop-restore-gate.json'
+          node apps/wallet-desktop/scripts/provider-authority-ui-gate.mjs $targets restore $created.account | Set-Content $restoreGate
+          $restored = Get-Content $restoreGate -Raw | ConvertFrom-Json
+          if ($restored.account -ne $created.account -or -not $restored.walletConnectFailClosedVisible) { throw 'provider authority restore gate failed' }
           Stop-Process -Id $second.Id -Force
 
           $env:YNX_WALLET_RPC_URL = 'http://127.0.0.1:1'
@@ -85,10 +103,10 @@ jobs:
             $failedEvidence = Get-Content $env:EVIDENCE -Raw | ConvertFrom-Json
             if ($failedEvidence.launches -eq 3) { break }
           }
-          if ($failedEvidence.launches -ne 3 -or $failedEvidence.rpc.available -or $failedEvidence.rpc.chainId -or $failedEvidence.signingEnabled) { throw 'RPC failure did not fail closed' }
+          if ($failedEvidence.launches -ne 3 -or $failedEvidence.rpc.available -or $failedEvidence.rpc.chainId -or -not $failedEvidence.providerAuthority.accountCreated -or $failedEvidence.transactionCreated) { throw 'RPC failure did not fail closed' }
           Stop-Process -Id $failed.Id -Force
 
-          $uninstaller = Join-Path $installRoot 'Uninstall YNX Wallet Testnet Preview.exe'
+          $uninstaller = Join-Path $installRoot 'Uninstall YNX Wallet.exe'
           if (-not (Test-Path $uninstaller)) { throw 'uninstaller missing' }
           Start-Process -FilePath $uninstaller -ArgumentList '/S' -Wait
           for ($i=0; $i -lt 30 -and (Test-Path $appExe); $i++) { Start-Sleep 1 }
@@ -110,8 +128,13 @@ jobs:
             appReportedWindowTitle = $secondEvidence.window.title
             chainId = $secondEvidence.rpc.chainId
             rpcFailureClosed = $true
-            signingEnabled = $false
-            accountCreated = $false
+            providerAuthorityAccount = $created.account
+            osEncryptedCustodyVisible = $true
+            accountRestoredOnSecondLaunch = $true
+            walletConnectConfigured = $false
+            walletConnectFailClosedVisible = $true
+            signingEnabled = $true
+            accountCreated = $true
             balanceClaimed = $false
             transactionCreated = $false
             uninstalled = $true

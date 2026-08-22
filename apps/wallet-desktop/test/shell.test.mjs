@@ -44,6 +44,24 @@ test("macOS packaging hook removes localhost transport exceptions", async () => 
   assert.doesNotMatch(hook, /NSExceptionDomains/);
 });
 
+test("native Windows lifecycle drives visible provider authority and preserves missing WalletConnect fail-closed", async () => {
+  const gate = await readFile(new URL("../scripts/provider-authority-ui-gate.mjs", import.meta.url), "utf8");
+  const x64Workflow = await readFile(new URL("../../../.github/workflows/wallet-desktop-windows.yml", import.meta.url), "utf8");
+  const arm64Workflow = await readFile(new URL("../../../.github/workflows/wallet-desktop-windows-arm64.yml", import.meta.url), "utf8");
+  assert.match(gate, /#create-account/);
+  assert.match(gate, /Secure Testnet account ready/);
+  assert.match(gate, /WALLETCONNECT_PROJECT_ID_UNAVAILABLE/);
+  for (const workflow of [x64Workflow, arm64Workflow]) {
+    assert.match(workflow, /provider-authority-ui-gate\.mjs .* create/);
+    assert.match(workflow, /provider-authority-ui-gate\.mjs .* restore/);
+    assert.match(workflow, /providerAuthorityAccount/);
+    assert.match(workflow, /accountRestoredOnSecondLaunch = \$true/);
+    assert.match(workflow, /walletConnectConfigured = \$false/);
+    assert.match(workflow, /Uninstall YNX Wallet\.exe/);
+    assert.doesNotMatch(workflow, /YNX Wallet Testnet Preview\.exe/);
+  }
+});
+
 test("shell is explicit and fail closed", async () => {
   const html = await readFile(new URL("../src/index.html", import.meta.url), "utf8");
   const main = await readFile(new URL("../src/main.mjs", import.meta.url), "utf8");
