@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "handoffId": "wallet-desktop-walletconnect-v2-qr-20260822",
+  "owner": "Wallet Desktop/CLI/SDK",
+  "consumer": "Central Integration",
+  "sourceCommit": "471f37d943f4d79abbd09399da23b5de5db0b612",
+  "evidencePath": "apps/wallet-desktop/evidence/walletconnect-v2-qr-native-gate-20260822.json",
+  "capability": {
+    "walletConnectV2UriPaste": true,
+    "walletConnectV2QrImageImport": true,
+    "qrDecodeLocalOnly": true,
+    "nativeMacOSGatePassed": true,
+    "pairingAndSessionImplementationPresent": true,
+    "approvalRejectImplementationPresent": true,
+    "personalSignImplementationPresent": true,
+    "eip712ImplementationPresent": true,
+    "sendTransactionImplementationPresent": true,
+    "sessionRestoreImplementationPresent": true,
+    "accountsChangedAndChainChangedImplementationPresent": true
+  },
+  "requiredOperatorInput": {
+    "name": "YNX_WALLETCONNECT_PROJECT_ID",
+    "presentInRepositorySecrets": false,
+    "presentInRepositoryVariables": false,
+    "reason": "WalletConnect relay pairing and real DApp interoperability require an authorized Reown project ID; source and QR decoding do not prove a relay connection."
+  },
+  "truth": {
+    "walletConnectQrImportProvedNative": true,
+    "walletConnectRelayConnected": false,
+    "walletConnectPairingProved": false,
+    "walletConnectSessionApprovedLive": false,
+    "firstPartyDappConnected": false,
+    "externalStandardEvmDappConnected": false,
+    "providerAccountApprovedLive": false,
+    "signingApprovedLive": false,
+    "transactionBroadcastProved": false
+  }
+}
