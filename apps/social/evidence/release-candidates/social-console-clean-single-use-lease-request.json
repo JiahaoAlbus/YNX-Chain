@@ -1,0 +1,87 @@
+{
+  "schema": "ynx.social.single-use-release-request.v3",
+  "status": "FROZEN_REQUEST_ONLY",
+  "target": "https://social.ynxweb4.com/",
+  "candidate": {
+    "sourceCommit": "e7756cb387233376c03043c54fb8b051c241e94e",
+    "sourceTree": "8607f57fdc9c1060a8749748ca0c87fa472692aa",
+    "socialTree": "68939fb426275213621cf5d06937d49024bc2c03",
+    "artifactPath": "apps/social/evidence/release-candidates/ynx-social-e7756cb3.tar.gz",
+    "artifactBytes": 922243,
+    "artifactSha256": "9ffe3eff10175589eeaa7a377e9dc61f3c3a62a77b0a9bcfa415c4764f512b81",
+    "extractedProjectRoot": "apps/social/apps/social"
+  },
+  "fix": {
+    "previousCandidateDeployment": "dpl_8tcTgggBktks6z8bHcRnhdjajaGR",
+    "previousCandidateUrl": "ynx-social-mo3j03lc9-jiahaoalbus-projects.vercel.app",
+    "previousHostedRun": 32586176352,
+    "previousHostedArtifact": 9479099175,
+    "previousHostedEvidenceSha256": "a3c3200a76e57089e333dcf53bcd12498a8bd4a368bdce7953b241e33d81e373",
+    "resolved": [
+      "document explicitly uses the existing YNX Wallet SVG as its favicon",
+      "static public shell performs no CORS-unsafe direct private-service health request",
+      "PRIVATE_SERVICE_DEGRADED is visible and truthful when no accepted same-origin transport exists",
+      "PRIVATE_SERVICE_DEGRADED preserves an active Standard Wallet provider, account and chain"
+    ],
+    "consoleErrorsHiddenOrFiltered": false
+  },
+  "buildContract": {
+    "packageScript": "npm run vercel-build",
+    "implementation": "scripts/build-web.mjs",
+    "vercelConfig": "vercel.json",
+    "installCommand": "node --version",
+    "outputDirectory": "dist/social-web",
+    "isolatedCarrierBuildRuns": 2,
+    "isolatedCarrierBuildsMatched": true,
+    "files": [
+      { "path": "index.html", "bytes": 6098, "sha256": "783f835245b9acbb4cbfe29cb56faa55243d593858c80692d39034e97e42a05b" },
+      { "path": "app.js", "bytes": 6928, "sha256": "966a47ae3d285a625ab666ddeca91defa156f04337b700fc07bd6c73e97ee51d" },
+      { "path": "styles.css", "bytes": 6327, "sha256": "1f80ec6b7ab8c2ff0d1d66edf083d301af89386c802483733fd670a5ada26c42" },
+      { "path": "wallet-provider.js", "bytes": 7749, "sha256": "d8df8193407f835ff16913417acca0db2ae1f091defc16e0b29a98996ffdea75" },
+      { "path": "assets/metamask.svg", "bytes": 755, "sha256": "f761f46f4fe7052a84b47cf23b63c2f20cc3d043df640b7f79c2adcb245e5f21" },
+      { "path": "assets/ynx-wallet.svg", "bytes": 280, "sha256": "e92207903e61b41c7a662e57e2a3bcfd84627b49c22a29e9240d5eafcd0229fb" }
+    ]
+  },
+  "validation": {
+    "webWalletTests": "8/8",
+    "faviconRegression": true,
+    "corsUnsafeBrowserProbeAbsent": true,
+    "privateServiceDegradedExplicit": true,
+    "standardWalletPreservedOnPrivateDegradation": true,
+    "firstLocalBuild": true,
+    "secondLocalBuild": true,
+    "isolatedCarrierBuild": true,
+    "deployment": false,
+    "hostedBrowser": false
+  },
+  "vercel": {
+    "scope": "jiahaoalbus-projects",
+    "project": "ynx-social-web",
+    "projectId": "prj_QGgUyxilarbPPLZyoES83m2aneQN",
+    "requiredExecutor": "social-vercel-release",
+    "candidateMustUseSkipDomain": true,
+    "alias": "social.ynxweb4.com",
+    "deploymentAuthorized": false
+  },
+  "rollback": {
+    "deploymentId": "dpl_2sei8CpmoN1Gi5YKnc6FdvNRyXGy",
+    "immutableUrl": "ynx-social-h8cqxnkud-jiahaoalbus-projects.vercel.app",
+    "maximumExecutions": 1
+  },
+  "verificationBoundary": {
+    "requiredBeforeAlias": [
+      "all six immutable candidate resources match exact bytes and SHA-256",
+      "distinct official YNX Wallet and MetaMask identity and logo",
+      "late-provider and no-provider state",
+      "PRIVATE_SERVICE_DEGRADED visible without clearing Standard Wallet state",
+      "stable URL, one top-level tab, no blank page and zero unfiltered console errors"
+    ],
+    "forbidden": [
+      "eth_requestAccounts",
+      "wallet signing",
+      "EIP-712 signing",
+      "transaction submission",
+      "private key or recovery material"
+    ]
+  }
+}
