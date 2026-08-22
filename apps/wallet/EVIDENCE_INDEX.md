@@ -1,5 +1,7 @@
 # Wallet evidence index
 
+- `proof/wallet-android-metamask-l1-api36-2026-08-22.json` binds the MetaMask-grade Layer-1 Android slice to a fresh Pixel 9 profile-equivalent API 36 arm64 install: exact APK identity, first/second cold launches, isolated account creation, strong-biometric unlock, 0 YNXT/nonce 0 Testnet read, canonical and malformed WalletConnect payload cold launches, first-party DApp Browser load, and external-origin TLS/network fail-closed evidence. WalletConnect relay/session, external approval, signing, broadcast, universal-link domain verification, public hosting and production signing remain explicitly false.
+
 ## Runtime images
 
 - `proof/ynx-wallet-locked-current.png`: latest API 36 phone cold launch, English/light/empty onboarding.
