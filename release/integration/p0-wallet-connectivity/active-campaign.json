@@ -427,12 +427,12 @@
     }
   ],
   "heavy": {
-    "owner": "social",
-    "taskId": "P0-202",
-    "status": "ACTIVE_SINGLE_USE",
+    "owner": null,
+    "taskId": null,
+    "status": "IDLE",
     "acquiredAt": "2026-08-22T17:10:00Z",
     "expiresAt": "2026-08-22T17:40:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-22T17:13:05Z",
     "sourceCommit": "e7756cb387233376c03043c54fb8b051c241e94e",
     "evidenceCommit": "448062cb25571aaa43355ff2ec5a8a2e6158cbbd",
     "runtimeHost": "ynx-social-i38c5m9dw-jiahaoalbus-projects.vercel.app",
@@ -444,8 +444,8 @@
     "reusable": false,
     "previousOwner": "social",
     "previousTaskId": "P0-201",
-    "reviewDecision": "GO_SOCIAL_ONLY_DIRECT_HOSTED_CONSOLE_CLEAN_CANDIDATE_PREFLIGHT",
-    "reason": "P0-201 is terminal and released. The complete workflow-only bundle, exact remote parent, sole workflow modification, hardcoded candidate, six resource hashes, PRIVATE_SERVICE_DEGRADED assertions and zero-RPC tripwires were independently verified. Authority is one literal push and one hosted run only."
+    "reviewDecision": "CONSUMED_RELEASED_SUCCESS_SOCIAL_CONSOLE_CLEAN_HOSTED_CANDIDATE_PREFLIGHT",
+    "reason": "The unique hosted run passed every raw and browser step for the exact immutable candidate, including console0, distinct wallet identity, truthful disconnected and PRIVATE_SERVICE_DEGRADED state, zero health requests and zero provider RPC. The official alias remains on dpl_2sei8CpmoN1Gi5YKnc6FdvNRyXGy, so official public truth remains false."
   },
   "wave": {
     "id": "B-financial-apps-quant",

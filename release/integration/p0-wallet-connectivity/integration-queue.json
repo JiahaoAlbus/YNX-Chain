@@ -7186,7 +7186,7 @@
     {
       "taskId": "P0-202",
       "owner": "social",
-      "status": "ACTIVE_SINGLE_USE",
+      "status": "CONSUMED_RELEASED_SUCCESS_SOCIAL_CONSOLE_CLEAN_HOSTED_CANDIDATE_PREFLIGHT",
       "paths": [
         "release/integration/p0-wallet-connectivity/execution/p0-202-social-console-clean-hosted-preflight-lease-20260822.json",
         "branch:codex/social-release-evidence-ecffe336:.github/workflows/social-public-candidate-preflight-p0.yml",
@@ -7211,7 +7211,23 @@
       "deploymentAllowed": false,
       "aliasAllowed": false,
       "sensitiveActionsAllowed": false,
-      "nextAction": "Execute the exact literal force=false push once, bind the unique hosted run, inspect the isolated raw/browser artifact, then release success or fail closed without retry or Vercel mutation."
+      "releasedAt": "2026-08-22T17:13:05Z",
+      "runId": 32586962579,
+      "jobId": 97064706488,
+      "runConclusion": "success",
+      "artifactId": 9479298029,
+      "artifactBytes": 403086,
+      "artifactZipSha256": "cf2760009e3f98cd69358dae3c7c53ef82e849a46f40aa209e94977757861a46",
+      "hostedChromiumJsonSha256": "59a4fba16f81aa2b26b84df65277a26c513dbd88e9ce8f4356d54a53e7f9d515",
+      "rawResourceGatePassed": true,
+      "browserGatePassed": true,
+      "privateServiceDegradedVerified": true,
+      "privateServiceRequests": 0,
+      "providerRpcMethods": 0,
+      "officialCanonicalDeployment": "dpl_2sei8CpmoN1Gi5YKnc6FdvNRyXGy",
+      "officialCanonicalUnchanged": true,
+      "officialSourceBoundPublic": false,
+      "nextAction": "Do not reuse P0-202. A wholly new Social alias-only lease may bind the exact verified candidate, official-domain raw/browser post-route gates and one exact rollback on any failure."
     }
   ]
 }
