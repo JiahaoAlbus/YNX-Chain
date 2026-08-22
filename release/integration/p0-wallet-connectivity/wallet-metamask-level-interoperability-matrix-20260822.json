@@ -169,13 +169,12 @@
     {
       "id": "macos",
       "owner": "wallet-macos",
-      "latestAcceptedSource": "bea12cd61997ea0b868967ed573c3c31b981c1e1",
-      "latestAcceptedTree": null,
-      "latestAcceptedTreePrefixReported": "1d8f5eef",
-      "latestEvidence": "5d57ba0706b0b77c1b323c5eebdad4dddbb83e63",
-      "latestEvidenceTree": "75b1422fb6ee4197cf05a66c2ed5345a7900de81",
-      "latestEvidenceBlob": "08c4030ca8faf3a64d85c19495f6067235730cb3",
-      "latestEvidenceSha256": "008a44cba3c521599990191216ae1ed0f2243be8a0b5f01bc3909e97f51aee9f",
+      "latestAcceptedSource": "130a30d4392b0439aaa3abe360e0aa83d686ec76",
+      "latestAcceptedTree": "4de0947aa25a12e33b52dcd80d672959fea74528",
+      "latestEvidence": "932d2d23c4293a1c5fa73af1de09825e73e771b5",
+      "latestEvidenceTree": "e74c96bf3e9bdd1a5be09f28dbca6e42a59ae23e",
+      "latestEvidenceBlob": "bec13b26d284a86d7534d2f6f8a03cca682f8871",
+      "latestEvidenceSha256": "2dd102a8ef5a28ea268269094a489ccdd36d52bf8b4ae433ed091185610a69eb",
       "evidenceTier": "DIRECT_ISOLATED_HOSTED_INSTALL_FAIL_CLOSED_ONLY",
       "acceptedFacts": [
         "walletconnect-v2-strict-policy-source",
@@ -188,7 +187,9 @@
         "isolated-temp-applications-cold-second-lifecycle",
         "canonical-auth-custom-scheme-same-pid-visible-fail-closed",
         "canonical-walletconnect-custom-scheme-same-pid-visible-fail-closed",
-        "public-chain-0x1917-and-gateway-fail-closed-readback"
+        "public-chain-0x1917-and-gateway-fail-closed-readback",
+        "canonical-walletconnect-uri-cold-starts-new-isolated-pid",
+        "cold-start-pending-inbox-callback-consumed-same-pid-visible-fail-closed"
       ],
       "blockers": [
         "real-project-id-absent",
