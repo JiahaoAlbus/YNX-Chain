@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   preflight:
-    if: "github.event.head_commit.message == 'evidence(social): hosted immutable candidate preflight'"
+    if: "github.event.head_commit.message == 'evidence(social): hosted console-clean candidate preflight'"
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
@@ -22,7 +22,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          out="$RUNNER_TEMP/social-p0200-evidence"
+          out="$RUNNER_TEMP/social-p0202-evidence"
           test ! -e "$out"
           mkdir -p "$out/resources" "$out/browser"
 
@@ -30,8 +30,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          base='https://ynx-social-mo3j03lc9-jiahaoalbus-projects.vercel.app'
-          out="$RUNNER_TEMP/social-p0200-evidence/resources"
+          base='https://ynx-social-i38c5m9dw-jiahaoalbus-projects.vercel.app'
+          out="$RUNNER_TEMP/social-p0202-evidence/resources"
           fetch() {
             name="$1"
             uri="$2"
@@ -45,8 +45,8 @@ jobs:
             test "$(cat "$out/${name}.bytes")" = "$expected_bytes"
             test "$(cat "$out/${name}.sha256")" = "$expected_sha"
           }
-          fetch root '/' 6022 0133e7a4a65f19b6965afd20ba47b87c3dcba196ee9eeb185c76e39e1786e8ed
-          fetch app-js '/app.js' 7115 73ee268d130ebf396dee6d4d94131197bedd0784e0571057f70f99e9caa5e346
+          fetch root '/' 6098 783f835245b9acbb4cbfe29cb56faa55243d593858c80692d39034e97e42a05b
+          fetch app-js '/app.js' 6928 966a47ae3d285a625ab666ddeca91defa156f04337b700fc07bd6c73e97ee51d
           fetch styles-css '/styles.css' 6327 1f80ec6b7ab8c2ff0d1d66edf083d301af89386c802483733fd670a5ada26c42
           fetch wallet-provider-js '/wallet-provider.js' 7749 d8df8193407f835ff16913417acca0db2ae1f091defc16e0b29a98996ffdea75
           fetch metamask-svg '/assets/metamask.svg' 755 f761f46f4fe7052a84b47cf23b63c2f20cc3d043df640b7f79c2adcb245e5f21
@@ -59,19 +59,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat > "$RUNNER_TEMP/social-p0200-browser.mjs" <<'NODE'
+          cat > "$RUNNER_TEMP/social-p0202-browser.mjs" <<'NODE'
           import { createRequire } from "node:module";
           import { writeFile } from "node:fs/promises";
           import { join } from "node:path";
 
           const require = createRequire(join(process.env.GITHUB_WORKSPACE, "apps/trust-center/package.json"));
           const { chromium } = require("playwright");
-          const base = "https://ynx-social-mo3j03lc9-jiahaoalbus-projects.vercel.app/";
-          const evidence = join(process.env.RUNNER_TEMP, "social-p0200-evidence", "browser");
+          const base = "https://ynx-social-i38c5m9dw-jiahaoalbus-projects.vercel.app/";
+          const evidence = join(process.env.RUNNER_TEMP, "social-p0202-evidence", "browser");
           const result = {
             schemaVersion: 1,
             candidate: base,
-            sourceCommit: "d9337ddc5ffcbddaad463eef968c3d52c05272dc",
+            sourceCommit: "e7756cb387233376c03043c54fb8b051c241e94e",
             accountRequestAttempted: false,
             signingAttempted: false,
             transactionAttempted: false,
@@ -80,7 +80,8 @@ jobs:
           const consoleErrors = [];
           const pageErrors = [];
           const sameOriginFailures = [];
-          const context = await chromium.launchPersistentContext(join(process.env.RUNNER_TEMP, "social-p0200-profile"), {
+          const privateServiceRequests = [];
+          const context = await chromium.launchPersistentContext(join(process.env.RUNNER_TEMP, "social-p0202-profile"), {
             executablePath: "/usr/bin/google-chrome",
             headless: true,
             viewport: { width: 1280, height: 900 },
@@ -90,6 +91,7 @@ jobs:
             page.on("console", message => { if (message.type() === "error") consoleErrors.push({ text: message.text(), location: message.location() }); });
             page.on("pageerror", error => pageErrors.push(String(error)));
             page.on("requestfailed", request => { if (request.url().startsWith(base)) sameOriginFailures.push({ url: request.url(), error: request.failure()?.errorText || null }); });
+            page.on("request", request => { if (request.url().includes("/social/health")) privateServiceRequests.push(request.url()); });
             await page.goto(base, { waitUntil: "domcontentloaded", timeout: 20000 });
             await page.waitForSelector("#connect-wallet", { state: "visible", timeout: 10000 });
 
@@ -100,6 +102,9 @@ jobs:
               connectedPanelHidden: document.querySelector("#connected-panel")?.hidden,
               topConnectText: document.querySelector("#connect-wallet")?.textContent?.trim(),
               dialogOpen: document.querySelector("#wallet-dialog")?.open,
+              serviceStatus: document.querySelector("#service-status")?.textContent?.trim(),
+              serviceState: document.querySelector("#service-status")?.dataset.serviceState,
+              privateSessionState: document.querySelector("#private-session-state")?.textContent?.trim(),
             }));
 
             await page.click("#connect-wallet");
@@ -154,13 +159,15 @@ jobs:
             result.consoleErrors = consoleErrors;
             result.pageErrors = pageErrors;
             result.sameOriginFailures = sameOriginFailures;
+            result.privateServiceRequests = privateServiceRequests;
             await page.screenshot({ path: join(evidence, "social-candidate.png"), fullPage: true });
             await writeFile(join(evidence, "social-candidate.html"), await page.content());
 
             const identityOk = result.chooser.ynxName === "YNX Wallet" && result.chooser.ynxLogo === "./assets/ynx-wallet.svg" && result.chooser.ynxAlt === "YNX Wallet logo" && result.chooser.metamaskName === "MetaMask" && result.chooser.metamaskLogo === "./assets/metamask.svg" && result.chooser.metamaskAlt === "MetaMask logo";
             const disconnectedOk = result.initial.connectedPanelHidden === true && result.initial.topConnectText === "Connect wallet" && result.final.connectedPanelHidden === true && result.final.topConnectText === "Connect wallet";
             const discoveryOk = result.discovery.providerCount === 2 && result.discovery.ynxSelected === true && result.discovery.metamaskSelected === true && result.discovery.ynxClassification?.isYNX === true && result.discovery.ynxClassification?.isMetaMask === false && result.discovery.metamaskClassification?.isMetaMask === true && result.discovery.metamaskClassification?.isYNX === false && result.discovery.forbiddenMethods.length === 0;
-            result.passed = result.initial.url === base && result.final.url === base && result.initial.title === "YNX Social — Private by design" && result.initial.language === "en" && identityOk && disconnectedOk && discoveryOk && result.final.dialogOpen === false && result.pageCount === 1 && result.blankPages === 0 && consoleErrors.length === 0 && pageErrors.length === 0 && sameOriginFailures.length === 0;
+            const privateDegradedOk = result.initial.serviceState === "PRIVATE_SERVICE_DEGRADED" && result.initial.serviceStatus === "Private Social service degraded — guest preview is still available" && result.initial.privateSessionState === "Private Social service degraded. Wallet connection remains independently available." && privateServiceRequests.length === 0;
+            result.passed = result.initial.url === base && result.final.url === base && result.initial.title === "YNX Social — Private by design" && result.initial.language === "en" && identityOk && disconnectedOk && discoveryOk && privateDegradedOk && result.final.dialogOpen === false && result.pageCount === 1 && result.blankPages === 0 && consoleErrors.length === 0 && pageErrors.length === 0 && sameOriginFailures.length === 0;
           } catch (error) {
             result.error = { name: error?.name || "Error", message: error?.message || String(error) };
           } finally {
@@ -170,21 +177,21 @@ jobs:
           console.log(JSON.stringify(result, null, 2));
           process.exit(result.passed ? 0 : 1);
           NODE
-          node "$RUNNER_TEMP/social-p0200-browser.mjs"
+          node "$RUNNER_TEMP/social-p0202-browser.mjs"
 
       - name: Freeze isolated evidence checksums
         if: always()
         shell: bash
         run: |
           set -euo pipefail
-          out="$RUNNER_TEMP/social-p0200-evidence"
+          out="$RUNNER_TEMP/social-p0202-evidence"
           find "$out" -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > "$out/SHA256SUMS"
 
       - name: Upload isolated candidate evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: social-immutable-candidate-preflight-p0200
-          path: ${{ runner.temp }}/social-p0200-evidence
+          name: social-console-clean-candidate-preflight-p0202
+          path: ${{ runner.temp }}/social-p0202-evidence
           if-no-files-found: error
           retention-days: 7
