@@ -58,11 +58,11 @@
     }
   },
   "artifact": {
-    "carrier": "/tmp/ynx-shop-wallet-provider-identity.fiC01C/ynx-shop-wallet-provider-identity-221a6bde7.tar.gz",
+    "carrier": "apps/shop/evidence/carriers/ynx-shop-wallet-provider-identity-221a6bde7.tar.gz",
     "bytes": 1230556,
     "sha256": "59f73284643854f1129c4dab4d0f507dcb01e2dd0124b33f6ad4890f94612d6f",
     "repeatBuildByteExact": true,
-    "inventory": "/tmp/ynx-shop-wallet-provider-identity.fiC01C/inventory.sha256",
+    "inventory": "apps/shop/evidence/carriers/ynx-shop-wallet-provider-identity-221a6bde7.inventory.sha256",
     "inventorySha256": "66930dbe86dea64aa9e8bae7a53ae3ad57d073e8c4e6d36159c3a51a37d47276",
     "importantFiles": {
       "index.html": "2e862dddca76b2b9e4ec0e1d31cfd9a347a6469fdcec93e4c4fadd6883df0c15",
