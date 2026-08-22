@@ -426,27 +426,7 @@
       ]
     }
   ],
-  "heavy": {
-    "owner": "card",
-    "taskId": "P0-195",
-    "status": "ACTIVE_SINGLE_USE",
-    "acquiredAt": "2026-08-22T15:22:00Z",
-    "expiresAt": "2026-08-22T15:52:00Z",
-    "releasedAt": null,
-    "sourceCommit": "350602410b868322d911c869145c879c120b641e",
-    "evidenceCommit": "e4213d6e17ca2eac6791e9b0838c24d8dcebd569",
-    "runtimeHost": "card.ynxweb4.com",
-    "currentRuntime": "dpl_DqMuEhno65bLFTNKBu9gs52soVri",
-    "candidateRuntime": null,
-    "artifactSha256": "1efd0623eef13a036f8bb49dc42f3ebda45e8c4f68f40ad27ef8367fe02d8274",
-    "productionMutationAllowed": true,
-    "singleUse": true,
-    "reusable": false,
-    "previousOwner": "card",
-    "previousTaskId": "P0-193",
-    "reviewDecision": "GO_CARD_ONLY_SINGLE_USE_STATIC_ENVELOPE_PUBLIC_DEPLOYMENT",
-    "reason": "P0-193 is released fail-closed. The successor request is remote exact; an isolated clean rebuild passed 45/45, typecheck, web build and all 12 artifact hashes. Fresh rollback deployment ownership and canonical response hashes match."
-  },
+  "heavy": null,
   "wave": {
     "id": "B-financial-apps-quant",
     "owner": "financial-apps",

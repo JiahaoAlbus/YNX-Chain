@@ -6900,7 +6900,7 @@
     {
       "taskId": "P0-195",
       "owner": "card",
-      "status": "ACTIVE_SINGLE_USE",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_CARD_STATIC_ENVELOPE_PUBLIC_DEPLOYMENT",
       "paths": [
         "release/integration/p0-wallet-connectivity/execution/p0-195-card-static-envelope-public-deployment-lease-20260822.json",
         "apps/card/**",
@@ -6917,7 +6917,17 @@
       "deploymentAttemptLimit": 1,
       "rollbackAttemptLimit": 1,
       "sensitiveActionsAllowed": false,
-      "nextAction": "Card owner performs one clean exact 12-file build and one deployment attempt only. Freeze direct canonical HTTP/browser evidence; rollback once on any failure and terminally consume/release P0-195."
+      "releasedAt": "2026-08-22T15:26:47Z",
+      "candidateDeployment": "dpl_H5eZZHGGfBPYuUE8KiHx5FsnKJNY",
+      "candidateDeploymentStatus": "Error",
+      "deploymentAttemptCount": 1,
+      "retryCount": 0,
+      "rollbackCheckCount": 1,
+      "rollbackResult": "already-current",
+      "rollbackHashesVerified": true,
+      "projectSettingsModified": false,
+      "sourceBoundPublic": false,
+      "nextAction": "Do not reuse P0-195. A successor request must freeze a Card-owned nested deployment envelope compatible with the fixed dist-web Output Directory; project setting mutation is not authorized."
     }
   ]
 }
