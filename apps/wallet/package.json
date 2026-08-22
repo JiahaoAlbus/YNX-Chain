@@ -6,6 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
+    "postinstall": "node scripts/patch-android-native-modules.mjs",
     "start": "expo start",
     "android": "expo run:android",
     "ios": "expo run:ios",
