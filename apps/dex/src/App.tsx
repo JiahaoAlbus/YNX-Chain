@@ -21,6 +21,9 @@ import {
   connectMetaMask,
   consumeDexActionCallback,
   restoreWalletSession,
+  disconnectStandardWallet,
+  observeStandardWallet,
+  standardWalletDetails,
   WALLET_INSTALL_URL,
   WALLET_PRODUCT_URL,
   type DexWalletSession,
@@ -208,6 +211,7 @@ export default function App() {
   const [walletBusy, setWalletBusy] = useState(false);
   const [walletError, setWalletError] = useState("");
   const [metamaskAccount, setMetamaskAccount] = useState("");
+  const standardWalletCleanup = useRef<(() => void) | null>(null);
   const [transactionState, setTransactionState] = useState<{
     busy: boolean;
     error: string;
@@ -300,6 +304,15 @@ export default function App() {
       active = false;
     };
   }, [retry]);
+  useEffect(() => () => standardWalletCleanup.current?.(), []);
+  const bindStandardWallet = (provider: Parameters<typeof observeStandardWallet>[0]) => {
+    standardWalletCleanup.current?.();
+    standardWalletCleanup.current = observeStandardWallet(provider, (state) => {
+      setWalletAccount(state.account || "");
+      if (state.status !== "connected") setMetamaskAccount("");
+      setWalletError(state.status === "connected" ? "" : "Standard Wallet disconnected. Read-only DEX remains available.");
+    });
+  };
   const connectWallet = async () => {
     setWalletBusy(true);
     setWalletError("");
@@ -307,8 +320,10 @@ export default function App() {
       const launch = await beginWalletAuthorization();
       if (launch.status === "provider-ready" && launch.provider) {
         const account=await connectStandardWallet(launch.provider);
+        bindStandardWallet(launch.provider);
         setWalletAccount(account);
         setWalletError("Standard Wallet connected on YNX Testnet. Product Session, approval, swap, liquidity and token approval remain separate.");
+        setWallet(false);
       } else
         setWalletError("YNX Wallet is unavailable in this browser. DEX remains open; use the official download or MetaMask options below.");
     } catch (reason) {
@@ -323,7 +338,12 @@ export default function App() {
     setWalletBusy(true);
     setWalletError("");
     try {
-      setMetamaskAccount(await connectMetaMask());
+      const provider=(globalThis as typeof globalThis&{ethereum?:Parameters<typeof connectMetaMask>[0]}).ethereum;
+      const account=await connectMetaMask(provider);
+      if(provider)bindStandardWallet(provider);
+      setMetamaskAccount(account);
+      setWalletAccount(account);
+      setWallet(false);
     } catch (reason) {
       setWalletError(
         reason instanceof Error
@@ -631,6 +651,12 @@ export default function App() {
                   <dd>{walletAccount}</dd>
                 </div>
               )}
+              {walletAccount && (
+                <>
+                  <div><dt>Provider</dt><dd>{standardWalletDetails().providerKind === "metamask" ? "MetaMask" : "YNX Wallet"}</dd></div>
+                  <div><dt>Standard connection</dt><dd>{standardWalletDetails().chainId || "not connected"}</dd></div>
+                </>
+              )}
               {walletSession && (
                 <div>
                   <dt>Session expires</dt>
@@ -665,6 +691,16 @@ export default function App() {
               >
                 Connect MetaMask
               </button>
+              {walletAccount && (
+                <button className="secondary" onClick={() => {standardWalletCleanup.current?.();standardWalletCleanup.current=null;disconnectStandardWallet();setWalletAccount("");setMetamaskAccount("");setWalletError("Standard Wallet disconnected. Read-only DEX remains available.");}}>
+                  Disconnect wallet
+                </button>
+              )}
+              {walletAccount && (
+                <button className="secondary" onClick={() => {standardWalletCleanup.current?.();standardWalletCleanup.current=null;disconnectStandardWallet();setWalletAccount("");setMetamaskAccount("");setWalletError("Choose YNX Wallet or MetaMask to switch providers. No account request was sent.");}}>
+                  Switch wallet
+                </button>
+              )}
             </div>
             <a className="wallet-product-link" href={WALLET_PRODUCT_URL}>
               Version, signature and installation details

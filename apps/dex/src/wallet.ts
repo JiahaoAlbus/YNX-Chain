@@ -13,7 +13,7 @@ export const WALLET_INSTALL_URL='https://www.ynxweb4.com/dapp/download';
 export const WALLET_PRODUCT_URL='https://www.ynxweb4.com/dapp/wallet';
 export const YNX_EVM_CHAIN=Object.freeze({chainId:'0x1917',chainName:'YNX Testnet',nativeCurrency:Object.freeze({name:'YNX Testnet',symbol:'YNXT',decimals:18}),rpcUrls:Object.freeze(['https://rpc.ynxweb4.com/']),blockExplorerUrls:Object.freeze(['https://explorer.ynxweb4.com/'])});
 
-export type Eip1193Provider={request(input:{method:string;params?:readonly unknown[]|Record<string,unknown>}):Promise<unknown>};
+export type Eip1193Provider={request(input:{method:string;params?:readonly unknown[]|Record<string,unknown>}):Promise<unknown>;on?(event:'accountsChanged'|'chainChanged'|'disconnect',listener:(value?:unknown)=>void):void;removeListener?(event:'accountsChanged'|'chainChanged'|'disconnect',listener:(value?:unknown)=>void):void};
 export type DexWalletSession=Readonly<{session:Readonly<{account:string;expiresAt:string}>}>;
 export type DexPrivateCapabilities=Readonly<{device:Readonly<{key:string}>;storage:Readonly<{securityLevel:'hardware-backed'|'os-protected';get:(key:string)=>string|Promise<string|null>|null;set:(key:string,value:string)=>void|Promise<void>;remove:(key:string)=>void|Promise<void>}>;scope?:unknown}>;
 export type DexAuthorizationLaunch=Readonly<{status:AuthorizationLaunchResult['status'];fallbackActions:AuthorizationLaunchResult['fallbackActions'];provider?:Eip1193Provider}>;
@@ -38,6 +38,16 @@ export async function connectStandardWallet(provider:Eip1193Provider,providerKin
 export async function connectMetaMask(provider:Eip1193Provider|undefined=(globalThis as typeof globalThis&{ethereum?:Eip1193Provider}).ethereum):Promise<string>{return connectStandardWallet(provider as Eip1193Provider,'metamask')}
 export async function restoreStandardWallet(provider:Eip1193Provider|undefined=(globalThis as typeof globalThis&{ethereum?:Eip1193Provider}).ethereum,providerKind:'metamask'|'ynx-wallet'=provider===undefined?'ynx-wallet':'metamask'):Promise<string|null>{if(!provider)return null;try{const [accounts,chainId]=await Promise.all([provider.request({method:'eth_accounts'}),provider.request({method:'eth_chainId'})]);const restored=standardTransition({type:'RESTORE',providerKind,accounts,chainId});return restored.status===STANDARD_WALLET_CONNECT_STATUS.CONNECTED?restored.account:null}catch{return null}}
 export function reportDexRpcProbe(status:'ready'|'degraded',code='RPC_UNAVAILABLE'){return standardTransition({type:status==='ready'?'RPC_PROBE_READY':'RPC_PROBE_DEGRADED',probeTransport:STANDARD_WALLET_RPC_PROBE_TRANSPORT,...(status==='ready'?{}:{code})})}
+export function standardWalletDetails(){return standardWalletState}
+export function disconnectStandardWallet(){return standardTransition({type:'DISCONNECT'})}
+export function observeStandardWallet(provider:Eip1193Provider,onChange:(state:ReturnType<typeof standardWalletDetails>)=>void){
+  const notify=()=>onChange(standardWalletState);
+  const accounts=(value?:unknown)=>{try{standardTransition({type:'ACCOUNTS_CHANGED',accounts:Array.isArray(value)?value:[]});notify()}catch{disconnectStandardWallet();notify()}};
+  const chain=(value?:unknown)=>{try{standardTransition({type:'CHAIN_CHANGED',chainId:typeof value==='string'?value:'0x0'});notify()}catch{disconnectStandardWallet();notify()}};
+  const disconnected=()=>{disconnectStandardWallet();notify()};
+  provider.on?.('accountsChanged',accounts);provider.on?.('chainChanged',chain);provider.on?.('disconnect',disconnected);
+  return ()=>{provider.removeListener?.('accountsChanged',accounts);provider.removeListener?.('chainChanged',chain);provider.removeListener?.('disconnect',disconnected)};
+}
 
 /** The host may supply only a verified device key and protected storage; no endpoint, callback or origin injection exists. */
 export function configureDexPrivateConnection(capabilities:DexPrivateCapabilities){
