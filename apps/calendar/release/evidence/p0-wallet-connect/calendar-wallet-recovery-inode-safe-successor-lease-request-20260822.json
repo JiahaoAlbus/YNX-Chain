@@ -1,0 +1,166 @@
+{
+  "schemaVersion": "ynx-calendar-wallet-recovery-inode-safe-successor-lease-request/v1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "requestedAt": "2026-08-22T11:34:21Z",
+  "requestState": "AWAITING_WHOLE_NEW_SINGLE_USE_CALENDAR_INODE_SAFE_DEPLOYMENT_LEASE",
+  "owner": "calendar",
+  "source": {
+    "branch": "codex/calendar-fable5-completion-20260821",
+    "implementationCommit": "7db160aa0bd589097e63190a260a343aafe4854c",
+    "implementationTree": "d72d49bc7bc6ee135cae867aa6edbe34b4cfc489",
+    "linuxCandidateRequestCommit": "b44de2636340997299707b75a2e1bfbc6d20eae8",
+    "terminalP0186Commit": "568615e29ae9f00e2a04f0c540f6d9da7a6dd5fd",
+    "terminalP0186Tree": "684eef12f4ca5ed18bf09147a70def2450f57004",
+    "remoteParentReadbackExact": true,
+    "aheadBehindBeforeRequest": "0/0",
+    "worktreeCleanBeforeRequest": true,
+    "sharedProviderAuthorityChanged": false
+  },
+  "supersededLease": {
+    "taskId": "P0-186",
+    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-calendar-7db160aa-public-recovery-20260822T111600Z",
+    "centralCommit": "0de98b7ab626ed0b541876947773c3eb89bf28cc",
+    "terminalState": "CONSUMED_RELEASED_FAILED_CLOSED_CALENDAR_PUBLIC_RECOVERY",
+    "terminalEvidence": "apps/calendar/release/evidence/p0-wallet-connect/calendar-p0186-failed-closed-prewrite-state-inode-drift-20260822.json",
+    "terminalEvidenceBlob": "7104b0e4a720aa44fd2da6b9c63271997bf3b75b",
+    "terminalEvidenceSha256": "12f0216055157329640412c363f6fa55cc828325710fffd8939d323c69740e11",
+    "reusable": false,
+    "productionWrites": false
+  },
+  "candidate": {
+    "release": "ynx-calendar-0.4.4-testnet-preview",
+    "primaryCarrier": "/tmp/ynx-calendar-linux-amd64-a.lJpEHK/ynx-calendard",
+    "independentCarrier": "/tmp/ynx-calendar-linux-amd64-b.FJTFWr/ynx-calendard",
+    "bytes": 7614612,
+    "sha256": "9cad944f63fb7fae49bf947166075b9617e0dac5807d9d9c43cab1791379c426",
+    "fileIdentity": "ELF 64-bit LSB executable, x86-64, statically linked, stripped",
+    "byteIdenticalIndependentBuilds": true,
+    "directLinuxAmd64Execution": true,
+    "healthSha256": "be9b3affccdffc5275d693ba3de611d380f35a34f5a21e20f3858d3a8fd76d98",
+    "versionSha256": "69befbd7caadc5709b5647670608bdb9bf8178be1c053d5f6614474c27c57d38",
+    "indexSha256": "f5268942d012a0960446b396de5cb1297187f18480decd5847bf8de1e851ab4b",
+    "appSha256": "d45a4d4bafd8855a42f012cde66acb0e556d076ba7aae290625c7fd162d925dd"
+  },
+  "productionBaseline": {
+    "host": "43.153.202.237",
+    "hostOs": "Linux",
+    "hostArch": "x86_64",
+    "service": "ynx-calendar.service",
+    "serviceActiveAtP0186Prewrite": true,
+    "serviceRestartsAtP0186Prewrite": 0,
+    "activeBinary": {
+      "path": "/usr/local/bin/ynx-calendard",
+      "bytes": 7610516,
+      "sha256": "3fc3492d89978c32991d54abc2c8994d1dbe271df7d95364449cb81a6b781890",
+      "owner": "root:root",
+      "mode": "0755",
+      "nlink": 1
+    },
+    "state": {
+      "path": "/var/lib/ynx-chain/calendar/state.json",
+      "bytes": 39225,
+      "sha256": "fbe1c9cf058658370373385dc659c8b43a14238a3adef9df62a8b5ef0d22bd9c",
+      "owner": "ynx:ynx",
+      "mode": "0600",
+      "nlink": 1,
+      "runtimeUsesAtomicReplacement": true,
+      "longLivedInodeMustNotBeLeaseBound": true,
+      "lastObservedDeviceInode": "64770:1327740",
+      "lastObservedDeviceInodeIsEvidenceOnly": true
+    },
+    "stateKey": {
+      "bytes": 32,
+      "sha256": "bf7b567201cab33c4b9ed02e00f0d0165172b4e692484ca044d828d0a3fb5e62",
+      "owner": "ynx:ynx",
+      "mode": "0600",
+      "nlink": 1
+    },
+    "systemdUnitSha256": "c6fa3b4c1b2c34366233169973631928890838709ecb8183daf0cfeee9d4331f",
+    "caddySha256": "8b75b9d1332e49e702b610fb1a5e6fcf8a04b9495a1eb16e04dfc65330911f98",
+    "publicSourceCommit": "d2044bd9a8ec6bdc6235dfb625a62c3dd5c58b04",
+    "publicRelease": "ynx-calendar-0.4.3-testnet-preview"
+  },
+  "requestedInodeSafeTransaction": {
+    "scope": "one Calendar-only rollback-first deployment of the exact Linux amd64 candidate",
+    "principle": "Bind stable state content and permissions at lease issuance; bind the live inode only after stopping the old service and immediately pair that stopped-state snapshot with the rollback backup.",
+    "requiredLeaseIssuanceReadback": [
+      "candidate bytes, SHA256 and ELF x86-64 identity",
+      "current binary bytes, SHA256, owner, mode and nlink",
+      "current state bytes, SHA256, owner, mode and nlink; inode observed but not frozen as a long-lived lease precondition",
+      "current state-key bytes, SHA256, owner, mode and nlink",
+      "systemd unit bytes/SHA and active state",
+      "Caddy root/route bytes/SHA",
+      "current public health/version/assets",
+      "fresh absent staging and backup paths"
+    ],
+    "orderedExecution": [
+      "fresh-read the active service and all stable content/permission invariants immediately before any write; fail closed on content, size, owner, mode or nlink drift",
+      "create the lease-specific empty staging directory and upload only the exact candidate; verify candidate bytes/SHA/ELF identity before touching the service",
+      "re-read state stable invariants immediately before the paired transaction; record the then-current device and inode for diagnosis, without requiring equality to an earlier observation",
+      "stop the old Calendar service as the first production mutation",
+      "while the service is stopped, immediately re-read state bytes/SHA/owner/mode/nlink and capture its fresh device/inode; if stable invariants differ, restart the untouched old service and fail closed",
+      "copy the stopped-state current binary, state and state key into the fresh backup; preserve owner/mode; verify each backup byte count and SHA before candidate installation",
+      "install the exact candidate and start the service using the existing state and key",
+      "verify local and public health/version/assets plus source-bound identity",
+      "on any failure after service stop, stop the candidate if needed, restore the exact verified backup binary/state/key bytes and permissions, restart the old service, and require the old d2044bd9 public identity before release"
+    ],
+    "inodeRules": {
+      "leaseIssuanceInodeIsAdvisory": true,
+      "activeRuntimeAtomicReplacementAllowedBeforeServiceStop": true,
+      "stoppedStateInodeCapturedImmediately": true,
+      "stoppedStateSnapshotAndRollbackBackupPaired": true,
+      "contentOrPermissionDriftAllowed": false,
+      "backupRestoreMayCreateANewInode": true,
+      "rollbackTruthDependsOnExactBytesShaOwnerModeAndServiceIdentityNotHistoricalInode": true
+    },
+    "allowedWrites": [
+      "one fresh Calendar candidate staging directory",
+      "one exact candidate upload",
+      "one Calendar service stop/start transaction",
+      "one fresh Calendar-only rollback backup",
+      "one exact candidate binary installation",
+      "one paired rollback on failure",
+      "one immutable terminal evidence record"
+    ],
+    "forbiddenWrites": [
+      "Wallet shared authority",
+      "any other product",
+      "Caddy or DNS",
+      "state schema mutation",
+      "state key replacement",
+      "eth_requestAccounts",
+      "signature",
+      "transaction",
+      "custom-scheme navigation"
+    ]
+  },
+  "terminalVerification": {
+    "publicOrigin": "https://calendar-testnet.43.153.202.237.sslip.io",
+    "requiredSourceCommit": "7db160aa0bd589097e63190a260a343aafe4854c",
+    "requiredRelease": "ynx-calendar-0.4.4-testnet-preview",
+    "nonSensitiveBrowserChecks": [
+      "late provider discovery at 250ms, 750ms and 1500ms plus EIP-6963 and ethereum#initialized",
+      "no-provider state normalizes to disconnected",
+      "toast DOM clears after hide and consecutive toast revision fencing holds",
+      "stable source-bound public URL, exactly one product tab, no blank tab, no custom scheme and console errors zero",
+      "private Product Session degradation does not erase Standard Wallet provider/account/chain state"
+    ],
+    "sensitiveBoundary": "Do not call eth_requestAccounts, switch account, disconnect/revoke, sign or send a transaction in this lease."
+  },
+  "truth": {
+    "sourceImplemented": true,
+    "linuxAmd64CandidateReady": true,
+    "p0186ProductionMutation": false,
+    "successorLeaseIssued": false,
+    "deployedPublicCurrentSource": false,
+    "sourceBoundPublicRuntime": false,
+    "lateProviderPublicVerified": false,
+    "noProviderResetPublicVerified": false,
+    "toastClearingPublicVerified": false,
+    "installedProvider": false,
+    "accountApproval": false,
+    "productsConnected": 0,
+    "migratedV2": false
+  },
+  "singleExecutableBlocker": "Central Heavy is currently occupied by the higher-priority Wallet Web candidate slice. After that Heavy release, Central must independently re-read the stable Calendar production invariants and issue a wholly new Calendar-only inode-safe paired rollback lease using this stopped-state snapshot protocol."
+}
