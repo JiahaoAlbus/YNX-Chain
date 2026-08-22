@@ -6329,6 +6329,32 @@
       "productsMigratedV2": "0/12",
       "parityComplete": false,
       "nextAction": "Require authoritative first-party runtime and real project ID, relay/pairing/session/DApp evidence; request-ID hardening alone does not complete parity."
+    },
+    {
+      "taskId": "P0-173",
+      "owner": "integration,wallet-protocol,wallet-web,wallet-android,wallet-ios,wallet-macos,wallet-desktop",
+      "status": "METAMASK_LEVEL_REAL_INTEROPERABILITY_HIGHEST_PRIORITY_DISPATCHED_NO_EXECUTION_LEASE",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/acceptance/wallet-metamask-real-interop-priority-p0173-20260822.json",
+        "release/integration/p0-wallet-connectivity/wallet-metamask-level-interoperability-matrix-20260822.json",
+        "release/integration/p0-wallet-connectivity/wallet-standard-parity-queue-20260822.json"
+      ],
+      "dependencies": ["P0-155", "P0-172"],
+      "heavyOwnerAtDispatch": null,
+      "activeExecutionLeasesAtDispatch": 0,
+      "walletPathOverlap": false,
+      "finalPreDispatchNativeSource": "02c782552d9b24423d8a9f61dceee38d047a78ae",
+      "finalPreDispatchNativeEvidence": "414d581d046adcf0fb255409224672945efea73f",
+      "finalPreDispatchCountsTowardInstalledParity": false,
+      "executionLeaseIssued": false,
+      "productionLeaseIssued": false,
+      "sourceOnlyCountsAsProgress": false,
+      "requiredInstalledFirstPartyDapps": 1,
+      "requiredInstalledExternalDapps": 3,
+      "productsConnected": "0/12",
+      "productsMigratedV2": "0/12",
+      "parityComplete": false,
+      "nextAction": "Wake every platform owner. Accept only direct installed E2E or one executable external blocker; issue a path-scoped lease only after its platform prerequisites and user-sensitive confirmation gates pass."
     }
   ]
 }

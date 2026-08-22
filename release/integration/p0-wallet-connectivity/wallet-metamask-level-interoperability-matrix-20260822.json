@@ -3,7 +3,7 @@
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "taskId": "P0-155",
   "owner": "integration",
-  "status": "ACTIVE_UNIQUE_ACCEPTANCE_MATRIX_NO_EXECUTION_LEASE",
+  "status": "P0_HIGHEST_PRIORITY_DIRECT_INSTALLED_INTEROP_DISPATCH_NO_EXECUTION_LEASE",
   "objective": "MetaMask-level interoperability for YNX Wallet using direct installed evidence only.",
   "network": {
     "cosmosChainId": "ynx_6423-1",
@@ -53,7 +53,7 @@
     "routerReceiptTree": "d06c3a90252d8af4f10a29129f542bc2e98a3726",
     "routerReceiptMatrixSha256": "80965c15f2a431b8c85eed57d1dc067b819fcf5fda2bc9435ff3cea9ec5ab701",
     "routerReceiptActivitySha256": "9a17c6bb63d1cfca359b34d185e0beb915302f4826b8c9966b106af759c16f26",
-    "acceptance": "P0-156,P0-157,P0-158,P0-159,P0-160,P0-161,P0-162,P0-163,P0-164,P0-165,P0-166,P0-167,P0-168,P0-169,P0-170,P0-171,P0-172",
+    "acceptance": "P0-156,P0-157,P0-158,P0-159,P0-160,P0-161,P0-162,P0-163,P0-164,P0-165,P0-166,P0-167,P0-168,P0-169,P0-170,P0-171,P0-172,P0-173",
     "receiptLoopClosed": true,
     "newCentralCheckpointRequiredForReceiptOnlyUpdate": false,
     "nextAcceptedUpdateRequires": "NEW_CAPABILITY_OR_DIRECT_INSTALLED_E2E_OR_SECURITY_SEMANTIC_CHANGE",
@@ -177,12 +177,12 @@
     {
       "id": "macos",
       "owner": "wallet-macos",
-      "latestAcceptedSource": "aacdf8eb97235729c1532774b0866d488a13d816",
-      "latestAcceptedTree": "e31592df10a72667bc0d2617f332fd79d1a42be5",
-      "latestEvidence": "a3f27e542b9606d4dd3c15a4a4173de53a23e74e",
-      "latestEvidenceTree": "089478c691a292bdb778e2d0605eaeb6d3e90281",
-      "latestEvidenceBlob": "7522a945536a99f166e5269fefe3a5a193ecf30e",
-      "latestEvidenceSha256": "ee127517f645c3123473a27fcaf2a5f23543d29b2f01502dfb3e174af70d3d5e",
+      "latestAcceptedSource": "02c782552d9b24423d8a9f61dceee38d047a78ae",
+      "latestAcceptedTree": "f219ccd5e31a6bd5ead97ffc21e5454fbf7dd4b2",
+      "latestEvidence": "414d581d046adcf0fb255409224672945efea73f",
+      "latestEvidenceTree": "c7a2efd6a59615755494e0f52d50c361cc677f7c",
+      "latestEvidenceBlob": "fcf9fdc5a50b7880456cd81e2bbf8550ed970f1f",
+      "latestEvidenceSha256": "d5aca7aebf4c04a34fc1117d107139c3f431cf782184d396a19f28a4804b95be",
       "evidenceTier": "DIRECT_ISOLATED_HOSTED_INSTALL_FAIL_CLOSED_ONLY",
       "acceptedFacts": [
         "walletconnect-v2-strict-policy-source",
@@ -219,7 +219,9 @@
         "persisted-uppercase-approved-account-fails-walletconnect-persistence-corrupt",
         "pending-request-id-control-characters-rejected-at-runtime",
         "persisted-control-character-request-id-fails-walletconnect-persistence-corrupt",
-        "pending-request-id-128-byte-and-whitespace-restrictions-retained"
+        "pending-request-id-128-byte-and-whitespace-restrictions-retained",
+        "expired-approve-resolve-reject-decisions-durably-purged-before-expired-error",
+        "expired-decision-callback-remains-false"
       ],
       "blockers": [
         "real-project-id-absent",
@@ -274,12 +276,26 @@
     "productionLeaseIssued": false,
     "webInstallConfirmationGranted": false
   },
+  "executionDispatch": {
+    "acceptance": "P0-173",
+    "sourceOnlyMicroHardeningIsPrimaryProgress": false,
+    "nextAcceptedProgress": "DIRECT_INSTALLED_E2E_OR_EXECUTABLE_EXTERNAL_BLOCKER",
+    "licenseReuseMustPreserveAttribution": true,
+    "metamaskImpersonationForbidden": true,
+    "pathScopedLeaseWhenPrerequisitesPass": true,
+    "currentLeaseBlockers": {
+      "web-extension": "IMMEDIATE_USER_CONFIRMATION_REQUIRED_AT_CHROME_LAUNCH_BOUNDARY",
+      "android": "NO_ELIGIBLE_PERSISTENT_OR_PHYSICAL_INSTALLED_TARGET_PROVED",
+      "ios-macos": "REAL_PROJECT_ID_RELAY_AND_ELIGIBLE_SIGNED_INSTALLED_TARGET_MISSING",
+      "desktop": "SIGNED_INSTALLED_PROVIDER_AUTHORITY_MISSING"
+    }
+  },
   "ownerActivation": [
-    {"owner":"wallet-protocol","mode":"SOURCE_AND_EVIDENCE_ONLY","safe":true},
-    {"owner":"wallet-web","mode":"SOURCE_ONLY_WAITING_IMMEDIATE_INSTALL_CONFIRMATION","safe":true},
-    {"owner":"wallet-android","mode":"SOURCE_AND_HOSTED_CI_ONLY","safe":true},
-    {"owner":"wallet-ios-macos","mode":"HOSTED_CI_AND_MAIN_REGISTRATION_ONLY","safe":true},
-    {"owner":"wallet-desktop","mode":"SOURCE_AND_ARTIFACT_AUDIT_ONLY","safe":true}
+    {"owner":"wallet-protocol-router","mode":"RUNTIME_SUPPORT_OR_EXACT_BLOCKER_NO_RECEIPT_CHURN","safe":true},
+    {"owner":"wallet-web","mode":"PREPARE_DIRECT_INSTALLED_E2E_AND_REQUEST_IMMEDIATE_CONFIRMATION","safe":true},
+    {"owner":"wallet-android","mode":"ELIGIBLE_DEVICE_PREFLIGHT_OR_EXACT_BLOCKER","safe":true},
+    {"owner":"wallet-ios-macos","mode":"REAL_WALLETCONNECT_PREREQUISITE_PREFLIGHT_OR_EXACT_BLOCKER","safe":true},
+    {"owner":"wallet-desktop","mode":"SIGNED_INSTALL_PREFLIGHT_OR_EXACT_BLOCKER","safe":true}
   ],
   "truth": {
     "installedProviderComplete": false,

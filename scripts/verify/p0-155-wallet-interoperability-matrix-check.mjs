@@ -7,6 +7,7 @@ const path = new URL("../../release/integration/p0-wallet-connectivity/wallet-me
 const matrix = JSON.parse(fs.readFileSync(path, "utf8"));
 
 assert.equal(matrix.taskId, "P0-155");
+assert.equal(matrix.status, "P0_HIGHEST_PRIORITY_DIRECT_INSTALLED_INTEROP_DISPATCH_NO_EXECUTION_LEASE");
 assert.equal(matrix.acceptedAuthorities.protocol, "66003e76e804da16d472255efde50cb879055b96");
 assert.equal(matrix.acceptedAuthorities.consumerSdk, "315897e75c0ffe3e63435fe73cfec42244b851cc");
 assert.equal(matrix.acceptedAuthorities.sharedProviderSource, "98c6d5d784d212df8981a53b17118a511e246ad2");
@@ -45,6 +46,10 @@ assert.equal(matrix.controlPlaneAudit.walletPathOverlap, false);
 assert.equal(matrix.controlPlaneAudit.executionLeaseIssued, false);
 assert.equal(matrix.controlPlaneAudit.productionLeaseIssued, false);
 assert.equal(matrix.controlPlaneAudit.webInstallConfirmationGranted, false);
+assert.equal(matrix.executionDispatch.acceptance, "P0-173");
+assert.equal(matrix.executionDispatch.sourceOnlyMicroHardeningIsPrimaryProgress, false);
+assert.equal(matrix.executionDispatch.nextAcceptedProgress, "DIRECT_INSTALLED_E2E_OR_EXECUTABLE_EXTERNAL_BLOCKER");
+assert.equal(matrix.executionDispatch.metamaskImpersonationForbidden, true);
 assert.ok(Object.values(matrix.truth).every(value => value === false || value === "0/12"));
 
 console.log("P0-155 MetaMask-level interoperability matrix verified");
