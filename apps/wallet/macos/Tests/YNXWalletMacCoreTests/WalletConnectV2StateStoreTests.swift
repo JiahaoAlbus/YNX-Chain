@@ -121,6 +121,34 @@ final class WalletConnectV2StateStoreTests: XCTestCase {
     }
   }
 
+  func testAmbiguousDAppDisplayNamesFailClosedAtRuntimeAndRestart() throws {
+    let file = temporaryFile()
+    let store = try WalletConnectV2StateStore(fileURL: file)
+    for (id, name) in [("leading-space", " External DApp"), ("control", "External\nDApp")] {
+      let ambiguous = WalletConnectV2PendingRequest(
+        id: id, topic: topic, kind: .sessionProposal, dappClass: .external,
+        dappName: name, method: "wc_sessionPropose", paramsDigest: digest,
+        receivedAt: now.addingTimeInterval(-1), expiresAt: now.addingTimeInterval(300)
+      )
+      XCTAssertThrowsError(try store.enqueue(ambiguous, now: now)) {
+        XCTAssertEqual($0 as? WalletConnectV2StateError, .invalidRequest)
+      }
+    }
+
+    try store.enqueue(proposal(id: "persisted-name", dappClass: .external), now: now)
+    var root = try XCTUnwrap(
+      JSONSerialization.jsonObject(with: Data(contentsOf: file)) as? [String: Any]
+    )
+    var pending = try XCTUnwrap(root["pending"] as? [[String: Any]])
+    pending[0]["dappName"] = "External DApp\nApprove"
+    root["pending"] = pending
+    try JSONSerialization.data(withJSONObject: root, options: [.sortedKeys])
+      .write(to: file, options: .atomic)
+    XCTAssertThrowsError(try WalletConnectV2StateStore(fileURL: file)) {
+      XCTAssertEqual($0 as? WalletConnectV2StateError, .corruptPersistence)
+    }
+  }
+
   func testPersistedUnsupportedMethodFailsClosedAsCorrupt() throws {
     let file = temporaryFile()
     _ = try approvedStore(file: file, dappClass: .external)

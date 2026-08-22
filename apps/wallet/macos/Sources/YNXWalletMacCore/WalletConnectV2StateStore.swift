@@ -326,7 +326,10 @@ public final class WalletConnectV2StateStore: @unchecked Sendable {
 
   private static func validDAppName(_ value: String) -> Bool {
     let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-    return !trimmed.isEmpty && trimmed.utf8.count <= 160
+    return !trimmed.isEmpty
+      && value == trimmed
+      && trimmed.utf8.count <= 160
+      && trimmed.unicodeScalars.allSatisfy { !CharacterSet.controlCharacters.contains($0) }
   }
 
   private static func validPersistedState(_ state: State) -> Bool {
