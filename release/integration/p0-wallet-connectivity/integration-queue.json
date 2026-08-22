@@ -6786,6 +6786,29 @@
       "rollbackCount": 0,
       "browserPassed": true,
       "nextAction": "P0-191 is consumed and nonreusable. Preserve exact official source-bound lifecycle; installed provider, account approval, sign/tx, parity and products remain separate false gates."
+    },
+    {
+      "taskId": "P0-192",
+      "owner": "calendar",
+      "status": "ACTIVE_SINGLE_USE",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/execution/p0-192-calendar-7db160aa-inode-safe-public-recovery-lease-20260822.json",
+        "apps/calendar/**",
+        "internal/calendar/**",
+        "production:calendar-testnet.43.153.202.237.sslip.io"
+      ],
+      "dependencies": ["P0-186", "P0-191"],
+      "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-calendar-7db160aa-inode-safe-public-recovery-20260822T133900Z",
+      "expiresAt": "2026-08-22T14:09:00Z",
+      "source": "7db160aa0bd589097e63190a260a343aafe4854c",
+      "ownerHead": "75e90170af2976463e9ddce667bdc2c7b0a6a0d7",
+      "artifactSha256": "9cad944f63fb7fae49bf947166075b9617e0dac5807d9d9c43cab1791379c426",
+      "stagePath": "/var/tmp/ynx-calendar-7db160aa-p0192/ynx-calendard",
+      "backupPath": "/var/backups/ynx-chain/calendar-7db160aa-p0192-20260822T132000Z",
+      "stateInodeBinding": "ADVISORY_AT_ISSUANCE_CAPTURE_EXACT_AFTER_STOP",
+      "retryAllowed": false,
+      "accountActionsAllowed": false,
+      "nextAction": "Calendar owner executes exactly one inode-safe rollback-first attempt, returns stopped-state inode, paired backup receipts, exact public hashes and non-sensitive browser evidence, then consumes/releases P0-192."
     }
   ]
 }

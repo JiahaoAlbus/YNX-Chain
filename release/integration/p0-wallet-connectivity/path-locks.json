@@ -1368,24 +1368,24 @@
       ]
     },
     {
-      "path": "{apps/calendar/**,internal/calendar/**,production:https://calendar-testnet.43.153.202.237.sslip.io/**,production:ynx-calendar.service,production:/usr/local/bin/ynx-calendard,production:/var/lib/ynx-chain/calendar/state.json,production:/var/lib/ynx-chain/calendar/state.json.hmac-key,production:/var/tmp/ynx-calendar-7db160aa-p0186/**,production:/var/backups/ynx-chain/calendar-7db160aa-p0186-20260822T112000Z/**}",
-      "owner": null,
+      "path": "{apps/calendar/**,internal/calendar/**,production:https://calendar-testnet.43.153.202.237.sslip.io/**,production:ynx-calendar.service,production:/usr/local/bin/ynx-calendard,production:/var/lib/ynx-chain/calendar/state.json,production:/var/lib/ynx-chain/calendar/state.json.hmac-key,production:/var/tmp/ynx-calendar-7db160aa-p0192/**,production:/var/backups/ynx-chain/calendar-7db160aa-p0192-20260822T132000Z/**}",
+      "owner": "calendar",
       "branch": "codex/calendar-fable5-completion-20260821",
       "worktree": null,
-      "taskId": "P0-186",
+      "taskId": "P0-192",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "CONSUMED_RELEASED_FAILED_CLOSED_CALENDAR_PUBLIC_RECOVERY",
-      "acquiredAt": "2026-08-22T11:16:00Z",
-      "expiresAt": "2026-08-22T11:46:00Z",
-      "releasedAt": "2026-08-22T11:29:30Z",
+      "status": "ACTIVE_SINGLE_USE",
+      "acquiredAt": "2026-08-22T13:39:00Z",
+      "expiresAt": "2026-08-22T14:09:00Z",
+      "releasedAt": null,
       "sourceCommit": "7db160aa0bd589097e63190a260a343aafe4854c",
       "sourceTree": "d72d49bc7bc6ee135cae867aa6edbe34b4cfc489",
       "artifactSha256": "9cad944f63fb7fae49bf947166075b9617e0dac5807d9d9c43cab1791379c426",
-      "productionMutationAllowed": false,
+      "productionMutationAllowed": true,
       "allowedExceptions": [
-        "P0-186 is consumed and nonreusable",
-        "zero production mutation; preserve exact state-inode drift evidence",
-        "future execution requires a wholly new lease with immediate-prewrite inode handling"
+        "one exact stage/upload and one source-owned transaction attempt only",
+        "state content/security metadata is stable; active-runtime inode is advisory and must be captured after stop",
+        "no Caddy, DNS, shared Wallet, account, signing, transaction or other-product mutation"
       ]
     }
   ]
