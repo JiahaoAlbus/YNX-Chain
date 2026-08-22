@@ -1,26 +1,46 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ $# -ne 3 ]]; then
-  echo "usage: $0 <signed-immutable-archive-path> <signed-run-directory> <signed-loopback-port>" >&2
+if [[ $# -ne 6 ]]; then
+  echo "usage: $0 <signed-carrier-root> <signed-archive-basename> <signed-carrier-stat> <signed-archive-stat> <signed-run-directory> <signed-loopback-port>" >&2
   exit 64
 fi
 
-archive=$1
-run_dir=$2
-port=$3
+carrier_root=$1
+archive_name=$2
+carrier_stat=$3
+archive_stat=$4
+run_dir=$5
+port=$6
 archive_sha=d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d
 binary_sha=cccdae8ae5b5f694ca7db68540da30582564ff741978e616f7435d448a20fe3e
 run_root=/opt/ynx/preflight/finance/runs
+artifact_root=/opt/ynx/preflight/finance/artifacts
 candidate_pid=''
 mock_pid=''
 
-case "$archive" in /opt/ynx/preflight/finance/artifacts/sha256-d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d/*) ;; *) exit 65;; esac
+case "$carrier_root" in "$artifact_root"/*) ;; *) exit 65;; esac
+carrier_name=${carrier_root#"$artifact_root"/}
+case "$carrier_name" in p0[0-9][0-9][0-9]|p0[0-9][0-9][0-9][0-9]* ) ;; *) exit 65;; esac
+test "$archive_name" = ynx-finance-7824af677dd0-linux-amd64-p0146.tar.gz
+for signed_stat in "$carrier_stat" "$archive_stat"; do [[ "$signed_stat" =~ ^[0-9]+:[0-9]+:[0-7]{3,4}:[1-9][0-9]*$ ]] || exit 65; done
+test -d "$artifact_root" && test ! -L "$artifact_root"
+test -d "$carrier_root" && test ! -L "$carrier_root"
+artifact_root_real=$(realpath -e "$artifact_root")
+carrier_root_real=$(realpath -e "$carrier_root")
+test "$carrier_root_real" = "$artifact_root_real/$carrier_name"
+test "$(stat -Lc '%u:%g:%a:%h' "$carrier_root")" = "$carrier_stat"
+carrier_digest_dir="$carrier_root/sha256-$archive_sha"
+test -d "$carrier_digest_dir" && test ! -L "$carrier_digest_dir"
+test "$(realpath -e "$carrier_digest_dir")" = "$carrier_root_real/sha256-$archive_sha"
+archive="$carrier_digest_dir/$archive_name"
+test -f "$archive" && test ! -L "$archive"
+test "$(realpath -e "$archive")" = "$carrier_root_real/sha256-$archive_sha/$archive_name"
+test "$(stat -Lc '%u:%g:%a:%h' "$archive")" = "$archive_stat"
 case "$run_dir" in "$run_root"/*) ;; *) exit 65;; esac
 case "$port" in *[!0-9]*|'') exit 65;; esac
 test "$port" -ge 1024 && test "$port" -le 65535
 test "$(uname -m)" = x86_64
-test -f "$archive" && test ! -L "$archive"
 test "$(sha256sum "$archive" | awk '{print $1}')" = "$archive_sha"
 test ! -e "$run_dir" && test ! -L "$run_dir"
 if command -v ss >/dev/null 2>&1; then
