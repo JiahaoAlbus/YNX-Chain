@@ -176,10 +176,17 @@ public final class WalletConnectV2StateStore: @unchecked Sendable {
     now: Date = Date()
   ) throws -> WalletConnectV2Callback {
     try withLockedState { state in
-      guard let request = state.pending.first(where: { $0.id == requestID }),
-            request.kind == .sessionProposal,
-            request.expiresAt > now else {
+      guard let index = state.pending.firstIndex(where: { $0.id == requestID }) else {
         throw WalletConnectV2StateError.requestUnavailable
+      }
+      let request = state.pending[index]
+      guard request.kind == .sessionProposal else {
+        throw WalletConnectV2StateError.requestUnavailable
+      }
+      if request.expiresAt <= now {
+        state.pending.remove(at: index)
+        try persist(state)
+        throw WalletConnectV2StateError.expiredRequest
       }
       let accountParts = approval.account.split(separator: ":", maxSplits: 2).map(String.init)
       guard approval.chain == WalletConnectV2Policy.chain,
@@ -221,8 +228,14 @@ public final class WalletConnectV2StateStore: @unchecked Sendable {
     now: Date = Date()
   ) throws -> WalletConnectV2Callback {
     try withLockedState { state in
-      guard let request = state.pending.first(where: { $0.id == requestID }) else {
+      guard let index = state.pending.firstIndex(where: { $0.id == requestID }) else {
         throw WalletConnectV2StateError.requestUnavailable
+      }
+      let request = state.pending[index]
+      if request.expiresAt <= now {
+        state.pending.remove(at: index)
+        try persist(state)
+        throw WalletConnectV2StateError.expiredRequest
       }
       guard request.kind == .sessionRequest,
             let session = state.sessions.first(where: { $0.topic == request.topic }),
@@ -242,8 +255,14 @@ public final class WalletConnectV2StateStore: @unchecked Sendable {
 
   public func reject(requestID: String, now: Date = Date()) throws -> WalletConnectV2Callback {
     try withLockedState { state in
-      guard let request = state.pending.first(where: { $0.id == requestID }) else {
+      guard let index = state.pending.firstIndex(where: { $0.id == requestID }) else {
         throw WalletConnectV2StateError.requestUnavailable
+      }
+      let request = state.pending[index]
+      if request.expiresAt <= now {
+        state.pending.remove(at: index)
+        try persist(state)
+        throw WalletConnectV2StateError.expiredRequest
       }
       _ = try Self.take(requestID, kind: request.kind, now: now, from: &state)
       try persist(state)

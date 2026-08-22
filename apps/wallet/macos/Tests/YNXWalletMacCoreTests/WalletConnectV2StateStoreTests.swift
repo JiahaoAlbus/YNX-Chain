@@ -226,6 +226,42 @@ final class WalletConnectV2StateStoreTests: XCTestCase {
     }
   }
 
+  func testExpiredDecisionEntriesArePurgedBeforeFailClosedRestart() throws {
+    let expiredNow = now.addingTimeInterval(301)
+
+    let proposalFile = temporaryFile()
+    let proposalStore = try WalletConnectV2StateStore(fileURL: proposalFile)
+    try proposalStore.enqueue(proposal(id: "expired-approval", dappClass: .external), now: now)
+    let approval = try WalletConnectV2Policy.approve(
+      requiredChains: [WalletConnectV2Policy.chain], requiredMethods: ["personal_sign"],
+      requiredEvents: [], approvedAccount: account
+    )
+    XCTAssertThrowsError(
+      try proposalStore.approveProposal(requestID: "expired-approval", approval: approval, now: expiredNow)
+    ) {
+      XCTAssertEqual($0 as? WalletConnectV2StateError, .expiredRequest)
+    }
+    XCTAssertTrue(try WalletConnectV2StateStore(fileURL: proposalFile).restoredPending(now: now).isEmpty)
+
+    for action in ["resolve", "reject"] {
+      let file = temporaryFile()
+      let store = try approvedStore(file: file, dappClass: .external)
+      try store.enqueue(sessionRequest(id: action, method: "personal_sign", dappClass: .external), now: now)
+      if action == "resolve" {
+        XCTAssertThrowsError(
+          try store.resolveRequest(requestID: action, executionResult: "0x" + String(repeating: "1", count: 130), now: expiredNow)
+        ) {
+          XCTAssertEqual($0 as? WalletConnectV2StateError, .expiredRequest)
+        }
+      } else {
+        XCTAssertThrowsError(try store.reject(requestID: action, now: expiredNow)) {
+          XCTAssertEqual($0 as? WalletConnectV2StateError, .expiredRequest)
+        }
+      }
+      XCTAssertTrue(try WalletConnectV2StateStore(fileURL: file).restoredPending(now: now).isEmpty)
+    }
+  }
+
   func testPersistedUnsupportedMethodFailsClosedAsCorrupt() throws {
     let file = temporaryFile()
     _ = try approvedStore(file: file, dappClass: .external)
