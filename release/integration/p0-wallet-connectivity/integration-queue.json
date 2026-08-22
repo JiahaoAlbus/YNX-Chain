@@ -6590,7 +6590,7 @@
     {
       "taskId": "P0-185",
       "owner": "integration,wallet-web,website",
-      "status": "ACTIVE_SINGLE_USE",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_HOSTED_CHROMIUM_IMMUTABLE_CANDIDATE_PREFLIGHT",
       "paths": [
         "release/integration/p0-wallet-connectivity/leases/wallet-web-v11-source-bound-readiness-preflight-p0185-20260822.json",
         ".github/workflows/wallet-web-public-preflight-p0.yml",
@@ -6599,19 +6599,26 @@
       "dependencies": ["P0-183"],
       "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-web-v11-source-bound-readiness-preflight-20260822T104600Z",
       "expiresAt": "2026-08-22T11:16:00Z",
-      "releasedAt": null,
+      "releasedAt": "2026-08-22T11:02:00Z",
       "source": "abe18043259374ee58f90580af582100ab0649cd",
       "ownerRemoteParent": "dfa1deb56f532bf985dbba20ee4b16acf2eb243f",
       "workflowCommit": "a8f97deeb0040e178a35b455bd89885f5f6fd1f9",
       "candidateDeployment": "dpl_AqRgvgb2fwb23fQb4GDN3Qg1vCmN",
       "candidateImmutableUrl": "https://wallet-3tjtzd8sy-jiahaoalbus-projects.vercel.app",
       "aliasMutationAllowed": false,
-      "workflowPushAllowedExactlyOnce": true,
-      "hostedRunAllowedExactlyOnce": true,
+      "workflowPushAllowedExactlyOnce": false,
+      "hostedRunAllowedExactlyOnce": false,
       "ssoRestoreRequired": true,
+      "actionsRunId": 32568870997,
+      "actionsJobId": 97021373954,
+      "actionsConclusion": "failure",
+      "artifactId": 9474798791,
+      "serviceWorkerControlled": false,
+      "legacyV8Purged": false,
+      "secondLaunchPassed": false,
       "currentSourceBoundPublic": false,
       "productsConnected": "0/12",
-      "nextAction": "Execute only the ordered SSO window, exact literal push and unique hosted Chromium run; restore SSO on every terminal path and return direct evidence or fail closed."
+      "nextAction": "Do not reuse P0-185. Repair service-worker control and legacy-v8 purge, then request a wholly new independently reviewed hosted-browser lease."
     }
   ]
 }

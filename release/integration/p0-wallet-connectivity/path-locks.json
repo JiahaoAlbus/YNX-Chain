@@ -1333,38 +1333,38 @@
     },
     {
       "path": "vercel-project:prj_K4emrdkST7sdb0K9mhmLM0QZh0I3:ssoProtection",
-      "owner": "website",
+      "owner": null,
       "branch": "codex/wallet-web-pwa-extensions-20260813",
       "worktree": "/Users/huangjiahao/.codex/worktrees/1274/YNX Chain",
       "taskId": "P0-185",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE_SINGLE_USE",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_HOSTED_CHROMIUM_IMMUTABLE_CANDIDATE_PREFLIGHT",
       "acquiredAt": "2026-08-22T10:46:00Z",
       "expiresAt": "2026-08-22T11:16:00Z",
-      "releasedAt": null,
-      "productionMutationAllowed": "EXACT_TEMPORARY_SSO_DISABLE_AND_RESTORE_ONLY",
+      "releasedAt": "2026-08-22T11:02:00Z",
+      "productionMutationAllowed": false,
       "allowedExceptions": [
-        "disable wallet-web SSO once for exact dpl_AqRgvgb2fwb23fQb4GDN3Qg1vCmN hosted run",
-        "restore SSO once on every terminal path",
-        "no alias or other Vercel setting mutation"
+        "P0-185 is consumed and nonreusable",
+        "SSO is restored to prod_deployment_urls_and_all_previews",
+        "no new protection window without a wholly new lease"
       ]
     },
     {
       "path": ".github/workflows/wallet-web-public-preflight-p0.yml",
-      "owner": "wallet-web",
+      "owner": null,
       "branch": "codex/wallet-web-pwa-extensions-20260813",
       "worktree": "/Users/huangjiahao/.codex/worktrees/1274/YNX Chain",
       "taskId": "P0-185",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE_SINGLE_USE",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_HOSTED_CHROMIUM_IMMUTABLE_CANDIDATE_PREFLIGHT",
       "acquiredAt": "2026-08-22T10:46:00Z",
       "expiresAt": "2026-08-22T11:16:00Z",
-      "releasedAt": null,
+      "releasedAt": "2026-08-22T11:02:00Z",
       "productionMutationAllowed": false,
       "allowedExceptions": [
-        "push only reviewed commit a8f97deeb0040e178a35b455bd89885f5f6fd1f9 once with the exact literal refspec",
-        "one path-filtered push run only; no dispatch or retry",
-        "RUNNER_TEMP isolated artifact only; no repository evidence upload"
+        "P0-185 workflow push and run quotas are consumed",
+        "preserve run 32568870997 and artifact 9474798791 as immutable evidence",
+        "no retry, dispatch or further workflow mutation under P0-185"
       ]
     }
   ]

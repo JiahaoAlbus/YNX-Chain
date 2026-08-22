@@ -1,26 +1,26 @@
 {
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "epoch": 88,
-  "updatedAt": "2026-08-22T10:46:00Z",
+  "epoch": 89,
+  "updatedAt": "2026-08-22T11:02:00Z",
   "heavy": {
-    "owner": "wallet-web+website",
-    "status": "ACTIVE_SINGLE_USE",
+    "owner": null,
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_HOSTED_CHROMIUM_IMMUTABLE_CANDIDATE_PREFLIGHT",
     "branch": "codex/wallet-web-pwa-extensions-20260813",
     "worktree": "/Users/huangjiahao/.codex/worktrees/1274/YNX Chain",
     "taskId": "P0-185",
     "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-web-v11-source-bound-readiness-preflight-20260822T104600Z",
     "leasedAt": "2026-08-22T10:46:00Z",
     "expiresAt": "2026-08-22T11:16:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-22T11:02:00Z",
     "previousOwner": null,
     "previousTaskId": "P0-183",
     "previousCheckpoint": "24bbc37f8a56004c6005f00d0777180c2dff4e68",
     "executionScope": "V11_SOURCE_BOUND_IMMUTABLE_CANDIDATE_HOSTED_CHROMIUM_READINESS_NO_ALIAS",
-    "releaseReason": null,
+    "releaseReason": "The unique hosted run passed exact raw resources, no-store headers and rendered English UI, but service-worker control was null, v8 remained beside v11, and the second persistent-profile launch did not pass. SSO was restored and the official alias remained unchanged.",
     "onSafeCheckpoint": [
-      "disable and restore wallet-web SSO exactly once around the unique run",
-      "execute only the exact literal a8f97dee refspec push once force=false",
-      "collect isolated direct hosted Chromium evidence without alias or product mutation"
+      "do not reuse P0-185 or infer immutable-candidate browser acceptance",
+      "repair service-worker control and deterministic legacy-v8 cache purge",
+      "require a wholly new independently reviewed candidate and lease before another hosted run"
     ]
   },
   "light": {
