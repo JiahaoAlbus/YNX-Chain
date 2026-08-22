@@ -742,6 +742,15 @@ test("owner checkpoint separates Wallet public artifacts from approval and Produ
   assert.equal(platform.latestMacosOwnerEvidence.iosBiometricPositiveFix.repairImplementationCommit, "560d801b9a2d3cd856b3dfdbdc8d66aa3114d1b5");
   assert.equal(platform.latestMacosOwnerEvidence.iosBiometricPositiveFix.failureEvidenceSha256, "c7e8d102e8edd8dffc94d54703323360b1bdad202e7deed9769e8ed8aefbfa79");
   assert.equal(platform.latestMacosOwnerEvidence.iosBiometricPositiveFix.biometricPositivePromoted, false);
+  assert.equal(platform.latestMacosOwnerEvidence.iosBiometricTerminalFailure.evidenceCommit, "cdac464e9fd09c42ad921e5a9d7f5304b912348d");
+  assert.equal(platform.latestMacosOwnerEvidence.iosBiometricTerminalFailure.sha256, "56f519c592563a5ca1f7235e2c4c913d733399636f740352b942e5932ba2fc00");
+  assert.equal(platform.latestMacosOwnerEvidence.iosBiometricTerminalFailure.terminalStatus, "FAILURE");
+  assert.equal(platform.latestMacosOwnerEvidence.iosBiometricTerminalFailure.biometricPositivePromoted, false);
+  assert.equal(platform.latestMacosOwnerEvidence.iosWalletConnectV2DecisionState.implementationCommit, "e829f38b9f35d47be1afd924cf609cf2e59e3be7");
+  assert.equal(platform.latestMacosOwnerEvidence.iosWalletConnectV2DecisionState.hostedRunStatus, "IN_PROGRESS");
+  assert.equal(platform.latestMacosOwnerEvidence.iosWalletConnectV2DecisionState.walletJsTests, "40/40");
+  assert.equal(platform.latestMacosOwnerEvidence.iosWalletConnectV2DecisionState.relay, false);
+  assert.equal(platform.latestMacosOwnerEvidence.iosWalletConnectV2DecisionState.approveReject, false);
   assert.equal(platform.modifiedByProtocolOwner, false);
   assert.equal(ownerActivityCheckpoint.summary.threeSegmentCompleteProducts, 0);
 });
