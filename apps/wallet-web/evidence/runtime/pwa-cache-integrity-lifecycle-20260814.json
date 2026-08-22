@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "sourceCommit": "76c053911c9584ef957d5e97d318a9d7c26d95e2",
-  "generatedAt": "2026-08-22T09:12:09.551Z",
+  "sourceCommit": "abe18043259374ee58f90580af582100ab0649cd",
+  "generatedAt": "2026-08-22T09:35:23.894Z",
   "runtimeClass": "Playwright bundled Chromium-compatible persistent PWA profile; not branded Chrome/Edge and not an installed PWA",
   "passed": true,
   "liveRpcProved": false,
@@ -59,8 +59,8 @@
   },
   "artifact": {
     "name": "ynx-wallet-web-pwa-0.1.0.zip",
-    "bytes": 285286,
-    "sha256": "447ca546b350cb6fca50e063d18b6dc9c087714b348a16bfc1948db0da833816",
+    "bytes": 285569,
+    "sha256": "fb6525430ba7432bc088a0a4b4b662c447419dc102f70fdb943f085cc3fd8b29",
     "minimumOS": "modern browser with Service Worker and Web Crypto support",
     "signingClass": "unsigned-web-bundle"
   }
