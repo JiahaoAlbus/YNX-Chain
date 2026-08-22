@@ -270,7 +270,7 @@
     {
       "taskId": "P0-011",
       "owner": "integration",
-      "status": "IDENTITY_SPLIT_CAPABILITY_CONSUMED_OWNER_RECORDS_REQUIRED",
+      "status": "LOCK_RELEASED_CHECKPOINT_PRESERVED_ACTIVATION_STILL_BLOCKED",
       "paths": [
         "Shop Android release, Wallet/Auth retirement enforcement and website routes"
       ],
@@ -5903,17 +5903,22 @@
     {
       "taskId": "P0-149",
       "owner": "shop",
-      "status": "WAITING_EXTERNAL_CONNECTOR_QUEUED_AFTER_NATIVE_REGISTRATION",
+      "status": "ACTIVE_SOURCE_BUILD_ONLY_ROUTER_E2E_NO_DEPLOYMENT",
       "paths": [
         "apps/shop/**",
         "https://shop.ynxweb4.com/**"
       ],
       "acceptedSharedSource": "98c6d5d784d212df8981a53b17118a511e246ad2",
-      "blocker": "SHOP_OWNER_MCP_-32603_NO_WORKSPACE_ACCESS",
+      "routerPlan": "875be208e8a7ddb60345d55b93fc299949664e5c",
+      "branch": "codex/final-shop",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/09-shop",
+      "checkpointCommit": "e86b190fecc039a44a43baff1389ed4d72d7c392",
+      "preservedRetirementCheckpoint": "7b91f2120e7850a91be101b5ca7148dfb36beda6",
+      "blocker": null,
       "productionMutationAllowed": false,
       "productsConnected": "0/12",
       "productsMigratedV2": "0/12",
-      "nextAction": "After native main-registration closes, Integration performs a fresh Shop writable-lock audit and may take one rollback-bound cross-owner patch; no completion is inferred."
+      "nextAction": "Shop owner may implement and test only the connected-account/details/disconnect/switch and chooser/language source slice, then return a clean pushed checkpoint. A separate deployment lease and direct public E2E are still mandatory."
     },
     {
       "taskId": "P0-150",

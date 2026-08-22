@@ -631,7 +631,9 @@
       "branch": "codex/p0-shop-android-retirement-20260820",
       "worktree": "09-shop",
       "taskId": "P0-011",
-      "status": "ACTIVE",
+      "status": "RELEASED_CHECKPOINT_PRESERVED_DIVERGENT_BRANCH",
+      "releasedAt": "2026-08-22T08:08:28Z",
+      "checkpointCommit": "7b91f2120e7850a91be101b5ca7148dfb36beda6",
       "allowedExceptions": [
         "historical-evidence-preservation"
       ]
@@ -1277,20 +1279,20 @@
     {
       "path": "apps/shop/**",
       "owner": "shop",
-      "branch": null,
-      "worktree": null,
+      "branch": "codex/final-shop",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/09-shop",
       "taskId": "P0-149",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "WAITING_EXTERNAL_CONNECTOR_AND_ACTIVE_P0011_LOCK",
+      "status": "ACTIVE_SOURCE_BUILD_ONLY_ROUTER_E2E_NO_DEPLOYMENT",
       "productionMutationAllowed": false,
-      "blocker": "SHOP_OWNER_MCP_-32603_NO_WORKSPACE_ACCESS; authoritative apps/shop lock P0-011 remains ACTIVE under integration at codex/p0-shop-android-retirement-20260820 worktree 09-shop",
-      "blockingLockTaskId": "P0-011",
-      "blockingLockOwner": "integration",
-      "blockingLockBranch": "codex/p0-shop-android-retirement-20260820",
-      "blockingLockWorktree": "09-shop",
+      "checkpointCommit": "e86b190fecc039a44a43baff1389ed4d72d7c392",
+      "preservedRetirementBranch": "codex/p0-shop-android-retirement-20260820@7b91f2120e7850a91be101b5ca7148dfb36beda6",
+      "blocker": null,
       "acceptedSharedSource": "98c6d5d784d212df8981a53b17118a511e246ad2",
       "allowedExceptions": [
-        "Integration may take a minimal cross-owner patch only after current native main-registration transaction closes and a fresh Shop writable-lock audit passes"
+        "Shop owner may modify only apps/shop source, tests and product-owned evidence",
+        "consume Router 875be208 and shared provider 98c6d5d7 without recreating protocol",
+        "no deployment, Website route, Wallet, Card or other product mutation"
       ]
     },
     {
