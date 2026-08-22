@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "productId": "pay",
+  "evidenceClass": "source-bound-static-web-candidate-nonsensitive",
+  "source": {
+    "commit": "5f4ce98eb458550b976c17e3bc6d77cce4081a59",
+    "tree": "8f0c25c4d86eb22a564f3c7aeff9db6709a9b9f0",
+    "parent": "dbdd3491e63186cc02541ca7e8a20d8f098b31b9"
+  },
+  "artifact": {
+    "path": "release/pay/ynx-pay-web-5f4ce98e-static.tar.gz",
+    "bytes": 608368,
+    "sha256": "ae552951d8e569f04aced60db69e3c11422910cc1098a6e7061b0e84005ad09e",
+    "format": "deterministic-gnu-tar-gzip-static-web-root",
+    "containsBuildIdentity": true,
+    "containsReleaseManifest": true,
+    "manifestFilesVerified": 7
+  },
+  "supersededMixedPlatformExport": {
+    "pathAtAudit": "/tmp/ynx-pay-owner.UqsMh4/artifacts/pay-dbdd3491-expo-export-20260822.tgz",
+    "bytes": 3413529,
+    "sha256": "f73e6edf637222943969368ece8c1811f82a6f0a932fef9beac9005416217d77",
+    "boundary": "Expo export contains native bundles and a web tree, but it is neither an installable native package nor source-identified public carrier."
+  },
+  "minimalRuntimeRepair": {
+    "blocker": "EXPO_SECURE_STORE_WEB_RUNTIME_UNAVAILABLE",
+    "observedConsoleError": "TypeError: deleteValueWithKeyAsync is not a function",
+    "repair": "Use origin-scoped Web Storage only for non-secret Pay product state on web; retain device-only Expo SecureStore on native.",
+    "walletSecretsStoredByPay": false
+  },
+  "validation": {
+    "typecheck": "pass",
+    "tests": "17/17",
+    "freshExactTarExtraction": true,
+    "manifestHashes": "7/7",
+    "coldLaunch": {
+      "visibleEnglish": true,
+      "singleTab": true,
+      "consoleErrors": 0,
+      "customSchemeOpened": false
+    },
+    "secondLaunchSameProfile": {
+      "visibleEnglish": true,
+      "singleTab": true,
+      "consoleErrors": 0
+    },
+    "signInWithoutInjectedProvider": "Waiting for Wallet",
+    "accountRequested": false,
+    "signatureRequested": false,
+    "transactionRequested": false
+  },
+  "publicBaseline": {
+    "url": "https://pay.ynxweb4.com/",
+    "dnsA": "43.153.202.237",
+    "httpStatus": 404,
+    "bytes": 19,
+    "sha256": "b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793",
+    "server": "Caddy",
+    "sourceBoundPublic": false
+  },
+  "truth": {
+    "sourceImplemented": true,
+    "deterministicStaticCarrier": true,
+    "localExtractedColdSecondVisible": true,
+    "publicDeployment": false,
+    "installedProvider": false,
+    "approvedAccount": false,
+    "chainReadback0x1917": false,
+    "signOrTransaction": false
+  }
+}

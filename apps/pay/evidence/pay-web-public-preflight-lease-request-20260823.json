@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "requestType": "pay-only-read-only-production-preflight-lease",
+  "productId": "pay",
+  "owner": "pay",
+  "sourceCommit": "5f4ce98eb458550b976c17e3bc6d77cce4081a59",
+  "sourceTree": "8f0c25c4d86eb22a564f3c7aeff9db6709a9b9f0",
+  "candidate": {
+    "path": "release/pay/ynx-pay-web-5f4ce98e-static.tar.gz",
+    "bytes": 608368,
+    "sha256": "ae552951d8e569f04aced60db69e3c11422910cc1098a6e7061b0e84005ad09e"
+  },
+  "target": {
+    "origin": "https://pay.ynxweb4.com",
+    "host": "43.153.202.237",
+    "currentRootResponse": {
+      "status": 404,
+      "bytes": 19,
+      "sha256": "b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793"
+    }
+  },
+  "requestedScope": {
+    "productionWritesAllowed": false,
+    "readOnlyHostAccess": true,
+    "paths": [
+      "Caddy effective configuration and pay.ynxweb4.com route",
+      "current Pay static document root or explicit absence",
+      "current Pay service/upstream bindings that must be preserved"
+    ],
+    "requiredReceipts": [
+      "effective Caddy configuration bytes and SHA-256",
+      "exact pay.ynxweb4.com host stanza and active config digest",
+      "current static root path or signed absence receipt",
+      "current root device/inode/owner/mode/nlink/bytes/tree digest when present",
+      "immutable rollback archive bytes/SHA-256 and restore command when present",
+      "all existing API, health, callback and merchant routes that a static fallback must preserve",
+      "single eligible deployment executor identity"
+    ]
+  },
+  "futureDeploymentContractAfterSeparateLease": {
+    "releaseRoot": "/opt/ynx-pay-web/releases/5f4ce98eb458550b976c17e3bc6d77cce4081a59",
+    "candidateMustBeExtractedIntoEmptyUniquePath": true,
+    "candidateManifestMustVerifyBeforeSwitch": true,
+    "existingDynamicRoutesMustRemainByteEquivalent": true,
+    "staticRoute": "host-root fallback for Pay web only, after existing exact dynamic routes",
+    "rollback": "Restore the pre-switch effective Caddy bytes and the captured prior static root/absence state, reload, then re-prove the original root response and every preserved route.",
+    "postSwitchGates": [
+      "official root and build-identity HTTP 200 with exact source",
+      "all manifest files HTTP 200 with exact bytes/SHA-256",
+      "clean hosted Chromium default English, one tab, stable URL and console error count zero",
+      "second launch remains visible and source-bound",
+      "no account, signature or transaction action"
+    ]
+  },
+  "localReadOnlyHostAttempt": {
+    "result": "permission-denied",
+    "errorClass": "SSH_AUTHENTICATION_UNAVAILABLE",
+    "productionMutation": false
+  },
+  "singleExecutableBlocker": "PAY_PUBLIC_HOST_READONLY_BASELINE_AND_ROLLBACK_UNAVAILABLE",
+  "truthBoundary": "This request freezes a source-bound static carrier and asks only for protected read-only baseline capture. It is not a deployment lease and proves no public, installed-provider, account, signing or transaction state."
+}
