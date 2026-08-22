@@ -7019,6 +7019,32 @@
       "productionMutationAllowed": false,
       "sensitiveActionsAllowed": false,
       "nextAction": "Do not reuse P0-197. A successor requires a wholly new Calendar-only lease bound to current parent 306dc419 and one sole-workflow correction accepting exact parsed.build.commit; production and sensitive actions remain forbidden."
+    },
+    {
+      "taskId": "P0-198",
+      "owner": "calendar",
+      "status": "ACTIVE_SINGLE_USE",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/execution/p0-198-calendar-public-hosted-browser-schema-fix-lease-20260822.json",
+        "branch:codex/calendar-fable5-completion-20260821:.github/workflows/calendar-public-browser-preflight-p0.yml",
+        "https://calendar-testnet.43.153.202.237.sslip.io/**"
+      ],
+      "dependencies": ["P0-197"],
+      "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-calendar-public-hosted-browser-schema-fix-20260822T162400Z",
+      "expiresAt": "2026-08-22T16:54:00Z",
+      "remoteParent": "306dc4196bd025e0a60636ad5a5f8ae635bf5732",
+      "candidate": "7a3fb59ab59dcfc9868feb7a030dd85093a168cf",
+      "candidateTree": "01fa577b292a4b395eb10d9b80722f30cdf42ac0",
+      "workflowBlob": "2720d63289531217be3e65013d8e7ec7bf97ffd7",
+      "workflowSha256": "890fb7e1f5993ae92343befa4c95b136c8e1612724bdab7025a9b671f98ce2ab",
+      "literalRefspec": "7a3fb59ab59dcfc9868feb7a030dd85093a168cf:refs/heads/codex/calendar-fable5-completion-20260821",
+      "commitLimit": 1,
+      "pushLimit": 1,
+      "hostedRunLimit": 1,
+      "retryAllowed": false,
+      "productionMutationAllowed": false,
+      "sensitiveActionsAllowed": false,
+      "nextAction": "Execute the exact literal-refspec push once, bind the unique push run, and return direct hosted evidence or fail closed before expiry."
     }
   ]
 }
