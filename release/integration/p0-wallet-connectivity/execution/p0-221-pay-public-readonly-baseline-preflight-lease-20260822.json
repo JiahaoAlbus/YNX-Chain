@@ -5,13 +5,13 @@
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-pay-public-readonly-baseline-preflight-20260822T214800Z",
   "owner": "pay",
   "executor": "pay-production-readonly-audit",
-  "status": "ACTIVE_SINGLE_USE",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_PAY_PUBLIC_READONLY_BASELINE_PREFLIGHT_REMOTE_TMP_WRITE",
   "issuedAt": "2026-08-22T21:48:00Z",
   "expiresAt": "2026-08-22T22:18:00Z",
-  "releasedAt": null,
+  "releasedAt": "2026-08-22T21:54:00Z",
   "singleUse": true,
   "reusable": false,
-  "executionAuthorized": true,
+  "executionAuthorized": false,
   "productionWritesAllowed": false,
   "productionMutationAllowed": false,
   "scope": "Pay-only protected-host read-only production baseline, routing and rollback-state inventory; no deployment, installation or runtime mutation",
@@ -127,9 +127,47 @@
     "Pay source, UI, project settings or any other product mutation",
     "public, installed-provider, account, signing, transaction or product-completion promotion"
   ],
+  "executionOutcome": {
+    "result": "FAIL_CLOSED",
+    "reason": "REMOTE_TMP_WRITE_VIOLATED_ABSOLUTE_ZERO_REMOTE_WRITE_CONTRACT",
+    "retryCount": 0,
+    "deploymentCount": 0,
+    "installCount": 0,
+    "accountRequestCount": 0,
+    "signingCount": 0,
+    "transactionCount": 0,
+    "disclosedRemoteMutation": {
+      "path": "/tmp/tmp.7s0khxcCzL",
+      "createdOnce": true,
+      "deletedOnceByExitCleanup": true,
+      "directFinalReadback": "ABSENT",
+      "productionConfigRuntimePathTouched": false
+    },
+    "zeroWriteAuditPassed": false,
+    "successStatusClaimed": false,
+    "directPostFailureRuntime": {
+      "service": "ynx-payd",
+      "state": "active/running",
+      "pid": 2734498,
+      "nRestarts": 0,
+      "caddyAndSourceHashesUnchanged": true
+    },
+    "preservedReadOnlyReceipts": {
+      "caddyEntry": "/etc/caddy/Caddyfile 928B root:root 0644 nlink1 SHA256 077fe80ea9aab24a32d64ba1fab3584e8aab10304e200e58d976d2c33edfb39f",
+      "caddyAdapt": "25233B SHA256 f36d4ace086b55dfbd949fb6b2aaf837c7463f1a9b61303f270b8b885f80b213; generated from unchanged config",
+      "payRoute": "pay.ynxweb4.com is one catch-all reverse_proxy to 127.0.0.1:6430 in /etc/caddy/ynx-chain.caddy SHA256 prefix df5f7ad7; no static fallback or dedicated callback/merchant routes",
+      "futurePayStaticRoot": "/opt/ynx-pay-web signed absent; /opt parent dev 64770 inode 131076 root:root 0755 nlink13",
+      "existingPayStaticApp": "pay-app.ynxweb4.com uses /opt/ynx/pay-app-current -> /opt/ynx/pay-app-53eb677c; existing target directory is the rollback object, no separate immutable rollback archive discovered",
+      "merchantSeparation": "merchant.ynxweb4.com uses /opt/ynx/merchant-console-current and separate Caddy source SHA256 prefix 1213e915",
+      "runtime": "ynx-payd /usr/local/bin/ynx-payd SHA256 prefix 9793542d on 127.0.0.1:6430; separate pay product listens on 6484",
+      "public": "pay root 404/19B/SHA256 prefix b16e1576; health 200/589B/SHA256 prefix 4e1b7b1; version and merchant/wallet-auth/callback 404; pay-app root 200/1174B/SHA256 prefix 74c3cea0",
+      "futureExecutor": "ubuntu@43.153.202.237 strict ED25519 host key with sudo NOPASSWD ALL; future write lease must narrow exact commands"
+    },
+    "truthBoundary": "Useful read-only receipts are retained, but the remote temporary-file create/delete makes P0-221 a terminal failure and authorizes no deployment or runtime promotion."
+  },
   "terminal": {
     "successStatus": "CONSUMED_RELEASED_SUCCESS_PAY_PUBLIC_READONLY_BASELINE_AND_ROLLBACK_PREFLIGHT",
-    "failureStatus": "CONSUMED_RELEASED_FAILED_CLOSED_PAY_PUBLIC_READONLY_BASELINE_PREFLIGHT",
+    "failureStatus": "CONSUMED_RELEASED_FAILED_CLOSED_PAY_PUBLIC_READONLY_BASELINE_PREFLIGHT_REMOTE_TMP_WRITE",
     "releaseHeavyAndAllLocksOnEveryTerminalPath": true,
     "futureDeploymentRequiresWhollyNewLease": true,
     "successPromotion": "read-only production baseline and rollback mapping only"

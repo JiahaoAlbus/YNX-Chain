@@ -427,12 +427,12 @@
     }
   ],
   "heavy": {
-    "owner": "pay",
-    "taskId": "P0-221",
-    "status": "ACTIVE_SINGLE_USE",
+    "owner": null,
+    "taskId": null,
+    "status": "IDLE",
     "acquiredAt": "2026-08-22T21:48:00Z",
     "expiresAt": "2026-08-22T22:18:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-22T21:54:00Z",
     "sourceCommit": "5f4ce98eb458550b976c17e3bc6d77cce4081a59",
     "evidenceCommit": "e86198ce64a19687ff714bf9b67ddee619c2711f",
     "runtimeHost": "43.153.202.237",
@@ -444,8 +444,8 @@
     "reusable": false,
     "previousOwner": "finance",
     "previousTaskId": "P0-220",
-    "reviewDecision": "GO_PAY_PUBLIC_READONLY_BASELINE_AND_ROLLBACK_PREFLIGHT_ONLY",
-    "reason": "Central independently matched the remote Pay owner objects, deterministic 7-of-7 source-bound static carrier and current official 404/19-byte baseline, and verified strict-known-host x86_64 sudo read capability for Caddy. P0-221 authorizes only protected read-only route, static-root and existing rollback-state inventory; every remote write and all deployment/account/sign/transaction authority remain forbidden."
+    "reviewDecision": "CONSUMED_RELEASED_FAILED_CLOSED_PAY_PUBLIC_READONLY_BASELINE_PREFLIGHT_REMOTE_TMP_WRITE",
+    "reason": "P0-221 is consumed and nonreusable. The audit created and deleted one remote ephemeral /tmp file while capturing caddy adapt output, violating the absolute no-remote-write contract. Direct readback proves that path absent and Pay/Caddy/runtime unchanged, but the required zero-write success audit is false. Useful read-only routing, root-absence and rollback-state receipts are preserved without any deployment/account/sign/transaction promotion; Heavy and every P0-221 lock are released."
   },
   "wave": {
     "id": "B-financial-apps-quant",
