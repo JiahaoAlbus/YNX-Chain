@@ -80,7 +80,8 @@ jobs:
           if (-not $created.visibleAuthority -or -not $created.osEncryptedCustodyVisible -or -not $created.walletConnectFailClosedVisible -or $created.walletConnectConfigured -or -not $coldEvidence.providerAuthority.accountCreated -or $coldEvidence.providerAuthority.approvedAccount -ne $created.account -or -not $coldEvidence.signingEnabled) {
             throw "provider authority creation gate failed: ui=$($created | ConvertTo-Json -Compress -Depth 8) evidence=$($coldEvidence | ConvertTo-Json -Compress -Depth 8)"
           }
-          Stop-Process -Id $cold.Id -Force
+          if (-not $cold.CloseMainWindow()) { throw 'cold launch window refused graceful close' }
+          if (-not $cold.WaitForExit(15000)) { throw 'cold launch did not exit gracefully' }
 
           Remove-Item $targets -ErrorAction SilentlyContinue
           $second = Start-Process -FilePath $appExe -ArgumentList '--remote-debugging-port=9334' -PassThru
@@ -159,7 +160,8 @@ jobs:
           node apps/wallet-desktop/scripts/walletconnect-qr-ui-gate.mjs $targets $qrImage $walletConnectUri | Set-Content $qrGate
           $qr = Get-Content $qrGate -Raw | ConvertFrom-Json
           if (-not $qr.qrDecodedLocally -or -not $qr.exactWalletConnectV2URI -or $qr.pairingPerformed -or $qr.walletConnectRelayProved) { throw 'native WalletConnect QR gate failed' }
-          Stop-Process -Id $second.Id -Force
+          if (-not $second.CloseMainWindow()) { throw 'second launch window refused graceful close' }
+          if (-not $second.WaitForExit(15000)) { throw 'second launch did not exit gracefully' }
 
           $env:YNX_WALLET_RPC_URL = 'http://127.0.0.1:1'
           $failed = Start-Process -FilePath $appExe -PassThru
@@ -169,7 +171,8 @@ jobs:
             if ($failedEvidence.launches -eq 3) { break }
           }
           if ($failedEvidence.launches -ne 3 -or $failedEvidence.rpc.available -or $failedEvidence.rpc.chainId -or -not $failedEvidence.providerAuthority.accountCreated -or $failedEvidence.transactionCreated) { throw 'RPC failure did not fail closed' }
-          Stop-Process -Id $failed.Id -Force
+          if (-not $failed.CloseMainWindow()) { throw 'fail-closed launch window refused graceful close' }
+          if (-not $failed.WaitForExit(15000)) { throw 'fail-closed launch did not exit gracefully' }
 
           $uninstaller = Join-Path $installRoot 'Uninstall YNX Wallet.exe'
           if (-not (Test-Path $uninstaller)) { throw 'uninstaller missing' }
