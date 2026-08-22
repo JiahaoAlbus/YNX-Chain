@@ -6586,6 +6586,32 @@
       "currentSourceBoundPublic": false,
       "productsConnected": "0/12",
       "nextAction": "Do not reuse P0-183. Any successor requires a wholly new lease bound to current remote head dfa1deb56f532bf985dbba20ee4b16acf2eb243f."
+    },
+    {
+      "taskId": "P0-185",
+      "owner": "integration,wallet-web,website",
+      "status": "ACTIVE_SINGLE_USE",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/leases/wallet-web-v11-source-bound-readiness-preflight-p0185-20260822.json",
+        ".github/workflows/wallet-web-public-preflight-p0.yml",
+        "vercel-project:prj_K4emrdkST7sdb0K9mhmLM0QZh0I3:ssoProtection"
+      ],
+      "dependencies": ["P0-183"],
+      "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-web-v11-source-bound-readiness-preflight-20260822T104600Z",
+      "expiresAt": "2026-08-22T11:16:00Z",
+      "releasedAt": null,
+      "source": "abe18043259374ee58f90580af582100ab0649cd",
+      "ownerRemoteParent": "dfa1deb56f532bf985dbba20ee4b16acf2eb243f",
+      "workflowCommit": "a8f97deeb0040e178a35b455bd89885f5f6fd1f9",
+      "candidateDeployment": "dpl_AqRgvgb2fwb23fQb4GDN3Qg1vCmN",
+      "candidateImmutableUrl": "https://wallet-3tjtzd8sy-jiahaoalbus-projects.vercel.app",
+      "aliasMutationAllowed": false,
+      "workflowPushAllowedExactlyOnce": true,
+      "hostedRunAllowedExactlyOnce": true,
+      "ssoRestoreRequired": true,
+      "currentSourceBoundPublic": false,
+      "productsConnected": "0/12",
+      "nextAction": "Execute only the ordered SSO window, exact literal push and unique hosted Chromium run; restore SSO on every terminal path and return direct evidence or fail closed."
     }
   ]
 }

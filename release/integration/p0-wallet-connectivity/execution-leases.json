@@ -1,26 +1,26 @@
 {
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "epoch": 87,
-  "updatedAt": "2026-08-22T10:05:02Z",
+  "epoch": 88,
+  "updatedAt": "2026-08-22T10:46:00Z",
   "heavy": {
-    "owner": null,
-    "status": "CONSUMED_RELEASED_FAILED_CLOSED_REMOTE_ADVANCED_NON_FAST_FORWARD",
+    "owner": "wallet-web+website",
+    "status": "ACTIVE_SINGLE_USE",
     "branch": "codex/wallet-web-pwa-extensions-20260813",
     "worktree": "/Users/huangjiahao/.codex/worktrees/1274/YNX Chain",
-    "taskId": "P0-183",
-    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-web-v11-no-store-hosted-browser-preflight-20260822T095800Z",
-    "leasedAt": "2026-08-22T09:58:00Z",
-    "expiresAt": "2026-08-22T10:28:00Z",
-    "releasedAt": "2026-08-22T10:05:02Z",
+    "taskId": "P0-185",
+    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-web-v11-source-bound-readiness-preflight-20260822T104600Z",
+    "leasedAt": "2026-08-22T10:46:00Z",
+    "expiresAt": "2026-08-22T11:16:00Z",
+    "releasedAt": null,
     "previousOwner": null,
-    "previousTaskId": "P0-182",
-    "previousCheckpoint": "189e6c37d79b7d26ad2c1ed40fdb6faf2b4ce205",
-    "executionScope": "V11_NO_STORE_IMMUTABLE_CANDIDATE_HOSTED_CHROMIUM_PREFLIGHT_NO_ALIAS",
-    "releaseReason": "After one SSO disable, the sole authorized force=false push was rejected non-fast-forward because the owner branch advanced. No remote workflow mutation or run occurred; SSO was restored once and the official alias remained unchanged.",
+    "previousTaskId": "P0-183",
+    "previousCheckpoint": "24bbc37f8a56004c6005f00d0777180c2dff4e68",
+    "executionScope": "V11_SOURCE_BOUND_IMMUTABLE_CANDIDATE_HOSTED_CHROMIUM_READINESS_NO_ALIAS",
+    "releaseReason": null,
     "onSafeCheckpoint": [
-      "do not reuse P0-183 or retry the rejected push",
-      "bind any successor to current remote head dfa1deb56f532bf985dbba20ee4b16acf2eb243f",
-      "require a newly reviewed workflow-only commit and wholly new lease"
+      "disable and restore wallet-web SSO exactly once around the unique run",
+      "execute only the exact literal a8f97dee refspec push once force=false",
+      "collect isolated direct hosted Chromium evidence without alias or product mutation"
     ]
   },
   "light": {
