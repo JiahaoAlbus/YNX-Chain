@@ -7059,7 +7059,7 @@
     {
       "taskId": "P0-199",
       "owner": "social",
-      "status": "ACTIVE_SINGLE_USE",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_SOCIAL_CANDIDATE_DEPLOYMENT_OR_BROWSER",
       "paths": [
         "release/integration/p0-wallet-connectivity/execution/p0-199-social-public-single-use-deployment-lease-20260822.json",
         "vercel-project:prj_QGgUyxilarbPPLZyoES83m2aneQN",
@@ -7083,7 +7083,20 @@
       "rollbackAttemptLimit": 1,
       "retryAllowed": false,
       "sensitiveActionsAllowed": false,
-      "nextAction": "Named executor must fresh-read this lease and all bindings, execute the exact carrier extraction and single candidate deployment, pass immutable candidate raw/browser gates before at most one alias, and rollback exactly once on any post-alias failure."
+      "releasedAt": "2026-08-22T16:47:36Z",
+      "candidateDeployment": "dpl_8tcTgggBktks6z8bHcRnhdjajaGR",
+      "candidateDeploymentStatus": "READY",
+      "deploymentAttemptCount": 1,
+      "retryCount": 0,
+      "candidateRawResourceGatePassed": false,
+      "candidateBrowserGatePassed": false,
+      "candidateFailure": "IMMUTABLE_CANDIDATE_CONNECTION_TIMEOUT_HTTP_000_ZERO_BYTES",
+      "aliasAttemptCount": 0,
+      "rollbackAttemptCount": 0,
+      "canonicalDeploymentConfirmed": "dpl_2sei8CpmoN1Gi5YKnc6FdvNRyXGy",
+      "canonicalUnchanged": true,
+      "sourceBoundPublic": false,
+      "nextAction": "Do not reuse P0-199. Provide an already authorized hosted executor that can reach the exact READY immutable candidate, or request a separate bounded candidate-reachability evidence lease; no public success may be inferred."
     }
   ]
 }
