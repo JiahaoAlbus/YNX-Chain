@@ -1,7 +1,7 @@
-import { WALLET_LINKS, connectWallet } from "./wallet-provider.js";
+import { WALLET_LINKS, attachWalletLifecycle, connectWallet, restoreWallet, revokeWallet, switchWalletAccount } from "./wallet-provider.js";
 
 const byId = (id) => document.getElementById(id);
-const state = { provider: null, account: null };
+const state = { provider: null, account: null, chainId: null, wallet: null, detach: () => {} };
 
 function shortAccount(value) {
   return value ? `${value.slice(0, 6)}…${value.slice(-4)}` : "";
@@ -14,13 +14,49 @@ function showStatus(message, tone = "neutral") {
 }
 
 function setConnected(result) {
+  state.detach();
   state.provider = result.provider;
   state.account = result.account;
+  state.chainId = result.chainId;
+  state.wallet = result.wallet;
   byId("wallet-dialog").close();
-  byId("connect-wallet").textContent = shortAccount(result.account);
+  byId("connect-wallet").textContent = `${result.wallet === "ynx" ? "YNX Wallet" : "MetaMask"} · ${shortAccount(result.account)}`;
   byId("connected-account").textContent = result.account;
+  byId("connected-wallet-name").textContent = result.wallet === "ynx" ? "YNX Wallet" : "MetaMask";
+  byId("connected-logo").src = result.wallet === "ynx" ? "./assets/ynx-wallet.svg" : "./assets/metamask.svg";
+  byId("connected-logo").alt = `${result.wallet === "ynx" ? "YNX Wallet" : "MetaMask"} logo`;
+  byId("connected-chain").textContent = `YNX Testnet · ${result.chainId}`;
   byId("connected-panel").hidden = false;
+  sessionStorage.setItem("ynx.social.standard-wallet.kind", result.wallet);
+  state.detach = attachWalletLifecycle(result.provider, {
+    onAccountsChanged(accounts) {
+      if (!accounts.length) return disconnect("Wallet permission was removed.");
+      state.account = accounts[0];
+      byId("connected-account").textContent = accounts[0];
+      byId("connect-wallet").textContent = `${state.wallet === "ynx" ? "YNX Wallet" : "MetaMask"} · ${shortAccount(accounts[0])}`;
+      showStatus("accountsChanged received. The approved account was updated.", "success");
+    },
+    onChainChanged(chainId) {
+      state.chainId = chainId;
+      byId("connected-chain").textContent = `${chainId === "0x1917" ? "YNX Testnet" : "Wrong network"} · ${chainId}`;
+      showStatus(chainId === "0x1917" ? "chainChanged confirmed YNX Testnet." : `chainChanged to ${chainId}. Switch back to 0x1917.`, chainId === "0x1917" ? "success" : "warning");
+    },
+    onDisconnect() { disconnect("Wallet disconnected by provider."); },
+  });
   showStatus("Standard wallet connection is active. Private Social features remain locked until a separate YNX Product Session is approved.", "success");
+}
+
+function disconnect(message = "Wallet disconnected locally.") {
+  state.detach();
+  state.provider = null;
+  state.account = null;
+  state.chainId = null;
+  state.wallet = null;
+  state.detach = () => {};
+  sessionStorage.removeItem("ynx.social.standard-wallet.kind");
+  byId("connect-wallet").textContent = "Connect wallet";
+  byId("connected-panel").hidden = true;
+  showStatus(message, "neutral");
 }
 
 function notFound(wallet) {
@@ -51,10 +87,43 @@ async function connect(wallet, button) {
   }
 }
 
-byId("connect-wallet").addEventListener("click", () => byId("wallet-dialog").showModal());
+byId("connect-wallet").addEventListener("click", () => {
+  if (state.provider) {
+    byId("connected-panel").hidden = false;
+    byId("connected-panel").scrollIntoView({ behavior: "smooth", block: "nearest" });
+    byId("wallet-switch-account").focus();
+    return;
+  }
+  byId("wallet-dialog").showModal();
+});
+byId("hero-connect-wallet").addEventListener("click", () => byId("wallet-dialog").showModal());
 byId("close-wallet-dialog").addEventListener("click", () => byId("wallet-dialog").close());
 byId("connect-ynx").addEventListener("click", (event) => void connect("ynx", event.currentTarget));
 byId("connect-metamask").addEventListener("click", (event) => void connect("metamask", event.currentTarget));
+byId("wallet-disconnect").addEventListener("click", () => disconnect("Wallet disconnected by user."));
+byId("wallet-revoke").addEventListener("click", async () => {
+  if (!state.provider) return;
+  try { await revokeWallet(state.provider); disconnect("Wallet permission revoked."); }
+  catch (error) { showStatus(Number(error?.code) === 4001 ? "Permission revocation was rejected." : "Permission revocation failed.", "error"); }
+});
+byId("wallet-switch-account").addEventListener("click", async () => {
+  if (!state.provider) return;
+  try {
+    const changed = await switchWalletAccount(state.provider);
+    setConnected({ provider: state.provider, wallet: state.wallet, account: changed.account, chainId: changed.chainId });
+    showStatus("Account switch approved and YNX Testnet reconfirmed.", "success");
+  } catch (error) { showStatus(Number(error?.code) === 4001 ? "Account switch was rejected. Existing connection was kept." : "Account switch failed. Existing connection was kept.", "error"); }
+});
+
+async function restoreConnection() {
+  const preferred = sessionStorage.getItem("ynx.social.standard-wallet.kind");
+  for (const wallet of [preferred, "ynx", "metamask"].filter((value, index, values) => value && values.indexOf(value) === index)) {
+    try {
+      const result = await restoreWallet(wallet);
+      if (result.ok) { setConnected(result); showStatus("Standard wallet connection restored after refresh.", "success"); return; }
+    } catch {}
+  }
+}
 
 async function readService() {
   const status = byId("service-status");
@@ -66,7 +135,9 @@ async function readService() {
   } catch {
     status.textContent = "Private Social service degraded — guest preview is still available";
     status.dataset.tone = "warning";
+    byId("private-session-state").textContent = state.account ? "Private Social service degraded. Standard wallet connection remains active." : "Private Social service degraded. Wallet connection remains independently available.";
   }
 }
 
 void readService();
+void restoreConnection();
