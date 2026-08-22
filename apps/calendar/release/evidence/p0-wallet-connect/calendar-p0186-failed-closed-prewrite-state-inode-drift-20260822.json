@@ -1,0 +1,110 @@
+{
+  "schemaVersion": "ynx-calendar-public-recovery-terminal-evidence/v1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-186",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-calendar-7db160aa-public-recovery-20260822T111600Z",
+  "observedAt": "2026-08-22T11:26:51Z",
+  "terminalState": "CONSUMED_RELEASED_FAILED_CLOSED_CALENDAR_PUBLIC_RECOVERY",
+  "failurePhase": "MANDATORY_IMMEDIATE_PREWRITE_BINDING",
+  "failureCode": "CALENDAR_STATE_INODE_DRIFT_PREWRITE",
+  "lease": {
+    "centralCommit": "0de98b7ab626ed0b541876947773c3eb89bf28cc",
+    "centralTree": "6ee6e6151f23c83589e1635d583d3d91e0c81095",
+    "path": "release/integration/p0-wallet-connectivity/execution/p0-186-calendar-7db160aa-public-recovery-lease-20260822.json",
+    "blob": "3415746ffc53b86e144c61aa04992318890bd317",
+    "sha256": "10e3966f2f6f624e9153add01957a1f13c395bba82d9bb626c870f3a0dc5c046",
+    "statusAtPrewrite": "ACTIVE_SINGLE_USE",
+    "heavyOwnerAtPrewrite": "calendar",
+    "expiresAt": "2026-08-22T11:46:00Z",
+    "nonreusableAfterAttempt": true
+  },
+  "source": {
+    "branch": "codex/calendar-fable5-completion-20260821",
+    "implementationCommit": "7db160aa0bd589097e63190a260a343aafe4854c",
+    "requestCommit": "b44de2636340997299707b75a2e1bfbc6d20eae8",
+    "requestTree": "38c6d5678abfcc8f88e3f1874741f81183171f5e",
+    "remoteRequestHeadExact": true
+  },
+  "candidate": {
+    "path": "/tmp/ynx-calendar-linux-amd64-a.lJpEHK/ynx-calendard",
+    "bytes": 7614612,
+    "sha256": "9cad944f63fb7fae49bf947166075b9617e0dac5807d9d9c43cab1791379c426",
+    "format": "ELF 64-bit LSB x86-64 statically linked stripped",
+    "leaseMatch": true
+  },
+  "productionPrewrite": {
+    "host": "43.153.202.237",
+    "hostOs": "Linux",
+    "hostArch": "x86_64",
+    "serviceActive": true,
+    "serviceRestarts": 0,
+    "activeBinary": {
+      "bytes": 7610516,
+      "sha256": "3fc3492d89978c32991d54abc2c8994d1dbe271df7d95364449cb81a6b781890",
+      "owner": "root:root",
+      "mode": "0755",
+      "deviceInode": "64770:316",
+      "nlink": 1,
+      "leaseMatch": true
+    },
+    "state": {
+      "bytes": 39225,
+      "sha256": "fbe1c9cf058658370373385dc659c8b43a14238a3adef9df62a8b5ef0d22bd9c",
+      "owner": "ynx:ynx",
+      "mode": "0600",
+      "leaseDeviceInode": "64770:1324592",
+      "observedDeviceInode": "64770:1327740",
+      "nlink": 1,
+      "contentLeaseMatch": true,
+      "metadataLeaseMatch": false
+    },
+    "stateKey": {
+      "bytes": 32,
+      "sha256": "bf7b567201cab33c4b9ed02e00f0d0165172b4e692484ca044d828d0a3fb5e62",
+      "owner": "ynx:ynx",
+      "mode": "0600",
+      "deviceInode": "64770:1324599",
+      "nlink": 1,
+      "leaseMatch": true
+    },
+    "unit": {
+      "bytes": 795,
+      "sha256": "c6fa3b4c1b2c34366233169973631928890838709ecb8183daf0cfeee9d4331f",
+      "deviceInode": "64770:161350",
+      "leaseMatch": true
+    },
+    "caddy": {
+      "bytes": 626,
+      "sha256": "8b75b9d1332e49e702b610fb1a5e6fcf8a04b9495a1eb16e04dfc65330911f98",
+      "deviceInode": "64770:1051209",
+      "leaseMatch": true
+    },
+    "stageAbsent": true,
+    "backupAbsent": true
+  },
+  "publicPrewrite": {
+    "origin": "https://calendar-testnet.43.153.202.237.sslip.io",
+    "sourceCommit": "d2044bd9a8ec6bdc6235dfb625a62c3dd5c58b04",
+    "health": {"http": 200, "bytes": 215, "sha256": "f07ee444605fe2b52aa1565a0601139fd876ad98aefe4dc376c7c861ef8b517e"},
+    "version": {"http": 200, "bytes": 279, "sha256": "c4add3bef2f0209a2dcfe0af6bad4e299239ba7f6c1fef7942d443c11ba701de"},
+    "index": {"http": 200, "bytes": 15815, "sha256": "1cf18a93d89803dc42c5d69b5d035fc8af0f343c2503fa89a166c5b3885bba5c"},
+    "app": {"http": 200, "bytes": 73587, "sha256": "88a1034b10b87696cce81bd297b749bc6d37d095658329afa941d1a2dba1fb10"},
+    "walletConnection": {"http": 200, "bytes": 9234, "sha256": "f95cee57f097523830355f3493ef0b9b0d34b0fb0fd28c61b7e854bfb77fbf03"},
+    "serviceWorker": {"http": 200, "bytes": 1298, "sha256": "a59ec846f815847b649a863bb4650a1839117ef9b9136ef6cb21f951d04a5fa2"},
+    "leaseMatch": true
+  },
+  "actions": {
+    "stageDirectoryCreated": false,
+    "candidateUploaded": false,
+    "transactionExecuted": false,
+    "serviceStopped": false,
+    "serviceRestarted": false,
+    "backupCreated": false,
+    "rollbackRequired": false,
+    "productionMutationPerformed": false,
+    "accountActionPerformed": false,
+    "retryAttempted": false
+  },
+  "decision": "The lease requires every production metadata binding to match immediately before the first write. The state inode changed while its content digest remained equal. No rebinding or inference is permitted under a single-use lease, so execution stopped before staging or upload.",
+  "singleExecutableBlocker": "Central must atomically release P0-186 as fail-closed and, only if still desired, issue a wholly new Calendar-only lease after a new fresh state metadata binding that accounts for the runtime's state replacement behavior."
+}
