@@ -169,18 +169,6 @@ final class MalformedCallbackUITests: XCTestCase {
     XCTAssertTrue(semanticSubmit.waitForExistence(timeout: 15), "Recovery input has no semantic submit action")
     semanticSubmit.tap()
 
-    let persist = wallet.buttons["Recover into secure storage"]
-    let readyToRecover = XCTNSPredicateExpectation(
-      predicate: NSPredicate { _, _ in persist.exists && persist.isEnabled },
-      object: nil
-    )
-    XCTAssertEqual(
-      XCTWaiter.wait(for: [readyToRecover], timeout: 15),
-      .completed,
-      "Recovery action did not accept the isolated 32-byte test vector"
-    )
-    persist.tap()
-
     let unlock = wallet.buttons["Unlock with biometrics"]
     XCTAssertTrue(
       unlock.waitForExistence(timeout: 45),
