@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-WALLET-PRODUCT-SESSION-FINANCIAL-ADAPTERS-20260821",
+  "capturedAt": "2026-08-21T00:00:00+08:00",
+  "owner": "wallet-protocol",
+  "scope": "read-only-consumption-of-finance-owner-checkpoints",
+  "acceptedWalletAuthSource": "203be5e108be468350591615a64d5d36ab87a8f1",
+  "acceptedWalletAuthPackage": {
+    "files": 69,
+    "bytes": 123903,
+    "sha256": "8d0e8e35d8f387948d44666efdc6322e9b57968b5987728dffbddd11b54928eb"
+  },
+  "centralSourceAcceptance": {
+    "acceptanceId": "P0-FINANCIAL-ADAPTER-SOURCE-AUDIT-78F41349-20260821",
+    "commit": "88a75ed10ba6a3da3cc99baebced8aedd82717fe",
+    "parent": "63d53d7a2235ffb5498eba0cdded29b53152c274",
+    "tree": "3445ba30bac3bd4059fc08de31207bae91493074",
+    "classification": "EXCHANGE_DEX_QUANT_SOURCE_ACCEPTED_PRODUCTS_UNMIGRATED",
+    "changedBlobReadback": "4/4",
+    "exchangeRemoteSourceAccepted": true,
+    "dexRemoteSourceAccepted": true,
+    "quantRemoteSourceAccepted": true,
+    "executionLeaseIssued": false
+  },
+  "products": [
+    {
+      "productId": "exchange",
+      "branch": "codex/exchange-wallet-actions-20260809",
+      "commit": "ffc5cf89fbba81bf439835350bb91d09ece158ab",
+      "remoteCommitReadable": true,
+      "worktreeClean": true,
+      "rootFactoryConsumed": true,
+      "standardWalletRemainsIndependent": true,
+      "endpointOriginCallbackSessionInjectionAllowed": false,
+      "tests": {"unitPassed": 9, "unitFailed": 0, "typecheckPassed": true}
+    },
+    {
+      "productId": "dex",
+      "branch": "codex/final-dex",
+      "commit": "aa5d4e5b5999a1dee28ce41adcc509abe96f95e9",
+      "tree": "3e5afc0576cb0abb23dd3d614a30da95e589829a",
+      "remoteCommitReadable": true,
+      "remoteReadbackAt": "2026-08-20T17:44:12Z",
+      "localAheadCount": 0,
+      "worktreeClean": true,
+      "rootFactoryConsumed": true,
+      "legacyDirectProductSessionRemoved": true,
+      "standardWalletRemainsIndependent": true,
+      "endpointOriginCallbackSessionInjectionAllowed": false,
+      "protectedBrowserSignerAndStorageVerified": false,
+      "tests": {
+        "focusedPassed": 8,
+        "focusedFailed": 0,
+        "buildPassed": true,
+        "fullUiPassed": false,
+        "fullUiBlocker": "EXISTING_TEST_ENVIRONMENT_LOCALSTORAGE_UNAVAILABLE"
+      }
+    },
+    {
+      "productId": "quant",
+      "branch": "codex/quant-owner-contract-snapshot",
+      "commit": "f66fd4d14ff047efa6bb7e66fc2e140773826b16",
+      "tree": "ab2cb8c7704e680fcf8451f9bd44103aaef163ff",
+      "remoteCommitReadable": true,
+      "remoteReadbackAt": "2026-08-20T17:44:12Z",
+      "localAheadCount": 0,
+      "worktreeClean": true,
+      "rootFactoryConsumed": true,
+      "standardWalletRemainsIndependent": true,
+      "endpointOriginCallbackSessionInjectionAllowed": false,
+      "protectedBrowserSignerAndStorageVerified": false,
+      "tests": {
+        "nodePassed": 4,
+        "nodeFailed": 0,
+        "browserPassed": 3,
+        "browserFailed": 0,
+        "browserBundleRebuilt": true
+      }
+    }
+  ],
+  "sharedTruth": {
+    "runtimeRootFactoryVerified": false,
+    "distinctPublicV2RouteVerified": false,
+    "installedOrBrowserApprovalVerified": false,
+    "installedOrBrowserRejectionVerified": false,
+    "timeoutVerified": false,
+    "revokeVerified": false,
+    "secondLaunchVerified": false,
+    "networkLossRetryVerified": false,
+    "publicDeploymentVerified": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "migratedV2": false
+  }
+}

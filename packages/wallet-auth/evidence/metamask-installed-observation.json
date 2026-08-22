@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-14T04:54:21.000Z",
+  "computerControl": {
+    "app": "Google Chrome",
+    "page": "chrome://extensions/",
+    "extension": "MetaMask",
+    "extensionId": "nkbihfbeogaeaoehlefnkodbefgpgknn",
+    "version": "13.42.0",
+    "enabled": true,
+    "site": "http://127.0.0.1:4173/",
+    "siteAccess": "full",
+    "unlockRoute": "chrome-extension://nkbihfbeogaeaoehlefnkodbefgpgknn/home.html#/unlock",
+    "unlockOptions": ["biometric", "password"]
+  },
+  "filesystemCorroboration": {
+    "manifestVersion": 3,
+    "extensionVersion": "13.42.0.0",
+    "updateUrl": "https://clients2.google.com/service/update2/crx"
+  },
+  "computerControlRetry": {
+    "biometricRequested": true,
+    "result": "timed-out-without-user-biometric",
+    "visibleError": "此请求已超时",
+    "passwordAttempted": false,
+    "providerConnectionReached": false,
+    "chainApprovalReached": false,
+    "accountApprovalReached": false,
+    "screenshot": "evidence/metamask-biometric-timeout-computercontrol.png",
+    "screenshotBytes": 43107,
+    "screenshotSha256": "16535faefdbb25aa6d3e3bcb3fb26dbc43138bd3602e34643980e20366f22f7c"
+  },
+  "approvalFlowValidated": false,
+  "reason": "MetaMask was installed, enabled, granted full site access, and visibly reached its real unlock route. The biometric request timed out without user confirmation; no password was read or entered, and no provider, chain, account, Product Session, balance, or transaction state is claimed."
+}

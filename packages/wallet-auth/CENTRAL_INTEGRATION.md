@@ -1,8 +1,8 @@
 # Central Wallet Auth integration contract
 
-The executable integration boundary is `src/gateway-http.js`, backed by `src/gateway-adapter.js`; `src/gateway-node-host.js` adds fail-closed local persistence and bounded observability. The merge manifest, versioned state schema and central patch instructions are in `integration/`. `testdata/product-session-http-proof-v1.json` is the deterministic P-256 sender-constrained HTTP proof vector. These artifacts supersede any assumption that possession of a session binding or legacy opaque token is sufficient for canonical introspection. Source commit `2eb3198a99fcd98a1c6d56e3e99e97166ceab7f6` is the current locally tested candidate.
+The executable integration boundary is `src/gateway-http.js`, backed by `src/gateway-adapter.js`; `src/gateway-node-host.js` adds fail-closed local persistence and bounded observability. The merge manifest, versioned state schema and central patch instructions are in `integration/`. `testdata/product-session-http-proof-v1.json` is the deterministic P-256 sender-constrained HTTP proof vector. These artifacts supersede any assumption that possession of a session binding or legacy opaque token is sufficient for canonical introspection. The exact tested source is the commit that contains this document; release evidence must record that full commit rather than copying a stale embedded pointer.
 
-This is the merge-ready central protocol candidate implemented and tested by `@ynx-chain/wallet-auth`. It is **not** evidence of central review, central integration, staging deployment, or public deployment. The candidate registry therefore keeps every product disabled.
+This is the merge-ready central protocol candidate implemented and tested by `@ynx-chain/wallet-auth`. It is **not** evidence of central integration, staging deployment, public deployment or a migrated product runtime. Review and enablement remain limited to the exact per-product states in the registry.
 
 ## Canonical registry
 
@@ -37,7 +37,7 @@ Schema v2 remains the exact protocol projection consumed by the verifier: `schem
 
 ## Approved public-testnet products
 
-`shop` and `exchange` are approved for public-testnet Wallet sessions. Each approval
+`exchange`, `finance`, `quant` and `shop` are approved for public-testnet Wallet sessions. Each approval
 is restricted to the exact client, bundle, callback, algorithms and least-privilege
 scopes listed in `central-registry.json`. Exchange action signing is a separate
 boundary: orders, cancellation and withdrawals remain fail-closed until the
@@ -47,6 +47,8 @@ remain disabled until equivalent product-owned evidence exists.
 ## Canonical envelope and verifier
 
 Authorization transport is `ynxwallet://authorize?request=<base64url(canonical JSON)>`. The response callback has exactly one `response` query field. The canonical request and approval bind:
+
+The bare route `ynxwallet://authorize`, an empty `request`, or a route with another/extra query field is never a connection attempt. It fails with `MISSING_AUTHORIZATION_REQUEST` or `INVALID_DEEP_LINK` before Wallet authority can be shown or granted. All SDK and platform consumers must use `encodeRequestDeepLink` and verify the returned approve/reject callback with `parseAuthorizationCallbackURL`; source release runs `npm run verify:no-bare-authorize`.
 
 - `ynx_6423-1`, requesting product, client ID, bundle/package, callback;
 - compressed P-256 product device public key and algorithm;
@@ -65,6 +67,38 @@ const session = verifyCentralWalletSession({
 ```
 
 The returned session additionally binds `sessionBinding`, `approvalDigest`, and `deviceBinding`. It can be accepted only by the exact client, bundle, product device key, and granted scopes.
+
+## Product-facing shared connection
+
+Products must import `createProductWalletConnection` from the existing package
+root, `@ynx-chain/wallet-auth`. This is the only supported
+product-facing constructor. It derives product, client, application, origin and
+callback bindings from `product-session-registry.json`; assembles the HTTPS v2
+Gateway adapter, recoverable client and Wallet coordinator; and owns the system
+clock plus cryptographic nonce/state generation. Its exact configuration rejects
+product-supplied callbacks, origins, sessions, Wallet URLs, clocks and token
+factories.
+
+The product supplies only its approved secure-storage capabilities and an
+asynchronous platform device-signing bridge. The raw device private key never
+enters the shared JavaScript client; the SDK binds canonical challenge bytes and
+verifies the returned P-256 signature against the registered device key before
+completion. Products also supply platform Wallet detection/opener and browser
+provider scope. The factory binds the
+runtime HTTPS transport and pins every v2 call to the accepted, build-identifiable
+`https://wallet-auth.ynxweb4.com` origin;
+products cannot inject or replace
+the Gateway origin. `restore()` re-introspects protected state on every second launch;
+invalid state attempts one controlled Wallet reconnect and then requires explicit
+`retryYNX()`. `enterGuest()` is the only offline/unsigned mode and never contains
+account, balance, transaction or Chain authority.
+
+Legacy callers use `beginLegacyYNX(legacyCallback)` on that same connection. The
+method accepts only the exact legacy callback registered to the same product and
+platform, records the canonical migration result, and opens the registry-derived
+Wallet authorization route. Unknown, cross-product and native-to-Web legacy
+callbacks fail closed. Products must not concatenate `ynxwallet://` or application
+callback URLs themselves.
 
 ## Transactional lifecycle
 
@@ -107,4 +141,12 @@ The kernel freezes the parsed registry at construction, rejects alternate JSON e
 6. Deploy registry, kernel host and durable state migration atomically to staging; record registry hash, source commit, release, canonical build time, deployment ID and restore evidence, then run real Wallet↔product flows.
 7. Have Monitor accept the bounded metric/event contract, prove dashboard and alert behavior, and correlate request/error IDs to authoritative audit IDs without logging custody or proof material.
 
-Current local verification is Wallet/Auth 94/94, Node host 8/8, Browser SDK 7/7, JS SDK 5/5, loopback CLI smoke passed, package dry-run passed and `umask 0022; go test ./...` passed. Until central merge and direct Testnet/public evidence exist, truthful status remains `implemented-local` and `tested-local`, not `integrated-central` or `deployed-staging`.
+Current branch verification is Wallet/Auth 232/232, including 120 concurrent
+factory connections, full Product Session concurrency/isolation, real v2 Gateway
+approval/completion/introspection, second-launch restore, registered legacy
+migration, authoritative disconnect revocation, callback/disconnect races,
+network-transition races (including asynchronous platform signing), lost-revoke acknowledgement recovery and negative injection tests. `npm pack --dry-run --json` includes the
+shared factory through the existing package root export. Until product-owned runtime migration,
+central merge and direct Testnet/public evidence exist, truthful status remains
+`implemented-local` and `tested-local`, not `integrated-central` or
+`deployed-staging`.

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>YNX provider discovery browser evidence</title>
+<style>
+  :root{font:16px/1.5 system-ui,sans-serif;color:#eaf0ff;background:#081020}*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px}.card{width:min(760px,100%);padding:32px;border:1px solid #29406c;border-radius:20px;background:#101b32;overflow-wrap:anywhere}.card h1{font-size:clamp(1.75rem,4vw,2.25rem)}.label{color:#82aaff;font-weight:800;letter-spacing:.12em}.result{white-space:pre-wrap;padding:18px;border-radius:12px;background:#071227;color:#b9f6d2}.truth{color:#b8c8ef}
+</style>
+<main class="card">
+  <div class="label">LOCAL BROWSER MODULE FIXTURE</div>
+  <h1>Central wallet provider discovery</h1>
+  <p class="truth">Synthetic EIP-6963 announcements only. No installed Wallet, account, Product Session, balance, signature, transaction, or Chain authority is claimed.</p>
+  <div id="result" class="result">LOADING</div>
+</main>
+<script type="module">
+  import { discoverWalletProviders, walletAvailabilityFromDiscovery } from "../src/wallet-provider-discovery.js";
+  const fake = (flags, rdns) => Object.freeze({...flags, providerInfo:Object.freeze({rdns}), request:async()=>{throw new Error("Fixture never calls provider methods")}});
+  const ynx = fake({isYNXWallet:true}, "com.ynx.wallet.companion");
+  const metamask = fake({isMetaMask:true}, "io.metamask");
+  addEventListener("eip6963:requestProvider", () => {
+    dispatchEvent(new CustomEvent("eip6963:announceProvider", {detail:{info:{uuid:"11111111-1111-4111-8111-111111111111",name:"YNX Wallet Fixture",rdns:"com.ynx.wallet.companion",icon:"data:image/svg+xml,<svg/>"},provider:ynx}}));
+    dispatchEvent(new CustomEvent("eip6963:announceProvider", {detail:{info:{uuid:"22222222-2222-4222-8222-222222222222",name:"MetaMask Fixture",rdns:"io.metamask",icon:"data:image/svg+xml,<svg/>"},provider:metamask}}));
+  });
+  try {
+    const discovery = await discoverWalletProviders(globalThis, 0), availability = walletAvailabilityFromDiscovery(discovery);
+    document.querySelector("#result").textContent = ["BROWSER MODULE LOADED", `authority=${discovery.authority}`, `ynxKind=${discovery.ynx?.kind || "none"}`, `metaMaskKind=${discovery.metamask?.kind || "none"}`, `ynxPreferred=${availability.ynxWalletInstalled}`, `metaMaskAvailable=${availability.metaMaskAvailable}`, `ambiguities=${discovery.ambiguities.join(",") || "none"}`, `conflictedAnnouncements=${discovery.conflictedAnnouncements}`].join("\n");
+  } catch (error) {
+    document.querySelector("#result").textContent = `FAILED CLOSED\n${error?.message || "Discovery failed"}`;
+  }
+</script>
+</html>

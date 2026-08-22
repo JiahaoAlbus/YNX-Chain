@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "protocolVersion": "2",
+  "currentAuthorizeAudit": "release/integration/wallet-authorize-ecosystem-owner-runtime-matrix-v3-20260821.json",
+  "audit": {
+    "sourceBaseline": "9759576afdd4e02fa5375dde371acd41be038c2c",
+    "auditedAt": "2026-08-21T02:39:42.000Z",
+    "rule": "Every evidence path must exist in this branch. migrated-v2 additionally requires runtime use of the shared createProductWalletConnection factory, distinct Gateway v2 route evidence, and visible installed/browser platform evidence. An EVM-only MetaMask adapter connection is not Product Session migration evidence."
+  },
+  "meaning": {
+    "registry-ready": "The central v2 registry and shared contract tests cover the product. This is not product-runtime migration evidence.",
+    "standard-wallet-only": "The product runtime consumes the accepted Standard Wallet and canonical error contracts and keeps Wallet connected when private Product Session degrades, but has no v2 Gateway and visible-platform evidence.",
+    "root-factory-source-only": "The product owner has consumed the accepted createProductWalletConnection root factory and passed local handler tests, but lacks the distinct public Gateway and installed/browser visible evidence required for migrated-v2.",
+    "root-factory-owner-source-only": "An external product owner checkpoint consumes createProductWalletConnection, but this branch has only a source audit and lacks runtime, public Gateway, and installed/browser lifecycle evidence.",
+    "root-factory-platform-negative": "The product owner has consumed the root factory and directly opened an installed Wallet, but the visible platform flow failed closed before approval or Session creation and the full public lifecycle is absent.",
+    "standard-wallet-current-source-public": "The product's current source and Standard Wallet boundary are public, but Product Session v2 and installed-Wallet lifecycle evidence remain false.",
+    "android-retired-web-legacy": "The shared registry rejects the retired Android client with CLIENT_RETIRED while Web/PWA remains registered, but the Web/PWA runtime still uses its legacy Wallet adapter.",
+    "shared-sdk-v1": "Current product source imports @ynx-chain/wallet-auth but still builds the v1 request/session contract.",
+    "canonical-launcher-v1": "Current product source uses the shared canonical deep-link builder and fail-closed platform preflight, but still builds and completes the v1 request/session contract.",
+    "legacy-direct": "Current product source constructs or opens Wallet URLs outside the v2 router.",
+    "contract-only": "Only a registry/integration contract was found; no v2 runtime consumer was found.",
+    "migrated-v2": "Product runtime imports and executes createProductWalletConnection, which exclusively assembles the v2 Gateway adapter, recovery client and Wallet coordinator, with platform evidence. No product currently meets this state."
+  },
+  "products": [
+    {"productId":"calendar","registry":"registry-ready","consumer":"standard-wallet-current-source-public","currentSourcePublic":true,"publicSourceCommit":"828120e6d81efaf874a930793660e185a394ba4f","productSessionV2":false,"migrated":false,"evidence":["release/integration/wallet-product-session-p0094-source-matrix-review-20260821.json"]},
+    {"productId":"card","registry":"registry-ready","consumer":"root-factory-source-only","webPwaTestnetGuestEntryPublic":true,"guestModeNoFabricatedWalletState":true,"productSessionV2":false,"migrated":false,"evidence":["release/integration/wallet-product-session-card-owner-checkpoint-20260820.json","release/integration/wallet-product-session-card-endpoint-manifest-checkpoint-20260820.json","release/integration/wallet-product-session-card-root-factory-checkpoint-20260820.json","release/integration/wallet-product-session-p0094-source-matrix-review-20260821.json"]},
+    {"productId":"creator-studio","registry":"registry-ready","consumer":"legacy-direct","migrated":false,"evidence":["apps/creator-studio/app.js"]},
+    {"productId":"developer","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["packages/wallet-auth/product-session-registry.json"]},
+    {"productId":"dex","registry":"registry-ready","consumer":"root-factory-owner-source-only","migrated":false,"evidence":["release/integration/wallet-product-session-financial-adapters-checkpoint-20260821.json"]},
+    {"productId":"exchange","registry":"registry-ready","consumer":"root-factory-owner-source-only","migrated":false,"evidence":["release/integration/wallet-product-session-financial-adapters-checkpoint-20260821.json"]},
+    {"productId":"finance","registry":"registry-ready","consumer":"root-factory-platform-negative","migrated":false,"evidence":["release/integration/wallet-product-session-finance-platform-negative-checkpoint-20260820.json"]},
+    {"productId":"pay","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["packages/wallet-auth/product-session-registry.json"]},
+    {"productId":"quant","registry":"registry-ready","consumer":"root-factory-owner-source-only","migrated":false,"evidence":["release/integration/wallet-product-session-financial-adapters-checkpoint-20260821.json"]},
+    {"productId":"shop","registry":"registry-ready","consumer":"android-retired-web-legacy","migrated":false,"evidence":["release/integration/wallet-product-session-shop-android-retirement-checkpoint-20260821.json","apps/shop/wallet-auth.js"]},
+    {"productId":"social","registry":"registry-ready","consumer":"canonical-launcher-v1","migrated":false,"evidence":["apps/social/src/walletAuth.ts","apps/social/src/walletLauncherCore.ts","apps/social/src/walletLauncher.test.ts","apps/social/src/walletFlow.integration.test.ts","release/integration/wallet-product-session-social-android-visible-negative-20260821.json"]},
+    {"productId":"video","registry":"registry-ready","consumer":"legacy-direct","migrated":false,"evidence":["apps/video/wallet-auth.js","apps/video/android/app/src/main/java/com/ynxweb4/video/MainActivity.java","apps/video/ios/YNXVideo/ContentView.swift"]},
+    {"productId":"wallet-web-companion","registry":"registry-ready","consumer":"core-runtime-candidate","migrated":false,"evidence":["packages/wallet-auth/test/wallet-web-companion-runtime.test.mjs","release/integration/wallet-auth-web-companion-registry-contract.json"]}
+  ],
+  "productRuntimeMigrationCount": 0,
+  "fixedProductCount": 0,
+  "requiredProductIds": ["calendar","card","creator-studio","developer","dex","exchange","finance","pay","quant","shop","social","video"],
+  "requiredProductMigrationCount": 0,
+  "nonProductRegistryClientCount": 1,
+  "requiredOwnerEvidenceSegments": ["runtime-source","public-gateway-v2","visible-platform-lifecycle"],
+  "publicGateway": {
+    "origin": "https://wallet-auth.ynxweb4.com",
+    "sourceCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "centralAcceptanceCommit": "3c6288e1aa3d1ea6735b13db24bdfc6419f25c76",
+    "websiteAcceptanceCommit": "907bce373effc529d1ca9cb0b5374135ccb00b27",
+    "evidence": "release/integration/wallet-product-session-v2-public-deployment-evidence.json",
+    "gatewayAvailableDoesNotImplyProductMigration": true
+  },
+  "integrationRule": "A product may change migrated to true only when its runtime uses createProductWalletConnection, its Gateway uses the v2 routes, and the required installed or browser flow evidence exists. Direct construction of WalletConnectionCoordinator or lower-level provider discovery, MetaMaskEvmConnectionAdapter, ProductSessionGatewayFetchAdapter, or RecoverableProductSessionClient cannot satisfy the common-component, Product Session, or Gateway evidence requirements."
+}

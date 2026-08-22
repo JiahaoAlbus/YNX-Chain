@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-WALLET-AUTH-WEBSITE-PUBLIC-READBACK-20260821",
+  "capturedAt": "2026-08-20T16:19:28Z",
+  "owner": "wallet-protocol",
+  "readOnly": true,
+  "authoritativeWebsite": {
+    "sourceCommit": "a7313313014bb8792f38e649e9f556dbee983c8c",
+    "deploymentId": "dpl_5oP2L2ZHvP13YH3ZYWySLD49pj3P",
+    "productionReady": true
+  },
+  "walletAuthVersion": {
+    "url": "https://wallet-auth.ynxweb4.com/version",
+    "httpStatus": 200,
+    "bytes": 301,
+    "sha256": "5ec386007e0b3e24bfd7d1f1afd37b4e98aedf7f4e1f7b2b39efca136a5d52d0",
+    "sourceCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "release": "p0-v2-state-isolated-6cf3ef84"
+  },
+  "website": {
+    "docs": [
+      {
+        "url": "https://www.ynxweb4.com/docs",
+        "httpStatus": 200,
+        "bytes": 4748,
+        "sha256": "d4ab589c6b113e95168d0d2d2032c1792c7d1ad990d287f298efb8b130bafa1f"
+      },
+      {
+        "url": "https://ynxweb4.com/docs",
+        "httpStatus": 200,
+        "bytes": 4748,
+        "sha256": "d4ab589c6b113e95168d0d2d2032c1792c7d1ad990d287f298efb8b130bafa1f"
+      }
+    ],
+    "runtimePublication": [
+      {
+        "url": "https://www.ynxweb4.com/releases/wallet-auth-runtime/6cf3ef845202bd879ed94515a71b323dd2fc9e14/runtime-publication.json",
+        "httpStatus": 200,
+        "bytes": 1900,
+        "sha256": "635fefdcc1cd5675a1787a9bf17c87102ccadd1c8232450be7b847333fe75941",
+        "sourceCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14"
+      },
+      {
+        "url": "https://ynxweb4.com/releases/wallet-auth-runtime/6cf3ef845202bd879ed94515a71b323dd2fc9e14/runtime-publication.json",
+        "httpStatus": 200,
+        "bytes": 1900,
+        "sha256": "635fefdcc1cd5675a1787a9bf17c87102ccadd1c8232450be7b847333fe75941",
+        "sourceCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14"
+      }
+    ]
+  },
+  "transportObservation": {
+    "subsequentApexMultiRequestSampleHadTlsFailure": true,
+    "failedSampleMutatedState": false,
+    "failedSampleUsedAsSuccessEvidence": false,
+    "successfulSingleBodyApexReadRetained": true
+  },
+  "truth": {
+    "websiteRuntimeRecordPublic": true,
+    "websiteRuntimeRecordMatchesPublicWalletAuthVersion": true,
+    "registryV3ShopRetirementDeployedPublic": false,
+    "currentAuthoritativeDeploymentRenderedCardVerified": false,
+    "installedWalletApprovalVerified": false,
+    "productMigrationComplete": false,
+    "aggregateDeployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

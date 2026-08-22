@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "recordId": "wallet-canonical-authorize-central-acceptance-20260821",
+  "status": "CENTRAL_SOURCE_CONTRACT_ACCEPTED_CONSUMERS_UNMIGRATED",
+  "owner": "wallet-protocol-router",
+  "centralAcceptance": {
+    "decision": "ACCEPTED_SOURCE_CONTRACT_PRODUCTS_UNMIGRATED",
+    "contractVersion": "canonicalWalletAuthorize@1.0.0-p0.0",
+    "commit": "b38489793018ff9a009cad57558b66a142495a2e",
+    "tree": "7945b706b9218b439fbf8456c880c1c9c5ea5374",
+    "parent": "e04a20212a650ea7c721291896482d705076b5bf",
+    "path": "release/integration/p0-wallet-connectivity/acceptance/canonical-wallet-authorize-46386ae8-20260821.json",
+    "blob": "b02bad96feb0f396e4d5f83d3575bf30c32144d1",
+    "contentSha256": "afda5aa6df582d349c287bb712c49c307ccd89f232ae83fcce40ea8cd6e41dac",
+    "remoteReadbackExact": true
+  },
+  "acceptedOwnerSource": {
+    "branch": "codex/wallet-session-router-recovery",
+    "commit": "46386ae8eeaa7633923ae762a5a9634b5eac98d9",
+    "tree": "f5bffcf4b775d4a88af9fe3a6b53fa60d271912c",
+    "contractPath": "packages/wallet-auth/integration/canonical-wallet-authorize-v1.json",
+    "contractBlob": "86e19c9faa49debb9096e11cdccfff9f5bc84e96",
+    "contractSha256": "e572042f18c1e32dfe86da26ee2ab52f9372c9803eae3b492c26932e50251c03",
+    "handoffPath": "docs/integration/P0_CANONICAL_WALLET_AUTHORIZE_HANDOFF_20260821.md",
+    "handoffBlob": "f859633c516bf5bbea8524a5d510faa30ca7bb1a",
+    "handoffSha256": "73c12fd1d9832c248e15e76cf1599af9ccd08afc5171477336d182978a1388ca"
+  },
+  "independentReview": {
+    "walletAuthTests": "250/250",
+    "bareAuthorizeReleaseGate": "PASS",
+    "packageDryRun": {
+      "files": 71,
+      "bytes": 128859,
+      "containsContract": true,
+      "containsGate": true
+    }
+  },
+  "coordination": {
+    "protocolRecreated": false,
+    "acceptedContractBytesModified": false,
+    "consumerOwnersNotified": [
+      "wallet-platform",
+      "developer-sdk",
+      "financial-apps",
+      "card"
+    ],
+    "consumerRequirement": "Use package-root encodeRequestDeepLink and parseAuthorizationCallbackURL; no per-product URI concatenation; return exact source, public lifecycle and visible platform evidence before promotion."
+  },
+  "truth": {
+    "sourceAccepted": true,
+    "sdkConsumed": false,
+    "walletPlatformConsumed": false,
+    "financialAppsConsumed": false,
+    "cardConsumed": false,
+    "productsConsumed": "0/12",
+    "deviceVisibleVerified": false,
+    "browserRoundTripVerified": false,
+    "deployedPublic": false,
+    "integratedCentral": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "productionOperations": {
+    "ssh": false,
+    "privateStateRead": false,
+    "leaseRequestedOrReused": false,
+    "deployment": false
+  }
+}

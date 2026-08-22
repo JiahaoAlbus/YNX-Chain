@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-WALLET-SHOP-RETIRED-APK-WEBSITE-DRIFT-20260821",
+  "capturedAt": "2026-08-20T16:29:27Z",
+  "owner": "wallet-protocol",
+  "readOnly": true,
+  "historicalObservation": true,
+  "supersededBy": "release/integration/wallet-shop-retired-apk-website-remediation-20260821.json",
+  "authoritativeWebsiteSource": "a7313313014bb8792f38e649e9f556dbee983c8c",
+  "downloadPage": {
+    "url": "https://www.ynxweb4.com/dapp/download",
+    "browserVisible": true,
+    "shopAndroidListed": true,
+    "shopAndroidLabel": "Debug-signed Android Testnet Preview",
+    "shopAndroidSource": "6fa2d6c5",
+    "shopAndroidDownloadUrl": "https://www.ynxweb4.com/downloads/ynx-shop-0.3.0-testnet-preview-6fa2d6c5-debug-signed.apk",
+    "shopReplacementUrl": "https://shop.ynxweb4.com/shop/",
+    "screenshot": {
+      "path": "release/integration/evidence/wallet-shop-retired-apk-still-hosted-20260821.png",
+      "bytes": 1364388,
+      "sha256": "4b4a47297e6c6af527503da2e9e0aa59a6a29079d8fe6ae271725d0f895ae743",
+      "pixelWidth": 1765,
+      "pixelHeight": 10424
+    }
+  },
+  "retiredApkHead": {
+    "method": "HEAD",
+    "httpStatus": 200,
+    "contentType": "application/vnd.android.package-archive",
+    "contentLength": 253733,
+    "contentDisposition": "attachment; filename=\"ynx-shop-0.3.0-testnet-preview-6fa2d6c5-debug-signed.apk\"",
+    "cacheControl": "public, max-age=31536000",
+    "xVercelId": "sin1:sin1:sin1::ctcmx-1787243366763-f3543b265896"
+  },
+  "replacementWeb": {
+    "url": "https://shop.ynxweb4.com/shop/",
+    "browserVisible": true,
+    "title": "YNX Shop",
+    "publicTestnetLabelVisible": true,
+    "productCount": 3,
+    "persistentInventoryLabelVisible": true,
+    "serviceState": {
+      "pay": "available",
+      "tax": "unavailable",
+      "logistics": "unavailable",
+      "ai": "available"
+    },
+    "browserConsoleErrors": 0,
+    "walletLoginClicked": false,
+    "walletApprovalAttempted": false
+  },
+  "computerControl": {
+    "attempted": true,
+    "passed": false,
+    "failure": "MAC_LOCKED_AUTOMATIC_UNLOCK_FAILED"
+  },
+  "truth": {
+    "shopAndroidRegistryRetiredInSource": true,
+    "shopAndroidDownloadRemovedFromWebsite": false,
+    "retiredApkStillPubliclyHosted": true,
+    "shopReplacementWebPublic": true,
+    "websiteRetirementConsistentWithRegistry": false,
+    "registryV3DeployedPublic": false,
+    "installedApprovalVerified": false,
+    "productMigratedV2": false
+  },
+  "currentTruthMovedToRemediationEvidence": true
+}

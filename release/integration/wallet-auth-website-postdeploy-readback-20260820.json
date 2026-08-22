@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-WALLET-AUTH-WEBSITE-POSTDEPLOY-20260820",
+  "capturedAt": "2026-08-20T15:04:00Z",
+  "owner": "wallet-protocol",
+  "readOnly": true,
+  "currentAuthoritativeWebsiteDeployment": {
+    "sourceCommit": "a7313313014bb8792f38e649e9f556dbee983c8c",
+    "deploymentId": "dpl_5oP2L2ZHvP13YH3ZYWySLD49pj3P",
+    "deploymentUrl": "https://ynx-web4-website-4bjg8s2d1-jiahaoalbus-projects.vercel.app",
+    "productionReady": true,
+    "sourceModifiedByWalletProtocolOwner": false
+  },
+  "currentAuthoritativeWebsiteReadback": {
+    "superseded": false,
+    "apexAndWwwRuntimeStatus": 200,
+    "apexAndWwwRuntimeBytes": 1899,
+    "apexAndWwwRuntimeSha256": "d8556c46e81e430d408d0f2504f3379d152430be9406feac36838ac0423e75fa",
+    "runtimeSourceCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "apexDocsStatus": 200,
+    "apexDocsBytes": 4747,
+    "apexDocsSha256": "8451463823b838b4f84057f277d6272585820f4030f0da4097c76f6aafa501ba",
+    "wwwDocsDirectTlsSucceededInCentralPass": false
+  },
+  "priorCentralVisibleAcceptance": {
+    "commit": "8a4dc39b2979356b73d7610499f7e8d3d7fe4cc3",
+    "centralHead": "8db659b8e55e54d3b49d4ff7479448877b97ff40",
+    "evidencePath": "release/integration/p0-wallet-connectivity/evidence/wallet-auth-website-runtime-source-production-20260820.json",
+    "evidenceBlob": "c0cc986d51931004b44077a6ac797a4fc6c011b9",
+    "websiteSourceCommit": "09d5be41436404bba74315d0013c0229cab1e32b",
+    "websiteSourceTree": "8b104a6b98c286534b549c8c4146bb945ecfebbb",
+    "deploymentId": "dpl_awLjPQTGudm2huQmNHPk9UpmugfV",
+    "deploymentUrl": "https://ynx-web4-website-qpxf97xly-jiahaoalbus-projects.vercel.app",
+    "readyState": "READY",
+    "apexAndWwwDocsStatus": 200,
+    "apexAndWwwDocsBytes": 4748,
+    "apexAndWwwDocsSha256": "d4ab589c6b113e95168d0d2d2032c1792c7d1ad990d287f298efb8b130bafa1f",
+    "apexAndWwwRuntimeStatus": 200,
+    "apexAndWwwRuntimeBytes": 1900,
+    "apexAndWwwRuntimeSha256": "635fefdcc1cd5675a1787a9bf17c87102ccadd1c8232450be7b847333fe75941",
+    "runtimeSourceCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "visibleBrowserCardVerified": true,
+    "visibleBrowserRuntimeSourceMatches": true,
+    "productSessionFlowExecuted": false,
+    "inheritedByCurrentAuthoritativeDeployment": false
+  },
+  "independentReadback": {
+    "apexDocs": {
+      "status": 200,
+      "bytes": 4748,
+      "sha256": "d4ab589c6b113e95168d0d2d2032c1792c7d1ad990d287f298efb8b130bafa1f"
+    },
+    "wwwDocs": {
+      "status": 200,
+      "bytes": 4748,
+      "sha256": "d4ab589c6b113e95168d0d2d2032c1792c7d1ad990d287f298efb8b130bafa1f"
+    },
+    "frontendAsset": {
+      "path": "/assets/index-B5LdNRfU.js",
+      "status": 200,
+      "bytes": 585512,
+      "sha256": "8726a271e7109da6883df6f09dd05345f3fc036f61d81dcf47c7a1e5b7bef11b",
+      "currentRuntimeSourceOccurrences": 3,
+      "historicalRuntimeSourceOccurrences": 0
+    },
+    "apexRuntime": {
+      "status": 0,
+      "transport": "TLS_TIMEOUT_BEFORE_HTTP"
+    },
+    "wwwRuntime": {
+      "status": 200,
+      "bytes": 1900,
+      "sha256": "635fefdcc1cd5675a1787a9bf17c87102ccadd1c8232450be7b847333fe75941",
+      "runtimeSourceCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14"
+    },
+    "observation": "The independent edge returned the accepted 1900-byte newline variant after Central observed the 1899-byte production variant. Both records identify exact runtime source 6cf3ef84. Byte identity across observation times is therefore not claimed."
+  },
+  "computerControl": {
+    "postDeploymentAttempted": true,
+    "ownerChannelRenderedCardVerified": false,
+    "ownerChannelFailure": "MAC_LOCKED_AUTOMATIC_UNLOCK_FAILED",
+    "centralVisibleBrowserRenderedCardVerifiedOnPriorDeployment": true,
+    "currentAuthoritativeDeploymentRenderedCardVerified": false,
+    "currentAuthoritativeDeploymentFailure": "CG_WINDOW_NOT_FOUND",
+    "centralProductSessionFlowExecuted": false,
+    "preDeploymentDriftEvidencePath": "release/integration/wallet-auth-website-computercontrol-evidence-20260820.json"
+  },
+  "truth": {
+    "websiteProductionDeploymentReady": true,
+    "publishedFrontendAssetUsesCurrentRuntimeSource": true,
+    "publishedFrontendAssetContainsHistoricalRuntimeSource": false,
+    "renderedVisibleCardVerifiedAfterCurrentAuthoritativeDeployment": false,
+    "renderedVisibleCardUsesCurrentRuntimeSourceOnCurrentAuthoritativeDeployment": false,
+    "installedWalletClientVerified": false,
+    "walletApprovalVerified": false,
+    "standardConnectionAccountSignSendOrTransactionVerified": false,
+    "productMigrationsCompleted": 0,
+    "productMigrationsRequired": 12,
+    "aggregateDeployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "WALLET-PROVIDER-CONNECT-PENDING-OWNER-HANDOFFS-20260821",
+  "owner": "wallet-protocol-router",
+  "sourceContract": {
+    "commit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+    "tree": "51a60a362d4ad5dd748bcdefb101f71b1d9e0cee",
+    "providerDiscovery": "packages/wallet-auth/src/wallet-provider-discovery.js",
+    "connectState": "packages/wallet-auth/src/standard-wallet-connect-state.js",
+    "consumerGate": "packages/wallet-auth/scripts/verify-standard-wallet-connect-consumer.mjs"
+  },
+  "acceptanceEvaluator": {
+    "module": "packages/wallet-auth/src/product-wallet-migration-evidence.js",
+    "export": "evaluateProductWalletMigrationEvidence",
+    "schemaVersion": 1,
+    "authority": "evidence-evaluation-only",
+    "failClosed": true,
+    "requiredStages": ["exact-shared-source-consumption", "source-bound-public-runtime", "visible-standard-wallet-lifecycle", "exact-approve-reject-callback", "product-session-v2-lifecycle"]
+  },
+  "connectionAuthority": {
+    "successRequires": ["selected-provider", "approved-account", "provider-request-chain-0x1917"],
+    "directBrowserRpcFetchRequired": false,
+    "rpcProbeTransport": "accepted-cors-safe",
+    "rpcProbeDegradedEffects": {
+      "connectionPreserved": true,
+      "providerPreserved": true,
+      "accountPreserved": true,
+      "chainPreserved": true,
+      "standardPermissionsPreserved": true,
+      "chooserReopened": false,
+      "classifiedAsNoProvider": false
+    },
+    "productSessionDegradedBlocksStandardWallet": false
+  },
+  "completionBoundary": {
+    "sourceCheckpointIsProductCompletion": false,
+    "requiredEvidenceSegments": [
+      "exact shared source consumption and product consumer-gate pass",
+      "source-bound public runtime with stable URL, zero blank tabs and chooser closure",
+      "visible real Provider approval on 0x1917 plus refresh restore, disconnect or account-change handling, callback and separately verified Product Session lifecycle"
+    ],
+    "productsConnected": 0,
+    "productsMigratedV2": 0
+  },
+  "consumed": {
+    "count": 6,
+    "products": ["calendar", "developer", "dex", "exchange", "pay", "shop"],
+    "sourceOnlyProducts": ["developer", "dex", "exchange", "pay"],
+    "sourceAndPublicProducts": ["calendar", "shop"],
+    "realApprovalProducts": ["calendar"],
+    "calendarEvidenceCommit": "8f45566073f0d9979b5b1460b35144d954acc692",
+    "calendarBoundary": "Real MetaMask approval and refresh chooser closure are verified; callback, disconnect handling and Product Session v2 remain false.",
+    "shopEvidenceCommit": "35dc239546c2bf963534d5031d4c35c4e22c2d1c",
+    "shopBoundary": "Existing approved MetaMask account restores on 0x1917 and chooser closes; new approval, callback and Product Session v2 remain false."
+  },
+  "pending": [
+    {
+      "productId": "card",
+      "owner": "card",
+      "currentSourceCommit": "345e0bdb41e9ad7cd5b208ffb1d144bc1b3b328b",
+      "currentOwnerBranchHead": "fb062ad08b0fd6c54ce061cfaee44a0f1fd76180",
+      "publicDeployment": "dpl_8zpV5miVV9NNnhBa7J71aEeLBuqj",
+      "publicSourceBound": true,
+      "guestPreview": true,
+      "registrationEntry": true,
+      "noProviderUrlStable": true,
+      "noProviderTopLevelTabDelta": 0,
+      "sharedProviderConnectConsumed": false,
+      "restriction": "Card has an independent goal. Protocol Owner records this handoff only and must not change Card source.",
+      "handoff": "Consume the exact shared discovery/connect reducer while preserving the existing no-tab fallback. Prove real approval, callback, refresh/disconnect and Product Session separately."
+    },
+    {
+      "productId": "creator-studio",
+      "owner": "creator-studio",
+      "currentSourceCommit": "993e7cc99ea3919488d6765e097ca78a82a30704",
+      "publicSourceBound": true,
+      "handoff": "Replace local Provider/modal lifecycle state with the shared reducer while preserving English Guest tour, explicit chooser and on-page fallbacks. Prove real Provider approval, callback and Product Session separately."
+    },
+    {
+      "productId": "finance",
+      "owner": "finance-suite-finance",
+      "currentSourceCommit": "bf8aff118793014aeeefa04ec0a9141e509627ef",
+      "publicSourceBound": false,
+      "stalledReason": "Candidate evidence binds accepted source 98c6d5d7 to tree 69ba84ea, but the authoritative source tree is 51a60a36.",
+      "handoff": "Correct only the source-tree evidence binding, rerun the tested gate, then bind the exact public source and prove real approval/callback/refresh-disconnect."
+    },
+    {
+      "productId": "quant",
+      "owner": "finance-suite-quant",
+      "currentSourceCommit": "5fd6794b2fa0431b4353b96b1ab9146d7b69a82c",
+      "latestOwnerActivityCommit": "7d455a7211f78977c023480b33c86af758934b8d",
+      "publicSourceBound": false,
+      "handoff": "Consume the shared reducer while preserving Research/Paper guest mode and provider-only transport. Prove protected device, public Provider approval, callback and Product Session separately."
+    },
+    {
+      "productId": "social",
+      "owner": "social",
+      "currentSourceCommit": "22c26bcb7a8d618cb8e38b30940b1c07bf4237c8",
+      "publicSourceBound": true,
+      "handoff": "Consume the shared reducer while preserving English Guest, explicit YNX/MetaMask chooser, on-page fallbacks and stable URL. Prove real approval, callback, refresh/disconnect and Product Session separately."
+    },
+    {
+      "productId": "video",
+      "owner": "video",
+      "currentSourceCommit": "1d4532ffca4eabdc15f2ec66f3d1143f67e159fa",
+      "publicSourceBound": false,
+      "handoff": "Consume shared Web discovery/connect state and package-root Native canonical builder/resolver. Prove public Guest, real Provider approve/reject callback and Product Session separately."
+    }
+  ],
+  "truth": {
+    "pendingProducts": 6,
+    "newProductConsumptionRecorded": true,
+    "newPublicRuntimeRecorded": true,
+    "newApprovalRecorded": true,
+    "aggregateConnected": false,
+    "deployedPublicAggregate": false,
+    "integratedCentral": false
+  },
+  "validation": {
+    "focusedStateAndMatrix": "27/27",
+    "walletAuthFull": "294/294",
+    "noBareAuthorize": "PASS",
+    "standardConnectConsumerGate": "PASS"
+  }
+}
