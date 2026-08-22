@@ -1,0 +1,93 @@
+{
+  "schemaVersion": "ynx.wallet-auth.standard-provider-core-source-evidence.v1",
+  "recordedAt": "2026-08-22T04:44:56Z",
+  "owner": "wallet-auth-core",
+  "status": "SOURCE_ONLY_PROVIDER_CHECKPOINT_NOT_PLATFORM_OR_PUBLIC",
+  "branch": "codex/wallet-core-auth-gateway-continuation-20260814",
+  "source": {
+    "commit": "d8cda9f77918cab5bdfdd0568370f3c19742c14c",
+    "tree": "83af2d80038dd9cc7f39343efb7994ad0bb2815a",
+    "parent": "c0d5dc15c404031923b562ccfeaed1b93111a75c"
+  },
+  "authoritativeBaseline": {
+    "sourceCommit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+    "sourceTree": "51a60a362d4ad5dd748bcdefb101f71b1d9e0cee",
+    "evidenceCommit": "c3ab255c32bdeb9c8e056882c315f8ad43c29c7f",
+    "consumption": "semantic-successor-on-newer-core-line-without-history-merge"
+  },
+  "network": {
+    "nativeChainId": "ynx_6423-1",
+    "evmChainId": 6423,
+    "eip1193ChainId": "0x1917",
+    "walletConnectChainId": "eip155:6423",
+    "currencySymbol": "YNXT"
+  },
+  "components": {
+    "providerDiscovery": { "blob": "570c91e0a42bd79f6e8fa1f88e38fcbe180d8572", "sha256": "b57f7f916c0b4b2fa9e0a53780646d7b374b82fb29f02a69d5e07fdec891a244" },
+    "connectState": { "blob": "81fc9b4e0244602f3e828ed6ddcaa3c2d184ecf9", "sha256": "6c3d933fe6ad6b8e34d7af46dbe1b6dab9900f2b1973d31835d28afe1d97bc59" },
+    "eventModel": { "blob": "438c738e43e3e2510c0dfc28654d151f6242e065", "sha256": "e90ea16bc1199f7e948c65490716e2b96ca9082806a858398acd6fa522008543" },
+    "permissionController": { "blob": "2467ab15b0ac6df423846d403de70a3c62b78c60", "sha256": "39911010dd4fbec7f016c14150c40925f0ffc00cce34ee81255495adbc50b496" },
+    "jsonRpcRouter": { "blob": "641f4d5be32bed09bd8b9e7c7353d40e9ce862d0", "sha256": "b73973244d016a76f3fcdcb3c8437e2b62ffc4a0de6cf07acb9438150d998f4d" },
+    "providerEngine": { "blob": "b36091878e925c72874b99205e381a38aacaf228", "sha256": "00a5c0b81c1cb0ae738279010dabfde8b8cf01316943bf3798493b265d4d338c" },
+    "walletConnectAdapter": { "blob": "599ee09a4ef0417c72465a296bdc88f9376db0d3", "sha256": "18b0d35359a18eeebec2efe364c128d122181f6106398df6a74a9c9c62de1499" },
+    "consumerGate": { "blob": "d1c51cbbc80232918c19383d01a91edb2f9ad98d", "sha256": "bfe94b50b23991ad489c95e0c49169d5ee2981d7fb7022cf8271c485ce41ede8" },
+    "machineContract": { "blob": "826ae3675d6ad0de89fa9227d9fff9924fac9c1a", "sha256": "f87b5a16bb3240323dbaa9480d3d0c7d17137ef0420ee1f7c9c9341d96fd4307" },
+    "conformanceVector": { "blob": "48d5f59822103d678f91708b1915fc9bb4b55f48", "sha256": "1c9826af04482c30d9262c7f7c09393b49419f62249da45a9690ff2910c453ef" }
+  },
+  "authorityBoundary": {
+    "standardWalletIndependentOfGateway": true,
+    "standardWalletIndependentOfProductSession": true,
+    "gatewayOrProductSessionFailureEffect": "DEGRADED",
+    "approvedExternalAuthority": "approved-0x-accounts-only",
+    "nativeYnxAccountExposed": false,
+    "unapprovedEvmAccountExposed": false,
+    "providerDetectionIsConnection": false,
+    "defaultLanguage": "en"
+  },
+  "protocolCoverage": {
+    "eip1193": ["request", "on", "once", "removeListener", "ProviderRpcError"],
+    "eip6963": ["exact-rdns", "bounded-multi-phase-discovery", "root-fallback", "ambiguity-fail-closed", "honest-not-injected-classification"],
+    "permissions": ["eth_accounts", "eth_requestAccounts", "wallet_getPermissions", "wallet_requestPermissions", "per-origin-account-caveat", "single-flight", "epoch-race-fence"],
+    "jsonRpc": ["chain-read", "account-read", "chain-add-switch", "personal-sign", "typed-data-v4", "send-transaction", "bounded-read-forwarding", "unsupported-fail-closed"],
+    "events": ["connect", "disconnect", "accountsChanged", "chainChanged", "message"],
+    "walletConnect": ["eip155:6423", "approved-method-subset", "approved-account-namespace", "session-chain-binding", "approval-disconnect-race-fence"]
+  },
+  "verification": {
+    "focused": { "passed": 36, "failed": 0 },
+    "authoritativeCheck": {
+      "workingTree": { "passed": 414, "failed": 0 },
+      "cleanClone": { "passed": 414, "failed": 0 },
+      "noBareAuthorize": "PASS",
+      "standardWalletConsumer": "PASS"
+    },
+    "repeatPack": {
+      "sha256": "5da4ff31d2e3c77802262c66bb648c2c43a00cf6c929551b0a298d431f673729",
+      "bytes": 205135,
+      "entries": 117,
+      "byteIdentical": true,
+      "containsAllSharedProviderComponents": true
+    },
+    "packageLockSha256": "8929316677769e7a6ad703583c12a07dd4d4dcbf4d87c597983f6ab6955a87b6",
+    "offlineRuntimeArchiveSha256": "a17794bd15592f3eae1caab34094bc52ec70ce89efa0cbd9995219e94bc7bd86",
+    "networkInstallUsed": false
+  },
+  "truthGates": {
+    "sharedSourceImplemented": true,
+    "packageCheckpointPushed": true,
+    "platformConsumed": false,
+    "realExternalDappConnected": false,
+    "realWalletConnectRelay": false,
+    "realApprovedAccount": false,
+    "realSignOrSend": false,
+    "deployedPublic": false,
+    "integratedCentral": false,
+    "productsConsumed": "0/12"
+  },
+  "productionOperations": {
+    "ssh": false,
+    "productionRead": false,
+    "deployment": false,
+    "leaseRequestedOrUsed": false,
+    "productUiChanged": false
+  }
+}
