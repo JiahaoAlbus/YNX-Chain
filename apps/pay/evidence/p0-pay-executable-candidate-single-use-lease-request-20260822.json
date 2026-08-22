@@ -1,0 +1,85 @@
+{
+  "schemaVersion": "payExecutableCandidateSingleUseLeaseRequest@1.0.0-p0.0",
+  "requestId": "P0-PAY-EXECUTABLE-CANDIDATE-SINGLE-USE-LEASE-20260822",
+  "classification": "SOURCE_BOUND_LOCAL_CANDIDATE_NO_GO_UNTIL_CENTRAL_LEASE",
+  "owner": "pay",
+  "ownerScope": ["apps/pay/**"],
+  "candidate": {
+    "sourceCommit": "dbdd3491e63186cc02541ca7e8a20d8f098b31b9",
+    "sourceTree": "3a454e44f4830cf20be0caf57e28d2db3c6f304d",
+    "remoteRef": "refs/heads/codex/p0-pay-wallet-connectivity-20260821",
+    "remoteExactReadback": true,
+    "builtAt": "2026-08-22",
+    "build": "npm ci && npm run bundle-check",
+    "authorizationNavigationScan": "passed; request-bearing resolver-first native route only and no Web blank-tab authorization navigation"
+  },
+  "frozenArtifact": {
+    "kind": "local Expo Android/iOS/Web export archive",
+    "localPath": "/tmp/ynx-pay-owner.UqsMh4/artifacts/pay-dbdd3491-expo-export-20260822.tgz",
+    "sha256": "f73e6edf637222943969368ece8c1811f82a6f0a932fef9beac9005416217d77",
+    "bytes": 3413529,
+    "published": false,
+    "installable": false,
+    "bundles": {
+      "androidHermes": "e9ffc2134d635282a1376bdc60b337edc3ed970a0e0df19f2146f4f40be5045c",
+      "iosHermes": "9826a28e738aa642ee610ea6230b089d2db3f9792c5f882464ac301135bd818b",
+      "webMain": "042cae39475ee7707840ed3fdcbb34ce8ec7005c2a107e5f74160f68724aa9a1"
+    }
+  },
+  "currentState": {
+    "readAt": "2026-08-22T15:31:02+08:00",
+    "publicTarget": "https://pay.ynxweb4.com/",
+    "publicHttpStatus": 404,
+    "publicSourceIdentityReadback": false,
+    "installedCandidate": false,
+    "rollbackTargetBound": false,
+    "releaseExecutorBound": false
+  },
+  "requestedLease": {
+    "status": "REQUESTED_NOT_ISSUED",
+    "singleUse": true,
+    "p0051Reusable": false,
+    "leaseId": "CENTRAL_MUST_ASSIGN_NEW_ID",
+    "executor": "CENTRAL_MUST_ASSIGN_NAMED_EXECUTOR",
+    "expiresAt": "CENTRAL_MUST_ASSIGN_FUTURE_ISO_8601_EXPIRY",
+    "permittedTargets": [
+      "one Central-designated compatible Android or iOS device for install and cold-start validation",
+      "https://pay.ynxweb4.com/ only after it exposes exact source/tree provenance"
+    ],
+    "requiredPreconditions": [
+      "Bind a signed or explicitly test-signed installable artifact URL, bytes, SHA-256, bundle identifier, candidate commit, and candidate tree.",
+      "Bind a named executor and a lease expiry before any deployment or install.",
+      "Bind a pre-deploy public identity and a rollback target with its artifact and source/tree identity.",
+      "Provide a read-only public provenance route for post-deploy and post-rollback readback."
+    ],
+    "rollbackProcedure": [
+      "Record the public route status and pre-deploy artifact/source identity.",
+      "Deploy or install only the frozen candidate selected by Central before lease expiry.",
+      "If source identity, cold start, resolver-first handling, callback fail-close, or provider discovery readback fails, restore the bound rollback target.",
+      "Read back the restored public identity and artifact digest, then close the single-use lease."
+    ]
+  },
+  "nonSensitiveProviderLifecycle": {
+    "allowed": [
+      "EIP-6963 discovery with separate YNX Wallet and MetaMask labels and logos",
+      "resolver-first unavailable handling",
+      "callback fail-close handling",
+      "prompt-free eth_accounts and eth_chainId readback for an already-approved provider",
+      "passive accountsChanged, chainChanged, disconnect, and local revoke state handling",
+      "first-party Pay plus separately opened Uniswap, OpenSea, and Safe with no blank tab"
+    ],
+    "verified": false,
+    "forbidden": ["eth_requestAccounts", "personal_sign", "eth_signTypedData_v4", "eth_sendTransaction", "wallet_addEthereumChain", "wallet_switchEthereumChain", "private-key collection"]
+  },
+  "truth": {
+    "sourceBoundLocalCandidate": true,
+    "artifactFrozenLocally": true,
+    "leaseIssued": false,
+    "artifactHosted": false,
+    "candidateInstalled": false,
+    "publicDeployed": false,
+    "rollbackVerified": false,
+    "providerLifecycleVerified": false
+  },
+  "completionRule": "This request and local export are not installation, public deployment, Wallet approval, callback, signing, transaction, or direct E2E completion evidence."
+}
