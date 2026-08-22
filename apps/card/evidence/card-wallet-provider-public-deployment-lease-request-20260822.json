@@ -1,0 +1,113 @@
+{
+  "schema": "cardPublicDeploymentLeaseRequest@1.0.0-p0.0",
+  "requestId": "P0-CARD-WALLET-PROVIDER-PUBLIC-DEPLOYMENT-20260822",
+  "requestedAt": "2026-08-22",
+  "owner": "card",
+  "priority": "P0",
+  "requestedState": "CARD_ONLY_SINGLE_USE_PRODUCTION_DEPLOYMENT",
+  "scope": {
+    "repositoryPaths": [
+      "apps/card/**"
+    ],
+    "vercelProject": "jiahaoalbus-projects/ynx-card-testnet-simulation",
+    "vercelProjectId": "prj_DU37JeDK4Rx0MjxIV745veV5Qgxp",
+    "canonicalUrl": "https://card.ynxweb4.com/",
+    "forbidden": [
+      "other product source or routes",
+      "Website source",
+      "Wallet source",
+      "DNS changes",
+      "Vercel project settings",
+      "account approval",
+      "signature",
+      "transaction"
+    ]
+  },
+  "candidate": {
+    "branch": "codex/p0-card-wallet-parity-20260822",
+    "sourceCommit": "45c4013a95008027cf55f2ac4d7bdded70640ae1",
+    "sourceTree": "fd1b786beb1a81d33a9100be874e4e32082fefde",
+    "providerAuthority": {
+      "commit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+      "tree": "51a60a362d4ad5dd748bcdefb101f71b1d9e0cee"
+    },
+    "routerE2EGate": {
+      "commit": "875be208e8a7ddb60345d55b93fc299949664e5c",
+      "tree": "3499ddfbe2a4bb08cbbcaef8c71b911aca51dde4"
+    },
+    "buildCommand": "npm run build:web",
+    "outputDirectory": "apps/card/dist-web",
+    "files": [
+      {"path":"_expo/static/js/web/Crypto-18806bcac3c286e8ea55353192d1639a.js","bytes":10118,"sha256":"882258d8b8dec360da902cac6af9b85ef5ecddae27739742b26360f4946adfbb"},
+      {"path":"_expo/static/js/web/index-6a16f2a248e25355f9aa7ee9626133a0.js","bytes":2911045,"sha256":"f59fa3d43e4d855a91f224f239e8fc39bf4ffa73e83e42d5c0203aa70deae92e"},
+      {"path":"assets/assets/icon.ac64b115433cc62063b01bbab973bec7.png","bytes":863227,"sha256":"6252153a2fd0d12cb61a1223cea3277ceff863eb82b6073049419459b359f86f"},
+      {"path":"assets/assets/metamask-fox.024a98855742a7b85946088532e2d4c1.png","bytes":3682,"sha256":"25f2f224f9d01c78ae3dc2d07a339053cc402961a59cf818f2753c12db9ec796"},
+      {"path":"card-testnet-icon.png","bytes":863227,"sha256":"6252153a2fd0d12cb61a1223cea3277ceff863eb82b6073049419459b359f86f"},
+      {"path":"favicon.ico","bytes":14510,"sha256":"1eda72df0357a4a4b6d396d79ca0ab775c230723473b47e8195d2e629972ceb3"},
+      {"path":"index.html","bytes":1717,"sha256":"f8b59f7bb084fa22573df186b2f47fa35d3f85d6e078f09f1d3b1b53c764c695"},
+      {"path":"manifest.webmanifest","bytes":460,"sha256":"f3e634129abe79c5b81b7fc8dac3950e5cb21f1d1263b1938fcd06a58e2c686f"},
+      {"path":"metadata.json","bytes":49,"sha256":"aa5f19cc84d41c0f8c70ececb2bc82e863227ea1e121632aca879eb616056991"},
+      {"path":"pwa-register.js","bytes":201,"sha256":"87671daaddfae6a98e473eedf34a8844d5fd82676f2111808057e98d9b4012a6"},
+      {"path":"sw.js","bytes":364,"sha256":"1a9acfe442d2920040a1999f4fe4efe3f97d7a42a9debef047d469972889638f"}
+    ]
+  },
+  "sourceGates": {
+    "typecheck": "PASS",
+    "tests": "PASS_44_OF_44",
+    "securityCheck": "PASS",
+    "bundleCheck": "PASS_IOS_ANDROID",
+    "webBuild": "PASS",
+    "diffCheck": "PASS"
+  },
+  "currentProductionRollback": {
+    "deploymentId": "dpl_DqMuEhno65bLFTNKBu9gs52soVri",
+    "deploymentUrl": "https://ynx-card-testnet-simulation-bmeabqkk1-jiahaoalbus-projects.vercel.app",
+    "status": "READY",
+    "target": "production",
+    "canonicalHtml": {"http":200,"bytes":1717,"sha256":"56827ca95005951ae791245b6c3021691beace32683209936c7519324c28ed24"},
+    "canonicalJavaScript": {"path":"/_expo/static/js/web/index-250c974606522c0feefa0bf082cc41a1.js","http":200,"bytes":2907885,"sha256":"2103aba7f844d4a3c067eac0ecbf0acbc9ebf8fb8831c44fd248df90261a8568"},
+    "manifest": {"http":200,"bytes":460,"sha256":"f3e634129abe79c5b81b7fc8dac3950e5cb21f1d1263b1938fcd06a58e2c686f"},
+    "serviceWorker": {"http":200,"bytes":364,"sha256":"1a9acfe442d2920040a1999f4fe4efe3f97d7a42a9debef047d469972889638f"},
+    "rollbackAction": "Restore this exact Ready deployment to the existing project aliases, then repeat canonical HTTP and clean-browser checks."
+  },
+  "requiredLease": {
+    "singleUse": true,
+    "forcePushAllowed": false,
+    "expiresAtRequired": true,
+    "prewrite": [
+      "Re-read exact candidate source commit and tree from origin.",
+      "Rebuild in a clean Card-only checkout and require every candidate file hash above.",
+      "Re-read the current production deployment and rollback hashes above.",
+      "Bind the lease to the Card Vercel project and canonical Card domain only."
+    ],
+    "mutation": "Create exactly one production deployment from the clean exact Card source. Do not change aliases, DNS, project settings, or other product paths outside the normal project production promotion.",
+    "rollback": "On any deployment, canonical HTTP, asset, or clean-browser failure, restore dpl_DqMuEhno65bLFTNKBu9gs52soVri exactly once and verify its recorded hashes."
+  },
+  "postDeploymentAcceptance": {
+    "sensitiveRequestsAllowed": false,
+    "required": [
+      "Canonical HTML and candidate JavaScript return HTTP 200 with exact bytes and SHA-256.",
+      "A clean real browser opens the canonical URL in one stable tab with zero new blank tabs and zero page console errors.",
+      "YNX Wallet uses the YNX logo and com.ynx.wallet/isYNXWallet identity; MetaMask uses the fox logo and io.metamask/isMetaMask identity.",
+      "Late provider discovery and the truthful no-provider state are visible without making eth_requestAccounts.",
+      "Before account approval, connected account, chain, details, signature, and transaction success remain absent.",
+      "Private Product Session degradation does not fabricate or erase Standard Wallet state."
+    ],
+    "deferredUserConfirmation": [
+      "eth_requestAccounts approve and reject",
+      "wallet add or switch confirmation",
+      "personal_sign",
+      "EIP-712",
+      "testnet transaction"
+    ]
+  },
+  "truth": {
+    "deploymentAuthorized": false,
+    "deploymentExecuted": false,
+    "sourceBoundPublic": false,
+    "cleanBrowserValidated": false,
+    "accountApproved": false,
+    "signatureExecuted": false,
+    "transactionExecuted": false
+  }
+}
