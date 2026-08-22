@@ -92,16 +92,20 @@ final class CallbackPolicyTests: XCTestCase {
     )
   }
 
-  func testColdStartInboxPreservesTwoCallbacksInOrder() {
+  func testColdStartInboxPreservesAuthAndWalletConnectCallbacksInOrder() {
+    let pairing = "wc:\(walletConnectTopic)@2?symKey=\(walletConnectSymKey)&relay-protocol=irn&expiryTimestamp=2000000000"
+    let encoded = pairing.addingPercentEncoding(withAllowedCharacters: .alphanumerics)!
     var inbox = PendingCallbackInbox()
     inbox.enqueue("ynxwallet://authorize?request=invalid&scope=wallet")
     inbox.enqueue("ynxwallet://authorize?request=invalid")
+    inbox.enqueue("ynxwallet://wc?uri=\(encoded)")
 
-    XCTAssertEqual(inbox.count, 2)
+    XCTAssertEqual(inbox.count, 3)
     let decisions = inbox.drain().map { CallbackPolicy.evaluate($0) }
     XCTAssertEqual(decisions, [
       .rejected(code: "INVALID_AUTHORIZATION_REQUEST"),
       .rejected(code: "INVALID_DEEP_LINK"),
+      .rejected(code: "WALLETCONNECT_PROJECT_ID_UNAVAILABLE"),
     ])
     XCTAssertEqual(inbox.count, 0)
   }

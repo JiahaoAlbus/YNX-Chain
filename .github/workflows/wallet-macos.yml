@@ -565,6 +565,54 @@ jobs:
           screencapture -x "$PROOF/widened-callback-cold-start-fail-closed.png"
           test -s "$PROOF/widened-callback-cold-start-fail-closed.png"
           kill "$WIDENED_COLD_PID"
+          for _ in $(seq 1 30); do
+            kill -0 "$WIDENED_COLD_PID" 2>/dev/null || break
+            sleep 1
+          done
+          ! kill -0 "$WIDENED_COLD_PID" 2>/dev/null
+
+          open "$WC_CALLBACK" > "$PROOF/open-walletconnect-callback-cold-start.txt"
+          for _ in $(seq 1 60); do
+            WC_COLD_PID="$(pgrep -x YNXWalletMac | head -n 1 || true)"
+            if test -n "$WC_COLD_PID" && test "$WC_COLD_PID" != "$WIDENED_COLD_PID"; then break; fi
+            sleep 1
+          done
+          test -n "${WC_COLD_PID:-}"
+          test "$WC_COLD_PID" != "$WIDENED_COLD_PID"
+          WC_COLD_SEEN=false
+          WC_COLD_UI=false
+          for _ in $(seq 1 60); do
+            xcrun log show --style compact --last 5m \
+              --predicate 'subsystem == "com.ynxweb4.wallet.macos" AND (category == "callback" OR category == "lifecycle")' \
+              > "$PROOF/walletconnect-callback-cold-start-native.log" 2>&1 || true
+            if grep -Fq "YNX_WALLET_MAC_LAUNCHED pid=$WC_COLD_PID" "$PROOF/walletconnect-callback-cold-start-native.log" && \
+               grep -Fq "YNX_WALLET_MAC_CALLBACK_RECEIVED pid=$WC_COLD_PID scheme=ynxwallet" "$PROOF/walletconnect-callback-cold-start-native.log" && \
+               grep -Fq "YNX_WALLET_MAC_CALLBACK_REJECTED pid=$WC_COLD_PID code=WALLETCONNECT_PROJECT_ID_UNAVAILABLE relay=false pairing=false approval=false callbackEmitted=false" \
+                 "$PROOF/walletconnect-callback-cold-start-native.log"; then
+              WC_COLD_SEEN=true
+            fi
+            osascript <<'APPLESCRIPT' > "$PROOF/walletconnect-callback-cold-start-ui.txt" 2>/dev/null || true
+          tell application "System Events"
+            tell process "YNXWalletMac"
+              set frontmost to true
+              return name of every static text of window 1
+            end tell
+          end tell
+          APPLESCRIPT
+            if grep -Fq 'WalletConnect unavailable' "$PROOF/walletconnect-callback-cold-start-ui.txt" && \
+               grep -Fq 'WALLETCONNECT_PROJECT_ID_UNAVAILABLE' "$PROOF/walletconnect-callback-cold-start-ui.txt"; then
+              WC_COLD_UI=true
+            fi
+            if test "$WC_COLD_SEEN" = true && test "$WC_COLD_UI" = true; then break; fi
+            sleep 1
+          done
+          test "$WC_COLD_SEEN" = true
+          test "$WC_COLD_UI" = true
+          printf 'pid=%s launchedByWalletConnect=true received=true projectID=false relay=false pairing=false approval=false callbackEmitted=false error=WALLETCONNECT_PROJECT_ID_UNAVAILABLE visible=true\n' \
+            "$WC_COLD_PID" | tee "$PROOF/walletconnect-callback-cold-start.txt"
+          screencapture -x "$PROOF/walletconnect-callback-cold-start-fail-closed.png"
+          test -s "$PROOF/walletconnect-callback-cold-start-fail-closed.png"
+          kill "$WC_COLD_PID"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
