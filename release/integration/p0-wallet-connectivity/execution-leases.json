@@ -1,26 +1,26 @@
 {
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "epoch": 84,
-  "updatedAt": "2026-08-22T09:19:00Z",
+  "epoch": 85,
+  "updatedAt": "2026-08-22T09:30:02Z",
   "heavy": {
-    "owner": "wallet-web+website",
-    "status": "ACTIVE_SINGLE_USE",
+    "owner": null,
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_HOSTED_V11_CANDIDATE_BROWSER_PREFLIGHT",
     "branch": "codex/wallet-web-pwa-extensions-20260813",
     "worktree": "/Users/huangjiahao/.codex/worktrees/1274/YNX Chain",
     "taskId": "P0-182",
     "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-web-v11-hosted-browser-preflight-20260822T091900Z",
     "leasedAt": "2026-08-22T09:19:00Z",
     "expiresAt": "2026-08-22T09:49:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-22T09:30:02Z",
     "previousOwner": null,
     "previousTaskId": "P0-181",
     "previousCheckpoint": "5acf2bc745fc26467c3f43d5bbb7b910229f7426",
     "executionScope": "EXACT_V11_IMMUTABLE_CANDIDATE_HOSTED_CHROMIUM_PREFLIGHT_WITH_TEMPORARY_SSO_WINDOW_NO_ALIAS",
-    "releaseReason": null,
+    "releaseReason": "The unique hosted run failed before Chromium because build-identity.json and sw.js were published with public must-revalidate instead of no-store. SSO was restored once, the official alias remained unchanged, and no retry or product mutation occurred.",
     "onSafeCheckpoint": [
-      "modify only the exact hosted-preflight workflow and push once force=false",
-      "run one hosted Chromium candidate preflight with no alias or product mutation",
-      "restore wallet-web SSO protection exactly once on every terminal path"
+      "do not reuse P0-182 or infer candidate browser acceptance",
+      "repair candidate no-store publication and isolate hosted evidence output",
+      "require a new independently reviewed candidate and wholly new lease before hosted Chromium execution"
     ]
   },
   "light": {

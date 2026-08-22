@@ -6532,7 +6532,7 @@
     {
       "taskId": "P0-182",
       "owner": "integration,wallet-web,website",
-      "status": "ACTIVE_SINGLE_USE_HOSTED_V11_CANDIDATE_BROWSER_PREFLIGHT_NO_ALIAS",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_HOSTED_V11_CANDIDATE_BROWSER_PREFLIGHT",
       "paths": [
         "release/integration/p0-wallet-connectivity/leases/wallet-web-v11-hosted-browser-preflight-p0182-20260822.json",
         ".github/workflows/wallet-web-public-preflight-p0.yml",
@@ -6541,16 +6541,23 @@
       "dependencies": ["P0-181"],
       "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-web-v11-hosted-browser-preflight-20260822T091900Z",
       "expiresAt": "2026-08-22T09:49:00Z",
+      "releasedAt": "2026-08-22T09:30:02Z",
       "source": "76c053911c9584ef957d5e97d318a9d7c26d95e2",
       "ownerRemoteParent": "183a0abe148126e9940e461af2334bde87880285",
       "candidateDeployment": "dpl_v77Zye3rVWn4P7jR1nWosNfV8dfg",
       "candidateImmutableUrl": "https://wallet-1jnjljvfy-jiahaoalbus-projects.vercel.app",
       "aliasMutationAllowed": false,
-      "workflowCommitAllowedExactlyOnce": true,
-      "hostedRunAllowedExactlyOnce": true,
+      "workflowCommitAllowedExactlyOnce": false,
+      "hostedRunAllowedExactlyOnce": false,
+      "workflowCommit": "28405b8d70b6b1215cb9eccf397ee71c8fd79dae",
+      "actionsRunId": 32564960301,
+      "actionsConclusion": "failure",
+      "rawNoStoreHeadersPassed": false,
+      "hostedChromiumExecuted": false,
+      "ssoRestored": true,
       "currentSourceBoundPublic": false,
       "productsConnected": "0/12",
-      "nextAction": "Execute the ordered temporary SSO window and one workflow-only hosted Chromium preflight; restore protection on every terminal path and return direct evidence or fail closed."
+      "nextAction": "Do not reuse P0-182. Repair candidate no-store publication and isolate hosted evidence output, then require independent review before any wholly new hosted Chromium lease."
     }
   ]
 }

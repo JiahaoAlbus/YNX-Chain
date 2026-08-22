@@ -427,26 +427,26 @@
     }
   ],
   "heavy": {
-    "owner": "wallet-web+website",
+    "owner": null,
     "taskId": "P0-182",
-    "status": "ACTIVE_SINGLE_USE",
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_HOSTED_V11_CANDIDATE_BROWSER_PREFLIGHT",
     "acquiredAt": "2026-08-22T09:19:00Z",
     "expiresAt": "2026-08-22T09:49:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-22T09:30:02Z",
     "sourceCommit": "76c053911c9584ef957d5e97d318a9d7c26d95e2",
     "evidenceCommit": "183a0abe148126e9940e461af2334bde87880285",
     "runtimeHost": "wallet-1jnjljvfy-jiahaoalbus-projects.vercel.app",
     "currentRuntime": "dpl_Got2m9m84Sc3QDsrH8yu51W93JAe",
     "candidateRuntime": "dpl_v77Zye3rVWn4P7jR1nWosNfV8dfg",
     "artifactSha256": "447ca546b350cb6fca50e063d18b6dc9c087714b348a16bfc1948db0da833816",
-    "productionMutationAllowed": "WALLET_WEB_SSO_TEMPORARY_DISABLE_AND_RESTORE_ONLY",
+    "productionMutationAllowed": false,
     "singleUse": true,
     "reusable": false,
     "previousOwner": null,
     "previousTaskId": "P0-181",
     "checkpointCommit": "5acf2bc745fc26467c3f43d5bbb7b910229f7426",
-    "reviewDecision": "GO_HOSTED_V11_CANDIDATE_BROWSER_PREFLIGHT_NO_ALIAS",
-    "reason": "The v11 repair is remote exact and the new deployment is READY. Only one hosted Chromium candidate preflight is authorized, with an ordered temporary SSO window and no official alias mutation."
+    "reviewDecision": "FAILED_CLOSED_V11_PUBLICATION_HEADERS_CHROMIUM_NOT_EXECUTED",
+    "reason": "The unique hosted run proved exact v11 source identity but build-identity.json and sw.js lacked no-store, so the raw gate failed and Chromium was skipped. SSO was restored and the official alias remained unchanged."
   },
   "wave": {
     "id": "B-financial-apps-quant",
