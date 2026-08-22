@@ -1,26 +1,26 @@
 {
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "epoch": 90,
-  "updatedAt": "2026-08-22T11:16:00Z",
+  "epoch": 91,
+  "updatedAt": "2026-08-22T11:29:30Z",
   "heavy": {
-    "owner": "calendar",
-    "status": "ACTIVE_SINGLE_USE",
+    "owner": null,
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_CALENDAR_PUBLIC_RECOVERY",
     "branch": "codex/calendar-fable5-completion-20260821",
     "worktree": null,
     "taskId": "P0-186",
     "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-calendar-7db160aa-public-recovery-20260822T111600Z",
     "leasedAt": "2026-08-22T11:16:00Z",
     "expiresAt": "2026-08-22T11:46:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-22T11:29:30Z",
     "previousOwner": null,
     "previousTaskId": "P0-185",
     "previousCheckpoint": "6246d847dfdb0199198d6c49f49335e782ecca8b",
     "executionScope": "CALENDAR_ONLY_LINUX_AMD64_PAIRED_ROLLBACK_PUBLIC_RECOVERY",
-    "releaseReason": null,
+    "releaseReason": "Mandatory prewrite stopped before mutation because state.json had the same bytes, SHA, owner, mode and nlink but a new inode produced by normal atomic state replacement. No stage, upload, service action, backup or rollback occurred.",
     "onSafeCheckpoint": [
-      "stage and deploy only the exact Calendar Linux amd64 ELF once",
-      "preserve binary, state and HMAC key as one rollback set",
-      "stop before account approval, switching, disconnect, signing or transaction"
+      "do not reuse P0-186 or infer deployment",
+      "treat live state inode as an immediate-prewrite observation rather than a long-lived lease constant",
+      "freeze the paired snapshot only after service stop and require content/security metadata continuity"
     ]
   },
   "light": {

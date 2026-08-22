@@ -6623,7 +6623,7 @@
     {
       "taskId": "P0-186",
       "owner": "calendar",
-      "status": "ACTIVE_SINGLE_USE",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_CALENDAR_PUBLIC_RECOVERY",
       "paths": [
         "release/integration/p0-wallet-connectivity/execution/p0-186-calendar-7db160aa-public-recovery-lease-20260822.json",
         "production:https://calendar-testnet.43.153.202.237.sslip.io/**",
@@ -6635,7 +6635,7 @@
       "dependencies": ["P0-185"],
       "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-calendar-7db160aa-public-recovery-20260822T111600Z",
       "expiresAt": "2026-08-22T11:46:00Z",
-      "releasedAt": null,
+      "releasedAt": "2026-08-22T11:29:30Z",
       "source": "7db160aa0bd589097e63190a260a343aafe4854c",
       "request": "b44de2636340997299707b75a2e1bfbc6d20eae8",
       "artifactSha256": "9cad944f63fb7fae49bf947166075b9617e0dac5807d9d9c43cab1791379c426",
@@ -6643,7 +6643,10 @@
       "backupPath": "/var/backups/ynx-chain/calendar-7db160aa-p0186-20260822T112000Z",
       "accountActionsAllowed": false,
       "productsConnected": "0/12",
-      "nextAction": "Execute the exact Calendar-only rollback-first transaction once, verify source-bound public bytes and non-sensitive browser recovery, then consume/release without account actions."
+      "ownerEvidenceCommit": "568615e29ae9f00e2a04f0c540f6d9da7a6dd5fd",
+      "prewriteStateInodeDrift": "64770:1324592->64770:1327740",
+      "productionMutation": false,
+      "nextAction": "Do not reuse P0-186. A successor must capture the live inode immediately before stopping the service, then freeze and verify the paired state/key snapshot after stop while binding content/security metadata."
     }
   ]
 }
