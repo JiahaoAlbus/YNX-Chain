@@ -1,0 +1,153 @@
+{
+  "schemaVersion": "ynx-browser-wallet-preinstall-lease-request/1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-BROWSER-WALLET-PREINSTALL-20260823",
+  "productId": "ynx-browser",
+  "owner": "browser",
+  "generatedAt": "2026-08-22T22:56:35Z",
+  "status": "REQUESTED_NOT_AUTHORIZED",
+  "scope": {
+    "paths": ["apps/browser/**"],
+    "platform": "macOS",
+    "actualInstallAllowed": false,
+    "launchServicesMutationAllowed": false,
+    "launchAllowed": false,
+    "schemeInvocationAllowed": false,
+    "accountRequestAllowed": false,
+    "signatureAllowed": false,
+    "transactionAllowed": false
+  },
+  "source": {
+    "branch": "codex/p0-browser-current-source-verification-20260821",
+    "ownerHead": "590314a9468982ef9f58f745f60156e89a2cd66c",
+    "ownerTree": "d0c2f8c00cb2ee734c4bf6d02941bebc3891f760",
+    "sourceCheckpoint": "ad890f0a2fe562536216c2834b25a7ad2aa398f6",
+    "sourceNativeTree": "e40aa9bf811ac157be062bf85d0d02cd5ed56a15",
+    "buildScriptBlob": "6324da744a908630cb98eaa08cbd7229bcefb4d7",
+    "remoteReadbackExact": true,
+    "worktreeClean": true
+  },
+  "artifact": {
+    "repositoryPath": "apps/browser/dist/macos/YNX-Browser-Testnet-Preview-macOS.zip",
+    "repositoryTracking": "ignored_local_carrier_bound_by_existing_owner_evidence",
+    "frozenCarrier": "/private/tmp/YNX-Browser-Testnet-Preview-ad890f0a2fe5-aaed312ef608.zip",
+    "carrierDevice": 16777239,
+    "carrierInode": 182668190,
+    "carrierMode": "0444",
+    "zipBytes": 143157,
+    "zipSha256": "a696f743a86518d8cc98d1a1335fd80fcbf3eed593491e53e7ed67589f019ba4",
+    "zipIntegrity": "PASS",
+    "bundle": {
+      "name": "YNX Browser Testnet Preview.app",
+      "bundleId": "com.ynxweb4.browser.macos",
+      "version": "0.2.0",
+      "build": "2",
+      "scheme": "ynxbrowser",
+      "architecture": "arm64",
+      "executable": "Contents/MacOS/YNXBrowserNative",
+      "executableBytes": 463248,
+      "executableSha256": "aaed312ef608445504ba1cc21ff24d14bc5b4e48c2d6b505dc3cfb545daa0de5",
+      "infoPlistSha256": "cea4ced8c84e06d8ce9c31829988c2f95bdd69ab1edd9041fbb5799965c084d1",
+      "codesignVerify": "PASS",
+      "signingClass": "adhoc",
+      "teamIdentifier": null,
+      "cdHash": "35fa5caeff1db10b072109d005e2f830a7d5f2fe",
+      "gatekeeperAccepted": false
+    }
+  },
+  "sourceLocalVerification": {
+    "nodeTests": "PASS_18_OF_18",
+    "smoke": "PASS",
+    "sourceGate": "PASS",
+    "swiftCoreDirectTypecheck": "PASS",
+    "swiftSourceAndTestsParse": "PASS",
+    "fullSwiftPm": "BLOCKED_LOCAL_COMMANDLINETOOLS_DUPLICATE_XCSPEC",
+    "reproducibleRebuildThisSlice": false,
+    "installExecutedThisSlice": false,
+    "launchServicesRegistrationExecutedThisSlice": false,
+    "applicationLaunchedThisSlice": false
+  },
+  "sameBundleIdAudit": {
+    "bundleId": "com.ynxweb4.browser.macos",
+    "scheme": "ynxbrowser",
+    "spotlightCopyCount": 11,
+    "launchServicesClaimCount": 11,
+    "copies": [
+      {"path": "~/Applications/YNX Browser Preserved/YNX Browser Testnet Preview-2beece6f66a3-cae76c48e0ac-preserved-cae76c48e0ac.app", "binarySha256": "cae76c48e0acb8241f3501115cee118865c3d2b54ee945b7091d4894208943a9"},
+      {"path": "~/Applications/YNX Browser Preserved/YNX Browser Testnet Preview-49c9ba14057b-cae76c48e0ac-preserved-cae76c48e0ac-2.app", "binarySha256": "cae76c48e0acb8241f3501115cee118865c3d2b54ee945b7091d4894208943a9"},
+      {"path": "~/Applications/YNX Browser Preserved/YNX Browser Testnet Preview-49c9ba14057b-cae76c48e0ac-preserved-cae76c48e0ac.app", "binarySha256": "cae76c48e0acb8241f3501115cee118865c3d2b54ee945b7091d4894208943a9"},
+      {"path": "~/Applications/YNX Browser Preserved/YNX Browser Testnet Preview-96dfc528ddd6-b774dba5db30-preserved-b774dba5db30.app", "binarySha256": "b774dba5db302158a370ebb51349edcfc92cd360178487141b59fd8e543ba185"},
+      {"path": "~/Applications/YNX Browser Preserved/YNX Browser Testnet Preview-preserved-95ddf592badb.app", "binarySha256": "95ddf592badbdb3cdf4babc31c0febdd186e917d1b1ca81a4a400c2f8839d81e"},
+      {"path": "~/Applications/YNX Browser Testnet Preview-ad890f0a2fe5-aaed312ef608.app", "binarySha256": "aaed312ef608445504ba1cc21ff24d14bc5b4e48c2d6b505dc3cfb545daa0de5"},
+      {"path": "~/Desktop/YNX Chain Browser Search/apps/browser/dist/macos/YNX Browser Testnet Preview.app", "binarySha256": "95ddf592badbdb3cdf4babc31c0febdd186e917d1b1ca81a4a400c2f8839d81e"},
+      {"path": "~/Desktop/YNX Final Worktrees/22-browser/apps/browser/dist/macos/YNX Browser Testnet Preview.app", "binarySha256": "a0e54dec1e8f085e40792a66d7c91198cb80c61c3100e112413dab0c54e8db64"},
+      {"path": "~/Desktop/YNX Final Worktrees/41-finance-integration/apps/browser/dist/macos/YNX Browser Testnet Preview.app", "binarySha256": "0265b6bd61f3386aaa59d01ccdd289d450df6405d500b8f4fc411326837749cd"},
+      {"path": "~/Desktop/YNX Final Worktrees/52-browser-p0/apps/browser/dist/macos/YNX Browser Testnet Preview.app", "binarySha256": "aaed312ef608445504ba1cc21ff24d14bc5b4e48c2d6b505dc3cfb545daa0de5"},
+      {"path": "~/Downloads/YNX Browser Testnet Preview.app", "binarySha256": "b774dba5db302158a370ebb51349edcfc92cd360178487141b59fd8e543ba185"}
+    ]
+  },
+  "currentLaunchServicesRollback": {
+    "resolutionProbe": "ynxbrowser://com.ynxweb4.browser.macos/preinstall-resolution",
+    "resolvedPath": "~/Applications/YNX Browser Preserved/YNX Browser Testnet Preview-preserved-95ddf592badb.app",
+    "resolvedBinarySha256": "95ddf592badbdb3cdf4babc31c0febdd186e917d1b1ca81a4a400c2f8839d81e",
+    "appDevice": 16777239,
+    "appInode": 149132970,
+    "binaryInode": 149776624,
+    "cdHash": "ec1702a0d4f65a39a329d116439c85bf79b9bebb",
+    "signingClass": "adhoc",
+    "activeProcess": {
+      "pidAtAudit": 93119,
+      "ppid": 1,
+      "startedAt": "2026-08-22T11:58:23+08:00",
+      "executablePath": "~/Applications/YNX Browser Preserved/YNX Browser Testnet Preview-preserved-95ddf592badb.app/Contents/MacOS/YNXBrowserNative"
+    },
+    "conflictProved": true,
+    "reason": "Eleven applications claim the same Bundle ID and ynxbrowser scheme, while the current handler and active process are an older binary rather than the reviewed artifact."
+  },
+  "requestedSingleUseLease": {
+    "owner": "browser-macos-preinstall-owner",
+    "newInstallTarget": "~/Applications/YNX Browser Isolated/YNX Browser Testnet Preview-ad890f0a2fe5-aaed312ef608.app",
+    "preconditions": [
+      "Re-read this exact request commit and require the owner branch, source checkpoint, ZIP and executable identities above",
+      "Require the new install target to be absent before the first write",
+      "Snapshot all same-Bundle-ID filesystem and LaunchServices records and re-resolve the current ynxbrowser handler",
+      "Require the rollback handler path, app device/inode, executable inode and SHA-256 above to remain exact",
+      "Record every active YNXBrowserNative process without terminating or modifying it"
+    ],
+    "authorizedMutations": [
+      "Extract the exact ZIP into a fresh private temporary directory and verify all frozen identities",
+      "Copy the exact app once to the absent immutable isolated target and record its device/inode/owner/mode/bytes/SHA-256",
+      "Register only the exact isolated target with LaunchServices once",
+      "Query handler resolution without launching the application or invoking the scheme"
+    ],
+    "successGate": "Handler resolution names the isolated target and its executable SHA-256 is exact, with all pre-existing copies and active processes unchanged.",
+    "rollbackOnAnyFailure": [
+      "Unregister only the exact isolated target once",
+      "Re-register only the exact prewrite rollback handler path once",
+      "Re-resolve ynxbrowser and require the exact rollback path and executable SHA-256",
+      "Remove only the isolated target if its recorded device/inode and executable SHA-256 still match and no process is running from it",
+      "Prove every pre-existing copy and pre-existing active process remained unchanged"
+    ],
+    "explicitlyForbidden": [
+      "Deleting, moving, replacing, unregistering or terminating any pre-existing application or process",
+      "Launching the candidate or opening an ynxbrowser URL",
+      "Requesting an account, signature or transaction",
+      "Changing any other product path or any handler other than the bounded temporary ynxbrowser resolution described above"
+    ],
+    "singleUse": true,
+    "reusable": false
+  },
+  "truth": {
+    "sourceAndLocalArtifactIdentityFrozen": true,
+    "preExistingLaunchServicesConflictProved": true,
+    "installedThisSlice": false,
+    "registeredThisSlice": false,
+    "launchedThisSlice": false,
+    "walletProviderRuntime": false,
+    "account": false,
+    "signature": false,
+    "transaction": false,
+    "productComplete": false
+  },
+  "singleExecutableBlocker": "A Browser-only single-use macOS preinstall lease is required to perform and roll back the isolated copy and LaunchServices registration while preserving the eleven colliding apps and the currently running old handler."
+}
