@@ -767,6 +767,14 @@ test("owner checkpoint separates Wallet public artifacts from approval and Produ
   assert.equal(platform.latestMacosOwnerEvidence.iosWalletConnectCallbackSimulatorFailClosed.callbackEmitted, false);
   assert.equal(platform.latestMacosOwnerEvidence.iosWalletConnectCallbackSimulatorFailClosed.relay, false);
   assert.equal(platform.latestMacosOwnerEvidence.iosWalletConnectCallbackSimulatorFailClosed.authorization, false);
+  assert.equal(platform.latestMacosOwnerEvidence.macosWalletConnectCallbackFailClosed.ownerCommit, "5d57ba0706b0b77c1b323c5eebdad4dddbb83e63");
+  assert.equal(platform.latestMacosOwnerEvidence.macosWalletConnectCallbackFailClosed.hostedPassed, true);
+  assert.equal(platform.latestMacosOwnerEvidence.macosWalletConnectCallbackFailClosed.isolatedTempApplicationsLifecycle, true);
+  assert.equal(platform.latestMacosOwnerEvidence.macosWalletConnectCallbackFailClosed.canonicalWalletConnectFailClosedSameSecondPid, "WALLETCONNECT_PROJECT_ID_UNAVAILABLE");
+  assert.equal(platform.latestMacosOwnerEvidence.macosWalletConnectCallbackFailClosed.callbackEmitted, false);
+  assert.equal(platform.latestMacosOwnerEvidence.macosWalletConnectCallbackFailClosed.relay, false);
+  assert.equal(platform.latestMacosOwnerEvidence.macosWalletConnectCallbackFailClosed.gatekeeperAccepted, false);
+  assert.equal(platform.latestMacosOwnerEvidence.macosWalletConnectCallbackFailClosed.public, false);
   assert.equal(platform.modifiedByProtocolOwner, false);
   assert.equal(ownerActivityCheckpoint.summary.threeSegmentCompleteProducts, 0);
 });
