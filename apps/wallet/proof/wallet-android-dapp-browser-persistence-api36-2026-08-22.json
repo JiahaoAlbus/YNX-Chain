@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "evidenceType": "wallet-android-standard-dapp-browser-persistence-api36",
+  "productId": "wallet",
+  "branch": "codex/wallet-android-metamask-l1-20260822",
+  "artifactSourceCommit": "77750aec28ebb28146d476b2359979184dbb0888",
+  "harnessSourceCommit": "e71918576a1eb2eb09546105b13e763dc4be85a0",
+  "sharedProviderAuthority": {
+    "sourceCommit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+    "tree": "51a60a362d4ad5dd748bcdefb101f71b1d9e0cee",
+    "evidenceCommit": "c3ab255c32bdeb9c8e056882c315f8ad43c29c7f"
+  },
+  "artifact": {
+    "package": "com.ynxweb4.wallet",
+    "versionName": "1.0.1",
+    "versionCode": 2,
+    "bytes": 39020532,
+    "sha256": "dd2bb1343badaa71a2536d6d1eb6a4d3d7cc8647a8546ad80664430aa7c476a3",
+    "minimumOS": "Android API 24",
+    "compileSdk": 36,
+    "targetSdk": 36,
+    "abi": "arm64-v8a",
+    "signingClass": "disposable-qa-release-key",
+    "certificateSha256": "c0ee95b1bdde19cea775eb01035120910f29af42bbdc1b1edee8800852a56a0f",
+    "apkSignatureSchemeV2": true,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "environment": {
+    "avd": "YNX_WALLET_DAPP_PERSIST_53E2CB87_API36",
+    "profile": "pixel_9",
+    "profileClass": "Pixel9-profile-equivalent-emulator",
+    "serial": "emulator-5554",
+    "apiLevel": 36,
+    "abi": "arm64-v8a",
+    "systemImage": "system-images;android-36;google_apis;arm64-v8a",
+    "freshWipeData": true,
+    "noSnapshot": true
+  },
+  "directDeviceVerification": {
+    "freshInstall": true,
+    "customSchemeHandlersBeforeInstall": 0,
+    "customSchemeHandlersAfterInstall": 1,
+    "firstColdLaunch": {"passed": true, "totalTimeMs": 1493},
+    "secondColdLaunch": {"passed": true, "pid": 7013, "totalTimeMs": 245},
+    "isolatedAccountCreated": true,
+    "strongBiometric": {
+      "passed": true,
+      "credentialFallbackRequested": false,
+      "systemResult": "isStrongBiometric=true"
+    },
+    "network": {
+      "nativeChainId": "ynx_6423-1",
+      "evmChainIdDecimal": 6423,
+      "evmChainIdHex": "0x1917",
+      "asset": "YNXT"
+    },
+    "dappBrowser": {
+      "firstPartyYNXLoaded": true,
+      "externalOrigin": "https://htmlpreview.github.io",
+      "externalHarnessLoaded": true,
+      "reviewDisplayedExactOrigin": true,
+      "reviewDisplayedExactNetwork": "eip155:6423",
+      "approvedAccount": "0x980d1af3985d65cc49d64dec159bc12bce1a9770",
+      "rejectCallback": {"passed": true, "providerCode": 4001, "sessionCreated": false},
+      "approveCallback": {"passed": true, "sessionCreated": true},
+      "sessionSurvivedProcessReconstruction": true,
+      "pendingPersonalSignSurvivedProcessReconstruction": true,
+      "reconstructedApprovalDisabledUntilExactReplay": true,
+      "exactReplayCompletionPassed": false,
+      "accountsChangedObserved": false,
+      "chainChangedObserved": false,
+      "disconnectRevokeObserved": false,
+      "productSessionConsulted": false
+    },
+    "messageSigningPassed": false,
+    "eip712SigningPassed": false,
+    "evmTransactionSigned": false,
+    "evmTransactionBroadcast": false,
+    "evmTransactionCommitted": false,
+    "walletConnectRelaySessionPassed": false,
+    "screenshotApplicationRegionBlackByFlagSecure": true,
+    "walletCrashBufferEmptyForRejectApprove": true,
+    "secretMaterialRecorded": false
+  },
+  "sourceVerification": {
+    "typecheck": true,
+    "walletTests": "167/167",
+    "productCheck": true
+  },
+  "releaseStates": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": true,
+    "integratedCentral": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "limitations": [
+    "The installed APK is the exact local-source disposable-QA artifact from 77750aec; the later harness-only commit does not change the APK.",
+    "The restored personal_sign request was visibly fail-closed with approval disabled until an exact active-origin replay, but exact replay completion and signature callback are not yet claimed.",
+    "WalletConnect relay, accounts/chain events, disconnect/revoke, EIP-712, broadcast and committed transaction remain false pending direct evidence.",
+    "Android FLAG_SECURE intentionally blackens screenshots; UI XML, package state, PID and logcat/crash buffers are the visible evidence channels."
+  ],
+  "rawEvidenceRoot": "/private/tmp/ynx-wallet-dapp-callback-fix-device-20260822.xG68X9/device-evidence",
+  "verifiedAt": "2026-08-22T07:26:55Z",
+  "secretMaterialRecorded": false
+}
