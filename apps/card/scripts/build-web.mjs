@@ -8,3 +8,4 @@ execFileSync(process.platform==="win32"?"npx.cmd":"npx",["expo","export","--plat
 const indexPath=resolve(root,"dist-web/index.html");
 const index=readFileSync(indexPath,"utf8");
 if(!index.includes("/manifest.webmanifest"))writeFileSync(indexPath,index.replace("</head>","  <meta name=\"google\" content=\"notranslate\" />\n  <link rel=\"manifest\" href=\"/manifest.webmanifest\" />\n  <meta name=\"theme-color\" content=\"#002FA7\" />\n  <meta name=\"description\" content=\"YNX Card Testnet payment simulation. No fiat, real card payments, PAN, CVV, or merchant acceptance.\" />\n  <script>document.documentElement.lang=\"en\";document.documentElement.setAttribute(\"translate\",\"no\");document.documentElement.classList.add(\"notranslate\");</script>\n  <script defer src=\"/pwa-register.js\"></script>\n</head>"));
+writeFileSync(resolve(root,"dist-web/package.json"),readFileSync(resolve(root,"static-deploy-package.json"),"utf8"));
