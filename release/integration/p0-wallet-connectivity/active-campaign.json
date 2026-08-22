@@ -427,16 +427,16 @@
     }
   ],
   "heavy": {
-    "owner": "pay",
-    "taskId": "P0-222",
-    "status": "ACTIVE_SINGLE_USE",
+    "owner": null,
+    "taskId": null,
+    "status": "IDLE",
     "acquiredAt": "2026-08-22T22:06:00Z",
     "expiresAt": "2026-08-22T22:36:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-22T22:10:00Z",
     "sourceCommit": "5f4ce98eb458550b976c17e3bc6d77cce4081a59",
     "evidenceCommit": "ca76d720bfbfeb212e0de49dbfbad2fa504b6e82",
     "runtimeHost": "43.153.202.237",
-    "currentRuntime": "P0-221_BASELINE_PENDING_ZERO_WRITE_RECONFIRMATION",
+    "currentRuntime": "ZERO_WRITE_BASELINE_CONFIRMED_NO_PAY_WEB_ROOT",
     "candidateRuntime": "/opt/ynx-pay-web/releases/5f4ce98eb458550b976c17e3bc6d77cce4081a59 (future lease only)",
     "artifactSha256": "ae552951d8e569f04aced60db69e3c11422910cc1098a6e7061b0e84005ad09e",
     "productionMutationAllowed": false,
@@ -444,8 +444,8 @@
     "reusable": false,
     "previousOwner": "pay",
     "previousTaskId": "P0-221",
-    "reviewDecision": "GO_PAY_PUBLIC_ZERO_WRITE_READONLY_BASELINE_PREFLIGHT_ONLY",
-    "reason": "Central independently matched the wholly-new Pay request, exact fixed identity file and mode, pinned ED25519 host key, script/verifier objects and static zero-write allowlist. P0-222 authorizes one exact collector execution whose only writes are to a new local evidence directory; all remote writes, deployment, account, signing and transaction actions remain forbidden."
+    "reviewDecision": "CONSUMED_RELEASED_SUCCESS_PAY_PUBLIC_ZERO_WRITE_READONLY_BASELINE_PREFLIGHT",
+    "reason": "P0-222 consumed the exact collector command once with exit 0 and no retry. All 25 evidence files were created locally; the committed remote allowlist performed zero remote writes. Exact Caddy, route, pay-app, service/listener and public baselines were refreshed, /opt/ynx-pay-web remains absent and production is unchanged. Heavy and every P0-222 lock are released; this is baseline-only truth and no deployment/account/sign/transaction state is promoted."
   },
   "wave": {
     "id": "B-financial-apps-quant",
