@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "scope": "wallet-web-p0155-vercel-output",
+  "authority": {
+    "centralMatrixCommit": "f3e4a07247f198f2a2fdd558efd7e9706b4075cf",
+    "centralMatrixBlob": "eb63d8121eb72fcc09775aa2aca2797eb4deeea8",
+    "providerAuthorityCommit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+    "providerAuthorityTree": "51a60a362d4ad5dd748bcdefb101f71b1d9e0cee",
+    "acceptedWalletWebSource": "a3310cc9f0c757d27dae83282b68361c116c22a3"
+  },
+  "candidate": {
+    "sourceCommit": "50e1cea82f242c9deefd9009991cf8f6550df9c4",
+    "parent": "a3310cc9f0c757d27dae83282b68361c116c22a3",
+    "changes": [
+      "sets Vercel outputDirectory to dist/pwa",
+      "serves sw.js and asset-integrity.js with no-store headers",
+      "guards the deployment contract with an executable test"
+    ]
+  },
+  "verification": {
+    "npmCi": true,
+    "walletWebTests": {"passed": 113, "failed": 0},
+    "walletWebBuild": true,
+    "vercelProductionBuild": true,
+    "vercelOutput": {
+      "index.html": {"bytes": 874, "sha256": "9ccd409b6b14f3b41d97c765065d20747c286e697fafdc571551b838d7fbab15"},
+      "app.js": {"bytes": 17382, "sha256": "c752e4117a1d591859f9bf2be96d22d59ee2b1da7c224e71422cdeb083333c3f"},
+      "sw.js": {"bytes": 4337, "sha256": "c65fbb724cba79fc06178fc1fa0543f69e821c0a732e7ceaa5b65e3694edd953"},
+      "asset-integrity.js": {"bytes": 1824, "sha256": "5122d0fb34486df1dbfca1ee654ddae6eddb5c10f0178b1801dd32b57f3d5d05"},
+      "provider.js": {"bytes": 18553, "sha256": "82cb2532ce59dd930619df4045b9e4836aa3f3fd7540962204a2ae87a499b4e6"},
+      "build-identity.json": {"bytes": 250, "sha256": "b2f9b275a4295c6f1cd230daf2b39519a81c4cb3ecf361e820ace9195adbbf9b"}
+    }
+  },
+  "publicBoundary": {
+    "temporaryRollbackAlias": "wallet-mgwrbzwuy-jiahaoalbus-projects.vercel.app",
+    "candidateDeployed": false,
+    "candidatePublicBackread": false,
+    "installedProvider": false,
+    "providerApproval": false,
+    "account": false,
+    "addOrSwitchChain": false,
+    "signature": false,
+    "transaction": false,
+    "productSession": false,
+    "aggregateCompletion": false
+  }
+}
