@@ -43,6 +43,31 @@ calendar_service() {
   "${CALENDAR_SYSTEMCTL_BIN:-systemctl}" "$@"
 }
 
+calendar_file_facts() {
+  local path="$1"
+  if "${CALENDAR_STAT_BIN:-stat}" -c '%U:%G|%a|%h|%d:%i|%s' "$path" 2>/dev/null; then
+    return 0
+  fi
+  "${CALENDAR_STAT_BIN:-stat}" -f '%Su:%Sg|%Lp|%l|%d:%i|%z' "$path"
+}
+
+calendar_assert_stable_file() {
+  local label="$1" path="$2" expected_sha="$3" expected_bytes="$4"
+  local expected_owner="$5" expected_mode="$6" expected_nlink="$7"
+  local facts actual_owner actual_mode actual_nlink actual_device_inode actual_bytes
+
+  facts="$(calendar_file_facts "$path")" || { echo "$label stat failed" >&2; return 65; }
+  IFS='|' read -r actual_owner actual_mode actual_nlink actual_device_inode actual_bytes <<<"$facts"
+  expected_mode="${expected_mode#0}"
+  actual_mode="${actual_mode#0}"
+  [[ "$actual_bytes" == "$expected_bytes" ]] || { echo "$label byte count drift" >&2; return 65; }
+  [[ "$actual_owner" == "$expected_owner" ]] || { echo "$label owner drift" >&2; return 65; }
+  [[ "$actual_mode" == "$expected_mode" ]] || { echo "$label mode drift" >&2; return 65; }
+  [[ "$actual_nlink" == "$expected_nlink" ]] || { echo "$label link count drift" >&2; return 65; }
+  [[ "$(calendar_sha "$path")" == "$expected_sha" ]] || { echo "$label content drift" >&2; return 65; }
+  CALENDAR_ASSERTED_DEVICE_INODE="$actual_device_inode"
+}
+
 calendar_deploy_main() {
   [[ "${EUID:-$(id -u)}" -eq 0 ]] || { echo "root is required" >&2; return 77; }
 
@@ -56,6 +81,18 @@ calendar_deploy_main() {
   : "${CALENDAR_EXPECTED_OLD_BINARY_SHA:?}"
   : "${CALENDAR_EXPECTED_OLD_STATE_SHA:?}"
   : "${CALENDAR_EXPECTED_OLD_KEY_SHA:?}"
+  : "${CALENDAR_EXPECTED_OLD_BINARY_BYTES:?}"
+  : "${CALENDAR_EXPECTED_OLD_BINARY_OWNER:?}"
+  : "${CALENDAR_EXPECTED_OLD_BINARY_MODE:?}"
+  : "${CALENDAR_EXPECTED_OLD_BINARY_NLINK:?}"
+  : "${CALENDAR_EXPECTED_OLD_STATE_BYTES:?}"
+  : "${CALENDAR_EXPECTED_OLD_STATE_OWNER:?}"
+  : "${CALENDAR_EXPECTED_OLD_STATE_MODE:?}"
+  : "${CALENDAR_EXPECTED_OLD_STATE_NLINK:?}"
+  : "${CALENDAR_EXPECTED_OLD_KEY_BYTES:?}"
+  : "${CALENDAR_EXPECTED_OLD_KEY_OWNER:?}"
+  : "${CALENDAR_EXPECTED_OLD_KEY_MODE:?}"
+  : "${CALENDAR_EXPECTED_OLD_KEY_NLINK:?}"
   : "${CALENDAR_EXPECTED_OLD_SOURCE:?}"
   : "${CALENDAR_EXPECTED_NEW_SOURCE:?}"
 
@@ -72,9 +109,9 @@ calendar_deploy_main() {
   calendar_require_sha256 CALENDAR_EXPECTED_OLD_KEY_SHA "$CALENDAR_EXPECTED_OLD_KEY_SHA"
   [[ ! -e "$CALENDAR_BACKUP" ]] || { echo "fresh backup path required" >&2; return 73; }
   [[ "$(calendar_sha "$CALENDAR_CANDIDATE")" == "$CALENDAR_EXPECTED_CANDIDATE_SHA" ]] || return 65
-  [[ "$(calendar_sha "$CALENDAR_BINARY")" == "$CALENDAR_EXPECTED_OLD_BINARY_SHA" ]] || return 65
-  [[ "$(calendar_sha "$CALENDAR_STATE")" == "$CALENDAR_EXPECTED_OLD_STATE_SHA" ]] || return 65
-  [[ "$(calendar_sha "$CALENDAR_STATE_KEY")" == "$CALENDAR_EXPECTED_OLD_KEY_SHA" ]] || return 65
+  calendar_assert_stable_file binary "$CALENDAR_BINARY" "$CALENDAR_EXPECTED_OLD_BINARY_SHA" "$CALENDAR_EXPECTED_OLD_BINARY_BYTES" "$CALENDAR_EXPECTED_OLD_BINARY_OWNER" "$CALENDAR_EXPECTED_OLD_BINARY_MODE" "$CALENDAR_EXPECTED_OLD_BINARY_NLINK"
+  calendar_assert_stable_file state "$CALENDAR_STATE" "$CALENDAR_EXPECTED_OLD_STATE_SHA" "$CALENDAR_EXPECTED_OLD_STATE_BYTES" "$CALENDAR_EXPECTED_OLD_STATE_OWNER" "$CALENDAR_EXPECTED_OLD_STATE_MODE" "$CALENDAR_EXPECTED_OLD_STATE_NLINK"
+  calendar_assert_stable_file state-key "$CALENDAR_STATE_KEY" "$CALENDAR_EXPECTED_OLD_KEY_SHA" "$CALENDAR_EXPECTED_OLD_KEY_BYTES" "$CALENDAR_EXPECTED_OLD_KEY_OWNER" "$CALENDAR_EXPECTED_OLD_KEY_MODE" "$CALENDAR_EXPECTED_OLD_KEY_NLINK"
 
   # These are intentionally transaction globals. Bash runs EXIT after the main
   # function returns, so locals would be out of scope exactly when rollback is
@@ -82,6 +119,8 @@ calendar_deploy_main() {
   CALENDAR_TRANSACTION_COMMITTED=false
   CALENDAR_ROLLBACK_STARTED=false
   CALENDAR_BACKUP_COMPLETE=false
+  CALENDAR_OLD_SERVICE_STOPPED=false
+  CALENDAR_STOPPED_STATE_DEVICE_INODE=''
   CALENDAR_HEALTH_FILE="$(mktemp /var/tmp/ynx-calendar-health.XXXXXX)"
 
   calendar_rollback() {
@@ -117,14 +156,24 @@ calendar_deploy_main() {
   trap calendar_finish EXIT
   trap calendar_abort_signal INT TERM
 
-  install -d -o root -g root -m 0700 "$CALENDAR_BACKUP"
+  # The service stop is the first production-runtime mutation. The running
+  # service atomically replaces state.json, so an inode observed earlier is
+  # diagnostic only. Once stopped, bind the final inode and stable content,
+  # then create and verify the paired rollback backup before installation.
   calendar_service stop "$CALENDAR_SERVICE"
+  CALENDAR_OLD_SERVICE_STOPPED=true
+  calendar_assert_stable_file binary "$CALENDAR_BINARY" "$CALENDAR_EXPECTED_OLD_BINARY_SHA" "$CALENDAR_EXPECTED_OLD_BINARY_BYTES" "$CALENDAR_EXPECTED_OLD_BINARY_OWNER" "$CALENDAR_EXPECTED_OLD_BINARY_MODE" "$CALENDAR_EXPECTED_OLD_BINARY_NLINK"
+  calendar_assert_stable_file state "$CALENDAR_STATE" "$CALENDAR_EXPECTED_OLD_STATE_SHA" "$CALENDAR_EXPECTED_OLD_STATE_BYTES" "$CALENDAR_EXPECTED_OLD_STATE_OWNER" "$CALENDAR_EXPECTED_OLD_STATE_MODE" "$CALENDAR_EXPECTED_OLD_STATE_NLINK"
+  CALENDAR_STOPPED_STATE_DEVICE_INODE="$CALENDAR_ASSERTED_DEVICE_INODE"
+  calendar_assert_stable_file state-key "$CALENDAR_STATE_KEY" "$CALENDAR_EXPECTED_OLD_KEY_SHA" "$CALENDAR_EXPECTED_OLD_KEY_BYTES" "$CALENDAR_EXPECTED_OLD_KEY_OWNER" "$CALENDAR_EXPECTED_OLD_KEY_MODE" "$CALENDAR_EXPECTED_OLD_KEY_NLINK"
+
+  install -d -o root -g root -m 0700 "$CALENDAR_BACKUP"
   cp -p "$CALENDAR_BINARY" "$CALENDAR_BACKUP/ynx-calendard"
   cp -p "$CALENDAR_STATE" "$CALENDAR_BACKUP/state.json"
   cp -p "$CALENDAR_STATE_KEY" "$CALENDAR_BACKUP/state.json.hmac-key"
-  [[ "$(calendar_sha "$CALENDAR_BACKUP/ynx-calendard")" == "$CALENDAR_EXPECTED_OLD_BINARY_SHA" ]]
-  [[ "$(calendar_sha "$CALENDAR_BACKUP/state.json")" == "$CALENDAR_EXPECTED_OLD_STATE_SHA" ]]
-  [[ "$(calendar_sha "$CALENDAR_BACKUP/state.json.hmac-key")" == "$CALENDAR_EXPECTED_OLD_KEY_SHA" ]]
+  calendar_assert_stable_file backup-binary "$CALENDAR_BACKUP/ynx-calendard" "$CALENDAR_EXPECTED_OLD_BINARY_SHA" "$CALENDAR_EXPECTED_OLD_BINARY_BYTES" "$CALENDAR_EXPECTED_OLD_BINARY_OWNER" "$CALENDAR_EXPECTED_OLD_BINARY_MODE" "$CALENDAR_EXPECTED_OLD_BINARY_NLINK"
+  calendar_assert_stable_file backup-state "$CALENDAR_BACKUP/state.json" "$CALENDAR_EXPECTED_OLD_STATE_SHA" "$CALENDAR_EXPECTED_OLD_STATE_BYTES" "$CALENDAR_EXPECTED_OLD_STATE_OWNER" "$CALENDAR_EXPECTED_OLD_STATE_MODE" "$CALENDAR_EXPECTED_OLD_STATE_NLINK"
+  calendar_assert_stable_file backup-state-key "$CALENDAR_BACKUP/state.json.hmac-key" "$CALENDAR_EXPECTED_OLD_KEY_SHA" "$CALENDAR_EXPECTED_OLD_KEY_BYTES" "$CALENDAR_EXPECTED_OLD_KEY_OWNER" "$CALENDAR_EXPECTED_OLD_KEY_MODE" "$CALENDAR_EXPECTED_OLD_KEY_NLINK"
   CALENDAR_BACKUP_COMPLETE=true
 
   install -o root -g root -m 0755 "$CALENDAR_CANDIDATE" "$CALENDAR_BINARY"
@@ -149,7 +198,7 @@ calendar_deploy_main() {
   CALENDAR_TRANSACTION_COMMITTED=true
   trap - EXIT INT TERM
   rm -f "$CALENDAR_HEALTH_FILE" "$CALENDAR_HEALTH_FILE.tmp"
-  printf '{"ok":true,"source":"%s","rollbackBackup":"%s"}\n' "$CALENDAR_EXPECTED_NEW_SOURCE" "$CALENDAR_BACKUP"
+  printf '{"ok":true,"source":"%s","rollbackBackup":"%s","stoppedStateDeviceInode":"%s"}\n' "$CALENDAR_EXPECTED_NEW_SOURCE" "$CALENDAR_BACKUP" "$CALENDAR_STOPPED_STATE_DEVICE_INODE"
 }
 
 if [[ "${CALENDAR_DEPLOY_LIBRARY_ONLY:-false}" != true ]]; then
