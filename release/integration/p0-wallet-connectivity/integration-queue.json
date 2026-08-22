@@ -7145,7 +7145,7 @@
     {
       "taskId": "P0-201",
       "owner": "social",
-      "status": "ACTIVE_SINGLE_USE",
+      "status": "CONSUMED_RELEASED_SUCCESS_SOCIAL_CONSOLE_CLEAN_CANDIDATE_CREATED",
       "paths": [
         "release/integration/p0-wallet-connectivity/execution/p0-201-social-console-clean-candidate-deployment-lease-20260822.json",
         "vercel-project:prj_QGgUyxilarbPPLZyoES83m2aneQN",
@@ -7167,7 +7167,21 @@
       "aliasAttemptLimit": 0,
       "rollbackAttemptLimit": 0,
       "sensitiveActionsAllowed": false,
-      "nextAction": "Extract and rebuild the exact carrier in the fixed empty execution root, execute the sole candidate deployment with --skip-domain, freeze the exact new deployment id/immutable URL/READY metadata, verify official alias unchanged, then release without raw/browser or public promotion."
+      "releasedAt": "2026-08-22T17:06:36Z",
+      "candidateDeployment": "dpl_34kzw3uk4B1wwjk1wQUq8y29mTxX",
+      "candidateImmutableUrl": "https://ynx-social-i38c5m9dw-jiahaoalbus-projects.vercel.app",
+      "candidateStatus": "READY",
+      "candidateCreated": true,
+      "candidateRawResourcesVerified": false,
+      "candidateBrowserVerified": false,
+      "deploymentAttemptCount": 1,
+      "retryCount": 0,
+      "aliasAttemptCount": 0,
+      "rollbackAttemptCount": 0,
+      "officialCanonicalDeployment": "dpl_2sei8CpmoN1Gi5YKnc6FdvNRyXGy",
+      "officialCanonicalUnchanged": true,
+      "officialSourceBoundPublic": false,
+      "nextAction": "Do not reuse P0-201. Freeze a sole-path workflow hardcoded to the exact new immutable candidate and request a separate one-push/one-run hosted raw/browser preflight; no alias before direct success."
     }
   ]
 }

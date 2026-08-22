@@ -427,25 +427,25 @@
     }
   ],
   "heavy": {
-    "owner": "social",
-    "taskId": "P0-201",
-    "status": "ACTIVE_SINGLE_USE",
+    "owner": null,
+    "taskId": null,
+    "status": "IDLE",
     "acquiredAt": "2026-08-22T17:05:00Z",
     "expiresAt": "2026-08-22T17:35:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-22T17:06:36Z",
     "sourceCommit": "e7756cb387233376c03043c54fb8b051c241e94e",
     "evidenceCommit": "3aff48f04ff02a3fb0530574bb778fcda8b824a9",
     "runtimeHost": "social.ynxweb4.com",
     "currentRuntime": "dpl_2sei8CpmoN1Gi5YKnc6FdvNRyXGy",
-    "candidateRuntime": null,
+    "candidateRuntime": "dpl_34kzw3uk4B1wwjk1wQUq8y29mTxX",
     "artifactSha256": "9ffe3eff10175589eeaa7a377e9dc61f3c3a62a77b0a9bcfa415c4764f512b81",
-    "productionMutationAllowed": true,
+    "productionMutationAllowed": false,
     "singleUse": true,
     "reusable": false,
     "previousOwner": "social",
     "previousTaskId": "P0-200",
-    "reviewDecision": "GO_SOCIAL_ONLY_CONSOLE_CLEAN_IMMUTABLE_CANDIDATE_DEPLOYMENT_NO_ALIAS",
-    "reason": "P0-200 is terminal and released. The console-root product fix, remote request/carrier, two byte-identical isolated builds, six exact outputs and 8/8 wallet tests were independently verified. Authority creates one immutable candidate only; canonical alias and all sensitive actions are forbidden."
+    "reviewDecision": "CONSUMED_RELEASED_SUCCESS_SOCIAL_CONSOLE_CLEAN_CANDIDATE_CREATED",
+    "reason": "The sole candidate deployment succeeded and Central directly confirmed exact project, production target and READY state. The official custom alias remained on dpl_2sei8CpmoN1Gi5YKnc6FdvNRyXGy with unchanged root hash. No raw candidate, browser, alias or sensitive gate is promoted."
   },
   "wave": {
     "id": "B-financial-apps-quant",
