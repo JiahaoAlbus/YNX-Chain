@@ -427,25 +427,25 @@
     }
   ],
   "heavy": {
-    "owner": "social",
-    "taskId": "P0-203",
-    "status": "ACTIVE_SINGLE_USE",
+    "owner": null,
+    "taskId": null,
+    "status": "IDLE",
     "acquiredAt": "2026-08-22T17:17:00Z",
     "expiresAt": "2026-08-22T17:47:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-22T17:20:25Z",
     "sourceCommit": "e7756cb387233376c03043c54fb8b051c241e94e",
     "evidenceCommit": "06940ca0aa21f8d2f2837e7b9ae6dc6afb794b08",
     "runtimeHost": "social.ynxweb4.com",
-    "currentRuntime": "dpl_2sei8CpmoN1Gi5YKnc6FdvNRyXGy",
+    "currentRuntime": "dpl_34kzw3uk4B1wwjk1wQUq8y29mTxX",
     "candidateRuntime": "dpl_34kzw3uk4B1wwjk1wQUq8y29mTxX",
     "artifactSha256": "cf2760009e3f98cd69358dae3c7c53ef82e849a46f40aa209e94977757861a46",
-    "productionMutationAllowed": true,
+    "productionMutationAllowed": false,
     "singleUse": true,
     "reusable": false,
     "previousOwner": "social",
     "previousTaskId": "P0-202",
-    "reviewDecision": "GO_SOCIAL_ONLY_OFFICIAL_ALIAS_ROUTING_WITH_EXACT_ROLLBACK",
-    "reason": "P0-202 is terminal and released with direct hosted raw/browser success. Candidate READY, official rollback deployment and three rollback hashes were freshly verified. Authority is one forward alias and, only on post-route failure, one exact rollback; all other mutations and sensitive actions are forbidden."
+    "reviewDecision": "CONSUMED_RELEASED_SUCCESS_SOCIAL_OFFICIAL_SOURCE_BOUND_NON_SENSITIVE",
+    "reason": "The sole forward alias succeeded. Central directly confirmed the official alias maps exact dpl_34kzw3uk4B1wwjk1wQUq8y29mTxX, all six official resources match, and clean-browser non-sensitive identity/degradation gates pass. No rollback or sensitive action occurred; real provider/account/chain/events/sign/tx/Product Session gates remain false."
   },
   "wave": {
     "id": "B-financial-apps-quant",

@@ -7232,7 +7232,7 @@
     {
       "taskId": "P0-203",
       "owner": "social",
-      "status": "ACTIVE_SINGLE_USE",
+      "status": "CONSUMED_RELEASED_SUCCESS_SOCIAL_OFFICIAL_SOURCE_BOUND_NON_SENSITIVE",
       "paths": [
         "release/integration/p0-wallet-connectivity/execution/p0-203-social-official-alias-routing-lease-20260822.json",
         "vercel-project:prj_QGgUyxilarbPPLZyoES83m2aneQN",
@@ -7252,7 +7252,23 @@
       "deploymentAllowed": false,
       "settingsMutationAllowed": false,
       "sensitiveActionsAllowed": false,
-      "nextAction": "Execute the exact forward alias once, prove official-domain six-resource and non-sensitive browser gates, release success; on any failure execute the exact rollback once, prove old deployment and three hashes, and fail closed."
+      "releasedAt": "2026-08-22T17:20:25Z",
+      "forwardAliasAttemptCount": 1,
+      "retryCount": 0,
+      "rollbackAttemptCount": 0,
+      "officialDeployment": "dpl_34kzw3uk4B1wwjk1wQUq8y29mTxX",
+      "officialRawSixResourcesPassed": true,
+      "officialBrowserVerified": true,
+      "officialSourceBoundPublic": true,
+      "accountRequestAttempted": false,
+      "providerRpcAttempted": false,
+      "signatureAttempted": false,
+      "typedDataAttempted": false,
+      "transactionAttempted": false,
+      "realProviderLifecycle": false,
+      "productSession": false,
+      "productComplete": false,
+      "nextAction": "Preserve this exact official source-bound non-sensitive runtime. Any real provider approve/reject/account/0x1917/events/disconnect/revoke/sign/EIP-712/transaction or Product Session validation requires separate immediate user-confirmed authority and direct evidence."
     }
   ]
 }
