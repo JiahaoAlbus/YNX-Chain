@@ -1519,24 +1519,24 @@
     },
     {
       "path": "{branch:codex/p0-pay-wallet-connectivity-20260821:.github/workflows/pay-web-hosted-browser-preflight-p0226.yml,branch:codex/p0-pay-wallet-connectivity-20260821:apps/pay/evidence/pay-web-hosted-browser-readiness-lease-request-p0227-20260823.json,branch:codex/p0-pay-wallet-connectivity-20260821:apps/pay/PAY_P0227_HOSTED_BROWSER_READINESS_LEASE_REQUEST_20260823.md}",
-      "owner": "pay",
+      "owner": null,
       "branch": "codex/p0-pay-wallet-connectivity-20260821",
       "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/04-pay-p0-clean",
       "taskId": "P0-227",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE_SINGLE_USE",
+      "status": "CONSUMED_RELEASED_SUCCESS_PAY_HOSTED_CHROMIUM_READINESS_PREDEPLOY",
       "acquiredAt": "2026-08-22T23:33:00Z",
       "expiresAt": "2026-08-23T00:03:00Z",
-      "releasedAt": null,
+      "releasedAt": "2026-08-22T23:37:15Z",
       "sourceCommit": "5f4ce98eb458550b976c17e3bc6d77cce4081a59",
       "sourceTree": "8f0c25c4d86eb22a564f3c7aeff9db6709a9b9f0",
       "evidenceCommit": "6f7d1525df3ee6e70e01e4c953cf8364e6355e64",
       "artifactSha256": "ae552951d8e569f04aced60db69e3c11422910cc1098a6e7061b0e84005ad09e",
       "productionMutationAllowed": false,
       "allowedExceptions": [
-        "one exact force=false literal push and one resulting push-event hosted run only",
-        "workflow writes only isolated RUNNER_TEMP evidence and fixed loopback runtime",
-        "no retry, dispatch, SSH, production, account, signature, typed data or transaction action"
+        "P0-227 push and hosted-run quotas are consumed and nonreusable",
+        "preserve run 32605605681, job 97110081981 and artifact 9484042566 as immutable candidate-readiness evidence",
+        "no production, provider, account, signature, typed data or transaction promotion under P0-227"
       ]
     }
   ]

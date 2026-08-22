@@ -427,25 +427,25 @@
     }
   ],
   "heavy": {
-    "owner": "pay",
-    "taskId": "P0-227",
-    "status": "ACTIVE_SINGLE_USE",
+    "owner": null,
+    "taskId": null,
+    "status": "IDLE",
     "acquiredAt": "2026-08-22T23:33:00Z",
     "expiresAt": "2026-08-23T00:03:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-22T23:37:15Z",
     "sourceCommit": "5f4ce98eb458550b976c17e3bc6d77cce4081a59",
     "evidenceCommit": "6f7d1525df3ee6e70e01e4c953cf8364e6355e64",
     "runtimeHost": "github-hosted-ubuntu-loopback-only",
     "currentRuntime": "P0_225_EXACT_ROLLBACK_BASELINE_EMPTY_PAY_WEB_PARENTS_CONFIRMED",
-    "candidateRuntime": "exact static archive on hosted 127.0.0.1:4189 with readiness capture before every wait",
+    "candidateRuntime": "P0-227 direct hosted cold and second static-candidate readiness passed; official Pay remains old 404/backend baseline",
     "artifactSha256": "ae552951d8e569f04aced60db69e3c11422910cc1098a6e7061b0e84005ad09e",
     "productionMutationAllowed": false,
     "singleUse": true,
     "reusable": false,
     "previousOwner": "pay",
     "previousTaskId": "P0-226",
-    "reviewDecision": "GO_PAY_P0227_HOSTED_CHROMIUM_READINESS_PREDEPLOY",
-    "reason": "Independent bundle import reproduced the exact remote ancestry and three-path diff. The corrected workflow captures state before every wait, binds the observable disconnected Sign in state, uses only load/domcontentloaded and passed byte-exact cold plus second fixture execution. Authority is limited to one literal push and one resulting hosted run; production and sensitive Wallet actions remain forbidden."
+    "reviewDecision": "CONSUMED_RELEASED_SUCCESS_PAY_HOSTED_CHROMIUM_READINESS_PREDEPLOY",
+    "reason": "The exact push and one attempt-1 hosted run succeeded. Direct cold and second persistent-profile launches proved the exact static candidate at fixed loopback with visible disconnected Sign in state, stable one-page URL, English UI and zero console, page or request errors. No retry, dispatch, SSH, production or sensitive Wallet action occurred. Heavy and P0-227 locks are released; official Pay and all public/sensitive/product truth remain false."
   },
   "wave": {
     "id": "B-financial-apps-quant",
