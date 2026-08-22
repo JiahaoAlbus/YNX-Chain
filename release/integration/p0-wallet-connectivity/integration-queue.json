@@ -6854,11 +6854,11 @@
         "release/integration/p0-wallet-connectivity/integration-queue.json"
       ],
       "dependencies": ["P0-191"],
-      "routerCommit": "9ec5162eef8e3aed3689a8a065256749b431f8b9",
-      "routerTree": "c4232607f5ff56717c541cea6385b5ff31ae3b53",
-      "routerParent": "ed163383cddec3fcdbf40cdf073bb061c00aca62",
-      "registryBlob": "38e5d82d2ce0a9b434cd279e95b61a7690230213",
-      "registrySha256": "95637e3b4f61efec6b53d2693e800b3ba3d7733d04a184ff2bc56590879a3358",
+      "routerCommit": "12a79eb01c5939fd67a9a1a7f884f30dbde0a99a",
+      "routerTree": "b21f6b3a81bbcd1fc081d8cba562573f71e47f90",
+      "routerParent": "9ec5162eef8e3aed3689a8a065256749b431f8b9",
+      "registryBlob": "2bf2e923dfda716ed1c645d4d83ee300df573a60",
+      "registrySha256": "268850b810f920b6425859624896311081548c3dad4723461a8b27b297a6f193",
       "directE2EProductSubset": "0/12",
       "responsibilityDomainAggregate": "0/36",
       "classificationCounts": {
