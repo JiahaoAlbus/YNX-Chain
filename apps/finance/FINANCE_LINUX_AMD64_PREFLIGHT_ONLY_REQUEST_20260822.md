@@ -14,13 +14,15 @@ The requested stage is immutable and bounded:
 
 The signed command bytes are:
 
-- Linux preflight command, 6,762 bytes, SHA-256
-  `520d87fd6235bbc7908bc72dfb3f38344fc36a0c4ff6b8a0f178704821f24fbb`;
+- Linux preflight command, 7,165 bytes, SHA-256
+  `b23d7850c79fc40357d48595dca7e01d32392c4c76e0ec5c6ef8ec3336f86917`;
 - exact inode rollback command, 1,380 bytes, SHA-256
   `753f322303cbb264b7cd3f07d7b434ae4d2e2d0f95919768224fb2f5be891f9e`.
 
 Central must sign the archive path/digest, both command bytes/digests, run path,
-host identity, x86_64 condition and retained receipt path. The command can only
+an unused loopback port, host identity, x86_64 condition and retained receipt path.
+The command rejects a signed port already held by another service before creating a
+run directory. It can only
 start the candidate with loopback dependencies and an isolated state file; it then
 collects all five P0-174 receipts and stops/cleans up its own processes. The full
 run directory is retained as evidence rather than deleted.

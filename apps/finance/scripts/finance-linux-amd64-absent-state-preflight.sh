@@ -1,13 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-if [[ $# -ne 2 ]]; then
-  echo "usage: $0 <signed-immutable-archive-path> <signed-run-directory>" >&2
+if [[ $# -ne 3 ]]; then
+  echo "usage: $0 <signed-immutable-archive-path> <signed-run-directory> <signed-loopback-port>" >&2
   exit 64
 fi
 
 archive=$1
 run_dir=$2
+port=$3
 archive_sha=d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d
 binary_sha=cccdae8ae5b5f694ca7db68540da30582564ff741978e616f7435d448a20fe3e
 run_root=/opt/ynx/preflight/finance/runs
@@ -16,10 +17,20 @@ mock_pid=''
 
 case "$archive" in /opt/ynx/preflight/finance/artifacts/sha256-d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d/*) ;; *) exit 65;; esac
 case "$run_dir" in "$run_root"/*) ;; *) exit 65;; esac
+case "$port" in *[!0-9]*|'') exit 65;; esac
+test "$port" -ge 1024 && test "$port" -le 65535
 test "$(uname -m)" = x86_64
 test -f "$archive" && test ! -L "$archive"
 test "$(sha256sum "$archive" | awk '{print $1}')" = "$archive_sha"
 test ! -e "$run_dir" && test ! -L "$run_dir"
+if command -v ss >/dev/null 2>&1; then
+  ! ss -ltn "sport = :$port" | grep -q ":$port"
+elif command -v lsof >/dev/null 2>&1; then
+  ! lsof -nP -iTCP:"$port" -sTCP:LISTEN >/dev/null 2>&1
+else
+  echo "requires ss or lsof to prove the signed loopback port is free" >&2
+  exit 69
+fi
 mkdir -p "$run_dir"
 chmod 0700 "$run_dir"
 
@@ -66,7 +77,7 @@ mock_pid=$!
 for _ in $(seq 1 100); do test -s "$mock_port_file" && break; sleep 0.05; done
 test -s "$mock_port_file"
 mock_port=$(cat "$mock_port_file")
-listen=127.0.0.1:6498
+listen=127.0.0.1:$port
 
 YNX_FINANCE_STATE_PATH="$state_path" YNX_EXPLORER_URL="http://127.0.0.1:$mock_port" YNX_FINANCE_DISPUTE_URL="http://127.0.0.1:$mock_port/dispute" YNX_FINANCE_WALLET_GATEWAY_URL="http://127.0.0.1:$mock_port" YNX_FINANCE_INTERNAL_KEY='isolated-proof-internal-key-32-bytes' YNX_FINANCE_HELP_URL="http://127.0.0.1:$mock_port/help" YNX_FINANCE_PRIVACY_URL="http://127.0.0.1:$mock_port/privacy" YNX_FINANCE_CURSOR_SIGNING_KEY='isolated-proof-cursor-key-at-least-32' YNX_FINANCE_OPERATIONS_KEY='isolated-proof-operations-key-32bytes' YNX_FINANCE_WEB_DIR="$release/web" YNX_FINANCE_ALLOWED_ORIGINS="http://$listen" YNX_FINANCE_LISTEN="$listen" "$release/ynx-finance" >"$receipt_dir/candidate.log" 2>&1 &
 candidate_pid=$!
