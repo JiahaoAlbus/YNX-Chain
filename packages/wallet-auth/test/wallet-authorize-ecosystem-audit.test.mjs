@@ -434,6 +434,15 @@ test("Wallet Web/PWA and macOS DMG publication remain outside product authority"
   assert.equal(providerIdentity.internalBridgeMarkerIsProviderAuthority, false);
   assert.equal(providerIdentity.installedProvider, false);
   assert.equal(providerIdentity.parityComplete, false);
+  const interopConsumption = auditV3.standardWalletParityConformance.walletWebRouterInteropAuthorityConsumption;
+  assert.equal(interopConsumption.routerAuthority.commit, "9ab9cd8c8deac8563acff9ffd7e277553e20383e");
+  assert.equal(interopConsumption.fixtureProfiles, 5);
+  assert.equal(interopConsumption.requiredExternalDappsBeforePromotion, 3);
+  assert.equal(interopConsumption.privateServiceDegradedPreservesStandardConnection, true);
+  assert.equal(interopConsumption.fixtureOnly, true);
+  assert.equal(interopConsumption.webInstallConfirmationGranted, false);
+  assert.equal(interopConsumption.externalDappRuntimeCount, 0);
+  assert.equal(interopConsumption.parityComplete, false);
   assert.equal(companion.macosDmgPublication.websitePublished, true);
   assert.equal(companion.macosDmgPublication.artifactSha256, "ad6e4077bc001743cf1a4163ceaca5a009a3c8a4d8a809cc4896798976cf56c0");
   assert.equal(companion.macosDmgPublication.isolatedTempApplicationsCopyVerified, true);

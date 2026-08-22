@@ -237,6 +237,30 @@
         "deployedPublic": false,
         "parityComplete": false,
         "launchRequiresImmediateUserConfirmation": true
+      },
+      "routerInteropAuthorityConsumption": {
+        "sourceCommit": "a9653f9f73eb79f77b45f04c845c4f56c012ab4b",
+        "sourceTree": "5cbf483decc37a6249420840e1d6b81bbafc9c2a",
+        "evidenceCommit": "4f1e1b8ebdbc5e67900f675d970421d73d3a574b",
+        "evidencePath": "apps/wallet-web/evidence/contracts/router-standard-interop-authority-consumption-20260822.json",
+        "evidenceBlob": "3acc2d91d3aa4c478554c7adfbc9a5732750d97e",
+        "evidenceSha256": "d5c5a7fc9b529caa7a20ebfa36ed13ab9ed3ba62eabe73e59f4d7c90654ef450",
+        "routerAuthorityCommit": "9ab9cd8c8deac8563acff9ffd7e277553e20383e",
+        "chain": {"cosmos":"ynx_6423-1","evm":"0x1917","native":"YNXT","defaultLanguage":"en"},
+        "fixtureOnly": true,
+        "fixtureProfiles": 5,
+        "requiredExternalDappsBeforePromotion": 3,
+        "privateServiceDegradedPreservesStandardConnection": true,
+        "sourceTests": "114/114",
+        "packageInternal": "114/114",
+        "packageVerification": "3/3",
+        "webInstallConfirmationGranted": false,
+        "installedProvider": false,
+        "externalDappRuntimeCount": 0,
+        "approveReject": false,
+        "signTypedDataTransaction": false,
+        "deployedPublic": false,
+        "parityComplete": false
       }
     },
     "macosDmg": {
