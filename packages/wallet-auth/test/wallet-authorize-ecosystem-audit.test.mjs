@@ -798,6 +798,14 @@ test("owner checkpoint separates Wallet public artifacts from approval and Produ
   assert.equal(platform.latestMacosOwnerEvidence.nativeWalletConnectSameTopicReproposalIdentityBinding.persistedValidationFailsClosedOnSameTopicIdentityReplacement, true);
   assert.equal(platform.latestMacosOwnerEvidence.nativeWalletConnectSameTopicReproposalIdentityBinding.relay, false);
   assert.equal(platform.latestMacosOwnerEvidence.nativeWalletConnectSameTopicReproposalIdentityBinding.authorization, false);
+  assert.equal(platform.latestMacosOwnerEvidence.nativeWalletConnectSinglePendingTopic.ownerCommit, "a6c71a3159f99cb313db5f332fef1447d8503d7b");
+  assert.equal(platform.latestMacosOwnerEvidence.nativeWalletConnectSinglePendingTopic.hostedPassed, true);
+  assert.equal(platform.latestMacosOwnerEvidence.nativeWalletConnectSinglePendingTopic.macCoreTests, "33/33");
+  assert.equal(platform.latestMacosOwnerEvidence.nativeWalletConnectSinglePendingTopic.walletConnectStateTests, "9/9");
+  assert.equal(platform.latestMacosOwnerEvidence.nativeWalletConnectSinglePendingTopic.runtimeSecondPendingProposalError, "WALLETCONNECT_REQUEST_DUPLICATE");
+  assert.equal(platform.latestMacosOwnerEvidence.nativeWalletConnectSinglePendingTopic.persistedSameTopicTwoProposalError, "WALLETCONNECT_PERSISTENCE_CORRUPT");
+  assert.equal(platform.latestMacosOwnerEvidence.nativeWalletConnectSinglePendingTopic.localFullSwiftTestPassed, false);
+  assert.equal(platform.latestMacosOwnerEvidence.nativeWalletConnectSinglePendingTopic.relay, false);
   assert.equal(platform.modifiedByProtocolOwner, false);
   assert.equal(ownerActivityCheckpoint.summary.threeSegmentCompleteProducts, 0);
 });
@@ -832,6 +840,12 @@ test("Central released Finance and Explorer paths plus P0-150 parity are tracked
   assert.equal(auditV3.standardWalletParityConformance.nativeWalletConnectSameTopicReproposalIdentityBinding.existingSessionRejectsSameTopicProposalIdentityReplacement, true);
   assert.equal(auditV3.standardWalletParityConformance.nativeWalletConnectSameTopicReproposalIdentityBinding.approvalFailsClosedOnSameTopicIdentityReplacement, true);
   assert.equal(auditV3.standardWalletParityConformance.nativeWalletConnectSameTopicReproposalIdentityBinding.realDappRuntime, false);
+  assert.equal(auditV3.standardWalletParityConformance.nativeWalletConnectSinglePendingTopic.ownerCommit, "a6c71a3159f99cb313db5f332fef1447d8503d7b");
+  assert.equal(auditV3.standardWalletParityConformance.nativeWalletConnectSinglePendingTopic.hostedPassed, true);
+  assert.equal(auditV3.standardWalletParityConformance.nativeWalletConnectSinglePendingTopic.concurrentAndPersistedSameTopicProposalsFailClosed, true);
+  assert.equal(auditV3.standardWalletParityConformance.nativeWalletConnectSinglePendingTopic.runtimeSecondPendingProposalError, "WALLETCONNECT_REQUEST_DUPLICATE");
+  assert.equal(auditV3.standardWalletParityConformance.nativeWalletConnectSinglePendingTopic.persistedSameTopicTwoProposalError, "WALLETCONNECT_PERSISTENCE_CORRUPT");
+  assert.equal(auditV3.standardWalletParityConformance.nativeWalletConnectSinglePendingTopic.realDappRuntime, false);
 });
 
 test("Central P0-155 makes installed E2E the only interoperability completion tier", () => {
