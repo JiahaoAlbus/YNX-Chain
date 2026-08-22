@@ -6175,6 +6175,7 @@
       "dependencies": ["P0-164"],
       "source": "130a30d4392b0439aaa3abe360e0aa83d686ec76",
       "evidence": "932d2d23c4293a1c5fa73af1de09825e73e771b5",
+      "routerCheckpoint": "393a8556eb0799ab9456c01b98abdd09b3212cf4",
       "executionLeaseIssued": false,
       "distributionDispatched": false,
       "isolatedColdStartFailClosed": true,
