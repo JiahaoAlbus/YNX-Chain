@@ -1,0 +1,123 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-179",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-web-hosted-preflight-20260822T083814Z",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_INVALID_LOCAL_REFSPEC_PRE_REMOTE",
+  "owner": null,
+  "issuedAt": "2026-08-22T08:38:14Z",
+  "expiresAt": "2026-08-22T09:08:14Z",
+  "releasedAt": "2026-08-22T08:45:27Z",
+  "singleUse": true,
+  "reusable": false,
+  "scope": "WALLET_WEB_EXACT_WORKFLOW_PUSH_TRIGGER_DURING_BOUNDED_WEBSITE_SSO_WINDOW",
+  "walletWebPathLock": {
+    "branch": "codex/wallet-web-pwa-extensions-20260813",
+    "expectedRemoteParent": "4f1e1b8ebdbc5e67900f675d970421d73d3a574b",
+    "expectedRemoteTree": "9d5b8f3fd00bef48e35391279002c59919743849",
+    "soleWritablePath": ".github/workflows/wallet-web-public-preflight-p0.yml",
+    "requiredCommitMessage": "evidence(wallet-web): externally preflight immutable candidate",
+    "pushMode": "FORCE_FALSE_EXACTLY_ONCE",
+    "workflowDispatchAllowed": false
+  },
+  "frozenWorkflow": {
+    "centralTemplatePath": "release/integration/p0-wallet-connectivity/templates/wallet-web-public-preflight-p0179.yml",
+    "gitBlob": "a0bf78a6c0d978c73a53fa23a4f58495547e6ccd",
+    "bytes": 2090,
+    "sha256": "6c33895ff17e858028dbacc5c7c0b032cb1348d8375ddde0d181dbe59a29901e",
+    "requiredOwnerPathByteIdentity": true
+  },
+  "candidate": {
+    "deploymentId": "dpl_G6gTg2a3CVS1siTRqQg5XjQfPR9q",
+    "immutableUrl": "https://wallet-aitthgkni-jiahaoalbus-projects.vercel.app",
+    "sourceCommit": "a9653f9f73eb79f77b45f04c845c4f56c012ab4b",
+    "sourceTree": "5cbf483decc37a6249420840e1d6b81bbafc9c2a",
+    "pwaSha256": "4d8e2e011f7113a80fb5a9541f710b86b2355f5e2fc176fd76a4a46ff94b0e7b"
+  },
+  "websiteSsoWindow": {
+    "projectId": "prj_K4emrdkST7sdb0K9mhmLM0QZh0I3",
+    "projectName": "wallet-web",
+    "scope": "jiahaoalbus-projects",
+    "requiredPrecheckDeploymentType": "prod_deployment_urls_and_all_previews",
+    "precheckCommand": "vercel project protection wallet-web --scope jiahaoalbus-projects --non-interactive --format json",
+    "disableCommand": "vercel project protection disable wallet-web --sso --scope jiahaoalbus-projects --non-interactive",
+    "restoreCommand": "vercel project protection enable wallet-web --sso --scope jiahaoalbus-projects --non-interactive",
+    "disableAllowedExactlyOnce": true,
+    "restoreRequiredExactlyOnce": true,
+    "restoreOnSuccessFailureTimeoutOrInterruption": true,
+    "acceptedRestoredDeploymentType": "prod_deployment_urls_and_all_previews"
+  },
+  "orderedExecution": [
+    "re-read the exact wallet-web remote parent and require the sole workflow path to be absent",
+    "require the Web owner worktree clean and materialize only the byte-exact frozen workflow",
+    "precheck exact Vercel project and restored Standard Protection deployment type",
+    "disable SSO once for wallet-web only and directly verify SSO is disabled",
+    "commit only the sole workflow path with the exact required message",
+    "push force=false exactly once to the exact owner branch; the push is the only trigger",
+    "bind the resulting workflow run to that exact pushed commit and wait for one terminal run",
+    "restore SSO exactly once on every terminal path before interpreting evidence",
+    "verify the restored Standard Protection deployment type and production private state",
+    "if the run succeeded, download and verify the evidence artifact and return raw status, headers, bodies, bytes and SHA-256"
+  ],
+  "workflowRequirements": {
+    "trigger": "push to exact owner branch with exact sole path",
+    "headCommitMessageCheck": true,
+    "permissions": "contents:read",
+    "runner": "ubuntu-latest",
+    "timeoutMinutes": 3,
+    "secrets": false,
+    "inputs": false,
+    "allowedGetPaths": ["/", "/build-identity.json", "/manifest.webmanifest", "/sw.js"],
+    "requiredHttpStatus": 200,
+    "requiredIdentitySourceCommit": "a9653f9f73eb79f77b45f04c845c4f56c012ab4b",
+    "requiredServiceWorkerCacheControl": "contains no-store",
+    "artifactUpload": "always"
+  },
+  "forbidden": [
+    "workflow_dispatch or any second push",
+    "any file other than the sole workflow path on the owner branch",
+    "default-main registration",
+    "secrets, inputs, dynamic URLs or user-controlled network targets",
+    "Vercel alias or routing mutation",
+    "any Vercel project other than the exact wallet-web project",
+    "Wallet product source or UI changes",
+    "installation, account request, signing or transaction action",
+    "public identity, product connection or interoperability completion promotion"
+  ],
+  "terminalRules": {
+    "success": "CONSUMED_RELEASED_HOSTED_FOUR_RESOURCE_PREFLIGHT_EVIDENCE_READY_FOR_INDEPENDENT_REVIEW",
+    "failure": "CONSUMED_RELEASED_FAILED_CLOSED_HOSTED_PREFLIGHT",
+    "restoreFailure": "EMERGENCY_BLOCKED_SSO_RESTORE_REQUIRED_NO_FURTHER_ACTION",
+    "retryAllowed": false,
+    "routingLeaseInferred": false
+  },
+  "truthBeforeExecution": {
+    "officialSourceCommit": "uncommitted-source-tree",
+    "currentSourceBoundPublic": false,
+    "productsConnected": "0/12",
+    "parityComplete": false
+  },
+  "terminalResult": {
+    "frozenLocalCommitReported": "fe1548d2f8828e69c956ea5e902a6cc5b7a87030",
+    "frozenLocalTreeReported": "b58b933bfef9c3b847cfe65eef988fb56f19dc3b",
+    "frozenLocalParentReported": "4f1e1b8ebdbc5e67900f675d970421d73d3a574b",
+    "frozenWorkflowBlobReported": "a0bf78a6c0d978c73a53fa23a4f58495547e6ccd",
+    "localObjectAvailableToCentral": false,
+    "pushAttempts": 1,
+    "pushFailure": "LOCAL_ZSH_PARAMETER_MODIFIER_PRODUCED_INVALID_REFSPEC_BEFORE_REMOTE_WRITE",
+    "retryAttempted": false,
+    "remoteOwnerBranchAfterFailure": "4f1e1b8ebdbc5e67900f675d970421d73d3a574b",
+    "remoteWorkflowPathPresent": false,
+    "actionsRunsForReportedCommit": 0,
+    "evidenceArtifactCreated": false,
+    "ssoDisableCountReported": 1,
+    "exitTrapRestoreExecuted": false,
+    "explicitSsoEnableCountReported": 1,
+    "centralCurrentSsoDeploymentTypeReadback": "prod_deployment_urls_and_all_previews",
+    "candidateReadyState": "READY",
+    "aliasChanged": false,
+    "productSourceChanged": false,
+    "officialSourceCommit": "uncommitted-source-tree",
+    "futureLeaseCondition": "wholly new lease binding a Central-verifiable local commit object or bundle and one corrected literal refspec push with no variable concatenation"
+  }
+}

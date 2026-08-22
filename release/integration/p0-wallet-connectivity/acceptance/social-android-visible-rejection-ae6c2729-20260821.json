@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "acceptanceId": "P0-SOCIAL-ANDROID-VISIBLE-REJECTION-AE6C2729-20260821",
+  "walletProtocolEvidenceCommit": "ae6c27298b263a55098e42b9bd50641010f9754d",
+  "classification": "EMULATOR_CANONICAL_LAUNCHER_V1_NEGATIVE_ACCEPTED_V2_BLOCKED",
+  "sourceEvidence": {
+    "path": "release/integration/p0-wallet-connectivity/evidence/social-android-visible-rejection-ae6c2729-20260821.json"
+  },
+  "acceptedDirectTruth": {
+    "api36EmulatorOnline": true,
+    "walletAndSocialInstalled": true,
+    "canonicalAuthorizeResolverExact": true,
+    "walletApprovalScreenVisible": true,
+    "rejectReturnedToSocial": true,
+    "rejectCreatedNoSession": true,
+    "coldSecondLaunchNoResurrection": true,
+    "socialBackendTlsHealthy": false
+  },
+  "truth": {
+    "classificationCanonicalLauncherV1": true,
+    "approveClicked": false,
+    "productSessionV2RequestVerified": false,
+    "productSessionApproved": false,
+    "productSessionIntrospected": false,
+    "revokeVerified": false,
+    "networkLossRetryVerified": false,
+    "requestIdVisible": false,
+    "physicalDeviceVerified": false,
+    "computerControlVerified": false,
+    "socialMigratedV2": false,
+    "productsMigratedV2": 0,
+    "accountAuthorityCreated": false,
+    "signVerified": false,
+    "transactionVerified": false,
+    "integratedCentral": false,
+    "aggregateDeployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

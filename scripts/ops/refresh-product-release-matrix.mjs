@@ -86,6 +86,11 @@ function boolean(value) {
   return value === true;
 }
 
+function remoteShaIsTruthful(product) {
+  if (/^[0-9a-f]{40}$/.test(product.remoteSha ?? "")) return true;
+  return product.remoteSha === null && product.blockers?.includes("remote final branch is missing");
+}
+
 function directStates(row, releaseContext = {}) {
   const claimed = row?.evidence?.claimedReleaseStates ?? {};
   const coverage = row?.evidence?.coverage ?? {};
@@ -168,7 +173,7 @@ function validate(matrix) {
       if (typeof product.states?.[key] !== "boolean") throw new Error(`product ${product.productNumber} state ${key} is not boolean`);
     }
     if (!/^[0-9a-f]{40}$/.test(product.localSha ?? "")) throw new Error(`product ${product.productNumber} localSha is invalid`);
-    if (!/^[0-9a-f]{40}$/.test(product.remoteSha ?? "")) throw new Error(`product ${product.productNumber} remoteSha is invalid`);
+    if (!remoteShaIsTruthful(product)) throw new Error(`product ${product.productNumber} remoteSha is invalid or unaccounted for`);
     if (product.states.integratedCentral && !/^[0-9a-f]{40}$/.test(product.centralAcceptance?.acceptedSourceCommit ?? "")) {
       throw new Error(`product ${product.productNumber} claims central integration without an accepted commit`);
     }
@@ -206,6 +211,12 @@ function selfTest() {
   });
   if (!publishedStates.releasePublished || !publishedStates.artifactHosted) {
     throw new Error("direct release evidence self-test failed");
+  }
+  if (!remoteShaIsTruthful({ remoteSha: null, blockers: ["remote final branch is missing"] })) {
+    throw new Error("missing remote truth self-test failed");
+  }
+  if (remoteShaIsTruthful({ remoteSha: null, blockers: [] })) {
+    throw new Error("unaccounted missing remote self-test failed");
   }
   const dirty = structuredClone(row);
   dirty.worktree.clean = false;

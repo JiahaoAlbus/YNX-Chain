@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-063",
+  "leaseId": "P0-063_LIGHT_SOURCE_ONLY",
+  "status": "CHECKPOINT_REACHED_RELEASED",
+  "owner": "integration",
+  "branch": "codex/p0-trust-center-wallet-connectivity-20260821",
+  "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/38-trust-center-p0",
+  "startingCommit": "b54bf94f263fabec3b178fdf412c4edab96675d4",
+  "leasedAt": "2026-08-20T21:05:00Z",
+  "releasedAt": "2026-08-20T21:12:00Z",
+  "implementationCommit": "eb07330465f3c02b5ad62375d9b2d977110aa450",
+  "checkpointCommit": "5ff4cd57667de7c87197aa0982bca6addf007a28",
+  "scope": ["apps/trust-center/**"],
+  "requirements": ["compare exact product against Fable5 Trust requirements", "consume accepted EIP-6963/EIP-1193 SDK without copying it", "prefer YNX Wallet and support standard EVM wallet fallback", "preserve public transparency and guest review", "remove release-visible local identity authority", "isolate legacy private Product Session as degraded", "use accepted endpoint manifest only", "test, build, local-browser verify, push and release"],
+  "forbidden": ["shared Wallet/Auth, Trust authority kernel or SDK changes", "Gateway or Website changes", "public deployment", "installed or Computer Control claim", "caller supplied Gateway or RPC", "whole-app Offline on Product Session failure", "local identity presented as authority"],
+  "truthAtGrant": {"legacyPrivateSessionVersion":"custom-challenge", "standardWalletSourceImplemented":false, "localTestIdentityVisible":true, "productSessionV2":false, "installedClientVerified":false, "deployedPublic":false, "publicVerified":false, "computerControlVerified":false},
+  "truthAtRelease": {"standardWalletSourceImplemented":true,"localTestIdentityVisible":false,"guestPublicAccessVerified":true,"privateServiceDegradedPreservesStandardConnection":true,"productSessionV2":false,"installedClientVerified":false,"deployedPublic":false,"publicVerified":false,"computerControlVerified":false}
+}

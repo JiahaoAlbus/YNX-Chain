@@ -1,0 +1,27 @@
+{
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-145",
+  "reviewedAt": "2026-08-21T17:57:35Z",
+  "decision": "REJECT_DEPLOYMENT_READINESS",
+  "sourceArtifactIntegrityAccepted": true,
+  "deploymentAuthorized": false,
+  "leaseReleased": true,
+  "ownerCheckpointCommit": "ee3c398adf80659215d06806911068a48551ab03",
+  "acceptedArtifactSourceCommit": "8571509583a1390b56b1812e1008f5d634ef594f",
+  "laterSuccessorSourceCommit": "49cbb1507e25f4681018af883da7e4649e415de9",
+  "artifacts": {
+    "explorerd": {"bytes": 8872120, "sha256": "dab048ced7be02b8937ba7bbe75fa124e3fa83da59c489659a0a3e037f61f060"},
+    "indexerd": {"bytes": 7512248, "sha256": "c4ab4994a5cb1a04a18fdfe0bd171fec9a441c31f0b2f3b2dc4b0b52f5af2a2b"},
+    "monitorTar": {"bytes": 1024000, "sha256": "2d47bdc7c24458ad751540f7a6e4f66118714a13bf7e1875ad0150b4af1437f2"}
+  },
+  "blockers": [
+    "actual host/service/env/Monitor ingress/Caddy rollback hashes are not frozen",
+    "executable rollback commands and receipt are incomplete",
+    "artifact source 857150 and later successor source 49cbb150 cannot be mixed in one release",
+    "public /connectivity remains an HTML fallback rather than source-bound JSON"
+  ],
+  "publicRuntimeSource": "8bf7716ee671a5a9b64517280743c5a281899712",
+  "publicConnectivityJson": false,
+  "computerControlVerified": false,
+  "productionMutation": false
+}

@@ -1,0 +1,25 @@
+#!/usr/bin/env node
+import assert from "node:assert/strict";
+import fs from "node:fs";
+import path from "node:path";
+import {fileURLToPath} from "node:url";
+const root=path.resolve(path.dirname(fileURLToPath(import.meta.url)),"../..");
+const read=p=>JSON.parse(fs.readFileSync(path.join(root,p),"utf8"));
+const leases=read("release/integration/p0-wallet-connectivity/execution-leases.json");
+const locks=read("release/integration/p0-wallet-connectivity/path-locks.json");
+const queue=read("release/integration/p0-wallet-connectivity/integration-queue.json");
+const lease=read("release/integration/p0-wallet-connectivity/execution/p0-058-creator-studio-source-lease-20260821.json");
+assert.equal(leases.heavy.owner,null);
+assert.equal(leases.light.owner,null);
+assert.equal(leases.light.taskId,"P0-058");
+assert.equal(lease.status,"CHECKPOINT_REACHED_LIGHT_RELEASED");
+assert.equal(lease.checkpointCommit,"2b1103063b47d2cfbf060837056e6b33fc7ecad3");
+const lock=locks.locks.find(x=>x.taskId==="P0-058");
+assert.equal(lock.path,"apps/creator-studio/**");
+assert.equal(lock.status,"CHECKPOINT_REACHED");
+assert.equal(lock.checkpointCommit,"2b1103063b47d2cfbf060837056e6b33fc7ecad3");
+assert.equal(queue.tasks.filter(x=>x.taskId==="P0-058").length,1);
+assert.equal(queue.tasks.find(x=>x.taskId==="P0-058").publicVerified,false);
+assert.equal(queue.tasks.find(x=>x.taskId==="P0-058").standardWalletSourceImplemented,true);
+assert.equal(queue.tasks.find(x=>x.taskId==="P0-057").sourceAccepted,false);
+console.log("PASS P0-058 reached exact source checkpoint, released Light, and preserves false public gates while P0-057 remains NO_GO");

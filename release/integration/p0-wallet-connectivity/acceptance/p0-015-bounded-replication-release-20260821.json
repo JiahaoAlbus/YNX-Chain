@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "acceptanceId": "P0-015-BOUNDED-REPLICATION-RELEASE-20260821",
+  "taskId": "P0-015",
+  "decision": "RELEASED_CHECKPOINT",
+  "owner": "integration",
+  "releasedAt": "2026-08-20T18:54:03Z",
+  "checkpoint": {
+    "branch": "codex/p0-bounded-replication-runtime-compatible-20260820",
+    "commit": "0be8967deefb08ecf9f1e14efe6f11ea621f6c5c",
+    "runtimeSourceCommit": "be9f03833ac3a7579bd96f22f6bf49f3d8dccc7b",
+    "rolloutEvidenceCommit": "c1813fb33bddf3479382d2d24f4e255d52b5dd43",
+    "evidencePath": "release/integration/chain-four-node-empty-block-checkpoint-rollout-20260821.json"
+  },
+  "acceptedEvidence": {
+    "fourNodesSameBuild": true,
+    "fourNodesSameFixedHeightHash": true,
+    "fixedHeight": 1130847,
+    "fixedHeightHash": "09726910121017a2ca54eaf317af0681b4e354a23366aace46b49dcbca9d0842",
+    "followersCaughtUp": true,
+    "allFollowerLagBlocks": 0,
+    "allConsecutiveReplicationFailures": 0,
+    "postRolloutRestartsZero": true,
+    "postRolloutOomObserved": false
+  },
+  "releaseReason": "The protected sequential rollout reached its exact four-node convergence objective and a later pushed soak checkpoint. This release is evidence-based and is not inferred from elapsed time.",
+  "truth": {
+    "runtimeDeployed": true,
+    "mainnetReady": false,
+    "publicDomainVerified": false,
+    "computerControlVerified": false,
+    "walletAuthExecutionLeaseIssued": false,
+    "p0039LeaseReusable": false
+  }
+}

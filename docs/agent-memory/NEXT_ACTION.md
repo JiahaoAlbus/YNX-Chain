@@ -1,10 +1,13 @@
 # Next Action
 
-Updated: `2026-07-29T19:29:29Z`
+Updated: `2026-08-01T14:40:45Z`
 
-1. Commit the generated evidence refreshed against exact acceptance source `6de79e31a7dd44fcb7df9edbf65a3090da6967c3`.
-2. Run the clean exact-source Integration protection preflight.
-3. Push Product 29 without force, restore and verify exact branch protection, confirm local/tracking/REST SHA equality, and obtain exact-final-head green PR #17 CI.
-4. Move the single writable product worktree to Product 26 Data Fabric, the remaining dependency needed before Product 02 can be centrally accepted.
+1. Validate, commit and push the current Product 29 evidence/capability/completion checkpoint; verify exact local/remote equality and exact-head CI.
+2. Recover Product 04 Pay without discarding its one unpushed commit; test, push and return the worktree clean.
+3. Recover Product 12 Explorer (four unpushed commits), then Product 17 Economics (two unpushed commits), one writable worktree at a time.
+4. Process remaining dirty owner worktrees without overwriting user changes; refresh the release matrix after every protected checkpoint.
+5. Execute at least eight real cross-product E2E scenarios with transaction, event, ledger, Explorer and monitoring evidence.
+6. Complete direct four-validator restart/restore evidence and per-product shared-Testnet gates.
+7. Prove Website/Vercel/source equality and repeat final UI acceptance with Computer Control.
 
-Do not convert source acceptance into shared Testnet, public deployment, Website, signing, store or Mainnet claims without direct evidence.
+Do not convert public runtime observations or candidate source evidence into production, external bridge execution, reserve, stablecoin, signing, store or Mainnet claims.

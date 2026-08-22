@@ -1,0 +1,133 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-181",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-public-identity-routing-20260822T085730Z",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_BROWSER_PWA_INTEGRITY_GATE",
+  "owner": null,
+  "branch": "codex/website-wallet-public-identity-routing-20260822",
+  "worktree": "/Users/huangjiahao/Desktop/ynx-web4-website-new",
+  "issuedAt": "2026-08-22T08:57:30Z",
+  "expiresAt": "2026-08-22T09:27:30Z",
+  "releasedAt": "2026-08-22T09:02:40Z",
+  "singleUse": true,
+  "reusable": false,
+  "dependsOn": "P0-180",
+  "scope": "WALLET_OFFICIAL_DOMAIN_ALIAS_ONLY_WITH_EXACT_ROLLBACK",
+  "acceptedCandidateEvidence": {
+    "centralAcceptanceCommit": "be74f5e85bd132e8f068a8036a87b23c0ca715f7",
+    "centralAcceptanceTree": "a66bcff0089f548a7547d7722ad66d696fe39001",
+    "p0180LeaseBlob": "3a7c7e6ccd93d90b53a8ab087c892d4ad94029fb",
+    "p0180LeaseSha256": "20475fb6eb1387ebef98854eba4400509a73058df10339de3323475c02158d2c",
+    "actionsRunId": 32563374829,
+    "actionsJobId": 97008287940,
+    "artifactId": 9473409666,
+    "artifactZipSha256": "64b06c2e563e136ee9c227153a8e753bd863867ffc8be358c15ba147bac6d359",
+    "ssoRestoredDeploymentType": "prod_deployment_urls_and_all_previews",
+    "targetPrivate": true
+  },
+  "current": {
+    "deploymentId": "dpl_Got2m9m84Sc3QDsrH8yu51W93JAe",
+    "immutableUrl": "wallet-mgwrbzwuy-jiahaoalbus-projects.vercel.app",
+    "officialOrigin": "https://wallet.ynxweb4.com",
+    "identityBytes": 250,
+    "identitySha256": "b2f9b275a4295c6f1cd230daf2b39519a81c4cb3ecf361e820ace9195adbbf9b",
+    "sourceCommit": "uncommitted-source-tree"
+  },
+  "candidate": {
+    "deploymentId": "dpl_G6gTg2a3CVS1siTRqQg5XjQfPR9q",
+    "immutableUrl": "wallet-aitthgkni-jiahaoalbus-projects.vercel.app",
+    "deploymentStatus": "READY_PROMOTED",
+    "sourceCommit": "a9653f9f73eb79f77b45f04c845c4f56c012ab4b",
+    "sourceTree": "5cbf483decc37a6249420840e1d6b81bbafc9c2a",
+    "pwaSha256": "4d8e2e011f7113a80fb5a9541f710b86b2355f5e2fc176fd76a4a46ff94b0e7b",
+    "expectedResources": {
+      "root": {"http": 200, "bytes": 874, "sha256": "9ccd409b6b14f3b41d97c765065d20747c286e697fafdc571551b838d7fbab15"},
+      "buildIdentity": {"http": 200, "bytes": 267, "sha256": "62751c51d72a828da8a4503f21e38c6dcee72c3cdd71c8bf423ae1941fa30a00", "contentType": "application/json", "cacheControlRequired": "no-store"},
+      "manifest": {"http": 200, "bytes": 632, "sha256": "d2d131267483327ece949c5b8402c2dd80352bb15e791ea5571c879682ceba92"},
+      "serviceWorker": {"http": 200, "bytes": 4337, "sha256": "c65fbb724cba79fc06178fc1fa0543f69e821c0a732e7ceaa5b65e3694edd953", "cacheControlRequired": "no-store"}
+    }
+  },
+  "preExecutionRequired": [
+    "re-read this lease before expiry and verify it remains ACTIVE_SINGLE_USE",
+    "re-read the official identity and require exact old source/bytes/SHA before mutation",
+    "inspect both exact deployment IDs and require the candidate remains READY/PROMOTED with exact source and artifact metadata",
+    "verify the alias path lock and Heavy owner still bind P0-181 only",
+    "do not change SSO protection or any project setting"
+  ],
+  "authorizedCommand": "vercel alias set wallet-aitthgkni-jiahaoalbus-projects.vercel.app wallet.ynxweb4.com --scope jiahaoalbus-projects",
+  "rollbackCommand": "vercel alias set wallet-mgwrbzwuy-jiahaoalbus-projects.vercel.app wallet.ynxweb4.com --scope jiahaoalbus-projects",
+  "executionRules": {
+    "aliasCommandMaximum": 1,
+    "retryAllowed": false,
+    "rollbackCommandMaximum": 1,
+    "rollbackFirstPrepared": true,
+    "noOtherMutation": true,
+    "onPreExecutionDrift": "CONSUME_RELEASE_FAILED_CLOSED_ZERO_MUTATION",
+    "onPostRouteFailure": "EXECUTE_EXACT_ROLLBACK_ONCE_THEN_READ_BACK_OLD_IDENTITY"
+  },
+  "postRouteRequired": {
+    "officialOrigin": "https://wallet.ynxweb4.com",
+    "paths": ["/", "/build-identity.json", "/manifest.webmanifest", "/sw.js"],
+    "requirements": [
+      "direct official-domain HTTP 200, exact bytes and exact candidate SHA-256 for all four resources",
+      "build identity content type is JSON and sourceCommit is exact a9653f9f73eb79f77b45f04c845c4f56c012ab4b",
+      "build identity and service worker Cache-Control contain no-store",
+      "clean-browser visible Wallet page with stable wallet.ynxweb4.com URL, one tab, no blank target and zero console errors",
+      "return the final alias target and Vercel request IDs"
+    ]
+  },
+  "forbidden": [
+    "SSO or Vercel project-setting mutation",
+    "Wallet owner source or workflow mutation",
+    "any other Website domain, route or deployment mutation",
+    "browser installation, account approval, signing or transaction action",
+    "claiming installed-provider, full interoperability, parity or product completion"
+  ],
+  "truthBeforeExecution": {
+    "currentSourceBoundPublic": false,
+    "installedProvider": false,
+    "parityComplete": false,
+    "productsConnected": "0/12"
+  },
+  "terminalResult": {
+    "preExecutionLeaseReadback": "ACTIVE_SINGLE_USE_OWNER_WEBSITE_NOT_EXPIRED",
+    "preExecutionOfficialIdentityMatched": true,
+    "preExecutionCandidateMatched": true,
+    "aliasCommandExecutedCount": 1,
+    "aliasCommandSucceeded": true,
+    "postRouteResources": {
+      "root": {"http": 200, "bytes": 874, "sha256": "9ccd409b6b14f3b41d97c765065d20747c286e697fafdc571551b838d7fbab15", "requestId": "hnd1::vhwhg-1787389257698-ed73f22b7334"},
+      "buildIdentity": {"http": 200, "bytes": 267, "sha256": "62751c51d72a828da8a4503f21e38c6dcee72c3cdd71c8bf423ae1941fa30a00", "sourceCommit": "a9653f9f73eb79f77b45f04c845c4f56c012ab4b", "contentType": "application/json", "cacheControl": "no-store", "requestId": "hnd1::z4kh6-1787389257996-abad21dd246f"},
+      "manifest": {"http": 200, "bytes": 632, "sha256": "d2d131267483327ece949c5b8402c2dd80352bb15e791ea5571c879682ceba92", "requestId": "hnd1::6gbff-1787389258357-da197dfc04d8"},
+      "serviceWorker": {"http": 200, "bytes": 4337, "sha256": "c65fbb724cba79fc06178fc1fa0543f69e821c0a732e7ceaa5b65e3694edd953", "contentType": "application/javascript", "cacheControl": "no-store", "requestId": "hnd1::z4kh6-1787389258872-7af9fa54fcae"}
+    },
+    "fourResourcePostRouteReadbackPassed": true,
+    "cleanBrowser": {
+      "tabCount": 1,
+      "stableUrl": "https://wallet.ynxweb4.com/",
+      "consoleErrorCount": 0,
+      "visibleDom": "PWA shell 完整性验证失败",
+      "passed": false
+    },
+    "terminalFailure": "BROWSER_PWA_INTEGRITY_GATE",
+    "rollbackCommandExecutedCount": 1,
+    "rollbackCommandSucceeded": true,
+    "rollbackIdentity": {
+      "http": 200,
+      "bytes": 250,
+      "sha256": "b2f9b275a4295c6f1cd230daf2b39519a81c4cb3ecf361e820ace9195adbbf9b",
+      "sourceCommit": "uncommitted-source-tree",
+      "requestId": "hnd1::7cpjm-1787389325499-c393f6fe5b8a",
+      "independentRequestId": "hnd1::r7wxx-1787389364234-5d73bc64161b",
+      "aliasDeploymentId": "dpl_Got2m9m84Sc3QDsrH8yu51W93JAe",
+      "aliasProjectId": "prj_K4emrdkST7sdb0K9mhmLM0QZh0I3"
+    },
+    "retryExecuted": false,
+    "ssoOrProjectSettingMutation": false,
+    "walletSourceOrUiMutation": false,
+    "installAccountSignOrTransactionAction": false,
+    "currentSourceBoundPublic": false,
+    "futureCondition": "Wallet Web owner must repair and independently prove the source-bound candidate browser PWA shell integrity before any wholly new routing lease"
+  }
+}

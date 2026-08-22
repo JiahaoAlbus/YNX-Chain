@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-FINANCE-PRODUCT-SESSION-SOURCE-CONSUMPTION-F711745D-20260820",
+  "checkedAt": "2026-08-20T15:50:52Z",
+  "ownerSource": {
+    "branch": "codex/p0-finance-wallet-connectivity-20260820",
+    "commit": "f711745dc44cea17ac46abd6332af87f6db2ffa6",
+    "parent": "f7efbd9e9658aaea75f8d9fbbb58f79ee1a48365",
+    "tree": "51e72c24d83091625b61f2a062ad9c2f9bcb967a",
+    "remoteReadbackExact": true,
+    "changedFiles": 21,
+    "changedPathBlobInventory": {
+      "format": "sorted path TAB gitBlob LF",
+      "lines": 21,
+      "bytes": 1971,
+      "sha256": "b363481236fdcf75fbbbdf79b4b74cdf08a9fdb18af061ba65a518a2e07cc7c9"
+    }
+  },
+  "ownerEvidence": {
+    "path": "apps/finance/P0_PRODUCT_SESSION_V2_EVIDENCE_20260820.md",
+    "blob": "7f460b0d262c4fb594b5a982273c79d556100d3c",
+    "bytes": 2511,
+    "sha256": "8001620fa9a8cad921a95f752487252465d81dde1719973939874f25e2ad1c7e"
+  },
+  "acceptedSourceBehavior": {
+    "walletAuthSourceCommit": "203be5e108be468350591615a64d5d36ab87a8f1",
+    "rootFactoryConsumed": true,
+    "gatewayOrigin": "https://wallet-auth.ynxweb4.com",
+    "androidKeystoreP256PrivateKeyStaysNative": true,
+    "javascriptReceivesPrivateKey": false,
+    "localV2ChallengeCompleteIntrospectRevokeTested": true,
+    "standardWalletConnectionSeparate": true
+  },
+  "directEvidence": {
+    "publicStateFreeChallengeMount": {
+      "status": 400,
+      "schemaVersion": 2,
+      "code": "UNKNOWN_OR_MISSING_FIELD",
+      "stateCreated": false,
+      "financeSessionCreated": false
+    },
+    "disposableAndroidEmulator": {
+      "target": "emulator-5560",
+      "financeCandidateInstalled": true,
+      "walletPackageOpened": "com.ynxweb4.wallet",
+      "walletLocked": true,
+      "walletSchemaMismatchRejected": true,
+      "approvalVerified": false,
+      "callbackVerified": false,
+      "sessionCreated": false,
+      "firstLaunchScreenshot": {"blob": "88c28d758d64b70b0e6bcf48291eaa73aae9718f", "bytes": 161314, "sha256": "e2411f784a69e09c2f0c9d6d8b963e46542e1e57dd36ee83139eeea5e50bd182"},
+      "walletRejectionScreenshot": {"blob": "10a53aa287675468485f37a682136b97e7163d1d", "bytes": 15733, "sha256": "2ad1f80253fe85d8758d65b8bcce08f3cf1c7311b9fd99e6d8a240378361274b"}
+    }
+  },
+  "centralVerification": {
+    "financeRootTestsPassed": 10,
+    "financeMobileTestsPassed": 9,
+    "financeMobileTypecheckPassed": true,
+    "releaseEvidenceVerifierPassed": true,
+    "diffCheckPassed": true
+  },
+  "truth": {
+    "financeMigratedV2": false,
+    "productsMigratedV2": 0,
+    "publicFinanceV2LifecycleVerified": false,
+    "approvalVerified": false,
+    "rejectCallbackVerified": false,
+    "revokeVerified": false,
+    "secondLaunchRestoreVerified": false,
+    "networkRetryVerified": false,
+    "accountSignTransactionVerified": false,
+    "productionInstalledClientVerified": false,
+    "deployedPublic": false,
+    "integratedCentral": false,
+    "aggregateDeployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

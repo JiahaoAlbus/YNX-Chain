@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "acceptanceId": "P0-CARD-PRODUCT-SESSION-SOURCE-CONSUMPTION-E935B760-20260820",
+  "decision": "ACCEPTED_SOURCE_CONSUMPTION_V2_MIGRATION_BLOCKED",
+  "ownerSourceCommit": "e935b760413898cd1b206f4f816e1eb0e15b4663",
+  "ownerSourceParent": "2c2e117e42b4daacf96cd74abc6844c72398c522",
+  "ownerSourceTree": "520110454ef3eec4449deb9784405b052fd9e1ca",
+  "acceptedWalletAuthSource": "203be5e108be468350591615a64d5d36ab87a8f1",
+  "sourceEvidence": {
+    "path": "release/integration/p0-wallet-connectivity/evidence/card-product-session-source-consumption-e935b760-20260820.json",
+    "blob": "54cb6469a94ed180c7ab7be59bc6682c8154c042",
+    "bytes": 2896,
+    "sha256": "98b53384145d77030d1c14ad8d722ecf4e339de58d02cd2c0bdb0399dbfca524"
+  },
+  "acceptedSourceBehavior": {
+    "rootFactoryConsumed": true,
+    "authoritativeOriginPinned": true,
+    "endpointCallbackOriginSessionInjectionRejected": true,
+    "privateV2SessionSeparatedFromLegacyCardApiSession": true,
+    "standardWalletConnectionPreserved": true
+  },
+  "truth": {
+    "cardMigratedV2": false,
+    "productsMigratedV2": 0,
+    "productsRequired": 12,
+    "localHandlerIsPublicRouteEvidence": false,
+    "visibleInstalledOrBrowserVerified": false,
+    "installedWalletClientVerified": false,
+    "walletApprovalVerified": false,
+    "accountVerified": false,
+    "signingVerified": false,
+    "transactionVerified": false,
+    "deployedPublic": false,
+    "integratedCentral": false,
+    "aggregateDeployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

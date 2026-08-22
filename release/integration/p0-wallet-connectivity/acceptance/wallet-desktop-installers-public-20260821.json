@@ -1,0 +1,64 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-142",
+  "recordedAt": "2026-08-21T14:09:25Z",
+  "decision": "PUBLIC_NATIVE_INSTALLERS_VERIFIED_WALLET_AUTHORITY_PENDING",
+  "website": {
+    "sourceCommit": "12a5113abb66a2ae5ebdab9fd553188a3a750f66",
+    "deploymentId": "dpl_3hXz9xTVEeqwYJ1oDrNnuo2FkaH2",
+    "deploymentUrl": "https://ynx-web4-website-aqzmmi2ts-jiahaoalbus-projects.vercel.app",
+    "officialOrigin": "https://ynxweb4.com",
+    "ready": true
+  },
+  "macos": {
+    "sourceCommit": "5a6b033897a1295d35fc325a92c6bb81c8b04a19",
+    "evidenceCommit": "59e9b994ff0fc13cf285b4cac31b97cb94dfd36a",
+    "finalOwnerCommit": "7a376ada62d5ae1ea1955c72dcb71c5723a2c385",
+    "url": "https://downloads.ynxweb4.com/wallet/sha256-69b4fa5db7b8a9ab105af6633de44f5a5a4a9fceeaa0925a306f77b22381b044/ynx-wallet-macos-0.1.2-universal.dmg",
+    "bytes": 237777236,
+    "sha256": "69b4fa5db7b8a9ab105af6633de44f5a5a4a9fceeaa0925a306f77b22381b044",
+    "format": "DMG",
+    "architectures": ["x86_64", "arm64"],
+    "publicVerified": true,
+    "productionSigned": false,
+    "notarized": false,
+    "storeReleased": false,
+    "nativeAuthorizationReviewVisible": true,
+    "authorizationApproved": false,
+    "authorizationError": "CANONICAL_AUTH_BRIDGE_UNAVAILABLE"
+  },
+  "windowsX64": {
+    "sourceCommit": "a8f36e4c57234efe5f19367c87035b4435d61b76",
+    "evidenceCommit": "6ec336ef7fb51ff537329e4d6b4e7517c5f9ec05",
+    "finalOwnerCommit": "4141b98cac813d1b57e7fea943dd7cf4dc449177",
+    "url": "https://www.ynxweb4.com/downloads/wallet/sha256-856b2a260efc43c25f62508dabc6bb6b74b84da71c9b477e8a02a12d17598cd7/ynx-wallet-desktop-0.1.1-x64.exe",
+    "bytes": 104334744,
+    "sha256": "856b2a260efc43c25f62508dabc6bb6b74b84da71c9b477e8a02a12d17598cd7",
+    "format": "EXE",
+    "peHeaderVerified": true,
+    "publicVerified": true,
+    "authenticode": "NotSigned",
+    "productionSigned": false,
+    "storeReleased": false,
+    "installedWalletAuthorityVerified": false
+  },
+  "windowsArm64": {
+    "sha256": "929315133c68eda1cabac51cec889c4aeca5e3ee1701578916bc67e096c5dc35",
+    "format": "EXE",
+    "ownerBuildVerified": true,
+    "publicVerified": false
+  },
+  "truthBoundaries": {
+    "standardWalletConnectionVerified": false,
+    "accountApproved": false,
+    "callbackVerified": false,
+    "productSessionVerified": false,
+    "signatureVerified": false,
+    "transactionVerified": false,
+    "productionSigned": false,
+    "computerControlVerified": false,
+    "computerControlBlocker": "Mac locked; automatic unlock failed"
+  },
+  "nextAction": "Wallet Platform repairs the macOS native authorization bridge, proves installed authorization/account/chain lifecycle on both desktop platforms, and publishes the exact ARM64 EXE."
+}

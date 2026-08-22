@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-038",
+  "acceptedAt": "2026-08-20T17:18:00Z",
+  "classification": "source-tested-not-deployed",
+  "sourceCommit": "deb2cefb00b52e5c2ab9c357201d690918320424",
+  "sourceTree": "06290f63aa0d2dd5c8c4aaa968516b094c2db0f0",
+  "sourceParent": "84308a6ded969c71c9f32e2ab4f25424822feb84",
+  "semanticSourceCommit": "84308a6ded969c71c9f32e2ab4f25424822feb84",
+  "sourceBranch": "codex/wallet-core-auth-gateway-continuation-20260814",
+  "sourceSemantics": "bfc11ecb4100725ae8f42c86d220fa0bc2d8212a",
+  "endpointCandidate": "https://rest.ynxweb4.com",
+  "focusedTests": {"passed": 26, "failed": 0},
+  "ownerFullTests": {"passed": 340, "failed": 0, "independentlyReplayed": false},
+  "executionLeaseIssued": false,
+  "deployedPublic": false,
+  "publicVerified": false,
+  "computerControlVerified": false,
+  "productsMigrated": 0,
+  "productsRequired": 12,
+  "boundaries": [
+    "The endpoint is a configuration candidate, not an exact deployed-source claim.",
+    "The deb2cefb observability child changes only exact Registry version reporting and its test; Product Session semantics remain those of semantic parent 84308a6.",
+    "Integration independently replayed the four relevant Product Session test files only; the full suite count is owner-reported.",
+    "A package-only archive full-suite attempt was invalid for repository-coupled tests and is not counted as a product failure.",
+    "No Gateway deployment, installed-client success, product migration or ComputerControl evidence is accepted."
+  ]
+}

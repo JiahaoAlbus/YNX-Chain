@@ -1,0 +1,43 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-092",
+  "decision": "WEBSITE_PRODUCTION_PUBLISHED_HTTP_VERIFIED",
+  "websiteRepository": "JiahaoAlbus/YNX-Chain-website",
+  "websiteCommit": "ffceb65ea8b61dfdaf787b57bff18dc9261b082b",
+  "websiteBranch": "main",
+  "deploymentId": "dpl_5D9kAwNaPcsTyNNeK2X6NKvFkmDD",
+  "deploymentUrl": "https://ynx-web4-website-6jjr28tzl-jiahaoalbus-projects.vercel.app",
+  "deploymentReady": true,
+  "officialPage": {
+    "apexUrl": "https://ynxweb4.com/dapp/faucet",
+    "wwwUrl": "https://www.ynxweb4.com/dapp/faucet",
+    "http": 200,
+    "bytes": 1018,
+    "sha256": "671ad060bc30e33417c2b01a9dedfc4f86b1939e9f3711ebfd119df1478a8464"
+  },
+  "runtimeRecord": {
+    "path": "/releases/faucet-runtime/ea0e068becd9103f5f0a2a6c3a0d20ab7932d006/runtime-publication.json",
+    "apexHttp": 200,
+    "wwwHttp": 200,
+    "bytes": 1435,
+    "sha256": "1c87353d4637992120766a697d83d5812074c5bec1a441eae121f8d72921d68a",
+    "sourceCommit": "ea0e068becd9103f5f0a2a6c3a0d20ab7932d006",
+    "centralAcceptance": "edb7ca7f7a8bf689f17b97f285a256441fd9a3ae"
+  },
+  "productionAsset": {
+    "path": "/assets/index-D5nVWoTV.js",
+    "http": 200,
+    "bytes": 586625,
+    "sha256": "59dc6e6b50f0e0e855b962538f2d30568c09085ea8e0650f93eeb208d714f275",
+    "acceptedBuildIdentityOccurrences": 3,
+    "runtimeLinkOccurrences": 1
+  },
+  "directDeploymentRuntimeRecordPubliclyReadable": false,
+  "directDeploymentObservation": "The immutable Vercel hostname returned an access HTML page rather than the runtime JSON; no direct-deployment content identity is claimed.",
+  "tests": "6/6 Node; docs authority; website verify; production build; IndexNow dry-run; official npm audit 0",
+  "faucetFundingRequestVerifiedInThisSlice": false,
+  "walletPlatformFaucetVerified": false,
+  "computerControlVerified": false,
+  "aggregatePublicVerified": false
+}

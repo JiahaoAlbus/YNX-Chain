@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-WALLET-PROTOCOL-CHECKPOINT-23F1198E-20260820",
+  "checkedAt": "2026-08-20T15:50:52Z",
+  "ownerCheckpoint": {
+    "commit": "23f1198eda1f695379eae2f8ac44ac89ad170b2e",
+    "parent": "f74ef430d11111bf47aa047341faf38c10684277",
+    "tree": "6bd00752a4ccf729a45b5f507b71d66a28342935",
+    "branch": "codex/wallet-session-router-recovery",
+    "remoteReadbackExact": true,
+    "changedFiles": 6,
+    "cardCheckpoint": {
+      "path": "release/integration/wallet-product-session-card-root-factory-checkpoint-20260820.json",
+      "blob": "14e468b082d4b2fe3c939e4c5597082f0ed7c2bf",
+      "bytes": 1405,
+      "sha256": "871cbe821ddbb2240046e84c5cd6c0aac78f40758127509bec92092a3ec69565"
+    },
+    "websiteObservation": {
+      "path": "release/integration/wallet-auth-website-postdeploy-readback-20260820.json",
+      "blob": "35d52f15cb57cf907765ebb1719c68a53d77ef25",
+      "bytes": 4723,
+      "sha256": "f74b5a75f2a49fffce7f707c77a47f4bb850d2ac429b0ae65949ce178e79fd29"
+    }
+  },
+  "card": {
+    "sourceCommit": "e935b760413898cd1b206f4f816e1eb0e15b4663",
+    "classification": "root-factory-source-only",
+    "rootFactoryConsumed": true,
+    "publicGatewayLifecycleForCardVerified": false,
+    "installedOrBrowserVisibleFlowVerified": false,
+    "migratedV2": false
+  },
+  "websiteTimelineAudit": {
+    "ownerObservedWebsiteSource": "a7313313014bb8792f38e649e9f556dbee983c8c",
+    "ownerObservedDeploymentId": "dpl_5oP2L2ZHvP13YH3ZYWySLD49pj3P",
+    "ownerObservedRenderedCardCurrentDeployment": false,
+    "remoteMainAtAudit": "3f5bb28d00b808d5c6827093319c50befea875b8",
+    "ownerObservedSourceIsCurrentRemoteMain": false,
+    "centralAcceptedWebsiteSource": "09d5be41436404bba74315d0013c0229cab1e32b",
+    "centralAcceptedDeploymentId": "dpl_awLjPQTGudm2huQmNHPk9UpmugfV",
+    "centralVisibleAcceptanceIsDeploymentSpecific": true,
+    "ownerObservationSupersedesCentralAcceptance": false,
+    "publicReadback": {
+      "apexDocs": {"status": 200, "bytes": 4748, "sha256": "d4ab589c6b113e95168d0d2d2032c1792c7d1ad990d287f298efb8b130bafa1f"},
+      "wwwDocs": {"status": 200, "bytes": 4748, "sha256": "d4ab589c6b113e95168d0d2d2032c1792c7d1ad990d287f298efb8b130bafa1f"},
+      "apexRuntime": {"status": 200, "bytes": 1900, "sha256": "635fefdcc1cd5675a1787a9bf17c87102ccadd1c8232450be7b847333fe75941"},
+      "wwwRuntime": {"status": 200, "bytes": 1900, "sha256": "635fefdcc1cd5675a1787a9bf17c87102ccadd1c8232450be7b847333fe75941"},
+      "runtimeSourceCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14"
+    }
+  },
+  "truth": {
+    "cardMigratedV2": false,
+    "productsMigratedV2": 0,
+    "renderedCardAcceptedForOwnerObservedDeployment": false,
+    "installedWalletClientVerified": false,
+    "accountSignSendTransactionVerified": false,
+    "integratedCentral": false,
+    "aggregateDeployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

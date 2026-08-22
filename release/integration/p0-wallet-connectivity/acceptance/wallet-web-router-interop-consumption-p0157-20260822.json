@@ -1,0 +1,67 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-157",
+  "owner": "integration",
+  "sourceOwner": "wallet-web,wallet-protocol-router",
+  "decision": "STANDARD_INTEROP_AUTHORITY_CONSUMPTION_ACCEPTED_SOURCE_ARTIFACT_ONLY",
+  "standardInteropAuthority": {
+    "commit": "9ab9cd8c8deac8563acff9ffd7e277553e20383e",
+    "tree": "577133f121f49a7c832cc12bc6fb2afb1258b81b",
+    "path": "release/integration/wallet-standard-connection-conformance-contract-p0-20260822.json",
+    "blob": "173cb99a6fa6b942f43c6dc8ee3a3b851e876525",
+    "sha256": "c59cc18de86a304be8de6ef7056e3e260e62156fe36fb0b76e021e38e096a2fe",
+    "fixtureOnly": true
+  },
+  "web": {
+    "source": "a9653f9f73eb79f77b45f04c845c4f56c012ab4b",
+    "tree": "5cbf483decc37a6249420840e1d6b81bbafc9c2a",
+    "parent": "3af80dff57aecab2c62d17942f6c33e78c7621a9",
+    "evidence": "4f1e1b8ebdbc5e67900f675d970421d73d3a574b",
+    "evidenceTree": "9d5b8f3fd00bef48e35391279002c59919743849",
+    "evidencePath": "apps/wallet-web/evidence/contracts/router-standard-interop-authority-consumption-20260822.json",
+    "evidenceBlob": "3acc2d91d3aa4c478554c7adfbc9a5732750d97e",
+    "evidenceSha256": "d5c5a7fc9b529caa7a20ebfa36ed13ab9ed3ba62eabe73e59f4d7c90654ef450",
+    "handoffPath": "docs/integration/wallet-web-router-standard-interop-authority-handoff-20260822.json",
+    "handoffBlob": "0da1c54c383def6efb9a1ec4ed056e98f2394d44",
+    "handoffSha256": "27f6c34d3338bcab127b898466c8dfd698af53318ed6636aa6b55d26c1eeb2df"
+  },
+  "router": {
+    "checkpoint": "2e2eb37277613e52208f3e42b450a3a28a2ed08b",
+    "tree": "4e5cdadba98b2608c75f2fc7b0b2fcbb7d0353ab",
+    "parent": "4025e1ffe5849ba9e394868a90c2a0c195aceed4",
+    "remoteReadbackExact": true
+  },
+  "validation": {
+    "webFocused": "2/2",
+    "webSource": "114/114",
+    "webPackage": "114/114",
+    "webPackageVerify": "3/3",
+    "routerWalletAuth": "320/320",
+    "fixtureProfiles": 5,
+    "requiredExternalDapps": 3
+  },
+  "artifacts": {
+    "pwa": {"bytes": 285233, "sha256": "4d8e2e011f7113a80fb5a9541f710b86b2355f5e2fc176fd76a4a46ff94b0e7b"},
+    "chromeEdge": {"bytes": 468406, "sha256": "0f11110eae71e0beee023e215705edcd2af2c90b26c17b1a29a6e8ce5e7b542f"},
+    "firefox": {"bytes": 468445, "sha256": "b97a2b6b9b3f8e1a9b93e7cfd7e5cd8f70bca6a2a1cf07cc1a2875263a7717bd"}
+  },
+  "truth": {
+    "webInstallConfirmationGranted": false,
+    "browserLaunched": false,
+    "installedProviderComplete": false,
+    "realDappComplete": false,
+    "approvalRejectComplete": false,
+    "installedChainReadbackComplete": false,
+    "eventsComplete": false,
+    "signingComplete": false,
+    "typedDataComplete": false,
+    "transactionComplete": false,
+    "walletConnectRelayComplete": false,
+    "productsConnected": "0/12",
+    "productsMigratedV2": "0/12",
+    "parityComplete": false,
+    "executionLeaseIssued": false,
+    "productionLeaseIssued": false
+  }
+}

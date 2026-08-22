@@ -1,0 +1,78 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-176",
+  "owner": "integration,wallet-ios,wallet-macos",
+  "status": "WAITING_EXTERNAL_PROTECTED_INPUTS_AND_HEAVY_SLOT",
+  "blocker": "PROTECTED_NATIVE_WALLETCONNECT_RUNTIME_PACKAGE_UNAVAILABLE",
+  "sourceEvidence": {
+    "commit": "65dffee2f35ec9dc254f8c2ac8c465a353bc1861",
+    "tree": "9af8bc76caa2dc963ac484d981e25a504efe7ed5",
+    "blob": "51857585317e6dbbe3629bae2d7e68fee996ee69",
+    "sha256": "0c103cd1145edc07d9086f84a6f3548c4887d7438b1f473940217418017161ef"
+  },
+  "lease": {
+    "issued": false,
+    "leaseId": null,
+    "startCondition": "every earlier Heavy lease is terminally consumed and released, heavy.owner is null, and every protected input below is confirmed by its authorized operator"
+  },
+  "futurePathScope": [
+    "apps/wallet/ios/**",
+    "apps/wallet/macos/**",
+    "exact protected CI environment references for native WalletConnect only"
+  ],
+  "protectedInputs": [
+    {
+      "name": "YNX_WALLETCONNECT_PROJECT_ID",
+      "handling": "protected environment secret reference only; value never enters repository, logs or evidence"
+    },
+    {
+      "name": "YNX_WALLETCONNECT_APP_GROUP",
+      "handling": "signing-authorized entitlement confirmed by Apple platform operator; identifier may be recorded only after authorization"
+    },
+    {
+      "name": "approvedTestnetAccount",
+      "handling": "existing native signer binding only; never export, request or record a raw private key"
+    },
+    {
+      "name": "testnetTransactionPolicy",
+      "handling": "bounded recipient, value, gas, chain 0x1917 and maximum-attempt policy approved before send"
+    }
+  ],
+  "eligibleTargets": {
+    "ios": "physical installed build with valid signing/profile receipt",
+    "macos": "Developer ID signed, notarized, stapled and Gatekeeper-accepted installed build"
+  },
+  "namedOperatorConfirmations": [
+    "first-party YNX DApp exact public URL",
+    "https://app.uniswap.org",
+    "https://opensea.io",
+    "https://app.safe.global"
+  ],
+  "runtimeAcceptance": [
+    "real Reown SDK bundled and source-bound",
+    "real relay and pairing",
+    "approve and reject",
+    "restart restore",
+    "personal_sign",
+    "EIP-712 typed data",
+    "bounded testnet transaction",
+    "disconnect and revoke",
+    "same installed application and approved account throughout evidence"
+  ],
+  "forbidden": [
+    "secret values in repository or logs",
+    "raw private key collection",
+    "MetaMask impersonation",
+    "source-only or hosted-CI-only completion",
+    "lease inference before the start condition"
+  ],
+  "truth": {
+    "reownSdkBundled": false,
+    "projectIdConfigured": false,
+    "relayPairingVerified": false,
+    "installedRuntimeVerified": false,
+    "productsConnected": "0/12",
+    "parityComplete": false
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-SHOP-RETIRED-APK-WEBSITE-REMEDIATION-DF7778FC-20260821",
+  "capturedAt": "2026-08-20T16:55:22Z",
+  "ownerEvidence": {
+    "branch": "codex/wallet-session-router-recovery",
+    "commit": "df7778fca133818d3d69ec4ca149bfe35d77a280",
+    "parent": "ae6c27298b263a55098e42b9bd50641010f9754d",
+    "tree": "056f454bbaa3bf9a064ab1de030f6df6a9055a44",
+    "remoteReadable": true,
+    "evidencePath": "release/integration/wallet-shop-retired-apk-website-remediation-20260821.json",
+    "evidenceBlob": "0c565dac17f7788359f7ed9d6576b29a57230308"
+  },
+  "website": {
+    "remoteMain": "8dc702e7f8b156db64030a8116c1c06da768ce4c",
+    "retirementImplementation": "2540ed49cee1aa2f49ed78a91ebec613ba914638",
+    "retirementBoundaryTest": "5fde3309d46b5ff0487bf6a02cca44c54631593c",
+    "deploymentId": "dpl_4pbVmLHHqX5EdHigMGFNV1Y25n8H",
+    "deploymentUrl": "https://ynx-web4-website-3930xskl9-jiahaoalbus-projects.vercel.app",
+    "target": "production",
+    "readyState": "READY",
+    "deploymentSourceCommitDirectlyBound": false,
+    "officialAliases": [
+      "https://ynxweb4.com",
+      "https://www.ynxweb4.com"
+    ]
+  },
+  "visibleDownloadPage": {
+    "url": "https://www.ynxweb4.com/dapp/download",
+    "ownerBrowserDomVerified": true,
+    "shopAndroidLabel": "Not ready",
+    "shopAndroidDownloadLinkPresent": false,
+    "shopWebLink": "https://shop.ynxweb4.com/shop/",
+    "computerControl": false
+  },
+  "retiredApkRoute": {
+    "url": "https://www.ynxweb4.com/downloads/ynx-shop-0.3.0-testnet-preview-6fa2d6c5-debug-signed.apk",
+    "ownerHttpStatus": 410,
+    "centralHttpStatus": 410,
+    "centralCheckedAt": "2026-08-20T16:54:37Z",
+    "cacheControl": "no-store, max-age=0",
+    "contentType": "application/json; charset=utf-8",
+    "link": "<https://shop.ynxweb4.com/shop/>; rel=\"alternate\"",
+    "bytes": 175,
+    "sha256": "be1e83c77bcde293bf9b6f5db06b15a7c5c958b666f4f277a831984553e9b34c",
+    "body": {
+      "code": "CLIENT_RETIRED",
+      "message": "YNX Shop for Android is retired and is no longer distributed.",
+      "replacementUrl": "https://shop.ynxweb4.com/shop/",
+      "automaticRedirect": false
+    },
+    "ownerLaterApexCurlTimedOut": true,
+    "ownerLaterWwwCurlTimedOut": true,
+    "laterTimeoutsUsedAsSuccessEvidence": false
+  },
+  "walletAuthRuntime": {
+    "url": "https://wallet-auth.ynxweb4.com/version",
+    "centralCheckedAt": "2026-08-20T16:54:37Z",
+    "httpStatus": 200,
+    "bytes": 301,
+    "sha256": "5ec386007e0b3e24bfd7d1f1afd37b4e98aedf7f4e1f7b2b39efca136a5d52d0",
+    "sourceCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "release": "p0-v2-state-isolated-6cf3ef84",
+    "registryV3DeployedPublic": false
+  },
+  "truthBoundary": {
+    "websiteAndroidDownloadRemovalVerified": true,
+    "retiredBinaryHosted": false,
+    "retirementStatusRoutePublic": true,
+    "websiteRetirementConsistentWithRegistry": true,
+    "registryV3DeployedPublic": false,
+    "shopProductMigratedV2": false,
+    "productsMigratedV2": 0,
+    "installedApprovalVerified": false,
+    "computerControlVerified": false,
+    "integratedCentral": false,
+    "aggregateDeployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

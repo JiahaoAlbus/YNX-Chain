@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-052",
+  "leaseId": "P0-052_LIGHT_SOURCE_ONLY",
+  "status": "CONSUMED_RELEASED_SOURCE_CHECKPOINT",
+  "owner": "integration",
+  "branch": "codex/p0-merchant-console-wallet-connectivity-20260821",
+  "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/05-merchant-console-p0",
+  "startingCommit": "e977677c61626448e0707c375b799b3f7b65b470",
+  "leasedAt": "2026-08-20T19:26:00Z",
+  "releasedAt": "2026-08-20T19:45:00Z",
+  "implementationCommit": "a59974d52b8c4fadaf1cd34db624f94b377f7cc5",
+  "checkpointCommit": "f3d36ab5785f910f3114c4a080f2c2551aabe656",
+  "scope": ["apps/merchant-console/**"],
+  "requirements": ["accepted EIP-6963 and EIP-1193 Standard Wallet consumer", "YNX Wallet preference with standard wallet fallback", "guest and public surfaces independent", "private Product Session isolated as degraded", "tests, build and release endpoint scan", "clean commit, force-false push and handoff"],
+  "forbidden": ["shared Wallet/Auth or SDK changes", "Pay or other product changes", "public deployment", "installed or Computer Control claim", "caller supplied Gateway or RPC", "whole-app Offline on Product Session failure"],
+  "result": {"tests":"13/13","build":"PASS","localBrowser":"English UI, guest preview, private degradation, disabled private action, zero console errors","standardWalletSourceImplemented":true,"actualProviderApprovalVisible":false},
+  "truthAtGrant": {"legacyPrivateSessionOnly":true,"standardWalletSourceImplemented":false,"productSessionV2":false,"installedClientVerified":false,"deployedPublic":false,"publicVerified":false,"computerControlVerified":false}
+}

@@ -1,0 +1,202 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-210",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-shop-schema7-rollback-first-source-bound-public-release-20260822T185200Z",
+  "owner": null,
+  "executor": "shop-linux-release",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_BROWSER_NON_SENSITIVE_GATE_ROLLED_BACK",
+  "issuedAt": "2026-08-22T18:52:00Z",
+  "expiresAt": "2026-08-22T19:37:00Z",
+  "releasedAt": "2026-08-22T19:08:00Z",
+  "singleUse": true,
+  "reusable": false,
+  "executionAuthorized": false,
+  "productionMutationAllowed": false,
+  "scope": "Shop-only root-protected state backup, one exact schema7 carrier transfer, one cold-tested atomic release switch/restart, exact public non-sensitive verification and one conditional rollback",
+  "predecessor": {"taskId":"P0-209","centralReleaseCommit":"074d697b25fea32483febf123d36f2dc07536e03","status":"CONSUMED_RELEASED_FAILED_CLOSED_SHOP_PUBLIC_RELEASE_ROLLED_BACK","reusable":false},
+  "ownerAuthority": {
+    "branch": "codex/final-shop",
+    "requestCommit": "7c2e32837225d450a85257467c98b73a1ca72570",
+    "requestTree": "167fb3d7739e0c271de0ff689d992aaa9662d19b",
+    "remoteReadbackExact": true,
+    "implementationCommit": "4ecbdba1fee7b919f5d0c65d0907ca4727e37496",
+    "implementationTree": "70d11d80aea8ea2083ed9036d335d1a919437322",
+    "commandCommit": "2488369a5b0f9010703a03e9d0feabc9bd23c326",
+    "commandTree": "e0a5ec2b"
+  },
+  "request": {
+    "path": "apps/shop/evidence/shop-schema7-rollback-first-lease-request-20260823.json",
+    "blob": "006bca2af24c54172e86fe99c8399f58c2d6c963",
+    "bytes": 6350,
+    "sha256": "ab9542fbd4114a88baccbfba2badecdd5ad4ec21941ff017e3a6fbfc489ad973",
+    "jsonValid": true,
+    "independentlyRead": true
+  },
+  "commands": {
+    "deploy": {"path":"apps/shop/scripts/p0-rollback-first-deploy.sh","localCarrier":"/tmp/shop-p0210-deploy.sh","blob":"fa5039fd162b74c4008255ca9dc0efd03fb46547","bytes":3780,"sha256":"ada030777eb3fec4144cbff5fed05906389d52e891a43a66db9cb9efa24085d8","bashSyntax":"PASS","authorized":true,"attemptLimit":1},
+    "rollback": {"path":"apps/shop/scripts/p0-rollback-first-rollback.sh","localCarrier":"/tmp/shop-p0210-rollback.sh","blob":"e130c8cd20927d81629e685e7e48377c0f6a871a","bytes":2332,"sha256":"ad11b868468fc074ba4b71e4e044c17f711991b7275cd0a5536b69aafc05f102","bashSyntax":"PASS","authorizedOnlyAfterFailedCandidateSwitch":true,"attemptLimit":1},
+    "noRetry": true
+  },
+  "candidate": {
+    "sourceCommit": "4ecbdba1fee7b919f5d0c65d0907ca4727e37496",
+    "sourceTree": "70d11d80",
+    "localCarrier": "/tmp/ynx-shop-schema7.Fppn6L/ynx-shop-4ecbdba1fee7b919f5d0c65d0907ca4727e37496.tar.gz",
+    "remoteCarrier": "/var/tmp/ynx-shop-4ecbdba1fee7b919f5d0c65d0907ca4727e37496.tar.gz",
+    "releaseDirectory": "/opt/ynx-shop/releases/4ecbdba1fee7b919f5d0c65d0907ca4727e37496",
+    "bytes": 15125474,
+    "sha256": "821922165d8a4210ae2267bdd9e97abe63dbbd23f44016078819bba83ffb26a8",
+    "target": "linux-amd64-cgo-disabled",
+    "binary": {"path":"bin/ynx-shopd","bytes":27660465,"sha256":"ca19460320baa9b12b8b326fefe9c06be6a7c8caa5ab146bd1b955ec09a343f0","format":"ELF 64-bit LSB x86-64 statically linked"},
+    "inventory": {"bytes":506,"sha256":"13a2f39733aa133d68a1f17c13a74f82464c97a075ada1da656cc2d5937cef99"},
+    "sha256Sums": {"bytes":1565,"sha256":"f23c8ac8908bf99a54071f9bbd99ce247090317fcbdd4613bd449bb5d4b96e3a","allEntriesVerified":"PASS"},
+    "coldPort": 28095,
+    "coldPortFreeAtIssuance": true,
+    "allRemoteCandidateAndTempPathsAbsent": true
+  },
+  "host": {
+    "address": "43.153.202.237",
+    "hostname": "VM-4-3-ubuntu",
+    "os": "Linux 6.8.0-101-generic",
+    "arch": "x86_64",
+    "sshUser": "ubuntu",
+    "identityFile": "/Users/huangjiahao/Downloads/Huang.pem",
+    "strictHostKeyChecking": true,
+    "nonInteractiveSudo": true,
+    "service": "ynx-shopd.service",
+    "serviceUserGroup": "ynx:ynx"
+  },
+  "currentProduction": {
+    "currentLink": {"path":"/opt/ynx-shop/current","target":"/opt/ynx-shop/releases/p0-shop-controls-99b2185f"},
+    "expectedOldRelease": "/opt/ynx-shop/releases/p0-shop-controls-99b2185f",
+    "resolvedSourceCommit": "88c0f3a546b463fb270c4bea5d944178865660a5",
+    "binary": {"bytes":19632312,"sha256":"c41654634eb6d7137f03b8e7afa71f72598b2675eacca52aa7c16e94e841a860","owner":"root:root","mode":"0755","nlink":1,"deviceInode":"64770:3444699"},
+    "state": {"path":"/var/lib/ynx-shop/state.json","bytes":23562,"sha256":"cb2f468f3e3afd9a3fd63becdca14351e8a3603054c37a36674411d94d1a986c","owner":"ynx:ynx","mode":"0600","nlink":1,"deviceInode":"64770:1312291","wrapperVersion":{"jsonPath":"version","value":1},"commercePersistenceVersion":{"jsonPath":"snapshot.Version","value":7},"topLevelKeyCount":3,"topLevelKeysSha256":"e3123cab7a53693cbd5878825208bcb0ecdc0c384e4cf0c6646f3893af21c443","integrityProtected":true},
+    "environment": {"path":"/etc/ynx/ynx-shopd.env","bytes":608,"sha256":"f83ac0aaf512b0e21ebf937877ba37d420a0941073a602d570c25da6ff70ba46","owner":"root:ynx","mode":"0640","nlink":1,"deviceInode":"64770:1330334","variableNameCount":11,"variableNamesSha256":"22da6cbe48d3e625ebc1888b28cf00803ad35f091324816069ae425302111cd6","secretValuesReadOrReturned":false},
+    "unit": {"path":"/etc/systemd/system/ynx-shopd.service","bytes":586,"sha256":"a714e585c75b304f62dd6e2a150d0b794912a13bed121a2e060a117823e77d0c","owner":"root:root","mode":"0644","nlink":1,"deviceInode":"64770:161243"},
+    "caddy": {"adaptedConfigBytes":25233,"adaptedConfigSha256":"f36d4ace086b55dfbd949fb6b2aaf837c7463f1a9b61303f270b8b885f80b213","files":[{"path":"/etc/caddy/Caddyfile","bytes":928,"sha256":"077fe80ea9aab24a32d64ba1fab3584e8aab10304e200e58d976d2c33edfb39f"},{"path":"/etc/caddy/ynx-chain.caddy","bytes":2899,"sha256":"df5f7ad73dd2631c0e934514e05a30ac97c75dc9efe2ec568b049c71c4024396"},{"path":"/etc/caddy/shop-staging.routes","bytes":294,"sha256":"6acde17efc76ae378a13d206df1acdbff8de5fee6be2ac26729d40102182122a"}]},
+    "serviceState": {"active":"active","subState":"running","mainPid":1891478,"cumulativeNRestarts":23}
+  },
+  "backup": {
+    "directory": "/var/backups/ynx-shop/predeploy-4ecbdba1fee7b919f5d0c65d0907ca4727e37496",
+    "statePath": "/var/backups/ynx-shop/predeploy-4ecbdba1fee7b919f5d0c65d0907ca4727e37496/state.json",
+    "receiptPath": "/var/backups/ynx-shop/predeploy-4ecbdba1fee7b919f5d0c65d0907ca4727e37496/receipt.sha256",
+    "expectedStateSha256": "cb2f468f3e3afd9a3fd63becdca14351e8a3603054c37a36674411d94d1a986c",
+    "expectedRestoreOwnerGroup": "ynx:ynx",
+    "absentAtIssuance": true,
+    "authorizedPreRuntimeMutation": ["freshly re-read every bound invariant","create only the exact backup directory root:root 0700","copy current state to exact statePath root:root 0600","verify exact bytes/SHA and root readability","write exact receipt and freeze inventory","re-prove live state bytes/SHA/owner/mode/nlink and snapshot.Version=7 immediately before deploy"],
+    "failureBoundary": "Any mismatch consumes and releases PREWRITE fail-closed; no current-link, service, live-state, environment, unit or Caddy mutation."
+  },
+  "transfer": {
+    "exactCommand": "gtimeout 600 scp -C -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=15 -o ServerAliveInterval=20 -o ServerAliveCountMax=20 -i /Users/huangjiahao/Downloads/Huang.pem /tmp/ynx-shop-schema7.Fppn6L/ynx-shop-4ecbdba1fee7b919f5d0c65d0907ca4727e37496.tar.gz ubuntu@43.153.202.237:/var/tmp/ynx-shop-4ecbdba1fee7b919f5d0c65d0907ca4727e37496.tar.gz",
+    "attemptLimit": 1,
+    "retryAllowed": false,
+    "requiredGate": "exit zero, no scp/sftp remains, regular nlink1, exact 15125474 bytes and SHA256 821922165d8a4210ae2267bdd9e97abe63dbbd23f44016078819bba83ffb26a8"
+  },
+  "deploy": {
+    "exactInvocation": "ssh -i /Users/huangjiahao/Downloads/Huang.pem -o BatchMode=yes -o StrictHostKeyChecking=yes ubuntu@43.153.202.237 'sudo -n bash -s -- /opt/ynx-shop/releases/p0-shop-controls-99b2185f /var/backups/ynx-shop/predeploy-4ecbdba1fee7b919f5d0c65d0907ca4727e37496/state.json cb2f468f3e3afd9a3fd63becdca14351e8a3603054c37a36674411d94d1a986c' < /tmp/shop-p0210-deploy.sh",
+    "attemptLimit": 1,
+    "retryAllowed": false,
+    "requiredColdGate": "exact source health/version, copied protected schema7 state bytes unchanged, snapshot.Version=7 accepted, no migration .bak, protected environment loaded without output, then and only then one symlink switch and one service restart"
+  },
+  "rollback": {
+    "requiredOnAnyPostSwitchFailure": true,
+    "exactInvocation": "ssh -i /Users/huangjiahao/Downloads/Huang.pem -o BatchMode=yes -o StrictHostKeyChecking=yes ubuntu@43.153.202.237 'sudo -n bash -s -- /opt/ynx-shop/releases/p0-shop-controls-99b2185f /var/backups/ynx-shop/predeploy-4ecbdba1fee7b919f5d0c65d0907ca4727e37496/state.json cb2f468f3e3afd9a3fd63becdca14351e8a3603054c37a36674411d94d1a986c ynx:ynx' < /tmp/shop-p0210-rollback.sh",
+    "attemptLimit": 1,
+    "retryAllowed": false,
+    "requiredRestoredProof": "old current target, service active, exact state/binary and old public version/health/assets"
+  },
+  "oldPublic": {
+    "origin": "https://shop.ynxweb4.com",
+    "version": {"http":200,"bytes":121,"sha256":"7e6b2ffad252284073373b9c5c93cc4bea1acf511a21e9a5c7b1676aa1bf73ef","commit":"88c0f3a5","version":"0.4.0-testnet-preview"},
+    "health": {"http":200,"bytes":355,"sha256":"33450a6fac2e677d72909ccf26f7e60ddcc5bff67049095f67ef94550a48383e","semanticStableFieldsExact":true},
+    "root": {"http":200,"bytes":8634,"sha256":"5bf1edb8f44cba491d8d971f7956cd05392d5d4fb99eb9672c0ee52d2c249f2d"},
+    "appJs": {"http":200,"bytes":22004,"sha256":"4fd8e888313822bf62bb3e08c0d00c2c2727232cad7c0a3dca4f2b270c8c40ce"},
+    "walletAuthJs": {"http":200,"bytes":17930,"sha256":"3ed50c37243e7ce2367fb8fb238b9212af3fc9ac29b4c5cabce8cc9145df90d5"},
+    "walletProviderDiscoveryJs": {"http":200,"bytes":5348,"sha256":"1226f47f341bdf1b45489a7317de01337bc161d9f2172dcb14f090915d1a6c36"},
+    "i18nJs": {"http":200,"bytes":13354,"sha256":"2398e7cdcbb9a6b040d9dde899df7f4899d86e712c6e0a819b63c24da6dd23ff"},
+    "serviceWorker": {"http":200,"bytes":1079,"sha256":"c581554d1b88887f2e26e1dfedc7775d9a0aa665544a419c84b20bd9acb44d00"},
+    "stylesCss": {"http":200,"bytes":9251,"sha256":"99c43192ebfaafad95273d4d15a9259556d7adfb18cc6e7e425be6537c331fbf"}
+  },
+  "postdeploy": {
+    "requiredRaw": "exact source 4ecbdba1, version/health and every candidate web asset status/bytes/SHA with stable official URLs",
+    "requiredBrowser": ["default English","distinct YNX Wallet and MetaMask names and logos","truthful no-provider and non-sensitive late-provider state","fixture connected account opens details rather than chooser","details/disconnect/revoke/switch controls visible but unclicked","stable exact URL, one tab, no blank/custom scheme/popup and console/page/request errors zero"],
+    "accountRequestAllowed": false,
+    "approvalOrRejectAllowed": false,
+    "disconnectRevokeSwitchClickAllowed": false,
+    "signingOrTypedDataAllowed": false,
+    "transactionOrderOrSettlementAllowed": false
+  },
+  "locks": ["heavy:shop","host:43.153.202.237/service:ynx-shopd.service","path:/opt/ynx-shop","path:/var/lib/ynx-shop/state.json","path:/var/backups/ynx-shop/predeploy-4ecbdba1fee7b919f5d0c65d0907ca4727e37496","path:/var/tmp/ynx-shop-4ecbdba1fee7b919f5d0c65d0907ca4727e37496.tar.gz"],
+  "forbidden": ["environment, unit, Caddy, DNS, shared Wallet or other-product mutation","any retry","eth_requestAccounts, approve/reject, disconnect/revoke/switch click, personal_sign, EIP-712, transaction, order, settlement, private key or secret value capture","installed-provider, sensitive lifecycle or aggregate product-completion promotion"],
+  "terminalRules": {
+    "success": "CONSUMED_RELEASED_SUCCESS_SHOP_SCHEMA7_SOURCE_BOUND_PUBLIC_NON_SENSITIVE",
+    "failurePrewrite": "CONSUMED_RELEASED_FAILED_CLOSED_SHOP_SCHEMA7_PREWRITE_ZERO_RUNTIME_MUTATION",
+    "failureRestored": "CONSUMED_RELEASED_FAILED_CLOSED_SHOP_SCHEMA7_PUBLIC_RELEASE_ROLLED_BACK",
+    "rollbackFailure": "EMERGENCY_BLOCKED_SHOP_EXACT_ROLLBACK_REQUIRED_NO_FURTHER_ACTION",
+    "requiredReturn": "backup inventory, transfer receipt, cold schema7/no-rewrite/no-bak proof, exact deploy/rollback attempts, current link/service/state/runtime/public hashes, browser flags and sensitive-action false boundary before expiry"
+  },
+  "truthBeforeExecution": {"sourceBoundPublic":false,"installedProvider":false,"accountApprovalOrReject":false,"signingOrTypedData":false,"transaction":false,"productComplete":false,"productsConnected":"0/12"},
+  "terminalEvidence": {
+    "classification": "FAILED_CLOSED_BROWSER_NON_SENSITIVE_GATE_EXACT_ROLLBACK_RESTORED",
+    "owner": {
+      "branch": "codex/final-shop",
+      "commit": "34fdbc677282fe4e67e5cd369b69c0720d62a65f",
+      "tree": "9cedd129c7c5952f8c40eaeaf973014b0a9dcff7",
+      "parent": "7c2e32837225d450a85257467c98b73a1ca72570",
+      "evidencePath": "apps/shop/evidence/shop-schema7-rollback-first-public-release-terminal-20260823.json",
+      "evidenceBlob": "041073a0886d2be3a15296c2062eead2196f8579",
+      "evidenceBytes": 4524,
+      "evidenceSha256": "c39dbd7281859d7a7bd2b6b38ea5dbd97cd7d0617ff335e3b0c5269818b71a25",
+      "remoteReadbackExact": true
+    },
+    "counts": {"carrierTransfer":1,"deploy":1,"rollback":1,"retry":0},
+    "candidate": {
+      "sourceCommit": "4ecbdba1fee7b919f5d0c65d0907ca4727e37496",
+      "archiveBytes": 15125474,
+      "archiveSha256": "821922165d8a4210ae2267bdd9e97abe63dbbd23f44016078819bba83ffb26a8",
+      "coldSchema7Accepted": true,
+      "coldStateBytes": 23562,
+      "coldStateSha256": "cb2f468f3e3afd9a3fd63becdca14351e8a3603054c37a36674411d94d1a986c",
+      "coldSnapshotVersion": 7,
+      "coldStateRewritten": false,
+      "migrationBakCreated": false,
+      "postSwitchServiceActive": true,
+      "postSwitchNRestarts": 0,
+      "publicVersion": {"http":200,"bytes":153,"sha256":"c0a63fb89519b91ec99fdcc25fc6d505717299035e92fcd2b420f6e14aba56cb","sourceExact":true},
+      "publicHealth": {"http":200,"bytes":387,"sha256":"7938b59b4ad65c08f08cbb0c23472fe206706a4d0201d8b4fc6cf9478ff250a9","healthy":true,"integrity":true,"persistence":true},
+      "allPublicAssetsExact": true,
+      "sourceBoundPublicCurrentlyTrue": false
+    },
+    "browserFailure": {
+      "stableUrl": "https://shop.ynxweb4.com/shop/",
+      "shopTabCount": 1,
+      "consoleErrors": 0,
+      "shopCreatedBlankTab": false,
+      "observedLanguage": "zh-Hans",
+      "observedWalletAction": "使用 YNX 钱包登录",
+      "defaultEnglishProved": false,
+      "simultaneousDistinctYnxAndMetaMaskNamesLogosProved": false,
+      "forbiddenAccountBoundaryCrossed": false
+    },
+    "rollback": {
+      "executedExactlyOnce": true,
+      "restoredRelease": "/opt/ynx-shop/releases/p0-shop-controls-99b2185f",
+      "restoredBinary": {"bytes":19632312,"sha256":"c41654634eb6d7137f03b8e7afa71f72598b2675eacca52aa7c16e94e841a860"},
+      "restoredState": {"bytes":23562,"sha256":"cb2f468f3e3afd9a3fd63becdca14351e8a3603054c37a36674411d94d1a986c","owner":"ynx:ynx","mode":"0600","nlink":1,"freshDeviceInode":"64770:1329782"},
+      "service": {"active":"active","subState":"running","mainPid":1904496,"nRestarts":0},
+      "rollbackTemporaryStateAbsent": true,
+      "nextSymlinkAbsent": true,
+      "candidateReleaseRetainedInactive": true,
+      "publicVersion": {"http":200,"bytes":121,"sha256":"7e6b2ffad252284073373b9c5c93cc4bea1acf511a21e9a5c7b1676aa1bf73ef","commit":"88c0f3a5"},
+      "publicHealth": {"http":200,"bytes":355,"sha256":"81e3ca8c9e5a703e31f3835e7f6a09a82cf65b39fe6793cb7dac9c171a0e68e9","healthy":true,"persistence":true,"hashVolatileAfterRequiredRestart":true}
+    },
+    "accountRequestTriggered": false,
+    "approvalOrRejectTriggered": false,
+    "signatureOrTypedDataTriggered": false,
+    "transactionOrderOrSettlementTriggered": false,
+    "productComplete": false,
+    "productsConnected": "0/12",
+    "singleExecutableBlocker": "SHOP_DEFAULT_ENGLISH_AND_SIMULTANEOUS_DISTINCT_YNX_METAMASK_VISIBLE_NON_SENSITIVE_GATE_UNPROVED"
+  }
+}

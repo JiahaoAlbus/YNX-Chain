@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "acceptanceId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-full-subtree-6cf3ef84",
+  "recordedAt": "2026-08-20T12:10:54Z",
+  "decision": "REVOKED_RUNTIME_DEPENDENCY_CLOSURE_MISSING",
+  "revokedAt": "2026-08-20T12:19:25Z",
+  "revocationReason": "Copied-49e no-network cold start exited with ERR_MODULE_NOT_FOUND because @noble/hashes was absent from the copied production node_modules; no production activation or mutation occurred.",
+  "authoritativeControlPlane": {
+    "branch": "codex/p0-wallet-connectivity-control-plane-20260820",
+    "baseCommit": "472804d283925a0cc020932a533390bd3f76e179"
+  },
+  "supersedesLease": "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-runtime-lease-20260820T120255Z",
+  "supersededLeaseReusable": false,
+  "source": {
+    "commit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "walletAuthTree": "4c544d2e2ddb63caef536ea67c8f27b45044fd89",
+    "handoffCommit": "0ed75659e8fd3e1556d8a9b3789b22b1ac94c89e",
+    "allowedRoot": "packages/wallet-auth",
+    "wholeTreeMergeAccepted": false,
+    "fullOwnerSubtreeRequired": true,
+    "handPickedClosureAccepted": false
+  },
+  "closure": {
+    "baselineCommit": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
+    "changedFiles": 76,
+    "addedFiles": 59,
+    "modifiedFiles": 17,
+    "deletedFiles": 0,
+    "insertions": 6565,
+    "deletions": 54,
+    "subtreeEntries": 160,
+    "inventoryPath": "release/integration/p0-wallet-connectivity/inventory/wallet-auth-6cf3ef84-ls-tree.txt",
+    "inventoryBytes": 18241,
+    "inventorySha256": "a96ba130a236459e6a3352d6c14be91c7c6bd0945b2eb019b5e65811ef3137b0",
+    "archivePrefix": "ynx-wallet-auth-6cf3ef84/",
+    "archiveBytes": 462902,
+    "archiveSha256": "fac046697f8cc3902976764f959d69f83e13067c37abfe2b37f9b8adf7ba2da0"
+  },
+  "v2Registry": {
+    "sourcePath": "packages/wallet-auth/product-session-registry.json",
+    "blob": "4f1f1326031f1dade8eaaaee4673ee96badd0259",
+    "sha256": "d2826eb419abca4444ccb50d79537fa7f6a3643948d82ed9b52914b7169c107b",
+    "bytes": 6130,
+    "schemaVersion": 2,
+    "products": 12,
+    "originInferenceAllowed": false,
+    "mutationAuthorized": false
+  },
+  "preflightFacts": {
+    "currentRuntimeSymlink": "/opt/ynx/wallet-auth",
+    "currentRuntimeTarget": "wallet-auth-49e30d99",
+    "currentRuntimeSource": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
+    "currentServiceActive": true,
+    "v1StateMode": "0600",
+    "v1StateOwner": "ubuntu:ubuntu",
+    "v1StateNlink": 1,
+    "v1StateSha256Prefix": "93b18583",
+    "fullV1StateSha256RequiredBeforeActivation": true,
+    "centralRegistrySha256": "ae156b317b9a97bfd42397cca634021deefe10ffb009102899e24276d8721e31",
+    "caddyRouteChanged": false,
+    "backupStarted": false,
+    "deploymentStarted": false,
+    "productionMutationObserved": false
+  },
+  "verification": {
+    "walletAuth": "231/231",
+    "v2Combined": "21/21",
+    "nodeHost": "6/6",
+    "daemon": "2/2",
+    "sdk": "13/13",
+    "packageAndDiffPassed": true,
+    "inventoryAndArchiveReproducedByIntegration": true
+  },
+  "dependencyClosureGap": {
+    "runtime": "Node v22.23.1",
+    "errorCode": "ERR_MODULE_NOT_FOUND",
+    "missingPackage": "@noble/hashes",
+    "importedFromSuffix": "packages/wallet-auth/src/canonical.js",
+    "requiredExactPackages": ["@noble/hashes@2.2.0", "@noble/curves@2.2.0"],
+    "lockGraphIdentified": true,
+    "sortedUnpackedManifestSha256": "a3ac48aac90383bac3e172528956f75ec404b35965c915bd684d6ab9bb640453",
+    "dependencyArchiveSha256": null,
+    "dependencyArchiveBytes": null,
+    "sbomSha256": null,
+    "immutableArtifactSourcePath": null,
+    "transitiveDependencyClosureFrozen": false,
+    "deterministicRuntimeArtifactAccepted": false,
+    "isolatedOfflineColdStartPassed": true,
+    "copied49eNoNetworkColdStartPassed": false,
+    "productionActivationAuthorized": false
+  },
+  "truth": {
+    "candidateDeployedPublic": false,
+    "publicV2LifecycleVerified": false,
+    "installedClientVerified": false,
+    "productRuntimeMigrations": 0,
+    "integratedCentral": false,
+    "aggregatePublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

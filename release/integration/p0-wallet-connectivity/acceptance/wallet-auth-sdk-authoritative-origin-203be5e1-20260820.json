@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "acceptanceId": "P0-WALLET-AUTH-SDK-AUTHORITATIVE-ORIGIN-203BE5E1-20260820",
+  "decision": "ACCEPTED_SOURCE_ONLY_SDK_PACKAGE_CHECKPOINT",
+  "ownerSourceCommit": "203be5e108be468350591615a64d5d36ab87a8f1",
+  "ownerSourceParent": "ddc4ea884b7659fdd989cf2721b71f4c34ef3b61",
+  "ownerSourceTree": "94e291a6757447f89c7cf6b8f01bbf811cb7d1f7",
+  "ownerAudit": {
+    "path": "release/integration/wallet-product-session-authoritative-origin-audit-20260820.json",
+    "blob": "40dd2f2810ae02b11b43ae00cb7852088c986a29",
+    "bytes": 1700,
+    "sha256": "1152a7b29d75e58b0a483415d6d3f7b31a33da562d963230addab9f146921fd4"
+  },
+  "sdkCheckpoint": {
+    "path": "release/integration/p0-wallet-connectivity/evidence/wallet-auth-sdk-authoritative-origin-checkpoint-20260820.json",
+    "blob": "21263acf9f2daff6562fbd708aba38fc89a64ecd",
+    "bytes": 3294,
+    "sha256": "c0f80e404327f9db324dfbbbab3cb876df71e5728cfbaa4caad2221b6cc018a7"
+  },
+  "acceptedOrigin": "https://wallet-auth.ynxweb4.com",
+  "acceptedRuntimeSource": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+  "sourceConsumption": {
+    "factoryDefaultCorrected": true,
+    "publicProbeDefaultCorrected": true,
+    "lifecycleVerifierDefaultCorrected": true,
+    "callerEndpointInjectionRejected": true,
+    "historicalEvidenceRewritten": false
+  },
+  "truth": {
+    "sourceAccepted": true,
+    "sdkPackageCheckpointAccepted": true,
+    "artifactPublished": false,
+    "npmRegistryPublished": false,
+    "productsMigrated": 0,
+    "productsRequired": 12,
+    "installedWalletClientVerified": false,
+    "walletApprovalVerified": false,
+    "accountVerified": false,
+    "signingVerified": false,
+    "transactionVerified": false,
+    "integratedCentral": false,
+    "aggregateDeployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

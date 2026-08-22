@@ -1,0 +1,86 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-128",
+  "recordedAt": "2026-08-21T08:15:40Z",
+  "owner": "integration",
+  "product": "social",
+  "source": {
+    "branch": "codex/p0-social-runtime-reconciliation-20260821",
+    "commit": "22c26bcb7a8d618cb8e38b30940b1c07bf4237c8",
+    "tree": "15a12fa4ba276f84f908f30c79378a125217bd56",
+    "walletImplementationCommit": "6a42adb593c6ffa37398f2ee3cafa3c44d111f38",
+    "walletImplementationTree": "f9e38e62bbb242840d3bc525ae145c14575eb46c",
+    "tests": {
+      "webWallet": "4/4",
+      "social": "21/21",
+      "typecheck": "PASS",
+      "smoke": "PASS",
+      "diffCheck": "PASS"
+    }
+  },
+  "deployment": {
+    "provider": "Vercel",
+    "project": "ynx-social-web",
+    "deploymentId": "dpl_2sei8CpmoN1Gi5YKnc6FdvNRyXGy",
+    "deploymentUrl": "https://ynx-social-h8cqxnkud-jiahaoalbus-projects.vercel.app",
+    "officialUrl": "https://social.ynxweb4.com",
+    "readyState": "READY",
+    "aliasBound": true,
+    "rollback": "Remove social.ynxweb4.com from dpl_2sei8CpmoN1Gi5YKnc6FdvNRyXGy and restore the prior DEPLOYMENT_NOT_FOUND state.",
+    "unrelatedProjectIncident": {
+      "occurred": true,
+      "reason": "The first visual-fix deployment inherited an incorrect local Vercel link to project web.",
+      "incorrectDeploymentId": "dpl_7yQxkrrdnvo2wmZUrZH6pXvkP9v3",
+      "restoredDeploymentId": "dpl_3dR6AFa6ppTYBPFT5QEab91niEp5",
+      "restoredDeploymentUrl": "https://web-atsz8c9ck-jiahaoalbus-projects.vercel.app",
+      "officialSocialAliasAffected": false
+    }
+  },
+  "publicReadback": {
+    "root": {"http": 200, "bytes": 5563, "sha256": "ce6f038a1171d0597398f13895e714f62d5e00ab00c9748b337861c9f248abee"},
+    "index": {"http": 200, "bytes": 5563, "sha256": "ce6f038a1171d0597398f13895e714f62d5e00ab00c9748b337861c9f248abee"},
+    "styles": {"http": 200, "bytes": 5950, "sha256": "00d15e63efced9e0bb0284270e2ce9164795a06da40864e93f1b6d77e74e188f"},
+    "app": {"http": 200, "bytes": 3003, "sha256": "8860c1cfa3f6746c8a9610bb744dc1fb2e353551df558a1472cd6b0135a88845"},
+    "walletProvider": {"http": 200, "bytes": 4079, "sha256": "b405f714903990576f3308ddffd05ab7d1bd3f57a8639c3b70a6f91c4205bd02"},
+    "socialApiHealth": {"http": 200, "bytes": 444, "sha256": "b2910091a2246360f13a01ea1881b88bc3f0a94b99e59bb05853a40762b0462f"}
+  },
+  "browserVerification": {
+    "tool": "in-app-browser",
+    "englishDefault": true,
+    "guestPreviewVisible": true,
+    "ynxWalletChoiceVisible": true,
+    "metaMaskChoiceVisible": true,
+    "ynxMissingFallbackVisible": true,
+    "metaMaskMissingFallbackVisible": true,
+    "officialInstallActionsVisible": true,
+    "urlPreserved": true,
+    "topLevelTabDelta": 0,
+    "consoleErrors": 0,
+    "walletOptionMarkupPreservedAfterRetry": true
+  },
+  "computerControl": {
+    "verified": false,
+    "attempted": true,
+    "blocker": "The Mac is locked and automatic unlock could not unlock it."
+  },
+  "truth": {
+    "publicDeployed": true,
+    "publicNoProviderFallbackVerified": true,
+    "realInjectedProviderVerified": false,
+    "accountApprovalVerified": false,
+    "signatureVerified": false,
+    "transactionVerified": false,
+    "callbackVerified": false,
+    "productSessionV2": false,
+    "migratedV2": false,
+    "installedWalletVerified": false,
+    "aggregateEcosystemConnected": false
+  },
+  "governance": {
+    "originalLeaseSource": "4791eafc6065280f2968a731479d38d75ff9fcc0",
+    "followupSourceWasDeployedBeforeCentralRecordUpdate": true,
+    "followupScope": "Social Web wallet chooser layout and markup-preservation test only",
+    "crossProductSourceMutation": false
+  }
+}

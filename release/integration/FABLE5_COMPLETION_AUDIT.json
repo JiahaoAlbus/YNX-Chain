@@ -1,0 +1,135 @@
+{
+  "schemaVersion": "1.0.0",
+  "generatedAt": "2026-08-21T14:21:40.775Z",
+  "controllerSourceCommit": "3877f66265d0f7cc6f4e94b5c64b585d2c7e3244",
+  "status": "ACTIVE",
+  "completionRule": "Evidence-weighted gate units; no subjective rounding and no file-count proxy",
+  "metrics": [
+    {
+      "name": "Source Push Completion",
+      "numerator": 24,
+      "denominator": 36,
+      "percent": 66.7,
+      "evidence": [
+        "release/integration/PRODUCT_RELEASE_MATRIX.json"
+      ],
+      "gaps": [
+        "12 product branches are not synchronized"
+      ]
+    },
+    {
+      "name": "Local Engineering",
+      "numerator": 96,
+      "denominator": 108,
+      "percent": 88.9,
+      "evidence": [
+        "release/integration/PRODUCT_RELEASE_MATRIX.json"
+      ],
+      "gaps": [
+        "implemented 33/36; tested 32/36; built 31/36"
+      ]
+    },
+    {
+      "name": "Central Integration",
+      "numerator": 3,
+      "denominator": 36,
+      "percent": 8.3,
+      "evidence": [
+        "release/integration/central-acceptance-decisions.json",
+        "release/integration/PRODUCT_RELEASE_MATRIX.json"
+      ],
+      "gaps": [
+        "33 products lack current fail-closed central acceptance"
+      ]
+    },
+    {
+      "name": "Shared Testnet",
+      "numerator": 0,
+      "denominator": 36,
+      "percent": 0,
+      "evidence": [
+        "release/integration/PRODUCT_RELEASE_MATRIX.json",
+        "docs/acceptance/TESTNET_TRANSFER_AND_CONCURRENCY_EVIDENCE_2026_08_01.md"
+      ],
+      "gaps": [
+        "operator runtime evidence exists, but no product row currently satisfies the full sharedTestnetVerified evidence gate"
+      ]
+    },
+    {
+      "name": "Cross-product E2E",
+      "numerator": 0,
+      "denominator": 12,
+      "percent": 0,
+      "evidence": [
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json"
+      ],
+      "gaps": [
+        "12 scenarios lack complete Tx/Event/Ledger/Explorer/Monitor evidence"
+      ]
+    },
+    {
+      "name": "Public Website",
+      "numerator": 11,
+      "denominator": 36,
+      "percent": 30.6,
+      "evidence": [
+        "release/integration/ECOSYSTEM_FUNCTION_CATALOG.json",
+        "https://ynxweb4.com/dapp"
+      ],
+      "gaps": [
+        "25 products remain pending-recovery rather than evidence-complete product routes"
+      ]
+    },
+    {
+      "name": "Security / Release / Operations",
+      "numerator": 54,
+      "denominator": 180,
+      "percent": 30,
+      "evidence": [
+        "release/integration/PRODUCT_RELEASE_MATRIX.json"
+      ],
+      "gaps": [
+        "clean 13/36; exact-head CI 6/36; release 1/36; hosted artifact 0/36; restore 34/36"
+      ]
+    },
+    {
+      "name": "AI Capability Coverage",
+      "numerator": 36,
+      "denominator": 36,
+      "percent": 100,
+      "evidence": [
+        "release/integration/AI_CAPABILITY_MATRIX.json"
+      ],
+      "gaps": [
+        "documented coverage does not promote candidate AI providers or models to production"
+      ]
+    },
+    {
+      "name": "Asset Security Coverage",
+      "numerator": 10,
+      "denominator": 21,
+      "percent": 47.6,
+      "evidence": [
+        "release/security/ASSET_SECURITY_TRACEABILITY_MATRIX.json"
+      ],
+      "gaps": [
+        "11 asset-relevant products have no directly mapped candidate evidence"
+      ]
+    }
+  ],
+  "overallFable5TestnetGoal": {
+    "numerator": 234,
+    "denominator": 501,
+    "percent": 46.7
+  },
+  "hardLocks": {
+    "all36MachineReadable": true,
+    "allValidSourcePushed": false,
+    "tier1CentralAcceptanceComplete": false,
+    "fourValidatorRestartRestoreComplete": false,
+    "atLeastEightE2EComplete": false,
+    "websiteMainVercelSourceEqualityProven": false,
+    "independentPublicProofComplete": false,
+    "externalProductionClaimsRemainFalse": true
+  }
+}

@@ -1,0 +1,93 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-167",
+  "owner": "integration",
+  "sourceOwner": "wallet-ios-macos",
+  "decision": "NATIVE_WALLETCONNECT_SAME_TOPIC_REPROPOSAL_IDENTITY_REPLACEMENT_FAIL_CLOSED_ACCEPTED_SOURCE_HOSTED_ONLY",
+  "routerCheckpoint": {
+    "commit": "ff3253e0f87f9ec3f16ecab4ea87e373ef2d3eb4",
+    "tree": "08e93b0a2a94f50c37a4e38c78078dc5ba281a62",
+    "matrixSha256": "188435e780ea4627a842a57b9751b672f7bd3ae4548dded2ef049f4ebe5a512c",
+    "activitySha256": "a47745912f5072ab5d80178342b06164d6c2cb3f35356c21b91a04f39c1e9256",
+    "walletAuth": "322/322",
+    "noBareAuthorize": true,
+    "standardWalletConsumerGate": true,
+    "remoteReadbackExact": true
+  },
+  "source": {
+    "implementation": "4b17a22d05df6385737363344c8da62e81e24062",
+    "tree": "84c92a4c9d1d399a55fd3381d5f9c046032baaec",
+    "parent": "7431e002e017127ee7012354f123fa7cf31289b7",
+    "stateBlob": "c5f6f75181532c48db90ea48eb4e78b7dcd15501",
+    "testsBlob": "8aa3ad07990e9b9fcfbceaae324ca6ed88672bbc",
+    "evidenceCommit": "bc82f2e4c7d18f1c2c0e229abf45512d55c7f24b",
+    "evidenceTree": "d7480364be19a8591e7850c442c49d1b9dc89d64",
+    "evidenceBlob": "b9135c3428522366f42c4abf2f79cb39f776f43f",
+    "evidenceSha256": "3727da67a6da20a42e2f468ec178a20721d8d82be9f56fede927a5b29ba1bbf7",
+    "evidenceBytes": 3370,
+    "remoteReadbackExact": true
+  },
+  "acceptedSecuritySemantics": [
+    "SAME_TOPIC_REPROPOSAL_CANNOT_REPLACE_DAPP_CLASS",
+    "SAME_TOPIC_REPROPOSAL_CANNOT_REPLACE_DAPP_NAME",
+    "IDENTITY_REPLACEMENT_REJECTED_AT_ENQUEUE",
+    "IDENTITY_REPLACEMENT_REJECTED_DURING_PERSISTED_VALIDATION",
+    "IDENTITY_REPLACEMENT_REJECTED_AT_APPROVAL"
+  ],
+  "hosted": {
+    "run": 32558145179,
+    "job": 96995491564,
+    "status": "SUCCESS",
+    "macCoreTests": "32/32",
+    "stateTests": "8/8",
+    "newTest": "testExistingSessionRejectsProposalIdentityReplacementOnSameTopic",
+    "newTestStatus": "PASS",
+    "newTestSeconds": 0.001,
+    "localProbe": {
+      "sameTopic": true,
+      "replacementRejected": true,
+      "relay": false
+    },
+    "artifactId": 9472023421,
+    "artifactBytes": 2726276,
+    "artifactDigest": "sha256:0cdb74af52af4da87d27c4f2d9fa012232b45c6081fc941c3adfa45139fc03fe",
+    "artifactDownloadInspected": false,
+    "dmgSha256": "dc571d6a380e7a876458d4e00417c57ed6c7fc0bf69ce416e1a12bc19e69cf1e",
+    "dmgBytes": 682336,
+    "minimumMacos": "13.0",
+    "architectures": ["x86_64", "arm64"],
+    "signing": "AD_HOC_NO_TEAM_ID",
+    "gatekeeperAccepted": false
+  },
+  "boundary": {
+    "protocolRetrofitPerformed": false,
+    "authoritativeFirstPartyRuntimeProvided": false
+  },
+  "truth": {
+    "executionLeaseIssued": false,
+    "deploymentLeaseIssued": false,
+    "distributionDispatched": false,
+    "realProjectId": false,
+    "relayComplete": false,
+    "pairingComplete": false,
+    "sessionRuntimeComplete": false,
+    "realDappComplete": false,
+    "installedProviderComplete": false,
+    "approvalRejectRuntimeComplete": false,
+    "restoreRuntimeComplete": false,
+    "authorizationComplete": false,
+    "accountRuntimeComplete": false,
+    "signingRuntimeComplete": false,
+    "typedDataRuntimeComplete": false,
+    "transactionRuntimeComplete": false,
+    "biometricRecoveryComplete": false,
+    "universalLinkComplete": false,
+    "publicComplete": false,
+    "productionSigned": false,
+    "appStoreReleased": false,
+    "productsConnected": "0/12",
+    "productsMigratedV2": "0/12",
+    "parityComplete": false
+  }
+}

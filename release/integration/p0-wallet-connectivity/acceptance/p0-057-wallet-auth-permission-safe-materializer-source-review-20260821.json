@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-057",
+  "decision": "SOURCE_ARTIFACTS_FROZEN_NO_GO_ATOMIC_NOREPLACE_RACE",
+  "source": {
+    "commit": "785ed7e8337e46e3286fc3068ef5c68d004e1b6b",
+    "tree": "8e08826f5381fbe2ce4751fa8696953f7c3dca8d",
+    "parent": "c569da458265a5684555d5e902dc650942a7f632",
+    "remoteReadbackExact": true,
+    "packageLockSha256": "8929316677769e7a6ad703583c12a07dd4d4dcbf4d87c597983f6ab6955a87b6"
+  },
+  "ownerEvidence": {
+    "commit": "198f326ce9cb4256433374bd8efb0c337359c603",
+    "tree": "6b5a6912558b7e5ecebf251209673cfd8dc9c51a",
+    "parent": "785ed7e8337e46e3286fc3068ef5c68d004e1b6b",
+    "path": "release/integration/wallet-auth-p0054-permission-safe-materializer-candidate-20260821.json",
+    "blob": "68afa5b481e84d7f28ef5b9795526f05e62d5d25",
+    "sha256": "e23369f7b531850e5c19bacc203fd27daef519aa01684ccbd0be34d696c7e609",
+    "remoteReadbackExact": true
+  },
+  "artifacts": {
+    "sourceArchive": {"sha256": "6d1469033f536e798b95b590e36822913e57443dd6113b9120e57acf9f91b93e", "bytes": 183207, "entries": 111, "fileEntries": 103},
+    "sourceInventory": {"sha256": "cbe41f19309d04471d8ca4facce6684d4b99f53206733cd8ba79bb16d5c9d120"},
+    "runtimeArchive": {"sha256": "db7233a9d0e7090d58cbb30d75c8b059a8acdad9f9c803413c5409a4e019192b", "bytes": 662960, "entries": 224, "fileEntries": 212},
+    "runtimeInventory": {"sha256": "6a62bf31a9d67b6d2b25a5ecad171b452a2a3885cc7ec2e00d3090980274fd6e"},
+    "sbom": {"sha256": "1877cb61a6f47564f43ee3c0eeddcd8c83c6a50558167873b407372611784815", "format": "CycloneDX 1.5", "components": 3, "dependencyNodes": 3},
+    "archivePathsSafe": true,
+    "contentHashesIndependentlyMatched": true
+  },
+  "tests": {
+    "ownerFocused": "8/8",
+    "ownerFull": "351/351",
+    "independentFocused": "3/3",
+    "independentFull": "351/351",
+    "exactSourceWithOfflineRuntime": true
+  },
+  "blockingFinding": {
+    "code": "ATOMIC_NOREPLACE_RACE",
+    "module": "packages/wallet-auth/src/product-session-state-materializer.js",
+    "operation": "rename temporary output to final output after a separate absence check",
+    "directReproduction": true,
+    "reproductionOutcome": "a destination created after the absence check and before rename was silently replaced",
+    "impact": "the implementation contradicts atomicNoOverwrite and can overwrite concurrently-created target state",
+    "requiredCorrection": "publish with an atomic no-replace primitive and add an injected concurrent-destination test proving EEXIST with exact destination preservation"
+  },
+  "lease": {
+    "issued": false,
+    "id": null,
+    "p0039Reusable": false,
+    "p0050Reusable": false,
+    "p0054Reusable": false
+  },
+  "truth": {
+    "sourceIdentityFrozen": true,
+    "artifactIdentityFrozen": true,
+    "implementationAccepted": false,
+    "executionReady": false,
+    "sshUsed": false,
+    "productionRead": false,
+    "deploymentAttempted": false,
+    "registryV3Public": false,
+    "productsMigratedV2": 0,
+    "productsRequired": 12,
+    "computerControlVerified": false,
+    "deployedPublic": false,
+    "integratedCentral": false
+  }
+}

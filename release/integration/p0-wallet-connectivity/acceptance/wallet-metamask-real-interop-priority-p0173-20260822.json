@@ -1,0 +1,137 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-173",
+  "owner": "integration",
+  "decision": "METAMASK_LEVEL_REAL_INTEROPERABILITY_HIGHEST_PRIORITY_DISPATCHED_NO_EXECUTION_LEASE",
+  "priority": "P0_HIGHEST_WALLET_WORK",
+  "authorities": {
+    "protocol": "66003e76e804da16d472255efde50cb879055b96",
+    "consumerSdk": "315897e75c0ffe3e63435fe73cfec42244b851cc",
+    "sharedProviderSource": "98c6d5d784d212df8981a53b17118a511e246ad2",
+    "sharedProviderTree": "51a60a362d4ad5dd748bcdefb101f71b1d9e0cee",
+    "sharedProviderEvidence": "c3ab255c32bdeb9c8e056882c315f8ad43c29c7f"
+  },
+  "completionGate": {
+    "evidenceTier": "DIRECT_INSTALLED_E2E",
+    "installedWalletRequired": true,
+    "firstPartyDappsRequired": 1,
+    "externalDappsRequired": 3,
+    "requiredCapabilities": [
+      "ynx-wallet-discovery-without-metamask-substitution",
+      "ynx-dapp-selects-ynx-wallet-or-metamask",
+      "walletconnect-v2-qr-and-deep-link",
+      "approve-and-reject",
+      "wallet-add-and-switch-0x1917",
+      "personal-sign",
+      "eip712-typed-data",
+      "real-testnet-transaction",
+      "accounts-chain-disconnect-events",
+      "refresh-and-cold-start-restore",
+      "disconnect-and-revoke",
+      "product-session-degraded-standard-connection-survives",
+      "source-bound-public-package-identity"
+    ],
+    "sourceCiLocalDetectedCannotComplete": true
+  },
+  "licensePolicy": {
+    "metamaskImpersonationForbidden": true,
+    "licensedReuseOnly": true,
+    "attributionAndNoticesRequired": true,
+    "ynxProviderIdentityMustRemainDistinct": true
+  },
+  "controlPlane": {
+    "heavyOwner": null,
+    "activeExecutionLeases": 0,
+    "activeLightTask": "P0-148",
+    "activeLightPath": "apps/creator-studio/**",
+    "walletPathOverlap": false,
+    "executionLeaseIssued": false,
+    "productionLeaseIssued": false
+  },
+  "finalPreDispatchCarryForward": {
+    "classification": "SOURCE_HOSTED_SECURITY_ONLY_NOT_PRIMARY_PROGRESS",
+    "implementation": "02c782552d9b24423d8a9f61dceee38d047a78ae",
+    "tree": "f219ccd5e31a6bd5ead97ffc21e5454fbf7dd4b2",
+    "evidenceCommit": "414d581d046adcf0fb255409224672945efea73f",
+    "evidenceTree": "c7a2efd6a59615755494e0f52d50c361cc677f7c",
+    "evidenceBlob": "fcf9fdc5a50b7880456cd81e2bbf8550ed970f1f",
+    "evidenceSha256": "d5aca7aebf4c04a34fc1117d107139c3f431cf782184d396a19f28a4804b95be",
+    "evidenceBytes": 3119,
+    "hostedRun": 32559780042,
+    "hostedJob": 96999492637,
+    "hostedTests": "core38/38,state14/14",
+    "acceptedSemantic": "Expired approve, resolve and reject entries are durably purged before WALLETCONNECT_REQUEST_EXPIRED; callback remains false.",
+    "countsTowardInstalledParity": false
+  },
+  "directE2EExecutionPlan": {
+    "routerCommit": "875be208e8a7ddb60345d55b93fc299949664e5c",
+    "routerTree": "3499ddfbe2a4bb08cbbcaef8c71b911aca51dde4",
+    "path": "release/integration/wallet-standard-wallet-e2e-execution-plan-p0-20260822.json",
+    "blob": "360704b565b592de3d7e6e63a43ba1922644ae29",
+    "sha256": "c5a615c9d5c34f25d9810751d816dc6709ca6de70aafea0549224de162c33652",
+    "verifierBlob": "a005b6e583f0fedb69ddecc8529b2c3d5e170628",
+    "independentVerifierResult": "PASS_12_REGISTERED_PRODUCTS",
+    "countsTowardCompletion": false
+  },
+  "nativeWalletConnectExecutableBlocker": {
+    "code": "PROTECTED_NATIVE_WALLETCONNECT_RUNTIME_PACKAGE_UNAVAILABLE",
+    "ownerCommit": "65dffee2f35ec9dc254f8c2ac8c465a353bc1861",
+    "ownerTree": "9af8bc76caa2dc963ac484d981e25a504efe7ed5",
+    "path": "release/integration/wallet-native-walletconnect-runtime-executable-blocker-p0-20260822.json",
+    "blob": "51857585317e6dbbe3629bae2d7e68fee996ee69",
+    "sha256": "0c103cd1145edc07d9086f84a6f3548c4887d7438b1f473940217418017161ef",
+    "executionLeaseIssued": false,
+    "realRuntime": false
+  },
+  "platformDispatch": [
+    {
+      "platform": "web-extension",
+      "ownerThread": "019ffaf5-3c19-77b1-8bfd-2a12641a739f",
+      "status": "WAITING_IMMEDIATE_USER_CONFIRMATION_AT_CHROME_LAUNCH_BOUNDARY",
+      "nextAction": "Stop source-only hardening; preserve the exact source-bound extension artifact, request immediate confirmation, then perform isolated installed-provider E2E against one first-party and at least three external DApps."
+    },
+    {
+      "platform": "android",
+      "ownerThread": "019ffe33-f59c-70b2-909c-2029f901ec38",
+      "status": "WAITING_ELIGIBLE_PERSISTENT_OR_PHYSICAL_INSTALLED_TARGET",
+      "nextAction": "Return the exact eligible-device or signing blocker; do not count emulator detection, and run direct installed WalletConnect and DApp parity only when the target is eligible."
+    },
+    {
+      "platform": "ios-macos",
+      "ownerThread": "019ffaf5-3c12-7830-8196-3748a053c876",
+      "status": "PROTECTED_NATIVE_WALLETCONNECT_RUNTIME_PACKAGE_UNAVAILABLE",
+      "nextAction": "Obtain one protected operator package: path-scoped authority, configured project ID and signing-authorized app group, approved test account through the existing signer, transaction policy, eligible signed iOS/macOS targets and named first-party plus Uniswap/OpenSea/Safe confirmations. No secret value belongs in control-plane evidence."
+    },
+    {
+      "platform": "desktop",
+      "ownerThread": "019ffaf5-3c12-7830-8196-378e841559f9",
+      "status": "WAITING_SIGNED_INSTALLED_PROVIDER_AUTHORITY",
+      "nextAction": "Return the exact signing/install blocker and prepare direct installed first-party plus three-external-DApp evidence; public unsigned artifact identity is not completion."
+    },
+    {
+      "platform": "core-router",
+      "ownerThreads": [
+        "019ffe33-11a7-7e91-9400-eea29b139b59",
+        "019ffdef-abe9-7e33-b25d-944698ec736d"
+      ],
+      "status": "RUNTIME_SUPPORT_AND_EVIDENCE_GATE_ONLY",
+      "nextAction": "Stop receipt-only churn; support the installed E2E path, keep Standard Wallet independent from Product Session, and report only a new runtime capability, direct E2E result, or one exact blocker."
+    }
+  ],
+  "truth": {
+    "installedProviderComplete": false,
+    "firstPartyDappsComplete": 0,
+    "externalDappsComplete": 0,
+    "walletConnectRuntimeComplete": false,
+    "signingComplete": false,
+    "typedDataComplete": false,
+    "transactionComplete": false,
+    "eventsRestoreDisconnectComplete": false,
+    "sourceBoundPublicIdentityComplete": false,
+    "productsConnected": "0/12",
+    "productsMigratedV2": "0/12",
+    "parityComplete": false,
+    "aggregatePublic": false
+  }
+}

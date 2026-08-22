@@ -1,0 +1,76 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-161",
+  "owner": "integration",
+  "sourceOwner": "wallet-ios-macos",
+  "decision": "IOS_WALLETCONNECT_DECISION_STATE_ACCEPTED_SOURCE_ONLY_BIOMETRIC_FAILURE_FROZEN",
+  "routerCheckpoint": {
+    "commit": "fdd6d856bbc57536dc566ef1263abd2217daa141",
+    "tree": "2a9f8de6f40bb5efe03aa96ba0e57e8335b7e3da",
+    "parent": "747c63c7e3ee84843f1b770f9f3d3b1d390c3c02",
+    "matrixSha256": "50bdee468bc5d412a373d4119903da5d51514e54189d0d667c7d4eb83711a632",
+    "activitySha256": "c62753663ff98cfa88959fe09042c27b6912daec333f8e8925790200fccce34c",
+    "walletAuth": "322/322",
+    "noBareAuthorize": true,
+    "standardWalletConsumerGate": true,
+    "remoteReadbackExact": true
+  },
+  "biometricFailure": {
+    "commit": "cdac464e9fd09c42ad921e5a9d7f5304b912348d",
+    "tree": "02c64e04f4ccf066aaef4edf94ccfa50f0196a17",
+    "evidenceBlob": "92b0851e9ac2bc61b77829b091c030c1a800183d",
+    "evidenceSha256": "56f519c592563a5ca1f7235e2c4c913d733399636f740352b942e5932ba2fc00",
+    "evidenceBytes": 3419,
+    "run": 32553443117,
+    "job": 96983776435,
+    "status": "FAILURE",
+    "failure": "UNLOCK_WITH_BIOMETRICS_DID_NOT_APPEAR_WITHIN_45_SECONDS_AFTER_DONE",
+    "positiveBiometricRecovery": false
+  },
+  "walletConnectDecisionState": {
+    "source": "e829f38b9f35d47be1afd924cf609cf2e59e3be7",
+    "tree": "fc2186ed1da178d5bd911e36143e79713834e412",
+    "acceptedScope": [
+      "first-party-and-external-pending-proposal-restart-source",
+      "explicit-approved-0x-account-boundary-source",
+      "account-substitution-fail-closed-source",
+      "personal-sign-eip712-send-result-validation-source",
+      "eip1193-4001-rejection-source",
+      "disconnect-revoke-purge-source",
+      "project-id-absent-fail-closed-source"
+    ],
+    "localValidation": {
+      "pbxPlutil": "PASS",
+      "workflowYaml": "PASS",
+      "walletJs": "40/40",
+      "swiftXCTest": "UNAVAILABLE_CLT_ONLY_NO_XCODE"
+    },
+    "hostedRun": 32554682866,
+    "hostedRunStatus": "IN_PROGRESS",
+    "productionDistributionRun": 32554682869,
+    "productionDistributionRequiredStatus": "SOURCE_AND_CLEANUP_ONLY_PRODUCTION_SKIPPED"
+  },
+  "truth": {
+    "executionLeaseIssued": false,
+    "deploymentLeaseIssued": false,
+    "distributionDispatched": false,
+    "relayComplete": false,
+    "pairingComplete": false,
+    "realDappComplete": false,
+    "installedComplete": false,
+    "publicComplete": false,
+    "accountRuntimeComplete": false,
+    "approvalRejectRuntimeComplete": false,
+    "signingRuntimeComplete": false,
+    "typedDataRuntimeComplete": false,
+    "transactionRuntimeComplete": false,
+    "biometricRecoveryComplete": false,
+    "productionSigned": false,
+    "notarized": false,
+    "storeReleased": false,
+    "productsConnected": "0/12",
+    "productsMigratedV2": "0/12",
+    "parityComplete": false
+  }
+}

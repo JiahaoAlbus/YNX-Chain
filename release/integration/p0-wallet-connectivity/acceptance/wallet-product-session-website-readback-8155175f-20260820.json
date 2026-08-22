@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "acceptanceId": "P0-WALLET-PROTOCOL-WEBSITE-READBACK-8155175F-20260820",
+  "decision": "ACCEPTED_READ_ONLY_DRIFT_EVIDENCE",
+  "ownerCommit": "8155175f60320376a37a700ec52000f56fb5cd4a",
+  "ownerParent": "d003a71b7658bbe530c5a9f646e6d3e908e22287",
+  "ownerTree": "5e7eac561614db709b1aee0d584445c9a308b081",
+  "ownerEvidence": {
+    "path": "release/integration/wallet-product-session-website-readback-20260820T143353Z.json",
+    "blob": "50a705f11c36c723ff1fa0280d2028c518918433",
+    "bytes": 1985,
+    "sha256": "847716cf47978c4a964399da2000416eb65ea7d9b11cd79b2a905223530e0d13"
+  },
+  "observation": {
+    "capturedAt": "2026-08-20T14:33:53Z",
+    "docsStatus": 200,
+    "docsBytes": 4748,
+    "docsSha256": "76d6b0048592ab9b0773b0f8dccaea8c89d0b588b533a0be0ecc573eebabec04",
+    "docsMatchAcrossOfficialOrigins": true,
+    "docsMatchPriorAcceptedSha256": false,
+    "runtimeRecordStatus": 200,
+    "runtimeRecordBytes": 1900,
+    "runtimeRecordSha256": "635fefdcc1cd5675a1787a9bf17c87102ccadd1c8232450be7b847333fe75941",
+    "runtimeRecordMatchesAcrossOfficialOrigins": true,
+    "runtimeRecordMatchesAcceptedEvidence": true,
+    "runtimeSourceCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14"
+  },
+  "truth": {
+    "walletRuntimeRecordStillPublished": true,
+    "websiteOwnerDeploymentReplacedByThisTask": false,
+    "directVercelDeploymentUrlContentVerified": false,
+    "productMigrationImplied": false,
+    "installedClientImplied": false,
+    "productsMigrated": 0,
+    "productsRequired": 12,
+    "integratedCentral": false,
+    "aggregatePublic": false
+  }
+}

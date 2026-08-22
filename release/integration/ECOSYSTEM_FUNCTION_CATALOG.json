@@ -1,0 +1,1648 @@
+{
+  "schemaVersion": "1.0.0",
+  "generatedAt": "2026-08-21T14:21:40.775Z",
+  "controllerSourceCommit": "3877f66265d0f7cc6f4e94b5c64b585d2c7e3244",
+  "authority": "Product 29 release matrix and official /dapp information architecture",
+  "products": [
+    {
+      "productNumber": "01",
+      "productName": "YNX Chain Core / StreamBFT",
+      "category": "infrastructure",
+      "coreFunctions": [
+        "chain state",
+        "signed transactions",
+        "receipts",
+        "validator replication",
+        "RPC"
+      ],
+      "userFlows": [
+        "chain state",
+        "signed transactions",
+        "receipts",
+        "validator replication",
+        "RPC"
+      ],
+      "aiCapabilities": {
+        "mode": "none",
+        "permittedUses": []
+      },
+      "assetCapabilities": {
+        "relevant": true
+      },
+      "integrationDependencies": [
+        "release/integration/chain-core-contract.json"
+      ],
+      "publicRoutes": [
+        "/dapp/chain-core"
+      ],
+      "runtime": {
+        "availability": "public-testnet",
+        "url": "https://rpc.ynxweb4.com",
+        "evidence": "docs/acceptance/TESTNET_TRANSFER_AND_CONCURRENCY_EVIDENCE_2026_08_01.md"
+      },
+      "sourceCommit": "66ea9ba9704dbb0e4863bb9e28ad12eae59ba5a7",
+      "release": null,
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "public-testnet"
+    },
+    {
+      "productNumber": "02",
+      "productName": "YNX Wallet / Auth",
+      "category": "identity-and-wallet",
+      "coreFunctions": [
+        "wallet custody boundary",
+        "product-scoped sessions",
+        "native transfer",
+        "EVM compatibility"
+      ],
+      "userFlows": [
+        "wallet custody boundary",
+        "product-scoped sessions",
+        "native transfer",
+        "EVM compatibility"
+      ],
+      "aiCapabilities": {
+        "mode": "none",
+        "permittedUses": []
+      },
+      "assetCapabilities": {
+        "relevant": true
+      },
+      "integrationDependencies": [
+        "release/integration/wallet-auth-contract.json"
+      ],
+      "publicRoutes": [
+        "/dapp/wallet-auth"
+      ],
+      "runtime": {
+        "availability": "not-publicly-verified",
+        "url": null
+      },
+      "sourceCommit": "f28b0aa29a0d93a2b7f20a00b835c4a1aa6175b3",
+      "release": null,
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": true
+      },
+      "status": "pending-recovery"
+    },
+    {
+      "productNumber": "03",
+      "productName": "YNX Social",
+      "category": "content-and-users",
+      "coreFunctions": [
+        "profiles",
+        "social posts",
+        "comments",
+        "reactions",
+        "moderation reports"
+      ],
+      "userFlows": [
+        "profiles",
+        "social posts",
+        "comments",
+        "reactions",
+        "moderation reports"
+      ],
+      "aiCapabilities": {
+        "mode": "content",
+        "permittedUses": [
+          "explain",
+          "summarize",
+          "translate",
+          "generate draft"
+        ]
+      },
+      "assetCapabilities": {
+        "relevant": false
+      },
+      "integrationDependencies": [
+        "release/integration/social-contract.json"
+      ],
+      "publicRoutes": [
+        "/dapp/social"
+      ],
+      "runtime": {
+        "availability": "not-publicly-verified",
+        "url": null
+      },
+      "sourceCommit": "833c629b8fc889f74ae68215a8e36e6dbf9539ee",
+      "release": null,
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "pending-recovery"
+    },
+    {
+      "productNumber": "04",
+      "productName": "YNX Pay",
+      "category": "payments-and-commerce",
+      "coreFunctions": [
+        "merchant intent",
+        "invoice",
+        "settlement evidence",
+        "refund",
+        "dispute",
+        "sponsored gas",
+        "reconciliation"
+      ],
+      "userFlows": [
+        "merchant intent",
+        "invoice",
+        "settlement evidence",
+        "refund",
+        "dispute",
+        "sponsored gas",
+        "reconciliation"
+      ],
+      "aiCapabilities": {
+        "mode": "none",
+        "permittedUses": []
+      },
+      "assetCapabilities": {
+        "relevant": true
+      },
+      "integrationDependencies": [
+        "release/integration/pay-contract.json"
+      ],
+      "publicRoutes": [
+        "/dapp/pay"
+      ],
+      "runtime": {
+        "availability": "public-testnet",
+        "url": "https://pay.ynxweb4.com",
+        "evidence": "docs/acceptance/TESTNET_TRANSFER_AND_CONCURRENCY_EVIDENCE_2026_08_01.md"
+      },
+      "sourceCommit": "4ecffdd8b685c2ec8bea1b7520ce375f1c087c83",
+      "release": null,
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": true
+      },
+      "status": "public-testnet"
+    },
+    {
+      "productNumber": "05",
+      "productName": "Merchant Console",
+      "category": "payments-and-commerce",
+      "coreFunctions": [
+        "merchant onboarding",
+        "catalog",
+        "orders",
+        "webhooks",
+        "analytics"
+      ],
+      "userFlows": [
+        "merchant onboarding",
+        "catalog",
+        "orders",
+        "webhooks",
+        "analytics"
+      ],
+      "aiCapabilities": {
+        "mode": "advisory",
+        "permittedUses": [
+          "explain",
+          "summarize",
+          "research",
+          "simulate",
+          "propose"
+        ]
+      },
+      "assetCapabilities": {
+        "relevant": true
+      },
+      "integrationDependencies": [
+        "release/integration/merchant-console-contract.json"
+      ],
+      "publicRoutes": [
+        "/dapp/merchant-console"
+      ],
+      "runtime": {
+        "availability": "not-publicly-verified",
+        "url": null
+      },
+      "sourceCommit": "f42bdf1191b691185d314f9bc8f0a5cc89bcb877",
+      "release": null,
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "pending-recovery"
+    },
+    {
+      "productNumber": "06",
+      "productName": "YNX Card",
+      "category": "payments-and-commerce",
+      "coreFunctions": [
+        "sandbox authorization",
+        "spending controls",
+        "Pay-linked review"
+      ],
+      "userFlows": [
+        "sandbox authorization",
+        "spending controls",
+        "Pay-linked review"
+      ],
+      "aiCapabilities": {
+        "mode": "none",
+        "permittedUses": []
+      },
+      "assetCapabilities": {
+        "relevant": true
+      },
+      "integrationDependencies": [
+        "release/integration/ynx-card-contract.json"
+      ],
+      "publicRoutes": [
+        "/dapp/card"
+      ],
+      "runtime": {
+        "availability": "not-publicly-verified",
+        "url": null
+      },
+      "sourceCommit": "0c11385fe41f4dea3c26299c5193a043cc979376",
+      "release": null,
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "pending-recovery"
+    },
+    {
+      "productNumber": "07",
+      "productName": "YNX Exchange",
+      "category": "finance-and-liquidity",
+      "coreFunctions": [
+        "exchange integration candidate",
+        "signed transfer",
+        "nonce",
+        "receipt and log verification"
+      ],
+      "userFlows": [
+        "exchange integration candidate",
+        "signed transfer",
+        "nonce",
+        "receipt and log verification"
+      ],
+      "aiCapabilities": {
+        "mode": "advisory",
+        "permittedUses": [
+          "explain",
+          "summarize",
+          "research",
+          "simulate",
+          "propose"
+        ]
+      },
+      "assetCapabilities": {
+        "relevant": true
+      },
+      "integrationDependencies": [
+        "release/integration/exchange-contract.json"
+      ],
+      "publicRoutes": [
+        "/dapp/exchange"
+      ],
+      "runtime": {
+        "availability": "not-publicly-verified",
+        "url": null
+      },
+      "sourceCommit": "71ae6f32249d4a2709c32c6c24de4e842329a280",
+      "release": null,
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "pending-recovery"
+    },
+    {
+      "productNumber": "08",
+      "productName": "YNX Quant Lab",
+      "category": "finance-and-liquidity",
+      "coreFunctions": [
+        "strategy research",
+        "simulation",
+        "risk review",
+        "exchange and DEX routing proposal"
+      ],
+      "userFlows": [
+        "strategy research",
+        "simulation",
+        "risk review",
+        "exchange and DEX routing proposal"
+      ],
+      "aiCapabilities": {
+        "mode": "advisory",
+        "permittedUses": [
+          "explain",
+          "summarize",
+          "research",
+          "simulate",
+          "propose"
+        ]
+      },
+      "assetCapabilities": {
+        "relevant": true
+      },
+      "integrationDependencies": [
+        "release/integration/ynx-quant-lab-contract.json"
+      ],
+      "publicRoutes": [
+        "/dapp/quant-lab"
+      ],
+      "runtime": {
+        "availability": "not-publicly-verified",
+        "url": null
+      },
+      "sourceCommit": "37d8bb9d9446a448fd5346a9945f70cc88d3b060",
+      "release": null,
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "pending-recovery"
+    },
+    {
+      "productNumber": "09",
+      "productName": "YNX Shop",
+      "category": "payments-and-commerce",
+      "coreFunctions": [
+        "catalog",
+        "cart",
+        "checkout candidate",
+        "delivery and refund handoff"
+      ],
+      "userFlows": [
+        "catalog",
+        "cart",
+        "checkout candidate",
+        "delivery and refund handoff"
+      ],
+      "aiCapabilities": {
+        "mode": "advisory",
+        "permittedUses": [
+          "explain",
+          "summarize",
+          "research",
+          "simulate",
+          "propose"
+        ]
+      },
+      "assetCapabilities": {
+        "relevant": true
+      },
+      "integrationDependencies": [
+        "release/integration/ynx-shop-contract.json"
+      ],
+      "publicRoutes": [
+        "/dapp/shop"
+      ],
+      "runtime": {
+        "availability": "not-publicly-verified",
+        "url": null
+      },
+      "sourceCommit": "7f4b2de9b9e530dc3e0b8a4a4632a90035945fc5",
+      "release": null,
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "pending-recovery"
+    },
+    {
+      "productNumber": "10",
+      "productName": "Seller Console",
+      "category": "payments-and-commerce",
+      "coreFunctions": [
+        "seller orders",
+        "fulfillment candidate",
+        "payout reconciliation"
+      ],
+      "userFlows": [
+        "seller orders",
+        "fulfillment candidate",
+        "payout reconciliation"
+      ],
+      "aiCapabilities": {
+        "mode": "advisory",
+        "permittedUses": [
+          "explain",
+          "summarize",
+          "research",
+          "simulate",
+          "propose"
+        ]
+      },
+      "assetCapabilities": {
+        "relevant": true
+      },
+      "integrationDependencies": [
+        "release/integration/seller-console-contract.json"
+      ],
+      "publicRoutes": [
+        "/dapp/seller-console"
+      ],
+      "runtime": {
+        "availability": "not-publicly-verified",
+        "url": null
+      },
+      "sourceCommit": "bb354e83953d6399360071a72294902a6abb48a2",
+      "release": null,
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "pending-recovery"
+    },
+    {
+      "productNumber": "11",
+      "productName": "YNX Developer / AI Build",
+      "category": "developer-and-enterprise",
+      "coreFunctions": [
+        "web IDE",
+        "compiler checks",
+        "bounded deployment",
+        "SDK and CLI"
+      ],
+      "userFlows": [
+        "web IDE",
+        "compiler checks",
+        "bounded deployment",
+        "SDK and CLI"
+      ],
+      "aiCapabilities": {
+        "mode": "developer",
+        "permittedUses": [
+          "explain",
+          "generate draft",
+          "debug assistance",
+          "audit assistance"
+        ]
+      },
+      "assetCapabilities": {
+        "relevant": false
+      },
+      "integrationDependencies": [
+        "release/integration/developer-contract.json"
+      ],
+      "publicRoutes": [
+        "/dapp/developer"
+      ],
+      "runtime": {
+        "availability": "not-publicly-verified",
+        "url": null
+      },
+      "sourceCommit": "fc7e9b5146d514aaae02bb01e4e20c62ff32867a",
+      "release": null,
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "pending-recovery"
+    },
+    {
+      "productNumber": "12",
+      "productName": "YNX Explorer",
+      "category": "trust-and-transparency",
+      "coreFunctions": [
+        "block search",
+        "transaction search",
+        "account history",
+        "validator view",
+        "leaderboard",
+        "SSE"
+      ],
+      "userFlows": [
+        "block search",
+        "transaction search",
+        "account history",
+        "validator view",
+        "leaderboard",
+        "SSE"
+      ],
+      "aiCapabilities": {
+        "mode": "none",
+        "permittedUses": []
+      },
+      "assetCapabilities": {
+        "relevant": true
+      },
+      "integrationDependencies": [
+        "release/integration/explorer-contract.json"
+      ],
+      "publicRoutes": [
+        "/dapp/explorer"
+      ],
+      "runtime": {
+        "availability": "public-testnet",
+        "url": "https://explorer.ynxweb4.com",
+        "evidence": "docs/acceptance/TESTNET_TRANSFER_AND_CONCURRENCY_EVIDENCE_2026_08_01.md"
+      },
+      "sourceCommit": "d3c5f0279b49ab1c63de2cd32a55dab459f3ab20",
+      "release": null,
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "public-testnet"
+    },
+    {
+      "productNumber": "13",
+      "productName": "YNX Monitor",
+      "category": "trust-and-transparency",
+      "coreFunctions": [
+        "metrics",
+        "logs",
+        "traces",
+        "alerts",
+        "SLO",
+        "incident timeline"
+      ],
+      "userFlows": [
+        "metrics",
+        "logs",
+        "traces",
+        "alerts",
+        "SLO",
+        "incident timeline"
+      ],
+      "aiCapabilities": {
+        "mode": "operations-readonly",
+        "permittedUses": [
+          "explain",
+          "summarize",
+          "read-only anomaly review",
+          "propose remediation"
+        ]
+      },
+      "assetCapabilities": {
+        "relevant": false
+      },
+      "integrationDependencies": [
+        "release/integration/monitor-contract.json"
+      ],
+      "publicRoutes": [
+        "/dapp/monitor"
+      ],
+      "runtime": {
+        "availability": "not-publicly-verified",
+        "url": null
+      },
+      "sourceCommit": "1c821a8d8b5606807506e704f0b4cdceeb89e5e6",
+      "release": null,
+      "tests": {
+        "testedLocal": false,
+        "exactHeadCi": false
+      },
+      "status": "pending-recovery"
+    },
+    {
+      "productNumber": "14",
+      "productName": "YNX AI",
+      "category": "developer-and-enterprise",
+      "coreFunctions": [
+        "AI gateway",
+        "consent",
+        "preview",
+        "approval",
+        "audit",
+        "credential redaction"
+      ],
+      "userFlows": [
+        "AI gateway",
+        "consent",
+        "preview",
+        "approval",
+        "audit",
+        "credential redaction"
+      ],
+      "aiCapabilities": {
+        "mode": "native-ai",
+        "permittedUses": [
+          "explain",
+          "summarize",
+          "translate",
+          "research",
+          "simulate",
+          "generate draft",
+          "propose"
+        ]
+      },
+      "assetCapabilities": {
+        "relevant": false
+      },
+      "integrationDependencies": [
+        "release/integration/ynx-ai-contract.json"
+      ],
+      "publicRoutes": [
+        "/dapp/ai"
+      ],
+      "runtime": {
+        "availability": "public-testnet",
+        "url": "https://ai.ynxweb4.com",
+        "evidence": "docs/acceptance/TESTNET_TRANSFER_AND_CONCURRENCY_EVIDENCE_2026_08_01.md"
+      },
+      "sourceCommit": "a781300124b8f31c910aeb182f9b1b13e1ab4893",
+      "release": null,
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "public-testnet"
+    },
+    {
+      "productNumber": "15",
+      "productName": "YNX Trust Center",
+      "category": "trust-and-transparency",
+      "coreFunctions": [
+        "evidence tracing",
+        "risk labels",
+        "appeal",
+        "correction",
+        "transparency export"
+      ],
+      "userFlows": [
+        "evidence tracing",
+        "risk labels",
+        "appeal",
+        "correction",
+        "transparency export"
+      ],
+      "aiCapabilities": {
+        "mode": "advisory",
+        "permittedUses": [
+          "explain",
+          "summarize",
+          "research",
+          "simulate",
+          "propose"
+        ]
+      },
+      "assetCapabilities": {
+        "relevant": true
+      },
+      "integrationDependencies": [
+        "release/integration/trust-center-contract.json"
+      ],
+      "publicRoutes": [
+        "/dapp/trust-center"
+      ],
+      "runtime": {
+        "availability": "public-testnet",
+        "url": "https://trust.ynxweb4.com",
+        "evidence": "docs/acceptance/TESTNET_TRANSFER_AND_CONCURRENCY_EVIDENCE_2026_08_01.md"
+      },
+      "sourceCommit": "4d40557229b4232119026cb8c012db3bef2f1be9",
+      "release": null,
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "public-testnet"
+    },
+    {
+      "productNumber": "16",
+      "productName": "YNX Resource Market",
+      "category": "finance-and-liquidity",
+      "coreFunctions": [
+        "resource quote",
+        "delegation",
+        "rental settlement",
+        "provider income",
+        "analytics"
+      ],
+      "userFlows": [
+        "resource quote",
+        "delegation",
+        "rental settlement",
+        "provider income",
+        "analytics"
+      ],
+      "aiCapabilities": {
+        "mode": "none",
+        "permittedUses": []
+      },
+      "assetCapabilities": {
+        "relevant": true
+      },
+      "integrationDependencies": [
+        "release/integration/resource-market-contract.json"
+      ],
+      "publicRoutes": [
+        "/dapp/resource-market"
+      ],
+      "runtime": {
+        "availability": "public-testnet",
+        "url": "https://resource.ynxweb4.com",
+        "evidence": "docs/acceptance/TESTNET_TRANSFER_AND_CONCURRENCY_EVIDENCE_2026_08_01.md"
+      },
+      "sourceCommit": "82241913b4dacf6bb6adebb537b7fa175c3aff59",
+      "release": null,
+      "tests": {
+        "testedLocal": false,
+        "exactHeadCi": false
+      },
+      "status": "public-testnet"
+    },
+    {
+      "productNumber": "17",
+      "productName": "YNXT Economics / Treasury / Stablecoin",
+      "category": "finance-and-liquidity",
+      "coreFunctions": [
+        "treasury",
+        "stablecoin sandbox",
+        "staking",
+        "fee market",
+        "solvency evidence"
+      ],
+      "userFlows": [
+        "treasury",
+        "stablecoin sandbox",
+        "staking",
+        "fee market",
+        "solvency evidence"
+      ],
+      "aiCapabilities": {
+        "mode": "none",
+        "permittedUses": []
+      },
+      "assetCapabilities": {
+        "relevant": true
+      },
+      "integrationDependencies": [
+        "release/integration/ynxt-economics-contract.json"
+      ],
+      "publicRoutes": [
+        "/dapp/tokenomics"
+      ],
+      "runtime": {
+        "availability": "not-publicly-verified",
+        "url": null
+      },
+      "sourceCommit": "c173925ca8fa87cf85f66eea4a83725c7a9351df",
+      "release": null,
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "pending-recovery"
+    },
+    {
+      "productNumber": "18",
+      "productName": "Whitepaper / Compliance / Brand",
+      "category": "trust-and-transparency",
+      "coreFunctions": [
+        "whitepaper",
+        "compliance boundaries",
+        "brand facts",
+        "claims evidence"
+      ],
+      "userFlows": [
+        "whitepaper",
+        "compliance boundaries",
+        "brand facts",
+        "claims evidence"
+      ],
+      "aiCapabilities": {
+        "mode": "content",
+        "permittedUses": [
+          "explain",
+          "summarize",
+          "translate",
+          "generate draft"
+        ]
+      },
+      "assetCapabilities": {
+        "relevant": false
+      },
+      "integrationDependencies": [],
+      "publicRoutes": [
+        "/dapp/docs-compliance"
+      ],
+      "runtime": {
+        "availability": "not-publicly-verified",
+        "url": null
+      },
+      "sourceCommit": "759c545367faf66a5168d9cf5b3cf64e0057233d",
+      "release": null,
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "pending-recovery"
+    },
+    {
+      "productNumber": "19",
+      "productName": "YNX Oracle & Market Data",
+      "category": "infrastructure",
+      "coreFunctions": [
+        "multi-source oracle",
+        "median",
+        "weighted median",
+        "TWAP",
+        "staleness",
+        "divergence",
+        "attestation"
+      ],
+      "userFlows": [
+        "multi-source oracle",
+        "median",
+        "weighted median",
+        "TWAP",
+        "staleness",
+        "divergence",
+        "attestation"
+      ],
+      "aiCapabilities": {
+        "mode": "none",
+        "permittedUses": []
+      },
+      "assetCapabilities": {
+        "relevant": true
+      },
+      "integrationDependencies": [
+        "release/integration/oracle-market-data-contract.json"
+      ],
+      "publicRoutes": [
+        "/dapp/oracle-market-data"
+      ],
+      "runtime": {
+        "availability": "not-publicly-verified",
+        "url": null
+      },
+      "sourceCommit": "a059d573ed128a704ec447561711a13cb1e3d9dd",
+      "release": null,
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": true
+      },
+      "status": "source-candidate"
+    },
+    {
+      "productNumber": "20",
+      "productName": "YNX Cloud",
+      "category": "content-and-users",
+      "coreFunctions": [
+        "cloud storage candidate",
+        "resource integration",
+        "recovery boundary"
+      ],
+      "userFlows": [
+        "cloud storage candidate",
+        "resource integration",
+        "recovery boundary"
+      ],
+      "aiCapabilities": {
+        "mode": "none",
+        "permittedUses": []
+      },
+      "assetCapabilities": {
+        "relevant": false
+      },
+      "integrationDependencies": [
+        "release/integration/cloud-contract.json"
+      ],
+      "publicRoutes": [
+        "/dapp/cloud"
+      ],
+      "runtime": {
+        "availability": "not-publicly-verified",
+        "url": null
+      },
+      "sourceCommit": "9763907e7a5f469ae5ba911669437912bd8ac819",
+      "release": null,
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "pending-recovery"
+    },
+    {
+      "productNumber": "21",
+      "productName": "YNX Bridge & Interoperability",
+      "category": "infrastructure",
+      "coreFunctions": [
+        "bridge coordinator",
+        "source confirmations",
+        "relay attestations",
+        "fail-closed external submission"
+      ],
+      "userFlows": [
+        "bridge coordinator",
+        "source confirmations",
+        "relay attestations",
+        "fail-closed external submission"
+      ],
+      "aiCapabilities": {
+        "mode": "none",
+        "permittedUses": []
+      },
+      "assetCapabilities": {
+        "relevant": true
+      },
+      "integrationDependencies": [
+        "release/integration/ynx-bridge-contract.json"
+      ],
+      "publicRoutes": [
+        "/dapp/bridge"
+      ],
+      "runtime": {
+        "availability": "public-testnet",
+        "url": "https://bridge.ynxweb4.com",
+        "evidence": "docs/acceptance/TESTNET_TRANSFER_AND_CONCURRENCY_EVIDENCE_2026_08_01.md"
+      },
+      "sourceCommit": "fc82c236cf8e2d8a9c69834b5985895170249aa4",
+      "release": null,
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "public-testnet"
+    },
+    {
+      "productNumber": "22",
+      "productName": "YNX Browser",
+      "category": "content-and-users",
+      "coreFunctions": [
+        "browser candidate",
+        "wallet session",
+        "search and Trust integration"
+      ],
+      "userFlows": [
+        "browser candidate",
+        "wallet session",
+        "search and Trust integration"
+      ],
+      "aiCapabilities": {
+        "mode": "advisory",
+        "permittedUses": [
+          "explain",
+          "summarize",
+          "research",
+          "simulate",
+          "propose"
+        ]
+      },
+      "assetCapabilities": {
+        "relevant": false
+      },
+      "integrationDependencies": [
+        "release/integration/browser-contract.json"
+      ],
+      "publicRoutes": [
+        "/dapp/browser"
+      ],
+      "runtime": {
+        "availability": "not-publicly-verified",
+        "url": null
+      },
+      "sourceCommit": "2beece6f66a330811f474f24189e53aacb5bb636",
+      "release": null,
+      "tests": {
+        "testedLocal": false,
+        "exactHeadCi": false
+      },
+      "status": "pending-recovery"
+    },
+    {
+      "productNumber": "23",
+      "productName": "YNX Search",
+      "category": "content-and-users",
+      "coreFunctions": [
+        "ecosystem search",
+        "evidence-aware discovery",
+        "indexing candidate"
+      ],
+      "userFlows": [
+        "ecosystem search",
+        "evidence-aware discovery",
+        "indexing candidate"
+      ],
+      "aiCapabilities": {
+        "mode": "advisory",
+        "permittedUses": [
+          "explain",
+          "summarize",
+          "research",
+          "simulate",
+          "propose"
+        ]
+      },
+      "assetCapabilities": {
+        "relevant": false
+      },
+      "integrationDependencies": [
+        "release/integration/search-contract.json"
+      ],
+      "publicRoutes": [
+        "/dapp/search"
+      ],
+      "runtime": {
+        "availability": "not-publicly-verified",
+        "url": null
+      },
+      "sourceCommit": "f2f69e398c4ca8fa671298f1e40030c3ae44a726",
+      "release": null,
+      "tests": {
+        "testedLocal": false,
+        "exactHeadCi": false
+      },
+      "status": "pending-recovery"
+    },
+    {
+      "productNumber": "24",
+      "productName": "YNX Finance",
+      "category": "finance-and-liquidity",
+      "coreFunctions": [
+        "budget",
+        "ledger",
+        "statements",
+        "finance analysis candidate"
+      ],
+      "userFlows": [
+        "budget",
+        "ledger",
+        "statements",
+        "finance analysis candidate"
+      ],
+      "aiCapabilities": {
+        "mode": "advisory",
+        "permittedUses": [
+          "explain",
+          "summarize",
+          "research",
+          "simulate",
+          "propose"
+        ]
+      },
+      "assetCapabilities": {
+        "relevant": true
+      },
+      "integrationDependencies": [
+        "release/integration/finance-contract.json"
+      ],
+      "publicRoutes": [
+        "/dapp/finance"
+      ],
+      "runtime": {
+        "availability": "not-publicly-verified",
+        "url": null
+      },
+      "sourceCommit": "307273b93df29bf064cb64324109571c00a63dc2",
+      "release": null,
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "pending-recovery"
+    },
+    {
+      "productNumber": "25",
+      "productName": "YNX Mail",
+      "category": "content-and-users",
+      "coreFunctions": [
+        "mail draft",
+        "attachment",
+        "provider sandbox",
+        "delivery recovery"
+      ],
+      "userFlows": [
+        "mail draft",
+        "attachment",
+        "provider sandbox",
+        "delivery recovery"
+      ],
+      "aiCapabilities": {
+        "mode": "content",
+        "permittedUses": [
+          "explain",
+          "summarize",
+          "translate",
+          "generate draft"
+        ]
+      },
+      "assetCapabilities": {
+        "relevant": false
+      },
+      "integrationDependencies": [
+        "release/integration/mail-contract.json"
+      ],
+      "publicRoutes": [
+        "/dapp/mail"
+      ],
+      "runtime": {
+        "availability": "not-publicly-verified",
+        "url": null
+      },
+      "sourceCommit": "2c8b885e81b594dae3244255614ecc9405e790c3",
+      "release": null,
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "pending-recovery"
+    },
+    {
+      "productNumber": "26",
+      "productName": "YNX Data Fabric & Billing Ledger",
+      "category": "infrastructure",
+      "coreFunctions": [
+        "canonical events",
+        "billing ledger",
+        "redelivery",
+        "schema registry",
+        "reconciliation"
+      ],
+      "userFlows": [
+        "canonical events",
+        "billing ledger",
+        "redelivery",
+        "schema registry",
+        "reconciliation"
+      ],
+      "aiCapabilities": {
+        "mode": "none",
+        "permittedUses": []
+      },
+      "assetCapabilities": {
+        "relevant": true
+      },
+      "integrationDependencies": [
+        "release/integration/ynx-data-fabric-contract.json"
+      ],
+      "publicRoutes": [
+        "/dapp/data-fabric"
+      ],
+      "runtime": {
+        "availability": "not-publicly-verified",
+        "url": null
+      },
+      "sourceCommit": "da095e240be52023ecef19c162c869398bf9fbea",
+      "release": null,
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "pending-recovery"
+    },
+    {
+      "productNumber": "27",
+      "productName": "YNX DEX",
+      "category": "finance-and-liquidity",
+      "coreFunctions": [
+        "DEX contract candidate",
+        "quote and swap simulation",
+        "liquidity boundary"
+      ],
+      "userFlows": [
+        "DEX contract candidate",
+        "quote and swap simulation",
+        "liquidity boundary"
+      ],
+      "aiCapabilities": {
+        "mode": "none",
+        "permittedUses": []
+      },
+      "assetCapabilities": {
+        "relevant": true
+      },
+      "integrationDependencies": [
+        "release/integration/ynx-dex-contract.json"
+      ],
+      "publicRoutes": [
+        "/dapp/dex"
+      ],
+      "runtime": {
+        "availability": "not-publicly-verified",
+        "url": null
+      },
+      "sourceCommit": "12b0db9b28d6bc3af7d5ed37135469369489bb8c",
+      "release": null,
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "pending-recovery"
+    },
+    {
+      "productNumber": "28",
+      "productName": "YNX Website / SEO / Product Micro-sites",
+      "category": "developer-and-enterprise",
+      "coreFunctions": [
+        "official website",
+        "DApp directory",
+        "docs",
+        "manual",
+        "status",
+        "SEO"
+      ],
+      "userFlows": [
+        "official website",
+        "DApp directory",
+        "docs",
+        "manual",
+        "status",
+        "SEO"
+      ],
+      "aiCapabilities": {
+        "mode": "content",
+        "permittedUses": [
+          "explain",
+          "summarize",
+          "translate",
+          "generate draft"
+        ]
+      },
+      "assetCapabilities": {
+        "relevant": false
+      },
+      "integrationDependencies": [
+        "release/integration/website-contract.json"
+      ],
+      "publicRoutes": [
+        "/dapp/website"
+      ],
+      "runtime": {
+        "availability": "public-testnet",
+        "url": "https://ynxweb4.com",
+        "evidence": "docs/acceptance/TESTNET_TRANSFER_AND_CONCURRENCY_EVIDENCE_2026_08_01.md"
+      },
+      "sourceCommit": "9d02d3842ee306ce7979c02e02a44800ac4e4c75",
+      "release": "website-v0.2.0-candidate",
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": true
+      },
+      "status": "public-testnet"
+    },
+    {
+      "productNumber": "29",
+      "productName": "YNX Integration / Founder Control",
+      "category": "infrastructure",
+      "coreFunctions": [
+        "release train",
+        "central contracts",
+        "dependency acceptance",
+        "E2E evidence",
+        "product matrix"
+      ],
+      "userFlows": [
+        "release train",
+        "central contracts",
+        "dependency acceptance",
+        "E2E evidence",
+        "product matrix"
+      ],
+      "aiCapabilities": {
+        "mode": "operations-readonly",
+        "permittedUses": [
+          "explain",
+          "summarize",
+          "read-only anomaly review",
+          "propose remediation"
+        ]
+      },
+      "assetCapabilities": {
+        "relevant": true
+      },
+      "integrationDependencies": [
+        "release/integration/integration-contract.json"
+      ],
+      "publicRoutes": [
+        "/dapp/integration"
+      ],
+      "runtime": {
+        "availability": "not-publicly-verified",
+        "url": null
+      },
+      "sourceCommit": "10b877b5b18f9cb0026a6382cdd6588054fd16db",
+      "release": null,
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "pending-recovery"
+    },
+    {
+      "productNumber": "30",
+      "productName": "YNX Security / SRE",
+      "category": "infrastructure",
+      "coreFunctions": [
+        "security gates",
+        "SRE",
+        "SBOM",
+        "provenance",
+        "backup",
+        "restore",
+        "rollback",
+        "release controls"
+      ],
+      "userFlows": [
+        "security gates",
+        "SRE",
+        "SBOM",
+        "provenance",
+        "backup",
+        "restore",
+        "rollback",
+        "release controls"
+      ],
+      "aiCapabilities": {
+        "mode": "operations-readonly",
+        "permittedUses": [
+          "explain",
+          "summarize",
+          "read-only anomaly review",
+          "propose remediation"
+        ]
+      },
+      "assetCapabilities": {
+        "relevant": true
+      },
+      "integrationDependencies": [
+        "release/integration/security-platform-contract.json"
+      ],
+      "publicRoutes": [
+        "/dapp/security-sre"
+      ],
+      "runtime": {
+        "availability": "not-publicly-verified",
+        "url": null
+      },
+      "sourceCommit": "e670749b83a1b40d09ed717eb3515d539c005c49",
+      "release": null,
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": true
+      },
+      "status": "source-candidate"
+    },
+    {
+      "productNumber": "31",
+      "productName": "YNX Governance",
+      "category": "infrastructure",
+      "coreFunctions": [
+        "proposal",
+        "vote",
+        "timelock",
+        "chain execution",
+        "appeal and emergency boundary"
+      ],
+      "userFlows": [
+        "proposal",
+        "vote",
+        "timelock",
+        "chain execution",
+        "appeal and emergency boundary"
+      ],
+      "aiCapabilities": {
+        "mode": "none",
+        "permittedUses": []
+      },
+      "assetCapabilities": {
+        "relevant": true
+      },
+      "integrationDependencies": [
+        "release/integration/governance-contract.json"
+      ],
+      "publicRoutes": [
+        "/dapp/governance"
+      ],
+      "runtime": {
+        "availability": "not-publicly-verified",
+        "url": null
+      },
+      "sourceCommit": "7c3c952eade20041bc616616fbfc0cba020717e4",
+      "release": null,
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": true
+      },
+      "status": "source-candidate"
+    },
+    {
+      "productNumber": "32",
+      "productName": "YNX Music",
+      "category": "content-and-users",
+      "coreFunctions": [
+        "music candidate",
+        "creator and Pay handoff",
+        "rights boundary"
+      ],
+      "userFlows": [
+        "music candidate",
+        "creator and Pay handoff",
+        "rights boundary"
+      ],
+      "aiCapabilities": {
+        "mode": "content",
+        "permittedUses": [
+          "explain",
+          "summarize",
+          "translate",
+          "generate draft"
+        ]
+      },
+      "assetCapabilities": {
+        "relevant": false
+      },
+      "integrationDependencies": [
+        "release/integration/music-contract.json"
+      ],
+      "publicRoutes": [
+        "/dapp/music"
+      ],
+      "runtime": {
+        "availability": "not-publicly-verified",
+        "url": null
+      },
+      "sourceCommit": "09b658b02d43558ecc1763e24dbcd4930d6d65b9",
+      "release": null,
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "pending-recovery"
+    },
+    {
+      "productNumber": "33",
+      "productName": "YNX Video",
+      "category": "content-and-users",
+      "coreFunctions": [
+        "video candidate",
+        "creator and Pay handoff",
+        "moderation boundary"
+      ],
+      "userFlows": [
+        "video candidate",
+        "creator and Pay handoff",
+        "moderation boundary"
+      ],
+      "aiCapabilities": {
+        "mode": "content",
+        "permittedUses": [
+          "explain",
+          "summarize",
+          "translate",
+          "generate draft"
+        ]
+      },
+      "assetCapabilities": {
+        "relevant": false
+      },
+      "integrationDependencies": [
+        "release/integration/video-contract.json"
+      ],
+      "publicRoutes": [
+        "/dapp/video"
+      ],
+      "runtime": {
+        "availability": "not-publicly-verified",
+        "url": null
+      },
+      "sourceCommit": "1d4532ffca4eabdc15f2ec66f3d1143f67e159fa",
+      "release": null,
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "pending-recovery"
+    },
+    {
+      "productNumber": "34",
+      "productName": "YNX Creator Studio",
+      "category": "content-and-users",
+      "coreFunctions": [
+        "creator workflow",
+        "music and video handoff",
+        "Pay and Data Fabric handoff"
+      ],
+      "userFlows": [
+        "creator workflow",
+        "music and video handoff",
+        "Pay and Data Fabric handoff"
+      ],
+      "aiCapabilities": {
+        "mode": "content",
+        "permittedUses": [
+          "explain",
+          "summarize",
+          "translate",
+          "generate draft"
+        ]
+      },
+      "assetCapabilities": {
+        "relevant": false
+      },
+      "integrationDependencies": [
+        "release/integration/creator-studio-contract.json"
+      ],
+      "publicRoutes": [
+        "/dapp/creator-studio"
+      ],
+      "runtime": {
+        "availability": "not-publicly-verified",
+        "url": null
+      },
+      "sourceCommit": "b60cfc0d84db08d299d1a5890c70574bcdd9f40f",
+      "release": null,
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "pending-recovery"
+    },
+    {
+      "productNumber": "35",
+      "productName": "YNX Docs",
+      "category": "developer-and-enterprise",
+      "coreFunctions": [
+        "developer documentation",
+        "API reference",
+        "operator guides",
+        "recovery documentation"
+      ],
+      "userFlows": [
+        "developer documentation",
+        "API reference",
+        "operator guides",
+        "recovery documentation"
+      ],
+      "aiCapabilities": {
+        "mode": "content",
+        "permittedUses": [
+          "explain",
+          "summarize",
+          "translate",
+          "generate draft"
+        ]
+      },
+      "assetCapabilities": {
+        "relevant": false
+      },
+      "integrationDependencies": [
+        "release/integration/docs-contract.json"
+      ],
+      "publicRoutes": [
+        "/dapp/docs"
+      ],
+      "runtime": {
+        "availability": "not-publicly-verified",
+        "url": null
+      },
+      "sourceCommit": "ba8afbbdbbb1cf63a73aeff14cc910ccc7a689e6",
+      "release": null,
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "pending-recovery"
+    },
+    {
+      "productNumber": "36",
+      "productName": "YNX Calendar",
+      "category": "content-and-users",
+      "coreFunctions": [
+        "calendar events",
+        "invites",
+        "reminders",
+        "time-zone and recurrence candidate"
+      ],
+      "userFlows": [
+        "calendar events",
+        "invites",
+        "reminders",
+        "time-zone and recurrence candidate"
+      ],
+      "aiCapabilities": {
+        "mode": "none",
+        "permittedUses": []
+      },
+      "assetCapabilities": {
+        "relevant": false
+      },
+      "integrationDependencies": [
+        "release/integration/calendar-contract.json"
+      ],
+      "publicRoutes": [
+        "/dapp/calendar"
+      ],
+      "runtime": {
+        "availability": "not-publicly-verified",
+        "url": null
+      },
+      "sourceCommit": "8f45566073f0d9979b5b1460b35144d954acc692",
+      "release": null,
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "pending-recovery"
+    }
+  ]
+}

@@ -1,0 +1,116 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-SOCIAL-ANDROID-VISIBLE-REJECTION-AE6C2729-20260821",
+  "capturedAt": "2026-08-20T16:39:04Z",
+  "ownerEvidence": {
+    "branch": "codex/wallet-session-router-recovery",
+    "commit": "ae6c27298b263a55098e42b9bd50641010f9754d",
+    "parent": "432a0992b368e88995db350f25eba4680aa8f888",
+    "tree": "98429d078d70bb4feeb97ccafa1c9450dc3c51e5",
+    "remoteReadable": true,
+    "evidenceBlob": "6540c76932eb9d06985100237a9ea9fab57cf4bd"
+  },
+  "target": {
+    "serial": "emulator-5560",
+    "androidApi": 36,
+    "product": "sdk_gphone64_arm64",
+    "classification": "disposable-emulator-direct-evidence"
+  },
+  "installedPackages": {
+    "wallet": {
+      "packageId": "com.ynxweb4.wallet",
+      "versionCode": 5,
+      "versionName": "1.0.4-testnet-preview",
+      "installed": true
+    },
+    "social": {
+      "packageId": "com.ynx.social",
+      "versionCode": 1,
+      "versionName": "1.0.0",
+      "installed": true
+    },
+    "shop": {
+      "packageId": "com.ynxweb4.shop",
+      "installed": false,
+      "callbackResolved": false
+    }
+  },
+  "resolver": {
+    "authorizeUri": "ynxwallet://authorize?request=<bounded-readonly-probe>",
+    "queryOnly": true,
+    "activityCount": 1,
+    "resolvedActivity": "com.ynxweb4.wallet/.MainActivity",
+    "centralReadOnlyRecheckPassed": true
+  },
+  "visibleFlow": {
+    "socialInitialVisibleError": "fetch failed: javax.net.ssl.SSLHandshakeException: connection closed",
+    "socialBackendTlsHealthy": false,
+    "walletApprovalVisible": true,
+    "requestingApp": "social",
+    "clientId": "ynx-social-v1",
+    "applicationId": "com.ynx.social",
+    "chainId": "ynx_6423-1",
+    "scopes": [
+      "account:read",
+      "profile:link"
+    ],
+    "approveClicked": false,
+    "rejectClicked": true,
+    "rejectReturnedActivity": "com.ynx.social/.MainActivity",
+    "rejectVisibleMessage": "YNX Wallet authorization was rejected. No Social session was created.",
+    "productSessionCreated": false,
+    "accountAuthorityCreated": false
+  },
+  "secondLaunch": {
+    "forceStoppedAfterRejection": true,
+    "launchState": "COLD",
+    "totalTimeMs": 236,
+    "signedIn": false,
+    "rejectedSessionResurrected": false,
+    "fabricatedAccountBalanceTransactionOrChainState": false
+  },
+  "screenshots": [
+    {
+      "path": "release/integration/evidence/wallet-social-android-current-state-20260821.png",
+      "blob": "dbda86bcb825f56e3812139a9ec805fc8cc02919",
+      "bytes": 95928,
+      "sha256": "df56262cceaf4da95678f7298a790a16c2849d9e4768b2ed7eeba78d8cd9a518"
+    },
+    {
+      "path": "release/integration/evidence/wallet-social-to-wallet-launch-20260821.png",
+      "blob": "10a53aa287675468485f37a682136b97e7163d1d",
+      "bytes": 15733,
+      "sha256": "2ad1f80253fe85d8758d65b8bcce08f3cf1c7311b9fd99e6d8a240378361274b"
+    },
+    {
+      "path": "release/integration/evidence/wallet-social-reject-return-20260821.png",
+      "blob": "c5e49cf0166abd8b6446c01f57b0655beceb2167",
+      "bytes": 98690,
+      "sha256": "690ac5a5aeb8198b808e7bdd2d0033bb12e4b35135a94561682ff0733eef0dab"
+    },
+    {
+      "path": "release/integration/evidence/wallet-social-second-launch-20260821.png",
+      "blob": "91f8295b97884769b31fb6ccf17d551554af2fc5",
+      "bytes": 82423,
+      "sha256": "dba22aa386a6bce8e6d7c9f6d8e0789e768bd718ace2f5d95598b35a8312849f"
+    }
+  ],
+  "truthBoundary": {
+    "classification": "canonical-launcher-v1",
+    "sharedCanonicalLauncherVisible": true,
+    "emulatorInstalledWalletOpenVerified": true,
+    "emulatorInstalledWalletRejectionVerified": true,
+    "emulatorColdSecondLaunchNoResurrectionVerified": true,
+    "productSessionV2RequestVerified": false,
+    "productSessionApproved": false,
+    "productSessionIntrospected": false,
+    "revokeVerified": false,
+    "networkLossRetryVerified": false,
+    "requestIdVisible": false,
+    "socialMigratedV2": false,
+    "physicalDeviceVerified": false,
+    "computerControlVerified": false,
+    "integratedCentral": false,
+    "aggregateDeployedPublic": false
+  }
+}

@@ -1,0 +1,95 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "clients": [
+    {
+      "product": "shop",
+      "platform": "android",
+      "status": "RETIREMENT_IN_PROGRESS",
+      "retiredAt": null,
+      "lastSupportedVersion": "0.3.0-testnet-preview",
+      "lastSourceCommit": "6fa2d6c5",
+      "replacementURL": "https://shop.ynxweb4.com/shop/",
+      "reason": "Founder decision: retain Shop Web/PWA and withdraw Shop Android.",
+      "historicalArtifact": {
+        "name": "ynx-shop-0.3.0-testnet-preview-6fa2d6c5-debug-signed.apk",
+        "sha256": "a7466e02f3735c561af403a83c8377e1f1ee3bbdfdd76d4f691bf595cd72c72d",
+        "signingClass": "android-debug-testnet-preview"
+      },
+      "sourceRetirement": {
+        "commit": "1752f1253",
+        "pullRequest": "https://github.com/JiahaoAlbus/YNX-Chain/pull/103",
+        "state": "BASE_DIVERGED_PRESERVED",
+        "reason": "The historical candidate does not apply cleanly to the P0 integration baseline; no source retirement control has been activated from it."
+      },
+      "websiteRetirement": {
+        "supersededCandidate": {
+          "commit": "ed22d3c",
+          "pullRequest": "https://github.com/JiahaoAlbus/YNX-Chain-website/pull/44",
+          "state": "BASE_DIVERGED_PRESERVED"
+        },
+        "replacementCandidate": {
+          "commit": "e4be421",
+          "pullRequest": "https://github.com/JiahaoAlbus/YNX-Chain-website/pull/45",
+          "branch": "codex/p0-shop-website-retirement-rebase-20260820",
+          "state": "CANDIDATE_READY",
+          "tests": [
+            "npm test",
+            "npm run build",
+            "git diff --check"
+          ]
+        }
+      },
+      "requiredEnforcement": [
+        "stop-build-and-publish",
+        "remove-download-listing",
+        "disable-package-and-callback",
+        "revoke-sessions-approvals-device-grants",
+        "return-CLIENT_RETIRED",
+        "preserve-historical-evidence"
+      ],
+      "completedCandidateControls": [
+        "Replacement website candidate removes the active Shop APK rewrite and catalog download listing",
+        "Shop Web/PWA remains the supported surface",
+        "Historical APK evidence remains recorded without a new public download link"
+      ],
+      "blockedControls": [
+        "Source build/release workflow retirement on the P0 baseline",
+        "Gateway CLIENT_RETIRED response",
+        "session approval device-grant revocation",
+        "old callback and App Link disablement",
+        "review/merge/deploy of website candidate",
+        "public runtime and installation verification",
+        "reviewed real retiredAt and minimumClientVersion",
+        "platform-distinguishable Android productClientId/package/callback/App-Link tuple",
+        "proof no supported iOS or Web/PWA client shares the retired tuple"
+      ],
+      "remoteUninstallClaim": false,
+      "publicClaim": "not retired on public runtime until both retirement PRs are deployed and remaining Gateway enforcement is independently verified",
+      "walletProtocolCandidate": {
+        "featureCommit": "aff86fc5fb536039ea1eca0e76330bc87d626b44",
+        "handoffCommit": "a34d8a7b27d9b4179d259d1ecdb4078b408d0270",
+        "supersedesFeatureCommit": "c614501353d7631a6e20da7431ac858c2e5a8868",
+        "implementationVerified": true,
+        "identitySplitCapabilityVerified": true,
+        "activationDecision": "BLOCKED_PENDING_SUPPORTED_IDENTITY_AND_AUTHORITATIVE_RETIREMENT_RECORDS",
+        "executionLeaseIssued": false,
+        "tupleUniquenessProved": false,
+        "currentTupleSharedWith": [
+          "shop-ios",
+          "shop-web-pwa"
+        ],
+        "requiredOwnerRecords": [
+          "supported productClientId",
+          "supported callback",
+          "retiredAt",
+          "retired clientId/package-or-bundle",
+          "disabled callbacks",
+          "disabled App Links",
+          "replacementURL",
+          "minimumClientVersion"
+        ]
+      }
+    }
+  ]
+}

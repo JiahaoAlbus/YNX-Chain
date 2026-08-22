@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-094",
+  "decision": "WEBSITE_PRODUCTION_PUBLISHED_HTTP_VERIFIED",
+  "websiteCommit": "c61a0e5616fbfa2ae270f935e9d95e575a98cda1",
+  "deploymentId": "dpl_3PXJhrENeX87kGCuzfjp2jHCnUcc",
+  "deploymentUrl": "https://ynx-web4-website-kevs3sm31-jiahaoalbus-projects.vercel.app",
+  "deploymentStatus": "READY",
+  "officialPage": {
+    "apexHttp": 200,
+    "wwwHttp": 200,
+    "bytes": 1018,
+    "sha256": "b8106a7ff3c5396903dd506d09848a62361f43830af1a72405a1e6a20ad4218a"
+  },
+  "runtimeRecord": {
+    "path": "/releases/faucet-runtime/02cf44d17b50dfd0f24a9f022e472b7d5eb0c1d4/runtime-publication.json",
+    "apexHttp": 200,
+    "wwwHttp": 200,
+    "bytes": 1882,
+    "sha256": "d68de07ed73d3d001b7b488e2700502e6fbc7760fc2a9f8dfc6f17bca6b27d98"
+  },
+  "asset": {
+    "path": "/assets/index-BNFKMrm3.js",
+    "http": 200,
+    "bytes": 587082,
+    "sha256": "4cb4b9ebadc40139d8af76755c8c22e18a6c57ce0749de095636a8193456c6ee",
+    "newBuildOccurrences": 3,
+    "oldBuildOccurrences": 0
+  },
+  "tests": {
+    "node": "7/7",
+    "docsAuthority": "PASS",
+    "websiteVerify": "PASS",
+    "productionBuild": "PASS",
+    "officialNpmAudit": "0 vulnerabilities"
+  },
+  "directDeploymentContentVerified": false,
+  "realFundingRequestVerified": true,
+  "explorerTransactionVerified": true,
+  "walletPlatformFaucetVerified": false,
+  "computerControlVerified": false,
+  "aggregatePublicVerified": false,
+  "observationNote": "The first apex runtime read hit a TLS timeout; bounded retry returned the same 1882-byte JSON as www. The timeout is preserved and not counted as success evidence."
+}

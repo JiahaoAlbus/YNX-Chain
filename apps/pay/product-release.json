@@ -1,0 +1,166 @@
+{
+  "schemaVersion": 2,
+  "productId": "pay",
+  "name": "YNX Pay",
+  "branch": "codex/final-pay",
+  "sourceCommit": "6cbac9f4654b5715d32f1e561819e593c868a6f1",
+  "commit": "6cbac9f4654b5715d32f1e561819e593c868a6f1",
+  "version": "1.4.0",
+  "releaseClass": "integration-candidate",
+  "phase": "INTEGRATE",
+  "goalStatus": "active",
+  "surfaces": ["api", "merchant-web", "android", "ios"],
+  "capabilities": {
+    "authoritativeInvoiceSettlement": "testedLocal",
+    "tip": "testedLocal",
+    "splitPayment": "testedLocal-consumer-flow",
+    "recurringDraft": "testedLocal-non-executing",
+    "refund": "testedLocal",
+    "dispute": "implementedLocal",
+    "webhookRetryAndDeadLetter": "testedLocal",
+    "sponsorship": "testedLocal-provider-unconfigured",
+    "stableSettlement": "externalBlocked",
+    "bridgeEntry": "testedLocal-provider-unconfigured",
+    "quantServiceBilling": "testedLocal-external-verifier-unaccepted",
+    "storeBackupRestore": "testedLocal-offline",
+    "observabilityRuntime": "testedLocal",
+    "webPwa": "testedLocal-functional",
+    "securitySupplyChain": "testedLocal-unsigned-unhosted",
+    "localReadCapacity": "testedLocal-loopback-only"
+  },
+  "contracts": {
+    "canonical": "release/integration/pay-contract.json",
+    "handoff": "docs/pay/INTEGRATION_HANDOFF.md",
+    "testVectors": "docs/pay/CROSS_PRODUCT_TEST_VECTORS.json",
+    "dependencyAcceptance": "docs/pay/DEPENDENCY_ACCEPTANCE.md",
+    "quantBilling": "docs/integration/pay-quant-billing.json",
+    "storeRecovery": "docs/integration/pay-store-recovery.json",
+    "coverage": ".ai-bridge/full-goal-coverage.json"
+  },
+  "implementedLocal": true,
+  "testedLocal": true,
+  "installedLocal": true,
+  "integratedCentral": false,
+  "deployedStaging": false,
+  "deployedPublic": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "releaseStates": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "publicUrls": [],
+  "healthUrls": [],
+  "artifactUrls": [],
+  "sha256": {},
+  "bytes": {},
+  "ciArtifactEvidence": "release/evidence/pay-exact-source-ci-2026-07-30.json",
+  "signingClass": {
+    "android": "no current source-bound artifact",
+    "ios": "unsigned iOS Simulator artifact retained by GitHub Actions for 30 days; not a production/device signature"
+  },
+  "minOS": {
+    "androidSdk": 24,
+    "ios": "16.4"
+  },
+  "installEvidence": [
+    {
+      "platform": "ios-simulator",
+      "sourceCommit": "6cbac9f4654b5715d32f1e561819e593c868a6f1",
+      "runId": 30575350364,
+      "jobId": 90982124588,
+      "bundleId": "com.ynxweb4.pay",
+      "result": "build, install, cold launch, app-container lookup and URL-scheme resolution passed",
+      "boundary": "unsigned Simulator only; URL-scheme screenshot stops at the iOS confirmation dialog"
+    }
+  ],
+  "localVerification": [
+    {
+      "command": "go test ./internal/payproduct/... -count=1",
+      "result": "pass",
+      "verifiedAt": "2026-07-29",
+      "details": "Re-ran after merging current main. Fixture migration, immutable backup, verified restore, rollback, corrupt-destination quarantine, wrong-key/corruption/future-version rejection and fail-closed CLI parsing passed."
+    },
+    {
+      "command": "go test -race ./internal/payproduct/... -count=1",
+      "result": "pass",
+      "verifiedAt": "2026-07-29",
+      "warning": "non-fatal macOS linker LC_DYSYMTAB warning"
+    },
+    {
+      "command": "go vet ./internal/payproduct/...",
+      "result": "pass",
+      "verifiedAt": "2026-07-27"
+    },
+    {
+      "command": "npm run check",
+      "cwd": "apps/pay",
+      "result": "pass",
+      "verifiedAt": "2026-07-27",
+      "details": "TypeScript passed, 13 tests passed, and Android/iOS Hermes bundles exported. Split consumer flow and Quant Invoice v5/service-bill verification, external Ed25519 evidence, independent high-water-mark recalculation and 12-language review are covered locally."
+    },
+    {
+      "command": "bash internal/payproduct/smoke.sh",
+      "result": "pass",
+      "verifiedAt": "2026-07-27",
+      "details": "Go Pay, Merchant Console 7 tests/build, Pay tests/typecheck and Android/iOS bundles passed."
+    },
+    {
+      "command": "make pay-api-check",
+      "result": "pass",
+      "verifiedAt": "2026-07-27"
+    },
+    {
+      "command": "go test ./... -count=1",
+      "result": "fail-outside-pay",
+      "verifiedAt": "2026-07-27",
+      "details": "Pay package passed. Unchanged Consensus/Faucet/Trust permission tests failed in the current host environment and unchanged IDE tests lacked a generated contract artifact."
+    },
+    {
+      "command": "npm run check",
+      "cwd": "apps/pay",
+      "result": "pass",
+      "verifiedAt": "2026-07-29",
+      "details": "TypeScript, 13 unit tests, Android/iOS/Web exports and 2 Chromium Web/PWA keyboard/accessible-name/390px/Arabic RTL checks passed."
+    },
+    {
+      "command": "govulncheck, npm audit high gate, secret scan, module verify and deterministic build",
+      "result": "pass",
+      "verifiedAt": "2026-07-29",
+      "details": "Security and dependency checks passed for source 0600d5ab87a9062ccc5b757affe30e234f1b7730. Its reproducible binaries and CycloneDX SBOMs are unsigned, unhosted, and not current-source artifacts for this integration commit."
+    },
+    {
+      "command": "GitHub Actions exact-source ci",
+      "result": "pass",
+      "verifiedAt": "2026-07-30",
+      "details": "Run 30575350364 passed the exact SHA identity gate, the full test job, Xcode 26.2 unsigned YNX Pay and YNX Card Simulator builds, and Pay bundle-ID/install/cold-launch/app-container/URL-scheme-resolution checks."
+    }
+  ],
+  "centralIntegration": "Chain Core, Wallet/Auth, Oracle, Bridge, Data Fabric and Security/SRE dependencies have central acceptance receipts. Pay itself remains unaccepted until 29-integration merges the exact owner source and records Pay-specific central tests; draft owner validation PR 29 is not that acceptance.",
+  "historicalEvidence": {
+    "androidApkSha256": "14698734aef4d1d5b4b33eedae328d3fcfd37c161a949bd2a89ff3419bc15a44",
+    "androidApkBytes": 102623957,
+    "signingClass": "debug/test certificate",
+    "sourceBoundToCurrentCommit": false,
+    "installFailureEvidence": "evidence/android/anr-emulator-failure.png"
+  },
+  "knownLimitations": [
+    "Fresh authoritative Testnet payment, two-account Split flow, sponsorship receipt and refund proof are blocked on accepted central Gateway/Testnet deployment.",
+    "Exact-source unsigned iOS Simulator install and cold-launch evidence exists; Android install/cold-launch, production-signed iOS device evidence and store evidence remain absent.",
+    "The public health endpoint is online but reports build 98a18815d4ee rather than the current Pay candidate; there is no current-source public service URL, hosted immutable artifact, production signature or store release.",
+    "Quant verification is implemented locally, but no Quant/Data Fabric verifier key, staging evidence stream, or fresh Testnet service-fee payment has been accepted by the integration owner.",
+    "Local fixture migration, backup, restore, rollback and corruption recovery are verified; production-volume RTO/RPO and remote backup retention remain incomplete.",
+    "Observability and a 1,000-request local loopback capacity gate are tested, but deployed dashboards/alerts, staging workload capacity and invoice-backed unit economics remain incomplete.",
+    "Web/PWA export and functional keyboard/RTL/390px checks pass; complete dark-theme, 200% large-text and manual screen-reader acceptance remain incomplete.",
+    "Stablecoin and Bridge production-capable providers remain unavailable until approved owner/provider contracts exist."
+  ],
+  "generatedAt": "2026-07-30T19:45:00Z"
+}

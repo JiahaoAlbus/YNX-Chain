@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-FINANCIAL-ADAPTER-SOURCE-AUDIT-78F41349-20260821",
+  "checkedAt": "2026-08-20T18:09:47Z",
+  "walletProtocolCheckpoint": {
+    "commit": "78f4134947330ee4f26331f600cf51a4aca80ec9",
+    "parent": "95253de9c502335285dbb626ebd7ae37c14d6e5f",
+    "tree": "3eb3fd7a75e3838c8f51c0e372808f06624ee607",
+    "branch": "codex/wallet-session-router-recovery",
+    "remoteReadable": true,
+    "changedFiles": 4,
+    "ownerEvidence": {
+      "path": "release/integration/wallet-product-session-financial-adapters-checkpoint-20260821.json",
+      "blob": "f63f038c5caa61ce2baff7cde1a331418ca8cc6b"
+    }
+  },
+  "acceptedWalletAuthSource": "203be5e108be468350591615a64d5d36ab87a8f1",
+  "products": [
+    {
+      "productId": "exchange",
+      "sourceCommit": "ffc5cf89fbba81bf439835350bb91d09ece158ab",
+      "sourceTree": "4f398e5ca42dea03606ea9559561b0d2491b7144",
+      "remoteReadable": true,
+      "centralSourceAccepted": true,
+      "rootFactoryConsumed": true,
+      "standardWalletRemainsIndependent": true,
+      "endpointOriginCallbackSessionInjectionAllowed": false,
+      "ownerTestsPassed": 9,
+      "ownerTypecheckPassed": true,
+      "runtimeRootFactoryVerified": false,
+      "distinctPublicV2RouteVerified": false,
+      "installedOrBrowserApprovalVerified": false,
+      "migratedV2": false
+    },
+    {
+      "productId": "dex",
+      "sourceCommit": "aa5d4e5b5999a1dee28ce41adcc509abe96f95e9",
+      "sourceParent": "acee458bdf19bd460d73a20ddfb3ed62cb9da80f",
+      "sourceTree": "3e5afc0576cb0abb23dd3d614a30da95e589829a",
+      "remoteBranch": "codex/final-dex",
+      "remoteReadable": true,
+      "localAheadCount": 0,
+      "changedBlobReadback": "8/8",
+      "centralSourceAccepted": true,
+      "ownerReportedRootFactoryConsumed": true,
+      "protectedBrowserSignerAndStorageVerified": false,
+      "fullUiPassed": false,
+      "fullUiBlocker": "EXISTING_TEST_ENVIRONMENT_LOCALSTORAGE_UNAVAILABLE",
+      "runtimeRootFactoryVerified": false,
+      "distinctPublicV2RouteVerified": false,
+      "installedOrBrowserApprovalVerified": false,
+      "migratedV2": false
+    },
+    {
+      "productId": "quant",
+      "sourceCommit": "f66fd4d14ff047efa6bb7e66fc2e140773826b16",
+      "sourceParent": "5cd5a9a9efc2883f6e1fab7378bee7e581cf38d6",
+      "sourceTree": "ab2cb8c7704e680fcf8451f9bd44103aaef163ff",
+      "remoteBranch": "codex/quant-owner-contract-snapshot",
+      "remoteReadable": true,
+      "localAheadCount": 0,
+      "changedBlobReadback": "8/8",
+      "centralSourceAccepted": true,
+      "ownerReportedRootFactoryConsumed": true,
+      "protectedBrowserSignerAndStorageVerified": false,
+      "runtimeRootFactoryVerified": false,
+      "distinctPublicV2RouteVerified": false,
+      "installedOrBrowserApprovalVerified": false,
+      "migratedV2": false
+    }
+  ],
+  "websiteTimelineAudit": {
+    "ownerReportedSource": "a7313313014bb8792f38e649e9f556dbee983c8c",
+    "ownerReportedDeploymentId": "dpl_5oP2L2ZHvP13YH3ZYWySLD49pj3P",
+    "remoteMainAtAudit": "3f5bb28d00b808d5c6827093319c50befea875b8",
+    "ownerReportedSourceIsRemoteMain": false,
+    "centralAcceptedDeploymentId": "dpl_awLjPQTGudm2huQmNHPk9UpmugfV",
+    "centralAcceptedVisibleEvidenceRetained": true,
+    "ownerReportedComputerControlCurrentDeploymentVerified": false,
+    "ownerReportedComputerControlFailure": "CG_WINDOW_NOT_FOUND",
+    "ownerObservationOverridesCentralP0023": false,
+    "currentPublicReadback": {
+      "apexAndWwwDocsStatus": 200,
+      "apexAndWwwDocsBytes": 4748,
+      "apexAndWwwDocsSha256": "d4ab589c6b113e95168d0d2d2032c1792c7d1ad990d287f298efb8b130bafa1f",
+      "apexAndWwwRuntimeStatus": 200,
+      "apexAndWwwRuntimeBytes": 1900,
+      "apexAndWwwRuntimeSha256": "635fefdcc1cd5675a1787a9bf17c87102ccadd1c8232450be7b847333fe75941",
+      "runtimeSource": "6cf3ef845202bd879ed94515a71b323dd2fc9e14"
+    }
+  },
+  "truth": {
+    "exchangeMigratedV2": false,
+    "dexMigratedV2": false,
+    "quantMigratedV2": false,
+    "productsMigratedV2": 0,
+    "installedApprovalVerified": false,
+    "publicProductLifecycleVerified": false,
+    "deployedPublic": false,
+    "integratedCentral": false,
+    "aggregateDeployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

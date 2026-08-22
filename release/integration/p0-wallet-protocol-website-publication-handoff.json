@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "handoffId": "P0-WALLET-CONNECTIVITY-2026-08-public-runtime-website-publication",
+  "status": "PUBLISHED_PENDING_NONDISRUPTIVE_ROLLBACK_EXERCISE",
+  "issuedBy": "02-wallet-auth-central-integration",
+  "issuedAt": "2026-08-20T10:10:02Z",
+  "owner": "website-owner",
+  "source": {
+    "publicRuntimeEvidenceCommit": "b30775951dcea09bf6b72aeb4806f47ff81b3bef",
+    "publicRuntimeEvidenceBlob": "6e42677719fca8c591d77eb02548b4ab0cc7b76d",
+    "publicRuntimeEvidencePath": "packages/wallet-auth/integration/p0-wallet-protocol-public-runtime-evidence-20260820.json",
+    "runtimeSourceCommit": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
+    "deploymentRegistrySha256": "ae156b317b9a97bfd42397cca634021deefe10ffb009102899e24276d8721e31",
+    "publicBaseUrl": "https://wallet-auth.ynxweb4.com"
+  },
+  "allowedPublication": [
+    "publish exact Wallet Auth runtime source registry digest and verified route status",
+    "link exact evidence commit without copying secrets or private host paths",
+    "state public CORS lifecycle restart replay revoke and rollback as verified"
+  ],
+  "prohibitedClaims": [
+    "installed Wallet client verified",
+    "standard wallet connection verified",
+    "account sign send or transaction verified",
+    "integratedCentral",
+    "aggregate ecosystem public ready",
+    "production signed",
+    "store released"
+  ],
+  "verificationRequired": [
+    "merge through Website owner review with exact source binding",
+    "production deployment Ready on official YNX domains",
+    "HTTP 200 backread of exact runtime metadata from every official alias",
+    "visible Browser acceptance shows exact source and all prohibited claims false",
+    "rollback anchor and post-rollback verification recorded"
+  ],
+  "releaseTruth": {
+    "websitePublished": true,
+    "visibleBrowserAcceptance": true,
+    "installedClientVerified": false,
+    "standardWalletConnectionClientVerified": false,
+    "integratedCentral": false,
+    "aggregatePublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "websitePublication": {
+    "websiteRepository": "https://github.com/JiahaoAlbus/YNX-Chain-website",
+    "websiteCommit": "c7e70361a1f6d814591ccce7d5cdd49049e484c3",
+    "productionDeployment": "https://ynx-web4-website-88vglhwmw-jiahaoalbus-projects.vercel.app",
+    "officialAliases": ["https://ynxweb4.com", "https://www.ynxweb4.com", "https://wallet.ynxweb4.com"],
+    "metadataPath": "/releases/wallet-auth-runtime/49e30d999e9a9cbdd2c565021009f2cab0dc125c/runtime-publication.json",
+    "metadataBackread": {
+      "httpStatus": 200,
+      "bytes": 1545,
+      "sha256": "738bcfb51730d8f26ad08390b92c5d4be387948aa8dbaecd5220e103440b119c",
+      "allOfficialAliasesMatched": true
+    },
+    "visibleBrowserAcceptance": {
+      "exactRuntimeSourceVisible": true,
+      "exactEvidenceLinkVisible": true,
+      "installedWalletClientVerified": false,
+      "standardWalletConnectionVerified": false,
+      "accountSignSendTransactionVerified": false,
+      "integratedCentral": false,
+      "aggregatePublicReady": false,
+      "productionSigned": false,
+      "storeReleased": false
+    },
+    "rollback": {
+      "websiteCommitAnchor": "c256c450bd09223db5c42f81f73d07bcbe7cde02",
+      "previousProductionDeployment": "https://ynx-web4-website-lupaut1o9-jiahaoalbus-projects.vercel.app",
+      "recoveryMethod": "revert c7e70361a1f6d814591ccce7d5cdd49049e484c3 on main, verify, then use the repository production deployment command",
+      "postRollbackVerification": "NOT_EXECUTED: a production rollback would temporarily remove a verified public record and was not needed to publish it."
+    },
+    "productionRefresh": {
+      "refreshedAt": "2026-08-20T11:05:26Z",
+      "websiteCommit": "c7e70361a1f6d814591ccce7d5cdd49049e484c3",
+      "productionDeployment": "https://ynx-web4-website-co59n0d3u-jiahaoalbus-projects.vercel.app",
+      "deploymentStatus": "READY",
+      "metadataBackread": {
+        "officialAliases": [
+          "https://ynxweb4.com",
+          "https://www.ynxweb4.com",
+          "https://wallet.ynxweb4.com"
+        ],
+        "httpStatus": 200,
+        "bytes": 1545,
+        "sha256": "738bcfb51730d8f26ad08390b92c5d4be387948aa8dbaecd5220e103440b119c",
+        "runtimeSourceCommit": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
+        "allOfficialAliasesMatched": true
+      },
+      "computerControl": {
+        "officialDocsVisible": true,
+        "exactRuntimeSourceVisible": true,
+        "exactEvidenceLinkVisible": true,
+        "prohibitedClaimsRemainFalse": true
+      },
+      "rollback": {
+        "anchorUnchanged": "c256c450bd09223db5c42f81f73d07bcbe7cde02",
+        "postRollbackVerification": "NOT_EXECUTED: this refresh redeployed the same verified website commit and did not justify temporarily removing the public evidence."
+      }
+    }
+  }
+}

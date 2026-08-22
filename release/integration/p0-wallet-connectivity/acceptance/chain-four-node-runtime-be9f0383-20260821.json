@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-037",
+  "acceptedAt": "2026-08-20T17:13:37Z",
+  "classification": "four-node-testnet-runtime",
+  "sourceCommit": "be9f03833ac3a7579bd96f22f6bf49f3d8dccc7b",
+  "evidenceCommit": "0be8967deefb08ecf9f1e14efe6f11ea621f6c5c",
+  "release": "ynx-chain-be9f03833ac3",
+  "binarySha256": "eb96a2d09859f041221917489589100f5a94ef0bbf4f5ad4f6fcf5c753846fd4",
+  "releaseManifestSha256": "8ff7a9392b8ca7bc01ed18556cbdadd0ce7326cfb4214421349576228cd0f7f8",
+  "fixedHeight": 1130847,
+  "fixedHeightHash": "09726910121017a2ca54eaf317af0681b4e354a23366aace46b49dcbca9d0842",
+  "matchingNodes": ["primary", "singapore", "silicon-valley", "seoul"],
+  "followersSynced": true,
+  "postRolloutRestartsZero": true,
+  "postRolloutOomObserved": false,
+  "soakReadbackAccepted": true,
+  "seoulV2PeerActive": true,
+  "runtimeVerified": true,
+  "publicDomainVerified": false,
+  "computerControlVerified": false,
+  "mainnetReady": false,
+  "boundaries": [
+    "This accepts the four-node Testnet runtime and fixed-height convergence only.",
+    "It does not prove an official public domain, Explorer rendering, Wallet connectivity, product migration or installed client.",
+    "It does not authorize a mainnet claim."
+  ]
+}

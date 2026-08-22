@@ -1,0 +1,90 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-141",
+  "owner": "financial-apps",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_PREWRITE_NONREUSABLE",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-50892538-20260821T131500Z",
+  "issuedAt": "2026-08-21T13:15:00Z",
+  "expiresAt": "2026-08-21T14:00:00Z",
+  "singleUse": true,
+  "reusable": false,
+  "executionAuthorized": false,
+  "consumedAt": "2026-08-21T13:22:43Z",
+  "releasedAt": "2026-08-21T13:24:12Z",
+  "branch": "codex/p0-finance-wallet-connectivity-20260820",
+  "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
+  "source": {
+    "commit": "50892538dc237ef519d95c491f4b918a125a6c8e",
+    "tree": "bd83a62e63cce0db7435c79e7b6dd0f116788f76",
+    "evidenceCommit": "fd0f1367c4642e843d514727fc838773ad4b9b1a"
+  },
+  "artifact": {
+    "localPath": "/tmp/ynx-finance-release-508.lQp4vS/ynx-finance-50892538dc237ef519d95c491f4b918a125a6c8e-offline-complete-linux-amd64.tar.gz",
+    "bytes": 6812744,
+    "sha256": "d35f2e155ae3802b07048dd6f045b63ba477adeb1b12bc381d6e170294290915",
+    "candidateBinaryBytes": 11965655,
+    "candidateBinarySha256": "39b97d6cea11bc53bf1f918e6b3ea4257c19672ba671a1fb73d14e3420169ce3"
+  },
+  "productionBinding": {
+    "host": "43.153.202.237",
+    "port": 22,
+    "user": "ubuntu",
+    "identityFile": "/Users/huangjiahao/Downloads/Huang.pem",
+    "strictHostKeyChecking": true,
+    "activeRuntime": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a",
+    "candidateRuntime": "/opt/ynx/releases/finance/ynx-finance-50892538dc23",
+    "currentSourceCommit": "3b2383f5c18ab3eb5ce7f7f6a267d2cfe7c7e6a4",
+    "currentBinarySha256": "0cc43c8a77c12975a0fcbada65971f08f2bc3a52345d547ea194dd3ccd60d83f",
+    "unitSha256": "2e72cdad422a3a714c46d074ea97b725233576cf726dbbfd43e82e99c2c2975b",
+    "environmentSha256": "854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252",
+    "dropInSha256": "ae13bc19e87b97f55a0bc4c1a8b59bdfe217deda18213003142a796b1307c397",
+    "caddySha256": "dcf75a7aed315c54632321b8bb80e44c0abc22f6700fadfbfa9a7da21b88a282",
+    "currentPublicVersionBytes": 130,
+    "currentPublicVersionSha256": "39789776da47e60b7a7df845789e02ebba16707ad8951eb6f27c84c1b40bb226",
+    "currentPublicHealthBytes": 485,
+    "currentPublicHealthSha256": "d1e97a4314acd1ecccf94629d15bd598cb58ff78136b3622ac26d583a82e45c1",
+    "serviceState": "active",
+    "serviceRestarts": 0
+  },
+  "requiredPostDeployment": {
+    "versionBytes": 159,
+    "versionSha256": "fd7c2b34b1ae45a6e47d97caecac5407661aff2d4a2daf3efd081b66418ab9b2",
+    "healthHttp": 200,
+    "versionHttp": 200,
+    "sourceCommit": "50892538dc237ef519d95c491f4b918a125a6c8e"
+  },
+  "requirements": [
+    "Revalidate all bound current production digests immediately before the first write.",
+    "Verify exact uploaded archive bytes and SHA-256 on the host before extraction.",
+    "Create rollback-first backups of the current runtime and all bound configuration.",
+    "Activate only the exact candidate binary and source commit in this lease.",
+    "Verify service active with zero unexpected restart and exact public version/health identity.",
+    "On any mismatch, stop, roll back to the exact bound runtime, verify public recovery, and report the first failure.",
+    "Consume and release this lease after the first execution attempt; no retry under this lease."
+  ],
+  "truthBoundaries": {
+    "productSessionV2": false,
+    "installedWalletVerified": false,
+    "walletApprovalVerified": false,
+    "signatureVerified": false,
+    "transactionVerified": false,
+    "computerControlVerified": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "outcome": {
+    "classification": "PREWRITE_ROLLBACK_BINARY_PATH_MISMATCH",
+    "expectedCurrentBinaryPath": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a/bin/ynx-finance",
+    "productionWriteAttempted": false,
+    "archiveUploaded": false,
+    "candidateActivated": false,
+    "serviceRestarted": false,
+    "oldRuntimeHealthy": true,
+    "ownerEvidenceCommit": "02a482b9c714525dc8c5fd0dd820767cbbf63c67",
+    "ownerEvidenceTree": "bc1963bb10333bbe1a29003ccc903a768952366b",
+    "ownerEvidencePath": "apps/finance/evidence/p0-141-finance-production-deployment-failure-20260821.json",
+    "ownerEvidenceSha256": "95b63b2b62db59d79ec0629a4adce4354875f44d7eb19ead20509363a24e9891",
+    "retryAllowed": false
+  }
+}

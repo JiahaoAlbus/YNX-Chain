@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-103",
+  "decision": "SOURCE_BUILD_CHECKPOINT_ACCEPTED_DEVICE_BOOT_BLOCKED",
+  "acceptedAt": "2026-08-21T04:03:05Z",
+  "owner": "financial-apps",
+  "branch": "codex/p0-finance-wallet-connectivity-20260820",
+  "checkpointCommit": "2121771fbde27c8c960bd5eab2b6501187c14a3a",
+  "checkpointTree": "822ce41a5eb46732dfcfb5c954e93e89ed4c4921",
+  "evidencePath": "apps/finance/evidence/p0-103-canonical-authorize-20260821.json",
+  "evidenceSha256": "c19769dbe40282016f42fc96720c8d1a8fea6b6959e44fe107e821dd652a490c",
+  "tests": "typecheck; mobile 11/11; Finance contract 3/3; endpoint manifest; canonical scanner 8 files; Android/iOS bundles; Android debug build",
+  "androidApkSha256": "6430c61aa5e50c5dc50d11800abccae1d5d2943f0a88edf10ed396faf245a010",
+  "androidApkBytes": 155433678,
+  "deviceAttempts": ["YNX_WALLET_FINAL", "YNX_WALLET_FINAL_1GB_RETRY", "YNX_WALLET_101_QA"],
+  "androidBootCompleted": false,
+  "apkInstalled": false,
+  "walletApproveRejectCallbackVerified": false,
+  "migratedV2": false,
+  "deployedPublic": false,
+  "computerControlVerified": false
+}

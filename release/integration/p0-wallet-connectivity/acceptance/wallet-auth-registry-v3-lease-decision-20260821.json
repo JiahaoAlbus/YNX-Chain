@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "acceptanceId": "P0-048-WALLET-AUTH-REGISTRY-V3-LEASE-DECISION-20260821",
+  "taskId": "P0-048",
+  "decision": "NO_GO_DEPLOYABLE_ARTIFACT_AND_HEAVY_SLOT_BLOCKED",
+  "acceptedSourceTask": "P0-046",
+  "sourceEvidence": {
+    "path": "release/integration/p0-wallet-connectivity/evidence/wallet-auth-registry-v3-lease-decision-20260821.json"
+  },
+  "blockers": [
+    "A960_DEPLOYABLE_SOURCE_AND_OFFLINE_DEPENDENCY_ARTIFACTS_NOT_FROZEN",
+    "P0_015_ACTIVE_PROTECTED_SEQUENTIAL_FOLLOWER_DEPLOYMENT_NOT_RELEASED"
+  ],
+  "truth": {
+    "p0039LeaseReusable": false,
+    "executionLeaseIssued": false,
+    "executionLeaseId": null,
+    "leaseExpiry": null,
+    "sshUsed": false,
+    "deploymentAttempted": false,
+    "productionMutation": false,
+    "migrationExecuted": false,
+    "rollbackExecuted": false,
+    "candidateDeployedPublic": false,
+    "publicRegistryV3": false,
+    "productsMigratedV2": 0,
+    "computerControlVerified": false,
+    "integratedCentral": false,
+    "aggregateDeployedPublic": false
+  }
+}

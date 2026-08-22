@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-146",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-7824-source-build-20260821T171613Z",
+  "owner": "financial-apps",
+  "branch": "codex/p0-finance-wallet-connectivity-20260820",
+  "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
+  "issuedAt": "2026-08-21T17:16:13Z",
+  "expiresAt": "2026-08-21T17:46:13Z",
+  "singleUse": true,
+  "reusable": false,
+  "productionMutationAllowed": false,
+  "sourceCommit": "7824af677dd052d20321431381523ab302614d98",
+  "sourceTree": "3db34ee2397a49852bbdf15e3841e7c9cecf9444",
+  "sharedProviderCommit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+  "sharedProviderTree": "51a60a362d4ad5dd748bcdefb101f71b1d9e0cee",
+  "requiredOutputs": [
+    "exact Linux amd64 archive path, bytes and SHA-256",
+    "exact env migration diff without secret values",
+    "fresh rollback binary/env/unit/Caddy digest manifest",
+    "source/build tests and fail-closed evidence"
+  ],
+  "forbidden": ["SSH", "SCP", "service stop or restart", "symlink change", "environment write", "Caddy write", "production claim"],
+  "p0141Reusable": false
+}

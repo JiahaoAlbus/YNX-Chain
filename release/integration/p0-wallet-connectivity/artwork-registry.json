@@ -1,0 +1,17 @@
+{
+  "schemaVersion":"1.1.0",
+  "campaignId":"P0-WALLET-CONNECTIVITY-2026-08",
+  "policy":{"brand":"YNX Klein Blue, white, neutral black and gray","requirements":["original-vector-source","product-specific-motif","non-distorted-logo","app-icon","launch-splash","download-cover","installer-cover","platform-icons","real-screenshots","sha256","source-commit"],"prohibited":["shared-generic-blue-square","default-framework-icons","stretched-logo","copied-third-party-branding","low-resolution-assets"]},
+  "inventoryAuthority":"release/integration/product-registry.json",
+  "entries":[
+    {"productId":"02","product":"YNX Wallet","owner":"wallet-platform","publicInstallStatus":"hosted-testnet-preview","artworkVersion":null,"observed":{"androidIcons":true,"iosAppIcon":true,"androidSplash":true,"realScreenshots":true,"sourceVector":false},"evidencePaths":["apps/wallet/android/app/src/main/res/mipmap-*","apps/wallet/android/app/src/main/res/drawable-*/splashscreen_logo.png","apps/wallet/ios/YNXWallet/Images.xcassets/AppIcon.appiconset","apps/wallet/proof/ynx-wallet-cold-launch.png"],"status":"INCOMPLETE_SOURCE_VECTOR_AND_PLATFORM_INVENTORY"},
+    {"productId":"03","product":"YNX Social","owner":"integration-unassigned","publicInstallStatus":"hosted-testnet-preview","status":"UNVERIFIED_OWNER_BRANCH_EVIDENCE_REQUIRED"},
+    {"productId":"07","product":"YNX Exchange","owner":"financial-apps","publicInstallStatus":"hosted-testnet-preview","status":"UNVERIFIED_OWNER_BRANCH_EVIDENCE_REQUIRED"},
+    {"productId":"11","product":"YNX Developer","owner":"developer-sdk","publicInstallStatus":"hosted-testnet-preview","status":"UNVERIFIED_OWNER_BRANCH_EVIDENCE_REQUIRED"},
+    {"productId":"15","product":"YNX Trust Center","owner":"integration-unassigned","publicInstallStatus":"hosted-testnet-preview","status":"UNVERIFIED_OWNER_BRANCH_EVIDENCE_REQUIRED"},
+    {"productId":"22","product":"YNX Browser","owner":"integration-unassigned","publicInstallStatus":"hosted-testnet-preview","status":"UNVERIFIED_OWNER_BRANCH_EVIDENCE_REQUIRED"},
+    {"productId":"24","product":"YNX Finance","owner":"financial-apps","publicInstallStatus":"hosted-testnet-preview","status":"UNVERIFIED_OWNER_BRANCH_EVIDENCE_REQUIRED"},
+    {"productId":"09","product":"YNX Shop Android","owner":"integration","publicInstallStatus":"retirement-in-progress","status":"HISTORICAL_ARTIFACT_ONLY","replacement":"https://shop.ynxweb4.com/shop/"}
+  ],
+  "status":"P0_INVENTORY_STARTED"
+}

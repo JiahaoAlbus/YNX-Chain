@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-151",
+  "owner": "integration,wallet-ios,wallet-macos",
+  "status": "CLEAN_PATH_SCOPED_PR_OPEN_CI_AND_REVIEW_PENDING_NO_DISPATCH",
+  "currentMain": "babfc57cebf60eadaec51398202de11cda742901",
+  "pullRequest": {
+    "number": 133,
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/pull/133",
+    "head": "a85c273a2454d9f72cb89198caa42ef63d5a9436",
+    "tree": "60dc1eab21983a7b2d7546c71189fe0a77589659",
+    "base": "babfc57cebf60eadaec51398202de11cda742901",
+    "mergeableAtRecord": true,
+    "reviewDecisionAtRecord": "REVIEW_REQUIRED"
+  },
+  "supersededUnsafeInput": {
+    "pullRequest": 132,
+    "reviewedCheckpoint": "5f7d27aae1bdb1bf4412be7266d3771cd0f075fe",
+    "pollutedHead": "870a241f87414cb45abc58ad98d5ede7aad93bfd",
+    "reason": "Later head mixed unrelated Governance, Finance and Wallet-root paths into a native main-registration PR.",
+    "forcePushUsed": false,
+    "mergeAllowed": false
+  },
+  "integratedPaths": [
+    ".github/workflows/wallet-ios.yml",
+    ".github/workflows/wallet-macos.yml",
+    "apps/wallet/ios/**",
+    "apps/wallet/macos/**"
+  ],
+  "preservedMainAuthority": {
+    "centralRegistryBlob": "7275720f0e5020da4e106bef187c22af6f836137",
+    "centralRegistrySha256": "28f6e27562493501a26a0bae5fcaa0492e16b7e84845d95a0d5056ba1690717a"
+  },
+  "localGates": {
+    "appleOperatorInputs": true,
+    "iosProductionSource": true,
+    "macosNotarizedSource": true,
+    "macosEngineeringSource": true,
+    "ciTriggerIsolation": true,
+    "workflowYaml": true,
+    "diffCheck": true,
+    "swiftTests": false,
+    "swiftTestsBlocker": "LOCAL_COMMANDLINETOOLS_DUPLICATE_APPLE_PLATFORM_SPEC_REGISTRATION"
+  },
+  "hostedExactHead": {
+    "status": "IN_PROGRESS",
+    "sourceCommit": "a85c273a2454d9f72cb89198caa42ef63d5a9436",
+    "inheritedFromOlderHead": false
+  },
+  "execution": {
+    "leaseIssued": false,
+    "protectedEnvironmentApproved": false,
+    "macosPublicationDispatched": false,
+    "iosDistributionDispatched": false,
+    "archiveCreated": false,
+    "uploadPerformed": false,
+    "releaseCreated": false
+  },
+  "truth": {
+    "mainRegistered": false,
+    "productionSigned": false,
+    "notarized": false,
+    "testFlight": false,
+    "appStore": false,
+    "installedProviderParity": false,
+    "walletParityComplete": false
+  }
+}

@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-046-WALLET-AUTH-REGISTRY-V3-HERMETIC-PREFLIGHT-A960D100-20260821",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "reviewer": "integration",
+  "reviewedAt": "2026-08-20T18:38:00Z",
+  "source": {
+    "commit": "a960d1007e7952c2af591d39e3673f1d9fe50e62",
+    "tree": "8170c4d8c24955564bf1cbe7852b8a883a44f1b4",
+    "parent": "0f8cb1da72742cb988d72868f5b2acc4ff34a93a",
+    "evidenceCommit": "98150b1fe0a985142c5717dcc478a918e0fe7bf9",
+    "evidenceTree": "8bb5cbb779a7e4d8d642502e723ef6c462d7f569"
+  },
+  "independentReview": {
+    "changedPathsRestrictedToWalletAuthAndEvidence": true,
+    "diffCheckPassed": true,
+    "fullWalletAuthTests": {
+      "command": "npm ci --ignore-scripts && npm test",
+      "passed": 347,
+      "failed": 0,
+      "reproducibleFromExactSource": true
+    },
+    "package": {
+      "repeatCount": 2,
+      "repeatSha256Matched": true,
+      "sha256": "e354a19c155cfb0573113cffdcf9c639bc214e650a574a2b61e3339677a4bf1e",
+      "bytes": 180317,
+      "entries": 99
+    },
+    "fixtureBoundary": "The tracked deterministic fixture is source-bound and makes the tests hermetic. Its generatedArtifactSha256 metadata was not independently recomputed from a compiler artifact, so compiler provenance is not accepted by this review."
+  },
+  "productionPreflightBundle": {
+    "path": "release/integration/wallet-auth-registry-v3-production-preflight-bundle-20260821.json",
+    "gitBlob": "ef7388c8679ea3efb88923d0f5dcd30d6ad98a94",
+    "sha256": "bb3e68987d89a8d4f5937c6d13b7d097441e8a5e87d7959e707e419edb2ada86",
+    "bytes": 10905,
+    "containsSecretsOrStateContents": false,
+    "currentStateObservationMustBeRefreshedUnderNewLease": true,
+    "migrationStatus": "PREPARED_NOT_EXECUTED",
+    "rollbackStatus": "PREPARED_NOT_EXECUTED",
+    "sshOrDeploymentAttempted": false
+  },
+  "decision": {
+    "hermeticSourceAccepted": true,
+    "productionPreflightAccepted": true,
+    "executionLeaseIssued": false,
+    "p0039Reusable": false,
+    "requiredBeforeLease": [
+      "produce an exact deployable source archive and inventory bound to a960d1007e7952c2af591d39e3673f1d9fe50e62",
+      "produce an exact offline dependency runtime archive and SBOM bound to the same package-lock and source",
+      "independently verify archive SHA-256, bytes, entries and extraction layout",
+      "under any future fresh lease, re-read the current production state digest before copying or migrating"
+    ]
+  },
+  "truthBoundary": {
+    "currentPublicRuntimeSource": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "registryV3DeployedPublic": false,
+    "productionMutation": false,
+    "productsMigrated": 0,
+    "productsRequired": 12,
+    "computerControlVerified": false
+  }
+}

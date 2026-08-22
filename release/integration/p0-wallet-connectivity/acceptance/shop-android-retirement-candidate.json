@@ -1,0 +1,198 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-011",
+  "decision": "IDENTITY_SPLIT_CAPABILITY_CONSUMED_OWNER_RECORDS_REQUIRED",
+  "reviewedBy": "02-wallet-auth-central-integration",
+  "reviewedAt": "2026-08-20T10:52:00Z",
+  "ownerCandidate": {
+    "branch": "codex/p0-wallet-protocol-integration-20260820",
+    "featureCommit": "aff86fc5fb536039ea1eca0e76330bc87d626b44",
+    "featureParent": "19ffc5c6e8a5330bad7a4670b41c63c6b1d54ccf",
+    "featureTree": "08540bd1bfc2f5da7ccbb11d57551791efc9782e",
+    "supersedesFeatureCommit": "c614501353d7631a6e20da7431ac858c2e5a8868",
+    "handoffCommit": "a34d8a7b27d9b4179d259d1ecdb4078b408d0270",
+    "handoffTree": "ec3585459bfe4aed27655afcb7f7ea2c4133c9cb",
+    "handoffPath": "packages/wallet-auth/proposals/p0-wallet-connectivity/wallet-protocol/client-retirement-implementation-handoff.json",
+    "handoffBlob": "9f94f52e6d344db0415c415bcecc4098c91fc2fb",
+    "contractPath": "packages/wallet-auth/proposals/p0-wallet-connectivity/wallet-protocol/client-retirement-contract.json",
+    "contractBlob": "a80fb3891e93691d37c53ca1b43e64c1e56b04fa",
+    "frozenHandoffPath": "release/integration/p0-wallet-connectivity/evidence/shop-android-client-retirement-owner-handoff.json",
+    "frozenContractPath": "release/integration/p0-wallet-connectivity/evidence/shop-android-client-retirement-contract.json",
+    "changedScope": "packages/wallet-auth/** only"
+  },
+  "implementationScope": {
+    "registryVersion": 5,
+    "typedResponse": {
+      "httpStatus": 410,
+      "code": "CLIENT_RETIRED",
+      "requiredFields": [
+        "clientId",
+        "replacementURL",
+        "minimumClientVersion",
+        "correlationId"
+      ],
+      "cacheControl": "no-store"
+    },
+    "atomicRevocation": [
+      "productSessions",
+      "approvals",
+      "deviceGrants"
+    ],
+    "callbackAndAppLinkBlocking": true,
+    "legacyStateDigestAuthenticatedBeforeNormalization": true,
+    "exactDigestMigration": true,
+    "encryptedRollbackBackup": true,
+    "stateGuards": [
+      "owner",
+      "mode0600",
+      "nlink1",
+      "no-symlink"
+    ],
+    "standardEip1193Independent": true
+  },
+  "verification": {
+    "ownerReported": {
+      "walletAuthPassed": 131,
+      "walletAuthFailed": 0,
+      "packageDryRunIncludes": "scripts/apply-client-retirement.mjs",
+      "diffCheck": "passed",
+      "cliMigration": "atomic registryVersion2-to-3 proved"
+    },
+    "centralReplay": {
+      "walletAuthPassed": 131,
+      "walletAuthFailed": 0,
+      "packageDryRunIncludes": "scripts/apply-client-retirement.mjs",
+      "diffCheck": "passed",
+      "dependencySource": "existing read-only packages/wallet-auth/node_modules; no install or lockfile mutation"
+    }
+  },
+  "tupleReview": {
+    "currentDeploymentRegistryPath": "release/integration/p0-wallet-protocol-deployment-registry-v4.json",
+    "currentDeploymentRegistryBlob": "f11f73bb10943e6ae4e3ecd9f4e5bcedfb7b4701",
+    "currentRetirementRecordPath": "release/integration/p0-wallet-connectivity/client-retirement.json",
+    "currentRetirementRecordBlobBeforeReview": "427ea92926363ce1d434a026f17248233c149544",
+    "requestedRetiredAt": null,
+    "exactTuple": {
+      "requestingProduct": "shop",
+      "productClientId": "ynx-shop-v1",
+      "bundleId": "com.ynxweb4.shop",
+      "callback": "ynxshop://wallet-auth/callback"
+    },
+    "platformDiscriminatorPresent": false,
+    "androidEvidence": {
+      "commit": "1752f12534166b6216e5c91c9ce87ab11caea072",
+      "path": "apps/shop/native/android/app/src/main/java/com/ynxweb4/shop/WalletAuth.java",
+      "blob": "2809783afac2f93d56a00238114b3032694f7a2c",
+      "sharesExactTuple": true
+    },
+    "stillSupportedNativeClientEvidence": [
+      {
+        "platform": "ios",
+        "commit": "1752f12534166b6216e5c91c9ce87ab11caea072",
+        "path": "apps/shop/native/ios/YNXShop/WalletAuth.swift",
+        "blob": "cad8353baa35ada662c017da1480926dd6b967b3",
+        "projectBlob": "9c960e5e00633915976dfa4853ff3cf1217d8c0d",
+        "sharesExactTuple": true
+      }
+    ],
+    "stillSupportedWebClientEvidence": [
+      {
+        "platform": "web-pwa",
+        "commit": "1752f12534166b6216e5c91c9ce87ab11caea072",
+        "path": "apps/shop/wallet-auth.js",
+        "blob": "89059750a23707b8055d34039517fcf35a9a4539",
+        "sharesExactTuple": true
+      }
+    ],
+    "tupleUniquenessProved": false,
+    "conclusion": "Protocol capability can distinguish a retired legacy tuple after supported Shop clients move. No owner-supplied non-colliding supported productClientId/callback or authoritative retiredAt/disabled routes exists yet, so activation remains blocked.",
+    "capabilityToSplitAvailable": true,
+    "currentProductionTupleStillShared": true,
+    "reviewedSupportedProductClientId": null,
+    "reviewedSupportedCallback": null,
+    "authoritativeRetiredAt": null,
+    "reviewedDisabledCallbacks": null,
+    "reviewedDisabledAppLinks": null
+  },
+  "executionLease": {
+    "issued": false,
+    "leaseId": null,
+    "status": "BLOCKED_BEFORE_ISSUE",
+    "blocker": "SUPPORTED_SHOP_IDENTITY_AND_AUTHORITATIVE_RETIREMENT_RECORDS_NOT_ACCEPTED"
+  },
+  "requiredBeforeLease": [
+    "Shop owner supplies a reviewed supported productClientId and exact callback using existing signed fields.",
+    "iOS owner confirms and implements the supported Shop identity or explicitly records that iOS is retired separately.",
+    "Web/PWA owner confirms and implements its supported Shop identity and preserves the public replacement route.",
+    "Shop retirement owner supplies authoritative retiredAt, old clientId/package-or-bundle, disabled callbacks, disabled App Links, replacementURL and minimumClientVersion.",
+    "Integration verifies zero active/retired productClientId and callback collisions, then issues a separate bounded execution lease."
+  ],
+  "truth": {
+    "featureIntegratedCentral": false,
+    "featureDeployedPublic": false,
+    "publicRetirementVerified": false,
+    "installedClientVerified": false,
+    "remoteUninstallClaim": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "existingPublicRuntimeSource": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
+    "existingPublicRuntimeRemainsVerified": true,
+    "currentPublicRuntimeContainsFeature": false
+  },
+  "identitySplitCapability": {
+    "registryDocumentVersion": 3,
+    "retiredClientsIndependentTombstones": true,
+    "activeProductRegistrationRetained": true,
+    "supportedClientMustMoveBeforeRetirement": true,
+    "activeRetiredProductClientIdCollisionRejected": true,
+    "activeCallbackInDisabledCallbacksRejected": true,
+    "authorizationSchemaChanged": false,
+    "productSessionSchemaChanged": false,
+    "oldRegistryV2Migration": "only inside exact-digest encrypted-backup retirement transaction",
+    "existingOldTupleAuthorityRevokedAtomically": [
+      "sessions",
+      "approvals",
+      "deviceGrants"
+    ],
+    "oldCompletion": "410 CLIENT_RETIRED",
+    "migratedSupportedCompletion": "200",
+    "standardEip1193Independent": true
+  },
+  "ownerCoordination": {
+    "status": "AWAITING_THREE_OWNER_RECORDS",
+    "requests": [
+      {
+        "owner": "shop",
+        "required": [
+          "supportedProductClientId",
+          "supportedCallback",
+          "retiredClientId",
+          "retiredPackageOrBundle",
+          "retiredAt",
+          "disabledCallbacks",
+          "disabledAppLinks",
+          "replacementURL",
+          "minimumClientVersion"
+        ]
+      },
+      {
+        "owner": "ios-shop",
+        "required": [
+          "supportedIdentityConfirmation",
+          "implementationSourceCommit",
+          "callbackBinding"
+        ]
+      },
+      {
+        "owner": "web-pwa-shop",
+        "required": [
+          "supportedIdentityConfirmation",
+          "implementationSourceCommit",
+          "publicReplacementRoute"
+        ]
+      }
+    ],
+    "inventValues": false
+  }
+}

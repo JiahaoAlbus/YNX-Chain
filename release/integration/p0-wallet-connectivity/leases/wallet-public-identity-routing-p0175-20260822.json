@@ -1,0 +1,80 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-175",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-public-identity-routing-20260822T074225Z",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_CANDIDATE_UNREACHABLE_PREWRITE",
+  "owner": null,
+  "branch": "codex/website-wallet-public-identity-routing-20260822",
+  "worktree": "/Users/huangjiahao/Desktop/ynx-web4-website-new",
+  "issuedAt": "2026-08-22T07:42:25Z",
+  "expiresAt": "2026-08-22T08:12:25Z",
+  "releasedAt": "2026-08-22T07:56:13Z",
+  "singleUse": true,
+  "reusable": false,
+  "scope": "WALLET_OFFICIAL_DOMAIN_ALIAS_ONLY",
+  "current": {
+    "deploymentId": "dpl_Got2m9m84Sc3QDsrH8yu51W93JAe",
+    "immutableUrl": "wallet-mgwrbzwuy-jiahaoalbus-projects.vercel.app",
+    "officialIdentityUrl": "https://wallet.ynxweb4.com/build-identity.json",
+    "identityHttp": 200,
+    "identityBytes": 250,
+    "identitySha256": "b2f9b275a4295c6f1cd230daf2b39519a81c4cb3ecf361e820ace9195adbbf9b",
+    "sourceCommit": "uncommitted-source-tree"
+  },
+  "candidate": {
+    "deploymentId": "dpl_BMmwcxQj98uZdhumQLgmZ5bX5YZQ",
+    "immutableUrl": "wallet-d9hjin8u9-jiahaoalbus-projects.vercel.app",
+    "deploymentStatus": "READY",
+    "sourceCommit": "a9653f9f73eb79f77b45f04c845c4f56c012ab4b",
+    "sourceTree": "5cbf483decc37a6249420840e1d6b81bbafc9c2a",
+    "pwaSha256": "4d8e2e011f7113a80fb5a9541f710b86b2355f5e2fc176fd76a4a46ff94b0e7b"
+  },
+  "preSwitchRequired": {
+    "boundedAttemptsPerPath": 2,
+    "paths": ["/", "/build-identity.json", "/manifest.webmanifest", "/sw.js"],
+    "requirements": [
+      "all candidate paths return successful HTTP responses",
+      "build-identity content type is JSON and sourceCommit is the exact candidate source",
+      "service worker response is no-store",
+      "freeze HTTP status, bytes and SHA-256 for all four paths"
+    ],
+    "onFailure": "CONSUME_AND_RELEASE_WITH_ZERO_ALIAS_MUTATION"
+  },
+  "authorizedCommand": "vercel alias set wallet-d9hjin8u9-jiahaoalbus-projects.vercel.app wallet.ynxweb4.com --scope jiahaoalbus-projects",
+  "rollbackCommand": "vercel alias set wallet-mgwrbzwuy-jiahaoalbus-projects.vercel.app wallet.ynxweb4.com --scope jiahaoalbus-projects",
+  "postSwitchRequired": {
+    "officialOrigin": "https://wallet.ynxweb4.com",
+    "paths": ["/", "/build-identity.json", "/manifest.webmanifest", "/sw.js"],
+    "requirements": [
+      "direct official-domain HTTP status, bytes and SHA-256",
+      "exact candidate sourceCommit in JSON identity",
+      "service worker no-store",
+      "clean-browser visible page with stable URL and no blank tab"
+    ],
+    "onFailure": "IMMEDIATE_EXACT_ROLLBACK_AND_DIRECT_OLD_IDENTITY_READBACK"
+  },
+  "forbidden": [
+    "wallet owner source changes",
+    "other Website domains or routes",
+    "source, provider, account, signing, store or interoperability promotion without direct proof"
+  ],
+  "truthBeforeExecution": {
+    "currentSourceBoundPublic": false,
+    "installedProvider": false,
+    "parityComplete": false,
+    "productsConnected": "0/12"
+  },
+  "terminalResult": {
+    "candidateControlPlaneInspect": "READY_PRODUCTION_WALLET_WEB",
+    "candidateHttpsAttempt1": "TIMEOUT_20.004_SECONDS",
+    "candidateHttpsAttempt2": "IPV4_CONNECT_TIMEOUT_8.002_SECONDS_HTTP_000_ZERO_BYTES",
+    "fourResourcePreflightComplete": false,
+    "aliasCommandExecuted": false,
+    "rollbackNeeded": false,
+    "officialDomainChanged": false,
+    "officialSourceCommit": "uncommitted-source-tree",
+    "productionMutation": false,
+    "freshLeaseCondition": "independent candidate HTTPS reachability plus successful /, /build-identity.json, /manifest.webmanifest and /sw.js preflight"
+  }
+}

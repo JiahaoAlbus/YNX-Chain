@@ -1,0 +1,11 @@
+{
+  "proposalId":"P0-WALLET-CONNECTIVITY-2026-08-wallet-protocol-v1",
+  "status":"ACCEPTED",
+  "acceptedBy":"integration",
+  "acceptedAt":"2026-08-20T00:00:00Z",
+  "candidate":{"branch":"codex/p0-wallet-protocol-20260820","commit":"66003e76e804da16d472255efde50cb879055b96","pullRequest":"https://github.com/JiahaoAlbus/YNX-Chain/pull/104"},
+  "acceptedContracts":["walletTransport","eip1193Provider","eip6963Discovery","walletConnect","siwe","typedDataSigning","productSession","deviceProof","callback","errorContract"],
+  "testEvidence":{"ownerReported":"packages/wallet-auth npm test: 112/112 passed","candidateVector":"packages/wallet-auth/test/p0-wallet-connectivity-candidate.test.mjs"},
+  "acceptanceBoundary":"This accepts shared behavior and vectors only. No Wallet platform, SDK, DApp, public deployment, or installed-client repair is accepted by this record.",
+  "nextConsumers":["wallet-platform","developer-sdk","financial-apps","explorer-monitor"]
+}

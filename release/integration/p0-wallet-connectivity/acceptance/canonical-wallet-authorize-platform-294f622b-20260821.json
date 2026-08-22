@@ -1,0 +1,34 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "decision": "ACCEPTED_WALLET_PLATFORM_SOURCE_CONSUMPTION_DEVICE_EVIDENCE_PENDING",
+  "acceptedAt": "2026-08-21T03:18:11Z",
+  "contract": "canonicalWalletAuthorize@1.0.0-p0.0",
+  "sourceBranch": "codex/wallet-authorize-receiver-p0-20260821",
+  "sourceCommit": "294f622b7eaa50abccb69733f645b687d4990854",
+  "sourceTree": "90a2ce9c026c6a5639a43dd1e8324c174a8a184e",
+  "sourceParent": "688e426485ff3df0ccdde8bdcce335ca1b584d0a",
+  "evidencePath": "release/integration/wallet-authorize-receiver-canonical-contract-consumption-20260821.json",
+  "evidenceBlob": "62a1777903724f746624983bedd41bde4d984ae2",
+  "evidenceSha256": "28040bf995117e45addd37a40372da2e48c304e7cc7388db5f3d3b3a2349eb56",
+  "contractSha256": "e572042f18c1e32dfe86da26ee2ab52f9372c9803eae3b492c26932e50251c03",
+  "ownerValidation": {
+    "walletAuth": "114/114",
+    "walletApp": "62/62",
+    "typecheck": "PASS",
+    "noBareAuthorizeScanner": "PASS: 0 findings",
+    "diffCheck": "PASS"
+  },
+  "truth": {
+    "walletPlatformSourceConsumed": true,
+    "deviceVisibleReviewVerified": false,
+    "approveCallbackDeviceVerified": false,
+    "rejectCallbackDeviceVerified": false,
+    "coldStartRecoveryDeviceVerified": false,
+    "browserRoundTripVerified": false,
+    "productsMigrated": "0/12",
+    "deployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

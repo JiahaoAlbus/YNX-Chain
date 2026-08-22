@@ -762,23 +762,26 @@ function main() {
     const repository = product.repository ?? registry.defaultRepository;
     const externalRepository = repository !== registry.defaultRepository;
     const separateWorktree = externalRepository || product.separateWorktree === true;
+    const productBranch = product.id === "29" && product.controllerBranch
+      ? product.controllerBranch
+      : product.branch;
     const expectedExternalWorktree = path.join(finalWorktreesRoot, product.worktreeSlug);
     const repositoryRoot = separateWorktree ? expectedExternalWorktree : root;
     const repositoryOrigin = repositoryFromRemote(git(["remote", "get-url", "origin"], { allowFailure: true, cwd: repositoryRoot })?.trim() ?? null);
     const repositoryMatches = repositoryOrigin === repository;
-    const localRef = `refs/heads/${product.branch}`;
-    const remoteRef = `refs/remotes/origin/${product.branch}`;
+    const localRef = `refs/heads/${productBranch}`;
+    const remoteRef = `refs/remotes/origin/${productBranch}`;
     const localSha = refSha(localRef, repositoryRoot);
     const remoteSha = refSha(remoteRef, repositoryRoot);
     const distance = aheadBehind(localSha, remoteSha, repositoryRoot);
-    const branchConfigRemote = git(["config", "--get", `branch.${product.branch}.remote`], { allowFailure: true, cwd: repositoryRoot })?.trim() || null;
-    const branchConfigMerge = git(["config", "--get", `branch.${product.branch}.merge`], { allowFailure: true, cwd: repositoryRoot })?.trim() || null;
-    const expectedMerge = `refs/heads/${product.branch}`;
+    const branchConfigRemote = git(["config", "--get", `branch.${productBranch}.remote`], { allowFailure: true, cwd: repositoryRoot })?.trim() || null;
+    const branchConfigMerge = git(["config", "--get", `branch.${productBranch}.merge`], { allowFailure: true, cwd: repositoryRoot })?.trim() || null;
+    const expectedMerge = `refs/heads/${productBranch}`;
     const externalHead = refSha("HEAD", repositoryRoot);
     const externalBranch = git(["branch", "--show-current"], { allowFailure: true, cwd: repositoryRoot })?.trim() || null;
     const worktreeRecord = separateWorktree
       ? (repositoryMatches ? { path: repositoryRoot, head: externalHead, branch: externalBranch, detached: false } : null)
-      : worktreesByBranch.get(product.branch);
+      : worktreesByBranch.get(productBranch);
     const worktree = inspectWorktree(worktreeRecord);
     const commitForEvidence = localSha ?? remoteSha;
     const paths = treePaths(commitForEvidence, repositoryRoot);
@@ -834,7 +837,7 @@ function main() {
       id: product.id,
       product: product.product,
       repository,
-      branch: product.branch,
+      branch: productBranch,
       phase: product.phase,
       owner: product.owner,
       dependencies: product.dependencies,

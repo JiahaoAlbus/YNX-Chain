@@ -72,3 +72,5 @@ Product-owner state is never promoted automatically. Integration records an acce
 ## Prohibited promotions
 
 A candidate branch, Preview Release, test-signed build, simulator artifact, Website page or local smoke run cannot be represented as central integration, public runtime deployment, production signing, store release or Mainnet acceptance without direct evidence for that distinct state.
+
+P0 Wallet Protocol runtime remains publicly verified at source `49e30d99…` by evidence `b3077595…`; no runtime rollback occurred. Installed-client lease `…T101002Z` is closed at preflight with `NO_ELIGIBLE_SIGNED_INSTALLED_CLIENT`, Owner evidence `2d6c9aa3…` / blob `8974960c…`: only an ad-hoc localhost Edge shortcut and an Android emulator were present, with no native macOS Wallet or physical iOS target. No client flow or cleanup started. Standard wallet/account/sign/send/transaction, `integratedCentral`, Website publication, production signing, store and aggregate readiness remain false.

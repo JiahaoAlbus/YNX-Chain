@@ -1,0 +1,154 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-180",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-web-hosted-preflight-literal-refspec-20260822T084819Z",
+  "status": "CONSUMED_RELEASED_SUCCESS_HOSTED_CANDIDATE_PREFLIGHT",
+  "owner": null,
+  "issuedAt": "2026-08-22T08:48:19Z",
+  "expiresAt": "2026-08-22T09:18:19Z",
+  "releasedAt": "2026-08-22T08:53:23Z",
+  "singleUse": true,
+  "reusable": false,
+  "supersedesForExecutionOnly": "P0-179",
+  "scope": "EXACT_LITERAL_REFSPEC_PUSH_TRIGGERED_HOSTED_PREFLIGHT_WITH_ORDERED_SSO_WINDOW",
+  "verifiedBundle": {
+    "path": "/tmp/ynx-wallet-web-p0179-corrected-literal-refspec.bundle",
+    "regularFile": true,
+    "bytes": 87031394,
+    "sha256": "aca629be046a18d171cf83ffbff669ada48855517f1988896bfb5c6dde802313",
+    "bundleVerify": "PASS",
+    "containedRef": "fe1548d2f8828e69c956ea5e902a6cc5b7a87030 refs/heads/p0179-candidate",
+    "completeHistory": true,
+    "independentImportVerified": true
+  },
+  "verifiedCommit": {
+    "commit": "fe1548d2f8828e69c956ea5e902a6cc5b7a87030",
+    "tree": "b58b933bfef9c3b847cfe65eef988fb56f19dc3b",
+    "parent": "4f1e1b8ebdbc5e67900f675d970421d73d3a574b",
+    "message": "evidence(wallet-web): externally preflight immutable candidate",
+    "soleChangedPath": ".github/workflows/wallet-web-public-preflight-p0.yml",
+    "workflowBlob": "a0bf78a6c0d978c73a53fa23a4f58495547e6ccd",
+    "workflowBytes": 2090,
+    "workflowSha256": "6c33895ff17e858028dbacc5c7c0b032cb1348d8375ddde0d181dbe59a29901e"
+  },
+  "pushRepository": {
+    "path": "/tmp/ynx-p0179-exec.aMtKVr",
+    "origin": "https://github.com/JiahaoAlbus/YNX-Chain.git",
+    "headBeforeExecution": "4f1e1b8ebdbc5e67900f675d970421d73d3a574b",
+    "remoteBranch": "codex/wallet-web-pwa-extensions-20260813",
+    "remoteParentRequiredBeforePush": "4f1e1b8ebdbc5e67900f675d970421d73d3a574b",
+    "targetPathRequiredAbsentBeforePush": true
+  },
+  "authorizedLiteralPushCommand": "git -C /tmp/ynx-p0179-exec.aMtKVr push origin fe1548d2f8828e69c956ea5e902a6cc5b7a87030:refs/heads/codex/wallet-web-pwa-extensions-20260813",
+  "literalCommandRequirements": {
+    "executeExactlyOnce": true,
+    "force": false,
+    "shellVariablesAllowed": false,
+    "shellConcatenationAllowed": false,
+    "retryAllowed": false,
+    "workflowDispatchAllowed": false
+  },
+  "candidate": {
+    "deploymentId": "dpl_G6gTg2a3CVS1siTRqQg5XjQfPR9q",
+    "immutableUrl": "https://wallet-aitthgkni-jiahaoalbus-projects.vercel.app",
+    "sourceCommit": "a9653f9f73eb79f77b45f04c845c4f56c012ab4b",
+    "sourceTree": "5cbf483decc37a6249420840e1d6b81bbafc9c2a",
+    "pwaSha256": "4d8e2e011f7113a80fb5a9541f710b86b2355f5e2fc176fd76a4a46ff94b0e7b"
+  },
+  "websiteSsoWindow": {
+    "projectId": "prj_K4emrdkST7sdb0K9mhmLM0QZh0I3",
+    "projectName": "wallet-web",
+    "scope": "jiahaoalbus-projects",
+    "requiredPrecheckDeploymentType": "prod_deployment_urls_and_all_previews",
+    "precheckCommand": "vercel project protection wallet-web --scope jiahaoalbus-projects --non-interactive --format json",
+    "disableCommand": "vercel project protection disable wallet-web --sso --scope jiahaoalbus-projects --non-interactive",
+    "restoreCommand": "vercel project protection enable wallet-web --sso --scope jiahaoalbus-projects --non-interactive",
+    "disableAllowedExactlyOnce": true,
+    "restoreRequiredExactlyOnce": true,
+    "restoreOnEveryTerminalPath": true,
+    "acceptedRestoredDeploymentType": "prod_deployment_urls_and_all_previews"
+  },
+  "orderedExecution": [
+    "re-read exact remote parent, target path absence, bundle bytes and literal-push repository origin/object",
+    "precheck exact Vercel project, restored Standard Protection and production target",
+    "disable SSO exactly once and verify disabled",
+    "execute the authorized literal push command exactly once",
+    "bind exactly one push-triggered Actions run to commit fe1548d2 and wait for terminal state",
+    "restore SSO exactly once on success, failure, timeout or interruption before interpreting evidence",
+    "verify restored Standard Protection and production target",
+    "on hosted success download and verify raw four-resource artifact; otherwise release fail closed"
+  ],
+  "requiredHostedEvidence": {
+    "allowedPaths": ["/", "/build-identity.json", "/manifest.webmanifest", "/sw.js"],
+    "requiredHttpStatus": 200,
+    "requiredIdentitySourceCommit": "a9653f9f73eb79f77b45f04c845c4f56c012ab4b",
+    "requiredServiceWorkerCacheControl": "contains no-store",
+    "rawHeaders": true,
+    "rawBodies": true,
+    "bytes": true,
+    "sha256": true
+  },
+  "forbidden": [
+    "any retry, variable-derived refspec, workflow_dispatch or second push",
+    "any remote path other than the sole workflow path in the verified commit",
+    "Vercel alias, routing or project mutation other than the bounded SSO disable/restore",
+    "product source or UI edits",
+    "installation, account request, signing or transaction action",
+    "public identity or interoperability completion promotion"
+  ],
+  "terminalRules": {
+    "success": "CONSUMED_RELEASED_HOSTED_FOUR_RESOURCE_PREFLIGHT_EVIDENCE_READY_FOR_INDEPENDENT_REVIEW",
+    "failure": "CONSUMED_RELEASED_FAILED_CLOSED_HOSTED_PREFLIGHT",
+    "restoreFailure": "EMERGENCY_BLOCKED_SSO_RESTORE_REQUIRED_NO_FURTHER_ACTION",
+    "routingLeaseInferred": false
+  },
+  "truthBeforeExecution": {
+    "officialSourceCommit": "uncommitted-source-tree",
+    "currentSourceBoundPublic": false,
+    "productsConnected": "0/12",
+    "parityComplete": false
+  },
+  "terminalResult": {
+    "literalPushExecutedExactlyOnce": true,
+    "remoteCommit": "fe1548d2f8828e69c956ea5e902a6cc5b7a87030",
+    "remoteTree": "b58b933bfef9c3b847cfe65eef988fb56f19dc3b",
+    "remoteParent": "4f1e1b8ebdbc5e67900f675d970421d73d3a574b",
+    "remoteWorkflowBlob": "a0bf78a6c0d978c73a53fa23a4f58495547e6ccd",
+    "actionsRunId": 32563374829,
+    "actionsRunUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/32563374829",
+    "actionsEvent": "push",
+    "actionsRunAttempt": 1,
+    "actionsConclusion": "success",
+    "actionsRunsForCommit": 1,
+    "workflowDispatchExecuted": false,
+    "retryExecuted": false,
+    "ssoDisableCount": 1,
+    "ssoRestoreCount": 1,
+    "restoredSsoDeploymentType": "prod_deployment_urls_and_all_previews",
+    "candidateDeployment": "dpl_G6gTg2a3CVS1siTRqQg5XjQfPR9q",
+    "candidateReadyState": "READY",
+    "artifact": {
+      "id": 9473409666,
+      "name": "wallet-web-public-preflight-p0179",
+      "bytes": 7571,
+      "zipSha256": "64b06c2e563e136ee9c227153a8e753bd863867ffc8be358c15ba147bac6d359",
+      "unzipIntegrity": "PASS"
+    },
+    "observedAt": "2026-08-22T08:51:21Z",
+    "resources": {
+      "root": {"http": 200, "bytes": 874, "sha256": "9ccd409b6b14f3b41d97c765065d20747c286e697fafdc571551b838d7fbab15", "contentType": "text/html; charset=utf-8", "cacheControl": "public, max-age=0, must-revalidate"},
+      "buildIdentity": {"http": 200, "bytes": 267, "sha256": "62751c51d72a828da8a4503f21e38c6dcee72c3cdd71c8bf423ae1941fa30a00", "contentType": "application/json; charset=utf-8", "cacheControl": "no-store, max-age=0, must-revalidate", "sourceCommit": "a9653f9f73eb79f77b45f04c845c4f56c012ab4b", "providerAuthorityCommit": "98c6d5d784d212df8981a53b17118a511e246ad2", "providerEvidenceCommit": "d3831c300560507f64a50e73117bab7b85926d9a", "chainId": "0x1917"},
+      "manifest": {"http": 200, "bytes": 632, "sha256": "d2d131267483327ece949c5b8402c2dd80352bb15e791ea5571c879682ceba92", "contentType": "application/manifest+json; charset=utf-8"},
+      "serviceWorker": {"http": 200, "bytes": 4337, "sha256": "c65fbb724cba79fc06178fc1fa0543f69e821c0a732e7ceaa5b65e3694edd953", "contentType": "application/javascript; charset=utf-8", "cacheControl": "no-store, max-age=0, must-revalidate"}
+    },
+    "allVercelCache": "MISS",
+    "hstsPresent": true,
+    "aliasChanged": false,
+    "officialIdentityBytes": 250,
+    "officialIdentitySha256": "b2f9b275a4295c6f1cd230daf2b39519a81c4cb3ecf361e820ace9195adbbf9b",
+    "officialSourceCommit": "uncommitted-source-tree",
+    "currentSourceBoundPublic": false,
+    "freshRoutingLeaseRequired": true
+  }
+}

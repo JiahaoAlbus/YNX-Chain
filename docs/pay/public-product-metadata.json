@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "6cbac9f4654b5715d32f1e561819e593c868a6f1",
+  "productId": "pay",
+  "name": "YNX Pay",
+  "aliases": ["YNX Payment"],
+  "canonicalRoute": "/pay",
+  "title": "YNX Pay — Verifiable Testnet payments",
+  "metaDescription": "Review Wallet-bound YNX Testnet invoices and verify payment receipts against authoritative chain evidence.",
+  "h1": "Payments with evidence",
+  "features": [
+    "Wallet-approved invoice payments",
+    "Authoritative settlement receipts",
+    "Refund requests and dispute evidence",
+    "Merchant reconciliation and signed webhooks"
+  ],
+  "risks": [
+    "Testnet assets have no claim to real-world value",
+    "A submitted transaction is not paid until authoritative finality and invoice matching complete",
+    "External routes and sponsorship may be unavailable"
+  ],
+  "status": "integration-candidate-not-publicly-source-bound",
+  "downloads": [],
+  "screenshots": [],
+  "supportUrl": null,
+  "privacyUrl": null,
+  "securityUrl": null,
+  "statusUrl": null,
+  "faq": [
+    {"question": "When is an invoice paid?", "answer": "Only after the chain transaction, finality, payer, payee, asset, amount and invoice intent match authoritative records."},
+    {"question": "Are Testnet assets money?", "answer": "No. YNXT and any labeled Testnet asset are for testing and have no claim to fiat value."},
+    {"question": "Can YNX Pay access Wallet keys?", "answer": "No. The Wallet retains keys and presents the final approval."}
+  ],
+  "structuredDataSuggestion": "SoftwareApplication with WebApplication and MobileApplication offers only after public URLs and artifacts are verified"
+}

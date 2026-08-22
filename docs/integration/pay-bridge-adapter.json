@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "product": "pay",
+  "adapter": "https-bridge-provider-v1",
+  "enabledByDefault": false,
+  "destination": {
+    "chainId": "ynx_6423-1",
+    "asset": "YNXT",
+    "minimumAmount": "invoice amount plus disclosed network fee"
+  },
+  "quoteRequirements": [
+    "provider identity",
+    "source and destination chains, assets and contracts",
+    "source and destination amounts",
+    "bridge and network fees",
+    "YNXT-equivalent total cost and FX rate",
+    "risk basis points",
+    "estimated settlement time and finality",
+    "provider health",
+    "source, as-of time, version, confidence and coverage",
+    "expiry of no more than five minutes"
+  ],
+  "states": [
+    "quoted",
+    "source_accepted",
+    "source_finalized",
+    "attested",
+    "destination_confirmed",
+    "failed",
+    "refund_available",
+    "refunded"
+  ],
+  "rules": {
+    "explicitUserRiskLimitRequired": true,
+    "normalStagesCannotSkip": true,
+    "quoteIsFundsArrival": false,
+    "destinationConfirmationMarksInvoicePaid": false,
+    "walletSelectsRoute": true,
+    "authoritativePaymentReceiptStillRequired": true,
+    "providerUnsupportedBehavior": "unavailable"
+  }
+}

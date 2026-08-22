@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-WALLET-AUTH-REGISTRY-V3-SOURCE-CANDIDATE-5D94DCD0-20260821",
+  "checkedAt": "2026-08-20T18:25:00Z",
+  "source": {
+    "commit": "5d94dcd0b25595df478ffe45a84cc346306ad4d4",
+    "parent": "890ef0f8b31ba467c5a347b83b0ec8bdca5497cf",
+    "tree": "b908a8054a2d321f75855f8030114cf9f1cba9ff",
+    "walletAuthTree": "3d638e6bf36a96bd5b861ef423cf51fbd394c2ba",
+    "branch": "codex/wallet-core-auth-gateway-continuation-20260814",
+    "remoteReadable": true,
+    "changedBlobReadback": "11/11"
+  },
+  "ownerEvidence": {
+    "commit": "0f8cb1da72742cb988d72868f5b2acc4ff34a93a",
+    "parent": "5d94dcd0b25595df478ffe45a84cc346306ad4d4",
+    "tree": "043cecf0a02ac2531e19ca7f75ce17907b4147b6",
+    "path": "release/integration/wallet-auth-retired-client-registry-v3-source-candidate-20260821.json",
+    "blob": "d7ebb75923ca20d73d8c3003ec3fd8ec7ff47632",
+    "contentSha256": "f85a5329019430f35ed1030be68b33e9193359eca34213d0273d2c1476069b5d",
+    "remoteReadable": true
+  },
+  "closedBlockers": [
+    "AUTHORIZED_SOURCE_HAS_NO_STATE_MIGRATION",
+    "PUBLIC_VERSION_ROUTE_UNREACHABLE",
+    "REGISTRY_DIGEST_SEMANTICS_MISMATCH",
+    "CURRENT_STATE_ENVELOPE_INCOMPATIBLE",
+    "PRODUCTION_ENVIRONMENT_NAME_MISMATCH"
+  ],
+  "registry": {
+    "artifactSha256": "810c58777a62a798e286d2d30e0430334b88603653f672821642e80e3553c46c",
+    "stateBindingSha256": "f300fb098c832161aaeb2bcf62b61a7b5b674ea0b443ebd9ca0189592e0b10d7"
+  },
+  "tests": {
+    "focusedPassed": 10,
+    "focusedFailed": 0,
+    "walletAuthPassed": 347,
+    "walletAuthFailed": 0,
+    "packageBytes": 179690,
+    "packageEntries": 98,
+    "packageSha256": "5c4713c50fe7cbcbca6dad673a689960c53822c68910db9701a3376d8269c126",
+    "repeatPackageSha256Matched": true
+  },
+  "publicBoundary": {
+    "currentRuntimeSource": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "executionLeaseIssued": false,
+    "candidateDeployedPublic": false,
+    "publicRegistryV3": false,
+    "productsMigratedV2": 0,
+    "integratedCentral": false,
+    "aggregateDeployedPublic": false
+  }
+}

@@ -63,7 +63,7 @@ func TestFaucetServerEndpoints(t *testing.T) {
 	}
 	server := httptest.NewServer(NewServerWithBuild(service, buildinfo.Info{Commit: "abc123", Release: "ynx-chain-abc123", BuildTime: "2026-07-10T00:00:00Z"}).Handler())
 	defer server.Close()
-	for _, path := range []string{"/health", "/metrics"} {
+	for _, path := range []string{"/health", "/version", "/metrics"} {
 		resp, err := http.Get(server.URL + path)
 		if err != nil {
 			t.Fatal(err)
@@ -85,13 +85,34 @@ func TestFaucetServerEndpoints(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var health Health
+	var health PublicHealth
 	if err := json.NewDecoder(resp.Body).Decode(&health); err != nil {
 		t.Fatal(err)
 	}
 	_ = resp.Body.Close()
-	if health.Build.Commit != "abc123" || health.Build.Release != "ynx-chain-abc123" || health.Build.BuildTime != "2026-07-10T00:00:00Z" {
+	if health.Build.Commit != "abc123" || health.Build.Release != "ynx-chain-abc123" || health.Build.BuildTime != "2026-07-10T00:00:00Z" || health.StartedAt == "" {
 		t.Fatalf("health missing build identity: %+v", health.Build)
+	}
+	if len(health.Dependencies) != 1 || health.Dependencies[0].Name != "chain-rpc" || !health.Dependencies[0].Required || !health.Dependencies[0].OK {
+		t.Fatalf("health missing safe dependency state: %+v", health.Dependencies)
+	}
+
+	for _, path := range []string{"/health", "/version"} {
+		resp, err := http.Get(server.URL + path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		body, err := io.ReadAll(resp.Body)
+		_ = resp.Body.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(string(body), rpc.URL) || strings.Contains(string(body), "127.0.0.1") || strings.Contains(string(body), "requestLog") || strings.Contains(string(body), "lastError") {
+			t.Fatalf("%s leaked internal topology or diagnostics: %s", path, body)
+		}
+		if cacheControl := resp.Header.Get("Cache-Control"); cacheControl != "no-store" {
+			t.Fatalf("%s missing no-store cache policy: %q", path, cacheControl)
+		}
 	}
 	resp, err = http.Post(server.URL+"/request", "application/json", strings.NewReader(`{"address":"bad"}`))
 	if err != nil {

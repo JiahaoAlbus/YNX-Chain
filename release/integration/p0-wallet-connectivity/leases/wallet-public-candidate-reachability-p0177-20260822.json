@@ -1,0 +1,77 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-177",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-candidate-reachability-20260822T080354Z",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_CANDIDATE_DEPLOYMENT_NOT_PUBLIC",
+  "owner": null,
+  "issuedAt": "2026-08-22T08:03:54Z",
+  "expiresAt": "2026-08-22T08:33:54Z",
+  "releasedAt": "2026-08-22T08:09:09Z",
+  "singleUse": true,
+  "reusable": false,
+  "scope": "VERCEL_WALLET_WEB_CANDIDATE_REDEPLOY_AND_INDEPENDENT_PREFLIGHT_ONLY",
+  "reviewedSource": {
+    "commit": "a9653f9f73eb79f77b45f04c845c4f56c012ab4b",
+    "tree": "5cbf483decc37a6249420840e1d6b81bbafc9c2a",
+    "pwaSha256": "4d8e2e011f7113a80fb5a9541f710b86b2355f5e2fc176fd76a4a46ff94b0e7b"
+  },
+  "inputDeployment": {
+    "id": "dpl_BMmwcxQj98uZdhumQLgmZ5bX5YZQ",
+    "project": "wallet-web",
+    "target": "production",
+    "controlPlaneStatus": "READY",
+    "immutableHostname": "wallet-d9hjin8u9-jiahaoalbus-projects.vercel.app",
+    "publicHttpsReachable": false
+  },
+  "authorizedCommand": "vercel redeploy dpl_BMmwcxQj98uZdhumQLgmZ5bX5YZQ --target production --scope jiahaoalbus-projects --non-interactive",
+  "requiredPreExecution": [
+    "inspect the input deployment and require project wallet-web, target production and Ready",
+    "require its source metadata to bind the exact reviewed commit and artifact SHA-256",
+    "record the current official wallet.ynxweb4.com identity and do not change it"
+  ],
+  "requiredPostExecution": [
+    "capture the newly created immutable deployment ID and hostname",
+    "inspect the new deployment and require project wallet-web, Ready, exact source commit and artifact SHA-256",
+    "from an independent executor or network, GET /, /build-identity.json, /manifest.webmanifest and /sw.js",
+    "freeze HTTP status, bytes and SHA-256 for all four resources",
+    "require JSON identity content type and exact source commit",
+    "require service worker no-store",
+    "prove wallet.ynxweb4.com remains unchanged"
+  ],
+  "forbidden": [
+    "vercel alias set",
+    "wallet.ynxweb4.com mutation",
+    "Wallet source edits",
+    "other Website domains, projects or routes",
+    "new routing lease inference",
+    "public identity or interoperability promotion"
+  ],
+  "terminalRules": {
+    "success": "CONSUMED_RELEASED_CANDIDATE_REACHABLE_FOUR_RESOURCE_PREFLIGHT_READY_FOR_FRESH_ROUTING_REVIEW",
+    "failure": "CONSUMED_RELEASED_FAILED_CLOSED_CANDIDATE_REDEPLOY_OR_REACHABILITY",
+    "officialAliasMutationOnEitherOutcome": false
+  },
+  "truthBeforeExecution": {
+    "officialSourceCommit": "uncommitted-source-tree",
+    "currentSourceBoundPublic": false,
+    "productsConnected": "0/12",
+    "parityComplete": false
+  },
+  "terminalResult": {
+    "authorizedCommandExecutedExactlyOnce": true,
+    "authorizedCommandExit": 0,
+    "newDeploymentId": "dpl_G6gTg2a3CVS1siTRqQg5XjQfPR9q",
+    "newImmutableHostname": "wallet-aitthgkni-jiahaoalbus-projects.vercel.app",
+    "newDeploymentStatus": "READY_PROMOTED",
+    "sourceCommit": "a9653f9f73eb79f77b45f04c845c4f56c012ab4b",
+    "artifactSha256": "4d8e2e011f7113a80fb5a9541f710b86b2355f5e2fc176fd76a4a46ff94b0e7b",
+    "originalDeploymentId": "dpl_BMmwcxQj98uZdhumQLgmZ5bX5YZQ",
+    "vercelApiPublic": false,
+    "fourResourcePreflight": "FAILED_HTTP_000_ZERO_BYTES",
+    "aliasCommandExecuted": false,
+    "officialDomainChanged": false,
+    "productionMutation": "CANDIDATE_REDEPLOY_ONLY",
+    "singleExecutableBlocker": "WEBSITE_VERCEL_AUTHORITY_MUST_REMOVE_DEPLOYMENT_PROTECTION_OR_DEPLOY_EXACT_ARTIFACT_INTO_AN_APPROVED_PUBLIC_PROJECT"
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "acceptanceId": "P0-047-VIDEO-STANDARD-WALLET-SOURCE-1D4532FF-20260821",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "status": "STANDARD_WALLET_SOURCE_ACCEPTED_VISIBLE_AND_PRODUCT_SESSION_E2E_BLOCKED",
+  "owner": "integration",
+  "sourceCommit": "1d4532ffca4eabdc15f2ec66f3d1143f67e159fa",
+  "implementationCommit": "e5ce33550bbd8a4be09a55a6bb3dd73cd3cb8833",
+  "evidence": "release/integration/p0-wallet-connectivity/evidence/video-standard-wallet-source-1d4532ff-20260821.json",
+  "standardWalletSourceAccepted": true,
+  "productSessionV2": false,
+  "actualProviderApprovalVisible": false,
+  "installedClientVerified": false,
+  "deployedPublic": false,
+  "publicVerified": false,
+  "computerControlVerified": false,
+  "productsMigrated": 0,
+  "productsRequired": 12,
+  "nextAction": "Obtain visible browser Provider lifecycle evidence, then consume the accepted public Product Session v2 runtime when it exists. Keep guest playback independent and fail private actions closed."
+}

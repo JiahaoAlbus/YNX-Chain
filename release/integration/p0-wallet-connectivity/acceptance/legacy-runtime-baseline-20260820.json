@@ -1,0 +1,13 @@
+{
+  "schemaVersion":"1.0.0",
+  "campaignId":"P0-WALLET-CONNECTIVITY-2026-08",
+  "capturedAt":"2026-08-20T10:49:31Z",
+  "method":"strict-SSH read-only legacy inventory",
+  "inventoryPath":"tmp/legacy-inventory/legacy-inventory.txt",
+  "currentPublicSource":{"commit":"a986a30c5a4ed8cfd66f7f08dd2d6f032b1cfdc8","release":"ynx-chain-dex-a986a30c","chainId":6423,"nativeAsset":"YNXT"},
+  "observations":{"primary":{"chainActive":true,"faucetActive":true,"legacyV2ServicesPresent":true,"releaseManifestPresent":false},"singapore":{"chainActive":true,"role":"follower"},"siliconValley":{"chainActive":true,"role":"follower","catchingUp":true,"observedHeight":991183},"seoul":{"chainActive":true,"role":"follower","catchingUp":true,"observedHeight":991175}},
+  "safetyBoundary":{"ordinaryUpgradeEligible":false,"reason":"The current runtime lacks a source-matching release manifest, and follower convergence is not proven. Treat this inventory as rollback discovery, not public acceptance."},
+  "recovery":{"backupOperation":"completed on all declared nodes before any service mutation","primaryArchive":"/var/backups/ynx-chain/ynx-chain-testnet-20260820T105021Z-primary.tar.gz","archiveState":"COMPLETE_AND_VERIFIED","verificationRecord":"release/integration/p0-wallet-connectivity/acceptance/four-node-backup-20260820.json"},
+  "nextAction":"Use the verified recovery checkpoint while producing candidate-bound immutable release-manifest evidence; do not bypass the protected deployment policy.",
+  "publicVerified":false
+}

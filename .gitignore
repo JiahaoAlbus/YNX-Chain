@@ -26,4 +26,6 @@ __pycache__/
 *.log
 tmp/
 .ynx-smoke/
+apps/pay/playwright-report/
+apps/pay/test-results/
 release/recovery/*.bundle

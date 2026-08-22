@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-159",
+  "owner": "integration",
+  "sourceOwner": "wallet-protocol-router",
+  "decision": "CENTRAL_P0156_P0157_P0158_REGRESSION_BINDING_ACCEPTED_SOURCE_EVIDENCE_ONLY",
+  "router": {
+    "commit": "762ebb08810af807a8626ca59aea02e7a39c56e8",
+    "tree": "697ea15d855d5eb8ce465e8c009dba6a1f644f26",
+    "parent": "cd7c3466b2b97876733c536b5c6ca4185ca06024",
+    "matrixSha256": "25d3cae903499420bdb983dcf01d5808b1032a2eaaa71a709d5c902905f46a0f",
+    "activitySha256": "d893f2d087cc67ac84850902fffe07f900ac0c1511d461c46c9ad95666b1ab34",
+    "remoteReadbackExact": true
+  },
+  "centralBinding": {
+    "commit": "a23feb5e31dd89d1812f9c2211dac7efdeceeb23",
+    "tree": "67c5b888bbee0fcc29be614f572d4492e372c9ca",
+    "matrixBlob": "7d18c809124ab0138e8aa1a5eb8d6be493eb364c",
+    "matrixSha256": "7fc4fd177f8ded9907d76a8401de2e7ee0c3cb571c81fbe382e69c76798bdae4"
+  },
+  "regressionAssertions": {
+    "p0157RouterCheckpoint": "2e2eb37277613e52208f3e42b450a3a28a2ed08b",
+    "p0157WebSource": "a9653f9f73eb79f77b45f04c845c4f56c012ab4b",
+    "standardInteropAuthority": "9ab9cd8c8deac8563acff9ffd7e277553e20383e",
+    "standardInteropAuthoritySha256": "c59cc18de86a304be8de6ef7056e3e260e62156fe36fb0b76e021e38e096a2fe",
+    "p0158RouterCheckpoint": "cd7c3466b2b97876733c536b5c6ca4185ca06024",
+    "p0158IosSource": "560d801b9a2d3cd856b3dfdbdc8d66aa3114d1b5",
+    "p0158IosStatus": "IN_PROGRESS",
+    "p0158MacosSource": "25fc6771acd437c4b2a78c4ee279758f5bbd45da",
+    "p0158EvidenceTier": "SOURCE_AND_HOSTED_CI_ONLY"
+  },
+  "validation": {
+    "walletAuth": "321/321",
+    "noBareAuthorize": true,
+    "standardWalletConsumerGate": true
+  },
+  "truth": {
+    "executionLeaseIssued": false,
+    "productionLeaseIssued": false,
+    "browserLaunched": false,
+    "webInstalled": false,
+    "installedProviderComplete": false,
+    "realDappComplete": false,
+    "approvalRejectComplete": false,
+    "installedChainReadbackComplete": false,
+    "eventsComplete": false,
+    "signingComplete": false,
+    "typedDataComplete": false,
+    "transactionComplete": false,
+    "walletConnectRelayComplete": false,
+    "productsConnected": "0/12",
+    "productsMigratedV2": "0/12",
+    "parityComplete": false,
+    "aggregatePublic": false
+  }
+}

@@ -1,0 +1,121 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-150",
+  "owner": "integration",
+  "status": "P0_HIGHEST_PRIORITY_DIRECT_INSTALLED_E2E_DISPATCH_NO_EXECUTION_LEASE",
+  "priority": "P0",
+  "objective": "YNX Wallet reaches installed-provider interoperability parity without coupling Standard Wallet Connection to Gateway or Product Session.",
+  "authoritativeSources": {
+    "directE2EExecutionPlan": {
+      "commit": "875be208e8a7ddb60345d55b93fc299949664e5c",
+      "tree": "3499ddfbe2a4bb08cbbcaef8c71b911aca51dde4",
+      "sha256": "c5a615c9d5c34f25d9810751d816dc6709ca6de70aafea0549224de162c33652"
+    },
+    "responsibilityRegistry36": {
+      "commit": "12a79eb01c5939fd67a9a1a7f884f30dbde0a99a",
+      "tree": "b21f6b3a81bbcd1fc081d8cba562573f71e47f90",
+      "parent": "9ec5162eef8e3aed3689a8a065256749b431f8b9",
+      "path": "release/integration/wallet-ecosystem-responsibility-registry-p0-20260822.json",
+      "blob": "2bf2e923dfda716ed1c645d4d83ee300df573a60",
+      "sha256": "268850b810f920b6425859624896311081548c3dad4723461a8b27b297a6f193",
+      "routingAuthorityOnly": true,
+      "mappingFrozenOnlyAfterDedicatedAudit": true,
+      "explorerMonitorPrivilegedClassificationCorrected": true,
+      "cardP0195FailClosedAuditBound": true,
+      "browserRoutingAuditBound": true,
+      "cardNestedEnvelopeSuccessorRequestBound": true
+    },
+    "standardWalletProtocol": {
+      "commit": "66003e76e804da16d472255efde50cb879055b96",
+      "contract": "packages/wallet-auth/integration/p0-wallet-connectivity-candidate.json"
+    },
+    "consumerSdk": {
+      "commit": "315897e75c0ffe3e63435fe73cfec42244b851cc",
+      "contract": "packages/dapp-connect-sdk/integration/dapp-connect-sdk-candidate.json"
+    },
+    "sharedProviderRuntime": {
+      "commit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+      "tree": "51a60a362d4ad5dd748bcdefb101f71b1d9e0cee",
+      "evidenceCommit": "c3ab255c32bdeb9c8e056882c315f8ad43c29c7f"
+    }
+  },
+  "network": {
+    "cosmosChainId": "ynx_6423-1",
+    "evmChainId": 6423,
+    "evmChainHex": "0x1917",
+    "nativeAsset": "YNXT",
+    "defaultLocale": "en",
+    "externalDappAccountExposure": "approved-0x-account-only"
+  },
+  "architecture": {
+    "standardWalletConnectionIndependent": true,
+    "gatewayOrProductSessionFailureEffect": "PRIVATE_SERVICE_DEGRADED_ONLY",
+    "localOrCannedSessionForbidden": true,
+    "directBrowserRpcFetchAsProviderAuthorityForbidden": true
+  },
+  "platformQueue": [
+    {"platform":"web-extension","owner":"wallet-web","status":"ROUTER_INTEROP_AUTHORITY_CONSUMED_SOURCE_ARTIFACT_ACCEPTED_INSTALLED_PROVIDER_E2E_FALSE","providerCoreSource":"aa225899eed79b4ddee3027d124657d7357f361c","vaultSource":"91562a4badeb23bb97cbd7c734a4590ccf3c53b3","signerSource":"60a756991fbe07311c9d2b0dbade8a9d670dab04","packageIdentitySource":"2357ae576abb14a25db261f94f63b3d4c71add83","providerIdentitySource":"a3310cc9f0c757d27dae83282b68361c116c22a3","interopConsumerSource":"a9653f9f73eb79f77b45f04c845c4f56c012ab4b","interopConsumerEvidence":"4f1e1b8ebdbc5e67900f675d970421d73d3a574b","standardInteropAuthority":"9ab9cd8c8deac8563acff9ffd7e277553e20383e","evidence":"4f1e1b8ebdbc5e67900f675d970421d73d3a574b","acceptance":"P0-155,P0-157","releaseBlocked":true},
+    {"platform":"android","owner":"wallet-android","status":"NOT_ACCEPTED_INSTALLED_PROVIDER_E2E"},
+    {"platform":"ios","owner":"wallet-ios","status":"PROTECTED_NATIVE_WALLETCONNECT_RUNTIME_PACKAGE_UNAVAILABLE","registrationSource":"a85c273a2454d9f72cb89198caa42ef63d5a9436","biometricFixSource":"560d801b9a2d3cd856b3dfdbdc8d66aa3114d1b5","biometricFailureEvidence":"0ba02e5f6b218e59e23169b35588b1baebf36540","walletConnectDecisionStateSource":"e829f38b9f35d47be1afd924cf609cf2e59e3be7","walletConnectRouteSource":"aba683d5dc90ee6a8df339240510e77680c9fa9c","runtimeBlockerEvidence":"65dffee2f35ec9dc254f8c2ac8c465a353bc1861","failedRun":32556002628,"simulatorCallbackFailClosed":true,"acceptance":"P0-155,P0-158,P0-161,P0-162,P0-163,P0-173"},
+    {"platform":"macos","owner":"wallet-macos","status":"P0_REAL_REOWN_RUNTIME_DISPATCH_EXPIRED_PURGE_SOURCE_CARRIED_FORWARD_RUNTIME_FALSE","registrationSource":"a85c273a2454d9f72cb89198caa42ef63d5a9436","walletConnectPolicySource":"65328c00d71a43963fff12f4d304f29dd110149e","walletConnectStateSource":"25fc6771acd437c4b2a78c4ee279758f5bbd45da","walletConnectCallbackSource":"bea12cd61997ea0b868967ed573c3c31b981c1e1","walletConnectColdStartSource":"130a30d4392b0439aaa3abe360e0aa83d686ec76","walletConnectIdentitySource":"40280e03b318eb7b9c9866fffd09fda7e2688365","walletConnectReproposalSource":"4b17a22d05df6385737363344c8da62e81e24062","walletConnectSinglePendingSource":"443482d725645bd84dfa22d34622cbd5a83e0093","walletConnectDisplayNameSource":"04124abf617cc22b151e2f1bc4e74131d5d30047","walletConnectCanonicalTopicSource":"b54c2b5e1c7d29398b8d3d2574da271a6d1de82e","walletConnectCanonicalDigestAccountSource":"c4782357955e1825dcb2d83ff135500c478f3bad","walletConnectRequestIdControlsSource":"aacdf8eb97235729c1532774b0866d488a13d816","walletConnectExpiredDecisionPurgeSource":"02c782552d9b24423d8a9f61dceee38d047a78ae","evidence":"414d581d046adcf0fb255409224672945efea73f","acceptance":"P0-153,P0-158,P0-164,P0-165,P0-166,P0-167,P0-168,P0-169,P0-170,P0-171,P0-172,P0-173"},
+    {"platform":"windows","owner":"wallet-desktop","status":"PUBLIC_INSTALLER_EXISTS_PROVIDER_E2E_FALSE"}
+  ],
+  "completionGate": {
+    "requiredInstalledProvider": true,
+    "requiredFirstPartyDapps": 1,
+    "requiredExternalDapps": 3,
+    "requiredPerDapp": [
+      "provider-discovery-without-substitution",
+      "approve",
+      "reject",
+      "wallet_addEthereumChain-0x1917",
+      "wallet_switchEthereumChain-0x1917",
+      "personal_sign-or-eth_sign",
+      "eth_signTypedData_v4",
+      "real-test-transaction",
+      "accountsChanged",
+      "chainChanged",
+      "disconnect",
+      "refresh-restore",
+      "explicit-disconnect"
+    ],
+    "requiredBrowserProperties": [
+      "stable-top-level-url",
+      "no-blank-tab",
+      "chooser-closes-after-success",
+      "default-English",
+      "console-error-count-zero"
+    ],
+    "sourceOrCiAloneCompletes": false,
+    "providerDetectionAloneCompletes": false,
+    "uiPresenceAloneCompletes": false
+  },
+  "currentTruth": {
+    "parityComplete": false,
+    "installedProviderVerified": false,
+    "firstPartyDappsComplete": 0,
+    "externalDappsComplete": 0,
+    "productsConnected": "0/12",
+    "productsMigratedV2": "0/12",
+    "responsibilityDomainsComplete": "0/36",
+    "interactiveWalletConsumersComplete": "0/27",
+    "nonInteractiveProductSessionConsumersComplete": "0/2",
+    "evidenceBackedNotApplicableComplete": "0/7",
+    "publicPackageTruthVerifiedAcrossPlatforms": false,
+    "productionSignedAcrossPlatforms": false,
+    "storeReleasedAcrossPlatforms": false,
+    "aggregatePublic": false
+  },
+  "scheduling": {
+    "executionLeaseIssued": false,
+    "heavyOwnerAtCreation": null,
+    "creatorSourceLockPreserved": "P0-148",
+    "shopOwnerPreserved": "shop",
+    "shopStartCondition": "native main-registration closed and existing active P0-011 apps/shop lock explicitly released or reconciled",
+    "authoritativeInteroperabilityMatrix": "release/integration/p0-wallet-connectivity/wallet-metamask-level-interoperability-matrix-20260822.json",
+    "priorityAcceptance": "release/integration/p0-wallet-connectivity/acceptance/wallet-metamask-real-interop-priority-p0173-20260822.json",
+    "sourceOnlyMicroHardeningPrimaryProgress": false,
+    "nextAction": "Platform owners must prepare direct installed E2E or return one executable external blocker. Web must request immediate confirmation at the Chrome launch boundary; no completion is possible without installed Wallet plus one first-party and three external DApps."
+  }
+}

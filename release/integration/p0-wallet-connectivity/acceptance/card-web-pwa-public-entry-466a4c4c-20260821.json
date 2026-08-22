@@ -1,0 +1,61 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-099",
+  "owner": "card-testnet-virtual",
+  "decision": "CARD_TESTNET_WEB_PWA_PUBLIC_ENTRY_ACCEPTED_PRODUCT_SESSION_AND_REAL_PAYMENT_FALSE",
+  "acceptedAt": "2026-08-21T02:19:12Z",
+  "ownerBranch": "codex/p0-card-testnet-virtual-20260820-fix",
+  "ownerCommit": "466a4c4cd59e2958260bd6e35193b32c0d2249f4",
+  "ownerTree": "a6f0f07dbf5ef51958bb7fbbdd12d814ee738e66",
+  "handoffPath": "apps/card/evidence/web-pwa-public-release-handoff.md",
+  "handoffSha256": "897fdeb64a9266aa29c6b66c612982f0ebccffdc17ae59431b5ff77812322439",
+  "deploymentId": "dpl_8NxK9gwDyirv7hQQwJkRZ68p7r5k",
+  "deploymentUrl": "https://ynx-card-testnet-simulation-kozfb9wa3-jiahaoalbus-projects.vercel.app",
+  "stableUrl": "https://ynx-card-testnet-simulation.vercel.app/",
+  "canonicalUrl": "https://card.ynxweb4.com/",
+  "officialEntry": "https://www.ynxweb4.com/dapp/card",
+  "httpEvidence": {
+    "canonicalStatus": 200,
+    "canonicalBytes": 1505,
+    "canonicalSha256": "721b2f2b3d6de647577c7b7e04605595cbe047b730ca47db97c4efa47de158aa",
+    "manifestStatus": 200,
+    "manifestBytes": 460,
+    "manifestSha256": "f3e634129abe79c5b81b7fc8dac3950e5cb21f1d1263b1938fcd06a58e2c686f",
+    "officialEntryStatus": 200,
+    "officialEntryBytes": 1018,
+    "officialEntrySha256": "b8106a7ff3c5396903dd506d09848a62361f43830af1a72405a1e6a20ad4218a"
+  },
+  "sourceTests": {
+    "unit": "24/24",
+    "typecheck": true,
+    "webBuild": true
+  },
+  "acceptedTruth": {
+    "publicHttpsWebPwa": true,
+    "officialVisibleEntryReachesPwa": true,
+    "testnetSimulationLabel": true,
+    "guestModeNoFabricatedWalletState": true,
+    "standardWalletAbsentStateVisible": true,
+    "realBrowserWalletApproveRejectDisconnect": false,
+    "productSessionV2": false,
+    "migratedV2": false,
+    "liveRpcOrCardApiConnectivity": false,
+    "realYnxtTestnetTopup": false,
+    "realCard": false,
+    "panCvv": false,
+    "fiatFunding": false,
+    "cardNetworkClearing": false,
+    "realMerchantPayment": false,
+    "computerControlVerified": false,
+    "centralAggregatePublicVerified": false
+  },
+  "remainingBlockers": [
+    "real browser Wallet approval, rejection and disconnect evidence",
+    "exact public Product Session v2 lifecycle and restart evidence",
+    "live YNX RPC and Card API evidence",
+    "real YNXT Testnet top-up transaction and Card API acceptance",
+    "ComputerControl final acceptance"
+  ],
+  "nextAction": "Preserve the public Testnet Web/PWA entry. Card Owner continues real Standard Wallet and Testnet YNXT top-up integration without introducing real-card, PAN/CVV, fiat or merchant-payment claims."
+}

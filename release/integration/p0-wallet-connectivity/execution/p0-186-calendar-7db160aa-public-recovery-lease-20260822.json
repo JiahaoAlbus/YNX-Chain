@@ -1,0 +1,202 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-186",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-calendar-7db160aa-public-recovery-20260822T111600Z",
+  "owner": null,
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_CALENDAR_PUBLIC_RECOVERY",
+  "issuedAt": "2026-08-22T11:16:00Z",
+  "expiresAt": "2026-08-22T11:46:00Z",
+  "releasedAt": "2026-08-22T11:29:30Z",
+  "singleUse": true,
+  "reusable": false,
+  "executionAuthorized": true,
+  "branch": "codex/calendar-fable5-completion-20260821",
+  "request": {
+    "commit": "b44de2636340997299707b75a2e1bfbc6d20eae8",
+    "tree": "38c6d5678abfcc8f88e3f1874741f81183171f5e",
+    "path": "apps/calendar/release/evidence/p0-wallet-connect/calendar-wallet-recovery-linux-amd64-public-deployment-lease-request-20260822.json",
+    "blob": "334e966acceffe5728b2e011b92ca7cc3809371d",
+    "bytes": 9125,
+    "sha256": "d30960638d18130337accdef615fbf42468789aa8d2716516535b8541f730279"
+  },
+  "source": {
+    "commit": "7db160aa0bd589097e63190a260a343aafe4854c",
+    "tree": "d72d49bc7bc6ee135cae867aa6edbe34b4cfc489",
+    "release": "ynx-calendar-0.4.4-testnet-preview",
+    "buildTime": "2026-08-22T10:00:00Z"
+  },
+  "artifact": {
+    "localPath": "/tmp/ynx-calendar-linux-amd64-a.lJpEHK/ynx-calendard",
+    "independentPath": "/tmp/ynx-calendar-linux-amd64-b.FJTFWr/ynx-calendard",
+    "bytes": 7614612,
+    "sha256": "9cad944f63fb7fae49bf947166075b9617e0dac5807d9d9c43cab1791379c426",
+    "format": "ELF 64-bit LSB x86-64 statically linked stripped",
+    "byteIdenticalIndependentBuilds": true,
+    "independentLinuxRuntimeReadback": true
+  },
+  "candidateResponses": {
+    "health": {"path": "/v1/health", "http": 200, "bytes": 215, "sha256": "be9b3affccdffc5275d693ba3de611d380f35a34f5a21e20f3858d3a8fd76d98"},
+    "version": {"path": "/v1/version", "http": 200, "bytes": 279, "sha256": "69befbd7caadc5709b5647670608bdb9bf8178be1c053d5f6614474c27c57d38"},
+    "index": {"path": "/", "http": 200, "bytes": 15834, "sha256": "f5268942d012a0960446b396de5cb1297187f18480decd5847bf8de1e851ab4b"},
+    "app": {"path": "/app.js", "http": 200, "bytes": 73766, "sha256": "d45a4d4bafd8855a42f012cde66acb0e556d076ba7aae290625c7fd162d925dd"},
+    "walletConnection": {"path": "/wallet-connection.js", "http": 200, "bytes": 11185, "sha256": "dcd4f04002a3c304fccf39aa79906861aba275ec144a27444c5dbcd99188df2a"},
+    "toast": {"path": "/toast.js", "http": 200, "bytes": 1415, "sha256": "141082f6dc4706b19d10d307db241f4f5bb07fdb701758650858f78e0ea58948"},
+    "serviceWorker": {"path": "/sw.js", "http": 200, "bytes": 1313, "sha256": "ceed91c3c01dd119b312af53e858d9b76e6860c5edad3d51f5b2a3d3044e2f41"}
+  },
+  "productionBinding": {
+    "host": "43.153.202.237",
+    "hostOs": "Linux",
+    "hostArch": "x86_64",
+    "user": "ubuntu",
+    "identityFile": "/Users/huangjiahao/Downloads/Huang.pem",
+    "strictHostKeyChecking": true,
+    "service": "ynx-calendar.service",
+    "serviceState": "active/running",
+    "serviceRestarts": 0,
+    "activeBinary": {
+      "path": "/usr/local/bin/ynx-calendard",
+      "bytes": 7610516,
+      "sha256": "3fc3492d89978c32991d54abc2c8994d1dbe271df7d95364449cb81a6b781890",
+      "owner": "root:root",
+      "mode": "0755",
+      "deviceInode": "64770:316",
+      "nlink": 1,
+      "source": "d2044bd9a8ec6bdc6235dfb625a62c3dd5c58b04"
+    },
+    "state": {
+      "path": "/var/lib/ynx-chain/calendar/state.json",
+      "bytes": 39225,
+      "sha256": "fbe1c9cf058658370373385dc659c8b43a14238a3adef9df62a8b5ef0d22bd9c",
+      "owner": "ynx:ynx",
+      "mode": "0600",
+      "deviceInode": "64770:1324592",
+      "nlink": 1
+    },
+    "stateKey": {
+      "path": "/var/lib/ynx-chain/calendar/state.json.hmac-key",
+      "bytes": 32,
+      "sha256": "bf7b567201cab33c4b9ed02e00f0d0165172b4e692484ca044d828d0a3fb5e62",
+      "owner": "ynx:ynx",
+      "mode": "0600",
+      "deviceInode": "64770:1324599",
+      "nlink": 1
+    },
+    "unit": {
+      "path": "/etc/systemd/system/ynx-calendar.service",
+      "bytes": 795,
+      "sha256": "c6fa3b4c1b2c34366233169973631928890838709ecb8183daf0cfeee9d4331f",
+      "owner": "root:root",
+      "mode": "0644",
+      "deviceInode": "64770:161350",
+      "nlink": 1
+    },
+    "caddy": {
+      "path": "/etc/caddy/conf.d/ynx-calendar.caddy",
+      "bytes": 626,
+      "sha256": "8b75b9d1332e49e702b610fb1a5e6fcf8a04b9495a1eb16e04dfc65330911f98",
+      "owner": "root:root",
+      "mode": "0644",
+      "deviceInode": "64770:1051209",
+      "nlink": 1,
+      "upstream": "127.0.0.1:18097"
+    },
+    "publicOrigin": "https://calendar-testnet.43.153.202.237.sslip.io",
+    "oldResponses": {
+      "health": {"http": 200, "bytes": 215, "sha256": "f07ee444605fe2b52aa1565a0601139fd876ad98aefe4dc376c7c861ef8b517e"},
+      "version": {"http": 200, "bytes": 279, "sha256": "c4add3bef2f0209a2dcfe0af6bad4e299239ba7f6c1fef7942d443c11ba701de"},
+      "index": {"http": 200, "bytes": 15815, "sha256": "1cf18a93d89803dc42c5d69b5d035fc8af0f343c2503fa89a166c5b3885bba5c"},
+      "app": {"http": 200, "bytes": 73587, "sha256": "88a1034b10b87696cce81bd297b749bc6d37d095658329afa941d1a2dba1fb10"},
+      "walletConnection": {"http": 200, "bytes": 9234, "sha256": "f95cee57f097523830355f3493ef0b9b0d34b0fb0fd28c61b7e854bfb77fbf03"},
+      "serviceWorker": {"http": 200, "bytes": 1298, "sha256": "a59ec846f815847b649a863bb4650a1839117ef9b9136ef6cb21f951d04a5fa2"}
+    },
+    "stageDirectory": "/var/tmp/ynx-calendar-7db160aa-p0186",
+    "stagePath": "/var/tmp/ynx-calendar-7db160aa-p0186/ynx-calendard",
+    "freshBackupPath": "/var/backups/ynx-chain/calendar-7db160aa-p0186-20260822T112000Z",
+    "stageAndBackupAbsent": true,
+    "readOnlyCheckedAt": "2026-08-22T11:12:29Z"
+  },
+  "transaction": {
+    "scriptPath": "apps/calendar/scripts/deploy-public-calendar.sh",
+    "scriptCommit": "7db160aa0bd589097e63190a260a343aafe4854c",
+    "scriptBytes": 7239,
+    "scriptSha256": "e837c9efbf29c2be3d9029c6dda1e8e6caab59ee258ad38874642753c592928b",
+    "environment": {
+      "CALENDAR_CANDIDATE": "/var/tmp/ynx-calendar-7db160aa-p0186/ynx-calendard",
+      "CALENDAR_BINARY": "/usr/local/bin/ynx-calendard",
+      "CALENDAR_STATE": "/var/lib/ynx-chain/calendar/state.json",
+      "CALENDAR_STATE_KEY": "/var/lib/ynx-chain/calendar/state.json.hmac-key",
+      "CALENDAR_BACKUP": "/var/backups/ynx-chain/calendar-7db160aa-p0186-20260822T112000Z",
+      "CALENDAR_SERVICE": "ynx-calendar.service",
+      "CALENDAR_EXPECTED_CANDIDATE_SHA": "9cad944f63fb7fae49bf947166075b9617e0dac5807d9d9c43cab1791379c426",
+      "CALENDAR_EXPECTED_OLD_BINARY_SHA": "3fc3492d89978c32991d54abc2c8994d1dbe271df7d95364449cb81a6b781890",
+      "CALENDAR_EXPECTED_OLD_STATE_SHA": "fbe1c9cf058658370373385dc659c8b43a14238a3adef9df62a8b5ef0d22bd9c",
+      "CALENDAR_EXPECTED_OLD_KEY_SHA": "bf7b567201cab33c4b9ed02e00f0d0165172b4e692484ca044d828d0a3fb5e62",
+      "CALENDAR_EXPECTED_OLD_SOURCE": "d2044bd9a8ec6bdc6235dfb625a62c3dd5c58b04",
+      "CALENDAR_EXPECTED_NEW_SOURCE": "7db160aa0bd589097e63190a260a343aafe4854c"
+    },
+    "rollbackFirst": true,
+    "postCommitFailureRequiresManualPairedRestore": true,
+    "manualPairedRestore": [
+      "stop only ynx-calendar.service",
+      "restore backup ynx-calendard root:root 0755, state.json ynx:ynx 0600 and state.json.hmac-key ynx:ynx 0600",
+      "verify all three old SHA-256 values before start",
+      "start only ynx-calendar.service and require active/running, NRestarts=0 and old public d2044 health/version hashes"
+    ]
+  },
+  "requiredExecution": [
+    "Immediately before the first write, re-read this lease, Heavy/path locks, expiry, remote request head, candidate bytes/format/SHA, all production metadata and old public hashes; any mismatch is NO_GO.",
+    "Create only the exact fresh stage directory, upload the exact primary ELF once, and verify remote bytes, ELF x86-64 identity and SHA before the transaction.",
+    "Execute the exact source-owned transaction once with the bound environment; no retry.",
+    "Verify candidate service active/running, NRestarts=0, unchanged unit/Caddy/state/key and all seven exact candidate public response hashes.",
+    "Run clean-browser late-provider/no-provider/toast checks with one stable public tab, no blank/custom-scheme navigation and console errors zero.",
+    "On any failure after the script commit point, perform the bound manual paired restore once and verify the complete old runtime/public binding.",
+    "Consume and release this lease after the first attempt, whether success or failure."
+  ],
+  "forbidden": [
+    "other product, Wallet shared authority, unit, Caddy, DNS or state-schema mutation",
+    "eth_requestAccounts, account approval/reject, switch-account, disconnect/revoke, signing or transaction",
+    "custom-scheme navigation, retry or reuse",
+    "promotion of Product Session v2, installed provider, account or product completion"
+  ],
+  "terminalRules": {
+    "success": "CONSUMED_RELEASED_SUCCESS_CALENDAR_SOURCE_BOUND_PUBLIC_RECOVERY",
+    "failure": "CONSUMED_RELEASED_FAILED_CLOSED_CALENDAR_PUBLIC_RECOVERY",
+    "rollbackFailure": "EMERGENCY_BLOCKED_CALENDAR_PAIRED_RESTORE_REQUIRED_NO_FURTHER_ACTION"
+  },
+  "truthBeforeExecution": {
+    "sourceBoundPublicRuntime": false,
+    "lateProviderPublicVerified": false,
+    "noProviderResetPublicVerified": false,
+    "toastClearingPublicVerified": false,
+    "installedProvider": false,
+    "accountApproval": false,
+    "signingOrTransaction": false,
+    "productSessionV2": false,
+    "productsConnected": "0/12"
+  },
+  "outcome": {
+    "classification": "FAILED_CLOSED_PREWRITE_STATE_INODE_DRIFT",
+    "ownerEvidenceCommit": "568615e29ae9f00e2a04f0c540f6d9da7a6dd5fd",
+    "ownerEvidenceTree": "684eef12f4ca5ed18bf09147a70def2450f57004",
+    "ownerEvidencePath": "apps/calendar/release/evidence/p0-wallet-connect/calendar-p0186-failed-closed-prewrite-state-inode-drift-20260822.json",
+    "ownerEvidenceBlob": "7104b0e4a720aa44fd2da6b9c63271997bf3b75b",
+    "ownerEvidenceBytes": 4929,
+    "ownerEvidenceSha256": "12f0216055157329640412c363f6fa55cc828325710fffd8939d323c69740e11",
+    "leaseStateDeviceInode": "64770:1324592",
+    "observedStateDeviceInode": "64770:1327740",
+    "stateContentAndSecurityMetadataMatched": true,
+    "stageDirectoryCreated": false,
+    "candidateUploaded": false,
+    "transactionExecuted": false,
+    "serviceStoppedOrRestarted": false,
+    "backupCreated": false,
+    "rollbackRequired": false,
+    "productionOrAccountMutation": false,
+    "retry": false,
+    "serviceActive": true,
+    "serviceRestarts": 0,
+    "oldPublicIdentityPreserved": true,
+    "futureCondition": "A successor must treat the live state inode as an immediate-prewrite observation, stop the service before freezing the paired snapshot, and bind content SHA, bytes, owner, mode and nlink across the stop boundary."
+  }
+}

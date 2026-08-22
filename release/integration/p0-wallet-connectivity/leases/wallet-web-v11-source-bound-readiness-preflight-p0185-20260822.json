@@ -1,0 +1,138 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-185",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-web-v11-source-bound-readiness-preflight-20260822T104600Z",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_HOSTED_CHROMIUM_IMMUTABLE_CANDIDATE_PREFLIGHT",
+  "owner": null,
+  "branch": "codex/wallet-web-pwa-extensions-20260813",
+  "worktree": "/tmp/ynx-p0183-headers.Z4fZto",
+  "issuedAt": "2026-08-22T10:46:00Z",
+  "expiresAt": "2026-08-22T11:16:00Z",
+  "releasedAt": "2026-08-22T11:02:00Z",
+  "singleUse": true,
+  "reusable": false,
+  "dependsOn": "P0-183",
+  "scope": "V11_SOURCE_BOUND_IMMUTABLE_CANDIDATE_HOSTED_CHROMIUM_READINESS_NO_ALIAS",
+  "source": {
+    "implementationCommit": "abe18043259374ee58f90580af582100ab0649cd",
+    "expectedRemoteParent": "dfa1deb56f532bf985dbba20ee4b16acf2eb243f",
+    "workflowCommit": "a8f97deeb0040e178a35b455bd89885f5f6fd1f9",
+    "workflowTree": "8d62cfdce47e6d83821404a5cb7345b496ee28d8",
+    "workflowBlob": "988187204fa90044de64a55138fb1327b22085a0",
+    "workflowBytes": 14688,
+    "workflowSha256": "853df800773a66ba15032f69b393a857807ec9860aefc94fdfb15f400ed05441",
+    "bundlePath": "/tmp/ynx-wallet-web-p0185-source-bound-readiness.bundle",
+    "bundleBytes": 87702444,
+    "bundleSha256": "e4327b4c530836cc17d4cfdd1d606ce5163e6ef8fffe4fb79369ffea198188fb",
+    "bundleVerified": true
+  },
+  "candidate": {
+    "deploymentId": "dpl_AqRgvgb2fwb23fQb4GDN3Qg1vCmN",
+    "immutableUrl": "https://wallet-3tjtzd8sy-jiahaoalbus-projects.vercel.app",
+    "projectId": "prj_K4emrdkST7sdb0K9mhmLM0QZh0I3",
+    "expectedSourceCommit": "abe18043259374ee58f90580af582100ab0649cd",
+    "expectedResources": {
+      "root": {"http": 200, "bytes": 821, "sha256": "2df10866a35b074a6fb366439197646dd4e979bc83bdae3aba0ba6db3802986c"},
+      "buildIdentity": {"http": 200, "bytes": 267, "sha256": "7d40d0e536dcc7cdf90aba0279670dd727d7c573d8eeb1e23b4d9c89a9979294", "cacheControl": "no-store"},
+      "manifest": {"http": 200, "bytes": 632, "sha256": "d2d131267483327ece949c5b8402c2dd80352bb15e791ea5571c879682ceba92"},
+      "serviceWorker": {"http": 200, "bytes": 4509, "sha256": "9c54d420a14a3e0843b8d55449eee9117dd3fe0193dd79d87ac3b9232a106715", "cacheControl": "no-store"}
+    }
+  },
+  "writeAuthority": {
+    "onlyPath": ".github/workflows/wallet-web-public-preflight-p0.yml",
+    "exactCommitMessage": "evidence(wallet-web): preflight source-bound v11 readiness p0185",
+    "exactLiteralPushCommand": "git -C /tmp/ynx-p0183-headers.Z4fZto push origin a8f97deeb0040e178a35b455bd89885f5f6fd1f9:refs/heads/codex/wallet-web-pwa-extensions-20260813",
+    "pushMaximum": 1,
+    "forcePushAllowed": false,
+    "workflowDispatchAllowed": false,
+    "retryAllowed": false
+  },
+  "workflowContract": {
+    "trigger": "one exact path-filtered push on the bound branch",
+    "permissions": "contents:read",
+    "runner": "ubuntu-latest GitHub hosted",
+    "timeoutMinutesMaximum": 8,
+    "secretsOrInputsAllowed": false,
+    "hardcodedUrl": "https://wallet-3tjtzd8sy-jiahaoalbus-projects.vercel.app",
+    "runMaximum": 1,
+    "artifactOutput": "new empty directory under RUNNER_TEMP only"
+  },
+  "projectProtection": {
+    "requiredPrecheckDeploymentType": "prod_deployment_urls_and_all_previews",
+    "requiredPrecheckPrivate": true,
+    "disableCommand": "vercel project protection disable wallet-web --sso --scope jiahaoalbus-projects --non-interactive",
+    "restoreCommand": "vercel project protection enable wallet-web --sso --scope jiahaoalbus-projects --non-interactive",
+    "disableMaximum": 1,
+    "restoreMaximum": 1,
+    "restoreOnEveryTerminalPath": true,
+    "requiredRestoredDeploymentType": "prod_deployment_urls_and_all_previews"
+  },
+  "requiredDirectEvidence": [
+    "four exact HTTP 200 raw bodies, complete headers, bytes and SHA-256 with identity and service-worker no-store",
+    "persistent hosted Chromium renders English source-bound Wallet shell, heading, provider chooser and disconnected status without integrity error",
+    "one stable immutable tab, exact URL, console zero and no blank page",
+    "v8 cache is removed, v11 controls first upgraded launch, first browser process closes, and second launch on the same profile remains v11",
+    "screenshots, DOM, network failures, registrations, caches and controller version are retained in the isolated artifact",
+    "SSO restoration and unchanged official wallet.ynxweb4.com alias are directly read back"
+  ],
+  "orderedExecution": [
+    "fresh-read lease, Heavy, both locks, remote parent, candidate READY, SSO/private and official old identity",
+    "disable SSO exactly once",
+    "execute the exact literal push command exactly once and bind its unique push run",
+    "restore SSO exactly once on every terminal outcome",
+    "verify restoration, unchanged official alias and isolated artifact",
+    "return direct hosted evidence or fail-closed release request"
+  ],
+  "forbidden": [
+    "retry, dispatch, variables or concatenation in the push refspec",
+    "vercel alias set or official-domain routing mutation",
+    "product source, UI, artifact or deployment mutation",
+    "secrets, dynamic URL, browser extension install, account approval, signing or transaction",
+    "public identity, parity or product completion promotion"
+  ],
+  "terminalRules": {
+    "success": "CONSUMED_RELEASED_SUCCESS_DIRECT_HOSTED_CHROMIUM_IMMUTABLE_CANDIDATE_PREFLIGHT",
+    "failure": "CONSUMED_RELEASED_FAILED_CLOSED_HOSTED_CHROMIUM_IMMUTABLE_CANDIDATE_PREFLIGHT",
+    "restoreFailure": "EMERGENCY_BLOCKED_SSO_RESTORE_REQUIRED_NO_FURTHER_ACTION",
+    "routingLeaseInferred": false
+  },
+  "truthBeforeExecution": {
+    "officialSourceCommit": "uncommitted-source-tree",
+    "currentSourceBoundPublic": false,
+    "installedProvider": false,
+    "accountAuthorized": false,
+    "signingOrTransaction": false,
+    "productsConnected": "0/12"
+  },
+  "terminalResult": {
+    "workflowCommit": "a8f97deeb0040e178a35b455bd89885f5f6fd1f9",
+    "actionsRunId": 32568870997,
+    "actionsJobId": 97021373954,
+    "actionsConclusion": "failure",
+    "artifactId": 9474798791,
+    "artifactBytes": 724808,
+    "artifactSha256": "a090663a0db014305cb24e5742198d64fee1ab7a13c17c02eaad206f67ea75b7",
+    "pushCount": 1,
+    "retry": false,
+    "fourResourcesExact": true,
+    "identityAndServiceWorkerNoStore": true,
+    "englishWalletUiRendered": true,
+    "singleTabStableUrl": true,
+    "consoleErrorCount": 0,
+    "integrityErrorVisible": false,
+    "serviceWorkerController": null,
+    "controlledVersion": null,
+    "activeRegistration": null,
+    "cacheNames": ["ynx-wallet-web-v11", "ynx-wallet-web-v8"],
+    "v8ToV11MigrationPassed": false,
+    "secondLaunchPassed": false,
+    "ssoRestored": true,
+    "restoredDeploymentType": "prod_deployment_urls_and_all_previews",
+    "officialAliasChanged": false,
+    "officialSourceCommit": "uncommitted-source-tree",
+    "productAccountSignOrTransactionMutation": false,
+    "currentSourceBoundPublic": false,
+    "futureCondition": "Repair service-worker control and legacy-v8 cache purge, then independently review a wholly new lease."
+  }
+}

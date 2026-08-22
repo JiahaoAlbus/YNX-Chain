@@ -1,0 +1,65 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-174",
+  "owner": "integration",
+  "decision": "NO_GO_PRODUCTION_STATE_ABSENCE_ROLLBACK_UNBOUND",
+  "candidate": {
+    "requestCommit": "50829559012300324a11dc26696233dec3184f14",
+    "requestTree": "50f4ad6f898fbe7556dda5bd3aae6fee3ce3da7e",
+    "requestSha256": "53c17fb1120446c450029f2179979a20520f71be5b7a24c7ca8b3be42fdcbe0f",
+    "sourceCommit": "7824af677dd052d20321431381523ab302614d98",
+    "sourceTree": "3db34ee2397a49852bbdf15e3841e7c9cecf9444",
+    "archiveSha256": "d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d",
+    "archiveBytes": 3937491,
+    "binarySha256": "cccdae8ae5b5f694ca7db68540da30582564ff741978e616f7435d448a20fe3e",
+    "runbookSha256": "38683a01da5fc92b50db44ac5984882482feb1216f0dafd5f1651faf47e91bfd"
+  },
+  "freshReadOnlyProduction": {
+    "host": "43.153.202.237",
+    "hostKeyAlgorithm": "ssh-ed25519",
+    "hostKeyFingerprint": "SHA256:7wrOak1OZoD6oDAr0e3En+UD4fs8QnAM1n0Jvwi6Ha8",
+    "sshAuthentication": "SUCCEEDED_STRICT_KNOWN_HOSTS_READ_ONLY",
+    "architecture": "x86_64",
+    "currentTarget": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a",
+    "currentBinarySha256": "0cc43c8a77c12975a0fcbada65971f08f2bc3a52345d547ea194dd3ccd60d83f",
+    "environmentSha256": "854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252",
+    "unitSha256": "2e72cdad422a3a714c46d074ea97b725233576cf726dbbfd43e82e99c2c2975b",
+    "caddyRootSha256": "077fe80ea9aab24a32d64ba1fab3584e8aab10304e200e58d976d2c33edfb39f",
+    "caddyRouteSha256": "dcf75a7aed315c54632321b8bb80e44c0abc22f6700fadfbfa9a7da21b88a282",
+    "statePath": "/var/lib/ynx/finance/state.json",
+    "statePathExists": false,
+    "serviceActive": true,
+    "serviceNRestarts": 0,
+    "publicVersionSource": "3b2383f5c18ab3eb5ce7f7f6a267d2cfe7c7e6a4",
+    "publicVersionHttp": 200,
+    "publicVersionBytes": 130,
+    "publicVersionSha256": "39789776da47e60b7a7df845789e02ebba16707ad8951eb6f27c84c1b40bb226",
+    "publicHealthHttp": 200,
+    "publicHealthBytes": 485,
+    "publicHealthSha256": "d1e97a4314acd1ecccf94629d15bd598cb58ff78136b3622ac26d583a82e45c1"
+  },
+  "singleExecutableBlocker": {
+    "code": "CANDIDATE_CREATED_STATE_INODE_ROLLBACK_UNBOUND",
+    "detail": "Production state is presently absent. The request does not bind source compatibility with absent state, a pre-absence receipt, the exact candidate-created state inode, or a stopped rollback that deletes only that created inode and restores absence.",
+    "requiredCorrection": [
+      "prove exact candidate cold start from absent state",
+      "freeze a pre-switch absence receipt",
+      "record candidate-created state device, inode, owner, mode, nlink, bytes and SHA-256",
+      "rollback while stopped and delete only when the path still names that exact created device and inode",
+      "verify the state path is absent again before restoring the old service"
+    ]
+  },
+  "lease": {
+    "issued": false,
+    "leaseId": null,
+    "p0141Reusable": false
+  },
+  "truth": {
+    "productionMutation": false,
+    "deployedPublic": false,
+    "providerLifecycleVerified": false,
+    "productsConnected": "0/12",
+    "productsMigratedV2": "0/12"
+  }
+}

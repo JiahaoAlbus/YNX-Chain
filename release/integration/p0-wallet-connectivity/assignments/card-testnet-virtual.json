@@ -1,0 +1,47 @@
+{
+  "taskId": "P0-013",
+  "owner": "card-testnet-virtual",
+  "status": "E2E_DEPENDENCIES_PREPARED",
+  "scope": "apps/card/**",
+  "branch": "codex/p0-card-testnet-virtual-20260820-fix",
+  "worktree": "/Users/huangjiahao/.codex/worktrees/f41f/YNX Chain",
+  "acceptedContracts": [
+    "walletTransport@p0-wallet-connection-v1",
+    "errorContract@p0-wallet-connection-v1",
+    "dappConnectSDK@0.1.0-p0.0",
+    "publicEndpointManifest@1.0.0-p0.4",
+    "connectionEvents@1.0.0-p0.0"
+  ],
+  "dependencyContract": "release/integration/p0-wallet-connectivity/contracts/card-testnet-e2e-v1.json",
+  "productTruth": "YNX Card is a future real virtual-card product. The current environment is YNX TESTNET PAYMENT SIMULATION: only YNXT Testnet funding and simulated authorization, capture, reversal, refund, immutable ledger and reconciliation are permitted.",
+  "connectionRule": "Use standard EIP-1193 Wallet connection independently of Product Session; Product Session failure is private-service degradation, not Wallet disconnection or global Offline.",
+  "prohibitions": [
+    "real payment processing",
+    "fiat",
+    "real card network",
+    "real PAN/CVV",
+    "hard-coded endpoint",
+    "localhost release",
+    "shared wallet protocol changes"
+  ],
+  "checkpoint": {
+    "commit": "324de225314b9118abe2d19565b31e63c966764d",
+    "tests": [
+      "npm test: 19/19 passed",
+      "npm run typecheck: passed"
+    ],
+    "status": "REPRODUCIBLE_CANDIDATE",
+    "evidence": "apps/card/evidence/card-testnet-virtual-handoff.md"
+  },
+  "e2eBlockers": [
+    "canonical Card funding intent authority and recipient remain unissued",
+    "real finalized YNXT Testnet funding transaction remains absent",
+    "Explorer transaction evidence remains absent",
+    "central ledger reconciliation remains pending"
+  ],
+  "publicEntryRequirement": "The existing Card owner must provide a real HTTPS Web/PWA Testnet entry, reuse the current Card service, and publish an official Website ecosystem route. Guest preview may not fabricate a card, account or balance. Only Wallet-connected YNXT Testnet funding and simulated authorization/capture/reversal/refund are allowed; real payment capability remains false.",
+  "continuationThreadId": "01a01e51-9eea-7500-bd8c-23d5bfb137ce",
+  "continuationSentAt": "2026-08-21T01:18:00Z",
+  "nextAction": "Card remains founder-goal owned. Its existing task has been actively resumed to implement and deploy the Web/PWA entry, provide exact URL/build/wallet/YNXT simulation evidence, and preserve all real-payment false boundaries. Integration will consume its handoff without editing Card-owned paths.",
+  "publicVerified": false
+}

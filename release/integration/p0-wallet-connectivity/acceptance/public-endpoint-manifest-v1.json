@@ -1,0 +1,16 @@
+{
+  "proposalId":"P0-WALLET-CONNECTIVITY-2026-08-public-endpoint-manifest-v1",
+  "status":"ACCEPTED",
+  "acceptedBy":"integration",
+  "acceptedAt":"2026-08-20T08:50:00Z",
+  "manifest":{"version":"1.0.0-p0.2","schemaVersion":"1.0.0","sourceCommit":"fa0ffd9bbbcc831438078be8e19cebff51b07e5e","path":"release/integration/p0-wallet-connectivity/public-endpoint-manifest.json","payloadSha256":"3c606cad1d9bfa71fc507f54b6ad8184a6580c7df75440675b5db921b7e67bb5"},
+  "acceptedContracts":["publicEndpointManifest"],
+  "verifiedEndpoints":["evmRpc","rest","explorer","monitor"],
+  "degradedEndpoints":["rpc","walletGateway","faucet","indexer"],
+  "unresolvedEndpoints":["appGateway","finance","exchange","pay","dex","quant"],
+  "signatureBoundary":"Bundled SHA-256 integrity is accepted. A remote signature is intentionally PENDING; no unverified remote manifest may be consumed or used to alter an endpoint.",
+  "compatibility":"Financial products can safely consume this bounded contract for standard Wallet connection and real degradation classifications. They cannot call PENDING or UNAVAILABLE product endpoints.",
+  "migration":"remove hard-coded endpoint values and import the bundled manifest through the accepted DApp Connect SDK; retain normal Wallet operation when Product Session endpoints degrade.",
+  "rollback":"revert this acceptance and preserve prior endpoint behavior until another exact, integrity-pinned manifest is accepted.",
+  "publicClaim":"none; endpoint acceptance is not installed-client or public-deployment proof."
+}

@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-CARD-PRODUCT-SESSION-SOURCE-CONSUMPTION-E935B760-20260820",
+  "reviewedAt": "2026-08-20T15:26:00Z",
+  "ownerSource": {
+    "branch": "codex/p0-card-testnet-virtual-20260820-fix",
+    "commit": "e935b760413898cd1b206f4f816e1eb0e15b4663",
+    "parent": "2c2e117e42b4daacf96cd74abc6844c72398c522",
+    "tree": "520110454ef3eec4449deb9784405b052fd9e1ca",
+    "remoteReadbackExact": true
+  },
+  "acceptedDependency": {
+    "walletAuthSourceCommit": "203be5e108be468350591615a64d5d36ab87a8f1",
+    "walletAuthSourceTree": "94e291a6757447f89c7cf6b8f01bbf811cb7d1f7",
+    "origin": "https://wallet-auth.ynxweb4.com",
+    "vendorArchive": {
+      "path": "apps/card/vendor/ynx-chain-wallet-auth-1.0.0-203be5e1.tgz",
+      "blob": "cce2a4c585f9846ab1bc5498741683056b2258c4",
+      "bytes": 123903,
+      "sha256": "8d0e8e35d8f387948d44666efdc6322e9b57968b5987728dffbddd11b54928eb"
+    },
+    "registry": {
+      "path": "apps/card/vendor/product-session-registry-203be5e1.json",
+      "blob": "a59f7aba930e6643363e7c0b5bb27028c1ecc43a",
+      "bytes": 6855,
+      "sha256": "f8a25702bdc7e3bd12b0cdecd6ac513b0a3d3ac25832a112efbe6b788ff8de9b"
+    }
+  },
+  "criticalSourceBlobs": {
+    "apps/card/src/productWalletConnection.ts": "4f616b7ba244e6594387b3d328e2e23612fa00ba",
+    "apps/card/src/productWalletRuntime.ts": "aed23432439acc1670be56396bbc57e380c2d84f",
+    "apps/card/src/productWalletConnection.test.ts": "53186c9d66eb32aad0c55c12d937452bfe59bac3",
+    "apps/card/evidence/p0-wallet-contract-consumption.md": "01ae8c445be9b904e099047237c5b3fac000d132"
+  },
+  "acceptedSourceBehavior": {
+    "rootFactoryConsumed": true,
+    "authoritativeOriginPinned": true,
+    "endpointInjectionRejected": true,
+    "callbackInjectionRejected": true,
+    "originInjectionRejected": true,
+    "sessionInjectionRejected": true,
+    "privateV2SessionSeparatedFromLegacyCardApiSession": true,
+    "standardWalletConnectionRemainsIndependent": true
+  },
+  "centralVerification": {
+    "npmCiClean": true,
+    "runtimeTestsPassed": 24,
+    "runtimeTestsFailed": 0,
+    "typecheckPassed": true,
+    "diffCheckPassed": true
+  },
+  "evidenceBoundary": {
+    "localHandlerOnly": true,
+    "publicCardV2RouteVerified": false,
+    "publicCardRegistryActivationVerified": false,
+    "visibleInstalledOrBrowserVerified": false,
+    "legacyCardApiSessionIsProductSessionV2": false
+  },
+  "truth": {
+    "classification": "source-consumption-checkpoint-only",
+    "cardMigratedV2": false,
+    "productsMigratedV2": 0,
+    "productsRequired": 12,
+    "installedWalletClientVerified": false,
+    "walletApprovalVerified": false,
+    "accountVerified": false,
+    "signingVerified": false,
+    "transactionVerified": false,
+    "deployedPublic": false,
+    "integratedCentral": false,
+    "aggregateDeployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

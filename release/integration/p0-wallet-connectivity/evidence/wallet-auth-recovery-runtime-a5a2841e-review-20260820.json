@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-20T11:49:11Z",
+  "sourceCommit": "a5a2841e870d7d21df0f761179f2c47d9ca83ccc",
+  "sourceParent": "9dec04cbc37061b988b416e3f7c2c6a4de40425d",
+  "sourceTree": "618efc2ec85b8e0aa3ef589a49d790682f7e1cbc",
+  "walletAuthTree": "53790596eeba9388b02cb43ac8cc51939f00ce5d",
+  "productMigrationMatrixBlob": "857c360ec9f8295403b4f6815fc0c7456899149d",
+  "commands": [
+    {"name":"wallet-auth-full","result":"PASS","passed":222,"failed":0},
+    {"name":"product-session-recovery-and-coordinator","result":"PASS","passed":29,"failed":0},
+    {"name":"dapp-connect-sdk","result":"PASS","passed":13,"failed":0},
+    {"name":"wallet-auth-pack-dry-run","result":"PASS","files":95,"recoveryImplementationPresent":true},
+    {"name":"diff-check","result":"PASS"},
+    {"name":"conflict-marker-scan","result":"PASS"}
+  ],
+  "reviewFindings": {
+    "ownerScopeOnlyAccepted": true,
+    "wholeTreeMergeAccepted": false,
+    "unknownRemoteSuccessorAccepted": false,
+    "runtimeProductsMigrated": 0,
+    "publicRuntimeSourceAtReview": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
+    "candidatePublicRuntimeVerified": false,
+    "productionRuntimeEntryReviewedAfterLeaseIssue": true,
+    "productionRuntimeEntry": "scripts/ynx-wallet-gatewayd.mjs",
+    "productSessionV2RoutesMounted": false,
+    "runtimeReady": false,
+    "leaseRevokedBeforeStart": true,
+    "installedClientVerified": false,
+    "aggregatePublic": false
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "taskId": "P0-003",
+  "owner": "developer-sdk",
+  "status": "SDK_ONLY_CLEAN_REBASE_SOURCE_ACCEPTED",
+  "inheritedBranch": "codex/p0-developer-sdk-20260820",
+  "inheritedCommit": "315897e75c0ffe3e63435fe73cfec42244b851cc",
+  "remoteHeadObserved": "0a03050c305eb2f7f0d53513bcf3ea6073ba3371",
+  "inheritedTests": "8/8 tests; migration scan no findings; git diff --check passed",
+  "candidatePR": "https://github.com/JiahaoAlbus/YNX-Chain/pull/105",
+  "handoff": "docs/handoffs/p0-wallet-connectivity/developer-sdk.md",
+  "lightLease": {
+    "status": "RELEASED",
+    "releasedAt": "2026-08-20T09:45:38Z",
+    "reason": "protected accepted checkpoint, push, clean inspected owner worktree, completed handoff and no observed atomic operation"
+  },
+  "remainingWork": [
+    "real provider/WalletConnect interoperability",
+    "per-product migrations",
+    "platform E2E"
+  ],
+  "nextAction": "Keep this as source-only SDK acceptance. Run Compatibility Lab only with real adapters, publish only through a separately signed release, and require each product owner to return runtime, public Gateway and visible platform evidence before migration changes.",
+  "manifestCandidate": {
+    "commit": "24773900321b944444f37c7fcb2ea91b6f928d7e",
+    "parent": "0a03050c305eb2f7f0d53513bcf3ea6073ba3371",
+    "scopeFiles": 5,
+    "tests": "12/12",
+    "manifestResult": "BUNDLED_SHA256_ACCEPTED",
+    "releaseId": "P0-WALLET-CONNECTIVITY-2026-08-endpoints-2",
+    "consumed": true,
+    "supersededBy": "3437be2f3e4d174cd8a35949e08de673f31942b8"
+  },
+  "historicalBlocker": {
+    "code": "CENTRAL_SDK_BASE_DIVERGED_FIVE_PATH_CHERRY_PICK_CONFLICT",
+    "centralParent": "8aa3924a11747d8613f14523f66f4ba5e9dc054f",
+    "actualMergeBase": "315897e75c0ffe3e63435fe73cfec42244b851cc",
+    "conflicts": [
+      "packages/dapp-connect-sdk/README.md",
+      "packages/dapp-connect-sdk/src/endpoints.js",
+      "packages/dapp-connect-sdk/src/index.js",
+      "packages/dapp-connect-sdk/test/consumer-sdk.test.mjs",
+      "packages/dapp-connect-sdk/tools/release-gate.mjs"
+    ]
+  },
+  "historicalPrTopology": {
+    "pr105CurrentHead": "7f4597f3bd8877b5946957f3e5379ada30fcd1e4",
+    "pr105AcceptedBase": "315897e75c0ffe3e63435fe73cfec42244b851cc",
+    "pr105UnsafeWholeTree": true,
+    "pr105ObservedDiff": {
+      "files": 180,
+      "insertions": 300561,
+      "deletions": 17,
+      "includesDeveloperArtifacts": true
+    },
+    "pr110ExactHead": "24773900321b944444f37c7fcb2ea91b6f928d7e",
+    "pr110VsPr105": {
+      "leftUnique": 1,
+      "rightUnique": 4,
+      "mergeBase": "0a03050c305eb2f7f0d53513bcf3ea6073ba3371"
+    },
+    "mergeEitherCurrentHead": false
+  },
+  "cleanRebase": {
+    "pr": "https://github.com/JiahaoAlbus/YNX-Chain/pull/130",
+    "head": "e649cd7cddf753d732033e24c9c3b73ecf7b807a",
+    "manifestCommit": "3437be2f3e4d174cd8a35949e08de673f31942b8",
+    "manifestParentActual": "a6d69e118c84b7b8df4d38198ae353fec6d2cd38",
+    "centralMergeParent": "c0a66cb6bfe42d2f1f658ebd93f41eec0f245f2d",
+    "sdkTree": "c526fd89d08024cc955a12055b9d5d5643e1cb6f",
+    "materializedWithoutMergeHistory": true,
+    "appsDeveloperPathsChanged": false,
+    "tests": "12/12",
+    "compatibilityLabExplicitSkips": 10,
+    "simulatedPasses": 0,
+    "manifestResult": "BUNDLED_SHA256_ACCEPTED"
+  }
+}

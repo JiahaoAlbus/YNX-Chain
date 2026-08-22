@@ -1,0 +1,21 @@
+{
+  "schemaVersion":"1.1.0",
+  "campaignId":"P0-WALLET-CONNECTIVITY-2026-08",
+  "observedAt":"2026-08-20T07:38:22Z",
+  "method":"direct public HTTPS and JSON-RPC reads; no client repair or transaction is inferred from read-only probes",
+  "publicRuntimeIdentity":{"status":"PARTIALLY_VERIFIED","identities":[
+    {"service":"native-rpc","url":"https://rpc.ynxweb4.com/status","commit":"a986a30c5a4ed8cfd66f7f08dd2d6f032b1cfdc8","release":"ynx-chain-dex-a986a30c","chainId":6423,"height":1124466,"result":"HTTP_200_AFTER_INITIAL_TLS_TIMEOUT"},
+    {"service":"evm-rpc","url":"https://evm.ynxweb4.com","method":"eth_chainId","result":"0x1917","chainId":6423,"resultStatus":"HTTP_200"},
+    {"service":"wallet-gateway","url":"https://wallet-auth.ynxweb4.com","health":"HTTP_200","version":"HTTP_200","commit":"6ed04310383ed924065d23affc71f3e4d4c29d49","release":"wallet-quant-web-6ed04310"},
+    {"service":"shop-api","url":"https://shop-api.ynxweb4.com","health":"HTTP_200","version":"HTTP_200","commit":"88c0f3a5","release":"0.4.0-testnet-preview","chain":"ynx_6423-1","chainId":6423}
+  ]},
+  "endpointObservations":[
+    {"endpoint":"https://ynxweb4.com","result":"HTTP_200","classification":"PUBLIC_WEB_REACHABLE"},
+    {"endpoint":"https://explorer.ynxweb4.com","result":"HTTP_200","classification":"PUBLIC_WEB_REACHABLE"},
+    {"endpoint":"https://wallet.ynxweb4.com","result":"HTTP_200","classification":"PUBLIC_WEB_REACHABLE"},
+    {"endpoint":"https://rpc.ynxweb4.com/status","initialResult":"TLS_CONNECTION_TIMEOUT","recheckResult":"HTTP_200","classification":"TRANSIENT_OR_PATH_DEPENDENT_TLS_FAILURE_REQUIRES_MONITORING","clientMessage":"Chain RPC recently had a transient TLS/path failure and subsequently recovered; do not classify this as a Product Session error."},
+    {"endpoint":"https://faucet.ynxweb4.com/health","result":"HTTP_200","classification":"Faucet HEALTHY_BUT_ENDPOINT_MANIFEST_REJECTED","reasons":["/version returned HTTP_404","public health response exposes internal rpcUrl http://127.0.0.1:6420"],"clientMessage":"Faucet service is reachable but its release endpoint contract is incomplete; do not call it Offline or Wallet disconnected."}
+  ],
+  "hostedArtifacts":{"status":"GITHUB_PRERELEASES_OBSERVED","notProductionProof":true,"examples":["YNX Wallet macOS Testnet engineering preview a5a563b1","YNX Wallet/Auth v1.0.0 Source Candidate","YNX Finance 1.2.0 Testnet Preview","YNX Developer 0.2.0 Testnet Preview","YNX Mail + Calendar 0.2.0 Testnet Preview"],"note":"A prerelease or source candidate cannot be classified as a verified installed public client without artifact, endpoint, and E2E evidence."},
+  "requiredNextEvidence":["faucet public version endpoint without internal configuration leakage","repeated TLS reachability probe and alerting for native RPC","remote signed endpoint manifest","installed-client platform matrix","Wallet standard connection plus Product Session failure separation"]
+}

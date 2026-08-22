@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-full-subtree-lease-20260820T121054Z",
+  "status": "REVOKED_BEFORE_START_RUNTIME_DEPENDENCY_CLOSURE",
+  "singleUse": true,
+  "issuedAt": "2026-08-20T12:10:54Z",
+  "expiresAt": "2026-08-20T14:10:54Z",
+  "revokedAt": "2026-08-20T12:19:25Z",
+  "revocationReason": "Copied-49e no-network cold start exited ERR_MODULE_NOT_FOUND for @noble/hashes; the exact source subtree did not include a reproducible runtime dependency closure.",
+  "leaseOwner": "wallet-protocol",
+  "deploymentOwner": "wallet-auth-gateway-runtime-owner",
+  "deploymentChannel": "exclusive-wallet-auth-full-subtree-runtime-transaction",
+  "acceptancePath": "release/integration/p0-wallet-connectivity/acceptance/wallet-auth-v2-full-subtree-6cf3ef84-20260820.json",
+  "authorization": {
+    "executionAuthorized": false,
+    "productionActivationBlockedUntilCopied49eColdStartPasses": true,
+    "singleControlledTransaction": true,
+    "exclusiveProductionWindowRequired": true,
+    "automaticRollbackRequired": true,
+    "allowedRoot": "packages/wallet-auth",
+    "materialization": "REPLACE_EXACT_FULL_PACKAGES_WALLET_AUTH_SUBTREE_WITH_TREE_4c544d2e",
+    "forbiddenTargets": ["6437", "6439", "6441", "Wallet UI or platform", "Chain Core", "Website", "Developer SDK", "Shop", "other products"],
+    "forbiddenEffects": ["whole-repository-merge", "partial-hand-picked-closure", "origin-inference", "registry-mutation", "unrelated-service-restart", "installed-client-acceptance", "product-migration-claim"]
+  },
+  "source": {
+    "currentPublicRuntimeCommit": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
+    "candidateRuntimeCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "candidateWalletAuthTree": "4c544d2e2ddb63caef536ea67c8f27b45044fd89",
+    "requiredVersionSourceAfterActivation": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "inventorySha256": "a96ba130a236459e6a3352d6c14be91c7c6bd0945b2eb019b5e65811ef3137b0",
+    "archiveSha256": "fac046697f8cc3902976764f959d69f83e13067c37abfe2b37f9b8adf7ba2da0"
+  },
+  "registry": {
+    "v1CentralRegistrySha256": "ae156b317b9a97bfd42397cca634021deefe10ffb009102899e24276d8721e31",
+    "v2RegistryBlob": "4f1f1326031f1dade8eaaaee4673ee96badd0259",
+    "v2RegistrySha256": "d2826eb419abca4444ccb50d79537fa7f6a3643948d82ed9b52914b7169c107b",
+    "v2RegistryBytes": 6130,
+    "explicitAbsoluteMaterializedPathRequired": true,
+    "originInferenceAllowed": false,
+    "mutationAuthorized": false
+  },
+  "requiredCopiedRuntimeColdStart": [
+    "copy the exact current /opt/ynx/wallet-auth target and exact v1 state without changing production",
+    "replace only copied packages/wallet-auth with exact tree 4c544d2e and verify all 160 inventory entries",
+    "materialize the exact immutable v2 registry and an independent v2 state path",
+    "cold-start ynx-wallet-gatewayd with the copied actual v1 state, v1 registry and candidate v2 paths",
+    "prove v1 health ready version and administration remain compatible",
+    "prove all five v2 routes are mounted and registered-origin CORS plus local lifecycle pass",
+    "record the full actual v1 state SHA-256, candidate process exit, logs and zero production mutation",
+    "stop and return for amendment if any dependency, state schema, ownership, permission or startup mismatch occurs"
+  ],
+  "requiredBackupAndRollback": [
+    "begin only after copied-runtime cold-start passes",
+    "capture full source symlink service environment Caddy registry v1-state and candidate v2-state identities",
+    "create verified byte-exact backups and exact rollback commands",
+    "drill rollback to source 49e and exact prior v1 state before final activation",
+    "prove prior public v1 lifecycle and Social CORS unchanged after rollback"
+  ],
+  "requiredPublicAcceptance": [
+    "health ready version identify exact 6cf source",
+    "v1 administration and prior lifecycle remain unchanged",
+    "all five v2 routes avoid v1 and Chain fallback",
+    "registered CORS succeeds and attacker header method route query body failures cause zero mutation",
+    "challenge complete response-loss retry restart introspect replay revoke devices-revoke post-revoke pass",
+    "120 concurrent Product Sessions remain isolated",
+    "0644 symlink hardlink same-bytes inode and digest tamper each fail closed with zero business mutation",
+    "controlled recovery restores exact state identity permissions and lifecycle"
+  ],
+  "executionState": {
+    "copiedRuntimeColdStartComplete": false,
+    "copiedRuntimeColdStartAttempted": true,
+    "copiedRuntimeColdStartPassed": false,
+    "coldStartExitNonZero": true,
+    "preflightComplete": false,
+    "backupComplete": false,
+    "deploymentStarted": false,
+    "deploymentComplete": false,
+    "rollbackDrillComplete": false,
+    "publicAcceptanceComplete": false,
+    "leaseConsumed": false,
+    "productionMutationObserved": false,
+    "revokedBeforeStart": true
+  },
+  "truth": {
+    "candidateDeployedPublic": false,
+    "publicV2LifecycleVerified": false,
+    "installedClientVerified": false,
+    "productRuntimeMigrations": 0,
+    "integratedCentral": false,
+    "aggregatePublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

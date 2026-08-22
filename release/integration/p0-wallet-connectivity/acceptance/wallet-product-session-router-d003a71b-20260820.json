@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "acceptanceId": "P0-WALLET-CONNECTIVITY-2026-08-router-d003a71b",
+  "recordedAt": "2026-08-20T14:30:01Z",
+  "decision": "ACCEPTED_SOURCE_CHECKPOINT_PRODUCT_MIGRATION_PENDING",
+  "owner": "wallet-protocol-router",
+  "ownerCommit": "d003a71b7658bbe530c5a9f646e6d3e908e22287",
+  "ownerTree": "6708ee539dea6e9fdf281e31bc73ed2692def63c",
+  "ownerParent": "4cae4a57e4ddf19fab36c4518485a22570bc4ccd",
+  "branch": "codex/wallet-session-router-recovery",
+  "acceptedArchitecture": {
+    "standardWalletProtocolCommit": "66003e76e804da16d472255efde50cb879055b96",
+    "standardWalletProtocolAcceptanceCommit": "9b6e101f29c9028b9d5a477258e341aa05ebc89f",
+    "developerSdkCommit": "315897e75c0ffe3e63435fe73cfec42244b851cc",
+    "developerSdkAcceptance": "source-only",
+    "productSessionFailurePreservesStandardWalletConnection": true,
+    "privateYnxServiceFailureState": "DEGRADED",
+    "localOrCannedProductSessionAllowed": false
+  },
+  "publicReadback": {
+    "capturedAt": "2026-08-20T14:30:01Z",
+    "baseUrl": "https://wallet-auth.ynxweb4.com",
+    "sourceCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "health": {"status": 200, "bytes": 197, "sha256": "f9765260d72e329c50d34ab68968b7f225350c7d914786e9b55974084eb874c6"},
+    "ready": {"status": 200, "bytes": 195, "sha256": "36027914c982004b11c943c53a3aff7332767f3e477bf7cb15d27d4105ae497c"},
+    "version": {"status": 200, "bytes": 301, "sha256": "5ec386007e0b3e24bfd7d1f1afd37b4e98aedf7f4e1f7b2b39efca136a5d52d0"},
+    "financeOriginOptionsStatus": 204,
+    "financeOriginExactAcao": true,
+    "attackerOriginStatus": 403,
+    "attackerNoStore": true,
+    "initialTlsHandshakeFailedBeforeHttp": true,
+    "boundedRetryRecovered": true
+  },
+  "sourceFiles": [
+    {"path": "docs/integration/WALLET_PRODUCT_SESSION_ROUTER_HANDOFF.md", "blob": "8215c274d3db9eaac51b6391b3ad285c77f94172", "bytes": 19769, "sha256": "79af8e123e74ad7219c5806af817a5fc3bc1a197760f15f76a4275d8c4b91cfd"},
+    {"path": "release/integration/wallet-product-session-router-continuation-evidence-20260820.json", "blob": "ce34cd62ab0449531dc8d90581831385254e164e", "bytes": 3613, "sha256": "39fd6b42b4a4fb19de3e74b50de9fdaa33bbbec1563b0febad18e1c40e4b3669"},
+    {"path": "release/integration/wallet-product-session-router-contract.json", "blob": "637cb9e3296efe187a5e62d01b200737ae4f02c4", "bytes": 14237, "sha256": "5284ce5c1ad92ec1a22d68600ebf7484908fac3543959f9acccc715b99570d0d"},
+    {"path": "release/integration/wallet-product-session-router-migration.json", "blob": "1dabd51649b53828c5e7741207aa456f6b87991f", "bytes": 5029, "sha256": "44bc8356c8592062a867da88fa876ae8af8146dee491b9e3e549137f1f7d42d6"},
+    {"path": "release/integration/wallet-product-session-router-completion-audit.json", "blob": "b2725dde250325956caa852832a24dcff9dede88", "bytes": 13633, "sha256": "3ff0069710706c993b7ad20f0dd287271d5fa2f6799656d90453422bc1d6a92e"}
+  ],
+  "tests": {
+    "walletAuth": "233/233",
+    "migration": "4/4",
+    "social": "18/18 plus smoke and typecheck",
+    "jsonAndDiff": true
+  },
+  "productRouting": {
+    "required": 12,
+    "migrated": 0,
+    "products": ["calendar", "card", "creator-studio", "developer", "dex", "exchange", "finance", "pay", "quant", "shop", "social", "video"],
+    "promotionGate": "runtime uses createProductWalletConnection plus v2 Gateway evidence plus installed or browser visible platform evidence",
+    "lowerLevelSdkOrCanonicalLauncherAloneSufficient": false
+  },
+  "truth": {
+    "sourceCheckpointAcceptedCentral": true,
+    "walletAuthGatewayDeployedPublic": true,
+    "productSessionV2PublicLifecycleVerified": true,
+    "websiteUpdated": true,
+    "productsMigrated": 0,
+    "productMigrationTotal": 12,
+    "productConsumptionVerified": false,
+    "installedWalletApprovalVerified": false,
+    "walletConnectOrOtherWalletInteropVerified": false,
+    "computerControlVisibleFlowVerified": false,
+    "accountVerified": false,
+    "signVerified": false,
+    "transactionVerified": false,
+    "integratedCentral": false,
+    "aggregateComplete": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

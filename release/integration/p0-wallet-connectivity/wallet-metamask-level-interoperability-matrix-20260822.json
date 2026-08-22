@@ -1,0 +1,326 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-155",
+  "owner": "integration",
+  "status": "P0_HIGHEST_PRIORITY_DIRECT_INSTALLED_INTEROP_DISPATCH_NO_EXECUTION_LEASE",
+  "objective": "MetaMask-level interoperability for YNX Wallet using direct installed evidence only.",
+  "network": {
+    "cosmosChainId": "ynx_6423-1",
+    "evmChainId": 6423,
+    "evmChainHex": "0x1917",
+    "nativeAsset": "YNXT",
+    "defaultLocale": "en",
+    "externalDappAccountExposure": "approved-0x-account-only"
+  },
+  "acceptedAuthorities": {
+    "protocol": "66003e76e804da16d472255efde50cb879055b96",
+    "consumerSdk": "315897e75c0ffe3e63435fe73cfec42244b851cc",
+    "sharedProviderSource": "98c6d5d784d212df8981a53b17118a511e246ad2",
+    "sharedProviderTree": "51a60a362d4ad5dd748bcdefb101f71b1d9e0cee",
+    "sharedProviderEvidence": "c3ab255c32bdeb9c8e056882c315f8ad43c29c7f",
+    "directE2EExecutionPlan": {
+      "commit": "875be208e8a7ddb60345d55b93fc299949664e5c",
+      "tree": "3499ddfbe2a4bb08cbbcaef8c71b911aca51dde4",
+      "blob": "360704b565b592de3d7e6e63a43ba1922644ae29",
+      "sha256": "c5a615c9d5c34f25d9810751d816dc6709ca6de70aafea0549224de162c33652",
+      "verifiedProducts": 12,
+      "countsTowardCompletion": false
+    },
+    "standardInteropConformance": {
+      "commit": "9ab9cd8c8deac8563acff9ffd7e277553e20383e",
+      "tree": "577133f121f49a7c832cc12bc6fb2afb1258b81b",
+      "path": "release/integration/wallet-standard-connection-conformance-contract-p0-20260822.json",
+      "blob": "173cb99a6fa6b942f43c6dc8ee3a3b851e876525",
+      "sha256": "c59cc18de86a304be8de6ef7056e3e260e62156fe36fb0b76e021e38e096a2fe",
+      "version": "standardWalletConformance@1.0.0-p0.0",
+      "fixtureOnly": true
+    }
+  },
+  "consumerEnforcement": {
+    "routerE2EPlanCheckpoint": "875be208e8a7ddb60345d55b93fc299949664e5c",
+    "routerCheckpoint": "1e4958c878ba0bdb0152b9d1cbb04a25e81b68bb",
+    "routerTree": "ecb30a58f681ba72f8c5a2a4c01a6fbbc2363142",
+    "routerBaseCheckpoint": "4025e1ffe5849ba9e394868a90c2a0c195aceed4",
+    "routerWebCheckpoint": "2e2eb37277613e52208f3e42b450a3a28a2ed08b",
+    "routerNativeCheckpoint": "cd7c3466b2b97876733c536b5c6ca4185ca06024",
+    "routerP0159Checkpoint": "762ebb08810af807a8626ca59aea02e7a39c56e8",
+    "routerP0161Checkpoint": "fdd6d856bbc57536dc566ef1263abd2217daa141",
+    "routerP0162Checkpoint": "451214970e0809b7f54e403e86adefbe92d118e5",
+    "routerP0163Checkpoint": "34a9c6627ade57281f19b61d113b322f7736f17b",
+    "routerP0164Checkpoint": "47b824aa571ba3c57867e7ae4ea6767f47ff814f",
+    "routerP0165Checkpoint": "393a8556eb0799ab9456c01b98abdd09b3212cf4",
+    "routerP0166Checkpoint": "fe7be7d3d7ad1b76232f3d8b3ff988c6605558ec",
+    "routerP0167Checkpoint": "ff3253e0f87f9ec3f16ecab4ea87e373ef2d3eb4",
+    "routerP0168Checkpoint": "4d77641e23afa7846bc178ab0f0740317b3a7cca",
+    "routerP0169Checkpoint": "2cb19f9e3da294896fa02dceffd7f34ab6d6044b",
+    "routerP0170Checkpoint": "cdecaac5465eaef65d361b82a132cf2027e66a79",
+    "routerP0171Checkpoint": "dd1f3eda42a47ac772fc39b5096ea1325345495a",
+    "routerMatrixSha256": "03b0fcd829cc3a87ef15808a2227b27b62be8ade5e6b975425e2a2107df8579f",
+    "routerActivitySha256": "e5c6c9b29db21caf41764ef2644c9c2b1992fccc10f48138b9a579f4e75120bc",
+    "routerReceiptCheckpoint": "747c63c7e3ee84843f1b770f9f3d3b1d390c3c02",
+    "routerReceiptTree": "d06c3a90252d8af4f10a29129f542bc2e98a3726",
+    "routerReceiptMatrixSha256": "80965c15f2a431b8c85eed57d1dc067b819fcf5fda2bc9435ff3cea9ec5ab701",
+    "routerReceiptActivitySha256": "9a17c6bb63d1cfca359b34d185e0beb915302f4826b8c9966b106af759c16f26",
+    "acceptance": "P0-156,P0-157,P0-158,P0-159,P0-160,P0-161,P0-162,P0-163,P0-164,P0-165,P0-166,P0-167,P0-168,P0-169,P0-170,P0-171,P0-172,P0-173",
+    "receiptLoopClosed": true,
+    "newCentralCheckpointRequiredForReceiptOnlyUpdate": false,
+    "nextAcceptedUpdateRequires": "NEW_CAPABILITY_OR_DIRECT_INSTALLED_E2E_OR_SECURITY_SEMANTIC_CHANGE",
+    "countsTowardCompletion": false,
+    "embeddedPlatformObservationsOverrideCentral": false
+  },
+  "evidencePolicy": {
+    "completionEvidenceTier": "DIRECT_INSTALLED_E2E",
+    "nonCompletionTiers": [
+      "SOURCE_ONLY",
+      "HOSTED_CI_ONLY",
+      "LOCAL_OR_NODE_ONLY",
+      "PUBLIC_ARTIFACT_IDENTITY_ONLY",
+      "DETECTED_ONLY"
+    ],
+    "sourceAloneCounts": false,
+    "ciAloneCounts": false,
+    "localAloneCounts": false,
+    "providerDetectionAloneCounts": false,
+    "uiPresenceAloneCounts": false,
+    "publicArtifactIdentityAloneCounts": false
+  },
+  "completionRequirements": [
+    {"id":"external-dapp-discovers-ynx-wallet","countsTowardCompletion":false},
+    {"id":"ynx-dapp-selects-ynx-wallet-or-metamask","countsTowardCompletion":false},
+    {"id":"walletconnect-v2-qr-and-deep-link","countsTowardCompletion":false},
+    {"id":"approve-and-reject","countsTowardCompletion":false},
+    {"id":"add-and-switch-0x1917","countsTowardCompletion":false},
+    {"id":"personal-sign","countsTowardCompletion":false},
+    {"id":"eip712-typed-data","countsTowardCompletion":false},
+    {"id":"real-testnet-transaction","countsTowardCompletion":false},
+    {"id":"refresh-and-cold-start-restore","countsTowardCompletion":false},
+    {"id":"disconnect-and-revoke","countsTowardCompletion":false},
+    {"id":"accounts-chain-disconnect-events","countsTowardCompletion":false},
+    {"id":"product-session-degraded-standard-connection-survives","countsTowardCompletion":false}
+  ],
+  "platforms": [
+    {
+      "id": "web-extension",
+      "owner": "wallet-web",
+      "latestAcceptedSource": "a9653f9f73eb79f77b45f04c845c4f56c012ab4b",
+      "latestAcceptedTree": "5cbf483decc37a6249420840e1d6b81bbafc9c2a",
+      "latestEvidence": "4f1e1b8ebdbc5e67900f675d970421d73d3a574b",
+      "latestEvidenceTree": "9d5b8f3fd00bef48e35391279002c59919743849",
+      "latestEvidenceBlob": "3acc2d91d3aa4c478554c7adfbc9a5732750d97e",
+      "latestEvidenceSha256": "d5c5a7fc9b529caa7a20ebfa36ed13ab9ed3ba62eabe73e59f4d7c90654ef450",
+      "evidenceTier": "SOURCE_ONLY",
+      "acceptedFacts": [
+        "independent-eip6963-eip1193-provider-source",
+        "encrypted-vault-and-signer-source",
+        "source-bound-package-artifacts",
+        "provider-identity-name-ynx-wallet-rdns-com-ynx-wallet",
+        "provider-identity-is-ynx-wallet-true-is-metamask-false",
+        "node-rpc-chain-id-0x1917",
+        "router-standard-interop-authority-consumed-exact",
+        "five-fixture-profiles-package-bound",
+        "three-external-dapp-promotion-gate-package-bound"
+      ],
+      "blockers": [
+        "immediate-user-confirmation-required-before-isolated-browser-install",
+        "public-alias-uncommitted-source-tree",
+        "installed-provider-and-dapp-runtime-unproved"
+      ],
+      "countsTowardCompletion": false
+    },
+    {
+      "id": "android",
+      "owner": "wallet-android",
+      "latestAcceptedSource": "dedfcb67fbb714e8aeefdf552a683c38bba0478f",
+      "latestEvidence": "CI-31850349002-and-fresh-wiped-api36-avd",
+      "evidenceTier": "HOSTED_CI_ONLY",
+      "acceptedFacts": [
+        "api24-target36-arm64-disposable-qa-apk",
+        "cold-and-second-launch-no-anr",
+        "malformed-authorize-fails-closed"
+      ],
+      "blockers": [
+        "physical-installed-provider-unproved",
+        "approve-reject-callback-session-unproved",
+        "walletconnect-and-external-dapp-runtime-unproved",
+        "sign-typed-data-transaction-unproved"
+      ],
+      "countsTowardCompletion": false
+    },
+    {
+      "id": "ios",
+      "owner": "wallet-ios",
+      "latestAcceptedSource": "aba683d5dc90ee6a8df339240510e77680c9fa9c",
+      "latestAcceptedTree": "a2cc5db128d4f492408689e6b3ad5834d1ff02de",
+      "latestEvidence": "0ba02e5f6b218e59e23169b35588b1baebf36540",
+      "latestEvidenceTree": "458f723e8774d4f835cca0a631201e5678430440",
+      "latestEvidenceBlob": "7829925df882775d62252182d55e71f2374af7d3",
+      "latestEvidenceSha256": "0bcae61c24415ce6fe0e422f81af8f08dd682b76c6d706ee312d1214e358a75c",
+      "evidenceTier": "DIRECT_INSTALLED_SIMULATOR_FAIL_CLOSED_ONLY",
+      "acceptedFacts": [
+        "single-file-biometric-test-root-cause-fix-source",
+        "terminal-biometric-run-32553443117-failed-before-positive-proof",
+        "offline-walletconnect-decision-state-source",
+        "pending-proposal-restart-source",
+        "approved-0x-account-substitution-fail-closed-source",
+        "sign-result-validation-and-revoke-purge-source",
+        "offline-walletconnect-decision-state-xcuitest-passed",
+        "canonical-walletconnect-uri-routed-separately-from-auth-source",
+        "project-id-unavailable-visible-fail-closed-source",
+        "relay-adapter-unavailable-visible-fail-closed-source",
+        "canonical-walletconnect-custom-scheme-delivered-to-installed-simulator-app",
+        "walletconnect-project-id-unavailable-visible-on-same-pid",
+        "callback-emitted-false-without-project-id"
+      ],
+      "blockers": [
+        "biometric-simulator-persistence-run-32554682866-failed",
+        "walletconnect-route-run-32556002628-failed-biometric-only",
+        "real-project-id-and-success-callback-unproved",
+        "walletconnect-relay-and-real-dapp-runtime-unproved",
+        "physical-device-unproved",
+        "main-registration-review-pending",
+        "distribution-not-authorized"
+      ],
+      "executableBlocker": "PROTECTED_NATIVE_WALLETCONNECT_RUNTIME_PACKAGE_UNAVAILABLE",
+      "executableBlockerEvidence": "65dffee2f35ec9dc254f8c2ac8c465a353bc1861",
+      "countsTowardCompletion": false
+    },
+    {
+      "id": "macos",
+      "owner": "wallet-macos",
+      "latestAcceptedSource": "02c782552d9b24423d8a9f61dceee38d047a78ae",
+      "latestAcceptedTree": "f219ccd5e31a6bd5ead97ffc21e5454fbf7dd4b2",
+      "latestEvidence": "414d581d046adcf0fb255409224672945efea73f",
+      "latestEvidenceTree": "c7a2efd6a59615755494e0f52d50c361cc677f7c",
+      "latestEvidenceBlob": "fcf9fdc5a50b7880456cd81e2bbf8550ed970f1f",
+      "latestEvidenceSha256": "d5aca7aebf4c04a34fc1117d107139c3f431cf782184d396a19f28a4804b95be",
+      "evidenceTier": "DIRECT_ISOLATED_HOSTED_INSTALL_FAIL_CLOSED_ONLY",
+      "acceptedFacts": [
+        "walletconnect-v2-strict-policy-source",
+        "eip155-6423-namespace-policy",
+        "ad-hoc-artifact-inspected",
+        "walletconnect-local-state-core-source",
+        "pending-proposal-and-request-restart-persistence-source",
+        "approved-account-result-validation-source",
+        "disconnect-revoke-purge-source",
+        "isolated-temp-applications-cold-second-lifecycle",
+        "canonical-auth-custom-scheme-same-pid-visible-fail-closed",
+        "canonical-walletconnect-custom-scheme-same-pid-visible-fail-closed",
+        "public-chain-0x1917-and-gateway-fail-closed-readback",
+        "canonical-walletconnect-uri-cold-starts-new-isolated-pid",
+        "cold-start-pending-inbox-callback-consumed-same-pid-visible-fail-closed",
+        "approved-topic-dapp-class-and-name-substitution-rejected",
+        "persisted-unsupported-method-fails-closed-as-corrupt",
+        "restart-decoder-validates-method-event-identity-session-and-time-ordering",
+        "same-topic-reproposal-cannot-replace-existing-dapp-identity",
+        "same-topic-identity-replacement-fails-closed-at-enqueue-persistence-and-approval",
+        "single-pending-session-proposal-per-topic",
+        "runtime-duplicate-pending-topic-returns-walletconnect-request-duplicate",
+        "persisted-duplicate-pending-topic-fails-walletconnect-persistence-corrupt",
+        "dapp-display-name-leading-trailing-whitespace-and-control-characters-rejected",
+        "persisted-ambiguous-dapp-display-name-fails-walletconnect-persistence-corrupt",
+        "normal-unicode-dapp-display-names-remain-allowed",
+        "walletconnect-topic-is-canonical-64-lowercase-hex",
+        "uppercase-runtime-topic-is-invalid",
+        "persisted-uppercase-topic-fails-walletconnect-persistence-corrupt",
+        "case-variant-identity-and-uniqueness-bypass-rejected",
+        "walletconnect-request-digest-is-canonical-0x-plus-64-lowercase-hex",
+        "persisted-approved-account-is-canonical-0x-plus-40-lowercase-hex",
+        "uppercase-runtime-digest-is-invalid",
+        "persisted-uppercase-approved-account-fails-walletconnect-persistence-corrupt",
+        "pending-request-id-control-characters-rejected-at-runtime",
+        "persisted-control-character-request-id-fails-walletconnect-persistence-corrupt",
+        "pending-request-id-128-byte-and-whitespace-restrictions-retained",
+        "expired-approve-resolve-reject-decisions-durably-purged-before-expired-error",
+        "expired-decision-callback-remains-false"
+      ],
+      "blockers": [
+        "real-project-id-absent",
+        "system-applications-install-unproved",
+        "browser-quarantine-and-gatekeeper-acceptance-false",
+        "relay-pairing-approval-session-runtime-unproved",
+        "developer-id-notary-gatekeeper-publication-false"
+      ],
+      "countsTowardCompletion": false
+    },
+    {
+      "id": "desktop-windows",
+      "owner": "wallet-desktop",
+      "latestAcceptedSource": "a8f36e4c57234efe5f19367c87035b4435d61b76",
+      "latestEvidence": "release/integration/p0-wallet-connectivity/acceptance/wallet-desktop-installers-public-20260821.json",
+      "evidenceTier": "PUBLIC_ARTIFACT_IDENTITY_ONLY",
+      "acceptedFacts": [
+        "public-x64-exe-bytes-and-pe-identity-verified"
+      ],
+      "blockers": [
+        "installed-wallet-authority-unproved",
+        "standard-wallet-connection-unproved",
+        "walletconnect-sign-typed-data-transaction-unproved",
+        "authenticode-and-store-release-false"
+      ],
+      "countsTowardCompletion": false
+    }
+  ],
+  "dappAcceptance": {
+    "requiredFirstPartyDapps": 1,
+    "requiredExternalDapps": 3,
+    "firstPartyDappsComplete": 0,
+    "externalDappsComplete": 0,
+    "ynxDappCanSelectYnxWallet": false,
+    "ynxDappCanSelectMetaMask": false,
+    "nonYnxDappDiscoversYnxWallet": false
+  },
+  "architectureTruth": {
+    "standardWalletConnectionIndependentFromGateway": true,
+    "productSessionFailureRequiredEffect": "PRIVATE_SERVICE_DEGRADED_ONLY",
+    "installedRuntimeDegradationProof": false,
+    "productSessionMayGrantStandardSigner": false,
+    "metamaskSubstitutionForYnxWallet": false
+  },
+  "controlPlaneAudit": {
+    "heavyOwner": null,
+    "activeLightOwner": "integration:/root",
+    "activeLightTask": "P0-148",
+    "activeLightPath": "apps/creator-studio/**",
+    "walletPathOverlap": false,
+    "executionLeaseIssued": false,
+    "productionLeaseIssued": false,
+    "webInstallConfirmationGranted": false
+  },
+  "executionDispatch": {
+    "acceptance": "P0-173",
+    "sourceOnlyMicroHardeningIsPrimaryProgress": false,
+    "nextAcceptedProgress": "DIRECT_INSTALLED_E2E_OR_EXECUTABLE_EXTERNAL_BLOCKER",
+    "licenseReuseMustPreserveAttribution": true,
+    "metamaskImpersonationForbidden": true,
+    "pathScopedLeaseWhenPrerequisitesPass": true,
+    "currentLeaseBlockers": {
+      "web-extension": "IMMEDIATE_USER_CONFIRMATION_REQUIRED_AT_CHROME_LAUNCH_BOUNDARY",
+      "android": "NO_ELIGIBLE_PERSISTENT_OR_PHYSICAL_INSTALLED_TARGET_PROVED",
+      "ios-macos": "REAL_PROJECT_ID_RELAY_AND_ELIGIBLE_SIGNED_INSTALLED_TARGET_MISSING",
+      "desktop": "SIGNED_INSTALLED_PROVIDER_AUTHORITY_MISSING"
+    }
+  },
+  "ownerActivation": [
+    {"owner":"wallet-protocol-router","mode":"RUNTIME_SUPPORT_OR_EXACT_BLOCKER_NO_RECEIPT_CHURN","safe":true},
+    {"owner":"wallet-web","mode":"PREPARE_DIRECT_INSTALLED_E2E_AND_REQUEST_IMMEDIATE_CONFIRMATION","safe":true},
+    {"owner":"wallet-android","mode":"ELIGIBLE_DEVICE_PREFLIGHT_OR_EXACT_BLOCKER","safe":true},
+    {"owner":"wallet-ios-macos","mode":"REAL_WALLETCONNECT_PREREQUISITE_PREFLIGHT_OR_EXACT_BLOCKER","safe":true},
+    {"owner":"wallet-desktop","mode":"SIGNED_INSTALL_PREFLIGHT_OR_EXACT_BLOCKER","safe":true}
+  ],
+  "truth": {
+    "installedProviderComplete": false,
+    "walletConnectRuntimeComplete": false,
+    "firstPartyDappComplete": false,
+    "threeExternalDappsComplete": false,
+    "signingComplete": false,
+    "transactionComplete": false,
+    "restoreComplete": false,
+    "disconnectRevokeComplete": false,
+    "productSessionDegradationRuntimeComplete": false,
+    "productsConnected": "0/12",
+    "productsMigratedV2": "0/12",
+    "parityComplete": false,
+    "aggregatePublic": false
+  }
+}

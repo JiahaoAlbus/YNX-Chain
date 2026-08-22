@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-WALLET-AUTH-REGISTRY-V3-EXECUTION-READINESS-5B96628A-20260821",
+  "checkedAt": "2026-08-20T18:38:00Z",
+  "ownerCheckpoint": {
+    "commit": "5b96628a7ae48a257c8236a5391347a7ea9bf8dc",
+    "parent": "e5a6615e6367bfd8f3f226216dbeeb0cc77c09fb",
+    "tree": "20af1bc075e1edbce4d46495eb96cb0a97fcf0ec",
+    "branch": "codex/wallet-session-router-recovery",
+    "path": "release/integration/wallet-product-session-shop-android-retirement-checkpoint-20260821.json",
+    "blob": "f79e33a23d4caa89eebaaf11c1367eb6df565aee",
+    "contentSha256": "bbae91c630fab3d9ca968dc068d333c551bcedde0e73466c0041ab50a470ad9b",
+    "remoteReadable": true,
+    "worktreeClean": true,
+    "localAheadCount": 0
+  },
+  "p0041Binding": {
+    "centralCommit": "645eb41e6b4db3f0ce813231541e475071b389f6",
+    "centralParent": "651ae60e91b811c6686d9c513c70fd13080b5a16",
+    "centralTree": "5f93172704b41c51cc301d917c4ce0b14c091745",
+    "candidateSource": "5d94dcd0b25595df478ffe45a84cc346306ad4d4",
+    "candidateTree": "b908a8054a2d321f75855f8030114cf9f1cba9ff",
+    "ownerEvidence": "0f8cb1da72742cb988d72868f5b2acc4ff34a93a",
+    "ownerBlobReadback": "12/12",
+    "centralBlobReadback": "4/4"
+  },
+  "hermeticVerification": {
+    "focusedPassed": 10,
+    "focusedFailed": 0,
+    "cleanClonePassed": 345,
+    "cleanCloneFailed": 2,
+    "ownerClaimHermetic": false
+  },
+  "blockingRequirements": [
+    "FULL_WALLET_AUTH_SUITE_HERMETIC_347_OF_347",
+    "PRODUCTION_BOUND_CURRENT_STATE_DIGEST_AND_CANDIDATE_ENVIRONMENT_BUNDLE",
+    "COPIED_PRODUCTION_STATE_MIGRATION_AND_ROLLBACK_RECEIPTS",
+    "REMOTE_VERSION_READBACK_FOR_EXACT_SOURCE"
+  ],
+  "truth": {
+    "p0039LeaseReusable": false,
+    "executionLeaseIssued": false,
+    "productionMutation": false,
+    "candidateDeployedPublic": false,
+    "publicRuntimeSource": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "publicRegistryV3": false,
+    "productsMigratedV2": 0,
+    "integratedCentral": false,
+    "aggregateDeployedPublic": false
+  }
+}

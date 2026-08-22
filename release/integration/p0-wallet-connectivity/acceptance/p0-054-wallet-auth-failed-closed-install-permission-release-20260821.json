@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-054",
+  "decision": "CONSUMED_RELEASED_FAILED_CLOSED_INSTALL_PERMISSION",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-registry-v3-ff395-20260820T194508Z",
+  "releasedAt": "2026-08-20T19:56:33Z",
+  "execution": {
+    "preWriteDigestsPassed": true,
+    "offlineArtifactsStaged": true,
+    "serviceStoppedOnce": true,
+    "migrationSucceeded": true,
+    "migrationReceiptSha256": "82a41535b16e3326b2a9d104f1062504532d6249fce71a347ef7c82e636e1923",
+    "migratedStateSha256": "1fe58d249c9d548b7fd8486d280209d485090b02d3d49ab4a2c6618481614a55",
+    "failureCode": "INSTALL_PERMISSION_DENIED",
+    "candidateStarted": false,
+    "candidateOutputCreated": false,
+    "configChanged": false,
+    "symlinkChanged": false
+  },
+  "rollback": {
+    "activeRelease": "/opt/ynx/wallet-auth-6cf3ef84",
+    "serviceActive": true,
+    "serviceRestarts": 0,
+    "productSessionStateSha256": "343f4cbbce0aed1e3cc5894156c4480e69dfc4775e0b347c63d555bd51790d23",
+    "gatewayStateSha256": "ac6b6523851c37c3d8b5472179fd218bc5d839e20d5a75177dcd2ac9494ea4ba",
+    "sharedStateSha256": "ba386fb9e474ea0886c2e41184db7fac3fcf6aea6dd02f5fe47122a62d3a8c9e",
+    "publicVersionHttp": 200,
+    "publicVersionBytes": 301,
+    "publicVersionSha256": "5ec386007e0b3e24bfd7d1f1afd37b4e98aedf7f4e1f7b2b39efca136a5d52d0",
+    "publicSource": "6cf3ef845202bd879ed94515a71b323dd2fc9e14"
+  },
+  "ownerEvidence": {"pending": false, "commit": "c569da458265a5684555d5e902dc650942a7f632", "tree": "8df6775d11c1d3973a94c2ca67402af52da32234", "blob": "fbc767883e36b0a4ea95de4f8fdc2cc39e359b3f", "sha256": "1823393cb9e61de7b7271851d262b8e578708caa98ca59e6f1b02f9a5db436db", "path": "release/integration/wallet-auth-registry-v3-p0054-fail-closed-install-permission-evidence-20260821.json"},
+  "truth": {"p0039Reusable": false, "p0050Reusable": false, "p0054Reusable": false, "registryV3Public": false, "productsMigratedV2": 0, "computerControlVerified": false, "deployedPublic": false, "integratedCentral": false}
+}

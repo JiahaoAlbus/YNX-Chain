@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-090",
+  "owner": "integration",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-faucet-ea0e068b-20260821T003500Z",
+  "status": "ACTIVE_BOUNDED_SINGLE_USE_ROLLBACK_FIRST",
+  "issuedAt": "2026-08-21T00:35:00Z",
+  "expiresAt": "2026-08-21T02:35:00Z",
+  "singleUse": true,
+  "sourceCommit": "ea0e068becd9103f5f0a2a6c3a0d20ab7932d006",
+  "auditCommit": "d551218097b707755a8be017689a6d6983c8068e",
+  "artifact": {
+    "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/29-faucet-runtime-p0/tmp/deploy/ynx-chain-ea0e068becd9/bin/ynx-faucetd",
+    "bytes": 19083448,
+    "sha256": "a78eb845c88911b069bb0e53642dd91084f983be895b53910949232909186a4a"
+  },
+  "target": {
+    "sshHost": "43.153.202.237",
+    "sshPort": 22,
+    "sshUser": "ubuntu",
+    "identityFile": "/Users/huangjiahao/Downloads/Huang.pem",
+    "strictHostKeyChecking": true,
+    "service": "ynx-faucetd.service",
+    "binary": "/usr/local/bin/ynx-faucetd",
+    "unit": "/etc/systemd/system/ynx-faucetd.service",
+    "environment": "/etc/ynx/ynx-faucetd.env",
+    "requestLog": "/var/log/ynx-chain/faucet-requests.jsonl",
+    "publicBaseUrl": "https://faucet.ynxweb4.com"
+  },
+  "allowed": [
+    "strict-host-key read-only preflight and digest readback",
+    "remote root-only backup of current Faucet binary, unit and environment without exporting environment contents",
+    "fresh root-only /var/tmp staging",
+    "stream exact accepted binary and verify bytes, SHA-256, owner and mode",
+    "install exact binary and restart only ynx-faucetd.service",
+    "local and public health/version readback",
+    "rollback old binary and restart Faucet on first post-mutation failure"
+  ],
+  "forbidden": [
+    "read or export funding-key or environment contents",
+    "modify request log, Chain, Wallet Gateway, Caddy, endpoint manifest or any other service",
+    "retry after this lease is consumed",
+    "claim Wallet platform Faucet, publicVerified or ComputerControl without separate evidence"
+  ],
+  "rollbackFirst": true,
+  "productionMutationAllowed": true,
+  "publicVerified": false,
+  "computerControlVerified": false
+}

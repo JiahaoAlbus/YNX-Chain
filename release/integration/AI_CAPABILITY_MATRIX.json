@@ -1,0 +1,1347 @@
+{
+  "schemaVersion": "1.0.0",
+  "generatedAt": "2026-08-21T14:21:40.775Z",
+  "controllerSourceCommit": "3877f66265d0f7cc6f4e94b5c64b585d2c7e3244",
+  "authority": "Product 29 Integration; fail-closed from PRODUCT_RELEASE_MATRIX.json",
+  "products": [
+    {
+      "productNumber": "01",
+      "productName": "YNX Chain Core / StreamBFT",
+      "aiMode": "none",
+      "aiGateway": null,
+      "permittedUses": [],
+      "prohibitedUses": [
+        "automatic signing",
+        "automatic payment",
+        "automatic trading or swap",
+        "automatic withdrawal",
+        "change withdrawal address",
+        "expand permissions or session scope",
+        "change asset ownership",
+        "decide consensus",
+        "decide oracle truth",
+        "decide bridge finality",
+        "freeze, seize, or transfer assets"
+      ],
+      "contextConsent": "not-applicable",
+      "dataClassification": "not-applicable",
+      "provider": null,
+      "model": null,
+      "costBoundary": "no AI cost",
+      "auditEvidence": [],
+      "sourceCommit": "66ea9ba9704dbb0e4863bb9e28ad12eae59ba5a7",
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "documented-none"
+    },
+    {
+      "productNumber": "02",
+      "productName": "YNX Wallet / Auth",
+      "aiMode": "none",
+      "aiGateway": null,
+      "permittedUses": [],
+      "prohibitedUses": [
+        "automatic signing",
+        "automatic payment",
+        "automatic trading or swap",
+        "automatic withdrawal",
+        "change withdrawal address",
+        "expand permissions or session scope",
+        "change asset ownership",
+        "decide consensus",
+        "decide oracle truth",
+        "decide bridge finality",
+        "freeze, seize, or transfer assets"
+      ],
+      "contextConsent": "not-applicable",
+      "dataClassification": "not-applicable",
+      "provider": null,
+      "model": null,
+      "costBoundary": "no AI cost",
+      "auditEvidence": [],
+      "sourceCommit": "f28b0aa29a0d93a2b7f20a00b835c4a1aa6175b3",
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": true
+      },
+      "status": "documented-none"
+    },
+    {
+      "productNumber": "03",
+      "productName": "YNX Social",
+      "aiMode": "content",
+      "aiGateway": "YNX AI Gateway candidate",
+      "permittedUses": [
+        "explain",
+        "summarize",
+        "translate",
+        "generate draft"
+      ],
+      "prohibitedUses": [
+        "automatic signing",
+        "automatic payment",
+        "automatic trading or swap",
+        "automatic withdrawal",
+        "change withdrawal address",
+        "expand permissions or session scope",
+        "change asset ownership",
+        "decide consensus",
+        "decide oracle truth",
+        "decide bridge finality",
+        "freeze, seize, or transfer assets"
+      ],
+      "contextConsent": "required before context leaves the product boundary",
+      "dataClassification": "explicit per-request classification; secrets and credentials prohibited",
+      "provider": "provider selected by YNX AI Gateway runtime configuration",
+      "model": "provider-reported model; never an authority source",
+      "costBoundary": "preview and approval required; AI cannot authorize spend or asset movement",
+      "auditEvidence": [
+        "docs/security/SECURITY_PRIVACY_AI_GOVERNANCE.md",
+        "release/integration/social-contract.json"
+      ],
+      "sourceCommit": "833c629b8fc889f74ae68215a8e36e6dbf9539ee",
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "candidate-unverified"
+    },
+    {
+      "productNumber": "04",
+      "productName": "YNX Pay",
+      "aiMode": "none",
+      "aiGateway": null,
+      "permittedUses": [],
+      "prohibitedUses": [
+        "automatic signing",
+        "automatic payment",
+        "automatic trading or swap",
+        "automatic withdrawal",
+        "change withdrawal address",
+        "expand permissions or session scope",
+        "change asset ownership",
+        "decide consensus",
+        "decide oracle truth",
+        "decide bridge finality",
+        "freeze, seize, or transfer assets"
+      ],
+      "contextConsent": "not-applicable",
+      "dataClassification": "not-applicable",
+      "provider": null,
+      "model": null,
+      "costBoundary": "no AI cost",
+      "auditEvidence": [],
+      "sourceCommit": "4ecffdd8b685c2ec8bea1b7520ce375f1c087c83",
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": true
+      },
+      "status": "documented-none"
+    },
+    {
+      "productNumber": "05",
+      "productName": "Merchant Console",
+      "aiMode": "advisory",
+      "aiGateway": "YNX AI Gateway candidate",
+      "permittedUses": [
+        "explain",
+        "summarize",
+        "research",
+        "simulate",
+        "propose"
+      ],
+      "prohibitedUses": [
+        "automatic signing",
+        "automatic payment",
+        "automatic trading or swap",
+        "automatic withdrawal",
+        "change withdrawal address",
+        "expand permissions or session scope",
+        "change asset ownership",
+        "decide consensus",
+        "decide oracle truth",
+        "decide bridge finality",
+        "freeze, seize, or transfer assets"
+      ],
+      "contextConsent": "required before context leaves the product boundary",
+      "dataClassification": "explicit per-request classification; secrets and credentials prohibited",
+      "provider": "provider selected by YNX AI Gateway runtime configuration",
+      "model": "provider-reported model; never an authority source",
+      "costBoundary": "preview and approval required; AI cannot authorize spend or asset movement",
+      "auditEvidence": [
+        "docs/security/SECURITY_PRIVACY_AI_GOVERNANCE.md",
+        "release/integration/merchant-console-contract.json"
+      ],
+      "sourceCommit": "f42bdf1191b691185d314f9bc8f0a5cc89bcb877",
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "candidate-unverified"
+    },
+    {
+      "productNumber": "06",
+      "productName": "YNX Card",
+      "aiMode": "none",
+      "aiGateway": null,
+      "permittedUses": [],
+      "prohibitedUses": [
+        "automatic signing",
+        "automatic payment",
+        "automatic trading or swap",
+        "automatic withdrawal",
+        "change withdrawal address",
+        "expand permissions or session scope",
+        "change asset ownership",
+        "decide consensus",
+        "decide oracle truth",
+        "decide bridge finality",
+        "freeze, seize, or transfer assets"
+      ],
+      "contextConsent": "not-applicable",
+      "dataClassification": "not-applicable",
+      "provider": null,
+      "model": null,
+      "costBoundary": "no AI cost",
+      "auditEvidence": [],
+      "sourceCommit": "0c11385fe41f4dea3c26299c5193a043cc979376",
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "documented-none"
+    },
+    {
+      "productNumber": "07",
+      "productName": "YNX Exchange",
+      "aiMode": "advisory",
+      "aiGateway": "YNX AI Gateway candidate",
+      "permittedUses": [
+        "explain",
+        "summarize",
+        "research",
+        "simulate",
+        "propose"
+      ],
+      "prohibitedUses": [
+        "automatic signing",
+        "automatic payment",
+        "automatic trading or swap",
+        "automatic withdrawal",
+        "change withdrawal address",
+        "expand permissions or session scope",
+        "change asset ownership",
+        "decide consensus",
+        "decide oracle truth",
+        "decide bridge finality",
+        "freeze, seize, or transfer assets"
+      ],
+      "contextConsent": "required before context leaves the product boundary",
+      "dataClassification": "explicit per-request classification; secrets and credentials prohibited",
+      "provider": "provider selected by YNX AI Gateway runtime configuration",
+      "model": "provider-reported model; never an authority source",
+      "costBoundary": "preview and approval required; AI cannot authorize spend or asset movement",
+      "auditEvidence": [
+        "docs/security/SECURITY_PRIVACY_AI_GOVERNANCE.md",
+        "release/integration/exchange-contract.json"
+      ],
+      "sourceCommit": "71ae6f32249d4a2709c32c6c24de4e842329a280",
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "candidate-unverified"
+    },
+    {
+      "productNumber": "08",
+      "productName": "YNX Quant Lab",
+      "aiMode": "advisory",
+      "aiGateway": "YNX AI Gateway candidate",
+      "permittedUses": [
+        "explain",
+        "summarize",
+        "research",
+        "simulate",
+        "propose"
+      ],
+      "prohibitedUses": [
+        "automatic signing",
+        "automatic payment",
+        "automatic trading or swap",
+        "automatic withdrawal",
+        "change withdrawal address",
+        "expand permissions or session scope",
+        "change asset ownership",
+        "decide consensus",
+        "decide oracle truth",
+        "decide bridge finality",
+        "freeze, seize, or transfer assets"
+      ],
+      "contextConsent": "required before context leaves the product boundary",
+      "dataClassification": "explicit per-request classification; secrets and credentials prohibited",
+      "provider": "provider selected by YNX AI Gateway runtime configuration",
+      "model": "provider-reported model; never an authority source",
+      "costBoundary": "preview and approval required; AI cannot authorize spend or asset movement",
+      "auditEvidence": [
+        "docs/security/SECURITY_PRIVACY_AI_GOVERNANCE.md",
+        "release/integration/ynx-quant-lab-contract.json"
+      ],
+      "sourceCommit": "37d8bb9d9446a448fd5346a9945f70cc88d3b060",
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "candidate-unverified"
+    },
+    {
+      "productNumber": "09",
+      "productName": "YNX Shop",
+      "aiMode": "advisory",
+      "aiGateway": "YNX AI Gateway candidate",
+      "permittedUses": [
+        "explain",
+        "summarize",
+        "research",
+        "simulate",
+        "propose"
+      ],
+      "prohibitedUses": [
+        "automatic signing",
+        "automatic payment",
+        "automatic trading or swap",
+        "automatic withdrawal",
+        "change withdrawal address",
+        "expand permissions or session scope",
+        "change asset ownership",
+        "decide consensus",
+        "decide oracle truth",
+        "decide bridge finality",
+        "freeze, seize, or transfer assets"
+      ],
+      "contextConsent": "required before context leaves the product boundary",
+      "dataClassification": "explicit per-request classification; secrets and credentials prohibited",
+      "provider": "provider selected by YNX AI Gateway runtime configuration",
+      "model": "provider-reported model; never an authority source",
+      "costBoundary": "preview and approval required; AI cannot authorize spend or asset movement",
+      "auditEvidence": [
+        "docs/security/SECURITY_PRIVACY_AI_GOVERNANCE.md",
+        "release/integration/ynx-shop-contract.json"
+      ],
+      "sourceCommit": "7f4b2de9b9e530dc3e0b8a4a4632a90035945fc5",
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "candidate-unverified"
+    },
+    {
+      "productNumber": "10",
+      "productName": "Seller Console",
+      "aiMode": "advisory",
+      "aiGateway": "YNX AI Gateway candidate",
+      "permittedUses": [
+        "explain",
+        "summarize",
+        "research",
+        "simulate",
+        "propose"
+      ],
+      "prohibitedUses": [
+        "automatic signing",
+        "automatic payment",
+        "automatic trading or swap",
+        "automatic withdrawal",
+        "change withdrawal address",
+        "expand permissions or session scope",
+        "change asset ownership",
+        "decide consensus",
+        "decide oracle truth",
+        "decide bridge finality",
+        "freeze, seize, or transfer assets"
+      ],
+      "contextConsent": "required before context leaves the product boundary",
+      "dataClassification": "explicit per-request classification; secrets and credentials prohibited",
+      "provider": "provider selected by YNX AI Gateway runtime configuration",
+      "model": "provider-reported model; never an authority source",
+      "costBoundary": "preview and approval required; AI cannot authorize spend or asset movement",
+      "auditEvidence": [
+        "docs/security/SECURITY_PRIVACY_AI_GOVERNANCE.md",
+        "release/integration/seller-console-contract.json"
+      ],
+      "sourceCommit": "bb354e83953d6399360071a72294902a6abb48a2",
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "candidate-unverified"
+    },
+    {
+      "productNumber": "11",
+      "productName": "YNX Developer / AI Build",
+      "aiMode": "developer",
+      "aiGateway": "YNX AI Gateway candidate",
+      "permittedUses": [
+        "explain",
+        "generate draft",
+        "debug assistance",
+        "audit assistance"
+      ],
+      "prohibitedUses": [
+        "automatic signing",
+        "automatic payment",
+        "automatic trading or swap",
+        "automatic withdrawal",
+        "change withdrawal address",
+        "expand permissions or session scope",
+        "change asset ownership",
+        "decide consensus",
+        "decide oracle truth",
+        "decide bridge finality",
+        "freeze, seize, or transfer assets"
+      ],
+      "contextConsent": "required before context leaves the product boundary",
+      "dataClassification": "explicit per-request classification; secrets and credentials prohibited",
+      "provider": "provider selected by YNX AI Gateway runtime configuration",
+      "model": "provider-reported model; never an authority source",
+      "costBoundary": "preview and approval required; AI cannot authorize spend or asset movement",
+      "auditEvidence": [
+        "docs/security/SECURITY_PRIVACY_AI_GOVERNANCE.md",
+        "release/integration/developer-contract.json"
+      ],
+      "sourceCommit": "fc7e9b5146d514aaae02bb01e4e20c62ff32867a",
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "candidate-unverified"
+    },
+    {
+      "productNumber": "12",
+      "productName": "YNX Explorer",
+      "aiMode": "none",
+      "aiGateway": null,
+      "permittedUses": [],
+      "prohibitedUses": [
+        "automatic signing",
+        "automatic payment",
+        "automatic trading or swap",
+        "automatic withdrawal",
+        "change withdrawal address",
+        "expand permissions or session scope",
+        "change asset ownership",
+        "decide consensus",
+        "decide oracle truth",
+        "decide bridge finality",
+        "freeze, seize, or transfer assets"
+      ],
+      "contextConsent": "not-applicable",
+      "dataClassification": "not-applicable",
+      "provider": null,
+      "model": null,
+      "costBoundary": "no AI cost",
+      "auditEvidence": [],
+      "sourceCommit": "d3c5f0279b49ab1c63de2cd32a55dab459f3ab20",
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "documented-none"
+    },
+    {
+      "productNumber": "13",
+      "productName": "YNX Monitor",
+      "aiMode": "operations-readonly",
+      "aiGateway": "YNX AI Gateway candidate",
+      "permittedUses": [
+        "explain",
+        "summarize",
+        "read-only anomaly review",
+        "propose remediation"
+      ],
+      "prohibitedUses": [
+        "automatic signing",
+        "automatic payment",
+        "automatic trading or swap",
+        "automatic withdrawal",
+        "change withdrawal address",
+        "expand permissions or session scope",
+        "change asset ownership",
+        "decide consensus",
+        "decide oracle truth",
+        "decide bridge finality",
+        "freeze, seize, or transfer assets"
+      ],
+      "contextConsent": "required before context leaves the product boundary",
+      "dataClassification": "explicit per-request classification; secrets and credentials prohibited",
+      "provider": "provider selected by YNX AI Gateway runtime configuration",
+      "model": "provider-reported model; never an authority source",
+      "costBoundary": "preview and approval required; AI cannot authorize spend or asset movement",
+      "auditEvidence": [
+        "docs/security/SECURITY_PRIVACY_AI_GOVERNANCE.md",
+        "release/integration/monitor-contract.json"
+      ],
+      "sourceCommit": "1c821a8d8b5606807506e704f0b4cdceeb89e5e6",
+      "tests": {
+        "testedLocal": false,
+        "exactHeadCi": false
+      },
+      "status": "candidate-unverified"
+    },
+    {
+      "productNumber": "14",
+      "productName": "YNX AI",
+      "aiMode": "native-ai",
+      "aiGateway": "YNX AI Gateway candidate",
+      "permittedUses": [
+        "explain",
+        "summarize",
+        "translate",
+        "research",
+        "simulate",
+        "generate draft",
+        "propose"
+      ],
+      "prohibitedUses": [
+        "automatic signing",
+        "automatic payment",
+        "automatic trading or swap",
+        "automatic withdrawal",
+        "change withdrawal address",
+        "expand permissions or session scope",
+        "change asset ownership",
+        "decide consensus",
+        "decide oracle truth",
+        "decide bridge finality",
+        "freeze, seize, or transfer assets"
+      ],
+      "contextConsent": "required before context leaves the product boundary",
+      "dataClassification": "explicit per-request classification; secrets and credentials prohibited",
+      "provider": "provider selected by YNX AI Gateway runtime configuration",
+      "model": "provider-reported model; never an authority source",
+      "costBoundary": "preview and approval required; AI cannot authorize spend or asset movement",
+      "auditEvidence": [
+        "docs/security/SECURITY_PRIVACY_AI_GOVERNANCE.md",
+        "release/integration/ynx-ai-contract.json"
+      ],
+      "sourceCommit": "a781300124b8f31c910aeb182f9b1b13e1ab4893",
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "candidate-unverified"
+    },
+    {
+      "productNumber": "15",
+      "productName": "YNX Trust Center",
+      "aiMode": "advisory",
+      "aiGateway": "YNX AI Gateway candidate",
+      "permittedUses": [
+        "explain",
+        "summarize",
+        "research",
+        "simulate",
+        "propose"
+      ],
+      "prohibitedUses": [
+        "automatic signing",
+        "automatic payment",
+        "automatic trading or swap",
+        "automatic withdrawal",
+        "change withdrawal address",
+        "expand permissions or session scope",
+        "change asset ownership",
+        "decide consensus",
+        "decide oracle truth",
+        "decide bridge finality",
+        "freeze, seize, or transfer assets"
+      ],
+      "contextConsent": "required before context leaves the product boundary",
+      "dataClassification": "explicit per-request classification; secrets and credentials prohibited",
+      "provider": "provider selected by YNX AI Gateway runtime configuration",
+      "model": "provider-reported model; never an authority source",
+      "costBoundary": "preview and approval required; AI cannot authorize spend or asset movement",
+      "auditEvidence": [
+        "docs/security/SECURITY_PRIVACY_AI_GOVERNANCE.md",
+        "release/integration/trust-center-contract.json"
+      ],
+      "sourceCommit": "4d40557229b4232119026cb8c012db3bef2f1be9",
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "candidate-unverified"
+    },
+    {
+      "productNumber": "16",
+      "productName": "YNX Resource Market",
+      "aiMode": "none",
+      "aiGateway": null,
+      "permittedUses": [],
+      "prohibitedUses": [
+        "automatic signing",
+        "automatic payment",
+        "automatic trading or swap",
+        "automatic withdrawal",
+        "change withdrawal address",
+        "expand permissions or session scope",
+        "change asset ownership",
+        "decide consensus",
+        "decide oracle truth",
+        "decide bridge finality",
+        "freeze, seize, or transfer assets"
+      ],
+      "contextConsent": "not-applicable",
+      "dataClassification": "not-applicable",
+      "provider": null,
+      "model": null,
+      "costBoundary": "no AI cost",
+      "auditEvidence": [],
+      "sourceCommit": "82241913b4dacf6bb6adebb537b7fa175c3aff59",
+      "tests": {
+        "testedLocal": false,
+        "exactHeadCi": false
+      },
+      "status": "documented-none"
+    },
+    {
+      "productNumber": "17",
+      "productName": "YNXT Economics / Treasury / Stablecoin",
+      "aiMode": "none",
+      "aiGateway": null,
+      "permittedUses": [],
+      "prohibitedUses": [
+        "automatic signing",
+        "automatic payment",
+        "automatic trading or swap",
+        "automatic withdrawal",
+        "change withdrawal address",
+        "expand permissions or session scope",
+        "change asset ownership",
+        "decide consensus",
+        "decide oracle truth",
+        "decide bridge finality",
+        "freeze, seize, or transfer assets"
+      ],
+      "contextConsent": "not-applicable",
+      "dataClassification": "not-applicable",
+      "provider": null,
+      "model": null,
+      "costBoundary": "no AI cost",
+      "auditEvidence": [],
+      "sourceCommit": "c173925ca8fa87cf85f66eea4a83725c7a9351df",
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "documented-none"
+    },
+    {
+      "productNumber": "18",
+      "productName": "Whitepaper / Compliance / Brand",
+      "aiMode": "content",
+      "aiGateway": "YNX AI Gateway candidate",
+      "permittedUses": [
+        "explain",
+        "summarize",
+        "translate",
+        "generate draft"
+      ],
+      "prohibitedUses": [
+        "automatic signing",
+        "automatic payment",
+        "automatic trading or swap",
+        "automatic withdrawal",
+        "change withdrawal address",
+        "expand permissions or session scope",
+        "change asset ownership",
+        "decide consensus",
+        "decide oracle truth",
+        "decide bridge finality",
+        "freeze, seize, or transfer assets"
+      ],
+      "contextConsent": "required before context leaves the product boundary",
+      "dataClassification": "explicit per-request classification; secrets and credentials prohibited",
+      "provider": "provider selected by YNX AI Gateway runtime configuration",
+      "model": "provider-reported model; never an authority source",
+      "costBoundary": "preview and approval required; AI cannot authorize spend or asset movement",
+      "auditEvidence": [
+        "docs/security/SECURITY_PRIVACY_AI_GOVERNANCE.md"
+      ],
+      "sourceCommit": "759c545367faf66a5168d9cf5b3cf64e0057233d",
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "candidate-unverified"
+    },
+    {
+      "productNumber": "19",
+      "productName": "YNX Oracle & Market Data",
+      "aiMode": "none",
+      "aiGateway": null,
+      "permittedUses": [],
+      "prohibitedUses": [
+        "automatic signing",
+        "automatic payment",
+        "automatic trading or swap",
+        "automatic withdrawal",
+        "change withdrawal address",
+        "expand permissions or session scope",
+        "change asset ownership",
+        "decide consensus",
+        "decide oracle truth",
+        "decide bridge finality",
+        "freeze, seize, or transfer assets"
+      ],
+      "contextConsent": "not-applicable",
+      "dataClassification": "not-applicable",
+      "provider": null,
+      "model": null,
+      "costBoundary": "no AI cost",
+      "auditEvidence": [],
+      "sourceCommit": "a059d573ed128a704ec447561711a13cb1e3d9dd",
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": true
+      },
+      "status": "documented-none"
+    },
+    {
+      "productNumber": "20",
+      "productName": "YNX Cloud",
+      "aiMode": "none",
+      "aiGateway": null,
+      "permittedUses": [],
+      "prohibitedUses": [
+        "automatic signing",
+        "automatic payment",
+        "automatic trading or swap",
+        "automatic withdrawal",
+        "change withdrawal address",
+        "expand permissions or session scope",
+        "change asset ownership",
+        "decide consensus",
+        "decide oracle truth",
+        "decide bridge finality",
+        "freeze, seize, or transfer assets"
+      ],
+      "contextConsent": "not-applicable",
+      "dataClassification": "not-applicable",
+      "provider": null,
+      "model": null,
+      "costBoundary": "no AI cost",
+      "auditEvidence": [],
+      "sourceCommit": "9763907e7a5f469ae5ba911669437912bd8ac819",
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "documented-none"
+    },
+    {
+      "productNumber": "21",
+      "productName": "YNX Bridge & Interoperability",
+      "aiMode": "none",
+      "aiGateway": null,
+      "permittedUses": [],
+      "prohibitedUses": [
+        "automatic signing",
+        "automatic payment",
+        "automatic trading or swap",
+        "automatic withdrawal",
+        "change withdrawal address",
+        "expand permissions or session scope",
+        "change asset ownership",
+        "decide consensus",
+        "decide oracle truth",
+        "decide bridge finality",
+        "freeze, seize, or transfer assets"
+      ],
+      "contextConsent": "not-applicable",
+      "dataClassification": "not-applicable",
+      "provider": null,
+      "model": null,
+      "costBoundary": "no AI cost",
+      "auditEvidence": [],
+      "sourceCommit": "fc82c236cf8e2d8a9c69834b5985895170249aa4",
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "documented-none"
+    },
+    {
+      "productNumber": "22",
+      "productName": "YNX Browser",
+      "aiMode": "advisory",
+      "aiGateway": "YNX AI Gateway candidate",
+      "permittedUses": [
+        "explain",
+        "summarize",
+        "research",
+        "simulate",
+        "propose"
+      ],
+      "prohibitedUses": [
+        "automatic signing",
+        "automatic payment",
+        "automatic trading or swap",
+        "automatic withdrawal",
+        "change withdrawal address",
+        "expand permissions or session scope",
+        "change asset ownership",
+        "decide consensus",
+        "decide oracle truth",
+        "decide bridge finality",
+        "freeze, seize, or transfer assets"
+      ],
+      "contextConsent": "required before context leaves the product boundary",
+      "dataClassification": "explicit per-request classification; secrets and credentials prohibited",
+      "provider": "provider selected by YNX AI Gateway runtime configuration",
+      "model": "provider-reported model; never an authority source",
+      "costBoundary": "preview and approval required; AI cannot authorize spend or asset movement",
+      "auditEvidence": [
+        "docs/security/SECURITY_PRIVACY_AI_GOVERNANCE.md",
+        "release/integration/browser-contract.json"
+      ],
+      "sourceCommit": "2beece6f66a330811f474f24189e53aacb5bb636",
+      "tests": {
+        "testedLocal": false,
+        "exactHeadCi": false
+      },
+      "status": "candidate-unverified"
+    },
+    {
+      "productNumber": "23",
+      "productName": "YNX Search",
+      "aiMode": "advisory",
+      "aiGateway": "YNX AI Gateway candidate",
+      "permittedUses": [
+        "explain",
+        "summarize",
+        "research",
+        "simulate",
+        "propose"
+      ],
+      "prohibitedUses": [
+        "automatic signing",
+        "automatic payment",
+        "automatic trading or swap",
+        "automatic withdrawal",
+        "change withdrawal address",
+        "expand permissions or session scope",
+        "change asset ownership",
+        "decide consensus",
+        "decide oracle truth",
+        "decide bridge finality",
+        "freeze, seize, or transfer assets"
+      ],
+      "contextConsent": "required before context leaves the product boundary",
+      "dataClassification": "explicit per-request classification; secrets and credentials prohibited",
+      "provider": "provider selected by YNX AI Gateway runtime configuration",
+      "model": "provider-reported model; never an authority source",
+      "costBoundary": "preview and approval required; AI cannot authorize spend or asset movement",
+      "auditEvidence": [
+        "docs/security/SECURITY_PRIVACY_AI_GOVERNANCE.md",
+        "release/integration/search-contract.json"
+      ],
+      "sourceCommit": "f2f69e398c4ca8fa671298f1e40030c3ae44a726",
+      "tests": {
+        "testedLocal": false,
+        "exactHeadCi": false
+      },
+      "status": "candidate-unverified"
+    },
+    {
+      "productNumber": "24",
+      "productName": "YNX Finance",
+      "aiMode": "advisory",
+      "aiGateway": "YNX AI Gateway candidate",
+      "permittedUses": [
+        "explain",
+        "summarize",
+        "research",
+        "simulate",
+        "propose"
+      ],
+      "prohibitedUses": [
+        "automatic signing",
+        "automatic payment",
+        "automatic trading or swap",
+        "automatic withdrawal",
+        "change withdrawal address",
+        "expand permissions or session scope",
+        "change asset ownership",
+        "decide consensus",
+        "decide oracle truth",
+        "decide bridge finality",
+        "freeze, seize, or transfer assets"
+      ],
+      "contextConsent": "required before context leaves the product boundary",
+      "dataClassification": "explicit per-request classification; secrets and credentials prohibited",
+      "provider": "provider selected by YNX AI Gateway runtime configuration",
+      "model": "provider-reported model; never an authority source",
+      "costBoundary": "preview and approval required; AI cannot authorize spend or asset movement",
+      "auditEvidence": [
+        "docs/security/SECURITY_PRIVACY_AI_GOVERNANCE.md",
+        "release/integration/finance-contract.json"
+      ],
+      "sourceCommit": "307273b93df29bf064cb64324109571c00a63dc2",
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "candidate-unverified"
+    },
+    {
+      "productNumber": "25",
+      "productName": "YNX Mail",
+      "aiMode": "content",
+      "aiGateway": "YNX AI Gateway candidate",
+      "permittedUses": [
+        "explain",
+        "summarize",
+        "translate",
+        "generate draft"
+      ],
+      "prohibitedUses": [
+        "automatic signing",
+        "automatic payment",
+        "automatic trading or swap",
+        "automatic withdrawal",
+        "change withdrawal address",
+        "expand permissions or session scope",
+        "change asset ownership",
+        "decide consensus",
+        "decide oracle truth",
+        "decide bridge finality",
+        "freeze, seize, or transfer assets"
+      ],
+      "contextConsent": "required before context leaves the product boundary",
+      "dataClassification": "explicit per-request classification; secrets and credentials prohibited",
+      "provider": "provider selected by YNX AI Gateway runtime configuration",
+      "model": "provider-reported model; never an authority source",
+      "costBoundary": "preview and approval required; AI cannot authorize spend or asset movement",
+      "auditEvidence": [
+        "docs/security/SECURITY_PRIVACY_AI_GOVERNANCE.md",
+        "release/integration/mail-contract.json"
+      ],
+      "sourceCommit": "2c8b885e81b594dae3244255614ecc9405e790c3",
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "candidate-unverified"
+    },
+    {
+      "productNumber": "26",
+      "productName": "YNX Data Fabric & Billing Ledger",
+      "aiMode": "none",
+      "aiGateway": null,
+      "permittedUses": [],
+      "prohibitedUses": [
+        "automatic signing",
+        "automatic payment",
+        "automatic trading or swap",
+        "automatic withdrawal",
+        "change withdrawal address",
+        "expand permissions or session scope",
+        "change asset ownership",
+        "decide consensus",
+        "decide oracle truth",
+        "decide bridge finality",
+        "freeze, seize, or transfer assets"
+      ],
+      "contextConsent": "not-applicable",
+      "dataClassification": "not-applicable",
+      "provider": null,
+      "model": null,
+      "costBoundary": "no AI cost",
+      "auditEvidence": [],
+      "sourceCommit": "da095e240be52023ecef19c162c869398bf9fbea",
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "documented-none"
+    },
+    {
+      "productNumber": "27",
+      "productName": "YNX DEX",
+      "aiMode": "none",
+      "aiGateway": null,
+      "permittedUses": [],
+      "prohibitedUses": [
+        "automatic signing",
+        "automatic payment",
+        "automatic trading or swap",
+        "automatic withdrawal",
+        "change withdrawal address",
+        "expand permissions or session scope",
+        "change asset ownership",
+        "decide consensus",
+        "decide oracle truth",
+        "decide bridge finality",
+        "freeze, seize, or transfer assets"
+      ],
+      "contextConsent": "not-applicable",
+      "dataClassification": "not-applicable",
+      "provider": null,
+      "model": null,
+      "costBoundary": "no AI cost",
+      "auditEvidence": [],
+      "sourceCommit": "12b0db9b28d6bc3af7d5ed37135469369489bb8c",
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "documented-none"
+    },
+    {
+      "productNumber": "28",
+      "productName": "YNX Website / SEO / Product Micro-sites",
+      "aiMode": "content",
+      "aiGateway": "YNX AI Gateway candidate",
+      "permittedUses": [
+        "explain",
+        "summarize",
+        "translate",
+        "generate draft"
+      ],
+      "prohibitedUses": [
+        "automatic signing",
+        "automatic payment",
+        "automatic trading or swap",
+        "automatic withdrawal",
+        "change withdrawal address",
+        "expand permissions or session scope",
+        "change asset ownership",
+        "decide consensus",
+        "decide oracle truth",
+        "decide bridge finality",
+        "freeze, seize, or transfer assets"
+      ],
+      "contextConsent": "required before context leaves the product boundary",
+      "dataClassification": "explicit per-request classification; secrets and credentials prohibited",
+      "provider": "provider selected by YNX AI Gateway runtime configuration",
+      "model": "provider-reported model; never an authority source",
+      "costBoundary": "preview and approval required; AI cannot authorize spend or asset movement",
+      "auditEvidence": [
+        "docs/security/SECURITY_PRIVACY_AI_GOVERNANCE.md",
+        "release/integration/website-contract.json"
+      ],
+      "sourceCommit": "9d02d3842ee306ce7979c02e02a44800ac4e4c75",
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": true
+      },
+      "status": "candidate-verified"
+    },
+    {
+      "productNumber": "29",
+      "productName": "YNX Integration / Founder Control",
+      "aiMode": "operations-readonly",
+      "aiGateway": "YNX AI Gateway candidate",
+      "permittedUses": [
+        "explain",
+        "summarize",
+        "read-only anomaly review",
+        "propose remediation"
+      ],
+      "prohibitedUses": [
+        "automatic signing",
+        "automatic payment",
+        "automatic trading or swap",
+        "automatic withdrawal",
+        "change withdrawal address",
+        "expand permissions or session scope",
+        "change asset ownership",
+        "decide consensus",
+        "decide oracle truth",
+        "decide bridge finality",
+        "freeze, seize, or transfer assets"
+      ],
+      "contextConsent": "required before context leaves the product boundary",
+      "dataClassification": "explicit per-request classification; secrets and credentials prohibited",
+      "provider": "provider selected by YNX AI Gateway runtime configuration",
+      "model": "provider-reported model; never an authority source",
+      "costBoundary": "preview and approval required; AI cannot authorize spend or asset movement",
+      "auditEvidence": [
+        "docs/security/SECURITY_PRIVACY_AI_GOVERNANCE.md",
+        "release/integration/integration-contract.json"
+      ],
+      "sourceCommit": "10b877b5b18f9cb0026a6382cdd6588054fd16db",
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "candidate-unverified"
+    },
+    {
+      "productNumber": "30",
+      "productName": "YNX Security / SRE",
+      "aiMode": "operations-readonly",
+      "aiGateway": "YNX AI Gateway candidate",
+      "permittedUses": [
+        "explain",
+        "summarize",
+        "read-only anomaly review",
+        "propose remediation"
+      ],
+      "prohibitedUses": [
+        "automatic signing",
+        "automatic payment",
+        "automatic trading or swap",
+        "automatic withdrawal",
+        "change withdrawal address",
+        "expand permissions or session scope",
+        "change asset ownership",
+        "decide consensus",
+        "decide oracle truth",
+        "decide bridge finality",
+        "freeze, seize, or transfer assets"
+      ],
+      "contextConsent": "required before context leaves the product boundary",
+      "dataClassification": "explicit per-request classification; secrets and credentials prohibited",
+      "provider": "provider selected by YNX AI Gateway runtime configuration",
+      "model": "provider-reported model; never an authority source",
+      "costBoundary": "preview and approval required; AI cannot authorize spend or asset movement",
+      "auditEvidence": [
+        "docs/security/SECURITY_PRIVACY_AI_GOVERNANCE.md",
+        "release/integration/security-platform-contract.json"
+      ],
+      "sourceCommit": "e670749b83a1b40d09ed717eb3515d539c005c49",
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": true
+      },
+      "status": "candidate-verified"
+    },
+    {
+      "productNumber": "31",
+      "productName": "YNX Governance",
+      "aiMode": "none",
+      "aiGateway": null,
+      "permittedUses": [],
+      "prohibitedUses": [
+        "automatic signing",
+        "automatic payment",
+        "automatic trading or swap",
+        "automatic withdrawal",
+        "change withdrawal address",
+        "expand permissions or session scope",
+        "change asset ownership",
+        "decide consensus",
+        "decide oracle truth",
+        "decide bridge finality",
+        "freeze, seize, or transfer assets"
+      ],
+      "contextConsent": "not-applicable",
+      "dataClassification": "not-applicable",
+      "provider": null,
+      "model": null,
+      "costBoundary": "no AI cost",
+      "auditEvidence": [],
+      "sourceCommit": "7c3c952eade20041bc616616fbfc0cba020717e4",
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": true
+      },
+      "status": "documented-none"
+    },
+    {
+      "productNumber": "32",
+      "productName": "YNX Music",
+      "aiMode": "content",
+      "aiGateway": "YNX AI Gateway candidate",
+      "permittedUses": [
+        "explain",
+        "summarize",
+        "translate",
+        "generate draft"
+      ],
+      "prohibitedUses": [
+        "automatic signing",
+        "automatic payment",
+        "automatic trading or swap",
+        "automatic withdrawal",
+        "change withdrawal address",
+        "expand permissions or session scope",
+        "change asset ownership",
+        "decide consensus",
+        "decide oracle truth",
+        "decide bridge finality",
+        "freeze, seize, or transfer assets"
+      ],
+      "contextConsent": "required before context leaves the product boundary",
+      "dataClassification": "explicit per-request classification; secrets and credentials prohibited",
+      "provider": "provider selected by YNX AI Gateway runtime configuration",
+      "model": "provider-reported model; never an authority source",
+      "costBoundary": "preview and approval required; AI cannot authorize spend or asset movement",
+      "auditEvidence": [
+        "docs/security/SECURITY_PRIVACY_AI_GOVERNANCE.md",
+        "release/integration/music-contract.json"
+      ],
+      "sourceCommit": "09b658b02d43558ecc1763e24dbcd4930d6d65b9",
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "candidate-unverified"
+    },
+    {
+      "productNumber": "33",
+      "productName": "YNX Video",
+      "aiMode": "content",
+      "aiGateway": "YNX AI Gateway candidate",
+      "permittedUses": [
+        "explain",
+        "summarize",
+        "translate",
+        "generate draft"
+      ],
+      "prohibitedUses": [
+        "automatic signing",
+        "automatic payment",
+        "automatic trading or swap",
+        "automatic withdrawal",
+        "change withdrawal address",
+        "expand permissions or session scope",
+        "change asset ownership",
+        "decide consensus",
+        "decide oracle truth",
+        "decide bridge finality",
+        "freeze, seize, or transfer assets"
+      ],
+      "contextConsent": "required before context leaves the product boundary",
+      "dataClassification": "explicit per-request classification; secrets and credentials prohibited",
+      "provider": "provider selected by YNX AI Gateway runtime configuration",
+      "model": "provider-reported model; never an authority source",
+      "costBoundary": "preview and approval required; AI cannot authorize spend or asset movement",
+      "auditEvidence": [
+        "docs/security/SECURITY_PRIVACY_AI_GOVERNANCE.md",
+        "release/integration/video-contract.json"
+      ],
+      "sourceCommit": "1d4532ffca4eabdc15f2ec66f3d1143f67e159fa",
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "candidate-unverified"
+    },
+    {
+      "productNumber": "34",
+      "productName": "YNX Creator Studio",
+      "aiMode": "content",
+      "aiGateway": "YNX AI Gateway candidate",
+      "permittedUses": [
+        "explain",
+        "summarize",
+        "translate",
+        "generate draft"
+      ],
+      "prohibitedUses": [
+        "automatic signing",
+        "automatic payment",
+        "automatic trading or swap",
+        "automatic withdrawal",
+        "change withdrawal address",
+        "expand permissions or session scope",
+        "change asset ownership",
+        "decide consensus",
+        "decide oracle truth",
+        "decide bridge finality",
+        "freeze, seize, or transfer assets"
+      ],
+      "contextConsent": "required before context leaves the product boundary",
+      "dataClassification": "explicit per-request classification; secrets and credentials prohibited",
+      "provider": "provider selected by YNX AI Gateway runtime configuration",
+      "model": "provider-reported model; never an authority source",
+      "costBoundary": "preview and approval required; AI cannot authorize spend or asset movement",
+      "auditEvidence": [
+        "docs/security/SECURITY_PRIVACY_AI_GOVERNANCE.md",
+        "release/integration/creator-studio-contract.json"
+      ],
+      "sourceCommit": "b60cfc0d84db08d299d1a5890c70574bcdd9f40f",
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "candidate-unverified"
+    },
+    {
+      "productNumber": "35",
+      "productName": "YNX Docs",
+      "aiMode": "content",
+      "aiGateway": "YNX AI Gateway candidate",
+      "permittedUses": [
+        "explain",
+        "summarize",
+        "translate",
+        "generate draft"
+      ],
+      "prohibitedUses": [
+        "automatic signing",
+        "automatic payment",
+        "automatic trading or swap",
+        "automatic withdrawal",
+        "change withdrawal address",
+        "expand permissions or session scope",
+        "change asset ownership",
+        "decide consensus",
+        "decide oracle truth",
+        "decide bridge finality",
+        "freeze, seize, or transfer assets"
+      ],
+      "contextConsent": "required before context leaves the product boundary",
+      "dataClassification": "explicit per-request classification; secrets and credentials prohibited",
+      "provider": "provider selected by YNX AI Gateway runtime configuration",
+      "model": "provider-reported model; never an authority source",
+      "costBoundary": "preview and approval required; AI cannot authorize spend or asset movement",
+      "auditEvidence": [
+        "docs/security/SECURITY_PRIVACY_AI_GOVERNANCE.md",
+        "release/integration/docs-contract.json"
+      ],
+      "sourceCommit": "ba8afbbdbbb1cf63a73aeff14cc910ccc7a689e6",
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "candidate-unverified"
+    },
+    {
+      "productNumber": "36",
+      "productName": "YNX Calendar",
+      "aiMode": "none",
+      "aiGateway": null,
+      "permittedUses": [],
+      "prohibitedUses": [
+        "automatic signing",
+        "automatic payment",
+        "automatic trading or swap",
+        "automatic withdrawal",
+        "change withdrawal address",
+        "expand permissions or session scope",
+        "change asset ownership",
+        "decide consensus",
+        "decide oracle truth",
+        "decide bridge finality",
+        "freeze, seize, or transfer assets"
+      ],
+      "contextConsent": "not-applicable",
+      "dataClassification": "not-applicable",
+      "provider": null,
+      "model": null,
+      "costBoundary": "no AI cost",
+      "auditEvidence": [],
+      "sourceCommit": "8f45566073f0d9979b5b1460b35144d954acc692",
+      "tests": {
+        "testedLocal": true,
+        "exactHeadCi": false
+      },
+      "status": "documented-none"
+    }
+  ]
+}

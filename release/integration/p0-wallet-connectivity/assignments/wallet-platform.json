@@ -1,0 +1,36 @@
+{
+  "taskId": "P0-002",
+  "owner": "wallet-platform",
+  "status": "DESKTOP_INSTALLERS_PUBLIC_WALLET_AUTHORITY_CONTINUATION_REQUIRED",
+  "branch": "codex/p0-wallet-platform-20260820",
+  "remoteHead": "43f20885cb89f075ca69aead19e315c088bbb782",
+  "faucetDiagnosticCheckpoint": "fa770cd8bf3f23623f88bdd5aff81a58f33b8167",
+  "candidatePR": "https://github.com/JiahaoAlbus/YNX-Chain/pull/106",
+  "handoff": "docs/handoffs/p0-wallet-connectivity/wallet-platform.md",
+  "acceptedDependencies": {
+    "publicEndpointManifest": "1.0.0-p0.3",
+    "manifestPayloadSha256": "886ae7a2f4ef691301483da037cd4f5e1274b697865834769f20f0e799952157",
+    "faucetSource": "ea0e068becd9103f5f0a2a6c3a0d20ab7932d006",
+    "faucetEvidence": "d8fa126fb32f37dcc68ff4d32c9f3e21e2c6a1b0",
+    "websiteSource": "12a5113abb66a2ae5ebdab9fd553188a3a750f66",
+    "websiteDeployment": "dpl_3hXz9xTVEeqwYJ1oDrNnuo2FkaH2",
+    "macosDmgSha256": "69b4fa5db7b8a9ab105af6633de44f5a5a4a9fceeaa0925a306f77b22381b044",
+    "windowsX64ExeSha256": "856b2a260efc43c25f62508dabc6bb6b74b84da71c9b477e8a02a12d17598cd7"
+  },
+  "currentExactBlocker": "The public macOS DMG reaches native review but approve fails CANONICAL_AUTH_BRIDGE_UNAVAILABLE; Windows x64 EXE has no installed Wallet authority proof, and Windows ARM64 is not yet publicly hosted.",
+  "remainingWork": [
+    "consume Endpoint Manifest p0.3 exact hash",
+    "migrate Faucet client to topology-safe PublicHealth plus nested PublicVersion build identity",
+    "preserve request response validation independently of health metadata",
+    "Android/iOS/extension installed Faucet E2E",
+    "WalletConnect runtime",
+    "extension and DApp Browser",
+    "repair macOS native authorization bridge and prove approve/reject callback on the exact public DMG",
+    "prove Windows x64 installed Wallet authorization/account lifecycle on the exact public EXE",
+    "publish and full-rehash the exact Windows ARM64 EXE",
+    "source vector/download cover/current screenshots"
+  ],
+  "continuationThreadId": "019ffaf1-32a9-7231-b909-922a66d9f4d5",
+  "continuationSentAt": "2026-08-21T00:52:00Z",
+  "nextAction": "Preserve the verified public DMG and x64 EXE. Continue in Wallet Platform scope with the native authorization bridge, installed account/chain lifecycle, and ARM64 publication; keep Product Session, signing, transaction, production signing, notarization and store release false until directly proved."
+}
