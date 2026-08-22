@@ -62,7 +62,7 @@ fi
   YNX_ANDROID_KEYSTORE_PATH="$keystore" YNX_ANDROID_KEYSTORE_TYPE=PKCS12 \
   YNX_ANDROID_KEY_ALIAS="$alias_name" YNX_ANDROID_STORE_PASSWORD="$YNX_QA_STORE_PASSWORD" \
   YNX_ANDROID_KEY_PASSWORD="$YNX_QA_KEY_PASSWORD" \
-  ./gradlew "${gradle_network_args[@]}" --no-daemon --console=plain --max-workers=1 \
+  ./gradlew ${gradle_network_args[@]+"${gradle_network_args[@]}"} --no-daemon --console=plain --max-workers=1 \
     -Pkotlin.compiler.execution.strategy=in-process -PreactNativeArchitectures=arm64-v8a \
     -Pandroid.enableMinifyInReleaseBuilds=true -Pandroid.enableShrinkResourcesInReleaseBuilds=true \
     :app:assembleRelease
