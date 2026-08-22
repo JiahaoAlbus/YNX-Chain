@@ -37,6 +37,7 @@ func NewHandlerWithBuild(service *Service, build buildinfo.Info) http.Handler {
 	mux.HandleFunc("POST /v1/auth/challenges", s.challenge)
 	mux.HandleFunc("POST /v1/auth/sessions", s.signIn)
 	mux.HandleFunc("POST /v1/auth/recovery", s.recover)
+	mux.HandleFunc("GET /v1/auth/session/status", s.sessionStatus)
 	mux.HandleFunc("GET /v1/auth/session", s.account)
 	mux.HandleFunc("DELETE /v1/auth/session", s.revoke)
 	mux.HandleFunc("GET /v1/events", s.events)
@@ -106,6 +107,20 @@ func (s *Server) revoke(w http.ResponseWriter, r *http.Request) {
 }
 func (s *Server) account(w http.ResponseWriter, r *http.Request) {
 	user, e := s.service.Account(bearer(r))
+	respond(w, map[string]any{"session": "active", "user": user}, e)
+}
+func (s *Server) sessionStatus(w http.ResponseWriter, r *http.Request) {
+	token := bearer(r)
+	if token == "" {
+		writeJSON(w, http.StatusOK, map[string]any{"session": "none", "user": nil})
+		return
+	}
+	user, e := s.service.Account(token)
+	if errors.Is(e, ErrUnauthorized) {
+		clearSessionCookie(w, r)
+		writeJSON(w, http.StatusOK, map[string]any{"session": "none", "user": nil})
+		return
+	}
 	respond(w, map[string]any{"session": "active", "user": user}, e)
 }
 func (s *Server) events(w http.ResponseWriter, r *http.Request) {

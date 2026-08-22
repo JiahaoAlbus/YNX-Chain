@@ -181,9 +181,9 @@ async function restoreStandardWallet() {
 }
 async function restoreSession() {
   try {
-    const result = await api("/v1/auth/session");
-    state.token = "cookie";
-    state.user = result.user;
+    const result = await api("/v1/auth/session/status");
+    state.token = result.session === "active" && result.user ? "cookie" : "";
+    state.user = state.token ? result.user : null;
   } catch {
     state.token = "";
     state.user = null;

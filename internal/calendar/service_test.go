@@ -146,6 +146,38 @@ func TestHTTPLoginUsesHttpOnlyCookieWithoutTokenBody(t *testing.T) {
 	}
 }
 
+func TestHTTPSessionStatusIsConsoleSafeWithoutAuthentication(t *testing.T) {
+	svc := newTestService(t, "")
+	handler := NewHandler(svc)
+
+	unauthenticated := httptest.NewRecorder()
+	handler.ServeHTTP(unauthenticated, httptest.NewRequest(http.MethodGet, "/v1/auth/session/status", nil))
+	if unauthenticated.Code != http.StatusOK || unauthenticated.Body.String() != "{\"session\":\"none\",\"user\":null}\n" {
+		t.Fatalf("unauthenticated session status was not a quiet guest contract: %d %s", unauthenticated.Code, unauthenticated.Body.String())
+	}
+
+	token, user, _ := signIn(t, svc, "@session-status", "ynx1sessionstatus")
+	authenticatedRequest := httptest.NewRequest(http.MethodGet, "/v1/auth/session/status", nil)
+	authenticatedRequest.AddCookie(&http.Cookie{Name: sessionCookieName, Value: token})
+	authenticated := httptest.NewRecorder()
+	handler.ServeHTTP(authenticated, authenticatedRequest)
+	if authenticated.Code != http.StatusOK || !strings.Contains(authenticated.Body.String(), `"session":"active"`) || !strings.Contains(authenticated.Body.String(), user.Handle) {
+		t.Fatalf("active session status was not restored: %d %s", authenticated.Code, authenticated.Body.String())
+	}
+
+	invalidRequest := httptest.NewRequest(http.MethodGet, "/v1/auth/session/status", nil)
+	invalidRequest.AddCookie(&http.Cookie{Name: sessionCookieName, Value: "expired-session"})
+	invalid := httptest.NewRecorder()
+	handler.ServeHTTP(invalid, invalidRequest)
+	if invalid.Code != http.StatusOK || invalid.Body.String() != "{\"session\":\"none\",\"user\":null}\n" {
+		t.Fatalf("expired session status did not fail closed as a quiet guest contract: %d %s", invalid.Code, invalid.Body.String())
+	}
+	cookies := invalid.Result().Cookies()
+	if len(cookies) != 1 || cookies[0].Name != sessionCookieName || cookies[0].MaxAge >= 0 {
+		t.Fatalf("expired session cookie was not cleared: %+v", cookies)
+	}
+}
+
 type testAI struct{ unavailable bool }
 
 func (a testAI) Status(context.Context) (string, string, string, error) {

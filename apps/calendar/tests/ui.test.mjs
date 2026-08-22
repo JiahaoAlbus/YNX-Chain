@@ -79,4 +79,6 @@ test("Calendar offline, explicit approval, conflict and AI boundaries are wired"
     js,
     /wallet_proof|Authorization=`Bearer|ynx\.calendar\.session/,
   );
+  assert.match(js, /api\("\/v1\/auth\/session\/status"\)/);
+  assert.doesNotMatch(js, /api\("\/v1\/auth\/session"\)(?!,)/);
 });
