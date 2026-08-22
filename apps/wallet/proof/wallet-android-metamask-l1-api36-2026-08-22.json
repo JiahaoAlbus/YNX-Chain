@@ -48,6 +48,7 @@
     "isolatedAccountCreated": true,
     "offlineBackupConfirmed": true,
     "strongBiometric": {"passed": true, "strengthRequested": 15, "credentialFallbackRequested": false, "systemResult": "isStrongBiometric=true"},
+    "backgroundRelock": {"passed": true, "resumeLaunchState": "HOT", "resumeTotalTimeMs": 67, "unlockRequiredAgain": true},
     "nativeTestnetRead": {"passed": true, "chainId": "ynx_6423-1", "balance": "0 YNXT", "nonce": 0, "recentTransactions": 0},
     "evmIdentity": {"chainIdDecimal": 6423, "chainIdHex": "0x1917", "approvedAccountExposureObserved": false},
     "walletConnect": {
