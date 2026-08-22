@@ -147,8 +147,13 @@ still required.
 ```sh
 npm test
 npm run build
-npm run package
+YNX_WALLET_WEB_SOURCE_COMMIT=<full-40-character-reviewed-commit> npm run package
 ```
+
+Release packaging fails closed when the source identity is missing, abbreviated,
+malformed, or unavailable in the repository. Every packaged target must contain
+the same exact source commit in `build-identity.json`; there is no
+`uncommitted-source-tree` packaging fallback.
 
 Build outputs are unsigned engineering artifacts. They are not installed,
 production-signed, store-released, or publicly hosted by this package.
