@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet Web/PWA/Extensions",
+  "taskId": "P0-150",
+  "status": "ENCRYPTED_VAULT_AND_SIGNER_SOURCE_BUILT_INSTALLED_E2E_FALSE",
+  "sourceCommit": "60a756991fbe07311c9d2b0dbade8a9d670dab04",
+  "sourceTree": "6a6fd70ef6dae23022e877ff9542daffa225d536",
+  "evidence": "apps/wallet-web/evidence/contracts/ynx-extension-vault-signer-20260822.json",
+  "centralAcceptance": {
+    "commit": "803d8fa0735303a5987bbebfeb088cdd5542b388",
+    "blob": "4057c4ef26e415f6cee33e105ceb825c6797c0a9",
+    "sha256": "acb808830bef59707f9433e417bac3b4af6f0bc294c218b0f6468dfbba961f20"
+  },
+  "publicIdentityBlocker": {
+    "routerCommit": "177240b5c3a2d5fbfdf9246fc568c3c3b57a0114",
+    "blob": "0d7760d57ffa78d8a69dce91ba6caec8178d5bd2",
+    "sha256": "bcb33a7d0dc64a6864690d99bba91932ed08778fc724641e9c70f49a71143b2e",
+    "observedSourceCommit": "uncommitted-source-tree",
+    "currentSourceBoundPublic": false,
+    "releaseBlocked": true
+  },
+  "tests": [
+    "source 110/110",
+    "package internal 83/83",
+    "package verification pass",
+    "minimum-permission artifact gate pass",
+    "production dependency audit 0 vulnerabilities",
+    "direct canonical RPC returned exact 0x1917"
+  ],
+  "artifacts": [
+    {"name":"ynx-wallet-web-pwa-0.1.0.zip","bytes":285229,"sha256":"fca3adbf181c3ff034cdfac1a79ae7d90f3610df71f1f1f63792dc1c69222eb5","signingClass":"unsigned-web-bundle"},
+    {"name":"ynx-wallet-chrome-edge-0.1.0.zip","bytes":468402,"sha256":"769bc63f93b5e85cfac6b85ed44002a037202ccabe8af013009ab989c566bfd6","signingClass":"unsigned-unpacked-extension"},
+    {"name":"ynx-wallet-firefox-0.1.0.zip","bytes":468441,"sha256":"3eba0cacacded62932670f36ca5f2ea852680cda7cf696fce4515b7e1d1509c6","signingClass":"unsigned-unpacked-extension"}
+  ],
+  "truthBoundary": "Source and exact built artifacts now contain a real encrypted YNX account vault and reviewed signer/broadcaster. No installed-browser account, approval, signature or transaction evidence exists yet; all P0 parity gates remain false.",
+  "executionLeaseIssued": false,
+  "deploymentLeaseIssued": false
+}
