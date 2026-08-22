@@ -21,7 +21,7 @@
       "intentFilters": [{
         "action": "VIEW",
         "autoVerify": false,
-        "data": [{"scheme": "ynxwallet", "host": "authorize"}, {"scheme": "ynxwallet", "host": "action"}, {"scheme": "ynxwallet", "host": "open"}],
+        "data": [{"scheme": "ynxwallet", "host": "authorize"}, {"scheme": "ynxwallet", "host": "action"}, {"scheme": "ynxwallet", "host": "wc"}, {"scheme": "ynxwallet", "host": "open"}],
         "category": ["BROWSABLE", "DEFAULT"]
       }, {
         "action": "VIEW",

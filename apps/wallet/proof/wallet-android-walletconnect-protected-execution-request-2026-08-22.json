@@ -1,0 +1,136 @@
+{
+  "schemaVersion": 1,
+  "requestId": "WALLET-ANDROID-WALLETCONNECT-PROTECTED-EXECUTION-P0-20260822",
+  "owner": "02-wallet-auth-android",
+  "status": "REQUESTED",
+  "purpose": "Request one protected, path-scoped execution package for installed Android WalletConnect v2 and standard EVM interoperability without recording protected values.",
+  "authoritativeInputs": {
+    "centralP0": {
+      "commit": "97a20044e640d57a658897d533da15e9270700cc",
+      "tree": "85d6d86cf3c103d5156b3bc020d6e5e615cddeeb"
+    },
+    "routerExecutionPlan": {
+      "commit": "875be208e8a7ddb60345d55b93fc299949664e5c",
+      "tree": "3499ddfbe2a4bb08cbbcaef8c71b911aca51dde4",
+      "path": "release/integration/wallet-standard-wallet-e2e-execution-plan-p0-20260822.json",
+      "verification": "Standard Wallet E2E execution-plan gate passed for 12 registered products"
+    },
+    "nativeExecutableBlocker": {
+      "commit": "65dffee2f35ec9dc254f8c2ac8c465a353bc1861",
+      "tree": "9af8bc76caa2dc963ac484d981e25a504efe7ed5",
+      "path": "release/integration/wallet-native-walletconnect-runtime-executable-blocker-p0-20260822.json",
+      "blob": "51857585317e6dbbe3629bae2d7e68fee996ee69",
+      "sha256": "0c103cd1145edc07d9086f84a6f3548c4887d7438b1f473940217418017161ef"
+    },
+    "androidSourceParent": "ea0ef85b6ff98b6b47e460cd9cfb468450fe7fca"
+  },
+  "requestedLease": {
+    "kind": "path-scoped-installed-runtime",
+    "paths": [
+      "apps/wallet/App.tsx",
+      "apps/wallet/app.json",
+      "apps/wallet/android/**",
+      "apps/wallet/plugins/**",
+      "apps/wallet/src/dapp/**",
+      "apps/wallet/src/security/walletConnectLaunchLinkPolicy.ts",
+      "apps/wallet/scripts/**",
+      "apps/wallet/proof/**"
+    ],
+    "target": "one authorized Android API 36 physical or persistent installed target",
+    "artifact": "one exact source-bound, explicitly QA-signed APK",
+    "forcePush": false,
+    "productionMutation": false
+  },
+  "sdkBinding": {
+    "walletKit": "@reown/walletkit@1.5.6",
+    "core": "@walletconnect/core@2.23.10",
+    "reactNativeCompat": "@walletconnect/react-native-compat@2.23.10",
+    "transport": "walletconnect-v2",
+    "chain": "eip155:6423",
+    "chainIdHex": "0x1917",
+    "nativeChainId": "ynx_6423-1",
+    "asset": "YNXT",
+    "productSessionRequired": false
+  },
+  "providerIdentity": {
+    "ynxWallet": {
+      "name": "YNX Wallet",
+      "rdns": "com.ynx.wallet",
+      "androidPackage": "com.ynxweb4.wallet",
+      "isYNXWallet": true,
+      "isMetaMask": false
+    },
+    "metaMask": {
+      "isMetaMask": true,
+      "isYNXWallet": false
+    },
+    "defaultLanguage": "en"
+  },
+  "routing": {
+    "authorization": "ynxwallet://authorize?request=<canonical-base64url-request>",
+    "walletConnect": "ynxwallet://wc?uri=<percent-encoded-canonical-wc-v2-uri>",
+    "universalWalletConnect": "https://www.ynxweb4.com/dapp/wallet/open?uri=<percent-encoded-canonical-wc-v2-uri>",
+    "bareAuthorizeAllowed": false,
+    "resolverResultPromotesSession": false
+  },
+  "protectedEnvironment": {
+    "name": "wallet-android-walletconnect-runtime",
+    "secretValuesRequestedInRepositoryOrChat": false,
+    "inputs": [
+      {"name": "EXPO_PUBLIC_WALLETCONNECT_PROJECT_ID", "purpose": "approved 32-hex Reown Cloud project ID and relay allowlist binding", "valueRecorded": false},
+      {"name": "YNX_WALLETCONNECT_APPROVED_ACCOUNT", "purpose": "dedicated Testnet 0x account disclosed only after user approval", "valueRecorded": false},
+      {"name": "YNX_WALLETCONNECT_SIGNER_BINDING", "purpose": "existing Wallet SecureStore and strong-biometric signer reference; never raw key material", "valueRecorded": false},
+      {"name": "YNX_WALLETCONNECT_TEST_TX_POLICY", "purpose": "operator-approved Testnet recipient, maximum value and gas boundary", "valueRecorded": false},
+      {"name": "YNX_ANDROID_EXECUTION_TARGET", "purpose": "authorized installed Android target identifier", "valueRecorded": false},
+      {"name": "YNX_WALLETCONNECT_DAPP_FIRST_PARTY_URL", "purpose": "exact source-bound first-party DApp URL", "valueRecorded": false},
+      {"name": "YNX_WALLETCONNECT_DAPP_UNISWAP_URL", "purpose": "exact independently opened Uniswap URL", "valueRecorded": false},
+      {"name": "YNX_WALLETCONNECT_DAPP_OPENSEA_URL", "purpose": "exact independently opened OpenSea URL", "valueRecorded": false},
+      {"name": "YNX_WALLETCONNECT_DAPP_SAFE_URL", "purpose": "exact independently opened Safe URL", "valueRecorded": false},
+      {"name": "YNX_WALLETCONNECT_TEST_OPERATOR_CONFIRMATION", "purpose": "named confirmation authority for approve, reject, personal_sign, EIP-712, Testnet send and revoke", "valueRecorded": false}
+    ]
+  },
+  "requiredInstalledExecution": [
+    "install the exact APK and record source commit/tree, SHA-256, bytes, SDK levels and signing class",
+    "prove first cold launch and a distinct second launch",
+    "query Android handlers before launching canonical authorize and WalletConnect payload routes",
+    "pair first-party and external WalletConnect DApps through the real relay",
+    "show proposal identity, methods, eip155:6423 and the one approved lowercase 0x account",
+    "prove explicit proposal and request approve plus reject with zero authority on rejection",
+    "restart and restore the exact session and pending request",
+    "prove provider.request eth_chainId returns 0x1917 and capture accountsChanged and chainChanged",
+    "perform personal_sign and EIP-712 only after immediate user confirmation through the existing signer",
+    "perform one bounded Testnet send and record transaction hash plus committed receipt",
+    "disconnect and revoke, then prove persisted session and account authority are purged",
+    "open the source-bound first-party URL and independently open Uniswap, OpenSea and Safe without blank tabs",
+    "prove Gateway or Product Session failure is PRIVATE_SERVICE_DEGRADED and does not undo Layer 1"
+  ],
+  "currentTruth": {
+    "sourceIntegrated": true,
+    "protectedExecutionLeaseIssued": false,
+    "projectIDConfigured": false,
+    "realRelayConnected": false,
+    "exactAPKInstalledForThisRequest": false,
+    "pairingSucceeded": false,
+    "proposalVisible": false,
+    "proposalApproved": false,
+    "proposalRejected": false,
+    "sessionRestored": false,
+    "firstPartyDAppRuntime": false,
+    "externalDAppRuntimeCount": 0,
+    "personalSignSucceeded": false,
+    "eip712Succeeded": false,
+    "testnetSendCommitted": false,
+    "accountsChangedObserved": false,
+    "chainChangedObserved": false,
+    "disconnectRevoked": false,
+    "authorizeApproveCallbackSucceeded": false,
+    "authorizeRejectCallbackSucceeded": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "singleExecutionBlocker": {
+    "id": "PROTECTED_ANDROID_WALLETCONNECT_RUNTIME_PACKAGE_UNAVAILABLE",
+    "summary": "No approved path-scoped lease or protected runtime package currently supplies the real Reown project/relay binding, authorized installed target, existing-signer test-account binding, bounded Testnet transaction policy and exact four-DApp execution URLs.",
+    "ownerAction": "A named Central release owner must issue the requested lease and populate wallet-android-walletconnect-runtime without returning protected values in chat, evidence or the repository."
+  }
+}

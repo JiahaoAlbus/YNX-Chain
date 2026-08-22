@@ -27,6 +27,7 @@
         <action android:name="android.intent.action.VIEW"/>
         <data android:scheme="ynxwallet" android:host="authorize"/>
         <data android:scheme="ynxwallet" android:host="action"/>
+        <data android:scheme="ynxwallet" android:host="wc"/>
         <data android:scheme="ynxwallet" android:host="open"/>
         <category android:name="android.intent.category.BROWSABLE"/>
         <category android:name="android.intent.category.DEFAULT"/>

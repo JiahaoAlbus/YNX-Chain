@@ -1,7 +1,7 @@
 const { withAndroidManifest } = require("expo/config-plugins");
 
 const AUTHORIZE_SCHEME = "ynxwallet";
-const EXACT_HOSTS = ["authorize", "action", "open"];
+const EXACT_HOSTS = ["authorize", "action", "wc", "open"];
 const UNIVERSAL_ROUTE = Object.freeze({scheme:"https",host:"www.ynxweb4.com",path:"/dapp/wallet/open"});
 
 function applyExactIntentFilters(manifest) {

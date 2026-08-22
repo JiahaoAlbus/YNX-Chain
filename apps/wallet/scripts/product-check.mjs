@@ -26,6 +26,7 @@ const evmBroadcast=await readFile(new URL("../src/chain/evmBroadcast.ts",import.
 const dappBrowserController=await readFile(new URL("../src/dapp/dappBrowserController.ts",import.meta.url),"utf8");
 const dappBrowserHarness=await readFile(new URL("../proof/dapp-browser-harness/index.html",import.meta.url),"utf8");
 const walletConnectLaunchLinkPolicy=await readFile(new URL("../src/security/walletConnectLaunchLinkPolicy.ts",import.meta.url),"utf8");
+const walletConnectExecutionRequest=JSON.parse(await readFile(new URL("../proof/wallet-android-walletconnect-protected-execution-request-2026-08-22.json",import.meta.url),"utf8"));
 const i18n=await readFile(new URL("../src/i18n/i18n.ts",import.meta.url),"utf8");
 const audit=await readFile(new URL("../src/protocol/authorizationAudit.ts",import.meta.url),"utf8");
 const nonceReplayStore=await readFile(new URL("../src/protocol/replayStore.ts",import.meta.url),"utf8");
@@ -86,7 +87,8 @@ assert.equal(config.extra.internalAcceptanceShell,false);
 assert.equal(config.userInterfaceStyle,"automatic");
 assert.equal(config.android.intentFilters[0].data[0].host,"authorize");
 assert.equal(config.android.intentFilters[0].data[1].host,"action");
-assert.equal(config.android.intentFilters[0].data[2].host,"open");
+assert.equal(config.android.intentFilters[0].data[2].host,"wc");
+assert.equal(config.android.intentFilters[0].data[3].host,"open");
 assert.equal(sha256(endpointMatrixBytes),CENTRAL_FREEZE.endpointMatrix.sha256,`Central endpoint matrix must remain exact blob ${CENTRAL_FREEZE.endpointMatrix.blob} from ${CENTRAL_FREEZE.commit}`);
 assert.equal(sha256(androidLauncherBytes),CENTRAL_FREEZE.androidLauncher.sha256,`Central Android launcher must remain exact blob ${CENTRAL_FREEZE.androidLauncher.blob} from ${CENTRAL_FREEZE.androidLauncher.commit}`);
 assert.equal(sha256(canonicalCallerMigrationBytes),CENTRAL_FREEZE.canonicalCallerMigration.sha256,`Core/Auth caller migration contract must remain exact blob ${CENTRAL_FREEZE.canonicalCallerMigration.blob} from ${CENTRAL_FREEZE.canonicalCallerMigration.commit}`);
@@ -160,6 +162,13 @@ assert.equal(walletPackage.dependencies["@reown/walletkit"],"1.5.6","WalletConne
 assert.equal(walletPackage.dependencies["@walletconnect/core"],"2.23.10","WalletConnect v2 must use the exact reviewed Core release");
 assert.equal(walletPackage.dependencies["@walletconnect/react-native-compat"],"2.23.10","WalletConnect React Native compatibility must remain exact");
 assert.equal(walletPackage.dependencies["react-native-webview"],"13.16.1","DApp Browser must use the exact Expo-reviewed WebView release");
+assert.deepEqual(walletConnectExecutionRequest.authoritativeInputs.routerExecutionPlan,{commit:"875be208e8a7ddb60345d55b93fc299949664e5c",tree:"3499ddfbe2a4bb08cbbcaef8c71b911aca51dde4",path:"release/integration/wallet-standard-wallet-e2e-execution-plan-p0-20260822.json",verification:"Standard Wallet E2E execution-plan gate passed for 12 registered products"});
+assert.deepEqual(walletConnectExecutionRequest.sdkBinding,{walletKit:"@reown/walletkit@1.5.6",core:"@walletconnect/core@2.23.10",reactNativeCompat:"@walletconnect/react-native-compat@2.23.10",transport:"walletconnect-v2",chain:"eip155:6423",chainIdHex:"0x1917",nativeChainId:"ynx_6423-1",asset:"YNXT",productSessionRequired:false});
+assert.equal(walletConnectExecutionRequest.protectedEnvironment.secretValuesRequestedInRepositoryOrChat,false);
+assert.ok(walletConnectExecutionRequest.protectedEnvironment.inputs.every((value)=>value.valueRecorded===false),"protected WalletConnect runtime request must never record input values");
+assert.equal(walletConnectExecutionRequest.currentTruth.sourceIntegrated,true);
+assert.ok(Object.entries(walletConnectExecutionRequest.currentTruth).filter(([key])=>key!=="sourceIntegrated").every(([,value])=>value===false||value===0),"unexecuted WalletConnect runtime truth must remain false");
+assert.equal(walletConnectExecutionRequest.singleExecutionBlocker.id,"PROTECTED_ANDROID_WALLETCONNECT_RUNTIME_PACKAGE_UNAVAILABLE");
 assert.equal(walletPackage.scripts.postinstall,"node scripts/patch-android-native-modules.mjs","the exact native Android compatibility patch must run after every clean install");
 for(const required of ['react-native-webview 13.16.1','@walletconnect/react-native-compat 2.23.10','react-native-safe-area-context 5.7.0','gradle:7.0.4','gradle:7.2.1','gradle:7.3.1','matches !== 1','root Expo/RN Android Gradle Plugin','Android source changed'])assert.ok(androidNativeModulePatch.includes(required),`native Android compatibility patch must remain exact and fail closed: ${required}`);
 assert.equal(androidProguard.split("-dontwarn java.awt.Component").length-1,1,"R8 may suppress only WalletConnect JNA's exact desktop-only AWT reference");
@@ -176,7 +185,7 @@ for(const required of ['this.connect=Object.freeze({...this.connect,id:input.id}
 for(const required of ['BROWSER_REPLAY_BANNER','Request recovery is waiting for this DApp','Reject recovered DApp request','request&&!pendingReplayReady'])assert.ok(source.includes(required),`restored DApp review must leave the active page usable and fail closed through ${required}`);
 for(const required of ['sharedCookiesEnabled={false}','thirdPartyCookiesEnabled={false}','strictDappBrowserURL','controller.navigated(next.origin)','controller.receive(active.origin','DApp Browser requires canonical HTTPS'])assert.ok(source.includes(required),`DApp Browser UI must retain ${required}`);
 for(const required of ['ethereum.request({method:"eth_accounts"})','ethereum.on?.("accountsChanged"','ethereum.on?.("chainChanged"','ethereum.on?.("disconnect"'])assert.ok(dappBrowserHarness.includes(required),`external DApp QA must exercise reconstruction and provider events through ${required}`);
-for(const required of ['WALLETCONNECT_UNIVERSAL_LINK_ORIGIN="https://www.ynxweb4.com"','WALLETCONNECT_UNIVERSAL_LINK_PATH="/dapp/wallet/open"','parseWalletConnectUri(uri)','value!==canonical'])assert.ok(walletConnectLaunchLinkPolicy.includes(required),`WalletConnect app/universal payload link must retain ${required}`);
+for(const required of ['WALLETCONNECT_UNIVERSAL_LINK_ORIGIN="https://www.ynxweb4.com"','WALLETCONNECT_UNIVERSAL_LINK_PATH="/dapp/wallet/open"','url.hostname==="wc"','`ynxwallet://wc?uri=${encodeURIComponent(uri)}`','parseWalletConnectUri(uri)','value!==canonical'])assert.ok(walletConnectLaunchLinkPolicy.includes(required),`WalletConnect app/universal payload link must retain ${required}`);
 for(const required of ['getPendingSessionRequests()','requests=restoredRequests','values.length>1','controller.restoreRequest(request)','emitSessionEvent','name:"accountsChanged"','name:"chainChanged"'])assert.ok(`${reownWalletConnectPort}\n${source}\n${walletConnectController}`.includes(required),`WalletConnect reconstruction/events must retain ${required}`);
 for(const required of ["export function withSecretBytes","try { return operation(secret); }","finally { secret.fill(0); }","bytes.fill(0); throw new WalletAuthError"])assert.ok(walletAuthCrypto.includes(required),`temporary signing key bytes must zero through ${required}`);
 for(const signer of walletAuthSecretSigning){assert.ok(signer.includes("withSecretBytes"),"every Wallet signing domain must use the zeroing key-byte boundary");assert.equal(/hexToBytes\([^)]*accountSecret/.test(signer),false,"Wallet signing domains must not create untracked secret byte buffers")}
@@ -226,14 +235,15 @@ assert.ok(clipboardPrivacy.includes("const DEFAULT_TTL_MS = 30_000"),"public cli
 assert.ok(clipboardPrivacy.includes('await clipboard.setStringAsync("")'),"clipboard expiry must clear only the still-matching value");
 assert.ok(config.plugins.includes("./plugins/withYnxAndroidReleaseSigning"),"Wallet must preserve Release signing policy through Expo prebuild");
 assert.ok(config.plugins.includes("./plugins/withYnxAndroidExactIntentFilters"),"Wallet must preserve exact Android intent filters through Expo prebuild");
-for(const required of ['AUTHORIZE_SCHEME = "ynxwallet"','EXACT_HOSTS = ["authorize", "action", "open"]','walletFilters.length !== 1','android.intent.category.BROWSABLE'])assert.ok(intentFilterPlugin.includes(required),`Wallet exact intent-filter plugin must enforce ${required}`);
+for(const required of ['AUTHORIZE_SCHEME = "ynxwallet"','EXACT_HOSTS = ["authorize", "action", "wc", "open"]','walletFilters.length !== 1','android.intent.category.BROWSABLE'])assert.ok(intentFilterPlugin.includes(required),`Wallet exact intent-filter plugin must enforce ${required}`);
 for(const required of ["ynxReleaseSigningConfigured ? signingConfigs.release : null","System.getenv(\"YNX_ANDROID_KEYSTORE_PATH\")","ynxDebugKeystorePath"])assert.equal(`${androidGradle}\n${signingPlugin}`.includes(required),true,`missing Android signing boundary ${required}`);
 assert.equal(androidGradle.includes("            signingConfig signingConfigs.debug\n            def enableShrinkResources"),false,"Release must never inherit debug signing");
 for(const required of ["android.enableMinifyInReleaseBuilds') ?: true","android.enableShrinkResourcesInReleaseBuilds') ?: 'true'"])assert.ok(androidGradle.includes(required),`Android release startup optimization must remain enabled through ${required}`);
 for(const required of ["mktemp -d /private/tmp/ynx-wallet-disposable-qa-custody","RUNNER_TEMP","chmod 0700","openssl rand","YNX_ANDROID_KEYSTORE_PATH","apksigner verify --verbose --print-certs","grep -Fqx","APK Signature Scheme v2","disposable-qa-release-key","productionSigned:false","storeReleased:false"])assert.equal(androidQaBuild.includes(required),true,`missing disposable Android QA build boundary ${required}`);
 for(const required of ["-Pandroid.enableMinifyInReleaseBuilds=true","-Pandroid.enableShrinkResourcesInReleaseBuilds=true"])assert.ok(androidQaBuild.includes(required),`disposable Android QA release must exercise startup optimization through ${required}`);
 for(const route of ["authorize","action","open"])assert.ok(androidQaBuild.includes(`android:host(0x01010028)=\\\"$route\\\"`),`release APK must verify exact ${route} host`);
-assert.ok(androidQaBuild.includes('exactly three host-bound ynxwallet routes'),"release APK must reject a scheme-only Wallet intent filter");
+assert.ok(androidQaBuild.includes('for route in authorize action wc open; do'),"release APK must verify the canonical WalletConnect payload route");
+assert.ok(androidQaBuild.includes('exactly four host-bound ynxwallet routes'),"release APK must reject a scheme-only Wallet intent filter");
 for(const forbidden of ["androiddebugkey","storePassword 'android'","keyPassword 'android'"])assert.equal(androidQaBuild.includes(forbidden),false,`disposable Android QA build must not use ${forbidden}`);
 for(const required of ["firstColdLaunch.pid!==receipt.secondColdLaunch.pid","fatalExceptionCount===0","androidRuntimeCrashCount===0","flagSecureObserved===true","evmChainIdHex===\"0x1917\"","receipt.rawEvidence.length>=6","productionSigned:false","storeReleased:false"])assert.equal(androidQaVerify.includes(required),true,`missing Android API 36 receipt boundary ${required}`);
 for(const forbidden of ["Social Feed","Shop tab","Pay tab","Exchange tab"])assert.equal(source.includes(forbidden),false);
