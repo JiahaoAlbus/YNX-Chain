@@ -427,28 +427,25 @@
     }
   ],
   "heavy": {
-    "owner": "creator-studio",
-    "taskId": "P0-205",
-    "status": "ACTIVE_SINGLE_USE",
+    "owner": null,
+    "taskId": null,
+    "status": "IDLE",
     "acquiredAt": "2026-08-22T17:36:00Z",
     "expiresAt": "2026-08-22T18:06:00Z",
+    "releasedAt": "2026-08-22T17:46:33Z",
     "sourceCommit": "0e1a53c5ad1fc9dc2cbfebc13c55f1f426c7e7ae",
     "evidenceCommit": "1d653a43c4d9f3019af7b58bdff3d0d699397bb2",
     "runtimeHost": "43.153.202.237",
-    "currentRuntime": "/opt/ynx-video/releases/p0131-creator-wallet-993e7cc9",
+    "currentRuntime": "/opt/ynx-video/releases/p0205-creator-studio-0e1a53c5",
     "candidateRuntime": "/opt/ynx-video/releases/p0205-creator-studio-0e1a53c5",
     "artifactSha256": "3f56aa4c3f9d87d27f7cdf19eafc0dacf1da78d83d31def2080f0162d92bdf8a",
-    "productionMutationAllowed": true,
+    "productionMutationAllowed": false,
     "singleUse": true,
     "reusable": false,
-    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-creator-studio-source-bound-public-release-20260822T173600Z",
-    "locks": [
-      "host:43.153.202.237/service:ynx-video-studio.service",
-      "path:/opt/ynx-video/current",
-      "path:/opt/ynx-video/releases/p0205-creator-studio-0e1a53c5",
-      "path:/var/tmp/ynx-creator-p0205-0e1a53c5"
-    ],
-    "reason": "Creator request, exact archive/manifest/catalog, empty-extraction cold HTTP, host keys, current link, full unit/Caddy, service state, active/rollback recursive manifests, public baselines and fresh absent paths independently match. Authorize one bounded transfer and one Creator-only atomic switch with at most one exact rollback; no sensitive action."
+    "previousOwner": "creator-studio",
+    "previousTaskId": "P0-205",
+    "reviewDecision": "CONSUMED_RELEASED_SUCCESS_CREATOR_STUDIO_SOURCE_BOUND_PUBLIC_NON_SENSITIVE",
+    "reason": "One bounded transfer, exact candidate verification/cold start, one Creator-only current-link switch and one service restart succeeded. Central independently confirmed exact current target, service/unit/Caddy and six public resource hashes. Only non-sensitive Creator source-bound public truth is promoted; provider/account/sign/tx/product gates remain false."
   },
   "wave": {
     "id": "B-financial-apps-quant",
