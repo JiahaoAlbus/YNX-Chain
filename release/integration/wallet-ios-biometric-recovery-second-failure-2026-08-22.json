@@ -1,0 +1,80 @@
+{
+  "schemaVersion": "ynx.wallet.ios.biometric-recovery-failure-evidence.v1",
+  "recordedAt": "2026-08-22T05:29:54Z",
+  "scope": "HOSTED_CI_AND_MAIN_REGISTRATION",
+  "source": {
+    "branch": "codex/wallet-ios-macos-20260813",
+    "headSha": "560d801b9a2d3cd856b3dfdbdc8d66aa3114d1b5",
+    "changeUnderTest": "remove duplicate recovery submit after the keyboard Done action already invoked native LocalAuthentication"
+  },
+  "githubActions": {
+    "repository": "JiahaoAlbus/YNX-Chain",
+    "runId": 32553443117,
+    "jobId": 96983776435,
+    "status": "completed",
+    "conclusion": "failure",
+    "updatedAt": "2026-08-22T05:29:54Z",
+    "steps": {
+      "buildSimulatorApp": true,
+      "installColdSecondDeepLink": true,
+      "malformedCallbackFailClosed": true,
+      "canonicalRequestStopsBeforeJS": true,
+      "universalLinkNegative": true,
+      "recoveryWithoutAuthorizationEmpty": true,
+      "positiveBiometricRecoveryAndUnlock": false,
+      "artifactFactsRecorded": true,
+      "artifactUploaded": true
+    }
+  },
+  "failure": {
+    "stepNumber": 20,
+    "stepName": "Prove recovery and unlock with Simulator biometric matches",
+    "test": "YNXWalletUITests.MalformedCallbackUITests.testRecoveryAndUnlockWithSimulatedBiometricMatches",
+    "testDurationSeconds": 60.769,
+    "sourceLine": 173,
+    "assertion": "Matched Simulator biometric did not persist and lock the recovered account",
+    "observedSequence": [
+      "Recover on a replacement device existed and was tapped",
+      "the isolated 64-hex-character recovery vector was entered",
+      "the keyboard Done action was tapped",
+      "the test waited 45 seconds for Unlock with biometrics",
+      "Unlock with biometrics never became visible",
+      "XCTest requested an accessibility hierarchy snapshot for app PID 64858",
+      "the positive recovery test failed"
+    ],
+    "boundedDiagnosis": "The duplicate-submit timing defect is no longer the assertion. The hosted log proves neither a successful account-import LocalAuthentication result nor persisted locked state. System prompt visibility and a successful first biometric match are not established by the public job log, so no positive gate is promoted and no further Face ID timing change is inferred.",
+    "xcresultPathInArtifact": "proof/ci-ios/SimulatedBiometricRecovery.xcresult",
+    "xcresultDownloadedAndInspected": false
+  },
+  "artifact": {
+    "id": 9471016754,
+    "name": "ynx-wallet-ios-simulator",
+    "bytes": 104175627,
+    "actionsDigest": "sha256:daf0a0f93876802195d587f49d629db6f8d90c00df873a223a3919aa06b90870",
+    "expired": false,
+    "downloadInspected": false,
+    "platform": "iOS Simulator",
+    "minimumOS": "16.4",
+    "architecturesFromBuildLog": ["arm64", "x86_64"],
+    "bundleIdentifier": "com.ynxweb4.wallet",
+    "signingClass": "AD_HOC_SIMULATOR_SIGN_TO_RUN_LOCALLY",
+    "teamIdentifier": "FAKETEAMID",
+    "productionSigned": false,
+    "appStoreArtifact": false
+  },
+  "truthfulGates": {
+    "simulatorBiometricRecoveryPositive": false,
+    "simulatorBiometricUnlockPositive": false,
+    "physicalDeviceBiometric": false,
+    "productRecovery": false,
+    "authorizationSuccess": false,
+    "walletConnectRelayRuntime": false,
+    "realDAppRuntime": false,
+    "universalLink": false,
+    "publicNativeWalletPublished": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "notarized": false,
+    "appStore": false
+  }
+}
