@@ -3,9 +3,9 @@ export const extensionHomepage = "https://www.ynxweb4.com/";
 
 const sharedManifest = {
   manifest_version: 3,
-  name: "YNX Wallet Testnet Companion",
+  name: "YNX Wallet",
   version: extensionVersion,
-  description: "Run fail-closed YNX Testnet wallet actions against the active DApp tab.",
+  description: "Independent YNX Testnet wallet provider for approved DApp connections and transactions.",
   homepage_url: extensionHomepage,
   permissions: ["activeTab", "scripting", "storage"],
   content_security_policy: {extension_pages: "script-src 'self'; object-src 'self'; connect-src https://evm.ynxweb4.com"},

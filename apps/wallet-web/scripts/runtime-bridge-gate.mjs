@@ -23,7 +23,7 @@ try{
   const page=context.pages()[0]||await context.newPage();await bounded(page.goto(fixtureUrl,{waitUntil:"domcontentloaded",timeout:5000}),6000,"fixture navigation");
   await bounded(page.waitForFunction(()=>Array.isArray(globalThis.ethereum?.providers)&&globalThis.ethereum.providers.some((provider)=>provider?.__ynxCompanion===true),null,{timeout:5000}),6000,"provider injection");
   result.provider=await page.evaluate(()=>{const provider=globalThis.ethereum.providers.find((item)=>item?.__ynxCompanion===true);return{injected:Boolean(provider),isYNXWallet:provider?.isYNXWallet===true,rdns:provider?.providerInfo?.rdns,requestType:typeof provider?.request}});
-  if(gate==="injection")result.passed=result.provider.injected&&result.provider.isYNXWallet&&result.provider.rdns==="com.ynx.wallet.companion"&&result.provider.requestType==="function";
+  if(gate==="injection")result.passed=result.provider.injected&&result.provider.isYNXWallet&&result.provider.rdns==="com.ynx.wallet"&&result.provider.requestType==="function";
   if(gate==="accounts"){
     result.outcome=await bounded(page.evaluate(async()=>{const provider=globalThis.ethereum.providers.find((item)=>item?.__ynxCompanion===true);return{passive:await provider.request({method:"eth_accounts"}),requested:await provider.request({method:"eth_requestAccounts"}),calls:globalThis.__YNX_FIXTURE_CALLS__}}),6000,"accounts bridge");
     result.passed=result.outcome.passive?.[0]==="0x1111111111111111111111111111111111111111"&&result.outcome.requested?.[0]===result.outcome.passive[0]&&result.outcome.calls.some((call)=>call.provider==="ynx");

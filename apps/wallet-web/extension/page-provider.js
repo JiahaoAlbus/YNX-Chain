@@ -16,7 +16,7 @@
   });
   const provider=Object.freeze({
     isYNXWallet:true,isYnxWallet:true,__ynxCompanion:true,
-    providerInfo:Object.freeze({uuid:"6f4e2a77-7878-4f29-9c0d-191700000001",name:"YNX Wallet",icon:"__YNX_PROVIDER_ICON_DATA_URI__",rdns:"com.ynx.wallet.companion"}),
+    providerInfo:Object.freeze({uuid:"6f4e2a77-7878-4f29-9c0d-191700000001",name:"YNX Wallet",icon:"__YNX_PROVIDER_ICON_DATA_URI__",rdns:"com.ynx.wallet"}),
     request:bridgeRequest,disconnect:()=>bridgeRequest({method:"ynx_disconnect"}),
     on(event,listener){if(EVENTS.has(event)&&typeof listener==="function"){if(!listeners.has(event))listeners.set(event,new Set());listeners.get(event).add(listener)}return provider},
     removeListener(event,listener){listeners.get(event)?.delete(listener);return provider},

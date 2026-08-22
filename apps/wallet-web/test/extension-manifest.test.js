@@ -4,6 +4,8 @@ import {chromiumManifest, extensionHomepage, extensionVersion, firefoxManifest} 
 
 test("extension packages expose truthful install metadata without hosted-update claims", () => {
   for (const manifest of [chromiumManifest, firefoxManifest]) {
+    assert.equal(manifest.name,"YNX Wallet");
+    assert.match(manifest.description,/Independent YNX Testnet wallet provider/);
     assert.equal(manifest.manifest_version, 3);
     assert.equal(manifest.version, extensionVersion);
     assert.equal(manifest.homepage_url, extensionHomepage);
