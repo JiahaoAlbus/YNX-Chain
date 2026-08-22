@@ -1,0 +1,193 @@
+{
+  "schema": "cardAliasRestoreLeaseRequest@1.0.0-p0.0",
+  "requestId": "P0-CARD-ALIAS-RESTORE-AFTER-P0196-20260823",
+  "requestedAt": "2026-08-22T23:56:25Z",
+  "priority": "P0",
+  "owner": "card",
+  "requestedExecutor": "website-release-control-plane",
+  "requestedState": "CARD_ONLY_SINGLE_USE_ALIAS_RESTORE",
+  "incident": {
+    "sourceLease": "P0-196",
+    "reason": "The P0-196 browser gate timed out and its sole rollback command exited nonzero after reporting Creating alias. A fresh read-only reconciliation proves that the canonical alias still targets the P0-196 candidate rather than the frozen rollback deployment.",
+    "currentAliasIsFrozenRollback": false,
+    "productionCompletionClaimed": false
+  },
+  "scope": {
+    "canonicalUrl": "https://card.ynxweb4.com/",
+    "alias": "card.ynxweb4.com",
+    "vercelTeam": "jiahaoalbus-projects",
+    "vercelProject": "ynx-card-testnet-simulation",
+    "vercelProjectId": "prj_DU37JeDK4Rx0MjxIV745veV5Qgxp",
+    "pathLock": "vercel:card.ynxweb4.com",
+    "forbidden": [
+      "any deployment or redeploy",
+      "any Vercel project setting or SSO change",
+      "DNS changes",
+      "any alias other than card.ynxweb4.com",
+      "Card, Wallet, Website or other product source changes",
+      "account approval",
+      "signature",
+      "transaction"
+    ]
+  },
+  "readOnlyReconciliation": {
+    "observedAt": "2026-08-22T23:55:45Z",
+    "aliasApi": {
+      "endpoint": "/v4/aliases/card.ynxweb4.com",
+      "http": 200,
+      "requestId": "sfo1::2p8nk-1787442941466-3d024b992e5c",
+      "deploymentId": "dpl_8qCEhiAq8hgiTYf2hA2FXU57W122",
+      "deploymentUrl": "ynx-card-testnet-simulation-dn1nbeei4-jiahaoalbus-projects.vercel.app",
+      "projectId": "prj_DU37JeDK4Rx0MjxIV745veV5Qgxp",
+      "updatedAt": 1787422703503
+    },
+    "canonicalResources": [
+      {
+        "path": "/",
+        "http": 200,
+        "bytes": 1717,
+        "sha256": "f8b59f7bb084fa22573df186b2f47fa35d3f85d6e078f09f1d3b1b53c764c695",
+        "contentType": "text/html; charset=utf-8",
+        "cacheControl": "public, max-age=0, must-revalidate",
+        "requestId": "sin1::qtjdd-1787442745568-e3da2b3f926b"
+      },
+      {
+        "path": "/build-identity.json",
+        "http": 404,
+        "bytes": 79,
+        "sha256": "7ab8ae579445acfdaa33b89f8b4f9a2d51913e5941497910203815357eb7b69b",
+        "contentType": "text/plain; charset=utf-8",
+        "cacheControl": "public, max-age=0, must-revalidate",
+        "requestId": "sin1::fx8tn-1787442745850-d9fd952c0774"
+      },
+      {
+        "path": "/manifest.webmanifest",
+        "http": 200,
+        "bytes": 460,
+        "sha256": "f3e634129abe79c5b81b7fc8dac3950e5cb21f1d1263b1938fcd06a58e2c686f",
+        "contentType": "application/manifest+json; charset=utf-8",
+        "cacheControl": "public, max-age=0, must-revalidate",
+        "requestId": "hnd1::686cq-1787442746472-6bd825c112d9"
+      },
+      {
+        "path": "/sw.js",
+        "http": 200,
+        "bytes": 364,
+        "sha256": "1a9acfe442d2920040a1999f4fe4efe3f97d7a42a9debef047d469972889638f",
+        "contentType": "application/javascript; charset=utf-8",
+        "cacheControl": "public, max-age=0, must-revalidate",
+        "requestId": "hnd1::rsfps-1787442747270-8b8983c5e055"
+      },
+      {
+        "path": "/pwa-register.js",
+        "http": 200,
+        "bytes": 201,
+        "sha256": "87671daaddfae6a98e473eedf34a8844d5fd82676f2111808057e98d9b4012a6",
+        "contentType": "application/javascript; charset=utf-8",
+        "requestId": "hnd1::274fq-1787442764808-fd7008be4d2b"
+      },
+      {
+        "path": "/_expo/static/js/web/index-6a16f2a248e25355f9aa7ee9626133a0.js",
+        "http": 200,
+        "bytes": 2911045,
+        "sha256": "f59fa3d43e4d855a91f224f239e8fc39bf4ffa73e83e42d5c0203aa70deae92e",
+        "contentType": "application/javascript; charset=utf-8",
+        "requestId": "hnd1::b6qr7-1787442765575-2afab121e31b"
+      },
+      {
+        "path": "/favicon.ico",
+        "http": 200,
+        "bytes": 14510,
+        "sha256": "1eda72df0357a4a4b6d396d79ca0ab775c230723473b47e8195d2e629972ceb3",
+        "contentType": "image/vnd.microsoft.icon",
+        "requestId": "hnd1::d8dqs-1787442767647-6dd90d612fae"
+      }
+    ]
+  },
+  "currentCandidate": {
+    "deploymentId": "dpl_8qCEhiAq8hgiTYf2hA2FXU57W122",
+    "deploymentUrl": "https://ynx-card-testnet-simulation-dn1nbeei4-jiahaoalbus-projects.vercel.app",
+    "deploymentApiEndpoint": "/v13/deployments/dpl_8qCEhiAq8hgiTYf2hA2FXU57W122",
+    "deploymentApiRequestId": "sfo1::9hnd8-1787442943601-2773b965e874",
+    "status": "READY",
+    "readySubstate": "PROMOTED",
+    "target": "production",
+    "public": false,
+    "gitCommitShaMetadata": "00191c9a5c38b92fed9ce224c9862c396ad9379d",
+    "gitDirtyMetadata": true,
+    "canonicalRootMatchesCandidate": true
+  },
+  "frozenRollback": {
+    "deploymentId": "dpl_DqMuEhno65bLFTNKBu9gs52soVri",
+    "deploymentUrl": "https://ynx-card-testnet-simulation-bmeabqkk1-jiahaoalbus-projects.vercel.app",
+    "deploymentApiEndpoint": "/v13/deployments/dpl_DqMuEhno65bLFTNKBu9gs52soVri",
+    "deploymentApiRequestId": "sfo1::9kcwz-1787442945288-51a5a4257964",
+    "status": "READY",
+    "readySubstate": "PROMOTED",
+    "target": "production",
+    "public": false,
+    "gitCommitShaMetadata": "68bddc3492a82c61c05f7531b85e513b1ee9f3c2",
+    "canonicalExpectedResources": [
+      {
+        "path": "/",
+        "http": 200,
+        "bytes": 1717,
+        "sha256": "56827ca95005951ae791245b6c3021691beace32683209936c7519324c28ed24"
+      },
+      {
+        "path": "/_expo/static/js/web/index-250c974606522c0feefa0bf082cc41a1.js",
+        "http": 200,
+        "bytes": 2907885,
+        "sha256": "2103aba7f844d4a3c067eac0ecbf0acbc9ebf8fb8831c44fd248df90261a8568"
+      },
+      {
+        "path": "/manifest.webmanifest",
+        "http": 200,
+        "bytes": 460,
+        "sha256": "f3e634129abe79c5b81b7fc8dac3950e5cb21f1d1263b1938fcd06a58e2c686f"
+      },
+      {
+        "path": "/sw.js",
+        "http": 200,
+        "bytes": 364,
+        "sha256": "1a9acfe442d2920040a1999f4fe4efe3f97d7a42a9debef047d469972889638f"
+      }
+    ],
+    "evidenceSource": "apps/card/release/standard-wallet-lifecycle-controls-evidence-20260822.json and apps/card/evidence/card-nested-static-deployment-lease-request-20260822.json"
+  },
+  "requestedLease": {
+    "singleUse": true,
+    "expiresAtRequired": true,
+    "productionMutationAllowedOnlyAfterCentralGo": true,
+    "requiredPrewrite": [
+      "Re-read the Central lease as active, unexpired and owned by website-release-control-plane.",
+      "Acquire only the vercel:card.ynxweb4.com path lock and require no conflicting Heavy owner.",
+      "Re-read /v4/aliases/card.ynxweb4.com and require current deployment dpl_8qCEhiAq8hgiTYf2hA2FXU57W122.",
+      "Re-read both deployments and require READY/PROMOTED in project prj_DU37JeDK4Rx0MjxIV745veV5Qgxp.",
+      "Re-read the canonical candidate root and JavaScript hashes above before mutation."
+    ],
+    "soleAuthorizedCommand": "vercel alias set ynx-card-testnet-simulation-bmeabqkk1-jiahaoalbus-projects.vercel.app card.ynxweb4.com --scope jiahaoalbus-projects",
+    "retryAllowed": false,
+    "postRestoreRequired": [
+      "Read /v4/aliases/card.ynxweb4.com with response request ID and require deploymentId dpl_DqMuEhno65bLFTNKBu9gs52soVri.",
+      "GET the four frozen rollback resources and require exact HTTP, bytes and SHA-256 values.",
+      "Record every canonical x-vercel-id response request ID.",
+      "Open one clean browser tab at https://card.ynxweb4.com/ and require stable URL, no blank tab and zero console errors without requesting an account."
+    ],
+    "failureRollbackCommand": "vercel alias set ynx-card-testnet-simulation-dn1nbeei4-jiahaoalbus-projects.vercel.app card.ynxweb4.com --scope jiahaoalbus-projects",
+    "failureRollbackLimit": 1,
+    "releaseRequiredOnEveryTerminalPath": true
+  },
+  "truth": {
+    "reconciliationReadOnly": true,
+    "canonicalAliasCurrentlyCandidate": true,
+    "canonicalAliasCurrentlyFrozenRollback": false,
+    "restoreLeaseIssued": false,
+    "restoreCommandExecuted": false,
+    "deploymentExecuted": false,
+    "accountRequested": false,
+    "signatureRequested": false,
+    "transactionRequested": false,
+    "cardCompleted": false
+  }
+}
