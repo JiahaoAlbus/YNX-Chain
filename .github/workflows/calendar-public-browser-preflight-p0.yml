@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   calendar-public-browser-preflight:
-    if: "${{ github.event.head_commit.message == 'evidence(calendar): externally verify public browser recovery' }}"
+    if: "${{ github.event.head_commit.message == 'evidence(calendar): externally verify public browser recovery v2' }}"
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
@@ -100,7 +100,7 @@ jobs:
               const value = await raw(pathname); resources[pathname] = value.record;
               if (pathname === '/v1/version') {
                 const parsed = JSON.parse(value.body.toString('utf8'));
-                if (parsed.sourceCommit !== expectedSource && parsed.source_commit !== expectedSource && parsed.commit !== expectedSource) fail('public version source mismatch');
+                if (parsed?.build?.commit !== expectedSource) fail('public version source mismatch');
               }
             }
             const browser = await chromium.launch({ headless: true });
