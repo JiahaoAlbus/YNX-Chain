@@ -24,6 +24,7 @@ let walletAuthority;
 let walletConnect;
 const walletConnectRequests = new Map();
 const startupProtocolUrls = [];
+let protocolRegistration = { platform: process.platform, attempted: false, registered: false };
 const initialProtocolUrl = extractYNXWalletProtocolUrl(process.argv);
 if (initialProtocolUrl) queueStartupProtocolUrl(initialProtocolUrl);
 
@@ -68,7 +69,8 @@ async function recordEvidence(status, window, { launch = false } = {}) {
       acceptedForReview: false,
       callbackEmitted: false,
       authorityGranted: false
-    }
+    },
+    protocolRegistration
   };
   await mkdir(path.dirname(evidencePath), { recursive: true });
   await writeFile(evidencePath, `${JSON.stringify(evidence, null, 2)}\n`);
@@ -227,6 +229,10 @@ app.on("second-instance", (_event, argv) => {
 });
 
 if (singleInstanceLock) app.whenReady().then(async () => {
+  if (process.platform === "win32") {
+    const accepted = app.setAsDefaultProtocolClient("ynxwallet");
+    protocolRegistration = { platform: process.platform, attempted: true, registered: accepted && app.isDefaultProtocolClient("ynxwallet") };
+  }
   const userData = app.getPath("userData");
   walletAuthority = new DesktopWalletAuthority({
     vault: new DesktopWalletVault({ filePath: path.join(userData, "wallet-vault-v2.json"), legacyFilePath: path.join(userData, "wallet-vault-v1.json"), safeStorage }),

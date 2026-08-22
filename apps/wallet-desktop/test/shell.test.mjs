@@ -91,6 +91,8 @@ test("shell is explicit and fail closed", async () => {
   assert.match(main, /app\.requestSingleInstanceLock\(\)/);
   assert.match(main, /app\.on\("second-instance"/);
   assert.match(main, /extractYNXWalletProtocolUrl\(argv\)/);
+  assert.match(main, /app\.setAsDefaultProtocolClient\("ynxwallet"\)/);
+  assert.match(main, /app\.isDefaultProtocolClient\("ynxwallet"\)/);
   assert.match(main, /callbackEmitted: false/);
   assert.match(main, /window\.isVisible\(\)/);
   assert.match(main, /window\.getTitle\(\)/);
