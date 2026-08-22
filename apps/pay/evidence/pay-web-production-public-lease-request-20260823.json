@@ -4,13 +4,47 @@
   "productId": "pay",
   "owner": "pay",
   "ownerCheckpoint": {
-    "commit": "29a8e72183dcaf587134bf6c30817f8387d639b8",
-    "tree": "812c0607ea244610ec486eb583a93257d14b4a6e"
+    "commit": "d8009c21f3d513d291e694ba7c53c73595996440",
+    "tree": "c07472e4b73c8c8e573c460bc29ed647b97d04e2"
   },
   "centralNoGoCorrection": {
     "priorRequestCommit": "a5cba8d450f5c508d9cd417c99511911c5b28e99",
     "blocker": "PAY_CADDY_BARE_SPA_ROUTES_FALL_THROUGH_TO_BACKEND",
-    "resolution": "The matcher now includes /invoices, /invoices/*, /split-payments, /split-payments/*, /quant-bills and /quant-bills/*. A static regression verifier and an isolated Caddy adapt --validate assertion both require all six routes."
+    "resolution": "The matcher now includes /invoices, /invoices/*, /split-payments, /split-payments/*, /quant-bills and /quant-bills/*. A static regression verifier and an isolated Caddy adapt --validate assertion both require all six routes.",
+    "successorBlocker": "PAY_PRODUCTION_ROLLBACK_EXECUTOR_COMMAND_OBJECTS_UNFROZEN",
+    "successorResolution": "Exact deploy and rollback scripts are now frozen. Their real shell fixture covers pre-switch failure, post-switch failure with restore, normal exact cleanup, and replaced-path inode refusal."
+  },
+  "executorCheckpoint": {
+    "commit": "d8009c21f3d513d291e694ba7c53c73595996440",
+    "tree": "c07472e4b73c8c8e573c460bc29ed647b97d04e2",
+    "deploy": {
+      "path": "apps/pay/scripts/pay-public-deploy-p0224.sh",
+      "blob": "b10354101ded4318dac96cf567859d06bf1c5aae",
+      "bytes": 7015,
+      "sha256": "bb30f2d1ad28761efbf88de6b9b83fe2f81458a76a5042e08b1d3d8b23985802"
+    },
+    "rollback": {
+      "path": "apps/pay/scripts/pay-public-rollback-p0224.sh",
+      "blob": "8a4952ba55c758330d1684032ff647d733f4f331",
+      "bytes": 3610,
+      "sha256": "0bee0650f2aa351aba785c95369a0116bdd0d1da7a6ff2a3d3c8613e7365ce9e"
+    },
+    "fixture": {
+      "path": "apps/pay/scripts/test-pay-public-deploy-fixture.sh",
+      "blob": "b156ec0c6665709a0a51c7759d805e8a21605ecf",
+      "bytes": 3482,
+      "sha256": "34e0645884594cb755745da23ee7bef309a26cd787035fefa61c2ce3b0931848",
+      "passed": true,
+      "coverage": [
+        "pre-switch corrupt candidate fails with original config and no release root",
+        "post-switch injected failure restores exact config and removes exact release inode",
+        "normal rollback restores config and removes exact release and staging inodes",
+        "release path replacement is rejected and the replacement directory is preserved"
+      ]
+    },
+    "productionCaddyVersion": "2.6.2",
+    "fixedReleaseRoot": "/opt/ynx-pay-web/releases/pay-web-5f4ce98e-release1",
+    "fixedStagingRoot": "/opt/ynx-pay-web/incoming/pay-web-5f4ce98e-release1"
   },
   "source": {
     "commit": "5f4ce98eb458550b976c17e3bc6d77cce4081a59",
@@ -40,9 +74,9 @@
   "caddyObjects": {
     "candidate": {
       "path": "release/pay/ynx-chain-pay-static-5f4ce98e.caddy",
-      "blob": "8d9f71383bb7659af99754b89dafa0c66990cff0",
-      "bytes": 3406,
-      "sha256": "b5593e0838d7dbb049d6f0e7b5f2c0ec7879c379548babfc50ecc2a11d196c5f"
+      "blob": "c0a4ccabc8750837c815172626dc60b5e63fd8cc",
+      "bytes": 3412,
+      "sha256": "b606d1bdced436a984aed19981788f1a9471b4ccb7ad7f2c49b32015b729afa7"
     },
     "rollback": {
       "path": "release/pay/ynx-chain-pay-static-rollback-p0222.caddy",
@@ -60,8 +94,8 @@
       "staticVerifierPassed": true,
       "caddyImage": "caddy:2.10.0-alpine@sha256:ae4458638da8e1a91aafffb231c5f8778e964bca650c8a8cb23a7e8ac557aa3c",
       "adaptValidatePassed": true,
-      "adaptedJsonBytes": 10419,
-      "adaptedJsonSha256": "96dff905289cb6eed69cdf77f1a1fc5f81c3c66f7da4c3243f0373411532492b",
+      "adaptedJsonBytes": 10425,
+      "adaptedJsonSha256": "44928a2ce3319bac8aa5f8984be57642bae1682aca09b4eab5ef71b85bdecbfd",
       "sixRouteAssertionPassed": true
     }
   },
@@ -99,10 +133,11 @@
     "sshIdentity": "/Users/huangjiahao/Downloads/Huang.pem",
     "sshHostKeyFingerprint": "SHA256:7wrOak1OZoD6oDAr0e3En+UD4fs8QnAM1n0Jvwi6Ha8",
     "productPathsOnly": [
-      "/opt/ynx-pay-web/releases/pay-web-5f4ce98e-p0223",
+      "/opt/ynx-pay-web/releases/pay-web-5f4ce98e-release1",
+      "/opt/ynx-pay-web/incoming/pay-web-5f4ce98e-release1",
       "/etc/caddy/ynx-chain.caddy"
     ],
-    "releaseRootMustBeAbsentBeforeWrite": "/opt/ynx-pay-web/releases/pay-web-5f4ce98e-p0223",
+    "releaseRootMustBeAbsentBeforeWrite": "/opt/ynx-pay-web/releases/pay-web-5f4ce98e-release1",
     "freshPrewriteMustMatchP0222": true,
     "transferObjectsMustMatchExactBlobBytes": true,
     "extractIntoNewEmptyReleaseRoot": true,
