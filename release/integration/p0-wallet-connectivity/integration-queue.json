@@ -6245,6 +6245,26 @@
       "productsMigratedV2": "0/12",
       "parityComplete": false,
       "nextAction": "Require real project ID, relay/pairing/session and real DApp evidence; duplicate-proposal fail-closed source/hosted evidence alone does not complete parity."
+    },
+    {
+      "taskId": "P0-169",
+      "owner": "integration,wallet-ios,wallet-macos",
+      "status": "NATIVE_WC_DAPP_DISPLAY_NAME_AMBIGUITY_FAIL_CLOSED_ACCEPTED_SOURCE_HOSTED_ONLY",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/acceptance/wallet-native-walletconnect-display-name-ambiguity-p0169-20260822.json"
+      ],
+      "dependencies": ["P0-168"],
+      "source": "04124abf617cc22b151e2f1bc4e74131d5d30047",
+      "evidence": "3355c5804c851f30462d75722dac6a3114eefca8",
+      "executionLeaseIssued": false,
+      "distributionDispatched": false,
+      "displayNameAmbiguityFailClosed": true,
+      "normalUnicodeDisplayNamesAllowed": true,
+      "realRelayRuntime": false,
+      "productsConnected": "0/12",
+      "productsMigratedV2": "0/12",
+      "parityComplete": false,
+      "nextAction": "Require authoritative first-party runtime and real project ID, relay/pairing/session/DApp evidence; display-name ambiguity hardening alone does not complete parity."
     }
   ]
 }
