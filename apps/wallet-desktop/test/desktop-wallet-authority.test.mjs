@@ -118,6 +118,26 @@ test("vault encrypts the secret and the permission store persists only public au
   assert.doesNotMatch(serialized, /private|secret|seed|mnemonic/i);
 });
 
+test("vault prefers async OS encryption and decrypts after a fresh vault instance", async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "ynx-wallet-async-vault-"));
+  const calls = [];
+  const safeStorage = {
+    isEncryptionAvailable: () => true,
+    encryptStringAsync: async value => { calls.push("encrypt-async"); return Buffer.from(`async:${value}`, "utf8"); },
+    decryptStringAsync: async value => { calls.push("decrypt-async"); return { result: value.toString("utf8").slice("async:".length), shouldReEncrypt: false }; },
+    encryptString: () => { throw new Error("sync encryption must not be used"); },
+    decryptString: () => { throw new Error("sync decryption must not be used"); }
+  };
+  const filePath = path.join(directory, "vault.json");
+  const created = await new DesktopWalletVault({ filePath, safeStorage, randomSecret: () => SECRET }).createAccount();
+  let observedSecret;
+  const restarted = new DesktopWalletVault({ filePath, safeStorage, randomSecret: () => SECOND_SECRET });
+  await restarted.withSecret(secret => { observedSecret = secret; });
+  assert.equal(observedSecret, SECRET);
+  assert.equal((await restarted.status()).account, created.account);
+  assert.deepEqual(calls, ["encrypt-async", "decrypt-async"]);
+});
+
 test("account switching persists both encrypted accounts and revokes every DApp permission and pending request", async () => {
   const directory = await mkdtemp(path.join(os.tmpdir(), "ynx-wallet-account-switch-"));
   const safeStorage = {

@@ -59,7 +59,7 @@ export class DesktopWalletVault {
     const secret = this.randomSecret();
     const identity = walletIdentity(secret);
     const account = evmAddressFromYNX(identity.account);
-    const encryptedSecret = this.safeStorage.encryptString(secret).toString("base64");
+    const encryptedSecret = (await this.#encrypt(secret)).toString("base64");
     return {
       account,
       ynxAccount: identity.account,
@@ -75,11 +75,29 @@ export class DesktopWalletVault {
     if (!this.safeStorage.isEncryptionAvailable()) throw providerError(4200, "SECURE_STORAGE_UNAVAILABLE", "OS secure storage is unavailable");
     let secret;
     try {
-      secret = this.safeStorage.decryptString(Buffer.from(record.encryptedSecret, "base64"));
+      secret = await this.#decrypt(Buffer.from(record.encryptedSecret, "base64"));
       return await action(secret, Object.freeze({ account: record.account, ynxAccount: record.ynxAccount, publicKey: record.publicKey }));
     } finally {
       secret = null;
     }
+  }
+
+  async #encrypt(secret) {
+    if (typeof this.safeStorage.encryptStringAsync === "function") return this.safeStorage.encryptStringAsync(secret);
+    return this.safeStorage.encryptString(secret);
+  }
+
+  async #decrypt(encrypted) {
+    if (typeof this.safeStorage.decryptStringAsync === "function") {
+      try {
+        const value = await this.safeStorage.decryptStringAsync(encrypted);
+        if (typeof value?.result !== "string") throw new Error("OS async secure storage returned no plaintext");
+        return value.result;
+      } catch (error) {
+        if (typeof this.safeStorage.decryptString !== "function") throw error;
+      }
+    }
+    return this.safeStorage.decryptString(encrypted);
   }
 
   async #read() {
