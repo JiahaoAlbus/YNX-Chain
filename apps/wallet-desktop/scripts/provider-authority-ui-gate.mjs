@@ -1,8 +1,8 @@
 import { readFile } from "node:fs/promises";
 
 const [targetsPath, action, expectedAccount = ""] = process.argv.slice(2);
-if (!targetsPath || !["create", "restore"].includes(action)) {
-  throw new Error("usage: provider-authority-ui-gate.mjs <targets.json> <create|restore> [expected-account]");
+if (!targetsPath || !["create", "restore", "switch"].includes(action)) {
+  throw new Error("usage: provider-authority-ui-gate.mjs <targets.json> <create|restore|switch> [expected-account]");
 }
 
 const targets = JSON.parse(await readFile(targetsPath, "utf8"));
@@ -39,6 +39,9 @@ async function readState() {
     accountDetail: document.querySelector("#account-detail")?.textContent,
     accountButtonHidden: document.querySelector("#create-account")?.hidden,
     accountButtonDisabled: document.querySelector("#create-account")?.disabled,
+    addAccountHidden: document.querySelector("#add-account")?.hidden,
+    addAccountDisabled: document.querySelector("#add-account")?.disabled,
+    accountCount: document.querySelectorAll("#account-list button").length,
     signing: document.querySelector("#signing-short")?.textContent,
     walletConnectTitle: document.querySelector("#walletconnect-title")?.textContent,
     walletConnectDetail: document.querySelector("#walletconnect-detail")?.textContent,
@@ -76,6 +79,35 @@ if (action === "restore" && (!expectedAccount || account !== expectedAccount.toL
   throw new Error(`restored account mismatch: expected ${expectedAccount}, got ${account}`);
 }
 
+let switched = null;
+if (action === "switch") {
+  if (!expectedAccount || account !== expectedAccount.toLowerCase() || after.addAccountHidden || after.addAccountDisabled) {
+    throw new Error(`account-switch starting state mismatch: ${JSON.stringify(after)}`);
+  }
+  await evaluate(`document.querySelector("#add-account").click(); true`);
+  let added;
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    added = await readState();
+    const addedAccount = added.accountDetail?.match(/0x[0-9a-fA-F]{40}/)?.[0]?.toLowerCase();
+    if (addedAccount && addedAccount !== account && added.accountCount === 2 && !added.addAccountDisabled) break;
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+  const addedAccount = added.accountDetail?.match(/0x[0-9a-fA-F]{40}/)?.[0]?.toLowerCase();
+  if (!addedAccount || addedAccount === account || added.accountCount !== 2) throw new Error(`new account was not selected visibly: ${JSON.stringify(added)}`);
+  const selected = await evaluate(`(() => { const button = [...document.querySelectorAll("#account-list button")].find(item => item.dataset.account === ${JSON.stringify(account)}); if (!button) return false; button.click(); return true; })()`);
+  if (!selected) throw new Error(`original account switch control missing: ${account}`);
+  let restored;
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    restored = await readState();
+    const restoredAccount = restored.accountDetail?.match(/0x[0-9a-fA-F]{40}/)?.[0]?.toLowerCase();
+    if (restoredAccount === account && restored.accountCount === 2) break;
+    await new Promise(resolve => setTimeout(resolve, 500));
+  }
+  const restoredAccount = restored.accountDetail?.match(/0x[0-9a-fA-F]{40}/)?.[0]?.toLowerCase();
+  if (restoredAccount !== account || restored.accountCount !== 2) throw new Error(`original account was not restored visibly: ${JSON.stringify(restored)}`);
+  switched = { addedAccount, restoredAccount, visibleAccountCount: restored.accountCount };
+}
+
 socket.close();
 console.log(JSON.stringify({
   action,
@@ -85,6 +117,7 @@ console.log(JSON.stringify({
   approvalRequiredVisible: true,
   walletConnectConfigured: false,
   walletConnectFailClosedVisible: true,
+  switched,
   before,
   after
 }, null, 2));

@@ -25,6 +25,8 @@ export class DesktopWalletAuthority {
 
   async accountStatus() { return this.vault.status(); }
   async createAccount() { return this.vault.createAccount(); }
+  async addAccountAndSelect() { this.pending.clear(); await this.permissions.revokeAll(); return this.vault.addAccountAndSelect(); }
+  async selectAccount(account) { this.pending.clear(); await this.permissions.revokeAll(); return this.vault.selectAccount(account); }
   async approveCanonicalAuthorization(request, issuedAt) {
     return this.vault.withSecret(secret => {
       const response = signAuthorization(request, { accountSecret: secret, issuedAt });
@@ -115,6 +117,7 @@ export class MemoryPermissionStore {
   constructor() { this.records = new Map(); }
   async grantAccount(origin, account, approvedAt) { this.records.set(origin, Object.freeze({ parentCapability: "eth_accounts", accounts: [account], approvedAt })); }
   async revoke(origin) { this.records.delete(origin); }
+  async revokeAll() { this.records.clear(); }
   async hasAccount(origin, account) { return this.records.get(origin)?.accounts.includes(account) ?? false; }
   async list(origin) { const record = this.records.get(origin); return record ? [record] : []; }
 }

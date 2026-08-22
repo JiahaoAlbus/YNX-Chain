@@ -46,6 +46,8 @@ const accountDetail = document.querySelector("#account-detail");
 const accountShort = document.querySelector("#account-short");
 const signingShort = document.querySelector("#signing-short");
 const createAccount = document.querySelector("#create-account");
+const addAccount = document.querySelector("#add-account");
+const accountList = document.querySelector("#account-list");
 function renderAccount(payload) {
   const status = payload?.ok === true ? payload.value : payload;
   if (!status?.initialized) {
@@ -53,6 +55,8 @@ function renderAccount(payload) {
     accountShort.textContent = "Not created";
     signingShort.textContent = "Locked";
     createAccount.hidden = false;
+    addAccount.hidden = true;
+    accountList.replaceChildren();
     return;
   }
   accountTitle.textContent = "Secure Testnet account ready";
@@ -60,11 +64,34 @@ function renderAccount(payload) {
   accountShort.textContent = `${status.account.slice(0, 8)}…${status.account.slice(-6)}`;
   signingShort.textContent = "Approval required";
   createAccount.hidden = true;
+  addAccount.hidden = false;
+  accountList.replaceChildren();
+  for (const item of status.accounts ?? []) {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.dataset.account = item.account;
+    button.textContent = item.account === status.account ? `${item.account} · active` : `Switch to ${item.account}`;
+    button.disabled = item.account === status.account;
+    button.addEventListener("click", async () => {
+      button.disabled = true;
+      const result = await window.ynxWallet.selectAccount(item.account);
+      if (!result.ok) accountDetail.textContent = `${result.error.code}: ${result.error.message}`;
+      else renderAccount(result);
+    });
+    accountList.append(button);
+  }
 }
 createAccount.addEventListener("click", async () => {
   createAccount.disabled = true;
   const result = await window.ynxWallet.createAccount();
   createAccount.disabled = false;
+  if (!result.ok) accountDetail.textContent = `${result.error.code}: ${result.error.message}`;
+  else renderAccount(result);
+});
+addAccount.addEventListener("click", async () => {
+  addAccount.disabled = true;
+  const result = await window.ynxWallet.addAccount();
+  addAccount.disabled = false;
   if (!result.ok) accountDetail.textContent = `${result.error.code}: ${result.error.message}`;
   else renderAccount(result);
 });

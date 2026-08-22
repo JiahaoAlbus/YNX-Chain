@@ -12,6 +12,7 @@ import { DesktopWalletVault } from "../src/desktop-wallet-vault.mjs";
 import { WALLETCONNECT_CHAIN, WALLETCONNECT_METHODS, WalletConnectTransport } from "../src/walletconnect-transport.mjs";
 
 const SECRET = "0000000000000000000000000000000000000000000000000000000000000001";
+const SECOND_SECRET = "0000000000000000000000000000000000000000000000000000000000000002";
 const ORIGIN = "https://example-dapp.invalid";
 
 test("desktop Wallet exposes no account before explicit origin approval", async () => {
@@ -114,6 +115,36 @@ test("vault encrypts the secret and the permission store persists only public au
   const serialized = await readFile(permissionsPath, "utf8");
   assert.match(serialized, new RegExp(status.account));
   assert.doesNotMatch(serialized, /private|secret|seed|mnemonic/i);
+});
+
+test("account switching persists both encrypted accounts and revokes every DApp permission and pending request", async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "ynx-wallet-account-switch-"));
+  const safeStorage = {
+    isEncryptionAvailable: () => true,
+    encryptString: value => Buffer.from(`encrypted:${value}`, "utf8"),
+    decryptString: value => value.toString("utf8").slice("encrypted:".length)
+  };
+  const secrets = [SECRET, SECOND_SECRET];
+  const vaultPath = path.join(directory, "vault.json");
+  const permissions = new FilePermissionStore(path.join(directory, "permissions.json"));
+  const vault = new DesktopWalletVault({ filePath: vaultPath, safeStorage, randomSecret: () => secrets.shift() });
+  const first = await vault.createAccount();
+  const authority = new DesktopWalletAuthority({ vault, permissions, requestId: () => "pending-before-switch", clock: () => new Date("2026-08-22T00:00:00Z") });
+  await authority.approveOrigin(ORIGIN);
+  const pending = await authority.request({ origin: ORIGIN, method: "personal_sign", params: ["0x01", first.account] });
+  assert.equal(pending.status, "approval-required");
+  const second = await authority.addAccountAndSelect();
+  assert.notEqual(second.account, first.account);
+  assert.equal(second.accounts.length, 2);
+  assert.deepEqual((await authority.request({ origin: ORIGIN, method: "eth_accounts" })).result, []);
+  await assert.rejects(authority.approve("pending-before-switch"), error => error.data.code === "UNKNOWN_OR_EXPIRED_REQUEST");
+  const restoredFirst = await authority.selectAccount(first.account);
+  assert.equal(restoredFirst.account, first.account);
+  assert.equal(restoredFirst.accounts.length, 2);
+  assert.deepEqual((await authority.request({ origin: ORIGIN, method: "eth_accounts" })).result, []);
+  const serialized = await readFile(vaultPath, "utf8");
+  assert.doesNotMatch(serialized, new RegExp(SECRET));
+  assert.doesNotMatch(serialized, new RegExp(SECOND_SECRET));
 });
 
 test("WalletConnect remains fail closed without a real project ID", async () => {

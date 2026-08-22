@@ -111,6 +111,8 @@ ipcMain.handle("wallet:create-account", () => safeIPC(async () => {
   if (mainWindow && !mainWindow.isDestroyed()) await recordEvidence(await rpcStatus(), mainWindow);
   return result;
 }));
+ipcMain.handle("wallet:add-account", () => safeIPC(() => changeActiveAccount(() => walletAuthority.addAccountAndSelect())));
+ipcMain.handle("wallet:select-account", (_event, account) => safeIPC(() => changeActiveAccount(() => walletAuthority.selectAccount(account))));
 ipcMain.handle("wallet:permissions", (_event, origin) => safeIPC(() => walletAuthority.request({ origin, method: "wallet_getPermissions" })));
 ipcMain.handle("wallet:walletconnect-status", () => safeIPC(() => walletConnect.status()));
 ipcMain.handle("wallet:walletconnect-sessions", () => safeIPC(() => walletConnect.sessions()));
@@ -173,6 +175,19 @@ async function handleCallback(rawValue) {
   await recordEvidence(await rpcStatus(), mainWindow);
 }
 
+async function changeActiveAccount(change) {
+  const sessions = walletConnect?.sessions?.() ?? [];
+  const remoteDisconnectFailures = [];
+  for (const session of sessions) {
+    try { await walletConnect.disconnectSession(session.topic); } catch (error) { remoteDisconnectFailures.push({ topic: session.topic, code: safeCode(error) }); }
+  }
+  const status = await change();
+  mainWindow?.webContents.send("wallet:account-status-result", status);
+  mainWindow?.webContents.send("wallet:walletconnect-session-changed", { type: "account-switched", disconnectedSessions: sessions.length - remoteDisconnectFailures.length, remoteDisconnectFailures });
+  if (mainWindow && !mainWindow.isDestroyed()) await recordEvidence(await rpcStatus(), mainWindow);
+  return { ...status, dappPermissionsRevoked: true, disconnectedSessions: sessions.length - remoteDisconnectFailures.length, remoteDisconnectFailures };
+}
+
 app.on("open-url", (event, url) => {
   event.preventDefault();
   void handleCallback(url);
@@ -226,7 +241,7 @@ app.whenReady().then(async () => {
       });
       window.webContents.send("wallet:walletconnect-status-result", walletConnect.status());
     } catch (error) {
-      window.webContents.send("wallet:walletconnect-status-result", { configured: true, connected: false, code: safeCode(error) });
+      window.webContents.send("wallet:walletconnect-status-result", { ...walletConnect.status(), code: safeCode(error) });
     }
   }
 });

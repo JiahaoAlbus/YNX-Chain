@@ -9,6 +9,7 @@ export class FilePermissionStore {
     await this.#write(state);
   }
   async revoke(origin) { const state = await this.#read(); delete state.origins[origin]; await this.#write(state); }
+  async revokeAll() { await this.#write({ schemaVersion: 1, origins: {} }); }
   async hasAccount(origin, account) { return (await this.#read()).origins[origin]?.accounts.includes(account) ?? false; }
   async list(origin) { const record = (await this.#read()).origins[origin]; return record ? [Object.freeze({ ...record })] : []; }
   async #read() {

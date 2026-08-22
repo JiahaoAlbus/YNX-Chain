@@ -8,6 +8,8 @@ contextBridge.exposeInMainWorld("ynxWallet", {
   authorizationAction: action => ipcRenderer.invoke("wallet:authorization-action", action),
   accountStatus: () => ipcRenderer.invoke("wallet:account-status"),
   createAccount: () => ipcRenderer.invoke("wallet:create-account"),
+  addAccount: () => ipcRenderer.invoke("wallet:add-account"),
+  selectAccount: account => ipcRenderer.invoke("wallet:select-account", account),
   onAccountStatus: callback => ipcRenderer.on("wallet:account-status-result", (_event, value) => callback(value)),
   walletConnectStatus: () => ipcRenderer.invoke("wallet:walletconnect-status"),
   walletConnectSessions: () => ipcRenderer.invoke("wallet:walletconnect-sessions"),
