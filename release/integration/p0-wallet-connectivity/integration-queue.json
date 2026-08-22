@@ -6528,6 +6528,29 @@
       "currentSourceBoundPublic": false,
       "productsConnected": "0/12",
       "nextAction": "Do not reuse P0-181. Wallet Web owner must repair and independently prove the source-bound candidate browser PWA shell integrity before any wholly new routing lease."
+    },
+    {
+      "taskId": "P0-182",
+      "owner": "integration,wallet-web,website",
+      "status": "ACTIVE_SINGLE_USE_HOSTED_V11_CANDIDATE_BROWSER_PREFLIGHT_NO_ALIAS",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/leases/wallet-web-v11-hosted-browser-preflight-p0182-20260822.json",
+        ".github/workflows/wallet-web-public-preflight-p0.yml",
+        "vercel-project:prj_K4emrdkST7sdb0K9mhmLM0QZh0I3:ssoProtection"
+      ],
+      "dependencies": ["P0-181"],
+      "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-web-v11-hosted-browser-preflight-20260822T091900Z",
+      "expiresAt": "2026-08-22T09:49:00Z",
+      "source": "76c053911c9584ef957d5e97d318a9d7c26d95e2",
+      "ownerRemoteParent": "183a0abe148126e9940e461af2334bde87880285",
+      "candidateDeployment": "dpl_v77Zye3rVWn4P7jR1nWosNfV8dfg",
+      "candidateImmutableUrl": "https://wallet-1jnjljvfy-jiahaoalbus-projects.vercel.app",
+      "aliasMutationAllowed": false,
+      "workflowCommitAllowedExactlyOnce": true,
+      "hostedRunAllowedExactlyOnce": true,
+      "currentSourceBoundPublic": false,
+      "productsConnected": "0/12",
+      "nextAction": "Execute the ordered temporary SSO window and one workflow-only hosted Chromium preflight; restore protection on every terminal path and return direct evidence or fail closed."
     }
   ]
 }

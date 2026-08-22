@@ -1333,20 +1333,38 @@
     },
     {
       "path": "vercel-project:prj_K4emrdkST7sdb0K9mhmLM0QZh0I3:ssoProtection",
-      "owner": null,
-      "branch": "codex/website-wallet-web-sso-preflight-20260822",
-      "worktree": "/Users/huangjiahao/Desktop/ynx-web4-website-new",
-      "taskId": "P0-178",
+      "owner": "website",
+      "branch": "codex/wallet-web-pwa-extensions-20260813",
+      "worktree": "/Users/huangjiahao/.codex/worktrees/1274/YNX Chain",
+      "taskId": "P0-182",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "CONSUMED_RELEASED_FAILED_CLOSED_SSO_RESTORED_NORMALIZED_STANDARD_PROTECTION_CANDIDATE_NETWORK_UNREACHABLE",
-      "acquiredAt": "2026-08-22T08:12:05Z",
-      "expiresAt": "2026-08-22T08:27:05Z",
-      "releasedAt": "2026-08-22T08:15:51Z",
-      "productionMutationAllowed": false,
+      "status": "ACTIVE_SINGLE_USE",
+      "acquiredAt": "2026-08-22T09:19:00Z",
+      "expiresAt": "2026-08-22T09:49:00Z",
+      "releasedAt": null,
+      "productionMutationAllowed": "EXACT_TEMPORARY_SSO_DISABLE_AND_RESTORE_ONLY",
       "allowedExceptions": [
         "disable only wallet-web SSO protection once",
-        "preflight only dpl_G6gTg2a3CVS1siTRqQg5XjQfPR9q",
-        "restore SSO to all_except_custom_domains on every terminal path"
+        "preflight only dpl_v77Zye3rVWn4P7jR1nWosNfV8dfg in one GitHub-hosted Chromium run",
+        "restore SSO to prod_deployment_urls_and_all_previews on every terminal path"
+      ]
+    },
+    {
+      "path": ".github/workflows/wallet-web-public-preflight-p0.yml",
+      "owner": "wallet-web",
+      "branch": "codex/wallet-web-pwa-extensions-20260813",
+      "worktree": "/Users/huangjiahao/.codex/worktrees/1274/YNX Chain",
+      "taskId": "P0-182",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_SINGLE_USE",
+      "acquiredAt": "2026-08-22T09:19:00Z",
+      "expiresAt": "2026-08-22T09:49:00Z",
+      "releasedAt": null,
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "one workflow-only commit with exact message evidence(wallet-web): externally preflight v11 candidate",
+        "one force=false push to the exact owner branch",
+        "one push-triggered GitHub-hosted Chromium run with no secrets, inputs or dynamic URL"
       ]
     }
   ]
