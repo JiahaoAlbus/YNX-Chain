@@ -7,7 +7,7 @@
     "count": 36,
     "rule": "Every authority-domain entry remains in the aggregate denominator. A domain cannot be removed because it is guest-only, control-plane-only, source-only, or lacks an assigned interactive Wallet owner."
   },
-  "ownerMappingPolicy": "Central routes the declared ownerThread immediately. ownerBranch and ownedPaths remain null and mappingFrozen=false until that domain's dedicated audit supplies them; no source-only audit result promotes completion.",
+  "ownerMappingPolicy": "Central routes the declared ownerThread immediately. ownerBranch and ownedPaths remain null and mappingFrozen=false until that domain's dedicated audit supplies them. auditFrozen may record an accepted routing conclusion without implying branch/path ownership or completion; no source-only audit result promotes completion.",
   "purpose": "Authoritative 36-domain denominator for Wallet connectivity coverage. Classification, source receipt and guest visibility never promote direct Wallet E2E or aggregate completion.",
   "authoritativeE2EGate": {
     "commit": "875be208e8a7ddb60345d55b93fc299949664e5c",
@@ -29,8 +29,8 @@
     {"domainId":"shop","catalogNumber":9,"owner":"shop","classification":"interactiveWalletConsumer","dispatch":"central-orchestrator","directE2E":false,"aggregateComplete":false},
     {"domainId":"seller-console","catalogNumber":10,"owner":"seller-console","ownerThread":"6a6765b8-9048-83ec-978a-9ea4a83e58d7","ownerBranch":null,"ownedPaths":[],"mappingFrozen":false,"classification":"interactiveWalletConsumer","dispatch":"central-orchestrator","directE2E":false,"aggregateComplete":false},
     {"domainId":"developer","catalogNumber":11,"owner":"developer","classification":"interactiveWalletConsumer","dispatch":"central-orchestrator","directE2E":false,"aggregateComplete":false},
-    {"domainId":"explorer","catalogNumber":12,"owner":"explorer-monitor","ownerThread":"01a00020-1150-73c3-ab41-9b776db3b2a7","ownerBranch":null,"ownedPaths":[],"mappingFrozen":false,"classification":"nonInteractiveProductSessionConsumer","dispatch":"central-orchestrator","publicBoundary":"Public Explorer is guest-only. Any privileged Wallet capability is separately fail-closed and needs Product Session evidence; guest public visibility cannot promote Wallet E2E.","directE2E":false,"aggregateComplete":false},
-    {"domainId":"monitor","catalogNumber":13,"owner":"explorer-monitor","ownerThread":"01a00020-1150-73c3-ab41-9b776db3b2a7","ownerBranch":null,"ownedPaths":[],"mappingFrozen":false,"classification":"nonInteractiveProductSessionConsumer","dispatch":"central-orchestrator","publicBoundary":"Public Monitor is guest-only. Any privileged Wallet capability is separately fail-closed and needs Product Session evidence; guest public visibility cannot promote Wallet E2E.","directE2E":false,"aggregateComplete":false},
+    {"domainId":"explorer","catalogNumber":12,"owner":"explorer-monitor","ownerThread":"01a00020-1150-73c3-ab41-9b776db3b2a7","ownerBranch":null,"ownedPaths":[],"mappingFrozen":false,"auditFrozen":true,"auditRequestHead":"5f430a4642ee93e59604dd6a2ab5f2ea5af67378","auditRequestTreePrefix":"d9923d6","auditCandidateCommit":"49cbb150","auditCandidateTreePrefix":"54c1100","classification":"interactiveWalletConsumer","dispatch":"central-orchestrator","publicBoundary":"Public Explorer guest read requires no Wallet. Privileged Explorer operations are an interactive Wallet consumer and must use EIP-6963/EIP-1193 with distinct YNX Wallet and MetaMask selection plus 0x1917 lifecycle evidence; guest public visibility cannot promote Wallet E2E.","directE2E":false,"aggregateComplete":false},
+    {"domainId":"monitor","catalogNumber":13,"owner":"explorer-monitor","ownerThread":"01a00020-1150-73c3-ab41-9b776db3b2a7","ownerBranch":null,"ownedPaths":[],"mappingFrozen":false,"auditFrozen":true,"auditRequestHead":"5f430a4642ee93e59604dd6a2ab5f2ea5af67378","auditRequestTreePrefix":"d9923d6","auditCandidateCommit":"49cbb150","auditCandidateTreePrefix":"54c1100","classification":"interactiveWalletConsumer","dispatch":"central-orchestrator","publicBoundary":"Public Monitor /health, /version, /status and /connectivity are guest read and require no Wallet. Privileged Monitor operations are an interactive Wallet consumer and must use EIP-6963/EIP-1193 with distinct YNX Wallet and MetaMask selection plus 0x1917 lifecycle evidence; guest public visibility cannot promote Wallet E2E.","directE2E":false,"aggregateComplete":false},
     {"domainId":"ai","catalogNumber":14,"owner":"ai","ownerThread":"6a676622-589c-83ec-8036-81c2d2726ed9","ownerBranch":null,"ownedPaths":[],"mappingFrozen":false,"classification":"interactiveWalletConsumer","dispatch":"central-orchestrator","directE2E":false,"aggregateComplete":false},
     {"domainId":"trust-center","catalogNumber":15,"owner":"trust-center","ownerThread":"6a676632-ab30-83ec-85f6-eb83b1035012","ownerBranch":null,"ownedPaths":[],"mappingFrozen":false,"classification":"interactiveWalletConsumer","dispatch":"central-orchestrator","directE2E":false,"aggregateComplete":false},
     {"domainId":"resource-market","catalogNumber":16,"owner":"resource-market","ownerThread":"6a67663f-5b50-83ec-bb88-56ddd786a4a5","ownerBranch":null,"ownedPaths":[],"mappingFrozen":false,"classification":"interactiveWalletConsumer","dispatch":"central-orchestrator","directE2E":false,"aggregateComplete":false},
@@ -57,8 +57,8 @@
   ],
   "aggregate": {
     "responsibilityDomainDenominator": 36,
-    "interactiveWalletConsumerDenominator": 25,
-    "nonInteractiveProductSessionConsumerDenominator": 4,
+    "interactiveWalletConsumerDenominator": 27,
+    "nonInteractiveProductSessionConsumerDenominator": 2,
     "evidenceBackedNotApplicableDenominator": 7,
     "directE2ECompleteDomains": 0,
     "aggregateCompleteDomains": 0,
@@ -83,8 +83,8 @@
     "bridge": {"sourceState":"LOCAL_ONLY","runtimePromoted":false},
     "docs": {"publicDocsDomainObserved":true,"appsDocsOwnership":"UNRESOLVED","runtimePromoted":false},
     "browser": {"auditState":"PENDING_TERMINAL","runtimePromoted":false},
-    "explorer": {"auditState":"PENDING_TERMINAL","guestOnlyPublic":true,"privilegedWalletEvidence":false,"runtimePromoted":false},
-    "monitor": {"auditState":"PENDING_TERMINAL","guestOnlyPublic":true,"privilegedWalletEvidence":false,"runtimePromoted":false},
+    "explorer": {"auditState":"TERMINAL_ROUTING_ONLY","guestOnlyPublic":true,"privilegedWalletClassification":"interactiveWalletConsumer","legacyWalletPath":"window.ethereum only","missing":["EIP-6963 dual identity selection","distinct YNX and MetaMask identity","0x1917 lifecycle","public direct E2E"],"privilegedWalletEvidence":false,"runtimePromoted":false},
+    "monitor": {"auditState":"TERMINAL_ROUTING_ONLY","guestOnlyPaths":["/health","/version","/status","/connectivity"],"privilegedWalletClassification":"interactiveWalletConsumer","legacyWalletPath":"top-level ynx-wallet:// plus handwritten signature paste","missing":["EIP-6963/EIP-1193","distinct YNX and MetaMask identity","0x1917 lifecycle","public direct E2E"],"deploymentBlocker":"CADDY_CONNECTIVITY_MATCHER_MISSING","requiredLease":"new single-use Heavy lease binding same-generation 49cbb150 artifact and rollback receipt","publicVerified":false,"privilegedWalletEvidence":false,"runtimePromoted":false},
     "card": {"auditState":"P0_193_DEPLOY_FAILED_ROLLED_BACK","reportedFailedDeploymentPrefix":"dpl_ARb5...","failure":"VERCEL_NODE_BUILD_MISSING_PACKAGE_JSON_FOR_STATIC_ARTIFACT","retryAllowed":false,"currentRollbackDeploymentPrefix":"dpl_DqMu","runtimePromoted":false}
   },
   "truth": {

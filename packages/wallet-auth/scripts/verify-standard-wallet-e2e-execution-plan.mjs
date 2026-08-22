@@ -80,7 +80,7 @@ for (const [domainId, ownerThread] of expectedCentralOwnerThreads) {
 }
 for (const domainId of ["explorer", "monitor"]) {
   const row = responsibilityRows.find((candidate) => candidate.domainId === domainId);
-  if (row?.classification !== "nonInteractiveProductSessionConsumer" || !row.publicBoundary?.includes("guest-only") || !row.publicBoundary?.includes("privileged Wallet")) findings.push(`${domainId} guest-versus-privileged Wallet boundary is incomplete`);
+  if (row?.classification !== "interactiveWalletConsumer" || row?.auditFrozen !== true || row?.auditRequestHead !== "5f430a4642ee93e59604dd6a2ab5f2ea5af67378" || row?.auditCandidateCommit !== "49cbb150" || !row.publicBoundary?.includes("guest read") || !row.publicBoundary?.includes("interactive Wallet consumer")) findings.push(`${domainId} guest-versus-privileged Wallet routing boundary is incomplete`);
 }
 const classificationCounts = responsibilityRows.reduce((counts, { classification }) => ({ ...counts, [classification]: (counts[classification] ?? 0) + 1 }), {});
 const aggregate = responsibilityRegistry.aggregate ?? {};
@@ -94,7 +94,7 @@ for (const domainId of expectedFirstWaveAuditDomains) if (auditFacts[domainId]?.
 if (auditFacts["merchant-console"]?.blocker !== "CENTRAL_CALLBACK_AND_SESSION_MISSING") findings.push("merchant routing blocker drift");
 if (auditFacts["seller-console"]?.reportedSourceCommit !== "88c0f3a5" || auditFacts["seller-console"]?.integratedCentral !== false || auditFacts["seller-console"]?.walletRegisteredDeployed !== false) findings.push("seller audit boundary drift");
 if (auditFacts.ai?.walletAuthIntegratedCentral !== false || auditFacts.cloud?.publicRuntime !== false || auditFacts["resource-market"]?.sourceState !== "LOCAL_CANDIDATE" || auditFacts.governance?.sourceState !== "SOURCE_ONLY" || auditFacts.bridge?.sourceState !== "LOCAL_ONLY" || auditFacts.docs?.appsDocsOwnership !== "UNRESOLVED") findings.push("first-wave source-only audit boundary drift");
-if (auditFacts.explorer?.guestOnlyPublic !== true || auditFacts.explorer?.privilegedWalletEvidence !== false || auditFacts.monitor?.guestOnlyPublic !== true || auditFacts.monitor?.privilegedWalletEvidence !== false) findings.push("Explorer/Monitor first-wave guest-versus-privileged audit drift");
+if (auditFacts.explorer?.auditState !== "TERMINAL_ROUTING_ONLY" || auditFacts.explorer?.privilegedWalletClassification !== "interactiveWalletConsumer" || auditFacts.explorer?.privilegedWalletEvidence !== false || auditFacts.monitor?.auditState !== "TERMINAL_ROUTING_ONLY" || auditFacts.monitor?.privilegedWalletClassification !== "interactiveWalletConsumer" || auditFacts.monitor?.legacyWalletPath !== "top-level ynx-wallet:// plus handwritten signature paste" || auditFacts.monitor?.deploymentBlocker !== "CADDY_CONNECTIVITY_MATCHER_MISSING" || auditFacts.monitor?.publicVerified !== false || auditFacts.monitor?.privilegedWalletEvidence !== false) findings.push("Explorer/Monitor terminal guest-versus-privileged audit drift");
 if (auditFacts.card?.auditState !== "P0_193_DEPLOY_FAILED_ROLLED_BACK" || auditFacts.card?.retryAllowed !== false) findings.push("Card P0-193 rollback-only audit drift");
 
 if (findings.length) {
