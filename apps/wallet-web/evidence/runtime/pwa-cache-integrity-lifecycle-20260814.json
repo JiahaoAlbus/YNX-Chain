@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "sourceCommit": "abe18043259374ee58f90580af582100ab0649cd",
-  "generatedAt": "2026-08-22T09:35:23.894Z",
+  "sourceCommit": "7df37ca32a643a403bd23a7f555354261f789441",
+  "generatedAt": "2026-08-22T11:25:22.302Z",
   "runtimeClass": "Playwright bundled Chromium-compatible persistent PWA profile; not branded Chrome/Edge and not an installed PWA",
   "passed": true,
   "liveRpcProved": false,
@@ -50,7 +50,7 @@
   "recovery": {
     "appStatus": 200,
     "indexStatus": 200,
-    "appSha256": "c752e4117a1d591859f9bf2be96d22d59ee2b1da7c224e71422cdeb083333c3f",
+    "appSha256": "6785b39230049218f266b1f03cc8619ae197b901c12ed413056e515c1fb072d8",
     "indexContainsFake": false,
     "cacheNames": [
       "ynx-wallet-web-v11"

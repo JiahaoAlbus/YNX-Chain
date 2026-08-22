@@ -1,8 +1,8 @@
 {
-  "schemaVersion": 1,
-  "sourceCommit": "abe18043259374ee58f90580af582100ab0649cd",
-  "generatedAt": "2026-08-22T09:35:14.332Z",
-  "runtimeClass": "Playwright bundled Chromium-compatible persistent profile reproducing the deployed v8 navigation-integrity worker; not a branded browser or installed PWA",
+  "schemaVersion": 2,
+  "sourceCommit": "7df37ca32a643a403bd23a7f555354261f789441",
+  "generatedAt": "2026-08-22T11:25:11.362Z",
+  "runtimeClass": "Playwright bundled Chromium-compatible persistent same-origin profile seeded with a v8 cache and no legacy worker; not branded Chrome/Edge or installed PWA",
   "legacyIndexSha": "2df10866a35b074a6fb366439197646dd4e979bc83bdae3aba0ba6db3802986c",
   "passed": true,
   "installedLocal": false,
@@ -16,36 +16,470 @@
     "sha256": "2df10866a35b074a6fb366439197646dd4e979bc83bdae3aba0ba6db3802986c",
     "legacyCompatible": true
   },
+  "serviceWorkerEvents": [
+    {
+      "type": "registration",
+      "event": {
+        "registrations": []
+      }
+    },
+    {
+      "type": "version",
+      "event": {
+        "versions": []
+      }
+    },
+    {
+      "type": "registration",
+      "event": {
+        "registrations": [
+          {
+            "registrationId": "0",
+            "scopeURL": "http://127.0.0.1:57730/",
+            "isDeleted": false
+          }
+        ]
+      }
+    },
+    {
+      "type": "version",
+      "event": {
+        "versions": [
+          {
+            "versionId": "0",
+            "registrationId": "0",
+            "scriptURL": "http://127.0.0.1:57730/sw.js",
+            "runningStatus": "stopped",
+            "status": "new",
+            "scriptLastModified": 0,
+            "scriptResponseTime": 0,
+            "controlledClients": []
+          }
+        ]
+      }
+    },
+    {
+      "type": "version",
+      "event": {
+        "versions": [
+          {
+            "versionId": "0",
+            "registrationId": "0",
+            "scriptURL": "http://127.0.0.1:57730/sw.js",
+            "runningStatus": "stopped",
+            "status": "new",
+            "scriptLastModified": 0,
+            "scriptResponseTime": 1787397912.532407,
+            "controlledClients": []
+          }
+        ]
+      }
+    },
+    {
+      "type": "version",
+      "event": {
+        "versions": [
+          {
+            "versionId": "0",
+            "registrationId": "0",
+            "scriptURL": "http://127.0.0.1:57730/sw.js",
+            "runningStatus": "starting",
+            "status": "new",
+            "scriptLastModified": 0,
+            "scriptResponseTime": 1787397912.532407,
+            "controlledClients": []
+          }
+        ]
+      }
+    },
+    {
+      "type": "version",
+      "event": {
+        "versions": [
+          {
+            "versionId": "0",
+            "registrationId": "0",
+            "scriptURL": "http://127.0.0.1:57730/sw.js",
+            "runningStatus": "starting",
+            "status": "new",
+            "scriptLastModified": 0,
+            "scriptResponseTime": 1787397912.532407,
+            "controlledClients": [],
+            "targetId": "6D553E766772E745F235A37AADB158E4"
+          }
+        ]
+      }
+    },
+    {
+      "type": "version",
+      "event": {
+        "versions": [
+          {
+            "versionId": "0",
+            "registrationId": "0",
+            "scriptURL": "http://127.0.0.1:57730/sw.js",
+            "runningStatus": "starting",
+            "status": "installing",
+            "scriptLastModified": 0,
+            "scriptResponseTime": 1787397912.532407,
+            "controlledClients": [],
+            "targetId": "6D553E766772E745F235A37AADB158E4"
+          }
+        ]
+      }
+    },
+    {
+      "type": "registration",
+      "event": {
+        "registrations": [
+          {
+            "registrationId": "0",
+            "scopeURL": "http://127.0.0.1:57730/",
+            "isDeleted": false
+          }
+        ]
+      }
+    },
+    {
+      "type": "version",
+      "event": {
+        "versions": [
+          {
+            "versionId": "0",
+            "registrationId": "0",
+            "scriptURL": "http://127.0.0.1:57730/sw.js",
+            "runningStatus": "running",
+            "status": "installing",
+            "scriptLastModified": 0,
+            "scriptResponseTime": 1787397912.532407,
+            "controlledClients": [],
+            "targetId": "6D553E766772E745F235A37AADB158E4"
+          }
+        ]
+      }
+    },
+    {
+      "type": "version",
+      "event": {
+        "versions": [
+          {
+            "versionId": "0",
+            "registrationId": "0",
+            "scriptURL": "http://127.0.0.1:57730/sw.js",
+            "runningStatus": "running",
+            "status": "installed",
+            "scriptLastModified": 0,
+            "scriptResponseTime": 1787397912.532407,
+            "controlledClients": [],
+            "targetId": "6D553E766772E745F235A37AADB158E4"
+          }
+        ]
+      }
+    },
+    {
+      "type": "version",
+      "event": {
+        "versions": [
+          {
+            "versionId": "0",
+            "registrationId": "0",
+            "scriptURL": "http://127.0.0.1:57730/sw.js",
+            "runningStatus": "running",
+            "status": "activating",
+            "scriptLastModified": 0,
+            "scriptResponseTime": 1787397912.532407,
+            "controlledClients": [],
+            "targetId": "6D553E766772E745F235A37AADB158E4"
+          }
+        ]
+      }
+    },
+    {
+      "type": "version",
+      "event": {
+        "versions": [
+          {
+            "versionId": "0",
+            "registrationId": "0",
+            "scriptURL": "http://127.0.0.1:57730/sw.js",
+            "runningStatus": "running",
+            "status": "activating",
+            "scriptLastModified": 0,
+            "scriptResponseTime": 1787397912.532407,
+            "controlledClients": [
+              "57C2F0C772E86CE97BE9340AB617173F"
+            ],
+            "targetId": "6D553E766772E745F235A37AADB158E4"
+          }
+        ]
+      }
+    },
+    {
+      "type": "version",
+      "event": {
+        "versions": [
+          {
+            "versionId": "0",
+            "registrationId": "0",
+            "scriptURL": "http://127.0.0.1:57730/sw.js",
+            "runningStatus": "running",
+            "status": "activated",
+            "scriptLastModified": 0,
+            "scriptResponseTime": 1787397912.532407,
+            "controlledClients": [
+              "57C2F0C772E86CE97BE9340AB617173F"
+            ],
+            "targetId": "6D553E766772E745F235A37AADB158E4"
+          }
+        ]
+      }
+    },
+    {
+      "type": "version",
+      "event": {
+        "versions": [
+          {
+            "versionId": "0",
+            "registrationId": "0",
+            "scriptURL": "http://127.0.0.1:57730/sw.js",
+            "runningStatus": "running",
+            "status": "activated",
+            "scriptLastModified": 0,
+            "scriptResponseTime": 1787397912.532407,
+            "controlledClients": [
+              "57C2F0C772E86CE97BE9340AB617173F"
+            ],
+            "targetId": "6D553E766772E745F235A37AADB158E4"
+          }
+        ]
+      }
+    },
+    {
+      "type": "version",
+      "event": {
+        "versions": [
+          {
+            "versionId": "0",
+            "registrationId": "0",
+            "scriptURL": "http://127.0.0.1:57730/sw.js",
+            "runningStatus": "running",
+            "status": "activated",
+            "scriptLastModified": 0,
+            "scriptResponseTime": 1787397912.532407,
+            "controlledClients": [],
+            "targetId": "6D553E766772E745F235A37AADB158E4"
+          }
+        ]
+      }
+    },
+    {
+      "type": "registration",
+      "event": {
+        "registrations": [
+          {
+            "registrationId": "0",
+            "scopeURL": "http://127.0.0.1:57730/",
+            "isDeleted": false
+          }
+        ]
+      }
+    }
+  ],
   "beforeUpgrade": {
-    "url": "http://127.0.0.1:51764/",
-    "title": "YNX Wallet — Testnet companion",
-    "text": "WALLET COMPANION\n\nEnglish\n简体中文\n繁體中文\n日本語\n한국어\nEspañol\nFrançais\nDeutsch\nPortuguês\nРусский\nالعربية\nBahasa Indonesia\nDark\nConnect to YNX Testnet\n\nUse an installed wallet. This app never receives your recovery phrase or private key.\n\nWALLET PROVIDER NOT INJECTED. UNLOCK OR ENABLE THE EXTENSION, GRANT THIS SITE ACCESS, AND RETRY.\nWallet connection\nAndroid · Download YNX Wallet\nUse MetaMask\n\nAndroid API 24+ · 78,392,878 Bytes · SHA-256 fd924ef853cf17d42ca2d36504528ef879c73fcb4b01ea72b1bfe7ae85085fef · persistent-testnet-release-key · productionSigned=false\n\nDownload YNX Wallet\nStatus: Not connected\n\nThe selected wallet confirms the active network. Browser RPC probes are diagnostic only. Testnet assets have no represented monetary value.\n\nAdd YNX Testnet\nSwitch network\nMessage\nSign message\nRecipient\nValue (hex wei)\nData (hex)\n Send transaction\nYNX Testnet · Chain 6423 · 0x1917",
-    "controller": true,
+    "url": "http://127.0.0.1:57730/seed-v8.html",
+    "title": "Seed v8 cache",
+    "text": "Seed only",
+    "controller": false,
     "cacheNames": [
       "ynx-wallet-web-v8"
     ],
+    "registrations": [],
+    "pwaState": null,
     "recoveryMarker": false
   },
+  "integrityProbe": [
+    {
+      "key": "./index.html",
+      "status": 200,
+      "expected": "2df10866a35b074a6fb366439197646dd4e979bc83bdae3aba0ba6db3802986c",
+      "actual": "2df10866a35b074a6fb366439197646dd4e979bc83bdae3aba0ba6db3802986c",
+      "match": true
+    },
+    {
+      "key": "./styles.css",
+      "status": 200,
+      "expected": "9b64097c722b271812269035d398a1f67fc9edce72f497887586753fc61395f9",
+      "actual": "9b64097c722b271812269035d398a1f67fc9edce72f497887586753fc61395f9",
+      "match": true
+    },
+    {
+      "key": "./accessibility.css",
+      "status": 200,
+      "expected": "40cb131fa4bb5c3a5ad4aa6ceba459e38e7a52baf46e337c2376221513723787",
+      "actual": "40cb131fa4bb5c3a5ad4aa6ceba459e38e7a52baf46e337c2376221513723787",
+      "match": true
+    },
+    {
+      "key": "./app.js",
+      "status": 200,
+      "expected": "6785b39230049218f266b1f03cc8619ae197b901c12ed413056e515c1fb072d8",
+      "actual": "6785b39230049218f266b1f03cc8619ae197b901c12ed413056e515c1fb072d8",
+      "match": true
+    },
+    {
+      "key": "./provider.js",
+      "status": 200,
+      "expected": "82cb2532ce59dd930619df4045b9e4836aa3f3fd7540962204a2ae87a499b4e6",
+      "actual": "82cb2532ce59dd930619df4045b9e4836aa3f3fd7540962204a2ae87a499b4e6",
+      "match": true
+    },
+    {
+      "key": "./i18n.js",
+      "status": 200,
+      "expected": "e44e84b45f114d032f1f0cd027e1dc696211acfb1948e244e3e90696415ca559",
+      "actual": "e44e84b45f114d032f1f0cd027e1dc696211acfb1948e244e3e90696415ca559",
+      "match": true
+    },
+    {
+      "key": "./preferences.js",
+      "status": 200,
+      "expected": "74247dfb335734d42538dc307d2e0da2dfde6462c327ed0dbdedf73ab5f772eb",
+      "actual": "74247dfb335734d42538dc307d2e0da2dfde6462c327ed0dbdedf73ab5f772eb",
+      "match": true
+    },
+    {
+      "key": "./mobile-wallet-routing.js",
+      "status": 200,
+      "expected": "94503f6ff08b7e3f6495add96592ccd114459dad4aac442636edcdd6b64cf7f5",
+      "actual": "94503f6ff08b7e3f6495add96592ccd114459dad4aac442636edcdd6b64cf7f5",
+      "match": true
+    },
+    {
+      "key": "./core-auth-consumer.js",
+      "status": 200,
+      "expected": "f6473ae835c18374cab7e1886416068a79fc431a1c3db74c5ef23223741a39d8",
+      "actual": "f6473ae835c18374cab7e1886416068a79fc431a1c3db74c5ef23223741a39d8",
+      "match": true
+    },
+    {
+      "key": "./wallet-web-companion-lifecycle.js",
+      "status": 200,
+      "expected": "a784917928e223d539a3be9fee2d3f4e0dbe8edb779636ee6e8f8946bee74432",
+      "actual": "a784917928e223d539a3be9fee2d3f4e0dbe8edb779636ee6e8f8946bee74432",
+      "match": true
+    },
+    {
+      "key": "./standard-wallet-connect-state.js",
+      "status": 200,
+      "expected": "6be480704589b9d177a46066e4d92042612f98f4aadcb0342d593027b40449ca",
+      "actual": "6be480704589b9d177a46066e4d92042612f98f4aadcb0342d593027b40449ca",
+      "match": true
+    },
+    {
+      "key": "./core-auth-binding.js",
+      "status": 200,
+      "expected": "8e34a8f66c43b90516770be334379357265e4ea9e87417b98b1fb090646e98bf",
+      "actual": "8e34a8f66c43b90516770be334379357265e4ea9e87417b98b1fb090646e98bf",
+      "match": true
+    },
+    {
+      "key": "./service-worker-policy.js",
+      "status": 200,
+      "expected": "e5ec783af89a6642d04beafdf4bfe33862e290e3b692ac136795e570d0671a24",
+      "actual": "e5ec783af89a6642d04beafdf4bfe33862e290e3b692ac136795e570d0671a24",
+      "match": true
+    },
+    {
+      "key": "./build-identity.json",
+      "status": 200,
+      "expected": "caf151b49ea9c8ae55ca070aa05b2fda90ab2e7f5f6cb73dd4b9bc3c59ee1377",
+      "actual": "caf151b49ea9c8ae55ca070aa05b2fda90ab2e7f5f6cb73dd4b9bc3c59ee1377",
+      "match": true
+    },
+    {
+      "key": "./ynx-logo.png",
+      "status": 200,
+      "expected": "38196080c2d56746fb37094abe68d1d89eabd8a2b29ab4f17bae48ac7e3effde",
+      "actual": "38196080c2d56746fb37094abe68d1d89eabd8a2b29ab4f17bae48ac7e3effde",
+      "match": true
+    },
+    {
+      "key": "./ynx-icon-192.png",
+      "status": 200,
+      "expected": "02bd7b202a6683d83bbe4b17c246afc969b43284ee945e97167d9606e6df04af",
+      "actual": "02bd7b202a6683d83bbe4b17c246afc969b43284ee945e97167d9606e6df04af",
+      "match": true
+    },
+    {
+      "key": "./ynx-icon-512.png",
+      "status": 200,
+      "expected": "5a6fb80c48a2047ad5632cf0b69f410ebaefd8aff0bb3da7dce28c1ce8c992c7",
+      "actual": "5a6fb80c48a2047ad5632cf0b69f410ebaefd8aff0bb3da7dce28c1ce8c992c7",
+      "match": true
+    },
+    {
+      "key": "./ynx-icon-maskable-512.png",
+      "status": 200,
+      "expected": "5a6fb80c48a2047ad5632cf0b69f410ebaefd8aff0bb3da7dce28c1ce8c992c7",
+      "actual": "5a6fb80c48a2047ad5632cf0b69f410ebaefd8aff0bb3da7dce28c1ce8c992c7",
+      "match": true
+    },
+    {
+      "key": "./manifest.webmanifest",
+      "status": 200,
+      "expected": "d2d131267483327ece949c5b8402c2dd80352bb15e791ea5571c879682ceba92",
+      "actual": "d2d131267483327ece949c5b8402c2dd80352bb15e791ea5571c879682ceba92",
+      "match": true
+    },
+    {
+      "key": "./",
+      "status": 200,
+      "expected": "2df10866a35b074a6fb366439197646dd4e979bc83bdae3aba0ba6db3802986c",
+      "actual": "2df10866a35b074a6fb366439197646dd4e979bc83bdae3aba0ba6db3802986c",
+      "match": true
+    }
+  ],
   "controlledVersion": "ynx-wallet-web-v11",
   "afterUpgrade": {
-    "url": "http://127.0.0.1:51764/",
+    "url": "http://127.0.0.1:57730/",
     "title": "YNX Wallet — Testnet companion",
     "text": "WALLET COMPANION\n\nEnglish\n简体中文\n繁體中文\n日本語\n한국어\nEspañol\nFrançais\nDeutsch\nPortuguês\nРусский\nالعربية\nBahasa Indonesia\nDark\nConnect to YNX Testnet\n\nUse an installed wallet. This app never receives your recovery phrase or private key.\n\nWALLET PROVIDER NOT INJECTED. UNLOCK OR ENABLE THE EXTENSION, GRANT THIS SITE ACCESS, AND RETRY.\nWallet connection\nAndroid · Download YNX Wallet\nUse MetaMask\n\nAndroid API 24+ · 78,392,878 Bytes · SHA-256 fd924ef853cf17d42ca2d36504528ef879c73fcb4b01ea72b1bfe7ae85085fef · persistent-testnet-release-key · productionSigned=false\n\nDownload YNX Wallet\nStatus: Not connected\n\nThe selected wallet confirms the active network. Browser RPC probes are diagnostic only. Testnet assets have no represented monetary value.\n\nAdd YNX Testnet\nSwitch network\nMessage\nSign message\nRecipient\nValue (hex wei)\nData (hex)\n Send transaction\nYNX Testnet · Chain 6423 · 0x1917",
     "controller": true,
     "cacheNames": [
-      "ynx-wallet-web-v8",
       "ynx-wallet-web-v11"
     ],
+    "registrations": [
+      {
+        "scope": "http://127.0.0.1:57730/",
+        "installing": null,
+        "waiting": null,
+        "active": "activated"
+      }
+    ],
+    "pwaState": "ready",
     "recoveryMarker": false
   },
+  "firstLaunchRootNavigations": 1,
+  "firstLaunchNavigations": 4,
+  "firstLaunchDocumentRequests": 3,
   "secondLaunch": {
-    "url": "http://127.0.0.1:51764/",
+    "url": "http://127.0.0.1:57730/",
     "title": "YNX Wallet — Testnet companion",
     "text": "WALLET COMPANION\n\nEnglish\n简体中文\n繁體中文\n日本語\n한국어\nEspañol\nFrançais\nDeutsch\nPortuguês\nРусский\nالعربية\nBahasa Indonesia\nDark\nConnect to YNX Testnet\n\nUse an installed wallet. This app never receives your recovery phrase or private key.\n\nWALLET PROVIDER NOT INJECTED. UNLOCK OR ENABLE THE EXTENSION, GRANT THIS SITE ACCESS, AND RETRY.\nWallet connection\nAndroid · Download YNX Wallet\nUse MetaMask\n\nAndroid API 24+ · 78,392,878 Bytes · SHA-256 fd924ef853cf17d42ca2d36504528ef879c73fcb4b01ea72b1bfe7ae85085fef · persistent-testnet-release-key · productionSigned=false\n\nDownload YNX Wallet\nStatus: Not connected\n\nThe selected wallet confirms the active network. Browser RPC probes are diagnostic only. Testnet assets have no represented monetary value.\n\nAdd YNX Testnet\nSwitch network\nMessage\nSign message\nRecipient\nValue (hex wei)\nData (hex)\n Send transaction\nYNX Testnet · Chain 6423 · 0x1917",
     "controller": true,
     "cacheNames": [
       "ynx-wallet-web-v11"
     ],
+    "registrations": [
+      {
+        "scope": "http://127.0.0.1:57730/",
+        "installing": null,
+        "waiting": null,
+        "active": "activated"
+      }
+    ],
+    "pwaState": "ready",
     "recoveryMarker": false
-  }
+  },
+  "secondControlledVersion": "ynx-wallet-web-v11"
 }
