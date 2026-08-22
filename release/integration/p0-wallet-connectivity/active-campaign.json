@@ -427,25 +427,25 @@
     }
   ],
   "heavy": {
-    "owner": "financial-apps",
-    "taskId": "P0-228",
-    "status": "ACTIVE_SINGLE_USE",
+    "owner": null,
+    "taskId": null,
+    "status": "IDLE",
     "acquiredAt": "2026-08-22T23:40:00Z",
     "expiresAt": "2026-08-23T00:10:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-22T23:45:43Z",
     "sourceCommit": "7824af677dd052d20321431381523ab302614d98",
     "evidenceCommit": "4f50537a98791aa5c72211e6533da058a22b6522",
     "runtimeHost": "43.153.202.237",
     "currentRuntime": "FINANCE_PRODUCTION_UNCHANGED_PHASE1_ROOTS_ABSENT",
-    "candidateRuntime": "empty dynamic-tuple carrier /opt/ynx/stage/finance/p0228-finance-phase1-20260822T234100Z only",
+    "candidateRuntime": "P0-228 empty carrier retained; creation-time parent nlink tuples do not equal final settled tuples",
     "artifactSha256": null,
     "productionMutationAllowed": false,
     "singleUse": true,
     "reusable": false,
     "previousOwner": "pay",
     "previousTaskId": "P0-227",
-    "reviewDecision": "GO_FINANCE_P0228_PHASE1_DYNAMIC_TUPLE_BOOTSTRAP",
-    "reason": "Fresh host readback binds the existing /opt/ynx tuple and exact absence of both intermediate parents, both leaves and the unique carrier. The real bootstrap creates each level separately, captures dynamic tuples, cleans every captured empty path in reverse on failure and passed the actual-shell fixture. Authority is limited to one stdin-only Phase 1 bootstrap; no object, environment or production mutation is permitted."
+    "reviewDecision": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_PHASE1_RECEIPT_FINAL_TUPLE_NLINK_MISMATCH",
+    "reason": "The one stdin-only bootstrap exited zero and created only the five authorized empty directories, but its receipt captured three parent nlink values before child creation. Final readback changed those nlinks from 2 to 3, so the lease-required exact emitted-tuple success condition did not pass. Device/inode and all other fields remain stable, carrier is empty and Finance production is untouched. No cleanup or further mutation was authorized; Heavy and locks are released and P0-228 is nonreusable."
   },
   "wave": {
     "id": "B-financial-apps-quant",

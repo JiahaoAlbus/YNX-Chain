@@ -58,7 +58,7 @@
     },
     {
       "path": "apps/dex/**",
-      "owner": "financial-apps",
+      "owner": null,
       "branch": "codex/final-dex",
       "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/27-dex",
       "taskId": "P0-109",
@@ -1541,24 +1541,24 @@
     },
     {
       "path": "{production:host:43.153.202.237:finance-phase1-bootstrap,production:/opt/ynx/stage,production:/opt/ynx/stage/finance,production:/opt/ynx/leases,production:/opt/ynx/leases/finance-preparation,production:/opt/ynx/stage/finance/p0228-finance-phase1-20260822T234100Z,local:/tmp/ynx-finance-p0228-phase1-receipt-20260822T234100Z.txt}",
-      "owner": "financial-apps",
+      "owner": null,
       "branch": "codex/p0-finance-wallet-connectivity-20260820",
       "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
       "taskId": "P0-228",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE_SINGLE_USE",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_PHASE1_RECEIPT_FINAL_TUPLE_NLINK_MISMATCH",
       "acquiredAt": "2026-08-22T23:40:00Z",
       "expiresAt": "2026-08-23T00:10:00Z",
-      "releasedAt": null,
+      "releasedAt": "2026-08-22T23:45:43Z",
       "sourceCommit": "7824af677dd052d20321431381523ab302614d98",
       "sourceTree": "3db34ee2397a49852bbdf15e3841e7c9cecf9444",
       "evidenceCommit": "4f50537a98791aa5c72211e6533da058a22b6522",
       "artifactSha256": null,
       "productionMutationAllowed": false,
       "allowedExceptions": [
-        "one exact stdin-only Phase 1 bootstrap invocation and secret-safe tuple receipt",
-        "create only the five exact empty Finance preparation directories with bound modes",
-        "no object, archive, environment, service, current, unit, Caddy, public or sensitive Wallet action"
+        "P0-228 bootstrap quota is consumed and nonreusable",
+        "preserve the five retained directories plus creation and final settled tuple evidence without mutation",
+        "no Phase 2, cleanup, object, archive, environment, service, current, unit, Caddy, public or sensitive Wallet action under P0-228"
       ]
     }
   ]

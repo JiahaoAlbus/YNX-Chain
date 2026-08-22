@@ -5,13 +5,13 @@
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-phase1-placement-bootstrap-20260822T234000Z",
   "owner": "financial-apps",
   "executor": "finance-phase1-bootstrap",
-  "status": "ACTIVE_SINGLE_USE",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_PHASE1_RECEIPT_FINAL_TUPLE_NLINK_MISMATCH",
   "issuedAt": "2026-08-22T23:40:00Z",
   "expiresAt": "2026-08-23T00:10:00Z",
-  "releasedAt": null,
+  "releasedAt": "2026-08-22T23:45:43Z",
   "singleUse": true,
   "reusable": false,
-  "executionAuthorized": true,
+  "executionAuthorized": false,
   "productionMutationAllowed": false,
   "scope": "Finance-only Phase 1 dynamic-tuple hierarchy and empty-carrier bootstrap; no object, archive, environment or production transfer",
   "ownerAuthority": {
@@ -137,6 +137,59 @@
     "systemctl, non-loopback runtime, deployment or product-completion claim",
     "provider selection, eth_requestAccounts, account approval/reject, signing, typed data or transaction"
   ],
+  "terminalEvidence": {
+    "classification": "FAILED_CLOSED_RECEIPT_TUPLES_DO_NOT_EQUAL_FINAL_SETTLED_TUPLES",
+    "observedAt": "2026-08-22T23:45:43Z",
+    "counts": {
+      "bootstrapExecution": 1,
+      "retry": 0,
+      "remoteScriptPlacement": 0,
+      "archiveOrObjectTransfer": 0,
+      "candidateEnvironmentGeneration": 0,
+      "productionMutation": 0
+    },
+    "execution": {
+      "exitStatus": 0,
+      "localReceipt": "/tmp/ynx-finance-p0228-phase1-receipt-20260822T234100Z.txt",
+      "localReceiptBytes": 553,
+      "localReceiptSha256": "9e73bc473eb3fa4c35ab55216e64830a809e3339eed3c9c83af15637af5f6cc0"
+    },
+    "creationTuples": {
+      "/opt/ynx/stage": "64770:3450040:0:0:750:2:4096:directory",
+      "/opt/ynx/stage/finance": "64770:3450041:0:0:750:2:4096:directory",
+      "/opt/ynx/leases": "64770:3450042:0:0:750:2:4096:directory",
+      "/opt/ynx/leases/finance-preparation": "64770:4594820:0:0:750:2:4096:directory",
+      "/opt/ynx/stage/finance/p0228-finance-phase1-20260822T234100Z": "64770:4594821:0:0:700:2:4096:directory"
+    },
+    "finalSettledTuples": {
+      "/opt/ynx/stage": "64770:3450040:0:0:750:3:4096:directory",
+      "/opt/ynx/stage/finance": "64770:3450041:0:0:750:3:4096:directory",
+      "/opt/ynx/leases": "64770:3450042:0:0:750:3:4096:directory",
+      "/opt/ynx/leases/finance-preparation": "64770:4594820:0:0:750:2:4096:directory",
+      "/opt/ynx/stage/finance/p0228-finance-phase1-20260822T234100Z": "64770:4594821:0:0:700:2:4096:directory"
+    },
+    "mismatch": {
+      "fields": ["nlink"],
+      "paths": ["/opt/ynx/stage", "/opt/ynx/stage/finance", "/opt/ynx/leases"],
+      "deviceInodeStable": true,
+      "expectedCause": "child directory link settlement",
+      "leaseRequiredExactEmittedTupleReadback": true,
+      "successClaimAccepted": false
+    },
+    "finalState": {
+      "carrierEmpty": true,
+      "directoriesRetainedWithoutFurtherMutation": true,
+      "financeService": {
+        "activeState": "active",
+        "subState": "running",
+        "mainPid": 877083,
+        "nRestarts": 0
+      },
+      "productionUntouched": true,
+      "sensitiveActions": false
+    },
+    "futureBlocker": "A wholly new read-only Finance settled-tuple acceptance request must bind the five final tuples exactly and explicitly supersede the creation-time nlink values before any Phase 2 lease. No cleanup, object transfer or production action is authorized under P0-228."
+  },
   "terminalRules": {
     "success": "CONSUMED_RELEASED_SUCCESS_FINANCE_PHASE1_DYNAMIC_TUPLE_BOOTSTRAP_ONLY",
     "failure": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_PHASE1_DYNAMIC_TUPLE_BOOTSTRAP",
