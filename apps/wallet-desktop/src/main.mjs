@@ -12,7 +12,7 @@ import { FilePermissionStore } from "./desktop-permission-store.mjs";
 import { CanonicalTransactionSender } from "./canonical-transaction-sender.mjs";
 import { WalletConnectTransport } from "./walletconnect-transport.mjs";
 import { decodeWalletConnectQR } from "./walletconnect-qr-decoder.mjs";
-import { extractYNXWalletProtocolUrl } from "./protocol-activation.mjs";
+import { canonicalizeWindowsYNXWalletProtocolUrl, extractYNXWalletProtocolUrl } from "./protocol-activation.mjs";
 
 const directory = path.dirname(fileURLToPath(import.meta.url));
 // Canonical public RPC from Central endpoint matrix d0f89797d13c7667cc187b0c64d5c9e1cb1d8f59.
@@ -173,7 +173,7 @@ ipcMain.handle("wallet:provider-action", (_event, id, action) => safeIPC(async (
 }));
 
 async function handleCallback(rawValue) {
-  const review = evaluateWalletCallback(rawValue);
+  const review = evaluateWalletCallback(canonicalizeWindowsYNXWalletProtocolUrl(rawValue));
   const activation = protocolActivationFingerprint(rawValue);
   if (pendingReview?.acceptedForReview) {
     const busy = { acceptedForReview: false, code: "AUTHORIZATION_REQUEST_IN_PROGRESS", callbackEmitted: false, authorityGranted: false };

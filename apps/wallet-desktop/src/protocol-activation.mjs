@@ -11,3 +11,15 @@ export function extractYNXWalletProtocolUrl(argv) {
   }
   return null;
 }
+
+export function canonicalizeWindowsYNXWalletProtocolUrl(value, platform = process.platform) {
+  if (platform !== "win32" || typeof value !== "string") return value;
+  try {
+    const url = new URL(value);
+    const keys = [...url.searchParams.keys()];
+    if (url.protocol !== "ynxwallet:" || url.hostname !== "authorize" || url.pathname !== "/" || url.hash || url.username || url.password || keys.length !== 1 || keys[0] !== "request") return value;
+    return `ynxwallet://authorize?request=${url.searchParams.get("request") ?? ""}`;
+  } catch {
+    return value;
+  }
+}

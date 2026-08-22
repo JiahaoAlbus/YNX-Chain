@@ -3,7 +3,7 @@ import { createECDH } from "node:crypto";
 import { test } from "node:test";
 import { encodeRequestDeepLink } from "@ynx-chain/wallet-auth";
 import { CANONICAL_AUTH_BRIDGE_UNAVAILABLE, CALLBACK_PROTOCOL_SOURCE, evaluateWalletCallback } from "../src/callback-policy.mjs";
-import { extractYNXWalletProtocolUrl } from "../src/protocol-activation.mjs";
+import { canonicalizeWindowsYNXWalletProtocolUrl, extractYNXWalletProtocolUrl } from "../src/protocol-activation.mjs";
 
 const now = new Date("2026-08-21T08:00:00.000Z");
 const productDevice = createECDH("prime256v1");
@@ -56,4 +56,13 @@ test("Windows command-line activation extracts only a bounded ynxwallet URL", ()
   assert.equal(extractYNXWalletProtocolUrl(["YNX Wallet.exe", "https://example.com", "--flag"]), null);
   assert.equal(extractYNXWalletProtocolUrl(["YNX Wallet.exe", `ynxwallet://authorize?request=${"a".repeat(70 * 1024)}`]), null);
   assert.equal(extractYNXWalletProtocolUrl("ynxwallet://authorize"), null);
+});
+
+test("Windows-only slash normalization maps one exact OS activation back to the frozen route", () => {
+  const deepLink = encodeRequestDeepLink(request);
+  const windowsNormalized = deepLink.replace("ynxwallet://authorize?", "ynxwallet://authorize/?");
+  assert.equal(canonicalizeWindowsYNXWalletProtocolUrl(windowsNormalized, "win32"), deepLink);
+  assert.equal(canonicalizeWindowsYNXWalletProtocolUrl(windowsNormalized, "darwin"), windowsNormalized);
+  assert.equal(canonicalizeWindowsYNXWalletProtocolUrl(`${windowsNormalized}&extra=1`, "win32"), `${windowsNormalized}&extra=1`);
+  assert.equal(canonicalizeWindowsYNXWalletProtocolUrl(windowsNormalized.replace("authorize/", "approve/"), "win32"), windowsNormalized.replace("authorize/", "approve/"));
 });
