@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "handoffId": "wallet-desktop-wallet-authority-0.4-macos-dmg-20260822",
+  "owner": "Wallet Desktop/CLI/SDK",
+  "consumer": "Website release owner and Central Integration",
+  "releaseChannel": "testnet-preview",
+  "sourceCommit": "d99607c070750fbd799448ea0cc60e4721121aaf",
+  "evidencePath": "apps/wallet-desktop/evidence/macos-wallet-authority-0.4-lifecycle-20260822.json",
+  "artifact": {
+    "filename": "ynx-wallet-macos-0.4.0-universal.dmg",
+    "absoluteOwnerPath": "/private/tmp/ynx-wallet-desktop-installers-p0-20260821/apps/wallet-desktop/dist-wallet-authority-0.4-final-dmg/ynx-wallet-macos-0.4.0-universal.dmg",
+    "bytes": 229356826,
+    "sha256": "b62548056be7792655379b7e87bbe3a14ba9f11da865882fff2ca2770d51578b",
+    "architectures": ["x86_64", "arm64"],
+    "minimumOS": "macOS 13.0",
+    "bundleIdentifier": "com.ynxweb4.wallet.macos",
+    "version": "0.4.0",
+    "signingClass": "unsigned-testnet-preview-dmg; contained Electron executable ad-hoc only",
+    "productionSigned": false,
+    "notarized": false,
+    "storeReleased": false
+  },
+  "officialPublication": {
+    "requiredPath": "/wallet/sha256-b62548056be7792655379b7e87bbe3a14ba9f11da865882fff2ca2770d51578b/ynx-wallet-macos-0.4.0-universal.dmg",
+    "requiredUrl": "https://downloads.ynxweb4.com/wallet/sha256-b62548056be7792655379b7e87bbe3a14ba9f11da865882fff2ca2770d51578b/ynx-wallet-macos-0.4.0-universal.dmg",
+    "requiredContentType": "application/x-apple-diskimage",
+    "requiredContentDisposition": "attachment; filename=\"ynx-wallet-macos-0.4.0-universal.dmg\"",
+    "requiredContentLength": 229356826,
+    "fullGetSha256Required": true,
+    "downloadHosted": false,
+    "deployedPublic": false
+  },
+  "rollback": {
+    "retainVersion": "0.3.0",
+    "retainSha256": "493686cc5b66e58c5ee6e03b49de2b21eca0cac530705aea3220bbe369caf741",
+    "legacyVaultPreserved": true,
+    "nativeRollbackAndRestoreProved": true
+  },
+  "blockedLiveInterop": {
+    "requiredOperatorInput": "authorized YNX_WALLETCONNECT_PROJECT_ID",
+    "walletConnectRelayConnected": false,
+    "firstPartyDappConnected": false,
+    "externalStandardEvmDappConnected": false,
+    "liveSigningAndTransaction": false
+  }
+}
