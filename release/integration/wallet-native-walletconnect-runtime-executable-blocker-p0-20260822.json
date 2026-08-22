@@ -3,7 +3,7 @@
   "evidenceId": "WALLET-NATIVE-WALLETCONNECT-RUNTIME-EXECUTABLE-BLOCKER-P0-20260822",
   "owner": "02-wallet-auth-ios-macos-native",
   "status": "BLOCKED_ON_SINGLE_PROTECTED_EXECUTION_BOUNDARY",
-  "asOf": "2026-08-22T18:32:00+08:00",
+  "asOf": "2026-08-22T18:45:00+08:00",
   "authoritativeInputs": {
     "centralP0": {
       "commit": "97a20044e640d57a658897d533da15e9270700cc",
@@ -42,8 +42,8 @@
     }
   },
   "singleBlocker": {
-    "id": "PROTECTED_NATIVE_WALLETCONNECT_RUNTIME_PACKAGE_UNAVAILABLE",
-    "summary": "No approved execution lease or protected runtime package currently supplies the real Reown project, eligible Apple signing/install identities, approved native test account authority and four exact DApp execution targets required for installed relay interoperability.",
+    "id": "PROTECTED_CROSS_PLATFORM_WALLET_INTEROP_RUNTIME_PACKAGE_UNAVAILABLE",
+    "summary": "No approved execution lease or confirmed protected runtime package currently supplies the real Reown project, eligible Apple signing/install identities, approved native test account authority, MetaMask comparator provenance and four exact DApp execution targets required for installed relay interoperability.",
     "ownerAction": "A named Central release owner must issue one path-scoped execution lease and populate the protected native WalletConnect runtime environment. Secret values must never be returned in chat, evidence or the repository.",
     "protectedEnvironment": "wallet-native-walletconnect-runtime",
     "requiredProtectedInputs": [
@@ -98,6 +98,7 @@
       "Reown project allowlist receipt covering the canonical ynxwallet scheme and eligible Apple application identities",
       "iOS development or distribution signing receipt proving the required group/keychain entitlement on an installed physical-device build",
       "macOS Developer ID plus notarization and Gatekeeper acceptance receipt for the installed public candidate",
+      "official signed MetaMask comparator install receipt with package and signature provenance for every eligible target used in identity-separation evidence",
       "exact first-party DApp URL and exact independently opened Uniswap, OpenSea and Safe URLs",
       "named test operator confirmation for approve, reject, personal_sign, EIP-712, Testnet send and disconnect/revoke actions"
     ],
@@ -125,8 +126,8 @@
     "reownMacOSCompatibilityPatchSourcePresent": true,
     "reownMacOSCompatibilityPatchUpstreamCommit": "968a82d440e51c4de18857928b60a03d36af7a2a",
     "reownMacOSCompatibilityPatchOriginalBlob": "34b299ee3b325f26536980d272e0e7f906fe2869",
-    "macosHostedCompileVerified": false,
-    "iosHostedCompileVerified": false,
+    "macosHostedCompileVerified": true,
+    "iosHostedCompileVerified": true,
     "macosProjectIDConfigured": false,
     "iosProjectIDConfigured": false,
     "iosParameterizedApplicationGroupsEntitlementSourcePresent": true,
@@ -134,6 +135,36 @@
     "eligiblePhysicalIOSInstallAvailable": false,
     "eligiblePublicMacOSInstallAvailable": false,
     "executionLeaseIssued": false,
+    "hostedEvidence": {
+      "macosRun": 32562723371,
+      "macosJob": 97006701241,
+      "head": "68a36825153e4eda7c3975fa115d5ec71da856f5",
+      "conclusion": "success",
+      "swiftTests": "38/38",
+      "architectures": [
+        "x86_64",
+        "arm64"
+      ],
+      "minimumOS": "macOS 13.0",
+      "signingClass": "ad-hoc; TeamIdentifier not set",
+      "gatekeeperAccepted": false,
+      "dmgSHA256": "1812db1cf92565cf7d5bed0b29a8b6bf30484da26c290ed9ee984c8c47fd7d1e",
+      "dmgBytes": 4189377,
+      "artifactID": 9473298801,
+      "artifactUploadSHA256": "8e0b1e84d79d9e7d0d1dfc98d30a8e755c30140eb89a8d5895c02a7c8c8bc66c",
+      "artifactUploadBytes": 12502365,
+      "artifactDownloadInspected": false,
+      "macosColdPID": 46161,
+      "macosSecondPID": 46404,
+      "macosWalletConnectColdPID": 46798,
+      "walletConnectResult": "WALLETCONNECT_PROJECT_ID_UNAVAILABLE; visible=true; relay=false; pairing=false; approval=false; callbackEmitted=false",
+      "iosRun": 32561814133,
+      "iosJob": 97004440706,
+      "iosHead": "8c38fa44c39eab242edc46e2156cfc813a00eba7",
+      "iosConclusion": "failure",
+      "iosSourceBuildInstallWalletConnectFailClosedSteps": "14-21 success",
+      "iosTerminalFailure": "step 22 Simulator biometric positive path; no runtime promotion"
+    },
     "auditBasis": [
       "both Apple targets pin official Reown Swift 2.3.1 WalletConnect Networking and Sign products",
       "both Apple targets include one shared native runtime for Pair, Sign, proposal, request, restore and disconnect",
@@ -145,8 +176,11 @@
       "hosted macOS run 32562264128 job 97005577873 verified the exact upstream checkout and then failed before compilation because SwiftPM marked the target source read-only; the preparation script now scopes owner-write permission to that verified file only",
       "hosted macOS run 32562353405 job 97005793832 passed the read-only boundary and then exposed iOS-only UIApplication calls in the same upstream macOS compilation unit; the compatibility operation now supplies a platform-scoped NSWorkspace opener while YNX Link Mode remains disabled",
       "hosted macOS run 32562495516 job 97006141211 verified the platform opener transformation and then failed on Swift 6 explicit-self capture enforcement at LinkEnvelopesDispatcher.swift:84; no artifact or runtime gate was promoted, and the compatibility operation now unwraps weak self with a checked-continuation failure path before calling the owner-scoped opener",
+      "exact-head hosted macOS run 32562723371 job 97006701241 passed all steps, including 38/38 Swift tests, dual-architecture ad-hoc packaging and isolated cold/second/callback lifecycle; PID 46798 visibly failed closed with WALLETCONNECT_PROJECT_ID_UNAVAILABLE, so real relay and interoperability remain false",
+      "hosted iOS run 32561814133 job 97004440706 passed Simulator build, install and WalletConnect fail-closed steps 14-21 but ended failure at the unrelated Simulator biometric positive path in step 22; this proves only hosted compilation and no installed production runtime",
+      "the bounded artifact download attempt for run 32562723371 produced no files before termination; only public Actions log metadata is recorded and artifactDownloadInspected remains false",
       "the source-visible macOS compatibility patch is applied only after exact upstream commit and original blob verification and carries a prominent modification notice",
-      "Central P0-176 is explicitly not a lease and records P0-175 as the current Heavy owner"
+      "Central P0-176 is explicitly not a lease; Central now records P0-179 Heavy as ACTIVE and the protected readiness confirmations as unavailable"
     ]
   },
   "authorizedExecutionAfterUnblock": {
