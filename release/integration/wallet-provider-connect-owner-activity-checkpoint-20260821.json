@@ -198,6 +198,27 @@
         "releaseBlocked": true,
         "deploymentLease": false,
         "installedParity": false
+      },
+      "independentProviderIdentity": {
+        "sourceCommit": "a3310cc9f0c757d27dae83282b68361c116c22a3",
+        "sourceTree": "b97999159a2b137d00bd2155157ce574e9c1ff64",
+        "evidenceCommit": "3af80dff57aecab2c62d17942f6c33e78c7621a9",
+        "evidencePath": "apps/wallet-web/evidence/contracts/ynx-extension-provider-identity-20260822.json",
+        "evidenceBlob": "d9848c011ff99cb0693dc9249c57f708bff67f8a",
+        "evidenceSha256": "5275a48ab16fcd66f67c66a939b4791fe76b799c3b82263d6a0ce73a6053a22e",
+        "eip6963": {"name":"YNX Wallet","rdns":"com.ynx.wallet","isYNXWallet":true,"isMetaMask":false},
+        "internalBridgeMarkerIsProviderAuthority": false,
+        "sourceTests": "112/112",
+        "packageInternal": "112/112",
+        "packageVerification": "3/3",
+        "chromeEdgeArtifact": {"bytes":468405,"sha256":"bcfe54c56455b087e1f49ceca36326789e26559ca8b634633d2fb09fae6d0e4f","unsignedUnpacked":true},
+        "installedProvider": false,
+        "realDappDiscovery": false,
+        "approveReject": false,
+        "signTypedDataTransaction": false,
+        "deployedPublic": false,
+        "parityComplete": false,
+        "launchRequiresImmediateUserConfirmation": true
       }
     },
     "macosDmg": {
