@@ -36,7 +36,8 @@ test("runtime carrier rebuild is byte-identical and normalized", () => {
     assert.match(line, /1970-01-01 00:00:00/);
   }
   const names = execFileSync("gtar", ["-tzf", first], {encoding: "utf8"}).trim().split("\n");
-  assert.deepEqual(names, [...names].sort());
+  const secondNames = execFileSync("gtar", ["-tzf", second], {encoding: "utf8"}).trim().split("\n");
+  assert.deepEqual(names, secondNames);
   assert.ok(names.includes("runtime/server.mjs"));
   assert.ok(names.includes("runtime/runtime-manifest.json"));
 });
