@@ -38,8 +38,8 @@
   "platformQueue": [
     {"platform":"web-extension","owner":"wallet-web","status":"NOT_ACCEPTED_INSTALLED_PROVIDER_E2E"},
     {"platform":"android","owner":"wallet-android","status":"NOT_ACCEPTED_INSTALLED_PROVIDER_E2E"},
-    {"platform":"ios","owner":"wallet-ios","status":"MAIN_REGISTRATION_PENDING_NO_DISTRIBUTION"},
-    {"platform":"macos","owner":"wallet-macos","status":"MAIN_REGISTRATION_PR_132_PENDING_NO_PUBLICATION"},
+    {"platform":"ios","owner":"wallet-ios","status":"CLEAN_MAIN_REGISTRATION_PR_133_PENDING_NO_DISTRIBUTION","source":"a85c273a2454d9f72cb89198caa42ef63d5a9436"},
+    {"platform":"macos","owner":"wallet-macos","status":"CLEAN_MAIN_REGISTRATION_PR_133_PENDING_NO_PUBLICATION","source":"a85c273a2454d9f72cb89198caa42ef63d5a9436"},
     {"platform":"windows","owner":"wallet-desktop","status":"PUBLIC_INSTALLER_EXISTS_PROVIDER_E2E_FALSE"}
   ],
   "completionGate": {

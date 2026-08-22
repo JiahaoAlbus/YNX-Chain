@@ -5943,6 +5943,30 @@
       "productsConnected": "0/12",
       "productsMigratedV2": "0/12",
       "nextAction": "Collect exact platform owner handoffs and apply the machine gate; only installed-provider plus first-party and three-external-DApp direct evidence may complete parity."
+    },
+    {
+      "taskId": "P0-151",
+      "owner": "integration,wallet-ios,wallet-macos",
+      "status": "CLEAN_PATH_SCOPED_PR_OPEN_CI_AND_REVIEW_PENDING_NO_DISPATCH",
+      "paths": [
+        ".github/workflows/wallet-ios.yml",
+        ".github/workflows/wallet-macos.yml",
+        "apps/wallet/ios/**",
+        "apps/wallet/macos/**"
+      ],
+      "dependencies": [
+        "P0-150"
+      ],
+      "pullRequest": 133,
+      "sourceCommit": "a85c273a2454d9f72cb89198caa42ef63d5a9436",
+      "sourceTree": "60dc1eab21983a7b2d7546c71189fe0a77589659",
+      "supersededUnsafePullRequest": 132,
+      "executionLeaseIssued": false,
+      "distributionDispatched": false,
+      "publicationDispatched": false,
+      "mainRegistered": false,
+      "walletParityComplete": false,
+      "nextAction": "Require exact-head CI and review on PR 133; merge only the clean path-scoped head, then wait for explicit protected-environment approval before any separate dispatch."
     }
   ]
 }
