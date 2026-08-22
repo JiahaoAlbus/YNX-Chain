@@ -38,6 +38,9 @@ test("the visible lab keeps YNX Wallet and MetaMask identities separate and cont
   assert.match(lab, /YNX Wallet and MetaMask are independently discovered/);
   assert.match(lab, /MetaMask marker is an original neutral identifier/);
   assert.match(lab, /WalletIdentityMark/);
+  assert.match(lab, /Standard Wallet identity reference/);
+  assert.match(lab, /com\.ynx\.wallet/);
+  assert.match(lab, /isMetaMask=true/);
   assert.match(lab, /No fixture, QR placeholder, or simulated session/);
   assert.match(lab, /accountsChanged, chainChanged, and disconnect/);
   assert.match(profiles, /personal_sign/);

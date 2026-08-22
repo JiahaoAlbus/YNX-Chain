@@ -102,6 +102,11 @@ export function StandardWalletDappCompatibilityLab() {
       <div className="wallet-boundary">
         <b>Third-party standard Wallet entry point</b>
         <p>YNX Wallet and MetaMask are independently discovered EIP-6963/EIP-1193 providers. Their visible identity marks and names are distinct; the MetaMask marker is an original neutral identifier, not a copied MetaMask logo, and no YNX asset is used as MetaMask identity.</p>
+        <div aria-label="Standard Wallet identity reference" className="chain-tool">
+          <span><WalletIdentityMark kind="ynx-wallet" /><b>YNX Wallet</b> · expected identity: <code>com.ynx.wallet</code>, <code>isYNXWallet=true</code>, <code>isMetaMask=false</code></span>
+          <span><WalletIdentityMark kind="metamask" /><b>MetaMask</b> · expected identity: <code>isMetaMask=true</code>, <code>isYNXWallet=false</code></span>
+          <small>These are identity references only. The detected-provider controls below remain the sole availability and connection signal.</small>
+        </div>
         {choices.length ? (
           <p>{choices.map((choice) => <Button key={choice.kind} variant="ghost" onClick={() => connect(choice.kind)}><WalletIdentityMark kind={choice.kind} />{`Connect ${choice.label}`}</Button>)}</p>
         ) : <p>No provider is selected automatically. Install YNX Wallet or MetaMask to run a real browser flow.</p>}
