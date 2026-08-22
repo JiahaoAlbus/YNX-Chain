@@ -1,0 +1,268 @@
+name: Card immutable candidate hosted browser preflight P0
+
+on:
+  push:
+    branches:
+      - codex/p0-card-static-deploy-envelope-20260822
+    paths:
+      - .github/workflows/card-public-candidate-preflight-p0.yml
+
+permissions:
+  contents: read
+
+jobs:
+  preflight:
+    if: "github.event.head_commit.message == 'evidence(card): hosted immutable candidate browser preflight'"
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create isolated evidence directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/card-candidate-preflight"
+          test ! -e "$out"
+          mkdir -p "$out/resources" "$out/browser"
+
+      - name: Fetch and verify immutable Card resources
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://ynx-card-testnet-simulation-dn1nbeei4-jiahaoalbus-projects.vercel.app'
+          out="$RUNNER_TEMP/card-candidate-preflight/resources"
+          fetch() {
+            name="$1"
+            uri="$2"
+            expected_bytes="$3"
+            expected_sha="$4"
+            code="$(curl --proto '=https' --tlsv1.2 --silent --show-error --max-time 20 --connect-timeout 8 --max-redirs 0 --dump-header "$out/${name}.headers" --output "$out/${name}.body" --write-out '%{http_code}' "${base}${uri}")"
+            printf '%s\n' "$code" > "$out/${name}.status"
+            wc -c < "$out/${name}.body" | tr -d ' ' > "$out/${name}.bytes"
+            sha256sum "$out/${name}.body" | awk '{print $1}' > "$out/${name}.sha256"
+            test "$code" = 200
+            test "$(cat "$out/${name}.bytes")" = "$expected_bytes"
+            test "$(cat "$out/${name}.sha256")" = "$expected_sha"
+          }
+          fetch root '/' 1717 f8b59f7bb084fa22573df186b2f47fa35d3f85d6e078f09f1d3b1b53c764c695
+          fetch app-js '/_expo/static/js/web/index-6a16f2a248e25355f9aa7ee9626133a0.js' 2911045 f59fa3d43e4d855a91f224f239e8fc39bf4ffa73e83e42d5c0203aa70deae92e
+          fetch manifest '/manifest.webmanifest' 460 f3e634129abe79c5b81b7fc8dac3950e5cb21f1d1263b1938fcd06a58e2c686f
+          fetch service-worker '/sw.js' 364 1a9acfe442d2920040a1999f4fe4efe3f97d7a42a9debef047d469972889638f
+          fetch ynx-logo '/assets/assets/icon.ac64b115433cc62063b01bbab973bec7.png' 863227 6252153a2fd0d12cb61a1223cea3277ceff863eb82b6073049419459b359f86f
+          fetch metamask-logo '/assets/assets/metamask-fox.024a98855742a7b85946088532e2d4c1.png' 3682 25f2f224f9d01c78ae3dc2d07a339053cc402961a59cf818f2753c12db9ec796
+
+      - name: Install pinned browser harness
+        run: npm ci --ignore-scripts --prefix apps/trust-center
+
+      - name: Prove non-sensitive Card wallet behavior in hosted Chromium
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/card-candidate-browser.mjs" <<'NODE'
+          import { createRequire } from "node:module";
+          import { mkdir, writeFile } from "node:fs/promises";
+          import { join } from "node:path";
+
+          const require = createRequire(join(process.env.GITHUB_WORKSPACE, "apps/trust-center/package.json"));
+          const { chromium } = require("playwright");
+          const base = "https://ynx-card-testnet-simulation-dn1nbeei4-jiahaoalbus-projects.vercel.app/";
+          const root = join(process.env.RUNNER_TEMP, "card-candidate-preflight", "browser");
+          await mkdir(root, { recursive: true });
+          const result = {
+            schemaVersion: 1,
+            candidate: base,
+            candidateDeploymentId: "dpl_8qCEhiAq8hgiTYf2hA2FXU57W122",
+            semanticSourceCommit: "45c4013a95008027cf55f2ac4d7bdded70640ae1",
+            deploymentSourceCommit: "2183b8d7a18dec3c7e7773f3c777882deeac6f82",
+            accountRequestAttempted: false,
+            signingAttempted: false,
+            typedDataAttempted: false,
+            transactionAttempted: false,
+            passed: false,
+            stage: "START",
+          };
+          const contexts = [];
+
+          async function saveDiagnostics(page, label, telemetry) {
+            if (!page) return;
+            await page.screenshot({ path: join(root, `${label}.png`), fullPage: true }).catch(() => {});
+            await writeFile(join(root, `${label}.html`), await page.content().catch(() => ""));
+            const snapshot = await page.evaluate(() => ({
+              url: location.href,
+              title: document.title,
+              language: document.documentElement.lang,
+              readyState: document.readyState,
+              bodyText: document.body?.innerText?.slice(0, 12000) || "",
+            })).catch(error => ({ error: String(error) }));
+            await writeFile(join(root, `${label}.json`), `${JSON.stringify({ snapshot, telemetry }, null, 2)}\n`);
+          }
+
+          function watch(page) {
+            const telemetry = { consoleErrors: [], pageErrors: [], sameOriginFailures: [], customSchemeRequests: [], popups: 0 };
+            page.on("console", message => { if (message.type() === "error") telemetry.consoleErrors.push({ text: message.text(), location: message.location() }); });
+            page.on("pageerror", error => telemetry.pageErrors.push(String(error)));
+            page.on("requestfailed", request => { if (request.url().startsWith(base)) telemetry.sameOriginFailures.push({ url: request.url(), error: request.failure()?.errorText || null }); });
+            page.on("request", request => { if (/^(ynxwallet|metamask|wc):/i.test(request.url())) telemetry.customSchemeRequests.push(request.url()); });
+            page.on("popup", () => { telemetry.popups += 1; });
+            return telemetry;
+          }
+
+          async function waitForCard(page, stage) {
+            result.stage = stage;
+            await page.waitForFunction(() => {
+              const text = document.body?.innerText || "";
+              return document.readyState === "complete" && text.includes("Understand card flows before they touch the real world.") && text.includes("Connect a wallet when you need it") && text.includes("Private services are optional");
+            }, null, { timeout: 20000, polling: 200 });
+          }
+
+          async function launch(profileName) {
+            const context = await chromium.launchPersistentContext(join(process.env.RUNNER_TEMP, profileName), {
+              executablePath: "/usr/bin/google-chrome",
+              headless: true,
+              viewport: { width: 1280, height: 900 },
+            });
+            contexts.push(context);
+            return context;
+          }
+
+          try {
+            result.stage = "NO_PROVIDER_LAUNCH";
+            const noProviderContext = await launch("card-no-provider-profile");
+            const noProviderPage = noProviderContext.pages()[0] || await noProviderContext.newPage();
+            const noProviderTelemetry = watch(noProviderPage);
+            await noProviderPage.goto(base, { waitUntil: "domcontentloaded", timeout: 25000 });
+            await waitForCard(noProviderPage, "NO_PROVIDER_READY");
+            await noProviderPage.getByRole("button", { name: "Choose a wallet" }).click({ timeout: 8000 });
+            await noProviderPage.getByText("No provider was announced? Card cannot tell whether a wallet is uninstalled, disabled, locked, or denied site access.", { exact: true }).waitFor({ state: "visible", timeout: 8000 });
+            result.noProvider = await noProviderPage.evaluate(() => {
+              const imageReference = label => {
+                const element = document.querySelector(`[aria-label="${label}"]`);
+                const child = element?.querySelector?.("img");
+                return element?.getAttribute?.("src") || child?.getAttribute?.("src") || element?.getAttribute?.("style") || "";
+              };
+              const text = document.body?.innerText || "";
+              return {
+                url: location.href,
+                title: document.title,
+                language: document.documentElement.lang,
+                ynxIdentityVisible: text.includes("YNX Wallet") && text.includes("com.ynx.wallet") && text.includes("isYNXWallet"),
+                metamaskIdentityVisible: text.includes("MetaMask") && text.includes("io.metamask") && text.includes("never uses the YNX Wallet route"),
+                truthfulNoProvider: text.includes("No provider was announced? Card cannot tell whether a wallet is uninstalled, disabled, locked, or denied site access."),
+                ynxLogo: imageReference("YNX Wallet logo"),
+                metamaskLogo: imageReference("MetaMask fox logo"),
+                fabricatedConnected: text.includes("Standard wallet connected:"),
+              };
+            });
+            await noProviderPage.getByRole("button", { name: "Close" }).click({ timeout: 8000 });
+            result.noProvider.pageCount = noProviderContext.pages().length;
+            result.noProvider.blankPages = noProviderContext.pages().filter(page => page.url() === "about:blank").length;
+            result.noProvider.telemetry = noProviderTelemetry;
+            await saveDiagnostics(noProviderPage, "no-provider-final", noProviderTelemetry);
+            await noProviderContext.close();
+            contexts.splice(contexts.indexOf(noProviderContext), 1);
+
+            result.stage = "LATE_PROVIDER_LAUNCH";
+            const lateContext = await launch("card-late-provider-profile");
+            await lateContext.addInitScript(() => {
+              const state = window.__cardHostedProviderEvidence = { requestProviderEvents: [], announcements: [], rpcMethods: [], forbiddenMethods: [] };
+              const account = "0x1111111111111111111111111111111111111111";
+              const provider = (kind, approved) => ({
+                isYNXWallet: kind === "ynx",
+                isMetaMask: kind === "metamask",
+                request: async ({ method }) => {
+                  state.rpcMethods.push({ kind, method });
+                  if (method === "eth_accounts") return approved ? [account] : [];
+                  if (method === "eth_chainId") return "0x1917";
+                  state.forbiddenMethods.push({ kind, method });
+                  throw Object.assign(new Error("Hosted preflight forbids this wallet method."), { code: 4100 });
+                },
+                on: () => {},
+                removeListener: () => {},
+              });
+              const ynx = provider("ynx", true);
+              const metamask = provider("metamask", false);
+              window.addEventListener("eip6963:requestProvider", () => {
+                state.requestProviderEvents.push(performance.now());
+                setTimeout(() => {
+                  const details = [
+                    { info: { uuid: "11111111-1111-4111-8111-111111111111", name: "YNX Wallet", rdns: "com.ynx.wallet", icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'/>" }, provider: ynx },
+                    { info: { uuid: "22222222-2222-4222-8222-222222222222", name: "MetaMask", rdns: "io.metamask", icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg'/>" }, provider: metamask },
+                  ];
+                  for (const detail of details) {
+                    state.announcements.push({ uuid: detail.info.uuid, at: performance.now() });
+                    window.dispatchEvent(new CustomEvent("eip6963:announceProvider", { detail }));
+                  }
+                }, 300);
+              });
+            });
+            const latePage = lateContext.pages()[0] || await lateContext.newPage();
+            const lateTelemetry = watch(latePage);
+            await latePage.goto(base, { waitUntil: "domcontentloaded", timeout: 25000 });
+            await waitForCard(latePage, "LATE_PROVIDER_READY");
+            await latePage.getByText("YNX Wallet is connected to YNX Testnet. Private Card services remain a separate optional layer.", { exact: true }).waitFor({ state: "visible", timeout: 12000 });
+            result.lateProviderBeforeDegrade = await latePage.evaluate(() => ({
+              url: location.href,
+              text: document.body?.innerText || "",
+              providerEvidence: window.__cardHostedProviderEvidence,
+            }));
+            await latePage.getByRole("button", { name: "Enable private services" }).click({ timeout: 8000 });
+            await latePage.getByText("Private Service Degraded", { exact: true }).waitFor({ state: "visible", timeout: 8000 });
+            result.lateProviderAfterDegrade = await latePage.evaluate(() => ({
+              url: location.href,
+              text: document.body?.innerText || "",
+              providerEvidence: window.__cardHostedProviderEvidence,
+            }));
+            await latePage.getByRole("button", { name: "Connection details" }).click({ timeout: 8000 });
+            result.details = await latePage.evaluate(() => ({
+              text: document.body?.innerText || "",
+              detailsVisible: Boolean(document.querySelector('[aria-label="Wallet connection details"]')),
+            }));
+            await latePage.getByRole("button", { name: "Close" }).click({ timeout: 8000 });
+            result.lateProvider = {
+              pageCount: lateContext.pages().length,
+              blankPages: lateContext.pages().filter(page => page.url() === "about:blank").length,
+              telemetry: lateTelemetry,
+            };
+            await saveDiagnostics(latePage, "late-provider-degraded-final", lateTelemetry);
+
+            const noProviderOk = result.noProvider.url === base && result.noProvider.ynxIdentityVisible === true && result.noProvider.metamaskIdentityVisible === true && result.noProvider.truthfulNoProvider === true && result.noProvider.fabricatedConnected === false && /icon\.[a-f0-9]+\.png/.test(result.noProvider.ynxLogo || "") && /metamask-fox\.[a-f0-9]+\.png/.test(result.noProvider.metamaskLogo || "") && result.noProvider.pageCount === 1 && result.noProvider.blankPages === 0;
+            const before = result.lateProviderBeforeDegrade;
+            const after = result.lateProviderAfterDegrade;
+            const providerEvidence = after.providerEvidence;
+            const permittedMethodsOnly = providerEvidence.forbiddenMethods.length === 0 && providerEvidence.rpcMethods.length > 0 && providerEvidence.rpcMethods.every(value => value.method === "eth_accounts" || value.method === "eth_chainId") && !providerEvidence.rpcMethods.some(value => value.method === "eth_requestAccounts");
+            const lateProviderOk = providerEvidence.requestProviderEvents.length >= 2 && providerEvidence.announcements.some(value => value.uuid === "11111111-1111-4111-8111-111111111111") && providerEvidence.announcements.some(value => value.uuid === "22222222-2222-4222-8222-222222222222") && permittedMethodsOnly && before.text.includes("Standard wallet connected: 0x1111...1111") && before.text.includes("0x1917");
+            const degradedOk = after.text.includes("Private Service Degraded") && after.text.includes("Your guest workspace and Standard Wallet connection remain available.") && after.text.includes("YNX Wallet is connected to YNX Testnet") && after.text.includes("Standard wallet connected: 0x1111...1111") && result.details.detailsVisible === true && result.details.text.includes("Disconnect & revoke") && result.details.text.includes("Switch account");
+            const clean = [result.noProvider.telemetry, result.lateProvider.telemetry].every(value => value.consoleErrors.length === 0 && value.pageErrors.length === 0 && value.sameOriginFailures.length === 0 && value.customSchemeRequests.length === 0 && value.popups === 0);
+            result.passed = noProviderOk && lateProviderOk && degradedOk && clean && result.lateProviderBeforeDegrade.url === base && result.lateProviderAfterDegrade.url === base && result.lateProvider.pageCount === 1 && result.lateProvider.blankPages === 0;
+          } catch (error) {
+            result.error = { name: error?.name || "Error", message: error?.message || String(error), stack: error?.stack || null };
+            for (const [index, context] of contexts.entries()) {
+              const page = context.pages()[0];
+              await saveDiagnostics(page, `failure-context-${index}`, { stage: result.stage });
+            }
+          } finally {
+            await writeFile(join(root, "hosted-chromium.json"), `${JSON.stringify(result, null, 2)}\n`);
+            await Promise.allSettled(contexts.map(context => context.close()));
+          }
+          console.log(JSON.stringify(result, null, 2));
+          process.exit(result.passed ? 0 : 1);
+          NODE
+          node "$RUNNER_TEMP/card-candidate-browser.mjs"
+
+      - name: Freeze isolated evidence checksums
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          out="$RUNNER_TEMP/card-candidate-preflight"
+          find "$out" -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > "$out/SHA256SUMS"
+
+      - name: Upload isolated candidate evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: card-immutable-candidate-browser-preflight-p0
+          path: ${{ runner.temp }}/card-candidate-preflight
+          if-no-files-found: error
+          retention-days: 7
