@@ -1,0 +1,136 @@
+{
+  "productId": "ynx-video",
+  "name": "YNX Video",
+  "branch": "codex/final-video",
+  "sourceCommit": "e5ce33550bbd8a4be09a55a6bb3dd73cd3cb8833",
+  "version": "0.3.0-standard-wallet-candidate.1",
+  "surfaces": ["web", "android", "ios-source"],
+  "implementedLocal": true,
+  "testedLocal": true,
+  "installedLocal": false,
+  "migrationVerified": true,
+  "restoreVerified": true,
+  "restoreVerificationScope": "current-source CLI against a minimal initialized local schema-v2 store; not production or populated media-object recovery",
+  "integratedCentral": false,
+  "testnetVerified": false,
+  "deployedStaging": false,
+  "deployedPublic": false,
+  "releasePublished": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "publicUrls": ["https://web4.ynxweb4.com/video/"],
+  "healthUrls": ["https://web4.ynxweb4.com/video/api/health"],
+  "artifactUrls": [],
+  "standardWallet": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "acceptedSdkSource": "315897e75c0ffe3e63435fe73cfec42244b851cc",
+    "protocolSource": "66003e76e804da16d472255efde50cb879055b96",
+    "discovery": "EIP-6963 with YNX Wallet preference and injected EIP-1193 fallback",
+    "chain": "0x1917",
+    "accountFormat": "0x EVM account only",
+    "ynxWalletDownload": "https://www.ynxweb4.com/dapp/download",
+    "metaMaskDownload": "https://metamask.io/download/",
+    "actualProviderApprovalVerified": false,
+    "installedClientVerified": false,
+    "computerControlVerified": false
+  },
+  "productSession": {
+    "version": "v2-required",
+    "implementedLocal": false,
+    "deployedPublic": false,
+    "state": "PRIVATE_SERVICE_DEGRADED",
+    "legacyV1Accepted": false,
+    "fabricatedFallback": false
+  },
+  "currentPublicRuntime": {
+    "url": "https://web4.ynxweb4.com/video/",
+    "sourceForThisCandidateVerified": false,
+    "standardWalletCandidateDeployed": false
+  },
+  "sourceIntegrity": {
+    "stateSchemaVersion": 2,
+    "mediaVariantIntegrity": true,
+    "coveredAssets": ["hls-playlist", "hls-segment", "original-fallback"],
+    "fields": ["bytes", "sha256", "lineage", "source_object_key", "source_sha256"]
+  },
+  "historicalArtifacts": {
+    "sourceCommit": "b29745c884a1271bf5b01a0cde47b07653fb7371",
+    "currentForSourceCommit": false,
+    "sha256": {
+      "androidDebugApk": "c8df63b4b19c0071548487034fe01c1804c78b65ffea18990affd27c7e2b61fe",
+      "ownedTestMedia": "be414db1d01558b11c7592b7d4dc69d0fee8da158997dc477e2fdaf6b9e3ee39",
+      "iosSimulatorZip": "265a045cfa0b80af0a240388e95b49f4adfb75b1ff0ffd23de6c7aed09fc2baf"
+    },
+    "bytes": {
+      "androidDebugApk": 32401,
+      "ownedTestMedia": 12525,
+      "iosSimulatorZip": 240734
+    },
+    "signingClass": "Android debug/test key; iOS ad-hoc/linker-signed Simulator build",
+    "installEvidence": {
+      "android": "docs/handoffs/video-evidence/android-final/",
+      "ios": "GitHub Actions run 29658077678 and docs/handoffs/video-evidence/ios-feasibility.txt",
+      "boundary": "Historical Android API 36 emulator and iOS Simulator evidence only; no current-source install, physical device or production signing"
+    }
+  },
+  "minOS": {"androidApi": 26, "ios": "17.0"},
+  "localVerification": {
+    "verificationCommit": "e5ce33550bbd8a4be09a55a6bb3dd73cd3cb8833",
+    "verifiedAt": "2026-08-20T18:52:00Z",
+    "commands": [
+      "go test ./internal/video/...",
+      "go test -race ./internal/video/...",
+      "go vet ./internal/video/...",
+      "npm --prefix apps/video run check",
+      "npm --prefix apps/video run smoke"
+    ],
+    "result": "passed",
+    "walletUnitTests": "4/4",
+    "browserVisible": true,
+    "browserVisibleScope": "Deterministic local EIP-6963 approve/reject provider only; not a real installed Wallet or public runtime",
+    "computerControl": false
+  },
+  "p0WalletConnectivity": {
+    "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+    "taskId": "P0-077",
+    "acceptedSourceCommit": "1d4532ffca4eabdc15f2ec66f3d1143f67e159fa",
+    "verificationCommit": "b851ffb2a0563ff992e47f76eeac23c21ab11fd8",
+    "evidence": "apps/video/release/evidence/p0-077/video-standard-wallet-visible-evidence.json",
+    "deterministicProviderLifecycleVisible": true,
+    "realInstalledWalletProviderVerified": false,
+    "guestPlaybackIndependent": true,
+    "privateVideoService": "PRIVATE_SERVICE_DEGRADED",
+    "productSessionV2Migrated": false,
+    "deployedPublicCurrentSource": false,
+    "publicVerifiedCurrentSource": false,
+    "computerControl": false,
+    "integratedCentral": false
+  },
+  "recoveryEvidence": {
+    "path": "docs/handoffs/video-evidence/backup-restore-20260729.txt",
+    "backupSeconds": 0.47,
+    "restoreSeconds": 1.15,
+    "stateSHA256": "d10b2e736c2e0ae632bd44853d1bfee71a2699dce1dca07e8677c0e98abf1774",
+    "archiveSHA256": "88fc291cc41a7a5499b0c2132b02d4b3e524556b92e0917a3bbe3e5e4faf4f50",
+    "restoredStoreReopened": true,
+    "productionBoundary": false
+  },
+  "centralIntegration": {
+    "status": "integration-request-only",
+    "contract": "release/integration/video-contract.json",
+    "registryCandidate": "internal/video/integration/registry-v2.json",
+    "gatewayManifest": "internal/video/integration/appgateway-video-manifest.json"
+  },
+  "knownLimitations": [
+    "No current-source Android or iOS artifact/install evidence",
+    "Standard Wallet source is implemented and tested, but no actual provider approval or installed-client lifecycle has been visibly verified",
+    "Product Session v2 is not public, so authenticated viewer and creator actions fail closed while guest playback remains available",
+    "Public service is a single-host Testnet preview, not a production worker fleet or HA streaming deployment",
+    "No production durable object store or worker fleet evidence",
+    "No production signing, physical-device, TestFlight, Play or store release",
+    "No live provider AI, Trust delegated appeal, Pay settlement or revenue"
+  ],
+  "generatedAt": "2026-08-04T01:32:00Z"
+}
