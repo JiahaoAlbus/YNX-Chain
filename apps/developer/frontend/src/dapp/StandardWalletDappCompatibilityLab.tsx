@@ -16,6 +16,17 @@ import type { StandardWalletConnectState } from "../../../vendor/wallet-auth/src
 
 const initialTransaction: TestnetTransactionRequest = { to: "", value: "", data: "" };
 
+function WalletIdentityMark({ kind }: { kind: "ynx-wallet" | "metamask" }) {
+  const ynx = kind === "ynx-wallet";
+  return (
+    <span aria-label={ynx ? "YNX Wallet identity mark" : "MetaMask identity mark"} role="img" title={ynx ? "YNX Wallet" : "MetaMask"} style={{ display: "inline-flex", width: 22, height: 22, verticalAlign: "middle", marginRight: 6 }}>
+      <svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22">
+        {ynx ? <><path fill="#2453d4" d="M12 1 23 12 12 23 1 12Z" /><path fill="#fff" d="M7 7h3l2 4 2-4h3l-5 10h-1L7 7Z" /></> : <><path fill="#f6851b" d="m12 1 10 6v10l-10 6L2 17V7l10-6Z" /><path fill="#fff" d="M6.5 17V7h2.2l3.3 4.8L15.3 7h2.2v10h-2V10.6l-3.5 5h-.6l-3.5-5V17h-2Z" /></>}
+      </svg>
+    </span>
+  );
+}
+
 /** A visible, executable consumer lab. It never turns its test responses into runtime claims. */
 export function StandardWalletDappCompatibilityLab() {
   const [choices, setChoices] = useState<readonly DeveloperWebWalletChoice[]>([]);
@@ -90,9 +101,9 @@ export function StandardWalletDappCompatibilityLab() {
       <summary>DAPP COMPATIBILITY LAB</summary>
       <div className="wallet-boundary">
         <b>Third-party standard Wallet entry point</b>
-        <p>YNX Wallet and MetaMask are independently discovered EIP-6963/EIP-1193 providers. Their identity is text-only and explicit; no YNX asset is used as a MetaMask identity.</p>
+        <p>YNX Wallet and MetaMask are independently discovered EIP-6963/EIP-1193 providers. Their visible identity marks and names are distinct; the MetaMask marker is an original neutral identifier, not a copied MetaMask logo, and no YNX asset is used as MetaMask identity.</p>
         {choices.length ? (
-          <p>{choices.map((choice) => <Button key={choice.kind} variant="ghost" onClick={() => connect(choice.kind)}>{`Connect ${choice.label}`}</Button>)}</p>
+          <p>{choices.map((choice) => <Button key={choice.kind} variant="ghost" onClick={() => connect(choice.kind)}><WalletIdentityMark kind={choice.kind} />{`Connect ${choice.label}`}</Button>)}</p>
         ) : <p>No provider is selected automatically. Install YNX Wallet or MetaMask to run a real browser flow.</p>}
         {connection?.status === "connected" && <Button variant="ghost" onClick={disconnect}>Disconnect this app</Button>}
         <p>{status}</p>

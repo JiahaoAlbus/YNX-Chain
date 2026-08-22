@@ -9,31 +9,31 @@
  */
 export const DAPP_COMPATIBILITY_PROFILES = Object.freeze([
   Object.freeze({
-    id: "ynx-developer-first-party",
+    id: "ynx-first-party",
     audience: "First-party",
     title: "YNX Developer workspace",
     description: "Connect a selected standard provider to YNX Testnet. No signature or transaction is requested by this profile.",
     operation: "connect",
   }),
   Object.freeze({
-    id: "external-message-board",
+    id: "uniswap-interface-reference",
     audience: "External standard DApp",
-    title: "Message board profile",
-    description: "Uses personal_sign on the selected real provider after the DApp explicitly requests a message signature.",
+    title: "Uniswap Interface reference profile",
+    description: "Unaffiliated standard-EVM compatibility profile. Uses personal_sign on the selected real provider after the DApp explicitly requests a message signature.",
     operation: "personal_sign",
   }),
   Object.freeze({
-    id: "external-permit-review",
+    id: "opensea-reference",
     audience: "External standard DApp",
-    title: "Typed-data review profile",
-    description: "Uses eth_signTypedData_v4 for a readable, YNX-Testnet-bound typed-data request.",
+    title: "OpenSea reference profile",
+    description: "Unaffiliated standard-EVM compatibility profile. Uses eth_signTypedData_v4 for a readable, YNX-Testnet-bound typed-data request.",
     operation: "eip712",
   }),
   Object.freeze({
-    id: "external-testnet-transfer",
+    id: "safe-reference",
     audience: "External standard DApp",
-    title: "Testnet transaction profile",
-    description: "Sends a transaction only when the user has supplied every transaction field and confirms it in their Wallet.",
+    title: "Safe reference profile",
+    description: "Unaffiliated standard-EVM compatibility profile. Sends a transaction only when the user has supplied every transaction field and confirms it in their Wallet.",
     operation: "send_transaction",
   }),
   Object.freeze({

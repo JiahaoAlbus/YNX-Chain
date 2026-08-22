@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
-import { access, mkdtemp, rm } from "node:fs/promises";
+import { access, mkdtemp, readFile, rm } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -251,6 +251,11 @@ test("C, JavaScript, TypeScript, Python and Go use real installed runtimes", asy
     assert.match(value.output, expected);
     assert.equal(value.sandbox.network, false);
   }
+});
+test("Go execution is constrained to one reviewed scheduler processor in the bounded cloud sandbox", async () => {
+  const source = await readFile(new URL("../src/runtime.mjs", import.meta.url), "utf8");
+  assert.match(source, /args: \["run", "-p", "1", file\], environment: \{ GOMAXPROCS: "1" \}/);
+  assert.match(source, /args: \["test", "-p", "1",[\s\S]{0,300}environment: \{ GOMAXPROCS: "1" \}/);
 });
 test("project tests are discovered, one-time approved and run without network", async (t) => {
   const junitJar = process.env.YNX_CODE_JUNIT_CONSOLE_JAR || "/usr/local/share/ynx-code/junit-platform-console-standalone.jar",

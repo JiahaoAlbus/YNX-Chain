@@ -705,7 +705,10 @@ async function taskSpec(path, workspace, files) {
       language: "go",
       compiler,
       version: await version(compiler),
-      phases: [{ label: "run", command: compiler, args: ["run", "-p", "1", file] }],
+      // The reviewed cloud runner reserves a small process/thread envelope.
+      // Go's compiler otherwise sizes itself from host CPUs and can exhaust
+      // that envelope before the user's single-file program begins.
+      phases: [{ label: "run", command: compiler, args: ["run", "-p", "1", file], environment: { GOMAXPROCS: "1" } }],
     };
   }
   if (extension === ".rs") {
@@ -860,7 +863,7 @@ async function projectTestSpec(workspace, files) {
         command,
         args: ["test", "-p", "1", ...sources.map((path) => safeJoin(workspace, path))],
         timeout: 90_000,
-        environment: { GOMAXPROCS: "2" },
+        environment: { GOMAXPROCS: "1" },
       });
     }
   }
