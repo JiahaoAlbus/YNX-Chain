@@ -51,6 +51,17 @@ test("refresh restore uses eth_accounts and chain outcome without reopening choo
   assert.equal(noAccount.status, STANDARD_WALLET_CONNECT_STATUS.DISCONNECTED);
 });
 
+test("WalletConnect EIP-1193 transport uses the same account, chain and private-service isolation state machine", () => {
+  let value = createStandardWalletConnectState();
+  value = reduce(value, "BEGIN", { pendingIntent: INTENT });
+  value = reduce(value, "PROVIDER_SELECTED", { providerKind: "walletconnect" });
+  value = reduce(value, "ACCOUNT_APPROVED", { account: ACCOUNT });
+  value = reduce(value, "CHAIN_CONFIRMED", { chainId: "0x1917" });
+  assert.equal(value.status, STANDARD_WALLET_CONNECT_STATUS.CONNECTED);
+  assert.equal(value.providerKind, "walletconnect");
+  assert.equal(reduce(value, "PRIVATE_SESSION_DEGRADED", { code: "GATEWAY_UNAVAILABLE" }).status, STANDARD_WALLET_CONNECT_STATUS.CONNECTED);
+});
+
 test("Product Session degradation never blocks or reopens Standard Wallet success", () => {
   const standard = connected();
   const connecting = reduce(standard, "PRIVATE_SESSION_CONNECTING");

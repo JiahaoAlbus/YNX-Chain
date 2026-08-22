@@ -678,6 +678,29 @@ test("owner checkpoint separates Wallet public artifacts from approval and Produ
   assert.equal(platform.macosDmg.developerId, false);
   assert.equal(platform.macosDmg.rollbackVerified, false);
   assert.equal(platform.macosDmg.productionSigned, false);
+  assert.equal(platform.latestMacosOwnerEvidence.quarantineTranslocation.commit, "8133b1ca9aa77dd52b17818c784303c96b9c53e5");
+  assert.equal(platform.latestMacosOwnerEvidence.quarantineTranslocation.visibleQuarantinedLaunch, false);
+  assert.equal(platform.latestMacosOwnerEvidence.browserDownloadFailure.actualBrowserDownload, false);
+  assert.equal(platform.latestMacosOwnerEvidence.browserDownloadFailure.browserQuarantineAcceptance, false);
+  assert.equal(platform.latestMacosOwnerEvidence.keychainRoundTrip.addReadDeleteVerified, true);
+  assert.equal(platform.latestMacosOwnerEvidence.keychainRoundTrip.authorization, false);
+  assert.equal(platform.latestMacosOwnerEvidence.lockedStateBackreadLimitation.actualLockedDeviceReadDeniedVerified, false);
   assert.equal(platform.modifiedByProtocolOwner, false);
   assert.equal(ownerActivityCheckpoint.summary.threeSegmentCompleteProducts, 0);
+});
+
+test("Central released Finance and Explorer paths plus P0-150 parity are tracked without creating a lease or product completion", () => {
+  assert.deepEqual(ownerActivityCheckpoint.centralP0145P0146, {
+    commit: "4556da2ea6dac6e11c7c62a4f53b542ea1556081",
+    finance: "SOURCE_BUILD_ACCEPTED_LEASE_RELEASED_AWAITING_PRODUCTION_BINDING",
+    explorer: "DEPLOYMENT_REJECTED_ARTIFACT_INTEGRITY_ACCEPTED_LEASE_RELEASED",
+    heavyOwner: null, lightOwner: null, pathsReleasedAndNotWritable: true,
+    leaseIssuedByProtocolOwner: false, publicOrProductCompletionPromoted: false,
+  });
+  assert.equal(ownerActivityCheckpoint.products.find(({ productId }) => productId === "finance").centralStatus, "SOURCE_BUILD_ACCEPTED_LEASE_RELEASED_AWAITING_PRODUCTION_BINDING");
+  assert.equal(auditV3.centralP0145P0146.publicOrProductCompletionPromoted, false);
+  assert.equal(auditV3.standardWalletParityConformance.centralP0150.commit, "f92757f7491c3e28106664aacc2066663bbd52bb");
+  assert.equal(auditV3.standardWalletParityConformance.fixtureOnly, true);
+  assert.equal(auditV3.standardWalletParityConformance.externalDappDirectRuntimeCount, 0);
+  assert.equal(auditV3.standardWalletParityConformance.productsConnected, 0);
 });
