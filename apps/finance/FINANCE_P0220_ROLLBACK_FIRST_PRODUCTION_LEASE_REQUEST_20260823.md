@@ -4,7 +4,7 @@
 
 ## Fixed source and isolated-preflight provenance
 
-- reviewed command checkpoint: `2b6c898f285469d09379ef3153b4c7d4411d0ab3` / tree `043d2235ef9f3d13145bdb6969037abaacc326d9`; this successor request is deliberately a separate, non-self-referential handoff commit;
+- reviewed command checkpoint: `a80c043798b1e690fc68605de7b11e75333c751f` / tree `3e74f0d54da610960c7408c99e6203ebb59a5069`; this successor request is deliberately a separate, non-self-referential handoff commit;
 - runtime source: `7824af677dd052d20321431381523ab302614d98`;
 - Linux amd64 archive: SHA-256 `d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d`, 3,937,491 bytes;
 - `ynx-finance` Linux amd64 binary: SHA-256 `cccdae8ae5b5f694ca7db68540da30582564ff741978e616f7435d448a20fe3e`, 8,573,112 bytes;
