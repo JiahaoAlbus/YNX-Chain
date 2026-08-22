@@ -34,6 +34,7 @@ const actionCallbackStore=await readFile(new URL("../src/protocol/actionCallback
 const controls=await readFile(new URL("../src/control/controlSurface.ts",import.meta.url),"utf8");
 const controlCopy=await readFile(new URL("../src/control/controlCopy.ts",import.meta.url),"utf8");
 const androidGradle=await readFile(new URL("../android/app/build.gradle",import.meta.url),"utf8");
+const androidProguard=await readFile(new URL("../android/app/proguard-rules.pro",import.meta.url),"utf8");
 const androidActivity=await readFile(new URL("../android/app/src/main/java/com/ynxweb4/wallet/MainActivity.kt",import.meta.url),"utf8");
 const androidManifest=await readFile(new URL("../android/app/src/main/AndroidManifest.xml",import.meta.url),"utf8");
 const androidApplication=await readFile(new URL("../android/app/src/main/java/com/ynxweb4/wallet/MainApplication.kt",import.meta.url),"utf8");
@@ -160,6 +161,7 @@ assert.equal(walletPackage.dependencies["@walletconnect/react-native-compat"],"2
 assert.equal(walletPackage.dependencies["react-native-webview"],"13.16.1","DApp Browser must use the exact Expo-reviewed WebView release");
 assert.equal(walletPackage.scripts.postinstall,"node scripts/patch-android-native-modules.mjs","the exact native Android compatibility patch must run after every clean install");
 for(const required of ['react-native-webview 13.16.1','@walletconnect/react-native-compat 2.23.10','react-native-safe-area-context 5.7.0','gradle:7.0.4','gradle:7.2.1','gradle:7.3.1','matches !== 1','root Expo/RN Android Gradle Plugin','Android source changed'])assert.ok(androidNativeModulePatch.includes(required),`native Android compatibility patch must remain exact and fail closed: ${required}`);
+assert.equal(androidProguard.split("-dontwarn java.awt.Component").length-1,1,"R8 may suppress only WalletConnect JNA's exact desktop-only AWT reference");
 for(const required of ['sourceCommit:"98c6d5d784d212df8981a53b17118a511e246ad2"','sourceTree:"51a60a362d4ad5dd748bcdefb101f71b1d9e0cee"','evidenceCommit:"c3ab255c32bdeb9c8e056882c315f8ad43c29c7f"','YNX_EVM_CHAIN_QUANTITY="0x1917"','YNX_EVM_CAIP2="eip155:6423"','value!=="walletconnect-v2"&&value!=="dapp-browser"','productSession:false','privateService:"not-requested"','"personal_sign"','"eth_signTypedData_v4"','"eth_sendTransaction"'])assert.ok(eip1193Provider.includes(required),`standard Wallet provider core must retain ${required}`);
 for(const required of ['assertRequestActive(request,now());boundary.assertActive();await boundary.authorize(request.method)','const secret=await boundary.readAccountSecret(request.account)','const result=signApprovedEip1193Request(request,secret)','finally{secret.fill(0)}'])assert.ok(eip1193Provider.includes(required),`DApp signing must retain the ordered approval/secret boundary through ${required}`);
 assert.equal(eip1193Provider.includes("Gateway"),false,"standard EIP-1193 Wallet authority must remain independent from Gateway/Product Session services");

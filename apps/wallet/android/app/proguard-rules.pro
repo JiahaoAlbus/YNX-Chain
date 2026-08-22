@@ -12,3 +12,7 @@
 -keep class com.facebook.react.turbomodule.** { *; }
 
 # Add any project specific keep options here:
+
+# WalletConnect's Android JNA dependency retains a desktop-only overload. The
+# Android runtime never supplies java.awt, so suppress only that exact class.
+-dontwarn java.awt.Component
