@@ -18,6 +18,8 @@
 		A50000000000000000000002 /* WalletConnectV2Policy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A50000000000000000000005 /* WalletConnectV2Policy.swift */; };
 		A60000000000000000000001 /* WalletConnectV2StateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A60000000000000000000005 /* WalletConnectV2StateStore.swift */; };
 		A60000000000000000000002 /* WalletConnectV2StateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A60000000000000000000005 /* WalletConnectV2StateStore.swift */; };
+		A70000000000000000000001 /* WalletConnectInboundPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A70000000000000000000005 /* WalletConnectInboundPolicy.swift */; };
+		A70000000000000000000002 /* WalletConnectInboundPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A70000000000000000000005 /* WalletConnectInboundPolicy.swift */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
@@ -44,6 +46,7 @@
 		A40000000000000000000004 /* central-registry.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = central-registry.json; path = ../../../packages/wallet-auth/central-registry.json; sourceTree = SOURCE_ROOT; };
 		A50000000000000000000005 /* WalletConnectV2Policy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = WalletConnectV2Policy.swift; path = ../macos/Sources/YNXWalletMacCore/WalletConnectV2Policy.swift; sourceTree = SOURCE_ROOT; };
 		A60000000000000000000005 /* WalletConnectV2StateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = WalletConnectV2StateStore.swift; path = ../macos/Sources/YNXWalletMacCore/WalletConnectV2StateStore.swift; sourceTree = SOURCE_ROOT; };
+		A70000000000000000000005 /* WalletConnectInboundPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = WalletConnectInboundPolicy.swift; path = YNXWallet/WalletConnectInboundPolicy.swift; sourceTree = SOURCE_ROOT; };
 		13B07F961A680F5B00A75B9A /* YNXWallet.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = YNXWallet.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = YNXWallet/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = YNXWallet/Info.plist; sourceTree = "<group>"; };
@@ -91,6 +94,7 @@
 				A40000000000000000000004 /* central-registry.json */,
 				A50000000000000000000005 /* WalletConnectV2Policy.swift */,
 				A60000000000000000000005 /* WalletConnectV2StateStore.swift */,
+				A70000000000000000000005 /* WalletConnectInboundPolicy.swift */,
 				F11748442D0722820044C1D9 /* YNXWallet-Bridging-Header.h */,
 				BB2F792B24A3F905000567C9 /* Supporting */,
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
@@ -319,6 +323,7 @@
 				A20000000000000000000002 /* InboundLinkPolicy.swift in Sources */,
 				A50000000000000000000002 /* WalletConnectV2Policy.swift in Sources */,
 				A60000000000000000000002 /* WalletConnectV2StateStore.swift in Sources */,
+				A70000000000000000000002 /* WalletConnectInboundPolicy.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -332,6 +337,7 @@
 				A40000000000000000000001 /* AuthorizationRequestPolicy.swift in Sources */,
 				A50000000000000000000001 /* WalletConnectV2Policy.swift in Sources */,
 				A60000000000000000000001 /* WalletConnectV2StateStore.swift in Sources */,
+				A70000000000000000000001 /* WalletConnectInboundPolicy.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -406,6 +412,7 @@
 				VERSIONING_SYSTEM = "apple-generic";
 				TARGETED_DEVICE_FAMILY = "1,2";
 				CODE_SIGN_ENTITLEMENTS = YNXWallet/YNXWallet.entitlements;
+				YNX_WALLETCONNECT_PROJECT_ID = "";
 			};
 			name = Debug;
 		};
@@ -435,6 +442,7 @@
 				VERSIONING_SYSTEM = "apple-generic";
 				TARGETED_DEVICE_FAMILY = "1,2";
 				CODE_SIGN_ENTITLEMENTS = YNXWallet/YNXWallet.entitlements;
+				YNX_WALLETCONNECT_PROJECT_ID = "";
 			};
 			name = Release;
 		};

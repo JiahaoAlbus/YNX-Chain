@@ -300,6 +300,64 @@ final class MalformedCallbackUITests: XCTestCase {
     ))
   }
 
+  func testWalletConnectCallbackFailsClosedWithoutProjectID() throws {
+    let now = Date(timeIntervalSince1970: 1_900_000_000)
+    let topic = String(repeating: "a", count: 64)
+    let symKey = String(repeating: "b", count: 64)
+    let uri = "wc:\(topic)@2?symKey=\(symKey)&relay-protocol=irn&expiryTimestamp=2000000000"
+    let encoded = uri.addingPercentEncoding(withAllowedCharacters: .alphanumerics)!
+    let callback = "ynxwallet://wc?uri=\(encoded)"
+    XCTAssertEqual(
+      NativeWalletConnectInboundPolicy.evaluate(callback, projectID: nil, now: now),
+      .rejected(code: "WALLETCONNECT_PROJECT_ID_UNAVAILABLE")
+    )
+    XCTAssertEqual(
+      NativeWalletConnectInboundPolicy.evaluate(
+        callback,
+        projectID: "0123456789abcdef0123456789abcdef",
+        now: now
+      ),
+      .rejected(code: "WALLETCONNECT_RELAY_UNAVAILABLE")
+    )
+    XCTAssertEqual(
+      NativeWalletConnectInboundPolicy.evaluate("ynxwallet://authorize?request=invalid", projectID: nil),
+      .notWalletConnect
+    )
+
+    let wallet = XCUIApplication()
+    wallet.launch()
+    FileHandle.standardError.write(Data("YNX_WALLET_WALLETCONNECT_UI_READY_FOR_SIMCTL_OPENURL\n".utf8))
+
+    let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+    let openButton = springboard.buttons["Open"]
+    let rejection = wallet.alerts["WalletConnect unavailable"]
+    let deadline = Date().addingTimeInterval(60)
+    var deliveryMode: String?
+    while Date() < deadline {
+      if rejection.exists {
+        deliveryMode = "direct-after-prior-scheme-confirmation"
+        break
+      }
+      if openButton.exists {
+        openButton.tap()
+        deliveryMode = "system-confirmed"
+        break
+      }
+      RunLoop.current.run(until: Date().addingTimeInterval(0.25))
+    }
+    XCTAssertNotNil(deliveryMode, "WalletConnect callback was not delivered through a semantic system action")
+    XCTAssertTrue(rejection.waitForExistence(timeout: 45))
+    XCTAssertTrue(wallet.staticTexts["WALLETCONNECT_PROJECT_ID_UNAVAILABLE"].exists)
+    XCTAssertTrue(wallet.buttons["Dismiss"].exists)
+    let screenshot = XCTAttachment(screenshot: wallet.screenshot())
+    screenshot.name = "walletconnect-project-id-relay-fail-closed"
+    screenshot.lifetime = .keepAlways
+    add(screenshot)
+    FileHandle.standardError.write(Data(
+      "YNX_WALLET_WALLETCONNECT_CALLBACK_VISIBLE projectID=false relay=false pairing=false approval=false delivery=\(deliveryMode ?? "unavailable")\n".utf8
+    ))
+  }
+
   func testUniversalLinkRemainsFailClosedWithoutFrozenAssociatedDomain() throws {
     XCTAssertFalse(InboundLinkPolicy.associatedDomainFrozen)
     XCTAssertEqual(

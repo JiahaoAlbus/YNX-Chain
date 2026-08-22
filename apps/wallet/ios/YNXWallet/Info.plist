@@ -46,6 +46,8 @@
     </dict>
     <key>NSFaceIDUsageDescription</key>
     <string>YNX Wallet uses Face ID to unlock keys and approve exact requests.</string>
+    <key>YNXWalletConnectProjectID</key>
+    <string>$(YNX_WALLETCONNECT_PROJECT_ID)</string>
     <key>UILaunchStoryboardName</key>
     <string>SplashScreen</string>
     <key>UIRequiredDeviceCapabilities</key>

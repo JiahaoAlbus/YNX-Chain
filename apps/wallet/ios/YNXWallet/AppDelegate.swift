@@ -143,15 +143,25 @@ class AppDelegate: ExpoAppDelegate {
     options: [UIApplication.OpenURLOptionsKey: Any] = [:]
   ) -> Bool {
     walletCallbackLogger.notice("YNX_WALLET_CALLBACK_RECEIVED pid=\(getpid(), privacy: .public) scheme=\(url.scheme ?? "unknown", privacy: .public)")
+    let configuredProjectID = Bundle.main.object(forInfoDictionaryKey: "YNXWalletConnectProjectID") as? String
+    let projectID = configuredProjectID?.isEmpty == false ? configuredProjectID : nil
+    switch NativeWalletConnectInboundPolicy.evaluate(url.absoluteString, projectID: projectID) {
+    case .rejected(let code):
+      walletCallbackLogger.notice("YNX_WALLET_WALLETCONNECT_REJECTED pid=\(getpid(), privacy: .public) code=\(code, privacy: .public) relay=false pairing=false approval=false callbackEmitted=false")
+      presentNativeRejection(title: "WalletConnect unavailable", code: code, walletConnect: true)
+      return true
+    case .notWalletConnect:
+      break
+    }
     switch NativeAuthorizationPolicy.evaluate(url.absoluteString) {
     case .rejected(let code):
       walletCallbackLogger.notice("YNX_WALLET_NATIVE_AUTHORIZATION_REJECTED pid=\(getpid(), privacy: .public) code=\(code, privacy: .public) authorizationSuccess=false signing=false callbackEmitted=false")
-      presentNativeAuthorizationRejection(code: code)
+      presentNativeRejection(title: "Request rejected", code: code, walletConnect: false)
       return true
     }
   }
 
-  private func presentNativeAuthorizationRejection(code: String) {
+  private func presentNativeRejection(title: String, code: String, walletConnect: Bool) {
     DispatchQueue.main.async { [weak self] in
       guard let root = self?.window?.rootViewController else {
         walletCallbackLogger.error("YNX_WALLET_NATIVE_AUTHORIZATION_UI_UNAVAILABLE pid=\(getpid(), privacy: .public) code=\(code, privacy: .public)")
@@ -160,14 +170,18 @@ class AppDelegate: ExpoAppDelegate {
       var presenter = root
       while let presented = presenter.presentedViewController { presenter = presented }
       let alert = UIAlertController(
-        title: "Request rejected",
+        title: title,
         message: code,
         preferredStyle: .alert
       )
       alert.view.accessibilityIdentifier = "YNX native authorization rejection"
       alert.addAction(UIAlertAction(title: "Dismiss", style: .default))
       presenter.present(alert, animated: false) {
-        walletCallbackLogger.notice("YNX_WALLET_NATIVE_AUTHORIZATION_UI_VISIBLE pid=\(getpid(), privacy: .public) code=\(code, privacy: .public)")
+        if walletConnect {
+          walletCallbackLogger.notice("YNX_WALLET_WALLETCONNECT_UI_VISIBLE pid=\(getpid(), privacy: .public) code=\(code, privacy: .public) relay=false pairing=false approval=false")
+        } else {
+          walletCallbackLogger.notice("YNX_WALLET_NATIVE_AUTHORIZATION_UI_VISIBLE pid=\(getpid(), privacy: .public) code=\(code, privacy: .public)")
+        }
       }
     }
   }

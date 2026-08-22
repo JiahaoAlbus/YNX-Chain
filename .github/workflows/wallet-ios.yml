@@ -333,6 +333,46 @@ jobs:
             proof/ci-ios/walletconnect-native-state-xctest.log
           grep -F "Test Case '-[YNXWalletUITests.MalformedCallbackUITests testWalletConnectPendingDecisionsRestoreAndFailClosedWithoutRelay]' passed" \
             proof/ci-ios/walletconnect-native-state-xctest.log
+      - name: Deliver canonical WalletConnect callback and prove missing relay inputs fail closed
+        timeout-minutes: 15
+        working-directory: apps/wallet
+        run: |
+          set -euo pipefail
+          DEVICE="$(xcrun simctl list devices booted | awk -F '[()]' '/iPhone/{print $2; exit}')"
+          test -n "$DEVICE"
+          CALLBACK='ynxwallet://wc?uri=wc%3Aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa%402%3FsymKey%3Dbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb%26relay-protocol%3Dirn%26expiryTimestamp%3D2000000000'
+          xcodebuild test \
+            -workspace ios/YNXWallet.xcworkspace \
+            -scheme YNXWallet \
+            -configuration Release \
+            -destination "platform=iOS Simulator,id=$DEVICE" \
+            -only-testing:YNXWalletUITests/MalformedCallbackUITests/testWalletConnectCallbackFailsClosedWithoutProjectID \
+            -resultBundlePath proof/ci-ios/WalletConnectCallbackFailClosed.xcresult \
+            2>&1 | tee proof/ci-ios/walletconnect-callback-fail-closed-xctest.log &
+          XCODEBUILD_PID=$!
+          READY=false
+          for _ in $(seq 1 240); do
+            if grep -Fq 'YNX_WALLET_WALLETCONNECT_UI_READY_FOR_SIMCTL_OPENURL' proof/ci-ios/walletconnect-callback-fail-closed-xctest.log; then
+              READY=true
+              break
+            fi
+            if ! kill -0 "$XCODEBUILD_PID" 2>/dev/null; then break; fi
+            sleep 1
+          done
+          test "$READY" = true
+          xcrun simctl openurl "$DEVICE" "$CALLBACK" | tee proof/ci-ios/walletconnect-callback-openurl.txt
+          wait "$XCODEBUILD_PID"
+          grep -E 'YNX_WALLET_WALLETCONNECT_CALLBACK_VISIBLE projectID=false relay=false pairing=false approval=false delivery=(direct-after-prior-scheme-confirmation|system-confirmed)' \
+            proof/ci-ios/walletconnect-callback-fail-closed-xctest.log
+          xcrun simctl spawn "$DEVICE" log show --style compact --last 10m \
+            --predicate 'subsystem == "com.ynxweb4.wallet" AND category == "callback"' \
+            2>&1 | tee proof/ci-ios/walletconnect-callback-native.log
+          grep -E 'YNX_WALLET_WALLETCONNECT_REJECTED pid=[0-9]+ code=WALLETCONNECT_PROJECT_ID_UNAVAILABLE relay=false pairing=false approval=false callbackEmitted=false' \
+            proof/ci-ios/walletconnect-callback-native.log
+          grep -E 'YNX_WALLET_WALLETCONNECT_UI_VISIBLE pid=[0-9]+ code=WALLETCONNECT_PROJECT_ID_UNAVAILABLE relay=false pairing=false approval=false' \
+            proof/ci-ios/walletconnect-callback-native.log
+          grep -F "Test Case '-[YNXWalletUITests.MalformedCallbackUITests testWalletConnectCallbackFailsClosedWithoutProjectID]' passed" \
+            proof/ci-ios/walletconnect-callback-fail-closed-xctest.log
       - name: Prove Universal Link remains fail-closed without a frozen associated domain
         timeout-minutes: 10
         working-directory: apps/wallet
