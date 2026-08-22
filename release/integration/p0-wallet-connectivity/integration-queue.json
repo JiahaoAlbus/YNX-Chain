@@ -6647,6 +6647,31 @@
       "prewriteStateInodeDrift": "64770:1324592->64770:1327740",
       "productionMutation": false,
       "nextAction": "Do not reuse P0-186. A successor must capture the live inode immediately before stopping the service, then freeze and verify the paired state/key snapshot after stop while binding content/security metadata."
+    },
+    {
+      "taskId": "P0-187",
+      "owner": "integration,wallet-web,website",
+      "status": "ACTIVE_SINGLE_USE",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/leases/wallet-web-v11-service-worker-lifecycle-preflight-p0187-20260822.json",
+        ".github/workflows/wallet-web-public-preflight-p0.yml",
+        "vercel-project:prj_K4emrdkST7sdb0K9mhmLM0QZh0I3:ssoProtection"
+      ],
+      "dependencies": ["P0-185"],
+      "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-web-v11-service-worker-lifecycle-preflight-20260822T113300Z",
+      "expiresAt": "2026-08-22T12:03:00Z",
+      "releasedAt": null,
+      "source": "7df37ca32a643a403bd23a7f555354261f789441",
+      "ownerRemoteParent": "33b39740d9dec995c642640392c0323e19a9c03c",
+      "candidateDeployment": "dpl_EhSHsjrfQ17dzuTegLCqGvELeBte",
+      "candidateImmutableUrl": "https://wallet-3re0s0lx4-jiahaoalbus-projects.vercel.app",
+      "aliasMutationAllowed": false,
+      "workflowCommitAllowedExactlyOnce": true,
+      "hostedRunAllowedExactlyOnce": true,
+      "ssoRestoreRequired": true,
+      "currentSourceBoundPublic": false,
+      "productsConnected": "0/12",
+      "nextAction": "Freeze/review one sole-path workflow commit, execute one ordered SSO window and hosted lifecycle run, restore SSO, then return direct evidence or fail closed."
     }
   ]
 }
