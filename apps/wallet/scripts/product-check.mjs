@@ -17,7 +17,9 @@ const canonicalCallerMigration=JSON.parse(canonicalCallerMigrationBytes.toString
 const sha256=(bytes)=>createHash("sha256").update(bytes).digest("hex");
 
 const config=JSON.parse(await readFile(new URL("../app.json",import.meta.url),"utf8")).expo;
+const walletPackage=JSON.parse(await readFile(new URL("../package.json",import.meta.url),"utf8"));
 const source=await readFile(new URL("../App.tsx",import.meta.url),"utf8");
+const eip1193Provider=await readFile(new URL("../src/dapp/eip1193Provider.ts",import.meta.url),"utf8");
 const i18n=await readFile(new URL("../src/i18n/i18n.ts",import.meta.url),"utf8");
 const audit=await readFile(new URL("../src/protocol/authorizationAudit.ts",import.meta.url),"utf8");
 const nonceReplayStore=await readFile(new URL("../src/protocol/replayStore.ts",import.meta.url),"utf8");
@@ -145,6 +147,10 @@ for(const required of ['MUTATION_KEY = "ynx.wallet.mutation.v1"','beginMutation(
 for(const required of ["removeCompletedLegacyMigration(manifest)","parseLegacyIdentity(serialized)","Legacy secure identity conflicts with the migrated Wallet manifest"])assert.ok(walletRepository.includes(required),`Wallet restart must complete strict legacy-secret cleanup through ${required}`);
 for(const required of ["resetCorruptStorage(assertActive","assertActive();await this.storage.deleteItem(secretKey(item.account))","assertActive();\n    await this.storage.deleteItem(MANIFEST_KEY)","assertActive();\n    await this.storage.deleteItem(LEGACY_IDENTITY_KEY)","assertActive();\n    await this.storage.deleteItem(MUTATION_KEY)"])assert.ok(walletRepository.includes(required),`unreadable Wallet reset must revalidate lifecycle through ${required}`);
 for(const required of ["BIOMETRIC_STRONG","disableDeviceFallback: true",'biometricsSecurityLevel: "strong"'])assert.ok(`${localAuthorization}\n${localAuthorizationPolicy}`.includes(required),`local key authorization must require ${required}`);
+assert.equal(walletPackage.dependencies.ethers,"6.17.0","EIP-1193 signing must use the exact reviewed ethers release");
+for(const required of ['sourceCommit:"98c6d5d784d212df8981a53b17118a511e246ad2"','sourceTree:"51a60a362d4ad5dd748bcdefb101f71b1d9e0cee"','evidenceCommit:"c3ab255c32bdeb9c8e056882c315f8ad43c29c7f"','YNX_EVM_CHAIN_QUANTITY="0x1917"','YNX_EVM_CAIP2="eip155:6423"','value!=="walletconnect-v2"&&value!=="dapp-browser"','productSession:false','privateService:"not-requested"','"personal_sign"','"eth_signTypedData_v4"','"eth_sendTransaction"'])assert.ok(eip1193Provider.includes(required),`standard Wallet provider core must retain ${required}`);
+for(const required of ['assertRequestActive(request,now());boundary.assertActive();await boundary.authorize(request.method)','const secret=await boundary.readAccountSecret(request.account)','const result=signApprovedEip1193Request(request,secret)','finally{secret.fill(0)}'])assert.ok(eip1193Provider.includes(required),`DApp signing must retain the ordered approval/secret boundary through ${required}`);
+assert.equal(eip1193Provider.includes("Gateway"),false,"standard EIP-1193 Wallet authority must remain independent from Gateway/Product Session services");
 for(const required of ["export function withSecretBytes","try { return operation(secret); }","finally { secret.fill(0); }","bytes.fill(0); throw new WalletAuthError"])assert.ok(walletAuthCrypto.includes(required),`temporary signing key bytes must zero through ${required}`);
 for(const signer of walletAuthSecretSigning){assert.ok(signer.includes("withSecretBytes"),"every Wallet signing domain must use the zeroing key-byte boundary");assert.equal(/hexToBytes\([^)]*accountSecret/.test(signer),false,"Wallet signing domains must not create untracked secret byte buffers")}
 for(const required of ["class LocalAuthorizationAttemptCoordinator","attempt.generation!==this.generation","this.activePrompt=prompt","const hadActivePrompt=this.activePrompt!==null","this.activePrompt=null"])assert.ok(localAuthorizationAttemptPolicy.includes(required),`biometric attempt lifecycle must enforce ${required}`);

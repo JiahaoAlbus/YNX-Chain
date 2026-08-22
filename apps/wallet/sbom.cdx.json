@@ -3,6 +3,35 @@
   "bomFormat": "CycloneDX",
   "components": [
     {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|@adraffy/ens-normalize@1.11.1",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "9e1081577aae1207acb9fedceca61fa5eaea492d784fc6d8baf27c3dc2c9a7ace7919a4573402e5b8a81b6bf1e295c8f3deffc452afbb2094258f53979ac7029"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/@adraffy/ens-normalize/-/ens-normalize-1.11.1.tgz"
+        }
+      ],
+      "group": "@adraffy",
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "ens-normalize",
+      "purl": "pkg:npm/%40adraffy/ens-normalize@1.11.1?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40adraffy%2Fens-normalize%2F-%2Fens-normalize-1.11.1.tgz",
+      "type": "library",
+      "version": "1.11.1"
+    },
+    {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|@babel/code-frame@7.29.7",
       "externalReferences": [
         {
@@ -3914,6 +3943,34 @@
       "version": "8.17.0"
     },
     {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|aes-js@4.0.0-beta.5",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "1bdeb916a6a5b0dcab3ea80418e37b9c8c757bf39510d4a0884233c82eb785a50cbaf367c088088ccb39da195308a864067cbb0363913657d8f59bbe8e61a4d5"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/aes-js/-/aes-js-4.0.0-beta.5.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "aes-js",
+      "purl": "pkg:npm/aes-js@4.0.0-beta.5?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Faes-js%2F-%2Faes-js-4.0.0-beta.5.tgz",
+      "type": "library",
+      "version": "4.0.0-beta.5"
+    },
+    {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|agent-base@7.1.4",
       "externalReferences": [
         {
@@ -6336,6 +6393,179 @@
       "purl": "pkg:npm/etag@1.8.1",
       "type": "library",
       "version": "1.8.1"
+    },
+    {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|ethers@6.17.0",
+      "components": [
+        {
+          "bom-ref": "@ynx-chain/wallet-app@1.0.1|ethers@6.17.0|@noble/curves@1.2.0",
+          "externalReferences": [
+            {
+              "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+              "hashes": [
+                {
+                  "alg": "SHA-512",
+                  "content": "a18725acd81168cf52b0150155b6fc33a0d357b6474532ae82eadea18127718e5ceb91ce991cef4a24c4df2e4261a3d8240fc6564ae15c4a05d0cdd86bd3cc9f"
+                }
+              ],
+              "type": "distribution",
+              "url": "https://registry.npmmirror.com/@noble/curves/-/curves-1.2.0.tgz"
+            }
+          ],
+          "group": "@noble",
+          "licenses": [
+            {
+              "license": {
+                "acknowledgement": "declared",
+                "id": "MIT"
+              }
+            }
+          ],
+          "name": "curves",
+          "purl": "pkg:npm/%40noble/curves@1.2.0?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40noble%2Fcurves%2F-%2Fcurves-1.2.0.tgz",
+          "type": "library",
+          "version": "1.2.0"
+        },
+        {
+          "bom-ref": "@ynx-chain/wallet-app@1.0.1|ethers@6.17.0|@noble/hashes@1.3.2",
+          "externalReferences": [
+            {
+              "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+              "hashes": [
+                {
+                  "alg": "SHA-512",
+                  "content": "3150bc100429eccbc4726df429610d163811f8c9267fe0f5f3d5c94e4148970a2153985c05b9f56642aaeca5538b61e67b73cc185dfdd0368be766de56b22285"
+                }
+              ],
+              "type": "distribution",
+              "url": "https://registry.npmmirror.com/@noble/hashes/-/hashes-1.3.2.tgz"
+            }
+          ],
+          "group": "@noble",
+          "licenses": [
+            {
+              "license": {
+                "acknowledgement": "declared",
+                "id": "MIT"
+              }
+            }
+          ],
+          "name": "hashes",
+          "purl": "pkg:npm/%40noble/hashes@1.3.2?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40noble%2Fhashes%2F-%2Fhashes-1.3.2.tgz",
+          "type": "library",
+          "version": "1.3.2"
+        },
+        {
+          "bom-ref": "@ynx-chain/wallet-app@1.0.1|ethers@6.17.0|@types/node@22.7.5",
+          "externalReferences": [
+            {
+              "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+              "hashes": [
+                {
+                  "alg": "SHA-512",
+                  "content": "8cc2fbb36340ccc59cfff4122756b7a6ba64efc70e3dc846bd726c0b70ba47a3d2328a28cedbd1550133f3d826053058d523cc6aaa39b5e078b8d1cf75eb5285"
+                }
+              ],
+              "type": "distribution",
+              "url": "https://registry.npmmirror.com/@types/node/-/node-22.7.5.tgz"
+            }
+          ],
+          "group": "@types",
+          "licenses": [
+            {
+              "license": {
+                "acknowledgement": "declared",
+                "id": "MIT"
+              }
+            }
+          ],
+          "name": "node",
+          "purl": "pkg:npm/%40types/node@22.7.5?download_url=https%3A%2F%2Fregistry.npmmirror.com%2F%40types%2Fnode%2F-%2Fnode-22.7.5.tgz",
+          "type": "library",
+          "version": "22.7.5"
+        },
+        {
+          "bom-ref": "@ynx-chain/wallet-app@1.0.1|ethers@6.17.0|undici-types@6.19.8",
+          "externalReferences": [
+            {
+              "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+              "hashes": [
+                {
+                  "alg": "SHA-512",
+                  "content": "bded8a3fa7ff2676cf045ca86c61ee7ab0bd8351581a7fc5f27d4b593c0dc4213377a21fa93c1441c357804b66990e83951ac2d61ad2ac19c264fa2446b0c78f"
+                }
+              ],
+              "type": "distribution",
+              "url": "https://registry.npmmirror.com/undici-types/-/undici-types-6.19.8.tgz"
+            }
+          ],
+          "licenses": [
+            {
+              "license": {
+                "acknowledgement": "declared",
+                "id": "MIT"
+              }
+            }
+          ],
+          "name": "undici-types",
+          "purl": "pkg:npm/undici-types@6.19.8?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fundici-types%2F-%2Fundici-types-6.19.8.tgz",
+          "type": "library",
+          "version": "6.19.8"
+        },
+        {
+          "bom-ref": "@ynx-chain/wallet-app@1.0.1|ethers@6.17.0|ws@8.21.0",
+          "externalReferences": [
+            {
+              "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+              "hashes": [
+                {
+                  "alg": "SHA-512",
+                  "content": "56ca76f1bec345c8a6150bebaaed967a4df3d626310c25aa1d807c42c9e4fd2e117da090ccf18fc8136e563255ddc77a5222ad52da7ab0d33bee05afcdc087fa"
+                }
+              ],
+              "type": "distribution",
+              "url": "https://registry.npmmirror.com/ws/-/ws-8.21.0.tgz"
+            }
+          ],
+          "licenses": [
+            {
+              "license": {
+                "acknowledgement": "declared",
+                "id": "MIT"
+              }
+            }
+          ],
+          "name": "ws",
+          "purl": "pkg:npm/ws@8.21.0?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fws%2F-%2Fws-8.21.0.tgz",
+          "type": "library",
+          "version": "8.21.0"
+        }
+      ],
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "069caba483c9df2744568c3ccc66b3d43b8f4bb614f03716c6e06763d6b4500fe5bc03f0accafe10f5ec7ebba5eb6f1245a7a43cd78833850587ff7519665a9e"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/ethers/-/ethers-6.17.0.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "MIT"
+          }
+        }
+      ],
+      "name": "ethers",
+      "purl": "pkg:npm/ethers@6.17.0?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Fethers%2F-%2Fethers-6.17.0.tgz",
+      "type": "library",
+      "version": "6.17.0"
     },
     {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|event-target-shim@5.0.1",
@@ -13269,6 +13499,34 @@
       "version": "0.1.1"
     },
     {
+      "bom-ref": "@ynx-chain/wallet-app@1.0.1|tslib@2.7.0",
+      "externalReferences": [
+        {
+          "comment": "as detected from npm-ls property \"resolved\" and property \"integrity\"",
+          "hashes": [
+            {
+              "alg": "SHA-512",
+              "content": "80b5c229d375fe3e3b0221e23a424debd84999c6c64c72342262e66d82c7ca486078dd23546a256bdc958c5833094925b1940c5b9e68f9d5bb217bf74425c3cc"
+            }
+          ],
+          "type": "distribution",
+          "url": "https://registry.npmmirror.com/tslib/-/tslib-2.7.0.tgz"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "acknowledgement": "declared",
+            "id": "0BSD"
+          }
+        }
+      ],
+      "name": "tslib",
+      "purl": "pkg:npm/tslib@2.7.0?download_url=https%3A%2F%2Fregistry.npmmirror.com%2Ftslib%2F-%2Ftslib-2.7.0.tgz",
+      "type": "library",
+      "version": "2.7.0"
+    },
+    {
       "bom-ref": "@ynx-chain/wallet-app@1.0.1|type-fest@0.7.1",
       "externalReferences": [
         {
@@ -14205,6 +14463,7 @@
         "@ynx-chain/wallet-app@1.0.1|@noble/curves@2.2.0",
         "@ynx-chain/wallet-app@1.0.1|@noble/hashes@2.2.0",
         "@ynx-chain/wallet-app@1.0.1|@ynx-chain/wallet-auth@1.0.0",
+        "@ynx-chain/wallet-app@1.0.1|ethers@6.17.0",
         "@ynx-chain/wallet-app@1.0.1|expo-clipboard@57.0.0",
         "@ynx-chain/wallet-app@1.0.1|expo-crypto@57.0.0",
         "@ynx-chain/wallet-app@1.0.1|expo-local-authentication@57.0.0",
@@ -14220,6 +14479,9 @@
         "@ynx-chain/wallet-app@1.0.1|react@19.2.3"
       ],
       "ref": "@ynx-chain/wallet-app@1.0.1"
+    },
+    {
+      "ref": "@ynx-chain/wallet-app@1.0.1|@adraffy/ens-normalize@1.11.1"
     },
     {
       "dependsOn": [
@@ -15203,6 +15465,9 @@
       "ref": "@ynx-chain/wallet-app@1.0.1|acorn@8.17.0"
     },
     {
+      "ref": "@ynx-chain/wallet-app@1.0.1|aes-js@4.0.0-beta.5"
+    },
+    {
       "ref": "@ynx-chain/wallet-app@1.0.1|agent-base@7.1.4"
     },
     {
@@ -15607,6 +15872,39 @@
     },
     {
       "ref": "@ynx-chain/wallet-app@1.0.1|etag@1.8.1"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|@adraffy/ens-normalize@1.11.1",
+        "@ynx-chain/wallet-app@1.0.1|aes-js@4.0.0-beta.5",
+        "@ynx-chain/wallet-app@1.0.1|ethers@6.17.0|@noble/curves@1.2.0",
+        "@ynx-chain/wallet-app@1.0.1|ethers@6.17.0|@noble/hashes@1.3.2",
+        "@ynx-chain/wallet-app@1.0.1|ethers@6.17.0|@types/node@22.7.5",
+        "@ynx-chain/wallet-app@1.0.1|ethers@6.17.0|ws@8.21.0",
+        "@ynx-chain/wallet-app@1.0.1|tslib@2.7.0"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|ethers@6.17.0"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|ethers@6.17.0|@noble/hashes@1.3.2"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|ethers@6.17.0|@noble/curves@1.2.0"
+    },
+    {
+      "ref": "@ynx-chain/wallet-app@1.0.1|ethers@6.17.0|@noble/hashes@1.3.2"
+    },
+    {
+      "dependsOn": [
+        "@ynx-chain/wallet-app@1.0.1|ethers@6.17.0|undici-types@6.19.8"
+      ],
+      "ref": "@ynx-chain/wallet-app@1.0.1|ethers@6.17.0|@types/node@22.7.5"
+    },
+    {
+      "ref": "@ynx-chain/wallet-app@1.0.1|ethers@6.17.0|undici-types@6.19.8"
+    },
+    {
+      "ref": "@ynx-chain/wallet-app@1.0.1|ethers@6.17.0|ws@8.21.0"
     },
     {
       "ref": "@ynx-chain/wallet-app@1.0.1|event-target-shim@5.0.1"
@@ -17138,6 +17436,9 @@
     },
     {
       "ref": "@ynx-chain/wallet-app@1.0.1|toqr@0.1.1"
+    },
+    {
+      "ref": "@ynx-chain/wallet-app@1.0.1|tslib@2.7.0"
     },
     {
       "ref": "@ynx-chain/wallet-app@1.0.1|type-fest@0.7.1"
