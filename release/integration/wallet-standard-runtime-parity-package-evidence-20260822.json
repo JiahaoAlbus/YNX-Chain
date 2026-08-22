@@ -1,0 +1,100 @@
+{
+  "schemaVersion": "1.0.0",
+  "evidenceId": "YNX-STANDARD-WALLET-RUNTIME-PARITY-PACKAGE-20260822",
+  "status": "INSTALLABLE_PLATFORM_HANDOFF_VERIFIED_NO_DIRECT_INSTALLED_OR_PUBLIC_RUNTIME",
+  "source": {
+    "branch": "codex/wallet-core-auth-gateway-continuation-20260814",
+    "commit": "0da2601f62171eae0e07db6693c1ada0b0f49f08",
+    "parent": "4be59a6544b9007bbc046c8ab2553f926b2c7346",
+    "tree": "c6465b150a8acd370f567f3e808475991db441fc"
+  },
+  "package": {
+    "name": "@ynx-chain/wallet-auth",
+    "version": "1.3.0",
+    "runtimeVersion": "1.1.0-p0.0",
+    "sha256": "cacff05facac07999186964d4b76d1b51a40d2105cfb25cc30946e862491b637",
+    "sha512Integrity": "sha512-s9MJQDeLCmeMIzbAoSxNMm54WCqSpCCVkIL9Xb+AEmzy65Y31V0caTIbunUWpEGZsic0a40M370WnREvhpyOtA==",
+    "sha1": "f2e5e64328acc2efefff20617200811f997d2a87",
+    "bytes": 221931,
+    "unpackedBytes": 1010614,
+    "entries": 133,
+    "repeatBuildByteIdentical": true,
+    "packageLockSha256": "6704bfc481aed286ff8d8972ae3459eeb3a710b34d5a2f61813a7fcc5a7eee32",
+    "publicRegistryPublished": false,
+    "noSecretFilenameScan": true
+  },
+  "entrypoints": {
+    "shared": "@ynx-chain/wallet-auth/standard-wallet-runtime",
+    "web": "@ynx-chain/wallet-auth/standard-wallet-web",
+    "native": "@ynx-chain/wallet-auth/standard-wallet-native",
+    "walletConnect": "@ynx-chain/wallet-auth/standard-wallet-walletconnect"
+  },
+  "handoff": {
+    "path": "packages/wallet-auth/integration/STANDARD_WALLET_RUNTIME_PARITY_HANDOFF.md",
+    "blob": "08543b1d21e92107259b968fdd0b8bfb776b2315",
+    "sha256": "4144ef07decdee26433a3c364be8457cab9590ca3054882dbf53df497e0e1fdb",
+    "contractPath": "packages/wallet-auth/integration/standard-wallet-runtime-v2.json",
+    "contractBlob": "e97b782286cc211f4cc96051c3605cd818913548",
+    "contractSha256": "acec6c3c621c6aef5fc6745fa7c4b0d792067e1f3ac939db63729b5a9d3131f9"
+  },
+  "runtimeCapability": {
+    "eip6963AndEip1193": "web-extension-page-world-installable",
+    "externalDappRouting": "origin-bound-provider-request",
+    "nativeBridge": ["android", "ios", "macos", "desktop"],
+    "walletConnect": {
+      "runtimeFactory": "createStandardWalletWalletConnectRuntime",
+      "sessionStorage": "createStandardWalletWalletConnectSessionStorageAdapter",
+      "topicBoundOrigin": true,
+      "explicitApproveReject": true,
+      "protectedRestartRestore": true,
+      "eventForwarding": true,
+      "permissionAndSessionRevocation": true,
+      "realRelayProvided": false
+    },
+    "productSessionUsed": false,
+    "privateServiceDegradationPreservesLayer1": true
+  },
+  "verification": {
+    "cleanClone": "/private/tmp/ynx-wallet-runtime-parity-clean.ZsK7ik/clean",
+    "dependencyRestore": "npm ci --ignore-scripts --offline --prefix packages/wallet-auth",
+    "focused": { "passed": 26, "failed": 0 },
+    "fullCommand": "npm run check --prefix packages/wallet-auth",
+    "fullTests": { "passed": 429, "failed": 0 },
+    "noBareAuthorize": "PASS",
+    "sourceConsumerGate": "PASS",
+    "executionPlanGate": "PASS_12_REGISTERED_PRODUCTS",
+    "installedPackageHarness": "PASS",
+    "installedHarnessBoundary": "DETERMINISTIC_CALLBACKS_ONLY_NO_REAL_KEY_NO_REAL_TRANSACTION_NO_REAL_RELAY"
+  },
+  "nextExecutablePlatformHandoff": {
+    "webExtension": "install exact tarball, bind real secure callbacks and run the authoritative browser E2E plan",
+    "native": "install exact tarball, bind the canonical JSON bridge to real secure keystore approval/sign/send and run device E2E",
+    "walletConnect": "configure a platform-owned real project ID and relay, create one topic runtime, then execute approve/reject/restore/sign/send/disconnect E2E",
+    "productOwners": "consume the exact entrypoint without requiring Product Registry for external DApps and return source-bound public or installed evidence"
+  },
+  "directEvidenceTruth": {
+    "realBrowserExtensionInstalled": false,
+    "realAndroidWalletInstalled": false,
+    "realIosWalletInstalled": false,
+    "realMacosWalletInstalled": false,
+    "realDesktopWalletInstalled": false,
+    "sourceBoundPublicRuntime": false,
+    "realExternalDappDirectRuntimeCount": 0,
+    "realWalletConnectProjectId": false,
+    "realWalletConnectRelay": false,
+    "realWalletConnectPairing": false,
+    "realPersonalSign": false,
+    "realEip712Sign": false,
+    "realTestnetTransaction": false,
+    "productsConnected": 0,
+    "productsMigratedV2": 0,
+    "deployedPublic": false,
+    "computerControl": false
+  },
+  "executionBoundary": {
+    "deploymentLeaseIssued": false,
+    "sshUsed": false,
+    "gatewayDeployed": false,
+    "productSourceModified": false
+  }
+}
