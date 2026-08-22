@@ -40,6 +40,8 @@ const providerEvidenceAuthorities=[
   {commit:"c3ab255c32bdeb9c8e056882c315f8ad43c29c7f",path:"release/integration/wallet-provider-discovery-connect-state-p0-handoff-20260821.json",blob:"745c85539b89f542b774c862e01ee847a438cec9",sha256:"2c3872882b2d88986cecafa6c08fc3a640d60039eb8dab29d3a088aaa6452f49"},
   {commit:"d3831c300560507f64a50e73117bab7b85926d9a",path:"release/integration/wallet-provider-connect-pending-owner-handoffs-20260821.json",blob:"4e8a760b30fc4dd54cce2cde388515701592ddd3",sha256:"c79c82b0053120a5f492ce177c9100e8f60f07be52c97fe88ab6f9a2eff57854"},
 ];
+const routerInteropCommit="9ab9cd8c8deac8563acff9ffd7e277553e20383e";
+const routerInteropContract={path:"release/integration/wallet-standard-connection-conformance-contract-p0-20260822.json",blob:"173cb99a6fa6b942f43c6dc8ee3a3b851e876525",sha256:"c59cc18de86a304be8de6ef7056e3e260e62156fe36fb0b76e021e38e096a2fe"};
 function immutableObject(commit,contract){
   const object=execFileSync("git",["rev-parse",`${commit}:${contract.path}`],{cwd:repository,encoding:"utf8"}).trim();
   const bytes=execFileSync("git",["show",`${commit}:${contract.path}`],{cwd:repository});
@@ -51,6 +53,9 @@ if(centralCaller?.authority?.walletPackage!=="com.ynxweb4.wallet"||centralCaller
 const [coreContractBytes]=coreContracts.map((contract)=>immutableObject(coreCommit,contract));
 providerAuthorityContracts.forEach((contract)=>immutableObject(providerAuthorityCommit,contract));
 providerEvidenceAuthorities.forEach(({commit,...contract})=>immutableObject(commit,contract));
+const routerInterop=JSON.parse(immutableObject(routerInteropCommit,routerInteropContract));
+const expectedInteropProfiles=["ynx-first-party","uniswap-interface-reference","opensea-reference","safe-reference","walletconnect-v2-reference"];
+if(routerInterop?.version!=="standardWalletConformance@1.0.0-p0.0"||routerInterop?.authoritativeInputs?.sharedProvider?.commit!==providerAuthorityCommit||routerInterop?.layering?.directBrowserRpcFetchIsPrerequisite!==false||routerInterop?.layering?.productSessionFailure?.standardConnection!=="CONNECTED"||routerInterop?.layering?.productSessionFailure?.privateService!=="DEGRADED"||JSON.stringify(routerInterop?.chain)!==JSON.stringify({cosmosChainId:"ynx_6423-1",evmChainId:6423,evmChainHex:"0x1917",nativeSymbol:"YNXT",defaultLanguage:"en"})||routerInterop?.executableInteropFixture?.fixtureOnly!==true||JSON.stringify(routerInterop?.executableInteropFixture?.profiles)!==JSON.stringify(expectedInteropProfiles)||!routerInterop?.requiredDirectEvidenceBeforePromotion?.includes("three independently opened non-YNX standard EVM DApps plus a first-party DApp"))throw new Error("Router Standard EVM interop authority mismatch");
 const coreAuthBinding=deriveWalletWebCompanionBinding(JSON.parse(coreContractBytes),{
   coreCommit,coreContractBlob:coreContracts[0].blob,centralCallerCommit,centralCallerBlob:centralCallerContract.blob,
   publicGatewayRegistryReady:false,trustedRuntimeAvailable:false,
