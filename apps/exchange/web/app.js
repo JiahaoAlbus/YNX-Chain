@@ -9,7 +9,10 @@ function requireProductSession(){$('#wallet-dialog').showModal();return false}
 async function boot(){bind();renderBook();renderPublicMarket();$('#custody-address').textContent='Unavailable until Exchange Product API release evidence is accepted';$('#withdraw-fee').textContent='—';await restoreStandardWallet()}
 function bind(){
   $$('.topbar nav button').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.view)));
-  $('#connect').addEventListener('click',()=>connectWallet().catch(error=>toast(error.message||'Wallet connection failed closed.')));
+  $('#connect').addEventListener('click',()=>{if(state.standardWallet?.status==='standard-connected'){$('#wallet-dialog').showModal();return}connectWallet().catch(error=>toast(error.message||'Wallet connection failed closed.'))});
+  $('#wallet-disconnect').addEventListener('click',()=>disconnectWallet());
+  $('#wallet-switch').addEventListener('click',()=>{disconnectWallet();$('#wallet-dialog').showModal()});
+  window.addEventListener('ynx-exchange-standard-wallet-state',event=>renderWalletState(event.detail));
   $('#buy-tab').addEventListener('click',()=>setSide('buy'));$('#sell-tab').addEventListener('click',()=>setSide('sell'));
   $('#price').addEventListener('input',estimate);$('#amount').addEventListener('input',estimate);$('#withdraw-amount').addEventListener('input',withdrawEstimate);
   $('#order-form').addEventListener('submit',reviewOrder);$('#deposit-form').addEventListener('submit',observeDeposit);$('#withdraw-form').addEventListener('submit',reviewWithdrawal);
@@ -17,7 +20,9 @@ function bind(){
   $('#ai-submit').addEventListener('click',requestAI);$('#draft-order').addEventListener('click',()=>{showView('controls');$('#ai-kind').value='order_draft';$('#ai-prompt').focus()});
   $$('.tabs button').forEach(b=>b.addEventListener('click',()=>{state.activity=b.dataset.activity;$$('.tabs button').forEach(x=>x.setAttribute('aria-selected',String(x===b)));renderActivity()}));
 }
-function renderStandardWallet(result){state.standardWallet=result;showWalletFallback(false);$('#connect').textContent='Wallet connected';$('#wallet-state').textContent=`Standard ${result.providerKind} Wallet connected on YNX Testnet. Exchange Product Session and API remain separately unavailable.`}
+function renderStandardWallet(result){state.standardWallet=result;showWalletFallback(false);$('#wallet-details').hidden=false;$('#wallet-provider').textContent=result.providerKind==='metamask'?'MetaMask':'YNX Wallet';$('#wallet-account').textContent=result.account||'—';$('#wallet-chain').textContent=result.chainId||'—';$('#connect').textContent='Wallet details';$('#wallet-state').textContent=`Standard ${result.providerKind} Wallet connected on YNX Testnet. Exchange Product Session and API remain separately unavailable.`}
+function renderWalletState(connectionState){if(connectionState?.status==='connected')return renderStandardWallet({status:'standard-connected',...connectionState});state.standardWallet=null;$('#wallet-details').hidden=true;$('#connect').textContent='Connect YNX Wallet';$('#wallet-state').textContent='Standard Wallet disconnected. Exchange market data remains available.'}
+function disconnectWallet(){window.YNXExchangeWebWallet.disconnect();renderWalletState(window.YNXExchangeWebWallet.state());if($('#wallet-dialog').open)$('#wallet-dialog').close();$('#connect').focus();toast('Standard Wallet disconnected. No Product Session or order authority was changed.');}
 async function restoreStandardWallet(){try{const result=await window.YNXExchangeWebWallet.restore();if(result.status==='standard-connected')renderStandardWallet(result)}catch{}}
 async function connectWallet(){const result=await window.YNXExchangeWebWallet.connect();if(result.status!=='standard-connected'){showWalletFallback(true);$('#wallet-state').textContent='No compatible injected Wallet provider was found. Exchange remains on this page; use Download YNX Wallet or MetaMask.';$('#wallet-dialog').showModal();return result}renderStandardWallet(result);if($('#wallet-dialog').open)$('#wallet-dialog').close();$('#connect').focus();toast('Standard Wallet connected. No Exchange Product Session or order authority was created.');return result}
 function showView(id){$$('.view').forEach(v=>v.classList.toggle('active',v.id===id));$$('.topbar nav button').forEach(b=>b.classList.toggle('nav-active',b.dataset.view===id));location.hash=id;document.title=`YNX Exchange — ${id[0].toUpperCase()+id.slice(1)}`}
