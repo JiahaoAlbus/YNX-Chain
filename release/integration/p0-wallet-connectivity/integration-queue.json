@@ -5967,6 +5967,31 @@
       "mainRegistered": false,
       "walletParityComplete": false,
       "nextAction": "Require exact-head CI and review on PR 133; merge only the clean path-scoped head, then wait for explicit protected-environment approval before any separate dispatch."
+    },
+    {
+      "taskId": "P0-155",
+      "owner": "integration",
+      "status": "ACTIVE_UNIQUE_INTEROPERABILITY_GATE_NO_EXECUTION_LEASE",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/wallet-metamask-level-interoperability-matrix-20260822.json",
+        "scripts/verify/p0-155-wallet-interoperability-matrix-check.mjs"
+      ],
+      "dependencies": [
+        "P0-150",
+        "P0-151",
+        "P0-152",
+        "P0-153",
+        "P0-154"
+      ],
+      "heavyOwnerAtActivation": null,
+      "activeNonOverlappingLightOwner": "integration:/root:P0-148:apps/creator-studio/**",
+      "executionLeaseIssued": false,
+      "installedProviderComplete": false,
+      "firstPartyDappComplete": false,
+      "externalDappsComplete": 0,
+      "productsConnected": "0/12",
+      "productsMigratedV2": "0/12",
+      "nextAction": "Collect direct installed evidence through existing platform owners; source, CI, detected provider, local tests and public artifact identity never count as completion."
     }
   ]
 }
