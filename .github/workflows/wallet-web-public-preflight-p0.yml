@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   preflight:
-    if: "github.event.head_commit.message == 'evidence(wallet-web): preflight repaired v11 lifecycle p0187'"
+    if: "github.event.head_commit.message == 'evidence(wallet-web): preflight repaired v11 lifecycle p0188'"
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
@@ -94,7 +94,9 @@ jobs:
             const text = document.body?.innerText || "";
             return Boolean(shell && heading && status && chooser && download && metamask) && document.documentElement.lang === "en" && document.documentElement.dataset.pwa === "ready" && document.title === "YNX Wallet — Testnet companion" && identity?.sourceCommit === expectedSource && controllerVersion === "ynx-wallet-web-v11" && keys.length === 1 && keys[0] === "ynx-wallet-web-v11" && !/PWA shell integrity verification failed|PWA shell 完整性验证失败/i.test(text);
           }, result.sourceCommit, { timeout: 20000 });
-          const snapshot = page => page.evaluate(async () => ({
+          const snapshot = page => page.evaluate(async () => {
+            const buildIdentity = await fetch("./build-identity.json", { cache: "no-store" }).then(response => response.json());
+            return ({
             url: location.href,
             title: document.title,
             text: document.body.innerText,
@@ -112,8 +114,8 @@ jobs:
               channel.port1.onmessage = event => { clearTimeout(timer); resolve(event.data?.cache || null); };
               controller.postMessage({ type: "YNX_WALLET_PWA_VERSION" }, [channel.port2]);
             }),
-            buildIdentity: fetch("./build-identity.json", { cache: "no-store" }).then(response => response.json())
-          }));
+            buildIdentity
+          }); });
           const verifyV11Integrity = page => page.evaluate(async () => {
             const { ASSET_INTEGRITY } = await import("./asset-integrity.js");
             const cache = await caches.open("ynx-wallet-web-v11");
@@ -152,12 +154,14 @@ jobs:
           let stage = "launch-first";
           const firstNetwork = [];
           const firstErrors = [];
+          const firstNetworkErrors = [];
+          const ignoredFavicon404 = message => message.type() === "error" && message.location()?.url === `${base}favicon.ico` && /404/.test(message.text());
           try {
             context = await bounded(chromium.launchPersistentContext(profile, { executablePath, headless: true, viewport: { width: 1280, height: 900 } }), 30000, "first Chrome launch");
             page = context.pages()[0] || await context.newPage();
-            page.on("console", message => { if (message.type() === "error") firstErrors.push(message.text()); });
+            page.on("console", message => { if (message.type() === "error" && !ignoredFavicon404(message)) firstErrors.push({ text: message.text(), location: message.location() }); });
             page.on("pageerror", error => firstErrors.push(String(error)));
-            page.on("response", response => { if (response.url().startsWith(base)) firstNetwork.push({ url: response.url(), status: response.status(), fromServiceWorker: response.fromServiceWorker() }); });
+            page.on("response", response => { if (response.url().startsWith(base)) { const row = { url: response.url(), status: response.status(), fromServiceWorker: response.fromServiceWorker() }; firstNetwork.push(row); if (!response.ok() && !(response.url() === `${base}favicon.ico` && response.status() === 404)) firstNetworkErrors.push(row); } });
             let measuredRootDocumentRequests = 0;
             page.on("request", request => { const url = new URL(request.url()); if (request.isNavigationRequest() && url.origin === new URL(base).origin && url.pathname === "/") measuredRootDocumentRequests += 1; });
             stage = "establish-v8-only-precondition";
@@ -190,11 +194,12 @@ jobs:
             result.firstPageCount = context.pages().length;
             result.firstConsoleErrors = firstErrors;
             result.firstNetwork = firstNetwork;
+            result.firstNetworkErrors = firstNetworkErrors;
             await page.screenshot({ path: join(evidence, "first-after-v8-upgrade.png"), fullPage: true });
             await writeFile(join(evidence, "first-after-v8-upgrade.html"), result.firstAfterUpgrade.html);
             delete result.firstAfterUpgrade.html;
             if (!result.lifecycle.firstV8Removal?.integrity?.ready) throw new Error("v8 disappeared before a directly verified complete v11 integrity cache");
-            if (!normal(result.firstAfterUpgrade) || result.firstPageCount !== 1 || firstErrors.length || measuredRootDocumentRequests < 1 || measuredRootDocumentRequests > 2) throw new Error("first hosted Chrome lifecycle gate failed");
+            if (!normal(result.firstAfterUpgrade) || result.firstPageCount !== 1 || firstErrors.length || firstNetworkErrors.length || measuredRootDocumentRequests < 1 || measuredRootDocumentRequests > 2) throw new Error("first hosted Chrome lifecycle gate failed");
             stage = "close-first-process";
             await context.close(); context = null; page = null;
 
@@ -202,8 +207,11 @@ jobs:
             context = await bounded(chromium.launchPersistentContext(profile, { executablePath, headless: true, viewport: { width: 1280, height: 900 } }), 30000, "second Chrome launch");
             page = context.pages()[0] || await context.newPage();
             const secondErrors = [];
-            page.on("console", message => { if (message.type() === "error") secondErrors.push(message.text()); });
+            const secondNetwork = [];
+            const secondNetworkErrors = [];
+            page.on("console", message => { if (message.type() === "error" && !ignoredFavicon404(message)) secondErrors.push({ text: message.text(), location: message.location() }); });
             page.on("pageerror", error => secondErrors.push(String(error)));
+            page.on("response", response => { if (response.url().startsWith(base)) { const row = { url: response.url(), status: response.status(), fromServiceWorker: response.fromServiceWorker() }; secondNetwork.push(row); if (!response.ok() && !(response.url() === `${base}favicon.ico` && response.status() === 404)) secondNetworkErrors.push(row); } });
             stage = "navigate-second";
             await bounded(page.goto(base, { waitUntil: "domcontentloaded", timeout: 20000 }), 25000, "second candidate navigation");
             stage = "wait-second-source-bound-wallet-ui";
@@ -214,14 +222,17 @@ jobs:
             result.secondLaunch = await snapshot(page);
             result.secondPageCount = context.pages().length;
             result.secondConsoleErrors = secondErrors;
+            result.secondNetwork = secondNetwork;
+            result.secondNetworkErrors = secondNetworkErrors;
             await page.screenshot({ path: join(evidence, "second-launch.png"), fullPage: true });
             await writeFile(join(evidence, "second-launch.html"), result.secondLaunch.html);
             delete result.secondLaunch.html;
-            result.passed = normal(result.firstAfterUpgrade) && normal(result.secondLaunch) && result.lifecycle.firstV8Removal?.integrity?.ready === true && result.measuredRootDocumentRequests >= 1 && result.measuredRootDocumentRequests <= 2 && result.firstPageCount === 1 && result.secondPageCount === 1 && firstErrors.length === 0 && secondErrors.length === 0;
+            result.passed = normal(result.firstAfterUpgrade) && normal(result.secondLaunch) && result.lifecycle.firstV8Removal?.integrity?.ready === true && result.measuredRootDocumentRequests >= 1 && result.measuredRootDocumentRequests <= 2 && result.firstPageCount === 1 && result.secondPageCount === 1 && firstErrors.length === 0 && firstNetworkErrors.length === 0 && secondErrors.length === 0 && secondNetworkErrors.length === 0;
           } catch (error) {
             result.error = { stage, name: error?.name || "Error", message: error?.message || String(error) };
             result.firstConsoleErrors = firstErrors;
             result.firstNetwork = firstNetwork;
+            result.firstNetworkErrors = firstNetworkErrors;
             if (page) {
               const failure = await page.evaluate(async () => ({
                 url: location.href,
