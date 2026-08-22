@@ -6703,6 +6703,33 @@
       "actionsRunId": 32571875092,
       "artifactId": 9475519625,
       "nextAction": "Do not reuse P0-188. A successor must bind current parent 9fa92704 and make second-launch observation navigation-aware, requiring the same ready/controller-v11/v11-only document to remain stable for a bounded window before snapshot."
+    },
+    {
+      "taskId": "P0-189",
+      "owner": "integration,wallet-web,website",
+      "status": "ACTIVE_SINGLE_USE",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/leases/wallet-web-v11-stable-second-launch-p0189-20260822.json",
+        ".github/workflows/wallet-web-public-preflight-p0.yml",
+        "vercel-project:prj_K4emrdkST7sdb0K9mhmLM0QZh0I3:ssoProtection"
+      ],
+      "dependencies": ["P0-188"],
+      "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-web-v11-stable-second-launch-20260822T121300Z",
+      "expiresAt": "2026-08-22T12:43:00Z",
+      "releasedAt": null,
+      "source": "7df37ca32a643a403bd23a7f555354261f789441",
+      "ownerRemoteParent": "9fa9270479577d6304ac5f257c562ef52616ce3e",
+      "workflowCommit": "a9f73254f024d7c56fe942825286eb40e652c883",
+      "candidateDeployment": "dpl_EhSHsjrfQ17dzuTegLCqGvELeBte",
+      "candidateImmutableUrl": "https://wallet-3re0s0lx4-jiahaoalbus-projects.vercel.app",
+      "aliasMutationAllowed": false,
+      "workflowPushAllowedExactlyOnce": true,
+      "hostedRunAllowedExactlyOnce": true,
+      "ssoRestoreRequired": true,
+      "stableSecondLaunch": false,
+      "currentSourceBoundPublic": false,
+      "productsConnected": "0/12",
+      "nextAction": "Execute only the exact literal push under the ordered one-use SSO window, require navigation-aware same-document stability in both processes, restore protection, and return terminal direct evidence or fail closed."
     }
   ]
 }

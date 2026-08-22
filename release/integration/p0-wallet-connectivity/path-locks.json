@@ -1333,38 +1333,38 @@
     },
     {
       "path": "vercel-project:prj_K4emrdkST7sdb0K9mhmLM0QZh0I3:ssoProtection",
-      "owner": null,
+      "owner": "website",
       "branch": "codex/wallet-web-pwa-extensions-20260813",
       "worktree": "/Users/huangjiahao/.codex/worktrees/1274/YNX Chain",
-      "taskId": "P0-188",
+      "taskId": "P0-189",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "CONSUMED_RELEASED_FAILED_CLOSED_HOSTED_CHROMIUM_V11_LIFECYCLE_MEASUREMENT_SUCCESSOR_PREFLIGHT",
-      "acquiredAt": "2026-08-22T11:58:00Z",
-      "expiresAt": "2026-08-22T12:28:00Z",
-      "releasedAt": "2026-08-22T12:05:31Z",
-      "productionMutationAllowed": false,
+      "status": "ACTIVE_SINGLE_USE",
+      "acquiredAt": "2026-08-22T12:13:00Z",
+      "expiresAt": "2026-08-22T12:43:00Z",
+      "releasedAt": null,
+      "productionMutationAllowed": "EXACT_TEMPORARY_SSO_DISABLE_AND_RESTORE_ONLY",
       "allowedExceptions": [
-        "P0-188 protection-window quota is consumed and nonreusable",
-        "SSO is restored to prod_deployment_urls_and_all_previews",
-        "no new protection window without a wholly new lease"
+        "disable wallet-web SSO once for the exact P0-189 hosted run",
+        "restore SSO once on every terminal path",
+        "no alias or other Vercel setting mutation"
       ]
     },
     {
       "path": ".github/workflows/wallet-web-public-preflight-p0.yml",
-      "owner": null,
+      "owner": "wallet-web",
       "branch": "codex/wallet-web-pwa-extensions-20260813",
       "worktree": "/Users/huangjiahao/.codex/worktrees/1274/YNX Chain",
-      "taskId": "P0-188",
+      "taskId": "P0-189",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "CONSUMED_RELEASED_FAILED_CLOSED_HOSTED_CHROMIUM_V11_LIFECYCLE_MEASUREMENT_SUCCESSOR_PREFLIGHT",
-      "acquiredAt": "2026-08-22T11:58:00Z",
-      "expiresAt": "2026-08-22T12:28:00Z",
-      "releasedAt": "2026-08-22T12:05:31Z",
+      "status": "ACTIVE_SINGLE_USE",
+      "acquiredAt": "2026-08-22T12:13:00Z",
+      "expiresAt": "2026-08-22T12:43:00Z",
+      "releasedAt": null,
       "productionMutationAllowed": false,
       "allowedExceptions": [
-        "P0-188 workflow push and run quotas are consumed",
-        "preserve run 32571875092 and artifact 9475519625 as immutable evidence",
-        "no retry, dispatch or further workflow mutation under P0-188"
+        "push only exact workflow commit a9f73254 from exact parent 9fa92704",
+        "one literal force-false push and one push-triggered hosted run",
+        "fresh RUNNER_TEMP p0189 output only; no retry or repository evidence upload"
       ]
     },
     {
