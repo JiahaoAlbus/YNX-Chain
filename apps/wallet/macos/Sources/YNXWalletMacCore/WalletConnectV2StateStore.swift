@@ -139,6 +139,11 @@ public final class WalletConnectV2StateStore: @unchecked Sendable {
         guard request.method == "wc_sessionPropose" else {
           throw WalletConnectV2StateError.invalidRequest
         }
+        guard !state.pending.contains(where: {
+          $0.kind == .sessionProposal && $0.topic == request.topic
+        }) else {
+          throw WalletConnectV2StateError.duplicateRequest
+        }
         if let existing = state.sessions.first(where: { $0.topic == request.topic }) {
           guard Self.matchesIdentity(request, existing) else {
             throw WalletConnectV2StateError.invalidRequest
@@ -325,8 +330,12 @@ public final class WalletConnectV2StateStore: @unchecked Sendable {
   }
 
   private static func validPersistedState(_ state: State) -> Bool {
+    let pendingProposalTopics = state.pending
+      .filter { $0.kind == .sessionProposal }
+      .map(\.topic)
     guard state.schemaVersion == 1,
           Set(state.pending.map(\.id)).count == state.pending.count,
+          Set(pendingProposalTopics).count == pendingProposalTopics.count,
           Set(state.sessions.map(\.topic)).count == state.sessions.count,
           state.sessions.allSatisfy({ session in
             validTopic(session.topic)

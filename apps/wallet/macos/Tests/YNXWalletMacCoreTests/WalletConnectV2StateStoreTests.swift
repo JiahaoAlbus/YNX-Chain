@@ -96,6 +96,31 @@ final class WalletConnectV2StateStoreTests: XCTestCase {
     XCTAssertEqual(try WalletConnectV2StateStore(fileURL: file).restoredSessions().first?.dappName, "External DApp")
   }
 
+  func testConcurrentAndPersistedSameTopicProposalsFailClosed() throws {
+    let file = temporaryFile()
+    let store = try WalletConnectV2StateStore(fileURL: file)
+    try store.enqueue(proposal(id: "proposal-one", dappClass: .external), now: now)
+    XCTAssertThrowsError(
+      try store.enqueue(proposal(id: "proposal-two", dappClass: .external), now: now)
+    ) {
+      XCTAssertEqual($0 as? WalletConnectV2StateError, .duplicateRequest)
+    }
+
+    var root = try XCTUnwrap(
+      JSONSerialization.jsonObject(with: Data(contentsOf: file)) as? [String: Any]
+    )
+    var pending = try XCTUnwrap(root["pending"] as? [[String: Any]])
+    var duplicateTopic = try XCTUnwrap(pending.first)
+    duplicateTopic["id"] = "persisted-second-proposal"
+    pending.append(duplicateTopic)
+    root["pending"] = pending
+    try JSONSerialization.data(withJSONObject: root, options: [.sortedKeys])
+      .write(to: file, options: .atomic)
+    XCTAssertThrowsError(try WalletConnectV2StateStore(fileURL: file)) {
+      XCTAssertEqual($0 as? WalletConnectV2StateError, .corruptPersistence)
+    }
+  }
+
   func testPersistedUnsupportedMethodFailsClosedAsCorrupt() throws {
     let file = temporaryFile()
     _ = try approvedStore(file: file, dappClass: .external)
