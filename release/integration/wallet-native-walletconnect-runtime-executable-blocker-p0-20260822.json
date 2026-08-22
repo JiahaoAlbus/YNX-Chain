@@ -122,6 +122,11 @@
     "sourceParent": "65dffee2f35ec9dc254f8c2ac8c465a353bc1861",
     "reownSDKBundledMacOS": true,
     "reownSDKBundledIOS": true,
+    "reownMacOSCompatibilityPatchSourcePresent": true,
+    "reownMacOSCompatibilityPatchUpstreamCommit": "968a82d440e51c4de18857928b60a03d36af7a2a",
+    "reownMacOSCompatibilityPatchOriginalBlob": "34b299ee3b325f26536980d272e0e7f906fe2869",
+    "macosHostedCompileVerified": false,
+    "iosHostedCompileVerified": false,
     "macosProjectIDConfigured": false,
     "iosProjectIDConfigured": false,
     "iosParameterizedApplicationGroupsEntitlementSourcePresent": true,
@@ -136,6 +141,8 @@
       "the parameterized WalletConnect entitlement source is not used by default Simulator/ad-hoc builds",
       "no signer implementation or raw key is embedded; protected runtime must bind the existing native signer",
       "the full Reown WalletKit license and required copyright notice are bundled as application resources",
+      "hosted macOS run 32561814119 job 97004440593 failed in the Reown 2.3.1 WalletConnectSign Link dispatcher because its macOS path lacked Foundation imports; no YNX runtime gate was promoted",
+      "the source-visible macOS compatibility patch is applied only after exact upstream commit and original blob verification and carries a prominent modification notice",
       "Central P0-176 is explicitly not a lease and records P0-175 as the current Heavy owner"
     ]
   },

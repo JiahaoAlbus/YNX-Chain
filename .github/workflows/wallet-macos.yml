@@ -48,7 +48,9 @@ jobs:
           ruby apps/wallet/macos/scripts/verify-ci-trigger-isolation.rb
           ruby apps/wallet/scripts/verify-apple-production-operator-inputs.rb
       - name: Test native callback and recovery boundaries
-        run: swift test --package-path apps/wallet/macos
+        run: |
+          bash apps/wallet/macos/scripts/prepare-reown-macos.sh "$GITHUB_WORKSPACE/apps/wallet/macos"
+          swift test --package-path apps/wallet/macos
       - name: Build and package ad-hoc native application
         run: |
           set -euo pipefail
@@ -58,6 +60,8 @@ jobs:
           APP="$INSTALL_ROOT/YNX Wallet.app"
           ARM_SCRATCH="$RUNNER_TEMP/wallet-macos-arm64"
           X86_SCRATCH="$RUNNER_TEMP/wallet-macos-x86_64"
+          bash "$PACKAGE/scripts/prepare-reown-macos.sh" "$PACKAGE" "$ARM_SCRATCH"
+          bash "$PACKAGE/scripts/prepare-reown-macos.sh" "$PACKAGE" "$X86_SCRATCH"
           swift build --package-path "$PACKAGE" --configuration release \
             --triple arm64-apple-macosx13.0 --scratch-path "$ARM_SCRATCH"
           swift build --package-path "$PACKAGE" --configuration release \

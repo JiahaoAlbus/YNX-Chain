@@ -87,7 +87,9 @@ jobs:
           test "$(git hash-object release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json)" = d402fcdc844aa39bd5ee351a99d93acb4852dc37
           test "$(shasum -a 256 release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json | awk '{print $1}')" = d344c607c2bbbf7bb0d9d3662b424976d0d6c4ff20428025dd1e2fb92bf31392
       - name: Test native fail-closed boundaries
-        run: swift test --package-path apps/wallet/macos
+        run: |
+          bash apps/wallet/macos/scripts/prepare-reown-macos.sh "$GITHUB_WORKSPACE/apps/wallet/macos"
+          swift test --package-path apps/wallet/macos
       - name: Import Developer ID identity into an isolated keychain
         shell: bash
         run: |
@@ -121,6 +123,8 @@ jobs:
           PROOF="$GITHUB_WORKSPACE/apps/wallet/proof/ci-macos-notarized"
           ARM_SCRATCH="$RUNNER_TEMP/wallet-macos-notarized-arm64"
           X86_SCRATCH="$RUNNER_TEMP/wallet-macos-notarized-x86_64"
+          bash "$PACKAGE/scripts/prepare-reown-macos.sh" "$PACKAGE" "$ARM_SCRATCH"
+          bash "$PACKAGE/scripts/prepare-reown-macos.sh" "$PACKAGE" "$X86_SCRATCH"
           APP_VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$PACKAGE/Info.plist")"
           APP_BUILD="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$PACKAGE/Info.plist")"
           DMG_NAME="YNX-Wallet-macOS-$APP_VERSION-universal-notarized.dmg"
