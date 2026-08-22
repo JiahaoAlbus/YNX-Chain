@@ -14,9 +14,14 @@
 const status=document.querySelector("#status");let account=null;
 function show(value){status.textContent=value;document.title=value}
 function enable(){for(const id of ["personal","typed","transaction"])document.querySelector(`#${id}`).disabled=false}
+function acceptAccounts(accounts,label){account=accounts[0]??null;if(account){enable();show(`${label} ${account}`)}}
 document.querySelector("#connect").onclick=async()=>{try{const accounts=await ethereum.request({method:"eth_requestAccounts"});account=accounts[0];enable();show(`CONNECTED ${account}`)}catch(error){show(`REJECTED ${error.code??"UNKNOWN"}`)}};
 document.querySelector("#personal").onclick=async()=>{try{const result=await ethereum.request({method:"personal_sign",params:["0x594e58205141",account]});show(`PERSONAL_SIGN ${result.slice(0,18)}`)}catch(error){show(`PERSONAL_REJECTED ${error.code??"UNKNOWN"}`)}};
 document.querySelector("#typed").onclick=async()=>{const value=JSON.stringify({domain:{name:"External EIP-1193 QA",version:"1",chainId:6423,verifyingContract:"0x1111111111111111111111111111111111111111"},types:{EIP712Domain:[{name:"name",type:"string"},{name:"version",type:"string"},{name:"chainId",type:"uint256"},{name:"verifyingContract",type:"address"}],Review:[{name:"account",type:"address"},{name:"statement",type:"string"}]},primaryType:"Review",message:{account,statement:"YNX testnet QA only"}});try{const result=await ethereum.request({method:"eth_signTypedData_v4",params:[account,value]});show(`EIP712 ${result.slice(0,18)}`)}catch(error){show(`EIP712_REJECTED ${error.code??"UNKNOWN"}`)}};
 document.querySelector("#transaction").onclick=async()=>{try{const result=await ethereum.request({method:"eth_sendTransaction",params:[{from:account,to:account,chainId:"0x1917",nonce:"0x0",gas:"0x5208",maxFeePerGas:"0x3b9aca00",maxPriorityFeePerGas:"0x3b9aca00",value:"0x0",data:"0x",type:"0x2"}]});show(`TRANSACTION ${result}`)}catch(error){show(`TRANSACTION_REJECTED ${error.code??"UNKNOWN"}`)}};
+ethereum.on?.("accountsChanged",accounts=>{account=accounts[0]??null;show(account?`ACCOUNTS_CHANGED ${account}`:"ACCOUNTS_CHANGED EMPTY")});
+ethereum.on?.("chainChanged",chainId=>show(`CHAIN_CHANGED ${chainId}`));
+ethereum.on?.("disconnect",error=>show(`DISCONNECTED ${error?.code??"UNKNOWN"}`));
+(async()=>{try{acceptAccounts(await ethereum.request({method:"eth_accounts"}),"RESTORED")}catch(error){show(`RESTORE_REJECTED ${error.code??"UNKNOWN"}`)}})();
 </script>
 </html>
