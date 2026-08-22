@@ -7097,6 +7097,36 @@
       "canonicalUnchanged": true,
       "sourceBoundPublic": false,
       "nextAction": "Do not reuse P0-199. Provide an already authorized hosted executor that can reach the exact READY immutable candidate, or request a separate bounded candidate-reachability evidence lease; no public success may be inferred."
+    },
+    {
+      "taskId": "P0-200",
+      "owner": "social",
+      "status": "ACTIVE_SINGLE_USE",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/execution/p0-200-social-immutable-candidate-hosted-preflight-lease-20260822.json",
+        "branch:codex/social-release-evidence-ecffe336:.github/workflows/social-public-candidate-preflight-p0.yml",
+        "https://ynx-social-mo3j03lc9-jiahaoalbus-projects.vercel.app/**"
+      ],
+      "dependencies": [
+        "P0-199"
+      ],
+      "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-social-immutable-candidate-hosted-preflight-20260822T165300Z",
+      "expiresAt": "2026-08-22T17:23:00Z",
+      "executor": "social-vercel-release",
+      "remoteParent": "353ad3b40a0ed6772dbd10daaec265455bc966c2",
+      "candidate": "28a03c49e2f8dd76b750e65d8f24299706233fc1",
+      "candidateTree": "f94774170892a0e140148f672bf8bca57a25e0f4",
+      "workflowBlob": "bf1062d3f4db9a5541f90f54ce38d74a48cedbf7",
+      "workflowSha256": "5b5be58746d4464cf769c6f93e2e76a338feb74df2e159d2113904cb2f629cb1",
+      "runtimeCandidate": "dpl_8tcTgggBktks6z8bHcRnhdjajaGR",
+      "commitLimit": 1,
+      "pushLimit": 1,
+      "hostedRunLimit": 1,
+      "retryAllowed": false,
+      "deploymentAllowed": false,
+      "aliasAllowed": false,
+      "sensitiveActionsAllowed": false,
+      "nextAction": "Execute the sole literal force=false push, bind exactly one push-triggered hosted run, collect the isolated raw/browser artifact, then release success or fail closed without retry."
     }
   ]
 }
