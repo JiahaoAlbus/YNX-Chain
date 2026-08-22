@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "requestType": "pay-only-zero-write-production-baseline-preflight-lease",
+  "productId": "pay",
+  "owner": "pay",
+  "supersedes": {
+    "leaseId": "P0-221",
+    "terminalStatus": "CONSUMED_RELEASED_FAILED_CLOSED_PAY_PUBLIC_READONLY_BASELINE_PREFLIGHT_REMOTE_TMP_WRITE",
+    "centralReleaseCommit": "27015fb00b08aa84ac73decf80eb8e3f13c6750b",
+    "centralReleaseTree": "4f0387ca10b50fd0da0c3eb89be32aa35098ed96",
+    "leaseBlob": "ff692f43bcf8854a02f0d289aa5ff5d6618c682f",
+    "leaseContentSha256": "4a1f4b9465c767d6d412789e9f019a1ae6f5855ef9719c101c6e7204eb884eac",
+    "reusable": false
+  },
+  "payProductSource": {
+    "commit": "5f4ce98eb458550b976c17e3bc6d77cce4081a59",
+    "tree": "8f0c25c4d86eb22a564f3c7aeff9db6709a9b9f0"
+  },
+  "preflightImplementation": {
+    "commit": "5ba8dcecaf9d9f4efeea030f808ff02bd8dc0052",
+    "tree": "95e8685e8a562e30efe1e00f3d83992be45de2c7",
+    "script": {
+      "path": "apps/pay/scripts/pay-public-zero-write-preflight.sh",
+      "blob": "430cf1e947a96cd480410a049518da7d2d660c94",
+      "sha256": "948d89313c8fa9c56eb0560ab6bd37db0ffa64179f1ac5aa892692d22ca6b591"
+    },
+    "verifier": {
+      "path": "apps/pay/scripts/verify-pay-public-zero-write-preflight.mjs",
+      "blob": "32a239bd903b4210707b2cb61941d8cce36ad49a",
+      "sha256": "1d8d61abb7ea3446b2ba17bf4d032ccee95f581a157311560d501e8301ad1ddb"
+    },
+    "localValidation": {
+      "bashSyntax": true,
+      "staticZeroWriteVerifier": true,
+      "remoteCommandAuditMode": true
+    }
+  },
+  "candidate": {
+    "path": "release/pay/ynx-pay-web-5f4ce98e-static.tar.gz",
+    "blob": "cca37d7b48c1c37266a4141c7b79f44f1cf09f29",
+    "bytes": 608368,
+    "sha256": "ae552951d8e569f04aced60db69e3c11422910cc1098a6e7061b0e84005ad09e"
+  },
+  "executor": {
+    "host": "43.153.202.237",
+    "user": "ubuntu",
+    "sshHostKeyFingerprint": "SHA256:7wrOak1OZoD6oDAr0e3En+UD4fs8QnAM1n0Jvwi6Ha8",
+    "knownHostsMustBeLocalAndPinned": true
+  },
+  "lastKnownReadOnlyBaseline": {
+    "public": {
+      "root": {"status": 404, "bytes": 19, "sha256": "b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793"},
+      "health": {"status": 200, "bytes": 589, "sha256": "4e1b7b1a63b1b0d63a496def3515f41b1ac943ad27b9c13537b231f357d0de17"},
+      "version": {"status": 404, "bytes": 19, "sha256": "b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793"},
+      "callback": {"status": 404, "bytes": 19, "sha256": "b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793"},
+      "payAppRoot": {"status": 200, "bytes": 1174, "sha256": "74c3cea077f7eea86d55aa660a343bc69e57596f4c456787135f6f802ddae743"}
+    },
+    "caddy": {
+      "caddyfileSha256": "077fe80ea9aab24a32d64ba1fab3584e8aab10304e200e58d976d2c33edfb39f",
+      "ynxChainSha256": "df5f7ad73dd2631c0e934514e05a30ac97c75dc9efe2ec568b049c71c4024396",
+      "payAppSha256": "5b09ff338529fe0744a5e79cef10c92d42df654e2b4d650502cfd2ad245b0350",
+      "merchantSha256": "1213e915c4300a894acc90dd42946c974cdc66b4275ce4f92d2479289879ace6",
+      "adaptedJsonBytes": 25233,
+      "adaptedJsonSha256": "f36d4ace086b55dfbd949fb6b2aaf837c7463f1a9b61303f270b8b885f80b213",
+      "payHostRoute": "catch-all reverse_proxy 127.0.0.1:6430"
+    },
+    "filesystem": {
+      "payWebRoot": "ABSENT:/opt/ynx-pay-web",
+      "payAppCurrent": "/opt/ynx/pay-app-current -> /opt/ynx/pay-app-53eb677c",
+      "payAppTarget": {"device": 64770, "inode": 1334155, "uid": 501, "gid": 50, "mode": "755", "nlink": 4},
+      "payAppSymlink": {"inode": 1334188, "uid": 0, "gid": 0, "mode": "777", "nlink": 1, "bytes": 25}
+    },
+    "backend": {
+      "binary": "/usr/local/bin/ynx-payd",
+      "binarySha256": "9793542dba1dd3a70f0a035edb26efa7611563e0f684a276405571dc5fe2735c",
+      "service": "ynx-payd.service",
+      "active": true,
+      "restartCount": 0,
+      "listener": "127.0.0.1:6430",
+      "separatePayProductListener": "127.0.0.1:6484"
+    }
+  },
+  "requestedLease": {
+    "productionWritesAllowed": false,
+    "singleUse": true,
+    "pathScope": "read-only Pay/Caddy/pay-app/payd baseline only",
+    "authorizedAction": "Run the exact committed preflight script once with a fresh local-only empty evidence directory and a local pinned known_hosts file.",
+    "remoteTemporaryFilesAllowed": false,
+    "remoteRedirectionAllowed": false,
+    "remoteMutationAllowed": false,
+    "serviceOrCaddyMutationAllowed": false,
+    "deploymentAllowed": false,
+    "requiredFreshReadback": [
+      "raw Caddyfile and the three bound imported Caddy files",
+      "caddy adapt stdout captured directly by the local shell",
+      "Caddy file hashes and filesystem metadata",
+      "/opt/ynx-pay-web signed absence",
+      "pay-app-current link, metadata, file inventory and per-file SHA-256",
+      "ynx-payd binary hash, service state and listeners",
+      "public root, health, version and callback responses"
+    ]
+  },
+  "zeroWriteInvariant": {
+    "remoteCommandsAreAStaticAllowlist": true,
+    "remoteStdoutCaptureOccursOnlyAfterSshReturnsToLocalShell": true,
+    "forbiddenRemotePrimitives": ["mktemp", "shell redirection", "tee", "touch", "mkdir", "rm", "cp", "mv", "install", "tar", "service mutation", "caddy reload"],
+    "failureContract": "Any mismatch, command failure, or observed remote mutation consumes and releases the lease fail-closed with no retry."
+  },
+  "truthBoundary": "This is a wholly-new zero-write read-only lease request. It is not deployment authority and proves no public Pay candidate, installed provider, account, approval, signing or transaction state."
+}
