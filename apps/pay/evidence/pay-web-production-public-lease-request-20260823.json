@@ -4,8 +4,8 @@
   "productId": "pay",
   "owner": "pay",
   "ownerCheckpoint": {
-    "commit": "f1075dcbfcc5c677294db2dd58217d55a6f74b07",
-    "tree": "674e6330e0466c36595f435b89dd284c93a1bd11"
+    "commit": "21e6c215267508f5dbf042c2c1afdedace906824",
+    "tree": "cfd4a50b05f5f91d86bae79501d622a034682f96"
   },
   "p0224TerminalCorrection": {
     "centralReleaseCommit": "f384af6871a18d24abd0007825fa0923eec4efcf",
@@ -46,6 +46,22 @@
     "productionExactCommandRequested": "PAY_KNOWN_HOSTS=/Users/huangjiahao/.ssh/known_hosts '/Users/huangjiahao/Desktop/YNX Final Worktrees/04-pay-p0-clean/apps/pay/scripts/pay-public-post-switch-collector-p0225.sh' /tmp/ynx-pay-p0225-public-release-20260822T230000Z/http",
     "attemptLimit": 1,
     "retryAllowed": false
+  },
+  "p0225PreleaseCorrection": {
+    "decision": "NO_GO_PAY_P0225_P0222_ROOT_ABSENCE_BASELINE_MISMATCH",
+    "leaseIssued": false,
+    "productionMutationOccurred": false,
+    "resolution": "The request now binds the three empty rollback-created parent directories by exact tuple and requires only the specific release and staging targets to remain absent. No parent directory deletion is requested or authorized.",
+    "freshReadAt": "2026-08-22T22:55:30Z",
+    "parentDirectories": [
+      {"path":"/opt/ynx-pay-web","dev":64770,"ino":1483757,"uid":0,"gid":0,"mode":"0755","nlink":4,"bytes":4096,"type":"directory","expectedChildren":["incoming","releases"]},
+      {"path":"/opt/ynx-pay-web/releases","dev":64770,"ino":1483839,"uid":0,"gid":0,"mode":"0755","nlink":2,"bytes":4096,"type":"directory","empty":true},
+      {"path":"/opt/ynx-pay-web/incoming","dev":64770,"ino":1483758,"uid":0,"gid":0,"mode":"0755","nlink":2,"bytes":4096,"type":"directory","empty":true}
+    ],
+    "releaseTargetAbsent": "/opt/ynx-pay-web/releases/pay-web-5f4ce98e-release1",
+    "stagingTargetAbsent": "/opt/ynx-pay-web/incoming/pay-web-5f4ce98e-release1",
+    "deployPreconditionAudited": "The frozen deploy script already requires only the exact release/stage targets to be absent and does not require or delete the parent directories.",
+    "rollbackFixtureAudited": "The frozen fixture preserves the parent tree while proving exact release/stage inode cleanup."
   },
   "centralNoGoCorrection": {
     "priorRequestCommit": "a5cba8d450f5c508d9cd417c99511911c5b28e99",
@@ -155,7 +171,7 @@
       "ynxChainSha256": "df5f7ad73dd2631c0e934514e05a30ac97c75dc9efe2ec568b049c71c4024396",
       "caddyAdaptBytes": 25233,
       "caddyAdaptSha256": "f36d4ace086b55dfbd949fb6b2aaf837c7463f1a9b61303f270b8b885f80b213",
-      "payWebRoot": "ABSENT:/opt/ynx-pay-web",
+      "payWebRoot": "PRESENT_EMPTY_PARENTS_BOUND_BY_P0225_PRELEASE_CORRECTION",
       "payAppCurrent": "/opt/ynx/pay-app-current -> /opt/ynx/pay-app-53eb677c",
       "paydBinarySha256": "9793542dba1dd3a70f0a035edb26efa7611563e0f684a276405571dc5fe2735c",
       "paydService": "active/running, NRestarts=0, 127.0.0.1:6430",
@@ -177,7 +193,10 @@
       "/opt/ynx-pay-web/incoming/pay-web-5f4ce98e-release1",
       "/etc/caddy/ynx-chain.caddy"
     ],
+    "parentDirectoryTuplesMustMatchP0225PreleaseCorrection": true,
+    "parentDirectoriesMustNotBeDeleted": true,
     "releaseRootMustBeAbsentBeforeWrite": "/opt/ynx-pay-web/releases/pay-web-5f4ce98e-release1",
+    "stagingRootMustBeAbsentBeforeWrite": "/opt/ynx-pay-web/incoming/pay-web-5f4ce98e-release1",
     "freshPrewriteMustMatchP0222": true,
     "transferObjectsMustMatchExactBlobBytes": true,
     "extractIntoNewEmptyReleaseRoot": true,

@@ -26,3 +26,15 @@ PAY_KNOWN_HOSTS=/Users/huangjiahao/.ssh/known_hosts '/Users/huangjiahao/Desktop/
 Then a non-sensitive clean-browser cold and second launch must prove the stable official URL, default English, one tab, no blank/custom-scheme tab, zero console/page/network errors, and truthful `Waiting for Wallet` without a fabricated account or chain. Any deploy, collector, or browser failure requires at most one invocation of the frozen rollback object. No retry is requested.
 
 This request excludes `eth_requestAccounts`, account approval, signatures, typed data, transactions, non-Pay services, and every other product path. Even success is only source-bound public Pay shell evidence, not full Wallet parity or product completion.
+
+## Empty parent-directory correction
+
+Central correctly rejected the first P0-225 request because P0-224 rollback preserved empty parent directories rather than restoring the earlier whole-root absence. No lease was issued and nothing was deleted. A fresh read now binds:
+
+- `/opt/ynx-pay-web`: device 64770, inode 1483757, root:root, mode 0755, nlink 4, 4096 bytes; exactly `incoming` and `releases` children.
+- `/opt/ynx-pay-web/releases`: device 64770, inode 1483839, root:root, mode 0755, nlink 2, 4096 bytes, empty.
+- `/opt/ynx-pay-web/incoming`: device 64770, inode 1483758, root:root, mode 0755, nlink 2, 4096 bytes, empty.
+- Exact release `/opt/ynx-pay-web/releases/pay-web-5f4ce98e-release1` remains absent.
+- Exact stage `/opt/ynx-pay-web/incoming/pay-web-5f4ce98e-release1` remains absent.
+
+The frozen deploy object already checks only those two exact targets for absence. The rollback object and fixture delete only captured matching release/stage inodes and intentionally preserve the parent tree. A successor lease must fresh-match the three parent tuples and emptiness and must not authorize deleting them.
