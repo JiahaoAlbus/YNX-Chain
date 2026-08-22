@@ -1,0 +1,59 @@
+name: Wallet desktop artifact evidence extract
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: Completed native Wallet desktop workflow run ID
+        required: true
+        type: string
+      artifact_name:
+        description: Exact artifact name to inspect
+        required: true
+        type: string
+      architecture:
+        description: Evidence architecture directory
+        required: true
+        type: choice
+        options: [windows-x64, windows-arm64]
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  extract-existing-evidence:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ${{ inputs.artifact_name }}
+          path: downloaded
+          github-token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          run-id: ${{ inputs.run_id }}
+      - name: Extract and verify the existing evidence only
+        shell: bash
+        env:
+          ARCHITECTURE: ${{ inputs.architecture }}
+          SOURCE_RUN_ID: ${{ inputs.run_id }}
+          SOURCE_ARTIFACT: ${{ inputs.artifact_name }}
+        run: |
+          set -euo pipefail
+          evidence="downloaded/evidence/$ARCHITECTURE"
+          test -f "$evidence/lifecycle.json"
+          test -f "$evidence/SHA256.txt"
+          test -f "$evidence/BYTES.txt"
+          test -f "$evidence/AUTHENTICODE.json"
+          mkdir -p extracted-evidence
+          cp "$evidence/lifecycle.json" "$evidence/SHA256.txt" "$evidence/BYTES.txt" "$evidence/AUTHENTICODE.json" extracted-evidence/
+          if test -f "$evidence/artifact-manifest.json"; then cp "$evidence/artifact-manifest.json" extracted-evidence/; fi
+          printf '%s\n' "$SOURCE_RUN_ID" > extracted-evidence/SOURCE_RUN_ID.txt
+          printf '%s\n' "$SOURCE_ARTIFACT" > extracted-evidence/SOURCE_ARTIFACT.txt
+          sha256sum extracted-evidence/* > extracted-evidence/EVIDENCE_SHA256SUMS.txt
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ${{ inputs.artifact_name }}-evidence-only
+          path: extracted-evidence/**
+          if-no-files-found: error
