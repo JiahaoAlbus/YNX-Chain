@@ -4,7 +4,7 @@
   "taskId": "P0-193",
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-card-wallet-provider-public-deployment-20260822T145700Z",
   "owner": "card",
-  "status": "ACTIVE_SINGLE_USE",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_CARD_PUBLIC_DEPLOYMENT",
   "issuedAt": "2026-08-22T14:57:00Z",
   "expiresAt": "2026-08-22T15:27:00Z",
   "singleUse": true,
@@ -86,6 +86,22 @@
     "success": "CONSUMED_RELEASED_SUCCESS_CARD_SOURCE_BOUND_PUBLIC_NON_SENSITIVE_LIFECYCLE",
     "failure": "CONSUMED_RELEASED_FAILED_CLOSED_CARD_PUBLIC_DEPLOYMENT",
     "rollbackFailure": "EMERGENCY_BLOCKED_CARD_EXACT_ROLLBACK_REQUIRED_NO_FURTHER_ACTION"
+  },
+  "terminalEvidence": {
+    "releasedAt": "2026-08-22T15:16:11Z",
+    "deploymentAttemptCount": 1,
+    "candidateDeploymentId": "dpl_ARb5FSfy9vrJaNM1bEVh3ynKxzXr",
+    "candidateDeploymentStatus": "Error",
+    "failure": "Vercel treated the static artifact directory as a Node build root, searched for package.json and attempted npm run build:web",
+    "retryCount": 0,
+    "rollbackAttemptCount": 1,
+    "rollbackDeploymentId": "dpl_DqMuEhno65bLFTNKBu9gs52soVri",
+    "rollbackResult": "already-current",
+    "rollbackHashesVerified": true,
+    "sourceBoundPublic": false,
+    "browserValidated": false,
+    "sensitiveActionsExecuted": false,
+    "nextAction": "Do not reuse P0-193. Card owner must freeze a corrected static publication package or project build configuration and submit a wholly new Card-only request."
   },
   "truthBeforeExecution": {"sourceBoundPublic":false,"cleanBrowserValidated":false,"accountApproved":false,"signatureExecuted":false,"transactionExecuted":false,"productComplete":false}
 }

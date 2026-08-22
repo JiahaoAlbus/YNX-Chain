@@ -6822,7 +6822,7 @@
     {
       "taskId": "P0-193",
       "owner": "card",
-      "status": "ACTIVE_SINGLE_USE",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_CARD_PUBLIC_DEPLOYMENT",
       "paths": ["release/integration/p0-wallet-connectivity/execution/p0-193-card-wallet-provider-public-deployment-lease-20260822.json","apps/card/**","vercel-project:prj_DU37JeDK4Rx0MjxIV745veV5Qgxp","https://card.ynxweb4.com/**"],
       "dependencies": ["P0-191", "P0-192"],
       "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-card-wallet-provider-public-deployment-20260822T145700Z",
@@ -6833,7 +6833,16 @@
       "deploymentAttemptLimit": 1,
       "rollbackAttemptLimit": 1,
       "sensitiveActionsAllowed": false,
-      "nextAction": "Card owner performs one exact build/deploy attempt, freezes the new deployment identity and completes only non-sensitive canonical HTTP/browser gates; rollback once on any failure, then consume/release P0-193."
+      "releasedAt": "2026-08-22T15:16:11Z",
+      "candidateDeployment": "dpl_ARb5FSfy9vrJaNM1bEVh3ynKxzXr",
+      "candidateDeploymentStatus": "Error",
+      "deploymentAttemptCount": 1,
+      "retryCount": 0,
+      "rollbackAttemptCount": 1,
+      "rollbackResult": "already-current",
+      "rollbackHashesVerified": true,
+      "sourceBoundPublic": false,
+      "nextAction": "Do not reuse P0-193. Card owner must freeze a corrected static publication package or project build configuration and submit a wholly new Card-only request."
     },
     {
       "taskId": "P0-194",
@@ -6845,16 +6854,16 @@
         "release/integration/p0-wallet-connectivity/integration-queue.json"
       ],
       "dependencies": ["P0-191"],
-      "routerCommit": "994dd5735f5d5b0227e21ac4afaa5b79659607db",
-      "routerTree": "911be4b8a56bf0193fe0cd3e57953e4f5f629cf8",
-      "routerParent": "875be208e8a7ddb60345d55b93fc299949664e5c",
-      "registryBlob": "9345bc4dc705f9a261ddd9b085e33b0fe14d38ad",
-      "registrySha256": "6e17074bf013e2d5fb1f26f15c909f9ffc65bca2d639c2c5c811e621e5474a97",
+      "routerCommit": "f7b8b4494a10c0de269e0328fd7fbd35b46c7109",
+      "routerTree": "333188b5c5c7bb05b09a11c081747d9d4bd9272a",
+      "routerParent": "0a2d17f7f6060f62d392a9f5baa840cb594257e0",
+      "registryBlob": "21a7d60aa7392d1b13651b9e58a5bc5efcb585f7",
+      "registrySha256": "8dec3e58a31381df9fd0596a2a9485d54dd8158b241201c0f06904c43459eb2e",
       "directE2EProductSubset": "0/12",
       "responsibilityDomainAggregate": "0/36",
       "classificationCounts": {
-        "interactiveWalletConsumer": "0/25",
-        "nonInteractiveProductSessionConsumer": "0/4",
+        "interactiveWalletConsumer": "0/27",
+        "nonInteractiveProductSessionConsumer": "0/2",
         "evidenceBackedNotApplicable": "0/7"
       },
       "mappingPolicy": "Owner threads are routing authority now; ownerBranch/ownedPaths remain null and mappingFrozen=false until each dedicated audit returns exact evidence. No source-only result changes completion.",
@@ -6879,7 +6888,36 @@
       "sourceBoundPublicOrInstalledPromoted": false,
       "executionLeaseIssued": false,
       "heavyOwnerUnchanged": "card",
+      "explorerMonitorAudit": {
+        "ownerThread": "01a00020-1150-73c3-ab41-9b776db3b2a7",
+        "request": "5f430a4642ee93e59604dd6a2ab5f2ea5af67378",
+        "candidate": "49cbb150",
+        "classificationCorrection": "BOTH_INTERACTIVE_WALLET_CONSUMERS_WITH_SEPARATE_GUEST_ONLY_PUBLIC_READS",
+        "publicVerified": false
+      },
       "nextAction": "Collect exact ownerBranch/ownedPaths and classification evidence from every dispatched audit, then freeze mappings without shrinking the 36-domain denominator. Separately adjudicate product-scoped release requests only after exact artifact/current-runtime/rollback binding."
+    },
+    {
+      "taskId": "P0-195",
+      "owner": "card",
+      "status": "ACTIVE_SINGLE_USE",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/execution/p0-195-card-static-envelope-public-deployment-lease-20260822.json",
+        "apps/card/**",
+        "vercel-project:prj_DU37JeDK4Rx0MjxIV745veV5Qgxp",
+        "https://card.ynxweb4.com/**"
+      ],
+      "dependencies": ["P0-193", "P0-194"],
+      "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-card-static-envelope-public-deployment-20260822T152200Z",
+      "expiresAt": "2026-08-22T15:52:00Z",
+      "source": "350602410b868322d911c869145c879c120b641e",
+      "baseSemanticSource": "45c4013a95008027cf55f2ac4d7bdded70640ae1",
+      "request": "e4213d6e17ca2eac6791e9b0838c24d8dcebd569",
+      "rollbackDeployment": "dpl_DqMuEhno65bLFTNKBu9gs52soVri",
+      "deploymentAttemptLimit": 1,
+      "rollbackAttemptLimit": 1,
+      "sensitiveActionsAllowed": false,
+      "nextAction": "Card owner performs one clean exact 12-file build and one deployment attempt only. Freeze direct canonical HTTP/browser evidence; rollback once on any failure and terminally consume/release P0-195."
     }
   ]
 }

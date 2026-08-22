@@ -13,14 +13,15 @@
       "sha256": "c5a615c9d5c34f25d9810751d816dc6709ca6de70aafea0549224de162c33652"
     },
     "responsibilityRegistry36": {
-      "commit": "994dd5735f5d5b0227e21ac4afaa5b79659607db",
-      "tree": "911be4b8a56bf0193fe0cd3e57953e4f5f629cf8",
-      "parent": "875be208e8a7ddb60345d55b93fc299949664e5c",
+      "commit": "f7b8b4494a10c0de269e0328fd7fbd35b46c7109",
+      "tree": "333188b5c5c7bb05b09a11c081747d9d4bd9272a",
+      "parent": "0a2d17f7f6060f62d392a9f5baa840cb594257e0",
       "path": "release/integration/wallet-ecosystem-responsibility-registry-p0-20260822.json",
-      "blob": "9345bc4dc705f9a261ddd9b085e33b0fe14d38ad",
-      "sha256": "6e17074bf013e2d5fb1f26f15c909f9ffc65bca2d639c2c5c811e621e5474a97",
+      "blob": "21a7d60aa7392d1b13651b9e58a5bc5efcb585f7",
+      "sha256": "8dec3e58a31381df9fd0596a2a9485d54dd8158b241201c0f06904c43459eb2e",
       "routingAuthorityOnly": true,
-      "mappingFrozenOnlyAfterDedicatedAudit": true
+      "mappingFrozenOnlyAfterDedicatedAudit": true,
+      "explorerMonitorPrivilegedClassificationCorrected": true
     },
     "standardWalletProtocol": {
       "commit": "66003e76e804da16d472255efde50cb879055b96",
@@ -95,8 +96,8 @@
     "productsConnected": "0/12",
     "productsMigratedV2": "0/12",
     "responsibilityDomainsComplete": "0/36",
-    "interactiveWalletConsumersComplete": "0/25",
-    "nonInteractiveProductSessionConsumersComplete": "0/4",
+    "interactiveWalletConsumersComplete": "0/27",
+    "nonInteractiveProductSessionConsumersComplete": "0/2",
     "evidenceBackedNotApplicableComplete": "0/7",
     "publicPackageTruthVerifiedAcrossPlatforms": false,
     "productionSignedAcrossPlatforms": false,
