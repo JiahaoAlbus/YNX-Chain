@@ -1,0 +1,79 @@
+{
+  "schemaVersion": "payNativePublicReleaseRequest@1.0.0-p0.0",
+  "requestId": "P0-PAY-NATIVE-PUBLIC-RELEASE-20260822",
+  "classification": "NO_GO_SOURCE_ONLY_FRESH_LEASE_REQUEST",
+  "owner": "pay",
+  "ownerScope": ["apps/pay/**"],
+  "freshReadback": {
+    "readAt": "2026-08-22T15:14:14+08:00",
+    "remoteRef": "refs/heads/codex/p0-pay-wallet-connectivity-20260821",
+    "candidateCommit": "dbdd3491e63186cc02541ca7e8a20d8f098b31b9",
+    "candidateTree": "3a454e44f4830cf20be0caf57e28d2db3c6f304d",
+    "remoteExact": true,
+    "publicUrl": "https://pay.ynxweb4.com/",
+    "publicUrlStatus": 404,
+    "nativeCandidateInstalled": false,
+    "nativeCandidateArtifactBound": false
+  },
+  "requestedSingleUseLease": {
+    "leaseId": "CENTRAL_MUST_ASSIGN_NEW_NONREUSABLE_ID",
+    "executor": "CENTRAL_MUST_ASSIGN_NAMED_RELEASE_EXECUTOR",
+    "expiresAt": "CENTRAL_MUST_ASSIGN_FUTURE_ISO_8601_EXPIRY",
+    "candidate": {
+      "commit": "dbdd3491e63186cc02541ca7e8a20d8f098b31b9",
+      "tree": "3a454e44f4830cf20be0caf57e28d2db3c6f304d"
+    },
+    "artifact": {
+      "status": "CENTRAL_MUST_BIND_BEFORE_EXECUTION",
+      "requiredFields": ["immutableUrl", "sha256", "bytes", "platform", "bundleId", "sourceCommit", "sourceTree"]
+    },
+    "permittedTargets": {
+      "nativeInstall": {
+        "platform": "CENTRAL_MUST_ASSIGN_COMPATIBLE_ANDROID_OR_IOS_DEVICE",
+        "bundleId": "com.ynxweb4.pay",
+        "purpose": "cold-start and resolver-first non-sensitive validation only"
+      },
+      "public": {
+        "url": "https://pay.ynxweb4.com/",
+        "requiredBeforeUse": "HTTP success plus immutable candidate provenance readback"
+      }
+    },
+    "rollback": {
+      "target": "CENTRAL_MUST_BIND_PREVIOUS_PUBLIC_ARTIFACT_AND_RUNTIME_IDENTITY",
+      "procedure": [
+        "Record pre-deploy public source/tree and artifact digest.",
+        "Deploy only the bound candidate through the named executor before expiry.",
+        "On failed provenance, boot, resolver, or callback fail-close readback, restore the bound target.",
+        "Read back restored public source/tree and artifact identity before closing the lease."
+      ],
+      "verified": false
+    }
+  },
+  "permittedNonSensitiveVerification": [
+    "Open Pay without a blank top-level tab.",
+    "Verify separate YNX Wallet and MetaMask labels and logos through provider discovery only.",
+    "Verify resolver-first unavailable behavior and callback fail-close behavior.",
+    "Verify prompt-free refresh and passive accountsChanged, chainChanged, and disconnect handling only when an already-approved provider is present."
+  ],
+  "prohibitedActions": [
+    "eth_requestAccounts",
+    "personal_sign",
+    "eth_signTypedData_v4",
+    "eth_sendTransaction",
+    "wallet_addEthereumChain",
+    "wallet_switchEthereumChain",
+    "private-key collection"
+  ],
+  "truth": {
+    "p0051Reusable": false,
+    "freshLeaseIssued": false,
+    "executorBound": false,
+    "expiryBound": false,
+    "artifactBound": false,
+    "rollbackBound": false,
+    "publicIdentityBound": false,
+    "nativeInstalled": false,
+    "publicLifecycleVerified": false
+  },
+  "completionRule": "This request is not a lease, deployment, artifact, install, wallet approval, callback, signature, transaction, or public-runtime completion claim."
+}
