@@ -1,0 +1,92 @@
+{
+  "schema": "ynx.social.single-use-release-request.v2",
+  "status": "FROZEN_REQUEST_ONLY",
+  "target": "https://social.ynxweb4.com/",
+  "candidate": {
+    "sourceCommit": "d9337ddc5ffcbddaad463eef968c3d52c05272dc",
+    "sourceTree": "959047d9df871412149877c715e133193e7ca410",
+    "socialTree": "8e20de13dabc65738db14fdad5104d4f8cb43c77",
+    "artifactPath": "apps/social/evidence/release-candidates/ynx-social-d9337ddc.tar.gz",
+    "artifactBytes": 922193,
+    "artifactSha256": "57c07dd0135598c1158fa482a45ffa8ac9da4297f3e065deb031fc6111739a36",
+    "extractedProjectRoot": "apps/social/apps/social"
+  },
+  "buildContract": {
+    "packageScript": "npm run vercel-build",
+    "implementation": "scripts/build-web.mjs",
+    "vercelConfig": "vercel.json",
+    "installCommand": "node --version",
+    "outputDirectory": "dist/social-web",
+    "productSemanticsChanged": false,
+    "isolatedCarrierBuildRuns": 2,
+    "isolatedCarrierBuildsMatched": true,
+    "files": [
+      {
+        "path": "index.html",
+        "bytes": 6022,
+        "sha256": "0133e7a4a65f19b6965afd20ba47b87c3dcba196ee9eeb185c76e39e1786e8ed"
+      },
+      {
+        "path": "app.js",
+        "bytes": 7115,
+        "sha256": "73ee268d130ebf396dee6d4d94131197bedd0784e0571057f70f99e9caa5e346"
+      },
+      {
+        "path": "styles.css",
+        "bytes": 6327,
+        "sha256": "1f80ec6b7ab8c2ff0d1d66edf083d301af89386c802483733fd670a5ada26c42"
+      },
+      {
+        "path": "wallet-provider.js",
+        "bytes": 7749,
+        "sha256": "d8df8193407f835ff16913417acca0db2ae1f091defc16e0b29a98996ffdea75"
+      },
+      {
+        "path": "assets/metamask.svg",
+        "bytes": 755,
+        "sha256": "f761f46f4fe7052a84b47cf23b63c2f20cc3d043df640b7f79c2adcb245e5f21"
+      },
+      {
+        "path": "assets/ynx-wallet.svg",
+        "bytes": 280,
+        "sha256": "e92207903e61b41c7a662e57e2a3bcfd84627b49c22a29e9240d5eafcd0229fb"
+      }
+    ]
+  },
+  "validation": {
+    "webWalletTests": "8/8",
+    "firstLocalBuild": true,
+    "secondLocalBuild": true,
+    "isolatedCarrierBuild": true,
+    "deployment": false
+  },
+  "vercel": {
+    "scope": "jiahaoalbus-projects",
+    "project": "ynx-social-web",
+    "projectId": "prj_QGgUyxilarbPPLZyoES83m2aneQN",
+    "requiredExecutor": "social-vercel-release",
+    "candidateMustUseSkipDomain": true,
+    "alias": "social.ynxweb4.com",
+    "deploymentAuthorized": false
+  },
+  "rollback": {
+    "deploymentId": "dpl_2sei8CpmoN1Gi5YKnc6FdvNRyXGy",
+    "immutableUrl": "ynx-social-h8cqxnkud-jiahaoalbus-projects.vercel.app",
+    "aliasCommand": "vercel alias set ynx-social-h8cqxnkud-jiahaoalbus-projects.vercel.app social.ynxweb4.com --scope jiahaoalbus-projects",
+    "maximumExecutions": 1
+  },
+  "verificationBoundary": {
+    "allowed": [
+      "distinct official YNX and MetaMask identity and logo",
+      "late-provider and no-provider state",
+      "stable URL",
+      "single top-level tab and no blank page",
+      "zero browser console errors"
+    ],
+    "forbidden": [
+      "eth_requestAccounts",
+      "wallet signing",
+      "transaction submission"
+    ]
+  }
+}
