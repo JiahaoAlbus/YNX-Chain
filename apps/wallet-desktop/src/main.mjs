@@ -1,4 +1,5 @@
 import { app, BrowserWindow, ipcMain, nativeImage, safeStorage, shell } from "electron";
+import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -173,9 +174,10 @@ ipcMain.handle("wallet:provider-action", (_event, id, action) => safeIPC(async (
 
 async function handleCallback(rawValue) {
   const review = evaluateWalletCallback(rawValue);
+  const activation = protocolActivationFingerprint(rawValue);
   if (pendingReview?.acceptedForReview) {
     const busy = { acceptedForReview: false, code: "AUTHORIZATION_REQUEST_IN_PROGRESS", callbackEmitted: false, authorityGranted: false };
-    lastCallback = { received: true, ...busy };
+    lastCallback = { received: true, activation, ...busy };
     if (mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send("wallet:authorization-error", busy);
     return;
   }
@@ -186,7 +188,8 @@ async function handleCallback(rawValue) {
     code: review.code,
     callbackEmitted: false,
     authorityGranted: false,
-    requestingProduct: review.request?.requestingProduct ?? null
+    requestingProduct: review.request?.requestingProduct ?? null,
+    activation
   };
   if (!mainWindow || mainWindow.isDestroyed()) return;
   mainWindow.show();
@@ -316,6 +319,12 @@ function sanitizeProposal(proposal) {
   return { id: String(proposal.id), name: boundedText(metadata.name, "Unknown DApp"), url: boundedText(metadata.url, null), requested: { chains: boundedArray(namespace.chains), methods: boundedArray(namespace.methods), events: boundedArray(namespace.events) } };
 }
 function rejectProviderRequest(id) { walletAuthority.reject(id); }
+function protocolActivationFingerprint(value) {
+  const text = typeof value === "string" ? value : "";
+  let route = { scheme: null, host: null, pathname: null, queryKeys: [], hasHash: false };
+  try { const url = new URL(text); route = { scheme: url.protocol, host: url.hostname, pathname: url.pathname, queryKeys: [...url.searchParams.keys()], hasHash: Boolean(url.hash) }; } catch {}
+  return Object.freeze({ bytes: Buffer.byteLength(text), sha256: createHash("sha256").update(text).digest("hex"), ...route });
+}
 async function safeIPC(action) { try { return { ok: true, value: await action() }; } catch (error) { return { ok: false, error: { code: safeCode(error), message: error?.message ?? "Wallet request failed" } }; } }
 function safeCode(error) { return error?.data?.code ?? error?.code ?? "WALLET_REQUEST_FAILED"; }
 function boundedText(value, fallback) { return typeof value === "string" && value.length <= 512 ? value : fallback; }
