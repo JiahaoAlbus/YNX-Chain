@@ -101,6 +101,9 @@ window.ynxWallet.accountStatus().then(renderAccount);
 const walletConnectTitle = document.querySelector("#walletconnect-title");
 const walletConnectDetail = document.querySelector("#walletconnect-detail");
 const pairButton = document.querySelector("#walletconnect-pair");
+const walletConnectURI = document.querySelector("#walletconnect-uri");
+const walletConnectQR = document.querySelector("#walletconnect-qr");
+const walletConnectQRStatus = document.querySelector("#walletconnect-qr-status");
 const sessionsPanel = document.querySelector("#walletconnect-sessions");
 function renderWalletConnect(payload) {
   const status = payload?.ok === true ? payload.value : payload;
@@ -141,13 +144,41 @@ window.ynxWallet.onWalletConnectStatus(renderWalletConnect);
 window.ynxWallet.onWalletConnectSessionChanged(() => refreshWalletConnectSessions());
 window.ynxWallet.walletConnectStatus().then(payload => { renderWalletConnect(payload); return refreshWalletConnectSessions(); });
 pairButton.addEventListener("click", async () => {
-  const uri = document.querySelector("#walletconnect-uri").value.trim();
+  const uri = walletConnectURI.value.trim();
   pairButton.disabled = true;
   const result = await window.ynxWallet.walletConnectPair(uri);
   if (!result.ok) walletConnectDetail.textContent = `${result.error.code}: ${result.error.message}`;
   else walletConnectDetail.textContent = "Pairing request submitted. Waiting for a DApp proposal.";
   const status = await window.ynxWallet.walletConnectStatus();
   pairButton.disabled = !(status?.ok ? status.value.started : status?.started);
+});
+walletConnectQR.addEventListener("change", async () => {
+  const file = walletConnectQR.files?.[0];
+  walletConnectQR.value = "";
+  if (!file) return;
+  if (!/^image\/(png|jpeg|webp)$/.test(file.type) || file.size < 1 || file.size > 10 * 1024 * 1024) {
+    walletConnectQRStatus.textContent = "INVALID_QR_IMAGE: choose a PNG, JPEG or WebP image up to 10 MB.";
+    return;
+  }
+  if (typeof BarcodeDetector !== "function" || !(await BarcodeDetector.getSupportedFormats()).includes("qr_code")) {
+    walletConnectQRStatus.textContent = "QR_DECODER_UNAVAILABLE: this build cannot decode QR images.";
+    return;
+  }
+  try {
+    const bitmap = await createImageBitmap(file);
+    let results;
+    try { results = await new BarcodeDetector({ formats: ["qr_code"] }).detect(bitmap); }
+    finally { bitmap.close(); }
+    const values = [...new Set(results.map(result => result.rawValue?.trim()).filter(Boolean))];
+    if (values.length !== 1 || !/^wc:[0-9a-f-]+@2\?/.test(values[0]) || values[0].length > 8192) {
+      walletConnectQRStatus.textContent = "INVALID_WALLETCONNECT_QR: exactly one WalletConnect v2 URI is required.";
+      return;
+    }
+    walletConnectURI.value = values[0];
+    walletConnectQRStatus.textContent = "WalletConnect v2 URI decoded locally. Review it, then pair the DApp.";
+  } catch {
+    walletConnectQRStatus.textContent = "QR_DECODE_FAILED: no usable WalletConnect QR code was found.";
+  }
 });
 
 let activeProposal = null;

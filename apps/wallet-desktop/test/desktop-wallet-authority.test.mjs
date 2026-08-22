@@ -155,6 +155,19 @@ test("WalletConnect remains fail closed without a real project ID", async () => 
   assert.deepEqual(WALLETCONNECT_METHODS, ["eth_sendTransaction", "personal_sign", "eth_signTypedData_v4"]);
 });
 
+test("desktop QR import is local-only, bounded and accepts only one WalletConnect v2 URI", async () => {
+  const html = await readFile(new URL("../src/index.html", import.meta.url), "utf8");
+  const renderer = await readFile(new URL("../src/renderer.js", import.meta.url), "utf8");
+  assert.match(html, /id="walletconnect-qr"[^>]+type="file"[^>]+accept="image\/png,image\/jpeg,image\/webp"/);
+  assert.match(html, /QR images are decoded locally and are never uploaded/);
+  assert.match(renderer, /file\.size > 10 \* 1024 \* 1024/);
+  assert.match(renderer, /BarcodeDetector\.getSupportedFormats\(\)/);
+  assert.match(renderer, /new BarcodeDetector\(\{ formats: \["qr_code"\] \}\)/);
+  assert.match(renderer, /values\.length !== 1/);
+  assert.match(renderer, /\^wc:\[0-9a-f-\]\+@2\\\?/);
+  assert.doesNotMatch(renderer, /fetch\([^)]*walletConnectQR|XMLHttpRequest|FormData/);
+});
+
 test("WalletConnect session approval exposes only eip155:6423 and the approved account", async () => {
   const handlers = new Map();
   let approved = null, paired = null;
