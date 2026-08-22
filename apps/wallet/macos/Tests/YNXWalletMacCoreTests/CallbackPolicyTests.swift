@@ -98,7 +98,7 @@ final class CallbackPolicyTests: XCTestCase {
     inbox.enqueue("ynxwallet://authorize?request=invalid")
 
     XCTAssertEqual(inbox.count, 2)
-    let decisions = inbox.drain().map(CallbackPolicy.evaluate)
+    let decisions = inbox.drain().map { CallbackPolicy.evaluate($0) }
     XCTAssertEqual(decisions, [
       .rejected(code: "INVALID_AUTHORIZATION_REQUEST"),
       .rejected(code: "INVALID_DEEP_LINK"),
