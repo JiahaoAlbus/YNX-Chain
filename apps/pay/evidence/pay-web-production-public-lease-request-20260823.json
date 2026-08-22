@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "requestType": "pay-only-single-use-rollback-first-production-publication-lease",
+  "productId": "pay",
+  "owner": "pay",
+  "ownerCheckpoint": {
+    "commit": "54def09f9c06f836c6e3be5c68d6b603b23987f1",
+    "tree": "6e8ba7078f2701c0929ef861f10fb6e45974a04f"
+  },
+  "source": {
+    "commit": "5f4ce98eb458550b976c17e3bc6d77cce4081a59",
+    "tree": "8f0c25c4d86eb22a564f3c7aeff9db6709a9b9f0"
+  },
+  "candidate": {
+    "path": "release/pay/ynx-pay-web-5f4ce98e-static.tar.gz",
+    "blob": "cca37d7b48c1c37266a4141c7b79f44f1cf09f29",
+    "bytes": 608368,
+    "sha256": "ae552951d8e569f04aced60db69e3c11422910cc1098a6e7061b0e84005ad09e",
+    "format": "static-web-root",
+    "manifest": "dist/release-manifest.json",
+    "buildIdentity": {
+      "path": "dist/build-identity.json",
+      "bytes": 322,
+      "sha256": "7b57cc88fc9287c546ba41d0e61a00c13665cdfd8aa8cc34c2f7347f8abb0b81"
+    },
+    "isolatedLocalProof": {
+      "emptyExactTarExtraction": true,
+      "coldAndSecondLaunch": true,
+      "defaultLanguage": "en",
+      "singleTab": true,
+      "consoleErrors": 0,
+      "noInjectedProviderState": "Waiting for Wallet"
+    }
+  },
+  "caddyObjects": {
+    "candidate": {
+      "path": "release/pay/ynx-chain-pay-static-5f4ce98e.caddy",
+      "blob": "af4a15f89a34f4c2b434e9caefdfcd6d1cdcfa8e",
+      "bytes": 3367,
+      "sha256": "ce6fea36f32e341066e9eef90b2ce6197ad598e9bc7cc0a2f6dca5c814b4283b"
+    },
+    "rollback": {
+      "path": "release/pay/ynx-chain-pay-static-rollback-p0222.caddy",
+      "blob": "5a33b5cf34077d69a8863ebf427ebc8a0477728c",
+      "bytes": 2899,
+      "sha256": "df5f7ad73dd2631c0e934514e05a30ac97c75dc9efe2ec568b049c71c4024396",
+      "byteExactToP0222ActiveConfig": true
+    },
+    "semanticDiff": "Only the pay.ynxweb4.com stanza changes. Exact static/SPA paths are served from the immutable Pay release; every other path continues to reverse_proxy 127.0.0.1:6430. All other hosts remain byte-equivalent."
+  },
+  "p0222Baseline": {
+    "centralReleaseCommit": "6c8d394736ebf4c6d771bc0a5d57a7b841a4212f",
+    "centralReleaseTree": "912297a29d369251f3d23668139d0f0137007667",
+    "leaseBlob": "6de4592a01434f0636654dd296f7672abdee4453",
+    "leaseContentSha256": "cccd6fbef08ee6fcdee6bead69139f636f792a547c2cc03dfc90b74d557709ce",
+    "status": "CONSUMED_RELEASED_SUCCESS_PAY_PUBLIC_ZERO_WRITE_READONLY_BASELINE_PREFLIGHT",
+    "localEvidenceArchive": {
+      "path": "/tmp/ynx-pay-p0222-zero-write-readonly-20260822T220600Z.tar.gz",
+      "bytes": 8932,
+      "sha256": "68b663210ccae1493994c591316797c2e0cb938b0957ad4e488b9a090ef5cdbc"
+    },
+    "active": {
+      "caddyfileSha256": "077fe80ea9aab24a32d64ba1fab3584e8aab10304e200e58d976d2c33edfb39f",
+      "ynxChainSha256": "df5f7ad73dd2631c0e934514e05a30ac97c75dc9efe2ec568b049c71c4024396",
+      "caddyAdaptBytes": 25233,
+      "caddyAdaptSha256": "f36d4ace086b55dfbd949fb6b2aaf837c7463f1a9b61303f270b8b885f80b213",
+      "payWebRoot": "ABSENT:/opt/ynx-pay-web",
+      "payAppCurrent": "/opt/ynx/pay-app-current -> /opt/ynx/pay-app-53eb677c",
+      "paydBinarySha256": "9793542dba1dd3a70f0a035edb26efa7611563e0f684a276405571dc5fe2735c",
+      "paydService": "active/running, NRestarts=0, 127.0.0.1:6430",
+      "payProductListener": "127.0.0.1:6484",
+      "publicRoot": "404/19B/b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793",
+      "publicHealth": "200/ynx-payd/YNX Testnet/chainId 6423",
+      "publicVersion": "404/19B/b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793",
+      "publicCallback": "404/19B/b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793"
+    }
+  },
+  "requestedLease": {
+    "singleUse": true,
+    "retryAllowed": false,
+    "executor": "ubuntu@43.153.202.237",
+    "sshIdentity": "/Users/huangjiahao/Downloads/Huang.pem",
+    "sshHostKeyFingerprint": "SHA256:7wrOak1OZoD6oDAr0e3En+UD4fs8QnAM1n0Jvwi6Ha8",
+    "productPathsOnly": [
+      "/opt/ynx-pay-web/releases/pay-web-5f4ce98e-p0223",
+      "/etc/caddy/ynx-chain.caddy"
+    ],
+    "releaseRootMustBeAbsentBeforeWrite": "/opt/ynx-pay-web/releases/pay-web-5f4ce98e-p0223",
+    "freshPrewriteMustMatchP0222": true,
+    "transferObjectsMustMatchExactBlobBytes": true,
+    "extractIntoNewEmptyReleaseRoot": true,
+    "verifyEveryManifestFileBeforeCaddyMutation": true,
+    "candidateCaddyMustAdaptAndValidateBeforeSwitch": true,
+    "switch": "Atomically replace only /etc/caddy/ynx-chain.caddy with the exact candidate object, then run one validated Caddy reload.",
+    "rollback": "On any post-write or public/browser failure, atomically restore the exact rollback object, reload Caddy once, verify the original public responses, then delete the new Pay release only if its captured device+inode still match. No other path may be removed.",
+    "rollbackRequiredOnAnyGateFailure": true
+  },
+  "postSwitchDirectGates": {
+    "http": [
+      "GET / returns 200 and exact index.html bytes/SHA-256",
+      "GET /build-identity.json returns 200, JSON, no-store and exact sourceCommit/sourceTree/bytes/SHA-256",
+      "GET every release-manifest file returns exact bytes/SHA-256",
+      "GET /health remains 200 with ynx-payd, YNX Testnet and chainId 6423",
+      "GET /merchant/wallet-auth/callback remains routed to the backend and preserves its pre-switch response unless an explicitly valid callback is provided",
+      "Caddy effective config differs from P0-222 only at the frozen Pay stanza",
+      "ynx-payd stays active with NRestarts=0 and listeners 6430/6484 remain"
+    ],
+    "browserNonSensitive": [
+      "fresh clean browser opens only https://pay.ynxweb4.com/ in one tab with stable URL and no blank/custom-scheme tab",
+      "default language English and source-bound Pay UI are visible",
+      "console error count zero on cold and second launch",
+      "without a provider, the visible state remains Waiting for Wallet and does not fabricate an account or chain"
+    ],
+    "forbidden": [
+      "eth_requestAccounts",
+      "account approval",
+      "signature",
+      "typed data",
+      "transaction",
+      "any non-Pay service or route mutation"
+    ]
+  },
+  "truthBoundary": "This request asks for one rollback-first Pay static publication and non-sensitive public validation only. Even success does not prove installed provider discovery, account approval/rejection, 0x1917 provider readback, events, signing, transaction, WalletConnect, or product completion."
+}
