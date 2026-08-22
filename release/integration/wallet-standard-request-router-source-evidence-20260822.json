@@ -1,0 +1,61 @@
+{
+  "schemaVersion": "1.0.0",
+  "evidenceId": "YNX-WALLET-STANDARD-REQUEST-ROUTER-SOURCE-20260822",
+  "status": "SOURCE_ONLY_VERIFIED_NOT_DEPLOYED",
+  "branch": "codex/wallet-core-auth-gateway-continuation-20260814",
+  "implementation": {
+    "commit": "254bd329ed17b0e21746a2d2e39e2daa4bd35fa8",
+    "parent": "0e5af17d4f784a30390452b5c2b750047e93727d",
+    "tree": "ca1d0697d06999269a29f56d4360abbb74bf0cae",
+    "packageLockSha256": "8929316677769e7a6ad703583c12a07dd4d4dcbf4d87c597983f6ab6955a87b6"
+  },
+  "boundFiles": [
+    { "path": "packages/wallet-auth/integration/standard-wallet-provider-v1.json", "blob": "777820203325c7ae5e1ca8c283484f33fd0906d8", "sha256": "5bf5d4806c87f431aa3c0792afe879c77e1b790b2ef7a084d6c3449e6443ea12", "bytes": 2450 },
+    { "path": "packages/wallet-auth/testdata/standard-wallet-provider-conformance-v1.json", "blob": "9b7129899c46c284da3688e7c47b47fd13c4f415", "sha256": "a85015e225cd7e4cca620392e58ca237eecd76d5484c766f637c187aa9389c1c", "bytes": 2509 },
+    { "path": "docs/integration/P0_STANDARD_WALLET_REQUEST_ROUTER_HANDOFF_20260822.md", "blob": "d6826aecfd4d5ef483f46eaa3887a469c3218cd3", "sha256": "a670bb809cc916af70efc6147f176c3f6ee9b85805a4c463aae2186dd634e9ce", "bytes": 4745 },
+    { "path": "packages/wallet-auth/test/standard-wallet-provider-engine.test.mjs", "blob": "924430311a00f253f5b32c32a4edb8914d5287b2", "sha256": "c52651b98e432b4449dd37fdcc8879357ca8289b9439c2e2f4b86c3ea712e659", "bytes": 15336 },
+    { "path": "packages/wallet-auth/test/standard-wallet-permission-persistence.test.mjs", "blob": "ef17d64307859eebf6d38a57873ff9f69b02fc3f", "sha256": "ab1085820e9909e4cca33532ca8f0a8fb49033347729cbefefd4736af8dabffd", "bytes": 7457 },
+    { "path": "packages/wallet-auth/src/standard-wallet-provider-engine.js", "blob": "d55ffbfe3305eb26f908fc392205cd03895897ce", "sha256": "f9f36039171df4ef8e9e365a48b7f998e272d7bfd4f2bf99ac173c8a6a39ee65", "bytes": 6473 },
+    { "path": "packages/wallet-auth/src/standard-wallet-json-rpc.js", "blob": "cd06b432dc032e14da1c6a72eaa45c720fd42d3c", "sha256": "d2c83f104375bcdfbdf88e8bb87b48782507ad31fdcdcdbb712ae17b011060c1", "bytes": 13551 },
+    { "path": "packages/wallet-auth/src/standard-wallet-permissions.js", "blob": "694e1f45375d9aba3e77ee6923ebe4ceb1791d78", "sha256": "c2b9af177ebaa742d8738b5cee87f6c24879a17e1c27dc9829ba69d7de55c2d0", "bytes": 7445 },
+    { "path": "packages/wallet-auth/src/standard-wallet-permission-storage.js", "blob": "1bb0a04eb205d72d5880b3916c0c8dddd48c9b4f", "sha256": "afa772789f54ff158151bd46710610750217af6076690c3b8944e2f80be2b3ac", "bytes": 3000 }
+  ],
+  "verification": {
+    "focused": { "command": "node --test packages/wallet-auth/test/standard-wallet-provider-engine.test.mjs packages/wallet-auth/test/standard-wallet-permission-persistence.test.mjs packages/wallet-auth/test/standard-wallet-connect-state.test.mjs", "passed": 30, "failed": 0 },
+    "fullCleanClone": { "command": "npm run check --prefix packages/wallet-auth", "passed": 420, "failed": 0, "noBareAuthorize": "PASS", "standardWalletConsumerGate": "PASS" },
+    "dependencyRestore": { "command": "npm ci --ignore-scripts --offline --prefix packages/wallet-auth", "networkUsed": false },
+    "package": { "repeatBuildByteIdentical": true, "sha256": "4fe881e7620c51ed6102d714356e903ee3c4fb0eb953825f4c31b3a02cd2fa92", "bytes": 208344, "entries": 119, "unpackedBytes": 950523 }
+  },
+  "directlyProved": {
+    "standardConnectionIndependentOfProductSession": true,
+    "externalHttpsDappRequiresProductRegistry": false,
+    "exactOriginAccountPermission": true,
+    "approvalAndRejection": true,
+    "personalSignRoute": true,
+    "eip712Route": true,
+    "sendTransactionRoute": true,
+    "eventModel": true,
+    "durableRevokeAndRestart": true,
+    "approvalInventoryRaceFailClosed": true,
+    "fabricatedAccountSignatureOrTransaction": false
+  },
+  "evidenceBoundary": {
+    "accounts": "fixed test addresses only",
+    "signatures": "fixed callback outputs only",
+    "transactions": "fixed callback hashes only",
+    "realSecureSigner": false,
+    "realTransactionSubmitted": false,
+    "realExternalDapp": false,
+    "realWalletConnectRelay": false
+  },
+  "truth": {
+    "platformConsumed": false,
+    "sdkConsumed": false,
+    "browserVisible": false,
+    "deviceVisible": false,
+    "gatewayDeployed": false,
+    "deployedPublic": false,
+    "integrated": false,
+    "productsConsumed": "0/12"
+  }
+}
