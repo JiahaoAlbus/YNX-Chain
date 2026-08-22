@@ -4,8 +4,48 @@
   "productId": "pay",
   "owner": "pay",
   "ownerCheckpoint": {
-    "commit": "d8009c21f3d513d291e694ba7c53c73595996440",
-    "tree": "c07472e4b73c8c8e573c460bc29ed647b97d04e2"
+    "commit": "f1075dcbfcc5c677294db2dd58217d55a6f74b07",
+    "tree": "674e6330e0466c36595f435b89dd284c93a1bd11"
+  },
+  "p0224TerminalCorrection": {
+    "centralReleaseCommit": "f384af6871a18d24abd0007825fa0923eec4efcf",
+    "centralReleaseTree": "aa922582fa9e849c41589d94f34066a0d8f51d90",
+    "leaseBlob": "7601f534f0e75ba6ed43d0a2c0f6cd168a603921",
+    "leaseSha256": "c602321ea345ffd47ed93b5ab749b29f2602b1f61786190bb2da0b91f3d03182",
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_LOCAL_POST_SWITCH_COLLECTOR_PATH_VARIABLE_COLLISION_ROLLED_BACK",
+    "productionRestored": true,
+    "releaseAndStageAbsent": true,
+    "blocker": "The ad-hoc zsh collector used the special variable name path, replacing PATH before the first resource capture completed.",
+    "resolution": "The exact collector now runs under Bash, uses resource_path/safe_name only, and has a zsh actual-shell fixture proving all four resource classes plus browser-precondition capture while preserving the caller PATH."
+  },
+  "postSwitchCollectorCheckpoint": {
+    "commit": "f1075dcbfcc5c677294db2dd58217d55a6f74b07",
+    "tree": "674e6330e0466c36595f435b89dd284c93a1bd11",
+    "collector": {
+      "path": "apps/pay/scripts/pay-public-post-switch-collector-p0225.sh",
+      "blob": "ac570bd88cca54b31f49f9759c1e94a83ae0c015",
+      "bytes": 8189,
+      "sha256": "cdcaec119fa675a77424425ff9b5b02aad01f9e5dac8749964880eb49e7adeb5",
+      "bashSyntax": "PASS"
+    },
+    "zshFixture": {
+      "path": "apps/pay/scripts/test-pay-public-post-switch-collector-zsh.sh",
+      "blob": "642d247a3c5de2791d742a2b0db5bb5d9636f573",
+      "bytes": 1689,
+      "sha256": "db544ffbd0c21e1835c3f0193f81c2c73f5a43b864cad5bf3e68afa0dc3b06b6",
+      "passed": true,
+      "proof": [
+        "caller PATH remains byte-identical under zsh -f",
+        "tr and shasum remain resolvable after the collector exits",
+        "root, build identity, release manifest and nested asset bodies are captured",
+        "all eight distinct manifest resources match exact bytes and SHA-256",
+        "browser-preconditions.json is generated only after raw resource, identity, runtime and health gates pass",
+        "collector source rejects read -r path and local path assignments"
+      ]
+    },
+    "productionExactCommandRequested": "PAY_KNOWN_HOSTS=/Users/huangjiahao/.ssh/known_hosts '/Users/huangjiahao/Desktop/YNX Final Worktrees/04-pay-p0-clean/apps/pay/scripts/pay-public-post-switch-collector-p0225.sh' /tmp/ynx-pay-p0225-public-release-20260822T230000Z/http",
+    "attemptLimit": 1,
+    "retryAllowed": false
   },
   "centralNoGoCorrection": {
     "priorRequestCommit": "a5cba8d450f5c508d9cd417c99511911c5b28e99",
