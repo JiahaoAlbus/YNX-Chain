@@ -1277,14 +1277,24 @@ function showWalletConnection() {
     dialog.close();
     showGuestAccount();
   };
-  dialog.querySelector('[data-action="disconnect"]').onclick = () => {
-    disconnectCalendarWallet();
-    state.wallet = null;
-    state.guest = true;
-    renderAccountBoundary();
-    $("#signin-state").textContent = "Wallet disconnected. Local Calendar remains available.";
-    dialog.close();
-    toast("Wallet disconnected · local Calendar remains available");
+  dialog.querySelector('[data-action="disconnect"]').onclick = async (event) => {
+    const button = event.currentTarget;
+    button.disabled = true;
+    status.textContent = "Waiting for your Wallet to revoke this site's account access…";
+    try {
+      await disconnectCalendarWallet();
+      state.wallet = null;
+      state.guest = true;
+      renderAccountBoundary();
+      $("#signin-state").textContent = "Wallet disconnected. Local Calendar remains available.";
+      dialog.close();
+      toast("Wallet access revoked · local Calendar remains available");
+    } catch (error) {
+      status.textContent = error?.code === "WALLET_USER_REJECTED"
+        ? "Disconnect was rejected. The current Wallet connection was kept."
+        : `${error?.message || "Wallet access could not be revoked."} The current Wallet connection was kept.`;
+      button.disabled = false;
+    }
   };
   dialog.querySelector('[data-action="switch"]').onclick = async (event) => {
     const button = event.currentTarget;

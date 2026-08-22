@@ -27,6 +27,7 @@ let walletState = createStandardWalletConnectState();
 let activeProvider = null;
 let activeCandidate = null;
 let activeListeners = null;
+let activePermissionRevocation = null;
 
 const LATE_INJECTION_REDISCOVERY_MS = Object.freeze([250, 750, 1500]);
 
@@ -54,6 +55,20 @@ function publicError(error) {
   return error;
 }
 
+function unsupportedMethod(error) {
+  return Number(error?.code) === 4200
+    || Number(error?.code) === -32601
+    || /unsupported|not implemented|method not found/i.test(String(error?.message || ""));
+}
+
+function transitionProviderEvent(provider, event) {
+  if (activePermissionRevocation?.provider === provider) {
+    activePermissionRevocation.suppressedEventCount = Math.min(1024, activePermissionRevocation.suppressedEventCount + 1);
+    return;
+  }
+  try { transition(event); } catch {}
+}
+
 function removeProviderListeners() {
   if (!activeProvider || !activeListeners) return;
   for (const [event, listener] of Object.entries(activeListeners)) {
@@ -71,9 +86,9 @@ function listen(provider, candidate) {
   }
   removeProviderListeners();
   const listeners = {
-    accountsChanged: (accounts) => { try { transition({type: "ACCOUNTS_CHANGED", accounts}); } catch {} },
-    chainChanged: (chainId) => { try { transition({type: "CHAIN_CHANGED", chainId}); } catch {} },
-    disconnect: () => { try { transition({type: "PROVIDER_DISCONNECT"}); } catch {} },
+    accountsChanged: (accounts) => transitionProviderEvent(provider, {type: "ACCOUNTS_CHANGED", accounts}),
+    chainChanged: (chainId) => transitionProviderEvent(provider, {type: "CHAIN_CHANGED", chainId}),
+    disconnect: () => transitionProviderEvent(provider, {type: "PROVIDER_DISCONNECT"}),
   };
   for (const [event, listener] of Object.entries(listeners)) {
     try { provider.on?.(event, listener); } catch {}
@@ -217,9 +232,51 @@ export async function restoreCalendarWalletAfterLateInjection(windowLike = windo
   return restored;
 }
 
-export function disconnectCalendarWallet() {
-  removeProviderListeners();
-  return transition({type: "DISCONNECT"});
+export async function disconnectCalendarWallet() {
+  if (!activeProvider || !activeCandidate) {
+    return Object.freeze({status: "disconnected", permissionRevoked: false, connectionState: transition({type: "DISCONNECT"})});
+  }
+  if (activePermissionRevocation) {
+    throw new DAppConnectError("WALLET_PERMISSION_REVOKE_PENDING", "A Wallet permission revocation is already pending.");
+  }
+
+  const provider = activeProvider;
+  const revocation = {provider, suppressedEventCount: 0};
+  activePermissionRevocation = revocation;
+  let revokeSupported = true;
+  try {
+    try {
+      await provider.request({method: "wallet_revokePermissions", params: [{eth_accounts: {}}]});
+    } catch (error) {
+      if (Number(error?.code) === 4001) throw error;
+      if (!unsupportedMethod(error)) throw error;
+      revokeSupported = false;
+    }
+
+    const accounts = await provider.request({method: "eth_accounts"});
+    if (!Array.isArray(accounts)) {
+      throw new DAppConnectError("WALLET_PERMISSION_READBACK_INVALID", "Wallet returned an invalid account-permission readback. The current connection was kept.");
+    }
+    if (accounts.length !== 0) {
+      const code = revokeSupported ? "WALLET_PERMISSION_STILL_ACTIVE" : "WALLET_PERMISSION_REVOKE_UNSUPPORTED";
+      const message = revokeSupported
+        ? "Wallet still exposes an approved account after the revoke request. The current connection was kept."
+        : "This Wallet does not support site-permission revocation and still exposes an approved account. Revoke this site in Wallet settings, then retry.";
+      throw new DAppConnectError(code, message, {details: {approvedAccountCount: accounts.length}});
+    }
+
+    activePermissionRevocation = null;
+    removeProviderListeners();
+    return Object.freeze({
+      status: "disconnected",
+      permissionRevoked: revokeSupported,
+      revokeMethodSupported: revokeSupported,
+      connectionState: transition({type: "DISCONNECT"}),
+    });
+  } catch (error) {
+    activePermissionRevocation = null;
+    throw publicError(error);
+  }
 }
 
 export async function switchCalendarWalletAccount() {

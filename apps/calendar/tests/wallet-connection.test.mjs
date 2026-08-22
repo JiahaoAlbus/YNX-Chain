@@ -5,6 +5,7 @@ import {test} from "node:test";
 import {
   calendarWalletState,
   connectCalendarWallet,
+  disconnectCalendarWallet,
   restoreCalendarWallet,
   restoreCalendarWalletAfterLateInjection,
   switchCalendarWalletAccount,
@@ -14,11 +15,12 @@ import {
 
 const account = "0x1111111111111111111111111111111111111111";
 
-function provider({chainId = "0x1917", reject = false, kind = "metamask"} = {}) {
+function provider({chainId = "0x1917", reject = false, kind = "metamask", revoke = "success", emitDuringRevoke = null} = {}) {
   let chain = chainId;
+  let accounts = [account];
   const calls = [];
   const listeners = new Map();
-  return {
+  const wallet = {
     calls,
     isMetaMask: kind === "metamask",
     isYNXWallet: kind === "ynx",
@@ -32,7 +34,18 @@ function provider({chainId = "0x1917", reject = false, kind = "metamask"} = {}) 
         if (reject) throw Object.assign(new Error("User rejected"), {code: 4001});
         return [account];
       }
-      if (input.method === "eth_accounts") return [account];
+      if (input.method === "eth_accounts") return [...accounts];
+      if (input.method === "wallet_revokePermissions") {
+        if (emitDuringRevoke) wallet.emit(emitDuringRevoke.type, emitDuringRevoke.value);
+        if (revoke === "reject") throw Object.assign(new Error("User rejected"), {code: 4001});
+        if (revoke === "unsupported" || revoke === "unsupported-empty") {
+          if (revoke === "unsupported-empty") accounts = [];
+          throw Object.assign(new Error("Unsupported method"), {code: 4200});
+        }
+        if (revoke === "nonempty") return null;
+        accounts = [];
+        return null;
+      }
       if (input.method === "wallet_requestPermissions") return [{parentCapability: "eth_accounts"}];
       if (input.method === "eth_chainId") return chain;
       if (input.method === "wallet_switchEthereumChain") {
@@ -43,6 +56,7 @@ function provider({chainId = "0x1917", reject = false, kind = "metamask"} = {}) 
       throw new Error(`Unexpected ${input.method}`);
     },
   };
+  return wallet;
 }
 
 function browser(announcements = [], injected = undefined) {
@@ -125,6 +139,61 @@ test("connected Calendar can request an account change without reopening discove
   assert.equal(switched.chainId, "0x1917");
   assert.equal(wallet.calls.filter((call) => call.method === "wallet_requestPermissions").length, 1);
   assert.equal(switched.connectionState.chooserOpen, false);
+});
+
+test("disconnect revokes eth_accounts permission and clears only after empty readback", async () => {
+  const wallet = provider();
+  await restoreCalendarWallet(browser([], wallet), {timeoutMs: 0});
+  const disconnected = await disconnectCalendarWallet();
+  assert.equal(disconnected.status, "disconnected");
+  assert.equal(disconnected.permissionRevoked, true);
+  assert.equal(calendarWalletState().status, "disconnected");
+  assert.equal(wallet.calls.filter((call) => call.method === "wallet_revokePermissions").length, 1);
+  assert.deepEqual(wallet.calls.find((call) => call.method === "wallet_revokePermissions").params, [{eth_accounts: {}}]);
+  assert.equal(wallet.calls.at(-1).method, "eth_accounts");
+});
+
+test("disconnect rejection keeps the approved Calendar connection", async () => {
+  const wallet = provider({revoke: "reject"});
+  await restoreCalendarWallet(browser([], wallet), {timeoutMs: 0});
+  await assert.rejects(disconnectCalendarWallet(), (error) => error.code === "WALLET_USER_REJECTED");
+  assert.equal(calendarWalletState().status, "connected");
+  assert.equal(calendarWalletState().account, account);
+});
+
+test("unsupported revoke is honest and keeps a nonempty approved account", async () => {
+  const wallet = provider({revoke: "unsupported"});
+  await restoreCalendarWallet(browser([], wallet), {timeoutMs: 0});
+  await assert.rejects(disconnectCalendarWallet(), (error) => error.code === "WALLET_PERMISSION_REVOKE_UNSUPPORTED");
+  assert.equal(calendarWalletState().status, "connected");
+  assert.equal(wallet.calls.at(-1).method, "eth_accounts");
+});
+
+test("unsupported revoke fallback clears only when eth_accounts independently reads empty", async () => {
+  const wallet = provider({revoke: "unsupported-empty"});
+  await restoreCalendarWallet(browser([], wallet), {timeoutMs: 0});
+  const disconnected = await disconnectCalendarWallet();
+  assert.equal(disconnected.status, "disconnected");
+  assert.equal(disconnected.permissionRevoked, false);
+  assert.equal(disconnected.revokeMethodSupported, false);
+  assert.equal(calendarWalletState().status, "disconnected");
+  assert.equal(wallet.calls.at(-1).method, "eth_accounts");
+});
+
+test("successful revoke response with nonempty readback keeps the connection", async () => {
+  const wallet = provider({revoke: "nonempty"});
+  await restoreCalendarWallet(browser([], wallet), {timeoutMs: 0});
+  await assert.rejects(disconnectCalendarWallet(), (error) => error.code === "WALLET_PERMISSION_STILL_ACTIVE");
+  assert.equal(calendarWalletState().status, "connected");
+  assert.equal(calendarWalletState().account, account);
+});
+
+test("accountsChanged empty during failed revoke cannot clear UI state before authoritative readback", async () => {
+  const wallet = provider({revoke: "nonempty", emitDuringRevoke: {type: "accountsChanged", value: []}});
+  await restoreCalendarWallet(browser([], wallet), {timeoutMs: 0});
+  await assert.rejects(disconnectCalendarWallet(), (error) => error.code === "WALLET_PERMISSION_STILL_ACTIVE");
+  assert.equal(calendarWalletState().status, "connected");
+  assert.equal(calendarWalletState().account, account);
 });
 
 test("rejection and unavailable injection fail closed with truthful codes", async () => {
