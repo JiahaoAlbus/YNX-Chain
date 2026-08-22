@@ -4,8 +4,13 @@
   "productId": "pay",
   "owner": "pay",
   "ownerCheckpoint": {
-    "commit": "54def09f9c06f836c6e3be5c68d6b603b23987f1",
-    "tree": "6e8ba7078f2701c0929ef861f10fb6e45974a04f"
+    "commit": "29a8e72183dcaf587134bf6c30817f8387d639b8",
+    "tree": "812c0607ea244610ec486eb583a93257d14b4a6e"
+  },
+  "centralNoGoCorrection": {
+    "priorRequestCommit": "a5cba8d450f5c508d9cd417c99511911c5b28e99",
+    "blocker": "PAY_CADDY_BARE_SPA_ROUTES_FALL_THROUGH_TO_BACKEND",
+    "resolution": "The matcher now includes /invoices, /invoices/*, /split-payments, /split-payments/*, /quant-bills and /quant-bills/*. A static regression verifier and an isolated Caddy adapt --validate assertion both require all six routes."
   },
   "source": {
     "commit": "5f4ce98eb458550b976c17e3bc6d77cce4081a59",
@@ -35,9 +40,9 @@
   "caddyObjects": {
     "candidate": {
       "path": "release/pay/ynx-chain-pay-static-5f4ce98e.caddy",
-      "blob": "af4a15f89a34f4c2b434e9caefdfcd6d1cdcfa8e",
-      "bytes": 3367,
-      "sha256": "ce6fea36f32e341066e9eef90b2ce6197ad598e9bc7cc0a2f6dca5c814b4283b"
+      "blob": "8d9f71383bb7659af99754b89dafa0c66990cff0",
+      "bytes": 3406,
+      "sha256": "b5593e0838d7dbb049d6f0e7b5f2c0ec7879c379548babfc50ecc2a11d196c5f"
     },
     "rollback": {
       "path": "release/pay/ynx-chain-pay-static-rollback-p0222.caddy",
@@ -46,7 +51,19 @@
       "sha256": "df5f7ad73dd2631c0e934514e05a30ac97c75dc9efe2ec568b049c71c4024396",
       "byteExactToP0222ActiveConfig": true
     },
-    "semanticDiff": "Only the pay.ynxweb4.com stanza changes. Exact static/SPA paths are served from the immutable Pay release; every other path continues to reverse_proxy 127.0.0.1:6430. All other hosts remain byte-equivalent."
+    "semanticDiff": "Only the pay.ynxweb4.com stanza changes. Exact static/SPA paths, including all three bare and wildcard route pairs, are served from the immutable Pay release; every other path continues to reverse_proxy 127.0.0.1:6430. All other hosts remain byte-equivalent.",
+    "routeRegression": {
+      "verifierPath": "apps/pay/scripts/verify-pay-public-caddy-routes.mjs",
+      "verifierBlob": "8115d2eaa580b4f6ca9ce67d79864c5f94f13769",
+      "verifierBytes": 1401,
+      "verifierSha256": "d7ee7f84d3ff2c55758e9aaa325b19b2ac4c5030a0db45eecf13096cf4471328",
+      "staticVerifierPassed": true,
+      "caddyImage": "caddy:2.10.0-alpine@sha256:ae4458638da8e1a91aafffb231c5f8778e964bca650c8a8cb23a7e8ac557aa3c",
+      "adaptValidatePassed": true,
+      "adaptedJsonBytes": 10419,
+      "adaptedJsonSha256": "96dff905289cb6eed69cdf77f1a1fc5f81c3c66f7da4c3243f0373411532492b",
+      "sixRouteAssertionPassed": true
+    }
   },
   "p0222Baseline": {
     "centralReleaseCommit": "6c8d394736ebf4c6d771bc0a5d57a7b841a4212f",
