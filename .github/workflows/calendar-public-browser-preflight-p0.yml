@@ -12,12 +12,12 @@ permissions:
 
 jobs:
   calendar-public-browser-preflight:
-    if: "${{ github.event.head_commit.message == 'evidence(calendar): externally verify public browser recovery v2' }}"
+    if: "${{ github.event.head_commit.message == 'evidence(calendar): externally verify console-clean public recovery' }}"
     runs-on: ubuntu-latest
     timeout-minutes: 10
     env:
       CALENDAR_ORIGIN: https://calendar-testnet.43.153.202.237.sslip.io
-      EXPECTED_SOURCE: 7db160aa0bd589097e63190a260a343aafe4854c
+      EXPECTED_SOURCE: fe1ba512f67f935e27997350800a7df18e3814d1
     steps:
       - uses: actions/checkout@v4
         with:
@@ -53,7 +53,7 @@ jobs:
           const sha256 = body => crypto.createHash('sha256').update(body).digest('hex');
           const fail = message => { throw new Error(message); };
           async function raw(pathname) {
-            const response = await fetch(origin + pathname, { redirect: 'error', cache: 'no-store' });
+            const response = await fetch(origin + pathname, { redirect: 'error', cache: 'no-store', signal: AbortSignal.timeout(15000) });
             const body = Buffer.from(await response.arrayBuffer());
             const record = { pathname, status: response.status, finalUrl: response.url, bytes: body.length, sha256: sha256(body), headers: Object.fromEntries(response.headers.entries()) };
             fs.writeFileSync(path.join(evidenceDir, `raw-${pathname === '/' ? 'index' : pathname.slice(1).replaceAll('/', '-')}.body`), body);
@@ -94,16 +94,21 @@ jobs:
             if (popups.length || page.context().pages().length !== 1 || page.context().pages().some(p => p.url() === 'about:blank')) fail(`${label}: popup or blank tab observed`);
             return { label, startUrl, endUrl, state, consoleErrors: errors, popups, pageCount: page.context().pages().length };
           }
+          let browser;
           (async () => {
             const resources = {};
-            for (const pathname of ['/v1/health','/v1/version','/','/app.js','/wallet-connection.js','/toast.js','/sw.js']) {
+            for (const pathname of ['/v1/health','/v1/version','/v1/auth/session/status','/','/app.js','/wallet-connection.js','/toast.js','/sw.js']) {
               const value = await raw(pathname); resources[pathname] = value.record;
               if (pathname === '/v1/version') {
                 const parsed = JSON.parse(value.body.toString('utf8'));
                 if (parsed?.build?.commit !== expectedSource) fail('public version source mismatch');
               }
+              if (pathname === '/v1/auth/session/status') {
+                const parsed = JSON.parse(value.body.toString('utf8'));
+                if (parsed?.session !== 'none' || parsed?.user !== null) fail('public guest session status contract mismatch');
+              }
             }
-            const browser = await chromium.launch({ headless: true });
+            browser = await chromium.launch({ headless: true });
             const noProviderContext = await browser.newContext({ locale: 'en-US', serviceWorkers: 'allow' });
             const noProviderPage = await noProviderContext.newPage();
             const noProvider = await observe(noProviderPage, 'no-provider');
@@ -132,8 +137,10 @@ jobs:
                 on: (event, fn) => { const xs = listeners.get(event) || []; xs.push(fn); listeners.set(event, xs); },
                 removeListener: () => {},
               };
-              setTimeout(() => window.dispatchEvent(new CustomEvent('eip6963:announceProvider', {detail:{info:{uuid:'350670db-19fa-4704-a166-e52e178b59d2',name:'MetaMask',icon:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg"/>',rdns:'io.metamask'},provider}})), 600);
-              window.addEventListener('eip6963:requestProvider', () => {});
+              const announce = () => window.dispatchEvent(new CustomEvent('eip6963:announceProvider', {detail:{info:{uuid:'350670db-19fa-4704-a166-e52e178b59d2',name:'MetaMask',rdns:'io.metamask'},provider}}));
+              let available = false;
+              window.addEventListener('eip6963:requestProvider', () => { if (available) announce(); });
+              setTimeout(() => { available = true; announce(); }, 600);
             });
             const latePage = await lateContext.newPage();
             const late = await observe(latePage, 'late-provider-empty-account');
@@ -143,10 +150,9 @@ jobs:
             if (forbidden.length) fail(`sensitive provider call observed: ${forbidden.join(',')}`);
             await latePage.screenshot({ path: path.join(evidenceDir, 'calendar-late-provider-empty-account.png'), fullPage: true });
             await lateContext.close();
-            await browser.close();
             const result = {schemaVersion:'1.0.0', observedAt:new Date().toISOString(), origin, expectedSource, resources, noProvider, toastLifecycle:{shownText:toastShown, cleared:toastCleared}, lateProvider:{...late, providerCalls:calls}, sensitiveActions:{eth_requestAccounts:false,personal_sign:false,typedData:false,sendTransaction:false}, directHostedBrowserEvidence:true};
             fs.writeFileSync(path.join(evidenceDir, 'calendar-public-browser-preflight.json'), JSON.stringify(result, null, 2));
-          })().catch(error => { fs.writeFileSync(path.join(evidenceDir, 'failure.txt'), String(error?.stack || error)); process.exitCode = 1; });
+          })().catch(error => { fs.writeFileSync(path.join(evidenceDir, 'failure.txt'), String(error?.stack || error)); process.exitCode = 1; }).finally(async () => { await browser?.close().catch(() => {}); });
           NODE
           cd "${out}/npm"
           node preflight.cjs
