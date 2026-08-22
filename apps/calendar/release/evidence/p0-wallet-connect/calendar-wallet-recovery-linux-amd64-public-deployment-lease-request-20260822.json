@@ -1,0 +1,201 @@
+{
+  "schemaVersion": "ynx-calendar-wallet-recovery-linux-amd64-public-deployment-lease-request/v1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "requestedAt": "2026-08-22T11:08:48Z",
+  "requestState": "AWAITING_WHOLE_NEW_SINGLE_USE_CALENDAR_DEPLOYMENT_LEASE",
+  "owner": "calendar",
+  "supersedes": {
+    "request": "apps/calendar/release/evidence/p0-wallet-connect/calendar-wallet-recovery-public-deployment-lease-request-20260822.json",
+    "requestCommit": "1119b8570f3b7245baf8d89b32284c3ab4440f0b",
+    "classification": "NO_GO_CANDIDATE_PLATFORM_MISMATCH",
+    "reason": "The prior 7258082-byte candidate was Mach-O arm64 and cannot execute on the Linux x86_64 production host.",
+    "reusable": false
+  },
+  "source": {
+    "branch": "codex/calendar-fable5-completion-20260821",
+    "implementationCommit": "7db160aa0bd589097e63190a260a343aafe4854c",
+    "implementationTree": "d72d49bc7bc6ee135cae867aa6edbe34b4cfc489",
+    "requestParent": "1119b8570f3b7245baf8d89b32284c3ab4440f0b",
+    "requestParentTree": "b12d3a6701d3a59790459ff684e7c2361a660940",
+    "remoteParentReadbackExact": true,
+    "aheadBehindBeforeRequest": "0/0",
+    "worktreeCleanBeforeRequest": true,
+    "sharedProviderAuthorityChanged": false
+  },
+  "candidate": {
+    "release": "ynx-calendar-0.4.4-testnet-preview",
+    "target": {
+      "goos": "linux",
+      "goarch": "amd64",
+      "goamd64": "v1",
+      "cgoEnabled": false,
+      "fileIdentity": "ELF 64-bit LSB executable, x86-64, statically linked, stripped"
+    },
+    "primaryCarrier": "/tmp/ynx-calendar-linux-amd64-a.lJpEHK/ynx-calendard",
+    "independentCarrier": "/tmp/ynx-calendar-linux-amd64-b.FJTFWr/ynx-calendard",
+    "bytes": 7614612,
+    "sha256": "9cad944f63fb7fae49bf947166075b9617e0dac5807d9d9c43cab1791379c426",
+    "byteIdenticalIndependentBuilds": true,
+    "buildCount": 2,
+    "goVersion": "go1.25.7",
+    "fixedBuildTime": "2026-08-22T10:00:00Z",
+    "buildCommandTemplate": "cd apps/calendar && env CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GOCACHE=<fresh-cache> GOMODCACHE=<fresh-modcache> go build -buildvcs=false -trimpath -ldflags '-s -w -buildid= -X main.buildCommit=7db160aa0bd589097e63190a260a343aafe4854c -X main.buildRelease=ynx-calendar-0.4.4-testnet-preview -X main.buildTime=2026-08-22T10:00:00Z' -o <fresh-output>/ynx-calendard .",
+    "determinism": {
+      "freshOutputDirectories": true,
+      "freshGoBuildCaches": true,
+      "freshGoModuleCaches": true,
+      "trimpath": true,
+      "vcsStampDisabled": true,
+      "buildIdCleared": true,
+      "cmpExitZero": true,
+      "firstSha256": "9cad944f63fb7fae49bf947166075b9617e0dac5807d9d9c43cab1791379c426",
+      "secondSha256": "9cad944f63fb7fae49bf947166075b9617e0dac5807d9d9c43cab1791379c426"
+    }
+  },
+  "extractedCandidateRuntime": {
+    "executionBoundary": "Docker Desktop Linux engine with --platform linux/amd64; the exact primary ELF carrier was bind-mounted read-only and executed directly under amd64 emulation.",
+    "containerImage": "ubuntu:22.04",
+    "containerPlatform": "linux/amd64",
+    "address": "127.0.0.1:28097",
+    "stateDirectory": "fresh temporary bind mount",
+    "candidateMountReadOnly": true,
+    "candidateCopiedOrRebuiltInContainer": false,
+    "health": {
+      "http": 200,
+      "bytes": 215,
+      "sha256": "be9b3affccdffc5275d693ba3de611d380f35a34f5a21e20f3858d3a8fd76d98",
+      "sourceCommit": "7db160aa0bd589097e63190a260a343aafe4854c"
+    },
+    "version": {
+      "http": 200,
+      "bytes": 279,
+      "sha256": "69befbd7caadc5709b5647670608bdb9bf8178be1c053d5f6614474c27c57d38",
+      "release": "ynx-calendar-0.4.4-testnet-preview",
+      "buildTime": "2026-08-22T10:00:00Z"
+    },
+    "assets": {
+      "index.html": {
+        "bytes": 15834,
+        "sha256": "f5268942d012a0960446b396de5cb1297187f18480decd5847bf8de1e851ab4b"
+      },
+      "app.js": {
+        "bytes": 73766,
+        "sha256": "d45a4d4bafd8855a42f012cde66acb0e556d076ba7aae290625c7fd162d925dd"
+      }
+    },
+    "terminalState": "container stopped and removed; no production mutation"
+  },
+  "validation": {
+    "calendarNode": "26/26",
+    "deploymentReadiness": "pass",
+    "releaseManifest": "5/5",
+    "goTest": "pass",
+    "goVet": "pass",
+    "lateProviderDiscovery": "250ms/750ms/1500ms plus EIP-6963 and ethereum#initialized",
+    "backgroundSensitiveRequest": false,
+    "backgroundReadMethods": [
+      "eth_accounts",
+      "eth_chainId"
+    ],
+    "customSchemeLaunch": false,
+    "windowOpen": false,
+    "noProviderNormalizesDisconnected": true,
+    "toastDomClearsAfterHide": true,
+    "consecutiveToastRaceFenced": true
+  },
+  "currentPublicRuntime": {
+    "origin": "https://calendar-testnet.43.153.202.237.sslip.io",
+    "observedAt": "2026-08-22T11:07:00Z",
+    "sourceCommit": "d2044bd9a8ec6bdc6235dfb625a62c3dd5c58b04",
+    "release": "ynx-calendar-0.4.3-testnet-preview",
+    "health": {
+      "http": 200,
+      "bytes": 215,
+      "sha256": "f07ee444605fe2b52aa1565a0601139fd876ad98aefe4dc376c7c861ef8b517e"
+    },
+    "version": {
+      "http": 200,
+      "bytes": 279,
+      "sha256": "c4add3bef2f0209a2dcfe0af6bad4e299239ba7f6c1fef7942d443c11ba701de"
+    },
+    "assets": {
+      "index.html": {
+        "bytes": 15815,
+        "sha256": "1cf18a93d89803dc42c5d69b5d035fc8af0f343c2503fa89a166c5b3885bba5c"
+      },
+      "app.js": {
+        "bytes": 73587,
+        "sha256": "88a1034b10b87696cce81bd297b749bc6d37d095658329afa941d1a2dba1fb10"
+      }
+    },
+    "sourceBoundToCandidate": false
+  },
+  "requestedSingleUseLease": {
+    "scope": "Calendar-only rollback-first public Testnet deployment of the exact Linux amd64 ELF",
+    "sourceLock": "7db160aa0bd589097e63190a260a343aafe4854c",
+    "candidateSha256": "9cad944f63fb7fae49bf947166075b9617e0dac5807d9d9c43cab1791379c426",
+    "candidateBytes": 7614612,
+    "candidateFileIdentity": "ELF 64-bit LSB executable, x86-64, statically linked, stripped",
+    "host": "43.153.202.237",
+    "operatorPathKnownToCentral": "/Users/huangjiahao/Downloads/Huang.pem with ubuntu and strict host-key verification",
+    "service": "ynx-calendar.service",
+    "installedBinary": "/usr/local/bin/ynx-calendard",
+    "transactionScript": "apps/calendar/scripts/deploy-public-calendar.sh",
+    "requiredFreshPrewriteBindings": [
+      "authenticated Calendar operator connectivity and Linux x86_64 host identity",
+      "current binary bytes/SHA/device/inode/owner/mode/nlink/source",
+      "current state bytes/SHA/device/inode/owner/mode/nlink",
+      "current state HMAC key bytes/SHA/device/inode/owner/mode/nlink",
+      "systemd unit bytes/SHA and active state",
+      "Caddy root/route bytes/SHA",
+      "current public health/version/assets",
+      "fresh absent backup and lease staging paths"
+    ],
+    "allowedWrites": [
+      "one exact Linux amd64 candidate upload into a fresh /var/tmp/ynx-calendar-* directory",
+      "one execution of the source-owned paired binary/state/key rollback transaction",
+      "service stop/start/restart only inside that transaction",
+      "one immutable Calendar terminal evidence record"
+    ],
+    "forbiddenWrites": [
+      "other products",
+      "Wallet shared authority",
+      "Caddy or DNS",
+      "state schema or key mutation outside the paired transaction",
+      "eth_requestAccounts",
+      "signature",
+      "transaction",
+      "custom-scheme navigation"
+    ],
+    "rollback": "On any precommit or post-deploy failure, restore the freshly bound binary/state/state-key bytes, restart the old service, and require d2044bd9 public identity before release.",
+    "terminalPublicVerification": [
+      "health/version exact 7db160aa and release 0.4.4",
+      "index/app/wallet-connection/toast/sw exact candidate hashes",
+      "clean-browser late injection and no-provider reset",
+      "toast DOM clearing and consecutive-toast fencing",
+      "stable public URL, single tab, no blank tab, no custom scheme, console errors zero",
+      "private Product Session degradation remains independent of Standard Wallet"
+    ],
+    "sensitiveBoundary": "Stop before eth_requestAccounts, approve/reject, switch-account, disconnect/revoke, signature or transaction. Those require immediate user confirmation in a later direct-browser slice."
+  },
+  "truth": {
+    "sourceImplemented": true,
+    "sourceTestsPassed": true,
+    "linuxAmd64CandidateBuilt": true,
+    "linuxAmd64CandidateDeterministic": true,
+    "linuxAmd64CandidateExecuted": true,
+    "deployedPublicCurrentSource": false,
+    "sourceBoundPublicRuntime": false,
+    "lateProviderPublicVerified": false,
+    "noProviderResetPublicVerified": false,
+    "toastClearingPublicVerified": false,
+    "installedProvider": false,
+    "accountApproval": false,
+    "reject4001": false,
+    "disconnectRevoke": false,
+    "switchAccount": false,
+    "productsConnected": 0,
+    "migratedV2": false
+  },
+  "singleExecutableBlocker": "Central must issue a wholly new Calendar-only single-use deployment lease bound to the deterministic Linux amd64 ELF 9cad944f63fb7fae49bf947166075b9617e0dac5807d9d9c43cab1791379c426 and freshly re-read production binary/state/key/unit/Caddy/rollback values."
+}
