@@ -427,12 +427,12 @@
     }
   ],
   "heavy": {
-    "owner": "calendar",
-    "taskId": "P0-198",
-    "status": "ACTIVE_SINGLE_USE",
+    "owner": null,
+    "taskId": null,
+    "status": "IDLE",
     "acquiredAt": "2026-08-22T16:24:00Z",
     "expiresAt": "2026-08-22T16:54:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-22T16:37:36Z",
     "sourceCommit": "7db160aa0bd589097e63190a260a343aafe4854c",
     "evidenceCommit": "306dc4196bd025e0a60636ad5a5f8ae635bf5732",
     "runtimeHost": "calendar-testnet.43.153.202.237.sslip.io",
@@ -444,8 +444,8 @@
     "reusable": false,
     "previousOwner": "card",
     "previousTaskId": "P0-197",
-    "reviewDecision": "GO_CALENDAR_ONLY_SINGLE_PUSH_HOSTED_BROWSER_SCHEMA_FIX",
-    "reason": "P0-197 is released and nonreusable. Independent complete-bundle import verified the exact parent, sole workflow diff, literal refspec and parsed.build.commit-only correction; production and sensitive authority remain false."
+    "reviewDecision": "CONSUMED_RELEASED_FAILED_CLOSED_CALENDAR_CONSOLE_401_AND_HARNESS_TIMEOUT",
+    "reason": "The sole push/run preserved exact source-bound raw resources, but the no-provider page emitted a 401 console resource error; the harness did not close Chromium in finally and the job was cancelled at ten minutes. No browser acceptance is promoted."
   },
   "wave": {
     "id": "B-financial-apps-quant",

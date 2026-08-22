@@ -7023,7 +7023,7 @@
     {
       "taskId": "P0-198",
       "owner": "calendar",
-      "status": "ACTIVE_SINGLE_USE",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_CALENDAR_PUBLIC_BROWSER_CONSOLE_401_AND_HARNESS_TIMEOUT",
       "paths": [
         "release/integration/p0-wallet-connectivity/execution/p0-198-calendar-public-hosted-browser-schema-fix-lease-20260822.json",
         "branch:codex/calendar-fable5-completion-20260821:.github/workflows/calendar-public-browser-preflight-p0.yml",
@@ -7042,9 +7042,19 @@
       "pushLimit": 1,
       "hostedRunLimit": 1,
       "retryAllowed": false,
+      "releasedAt": "2026-08-22T16:37:36Z",
+      "runId": 32584663593,
+      "jobId": 97059127582,
+      "runConclusion": "cancelled",
+      "artifactId": 9478844331,
+      "artifactDigest": "36377be8eef415a72bb7164ca5f66db751276c8a17d9d5a1daa1c14f42a63904",
+      "rawResourcesSourceBound": true,
+      "chromiumLaunched": true,
+      "directHostedBrowserEvidence": false,
+      "failure": "NO_PROVIDER_CONSOLE_RESOURCE_401_AND_CHROMIUM_NOT_CLOSED_BEFORE_TIMEOUT",
       "productionMutationAllowed": false,
       "sensitiveActionsAllowed": false,
-      "nextAction": "Execute the exact literal-refspec push once, bind the unique push run, and return direct hosted evidence or fail closed before expiry."
+      "nextAction": "Do not reuse P0-198. Calendar owner must first fix the unauthenticated 401 resource in product source and freeze a bounded harness that always closes Chromium, then request a new source-build/deploy/browser authority chain."
     }
   ]
 }
