@@ -6184,6 +6184,26 @@
       "productsMigratedV2": "0/12",
       "parityComplete": false,
       "nextAction": "Require real project ID, relay/pairing/session, real DApp and signed system-installed/public evidence before any further runtime promotion."
+    },
+    {
+      "taskId": "P0-166",
+      "owner": "integration,wallet-ios,wallet-macos",
+      "status": "NATIVE_WC_DAPP_IDENTITY_PERSISTENCE_FAIL_CLOSED_ACCEPTED_SOURCE_HOSTED_ONLY",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/acceptance/wallet-native-walletconnect-dapp-identity-p0166-20260822.json"
+      ],
+      "dependencies": ["P0-165"],
+      "source": "40280e03b318eb7b9c9866fffd09fda7e2688365",
+      "evidence": "7431e002e017127ee7012354f123fa7cf31289b7",
+      "executionLeaseIssued": false,
+      "distributionDispatched": false,
+      "identitySubstitutionFailClosed": true,
+      "persistenceSemanticCorruptionFailClosed": true,
+      "realRelayRuntime": false,
+      "productsConnected": "0/12",
+      "productsMigratedV2": "0/12",
+      "parityComplete": false,
+      "nextAction": "Require the exact full implementation tree and authoritative first-party classification/runtime plus real relay/DApp evidence before runtime promotion."
     }
   ]
 }
