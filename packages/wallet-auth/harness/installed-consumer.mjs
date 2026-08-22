@@ -4,8 +4,11 @@ import {
   discoverEip6963WalletProviders,
   markStandardWalletPrivateServiceDegraded,
   StandardWalletProviderEngine,
-  StandardWalletWalletConnectSessionAdapter,
 } from "@ynx-chain/wallet-auth/standard-wallet-runtime";
+import {
+  createStandardWalletWalletConnectSessionStorageAdapter,
+  StandardWalletWalletConnectSessionAdapter,
+} from "@ynx-chain/wallet-auth/standard-wallet-walletconnect";
 import { installStandardWalletWebRuntime } from "@ynx-chain/wallet-auth/standard-wallet-web";
 import { createStandardWalletNativeBridge } from "@ynx-chain/wallet-auth/standard-wallet-native";
 
@@ -80,10 +83,16 @@ for (const platform of ["android", "ios", "macos", "desktop"]) {
 
 const wcEngine = new StandardWalletProviderEngine({ origin: "walletconnect:installed_harness_123456", permissionStorage: storage(), ...callbacks });
 await wcEngine.restorePermissions();
-const wc = new StandardWalletWalletConnectSessionAdapter({ engine: wcEngine, topic: "installed_harness_topic_123456" });
+const wcSessions = createStandardWalletWalletConnectSessionStorageAdapter({ getItem: async (key) => records.get(key) ?? null, setItem: async (key, value) => records.set(key, value), removeItem: async (key) => records.delete(key) });
+const wc = new StandardWalletWalletConnectSessionAdapter({ engine: wcEngine, topic: "installed_harness_topic_123456", sessionStorage: wcSessions });
 const session = await wc.approve({ requiredNamespaces: { eip155: { chains: ["eip155:6423"], methods: ["eth_accounts", "eth_requestAccounts", "eth_chainId", "personal_sign"], events: ["accountsChanged", "chainChanged"] } } });
 assert.deepEqual(session.namespaces.eip155.accounts, [`eip155:6423:${ACCOUNT}`]);
-await wc.disconnect();
+wc.close();
+const wcRestoredEngine = new StandardWalletProviderEngine({ origin: "walletconnect:installed_harness_123456", permissionStorage: storage(), ...callbacks });
+const wcRestored = new StandardWalletWalletConnectSessionAdapter({ engine: wcRestoredEngine, topic: "installed_harness_topic_123456", sessionStorage: wcSessions });
+assert.deepEqual((await wcRestored.restore()).namespaces.eip155.accounts, [`eip155:6423:${ACCOUNT}`]);
+await wcRestored.disconnect();
+wcRestored.close();
 
 process.stdout.write(`${JSON.stringify({
   status: "PASS",
@@ -105,6 +114,8 @@ process.stdout.write(`${JSON.stringify({
   blankTopLevelOpenCalls: 0,
   native,
   walletConnectAdapter: true,
+  walletConnectProtectedRestartRestore: true,
+  walletConnectExplicitRevokeClearedAuthority: true,
   callbackEvidence: "deterministic-conformance-only-no-real-key-no-real-transaction",
   realInstalledWallet: false,
   realWalletConnectRelay: false

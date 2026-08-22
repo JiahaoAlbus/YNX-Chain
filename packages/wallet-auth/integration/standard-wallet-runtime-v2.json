@@ -1,0 +1,58 @@
+{
+  "schemaVersion": "2.0.0",
+  "contractId": "YNX-STANDARD-WALLET-RUNTIME-V2",
+  "runtimeVersion": "1.1.0-p0.0",
+  "package": { "name": "@ynx-chain/wallet-auth", "version": "1.3.0", "publicRegistryPublished": false },
+  "subpaths": {
+    "shared": "@ynx-chain/wallet-auth/standard-wallet-runtime",
+    "web": "@ynx-chain/wallet-auth/standard-wallet-web",
+    "native": "@ynx-chain/wallet-auth/standard-wallet-native",
+    "walletConnect": "@ynx-chain/wallet-auth/standard-wallet-walletconnect"
+  },
+  "platformEntrypoints": {
+    "webExtension": "installStandardWalletWebRuntime",
+    "android": "createStandardWalletNativeBridge(platform=android)",
+    "ios": "createStandardWalletNativeBridge(platform=ios)",
+    "macos": "createStandardWalletNativeBridge(platform=macos)",
+    "desktop": "createStandardWalletNativeBridge(platform=desktop)",
+    "walletConnect": "createStandardWalletWalletConnectRuntime"
+  },
+  "requiredHostCallbacks": ["approveAccounts", "signMessage", "signTypedData", "sendTransaction"],
+  "requiredProtectedStorage": {
+    "originPermission": "createStandardWalletPermissionStorageAdapter",
+    "walletConnectSession": "createStandardWalletWalletConnectSessionStorageAdapter"
+  },
+  "walletConnect": {
+    "namespace": "eip155:6423",
+    "topicBoundOrigin": "walletconnect:<topic>",
+    "proposalActions": ["approve", "reject"],
+    "lifecycle": ["start-restore", "request", "disconnect", "close"],
+    "persistence": "canonical-session-snapshot-plus-origin-permission",
+    "restoreRequiresExactAccountMatch": true,
+    "revocationClearsBothAuthorities": true,
+    "relayProvidedByPlatformOwner": true
+  },
+  "network": { "nativeChainId": "ynx_6423-1", "evmChainId": 6423, "chainId": "0x1917", "symbol": "YNXT" },
+  "authority": {
+    "account": "exact-origin-user-approved-real-wallet-inventory-only",
+    "signing": "platform-secure-callback-only",
+    "transaction": "platform-review-and-submission-callback-only",
+    "productRegistryRequiredForExternalDapp": false,
+    "productSessionMayCreateStandardAuthority": false
+  },
+  "degradation": { "rpcProbe": "DEGRADED_CONNECTION_PRESERVED", "productSession": "DEGRADED_CONNECTION_PRESERVED" },
+  "ownerDispatch": {
+    "web": ["calendar", "card", "creator-studio", "developer", "dex", "exchange", "finance", "quant", "shop", "social", "video"],
+    "native": ["pay", "wallet-android", "wallet-ios", "wallet-macos", "wallet-desktop"],
+    "walletConnect": ["wallet-platform-owner", "each-consuming-dapp-owner"]
+  },
+  "truth": {
+    "sourceImplemented": true,
+    "packedArtifactInstallHarness": true,
+    "realBrowserExtensionInstalled": false,
+    "realNativeWalletInstalled": false,
+    "realWalletConnectRelay": false,
+    "productsConsumed": "0/12",
+    "deployedPublic": false
+  }
+}

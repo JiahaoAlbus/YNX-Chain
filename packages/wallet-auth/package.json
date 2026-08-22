@@ -1,6 +1,6 @@
 {
   "name": "@ynx-chain/wallet-auth",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "packageManager": "npm@11.5.1",
   "license": "UNLICENSED",
   "description": "Strict Sign in with YNX Wallet request, approval, and product-session binding protocol",
@@ -25,6 +25,11 @@
       "types": "./src/index.d.ts",
       "import": "./src/standard-wallet-native-bridge.js",
       "default": "./src/standard-wallet-native-bridge.js"
+    },
+    "./standard-wallet-walletconnect": {
+      "types": "./src/index.d.ts",
+      "import": "./src/standard-wallet-walletconnect-runtime.js",
+      "default": "./src/standard-wallet-walletconnect-runtime.js"
     },
     "./gateway-node-host": {
       "types": "./src/gateway-node-host.d.ts",

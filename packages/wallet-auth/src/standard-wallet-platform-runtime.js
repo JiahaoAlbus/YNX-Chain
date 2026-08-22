@@ -1,7 +1,7 @@
 import { STANDARD_WALLET_PRIVATE_SERVICE } from "./standard-wallet-connect-state.js";
 import { StandardWalletProviderEngine } from "./standard-wallet-provider-engine.js";
 
-export const STANDARD_WALLET_RUNTIME_VERSION = "1.0.0-p0.0";
+export const STANDARD_WALLET_RUNTIME_VERSION = "1.1.0-p0.0";
 export const STANDARD_WALLET_RUNTIME_PLATFORMS = Object.freeze(["web", "android", "ios", "macos", "desktop"]);
 
 export function createStandardWalletPlatformRuntime(config) {

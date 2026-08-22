@@ -238,7 +238,7 @@ test("machine conformance vector freezes network, privacy and independent-layer 
 test("Layer 1 provider modules have no Gateway, Product Session or product registry dependency", () => {
   for (const file of [
     "standard-wallet-provider-events.js", "standard-wallet-provider-common.js", "standard-wallet-permission-storage.js", "standard-wallet-permissions.js", "standard-wallet-json-rpc.js",
-    "standard-wallet-provider-engine.js", "standard-wallet-walletconnect.js", "standard-wallet-connect-state.js",
+    "standard-wallet-provider-engine.js", "standard-wallet-walletconnect.js", "standard-wallet-walletconnect-storage.js", "standard-wallet-walletconnect-runtime.js", "standard-wallet-connect-state.js",
   ]) {
     const source = readFileSync(new URL(`../src/${file}`, import.meta.url), "utf8");
     assert.doesNotMatch(source, /from\s+["'][^"']*(?:gateway|product-session|registry|metamask-evm-adapter)[^"']*["']/i, file);
