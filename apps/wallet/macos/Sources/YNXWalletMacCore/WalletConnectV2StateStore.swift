@@ -139,6 +139,11 @@ public final class WalletConnectV2StateStore: @unchecked Sendable {
         guard request.method == "wc_sessionPropose" else {
           throw WalletConnectV2StateError.invalidRequest
         }
+        if let existing = state.sessions.first(where: { $0.topic == request.topic }) {
+          guard Self.matchesIdentity(request, existing) else {
+            throw WalletConnectV2StateError.invalidRequest
+          }
+        }
       } else {
         guard WalletConnectV2Policy.supportedMethods.contains(request.method) else {
           throw WalletConnectV2StateError.methodNotApproved
@@ -179,6 +184,11 @@ public final class WalletConnectV2StateStore: @unchecked Sendable {
             approval.methods.isSubset(of: WalletConnectV2Policy.supportedMethods),
             approval.events.isSubset(of: WalletConnectV2Policy.supportedEvents) else {
         throw WalletConnectV2StateError.invalidRequest
+      }
+      if let existing = state.sessions.first(where: { $0.topic == request.topic }) {
+        guard Self.matchesIdentity(request, existing) else {
+          throw WalletConnectV2StateError.invalidRequest
+        }
       }
       _ = try Self.take(requestID, kind: .sessionProposal, now: now, from: &state)
       state.sessions.removeAll { $0.topic == request.topic }
@@ -336,16 +346,26 @@ public final class WalletConnectV2StateStore: @unchecked Sendable {
         return false
       }
       if request.kind == .sessionProposal {
-        return request.method == "wc_sessionPropose"
+        guard request.method == "wc_sessionPropose" else { return false }
+        guard let existing = state.sessions.first(where: { $0.topic == request.topic }) else {
+          return true
+        }
+        return matchesIdentity(request, existing)
       }
       guard WalletConnectV2Policy.supportedMethods.contains(request.method),
             let session = state.sessions.first(where: { $0.topic == request.topic }) else {
         return false
       }
-      return session.dappClass == request.dappClass
-        && session.dappName == request.dappName
+      return matchesIdentity(request, session)
         && session.methods.contains(request.method)
     }
+  }
+
+  private static func matchesIdentity(
+    _ request: WalletConnectV2PendingRequest,
+    _ session: WalletConnectV2PersistedSession
+  ) -> Bool {
+    session.dappClass == request.dappClass && session.dappName == request.dappName
   }
 
   private static func validExecutionResult(_ value: String, method: String, account: String) -> Bool {

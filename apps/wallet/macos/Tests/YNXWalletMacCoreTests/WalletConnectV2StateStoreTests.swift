@@ -77,6 +77,25 @@ final class WalletConnectV2StateStoreTests: XCTestCase {
     XCTAssertTrue(try WalletConnectV2StateStore(fileURL: file).restoredPending(now: now).isEmpty)
   }
 
+  func testExistingSessionRejectsProposalIdentityReplacementOnSameTopic() throws {
+    let file = temporaryFile()
+    let store = try approvedStore(file: file, dappClass: .external)
+    let replacementClass = proposal(id: "replacement-class", dappClass: .firstParty)
+    XCTAssertThrowsError(try store.enqueue(replacementClass, now: now)) {
+      XCTAssertEqual($0 as? WalletConnectV2StateError, .invalidRequest)
+    }
+    let replacementName = WalletConnectV2PendingRequest(
+      id: "replacement-name", topic: topic, kind: .sessionProposal,
+      dappClass: .external, dappName: "Different External DApp",
+      method: "wc_sessionPropose", paramsDigest: digest,
+      receivedAt: now.addingTimeInterval(-1), expiresAt: now.addingTimeInterval(300)
+    )
+    XCTAssertThrowsError(try store.enqueue(replacementName, now: now)) {
+      XCTAssertEqual($0 as? WalletConnectV2StateError, .invalidRequest)
+    }
+    XCTAssertEqual(try WalletConnectV2StateStore(fileURL: file).restoredSessions().first?.dappName, "External DApp")
+  }
+
   func testPersistedUnsupportedMethodFailsClosedAsCorrupt() throws {
     let file = temporaryFile()
     _ = try approvedStore(file: file, dappClass: .external)
