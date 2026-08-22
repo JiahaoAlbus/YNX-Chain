@@ -6085,6 +6085,25 @@
       "productsMigratedV2": "0/12",
       "parityComplete": false,
       "nextAction": "Do not create another checkpoint for a receipt-only echo; resume Central acceptance only for a new capability, direct installed E2E evidence, or a security-semantic change."
+    },
+    {
+      "taskId": "P0-161",
+      "owner": "integration,wallet-ios,wallet-protocol",
+      "status": "IOS_WALLETCONNECT_DECISION_STATE_ACCEPTED_SOURCE_ONLY_BIOMETRIC_FAILURE_FROZEN",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/acceptance/wallet-ios-walletconnect-decision-state-p0161-20260822.json"
+      ],
+      "dependencies": ["P0-151", "P0-155", "P0-158"],
+      "iosWalletConnectSource": "e829f38b9f35d47be1afd924cf609cf2e59e3be7",
+      "biometricFailureEvidence": "cdac464e9fd09c42ad921e5a9d7f5304b912348d",
+      "routerCheckpoint": "fdd6d856bbc57536dc566ef1263abd2217daa141",
+      "walletConnectRunStatus": "IN_PROGRESS",
+      "executionLeaseIssued": false,
+      "distributionDispatched": false,
+      "productsConnected": "0/12",
+      "productsMigratedV2": "0/12",
+      "parityComplete": false,
+      "nextAction": "Re-read exact terminal outcomes for runs 32554682866 and 32554682869; do not infer relay, installed runtime, signing or distribution from source and local tests."
     }
   ]
 }
