@@ -1471,6 +1471,29 @@
         "exact rollback restored Caddy SHA df5f7ad7 and removed only matching release/stage inodes",
         "no further production, collector, browser, account, signing or transaction action is authorized under P0-224"
       ]
+    },
+    {
+      "path": "{production:host:43.153.202.237:caddy-pay-publication,production:/opt/ynx-pay-web/releases/pay-web-5f4ce98e-release1,production:/opt/ynx-pay-web/incoming/pay-web-5f4ce98e-release1,production:/etc/caddy/ynx-chain.caddy,production:https://pay.ynxweb4.com/**,local:/tmp/ynx-pay-p0225-public-release-20260822T230500Z}",
+      "owner": "pay",
+      "branch": "codex/p0-pay-wallet-connectivity-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/04-pay-p0-clean",
+      "taskId": "P0-225",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_SINGLE_USE",
+      "acquiredAt": "2026-08-22T23:05:00Z",
+      "expiresAt": "2026-08-22T23:45:00Z",
+      "releasedAt": null,
+      "sourceCommit": "5f4ce98eb458550b976c17e3bc6d77cce4081a59",
+      "sourceTree": "8f0c25c4d86eb22a564f3c7aeff9db6709a9b9f0",
+      "evidenceCommit": "77d112898f18ce741fe4abcdeabd1eefeedd50ca",
+      "artifactSha256": "ae552951d8e569f04aced60db69e3c11422910cc1098a6e7061b0e84005ad09e",
+      "productionMutationAllowed": true,
+      "allowedExceptions": [
+        "one exact deploy command, one exact P0-225 collector and one non-sensitive browser gate only",
+        "on any failure after deploy invocation, one exact rollback command only",
+        "parent directories /opt/ynx-pay-web, releases and incoming must be preserved unchanged",
+        "no retry, account, signature, typed data, transaction or non-Pay mutation"
+      ]
     }
   ]
 }
