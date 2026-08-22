@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet Desktop/CLI/SDK",
+  "artifactSourceCommit": "198c3212908a72dd8cd13c7bff32ca29f12b36a5",
+  "evidencePath": "apps/wallet-desktop/evidence/windows-wallet-authority-0.4-native-lifecycle-20260822.json",
+  "officialWebsitePublicationReady": true,
+  "artifacts": [
+    {
+      "architecture": "x64",
+      "filename": "ynx-wallet-desktop-0.4.0-x64.exe",
+      "bytes": 114230099,
+      "sha256": "5e75e8bbe38cdb6d84d0983da6db4b9575df53386b083a6576949a5b744d3937",
+      "minimumOS": "Windows Server 2025 x64 runner directly tested; consumer Windows minimum not separately evidenced",
+      "signingClass": "unsigned_windows_nsis_testnet_candidate",
+      "localSourcePath": "/private/tmp/ynx-wallet-desktop-installers-p0-20260821/apps/wallet-desktop/dist-windows-wallet-authority-0.4-verified/ynx-wallet-desktop-0.4.0-x64.exe"
+    },
+    {
+      "architecture": "arm64",
+      "filename": "ynx-wallet-desktop-0.4.0-arm64.exe",
+      "bytes": 113382888,
+      "sha256": "785b91db5133bc005157f0d5bdd84ccf9bc66eec1512d24090c0a8ea03a3afcc",
+      "minimumOS": "Windows 11 arm64 directly tested; earlier Windows arm64 not evidenced",
+      "signingClass": "unsigned_windows_nsis_testnet_candidate",
+      "localSourcePath": "/private/tmp/ynx-wallet-desktop-installers-p0-20260821/apps/wallet-desktop/dist-windows-wallet-authority-0.4-verified/ynx-wallet-desktop-0.4.0-arm64.exe"
+    }
+  ],
+  "websiteContract": {
+    "directExeRequired": true,
+    "zipSubstitutionAllowed": false,
+    "contentAddressedImmutableUrlRequired": true,
+    "publicHttp200AndFullRemoteRehashRequiredBeforeHosted": true,
+    "downloadHosted": false,
+    "deployedPublic": false
+  },
+  "signingBoundary": {
+    "authenticode": "NotSigned",
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "interoperabilityBoundary": {
+    "walletConnectProjectIdConfigured": false,
+    "walletConnectRelayConnected": false,
+    "firstPartyDappProved": false,
+    "externalDappProved": false,
+    "liveSignOrTransactionProved": false
+  }
+}
