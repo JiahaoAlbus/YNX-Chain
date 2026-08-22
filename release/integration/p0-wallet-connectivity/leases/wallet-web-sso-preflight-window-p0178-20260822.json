@@ -3,10 +3,11 @@
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "taskId": "P0-178",
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-web-sso-preflight-20260822T081205Z",
-  "status": "ACTIVE_SINGLE_USE_PROJECT_SSO_PREFLIGHT_WINDOW_RESTORE_REQUIRED",
-  "owner": "website",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_SSO_RESTORED_NORMALIZED_STANDARD_PROTECTION_CANDIDATE_NETWORK_UNREACHABLE",
+  "owner": null,
   "issuedAt": "2026-08-22T08:12:05Z",
   "expiresAt": "2026-08-22T08:27:05Z",
+  "releasedAt": "2026-08-22T08:15:51Z",
   "singleUse": true,
   "reusable": false,
   "scope": "VERCEL_PROJECT_WALLET_WEB_SSO_TEMPORARY_DISABLE_FOUR_RESOURCE_PREFLIGHT_AND_RESTORE",
@@ -61,5 +62,22 @@
     "currentSourceBoundPublic": false,
     "productsConnected": "0/12",
     "parityComplete": false
+  },
+  "terminalResult": {
+    "precheckDeploymentType": "all_except_custom_domains",
+    "precheckProductionPrivate": true,
+    "disableExecutedExactlyOnce": true,
+    "disabledSsoProtection": false,
+    "fourResourcePreflight": "FAILED_TCP_CONNECT_HTTP_000_NO_BODY",
+    "restoreExecutedExactlyOnce": true,
+    "restoredSsoProtection": true,
+    "restoredProductionPrivate": true,
+    "restoredDeploymentType": "prod_deployment_urls_and_all_previews",
+    "centralRestoreDecision": "ACCEPTED_SEMANTIC_NORMALIZATION_TO_CURRENT_VERCEL_STANDARD_PROTECTION_ENUM",
+    "decisionBasis": "Official Vercel documentation defines prod_deployment_urls_and_all_previews as Standard Protection, protecting production deployment URLs and all previews while excluding production custom domains; this preserves the precheck protection scope.",
+    "exactApiRestoreRequired": false,
+    "aliasCommandExecuted": false,
+    "officialDomainChanged": false,
+    "singleExecutableBlocker": "INDEPENDENT_EXECUTOR_NETWORK_CANNOT_CONNECT_TO_IMMUTABLE_VERCEL_HOSTNAME_EVEN_WHILE_SSO_DISABLED"
   }
 }
