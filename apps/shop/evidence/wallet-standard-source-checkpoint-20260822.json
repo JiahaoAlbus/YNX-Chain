@@ -1,0 +1,43 @@
+{
+  "schemaVersion": "1.0.0",
+  "product": "YNX Shop",
+  "sourceCommit": "754acd1141211060fa5ae024508cec837e9f1b2e",
+  "branch": "codex/final-shop",
+  "routerPlanCommit": "875be208e8a7ddb60345d55b93fc299949664e5c",
+  "sharedProviderCommit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+  "scope": "apps/shop source, tests, build, and local smoke only",
+  "implemented": {
+    "connectedAccountOpensDetails": true,
+    "disconnectControl": true,
+    "switchAccountControl": true,
+    "chooserClosesAfterConnection": true,
+    "refreshRestoreWithoutPrompt": true,
+    "ynxAndMetaMaskIdentitySeparated": true,
+    "chainId": "0x1917",
+    "englishDefaultUntilExplicitSelection": true,
+    "privateProductSessionIndependent": true,
+    "customSchemeOrBlankTabNavigation": false
+  },
+  "verification": [
+    {"command": "npm test", "result": "pass", "tests": 12, "failed": 0},
+    {"command": "npm run build", "result": "pass", "artifact": "apps/shop/dist"},
+    {"command": "npm run smoke", "result": "pass", "probes": ["/health", "/api/capabilities", "/api/products"]},
+    {"command": "node packages/wallet-auth/scripts/verify-standard-wallet-e2e-execution-plan.mjs", "result": "pass", "context": "Router detached worktree", "registeredProducts": 12}
+  ],
+  "publicRuntime": {
+    "deployed": false,
+    "deploymentLease": false,
+    "directPublicEvidence": false,
+    "blocker": "No deployment lease; public Chrome approval/reject, event, disconnect/revoke, language, console, asset, screenshot, and rollback evidence cannot be collected against this source until an authorized exact-source deployment exists."
+  },
+  "unproven": {
+    "newApproval": false,
+    "newReject": false,
+    "walletCallback": false,
+    "personalSign": false,
+    "eip712": false,
+    "testnetTransaction": false,
+    "productSession": false,
+    "publicZeroBlankTabs": false
+  }
+}
