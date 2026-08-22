@@ -1,0 +1,69 @@
+{
+  "requestVersion": "shopWalletProviderIdentityHostedChromiumPreflightLeaseRequest@1.0.0",
+  "requestedAt": "2026-08-22T19:19:44Z",
+  "priority": "P0_AFTER_CALENDAR_P0_211",
+  "owner": "shop",
+  "branch": "codex/final-shop",
+  "sourceCommit": "221a6bde7bef8aab83ca45f9b1dd4ecf9ac60aba",
+  "sourceTree": "126f6d5b30cbd9eb329b64aa12cef75d77a8b509",
+  "evidencePath": "apps/shop/evidence/shop-wallet-provider-identity-candidate-20260823.json",
+  "artifact": {
+    "absolutePath": "/tmp/ynx-shop-wallet-provider-identity.fiC01C/ynx-shop-wallet-provider-identity-221a6bde7.tar.gz",
+    "bytes": 1230556,
+    "sha256": "59f73284643854f1129c4dab4d0f507dcb01e2dd0124b33f6ad4890f94612d6f",
+    "inventorySha256": "66930dbe86dea64aa9e8bae7a53ae3ad57d073e8c4e6d36159c3a51a37d47276"
+  },
+  "requestedExecution": {
+    "kind": "HOSTED_CHROMIUM_STATIC_ARTIFACT_PREFLIGHT_ONLY",
+    "singleUse": true,
+    "runner": "central-authorized-hosted-linux-chromium",
+    "networkWritesAllowed": false,
+    "productionWritesAllowed": false,
+    "accountActionsAllowed": false,
+    "extractCarrierIntoFreshEmptyDirectory": true,
+    "serveExtractedRootOnly": true,
+    "freshBrowserProfile": true,
+    "requiredChecks": [
+      "archive and full inventory hashes match",
+      "privacy-i18n.js responds 200 before app readiness",
+      "document default language is en with no stored preference",
+      "visible entry is Sign in with YNX Wallet",
+      "opening the chooser keeps the URL and single tab stable",
+      "YNX Wallet, com.ynx.wallet and YNX logo are simultaneously visible",
+      "MetaMask, io.metamask and MetaMask fox logo are simultaneously visible",
+      "console error count is zero",
+      "wallet state confirms no request has been made",
+      "no provider button, eth_requestAccounts, signature, transaction or order action is invoked"
+    ],
+    "requiredEvidence": [
+      "raw carrier and inventory readback",
+      "resource status, bytes and SHA-256",
+      "DOM snapshot before and after chooser open",
+      "single-tab URL list",
+      "console log",
+      "screenshots before and after chooser open"
+    ]
+  },
+  "forbidden": [
+    "SSH",
+    "production deployment",
+    "public alias or routing mutation",
+    "service restart",
+    "database or state mutation",
+    "wallet provider selection",
+    "eth_requestAccounts",
+    "signature",
+    "transaction",
+    "order action"
+  ],
+  "successClassification": "DIRECT_HOSTED_CHROMIUM_STATIC_CANDIDATE_PREFLIGHT_ONLY",
+  "successDoesNotPromote": [
+    "deployedPublic",
+    "installedProvider",
+    "accountApproved",
+    "providerChainId0x1917",
+    "productComplete"
+  ],
+  "leaseIssued": false,
+  "executed": false
+}

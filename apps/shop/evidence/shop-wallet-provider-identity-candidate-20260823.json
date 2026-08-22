@@ -1,0 +1,86 @@
+{
+  "evidenceVersion": "shopWalletProviderIdentityCandidate@1.0.0",
+  "capturedAt": "2026-08-22T19:19:44Z",
+  "classification": "SOURCE_ARTIFACT_AND_ISOLATED_LOCAL_CHROMIUM_ONLY",
+  "source": {
+    "branch": "codex/final-shop",
+    "commit": "221a6bde7bef8aab83ca45f9b1dd4ecf9ac60aba",
+    "tree": "126f6d5b30cbd9eb329b64aa12cef75d77a8b509",
+    "parent": "34fdbc677282fe4e67e5cd369b69c0720d62a65f",
+    "remoteReadbackExact": true
+  },
+  "change": {
+    "defaultLanguageRemainsEnglish": true,
+    "ynxWalletIdentity": {
+      "name": "YNX Wallet",
+      "rdns": "com.ynx.wallet",
+      "logo": "icon-192.png"
+    },
+    "metaMaskIdentity": {
+      "name": "MetaMask",
+      "rdns": "io.metamask",
+      "logo": "metamask-fox.svg",
+      "officialBrandPack": "https://assets.ctfassets.net/clixtyxoaeas/1d7h0Cnm1RaQ0TspxaTS0H/57418d60d3a13fbee748be1ca560235a/MetaMask-Logo-Pack__4_.zip",
+      "officialBrandPackSha256": "4ddfeaedbe01cf35d53a7c08197ec8e4184862da0a8fcaf226959f1ee167c2ba",
+      "copiedProgramCode": false,
+      "affiliationClaimed": false
+    },
+    "packagingRepair": {
+      "missingDependencyFound": "privacy-i18n.js",
+      "includedInDist": true,
+      "reason": "Without this imported module the application module did not finish and the wallet chooser handler was not bound."
+    }
+  },
+  "validation": {
+    "shopTests": {
+      "passed": 13,
+      "failed": 0
+    },
+    "buildPassed": true,
+    "diffCheckPassed": true,
+    "isolatedLocalChromium": {
+      "freshTemporaryProfile": true,
+      "origin": "http://127.0.0.1:4188/",
+      "documentLanguage": "en",
+      "storedLanguage": null,
+      "visibleEntry": "Sign in with YNX Wallet",
+      "entryClickOnly": true,
+      "chooserOpen": true,
+      "urlStable": true,
+      "consoleErrors": 0,
+      "walletRequestMade": false,
+      "visibleYNXWalletNameRdnsLogo": true,
+      "visibleMetaMaskNameRdnsLogo": true,
+      "providerButtonClicked": false,
+      "ethRequestAccountsTriggered": false,
+      "signingTriggered": false,
+      "transactionTriggered": false
+    }
+  },
+  "artifact": {
+    "carrier": "/tmp/ynx-shop-wallet-provider-identity.fiC01C/ynx-shop-wallet-provider-identity-221a6bde7.tar.gz",
+    "bytes": 1230556,
+    "sha256": "59f73284643854f1129c4dab4d0f507dcb01e2dd0124b33f6ad4890f94612d6f",
+    "repeatBuildByteExact": true,
+    "inventory": "/tmp/ynx-shop-wallet-provider-identity.fiC01C/inventory.sha256",
+    "inventorySha256": "66930dbe86dea64aa9e8bae7a53ae3ad57d073e8c4e6d36159c3a51a37d47276",
+    "importantFiles": {
+      "index.html": "2e862dddca76b2b9e4ec0e1d31cfd9a347a6469fdcec93e4c4fadd6883df0c15",
+      "privacy-i18n.js": "7cd8c3b443e56f71407511a66bc3553e13e6f4d2af212f2b693c3d31885b4e03",
+      "metamask-fox.svg": "d1d8b924867680c09be956b4cc0f70d4c6e44b11e68916a579144439462733f9",
+      "THIRD_PARTY_NOTICES.md": "df43e164516448b496d878457a39ab66ab678913a54af08bfaf40445ee4c3942",
+      "sw.js": "c04fa2ef30c3602fe73b208cb1b83f47445230383401120b7b9e6fb5aa8f1888"
+    }
+  },
+  "truth": {
+    "hostedChromiumCandidatePreflight": false,
+    "deployedPublic": false,
+    "currentPublicSourceChanged": false,
+    "installedProvider": false,
+    "accountApproved": false,
+    "providerChainId0x1917": false,
+    "signing": false,
+    "transaction": false,
+    "productComplete": false
+  }
+}
