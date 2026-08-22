@@ -23,3 +23,18 @@ export function canonicalizeWindowsYNXWalletProtocolUrl(value, platform = proces
     return value;
   }
 }
+
+export function canonicalizeWindowsProductCallbackUrl(value, expectedCallback, platform = process.platform) {
+  if (platform !== "win32" || typeof value !== "string" || typeof expectedCallback !== "string") return value;
+  try {
+    const actual = new URL(value);
+    const expected = new URL(expectedCallback);
+    const keys = [...actual.searchParams.keys()];
+    if (expected.pathname || expected.search || expected.hash || expected.username || expected.password ||
+        actual.protocol !== expected.protocol || actual.hostname !== expected.hostname || actual.port !== expected.port ||
+        actual.pathname !== "/" || actual.hash || actual.username || actual.password || keys.length !== 1 || keys[0] !== "response") return value;
+    return `${expectedCallback}?response=${encodeURIComponent(actual.searchParams.get("response") ?? "")}`;
+  } catch {
+    return value;
+  }
+}

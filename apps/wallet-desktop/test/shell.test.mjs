@@ -65,6 +65,8 @@ test("native Windows lifecycle drives visible provider authority and preserves m
     assert.match(workflow, /canonicalAuthorizeCallbackReceived = \$true/);
     assert.match(workflow, /callback-ui-gate\.mjs \$targets reject/);
     assert.match(workflow, /callback-ui-gate\.mjs \$targets approve/);
+    assert.match(workflow, /verify-windows-callback-capture\.mjs/);
+    assert.match(workflow, /canonicalAuthorizeCallbackSignatureVerified = \$true/);
     assert.match(workflow, /CloseMainWindow\(\)/);
     assert.match(workflow, /WaitForExit\(15000\)/);
     assert.doesNotMatch(workflow, /Stop-Process -Id \$(cold|second|failed)\.Id -Force/);

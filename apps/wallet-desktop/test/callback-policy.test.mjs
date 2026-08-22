@@ -3,7 +3,7 @@ import { createECDH } from "node:crypto";
 import { test } from "node:test";
 import { encodeRequestDeepLink } from "@ynx-chain/wallet-auth";
 import { CANONICAL_AUTH_BRIDGE_UNAVAILABLE, CALLBACK_PROTOCOL_SOURCE, evaluateWalletCallback } from "../src/callback-policy.mjs";
-import { canonicalizeWindowsYNXWalletProtocolUrl, extractYNXWalletProtocolUrl } from "../src/protocol-activation.mjs";
+import { canonicalizeWindowsProductCallbackUrl, canonicalizeWindowsYNXWalletProtocolUrl, extractYNXWalletProtocolUrl } from "../src/protocol-activation.mjs";
 
 const now = new Date("2026-08-21T08:00:00.000Z");
 const productDevice = createECDH("prime256v1");
@@ -65,4 +65,15 @@ test("Windows-only slash normalization maps one exact OS activation back to the 
   assert.equal(canonicalizeWindowsYNXWalletProtocolUrl(windowsNormalized, "darwin"), windowsNormalized);
   assert.equal(canonicalizeWindowsYNXWalletProtocolUrl(`${windowsNormalized}&extra=1`, "win32"), `${windowsNormalized}&extra=1`);
   assert.equal(canonicalizeWindowsYNXWalletProtocolUrl(windowsNormalized.replace("authorize/", "approve/"), "win32"), windowsNormalized.replace("authorize/", "approve/"));
+});
+
+test("Windows product callback normalization permits only the OS-added slash", () => {
+  const expected = "ynx-social://com.ynx.social";
+  assert.equal(canonicalizeWindowsProductCallbackUrl("ynx-social://com.ynx.social/?response=abc%2B123", expected, "win32"), `${expected}?response=abc%2B123`);
+  for (const value of [
+    "ynx-social://evil.example/?response=abc",
+    "ynx-social://com.ynx.social/path?response=abc",
+    "ynx-social://com.ynx.social/?response=abc&extra=1",
+    "ynx-social://com.ynx.social/?response=abc#fragment"
+  ]) assert.equal(canonicalizeWindowsProductCallbackUrl(value, expected, "win32"), value);
 });
