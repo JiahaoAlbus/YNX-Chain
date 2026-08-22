@@ -92,9 +92,7 @@ public final class WalletConnectV2StateStore: @unchecked Sendable {
     if FileManager.default.fileExists(atPath: fileURL.path) {
       do {
         let decoded = try JSONDecoder.walletConnect.decode(State.self, from: Data(contentsOf: fileURL))
-        guard decoded.schemaVersion == 1,
-              Set(decoded.pending.map(\.id)).count == decoded.pending.count,
-              Set(decoded.sessions.map(\.topic)).count == decoded.sessions.count else {
+        guard Self.validPersistedState(decoded) else {
           throw WalletConnectV2StateError.corruptPersistence
         }
         state = decoded
@@ -147,6 +145,10 @@ public final class WalletConnectV2StateStore: @unchecked Sendable {
         }
         guard let session = state.sessions.first(where: { $0.topic == request.topic }) else {
           throw WalletConnectV2StateError.sessionUnavailable
+        }
+        guard session.dappClass == request.dappClass,
+              session.dappName == request.dappName else {
+          throw WalletConnectV2StateError.invalidRequest
         }
         guard session.methods.contains(request.method) else {
           throw WalletConnectV2StateError.methodNotApproved
@@ -310,6 +312,40 @@ public final class WalletConnectV2StateStore: @unchecked Sendable {
   private static func validDAppName(_ value: String) -> Bool {
     let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
     return !trimmed.isEmpty && trimmed.utf8.count <= 160
+  }
+
+  private static func validPersistedState(_ state: State) -> Bool {
+    guard state.schemaVersion == 1,
+          Set(state.pending.map(\.id)).count == state.pending.count,
+          Set(state.sessions.map(\.topic)).count == state.sessions.count,
+          state.sessions.allSatisfy({ session in
+            validTopic(session.topic)
+              && validDAppName(session.dappName)
+              && validAccount(session.approvedAccount)
+              && session.methods.isSubset(of: WalletConnectV2Policy.supportedMethods)
+              && session.events.isSubset(of: WalletConnectV2Policy.supportedEvents)
+          }) else {
+      return false
+    }
+    return state.pending.allSatisfy { request in
+      guard validIdentifier(request.id),
+            validTopic(request.topic),
+            validDAppName(request.dappName),
+            validDigest(request.paramsDigest),
+            request.receivedAt < request.expiresAt else {
+        return false
+      }
+      if request.kind == .sessionProposal {
+        return request.method == "wc_sessionPropose"
+      }
+      guard WalletConnectV2Policy.supportedMethods.contains(request.method),
+            let session = state.sessions.first(where: { $0.topic == request.topic }) else {
+        return false
+      }
+      return session.dappClass == request.dappClass
+        && session.dappName == request.dappName
+        && session.methods.contains(request.method)
+    }
   }
 
   private static func validExecutionResult(_ value: String, method: String, account: String) -> Bool {
