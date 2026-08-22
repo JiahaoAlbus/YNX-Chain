@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, safeStorage, shell } from "electron";
+import { app, BrowserWindow, ipcMain, nativeImage, safeStorage, shell } from "electron";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -10,6 +10,7 @@ import { DesktopWalletAuthority } from "./desktop-wallet-authority.mjs";
 import { FilePermissionStore } from "./desktop-permission-store.mjs";
 import { CanonicalTransactionSender } from "./canonical-transaction-sender.mjs";
 import { WalletConnectTransport } from "./walletconnect-transport.mjs";
+import { decodeWalletConnectQR } from "./walletconnect-qr-decoder.mjs";
 
 const directory = path.dirname(fileURLToPath(import.meta.url));
 // Canonical public RPC from Central endpoint matrix d0f89797d13c7667cc187b0c64d5c9e1cb1d8f59.
@@ -117,6 +118,11 @@ ipcMain.handle("wallet:permissions", (_event, origin) => safeIPC(() => walletAut
 ipcMain.handle("wallet:walletconnect-status", () => safeIPC(() => walletConnect.status()));
 ipcMain.handle("wallet:walletconnect-sessions", () => safeIPC(() => walletConnect.sessions()));
 ipcMain.handle("wallet:walletconnect-pair", (_event, uri) => safeIPC(() => walletConnect.pair(uri)));
+ipcMain.handle("wallet:walletconnect-decode-qr", (_event, input) => safeIPC(() => decodeWalletConnectQR({
+  bytes: Buffer.from(input?.bytes ?? []),
+  mimeType: input?.mimeType,
+  createImage: bytes => nativeImage.createFromBuffer(bytes)
+})));
 ipcMain.handle("wallet:walletconnect-disconnect", (_event, topic) => safeIPC(async () => {
   const origin = walletConnect.sessionOrigin(topic);
   await walletAuthority.revokeOrigin(origin);

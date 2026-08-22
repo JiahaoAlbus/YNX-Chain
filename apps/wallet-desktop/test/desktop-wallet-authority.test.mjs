@@ -10,6 +10,7 @@ import { APPROVAL_TTL_MS, DesktopWalletAuthority, MemoryPermissionStore, YNX_EIP
 import { FilePermissionStore } from "../src/desktop-permission-store.mjs";
 import { DesktopWalletVault } from "../src/desktop-wallet-vault.mjs";
 import { WALLETCONNECT_CHAIN, WALLETCONNECT_METHODS, WalletConnectTransport } from "../src/walletconnect-transport.mjs";
+import { decodeWalletConnectQR } from "../src/walletconnect-qr-decoder.mjs";
 
 const SECRET = "0000000000000000000000000000000000000000000000000000000000000001";
 const SECOND_SECRET = "0000000000000000000000000000000000000000000000000000000000000002";
@@ -215,17 +216,25 @@ test("WalletConnect remains fail closed without a real project ID", async () => 
   assert.deepEqual(WALLETCONNECT_METHODS, ["eth_sendTransaction", "personal_sign", "eth_signTypedData_v4"]);
 });
 
-test("desktop QR import is local-only, bounded and accepts only one WalletConnect v2 URI", async () => {
+test("desktop QR import is local-only, bounded and accepts only WalletConnect v2", async () => {
   const html = await readFile(new URL("../src/index.html", import.meta.url), "utf8");
   const renderer = await readFile(new URL("../src/renderer.js", import.meta.url), "utf8");
   assert.match(html, /id="walletconnect-qr"[^>]+type="file"[^>]+accept="image\/png,image\/jpeg,image\/webp"/);
   assert.match(html, /QR images are decoded locally and are never uploaded/);
   assert.match(renderer, /file\.size > 10 \* 1024 \* 1024/);
-  assert.match(renderer, /BarcodeDetector\.getSupportedFormats\(\)/);
-  assert.match(renderer, /new BarcodeDetector\(\{ formats: \["qr_code"\] \}\)/);
-  assert.match(renderer, /values\.length !== 1/);
-  assert.match(renderer, /\^wc:\[0-9a-f-\]\+@2\\\?/);
+  assert.match(renderer, /walletConnectDecodeQR/);
   assert.doesNotMatch(renderer, /fetch\([^)]*walletConnectQR|XMLHttpRequest|FormData/);
+  const uri = "wc:0123456789abcdef@2?relay-protocol=irn&symKey=0123456789abcdef";
+  let observed;
+  const result = decodeWalletConnectQR({
+    bytes: Buffer.from([1]),
+    mimeType: "image/png",
+    createImage: () => ({ isEmpty: () => false, getSize: () => ({ width: 1, height: 1 }), toBitmap: () => Buffer.from([3, 2, 1, 255]) }),
+    decode: (rgba, width, height, options) => { observed = { rgba: [...rgba], width, height, options }; return { data: uri }; }
+  });
+  assert.deepEqual(observed, { rgba: [1, 2, 3, 255], width: 1, height: 1, options: { inversionAttempts: "attemptBoth" } });
+  assert.deepEqual(result, { uri, format: "qr_code", decodedLocally: true, uploaded: false });
+  assert.throws(() => decodeWalletConnectQR({ bytes: Buffer.from([1]), mimeType: "image/png", createImage: () => ({ isEmpty: () => false, getSize: () => ({ width: 1, height: 1 }), toBitmap: () => Buffer.alloc(4) }), decode: () => ({ data: "https://example.invalid" }) }), error => error.code === "INVALID_WALLETCONNECT_QR");
 });
 
 test("WalletConnect session approval exposes only eip155:6423 and the approved account", async () => {

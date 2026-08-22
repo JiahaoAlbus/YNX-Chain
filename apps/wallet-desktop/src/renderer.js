@@ -161,21 +161,10 @@ walletConnectQR.addEventListener("change", async () => {
     walletConnectQRStatus.textContent = "INVALID_QR_IMAGE: choose a PNG, JPEG or WebP image up to 10 MB.";
     return;
   }
-  if (typeof BarcodeDetector !== "function" || !(await BarcodeDetector.getSupportedFormats()).includes("qr_code")) {
-    walletConnectQRStatus.textContent = "QR_DECODER_UNAVAILABLE: this build cannot decode QR images.";
-    return;
-  }
   try {
-    const bitmap = await createImageBitmap(file);
-    let results;
-    try { results = await new BarcodeDetector({ formats: ["qr_code"] }).detect(bitmap); }
-    finally { bitmap.close(); }
-    const values = [...new Set(results.map(result => result.rawValue?.trim()).filter(Boolean))];
-    if (values.length !== 1 || !/^wc:[0-9a-f-]+@2\?/.test(values[0]) || values[0].length > 8192) {
-      walletConnectQRStatus.textContent = "INVALID_WALLETCONNECT_QR: exactly one WalletConnect v2 URI is required.";
-      return;
-    }
-    walletConnectURI.value = values[0];
+    const result = await window.ynxWallet.walletConnectDecodeQR({ mimeType: file.type, bytes: await file.arrayBuffer() });
+    if (!result.ok) { walletConnectQRStatus.textContent = `${result.error.code}: ${result.error.message}`; return; }
+    walletConnectURI.value = result.value.uri;
     walletConnectQRStatus.textContent = "WalletConnect v2 URI decoded locally. Review it, then pair the DApp.";
   } catch {
     walletConnectQRStatus.textContent = "QR_DECODE_FAILED: no usable WalletConnect QR code was found.";
