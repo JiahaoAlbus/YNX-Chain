@@ -1,0 +1,132 @@
+{
+  "schemaVersion": "ynx.monitor.deployment-ready-bundle.v1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-120",
+  "bundleCreatedAt": "2026-08-21T13:49:34Z",
+  "authorityBoundary": {
+    "mapping": "Central Integration P0-120 read-only mapping",
+    "productionMutationAllowed": false,
+    "credentialRead": false,
+    "remoteConnectionAttempted": false,
+    "deploymentAttempted": false,
+    "publicVerified": false,
+    "computerControlVerified": false
+  },
+  "candidate": {
+    "sourceCommit": "8571509583a1390b56b1812e1008f5d634ef594f",
+    "sourceTree": "7261b10af311c801811a6d61fc04c723a68e0cae",
+    "candidatePR": "https://github.com/JiahaoAlbus/YNX-Chain/pull/107",
+    "proposedRelease": "ynx-explorer-monitor-8571509583a1",
+    "ownerEvidenceBaseCommit": "3588065abc2de84615003481d7966ea4541eb260",
+    "ownerEvidenceBaseTree": "421bd4bdfb80d39926f9f3f4ceaa52538c9976a2",
+    "sourceInputsUnchangedSinceCandidate": true,
+    "sourceInputTrees": {
+      "monitor": "4fe58662de6d058152ec4b11d63aa184e293b13a",
+      "explorer": "667e5bc1d333cdb75cc0a4fcfe1edbe5abc296f4",
+      "indexer": "e0d3665de2656b37badcb04e68fc0c33cf5be067"
+    },
+    "sourceArchive": {
+      "format": "git archive tar",
+      "paths": [
+        "apps/monitor",
+        "cmd/ynx-explorerd",
+        "cmd/ynx-indexerd",
+        "internal/explorer",
+        "internal/indexer"
+      ],
+      "bytes": 2263040,
+      "sha256": "0a5b2a1912003506761d189ce7e481e5cc2b92be6a7f069533918f6da487d266"
+    }
+  },
+  "candidateArtifacts": {
+    "build": {
+      "goos": "linux",
+      "goarch": "amd64",
+      "cgoEnabled": false,
+      "trimpath": true,
+      "buildvcs": false,
+      "buildTime": "2026-08-21T13:49:34Z",
+      "toolchain": "go1.25.12",
+      "releaseEmbedded": "ynx-explorer-monitor-8571509583a1"
+    },
+    "explorerBinary": {
+      "role": "ynx-explorerd",
+      "bytes": 8872120,
+      "sha256": "dab048ced7be02b8937ba7bbe75fa124e3fa83da59c489659a0a3e037f61f060"
+    },
+    "indexerBinary": {
+      "role": "ynx-indexerd",
+      "bytes": 7512248,
+      "sha256": "c4ab4994a5cb1a04a18fdfe0bd171fec9a441c31f0b2f3b2dc4b0b52f5af2a2b"
+    },
+    "monitorReleaseTree": {
+      "format": "git archive tar",
+      "sourcePath": "apps/monitor",
+      "bytes": 1024000,
+      "sha256": "2d47bdc7c24458ad751540f7a6e4f66118714a13bf7e1875ad0150b4af1437f2"
+    }
+  },
+  "monitorSupplyChain": {
+    "securityGate": {
+      "result": "passed",
+      "sourceCommitObserved": "3588065abc2de84615003481d7966ea4541eb260",
+      "candidateSourceInputsUnchanged": true,
+      "summarySha256": "7e106bf256e0307b3a61ee46941254568b7c8cf576c8165cb3d4d302256679ca",
+      "sbomSha256": "07fa5fda46376ad5b32b605412821af3efc7f1539233ce9cc8a9bf5429cfee7d",
+      "provenanceSha256": "4a146ad5f22aea79927a2ce5ec4f5ca43d4f91a63fb992f3118e66267ad4f894",
+      "note": "Gate outputs are deliberately retained outside the worktree because their output directory is outside this owner scope; their digests are recorded here."
+    },
+    "inputs": {
+      "node": "v26.7.0",
+      "npm": "11.19.0",
+      "packageJsonSha256": "75fb0c328056922c782611d8efe645af5e4b32cf783506a2473755dca37d29c6",
+      "packageLockSha256": "3329447e950589f80129b59e1c6e99d5856d869da06672c0b525ed129e291694",
+      "viteConfigSha256": "4191d115b00bf3439cfa783b7e89e3b61aef4ff2ef5d3e93c424ee659a58b33d",
+      "tsconfigSha256": "e8d6f7b50828db3953e21c7e92584f9206b3cd2551b4012507372afbb7fe9ce3"
+    },
+    "dist": [
+      { "path": "assets/index-CU1vpbuu.css", "bytes": 17159, "sha256": "512e460fd87a10dff58c1a76b2c9ad419c184a5574aed372603241dab4407239" },
+      { "path": "assets/index-Dza9I6YL.js", "bytes": 227002, "sha256": "ec91c2a6b8b5d00ab4a35072d07ac66bf67f346b1611e0b50a8fc95a452d873b" },
+      { "path": "assets/ynx-logo-D80L-uL1.png", "bytes": 104171, "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d" },
+      { "path": "icon.svg", "bytes": 273, "sha256": "8ed1d0e4fa1dc02412c01f241a12c0f88e4c2e33e7164d23dce94c6332f1111f" },
+      { "path": "index.html", "bytes": 641, "sha256": "efbf2403f89259511dd861a6014e09d5fb11a7bf549a609bd17adacde41af44a" },
+      { "path": "manifest.webmanifest", "bytes": 298, "sha256": "4ca2fcd329ee9b666ab20b45deb2e4d5e673ed844898b839a4e575b890462d61" },
+      { "path": "sw.js", "bytes": 832, "sha256": "ec7a0f60362e365a75253d7e96ea544745a1caaf5f51e8367ab4ff2b1d331f8e" }
+    ]
+  },
+  "currentRuntimeRollback": {
+    "currentRelease": "ynx-explorer-monitor-8bf7716ee671",
+    "currentSourceCommit": "8bf7716ee671a5a9b64517280743c5a281899712",
+    "explorerBinary": {
+      "role": "ynx-explorerd",
+      "bytes": 7876792,
+      "sha256": "5ac2ae449ff877f3f427807161e294b2ef62bb3b12b84ac9820b939707c13b76"
+    },
+    "indexerBinary": {
+      "role": "ynx-indexerd",
+      "bytes": 7524536,
+      "sha256": "f45e53951899ef498c8494bd0f422d877280e4b59656d19343281e6187b50696"
+    },
+    "invariants": [
+      "The approved ingress routing remains unchanged during this atomic release.",
+      "Existing environment and service-unit content remains unchanged unless a separately approved central transaction says otherwise.",
+      "Rollback restores the exact current release before a failed candidate is declared unavailable."
+    ]
+  },
+  "singleUseLeaseRequest": {
+    "required": true,
+    "scope": "Explorer, Indexer, and Monitor public-runtime deployment only",
+    "bind": [
+      "candidate source commit and artifacts in this bundle",
+      "current release and exact rollback identity",
+      "approved deployment operator and expiry",
+      "post-deploy source-identity and public-route readback"
+    ],
+    "postDeployChecks": [
+      "Explorer and Indexer version endpoints identify the bound candidate source and release.",
+      "The two known Faucet transaction hashes resolve through canonical /tx/{hash} routes and their indexed APIs expose from, to, amount, fee, block, and status.",
+      "Monitor connectivity is a JSON API, never an SPA document fallback.",
+      "A rollback readback confirms the exact current release identity if any candidate check fails."
+    ]
+  }
+}

@@ -1,0 +1,140 @@
+{
+  "schemaVersion": "ynx.monitor.runtime-binding.v1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-119",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-explorer-monitor-runtime-20260821T055729Z",
+  "centralControlCommit": "24c8db98b1bb03d98250ab669abec50ca1b9c912",
+  "centralAssignment": {
+    "status": "ACTIVE_RUNTIME_BIND_AND_BOUNDED_DEPLOYMENT_SLICE",
+    "checkpointCommit": "da5f31cfea0853f160b11bf7dc689fd58d0fdb63",
+    "runtimeTargetBound": false,
+    "rollbackTargetBound": false,
+    "productionMutationAllowed": "ONLY_AFTER_RUNTIME_AND_ROLLBACK_TARGET_BINDING"
+  },
+  "ownerCheckpoint": {
+    "commit": "da5f31cfea0853f160b11bf7dc689fd58d0fdb63",
+    "tree": "cf05ec566b85941c9a945807c7d4d678344d7c4d",
+    "candidatePR": "https://github.com/JiahaoAlbus/YNX-Chain/pull/107",
+    "startingCommit": "f8db7632fb37e9363858a4d4d977eea7b3585c7e"
+  },
+  "observedAt": "2026-08-21T06:02:00.101Z",
+  "officialDomainReadback": [
+    {
+      "url": "https://monitor.ynxweb4.com/health",
+      "httpStatus": 200,
+      "contentType": "application/json",
+      "bytes": 159,
+      "sha256": "c0ec8b33239bd1236304d6cb02a560c900dc56dd8af31688c3281abfe937fe34"
+    },
+    {
+      "url": "https://monitor.ynxweb4.com/version",
+      "httpStatus": 200,
+      "contentType": "application/json",
+      "bytes": 264,
+      "sha256": "d0cb952655a41dad6a353f463c5b9f623f509b31303d35404e242a8a334b70ce",
+      "service": "ynx-monitor-control-plane",
+      "sourceCommit": "8bf7716ee671a5a9b64517280743c5a281899712",
+      "release": "ynx-explorer-monitor-8bf7716ee671"
+    },
+    {
+      "url": "https://monitor.ynxweb4.com/connectivity",
+      "httpStatus": 200,
+      "contentType": "text/html",
+      "bytes": 641,
+      "sha256": "efbf2403f89259511dd861a6014e09d5fb11a7bf549a609bd17adacde41af44a",
+      "classification": "spa_fallback_not_json_connectivity_api"
+    },
+    {
+      "url": "https://explorer.ynxweb4.com/health",
+      "httpStatus": 200,
+      "contentType": "application/json",
+      "bytes": 1189,
+      "sha256": "834742fac992440387bddc30803a76a482bee9d3909ec90f03aabfa42b14a32f",
+      "service": "ynx-explorerd"
+    },
+    {
+      "url": "https://explorer.ynxweb4.com/version",
+      "httpStatus": 200,
+      "contentType": "application/json",
+      "bytes": 331,
+      "sha256": "bc2982203cd9d2b8bb699b87e34205eeb8edf7bf13054d2c9569cf885ec106e5",
+      "service": "ynx-explorerd",
+      "sourceCommit": "8bf7716ee671a5a9b64517280743c5a281899712",
+      "release": "ynx-explorer-monitor-8bf7716ee671"
+    }
+  ],
+  "candidateDeploymentContracts": {
+    "explorer": {
+      "entrypoint": "scripts/deploy/deploy-economics-explorer.sh",
+      "entrypointSha256": "3f1614a74346dc6beb7c993f54ecd1a863d147c8324c086f0fb0fd4ce2eec5c9",
+      "installer": "scripts/deploy/remote/install-economics-explorer.sh",
+      "installerSha256": "a665104723def099519fa7df8bc2f9ff8204ae5c59518a6d9469f40356f7fc99",
+      "candidateService": "ynx-explorerd.service",
+      "candidateFiles": [
+        "/usr/local/bin/ynx-explorerd",
+        "/etc/systemd/system/ynx-explorerd.service",
+        "/etc/ynx/ynx-explorerd.env"
+      ],
+      "rollbackBehavior": "The installer has an EXIT rollback trap for its candidate files, but no central transaction binds a specific currently serving host, prior release, or backup to the official domain."
+    },
+    "economicsMonitor": {
+      "entrypoint": "scripts/deploy/deploy-economics-monitor.sh",
+      "entrypointSha256": "1c4de377cb4169937044ac96641560ca96cbc25e2aed6bf7b95e05a294331b80",
+      "installer": "scripts/deploy/remote/install-economics-monitor.sh",
+      "installerSha256": "ca3b16c295bca7cd6b285a714c469c97899ef3a16137ed5dd40d49a4e775660d",
+      "serviceUnit": "infra/monitoring/systemd/ynx-economics-monitord.service",
+      "serviceUnitSha256": "025446f7625c6513202f7136793d54362bdc131012c36b0240fbfaaedd7fd4a1",
+      "candidateService": "ynx-economics-monitord.service",
+      "candidateFiles": [
+        "/usr/local/bin/ynx-economics-monitord",
+        "/etc/systemd/system/ynx-economics-monitord.service",
+        "/etc/ynx/ynx-economics-monitord.env"
+      ],
+      "mismatch": "This Go economics monitor has a distinct service and health contract from the official-domain Node service named ynx-monitor-control-plane; it cannot be substituted for that public runtime without an explicit ingress and service binding."
+    },
+    "publicMonitorControlPlane": {
+      "sourceEntrypoint": "apps/monitor/server/index.ts",
+      "sourceEntrypointBlob": "be203341eafff49476df619d49dce8d9d777911d",
+      "sourceEntrypointSha256": "3173794ae0c5873f9dd147dc45c3aa9d6968053bbe72a4347c865a13c3ba633c",
+      "sourceServiceContract": "Node control plane, default loopback listener set by YNX_MONITOR_PORT or 4675",
+      "productionBinding": "UNRESOLVED",
+      "missing": [
+        "official-domain ingress or reverse-proxy configuration",
+        "current service unit, container, or process identity",
+        "bound runtime configuration",
+        "rollback release and backup target"
+      ]
+    }
+  },
+  "bindingAssessment": {
+    "runtimeTargetBound": false,
+    "rollbackTargetBound": false,
+    "explorerOfficialSourceMatchesAcceptedLineage": false,
+    "monitorOfficialSourceMatchesAcceptedLineage": false,
+    "monitorConnectivityIsJsonApi": false,
+    "blockers": [
+      "The accepted central assignment still explicitly records runtimeTargetBound=false and rollbackTargetBound=false.",
+      "The official Monitor is an old Node control-plane source, while the only repository Monitor deployment installer targets a different Go economics service; no approved mapping connects it to monitor.ynxweb4.com.",
+      "No accepted transaction binds the current official Explorer service to a host, configuration, previous release, and backup/rollback target.",
+      "The worktree has no local deployment environment input and no candidate SSH credential file; no authenticated read-only service/config inspection can be performed.",
+      "Both official /version endpoints still identify 8bf7716e rather than the accepted da5f31cf lineage, and Monitor /connectivity remains HTML."
+    ]
+  },
+  "requiredCentralBinding": [
+    "Bind monitor.ynxweb4.com to the exact Node control-plane service or container, ingress configuration, source commit, configuration reference, previous release, and executable rollback target.",
+    "Bind explorer.ynxweb4.com to the exact ynx-explorerd host/service, configuration reference, current release, backup location, and executable rollback target.",
+    "Provide a read-only authenticated inspection route or approved deployment credential reference that can verify those bindings without exposing secrets.",
+    "After binding, issue or update a mutation authorization naming the exact release and rollback release."
+  ],
+  "declarations": {
+    "deploymentAttempted": false,
+    "remoteConnectionAttempted": false,
+    "remoteCredentialsRead": false,
+    "productionMutationPerformed": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "publicVerified": false,
+    "computerControlVerified": false,
+    "decision": "FAIL_CLOSED_WAITING_RUNTIME_AND_ROLLBACK_BINDING"
+  }
+}

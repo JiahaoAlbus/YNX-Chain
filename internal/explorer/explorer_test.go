@@ -148,10 +148,52 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 		"EVM compatibility address",
 		"tx.sponsor",
 		"sponsorPoolId",
+		"transactionHashFromPath",
+		"/^\\/tx\\/(0[xX][0-9a-fA-F]{64})$/",
 	} {
 		if !strings.Contains(html, marker) {
 			t.Fatalf("explorer web is missing live interaction marker %q", marker)
 		}
+	}
+	deepLinkResponse, err := http.Get(server.URL + "/tx/" + tx.Hash)
+	if err != nil {
+		t.Fatal(err)
+	}
+	deepLinkBody, err := io.ReadAll(deepLinkResponse.Body)
+	_ = deepLinkResponse.Body.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if deepLinkResponse.StatusCode != http.StatusOK || !strings.Contains(deepLinkResponse.Header.Get("Content-Type"), "text/html") || !strings.Contains(string(deepLinkBody), "transactionHashFromPath") {
+		t.Fatalf("transaction deep link did not serve the detail-capable Explorer shell: status=%d content-type=%q", deepLinkResponse.StatusCode, deepLinkResponse.Header.Get("Content-Type"))
+	}
+	uppercaseDeepLinkResponse, err := http.Get(server.URL + "/tx/0X" + strings.ToUpper(tx.Hash[2:]))
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = uppercaseDeepLinkResponse.Body.Close()
+	if uppercaseDeepLinkResponse.StatusCode != http.StatusOK {
+		t.Fatalf("uppercase canonical transaction deep link must resolve, got %d", uppercaseDeepLinkResponse.StatusCode)
+	}
+	uppercaseSearchResponse, err := http.Get(server.URL + "/api/search?q=0X" + strings.ToUpper(tx.Hash[2:]))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer uppercaseSearchResponse.Body.Close()
+	var uppercaseSearch SearchResult
+	if err := json.NewDecoder(uppercaseSearchResponse.Body).Decode(&uppercaseSearch); err != nil {
+		t.Fatal(err)
+	}
+	if uppercaseSearchResponse.StatusCode != http.StatusOK || uppercaseSearch.Type != "transaction" || uppercaseSearch.Query != tx.Hash || uppercaseSearch.Path != "/api/txs/"+tx.Hash {
+		t.Fatalf("uppercase transaction search was not normalized to the indexed canonical hash: %+v", uppercaseSearch)
+	}
+	invalidDeepLinkResponse, err := http.Get(server.URL + "/tx/not-a-transaction-hash")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = invalidDeepLinkResponse.Body.Close()
+	if invalidDeepLinkResponse.StatusCode != http.StatusNotFound {
+		t.Fatalf("malformed transaction deep link must fail closed, got %d", invalidDeepLinkResponse.StatusCode)
 	}
 	logoResponse, err := http.Get(server.URL + "/assets/ynx-logo.png")
 	if err != nil {

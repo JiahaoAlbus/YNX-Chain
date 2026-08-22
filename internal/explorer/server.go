@@ -81,6 +81,7 @@ func (s *Server) Handler() http.Handler {
 
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /", s.handleWeb)
+	s.mux.HandleFunc("GET /tx/{hash}", s.handleTransactionWeb)
 	s.mux.HandleFunc("GET /ynxt", s.handleYNXTWeb)
 	s.mux.HandleFunc("GET /economics", s.handleEconomicsWeb)
 	s.mux.HandleFunc("GET /assets/ynx-logo.png", s.handleLogo)
@@ -295,9 +296,42 @@ func (s *Server) handleWeb(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
+	s.serveWebShell(w)
+}
+
+// handleTransactionWeb serves the Explorer shell only for a canonical full
+// transaction hash. The client resolves that hash through the indexed
+// transaction API and opens its detail panel; malformed paths fail closed.
+func (s *Server) handleTransactionWeb(w http.ResponseWriter, r *http.Request) {
+	if !isCanonicalTransactionHash(r.PathValue("hash")) {
+		http.NotFound(w, r)
+		return
+	}
+	s.serveWebShell(w)
+}
+
+func (s *Server) serveWebShell(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
 	_, _ = w.Write([]byte(indexHTML))
+}
+
+func isCanonicalTransactionHash(value string) bool {
+	_, ok := normalizeCanonicalTransactionHash(value)
+	return ok
+}
+
+func normalizeCanonicalTransactionHash(value string) (string, bool) {
+	if len(value) != 66 || !strings.EqualFold(value[:2], "0x") {
+		return "", false
+	}
+	canonical := "0x" + strings.ToLower(value[2:])
+	for _, char := range canonical[2:] {
+		if !((char >= '0' && char <= '9') || (char >= 'a' && char <= 'f') || (char >= 'A' && char <= 'F')) {
+			return "", false
+		}
+	}
+	return canonical, true
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {

@@ -1,0 +1,115 @@
+{
+  "schemaVersion": "ynx.explorer-monitor.successor-runtime-lease-request.v1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-147",
+  "observedAt": "2026-08-22T15:10:26Z",
+  "authority": {
+    "productionMutationAllowed": false,
+    "publicVerified": false,
+    "computerControlVerified": false,
+    "statement": "This owner handoff requests a new bounded deployment lease. It neither deploys nor approves production state."
+  },
+  "authoritativeSuccessor": {
+    "sourceCommit": "49cbb1507e25f4681018af883da7e4649e415de9",
+    "sourceTree": "54c1100a36b45d3e9955fb4ba0504042bab1d73a",
+    "release": "ynx-explorer-monitor-49cbb1507e25",
+    "supersedesArtifactGeneration": "8571509583a1390b56b1812e1008f5d634ef594f",
+    "rule": "All candidate artifacts below are built only from sourceCommit; the earlier P0-145 artifact set is rollback evidence only and must not be mixed into this release."
+  },
+  "successorArtifacts": {
+    "build": {
+      "goos": "linux",
+      "goarch": "amd64",
+      "cgoEnabled": false,
+      "trimpath": true,
+      "buildvcs": false,
+      "buildTime": "2026-08-22T15:10:26Z"
+    },
+    "ynxExplorerd": {
+      "carrierPath": "/private/tmp/ynx-explorer-monitor-p0147/bin/ynx-explorerd",
+      "bytes": 8872120,
+      "sha256": "826a256b2b22e6862456024afea0263842f17f295a26c3d0e8732b5c536179f5"
+    },
+    "ynxIndexerd": {
+      "carrierPath": "/private/tmp/ynx-explorer-monitor-p0147/bin/ynx-indexerd",
+      "bytes": 7512248,
+      "sha256": "7efcae26d1afe78a0a55fdca2f2bd902432977b3865a6886334f5ec624858d32"
+    },
+    "monitorReleaseTree": {
+      "carrierPath": "/private/tmp/ynx-explorer-monitor-p0147/monitor-release-tree.tar",
+      "bytes": 1034240,
+      "sha256": "5df0a9ff8fbed84544890ee18a8a3a4c6e7728d9094fd2cd3fc3446b2af2eb3e"
+    }
+  },
+  "readOnlyProductionBinding": {
+    "hostLabel": "VM-4-3-ubuntu",
+    "services": {
+      "explorer": { "unit": "ynx-explorerd.service", "state": "active/running", "restarts": 0, "binarySha256": "5ac2ae449ff877f3f427807161e294b2ef62bb3b12b84ac9820b939707c13b76" },
+      "indexer": { "unit": "ynx-indexerd.service", "state": "active/running", "restarts": 0, "binarySha256": "f45e53951899ef498c8494bd0f422d877280e4b59656d19343281e6187b50696" },
+      "monitor": { "unit": "ynx-monitor.service", "state": "active/running", "restarts": 0, "release": "ynx-explorer-monitor-8bf7716ee671", "releaseTreeSha256": "133e064f7015206f81ae18cbe8f5a349b388a3e00e8a7dc062021302674dc65b" }
+    },
+    "environmentFileDigests": {
+      "chain": "d2b2587daef4e74d6d452c8c084b96e3dc2ffb436d10e42f22452a735f966d48",
+      "explorer": "4c6a33bb491641e49fe7984570b6ed043b99c54b391af67e6cb4e58573757c03",
+      "monitor": "5b2645f1a008a3601721618cbc92417b20c71edcaa013d4b1a3a59a98e66c569"
+    },
+    "ingress": {
+      "caddyMainSha256": "df5f7ad73dd2631c0e934514e05a30ac97c75dc9efe2ec568b049c71c4024396",
+      "monitorSnippetSha256": "d0b9c48e33f279ae43a130fd3dca82f94611ebc69215e0710f31121cd2b98d10",
+      "currentApiMatcher": "@control path /health /version /status /ops/*",
+      "requiredApiMatcher": "@control path /health /version /status /connectivity /ops/*",
+      "connectivityIngress": "absent",
+      "caddyValidation": "passed"
+    }
+  },
+  "publicBaseline": {
+    "sourceCommit": "8bf7716ee671a5a9b64517280743c5a281899712",
+    "release": "ynx-explorer-monitor-8bf7716ee671",
+    "explorerVersion": { "bytes": 331, "sha256": "bc2982203cd9d2b8bb699b87e34205eeb8edf7bf13054d2c9569cf885ec106e5" },
+    "indexerVersion": { "bytes": 307, "sha256": "070a856715b6843be1db4526990cc61aaf0d68ded0bae5352741491fe66c51c7" },
+    "monitorVersion": { "bytes": 264, "sha256": "d0cb952655a41dad6a353f463c5b9f623f509b31303d35404e242a8a334b70ce" },
+    "monitorConnectivity": { "httpStatus": 200, "contentType": "text/html; charset=utf-8", "bytes": 641, "sha256": "efbf2403f89259511dd861a6014e09d5fb11a7bf549a609bd17adacde41af44a", "classification": "static application fallback, not JSON API" },
+    "evmChainId": "0x1917"
+  },
+  "walletConsumerClassification": {
+    "router": { "commit": "875be208e8a7ddb60345d55b93fc299949664e5c", "tree": "3499ddfbe2a4bb08cbbcaef8c71b911aca51dde4" },
+    "explorer": {
+      "guestRead": { "routes": ["/", "/tx/{hash}", "/api/search", "/api/txs/{hash}"], "canonicalWalletRequired": false },
+      "privilegedAction": { "kind": "interactiveWalletConsumer", "sourceRoute": "internal/explorer/web.go#metamaskButton", "canonicalWalletRequired": true, "currentBehavior": "direct window.ethereum wallet_addEthereumChain only" },
+      "status": "SOURCE_GAP",
+      "blocker": "No EIP-6963 provider identity/selection, no independent YNX/MetaMask identity proof, no eth_requestAccounts or 0x1917 readback lifecycle, and no source-bound public E2E."
+    },
+    "monitor": {
+      "guestRead": { "routes": ["/health", "/version", "/status", "/connectivity"], "canonicalWalletRequired": false },
+      "privilegedAction": { "kind": "interactiveWalletConsumer", "sourceRoutes": ["/ops/wallet/challenges", "/ops/wallet/sessions"], "canonicalWalletRequired": true, "currentBehavior": "top-level ynx-wallet:// navigation plus manually pasted signature" },
+      "productSessionConsumer": "notApplicable: no Product Session endpoint is invoked by this privileged authentication flow",
+      "status": "SOURCE_GAP",
+      "blocker": "Router prohibits Web custom-scheme navigation; the flow lacks accepted EIP-6963/EIP-1193 discovery, provider identity separation, lifecycle handling, and direct public E2E."
+    },
+    "sharedBoundary": "Guest chain/status reads are never Wallet-connection evidence. A private Product Session failure must not clear a completed Layer 1 provider connection."
+  },
+  "requiredReceiptSchema": {
+    "before": ["leaseId", "sourceCommit", "sourceTree", "operator", "observedAt", "artifact hashes", "service states", "environment digests", "ingress digests", "rollback release"],
+    "mutation": ["artifact transfer hash verification", "rollback snapshot digest", "release target", "ingress diff digest", "proxy validation", "service restart results"],
+    "after": ["official version HTTP/bytes/SHA", "official connectivity HTTP/content-type/bytes/SHA", "transaction API and deep-link readback", "EVM 0x1917 readback", "browser evidence reference", "rollback result if triggered"],
+    "failureRule": "Any identity, JSON schema, content-type, service-health, transaction, or browser failure restores the captured binaries, Monitor release target, and ingress snippet before returning a receipt."
+  },
+  "deploymentAndRollbackPlan": {
+    "precondition": "A new single-use lease must bind this sourceCommit, these three artifact hashes, the production binding digests, and the rollback receipt schema.",
+    "ingressPatch": "Replace the exact currentApiMatcher with requiredApiMatcher; static fallback remains only after the API handler.",
+    "rollbackFirst": [
+      "Create a mode-0700 backup root and copy the current Explorer/Indexer binaries plus Monitor ingress snippet before any install.",
+      "Record the current Monitor release symlink target and copy the target tree or create a checksummed archive.",
+      "Validate the unchanged proxy configuration before mutation and validate the patched configuration before reload.",
+      "On any failure restore the copied binaries, release target, and ingress snippet; reload the proxy and restart only the three scoped services."
+    ],
+    "forbidden": ["environment file mutation", "Faucet mutation", "Wallet protocol mutation", "shared-product mutation", "public-success claim before official readback"]
+  },
+  "newHeavyLeaseRequest": {
+    "requested": true,
+    "scope": "single release of Explorer, Indexer, Monitor and the exact Monitor /connectivity ingress matcher",
+    "requires": ["candidate and rollback binding above", "production operator and expiry", "post-deploy official-domain verifier", "browser verification plan for guest read and privileged Wallet actions"],
+    "doesNotAuthorize": ["Wallet changes", "Faucet changes", "finance changes", "unscoped ingress changes", "publicVerified=true"]
+  },
+  "localValidation": { "explorerIndexerTests": "passed", "explorerIndexerVet": "passed", "monitorTests": "48+10 passed", "monitorBuild": "passed", "pr107Checks": "six passed at ee3c398adf80659215d06806911068a48551ab03" }
+}

@@ -576,6 +576,10 @@ const indexHTML = `<!doctype html>
       window.clearTimeout(toastTimer);
       toastTimer = window.setTimeout(() => $('toast').classList.remove('visible'),1500);
     }
+    function transactionHashFromPath() {
+      const match = window.location.pathname.match(/^\/tx\/(0[xX][0-9a-fA-F]{64})$/);
+      return match ? match[1].toLowerCase() : '';
+    }
     async function search(query) {
       const q = String(query || $('searchInput').value).trim();
       if (!q) return;
@@ -629,7 +633,10 @@ const indexHTML = `<!doctype html>
       } catch (error) { $('resultPanel').classList.add('visible'); $('resultTitle').textContent = 'Wallet request declined'; $('resultBody').innerHTML = '<div class="result-error">' + escapeHTML(error.message) + '</div>'; }
     };
     function showLoadError(error) { $('statusText').textContent = 'Explorer unavailable'; $('statusDetail').textContent = error.message; $('status').className = 'status-bar warn'; $('refreshButton').disabled = false; removeSkeletons(); }
-    load().catch(showLoadError);
+    load().catch(showLoadError).finally(() => {
+      const transactionHash = transactionHashFromPath();
+      if (transactionHash) search(transactionHash);
+    });
     connectLiveStream();
     window.setInterval(() => {
       if (!lastStreamAt) return;

@@ -426,9 +426,9 @@ func (s *Service) Search(ctx context.Context, query string) (SearchResult, error
 		}
 		return SearchResult{Query: query, Type: "block", Path: "/api/blocks/" + query, TruthfulStatus: "resolved-from-indexer"}, nil
 	}
-	if strings.HasPrefix(query, "0x") {
-		if _, err := s.Transaction(ctx, query); err == nil {
-			return SearchResult{Query: query, Type: "transaction", Path: "/api/txs/" + query, TruthfulStatus: "resolved-from-indexer"}, nil
+	if transactionHash, ok := normalizeCanonicalTransactionHash(query); ok {
+		if _, err := s.Transaction(ctx, transactionHash); err == nil {
+			return SearchResult{Query: transactionHash, Type: "transaction", Path: "/api/txs/" + transactionHash, TruthfulStatus: "resolved-from-indexer"}, nil
 		}
 	}
 	normalized, err := normalizeExplorerAddress(query)
