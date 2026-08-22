@@ -317,11 +317,11 @@ public final class WalletConnectV2StateStore: @unchecked Sendable {
   }
 
   private static func validDigest(_ value: String) -> Bool {
-    value.range(of: "^0x[0-9a-fA-F]{64}$", options: .regularExpression) != nil
+    value.range(of: "^0x[0-9a-f]{64}$", options: .regularExpression) != nil
   }
 
   private static func validAccount(_ value: String) -> Bool {
-    value.range(of: "^0x[0-9a-fA-F]{40}$", options: .regularExpression) != nil
+    value.range(of: "^0x[0-9a-f]{40}$", options: .regularExpression) != nil
   }
 
   private static func validDAppName(_ value: String) -> Bool {
