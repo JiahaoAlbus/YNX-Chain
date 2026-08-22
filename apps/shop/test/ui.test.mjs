@@ -13,6 +13,7 @@ test('buyer UI wires full order lifecycle', async () => {
   for (const state of ['cancelled', 'delivered', 'return_requested', 'refund_requested', 'disputed', 'reviewed']) assert.ok(js.includes(state), state);
   for (const workflow of ['search_comparison', 'support_draft', 'return_explanation']) assert.ok(js.includes(workflow), workflow);
   for (const walletControl of ['walletDialog', 'connectYNXWallet', 'connectMetaMask', 'walletDetails', 'disconnectWallet', 'switchWalletAccount']) assert.ok(html.includes(`id="${walletControl}"`), walletControl);
+  for (const walletIdentity of ['alt="YNX Wallet logo"', 'src="icon-192.png"', 'alt="MetaMask fox logo"', 'src="metamask-fox.svg"', 'com.ynx.wallet', 'io.metamask']) assert.ok(html.includes(walletIdentity), walletIdentity);
   for (const behavior of ['restoreStandardConnection()', 'disconnectStandardConnection()', 'switchStandardAccount()', "$('#wallet').onclick=openWalletDialog", "$('#walletDialog').close()", "$('#wallet').focus()"] ) assert.ok(js.includes(behavior), behavior);
   assert.ok(!html.includes('target="_blank"'), 'wallet links must not create new top-level tabs');
   assert.ok(!js.includes("location.assign('ynxwallet://authorize"), 'web must not navigate to a custom wallet scheme');
@@ -30,4 +31,7 @@ test('connected account opens details instead of restarting account approval', a
 test('web build ships the EIP-6963 provider discovery module', async () => {
   const build = await readFile(new URL('../scripts/build.mjs', import.meta.url), 'utf8');
   assert.ok(build.includes("'wallet-provider-discovery.js'"));
+  assert.ok(build.includes("'privacy-i18n.js'"));
+  assert.ok(build.includes("'metamask-fox.svg'"));
+  assert.ok(build.includes("'THIRD_PARTY_NOTICES.md'"));
 });
