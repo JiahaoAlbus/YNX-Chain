@@ -1,0 +1,267 @@
+{
+  "schemaVersion": "p0-finance-p0288-fresh-parent-rollback-first-request@1",
+  "kind": "FINANCE_ROLLBACK_FIRST_DEPLOYMENT_WHOLE_NEW_SINGLE_USE_REQUEST",
+  "requestStatus": "SOURCE_REQUEST_ONLY_AWAITING_CENTRAL_SIGNED_SINGLE_USE_LEASE",
+  "requestId": "P0-288",
+  "owner": {
+    "branch": "codex/p0-finance-wallet-connectivity-20260820",
+    "reviewedRequestCheckpoint": {
+      "commit": "ca3e1889ed405cefc0e8485903d90f66dc1310dd",
+      "tree": "b854ce2a011e0f8899767ac998a5f03a9cea05b6",
+      "path": "apps/finance/evidence/finance-p0287-stage-parent-prewrite-successor-request-20260824.json"
+    }
+  },
+  "supersedes": {
+    "lease": "P0-279",
+    "reason": "P0-279 is consumed/nonreusable. P0-282 proved that its first guarded-staging failure was CURRENT_PREWRITE_INVARIANT_MISMATCH because the signed stage parent link count was 4 while the retained empty container made the current count 5. P0-287 is NO_GO because it was not a wholly new signed deployment authority."
+  },
+  "terminalEvidence": {
+    "p0282": {
+      "stdoutSha256": "d633af2ba49c78799196f45a70ed131101d07511513cee759e4e53788fde57f2",
+      "phase": "STAGE_PARENT",
+      "firstFailureClass": "CURRENT_PREWRITE_INVARIANT_MISMATCH",
+      "mutationCount": 0
+    },
+    "p0286": {
+      "verificationComplete": true,
+      "cleanupComplete": true,
+      "mutationCount": 0,
+      "oldRuntimeUnchanged": true
+    },
+    "p0287": {
+      "centralDecision": "NO_GO",
+      "reason": "No wholly-new signed deployment lease, lease-specific paths, exact signed stdin carrier, or complete literal argv existed.",
+      "oldServiceUnchanged": true,
+      "stageLeafAbsent": true,
+      "releaseAbsent": true
+    }
+  },
+  "freshReadAtRequestFreeze": {
+    "stageParent": {
+      "path": "/opt/ynx/stage/finance",
+      "fullTuple": "64770:3450041:0:0:750:5:4096:directory",
+      "directChildren": 3,
+      "inventorySha256": "0d11124b36a42c6201f7e0d491fd20279ea47950554f92c6b1cc960aaa0fee91",
+      "mustBeRereadAtIssue": true
+    },
+    "backupParent": {
+      "path": "/var/backups/ynx-finance",
+      "fullTuple": "64770:1481354:0:0:755:11:4096:directory",
+      "directChildren": 9,
+      "inventorySha256": "a59008acfeccfb0a2f88de5b029871b713b42d0bf43ad1ba87786c962e6659be",
+      "mustBeRereadAtIssue": true
+    },
+    "releaseParent": {
+      "path": "/opt/ynx/releases/finance",
+      "lastKnownFullTuple": "64770:1607576:0:0:755:7:4096:directory",
+      "mustBeRereadAtIssue": true
+    },
+    "retainedControlParent": {
+      "path": "/opt/ynx/leases/finance",
+      "lastKnownFullTuple": "64770:4594822:0:0:750:2:4096:directory",
+      "mustBeRereadAtIssue": true,
+      "mustNotBeCreatedReplacedOrRemoved": true
+    },
+    "root": {
+      "path": "/opt/ynx",
+      "lastKnownFullTuple": "64770:1312502:0:0:755:49:4096:directory",
+      "mustBeRereadAtIssue": true
+    }
+  },
+  "immutableCandidate": {
+    "sourceCommit": "7824af677dd052d20321431381523ab302614d98",
+    "carrier": {
+      "path": "/opt/ynx/stage/finance/p0228-finance-phase1-20260822T234100Z",
+      "fullTuple": "64770:4594821:0:0:700:2:4096:directory"
+    },
+    "archive": {
+      "path": "/opt/ynx/stage/finance/p0228-finance-phase1-20260822T234100Z/candidate.tgz",
+      "fullTuple": "64770:4620871:0:0:600:1:3937491:regular file",
+      "bytes": 3937491,
+      "sha256": "d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d"
+    },
+    "binary": {
+      "pathWithinArchive": "ynx-finance",
+      "bytes": 8573112,
+      "sha256": "cccdae8ae5b5f694ca7db68540da30582564ff741978e616f7435d448a20fe3e",
+      "architecture": "ELF x86-64"
+    },
+    "candidateEnv": {
+      "path": "/opt/ynx/stage/finance/p0228-finance-phase1-20260822T234100Z/finance.env",
+      "fullTuple": "64770:4620873:0:986:640:1:1545:regular file",
+      "bytes": 1545,
+      "sha256": "ceec9fba17116e087d6e2a9cb160808b39e027e687a7ad561174a40daf58b71a",
+      "secretSafe": true
+    }
+  },
+  "oldRuntimeRollbackBaseline": {
+    "currentRelease": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a",
+    "currentLinkFullTuple": "64770:1312291:0:0:777:1:50:symbolic link",
+    "currentTargetSha256": "f6e55a1183f3b973e81bc40c7ce51b4a8cc2ab93fcb940eb1dd8c719c550f952",
+    "oldBinary": {
+      "fullTuple": "64770:1860512:0:0:755:1:8573112:regular file",
+      "sha256": "0cc43c8a77c12975a0fcbada65971f08f2bc3a52345d547ea194dd3ccd60d83f"
+    },
+    "env": {
+      "path": "/etc/ynx/finance.env",
+      "fullTuple": "64770:1324724:0:986:640:1:1545:regular file",
+      "sha256": "854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252"
+    },
+    "unit": {
+      "sha256": "2e72cdad422a3a714c46d074ea97b725233576cf726dbbfd43e82e99c2c2975b"
+    },
+    "caddy": {
+      "sha256": "dcf75a7aed315c54632321b8bb80e44c0abc22f6700fadfbfa9a7da21b88a282"
+    },
+    "state": "absent",
+    "service": {
+      "unit": "ynx-finance.service",
+      "mainPid": 2241003,
+      "nRestarts": 0,
+      "user": "ynx",
+      "group": "ynx"
+    },
+    "http": {
+      "root": "200:11427:c1fc45eecd7f88de6fc3e049d15161b8d4e9878e31f20c977fc52b383a18ed53:text/html",
+      "health": "200:485:d1e97a4314acd1ecccf94629d15bd598cb58ff78136b3622ac26d583a82e45c1:application/json",
+      "version": "200:130:39789776da47e60b7a7df845789e02ebba16707ad8951eb6f27c84c1b40bb226:application/json"
+    },
+    "mustBeRereadAtIssue": true
+  },
+  "newSingleUseNamespace": {
+    "id": "p0288-finance-phase3-20260824t000000z",
+    "note": "This is a request namespace only. Central must replace it only if it simultaneously signs every path, tuple, stdin byte count and SHA-256 field.",
+    "remote": {
+      "stage": "/opt/ynx/stage/finance/p0288-finance-phase3-20260824t000000z/stage",
+      "backup": "/var/backups/ynx-finance/p0288-finance-phase3-20260824t000000z/backup",
+      "releaseContainer": "/opt/ynx/releases/finance/p0288-finance-phase3-20260824t000000z",
+      "release": "/opt/ynx/releases/finance/p0288-finance-phase3-20260824t000000z/ynx-finance-7824af677dd0",
+      "executorPending": "/opt/ynx/leases/finance/p0288-finance-phase3-20260824t000000z.executor.sh.pending",
+      "executor": "/opt/ynx/leases/finance/p0288-finance-phase3-20260824t000000z.executor.sh",
+      "leasePending": "/opt/ynx/leases/finance/p0288-finance-phase3-20260824t000000z.json.pending",
+      "signedLease": "/opt/ynx/leases/finance/p0288-finance-phase3-20260824t000000z.json"
+    },
+    "local": {
+      "signedStdin": "/tmp/ynx-finance-p0288-finance-phase3-20260824t000000z-signed.json",
+      "stdout": "/tmp/ynx-finance-p0288-finance-phase3-20260824t000000z.stdout",
+      "stderr": "/tmp/ynx-finance-p0288-finance-phase3-20260824t000000z.stderr",
+      "receipt": "/tmp/ynx-finance-p0288-finance-phase3-20260824t000000z.receipt",
+      "receiptPending": "/tmp/ynx-finance-p0288-finance-phase3-20260824t000000z.receipt.pending"
+    },
+    "allNewPathsAbsentAndNonSymlinkImmediatelyPrewrite": true
+  },
+  "frozenCommandObjects": {
+    "transport": {
+      "path": "apps/finance/scripts/finance-phase3-openssh-serialized-command.sh",
+      "blob": "22605b70b346a7cc0e61ea68e5e366b73718aef6",
+      "bytes": 2875,
+      "sha256": "a44e011b5826b091acc7ddebcd68dc180a46ded49d9489cf48d52cda894396b4"
+    },
+    "bootstrap": {
+      "path": "apps/finance/scripts/finance-phase3-stdin-deployment-bootstrap.sh",
+      "blob": "42148d1cf69a0fc60dafa302808c9ff0149c9309",
+      "bytes": 5001,
+      "sha256": "1a57420a0f0c932aa5234166c7aaa81d3743f384016b9a0f26360e7657db570d"
+    },
+    "executor": {
+      "path": "apps/finance/scripts/finance-production-rollback-first.sh",
+      "blob": "40ef7fa6b44834caec1ed9494bcecc4e3dc0f741",
+      "bytes": 18432,
+      "sha256": "be7435a922b26482c830778ef23753e7de2e02ad307de914fef9aa83a77229c0"
+    },
+    "fixtures": [
+      {
+        "path": "apps/finance/scripts/test-finance-production-fixture.mjs",
+        "purpose": "rollback-first Linux-equivalent, substitution, traversal, candidate verifier, automatic restore and zero-residue gates"
+      },
+      {
+        "path": "apps/finance/scripts/test-finance-phase3-openssh-serialized-command-fixture.mjs",
+        "purpose": "empty-environment 25-argv transport, one SSH on success and zero SSH on local mismatch"
+      },
+      {
+        "path": "apps/finance/scripts/test-finance-phase3-stdin-deployment-bootstrap-fixture.mjs",
+        "purpose": "retained control parent, no-clobber placement, foreign substitution and finalizer fences"
+      }
+    ]
+  },
+  "centralSigningContract": {
+    "environment": {},
+    "literalArgvLength": 25,
+    "literalArgvTemplate": [
+      "/bin/bash",
+      "apps/finance/scripts/finance-phase3-openssh-serialized-command.sh",
+      "/tmp/ynx-finance-p0288-finance-phase3-20260824t000000z-signed.json",
+      "/tmp/ynx-finance-p0288-finance-phase3-20260824t000000z.stdout",
+      "/tmp/ynx-finance-p0288-finance-phase3-20260824t000000z.stderr",
+      "/tmp/ynx-finance-p0288-finance-phase3-20260824t000000z.receipt",
+      "apps/finance/scripts/finance-phase3-stdin-deployment-bootstrap.sh",
+      "5001",
+      "1a57420a0f0c932aa5234166c7aaa81d3743f384016b9a0f26360e7657db570d",
+      "p0288-finance-phase3-20260824t000000z",
+      "/opt/ynx/stage/finance/p0228-finance-phase1-20260822T234100Z",
+      "CENTRAL_FRESH_ROOT_FULL_TUPLE",
+      "64770:4594822:0:0:750:2:4096:directory",
+      "64770:4594821:0:0:700:2:4096:directory",
+      "64770:4620871:0:0:600:1:3937491:regular file",
+      "d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d",
+      "3937491",
+      "64770:4620873:0:986:640:1:1545:regular file",
+      "ceec9fba17116e087d6e2a9cb160808b39e027e687a7ad561174a40daf58b71a",
+      "1545",
+      "CENTRAL_BASE64_OF_EXECUTOR_BLOB_40ef7fa6b44834caec1ed9494bcecc4e3dc0f741",
+      "18432",
+      "be7435a922b26482c830778ef23753e7de2e02ad307de914fef9aa83a77229c0",
+      "CENTRAL_SIGNED_STDIN_BYTES",
+      "CENTRAL_SIGNED_STDIN_SHA256"
+    ],
+    "completeBootstrapArgumentContract": {
+      "stageAndBackupParents": "The signed deployment JSON must independently bind fresh full tuples, inventories and immediate-child absence/no-symlink checks for stage parent, backup parent, release parent, retained control parent and every new leaf. The outer 25 argv transports the carrier/control tuple; the signed JSON supplies executor deployment paths and the stage/backup/release parent checks.",
+      "signedStdin": "Central must create exactly one non-secret FINANCE_ROLLBACK_FIRST_PRODUCTION_DEPLOYMENT JSON object, mark lease.signed=true, and bind its exact byte count and SHA-256 in argv items 24 and 25. This source-only request is not that signed carrier.",
+      "singleAttempt": "One OpenSSH invocation and one deploy invocation only. Any local preflight mismatch must produce zero SSH attempts. Any remote failure is fail-closed; no retry.",
+      "terminalReceipt": "Exit zero is valid only with the transport's nonempty exact terminal receipt grammar. Silent remote zero is status 65."
+    }
+  },
+  "deploymentSafety": {
+    "rollbackFirst": true,
+    "automaticRollback": "The executor retains its EXIT trap through every candidate local/loopback/public asset/service check and restores old env/state/current/service on first failure.",
+    "manualRollback": "Forbidden. A later manual rollback requires a distinct Central-signed lease after an immutable deploy terminal receipt.",
+    "traversal": "Before switching current, the executor must prove the root:ynx release container is traversable and actual ynx can execute the binary and read all web assets.",
+    "foreignSubstitutionFences": [
+      "no symlink or parent realpath drift",
+      "no-replace child placement",
+      "captured device/inode/owner/group/mode/nlink/bytes/type and SHA checks",
+      "identity-and-inventory-bound deletion only",
+      "preserve substituted or foreign objects and fail closed"
+    ],
+    "zeroResidueTerminalGate": "After success or automatic rollback, every P0288 stage/backup/release/control pending/temp path must be absent or the terminal is failure; retained parents and all old runtime identities must match their signed baseline.",
+    "forbidden": [
+      "SSH or deployment before Central lease",
+      "manual rollback",
+      "unit or Caddy mutation",
+      "Wallet account request",
+      "signature, typed data or transaction",
+      "secret values in stdout, stderr, receipt or evidence"
+    ]
+  },
+  "tests": {
+    "json": true,
+    "diff": true,
+    "shellSyntax": true,
+    "archiveMetadataFixture": true,
+    "productionModeLinuxEquivalentFixture": true,
+    "emptyEnvironmentOpenSshTransportFixture": true,
+    "stdinBootstrapFixture": true
+  },
+  "truth": {
+    "leaseIssued": false,
+    "signedStdinCreated": false,
+    "sshExecuted": false,
+    "deployed": false,
+    "rollbackExecuted": false,
+    "publicVerified": false,
+    "walletApproval": false,
+    "signature": false,
+    "transaction": false
+  },
+  "singleBlocker": "Central must independently reread and sign the exact P0288 runtime baseline, both parent tuples (stage nlink 5 and backup nlink 11), all new-path absence receipts, the final signed stdin bytes/SHA-256 and the complete 25-element argv before one use."
+}
