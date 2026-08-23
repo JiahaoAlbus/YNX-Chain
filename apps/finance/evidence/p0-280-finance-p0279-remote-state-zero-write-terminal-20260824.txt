@@ -1,0 +1,58 @@
+inspection=FINANCE_P0279_REMOTE_STATE_ZERO_WRITE
+deployParent=directory|64770:4594822:0:0:750:2:4096:directory|directChildren=2|inventorySha256=746bca058ecb10b0ccbf134209656c4d11202a67c21a612b6361f2b54207b2af
+executor=file|64770:4620881:0:0:700:1:18432:regular file|bytes=18432|sha256=be7435a922b26482c830778ef23753e7de2e02ad307de914fef9aa83a77229c0
+executorPending=absent
+signedLease=file|64770:4620882:0:0:600:1:8140:regular file|bytes=8140|sha256=5b36af2367371cfb94490cf0ade3b0399c3a836b71b88886063ede6fb994bea9
+signedLeasePending=absent
+manualRollbackLease=absent
+stageParent=directory|64770:3450041:0:0:750:5:4096:directory|directChildren=3|inventorySha256=0d11124b36a42c6201f7e0d491fd20279ea47950554f92c6b1cc960aaa0fee91
+stageContainer=directory|64770:4620884:0:0:700:2:4096:directory|directChildren=0|inventorySha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stage=absent
+backupParent=directory|64770:1481354:0:0:755:11:4096:directory|directChildren=9|inventorySha256=a59008acfeccfb0a2f88de5b029871b713b42d0bf43ad1ba87786c962e6659be
+backupContainer=directory|64770:2663621:0:0:700:2:4096:directory|directChildren=0|inventorySha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+backup=absent
+releaseParent=directory|64770:1607576:0:0:755:7:4096:directory|directChildren=5|inventorySha256=3b8985ca358662dc1e43b027b859b043a3ea974482f5b4b347adbe8bd7a01c4c
+releaseContainer=absent
+release=absent
+current=symlink|64770:1312291:0:0:777:1:50:symbolic link|targetSha256=f6e55a1183f3b973e81bc40c7ce51b4a8cc2ab93fcb940eb1dd8c719c550f952
+currentNext=absent
+currentRollback=absent
+productionEnv=file|64770:1324724:0:986:640:1:1545:regular file|bytes=1545|sha256=854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252
+state=absent
+unit=file|64770:161304:0:0:644:1:515:regular file|bytes=515|sha256=2e72cdad422a3a714c46d074ea97b725233576cf726dbbfd43e82e99c2c2975b
+caddy=file|64770:1051759:0:0:644:1:255:regular file|bytes=255|sha256=dcf75a7aed315c54632321b8bb80e44c0abc22f6700fadfbfa9a7da21b88a282
+currentResolved=/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a
+currentResolvedObject=directory|64770:1860506:0:0:755:3:4096:directory|directChildren=4|inventorySha256=6022d24b4b44eee2950f13a93463b85ffcf4c4edaaf67145332cf023ea043b07
+envNextCount=0
+envRestoreCount=0
+stateRestoreCount=0
+serviceLoadState=loaded
+serviceActiveState=active
+serviceSubState=running
+serviceMainPID=2241003
+serviceNRestarts=0
+serviceFragmentPath=/etc/systemd/system/ynx-finance.service
+serviceExecStart={ path=/opt/ynx/finance-current/ynx-finance ; argv[]=/opt/ynx/finance-current/ynx-finance ; ignore_errors=no ; start_time=[Sun 2026-08-23 15:42:35 CST] ; stop_time=[n/a] ; pid=2241003 ; code=(null) ; status=0/0 }
+serviceWorkingDirectory=/opt/ynx/finance-current
+serviceUser=ynx
+serviceGroup=ynx
+journalWindow=2026-08-23T16:46:00Z..2026-08-23T16:53:30Z
+journalBytes=3410
+journalSha256=64512f510252a7da344139d296969744675738bfb4f9e3a51aded703b7a91351
+journalNormalizedClass=OTHER_OR_EMPTY
+loopbackRoot=200:11427:c1fc45eecd7f88de6fc3e049d15161b8d4e9878e31f20c977fc52b383a18ed53:text/html; charset=utf-8
+loopbackIndex=404:19:b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793:text/plain; charset=utf-8
+loopbackHealth=200:485:d1e97a4314acd1ecccf94629d15bd598cb58ff78136b3622ac26d583a82e45c1:application/json; charset=utf-8
+loopbackVersion=200:130:39789776da47e60b7a7df845789e02ebba16707ad8951eb6f27c84c1b40bb226:application/json; charset=utf-8
+loopbackAppJs=200:17371:a1ed94de08fc5b73f075cf35c1b17481e24b6046732ad92d82209959b694c6d6:text/javascript; charset=utf-8
+loopbackConnectivity=404:19:b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793:text/plain; charset=utf-8
+loopbackWalletConnect=404:19:b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793:text/plain; charset=utf-8
+publicRoot=200:11427:c1fc45eecd7f88de6fc3e049d15161b8d4e9878e31f20c977fc52b383a18ed53:text/html; charset=utf-8
+publicIndex=404:19:b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793:text/plain; charset=utf-8
+publicHealth=200:485:d1e97a4314acd1ecccf94629d15bd598cb58ff78136b3622ac26d583a82e45c1:application/json; charset=utf-8
+publicVersion=200:130:39789776da47e60b7a7df845789e02ebba16707ad8951eb6f27c84c1b40bb226:application/json; charset=utf-8
+publicAppJs=200:17371:a1ed94de08fc5b73f075cf35c1b17481e24b6046732ad92d82209959b694c6d6:text/javascript; charset=utf-8
+publicConnectivity=404:19:b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793:text/plain; charset=utf-8
+publicWalletConnect=404:19:b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793:text/plain; charset=utf-8
+inspectionComplete=true
+mutationCount=0
