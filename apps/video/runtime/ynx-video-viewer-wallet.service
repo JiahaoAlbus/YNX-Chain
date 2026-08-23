@@ -1,0 +1,19 @@
+[Unit]
+Description=YNX Video dedicated Wallet viewer
+After=network-online.target
+
+[Service]
+Type=simple
+User=ynx
+Group=ynx
+WorkingDirectory=/opt/ynx-video-viewer-wallet/current
+Environment=PORT=6494
+ExecStart=/usr/bin/node /opt/ynx-video-viewer-wallet/current/server.mjs
+Restart=on-failure
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+
+[Install]
+WantedBy=multi-user.target

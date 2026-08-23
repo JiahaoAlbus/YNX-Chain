@@ -16,6 +16,7 @@ receipt=${YNX_VIDEO_RECEIPT:-}
 viewer_port=${YNX_VIDEO_VIEWER_PORT:-6494}
 api_port=${YNX_VIDEO_API_PORT:-6493}
 creator_port=${YNX_VIDEO_CREATOR_PORT:-6495}
+fixture_control=${YNX_VIDEO_FIXTURE_CONTROL:-$root/fixture}
 
 [[ "$mode" == "fixture" || "$mode" == "production" ]] || { echo "execution mode must be fixture or production" >&2; exit 65; }
 [[ -n "$root" && -n "$release_id" && -n "$carrier" && -n "$expected_sha" && -n "$source_commit" && -n "$receipt" ]] || { echo "required runtime binding missing" >&2; exit 65; }
@@ -36,7 +37,7 @@ sha256_file() { shasum -a 256 "$1" | awk '{print $1}'; }
 probe() {
   local role=$1
   if [[ "$mode" == "fixture" ]]; then
-    "$root/fixture/probe-$role"
+    "$fixture_control/probe-$role"
   else
     case "$role" in
       api) curl --fail --silent --show-error --max-time 5 "http://127.0.0.1:6493/health" ;;
@@ -47,7 +48,7 @@ probe() {
 }
 restart_viewer() {
   if [[ "$mode" == "fixture" ]]; then
-    "$root/fixture/restart-viewer"
+    "$fixture_control/restart-viewer"
   else
     systemctl restart ynx-video-viewer-wallet.service
   fi

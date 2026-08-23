@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import {execFileSync} from "node:child_process";
-import {mkdtempSync, mkdirSync, readFileSync, symlinkSync, writeFileSync, chmodSync, readlinkSync} from "node:fs";
+import {existsSync, mkdtempSync, mkdirSync, readFileSync, symlinkSync, writeFileSync, chmodSync, readlinkSync} from "node:fs";
 import {tmpdir} from "node:os";
 import {join, resolve} from "node:path";
 import test from "node:test";
@@ -132,4 +132,141 @@ test("executor refuses the shared Video current path", () => {
     },
     stdio: "pipe"
   }));
+});
+
+function writeExecutable(path, body) {
+  writeFileSync(path, body);
+  chmodSync(path, 0o755);
+}
+
+test("actual shell bootstrap creates an absent dedicated predecessor, supports switch rollback, and removes only its own state", () => {
+  const source = execFileSync("git", ["rev-parse", "HEAD"], {cwd: repoRoot, encoding: "utf8"}).trim();
+  const predecessor = "e5ce33550bbd8a4be09a55a6bb3dd73cd3cb8833";
+  const temp = mkdtempSync(join(tmpdir(), "ynx-video-bootstrap-"));
+  const root = join(temp, "opt", "ynx-video-viewer-wallet");
+  const shared = join(temp, "opt", "ynx-video", "current");
+  const unitPath = join(temp, "etc", "systemd", "system", "ynx-video-viewer-wallet.service");
+  const legacyUnit = join(temp, "etc", "systemd", "system", "ynx-video-viewer.service");
+  const control = join(temp, "control");
+  mkdirSync(shared, {recursive: true});
+  mkdirSync(resolve(unitPath, ".."), {recursive: true});
+  mkdirSync(control, {recursive: true});
+  writeFileSync(join(shared, "sentinel"), "shared-current-untouched\n");
+  writeFileSync(legacyUnit, "legacy-unit-untouched\n");
+  writeFileSync(join(control, "api-state"), "api-6493-stable\n");
+  writeFileSync(join(control, "creator-state"), "creator-6495-stable\n");
+  writeExecutable(join(control, "probe-api"), `#!/bin/sh\ncat '${join(control, "api-state")}'\n`);
+  writeExecutable(join(control, "probe-creator"), `#!/bin/sh\ncat '${join(control, "creator-state")}'\n`);
+  writeExecutable(join(control, "probe-viewer"), `#!/bin/sh\ntest -f '${join(root, "current", "index.html")}'\ncat '${join(root, "current", "index.html")}'\n`);
+  writeExecutable(join(control, "restart-viewer"), `#!/bin/sh\nprintf 'restart %s\\n' 'ynx-video-viewer-wallet.service' >> '${join(control, "systemctl.log")}'\n`);
+  writeExecutable(join(control, "systemctl"), `#!/bin/sh\nprintf '%s\\n' "$*" >> '${join(control, "systemctl.log")}'\nif test -f '${join(control, "fail-enable")}' && test "$1" = enable; then exit 1; fi\n`);
+
+  const predecessorCarrier = join(temp, "predecessor.tar.gz");
+  execFileSync("bash", [join(videoRoot, "scripts/build-predecessor-runtime.sh"), predecessorCarrier], {cwd: repoRoot});
+  const predecessorSha = execFileSync("shasum", ["-a", "256", predecessorCarrier], {encoding: "utf8"}).split(/\s+/)[0];
+  const receipt = join(temp, "bootstrap-receipt.txt");
+  const unitTemplate = join(videoRoot, "runtime", "ynx-video-viewer-wallet.service");
+  const unitTemplateSha = execFileSync("shasum", ["-a", "256", unitTemplate], {encoding: "utf8"}).split(/\s+/)[0];
+  const bootstrapEnv = {
+    ...process.env,
+    YNX_VIDEO_EXECUTION_MODE: "fixture",
+    YNX_VIDEO_VIEWER_ROOT: root,
+    YNX_VIDEO_VIEWER_UNIT: "ynx-video-viewer-wallet.service",
+    YNX_VIDEO_VIEWER_UNIT_PATH: unitPath,
+    YNX_VIDEO_PREDECESSOR_RELEASE_ID: `ynx-video-predecessor-${predecessor}`,
+    YNX_VIDEO_PREDECESSOR_CARRIER: predecessorCarrier,
+    YNX_VIDEO_PREDECESSOR_CARRIER_SHA256: predecessorSha,
+    YNX_VIDEO_PREDECESSOR_SOURCE_COMMIT: predecessor,
+    YNX_VIDEO_BOOTSTRAP_RECEIPT: receipt,
+    YNX_VIDEO_UNIT_TEMPLATE: unitTemplate,
+    YNX_VIDEO_UNIT_TEMPLATE_SHA256: unitTemplateSha,
+    YNX_VIDEO_FIXTURE_CONTROL: control
+  };
+  const bootstrap = join(videoRoot, "scripts/video-runtime-bootstrap.sh");
+  assert.equal(existsSync(root), false);
+  assert.equal(existsSync(unitPath), false);
+  execFileSync("bash", [bootstrap, "bootstrap"], {env: bootstrapEnv});
+  const predecessorRelease = join(root, "releases", `ynx-video-predecessor-${predecessor}`);
+  assert.equal(readlinkSync(join(root, "current")), predecessorRelease);
+  assert.equal(execFileSync("shasum", ["-a", "256", join(root, "current", "index.html")], {encoding: "utf8"}).split(/\s+/)[0], "5c6aa1b9207680ff40f77df6d063571f67beff40719d727acf5d2fa0c05b591a");
+  assert.match(readFileSync(unitPath, "utf8"), /ynx-video-viewer-wallet\/current\/server\.mjs/);
+
+  const candidateCarrier = join(temp, "candidate.tar.gz");
+  execFileSync("bash", [join(videoRoot, "scripts/build-runtime.sh"), source, candidateCarrier], {cwd: repoRoot});
+  const candidateSha = execFileSync("shasum", ["-a", "256", candidateCarrier], {encoding: "utf8"}).split(/\s+/)[0];
+  const deployReceipt = join(temp, "deploy-receipt.txt");
+  const deployEnv = {
+    ...process.env,
+    YNX_VIDEO_EXECUTION_MODE: "fixture",
+    YNX_VIDEO_VIEWER_ROOT: root,
+    YNX_VIDEO_RELEASE_ID: `ynx-video-${source}`,
+    YNX_VIDEO_CARRIER: candidateCarrier,
+    YNX_VIDEO_CARRIER_SHA256: candidateSha,
+    YNX_VIDEO_SOURCE_COMMIT: source,
+    YNX_VIDEO_RECEIPT: deployReceipt,
+    YNX_VIDEO_FIXTURE_CONTROL: control,
+    YNX_VIDEO_VIEWER_PORT: "6494",
+    YNX_VIDEO_API_PORT: "6493",
+    YNX_VIDEO_CREATOR_PORT: "6495"
+  };
+  const executor = join(videoRoot, "scripts/video-runtime-executor.sh");
+  execFileSync("bash", [executor, "deploy"], {env: deployEnv});
+  assert.equal(readlinkSync(join(root, "current")), join(root, "releases", `ynx-video-${source}`));
+  execFileSync("bash", [executor, "rollback"], {env: deployEnv});
+  assert.equal(readlinkSync(join(root, "current")), predecessorRelease);
+  assert.equal(execFileSync("shasum", ["-a", "256", join(root, "current", "index.html")], {encoding: "utf8"}).split(/\s+/)[0], "5c6aa1b9207680ff40f77df6d063571f67beff40719d727acf5d2fa0c05b591a");
+
+  // The candidate is deliberately retained by the deploy executor. Remove only that fixture release
+  // before exercising bootstrap rollback, matching the production bootstrap lease boundary.
+  execFileSync("find", [join(root, "releases", `ynx-video-${source}`), "-depth", "-delete"]);
+  execFileSync("bash", [bootstrap, "rollback-bootstrap"], {env: bootstrapEnv});
+  assert.equal(existsSync(root), false);
+  assert.equal(existsSync(unitPath), false);
+  assert.equal(readFileSync(join(shared, "sentinel"), "utf8"), "shared-current-untouched\n");
+  assert.equal(readFileSync(legacyUnit, "utf8"), "legacy-unit-untouched\n");
+  assert.equal(readFileSync(join(control, "api-state"), "utf8"), "api-6493-stable\n");
+  assert.equal(readFileSync(join(control, "creator-state"), "utf8"), "creator-6495-stable\n");
+  assert.doesNotMatch(readFileSync(join(control, "systemctl.log"), "utf8"), /(^|\s)ynx-video-viewer\.service(\s|$)/m);
+});
+
+test("failed first bootstrap returns dedicated root and unit to exact absence", () => {
+  const predecessor = "e5ce33550bbd8a4be09a55a6bb3dd73cd3cb8833";
+  const temp = mkdtempSync(join(tmpdir(), "ynx-video-bootstrap-failure-"));
+  const root = join(temp, "viewer-root");
+  const unitPath = join(temp, "systemd", "ynx-video-viewer-wallet.service");
+  const control = join(temp, "control");
+  mkdirSync(resolve(unitPath, ".."), {recursive: true});
+  mkdirSync(control, {recursive: true});
+  for (const role of ["api", "creator"]) writeExecutable(join(control, `probe-${role}`), `#!/bin/sh\nprintf '${role}-stable\\n'\n`);
+  writeExecutable(join(control, "probe-viewer"), "#!/bin/sh\nexit 1\n");
+  writeFileSync(join(control, "fail-enable"), "true\n");
+  writeExecutable(join(control, "systemctl"), `#!/bin/sh\nprintf '%s\\n' "$*" >> '${join(control, "systemctl.log")}'\nif test "$1" = enable; then exit 1; fi\n`);
+  const carrier = join(temp, "predecessor.tar.gz");
+  execFileSync("bash", [join(videoRoot, "scripts/build-predecessor-runtime.sh"), carrier], {cwd: repoRoot});
+  const sha = execFileSync("shasum", ["-a", "256", carrier], {encoding: "utf8"}).split(/\s+/)[0];
+  const unitTemplate = join(videoRoot, "runtime", "ynx-video-viewer-wallet.service");
+  const unitTemplateSha = execFileSync("shasum", ["-a", "256", unitTemplate], {encoding: "utf8"}).split(/\s+/)[0];
+  const env = {
+    ...process.env,
+    YNX_VIDEO_EXECUTION_MODE: "fixture",
+    YNX_VIDEO_VIEWER_ROOT: root,
+    YNX_VIDEO_VIEWER_UNIT: "ynx-video-viewer-wallet.service",
+    YNX_VIDEO_VIEWER_UNIT_PATH: unitPath,
+    YNX_VIDEO_PREDECESSOR_RELEASE_ID: `ynx-video-predecessor-${predecessor}`,
+    YNX_VIDEO_PREDECESSOR_CARRIER: carrier,
+    YNX_VIDEO_PREDECESSOR_CARRIER_SHA256: sha,
+    YNX_VIDEO_PREDECESSOR_SOURCE_COMMIT: predecessor,
+    YNX_VIDEO_BOOTSTRAP_RECEIPT: join(temp, "receipt"),
+    YNX_VIDEO_UNIT_TEMPLATE: unitTemplate,
+    YNX_VIDEO_UNIT_TEMPLATE_SHA256: unitTemplateSha,
+    YNX_VIDEO_FIXTURE_CONTROL: control
+  };
+  assert.throws(() => execFileSync("bash", [join(videoRoot, "scripts/video-runtime-bootstrap.sh"), "bootstrap"], {env, stdio: "pipe"}));
+  assert.equal(existsSync(root), false);
+  assert.equal(existsSync(unitPath), false);
+  const log = readFileSync(join(control, "systemctl.log"), "utf8");
+  assert.match(log, /enable --now ynx-video-viewer-wallet\.service/);
+  assert.match(log, /stop ynx-video-viewer-wallet\.service/);
+  assert.match(log, /disable ynx-video-viewer-wallet\.service/);
+  assert.doesNotMatch(log, /(^|\s)ynx-video-viewer\.service(\s|$)/m);
 });
