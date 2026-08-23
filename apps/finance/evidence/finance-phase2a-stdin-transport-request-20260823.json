@@ -2,10 +2,10 @@
   "kind": "FINANCE_PHASE2A_STDIN_TRANSPORT_REQUEST_ONLY",
   "supersedes": "finance-phase2a-placement-request-20260823.json",
   "central": {"commit": "f971effaea38b9346fa28c3977e1cb0a9a6bd6b7", "tree": "98878d0c321d93c72abb288ff8487dc5d29faa7a", "recordBlob": "ed3f17e1f346449225f2c9360aa77058df8b9d2f", "recordSha256": "6dcdcb66a856be54ae2d1a2883a47f6c75ba262f1eab2c9de49cd50fc6977db0"},
-  "owner": {"predecessor": "0099995cee2d547de5d332575de52363bde46db3", "tree": "6f7a487c4835a39282db032edb53b062725bee15"},
-  "settledTuples": {"root": "64770:1312502:0:0:755:47:4096:directory", "stage": "64770:3450040:0:0:750:3:4096:directory", "finance": "64770:3450041:0:0:750:3:4096:directory", "leases": "64770:3450042:0:0:750:3:4096:directory", "leaseParent": "64770:4594820:0:0:750:2:4096:directory", "carrier": "64770:4594821:0:0:700:2:4096:directory"},
+  "owner": {"predecessor": "e49f524e9f461d1f83c98fde1a755ea09ec537cb", "tree": "119119fd4f0ad36275d52b95d4477b79d7fc7940"},
+  "settledTuples": {"root": "64770:1312502:0:0:755:49:4096:directory", "stage": "CENTRAL_LEASE_INPUT_REQUIRED", "finance": "CENTRAL_LEASE_INPUT_REQUIRED", "leases": "CENTRAL_LEASE_INPUT_REQUIRED", "leaseParent": "CENTRAL_LEASE_INPUT_REQUIRED", "carrier": "CENTRAL_LEASE_INPUT_REQUIRED"},
   "carrierEmpty": true,
-  "literalRemoteArgvTemplate": "ssh HOST /bin/bash -c 'boot=$(printf %s \"$1\" | base64 -d); shift; /bin/bash -c \"$boot\" phase2a \"$@\"' phase2a BOOTSTRAP_BASE64 ID CARRIER ROOT_TUPLE STAGE_PARENT_TUPLE STAGE_TUPLE LEASES_PARENT_TUPLE LEASE_PARENT_TUPLE CARRIER_TUPLE",
+  "literalRemoteArgvTemplate": "ssh HOST sudo -n /bin/bash -c 'boot=$(printf %s \"$1\" | base64 -d); shift; /bin/bash -c \"$boot\" phase2a \"$@\"' phase2a BOOTSTRAP_BASE64 ID CARRIER ROOT_TUPLE STAGE_PARENT_TUPLE STAGE_TUPLE LEASES_PARENT_TUPLE LEASE_PARENT_TUPLE CARRIER_TUPLE",
   "stdinCarrierFormat": "YNX-FINANCE-P2A-1; fixed ordered base64 frames",
   "transportObjects": [
     {"name":"bootstrap","path":"apps/finance/scripts/finance-phase2a-stdin-bootstrap.sh","blob":"7e0175034868e42d1d7fa651001835e96d6de15b","bytes":2083,"sha256":"66fe042d2e07673662a5c567bdeb911cbff2ef0b38dd56a33b5d0dbe7705a27c"},
