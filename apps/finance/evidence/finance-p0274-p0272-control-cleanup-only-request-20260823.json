@@ -1,0 +1,66 @@
+{
+  "schemaVersion": "p0-finance-p0272-control-cleanup-only-request@1",
+  "kind": "FINANCE_P0272_CONTROL_FILES_CLEANUP_ONLY",
+  "requestState": "AWAITING_WHOLELY_NEW_CENTRAL_SINGLE_USE_LEASE",
+  "reviewedCommandCheckpoint": {
+    "commit": "0f31687e4f8a6029adfc567e75f114d7b82f50cc",
+    "tree": "76d9437471d6267c3643edf5f43e131266c6a705",
+    "nonSelfReferential": true
+  },
+  "sourceEvidence": {
+    "p0273Commit": "b4b0bf8720d561e9fa022b9327c569fc75506266",
+    "p0273EvidencePath": "apps/finance/evidence/finance-p0273-p0272-terminal-state-readonly-evidence-20260823.json",
+    "p0273EvidenceSha256": "03f181baab420761a86b5b6c28452d39e53b9e5ba66189497fd12fc46bd81df4"
+  },
+  "scope": {
+    "allowedRemoteMutation": "Unlink exactly the two P0272 control files after all identity checks pass.",
+    "forbidden": ["stage", "backup", "release", "current", "env", "state", "service", "unit", "Caddy", "public routes", "account", "sign", "typed data", "transaction", "manual rollback", "deployment"],
+    "sshAttemptLimit": 1,
+    "cleanupInvocationLimit": 1,
+    "retryAllowed": false
+  },
+  "retainedParent": {
+    "path": "/opt/ynx/leases/finance",
+    "fullTupleBefore": "64770:4594822:0:0:750:2:4096:directory",
+    "stableIdentity": "64770:4594822:0:0:750:directory",
+    "mustExist": true,
+    "mustBeNonSymlink": true,
+    "mustHaveNoForeignDirectChildren": true,
+    "afterCleanup": "same stable identity and no direct children; do not create, remove, replace or otherwise mutate the parent"
+  },
+  "exactTargets": {
+    "executor": {
+      "path": "/opt/ynx/leases/finance/p0272-finance-phase3-20260823T152627Z.executor.sh",
+      "tuple": "64770:4620881:0:0:700:1:18403:regular file",
+      "bytes": 18403,
+      "sha256": "2ab4d1923ce180a35e0247c7ebe0628f2eb58ace0416060edb2d6a25be083fde"
+    },
+    "signedLease": {
+      "path": "/opt/ynx/leases/finance/p0272-finance-phase3-20260823T152627Z.json",
+      "tuple": "64770:4620882:0:0:600:1:7696:regular file",
+      "bytes": 7696,
+      "sha256": "e46d0d6f9050ee0377750683babd004c4306c48cfb6e52d1f6ab7cdf10ba1986"
+    }
+  },
+  "executor": {
+    "path": "apps/finance/scripts/finance-p0272-control-cleanup.sh",
+    "blob": "8fed344d95f1a278d9f5a9a34e9e26661ca333e9",
+    "bytes": 2699,
+    "sha256": "d4407548798fec7eb9ce97811033960066df9e85850e7530dd7190bbae4facd6",
+    "guarantees": ["rechecks full parent tuple and stable identity immediately before unlink", "rechecks target tuple, bytes, SHA-256 and non-symlink form", "rejects foreign direct children", "rechecks target identity immediately before unlink", "proves both targets absent and parent stable identity unchanged and empty"]
+  },
+  "actualShellFixture": {
+    "path": "apps/finance/scripts/test-finance-p0272-control-cleanup-fixture.mjs",
+    "blob": "23f113767a308c4ecc76961be48f9a9e56edb31c",
+    "bytes": 4793,
+    "sha256": "c8aa3f1547dce1064fe4e75f56e91113e9a0a6860a6b4c34c5b6e8e5b6f1c154",
+    "coverage": ["positive exact cleanup", "target symlink refusal", "parent tuple mismatch", "parent symlink refusal", "foreign child refusal", "target link-count drift", "same-byte inode substitution"]
+  },
+  "freshNamespace": {
+    "idPattern": "p0274-finance-p0272-control-cleanup-<Central-UTC-timestamp>",
+    "localReceipts": ["/tmp/ynx-finance-p0274-control-cleanup.stdout", "/tmp/ynx-finance-p0274-control-cleanup.stderr", "/tmp/ynx-finance-p0274-control-cleanup.receipt", "/tmp/ynx-finance-p0274-control-cleanup.receipt.pending"],
+    "allMustStartAbsentAndNonSymlink": true
+  },
+  "truth": {"leaseIssued": false, "sshExecuted": false, "cleanupExecuted": false, "parentOrTargetMutationProven": false, "walletAccountOrTransactionAction": false},
+  "singleBlocker": "Central must issue a fresh P0274 cleanup-only lease that rebinds the exact two target tuples and retained-parent full tuple immediately before the sole SSH invocation."
+}
