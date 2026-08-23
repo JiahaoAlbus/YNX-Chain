@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "p0-finance-deployment-terminal-evidence@2",
+  "central": {
+    "commit": "b0b67a77e998526e9d7f638a7575e9b02bfa40ef",
+    "tree": "dff216502111e9aa0d95220ac39dda0068f54356",
+    "leaseBlob": "28af783deb9c72386da3991dd6a43dac75e97646",
+    "leaseBytes": 34889,
+    "leaseSha256": "23037cdcb424bc06d400ebcfedd9243835b7f2c52dd684ca94d79813077a86d1"
+  },
+  "execution": {
+    "attemptCount": 1,
+    "localExitStatus": 1,
+    "sshAttemptCount": 1,
+    "deployInvocationCount": 0,
+    "retryPerformed": false,
+    "stdout": {"bytes": 0, "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    "stderr": {"bytes": 74, "sha256": "65d15c24304de81d3af497ecd77bc40535c50063cbb4c4233cb4425ba446483f", "safeText": "mkdir: cannot create directory '/opt/ynx/leases/finance': File exists"},
+    "receipt": {"bytes": 183, "sha256": "8d7fcfda54ff9184269cb1b92a930febd8fe5301022bfdd48833621bc107b0f3", "transportExitStatus": 1, "terminalReceiptValidated": false}
+  },
+  "rootCause": {
+    "class": "REMOTE_PRE_DEPLOY_PARENT_EXISTENCE_CONTRACT_MISMATCH",
+    "exact": "The reviewed Phase3 bootstrap creates /opt/ynx/leases/finance but P0-267/P0-268 cleanup proves that parent legitimately persists after control-file deletion. The parent-exists check fails before deploy executor invocation."
+  },
+  "truth": {
+    "deploymentSucceeded": false,
+    "deployExecutorEntered": false,
+    "automaticRollbackInvoked": false,
+    "manualRollbackAuthorized": false,
+    "productionStateIndependentlyReadBackAfterFailure": false,
+    "walletAccountOrTransactionAction": false
+  },
+  "requiredCentralAction": "Fail closed and atomically release P0-270 as nonreusable. A source-only successor must preserve an existing signed finance lease parent when its exact tuple is fresh-bound, create only the lease-specific child controls, and retain the same no-replace/identity cleanup rules."
+}
