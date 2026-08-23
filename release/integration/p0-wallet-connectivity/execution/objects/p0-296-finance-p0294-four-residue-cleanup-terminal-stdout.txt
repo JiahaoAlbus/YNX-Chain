@@ -1,0 +1,11 @@
+cleanup=P0294_FOUR_RESIDUES_REMOVED
+executorFinal=absent
+signedLeaseFinal=absent
+stageContainerFinal=absent
+backupContainerFinal=absent
+leaseParentStable=true
+stageParentRestored=true
+backupParentRestored=true
+cleanupInvocationCount=1
+remoteExitStatus=0
+cleanupComplete=pending-independent-zero-write-verification

@@ -2516,15 +2516,15 @@
     },
     {
       "path": "{host:43.153.202.237:finance-p0294-four-residue-cleanup,delete:/opt/ynx/leases/finance/p0294-finance-phase3-20260824t020000z.executor.sh,delete:/opt/ynx/leases/finance/p0294-finance-phase3-20260824t020000z.json,rmdir:/opt/ynx/stage/finance/p0294-finance-phase3-20260824t020000z,rmdir:/var/backups/ynx-finance/p0294-finance-phase3-20260824t020000z,readonly:/opt/ynx/finance-current,readonly:/etc/ynx/finance.env,readonly:/etc/systemd/system/ynx-finance.service,readonly:/etc/caddy/conf.d/ynx-finance.caddy,readonly:service:ynx-finance.service}",
-      "owner": "finance-release-control-plane-cleanup-only",
+      "owner": null,
       "branch": "codex/p0-wallet-connectivity-control-plane-20260820",
       "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration",
       "taskId": "P0-296",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE",
+      "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0296_P0294_FOUR_RESIDUE_CLEANUP_PENDING_INDEPENDENT_READBACK",
       "acquiredAt": "2026-08-23T19:39:00Z",
       "expiresAt": "2026-08-23T20:09:00Z",
-      "releasedAt": null,
+      "releasedAt": "2026-08-23T19:47:00Z",
       "sourceCommit": "9d03c2e1208d43c152a71ce525083a1466980abf",
       "sourceTree": "819e244cc46832ca19ffa4132322e98c40b94b45",
       "evidenceCommit": "9d03c2e1208d43c152a71ce525083a1466980abf",
@@ -2536,6 +2536,28 @@
         "rmdir only the two exact identity-bound empty P0-294 containers",
         "no parent sibling service current env state unit Caddy public Wallet account signature or transaction mutation",
         "cleanupComplete remains false until a separately leased P0-297 direct zero-write verification"
+      ]
+    },
+    {
+      "path": "{host:43.153.202.237:finance-p0296-post-cleanup-zero-write,readonly:/opt/ynx/leases/finance/p0294-finance-phase3-20260824t020000z.*,readonly:/opt/ynx/stage/finance/p0294-finance-phase3-20260824t020000z/**,readonly:/var/backups/ynx-finance/p0294-finance-phase3-20260824t020000z/**,readonly:/opt/ynx/releases/finance/p0294-finance-phase3-20260824t020000z/**,readonly:/opt/ynx/finance-current*,readonly:/etc/ynx/finance.env,readonly:/var/lib/ynx/finance/state.json,readonly:/etc/systemd/system/ynx-finance.service,readonly:/etc/caddy/conf.d/ynx-finance.caddy,readonly:service:ynx-finance.service,readonly:http://127.0.0.1:6483/**,readonly:https://finance.ynxweb4.com/**}",
+      "owner": "finance-release-control-plane-readonly-verification",
+      "branch": "codex/p0-wallet-connectivity-control-plane-20260820",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration",
+      "taskId": "P0-297",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE",
+      "acquiredAt": "2026-08-23T19:47:00Z",
+      "expiresAt": "2026-08-23T20:17:00Z",
+      "releasedAt": null,
+      "sourceCommit": "c52ac851689f321709c56c1945af55b9b4ca6cbd",
+      "sourceTree": "7fed1d960b8546a8abd3e2b6acdecc76623caeb9",
+      "evidenceCommit": "c52ac851689f321709c56c1945af55b9b4ca6cbd",
+      "artifactSha256": "f2d531ecf6e44c8d079b99cd05b8a36f588adc7bf298144c422115cb11936268",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "one exact read-only SSH verification and no retry",
+        "read P0-294 path absences, parent inventories, old current env state unit Caddy service and six HTTP gates",
+        "no write temp cleanup deploy rollback lifecycle config public Wallet account signature or transaction mutation"
       ]
     }
   ]

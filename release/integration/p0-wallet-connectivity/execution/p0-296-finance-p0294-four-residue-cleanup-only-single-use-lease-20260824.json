@@ -5,9 +5,10 @@
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-p0294-four-residue-cleanup-p0296-20260823T193900Z",
   "owner": "finance-release-control-plane-cleanup-only",
   "executor": "finance-release-control-plane-cleanup-only",
-  "status": "ACTIVE",
+  "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0296_P0294_FOUR_RESIDUE_CLEANUP_PENDING_INDEPENDENT_READBACK",
   "issuedAt": "2026-08-23T19:39:00Z",
   "expiresAt": "2026-08-23T20:09:00Z",
+  "releasedAt": "2026-08-23T19:47:00Z",
   "singleUse": true,
   "reusable": false,
   "productionMutationAllowed": true,
@@ -80,6 +81,20 @@
     "secret or environment value output",
     "retry predecessor reuse or P0-297 execution"
   ],
+  "terminalEvidence": {
+    "attempts": 1,
+    "localExitStatus": 0,
+    "remoteExitStatus": 0,
+    "stdoutBytes": 314,
+    "stdoutSha256": "f05a011e71dc93222102f53cf0df3978f5ad909d0332c109aa7de8499f880a30",
+    "stderrBytes": 0,
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "cleanupReceiptValid": true,
+    "fourResiduesReportedAbsent": true,
+    "cleanupComplete": false,
+    "independentZeroWriteVerificationRequired": true,
+    "terminalEvidencePath": "release/integration/p0-wallet-connectivity/execution/objects/p0-296-finance-p0294-four-residue-cleanup-terminal-evidence-20260824.json"
+  },
   "terminalRules": {
     "success": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0296_P0294_FOUR_RESIDUE_CLEANUP_PENDING_INDEPENDENT_READBACK",
     "failure": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0296_P0294_FOUR_RESIDUE_CLEANUP",

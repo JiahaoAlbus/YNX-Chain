@@ -2,11 +2,11 @@
   "schemaVersion": "p0-finance-zero-write-request@1",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "taskId": "P0-297",
-  "status": "SOURCE_ONLY_QUEUED_AFTER_P0296_TERMINAL_RELEASE",
-  "leaseIssued": false,
-  "heavyOwner": null,
+  "status": "LEASE_ISSUED_P0297_ZERO_WRITE_VERIFICATION_ONLY",
+  "leaseIssued": true,
+  "heavyOwner": "finance-release-control-plane-readonly-verification",
   "scope": "One future independent zero-write verification of P0-296 cleanup and unchanged Finance runtime",
-  "precondition": "P0-296 must first terminate and release; this request cannot be merged with or inferred from P0-296",
+  "precondition": "P0-296 terminated and released with a valid cleanup receipt; cleanupComplete remains false until P0-297 terminal direct evidence",
   "reviewedObject": {
     "path": "release/integration/p0-wallet-connectivity/execution/objects/p0-297-finance-p0296-post-cleanup-zero-write-verification.sh",
     "blob": "bcabf47b634cabffc18e438343d4e08c1e56bfb9",
@@ -20,7 +20,8 @@
     "retryAllowed": false,
     "remoteWrites": 0,
     "remoteTemporaryFiles": 0,
-    "literalArgvFrozenOnlyAfterFreshPostP0296Prewrite": true
+    "literalArgvFrozenOnlyAfterFreshPostP0296Prewrite": true,
+    "freshPostP0296PrewritePassedAt": "2026-08-23T19:46:32Z"
   },
   "requiredTruth": [
     "both P0-294 control files and both P0-294 containers absent",
@@ -30,5 +31,6 @@
     "six loopback/public root health version receipts exact",
     "verificationComplete=true cleanupComplete=true mutationCount=0"
   ],
-  "forbidden": ["cleanup deletion deploy rollback remote temp or write","service lifecycle","current env state unit Caddy release or public mutation","Wallet account signature typed data or transaction","execution before a wholly new lease"]
+  "forbidden": ["cleanup deletion deploy rollback remote temp or write","service lifecycle","current env state unit Caddy release or public mutation","Wallet account signature typed data or transaction","predecessor reuse or retry"],
+  "issuedLeasePath": "release/integration/p0-wallet-connectivity/execution/p0-297-finance-p0296-post-cleanup-zero-write-verification-single-use-lease-20260824.json"
 }
