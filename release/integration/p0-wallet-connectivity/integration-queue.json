@@ -6401,16 +6401,16 @@
     {
       "taskId": "P0-176",
       "owner": "integration,wallet-ios,wallet-macos",
-      "status": "WAITING_EXTERNAL_PROTECTED_INPUTS_AND_HEAVY_SLOT",
+      "status": "WAITING_EXTERNAL_PROTECTED_INPUTS",
       "paths": [
         "release/integration/p0-wallet-connectivity/operator-packages/native-walletconnect-runtime-p0176-20260822.json"
       ],
       "dependencies": ["P0-173", "P0-175"],
       "executionLeaseIssued": false,
       "operatorPackage3bcAccepted": true,
-      "blocker": "PROTECTED_NATIVE_WALLETCONNECT_OPERATOR_CONFIRMATIONS_UNAVAILABLE",
+      "blocker": "EXTERNAL_DAPP_NAMED_OPERATOR_TASKS_AND_DIRECT_RECEIPTS_UNMAPPED",
       "productsConnected": "0/12",
-      "nextAction": "Heavy is idle after Finance P0-282 release, but every protected readiness boolean remains false. Named protected operators must return only non-secret availability booleans and non-sensitive receipt/provenance IDs when true for Reown allowlist, Apple app-group/Keychain signer, opaque approved-account handle, bounded Testnet policy, first-party origin, Uniswap/OpenSea/Safe, eligible signed iOS/macOS/Android targets and official signed MetaMask comparator provenance. Issue no runtime lease until every boolean is true under a wholly-new path-scoped review."
+      "nextAction": "firstPartyExactOriginAvailable is true from the non-sensitive Developer receipt, but this is eligibility only. Do not create or infer wallet-external-dapp-operator ownership. Central must map the abstract owner to an existing named task or thread and obtain a non-secret direct receipt for the eligible installed Wallet target, independently opened exact Uniswap/OpenSea/Safe origin and permitted lifecycle. The three named-operator booleans remain false; issue no runtime lease until all protected readiness booleans are true under a wholly-new path-scoped review."
     },
     {
       "taskId": "P0-177",

@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "p0-wallet-protected-operator-mapping-audit@1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-176",
+  "status": "TERMINAL_READ_ONLY_MAPPING_AUDIT_EXTERNAL_DAPP_OPERATORS_UNMAPPED",
+  "mutationCount": 0,
+  "secretValuesRequested": false,
+  "secretValuesRecorded": false,
+  "runtimeLeaseIssued": false,
+  "abstractResponsibilityDomain": "wallet-external-dapp-operator",
+  "auditScope": {
+    "pinnedAndRecentTasksReviewed": 58,
+    "acceptedOperatorPackageCommit": "3bc070e39e6ade7a7a210196ba8721d895fa6960",
+    "routerReference": "875",
+    "mappedExistingTaskOrThreadFound": false
+  },
+  "capabilityBooleans": {
+    "uniswapNamedOperatorAvailable": false,
+    "openseaNamedOperatorAvailable": false,
+    "safeNamedOperatorAvailable": false
+  },
+  "blockers": [
+    {
+      "code": "UNISWAP_NAMED_OPERATOR_TASK_AND_DIRECT_RECEIPT_UNMAPPED",
+      "origin": "https://app.uniswap.org"
+    },
+    {
+      "code": "OPENSEA_NAMED_OPERATOR_TASK_AND_DIRECT_RECEIPT_UNMAPPED",
+      "origin": "https://opensea.io"
+    },
+    {
+      "code": "SAFE_NAMED_OPERATOR_TASK_AND_DIRECT_RECEIPT_UNMAPPED",
+      "origin": "https://app.safe.global"
+    }
+  ],
+  "requiredFutureMappingReceipt": [
+    "existing named operator task or thread identity",
+    "eligible installed Wallet target receipt",
+    "independently opened exact URL and origin receipt",
+    "explicit permitted lifecycle boundary"
+  ],
+  "forbidden": [
+    "invent or create an unmapped owner task without explicit Central authority",
+    "secret Project ID token account address key or recovery material",
+    "Chrome launch install account request signature or transaction",
+    "runtime completion inference"
+  ]
+}

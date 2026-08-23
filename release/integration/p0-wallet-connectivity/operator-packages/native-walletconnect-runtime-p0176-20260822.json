@@ -3,8 +3,8 @@
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "taskId": "P0-176",
   "owner": "integration,wallet-ios,wallet-macos",
-  "status": "WAITING_EXTERNAL_PROTECTED_INPUTS_AND_HEAVY_SLOT",
-  "blocker": "PROTECTED_NATIVE_WALLETCONNECT_OPERATOR_CONFIRMATIONS_UNAVAILABLE",
+  "status": "WAITING_EXTERNAL_PROTECTED_INPUTS",
+  "blocker": "EXTERNAL_DAPP_NAMED_OPERATOR_TASKS_AND_DIRECT_RECEIPTS_UNMAPPED",
   "operatorPackage3bcAccepted": true,
   "centralAcceptance": {
     "commit": "8e8d5317b823d0c834b781ced197f909c2582491",
@@ -77,7 +77,7 @@
     "appleSignedAppGroupAndKeychainSignerAvailable": false,
     "opaqueApprovedTestAccountHandleAvailable": false,
     "boundedTestnetTransactionPolicyAvailable": false,
-    "firstPartyExactOriginAvailable": false,
+    "firstPartyExactOriginAvailable": true,
     "uniswapNamedOperatorAvailable": false,
     "openseaNamedOperatorAvailable": false,
     "safeNamedOperatorAvailable": false,
@@ -95,6 +95,28 @@
     "uniswapOpenSeaSafe": "wallet-external-dapp-operator",
     "androidSignedTarget": "wallet-android-signing-owner",
     "officialMetaMaskComparatorProvenance": "wallet-metamask-comparator-owner"
+  },
+  "externalDappOperatorMappingAudit": {
+    "path": "release/integration/p0-wallet-connectivity/operator-packages/p0-176-external-dapp-operator-mapping-audit-20260824.json",
+    "status": "TERMINAL_READ_ONLY_MAPPING_AUDIT_EXTERNAL_DAPP_OPERATORS_UNMAPPED",
+    "pinnedAndRecentTasksReviewed": 58,
+    "mappedExistingTaskOrThreadFound": false,
+    "uniswapBlocker": "UNISWAP_NAMED_OPERATOR_TASK_AND_DIRECT_RECEIPT_UNMAPPED",
+    "openseaBlocker": "OPENSEA_NAMED_OPERATOR_TASK_AND_DIRECT_RECEIPT_UNMAPPED",
+    "safeBlocker": "SAFE_NAMED_OPERATOR_TASK_AND_DIRECT_RECEIPT_UNMAPPED",
+    "taskCreatedOrRecovered": false,
+    "runtimeCompletionInferred": false
+  },
+  "firstPartyExactOriginReceipt": {
+    "path": "release/integration/p0-wallet-connectivity/operator-packages/p0-176-first-party-exact-origin-capability-20260824.json",
+    "available": true,
+    "origin": "https://developer.ynxweb4.com/",
+    "owner": "developer",
+    "ownerThread": "019ffb52-68bb-73f1-a5e9-7f15d6750581",
+    "source": "d4052228a2261c5ced6a8e8cfcbf763edabf2103",
+    "sourceTree": "89beb658b0971fb20d0d92a6bebc2010fdbb33e7",
+    "eligibilityOnly": true,
+    "runtimeCompletionInferred": false
   },
   "booleanOnlyNamedOwnerRouting": {
     "status": "ROUTED_AWAITING_NON_SECRET_BOOLEAN_CONFIRMATIONS",
@@ -134,7 +156,7 @@
       {
         "owner": "wallet-product-release-owner",
         "boolean": "firstPartyExactOriginAvailable",
-        "current": false
+        "current": true
       },
       {
         "owner": "wallet-external-dapp-operator",
