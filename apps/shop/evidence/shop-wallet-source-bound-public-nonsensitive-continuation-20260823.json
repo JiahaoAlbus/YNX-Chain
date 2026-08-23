@@ -1,0 +1,94 @@
+{
+  "schemaVersion": "shopWalletSourceBoundPublicNonsensitiveContinuation@1.0.0",
+  "observedAtUtc": "2026-08-23T03:36:29Z",
+  "owner": {
+    "branch": "codex/final-shop",
+    "head": "d0e8b816d18e2341aa2c50706d72ef822e0af47a",
+    "tree": "6125dfa2240c1d74210745f82830464edc89751f",
+    "remoteExact": true
+  },
+  "sourceBoundPublic": {
+    "url": "https://shop.ynxweb4.com/shop/",
+    "version": {
+      "httpStatus": 200,
+      "bytes": 153,
+      "sha256": "11f5804d2e15e49e8d8d35c4cdfd132926b9258583b6e3352ebe76ffd518cd69",
+      "sourceCommit": "221a6bde7bef8aab83ca45f9b1dd4ecf9ac60aba"
+    },
+    "resources": {
+      "root": {"httpStatus": 200, "bytes": 7689, "sha256": "2e862dddca76b2b9e4ec0e1d31cfd9a347a6469fdcec93e4c4fadd6883df0c15"},
+      "appJs": {"httpStatus": 200, "bytes": 20706, "sha256": "40b5696a1cb10861422e69a9c40f4c0da25b1e7bb05d1aed240ec0eec8417fc9"},
+      "walletAuthJs": {"httpStatus": 200, "bytes": 17991, "sha256": "3411f7078eeee40013069956697f295a14b47cbf2f7eb009555357100b00eafd"},
+      "walletProviderDiscoveryJs": {"httpStatus": 200, "bytes": 5349, "sha256": "b0bc9cc80cfc7c8dbc70873eff2a9df71e51e2a90464d65d9ba95ba26914e12f"},
+      "serviceWorker": {"httpStatus": 200, "bytes": 1067, "sha256": "c04fa2ef30c3602fe73b208cb1b83f47445230383401120b7b9e6fb5aa8f1888"}
+    },
+    "freshReadMatchedCandidate": true
+  },
+  "directHostedChromium": {
+    "runId": 32596822850,
+    "jobId": 97089030229,
+    "headSha": "d0e8b816d18e2341aa2c50706d72ef822e0af47a",
+    "conclusion": "success",
+    "artifactId": 9481775363,
+    "artifactName": "shop-official-wallet-identity-gate-p0",
+    "artifactBytes": 249736,
+    "artifactZipSha256": "e72007663e41acf1232dde9cb52a005c9e01bf81916e192a6cfc13fc02afd8e9",
+    "proofJsonSha256": "ee735cc253daa91c8a42c7cf77e35c033d43d503b4f0c6035248a5dda47aa993",
+    "facts": {
+      "defaultLanguageEnglish": true,
+      "walletChooserInitiallyClosed": true,
+      "walletChooserOpenedInSamePage": true,
+      "ynxIdentity": {"name": "YNX Wallet", "rdns": "com.ynx.wallet", "logo": "icon-192.png", "logoLoaded": true},
+      "metaMaskIdentity": {"name": "MetaMask", "rdns": "io.metamask", "logo": "metamask-fox.svg", "logoLoaded": true},
+      "identitiesDistinct": true,
+      "topLevelTabCount": 1,
+      "urlStable": true,
+      "blankTabCreated": false,
+      "customSchemeNavigation": false,
+      "consoleErrors": 0
+    }
+  },
+  "currentDirectBrowserContinuation": {
+    "inAppBrowser": {
+      "url": "https://shop.ynxweb4.com/shop/",
+      "title": "YNX Shop",
+      "defaultLanguageEnglish": true,
+      "visibleWalletTrigger": "Sign in with YNX Wallet",
+      "pageVisible": true,
+      "walletChooserControl": "CDP operation deadline before click dispatch"
+    },
+    "chrome": {
+      "existingOfficialTabsEnumerated": 2,
+      "bothAlreadyOwnedByAnotherBrowserControlSession": true,
+      "freshTabNavigation": "browser control timeout",
+      "accountRequestTriggered": false
+    }
+  },
+  "sourceAndTests": {
+    "connectedAccountOpensDetailsInsteadOfChooser": true,
+    "detailsContainProviderAccountChainPermissions": true,
+    "disconnectControlImplemented": true,
+    "switchAccountControlImplemented": true,
+    "accountsChangedImplemented": true,
+    "chainChangedImplemented": true,
+    "disconnectEventImplemented": true,
+    "productSessionDegradedDoesNotClearLayer1": true,
+    "shopTests": {"passed": 13, "failed": 0},
+    "webBuildPassed": true
+  },
+  "truth": {
+    "sourceBoundPublic": true,
+    "directPublicNonsensitiveWalletIdentityProved": true,
+    "directConnectedAccountDetailsProved": false,
+    "directDisconnectExecuted": false,
+    "directSwitchAccountExecuted": false,
+    "directAccountsChangedProved": false,
+    "directChainChangedProved": false,
+    "directProductSessionDegradedPreservesLayer1Proved": false,
+    "accountRequestTriggered": false,
+    "signatureTriggered": false,
+    "transactionTriggered": false,
+    "productComplete": false
+  },
+  "singleExecutableBlocker": "An exclusive connected Chrome tab with an already-approved test account is required to open the connected-account details and then reach the separate immediate-confirmation boundaries for disconnect/revoke and switch-account. The two existing official Shop tabs are owned by another browser-control session, while fresh Chrome and in-app browser control timed out. Do not invoke eth_requestAccounts, reveal an account, disconnect, switch, sign, or send without the user's immediate confirmation."
+}
