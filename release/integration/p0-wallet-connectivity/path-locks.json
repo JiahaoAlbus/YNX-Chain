@@ -3,30 +3,518 @@
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "version": "1.38.0",
   "locks": [
-    {"path":"{host:43.153.202.237:finance-post-cleanup-readonly-verification,readonly:/opt/ynx/stage/finance/p0247-finance-phase3-20260823T073800Z,readonly:/var/backups/ynx-finance/p0247-finance-phase3-20260823T073800Z,readonly:/opt/ynx/leases/finance/p0247-finance-phase3-20260823T073800Z.{executor.sh,json},readonly:/opt/ynx/leases/finance/p0264-finance-p0247-cleanup-20260823T140755Z.{executor.sh,executor.sh.pending,json,json.pending},readonly:/opt/ynx/finance-current,readonly:/etc/ynx/finance.env,readonly:/etc/systemd/system/ynx-finance.service,readonly:/etc/caddy/conf.d/ynx-finance.caddy,readonly:/var/lib/ynx/finance/state.json,readonly:service:ynx-finance,readonly:http://127.0.0.1:6483/{health,version},readonly:https://finance.ynxweb4.com/{health,version}}","owner":null,"branch":"codex/p0-finance-wallet-connectivity-20260820","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance","taskId":"P0-268","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"CONSUMED_RELEASED_SUCCESS_FINANCE_P0268_POST_CLEANUP_READONLY_VERIFICATION_CLEANUP_COMPLETE","acquiredAt":"2026-08-23T14:18:05Z","expiresAt":"2026-08-23T14:48:05Z","releasedAt":"2026-08-23T14:23:34Z","sourceCommit":"399f90807705500c4173163f4e2964cea113e991","sourceTree":"39438fa2b2ccd86f35ca97d42e82d060d541e57e","evidenceCommit":"2065fe7fc349541255e5e4be2b1bf2750eeebeac","artifactSha256":"b8540f206e3925441d35e80344b6dcc5299f514d0efd48a85fe624a49e904767","productionMutationAllowed":false,"allowedExceptions":["P0-268 invocation quota consumed and nonreusable","all four P0-247 residues and all four P0-267 control paths directly proven absent","old Finance PID2241003 NRestarts0 and loopback/public health/version remained exact","cleanup complete only; deployment and Wallet lifecycle remain false","no retry, cleanup, deletion, deploy, rollback, service lifecycle, public mutation, account, signing, typed-data, transaction or secret output"]},
-    {"path":"{host:43.153.202.237:finance-p0247-residue-cleanup-only,production:/opt/ynx/leases/finance/p0264-finance-p0247-cleanup-20260823T140755Z.{executor.sh,executor.sh.pending,json,json.pending},production:/opt/ynx/stage/finance/p0247-finance-phase3-20260823T073800Z,production:/var/backups/ynx-finance/p0247-finance-phase3-20260823T073800Z,production:/opt/ynx/leases/finance/p0247-finance-phase3-20260823T073800Z.{executor.sh,json},readonly:/opt/ynx/finance-current,readonly:/etc/ynx/finance.env,readonly:/etc/systemd/system/ynx-finance.service,readonly:/etc/caddy/conf.d/ynx-finance.caddy,readonly:/var/lib/ynx/finance/state.json,readonly:service:ynx-finance,readonly:https://finance.ynxweb4.com/{health,version}}","owner":null,"branch":"codex/p0-finance-wallet-connectivity-20260820","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance","taskId":"P0-267","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"CONSUMED_RELEASED_SUCCESS_FINANCE_P0267_RESIDUE_CLEANUP_VERIFIED_BY_P0268","acquiredAt":"2026-08-23T14:07:55Z","expiresAt":"2026-08-23T14:37:55Z","releasedAt":"2026-08-23T14:18:05Z","sourceCommit":"3e80004bcc236104d9a386e7daa7541c22dcb63a","sourceTree":"a69323c0a28bb0f40956c4f73417d18e4c9e1cfd","evidenceCommit":"2065fe7fc349541255e5e4be2b1bf2750eeebeac","artifactSha256":"49b24636095c2d39d59aaf95ab5e32d2f70c5b83e038d2ca2cd033ee539633e5","productionMutationAllowed":false,"allowedExceptions":["P0-267 invocation quota consumed and nonreusable","exact six-line cleanup acknowledgement returned once with exit0 and empty stderr","P0-268 directly proved all residue and control paths absent with old runtime unchanged; cleanup complete accepted","deployment and Wallet lifecycle remain false and require wholly-new authority","no retry, cleanup, deletion, deploy, rollback, service lifecycle, public mutation, account, signing, typed-data, transaction or secret output"]},
-    {"path":"{host:43.153.202.237:finance-post-cleanup-readonly-verification,readonly:/opt/ynx/stage/finance/p0247-finance-phase3-20260823T073800Z,readonly:/var/backups/ynx-finance/p0247-finance-phase3-20260823T073800Z,readonly:/opt/ynx/leases/finance/p0247-finance-phase3-20260823T073800Z.{executor.sh,json,manual-rollback.json},readonly:/opt/ynx/leases/finance/p0264-finance-p0247-cleanup-20260823T134130Z.{executor.sh,executor.sh.pending,json,json.pending},readonly:/opt/ynx/releases/finance/p0247-finance-phase3-20260823T073800Z,readonly:/opt/ynx/finance-current,readonly:/etc/ynx/finance.env,readonly:/etc/systemd/system/ynx-finance.service,readonly:/etc/caddy/conf.d/ynx-finance.caddy,readonly:/var/lib/ynx/finance/state.json,readonly:service:ynx-finance,readonly:http://127.0.0.1:6483/{health,version},readonly:https://finance.ynxweb4.com/{health,version}}","owner":null,"branch":"codex/p0-finance-wallet-connectivity-20260820","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance","taskId":"P0-266","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0266_READONLY_CONFIRMED_P0265_NO_CLEANUP_RUNTIME_UNCHANGED","acquiredAt":"2026-08-23T13:50:37Z","expiresAt":"2026-08-23T14:20:37Z","releasedAt":"2026-08-23T14:00:48Z","sourceCommit":"ed7db93dfcf3f4a44360a7fa1c3e05f983af851d","sourceTree":"6ff618bd3bfe80a63c03f4067137f41b50ab3b52","evidenceCommit":"ed7db93dfcf3f4a44360a7fa1c3e05f983af851d","artifactSha256":"bce8b145bed99a056f4b3dd8cd924694518ce45588bd047a00c6fe7e991fb556","productionMutationAllowed":false,"allowedExceptions":["P0-266 invocation quota consumed and nonreusable","zero-write inspection confirmed all four P0-247 residues still present and all four P0-265 control paths absent","old Finance runtime remains active and healthy at PID2241003 with NRestarts0","no new cleanup lease until OpenSSH remote-command serialization is corrected and tested source-only","no retry, cleanup, deletion, deploy, rollback, service lifecycle, public mutation, account, signing, typed-data, transaction or secret output"]},
-    {"path":"{host:43.153.202.237:finance-p0247-residue-cleanup-only,production:/opt/ynx/leases/finance/p0264-finance-p0247-cleanup-20260823T134130Z.{executor.sh,executor.sh.pending,json,json.pending},production:/opt/ynx/stage/finance/p0247-finance-phase3-20260823T073800Z,production:/var/backups/ynx-finance/p0247-finance-phase3-20260823T073800Z,production:/opt/ynx/leases/finance/p0247-finance-phase3-20260823T073800Z.{executor.sh,json},readonly:/opt/ynx/finance-current,readonly:/etc/ynx/finance.env,readonly:/etc/systemd/system/ynx-finance.service,readonly:/etc/caddy/conf.d/ynx-finance.caddy,readonly:/var/lib/ynx/finance/state.json,readonly:service:ynx-finance,readonly:https://finance.ynxweb4.com/{health,version}}","owner":null,"branch":"codex/p0-finance-wallet-connectivity-20260820","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance","taskId":"P0-265","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"CONSUMED_RELEASED_UNVERIFIED_FINANCE_P0265_CLEANUP_ZERO_OUTPUT_POSTREAD_REQUIRED","acquiredAt":"2026-08-23T13:41:30Z","expiresAt":"2026-08-23T14:11:30Z","releasedAt":"2026-08-23T13:50:37Z","sourceCommit":"a77bc1510187ae6e755ffb22dbec9e6df10d5c91","sourceTree":"9b7faac4e906cc9bc6361d557b2ef3e80569dc65","evidenceCommit":"54e27e19d46bf0e173a79b7f1c687710bde8d1cb","artifactSha256":"30eec321937e99b52d8c2078c040841701f3c4971695a85aff5cec6e1e7c00e4","productionMutationAllowed":false,"allowedExceptions":["P0-265 invocation quota consumed and nonreusable","local status zero but stdout/stderr empty; cleanup and runtime state unaccepted","only a wholly-new read-only verification may classify terminal state","no retry, cleanup, deletion, deploy, rollback, service lifecycle, public mutation, account, signing, typed-data, transaction or secret output"]},
-    {"path":"{production:/opt/ynx/public-downloads/.P0-WALLET-CHROME-ZIP-PUBLICATION-20260823-03.stage,production:/opt/ynx/public-downloads/wallet/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d,production:/opt/ynx/public-downloads/wallet/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip,production:/etc/caddy/conf.d/downloads.ynxweb4.com.caddy,production:/etc/caddy/conf.d/downloads.ynxweb4.com.caddy.{rollback,next,restore}-P0-WALLET-CHROME-ZIP-PUBLICATION-20260823-03,service:caddy:reload,public:https://downloads.ynxweb4.com/wallet/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip}","owner":null,"branch":"codex/wallet-desktop-provider-authority-p0-20260822","worktree":"/private/tmp/ynx-wallet-desktop-installers-p0-20260821","taskId":"P0-264","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"CONSUMED_RELEASED_SUCCESS_WALLET_DOWNLOADS_CHROME_EDGE_ZIP_SOURCE_BOUND_PUBLIC","acquiredAt":"2026-08-23T13:16:55Z","expiresAt":"2026-08-23T13:46:55Z","releasedAt":"2026-08-23T13:28:47Z","sourceCommit":"be26edbd67c512e22a4f373206d5d82af4c6b0d4","sourceTree":"0fa369a16e3099d59183852f3da076d7be2b95e0","evidenceCommit":"eee9cdf25b0ab8655ef43466c1d445f8e260145d","artifactSha256":"2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d","productionMutationAllowed":false,"allowedExceptions":["P0-264 sole invocation quota consumed and nonreusable","retain exact public Wallet Chrome/Edge ZIP and exact Caddy matcher","terminal stage, receipt, backup, next and restore residue absent","no further publication, Caddy, unrelated path, source push, other deployment, account, signing, typed-data, transaction or secret disclosure without a wholly-new lease"]},
-    {"path":"{production:/opt/ynx/public-downloads/.P0-WALLET-CHROME-ZIP-PUBLICATION-20260823-02.stage,production:/opt/ynx/public-downloads/wallet/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d,production:/opt/ynx/public-downloads/wallet/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip,production:/etc/caddy/conf.d/downloads.ynxweb4.com.caddy,production:/etc/caddy/conf.d/downloads.ynxweb4.com.caddy.{rollback,next,restore}-P0-WALLET-CHROME-ZIP-PUBLICATION-20260823-02,service:caddy:reload,public:https://downloads.ynxweb4.com/wallet/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip}","owner":null,"branch":"codex/wallet-desktop-provider-authority-p0-20260822","worktree":"/private/tmp/ynx-wallet-desktop-installers-p0-20260821","taskId":"P0-263","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"CONSUMED_RELEASED_FAILED_CLOSED_WALLET_DOWNLOADS_SERVICE_USER_PERMISSION_ROLLED_BACK_CLEAN","acquiredAt":"2026-08-23T12:56:27Z","expiresAt":"2026-08-23T13:26:27Z","releasedAt":"2026-08-23T13:05:08Z","sourceCommit":"be26edbd67c512e22a4f373206d5d82af4c6b0d4","sourceTree":"0fa369a16e3099d59183852f3da076d7be2b95e0","evidenceCommit":"532f06ce8040502e43f9e4b9f242cc224f7f52c1","artifactSha256":"2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d","productionMutationAllowed":false,"allowedExceptions":["P0-263 invocation quota consumed and nonreusable","candidate validation passed but reload failed because candidate config and target ZIP were mode 0600 and unreadable by the caddy service user","identity-bound automatic rollback restored the original Caddy config and target 404","terminal finalizer removed stage, receipt, backup, next, restore, target and target directory","future successor must use new paths and chmod 0644 only after full rehash, refresh identities, prove caddy-user readability and validate the full config as caddy user","no retry, unrelated path, source push, other deployment, account, signing, typed-data, transaction or secret disclosure"]},
-    {"path":"{vercel-project-sso:prj_tPB0KDTFohQ9FXZAzq25mYFWkbNa,vercel:alias:wallet-download-preflight.ynxweb4.com,readonly:vercel:deployment:dpl_CBz4cfFxf9WsMDzeLqzaPJGiXLZd,readonly:YNX-Chain-website:public/downloads/wallet-web/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip,vercel:alias:www.ynxweb4.com}","owner":null,"branch":"codex/wallet-web-pwa-extensions-20260813","worktree":"/Users/huangjiahao/Desktop/YNX-Chain-website","taskId":"P0-262","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"CONSUMED_RELEASED_FAILED_CLOSED_WALLET_WWW_GATE_ROLLED_BACK_TEMP_ALIAS_REMOVED_SSO_RESTORED","acquiredAt":"2026-08-23T11:56:08Z","expiresAt":"2026-08-23T12:26:08Z","releasedAt":"2026-08-23T12:07:41Z","sourceCommit":"be26edbd67c512e22a4f373206d5d82af4c6b0d4","sourceTree":"0fa369a16e3099d59183852f3da076d7be2b95e0","evidenceCommit":"ea5c6648ed664281c8383bfa9d9e480a5211df8a","artifactSha256":"2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d","productionMutationAllowed":false,"allowedExceptions":["P0-262 quotas consumed and lease nonreusable","candidate resources passed through the bounded temporary SSO window, but official www reads failed with SSO 302 Redirecting","temporary alias removed and proven absent with HTTPS 404 DEPLOYMENT_NOT_FOUND; project SSO restored to prod_deployment_urls_and_all_previews","exact www rollback restored dpl_574RBu3xBzE4Bh1jygv2YJruAYfz; apex and wallet aliases unchanged","future hosting requires an eligible public production target not subject to restored SSO; do not repeat alias-only flow","no push, deploy, Blob, source, config, catalog, registry, install, provider, account, signing, typed-data or transaction mutation"]},
-    {"path":"{vercel:alias:wallet-download-preflight.ynxweb4.com,readonly:vercel:deployment:dpl_CBz4cfFxf9WsMDzeLqzaPJGiXLZd,readonly:YNX-Chain-website:public/downloads/wallet-web/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip,vercel:alias:www.ynxweb4.com}","owner":null,"branch":"codex/wallet-extension-static-carrier-prod-base-p0-20260823","worktree":"/Users/huangjiahao/Desktop/YNX-Chain-website","taskId":"P0-259","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"CONSUMED_RELEASED_FAILED_CLOSED_WALLET_TEMP_PREFLIGHT_ALIAS_REMOVED","acquiredAt":"2026-08-23T11:32:52Z","expiresAt":"2026-08-23T12:02:52Z","releasedAt":"2026-08-23T11:40:20Z","sourceCommit":"be26edbd67c512e22a4f373206d5d82af4c6b0d4","sourceTree":"0fa369a16e3099d59183852f3da076d7be2b95e0","evidenceCommit":"be26edbd67c512e22a4f373206d5d82af4c6b0d4","artifactSha256":"2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d","productionMutationAllowed":false,"allowedExceptions":["P0-259 temporary-alias and read quotas consumed and lease nonreusable","all four temporary-host resources returned Vercel SSO 302 text/plain no-store Redirecting instead of candidate bytes","temporary alias removed exactly once and terminally absent with 404 DEPLOYMENT_NOT_FOUND","no www, apex or wallet alias mutation; no official reads or rollback","future lease requires authenticated preflight transport or a bounded SSO protection window while retaining exact temporary-alias cleanup","no push, deploy, Blob, config, catalog, registry, explicit DNS record, install, provider, account, signing, typed-data or transaction mutation"]},
-    {"path":"{readonly:vercel:deployment:dpl_CBz4cfFxf9WsMDzeLqzaPJGiXLZd,readonly:YNX-Chain-website:public/downloads/wallet-web/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip,vercel:alias:www.ynxweb4.com}","owner":null,"branch":"codex/wallet-extension-static-carrier-prod-base-p0-20260823","worktree":"/Users/huangjiahao/Desktop/YNX-Chain-website","taskId":"P0-258","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"CONSUMED_RELEASED_FAILED_CLOSED_WALLET_STATIC_EXISTING_PREVIEW_GATE","acquiredAt":"2026-08-23T11:20:29Z","expiresAt":"2026-08-23T11:50:29Z","releasedAt":"2026-08-23T11:27:55Z","sourceCommit":"be26edbd67c512e22a4f373206d5d82af4c6b0d4","sourceTree":"0fa369a16e3099d59183852f3da076d7be2b95e0","evidenceCommit":"be26edbd67c512e22a4f373206d5d82af4c6b0d4","artifactSha256":"2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d","productionMutationAllowed":false,"allowedExceptions":["P0-258 candidate-read quota consumed and lease nonreusable","exact argv reached transport but the Website executor could not establish TLS connectivity to the existing preview; no HTTP evidence was produced","no retry, alias, official read or rollback occurred; preview and aliases remain unchanged","future lease must bind an actually reachable preflight channel and must not repeat local vercel.app TLS reads","no push, deploy, Blob, config, catalog, registry, apex/wallet alias, install, provider, account, signing, typed-data or transaction mutation"]},
-    {"path":"{readonly:vercel:deployment:dpl_CBz4cfFxf9WsMDzeLqzaPJGiXLZd,readonly:YNX-Chain-website:public/downloads/wallet-web/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip,vercel:alias:www.ynxweb4.com}","owner":null,"branch":"codex/wallet-extension-static-carrier-prod-base-p0-20260823","worktree":"/Users/huangjiahao/Desktop/YNX-Chain-website","taskId":"P0-257","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"CONSUMED_RELEASED_FAILED_CLOSED_WALLET_STATIC_EXISTING_PREVIEW_GATE","acquiredAt":"2026-08-23T11:12:12Z","expiresAt":"2026-08-23T11:42:12Z","releasedAt":"2026-08-23T11:18:09Z","sourceCommit":"be26edbd67c512e22a4f373206d5d82af4c6b0d4","sourceTree":"0fa369a16e3099d59183852f3da076d7be2b95e0","evidenceCommit":"be26edbd67c512e22a4f373206d5d82af4c6b0d4","artifactSha256":"2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d","productionMutationAllowed":false,"allowedExceptions":["P0-257 read quota consumed and lease nonreusable","first candidate read failed before HTTP because Vercel CLI 54.6.1 forwarded --scope to underlying curl","no retry, remaining read, www alias or rollback occurred; preview and all aliases unchanged","future lease must bind process cwd out of band and omit both --cwd and --scope from argv","no push, deploy, Blob, config, catalog, registry, apex/wallet alias, install, provider, account, signing, typed-data or transaction mutation"]},
-    {"path":"{readonly:vercel:deployment:dpl_CBz4cfFxf9WsMDzeLqzaPJGiXLZd,readonly:YNX-Chain-website:public/downloads/wallet-web/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip,vercel:alias:www.ynxweb4.com}","owner":null,"branch":"codex/wallet-extension-static-carrier-prod-base-p0-20260823","worktree":"/Users/huangjiahao/Desktop/YNX-Chain-website","taskId":"P0-256","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"CONSUMED_RELEASED_FAILED_CLOSED_WALLET_STATIC_EXISTING_PREVIEW_GATE","acquiredAt":"2026-08-23T11:03:04Z","expiresAt":"2026-08-23T11:33:04Z","releasedAt":"2026-08-23T11:09:07Z","sourceCommit":"be26edbd67c512e22a4f373206d5d82af4c6b0d4","sourceTree":"0fa369a16e3099d59183852f3da076d7be2b95e0","evidenceCommit":"be26edbd67c512e22a4f373206d5d82af4c6b0d4","artifactSha256":"2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d","productionMutationAllowed":false,"allowedExceptions":["P0-256 read quota consumed and lease nonreusable","first candidate read failed before HTTP because Vercel CLI 54.6.1 forwarded --cwd to underlying curl even when placed before the curl subcommand","no retry, remaining read, www alias or rollback occurred; preview and all aliases unchanged","future lease must bind process working directory out of band and omit --cwd from argv entirely","no push, deploy, Blob, config, catalog, registry, apex/wallet alias, install, provider, account, signing, typed-data or transaction mutation"]},
-    {"path":"{readonly:vercel:deployment:dpl_CBz4cfFxf9WsMDzeLqzaPJGiXLZd,readonly:YNX-Chain-website:public/downloads/wallet-web/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip,vercel:alias:www.ynxweb4.com}","owner":null,"branch":"codex/wallet-extension-static-carrier-prod-base-p0-20260823","worktree":"/Users/huangjiahao/Desktop/YNX-Chain-website","taskId":"P0-255","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"CONSUMED_RELEASED_FAILED_CLOSED_WALLET_STATIC_EXISTING_PREVIEW_GATE","acquiredAt":"2026-08-23T10:54:48Z","expiresAt":"2026-08-23T11:24:48Z","releasedAt":"2026-08-23T11:00:44Z","sourceCommit":"be26edbd67c512e22a4f373206d5d82af4c6b0d4","sourceTree":"0fa369a16e3099d59183852f3da076d7be2b95e0","evidenceCommit":"be26edbd67c512e22a4f373206d5d82af4c6b0d4","artifactSha256":"2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d","productionMutationAllowed":false,"allowedExceptions":["P0-255 read quota consumed and lease nonreusable","first candidate read failed before HTTP because global --cwd followed the curl subcommand and was forwarded to underlying curl","no retry, remaining read, www alias or rollback occurred; preview and all aliases unchanged","no push, deploy, Blob, config, catalog, registry, apex/wallet alias, install, provider, account, signing, typed-data or transaction mutation"]},
-    {"path":"{readonly:vercel:deployment:dpl_CBz4cfFxf9WsMDzeLqzaPJGiXLZd,readonly:YNX-Chain-website:public/downloads/wallet-web/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip,vercel:alias:www.ynxweb4.com}","owner":null,"branch":"codex/wallet-extension-static-carrier-prod-base-p0-20260823","worktree":null,"taskId":"P0-254","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"CONSUMED_RELEASED_FAILED_CLOSED_WALLET_STATIC_EXISTING_PREVIEW_GATE","acquiredAt":"2026-08-23T10:46:12Z","expiresAt":"2026-08-23T11:16:12Z","releasedAt":"2026-08-23T10:52:21Z","sourceCommit":"be26edbd67c512e22a4f373206d5d82af4c6b0d4","sourceTree":"0fa369a16e3099d59183852f3da076d7be2b95e0","evidenceCommit":"be26edbd67c512e22a4f373206d5d82af4c6b0d4","artifactSha256":"2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d","productionMutationAllowed":false,"allowedExceptions":["P0-254 read quota consumed and lease nonreusable","first candidate read failed before HTTP because frozen vercel curl argv omitted --yes","no retry, remaining candidate read, www alias or rollback occurred; preview and all aliases unchanged","no push, deploy, Blob, vercel.json, registry, catalog, apex/wallet alias, install, provider, account, signing, typed-data or transaction mutation"]},
-    {"path":"{YNX-Chain-website:public/downloads/wallet-web/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip,vercel:project:prj_tPB0KDTFohQ9FXZAzq25mYFWkbNa:preview-deployment,vercel:alias:www.ynxweb4.com}","owner":null,"branch":"codex/wallet-extension-static-carrier-prod-base-p0-20260823","worktree":"/tmp/ynx-wallet-static-review.u1lrGI/repo","taskId":"P0-253","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"CONSUMED_RELEASED_FAILED_CLOSED_WALLET_STATIC_PREVIEW_OR_CANDIDATE_GATE","acquiredAt":"2026-08-23T10:35:21Z","expiresAt":"2026-08-23T11:05:21Z","releasedAt":"2026-08-23T10:43:41Z","sourceCommit":"be26edbd67c512e22a4f373206d5d82af4c6b0d4","sourceTree":"0fa369a16e3099d59183852f3da076d7be2b95e0","evidenceCommit":"be26edbd67c512e22a4f373206d5d82af4c6b0d4","artifactSha256":"2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d","productionMutationAllowed":false,"allowedExceptions":["P0-253 push quota consumed and lease nonreusable","literal preview failed before upload; no retry, candidate GET, www alias or rollback occurred","exact-source Git integration preview dpl_CBz4cfFxf9WsMDzeLqzaPJGiXLZd remains READY but unaccepted and unpromoted","no Blob, vercel.json, registry, catalog, apex/wallet alias, other source, install, provider, account, signing, typed-data or transaction mutation"]},
-    {"path":"{host:43.153.202.237:finance-p0252-zero-write-readonly-inspection,readonly:/opt/ynx/leases,readonly:/opt/ynx/leases/finance,readonly:/opt/ynx/stage/finance,readonly:/var/backups/ynx-finance,readonly:/opt/ynx/releases/finance,readonly:/opt/ynx/finance-current,readonly:/etc/ynx/finance.env,readonly:/etc/systemd/system/ynx-finance.service,readonly:/etc/caddy/conf.d/ynx-finance.caddy,readonly:/var/lib/ynx/finance/state.json,readonly:service:ynx-finance.service,readonly:http://127.0.0.1:6483/{health,version},readonly:https://finance.ynxweb4.com/{health,version}}","owner":null,"branch":"codex/p0-finance-wallet-connectivity-20260820","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance","taskId":"P0-252","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"CONSUMED_RELEASED_SUCCESS_FINANCE_P0252_REMOTE_STATE_ZERO_WRITE_INSPECTION","acquiredAt":"2026-08-23T10:20:50Z","expiresAt":"2026-08-23T10:50:50Z","releasedAt":"2026-08-23T10:28:42Z","sourceCommit":"bf3ec44e31b23f15a6c30b578447abc736667c6e","sourceTree":"39b37e30149e18338b3321dd7cf983381f24c9bc","evidenceCommit":"b678621dea98c4ed40da2192ed330100650d4a82","artifactSha256":"abaa974ee8dfdd353b25680bc1489ab457867f0838fc5d4e0fa141fff2286393","productionMutationAllowed":false,"allowedExceptions":["P0-252 read-only quota consumed and nonreusable","remote state known: P0-251 placement absent, P0-247 residues retained, old runtime healthy","no cleanup, rollback, deployment, restart, current/env/state/unit/Caddy/public or non-Finance mutation without a wholly-new lease","no provider/account request, signing, typed data or transaction"]},
-    {"path":"{host:43.153.202.237:finance-p0247-residue-cleanup-only,production:/opt/ynx/leases/finance/p0251-finance-p0247-cleanup-20260823T100000Z.executor.sh,production:/opt/ynx/leases/finance/p0251-finance-p0247-cleanup-20260823T100000Z.json,production:/opt/ynx/stage/finance/p0247-finance-phase3-20260823T073800Z,production:/var/backups/ynx-finance/p0247-finance-phase3-20260823T073800Z,readonly:/opt/ynx/finance-current,readonly:/etc/ynx/finance.env,readonly:/etc/systemd/system/ynx-finance.service,readonly:/etc/caddy/ynx-chain.caddy,readonly:service:ynx-finance.service,readonly:https://finance.ynxweb4.com/{health,version}}","owner":null,"branch":"codex/p0-finance-wallet-connectivity-20260820","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance","taskId":"P0-251","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0251_LITERAL_TRANSPORT_PRINTF_USAGE_REMOTE_STATE_UNKNOWN","acquiredAt":"2026-08-23T10:05:30Z","expiresAt":"2026-08-23T10:35:30Z","releasedAt":"2026-08-23T10:12:04Z","sourceCommit":"14616a2e5066759bace10ef2355ec1f4703b04c7","sourceTree":"1c7921e7928f9cb172580893cc1d91a0d4b8267b","evidenceCommit":"73e489577768415d2ac2ef25711419681ed2a57e","artifactSha256":"d816d438dbad52b43c448ba925cade26ff609da1ee30cbfff32327054e0ea7d9","productionMutationAllowed":false,"allowedExceptions":["P0-251 placement and cleanup authority consumed and nonreusable","remote mutation and residue state remain unknown because no receipt exists","only a wholly-new read-only inspection may be reviewed next","no retry, cleanup, deployment, rollback, restart, non-Finance, account, signing, typed-data or transaction mutation"]},
-    {"path":"vercel:card.ynxweb4.com","owner":null,"branch":"codex/card-p0196-alias-reconciliation-20260823","worktree":"/private/tmp/card-p0196-alias-reconciliation-20260823","taskId":"P0-246","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"CONSUMED_RELEASED_SUCCESS_CARD_P0196_ALIAS_RESTORED_TO_FROZEN_ROLLBACK_WITH_SECURITY_HEADERS","acquiredAt":"2026-08-23T07:10:00Z","expiresAt":"2026-08-23T07:35:00Z","releasedAt":"2026-08-23T07:15:11Z","sourceCommit":null,"sourceTree":null,"evidenceCommit":"64186d8b1462c4bf3e1a20dc985d38906b2217e1","artifactSha256":null,"productionMutationAllowed":false,"allowedExceptions":["P0-246 restore quota consumed and nonreusable","retain exact frozen rollback alias and public evidence","no further alias, deployment, project setting, source, account, signing or transaction mutation"]},
-    {"path":"{host:43.153.202.237:creator-studio-readiness-first-upgrade,service:ynx-video-studio.service,service:ynx-creator-studio-wallet.service,port:127.0.0.1:6495,production:/opt/ynx-release-control-plane/creator-studio,production:/opt/ynx-release-control-plane/creator-studio.p0240-backup,production:/opt/ynx-creator-studio-wallet,production:/etc/systemd/system/ynx-creator-studio-wallet.service,public:https://web4.ynxweb4.com/video/studio/**}","owner":null,"branch":"codex/p0-creator-build-contract-20260822","worktree":"/tmp/ynx-creator-p0240-review.ZRZMiG/repo","taskId":"P0-245","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"CONSUMED_RELEASED_SUCCESS_CREATOR_DEDICATED_RUNTIME_SOURCE_BOUND_PUBLIC_NON_SENSITIVE","acquiredAt":"2026-08-23T06:06:16Z","expiresAt":"2026-08-23T06:36:16Z","releasedAt":"2026-08-23T06:08:42Z","sourceCommit":"0e1a53c5ad1fc9dc2cbfebc13c55f1f426c7e7ae","sourceTree":"057ee8448ee8f8586cf3235dd043644060795301","evidenceCommit":"52cc1063023c457b4a5522109a0fd6c5f70b6d7e","artifactSha256":"5f408265c12802a23ee243b1933778ae15b89eaf89af5a95a2c83de5b3a2b85b","productionMutationAllowed":false,"allowedExceptions":["P0-245 upgrade-forward quota consumed and nonreusable","retain dedicated Creator runtime and exact P0-240 rollback backup","no further Creator or unrelated mutation without a wholly-new lease","no account, signing, typed-data or transaction mutation"]},
-    {"path":"{host:43.153.202.237:creator-studio-terminal-predicate-upgrade,service:ynx-video-studio.service,service:ynx-creator-studio-wallet.service,port:127.0.0.1:6495,production:/opt/ynx-release-control-plane/creator-studio,production:/opt/ynx-release-control-plane/creator-studio.p0240-backup,production:/opt/ynx-creator-studio-wallet,production:/etc/systemd/system/ynx-creator-studio-wallet.service,public:https://web4.ynxweb4.com/video/studio/**}","owner":null,"branch":"codex/p0-creator-build-contract-20260822","worktree":"/tmp/ynx-creator-p0240-review.ZRZMiG/repo","taskId":"P0-244","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"CONSUMED_RELEASED_FAILED_CLOSED_CREATOR_CMDLINE_AND_WORKING_DIRECTORY_PREDICATES_OLD_PLACEMENT_AND_STUDIO_RESTORED","acquiredAt":"2026-08-23T05:55:28Z","expiresAt":"2026-08-23T06:25:28Z","releasedAt":"2026-08-23T05:58:33Z","sourceCommit":"0e1a53c5ad1fc9dc2cbfebc13c55f1f426c7e7ae","sourceTree":"057ee8448ee8f8586cf3235dd043644060795301","evidenceCommit":"c50a29c88da1f00f9f16c40af2c530cd0833c5e2","artifactSha256":"d4433a49d1bab0343c9791187fb573556151d0147db14b0d340c82c7cdd88947","productionMutationAllowed":false,"allowedExceptions":["P0-244 upgrade-forward quota consumed and nonreusable","exact P0-240 placement and old Studio restored","no retry, rollback-upgrade or further Creator/unrelated/sensitive mutation"]},
-    {"path":"{host:43.153.202.237:creator-studio-resolved-cwd-upgrade,service:ynx-video-studio.service,service:ynx-creator-studio-wallet.service,port:127.0.0.1:6495,production:/opt/ynx-release-control-plane/creator-studio,production:/opt/ynx-release-control-plane/creator-studio.p0240-backup,production:/opt/ynx-creator-studio-wallet,production:/etc/systemd/system/ynx-creator-studio-wallet.service,public:https://web4.ynxweb4.com/video/studio/**}","owner":null,"branch":"codex/p0-creator-build-contract-20260822","worktree":"/tmp/ynx-creator-p0240-review.ZRZMiG/repo","taskId":"P0-243","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"CONSUMED_RELEASED_FAILED_CLOSED_CREATOR_AGGREGATE_TERMINAL_IDENTITY_PREDICATE_OLD_PLACEMENT_AND_STUDIO_RESTORED","acquiredAt":"2026-08-23T05:44:40Z","expiresAt":"2026-08-23T06:14:40Z","releasedAt":"2026-08-23T05:47:26Z","sourceCommit":"0e1a53c5ad1fc9dc2cbfebc13c55f1f426c7e7ae","sourceTree":"057ee8448ee8f8586cf3235dd043644060795301","evidenceCommit":"e35781865b332696f2685edb546da6d06f51ff57","artifactSha256":"10db6d8b4137210ce11fd7315977e6820d175bb1f1a718c3d47df4fba078a287","productionMutationAllowed":false,"allowedExceptions":["P0-243 upgrade-forward quota consumed and nonreusable","exact P0-240 placement and old Studio restored","no retry, rollback-upgrade or further Creator/unrelated/sensitive mutation"]},
-    {"path":"{host:43.153.202.237:creator-studio-node-compatible-upgrade,service:ynx-video-studio.service,service:ynx-creator-studio-wallet.service,port:127.0.0.1:6495,production:/opt/ynx-release-control-plane/creator-studio,production:/opt/ynx-release-control-plane/creator-studio.p0240-backup,production:/opt/ynx-creator-studio-wallet,production:/etc/systemd/system/ynx-creator-studio-wallet.service,public:https://web4.ynxweb4.com/video/studio/**}","owner":null,"branch":"codex/p0-creator-build-contract-20260822","worktree":"/tmp/ynx-creator-p0240-review.ZRZMiG/repo","taskId":"P0-242","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"CONSUMED_RELEASED_FAILED_CLOSED_CREATOR_TERMINAL_CWD_SYMLINK_DEREFERENCE_ASSERTION_OLD_PLACEMENT_AND_STUDIO_RESTORED","acquiredAt":"2026-08-23T05:35:50Z","expiresAt":"2026-08-23T06:05:50Z","releasedAt":"2026-08-23T05:38:08Z","sourceCommit":"0e1a53c5ad1fc9dc2cbfebc13c55f1f426c7e7ae","sourceTree":"057ee8448ee8f8586cf3235dd043644060795301","evidenceCommit":"f871fa5698f2814e37c73e8716a7244eeb68370f","artifactSha256":"e9ed00265b15c94273a9ae6619d266599dda7ac4001f56c5b19d7a77c0232891","productionMutationAllowed":false,"allowedExceptions":["P0-242 upgrade-forward quota consumed and nonreusable","exact P0-240 placement and old Studio restored","no retry, rollback-upgrade or further Creator/unrelated/sensitive mutation"]},
     {
-      "path":"{host:43.153.202.237:creator-studio-upgrade,service:ynx-video-studio.service,service:ynx-creator-studio-wallet.service,port:127.0.0.1:6495,production:/opt/ynx-release-control-plane/creator-studio,production:/opt/ynx-release-control-plane/creator-studio.p0240-backup,production:/opt/ynx-creator-studio-wallet,production:/etc/systemd/system/ynx-creator-studio-wallet.service,public:https://web4.ynxweb4.com/video/studio/**}",
-      "owner":null,"branch":"codex/p0-creator-build-contract-20260822","worktree":"/tmp/ynx-creator-p0240-review.ZRZMiG/repo","taskId":"P0-241","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"CONSUMED_RELEASED_FAILED_CLOSED_CREATOR_NODE_V8_UNIT_HARDENING_CONFLICT_OLD_PLACEMENT_AND_STUDIO_RESTORED","acquiredAt":"2026-08-23T05:29:04Z","expiresAt":"2026-08-23T05:59:04Z","releasedAt":"2026-08-23T05:31:52Z","sourceCommit":"0e1a53c5ad1fc9dc2cbfebc13c55f1f426c7e7ae","sourceTree":"057ee8448ee8f8586cf3235dd043644060795301","evidenceCommit":"992a8cb8e4e93cb2215db2bd4cdd62ded138ab5a","artifactSha256":"f6a111c4eed02a84b1e51abd5b7e98f68c8631d4980fcc63d6673df401e60094","productionMutationAllowed":false,"allowedExceptions":["P0-241 upgrade-forward quota consumed and nonreusable","exact P0-240 placement and old Studio restored","no retry, rollback-upgrade or further Creator/unrelated/sensitive mutation"]
+      "path": "{host:43.153.202.237:finance-post-cleanup-readonly-verification,readonly:/opt/ynx/stage/finance/p0247-finance-phase3-20260823T073800Z,readonly:/var/backups/ynx-finance/p0247-finance-phase3-20260823T073800Z,readonly:/opt/ynx/leases/finance/p0247-finance-phase3-20260823T073800Z.{executor.sh,json},readonly:/opt/ynx/leases/finance/p0264-finance-p0247-cleanup-20260823T140755Z.{executor.sh,executor.sh.pending,json,json.pending},readonly:/opt/ynx/finance-current,readonly:/etc/ynx/finance.env,readonly:/etc/systemd/system/ynx-finance.service,readonly:/etc/caddy/conf.d/ynx-finance.caddy,readonly:/var/lib/ynx/finance/state.json,readonly:service:ynx-finance,readonly:http://127.0.0.1:6483/{health,version},readonly:https://finance.ynxweb4.com/{health,version}}",
+      "owner": null,
+      "branch": "codex/p0-finance-wallet-connectivity-20260820",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
+      "taskId": "P0-268",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0268_POST_CLEANUP_READONLY_VERIFICATION_CLEANUP_COMPLETE",
+      "acquiredAt": "2026-08-23T14:18:05Z",
+      "expiresAt": "2026-08-23T14:48:05Z",
+      "releasedAt": "2026-08-23T14:23:34Z",
+      "sourceCommit": "399f90807705500c4173163f4e2964cea113e991",
+      "sourceTree": "39438fa2b2ccd86f35ca97d42e82d060d541e57e",
+      "evidenceCommit": "2065fe7fc349541255e5e4be2b1bf2750eeebeac",
+      "artifactSha256": "b8540f206e3925441d35e80344b6dcc5299f514d0efd48a85fe624a49e904767",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "P0-268 invocation quota consumed and nonreusable",
+        "all four P0-247 residues and all four P0-267 control paths directly proven absent",
+        "old Finance PID2241003 NRestarts0 and loopback/public health/version remained exact",
+        "cleanup complete only; deployment and Wallet lifecycle remain false",
+        "no retry, cleanup, deletion, deploy, rollback, service lifecycle, public mutation, account, signing, typed-data, transaction or secret output"
+      ]
+    },
+    {
+      "path": "{host:43.153.202.237:finance-p0247-residue-cleanup-only,production:/opt/ynx/leases/finance/p0264-finance-p0247-cleanup-20260823T140755Z.{executor.sh,executor.sh.pending,json,json.pending},production:/opt/ynx/stage/finance/p0247-finance-phase3-20260823T073800Z,production:/var/backups/ynx-finance/p0247-finance-phase3-20260823T073800Z,production:/opt/ynx/leases/finance/p0247-finance-phase3-20260823T073800Z.{executor.sh,json},readonly:/opt/ynx/finance-current,readonly:/etc/ynx/finance.env,readonly:/etc/systemd/system/ynx-finance.service,readonly:/etc/caddy/conf.d/ynx-finance.caddy,readonly:/var/lib/ynx/finance/state.json,readonly:service:ynx-finance,readonly:https://finance.ynxweb4.com/{health,version}}",
+      "owner": null,
+      "branch": "codex/p0-finance-wallet-connectivity-20260820",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
+      "taskId": "P0-267",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0267_RESIDUE_CLEANUP_VERIFIED_BY_P0268",
+      "acquiredAt": "2026-08-23T14:07:55Z",
+      "expiresAt": "2026-08-23T14:37:55Z",
+      "releasedAt": "2026-08-23T14:18:05Z",
+      "sourceCommit": "3e80004bcc236104d9a386e7daa7541c22dcb63a",
+      "sourceTree": "a69323c0a28bb0f40956c4f73417d18e4c9e1cfd",
+      "evidenceCommit": "2065fe7fc349541255e5e4be2b1bf2750eeebeac",
+      "artifactSha256": "49b24636095c2d39d59aaf95ab5e32d2f70c5b83e038d2ca2cd033ee539633e5",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "P0-267 invocation quota consumed and nonreusable",
+        "exact six-line cleanup acknowledgement returned once with exit0 and empty stderr",
+        "P0-268 directly proved all residue and control paths absent with old runtime unchanged; cleanup complete accepted",
+        "deployment and Wallet lifecycle remain false and require wholly-new authority",
+        "no retry, cleanup, deletion, deploy, rollback, service lifecycle, public mutation, account, signing, typed-data, transaction or secret output"
+      ]
+    },
+    {
+      "path": "{host:43.153.202.237:finance-post-cleanup-readonly-verification,readonly:/opt/ynx/stage/finance/p0247-finance-phase3-20260823T073800Z,readonly:/var/backups/ynx-finance/p0247-finance-phase3-20260823T073800Z,readonly:/opt/ynx/leases/finance/p0247-finance-phase3-20260823T073800Z.{executor.sh,json,manual-rollback.json},readonly:/opt/ynx/leases/finance/p0264-finance-p0247-cleanup-20260823T134130Z.{executor.sh,executor.sh.pending,json,json.pending},readonly:/opt/ynx/releases/finance/p0247-finance-phase3-20260823T073800Z,readonly:/opt/ynx/finance-current,readonly:/etc/ynx/finance.env,readonly:/etc/systemd/system/ynx-finance.service,readonly:/etc/caddy/conf.d/ynx-finance.caddy,readonly:/var/lib/ynx/finance/state.json,readonly:service:ynx-finance,readonly:http://127.0.0.1:6483/{health,version},readonly:https://finance.ynxweb4.com/{health,version}}",
+      "owner": null,
+      "branch": "codex/p0-finance-wallet-connectivity-20260820",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
+      "taskId": "P0-266",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0266_READONLY_CONFIRMED_P0265_NO_CLEANUP_RUNTIME_UNCHANGED",
+      "acquiredAt": "2026-08-23T13:50:37Z",
+      "expiresAt": "2026-08-23T14:20:37Z",
+      "releasedAt": "2026-08-23T14:00:48Z",
+      "sourceCommit": "ed7db93dfcf3f4a44360a7fa1c3e05f983af851d",
+      "sourceTree": "6ff618bd3bfe80a63c03f4067137f41b50ab3b52",
+      "evidenceCommit": "ed7db93dfcf3f4a44360a7fa1c3e05f983af851d",
+      "artifactSha256": "bce8b145bed99a056f4b3dd8cd924694518ce45588bd047a00c6fe7e991fb556",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "P0-266 invocation quota consumed and nonreusable",
+        "zero-write inspection confirmed all four P0-247 residues still present and all four P0-265 control paths absent",
+        "old Finance runtime remains active and healthy at PID2241003 with NRestarts0",
+        "no new cleanup lease until OpenSSH remote-command serialization is corrected and tested source-only",
+        "no retry, cleanup, deletion, deploy, rollback, service lifecycle, public mutation, account, signing, typed-data, transaction or secret output"
+      ]
+    },
+    {
+      "path": "{host:43.153.202.237:finance-p0247-residue-cleanup-only,production:/opt/ynx/leases/finance/p0264-finance-p0247-cleanup-20260823T134130Z.{executor.sh,executor.sh.pending,json,json.pending},production:/opt/ynx/stage/finance/p0247-finance-phase3-20260823T073800Z,production:/var/backups/ynx-finance/p0247-finance-phase3-20260823T073800Z,production:/opt/ynx/leases/finance/p0247-finance-phase3-20260823T073800Z.{executor.sh,json},readonly:/opt/ynx/finance-current,readonly:/etc/ynx/finance.env,readonly:/etc/systemd/system/ynx-finance.service,readonly:/etc/caddy/conf.d/ynx-finance.caddy,readonly:/var/lib/ynx/finance/state.json,readonly:service:ynx-finance,readonly:https://finance.ynxweb4.com/{health,version}}",
+      "owner": null,
+      "branch": "codex/p0-finance-wallet-connectivity-20260820",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
+      "taskId": "P0-265",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "CONSUMED_RELEASED_UNVERIFIED_FINANCE_P0265_CLEANUP_ZERO_OUTPUT_POSTREAD_REQUIRED",
+      "acquiredAt": "2026-08-23T13:41:30Z",
+      "expiresAt": "2026-08-23T14:11:30Z",
+      "releasedAt": "2026-08-23T13:50:37Z",
+      "sourceCommit": "a77bc1510187ae6e755ffb22dbec9e6df10d5c91",
+      "sourceTree": "9b7faac4e906cc9bc6361d557b2ef3e80569dc65",
+      "evidenceCommit": "54e27e19d46bf0e173a79b7f1c687710bde8d1cb",
+      "artifactSha256": "30eec321937e99b52d8c2078c040841701f3c4971695a85aff5cec6e1e7c00e4",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "P0-265 invocation quota consumed and nonreusable",
+        "local status zero but stdout/stderr empty; cleanup and runtime state unaccepted",
+        "only a wholly-new read-only verification may classify terminal state",
+        "no retry, cleanup, deletion, deploy, rollback, service lifecycle, public mutation, account, signing, typed-data, transaction or secret output"
+      ]
+    },
+    {
+      "path": "{production:/opt/ynx/public-downloads/.P0-WALLET-CHROME-ZIP-PUBLICATION-20260823-03.stage,production:/opt/ynx/public-downloads/wallet/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d,production:/opt/ynx/public-downloads/wallet/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip,production:/etc/caddy/conf.d/downloads.ynxweb4.com.caddy,production:/etc/caddy/conf.d/downloads.ynxweb4.com.caddy.{rollback,next,restore}-P0-WALLET-CHROME-ZIP-PUBLICATION-20260823-03,service:caddy:reload,public:https://downloads.ynxweb4.com/wallet/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip}",
+      "owner": null,
+      "branch": "codex/wallet-desktop-provider-authority-p0-20260822",
+      "worktree": "/private/tmp/ynx-wallet-desktop-installers-p0-20260821",
+      "taskId": "P0-264",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "CONSUMED_RELEASED_SUCCESS_WALLET_DOWNLOADS_CHROME_EDGE_ZIP_SOURCE_BOUND_PUBLIC",
+      "acquiredAt": "2026-08-23T13:16:55Z",
+      "expiresAt": "2026-08-23T13:46:55Z",
+      "releasedAt": "2026-08-23T13:28:47Z",
+      "sourceCommit": "be26edbd67c512e22a4f373206d5d82af4c6b0d4",
+      "sourceTree": "0fa369a16e3099d59183852f3da076d7be2b95e0",
+      "evidenceCommit": "eee9cdf25b0ab8655ef43466c1d445f8e260145d",
+      "artifactSha256": "2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "P0-264 sole invocation quota consumed and nonreusable",
+        "retain exact public Wallet Chrome/Edge ZIP and exact Caddy matcher",
+        "terminal stage, receipt, backup, next and restore residue absent",
+        "no further publication, Caddy, unrelated path, source push, other deployment, account, signing, typed-data, transaction or secret disclosure without a wholly-new lease"
+      ]
+    },
+    {
+      "path": "{production:/opt/ynx/public-downloads/.P0-WALLET-CHROME-ZIP-PUBLICATION-20260823-02.stage,production:/opt/ynx/public-downloads/wallet/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d,production:/opt/ynx/public-downloads/wallet/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip,production:/etc/caddy/conf.d/downloads.ynxweb4.com.caddy,production:/etc/caddy/conf.d/downloads.ynxweb4.com.caddy.{rollback,next,restore}-P0-WALLET-CHROME-ZIP-PUBLICATION-20260823-02,service:caddy:reload,public:https://downloads.ynxweb4.com/wallet/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip}",
+      "owner": null,
+      "branch": "codex/wallet-desktop-provider-authority-p0-20260822",
+      "worktree": "/private/tmp/ynx-wallet-desktop-installers-p0-20260821",
+      "taskId": "P0-263",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_WALLET_DOWNLOADS_SERVICE_USER_PERMISSION_ROLLED_BACK_CLEAN",
+      "acquiredAt": "2026-08-23T12:56:27Z",
+      "expiresAt": "2026-08-23T13:26:27Z",
+      "releasedAt": "2026-08-23T13:05:08Z",
+      "sourceCommit": "be26edbd67c512e22a4f373206d5d82af4c6b0d4",
+      "sourceTree": "0fa369a16e3099d59183852f3da076d7be2b95e0",
+      "evidenceCommit": "532f06ce8040502e43f9e4b9f242cc224f7f52c1",
+      "artifactSha256": "2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "P0-263 invocation quota consumed and nonreusable",
+        "candidate validation passed but reload failed because candidate config and target ZIP were mode 0600 and unreadable by the caddy service user",
+        "identity-bound automatic rollback restored the original Caddy config and target 404",
+        "terminal finalizer removed stage, receipt, backup, next, restore, target and target directory",
+        "future successor must use new paths and chmod 0644 only after full rehash, refresh identities, prove caddy-user readability and validate the full config as caddy user",
+        "no retry, unrelated path, source push, other deployment, account, signing, typed-data, transaction or secret disclosure"
+      ]
+    },
+    {
+      "path": "{vercel-project-sso:prj_tPB0KDTFohQ9FXZAzq25mYFWkbNa,vercel:alias:wallet-download-preflight.ynxweb4.com,readonly:vercel:deployment:dpl_CBz4cfFxf9WsMDzeLqzaPJGiXLZd,readonly:YNX-Chain-website:public/downloads/wallet-web/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip,vercel:alias:www.ynxweb4.com}",
+      "owner": null,
+      "branch": "codex/wallet-web-pwa-extensions-20260813",
+      "worktree": "/Users/huangjiahao/Desktop/YNX-Chain-website",
+      "taskId": "P0-262",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_WALLET_WWW_GATE_ROLLED_BACK_TEMP_ALIAS_REMOVED_SSO_RESTORED",
+      "acquiredAt": "2026-08-23T11:56:08Z",
+      "expiresAt": "2026-08-23T12:26:08Z",
+      "releasedAt": "2026-08-23T12:07:41Z",
+      "sourceCommit": "be26edbd67c512e22a4f373206d5d82af4c6b0d4",
+      "sourceTree": "0fa369a16e3099d59183852f3da076d7be2b95e0",
+      "evidenceCommit": "ea5c6648ed664281c8383bfa9d9e480a5211df8a",
+      "artifactSha256": "2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "P0-262 quotas consumed and lease nonreusable",
+        "candidate resources passed through the bounded temporary SSO window, but official www reads failed with SSO 302 Redirecting",
+        "temporary alias removed and proven absent with HTTPS 404 DEPLOYMENT_NOT_FOUND; project SSO restored to prod_deployment_urls_and_all_previews",
+        "exact www rollback restored dpl_574RBu3xBzE4Bh1jygv2YJruAYfz; apex and wallet aliases unchanged",
+        "future hosting requires an eligible public production target not subject to restored SSO; do not repeat alias-only flow",
+        "no push, deploy, Blob, source, config, catalog, registry, install, provider, account, signing, typed-data or transaction mutation"
+      ]
+    },
+    {
+      "path": "{vercel:alias:wallet-download-preflight.ynxweb4.com,readonly:vercel:deployment:dpl_CBz4cfFxf9WsMDzeLqzaPJGiXLZd,readonly:YNX-Chain-website:public/downloads/wallet-web/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip,vercel:alias:www.ynxweb4.com}",
+      "owner": null,
+      "branch": "codex/wallet-extension-static-carrier-prod-base-p0-20260823",
+      "worktree": "/Users/huangjiahao/Desktop/YNX-Chain-website",
+      "taskId": "P0-259",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_WALLET_TEMP_PREFLIGHT_ALIAS_REMOVED",
+      "acquiredAt": "2026-08-23T11:32:52Z",
+      "expiresAt": "2026-08-23T12:02:52Z",
+      "releasedAt": "2026-08-23T11:40:20Z",
+      "sourceCommit": "be26edbd67c512e22a4f373206d5d82af4c6b0d4",
+      "sourceTree": "0fa369a16e3099d59183852f3da076d7be2b95e0",
+      "evidenceCommit": "be26edbd67c512e22a4f373206d5d82af4c6b0d4",
+      "artifactSha256": "2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "P0-259 temporary-alias and read quotas consumed and lease nonreusable",
+        "all four temporary-host resources returned Vercel SSO 302 text/plain no-store Redirecting instead of candidate bytes",
+        "temporary alias removed exactly once and terminally absent with 404 DEPLOYMENT_NOT_FOUND",
+        "no www, apex or wallet alias mutation; no official reads or rollback",
+        "future lease requires authenticated preflight transport or a bounded SSO protection window while retaining exact temporary-alias cleanup",
+        "no push, deploy, Blob, config, catalog, registry, explicit DNS record, install, provider, account, signing, typed-data or transaction mutation"
+      ]
+    },
+    {
+      "path": "{readonly:vercel:deployment:dpl_CBz4cfFxf9WsMDzeLqzaPJGiXLZd,readonly:YNX-Chain-website:public/downloads/wallet-web/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip,vercel:alias:www.ynxweb4.com}",
+      "owner": null,
+      "branch": "codex/wallet-extension-static-carrier-prod-base-p0-20260823",
+      "worktree": "/Users/huangjiahao/Desktop/YNX-Chain-website",
+      "taskId": "P0-258",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_WALLET_STATIC_EXISTING_PREVIEW_GATE",
+      "acquiredAt": "2026-08-23T11:20:29Z",
+      "expiresAt": "2026-08-23T11:50:29Z",
+      "releasedAt": "2026-08-23T11:27:55Z",
+      "sourceCommit": "be26edbd67c512e22a4f373206d5d82af4c6b0d4",
+      "sourceTree": "0fa369a16e3099d59183852f3da076d7be2b95e0",
+      "evidenceCommit": "be26edbd67c512e22a4f373206d5d82af4c6b0d4",
+      "artifactSha256": "2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "P0-258 candidate-read quota consumed and lease nonreusable",
+        "exact argv reached transport but the Website executor could not establish TLS connectivity to the existing preview; no HTTP evidence was produced",
+        "no retry, alias, official read or rollback occurred; preview and aliases remain unchanged",
+        "future lease must bind an actually reachable preflight channel and must not repeat local vercel.app TLS reads",
+        "no push, deploy, Blob, config, catalog, registry, apex/wallet alias, install, provider, account, signing, typed-data or transaction mutation"
+      ]
+    },
+    {
+      "path": "{readonly:vercel:deployment:dpl_CBz4cfFxf9WsMDzeLqzaPJGiXLZd,readonly:YNX-Chain-website:public/downloads/wallet-web/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip,vercel:alias:www.ynxweb4.com}",
+      "owner": null,
+      "branch": "codex/wallet-extension-static-carrier-prod-base-p0-20260823",
+      "worktree": "/Users/huangjiahao/Desktop/YNX-Chain-website",
+      "taskId": "P0-257",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_WALLET_STATIC_EXISTING_PREVIEW_GATE",
+      "acquiredAt": "2026-08-23T11:12:12Z",
+      "expiresAt": "2026-08-23T11:42:12Z",
+      "releasedAt": "2026-08-23T11:18:09Z",
+      "sourceCommit": "be26edbd67c512e22a4f373206d5d82af4c6b0d4",
+      "sourceTree": "0fa369a16e3099d59183852f3da076d7be2b95e0",
+      "evidenceCommit": "be26edbd67c512e22a4f373206d5d82af4c6b0d4",
+      "artifactSha256": "2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "P0-257 read quota consumed and lease nonreusable",
+        "first candidate read failed before HTTP because Vercel CLI 54.6.1 forwarded --scope to underlying curl",
+        "no retry, remaining read, www alias or rollback occurred; preview and all aliases unchanged",
+        "future lease must bind process cwd out of band and omit both --cwd and --scope from argv",
+        "no push, deploy, Blob, config, catalog, registry, apex/wallet alias, install, provider, account, signing, typed-data or transaction mutation"
+      ]
+    },
+    {
+      "path": "{readonly:vercel:deployment:dpl_CBz4cfFxf9WsMDzeLqzaPJGiXLZd,readonly:YNX-Chain-website:public/downloads/wallet-web/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip,vercel:alias:www.ynxweb4.com}",
+      "owner": null,
+      "branch": "codex/wallet-extension-static-carrier-prod-base-p0-20260823",
+      "worktree": "/Users/huangjiahao/Desktop/YNX-Chain-website",
+      "taskId": "P0-256",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_WALLET_STATIC_EXISTING_PREVIEW_GATE",
+      "acquiredAt": "2026-08-23T11:03:04Z",
+      "expiresAt": "2026-08-23T11:33:04Z",
+      "releasedAt": "2026-08-23T11:09:07Z",
+      "sourceCommit": "be26edbd67c512e22a4f373206d5d82af4c6b0d4",
+      "sourceTree": "0fa369a16e3099d59183852f3da076d7be2b95e0",
+      "evidenceCommit": "be26edbd67c512e22a4f373206d5d82af4c6b0d4",
+      "artifactSha256": "2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "P0-256 read quota consumed and lease nonreusable",
+        "first candidate read failed before HTTP because Vercel CLI 54.6.1 forwarded --cwd to underlying curl even when placed before the curl subcommand",
+        "no retry, remaining read, www alias or rollback occurred; preview and all aliases unchanged",
+        "future lease must bind process working directory out of band and omit --cwd from argv entirely",
+        "no push, deploy, Blob, config, catalog, registry, apex/wallet alias, install, provider, account, signing, typed-data or transaction mutation"
+      ]
+    },
+    {
+      "path": "{readonly:vercel:deployment:dpl_CBz4cfFxf9WsMDzeLqzaPJGiXLZd,readonly:YNX-Chain-website:public/downloads/wallet-web/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip,vercel:alias:www.ynxweb4.com}",
+      "owner": null,
+      "branch": "codex/wallet-extension-static-carrier-prod-base-p0-20260823",
+      "worktree": "/Users/huangjiahao/Desktop/YNX-Chain-website",
+      "taskId": "P0-255",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_WALLET_STATIC_EXISTING_PREVIEW_GATE",
+      "acquiredAt": "2026-08-23T10:54:48Z",
+      "expiresAt": "2026-08-23T11:24:48Z",
+      "releasedAt": "2026-08-23T11:00:44Z",
+      "sourceCommit": "be26edbd67c512e22a4f373206d5d82af4c6b0d4",
+      "sourceTree": "0fa369a16e3099d59183852f3da076d7be2b95e0",
+      "evidenceCommit": "be26edbd67c512e22a4f373206d5d82af4c6b0d4",
+      "artifactSha256": "2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "P0-255 read quota consumed and lease nonreusable",
+        "first candidate read failed before HTTP because global --cwd followed the curl subcommand and was forwarded to underlying curl",
+        "no retry, remaining read, www alias or rollback occurred; preview and all aliases unchanged",
+        "no push, deploy, Blob, config, catalog, registry, apex/wallet alias, install, provider, account, signing, typed-data or transaction mutation"
+      ]
+    },
+    {
+      "path": "{readonly:vercel:deployment:dpl_CBz4cfFxf9WsMDzeLqzaPJGiXLZd,readonly:YNX-Chain-website:public/downloads/wallet-web/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip,vercel:alias:www.ynxweb4.com}",
+      "owner": null,
+      "branch": "codex/wallet-extension-static-carrier-prod-base-p0-20260823",
+      "worktree": null,
+      "taskId": "P0-254",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_WALLET_STATIC_EXISTING_PREVIEW_GATE",
+      "acquiredAt": "2026-08-23T10:46:12Z",
+      "expiresAt": "2026-08-23T11:16:12Z",
+      "releasedAt": "2026-08-23T10:52:21Z",
+      "sourceCommit": "be26edbd67c512e22a4f373206d5d82af4c6b0d4",
+      "sourceTree": "0fa369a16e3099d59183852f3da076d7be2b95e0",
+      "evidenceCommit": "be26edbd67c512e22a4f373206d5d82af4c6b0d4",
+      "artifactSha256": "2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "P0-254 read quota consumed and lease nonreusable",
+        "first candidate read failed before HTTP because frozen vercel curl argv omitted --yes",
+        "no retry, remaining candidate read, www alias or rollback occurred; preview and all aliases unchanged",
+        "no push, deploy, Blob, vercel.json, registry, catalog, apex/wallet alias, install, provider, account, signing, typed-data or transaction mutation"
+      ]
+    },
+    {
+      "path": "{YNX-Chain-website:public/downloads/wallet-web/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip,vercel:project:prj_tPB0KDTFohQ9FXZAzq25mYFWkbNa:preview-deployment,vercel:alias:www.ynxweb4.com}",
+      "owner": null,
+      "branch": "codex/wallet-extension-static-carrier-prod-base-p0-20260823",
+      "worktree": "/tmp/ynx-wallet-static-review.u1lrGI/repo",
+      "taskId": "P0-253",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_WALLET_STATIC_PREVIEW_OR_CANDIDATE_GATE",
+      "acquiredAt": "2026-08-23T10:35:21Z",
+      "expiresAt": "2026-08-23T11:05:21Z",
+      "releasedAt": "2026-08-23T10:43:41Z",
+      "sourceCommit": "be26edbd67c512e22a4f373206d5d82af4c6b0d4",
+      "sourceTree": "0fa369a16e3099d59183852f3da076d7be2b95e0",
+      "evidenceCommit": "be26edbd67c512e22a4f373206d5d82af4c6b0d4",
+      "artifactSha256": "2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "P0-253 push quota consumed and lease nonreusable",
+        "literal preview failed before upload; no retry, candidate GET, www alias or rollback occurred",
+        "exact-source Git integration preview dpl_CBz4cfFxf9WsMDzeLqzaPJGiXLZd remains READY but unaccepted and unpromoted",
+        "no Blob, vercel.json, registry, catalog, apex/wallet alias, other source, install, provider, account, signing, typed-data or transaction mutation"
+      ]
+    },
+    {
+      "path": "{host:43.153.202.237:finance-p0252-zero-write-readonly-inspection,readonly:/opt/ynx/leases,readonly:/opt/ynx/leases/finance,readonly:/opt/ynx/stage/finance,readonly:/var/backups/ynx-finance,readonly:/opt/ynx/releases/finance,readonly:/opt/ynx/finance-current,readonly:/etc/ynx/finance.env,readonly:/etc/systemd/system/ynx-finance.service,readonly:/etc/caddy/conf.d/ynx-finance.caddy,readonly:/var/lib/ynx/finance/state.json,readonly:service:ynx-finance.service,readonly:http://127.0.0.1:6483/{health,version},readonly:https://finance.ynxweb4.com/{health,version}}",
+      "owner": null,
+      "branch": "codex/p0-finance-wallet-connectivity-20260820",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
+      "taskId": "P0-252",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0252_REMOTE_STATE_ZERO_WRITE_INSPECTION",
+      "acquiredAt": "2026-08-23T10:20:50Z",
+      "expiresAt": "2026-08-23T10:50:50Z",
+      "releasedAt": "2026-08-23T10:28:42Z",
+      "sourceCommit": "bf3ec44e31b23f15a6c30b578447abc736667c6e",
+      "sourceTree": "39b37e30149e18338b3321dd7cf983381f24c9bc",
+      "evidenceCommit": "b678621dea98c4ed40da2192ed330100650d4a82",
+      "artifactSha256": "abaa974ee8dfdd353b25680bc1489ab457867f0838fc5d4e0fa141fff2286393",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "P0-252 read-only quota consumed and nonreusable",
+        "remote state known: P0-251 placement absent, P0-247 residues retained, old runtime healthy",
+        "no cleanup, rollback, deployment, restart, current/env/state/unit/Caddy/public or non-Finance mutation without a wholly-new lease",
+        "no provider/account request, signing, typed data or transaction"
+      ]
+    },
+    {
+      "path": "{host:43.153.202.237:finance-p0247-residue-cleanup-only,production:/opt/ynx/leases/finance/p0251-finance-p0247-cleanup-20260823T100000Z.executor.sh,production:/opt/ynx/leases/finance/p0251-finance-p0247-cleanup-20260823T100000Z.json,production:/opt/ynx/stage/finance/p0247-finance-phase3-20260823T073800Z,production:/var/backups/ynx-finance/p0247-finance-phase3-20260823T073800Z,readonly:/opt/ynx/finance-current,readonly:/etc/ynx/finance.env,readonly:/etc/systemd/system/ynx-finance.service,readonly:/etc/caddy/ynx-chain.caddy,readonly:service:ynx-finance.service,readonly:https://finance.ynxweb4.com/{health,version}}",
+      "owner": null,
+      "branch": "codex/p0-finance-wallet-connectivity-20260820",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
+      "taskId": "P0-251",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0251_LITERAL_TRANSPORT_PRINTF_USAGE_REMOTE_STATE_UNKNOWN",
+      "acquiredAt": "2026-08-23T10:05:30Z",
+      "expiresAt": "2026-08-23T10:35:30Z",
+      "releasedAt": "2026-08-23T10:12:04Z",
+      "sourceCommit": "14616a2e5066759bace10ef2355ec1f4703b04c7",
+      "sourceTree": "1c7921e7928f9cb172580893cc1d91a0d4b8267b",
+      "evidenceCommit": "73e489577768415d2ac2ef25711419681ed2a57e",
+      "artifactSha256": "d816d438dbad52b43c448ba925cade26ff609da1ee30cbfff32327054e0ea7d9",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "P0-251 placement and cleanup authority consumed and nonreusable",
+        "remote mutation and residue state remain unknown because no receipt exists",
+        "only a wholly-new read-only inspection may be reviewed next",
+        "no retry, cleanup, deployment, rollback, restart, non-Finance, account, signing, typed-data or transaction mutation"
+      ]
+    },
+    {
+      "path": "vercel:card.ynxweb4.com",
+      "owner": null,
+      "branch": "codex/card-p0196-alias-reconciliation-20260823",
+      "worktree": "/private/tmp/card-p0196-alias-reconciliation-20260823",
+      "taskId": "P0-246",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "CONSUMED_RELEASED_SUCCESS_CARD_P0196_ALIAS_RESTORED_TO_FROZEN_ROLLBACK_WITH_SECURITY_HEADERS",
+      "acquiredAt": "2026-08-23T07:10:00Z",
+      "expiresAt": "2026-08-23T07:35:00Z",
+      "releasedAt": "2026-08-23T07:15:11Z",
+      "sourceCommit": null,
+      "sourceTree": null,
+      "evidenceCommit": "64186d8b1462c4bf3e1a20dc985d38906b2217e1",
+      "artifactSha256": null,
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "P0-246 restore quota consumed and nonreusable",
+        "retain exact frozen rollback alias and public evidence",
+        "no further alias, deployment, project setting, source, account, signing or transaction mutation"
+      ]
+    },
+    {
+      "path": "{host:43.153.202.237:creator-studio-readiness-first-upgrade,service:ynx-video-studio.service,service:ynx-creator-studio-wallet.service,port:127.0.0.1:6495,production:/opt/ynx-release-control-plane/creator-studio,production:/opt/ynx-release-control-plane/creator-studio.p0240-backup,production:/opt/ynx-creator-studio-wallet,production:/etc/systemd/system/ynx-creator-studio-wallet.service,public:https://web4.ynxweb4.com/video/studio/**}",
+      "owner": null,
+      "branch": "codex/p0-creator-build-contract-20260822",
+      "worktree": "/tmp/ynx-creator-p0240-review.ZRZMiG/repo",
+      "taskId": "P0-245",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "CONSUMED_RELEASED_SUCCESS_CREATOR_DEDICATED_RUNTIME_SOURCE_BOUND_PUBLIC_NON_SENSITIVE",
+      "acquiredAt": "2026-08-23T06:06:16Z",
+      "expiresAt": "2026-08-23T06:36:16Z",
+      "releasedAt": "2026-08-23T06:08:42Z",
+      "sourceCommit": "0e1a53c5ad1fc9dc2cbfebc13c55f1f426c7e7ae",
+      "sourceTree": "057ee8448ee8f8586cf3235dd043644060795301",
+      "evidenceCommit": "52cc1063023c457b4a5522109a0fd6c5f70b6d7e",
+      "artifactSha256": "5f408265c12802a23ee243b1933778ae15b89eaf89af5a95a2c83de5b3a2b85b",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "P0-245 upgrade-forward quota consumed and nonreusable",
+        "retain dedicated Creator runtime and exact P0-240 rollback backup",
+        "no further Creator or unrelated mutation without a wholly-new lease",
+        "no account, signing, typed-data or transaction mutation"
+      ]
+    },
+    {
+      "path": "{host:43.153.202.237:creator-studio-terminal-predicate-upgrade,service:ynx-video-studio.service,service:ynx-creator-studio-wallet.service,port:127.0.0.1:6495,production:/opt/ynx-release-control-plane/creator-studio,production:/opt/ynx-release-control-plane/creator-studio.p0240-backup,production:/opt/ynx-creator-studio-wallet,production:/etc/systemd/system/ynx-creator-studio-wallet.service,public:https://web4.ynxweb4.com/video/studio/**}",
+      "owner": null,
+      "branch": "codex/p0-creator-build-contract-20260822",
+      "worktree": "/tmp/ynx-creator-p0240-review.ZRZMiG/repo",
+      "taskId": "P0-244",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_CREATOR_CMDLINE_AND_WORKING_DIRECTORY_PREDICATES_OLD_PLACEMENT_AND_STUDIO_RESTORED",
+      "acquiredAt": "2026-08-23T05:55:28Z",
+      "expiresAt": "2026-08-23T06:25:28Z",
+      "releasedAt": "2026-08-23T05:58:33Z",
+      "sourceCommit": "0e1a53c5ad1fc9dc2cbfebc13c55f1f426c7e7ae",
+      "sourceTree": "057ee8448ee8f8586cf3235dd043644060795301",
+      "evidenceCommit": "c50a29c88da1f00f9f16c40af2c530cd0833c5e2",
+      "artifactSha256": "d4433a49d1bab0343c9791187fb573556151d0147db14b0d340c82c7cdd88947",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "P0-244 upgrade-forward quota consumed and nonreusable",
+        "exact P0-240 placement and old Studio restored",
+        "no retry, rollback-upgrade or further Creator/unrelated/sensitive mutation"
+      ]
+    },
+    {
+      "path": "{host:43.153.202.237:creator-studio-resolved-cwd-upgrade,service:ynx-video-studio.service,service:ynx-creator-studio-wallet.service,port:127.0.0.1:6495,production:/opt/ynx-release-control-plane/creator-studio,production:/opt/ynx-release-control-plane/creator-studio.p0240-backup,production:/opt/ynx-creator-studio-wallet,production:/etc/systemd/system/ynx-creator-studio-wallet.service,public:https://web4.ynxweb4.com/video/studio/**}",
+      "owner": null,
+      "branch": "codex/p0-creator-build-contract-20260822",
+      "worktree": "/tmp/ynx-creator-p0240-review.ZRZMiG/repo",
+      "taskId": "P0-243",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_CREATOR_AGGREGATE_TERMINAL_IDENTITY_PREDICATE_OLD_PLACEMENT_AND_STUDIO_RESTORED",
+      "acquiredAt": "2026-08-23T05:44:40Z",
+      "expiresAt": "2026-08-23T06:14:40Z",
+      "releasedAt": "2026-08-23T05:47:26Z",
+      "sourceCommit": "0e1a53c5ad1fc9dc2cbfebc13c55f1f426c7e7ae",
+      "sourceTree": "057ee8448ee8f8586cf3235dd043644060795301",
+      "evidenceCommit": "e35781865b332696f2685edb546da6d06f51ff57",
+      "artifactSha256": "10db6d8b4137210ce11fd7315977e6820d175bb1f1a718c3d47df4fba078a287",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "P0-243 upgrade-forward quota consumed and nonreusable",
+        "exact P0-240 placement and old Studio restored",
+        "no retry, rollback-upgrade or further Creator/unrelated/sensitive mutation"
+      ]
+    },
+    {
+      "path": "{host:43.153.202.237:creator-studio-node-compatible-upgrade,service:ynx-video-studio.service,service:ynx-creator-studio-wallet.service,port:127.0.0.1:6495,production:/opt/ynx-release-control-plane/creator-studio,production:/opt/ynx-release-control-plane/creator-studio.p0240-backup,production:/opt/ynx-creator-studio-wallet,production:/etc/systemd/system/ynx-creator-studio-wallet.service,public:https://web4.ynxweb4.com/video/studio/**}",
+      "owner": null,
+      "branch": "codex/p0-creator-build-contract-20260822",
+      "worktree": "/tmp/ynx-creator-p0240-review.ZRZMiG/repo",
+      "taskId": "P0-242",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_CREATOR_TERMINAL_CWD_SYMLINK_DEREFERENCE_ASSERTION_OLD_PLACEMENT_AND_STUDIO_RESTORED",
+      "acquiredAt": "2026-08-23T05:35:50Z",
+      "expiresAt": "2026-08-23T06:05:50Z",
+      "releasedAt": "2026-08-23T05:38:08Z",
+      "sourceCommit": "0e1a53c5ad1fc9dc2cbfebc13c55f1f426c7e7ae",
+      "sourceTree": "057ee8448ee8f8586cf3235dd043644060795301",
+      "evidenceCommit": "f871fa5698f2814e37c73e8716a7244eeb68370f",
+      "artifactSha256": "e9ed00265b15c94273a9ae6619d266599dda7ac4001f56c5b19d7a77c0232891",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "P0-242 upgrade-forward quota consumed and nonreusable",
+        "exact P0-240 placement and old Studio restored",
+        "no retry, rollback-upgrade or further Creator/unrelated/sensitive mutation"
+      ]
+    },
+    {
+      "path": "{host:43.153.202.237:creator-studio-upgrade,service:ynx-video-studio.service,service:ynx-creator-studio-wallet.service,port:127.0.0.1:6495,production:/opt/ynx-release-control-plane/creator-studio,production:/opt/ynx-release-control-plane/creator-studio.p0240-backup,production:/opt/ynx-creator-studio-wallet,production:/etc/systemd/system/ynx-creator-studio-wallet.service,public:https://web4.ynxweb4.com/video/studio/**}",
+      "owner": null,
+      "branch": "codex/p0-creator-build-contract-20260822",
+      "worktree": "/tmp/ynx-creator-p0240-review.ZRZMiG/repo",
+      "taskId": "P0-241",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_CREATOR_NODE_V8_UNIT_HARDENING_CONFLICT_OLD_PLACEMENT_AND_STUDIO_RESTORED",
+      "acquiredAt": "2026-08-23T05:29:04Z",
+      "expiresAt": "2026-08-23T05:59:04Z",
+      "releasedAt": "2026-08-23T05:31:52Z",
+      "sourceCommit": "0e1a53c5ad1fc9dc2cbfebc13c55f1f426c7e7ae",
+      "sourceTree": "057ee8448ee8f8586cf3235dd043644060795301",
+      "evidenceCommit": "992a8cb8e4e93cb2215db2bd4cdd62ded138ab5a",
+      "artifactSha256": "f6a111c4eed02a84b1e51abd5b7e98f68c8631d4980fcc63d6673df401e60094",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "P0-241 upgrade-forward quota consumed and nonreusable",
+        "exact P0-240 placement and old Studio restored",
+        "no retry, rollback-upgrade or further Creator/unrelated/sensitive mutation"
+      ]
     },
     {
       "path": "{host:43.153.202.237:creator-studio-bootstrap,service:ynx-video-studio.service,service:ynx-creator-studio-wallet.service,port:127.0.0.1:6495,production:/opt/ynx-release-control-plane,production:/opt/ynx-creator-studio-wallet,production:/etc/systemd/system/ynx-creator-studio-wallet.service,public:https://web4.ynxweb4.com/video/studio/**}",
@@ -44,7 +532,12 @@
       "evidenceCommit": "5e1f677362e085b51114e675b3415bc574d3db20",
       "artifactSha256": "3f56aa4c3f9d87d27f7cdf19eafc0dacf1da78d83d31def2080f0162d92bdf8a",
       "productionMutationAllowed": false,
-      "allowedExceptions": ["P0-240 placement and forward quotas are consumed and nonreusable", "preserve the exact control-plane placement and terminal failure evidence", "automatic cleanup restored old Studio and removed dedicated root/unit", "no further Creator, shared current, Caddy, API, Viewer, account, signing or transaction mutation"]
+      "allowedExceptions": [
+        "P0-240 placement and forward quotas are consumed and nonreusable",
+        "preserve the exact control-plane placement and terminal failure evidence",
+        "automatic cleanup restored old Studio and removed dedicated root/unit",
+        "no further Creator, shared current, Caddy, API, Viewer, account, signing or transaction mutation"
+      ]
     },
     {
       "path": "{host:43.153.202.237:video-tuple-safe-emergency-recovery,service:ynx-video-viewer.service,port:127.0.0.1:6494,production:/opt/ynx-video/releases/p0205-creator-studio-0e1a53c5/apps/video,production:/var/lib/ynx-video-viewer-wallet-evidence/video-legacy-viewer-emergency-recovery.receipt,staging:/var/tmp/ynx-video-legacy-viewer-emergency-recovery.sh}",
@@ -62,7 +555,12 @@
       "evidenceCommit": "f338be32321f63e49d5a2d10d37480b7e0ce7cca",
       "artifactSha256": "a1acb36475baed0bbee6c1b41568dc241549680cc88273241b26953024855cc3",
       "productionMutationAllowed": false,
-      "allowedExceptions": ["P0-239 script replacement and recovery authorities are consumed and nonreusable", "legacy Viewer recovery evidence and exact staged script remain retained", "no further Video mutation without a wholly-new lease", "no candidate, account, signing or transaction mutation"]
+      "allowedExceptions": [
+        "P0-239 script replacement and recovery authorities are consumed and nonreusable",
+        "legacy Viewer recovery evidence and exact staged script remain retained",
+        "no further Video mutation without a wholly-new lease",
+        "no candidate, account, signing or transaction mutation"
+      ]
     },
     {
       "path": "{host:43.153.202.237:video-emergency-recovery,service:ynx-video-viewer.service,port:127.0.0.1:6494,production:/opt/ynx-video/releases/p0205-creator-studio-0e1a53c5/apps/video,production:/var/lib/ynx-video-viewer-wallet-evidence/video-legacy-viewer-emergency-recovery.receipt,staging:/var/tmp/ynx-video-legacy-viewer-emergency-recovery.sh}",
@@ -80,7 +578,12 @@
       "evidenceCommit": "5d32f8f11e487fb5152dec5b6c4915bac2ffd023",
       "artifactSha256": "d07748594ab2007b665d6c34b055f13759ebb8de28362d4697c426c4e819b503",
       "productionMutationAllowed": false,
-      "allowedExceptions": ["P0-238 upload and recovery authorities are consumed and nonreusable", "preserve exact uploaded recovery script and P0-237 evidence", "no further Video mutation without a wholly-new quoted or stdin-safe recovery lease", "no symlink, unit, Caddy, API, Creator, candidate, account, signing or transaction mutation"]
+      "allowedExceptions": [
+        "P0-238 upload and recovery authorities are consumed and nonreusable",
+        "preserve exact uploaded recovery script and P0-237 evidence",
+        "no further Video mutation without a wholly-new quoted or stdin-safe recovery lease",
+        "no symlink, unit, Caddy, API, Creator, candidate, account, signing or transaction mutation"
+      ]
     },
     {
       "path": "{host:43.153.202.237:video-controlled-takeover,service:ynx-video-viewer.service,service:ynx-video-viewer-wallet.service,port:127.0.0.1:6494,production:/opt/ynx-video-viewer-wallet,production:/etc/systemd/system/ynx-video-viewer-wallet.service,production:/var/lib/ynx-video-viewer-wallet-evidence,production:/var/lib/ynx-video-viewer-wallet-evidence.identity,staging:/var/tmp/ynx-video-runtime-controlled-takeover-3b1a062b.sh,staging:/var/tmp/ynx-video-runtime-bootstrap-f1e8ed4c.sh,staging:/var/tmp/ynx-video-viewer-wallet.service,staging:/var/tmp/ynx-video-predecessor-e5ce335-runtime.tar.gz,staging:/var/tmp/video-legacy-viewer-controlled-takeover-baseline.txt}",
@@ -98,7 +601,12 @@
       "evidenceCommit": "2dbc1aad4281454ccde32191a1730e111255cc87",
       "artifactSha256": "6771deb82ccc62a9c14d62ed40e7bda961806ffe3c14681b9cf53ec27afef2df",
       "productionMutationAllowed": false,
-      "allowedExceptions": ["P0-237 upload and takeover authorities are consumed and nonreusable", "no further Video mutation without a wholly-new exact recovery lease", "preserve receipt parent, identity, takeover receipt and five staged objects", "no shared current, Caddy, API, Creator, candidate product, account, signing or transaction mutation"]
+      "allowedExceptions": [
+        "P0-237 upload and takeover authorities are consumed and nonreusable",
+        "no further Video mutation without a wholly-new exact recovery lease",
+        "preserve receipt parent, identity, takeover receipt and five staged objects",
+        "no shared current, Caddy, API, Creator, candidate product, account, signing or transaction mutation"
+      ]
     },
     {
       "path": "{host:43.153.202.237:finance-phase2b-preparation,production:/opt/ynx/leases/finance-preparation/p0228-finance-phase1-20260822T234100Z.json,production:/opt/ynx/leases/finance-preparation/p0228-finance-phase1-20260822T234100Z.json.pending,production:/opt/ynx/stage/finance/p0228-finance-phase1-20260822T234100Z/candidate.tgz,production:/opt/ynx/stage/finance/p0228-finance-phase1-20260822T234100Z/finance.env,local:release/integration/p0-wallet-connectivity/execution/p0-236-finance-phase2b-candidate-env-preparation-stdin-20260823.json}",
@@ -2335,8 +2843,7 @@
         "the frozen transport exited locally with status 65 before SSH; stdout and stderr are empty, receipts are absent and SSH/deploy counts are zero",
         "P0-288 and its mutation authority are consumed and nonreusable; Heavy and all P0-288 locks are released"
       ]
-    }
-,
+    },
     {
       "path": "{host:43.153.202.237:finance-p0289-direct-argv-rollback-first-deploy,stable-parent:/opt/ynx/leases/finance,control:/opt/ynx/leases/finance/p0289-finance-phase3-20260824t010000z.*,stage:/opt/ynx/stage/finance/p0289-finance-phase3-20260824t010000z/**,backup:/var/backups/ynx-finance/p0289-finance-phase3-20260824t010000z/**,release:/opt/ynx/releases/finance/p0289-finance-phase3-20260824t010000z/**,current:/opt/ynx/finance-current,env:/etc/ynx/finance.env,state:/var/lib/ynx/finance/state.json,service:ynx-finance.service,readonly-unit:/etc/systemd/system/ynx-finance.service,readonly-caddy:/etc/caddy/conf.d/ynx-finance.caddy,public:https://finance.ynxweb4.com/**}",
       "owner": "finance-release-control-plane",
@@ -2607,6 +3114,29 @@
         "no cleanup rollback deploy lifecycle config public Wallet account signature typed-data or transaction mutation",
         "direct terminal evidence proved every P0-298 owned path absent, old runtime and six HTTP gates exact, and mutationCount0",
         "P0-299 is consumed and nonreusable; Heavy and the read-only path lock are released"
+      ]
+    },
+    {
+      "path": "{host:43.153.202.237:finance-p0300-rollback-first,write:/opt/ynx/leases/finance/p0300-finance-phase3-20260824t210000z.*,write:/opt/ynx/stage/finance/p0300-finance-phase3-20260824t210000z/**,write:/var/backups/ynx-finance/p0300-finance-phase3-20260824t210000z/**,write:/opt/ynx/releases/finance/p0300-finance-phase3-20260824t210000z/**,write:/opt/ynx/finance-current*,write:/etc/ynx/finance.env,write:/var/lib/ynx/finance/state.json,lifecycle:ynx-finance.service,readonly:/etc/systemd/system/ynx-finance.service,readonly:/etc/caddy/conf.d/ynx-finance.caddy,verify:http://127.0.0.1:6483/**,verify:https://finance.ynxweb4.com/**}",
+      "owner": "finance-release-control-plane",
+      "branch": "codex/p0-finance-p0300-observer-self-identity-20260824",
+      "worktree": "/private/tmp/ynx-finance-p0300-parent-observer",
+      "taskId": "P0-300",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE",
+      "acquiredAt": "2026-08-23T20:47:00Z",
+      "expiresAt": "2026-08-23T21:17:00Z",
+      "releasedAt": null,
+      "sourceCommit": "00a9375d1d5eef1d37656b71924c31929281c9a1",
+      "sourceTree": "ff35e8d6fed61380d6d39f3614422a06696aa108",
+      "evidenceCommit": "00a9375d1d5eef1d37656b71924c31929281c9a1",
+      "artifactSha256": "a4216861dfa7cf9b9cded0477fe2ce7e9425a2e8576871a5f763cd34fcc61421",
+      "productionMutationAllowed": true,
+      "allowedExceptions": [
+        "one exact parent-preserving Node observer invocation and one child deployment attempt; no retry",
+        "automatic rollback under the exact executor on post-write failure",
+        "observer and child argv, cwd, empty env and outputs identity frozen",
+        "unit and Caddy immutable; no Wallet account signature typed-data or transaction action"
       ]
     }
   ]
