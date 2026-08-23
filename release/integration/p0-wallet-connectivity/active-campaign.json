@@ -427,25 +427,25 @@
     }
   ],
   "heavy": {
-    "owner": "website-release-control-plane-wallet-artifact-only",
-    "taskId": "P0-254",
-    "status": "ACTIVE_SINGLE_USE",
+    "owner": null,
+    "taskId": null,
+    "status": "IDLE",
     "acquiredAt": "2026-08-23T10:46:12Z",
     "expiresAt": "2026-08-23T11:16:12Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-23T10:52:21Z",
     "sourceCommit": "be26edbd67c512e22a4f373206d5d82af4c6b0d4",
     "evidenceCommit": "be26edbd67c512e22a4f373206d5d82af4c6b0d4",
     "runtimeHost": "vercel:dpl_CBz4cfFxf9WsMDzeLqzaPJGiXLZd:www.ynxweb4.com",
     "currentRuntime": "DPL_574RBU3XBZE4BH1JYGV2YJRUAYFZ_WWW_HTML_FALLBACK_NOT_HOSTED",
     "candidateRuntime": "DPL_CBZ4CFFXF9WSMDZELQZAPJGIXLZD_READY_EXACT_GIT_PREVIEW_PENDING_AUTHENTICATED_GATE",
     "artifactSha256": "2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d",
-    "productionMutationAllowed": true,
+    "productionMutationAllowed": false,
     "singleUse": true,
     "reusable": false,
     "previousOwner": "website-release-control-plane-wallet-artifact-only",
     "previousTaskId": "P0-253",
-    "reviewDecision": "GO_WALLET_EXISTING_EXACT_GIT_PREVIEW_AUTHENTICATED_GATE_WWW_ALIAS_SINGLE_USE",
-    "reason": "P0-253 is terminally released and nonreusable. The already READY preview is independently bound to the exact project, branch and be26edbd Git source. This lease contains no push or deploy command and authorizes only four authenticated preview reads, one www alias switch, four official reads and at most one exact www rollback."
+    "reviewDecision": "CONSUMED_RELEASED_FAILED_CLOSED_WALLET_STATIC_EXISTING_PREVIEW_GATE",
+    "reason": "The first and only candidate-read command failed before HTTP because vercel curl required confirmation and the frozen argv omitted --yes. No retry, remaining read, alias or rollback occurred; preview and all aliases remain unchanged. P0-254 is consumed and nonreusable."
   },
   "wave": {
     "id": "B-financial-apps-quant",
