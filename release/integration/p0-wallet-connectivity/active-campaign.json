@@ -427,14 +427,14 @@
     }
   ],
   "heavy": {
-    "owner": "finance-release-control-plane-readonly-forensic",
-    "taskId": "P0-250",
-    "status": "ACTIVE_SINGLE_USE_READONLY",
+    "owner": null,
+    "taskId": null,
+    "status": "IDLE",
     "acquiredAt": "2026-08-23T08:13:00Z",
     "expiresAt": "2026-08-23T08:33:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-23T08:20:37Z",
     "sourceCommit": "7824af677dd052d20321431381523ab302614d98",
-    "evidenceCommit": "cd123e3b5447d4737b988a7d396d0af75a9624bb",
+    "evidenceCommit": "8b186dda04f6b1ed19526b72a3c2cf1f6bb0feca",
     "runtimeHost": "43.153.202.237",
     "currentRuntime": "YNX_FINANCE_3B2383F5C18A_CONFIRMED_OLD_RUNTIME",
     "candidateRuntime": "NOT_MATERIALIZED_P0247_PARTIAL_STAGE_BACKUP_RETAINED",
@@ -442,10 +442,10 @@
     "productionMutationAllowed": false,
     "singleUse": true,
     "reusable": false,
-    "previousOwner": "finance-release-control-plane-readonly-inventory",
-    "previousTaskId": "P0-249",
-    "reviewDecision": "GO_FINANCE_P0250_ZERO_WRITE_PERMISSION_AND_FIXED_WINDOW_JOURNAL_FORENSIC_ONLY",
-    "reason": "P0-249 proves extraction, validation and candidate move occurred before automatic restore. One zero-write forensic command may classify unit identity, ynx traversal and fixed-window journal failure without raw messages; cleanup and redeployment remain forbidden."
+    "previousOwner": "finance-release-control-plane-readonly-forensic",
+    "previousTaskId": "P0-250",
+    "reviewDecision": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0250_ZERO_WRITE_PERMISSION_JOURNAL_FORENSIC_ONLY",
+    "reason": "P0-250 confirmed the exact P0-247 failure: root:root 0750 release-container traversal was denied to ynx:ynx uid995 gid986, then automatic rollback restored the old runtime. Heavy is released; residue cleanup and redeployment remain unauthorized pending corrected source and wholly new requests."
   },
   "wave": {
     "id": "B-financial-apps-quant",
