@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "p0-finance-retained-parent-deployment-successor-request@1",
+  "kind": "FINANCE_ROLLBACK_FIRST_DEPLOYMENT_RETAINED_LEASE_PARENT_SUCCESSOR",
+  "requestState": "AWAITING_WHOLELY_NEW_CENTRAL_SINGLE_USE_LEASE",
+  "supersedes": {"p0270": "CONSUMED_FAIL_CLOSED_REMOTE_PRE_DEPLOY_PARENT_EXISTENCE_CONTRACT_MISMATCH", "failureEvidenceCommit": "e4b9f00f44ee6f1cc4f0dceb77367d12da2d2c47", "failureEvidenceSha256": "573687dff92e79fc130bc1bf7d0fb3204fa552e9d092d03751340849d4ac9f80"},
+  "reviewedCommandCheckpoint": {"commit": "4fa7daa9c02ada5c0afb2fc50ad211f1b1e27432", "tree": "70400bcef47c132035730ddb04796dc1167d233c", "nonSelfReferential": true},
+  "retainedLeaseParentContract": {
+    "path": "/opt/ynx/leases/finance",
+    "mustExist": true,
+    "mustBe": ["directory", "non-symlink", "canonical realpath", "fresh full device:inode:uid:gid:mode:nlink:bytes:type tuple", "expected owner/group/mode"],
+    "bootstrapArgumentIndex": 4,
+    "behavior": "Never mkdir, rmdir, replace or delete the parent. Create only fresh lease-specific pending/final executor and lease children with no-clobber, exact inode/bytes/SHA/mode receipts. On pre-deploy failure clean only those matching children and recheck the exact original parent tuple.",
+    "bootstrap": {"path": "apps/finance/scripts/finance-phase3-stdin-deployment-bootstrap.sh", "blob": "42148d1cf69a0fc60dafa302808c9ff0149c9309", "bytes": 5001, "sha256": "1a57420a0f0c932aa5234166c7aaa81d3743f384016b9a0f26360e7657db570d"},
+    "fixture": {"path": "apps/finance/scripts/test-finance-phase3-stdin-deployment-bootstrap-fixture.mjs", "blob": "b7184086a9009abb0cf9a5426ced5823f0fc8325", "bytes": 11695, "sha256": "5f7a121a37620ed86f7fe1e5a3cfe284b1b3b70ebbc2c427bde3399f4ecff99b"},
+    "fixtureCoverage": ["positive pre-existing signed parent", "symlink parent refusal", "foreign tuple refusal", "existing child collision preservation", "malformed stdin cleanup preserves parent", "deploy failure retains only exact final controls for separately signed rollback"]
+  },
+  "preservedTransportAndRollback": {
+    "environment": {},
+    "literalArgvLength": 25,
+    "absoluteToolsTransport": {"path": "apps/finance/scripts/finance-phase3-openssh-serialized-command.sh", "blob": "93bc85466ce876c791f34c74a57816e13536a6c1", "bytes": 2844, "sha256": "7e02fef69c6589274159d1c5769f828f0e2632c919e4b59af29db753a3ce4192"},
+    "emptyEnvironmentFixture": {"path": "apps/finance/scripts/test-finance-phase3-openssh-serialized-command-fixture.mjs", "blob": "766dd0d54ac9b70c5d4bea24251499cffafa2170", "bytes": 3733, "sha256": "7c93449eb662d1cc724ef1af62af89d8997e526f7ca4398389781ace1539c6ab"},
+    "rollbackFirst": "One SSH and one deploy only; first failure rolls back only inside executor. Manual rollback requires a later separate Central lease."
+  },
+  "freshNamespace": {
+    "idPattern": "p0271-finance-phase3-<Central-UTC-timestamp>",
+    "localTemp": ["/tmp/ynx-finance-p0271-phase3-signed.json", "/tmp/ynx-finance-p0271-phase3.stdout", "/tmp/ynx-finance-p0271-phase3.stderr", "/tmp/ynx-finance-p0271-phase3.receipt", "/tmp/ynx-finance-p0271-phase3.receipt.pending"],
+    "leaseSpecificRemote": ["/opt/ynx/leases/finance/<id>.executor.sh.pending", "/opt/ynx/leases/finance/<id>.executor.sh", "/opt/ynx/leases/finance/<id>.json.pending", "/opt/ynx/leases/finance/<id>.json", "/opt/ynx/stage/finance/<id>", "/var/backups/ynx-finance/<id>", "/opt/ynx/releases/finance/<id>", "/opt/ynx/releases/finance/<id>/ynx-finance-7824af677dd0"],
+    "allLeaseSpecificPathsMustStartAbsentAndNonSymlink": true
+  },
+  "freshIssueRequirements": ["P0-268 old runtime baseline and public/loopback response hashes reread", "P0-236 candidate archive/env/binary identities reread", "retained parent exact tuple and owner/group/mode reread", "root:ynx traversal/user-access preflight", "current/unit/env/Caddy/state/service baseline and every lease-specific parent/child absence reread", "full literal argv, signed stdin and terminal receipt grammar frozen"],
+  "truth": {"leaseIssued": false, "deployed": false, "publicVerified": false, "walletAccountOrTransactionAction": false},
+  "singleBlocker": "Central must issue a fresh P0271 single-use deployment lease with the retained parent tuple at bootstrap argv index 4 and all new paths/baselines bound."
+}
