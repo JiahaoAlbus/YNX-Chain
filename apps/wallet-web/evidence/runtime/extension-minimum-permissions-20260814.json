@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "sourceCommit": "60a756991fbe07311c9d2b0dbade8a9d670dab04",
-  "generatedAt": "2026-08-22T04:55:45.102Z",
+  "sourceCommit": "fb443431555bed7324b3c2e1fb37aab982a8e243",
+  "generatedAt": "2026-08-23T08:38:08.725Z",
   "gateClass": "exact built-artifact manifest and external URL inspection; not a browser installation",
   "externalUrlClasses": {
     "rpcAuthority": "https://evm.ynxweb4.com",
@@ -16,18 +16,20 @@
   "artifacts": [
     {
       "name": "ynx-wallet-chrome-edge-0.1.0.zip",
-      "bytes": 468402,
-      "sha256": "769bc63f93b5e85cfac6b85ed44002a037202ccabe8af013009ab989c566bfd6",
+      "bytes": 471181,
+      "sha256": "2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d",
       "permissions": [
         "activeTab",
         "scripting",
         "storage"
       ],
       "hostPermissions": [
-        "https://evm.ynxweb4.com/*"
+        "http://*/*",
+        "https://*/*"
       ],
       "csp": "script-src 'self'; object-src 'self'; connect-src https://evm.ynxweb4.com",
-      "persistentContentScripts": false,
+      "persistentContentScripts": true,
+      "documentStartTopFrameOnly": true,
       "webAccessibleProvider": false,
       "externalUrls": [
         "https://evm.ynxweb4.com",
@@ -46,18 +48,20 @@
     },
     {
       "name": "ynx-wallet-firefox-0.1.0.zip",
-      "bytes": 468441,
-      "sha256": "3eba0cacacded62932670f36ca5f2ea852680cda7cf696fce4515b7e1d1509c6",
+      "bytes": 471216,
+      "sha256": "29fe890612ebe9518a99d80492b44cb222c5e9e37ce8d761ebc84b8243b5a896",
       "permissions": [
         "activeTab",
         "scripting",
         "storage"
       ],
       "hostPermissions": [
-        "https://evm.ynxweb4.com/*"
+        "http://*/*",
+        "https://*/*"
       ],
       "csp": "script-src 'self'; object-src 'self'; connect-src https://evm.ynxweb4.com",
-      "persistentContentScripts": false,
+      "persistentContentScripts": true,
+      "documentStartTopFrameOnly": true,
       "webAccessibleProvider": false,
       "externalUrls": [
         "https://evm.ynxweb4.com",

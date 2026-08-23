@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "evidenceClass": "source-and-built-artifact-only",
+  "sourceCommit": "fb443431555bed7324b3c2e1fb37aab982a8e243",
+  "sourceTree": "15a0f909dde78093b28917bb89c9016848a0e67b",
+  "baseCommit": "a9f73254f024d7c56fe942825286eb40e652c883",
+  "implemented": {
+    "explicitIndependentIdentity": {"name":"YNX Wallet","rdns":"com.ynx.wallet","isYNXWallet":true,"isMetaMask":false,"lateMetaMaskInjectionRemainsWritable":true},
+    "automaticProviderInjection": {"runAt":"document_start","topFrameOnly":true,"schemes":["http","https"],"allSitesPermissionDeclared":true,"eip6963":true},
+    "transactionCompatibility": {"legacy":true,"eip1559":true,"optionalFields":["nonce","gas","gasPrice","maxFeePerGas","maxPriorityFeePerGas","chainId","input","accessList","type"],"exactChainId":"0x1917","fromBinding":true,"feeModelMutualExclusion":true},
+    "vaultAuthorityRevocationEvents": ["accountsChanged:[]","disconnect:4900"],
+    "accountApprovalSingleFlight": {"scope":"origin","duplicateCode":-32002,"accountEpochRaceFence":true}
+  },
+  "forbiddenNavigationSurfaces": {"customScheme":false,"windowOpen":false,"iframeLauncher":false},
+  "tests": {"source":{"passed":122,"failed":0},"packageIntegrity":{"passed":3,"failed":0},"minimumPermissionArtifactGate":true},
+  "artifacts": [
+    {"name":"ynx-wallet-web-pwa-0.1.0.zip","bytes":286356,"sha256":"040e1f03956b6fb0a9298c8af5b76a5ed2895de0e5510a6208543bed9e3df055","signingClass":"unsigned-web-bundle"},
+    {"name":"ynx-wallet-chrome-edge-0.1.0.zip","bytes":471181,"sha256":"2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d","signingClass":"unsigned-unpacked-extension"},
+    {"name":"ynx-wallet-firefox-0.1.0.zip","bytes":471216,"sha256":"29fe890612ebe9518a99d80492b44cb222c5e9e37ce8d761ebc84b8243b5a896","signingClass":"unsigned-unpacked-extension"}
+  ],
+  "walletConnectExecutableBlocker": {
+    "code": "REAL_WALLETCONNECT_RELAY_RUNTIME_UNAVAILABLE",
+    "missing": ["protected project ID","real relay transport","pairing","proposal approve and reject","session restore","signing and transaction request lifecycle","disconnect and revoke runtime"],
+    "fixtureOrMockMayPromote": false
+  },
+  "truth": {"installedProvider":false,"realExternalDapp":false,"accountApproved":false,"messageSigned":false,"typedDataSigned":false,"transactionSubmitted":false,"walletConnectRelay":false,"deployedPublic":false,"productionSigned":false,"storeReleased":false}
+}

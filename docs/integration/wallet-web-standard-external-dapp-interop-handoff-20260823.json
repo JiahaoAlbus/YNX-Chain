@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "owner": "wallet-web-pwa-extensions",
+  "sourceCommit": "fb443431555bed7324b3c2e1fb37aab982a8e243",
+  "evidence": "apps/wallet-web/evidence/contracts/standard-wallet-external-dapp-interop-source-20260823.json",
+  "acceptanceBoundary": "Source and unsigned packages only. A separate immediate user confirmation is required before isolated extension launch, account approval, signing, typed-data signing, or testnet transaction.",
+  "fixedDirectRuntimeOrder": ["https://wallet.ynxweb4.com/","https://app.uniswap.org/?lang=en","https://opensea.io/","https://app.safe.global/"],
+  "requiredNextEvidence": ["installed EIP-6963 identity on all four sites","approve and reject","0x1917 add/switch/readback","refresh and provider events","disconnect and revoke","confirmation-bound personal_sign, EIP-712, and testnet send"],
+  "walletConnectBlocker": "REAL_WALLETCONNECT_RELAY_RUNTIME_UNAVAILABLE",
+  "completionClaimed": false
+}
