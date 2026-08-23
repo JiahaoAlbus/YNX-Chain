@@ -5,9 +5,10 @@
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-rollback-first-deployment-retained-parent-20260823T153000Z",
   "owner": "finance-release-control-plane",
   "executor": "finance-release-control-plane",
-  "status": "ACTIVE_SINGLE_USE",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0272_EMPTY_TERMINAL_RECEIPT_REMOTE_STATE_UNKNOWN",
   "issuedAt": "2026-08-23T15:30:00Z",
   "expiresAt": "2026-08-23T16:00:00Z",
+  "releasedAt": "2026-08-23T15:40:00Z",
   "singleUse": true,
   "reusable": false,
   "productionMutationAllowed": true,
@@ -224,10 +225,29 @@
   ],
   "truthBoundary": {
     "leaseIssued": true,
-    "deploymentExecuted": false,
+    "deploymentExecuted": "UNPROVEN_REMOTE_STATE_UNKNOWN",
     "publicCandidateVerified": false,
     "manualRollbackAuthorized": false,
     "walletMutationAllowed": false,
     "accountSignTxAllowed": false
+  },
+  "terminalEvidence": {
+    "ownerCommit": "2eba42e2484606baf70d14c7a9ce08024af7ec6d",
+    "ownerTree": "7d51ecb5af1a38f7f2a7c6446652656310353c7f",
+    "path": "apps/finance/evidence/finance-p0272-single-use-terminal-fail-closed-20260823.json",
+    "blob": "6a69359f755a4c5286488c8985f4ca6cccc28ecc",
+    "bytes": 2293,
+    "sha256": "12609d52c879c7ccdf87918f9f90f039591517a476ee013d419551956bf46e58",
+    "sshAttempts": 1,
+    "sshExitStatus": 1,
+    "retryPerformed": false,
+    "stdoutBytesSha256": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderrBytesSha256": "172|1f3ee0d9667ef4f5dbe2fbd949a9414abb9cd3714b57a02b3b0682eca54312af",
+    "signedTerminalReceipt": false,
+    "deployInvocations": "UNPROVEN",
+    "automaticRollbackInvocations": "UNPROVEN",
+    "manualRollbackInvocations": 0,
+    "remoteStateKnown": false,
+    "nonreusable": true
   }
 }
