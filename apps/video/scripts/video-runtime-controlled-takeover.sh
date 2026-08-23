@@ -1,0 +1,199 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+action=${1:-}
+case "$action" in takeover|restore-legacy) ;;
+  *) echo "usage: video-runtime-controlled-takeover.sh takeover|restore-legacy" >&2; exit 64 ;;
+esac
+
+mode=${YNX_VIDEO_EXECUTION_MODE:-}
+control=${YNX_VIDEO_FIXTURE_CONTROL:-}
+legacy_unit=${YNX_VIDEO_LEGACY_UNIT:-}
+dedicated_unit=${YNX_VIDEO_VIEWER_UNIT:-}
+legacy_snapshot_expected=${YNX_VIDEO_LEGACY_SNAPSHOT_EXPECTED:-}
+legacy_unit_path=${YNX_VIDEO_LEGACY_UNIT_PATH:-}
+shared_current=${YNX_VIDEO_SHARED_CURRENT:-}
+viewer_expected=${YNX_VIDEO_LEGACY_VIEWER_SHA256:-}
+viewer_expected_bytes=${YNX_VIDEO_LEGACY_VIEWER_BYTES:-}
+caddy_expected=${YNX_VIDEO_CADDY_SHA256:-}
+receipt=${YNX_VIDEO_TAKEOVER_RECEIPT:-}
+bootstrap=${YNX_VIDEO_BOOTSTRAP_SCRIPT:-}
+bootstrap_receipt=${YNX_VIDEO_BOOTSTRAP_RECEIPT:-}
+dedicated_root=${YNX_VIDEO_VIEWER_ROOT:-}
+dedicated_unit_path=${YNX_VIDEO_VIEWER_UNIT_PATH:-}
+lock_path=${YNX_VIDEO_TAKEOVER_LOCK:-/run/lock/ynx-video-viewer-wallet-takeover.lock}
+
+[[ "$mode" == fixture || "$mode" == production ]] || { echo "execution mode must be fixture or production" >&2; exit 65; }
+[[ "$legacy_unit" == ynx-video-viewer.service ]] || { echo "legacy unit mismatch" >&2; exit 65; }
+[[ "$dedicated_unit" == ynx-video-viewer-wallet.service ]] || { echo "dedicated unit mismatch" >&2; exit 65; }
+[[ "$legacy_unit_path" == /etc/systemd/system/ynx-video-viewer.service || "$mode" == fixture ]] || { echo "legacy unit path mismatch" >&2; exit 65; }
+[[ "$shared_current" == /opt/ynx-video/current || "$mode" == fixture ]] || { echo "shared current mismatch" >&2; exit 65; }
+[[ -n "$legacy_snapshot_expected" && -f "$legacy_snapshot_expected" && -n "$viewer_expected" && -n "$viewer_expected_bytes" && -n "$caddy_expected" && -n "$receipt" && -x "$bootstrap" && -n "$bootstrap_receipt" && -n "$dedicated_root" && -n "$dedicated_unit_path" ]] || { echo "controlled takeover binding missing" >&2; exit 65; }
+for binding in API_ROOT API_HEALTH API_VERSION CREATOR_ROOT CREATOR_MANIFEST CREATOR_CATALOG; do
+  eval "binding_sha=\${YNX_VIDEO_${binding}_SHA256:-}"
+  eval "binding_bytes=\${YNX_VIDEO_${binding}_BYTES:-}"
+  [[ -n "$binding_sha" && -n "$binding_bytes" ]] || { echo "missing ${binding} binding" >&2; exit 65; }
+done
+if [[ "$action" == takeover ]]; then
+  [[ ! -e "$receipt" ]] || { echo "takeover receipt must be absent" >&2; exit 73; }
+fi
+
+if [[ "$mode" == production ]]; then
+  [[ "${YNX_VIDEO_LEASE_AUTHORIZED:-}" == P0_VIDEO_CONTROLLED_TAKEOVER_SINGLE_USE ]] || { echo "production takeover lease missing" >&2; exit 77; }
+else
+  [[ -n "$control" && -x "$control/systemctl" && -x "$control/legacy-snapshot" && -x "$control/probe-viewer" && -x "$control/caddy-snapshot" && -x "$control/port-6494-free" ]] || { echo "fixture control missing" >&2; exit 65; }
+fi
+
+sha_stream() { shasum -a 256 | awk '{print $1}'; }
+sha_file() { shasum -a 256 "$1" | awk '{print $1}'; }
+systemctl_exact() { if [[ "$mode" == fixture ]]; then "$control/systemctl" "$@"; else systemctl "$@"; fi; }
+probe() {
+  local role=$1
+  if [[ "$mode" == fixture ]]; then "$control/probe-$role"; else
+    case "$role" in
+      viewer) curl --fail --silent --show-error --max-time 5 http://127.0.0.1:6494/ ;;
+      api-root) curl --silent --show-error --max-time 5 http://127.0.0.1:6493/ ;;
+      api-health) curl --fail --silent --show-error --max-time 5 http://127.0.0.1:6493/health ;;
+      api-version) curl --fail --silent --show-error --max-time 5 http://127.0.0.1:6493/version ;;
+      creator-root) curl --fail --silent --show-error --max-time 5 http://127.0.0.1:6495/ ;;
+      creator-manifest) curl --fail --silent --show-error --max-time 5 http://127.0.0.1:6495/release-manifest.json ;;
+      creator-catalog) curl --fail --silent --show-error --max-time 5 http://127.0.0.1:6495/i18n/catalog.json ;;
+    esac
+  fi
+}
+legacy_snapshot() {
+  if [[ "$mode" == fixture ]]; then "$control/legacy-snapshot"; else
+    local pid
+    pid=$(systemctl show "$legacy_unit" --property MainPID --value)
+    [[ "$pid" =~ ^[1-9][0-9]*$ ]] || return 1
+    printf 'load_state=%s\n' "$(systemctl show "$legacy_unit" --property LoadState --value)"
+    printf 'active_state=%s\n' "$(systemctl show "$legacy_unit" --property ActiveState --value)"
+    printf 'sub_state=%s\n' "$(systemctl show "$legacy_unit" --property SubState --value)"
+    printf 'fragment_path=%s\n' "$(systemctl show "$legacy_unit" --property FragmentPath --value)"
+    printf 'exec_start=%s\n' "$(awk -F= '$1=="ExecStart"{print substr($0,index($0,"=")+1); exit}' "$legacy_unit_path")"
+    printf 'main_pid=%s\n' "$pid"
+    printf 'nrestarts=%s\n' "$(systemctl show "$legacy_unit" --property NRestarts --value)"
+    printf 'unit_file_state=%s\n' "$(systemctl show "$legacy_unit" --property UnitFileState --value)"
+    printf 'pid_exe=%s\n' "$(readlink -f "/proc/$pid/exe")"
+    printf 'pid_cwd=%s\n' "$(readlink -f "/proc/$pid/cwd")"
+    printf 'pid_cmdline_sha256=%s\n' "$(tr '\0' '\n' < "/proc/$pid/cmdline" | sha_stream)"
+    printf 'pid_starttime=%s\n' "$(awk '{print $22}' "/proc/$pid/stat")"
+    printf 'legacy_unit_tuple=%s\n' "$(stat -c '%d:%i:%u:%g:%a:%h:%s:%F' "$legacy_unit_path")"
+    printf 'legacy_unit_sha256=%s\n' "$(sha_file "$legacy_unit_path")"
+    printf 'shared_current_target=%s\n' "$(readlink "$shared_current")"
+    printf 'shared_current_lstat=%s\n' "$(stat -c '%d:%i:%u:%g:%a:%h:%s:%F' "$shared_current")"
+  fi
+}
+caddy_snapshot() {
+  if [[ "$mode" == fixture ]]; then "$control/caddy-snapshot"; else
+    [[ -n "${YNX_VIDEO_CADDY_FILE:-}" && -f "${YNX_VIDEO_CADDY_FILE:-}" ]] || return 1
+    sha_file "$YNX_VIDEO_CADDY_FILE"
+  fi
+}
+port_free() {
+  if [[ "$mode" == fixture ]]; then "$control/port-6494-free"; else ! ss -H -ltn 'sport = :6494' | grep -q .; fi
+}
+assert_hashes() {
+  local expected_viewer=$1
+  [[ "$(probe viewer | tee "${receipt}.viewer.tmp" | wc -c | tr -d ' ')" == "$viewer_expected_bytes" ]] || return 1
+  [[ "$(sha_file "${receipt}.viewer.tmp")" == "$expected_viewer" ]] || return 1
+  rm -f -- "${receipt}.viewer.tmp"
+  local role upper expected_sha expected_bytes body
+  for role in api-root api-health api-version creator-root creator-manifest creator-catalog; do
+    upper=$(printf '%s' "$role" | tr '[:lower:]-' '[:upper:]_')
+    eval "expected_sha=\${YNX_VIDEO_${upper}_SHA256}"
+    eval "expected_bytes=\${YNX_VIDEO_${upper}_BYTES}"
+    body="${receipt}.${role}.tmp"
+    probe "$role" > "$body"
+    [[ "$(wc -c < "$body" | tr -d ' ')" == "$expected_bytes" && "$(sha_file "$body")" == "$expected_sha" ]] || return 1
+    rm -f -- "$body"
+  done
+  [[ "$(caddy_snapshot)" == "$caddy_expected" ]] || return 1
+}
+assert_legacy_exact() {
+  local actual=${receipt}.legacy.actual
+  legacy_snapshot > "$actual"
+  cmp -s "$legacy_snapshot_expected" "$actual" || { echo "legacy runtime identity mismatch" >&2; return 1; }
+  rm -f -- "$actual"
+  assert_hashes "$viewer_expected"
+}
+assert_legacy_successor() {
+  local actual=${receipt}.legacy.successor
+  legacy_snapshot > "$actual"
+  # A restarted process must have a new PID/start time; every durable identity line must remain exact.
+  grep -vE '^(main_pid|pid_starttime|nrestarts)=' "$legacy_snapshot_expected" > "${actual}.expected"
+  grep -vE '^(main_pid|pid_starttime|nrestarts)=' "$actual" > "${actual}.stable"
+  cmp -s "${actual}.expected" "${actual}.stable" || { echo "legacy successor identity mismatch" >&2; return 1; }
+  old_pid=$(awk -F= '$1=="main_pid"{print $2}' "$legacy_snapshot_expected")
+  new_pid=$(awk -F= '$1=="main_pid"{print $2}' "$actual")
+  [[ "$new_pid" =~ ^[1-9][0-9]*$ && "$new_pid" != "$old_pid" ]] || { echo "legacy successor PID was not replaced" >&2; return 1; }
+  rm -f -- "$actual" "${actual}.expected" "${actual}.stable"
+  assert_hashes "$viewer_expected"
+}
+
+mkdir -p "$(dirname "$lock_path")"
+lock_dir="${lock_path}.d"
+mkdir "$lock_dir" 2>/dev/null || { echo "controlled takeover already in progress" >&2; exit 75; }
+release_lock() { rmdir "$lock_dir" 2>/dev/null || true; }
+trap release_lock EXIT
+
+restore_legacy() {
+  set +e
+  if [[ -f "$bootstrap_receipt" ]]; then
+    "$bootstrap" rollback-bootstrap
+    bootstrap_code=$?
+  elif [[ ! -e "$dedicated_root" && ! -L "$dedicated_root" && ! -e "$dedicated_unit_path" && ! -L "$dedicated_unit_path" ]]; then
+    bootstrap_code=0
+  else
+    bootstrap_code=76
+  fi
+  systemctl_exact start "$legacy_unit"
+  start_code=$?
+  set -e
+  [[ "$bootstrap_code" == 0 && "$start_code" == 0 ]] || return 1
+  assert_legacy_successor
+}
+
+if [[ "$action" == restore-legacy ]]; then
+  [[ -f "${receipt}.complete" ]] || { echo "completed takeover receipt missing" >&2; exit 66; }
+  restore_legacy
+  printf 'restored_legacy=true\n' >> "${receipt}.complete"
+  exit 0
+fi
+
+assert_legacy_exact
+[[ ! -e "$receipt" ]] || exit 73
+cp "$legacy_snapshot_expected" "$receipt"
+printf 'viewer_sha256=%s\nviewer_bytes=%s\ncaddy_sha256=%s\nlegacy_stop_started=false\n' \
+  "$viewer_expected" "$viewer_expected_bytes" "$caddy_expected" >> "$receipt"
+
+legacy_stopped=false
+takeover_failed() {
+  local code=$?
+  trap - ERR INT TERM
+  if [[ "$legacy_stopped" == true ]]; then
+    restore_legacy || { echo "FATAL: legacy recovery verification failed" >&2; exit 78; }
+    printf 'failure_recovered_legacy=true\nfailure_code=%s\n' "$code" >> "$receipt"
+  fi
+  exit "$code"
+}
+trap takeover_failed ERR INT TERM
+
+systemctl_exact stop "$legacy_unit"
+legacy_stopped=true
+printf 'legacy_stop_started=true\n' >> "$receipt"
+if systemctl_exact is-active --quiet "$legacy_unit"; then
+  echo "legacy unit remained active" >&2
+  false
+fi
+if ! port_free; then
+  echo "6494 remained occupied after legacy stop" >&2
+  false
+fi
+
+"$bootstrap" bootstrap
+assert_hashes "$viewer_expected"
+systemctl_exact is-active --quiet "$dedicated_unit"
+cp "$receipt" "${receipt}.complete"
+printf 'controlled_takeover_complete=true\n' >> "${receipt}.complete"
+trap - ERR INT TERM
