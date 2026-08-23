@@ -1,0 +1,84 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "FINANCE_ROLLBACK_FIRST_DEPLOYMENT_SUCCESSOR_REQUEST",
+  "requestStatus": "SOURCE_REQUEST_ONLY_AWAITING_NEW_SINGLE_USE_LEASE",
+  "supersedes": {
+    "requestCommit": "f14ff836ba23ae6af84fe5329a80480cdefeb3e7",
+    "nonReusableLease": "P0-272",
+    "reason": "P0-278 was NO_GO only because its predecessor referenced P0-277 issuance rather than its terminal Central release. This successor preserves reviewed command objects byte-for-byte and corrects only the released predecessor binding."
+  },
+  "predecessorTerminal": {
+    "centralCommit": "a89a4413e65b28b7167c11ad0915405b597cedb2",
+    "centralTree": "d8df6a3375330d1c990122370b973a7c9cf9414b",
+    "terminalLeaseBlob": "98ef9a71e0ce1bec97c709e5f6835b9ab0312f23",
+    "terminalLeaseSha256": "4db1a8258b1e887c01ad64b22de5ae4ea7ce98125b7d8febbb4ecb1c90e5af59",
+    "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0277_P0276_CLEANUP_ZERO_WRITE_VERIFIED",
+    "cleanupComplete": true,
+    "ownerEvidenceCommit": "25ae0224c9543c22beaa6cfc306c2bf310428eb0",
+    "ownerEvidenceSha256": "a67e0aa74fa1e48ded83209e4bd6fb50570c24be6c0ff486b76903e2184d3732"
+  },
+  "reviewedCommandCheckpoints": [
+    {
+      "commit": "72334278ec188c737aaacc42bb204f712c64be6c",
+      "tree": "c48f9a01df41f0586fe989e012d371843d3266fb",
+      "rootCauseFix": "GNU tar extraction uses --warning=no-unknown-keyword, eliminating the P0-272 warning-only LIBARCHIVE.xattr stderr while retaining fail-closed extraction semantics.",
+      "executor": {"path": "apps/finance/scripts/finance-production-rollback-first.sh", "blob": "40ef7fa6b44834caec1ed9494bcecc4e3dc0f741", "bytes": 18432, "sha256": "be7435a922b26482c830778ef23753e7de2e02ad307de914fef9aa83a77229c0"},
+      "gnuTarFixture": {"path": "apps/finance/scripts/test-finance-archive-metadata-fixture.mjs", "blob": "5d423ea560637b0d22e785903ac8dd82d12400b7", "bytes": 1593, "sha256": "8f99cc880de70474be6c37689a8831e87804549d9dea85992e946e08d761bc4e"},
+      "productionFixture": {"path": "apps/finance/scripts/test-finance-production-fixture.mjs", "blob": "ed418a5b0643c3ef9fcff5102be5a86607b620ac", "bytes": 39679, "sha256": "3c63260f1b32ce335bd9f3b893278069c6744c18090b3d7ea86b88a177748a75"}
+    },
+    {
+      "commit": "9c0532603b256f54681a406a8fbc25863d1c2f9c",
+      "tree": "6c9b48a9cb2bed4510a40b838f0ef02527adc4ed",
+      "transport": {"path": "apps/finance/scripts/finance-phase3-openssh-serialized-command.sh", "blob": "22605b70b346a7cc0e61ea68e5e366b73718aef6", "bytes": 2875, "sha256": "a44e011b5826b091acc7ddebcd68dc180a46ded49d9489cf48d52cda894396b4"},
+      "fixture": {"path": "apps/finance/scripts/test-finance-phase3-openssh-serialized-command-fixture.mjs", "blob": "5625e39b1e879d6c8142cb4f41a95f6ad8af1590", "bytes": 3866, "sha256": "0881523d0138b8e2e754744dcb4a4bc4bf474530fc6b4190e92966faecebbec8"},
+      "terminalContract": "Immutable local terminal receipt contains sshExitStatus and remoteExitStatus, stdout bytes/SHA, and terminalReceiptValidated."
+    },
+    {
+      "commit": "4fa7daa9c02ada5c0afb2fc50ad211f1b1e27432",
+      "tree": "70400bcef47c132035730ddb04796dc1167d233c",
+      "bootstrap": {"path": "apps/finance/scripts/finance-phase3-stdin-deployment-bootstrap.sh", "blob": "42148d1cf69a0fc60dafa302808c9ff0149c9309", "bytes": 5001, "sha256": "1a57420a0f0c932aa5234166c7aaa81d3743f384016b9a0f26360e7657db570d"}
+    }
+  ],
+  "futureLease": {
+    "idPattern": "p0-<new-central-id>-finance-phase3-<Central-UTC>",
+    "requiresFreshCentralBinding": true,
+    "singleSsh": true,
+    "singleDeploy": true,
+    "retryAllowed": false,
+    "environment": {},
+    "newPaths": {
+      "stage": "/opt/ynx/stage/finance/<future-lease-id>/stage",
+      "backup": "/var/backups/ynx-finance/<future-lease-id>/backup",
+      "releaseContainer": "/opt/ynx/releases/finance/<future-lease-id>",
+      "release": "/opt/ynx/releases/finance/<future-lease-id>/ynx-finance-7824af677dd0",
+      "executor": "/opt/ynx/leases/finance/<future-lease-id>.executor.sh",
+      "signedLease": "/opt/ynx/leases/finance/<future-lease-id>.json",
+      "localStdout": "/tmp/ynx-finance-<future-lease-id>.stdout",
+      "localStderr": "/tmp/ynx-finance-<future-lease-id>.stderr",
+      "localReceipt": "/tmp/ynx-finance-<future-lease-id>.receipt"
+    }
+  },
+  "immutableCandidate": {
+    "sourceCommit": "7824af677dd052d20321431381523ab302614d98",
+    "archive": {"path": "/opt/ynx/stage/finance/p0228-finance-phase1-20260822T234100Z/candidate.tgz", "bytes": 3937491, "sha256": "d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d"},
+    "binary": {"bytes": 8573112, "sha256": "cccdae8ae5b5f694ca7db68540da30582564ff741978e616f7435d448a20fe3e", "arch": "ELF x86-64"},
+    "candidateEnv": {"path": "/opt/ynx/stage/finance/p0228-finance-phase1-20260822T234100Z/finance.env", "bytes": 1545, "sha256": "ceec9fba17116e087d6e2a9cb160808b39e027e687a7ad561174a40daf58b71a", "secretSafe": true}
+  },
+  "requiredFreshBaseline": {
+    "currentRelease": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a",
+    "envSha256": "854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252",
+    "unitSha256": "2e72cdad422a3a714c46d074ea97b725233576cf726dbbfd43e82e99c2c2975b",
+    "caddySha256": "dcf75a7aed315c54632321b8bb80e44c0abc22f6700fadfbfa9a7da21b88a282",
+    "state": "absent",
+    "service": {"pid": 2241003, "nrestarts": 0, "user": "ynx", "group": "ynx"},
+    "mustRereadAtLeaseIssue": ["all parent/path tuples", "current link and binary", "archive and candidate env", "old loopback/public HTTP status/bytes/SHA", "root:ynx traversal"]
+  },
+  "safetyContract": {
+    "rollbackFirst": true,
+    "rootToYnxTraversal": "root:ynx 0750 release container and actual ynx user execute/read checks before switch",
+    "terminalCleanup": "identity-and-inventory-bound automatic cleanup only; manual rollback requires a separately signed lease",
+    "forbidden": ["SSH before Central lease", "deployment", "manual rollback", "unit/Caddy mutation", "Wallet/account/signature/transaction", "retry"]
+  },
+  "tests": {"json": true, "diff": true, "gnuTarMetadataWarningFixture": true, "productionModeLinuxEquivalentFixture": true, "serializedOpenSshTerminalFixture": true, "stdinBootstrapFixture": true},
+  "truth": {"deployed": false, "publicVerified": false, "walletApproval": false, "signature": false, "transaction": false}
+}
