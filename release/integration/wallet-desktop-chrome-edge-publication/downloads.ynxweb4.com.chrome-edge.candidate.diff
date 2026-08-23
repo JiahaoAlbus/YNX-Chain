@@ -1,0 +1,7 @@
+--- /etc/caddy/conf.d/downloads.ynxweb4.com.caddy
++++ /etc/caddy/conf.d/downloads.ynxweb4.com.caddy.candidate
+@@ -15,0 +16,4 @@
++	@walletWebChromeEdge path /wallet/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip
++	header @walletWebChromeEdge Content-Type application/zip
++	header @walletWebChromeEdge Content-Disposition "attachment; filename=\"ynx-wallet-chrome-edge-0.1.0.zip\""
++

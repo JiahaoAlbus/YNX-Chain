@@ -1,0 +1,155 @@
+{
+  "schemaVersion": "wallet-downloads-control-plane-read-only-evidence@1",
+  "capturedAt": "2026-08-23T12:20:08Z",
+  "mode": "READ_ONLY_NO_MUTATION",
+  "executor": {
+    "transport": "SSH_PUBLIC_KEY",
+    "endpoint": "ubuntu@43.153.202.237",
+    "host": "VM-4-3-ubuntu",
+    "publicKeyFingerprint": "SHA256:GXJwXo+PdNl+Hq1mNRi3CVsNZZYJkBoV3cm28E1wI5o",
+    "batchModeAuthenticated": true,
+    "nonInteractiveSudo": true,
+    "reloadCommandAuthorized": true,
+    "secretValuesRecorded": false
+  },
+  "liveCaddy": {
+    "entryConfig": {
+      "path": "/etc/caddy/Caddyfile",
+      "sha256": "077fe80ea9aab24a32d64ba1fab3584e8aab10304e200e58d976d2c33edfb39f",
+      "bytes": 928,
+      "device": 64770,
+      "inode": 1051746,
+      "uid": 0,
+      "gid": 0,
+      "mode": "0644",
+      "import": "/etc/caddy/conf.d/*.caddy"
+    },
+    "downloadsConfig": {
+      "path": "/etc/caddy/conf.d/downloads.ynxweb4.com.caddy",
+      "sha256": "5149252cde4b3cba5b2e89c5d5d0f3e94506fa69beb7b10526e41dcee3cb1f1f",
+      "bytes": 1441,
+      "device": 64770,
+      "inode": 1055513,
+      "uid": 0,
+      "gid": 0,
+      "mode": "0644",
+      "documentRoot": "/opt/ynx/public-downloads"
+    },
+    "service": {
+      "active": true,
+      "binary": "/usr/bin/caddy",
+      "user": "caddy",
+      "group": "caddy"
+    },
+    "validateCommand": "sudo -n /usr/bin/caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile",
+    "validateExitCode": 0,
+    "validateResult": "Valid configuration",
+    "reloadCommand": "sudo -n /usr/bin/systemctl reload caddy",
+    "reloadExecuted": false
+  },
+  "filesystem": {
+    "root": {
+      "path": "/",
+      "device": 64770,
+      "inode": 2,
+      "uid": 0,
+      "gid": 0,
+      "mode": "0755"
+    },
+    "opt": {
+      "path": "/opt",
+      "device": 64770,
+      "inode": 131076,
+      "uid": 0,
+      "gid": 0,
+      "mode": "0755"
+    },
+    "ynx": {
+      "path": "/opt/ynx",
+      "device": 64770,
+      "inode": 1312502,
+      "uid": 0,
+      "gid": 0,
+      "mode": "0755"
+    },
+    "downloadsRoot": {
+      "path": "/opt/ynx/public-downloads",
+      "device": 64770,
+      "inode": 2528711,
+      "uid": 0,
+      "gid": 0,
+      "mode": "0755"
+    },
+    "walletDirectory": {
+      "path": "/opt/ynx/public-downloads/wallet",
+      "device": 64770,
+      "inode": 2528712,
+      "uid": 0,
+      "gid": 0,
+      "mode": "0755"
+    },
+    "etcCaddy": {
+      "path": "/etc/caddy",
+      "device": 64770,
+      "inode": 1051238,
+      "uid": 0,
+      "gid": 0,
+      "mode": "0755"
+    },
+    "etcCaddyConfD": {
+      "path": "/etc/caddy/conf.d",
+      "device": 64770,
+      "inode": 1051258,
+      "uid": 0,
+      "gid": 0,
+      "mode": "0755"
+    }
+  },
+  "candidateArtifact": {
+    "sourceCommit": "be26edbd67c512e22a4f373206d5d82af4c6b0d4",
+    "sourceTree": "0fa369a16e3099d59183852f3da076d7be2b95e0",
+    "gitBlob": "e8dfdfdcd19ea211db17b217c559108da0efe5a4",
+    "bytes": 471181,
+    "sha256": "2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d",
+    "localCarrierRehashed": true,
+    "targetDirectory": "/opt/ynx/public-downloads/wallet/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d",
+    "targetPath": "/opt/ynx/public-downloads/wallet/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip",
+    "targetDirectoryExists": false,
+    "targetExists": false,
+    "officialUrl": "https://downloads.ynxweb4.com/wallet/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip",
+    "publicStatus": 404,
+    "publicCacheControl": "public, max-age=31536000, immutable",
+    "publicXContentTypeOptions": "nosniff"
+  },
+  "reservedPaths": {
+    "stagingPath": "/opt/ynx/public-downloads/.P0-WALLET-CHROME-ZIP-PUBLICATION-20260823-01.stage",
+    "stagingPathExists": false,
+    "configBackupPath": "/etc/caddy/conf.d/downloads.ynxweb4.com.caddy.rollback-P0-WALLET-CHROME-ZIP-PUBLICATION-20260823-01",
+    "configBackupPathExists": false,
+    "configNextPath": "/etc/caddy/conf.d/downloads.ynxweb4.com.caddy.next-P0-WALLET-CHROME-ZIP-PUBLICATION-20260823-01",
+    "configNextPathExists": false,
+    "configRestorePath": "/etc/caddy/conf.d/downloads.ynxweb4.com.caddy.restore-P0-WALLET-CHROME-ZIP-PUBLICATION-20260823-01",
+    "configRestorePathExists": false
+  },
+  "dmgSentinel": {
+    "path": "/opt/ynx/public-downloads/wallet/sha256-69b4fa5db7b8a9ab105af6633de44f5a5a4a9fceeaa0925a306f77b22381b044/ynx-wallet-macos-0.1.2-universal.dmg",
+    "device": 64770,
+    "inode": 2528715,
+    "uid": 0,
+    "gid": 0,
+    "mode": "0644",
+    "nlink": 1,
+    "bytes": 237777236,
+    "sha256": "69b4fa5db7b8a9ab105af6633de44f5a5a4a9fceeaa0925a306f77b22381b044",
+    "publicStatus": 200,
+    "contentType": "application/x-apple-diskimage",
+    "contentDisposition": "attachment; filename=\"ynx-wallet-macos-0.1.2-universal.dmg\""
+  },
+  "mutationTruth": {
+    "upload": false,
+    "remoteWrite": false,
+    "configChange": false,
+    "reload": false,
+    "delete": false
+  }
+}

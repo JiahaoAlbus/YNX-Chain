@@ -1,0 +1,186 @@
+{
+  "schemaVersion": "wallet-downloads-publication-lease-request@1",
+  "requestId": "P0-WALLET-CHROME-ZIP-PUBLICATION-20260823-01",
+  "requestedAt": "2026-08-23T12:23:00Z",
+  "status": "REQUESTED_NOT_ISSUED",
+  "executionAuthorized": false,
+  "scope": {
+    "owner": "Wallet Desktop/CLI/SDK",
+    "origin": "https://downloads.ynxweb4.com",
+    "artifact": "ynx-wallet-chrome-edge-0.1.0.zip",
+    "onlyFinalPath": "/opt/ynx/public-downloads/wallet/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip",
+    "onlyConfigPath": "/etc/caddy/conf.d/downloads.ynxweb4.com.caddy",
+    "unrelatedPathsAuthorized": false,
+    "overwriteAuthorized": false,
+    "forcePushAuthorized": false
+  },
+  "authorityBoundary": {
+    "requiredIssuer": "Central Integration",
+    "requiredLease": "wholly-new path-scoped single-use publication lease",
+    "requiredRuntimeAcknowledgement": "P0-WALLET-CHROME-ZIP-PUBLICATION-20260823-01:EXECUTE",
+    "publicationMayRunBeforeLease": false,
+    "rollbackRequiresExplicitAcknowledgement": "P0-WALLET-CHROME-ZIP-PUBLICATION-20260823-01:ROLLBACK",
+    "secretValuesRecorded": false
+  },
+  "executorBinding": {
+    "transport": "SSH_PUBLIC_KEY",
+    "endpoint": "ubuntu@43.153.202.237",
+    "host": "VM-4-3-ubuntu",
+    "publicKeyFingerprint": "SHA256:GXJwXo+PdNl+Hq1mNRi3CVsNZZYJkBoV3cm28E1wI5o",
+    "batchMode": true,
+    "strictHostKeyChecking": true,
+    "nonInteractiveSudo": true,
+    "identityEnvironmentReference": "YNX_DOWNLOADS_SSH_IDENTITY",
+    "identitySecretValueIncluded": false
+  },
+  "artifactBinding": {
+    "sourceCommit": "be26edbd67c512e22a4f373206d5d82af4c6b0d4",
+    "sourceTree": "0fa369a16e3099d59183852f3da076d7be2b95e0",
+    "gitBlob": "e8dfdfdcd19ea211db17b217c559108da0efe5a4",
+    "bytes": 471181,
+    "sha256": "2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d",
+    "localReadOnlyCarrier": "/private/tmp/ynx-wallet-hosting-prod-base.2tWxO9/public/downloads/wallet-web/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip",
+    "officialUrl": "https://downloads.ynxweb4.com/wallet/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip"
+  },
+  "initialStateBinding": {
+    "evidencePath": "release/integration/wallet-desktop-chrome-edge-publication/read-only-control-plane-evidence-20260823.json",
+    "evidenceBytes": 5047,
+    "evidenceSha256": "ffe7206173bea177caac4a999100f9c9934d87cf69f31ac8119ce93856d20e01",
+    "entryConfig": {
+      "path": "/etc/caddy/Caddyfile",
+      "sha256": "077fe80ea9aab24a32d64ba1fab3584e8aab10304e200e58d976d2c33edfb39f",
+      "bytes": 928,
+      "device": 64770,
+      "inode": 1051746,
+      "uid": 0,
+      "gid": 0,
+      "mode": "0644"
+    },
+    "downloadsConfig": {
+      "path": "/etc/caddy/conf.d/downloads.ynxweb4.com.caddy",
+      "sha256": "5149252cde4b3cba5b2e89c5d5d0f3e94506fa69beb7b10526e41dcee3cb1f1f",
+      "bytes": 1441,
+      "device": 64770,
+      "inode": 1055513,
+      "uid": 0,
+      "gid": 0,
+      "mode": "0644"
+    },
+    "downloadsRoot": {
+      "path": "/opt/ynx/public-downloads",
+      "device": 64770,
+      "inode": 2528711,
+      "uid": 0,
+      "gid": 0,
+      "mode": "0755"
+    },
+    "walletDirectory": {
+      "path": "/opt/ynx/public-downloads/wallet",
+      "device": 64770,
+      "inode": 2528712,
+      "uid": 0,
+      "gid": 0,
+      "mode": "0755"
+    },
+    "targetDirectoryAbsent": true,
+    "targetAbsent": true,
+    "publicTargetStatus": 404,
+    "reservedStagingAndConfigPathsAbsent": true
+  },
+  "sentinelBinding": {
+    "path": "/opt/ynx/public-downloads/wallet/sha256-69b4fa5db7b8a9ab105af6633de44f5a5a4a9fceeaa0925a306f77b22381b044/ynx-wallet-macos-0.1.2-universal.dmg",
+    "device": 64770,
+    "inode": 2528715,
+    "uid": 0,
+    "gid": 0,
+    "mode": "0644",
+    "nlink": 1,
+    "bytes": 237777236,
+    "sha256": "69b4fa5db7b8a9ab105af6633de44f5a5a4a9fceeaa0925a306f77b22381b044",
+    "publicStatus": 200
+  },
+  "candidateCaddy": {
+    "path": "release/integration/wallet-desktop-chrome-edge-publication/downloads.ynxweb4.com.chrome-edge.candidate.caddy",
+    "bytes": 1749,
+    "sha256": "9a3869d606e318540ec773e97c92f4f7b610852a3560a7aea7b256f0b3a77770",
+    "baseBytes": 1441,
+    "baseSha256": "5149252cde4b3cba5b2e89c5d5d0f3e94506fa69beb7b10526e41dcee3cb1f1f",
+    "diffPath": "release/integration/wallet-desktop-chrome-edge-publication/downloads.ynxweb4.com.chrome-edge.candidate.diff",
+    "diffBytes": 440,
+    "diffSha256": "488f1bcda1f46db70e30363183331c7ab824199e62e0e2c530ba74e5ed7bde0d",
+    "onlyAddedMatcher": "@walletWebChromeEdge",
+    "contentType": "application/zip",
+    "contentDisposition": "attachment; filename=\"ynx-wallet-chrome-edge-0.1.0.zip\"",
+    "cacheControl": "public, max-age=31536000, immutable",
+    "xContentTypeOptions": "nosniff"
+  },
+  "frozenRemotePrograms": {
+    "prepare": {
+      "path": "release/integration/wallet-desktop-chrome-edge-publication/prepare-after-lease.remote.sh",
+      "bytes": 2515,
+      "sha256": "967b19b8a4dad6ce37cc35ecdbad2ee33eff31e4d51ca49efca30f60bf4c71a8"
+    },
+    "publish": {
+      "path": "release/integration/wallet-desktop-chrome-edge-publication/publish-after-lease.remote.sh",
+      "bytes": 4394,
+      "sha256": "c24d1b9bff2d5341aca7c36240f24bc068f6dd857fcaad5141e29e31d10c7049"
+    },
+    "verify": {
+      "path": "release/integration/wallet-desktop-chrome-edge-publication/verify-after-lease.remote.sh",
+      "bytes": 1354,
+      "sha256": "27d1c25563b7ca032b2df8d030c7c8bb49e18f60494504bc59b092d215183893"
+    },
+    "rollback": {
+      "path": "release/integration/wallet-desktop-chrome-edge-publication/rollback-after-lease.remote.sh",
+      "bytes": 2530,
+      "sha256": "2f2d675b158678bb21411ef531bf956a05a33105402fe6913ce598880b47db73"
+    }
+  },
+  "literalCommandsAfterLeaseOnly": {
+    "environmentGate": "test -n \"${YNX_DOWNLOADS_SSH_IDENTITY:-}\" && test -n \"${YNX_CENTRAL_SINGLE_USE_LEASE_ID:-}\" && test -n \"${YNX_LEASE_REPO_ROOT:-}\"",
+    "localArtifactGate": "test \"$(stat -f %z /private/tmp/ynx-wallet-hosting-prod-base.2tWxO9/public/downloads/wallet-web/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip)\" = 471181 && test \"$(shasum -a 256 /private/tmp/ynx-wallet-hosting-prod-base.2tWxO9/public/downloads/wallet-web/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip | awk '{print $1}')\" = 2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d",
+    "localCandidateGate": "test \"$(wc -c < \"$YNX_LEASE_REPO_ROOT/release/integration/wallet-desktop-chrome-edge-publication/downloads.ynxweb4.com.chrome-edge.candidate.caddy\" | tr -d ' ')\" = 1749 && test \"$(shasum -a 256 \"$YNX_LEASE_REPO_ROOT/release/integration/wallet-desktop-chrome-edge-publication/downloads.ynxweb4.com.chrome-edge.candidate.caddy\" | awk '{print $1}')\" = 9a3869d606e318540ec773e97c92f4f7b610852a3560a7aea7b256f0b3a77770",
+    "prepareStaging": "gtimeout 30 ssh -i \"$YNX_DOWNLOADS_SSH_IDENTITY\" -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 ubuntu@43.153.202.237 \"sudo -n env YNX_CENTRAL_SINGLE_USE_LEASE_ID='$YNX_CENTRAL_SINGLE_USE_LEASE_ID' YNX_DOWNLOADS_PUBLICATION_EXECUTION_ACK='P0-WALLET-CHROME-ZIP-PUBLICATION-20260823-01:EXECUTE' bash -s\" < \"$YNX_LEASE_REPO_ROOT/release/integration/wallet-desktop-chrome-edge-publication/prepare-after-lease.remote.sh\"",
+    "uploadArtifactToExclusiveTemp": "gtimeout 180 ssh -i \"$YNX_DOWNLOADS_SSH_IDENTITY\" -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 ubuntu@43.153.202.237 'set -euo pipefail; set -C; umask 077; cat > /opt/ynx/public-downloads/.P0-WALLET-CHROME-ZIP-PUBLICATION-20260823-01.stage/ynx-wallet-chrome-edge-0.1.0.zip.upload' < /private/tmp/ynx-wallet-hosting-prod-base.2tWxO9/public/downloads/wallet-web/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip",
+    "uploadCandidateToExclusiveTemp": "gtimeout 30 ssh -i \"$YNX_DOWNLOADS_SSH_IDENTITY\" -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 ubuntu@43.153.202.237 'set -euo pipefail; set -C; umask 077; cat > /opt/ynx/public-downloads/.P0-WALLET-CHROME-ZIP-PUBLICATION-20260823-01.stage/downloads.ynxweb4.com.chrome-edge.candidate.caddy.upload' < \"$YNX_LEASE_REPO_ROOT/release/integration/wallet-desktop-chrome-edge-publication/downloads.ynxweb4.com.chrome-edge.candidate.caddy\"",
+    "remoteRehashMkdirInstallBackupValidateReload": "gtimeout 60 ssh -i \"$YNX_DOWNLOADS_SSH_IDENTITY\" -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 ubuntu@43.153.202.237 \"sudo -n env YNX_CENTRAL_SINGLE_USE_LEASE_ID='$YNX_CENTRAL_SINGLE_USE_LEASE_ID' YNX_DOWNLOADS_PUBLICATION_EXECUTION_ACK='P0-WALLET-CHROME-ZIP-PUBLICATION-20260823-01:EXECUTE' bash -s\" < \"$YNX_LEASE_REPO_ROOT/release/integration/wallet-desktop-chrome-edge-publication/publish-after-lease.remote.sh\"",
+    "publicFullGetGate": "tmp_dir=$(mktemp -d); trap 'rm -rf \"$tmp_dir\"' EXIT; curl --fail --silent --show-error --connect-timeout 15 --max-time 180 -D \"$tmp_dir/headers\" -o \"$tmp_dir/ynx-wallet-chrome-edge-0.1.0.zip\" https://downloads.ynxweb4.com/wallet/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip && awk 'NR==1 {exit ($2 == 200 ? 0 : 1)}' \"$tmp_dir/headers\" && tr -d '\\r' < \"$tmp_dir/headers\" | grep -Eiq '^content-type: application/zip$' && tr -d '\\r' < \"$tmp_dir/headers\" | grep -Eiq '^content-disposition: attachment; filename=\"ynx-wallet-chrome-edge-0.1.0.zip\"$' && tr -d '\\r' < \"$tmp_dir/headers\" | grep -Eiq '^content-length: 471181$' && tr -d '\\r' < \"$tmp_dir/headers\" | grep -Eiq '^cache-control: public, max-age=31536000, immutable$' && tr -d '\\r' < \"$tmp_dir/headers\" | grep -Eiq '^x-content-type-options: nosniff$' && test \"$(wc -c < \"$tmp_dir/ynx-wallet-chrome-edge-0.1.0.zip\" | tr -d ' ')\" = 471181 && test \"$(shasum -a 256 \"$tmp_dir/ynx-wallet-chrome-edge-0.1.0.zip\" | awk '{print $1}')\" = 2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d",
+    "postPublishRemoteIdentityAndDmgSentinelGate": "gtimeout 45 ssh -i \"$YNX_DOWNLOADS_SSH_IDENTITY\" -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 ubuntu@43.153.202.237 \"sudo -n env YNX_CENTRAL_SINGLE_USE_LEASE_ID='$YNX_CENTRAL_SINGLE_USE_LEASE_ID' YNX_DOWNLOADS_PUBLICATION_EXECUTION_ACK='P0-WALLET-CHROME-ZIP-PUBLICATION-20260823-01:VERIFY' bash -s\" < \"$YNX_LEASE_REPO_ROOT/release/integration/wallet-desktop-chrome-edge-publication/verify-after-lease.remote.sh\"",
+    "rollbackDeleteRestoreReload": "gtimeout 60 ssh -i \"$YNX_DOWNLOADS_SSH_IDENTITY\" -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=10 ubuntu@43.153.202.237 \"sudo -n env YNX_CENTRAL_SINGLE_USE_LEASE_ID='$YNX_CENTRAL_SINGLE_USE_LEASE_ID' YNX_DOWNLOADS_PUBLICATION_EXECUTION_ACK='P0-WALLET-CHROME-ZIP-PUBLICATION-20260823-01:ROLLBACK' bash -s\" < \"$YNX_LEASE_REPO_ROOT/release/integration/wallet-desktop-chrome-edge-publication/rollback-after-lease.remote.sh\"",
+    "publicAbsenceAfterRollback": "test \"$(curl --silent --show-error --connect-timeout 15 --max-time 30 -o /dev/null -w '%{http_code}' https://downloads.ynxweb4.com/wallet/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip)\" = 404"
+  },
+  "safetyProperties": {
+    "freshPreflightRequired": true,
+    "allKnownDeviceInodeUidGidModeBytesBound": true,
+    "exclusiveTempCreateUsesShellNoclobber": true,
+    "finalDirectoryCreateFailsIfPresent": true,
+    "finalFileCreateUsesSameFilesystemHardlinkAndFailsIfPresent": true,
+    "configBackupUsesHardlinkAndFailsIfPresent": true,
+    "configInstallUsesUniqueNextPathAndAtomicRename": true,
+    "fullCaddyValidationBeforeReload": true,
+    "reloadAtMostOnceOnSuccess": true,
+    "validationOrReloadFailureRestoresPriorConfig": true,
+    "rollbackUsesRootOwnedReceiptDeviceAndInode": true,
+    "foreignIdentityFailsClosed": true,
+    "publicFullGetAndRehashRequired": true,
+    "existingDmgSentinelMustRemainExact": true
+  },
+  "requiredPublicResult": {
+    "status": 200,
+    "bytes": 471181,
+    "sha256": "2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d",
+    "contentType": "application/zip",
+    "contentDisposition": "attachment; filename=\"ynx-wallet-chrome-edge-0.1.0.zip\"",
+    "cacheControl": "public, max-age=31536000, immutable",
+    "xContentTypeOptions": "nosniff"
+  },
+  "truthAtRequest": {
+    "leaseIssued": false,
+    "uploaded": false,
+    "configInstalled": false,
+    "caddyReloaded": false,
+    "downloadHosted": false,
+    "deployedPublic": false,
+    "rollbackExecuted": false
+  }
+}
