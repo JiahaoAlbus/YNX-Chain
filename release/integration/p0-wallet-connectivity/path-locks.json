@@ -5,25 +5,25 @@
   "locks": [
     {
       "path": "{local:/Users/huangjiahao/Applications/YNX Browser Isolated,local:/Users/huangjiahao/Applications/YNX Browser Isolated/YNX Browser Testnet Preview-ad890f0a2fe5-aaed312ef608.app,local:/private/tmp/ynx-browser-preinstall-p0232.receipt,local:/private/tmp/ynx-browser-preinstall-p0232.diagnostic,local:/private/tmp/ynx-browser-preinstall-p0232.diagnostic.tmp,launchservices:candidate:com.ynxweb4.browser.macos:ynxbrowser}",
-      "owner": "browser-macos-preinstall-owner",
+      "owner": null,
       "branch": "codex/p0-browser-current-source-verification-20260821",
       "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/52-browser-p0",
       "taskId": "P0-232",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE_SINGLE_USE",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_BROWSER_P0232_DIAGNOSTIC_PREINSTALL_CLEANED",
       "acquiredAt": "2026-08-23T01:18:00Z",
       "expiresAt": "2026-08-23T01:48:00Z",
+      "releasedAt": "2026-08-23T01:27:09Z",
       "sourceCommit": "6ace4556ceaa7f4d72f896a4ad4a5505014f030c",
       "sourceTree": "498aa15c87bc64e25d26f35c8eee4639b381d635",
       "evidenceCommit": "a40b2e6a4a371125ffe4115515a83f3c7e6c996b",
       "artifactSha256": "a696f743a86518d8cc98d1a1335fd80fcbf3eed593491e53e7ed67589f019ba4",
-      "productionMutationAllowed": true,
+      "productionMutationAllowed": false,
       "allowedExceptions": [
-        "create exactly one isolated root mode 0700 and receipt its dynamic tuple",
-        "copy exactly one candidate app and register only that candidate with LaunchServices",
-        "atomically maintain only the exact P0-232 diagnostic journal and temp paths",
-        "resolve ynxbrowser without opening it",
-        "on failure execute at most one receipt-bound rollback, restore exact old handler and delete only exact candidate plus exact empty created root"
+        "P0-232 forward and rollback quotas are consumed and nonreusable",
+        "built-in forward cleanup restored isolated root, candidate and receipt to exact absence",
+        "retain only the exact FAILED_CLEANED diagnostic journal as terminal evidence",
+        "no further Browser or LaunchServices mutation is authorized"
       ]
     },
     {
