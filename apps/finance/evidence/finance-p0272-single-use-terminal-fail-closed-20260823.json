@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "p0-finance-phase3-terminal-fail-closed-evidence@1",
+  "kind": "FINANCE_P0272_SINGLE_USE_EXECUTION_FAIL_CLOSED",
+  "central": {
+    "commit": "dcf9a981c948f6e25dbc05d328a2629f19b81654",
+    "tree": "6e7b6bab6088f35c7783adc124d0eb2cdc49f353",
+    "leasePathRead": "release/integration/p0-wallet-connectivity/execution/p0-272-finance-rollback-first-deployment-retained-parent-single-use-lease-20260823.json",
+    "leaseBlob": "6fde0c4a2a767e00b547a2d4ae8999f7ec8d85a8",
+    "leaseBytes": 35885,
+    "leaseSha256": "014a7f46d6cdc166c51578033d1a06c703ea86a69bdd59ac2f35f8a2e52d9979"
+  },
+  "signedStdin": {
+    "path": "/tmp/ynx-finance-p0272-phase3-signed.json",
+    "bytes": 7696,
+    "sha256": "e46d0d6f9050ee0377750683babd004c4306c48cfb6e52d1f6ab7cdf10ba1986"
+  },
+  "execution": {
+    "localPreflightOnlyFailuresBeforeSsh": 3,
+    "sshAttempts": 1,
+    "deployInvocations": "UNPROVEN_NO_TERMINAL_RECEIPT",
+    "automaticRollbackInvocations": "UNPROVEN_NO_TERMINAL_RECEIPT",
+    "manualRollbackInvocations": 0,
+    "sshExitStatus": 1,
+    "retryPerformed": false,
+    "terminalReceiptValidated": false
+  },
+  "terminalFiles": {
+    "stdout": {"bytes": 0, "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    "stderr": {"bytes": 172, "sha256": "1f3ee0d9667ef4f5dbe2fbd949a9414abb9cd3714b57a02b3b0682eca54312af"},
+    "transportReceipt": {"bytes": 183, "sha256": "8d7fcfda54ff9184269cb1b92a930febd8fe5301022bfdd48833621bc107b0f3"}
+  },
+  "observedStderrClass": "TAR_APPLE_EXTENDED_HEADER_WARNING_ONLY_NO_SIGNED_TERMINAL_RECEIPT",
+  "observedStderrLines": [
+    "tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'",
+    "tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'"
+  ],
+  "truth": {
+    "deploymentSucceeded": false,
+    "rollbackSucceeded": false,
+    "currentReleaseVerified": false,
+    "serviceVerified": false,
+    "publicOrLoopbackVerified": false,
+    "residueVerified": false,
+    "walletAccountOrTransactionAction": false
+  },
+  "requiredCentralAction": "Atomically release P0-272 as nonreusable and issue a distinct zero-write inspection lease. Do not infer remote deployment, rollback, service, public or residue state from this empty terminal receipt."
+}
