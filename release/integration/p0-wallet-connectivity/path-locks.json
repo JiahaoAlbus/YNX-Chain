@@ -2279,6 +2279,31 @@
         "P0-286 is consumed and nonreusable; Heavy and read-only locks are released",
         "P0-282 becomes eligible only for a separate independent review and remains unauthorized here"
       ]
+    },
+    {
+      "path": "{host:43.153.202.237:finance-p0279-guarded-staging-zero-write-diagnosis,readonly:/opt/ynx/leases/finance/p0279-finance-phase3-20260823T164408Z.*,readonly:/opt/ynx/stage/finance/p0228-finance-phase1-20260822T234100Z/**,readonly:/opt/ynx/stage/finance/p0279-finance-phase3-20260823T164408Z/**,readonly:/var/backups/ynx-finance/p0279-finance-phase3-20260823T164408Z/**,readonly:/opt/ynx/releases/finance/p0279-finance-phase3-20260823T164408Z/**,readonly:/opt/ynx/finance-current,readonly:/etc/ynx/finance.env,readonly:/var/lib/ynx/finance/state.json,readonly:/etc/systemd/system/ynx-finance.service,readonly:/etc/caddy/conf.d/ynx-finance.caddy,readonly:ynx-finance.service,readonly:journal:ynx-finance.service:2026-08-23T16:46:00Z..2026-08-23T16:53:30Z,readonly:http://127.0.0.1:6483/{health,version},readonly:https://finance.ynxweb4.com/{health,version}}",
+      "owner": "finance-release-control-plane-readonly-diagnosis",
+      "branch": "codex/p0-wallet-connectivity-control-plane-20260820",
+      "worktree": "/private/tmp/ynx-calendar-control-plane.y8FFQt/repo",
+      "taskId": "P0-282",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_SINGLE_USE",
+      "acquiredAt": "2026-08-23T17:54:00Z",
+      "expiresAt": "2026-08-23T18:24:00Z",
+      "releasedAt": null,
+      "sourceCommit": "7c00fefa5bceffe34b0e77a247a7b355a9711249",
+      "sourceTree": "a2211bed5a823b23b2e55f44c1f41dc04a2e8320",
+      "evidenceCommit": "7c00fefa5bceffe34b0e77a247a7b355a9711249",
+      "artifactSha256": "d8338ad408351ad2ca173731bcac5ab128de9d1e3374094f1ff91ff8181bf614",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "one zero-write SSH diagnosis and no retry",
+        "read only frozen P0-279 control paths, carrier and guarded-staging paths, old runtime metadata and fixed journal window",
+        "output only the fourteen fixed normalized terminal fields and no bodies or environment values",
+        "return UNAVAILABLE and UNPROVEN rather than infer root cause when historical phase evidence is absent",
+        "no remote temp, cleanup, SCP, deploy, rollback, lifecycle, symlink or runtime/public mutation",
+        "diagnostic success is not deployment authority"
+      ]
     }
   ]
 }
