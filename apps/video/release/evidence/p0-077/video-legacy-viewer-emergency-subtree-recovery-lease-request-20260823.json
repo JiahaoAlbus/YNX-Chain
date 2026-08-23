@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "ynx-video-legacy-viewer-emergency-subtree-recovery-request/1",
+  "generatedAt": "2026-08-23T04:30:00Z",
+  "status": "REQUESTED_NO_PRODUCTION_AUTHORITY",
+  "incident": {
+    "cause": "P0-237 stopped the legacy Viewer and its automatic recovery could not start because the unchanged Creator shared-current target lacks apps/video/server.mjs.",
+    "legacyUnit": "ynx-video-viewer.service",
+    "state": "failed",
+    "nRestarts": 5,
+    "port6494Listener": false,
+    "api6493Healthy": true,
+    "creator6495Healthy": true
+  },
+  "successor": {
+    "script": {"path": "apps/video/scripts/video-legacy-viewer-emergency-recovery.sh", "blob": "67783d403310d0544707df0ed4d22c69436cd0f6", "bytes": 6521, "sha256": "2418def62fccadcb5b62cf99f65db515dac8faa620c46bd6b26ff37b522f7cae"},
+    "fixture": {"path": "apps/video/emergency-recovery.test.mjs", "blob": "76446b64663432e83b49c09e3ae569878c80f246", "bytes": 3485, "sha256": "eba60fa18a4fedf5dee9407b9f1e7dfaff973ede9d6acb0e130b638dbd16e673"},
+    "package": {"path": "apps/video/package.json", "blob": "acb1ad0471d9b99d8cb8bb80828d11b1ab0e7066", "bytes": 610, "sha256": "95470a3796dff7e91a3b32ba74876ca565157760b8458605d1776956f3679dbb"},
+    "tests": {"video": "21/21", "emergencyFixture": "2/2", "i18n": "12 locales x 22 keys", "bashSyntax": true, "diffCheck": true}
+  },
+  "freshProductionBindings": {
+    "sharedCurrent": {"path": "/opt/ynx-video/current", "tuple": "64770:1324617:0:0:777:1:53:symbolic link", "target": "/opt/ynx-video/releases/p0205-creator-studio-0e1a53c5"},
+    "sharedTargetTuple": "64770:2621453:995:986:755:3:4096:directory",
+    "sharedAppsTuple": "64770:2663541:995:986:755:3:4096:directory",
+    "missingSubtree": "/opt/ynx-video/releases/p0205-creator-studio-0e1a53c5/apps/video",
+    "predecessorCarrier": {"path": "/var/tmp/ynx-video-predecessor-e5ce335-runtime.tar.gz", "tuple": "64770:35401:1000:1001:644:1:13323:regular file", "bytes": 13323, "sha256": "6771deb82ccc62a9c14d62ed40e7bda961806ffe3c14681b9cf53ec27afef2df"},
+    "legacyUnit": {"path": "/etc/systemd/system/ynx-video-viewer.service", "tuple": "64770:161341:0:0:600:1:337:regular file", "sha256": "c0518f813134f2879382cc3f7c999f8abf9b4660c513bc2651487a6fe9ed29c9", "execStart": "/usr/bin/node /opt/ynx-video/current/apps/video/server.mjs"},
+    "caddy": {"path": "/etc/caddy/Caddyfile", "tuple": "64770:1051746:0:0:644:1:928:regular file", "sha256": "077fe80ea9aab24a32d64ba1fab3584e8aab10304e200e58d976d2c33edfb39f"},
+    "apiHealth": {"status": 200, "bytes": 278, "sha256": "b14684492820350504ee7a06247e0b4670416bff721678bb39645b6808972384"},
+    "creatorRoot": {"status": 200, "bytes": 14088, "sha256": "b37f78205f2c5443b2103ee42e98d6ecde65238c107733088e63893a3c1de697"}
+  },
+  "requestedSingleUseExecution": {
+    "leaseToken": "P0_VIDEO_LEGACY_SUBTREE_RECOVERY_SINGLE_USE",
+    "upload": {"localPath": "apps/video/scripts/video-legacy-viewer-emergency-recovery.sh", "remotePath": "/var/tmp/ynx-video-legacy-viewer-emergency-recovery.sh", "sha256": "2418def62fccadcb5b62cf99f65db515dac8faa620c46bd6b26ff37b522f7cae", "mode": "0755", "count": 1},
+    "argv": ["sudo", "env", "YNX_VIDEO_EXECUTION_MODE=production", "YNX_VIDEO_LEASE_AUTHORIZED=P0_VIDEO_LEGACY_SUBTREE_RECOVERY_SINGLE_USE", "YNX_VIDEO_SHARED_CURRENT=/opt/ynx-video/current", "YNX_VIDEO_SHARED_TARGET=/opt/ynx-video/releases/p0205-creator-studio-0e1a53c5", "YNX_VIDEO_SHARED_LINK_TUPLE=64770:1324617:0:0:777:1:53:symbolic link", "YNX_VIDEO_SHARED_TARGET_TUPLE=64770:2621453:995:986:755:3:4096:directory", "YNX_VIDEO_SHARED_APPS_TUPLE=64770:2663541:995:986:755:3:4096:directory", "YNX_VIDEO_PREDECESSOR_CARRIER=/var/tmp/ynx-video-predecessor-e5ce335-runtime.tar.gz", "YNX_VIDEO_PREDECESSOR_CARRIER_SHA256=6771deb82ccc62a9c14d62ed40e7bda961806ffe3c14681b9cf53ec27afef2df", "YNX_VIDEO_LEGACY_UNIT=ynx-video-viewer.service", "YNX_VIDEO_LEGACY_UNIT_PATH=/etc/systemd/system/ynx-video-viewer.service", "YNX_VIDEO_LEGACY_UNIT_SHA256=c0518f813134f2879382cc3f7c999f8abf9b4660c513bc2651487a6fe9ed29c9", "YNX_VIDEO_CADDY_PATH=/etc/caddy/Caddyfile", "YNX_VIDEO_CADDY_SHA256=077fe80ea9aab24a32d64ba1fab3584e8aab10304e200e58d976d2c33edfb39f", "YNX_VIDEO_RECOVERY_RECEIPT=/var/lib/ynx-video-viewer-wallet-evidence/video-legacy-viewer-emergency-recovery.receipt", "/var/tmp/ynx-video-legacy-viewer-emergency-recovery.sh", "recover"],
+    "mutationCount": 1,
+    "retryAllowed": false
+  },
+  "terminalAcceptance": {
+    "required": ["exact 13-file subtree with normalized ynx:ynx ownership and modes", "legacy unit active with new PID and NRestarts=0", "6494 root HTTP200 3285 bytes SHA256 5c6aa1b9207680ff40f77df6d063571f67beff40719d727acf5d2fa0c05b591a", "API 6493 and Creator 6495 hashes unchanged", "shared-current target, legacy unit, Caddy, P0-237 failure receipts unchanged"],
+    "failure": "Stop legacy unit, delete only the newly created subtree after exact identity verification, retain emergency Heavy lock, and return terminal evidence without retry."
+  },
+  "forbidden": ["change shared-current symlink", "change Caddy", "change legacy unit", "change API or Creator", "deploy candidate", "retry P0-237", "account request", "signature", "transaction"],
+  "singleExecutableBlocker": "Central must convert the held Video emergency lock into one exact single-use recovery lease for this successor and execute it once."
+}
