@@ -2200,10 +2200,10 @@
       "worktree": "/private/tmp/ynx-calendar-control-plane.y8FFQt/repo",
       "taskId": "P0-284",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE_SINGLE_USE",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0284_P0281_TEMP_CONTROLS_REMAIN",
       "acquiredAt": "2026-08-23T17:26:00Z",
       "expiresAt": "2026-08-23T17:56:00Z",
-      "releasedAt": null,
+      "releasedAt": "2026-08-23T17:32:05Z",
       "sourceCommit": "05b81e2a42a1dbfd475a5bb383b5a4f604873c5e",
       "sourceTree": "ebb2418f4e8214877672eb02b006dd1fd40e4411",
       "evidenceCommit": "05b81e2a42a1dbfd475a5bb383b5a4f604873c5e",
@@ -2217,7 +2217,10 @@
         "prove old current, env, absent state, unit, Caddy, service PID/NRestarts and public/loopback metadata unchanged",
         "no separate preflight SSH, retry, cleanup, deploy, rollback, restart, service lifecycle or runtime/public mutation",
         "P0-283 is consumed and nonreusable; cleanupComplete remains false",
-        "P0-282 remains queued and unauthorized until P0-284 terminal release"
+        "the single zero-write readback proved both persistent P0-279 controls absent and old runtime unchanged",
+        "both exact P0-281 temporary controls remain, so cleanupComplete remains false",
+        "P0-284 is consumed and nonreusable; Heavy and this read-only path lock are released",
+        "P0-282 remains queued and unauthorized; only a wholly-new P0-285 cleanup-only lease plus later independent readback may follow"
       ]
     }
   ]
