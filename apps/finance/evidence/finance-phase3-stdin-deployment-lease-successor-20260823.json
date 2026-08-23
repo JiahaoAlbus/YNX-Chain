@@ -6,13 +6,13 @@
     "ownerRequestCommit": "c560497db9c78a1106ab7f0d52d9555652e76cc4",
     "ownerRequestTree": "e8251f0c0a88b6f60d52d5eb4463dd7c5ed9d0bb",
     "requestSha256": "18130afa5aeabafa814e0148eb678a3626c2efabb1efd30915c46fa276d5525b",
-    "centralDecision": "NO_GO_FINANCE_PHASE3_MANUAL_ROLLBACK_LEASE_TRANSPORT_AND_REMOTE_PLACEMENT_UNFROZEN",
-    "correction": "Add a reviewed stdin/sudo manual-rollback lease bootstrap that binds parent/executor identity, exact lease bytes/SHA/mode and absent target paths, installs atomically, preserves foreign or substituted objects, and invokes rollback exactly once without logging the lease body."
+    "centralDecision": "NO_GO_FINANCE_PHASE3_MANUAL_ROLLBACK_LEASE_POST_RENAME_IDENTITY_RECHECK_MISSING",
+    "correction": "After pending-to-final rename, explicitly require a regular non-symlink final target with the original pending inode identity and exact captured tuple/bytes/SHA/mode before disabling cleanup or invoking rollback. A same-bytes, same-mode replacement on a new inode must fail closed and remain preserved."
   },
   "owner": {
     "branch": "codex/p0-finance-wallet-connectivity-20260820",
-    "implementationCommit": "9fd55d90e092f3ba14decfcc79009c91b62c9e25",
-    "implementationTree": "433e449335f99180e7abc2d4a1b757d030bfe831",
+    "implementationCommit": "6773cc7bc65151c7b09a0216192ed8cc912a4aef",
+    "implementationTree": "88128d884fa2788a774460944f858462a1b4dad4",
     "rule": "This successor evidence commit must be a non-self-referential child of the reviewed implementation."
   },
   "acceptedPrerequisite": {
@@ -62,9 +62,9 @@
   "commandObjects": {
     "manualRollbackBootstrap": {
       "path": "apps/finance/scripts/finance-phase3-stdin-manual-rollback-bootstrap.sh",
-      "blob": "64d71d3494da2fc07b54750c85f8c8a843a122e0",
-      "bytes": 2780,
-      "sha256": "e5746bf8331839caab24e4e92682af4069fc19429e9b89b03834a310b1059a6c",
+      "blob": "6523f1cb1296b20344a1640c4486ce90112dab18",
+      "bytes": 2967,
+      "sha256": "055571ed79028c7d6d549e5414cddc2bc3a6e6a99e96313c7cb9563f49f9633f",
       "role": "atomic stdin placement of one separately signed manual-rollback lease followed by exactly one retained-executor rollback invocation"
     },
     "bootstrap": {
@@ -76,11 +76,11 @@
     },
     "bootstrapFixture": {
       "path": "apps/finance/scripts/test-finance-phase3-stdin-deployment-bootstrap-fixture.mjs",
-      "blob": "4faac7963c218cac8dcf12eb29cebe6c066b2c51",
-      "bytes": 9760,
-      "sha256": "f0f77c636977e98daaeaf386e87ceb62c1ffc7f23f970bc874e57d25366ba872",
+      "blob": "feea28f1f30273691e8a6b37bff587b8e744848d",
+      "bytes": 11046,
+      "sha256": "c0cd047102e52a4c729bf338aae7050175828c6ce47837c00c95690369b09328",
       "ownerRerun": "PASS",
-      "coverage": ["success exact placement and modes", "malformed stdin cleanup", "foreign carrier refusal", "symlink parent preservation", "separate stdin rollback-lease placement and one rollback invocation", "malformed rollback body cleanup", "foreign final/pending preservation", "parent and post-rename target substitution preservation"]
+      "coverage": ["success exact placement and modes", "malformed stdin cleanup", "foreign carrier refusal", "symlink parent preservation", "separate stdin rollback-lease placement and one rollback invocation", "malformed rollback body cleanup", "foreign final/pending preservation", "parent and post-rename target substitution preservation", "same-bytes and same-mode post-rename regular-file replacement on a new inode fails closed, is preserved, and does not invoke rollback"]
     },
     "productionExecutor": {
       "path": "apps/finance/scripts/finance-production-rollback-first.sh",
@@ -93,9 +93,9 @@
     },
     "productionCommandFixture": {
       "path": "apps/finance/scripts/test-finance-production-command-object.mjs",
-      "blob": "f9e0d6734488c51d7cf395f5b648231e3f790efc",
-      "bytes": 2404,
-      "sha256": "c8a6000d89cfbaa543bbd698e6d06e680d05ba3f0cda306e9962aab69ffba388",
+      "blob": "a9f74846a041081258540a0f08611d2a2fb87a24",
+      "bytes": 2481,
+      "sha256": "a3c35ad84eb6a121f5a867322fcda3fc21f02ed44ed0f99ac61d4cb1ae16f1e4",
       "ownerRerun": "PASS"
     },
     "productionActualShellFixture": {
@@ -178,6 +178,8 @@
     "manualRollbackForeignAndSubstitutionPrewriteGuardsPassed": true,
     "manualRollbackLeaseStdinAtomicPlacementImplemented": true,
     "manualRollbackLeaseTransportFixturePassed": true,
+    "manualRollbackPostRenameIdentityRecheckImplemented": true,
+    "sameBytesSameModeNewInodeSubstitutionFixturePassed": true,
     "phase3LeaseIssued": false,
     "productionSsh": false,
     "deployed": false,
