@@ -5,9 +5,10 @@
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-rollback-first-deployment-empty-env-openssh-20260823T145900Z",
   "owner": "finance-release-control-plane",
   "executor": "finance-release-control-plane",
-  "status": "ACTIVE_SINGLE_USE",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0270_REMOTE_PRE_DEPLOY_PARENT_EXISTENCE_CONTRACT_MISMATCH_NO_DEPLOY",
   "issuedAt": "2026-08-23T14:59:00Z",
   "expiresAt": "2026-08-23T15:29:00Z",
+  "releasedAt": "2026-08-23T15:06:44Z",
   "singleUse": true,
   "reusable": false,
   "productionMutationAllowed": true,
@@ -207,5 +208,35 @@
     "manualRollbackAuthorized": false,
     "walletMutationAllowed": false,
     "accountSignTxAllowed": false
+  },
+  "terminalEvidence": {
+    "ownerCommit": "e4b9f00f44ee6f1cc4f0dceb77367d12da2d2c47",
+    "ownerTree": "9e2b7c79189cba12680c1deb406a07aff9eb9840",
+    "blob": "22b5bbe0695b23d4d40b51b08382fae2f6d875f0",
+    "bytes": 1907,
+    "sha256": "573687dff92e79fc130bc1bf7d0fb3204fa552e9d092d03751340849d4ac9f80",
+    "remoteExact": true,
+    "clean": true,
+    "attemptCount": 1,
+    "localExitStatus": 1,
+    "sshAttemptCount": 1,
+    "deployInvocationCount": 0,
+    "retryPerformed": false,
+    "stdoutBytesSha256": "0|e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderrBytesSha256": "74|65d15c24304de81d3af497ecd77bc40535c50063cbb4c4233cb4425ba446483f",
+    "transportReceiptBytesSha256": "183|8d7fcfda54ff9184269cb1b92a930febd8fe5301022bfdd48833621bc107b0f3",
+    "failureClass": "REMOTE_PRE_DEPLOY_PARENT_EXISTENCE_CONTRACT_MISMATCH",
+    "failureReason": "The bootstrap attempted to create /opt/ynx/leases/finance even though the fresh-signed retained parent legitimately already exists.",
+    "deployExecutorEntered": false,
+    "deploymentSucceeded": false,
+    "automaticRollbackInvoked": false,
+    "manualRollbackInvoked": false,
+    "accountSignTx": false,
+    "nonreusable": true
+  },
+  "successorRequirement": {
+    "leaseIssued": false,
+    "code": "FINANCE_PHASE3_EXISTING_LEASE_PARENT_CONTRACT_REQUIRED",
+    "requirement": "A wholly-new source successor must accept the fresh-signed non-symlink existing /opt/ynx/leases/finance parent, never mkdir or delete that parent, and create or clean only lease-specific child control files using no-replace and identity-bound checks before a new production prewrite and lease decision."
   }
 }

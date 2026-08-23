@@ -1967,25 +1967,25 @@
     },
     {
       "path": "{host:43.153.202.237:finance-phase3,service:ynx-finance.service,port:127.0.0.1:6483,production:/opt/ynx/leases/finance/p0270-finance-phase3-20260823T145900Z.*,production:/opt/ynx/stage/finance/p0270-finance-phase3-20260823T145900Z,production:/var/backups/ynx-finance/p0270-finance-phase3-20260823T145900Z,production:/opt/ynx/releases/finance/p0270-finance-phase3-20260823T145900Z,production:/opt/ynx/finance-current,production:/etc/ynx/finance.env,production:/var/lib/ynx/finance/state.json,public:https://finance.ynxweb4.com/**}",
-      "owner": "finance-release-control-plane",
+      "owner": null,
       "branch": "codex/p0-finance-wallet-connectivity-20260820",
       "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
       "taskId": "P0-270",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE_SINGLE_USE",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0270_REMOTE_PRE_DEPLOY_PARENT_EXISTENCE_CONTRACT_MISMATCH_NO_DEPLOY",
       "acquiredAt": "2026-08-23T14:59:00Z",
       "expiresAt": "2026-08-23T15:29:00Z",
-      "releasedAt": null,
+      "releasedAt": "2026-08-23T15:06:44Z",
       "sourceCommit": "7824af677dd052d20321431381523ab302614d98",
       "sourceTree": "3db34ee2397a49852bbdf15e3841e7c9cecf9444",
       "evidenceCommit": "0ccc690d9ac16770707e0d9c997183514161254f",
       "artifactSha256": "d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d",
-      "productionMutationAllowed": true,
+      "productionMutationAllowed": false,
       "allowedExceptions": [
-        "one exact empty-environment OpenSSH-serialized deployment invocation with no retry",
-        "automatic rollback on executor failure is allowed only within the exact frozen executor contract",
-        "manual rollback is not authorized and requires a wholly-new separately signed lease",
-        "no Wallet path lock or mutation, unit or Caddy mutation, account request, signature, typed data, transaction or secret output"
+        "P0-270 is consumed and nonreusable after one SSH and zero deploy invocations",
+        "the bootstrap failed before executor entry because the exact retained Finance lease parent already exists",
+        "no production switch or rollback occurred; all P0-270 Finance and Wallet locks are released",
+        "a successor must preserve the signed existing parent and create or clean only no-replace identity-bound child controls"
       ]
     }
   ]
