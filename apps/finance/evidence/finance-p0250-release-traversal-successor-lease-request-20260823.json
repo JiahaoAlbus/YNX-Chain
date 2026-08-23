@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "kind": "FINANCE_ROLLBACK_FIRST_DEPLOYMENT_RELEASE_TRAVERSAL_SUCCESSOR_REQUEST",
+  "requestState": "PENDING_CENTRAL_SINGLE_USE_LEASE_REVIEW",
+  "owner": {
+    "branch": "codex/p0-finance-wallet-connectivity-20260820",
+    "reviewedImplementationCommit": "6a39fe87d72e0ccc710c4c0dc81ea12524971639",
+    "reviewedImplementationTree": "026de059bdd75f37f665181721ef6249f528ae75",
+    "nonSelfReferential": true
+  },
+  "rootCauseEvidence": {
+    "commit": "8b186dda04f6b1ed19526b72a3c2cf1f6bb0feca",
+    "tree": "b2bdb3042eac02db4fa939627bc56bc782ebfb73",
+    "failureClass": "PERMISSION_OR_WORKING_DIRECTORY_TRAVERSE",
+    "cause": "P0-247 used root:root mode 0750 for a release-container while the service ran as ynx:ynx."
+  },
+  "correctedCommandObjects": {
+    "productionExecutor": {"path": "apps/finance/scripts/finance-production-rollback-first.sh", "blob": "a6e7e31e28835d451687fccf91858417c4530803", "bytes": 18403, "sha256": "2ab4d1923ce180a35e0247c7ebe0628f2eb58ace0416060edb2d6a25be083fde"},
+    "actualShellFixture": {"path": "apps/finance/scripts/test-finance-production-fixture.mjs", "blob": "5b86aa50936c492ac66cec7b4aa7490ab4558f1f", "bytes": 38776, "sha256": "a19e4ffe19bd09a0b6dea1d6ae5247a7b1d10751590910567628cbd358e1544c"},
+    "commandFixture": {"path": "apps/finance/scripts/test-finance-production-command-object.mjs", "blob": "b6f1bb421b85892b891bca29b3bdeb04c97b2915", "bytes": 2732, "sha256": "b2833dbdb79e7709552c3dc01e4e4abaf956f9372b1c0556f833ada7cb3c8c94"},
+    "singleAttemptTransport": {"path": "apps/finance/scripts/finance-phase3-single-ssh.sh", "blob": "f1a29bd33147c83aed7f83cc6e2c956b0056356e", "bytes": 822, "sha256": "adeaf3cbbeb8e9962eab451f884b1322ec17bce231d3704402a6bbab0987c270"},
+    "singleAttemptTransportFixture": {"path": "apps/finance/scripts/test-finance-phase3-single-ssh-fixture.mjs", "blob": "ad4026b689337d7ab75eb7bda8717d8f326f06ae", "bytes": 1418, "sha256": "d2d4fa6be4178fcbe3670f587d8e8d564f52a135fea844db1f5c0ae4ac7f7618"},
+    "stdinBootstrap": {"path": "apps/finance/scripts/finance-phase3-stdin-deployment-bootstrap.sh", "blob": "1e606b976f16d54bc2db14beecdba7d673d2848d", "bytes": 5277, "sha256": "c25e4bc3d41a1677d00937467e2af103bcfcf35df8c21a0558613e31c74edf83"}
+  },
+  "requiredFutureLeaseContract": {
+    "freshReadBeforeWrite": ["current link/release/binary/env/unit/Caddy/state/service/public receipts", "unit user and primary gid", "candidate carrier/archive/env tuple bytes SHA", "new stage/backup/release/releaseContainer absence and exact parent tuples"],
+    "releaseContainer": {"ownerUid": 0, "groupId": "freshly bound primary gid of unit user ynx", "mode": "0750", "creation": "mkdir no-replace, capture pre/post identity, chown/chmod exact signed tuple, reject symlink/substitution/foreign entries"},
+    "preSwitchGate": "runuser -u <fresh unit user> must traverse releaseContainer and release, execute ynx-finance, and read every signed asset before env/current/service mutation",
+    "failureHandling": "trap begins immediately after stage/backup creation; it removes only exact identity-plus-inventory-bound staging/backup/release/container residues, preserves substitutions and foreign objects, and restores the old runtime after any post-switch failure",
+    "transport": "one literal SSH argv, exact stdin, stdout, stderr and atomic local rc receipt through finance-phase3-single-ssh.sh; never use zsh special parameter status",
+    "attemptLimit": 1,
+    "retryAllowed": false,
+    "p0247Reusable": false
+  },
+  "testResults": {
+    "bashSyntax": "PASS",
+    "singleAttemptRcFixture": "PASS",
+    "productionCommandFixture": "PASS",
+    "phase3BootstrapFixture": "PASS",
+    "productionActualShellFixture": "PASS",
+    "goFinance": "PASS",
+    "coverage": ["positive root:ynx 0750-style traversal", "negative root:root 0750-style traversal denial", "pre-switch old-link preservation", "auto-rollback and exact residue cleanup", "foreign/symlink substitution preservation", "real nonzero SSH rc receipt"]
+  },
+  "forbiddenUntilNewLease": ["SSH", "deploy", "rollback", "cleanup of P0-247 production residues", "service/current/env/state/unit/Caddy mutation", "wallet account/signature/typed-data/transaction"],
+  "truth": {"leaseIssued": false, "productionSsh": false, "deployed": false, "publicVerified": false, "walletApproval": false, "signature": false, "transaction": false}
+}
