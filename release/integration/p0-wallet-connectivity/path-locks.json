@@ -1806,6 +1806,29 @@
         "preserve the five retained directories plus creation and final settled tuple evidence without mutation",
         "no Phase 2, cleanup, object, archive, environment, service, current, unit, Caddy, public or sensitive Wallet action under P0-228"
       ]
+    },
+    {
+      "path": "{host:43.153.202.237:finance-phase3,service:ynx-finance.service,port:127.0.0.1:6483,production:/opt/ynx/leases/finance,production:/opt/ynx/stage/finance/p0247-finance-phase3-20260823T073800Z,production:/var/backups/ynx-finance/p0247-finance-phase3-20260823T073800Z,production:/opt/ynx/releases/finance/p0247-finance-phase3-20260823T073800Z,production:/opt/ynx/finance-current,production:/etc/ynx/finance.env,production:/var/lib/ynx/finance/state.json,public:https://finance.ynxweb4.com/**}",
+      "owner": "finance-release-control-plane",
+      "branch": "codex/p0-finance-wallet-connectivity-20260820",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
+      "taskId": "P0-247",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_SINGLE_USE",
+      "acquiredAt": "2026-08-23T07:38:00Z",
+      "expiresAt": "2026-08-23T08:08:00Z",
+      "releasedAt": null,
+      "sourceCommit": "7824af677dd052d20321431381523ab302614d98",
+      "sourceTree": "3db34ee2397a49852bbdf15e3841e7c9cecf9444",
+      "evidenceCommit": "3424885fac543d8a860201100ba294a6a5581602",
+      "artifactSha256": "d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d",
+      "productionMutationAllowed": true,
+      "allowedExceptions": [
+        "one exact Finance Phase3 stdin/bootstrap/deploy attempt, no retry",
+        "automatic rollback is owned by the exact executor on deploy failure",
+        "after deploy success, any external gate failure retains Heavy and requires a wholly-new signed manual-rollback lease",
+        "no unit, Caddy, non-Finance, account, signature, typed-data or transaction mutation"
+      ]
     }
   ]
 }
