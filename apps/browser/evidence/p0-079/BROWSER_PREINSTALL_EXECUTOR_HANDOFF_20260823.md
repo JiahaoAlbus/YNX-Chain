@@ -1,35 +1,42 @@
-# Browser preinstall executor handoff
+# Browser preinstall executor successor handoff
 
-The previous request was rejected because the forward and rollback command objects were not frozen. This successor closes that source/evidence gap without installing or registering anything.
+The previous request froze the candidate `.app` but did not freeze creation or rollback of its missing parent directory. This successor closes that single blocker without installing, registering, launching, opening a scheme, requesting an account, signing or sending a transaction.
 
-## Exact source
+## Exact implementation
 
 - Branch: `codex/p0-browser-current-source-verification-20260821`
-- Source commit: `6ace4556ceaa7f4d72f896a4ad4a5505014f030c`
-- Tree: `498aa15c87bc64e25d26f35c8eee4639b381d635`
+- Implementation: `dd9a9b6e0552868b6559c2edd0b5d3244804fdfc`
+- Tree: `c92d934837dbfd87eaf493111ddd0b4da99c6666`
+- Parent: `8ccfea1fa1cc07087dd725949202b8f677a15116`
 - Executor: `apps/browser/scripts/browser-preinstall-executor.sh`
-- Executor SHA-256: `93160c379c58671ca7fdc7dab42daa9a2ef4bee0987093f695ade0456f0cb3b7`
+- Executor SHA-256: `5841c41570308e588fa40fd2d4845553a91e9cc376d1ece0a23850a6d69042b8`
 
-The request JSON freezes exact forward and rollback argv/environment objects. Production mode fails closed unless `YNX_BROWSER_LEASE_AUTHORIZED=P0_BROWSER_SINGLE_USE` is present.
+## Missing-parent lifecycle now frozen
 
-## Safety behavior
+The target root `/Users/huangjiahao/Applications/YNX Browser Isolated` is currently absent. The executor no longer uses recursive parent creation. It first verifies the existing `/Users/huangjiahao/Applications` tuple (`16777239:448444`, uid `501`, gid `20`, mode `0700`, nlink `15`), requires the isolated root absent, and creates exactly that one directory with mode `0700`.
 
-Forward creates only the absent isolated candidate target, verifies its app inode and executable SHA, proves no candidate process, registers only that candidate, and resolves the handler without invoking the scheme. It contains no launch or process-termination command.
+Immediately after creation it records the new root device/inode, uid, gid, mode and empty-directory link count in the forward receipt. A post-copy failure or explicit rollback can remove that directory only after the exact candidate is removed, the root identity and metadata still match the receipt, and the root is empty. A substituted root or any unexpected sibling entry is rejected before LaunchServices rollback mutation.
 
-Rollback starts by requiring the receipt, candidate app inode, executable SHA and no candidate process. It then unregisters only the candidate, re-registers the exact old handler, resolves it without launch, and deletes only the still-exact non-running candidate. It never unregisters, moves, launches, terminates or deletes any old copy or old PID.
+## Direct actual-shell fixture
 
-## Direct fixture evidence
+`npm run verify:macos-preinstall-executor` passes `6/6`. The fixture proves:
 
-The actual shell fixture passed `3/3`. It creates eleven old application sentinels plus an old PID sentinel, executes forward and rollback, and records the only LaunchServices operations as:
+1. absent root -> exact single-directory creation -> receipt -> exact candidate rollback -> empty root deletion;
+2. post-copy forward failure unregisters only the candidate, restores the exact old handler, removes only the exact candidate and exact empty root;
+3. root device/inode substitution is rejected before any unregister/register rollback operation;
+4. an unexpected root entry is rejected before any unregister/register rollback operation and is not deleted;
+5. a reported candidate process rejects rollback before mutation;
+6. production mode without the single-use lease marker is rejected.
 
-1. register candidate;
-2. unregister candidate;
-3. register exact old handler.
+Eleven old-copy sentinels, the exact old-handler sentinel and PID `93119` sentinel stay byte-identical across the positive and failure paths. The only successful forward/rollback LaunchServices sequence remains register candidate, unregister candidate, register exact old handler.
 
-All eleven old copy bytes and the old PID sentinel remain exact. A reported candidate process causes rollback to stop before unregistering or deleting anything. Production mode without a lease is rejected.
+## Fresh read-only production state
 
-The full Browser Node suite passed `21/21`; smoke and source gates passed. The existing local CommandLineTools duplicate-xcspec failure still prevents a new Swift reproducibility build and is not promoted.
+- The isolated root remains absent.
+- Current `ynxbrowser` handler remains `/Users/huangjiahao/Applications/YNX Browser Preserved/YNX Browser Testnet Preview-preserved-95ddf592badb.app` with app device/inode `16777239:149132970` and executable SHA-256 `95ddf592badbdb3cdf4babc31c0febdd186e917d1b1ca81a4a400c2f8839d81e`.
+- PID `93119` still executes that exact old binary.
+- Spotlight still enumerates exactly eleven `com.ynxweb4.browser.macos` copies.
 
-## Requested next action
+## Requested decision
 
-Central should review `browser-preinstall-executor-lease-request-20260823.json` and issue one nonreusable Browser-only lease only after freshly re-reading the exact old handler, all eleven colliding copies and every old PID. No installation, LaunchServices mutation, launch, account request, signature or transaction occurred in this slice.
+Central should independently review the new request JSON and issue one wholly new, nonreusable Browser-only lease. It must explicitly authorize exactly one creation of the missing isolated root, one forward, and at most one receipt-bound rollback. No installation or runtime authority is inferred from this source/fixture evidence.

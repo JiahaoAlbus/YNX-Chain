@@ -1,16 +1,14 @@
 {
-  "schemaVersion": "ynx-browser-preinstall-executor-lease-request/1",
+  "schemaVersion": "ynx-browser-preinstall-executor-lease-request/2",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "taskId": "P0-BROWSER-PREINSTALL-EXECUTOR-20260823",
+  "taskId": "P0-BROWSER-PREINSTALL-EXECUTOR-SUCCESSOR-20260823",
   "productId": "ynx-browser",
   "owner": "browser",
-  "generatedAt": "2026-08-22T23:26:10Z",
+  "generatedAt": "2026-08-23T00:31:33Z",
   "status": "REQUESTED_NOT_AUTHORIZED",
-  "supersedesBlocker": "BROWSER_PREINSTALL_ROLLBACK_EXECUTOR_COMMAND_OBJECTS_UNFROZEN",
+  "supersedesBlocker": "BROWSER_PREINSTALL_PARENT_DIRECTORY_CREATION_AND_ROLLBACK_IDENTITY_UNFROZEN",
   "scope": {
-    "productPaths": [
-      "apps/browser/**"
-    ],
+    "productPaths": ["apps/browser/**"],
     "platform": "macOS",
     "candidateOnlyMutation": true,
     "actualInstallExecuted": false,
@@ -23,9 +21,9 @@
   },
   "source": {
     "branch": "codex/p0-browser-current-source-verification-20260821",
-    "commit": "6ace4556ceaa7f4d72f896a4ad4a5505014f030c",
-    "tree": "498aa15c87bc64e25d26f35c8eee4639b381d635",
-    "parent": "cab87ad24bbb8f513e6b0ffaeef8ce1b49d3d2cf",
+    "implementationCommit": "dd9a9b6e0552868b6559c2edd0b5d3244804fdfc",
+    "implementationTree": "c92d934837dbfd87eaf493111ddd0b4da99c6666",
+    "parent": "8ccfea1fa1cc07087dd725949202b8f677a15116",
     "remoteReadbackExact": true
   },
   "candidate": {
@@ -44,8 +42,33 @@
     "isolatedTarget": "/Users/huangjiahao/Applications/YNX Browser Isolated/YNX Browser Testnet Preview-ad890f0a2fe5-aaed312ef608.app",
     "isolatedTargetPrewriteRequired": "ABSENT"
   },
+  "isolatedRootCreationContract": {
+    "root": "/Users/huangjiahao/Applications/YNX Browser Isolated",
+    "prewriteRequired": "ABSENT",
+    "creationAuthorizationRequested": "CREATE_EXACTLY_ONE_DIRECTORY",
+    "mkdirMode": "0700",
+    "expectedCreatedOwner": 501,
+    "expectedCreatedGroup": 20,
+    "expectedCreatedMode": "0700",
+    "expectedCreatedEmptyNlink": 2,
+    "createdDeviceInode": "DYNAMIC_MUST_BE_RECORDED_IN_FORWARD_RECEIPT",
+    "createdTupleReceiptFields": ["device", "inode", "uid", "gid", "mode", "nlink"],
+    "parent": {
+      "path": "/Users/huangjiahao/Applications",
+      "deviceInode": "16777239:448444",
+      "uid": 501,
+      "gid": 20,
+      "mode": "0700",
+      "nlink": 15,
+      "freshlyReadAt": "2026-08-23T00:31:33Z",
+      "mustBeReReadBeforeWrite": true
+    },
+    "forwardFailureDeletion": "Only after candidate deletion, and only when root device/inode/uid/gid/mode/nlink still match the created receipt and the root is empty",
+    "rollbackDeletion": "Only after exact candidate rollback deletion, and only when root device/inode/uid/gid/mode/nlink still match the created receipt and the root is empty",
+    "substitutionOrUnexpectedEntryBehavior": "REFUSE_BEFORE_LAUNCHSERVICES_ROLLBACK_MUTATION"
+  },
   "freshRollbackReadback": {
-    "capturedAt": "2026-08-22T23:26:10Z",
+    "capturedAt": "2026-08-23T00:31:33Z",
     "probe": "ynxbrowser://com.ynxweb4.browser.macos/preinstall-resolution",
     "handler": "/Users/huangjiahao/Applications/YNX Browser Preserved/YNX Browser Testnet Preview-preserved-95ddf592badb.app",
     "handlerDeviceInode": "16777239:149132970",
@@ -57,85 +80,91 @@
     "binaryBytes": 330896,
     "binarySha256": "95ddf592badbdb3cdf4babc31c0febdd186e917d1b1ca81a4a400c2f8839d81e",
     "activeOldPid": 93119,
+    "activeOldPidStillExact": true,
     "sameBundleIdCopyCount": 11,
+    "sameBundleIdCopyCountStillExact": true,
     "mustBeReReadBeforeWrite": true
   },
   "executor": {
     "path": "apps/browser/scripts/browser-preinstall-executor.sh",
     "absolutePath": "/Users/huangjiahao/Desktop/YNX Final Worktrees/52-browser-p0/apps/browser/scripts/browser-preinstall-executor.sh",
-    "bytes": 6596,
-    "sha256": "93160c379c58671ca7fdc7dab42daa9a2ef4bee0987093f695ade0456f0cb3b7",
+    "bytes": 11969,
+    "sha256": "5841c41570308e588fa40fd2d4845553a91e9cc376d1ece0a23850a6d69042b8",
     "defaultProductionAuthorization": false,
+    "commonEnvironment": {
+      "YNX_BROWSER_EXECUTION_MODE": "production",
+      "YNX_BROWSER_LEASE_AUTHORIZED": "P0_BROWSER_SINGLE_USE",
+      "YNX_BROWSER_CARRIER": "/private/tmp/YNX-Browser-Testnet-Preview-ad890f0a2fe5-aaed312ef608.zip",
+      "YNX_BROWSER_CARRIER_SHA256": "a696f743a86518d8cc98d1a1335fd80fcbf3eed593491e53e7ed67589f019ba4",
+      "YNX_BROWSER_ISOLATED_TARGET": "/Users/huangjiahao/Applications/YNX Browser Isolated/YNX Browser Testnet Preview-ad890f0a2fe5-aaed312ef608.app",
+      "YNX_BROWSER_ISOLATED_ROOT": "/Users/huangjiahao/Applications/YNX Browser Isolated",
+      "YNX_BROWSER_ISOLATED_ROOT_PREWRITE": "ABSENT_CREATE_ONE_DIRECTORY",
+      "YNX_BROWSER_ISOLATED_ROOT_PARENT": "/Users/huangjiahao/Applications",
+      "YNX_BROWSER_ISOLATED_ROOT_PARENT_DEV_INODE": "16777239:448444",
+      "YNX_BROWSER_ISOLATED_ROOT_PARENT_UID": "501",
+      "YNX_BROWSER_ISOLATED_ROOT_PARENT_GID": "20",
+      "YNX_BROWSER_ISOLATED_ROOT_PARENT_MODE": "700",
+      "YNX_BROWSER_ISOLATED_ROOT_PARENT_NLINK": "15",
+      "YNX_BROWSER_ISOLATED_ROOT_UID": "501",
+      "YNX_BROWSER_ISOLATED_ROOT_GID": "20",
+      "YNX_BROWSER_ISOLATED_ROOT_MODE": "700",
+      "YNX_BROWSER_ISOLATED_ROOT_NLINK": "2",
+      "YNX_BROWSER_CANDIDATE_BINARY_SHA256": "aaed312ef608445504ba1cc21ff24d14bc5b4e48c2d6b505dc3cfb545daa0de5",
+      "YNX_BROWSER_OLD_HANDLER": "/Users/huangjiahao/Applications/YNX Browser Preserved/YNX Browser Testnet Preview-preserved-95ddf592badb.app",
+      "YNX_BROWSER_OLD_HANDLER_DEV_INODE": "16777239:149132970",
+      "YNX_BROWSER_OLD_BINARY_SHA256": "95ddf592badbdb3cdf4babc31c0febdd186e917d1b1ca81a4a400c2f8839d81e",
+      "YNX_BROWSER_RECEIPT": "/private/tmp/ynx-browser-preinstall-dd9a9b6e.receipt"
+    },
     "forwardCommand": {
       "executable": "/bin/bash",
-      "argv": [
-        "/Users/huangjiahao/Desktop/YNX Final Worktrees/52-browser-p0/apps/browser/scripts/browser-preinstall-executor.sh",
-        "forward"
-      ],
-      "environment": {
-        "YNX_BROWSER_EXECUTION_MODE": "production",
-        "YNX_BROWSER_LEASE_AUTHORIZED": "P0_BROWSER_SINGLE_USE",
-        "YNX_BROWSER_CARRIER": "/private/tmp/YNX-Browser-Testnet-Preview-ad890f0a2fe5-aaed312ef608.zip",
-        "YNX_BROWSER_CARRIER_SHA256": "a696f743a86518d8cc98d1a1335fd80fcbf3eed593491e53e7ed67589f019ba4",
-        "YNX_BROWSER_ISOLATED_TARGET": "/Users/huangjiahao/Applications/YNX Browser Isolated/YNX Browser Testnet Preview-ad890f0a2fe5-aaed312ef608.app",
-        "YNX_BROWSER_CANDIDATE_BINARY_SHA256": "aaed312ef608445504ba1cc21ff24d14bc5b4e48c2d6b505dc3cfb545daa0de5",
-        "YNX_BROWSER_OLD_HANDLER": "/Users/huangjiahao/Applications/YNX Browser Preserved/YNX Browser Testnet Preview-preserved-95ddf592badb.app",
-        "YNX_BROWSER_OLD_HANDLER_DEV_INODE": "16777239:149132970",
-        "YNX_BROWSER_OLD_BINARY_SHA256": "95ddf592badbdb3cdf4babc31c0febdd186e917d1b1ca81a4a400c2f8839d81e",
-        "YNX_BROWSER_RECEIPT": "/private/tmp/ynx-browser-preinstall-6ace4556.receipt"
-      },
+      "argv": ["/Users/huangjiahao/Desktop/YNX Final Worktrees/52-browser-p0/apps/browser/scripts/browser-preinstall-executor.sh", "forward"],
+      "environment": "EXACT_COMMON_ENVIRONMENT_ABOVE",
       "maximumExecutions": 1
     },
     "rollbackCommand": {
       "executable": "/bin/bash",
-      "argv": [
-        "/Users/huangjiahao/Desktop/YNX Final Worktrees/52-browser-p0/apps/browser/scripts/browser-preinstall-executor.sh",
-        "rollback"
-      ],
-      "environment": "IDENTICAL_TO_FORWARD_COMMAND",
+      "argv": ["/Users/huangjiahao/Desktop/YNX Final Worktrees/52-browser-p0/apps/browser/scripts/browser-preinstall-executor.sh", "rollback"],
+      "environment": "EXACT_COMMON_ENVIRONMENT_ABOVE",
       "maximumExecutions": 1,
-      "onlyAfter": "FORWARD_SUCCESS_OR_FORWARD_POSTCOPY_FAILURE"
+      "onlyAfter": "FORWARD_SUCCESS_OR_FORWARD_POSTCREATE_FAILURE"
     },
     "forwardSemantics": [
-      "Require the isolated target absent and carrier identity exact",
-      "Extract into a private temporary directory and copy only the candidate to the isolated target",
-      "Record candidate app device/inode and re-read its binary SHA-256",
-      "Require no exact candidate executable process",
-      "Register only the candidate with LaunchServices",
-      "Resolve the scheme without opening it and require the candidate target",
-      "Never unregister, move, launch, terminate or delete an old application or PID"
+      "Require the frozen Applications parent tuple exact and the isolated root absent",
+      "Create exactly the one isolated root directory with mode 0700 and record device/inode/uid/gid/mode/nlink",
+      "Extract into a private temporary directory and copy only the candidate app into that root",
+      "Require the root contain exactly the candidate target before registering only that candidate",
+      "Resolve the handler without opening the scheme and preserve every old app and PID"
     ],
     "rollbackSemantics": [
-      "Before any rollback mutation require receipt target, candidate app device/inode, candidate binary SHA-256 and no candidate process all exact",
-      "Unregister only the candidate target",
-      "Re-register only the exact old handler; never unregister it",
-      "Resolve the scheme without opening it and require the exact old handler and binary SHA-256",
-      "Delete only the candidate after rechecking candidate inode, binary SHA-256 and no candidate process",
-      "Never move, unregister, launch, terminate or delete any of the eleven old copies or old PID"
-    ],
-    "automaticForwardFailure": "If a post-copy forward step fails, unregister only the candidate if it was registered, re-register the exact old handler, and delete only an exact non-running candidate."
+      "Before LaunchServices mutation require the receipt, isolated-root identity, root contains only target, candidate inode and binary SHA, and no candidate process",
+      "Unregister only the candidate and re-register only the exact old handler",
+      "Delete only the exact candidate and then delete only the exact empty isolated root created by forward",
+      "Never move, unregister, launch, terminate or delete any old app or old PID"
+    ]
   },
   "actualShellFixture": {
     "path": "apps/browser/test/preinstall-executor.test.js",
-    "bytes": 5581,
-    "sha256": "814d5815c26a2a30bc798662574d99925ac928f232ee3be4716d020d0f18353d",
-    "result": "PASS_3_OF_3",
-    "forwardRollbackOperationsExact": [
-      "REGISTER_CANDIDATE",
-      "UNREGISTER_CANDIDATE",
-      "REGISTER_EXACT_OLD_HANDLER"
-    ],
+    "bytes": 9772,
+    "sha256": "9903c4c3d4143f4dcb94a95c40550dd6a932c98fdd9fcedc5bac9562f012495a",
+    "result": "PASS_6_OF_6",
+    "rootAbsentForwardCreateReceiptRollbackDelete": true,
+    "postCopyFailureExactEmptyRootDeleted": true,
+    "rootSubstitutionRejectedBeforeLaunchServicesMutation": true,
+    "rootUnexpectedEntryRejectedBeforeLaunchServicesMutation": true,
+    "candidateProcessPresentRollbackRefusedBeforeMutation": true,
+    "productionWithoutLeaseRefused": true,
     "oldCopySentinels": 11,
+    "oldHandlerSentinelUnchanged": true,
     "oldCopySentinelsUnchanged": true,
     "oldPidSentinelUnchanged": true,
-    "candidateProcessPresentRollbackRefusedBeforeMutation": true,
-    "productionWithoutLeaseRefused": true
+    "forwardRollbackOperationsExact": ["REGISTER_CANDIDATE", "UNREGISTER_CANDIDATE", "REGISTER_EXACT_OLD_HANDLER"]
   },
   "verification": {
-    "nodeTests": "PASS_21_OF_21",
+    "preinstallExecutorTests": "PASS_6_OF_6",
+    "fullNodeTests": "PASS_24_OF_24",
     "smoke": "PASS",
     "sourceGate": "PASS",
-    "macosReproducibleThisSlice": "BLOCKED_LOCAL_COMMANDLINETOOLS_DUPLICATE_XCSPEC",
+    "jsonAndDiff": "PASS",
     "productionMutationPerformed": false,
     "launchServicesMutationPerformed": false,
     "applicationLaunched": false,
@@ -144,16 +173,21 @@
     "transactionRequested": false
   },
   "leasePreconditions": [
-    "Re-read Central ownership and Browser-only path lock",
-    "Re-read the remote source, executor bytes/SHA, carrier device/inode/mode/bytes/SHA and candidate binary SHA",
-    "Require the isolated target absent",
-    "Re-enumerate all same-Bundle-ID copies and freeze path, app inode and binary SHA for all eleven",
-    "Re-resolve the current handler and require its path, device/inode and binary SHA exactly as frozen",
-    "Re-enumerate every YNXBrowserNative PID and require old PID 93119 remain outside all executable operations"
+    "Re-read Central ownership, Browser-only path lock and this exact remote evidence head",
+    "Require the exact carrier, executor and candidate binary identities",
+    "Require the isolated root and candidate target both absent",
+    "Require the frozen Applications parent tuple exact before authorizing one directory creation",
+    "Re-enumerate all eleven same-Bundle-ID copies and require the old handler and PID 93119 exact",
+    "Reject any root substitution, unexpected root entry or candidate process before LaunchServices rollback mutation"
   ],
   "requestedSingleUseLease": {
     "owner": "browser-macos-preinstall-owner",
-    "writableFilesystemPath": "/Users/huangjiahao/Applications/YNX Browser Isolated/YNX Browser Testnet Preview-ad890f0a2fe5-aaed312ef608.app",
+    "writableFilesystemPaths": [
+      "/Users/huangjiahao/Applications/YNX Browser Isolated",
+      "/Users/huangjiahao/Applications/YNX Browser Isolated/YNX Browser Testnet Preview-ad890f0a2fe5-aaed312ef608.app",
+      "/private/tmp/ynx-browser-preinstall-dd9a9b6e.receipt"
+    ],
+    "parentCreationMaximum": 1,
     "launchServicesRegistrationTarget": "CANDIDATE_ONLY",
     "oldHandlerRegistrationAllowedOnlyForRollback": true,
     "forwardMaximum": 1,
@@ -161,6 +195,7 @@
     "leaseReusable": false
   },
   "truth": {
+    "isolatedRootLifecycleFrozen": true,
     "forwardRollbackExecutorFrozen": true,
     "literalCommandObjectsFrozen": true,
     "actualShellFixturePassed": true,
@@ -173,5 +208,5 @@
     "transaction": false,
     "productComplete": false
   },
-  "singleExecutableBlocker": "Central must issue the new Browser-only single-use preinstall lease after a fresh exact re-read of the handler, eleven-copy snapshot and old PID set."
+  "singleExecutableBlocker": "Central must independently review this successor and issue one new nonreusable Browser-only preinstall lease that explicitly authorizes the missing isolated-root creation and its exact receipt-bound empty-directory rollback."
 }
