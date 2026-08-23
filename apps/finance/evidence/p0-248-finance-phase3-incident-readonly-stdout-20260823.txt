@@ -1,0 +1,43 @@
+inspection=P0-248
+host=VM-4-3-ubuntu
+architecture=x86_64
+root=PRESENT|tuple=64770:1312502:0:0:755:49:4096:directory
+leasesParent=PRESENT|tuple=64770:3450042:0:0:750:4:4096:directory
+deployParent=PRESENT|tuple=64770:4594822:0:0:750:2:4096:directory|entries=2|inventorySha256=55234705279df9c204fa85fb1488a0e8743fcfb99402c97936257edbb3744d36
+placedExecutor=PRESENT|tuple=64770:4594823:0:0:700:1:15907:regular file|sha256=8f9e2ede5418e8f65739f2a5f3af7a78c266474f4c428951d8daf27f20e56315
+placedExecutorPending=ABSENT
+placedLease=PRESENT|tuple=64770:4594824:0:0:600:1:6829:regular file|sha256=49aec85704a6282cab675373f56cb71a240433f3625f08b5e7426bbb1bbfee80
+placedLeasePending=ABSENT
+manualRollbackLease=ABSENT
+manualRollbackPending=ABSENT
+stageContainer=PRESENT|tuple=64770:4620782:0:0:700:3:4096:directory|entries=1|inventorySha256=61181f33dcf9b11282732fe26f02ad9e3b0f5135dead72ca690606c722d9bf62
+backupContainer=PRESENT|tuple=64770:2663604:0:0:700:3:4096:directory|entries=3|inventorySha256=e78ba1c645bfeeffa9d1f373fd2c773326a358c23caca7ad9fd48834b71a3e19
+releaseContainer=ABSENT
+release=ABSENT
+currentLink=SYMLINK|tuple=64770:1312291:0:0:777:1:50:symbolic link|target=/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a
+currentResolved=/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a
+productionEnv=PRESENT|tuple=64770:1324724:0:986:640:1:1545:regular file|sha256=854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252
+productionEnvWebDirKeyCount=1
+state=ABSENT
+unit=PRESENT|tuple=64770:161304:0:0:644:1:515:regular file|sha256=2e72cdad422a3a714c46d074ea97b725233576cf726dbbfd43e82e99c2c2975b
+caddy=PRESENT|tuple=64770:1051759:0:0:644:1:255:regular file|sha256=dcf75a7aed315c54632321b8bb80e44c0abc22f6700fadfbfa9a7da21b88a282
+MainPID=2241003
+NRestarts=0
+LoadState=loaded
+ActiveState=active
+SubState=running
+FragmentPath=/etc/systemd/system/ynx-finance.service
+listener6483=LISTEN 0      4096                 127.0.0.1:6483       0.0.0.0:*    users:(("ynx-finance",pid=2241003,fd=6))                  
+loopbackHealthStatus=200
+loopbackHealthBytes=485
+loopbackHealthSha256=d1e97a4314acd1ecccf94629d15bd598cb58ff78136b3622ac26d583a82e45c1
+loopbackVersionStatus=200
+loopbackVersionBytes=130
+loopbackVersionSha256=39789776da47e60b7a7df845789e02ebba16707ad8951eb6f27c84c1b40bb226
+publicHealthStatus=200
+publicHealthBytes=485
+publicHealthSha256=d1e97a4314acd1ecccf94629d15bd598cb58ff78136b3622ac26d583a82e45c1
+publicVersionStatus=200
+publicVersionBytes=130
+publicVersionSha256=39789776da47e60b7a7df845789e02ebba16707ad8951eb6f27c84c1b40bb226
+inspectionComplete=true

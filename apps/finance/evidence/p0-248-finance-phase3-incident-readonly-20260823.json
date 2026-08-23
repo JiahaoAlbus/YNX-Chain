@@ -1,0 +1,59 @@
+{
+  "kind": "FINANCE_P0248_PHASE3_INCIDENT_READONLY_INSPECTION",
+  "central": {
+    "commit": "588553b3ed3b615aec93eaf209ce8dace1b02031",
+    "tree": "08b17e80d32eff17d2efbf8f1799f61d3e5be950",
+    "leaseBlob": "4c45eca17df506e846bf288e5eb130f2802cffb2",
+    "leaseBytes": 5929,
+    "leaseSha256": "f55bbf0d79ac36426890ddc3a836d1cfadb8bf0adbf83edaed0ed6f824ca295b",
+    "stdinCommandBlob": "e5dd741d0437f365f2cfcf748f5f8b79745d0d7d",
+    "stdinCommandBytes": 3825,
+    "stdinCommandSha256": "472d06df163bb1ce1c2673d6353a52b3f1a491d22136021c8c641ff649a04346",
+    "leaseType": "single-use-zero-write-inspection",
+    "retryAllowed": false
+  },
+  "execution": {
+    "sshAttempts": 1,
+    "remoteWrites": false,
+    "rollback": false,
+    "cleanup": false,
+    "deployment": false,
+    "serviceChange": false,
+    "remoteTemporaryFile": false,
+    "secretOutput": false,
+    "terminalExitCodeUnavailable": "The local zsh wrapper attempted to assign its readonly special parameter after the remote command had completed; the exact redirected inspection stdout/stderr below is the immutable terminal evidence. No second SSH attempt was made."
+  },
+  "stdout": {
+    "path": "apps/finance/evidence/p0-248-finance-phase3-incident-readonly-stdout-20260823.txt",
+    "bytes": 2568,
+    "sha256": "5e9daa3a281ccf9c0f9b836e3f72b58752e6ebb77c6e439dd08ab73e3f335897"
+  },
+  "stderr": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "observed": {
+    "currentRelease": "ynx-finance-3b2383f5c18a",
+    "currentResolved": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a",
+    "releaseContainer": "ABSENT",
+    "release": "ABSENT",
+    "manualRollbackLease": "ABSENT",
+    "state": "ABSENT",
+    "service": {"active": true, "pid": 2241003, "nRestarts": 0, "listener": "127.0.0.1:6483"},
+    "loopback": {
+      "health": {"status": 200, "bytes": 485, "sha256": "d1e97a4314acd1ecccf94629d15bd598cb58ff78136b3622ac26d583a82e45c1"},
+      "version": {"status": 200, "bytes": 130, "sha256": "39789776da47e60b7a7df845789e02ebba16707ad8951eb6f27c84c1b40bb226"}
+    },
+    "public": {
+      "health": {"status": 200, "bytes": 485, "sha256": "d1e97a4314acd1ecccf94629d15bd598cb58ff78136b3622ac26d583a82e45c1"},
+      "version": {"status": 200, "bytes": 130, "sha256": "39789776da47e60b7a7df845789e02ebba16707ad8951eb6f27c84c1b40bb226"}
+    }
+  },
+  "truth": {
+    "publicSourceBoundCandidate": false,
+    "walletApproval": false,
+    "productSession": false,
+    "computerControl": false,
+    "manualRollbackAuthorized": false
+  }
+}
