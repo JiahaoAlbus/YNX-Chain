@@ -2287,10 +2287,10 @@
       "worktree": "/private/tmp/ynx-calendar-control-plane.y8FFQt/repo",
       "taskId": "P0-282",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE_SINGLE_USE",
+      "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0282_P0279_GUARDED_STAGING_ZERO_WRITE_DIAGNOSIS",
       "acquiredAt": "2026-08-23T17:54:00Z",
       "expiresAt": "2026-08-23T18:24:00Z",
-      "releasedAt": null,
+      "releasedAt": "2026-08-23T17:56:53Z",
       "sourceCommit": "7c00fefa5bceffe34b0e77a247a7b355a9711249",
       "sourceTree": "a2211bed5a823b23b2e55f44c1f41dc04a2e8320",
       "evidenceCommit": "7c00fefa5bceffe34b0e77a247a7b355a9711249",
@@ -2302,7 +2302,10 @@
         "output only the fourteen fixed normalized terminal fields and no bodies or environment values",
         "return UNAVAILABLE and UNPROVEN rather than infer root cause when historical phase evidence is absent",
         "no remote temp, cleanup, SCP, deploy, rollback, lifecycle, symlink or runtime/public mutation",
-        "diagnostic success is not deployment authority"
+        "diagnostic success proved the first current ordered prewrite mismatch at STAGE_PARENT with class CURRENT_PREWRITE_INVARIANT_MISMATCH",
+        "normalized journal remained OTHER_OR_EMPTY; old runtime metadata stayed exact and mutationCount=0",
+        "P0-282 is consumed and nonreusable; Heavy and read-only locks are released",
+        "diagnostic success is not deployment, cleanup, rollback or lifecycle authority"
       ]
     }
   ]
