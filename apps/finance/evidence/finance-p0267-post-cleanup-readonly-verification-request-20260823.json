@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "p0-finance-post-cleanup-readonly-request@1",
+  "kind": "FINANCE_P0247_POST_CLEANUP_READONLY_VERIFICATION_REQUEST",
+  "requestState": "AWAITING_WHOLELY_NEW_CENTRAL_SINGLE_USE_READONLY_LEASE",
+  "predecessor": {
+    "cleanupEvidencePath": "apps/finance/evidence/p0-267-finance-p0247-cleanup-terminal-evidence-20260823.json",
+    "cleanupEvidenceCommit": "1fa5804c494abda9b4b811ec2708c1bdcccc50bc",
+    "cleanupEvidenceTree": "e6e9cf40821bb64524b6617981c5a27dd745e60f",
+    "cleanupEvidenceBlob": "c046d2fbe3f106003d04b389af23389cfeb9f559",
+    "cleanupEvidenceBytes": 2131,
+    "cleanupEvidenceSha256": "ce42f4bc36666661fa6c5af9c4382a81bde86ef39e0ff74c8e0371fee6f1453f",
+    "centralLeaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-p0247-residue-cleanup-openssh-successor-20260823T140755Z",
+    "terminalReceiptSha256": "59193043771f7c37c85f458714abc590bf7741729a2d10c1ab4e89d8a83b2b56"
+  },
+  "requiredReads": {
+    "p0247Residues": [
+      "/opt/ynx/stage/finance/p0247-finance-phase3-20260823T073800Z",
+      "/var/backups/ynx-finance/p0247-finance-phase3-20260823T073800Z",
+      "/opt/ynx/leases/finance/p0247-finance-phase3-20260823T073800Z.executor.sh",
+      "/opt/ynx/leases/finance/p0247-finance-phase3-20260823T073800Z.json"
+    ],
+    "newControlPaths": [
+      "/opt/ynx/leases/finance/p0264-finance-p0247-cleanup-20260823T140755Z.executor.sh",
+      "/opt/ynx/leases/finance/p0264-finance-p0247-cleanup-20260823T140755Z.executor.sh.pending",
+      "/opt/ynx/leases/finance/p0264-finance-p0247-cleanup-20260823T140755Z.json",
+      "/opt/ynx/leases/finance/p0264-finance-p0247-cleanup-20260823T140755Z.json.pending"
+    ],
+    "oldRuntime": ["finance-current target", "env tuple/SHA", "unit tuple/SHA", "Caddy tuple/SHA", "state absence", "service active/PID/NRestarts", "loopback and public health/version status/bytes/SHA"]
+  },
+  "zeroWriteContract": {
+    "oneSshAttempt": true,
+    "writes": false,
+    "forbidden": ["delete", "cleanup", "deploy", "rollback", "restart", "service lifecycle", "current/env/state/unit/Caddy/public mutation", "account", "sign", "typed data", "transaction", "secret output"],
+    "terminalReceiptMustBind": ["four P0-247 residue absences", "four P0264 control/pending absences", "old runtime and public/loopback baseline"],
+    "retryAllowed": false
+  },
+  "truth": {"readOnlyLeaseIssued": false, "fourResiduesAbsent": false, "oldRuntimeUnchanged": false, "cleanupCompleteAccepted": false}
+}
