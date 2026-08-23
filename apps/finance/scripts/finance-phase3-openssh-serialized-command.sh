@@ -31,7 +31,7 @@ terminal_receipt_valid(){
 }
 if [[ "$ssh_rc" = 0 ]] && ! terminal_receipt_valid; then ssh_rc=65; fi
 set -C
-printf 'transport=FINANCE_PHASE3_OPENSSH_SERIALIZED\nsshExitStatus=%s\nstdoutBytes=%s\nstdoutSha256=%s\nterminalReceiptValidated=%s\n' "$ssh_rc" "$(bytes "$stdout")" "$(sha "$stdout")" "$([[ "$ssh_rc" = 0 ]] && printf true || printf false)" > "$receipt.pending"
+printf 'transport=FINANCE_PHASE3_OPENSSH_SERIALIZED\nsshExitStatus=%s\nremoteExitStatus=%s\nstdoutBytes=%s\nstdoutSha256=%s\nterminalReceiptValidated=%s\n' "$ssh_rc" "$ssh_rc" "$(bytes "$stdout")" "$(sha "$stdout")" "$([[ "$ssh_rc" = 0 ]] && printf true || printf false)" > "$receipt.pending"
 set +C
 "$mv_bin" -T -- "$receipt.pending" "$receipt"
 exit "$ssh_rc"
