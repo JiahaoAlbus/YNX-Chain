@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "p0-finance-cleanup-terminal-evidence@1",
+  "recordedAtUtc": "2026-08-23T13:47:42Z",
+  "scope": "Finance P0-247 residue cleanup only",
+  "central": {
+    "commit": "85deac30ff7d9a09d907429e45040495d191b967",
+    "tree": "d468821bc68914cdc0d21ef730926ed201f34051",
+    "leaseBlob": "843d7f0f9e1d644f4ccdde92a6c2f1f11f9b3bdc",
+    "leaseBytes": 10312,
+    "leaseSha256": "b1beb3ed9049c85a74827a668a2779a35adc2c235ee766888f923d1fd95681aa",
+    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-p0247-residue-cleanup-20260823T134130Z"
+  },
+  "signedInputs": {
+    "cleanupLeasePath": "/tmp/ynx-finance-p0264-cleanup-signed.json",
+    "cleanupLeaseSha256": "a23cd70355122d6fa7d19dc50095828a8185b79d6bd2494a4c0b8c883cf5109f",
+    "carrierPath": "/tmp/ynx-finance-p0264-cleanup-atomic.carrier",
+    "carrierSha256": "30eec321937e99b52d8c2078c040841701f3c4971695a85aff5cec6e1e7c00e4",
+    "bootstrapSha256": "f2b09b6eb8df7061e2985caa271f7ad0fa02b12132125069ae72d3636bdfabbd",
+    "cleanupExecutorSha256": "fd7637a5d353bb8bee9e1ba981c7983f0ead0a8d473d544e62b15dcd340b9e50"
+  },
+  "singleUseExecution": {
+    "attemptCount": 1,
+    "localCommandExitStatus": 0,
+    "retryPerformed": false,
+    "additionalRemoteOperationPerformed": false,
+    "forbiddenMutationPerformed": false
+  },
+  "terminalArtifacts": {
+    "stdout": {
+      "path": "/tmp/ynx-finance-p0264-cleanup-terminal.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "stderr": {
+      "path": "/tmp/ynx-finance-p0264-cleanup-terminal.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "status": {
+      "path": "/tmp/ynx-finance-p0264-cleanup-terminal.stdout.status",
+      "bytes": 2,
+      "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+      "value": "0"
+    }
+  },
+  "truth": {
+    "cleanupExecutorReturnedSuccess": true,
+    "fourResidueAbsencesIndependentlyReadBack": false,
+    "oldRuntimeIndependentlyReadBack": false,
+    "newControlResidueIndependentlyReadBack": false,
+    "publicOrWalletEvidence": false
+  },
+  "handoff": {
+    "requiredNextControlPlaneAction": "Release this consumed single-use lease and, if direct remote field receipts are required, issue a separately scoped read-only inspection lease. No retry under P0-265 is authorized.",
+    "reason": "The signed command returned status 0, but its captured stdout and stderr are intentionally empty; this evidence does not fabricate the requested independent remote readback fields."
+  }
+}
