@@ -41,8 +41,13 @@ jq -e . "$pending" >/dev/null
 test "$(jq -r '.lease.signed' "$pending")" = true
 test "$(jq -r '.lease.kind' "$pending")" = FINANCE_ROLLBACK_FIRST_PRODUCTION_MANUAL_ROLLBACK
 test "$(jq -r '.lease.id' "$pending")" = "$id"
-mv -T -- "$pending" "$target"; pending_created=false; target_created=true; target_tuple=$(ft "$target")
-test "$(stat -Lc '%a' "$target")" = "$target_mode"
+target_tuple=$pending_tuple
+mv -T -- "$pending" "$target"; pending_created=false; target_created=true
+require test -f "$target"
+require test ! -L "$target"
+require test "$(identity "$target")" = "$pending_identity"
+require exact "$target" "$target_tuple" "$lease_sha" "$lease_bytes"
+require test "$(stat -Lc '%a' "$target")" = "$target_mode"
 
 # Retain the exact signed lease once execution begins. This command object never
 # retries and never prints the lease body.
