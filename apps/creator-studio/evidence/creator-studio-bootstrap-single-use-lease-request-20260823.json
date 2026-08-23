@@ -68,8 +68,8 @@
     "transport": "apps/creator-studio/release-control-plane-transport.mjs",
     "transportBytes": 27291,
     "transportSha256": "9898c4c512a055f601326251add830b051c0911c6b3f98da36b856648f879cf3",
-    "canonicalCarrierBytes": 370468,
-    "canonicalCarrierSha256": "e9ed00265b15c94273a9ae6619d266599dda7ac4001f56c5b19d7a77c0232891",
+    "canonicalCarrierBytes": 372040,
+    "canonicalCarrierSha256": "10db6d8b4137210ce11fd7315977e6820d175bb1f1a718c3d47df4fba078a287",
     "stdinExclusivelyCarriesCanonicalCarrier": true,
     "relativeLayoutMatchesFrozenExecutor": true,
     "controlParent": "/opt/ynx-release-control-plane",
@@ -105,8 +105,8 @@
     "objectsInExactOrder": [
       {
         "name": "release-bootstrap-executor.mjs",
-        "bytes": 16167,
-        "sha256": "d290dff1f9b4acae365c666811edea0999fbc1cf8a3b9bca40caae5df585d619",
+        "bytes": 17345,
+        "sha256": "2e1655dd444c0155a159be6c72d771302d99ccd9cb97616770990d00dc051de0",
         "mode": 448
       },
       {
@@ -185,6 +185,10 @@
       "executorRejectsMemoryDenyWriteExecuteRegression": true,
       "candidateNodeColdStartAndBoundedReadinessFixturePassed": true,
       "timeoutCleanupAndOldStudioRestoreFixturePassed": true
+      ,
+      "resolvedReleaseCwdPositiveFixturePassed": true,
+      "substitutedCurrentSymlinkTargetRejected": true,
+      "currentSymlinkTargetAndDereferencedReleaseInodeSeparatelyBound": true
     },
     "exactSudoArgvShape": [
       "/usr/bin/sudo",
@@ -220,8 +224,8 @@
     ]
   },
   "bootstrapExecutor": "apps/creator-studio/release-bootstrap-executor.mjs",
-  "bootstrapExecutorBytes": 16167,
-  "bootstrapExecutorSha256": "d290dff1f9b4acae365c666811edea0999fbc1cf8a3b9bca40caae5df585d619",
+  "bootstrapExecutorBytes": 17345,
+  "bootstrapExecutorSha256": "2e1655dd444c0155a159be6c72d771302d99ccd9cb97616770990d00dc051de0",
   "nodeCompatibleUnitHardening": {
     "memoryDenyWriteExecute": false,
     "removedBecauseDirectP0241SystemdJournalProvedNodeV8ExecutableMemoryCoreDump": true,
@@ -240,6 +244,8 @@
     "requireSameMaterializedTargetCurrentReceiptInodeAndCandidateSha": true,
     "requireRootCurrentNewUnitStageAbsenceReceipts": true,
     "requireDereferencedCurrentInodeEqualsRelease": true,
+    "requireProcessCwdEqualsResolvedReleasePath": true,
+    "doNotCompareProcCwdToCurrentSymlinkLiteral": true,
     "requireSingleFinalReceiptWrite": true
   },
   "commands": {
