@@ -44,6 +44,7 @@ function fixture() {
   const carrier = join(temp, "candidate.zip");
   execFileSync("ditto", ["-c", "-k", "--sequesterRsrc", "--keepParent", candidateSource, carrier]);
   const receipt = join(temp, "receipt.txt");
+  const journal = join(temp, "preinstall.diagnostic");
   const env = {
     ...process.env,
     YNX_BROWSER_EXECUTION_MODE: "fixture",
@@ -67,9 +68,18 @@ function fixture() {
     YNX_BROWSER_OLD_HANDLER: oldHandler,
     YNX_BROWSER_OLD_HANDLER_DEV_INODE: inode(oldHandler),
     YNX_BROWSER_OLD_BINARY_SHA256: sha(join(oldHandler, executableRelative)),
-    YNX_BROWSER_RECEIPT: receipt
+    YNX_BROWSER_RECEIPT: receipt,
+    YNX_BROWSER_DIAGNOSTIC_JOURNAL: journal,
+    YNX_BROWSER_DIAGNOSTIC_JOURNAL_TEMP: `${journal}.tmp`
   };
-  return {temp, controls, oldCopies, oldHandler, isolatedParent, isolatedRoot, target, receipt, env};
+  return {temp, controls, oldCopies, oldHandler, isolatedParent, isolatedRoot, target, receipt, journal, env};
+}
+
+function journal(state) {
+  return Object.fromEntries(readFileSync(state.journal, "utf8").trim().split("\n").map((line) => {
+    const index = line.indexOf("=");
+    return [line.slice(0, index), line.slice(index + 1)];
+  }));
 }
 
 function legacySnapshot(state) {
@@ -90,6 +100,24 @@ test("forward and rollback only register candidate and restore exact old handler
   const state = fixture();
   const legacy = legacySnapshot(state);
   execFileSync("bash", [executor, "forward"], {env: state.env});
+  assert.deepEqual({...journal(state)}, {
+    schema: "ynx-browser-preinstall-diagnostic/1",
+    action: "forward",
+    stage: "FORWARD_COMPLETE",
+    status: "SUCCESS",
+    exit_code: "0",
+    failure_stage: "",
+    cleanup_status: "NOT_REQUIRED",
+    applications_parent_tuple: journal(state).applications_parent_tuple,
+    isolated_root_tuple: journal(state).isolated_root_tuple,
+    candidate_target_tuple: journal(state).candidate_target_tuple,
+    old_handler_tuple: journal(state).old_handler_tuple,
+    resolved_handler: state.target,
+    registered: "true",
+    registration_attempted: "true",
+    root_created: "true",
+    copied: "true"
+  });
   assert.equal(readFileSync(join(state.controls, "handler"), "utf8"), state.target);
   assert.ok(existsSync(state.target));
   execFileSync("bash", [executor, "rollback"], {env: state.env});
@@ -98,6 +126,52 @@ test("forward and rollback only register candidate and restore exact old handler
   assert.equal(existsSync(state.isolatedRoot), false);
   assert.equal(readFileSync(join(state.controls, "operations"), "utf8"), `-f|${state.target}\n-u|${state.target}\n-f|${state.oldHandler}\n`);
   assertLegacyUnchanged(state, legacy);
+});
+
+test("every pre-receipt stage preserves an exact diagnostic journal and complete cleanup", async (context) => {
+  const stages = [
+    "VERIFY_OLD_HANDLER",
+    "VERIFY_ROOT_PARENT",
+    "VERIFY_PREWRITE_ABSENCE",
+    "VERIFY_CARRIER",
+    "CREATE_TEMP_DIRECTORY",
+    "EXTRACT_CARRIER",
+    "VERIFY_EXTRACTED_APP",
+    "CREATE_ISOLATED_ROOT",
+    "COPY_CANDIDATE",
+    "VERIFY_CANDIDATE",
+    "REGISTER_CANDIDATE",
+    "RESOLVE_CANDIDATE_HANDLER",
+    "VERIFY_OLD_HANDLER_POSTREGISTER",
+    "VERIFY_ROOT_EXCLUSIVE",
+    "WRITE_SUCCESS_RECEIPT"
+  ];
+  for (const stage of stages) {
+    await context.test(stage, () => {
+      const state = fixture();
+      const legacy = legacySnapshot(state);
+      assert.throws(() => execFileSync("bash", [executor, "forward"], {
+        env: {...state.env, YNX_BROWSER_FIXTURE_FAIL_STAGE: stage},
+        stdio: "pipe"
+      }));
+      const evidence = journal(state);
+      assert.equal(evidence.stage, stage);
+      assert.equal(evidence.status, "FAILED_CLEANED");
+      assert.equal(evidence.exit_code, "97");
+      assert.equal(evidence.failure_stage, stage);
+      assert.equal(evidence.cleanup_status, "COMPLETE");
+      assert.equal(evidence.isolated_root_tuple, "ABSENT");
+      assert.equal(evidence.candidate_target_tuple, "ABSENT");
+      assert.equal(existsSync(`${state.journal}.tmp`), false);
+      assert.equal(existsSync(state.receipt), false);
+      assert.equal(existsSync(state.isolatedRoot), false);
+      assert.equal(readFileSync(join(state.controls, "handler"), "utf8"), state.oldHandler);
+      assertLegacyUnchanged(state, legacy);
+      const registrationReached = stages.indexOf(stage) > stages.indexOf("REGISTER_CANDIDATE");
+      const operations = existsSync(join(state.controls, "operations")) ? readFileSync(join(state.controls, "operations"), "utf8") : "";
+      assert.equal(operations, registrationReached ? `-f|${state.target}\n-u|${state.target}\n-f|${state.oldHandler}\n` : "");
+    });
+  }
 });
 
 test("rollback rejects an isolated-root substitution before LaunchServices mutation", () => {
@@ -172,7 +246,9 @@ test("production execution fails closed without a single-use lease", () => {
       YNX_BROWSER_OLD_HANDLER: `${process.env.HOME}/Applications/old.app`,
       YNX_BROWSER_OLD_HANDLER_DEV_INODE: "1:2",
       YNX_BROWSER_OLD_BINARY_SHA256: "c".repeat(64),
-      YNX_BROWSER_RECEIPT: "/tmp/absent.txt"
+      YNX_BROWSER_RECEIPT: "/tmp/absent.txt",
+      YNX_BROWSER_DIAGNOSTIC_JOURNAL: "/private/tmp/ynx-browser-preinstall-no-lease.diagnostic",
+      YNX_BROWSER_DIAGNOSTIC_JOURNAL_TEMP: "/private/tmp/ynx-browser-preinstall-no-lease.diagnostic.tmp"
     },
     stdio: "pipe"
   }));

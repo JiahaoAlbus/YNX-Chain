@@ -27,12 +27,14 @@ old_handler=${YNX_BROWSER_OLD_HANDLER:-}
 old_handler_dev_inode=${YNX_BROWSER_OLD_HANDLER_DEV_INODE:-}
 old_binary_sha=${YNX_BROWSER_OLD_BINARY_SHA256:-}
 receipt=${YNX_BROWSER_RECEIPT:-}
+diagnostic_journal=${YNX_BROWSER_DIAGNOSTIC_JOURNAL:-}
+diagnostic_journal_temp=${YNX_BROWSER_DIAGNOSTIC_JOURNAL_TEMP:-}
 app_name="YNX Browser Testnet Preview.app"
 binary_relative="Contents/MacOS/YNXBrowserNative"
 scheme_probe="ynxbrowser://com.ynxweb4.browser.macos/preinstall-resolution"
 
 [[ "$mode" == "fixture" || "$mode" == "production" ]] || { echo "execution mode must be fixture or production" >&2; exit 65; }
-[[ -n "$carrier" && -n "$carrier_sha" && -n "$target" && -n "$isolated_root" && -n "$isolated_root_parent" && -n "$isolated_root_parent_dev_inode" && -n "$isolated_root_parent_uid" && -n "$isolated_root_parent_gid" && -n "$isolated_root_parent_mode" && -n "$isolated_root_parent_nlink" && -n "$isolated_root_uid" && -n "$isolated_root_gid" && -n "$isolated_root_mode" && -n "$isolated_root_nlink" && -n "$candidate_binary_sha" && -n "$old_handler" && -n "$old_handler_dev_inode" && -n "$old_binary_sha" && -n "$receipt" ]] || { echo "exact preinstall binding missing" >&2; exit 65; }
+[[ -n "$carrier" && -n "$carrier_sha" && -n "$target" && -n "$isolated_root" && -n "$isolated_root_parent" && -n "$isolated_root_parent_dev_inode" && -n "$isolated_root_parent_uid" && -n "$isolated_root_parent_gid" && -n "$isolated_root_parent_mode" && -n "$isolated_root_parent_nlink" && -n "$isolated_root_uid" && -n "$isolated_root_gid" && -n "$isolated_root_mode" && -n "$isolated_root_nlink" && -n "$candidate_binary_sha" && -n "$old_handler" && -n "$old_handler_dev_inode" && -n "$old_binary_sha" && -n "$receipt" && -n "$diagnostic_journal" && -n "$diagnostic_journal_temp" ]] || { echo "exact preinstall binding missing" >&2; exit 65; }
 [[ "$carrier_sha" =~ ^[0-9a-f]{64}$ && "$candidate_binary_sha" =~ ^[0-9a-f]{64}$ && "$old_binary_sha" =~ ^[0-9a-f]{64}$ ]] || { echo "invalid SHA binding" >&2; exit 65; }
 [[ "$isolated_root_prewrite" == "ABSENT_CREATE_ONE_DIRECTORY" ]] || { echo "isolated root creation authorization missing" >&2; exit 65; }
 [[ "$(dirname "$target")" == "$isolated_root" ]] || { echo "candidate target is not a direct child of isolated root" >&2; exit 66; }
@@ -45,6 +47,8 @@ if [[ "$mode" == "production" ]]; then
     *) echo "isolated target is outside the frozen root" >&2; exit 66 ;;
   esac
   [[ "$old_handler" != "$target" ]] || { echo "old handler cannot be the candidate" >&2; exit 66; }
+  case "$diagnostic_journal" in /private/tmp/ynx-browser-preinstall-*.diagnostic) ;; *) echo "diagnostic journal outside frozen root" >&2; exit 66 ;; esac
+  [[ "$diagnostic_journal_temp" == "$diagnostic_journal.tmp" ]] || { echo "diagnostic journal temp mismatch" >&2; exit 66; }
 fi
 
 sha256_file() { shasum -a 256 "$1" | awk '{print $1}'; }
@@ -55,6 +59,28 @@ stat_uid() { if stat -f '%u' "$1" >/dev/null 2>&1; then stat -f '%u' "$1"; else 
 stat_gid() { if stat -f '%g' "$1" >/dev/null 2>&1; then stat -f '%g' "$1"; else stat -c '%g' "$1"; fi; }
 stat_mode() { if stat -f '%Lp' "$1" >/dev/null 2>&1; then stat -f '%Lp' "$1"; else stat -c '%a' "$1"; fi; }
 stat_nlink() { if stat -f '%l' "$1" >/dev/null 2>&1; then stat -f '%l' "$1"; else stat -c '%h' "$1"; fi; }
+stat_size() { if stat -f '%z' "$1" >/dev/null 2>&1; then stat -f '%z' "$1"; else stat -c '%s' "$1"; fi; }
+stat_type() { if stat -f '%HT' "$1" >/dev/null 2>&1; then stat -f '%HT' "$1"; else stat -c '%F' "$1"; fi; }
+stat_tuple_or_absent() {
+  local path=$1
+  if [[ -e "$path" ]]; then printf '%s:%s:%s:%s:%s:%s:%s' "$(dev_inode "$path")" "$(stat_uid "$path")" "$(stat_gid "$path")" "$(stat_mode "$path")" "$(stat_nlink "$path")" "$(stat_size "$path")" "$(stat_type "$path")";
+  else printf 'ABSENT'; fi
+}
+journal_write() {
+  local stage=$1 status=$2 exit_code=$3 failure_stage=$4 cleanup_status=$5
+  umask 077
+  printf 'schema=ynx-browser-preinstall-diagnostic/1\naction=forward\nstage=%s\nstatus=%s\nexit_code=%s\nfailure_stage=%s\ncleanup_status=%s\napplications_parent_tuple=%s\nisolated_root_tuple=%s\ncandidate_target_tuple=%s\nold_handler_tuple=%s\nresolved_handler=%s\nregistered=%s\nregistration_attempted=%s\nroot_created=%s\ncopied=%s\n' \
+    "$stage" "$status" "$exit_code" "$failure_stage" "$cleanup_status" "$(stat_tuple_or_absent "$isolated_root_parent")" "$(stat_tuple_or_absent "$isolated_root")" "$(stat_tuple_or_absent "$target")" "$(stat_tuple_or_absent "$old_handler")" "${resolved_handler:-}" "${registered:-false}" "${registration_attempted:-false}" "${root_created:-false}" "${copied:-false}" > "$diagnostic_journal_temp"
+  /bin/mv -f -- "$diagnostic_journal_temp" "$diagnostic_journal"
+}
+journal_checkpoint() {
+  current_stage=$1
+  journal_write "$current_stage" "RUNNING" 0 "" "NOT_STARTED"
+  if [[ "$mode" == "fixture" && "${YNX_BROWSER_FIXTURE_FAIL_STAGE:-}" == "$current_stage" ]]; then
+    echo "fixture failure at $current_stage" >&2
+    return 97
+  fi
+}
 verify_stat_tuple() {
   local path=$1 expected_dev_inode=$2 expected_uid=$3 expected_gid=$4 expected_mode=$5 expected_nlink=$6 label=$7
   [[ -d "$path" ]] || { echo "$label missing" >&2; return 1; }
@@ -113,57 +139,90 @@ delete_candidate_if_exact() {
   /bin/rm -rf -- "$target"
 }
 
-verify_old_handler
-
 if [[ "$action" == "forward" ]]; then
-  verify_stat_tuple "$isolated_root_parent" "$isolated_root_parent_dev_inode" "$isolated_root_parent_uid" "$isolated_root_parent_gid" "$isolated_root_parent_mode" "$isolated_root_parent_nlink" "isolated root parent"
-  [[ ! -e "$isolated_root" ]] || { echo "isolated root must be absent" >&2; exit 73; }
-  [[ ! -e "$target" ]] || { echo "isolated target must be absent" >&2; exit 73; }
-  [[ "$(sha256_file "$carrier")" == "$carrier_sha" ]] || { echo "carrier SHA mismatch" >&2; exit 65; }
-
-  temp=$(mktemp -d "${TMPDIR:-/tmp}/ynx-browser-preinstall.XXXXXX")
+  [[ ! -e "$diagnostic_journal" && ! -e "$diagnostic_journal_temp" ]] || { echo "diagnostic journal paths must be absent" >&2; exit 73; }
+  temp=""
   registered=false
+  registration_attempted=false
   copied=false
   root_created=false
   isolated_root_dev_inode=""
   candidate_inode=""
+  resolved_handler=""
+  current_stage="START"
   fail_closed_forward() {
     local code=$?
+    local failed_stage=$current_stage cleanup_status="COMPLETE" cleanup_resolved=""
     trap - ERR
-    if [[ "$registered" == "true" ]]; then unregister_candidate || true; fi
-    register_app "$old_handler" || true
-    if [[ "$copied" == "true" && -n "$candidate_inode" ]]; then delete_candidate_if_exact "$candidate_inode" || true; fi
-    if [[ "$root_created" == "true" && -n "$isolated_root_dev_inode" ]]; then delete_isolated_root_if_exact_and_empty "$isolated_root_dev_inode" || true; fi
-    /bin/rm -rf -- "$temp"
+    if [[ "$registration_attempted" == "true" ]]; then
+      unregister_candidate || cleanup_status="INCOMPLETE"
+      register_app "$old_handler" || cleanup_status="INCOMPLETE"
+    fi
+    if [[ "$copied" == "true" && -n "$candidate_inode" ]]; then delete_candidate_if_exact "$candidate_inode" || cleanup_status="INCOMPLETE"; fi
+    if [[ "$root_created" == "true" && -n "$isolated_root_dev_inode" ]]; then delete_isolated_root_if_exact_and_empty "$isolated_root_dev_inode" || cleanup_status="INCOMPLETE"; fi
+    if [[ "$registration_attempted" == "true" ]]; then
+      cleanup_resolved=$(resolve_handler) || cleanup_status="INCOMPLETE"
+      [[ "$cleanup_resolved" == "$old_handler" ]] || cleanup_status="INCOMPLETE"
+    fi
+    verify_old_handler || cleanup_status="INCOMPLETE"
+    [[ ! -e "$target" && ! -e "$isolated_root" ]] || cleanup_status="INCOMPLETE"
+    resolved_handler=$cleanup_resolved
+    journal_write "$failed_stage" "FAILED_CLEANED" "$code" "$failed_stage" "$cleanup_status" || true
+    if [[ -n "$temp" ]]; then /bin/rm -rf -- "$temp"; fi
     exit "$code"
   }
   trap fail_closed_forward ERR
 
+  journal_checkpoint "VERIFY_OLD_HANDLER"
+  verify_old_handler
+  journal_checkpoint "VERIFY_ROOT_PARENT"
+  verify_stat_tuple "$isolated_root_parent" "$isolated_root_parent_dev_inode" "$isolated_root_parent_uid" "$isolated_root_parent_gid" "$isolated_root_parent_mode" "$isolated_root_parent_nlink" "isolated root parent"
+  journal_checkpoint "VERIFY_PREWRITE_ABSENCE"
+  [[ ! -e "$isolated_root" ]] || { echo "isolated root must be absent" >&2; false; }
+  [[ ! -e "$target" ]] || { echo "isolated target must be absent" >&2; false; }
+  journal_checkpoint "VERIFY_CARRIER"
+  [[ "$(sha256_file "$carrier")" == "$carrier_sha" ]] || { echo "carrier SHA mismatch" >&2; false; }
+  journal_checkpoint "CREATE_TEMP_DIRECTORY"
+  temp=$(mktemp -d "${TMPDIR:-/tmp}/ynx-browser-preinstall.XXXXXX")
+  journal_checkpoint "EXTRACT_CARRIER"
   ditto -x -k "$carrier" "$temp"
   source_app="$temp/$app_name"
+  journal_checkpoint "VERIFY_EXTRACTED_APP"
   [[ -d "$source_app" ]] || { echo "carrier app missing" >&2; false; }
   [[ "$(sha256_file "$source_app/$binary_relative")" == "$candidate_binary_sha" ]] || { echo "carrier binary mismatch" >&2; false; }
+  journal_checkpoint "CREATE_ISOLATED_ROOT"
   /bin/mkdir -m "$isolated_root_mode" -- "$isolated_root"
   root_created=true
   isolated_root_dev_inode=$(dev_inode "$isolated_root")
   verify_stat_tuple "$isolated_root" "$isolated_root_dev_inode" "$isolated_root_uid" "$isolated_root_gid" "$isolated_root_mode" "$isolated_root_nlink" "isolated root"
+  journal_checkpoint "COPY_CANDIDATE"
   ditto "$source_app" "$target"
   copied=true
   candidate_inode=$(dev_inode "$target")
+  journal_checkpoint "VERIFY_CANDIDATE"
   [[ "$(sha256_file "$target/$binary_relative")" == "$candidate_binary_sha" ]] || { echo "copied binary mismatch" >&2; false; }
   candidate_process_absent || { echo "candidate unexpectedly running" >&2; false; }
+  journal_checkpoint "REGISTER_CANDIDATE"
+  registration_attempted=true
   register_app "$target"
   registered=true
-  [[ "$(resolve_handler)" == "$target" ]] || { echo "candidate did not become handler" >&2; false; }
+  journal_checkpoint "RESOLVE_CANDIDATE_HANDLER"
+  resolved_handler=$(resolve_handler)
+  [[ "$resolved_handler" == "$target" ]] || { echo "candidate did not become handler" >&2; false; }
+  journal_checkpoint "VERIFY_OLD_HANDLER_POSTREGISTER"
   verify_old_handler
+  journal_checkpoint "VERIFY_ROOT_EXCLUSIVE"
   isolated_root_has_only_target || { echo "isolated root contains an unexpected entry" >&2; false; }
+  journal_checkpoint "WRITE_SUCCESS_RECEIPT"
   printf 'target=%s\ncandidate_inode=%s\ncandidate_binary_sha256=%s\nisolated_root=%s\nisolated_root_created=true\nisolated_root_dev_inode=%s\nisolated_root_uid=%s\nisolated_root_gid=%s\nisolated_root_mode=%s\nisolated_root_nlink=%s\nold_handler=%s\nold_handler_dev_inode=%s\nold_binary_sha256=%s\n' \
     "$target" "$candidate_inode" "$candidate_binary_sha" "$isolated_root" "$isolated_root_dev_inode" "$isolated_root_uid" "$isolated_root_gid" "$isolated_root_mode" "$isolated_root_nlink" "$old_handler" "$old_handler_dev_inode" "$old_binary_sha" > "$receipt"
+  journal_write "FORWARD_COMPLETE" "SUCCESS" 0 "" "NOT_REQUIRED"
   trap - ERR
   /bin/rm -rf -- "$temp"
   exit 0
 fi
 
+verify_old_handler
 [[ -f "$receipt" ]] || { echo "forward receipt missing" >&2; exit 66; }
 receipt_target=$(awk -F= '$1=="target"{print substr($0,index($0,"=")+1)}' "$receipt")
 candidate_inode=$(awk -F= '$1=="candidate_inode"{print $2}' "$receipt")
