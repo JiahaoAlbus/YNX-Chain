@@ -1,0 +1,54 @@
+{
+  "kind": "FINANCE_P0249_PHASE3_RETAINED_OBJECT_ZERO_WRITE_INVENTORY",
+  "central": {
+    "commit": "e0c2fb9591013e04c073ae301fa3a4eb55ba4d91",
+    "tree": "6550c5d5850239b8738ca01d1e073e6871b80f48",
+    "leaseBlob": "99b8a3a666c122b27cbb701ed1f52e8dc0d58b37",
+    "leaseBytes": 6384,
+    "leaseSha256": "4f077ef046c98f82ad8f43249cd08ed25ec5716170b7832fd0c0d2259de417a6",
+    "commandBlob": "6334aa5dc6262f23fd4d9df2671942865f8cd2db",
+    "commandBytes": 3217,
+    "commandSha256": "adb50d5868937afababd2d80a035d8527d3db75860d7ae1d9c1e60c3340cbe7b",
+    "singleUse": true,
+    "retryAllowed": false
+  },
+  "rootCauseInput": {
+    "commit": "6d7b47b9bc100b4a85a0a4ef19bd92300cc3da26",
+    "tree": "1dc4ca9183cd50bd0d7804cab15fc47b66b6bcdb"
+  },
+  "execution": {
+    "sshAttempts": 1,
+    "zeroWrite": true,
+    "retry": false,
+    "cleanup": false,
+    "deployment": false,
+    "rollback": false,
+    "serviceMutation": false,
+    "secretOutput": false
+  },
+  "stdout": {
+    "path": "apps/finance/evidence/p0-249-finance-phase3-partial-inventory-stdout-20260823.txt",
+    "bytes": 1525,
+    "sha256": "8ac08abf966b05b916b51a556733160953294a62b59bb064f1229b8499a919aa"
+  },
+  "stderr": {"bytes": 0, "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+  "retainedObjects": {
+    "placedExecutor": {"bytes": 15907, "sha256": "8f9e2ede5418e8f65739f2a5f3af7a78c266474f4c428951d8daf27f20e56315"},
+    "placedLease": {"bytes": 6829, "sha256": "49aec85704a6282cab675373f56cb71a240433f3625f08b5e7426bbb1bbfee80"},
+    "stage": {"inventorySha256": "61181f33dcf9b11282732fe26f02ad9e3b0f5135dead72ca690606c722d9bf62", "remainingEntries": ["stage"]},
+    "backup": {"inventorySha256": "e78ba1c645bfeeffa9d1f373fd2c773326a358c23caca7ad9fd48834b71a3e19", "oldEnvSha256": "854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252", "oldStateWasAbsent": true}
+  },
+  "rootCauseRefinement": {
+    "candidateMoveProven": "The executor moves stage/ynx-finance-7824af677dd0 to the release path before it installs the restore trap. P0-249 finds only the now-empty stage directory, while release and releaseContainer are absent. This matches move followed by armed automatic restore cleanup, and excludes archive extraction or local candidate asset validation as the terminal failure point.",
+    "failureBoundary": "The remaining P0-247 automatic-restore boundary is systemctl restart at executor line 167 or verify_candidate_live at line 168. P0-248 had a new active PID and old runtime restored, making line-168 candidate runtime receipt mismatch the most likely condition; P0-247 did not retain the per-predicate failure receipt, so it is not claimed as exact.",
+    "nextAuthorityNeeded": "Only a new Central-approved, zero-write forensic journal classifier can identify the exact restart/verifier predicate. No successor deployment, cleanup or rollback is authorized by this evidence."
+  },
+  "truth": {
+    "candidateReleaseActive": false,
+    "candidatePublicRuntime": false,
+    "manualRollbackLeasePresent": false,
+    "walletApproval": false,
+    "signature": false,
+    "transaction": false
+  }
+}

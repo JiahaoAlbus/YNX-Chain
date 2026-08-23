@@ -1,0 +1,20 @@
+inspection=P0-249
+deployRootTuple=64770:4594822:0:0:750:2:4096:directory
+deployInventorySha256=55234705279df9c204fa85fb1488a0e8743fcfb99402c97936257edbb3744d36
+deployEntry=p0247-finance-phase3-20260823T073800Z.executor.sh|type=regular file|tuple=64770:4594823:0:0:700:1:15907:regular file|sha256=8f9e2ede5418e8f65739f2a5f3af7a78c266474f4c428951d8daf27f20e56315
+deployEntry=p0247-finance-phase3-20260823T073800Z.json|type=regular file|tuple=64770:4594824:0:0:600:1:6829:regular file|sha256=49aec85704a6282cab675373f56cb71a240433f3625f08b5e7426bbb1bbfee80
+stageRootTuple=64770:4620782:0:0:700:3:4096:directory
+stageInventorySha256=61181f33dcf9b11282732fe26f02ad9e3b0f5135dead72ca690606c722d9bf62
+stageEntry=stage|type=directory|tuple=64770:4620783:0:0:700:2:4096:directory
+backupRootTuple=64770:2663604:0:0:700:3:4096:directory
+backupInventorySha256=e78ba1c645bfeeffa9d1f373fd2c773326a358c23caca7ad9fd48834b71a3e19
+backupEntry=backup|type=directory|tuple=64770:3450049:0:0:700:2:4096:directory
+backupEntry=backup/env|type=regular file|tuple=64770:3450050:0:986:640:1:1545:regular file|sha256=854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252
+backupEntry=backup/state-absent|type=regular empty file|tuple=64770:3450051:0:0:600:1:0:regular empty file
+currentTarget=/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a
+productionEnvSha256=854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252
+servicePid=2241003
+serviceNRestarts=0
+releaseContainer=ABSENT
+manualRollbackLease=ABSENT
+inspectionComplete=true
