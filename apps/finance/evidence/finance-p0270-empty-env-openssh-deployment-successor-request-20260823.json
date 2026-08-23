@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "p0-finance-empty-env-deployment-successor-request@1",
+  "kind": "FINANCE_ROLLBACK_FIRST_PRODUCTION_DEPLOYMENT_EMPTY_ENV_OPENSSH_SUCCESSOR",
+  "requestState": "AWAITING_WHOLELY_NEW_CENTRAL_SINGLE_USE_LEASE",
+  "supersedes": {
+    "p0269": "CONSUMED_FAIL_CLOSED_PRE_SSH_LOCAL_RUNTIME_DEPENDENCY_MISSING",
+    "failureEvidenceCommit": "e7108f3eff755e611ea00e37bffc9e3b73d93696",
+    "failureEvidenceTree": "6140e20073c4c7e6572e66c95adbb58d0b98c5b0",
+    "failureEvidenceSha256": "ed7d644644585b0bc7514deede63914b88d74b3752d3692a9509704d5e76996f"
+  },
+  "reviewedCommandCheckpoint": {"commit": "db7eda3c021bba35ca1f7f6b9467064c5de52bb8", "tree": "1f2fee11536766fa023867e1fb3a46321c1222e1", "nonSelfReferential": true},
+  "emptyEnvironmentContract": {
+    "environment": {},
+    "implicitPathLookup": false,
+    "absoluteLocalTools": ["/usr/bin/shasum", "/usr/bin/awk", "/usr/bin/wc", "/usr/bin/tr", "/usr/bin/base64", "/usr/bin/sed", "/usr/bin/grep", "/opt/homebrew/bin/gmv", "/usr/bin/ssh", "/usr/bin/sudo"],
+    "transport": {"path": "apps/finance/scripts/finance-phase3-openssh-serialized-command.sh", "blob": "93bc85466ce876c791f34c74a57816e13536a6c1", "bytes": 2844, "sha256": "7e02fef69c6589274159d1c5769f828f0e2632c919e4b59af29db753a3ce4192"},
+    "fixture": {"path": "apps/finance/scripts/test-finance-phase3-openssh-serialized-command-fixture.mjs", "blob": "766dd0d54ac9b70c5d4bea24251499cffafa2170", "bytes": 3733, "sha256": "7c93449eb662d1cc724ef1af62af89d8997e526f7ca4398389781ace1539c6ab"},
+    "fixtureAssertions": ["exact 25-element invocation with env={} reaches mock SSH exactly once", "nonempty phase=3 terminal receipt validates", "silent or malformed remote receipt fails status 65", "local bootstrap hash mismatch reaches mock SSH zero times"]
+  },
+  "freshLeaseNamespace": {
+    "idPattern": "p0270-finance-phase3-<Central-UTC-timestamp>",
+    "local": {"signedStdin": "/tmp/ynx-finance-p0270-phase3-signed.json", "stdout": "/tmp/ynx-finance-p0270-phase3.stdout", "stderr": "/tmp/ynx-finance-p0270-phase3.stderr", "receipt": "/tmp/ynx-finance-p0270-phase3.receipt", "receiptPending": "/tmp/ynx-finance-p0270-phase3.receipt.pending"},
+    "remote": {"controlParent": "/opt/ynx/leases/finance", "executor": "/opt/ynx/leases/finance/<id>.executor.sh", "lease": "/opt/ynx/leases/finance/<id>.json", "stage": "/opt/ynx/stage/finance/<id>", "backup": "/var/backups/ynx-finance/<id>", "releaseContainer": "/opt/ynx/releases/finance/<id>", "release": "/opt/ynx/releases/finance/<id>/ynx-finance-7824af677dd0"},
+    "allMustStartAbsentAndNonSymlink": true
+  },
+  "freshBaselineAndCandidateBindings": {
+    "mustReread": ["current old release/env/unit/Caddy/state/service PID/NRestarts", "public and loopback index/health/version plus candidate asset hashes", "strict host/amd64/sudo/tool absolute paths", "lease-specific parents and all fresh child absences", "unit user/group/ExecStart/WorkingDirectory"],
+    "p0268BaselineEvidence": "2065fe7fc349541255e5e4be2b1bf2750eeebeac",
+    "candidateArchive": {"bytes": 3937491, "sha256": "d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d"},
+    "candidateEnv": {"bytes": 1545, "sha256": "ceec9fba17116e087d6e2a9cb160808b39e027e687a7ad561174a40daf58b71a", "valuesOutputForbidden": true},
+    "candidateBinary": {"bytes": 8573112, "sha256": "cccdae8ae5b5f694ca7db68540da30582564ff741978e616f7435d448a20fe3e", "arch": "x86-64"}
+  },
+  "safetyBoundary": {
+    "oneSshAttempt": true,
+    "oneDeployInvocation": true,
+    "retryAllowed": false,
+    "rootYnxTraversalPreflight": "Actual fresh unit user must traverse root:ynx 0750 container and read/execute binary/assets before current/env/service mutation; root:root 0750 fails closed.",
+    "automaticRollback": "Executor alone restores exact old env/state/current/service on first failure and verifies old public/loopback receipts.",
+    "manualRollback": "Requires a wholly new Central-signed lease only after a successful deployment and later external gate failure.",
+    "forbidden": ["manual rollback under deploy lease", "account", "signature", "typed data", "transaction", "private key", "unit/Caddy mutation"]
+  },
+  "truth": {"leaseIssued": false, "deployed": false, "publicVerified": false, "walletLifecycleVerified": false},
+  "singleBlocker": "Central must issue a fresh single-use P0270 lease after independently binding the absolute local tool contract, fresh production baseline, candidate identity, and all new paths."
+}
