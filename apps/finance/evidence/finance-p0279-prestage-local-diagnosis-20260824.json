@@ -1,0 +1,13 @@
+{
+  "kind": "FINANCE_P0279_PRESTAGE_LOCAL_DIAGNOSIS",
+  "productionMutation": false,
+  "ssh": false,
+  "facts": {
+    "p0280": "P0279 executor and signed lease remain; stage and backup containers are empty while stage, backup, release container, and release are absent.",
+    "deduction": "The executor passed control placement and entered its guarded staging region, then its automatic pre-switch cleanup removed created stage/backup leaves. The retained zero-write evidence does not expose the exact failed command after mkdir.",
+    "gnuTar": "The approved archive lists/extracts with --warning=no-unknown-keyword and all seven signed assets match the P0279 signed lease exactly.",
+    "firstFailingInvariant": "UNPROVEN_FROM_AVAILABLE_ZERO_WRITE_EVIDENCE"
+  },
+  "nextDiagnosticBlocker": "A new bounded zero-write lease must capture an executor-internal, secret-safe phase marker or journal predicate for P0279. Existing journal class OTHER_OR_EMPTY and empty P0279 stdout/stderr cannot identify the first post-mkdir invariant without fabricating evidence.",
+  "truth": {"rootCauseProven": false, "tarOrAssetFailure": false, "deployment": false}
+}

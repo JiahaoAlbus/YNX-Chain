@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "FINANCE_P0279_CONTROL_FILES_CLEANUP_FRAMED_TRANSPORT_ONLY",
+  "requestStatus": "SOURCE_REQUEST_ONLY_NO_SSH_NO_MUTATION",
+  "predecessor": {"centralCommit": "488d4b3b39d4abaf539a02857ec97d859662c5ba", "centralTree": "a27014c3501081db9dc8f82284ad8db100d04253", "leaseBlob": "aa9bccbddd7c1fe5c82ec9700ee008e1999f4f5b", "leaseSha256": "a261d2491022def6271212ec865bd56c33628456280182e3285c6dd7575fadbf", "ownerEvidenceCommit": "8820efb486c6cbe975999d43d6f9e1dda7e22561"},
+  "scope": {
+    "parent": {"path": "/opt/ynx/leases/finance", "tuple": "64770:4594822:0:0:750:2:4096:directory", "stableIdentity": "64770:4594822:0:0:750:directory", "mustHaveExactChildren": 2},
+    "targets": [
+      {"name": "executor", "path": "/opt/ynx/leases/finance/p0279-finance-phase3-20260823T164408Z.executor.sh", "tuple": "64770:4620881:0:0:700:1:18432:regular file", "bytes": 18432, "sha256": "be7435a922b26482c830778ef23753e7de2e02ad307de914fef9aa83a77229c0"},
+      {"name": "signedLease", "path": "/opt/ynx/leases/finance/p0279-finance-phase3-20260823T164408Z.json", "tuple": "64770:4620882:0:0:600:1:8140:regular file", "bytes": 8140, "sha256": "5b36af2367371cfb94490cf0ade3b0399c3a836b71b88886063ede6fb994bea9"}
+    ]
+  },
+  "transport": {
+    "design": "P0276_PROVEN_TWO_FRAME_STDIN_NO_CLOBBER_FINALIZER",
+    "newCleanupIdPattern": "p0281-finance-p0279-control-cleanup-<Central-UTC>",
+    "temporaryExecutor": "/tmp/ynx-finance-p0281-finance-p0279-control-cleanup-<Central-UTC>.executor.sh",
+    "temporaryLease": "/tmp/ynx-finance-p0281-finance-p0279-control-cleanup-<Central-UTC>.json",
+    "allTemporaryPathsInitiallyAbsent": true,
+    "singleSsh": true,
+    "singleCleanup": true,
+    "retryAllowed": false,
+    "finalizer": "delete only matching inode-plus-SHA temporary files; require their final absence; never remove parent or siblings"
+  },
+  "requiredTerminalEvidence": ["both persistent controls absent", "both temporary controls absent", "retained parent stable tuple unchanged and empty", "current/env/state/unit/Caddy/service/public unchanged", "remote rc and nonempty cleanup receipt"],
+  "forbidden": ["deploy", "rollback", "restart", "current/env/state/unit/Caddy/public mutation", "account", "sign", "transaction"],
+  "truth": {"cleanupExecuted": false, "deployment": false, "publicVerified": false}
+}
