@@ -1,0 +1,87 @@
+{
+  "kind": "FINANCE_PHASE2B_CANDIDATE_ENV_PREPARATION_TERMINAL_EVIDENCE",
+  "observedAt": "2026-08-23T03:38:53Z",
+  "central": {
+    "commit": "938259f484825252748fe903fbe5c65bd051005c",
+    "tree": "494630ab5987ab9439792f39608ff76ad5753e73",
+    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-phase2b-candidate-env-preparation-20260823T033300Z",
+    "leaseBlob": "84ffa819fc3191bd48eeb4043b4c14af8f1b32ed",
+    "leaseBytes": 8689,
+    "leaseSha256": "e0dda18ad3c153eb341805811ccda6c4432164a626119a535edfe7f494012bd3",
+    "signedStdinBlob": "0618cc01f6e44bd105dd88b4dd57c61cc0abd8e0",
+    "signedStdinBytes": 3027,
+    "signedStdinSha256": "2c169174339f5cf2005e04e68cb8fa049ada050229492728566be59111e26b9e"
+  },
+  "owner": {
+    "requestCommit": "31c47ffcc71f3ce0a18f953790bda1a6c8d65715",
+    "requestTree": "dd6bc97427fe809ee8ce989b3586ac1f3edd5acc",
+    "requestSha256": "010ea8c14646e230bd62fbfc8819651d9079f49585ddae3da6384fd2e3c1172e",
+    "bootstrapSha256": "97790a74f78b5685dc79e42cc570a31757fa81f71643aff14259c4d610588cb3"
+  },
+  "execution": {
+    "sshInvocationCount": 1,
+    "remoteBootstrapInvocationCount": 1,
+    "phase2bInvocationCount": 1,
+    "retryCount": 0,
+    "exitCode": 0,
+    "remoteStderrEmpty": true,
+    "stdout": {
+      "path": "/tmp/ynx-finance-p0236-phase2b-stdout.txt",
+      "bytes": 880,
+      "sha256": "5bb023e8d4f969d8733a6495cb0c3487ecd15ef8faad038d127a4c8a90e7d34f"
+    },
+    "stderr": {
+      "path": "/tmp/ynx-finance-p0236-phase2b-stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "receipts": {
+    "carrier": {
+      "path": "/opt/ynx/stage/finance/p0228-finance-phase1-20260822T234100Z",
+      "tuple": "64770:4594821:0:0:700:2:4096:directory"
+    },
+    "candidateArchive": {
+      "path": "/opt/ynx/stage/finance/p0228-finance-phase1-20260822T234100Z/candidate.tgz",
+      "tuple": "64770:4620871:0:0:600:1:3937491:regular file",
+      "bytes": 3937491,
+      "sha256": "d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d"
+    },
+    "candidateEnvironment": {
+      "path": "/opt/ynx/stage/finance/p0228-finance-phase1-20260822T234100Z/finance.env",
+      "tuple": "64770:4620873:0:986:640:1:1545:regular file",
+      "bytes": 1545,
+      "sha256": "ceec9fba17116e087d6e2a9cb160808b39e027e687a7ad561174a40daf58b71a",
+      "valuesOutputOrRecorded": false
+    },
+    "signedLease": {
+      "path": "/opt/ynx/leases/finance-preparation/p0228-finance-phase1-20260822T234100Z.json",
+      "tuple": "64770:4620793:0:0:600:1:3027:regular file",
+      "bytes": 3027,
+      "sha256": "2c169174339f5cf2005e04e68cb8fa049ada050229492728566be59111e26b9e"
+    }
+  },
+  "postRead": {
+    "performedByExecutor": false,
+    "reason": "P0-236 permits exactly one SSH/bootstrap/Phase2B attempt. Central release review must independently read the receipts and unchanged production state without exposing environment values.",
+    "productionEnvironmentUnchanged": "CENTRAL_RELEASE_READ_REQUIRED",
+    "financeServiceUnchanged": "CENTRAL_RELEASE_READ_REQUIRED"
+  },
+  "truth": {
+    "phase2bCandidatePreparationExecuted": true,
+    "candidateArchiveCopied": true,
+    "candidateEnvironmentGenerated": true,
+    "signedLeaseInstalled": true,
+    "environmentValuesReadOrRecorded": false,
+    "archiveExtracted": false,
+    "deployed": false,
+    "serviceRestarted": false,
+    "currentChanged": false,
+    "unitChanged": false,
+    "caddyChanged": false,
+    "publicChanged": false,
+    "account": false,
+    "signature": false,
+    "transaction": false
+  }
+}
