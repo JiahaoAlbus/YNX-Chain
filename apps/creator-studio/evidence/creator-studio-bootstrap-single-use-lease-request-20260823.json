@@ -1,12 +1,71 @@
 {
-  "schemaVersion":"2.0.0",
-  "requestType":"CREATOR_STUDIO_BOOTSTRAP_SINGLE_USE_LEASE",
-  "requestedExecutor":"release-control-plane",
-  "status":"REQUESTED_NOT_AUTHORIZED",
-  "candidate":{"tag":"creator-studio-candidate-0e1a53c5","commit":"0e1a53c5ad1fc9dc2cbfebc13c55f1f426c7e7ae","carrier":"apps/creator-studio/release-candidates/candidate-0e1a53c5/creator-studio.tar","sha256":"3f56aa4c3f9d87d27f7cdf19eafc0dacf1da78d83d31def2080f0162d92bdf8a"},
-  "dedicatedRuntime":{"root":"/opt/ynx-creator-studio-wallet","releases":"/opt/ynx-creator-studio-wallet/releases","current":"/opt/ynx-creator-studio-wallet/current","unit":"/etc/systemd/system/ynx-creator-studio-wallet.service","unitTemplate":"apps/creator-studio/release-bootstrap-unit.service","unitTemplateSha256":"c66091b013fdb3c34cd427172ae537f5d104c1faca6fc9182b6722cf469a4f11","workingDirectory":"/opt/ynx-creator-studio-wallet/current","execStart":"/usr/bin/node /opt/ynx-creator-studio-wallet/current/server.mjs","port":6495,"user":"ynx","group":"ynx"},
-  "guards":{"oldUnit":"/etc/systemd/system/ynx-video-studio.service","oldUnitSha256":"dc08dec0a4a4596cec03e01055d5ae64715954d1aa652c3e11221106f06348d1","oldCurrent":"/opt/ynx-video/current","caddy":"/etc/caddy/ynx-chain.caddy","caddySha256":"b606d1bdced436a984aed19981788f1a9471b4ccb7ad7f2c49b32015b729afa7","requireApi6493AndViewer6494PidListenerUnchanged":true,"requirePublicHashValidation":true},
-  "sequence":["require root/current/new-unit/stage absence","stage, verify, chown and loopback-preflight candidate","atomically rename dedicated root containing current symlink; atomically install frozen unit","disable old Studio unit only after preflight; enable/start dedicated unit; require PID/cmdline/cwd/listener/public validation","rollback only with unchanged old-unit/Caddy/shared-current/API/Viewer receipt and resumed old Studio service"],
-  "forbidden":["/opt/ynx-video mutation","Caddy mutation","API6493","Viewer6494","shared catalog","wallet account request","signature","transaction"],
-  "truth":{"deploymentAuthorized":false,"bootstrapExecuted":false,"publicRuntimeVerified":false}
+  "schemaVersion": "4.0.0",
+  "requestType": "CREATOR_STUDIO_BOOTSTRAP_SINGLE_USE_LEASE",
+  "requestedExecutor": "release-control-plane",
+  "status": "REQUESTED_NOT_AUTHORIZED",
+  "candidate": {
+    "tag": "creator-studio-candidate-0e1a53c5",
+    "commit": "0e1a53c5ad1fc9dc2cbfebc13c55f1f426c7e7ae",
+    "carrier": "apps/creator-studio/release-candidates/candidate-0e1a53c5/creator-studio.tar",
+    "sha256": "3f56aa4c3f9d87d27f7cdf19eafc0dacf1da78d83d31def2080f0162d92bdf8a"
+  },
+  "dedicatedRuntime": {
+    "root": "/opt/ynx-creator-studio-wallet",
+    "releases": "/opt/ynx-creator-studio-wallet/releases",
+    "current": "/opt/ynx-creator-studio-wallet/current",
+    "unit": "/etc/systemd/system/ynx-creator-studio-wallet.service",
+    "unitTemplate": "apps/creator-studio/release-bootstrap-unit.service",
+    "unitTemplateSha256": "c66091b013fdb3c34cd427172ae537f5d104c1faca6fc9182b6722cf469a4f11",
+    "workingDirectory": "/opt/ynx-creator-studio-wallet/current",
+    "execStart": "/usr/bin/node /opt/ynx-creator-studio-wallet/current/server.mjs",
+    "port": 6495,
+    "user": "ynx",
+    "group": "ynx",
+    "release": "/opt/ynx-creator-studio-wallet/releases/creator-studio-0e1a53c5"
+  },
+  "guards": {
+    "oldUnit": "/etc/systemd/system/ynx-video-studio.service",
+    "oldUnitSha256": "dc08dec0a4a4596cec03e01055d5ae64715954d1aa652c3e11221106f06348d1",
+    "oldCurrent": "/opt/ynx-video/current",
+    "caddy": "/etc/caddy/ynx-chain.caddy",
+    "caddySha256": "b606d1bdced436a984aed19981788f1a9471b4ccb7ad7f2c49b32015b729afa7",
+    "requireApi6493AndViewer6494PidListenerUnchanged": true,
+    "requirePublicHashValidation": true,
+    "requireApi6493AndViewer6494PidCmdlineCwdListenerUnchanged": true,
+    "requireApi6493AndViewer6494CompleteTuple": true
+  },
+  "sequence": [
+    "capture complete PID/cmdline/cwd/LISTEN tuples for API6493 and Viewer6494",
+    "materialize candidate solely at STUDIO_RELEASE_DIR and bind release/current/forward receipt inode and SHA",
+    "on forward terminal failure, restore old active Studio then delete only receipt-bound unit/root and prove absence",
+    "fixture must pass success, substitution rejection, and forced terminal failure cleanup"
+  ],
+  "forbidden": [
+    "/opt/ynx-video mutation",
+    "Caddy mutation",
+    "API6493",
+    "Viewer6494",
+    "shared catalog",
+    "wallet account request",
+    "signature",
+    "transaction"
+  ],
+  "truth": {
+    "deploymentAuthorized": false,
+    "bootstrapExecuted": false,
+    "publicRuntimeVerified": false
+  },
+  "studioReleaseDir": "/opt/ynx-creator-studio-wallet/releases/creator-studio-0e1a53c5",
+  "rollback": {
+    "carrier": "apps/creator-studio/release-candidates/live-20260823/live-frontend-carrier.tar",
+    "sha256": "be8c68af8cd342539bc2f98955b61c4bc9665867e08d91cd46afc7dcfdc53e27",
+    "requiresOldServiceActive": true,
+    "requiresIdentityBoundDedicatedRootAndUnitAbsence": true
+  },
+  "bootstrapExecutor": "apps/creator-studio/release-bootstrap-successor.mjs",
+  "forwardBinding": {
+    "studioReleaseDir": "/opt/ynx-creator-studio-wallet/releases/creator-studio-0e1a53c5",
+    "requireSameMaterializedTargetCurrentReceiptInodeAndCandidateSha": true,
+    "requireRootCurrentNewUnitStageAbsenceReceipts": true
+  }
 }
