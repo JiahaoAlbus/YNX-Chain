@@ -7231,6 +7231,22 @@
       "nextAction": "Do not reuse P0-202. A wholly new Social alias-only lease may bind the exact verified candidate, official-domain raw/browser post-route gates and one exact rollback on any failure."
     },
     {
+      "taskId": "P0-298",
+      "owner": "integration,financial-apps",
+      "status": "NO_GO_FINANCE_P0298_SUCCESS_AND_AUTOMATIC_ROLLBACK_TERMINAL_CONTRACT_COLLAPSED",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/execution/objects/p0-298-finance-phase-diagnostic-deployment-request-nogo-review-20260824.json"
+      ],
+      "dependencies": ["P0-297"],
+      "requestCommit": "1aa9f7f14cef780b18cde688b4fdf82f405464ad",
+      "requestBlob": "59f308466a6089aaf847a544f3d224af3a17e468",
+      "executionLeaseIssued": false,
+      "sshExecuted": false,
+      "productionMutation": false,
+      "p0294Reusable": false,
+      "nextAction": "Owner must submit a wholly new request whose success branch retains exact signed release, backup and control objects with current=candidate and candidate runtime/public gates, while its automatic-rollback branch alone removes identity-bound residues and restores the old runtime."
+    },
+    {
       "taskId": "P0-203",
       "owner": "social",
       "status": "CONSUMED_RELEASED_SUCCESS_SOCIAL_OFFICIAL_SOURCE_BOUND_NON_SENSITIVE",

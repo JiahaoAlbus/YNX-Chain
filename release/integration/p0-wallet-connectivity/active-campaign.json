@@ -437,15 +437,15 @@
     "evidenceCommit": "c52ac851689f321709c56c1945af55b9b4ca6cbd",
     "runtimeHost": "43.153.202.237",
     "currentRuntime": "FINANCE_OLD_RUNTIME_EXACT_P0294_CLEANUP_ZERO_WRITE_VERIFIED",
-    "candidateRuntime": "FINANCE_PHASE_DIAGNOSTIC_SUCCESSOR_REMOTE_HEAD_REQUIRED_NO_DEPLOYMENT_AUTHORITY",
+    "candidateRuntime": "P0298_NO_GO_SUCCESS_ROLLBACK_TERMINAL_CONTRACT_COLLAPSED_SUCCESSOR_REQUIRED",
     "artifactSha256": "da9141154d3d9e27e661f2807f2bf9f7af6ed445220ff50a44468f3c8951a803",
     "productionMutationAllowed": false,
     "singleUse": true,
     "reusable": false,
     "previousOwner": "finance-release-control-plane-cleanup-only",
     "previousTaskId": "P0-296",
-    "reviewDecision": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0297_P0296_POST_CLEANUP_ZERO_WRITE_VERIFICATION",
-    "reason": "P0-297 consumed exactly one read-only SSH with rc0, empty stderr and mutationCount0. Direct evidence proves every P0-294 path absent, restored parents, old current and service PID2241003/NRestarts0 exact, and all six loopback/public receipts exact. Cleanup is complete; no deployment authority follows and P0-294 remains nonreusable."
+    "reviewDecision": "NO_GO_FINANCE_P0298_SUCCESS_AND_AUTOMATIC_ROLLBACK_TERMINAL_CONTRACT_COLLAPSED",
+    "reason": "P0-297 cleanup remains directly verified and Heavy remains idle. P0-298 line65 incorrectly applies rollback residue and old-runtime restoration requirements to successful deployment as well as automatic rollback. A valid success retains exact release, backup and controls and switches current to candidate, so no P0-298 lease was issued. A wholly new corrected request is required; P0-294 remains nonreusable."
   },
   "wave": {
     "id": "B-financial-apps-quant",
