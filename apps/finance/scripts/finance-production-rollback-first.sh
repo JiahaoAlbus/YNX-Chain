@@ -179,7 +179,7 @@ absent "$stage"; absent "$backup"; absent "$release"; absent "$release_container
 assert_fresh
 test "$(bytes "$archive")" = "$archive_bytes"; test "$(hash "$archive")" = "$archive_sha"; test "$(hash "$new_env")" = "$new_env_sha"
 mkdir -p -m 0700 "$stage" "$backup"; stage_created=true; backup_created=true; stage_identity_tuple=$(identity_tuple "$stage"); backup_identity_tuple=$(identity_tuple "$backup"); trap pre_switch_cleanup EXIT
-cp --preserve=mode,ownership "$env" "$backup/env"; if [[ "$state_absent" = true ]]; then test ! -e "$state" && test ! -L "$state"; : >"$backup/state-absent"; else cp --preserve=mode,ownership "$state" "$backup/state"; fi; backup_inventory=$(tree_inventory "$backup"); tar -xzf "$archive" -C "$stage"
+cp --preserve=mode,ownership "$env" "$backup/env"; if [[ "$state_absent" = true ]]; then test ! -e "$state" && test ! -L "$state"; : >"$backup/state-absent"; else cp --preserve=mode,ownership "$state" "$backup/state"; fi; backup_inventory=$(tree_inventory "$backup"); tar --warning=no-unknown-keyword -xzf "$archive" -C "$stage"
 candidate="$stage/$(basename "$release")"; test -x "$candidate/ynx-finance"; test "$(hash "$candidate/ynx-finance")" = "$binary_sha"; test "$(bytes "$candidate/ynx-finance")" = "$binary_bytes"; file "$candidate/ynx-finance" | grep -q 'ELF 64-bit.*x86-64'
 verify_local_assets "$candidate"; stage_inventory=$(tree_inventory "$stage")
 mkdir -m "$release_container_mode" -- "$release_container"; release_container_created=true; release_container_preownership_identity=$(identity_tuple "$release_container")
