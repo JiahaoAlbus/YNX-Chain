@@ -21,7 +21,7 @@ archive=$(get '.candidate.archive.path'); archive_sha=$(get '.candidate.archive.
 binary_bytes=$(get '.candidate.binary.bytes')
 binary_sha=$(get '.candidate.binary.sha256'); current=$(get '.fresh.currentLink'); old=$(get '.fresh.activeRelease'); old_binary=$(get '.fresh.binary.path'); old_binary_sha=$(get '.fresh.binary.sha256')
 env=$(get '.fresh.env.path'); env_sha=$(get '.fresh.env.sha256'); unit=$(get '.fresh.unit.path'); unit_sha=$(get '.fresh.unit.sha256'); caddy=$(get '.fresh.caddy.path'); caddy_sha=$(get '.fresh.caddy.sha256'); service=$(get '.fresh.service.name')
-stage=$(get '.paths.stage'); backup=$(get '.paths.backup'); release=$(get '.paths.release'); new_env=$(get '.candidate.env.path'); new_env_sha=$(get '.candidate.env.sha256'); state=$(get '.fresh.state.path'); state_absent=$(get '.fresh.state.absent')
+stage=$(get '.paths.stage'); backup=$(get '.paths.backup'); release=$(get '.paths.release'); release_container=$(get '.paths.releaseContainer.path'); release_container_uid=$(get '.paths.releaseContainer.uid'); release_container_gid=$(get '.paths.releaseContainer.gid'); release_container_mode=$(get '.paths.releaseContainer.mode'); new_env=$(get '.candidate.env.path'); new_env_sha=$(get '.candidate.env.sha256'); state=$(get '.fresh.state.path'); state_absent=$(get '.fresh.state.absent')
 carrier=$(get '.candidate.carrier.path'); carrier_id=$(get '.candidate.carrier.id'); carrier_tuple=$(get '.candidate.carrier.tuple')
 case "$carrier_id" in ''|*/*|.|..|*..*) exit 65;; esac
 test "$carrier_id" = p0228-finance-phase1-20260822T234100Z
@@ -46,6 +46,14 @@ assert_lease_child(){
 }
 assert_carrier_child archive "$archive"; assert_carrier_child newEnv "$new_env"
 assert_lease_child stage "$stage"; assert_lease_child backup "$backup"; assert_lease_child release "$release"
+release_parent=$(get '.paths.parents.release.path')
+test "$release_container" = "$release_parent/$LEASE_ID"; test "$(dirname "$release")" = "$release_container"
+case "$release_container_uid:$release_container_gid:$release_container_mode" in *[!0-9:]*|*:*:*:*) exit 65;; esac
+absent "$release_container"
+release_container_created=false
+cleanup_release_container(){
+  if [[ "$release_container_created" = true ]] && test -d "$release_container" && test ! -L "$release_container" && test "$(stat -Lc '%d:%i:%u:%g:%a:%h:%s:%F' "$release_container")" = "$release_container_tuple" && test -z "$(find "$release_container" -mindepth 1 -print -quit)"; then rmdir -- "$release_container"; fi
+}
 verify_old_live(){ http_check '.fresh.verifier.loopbackHealth'; http_check '.fresh.verifier.loopbackVersion'; http_check '.fresh.verifier.publicHealth'; http_check '.fresh.verifier.publicVersion'; }
 asset_path(){
   local root=$1 rel=$2 path
@@ -64,6 +72,18 @@ verify_local_assets(){
     test "$(bytes "$asset")" = "$(get ".candidate.assets[$n].bytes")"
     test "$(hash "$asset")" = "$(get ".candidate.assets[$n].sha256")"
   done < <(jq -r '.candidate.assets|keys[]' "$lease")
+}
+tree_inventory(){
+  local root=$1 path kind value
+  (
+    cd "$root"
+    while IFS= read -r -d '' path; do
+      kind=$(stat -c '%F' -- "$path")
+      printf '%s\0%s\0%s\0' "$path" "$kind" "$(stat -c '%u:%g:%a:%h:%s' -- "$path")"
+      case "$kind" in regular\ file) value=$(hash "$path");; symbolic\ link) value=$(readlink -- "$path");; *) value=;; esac
+      printf '%s\0' "$value"
+    done < <(find . -mindepth 1 -print0 | LC_ALL=C sort -z)
+  ) | sha256sum | awk '{print $1}'
 }
 verify_candidate_live(){
   local newpid n
@@ -89,6 +109,11 @@ restore(){
   local candidate_state_tuple candidate_state_hash
   systemctl stop "$service" || true; test "$(hash "$backup/env")" = "$env_sha"; tmp=$(mktemp "$(dirname "$env")/.finance.env.restore.XXXXXX"); cp --preserve=mode,ownership "$backup/env" "$tmp"; mv -Tf "$tmp" "$env"; if [[ "$state_absent" = true ]]; then test -f "$backup/state-absent"; if test -e "$state"; then test -f "$state" && test ! -L "$state"; candidate_state_tuple=$(stat -Lc '%d:%i:%u:%g:%a:%h:%s' "$state"); candidate_state_hash=$(hash "$state"); printf '%s\n' "$candidate_state_tuple" >"$backup/candidate-state-stat"; printf '%s\n' "$candidate_state_hash" >"$backup/candidate-state-sha256"; test "$(stat -Lc '%d:%i:%u:%g:%a:%h:%s' "$state")" = "$candidate_state_tuple"; test "$(hash "$state")" = "$candidate_state_hash"; rm -- "$state"; fi; test ! -e "$state" && test ! -L "$state"; else test "$(hash "$backup/state")" = "$(get '.fresh.state.sha256')"; if test -e "$state"; then test -f "$state" && test ! -L "$state"; candidate_state_tuple=$(stat -Lc '%d:%i:%u:%g:%a:%h:%s' "$state"); candidate_state_hash=$(hash "$state"); printf '%s\n' "$candidate_state_tuple" >"$backup/candidate-state-stat"; printf '%s\n' "$candidate_state_hash" >"$backup/candidate-state-sha256"; test "$(stat -Lc '%d:%i:%u:%g:%a:%h:%s' "$state")" = "$candidate_state_tuple"; test "$(hash "$state")" = "$candidate_state_hash"; rm -- "$state"; fi; stmp=$(mktemp "$(dirname "$state")/.finance.state.restore.XXXXXX"); cp --preserve=mode,ownership "$backup/state" "$stmp"; mv -Tf "$stmp" "$state"; test "$(stat -Lc '%u:%g:%a:%h' "$state")" = "$(get '.fresh.state.restoredTuple')"; test "$(bytes "$state")" = "$(get '.fresh.state.bytes')"; test "$(hash "$state")" = "$(get '.fresh.state.sha256')"; fi
   link="$current.rollback"; absent "$link"; ln -s "$old" "$link"; mv -Tf "$link" "$current"; systemctl start "$service"; verify_restored
+  if [[ "${release_created:-false}" = true ]]; then
+    if ! test -d "$release" || test -L "$release" || [[ "$(stat -Lc '%d:%i:%u:%g:%a:%h:%s:%F' "$release")" != "$release_tuple" ]] || [[ "$(tree_inventory "$release")" != "$release_inventory" ]]; then cleanup_release_container; return 74; fi
+    rm -rf -- "$release"; absent "$release"
+  fi
+  cleanup_release_container
 }
 if [[ "$mode" == rollback ]]; then restore; exit 0; fi
 assert_fresh
@@ -96,8 +121,16 @@ test "$(bytes "$archive")" = "$archive_bytes"; test "$(hash "$archive")" = "$arc
 mkdir -p -m 0700 "$stage" "$backup"; cp --preserve=mode,ownership "$env" "$backup/env"; if [[ "$state_absent" = true ]]; then test ! -e "$state" && test ! -L "$state"; : >"$backup/state-absent"; else cp --preserve=mode,ownership "$state" "$backup/state"; fi; tar -xzf "$archive" -C "$stage"
 candidate="$stage/$(basename "$release")"; test -x "$candidate/ynx-finance"; test "$(hash "$candidate/ynx-finance")" = "$binary_sha"; test "$(bytes "$candidate/ynx-finance")" = "$binary_bytes"; file "$candidate/ynx-finance" | grep -q 'ELF 64-bit.*x86-64'
 verify_local_assets "$candidate"
-trap 'restore' EXIT
-mv "$candidate" "$release"; tmp=$(mktemp "$(dirname "$env")/.finance.env.next.XXXXXX"); cp --preserve=mode,ownership "$new_env" "$tmp"; mv -Tf "$tmp" "$env"
+trap cleanup_release_container EXIT
+mkdir -m "$release_container_mode" -- "$release_container"; release_container_created=true
+test -d "$release_container" && test ! -L "$release_container" && test "$(realpath -e "$release_container")" = "$release_container" && test -z "$(find "$release_container" -mindepth 1 -print -quit)"
+release_container_tuple=$(stat -Lc '%d:%i:%u:%g:%a:%h:%s:%F' "$release_container")
+test "$(stat -Lc '%u:%g:%a' "$release_container")" = "$release_container_uid:$release_container_gid:$release_container_mode"
+release_tuple=$(stat -Lc '%d:%i:%u:%g:%a:%h:%s:%F' "$candidate"); release_inventory=$(tree_inventory "$candidate"); release_created=false
+mv "$candidate" "$release"; release_created=true; trap 'restore' EXIT
+test "$(stat -Lc '%d:%i:%u:%g:%a:%h:%s:%F' "$release")" = "$release_tuple"; test "$(tree_inventory "$release")" = "$release_inventory"
+tmp=$(mktemp "$(dirname "$env")/.finance.env.next.XXXXXX"); cp --preserve=mode,ownership "$new_env" "$tmp"; mv -Tf "$tmp" "$env"
 link="$current.next"; absent "$link"; ln -s "$release" "$link"; mv -Tf "$link" "$current"; systemctl restart "$service"
 get '.candidate.sourceCommit' | grep -qx '7824af677dd052d20321431381523ab302614d98'; verify_candidate_live
 trap - EXIT
+printf 'releaseContainer=%s\nreleaseContainerTuple=%s\nrelease=%s\nreleaseTuple=%s\nreleaseInventorySha256=%s\n' "$release_container" "$release_container_tuple" "$release" "$release_tuple" "$release_inventory"
