@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "p0-finance-aligned-framed-control-cleanup-request@1",
+  "kind": "FINANCE_P0272_CONTROL_FILES_CLEANUP_FRAMED_TRANSPORT_ONLY",
+  "requestState": "AWAITING_WHOLE_NEW_CENTRAL_SINGLE_USE_LEASE",
+  "supersedes": {"p0275": "NO_GO_TEMP_LEASE_PATH_CONTRACT_MISMATCH", "p0275RequestCommit": "5c575e0d68d5d7fbc9ee528568d921cefe8b6fb4"},
+  "reviewedCommandCheckpoint": {"commit": "ce5e8a4e78b4e512598151ec39558ce248139860", "tree": "305264da609f9d85d82747a8f8c955b52440e420", "nonSelfReferential": true},
+  "persistentDeletionScope": {
+    "retainedParent": {"path": "/opt/ynx/leases/finance", "fullTuple": "64770:4594822:0:0:750:2:4096:directory", "stableIdentity": "64770:4594822:0:0:750:directory", "mustRemain": true},
+    "onlyTargets": [
+      {"path": "/opt/ynx/leases/finance/p0272-finance-phase3-20260823T152627Z.executor.sh", "tuple": "64770:4620881:0:0:700:1:18403:regular file", "bytes": 18403, "sha256": "2ab4d1923ce180a35e0247c7ebe0628f2eb58ace0416060edb2d6a25be083fde"},
+      {"path": "/opt/ynx/leases/finance/p0272-finance-phase3-20260823T152627Z.json", "tuple": "64770:4620882:0:0:600:1:7696:regular file", "bytes": 7696, "sha256": "e46d0d6f9050ee0377750683babd004c4306c48cfb6e52d1f6ab7cdf10ba1986"}
+    ],
+    "requiredChecks": ["immediate parent full tuple and stable identity", "no symlink", "exactly two direct children", "both target tuple/bytes/SHA/full link-count", "both targets absent and parent empty/stable after cleanup"]
+  },
+  "alignedTemporaryLeaseContract": {
+    "idPattern": "p0276-finance-p0272-control-cleanup-<Central-UTC-timestamp>",
+    "executorTempPath": "/tmp/ynx-finance-<id>.executor.sh",
+    "signedLeaseTempPath": "/tmp/ynx-finance-<id>.json",
+    "cleanupExecutorProductionValidator": "/tmp/ynx-finance-p0276-finance-p0272-control-cleanup-*.json",
+    "contract": "The P0276 id uses the p0276-finance-p0272-control-cleanup prefix, making bootstrap, signed JSON transport.path, and cleanup executor validator resolve the identical temporary JSON path. Both paths start absent/non-symlink, are no-clobber-created with exact tuple/SHA receipts, and are removed only when the captured identity/bytes/SHA still match."
+  },
+  "transport": {
+    "sshAttemptLimit": 1,
+    "cleanupInvocationLimit": 1,
+    "retryAllowed": false,
+    "bootstrap": {"path": "apps/finance/scripts/finance-p0275-cleanup-stdin-bootstrap.sh", "blob": "f31a280de6a463e300f725d5fd83c482e78a828d", "bytes": 3158, "sha256": "973c4ab4deeb9de50b4a16679d37cc30f4f188581e5c04ed393e6e15d8bf6462"},
+    "cleanupExecutor": {"path": "apps/finance/scripts/finance-p0272-control-cleanup.sh", "blob": "826c7941dc1771a81b67a2b71d282a4198d0569a", "bytes": 2951, "sha256": "35d00626e9e7f6a1e15f832b6cac86772839267c7827949138f690c4be9e0aec"},
+    "carrier": {"format": "executor<TAB>bytes<TAB>sha256<TAB>700<TAB>base64; signedLease<TAB>bytes<TAB>sha256<TAB>600<TAB>base64; END", "strictOrder": true, "rejects": ["empty", "truncated", "duplicate", "reordered", "hash/bytes/mode mismatch", "extra data"]},
+    "remoteLaunch": "one SSH runs the exact base64-decoded bootstrap through sudo -n /bin/bash -c; stdin is exclusively the two-frame carrier and no remote bootstrap file is persisted"
+  },
+  "productionModeActualShellFixture": {"path": "apps/finance/scripts/test-finance-p0275-cleanup-stdin-bootstrap-fixture.mjs", "blob": "d86f42d7042a32ec8df7dc441a107e4b4377bdaa", "bytes": 5538, "sha256": "0bf4fd3ddef7d6993cc1930914687e00df8552c724c0dd3aabd81fd03aef9148", "usesCleanupTestBypass": false, "coverage": ["production-validator-equivalent temporary pathname", "positive cleanup", "temporary final absence", "empty/truncated/duplicate carrier", "silent rc0 rejection"]},
+  "forbidden": ["stage", "backup", "release", "current", "env", "state", "service", "unit", "Caddy", "public routes", "wallet", "account", "sign", "typed data", "transaction", "deployment", "rollback"],
+  "truth": {"leaseIssued": false, "sshExecuted": false, "cleanupExecuted": false, "persistentControlDeletionProven": false},
+  "singleBlocker": "Central must issue a fresh P0276 single-use lease that binds the aligned temporary paths, exact carrier, signed cleanup JSON, bootstrap argv and one no-retry SSH."
+}
