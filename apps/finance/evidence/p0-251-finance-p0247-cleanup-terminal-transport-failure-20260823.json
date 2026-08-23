@@ -29,7 +29,7 @@
     "stderrLocalPath": "/tmp/ynx-finance-p0251-cleanup-terminal.stderr",
     "stderrBytes": 50,
     "stderrSha256": "d0ceb00af4231f211fa378e5b15ae24adaacc5c4fe35a6b052cd0326362541f6",
-    "stderrExact": "printf: usage: printf [-v var] format [arguments]\\n",
+    "stderrExact": "printf: usage: printf [-v var] format [arguments]\n",
     "placementReceiptPresent": false,
     "cleanupReceiptPresent": false
   },
