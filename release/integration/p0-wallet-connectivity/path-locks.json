@@ -10,7 +10,7 @@
       "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/52-browser-p0",
       "taskId": "P0-233",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE_SINGLE_USE",
+      "status": "EMERGENCY_BLOCKED_BROWSER_P0233_EXACT_ROLLBACK_REQUIRED_NO_FURTHER_ACTION",
       "acquiredAt": "2026-08-23T01:42:00Z",
       "expiresAt": "2026-08-23T02:12:00Z",
       "releasedAt": null,
@@ -18,12 +18,12 @@
       "sourceTree": "498aa15c87bc64e25d26f35c8eee4639b381d635",
       "evidenceCommit": "0bb4c48700383090e5bb86198abb4a0ce940d2aa",
       "artifactSha256": "a696f743a86518d8cc98d1a1335fd80fcbf3eed593491e53e7ed67589f019ba4",
-      "productionMutationAllowed": true,
+      "productionMutationAllowed": false,
       "allowedExceptions": [
-        "one exact P0-233 forward and no retry",
-        "one exact receipt-bound rollback only after forward success or post-mutation failure",
-        "register and set only the exact candidate app URL as ynxbrowser default during forward",
-        "register and set only the exact preserved old app URL as ynxbrowser default during rollback",
+        "P0-233 forward and rollback quotas are consumed and nonreusable",
+        "retain the exact remaining candidate root, app and diagnostic journal without further mutation",
+        "the exact old preserved app remains the default handler and PID 93119 remains unchanged",
+        "a wholly new bounded recovery lease is required before any cleanup or LaunchServices mutation",
         "no application launch, scheme invocation, provider, account, signing or transaction action"
       ]
     },
