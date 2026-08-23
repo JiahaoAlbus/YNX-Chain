@@ -427,25 +427,25 @@
     }
   ],
   "heavy": {
-    "owner": "website-release-control-plane-wallet-artifact-only",
-    "taskId": "P0-262",
-    "status": "ACTIVE_SINGLE_USE",
+    "owner": null,
+    "taskId": null,
+    "status": "IDLE",
     "acquiredAt": "2026-08-23T11:56:08Z",
     "expiresAt": "2026-08-23T12:26:08Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-23T12:07:41Z",
     "sourceCommit": "be26edbd67c512e22a4f373206d5d82af4c6b0d4",
     "evidenceCommit": "ea5c6648ed664281c8383bfa9d9e480a5211df8a",
     "runtimeHost": "vercel-project:prj_tPB0KDTFohQ9FXZAzq25mYFWkbNa:wallet-download-preflight.ynxweb4.com:www.ynxweb4.com",
     "currentRuntime": "DPL_574RBU3XBZE4BH1JYGV2YJRUAYFZ_WWW_HTML_FALLBACK_NOT_HOSTED",
     "candidateRuntime": "DPL_CBZ4CFFXF9WSMDZELQZAPJGIXLZD_READY_EXACT_GIT_PREVIEW_PENDING_BOUNDED_SSO_TEMP_PREFLIGHT_GATE",
     "artifactSha256": "2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d",
-    "productionMutationAllowed": true,
+    "productionMutationAllowed": false,
     "singleUse": true,
     "reusable": false,
     "previousOwner": "website-release-control-plane-wallet-artifact-only",
-    "previousTaskId": "P0-259",
-    "reviewDecision": "GO_WALLET_STATIC_BOUNDED_SSO_WINDOW_TEMP_PREFLIGHT_WWW_SINGLE_USE",
-    "reason": "P0-262 authorizes one <=180-second project SSO disable/restore window, one exact temporary alias lifecycle and four candidate reads. The temporary alias must be absent with 404 and SSO must be restored to prod_deployment_urls_and_all_previews before any www mutation; www has at most one exact rollback."
+    "previousTaskId": "P0-262",
+    "reviewDecision": "CONSUMED_RELEASED_FAILED_CLOSED_WALLET_WWW_GATE_ROLLED_BACK_TEMP_ALIAS_REMOVED_SSO_RESTORED",
+    "reason": "The temporary-host candidate gate passed during a 66-second bounded SSO window, the temporary alias was removed and SSO restored, but the official www reads returned SSO 302 Redirecting. The exact www rollback restored dpl_574R; P0-262 is consumed and nonreusable."
   },
   "wave": {
     "id": "B-financial-apps-quant",
