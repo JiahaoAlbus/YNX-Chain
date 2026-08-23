@@ -6,13 +6,13 @@
     "ownerRequestCommit": "c560497db9c78a1106ab7f0d52d9555652e76cc4",
     "ownerRequestTree": "e8251f0c0a88b6f60d52d5eb4463dd7c5ed9d0bb",
     "requestSha256": "18130afa5aeabafa814e0148eb678a3626c2efabb1efd30915c46fa276d5525b",
-    "centralDecision": "NO_GO_FINANCE_PHASE3_STDIN_SUDO_BOOTSTRAP_COMMAND_OBJECT_UNFROZEN",
-    "correction": "Freeze and fixture-test the exact stdin/sudo bootstrap, atomic remote executor and lease placement, deploy-once boundary, retained rollback pair and rollback argv."
+    "centralDecision": "NO_GO_FINANCE_PHASE3_CANDIDATE_PATHS_CANNOT_SHARE_NEW_LEASE_ID",
+    "correction": "Keep the immutable P0-228/P0-236 carrier ID and exact archive/environment paths independent from the new Phase3 deployment lease ID; only stage, backup and release use the new lease ID."
   },
   "owner": {
     "branch": "codex/p0-finance-wallet-connectivity-20260820",
-    "implementationCommit": "cc82b6cd98d66e836ecbffec12c9e11bbc81027b",
-    "implementationTree": "054d03edcd4419e642668ba7a4cb2344d3d8a1bb",
+    "implementationCommit": "6470820da0a421a947896445c75e37f45cfcee85",
+    "implementationTree": "4d8602c0a4aef80887466361f2c5390a83482045",
     "rule": "This successor evidence commit must be a non-self-referential child of the reviewed implementation."
   },
   "acceptedPrerequisite": {
@@ -21,6 +21,43 @@
     "p0236TerminalLeaseSha256": "bc97bd1ef875f7d4e9156fea4211015fbdfaa7685e42e218a0cbcd570ef308f0",
     "p0236Status": "CONSUMED_RELEASED_SUCCESS_FINANCE_PHASE2B_CANDIDATE_ENV_PREPARATION_ONLY",
     "heavyNullAndIdle": true
+  },
+  "freshReadOnlyRevalidation": {
+    "observedAt": "2026-08-23T06:02:48Z/2026-08-23T06:02:49Z",
+    "creatorHeavyRelease": {
+      "centralCommit": "4a9f76e744fd1beaff9a8ffcaddf1ddc45091ceb",
+      "statusPrefix": "SUCCESS_CREATOR",
+      "heavyNull": true,
+      "blockedByActiveHeavy": false
+    },
+    "publicVersion": {
+      "url": "https://finance.ynxweb4.com/version",
+      "httpStatus": 200,
+      "bytes": 130,
+      "sha256": "39789776da47e60b7a7df845789e02ebba16707ad8951eb6f27c84c1b40bb226",
+      "requestId": "fin_0a2711dfb03671435a73e6443df3a631",
+      "commit": "3b2383f5c18ab3eb5ce7f7f6a267d2cfe7c7e6a4",
+      "release": "ynx-finance-3b2383f5c18a"
+    },
+    "publicHealth": {
+      "url": "https://finance.ynxweb4.com/health",
+      "httpStatus": 200,
+      "bytes": 485,
+      "sha256": "d1e97a4314acd1ecccf94629d15bd598cb58ff78136b3622ac26d583a82e45c1",
+      "requestId": "fin_7a5a8a107f4cf1c5948950059f9e93df",
+      "ok": true,
+      "commit": "3b2383f5c18ab3eb5ce7f7f6a267d2cfe7c7e6a4"
+    },
+    "localChecks": {
+      "phase3BootstrapSyntax": "PASS",
+      "phase3BootstrapFixture": "PASS",
+      "productionExecutorSyntax": "PASS",
+      "productionCommandObject": "PASS",
+      "productionActualShellFixture": "PASS",
+      "json": "PASS"
+    },
+    "sshMutation": false,
+    "productionMutation": false
   },
   "commandObjects": {
     "bootstrap": {
@@ -40,10 +77,27 @@
     },
     "productionExecutor": {
       "path": "apps/finance/scripts/finance-production-rollback-first.sh",
-      "bytes": 9078,
-      "sha256": "7d0100e593c337c9ca0245de930f49233ba79e35c2b1127e5eb83e022b6c9b88",
+      "blob": "9ecaa85d1a5cd74818b6205829fab1f0f78d5af3",
+      "bytes": 9764,
+      "sha256": "0beaa023dfc2b778d78869aaa9644b3e5a026bd364f91ce0f3ca51d50832b6fc",
       "ownerCommandFixture": "PASS",
-      "ownerActualShellFixture": "PASS"
+      "ownerActualShellFixture": "PASS",
+      "immutableCarrierIdSeparatedFromDeploymentLeaseId": true
+    },
+    "productionCommandFixture": {
+      "path": "apps/finance/scripts/test-finance-production-command-object.mjs",
+      "blob": "a4b3f8429b24f3e3caf2c2494209a51575b9153b",
+      "bytes": 1208,
+      "sha256": "edd2d06284a82d9a2e8d6f731e4724318cbc8806a023fedc162e406da628e719",
+      "ownerRerun": "PASS"
+    },
+    "productionActualShellFixture": {
+      "path": "apps/finance/scripts/test-finance-production-fixture.mjs",
+      "blob": "b56973e8d50fbacb9728e2adce0b3dec9de28769",
+      "bytes": 26273,
+      "sha256": "2ac0a2153f26b053036a711b1a987807d68346a14d83ded4d2131e461a2e438e",
+      "ownerRerun": "PASS",
+      "crossStageCoverage": "exact Phase3 stdin bootstrap invokes the reviewed production executor against the P0-236-style fixed carrier while a distinct new Phase3 lease ID owns stage, backup and release"
     }
   },
   "framingContract": {
@@ -78,6 +132,9 @@
     "successReceipts": ["deploy parent path/tuple", "executor path/tuple/bytes/SHA", "lease path/tuple/bytes/SHA", "literal rollback argv0/argv1/argv2"]
   },
   "candidate": {
+    "immutableCarrierId": "p0228-finance-phase1-20260822T234100Z",
+    "immutableCarrierPath": "/opt/ynx/stage/finance/p0228-finance-phase1-20260822T234100Z",
+    "immutableCarrierTuple": "64770:4594821:0:0:700:2:4096:directory",
     "sourceCommit": "7824af677dd052d20321431381523ab302614d98",
     "sourceTree": "3db34ee2397a49852bbdf15e3841e7c9cecf9444",
     "archivePath": "/opt/ynx/stage/finance/p0228-finance-phase1-20260822T234100Z/candidate.tgz",
@@ -92,6 +149,8 @@
   },
   "centralMustFreezeAtIssue": [
     "exact Central-signed production lease bytes/SHA/expiry/id and all fresh live release/binary/env/unit/Caddy/state/service/public assertions from the predecessor request",
+    "immutable carrier id/path/tuple must remain exact P0-228/P0-236 and must not equal or derive from the new Phase3 deployment lease id",
+    "only new stage, backup and release children derive from the new Phase3 deployment lease id and must be absent before execution",
     "exact bootstrap and executor blobs/bytes/SHA plus their base64 derivations",
     "complete literal outer SSH argv, decoder command, all 16 bootstrap arguments and exact stdin path",
     "one primary SSH/deploy attempt and at most one separately conditioned rollback SSH; no retry",
@@ -100,6 +159,7 @@
   "truth": {
     "bootstrapSourceImplemented": true,
     "bootstrapFixturePassed": true,
+    "crossStageBootstrapAndRealExecutorFixturePassed": true,
     "phase3LeaseIssued": false,
     "productionSsh": false,
     "deployed": false,
