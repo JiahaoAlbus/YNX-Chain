@@ -427,25 +427,25 @@
     }
   ],
   "heavy": {
-    "owner": "website-release-control-plane-wallet-artifact-only",
-    "taskId": "P0-257",
-    "status": "ACTIVE_SINGLE_USE",
+    "owner": null,
+    "taskId": null,
+    "status": "IDLE",
     "acquiredAt": "2026-08-23T11:12:12Z",
     "expiresAt": "2026-08-23T11:42:12Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-23T11:18:09Z",
     "sourceCommit": "be26edbd67c512e22a4f373206d5d82af4c6b0d4",
     "evidenceCommit": "be26edbd67c512e22a4f373206d5d82af4c6b0d4",
     "runtimeHost": "vercel:dpl_CBz4cfFxf9WsMDzeLqzaPJGiXLZd:www.ynxweb4.com",
     "currentRuntime": "DPL_574RBU3XBZE4BH1JYGV2YJRUAYFZ_WWW_HTML_FALLBACK_NOT_HOSTED",
     "candidateRuntime": "DPL_CBZ4CFFXF9WSMDZELQZAPJGIXLZD_READY_EXACT_GIT_PREVIEW_PENDING_AUTHENTICATED_GATE",
     "artifactSha256": "2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d",
-    "productionMutationAllowed": true,
+    "productionMutationAllowed": false,
     "singleUse": true,
     "reusable": false,
     "previousOwner": "website-release-control-plane-wallet-artifact-only",
     "previousTaskId": "P0-256",
-    "reviewDecision": "GO_WALLET_EXISTING_PREVIEW_PROCESS_CWD_CURL_YES_WWW_ALIAS_SINGLE_USE",
-    "reason": "P0-256 is released and nonreusable. The executor process working directory is bound out of band to the exact linked Website repository, .vercel/project.json matches the target project, and every Vercel curl argv omits --cwd entirely. Preview, branch and all aliases remain exact; this lease contains no push or deploy command."
+    "reviewDecision": "CONSUMED_RELEASED_FAILED_CLOSED_WALLET_STATIC_EXISTING_PREVIEW_GATE",
+    "reason": "The first candidate read failed before HTTP because Vercel CLI 54.6.1 forwarded --scope to underlying curl. No retry, remaining read, alias or rollback occurred; preview and aliases remain unchanged. P0-257 is consumed and nonreusable."
   },
   "wave": {
     "id": "B-financial-apps-quant",
