@@ -1,0 +1,64 @@
+{
+  "schemaVersion": "p0-finance-parent-preserving-observer-request@1",
+  "kind": "FINANCE_ROLLBACK_FIRST_DEPLOYMENT_PARENT_PRESERVING_OBSERVER_WHOLE_NEW_SINGLE_USE_REQUEST",
+  "requestStatus": "SOURCE_REQUEST_ONLY_AWAITING_NEW_CENTRAL_SIGNED_SINGLE_USE_LEASE",
+  "requestId": "P0-300",
+  "owner": {"branch": "codex/p0-finance-p0300-parent-observer-20260824"},
+  "predecessor": {
+    "p0298": "consumed, released, failed closed with local rc137 and no declared outputs; nonreusable and never retryable",
+    "p0299": "direct zero-write inspection proved no P0298 remote mutation and every P0298 remote path absent",
+    "rootCause": "The tracked top-level Python os.execve coordinator is killed locally with SIGKILL before the replacement image starts. The reviewed Finance launcher, its exact 25-element shape, and empty child environment pass when started by a parent-preserving Node observer."
+  },
+  "localHarmlessRootCauseProof": {
+    "topLevelPythonOsExecve": {"exitStatus": 137, "stdoutBytes": 0, "stderrBytes": 0, "replacementStarted": false},
+    "parentPreservingNodeSpawn": {"exitStatus": 0, "stdout": "spawn-ok", "environment": {}},
+    "exactPreSshPrefix": {"exitStatus": 0, "stderrBytes": 0, "argvCount": 25, "environment": {}, "sshReached": false}
+  },
+  "observerContract": {
+    "path": "apps/finance/scripts/finance-parent-preserving-observer.mjs",
+    "runtime": "Node.js parent process remains alive and calls spawnSync(argv[0], argv.slice(1), {cwd, env:{}, shell:false, stdio:'inherit'})",
+    "literalIdentity": "Central freezes processWorkingDirectory, an empty environment, the exact 25-string argv array and SHA-256 of JSON.stringify(argv). The observer rejects any mismatch and passes the same strings without reconstruction or mutation.",
+    "declaredOutputs": "The observer must not stat, lstat, open, create, truncate, append, redirect, pipe or capture the declared stdout, stderr, receipt or receipt.pending paths. The reviewed child launcher alone owns them.",
+    "observation": ["status", "signal", "error code"],
+    "forbidden": ["Python os.execve", "Python subprocess", "shell string reconstruction", "stdio pipe or capture", "declared-output inspection", "retry"]
+  },
+  "reviewedObjects": {
+    "observer": {"path": "apps/finance/scripts/finance-parent-preserving-observer.mjs", "blob": "5af19cd93e2d87c3a49484d04738bafce4b3644e", "bytes": 2733, "sha256": "aea9883424d8f2ba69f9aa442601a0b211d5a3258bb901065ceeb054eef554ae"},
+    "fixture": {"path": "apps/finance/scripts/test-finance-parent-preserving-observer.mjs", "blob": "ae2bfaa74120c51d164c2469f30bd4c564a42d00", "bytes": 3531, "sha256": "299922bd8c19beb4c6282fff596f7fda4974d53a3ec269f0d2cd2c5185f35edd"}
+  },
+  "newSingleUseNamespace": {
+    "id": "p0300-finance-phase3-20260824t210000z",
+    "remote": {
+      "stage": "/opt/ynx/stage/finance/p0300-finance-phase3-20260824t210000z/stage",
+      "backup": "/var/backups/ynx-finance/p0300-finance-phase3-20260824t210000z/backup",
+      "releaseContainer": "/opt/ynx/releases/finance/p0300-finance-phase3-20260824t210000z",
+      "release": "/opt/ynx/releases/finance/p0300-finance-phase3-20260824t210000z/ynx-finance-7824af677dd0",
+      "executorPending": "/opt/ynx/leases/finance/p0300-finance-phase3-20260824t210000z.executor.sh.pending",
+      "executor": "/opt/ynx/leases/finance/p0300-finance-phase3-20260824t210000z.executor.sh",
+      "signedLeasePending": "/opt/ynx/leases/finance/p0300-finance-phase3-20260824t210000z.json.pending",
+      "signedLease": "/opt/ynx/leases/finance/p0300-finance-phase3-20260824t210000z.json"
+    },
+    "local": {
+      "observerContract": "/tmp/ynx-finance-p0300-finance-phase3-20260824t210000z-observer.json",
+      "signedStdin": "/tmp/ynx-finance-p0300-finance-phase3-20260824t210000z-signed.json",
+      "stdout": "/tmp/ynx-finance-p0300-finance-phase3-20260824t210000z.stdout",
+      "stderr": "/tmp/ynx-finance-p0300-finance-phase3-20260824t210000z.stderr",
+      "receipt": "/tmp/ynx-finance-p0300-finance-phase3-20260824t210000z.receipt",
+      "receiptPending": "/tmp/ynx-finance-p0300-finance-phase3-20260824t210000z.receipt.pending"
+    }
+  },
+  "newCentralSigningRequired": {
+    "signedStdin": "Central must freshly read and sign a new P0300 deployment lease for the unique namespace; no P0298 stdin bytes, tuples or authority are reusable.",
+    "literalArgv": "Central must freeze a newly reviewed exact 25-element Finance launcher argv referencing only the exact P0300 local/remote namespace and exact reviewed launcher/bootstrap/executor objects.",
+    "observerInvocation": "Central must separately freeze a direct Node observer argv containing only node, the exact reviewed observer path, the exact observer-contract path, and its bytes and SHA-256. It must not use os.execve or a shell wrapper.",
+    "freshBaseline": "All parent/runtime/service/HTTP/candidate tuples and every P0300 path absence must be freshly read and bound before authority is issued."
+  },
+  "terminalSemantics": {
+    "success": "Retain the exact signed P0300 release container, candidate release, backup, executor and signed lease; current resolves to the candidate and candidate PID/NRestarts/live gates match the terminal receipt.",
+    "automaticRollback": "Restore the freshly signed old env/state/current/service and old live gates, then remove only identity-bound P0300 residues while preserving substituted or foreign objects fail closed.",
+    "manualRollback": "Requires a separate later Central lease and is not authorized here."
+  },
+  "tests": {"observerNodeSyntax": true, "harmlessObserverFixture": true, "transportShellSyntax": true, "bootstrapShellSyntax": true, "executorShellSyntax": true, "commandObject": true, "productionActualShell": true, "phase3StdinBootstrap": true, "json": true, "diffCheck": true},
+  "truth": {"leaseIssued": false, "sshExecuted": false, "deployed": false, "publicVerified": false, "walletApproval": false, "signature": false, "transaction": false},
+  "singleBlocker": "Central must independently review the P0300 observer and fixtures, freshly bind the baseline, sign new P0300 stdin bytes and freeze the exact 25 launcher argv plus direct Node observer argv in a wholly new single-use lease."
+}
