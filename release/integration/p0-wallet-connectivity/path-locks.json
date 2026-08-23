@@ -2391,6 +2391,30 @@
         "only the two exact P0-289 control files and two exact empty containers remain; cleanup requires a wholly-new lease",
         "P0-290 is consumed and nonreusable; Heavy and read-only locks are released"
       ]
+    },
+    {
+      "path": "{host:43.153.202.237:finance-p0289-four-residue-cleanup,production:/opt/ynx/leases/finance/p0289-finance-phase3-20260824t010000z.{executor.sh,json},production:/opt/ynx/stage/finance/p0289-finance-phase3-20260824t010000z,production:/var/backups/ynx-finance/p0289-finance-phase3-20260824t010000z,readonly:/opt/ynx/leases/finance,readonly:/opt/ynx/stage/finance,readonly:/var/backups/ynx-finance}",
+      "owner": "finance-release-control-plane-cleanup-only",
+      "branch": "codex/p0-finance-wallet-connectivity-20260820",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
+      "taskId": "P0-291",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE",
+      "acquiredAt": "2026-08-23T18:55:00Z",
+      "expiresAt": "2026-08-23T19:25:00Z",
+      "releasedAt": null,
+      "sourceCommit": "a3fde23d30eb12d66c2e8c9c20d6ab702a89c97a",
+      "sourceTree": "6961a9cc76bfd5169ec18f0d0bf0e92109ff66c6",
+      "evidenceCommit": "a3fde23d30eb12d66c2e8c9c20d6ab702a89c97a",
+      "artifactSha256": "f72bf8d41e523f9c582a2da94c8489cfcbb413272cbe5b343473e33a3749a6f9",
+      "productionMutationAllowed": true,
+      "allowedExceptions": [
+        "one exact cleanup invocation and no retry",
+        "unlink only the two exact identity-bound P0-289 controls",
+        "rmdir only the two exact identity-bound empty P0-289 containers",
+        "no parent, sibling, runtime, service, Caddy, public, Wallet or secret mutation",
+        "cleanupComplete remains false until a wholly-new independent zero-write verification"
+      ]
     }
   ]
 }
