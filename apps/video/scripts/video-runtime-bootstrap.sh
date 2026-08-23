@@ -55,6 +55,19 @@ probe() {
     esac
   fi
 }
+wait_for_viewer() {
+  local attempts=${YNX_VIDEO_VIEWER_PROBE_ATTEMPTS:-25}
+  local delay=${YNX_VIDEO_VIEWER_PROBE_DELAY_SECONDS:-0.2}
+  [[ "$attempts" =~ ^[1-9][0-9]*$ && "$attempts" -le 60 ]] || { echo "invalid Viewer probe attempts" >&2; return 65; }
+  [[ "$delay" =~ ^(0|[0-9]+([.][0-9]+)?)$ ]] || { echo "invalid Viewer probe delay" >&2; return 65; }
+  local attempt
+  for ((attempt = 1; attempt <= attempts; attempt++)); do
+    if probe viewer >/dev/null; then return 0; fi
+    if (( attempt < attempts )); then sleep "$delay"; fi
+  done
+  echo "dedicated Viewer readiness timed out" >&2
+  return 1
+}
 assert_root_shape() {
   [[ -d "$root/releases/$release_id" && -L "$root/current" ]] || return 1
   [[ "$(readlink "$root/current")" == "$root/releases/$release_id" ]] || return 1
@@ -151,7 +164,7 @@ mv "$unit_tmp" "$unit_path"
 installed_unit=true
 systemctl_exact daemon-reload
 systemctl_exact enable --now "$unit_name"
-probe viewer >/dev/null
+wait_for_viewer
 api_after=$(probe api | shasum -a 256 | awk '{print $1}')
 creator_after=$(probe creator | shasum -a 256 | awk '{print $1}')
 [[ "$api_before" == "$api_after" && "$creator_before" == "$creator_after" ]] || { echo "API or Creator changed during bootstrap" >&2; exit 74; }

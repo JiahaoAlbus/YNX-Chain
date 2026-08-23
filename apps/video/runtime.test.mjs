@@ -157,7 +157,15 @@ test("actual shell bootstrap creates an absent dedicated predecessor, supports s
   writeFileSync(join(control, "creator-state"), "creator-6495-stable\n");
   writeExecutable(join(control, "probe-api"), `#!/bin/sh\ncat '${join(control, "api-state")}'\n`);
   writeExecutable(join(control, "probe-creator"), `#!/bin/sh\ncat '${join(control, "creator-state")}'\n`);
-  writeExecutable(join(control, "probe-viewer"), `#!/bin/sh\ntest -f '${join(root, "current", "index.html")}'\ncat '${join(root, "current", "index.html")}'\n`);
+  writeExecutable(join(control, "probe-viewer"), `#!/bin/sh
+count=0
+test ! -f '${join(control, "viewer-probe-count")}' || count=$(cat '${join(control, "viewer-probe-count")}')
+count=$((count + 1))
+printf '%s\n' "$count" > '${join(control, "viewer-probe-count")}'
+test "$count" -ge 3 || exit 1
+test -f '${join(root, "current", "index.html")}'
+cat '${join(root, "current", "index.html")}'
+`);
   writeExecutable(join(control, "restart-viewer"), `#!/bin/sh\nprintf 'restart %s\\n' 'ynx-video-viewer-wallet.service' >> '${join(control, "systemctl.log")}'\n`);
   writeExecutable(join(control, "systemctl"), `#!/bin/sh\nprintf '%s\\n' "$*" >> '${join(control, "systemctl.log")}'\nif test -f '${join(control, "fail-enable")}' && test "$1" = enable; then exit 1; fi\n`);
 
@@ -180,12 +188,15 @@ test("actual shell bootstrap creates an absent dedicated predecessor, supports s
     YNX_VIDEO_BOOTSTRAP_RECEIPT: receipt,
     YNX_VIDEO_UNIT_TEMPLATE: unitTemplate,
     YNX_VIDEO_UNIT_TEMPLATE_SHA256: unitTemplateSha,
-    YNX_VIDEO_FIXTURE_CONTROL: control
+    YNX_VIDEO_FIXTURE_CONTROL: control,
+    YNX_VIDEO_VIEWER_PROBE_ATTEMPTS: "5",
+    YNX_VIDEO_VIEWER_PROBE_DELAY_SECONDS: "0.01"
   };
   const bootstrap = join(videoRoot, "scripts/video-runtime-bootstrap.sh");
   assert.equal(existsSync(root), false);
   assert.equal(existsSync(unitPath), false);
   execFileSync("bash", [bootstrap, "bootstrap"], {env: bootstrapEnv});
+  assert.equal(readFileSync(join(control, "viewer-probe-count"), "utf8"), "3\n");
   const predecessorRelease = join(root, "releases", `ynx-video-predecessor-${predecessor}`);
   assert.equal(readlinkSync(join(root, "current")), predecessorRelease);
   assert.equal(execFileSync("shasum", ["-a", "256", join(root, "current", "index.html")], {encoding: "utf8"}).split(/\s+/)[0], "5c6aa1b9207680ff40f77df6d063571f67beff40719d727acf5d2fa0c05b591a");
