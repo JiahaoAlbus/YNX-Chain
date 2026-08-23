@@ -5,9 +5,10 @@
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-p0289-post-cleanup-zero-write-p0292-20260823T190000Z",
   "owner": "finance-release-control-plane-readonly-verification",
   "executor": "finance-release-control-plane-readonly-verification",
-  "status": "ACTIVE",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_ZERO_WRITE_VERIFIER_SYMLINK_CANONICAL_PATH_ASSERTION",
   "issuedAt": "2026-08-23T19:00:00Z",
   "expiresAt": "2026-08-23T19:30:00Z",
+  "releasedAt": "2026-08-23T19:06:00Z",
   "singleUse": true,
   "reusable": false,
   "productionMutationAllowed": false,
@@ -84,6 +85,21 @@
     "secret or environment value output",
     "retry or predecessor reuse"
   ],
+  "terminalEvidence": {
+    "attempts": 1,
+    "localExitStatus": 1,
+    "stdoutBytes": 613,
+    "stdoutSha256": "1dc8b2cc6c33f336220d4ff0b708c0f6c4ab101070e613ba3a82e5b5e52751b3",
+    "stderrBytes": 0,
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "allTwelveP0289PathsAbsent": true,
+    "parentInventoriesExact": true,
+    "runtimeAndHttpVerificationComplete": false,
+    "mutationCount": 0,
+    "failureClass": "VERIFIER_SYMLINK_CANONICAL_PATH_ASSERTION",
+    "terminalEvidencePath": "release/integration/p0-wallet-connectivity/execution/objects/p0-292-finance-p0289-post-cleanup-zero-write-terminal-evidence-20260824.json",
+    "terminalStdoutBlob": "37fa0e161572a59f4c0f38ae2f8ad864bbe02c63"
+  },
   "terminalRules": {
     "success": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0292_P0289_CLEANUP_ZERO_WRITE_VERIFIED",
     "failure": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0292_POST_CLEANUP_ZERO_WRITE_VERIFICATION",

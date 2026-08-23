@@ -1,0 +1,59 @@
+{
+  "schemaVersion": "p0-finance-zero-write-verification-request@1",
+  "kind": "FINANCE_P0289_POST_CLEANUP_ZERO_WRITE_VERIFICATION_SYMLINK_CORRECTED_REQUEST",
+  "requestStatus": "SOURCE_REQUEST_ONLY_AWAITING_CENTRAL_READONLY_SINGLE_USE_LEASE",
+  "requestId": "P0-293",
+  "predecessor": {
+    "p0292Status": "CONSUMED_RELEASED_FAILED_CLOSED_ZERO_WRITE_VERIFIER_SYMLINK_CANONICAL_PATH_ASSERTION",
+    "p0292StdoutBlob": "37fa0e161572a59f4c0f38ae2f8ad864bbe02c63",
+    "p0292StdoutSha256": "1dc8b2cc6c33f336220d4ff0b708c0f6c4ab101070e613ba3a82e5b5e52751b3",
+    "allTwelveP0289PathsAbsentDirectlyProved": true,
+    "parentInventoriesDirectlyProved": true,
+    "runtimeAndHttpVerificationIncomplete": true,
+    "p0292Reusable": false
+  },
+  "correctedVerifier": {
+    "path": "release/integration/p0-wallet-connectivity/execution/objects/p0-293-finance-p0289-post-cleanup-zero-write-verification-corrected.sh",
+    "blob": "fdbda3f5d5cfc6e217f3af7b25ece0e9c1f39357",
+    "bytes": 6641,
+    "sha256": "7948f27e1a22bbfc648354de592d8562a2aed28ab1f145bc19b45d598c39fc08",
+    "bashSyntax": "PASS",
+    "zeroWriteStaticAudit": "PASS"
+  },
+  "minimalCorrection": {
+    "currentSymlinkTuple": "64770:1312291:0:0:777:1:50:symbolic link",
+    "currentLiteralTarget": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a",
+    "resolvedBinaryPath": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a/ynx-finance",
+    "binaryTuple": "64770:1860512:0:0:755:1:8573112:regular file",
+    "binaryBytes": 8573112,
+    "binarySha256": "0cc43c8a77c12975a0fcbada65971f08f2bc3a52345d547ea194dd3ccd60d83f",
+    "invalidRealpathEqualsSymlinkedInputPredicateRemoved": true,
+    "directEnvUnitCaddyCanonicalChecksRetained": true
+  },
+  "scope": {
+    "oneSsh": true,
+    "retryAllowed": false,
+    "remoteWrites": 0,
+    "remoteTemporaryFiles": 0,
+    "verifyAllTwelveAbsencesAgain": true,
+    "verifyAllThreeParentInventoriesAgain": true,
+    "verifyOldCurrentBinaryEnvStateUnitCaddy": true,
+    "verifyServicePidAndNRestarts": true,
+    "verifySixLoopbackAndPublicHttpReceipts": true
+  },
+  "forbidden": [
+    "cleanup or deletion",
+    "deployment or rollback",
+    "remote temp or file write",
+    "service lifecycle",
+    "current env state unit Caddy release or public mutation",
+    "Wallet account signature typed data or transaction",
+    "secret or environment value output"
+  ],
+  "truth": {
+    "verificationExecuted": false,
+    "cleanupComplete": false,
+    "deployment": false
+  },
+  "singleBlocker": "Central must independently review and issue a wholly-new read-only P0-293 lease; this source request carries no SSH authority."
+}
