@@ -2140,7 +2140,7 @@
     },
     {
       "path": "{host:43.153.202.237:finance-p0279-control-cleanup,stable-parent:/opt/ynx/leases/finance,delete:/opt/ynx/leases/finance/p0279-finance-phase3-20260823T164408Z.executor.sh,delete:/opt/ynx/leases/finance/p0279-finance-phase3-20260823T164408Z.json,temp:/tmp/ynx-finance-p0281-finance-p0279-control-cleanup-20260823T170900Z.executor.sh,temp:/tmp/ynx-finance-p0281-finance-p0279-control-cleanup-20260823T170900Z.json}",
-      "owner": "finance-release-control-plane-cleanup-only",
+      "owner": null,
       "branch": "codex/p0-wallet-connectivity-control-plane-20260820",
       "worktree": "/private/tmp/ynx-calendar-control-plane.y8FFQt/repo",
       "taskId": "P0-281",
@@ -2394,26 +2394,50 @@
     },
     {
       "path": "{host:43.153.202.237:finance-p0289-four-residue-cleanup,production:/opt/ynx/leases/finance/p0289-finance-phase3-20260824t010000z.{executor.sh,json},production:/opt/ynx/stage/finance/p0289-finance-phase3-20260824t010000z,production:/var/backups/ynx-finance/p0289-finance-phase3-20260824t010000z,readonly:/opt/ynx/leases/finance,readonly:/opt/ynx/stage/finance,readonly:/var/backups/ynx-finance}",
-      "owner": "finance-release-control-plane-cleanup-only",
+      "owner": null,
       "branch": "codex/p0-finance-wallet-connectivity-20260820",
       "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
       "taskId": "P0-291",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE",
+      "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0291_P0289_FOUR_RESIDUE_CLEANUP_PENDING_INDEPENDENT_READBACK",
       "acquiredAt": "2026-08-23T18:55:00Z",
       "expiresAt": "2026-08-23T19:25:00Z",
-      "releasedAt": null,
+      "releasedAt": "2026-08-23T19:00:00Z",
       "sourceCommit": "a3fde23d30eb12d66c2e8c9c20d6ab702a89c97a",
       "sourceTree": "6961a9cc76bfd5169ec18f0d0bf0e92109ff66c6",
       "evidenceCommit": "a3fde23d30eb12d66c2e8c9c20d6ab702a89c97a",
-      "artifactSha256": "f72bf8d41e523f9c582a2da94c8489cfcbb413272cbe5b343473e33a3749a6f9",
-      "productionMutationAllowed": true,
+      "artifactSha256": "cc2383c80d92034912a537bcc2d268c4405e3e500acc4ab6ddd4a2c1e402439f",
+      "productionMutationAllowed": false,
       "allowedExceptions": [
         "one exact cleanup invocation and no retry",
         "unlink only the two exact identity-bound P0-289 controls",
         "rmdir only the two exact identity-bound empty P0-289 containers",
         "no parent, sibling, runtime, service, Caddy, public, Wallet or secret mutation",
-        "cleanupComplete remains false until a wholly-new independent zero-write verification"
+        "cleanupComplete remains false until a wholly-new independent zero-write verification",
+        "one cleanup invocation returned exit0 and an exact receipt reporting all four residues absent",
+        "P0-291 is consumed and nonreusable; its cleanup mutation lock is released"
+      ]
+    },
+    {
+      "path": "{host:43.153.202.237:finance-p0289-post-cleanup-zero-write-verification,readonly:/opt/ynx/leases/finance/p0289-finance-phase3-20260824t010000z.*,readonly:/opt/ynx/stage/finance/p0289-finance-phase3-20260824t010000z/**,readonly:/var/backups/ynx-finance/p0289-finance-phase3-20260824t010000z/**,readonly:/opt/ynx/releases/finance/p0289-finance-phase3-20260824t010000z/**,readonly:/opt/ynx/finance-current*,readonly:/etc/ynx/finance.env,readonly:/var/lib/ynx/finance/state.json,readonly:/etc/systemd/system/ynx-finance.service,readonly:/etc/caddy/conf.d/ynx-finance.caddy,readonly:service:ynx-finance.service,readonly:http://127.0.0.1:6483/**,readonly:https://finance.ynxweb4.com/**}",
+      "owner": "finance-release-control-plane-readonly-verification",
+      "branch": "codex/p0-wallet-connectivity-control-plane-20260820",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration",
+      "taskId": "P0-292",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE",
+      "acquiredAt": "2026-08-23T19:00:00Z",
+      "expiresAt": "2026-08-23T19:30:00Z",
+      "releasedAt": null,
+      "sourceCommit": "a3fde23d30eb12d66c2e8c9c20d6ab702a89c97a",
+      "sourceTree": "6961a9cc76bfd5169ec18f0d0bf0e92109ff66c6",
+      "evidenceCommit": "a3fde23d30eb12d66c2e8c9c20d6ab702a89c97a",
+      "artifactSha256": "4e278bdfa14c32fd4a400e469cd43759220915cc2ebc5c79a9f1cc2ad1e7b75f",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "one exact zero-write SSH verification and no retry",
+        "read only exact P0-289 residue paths, retained parents, old runtime files, service metadata and six streamed HTTP endpoints",
+        "no cleanup, deploy, rollback, remote temp, lifecycle, config, public, Wallet or secret mutation"
       ]
     }
   ]
