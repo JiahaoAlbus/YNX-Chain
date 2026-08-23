@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "evidenceClass": "lease-request-predeployment-read-only",
+  "observedAt": "2026-08-23T09:00:43Z",
+  "walletSourceCommit": "fb443431555bed7324b3c2e1fb37aab982a8e243",
+  "walletSourceTree": "15a0f909dde78093b28917bb89c9016848a0e67b",
+  "walletEvidenceCommit": "8190b1b7b8a3b6258d52814445e9fbb285877fcd",
+  "walletEvidenceTree": "d182e740798834dd49e6d421c060e7e8cc10c4b3",
+  "carrierRemoteReadback": {
+    "ref": "refs/heads/codex/wallet-web-pwa-extensions-20260813",
+    "commit": "8190b1b7b8a3b6258d52814445e9fbb285877fcd",
+    "matched": true
+  },
+  "carrierArtifacts": [
+    {"name":"ynx-wallet-web-pwa-0.1.0.zip","gitBlobSha1":"e7b8987edd59cfd08fa151c96ccf97a48ecd8ad4","bytes":286356,"sha256":"040e1f03956b6fb0a9298c8af5b76a5ed2895de0e5510a6208543bed9e3df055","byteAndHashReadback":true},
+    {"name":"ynx-wallet-chrome-edge-0.1.0.zip","gitBlobSha1":"e8dfdfdcd19ea211db17b217c559108da0efe5a4","bytes":471181,"sha256":"2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d","byteAndHashReadback":true},
+    {"name":"ynx-wallet-firefox-0.1.0.zip","gitBlobSha1":"8249d9f7587cf3655cd76e4de51e05106365fcc4","bytes":471216,"sha256":"29fe890612ebe9518a99d80492b44cb222c5e9e37ce8d761ebc84b8243b5a896","byteAndHashReadback":true}
+  ],
+  "currentWebsite": {
+    "projectId": "prj_tPB0KDTFohQ9FXZAzq25mYFWkbNa",
+    "projectName": "ynx-web4-website-new",
+    "deploymentId": "dpl_574RBu3xBzE4Bh1jygv2YJruAYfz",
+    "deploymentUrl": "https://ynx-web4-website-amp9sntxu-jiahaoalbus-projects.vercel.app",
+    "status": "READY",
+    "registry": {"url":"https://www.ynxweb4.com/releases/ecosystem-release-registry.json","http":200,"bytes":5500,"sha256":"8f05865ebad79e6a9b1348cda35dfe6828807ea41368f455188ab0000e779faf","walletCommit":"3ab8c24cac04","walletDownloadHosted":true},
+    "productRelease": {"url":"https://www.ynxweb4.com/releases/wallet/3ab8c24c/product-release.json","http":200,"bytes":1236,"sha256":"233730ff366053df59a91ac1939ab9ed83986e8e19e8ba4dd9895f1de63caf7f"},
+    "publicProductMetadata": {"url":"https://www.ynxweb4.com/releases/wallet/3ab8c24c/public-product-metadata.json","http":200,"bytes":1519,"sha256":"ef18fba9d5999c2d620e3385efd5fbbd9e0241b6065bdd985fcf836122c90cae"}
+  },
+  "existingRollbackArtifacts": [
+    {"name":"ynx-wallet-web-pwa-0.1.0.zip","http":200,"contentType":"application/zip","contentDisposition":"attachment","cacheControl":"public, max-age=31536000, immutable","bytes":272706,"sha256":"63d83cd20925f2d52c0f21f548fa7a857a4d056e03e5fa16244f173164a7d287","passed":true},
+    {"name":"ynx-wallet-chrome-edge-0.1.0.zip","http":200,"contentType":"application/zip","contentDisposition":"attachment","cacheControl":"public, max-age=31536000, immutable","bytes":188846,"sha256":"c733093dea47c6612c8a9d5ecea40be2227f62402f4b4966955c9e1accf4e2aa","passed":true},
+    {"name":"ynx-wallet-firefox-0.1.0.zip","http":200,"contentType":"application/zip","contentDisposition":"attachment","cacheControl":"public, max-age=31536000, immutable","bytes":188883,"sha256":"417d9b9e5babf05fdfdf8161504389eb99c636be75f94444bf4ff91a9b4536b3","passed":true}
+  ],
+  "successorTargetBaseline": {
+    "allThree": {"http":200,"contentType":"text/html; charset=utf-8","contentDisposition":"attachment","cacheControl":"public, max-age=31536000, immutable","bytes":1018,"sha256":"3cc384404c5ee932a3803fe2fbc29071fbde803803935d1f937e8a2528e2d6a8"},
+    "interpretation": "SPA fallback, not ZIP content; every successor hosted gate is false"
+  },
+  "actionsPerformed": {"browserLaunch":false,"extensionInstall":false,"websiteFilesModified":false,"blobUploaded":false,"deploymentCreated":false,"routeChanged":false,"accountRequested":false,"signatureRequested":false,"transactionRequested":false},
+  "truth": {"durableCarrierProved":true,"downloadHosted":false,"productionSigned":false,"storeReleased":false,"installedLocal":false,"publicParity":false}
+}

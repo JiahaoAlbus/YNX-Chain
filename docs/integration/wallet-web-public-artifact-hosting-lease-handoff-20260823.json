@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "from": "Wallet Web/PWA/Extensions Owner",
+  "to": "Central lease issuer and Desktop Website publishing owner",
+  "sourceCommit": "fb443431555bed7324b3c2e1fb37aab982a8e243",
+  "evidenceCommit": "8190b1b7b8a3b6258d52814445e9fbb285877fcd",
+  "leaseRequest": "release/integration/wallet-web-public-artifact-hosting-20260823/lease-request.json",
+  "predeploymentEvidence": "apps/wallet-web/evidence/contracts/wallet-web-public-artifact-hosting-lease-request-20260823.json",
+  "verifier": "release/integration/wallet-web-public-artifact-hosting-20260823/verify-official-downloads.mjs",
+  "commands": {
+    "carrierAndTamperSelfTest": "node release/integration/wallet-web-public-artifact-hosting-20260823/verify-official-downloads.mjs self-test",
+    "preLeaseNegativeReadback": "node release/integration/wallet-web-public-artifact-hosting-20260823/verify-official-downloads.mjs expect-current-mismatch",
+    "postPublicationPositiveGate": "node release/integration/wallet-web-public-artifact-hosting-20260823/verify-official-downloads.mjs production-positive"
+  },
+  "requestBoundary": "No Website, Blob, deployment, route, browser, install, account, signing or transaction mutation occurred. Central must issue the exact single-use lease before Website execution.",
+  "promotionBoundary": "Each downloadHosted flag remains false until both returned Blob URL and direct www.ynxweb4.com URL pass the exact full-GET gate. Production signed, store, installed provider and public parity remain independently false.",
+  "completionClaimed": false
+}
