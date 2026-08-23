@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import {readFile} from "node:fs/promises";
 import test from "node:test";
+import vm from "node:vm";
 import {BRIDGE_VERSION,PAGE_REQUEST,REQUEST_METHODS,REQUEST_TIMEOUT_MS,RUNTIME_REQUEST,publicBridgeError,validHttpOrigin,validatePageRequest,validateRuntimeRequest} from "../src/extension-bridge.js";
 
 const REQUEST_ID="ynx-11111111-1111-4111-8111-111111111111";
@@ -40,6 +41,14 @@ test("injected YNX provider explicitly refuses MetaMask identity and forbidden n
   const page=await readFile(new URL("../extension/page-provider.js",import.meta.url),"utf8"),content=await readFile(new URL("../extension/content-script.js",import.meta.url),"utf8");
   assert.match(page,/isYNXWallet:true,isYnxWallet:true,isMetaMask:false/);
   assert.doesNotMatch(page+content,/window\.open|ynxwallet:|createElement\(["']iframe/);
+});
+
+test("YNX document-start injection does not lock out a later MetaMask provider",async()=>{
+  const source=await readFile(new URL("../extension/page-provider.js",import.meta.url),"utf8"),events=[];
+  const context={location:{origin:"https://dapp.example",protocol:"https:"},crypto:{randomUUID:()=>"11111111-1111-4111-8111-111111111111"},CustomEvent:class{constructor(type,init){this.type=type;this.detail=init.detail}},queueMicrotask:fn=>fn(),setTimeout,clearTimeout,addEventListener(){},postMessage(){},dispatchEvent(event){events.push(event)}};context.window=context;context.globalThis=context;
+  vm.runInNewContext(source,context);const ynx=context.ethereum,descriptor=Object.getOwnPropertyDescriptor(context,"ethereum");
+  assert.equal(ynx.isYNXWallet,true);assert.equal(ynx.isMetaMask,false);assert.equal(descriptor.configurable,true);assert.equal(descriptor.writable,true);
+  const metamask={isMetaMask:true,request:async()=>null};context.ethereum=metamask;assert.equal(context.ethereum,metamask);assert.ok(events.some(event=>event.type==="eip6963:announceProvider"&&event.detail.provider===ynx));
 });
 
 test("provider approval is per-origin single-flight and vault mutation revokes live tabs",async()=>{

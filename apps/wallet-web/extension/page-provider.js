@@ -23,7 +23,7 @@
   });
   Object.defineProperty(globalThis,"__YNX_COMPANION_PROVIDER_V1__",{value:provider});
   const existing=window.ethereum;
-  if(!existing)Object.defineProperty(window,"ethereum",{value:provider,configurable:false,enumerable:true,writable:false});
+  if(!existing)Object.defineProperty(window,"ethereum",{value:provider,configurable:true,enumerable:true,writable:true});
   else{const providers=Array.isArray(existing.providers)?existing.providers:[existing];if(!providers.includes(provider))providers.push(provider);if(!Array.isArray(existing.providers)){try{Object.defineProperty(existing,"providers",{value:providers,configurable:true})}catch{}}}
   const announce=()=>window.dispatchEvent(new CustomEvent("eip6963:announceProvider",{detail:Object.freeze({info:provider.providerInfo,provider})}));window.addEventListener("eip6963:requestProvider",announce);queueMicrotask(announce);
 })();
