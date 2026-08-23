@@ -1,0 +1,70 @@
+{
+  "schemaVersion": "wallet-downloads-successor-read-only-prestate@1",
+  "capturedAt": "2026-08-23T12:36:00Z",
+  "mode": "READ_ONLY_NO_MUTATION",
+  "supersededRequestCommit": "beacdbb277c9a1c9ee05f87a67535c82934d6ed9",
+  "centralNoGo": "WALLET_DOWNLOADS_PUBLICATION_PREPUBLISH_AND_TERMINAL_RESIDUE_CLEANUP_UNAVAILABLE",
+  "executor": {
+    "endpoint": "ubuntu@43.153.202.237",
+    "transport": "SSH_PUBLIC_KEY",
+    "publicKeyFingerprint": "SHA256:GXJwXo+PdNl+Hq1mNRi3CVsNZZYJkBoV3cm28E1wI5o",
+    "batchModeAuthenticated": true,
+    "nonInteractiveSudo": true,
+    "secretValuesRecorded": false
+  },
+  "entryConfig": {
+    "path": "/etc/caddy/Caddyfile",
+    "device": 64770,
+    "inode": 1051746,
+    "uid": 0,
+    "gid": 0,
+    "mode": "0644",
+    "nlink": 1,
+    "bytes": 928,
+    "sha256": "077fe80ea9aab24a32d64ba1fab3584e8aab10304e200e58d976d2c33edfb39f"
+  },
+  "downloadsConfig": {
+    "path": "/etc/caddy/conf.d/downloads.ynxweb4.com.caddy",
+    "device": 64770,
+    "inode": 1055513,
+    "uid": 0,
+    "gid": 0,
+    "mode": "0644",
+    "nlink": 1,
+    "bytes": 1441,
+    "sha256": "5149252cde4b3cba5b2e89c5d5d0f3e94506fa69beb7b10526e41dcee3cb1f1f"
+  },
+  "downloadsRoot": {
+    "path": "/opt/ynx/public-downloads",
+    "device": 64770,
+    "inode": 2528711,
+    "uid": 0,
+    "gid": 0,
+    "mode": "0755",
+    "nlink": 3,
+    "bytes": 4096
+  },
+  "walletDirectory": {
+    "path": "/opt/ynx/public-downloads/wallet",
+    "device": 64770,
+    "inode": 2528712,
+    "uid": 0,
+    "gid": 0,
+    "mode": "0755",
+    "nlink": 6,
+    "bytes": 4096
+  },
+  "reservedPaths": {
+    "/opt/ynx/public-downloads/.P0-WALLET-CHROME-ZIP-PUBLICATION-20260823-02.stage": false,
+    "/etc/caddy/conf.d/downloads.ynxweb4.com.caddy.rollback-P0-WALLET-CHROME-ZIP-PUBLICATION-20260823-02": false,
+    "/opt/ynx/public-downloads/wallet/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d": false,
+    "/opt/ynx/public-downloads/wallet/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip": false
+  },
+  "mutationTruth": {
+    "upload": false,
+    "remoteWrite": false,
+    "configChange": false,
+    "reload": false,
+    "delete": false
+  }
+}

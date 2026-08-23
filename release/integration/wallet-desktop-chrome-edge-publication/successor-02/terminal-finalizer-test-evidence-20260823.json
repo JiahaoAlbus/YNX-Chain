@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "wallet-downloads-terminal-finalizer-test-evidence@1",
+  "testedAt": "2026-08-23T12:38:00Z",
+  "productionMutation": false,
+  "linuxTestRuntime": {
+    "image": "ubuntu:24.04",
+    "imageDigest": "sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab987517"
+  },
+  "commands": [
+    "bash -n successor-02/*.sh",
+    "YNX_LEASE_REPO_ROOT=$PWD bash successor-02/invoke-atomic-publication-after-lease.local.sh --self-test",
+    "production remote program without lease/ack must exit nonzero"
+  ],
+  "results": {
+    "shellSyntax": "PASS",
+    "prepareEmpty": "PASS_NO_RESIDUE",
+    "uploadPartial": "PASS_IDENTITY_BOUND_CLEANUP",
+    "publishSuccess": "PASS_STAGE_RECEIPT_BACKUP_CLEANUP_MODEL",
+    "rollback": "PASS_TARGET_REMOVAL_BASE_RESTORE_AND_RESIDUE_CLEANUP_MODEL",
+    "symlinkSubstitution": "PASS_PRESERVED_FAIL_CLOSED",
+    "inodeSubstitution": "PASS_PRESERVED_FAIL_CLOSED",
+    "atomicBase64Roundtrip": "PASS_SHA_EXACT",
+    "producerRcCapture": "PASS_23_0",
+    "transportRemoteRcCapture": "PASS_0_24",
+    "missingLease": "PASS_REFUSED",
+    "candidateRemoteReadOnlyCaddyValidation": "PASS_VALID_CONFIGURATION",
+    "publicTargetRemainsAbsent": "PASS_HTTP_404"
+  },
+  "exactOutput": [
+    "terminal_finalizer_self_test=pass scenarios=prepare-empty,upload-partial,publish-success,rollback,symlink-preserved,inode-substitution-preserved",
+    "atomic_transport_rc_capture_self_test=pass"
+  ],
+  "unproven": {
+    "centralLeaseIssued": false,
+    "productionInvocationExecuted": false,
+    "artifactUploaded": false,
+    "caddyReloaded": false,
+    "downloadHosted": false
+  }
+}

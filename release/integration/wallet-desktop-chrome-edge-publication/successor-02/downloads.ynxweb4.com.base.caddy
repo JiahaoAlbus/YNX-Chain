@@ -1,0 +1,26 @@
+downloads.ynxweb4.com {
+	root * /opt/ynx/public-downloads
+
+	@walletMac012 path /wallet/sha256-69b4fa5db7b8a9ab105af6633de44f5a5a4a9fceeaa0925a306f77b22381b044/ynx-wallet-macos-0.1.2-universal.dmg
+	header @walletMac012 Content-Type application/x-apple-diskimage
+	header @walletMac012 Content-Disposition "attachment; filename=\"ynx-wallet-macos-0.1.2-universal.dmg\""
+
+	@walletWindowsX64 path /wallet/sha256-856b2a260efc43c25f62508dabc6bb6b74b84da71c9b477e8a02a12d17598cd7/ynx-wallet-desktop-0.1.1-x64.exe
+	header @walletWindowsX64 Content-Type application/vnd.microsoft.portable-executable
+	header @walletWindowsX64 Content-Disposition "attachment; filename=\"ynx-wallet-desktop-0.1.1-x64.exe\""
+
+	@walletWindowsArm64 path /wallet/sha256-929315133c68eda1cabac51cec889c4aeca5e3ee1701578916bc67e096c5dc35/ynx-wallet-desktop-0.1.1-arm64.exe
+	header @walletWindowsArm64 Content-Type application/vnd.microsoft.portable-executable
+	header @walletWindowsArm64 Content-Disposition "attachment; filename=\"ynx-wallet-desktop-0.1.1-arm64.exe\""
+
+	@otherDiskImages {
+		path *.dmg
+		not path /wallet/sha256-69b4fa5db7b8a9ab105af6633de44f5a5a4a9fceeaa0925a306f77b22381b044/ynx-wallet-macos-0.1.2-universal.dmg
+	}
+	header @otherDiskImages Content-Type application/x-apple-diskimage
+	header @otherDiskImages Content-Disposition "attachment"
+	header X-Content-Type-Options nosniff
+	header Cache-Control "public, max-age=31536000, immutable"
+
+	file_server
+}
