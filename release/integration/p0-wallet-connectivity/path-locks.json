@@ -3164,26 +3164,26 @@
     },
     {
       "path": "{host:43.153.202.237:finance-p0302-stage-backup-container-rollback-first,write:/opt/ynx/leases/finance/p0302-finance-phase3-20260823t211500z.*,write:/opt/ynx/stage/finance/p0302-finance-phase3-20260823t211500z/**,write:/var/backups/ynx-finance/p0302-finance-phase3-20260823t211500z/**,write:/opt/ynx/releases/finance/p0302-finance-phase3-20260823t211500z/**,write:/opt/ynx/finance-current*,write:/etc/ynx/finance.env,write:/var/lib/ynx/finance/state.json,lifecycle:ynx-finance.service,readonly:/etc/systemd/system/ynx-finance.service,readonly:/etc/caddy/conf.d/ynx-finance.caddy,verify:http://127.0.0.1:6483/**,verify:https://finance.ynxweb4.com/**}",
-      "owner": "finance-release-control-plane",
+      "owner": null,
       "branch": "codex/p0-finance-p0302-stage-backup-containers-20260824",
       "worktree": "/private/tmp/ynx-finance-p0302-stage-backup-containers",
       "taskId": "P0-302",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0302_POSTWRITE_RELEASE_MATERIALIZE_REMOTE_STATE_UNKNOWN",
       "acquiredAt": "2026-08-23T21:15:00Z",
       "expiresAt": "2026-08-23T21:45:00Z",
-      "releasedAt": null,
+      "releasedAt": "2026-08-23T21:20:00Z",
       "sourceCommit": "639873d2c9e61bb50438cf062de5b8d839435cf5",
       "sourceTree": "df41215559f9a81da7b7e237ea3c3706f1fe82d2",
       "evidenceCommit": "639873d2c9e61bb50438cf062de5b8d839435cf5",
       "artifactSha256": "512f129861c6ae5db100f467c4ed52ef3785b32fa3309daae21a21250a4322b0",
-      "productionMutationAllowed": true,
+      "productionMutationAllowed": false,
       "allowedExceptions": [
-        "one exact parent-preserving Node observer invocation and one child deployment attempt; no retry",
-        "create and identity-bind exact stage and backup containers and leaves",
-        "success retains exact backup container backup release container release and controls",
-        "automatic rollback may restore exact old runtime and delete only identity-bound lease-owned objects",
-        "unit and Caddy immutable; no Wallet account signature typed-data or transaction action"
+        "P0-302 invocation quota consumed and nonreusable",
+        "postwrite RELEASE_MATERIALIZE failure leaves remote production and residue state unknown",
+        "automatic rollback success is not inferred",
+        "only a wholly-new zero-write P0-303 inspection may be authorized next",
+        "no retry manual rollback cleanup deploy lifecycle config public Wallet account signature typed-data or transaction mutation"
       ]
     }
   ]

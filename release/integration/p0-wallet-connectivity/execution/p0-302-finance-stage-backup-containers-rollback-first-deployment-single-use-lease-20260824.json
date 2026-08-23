@@ -5,7 +5,7 @@
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-stage-backup-containers-p0302-20260823T211500Z",
   "owner": "finance-release-control-plane",
   "executor": "finance-release-control-plane",
-  "status": "ACTIVE",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0302_POSTWRITE_RELEASE_MATERIALIZE_REMOTE_STATE_UNKNOWN",
   "issuedAt": "2026-08-23T21:15:00Z",
   "expiresAt": "2026-08-23T21:45:00Z",
   "singleUse": true,
@@ -200,6 +200,11 @@
     "failure": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0302_ROLLBACK_FIRST_DEPLOYMENT",
     "retainHeavyOnUnresolvedRemoteState": true,
     "releaseOnlyAfterDirectTerminalEvidence": true,
-    "productCompletionInferred": false
-  }
+    "productCompletionInferred": false,
+    "remoteStateKnown": false,
+    "terminalEvidenceAccepted": true,
+    "terminalEvidencePath": "release/integration/p0-wallet-connectivity/execution/objects/p0-302-finance-terminal-release-materialize-failure-20260824.json",
+    "nextAuthority": "P0-303_ZERO_WRITE_INSPECTION_ONLY_WHOLELY_NEW_LEASE_REQUIRED"
+  },
+  "releasedAt": "2026-08-23T21:20:00Z"
 }
