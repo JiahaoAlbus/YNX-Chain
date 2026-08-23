@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "wallet-downloads-terminal-finalizer-test-evidence@2",
+  "requestId": "P0-WALLET-CHROME-ZIP-PUBLICATION-20260823-03",
+  "testedAt": "2026-08-23T13:08:16Z",
+  "productionMutation": false,
+  "linuxTestRuntime": {
+    "image": "ubuntu:24.04",
+    "imageDigest": "sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab987517"
+  },
+  "commands": [
+    "bash -n successor-03/*.sh",
+    "YNX_LEASE_REPO_ROOT=$PWD bash successor-03/invoke-atomic-publication-after-lease.local.sh --self-test",
+    "production remote program without lease/ack must exit nonzero"
+  ],
+  "results": {
+    "shellSyntax": "PASS",
+    "prepareEmpty": "PASS_NO_RESIDUE",
+    "uploadPartial": "PASS_IDENTITY_BOUND_CLEANUP",
+    "publishSuccess": "PASS_STAGE_RECEIPT_BACKUP_CLEANUP_MODEL",
+    "rollback": "PASS_TARGET_REMOVAL_BASE_RESTORE_AND_RESIDUE_CLEANUP_MODEL",
+    "symlinkSubstitution": "PASS_PRESERVED_FAIL_CLOSED",
+    "inodeSubstitution": "PASS_PRESERVED_FAIL_CLOSED",
+    "serviceUserRejects0600": "PASS_UID_65534_CANNOT_READ",
+    "serviceUserReads0644HardlinkedTarget": "PASS_NON_ROOT_READABLE",
+    "serviceUserReads0644HardlinkedLiveConfig": "PASS_NON_ROOT_READABLE",
+    "postChmodIdentityRefresh": "PASS_SAME_INODE_MODE_0644",
+    "postChmodForeignIdentityAcceptance": "REFUSED_DEVICE_INODE_UID_GID_NLINK_MUST_REMAIN_EXACT",
+    "productionServiceUserCommandsFrozen": "PASS_SUDO_U_CADDY_TEST_R_TARGET_AND_LIVE",
+    "fullConfigValidationAsServiceUserFrozen": "PASS_SUDO_U_CADDY_CADDY_VALIDATE_ENTRY",
+    "atomicBase64Roundtrip": "PASS_SHA_EXACT",
+    "producerRcCapture": "PASS_23_0",
+    "transportRemoteRcCapture": "PASS_0_24",
+    "missingLease": "PASS_REFUSED",
+    "candidateCaddyLocalSha": "PASS_1749_BYTES_9A3869D6",
+    "publicTargetRemainsAbsent": "PASS_HTTP_404"
+  },
+  "exactOutput": [
+    "terminal_finalizer_self_test=pass scenarios=prepare-empty,upload-partial,publish-success,rollback,symlink-preserved,inode-substitution-preserved,service-user-0600-rejected,service-user-0644-readable,post-chmod-identity-refreshed",
+    "atomic_transport_rc_capture_self_test=pass"
+  ],
+  "unproven": {
+    "centralLeaseIssued": false,
+    "productionInvocationExecuted": false,
+    "artifactUploaded": false,
+    "caddyReloaded": false,
+    "downloadHosted": false
+  }
+}
