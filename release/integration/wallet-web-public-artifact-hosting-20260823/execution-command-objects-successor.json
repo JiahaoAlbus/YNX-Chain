@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "blockerResolved": "WALLET_ARTIFACT_HOSTING_WEBSITE_EXECUTION_COMMAND_OBJECTS_UNFROZEN",
+  "walletCarrier": {
+    "worktree": "/tmp/ynx-wallet-hosting-request.ei3AVH/repo",
+    "branch": "codex/wallet-web-pwa-extensions-20260813",
+    "artifactCommit": "8190b1b7b8a3b6258d52814445e9fbb285877fcd",
+    "artifactTree": "d182e740798834dd49e6d421c060e7e8cc10c4b3"
+  },
+  "websiteExecution": {
+    "repository": "https://github.com/JiahaoAlbus/YNX-Chain-website.git",
+    "worktree": "/private/tmp/ynx-wallet-artifact-hosting-p012/website-local",
+    "branch": "codex/wallet-web-artifact-hosting-20260823",
+    "baseCommit": "85c63fa0df6064f0b71d4681549cc740c4339bf4",
+    "baseTree": "669b5864894a5e75a0dd7c05f4a761c9bb249fb9",
+    "candidateCommit": "708235be8eb8d0aaa7967274618ff935d65c5a4b",
+    "candidateTree": "c9cbc539f2095f1c08649f66276537a2a499f97d",
+    "candidateBundle": {
+      "carrierPath": "/private/tmp/ynx-wallet-artifact-hosting-p012/website-candidate-incremental.bundle",
+      "bytes": 1430,
+      "sha256": "7829d04064337b270218c916a2ee065271985264e3c1de641ced430f0cbe1a3d",
+      "requiresCommit": "85c63fa0df6064f0b71d4681549cc740c4339bf4",
+      "ref": "refs/heads/codex/wallet-web-artifact-hosting-20260823",
+      "base64": "IyB2MiBnaXQgYnVuZGxlCi04NWM2M2ZhMGRmNjA2NGYwYjcxZDQ2ODE1NDljYzc0MGM0MzM5YmY0IE1lcmdlIHB1bGwgcmVxdWVzdCAjNTUgZnJvbSBKaWFoYW9BbGJ1cy9jb2RleC93YWxsZXQtZGVza3RvcC1wdWJsaWNhdGlvbi1ldmlkZW5jZS0yMDI2MDgyMgo3MDgyMzViZThlYjhkMGFhYTc5NjcyNzQ2MThmZjkzNWQ2NWM1YTRiIHJlZnMvaGVhZHMvY29kZXgvd2FsbGV0LXdlYi1hcnRpZmFjdC1ob3N0aW5nLTIwMjYwODIzCgpQQUNLAAAAAgAAAAaaEXicpY7LTgQhEADv8xUc3RgNj4YGszF69S+ansZlw+wYYLK/78Zf8Fh1qNTsIooTZ/YuFauTL4Z1DJBKCBaDd0iWIKWScF1+qMttqug5uEJ6LUEHKDqjWSFE4yExI2gG51IusNAxL3tXX5UutH+2fAx1vv6B8Q58cjZa/fG9UW2vvG/vymBEQPQY1LOOWi8Pu9U55V+RpUsTGvJ0p9Zkvtwln95UrrdVjYNZxnhMUp+1EE/V92PKWH4BO/1Uz/oDZptYZIlKXnWg3XwF9Kdhybskn7l4nAE6AMX/vAi8CLDQAhQrkyYmdGwbB1i9BT4uuwqStwfZprPkAhoBFDsfCecBxo4RYef2DaTN815jJMMzkxIEKngcFhr+ASJ87pP29lgkjTYcrSmIUFhkXCOreJwBHgDh/5MDkwOQfxSan9ZhwfQ9GgnoZbZCnhavt3i8EaGTAdGwDa7/AfBT2V0LVwNoMVNbDi4kW1xtsJ/GeJwBHwDg/94D3gOQJxTr4ksDyjcbKL3CeW8Swbi39uElw7E7owHk0g7l/0Z4aSkMbAX1Czu3UywBhxhfaJE4aXicpZPLihNBFIZhFj6AuHE31FLSSd0v2Y6CexcuRKQup5LGTnfoi8kokoeYB1HwOeaNXHh6otgDUQLZFVWn//8/X5/z88Wd/H5/dZhdk52vKujfQnjTDG2Em2azKXuyvCY5SCmkYEqpAMkILoOIHFgOwngfnOXeApeCTEVefSoT1FMZyxwNLJhgvQiaK5sUt0xKqcB9yCFwq6wxOaZHOi+bXV01Pr1uuh4S6vTtAKcKOnx794VsK9/npt2QJdnuPJmRoa3I8q5+8vyQ/lQujh8XOwiLbu250gWVFBuiwikddA7UO+5stD6rYLRXkLh1KgEFpRj1mlOrpEAaDkTKVKnFbb0v/soW6F3QOZvT+edyiynCbX8AjMitFkrPyNEWQ15qjNpduarLenVT+Q4dyFCPF5AecoShThVg0bqZHQGO/L7OHoGK67bZQAFpBWcD49KxoDVIDfgfvcpeKpo4WGoxVlTjSPDMAKMmnryP1oDRJoEW2nGapsAm/lNoh5HaCE0axiybQLvU/D/Qhnrr40c8wF72gLdN/UDvn/By2UJu9ueDcxmso5pxjOcUs965ZKl0HNcsBs55xIUAYSLYZDQ2Ea0MFvcrYF9OT8H99j45aQiNs+mkXWp8HrSR2bMT0N7/uL/69vQXbQRjOPobq+qJOxtc6hUJ+tt7mbGfEXhK8g14nK2QPU4EMQyFKzrQ9jC7BSdwPLFjd9NQ0FEgISEh5MTOGbhHau6wiBvRUHACOiI4Atu/972fz4ev5+PtYXwv5xtkiNRhVeLKvYIpqjSxTrWwUTiKkgcEUQJjBKG81nCN1TsQjdfLl9OAnq7uNsyaKnNkDic06pYJHENApqaRSSD2FNPn6GZNShQuHryyIvh4W67Hbnn8bXQC2P2G2kMUOOHUKSUxVRfIijXnVhGxUcwNpYV44Ulrkqvg3DYDlMfN/u+f/4Lezw4fFz9Z3n/1HA+xKeUmv9kJDh62tXdpknL+B2c="
+    },
+    "candidatePatch": {"carrierPath":"/private/tmp/ynx-wallet-artifact-hosting-p012/website-candidate.patch","bytes":5938,"sha256":"c17d427b26dbbcc8d295def1ededbabc39c142221f6f041becbb14266ed93002"},
+    "changedPaths": ["public/releases/ecosystem-release-registry.json", "vercel.json"],
+    "candidateFiles": [
+      {"path":"vercel.json","gitBlobSha1":"3b1f09e701c68e1161e7f60da4cdf35e6324c333","bytes":12267,"sha256":"125f2fb8f4214491d25e96a27a169ef125f08e2742d252d73ebe114e1d286e72"},
+      {"path":"public/releases/ecosystem-release-registry.json","gitBlobSha1":"ebe24b03ca371b28bdc2796f12c1b8b7f6e125c3","bytes":6675,"sha256":"12379ab196ec50e7950b72096ad5a0213101e9a8b1046d3b84628b4384268aa7"}
+    ],
+    "lockedUntouched": {"path":"src/lib/ecosystemCatalog.js","baseBlobSha1":"665dae0cd7efd32726b0a648d20142636d7fe38e","candidateBlobSha1":"665dae0cd7efd32726b0a648d20142636d7fe38e"}
+  },
+  "vercel": {"cliVersion":"54.6.1","scope":"jiahaoalbus-projects","teamId":"team_JYlLQCpX3qEQiL92qoWMjUrw","projectId":"prj_tPB0KDTFohQ9FXZAzq25mYFWkbNa","projectName":"ynx-web4-website-new","blobStoreId":"store_DygGjsbXsiew8L6U","blobStoreName":"ynx-official-downloads","blobPublicOrigin":"https://dyggjsbxsiew8l6u.public.blob.vercel-storage.com"},
+  "requiredEnvironment": {"BLOB_STORE_ID":"store_DygGjsbXsiew8L6U","VERCEL_OIDC_TOKEN":"lease-runtime-secret-only","secretMayAppearInArgvOrEvidence":false},
+  "uploadCommands": [
+    {
+      "id": "upload-pwa",
+      "executable": "vercel",
+      "argv": ["blob","put","/tmp/ynx-wallet-hosting-request.ei3AVH/repo/apps/wallet-web/artifacts/ynx-wallet-web-pwa-0.1.0.zip","--access","public","--add-random-suffix=false","--allow-overwrite=false","--cache-control-max-age=31536000","--content-type","application/zip","--multipart=true","--pathname","downloads/wallet-web/sha256-040e1f03956b6fb0a9298c8af5b76a5ed2895de0e5510a6208543bed9e3df055/ynx-wallet-web-pwa-0.1.0.zip","--scope","jiahaoalbus-projects","--non-interactive"],
+      "source": {"bytes":286356,"sha256":"040e1f03956b6fb0a9298c8af5b76a5ed2895de0e5510a6208543bed9e3df055"},
+      "expectedReceipt": {"pathname":"downloads/wallet-web/sha256-040e1f03956b6fb0a9298c8af5b76a5ed2895de0e5510a6208543bed9e3df055/ynx-wallet-web-pwa-0.1.0.zip","url":"https://dyggjsbxsiew8l6u.public.blob.vercel-storage.com/downloads/wallet-web/sha256-040e1f03956b6fb0a9298c8af5b76a5ed2895de0e5510a6208543bed9e3df055/ynx-wallet-web-pwa-0.1.0.zip"}
+    },
+    {
+      "id": "upload-chrome-edge",
+      "executable": "vercel",
+      "argv": ["blob","put","/tmp/ynx-wallet-hosting-request.ei3AVH/repo/apps/wallet-web/artifacts/ynx-wallet-chrome-edge-0.1.0.zip","--access","public","--add-random-suffix=false","--allow-overwrite=false","--cache-control-max-age=31536000","--content-type","application/zip","--multipart=true","--pathname","downloads/wallet-web/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip","--scope","jiahaoalbus-projects","--non-interactive"],
+      "source": {"bytes":471181,"sha256":"2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d"},
+      "expectedReceipt": {"pathname":"downloads/wallet-web/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip","url":"https://dyggjsbxsiew8l6u.public.blob.vercel-storage.com/downloads/wallet-web/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip"}
+    },
+    {
+      "id": "upload-firefox",
+      "executable": "vercel",
+      "argv": ["blob","put","/tmp/ynx-wallet-hosting-request.ei3AVH/repo/apps/wallet-web/artifacts/ynx-wallet-firefox-0.1.0.zip","--access","public","--add-random-suffix=false","--allow-overwrite=false","--cache-control-max-age=31536000","--content-type","application/zip","--multipart=true","--pathname","downloads/wallet-web/sha256-29fe890612ebe9518a99d80492b44cb222c5e9e37ce8d761ebc84b8243b5a896/ynx-wallet-firefox-0.1.0.zip","--scope","jiahaoalbus-projects","--non-interactive"],
+      "source": {"bytes":471216,"sha256":"29fe890612ebe9518a99d80492b44cb222c5e9e37ce8d761ebc84b8243b5a896"},
+      "expectedReceipt": {"pathname":"downloads/wallet-web/sha256-29fe890612ebe9518a99d80492b44cb222c5e9e37ce8d761ebc84b8243b5a896/ynx-wallet-firefox-0.1.0.zip","url":"https://dyggjsbxsiew8l6u.public.blob.vercel-storage.com/downloads/wallet-web/sha256-29fe890612ebe9518a99d80492b44cb222c5e9e37ce8d761ebc84b8243b5a896/ynx-wallet-firefox-0.1.0.zip"}
+    }
+  ],
+  "websitePushCommand": {"executable":"git","argv":["-C","/private/tmp/ynx-wallet-artifact-hosting-p012/website-local","push","origin","708235be8eb8d0aaa7967274618ff935d65c5a4b:refs/heads/codex/wallet-web-artifact-hosting-20260823"],"force":false},
+  "buildCommand": {"executable":"vercel","argv":["build","--prod","--project","prj_tPB0KDTFohQ9FXZAzq25mYFWkbNa","--cwd","/private/tmp/ynx-wallet-artifact-hosting-p012/website-local","--scope","jiahaoalbus-projects","--yes","--non-interactive"]},
+  "deployCommand": {"executable":"vercel","argv":["deploy","--prebuilt","--target","production","--skip-domain","--project","prj_tPB0KDTFohQ9FXZAzq25mYFWkbNa","--cwd","/private/tmp/ynx-wallet-artifact-hosting-p012/website-local","--scope","jiahaoalbus-projects","--non-interactive"],"receipt":{"requiredFields":["id","url"],"urlPattern":"^https://ynx-web4-website-[a-z0-9]+-jiahaoalbus-projects\\.vercel\\.app$"}},
+  "promoteCommand": {"executable":"vercel","literalArgvTemplate":["promote","__EXACT_DEPLOY_RECEIPT_URL__","--timeout","3m","--yes","--scope","jiahaoalbus-projects","--non-interactive"],"singleBinding":{"argvIndex":1,"source":"deployCommand.receipt.url","validationPattern":"^https://ynx-web4-website-[a-z0-9]+-jiahaoalbus-projects\\.vercel\\.app$"}},
+  "rollbackCommand": {"executable":"vercel","argv":["promote","dpl_574RBu3xBzE4Bh1jygv2YJruAYfz","--timeout","3m","--yes","--scope","jiahaoalbus-projects","--non-interactive"],"maxExecutions":1},
+  "failureCleanupCommand": {"executable":"/bin/rm","argv":["-rf","/private/tmp/ynx-wallet-artifact-hosting-p012/website-local/.vercel/output","/private/tmp/ynx-wallet-artifact-hosting-p012/receipts"],"allowedTargetsOnly":true},
+  "receiptBinding": {"rule":"Every Blob receipt pathname and URL must exactly equal expectedReceipt before Website build. Candidate vercel.json destinations must equal the three accepted receipt URLs byte-for-byte.","unknownOrMismatchedReceipt":"FAIL_CLOSED_BEFORE_WEBSITE_PUSH_BUILD_DEPLOY"},
+  "forbiddenExecutableOrArgvTokens": ["alias", "src/lib/ecosystemCatalog.js", "shop", "eth_requestAccounts", "personal_sign", "eth_signTypedData", "eth_sendTransaction"],
+  "forbiddenActions": ["overwrite blob", "delete blob", "edit catalog", "Shop mutation", "product source mutation", "browser launch", "extension install", "account", "sign", "transaction"]
+}

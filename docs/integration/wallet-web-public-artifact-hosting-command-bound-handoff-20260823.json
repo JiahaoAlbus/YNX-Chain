@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "from": "Wallet Web/PWA/Extensions Owner",
+  "to": "Central lease issuer and Website executor",
+  "supersedesRequestCommit": "5a0dcf1fe440cd47a95e82ae4606a812914b2ab1",
+  "leaseRequest": "release/integration/wallet-web-public-artifact-hosting-20260823/lease-request-command-bound-successor.json",
+  "commandObjects": "release/integration/wallet-web-public-artifact-hosting-20260823/execution-command-objects-successor.json",
+  "fixture": "release/integration/wallet-web-public-artifact-hosting-20260823/verify-execution-command-fixtures.mjs",
+  "evidence": "apps/wallet-web/evidence/contracts/wallet-web-artifact-hosting-command-bound-successor-20260823.json",
+  "websiteCandidate": {"branch":"codex/wallet-web-artifact-hosting-20260823","commit":"708235be8eb8d0aaa7967274618ff935d65c5a4b","tree":"c9cbc539f2095f1c08649f66276537a2a499f97d","incrementalBundleSha256":"7829d04064337b270218c916a2ee065271985264e3c1de641ced430f0cbe1a3d","changedPaths":["public/releases/ecosystem-release-registry.json","vercel.json"],"catalogUntouched":true},
+  "terminalTests": {"websiteBuild":true,"carrierSelfTamper":true,"rollbackFullGet":"3/3","successorNegative":"3/3","actualShellFixture":true,"rollbackCleanupFixture":true,"receiptBinding":"3/3","noOverwrite":true,"noAliasCatalogShopProductAction":true},
+  "currentTruth": {"websitePushed":false,"blobUploaded":false,"deployed":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false,"installedLocal":false,"publicParity":false}
+}

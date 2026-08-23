@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "evidenceClass": "source-evidence-only-command-bound-hosting-successor",
+  "observedAt": "2026-08-23T09:39:21Z",
+  "resolvedBlocker": "WALLET_ARTIFACT_HOSTING_WEBSITE_EXECUTION_COMMAND_OBJECTS_UNFROZEN",
+  "centralAuthority": {"p0":"P0-011","commit":"3cfa0108fd1f22105d19b3e4e64e3537252a5c80","tree":"768e21fd","releasedPaths":["vercel.json","public/releases/ecosystem-release-registry.json"],"lockedUntouchedPath":"src/lib/ecosystemCatalog.js"},
+  "wallet": {"requestParent":"5a0dcf1fe440cd47a95e82ae4606a812914b2ab1","sourceCommit":"fb443431555bed7324b3c2e1fb37aab982a8e243","artifactEvidenceCommit":"8190b1b7b8a3b6258d52814445e9fbb285877fcd","branch":"codex/wallet-web-pwa-extensions-20260813","worktree":"/tmp/ynx-wallet-hosting-request.ei3AVH/repo"},
+  "websiteCandidate": {
+    "repository":"https://github.com/JiahaoAlbus/YNX-Chain-website.git",
+    "worktree":"/private/tmp/ynx-wallet-artifact-hosting-p012/website-local",
+    "branch":"codex/wallet-web-artifact-hosting-20260823",
+    "baseCommit":"85c63fa0df6064f0b71d4681549cc740c4339bf4",
+    "baseTree":"669b5864894a5e75a0dd7c05f4a761c9bb249fb9",
+    "candidateCommit":"708235be8eb8d0aaa7967274618ff935d65c5a4b",
+    "candidateTree":"c9cbc539f2095f1c08649f66276537a2a499f97d",
+    "changedPaths":["public/releases/ecosystem-release-registry.json","vercel.json"],
+    "vercelJson":{"gitBlobSha1":"3b1f09e701c68e1161e7f60da4cdf35e6324c333","bytes":12267,"sha256":"125f2fb8f4214491d25e96a27a169ef125f08e2742d252d73ebe114e1d286e72"},
+    "registry":{"gitBlobSha1":"ebe24b03ca371b28bdc2796f12c1b8b7f6e125c3","bytes":6675,"sha256":"12379ab196ec50e7950b72096ad5a0213101e9a8b1046d3b84628b4384268aa7"},
+    "catalog":{"baseBlobSha1":"665dae0cd7efd32726b0a648d20142636d7fe38e","candidateBlobSha1":"665dae0cd7efd32726b0a648d20142636d7fe38e","untouched":true},
+    "incrementalBundle":{"path":"/private/tmp/ynx-wallet-artifact-hosting-p012/website-candidate-incremental.bundle","bytes":1430,"sha256":"7829d04064337b270218c916a2ee065271985264e3c1de641ced430f0cbe1a3d","embeddedBase64InCommandObject":true,"verifyPassed":true},
+    "patch":{"path":"/private/tmp/ynx-wallet-artifact-hosting-p012/website-candidate.patch","bytes":5938,"sha256":"c17d427b26dbbcc8d295def1ededbabc39c142221f6f041becbb14266ed93002"},
+    "npmBuild":{"passed":true,"viteModules":1627,"authorityRoutes":15,"indexNowUrls":44},
+    "pushed":false,
+    "deployed":false
+  },
+  "frozenObjects": {
+    "commands":{"path":"release/integration/wallet-web-public-artifact-hosting-20260823/execution-command-objects-successor.json","bytes":10023,"sha256":"951a157e96945d7bb1bc84d2ba9c993c2f09d363fb99bb34fc48f38c62fb9442"},
+    "fixture":{"path":"release/integration/wallet-web-public-artifact-hosting-20260823/verify-execution-command-fixtures.mjs","bytes":8808,"sha256":"9d8368b8069bafbf4ddcaa999c5353baa4600e6565c2d100c5af417b220614d0"}
+  },
+  "terminalTests": {
+    "carrierSelfAndTamper":"PASS",
+    "rollbackFullGet":"3/3 PASS",
+    "successorPublicNegative":"3/3 PASS; hosted=false",
+    "websiteJson":"2/2 PASS",
+    "websiteBuild":"PASS",
+    "commandObjectJson":"PASS",
+    "bundleRoundTrip":"PASS",
+    "actualShellSuccessFixture":"PASS",
+    "blobReceiptRewriteBinding":"3/3 PASS",
+    "overwriteDisabled":"3/3 PASS",
+    "rollbackFixture":"rollback once + exact cleanup PASS",
+    "scopeFixture":"only vercel.json and registry; catalog/Shop/product actions absent",
+    "initialFixtureFailure":"JavaScript template interpolation rejected before shell execution; corrected to positional shift; no production command or mutation occurred"
+  },
+  "actionsPerformed": {"walletRemotePush":false,"websiteRemotePush":false,"blobUpload":false,"websiteDeploy":false,"websitePromote":false,"websiteRollback":false,"alias":false,"browser":false,"install":false,"account":false,"signature":false,"transaction":false},
+  "truth": {"commandObjectsFrozen":true,"websiteCandidateFrozen":true,"downloadHosted":false,"productionSigned":false,"storeReleased":false,"installedLocal":false,"publicParity":false}
+}

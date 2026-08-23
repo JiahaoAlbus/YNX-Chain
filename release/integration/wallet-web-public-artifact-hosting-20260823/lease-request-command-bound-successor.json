@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "requestType": "WALLET_ARTIFACT_ONLY_PUBLIC_HOSTING_COMMAND_BOUND_SINGLE_USE",
+  "requestState": "REQUESTED_NOT_ISSUED",
+  "supersedesRequestCommit": "5a0dcf1fe440cd47a95e82ae4606a812914b2ab1",
+  "resolvedBlocker": "WALLET_ARTIFACT_HOSTING_WEBSITE_EXECUTION_COMMAND_OBJECTS_UNFROZEN",
+  "requestedLeaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-web-artifact-hosting-command-bound-20260823T093921Z",
+  "requestedAt": "2026-08-23T09:39:21Z",
+  "requestedExpiresAt": "2026-08-23T10:09:21Z",
+  "requestedDurationSeconds": 1800,
+  "owner": "website",
+  "executorThreadId": "019fa947-b618-7500-a4ec-dc6ae812a011",
+  "centralAuthority": {"p0":"P0-011","commit":"3cfa0108fd1f22105d19b3e4e64e3537252a5c80","tree":"768e21fd","heavyRequired":true},
+  "exactCommandObjects": {"path":"release/integration/wallet-web-public-artifact-hosting-20260823/execution-command-objects-successor.json","bytes":10023,"sha256":"951a157e96945d7bb1bc84d2ba9c993c2f09d363fb99bb34fc48f38c62fb9442"},
+  "exactFixture": {"path":"release/integration/wallet-web-public-artifact-hosting-20260823/verify-execution-command-fixtures.mjs","bytes":8808,"sha256":"9d8368b8069bafbf4ddcaa999c5353baa4600e6565c2d100c5af417b220614d0","terminalResult":"PASS"},
+  "websiteExecution": {"worktree":"/private/tmp/ynx-wallet-artifact-hosting-p012/website-local","branch":"codex/wallet-web-artifact-hosting-20260823","baseCommit":"85c63fa0df6064f0b71d4681549cc740c4339bf4","baseTree":"669b5864894a5e75a0dd7c05f4a761c9bb249fb9","candidateCommit":"708235be8eb8d0aaa7967274618ff935d65c5a4b","candidateTree":"c9cbc539f2095f1c08649f66276537a2a499f97d","candidateBundleSha256":"7829d04064337b270218c916a2ee065271985264e3c1de641ced430f0cbe1a3d","allowedPaths":["vercel.json","public/releases/ecosystem-release-registry.json"],"forbiddenPath":"src/lib/ecosystemCatalog.js"},
+  "projectAndBlobLocks": {"scope":"jiahaoalbus-projects","projectId":"prj_tPB0KDTFohQ9FXZAzq25mYFWkbNa","projectName":"ynx-web4-website-new","blobStoreId":"store_DygGjsbXsiew8L6U","blobStoreName":"ynx-official-downloads","blobPathnames":["downloads/wallet-web/sha256-040e1f03956b6fb0a9298c8af5b76a5ed2895de0e5510a6208543bed9e3df055/ynx-wallet-web-pwa-0.1.0.zip","downloads/wallet-web/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip","downloads/wallet-web/sha256-29fe890612ebe9518a99d80492b44cb222c5e9e37ce8d761ebc84b8243b5a896/ynx-wallet-firefox-0.1.0.zip"]},
+  "orderedExecution": [
+    "Fresh-read this exact request commit, Heavy, expiry, project/blob/path locks, Website base/candidate bundle and clean worktree.",
+    "Run carrier self/tamper, rollback-baseline, successor public-negative and actual-shell fixture gates.",
+    "Execute the three literal upload argv objects once with overwrite=false; validate each typed receipt URL/pathname and full Blob GET bytes/SHA/MIME/attachment.",
+    "Require all three receipt URLs to match the frozen Website rewrite destinations, then execute the literal force=false Website push and build argv.",
+    "Execute the literal deploy argv with skip-domain, validate its typed receipt, and verify candidate official paths require public,max-age=31536000,immutable plus exact full bodies before promote.",
+    "Bind only the validated deploy receipt URL into the frozen promote argv slot and execute once.",
+    "Verify official www paths and registry. Any failure executes the literal rollback once and exact temp cleanup, then releases fail-closed without retry."
+  ],
+  "receiptPolicy": {"blobReceiptUnknownOrMismatch":"FAIL_CLOSED_BEFORE_WEBSITE_PUSH_BUILD_DEPLOY","deployReceiptUnknownOrMismatch":"FAIL_CLOSED_BEFORE_PROMOTE","candidateRegistryHostedTrueIsConditionalUntilRuntimeGate":true,"currentDownloadHosted":false},
+  "newPackageOfficialGate": {"status":200,"redirects":false,"contentType":"application/zip","contentDisposition":"attachment","contentLengthExact":true,"cacheControlRequiredTokens":["public","max-age=31536000","immutable"],"xContentTypeOptions":"nosniff","fullBodyBytesExact":true,"fullBodySha256Exact":true},
+  "rollback": {"deploymentId":"dpl_574RBu3xBzE4Bh1jygv2YJruAYfz","commandObject":"rollbackCommand","baselineContract":"release/integration/wallet-web-public-artifact-hosting-20260823/rollback-header-contract-successor.json","cacheControlRequiredTokens":["public","max-age=31536000"],"immutableRequired":false,"maxExecutions":1},
+  "forbidden": ["mutation before lease","retry","vercel alias command","blob overwrite/delete","catalog edit","Shop action","unrelated product action","browser or extension install","account request","signing","typed data","transaction","claiming unsigned/store/installed/public parity"],
+  "truthBeforeExecution": {"sourceAndCandidateFrozen":true,"commandObjectsFrozen":true,"websitePushed":false,"blobUploaded":false,"deployed":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false,"installedLocal":false,"publicParity":false}
+}
