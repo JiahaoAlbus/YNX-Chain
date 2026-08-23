@@ -15,6 +15,7 @@ public enum WalletConnectRelayRuntimeError: String, Error, Equatable, Sendable {
   case sessionUnavailable = "WALLETCONNECT_SESSION_UNAVAILABLE"
   case unsupportedChain = "WALLETCONNECT_CHAIN_UNSUPPORTED"
   case unsupportedMethod = "WALLETCONNECT_METHOD_UNSUPPORTED"
+  case invalidParameters = "WALLETCONNECT_PARAMETERS_INVALID"
   case invalidExecutionResult = "WALLETCONNECT_EXECUTION_RESULT_INVALID"
 }
 
@@ -230,8 +231,15 @@ public final class WalletConnectRelayRuntime: ObservableObject {
     case "eth_requestAccounts":
       response = AnyCodable([signer.approvedAccount.lowercased()])
     case "wallet_addEthereumChain", "wallet_switchEthereumChain":
-      guard request.params.stringRepresentation.lowercased().contains(WalletConnectV2Policy.chainHex) else {
+      do {
+        try WalletConnectV2Policy.validateChainManagementRequest(
+          method: request.method,
+          paramsJSON: request.params.stringRepresentation
+        )
+      } catch WalletConnectV2PolicyError.unsupportedNamespace {
         throw WalletConnectRelayRuntimeError.unsupportedChain
+      } catch {
+        throw WalletConnectRelayRuntimeError.invalidParameters
       }
       response = AnyCodable(Optional<String>.none)
     case "personal_sign", "eth_signTypedData_v4", "eth_sendTransaction":
@@ -319,6 +327,21 @@ public final class WalletConnectRelayRuntime: ObservableObject {
   }
 
   private func receive(_ request: Request) {
+    do {
+      try validate(request)
+    } catch {
+      status = "WalletConnect request rejected by session policy"
+      let responseError = Self.jsonRPCError(for: error)
+      Task { [weak self] in
+        guard let self else { return }
+        try? await self.client.respond(
+          topic: request.topic,
+          requestId: request.id,
+          response: .error(responseError)
+        )
+      }
+      return
+    }
     let id = request.id.string
     requestObjects[id] = request
     requests = requestObjects.values.map { request in
@@ -352,7 +375,9 @@ public final class WalletConnectRelayRuntime: ObservableObject {
         paramsJSON: request.params.stringRepresentation
       )
     }.sorted { $0.id < $1.id }
-    sessions = client.getSessions().map { session in
+    sessions = client.getSessions().filter { session in
+      (try? Self.validateRestoredSession(session, approvedAccount: signer.approvedAccount)) != nil
+    }.map { session in
       WalletConnectSessionViewState(
         topic: session.topic,
         dappName: session.peer.name,
@@ -368,15 +393,59 @@ public final class WalletConnectRelayRuntime: ObservableObject {
     guard request.chainId.absoluteString == WalletConnectV2Policy.chain else {
       throw WalletConnectRelayRuntimeError.unsupportedChain
     }
-    guard WalletConnectV2Policy.supportedMethods.contains(request.method) else {
-      throw WalletConnectRelayRuntimeError.unsupportedMethod
-    }
-    guard let session = client.getSessions().first(where: { $0.topic == request.topic }),
-          session.accounts.contains(where: {
-            $0.blockchain.absoluteString == WalletConnectV2Policy.chain
-              && $0.address.lowercased() == signer.approvedAccount.lowercased()
-          }) else {
+    guard let session = client.getSessions().first(where: { $0.topic == request.topic }) else {
       throw WalletConnectRelayRuntimeError.sessionUnavailable
+    }
+    do {
+      try WalletConnectV2Policy.authorizeSessionRequest(
+        method: request.method,
+        chainID: request.chainId.absoluteString,
+        surfaces: Self.sessionSurfaces(session),
+        approvedAccount: signer.approvedAccount
+      )
+    } catch WalletConnectV2PolicyError.methodNotApproved {
+      throw WalletConnectRelayRuntimeError.unsupportedMethod
+    } catch WalletConnectV2PolicyError.unsupportedNamespace {
+      throw WalletConnectRelayRuntimeError.unsupportedChain
+    } catch {
+      throw WalletConnectRelayRuntimeError.sessionUnavailable
+    }
+  }
+
+  private static func sessionSurfaces(_ session: Session) -> [WalletConnectV2SessionSurface] {
+    session.namespaces.values.map { namespace in
+      WalletConnectV2SessionSurface(
+        chains: Set(
+          (namespace.chains ?? []).map(\.absoluteString)
+            + namespace.accounts.map { $0.blockchain.absoluteString }
+        ),
+        accounts: Set(namespace.accounts.map { $0.absoluteString.lowercased() }),
+        methods: namespace.methods,
+        events: namespace.events
+      )
+    }
+  }
+
+  private static func validateRestoredSession(
+    _ session: Session,
+    approvedAccount: String
+  ) throws {
+    try WalletConnectV2Policy.validateRestoredSession(
+      surfaces: sessionSurfaces(session),
+      approvedAccount: approvedAccount
+    )
+  }
+
+  private static func jsonRPCError(for error: Error) -> JSONRPCError {
+    switch error {
+    case WalletConnectRelayRuntimeError.unsupportedMethod:
+      return JSONRPCError(code: 4200, message: "Method not approved for this session")
+    case WalletConnectRelayRuntimeError.unsupportedChain:
+      return JSONRPCError(code: 4901, message: "YNX Testnet chain not approved")
+    case WalletConnectRelayRuntimeError.invalidParameters:
+      return JSONRPCError(code: -32602, message: "WalletConnect request parameters are invalid")
+    default:
+      return JSONRPCError(code: 4100, message: "Session authority unavailable")
     }
   }
 

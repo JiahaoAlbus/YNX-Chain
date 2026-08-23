@@ -94,4 +94,60 @@ final class WalletConnectV2PolicyTests: XCTestCase {
       XCTAssertEqual($0 as? WalletConnectV2PolicyError, .unsupportedNamespace)
     }
   }
+
+  func testRestoredSessionAndRequestRemainBoundToApprovedSurface() throws {
+    let approved = WalletConnectV2SessionSurface(
+      chains: [WalletConnectV2Policy.chain],
+      accounts: ["eip155:6423:\(account)"],
+      methods: ["eth_requestAccounts", "personal_sign"],
+      events: ["accountsChanged", "disconnect"]
+    )
+    XCTAssertNoThrow(try WalletConnectV2Policy.validateRestoredSession(
+      surfaces: [approved], approvedAccount: account
+    ))
+    XCTAssertNoThrow(try WalletConnectV2Policy.authorizeSessionRequest(
+      method: "personal_sign", chainID: WalletConnectV2Policy.chain,
+      surfaces: [approved], approvedAccount: account
+    ))
+    XCTAssertThrowsError(try WalletConnectV2Policy.authorizeSessionRequest(
+      method: "eth_sendTransaction", chainID: WalletConnectV2Policy.chain,
+      surfaces: [approved], approvedAccount: account
+    )) {
+      XCTAssertEqual($0 as? WalletConnectV2PolicyError, .methodNotApproved)
+    }
+
+    let widened = WalletConnectV2SessionSurface(
+      chains: [WalletConnectV2Policy.chain, "eip155:1"],
+      accounts: ["eip155:6423:\(account)"],
+      methods: ["personal_sign"], events: []
+    )
+    XCTAssertThrowsError(try WalletConnectV2Policy.validateRestoredSession(
+      surfaces: [widened], approvedAccount: account
+    )) {
+      XCTAssertEqual($0 as? WalletConnectV2PolicyError, .invalidSession)
+    }
+  }
+
+  func testChainManagementRequestRequiresStructuralYNXParameters() throws {
+    XCTAssertNoThrow(try WalletConnectV2Policy.validateChainManagementRequest(
+      method: "wallet_switchEthereumChain",
+      paramsJSON: #"[{"chainId":"0x1917"}]"#
+    ))
+    XCTAssertNoThrow(try WalletConnectV2Policy.validateChainManagementRequest(
+      method: "wallet_addEthereumChain",
+      paramsJSON: #"[{"chainId":"0x1917","chainName":"YNX Testnet","nativeCurrency":{"decimals":18,"name":"YNX Testnet","symbol":"YNXT"},"rpcUrls":["https://rpc.ynxweb4.com/evm"]}]"#
+    ))
+    XCTAssertThrowsError(try WalletConnectV2Policy.validateChainManagementRequest(
+      method: "wallet_switchEthereumChain",
+      paramsJSON: #"[{"chainId":"0x1","note":"contains 0x1917"}]"#
+    )) {
+      XCTAssertEqual($0 as? WalletConnectV2PolicyError, .unsupportedNamespace)
+    }
+    XCTAssertThrowsError(try WalletConnectV2Policy.validateChainManagementRequest(
+      method: "wallet_addEthereumChain",
+      paramsJSON: #"[{"chainId":"0x1917","rpcUrls":["https://evil.example/rpc"]}]"#
+    )) {
+      XCTAssertEqual($0 as? WalletConnectV2PolicyError, .invalidChainRequest)
+    }
+  }
 }
