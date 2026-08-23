@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "p0-finance-deployment-terminal-evidence@1",
+  "kind": "FINANCE_P0288_SINGLE_USE_EXECUTION_FAIL_CLOSED",
+  "terminalStatus": "CONSUMED_RELEASED_FAILED_CLOSED_LOCAL_OUTPUT_PRECREATION_BEFORE_SSH",
+  "sourceRequest": {
+    "commit": "7780b583dcf79dd9c746f16d2a3082047d80862f",
+    "tree": "20467cfa09275c90fbe26dc7a878050a9df012fc",
+    "path": "apps/finance/evidence/finance-p0288-fresh-parent-rollback-first-deployment-request-20260824.json",
+    "blob": "d74cd93e79f8b44c7376e878ec4ae4849c1a73ed",
+    "sha256": "18ee30452a806d9f2f4d87fa291f8e353fcfe6fdd0877effa0c94bf08a137a96"
+  },
+  "execution": {
+    "literalArgvExecutedOnce": true,
+    "retryAllowed": false,
+    "retryPerformed": false,
+    "outerWrapperFault": "The outer process wrapper opened the lease-declared stdout and stderr paths before spawning the frozen transport. The frozen transport correctly requires stdout, stderr, receipt and receipt.pending to be absent before it may invoke SSH.",
+    "localExitStatus": 65,
+    "remoteSshInvocationCount": 0,
+    "deployInvocationCount": 0
+  },
+  "terminalFiles": {
+    "stdout": {
+      "path": "/tmp/ynx-finance-p0288-finance-phase3-20260824t000000z.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "stderr": {
+      "path": "/tmp/ynx-finance-p0288-finance-phase3-20260824t000000z.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "transportReceipt": "absent"
+  },
+  "productionTruth": {
+    "remoteMutationPerformed": false,
+    "serviceReleaseEnvUnitCaddyChanged": false,
+    "accountSignatureOrTransactionAction": false,
+    "publicRuntimeClaim": false
+  },
+  "successorExecutionBoundary": {
+    "requiresWhollyNewCentralLease": true,
+    "requiresFreshRuntimeTuplesAndNewPathAbsenceReceipts": true,
+    "mayNotReuseP0288": true,
+    "outerCapture": "Capture the process exit code outside the literal argv without shell redirection, file precreation or any operation on the lease-declared stdout, stderr, receipt or receipt.pending paths.",
+    "transport": "Invoke the Central-signed literal argv directly once; the frozen transport exclusively owns the declared output and receipt paths."
+  },
+  "requiredCentralAction": "Atomically release P0-288 as consumed/nonreusable with Heavy=null. Do not infer any remote state from this local pre-SSH fail-closed terminal."
+}
