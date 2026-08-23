@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "kind": "FINANCE_PHASE3_STDIN_SUDO_ROLLBACK_FIRST_DEPLOYMENT_LEASE_SUCCESSOR",
+  "requestState": "PENDING_CENTRAL_SINGLE_USE_LEASE_REVIEW",
+  "supersedes": {
+    "ownerRequestCommit": "c560497db9c78a1106ab7f0d52d9555652e76cc4",
+    "ownerRequestTree": "e8251f0c0a88b6f60d52d5eb4463dd7c5ed9d0bb",
+    "requestSha256": "18130afa5aeabafa814e0148eb678a3626c2efabb1efd30915c46fa276d5525b",
+    "centralDecision": "NO_GO_FINANCE_PHASE3_STDIN_SUDO_BOOTSTRAP_COMMAND_OBJECT_UNFROZEN",
+    "correction": "Freeze and fixture-test the exact stdin/sudo bootstrap, atomic remote executor and lease placement, deploy-once boundary, retained rollback pair and rollback argv."
+  },
+  "owner": {
+    "branch": "codex/p0-finance-wallet-connectivity-20260820",
+    "implementationCommit": "cc82b6cd98d66e836ecbffec12c9e11bbc81027b",
+    "implementationTree": "054d03edcd4419e642668ba7a4cb2344d3d8a1bb",
+    "rule": "This successor evidence commit must be a non-self-referential child of the reviewed implementation."
+  },
+  "acceptedPrerequisite": {
+    "p0236CentralCommit": "0e53348c4635aed2dd663c8c8e1734f61b46adb8",
+    "p0236CentralTree": "06f6bd991c13caa3118c9024939ab281a11c0c93",
+    "p0236TerminalLeaseSha256": "bc97bd1ef875f7d4e9156fea4211015fbdfaa7685e42e218a0cbcd570ef308f0",
+    "p0236Status": "CONSUMED_RELEASED_SUCCESS_FINANCE_PHASE2B_CANDIDATE_ENV_PREPARATION_ONLY",
+    "heavyNullAndIdle": true
+  },
+  "commandObjects": {
+    "bootstrap": {
+      "path": "apps/finance/scripts/finance-phase3-stdin-deployment-bootstrap.sh",
+      "blob": "1e606b976f16d54bc2db14beecdba7d673d2848d",
+      "bytes": 5277,
+      "sha256": "c25e4bc3d41a1677d00937467e2af103bcfcf35df8c21a0558613e31c74edf83",
+      "role": "stdin transport, exact placement and one deploy invocation"
+    },
+    "bootstrapFixture": {
+      "path": "apps/finance/scripts/test-finance-phase3-stdin-deployment-bootstrap-fixture.mjs",
+      "blob": "80005424dc6c8c91c5ced74c9488157c4d4aeca8",
+      "bytes": 3916,
+      "sha256": "54aa6a9fe92ed964309ebb46c1a755cf49ee18365dcd4ee98ea3f53b739cb5fe",
+      "ownerRerun": "PASS",
+      "coverage": ["success exact placement and modes", "malformed stdin cleanup", "foreign carrier refusal", "symlink parent preservation", "deploy failure retains exact pair and frozen manual rollback succeeds"]
+    },
+    "productionExecutor": {
+      "path": "apps/finance/scripts/finance-production-rollback-first.sh",
+      "bytes": 9078,
+      "sha256": "7d0100e593c337c9ca0245de930f49233ba79e35c2b1127e5eb83e022b6c9b88",
+      "ownerCommandFixture": "PASS",
+      "ownerActualShellFixture": "PASS"
+    }
+  },
+  "framingContract": {
+    "stdin": "the raw bytes of exactly one Central-signed non-secret FINANCE_ROLLBACK_FIRST_PRODUCTION_DEPLOYMENT JSON object; no length prefix, suffix or second frame",
+    "bootstrapTransport": "base64 of the exact reviewed bootstrap is argv[1] to the outer sudo bash decoder",
+    "executorTransport": "base64 of the exact reviewed production executor is bootstrap argument 12",
+    "leaseBytesAndSha": "the final two bootstrap arguments bind exact raw stdin bytes and SHA-256",
+    "secretValuesPresent": false
+  },
+  "remotePlacementContract": {
+    "freshRequired": [
+      "/opt/ynx and /opt/ynx/leases exact directory tuples",
+      "/opt/ynx/leases/finance absent and not a symlink",
+      "unique lease-id executor, executor.pending, JSON and JSON.pending paths absent and not symlinks",
+      "P0-236 carrier exact tuple and exact content set candidate.tgz plus finance.env",
+      "candidate archive and environment exact tuple/bytes/SHA"
+    ],
+    "executorPath": "/opt/ynx/leases/finance/<central-signed-id>.executor.sh",
+    "leasePath": "/opt/ynx/leases/finance/<central-signed-id>.json",
+    "modes": {"parent": "0750", "executor": "0700", "lease": "0600"},
+    "atomicity": "exclusive pending files are identity-captured, exact bytes/SHA verified, then atomically renamed; partial placement cleans only matching created identities and removes only an exact empty created parent",
+    "semanticLeaseChecks": {"lease.signed": true, "lease.kind": "FINANCE_ROLLBACK_FIRST_PRODUCTION_DEPLOYMENT", "lease.id": "must equal the Central-signed basename"}
+  },
+  "executionContract": {
+    "primary": "<exact placed executor> deploy <exact placed lease>",
+    "primaryAttemptLimit": 1,
+    "retryAllowed": false,
+    "failureBehavior": "Once deploy begins the bootstrap disables placement cleanup and retains the exact executor/lease pair. The production executor owns first-failure rollback through its existing EXIT trap.",
+    "frozenManualRollback": "<exact placed executor> rollback <exact placed lease>",
+    "manualRollbackLimit": 1,
+    "manualRollbackCondition": "only a Central-authorized terminal recovery after the primary failure or failed post-switch verification; never a deploy retry",
+    "successReceipts": ["deploy parent path/tuple", "executor path/tuple/bytes/SHA", "lease path/tuple/bytes/SHA", "literal rollback argv0/argv1/argv2"]
+  },
+  "candidate": {
+    "sourceCommit": "7824af677dd052d20321431381523ab302614d98",
+    "sourceTree": "3db34ee2397a49852bbdf15e3841e7c9cecf9444",
+    "archivePath": "/opt/ynx/stage/finance/p0228-finance-phase1-20260822T234100Z/candidate.tgz",
+    "archiveTuple": "64770:4620871:0:0:600:1:3937491:regular file",
+    "archiveBytes": 3937491,
+    "archiveSha256": "d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d",
+    "environmentPath": "/opt/ynx/stage/finance/p0228-finance-phase1-20260822T234100Z/finance.env",
+    "environmentTuple": "64770:4620873:0:986:640:1:1545:regular file",
+    "environmentBytes": 1545,
+    "environmentSha256": "ceec9fba17116e087d6e2a9cb160808b39e027e687a7ad561174a40daf58b71a",
+    "environmentValuesReadOrRecorded": false
+  },
+  "centralMustFreezeAtIssue": [
+    "exact Central-signed production lease bytes/SHA/expiry/id and all fresh live release/binary/env/unit/Caddy/state/service/public assertions from the predecessor request",
+    "exact bootstrap and executor blobs/bytes/SHA plus their base64 derivations",
+    "complete literal outer SSH argv, decoder command, all 16 bootstrap arguments and exact stdin path",
+    "one primary SSH/deploy attempt and at most one separately conditioned rollback SSH; no retry",
+    "post-read and terminal release rules for success, restored failure, or recovery blocker"
+  ],
+  "truth": {
+    "bootstrapSourceImplemented": true,
+    "bootstrapFixturePassed": true,
+    "phase3LeaseIssued": false,
+    "productionSsh": false,
+    "deployed": false,
+    "publicVerified": false,
+    "account": false,
+    "signature": false,
+    "transaction": false
+  }
+}
