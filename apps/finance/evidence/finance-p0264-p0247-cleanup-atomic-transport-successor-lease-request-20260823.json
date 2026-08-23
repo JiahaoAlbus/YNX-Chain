@@ -1,0 +1,227 @@
+{
+  "schemaVersion": 1,
+  "kind": "FINANCE_P0264_P0247_CLEANUP_ATOMIC_TRANSPORT_SUCCESSOR_LEASE_REQUEST",
+  "requestState": "AWAITING_WHOLELY_NEW_CENTRAL_SINGLE_USE_LEASE",
+  "supersedes": {
+    "requestCommit": "18e17604ad10b59097dbbf63e6f2fc128a8292d2",
+    "requestTree": "e69daa16b00e9b47ca1ebf77df0e62a7f8bed980",
+    "requestPath": "apps/finance/evidence/finance-p0253-p0247-complete-residue-cleanup-only-lease-request-20260823.json",
+    "requestBlob": "ae393d0b3f291b7c31983247ab364824c396926d",
+    "requestBytes": 7671,
+    "requestSha256": "18100f1f455f624f011b7656c9e805c2c1430e7a7e38e102269cecb9a04f3b43",
+    "centralDecision": "NO_GO_FINANCE_P0263_CLEANUP_ATOMIC_TRANSPORT_COMMAND_OBJECT_UNAVAILABLE",
+    "productionMutationUnderPriorRequest": false
+  },
+  "centralAcceptedReadonlyBasis": {
+    "releaseCommit": "b14ff4fca1aa14d81a038f4e07d206482e77c651",
+    "releaseTree": "04c57018941bb333ca0f0bd2e330736c8357eb63",
+    "releaseStatus": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0252_REMOTE_STATE_ZERO_WRITE_INSPECTION",
+    "inspectionEvidenceCommit": "b678621dea98c4ed40da2192ed330100650d4a82",
+    "inspectionEvidenceTree": "3cc9692b8506dcaac89b8b63a17d63ffc55e1e94",
+    "inspectionStdoutSha256": "bfeffd787312d321898cb11a0438a183e24ba01e33ffc59ee36dbfa01f774b3c",
+    "heavyAtRelease": null
+  },
+  "successorImplementation": {
+    "commit": "ef4036afebf61a8e02e2bfe8c9b11cdb8ce54fa5",
+    "tree": "9deacfc23ecec95220611e682dcceed1e5602d05",
+    "objects": [
+      {
+        "role": "deterministicSecretSafeCarrierBuilder",
+        "path": "apps/finance/scripts/build-finance-p0264-cleanup-atomic-carrier.mjs",
+        "blob": "3ffd40ba933e68da438127d070c43f8d5f679497",
+        "bytes": 1033,
+        "sha256": "a865bd19d1756c862b5f7d7c666cfbdc6667af3162ecd2d327b45309ddd27264"
+      },
+      {
+        "role": "remoteAtomicPlacementAndSingleInvocationBootstrap",
+        "path": "apps/finance/scripts/finance-p0264-cleanup-atomic-transport-bootstrap.sh",
+        "blob": "2e73994c0d7046428b8afcb0205601aac3685e1c",
+        "bytes": 6279,
+        "sha256": "f2b09b6eb8df7061e2985caa271f7ad0fa02b12132125069ae72d3636bdfabbd"
+      },
+      {
+        "role": "literalOneAttemptLocalCommandObject",
+        "path": "apps/finance/scripts/finance-p0264-cleanup-literal-transport-command.sh",
+        "blob": "90113c3df529f2359bd25584a426e22681a58004",
+        "bytes": 2222,
+        "sha256": "1f3dda14a318186c45a8376cffdf49e3cc7c22f4604a43eda03d6666bf19c40f"
+      },
+      {
+        "role": "actualShellAtomicTransportFixture",
+        "path": "apps/finance/scripts/test-finance-p0264-cleanup-atomic-transport-fixture.mjs",
+        "blob": "d9e7b821c55bff6b2f9dd7e0d312c680c082f6c2",
+        "bytes": 7252,
+        "sha256": "b6da0020d571f49c259e4529daa0b35b40cb802ef66fcd083ec4b0cb4f40c23a"
+      }
+    ]
+  },
+  "retainedReviewedCleanupExecutor": {
+    "implementationCommit": "45ed2f6e983d4c5dd3af734c8c50e53c4794f53e",
+    "implementationTree": "6b4f30dc39a4c5576480dddff167e67fdb059963",
+    "path": "apps/finance/scripts/finance-p0247-residue-cleanup.sh",
+    "blob": "36109608d4bed450430971bb9d3f70cc223a26a7",
+    "bytes": 8004,
+    "sha256": "c046a07889f481de68c8125f57e6f2dc409a63b7c97a6747b1a954df42749079",
+    "fixturePath": "apps/finance/scripts/test-finance-p0247-residue-cleanup-fixture.mjs",
+    "fixtureSha256": "85e28e7402186e56dcff5733c25b94bc53831692a5b31d3d7afd7b543ea9fae6"
+  },
+  "testResults": {
+    "atomicTransportActualShell": "PASS",
+    "residueCleanupActualShell": "PASS",
+    "bootstrapBashSyntax": "PASS",
+    "commandObjectBashSyntax": "PASS",
+    "builderNodeSyntax": "PASS",
+    "fixtureNodeSyntax": "PASS",
+    "diffCheck": "PASS",
+    "secretAndTraceAudit": "PASS",
+    "coverage": [
+      "one literal SSH invocation and one cleanup executor invocation",
+      "safe non-reserved transport exit-status capture into a no-clobber local status receipt",
+      "same-parent pending write, exact bytes/SHA/mode/inode validation and atomic rename",
+      "post-rename target inode equals captured pending inode before invocation",
+      "successful and nonzero cleanup invocation both identity-clean the new control pair",
+      "foreign existing target, parent symlink substitution and corrupt carrier fail closed",
+      "same-bytes same-mode post-rename new-inode substitution is preserved and cleanup is not invoked",
+      "signed lease body is never printed by builder, command object or terminal receipt"
+    ]
+  },
+  "requestedCentralSignedObjects": {
+    "leaseIdPattern": "p0264-finance-p0247-cleanup-<Central timestamp>",
+    "leaseKind": "FINANCE_P0247_RESIDUE_CLEANUP_ONLY",
+    "leaseSigned": true,
+    "leaseP0247Id": "p0247-finance-phase3-20260823T073800Z",
+    "leaseLocalCarrierPath": "/tmp/ynx-finance-p0264-cleanup-atomic.carrier",
+    "leaseLocalSignedJsonPath": "/tmp/ynx-finance-p0264-cleanup-signed.json",
+    "stdoutPath": "/tmp/ynx-finance-p0264-cleanup-terminal.stdout",
+    "stderrPath": "/tmp/ynx-finance-p0264-cleanup-terminal.stderr",
+    "statusPath": "/tmp/ynx-finance-p0264-cleanup-terminal.stdout.status",
+    "allLocalReceiptPathsMustStartAbsentAndUseNoClobber": true,
+    "carrierMustBeBuiltOnceFromExactReviewedExecutorAndExactCentralSignedLease": true,
+    "carrierBuilderOutputMustExcludeFrameBodies": true,
+    "centralMustFreezeLeaseBytesSha256CarrierBytesSha256AndExactId": true
+  },
+  "literalCommandContract": {
+    "executable": "/bin/bash",
+    "commandObjectAbsolutePath": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance/apps/finance/scripts/finance-p0264-cleanup-literal-transport-command.sh",
+    "argv": [
+      "/tmp/ynx-finance-p0264-cleanup-atomic.carrier",
+      "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance/apps/finance/scripts/finance-p0264-cleanup-atomic-transport-bootstrap.sh",
+      "6279",
+      "f2b09b6eb8df7061e2985caa271f7ad0fa02b12132125069ae72d3636bdfabbd",
+      "<Central exact p0264 lease id>",
+      "64770:4594822:0:0:750:2:4096:directory",
+      "c046a07889f481de68c8125f57e6f2dc409a63b7c97a6747b1a954df42749079",
+      "<Central signed cleanup lease SHA256>",
+      "<deterministic carrier SHA256>",
+      "/tmp/ynx-finance-p0264-cleanup-terminal.stdout",
+      "/tmp/ynx-finance-p0264-cleanup-terminal.stderr"
+    ],
+    "internalSshAttempts": 1,
+    "retryAllowed": false,
+    "remoteBootstrapDeliveredAsBase64ArgvNotStdin": true,
+    "stdinIsOnlyExactDeterministicCarrier": true,
+    "remoteCommand": "sudo -n bash -c with a fixed printf %s decoder, then exact bootstrap argv",
+    "priorUnsafePrintfPatternAbsent": true,
+    "transportExitStatus": "captured by if/else into transport_rc, written with a literal printf format into an absent no-clobber local status file, and returned as process exit status"
+  },
+  "newControlObjects": {
+    "parent": {
+      "path": "/opt/ynx/leases/finance",
+      "freshTupleRequired": "64770:4594822:0:0:750:2:4096:directory"
+    },
+    "executor": "/opt/ynx/leases/finance/<exact-p0264-id>.executor.sh",
+    "executorPending": "/opt/ynx/leases/finance/<exact-p0264-id>.executor.sh.pending",
+    "lease": "/opt/ynx/leases/finance/<exact-p0264-id>.json",
+    "leasePending": "/opt/ynx/leases/finance/<exact-p0264-id>.json.pending",
+    "allFourMustStartAbsent": true,
+    "allFourMustEndAbsent": true,
+    "cleanupRule": "remove only if current regular non-symlink inode equals captured created inode and bytes/SHA remain exact; preserve every substituted or foreign object",
+    "postRenameIdentityRecheckRequired": true
+  },
+  "preservedExactP0247Residues": {
+    "placementParentTuple": "64770:4594822:0:0:750:2:4096:directory",
+    "stageParentTuple": "64770:3450041:0:0:750:4:4096:directory",
+    "backupParentTuple": "64770:1481354:0:0:755:10:4096:directory",
+    "releaseParentTuple": "64770:1607576:0:0:755:7:4096:directory",
+    "placedExecutor": {
+      "path": "/opt/ynx/leases/finance/p0247-finance-phase3-20260823T073800Z.executor.sh",
+      "tuple": "64770:4594823:0:0:700:1:15907:regular file",
+      "bytes": 15907,
+      "sha256": "8f9e2ede5418e8f65739f2a5f3af7a78c266474f4c428951d8daf27f20e56315"
+    },
+    "placedLease": {
+      "path": "/opt/ynx/leases/finance/p0247-finance-phase3-20260823T073800Z.json",
+      "tuple": "64770:4594824:0:0:600:1:6829:regular file",
+      "bytes": 6829,
+      "sha256": "49aec85704a6282cab675373f56cb71a240433f3625f08b5e7426bbb1bbfee80"
+    },
+    "stage": {
+      "path": "/opt/ynx/stage/finance/p0247-finance-phase3-20260823T073800Z",
+      "tuple": "64770:4620782:0:0:700:3:4096:directory",
+      "inventorySha256": "61181f33dcf9b11282732fe26f02ad9e3b0f5135dead72ca690606c722d9bf62"
+    },
+    "backup": {
+      "path": "/var/backups/ynx-finance/p0247-finance-phase3-20260823T073800Z",
+      "tuple": "64770:2663604:0:0:700:3:4096:directory",
+      "inventorySha256": "e78ba1c645bfeeffa9d1f373fd2c773326a358c23caca7ad9fd48834b71a3e19"
+    },
+    "executorPendingAbsent": true,
+    "leasePendingAbsent": true,
+    "manualRollbackLeaseAbsent": true,
+    "releaseContainerAbsent": true,
+    "candidateReleaseAbsent": true,
+    "p0251ObjectsAbsent": true
+  },
+  "preservedRuntimeGate": {
+    "currentTuple": "64770:1312291:0:0:777:1:50:symbolic link",
+    "currentTarget": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a",
+    "environmentTuple": "64770:1324724:0:986:640:1:1545:regular file",
+    "environmentSha256": "854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252",
+    "unitSha256": "2e72cdad422a3a714c46d074ea97b725233576cf726dbbfd43e82e99c2c2975b",
+    "caddySha256": "dcf75a7aed315c54632321b8bb80e44c0abc22f6700fadfbfa9a7da21b88a282",
+    "stateAbsent": true,
+    "serviceMainPid": 2241003,
+    "serviceNRestarts": 0,
+    "serviceMustRemainActiveRunning": true,
+    "loopbackAndPublicHealthStatusBytesSha256": "200:485:d1e97a4314acd1ecccf94629d15bd598cb58ff78136b3622ac26d583a82e45c1",
+    "loopbackAndPublicVersionStatusBytesSha256": "200:130:39789776da47e60b7a7df845789e02ebba16707ad8951eb6f27c84c1b40bb226",
+    "mustBeRecheckedBeforeEachDeleteAndAfterFinalAbsence": true
+  },
+  "requestedLease": {
+    "owner": "finance-release-control-plane-cleanup-only",
+    "expiry": "PT30M",
+    "heavySingleUse": true,
+    "freshPrewriteReadbackRequired": true,
+    "exactlyOneLiteralCommandObjectInvocation": true,
+    "exactlyOneSshAttempt": true,
+    "exactlyOneCleanupInvocation": true,
+    "noRetry": true,
+    "successRequires": [
+      "transport process exit 0 and status receipt exact 0",
+      "stderr empty and stdout contains exactly one transport header, cleanupInvocationCount=1, cleanupExitStatus=0 and controlObjectsFinalAbsent=true",
+      "the four exact P0-247 residues are absent",
+      "all four new P0-264 control and pending objects are absent",
+      "release container and candidate remain absent",
+      "old current, env, state, unit, Caddy, service PID/restarts, loopback and public health/version remain exact"
+    ]
+  },
+  "strictForbidden": [
+    "deploy or candidate release creation",
+    "service stop, start, restart or reload",
+    "current, environment, state, unit, Caddy or public mutation",
+    "unbound delete or deletion of a substituted/foreign object",
+    "printing the signed lease body, environment values, credentials, private keys or recovery material",
+    "wallet account request, approval, signature, typed data or transaction"
+  ],
+  "truth": {
+    "centralLeaseIssued": false,
+    "carrierBuiltFromCentralSignedLease": false,
+    "sshExecuted": false,
+    "remoteControlObjectsPlaced": false,
+    "cleanupExecuted": false,
+    "productionMutated": false,
+    "deployed": false,
+    "productsConnected": 0,
+    "singleExecutableBlocker": "CENTRAL_FINANCE_P0264_ATOMIC_TRANSPORT_CLEANUP_ONLY_LEASE_NOT_ISSUED"
+  }
+}
