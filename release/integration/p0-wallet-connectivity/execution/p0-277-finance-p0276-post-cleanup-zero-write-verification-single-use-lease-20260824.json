@@ -5,9 +5,10 @@
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-p0276-post-cleanup-zero-write-verification-20260823T162016Z",
   "owner": "finance-release-control-plane-readonly-verification",
   "executor": "finance-release-control-plane",
-  "status": "ACTIVE_SINGLE_USE",
+  "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0277_P0276_CLEANUP_ZERO_WRITE_VERIFIED",
   "issuedAt": "2026-08-23T16:20:16Z",
   "expiresAt": "2026-08-23T16:50:16Z",
+  "releasedAt": "2026-08-23T16:28:25Z",
   "singleUse": true,
   "reusable": false,
   "productionMutationAllowed": false,
@@ -124,9 +125,38 @@
   },
   "truthBoundary": {
     "readOnlyVerificationOnly": true,
-    "cleanupComplete": false,
+    "cleanupComplete": true,
     "deploymentAuthorized": false,
     "serviceLifecycleAuthorized": false,
     "accountSignTxAllowed": false
+  },
+  "terminalEvidence": {
+    "ownerCommit": "25ae0224c9543c22beaa6cfc306c2bf310428eb0",
+    "ownerTree": "67123ef80c9b7ef5be15a1510ef5c345bf0facbc",
+    "path": "apps/finance/evidence/p0-277-finance-p0276-post-cleanup-zero-write-terminal-20260824.txt",
+    "blob": "bb3f2d9b17d674791e1a83cf5524d3fe25646fc1",
+    "bytes": 3774,
+    "sha256": "a67e0aa74fa1e48ded83209e4bd6fb50570c24be6c0ff486b76903e2184d3732",
+    "sshAttempts": 1,
+    "retryPerformed": false,
+    "exitStatus": 0,
+    "mutationCount": 0,
+    "inspectionComplete": true,
+    "retainedParentEmptyStable": true,
+    "p0272PersistentControlsAbsent": true,
+    "p0276TemporaryControlsAbsent": true,
+    "stageBackupReleaseBaselineExact": true,
+    "currentEnvStateUnitCaddyBaselineExact": true,
+    "servicePid": 2241003,
+    "serviceNRestarts": 0,
+    "loopbackAndPublicBaselineExact": true,
+    "deploymentProven": false,
+    "serviceLifecyclePerformed": false
+  },
+  "nextBoundary": {
+    "p0272DeploymentReusable": false,
+    "cleanupComplete": true,
+    "deploymentLeaseIssued": false,
+    "requiredSuccessor": "Wholly-new Finance rollback-first deployment request and command objects bound to a fresh post-P0-277 production baseline, exact prepared candidate objects, entirely new lease-specific stage/backup/release/control paths, one no-retry execution and separately signed manual rollback boundary"
   }
 }

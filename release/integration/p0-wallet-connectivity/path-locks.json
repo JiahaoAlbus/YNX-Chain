@@ -2052,7 +2052,7 @@
       "sourceTree": "305264da609f9d85d82747a8f8c955b52440e420",
       "evidenceCommit": "d2bbcc37131ef60191efc5e41f7016cd703d55c6",
       "artifactSha256": "64d480e27ff26d420b1ca333337c7e092b09ac5f1bfb1071052f06799a02a801",
-      "productionMutationAllowed": true,
+      "productionMutationAllowed": false,
       "allowedExceptions": [
         "one exact framed stdin SSH transport and one cleanup invocation with no retry",
         "delete only the two exact P0-272 control files after full tuple, SHA, link-count, parent identity and exact-child revalidation",
@@ -2068,20 +2068,21 @@
       "worktree": "/private/tmp/ynx-calendar-control-plane.y8FFQt/repo",
       "taskId": "P0-277",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE_SINGLE_USE",
+      "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0277_P0276_CLEANUP_ZERO_WRITE_VERIFIED",
       "acquiredAt": "2026-08-23T16:20:16Z",
       "expiresAt": "2026-08-23T16:50:16Z",
-      "releasedAt": null,
-      "sourceCommit": "aa4c579449ee5a21086f22ec72d2b0704330fe92",
-      "sourceTree": "32a1a1991f0071eff10a5ca09c93742f8838b7ff",
-      "evidenceCommit": "aa4c579449ee5a21086f22ec72d2b0704330fe92",
-      "artifactSha256": "347a73eef680990bfbc49c919a5523c183f2f74cf262661879c244f3b0268cbf",
+      "releasedAt": "2026-08-23T16:28:25Z",
+      "sourceCommit": "25ae0224c9543c22beaa6cfc306c2bf310428eb0",
+      "sourceTree": "67123ef80c9b7ef5be15a1510ef5c345bf0facbc",
+      "evidenceCommit": "25ae0224c9543c22beaa6cfc306c2bf310428eb0",
+      "artifactSha256": "a67e0aa74fa1e48ded83209e4bd6fb50570c24be6c0ff486b76903e2184d3732",
       "productionMutationAllowed": false,
       "allowedExceptions": [
         "one exact zero-write SSH verification and no retry",
         "output only path classification, tuples, counts, inventory hashes, service fields and HTTP metadata",
         "no cleanup, deploy, rollback, service lifecycle, Caddy or public mutation",
-        "P0-276 remains consumed and cleanup complete remains false until exact readback"
+        "P0-276 remains consumed; exact readback passed and cleanup is now complete",
+        "no deployment authority was inferred or issued"
       ]
     }
   ]
