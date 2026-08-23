@@ -3,16 +3,16 @@
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "taskId": "P0-229",
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-pay-rollback-first-official-hosted-publication-20260822T235200Z",
-  "owner": "pay",
+  "owner": null,
   "executor": "pay-production-hosted-release",
-  "status": "ACTIVE_SINGLE_USE",
+  "status": "CONSUMED_RELEASED_SUCCESS_PAY_SOURCE_BOUND_OFFICIAL_PUBLIC_HOSTED_NON_SENSITIVE",
   "issuedAt": "2026-08-22T23:52:00Z",
   "expiresAt": "2026-08-23T00:52:00Z",
-  "releasedAt": null,
+  "releasedAt": "2026-08-22T23:58:30Z",
   "singleUse": true,
   "reusable": false,
-  "executionAuthorized": true,
-  "productionMutationAllowed": true,
+  "executionAuthorized": false,
+  "productionMutationAllowed": false,
   "scope": "Pay-only exact rollback-first static publication followed by one literal workflow push and one push-triggered official-domain hosted Chromium run; retain only on complete direct success, otherwise execute at most one exact rollback",
   "centralPrecondition": {
     "parentCommit": "dcfdb94394ec53c646dfd2f93383dd5e92de7653",
@@ -187,6 +187,78 @@
     "provider selection, eth_requestAccounts, account approval or reject, personal_sign, EIP-712, transaction, private key or recovery material",
     "installed-provider, sensitive lifecycle, Product Session or aggregate product-completion promotion"
   ],
+  "terminalEvidence": {
+    "classification": "DIRECT_SUCCESS_PAY_SOURCE_BOUND_OFFICIAL_PUBLIC_HOSTED_NON_SENSITIVE",
+    "observedAt": "2026-08-22T23:58:30Z",
+    "counts": {
+      "deploy": 1,
+      "rawCollector": 1,
+      "literalForceFalsePush": 1,
+      "pushTriggeredHostedRun": 1,
+      "retry": 0,
+      "dispatch": 0,
+      "rollback": 0
+    },
+    "deploy": {
+      "exitCode": 0,
+      "release": {"path": "/opt/ynx-pay-web/releases/pay-web-5f4ce98e-release1", "deviceInode": "64770:1483840"},
+      "stageDeviceInode": "64770:1483832",
+      "activeCaddySha256": "b606d1bdced436a984aed19981788f1a9471b4ccb7ad7f2c49b32015b729afa7",
+      "payd": {"mainPid": 2734498, "active": "active", "subState": "running", "nRestarts": 0},
+      "listeners": ["127.0.0.1:6430", "127.0.0.1:6484"]
+    },
+    "ownerRemote": {
+      "head": "e29611c9d2bab70dceafb22185c8dfbff3135f26",
+      "tree": "60f554e4e1f52856a91816da83bdd0be5bd708c6",
+      "forceFalsePushCount": 1,
+      "readbackExact": true
+    },
+    "officialRaw": {
+      "root": "200/1174B/22f743c62a976928abd8a6bc3d123d366b5e1cac774b6ad3d20c21cfa07d917e",
+      "buildIdentity": "200/322B/7b57cc88fc9287c546ba41d0e61a00c13665cdfd8aa8cc34c2f7347f8abb0b81/application-json/no-store/source-5f4ce98e/tree-8f0c25c4",
+      "releaseManifest": "200/1316B/0d7a85febde4fc6d055c25d5181c321a0506f1aebe278840a28b71d6aab71644",
+      "manifestResources": "all eight distinct resources HTTP 200 with exact bytes and SHA-256",
+      "health": "200/589B/service=ynx-payd/network=YNX Testnet/chainId=6423",
+      "callback": "404/19B/b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793"
+    },
+    "hostedRun": {
+      "run": 32606504928,
+      "job": 97112183851,
+      "attempt": 1,
+      "event": "push",
+      "head": "e29611c9d2bab70dceafb22185c8dfbff3135f26",
+      "conclusion": "success",
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/32606504928",
+      "artifactId": 9484260327,
+      "artifactName": "pay-web-official-browser-validation-p0228-e29611c9d2bab70dceafb22185c8dfbff3135f26",
+      "artifactZipBytes": 1186773,
+      "artifactZipSha256": "88c0687d4cdb1aaee8e1b34d0ba8df6391b36c4f73855784b0dccfc81980afcb",
+      "unzipIntegrity": true,
+      "isolatedFiles": 67
+    },
+    "hostedEvidence": {
+      "officialResourceSummary": {"bytes": 1859, "sha256": "24338054474cadcb14332b12e5ee5bf66d38f46b8f36890d12ba2c48529c863e"},
+      "coldJson": {"bytes": 1046, "sha256": "dde67a2a9975b198f2c2637637917ff31f0ee01092f71d8a30ea9f558a8e667f"},
+      "secondJson": {"bytes": 1048, "sha256": "09b30ea779d75a070fbfa21bc6fb5a806ab02b51022eb4b3f70cda7017ef13d8"},
+      "summaryJson": {"bytes": 2545, "sha256": "8858df8c51a02e65eeb14b72b3afde954048b953ccbefae5e58e91a9e509b47a"},
+      "coldScreenshot": {"bytes": 49889, "sha256": "c64faa6c5318a1f57f2a04c19d99875279052c2115710e8cc3ed0496c929a588"},
+      "secondScreenshot": {"bytes": 49889, "sha256": "c64faa6c5318a1f57f2a04c19d99875279052c2115710e8cc3ed0496c929a588"},
+      "artifactHashListSha256": "a02024ea0b5d3d659c90f60130695746bc912055986e53ee488a1dc738ad9c1c",
+      "artifactByteListSha256": "7499a2d22a9f28501a6764261d8d992ac2cc7a3a29ef87f51c15db1e9eadb8e9",
+      "directTruth": "Cold and second persistent-profile launches each remained at exact https://pay.ynxweb4.com/, title YNX Pay, lang en, exactly one page, visible YNX Pay plus Sign in plus Confirm before you pay, root/JS/logo HTTP 200, console/page/request failures zero, and chooser/details/account/0x1917 absent. The browser context closed between launches."
+    },
+    "rollbackInvoked": false,
+    "publicationRetained": true,
+    "sensitiveActions": {
+      "providerSelection": false,
+      "ethRequestAccounts": false,
+      "accountApprovalOrReject": false,
+      "signing": false,
+      "typedData": false,
+      "transaction": false
+    },
+    "truthBoundary": "Promote only exact-source Pay official public static publication and direct hosted non-sensitive cold/second browser visibility. Installed provider, account lifecycle, 0x1917, events, signing, typed data, transaction, full parity and aggregate products remain false."
+  },
   "terminalRules": {
     "success": "CONSUMED_RELEASED_SUCCESS_PAY_SOURCE_BOUND_OFFICIAL_PUBLIC_HOSTED_NON_SENSITIVE",
     "failurePrewrite": "CONSUMED_RELEASED_FAILED_CLOSED_PAY_P0229_PREWRITE_ZERO_PRODUCTION_MUTATION",
@@ -201,6 +273,17 @@
     "accountApprovalOrReject": false,
     "signingOrTypedData": false,
     "transaction": false,
+    "productComplete": false,
+    "productsConnected": "0/12"
+  },
+  "truthAfterSuccess": {
+    "sourceBoundPublic": true,
+    "officialHostedBrowserNonSensitive": true,
+    "installedProvider": false,
+    "accountApprovalOrReject": false,
+    "signingOrTypedData": false,
+    "transaction": false,
+    "fullParity": false,
     "productComplete": false,
     "productsConnected": "0/12"
   }
