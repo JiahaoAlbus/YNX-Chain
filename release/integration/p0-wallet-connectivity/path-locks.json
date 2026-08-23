@@ -1814,20 +1814,41 @@
       "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
       "taskId": "P0-247",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE_SINGLE_USE",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_PHASE3_EXECUTOR_SUCCESS_STDOUT_RECEIPTS_NOT_CAPTURED_STATE_UNCERTAIN",
       "acquiredAt": "2026-08-23T07:38:00Z",
       "expiresAt": "2026-08-23T08:08:00Z",
-      "releasedAt": null,
+      "releasedAt": "2026-08-23T07:47:00Z",
       "sourceCommit": "7824af677dd052d20321431381523ab302614d98",
       "sourceTree": "3db34ee2397a49852bbdf15e3841e7c9cecf9444",
       "evidenceCommit": "3424885fac543d8a860201100ba294a6a5581602",
       "artifactSha256": "d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d",
-      "productionMutationAllowed": true,
+      "productionMutationAllowed": false,
       "allowedExceptions": [
-        "one exact Finance Phase3 stdin/bootstrap/deploy attempt, no retry",
-        "automatic rollback is owned by the exact executor on deploy failure",
-        "after deploy success, any external gate failure retains Heavy and requires a wholly-new signed manual-rollback lease",
-        "no unit, Caddy, non-Finance, account, signature, typed-data or transaction mutation"
+        "P0-247 SSH/deploy quota is consumed and nonreusable",
+        "required executor success stdout receipts were not captured and current state is not inferred from exit zero",
+        "no retry, manual rollback, blind cleanup, unit, Caddy, non-Finance or sensitive mutation under P0-247"
+      ]
+    },
+    {
+      "path": "{host:43.153.202.237:finance-phase3-readonly-incident-inspection,service:ynx-finance.service,port:127.0.0.1:6483,readonly:/opt/ynx/leases/finance,readonly:/opt/ynx/stage/finance/p0247-finance-phase3-20260823T073800Z,readonly:/var/backups/ynx-finance/p0247-finance-phase3-20260823T073800Z,readonly:/opt/ynx/releases/finance/p0247-finance-phase3-20260823T073800Z,readonly:/opt/ynx/finance-current,readonly:/etc/ynx/finance.env,readonly:/var/lib/ynx/finance/state.json,readonly:https://finance.ynxweb4.com/{health,version}}",
+      "owner": "finance-release-control-plane-readonly-inspection",
+      "branch": "codex/p0-finance-wallet-connectivity-20260820",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
+      "taskId": "P0-248",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_SINGLE_USE_READONLY",
+      "acquiredAt": "2026-08-23T07:47:00Z",
+      "expiresAt": "2026-08-23T08:07:00Z",
+      "releasedAt": null,
+      "sourceCommit": "7824af677dd052d20321431381523ab302614d98",
+      "sourceTree": "3db34ee2397a49852bbdf15e3841e7c9cecf9444",
+      "evidenceCommit": "6309808d19aadbb3af9c25bf4df4e1de438dc7b0",
+      "artifactSha256": "d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "one exact stdin-only zero-write SSH inspection, no retry",
+        "local-only stdout and stderr receipt creation",
+        "no deploy, rollback, cleanup, service, current, environment, state, release, unit, Caddy, account, signature or transaction mutation"
       ]
     }
   ]
