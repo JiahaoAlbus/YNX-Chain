@@ -6,6 +6,17 @@ if [[ $# -ne 2 || ( "$1" != deploy && "$1" != rollback ) ]]; then
   echo "usage: $0 <deploy|rollback> <central-signed-finance-lease.json>" >&2; exit 64
 fi
 mode=$1; lease=$2
+prewrite_phase=LEASE_PATH
+prewrite_open=false
+emit_prewrite_failure(){
+  local rc=$?
+  if [[ "$mode" = deploy && "$prewrite_open" = true && "$rc" -ne 0 ]]; then
+    printf 'phase=prewrite\nfailureClass=PREWRITE_%s\nfailureExitStatus=%s\n' "$prewrite_phase" "$rc"
+  fi
+  trap - EXIT
+  exit "$rc"
+}
+if [[ "$mode" = deploy ]]; then prewrite_open=true; trap emit_prewrite_failure EXIT; fi
 case "$lease" in /opt/ynx/leases/finance/*.json) ;; *) exit 65;; esac
 test -f "$lease" && test ! -L "$lease"
 command -v jq >/dev/null || { echo 'jq required for signed lease object' >&2; exit 69; }
@@ -13,6 +24,7 @@ signed=$(jq -er '.lease.signed' "$lease"); test "$signed" = true
 get(){ jq -r "$1" "$lease"; }
 LEASE_ID=$(get '.lease.id')
 lease_kind=$(get '.lease.kind')
+prewrite_phase=LEASE_SCHEMA
 if [[ "$mode" == deploy ]]; then test "$lease_kind" = FINANCE_ROLLBACK_FIRST_PRODUCTION_DEPLOYMENT; else test "$lease_kind" = FINANCE_ROLLBACK_FIRST_PRODUCTION_MANUAL_ROLLBACK; fi
 hash(){ sha256sum "$1" | awk '{print $1}'; }
 bytes(){ wc -c < "$1" | tr -d ' '; }
@@ -25,6 +37,7 @@ env=$(get '.fresh.env.path'); env_sha=$(get '.fresh.env.sha256'); unit=$(get '.f
 stage=$(get '.paths.stage'); backup=$(get '.paths.backup'); release=$(get '.paths.release'); release_container=$(get '.paths.releaseContainer.path'); release_container_uid=$(get '.paths.releaseContainer.uid'); release_container_gid=$(get '.paths.releaseContainer.gid'); release_container_mode=$(get '.paths.releaseContainer.mode'); new_env=$(get '.candidate.env.path'); new_env_sha=$(get '.candidate.env.sha256'); state=$(get '.fresh.state.path'); state_absent=$(get '.fresh.state.absent')
 service_user=$(get '.fresh.service.user'); service_gid=$(get '.fresh.service.gid')
 carrier=$(get '.candidate.carrier.path'); carrier_id=$(get '.candidate.carrier.id'); carrier_tuple=$(get '.candidate.carrier.tuple')
+prewrite_phase=CARRIER_ASSERTION
 case "$carrier_id" in ''|*/*|.|..|*..*) exit 65;; esac
 test "$carrier_id" = p0228-finance-phase1-20260822T234100Z
 test "$carrier" = "/opt/ynx/stage/finance/$carrier_id"
@@ -46,6 +59,7 @@ assert_lease_child_path(){
   test "$(stat -Lc '%u:%g:%a:%h' "$parent")" = "$tuple"
 }
 assert_carrier_child archive "$archive"; assert_carrier_child newEnv "$new_env"
+prewrite_phase=LEASE_PATH_ASSERTION
 assert_lease_child_path stage "$stage"; assert_lease_child_path backup "$backup"; assert_lease_child_path release "$release"
 release_parent=$(get '.paths.parents.release.path')
 test "$release_container" = "$release_parent/$LEASE_ID"; test "$(dirname "$release")" = "$release_container"
@@ -175,9 +189,14 @@ if [[ "$mode" == rollback ]]; then
   rollback_guard test "$(systemctl show -p NRestarts --value "$service")" = "$success_restarts"
   release_created=true; release_container_created=true; restore; exit 0
 fi
+prewrite_phase=CURRENT_PREWRITE_INVARIANT
 absent "$stage"; absent "$backup"; absent "$release"; absent "$release_container"
+prewrite_phase=FRESH_BASELINE
 assert_fresh
+prewrite_phase=CANDIDATE_INTEGRITY
 test "$(bytes "$archive")" = "$archive_bytes"; test "$(hash "$archive")" = "$archive_sha"; test "$(hash "$new_env")" = "$new_env_sha"
+prewrite_open=false
+trap pre_switch_cleanup EXIT
 mkdir -p -m 0700 "$stage" "$backup"; stage_created=true; backup_created=true; stage_identity_tuple=$(identity_tuple "$stage"); backup_identity_tuple=$(identity_tuple "$backup"); trap pre_switch_cleanup EXIT
 cp --preserve=mode,ownership "$env" "$backup/env"; if [[ "$state_absent" = true ]]; then test ! -e "$state" && test ! -L "$state"; : >"$backup/state-absent"; else cp --preserve=mode,ownership "$state" "$backup/state"; fi; backup_inventory=$(tree_inventory "$backup"); tar --warning=no-unknown-keyword -xzf "$archive" -C "$stage"
 candidate="$stage/$(basename "$release")"; test -x "$candidate/ynx-finance"; test "$(hash "$candidate/ynx-finance")" = "$binary_sha"; test "$(bytes "$candidate/ynx-finance")" = "$binary_bytes"; file "$candidate/ynx-finance" | grep -q 'ELF 64-bit.*x86-64'

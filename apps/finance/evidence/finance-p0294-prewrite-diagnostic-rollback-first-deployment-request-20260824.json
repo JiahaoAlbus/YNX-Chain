@@ -1,0 +1,74 @@
+{
+  "schemaVersion": "p0-finance-p0294-prewrite-diagnostic-deployment-request@1",
+  "kind": "FINANCE_ROLLBACK_FIRST_DEPLOYMENT_WHOLE_NEW_SINGLE_USE_REQUEST",
+  "requestStatus": "SOURCE_REQUEST_ONLY_AWAITING_CENTRAL_SIGNED_SINGLE_USE_LEASE",
+  "requestId": "P0-294",
+  "predecessor": {
+    "p0293TerminalEvidence": {
+      "path": "apps/finance/evidence/p0-293-finance-p0289-post-cleanup-zero-write-terminal-evidence-20260824.json",
+      "status": "DIRECT_ZERO_WRITE_SUCCESS",
+      "verificationComplete": true,
+      "cleanupComplete": true,
+      "mutationCount": 0
+    },
+    "p0289": "consumed/nonreusable; do not reuse its lease, stdin, stage, backup, release or control namespace"
+  },
+  "cleanBaselineToRereadAtIssue": {
+    "currentRelease": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a",
+    "binarySha256": "0cc43c8a77c12975a0fcbada65971f08f2bc3a52345d547ea194dd3ccd60d83f",
+    "envSha256": "854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252",
+    "unitSha256": "2e72cdad422a3a714c46d074ea97b725233576cf726dbbfd43e82e99c2c2975b",
+    "caddySha256": "dcf75a7aed315c54632321b8bb80e44c0abc22f6700fadfbfa9a7da21b88a282",
+    "state": "absent",
+    "service": "loaded:active:running:MainPID=2241003:NRestarts=0:User=ynx:Group=ynx",
+    "parents": {
+      "lease": "64770:4594822:0:0:750:2:4096:directory|directChildren=0|inventorySha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stage": "64770:3450041:0:0:750:5:4096:directory|directChildren=3|inventorySha256=0d11124b36a42c6201f7e0d491fd20279ea47950554f92c6b1cc960aaa0fee91",
+      "backup": "64770:1481354:0:0:755:11:4096:directory|directChildren=9|inventorySha256=a59008acfeccfb0a2f88de5b029871b713b42d0bf43ad1ba87786c962e6659be"
+    },
+    "http": "loopback/public root, health and version all HTTP 200 exact old hashes; re-read every status/bytes/SHA/MIME before signing"
+  },
+  "immutableCandidate": {
+    "sourceCommit": "7824af677dd052d20321431381523ab302614d98",
+    "archive": "3937491:d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d",
+    "binary": "8573112:cccdae8ae5b5f694ca7db68540da30582564ff741978e616f7435d448a20fe3e:ELF-x86-64",
+    "candidateEnv": "1545:ceec9fba17116e087d6e2a9cb160808b39e027e687a7ad561174a40daf58b71a",
+    "carrier": "/opt/ynx/stage/finance/p0228-finance-phase1-20260822T234100Z"
+  },
+  "newNamespace": {
+    "id": "p0294-finance-phase3-20260824t020000z",
+    "stage": "/opt/ynx/stage/finance/p0294-finance-phase3-20260824t020000z/stage",
+    "backup": "/var/backups/ynx-finance/p0294-finance-phase3-20260824t020000z/backup",
+    "releaseContainer": "/opt/ynx/releases/finance/p0294-finance-phase3-20260824t020000z",
+    "release": "/opt/ynx/releases/finance/p0294-finance-phase3-20260824t020000z/ynx-finance-7824af677dd0",
+    "executor": "/opt/ynx/leases/finance/p0294-finance-phase3-20260824t020000z.executor.sh",
+    "signedLease": "/opt/ynx/leases/finance/p0294-finance-phase3-20260824t020000z.json",
+    "localOutputs": ["/tmp/ynx-finance-p0294-finance-phase3-20260824t020000z-signed.json", "/tmp/ynx-finance-p0294-finance-phase3-20260824t020000z.stdout", "/tmp/ynx-finance-p0294-finance-phase3-20260824t020000z.stderr", "/tmp/ynx-finance-p0294-finance-phase3-20260824t020000z.receipt"],
+    "allPathsMustStartAbsentAndNonSymlink": true
+  },
+  "reviewedCommandObjects": {
+    "transport": "apps/finance/scripts/finance-phase3-openssh-serialized-command.sh|22605b70b346a7cc0e61ea68e5e366b73718aef6|2875|a44e011b5826b091acc7ddebcd68dc180a46ded49d9489cf48d52cda894396b4",
+    "bootstrap": "apps/finance/scripts/finance-phase3-stdin-deployment-bootstrap.sh|42148d1cf69a0fc60dafa302808c9ff0149c9309|5001|1a57420a0f0c932aa5234166c7aaa81d3743f384016b9a0f26360e7657db570d",
+    "executor": "apps/finance/scripts/finance-production-rollback-first.sh|abbb8138682a76bbbf87f99db8a13f79328ac957|19070|4446b9245ee81256bf02b6b46960e70ff83caa83838e91f6f80034b5a1fc5741",
+    "actualShellFixture": "apps/finance/scripts/test-finance-production-fixture.mjs|f31c06b7ebf9ff9c193a99f2a68642bce5355992|40411|81f4e8080c8db7c508623d8ac3268a63426a5dfb2de389f40bccd280fd90c2eb"
+  },
+  "prewriteDiagnosticContract": {
+    "beforeFirstWrite": true,
+    "receipt": "Any deploy failure before the first mutable operation emits only phase=prewrite, failureClass=PREWRITE_<phase>, and failureExitStatus=<rc> to stdout; it contains no environment or credential values.",
+    "coveredPhases": ["LEASE_PATH", "LEASE_SCHEMA", "CARRIER_ASSERTION", "LEASE_PATH_ASSERTION", "CURRENT_PREWRITE_INVARIANT", "FRESH_BASELINE", "CANDIDATE_INTEGRITY"],
+    "firstWriteBoundary": "The prewrite receipt trap is disarmed immediately before staging/backup creation; after that existing rollback/cleanup traps own all failures.",
+    "fixtureProof": "The actual-shell fixture forces a candidate-env hash mismatch, verifies PREWRITE_CANDIDATE_INTEGRITY with rc=1 and proves stage/backup leaves remain absent."
+  },
+  "executionContract": {
+    "environment": {},
+    "literalArgvLength": 25,
+    "oneSshAndOneDeploy": true,
+    "retryAllowed": false,
+    "outerWrapper": "Observe process rc only. Do not open, create, redirect, truncate or append the signed stdout/stderr/receipt paths; invoke Central's literal argv directly.",
+    "rollbackFirst": true,
+    "manualRollback": "forbidden without a separately signed later lease",
+    "zeroResidue": "Central must bind identity/inventory cleanup of all P0294 stage/backup/release/control paths and independently verify terminal absence."
+  },
+  "truth": {"leaseIssued": false, "sshExecuted": false, "deployed": false, "publicVerified": false, "walletApproval": false, "signature": false, "transaction": false},
+  "singleBlocker": "Central must issue a wholly new P0-294 lease only after a fresh zero-write baseline/path-absence read and Central signing of exact stdin bytes/SHA and literal argv."
+}

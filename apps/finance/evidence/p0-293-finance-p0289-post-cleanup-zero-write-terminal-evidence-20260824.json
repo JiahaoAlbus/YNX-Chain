@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "p0-finance-zero-write-terminal-evidence@1",
+  "kind": "FINANCE_P0289_POST_CLEANUP_CORRECTED_ZERO_WRITE_TERMINAL",
+  "terminalStatus": "DIRECT_ZERO_WRITE_SUCCESS",
+  "execution": {
+    "sshInvocationCount": 1,
+    "localExitStatus": 0,
+    "remoteExitStatus": 0,
+    "mutationCount": 0,
+    "stdout": {"bytes": 2035, "sha256": "79cd6696f5d0b653c112292a73fc205051a0e98a8134abdb210bc0001473610d"},
+    "stderr": {"bytes": 0, "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
+  },
+  "verification": {
+    "allP0289Paths": "absent",
+    "leaseParent": "64770:4594822:0:0:750:2:4096:directory|directChildren=0|inventorySha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stageParent": "64770:3450041:0:0:750:5:4096:directory|directChildren=3|inventorySha256=0d11124b36a42c6201f7e0d491fd20279ea47950554f92c6b1cc960aaa0fee91",
+    "backupParent": "64770:1481354:0:0:755:11:4096:directory|directChildren=9|inventorySha256=a59008acfeccfb0a2f88de5b029871b713b42d0bf43ad1ba87786c962e6659be",
+    "currentTarget": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a",
+    "resolvedBinary": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a/ynx-finance",
+    "oldBinarySha256": "0cc43c8a77c12975a0fcbada65971f08f2bc3a52345d547ea194dd3ccd60d83f",
+    "envSha256": "854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252",
+    "unitSha256": "2e72cdad422a3a714c46d074ea97b725233576cf726dbbfd43e82e99c2c2975b",
+    "caddySha256": "dcf75a7aed315c54632321b8bb80e44c0abc22f6700fadfbfa9a7da21b88a282",
+    "state": "absent",
+    "service": "loaded:active:running:MainPID=2241003:NRestarts=0:WorkingDirectory=/opt/ynx/finance-current:User=ynx:Group=ynx",
+    "http": "loopback/public root, health and version all HTTP 200 with exact old bytes/body hashes and MIME"
+  },
+  "truth": {"verificationComplete": true, "cleanupComplete": true, "deployment": false, "publicVerified": false, "walletApproval": false, "signature": false, "transaction": false},
+  "requiredCentralAction": "Atomically release P0-293 as direct zero-write success with Heavy=IDLE."
+}
