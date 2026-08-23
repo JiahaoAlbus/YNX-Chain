@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "p0-finance-cleanup-silent-zero-diagnosis@1",
+  "scope": "source-only; no SSH or remote mutation",
+  "observedTerminalEvidence": {
+    "p0265": {
+      "localExitStatus": 0,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "statusReceipt": "0"
+    },
+    "p0266": {
+      "evidenceCommit": "ed7db93dfcf3f4a44360a7fa1c3e05f983af851d",
+      "evidenceTree": "6ff618bd3bfe80a63c03f4067137f41b50ab3b52",
+      "fourP0247ResiduesPresent": true,
+      "p0264ControlPathsAbsent": true,
+      "oldRuntimeUnchanged": true
+    }
+  },
+  "auditedSignedInputs": {
+    "signedJsonPath": "/tmp/ynx-finance-p0264-cleanup-signed.json",
+    "signedJsonSha256": "a23cd70355122d6fa7d19dc50095828a8185b79d6bd2494a4c0b8c883cf5109f",
+    "carrierPath": "/tmp/ynx-finance-p0264-cleanup-atomic.carrier",
+    "carrierBytes": 17040,
+    "carrierSha256": "30eec321937e99b52d8c2078c040841701f3c4971695a85aff5cec6e1e7c00e4",
+    "carrierFrames": ["executor:0700:8451:fd7637a5d353bb8bee9e1ba981c7983f0ead0a8d473d544e62b15dcd340b9e50", "lease:0600:4156:a23cd70355122d6fa7d19dc50095828a8185b79d6bd2494a4c0b8c883cf5109f"]
+  },
+  "rootCause": {
+    "provenLocalAcceptanceFault": "The literal command treated SSH exit status 0 as cleanup success and wrote status 0 without requiring any remote execution acknowledgement, deletion marker, cleanup invocation count, or final control-object receipt.",
+    "provenFixtureGap": "The old fixture SSH stub used exec of already-separated argv, bypassing SSH remote-command serialization and the remote login-shell parse.",
+    "unsafeTransportShape": "The old command supplied a launcher containing shell semicolons and positional-variable references as a multi-token SSH remote command. SSH serializes remote command arguments into a shell command, so this shape does not preserve the intended argv boundary.",
+    "boundedConclusion": "The P0-265 empty stdout/stderr plus rc0 is therefore compatible with a remote command that returned success without entering the bootstrap. The exact host-side reason cannot be inferred without another separately authorized read-only inspection."
+  },
+  "successorRequiredContract": {
+    "remoteArgv": "Construct one explicit shell-quoted remote command so the remote login shell preserves every bash -c token.",
+    "terminalReceipt": ["cleanup=P0247_RESIDUES_REMOVED", "transport=P0264_ATOMIC_CONTROL_PLACEMENT", "cleanupInvocationCount=1", "cleanupExitStatus=0", "controlObjectsFinalAbsent=true", "carrierSha256=<signed value>"],
+    "silentZero": "Fail closed with local status 65 when SSH returns 0 but the complete six-line receipt is not emitted.",
+    "authorization": "No successor lease is requested by this diagnosis record."
+  },
+  "truth": {
+    "cleanupSucceeded": false,
+    "remoteCauseIndependentlyReadBack": false,
+    "newLeaseIssued": false,
+    "sshOrRemoteMutationPerformedForDiagnosis": false
+  }
+}
