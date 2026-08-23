@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "FINANCE_P0279_SINGLE_USE_EXECUTION_FAIL_CLOSED",
+  "central": {
+    "commit": "631ea3385f8eedc073d005b6bae5a7a904dce73a",
+    "tree": "a647c32a998badd6a89af58efa721c3e13daf348",
+    "leaseBlob": "81ce57825b29be9497ce34736494553540e8b38d",
+    "leaseBytes": 35612,
+    "leaseSha256": "39a563d9c5f0ef0a1d87e6c2e691577b1afd6bc69032aa60cdee6c613a76cbf4",
+    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-rollback-first-deployment-p0279-20260823T164635Z"
+  },
+  "signedStdin": {
+    "repositoryBlob": "80fcdb59d14670e378f4d0c5073ef286f120f94e",
+    "bytes": 8140,
+    "sha256": "5b36af2367371cfb94490cf0ade3b0399c3a836b71b88886063ede6fb994bea9",
+    "localPath": "/tmp/ynx-finance-p0279-finance-phase3-20260823T164408Z-signed.json"
+  },
+  "execution": {
+    "environment": {},
+    "literalArgvCount": 25,
+    "sshAttempts": 1,
+    "retries": 0,
+    "localArgvAdapterPreflightFailuresBeforeSsh": 3,
+    "sshExitStatus": 1,
+    "remoteExitStatus": 1,
+    "terminalReceiptValidated": false
+  },
+  "terminalFiles": {
+    "stdout": {"path": "/tmp/ynx-finance-p0279-finance-phase3-20260823T164408Z.stdout", "bytes": 0, "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    "stderr": {"path": "/tmp/ynx-finance-p0279-finance-phase3-20260823T164408Z.stderr", "bytes": 0, "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    "transportReceipt": {"path": "/tmp/ynx-finance-p0279-finance-phase3-20260823T164408Z.receipt", "bytes": 202, "sha256": "4b7b9f0fb5e91bad194dd7e8f23023c3e390d61b13337aeb5301f3607281abac"}
+  },
+  "receipt": {
+    "transport": "FINANCE_PHASE3_OPENSSH_SERIALIZED",
+    "sshExitStatus": 1,
+    "remoteExitStatus": 1,
+    "stdoutBytes": 0,
+    "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "terminalReceiptValidated": false
+  },
+  "truth": {
+    "deploymentSucceeded": false,
+    "automaticRollbackSucceeded": false,
+    "currentReleaseVerified": false,
+    "serviceVerified": false,
+    "loopbackVerified": false,
+    "publicVerified": false,
+    "residueVerified": false,
+    "walletAccount": false,
+    "signature": false,
+    "transaction": false
+  },
+  "requiredCentralAction": "Atomically release P0-279 as consumed/nonreusable. Do not infer deployment, rollback, production state, or public runtime from this empty remote terminal receipt; a separately authorized zero-write inspection is required for any remote-state claim."
+}
