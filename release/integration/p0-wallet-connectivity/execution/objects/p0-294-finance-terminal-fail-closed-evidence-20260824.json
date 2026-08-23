@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "p0-finance-deployment-terminal-evidence@1",
+  "taskId": "P0-294",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-prewrite-diagnostic-rollback-first-p0294-20260823T192500Z",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_REMOTE_EXIT_1_BEFORE_DIAGNOSTIC_REMOTE_STATE_UNKNOWN",
+  "attempts": 1,
+  "retryAttempts": 0,
+  "localExitStatus": 1,
+  "transportReceipt": {
+    "path": "release/integration/p0-wallet-connectivity/execution/objects/p0-294-finance-terminal-transport-receipt.txt",
+    "blob": "78f443e37638cd143a81d6a269042e4be9bd0bab",
+    "bytes": 202,
+    "sha256": "4b7b9f0fb5e91bad194dd7e8f23023c3e390d61b13337aeb5301f3607281abac",
+    "sshExitStatus": 1,
+    "remoteExitStatus": 1,
+    "terminalReceiptValidated": false
+  },
+  "stdout": {"bytes":0,"sha256":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+  "stderr": {"bytes":0,"sha256":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+  "directTruth": {
+    "literalArgvInvokedDirectly": true,
+    "outerDeclaredOutputPrecreation": false,
+    "safePrewriteDiagnosticPresent": false,
+    "manualRollbackAttempts": 0,
+    "cleanupAttempts": 0,
+    "remotePlacementKnown": false,
+    "remoteMutationKnown": false,
+    "runtimeKnown": false,
+    "residueKnown": false
+  },
+  "truth": {
+    "deploymentSucceeded": false,
+    "rollbackSucceeded": false,
+    "remoteStateKnown": false,
+    "p0294Reusable": false,
+    "nextAuthority": "P0-295_ZERO_WRITE_REMOTE_STATE_INSPECTION_ONLY"
+  }
+}

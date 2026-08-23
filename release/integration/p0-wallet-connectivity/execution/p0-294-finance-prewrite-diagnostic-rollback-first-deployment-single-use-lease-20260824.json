@@ -5,9 +5,10 @@
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-prewrite-diagnostic-rollback-first-p0294-20260823T192500Z",
   "owner": "finance-release-control-plane",
   "executor": "finance-release-control-plane",
-  "status": "ACTIVE",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_REMOTE_EXIT_1_BEFORE_DIAGNOSTIC_REMOTE_STATE_UNKNOWN",
   "issuedAt": "2026-08-23T19:25:00Z",
   "expiresAt": "2026-08-23T19:55:00Z",
+  "releasedAt": "2026-08-23T19:31:00Z",
   "singleUse": true,
   "reusable": false,
   "productionMutationAllowed": true,
@@ -132,6 +133,9 @@
     "failure": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0294_ROLLBACK_FIRST_DEPLOYMENT",
     "retainHeavyOnUnresolvedRemoteState": true,
     "releaseOnlyAfterDirectTerminalEvidence": true,
-    "productCompletionInferred": false
+    "productCompletionInferred": false,
+    "terminalEvidencePath": "release/integration/p0-wallet-connectivity/execution/objects/p0-294-finance-terminal-fail-closed-evidence-20260824.json",
+    "remoteStateKnown": false,
+    "terminalEvidenceAccepted": true
   }
 }
