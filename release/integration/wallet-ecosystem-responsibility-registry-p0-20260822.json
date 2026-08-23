@@ -98,6 +98,38 @@
   "supportingWalletRuntimeFacts": {
     "wallet-web": {"ownerBranch":"codex/wallet-web-pwa-extensions-20260813","evidenceCommit":"a9f73254f024d7c56fe942825286eb40e652c883","evidenceTree":"724023148c529ac838a3e1599e9ed950f9541d9f","implementationSourceCommit":"7df37ca32a643a403bd23a7f555354261f789441","hostedRun":"32572758708","hostedJob":"97030575070","hostedArtifactId":"9475757695","hostedArtifactBytes":728805,"hostedChromePassed":true,"officialSourceBoundPublic":true,"pwaIntegrity":{"v8OnlyNoWorkerStart":true,"soleV11Cache":true,"activatedServiceWorkerController":true,"firstAndSecondPersistentLaunchOneTabStableUrl":true,"pwaState":"ready","recoveryMarkerAbsent":true,"consoleAndNetworkErrors":0,"integrityErrorVisible":false},"officialResources":{"root":{"bytes":821,"sha256Prefix":"2df10866"},"identity":{"bytes":267,"sha256Prefix":"caf151b4","cacheControl":"no-store"},"manifest":{"bytes":632,"sha256Prefix":"d2d13126"},"serviceWorker":{"bytes":4862,"sha256Prefix":"cf8a043c","cacheControl":"no-store"}},"visibleOfficialChrome":{"oneTabStableUrlTitle":true,"consoleErrors":0,"integrityTextVisible":false,"metaMaskDetected":true,"status":"Not connected","profileLocale":"zh-CN","defaultLanguageEvidence":false,"intentionalReload":true,"convergenceBoundSeconds":18,"postReloadPwaState":"ready","postReloadNoBlankOrIntegrityFailure":true},"externalDappInteropSourceSuccessor":{"sourceCommit":"fb443431555bed7324b3c2e1fb37aab982a8e243","sourceTree":"15a0f909dde78093b28917bb89c9016848a0e67b","evidenceCommit":"8190b1b7b8a3b6258d52814445e9fbb285877fcd","evidenceTree":"d182e740798834dd49e6d421c060e7e8cc10c4b3","evidenceBlob":"a7ac24810539fae7e9c186c2d40bc86adfacc610","sourceOnly":true,"tests":"PASS_122_OF_122","packageVerification":"PASS_3_OF_3","minimumPermissionGate":"PASS","chromeZipBytes":471181,"chromeZipSha256":"2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d","capabilities":["explicit YNX identity with isMetaMask=false","http(s) document_start top-frame automatic EIP-6963 injection","late MetaMask coexistence","legacy and EIP-1559 transaction fields bound to 0x1917/from","vault revoke emits accountsChanged[] and disconnect4900","per-origin -32002 single-flight epoch fence"],"installed":false,"externalDappRuntime":false,"accountApproved":false,"signatureExecuted":false,"transactionExecuted":false,"publicRuntime":false,"walletConnectBlocker":"REAL_WALLETCONNECT_RELAY_AND_PROJECT_ID_UNAVAILABLE"},"installedYNXProvider":false,"accountApproved":false,"approveReject":false,"chain0x1917Installed":false,"events":false,"signatureExecuted":false,"typedDataExecuted":false,"transactionExecuted":false,"walletConnectRealRelay":false,"parityComplete":false,"runtimePromoted":false}
   },
+  "walletConnectReownSourceHardening": {
+    "ownerBranch": "codex/walletconnect-runtime-hardening-20260823",
+    "implementationCommit": "b25c8c565c1e83687bafd957c199b51a8e92eab0",
+    "implementationTree": "7df36395581bef2d371dd272b9fb706b871a1557",
+    "evidenceCommit": "5d66e08c79a175e739d277f215e352b2a8d50dab",
+    "evidenceTree": "adb42cf3dfb6818ad08ca57283501079040a4fb8",
+    "evidenceBlob": "6563ab713eb37b63d10e818a483af523310cc821",
+    "evidenceSha256": "73bf753d2e0cf2b29862d98ca024f4e0de195a475aedf91462735b4a89af1fd6",
+    "sourceOnly": true,
+    "appleRestoredSessionExactSurfaceRevalidated": true,
+    "methodApprovedBinding": true,
+    "structuralAddSwitch0x1917Validation": true,
+    "unauthorizedInboundFailClosedCodes": [4100, 4200, 4901, -32602],
+    "validation": {
+      "typecheck": "PASS",
+      "parse": "PASS",
+      "executablePolicyProbe": "PASS",
+      "plistLint": "PASS_4_OF_4",
+      "localFullSwiftPm": "FALSE_COMMAND_LINE_TOOLS_DUPLICATE_XCSPEC",
+      "hostedCi": false
+    },
+    "sourcePlumbing": {
+      "appleReownSwift": "2.3.1",
+      "androidWalletKit": "1.5.6",
+      "defaultOff": true
+    },
+    "realProjectId": false,
+    "realRelay": false,
+    "realPairing": false,
+    "realRuntime": false,
+    "runtimePromoted": false
+  },
   "truth": {
     "registryExpandedToAllResponsibilityDomains": true,
     "directRuntimeEvidenceComplete": false,
