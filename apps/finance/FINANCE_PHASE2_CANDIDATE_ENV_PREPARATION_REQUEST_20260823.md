@@ -31,8 +31,8 @@ accepts only these literal destination paths:
   "install -m 0600 -- <signed-lease> /opt/ynx/leases/finance-preparation/${LEASE_ID}.json",
   "install -m 0600 -- <approved-archive> /opt/ynx/leases/finance-preparation/${LEASE_ID}.archive.tgz",
   "install -m 0700 -- <frozen-generator> /opt/ynx/leases/finance-preparation/${LEASE_ID}.generator.sh",
-  "install -m 0700 -- <frozen-executor> /opt/ynx/leases/finance-preparation/${LEASE_ID}.preparation.sh",
-  "/opt/ynx/leases/finance-preparation/${LEASE_ID}.preparation.sh /opt/ynx/leases/finance-preparation/${LEASE_ID}.json"
+  "install -m 0700 -- <frozen-executor> /opt/ynx/leases/finance-preparation/${LEASE_ID}.phase2b.sh",
+  "/opt/ynx/leases/finance-preparation/${LEASE_ID}.phase2b.sh /opt/ynx/leases/finance-preparation/${LEASE_ID}.json"
 ]
 ```
 

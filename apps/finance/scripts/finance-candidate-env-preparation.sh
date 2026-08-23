@@ -29,7 +29,7 @@ test -z "$(find "$carrier" -mindepth 1 -print -quit)"
 
 archive_input="$lease_parent/$id.archive.tgz"
 generator="$lease_parent/$id.generator.sh"
-executor="$lease_parent/$id.preparation.sh"
+executor="$lease_parent/$id.phase2b.sh"
 archive="$carrier/candidate.tgz"
 candidate="$carrier/finance.env"
 exact_file "$archive_input" "$(get '.objects.archive.path')" "$(get '.objects.archive.tuple')" "$(get '.objects.archive.sha256')" "$(get '.objects.archive.bytes')"
