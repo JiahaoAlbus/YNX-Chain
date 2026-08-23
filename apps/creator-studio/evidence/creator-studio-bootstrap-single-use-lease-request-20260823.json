@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "6.0.0",
+  "schemaVersion": "7.0.0",
   "requestType": "CREATOR_STUDIO_BOOTSTRAP_SINGLE_USE_LEASE",
   "requestedExecutor": "release-control-plane",
   "status": "REQUESTED_NOT_AUTHORIZED",
@@ -61,18 +61,19 @@
     "publicTerminalLiveLeaseGateRequired": true
   },
   "controlPlanePlacement": {
-    "status": "SOURCE_AND_ACTUAL_SHELL_FIXTURE_VERIFIED_NOT_EXECUTED",
+    "status": "RETAINED_P0240_ATOMIC_UPGRADE_SOURCE_AND_ACTUAL_SHELL_FIXTURE_VERIFIED_NOT_EXECUTED",
     "root": "/opt/ynx-release-control-plane/creator-studio",
-    "requireRootAbsent": true,
+    "requireRootAbsent": false,
+    "mode": "ATOMIC_UPGRADE_EXISTING_EXACT_PLACEMENT",
     "transport": "apps/creator-studio/release-control-plane-transport.mjs",
-    "transportBytes": 14714,
-    "transportSha256": "8cc28dfedca38a06f9dde964db79c3c93b9fe34c6fcc2a930ad80bcadd4b9a64",
+    "transportBytes": 27279,
+    "transportSha256": "ee0831453f73d8f25635b750400263859674b6514c3a2edc8564868620d62b0a",
     "canonicalCarrierBytes": 370416,
     "canonicalCarrierSha256": "f6a111c4eed02a84b1e51abd5b7e98f68c8631d4980fcc63d6673df401e60094",
     "stdinExclusivelyCarriesCanonicalCarrier": true,
     "relativeLayoutMatchesFrozenExecutor": true,
     "controlParent": "/opt/ynx-release-control-plane",
-    "allowInitiallyAbsentControlParentCreation": true,
+    "allowInitiallyAbsentControlParentCreation": false,
     "controlParentReceiptBinds": [
       "device",
       "inode",
@@ -81,7 +82,24 @@
       "mode",
       "nlink"
     ],
-    "removeCreatedControlParentOnFailureOnlyWhenIdentityExactAndEmpty": true,
+    "removeCreatedControlParentOnFailureOnlyWhenIdentityExactAndEmpty": false,
+    "retainedP0240Placement": {
+      "carrierBytes": 368532,
+      "carrierSha256": "7cf63abe5fd052f65e825d27ce034aaa5a5cdb12c7c3bb85d8d0fe595a828a04",
+      "parent": {"dev": "64770", "ino": "1483856", "uid": 0, "gid": 0, "mode": 448, "nlink": 3},
+      "root": {"dev": "64770", "ino": "1483857", "uid": 0, "gid": 0, "mode": 448, "nlink": 3},
+      "receipt": {"dev": "64770", "ino": "1483865", "uid": 0, "gid": 0, "mode": 384, "nlink": 1, "bytes": 1213, "sha256": "d55eb2cc5bc53c5a40f9f0e0af70423a0fa52d069a60ae00bc05670c34418313"},
+      "objects": {
+        "release-bootstrap-executor.mjs": {"dev": "64770", "ino": "1483858", "uid": 0, "gid": 0, "mode": 448, "nlink": 1, "bytes": 14685, "sha256": "bfd51fa79429aab8884301389c8f7737f3d3e2206b2c685f8c68716da8171fad"},
+        "release-bootstrap-unit.service": {"dev": "64770", "ino": "1483859", "uid": 0, "gid": 0, "mode": 384, "nlink": 1, "bytes": 568, "sha256": "c66091b013fdb3c34cd427172ae537f5d104c1faca6fc9182b6722cf469a4f11"},
+        "release-candidates/candidate-0e1a53c5/creator-studio.tar": {"dev": "64770", "ino": "1483862", "uid": 0, "gid": 0, "mode": 384, "nlink": 1, "bytes": 159232, "sha256": "3f56aa4c3f9d87d27f7cdf19eafc0dacf1da78d83d31def2080f0162d92bdf8a"},
+        "release-candidates/live-20260823/live-frontend-carrier.tar": {"dev": "64770", "ino": "1483864", "uid": 0, "gid": 0, "mode": 384, "nlink": 1, "bytes": 101376, "sha256": "be8c68af8cd342539bc2f98955b61c4bc9665867e08d91cd46afc7dcfdc53e27"}
+      },
+      "requireExactWhitelistedTree": true,
+      "backupPath": "/opt/ynx-release-control-plane/creator-studio.p0240-backup",
+      "backupRetainedThroughForward": true,
+      "restoreExactOldDirectoryAndObjectInodesOnAnyForwardFailure": true
+    },
     "candidatePathFromControlRoot": "release-candidates/candidate-0e1a53c5/creator-studio.tar",
     "rollbackPathFromControlRoot": "release-candidates/live-20260823/live-frontend-carrier.tar",
     "objectsInExactOrder": [
@@ -152,6 +170,13 @@
       "bounded6495ReadinessTimeoutRejected": true,
       "timeoutFeedsExistingForwardCleanup": true,
       "timeoutCleanupRestoresOldStudioAndDedicatedAbsence": true
+      ,
+      "retainedPlacementUpgradeReachedPlacedExecutorReadiness": true,
+      "retainedOldBackupPreservedThroughForwardBoundary": true,
+      "forwardFailureRestoresOldRootObjectsAndReceiptExact": true,
+      "retainedSameBytesNewInodeRejected": true,
+      "foreignReservedSiblingRejectedAndPreserved": true,
+      "foreignRootChildRejectedAndPreserved": true
     },
     "exactSudoArgvShape": [
       "/usr/bin/sudo",
@@ -160,7 +185,10 @@
       "-e",
       "eval(Buffer.from(process.argv[1],\"base64\").toString(\"utf8\"))",
       "<exact-transport-base64>",
-      "place"
+      "upgrade-forward",
+      "<api6493-pid>",
+      "<viewer6494-pid>",
+      "<unused-loopback-port>"
     ],
     "executionLimit": 1,
     "retryAllowed": false
@@ -203,16 +231,20 @@
   "commands": {
     "forward": [
       "/usr/bin/node",
-      "/opt/ynx-release-control-plane/creator-studio/release-bootstrap-executor.mjs",
-      "forward",
+      "-e",
+      "eval(Buffer.from(process.argv[1],\"base64\").toString(\"utf8\"))",
+      "<exact-transport-base64>",
+      "upgrade-forward",
       "<api6493-pid>",
       "<viewer6494-pid>",
       "<unused-loopback-port>"
     ],
     "rollback": [
       "/usr/bin/node",
-      "/opt/ynx-release-control-plane/creator-studio/release-bootstrap-executor.mjs",
-      "rollback",
+      "-e",
+      "eval(Buffer.from(process.argv[1],\"base64\").toString(\"utf8\"))",
+      "<exact-transport-base64>",
+      "rollback-upgrade",
       "<captured-api6493-pid>",
       "<captured-viewer6494-pid>"
     ]
