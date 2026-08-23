@@ -38,22 +38,30 @@ expected_path() {
 }
 
 inventory() {
-  local root=$1 item rel kind value
+  # This is intentionally byte-for-byte equivalent in record format to the
+  # accepted P0-252 readonly audit inventory. A cleanup lease therefore binds
+  # the exact same directory digest that was inspected before authorization.
+  local root=$1 path kind value
   (
     cd -- "$root"
-    while IFS= read -r -d '' item; do
-      rel=${item#./}
-      case "$rel" in ''|*'..'*|*$'\n'*|*$'\r'*) exit 65 ;; esac
-      kind=$(stat -Lc '%F' -- "$item")
+    while IFS= read -r -d '' path; do
+      kind=$(stat -c '%F' -- "$path")
+      printf '%s\0%s\0%s\0' "$path" "$kind" "$(stat -c '%u:%g:%a:%h:%s' -- "$path")"
       case "$kind" in
-        symbolic\ link|socket|fifo|block\ special\ file|character\ special\ file) exit 65 ;;
-        regular\ file|regular\ empty\ file) value=$(hash "$item") ;;
-        directory) value='-' ;;
-        *) exit 65 ;;
+        regular\ file) value=$(hash "$path") ;;
+        symbolic\ link) value=$(readlink -- "$path") ;;
+        *) value= ;;
       esac
-      printf '%s\t%s\t%s\t%s\n' "$rel" "$kind" "$(tuple "$item")" "$value"
+      printf '%s\0' "$value"
     done < <(find -P . -mindepth 1 -print0 | LC_ALL=C sort -z)
   ) | sha256sum | awk '{print $1}'
+}
+
+assert_directory_contents_safe() {
+  local path=$1
+  # Digest compatibility with P0-252 must not make cleanup permissive: links,
+  # devices, sockets and fifos still fail closed before any delete.
+  test -z "$(find -P "$path" -mindepth 1 \( -type l -o -type b -o -type c -o -type p -o -type s \) -print -quit)"
 }
 
 assert_parent() {
@@ -96,6 +104,7 @@ assert_target() {
       test -d "$path" && test ! -L "$path"
       test "$(realpath -e -- "$path")" = "$path"
       test "$(tuple "$path")" = "$expected"
+      assert_directory_contents_safe "$path"
       test "$(inventory "$path")" = "$inv"
       ;;
     file)

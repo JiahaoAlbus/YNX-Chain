@@ -18,7 +18,10 @@ const run = (file, env = {}) => spawnSync('bash', [ ...(env.FINANCE_TRACE ? ['-x
 const gstat = '/opt/homebrew/bin/gstat';
 const gsort = '/opt/homebrew/bin/gsort';
 const stat = path => execFileSync(gstat, ['-Lc', '%d:%i:%u:%g:%a:%h:%s:%F', path], { encoding: 'utf8' }).trim();
-const tree = path => execFileSync('bash', ['-c', `cd -- "$1"; find -P . -mindepth 1 -print0 | LC_ALL=C ${gsort} -z | while IFS= read -r -d '' item; do rel="${'${item#./}'}"; kind=$(${gstat} -Lc '%F' -- "$item"); case "$kind" in 'regular file'|'regular empty file') value=$(sha256sum -- "$item"|awk '{print $1}');; directory) value=-;; *) exit 65;; esac; printf '%s\\t%s\\t%s\\t%s\\n' "$rel" "$kind" "$(${gstat} -Lc '%d:%i:%u:%g:%a:%h:%s:%F' -- "$item")" "$value"; done | sha256sum | awk '{print $1}'`, 'bash', path], { encoding: 'utf8' }).trim();
+// Exact P0-252 audit record format: path/type/uid:gid:mode:nlink:size/value
+// as NUL-delimited records, sorted by raw find path. This deliberately differs
+// from the old cleanup-only tuple format and is now shared by both gates.
+const tree = path => execFileSync('bash', ['-c', `cd -- "$1"; find -P . -mindepth 1 -print0 | LC_ALL=C ${gsort} -z | while IFS= read -r -d '' item; do kind=$(${gstat} -c '%F' -- "$item"); printf '%s\\0%s\\0%s\\0' "$item" "$kind" "$(${gstat} -c '%u:%g:%a:%h:%s' -- "$item")"; case "$kind" in 'regular file') value=$(sha256sum -- "$item"|awk '{print $1}');; 'symbolic link') value=$(readlink -- "$item");; *) value=;; esac; printf '%s\\0' "$value"; done | sha256sum | awk '{print $1}'`, 'bash', path], { encoding: 'utf8' }).trim();
 
 function setup() {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'ynx-finance-cleanup-')));
