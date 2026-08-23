@@ -20,7 +20,6 @@ ProtectKernelModules=true
 ProtectControlGroups=true
 RestrictNamespaces=true
 LockPersonality=true
-MemoryDenyWriteExecute=true
 UMask=0027
 
 [Install]

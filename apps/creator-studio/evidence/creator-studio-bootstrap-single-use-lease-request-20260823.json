@@ -15,7 +15,7 @@
     "current": "/opt/ynx-creator-studio-wallet/current",
     "unit": "/etc/systemd/system/ynx-creator-studio-wallet.service",
     "unitTemplate": "apps/creator-studio/release-bootstrap-unit.service",
-    "unitTemplateSha256": "c66091b013fdb3c34cd427172ae537f5d104c1faca6fc9182b6722cf469a4f11",
+    "unitTemplateSha256": "06a55f91bf5530952c347db146daa827510cc72f161d999943da7d5737b8c006",
     "workingDirectory": "/opt/ynx-creator-studio-wallet/current",
     "execStart": "/usr/bin/node /opt/ynx-creator-studio-wallet/current/server.mjs",
     "port": 6495,
@@ -68,8 +68,8 @@
     "transport": "apps/creator-studio/release-control-plane-transport.mjs",
     "transportBytes": 27291,
     "transportSha256": "9898c4c512a055f601326251add830b051c0911c6b3f98da36b856648f879cf3",
-    "canonicalCarrierBytes": 370416,
-    "canonicalCarrierSha256": "f6a111c4eed02a84b1e51abd5b7e98f68c8631d4980fcc63d6673df401e60094",
+    "canonicalCarrierBytes": 370468,
+    "canonicalCarrierSha256": "e9ed00265b15c94273a9ae6619d266599dda7ac4001f56c5b19d7a77c0232891",
     "stdinExclusivelyCarriesCanonicalCarrier": true,
     "relativeLayoutMatchesFrozenExecutor": true,
     "controlParent": "/opt/ynx-release-control-plane",
@@ -105,14 +105,14 @@
     "objectsInExactOrder": [
       {
         "name": "release-bootstrap-executor.mjs",
-        "bytes": 16097,
-        "sha256": "d4690ace1f6a0c32988fa5c4ddf45def20ce8d07161913e1f17b920e6833176f",
+        "bytes": 16167,
+        "sha256": "d290dff1f9b4acae365c666811edea0999fbc1cf8a3b9bca40caae5df585d619",
         "mode": 448
       },
       {
         "name": "release-bootstrap-unit.service",
-        "bytes": 568,
-        "sha256": "c66091b013fdb3c34cd427172ae537f5d104c1faca6fc9182b6722cf469a4f11",
+        "bytes": 540,
+        "sha256": "06a55f91bf5530952c347db146daa827510cc72f161d999943da7d5737b8c006",
         "mode": 384
       },
       {
@@ -180,6 +180,11 @@
       "exactNodeEvalBase64ArgvFixturePassed": true,
       "exactUpgradeForwardArgvReadsCommandAtArgv2AndArgumentsAtSlice3": true,
       "exactUpgradeForwardMalformedStdinRejectedBeforeProductionPathRead": true
+      ,
+      "nodeV8IncompatibleMemoryDenyWriteExecuteRemoved": true,
+      "executorRejectsMemoryDenyWriteExecuteRegression": true,
+      "candidateNodeColdStartAndBoundedReadinessFixturePassed": true,
+      "timeoutCleanupAndOldStudioRestoreFixturePassed": true
     },
     "exactSudoArgvShape": [
       "/usr/bin/sudo",
@@ -215,8 +220,14 @@
     ]
   },
   "bootstrapExecutor": "apps/creator-studio/release-bootstrap-executor.mjs",
-  "bootstrapExecutorBytes": 16097,
-  "bootstrapExecutorSha256": "d4690ace1f6a0c32988fa5c4ddf45def20ce8d07161913e1f17b920e6833176f",
+  "bootstrapExecutorBytes": 16167,
+  "bootstrapExecutorSha256": "d290dff1f9b4acae365c666811edea0999fbc1cf8a3b9bca40caae5df585d619",
+  "nodeCompatibleUnitHardening": {
+    "memoryDenyWriteExecute": false,
+    "removedBecauseDirectP0241SystemdJournalProvedNodeV8ExecutableMemoryCoreDump": true,
+    "otherHardeningRetained": ["NoNewPrivileges", "PrivateTmp", "ProtectSystem", "ProtectHome", "ProtectKernelTunables", "ProtectKernelModules", "ProtectControlGroups", "RestrictNamespaces", "LockPersonality", "UMask"],
+    "executorFailsClosedIfMemoryDenyWriteExecuteTrueReturns": true
+  },
   "bounded6495Readiness": {
     "attempts": 60,
     "intervalMilliseconds": 100,
