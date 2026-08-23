@@ -1,0 +1,56 @@
+{
+  "kind": "FINANCE_PHASE2B_STDIN_LEASE_EXECUTION_REQUEST_ONLY",
+  "prerequisite": {
+    "centralCommit": "3d5f95ca7d907333781c32919a06405696864195",
+    "centralTree": "089e0e0ac2c62699961b6f0895177493dd8f98b0",
+    "terminalLeaseBlob": "2dc018e074f76322d9d3359b31c266d9638af4f9",
+    "terminalLeaseBytes": 10774,
+    "terminalLeaseSha256": "12922a29dca74fb7fb22a5baa4125c7890534425004d9193edbe1a786c3450fd",
+    "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_PHASE2A_PRIVILEGED_STDIN_PLACEMENT_ONLY",
+    "heavyIdle": true
+  },
+  "owner": {
+    "implementationCommit": "275c749989c3cc7dad3a109c2c0c1ae6b51654b8",
+    "implementationTree": "4202e6642f1f7cea4b2f8819b84698b400d7ef0d"
+  },
+  "phase2a": {
+    "carrier": "/opt/ynx/stage/finance/p0228-finance-phase1-20260822T234100Z",
+    "carrierEmpty": true,
+    "tuples": {
+      "root": "64770:1312502:0:0:755:49:4096:directory",
+      "stageParent": "64770:3450040:0:0:750:3:4096:directory",
+      "stage": "64770:3450041:0:0:750:3:4096:directory",
+      "leasesParent": "64770:3450042:0:0:750:3:4096:directory",
+      "leaseParent": "64770:4594820:0:0:750:2:4096:directory",
+      "carrier": "64770:4594821:0:0:700:2:4096:directory"
+    },
+    "objects": {
+      "archive": {"path": "/opt/ynx/leases/finance-preparation/p0228-finance-phase1-20260822T234100Z.archive.tgz", "tuple": "64770:4620790:0:0:600:1:3937491:regular file", "bytes": 3937491, "sha256": "d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d"},
+      "generator": {"path": "/opt/ynx/leases/finance-preparation/p0228-finance-phase1-20260822T234100Z.generator.sh", "tuple": "64770:4620791:0:0:700:1:1698:regular file", "bytes": 1698, "sha256": "cf7b804be50e8f75765f52b67e39e62a67e211add8bb17edcadf2b4e25940c07"},
+      "executor": {"path": "/opt/ynx/leases/finance-preparation/p0228-finance-phase1-20260822T234100Z.phase2b.sh", "tuple": "64770:4620792:0:0:700:1:4247:regular file", "bytes": 4247, "sha256": "6897bbfa02a191caf4ba834c43bf0441e86a302ee4e8a8c14c34a2646a23259e"}
+    }
+  },
+  "transport": {
+    "bootstrap": {"path": "apps/finance/scripts/finance-phase2b-stdin-lease-bootstrap.sh", "blob": "4b02cd9e0d5a2d95fb072cfd033f0a1feea9d762", "bytes": 2976, "sha256": "97790a74f78b5685dc79e42cc570a31757fa81f71643aff14259c4d610588cb3"},
+    "fixture": {"path": "apps/finance/scripts/test-finance-phase2b-stdin-lease-fixture.mjs", "blob": "3233a18c7610e47f368b52b653f7650b0023cc09", "bytes": 2959, "sha256": "63b43b767680f7de8738136c812d1a29195e973542d0488ee5e14803f598e560", "pass": true},
+    "stdin": "exact Central-signed non-secret Phase2B lease JSON only",
+    "remote": "one strict-host SSH under sudo -n; bootstrap bytes are SHA-bound and passed as base64 argv; no local path is referenced remotely"
+  },
+  "centralLeaseInputsRequired": {
+    "freshSixTuplesAndThreeObjectTuples": true,
+    "carrierStillEmpty": true,
+    "leaseAndPendingTargetsAbsent": true,
+    "productionEnv": {"path": "/etc/ynx/finance.env", "secretValuesForbidden": true, "freshTupleSha256BytesRequired": true, "requiredKeys": ["YNX_FINANCE_WEB_DIR"]},
+    "candidate": {"releaseWebDir": "/opt/ynx/releases/finance/ynx-finance-7824af677dd0/web"},
+    "serviceMustRemain": {"state": "active/running", "mainPid": 877083, "nRestarts": 0}
+  },
+  "authorizedOnFutureLeaseOnly": [
+    "create exact signed lease JSON under /opt/ynx/leases/finance-preparation",
+    "copy the exact placed archive into the empty carrier as candidate.tgz",
+    "execute the exact placed generator and Phase2B program once",
+    "create a secret-safe candidate finance.env in the carrier",
+    "return only paths, tuples, bytes and SHA-256 values"
+  ],
+  "forbidden": ["execution without a new lease", "secret values or environment content output", "release extraction", "deployment", "service restart", "current symlink", "unit", "Caddy", "public mutation", "account", "signature", "transaction"],
+  "truth": {"leaseIssued": false, "phase2bExecuted": false, "candidateEnvGenerated": false, "deployed": false, "publicVerified": false}
+}
