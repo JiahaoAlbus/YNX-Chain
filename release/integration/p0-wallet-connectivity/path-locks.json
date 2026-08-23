@@ -2036,6 +2036,30 @@
         "old runtime exact; P0-272 executor and signed lease remain identity-bound under retained parent",
         "a wholly-new cleanup-only lease is required before deleting either control file"
       ]
+    },
+    {
+      "path": "{host:43.153.202.237:finance-p0272-control-cleanup,stable-parent:/opt/ynx/leases/finance,delete:/opt/ynx/leases/finance/p0272-finance-phase3-20260823T152627Z.executor.sh,delete:/opt/ynx/leases/finance/p0272-finance-phase3-20260823T152627Z.json,temp:/tmp/ynx-finance-p0276-finance-p0272-control-cleanup-20260823T160645Z.executor.sh,temp:/tmp/ynx-finance-p0276-finance-p0272-control-cleanup-20260823T160645Z.json}",
+      "owner": "finance-release-control-plane-cleanup",
+      "branch": "codex/p0-finance-wallet-connectivity-20260820",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
+      "taskId": "P0-276",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_SINGLE_USE",
+      "acquiredAt": "2026-08-23T16:06:45Z",
+      "expiresAt": "2026-08-23T16:36:45Z",
+      "releasedAt": null,
+      "sourceCommit": "ce5e8a4e78b4e512598151ec39558ce248139860",
+      "sourceTree": "305264da609f9d85d82747a8f8c955b52440e420",
+      "evidenceCommit": "d2bbcc37131ef60191efc5e41f7016cd703d55c6",
+      "artifactSha256": "64d480e27ff26d420b1ca333337c7e092b09ac5f1bfb1071052f06799a02a801",
+      "productionMutationAllowed": true,
+      "allowedExceptions": [
+        "one exact framed stdin SSH transport and one cleanup invocation with no retry",
+        "delete only the two exact P0-272 control files after full tuple, SHA, link-count, parent identity and exact-child revalidation",
+        "create and finalize only the two exact P0-276 temporary transport files",
+        "the retained parent must remain stable and must never be created, deleted or replaced",
+        "no stage, backup, release, deploy, rollback, lifecycle, Caddy, public, Wallet, account, signing or transaction action"
+      ]
     }
   ]
 }
