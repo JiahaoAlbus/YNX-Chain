@@ -1,0 +1,69 @@
+{
+  "schemaVersion": "p0-finance-rollback-first-deployment-request@1",
+  "kind": "FINANCE_ROLLBACK_FIRST_DEPLOYMENT_WHOLE_NEW_SINGLE_USE_REQUEST",
+  "requestStatus": "SOURCE_REQUEST_ONLY_AWAITING_P0297_CENTRAL_RELEASE_AND_NEW_CENTRAL_SIGNED_SINGLE_USE_LEASE",
+  "requestId": "P0-298",
+  "owner": {
+    "branch": "codex/p0-finance-wallet-connectivity-20260820",
+    "reviewedCommandCheckpoint": {"commit": "b6e10dea58083dcfda040d57ba14f803ba7d8994", "tree": "bd9df1aed5290ecaa357ec9dd7893a7b0e61aeee"}
+  },
+  "predecessor": {
+    "p0297TerminalEvidence": {"path": "apps/finance/evidence/p0-297-finance-p0294-post-cleanup-zero-write-terminal-evidence-20260824.json", "blob": "af2609ced9dc8d3b682194d084b589f8805b009f", "bytes": 1377, "sha256": "f54ef698037dae3032bc3dd40706adaf2fda095d7c746f1e9ea4beea6fb005e3", "status": "DIRECT_ZERO_WRITE_SUCCESS"},
+    "p0294": "consumed/nonreusable; its stage, backup, release, control, output and receipt namespace must never be reused",
+    "p0297CentralRelease": "pending; no deployment authority is inferred from this request"
+  },
+  "immutableCandidate": {
+    "sourceCommit": "7824af677dd052d20321431381523ab302614d98",
+    "carrier": "/opt/ynx/stage/finance/p0228-finance-phase1-20260822T234100Z",
+    "archive": {"bytes": 3937491, "sha256": "d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d"},
+    "binary": {"bytes": 8573112, "sha256": "cccdae8ae5b5f694ca7db68540da30582564ff741978e616f7435d448a20fe3e", "architecture": "ELF-x86-64"},
+    "candidateEnv": {"bytes": 1545, "sha256": "ceec9fba17116e087d6e2a9cb160808b39e027e687a7ad561174a40daf58b71a"}
+  },
+  "reviewedImplementation": {
+    "transport": {"path": "apps/finance/scripts/finance-phase3-openssh-serialized-command.sh", "blob": "22605b70b346a7cc0e61ea68e5e366b73718aef6", "bytes": 2875, "sha256": "a44e011b5826b091acc7ddebcd68dc180a46ded49d9489cf48d52cda894396b4"},
+    "bootstrap": {"path": "apps/finance/scripts/finance-phase3-stdin-deployment-bootstrap.sh", "blob": "42148d1cf69a0fc60dafa302808c9ff0149c9309", "bytes": 5001, "sha256": "1a57420a0f0c932aa5234166c7aaa81d3743f384016b9a0f26360e7657db570d"},
+    "executor": {"path": "apps/finance/scripts/finance-production-rollback-first.sh", "blob": "7df7b1ca72ebc928a04a012e4a27e5e3d36922f5", "bytes": 20058, "sha256": "fe124f17ead7120a7737efc104ce2f9ce6d14340f8be595bd85f9ffde1350682"},
+    "actualShellFixture": {"path": "apps/finance/scripts/test-finance-production-fixture.mjs", "blob": "26c1784855df9b959c74b5ae7577d5073523b9b8", "bytes": 41367, "sha256": "c9220aa258a9014f39d0f34fd7214cdafda28a07a99f5d327c76ee7986391e45"}
+  },
+  "freshCentralReadAndBindRequired": {
+    "rule": "Central must rerun or consume a fresh zero-write read after P0297 release and sign every current value; neither source evidence nor inherited tuples are a write authority.",
+    "parents": ["/opt/ynx", "/opt/ynx/leases/finance", "/opt/ynx/stage/finance", "/var/backups/ynx-finance", "/opt/ynx/releases/finance"],
+    "parentReceipts": "full device/inode/uid/gid/mode/nlink/bytes/type plus direct-child count and canonical inventory SHA-256; each must be a non-symlink directory with required traversal permissions",
+    "runtime": ["current symlink full tuple/target/resolved binary tuple+bytes+SHA", "env/unit/Caddy tuple+bytes+SHA without values", "state absence or exact safe rollback tuple", "service User/Group/active/running/MainPID/NRestarts", "six loopback/public root/health/version URL/status/bytes/SHA/MIME receipts"],
+    "newPathContract": "Every P0298 target below is absent, non-symlink and under its exact signed parent immediately before placement; all candidate traversal checks must pass as the actual ynx service user before the current switch."
+  },
+  "newSingleUseNamespace": {
+    "id": "p0298-finance-phase3-20260824t010000z",
+    "remote": {
+      "stage": "/opt/ynx/stage/finance/p0298-finance-phase3-20260824t010000z/stage",
+      "backup": "/var/backups/ynx-finance/p0298-finance-phase3-20260824t010000z/backup",
+      "releaseContainer": "/opt/ynx/releases/finance/p0298-finance-phase3-20260824t010000z",
+      "release": "/opt/ynx/releases/finance/p0298-finance-phase3-20260824t010000z/ynx-finance-7824af677dd0",
+      "executorPending": "/opt/ynx/leases/finance/p0298-finance-phase3-20260824t010000z.executor.sh.pending",
+      "executor": "/opt/ynx/leases/finance/p0298-finance-phase3-20260824t010000z.executor.sh",
+      "signedLeasePending": "/opt/ynx/leases/finance/p0298-finance-phase3-20260824t010000z.json.pending",
+      "signedLease": "/opt/ynx/leases/finance/p0298-finance-phase3-20260824t010000z.json"
+    },
+    "local": {"signedStdin": "/tmp/ynx-finance-p0298-finance-phase3-20260824t010000z-signed.json", "stdout": "/tmp/ynx-finance-p0298-finance-phase3-20260824t010000z.stdout", "stderr": "/tmp/ynx-finance-p0298-finance-phase3-20260824t010000z.stderr", "receipt": "/tmp/ynx-finance-p0298-finance-phase3-20260824t010000z.receipt", "receiptPending": "/tmp/ynx-finance-p0298-finance-phase3-20260824t010000z.receipt.pending"}
+  },
+  "postCleanupFailureReceiptContract": {
+    "safeFieldsOnly": ["phase", "failureClass", "failureExitStatus"],
+    "phases": ["STAGING_BACKUP", "ARCHIVE_EXTRACT", "CANDIDATE_VERIFY", "RELEASE_MATERIALIZE", "SERVICE_USER_ACCESS", "PRE_SWITCH"],
+    "ordering": "After the first owned mutable operation, each failure trap first performs its signed cleanup or automatic rollback, then emits only the three safe fields. It never print env values, credentials, response bodies or path inventories.",
+    "preSwitchAndLater": "Any failure after env/current/service mutation invokes exactly one automatic rollback restoring signed old env/state/current/service and verifies old live receipts before phase output. Manual rollback remains separately leased.",
+    "fixtureProof": "Actual-shell fixture proves PREWRITE_CANDIDATE_INTEGRITY before writes, SERVICE_USER_ACCESS cleanup before switching, and CANDIDATE_VERIFY automatic rollback after restart."
+  },
+  "executionContract": {
+    "environment": {},
+    "literalArgvLength": 25,
+    "oneSshAndOneDeploy": true,
+    "retryAllowed": false,
+    "directInvocationOnly": "Central must sign one exact 25-element argv and stdin bytes/SHA. Invoke it directly; the outer observer may capture only process rc and must not create, open, redirect, truncate, append or pipe to declared stdout/stderr/receipt paths.",
+    "terminalGate": "A remote exit 0 is accepted only with the nonempty signed terminal receipt. Any nonzero, silent receipt, stale tuple, output precreation or incomplete rollback is fail-closed and consumes the lease.",
+    "forbidden": ["manual rollback", "account", "signature", "typed data", "transaction", "unit/Caddy mutation"]
+  },
+  "rollbackAndResidueGates": {"rollbackFirst": true, "foreignSubstitutionFences": ["parent realpath/non-symlink", "no-replace placement", "device/inode/owner/group/mode/nlink/bytes/type/SHA rechecks", "inventory-bound removal only", "foreign object preservation"], "zeroResidue": "Every P0298 stage/backup/release/control pending and temporary path must be absent after success or automatic rollback; retained parents and old runtime must match the newly signed baseline."},
+  "tests": {"shellSyntax": true, "nodeSyntax": true, "actualShellFixture": true, "json": true, "diff": true},
+  "truth": {"leaseIssued": false, "sshExecuted": false, "deployed": false, "publicVerified": false, "walletApproval": false, "signature": false, "transaction": false},
+  "singleBlocker": "Central must first release P0297, then provide a new P0298 Finance-only single-use deployment lease with fresh signed baseline, paths, stdin identity and literal argv."
+}
