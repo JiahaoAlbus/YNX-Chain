@@ -5,9 +5,10 @@
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-p0272-control-cleanup-p0276-20260823T160645Z",
   "owner": "finance-release-control-plane-cleanup",
   "executor": "finance-release-control-plane",
-  "status": "ACTIVE_SINGLE_USE",
+  "status": "CONSUMED_RELEASED_EXECUTED_FINANCE_P0276_LIMITED_RECEIPT_PENDING_INDEPENDENT_READBACK",
   "issuedAt": "2026-08-23T16:06:45Z",
   "expiresAt": "2026-08-23T16:36:45Z",
+  "releasedAt": "2026-08-23T16:20:16Z",
   "singleUse": true,
   "reusable": false,
   "scope": "Delete exactly the two identity-bound P0-272 control files under the retained Finance lease parent through one framed stdin transport and one cleanup invocation",
@@ -140,11 +141,32 @@
   },
   "truthBoundary": {
     "cleanupOnly": true,
-    "cleanupExecuted": false,
+    "cleanupExecuted": true,
     "cleanupComplete": false,
     "deploymentAuthorized": false,
     "serviceLifecycleAuthorized": false,
     "publicMutationAuthorized": false,
     "accountSignTxAllowed": false
+  },
+  "terminalEvidence": {
+    "ownerCommit": "aa4c579449ee5a21086f22ec72d2b0704330fe92",
+    "ownerTree": "32a1a1991f0071eff10a5ca09c93742f8838b7ff",
+    "path": "apps/finance/evidence/p0-276-finance-p0272-control-cleanup-terminal-evidence-20260824.json",
+    "blob": "7d95aaf25ec973b85130773bf0488ea344e9cbf7",
+    "bytes": 2178,
+    "sha256": "e04d06245314bbd1830673f43e1d170774701cf3db089938d99fffef0b0a3de3",
+    "attempts": 1,
+    "retries": 0,
+    "localInvokerExitCode": 0,
+    "localStderrBytes": 0,
+    "receiptLines": [
+      "cleanup=P0272_CONTROL_FILES_REMOVED",
+      "parentStableIdentity=64770:4594822:0:0:750:directory"
+    ],
+    "remoteExitCodeEmitted": false,
+    "temporaryFinalAbsenceEmitted": false,
+    "servicePidAndNRestartsEmitted": false,
+    "forbiddenMutationAbsenceEmitted": false,
+    "independentReadbackRequired": true
   }
 }

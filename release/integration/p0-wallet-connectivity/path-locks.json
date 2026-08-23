@@ -2044,10 +2044,10 @@
       "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
       "taskId": "P0-276",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE_SINGLE_USE",
+      "status": "CONSUMED_RELEASED_EXECUTED_FINANCE_P0276_LIMITED_RECEIPT_PENDING_INDEPENDENT_READBACK",
       "acquiredAt": "2026-08-23T16:06:45Z",
       "expiresAt": "2026-08-23T16:36:45Z",
-      "releasedAt": null,
+      "releasedAt": "2026-08-23T16:20:16Z",
       "sourceCommit": "ce5e8a4e78b4e512598151ec39558ce248139860",
       "sourceTree": "305264da609f9d85d82747a8f8c955b52440e420",
       "evidenceCommit": "d2bbcc37131ef60191efc5e41f7016cd703d55c6",
@@ -2059,6 +2059,29 @@
         "create and finalize only the two exact P0-276 temporary transport files",
         "the retained parent must remain stable and must never be created, deleted or replaced",
         "no stage, backup, release, deploy, rollback, lifecycle, Caddy, public, Wallet, account, signing or transaction action"
+      ]
+    },
+    {
+      "path": "{host:43.153.202.237:finance-p0276-post-cleanup-readonly,readonly:/opt/ynx/leases/finance,readonly:/opt/ynx/leases/finance/p0272-finance-phase3-20260823T152627Z.*,readonly:/tmp/ynx-finance-p0276-finance-p0272-control-cleanup-20260823T160645Z.*,readonly:/opt/ynx/stage/finance/p0272-finance-phase3-20260823T152627Z/**,readonly:/var/backups/ynx-finance/p0272-finance-phase3-20260823T152627Z/**,readonly:/opt/ynx/releases/finance/p0272-finance-phase3-20260823T152627Z/**,readonly:/opt/ynx/finance-current,readonly:/etc/ynx/finance.env,readonly:/var/lib/ynx/finance/state.json,readonly:/etc/systemd/system/ynx-finance.service,readonly:/etc/caddy/conf.d/ynx-finance.caddy,readonly:ynx-finance.service,readonly:http://127.0.0.1:6483/**,readonly:https://finance.ynxweb4.com/**}",
+      "owner": "finance-release-control-plane-readonly-verification",
+      "branch": "codex/p0-wallet-connectivity-control-plane-20260820",
+      "worktree": "/private/tmp/ynx-calendar-control-plane.y8FFQt/repo",
+      "taskId": "P0-277",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_SINGLE_USE",
+      "acquiredAt": "2026-08-23T16:20:16Z",
+      "expiresAt": "2026-08-23T16:50:16Z",
+      "releasedAt": null,
+      "sourceCommit": "aa4c579449ee5a21086f22ec72d2b0704330fe92",
+      "sourceTree": "32a1a1991f0071eff10a5ca09c93742f8838b7ff",
+      "evidenceCommit": "aa4c579449ee5a21086f22ec72d2b0704330fe92",
+      "artifactSha256": "347a73eef680990bfbc49c919a5523c183f2f74cf262661879c244f3b0268cbf",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "one exact zero-write SSH verification and no retry",
+        "output only path classification, tuples, counts, inventory hashes, service fields and HTTP metadata",
+        "no cleanup, deploy, rollback, service lifecycle, Caddy or public mutation",
+        "P0-276 remains consumed and cleanup complete remains false until exact readback"
       ]
     }
   ]
