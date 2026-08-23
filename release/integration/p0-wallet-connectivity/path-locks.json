@@ -2442,6 +2442,28 @@
         "runtime and HTTP completion remain unproven because of the invalid symlink canonical-path predicate",
         "P0-292 is consumed and nonreusable; Heavy and read-only locks are released"
       ]
+    },
+    {
+      "path": "{host:43.153.202.237:finance-p0289-corrected-post-cleanup-zero-write-verification,readonly:/opt/ynx/leases/finance/p0289-finance-phase3-20260824t010000z.*,readonly:/opt/ynx/stage/finance/p0289-finance-phase3-20260824t010000z/**,readonly:/var/backups/ynx-finance/p0289-finance-phase3-20260824t010000z/**,readonly:/opt/ynx/releases/finance/p0289-finance-phase3-20260824t010000z/**,readonly:/opt/ynx/finance-current*,readonly:/etc/ynx/finance.env,readonly:/var/lib/ynx/finance/state.json,readonly:/etc/systemd/system/ynx-finance.service,readonly:/etc/caddy/conf.d/ynx-finance.caddy,readonly:service:ynx-finance.service,readonly:http://127.0.0.1:6483/**,readonly:https://finance.ynxweb4.com/**}",
+      "owner": "finance-release-control-plane-readonly-verification",
+      "branch": "codex/p0-wallet-connectivity-control-plane-20260820",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration",
+      "taskId": "P0-293",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE",
+      "acquiredAt": "2026-08-23T19:10:00Z",
+      "expiresAt": "2026-08-23T19:40:00Z",
+      "releasedAt": null,
+      "sourceCommit": "fb3b410c096827dfabc80833066410526dfd3d31",
+      "sourceTree": "4dae69571679a208528bbf9b24a9b40595fc93f1",
+      "evidenceCommit": "fb3b410c096827dfabc80833066410526dfd3d31",
+      "artifactSha256": "7948f27e1a22bbfc648354de592d8562a2aed28ab1f145bc19b45d598c39fc08",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "one exact corrected zero-write SSH verification and no retry",
+        "read only twelve P0-289 paths, three retained parents, current/resolved binary, env/state/unit/Caddy/service and six HTTP endpoints",
+        "no cleanup, deploy, rollback, remote temp, lifecycle, config, public, Wallet or secret mutation"
+      ]
     }
   ]
 }
