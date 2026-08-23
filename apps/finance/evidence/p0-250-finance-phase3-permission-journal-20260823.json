@@ -1,0 +1,50 @@
+{
+  "kind": "FINANCE_P0250_PHASE3_ZERO_WRITE_PERMISSION_JOURNAL_FORENSIC",
+  "central": {
+    "commit": "13e5e37de07a7e9976edc58f89f968281bc65d97",
+    "tree": "cd9a5cf0283d3afe6fb4d318790d4319e60d4004",
+    "leaseBlob": "5e10dc6a50feceea05fa18a506377a5b19268a28",
+    "leaseBytes": 6894,
+    "leaseSha256": "3b06fa0220dd7587e14d4913717124c932546d1c850dced9d33eedbcad92d450",
+    "commandBlob": "59a51e110df354a21e35c0369419dcd3825fdf9a",
+    "commandBytes": 4774,
+    "commandSha256": "a257d1ab188bfce184afcdca2165c1e74c5a6b639e0d31af5b1b9fc9df35b82f",
+    "singleUse": true,
+    "retryAllowed": false
+  },
+  "execution": {
+    "sshAttempts": 1,
+    "zeroWrite": true,
+    "retry": false,
+    "cleanup": false,
+    "deployment": false,
+    "rollback": false,
+    "serviceMutation": false,
+    "secretOutput": false
+  },
+  "stdout": {
+    "path": "apps/finance/evidence/p0-250-finance-phase3-permission-journal-stdout-20260823.txt",
+    "bytes": 2320,
+    "sha256": "d61b70d77b261804377936621e8e30758a8c7334f998cc2a82588d76b4bf829d"
+  },
+  "stderr": {"bytes": 0, "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+  "forensicResult": {
+    "journalWindow": {"since": "2026-08-23 07:38:00 UTC", "until": "2026-08-23 07:47:00 UTC", "lineCount": 21, "normalizedMessageSha256": "bc148c0295daf6f542ddde32945508c4444e8af5681d3c640087a700e27c9511"},
+    "failureClass": "PERMISSION_OR_WORKING_DIRECTORY_TRAVERSE",
+    "serviceIdentity": {"user": "ynx", "group": "ynx", "uid": 995, "gid": 986, "groups": [986], "workingDirectory": "/opt/ynx/finance-current"},
+    "failedReleaseContainerContract": {"owner": "0:0", "mode": "0750", "ynxTraversal": "DENIED_BY_ROOT_ROOT_0750"},
+    "currentOldReleaseTraversal": "PASS"
+  },
+  "rootCause": {
+    "exact": "P0-247 created the candidate release container as root:root mode 0750. The systemd Finance process runs as ynx:ynx and is not in group 0, so it cannot traverse /opt/ynx/releases/finance/p0247-finance-phase3-20260823T073800Z after finance-current switches. systemd consequently classed the startup as a permission/working-directory traversal failure and the executor automatically restored the old release.",
+    "narrowSuccessorRequirement": "A wholly new Finance deployment lease must sign a releaseContainer traversal contract compatible with unitUser=ynx/unitGroup=ynx: either root:root mode 0755, or a least-privilege owner/group/mode arrangement that grants ynx execute traversal. It must freshly re-read and bind the current production baseline; P0-247 is not reusable."
+  },
+  "truth": {
+    "candidateReleaseActive": false,
+    "candidatePublicRuntime": false,
+    "manualRollbackAuthorized": false,
+    "walletApproval": false,
+    "signature": false,
+    "transaction": false
+  }
+}
