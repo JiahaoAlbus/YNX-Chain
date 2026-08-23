@@ -3,9 +3,23 @@
   "owner": "integration",
   "status": "SHOP_ANDROID_RETIRED_WEB_PUBLIC_STANDARD_WALLET_DEPLOYED_COMPUTER_CONTROL_BLOCKED",
   "paths": [
-    "apps/shop/**",
-    "YNX-Chain-website:{vercel.json,src/lib/ecosystemCatalog.js,public/releases/ecosystem-release-registry.json}"
+    "apps/shop/** (released checkpoint preserved)",
+    "YNX-Chain-website:src/lib/ecosystemCatalog.js (active while awaiting owner records)",
+    "YNX-Chain-website:vercel.json (released exact-path handoff available)",
+    "YNX-Chain-website:public/releases/ecosystem-release-registry.json (released exact-path handoff available)"
   ],
+  "pathLockDisposition": {
+    "recordedAt": "2026-08-23T09:24:36Z",
+    "websiteCheckpointCommit": "ed22d3c5abe8529684654d7d4e65d1c2c4b7ff15",
+    "releasedExactPaths": [
+      "vercel.json",
+      "public/releases/ecosystem-release-registry.json"
+    ],
+    "retainedExactPaths": [
+      "src/lib/ecosystemCatalog.js"
+    ],
+    "reason": "P0-011 activation remains blocked on three owner records, but the current blocked slice has no Website execution lease and does not require writes to vercel.json or the release registry."
+  },
   "observedPublicArtifact": {
     "version": "0.3.0-testnet-preview",
     "signingClass": "android-debug-testnet-preview",

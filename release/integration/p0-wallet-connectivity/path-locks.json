@@ -905,14 +905,44 @@
       ]
     },
     {
-      "path": "YNX-Chain-website:{vercel.json,src/lib/ecosystemCatalog.js,public/releases/ecosystem-release-registry.json}",
+      "path": "YNX-Chain-website:vercel.json",
+      "owner": null,
+      "branch": "codex/p0-shop-android-retirement-20260820",
+      "worktree": "28-website",
+      "taskId": "P0-011",
+      "status": "RELEASED_EXACT_PATH_HANDOFF_AVAILABLE",
+      "releasedAt": "2026-08-23T09:24:36Z",
+      "checkpointCommit": "ed22d3c5abe8529684654d7d4e65d1c2c4b7ff15",
+      "allowedExceptions": [
+        "historical-evidence-preservation",
+        "future owner must acquire a wholly-new exact path lock before write"
+      ]
+    },
+    {
+      "path": "YNX-Chain-website:public/releases/ecosystem-release-registry.json",
+      "owner": null,
+      "branch": "codex/p0-shop-android-retirement-20260820",
+      "worktree": "28-website",
+      "taskId": "P0-011",
+      "status": "RELEASED_EXACT_PATH_HANDOFF_AVAILABLE",
+      "releasedAt": "2026-08-23T09:24:36Z",
+      "checkpointCommit": "ed22d3c5abe8529684654d7d4e65d1c2c4b7ff15",
+      "allowedExceptions": [
+        "historical-evidence-preservation",
+        "future owner must acquire a wholly-new exact path lock before write"
+      ]
+    },
+    {
+      "path": "YNX-Chain-website:src/lib/ecosystemCatalog.js",
       "owner": "integration",
       "branch": "codex/p0-shop-android-retirement-20260820",
       "worktree": "28-website",
       "taskId": "P0-011",
-      "status": "ACTIVE",
+      "status": "ACTIVE_AWAITING_THREE_OWNER_RECORDS",
+      "checkpointCommit": "ed22d3c5abe8529684654d7d4e65d1c2c4b7ff15",
       "allowedExceptions": [
-        "historical-evidence-preservation"
+        "historical-evidence-preservation",
+        "do not invent missing Shop, iOS or Web/PWA owner records"
       ]
     },
     {
