@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "p0-finance-zero-write-inspection-request@1",
+  "kind": "FINANCE_P0294_BOOTSTRAP_BOUNDARY_ZERO_WRITE_INSPECTION_REQUEST",
+  "requestStatus": "SOURCE_REQUEST_ONLY_AWAITING_NEW_CENTRAL_READONLY_SINGLE_USE_LEASE",
+  "requestId": "P0-295",
+  "predecessor": {
+    "p0294Terminal": {
+      "path": "apps/finance/evidence/p0-294-finance-deployment-terminal-fail-closed-20260824.json",
+      "class": "REMOTE_EXIT_1_BEFORE_DIAGNOSTIC_REMOTE_STATE_UNKNOWN",
+      "reason": "no prewrite receipt means the bootstrap/executor invocation boundary must be inspected before another deployment lease"
+    }
+  },
+  "scope": {
+    "oneSsh": true,
+    "retryAllowed": false,
+    "remoteWrites": 0,
+    "noRemoteTemporaryFiles": true,
+    "forbidden": ["cleanup", "deploy", "rollback", "restart", "service lifecycle", "current/env/state/unit/Caddy mutation", "account", "signature", "transaction"]
+  },
+  "p0294PathsToInventory": {
+    "controls": [
+      "/opt/ynx/leases/finance/p0294-finance-phase3-20260824t020000z.executor.sh.pending",
+      "/opt/ynx/leases/finance/p0294-finance-phase3-20260824t020000z.executor.sh",
+      "/opt/ynx/leases/finance/p0294-finance-phase3-20260824t020000z.json.pending",
+      "/opt/ynx/leases/finance/p0294-finance-phase3-20260824t020000z.json"
+    ],
+    "stage": ["/opt/ynx/stage/finance/p0294-finance-phase3-20260824t020000z", "/opt/ynx/stage/finance/p0294-finance-phase3-20260824t020000z/stage"],
+    "backup": ["/var/backups/ynx-finance/p0294-finance-phase3-20260824t020000z", "/var/backups/ynx-finance/p0294-finance-phase3-20260824t020000z/backup"],
+    "release": ["/opt/ynx/releases/finance/p0294-finance-phase3-20260824t020000z", "/opt/ynx/releases/finance/p0294-finance-phase3-20260824t020000z/ynx-finance-7824af677dd0", "/opt/ynx/finance-current.next", "/opt/ynx/finance-current.rollback"],
+    "parents": ["/opt/ynx/leases/finance", "/opt/ynx/stage/finance", "/var/backups/ynx-finance", "/opt/ynx/releases/finance"],
+    "runtime": ["/opt/ynx/finance-current", "/etc/ynx/finance.env", "/etc/systemd/system/ynx-finance.service", "/var/lib/ynx/finance/state.json"]
+  },
+  "requiredReadOnlyReceipts": {
+    "pathInventory": "Every listed path is absent or yields a non-symlink full tuple plus bytes/SHA; directories also return direct child count and canonical inventory SHA-256. Do not enumerate outside the requested list.",
+    "runtime": ["current link tuple/target/resolved binary SHA", "env/unit/active Finance Caddy route tuple+SHA without values", "state absence or exact tuple+SHA", "service loaded/active/running/MainPID/NRestarts/User/Group"],
+    "httpSixGates": ["loopback root", "loopback health", "loopback version", "public root", "public health", "public version"],
+    "httpShape": "URL, status, bytes, body SHA-256 and MIME; stream-only, never a remote temp response file.",
+    "journal": "A fixed-window secret-safe normalized journal class/message SHA and bytes, classified against bootstrap pre-executor stages only; no raw journal export.",
+    "terminal": "One normalized receipt containing all path/runtime/HTTP data, bootstrapBoundaryClass, remote exit status and mutationCount=0."
+  },
+  "bootstrapBoundaryClassification": ["REMOTE_LAUNCHER_OR_SUDO", "BOOTSTRAP_ARGUMENT_OR_ID", "ROOT_OR_PARENT_TUPLE", "CARRIER_OR_CANDIDATE_INTEGRITY", "CONTROL_PATH_ABSENCE", "EXECUTOR_PLACEMENT", "SIGNED_LEASE_PLACEMENT_OR_VALIDATION", "EXECUTOR_NOT_REACHED_OR_UNKNOWN"],
+  "truth": {"inspectionExecuted": false, "p0294RemoteStateKnown": false, "deployment": false, "publicVerified": false},
+  "singleBlocker": "Central must issue a new P0-295 readonly lease. P0-294 cannot be retried or used as state evidence."
+}

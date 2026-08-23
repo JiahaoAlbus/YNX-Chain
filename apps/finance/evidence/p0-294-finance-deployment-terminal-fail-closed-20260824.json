@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "p0-finance-deployment-terminal-evidence@1",
+  "kind": "FINANCE_P0294_SINGLE_USE_EXECUTION_FAIL_CLOSED",
+  "terminalStatus": "CONSUMED_RELEASED_FAILED_CLOSED_REMOTE_EXIT_1_BEFORE_DIAGNOSTIC_REMOTE_STATE_UNKNOWN",
+  "execution": {
+    "literalArgvInvokedOnce": true,
+    "outerOutputContract": "outer executor observed rc only and did not precreate, open, redirect or truncate signed stdout/stderr/receipt paths",
+    "localExitStatus": 1,
+    "sshInvocationCount": 1,
+    "deployInvocationCount": 1,
+    "retryAllowed": false,
+    "retryPerformed": false,
+    "manualRollbackOrCleanupPerformed": false
+  },
+  "terminalFiles": {
+    "receipt": {"bytes": 202, "sha256": "4b7b9f0fb5e91bad194dd7e8f23023c3e390d61b13337aeb5301f3607281abac", "transport": "FINANCE_PHASE3_OPENSSH_SERIALIZED", "sshExitStatus": 1, "remoteExitStatus": 1, "stdoutBytes": 0, "terminalReceiptValidated": false},
+    "stdout": {"bytes": 0, "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    "stderr": {"bytes": 0, "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
+  },
+  "sourceBoundaryDiagnosis": {
+    "prewriteReceiptAbsent": true,
+    "conclusion": "The executor's prewrite diagnostic boundary was not reached. Failure occurred before '$executor deploy $lease' in the stdin bootstrap, or before the bootstrap itself started.",
+    "bootstrapPreExecutorStages": ["sudo/base64 remote launcher", "bootstrap argc/id validation", "root/retained-control-parent/carrier tuple checks", "candidate archive/env checks and carrier inventory", "fresh control-path absence checks", "executor pending placement and hash/mode verification", "signed lease pending placement, byte/SHA/JSON/signature/kind/id checks", "final control renames"],
+    "remoteState": "UNKNOWN"
+  },
+  "truth": {"deployment": false, "remoteMutation": "UNKNOWN", "residues": "UNKNOWN", "publicVerified": false, "walletApproval": false, "signature": false, "transaction": false},
+  "requiredCentralAction": "Atomically release P0-294 as consumed/nonreusable with Heavy=null."
+}
