@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "p0-finance-post-cleanup-readonly-evidence@2",
+  "recordedAtUtc": "2026-08-23T14:21:45Z",
+  "central": {
+    "commit": "61a54ec243ec243a698cf642c0d1448025be3c4b",
+    "tree": "d63171a15cedfd864f7ce1c9c07515c4f819e57c",
+    "leaseBlob": "475da51aae8daaa2e971d1a7b732fb1926720aed",
+    "leaseBytes": 6264,
+    "leaseSha256": "0b91026226625c9494e96e696aeee336cc6a5b5cce9484f592741fae839a831d",
+    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-post-cleanup-readonly-verification-20260823T141805Z"
+  },
+  "execution": {
+    "attemptCount": 1,
+    "exitStatus": 0,
+    "invoker": {"bytes": 1221, "sha256": "7f7d9f6a28f1876253d01a948651a8e9d1a843a7b904a0392b98d1a2b5be0546"},
+    "remoteScript": {"bytes": 2910, "sha256": "74515b876373b6503617638e31cea5ce69ce4185695452a9a3db464db2dfd64c"},
+    "stdout": {"bytes": 2088, "sha256": "13854d749a0bf2733fdce0cbe2417fc3d78ad5ecfe8ab265577eeca63a3a351b"},
+    "stderr": {"bytes": 0, "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    "status": {"bytes": 2, "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa", "value": "0"},
+    "retryPerformed": false
+  },
+  "directRemoteReadback": {
+    "p0247Residues": "ALL_FOUR_ABSENT",
+    "p0264ControlPaths": "ALL_FOUR_ABSENT",
+    "currentRelease": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a",
+    "service": {"active": "active/running", "pid": 2241003, "nRestarts": 0},
+    "loopbackHealth": "200:485:d1e97a4314acd1ecccf94629d15bd598cb58ff78136b3622ac26d583a82e45c1",
+    "loopbackVersion": "200:130:39789776da47e60b7a7df845789e02ebba16707ad8951eb6f27c84c1b40bb226",
+    "publicHealth": "200:485:d1e97a4314acd1ecccf94629d15bd598cb58ff78136b3622ac26d583a82e45c1",
+    "publicVersion": "200:130:39789776da47e60b7a7df845789e02ebba16707ad8951eb6f27c84c1b40bb226",
+    "mutationCount": 0
+  },
+  "truth": {
+    "fourResiduesAbsent": true,
+    "fourControlPathsAbsent": true,
+    "oldRuntimeUnchanged": true,
+    "deploymentOrServiceMutationPerformed": false,
+    "publicWalletOrTransactionEvidence": false
+  }
+}
