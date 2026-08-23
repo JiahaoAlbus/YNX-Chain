@@ -1,0 +1,62 @@
+{
+  "schemaVersion": "p0-finance-post-cleanup-readonly-evidence@1",
+  "recordedAtUtc": "2026-08-23T13:57:10Z",
+  "central": {
+    "commit": "e2870f78eef5ddc5886f66aa18d7f427399a6a35",
+    "tree": "580653aaca0e120aa55dd1e93babfd13dc885ef3",
+    "leaseBlob": "61fb57d052337539a4b39e51230a006f02d696f2",
+    "leaseBytes": 5649,
+    "leaseSha256": "045673151790ad7e2e405b76b3273839a118fb12edbaef2ae99378c613bd6a5b"
+  },
+  "execution": {
+    "attemptCount": 1,
+    "exitStatus": 0,
+    "remoteScriptSha256": "87156dc540b1c12d9f4095606979bb07d1346af57bf05e126e9864096530a76b",
+    "invokerSha256": "5654c242c9b35865bedd02786ce9936c9108b1013f17fd6360f26693717fbe10",
+    "stdout": {
+      "bytes": 2801,
+      "sha256": "2940036af3ae71f38878b5163e89abcbb17006c51f5b9e7a00aec133693d4887"
+    },
+    "stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "directRemoteReadback": {
+    "p0247Residues": {
+      "stage": "PRESENT_DIRECTORY:64770:4620782:0:0:700:3:4096:directory:61181f33dcf9b11282732fe26f02ad9e3b0f5135dead72ca690606c722d9bf62",
+      "backup": "PRESENT_DIRECTORY:64770:2663604:0:0:700:3:4096:directory:e78ba1c645bfeeffa9d1f373fd2c773326a358c23caca7ad9fd48834b71a3e19",
+      "executor": "PRESENT_FILE:64770:4594823:0:0:700:1:15907:regular file:8f9e2ede5418e8f65739f2a5f3af7a78c266474f4c428951d8daf27f20e56315",
+      "lease": "PRESENT_FILE:64770:4594824:0:0:600:1:6829:regular file:49aec85704a6282cab675373f56cb71a240433f3625f08b5e7426bbb1bbfee80"
+    },
+    "p0264ControlPaths": "ALL_FOUR_ABSENT",
+    "releaseContainer": "ABSENT",
+    "currentRelease": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a",
+    "service": {
+      "active": "active/running",
+      "pid": 2241003,
+      "nRestarts": 0
+    },
+    "health": {
+      "loopback": "200:485:d1e97a4314acd1ecccf94629d15bd598cb58ff78136b3622ac26d583a82e45c1",
+      "public": "200:485:d1e97a4314acd1ecccf94629d15bd598cb58ff78136b3622ac26d583a82e45c1"
+    },
+    "version": {
+      "loopback": "200:130:39789776da47e60b7a7df845789e02ebba16707ad8951eb6f27c84c1b40bb226",
+      "public": "200:130:39789776da47e60b7a7df845789e02ebba16707ad8951eb6f27c84c1b40bb226"
+    },
+    "mutationCount": 0
+  },
+  "truth": {
+    "fourResiduesAbsent": false,
+    "p0264ControlPathsAbsent": true,
+    "oldRuntimeUnchanged": true,
+    "cleanupClaimedSuccessful": false,
+    "retryAuthorized": false,
+    "publicWalletOrTransactionEvidence": false
+  },
+  "handoff": {
+    "requiredAction": "Fail closed: release the consumed P0-266 read-only lease. P0-265 did not produce the required P0-247 residue absence; a wholly new, separately reviewed cleanup lease is required before any further remote cleanup.",
+    "noFurtherRemoteActionTaken": true
+  }
+}
