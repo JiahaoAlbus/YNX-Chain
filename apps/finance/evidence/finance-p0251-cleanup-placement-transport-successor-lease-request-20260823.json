@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "kind": "FINANCE_P0251_P0247_RESIDUE_CLEANUP_PLACEMENT_AND_EXECUTION_SINGLE_USE_REQUEST",
+  "supersedes": "apps/finance/evidence/finance-p0251-p0247-residue-cleanup-streaming-successor-lease-request-20260823.json",
+  "requestState": "PENDING_CENTRAL_SINGLE_USE_LEASE_REVIEW",
+  "owner": {
+    "branch": "codex/p0-finance-wallet-connectivity-20260820",
+    "reviewedTransportCheckpoint": "b02263a9b7f760d21dd2a2e95ec66d5ec21913b4",
+    "reviewedTransportTree": "641f2606cfe6b56118a2aa52a70683c1d514064f",
+    "nonSelfReferential": true
+  },
+  "scope": {
+    "requestedLeaseId": "p0251-finance-p0247-cleanup-20260823T100000Z",
+    "operation": "place exactly one reviewed cleanup executor and one Central-signed cleanup lease, then invoke that executor exactly once",
+    "p0247ResiduesOnly": ["/opt/ynx/stage/finance/p0247-finance-phase3-20260823T073800Z", "/var/backups/ynx-finance/p0247-finance-phase3-20260823T073800Z"],
+    "forbidden": ["SSH retry", "upload retry", "deploy", "rollback", "restart", "service/current/env/state/unit/Caddy/public mutation", "wallet account", "signature", "typed-data", "transaction"]
+  },
+  "sourceObjects": {
+    "cleanupExecutor": {"path": "apps/finance/scripts/finance-p0247-residue-cleanup.sh", "blob": "b56dda2e0f685d95f809ee8ba84b31bd15f79305", "bytes": 6642, "sha256": "d816d438dbad52b43c448ba925cade26ff609da1ee30cbfff32327054e0ea7d9", "frameName": "executor", "mode": "0700"},
+    "carrierBuilder": {"path": "apps/finance/scripts/build-finance-p0251-cleanup-placement-carrier.mjs", "blob": "ef75eba7847045a1cecab21998bd8dc32da69c5b", "bytes": 1136, "sha256": "4954c33a1612682f58b8ed8dbe6d614cbac70dcaa90c4c05e467b09c2bea5bbd"},
+    "remoteBootstrap": {"path": "apps/finance/scripts/finance-p0251-cleanup-placement-bootstrap.sh", "blob": "71091df825e496a7b65a70e232d42697c88fffa9", "bytes": 4506, "sha256": "5bf73c6da921097b4fef5601b378faabc0be417c44e91bc38ce1e75cc2a03903"},
+    "actualShellFixture": {"path": "apps/finance/scripts/test-finance-p0251-cleanup-placement-fixture.mjs", "blob": "e4047851488cdf69afab47ec114f3f3fc8c93b7e", "bytes": 4237, "sha256": "090183226c608366efdcf289cdd8d509e7c99ac8e55f751891b3d21a928a34d2"}
+  },
+  "remotePlacementContract": {
+    "parent": {"path": "/opt/ynx/leases/finance", "lastReadOnlyP0249Tuple": "64770:4594822:0:0:750:2:4096:directory", "freshFullTupleRequiredInIssuedLease": true, "freshNoSymlinkRequired": true, "lastObservationCannotAuthorizeExecution": true},
+    "targets": [
+      {"path": "/opt/ynx/leases/finance/p0251-finance-p0247-cleanup-20260823T100000Z.executor.sh", "basename": "p0251-finance-p0247-cleanup-20260823T100000Z.executor.sh", "frame": "executor", "mode": "0700", "mustBeAbsentBeforeWrite": true},
+      {"path": "/opt/ynx/leases/finance/p0251-finance-p0247-cleanup-20260823T100000Z.json", "basename": "p0251-finance-p0247-cleanup-20260823T100000Z.json", "frame": "lease", "mode": "0600", "mustBeAbsentBeforeWrite": true}
+    ],
+    "freshPrewriteRequired": ["parent full device:inode:uid:gid:mode:nlink:bytes:type tuple", "both target absence and no-symlink receipts", "signed lease bytes/SHA-256", "full deterministic stdin carrier bytes/SHA-256", "frame order/name/mode/bytes/SHA-256", "candidate executor bytes/SHA-256"],
+    "postPlacementReceipt": ["parent stable identity receipt", "each target path/device/inode/uid/gid/mode/nlink/bytes/type tuple", "each target bytes/SHA-256", "exact cleanup argv0 and argv1", "carrier SHA-256"],
+    "placementFailureCleanup": "the EXIT trap deletes only target files created by this run whose captured device:inode plus final bytes/SHA-256 still match; foreign, symlinked, substituted, or raced targets remain untouched"
+  },
+  "transport": {
+    "format": "YNX-FINANCE-P0251-CLEANUP-PLACEMENT-1; exact frame order executor then lease; base64 data lines; END and EOF; builder emits deterministic bytes/SHA-256",
+    "singleUse": true,
+    "retryAllowed": false,
+    "remotePrivilege": "sudo -n only; failure to obtain noninteractive privilege is fail closed before either target write",
+    "literalRemoteArgvTemplate": ["ssh", "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=yes", "<freshCentralBoundHost>", "sudo", "-n", "/bin/bash", "-c", "printf %s \"$1\" | base64 -d | /bin/bash -s -- \"${@:2}\"", "finance-p0251-cleanup-bootstrap", "<base64-of-exact-remoteBootstrap>", "p0251-finance-p0247-cleanup-20260823T100000Z", "/opt/ynx/leases/finance", "<freshParentFullTuple>", "/opt/ynx/leases/finance/p0251-finance-p0247-cleanup-20260823T100000Z.executor.sh", "/opt/ynx/leases/finance/p0251-finance-p0247-cleanup-20260823T100000Z.json", "d816d438dbad52b43c448ba925cade26ff609da1ee30cbfff32327054e0ea7d9", "<centralSignedLeaseSha256>", "<deterministicCarrierSha256>"],
+    "stdin": "the exact deterministic carrier is the only stdin stream; no remote bootstrap file, local path reference, temporary path, or scp is allowed"
+  },
+  "tests": {"bashSyntax": true, "builderSyntax": true, "actualShellPlacementSuccess": true, "existingRegularTargetRefusal": true, "symlinkTargetRefusal": true, "malformedCarrierIdentityBoundCleanup": true, "parentTupleRecheck": true, "singleInvocation": true},
+  "truth": {"leaseIssued": false, "sshExecuted": false, "uploadExecuted": false, "cleanupExecuted": false, "deployed": false, "rollback": false, "publicVerified": false, "walletApproval": false, "signature": false, "transaction": false},
+  "separateFutureAuthorizationRequired": "This request is the only proposed P0-251 placement-and-cleanup attempt. A terminal cleanup receipt still does not authorize a deployment or rollback."
+}
