@@ -17,6 +17,12 @@ viewer_expected=${YNX_VIDEO_LEGACY_VIEWER_SHA256:-}
 viewer_expected_bytes=${YNX_VIDEO_LEGACY_VIEWER_BYTES:-}
 caddy_expected=${YNX_VIDEO_CADDY_SHA256:-}
 receipt=${YNX_VIDEO_TAKEOVER_RECEIPT:-}
+receipt_parent=${YNX_VIDEO_RECEIPT_PARENT:-}
+receipt_container=${YNX_VIDEO_RECEIPT_CONTAINER:-}
+receipt_container_expected=${YNX_VIDEO_RECEIPT_CONTAINER_EXPECTED:-}
+receipt_uid=${YNX_VIDEO_RECEIPT_UID:-}
+receipt_gid=${YNX_VIDEO_RECEIPT_GID:-}
+receipt_mode=${YNX_VIDEO_RECEIPT_MODE:-}
 bootstrap=${YNX_VIDEO_BOOTSTRAP_SCRIPT:-}
 bootstrap_receipt=${YNX_VIDEO_BOOTSTRAP_RECEIPT:-}
 dedicated_root=${YNX_VIDEO_VIEWER_ROOT:-}
@@ -28,7 +34,8 @@ lock_path=${YNX_VIDEO_TAKEOVER_LOCK:-/run/lock/ynx-video-viewer-wallet-takeover.
 [[ "$dedicated_unit" == ynx-video-viewer-wallet.service ]] || { echo "dedicated unit mismatch" >&2; exit 65; }
 [[ "$legacy_unit_path" == /etc/systemd/system/ynx-video-viewer.service || "$mode" == fixture ]] || { echo "legacy unit path mismatch" >&2; exit 65; }
 [[ "$shared_current" == /opt/ynx-video/current || "$mode" == fixture ]] || { echo "shared current mismatch" >&2; exit 65; }
-[[ -n "$legacy_snapshot_expected" && -f "$legacy_snapshot_expected" && -n "$viewer_expected" && -n "$viewer_expected_bytes" && -n "$caddy_expected" && -n "$receipt" && -x "$bootstrap" && -n "$bootstrap_receipt" && -n "$dedicated_root" && -n "$dedicated_unit_path" ]] || { echo "controlled takeover binding missing" >&2; exit 65; }
+[[ -n "$legacy_snapshot_expected" && -f "$legacy_snapshot_expected" && -n "$viewer_expected" && -n "$viewer_expected_bytes" && -n "$caddy_expected" && -n "$receipt" && -x "$bootstrap" && -n "$bootstrap_receipt" && -n "$dedicated_root" && -n "$dedicated_unit_path" && -n "$receipt_parent" && -n "$receipt_container" && -n "$receipt_container_expected" && -n "$receipt_uid" && -n "$receipt_gid" && -n "$receipt_mode" ]] || { echo "controlled takeover binding missing" >&2; exit 65; }
+[[ "$(dirname "$receipt")" == "$receipt_parent" && "$(dirname "$bootstrap_receipt")" == "$receipt_parent" ]] || { echo "receipt parent mismatch" >&2; exit 65; }
 for binding in API_ROOT API_HEALTH API_VERSION CREATOR_ROOT CREATOR_MANIFEST CREATOR_CATALOG; do
   eval "binding_sha=\${YNX_VIDEO_${binding}_SHA256:-}"
   eval "binding_bytes=\${YNX_VIDEO_${binding}_BYTES:-}"
@@ -40,12 +47,16 @@ fi
 
 if [[ "$mode" == production ]]; then
   [[ "${YNX_VIDEO_LEASE_AUTHORIZED:-}" == P0_VIDEO_CONTROLLED_TAKEOVER_SINGLE_USE ]] || { echo "production takeover lease missing" >&2; exit 77; }
+  [[ "$receipt_parent" == /var/lib/ynx-video-viewer-wallet-evidence && "$receipt_container" == /var/lib && "$receipt_uid" == 0 && "$receipt_gid" == 0 && "$receipt_mode" == 755 ]] || { echo "production receipt directory binding mismatch" >&2; exit 77; }
 else
   [[ -n "$control" && -x "$control/systemctl" && -x "$control/legacy-snapshot" && -x "$control/curl" && -x "$control/caddy-snapshot" && -x "$control/port-6494-free" ]] || { echo "fixture control missing" >&2; exit 65; }
 fi
 
 sha_stream() { shasum -a 256 | awk '{print $1}'; }
 sha_file() { shasum -a 256 "$1" | awk '{print $1}'; }
+stat_tuple() {
+  if stat -c '%d:%i:%u:%g:%a:%h' "$1" >/dev/null 2>&1; then stat -c '%d:%i:%u:%g:%a:%h' "$1"; else stat -f '%d:%i:%u:%g:%Lp:%l' "$1"; fi
+}
 systemctl_exact() { if [[ "$mode" == fixture ]]; then "$control/systemctl" "$@"; else systemctl "$@"; fi; }
 probe() {
   local role=$1
@@ -118,11 +129,7 @@ assert_hashes() {
   [[ "$(caddy_snapshot)" == "$caddy_expected" ]] || return 1
 }
 assert_legacy_exact() {
-  local actual=${receipt}.legacy.actual
-  legacy_snapshot > "$actual"
-  cmp -s "$legacy_snapshot_expected" "$actual" || { echo "legacy runtime identity mismatch" >&2; return 1; }
-  rm -f -- "$actual"
-  assert_hashes "$viewer_expected"
+  cmp -s "$legacy_snapshot_expected" <(legacy_snapshot) || { echo "legacy runtime identity mismatch" >&2; return 1; }
 }
 assert_legacy_successor() {
   local actual=${receipt}.legacy.successor
@@ -136,6 +143,55 @@ assert_legacy_successor() {
   [[ "$new_pid" =~ ^[1-9][0-9]*$ && "$new_pid" != "$old_pid" ]] || { echo "legacy successor PID was not replaced" >&2; return 1; }
   rm -f -- "$actual" "${actual}.expected" "${actual}.stable"
   assert_hashes "$viewer_expected"
+}
+
+parent_identity_file="${receipt_parent}.identity"
+receipt_parent_identity=""
+parent_created=false
+assert_receipt_container() { [[ "$(stat_tuple "$receipt_container")" == "$receipt_container_expected" ]]; }
+create_receipt_parent() {
+  assert_receipt_container || { echo "receipt container identity mismatch" >&2; return 76; }
+  [[ ! -e "$receipt_parent" && ! -L "$receipt_parent" && ! -e "$parent_identity_file" && ! -L "$parent_identity_file" ]] || { echo "receipt parent must be absent" >&2; return 73; }
+  mkdir "$receipt_parent"
+  parent_created=true
+  chmod "$receipt_mode" "$receipt_parent"
+  if [[ "$mode" == production ]]; then chown "$receipt_uid:$receipt_gid" "$receipt_parent"; fi
+  receipt_parent_identity=$(stat_tuple "$receipt_parent")
+  [[ "$(printf '%s' "$receipt_parent_identity" | awk -F: '{print $3":"$4":"$5":"$6}')" == "$receipt_uid:$receipt_gid:$receipt_mode:2" ]] || { echo "created receipt parent metadata mismatch" >&2; return 76; }
+  printf '%s\n' "$receipt_parent_identity" > "$parent_identity_file"
+  if [[ "$mode" == production ]]; then chown "$receipt_uid:$receipt_gid" "$parent_identity_file"; fi
+  chmod 0600 "$parent_identity_file"
+}
+load_receipt_parent() {
+  [[ -d "$receipt_parent" && ! -L "$receipt_parent" && -f "$parent_identity_file" && ! -L "$parent_identity_file" ]] || return 76
+  receipt_parent_identity=$(cat "$parent_identity_file")
+  [[ "$(stat_tuple "$receipt_parent" | cut -d: -f1-5)" == "$(printf '%s' "$receipt_parent_identity" | cut -d: -f1-5)" ]] || return 76
+  parent_created=true
+}
+cleanup_receipt_parent() {
+  [[ "$parent_created" == true ]] || return 0
+  [[ -d "$receipt_parent" && ! -L "$receipt_parent" && "$(stat_tuple "$receipt_parent" | cut -d: -f1-5)" == "$(printf '%s' "$receipt_parent_identity" | cut -d: -f1-5)" ]] || { echo "receipt parent substituted; refusing cleanup" >&2; return 76; }
+  local entry tuple
+  while IFS= read -r entry; do
+    case "$entry" in
+      "$receipt"|"${receipt}.complete"|"${receipt}.legacy.actual"|"${receipt}.legacy.successor"|"${receipt}.legacy.successor.expected"|"${receipt}.legacy.successor.stable"|"${receipt}.viewer.tmp"|"${receipt}.api-root.tmp"|"${receipt}.api-health.tmp"|"${receipt}.api-version.tmp"|"${receipt}.creator-root.tmp"|"${receipt}.creator-manifest.tmp"|"${receipt}.creator-catalog.tmp"|"$bootstrap_receipt") ;;
+      *) echo "unexpected receipt sibling; refusing cleanup" >&2; return 76 ;;
+    esac
+    [[ -f "$entry" && ! -L "$entry" ]] || { echo "receipt entry type mismatch" >&2; return 76; }
+    tuple=$(stat_tuple "$entry")
+    [[ "$(printf '%s' "$tuple" | awk -F: '{print $3":"$4":"$6}')" == "$receipt_uid:$receipt_gid:1" ]] || { echo "receipt entry identity mismatch" >&2; return 76; }
+  done < <(find "$receipt_parent" -mindepth 1 -maxdepth 1 -print)
+  find "$receipt_parent" -mindepth 1 -maxdepth 1 -type f -delete
+  [[ -z "$(find "$receipt_parent" -mindepth 1 -maxdepth 1 -print -quit)" ]] || return 76
+  [[ "$(stat_tuple "$receipt_parent")" == "$receipt_parent_identity" ]] || { echo "empty receipt parent identity mismatch" >&2; return 76; }
+  rmdir "$receipt_parent"
+  [[ ! -e "$receipt_parent" && ! -L "$receipt_parent" ]] || return 76
+  if [[ -e "$parent_identity_file" || -L "$parent_identity_file" ]]; then
+    [[ -f "$parent_identity_file" && ! -L "$parent_identity_file" ]] || return 76
+    rm -f -- "$parent_identity_file"
+  fi
+  assert_receipt_container
+  parent_created=false
 }
 
 mkdir -p "$(dirname "$lock_path")"
@@ -162,17 +218,13 @@ restore_legacy() {
 }
 
 if [[ "$action" == restore-legacy ]]; then
+  load_receipt_parent || { echo "receipt parent identity unavailable" >&2; exit 76; }
   [[ -f "${receipt}.complete" ]] || { echo "completed takeover receipt missing" >&2; exit 66; }
   restore_legacy
   printf 'restored_legacy=true\n' >> "${receipt}.complete"
+  cleanup_receipt_parent
   exit 0
 fi
-
-assert_legacy_exact
-[[ ! -e "$receipt" ]] || exit 73
-cp "$legacy_snapshot_expected" "$receipt"
-printf 'viewer_sha256=%s\nviewer_bytes=%s\ncaddy_sha256=%s\nlegacy_stop_started=false\n' \
-  "$viewer_expected" "$viewer_expected_bytes" "$caddy_expected" >> "$receipt"
 
 legacy_stopped=false
 takeover_failed() {
@@ -182,9 +234,20 @@ takeover_failed() {
     restore_legacy || { echo "FATAL: legacy recovery verification failed" >&2; exit 78; }
     printf 'failure_recovered_legacy=true\nfailure_code=%s\n' "$code" >> "$receipt"
   fi
+  cleanup_receipt_parent || { echo "FATAL: receipt parent cleanup refused" >&2; exit 78; }
   exit "$code"
 }
 trap takeover_failed ERR INT TERM
+
+assert_legacy_exact
+create_receipt_parent
+assert_hashes "$viewer_expected"
+[[ ! -e "$receipt" ]] || exit 73
+cp "$legacy_snapshot_expected" "$receipt"
+if [[ "$mode" == production ]]; then chown "$receipt_uid:$receipt_gid" "$receipt"; fi
+chmod 0600 "$receipt"
+printf 'receipt_parent_identity=%s\nviewer_sha256=%s\nviewer_bytes=%s\ncaddy_sha256=%s\nlegacy_stop_started=false\n' \
+  "$receipt_parent_identity" "$viewer_expected" "$viewer_expected_bytes" "$caddy_expected" >> "$receipt"
 
 systemctl_exact stop "$legacy_unit"
 legacy_stopped=true

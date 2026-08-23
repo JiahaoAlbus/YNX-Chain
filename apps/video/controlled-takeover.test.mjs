@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import {execFileSync} from "node:child_process";
-import {chmodSync, existsSync, mkdtempSync, mkdirSync, readFileSync, writeFileSync} from "node:fs";
+import {chmodSync, existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync} from "node:fs";
 import {tmpdir} from "node:os";
 import {join, resolve} from "node:path";
 import test from "node:test";
@@ -15,6 +15,11 @@ function executable(path, body) {
 
 function sha(body) {
   return execFileSync("shasum", ["-a", "256"], {input: body, encoding: "utf8"}).split(/\s+/)[0];
+}
+
+function statTuple(path) {
+  const value = statSync(path);
+  return `${value.dev}:${value.ino}:${value.uid}:${value.gid}:${(value.mode & 0o777).toString(8)}:${value.nlink}`;
 }
 
 function fixture(failure = "none") {
@@ -103,7 +108,11 @@ esac
 cat '${join(control, "caddy")}'
 `);
   const bootstrap = join(dir, "bootstrap.sh");
-  const bootstrapReceipt = join(dir, "bootstrap-receipt.txt");
+  const receiptContainer = join(dir, "var-lib");
+  const receiptParent = join(receiptContainer, "ynx-video-viewer-wallet-evidence");
+  mkdirSync(receiptContainer);
+  writeFileSync(join(receiptContainer, "unrelated-sibling"), "preserve me\n");
+  const bootstrapReceipt = join(receiptParent, "bootstrap-receipt.txt");
   const dedicatedRoot = join(dir, "dedicated-root");
   const dedicatedUnitPath = join(dir, "dedicated-unit.service");
   executable(bootstrap, `#!/bin/sh
@@ -116,7 +125,7 @@ case "$1" in
   rollback-bootstrap) rm -f '${join(control, "dedicated-active")}' '${dedicatedUnitPath}' '${bootstrapReceipt}'; rmdir '${dedicatedRoot}' ;;
 esac
 `);
-  const receipt = join(dir, "takeover-receipt.txt");
+  const receipt = join(receiptParent, "takeover-receipt.txt");
   const env = {
     ...process.env,
     YNX_VIDEO_EXECUTION_MODE: "fixture",
@@ -134,13 +143,19 @@ esac
     })),
     YNX_VIDEO_CADDY_SHA256: "caddy-exact",
     YNX_VIDEO_TAKEOVER_RECEIPT: receipt,
+    YNX_VIDEO_RECEIPT_PARENT: receiptParent,
+    YNX_VIDEO_RECEIPT_CONTAINER: receiptContainer,
+    YNX_VIDEO_RECEIPT_CONTAINER_EXPECTED: statTuple(receiptContainer),
+    YNX_VIDEO_RECEIPT_UID: String(process.getuid()),
+    YNX_VIDEO_RECEIPT_GID: String(process.getgid()),
+    YNX_VIDEO_RECEIPT_MODE: "755",
     YNX_VIDEO_BOOTSTRAP_SCRIPT: bootstrap,
     YNX_VIDEO_BOOTSTRAP_RECEIPT: bootstrapReceipt,
     YNX_VIDEO_VIEWER_ROOT: dedicatedRoot,
     YNX_VIDEO_VIEWER_UNIT_PATH: dedicatedUnitPath,
     YNX_VIDEO_TAKEOVER_LOCK: join(dir, "takeover.lock")
   };
-  return {dir, control, baseline, receipt, env};
+  return {dir, control, baseline, receipt, receiptContainer, receiptParent, env};
 }
 
 test("controlled takeover freezes predecessor, switches once, and restores a verified legacy successor", () => {
@@ -149,10 +164,13 @@ test("controlled takeover freezes predecessor, switches once, and restores a ver
   assert.equal(existsSync(join(f.control, "legacy-active")), false);
   assert.equal(existsSync(join(f.control, "dedicated-active")), true);
   assert.match(readFileSync(`${f.receipt}.complete`, "utf8"), /controlled_takeover_complete=true/);
+  assert.equal(existsSync(f.receiptParent), true);
   execFileSync("bash", [takeover, "restore-legacy"], {env: f.env});
   assert.equal(existsSync(join(f.control, "legacy-active")), true);
   assert.equal(existsSync(join(f.control, "dedicated-active")), false);
-  assert.match(readFileSync(`${f.receipt}.complete`, "utf8"), /restored_legacy=true/);
+  assert.equal(existsSync(f.receiptParent), false);
+  assert.equal(existsSync(`${f.receiptParent}.identity`), false);
+  assert.equal(readFileSync(join(f.receiptContainer, "unrelated-sibling"), "utf8"), "preserve me\n");
   assert.match(readFileSync(join(f.control, "systemctl.log"), "utf8"), /stop ynx-video-viewer\.service/);
   assert.match(readFileSync(join(f.control, "systemctl.log"), "utf8"), /start ynx-video-viewer\.service/);
   const urls = readFileSync(join(f.control, "curl.log"), "utf8");
@@ -166,7 +184,9 @@ for (const stage of ["stop", "port", "bootstrap", "post"]) {
     assert.throws(() => execFileSync("bash", [takeover, "takeover"], {env: f.env, stdio: "pipe"}));
     assert.equal(existsSync(join(f.control, "legacy-active")), true);
     assert.equal(existsSync(join(f.control, "dedicated-active")), false);
-    if (stage !== "stop") assert.match(readFileSync(f.receipt, "utf8"), /failure_recovered_legacy=true/);
+    assert.equal(existsSync(f.receiptParent), false);
+    assert.equal(existsSync(`${f.receiptParent}.identity`), false);
+    assert.equal(readFileSync(join(f.receiptContainer, "unrelated-sibling"), "utf8"), "preserve me\n");
   });
 }
 
@@ -177,4 +197,13 @@ test("controlled takeover lock rejects a concurrent executor before service muta
   assert.equal(existsSync(join(f.control, "legacy-active")), true);
   assert.equal(existsSync(join(f.control, "dedicated-active")), false);
   assert.equal(existsSync(f.receipt), false);
+  assert.equal(existsSync(f.receiptParent), false);
+  rmSync(`${f.env.YNX_VIDEO_TAKEOVER_LOCK}.d`, {recursive: true});
+
+  mkdirSync(f.receiptParent);
+  writeFileSync(`${f.receiptParent}.identity`, "substituted\n");
+  assert.throws(() => execFileSync("bash", [takeover, "takeover"], {env: f.env, stdio: "pipe"}));
+  assert.equal(existsSync(join(f.control, "legacy-active")), true);
+  assert.equal(existsSync(f.receiptParent), true);
+  assert.equal(readFileSync(join(f.receiptContainer, "unrelated-sibling"), "utf8"), "preserve me\n");
 });
