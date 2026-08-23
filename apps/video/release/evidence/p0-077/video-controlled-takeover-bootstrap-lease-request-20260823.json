@@ -4,33 +4,33 @@
   "taskId": "P0-VIDEO-CONTROLLED-TAKEOVER-BOOTSTRAP-20260823",
   "productId": "ynx-video",
   "owner": "video",
-  "generatedAt": "2026-08-23T00:49:00Z",
+  "generatedAt": "2026-08-23T03:55:37Z",
   "status": "REQUESTED_NOT_AUTHORIZED",
   "supersedes": {
-    "requestCommit": "e83ad7ca2d36873f6943879cf1bca07ba8a0166f",
-    "centralDecision": "NO_GO_LEGACY_VIEWER_ACTIVE_AND_6494_BOUND",
-    "reason": "The old Viewer is active and owns 6494, so an absent/free bootstrap is not executable."
+    "requestCommit": "156df358bfdb18316b302d3c5c67dce7aa749d58",
+    "centralDecision": "NO_GO_VIDEO_CONTROLLED_TAKEOVER_BOOTSTRAP_AUTHORIZATION_TOKEN_MISMATCH",
+    "reason": "The predecessor request preserved the takeover authorization token when invoking the production bootstrap, whose distinct token check would fail after the legacy Viewer stopped."
   },
   "implementation": {
     "branch": "codex/video-p0-wallet-router",
-    "commit": "3b1a062b7ca6fd472d7282b357ff7d23b9850f24",
-    "tree": "fc41e6c1fa7e7c372e35a3982ee2c3589791c860",
-    "parent": "e2588039a267f763c9043408c37a3baf967b80f9",
+    "commit": "bb9e1d54a15c9370c8795c806e437f4d5442ef37",
+    "tree": "49fa78bf3fbee01f0d796256bc2e61e6d85c1f0c",
+    "parent": "156df358bfdb18316b302d3c5c67dce7aa749d58",
     "candidateProductSource": "12606124dad61f5cb8032e302087c2d00c040b4d",
     "candidateDeployAllowed": false
   },
   "frozenFiles": {
     "controlledTakeover": {
       "path": "apps/video/scripts/video-runtime-controlled-takeover.sh",
-      "blob": "fc553b000bc56301407445b4ee0b20e83598bf0e",
-      "bytes": 14411,
-      "sha256": "4a319bd42f3517a7281b3a755c442ba9b779ea3d15d7a344214b1ce6ba249179"
+      "blob": "12092aa6b5bb5575618d84f8bf1486c05b3059f5",
+      "bytes": 14533,
+      "sha256": "d2db388c5940a285ea54588ec34bc3a1f52eb6068d7490a8dc2c3bfc05ae1a1c"
     },
     "actualShellFixture": {
       "path": "apps/video/controlled-takeover.test.mjs",
-      "blob": "49a8e47a4762ea931dcab2a3fdeac98f8a070c0d",
-      "bytes": 10391,
-      "sha256": "19b352a7eba901e3d186d8c1046c6a9a2a6606ed46fcf11aebec55f9c0847b84"
+      "blob": "09375fdc31ad043823ee8f03901c344f7da4ba02",
+      "bytes": 10756,
+      "sha256": "66b6e04bbd0e30cf8d84171df73313cc4f9bedbbffa0513f5621fd4d27f263c8"
     },
     "bootstrapExecutor": {
       "path": "apps/video/scripts/video-runtime-bootstrap.sh",
@@ -141,7 +141,7 @@
       "YNX_VIDEO_CREATOR_CATALOG_BYTES=14237",
       "YNX_VIDEO_CADDY_SHA256=b606d1bdced436a984aed19981788f1a9471b4ccb7ad7f2c49b32015b729afa7",
       "YNX_VIDEO_CADDY_FILE=/etc/caddy/ynx-chain.caddy",
-      "YNX_VIDEO_TAKEOVER_RECEIPT=/var/lib/ynx-video-viewer-wallet-evidence/video-viewer-wallet-controlled-takeover-3b1a062b.receipt",
+      "YNX_VIDEO_TAKEOVER_RECEIPT=/var/lib/ynx-video-viewer-wallet-evidence/video-viewer-wallet-controlled-takeover-bb9e1d54.receipt",
       "YNX_VIDEO_RECEIPT_PARENT=/var/lib/ynx-video-viewer-wallet-evidence",
       "YNX_VIDEO_RECEIPT_CONTAINER=/var/lib",
       "YNX_VIDEO_RECEIPT_CONTAINER_EXPECTED=64770:34570:0:0:755:70",
@@ -156,12 +156,12 @@
       "YNX_VIDEO_PREDECESSOR_CARRIER=/var/tmp/ynx-video-predecessor-e5ce335-runtime.tar.gz",
       "YNX_VIDEO_PREDECESSOR_CARRIER_SHA256=6771deb82ccc62a9c14d62ed40e7bda961806ffe3c14681b9cf53ec27afef2df",
       "YNX_VIDEO_PREDECESSOR_SOURCE_COMMIT=e5ce33550bbd8a4be09a55a6bb3dd73cd3cb8833",
-      "YNX_VIDEO_BOOTSTRAP_RECEIPT=/var/lib/ynx-video-viewer-wallet-evidence/video-viewer-wallet-bootstrap-3b1a062b.receipt",
+      "YNX_VIDEO_BOOTSTRAP_RECEIPT=/var/lib/ynx-video-viewer-wallet-evidence/video-viewer-wallet-bootstrap-bb9e1d54.receipt",
       "YNX_VIDEO_UNIT_TEMPLATE=/var/tmp/ynx-video-viewer-wallet.service",
       "YNX_VIDEO_UNIT_TEMPLATE_SHA256=bb08d1cdc657a98290c8b90d6b40fca0f896d9c2c055654abdb3859009df6527"
     ],
-    "takeoverArgvTail": ["/bin/bash", "/var/tmp/ynx-video-runtime-controlled-takeover-3b1a062b.sh", "takeover"],
-    "restoreArgvTail": ["/bin/bash", "/var/tmp/ynx-video-runtime-controlled-takeover-3b1a062b.sh", "restore-legacy"]
+    "takeoverArgvTail": ["/bin/bash", "/var/tmp/ynx-video-runtime-controlled-takeover-bb9e1d54.sh", "takeover"],
+    "restoreArgvTail": ["/bin/bash", "/var/tmp/ynx-video-runtime-controlled-takeover-bb9e1d54.sh", "restore-legacy"]
   },
   "actualShellFixture": {
     "successTakeoverAndRestore": true,
@@ -176,6 +176,10 @@
     "receiptParentStartsAbsent": true,
     "successRestoreFullyRemovesReceiptParentAndIdentity": true,
     "everyFailureFullyRemovesReceiptParentAndIdentity": true,
+    "outerTakeoverAuthorizationToken": "P0_VIDEO_CONTROLLED_TAKEOVER_SINGLE_USE",
+    "bootstrapAuthorizationTokenOverriddenForBootstrap": "P0_VIDEO_BOOTSTRAP_SINGLE_USE",
+    "bootstrapAuthorizationTokenOverriddenForRollback": "P0_VIDEO_BOOTSTRAP_SINGLE_USE",
+    "productionTokenMismatchCovered": true,
     "unrelatedContainerSiblingPreserved": true,
     "receiptParentSubstitutionRejected": true,
     "testCount": 6,
@@ -193,7 +197,7 @@
       "/var/lib/ynx-video-viewer-wallet-evidence",
       "/var/lib/ynx-video-viewer-wallet-evidence.identity",
       "/run/lock/ynx-video-viewer-wallet-takeover.lock.d",
-      "/var/tmp/ynx-video-runtime-controlled-takeover-3b1a062b.sh",
+      "/var/tmp/ynx-video-runtime-controlled-takeover-bb9e1d54.sh",
       "/var/tmp/ynx-video-runtime-bootstrap-f1e8ed4c.sh",
       "/var/tmp/ynx-video-viewer-wallet.service",
       "/var/tmp/ynx-video-predecessor-e5ce335-runtime.tar.gz",
@@ -230,5 +234,5 @@
     "sourceBoundPublic": false,
     "productComplete": false
   },
-  "singleExecutableBlocker": "Central must independently review this exact source/evidence, wait for active P0-233 Heavy to release, freshly re-read the frozen /var/lib tuple and dedicated receipt-parent absence, then issue one Video-only controlled-takeover bootstrap lease."
+  "singleExecutableBlocker": "Central must independently review this corrected exact source/evidence, confirm the already-fresh production bindings remain exact and Heavy remains idle, then issue one Video-only controlled-takeover bootstrap lease."
 }

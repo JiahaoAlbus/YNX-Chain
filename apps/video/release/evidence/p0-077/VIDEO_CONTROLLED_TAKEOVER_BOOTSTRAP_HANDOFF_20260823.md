@@ -12,4 +12,6 @@ Actual-shell coverage passes normal takeover/restore, stop failure, port-still-b
 
 The successor no longer depends on the absent, unauthorized `/var/lib/ynx-release-evidence`. It creates exactly one dedicated `/var/lib/ynx-video-viewer-wallet-evidence` directory only after matching the frozen `/var/lib` tuple. Device/inode/uid/gid/mode/nlink are recorded before the legacy stop. Success rollback and every failure remove the directory only after exact identity, allowed-file and empty-state checks. An unrelated container sibling is preserved; parent or identity substitution fails closed without deletion.
 
+The corrected successor also crosses the production authorization boundary explicitly. The outer controlled takeover retains `P0_VIDEO_CONTROLLED_TAKEOVER_SINGLE_USE`, while each nested bootstrap and rollback-bootstrap invocation receives exactly `P0_VIDEO_BOOTSTRAP_SINGLE_USE`. The actual-shell fixture starts with the outer token, makes its bootstrap stub reject every other token with exit 77, and proves the exact bootstrap token on both the forward and rollback paths.
+
 Central must independently verify the exact request, stage the frozen carrier/scripts/unit/baseline, wait for Heavy availability, and issue a wholly new Video-only single-use controlled-takeover bootstrap lease. It must not infer candidate deployment or Wallet completion.
