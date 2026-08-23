@@ -23,7 +23,7 @@ function fixture(failViewer = false) {
   writeFileSync(unit, "unit\n"); writeFileSync(caddy, "caddy\n");
   executable(join(control, "stat-tuple"), `#!/bin/sh
 case "$1" in
-  '${current}') printf 'link-fixed\n' ;;
+  '${current}') printf '64770:1324617:0:0:777:1:53:symbolic link\n' ;;
   '${target}') printf 'target-fixed\n' ;;
   '${join(target, "apps")}') printf 'apps-fixed\n' ;;
   *) stat -f '%d:%i:%u:%g:%Lp:%l:%z:%HT' "$1" ;;
@@ -38,7 +38,7 @@ case "$1" in api) printf api-stable;; creator) printf creator-stable;; viewer) $
 `);
   return {temp, target, current, control, carrier, env: {...process.env,
     YNX_VIDEO_EXECUTION_MODE: "fixture", YNX_VIDEO_SHARED_CURRENT: current, YNX_VIDEO_SHARED_TARGET: target,
-    YNX_VIDEO_SHARED_LINK_TUPLE: "link-fixed", YNX_VIDEO_SHARED_TARGET_TUPLE: "target-fixed", YNX_VIDEO_SHARED_APPS_TUPLE: "apps-fixed",
+    YNX_VIDEO_SHARED_LINK_TUPLE_B64: Buffer.from("64770:1324617:0:0:777:1:53:symbolic link").toString("base64"), YNX_VIDEO_SHARED_TARGET_TUPLE: "target-fixed", YNX_VIDEO_SHARED_APPS_TUPLE: "apps-fixed",
     YNX_VIDEO_PREDECESSOR_CARRIER: carrier, YNX_VIDEO_PREDECESSOR_CARRIER_SHA256: sha,
     YNX_VIDEO_LEGACY_UNIT: "ynx-video-viewer.service", YNX_VIDEO_LEGACY_UNIT_PATH: unit,
     YNX_VIDEO_LEGACY_UNIT_SHA256: execFileSync("shasum", ["-a", "256", unit], {encoding:"utf8"}).split(/\s+/)[0],
@@ -78,4 +78,17 @@ esac
   assert.throws(() => execFileSync("bash", [join(video, "scripts/video-legacy-viewer-emergency-recovery.sh"), "recover"], {env:f.env, stdio:"pipe"}));
   assert.equal(existsSync(join(f.target, "apps/video/server.mjs")), true);
   assert.equal(existsSync(join(f.target, "apps/original-video/server.mjs")), true);
+});
+
+test("actual shell transport preserves a link tuple containing spaces", () => {
+  const f = fixture();
+  f.env.YNX_VIDEO_SHARED_LINK_TUPLE_B64 = Buffer.from("64770:1324617:0:0:777:1:53:symbolic link").toString("base64");
+  const assignments = Object.entries(f.env)
+    .filter(([key]) => key.startsWith("YNX_VIDEO_"))
+    .map(([key, value]) => `${key}=${value}`)
+    .join(" ");
+  execFileSync("bash", ["-c", `env ${assignments} bash '${join(video, "scripts/video-legacy-viewer-emergency-recovery.sh")}' recover`], {
+    env: {PATH: process.env.PATH}, stdio: "pipe"
+  });
+  assert.match(readFileSync(join(f.temp, "receipt"), "utf8"), /recovered=true/);
 });

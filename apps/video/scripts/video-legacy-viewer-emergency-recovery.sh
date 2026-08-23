@@ -7,7 +7,8 @@ action=${1:-}
 mode=${YNX_VIDEO_EXECUTION_MODE:-}
 link=${YNX_VIDEO_SHARED_CURRENT:-}
 target=${YNX_VIDEO_SHARED_TARGET:-}
-link_tuple=${YNX_VIDEO_SHARED_LINK_TUPLE:-}
+link_tuple_b64=${YNX_VIDEO_SHARED_LINK_TUPLE_B64:-}
+link_tuple=""
 target_tuple=${YNX_VIDEO_SHARED_TARGET_TUPLE:-}
 apps_tuple=${YNX_VIDEO_SHARED_APPS_TUPLE:-}
 carrier=${YNX_VIDEO_PREDECESSOR_CARRIER:-}
@@ -21,7 +22,10 @@ receipt=${YNX_VIDEO_RECOVERY_RECEIPT:-}
 control=${YNX_VIDEO_FIXTURE_CONTROL:-}
 
 [[ "$mode" == fixture || "$mode" == production ]] || exit 65
-[[ -n "$link" && -n "$target" && -n "$link_tuple" && -n "$target_tuple" && -n "$apps_tuple" && -n "$carrier" && -n "$carrier_sha" && -n "$unit" && -n "$unit_path" && -n "$unit_sha" && -n "$caddy" && -n "$caddy_sha" && -n "$receipt" ]] || exit 65
+[[ -n "$link" && -n "$target" && -n "$link_tuple_b64" && -n "$target_tuple" && -n "$apps_tuple" && -n "$carrier" && -n "$carrier_sha" && -n "$unit" && -n "$unit_path" && -n "$unit_sha" && -n "$caddy" && -n "$caddy_sha" && -n "$receipt" ]] || exit 65
+[[ -z "${YNX_VIDEO_SHARED_LINK_TUPLE:-}" ]] || exit 65
+link_tuple=$(printf '%s' "$link_tuple_b64" | base64 -d 2>/dev/null) || exit 65
+[[ -n "$link_tuple" && "$(printf '%s' "$link_tuple" | base64 | tr -d '\n')" == "$link_tuple_b64" ]] || exit 65
 if [[ "$mode" == production ]]; then
   [[ "${YNX_VIDEO_LEASE_AUTHORIZED:-}" == P0_VIDEO_LEGACY_SUBTREE_RECOVERY_SINGLE_USE ]] || exit 77
   [[ "$link" == /opt/ynx-video/current && "$target" == /opt/ynx-video/releases/p0205-creator-studio-0e1a53c5 ]] || exit 66
