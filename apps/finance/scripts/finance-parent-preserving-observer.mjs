@@ -2,13 +2,26 @@
 import { createHash } from 'node:crypto';
 import { lstatSync, readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
 function fail(message) {
   process.stderr.write(`${message}\n`);
   process.exit(65);
 }
 
-if (process.argv.length !== 5) fail('usage: finance-parent-preserving-observer.mjs <central-frozen-contract.json> <bytes> <sha256>');
+if (process.argv.length !== 7) fail('usage: finance-parent-preserving-observer.mjs <central-frozen-contract.json> <bytes> <sha256> <observer-bytes> <observer-sha256>');
+
+try {
+  const observerPath = fileURLToPath(import.meta.url);
+  const expectedBytes = Number(process.argv[5]);
+  const expectedSha256 = process.argv[6];
+  const stat = lstatSync(observerPath);
+  const raw = readFileSync(observerPath);
+  if (process.argv[1] !== observerPath || !stat.isFile() || stat.isSymbolicLink() || !Number.isSafeInteger(expectedBytes) || raw.length !== expectedBytes) fail('observer self identity mismatch');
+  if (!/^[0-9a-f]{64}$/.test(expectedSha256) || createHash('sha256').update(raw).digest('hex') !== expectedSha256) fail('observer self identity mismatch');
+} catch {
+  fail('invalid observer self identity');
+}
 
 let contract;
 try {

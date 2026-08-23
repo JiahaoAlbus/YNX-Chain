@@ -46,12 +46,33 @@ const contract = {
 const contractPath = join(fixture, 'contract.json');
 const contractBytes = Buffer.from(`${JSON.stringify(contract)}\n`);
 writeFileSync(contractPath, contractBytes);
+const observerBytes = readFileSync(observer);
 
-const safe = spawnSync(process.execPath, [observer, contractPath, String(contractBytes.length), sha(contractBytes)], { encoding: 'utf8' });
+const safe = spawnSync(process.execPath, [observer, contractPath, String(contractBytes.length), sha(contractBytes), String(observerBytes.length), sha(observerBytes)], { encoding: 'utf8' });
 assert.equal(safe.status, 0, `${safe.stdout}${safe.stderr}`);
 assert.match(safe.stdout, /FINANCE_PARENT_PRESERVING_NODE_SPAWN/);
 assert.equal(safe.stderr, '');
 for (const path of [stdout, stderr, receipt, `${receipt}.pending`]) assert.equal(lstatSync(path, { throwIfNoEntry: false }), undefined, 'pre-SSH observer must not create declared outputs');
+
+const substitutedObserver = join(fixture, 'finance-parent-preserving-observer.mjs');
+const marker = join(fixture, 'substituted-child-started');
+const substitutedStdout = join(fixture, 'substituted.stdout');
+const substitutedStderr = join(fixture, 'substituted.stderr');
+const substitutedReceipt = join(fixture, 'substituted.receipt');
+const markerChild = join(fixture, 'marker-child.sh');
+writeFileSync(markerChild, '#!/bin/bash\n: > "$1"\n');
+chmodSync(markerChild, 0o755);
+const substitutedArgv = ['/bin/bash', markerChild, marker, substitutedStdout, substitutedStderr, substitutedReceipt, ...Array.from({ length: 19 }, (_, index) => `substituted-${index}`)];
+assert.equal(substitutedArgv.length, 25);
+const substitutedContract = { ...contract, literalArgv: substitutedArgv, literalArgvJsonSha256: sha(JSON.stringify(substitutedArgv)) };
+const substitutedContractBytes = Buffer.from(`${JSON.stringify(substitutedContract)}\n`);
+const substitutedContractPath = join(fixture, 'substituted-contract.json');
+writeFileSync(substitutedContractPath, substitutedContractBytes);
+writeFileSync(substitutedObserver, Buffer.concat([observerBytes, Buffer.from('\n// same-path byte drift\n')]));
+const drift = spawnSync(process.execPath, [substitutedObserver, substitutedContractPath, String(substitutedContractBytes.length), sha(substitutedContractBytes), String(observerBytes.length), sha(observerBytes)], { encoding: 'utf8' });
+assert.equal(drift.status, 65, 'same-path observer byte drift must fail closed');
+assert.equal(lstatSync(marker, { throwIfNoEntry: false }), undefined, 'observer drift must fail before child spawn');
+for (const path of [substitutedStdout, substitutedStderr, substitutedReceipt, `${substitutedReceipt}.pending`]) assert.equal(lstatSync(path, { throwIfNoEntry: false }), undefined, 'observer drift must not touch declared outputs');
 
 const frozen = JSON.parse(readFileSync(request, 'utf8')).localHarmlessRootCauseProof;
 assert.deepEqual(frozen.topLevelPythonOsExecve, { exitStatus: 137, stdoutBytes: 0, stderrBytes: 0, replacementStarted: false });
@@ -65,5 +86,7 @@ assert.match(source, /spawnSync\(contract\.literalArgv\[0\], contract\.literalAr
 assert.match(source, /env: \{\}/);
 assert.match(source, /shell: false/);
 assert.match(source, /stdio: 'inherit'/);
+assert.match(source, /fileURLToPath\(import\.meta\.url\)/);
+assert.match(source, /observer self identity mismatch/);
 
 console.log('finance parent-preserving observer fixture: pass');

@@ -16,6 +16,7 @@
   },
   "observerContract": {
     "path": "apps/finance/scripts/finance-parent-preserving-observer.mjs",
+    "selfIdentity": "Before reading the observer contract or spawning a child, the observer resolves its own path from import.meta.url, requires process.argv[1] to be that exact absolute path, requires a regular non-symlink file, and verifies Central-frozen observer bytes and SHA-256.",
     "runtime": "Node.js parent process remains alive and calls spawnSync(argv[0], argv.slice(1), {cwd, env:{}, shell:false, stdio:'inherit'})",
     "literalIdentity": "Central freezes processWorkingDirectory, an empty environment, the exact 25-string argv array and SHA-256 of JSON.stringify(argv). The observer rejects any mismatch and passes the same strings without reconstruction or mutation.",
     "declaredOutputs": "The observer must not stat, lstat, open, create, truncate, append, redirect, pipe or capture the declared stdout, stderr, receipt or receipt.pending paths. The reviewed child launcher alone owns them.",
@@ -23,8 +24,8 @@
     "forbidden": ["Python os.execve", "Python subprocess", "shell string reconstruction", "stdio pipe or capture", "declared-output inspection", "retry"]
   },
   "reviewedObjects": {
-    "observer": {"path": "apps/finance/scripts/finance-parent-preserving-observer.mjs", "blob": "5af19cd93e2d87c3a49484d04738bafce4b3644e", "bytes": 2733, "sha256": "aea9883424d8f2ba69f9aa442601a0b211d5a3258bb901065ceeb054eef554ae"},
-    "fixture": {"path": "apps/finance/scripts/test-finance-parent-preserving-observer.mjs", "blob": "ae2bfaa74120c51d164c2469f30bd4c564a42d00", "bytes": 3531, "sha256": "299922bd8c19beb4c6282fff596f7fda4974d53a3ec269f0d2cd2c5185f35edd"}
+    "observer": {"path": "apps/finance/scripts/finance-parent-preserving-observer.mjs", "blob": "2eff975521fe48b17e3d58f4cf14afc0fad1c345", "bytes": 3451, "sha256": "b69619a0346d1b3f1dc06e6ad4809143e9dc0967728cbbf067752de56268f1f2"},
+    "fixture": {"path": "apps/finance/scripts/test-finance-parent-preserving-observer.mjs", "blob": "e93ea91bcea915d5c362f6fcc4f02e77e4eec5a0", "bytes": 5595, "sha256": "1731c78c61f96873a7c8c7e2badbd87f364e54fca59782cb8a5a897d95a4eabc"}
   },
   "newSingleUseNamespace": {
     "id": "p0300-finance-phase3-20260824t210000z",
@@ -50,7 +51,7 @@
   "newCentralSigningRequired": {
     "signedStdin": "Central must freshly read and sign a new P0300 deployment lease for the unique namespace; no P0298 stdin bytes, tuples or authority are reusable.",
     "literalArgv": "Central must freeze a newly reviewed exact 25-element Finance launcher argv referencing only the exact P0300 local/remote namespace and exact reviewed launcher/bootstrap/executor objects.",
-    "observerInvocation": "Central must separately freeze a direct Node observer argv containing only node, the exact reviewed observer path, the exact observer-contract path, and its bytes and SHA-256. It must not use os.execve or a shell wrapper.",
+    "observerInvocation": "Central must separately freeze a direct Node observer argv containing only node, the exact reviewed observer path, the exact observer-contract path and its bytes/SHA-256, plus the exact observer bytes/SHA-256. It must not use os.execve or a shell wrapper.",
     "freshBaseline": "All parent/runtime/service/HTTP/candidate tuples and every P0300 path absence must be freshly read and bound before authority is issued."
   },
   "terminalSemantics": {
