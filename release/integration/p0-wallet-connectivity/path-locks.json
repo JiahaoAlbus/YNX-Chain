@@ -2192,6 +2192,33 @@
         "P0-283 is consumed and nonreusable; cleanupComplete remains false and P0-281 remote receipt is preserved",
         "only a wholly-new P0-284 zero-write request with fresh transport preflight may follow"
       ]
+    },
+    {
+      "path": "{host:43.153.202.237:finance-p0281-post-cleanup-readonly-successor,readonly:/opt/ynx/leases/finance,readonly:/opt/ynx/leases/finance/p0279-finance-phase3-20260823T164408Z.*,readonly:/tmp/ynx-finance-p0281-finance-p0279-control-cleanup-20260823T170900Z.*,readonly:/opt/ynx/stage/finance/p0279-finance-phase3-20260823T164408Z/**,readonly:/var/backups/ynx-finance/p0279-finance-phase3-20260823T164408Z/**,readonly:/opt/ynx/releases/finance/p0279-finance-phase3-20260823T164408Z/**,readonly:/opt/ynx/finance-current,readonly:/etc/ynx/finance.env,readonly:/var/lib/ynx/finance/state.json,readonly:/etc/systemd/system/ynx-finance.service,readonly:/etc/caddy/conf.d/ynx-finance.caddy,readonly:ynx-finance.service,readonly:http://127.0.0.1:6483/**,readonly:https://finance.ynxweb4.com/**}",
+      "owner": "finance-release-control-plane-readonly-verification",
+      "branch": "codex/p0-wallet-connectivity-control-plane-20260820",
+      "worktree": "/private/tmp/ynx-calendar-control-plane.y8FFQt/repo",
+      "taskId": "P0-284",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_SINGLE_USE",
+      "acquiredAt": "2026-08-23T17:26:00Z",
+      "expiresAt": "2026-08-23T17:56:00Z",
+      "releasedAt": null,
+      "sourceCommit": "05b81e2a42a1dbfd475a5bb383b5a4f604873c5e",
+      "sourceTree": "ebb2418f4e8214877672eb02b006dd1fd40e4411",
+      "evidenceCommit": "05b81e2a42a1dbfd475a5bb383b5a4f604873c5e",
+      "artifactSha256": "cc5892495c9776d84572fa742caeca9c9c130c067113c97fbb1d4dbbc438827e",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "one total SSH attempt with ConnectTimeout=10 and ConnectionAttempts=1; the connection itself is the transport preflight",
+        "only after that same connection succeeds, execute the exact audited zero-write verification script from stdin",
+        "output only classifications, tuples, bytes, SHA, service fields and HTTP metadata",
+        "prove both P0-279 controls and both P0-281 temporary files absent and retained parent stable and empty",
+        "prove old current, env, absent state, unit, Caddy, service PID/NRestarts and public/loopback metadata unchanged",
+        "no separate preflight SSH, retry, cleanup, deploy, rollback, restart, service lifecycle or runtime/public mutation",
+        "P0-283 is consumed and nonreusable; cleanupComplete remains false",
+        "P0-282 remains queued and unauthorized until P0-284 terminal release"
+      ]
     }
   ]
 }

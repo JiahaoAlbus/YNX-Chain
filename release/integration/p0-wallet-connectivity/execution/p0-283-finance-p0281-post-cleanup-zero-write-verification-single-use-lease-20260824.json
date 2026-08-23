@@ -124,6 +124,12 @@
     "cleanupCompleteOnlyOnFullSuccess": true
   },
   "terminalEvidence": {
+    "ownerCommit": "05b81e2a42a1dbfd475a5bb383b5a4f604873c5e",
+    "ownerTree": "ebb2418f4e8214877672eb02b006dd1fd40e4411",
+    "path": "apps/finance/evidence/finance-p0283-post-cleanup-zero-write-terminal-failure-20260824.json",
+    "blob": "91092e396d7c2885f74ab0a7139a12fa024211b7",
+    "bytes": 658,
+    "sha256": "c804ae6948f85311a70c84aa438f7a0cc3073a7abb5c61c0880862856f42f2d5",
     "sshAttempts": 1,
     "retryCount": 0,
     "localExitStatus": 255,
