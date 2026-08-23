@@ -1,0 +1,78 @@
+{
+  "schemaVersion": "p0-finance-cleanup-successor-request@1",
+  "kind": "FINANCE_P0247_ACKNOWLEDGED_CLEANUP_ONLY_REQUEST",
+  "requestState": "AWAITING_WHOLELY_NEW_CENTRAL_SINGLE_USE_LEASE",
+  "scope": "Only the four P0-247 residue paths after fresh Central read-only binding; no deploy, rollback, service lifecycle, configuration, public route, account, sign, or transaction action.",
+  "supersedes": {
+    "p0265": "Consumed without an execution acknowledgement; P0-266 proved all four residues remained.",
+    "p0266EvidenceCommit": "ed7db93dfcf3f4a44360a7fa1c3e05f983af851d",
+    "p0266EvidenceTree": "6ff618bd3bfe80a63c03f4067137f41b50ab3b52",
+    "p0266EvidenceSha256": "bce8b145bed99a056f4b3dd8cd924694518ce45588bd047a00c6fe7e991fb556"
+  },
+  "reviewedCommandCheckpoint": {
+    "commit": "3e80004bcc236104d9a386e7daa7541c22dcb63a",
+    "tree": "a69323c0a28bb0f40956c4f73417d18e4c9e1cfd",
+    "objects": {
+      "diagnosis": {
+        "path": "apps/finance/evidence/p0-265-silent-zero-source-diagnosis-20260823.json",
+        "blob": "3b52b610bd50d8e48fa43fb3110b0e68573d0857",
+        "bytes": 2893,
+        "sha256": "e8b0ab4503260fdaaab7076d3137e4692caf9033e5e8ac150e256c62817c732e"
+      },
+      "literalTransport": {
+        "path": "apps/finance/scripts/finance-p0264-cleanup-literal-transport-command.sh",
+        "blob": "e087f6583757cc6ab906ee325b7d5d6fb20379b8",
+        "bytes": 3350,
+        "sha256": "c012a8215b34891e7a2f94825dfbd480defc2460c41464dd32052d94d51f68ee"
+      },
+      "remoteBootstrap": {
+        "path": "apps/finance/scripts/finance-p0264-cleanup-atomic-transport-bootstrap.sh",
+        "blob": "2e73994c0d7046428b8afcb0205601aac3685e1c",
+        "bytes": 6279,
+        "sha256": "f2b09b6eb8df7061e2985caa271f7ad0fa02b12132125069ae72d3636bdfabbd"
+      },
+      "actualShellFixture": {
+        "path": "apps/finance/scripts/test-finance-p0264-cleanup-atomic-transport-fixture.mjs",
+        "blob": "9ff0a9952dc9bbc365d5e46ebf678b122510b420",
+        "bytes": 8367,
+        "sha256": "d9fc520051df051172554473db2743a99b35646ea0face90fc672b1794e600cc"
+      },
+      "cleanupExecutor": {
+        "path": "apps/finance/scripts/finance-p0247-residue-cleanup.sh",
+        "blob": "85433b046e9aa3dfd5ad269ae143d35eab20e510",
+        "bytes": 8451,
+        "sha256": "fd7637a5d353bb8bee9e1ba981c7983f0ead0a8d473d544e62b15dcd340b9e50"
+      }
+    }
+  },
+  "requiredTransportContract": {
+    "oneSshAttempt": true,
+    "oneCleanupInvocation": true,
+    "retryAllowed": false,
+    "remoteCommandEncoding": "One explicit shell-quoted remote command; stdin remains the deterministic two-frame carrier.",
+    "successReceiptExactLines": [
+      "cleanup=P0247_RESIDUES_REMOVED",
+      "transport=P0264_ATOMIC_CONTROL_PLACEMENT",
+      "cleanupInvocationCount=1",
+      "cleanupExitStatus=0",
+      "controlObjectsFinalAbsent=true",
+      "carrierSha256=<Central-signed value>"
+    ],
+    "receiptBinding": "A zero SSH exit without exactly these six stdout lines and empty stderr must be converted to local status 65 and fail closed.",
+    "terminalReadOnlyVerificationRequired": "A separately signed post-cleanup inspection must directly prove four residue absences, absence of the new control paths, and unchanged old service/health/version."
+  },
+  "freshCentralBindingsRequired": [
+    "all four residue paths, parent tuples, target tuples, bytes/SHA or audit-algorithm inventory digests",
+    "P0-247 stage and backup inventory algorithm and expected digest values",
+    "all P0-26x control paths absent before and after execution",
+    "current link, env, unit, Caddy, state, service PID/NRestarts, loopback/public health and version baseline",
+    "one-use lease ID, expiry, exact carrier bytes/SHA, signed JSON bytes/SHA, and exact literal argv"
+  ],
+  "forbidden": ["deployment", "rollback", "service action", "current/env/state/unit/Caddy mutation", "public route mutation", "account", "sign", "typed data", "transaction", "retry after any failure"],
+  "truth": {
+    "newLeaseIssued": false,
+    "cleanupExecuted": false,
+    "fourResiduesAbsent": false,
+    "publicWalletOrTransactionEvidence": false
+  }
+}
