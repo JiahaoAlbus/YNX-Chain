@@ -2466,6 +2466,29 @@
         "direct terminal evidence proved all twelve paths absent, exact parent inventories, unchanged old runtime and six HTTP receipts",
         "P0-293 is consumed and nonreusable; Heavy and the read-only path lock are released"
       ]
+    },
+    {
+      "path": "{host:43.153.202.237:finance-p0294-rollback-first,write:/opt/ynx/leases/finance/p0294-finance-phase3-20260824t020000z.*,write:/opt/ynx/stage/finance/p0294-finance-phase3-20260824t020000z/**,write:/var/backups/ynx-finance/p0294-finance-phase3-20260824t020000z/**,write:/opt/ynx/releases/finance/p0294-finance-phase3-20260824t020000z/**,write:/opt/ynx/finance-current*,write:/etc/ynx/finance.env,write:/var/lib/ynx/finance/state.json,lifecycle:ynx-finance.service,readonly:/etc/systemd/system/ynx-finance.service,readonly:/etc/caddy/conf.d/ynx-finance.caddy,verify:http://127.0.0.1:6483/**,verify:https://finance.ynxweb4.com/**}",
+      "owner": "finance-release-control-plane",
+      "branch": "codex/p0-wallet-connectivity-control-plane-20260820",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration",
+      "taskId": "P0-294",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE",
+      "acquiredAt": "2026-08-23T19:25:00Z",
+      "expiresAt": "2026-08-23T19:55:00Z",
+      "releasedAt": null,
+      "sourceCommit": "2b7d8c0b52068b678249f23134c3e521f5cf7ab7",
+      "sourceTree": "2b9c07a7fbc7c54ad96d5387c3471ca97f7dc9b7",
+      "evidenceCommit": "2b7d8c0b52068b678249f23134c3e521f5cf7ab7",
+      "artifactSha256": "4446b9245ee81256bf02b6b46960e70ff83caa83838e91f6f80034b5a1fc5741",
+      "productionMutationAllowed": true,
+      "allowedExceptions": [
+        "one exact direct literal argv Finance deployment attempt and no retry",
+        "automatic rollback under the exact executor on any post-write failure",
+        "unit and Caddy files remain immutable; no non-Finance, Wallet, account, signature or transaction action",
+        "manual rollback requires a separately signed future exact-present lease"
+      ]
     }
   ]
 }
