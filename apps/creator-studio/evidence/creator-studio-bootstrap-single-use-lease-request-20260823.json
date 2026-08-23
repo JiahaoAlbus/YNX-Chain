@@ -68,8 +68,8 @@
     "transport": "apps/creator-studio/release-control-plane-transport.mjs",
     "transportBytes": 27380,
     "transportSha256": "e00486fb3503cd005ad879a1e0357482f37b9f04d80f313483266be5af5f75f1",
-    "canonicalCarrierBytes": 377820,
-    "canonicalCarrierSha256": "d4433a49d1bab0343c9791187fb573556151d0147db14b0d340c82c7cdd88947",
+    "canonicalCarrierBytes": 384448,
+    "canonicalCarrierSha256": "5f408265c12802a23ee243b1933778ae15b89eaf89af5a95a2c83de5b3a2b85b",
     "stdinExclusivelyCarriesCanonicalCarrier": true,
     "relativeLayoutMatchesFrozenExecutor": true,
     "controlParent": "/opt/ynx-release-control-plane",
@@ -105,8 +105,8 @@
     "objectsInExactOrder": [
       {
         "name": "release-bootstrap-executor.mjs",
-        "bytes": 21680,
-        "sha256": "ce4c42affd30687a8e725a32c07cf381581088c8b816262cc0ac73e1e906155c",
+        "bytes": 26650,
+        "sha256": "5ea5296af920ed2c0e3859de0a7f77926a7bba052d3df0c6660f0e4f03ba4ad7",
         "mode": 448
       },
       {
@@ -197,7 +197,14 @@
       "terminalRootManifestCatalogStatusBytesShaReceipted": true,
       "terminalSourceCommitAndTreeReceipted": true,
       "eachTerminalPredicateForcedFalseFixtureIdentifiesExactField": true,
-      "transportPropagatesExecutorStderrReceiptBeforeOldPlacementRestore": true
+      "transportPropagatesExecutorStderrReceiptBeforeOldPlacementRestore": true,
+      "samePidListenerAndExactRootReadinessPrecedesProcIdentityReads": true,
+      "mainPidReReadAfterReadinessAndMustRemainStable": true,
+      "systemdFragmentExecWorkingDirectoryUserControlGroupReceipted": true,
+      "procExeCmdlineCwdCgroupReceipted": true,
+      "preExecNodeRootRaceBecomesExactAfterReadinessFixturePassed": true,
+      "postReadinessMainPidChangeRejected": true,
+      "postReadinessPersistentIdentityMismatchRejected": true
     },
     "exactSudoArgvShape": [
       "/usr/bin/sudo",
@@ -233,8 +240,8 @@
     ]
   },
   "bootstrapExecutor": "apps/creator-studio/release-bootstrap-executor.mjs",
-  "bootstrapExecutorBytes": 21680,
-  "bootstrapExecutorSha256": "ce4c42affd30687a8e725a32c07cf381581088c8b816262cc0ac73e1e906155c",
+  "bootstrapExecutorBytes": 26650,
+  "bootstrapExecutorSha256": "5ea5296af920ed2c0e3859de0a7f77926a7bba052d3df0c6660f0e4f03ba4ad7",
   "nodeCompatibleUnitHardening": {
     "memoryDenyWriteExecute": false,
     "removedBecauseDirectP0241SystemdJournalProvedNodeV8ExecutableMemoryCoreDump": true,
@@ -247,6 +254,17 @@
     "requiresExactListenerPidAssociation": true,
     "requiresExactOfficialRootSha256": "b37f78205f2c5443b2103ee42e98d6ecde65238c107733088e63893a3c1de697",
     "timeoutUsesExistingAutomaticCleanupAndOldStudioRestore": true
+  },
+  "p0244DirectDiagnostic": {
+    "centralCommit": "369329e82acffd8ff3c63b5554daa9b17a661edd",
+    "centralTreePrefix": "6849a689",
+    "receiptBytes": 1812,
+    "receiptSha256": "c4d7e1fad1db2781f5d4e3b32f47b95d0f0c3689f46adb62c19dd3bf28d26ca8",
+    "observedBeforeReadiness": {"cmdline": "(node) ", "cwd": "/"},
+    "samePidListenerAndPublicIdentityPassed": true,
+    "oldPlacementAndStudioRestored": true,
+    "heavyReleased": true,
+    "rootCause": "PROC_IDENTITY_READ_BEFORE_TYPE_SIMPLE_EXEC_CHDIR_AND_BOUNDED_READINESS"
   },
   "forwardBinding": {
     "studioReleaseDir": "/opt/ynx-creator-studio-wallet/releases/creator-studio-0e1a53c5",
