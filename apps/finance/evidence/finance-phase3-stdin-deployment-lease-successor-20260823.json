@@ -6,13 +6,13 @@
     "ownerRequestCommit": "c560497db9c78a1106ab7f0d52d9555652e76cc4",
     "ownerRequestTree": "e8251f0c0a88b6f60d52d5eb4463dd7c5ed9d0bb",
     "requestSha256": "18130afa5aeabafa814e0148eb678a3626c2efabb1efd30915c46fa276d5525b",
-    "centralDecision": "NO_GO_FINANCE_PHASE3_RELEASE_LEASE_DIRECTORY_NOT_CREATED",
-    "correction": "Keep the immutable P0-228/P0-236 carrier independent, create the new lease-owned release container no-replace under the existing release parent, bind owner/mode/path, return exact container plus candidate-release tuple/inventory receipts, and remove only exact owned objects on failure."
+    "centralDecision": "NO_GO_FINANCE_PHASE3_MANUAL_ROLLBACK_PRESENT_STATE_UNSUPPORTED",
+    "correction": "Split deploy and manual rollback modes. Deploy requires absent lease-owned paths. A separately Central-signed manual-rollback lease must bind the successful deploy parent/container/release/backup/service receipts, prove the candidate is still current, then restore the old runtime and remove only the exact release inventory and exact empty container."
   },
   "owner": {
     "branch": "codex/p0-finance-wallet-connectivity-20260820",
-    "implementationCommit": "62f62c372abe50261a3535c7b09b5f3508e20a5c",
-    "implementationTree": "110cfc3e04a28c6f3d520822ee4ec98f68b9fbc6",
+    "implementationCommit": "8ac6a2e13944892d6f054c05be95800e839234dd",
+    "implementationTree": "17c57217b77852fad3e9b561d088039238e47873",
     "rule": "This successor evidence commit must be a non-self-referential child of the reviewed implementation."
   },
   "acceptedPrerequisite": {
@@ -77,28 +77,28 @@
     },
     "productionExecutor": {
       "path": "apps/finance/scripts/finance-production-rollback-first.sh",
-      "blob": "835b966bc57684b831f16abf32c4621c855844fb",
-      "bytes": 12577,
-      "sha256": "3ef249201bdcf750c3a3153c4fccb0409122e199bb1e86028a3cafb18746e6c5",
+      "blob": "5270306098d9d085cdaf4c980115025997509263",
+      "bytes": 15558,
+      "sha256": "a3652132e17bbbcd063153aacb61ebbe4dfda10330693d0ec9b9dbf503a42f0f",
       "ownerCommandFixture": "PASS",
       "ownerActualShellFixture": "PASS",
       "immutableCarrierIdSeparatedFromDeploymentLeaseId": true
     },
     "productionCommandFixture": {
       "path": "apps/finance/scripts/test-finance-production-command-object.mjs",
-      "blob": "1c9f58033ec29750d6c2edd7d3b277caa1a996a2",
-      "bytes": 1424,
-      "sha256": "4ba06fe64ebf04f6fb57a71b5fd28fa12878ed2cf19f2fe0d672a3243d6d1460",
+      "blob": "a7d0ce6dc5d421e8aefaa92e546200a52c7e00f2",
+      "bytes": 1802,
+      "sha256": "44bea6d394a7630c91937b32ed3196c242bb6d3d9a480b99313a54943cba1c8f",
       "ownerRerun": "PASS"
     },
     "productionActualShellFixture": {
       "path": "apps/finance/scripts/test-finance-production-fixture.mjs",
-      "blob": "0572b46ea3ae6c5f39e9343369bca423b03ff064",
-      "bytes": 31636,
-      "sha256": "e18a298be111b894d78e01e3cd2f57416039ccf44362e3ef3aefd7cdb87ef5d9",
+      "blob": "cf76e6436f6d93b848cf20f9e7633569d829abf2",
+      "bytes": 35162,
+      "sha256": "319ab3c64d9741e9c4e4bee8202d37fccd212a7423e686939b31c37ce5c30d08",
       "ownerRerun": "PASS",
       "crossStageCoverage": "exact Phase3 stdin bootstrap invokes the reviewed production executor against the P0-236-style fixed carrier while a distinct new Phase3 lease ID owns stage, backup and a release container that starts absent",
-      "releaseContainerCoverage": ["positive no-replace creation with path/owner/mode/tuple receipt", "missing release parent fails before creation", "foreign non-empty and symlink creation are preserved and fail closed", "pre-move failure removes only the exact empty created container", "normal post-move verifier failure removes exact candidate release inventory then exact empty container", "post-move release substitution restores old current and preserves the foreign object"]
+      "releaseContainerCoverage": ["positive no-replace creation with path/owner/mode/tuple receipt", "missing release parent fails before creation", "foreign non-empty and symlink creation are preserved and fail closed", "pre-move failure removes only the exact empty created container", "normal post-move verifier failure removes exact candidate release inventory then exact empty container", "post-move release substitution restores old current and preserves the foreign object", "real deploy success followed by a separate signed manual-rollback invocation restores old current/env/state/service and deletes only the exact release inventory plus exact empty container", "manual rollback foreign inventory and release substitution fail before the first write and preserve the candidate current plus foreign object"]
     }
   },
   "framingContract": {
@@ -128,10 +128,10 @@
     "primaryAttemptLimit": 1,
     "retryAllowed": false,
     "failureBehavior": "Once deploy begins the bootstrap disables placement cleanup and retains the exact executor/lease pair. The production executor owns first-failure rollback through its existing EXIT trap.",
-    "frozenManualRollback": "<exact placed executor> rollback <exact placed lease>",
+    "frozenManualRollback": "<exact placed executor> rollback <separately Central-signed manual-rollback lease>",
     "manualRollbackLimit": 1,
-    "manualRollbackCondition": "only a Central-authorized terminal recovery after the primary failure or failed post-switch verification; never a deploy retry",
-    "successReceipts": ["deploy parent path/tuple", "executor path/tuple/bytes/SHA", "lease path/tuple/bytes/SHA", "lease-owned release-container path/full tuple", "moved candidate-release path/full tuple/tree-inventory SHA-256", "literal rollback argv0/argv1/argv2"]
+    "manualRollbackCondition": "only after deployment success and a later external/browser verification failure; Central must sign a wholly new FINANCE_ROLLBACK_FIRST_PRODUCTION_MANUAL_ROLLBACK lease from the immutable success receipt; never reuse or mutate the deployment lease",
+    "successReceipts": ["deploy parent path/tuple", "executor path/tuple/bytes/SHA", "lease path/tuple/bytes/SHA", "lease-owned release-container stable identity/empty/present tuples", "moved candidate-release path/full tuple/tree-inventory SHA-256", "stage/backup/release parent tuples, backup tuple and candidate service PID/NRestarts", "literal rollback argv0/argv1/argv2"]
   },
   "candidate": {
     "immutableCarrierId": "p0228-finance-phase1-20260822T234100Z",
@@ -154,11 +154,11 @@
     "immutable carrier id/path/tuple must remain exact P0-228/P0-236 and must not equal or derive from the new Phase3 deployment lease id",
     "only new stage, backup and release children derive from the new Phase3 deployment lease id and must be absent before execution",
     "existing release parent tuple plus expected new release-container path/uid/gid/mode; the container is created no-replace and starts absent",
-    "terminal receipts bind the release-container full tuple and moved candidate-release full tuple plus deterministic tree-inventory SHA-256",
+    "terminal receipts bind all parent tuples, release-container stable identity/empty/present tuples, backup tuple, candidate service PID/NRestarts, and moved candidate-release full tuple plus deterministic tree-inventory SHA-256",
     "failure cleanup removes the moved candidate only after exact tuple/inventory recheck and the container only after exact tuple plus empty recheck; substitutions and foreign objects are preserved",
     "exact bootstrap and executor blobs/bytes/SHA plus their base64 derivations",
     "complete literal outer SSH argv, decoder command, all 16 bootstrap arguments and exact stdin path",
-    "one primary SSH/deploy attempt and at most one separately conditioned rollback SSH; no retry",
+    "one primary SSH/deploy attempt; any later manual rollback requires a wholly new Central-signed rollback lease binding the successful deployment receipt and permits one rollback invocation only; no retry",
     "post-read and terminal release rules for success, restored failure, or recovery blocker"
   ],
   "truth": {
@@ -166,6 +166,8 @@
     "bootstrapFixturePassed": true,
     "crossStageBootstrapAndRealExecutorFixturePassed": true,
     "releaseContainerLifecycleFixturePassed": true,
+    "separateSignedManualRollbackFixturePassed": true,
+    "manualRollbackForeignAndSubstitutionPrewriteGuardsPassed": true,
     "phase3LeaseIssued": false,
     "productionSsh": false,
     "deployed": false,
