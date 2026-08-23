@@ -56,7 +56,9 @@
   "truth": {
     "deploymentAuthorized": false,
     "bootstrapExecuted": false,
-    "publicRuntimeVerified": false
+    "publicRuntimeVerified": false,
+    "publicTerminalFixtureCoverage": false,
+    "publicTerminalLiveLeaseGateRequired": true
   },
   "studioReleaseDir": "/opt/ynx-creator-studio-wallet/releases/creator-studio-0e1a53c5",
   "rollback": {
