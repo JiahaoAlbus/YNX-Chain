@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "p0-finance-zero-write-terminal-evidence@1",
+  "kind": "FINANCE_P0294_POST_CLEANUP_ZERO_WRITE_VERIFICATION_TERMINAL_EVIDENCE",
+  "requestId": "P0-297",
+  "status": "DIRECT_ZERO_WRITE_SUCCESS",
+  "evidenceSource": "Central delegation direct terminal facts; Central atomic release remains pending at this owner checkpoint.",
+  "execution": {
+    "sshInvocationCount": 1,
+    "localExitStatus": 0,
+    "remoteExitStatus": 0,
+    "mutationCount": 0,
+    "stdoutIdentity": "not supplied in the terminal handoff; no output bytes or digest are asserted here",
+    "stderr": {"bytes": 0, "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
+  },
+  "directTruth": {
+    "allP0294Paths": "absent",
+    "leaseStageBackupParents": "restored to their expected post-cleanup inventories",
+    "oldCurrent": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a",
+    "service": "loaded:active:running:MainPID=2241003:NRestarts=0",
+    "sixLoopbackAndPublicGates": "exact old baseline",
+    "cleanupComplete": true,
+    "verificationComplete": true,
+    "productionSwitch": false
+  },
+  "truth": {"deployment": false, "publicCandidateVerified": false, "walletApproval": false, "productSession": false},
+  "nextBoundary": "Do not deploy until Central releases P0-297 and independently issues a wholly new Finance-only single-use deployment lease."
+}
