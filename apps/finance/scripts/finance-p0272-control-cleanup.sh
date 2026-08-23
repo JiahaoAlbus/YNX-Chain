@@ -29,7 +29,7 @@ case "$parent" in
   *) [[ "${FINANCE_P0272_CONTROL_CLEANUP_TEST_ROOT:-}" = 1 ]] || exit 65 ;;
 esac
 case "$lease" in
-  /tmp/ynx-finance-p0275-control-cleanup-*.json) ;;
+  /tmp/ynx-finance-p0275-finance-p0272-control-cleanup-*.json) ;;
   *) [[ "${FINANCE_P0272_CONTROL_CLEANUP_TEST_ROOT:-}" = 1 ]] || exit 65 ;;
 esac
 test "$executor" = "$parent/$target_id.executor.sh"
