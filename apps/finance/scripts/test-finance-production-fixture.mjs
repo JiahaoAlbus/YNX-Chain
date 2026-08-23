@@ -82,6 +82,34 @@ function releasePostMoveSubstitutionFixture() {
   assert.equal(readFileSync(join(foreignTarget, 'sentinel'), 'utf8'), 'keep', 'substitution target preserved');
   assert.ok(lstatSync(p.releaseContainer).isDirectory(), 'non-empty release container preserved');
 }
+function manualRollbackFixture(kind = 'success') {
+  const fixture = makeFixture(false); const p = fixture.paths;
+  const env = { ...process.env, PATH: `${fixture.bin}:${process.env.PATH}`, FINANCE_FIXTURE_SERVICE: p.service, FINANCE_FIXTURE_RESPONSES: p.responses, FINANCE_FIXTURE_STATE_PATH: p.state, FINANCE_FIXTURE_CANDIDATE_STATE_MODE: 'none', FINANCE_FIXTURE_SYMLINK_TARGET: p.old };
+  const deployed = spawnSync('/bin/bash', [fixture.copied, 'deploy', p.lease], { env, encoding: 'utf8' });
+  assert.equal(deployed.status, 0, `${deployed.stdout}${deployed.stderr}`);
+  const receipt = Object.fromEntries(deployed.stdout.trim().split('\n').filter(line => line.includes('=')).map(line => [line.slice(0, line.indexOf('=')), line.slice(line.indexOf('=') + 1)]));
+  assert.equal(receipt.releaseContainer, p.releaseContainer); assert.equal(receipt.release, p.release);
+  const rollbackLease = JSON.parse(readFileSync(p.lease, 'utf8')); rollbackLease.lease.kind = 'FINANCE_ROLLBACK_FIRST_PRODUCTION_MANUAL_ROLLBACK'; rollbackLease.success = { parents: { stage: { tuple: receipt.stageParentTuple }, backup: { tuple: receipt.backupParentTuple }, release: { tuple: receipt.releaseParentTuple } }, releaseContainer: { identityTuple: receipt.releaseContainerIdentityTuple, emptyTuple: receipt.releaseContainerEmptyTuple, tuple: receipt.releaseContainerTuple }, release: { tuple: receipt.releaseTuple, inventorySha256: receipt.releaseInventorySha256 }, backup: { tuple: phase1DirectoryTuple(p.backup) }, service: { pid: 102, nrestarts: 7 } };
+  const rollbackPath = join(dirname(p.lease), `manual-${kind}.json`); write(rollbackPath, `${JSON.stringify(rollbackLease)}\n`);
+  const foreignTarget = join(fixture.root, `manual-${kind}-foreign`); mkdirSync(foreignTarget); write(join(foreignTarget, 'sentinel'), 'keep');
+  if (kind === 'foreign') write(join(p.release, 'foreign'), 'foreign');
+  if (kind === 'substitution') { rmSync(p.release, { recursive: true }); symlinkSync(foreignTarget, p.release); }
+  // This boundary represents a separately observed external/browser gate
+  // failure after deploy success and before Central signs manual rollback.
+  const rolledBack = spawnSync('/bin/bash', [fixture.copied, 'rollback', rollbackPath], { env, encoding: 'utf8' });
+  if (kind === 'success') {
+    assert.equal(rolledBack.status, 0, `${rolledBack.stdout}${rolledBack.stderr}`);
+    assert.equal(readlinkSync(p.current), p.old, 'separate manual rollback restores old current');
+    assert.equal(readFileSync(p.env, 'utf8'), 'SECRET=kept-local\nYNX_FINANCE_WEB_DIR=old\nOTHER=value\n', 'separate manual rollback restores old env');
+    assert.equal(lstatSync(p.release, { throwIfNoEntry: false }), undefined, 'manual rollback removes exact release');
+    assert.equal(lstatSync(p.releaseContainer, { throwIfNoEntry: false }), undefined, 'manual rollback removes exact empty release container');
+  } else {
+    assert.notEqual(rolledBack.status, 0, `manual rollback ${kind} fails closed`);
+    assert.equal(readlinkSync(p.current), p.release, `manual rollback ${kind} does not mutate current before identity proof`);
+    if (kind === 'foreign') assert.equal(readFileSync(join(p.release, 'foreign'), 'utf8'), 'foreign', 'foreign release content preserved');
+    else { assert.ok(lstatSync(p.release).isSymbolicLink(), 'substituted release preserved'); assert.equal(readFileSync(join(foreignTarget, 'sentinel'), 'utf8'), 'keep'); }
+  }
+}
 function generatorNegative(kind) {
   const fixture = makeFixture(false); const source = fixture.paths.env; if (kind === 'missing') write(source, 'SECRET=kept-local\n'); else write(source, 'YNX_FINANCE_WEB_DIR=one\nYNX_FINANCE_WEB_DIR=two\n');
   rmSync(fixture.paths.newEnv); const result = spawnSync('/bin/bash', [fixture.generator, source, fixture.paths.newEnv, fixture.paths.targetWeb], { env: { ...process.env, PATH: `${fixture.bin}:${process.env.PATH}` }, encoding: 'utf8' }); assert.notEqual(result.status, 0, `${kind} must fail closed`); assert.equal(lstatSync(fixture.paths.newEnv, { throwIfNoEntry: false }), undefined, `${kind} leaves no candidate`); assert.equal(result.stdout.includes('SECRET='), false, 'negative generator output is secret-safe');
@@ -172,4 +200,4 @@ function crossStagePhase3Fixture() {
   assert.equal(sha(installedExecutor), shaBuffer(executorBytes), 'installed executor exact');
   assert.equal(sha(installedLease), shaBuffer(leaseBytes), 'installed signed lease exact');
 }
-execute(false); execute(true, { candidateState: 'file' }); execute(true, { absent: true, candidateState: 'file' }); execute(true, { absent: true, candidateState: 'symlink' }); execute(true, { absent: true, candidateState: 'file', substitute: true }); execute(true, { envMismatch: true }); releaseContainerFixture('missing-parent'); releaseContainerFixture('foreign'); releaseContainerFixture('symlink'); releaseContainerFixture('cleanup'); releaseContainerFixture('substitution'); releasePostMoveSubstitutionFixture(); generatorNegative('missing'); generatorNegative('duplicate'); phase1Fixture(); preparationFixture(); crossStagePhase3Fixture(); console.log('finance production actual-shell fixture: pass');
+execute(false); execute(true, { candidateState: 'file' }); execute(true, { absent: true, candidateState: 'file' }); execute(true, { absent: true, candidateState: 'symlink' }); execute(true, { absent: true, candidateState: 'file', substitute: true }); execute(true, { envMismatch: true }); releaseContainerFixture('missing-parent'); releaseContainerFixture('foreign'); releaseContainerFixture('symlink'); releaseContainerFixture('cleanup'); releaseContainerFixture('substitution'); releasePostMoveSubstitutionFixture(); manualRollbackFixture(); manualRollbackFixture('foreign'); manualRollbackFixture('substitution'); generatorNegative('missing'); generatorNegative('duplicate'); phase1Fixture(); preparationFixture(); crossStagePhase3Fixture(); console.log('finance production actual-shell fixture: pass');
