@@ -1,0 +1,278 @@
+{
+  "schemaVersion": 1,
+  "requestId": "WALLET-PROTECTED-REOWN-RUNTIME-OPERATOR-INPUTS-20260823",
+  "owner": "walletconnect-runtime-successor",
+  "status": "AWAITING_NAMED_CENTRAL_OWNER_AND_PROTECTED_VALUES",
+  "responseChannel": "named Central release owner through protected environment only",
+  "protectedEnvironment": "wallet-native-walletconnect-runtime",
+  "executionLeaseIssued": false,
+  "secretValuesRecorded": false,
+  "neverProvideInChatEvidenceOrGit": [
+    "Reown project ID value",
+    "private key, seed phrase, recovery material or account secret",
+    "approved test account address unless a named operator explicitly authorizes its redacted evidence form",
+    "Apple certificate, profile, P12 password, notary key or signing secret",
+    "Android keystore bytes, alias password or signing secret",
+    "relay authentication material or session symmetric key"
+  ],
+  "sourceBindings": {
+    "hardening": {
+      "branch": "codex/walletconnect-runtime-hardening-20260823",
+      "commit": "9f8e6aca883af7d31875e04ca01b8b20fac47892",
+      "tree": "683a59ae5c80224cf6ec62f3567402c71e1078e2",
+      "evidencePath": "release/integration/wallet-cross-platform-reown-runtime-source-hardening-evidence-20260823.json"
+    },
+    "apple": {
+      "ownerBranch": "codex/wallet-ios-macos-20260813",
+      "baselineCommit": "b50e22ea26e3cf928aee90e602680955297573b8",
+      "baselineTree": "c8689aee160e80436148102cb24b45f964ad0781",
+      "reownSDK": "reown-swift 2.3.1",
+      "reownTagObject": "968a82d440e51c4de18857928b60a03d36af7a2a",
+      "requiredProducts": [
+        "WalletConnectNetworking",
+        "WalletConnectPairing",
+        "WalletConnect"
+      ],
+      "paths": [
+        "apps/wallet/macos/Package.swift",
+        "apps/wallet/macos/Package.resolved",
+        "apps/wallet/macos/Sources/YNXWalletMacCore/WalletConnectRelayRuntime.swift",
+        "apps/wallet/macos/Sources/YNXWalletMacCore/WalletConnectV2Policy.swift",
+        "apps/wallet/macos/Sources/YNXWalletMacCore/WalletConnectV2StateStore.swift",
+        "apps/wallet/macos/Info.plist",
+        "apps/wallet/macos/YNXWallet-WalletConnect.entitlements",
+        "apps/wallet/ios/YNXWallet/AppDelegate.swift",
+        "apps/wallet/ios/YNXWallet/Info.plist",
+        "apps/wallet/ios/YNXWallet/YNXWallet-WalletConnect.entitlements"
+      ]
+    },
+    "android": {
+      "ownerBranch": "codex/wallet-android-metamask-l1-20260822",
+      "baselineCommit": "bf478361f009c3ad086e240d7af2007d98f98eb8",
+      "baselineTree": "a618897771a6cc44c75702e9d2ca5fe5c14d9ec4",
+      "reownWalletKit": "@reown/walletkit 1.5.6",
+      "walletConnectCore": "@walletconnect/core 2.23.10",
+      "reactNativeCompat": "@walletconnect/react-native-compat 2.23.10",
+      "paths": [
+        "apps/wallet/package.json",
+        "apps/wallet/App.tsx",
+        "apps/wallet/src/dapp/reownWalletConnectPort.ts",
+        "apps/wallet/src/dapp/walletConnectController.ts",
+        "apps/wallet/src/dapp/eip1193Provider.ts"
+      ]
+    }
+  },
+  "runtimeContract": {
+    "defaultEnabled": false,
+    "missingInputBehavior": "PRIVATE_SERVICE_DEGRADED; Standard EIP-1193 remains independent; no relay, pairing, account or signer authority is created",
+    "chain": {
+      "caip2": "eip155:6423",
+      "hex": "0x1917",
+      "asset": "YNXT",
+      "rpc": "https://rpc.ynxweb4.com/evm"
+    },
+    "namespace": {
+      "chains": [
+        "eip155:6423"
+      ],
+      "methods": [
+        "eth_chainId",
+        "eth_accounts",
+        "eth_requestAccounts",
+        "wallet_addEthereumChain",
+        "wallet_switchEthereumChain",
+        "personal_sign",
+        "eth_signTypedData_v4",
+        "eth_sendTransaction"
+      ],
+      "events": [
+        "accountsChanged",
+        "chainChanged",
+        "disconnect"
+      ],
+      "accountBoundary": "exactly one approved lowercase 0x account resolved from the existing signer binding"
+    },
+    "identity": {
+      "name": "YNX Wallet",
+      "rdns": "com.ynx.wallet",
+      "isYNXWallet": true,
+      "isMetaMask": false,
+      "customScheme": "ynxwallet"
+    }
+  },
+  "protectedInputs": [
+    {
+      "name": "YNX_WALLETCONNECT_PROJECT_ID",
+      "kind": "secret",
+      "binding": "Apple Info.plist YNXWalletConnectProjectID and Android __YNX_WALLETCONNECT_RUNTIME__.projectId or build-time EXPO_PUBLIC_WALLETCONNECT_PROJECT_ID",
+      "validation": "exact 32 lowercase hexadecimal characters; real Reown project allowlist receipt required",
+      "satisfied": false
+    },
+    {
+      "name": "YNX_WALLETCONNECT_APP_GROUP",
+      "kind": "protected-non-secret identifier",
+      "binding": "Apple Info.plist YNXWalletConnectAppGroup and signed com.apple.security.application-groups entitlement",
+      "validation": "signed application-group receipt must match both eligible Apple targets",
+      "satisfied": false
+    },
+    {
+      "name": "YNX_WALLETCONNECT_KEYCHAIN_ACCESS_GROUP",
+      "kind": "protected-non-secret identifier",
+      "binding": "existing Wallet Keychain signer/persistence identity; no new secret store",
+      "validation": "signed entitlement and add/read/delete receipt on eligible target; source string alone is insufficient",
+      "satisfied": false
+    },
+    {
+      "name": "YNX_WALLETCONNECT_APPROVED_ACCOUNT_HANDLE",
+      "kind": "opaque operator handle",
+      "binding": "resolves inside the existing native signer or managed Android Wallet account selector",
+      "validation": "must resolve to one Testnet 0x account after explicit approval; handle is not an address or key",
+      "satisfied": false
+    },
+    {
+      "name": "YNX_WALLETCONNECT_TEST_TX_POLICY",
+      "kind": "protected policy object",
+      "binding": "operator-approved recipient handle, maximum native value, maximum gas and expiry",
+      "validation": "chain eip155:6423 only; zero production value; every send requires a separate immediate confirmation",
+      "satisfied": false
+    },
+    {
+      "name": "YNX_WALLETCONNECT_DAPP_FIRST_PARTY_ORIGIN",
+      "kind": "protected exact HTTPS origin",
+      "binding": "one owner-approved first-party EVM DApp",
+      "validation": "origin only, no credentials, query or fragment; independently opened target URL must remain within this origin",
+      "satisfied": false
+    }
+  ],
+  "allowedDAppOrigins": {
+    "firstParty": {
+      "source": "YNX_WALLETCONNECT_DAPP_FIRST_PARTY_ORIGIN",
+      "exactValueRecorded": false
+    },
+    "external": [
+      {
+        "id": "uniswap",
+        "origin": "https://app.uniswap.org"
+      },
+      {
+        "id": "opensea",
+        "origin": "https://opensea.io"
+      },
+      {
+        "id": "safe",
+        "origin": "https://app.safe.global"
+      }
+    ],
+    "rule": "Each exact URL must be named by the operator and independently opened. Redirects, subdomains, lookalikes, fixtures and copied pages are rejected."
+  },
+  "signedInstallTargets": {
+    "ios": {
+      "bundleIdentifier": "com.ynxweb4.wallet",
+      "required": [
+        "eligible physical-device install",
+        "real signing Team receipt",
+        "application-group and Keychain entitlement readback"
+      ],
+      "satisfied": false
+    },
+    "macos": {
+      "bundleIdentifier": "com.ynxweb4.wallet.macos",
+      "required": [
+        "Developer ID signature",
+        "notarization and staple",
+        "Gatekeeper acceptance",
+        "clean-host installed launch"
+      ],
+      "satisfied": false
+    },
+    "android": {
+      "packageName": "com.ynxweb4.wallet",
+      "required": [
+        "release signing certificate digest",
+        "eligible physical-device or isolated emulator install",
+        "secure persistence and exact package/version readback"
+      ],
+      "satisfied": false
+    }
+  },
+  "orderedExecution": [
+    "named Central owner issues one path-scoped, time-bounded execution lease",
+    "executor confirms every protected input and install target without printing values",
+    "build exact source with runtime default-off and inject protected bindings only inside the protected job",
+    "install and prove cold launch plus second launch before pairing",
+    "independently open first-party, Uniswap, OpenSea and Safe exact targets",
+    "capture proposal and execute one approve plus one reject path",
+    "read back exact eip155:6423 and the approved redacted 0x account",
+    "restart Wallet and prove session restore without a new approval",
+    "with separate immediate confirmation execute personal_sign, EIP-712 and bounded Testnet send",
+    "disconnect and revoke; prove session, pending requests and account authority are purged",
+    "remove protected material and publish only the redacted evidence envelope"
+  ],
+  "requiredEvidenceEnvelope": {
+    "schema": "walletProtectedReownRuntimeEvidence@1",
+    "identity": [
+      "source commit/tree",
+      "platform/package/bundle/version",
+      "SDK package versions",
+      "signed install receipt",
+      "YNX identity distinct from official signed MetaMask comparator"
+    ],
+    "relayLifecycle": [
+      "relay connected receipt without token or symmetric key",
+      "pairing topic digest only",
+      "proposal approve request ID",
+      "proposal reject request ID and 4001/no-authority result",
+      "restored session topic digest after process restart",
+      "disconnect and revoke purge receipt"
+    ],
+    "requestLifecycle": [
+      "redacted approved account digest",
+      "eip155:6423 and 0x1917 readback",
+      "personal_sign request ID and result digest",
+      "EIP-712 request ID, domain chain and result digest",
+      "Testnet send request ID, bounded policy digest, transaction hash and confirmed receipt",
+      "accountsChanged, chainChanged and disconnect event order"
+    ],
+    "dapps": [
+      "exact first-party URL",
+      "exact Uniswap URL",
+      "exact OpenSea URL",
+      "exact Safe URL",
+      "visible DApp name/origin and approval decision for each"
+    ],
+    "requiredBooleans": {
+      "sourceBoundInstalled": false,
+      "ynxMetaMaskIdentitySeparated": false,
+      "relayConnected": false,
+      "pairingSucceeded": false,
+      "proposalApproved": false,
+      "proposalRejected": false,
+      "sessionRestored": false,
+      "personalSignSucceeded": false,
+      "eip712Succeeded": false,
+      "testnetSendSucceeded": false,
+      "disconnectRevoked": false,
+      "firstPartyDAppSucceeded": false,
+      "uniswapSucceeded": false,
+      "openseaSucceeded": false,
+      "safeSucceeded": false
+    }
+  },
+  "failClosedDefaults": {
+    "projectIDConfigured": false,
+    "signerBindingConfigured": false,
+    "approvedAccountResolved": false,
+    "transactionPolicyConfigured": false,
+    "eligibleSignedInstallAvailable": false,
+    "realRelayConnected": false,
+    "pairingSucceeded": false,
+    "proposalApproved": false,
+    "proposalRejected": false,
+    "sessionRestored": false,
+    "signSucceeded": false,
+    "sendSucceeded": false,
+    "productsConnected": 0,
+    "productsMigratedV2": 0
+  },
+  "releaseRule": "The request is executable only after every protected input, signed target and lease receipt is satisfied. Missing inputs keep the affected gates false and must never be replaced by fixtures, fabricated IDs, raw keys, source/CI claims or MetaMask impersonation."
+}
