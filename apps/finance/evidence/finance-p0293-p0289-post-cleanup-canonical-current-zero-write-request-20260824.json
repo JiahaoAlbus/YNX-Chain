@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "p0-finance-zero-write-verification-request@1",
+  "kind": "FINANCE_P0289_POST_CLEANUP_CANONICAL_CURRENT_ZERO_WRITE_VERIFICATION_REQUEST",
+  "requestStatus": "SOURCE_REQUEST_ONLY_AWAITING_NEW_CENTRAL_READONLY_SINGLE_USE_LEASE",
+  "requestId": "P0-293",
+  "predecessor": {
+    "p0292Terminal": {
+      "path": "apps/finance/evidence/p0-292-finance-p0289-post-cleanup-zero-write-terminal-fail-closed-20260824.json",
+      "failure": "ZERO_WRITE_VERIFIER_SYMLINK_CANONICAL_PATH_ASSERTION",
+      "cleanupAbsenceAlreadyDirectlyProved": true
+    }
+  },
+  "scope": {
+    "oneSsh": true,
+    "retryAllowed": false,
+    "remoteWrites": 0,
+    "noRemoteTemporaryFiles": true,
+    "forbidden": ["cleanup", "deploy", "rollback", "restart", "service lifecycle", "current/env/state/unit/Caddy mutation", "account", "signature", "transaction"]
+  },
+  "canonicalCurrentVerifierContract": {
+    "currentLinkPath": "/opt/ynx/finance-current",
+    "requiredOrder": [
+      "lstat the literal current link path and verify its full signed symlink tuple without calling assert_file on it",
+      "readlink/realpath the current link and require the resolved target to equal the signed active release path",
+      "construct the expected binary as resolvedTarget + '/ynx-finance'",
+      "assert the resolved binary's canonical path, non-symlink regular-file tuple, bytes and SHA-256",
+      "never require realpath('/opt/ynx/finance-current/ynx-finance') to equal that symlink-spelled input"
+    ],
+    "acceptedCurrentLink": "64770:1312291:0:0:777:1:50:symbolic link",
+    "acceptedResolvedRelease": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a",
+    "acceptedResolvedBinary": {"bytes": 8573112, "sha256": "0cc43c8a77c12975a0fcbada65971f08f2bc3a52345d547ea194dd3ccd60d83f"},
+    "safety": "This relaxes only the invalid canonical-input equality check. Symlink tuple, exact target, binary canonical path, tuple, bytes and SHA remain mandatory."
+  },
+  "requiredReceipts": {
+    "cleanupAbsence": ["P0289 executor", "P0289 signed lease", "P0289 stage container", "P0289 backup container", "pending and leaf paths", "current.next", "current.rollback"],
+    "parents": ["lease parent directChildren=0 and empty inventory", "stage parent nlink=5/directChildren=3/inventory 0d111...", "backup parent nlink=11/directChildren=9/inventory a590..."],
+    "runtime": ["current link + resolved target + canonical binary", "env tuple/SHA without values", "unit tuple/SHA", "active Finance Caddy route tuple/SHA", "state absence", "service loaded/active/running/MainPID/NRestarts/User/Group"],
+    "httpSixGates": ["loopback root", "loopback health", "loopback version", "public root", "public health", "public version"],
+    "httpShape": "Each HTTP receipt must include URL, status, bytes, body SHA-256 and MIME; stream only with no remote output file.",
+    "terminal": "One normalized non-secret receipt includes all absences, parents, canonical current chain, runtime, service, six HTTP gates, remote exit status and mutationCount=0."
+  },
+  "expectedOldRuntime": {
+    "envSha256": "854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252",
+    "unitSha256": "2e72cdad422a3a714c46d074ea97b725233576cf726dbbfd43e82e99c2c2975b",
+    "caddySha256": "dcf75a7aed315c54632321b8bb80e44c0abc22f6700fadfbfa9a7da21b88a282",
+    "state": "absent",
+    "service": "loaded:active:running:MainPID=2241003:NRestarts=0",
+    "http": ["root 200/11427/c1fc45eecd7f88de6fc3e049d15161b8d4e9878e31f20c977fc52b383a18ed53", "health 200/485/d1e97a4314acd1ecccf94629d15bd598cb58ff78136b3622ac26d583a82e45c1", "version 200/130/39789776da47e60b7a7df845789e02ebba16707ad8951eb6f27c84c1b40bb226"]
+  },
+  "truth": {"verificationExecuted": false, "cleanupComplete": false, "deployment": false, "publicVerified": false},
+  "singleBlocker": "Central must issue one new P0-293 readonly lease with the corrected canonical-current verifier; P0-292 cannot be retried."
+}
