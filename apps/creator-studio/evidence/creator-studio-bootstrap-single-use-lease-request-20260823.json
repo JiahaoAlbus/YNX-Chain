@@ -67,8 +67,8 @@
     "transport": "apps/creator-studio/release-control-plane-transport.mjs",
     "transportBytes": 14714,
     "transportSha256": "8cc28dfedca38a06f9dde964db79c3c93b9fe34c6fcc2a930ad80bcadd4b9a64",
-    "canonicalCarrierBytes": 368532,
-    "canonicalCarrierSha256": "7cf63abe5fd052f65e825d27ce034aaa5a5cdb12c7c3bb85d8d0fe595a828a04",
+    "canonicalCarrierBytes": 370416,
+    "canonicalCarrierSha256": "f6a111c4eed02a84b1e51abd5b7e98f68c8631d4980fcc63d6673df401e60094",
     "stdinExclusivelyCarriesCanonicalCarrier": true,
     "relativeLayoutMatchesFrozenExecutor": true,
     "controlParent": "/opt/ynx-release-control-plane",
@@ -87,8 +87,8 @@
     "objectsInExactOrder": [
       {
         "name": "release-bootstrap-executor.mjs",
-        "bytes": 14685,
-        "sha256": "bfd51fa79429aab8884301389c8f7737f3d3e2206b2c685f8c68716da8171fad",
+        "bytes": 16097,
+        "sha256": "d4690ace1f6a0c32988fa5c4ddf45def20ce8d07161913e1f17b920e6833176f",
         "mode": 448
       },
       {
@@ -147,6 +147,11 @@
       "symlinkParentRejectedAndPreserved": true,
       "foreignParentRaceRefusesDeletionAndPreservesForeign": true,
       "parentSiblingPreserved": true
+      ,
+      "bounded6495DelayedListenerAndRootReadiness": true,
+      "bounded6495ReadinessTimeoutRejected": true,
+      "timeoutFeedsExistingForwardCleanup": true,
+      "timeoutCleanupRestoresOldStudioAndDedicatedAbsence": true
     },
     "exactSudoArgvShape": [
       "/usr/bin/sudo",
@@ -179,6 +184,15 @@
     ]
   },
   "bootstrapExecutor": "apps/creator-studio/release-bootstrap-executor.mjs",
+  "bootstrapExecutorBytes": 16097,
+  "bootstrapExecutorSha256": "d4690ace1f6a0c32988fa5c4ddf45def20ce8d07161913e1f17b920e6833176f",
+  "bounded6495Readiness": {
+    "attempts": 60,
+    "intervalMilliseconds": 100,
+    "requiresExactListenerPidAssociation": true,
+    "requiresExactOfficialRootSha256": "b37f78205f2c5443b2103ee42e98d6ecde65238c107733088e63893a3c1de697",
+    "timeoutUsesExistingAutomaticCleanupAndOldStudioRestore": true
+  },
   "forwardBinding": {
     "studioReleaseDir": "/opt/ynx-creator-studio-wallet/releases/creator-studio-0e1a53c5",
     "requireSameMaterializedTargetCurrentReceiptInodeAndCandidateSha": true,
