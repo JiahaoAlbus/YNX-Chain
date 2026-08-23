@@ -427,25 +427,25 @@
     }
   ],
   "heavy": {
-    "owner": "card",
-    "taskId": "P0-246",
-    "status": "ACTIVE_SINGLE_USE",
+    "owner": null,
+    "taskId": null,
+    "status": "IDLE",
     "acquiredAt": "2026-08-23T07:10:00Z",
     "expiresAt": "2026-08-23T07:35:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-23T07:15:11Z",
     "sourceCommit": null,
     "evidenceCommit": "64186d8b1462c4bf3e1a20dc985d38906b2217e1",
     "runtimeHost": "vercel:jiahaoalbus-projects",
     "currentRuntime": "CARD_ALIAS_CANDIDATE_DPL_8QCEHIAQ8HGITYF2HA2FXU57W122",
     "candidateRuntime": "CARD_ALIAS_FROZEN_ROLLBACK_DPL_DQMUEHNO65BLFTNKBU9GS52SOVRI",
     "artifactSha256": null,
-    "productionMutationAllowed": true,
+    "productionMutationAllowed": false,
     "singleUse": true,
     "reusable": false,
     "previousOwner": "creator-studio-deploy-owner",
     "previousTaskId": "P0-245",
-    "reviewDecision": "GO_CARD_ONLY_ALIAS_RESTORE_TO_FROZEN_ROLLBACK",
-    "reason": "Canonical Card currently resolves to the P0-196 candidate without the frozen rollback security headers. Authorize exactly one alias-only restore and at most one inverse alias command on post-restore failure."
+    "reviewDecision": "CONSUMED_RELEASED_SUCCESS_CARD_P0196_ALIAS_RESTORED_TO_FROZEN_ROLLBACK_WITH_SECURITY_HEADERS",
+    "reason": "The sole alias restore succeeded and canonical Card now resolves to dpl_DqMuEhno65bLFTNKBu9gs52soVri with exact frozen resources and security headers. No inverse command or sensitive action occurred."
   },
   "wave": {
     "id": "B-financial-apps-quant",

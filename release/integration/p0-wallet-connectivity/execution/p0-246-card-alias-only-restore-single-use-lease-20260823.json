@@ -5,12 +5,13 @@
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-card-alias-only-restore-20260823T071000Z",
   "owner": "card",
   "executor": "website-release-control-plane",
-  "status": "ACTIVE_SINGLE_USE",
+  "status": "CONSUMED_RELEASED_SUCCESS_CARD_P0196_ALIAS_RESTORED_TO_FROZEN_ROLLBACK_WITH_SECURITY_HEADERS",
   "issuedAt": "2026-08-23T07:10:00Z",
   "expiresAt": "2026-08-23T07:35:00Z",
+  "releasedAt": "2026-08-23T07:15:11Z",
   "singleUse": true,
   "reusable": false,
-  "productionMutationAllowed": true,
+  "productionMutationAllowed": false,
   "scope": "Card-only canonical Vercel alias restoration from the current P0-196 candidate deployment to the exact frozen pre-P0-196 rollback deployment",
   "centralPrecondition": {
     "parentCommit": "4a9f76e744fd1beaff9a8ffcaddf1ddc45091ceb",
@@ -107,5 +108,24 @@
     "restoredFailure": "CONSUMED_RELEASED_FAILED_CLOSED_CARD_ALIAS_RESTORE_POST_GATE_FAILED_CURRENT_CANDIDATE_RESTORED",
     "emergency": "EMERGENCY_BLOCKED_CARD_ALIAS_RESTORE_UNCERTAIN_EXACT_READBACK_REQUIRED",
     "releaseHeavyAndLockOnProvenTerminal": true
+  },
+  "terminalEvidence": {
+    "decision": "DIRECT_SUCCESS",
+    "restoreAttempts": 1,
+    "inverseAttempts": 0,
+    "retryAttempts": 0,
+    "aliasDeploymentId": "dpl_DqMuEhno65bLFTNKBu9gs52soVri",
+    "aliasDeploymentUrl": "ynx-card-testnet-simulation-bmeabqkk1-jiahaoalbus-projects.vercel.app",
+    "resources": [
+      {"path":"/","status":200,"bytes":1717,"sha256":"56827ca95005951ae791245b6c3021691beace32683209936c7519324c28ed24","requestId":"sin1::df8ll-1787469158456-8ed374afbe46"},
+      {"path":"/_expo/static/js/web/index-250c974606522c0feefa0bf082cc41a1.js","status":200,"bytes":2907885,"sha256":"2103aba7f844d4a3c067eac0ecbf0acbc9ebf8fb8831c44fd248df90261a8568","requestId":"sin1::tms4g-1787469158457-98a5f83694f8"},
+      {"path":"/manifest.webmanifest","status":200,"bytes":460,"sha256":"f3e634129abe79c5b81b7fc8dac3950e5cb21f1d1263b1938fcd06a58e2c686f"},
+      {"path":"/sw.js","status":200,"bytes":364,"sha256":"1a9acfe442d2920040a1999f4fe4efe3f97d7a42a9debef047d469972889638f"}
+    ],
+    "browser": {"stableOfficialUrl":true,"tabDelta":0,"consoleErrors":0,"englishVisibleWithoutCjk":true,"guestTestnetVisible":true,"distinctYnxWalletAndMetaMaskFoxVisible":true,"ynxwalletLinkAbsent":true},
+    "account": false,
+    "signature": false,
+    "transaction": false,
+    "completionBoundary": "Alias and frozen security/public baseline restored only; missing notranslate is not promoted."
   }
 }
