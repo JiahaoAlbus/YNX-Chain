@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "p0-finance-deployment-terminal-evidence@1",
+  "central": {
+    "commit": "c4850ae887ccb5d84fbde2e01b3e0aa4c2933529",
+    "tree": "039f6b95c9e04b70c771dda3698d6f09f165bf03",
+    "leaseBlob": "d92f9e62b603dc5a74783f1edbe7d610cf9c6141",
+    "leaseBytes": 34064,
+    "leaseSha256": "2b771e6e8f1478fad05bf9d9bb2ee6d3dc59a67100c3959389f53fb64b1dc8c9",
+    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-rollback-first-deployment-openssh-successor-20260823T140755Z"
+  },
+  "preflight": {
+    "literalArgvLength": 25,
+    "environment": {},
+    "signedStdin": {"path": "/tmp/ynx-finance-p0269-phase3-signed.json", "bytes": 6932, "sha256": "a89494d5f7a219386be4f69c76698ef8b8f425117576f3018492c279e2070e1a"},
+    "leaseAndInputMatched": true,
+    "receiptPathsInitiallyAbsent": true
+  },
+  "terminal": {
+    "exitStatus": 65,
+    "failureClass": "PRE_SSH_LOCAL_RUNTIME_DEPENDENCY_MISSING",
+    "safeDiagnostic": "finance-phase3-openssh-serialized-command.sh could not resolve sha256sum under the required empty process environment.",
+    "sshAttemptCount": 0,
+    "deployInvocationCount": 0,
+    "remoteMutationPerformed": false,
+    "retryPerformed": false,
+    "terminalOutputReceiptsCreated": false
+  },
+  "truth": {
+    "deploymentSucceeded": false,
+    "automaticRollbackInvoked": false,
+    "manualRollbackAuthorized": false,
+    "remoteStateIndependentlyReadBack": false,
+    "walletAccountOrTransactionAction": false
+  },
+  "requiredCentralAction": "Fail closed and atomically release P0-269 as nonreusable. A successor must bind explicit absolute local hashing-tool paths or a signed PATH contract while preserving the empty protected environment and revalidating all fresh deployment baseline values."
+}
