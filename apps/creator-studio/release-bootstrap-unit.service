@@ -1,0 +1,27 @@
+[Unit]
+Description=YNX Creator Studio Wallet
+After=network.target
+
+[Service]
+Type=simple
+User=ynx
+Group=ynx
+WorkingDirectory=/opt/ynx-creator-studio-wallet/current
+Environment=PORT=6495
+ExecStart=/usr/bin/node /opt/ynx-creator-studio-wallet/current/server.mjs
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictNamespaces=true
+LockPersonality=true
+MemoryDenyWriteExecute=true
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target
