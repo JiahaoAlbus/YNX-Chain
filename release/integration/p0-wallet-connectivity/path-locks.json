@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "version": "1.38.0",
+  "version": "1.39.0",
   "locks": [
     {
       "path": "{host:43.153.202.237:finance-post-cleanup-readonly-verification,readonly:/opt/ynx/stage/finance/p0247-finance-phase3-20260823T073800Z,readonly:/var/backups/ynx-finance/p0247-finance-phase3-20260823T073800Z,readonly:/opt/ynx/leases/finance/p0247-finance-phase3-20260823T073800Z.{executor.sh,json},readonly:/opt/ynx/leases/finance/p0264-finance-p0247-cleanup-20260823T140755Z.{executor.sh,executor.sh.pending,json,json.pending},readonly:/opt/ynx/finance-current,readonly:/etc/ynx/finance.env,readonly:/etc/systemd/system/ynx-finance.service,readonly:/etc/caddy/conf.d/ynx-finance.caddy,readonly:/var/lib/ynx/finance/state.json,readonly:service:ynx-finance,readonly:http://127.0.0.1:6483/{health,version},readonly:https://finance.ynxweb4.com/{health,version}}",
@@ -3160,6 +3160,30 @@
         "no write temp cleanup rollback deploy lifecycle config or public mutation",
         "direct zero-write evidence proved P0-300 remote state known and old runtime exact",
         "P0-301 consumed and nonreusable; Heavy and lock released"
+      ]
+    },
+    {
+      "path": "{host:43.153.202.237:finance-p0302-stage-backup-container-rollback-first,write:/opt/ynx/leases/finance/p0302-finance-phase3-20260823t211500z.*,write:/opt/ynx/stage/finance/p0302-finance-phase3-20260823t211500z/**,write:/var/backups/ynx-finance/p0302-finance-phase3-20260823t211500z/**,write:/opt/ynx/releases/finance/p0302-finance-phase3-20260823t211500z/**,write:/opt/ynx/finance-current*,write:/etc/ynx/finance.env,write:/var/lib/ynx/finance/state.json,lifecycle:ynx-finance.service,readonly:/etc/systemd/system/ynx-finance.service,readonly:/etc/caddy/conf.d/ynx-finance.caddy,verify:http://127.0.0.1:6483/**,verify:https://finance.ynxweb4.com/**}",
+      "owner": "finance-release-control-plane",
+      "branch": "codex/p0-finance-p0302-stage-backup-containers-20260824",
+      "worktree": "/private/tmp/ynx-finance-p0302-stage-backup-containers",
+      "taskId": "P0-302",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE",
+      "acquiredAt": "2026-08-23T21:15:00Z",
+      "expiresAt": "2026-08-23T21:45:00Z",
+      "releasedAt": null,
+      "sourceCommit": "639873d2c9e61bb50438cf062de5b8d839435cf5",
+      "sourceTree": "df41215559f9a81da7b7e237ea3c3706f1fe82d2",
+      "evidenceCommit": "639873d2c9e61bb50438cf062de5b8d839435cf5",
+      "artifactSha256": "512f129861c6ae5db100f467c4ed52ef3785b32fa3309daae21a21250a4322b0",
+      "productionMutationAllowed": true,
+      "allowedExceptions": [
+        "one exact parent-preserving Node observer invocation and one child deployment attempt; no retry",
+        "create and identity-bind exact stage and backup containers and leaves",
+        "success retains exact backup container backup release container release and controls",
+        "automatic rollback may restore exact old runtime and delete only identity-bound lease-owned objects",
+        "unit and Caddy immutable; no Wallet account signature typed-data or transaction action"
       ]
     }
   ]
