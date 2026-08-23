@@ -3118,15 +3118,15 @@
     },
     {
       "path": "{host:43.153.202.237:finance-p0300-rollback-first,write:/opt/ynx/leases/finance/p0300-finance-phase3-20260824t210000z.*,write:/opt/ynx/stage/finance/p0300-finance-phase3-20260824t210000z/**,write:/var/backups/ynx-finance/p0300-finance-phase3-20260824t210000z/**,write:/opt/ynx/releases/finance/p0300-finance-phase3-20260824t210000z/**,write:/opt/ynx/finance-current*,write:/etc/ynx/finance.env,write:/var/lib/ynx/finance/state.json,lifecycle:ynx-finance.service,readonly:/etc/systemd/system/ynx-finance.service,readonly:/etc/caddy/conf.d/ynx-finance.caddy,verify:http://127.0.0.1:6483/**,verify:https://finance.ynxweb4.com/**}",
-      "owner": "finance-release-control-plane",
+      "owner": null,
       "branch": "codex/p0-finance-p0300-observer-self-identity-20260824",
       "worktree": "/private/tmp/ynx-finance-p0300-parent-observer",
       "taskId": "P0-300",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0300_POSTWRITE_STAGING_BACKUP_REMOTE_STATE_UNKNOWN",
       "acquiredAt": "2026-08-23T20:47:00Z",
       "expiresAt": "2026-08-23T21:17:00Z",
-      "releasedAt": null,
+      "releasedAt": "2026-08-23T20:51:00Z",
       "sourceCommit": "00a9375d1d5eef1d37656b71924c31929281c9a1",
       "sourceTree": "ff35e8d6fed61380d6d39f3614422a06696aa108",
       "evidenceCommit": "00a9375d1d5eef1d37656b71924c31929281c9a1",
@@ -3137,6 +3137,27 @@
         "automatic rollback under the exact executor on post-write failure",
         "observer and child argv, cwd, empty env and outputs identity frozen",
         "unit and Caddy immutable; no Wallet account signature typed-data or transaction action"
+      ]
+    },
+    {
+      "path": "{host:43.153.202.237:finance-p0300-state-zero-write-inspection}",
+      "owner": "finance-release-control-plane-readonly-inspection",
+      "branch": "codex/p0-wallet-connectivity-control-plane-20260820",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration",
+      "taskId": "P0-301",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE",
+      "acquiredAt": "2026-08-23T20:51:00Z",
+      "expiresAt": "2026-08-23T21:21:00Z",
+      "releasedAt": null,
+      "sourceCommit": "e7a5927c6de14ae63a482d58de829724ac5ed3bc",
+      "sourceTree": "e7e0d72071c8e17e8123c0a30fb8dee7de6d9e92",
+      "evidenceCommit": null,
+      "artifactSha256": "6382ba743c72d2eab73c28aea48dc6a1c848f55821b2c9906c4f280b56d8e5c1",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "one exact read-only SSH inspection and no retry",
+        "no write temp cleanup rollback deploy lifecycle config or public mutation"
       ]
     }
   ]

@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "p0-finance-terminal-evidence@1",
+  "taskId": "P0-300",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0300_POSTWRITE_STAGING_BACKUP_REMOTE_STATE_UNKNOWN",
+  "attempts": 1,
+  "retryCount": 0,
+  "localExitStatus": 1,
+  "phase": "STAGING_BACKUP",
+  "failureClass": "POSTWRITE_STAGING_BACKUP",
+  "failureExitStatus": 1,
+  "stdout": {
+    "bytes": 79,
+    "sha256": "a8762d37e36378153875d496c57bc1163e2c3b037f9b22866736b743d954b75a"
+  },
+  "stderr": {
+    "bytes": 131,
+    "sha256": "28d876a6f18192ab3392c1337130675b66b481670dacbb3535fbfe7fb83e6ebf",
+    "normalized": "mkdir could not create the exact P0300 stage leaf because its parent container did not exist"
+  },
+  "transportReceipt": {
+    "bytes": 203,
+    "sha256": "039b5edbbe4accfb58e21d86bf68507d8ebfa0f77cc910fe5f93d388b32ffd85",
+    "sshExitStatus": 1,
+    "remoteExitStatus": 1,
+    "terminalReceiptValidated": false
+  },
+  "truth": {
+    "observerSelfIdentityMatched": true,
+    "contractMatched": true,
+    "signedInputMatched": true,
+    "nodeAndChildStarted": true,
+    "rc137": false,
+    "remoteCleanupKnown": false,
+    "productionStateKnown": false,
+    "p0300Reusable": false
+  }
+}
