@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "taskId": "P0-251",
   "leaseId": "p0251-finance-p0247-cleanup-20260823T100000Z",
-  "status": "AUTHORIZED_AWAITING_SINGLE_EXECUTION",
+  "status": "CONSUMED_NONREUSABLE_FAILED_CLOSED_LITERAL_TRANSPORT_PRINTF_USAGE",
   "lease": {
     "path": "release/integration/p0-wallet-connectivity/execution/p0-251-finance-p0247-residue-cleanup-placement-single-use-lease-20260823.json",
     "bytes": 7094,
@@ -67,6 +67,15 @@
   },
   "executionCount": 1,
   "retryAllowed": false,
+  "terminal": {
+    "releasedAt": "2026-08-23T10:12:04Z",
+    "sshExitStatus": 0,
+    "stdoutReceiptPresent": false,
+    "stderrExact": "printf: usage: printf [-v var] format [arguments]\n",
+    "remoteStateKnown": false,
+    "furtherExecutionAuthorized": false,
+    "requiredNextStep": "wholly-new read-only remote-state inspection lease"
+  },
   "terminalEvidenceRequired": [
     "bootstrap and cleanup exit status plus complete stdout/stderr bytes and SHA-256",
     "placement executor/lease path, tuple, bytes and SHA-256 receipts",
