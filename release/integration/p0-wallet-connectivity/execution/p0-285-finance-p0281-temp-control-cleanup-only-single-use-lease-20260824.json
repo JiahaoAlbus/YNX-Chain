@@ -5,9 +5,10 @@
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-p0281-temp-control-cleanup-only-20260823T173600Z",
   "owner": "finance-release-control-plane-temp-cleanup-only",
   "executor": "finance-release-control-plane",
-  "status": "ACTIVE_SINGLE_USE",
+  "status": "CONSUMED_RELEASED_REMOTE_SUCCESS_FINANCE_P0285_P0281_TEMP_CONTROLS_CLEANUP_PENDING_INDEPENDENT_READBACK",
   "issuedAt": "2026-08-23T17:36:00Z",
   "expiresAt": "2026-08-23T18:06:00Z",
+  "releasedAt": "2026-08-23T17:41:25Z",
   "singleUse": true,
   "reusable": false,
   "cleanupMutationAllowed": true,
@@ -126,12 +127,33 @@
     "releaseHeavyAndAllLocksOnTerminal": true,
     "cleanupCompleteRemainsFalseUntilSeparateReadback": true
   },
+  "terminalEvidence": {
+    "sshAttempts": 1,
+    "cleanupInvocationCount": 1,
+    "retryCount": 0,
+    "localExitStatus": 0,
+    "stdoutPath": "/tmp/ynx-finance-p0285-temp-cleanup.stdout",
+    "stdoutBytes": 119,
+    "stdoutSha256": "3f8ebb7e3a2768ffd170e3d158e4069edcdf5455a4f58b1a0ca131a02cbccad7",
+    "stderrPath": "/tmp/ynx-finance-p0285-temp-cleanup.stderr",
+    "stderrBytes": 0,
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "receiptFields": [
+      "cleanup=P0281_TEMP_CONTROLS_REMOVED",
+      "executorFinal=absent",
+      "leaseFinal=absent",
+      "cleanupInvocationCount=1",
+      "remoteExitStatus=0"
+    ],
+    "receiptFieldsExactlyOnce": true
+  },
   "truthBoundary": {
-    "cleanupExecuted": false,
+    "cleanupExecuted": true,
     "cleanupComplete": false,
     "deploymentAuthorized": false,
     "serviceLifecycleAuthorized": false,
     "p0282Authorized": false,
+    "p0286ReadbackRequired": true,
     "accountSignTxAllowed": false
   }
 }

@@ -2230,10 +2230,10 @@
       "worktree": "/private/tmp/ynx-calendar-control-plane.y8FFQt/repo",
       "taskId": "P0-285",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE_SINGLE_USE",
+      "status": "CONSUMED_RELEASED_REMOTE_SUCCESS_FINANCE_P0285_P0281_TEMP_CONTROLS_CLEANUP_PENDING_INDEPENDENT_READBACK",
       "acquiredAt": "2026-08-23T17:36:00Z",
       "expiresAt": "2026-08-23T18:06:00Z",
-      "releasedAt": null,
+      "releasedAt": "2026-08-23T17:41:25Z",
       "sourceCommit": "9cb12879ef812ea401c49a8de7466af5460f8416",
       "sourceTree": "988acffed84833b1cce8479638526242a2e92c91",
       "evidenceCommit": "9cb12879ef812ea401c49a8de7466af5460f8416",
@@ -2245,7 +2245,10 @@
         "no persistent Finance lease-parent or sibling access or mutation",
         "no service, Caddy, current, environment, state, stage, backup, release or public mutation",
         "terminal receipt is necessary but cleanupComplete remains false until a separate zero-write readback",
-        "P0-282 remains queued and unauthorized"
+        "P0-282 remains queued and unauthorized",
+        "the sole cleanup invocation returned the exact five-line success receipt with no retry",
+        "P0-285 is consumed and nonreusable; Heavy and cleanup locks are released",
+        "cleanupComplete remains false until wholly-new P0-286 zero-write readback"
       ]
     }
   ]
