@@ -1,0 +1,138 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-230",
+  "recordType": "FINANCE_PHASE1_SETTLED_TUPLES_READONLY_ACCEPTANCE",
+  "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_PHASE1_SETTLED_TUPLES_READONLY_ACCEPTED",
+  "owner": null,
+  "executor": "central-readonly-reconciler",
+  "observedAt": "2026-08-23T00:28:24Z",
+  "releasedAt": "2026-08-23T00:28:24Z",
+  "singleUse": true,
+  "reusable": false,
+  "executionAuthorized": false,
+  "productionMutationAllowed": false,
+  "phase2Authorized": false,
+  "centralParent": {
+    "commit": "41cb1c4aa9b609a27147bf0be1415820f0ed0f9c",
+    "tree": "fc344db87e8a08abadc7db84504ac50acc464c59",
+    "heavyOwner": null,
+    "heavyStatus": "IDLE"
+  },
+  "supersedes": {
+    "taskId": "P0-228",
+    "centralReleaseCommit": "dcfdb94394ec53c646dfd2f93383dd5e92de7653",
+    "centralReleaseTree": "e2c32ca7f3296db1de2be25ef0264b2527c7480f",
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_PHASE1_RECEIPT_FINAL_TUPLE_NLINK_MISMATCH",
+    "nonreusable": true,
+    "supersessionScope": "accept the five settled Finance-owned directory tuples after all child links exist; do not reuse P0-228 creation-time parent nlink receipts"
+  },
+  "ownerAuthority": {
+    "branch": "codex/p0-finance-wallet-connectivity-20260820",
+    "commit": "53461ff4bf329dc9473a4ba0d48ec903342c9c16",
+    "tree": "a459379f6c2718db767a0eb84aeb65a8bdd74ec6",
+    "remoteReadbackExact": true
+  },
+  "requestObjects": {
+    "markdown": {
+      "path": "apps/finance/FINANCE_PHASE1_SETTLED_TUPLE_READONLY_ACCEPTANCE_REQUEST_20260823.md",
+      "blob": "5989861b58084ab2c2106a029baff8245187d8d2",
+      "bytes": 3134,
+      "sha256": "622a33db376167b41cc0e800d7e3ed0e93a5b2d6b975558dfad05f02e69c192b"
+    },
+    "json": {
+      "path": "apps/finance/evidence/finance-phase1-settled-tuple-readonly-acceptance-request-20260823.json",
+      "blob": "9213e4f971d51b54f90de377443f4acfdc773d5b",
+      "bytes": 1726,
+      "sha256": "dc1976596981abf728c0e11b84c1d0972cb678fe1f1b6a2323adfdaecc82e340",
+      "jsonValid": true
+    },
+    "correctedBootstrapSourceOnly": {
+      "path": "apps/finance/scripts/finance-candidate-env-placement-bootstrap.sh",
+      "blob": "b0d06b8d40d27cee5a8bf81246e724978288fe4d",
+      "bytes": 3631,
+      "sha256": "693913cb5a521c1e463587d2c3b7ad9e81e106a05b270076d7e15be9fadbccc8",
+      "executed": false
+    },
+    "actualShellFixtureSourceOnly": {
+      "path": "apps/finance/scripts/test-finance-production-fixture.mjs",
+      "blob": "4ce1eef8cdb679820c24fc57c770c1260cac1998",
+      "bytes": 21924,
+      "sha256": "c840a290c81f91a2529f88b830e9af897ba4c7e31522d1bf260543c0c0a5defd",
+      "ownerResult": "PASS",
+      "executedByCentral": false
+    }
+  },
+  "readOnlyObservation": {
+    "host": "43.153.202.237",
+    "arch": "x86_64",
+    "financeOwnedSettledTuples": [
+      {
+        "path": "/opt/ynx/stage",
+        "tuple": "64770:3450040:0:0:750:3:4096:directory",
+        "matchesRequestedSettledTuple": true
+      },
+      {
+        "path": "/opt/ynx/stage/finance",
+        "tuple": "64770:3450041:0:0:750:3:4096:directory",
+        "matchesRequestedSettledTuple": true
+      },
+      {
+        "path": "/opt/ynx/leases",
+        "tuple": "64770:3450042:0:0:750:3:4096:directory",
+        "matchesRequestedSettledTuple": true
+      },
+      {
+        "path": "/opt/ynx/leases/finance-preparation",
+        "tuple": "64770:4594820:0:0:750:2:4096:directory",
+        "matchesRequestedSettledTuple": true
+      },
+      {
+        "path": "/opt/ynx/stage/finance/p0228-finance-phase1-20260822T234100Z",
+        "tuple": "64770:4594821:0:0:700:2:4096:directory",
+        "matchesRequestedSettledTuple": true,
+        "empty": true
+      }
+    ],
+    "sharedRootNonGatingObservation": {
+      "path": "/opt/ynx",
+      "tuple": "64770:1312502:0:0:755:49:4096:directory",
+      "requestSnapshotNlink": 47,
+      "currentNlink": 49,
+      "reasonNotGate": "The shared root nlink reflects unrelated immediate children and is outside the five Finance-owned settled paths accepted by this reconciliation. Any Phase 2 request must fresh-bind the then-current shared-root tuple separately."
+    },
+    "carrierEmpty": true,
+    "financeService": {
+      "activeState": "active",
+      "subState": "running",
+      "mainPid": 877083,
+      "nRestarts": 0,
+      "unchanged": true
+    }
+  },
+  "mutationCounts": {
+    "mkdir": 0,
+    "cleanup": 0,
+    "upload": 0,
+    "archiveTransfer": 0,
+    "environmentReadOrGeneration": 0,
+    "deploy": 0,
+    "serviceRestart": 0,
+    "currentUnitCaddyOrPublicMutation": 0,
+    "accountRequest": 0,
+    "signing": 0,
+    "transaction": 0
+  },
+  "truthBoundary": {
+    "phase1FiveSettledTuplesAccepted": true,
+    "carrierEmptyAccepted": true,
+    "financeProductionUnchanged": true,
+    "phase2Authorized": false,
+    "candidateEnvironmentPrepared": false,
+    "deployedPublic": false,
+    "account": false,
+    "signature": false,
+    "transaction": false
+  },
+  "nextRequiredAction": "A wholly new Phase 2 preparation request and lease must bind these five accepted tuples plus a fresh shared-root tuple and every exact object/archive/environment carrier before any write. This acceptance grants no Phase 2 authority."
+}
