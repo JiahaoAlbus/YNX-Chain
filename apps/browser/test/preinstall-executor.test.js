@@ -39,6 +39,7 @@ function fixture() {
   writeFileSync(join(controls, "handler"), oldHandler);
   writeFileSync(join(controls, "old-pid"), "93119\n");
   executable(join(controls, "lsregister"), `#!/bin/sh\nset -eu\nprintf '%s|%s\\n' "$1" "$2" >> '${join(controls, "operations")}'\nif [ "$1" = '-f' ]; then printf '%s' "$2" > '${join(controls, "handler")}'; fi\nif [ "$1" = '-u' ]; then : > '${join(controls, "handler")}'; fi\n`);
+  executable(join(controls, "set-default-handler"), `#!/bin/sh\nset -eu\nprintf 'set-default|%s|%s\\n' "$1" "$2" >> '${join(controls, "operations")}'\nprintf '%s' "$1" > '${join(controls, "handler")}'; printf '%s\\n' "$1"\n`);
   executable(join(controls, "resolve-handler"), `#!/bin/sh\ncat '${join(controls, "handler")}'\n`);
   executable(join(controls, "process-absent"), "#!/bin/sh\nexit 0\n");
   const carrier = join(temp, "candidate.zip");
@@ -124,7 +125,7 @@ test("forward and rollback only register candidate and restore exact old handler
   assert.equal(readFileSync(join(state.controls, "handler"), "utf8"), state.oldHandler);
   assert.equal(existsSync(state.target), false);
   assert.equal(existsSync(state.isolatedRoot), false);
-  assert.equal(readFileSync(join(state.controls, "operations"), "utf8"), `-f|${state.target}\n-u|${state.target}\n-f|${state.oldHandler}\n`);
+  assert.equal(readFileSync(join(state.controls, "operations"), "utf8"), `-f|${state.target}\nset-default|${state.target}|ynxbrowser\n-u|${state.target}\n-f|${state.oldHandler}\nset-default|${state.oldHandler}|ynxbrowser\n`);
   assertLegacyUnchanged(state, legacy);
 });
 
@@ -141,6 +142,7 @@ test("every pre-receipt stage preserves an exact diagnostic journal and complete
     "COPY_CANDIDATE",
     "VERIFY_CANDIDATE",
     "REGISTER_CANDIDATE",
+    "SET_DEFAULT_HANDLER_CANDIDATE",
     "RESOLVE_CANDIDATE_HANDLER",
     "VERIFY_OLD_HANDLER_POSTREGISTER",
     "VERIFY_ROOT_EXCLUSIVE",
@@ -168,8 +170,11 @@ test("every pre-receipt stage preserves an exact diagnostic journal and complete
       assert.equal(readFileSync(join(state.controls, "handler"), "utf8"), state.oldHandler);
       assertLegacyUnchanged(state, legacy);
       const registrationReached = stages.indexOf(stage) > stages.indexOf("REGISTER_CANDIDATE");
+      const defaultReached = stages.indexOf(stage) > stages.indexOf("SET_DEFAULT_HANDLER_CANDIDATE");
       const operations = existsSync(join(state.controls, "operations")) ? readFileSync(join(state.controls, "operations"), "utf8") : "";
-      assert.equal(operations, registrationReached ? `-f|${state.target}\n-u|${state.target}\n-f|${state.oldHandler}\n` : "");
+      assert.equal(operations, registrationReached
+        ? `-f|${state.target}\n${defaultReached ? `set-default|${state.target}|ynxbrowser\n` : ""}-u|${state.target}\n-f|${state.oldHandler}\nset-default|${state.oldHandler}|ynxbrowser\n`
+        : "");
     });
   }
 });
@@ -183,7 +188,7 @@ test("rollback rejects an isolated-root substitution before LaunchServices mutat
   mkdirSync(state.isolatedRoot, {mode: 0o700});
   renameSync(join(originalRoot, "YNX Browser Testnet Preview-ad890f0a2fe5-aaed312ef608.app"), state.target);
   assert.throws(() => execFileSync("bash", [executor, "rollback"], {env: state.env, stdio: "pipe"}));
-  assert.equal(readFileSync(join(state.controls, "operations"), "utf8"), `-f|${state.target}\n`);
+  assert.equal(readFileSync(join(state.controls, "operations"), "utf8"), `-f|${state.target}\nset-default|${state.target}|ynxbrowser\n`);
   assert.equal(readFileSync(join(state.controls, "handler"), "utf8"), state.target);
   assertLegacyUnchanged(state, legacy);
 });
@@ -194,7 +199,7 @@ test("rollback rejects an unexpected root entry before LaunchServices mutation",
   execFileSync("bash", [executor, "forward"], {env: state.env});
   writeFileSync(join(state.isolatedRoot, "unexpected.txt"), "do-not-delete\n");
   assert.throws(() => execFileSync("bash", [executor, "rollback"], {env: state.env, stdio: "pipe"}));
-  assert.equal(readFileSync(join(state.controls, "operations"), "utf8"), `-f|${state.target}\n`);
+  assert.equal(readFileSync(join(state.controls, "operations"), "utf8"), `-f|${state.target}\nset-default|${state.target}|ynxbrowser\n`);
   assert.ok(existsSync(join(state.isolatedRoot, "unexpected.txt")));
   assertLegacyUnchanged(state, legacy);
 });
@@ -206,7 +211,7 @@ test("post-copy forward failure removes only the exact empty root it created", (
   assert.throws(() => execFileSync("bash", [executor, "forward"], {env: state.env, stdio: "pipe"}));
   assert.equal(existsSync(state.target), false);
   assert.equal(existsSync(state.isolatedRoot), false);
-  assert.equal(readFileSync(join(state.controls, "operations"), "utf8"), `-f|${state.target}\n-u|${state.target}\n-f|${state.oldHandler}\n`);
+  assert.equal(readFileSync(join(state.controls, "operations"), "utf8"), `-f|${state.target}\nset-default|${state.target}|ynxbrowser\n-u|${state.target}\n-f|${state.oldHandler}\nset-default|${state.oldHandler}|ynxbrowser\n`);
   assertLegacyUnchanged(state, legacy);
 });
 
@@ -218,7 +223,7 @@ test("rollback refuses deletion while a candidate process is reported", () => {
   assert.throws(() => execFileSync("bash", [executor, "rollback"], {env: state.env, stdio: "pipe"}));
   assert.ok(existsSync(state.target));
   assert.equal(readFileSync(join(state.controls, "handler"), "utf8"), state.target);
-  assert.equal(readFileSync(join(state.controls, "operations"), "utf8"), `-f|${state.target}\n`);
+  assert.equal(readFileSync(join(state.controls, "operations"), "utf8"), `-f|${state.target}\nset-default|${state.target}|ynxbrowser\n`);
   assertLegacyUnchanged(state, legacy);
 });
 

@@ -112,6 +112,11 @@ register_app() {
   if [[ "$mode" == "fixture" ]]; then "$YNX_BROWSER_FIXTURE_ROOT/lsregister" -f "$app";
   else /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -f "$app"; fi
 }
+set_default_handler() {
+  local app=$1
+  if [[ "$mode" == "fixture" ]]; then "$YNX_BROWSER_FIXTURE_ROOT/set-default-handler" "$app" "ynxbrowser";
+  else swift "$(dirname "$0")/set-macos-default-handler.swift" set "$app" "ynxbrowser"; fi
+}
 unregister_candidate() {
   if [[ "$mode" == "fixture" ]]; then "$YNX_BROWSER_FIXTURE_ROOT/lsregister" -u "$target";
   else /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister -u "$target"; fi
@@ -157,6 +162,7 @@ if [[ "$action" == "forward" ]]; then
     if [[ "$registration_attempted" == "true" ]]; then
       unregister_candidate || cleanup_status="INCOMPLETE"
       register_app "$old_handler" || cleanup_status="INCOMPLETE"
+      set_default_handler "$old_handler" >/dev/null || cleanup_status="INCOMPLETE"
     fi
     if [[ "$copied" == "true" && -n "$candidate_inode" ]]; then delete_candidate_if_exact "$candidate_inode" || cleanup_status="INCOMPLETE"; fi
     if [[ "$root_created" == "true" && -n "$isolated_root_dev_inode" ]]; then delete_isolated_root_if_exact_and_empty "$isolated_root_dev_inode" || cleanup_status="INCOMPLETE"; fi
@@ -206,6 +212,8 @@ if [[ "$action" == "forward" ]]; then
   registration_attempted=true
   register_app "$target"
   registered=true
+  journal_checkpoint "SET_DEFAULT_HANDLER_CANDIDATE"
+  set_default_handler "$target" >/dev/null
   journal_checkpoint "RESOLVE_CANDIDATE_HANDLER"
   resolved_handler=$(resolve_handler)
   [[ "$resolved_handler" == "$target" ]] || { echo "candidate did not become handler" >&2; false; }
@@ -238,6 +246,7 @@ isolated_root_has_only_target || { echo "isolated root is substituted or non-emp
 candidate_process_absent || { echo "candidate process exists; refusing rollback mutation" >&2; exit 75; }
 unregister_candidate
 register_app "$old_handler"
+set_default_handler "$old_handler" >/dev/null
 [[ "$(resolve_handler)" == "$old_handler" ]] || { echo "old handler was not restored" >&2; exit 74; }
 verify_old_handler
 delete_candidate_if_exact "$candidate_inode"
