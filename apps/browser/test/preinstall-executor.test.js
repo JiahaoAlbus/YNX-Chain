@@ -1,12 +1,13 @@
 import assert from "node:assert/strict";
 import {execFileSync} from "node:child_process";
-import {chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, statSync, writeFileSync} from "node:fs";
+import {chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, renameSync, rmSync, statSync, writeFileSync} from "node:fs";
 import {tmpdir} from "node:os";
 import {join, resolve} from "node:path";
 import test from "node:test";
 
 const browserRoot = resolve(import.meta.dirname, "..");
 const executor = join(browserRoot, "scripts/browser-preinstall-executor.sh");
+const emergencyRecovery = join(browserRoot, "scripts/browser-preinstall-emergency-recovery.sh");
 const executableRelative = "Contents/MacOS/YNXBrowserNative";
 const sha = (path) => execFileSync("shasum", ["-a", "256", path], {encoding: "utf8"}).split(/\s+/)[0];
 const inode = (path) => `${statSync(path).dev}:${statSync(path).ino}`;
@@ -38,7 +39,7 @@ function fixture() {
   }
   writeFileSync(join(controls, "handler"), oldHandler);
   writeFileSync(join(controls, "old-pid"), "93119\n");
-  executable(join(controls, "lsregister"), `#!/bin/sh\nset -eu\nprintf '%s|%s\\n' "$1" "$2" >> '${join(controls, "operations")}'\nif [ "$1" = '-f' ]; then printf '%s' "$2" > '${join(controls, "handler")}'; fi\nif [ "$1" = '-u' ]; then : > '${join(controls, "handler")}'; fi\n`);
+  executable(join(controls, "lsregister"), `#!/bin/sh\nset -eu\nprintf '%s|%s\\n' "$1" "$2" >> '${join(controls, "operations")}'\nif [ "$1" = '-f' ]; then printf '%s' "$2" > '${join(controls, "handler")}'; fi\nif [ "$1" = '-u' ] && [ "$(cat '${join(controls, "handler")}')" = "$2" ]; then : > '${join(controls, "handler")}'; fi\n`);
   executable(join(controls, "set-default-handler"), `#!/bin/sh\nset -eu\nprintf 'set-default|%s|%s\\n' "$1" "$2" >> '${join(controls, "operations")}'\nprintf '%s' "$1" > '${join(controls, "handler")}'; printf '%s\\n' "$1"\n`);
   executable(join(controls, "resolve-handler"), `#!/bin/sh\ncat '${join(controls, "handler")}'\n`);
   executable(join(controls, "process-absent"), "#!/bin/sh\nexit 0\n");
@@ -96,6 +97,129 @@ function assertLegacyUnchanged(state, snapshot) {
   for (const [path, bytes] of snapshot.files) assert.deepEqual(readFileSync(path), bytes);
   assert.deepEqual(readFileSync(join(state.controls, "old-pid")), snapshot.oldPid);
 }
+
+function emergencyFixture() {
+  const state = fixture();
+  const legacy = legacySnapshot(state);
+  execFileSync("bash", [executor, "forward"], {env: state.env});
+  rmSync(state.receipt);
+  writeFileSync(join(state.controls, "handler"), state.oldHandler);
+  writeFileSync(state.journal, [
+    "schema=ynx-browser-preinstall-diagnostic/1",
+    "action=forward",
+    "stage=SET_DEFAULT_HANDLER_CANDIDATE",
+    "status=RUNNING",
+    "exit_code=0",
+    "failure_stage=",
+    "cleanup_status=NOT_STARTED",
+    `applications_parent_tuple=${inode(state.isolatedParent)}:${statSync(state.isolatedParent).uid}:${statSync(state.isolatedParent).gid}:${(statSync(state.isolatedParent).mode & 0o777).toString(8)}:${statSync(state.isolatedParent).nlink}:${statSync(state.isolatedParent).size}:Directory`,
+    `isolated_root_tuple=${inode(state.isolatedRoot)}:${statSync(state.isolatedRoot).uid}:${statSync(state.isolatedRoot).gid}:${(statSync(state.isolatedRoot).mode & 0o777).toString(8)}:${statSync(state.isolatedRoot).nlink}:${statSync(state.isolatedRoot).size}:Directory`,
+    `candidate_target_tuple=${inode(state.target)}:${statSync(state.target).uid}:${statSync(state.target).gid}:${(statSync(state.target).mode & 0o777).toString(8)}:${statSync(state.target).nlink}:${statSync(state.target).size}:Directory`,
+    `old_handler_tuple=${inode(state.oldHandler)}`,
+    "resolved_handler=",
+    "registered=true",
+    "registration_attempted=true",
+    "root_created=true",
+    "copied=true",
+    ""
+  ].join("\n"));
+  writeFileSync(join(state.controls, "operations"), "");
+  const p0232 = join(state.temp, "p0232.diagnostic");
+  writeFileSync(p0232, "immutable-p0232\n");
+  const recoveryReceipt = join(state.temp, "p0234-recovery.receipt");
+  const recoveryJournal = join(state.temp, "p0234-recovery.diagnostic");
+  const targetStat = statSync(state.target);
+  const rootStat = statSync(state.isolatedRoot);
+  const parentStat = statSync(state.isolatedParent);
+  const env = {
+    ...state.env,
+    YNX_BROWSER_RECOVERY_PARENT_DEV_INODE: inode(state.isolatedParent),
+    YNX_BROWSER_RECOVERY_PARENT_UID: String(parentStat.uid),
+    YNX_BROWSER_RECOVERY_PARENT_GID: String(parentStat.gid),
+    YNX_BROWSER_RECOVERY_PARENT_MODE: (parentStat.mode & 0o777).toString(8),
+    YNX_BROWSER_RECOVERY_PARENT_NLINK: String(parentStat.nlink),
+    YNX_BROWSER_RECOVERY_ROOT_DEV_INODE: inode(state.isolatedRoot),
+    YNX_BROWSER_RECOVERY_ROOT_UID: String(rootStat.uid),
+    YNX_BROWSER_RECOVERY_ROOT_GID: String(rootStat.gid),
+    YNX_BROWSER_RECOVERY_ROOT_MODE: (rootStat.mode & 0o777).toString(8),
+    YNX_BROWSER_RECOVERY_ROOT_NLINK: String(rootStat.nlink),
+    YNX_BROWSER_RECOVERY_TARGET_DEV_INODE: inode(state.target),
+    YNX_BROWSER_RECOVERY_TARGET_UID: String(targetStat.uid),
+    YNX_BROWSER_RECOVERY_TARGET_GID: String(targetStat.gid),
+    YNX_BROWSER_RECOVERY_TARGET_MODE: (targetStat.mode & 0o777).toString(8),
+    YNX_BROWSER_RECOVERY_TARGET_NLINK: String(targetStat.nlink),
+    YNX_BROWSER_OLD_PID: "93119",
+    YNX_BROWSER_OLD_PROCESS_PATH: state.oldHandler,
+    YNX_BROWSER_FAILED_DIAGNOSTIC_JOURNAL: state.journal,
+    YNX_BROWSER_FAILED_DIAGNOSTIC_SHA256: sha(state.journal),
+    YNX_BROWSER_P0232_DIAGNOSTIC_JOURNAL: p0232,
+    YNX_BROWSER_P0232_DIAGNOSTIC_SHA256: sha(p0232),
+    YNX_BROWSER_RECOVERY_RECEIPT: recoveryReceipt,
+    YNX_BROWSER_RECOVERY_DIAGNOSTIC_JOURNAL: recoveryJournal,
+    YNX_BROWSER_RECOVERY_DIAGNOSTIC_TEMP: `${recoveryJournal}.tmp`
+  };
+  return {...state, legacy, p0232, recoveryReceipt, recoveryJournal, env};
+}
+
+test("emergency recovery uses frozen failed journal without a forward receipt", () => {
+  const state = emergencyFixture();
+  const failedJournal = readFileSync(state.journal);
+  const p0232 = readFileSync(state.p0232);
+  execFileSync("bash", [emergencyRecovery, "recover"], {env: state.env});
+  assert.equal(existsSync(state.target), false);
+  assert.equal(existsSync(state.isolatedRoot), false);
+  assert.equal(readFileSync(join(state.controls, "handler"), "utf8"), state.oldHandler);
+  assert.equal(readFileSync(join(state.controls, "operations"), "utf8"), `-u|${state.target}\n`);
+  assert.match(readFileSync(state.recoveryReceipt, "utf8"), /status=RECOVERED/);
+  assert.match(readFileSync(state.recoveryJournal, "utf8"), /stage=RECOVERY_COMPLETE\nstatus=SUCCESS/);
+  assert.deepEqual(readFileSync(state.journal), failedJournal);
+  assert.deepEqual(readFileSync(state.p0232), p0232);
+  assertLegacyUnchanged(state, state.legacy);
+});
+
+test("emergency recovery rejects root substitution before unregister", () => {
+  const state = emergencyFixture();
+  const originalRoot = `${state.isolatedRoot}.original`;
+  renameSync(state.isolatedRoot, originalRoot);
+  mkdirSync(state.isolatedRoot, {mode: 0o700});
+  renameSync(join(originalRoot, "YNX Browser Testnet Preview-ad890f0a2fe5-aaed312ef608.app"), state.target);
+  assert.throws(() => execFileSync("bash", [emergencyRecovery, "recover"], {env: state.env, stdio: "pipe"}));
+  assert.equal(readFileSync(join(state.controls, "operations"), "utf8"), "");
+  assertLegacyUnchanged(state, state.legacy);
+});
+
+test("emergency recovery rejects concurrent root contents before unregister", () => {
+  const state = emergencyFixture();
+  writeFileSync(join(state.isolatedRoot, "concurrent.txt"), "preserve\n");
+  assert.throws(() => execFileSync("bash", [emergencyRecovery, "recover"], {env: state.env, stdio: "pipe"}));
+  assert.equal(readFileSync(join(state.controls, "operations"), "utf8"), "");
+  assert.ok(existsSync(join(state.isolatedRoot, "concurrent.txt")));
+  assertLegacyUnchanged(state, state.legacy);
+});
+
+test("emergency recovery refuses a running candidate before unregister", () => {
+  const state = emergencyFixture();
+  executable(join(state.controls, "process-absent"), "#!/bin/sh\nexit 1\n");
+  assert.throws(() => execFileSync("bash", [emergencyRecovery, "recover"], {env: state.env, stdio: "pipe"}));
+  assert.equal(readFileSync(join(state.controls, "operations"), "utf8"), "");
+  assertLegacyUnchanged(state, state.legacy);
+});
+
+test("emergency recovery partial-cleanup stages retain exact diagnostics and legacy state", async (context) => {
+  for (const stage of ["UNREGISTER_CANDIDATE", "VERIFY_OLD_HANDLER_AFTER_UNREGISTER", "DELETE_EXACT_CANDIDATE", "DELETE_EXACT_EMPTY_ROOT", "VERIFY_TERMINAL_BASELINE"]) {
+    await context.test(stage, () => {
+      const state = emergencyFixture();
+      assert.throws(() => execFileSync("bash", [emergencyRecovery, "recover"], {env: {...state.env, YNX_BROWSER_FIXTURE_RECOVERY_FAIL_STAGE: stage}, stdio: "pipe"}));
+      const evidence = readFileSync(state.recoveryJournal, "utf8");
+      assert.match(evidence, new RegExp(`stage=${stage}\\nstatus=FAILED_CLOSED\\nexit_code=97`));
+      assertLegacyUnchanged(state, state.legacy);
+      assert.deepEqual(readFileSync(state.p0232), Buffer.from("immutable-p0232\n"));
+      if (["DELETE_EXACT_EMPTY_ROOT", "VERIFY_TERMINAL_BASELINE"].includes(stage)) {
+        assert.equal(existsSync(state.target), false);
+      }
+    });
+  }
+});
 
 test("forward and rollback only register candidate and restore exact old handler", () => {
   const state = fixture();
