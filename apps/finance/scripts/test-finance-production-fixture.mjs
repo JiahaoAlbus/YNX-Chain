@@ -16,6 +16,7 @@ const write = (path, value) => { mkdirSync(dirname(path), { recursive: true }); 
 const tuple = path => shell('/opt/homebrew/bin/gstat', ['-Lc', '%u:%g:%a:%h', path]);
 const fullTuple = path => shell('/opt/homebrew/bin/gstat', ['-Lc', '%d:%i:%u:%g:%a:%h', path]);
 const phase1DirectoryTuple = path => shell('/opt/homebrew/bin/gstat', ['-Lc', '%d:%i:%u:%g:%a:%h:%s:%F', path]);
+const retainedDirectoryIdentity = path => shell('/opt/homebrew/bin/gstat', ['-Lc', '%d:%i:%u:%g:%a:%F', path]);
 const stateTuple = path => shell('/opt/homebrew/bin/gstat', ['-Lc', '%d:%i:%u:%g:%a:%h', path]);
 const receipt = (url, body) => ({ url, status: '200', bytes: Buffer.byteLength(body), sha256: createHash('sha256').update(body).digest('hex') });
 const shaBuffer = value => createHash('sha256').update(value).digest('hex');
@@ -187,16 +188,20 @@ function preparationFixture() {
 function crossStagePhase3Fixture() {
   const id = 'p0237-finance-phase3-20260823T060000Z';
   const fixture = makeFixture(false, { id }); const p = fixture.paths;
-  const ynx = dirname(dirname(p.env)); const leasesParent = join(ynx, 'leases');
+  const ynx = dirname(dirname(p.env)); const leasesParent = join(ynx, 'leases'); const deployParent = dirname(p.lease);
   const executorBytes = readFileSync(fixture.copied); const leaseBytes = readFileSync(p.lease);
 
   // Phase 2B left the immutable archive/env directly in the fixed P0-228
   // carrier. Phase 3 owns only its new deploy-parent children.
   const carrierBefore = phase1DirectoryTuple(p.carrier);
+  // Phase3 consumes the pre-existing, Central-bound finance lease parent. It
+  // must never recreate or remove that directory; only this lease's children
+  // are eligible for placement/finalization.
+  const deployParentBefore = phase1DirectoryTuple(deployParent);
+  const deployParentIdentityBefore = retainedDirectoryIdentity(deployParent);
   const archiveBefore = { tuple: phase1DirectoryTuple(p.archive), bytes: bytes(p.archive), sha256: sha(p.archive) };
   const envBefore = { tuple: phase1DirectoryTuple(p.newEnv), bytes: bytes(p.newEnv), sha256: sha(p.newEnv) };
   assert.equal(lstatSync(p.releaseContainer, { throwIfNoEntry: false }), undefined, 'new lease release container starts absent');
-  rmSync(dirname(p.lease), { recursive: true, force: true });
 
   const bootstrap = readFileSync(new URL('./finance-phase3-stdin-deployment-bootstrap.sh', import.meta.url), 'utf8')
     .replaceAll('/opt/ynx', ynx)
@@ -204,7 +209,7 @@ function crossStagePhase3Fixture() {
     .replaceAll('base64 -d', 'base64 -D')
     .replaceAll('mv -T --', '/bin/mv --');
   const args = [
-    id, p.carrier, phase1DirectoryTuple(ynx), phase1DirectoryTuple(leasesParent), carrierBefore,
+    id, p.carrier, phase1DirectoryTuple(ynx), deployParentBefore, carrierBefore,
     archiveBefore.tuple, archiveBefore.sha256, String(archiveBefore.bytes),
     envBefore.tuple, envBefore.sha256, String(envBefore.bytes),
     executorBytes.toString('base64'), String(executorBytes.length), shaBuffer(executorBytes),
@@ -216,6 +221,10 @@ function crossStagePhase3Fixture() {
   assert.ok(result.stdout.includes('phase=3') && result.stdout.includes('releaseContainerTuple=') && result.stdout.includes('backupTuple=') && result.stdout.includes('candidateServicePid=') && result.stdout.includes('candidateServiceNRestarts=') && result.stdout.includes(`lease=${join(leasesParent, 'finance', `${id}.json`)}`), 'exact bootstrap preserves real executor success receipts');
   assert.equal(readlinkSync(p.current), p.release, 'new lease-owned release selected');
   assert.equal(phase1DirectoryTuple(p.carrier), carrierBefore, 'fixed P0-228 carrier identity retained');
+  // Regular lease children can change a directory's nlink/byte accounting;
+  // its durable identity must nevertheless be unchanged, proving the parent
+  // was neither recreated nor replaced.
+  assert.equal(retainedDirectoryIdentity(deployParent), deployParentIdentityBefore, 'retained Finance lease parent identity unchanged');
   assert.deepEqual({ tuple: phase1DirectoryTuple(p.archive), bytes: bytes(p.archive), sha256: sha(p.archive) }, archiveBefore, 'archive retained byte-exact');
   assert.deepEqual({ tuple: phase1DirectoryTuple(p.newEnv), bytes: bytes(p.newEnv), sha256: sha(p.newEnv) }, envBefore, 'candidate env retained byte-exact');
   assert.ok(p.stage.includes(`/${id}/`) && p.backup.includes(`/${id}/`) && p.release.includes(`/${id}/`), 'new deployment lease owns only mutable paths');
