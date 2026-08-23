@@ -1,0 +1,168 @@
+{
+  "schema": "ynx.social.official-nonsensitive-browser-evidence.v1",
+  "capturedAt": "2026-08-23T01:03:54Z",
+  "officialUrl": "https://social.ynxweb4.com/",
+  "ownerCheckpoint": {
+    "branch": "codex/social-release-evidence-ecffe336",
+    "commit": "05c2036f73acafa6d5e8064cf67a75546dfc5142",
+    "tree": "f803dca58b397c8dfeac02f29f2cf6905626a245",
+    "candidateSourceCommit": "e7756cb387233376c03043c54fb8b051c241e94e",
+    "candidateSourceTree": "8607f57fdc9c1060a8749748ca0c87fa472692aa",
+    "candidateSocialTree": "68939fb426275213621cf5d06937d49024bc2c03"
+  },
+  "deploymentReadback": {
+    "deploymentId": "dpl_34kzw3uk4B1wwjk1wQUq8y29mTxX",
+    "immutableUrl": "https://ynx-social-i38c5m9dw-jiahaoalbus-projects.vercel.app",
+    "project": "ynx-social-web",
+    "target": "production",
+    "ready": true
+  },
+  "officialResources": [
+    {
+      "path": "/",
+      "status": 200,
+      "bytes": 6098,
+      "sha256": "783f835245b9acbb4cbfe29cb56faa55243d593858c80692d39034e97e42a05b",
+      "contentType": "text/html; charset=utf-8",
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "vercelRequestId": "sin1::tbkz4-1787446668913-cc70afbf5f4f"
+    },
+    {
+      "path": "/app.js",
+      "status": 200,
+      "bytes": 6928,
+      "sha256": "966a47ae3d285a625ab666ddeca91defa156f04337b700fc07bd6c73e97ee51d",
+      "contentType": "application/javascript; charset=utf-8",
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "vercelRequestId": "sin1::wwgdk-1787446669174-6aa6025257ed"
+    },
+    {
+      "path": "/styles.css",
+      "status": 200,
+      "bytes": 6327,
+      "sha256": "1f80ec6b7ab8c2ff0d1d66edf083d301af89386c802483733fd670a5ada26c42",
+      "contentType": "text/css; charset=utf-8",
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "vercelRequestId": "sin1::g55f5-1787446669738-7cecbfcd27c7"
+    },
+    {
+      "path": "/wallet-provider.js",
+      "status": 200,
+      "bytes": 7749,
+      "sha256": "d8df8193407f835ff16913417acca0db2ae1f091defc16e0b29a98996ffdea75",
+      "contentType": "application/javascript; charset=utf-8",
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "vercelRequestId": "sin1::vxqrj-1787446670297-8728597cda10"
+    },
+    {
+      "path": "/assets/metamask.svg",
+      "status": 200,
+      "bytes": 755,
+      "sha256": "f761f46f4fe7052a84b47cf23b63c2f20cc3d043df640b7f79c2adcb245e5f21",
+      "contentType": "image/svg+xml",
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "vercelRequestId": "sin1::spn87-1787446670515-d53f38d6a400"
+    },
+    {
+      "path": "/assets/ynx-wallet.svg",
+      "status": 200,
+      "bytes": 280,
+      "sha256": "e92207903e61b41c7a662e57e2a3bcfd84627b49c22a29e9240d5eafcd0229fb",
+      "contentType": "image/svg+xml",
+      "cacheControl": "public, max-age=0, must-revalidate",
+      "vercelRequestId": "hnd1::xzhkc-1787446671115-797ab68a8b1d"
+    }
+  ],
+  "directBrowser": {
+    "surface": "Codex In-app Browser",
+    "officialUrlStable": true,
+    "finalUrl": "https://social.ynxweb4.com/",
+    "title": "YNX Social — Private by design",
+    "topLevelTabCount": 1,
+    "blankTopLevelTabCount": 0,
+    "htmlLanguage": "en",
+    "translateDisabled": true,
+    "defaultEnglishVisible": true,
+    "languageControlCount": 0,
+    "languageSwitchVerified": false,
+    "providerPresent": false,
+    "providerRequestAvailable": false,
+    "providerArrayCount": 0,
+    "connectedPanelVisible": false,
+    "connectWalletVisible": true,
+    "walletChooser": {
+      "visible": true,
+      "initialStatus": "No account request is sent until you choose a wallet.",
+      "ynx": {
+        "visible": true,
+        "name": "YNX Wallet",
+        "description": "Independent YNX EIP-1193 provider",
+        "logoAlt": "YNX Wallet logo",
+        "logoPath": "./assets/ynx-wallet.svg"
+      },
+      "metamask": {
+        "visible": true,
+        "name": "MetaMask",
+        "description": "MetaMask EIP-1193 provider",
+        "logoAlt": "MetaMask logo",
+        "logoPath": "./assets/metamask.svg"
+      }
+    },
+    "noProviderFallback": {
+      "ynx": {
+        "status": "YNX Wallet was not detected in this browser. Install it, then retry from this page.",
+        "installLabel": "Install YNX Wallet",
+        "installUrl": "https://www.ynxweb4.com/dapp/download"
+      },
+      "metamask": {
+        "status": "MetaMask was not detected in this browser. Install it, then retry from this page.",
+        "installLabel": "Install MetaMask",
+        "installUrl": "https://metamask.io/download/"
+      },
+      "accountRequestAttempted": false,
+      "customSchemeOpened": false,
+      "newTopLevelTabOpened": false
+    },
+    "privateService": {
+      "state": "PRIVATE_SERVICE_DEGRADED",
+      "visibleText": "Private Social service degraded. Wallet connection remains independently available.",
+      "standardWalletEntryRemainsAvailable": true,
+      "connectedWalletPreserved": false,
+      "connectedWalletPreservedUnprovenReason": "No provider or approved account was present in the non-sensitive browser context."
+    },
+    "reload": {
+      "urlStable": true,
+      "singleTab": true,
+      "connectWalletVisible": true,
+      "connectedPanelVisible": false,
+      "networkLoadingFailedCount": 0,
+      "runtimeExceptionCount": 0,
+      "browserLogErrorWarningCount": 0
+    }
+  },
+  "truthBoundary": {
+    "officialResourcesSourceBound": true,
+    "officialBrowserNonSensitiveDirectEvidence": true,
+    "distinctWalletIdentityAndLogos": true,
+    "noProviderFallback": true,
+    "privateServiceDegradedKeepsWalletEntry": true,
+    "lateInjectedRealProvider": false,
+    "languageSwitch": false,
+    "installedProvider": false,
+    "accountRequest": false,
+    "accountApproval": false,
+    "accountRejection": false,
+    "providerChainId0x1917": false,
+    "refreshEventsDisconnectRevoke": false,
+    "personalSign": false,
+    "eip712": false,
+    "testnetSend": false,
+    "productSession": false,
+    "productsConnected": 0,
+    "productsMigratedV2": 0
+  },
+  "singleExecutableBlocker": {
+    "code": "SOCIAL_PUBLIC_LANGUAGE_SWITCH_AND_INSTALLED_PROVIDER_LIFECYCLE_UNPROVEN",
+    "detail": "The official page is source-bound and passes direct non-sensitive browser checks, but exposes no language selector and the clean browser has no installed YNX or MetaMask provider. Add a visible language control without changing the English default, publish it, then run the installed-provider lifecycle under the immediate account-confirmation boundary."
+  }
+}
