@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "kind": "FINANCE_P0247_RESIDUE_CLEANUP_ONLY_STREAMING_SUCCESSOR_LEASE_REQUEST",
+  "supersedes": "apps/finance/evidence/finance-p0251-p0247-residue-cleanup-only-lease-request-20260823.json",
+  "requestState": "PENDING_CENTRAL_SINGLE_USE_LEASE_REVIEW",
+  "owner": {
+    "branch": "codex/p0-finance-wallet-connectivity-20260820",
+    "reviewedCommandCheckpoint": "17a4ab57bdd4b4d7af5a7d9de5cb13dacdb082ce",
+    "reviewedCommandTree": "c758676cdf834f53e7ce66da7487ffa89edefbed",
+    "nonSelfReferential": true
+  },
+  "p0251NoGo": {
+    "code": "FINANCE_P0251_CLEANUP_ONLY_REMOTE_TMP_PATH_UNBOUNDED",
+    "correction": "health and version checks are a body-only stdout pipeline; no remote temporary path, redirect file, or unbound deletion is used"
+  },
+  "commandObjects": {
+    "cleanupExecutor": {"path": "apps/finance/scripts/finance-p0247-residue-cleanup.sh", "blob": "b56dda2e0f685d95f809ee8ba84b31bd15f79305", "bytes": 6642, "sha256": "d816d438dbad52b43c448ba925cade26ff609da1ee30cbfff32327054e0ea7d9", "remoteMode": "0700"},
+    "actualShellFixture": {"path": "apps/finance/scripts/test-finance-p0247-residue-cleanup-fixture.mjs", "blob": "05e8dcac4812dc9b28c44bfd4d29c7fcf75c983e", "bytes": 9112, "sha256": "855221de92bbb94147654a379d2d35713ae53da1dfe7605b7816ea82235e8535"}
+  },
+  "exactRemoteOperation": {
+    "p0247Id": "p0247-finance-phase3-20260823T073800Z",
+    "residuesOnly": ["/opt/ynx/stage/finance/p0247-finance-phase3-20260823T073800Z", "/var/backups/ynx-finance/p0247-finance-phase3-20260823T073800Z"],
+    "freshBindingsRequired": ["each residue parent and target full device:inode:uid:gid:mode:nlink:bytes:type tuple", "target canonical inventory and each entry SHA-256", "current/env/unit/Caddy/service receipts", "public health/version URL/status/bytes/SHA-256"],
+    "streamingPublicVerifier": "curl response body to stdout followed by a fixed curl metadata trailer; a pipe-only Perl parser checks status, byte count and SHA-256 and emits only those derived values",
+    "forbidden": ["mktemp", "remote temporary files", "response output redirection files", "deletion outside the two signed residue targets", "SSH retry", "deploy", "rollback", "restart", "current/env/state/unit/Caddy/public mutation", "wallet account/signature/typed-data/transaction"]
+  },
+  "failureAndIdempotence": {
+    "bothResiduesAbsent": "verify unchanged current/env/unit/Caddy/service/public receipts then no-op success",
+    "onlyOneAbsent": "fail closed without deleting the remaining residue",
+    "targetOrParentDrift": "fail closed before deletion and retain all objects",
+    "afterFirstDeleteFailure": "stop; no repair, deployment, restart, rollback, or broad cleanup is authorized"
+  },
+  "tests": {
+    "bashSyntax": true,
+    "actualShellFixture": true,
+    "staticNoMktemp": true,
+    "staticNoUnboundRm": true,
+    "streamedStatusBytesSha": true,
+    "statusBytesShaMismatchStopsBeforeCleanup": true,
+    "exactCleanup": true,
+    "targetSubstitution": true,
+    "inventoryDrift": true,
+    "foreignSibling": true,
+    "concurrentReplacement": true,
+    "partialAbsence": true,
+    "noServiceCurrentEnvUnitCaddyMutation": true
+  },
+  "truth": {"leaseIssued": false, "sshExecuted": false, "cleanupExecuted": false, "deployed": false, "rolledBack": false, "publicVerified": false, "walletApproval": false, "signature": false, "transaction": false},
+  "separateFutureAuthorizationRequired": "A successful cleanup receipt cannot authorize deployment, rollback, service action, or wallet action."
+}
