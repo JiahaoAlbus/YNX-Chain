@@ -5,10 +5,10 @@
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-post-cleanup-readonly-verification-20260823T141805Z",
   "owner": "finance-release-control-plane-readonly",
   "executor": "finance-release-control-plane-readonly",
-  "status": "ACTIVE_SINGLE_USE_READONLY",
+  "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0268_POST_CLEANUP_READONLY_VERIFICATION_CLEANUP_COMPLETE",
   "issuedAt": "2026-08-23T14:18:05Z",
   "expiresAt": "2026-08-23T14:48:05Z",
-  "releasedAt": null,
+  "releasedAt": "2026-08-23T14:23:34Z",
   "singleUse": true,
   "reusable": false,
   "productionMutationAllowed": false,
@@ -126,9 +126,37 @@
   ],
   "truthBoundary": {
     "leaseIssued": true,
-    "verificationExecuted": false,
-    "cleanupCompletionAccepted": false,
+    "verificationExecuted": true,
+    "cleanupCompletionAccepted": true,
+    "fourP0247ResiduesAbsent": true,
+    "fourP0267ControlPathsAbsent": true,
+    "oldFinanceRuntimeUnchangedHealthy": true,
+    "deploymentCompleted": false,
+    "walletLifecycleCompleted": false,
     "productionMutationAllowed": false,
     "walletMutationAllowed": false
+  },
+  "terminalEvidence": {
+    "ownerCommit": "2065fe7fc349541255e5e4be2b1bf2750eeebeac",
+    "ownerTree": "ecd334c67078701adf5f4c5acf93292abccdb917",
+    "path": "apps/finance/evidence/p0-268-finance-post-cleanup-readonly-terminal-evidence-20260823.json",
+    "blob": "3c767966cf83957f738f611a3928668ce7c8f6fc",
+    "bytes": 2080,
+    "sha256": "b8540f206e3925441d35e80344b6dcc5299f514d0efd48a85fe624a49e904767",
+    "attemptCount": 1,
+    "retryCount": 0,
+    "exitCode": 0,
+    "stderrBytes": 0,
+    "mutationCount": 0,
+    "fourP0247ResiduesAbsent": true,
+    "fourP0267ControlPathsAbsent": true,
+    "serviceMainPid": 2241003,
+    "serviceNRestarts": 0,
+    "loopbackAndPublicHealthVersionExact": true
+  },
+  "nextBlocker": {
+    "code": "FINANCE_DEPLOYMENT_REQUEST_STALE_AFTER_P0268_CLEANUP_BASELINE_REFRESH_REQUIRED",
+    "deploymentLeaseIssued": false,
+    "requirement": "Freeze a wholly-new Finance-only deployment request bound to the P0-268 terminal record, fresh prepared-candidate and old-runtime identities, fresh absence of all lease-owned stage/backup/release/control paths, corrected service-user traverse permissions, exact OpenSSH transport acknowledgement, and rollback-first/manual-rollback boundaries."
   }
 }

@@ -5,7 +5,7 @@
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-p0247-residue-cleanup-openssh-successor-20260823T140755Z",
   "owner": "finance-release-control-plane-cleanup-only",
   "executor": "finance-release-control-plane-cleanup-only",
-  "status": "CONSUMED_RELEASED_SUCCESSFUL_EXECUTION_PENDING_INDEPENDENT_READBACK",
+  "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0267_RESIDUE_CLEANUP_VERIFIED_BY_P0268",
   "issuedAt": "2026-08-23T14:07:55Z",
   "expiresAt": "2026-08-23T14:37:55Z",
   "releasedAt": "2026-08-23T14:18:05Z",
@@ -187,7 +187,7 @@
     "leaseIssued": true,
     "cleanupExecuted": true,
     "cleanupExecutionAcknowledged": true,
-    "cleanupCompletionAccepted": false,
+    "cleanupCompletionAccepted": true,
     "deploymentExecuted": false,
     "serviceLifecycleExecuted": false,
     "publicMutationExecuted": false,
@@ -208,6 +208,17 @@
     "stderrBytes": 0,
     "exactSixLineReceipt": true,
     "cleanupCompletionAccepted": false,
-    "nextRequiredAction": "A wholly-new zero-write read-only lease must directly verify residue and control absences plus unchanged old runtime."
+    "nextRequiredAction": "Completed by P0-268 direct zero-write verification; any deployment requires a wholly-new deployment request and lease."
+  },
+  "independentReadback": {
+    "taskId": "P0-268",
+    "ownerCommit": "2065fe7fc349541255e5e4be2b1bf2750eeebeac",
+    "ownerTree": "ecd334c67078701adf5f4c5acf93292abccdb917",
+    "evidenceBlob": "3c767966cf83957f738f611a3928668ce7c8f6fc",
+    "evidenceSha256": "b8540f206e3925441d35e80344b6dcc5299f514d0efd48a85fe624a49e904767",
+    "fourResiduesAbsent": true,
+    "fourControlPathsAbsent": true,
+    "oldRuntimeUnchanged": true,
+    "cleanupCompleteAccepted": true
   }
 }
