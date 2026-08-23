@@ -15,18 +15,22 @@ test("extension packages expose truthful install metadata without hosted-update 
     assert.deepEqual(manifest.options_ui,{page:"vault.html",open_in_tab:true});
     assert.deepEqual(manifest.commands._execute_action.suggested_key,{default:"Ctrl+Shift+Y",mac:"MacCtrl+Shift+Y"});
     assert.equal(manifest.commands._execute_action.description,"Open YNX Wallet for the active DApp");
-    assert.equal("content_scripts" in manifest,false);
+    assert.equal(manifest.content_scripts.length,2);
+    assert.deepEqual(manifest.content_scripts.map(({matches,run_at,all_frames,match_about_blank,world})=>({matches,run_at,all_frames,match_about_blank,world})),[
+      {matches:["http://*/*","https://*/*"],run_at:"document_start",all_frames:false,match_about_blank:false,world:undefined},
+      {matches:["http://*/*","https://*/*"],run_at:"document_start",all_frames:false,match_about_blank:false,world:"MAIN"},
+    ]);
     assert.equal("web_accessible_resources" in manifest,false);
     assert.equal("optional_host_permissions" in manifest,false);
-    assert.deepEqual(manifest.host_permissions,["https://evm.ynxweb4.com/*"]);
+    assert.deepEqual(manifest.host_permissions,["http://*/*","https://*/*"]);
     assert.equal(manifest.content_security_policy.extension_pages,"script-src 'self'; object-src 'self'; connect-src https://evm.ynxweb4.com");
-    assert.equal(manifest.host_permissions.includes("http://*/*"),false);
+    assert.equal(manifest.host_permissions.includes("http://*/*"),true);
     assert.equal(manifest.host_permissions.some((pattern)=>pattern.startsWith("file:")),false);
     assert.equal("update_url" in manifest, false);
   }
 });
 
-test("DApp injection is bound to an explicit activeTab user gesture",async()=>{
+test("DApp injection is automatic at document_start with an activeTab repair fallback",async()=>{
   const worker=await import("node:fs/promises").then(({readFile})=>readFile(new URL("../extension/service-worker.js",import.meta.url),"utf8"));
   assert.match(worker,/tabs\.query\(\{active:true,currentWindow:true\}\)/);
   assert.match(worker,/activeTabInjectionPlans\(context\.tabId\)/);

@@ -9,6 +9,8 @@ import {signExtensionRequest} from "./extension-signer.js";
 
 const extensionApi=globalThis.browser||globalThis.chrome,CHAIN_ID=YNX_CHAIN_ID;
 const approvalWaiters=new Map();
+const approvalOrigins=new Set();
+let accountEpoch=0;
 const signerWaiters=new Map();
 const migrationPromise=runExtensionMigration(extensionApi,{alarmsDeclared:false}).then(report=>({ok:true,report}),error=>({ok:false,error}));
 async function requireMigrationReady(){const state=await migrationPromise;if(!state.ok)throw Object.assign(new Error("Extension upgrade cleanup is incomplete; wallet access remains disabled."),{code:"MIGRATION_INCOMPLETE",cause:state.error});return state.report}
@@ -55,8 +57,13 @@ async function configuredAccount(){const stored=await extensionApi.storage.local
 function requireExtensionPage(sender,page){let actual,expected;try{actual=new URL(sender?.url);expected=new URL(extensionApi.runtime.getURL(page))}catch{throw Object.assign(new Error("Extension page identity is invalid."),{code:"EXTENSION_CALLER_REJECTED"})}if(sender?.id!==extensionApi.runtime.id||actual.origin!==expected.origin||actual.pathname!==expected.pathname)throw Object.assign(new Error("Rejected message from outside the expected extension page."),{code:"EXTENSION_CALLER_REJECTED"})}
 function requireVaultPage(sender){requireExtensionPage(sender,"vault.html")}
 async function vaultStatus(){const stored=await extensionApi.storage.local.get(EXTENSION_VAULT_KEY);if(stored?.[EXTENSION_VAULT_KEY]===undefined)return{configured:false};const vault=parseEncryptedVault(stored[EXTENSION_VAULT_KEY]);return{configured:true,account:vault.account,createdAt:vault.createdAt}}
-async function storeVault(vaultValue){const vault=parseEncryptedVault(vaultValue),account=providerAccountFromVault(vault);for(const waiter of approvalWaiters.values())waiter.reject(Object.assign(new Error("Wallet account changed during approval."),{code:"PROVIDER_ACCOUNT_CHANGED"}));approvalWaiters.clear();await extensionApi.storage.local.set({[EXTENSION_VAULT_KEY]:vault,[PROVIDER_ACCOUNT_KEY]:account,[PROVIDER_PERMISSIONS_KEY]:{}});return account}
-async function removeVault(){await extensionApi.storage.local.remove([EXTENSION_VAULT_KEY,PROVIDER_ACCOUNT_KEY,PROVIDER_PERMISSIONS_KEY]);return true}
+async function notifyPermissionRevocation(permissions){
+  const allowed=parsePermissionStore(permissions),tabs=await extensionApi.tabs.query({});
+  await Promise.all(tabs.map(async(tab)=>{let origin;try{origin=new URL(tab.url).origin}catch{return}if(!allowed[origin]||!Number.isInteger(tab.id))return;await emitToTab(tab.id,origin,"accountsChanged",[]);await emitToTab(tab.id,origin,"disconnect",{code:4900,message:"YNX Wallet account authority was revoked."})}));
+}
+async function revokeVaultAuthority(){accountEpoch+=1;for(const waiter of approvalWaiters.values())waiter.reject(Object.assign(new Error("Wallet account changed during approval."),{code:"PROVIDER_ACCOUNT_CHANGED"}));approvalWaiters.clear();approvalOrigins.clear();const stored=await extensionApi.storage.local.get(PROVIDER_PERMISSIONS_KEY);return stored?.[PROVIDER_PERMISSIONS_KEY]}
+async function storeVault(vaultValue){const vault=parseEncryptedVault(vaultValue),account=providerAccountFromVault(vault),permissions=await revokeVaultAuthority();await extensionApi.storage.local.set({[EXTENSION_VAULT_KEY]:vault,[PROVIDER_ACCOUNT_KEY]:account,[PROVIDER_PERMISSIONS_KEY]:{}});await notifyPermissionRevocation(permissions);return account}
+async function removeVault(){const permissions=await revokeVaultAuthority();await extensionApi.storage.local.remove([EXTENSION_VAULT_KEY,PROVIDER_ACCOUNT_KEY,PROVIDER_PERMISSIONS_KEY]);await notifyPermissionRevocation(permissions);return true}
 async function approvedState(origin){
   try{return await loadProviderState(extensionApi.storage.local,origin)}catch(error){if(error?.code==="PROVIDER_ACCOUNT_UNAVAILABLE")return null;throw error}
 }
@@ -70,12 +77,14 @@ function approvalKey(requestId){return `${PROVIDER_PENDING_PREFIX}${requestId}`}
 async function cleanupApproval(requestId,windowId){approvalWaiters.delete(requestId);await extensionApi.storage.session.remove(approvalKey(requestId)).catch(()=>{});if(Number.isInteger(windowId))await extensionApi.windows.remove(windowId).catch(()=>{})}
 async function requestAccountApproval(tabId,origin,requestId,deadlineAt){
   const existing=await approvedState(origin);if(existing?.permission)return[existing.permission.account];
-  const account=await configuredAccount(),pending=createPendingApproval({requestId,origin,tabId,account,deadlineAt});
+  if(approvalOrigins.has(origin))throw Object.assign(new Error("A wallet connection request is already pending for this site."),{code:-32002});
+  const account=await configuredAccount(),epoch=accountEpoch;approvalOrigins.add(origin);
+  const pending=createPendingApproval({requestId,origin,tabId,account,deadlineAt});
   await extensionApi.storage.session.set({[approvalKey(requestId)]:pending});
   let windowId=null,timer;
   const decision=new Promise((resolve,reject)=>{timer=setTimeout(()=>reject(Object.assign(new Error("Wallet connection approval expired."),{code:"APPROVAL_EXPIRED"})),Math.max(1,deadlineAt-Date.now()));approvalWaiters.set(requestId,{resolve,reject,pending,get windowId(){return windowId}})});
-  try{const created=await extensionApi.windows.create({url:extensionApi.runtime.getURL(`approval.html?requestId=${encodeURIComponent(requestId)}`),type:"popup",width:420,height:640,focused:true});windowId=created?.id;const approved=await decision;if(!approved)throw Object.assign(new Error("User rejected the wallet connection."),{code:4001});const permission=await persistPermission(origin,account);await emitToTab(tabId,origin,"connect",{chainId:CHAIN_ID});await emitToTab(tabId,origin,"accountsChanged",[permission.account]);await emitToTab(tabId,origin,"chainChanged",CHAIN_ID);return[permission.account]}
-  finally{clearTimeout(timer);await cleanupApproval(requestId,windowId)}
+  try{const created=await extensionApi.windows.create({url:extensionApi.runtime.getURL(`approval.html?requestId=${encodeURIComponent(requestId)}`),type:"popup",width:420,height:640,focused:true});windowId=created?.id;const approved=await decision;if(!approved)throw Object.assign(new Error("User rejected the wallet connection."),{code:4001});if(epoch!==accountEpoch||(await configuredAccount()).account!==account.account)throw Object.assign(new Error("Wallet account changed during approval."),{code:"PROVIDER_ACCOUNT_CHANGED"});const permission=await persistPermission(origin,account);await emitToTab(tabId,origin,"connect",{chainId:CHAIN_ID});await emitToTab(tabId,origin,"accountsChanged",[permission.account]);await emitToTab(tabId,origin,"chainChanged",CHAIN_ID);return[permission.account]}
+  finally{approvalOrigins.delete(origin);clearTimeout(timer);await cleanupApproval(requestId,windowId)}
 }
 function signerKey(requestId){return `ynx.wallet.provider.signer.v1.${requestId}`}
 function signerSummary(method,params){if(method==="personal_sign")return`Message ${params[0].slice(0,256)}${params[0].length>256?"…":""}`;if(method==="eth_signTypedData_v4"){const value=JSON.parse(params[1]);return JSON.stringify({primaryType:value.primaryType,domain:value.domain,message:value.message}).slice(0,2048)}return JSON.stringify(params[0])}

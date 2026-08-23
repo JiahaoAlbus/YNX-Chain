@@ -39,8 +39,9 @@ for (const artifact of manifest.artifacts) {
   if(!vaultBundle.includes("PBKDF2")||!vaultBundle.includes("AES-GCM")||vaultBundle.includes("correct horse battery staple")||/eval\(|new Function/u.test(vaultBundle))throw new Error(`Invalid encrypted vault bundle: ${artifact.name}`);
   const signerBundle=execFileSync("unzip",["-p",archive,"extension-signer.js"],{encoding:"utf8"});if(!signerBundle.includes("eth_signTypedData_v4")||!signerBundle.includes("eth_sendTransaction")||/eval\(|new Function/u.test(signerBundle))throw new Error(`Invalid signer bundle: ${artifact.name}`);
   if (extension.content_security_policy?.extension_pages !== "script-src 'self'; object-src 'self'; connect-src https://evm.ynxweb4.com") throw new Error(`Invalid extension RPC CSP: ${artifact.name}`);
-  if (JSON.stringify(extension.host_permissions) !== JSON.stringify(["https://evm.ynxweb4.com/*"])) throw new Error(`Invalid host permissions: ${artifact.name}`);
-  for (const forbidden of ["content_scripts", "web_accessible_resources", "optional_host_permissions", "update_url", "key"]) if (forbidden in extension) throw new Error(`Forbidden ${forbidden}: ${artifact.name}`);
+  if (JSON.stringify(extension.host_permissions) !== JSON.stringify(["http://*/*","https://*/*"])) throw new Error(`Invalid host permissions: ${artifact.name}`);
+  const scripts=extension.content_scripts;if(!Array.isArray(scripts)||scripts.length!==2||scripts.some(item=>JSON.stringify(item.matches)!==JSON.stringify(["http://*/*","https://*/*"])||item.run_at!=="document_start"||item.all_frames!==false||item.match_about_blank!==false)||scripts[0].js?.[0]!=="content-script.js"||scripts[1].js?.[0]!=="page-provider.js"||scripts[1].world!=="MAIN")throw new Error(`Invalid automatic provider injection: ${artifact.name}`);
+  for (const forbidden of ["web_accessible_resources", "optional_host_permissions", "update_url", "key"]) if (forbidden in extension) throw new Error(`Forbidden ${forbidden}: ${artifact.name}`);
   if (artifact.browsers.includes("Firefox")) {
     if (extension.browser_specific_settings?.gecko?.id !== "wallet-testnet@ynxweb4.com" || extension.browser_specific_settings?.gecko?.strict_min_version !== "128.0") throw new Error(`Invalid Firefox identity metadata: ${artifact.name}`);
   } else if (extension.minimum_chrome_version !== "120") {

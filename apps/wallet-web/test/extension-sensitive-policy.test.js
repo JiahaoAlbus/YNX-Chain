@@ -3,7 +3,7 @@ import {execFileSync} from "node:child_process";
 import {readFile} from "node:fs/promises";
 import test from "node:test";
 import {deriveWalletWebCompanionBinding,requireCanonicalAuthorizationContext} from "../src/core-auth-consumer.js";
-import {SENSITIVE_REPLAY_KEY,consumeSensitiveRequest,parseSensitiveRequest,validateSensitiveResult} from "../src/extension-sensitive-policy.js";
+import {SENSITIVE_REPLAY_KEY,consumeSensitiveRequest,normalizeExtensionTransaction,parseSensitiveRequest,validateSensitiveResult} from "../src/extension-sensitive-policy.js";
 
 const ID="ynx-11111111-1111-4111-8111-111111111111",ACCOUNT="0x1111111111111111111111111111111111111111",deadline=Date.now()+18000;
 const message=(method,params)=>({requestId:ID,deadlineAt:deadline,method,params});
@@ -25,6 +25,19 @@ test("sensitive request parser binds exact method parameters, account and deadli
   assert.equal(parseSensitiveRequest(message("eth_signTypedData_v4",[ACCOUNT,JSON.stringify({domain:{},types:{},primaryType:"Mail",message:{}})])).expectedAccount,ACCOUNT);
   assert.equal(parseSensitiveRequest(message("eth_sendTransaction",[{from:ACCOUNT,to:ACCOUNT,value:"0x0",data:"0x"}])).expectedAccount,ACCOUNT);
   for(const invalid of [message("eth_requestAccounts",[1]),message("personal_sign",["hello",ACCOUNT]),message("eth_sendTransaction",[{from:ACCOUNT,to:ACCOUNT,value:"0x00",data:"0x"}]),{...message("personal_sign",["0x00",ACCOUNT]),deadlineAt:Date.now()-1}])assert.throws(()=>parseSensitiveRequest(invalid));
+});
+
+test("transactions accept common legacy and EIP-1559 fields but reject ambiguity and other chains",()=>{
+  assert.deepEqual(normalizeExtensionTransaction({from:ACCOUNT,to:ACCOUNT}),{from:ACCOUNT,to:ACCOUNT,value:"0x0",data:"0x"});
+  assert.equal(normalizeExtensionTransaction({from:ACCOUNT,to:ACCOUNT,input:"0x12",nonce:"0x1",gas:"0x5208",gasPrice:"0x2",chainId:"0x1917",type:"0x0"}).data,"0x12");
+  const dynamic=normalizeExtensionTransaction({from:ACCOUNT,to:ACCOUNT,maxFeePerGas:"0x4",maxPriorityFeePerGas:"0x2",type:"0x2",accessList:[]});assert.equal(dynamic.type,"0x2");
+  for(const invalid of [
+    {from:ACCOUNT,to:ACCOUNT,chainId:"0x1"},
+    {from:ACCOUNT,to:ACCOUNT,gasPrice:"0x1",maxFeePerGas:"0x2"},
+    {from:ACCOUNT,to:ACCOUNT,data:"0x00",input:"0x01"},
+    {from:ACCOUNT,to:ACCOUNT,maxFeePerGas:"0x1",maxPriorityFeePerGas:"0x2"},
+    {from:ACCOUNT,to:ACCOUNT,unknown:"0x0"},
+  ])assert.throws(()=>normalizeExtensionTransaction(invalid));
 });
 
 test("sensitive request IDs are consumed once in bounded session storage",async()=>{

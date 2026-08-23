@@ -35,3 +35,15 @@ test("content and page scripts enforce source, origin, timeout, duplicate-id and
   assert.match(worker,/requireVaultPage\(sender\)/);assert.match(worker,/providerAccountFromVault\(vault\)/);assert.match(worker,/account\.account!==vaultAccount\.account/);assert.match(worker,/\[PROVIDER_PERMISSIONS_KEY\]:\{\}/);
   assert.doesNotMatch(worker,/executeInTab\(tabId,origin,"any",input\)/);assert.doesNotMatch(worker,/requireCanonicalAuthorizationContext/);
 });
+
+test("injected YNX provider explicitly refuses MetaMask identity and forbidden navigation surfaces",async()=>{
+  const page=await readFile(new URL("../extension/page-provider.js",import.meta.url),"utf8"),content=await readFile(new URL("../extension/content-script.js",import.meta.url),"utf8");
+  assert.match(page,/isYNXWallet:true,isYnxWallet:true,isMetaMask:false/);
+  assert.doesNotMatch(page+content,/window\.open|ynxwallet:|createElement\(["']iframe/);
+});
+
+test("provider approval is per-origin single-flight and vault mutation revokes live tabs",async()=>{
+  const worker=await readFile(new URL("../extension/service-worker.js",import.meta.url),"utf8");
+  assert.match(worker,/approvalOrigins\.has\(origin\)/);assert.match(worker,/code:-32002/);assert.match(worker,/epoch!==accountEpoch/);
+  assert.match(worker,/tabs\.query\(\{\}\)/);assert.match(worker,/notifyPermissionRevocation/);assert.match(worker,/"accountsChanged",\[\]/);assert.match(worker,/"disconnect",\{code:4900/);
+});
