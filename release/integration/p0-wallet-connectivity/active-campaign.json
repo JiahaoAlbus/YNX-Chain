@@ -429,7 +429,7 @@
   "heavy": {
     "owner": "video-deploy-owner",
     "taskId": "P0-238",
-    "status": "ACTIVE_SINGLE_USE_EMERGENCY_RECOVERY",
+    "status": "EMERGENCY_BLOCKED_VIDEO_LEGACY_VIEWER_EXACT_RECOVERY_REQUIRED",
     "acquiredAt": "2026-08-23T04:29:00Z",
     "expiresAt": "2026-08-23T05:00:00Z",
     "releasedAt": null,
@@ -439,13 +439,13 @@
     "currentRuntime": "VIEWER_6494_UNAVAILABLE_LEGACY_FAILED_MAINPID_0_NRESTARTS_5",
     "candidateRuntime": "EXACT_LEGACY_APPS_VIDEO_SUBTREE_EMERGENCY_RECOVERY",
     "artifactSha256": "d07748594ab2007b665d6c34b055f13759ebb8de28362d4697c426c4e819b503",
-    "productionMutationAllowed": true,
+    "productionMutationAllowed": false,
     "singleUse": true,
     "reusable": false,
     "previousOwner": "video-deploy-owner",
     "previousTaskId": "P0-237",
-    "reviewDecision": "GO_VIDEO_LEGACY_VIEWER_EMERGENCY_SUBTREE_RECOVERY_ONLY",
-    "reason": "P0-237 Emergency Heavy is converted without an idle gap. The exact 5d32f8f1 recovery successor captures the created subtree tuple immediately after rename and failure cleanup requires the same tuple, exact 13 hashes, ownership and modes; the same-byte different-inode fixture refuses deletion. Fresh incident bindings remain exact. P0-238 authorizes one script upload and one exact subtree recovery with no retry or candidate/sensitive action."
+    "reviewDecision": "EMERGENCY_BLOCKED_VIDEO_LEGACY_VIEWER_EXACT_RECOVERY_REQUIRED",
+    "reason": "P0-238 uploaded the exact 5d32f8f1 recovery script once. Its sole SSH recovery invocation exited before entering the script because OpenSSH remote argv reconstruction split the signed tuple value containing 'symbolic link'; no subtree or receipt was created. Legacy remains failed with MainPID 0/NRestarts 5 and Viewer 6494 absent; API, Creator, shared current, unit and Caddy remain exact. No retry is authorized, so Heavy and Video locks remain held for a wholly-new quoted or stdin-safe recovery transport."
   },
   "wave": {
     "id": "B-financial-apps-quant",
