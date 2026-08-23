@@ -2567,10 +2567,10 @@
       "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
       "taskId": "P0-298",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0298_RC137_NO_DECLARED_OUTPUT_REMOTE_STATE_UNKNOWN",
       "acquiredAt": "2026-08-23T20:15:00Z",
       "expiresAt": "2026-08-23T20:45:00Z",
-      "releasedAt": null,
+      "releasedAt": "2026-08-23T20:20:00Z",
       "sourceCommit": "0a86cce012e01cbcb093254cd8933129be125e5e",
       "sourceTree": "980287885524124eb9be9a47babd7d31678594fd",
       "evidenceCommit": "0a86cce012e01cbcb093254cd8933129be125e5e",
@@ -2582,6 +2582,29 @@
         "automatic rollback restores exact old env state current service and old live gates then removes only identity-bound P0298 residues",
         "unit and Caddy files immutable; no non-Finance Wallet account signature typed-data or transaction action",
         "manual rollback requires a separately signed future exact-present Central lease"
+      ]
+    },
+    {
+      "path": "{host:43.153.202.237:finance-p0298-state-zero-write-inspection,readonly:/opt/ynx/leases/finance/p0298-finance-phase3-20260824t201500z.*,readonly:/opt/ynx/stage/finance/p0298-finance-phase3-20260824t201500z/**,readonly:/var/backups/ynx-finance/p0298-finance-phase3-20260824t201500z/**,readonly:/opt/ynx/releases/finance/p0298-finance-phase3-20260824t201500z/**,readonly:/opt/ynx/finance-current*,readonly:/etc/ynx/finance.env,readonly:/var/lib/ynx/finance/state.json,readonly:/etc/systemd/system/ynx-finance.service,readonly:/etc/caddy/conf.d/ynx-finance.caddy,readonly:service:ynx-finance.service,readonly:http://127.0.0.1:6483/**,readonly:https://finance.ynxweb4.com/**}",
+      "owner": "finance-release-control-plane-readonly-inspection",
+      "branch": "codex/p0-wallet-connectivity-control-plane-20260820",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration",
+      "taskId": "P0-299",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE",
+      "acquiredAt": "2026-08-23T20:20:00Z",
+      "expiresAt": "2026-08-23T20:50:00Z",
+      "releasedAt": null,
+      "sourceCommit": "63cdaf84f0622764f80d2f6614094100515cada8",
+      "sourceTree": "7917e25ac218760d635112b159c8cc1fcbda05c7",
+      "evidenceCommit": "e7a30c37f9ba41977fc77e525361fc92306835da",
+      "artifactSha256": "cd36c107cfcb107a85cfd992d7e0b326e8de7d5bf1050d7ba90d076be2217973",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "exactly one read-only SSH inspection and no retry",
+        "read P0-298 controls stage backup release current env state unit Caddy service six HTTP gates and bounded normalized journal metadata",
+        "no remote temp file or write",
+        "no cleanup rollback deploy lifecycle config public Wallet account signature typed-data or transaction mutation"
       ]
     }
   ]

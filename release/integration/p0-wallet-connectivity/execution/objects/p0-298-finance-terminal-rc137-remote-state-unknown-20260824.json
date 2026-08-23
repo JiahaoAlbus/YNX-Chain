@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "1.0.0",
+  "taskId": "P0-298",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0298_RC137_NO_DECLARED_OUTPUT_REMOTE_STATE_UNKNOWN",
+  "recordedAt": "2026-08-23T20:20:00Z",
+  "lease": {
+    "path": "release/integration/p0-wallet-connectivity/execution/p0-298-finance-terminal-split-rollback-first-deployment-single-use-lease-20260824.json",
+    "blob": "2454aa371d0a40da8165150a7de7a31cb9187e42",
+    "bytes": 36382,
+    "sha256": "3f98a1c7d0955caf637e038fe6114ce112d8b8d2d85122d99988b654eca76ea1",
+    "wasActiveAndUnexpired": true,
+    "singleUse": true,
+    "reusable": false
+  },
+  "execution": {
+    "attempts": 1,
+    "retryAttempts": 0,
+    "exactLiteralArgv": true,
+    "exactEmptyEnvironment": true,
+    "outerObserverProcessReplacement": true,
+    "outerObserverCapturedOnlyProcessRc": true,
+    "declaredOutputsAbsentBeforeInvocation": true,
+    "localExitStatus": 137,
+    "stdout": {"path": "/tmp/ynx-finance-p0298-finance-phase3-20260824t201500z.stdout", "status": "ABSENT"},
+    "stderr": {"path": "/tmp/ynx-finance-p0298-finance-phase3-20260824t201500z.stderr", "status": "ABSENT"},
+    "transportReceipt": {"path": "/tmp/ynx-finance-p0298-finance-phase3-20260824t201500z.receipt", "status": "ABSENT"},
+    "transportReceiptPending": {"path": "/tmp/ynx-finance-p0298-finance-phase3-20260824t201500z.receipt.pending", "status": "ABSENT"},
+    "safePhaseReceiptPresent": false,
+    "sshAttemptCount": "UNKNOWN",
+    "remoteExecutorEntry": "UNKNOWN",
+    "productionMutation": "UNKNOWN",
+    "automaticRollback": "UNKNOWN",
+    "manualRollbackAttempts": 0
+  },
+  "signedStdin": {
+    "path": "/tmp/ynx-finance-p0298-finance-phase3-20260824t201500z-signed.json",
+    "bytes": 10685,
+    "sha256": "dfd92c0476abf6528f648dff8f3402ffca583ef698444b9fc8ee383ca6fe3bfe",
+    "exact": true
+  },
+  "terminalTruth": {
+    "remoteStateKnown": false,
+    "deploymentSuccessAccepted": false,
+    "automaticRollbackAccepted": false,
+    "cleanupComplete": false,
+    "retryAllowed": false,
+    "p0298Reusable": false,
+    "heavyReleaseRequired": true,
+    "nextAuthority": "WHOLLY_NEW_P0299_ONE_SSH_ZERO_WRITE_REMOTE_STATE_INSPECTION_ONLY"
+  },
+  "forbiddenInference": [
+    "do not infer local-only failure from rc137",
+    "do not infer SSH or executor entry",
+    "do not infer production mutation or absence",
+    "do not infer deployment or rollback success",
+    "do not retry P0-298",
+    "do not clean or rollback before direct P0-299 state evidence"
+  ]
+}

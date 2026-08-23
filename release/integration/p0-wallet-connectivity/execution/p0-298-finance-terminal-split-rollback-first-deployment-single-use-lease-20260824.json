@@ -5,9 +5,10 @@
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-terminal-split-rollback-first-p0298-20260823T201500Z",
   "owner": "finance-release-control-plane",
   "executor": "finance-release-control-plane",
-  "status": "ACTIVE",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0298_RC137_NO_DECLARED_OUTPUT_REMOTE_STATE_UNKNOWN",
   "issuedAt": "2026-08-23T20:15:00Z",
   "expiresAt": "2026-08-23T20:45:00Z",
+  "releasedAt": "2026-08-23T20:20:00Z",
   "singleUse": true,
   "reusable": false,
   "productionMutationAllowed": true,
@@ -185,11 +186,10 @@
     "retainHeavyOnUnresolvedRemoteState": true,
     "releaseOnlyAfterDirectTerminalEvidence": true,
     "productCompletionInferred": false,
-    "terminalEvidencePath": null,
-    "remoteStateKnown": null,
-    "terminalEvidenceAccepted": false,
+    "terminalEvidencePath": "release/integration/p0-wallet-connectivity/execution/objects/p0-298-finance-terminal-rc137-remote-state-unknown-20260824.json",
+    "remoteStateKnown": false,
+    "terminalEvidenceAccepted": true,
     "successContract": "retain signed release/backup/controls and current=candidate",
     "automaticRollbackContract": "restore old runtime and remove only owned residues"
   }
 }
-
