@@ -1877,7 +1877,7 @@
     },
     {
       "path": "{host:43.153.202.237:finance-phase3-readonly-incident-inspection,service:ynx-finance.service,port:127.0.0.1:6483,readonly:/opt/ynx/leases/finance,readonly:/opt/ynx/stage/finance/p0247-finance-phase3-20260823T073800Z,readonly:/var/backups/ynx-finance/p0247-finance-phase3-20260823T073800Z,readonly:/opt/ynx/releases/finance/p0247-finance-phase3-20260823T073800Z,readonly:/opt/ynx/finance-current,readonly:/etc/ynx/finance.env,readonly:/var/lib/ynx/finance/state.json,readonly:https://finance.ynxweb4.com/{health,version}}",
-      "owner": "finance-release-control-plane-readonly-inspection",
+      "owner": null,
       "branch": "codex/p0-finance-wallet-connectivity-20260820",
       "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
       "taskId": "P0-248",
@@ -2015,7 +2015,7 @@
     },
     {
       "path": "{host:43.153.202.237:finance-p0272-readonly,readonly:/opt/ynx/leases/finance/p0272-finance-phase3-20260823T152627Z.*,readonly:/opt/ynx/stage/finance/p0272-finance-phase3-20260823T152627Z,readonly:/var/backups/ynx-finance/p0272-finance-phase3-20260823T152627Z,readonly:/opt/ynx/releases/finance/p0272-finance-phase3-20260823T152627Z,readonly:/opt/ynx/finance-current,readonly:/etc/ynx/finance.env,readonly:/var/lib/ynx/finance/state.json,readonly:ynx-finance.service,readonly:journal:2026-08-23T15:29:00Z..2026-08-23T15:36:30Z,readonly:http://127.0.0.1:6483/**,readonly:https://finance.ynxweb4.com/**}",
-      "owner": "finance-release-control-plane-readonly-inspection",
+      "owner": null,
       "branch": "codex/p0-wallet-connectivity-control-plane-20260820",
       "worktree": "/private/tmp/ynx-calendar-control-plane.y8FFQt/repo",
       "taskId": "P0-273",
@@ -2369,24 +2369,27 @@
     },
     {
       "path": "{host:43.153.202.237:finance-p0289-zero-write-state-inspection,readonly:/opt/ynx/leases/finance/p0289-finance-phase3-20260824t010000z.*,readonly:/opt/ynx/stage/finance/p0289-finance-phase3-20260824t010000z/**,readonly:/var/backups/ynx-finance/p0289-finance-phase3-20260824t010000z/**,readonly:/opt/ynx/releases/finance/p0289-finance-phase3-20260824t010000z/**,readonly:/opt/ynx/finance-current*,readonly:/etc/ynx/finance.env,readonly:/var/lib/ynx/finance/state.json,readonly:/etc/systemd/system/ynx-finance.service,readonly:/etc/caddy/conf.d/ynx-finance.caddy,readonly:service:ynx-finance.service,readonly:http://127.0.0.1:6483/**,readonly:https://finance.ynxweb4.com/**}",
-      "owner": "finance-release-control-plane-readonly-inspection",
+      "owner": null,
       "branch": "codex/p0-finance-wallet-connectivity-20260820",
       "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
       "taskId": "P0-290",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE",
+      "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0290_P0289_REMOTE_STATE_ZERO_WRITE_INSPECTION",
       "acquiredAt": "2026-08-23T18:44:00Z",
       "expiresAt": "2026-08-23T19:14:00Z",
-      "releasedAt": null,
+      "releasedAt": "2026-08-23T18:49:00Z",
       "sourceCommit": "da502d22c665f0e7c065788ccf8a09091d82d5af",
       "sourceTree": "40a292728f7e44f1295dc7a18e2946b11bf61a79",
       "evidenceCommit": "da502d22c665f0e7c065788ccf8a09091d82d5af",
-      "artifactSha256": "4590223072e598ee12bea009e052c5de57c729912e197daca41f0f5bed35c898",
+      "artifactSha256": "21b3fac0ad8516237ea2eeeffd0571da5b4fcbdcbdfbc18f11829c48825f52b0",
       "productionMutationAllowed": false,
       "allowedExceptions": [
         "one exact zero-write SSH inspection and no retry",
         "read only exact P0-289 paths, retained parents, Finance runtime files, service metadata, bounded normalized journal digest and six streamed HTTP endpoints",
-        "no remote temp, cleanup, deploy, rollback, lifecycle, current/env/state/unit/Caddy/public mutation, Wallet action or secret output"
+        "no remote temp, cleanup, deploy, rollback, lifecycle, current/env/state/unit/Caddy/public mutation, Wallet action or secret output",
+        "one zero-write SSH succeeded with mutationCount=0 and directly proved the old runtime exact",
+        "only the two exact P0-289 control files and two exact empty containers remain; cleanup requires a wholly-new lease",
+        "P0-290 is consumed and nonreusable; Heavy and read-only locks are released"
       ]
     }
   ]

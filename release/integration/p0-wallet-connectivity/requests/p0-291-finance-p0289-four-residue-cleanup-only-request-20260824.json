@@ -1,0 +1,94 @@
+{
+  "schemaVersion": "p0-finance-cleanup-only-request@1",
+  "kind": "FINANCE_P0289_FOUR_RESIDUE_IDENTITY_BOUND_CLEANUP_ONLY_REQUEST",
+  "requestStatus": "SOURCE_REQUEST_ONLY_AWAITING_CENTRAL_CLEANUP_SINGLE_USE_LEASE",
+  "requestId": "P0-291",
+  "predecessor": {
+    "p0290TerminalStatus": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0290_P0289_REMOTE_STATE_ZERO_WRITE_INSPECTION",
+    "p0290TerminalEvidencePath": "release/integration/p0-wallet-connectivity/execution/objects/p0-290-finance-p0289-remote-state-zero-write-terminal-evidence-20260824.json",
+    "p0290StdoutBlob": "6aa165325f265af60d00315da8878599e367c72e",
+    "p0290StdoutSha256": "21b3fac0ad8516237ea2eeeffd0571da5b4fcbdcbdfbc18f11829c48825f52b0",
+    "productionSwitchOccurred": false
+  },
+  "scope": {
+    "cleanupOnly": true,
+    "singleUse": true,
+    "oneSsh": true,
+    "retryAllowed": false,
+    "persistentDeletionLimit": 4,
+    "deploymentAllowed": false,
+    "rollbackAllowed": false,
+    "serviceLifecycleAllowed": false
+  },
+  "exactResidues": {
+    "executor": {
+      "path": "/opt/ynx/leases/finance/p0289-finance-phase3-20260824t010000z.executor.sh",
+      "tuple": "64770:4620784:0:0:700:1:18432:regular file",
+      "bytes": 18432,
+      "sha256": "be7435a922b26482c830778ef23753e7de2e02ad307de914fef9aa83a77229c0",
+      "operation": "unlink exact ordinary single-link file only"
+    },
+    "signedLease": {
+      "path": "/opt/ynx/leases/finance/p0289-finance-phase3-20260824t010000z.json",
+      "tuple": "64770:4620785:0:0:600:1:9252:regular file",
+      "bytes": 9252,
+      "sha256": "b3583c982ac2be861af11e35f7bdfa6a608243d52b44d8200f1171ecfbfa1ce3",
+      "operation": "unlink exact ordinary single-link file only"
+    },
+    "stageContainer": {
+      "path": "/opt/ynx/stage/finance/p0289-finance-phase3-20260824t010000z",
+      "tuple": "64770:4620786:0:0:700:2:4096:directory",
+      "directChildren": 0,
+      "inventorySha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "operation": "rmdir exact empty non-symlink directory only"
+    },
+    "backupContainer": {
+      "path": "/var/backups/ynx-finance/p0289-finance-phase3-20260824t010000z",
+      "tuple": "64770:2663622:0:0:700:2:4096:directory",
+      "directChildren": 0,
+      "inventorySha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "operation": "rmdir exact empty non-symlink directory only"
+    }
+  },
+  "parentBindings": {
+    "leaseParentPre": "64770:4594822:0:0:750:2:4096:directory|directChildren=2|inventorySha256=ba5ccdf943883fa8433199e5c64843ec7e5b824102cf611fa961f2e04ddac4b4",
+    "leaseParentPostRequired": "64770:4594822:0:0:750:2:4096:directory|directChildren=0|inventorySha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stageParentPre": "64770:3450041:0:0:750:6:4096:directory|directChildren=4|inventorySha256=c31bb854268d818c88fd8ac2baf121734848e614880f7813d3eddad841fa155f",
+    "stageParentPostRequired": "64770:3450041:0:0:750:5:4096:directory|directChildren=3|inventorySha256=0d11124b36a42c6201f7e0d491fd20279ea47950554f92c6b1cc960aaa0fee91",
+    "backupParentPre": "64770:1481354:0:0:755:12:4096:directory|directChildren=10|inventorySha256=9b15184fc9e0ec23c19390794bc8e2cfaf98b40c54c299ff7f4ebac52d839eaa",
+    "backupParentPostRequired": "64770:1481354:0:0:755:11:4096:directory|directChildren=9|inventorySha256=a59008acfeccfb0a2f88de5b029871b713b42d0bf43ad1ba87786c962e6659be"
+  },
+  "requiredExecutorProperties": [
+    "freshly re-read every residue tuple, bytes, SHA, type, nlink and parent identity before first deletion",
+    "reject symlink, hardlink, inode substitution, content drift, foreign child, parent substitution or partial pre-execution absence",
+    "delete only the two exact files and rmdir only the two exact empty containers",
+    "revalidate exact parent identity and expected post-cleanup child count/inventory after each operation",
+    "emit a nonempty terminal receipt naming all four residues absent and all three parent postconditions exact",
+    "separate direct zero-write readback required before cleanupComplete=true"
+  ],
+  "oldRuntimeMustRemainExact": {
+    "currentTarget": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a",
+    "binarySha256": "0cc43c8a77c12975a0fcbada65971f08f2bc3a52345d547ea194dd3ccd60d83f",
+    "envSha256": "854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252",
+    "unitSha256": "2e72cdad422a3a714c46d074ea97b725233576cf726dbbfd43e82e99c2c2975b",
+    "caddySha256": "dcf75a7aed315c54632321b8bb80e44c0abc22f6700fadfbfa9a7da21b88a282",
+    "servicePid": 2241003,
+    "serviceNRestarts": 0,
+    "loopbackAndPublicRootHealthVersionExact": true
+  },
+  "forbidden": [
+    "deployment or rollback",
+    "service start stop restart reload enable disable",
+    "current env state unit Caddy or public mutation",
+    "stage backup or release leaf mutation outside the four exact residues",
+    "parent deletion or unrelated sibling mutation",
+    "Wallet account signature typed data or transaction",
+    "secret or environment value output"
+  ],
+  "truth": {
+    "cleanupExecuted": false,
+    "cleanupComplete": false,
+    "deployment": false
+  },
+  "singleBlocker": "Central must independently review a wholly-new exact cleanup executor, fresh-read the four residues and parent bindings, then issue a separate cleanup-only single-use lease."
+}
