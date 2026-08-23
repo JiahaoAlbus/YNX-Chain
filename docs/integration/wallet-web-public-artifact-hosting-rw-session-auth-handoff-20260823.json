@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "handoffType": "WALLET_ARTIFACT_HOSTING_AUTH_MODE_SUCCESSOR",
+  "supersedesCommit": "e63ce919a3bf70ab6381975cbd6c31a3d565fefc",
+  "requestPath": "release/integration/wallet-web-public-artifact-hosting-20260823/lease-request-rw-session-auth-successor.json",
+  "decisionRequested": "Review and, only if a secret BLOB_READ_WRITE_TOKEN can be injected into the authorized executor without disclosure, issue a wholly-new single-use Wallet-artifact-only lease using authenticated Vercel session plus Blob read-write-token environment mode.",
+  "authentication": {"oidcUsed":false,"requiredUnset":["VERCEL_OIDC_TOKEN","BLOB_STORE_ID"],"requiredRuntimeSecret":["BLOB_READ_WRITE_TOKEN"],"secretPersistedOrExposed":false,"sessionIdentityPrecheck":"PASS","blobDataPlanePrecheckNow":"FALSE_UNTIL_AUTHORIZED_RUNTIME_SECRET"},
+  "scope": {"walletBranch":"codex/wallet-web-pwa-extensions-20260813","websiteBranch":"codex/wallet-web-artifact-hosting-20260823","websiteAllowedPaths":["vercel.json","public/releases/ecosystem-release-registry.json"],"websiteForbiddenPath":"src/lib/ecosystemCatalog.js","productionMutationInThisCommit":false},
+  "preserved": {"packageSha256":["040e1f03956b6fb0a9298c8af5b76a5ed2895de0e5510a6208543bed9e3df055","2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d","29fe890612ebe9518a99d80492b44cb222c5e9e37ce8d761ebc84b8243b5a896"],"allowOverwrite":false,"typedReceipts":true,"rollbackDeploymentId":"dpl_574RBu3xBzE4Bh1jygv2YJruAYfz"},
+  "falseUntilDirectExecution": {"blobUploaded":false,"websitePushed":false,"deployed":false,"downloadHosted":false,"signed":false,"storeReleased":false,"installed":false,"publicParity":false}
+}

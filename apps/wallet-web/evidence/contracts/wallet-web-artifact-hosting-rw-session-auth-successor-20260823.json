@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "evidenceClass": "source-evidence-only-rw-session-auth-successor",
+  "observedAt": "2026-08-23T09:51:24Z",
+  "supersedesCommit": "e63ce919a3bf70ab6381975cbd6c31a3d565fefc",
+  "resolvedBlocker": "WALLET_ARTIFACT_HOSTING_OIDC_RUNTIME_CREDENTIAL_UNAVAILABLE",
+  "authentication": {
+    "mode":"VERCEL_CLI_AUTHENTICATED_SESSION_PLUS_BLOB_READ_WRITE_TOKEN_ENV",
+    "requiredUnset":{"VERCEL_OIDC_TOKEN":true,"BLOB_STORE_ID":true},
+    "currentEnvironment":{"VERCEL_OIDC_TOKEN_AVAILABLE":false,"BLOB_STORE_ID_AVAILABLE":false,"BLOB_READ_WRITE_TOKEN_AVAILABLE":false,"VERCEL_TOKEN_AVAILABLE":false},
+    "liveReadOnlySession":{"whoami":"jiahaoalbus","scope":"jiahaoalbus-projects","projectId":"prj_tPB0KDTFohQ9FXZAzq25mYFWkbNa","projectName":"ynx-web4-website-new","blobStoreId":"store_DygGjsbXsiew8L6U","blobStoreName":"ynx-official-downloads","connectedProject":"ynx-web4-website-new","status":"Active","passed":true},
+    "blobDataPlaneCapability":{"passed":false,"reason":"BLOB_READ_WRITE_TOKEN is intentionally absent from the current source-only session and must be injected only by a future authorized executor."},
+    "credentialMaterialReadOrPersisted":false
+  },
+  "frozenObjects": {
+    "baseCommands":{"path":"release/integration/wallet-web-public-artifact-hosting-20260823/execution-command-objects-successor.json","bytes":10023,"sha256":"951a157e96945d7bb1bc84d2ba9c993c2f09d363fb99bb34fc48f38c62fb9442"},
+    "authContract":{"path":"release/integration/wallet-web-public-artifact-hosting-20260823/execution-auth-mode-rw-session-successor.json","bytes":4992,"sha256":"2417b53b9826a5501721e4ead44215dfbfafb529db7c747e03dc7b2673505d8f"},
+    "authFixture":{"path":"release/integration/wallet-web-public-artifact-hosting-20260823/verify-rw-session-auth-fixtures.mjs","bytes":7645,"sha256":"8dd4fc9fffc413bf02a5c8327b928fb04ec8ca5f7bb49d8d2eb2901f9569ca2f"}
+  },
+  "preserved": {
+    "packages":"3/3 exact SHA-256 and bytes",
+    "allowOverwrite":false,
+    "websiteChangedPaths":["public/releases/ecosystem-release-registry.json","vercel.json"],
+    "catalogUntouched":true,
+    "typedReceipts":true,
+    "rollbackDeploymentId":"dpl_574RBu3xBzE4Bh1jygv2YJruAYfz",
+    "priorFixtures":"carrier self/tamper, public negative, rollback full GET, actual shell, receipt binding, cleanup"
+  },
+  "terminalTests": {
+    "authStaticPositive":"PASS",
+    "authNegative":"9/9 PASS fail closed",
+    "liveSessionControlPlane":"PASS user/project/store",
+    "oidcVariablesAbsent":"PASS",
+    "credentialInArgvOrEvidence":"PASS absent",
+    "uploadArgv":"3/3 preserved with --allow-overwrite=false",
+    "productionMutation":false
+  },
+  "actionsPerformed": {"walletRemotePush":false,"websiteRemotePush":false,"blobUpload":false,"websiteDeploy":false,"websitePromote":false,"websiteRollback":false,"alias":false,"browser":false,"install":false,"account":false,"signature":false,"transaction":false},
+  "truth": {"successorExecutableOnlyWithFutureRuntimeBlobReadWriteToken":true,"blobReadWriteRuntimeCredentialAvailableNow":false,"downloadHosted":false,"productionSigned":false,"storeReleased":false,"installedLocal":false,"publicParity":false}
+}

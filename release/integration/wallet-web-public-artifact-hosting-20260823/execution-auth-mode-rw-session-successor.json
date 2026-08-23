@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "successorType": "WALLET_ARTIFACT_HOSTING_AUTHENTICATION_MODE_ONLY",
+  "supersedesCommit": "e63ce919a3bf70ab6381975cbd6c31a3d565fefc",
+  "resolvesBlocker": "WALLET_ARTIFACT_HOSTING_OIDC_RUNTIME_CREDENTIAL_UNAVAILABLE",
+  "baseCommandObjects": {
+    "path": "release/integration/wallet-web-public-artifact-hosting-20260823/execution-command-objects-successor.json",
+    "bytes": 10023,
+    "sha256": "951a157e96945d7bb1bc84d2ba9c993c2f09d363fb99bb34fc48f38c62fb9442",
+    "inheritWithoutMutation": [
+      "uploadCommands",
+      "websitePushCommand",
+      "buildCommand",
+      "deployCommand",
+      "promoteCommand",
+      "rollbackCommand",
+      "failureCleanupCommand",
+      "receiptBinding",
+      "websiteExecution",
+      "walletCarrier",
+      "vercel"
+    ]
+  },
+  "authentication": {
+    "mode": "VERCEL_CLI_AUTHENTICATED_SESSION_PLUS_BLOB_READ_WRITE_TOKEN_ENV",
+    "oidc": false,
+    "secretValuesMayAppearInArgvLogsReceiptsEvidenceOrGit": false,
+    "requiredUnsetEnvironment": [
+      "VERCEL_OIDC_TOKEN",
+      "BLOB_STORE_ID"
+    ],
+    "requiredSecretEnvironment": [
+      "BLOB_READ_WRITE_TOKEN"
+    ],
+    "runtimeSecretPolicy": "BLOB_READ_WRITE_TOKEN is injected only by the authorized executor, tested only for non-empty presence, inherited by the Vercel Blob CLI, never printed, copied, hashed, persisted, or passed in argv.",
+    "currentReadOnlyObservation": {
+      "VERCEL_OIDC_TOKEN_AVAILABLE": false,
+      "BLOB_STORE_ID_AVAILABLE": false,
+      "BLOB_READ_WRITE_TOKEN_AVAILABLE": false,
+      "VERCEL_TOKEN_AVAILABLE": false,
+      "authenticatedSessionWhoamiSucceeded": true,
+      "authenticatedSessionControlPlanePrecheckSucceeded": true,
+      "blobDataPlaneCapabilityProved": false
+    }
+  },
+  "identityLocks": {
+    "user": "jiahaoalbus",
+    "scope": "jiahaoalbus-projects",
+    "teamId": "team_JYlLQCpX3qEQiL92qoWMjUrw",
+    "projectId": "prj_tPB0KDTFohQ9FXZAzq25mYFWkbNa",
+    "projectName": "ynx-web4-website-new",
+    "blobStoreId": "store_DygGjsbXsiew8L6U",
+    "blobStoreName": "ynx-official-downloads",
+    "blobPublicOrigin": "https://dyggjsbxsiew8l6u.public.blob.vercel-storage.com"
+  },
+  "literalPrecheckCommands": [
+    {
+      "id": "session-user",
+      "executable": "vercel",
+      "argv": ["whoami", "--scope", "jiahaoalbus-projects", "--non-interactive"],
+      "expected": {"user": "jiahaoalbus"}
+    },
+    {
+      "id": "session-project",
+      "executable": "vercel",
+      "argv": ["project", "inspect", "ynx-web4-website-new", "--scope", "jiahaoalbus-projects", "--non-interactive"],
+      "expected": {"projectId": "prj_tPB0KDTFohQ9FXZAzq25mYFWkbNa", "projectName": "ynx-web4-website-new", "scope": "jiahaoalbus-projects"}
+    },
+    {
+      "id": "session-store",
+      "executable": "vercel",
+      "argv": ["blob", "list-stores", "--scope", "jiahaoalbus-projects", "--non-interactive"],
+      "expected": {"blobStoreId": "store_DygGjsbXsiew8L6U", "blobStoreName": "ynx-official-downloads", "connectedProject": "ynx-web4-website-new", "status": "Active"}
+    },
+    {
+      "id": "blob-read-write-capability",
+      "executable": "vercel",
+      "argv": ["blob", "list", "--limit", "1", "--scope", "jiahaoalbus-projects", "--non-interactive"],
+      "requiredEnvironment": ["BLOB_READ_WRITE_TOKEN"],
+      "expectedUrlPrefix": "https://dyggjsbxsiew8l6u.public.blob.vercel-storage.com/"
+    }
+  ],
+  "orderedAuthenticationGate": [
+    "Fail before any mutation if VERCEL_OIDC_TOKEN or BLOB_STORE_ID is present.",
+    "Fail before any mutation if BLOB_READ_WRITE_TOKEN is absent or empty; never inspect or serialize its value.",
+    "Run the three authenticated-session identity prechecks and require the exact user, scope, project, team and Blob store locks.",
+    "Run the read-only Blob list capability precheck with the inherited BLOB_READ_WRITE_TOKEN and require an exact target-store public-origin result.",
+    "Only after every authentication and identity gate passes may the inherited three upload commands execute once with --allow-overwrite=false."
+  ],
+  "failClosedCases": [
+    "OIDC_VARIABLE_PRESENT",
+    "OIDC_STORE_VARIABLE_PRESENT",
+    "BLOB_READ_WRITE_TOKEN_ABSENT",
+    "WRONG_VERCEL_USER",
+    "WRONG_TEAM_OR_SCOPE",
+    "WRONG_PROJECT_ID_OR_NAME",
+    "WRONG_BLOB_STORE_ID_OR_NAME",
+    "BLOB_READ_WRITE_CAPABILITY_FAILED",
+    "BLOB_URL_OUTSIDE_FROZEN_STORE_ORIGIN"
+  ],
+  "preservedSafety": {
+    "allowOverwrite": false,
+    "packageSha256": [
+      "040e1f03956b6fb0a9298c8af5b76a5ed2895de0e5510a6208543bed9e3df055",
+      "2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d",
+      "29fe890612ebe9518a99d80492b44cb222c5e9e37ce8d761ebc84b8243b5a896"
+    ],
+    "websiteAllowedPaths": ["vercel.json", "public/releases/ecosystem-release-registry.json"],
+    "websiteForbiddenPath": "src/lib/ecosystemCatalog.js",
+    "typedReceiptsRequired": true,
+    "rollbackDeploymentId": "dpl_574RBu3xBzE4Bh1jygv2YJruAYfz",
+    "productionMutationAuthorized": false
+  }
+}
