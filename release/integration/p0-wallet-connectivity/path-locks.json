@@ -2250,6 +2250,31 @@
         "P0-285 is consumed and nonreusable; Heavy and cleanup locks are released",
         "cleanupComplete remains false until wholly-new P0-286 zero-write readback"
       ]
+    },
+    {
+      "path": "{host:43.153.202.237:finance-p0281-temp-control-post-cleanup-readonly,readonly:/tmp/ynx-finance-p0281-finance-p0279-control-cleanup-20260823T170900Z.executor.sh,readonly:/tmp/ynx-finance-p0281-finance-p0279-control-cleanup-20260823T170900Z.json,readonly:/opt/ynx/leases/finance,readonly:/opt/ynx/finance-current,readonly:/etc/ynx/finance.env,readonly:/var/lib/ynx/finance/state.json,readonly:/etc/systemd/system/ynx-finance.service,readonly:/etc/caddy/conf.d/ynx-finance.caddy,readonly:ynx-finance.service,readonly:http://127.0.0.1:6483/{root,health,version},readonly:https://finance.ynxweb4.com/{root,health,version}}",
+      "owner": "finance-release-control-plane-readonly-verification",
+      "branch": "codex/p0-wallet-connectivity-control-plane-20260820",
+      "worktree": "/private/tmp/ynx-calendar-control-plane.y8FFQt/repo",
+      "taskId": "P0-286",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_SINGLE_USE",
+      "acquiredAt": "2026-08-23T17:44:00Z",
+      "expiresAt": "2026-08-23T18:14:00Z",
+      "releasedAt": null,
+      "sourceCommit": "4d598916416055554aff30fb2bde65194efb2b41",
+      "sourceTree": "9d2c6fc67b3c15991b26b059c3222764cfe26ca5",
+      "evidenceCommit": "4d598916416055554aff30fb2bde65194efb2b41",
+      "artifactSha256": "35a6ed520dfc480bb23c7bd4a912d1b1d26c80e042bfe76b5685eb7a95a91154",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "one zero-write SSH verification and no retry",
+        "read only the two exact P0-281 temporary paths, retained parent, old current/env/state/unit/Caddy/service and loopback/public root-health-version metadata",
+        "environment values and HTTP bodies must not be output",
+        "no cleanup, deploy, rollback, lifecycle, SCP, symlink, stage, backup, release or public mutation",
+        "P0-285 is consumed and nonreusable; cleanupComplete remains false until direct P0-286 success",
+        "P0-282 remains queued and unauthorized"
+      ]
     }
   ]
 }
