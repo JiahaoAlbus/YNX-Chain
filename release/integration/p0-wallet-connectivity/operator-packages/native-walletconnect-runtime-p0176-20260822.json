@@ -234,5 +234,18 @@
     "openseaNamedOperatorAvailable": false,
     "safeNamedOperatorAvailable": false,
     "directReceiptsExist": false
+  },
+  "protectedOwnerBooleanRouting": {
+    "path": "release/integration/p0-wallet-connectivity/operator-packages/p0-176-protected-owner-boolean-routing-20260824.json",
+    "ownerThreads": {
+      "reownProjectAllowlistReceiptAvailable": "019ffaf1-32a9-7231-b909-922a66d9f4d5",
+      "appleSignedAppGroupAndKeychainSignerAvailable": "019ffaf5-3c12-7830-8196-3748a053c876",
+      "eligibleSignedIosTargetAvailable": "019ffaf5-3c12-7830-8196-3748a053c876",
+      "eligibleSignedMacosTargetAvailable": "019ffaf5-3c12-7830-8196-3748a053c876",
+      "opaqueApprovedTestAccountHandleAvailable": "019ffe33-11a7-7e91-9400-eea29b139b59",
+      "boundedTestnetTransactionPolicyAvailable": "019ffe33-11a7-7e91-9400-eea29b139b59",
+      "eligibleSignedAndroidTargetAvailable": "019ffe33-f59c-70b2-909c-2029f901ec38"
+    },
+    "allProtectedReadinessTrue": false
   }
 }
