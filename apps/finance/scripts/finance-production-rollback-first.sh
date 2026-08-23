@@ -23,6 +23,7 @@ binary_bytes=$(get '.candidate.binary.bytes')
 binary_sha=$(get '.candidate.binary.sha256'); current=$(get '.fresh.currentLink'); old=$(get '.fresh.activeRelease'); old_binary=$(get '.fresh.binary.path'); old_binary_sha=$(get '.fresh.binary.sha256')
 env=$(get '.fresh.env.path'); env_sha=$(get '.fresh.env.sha256'); unit=$(get '.fresh.unit.path'); unit_sha=$(get '.fresh.unit.sha256'); caddy=$(get '.fresh.caddy.path'); caddy_sha=$(get '.fresh.caddy.sha256'); service=$(get '.fresh.service.name')
 stage=$(get '.paths.stage'); backup=$(get '.paths.backup'); release=$(get '.paths.release'); release_container=$(get '.paths.releaseContainer.path'); release_container_uid=$(get '.paths.releaseContainer.uid'); release_container_gid=$(get '.paths.releaseContainer.gid'); release_container_mode=$(get '.paths.releaseContainer.mode'); new_env=$(get '.candidate.env.path'); new_env_sha=$(get '.candidate.env.sha256'); state=$(get '.fresh.state.path'); state_absent=$(get '.fresh.state.absent')
+service_user=$(get '.fresh.service.user'); service_gid=$(get '.fresh.service.gid')
 carrier=$(get '.candidate.carrier.path'); carrier_id=$(get '.candidate.carrier.id'); carrier_tuple=$(get '.candidate.carrier.tuple')
 case "$carrier_id" in ''|*/*|.|..|*..*) exit 65;; esac
 test "$carrier_id" = p0228-finance-phase1-20260822T234100Z
@@ -49,9 +50,9 @@ assert_lease_child_path stage "$stage"; assert_lease_child_path backup "$backup"
 release_parent=$(get '.paths.parents.release.path')
 test "$release_container" = "$release_parent/$LEASE_ID"; test "$(dirname "$release")" = "$release_container"
 case "$release_container_uid:$release_container_gid:$release_container_mode" in *[!0-9:]*|*:*:*:*) exit 65;; esac
-release_container_created=false
+release_container_created=false; stage_created=false; backup_created=false
 cleanup_release_container(){
-  if [[ "$release_container_created" = true ]] && test -d "$release_container" && test ! -L "$release_container" && test "$(stat -Lc '%d:%i:%u:%g:%a' "$release_container")" = "$release_container_identity_tuple" && test -z "$(find "$release_container" -mindepth 1 -print -quit)"; then rmdir -- "$release_container"; fi
+  if [[ "$release_container_created" = true ]] && test -d "$release_container" && test ! -L "$release_container" && test "$(stat -Lc '%d:%i:%u:%g:%a' "$release_container")" = "${release_container_identity_tuple:-}" && test -z "$(find "$release_container" -mindepth 1 -print -quit)"; then rmdir -- "$release_container"; fi
 }
 verify_old_live(){ http_check '.fresh.verifier.loopbackHealth'; http_check '.fresh.verifier.loopbackVersion'; http_check '.fresh.verifier.publicHealth'; http_check '.fresh.verifier.publicVersion'; }
 asset_path(){
@@ -84,6 +85,33 @@ tree_inventory(){
     done < <(find . -mindepth 1 -print0 | LC_ALL=C sort -z)
   ) | sha256sum | awk '{print $1}'
 }
+identity_tuple(){ stat -Lc '%d:%i:%u:%g:%a' "$1"; }
+cleanup_owned_tree(){
+  local path=$1 identity=$2 inventory=$3
+  test -n "$identity" && test -d "$path" && test ! -L "$path" && test "$(identity_tuple "$path")" = "$identity" || return 0
+  if test -z "$(find "$path" -mindepth 1 -print -quit)"; then rmdir -- "$path"; return 0; fi
+  test -n "$inventory" && test "$(tree_inventory "$path")" = "$inventory" || return 0
+  rm -rf -- "$path"
+}
+cleanup_staging_residues(){
+  cleanup_release_container
+  if [[ "$stage_created" = true ]]; then cleanup_owned_tree "$stage" "${stage_identity_tuple:-}" "${stage_inventory:-}"; fi
+  if [[ "$backup_created" = true ]]; then cleanup_owned_tree "$backup" "${backup_identity_tuple:-}" "${backup_inventory:-}"; fi
+}
+pre_switch_cleanup(){ cleanup_staging_residues; }
+post_move_pre_switch_cleanup(){
+  if [[ "${release_created:-false}" = true ]] && test -d "$release" && test ! -L "$release" && test "$(stat -Lc '%d:%i:%u:%g:%a:%h:%s:%F' "$release")" = "${release_tuple:-}" && test "$(tree_inventory "$release")" = "${release_inventory:-}"; then rm -rf -- "$release"; fi
+  cleanup_staging_residues
+}
+assert_service_user_candidate_access(){
+  test "$release_container_uid" = "$(get '.fresh.service.releaseContainerOwnerUid')"
+  test "$release_container_gid" = "$service_gid"
+  test "$release_container_mode" = 750
+  runuser -u "$service_user" -- test -x "$release_container"
+  runuser -u "$service_user" -- test -x "$release"
+  runuser -u "$service_user" -- test -x "$release/ynx-finance"
+  while IFS= read -r n; do test -n "$n"; runuser -u "$service_user" -- test -r "$(asset_path "$release" "$(get ".candidate.assets[$n].relativePath")")"; done < <(jq -r '.candidate.assets|keys[]' "$lease")
+}
 verify_candidate_live(){
   local newpid n
   systemctl is-active --quiet "$service"; newpid=$(systemctl show -p MainPID --value "$service")
@@ -112,7 +140,7 @@ restore(){
     if ! test -d "$release" || test -L "$release" || [[ "$(stat -Lc '%d:%i:%u:%g:%a:%h:%s:%F' "$release")" != "$release_tuple" ]] || [[ "$(tree_inventory "$release")" != "$release_inventory" ]]; then cleanup_release_container; return 74; fi
     rm -rf -- "$release"; absent "$release"
   fi
-  cleanup_release_container
+  cleanup_staging_residues
 }
 if [[ "$mode" == rollback ]]; then
   release_container_tuple=$(get '.success.releaseContainer.tuple'); release_container_empty_tuple=$(get '.success.releaseContainer.emptyTuple'); release_container_identity_tuple=$(get '.success.releaseContainer.identityTuple'); release_tuple=$(get '.success.release.tuple'); release_inventory=$(get '.success.release.inventorySha256'); success_backup_tuple=$(get '.success.backup.tuple'); success_pid=$(get '.success.service.pid'); success_restarts=$(get '.success.service.nrestarts')
@@ -150,19 +178,26 @@ fi
 absent "$stage"; absent "$backup"; absent "$release"; absent "$release_container"
 assert_fresh
 test "$(bytes "$archive")" = "$archive_bytes"; test "$(hash "$archive")" = "$archive_sha"; test "$(hash "$new_env")" = "$new_env_sha"
-mkdir -p -m 0700 "$stage" "$backup"; cp --preserve=mode,ownership "$env" "$backup/env"; if [[ "$state_absent" = true ]]; then test ! -e "$state" && test ! -L "$state"; : >"$backup/state-absent"; else cp --preserve=mode,ownership "$state" "$backup/state"; fi; tar -xzf "$archive" -C "$stage"
+mkdir -p -m 0700 "$stage" "$backup"; stage_created=true; backup_created=true; stage_identity_tuple=$(identity_tuple "$stage"); backup_identity_tuple=$(identity_tuple "$backup"); trap pre_switch_cleanup EXIT
+cp --preserve=mode,ownership "$env" "$backup/env"; if [[ "$state_absent" = true ]]; then test ! -e "$state" && test ! -L "$state"; : >"$backup/state-absent"; else cp --preserve=mode,ownership "$state" "$backup/state"; fi; backup_inventory=$(tree_inventory "$backup"); tar -xzf "$archive" -C "$stage"
 candidate="$stage/$(basename "$release")"; test -x "$candidate/ynx-finance"; test "$(hash "$candidate/ynx-finance")" = "$binary_sha"; test "$(bytes "$candidate/ynx-finance")" = "$binary_bytes"; file "$candidate/ynx-finance" | grep -q 'ELF 64-bit.*x86-64'
-verify_local_assets "$candidate"
-trap cleanup_release_container EXIT
-mkdir -m "$release_container_mode" -- "$release_container"; release_container_created=true
-test -d "$release_container" && test ! -L "$release_container" && test "$(realpath -e "$release_container")" = "$release_container" && test -z "$(find "$release_container" -mindepth 1 -print -quit)"
+verify_local_assets "$candidate"; stage_inventory=$(tree_inventory "$stage")
+mkdir -m "$release_container_mode" -- "$release_container"; release_container_created=true; release_container_preownership_identity=$(identity_tuple "$release_container")
+chown "$release_container_uid:$release_container_gid" "$release_container"; chmod "$release_container_mode" "$release_container"
+test -d "$release_container" || exit 74
+test ! -L "$release_container" || exit 74
+test "$(realpath -e "$release_container")" = "$release_container" || exit 74
+test -z "$(find "$release_container" -mindepth 1 -print -quit)" || exit 74
 release_container_empty_tuple=$(stat -Lc '%d:%i:%u:%g:%a:%h:%s:%F' "$release_container")
 release_container_identity_tuple=$(stat -Lc '%d:%i:%u:%g:%a' "$release_container")
-test "$(stat -Lc '%u:%g:%a' "$release_container")" = "$release_container_uid:$release_container_gid:$release_container_mode"
+test "${release_container_identity_tuple%:*}" = "${release_container_preownership_identity%:*}"; test "$(stat -Lc '%u:%g:%a' "$release_container")" = "$release_container_uid:$release_container_gid:$release_container_mode"
 release_tuple=$(stat -Lc '%d:%i:%u:%g:%a:%h:%s:%F' "$candidate"); release_inventory=$(tree_inventory "$candidate"); release_created=false
-mv "$candidate" "$release"; release_created=true; trap 'restore' EXIT
+mv "$candidate" "$release"; release_created=true
 test "$(stat -Lc '%d:%i:%u:%g:%a:%h:%s:%F' "$release")" = "$release_tuple"; test "$(tree_inventory "$release")" = "$release_inventory"
 release_container_tuple=$(stat -Lc '%d:%i:%u:%g:%a:%h:%s:%F' "$release_container")
+trap post_move_pre_switch_cleanup EXIT
+assert_service_user_candidate_access
+trap 'restore' EXIT
 tmp=$(mktemp "$(dirname "$env")/.finance.env.next.XXXXXX"); cp --preserve=mode,ownership "$new_env" "$tmp"; mv -Tf "$tmp" "$env"
 link="$current.next"; absent "$link"; ln -s "$release" "$link"; mv -Tf "$link" "$current"; systemctl restart "$service"
 get '.candidate.sourceCommit' | grep -qx '7824af677dd052d20321431381523ab302614d98'; verify_candidate_live

@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import { chmodSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+const root=mkdtempSync('/tmp/ynx-finance-ssh-rc-');
+const input=join(root,'input'),out=join(root,'out'),err=join(root,'err'),receipt=join(root,'rc');writeFileSync(input,'payload');const bin=join(root,'bin');mkdirSync(bin);writeFileSync(join(bin,'mv'),'#!/bin/sh\nexec /opt/homebrew/bin/gmv "$@"\n');chmodSync(join(bin,'mv'),0o755);const env={...process.env,PATH:`${bin}:${process.env.PATH}`};
+const runner=fileURLToPath(new URL('./finance-phase3-single-ssh.sh',import.meta.url));
+const fake=join(root,'fake-ssh');writeFileSync(fake,'#!/bin/sh\ncat >/dev/null\nprintf remote-out\nprintf remote-err >&2\nexit "${1}"\n');chmodSync(fake,0o755);
+let r=spawnSync('/bin/bash',[runner,input,out,err,receipt,fake,'17'],{env,encoding:'utf8'});assert.equal(r.status,17,`${r.stdout}${r.stderr}`);assert.equal(readFileSync(receipt,'utf8'),'17\n');assert.equal(readFileSync(out,'utf8'),'remote-out');assert.equal(readFileSync(err,'utf8'),'remote-err');
+writeFileSync(join(root,'already'),'x');r=spawnSync('/bin/bash',[runner,input,out,err,join(root,'already'),fake,'0'],{env,encoding:'utf8'});assert.notEqual(r.status,0);console.log('finance phase3 single ssh fixture: pass');
