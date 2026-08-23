@@ -32,6 +32,7 @@ expected_path() {
   if [[ "${FINANCE_RESIDUE_CLEANUP_TEST_ROOT:-}" = 1 ]]; then return 0; fi
   case "$kind:$path" in
     stage:/opt/ynx/stage/finance/p0247-finance-phase3-20260823T073800Z|backup:/var/backups/ynx-finance/p0247-finance-phase3-20260823T073800Z) ;;
+    placedExecutor:/opt/ynx/leases/finance/p0247-finance-phase3-20260823T073800Z.executor.sh|placedLease:/opt/ynx/leases/finance/p0247-finance-phase3-20260823T073800Z.json) ;;
     *) return 1 ;;
   esac
 }
@@ -75,20 +76,37 @@ assert_parent_after_owned_child_removal() {
 }
 
 assert_target() {
-  local name=$1 path parent base expected inv
+  local name=$1 parent_mode=${2:-exact} path parent base expected inv kind
   path=$(get ".targets.$name.path")
   parent=$(get ".targets.$name.parent.path")
   base=$(get ".targets.$name.basename")
   expected=$(get ".targets.$name.tuple")
-  inv=$(get ".targets.$name.inventorySha256")
+  kind=$(get ".targets.$name.kind")
   safe_name "$base"
   expected_path "$name" "$path"
   test "$path" = "$parent/$base"
-  assert_parent "$name"
-  test -d "$path" && test ! -L "$path"
-  test "$(realpath -e -- "$path")" = "$path"
-  test "$(tuple "$path")" = "$expected"
-  test "$(inventory "$path")" = "$inv"
+  if [[ "$parent_mode" = stable ]]; then
+    assert_parent_after_owned_child_removal "$name"
+  else
+    assert_parent "$name"
+  fi
+  case "$kind" in
+    directory)
+      inv=$(get ".targets.$name.inventorySha256")
+      test -d "$path" && test ! -L "$path"
+      test "$(realpath -e -- "$path")" = "$path"
+      test "$(tuple "$path")" = "$expected"
+      test "$(inventory "$path")" = "$inv"
+      ;;
+    file)
+      test -f "$path" && test ! -L "$path"
+      test "$(realpath -e -- "$path")" = "$path"
+      test "$(tuple "$path")" = "$expected"
+      test "$(bytes "$path")" = "$(get ".targets.$name.bytes")"
+      test "$(hash "$path")" = "$(get ".targets.$name.sha256")"
+      ;;
+    *) exit 65 ;;
+  esac
 }
 
 http_check() {
@@ -132,31 +150,39 @@ verify_unchanged() {
 
 stage=$(get '.targets.stage.path')
 backup=$(get '.targets.backup.path')
-stage_absent=false; backup_absent=false
+placed_executor=$(get '.targets.placedExecutor.path')
+placed_lease=$(get '.targets.placedLease.path')
+stage_absent=false; backup_absent=false; executor_absent=false; lease_absent=false
 absent "$stage" && stage_absent=true
 absent "$backup" && backup_absent=true
-if [[ "$stage_absent" = true && "$backup_absent" = true ]]; then
+absent "$placed_executor" && executor_absent=true
+absent "$placed_lease" && lease_absent=true
+if [[ "$stage_absent" = true && "$backup_absent" = true && "$executor_absent" = true && "$lease_absent" = true ]]; then
   verify_unchanged
   printf 'cleanup=P0247_RESIDUES_ALREADY_ABSENT\n'
   exit 0
 fi
-if [[ "$stage_absent" = true || "$backup_absent" = true ]]; then
+if [[ "$stage_absent" = true || "$backup_absent" = true || "$executor_absent" = true || "$lease_absent" = true ]]; then
   echo 'refusing non-idempotent partial absence' >&2
   exit 65
 fi
 
-# Recheck both complete inventories before the first deletion. A lease may only
-# clean the two exact residual trees; any drift leaves every still-present path.
+# Recheck both complete inventories and both placed-file identities before the
+# first deletion. A lease may only clean these four exact residual objects; any
+# drift leaves every still-present path.
 assert_target stage
 assert_target backup
+assert_target placedExecutor
+assert_target placedLease
 verify_unchanged
 
 remove_target() {
-  local name=$1 path
+  local name=$1 parent_mode=${2:-exact} path kind
   path=$(get ".targets.$name.path")
-  assert_target "$name"
+  kind=$(get ".targets.$name.kind")
+  assert_target "$name" "$parent_mode"
   verify_unchanged
-  rm -rf --one-file-system -- "$path"
+  if [[ "$kind" = directory ]]; then rm -rf --one-file-system -- "$path"; else rm -- "$path"; fi
   absent "$path"
   # Removing a direct child legitimately changes the parent's nlink and byte
   # count. Keep the stable signed identity fields fixed across that transition.
@@ -166,5 +192,7 @@ remove_target() {
 
 remove_target stage
 remove_target backup
+remove_target placedLease
+remove_target placedExecutor stable
 verify_unchanged
 printf 'cleanup=P0247_RESIDUES_REMOVED\n'
