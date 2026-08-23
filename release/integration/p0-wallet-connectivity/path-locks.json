@@ -5,21 +5,21 @@
   "locks": [
     {
       "path": "{host:43.153.202.237:creator-studio-bootstrap,service:ynx-video-studio.service,service:ynx-creator-studio-wallet.service,port:127.0.0.1:6495,production:/opt/ynx-release-control-plane,production:/opt/ynx-creator-studio-wallet,production:/etc/systemd/system/ynx-creator-studio-wallet.service,public:https://web4.ynxweb4.com/video/studio/**}",
-      "owner": "creator-studio-deploy-owner",
+      "owner": null,
       "branch": "codex/p0-creator-build-contract-20260822",
       "worktree": "/tmp/ynx-creator-p0240-review.ZRZMiG/repo",
       "taskId": "P0-240",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE_SINGLE_USE",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_CREATOR_BOOTSTRAP_LISTENER_READINESS_RACE_CLEANED_OLD_STUDIO_RESTORED",
       "acquiredAt": "2026-08-23T05:06:30Z",
       "expiresAt": "2026-08-23T05:36:30Z",
-      "releasedAt": null,
+      "releasedAt": "2026-08-23T05:10:46Z",
       "sourceCommit": "0e1a53c5ad1fc9dc2cbfebc13c55f1f426c7e7ae",
       "sourceTree": "057ee8448ee8f8586cf3235dd043644060795301",
       "evidenceCommit": "5e1f677362e085b51114e675b3415bc574d3db20",
       "artifactSha256": "3f56aa4c3f9d87d27f7cdf19eafc0dacf1da78d83d31def2080f0162d92bdf8a",
-      "productionMutationAllowed": true,
-      "allowedExceptions": ["one exact parent-aware canonical stdin placement", "one exact placed-executor forward", "at most one identity-bound rollback after forward failure", "no shared current, Caddy, API, Viewer, account, signing or transaction mutation"]
+      "productionMutationAllowed": false,
+      "allowedExceptions": ["P0-240 placement and forward quotas are consumed and nonreusable", "preserve the exact control-plane placement and terminal failure evidence", "automatic cleanup restored old Studio and removed dedicated root/unit", "no further Creator, shared current, Caddy, API, Viewer, account, signing or transaction mutation"]
     },
     {
       "path": "{host:43.153.202.237:video-tuple-safe-emergency-recovery,service:ynx-video-viewer.service,port:127.0.0.1:6494,production:/opt/ynx-video/releases/p0205-creator-studio-0e1a53c5/apps/video,production:/var/lib/ynx-video-viewer-wallet-evidence/video-legacy-viewer-emergency-recovery.receipt,staging:/var/tmp/ynx-video-legacy-viewer-emergency-recovery.sh}",
