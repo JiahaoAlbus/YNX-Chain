@@ -1858,17 +1858,40 @@
       "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
       "taskId": "P0-249",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE_SINGLE_USE_READONLY",
+      "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0249_PARTIAL_STAGE_BACKUP_DETAILED_READONLY_INVENTORY",
       "acquiredAt": "2026-08-23T08:04:00Z",
       "expiresAt": "2026-08-23T08:24:00Z",
-      "releasedAt": null,
+      "releasedAt": "2026-08-23T08:12:00Z",
       "sourceCommit": "7824af677dd052d20321431381523ab302614d98",
       "sourceTree": "3db34ee2397a49852bbdf15e3841e7c9cecf9444",
       "evidenceCommit": "0ea878234832170434f91c818f4beab765667af2",
       "artifactSha256": "d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d",
       "productionMutationAllowed": false,
       "allowedExceptions": [
-        "one exact stdin-only zero-write detailed inventory SSH, no retry",
+        "P0-249 inspection quota is consumed and nonreusable",
+        "exact retained inventory proves candidate move then automatic restore; failed runtime predicate remains unproven",
+        "no cleanup, rollback, deploy, service, current, environment, state, release, unit, Caddy, non-Finance or sensitive mutation"
+      ]
+    },
+    {
+      "path": "{host:43.153.202.237:finance-phase3-permission-journal-forensic-readonly,readonly:journal:ynx-finance.service:2026-08-23T07:38:00Z..2026-08-23T07:47:00Z,readonly:/etc/systemd/system/ynx-finance.service,readonly:identity:ynx,readonly:/opt/ynx/finance-current,readonly:/opt/ynx/releases/finance,readonly:/etc/ynx/finance.env,readonly:service:ynx-finance.service}",
+      "owner": "finance-release-control-plane-readonly-forensic",
+      "branch": "codex/p0-finance-wallet-connectivity-20260820",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
+      "taskId": "P0-250",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_SINGLE_USE_READONLY",
+      "acquiredAt": "2026-08-23T08:13:00Z",
+      "expiresAt": "2026-08-23T08:33:00Z",
+      "releasedAt": null,
+      "sourceCommit": "7824af677dd052d20321431381523ab302614d98",
+      "sourceTree": "3db34ee2397a49852bbdf15e3841e7c9cecf9444",
+      "evidenceCommit": "cd123e3b5447d4737b988a7d396d0af75a9624bb",
+      "artifactSha256": "d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "one exact stdin-only zero-write forensic SSH, no retry",
+        "normalized journal class and message SHA only; no raw journal body or secrets",
         "local-only stdout and stderr receipt creation",
         "no cleanup, rollback, deploy, service, current, environment, state, release, unit, Caddy, non-Finance or sensitive mutation"
       ]

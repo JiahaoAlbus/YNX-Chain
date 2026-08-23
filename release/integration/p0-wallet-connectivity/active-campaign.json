@@ -427,14 +427,14 @@
     }
   ],
   "heavy": {
-    "owner": "finance-release-control-plane-readonly-inventory",
-    "taskId": "P0-249",
+    "owner": "finance-release-control-plane-readonly-forensic",
+    "taskId": "P0-250",
     "status": "ACTIVE_SINGLE_USE_READONLY",
-    "acquiredAt": "2026-08-23T08:04:00Z",
-    "expiresAt": "2026-08-23T08:24:00Z",
+    "acquiredAt": "2026-08-23T08:13:00Z",
+    "expiresAt": "2026-08-23T08:33:00Z",
     "releasedAt": null,
     "sourceCommit": "7824af677dd052d20321431381523ab302614d98",
-    "evidenceCommit": "0ea878234832170434f91c818f4beab765667af2",
+    "evidenceCommit": "cd123e3b5447d4737b988a7d396d0af75a9624bb",
     "runtimeHost": "43.153.202.237",
     "currentRuntime": "YNX_FINANCE_3B2383F5C18A_CONFIRMED_OLD_RUNTIME",
     "candidateRuntime": "NOT_MATERIALIZED_P0247_PARTIAL_STAGE_BACKUP_RETAINED",
@@ -442,10 +442,10 @@
     "productionMutationAllowed": false,
     "singleUse": true,
     "reusable": false,
-    "previousOwner": "finance-release-control-plane-readonly-inspection",
-    "previousTaskId": "P0-248",
-    "reviewDecision": "GO_FINANCE_P0249_PARTIAL_STAGE_BACKUP_DETAILED_READONLY_INVENTORY_ONLY",
-    "reason": "P0-248 proved the old Finance runtime, environment, unit and Caddy remain exact and no release container exists. One zero-write detailed inventory may identify the retained stage/backup failure boundary; cleanup and deployment remain forbidden."
+    "previousOwner": "finance-release-control-plane-readonly-inventory",
+    "previousTaskId": "P0-249",
+    "reviewDecision": "GO_FINANCE_P0250_ZERO_WRITE_PERMISSION_AND_FIXED_WINDOW_JOURNAL_FORENSIC_ONLY",
+    "reason": "P0-249 proves extraction, validation and candidate move occurred before automatic restore. One zero-write forensic command may classify unit identity, ynx traversal and fixed-window journal failure without raw messages; cleanup and redeployment remain forbidden."
   },
   "wave": {
     "id": "B-financial-apps-quant",
