@@ -4,6 +4,28 @@
   "version": "1.18.0",
   "locks": [
     {
+      "path": "{local:/Users/huangjiahao/Applications/YNX Browser Isolated,local:/Users/huangjiahao/Applications/YNX Browser Isolated/YNX Browser Testnet Preview-ad890f0a2fe5-aaed312ef608.app,local:/private/tmp/ynx-browser-preinstall-dd9a9b6e.receipt,launchservices:candidate:com.ynxweb4.browser.macos:ynxbrowser}",
+      "owner": "browser-macos-preinstall-owner",
+      "branch": "codex/p0-browser-current-source-verification-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/52-browser-p0",
+      "taskId": "P0-231",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_SINGLE_USE",
+      "acquiredAt": "2026-08-23T00:40:00Z",
+      "expiresAt": "2026-08-23T01:10:00Z",
+      "sourceCommit": "6ace4556ceaa7f4d72f896a4ad4a5505014f030c",
+      "sourceTree": "498aa15c87bc64e25d26f35c8eee4639b381d635",
+      "evidenceCommit": "4ad839a199769c726a0e7a23e2fc38460b1c35b9",
+      "artifactSha256": "a696f743a86518d8cc98d1a1335fd80fcbf3eed593491e53e7ed67589f019ba4",
+      "productionMutationAllowed": true,
+      "allowedExceptions": [
+        "create exactly one isolated root mode 0700 and receipt its dynamic tuple",
+        "copy exactly one candidate app and register only that candidate with LaunchServices",
+        "resolve ynxbrowser without opening it",
+        "on failure execute at most one receipt-bound rollback, re-register exact old handler and delete only exact candidate plus exact empty created root"
+      ]
+    },
+    {
       "path": "{production:host:43.153.202.237:caddy-pay-publication,production:/etc/caddy/ynx-chain.caddy,production:/opt/ynx-pay-web/releases/pay-web-5f4ce98e-release1,production:/opt/ynx-pay-web/incoming/pay-web-5f4ce98e-release1,route:https://pay.ynxweb4.com/**,branch:codex/p0-pay-wallet-connectivity-20260821:.github/workflows/pay-web-hosted-browser-preflight-p0226.yml,branch:codex/p0-pay-wallet-connectivity-20260821:apps/pay/evidence/pay-web-production-public-lease-request-p0228-20260823.json,branch:codex/p0-pay-wallet-connectivity-20260821:apps/pay/PAY_P0228_PRODUCTION_HOSTED_BROWSER_LEASE_REQUEST_20260823.md,local:/tmp/ynx-pay-p0228-public-release-20260823T000000Z}",
       "owner": null,
       "branch": "codex/p0-pay-wallet-connectivity-20260821",
