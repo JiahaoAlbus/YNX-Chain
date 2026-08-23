@@ -1987,6 +1987,29 @@
         "no production switch or rollback occurred; all P0-270 Finance and Wallet locks are released",
         "a successor must preserve the signed existing parent and create or clean only no-replace identity-bound child controls"
       ]
+    },
+    {
+      "path": "{host:43.153.202.237:finance-phase3,service:ynx-finance.service,port:127.0.0.1:6483,production:/opt/ynx/leases/finance/p0272-finance-phase3-20260823T152627Z.*,production:/opt/ynx/stage/finance/p0272-finance-phase3-20260823T152627Z,production:/var/backups/ynx-finance/p0272-finance-phase3-20260823T152627Z,production:/opt/ynx/releases/finance/p0272-finance-phase3-20260823T152627Z,production:/opt/ynx/finance-current,production:/etc/ynx/finance.env,production:/var/lib/ynx/finance/state.json,public:https://finance.ynxweb4.com/**}",
+      "owner": "finance-release-control-plane",
+      "branch": "codex/p0-finance-wallet-connectivity-20260820",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
+      "taskId": "P0-272",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_SINGLE_USE",
+      "acquiredAt": "2026-08-23T15:30:00Z",
+      "expiresAt": "2026-08-23T16:00:00Z",
+      "releasedAt": null,
+      "sourceCommit": "7824af677dd052d20321431381523ab302614d98",
+      "sourceTree": "3db34ee2397a49852bbdf15e3841e7c9cecf9444",
+      "evidenceCommit": "de0164cf55295e5ea536ddfe99e77792ad364aa9",
+      "artifactSha256": "d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d",
+      "productionMutationAllowed": true,
+      "allowedExceptions": [
+        "one exact Finance rollback-first deployment attempt with no retry",
+        "retain and revalidate /opt/ynx/leases/finance; create or clean only exact P0-272 children",
+        "automatic rollback is owned by the executor; manual rollback requires a separate wholly-new signed lease",
+        "no Wallet lock or mutation and no account, signature, typed data, transaction or secret output"
+      ]
     }
   ]
 }
