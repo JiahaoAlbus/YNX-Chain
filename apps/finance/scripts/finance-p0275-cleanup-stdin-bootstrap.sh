@@ -4,7 +4,7 @@
 set -euo pipefail
 [[ $# = 7 ]] || exit 64
 id=$1; executor=$2; executor_bytes=$3; executor_sha=$4; lease=$5; lease_bytes=$6; lease_sha=$7
-case "$id" in p0275-finance-p0272-control-cleanup-[0-9TtZz-]*) ;; *) exit 65 ;; esac
+case "$id" in p0276-finance-p0272-control-cleanup-[0-9TtZz-]*) ;; *) exit 65 ;; esac
 test "$executor" = "/tmp/ynx-finance-$id.executor.sh"
 test "$lease" = "/tmp/ynx-finance-$id.json"
 for path in "$executor" "$lease"; do test ! -e "$path" && test ! -L "$path"; done

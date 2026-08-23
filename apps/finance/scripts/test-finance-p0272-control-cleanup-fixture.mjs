@@ -10,7 +10,7 @@ const repo = process.cwd();
 const source = join(repo, 'apps/finance/scripts/finance-p0272-control-cleanup.sh');
 const gstat = '/opt/homebrew/bin/gstat', grm = '/opt/homebrew/bin/grm';
 const targetId = 'p0272-finance-phase3-20260823T152627Z';
-const id = 'p0275-finance-p0272-control-cleanup-20260823T160000Z';
+const id = 'p0276-finance-p0272-control-cleanup-20260824T000000Z';
 const sha = path => createHash('sha256').update(readFileSync(path)).digest('hex');
 const tuple = path => execFileSync(gstat, ['-Lc', '%d:%i:%u:%g:%a:%h:%s:%F', path], { encoding: 'utf8' }).trim();
 const stable = path => execFileSync(gstat, ['-Lc', '%d:%i:%u:%g:%a:%F', path], { encoding: 'utf8' }).trim();
