@@ -4,9 +4,9 @@
   "status": "SOURCE_REQUEST_ONLY_AWAITING_CENTRAL_READONLY_LEASE",
   "owner": {
     "branch": "codex/p0-finance-p0303-p0302-zero-write-inspection-20260824",
-    "implementationCommit": "7df870c26d6c7ebd37fc85b8e78d2e4c3264c11d",
-    "implementationTree": "22b13b3352c0cee52d0967f7c4d61558860f70c2",
-    "parent": "639873d2c9e61bb50438cf062de5b8d839435cf5"
+    "implementationCommit": "f255b82915c3ce839b567a452548f16d93b0ff7b",
+    "implementationTree": "67b42fff64a03107594abbe5bf0bb140e7d4b9e6",
+    "parent": "e85dba3cb0b5036469a9bbca26489adf8511b73e"
   },
   "p0302TerminalBoundary": {
     "centralCommit": "6aae8661b",
@@ -59,15 +59,15 @@
   "reviewedReadOnlyObjects": [
     {
       "path": "apps/finance/scripts/finance-p0303-p0302-remote-state-readonly-inspection.sh",
-      "blob": "e9df370f18a1ace7131132b2baa006207512e932",
-      "bytes": 5059,
-      "sha256": "ab128f3046db0dd4c70b2a32175b2ea019652327366a7c492d7578d115f43070"
+      "blob": "49a30ff3ae014db903dc7992f752787a224c61f1",
+      "bytes": 5207,
+      "sha256": "ce896327ef1ab67c351099077f4c04b9627b064c6dd69269bede4b74ab877b62"
     },
     {
       "path": "apps/finance/scripts/test-finance-p0303-p0302-remote-state-readonly-inspection.mjs",
-      "blob": "6aa45366f53995c3f0a3c13a122464f6799e9d69",
-      "bytes": 1619,
-      "sha256": "60d00ded811daa28fd4339b696c88fb5beedbf62b659e44a23f0af23ddb9d098"
+      "blob": "81929b76ad302ddacca6da2c4ff966525da35868",
+      "bytes": 3863,
+      "sha256": "3313e7c6277919381968399fad90ba0a6c2b4b6d14bf4fda1c37ef276579575f"
     }
   ],
   "requestedLease": {
@@ -76,12 +76,13 @@
     "sshAttempts": 1,
     "retryAllowed": false,
     "remoteWrites": 0,
-    "noRemoteTemporaryFiles": true,
+    "productionWrites": 0,
+    "ephemeralHttpTempFiles": "One independent mktemp file per HTTP body, removed immediately and by EXIT trap; never located under a production path",
     "requiredOrder": [
       "re-read P0-302 as consumed, released and nonreusable",
       "independently verify the exact inspection object bytes and SHA-256",
       "freeze one literal protected-host SSH argv and the exact inspection object as stdin",
-      "execute once and capture stdout, stderr and remote exit status without creating remote files",
+      "execute once and capture stdout, stderr and remote exit status; each raw HTTP body uses a distinct owned temporary file and is removed on every terminal path",
       "validate every required path, service and HTTP field before claiming the remote state known",
       "atomically release P0-303"
     ]
@@ -124,7 +125,7 @@
     "eachExactPath": "ABSENT, or kind plus non-symlink device:inode:uid:gid:mode:nlink:bytes:type tuple; files add whole-file SHA-256; directories add direct-child count and canonical inventory SHA-256; symlinks add target and are never followed for cleanup because cleanup is forbidden",
     "current": "link tuple, target and canonical resolved release plus current.next and current.rollback state",
     "service": ["LoadState", "ActiveState", "SubState", "MainPID", "NRestarts", "ExecStart metadata hash", "WorkingDirectory", "User", "Group"],
-    "http": "loopback and public root, health and version URL, status, bytes and whole-body SHA-256",
+    "http": "loopback and public root, health and version URL, status, bytes and whole-body SHA-256 computed directly from separate raw-body files; body data must never enter shell variables or command substitution so trailing 0x0a bytes remain exact",
     "secretSafety": "environment, unit, Caddy and state content must never be output; only tuple, bytes and SHA-256 metadata",
     "terminal": "inspectionComplete=true and mutationCount=0 only after every exact read succeeds"
   },
@@ -143,6 +144,11 @@
     "environment, unit, Caddy, state or public mutation",
     "raw environment output, secret output, private key, account request, signature or transaction"
   ],
+  "httpBodyRegression": {
+    "positive": "The exact helper was executed with raw bytes 0x78 0x0a 0x0a and emitted bytes=3 plus the whole-file SHA-256.",
+    "negative": "Static gates reject response=$(curl), body extraction from a command-substitution result, and printf of a shell body variable; the vector proves the stripped and raw hashes differ.",
+    "cleanup": "The fixture proves no owned HTTP temp remains after success."
+  },
   "truth": {
     "inspectionExecuted": false,
     "p0302RemoteStateKnown": false,
