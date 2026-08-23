@@ -403,10 +403,19 @@ public final class WalletConnectRelayRuntime: ObservableObject {
         surfaces: Self.sessionSurfaces(session),
         approvedAccount: signer.approvedAccount
       )
+      if request.method == "wallet_addEthereumChain"
+          || request.method == "wallet_switchEthereumChain" {
+        try WalletConnectV2Policy.validateChainManagementRequest(
+          method: request.method,
+          paramsJSON: request.params.stringRepresentation
+        )
+      }
     } catch WalletConnectV2PolicyError.methodNotApproved {
       throw WalletConnectRelayRuntimeError.unsupportedMethod
     } catch WalletConnectV2PolicyError.unsupportedNamespace {
       throw WalletConnectRelayRuntimeError.unsupportedChain
+    } catch WalletConnectV2PolicyError.invalidChainRequest {
+      throw WalletConnectRelayRuntimeError.invalidParameters
     } catch {
       throw WalletConnectRelayRuntimeError.sessionUnavailable
     }
