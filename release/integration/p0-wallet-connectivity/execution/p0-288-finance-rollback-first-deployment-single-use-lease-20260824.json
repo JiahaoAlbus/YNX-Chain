@@ -5,12 +5,13 @@
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-rollback-first-deployment-p0288-20260823T181900Z",
   "owner": "finance-release-control-plane",
   "executor": "finance-release-control-plane",
-  "status": "ACTIVE",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_LOCAL_OUTPUT_PRECREATION_BEFORE_SSH",
   "issuedAt": "2026-08-23T18:19:00Z",
   "expiresAt": "2026-08-23T18:49:00Z",
+  "releasedAt": "2026-08-23T18:26:42Z",
   "singleUse": true,
   "reusable": false,
-  "productionMutationAllowed": true,
+  "productionMutationAllowed": false,
   "scope": "One Finance-only rollback-first deployment of the exact prepared 7824af67 candidate through one serialized OpenSSH invocation, with automatic restore on executor failure and no retry",
   "source": {
     "branch": "codex/p0-finance-wallet-connectivity-20260820",
@@ -241,6 +242,34 @@
     "failure": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0279_ROLLBACK_FIRST_DEPLOYMENT",
     "retainHeavyOnUnresolvedPostSwitchState": true,
     "releaseOnlyAfterDirectTerminalEvidence": true
+  },
+  "terminalEvidence": {
+    "literalArgvAttempts": 1,
+    "outerWrapperPrecreatedDeclaredOutputPaths": true,
+    "localExitStatus": 65,
+    "stdout": {
+      "path": "/tmp/ynx-finance-p0288-finance-phase3-20260823T181900Z.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "stderr": {
+      "path": "/tmp/ynx-finance-p0288-finance-phase3-20260823T181900Z.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "transportReceiptAbsent": true,
+    "transportReceiptPendingAbsent": true,
+    "sshAttempts": 0,
+    "deployInvocations": 0,
+    "retryCount": 0,
+    "remoteMutation": false,
+    "serviceLifecycleAction": false,
+    "releaseMutation": false,
+    "environmentMutation": false,
+    "caddyMutation": false,
+    "accountSignTransactionAction": false,
+    "rootCause": "The outer process wrapper created the lease-declared stdout and stderr paths before invoking the frozen transport. The transport's required absence guard rejected locally before SSH.",
+    "nextAuthority": "A wholly-new lease may follow only after fresh production and path-absence binding; it must execute the literal argv directly and capture only the process exit status out-of-band without precreating declared outputs."
   },
   "truthBoundary": {
     "deploymentExecuted": false,

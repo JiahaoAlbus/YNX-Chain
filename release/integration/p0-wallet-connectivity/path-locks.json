@@ -2315,22 +2315,25 @@
       "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
       "taskId": "P0-288",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_LOCAL_OUTPUT_PRECREATION_BEFORE_SSH",
       "acquiredAt": "2026-08-23T18:19:00Z",
       "expiresAt": "2026-08-23T18:49:00Z",
-      "releasedAt": null,
+      "releasedAt": "2026-08-23T18:26:42Z",
       "sourceCommit": "7780b583dcf79dd9c746f16d2a3082047d80862f",
       "sourceTree": "20467cfa09275c90fbe26dc7a878050a9df012fc",
       "evidenceCommit": "7780b583dcf79dd9c746f16d2a3082047d80862f",
-      "artifactSha256": "d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d",
-      "productionMutationAllowed": true,
+      "artifactSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "productionMutationAllowed": false,
       "allowedExceptions": [
         "one exact serialized OpenSSH invocation and one rollback-first Finance deploy with no retry",
         "create only exact P0-288 control, stage, backup and release paths; switch only Finance env/current and restart only ynx-finance.service",
         "unit and Caddy are immutable read-only invariants",
         "executor-owned automatic rollback on first failure; manual rollback requires a wholly-new separately signed lease",
         "stage parent full tuple/inventory and backup parent full tuple/inventory are frozen at issuance and rechecked before writes",
-        "no Wallet path, account request, signature, typed data, transaction, secret output or P0-279 reuse"
+        "no Wallet path, account request, signature, typed data, transaction, secret output or P0-279 reuse",
+        "the exact argv was attempted once, but an outer wrapper precreated the declared stdout and stderr paths",
+        "the frozen transport exited locally with status 65 before SSH; stdout and stderr are empty, receipts are absent and SSH/deploy counts are zero",
+        "P0-288 and its mutation authority are consumed and nonreusable; Heavy and all P0-288 locks are released"
       ]
     }
   ]
