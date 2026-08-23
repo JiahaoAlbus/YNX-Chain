@@ -1,0 +1,197 @@
+{
+  "schemaVersion": 1,
+  "kind": "FINANCE_P0253_P0247_COMPLETE_RESIDUE_CLEANUP_ONLY_LEASE_REQUEST",
+  "requestedStatus": "AWAITING_CENTRAL_SINGLE_USE_CLEANUP_LEASE",
+  "authorityBoundary": {
+    "centralP0252ReleaseCommit": "b14ff4fca1aa14d81a038f4e07d206482e77c651",
+    "centralP0252ReleaseTree": "04c57018941bb333ca0f0bd2e330736c8357eb63",
+    "centralP0252ReleaseStatus": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0252_REMOTE_STATE_ZERO_WRITE_INSPECTION",
+    "heavyOwnerAtRelease": null,
+    "sourceInspectionEvidenceCommit": "b678621dea98c4ed40da2192ed330100650d4a82",
+    "sourceInspectionEvidenceTree": "3cc9692b8506dcaac89b8b63a17d63ffc55e1e94",
+    "inspectionEvidencePath": "apps/finance/evidence/p0-252-finance-remote-state-readonly-terminal-20260823.json",
+    "inspectionStdoutSha256": "bfeffd787312d321898cb11a0438a183e24ba01e33ffc59ee36dbfa01f774b3c",
+    "inspectionWasZeroWrite": true,
+    "thisRequestAuthorizesMutation": false
+  },
+  "reviewedCleanupSource": {
+    "implementationCommit": "45ed2f6e983d4c5dd3af734c8c50e53c4794f53e",
+    "implementationTree": "6b4f30dc39a4c5576480dddff167e67fdb059963",
+    "executor": {
+      "path": "apps/finance/scripts/finance-p0247-residue-cleanup.sh",
+      "blob": "36109608d4bed450430971bb9d3f70cc223a26a7",
+      "bytes": 8004,
+      "sha256": "c046a07889f481de68c8125f57e6f2dc409a63b7c97a6747b1a954df42749079"
+    },
+    "fixture": {
+      "path": "apps/finance/scripts/test-finance-p0247-residue-cleanup-fixture.mjs",
+      "blob": "1e377a4523d000edba2f10ba19906b1ed0044718",
+      "bytes": 10979,
+      "sha256": "85e28e7402186e56dcff5733c25b94bc53831692a5b31d3d7afd7b543ea9fae6",
+      "result": "PASS"
+    },
+    "bashSyntax": "PASS",
+    "diffCheck": "PASS",
+    "secretAndTraceAudit": "PASS"
+  },
+  "freshP0252ObservedParents": {
+    "placementParent": {
+      "path": "/opt/ynx/leases/finance",
+      "tuple": "64770:4594822:0:0:750:2:4096:directory",
+      "directChildrenExactly": [
+        "p0247-finance-phase3-20260823T073800Z.executor.sh",
+        "p0247-finance-phase3-20260823T073800Z.json"
+      ]
+    },
+    "stageParent": {
+      "path": "/opt/ynx/stage/finance",
+      "tuple": "64770:3450041:0:0:750:4:4096:directory"
+    },
+    "backupParent": {
+      "path": "/var/backups/ynx-finance",
+      "tuple": "64770:1481354:0:0:755:10:4096:directory"
+    },
+    "releaseParent": {
+      "path": "/opt/ynx/releases/finance",
+      "tuple": "64770:1607576:0:0:755:7:4096:directory"
+    }
+  },
+  "exactCleanupTargets": {
+    "placedExecutor": {
+      "kind": "file",
+      "path": "/opt/ynx/leases/finance/p0247-finance-phase3-20260823T073800Z.executor.sh",
+      "tuple": "64770:4594823:0:0:700:1:15907:regular file",
+      "bytes": 15907,
+      "sha256": "8f9e2ede5418e8f65739f2a5f3af7a78c266474f4c428951d8daf27f20e56315"
+    },
+    "placedLease": {
+      "kind": "file",
+      "path": "/opt/ynx/leases/finance/p0247-finance-phase3-20260823T073800Z.json",
+      "tuple": "64770:4594824:0:0:600:1:6829:regular file",
+      "bytes": 6829,
+      "sha256": "49aec85704a6282cab675373f56cb71a240433f3625f08b5e7426bbb1bbfee80"
+    },
+    "stage": {
+      "kind": "directory",
+      "path": "/opt/ynx/stage/finance/p0247-finance-phase3-20260823T073800Z",
+      "tuple": "64770:4620782:0:0:700:3:4096:directory",
+      "immediateEntries": 1,
+      "inventorySha256": "61181f33dcf9b11282732fe26f02ad9e3b0f5135dead72ca690606c722d9bf62"
+    },
+    "backup": {
+      "kind": "directory",
+      "path": "/var/backups/ynx-finance/p0247-finance-phase3-20260823T073800Z",
+      "tuple": "64770:2663604:0:0:700:3:4096:directory",
+      "immediateEntries": 1,
+      "inventorySha256": "e78ba1c645bfeeffa9d1f373fd2c773326a358c23caca7ad9fd48834b71a3e19"
+    }
+  },
+  "requiredFreshPrewriteGates": {
+    "allFourTargetsRemainExact": true,
+    "allFourParentIdentitiesRemainExact": true,
+    "executorPendingAbsent": true,
+    "leasePendingAbsent": true,
+    "manualRollbackLeaseAbsent": true,
+    "p0251ExecutorLeaseAndPendingAbsent": true,
+    "releaseContainerAbsent": true,
+    "candidateReleaseAbsent": true,
+    "candidateServiceStoppedBecauseCandidateReleaseIsAbsent": true,
+    "partialAbsenceFailsClosed": true,
+    "symlinkForeignObjectOrIdentitySubstitutionFailsBeforeFirstWrite": true
+  },
+  "oldRuntimeMustRemainExactBeforeEachDeletionAndAfterFinalAbsence": {
+    "current": {
+      "path": "/opt/ynx/finance-current",
+      "tuple": "64770:1312291:0:0:777:1:50:symbolic link",
+      "target": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a"
+    },
+    "environment": {
+      "path": "/etc/ynx/finance.env",
+      "tuple": "64770:1324724:0:986:640:1:1545:regular file",
+      "bytes": 1545,
+      "sha256": "854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252"
+    },
+    "unit": {
+      "path": "/etc/systemd/system/ynx-finance.service",
+      "tuple": "64770:161304:0:0:644:1:515:regular file",
+      "bytes": 515,
+      "sha256": "2e72cdad422a3a714c46d074ea97b725233576cf726dbbfd43e82e99c2c2975b"
+    },
+    "caddy": {
+      "path": "/etc/caddy/conf.d/ynx-finance.caddy",
+      "tuple": "64770:1051759:0:0:644:1:255:regular file",
+      "bytes": 255,
+      "sha256": "dcf75a7aed315c54632321b8bb80e44c0abc22f6700fadfbfa9a7da21b88a282"
+    },
+    "stateAbsent": true,
+    "service": {
+      "name": "ynx-finance.service",
+      "loadState": "loaded",
+      "activeState": "active",
+      "subState": "running",
+      "mainPid": 2241003,
+      "nRestarts": 0,
+      "restartOrStopForbidden": true
+    },
+    "loopbackHealth": {
+      "status": 200,
+      "bytes": 485,
+      "sha256": "d1e97a4314acd1ecccf94629d15bd598cb58ff78136b3622ac26d583a82e45c1"
+    },
+    "loopbackVersion": {
+      "status": 200,
+      "bytes": 130,
+      "sha256": "39789776da47e60b7a7df845789e02ebba16707ad8951eb6f27c84c1b40bb226"
+    },
+    "publicHealth": {
+      "status": 200,
+      "bytes": 485,
+      "sha256": "d1e97a4314acd1ecccf94629d15bd598cb58ff78136b3622ac26d583a82e45c1"
+    },
+    "publicVersion": {
+      "status": 200,
+      "bytes": 130,
+      "sha256": "39789776da47e60b7a7df845789e02ebba16707ad8951eb6f27c84c1b40bb226"
+    }
+  },
+  "requestedSingleUseExecution": {
+    "owner": "finance-release-control-plane-cleanup-only",
+    "heavyRequired": true,
+    "expiry": "PT30M",
+    "retryAllowed": false,
+    "productionMutationAllowedOnlyForExactFourDeletes": true,
+    "centralMustFreezeExactSignedLeaseBytesShaModeAndAtomicPlacementTransport": true,
+    "centralMustFreezeLiteralArgvAndNonReservedExitCapture": true,
+    "executeReviewedCleanupSourceExactlyOnce": true,
+    "finalRequiredAbsence": [
+      "/opt/ynx/stage/finance/p0247-finance-phase3-20260823T073800Z",
+      "/var/backups/ynx-finance/p0247-finance-phase3-20260823T073800Z",
+      "/opt/ynx/leases/finance/p0247-finance-phase3-20260823T073800Z.json",
+      "/opt/ynx/leases/finance/p0247-finance-phase3-20260823T073800Z.executor.sh"
+    ],
+    "finalReleaseContainerAndCandidateRemainAbsent": true,
+    "finalOldRuntimeServiceAndHealthMustMatchFreshSignedValues": true
+  },
+  "forbidden": {
+    "deploy": true,
+    "candidateStart": true,
+    "serviceStopRestartOrReload": true,
+    "currentEnvStateUnitCaddyWrite": true,
+    "releaseWrite": true,
+    "unboundRecursiveDelete": true,
+    "foreignObjectDelete": true,
+    "accountRequest": true,
+    "signature": true,
+    "typedData": true,
+    "transaction": true,
+    "secretReadOrLogging": true
+  },
+  "truth": {
+    "cleanupExecuted": false,
+    "productionMutated": false,
+    "deploymentExecuted": false,
+    "newRuntimePromoted": false,
+    "productsConnected": 0,
+    "singleExecutableBlocker": "CENTRAL_FINANCE_P0253_IDENTITY_BOUND_CLEANUP_ONLY_LEASE_NOT_ISSUED"
+  }
+}
