@@ -5,25 +5,25 @@
   "locks": [
     {
       "path": "{local:/Users/huangjiahao/Applications/YNX Browser Isolated,local:/Users/huangjiahao/Applications/YNX Browser Isolated/YNX Browser Testnet Preview-ad890f0a2fe5-aaed312ef608.app,local:/private/tmp/ynx-browser-preinstall-p0233.diagnostic,local:/private/tmp/ynx-browser-preinstall-p0232.diagnostic,local:/private/tmp/ynx-browser-preinstall-p0234-recovery.receipt,local:/private/tmp/ynx-browser-preinstall-p0234-recovery.diagnostic,local:/private/tmp/ynx-browser-preinstall-p0234-recovery.diagnostic.tmp,launchservices:unregister-exact-p0233-candidate:com.ynxweb4.browser.macos:ynxbrowser}",
-      "owner": "browser-macos-preinstall-owner",
+      "owner": null,
       "branch": "codex/p0-browser-current-source-verification-20260821",
       "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/52-browser-p0",
       "taskId": "P0-234",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE_SINGLE_USE_EMERGENCY_RECOVERY",
+      "status": "CONSUMED_RELEASED_SUCCESS_BROWSER_P0234_EXACT_EMERGENCY_RECOVERY_CANDIDATE_UNREGISTERED_REMOVED_NOT_LAUNCHED",
       "acquiredAt": "2026-08-23T02:03:00Z",
       "expiresAt": "2026-08-23T02:33:00Z",
-      "releasedAt": null,
+      "releasedAt": "2026-08-23T02:09:25Z",
       "sourceCommit": "6ace4556ceaa7f4d72f896a4ad4a5505014f030c",
       "sourceTree": "498aa15c87bc64e25d26f35c8eee4639b381d635",
       "evidenceCommit": "68fef379915e522ff9c5033bb1414da8ad7b111c",
       "artifactSha256": "aaed312ef608445504ba1cc21ff24d14bc5b4e48c2d6b505dc3cfb545daa0de5",
-      "productionMutationAllowed": true,
+      "productionMutationAllowed": false,
       "allowedExceptions": [
-        "one exact P0-234 emergency recovery attempt and no retry",
-        "unregister only the exact residual P0-233 candidate",
-        "delete only the exact candidate app and same empty isolated root after all inode, SHA, process and exclusivity checks",
-        "write only the exact P0-234 recovery receipt, journal and journal temp",
+        "P0-234 recovery quota is consumed and nonreusable",
+        "retain the exact P0-234 recovery receipt and SUCCESS journal",
+        "retain the unchanged P0-232 and P0-233 diagnostic journals",
+        "candidate root and target are absent and no further Browser recovery mutation is authorized",
         "no default-handler change, application launch, scheme invocation, provider, account, signing or transaction action"
       ]
     },
