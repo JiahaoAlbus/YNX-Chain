@@ -28,7 +28,11 @@
       "--carrier",
       "/var/lib/ynx-release-control-plane/creator-studio/carriers/creator-studio-0e1a53c5.tar",
       "--target",
-      "/var/lib/ynx-release-control-plane/creator-studio/releases/creator-studio-0e1a53c5"
+      "/var/lib/ynx-release-control-plane/creator-studio/releases/creator-studio-0e1a53c5",
+      "--receipt",
+      "forward",
+      "--prewrite-receipt",
+      "/var/lib/ynx-release-control-plane/creator-studio/receipts/prewrite-current.json"
     ],
     "rollback": [
       "node",
@@ -37,14 +41,37 @@
       "--carrier",
       "/var/lib/ynx-release-control-plane/creator-studio/carriers/live-frontend-carrier-20260823.tar",
       "--target",
-      "/var/lib/ynx-release-control-plane/creator-studio/releases/creator-studio-0e1a53c5"
+      "/var/lib/ynx-release-control-plane/creator-studio/releases/creator-studio-0e1a53c5",
+      "--receipt",
+      "rollback",
+      "--prewrite-receipt",
+      "/var/lib/ynx-release-control-plane/creator-studio/receipts/forward-current.json"
     ]
   },
   "prewrite": {
     "requireTargetLstatTuple": true,
     "requireStageAndPreviousAbsent": true,
     "requireReadback": true,
-    "rollbackRequiresCurrentCandidateTuple": true
+    "rollbackRequiresCurrentCandidateTuple": true,
+    "forwardReceipt": {
+      "path": "/var/lib/ynx-release-control-plane/creator-studio/receipts/prewrite-current.json",
+      "requiredFields": ["target", "tuple.dev", "tuple.ino", "tuple.uid", "tuple.gid", "tuple.mode", "tuple.nlink", "expectedCarrierSha256", "expectedAppSha256"],
+      "expectedCarrierSha256": "3f56aa4c3f9d87d27f7cdf19eafc0dacf1da78d83d31def2080f0162d92bdf8a",
+      "expectedAppSha256": "77e7c42006e3be36c7af717e5e8b2a3cd847c3652dcadb1731c259aee5b01af5"
+    },
+    "rollbackReceipt": {
+      "path": "/var/lib/ynx-release-control-plane/creator-studio/receipts/forward-current.json",
+      "requiredFields": ["receiptId", "target", "after.dev", "after.ino", "after.uid", "after.gid", "after.mode", "after.nlink", "carrierKind", "carrierSha256", "targetAppSha256"],
+      "requiresReceiptId": "forward",
+      "requiresCarrierKind": "candidate",
+      "requiresCarrierSha256": "3f56aa4c3f9d87d27f7cdf19eafc0dacf1da78d83d31def2080f0162d92bdf8a",
+      "requiresTargetAppSha256": "77e7c42006e3be36c7af717e5e8b2a3cd847c3652dcadb1731c259aee5b01af5"
+    },
+    "carrierBinding": {
+      "verifyCarrierSha256BeforeExtract": true,
+      "verifyCandidateManifestAndEveryFile": true,
+      "verifyRollbackCapturedResourceSet": true
+    }
   },
   "forbidden": [
     "/opt/ynx-video/current",
