@@ -2559,6 +2559,30 @@
         "read P0-294 path absences, parent inventories, old current env state unit Caddy service and six HTTP gates",
         "no write temp cleanup deploy rollback lifecycle config public Wallet account signature or transaction mutation"
       ]
+    },
+    {
+      "path": "{host:43.153.202.237:finance-p0298-terminal-split-deployment,production:/opt/ynx/leases/finance/p0298-finance-phase3-20260824t201500z.{executor.sh,executor.sh.pending,json,json.pending,manual-rollback.json,manual-rollback.json.pending},production:/opt/ynx/stage/finance/p0298-finance-phase3-20260824t201500z/**,production:/var/backups/ynx-finance/p0298-finance-phase3-20260824t201500z/**,production:/opt/ynx/releases/finance/p0298-finance-phase3-20260824t201500z/**,production:/opt/ynx/finance-current{,.next,.rollback},production:/etc/ynx/finance.env,production:/var/lib/ynx/finance/state.json,service:ynx-finance.service,readonly:/etc/systemd/system/ynx-finance.service,readonly:/etc/caddy/conf.d/ynx-finance.caddy,readonly:http://127.0.0.1:6483/**,readonly:https://finance.ynxweb4.com/**}",
+      "owner": "finance-release-control-plane",
+      "branch": "codex/p0-finance-p0298-terminal-contract-correction-20260824",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
+      "taskId": "P0-298",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE",
+      "acquiredAt": "2026-08-23T20:15:00Z",
+      "expiresAt": "2026-08-23T20:45:00Z",
+      "releasedAt": null,
+      "sourceCommit": "0a86cce012e01cbcb093254cd8933129be125e5e",
+      "sourceTree": "980287885524124eb9be9a47babd7d31678594fd",
+      "evidenceCommit": "0a86cce012e01cbcb093254cd8933129be125e5e",
+      "artifactSha256": "76184791acc310378a34d50ec2be2414ed1d5f8072e853373bff00db22b601cd",
+      "productionMutationAllowed": true,
+      "allowedExceptions": [
+        "one exact direct literal 25-argv Finance deployment attempt and no retry",
+        "verified success retains exact signed release container release backup executor and signed lease with current resolving to candidate",
+        "automatic rollback restores exact old env state current service and old live gates then removes only identity-bound P0298 residues",
+        "unit and Caddy files immutable; no non-Finance Wallet account signature typed-data or transaction action",
+        "manual rollback requires a separately signed future exact-present Central lease"
+      ]
     }
   ]
 }
