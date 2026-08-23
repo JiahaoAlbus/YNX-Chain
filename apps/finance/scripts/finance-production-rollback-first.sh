@@ -34,7 +34,10 @@ archive=$(get '.candidate.archive.path'); archive_sha=$(get '.candidate.archive.
 binary_bytes=$(get '.candidate.binary.bytes')
 binary_sha=$(get '.candidate.binary.sha256'); current=$(get '.fresh.currentLink'); old=$(get '.fresh.activeRelease'); old_binary=$(get '.fresh.binary.path'); old_binary_sha=$(get '.fresh.binary.sha256')
 env=$(get '.fresh.env.path'); env_sha=$(get '.fresh.env.sha256'); unit=$(get '.fresh.unit.path'); unit_sha=$(get '.fresh.unit.sha256'); caddy=$(get '.fresh.caddy.path'); caddy_sha=$(get '.fresh.caddy.sha256'); service=$(get '.fresh.service.name')
-stage=$(get '.paths.stage'); backup=$(get '.paths.backup'); release=$(get '.paths.release'); release_container=$(get '.paths.releaseContainer.path'); release_container_uid=$(get '.paths.releaseContainer.uid'); release_container_gid=$(get '.paths.releaseContainer.gid'); release_container_mode=$(get '.paths.releaseContainer.mode'); new_env=$(get '.candidate.env.path'); new_env_sha=$(get '.candidate.env.sha256'); state=$(get '.fresh.state.path'); state_absent=$(get '.fresh.state.absent')
+stage=$(get '.paths.stage'); backup=$(get '.paths.backup'); release=$(get '.paths.release')
+stage_container=$(get '.paths.stageContainer.path'); stage_container_uid=$(get '.paths.stageContainer.uid'); stage_container_gid=$(get '.paths.stageContainer.gid'); stage_container_mode=$(get '.paths.stageContainer.mode')
+backup_container=$(get '.paths.backupContainer.path'); backup_container_uid=$(get '.paths.backupContainer.uid'); backup_container_gid=$(get '.paths.backupContainer.gid'); backup_container_mode=$(get '.paths.backupContainer.mode')
+release_container=$(get '.paths.releaseContainer.path'); release_container_uid=$(get '.paths.releaseContainer.uid'); release_container_gid=$(get '.paths.releaseContainer.gid'); release_container_mode=$(get '.paths.releaseContainer.mode'); new_env=$(get '.candidate.env.path'); new_env_sha=$(get '.candidate.env.sha256'); state=$(get '.fresh.state.path'); state_absent=$(get '.fresh.state.absent')
 service_user=$(get '.fresh.service.user'); service_gid=$(get '.fresh.service.gid')
 carrier=$(get '.candidate.carrier.path'); carrier_id=$(get '.candidate.carrier.id'); carrier_tuple=$(get '.candidate.carrier.tuple')
 prewrite_phase=CARRIER_ASSERTION
@@ -61,12 +64,25 @@ assert_lease_child_path(){
 assert_carrier_child archive "$archive"; assert_carrier_child newEnv "$new_env"
 prewrite_phase=LEASE_PATH_ASSERTION
 assert_lease_child_path stage "$stage"; assert_lease_child_path backup "$backup"; assert_lease_child_path release "$release"
+stage_parent=$(get '.paths.parents.stage.path'); backup_parent=$(get '.paths.parents.backup.path')
 release_parent=$(get '.paths.parents.release.path')
+test "$stage_container" = "$stage_parent/$LEASE_ID"; test "$(dirname "$stage")" = "$stage_container"
+test "$backup_container" = "$backup_parent/$LEASE_ID"; test "$(dirname "$backup")" = "$backup_container"
 test "$release_container" = "$release_parent/$LEASE_ID"; test "$(dirname "$release")" = "$release_container"
+case "$stage_container_uid:$stage_container_gid:$stage_container_mode" in *[!0-9:]*|*:*:*:*) exit 65;; esac
+case "$backup_container_uid:$backup_container_gid:$backup_container_mode" in *[!0-9:]*|*:*:*:*) exit 65;; esac
 case "$release_container_uid:$release_container_gid:$release_container_mode" in *[!0-9:]*|*:*:*:*) exit 65;; esac
-release_container_created=false; stage_created=false; backup_created=false
+stage_container_created=false; backup_container_created=false; release_container_created=false; stage_created=false; backup_created=false
+cleanup_empty_container(){
+  local path=$1 created=$2 identity=$3
+  [[ "$created" = true ]] || return 0
+  test -d "$path" && test ! -L "$path" || return 74
+  test "$(identity_tuple "$path")" = "$identity" || return 74
+  test -z "$(find "$path" -mindepth 1 -print -quit)" || return 74
+  rmdir -- "$path"
+}
 cleanup_release_container(){
-  if [[ "$release_container_created" = true ]] && test -d "$release_container" && test ! -L "$release_container" && test "$(stat -Lc '%d:%i:%u:%g:%a' "$release_container")" = "${release_container_identity_tuple:-}" && test -z "$(find "$release_container" -mindepth 1 -print -quit)"; then rmdir -- "$release_container"; fi
+  cleanup_empty_container "$release_container" "$release_container_created" "${release_container_identity_tuple:-}"
 }
 verify_old_live(){ http_check '.fresh.verifier.loopbackHealth'; http_check '.fresh.verifier.loopbackVersion'; http_check '.fresh.verifier.publicHealth'; http_check '.fresh.verifier.publicVersion'; }
 asset_path(){
@@ -102,15 +118,19 @@ tree_inventory(){
 identity_tuple(){ stat -Lc '%d:%i:%u:%g:%a' "$1"; }
 cleanup_owned_tree(){
   local path=$1 identity=$2 inventory=$3
-  test -n "$identity" && test -d "$path" && test ! -L "$path" && test "$(identity_tuple "$path")" = "$identity" || return 0
+  test -n "$identity" && test -d "$path" && test ! -L "$path" && test "$(identity_tuple "$path")" = "$identity" || return 74
   if test -z "$(find "$path" -mindepth 1 -print -quit)"; then rmdir -- "$path"; return 0; fi
-  test -n "$inventory" && test "$(tree_inventory "$path")" = "$inventory" || return 0
+  test -n "$inventory" && test "$(tree_inventory "$path")" = "$inventory" || return 74
   rm -rf -- "$path"
 }
 cleanup_staging_residues(){
-  cleanup_release_container
-  if [[ "$stage_created" = true ]]; then cleanup_owned_tree "$stage" "${stage_identity_tuple:-}" "${stage_inventory:-}"; fi
-  if [[ "$backup_created" = true ]]; then cleanup_owned_tree "$backup" "${backup_identity_tuple:-}" "${backup_inventory:-}"; fi
+  local rc=0
+  cleanup_release_container || rc=74
+  if [[ "$stage_created" = true ]]; then cleanup_owned_tree "$stage" "${stage_identity_tuple:-}" "${stage_inventory:-}" || rc=74; fi
+  if [[ "$backup_created" = true ]]; then cleanup_owned_tree "$backup" "${backup_identity_tuple:-}" "${backup_inventory:-}" || rc=74; fi
+  cleanup_empty_container "$stage_container" "$stage_container_created" "${stage_container_identity_tuple:-}" || rc=74
+  cleanup_empty_container "$backup_container" "$backup_container_created" "${backup_container_identity_tuple:-}" || rc=74
+  return "$rc"
 }
 pre_switch_cleanup(){ cleanup_staging_residues; }
 post_move_pre_switch_cleanup(){
@@ -154,6 +174,7 @@ restore(){
     if ! test -d "$release" || test -L "$release" || [[ "$(stat -Lc '%d:%i:%u:%g:%a:%h:%s:%F' "$release")" != "$release_tuple" ]] || [[ "$(tree_inventory "$release")" != "$release_inventory" ]]; then cleanup_release_container; return 74; fi
     rm -rf -- "$release"; absent "$release"
   fi
+  if [[ "$backup_created" = true ]]; then backup_inventory=$(tree_inventory "$backup"); fi
   cleanup_staging_residues
 }
 phase_failure_phase=
@@ -178,8 +199,12 @@ arm_owned_phase_failure(){
   trap emit_owned_phase_failure EXIT
 }
 if [[ "$mode" == rollback ]]; then
-  release_container_tuple=$(get '.success.releaseContainer.tuple'); release_container_empty_tuple=$(get '.success.releaseContainer.emptyTuple'); release_container_identity_tuple=$(get '.success.releaseContainer.identityTuple'); release_tuple=$(get '.success.release.tuple'); release_inventory=$(get '.success.release.inventorySha256'); success_backup_tuple=$(get '.success.backup.tuple'); success_pid=$(get '.success.service.pid'); success_restarts=$(get '.success.service.nrestarts')
+  release_container_tuple=$(get '.success.releaseContainer.tuple'); release_container_empty_tuple=$(get '.success.releaseContainer.emptyTuple'); release_container_identity_tuple=$(get '.success.releaseContainer.identityTuple'); release_tuple=$(get '.success.release.tuple'); release_inventory=$(get '.success.release.inventorySha256')
+  success_backup_container_tuple=$(get '.success.backupContainer.tuple'); backup_container_identity_tuple=$(get '.success.backupContainer.identityTuple'); success_backup_container_inventory=$(get '.success.backupContainer.inventorySha256')
+  success_backup_tuple=$(get '.success.backup.tuple'); backup_identity_tuple=$(get '.success.backup.identityTuple'); backup_inventory=$(get '.success.backup.inventorySha256'); success_pid=$(get '.success.service.pid'); success_restarts=$(get '.success.service.nrestarts')
   rollback_guard(){ "$@" || exit 74; }
+  rollback_guard absent "$stage"
+  rollback_guard absent "$stage_container"
   rollback_guard test -d "$release_container"
   rollback_guard test ! -L "$release_container"
   rollback_guard test "$(stat -Lc '%d:%i:%u:%g:%a:%h:%s:%F' "$release_container")" = "$release_container_tuple"
@@ -187,9 +212,16 @@ if [[ "$mode" == rollback ]]; then
   rollback_guard test ! -L "$release"
   rollback_guard test "$(stat -Lc '%d:%i:%u:%g:%a:%h:%s:%F' "$release")" = "$release_tuple"
   rollback_guard test "$(tree_inventory "$release")" = "$release_inventory"
+  rollback_guard test -d "$backup_container"
+  rollback_guard test ! -L "$backup_container"
+  rollback_guard test "$(stat -Lc '%d:%i:%u:%g:%a:%h:%s:%F' "$backup_container")" = "$success_backup_container_tuple"
+  rollback_guard test "$(identity_tuple "$backup_container")" = "$backup_container_identity_tuple"
+  rollback_guard test "$(tree_inventory "$backup_container")" = "$success_backup_container_inventory"
   rollback_guard test -d "$backup"
   rollback_guard test ! -L "$backup"
   rollback_guard test "$(stat -Lc '%d:%i:%u:%g:%a:%h:%s:%F' "$backup")" = "$success_backup_tuple"
+  rollback_guard test "$(identity_tuple "$backup")" = "$backup_identity_tuple"
+  rollback_guard test "$(tree_inventory "$backup")" = "$backup_inventory"
   rollback_guard test -f "$backup/env"
   rollback_guard test ! -L "$backup/env"
   rollback_guard test "$(hash "$backup/env")" = "$env_sha"
@@ -208,17 +240,27 @@ if [[ "$mode" == rollback ]]; then
   rollback_guard systemctl is-active --quiet "$service"
   rollback_guard test "$(systemctl show -p MainPID --value "$service")" = "$success_pid"
   rollback_guard test "$(systemctl show -p NRestarts --value "$service")" = "$success_restarts"
-  release_created=true; release_container_created=true; restore; exit 0
+  release_created=true; release_container_created=true; backup_created=true; backup_container_created=true; restore; exit 0
 fi
 prewrite_phase=CURRENT_PREWRITE_INVARIANT
-absent "$stage"; absent "$backup"; absent "$release"; absent "$release_container"
+absent "$stage"; absent "$stage_container"; absent "$backup"; absent "$backup_container"; absent "$release"; absent "$release_container"
 prewrite_phase=FRESH_BASELINE
 assert_fresh
 prewrite_phase=CANDIDATE_INTEGRITY
 test "$(bytes "$archive")" = "$archive_bytes"; test "$(hash "$archive")" = "$archive_sha"; test "$(hash "$new_env")" = "$new_env_sha"
 prewrite_open=false
 arm_owned_phase_failure STAGING_BACKUP pre_switch_cleanup
+mkdir -m "$stage_container_mode" -- "$stage_container"; stage_container_created=true; stage_container_preownership_identity=$(identity_tuple "$stage_container")
+if ! test -d "$stage_container" || test -L "$stage_container" || [[ "$(realpath -e "$stage_container")" != "$stage_container" ]] || [[ -n "$(find "$stage_container" -mindepth 1 -print -quit)" ]]; then exit 74; fi
+chown "$stage_container_uid:$stage_container_gid" "$stage_container"; chmod "$stage_container_mode" "$stage_container"
+if ! test -d "$stage_container" || test -L "$stage_container" || [[ "$(realpath -e "$stage_container")" != "$stage_container" ]] || [[ -n "$(find "$stage_container" -mindepth 1 -print -quit)" ]]; then exit 74; fi
+stage_container_identity_tuple=$(identity_tuple "$stage_container"); if [[ "${stage_container_identity_tuple%:*}" != "${stage_container_preownership_identity%:*}" ]] || [[ "$(stat -Lc '%u:%g:%a' "$stage_container")" != "$stage_container_uid:$stage_container_gid:$stage_container_mode" ]]; then exit 74; fi
 mkdir -m 0700 -- "$stage"; stage_created=true; stage_identity_tuple=$(identity_tuple "$stage")
+mkdir -m "$backup_container_mode" -- "$backup_container"; backup_container_created=true; backup_container_preownership_identity=$(identity_tuple "$backup_container")
+if ! test -d "$backup_container" || test -L "$backup_container" || [[ "$(realpath -e "$backup_container")" != "$backup_container" ]] || [[ -n "$(find "$backup_container" -mindepth 1 -print -quit)" ]]; then exit 74; fi
+chown "$backup_container_uid:$backup_container_gid" "$backup_container"; chmod "$backup_container_mode" "$backup_container"
+if ! test -d "$backup_container" || test -L "$backup_container" || [[ "$(realpath -e "$backup_container")" != "$backup_container" ]] || [[ -n "$(find "$backup_container" -mindepth 1 -print -quit)" ]]; then exit 74; fi
+backup_container_identity_tuple=$(identity_tuple "$backup_container"); if [[ "${backup_container_identity_tuple%:*}" != "${backup_container_preownership_identity%:*}" ]] || [[ "$(stat -Lc '%u:%g:%a' "$backup_container")" != "$backup_container_uid:$backup_container_gid:$backup_container_mode" ]]; then exit 74; fi
 mkdir -m 0700 -- "$backup"; backup_created=true; backup_identity_tuple=$(identity_tuple "$backup")
 cp --preserve=mode,ownership "$env" "$backup/env"; if [[ "$state_absent" = true ]]; then test ! -e "$state" && test ! -L "$state"; : >"$backup/state-absent"; else cp --preserve=mode,ownership "$state" "$backup/state"; fi; backup_inventory=$(tree_inventory "$backup")
 arm_owned_phase_failure ARCHIVE_EXTRACT pre_switch_cleanup
@@ -228,11 +270,9 @@ candidate="$stage/$(basename "$release")"; test -x "$candidate/ynx-finance"; tes
 verify_local_assets "$candidate"; stage_inventory=$(tree_inventory "$stage")
 arm_owned_phase_failure RELEASE_MATERIALIZE pre_switch_cleanup
 mkdir -m "$release_container_mode" -- "$release_container"; release_container_created=true; release_container_preownership_identity=$(identity_tuple "$release_container")
+if ! test -d "$release_container" || test -L "$release_container" || [[ "$(realpath -e "$release_container")" != "$release_container" ]] || [[ -n "$(find "$release_container" -mindepth 1 -print -quit)" ]]; then exit 74; fi
 chown "$release_container_uid:$release_container_gid" "$release_container"; chmod "$release_container_mode" "$release_container"
-test -d "$release_container" || exit 74
-test ! -L "$release_container" || exit 74
-test "$(realpath -e "$release_container")" = "$release_container" || exit 74
-test -z "$(find "$release_container" -mindepth 1 -print -quit)" || exit 74
+if ! test -d "$release_container" || test -L "$release_container" || [[ "$(realpath -e "$release_container")" != "$release_container" ]] || [[ -n "$(find "$release_container" -mindepth 1 -print -quit)" ]]; then exit 74; fi
 release_container_empty_tuple=$(stat -Lc '%d:%i:%u:%g:%a:%h:%s:%F' "$release_container")
 release_container_identity_tuple=$(stat -Lc '%d:%i:%u:%g:%a' "$release_container")
 test "${release_container_identity_tuple%:*}" = "${release_container_preownership_identity%:*}"; test "$(stat -Lc '%u:%g:%a' "$release_container")" = "$release_container_uid:$release_container_gid:$release_container_mode"
@@ -240,6 +280,8 @@ release_tuple=$(stat -Lc '%d:%i:%u:%g:%a:%h:%s:%F' "$candidate"); release_invent
 mv "$candidate" "$release"; release_created=true
 test "$(stat -Lc '%d:%i:%u:%g:%a:%h:%s:%F' "$release")" = "$release_tuple"; test "$(tree_inventory "$release")" = "$release_inventory"
 release_container_tuple=$(stat -Lc '%d:%i:%u:%g:%a:%h:%s:%F' "$release_container")
+stage_inventory=$(tree_inventory "$stage"); cleanup_owned_tree "$stage" "$stage_identity_tuple" "$stage_inventory"; stage_created=false
+cleanup_empty_container "$stage_container" "$stage_container_created" "$stage_container_identity_tuple"; stage_container_created=false
 arm_owned_phase_failure SERVICE_USER_ACCESS post_move_pre_switch_cleanup
 assert_service_user_candidate_access
 arm_owned_phase_failure PRE_SWITCH restore
@@ -248,7 +290,9 @@ link="$current.next"; absent "$link"; ln -s "$release" "$link"; mv -Tf "$link" "
 arm_owned_phase_failure CANDIDATE_VERIFY restore
 get '.candidate.sourceCommit' | grep -qx '7824af677dd052d20321431381523ab302614d98'; verify_candidate_live
 backup_tuple=$(stat -Lc '%d:%i:%u:%g:%a:%h:%s:%F' "$backup")
+backup_identity_tuple=$(identity_tuple "$backup"); backup_inventory=$(tree_inventory "$backup")
+backup_container_tuple=$(stat -Lc '%d:%i:%u:%g:%a:%h:%s:%F' "$backup_container"); backup_container_inventory=$(tree_inventory "$backup_container")
 candidate_service_pid=$(systemctl show -p MainPID --value "$service")
 candidate_service_restarts=$(systemctl show -p NRestarts --value "$service")
 trap - EXIT
-printf 'releaseContainer=%s\nreleaseContainerIdentityTuple=%s\nreleaseContainerEmptyTuple=%s\nreleaseContainerTuple=%s\nrelease=%s\nreleaseTuple=%s\nreleaseInventorySha256=%s\nstageParentTuple=%s\nbackupParentTuple=%s\nreleaseParentTuple=%s\nbackupTuple=%s\ncandidateServicePid=%s\ncandidateServiceNRestarts=%s\n' "$release_container" "$release_container_identity_tuple" "$release_container_empty_tuple" "$release_container_tuple" "$release" "$release_tuple" "$release_inventory" "$(stat -Lc '%u:%g:%a:%h' "$(get '.paths.parents.stage.path')")" "$(stat -Lc '%u:%g:%a:%h' "$(get '.paths.parents.backup.path')")" "$(stat -Lc '%u:%g:%a:%h' "$(get '.paths.parents.release.path')")" "$backup_tuple" "$candidate_service_pid" "$candidate_service_restarts"
+printf 'releaseContainer=%s\nreleaseContainerIdentityTuple=%s\nreleaseContainerEmptyTuple=%s\nreleaseContainerTuple=%s\nrelease=%s\nreleaseTuple=%s\nreleaseInventorySha256=%s\nstageParentTuple=%s\nbackupParentTuple=%s\nreleaseParentTuple=%s\nbackupContainer=%s\nbackupContainerIdentityTuple=%s\nbackupContainerTuple=%s\nbackupContainerInventorySha256=%s\nbackupTuple=%s\nbackupIdentityTuple=%s\nbackupInventorySha256=%s\ncandidateServicePid=%s\ncandidateServiceNRestarts=%s\n' "$release_container" "$release_container_identity_tuple" "$release_container_empty_tuple" "$release_container_tuple" "$release" "$release_tuple" "$release_inventory" "$(stat -Lc '%u:%g:%a:%h' "$(get '.paths.parents.stage.path')")" "$(stat -Lc '%u:%g:%a:%h' "$(get '.paths.parents.backup.path')")" "$(stat -Lc '%u:%g:%a:%h' "$(get '.paths.parents.release.path')")" "$backup_container" "$backup_container_identity_tuple" "$backup_container_tuple" "$backup_container_inventory" "$backup_tuple" "$backup_identity_tuple" "$backup_inventory" "$candidate_service_pid" "$candidate_service_restarts"
