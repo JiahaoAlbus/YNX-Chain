@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "from": "Wallet Web/PWA/Extensions Owner",
+  "to": "Central lease issuer and Desktop Website publishing owner",
+  "supersedesRejectedRequestCommit": "6a4f08626aa3d06d13d896e3961e1e9741060a32",
+  "resolvedBlocker": "WALLET_ARTIFACT_ROLLBACK_FULL_GET_CACHE_CONTROL_BASELINE_DRIFT",
+  "sourceCommit": "fb443431555bed7324b3c2e1fb37aab982a8e243",
+  "evidenceCommit": "8190b1b7b8a3b6258d52814445e9fbb285877fcd",
+  "successorLeaseRequest": "release/integration/wallet-web-public-artifact-hosting-20260823/lease-request-successor.json",
+  "rollbackHeaderContract": "release/integration/wallet-web-public-artifact-hosting-20260823/rollback-header-contract-successor.json",
+  "rawHeaderEvidence": "apps/wallet-web/evidence/contracts/wallet-web-artifact-rollback-header-drift-successor-20260823.json",
+  "verifier": "release/integration/wallet-web-public-artifact-hosting-20260823/verify-official-downloads.mjs",
+  "verifiedCommands": [
+    "node release/integration/wallet-web-public-artifact-hosting-20260823/verify-official-downloads.mjs self-test",
+    "node release/integration/wallet-web-public-artifact-hosting-20260823/verify-official-downloads.mjs rollback-baseline",
+    "node release/integration/wallet-web-public-artifact-hosting-20260823/verify-official-downloads.mjs expect-current-mismatch"
+  ],
+  "boundary": "The old public/max-age rollback contract is accepted only for exact old full-body rollback evidence. Every new package still requires public, max-age=31536000, immutable and exact full GET before hosted promotion.",
+  "mutationsPerformed": {"website":false,"blob":false,"deployment":false,"route":false,"browser":false,"install":false,"account":false,"signature":false,"transaction":false},
+  "truth": {"rollbackBaselinePassed":true,"successorDownloadHosted":false,"productionSigned":false,"storeReleased":false,"installedLocal":false,"publicParity":false}
+}

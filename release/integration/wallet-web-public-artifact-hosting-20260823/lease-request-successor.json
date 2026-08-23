@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "requestType": "WALLET_ONLY_PUBLIC_ARTIFACT_HOSTING_SINGLE_USE_SUCCESSOR",
+  "supersedesRejectedRequestCommit": "6a4f08626aa3d06d13d896e3961e1e9741060a32",
+  "resolvedBlocker": "WALLET_ARTIFACT_ROLLBACK_FULL_GET_CACHE_CONTROL_BASELINE_DRIFT",
+  "requestState": "REQUESTED_NOT_ISSUED",
+  "requestedLeaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-web-public-artifact-hosting-successor-20260823T091108Z",
+  "requestedAt": "2026-08-23T09:11:08Z",
+  "requestedExpiresAt": "2026-08-23T09:41:08Z",
+  "requestedDurationSeconds": 1800,
+  "owner": "website",
+  "executorThreadId": "019fa947-b618-7500-a4ec-dc6ae812a011",
+  "walletOwnerBranch": "codex/wallet-web-pwa-extensions-20260813",
+  "walletSourceCommit": "fb443431555bed7324b3c2e1fb37aab982a8e243",
+  "walletEvidenceCommit": "8190b1b7b8a3b6258d52814445e9fbb285877fcd",
+  "durableCarrier": {
+    "repository": "https://github.com/JiahaoAlbus/YNX-Chain.git",
+    "commit": "8190b1b7b8a3b6258d52814445e9fbb285877fcd",
+    "artifacts": [
+      {"name":"ynx-wallet-web-pwa-0.1.0.zip","gitPath":"apps/wallet-web/artifacts/ynx-wallet-web-pwa-0.1.0.zip","gitBlobSha1":"e7b8987edd59cfd08fa151c96ccf97a48ecd8ad4","bytes":286356,"sha256":"040e1f03956b6fb0a9298c8af5b76a5ed2895de0e5510a6208543bed9e3df055"},
+      {"name":"ynx-wallet-chrome-edge-0.1.0.zip","gitPath":"apps/wallet-web/artifacts/ynx-wallet-chrome-edge-0.1.0.zip","gitBlobSha1":"e8dfdfdcd19ea211db17b217c559108da0efe5a4","bytes":471181,"sha256":"2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d"},
+      {"name":"ynx-wallet-firefox-0.1.0.zip","gitPath":"apps/wallet-web/artifacts/ynx-wallet-firefox-0.1.0.zip","gitBlobSha1":"8249d9f7587cf3655cd76e4de51e05106365fcc4","bytes":471216,"sha256":"29fe890612ebe9518a99d80492b44cb222c5e9e37ce8d761ebc84b8243b5a896"}
+    ]
+  },
+  "projectLock": {"scope":"jiahaoalbus-projects","projectId":"prj_tPB0KDTFohQ9FXZAzq25mYFWkbNa","projectName":"ynx-web4-website-new","blobStore":"ynx-official-downloads","allowedWebsitePaths":["vercel.json: three successor rewrites only","public/releases/ecosystem-release-registry.json: wallet-web metadata only","new source-bound wallet-web release metadata only"]},
+  "targetUrls": [
+    "https://www.ynxweb4.com/downloads/wallet-web/sha256-040e1f03956b6fb0a9298c8af5b76a5ed2895de0e5510a6208543bed9e3df055/ynx-wallet-web-pwa-0.1.0.zip",
+    "https://www.ynxweb4.com/downloads/wallet-web/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip",
+    "https://www.ynxweb4.com/downloads/wallet-web/sha256-29fe890612ebe9518a99d80492b44cb222c5e9e37ce8d761ebc84b8243b5a896/ynx-wallet-firefox-0.1.0.zip"
+  ],
+  "successorFullGetGate": {"redirectsAllowed":false,"status":200,"contentType":"application/zip","contentDisposition":"attachment","contentLengthExact":true,"cacheControlRequiredTokens":["public","max-age=31536000","immutable"],"xContentTypeOptions":"nosniff","fullBodyBytesExact":true,"fullBodySha256Exact":true,"returnedBlobUrlAlsoRequired":true,"verifier":"node release/integration/wallet-web-public-artifact-hosting-20260823/verify-official-downloads.mjs production-positive"},
+  "rollback": {
+    "deploymentId": "dpl_574RBu3xBzE4Bh1jygv2YJruAYfz",
+    "deploymentUrl": "https://ynx-web4-website-amp9sntxu-jiahaoalbus-projects.vercel.app",
+    "headerContract": "release/integration/wallet-web-public-artifact-hosting-20260823/rollback-header-contract-successor.json",
+    "requiredCacheControlTokens": ["public", "max-age=31536000"],
+    "immutableRequired": false,
+    "fullGetVerifier": "node release/integration/wallet-web-public-artifact-hosting-20260823/verify-official-downloads.mjs rollback-baseline",
+    "oldArtifactBytesAndHashesMustRemainExact": true,
+    "failureRule": "Rollback deployment once, re-run the rollback-baseline verifier, do not delete immutable Blob objects, and do not retry under the consumed lease."
+  },
+  "orderedExecution": [
+    "Fresh-read Central lease/expiry/owner/Heavy/project/blob/path locks and exact request commit.",
+    "Fresh-read carrier Git objects and run self-test plus expect-current-mismatch.",
+    "Run rollback-baseline and require all three current old ZIPs to match the separately frozen rollback contract.",
+    "Upload all three successor blobs once with overwrite disabled, then full-GET each returned Blob URL under the stricter successor contract.",
+    "Website owner adds only the three successor rewrites and source-bound wallet-web metadata, preserving Android and old Web artifact identities.",
+    "Build/deploy one candidate; full-GET the three candidate paths; promote once; full-GET the three official paths and registry identity.",
+    "Any failure triggers the one rollback rule and atomic lease release; no retry."
+  ],
+  "forbidden": ["Website or Blob mutation before lease","browser launch or extension install","account request or disclosure","signature, typed-data signature or transaction","overwrite/delete existing artifacts","GitHub redirect as official download","lower successor immutable gate","claim unsigned/store/installed/public parity"],
+  "truthBeforeExecution": {"rollbackBaselinePassed":true,"rollbackImmutableObserved":false,"successorDownloadHosted":false,"productionSigned":false,"storeReleased":false,"installedLocal":false,"installedProvider":false,"publicParity":false,"accountApproved":false,"messageSigned":false,"typedDataSigned":false,"transactionSubmitted":false}
+}

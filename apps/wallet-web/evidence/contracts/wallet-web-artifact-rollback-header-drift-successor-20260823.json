@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "evidenceClass": "independent-raw-full-get-rollback-baseline",
+  "observedAt": "2026-08-23T09:10:19Z",
+  "request": {"method":"GET","httpVersion":"HTTP/1.1","redirectsFollowed":false,"requestCacheControl":"no-cache"},
+  "responses": [
+    {
+      "name": "ynx-wallet-web-pwa-0.1.0.zip",
+      "url": "https://www.ynxweb4.com/downloads/wallet-web/sha256-63d83cd20925f2d52c0f21f548fa7a857a4d056e03e5fa16244f173164a7d287/ynx-wallet-web-pwa-0.1.0.zip",
+      "http": 200,
+      "requestId": "hnd1:hnd1:hnd1::hcn76-1787476220165-a8d88d1492a7",
+      "rawHeadersBytes": 863,
+      "rawHeadersSha256": "ef3e4629051775942a4ee337b2c51e5340648450766b29e51e804c42fc1d6c30",
+      "rawHeadersBase64": "SFRUUC8xLjEgMjAwIE9LDQpBY2NlcHQtUmFuZ2VzOiBieXRlcw0KQWNjZXNzLUNvbnRyb2wtQWxsb3ctSGVhZGVyczogY29udGVudC10eXBlDQpBY2Nlc3MtQ29udHJvbC1BbGxvdy1PcmlnaW46ICoNCkFnZTogNjEzDQpDYWNoZS1Db250cm9sOiBwdWJsaWMsIG1heC1hZ2U9MzE1MzYwMDANCkNvbnRlbnQtRGlzcG9zaXRpb246IGF0dGFjaG1lbnQ7IGZpbGVuYW1lPSJ5bngtd2FsbGV0LXdlYi1wd2EtMC4xLjAuemlwIg0KQ29udGVudC1MZW5ndGg6IDI3MjcwNg0KQ29udGVudC1TZWN1cml0eS1Qb2xpY3k6IGRlZmF1bHQtc3JjICdub25lJzsgbWVkaWEtc3JjICdzZWxmJzsgc3R5bGUtc3JjICd1bnNhZmUtaW5saW5lJzsgaW1nLXNyYyAnc2VsZicNCkNvbnRlbnQtVHlwZTogYXBwbGljYXRpb24vemlwDQpEYXRlOiBTdW4sIDIzIEF1ZyAyMDI2IDA5OjAwOjA3IEdNVA0KRXRhZzogIjZiZGZmMzg0NTYzZWNhYmY3YjMzMDI5NTU4ODBjYWYwLTEiDQpMYXN0LU1vZGlmaWVkOiBTdW4sIDIzIEF1ZyAyMDI2IDA5OjAwOjA3IEdNVA0KUGVybWlzc2lvbnMtUG9saWN5OiBjYW1lcmE9KCksIG1pY3JvcGhvbmU9KCksIGdlb2xvY2F0aW9uPSgpLCBwYXltZW50PSgpLCB1c2I9KCkNClJlZmVycmVyLVBvbGljeTogc3RyaWN0LW9yaWdpbi13aGVuLWNyb3NzLW9yaWdpbg0KU2VydmVyOiBWZXJjZWwNClN0cmljdC1UcmFuc3BvcnQtU2VjdXJpdHk6IG1heC1hZ2U9NjMwNzIwMDANClgtQ29udGVudC1UeXBlLU9wdGlvbnM6IG5vc25pZmYNClgtRnJhbWUtT3B0aW9uczogREVOWQ0KWC1WZXJjZWwtQ2FjaGU6IEhJVA0KWC1WZXJjZWwtSWQ6IGhuZDE6aG5kMTpobmQxOjpoY243Ni0xNzg3NDc2MjIwMTY1LWE4ZDg4ZDE0OTJhNw0KDQo=",
+      "cacheControl": "public, max-age=31536000",
+      "immutableObserved": false,
+      "contentType": "application/zip",
+      "contentDisposition": "attachment; filename=\"ynx-wallet-web-pwa-0.1.0.zip\"",
+      "contentLength": 272706,
+      "bodyBytes": 272706,
+      "bodySha256": "63d83cd20925f2d52c0f21f548fa7a857a4d056e03e5fa16244f173164a7d287"
+    },
+    {
+      "name": "ynx-wallet-chrome-edge-0.1.0.zip",
+      "url": "https://www.ynxweb4.com/downloads/wallet-web/sha256-c733093dea47c6612c8a9d5ecea40be2227f62402f4b4966955c9e1accf4e2aa/ynx-wallet-chrome-edge-0.1.0.zip",
+      "http": 200,
+      "requestId": "hnd1:hnd1:hnd1::b2m8l-1787476221176-c6d9983a89b1",
+      "rawHeadersBytes": 867,
+      "rawHeadersSha256": "2705fe6dc02094e40fe132afd178a1fef85d258a1687311dce979a9b1017faa9",
+      "rawHeadersBase64": "SFRUUC8xLjEgMjAwIE9LDQpBY2NlcHQtUmFuZ2VzOiBieXRlcw0KQWNjZXNzLUNvbnRyb2wtQWxsb3ctSGVhZGVyczogY29udGVudC10eXBlDQpBY2Nlc3MtQ29udHJvbC1BbGxvdy1PcmlnaW46ICoNCkFnZTogNjEyDQpDYWNoZS1Db250cm9sOiBwdWJsaWMsIG1heC1hZ2U9MzE1MzYwMDANCkNvbnRlbnQtRGlzcG9zaXRpb246IGF0dGFjaG1lbnQ7IGZpbGVuYW1lPSJ5bngtd2FsbGV0LWNocm9tZS1lZGdlLTAuMS4wLnppcCINCkNvbnRlbnQtTGVuZ3RoOiAxODg4NDYNCkNvbnRlbnQtU2VjdXJpdHktUG9saWN5OiBkZWZhdWx0LXNyYyAnbm9uZSc7IG1lZGlhLXNyYyAnc2VsZic7IHN0eWxlLXNyYyAndW5zYWZlLWlubGluZSc7IGltZy1zcmMgJ3NlbGYnDQpDb250ZW50LVR5cGU6IGFwcGxpY2F0aW9uL3ppcA0KRGF0ZTogU3VuLCAyMyBBdWcgMjAyNiAwOTowMDowOSBHTVQNCkV0YWc6ICI4NzM3NjliZDFkYjcwMWZjNjU5OWUxZGEyZTkyZDk5Ny0xIg0KTGFzdC1Nb2RpZmllZDogU3VuLCAyMyBBdWcgMjAyNiAwOTowMDowOCBHTVQNClBlcm1pc3Npb25zLVBvbGljeTogY2FtZXJhPSgpLCBtaWNyb3Bob25lPSgpLCBnZW9sb2NhdGlvbj0oKSwgcGF5bWVudD0oKSwgdXNiPSgpDQpSZWZlcnJlci1Qb2xpY3k6IHN0cmljdC1vcmlnaW4td2hlbi1jcm9zcy1vcmlnaW4NClNlcnZlcjogVmVyY2VsDQpTdHJpY3QtVHJhbnNwb3J0LVNlY3VyaXR5OiBtYXgtYWdlPTYzMDcyMDAwDQpYLUNvbnRlbnQtVHlwZS1PcHRpb25zOiBub3NuaWZmDQpYLUZyYW1lLU9wdGlvbnM6IERFTlkNClgtVmVyY2VsLUNhY2hlOiBISVQNClgtVmVyY2VsLUlkOiBobmQxOmhuZDE6aG5kMTo6YjJtOGwtMTc4NzQ3NjIyMTE3Ni1jNmQ5OTgzYTg5YjENCg0K",
+      "cacheControl": "public, max-age=31536000",
+      "immutableObserved": false,
+      "contentType": "application/zip",
+      "contentDisposition": "attachment; filename=\"ynx-wallet-chrome-edge-0.1.0.zip\"",
+      "contentLength": 188846,
+      "bodyBytes": 188846,
+      "bodySha256": "c733093dea47c6612c8a9d5ecea40be2227f62402f4b4966955c9e1accf4e2aa"
+    },
+    {
+      "name": "ynx-wallet-firefox-0.1.0.zip",
+      "url": "https://www.ynxweb4.com/downloads/wallet-web/sha256-417d9b9e5babf05fdfdf8161504389eb99c636be75f94444bf4ff91a9b4536b3/ynx-wallet-firefox-0.1.0.zip",
+      "http": 200,
+      "requestId": "hnd1:hnd1:hnd1::v6p88-1787476221875-ae31c2a38455",
+      "rawHeadersBytes": 863,
+      "rawHeadersSha256": "623a456c76e47e03abc950c3f8441305c104bff75d5ba82db8c44b36a08daf28",
+      "rawHeadersBase64": "SFRUUC8xLjEgMjAwIE9LDQpBY2NlcHQtUmFuZ2VzOiBieXRlcw0KQWNjZXNzLUNvbnRyb2wtQWxsb3ctSGVhZGVyczogY29udGVudC10eXBlDQpBY2Nlc3MtQ29udHJvbC1BbGxvdy1PcmlnaW46ICoNCkFnZTogNjExDQpDYWNoZS1Db250cm9sOiBwdWJsaWMsIG1heC1hZ2U9MzE1MzYwMDANCkNvbnRlbnQtRGlzcG9zaXRpb246IGF0dGFjaG1lbnQ7IGZpbGVuYW1lPSJ5bngtd2FsbGV0LWZpcmVmb3gtMC4xLjAuemlwIg0KQ29udGVudC1MZW5ndGg6IDE4ODg4Mw0KQ29udGVudC1TZWN1cml0eS1Qb2xpY3k6IGRlZmF1bHQtc3JjICdub25lJzsgbWVkaWEtc3JjICdzZWxmJzsgc3R5bGUtc3JjICd1bnNhZmUtaW5saW5lJzsgaW1nLXNyYyAnc2VsZicNCkNvbnRlbnQtVHlwZTogYXBwbGljYXRpb24vemlwDQpEYXRlOiBTdW4sIDIzIEF1ZyAyMDI2IDA5OjAwOjEwIEdNVA0KRXRhZzogImYwNjE2YmU1OGQ0M2U2NWJhZTQ0MjBkYzM1YmIyNjc1LTEiDQpMYXN0LU1vZGlmaWVkOiBTdW4sIDIzIEF1ZyAyMDI2IDA5OjAwOjEwIEdNVA0KUGVybWlzc2lvbnMtUG9saWN5OiBjYW1lcmE9KCksIG1pY3JvcGhvbmU9KCksIGdlb2xvY2F0aW9uPSgpLCBwYXltZW50PSgpLCB1c2I9KCkNClJlZmVycmVyLVBvbGljeTogc3RyaWN0LW9yaWdpbi13aGVuLWNyb3NzLW9yaWdpbg0KU2VydmVyOiBWZXJjZWwNClN0cmljdC1UcmFuc3BvcnQtU2VjdXJpdHk6IG1heC1hZ2U9NjMwNzIwMDANClgtQ29udGVudC1UeXBlLU9wdGlvbnM6IG5vc25pZmYNClgtRnJhbWUtT3B0aW9uczogREVOWQ0KWC1WZXJjZWwtQ2FjaGU6IEhJVA0KWC1WZXJjZWwtSWQ6IGhuZDE6aG5kMTpobmQxOjp2NnA4OC0xNzg3NDc2MjIxODc1LWFlMzFjMmEzODQ1NQ0KDQo=",
+      "cacheControl": "public, max-age=31536000",
+      "immutableObserved": false,
+      "contentType": "application/zip",
+      "contentDisposition": "attachment; filename=\"ynx-wallet-firefox-0.1.0.zip\"",
+      "contentLength": 188883,
+      "bodyBytes": 188883,
+      "bodySha256": "417d9b9e5babf05fdfdf8161504389eb99c636be75f94444bf4ff91a9b4536b3"
+    }
+  ],
+  "verifierRuns": {
+    "selfAndTamper": {"passed":true,"positiveArtifacts":"3/3","tamperedBodyRejected":true},
+    "rollbackBaseline": {"observedAt":"2026-08-23T09:15:18.042Z","passed":true,"artifacts":"3/3","immutableObserved":[false,false,false]},
+    "successorPublicNegative": {"observedAt":"2026-08-23T09:15:19.304Z","passed":true,"successorArtifactsHosted":"0/3","downloadHosted":false}
+  },
+  "conclusion": {"allFullBodiesMatch":true,"allContentTypesZip":true,"allAttachments":true,"allNoSniff":true,"allPublicOneYear":true,"anyImmutable":false,"rollbackContractAccepted":true,"successorPolicyLowered":false,"successorDownloadHosted":false}
+}

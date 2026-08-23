@@ -10,6 +10,16 @@ const artifacts = [
   ...artifact,
   url: `https://www.ynxweb4.com/downloads/wallet-web/sha256-${artifact.sha256}/${artifact.name}`
 }));
+const rollbackArtifacts = [
+  { name: "ynx-wallet-web-pwa-0.1.0.zip", bytes: 272706, sha256: "63d83cd20925f2d52c0f21f548fa7a857a4d056e03e5fa16244f173164a7d287" },
+  { name: "ynx-wallet-chrome-edge-0.1.0.zip", bytes: 188846, sha256: "c733093dea47c6612c8a9d5ecea40be2227f62402f4b4966955c9e1accf4e2aa" },
+  { name: "ynx-wallet-firefox-0.1.0.zip", bytes: 188883, sha256: "417d9b9e5babf05fdfdf8161504389eb99c636be75f94444bf4ff91a9b4536b3" }
+].map((artifact) => ({
+  ...artifact,
+  url: `https://www.ynxweb4.com/downloads/wallet-web/sha256-${artifact.sha256}/${artifact.name}`,
+  requiredCacheTokens: ["public", "max-age=31536000"],
+  immutableRequired: false
+}));
 
 const sha256 = (body) => createHash("sha256").update(body).digest("hex");
 const headerTokens = (value) => new Set(String(value || "").toLowerCase().split(",").map((token) => token.trim()));
@@ -31,6 +41,7 @@ async function checkArtifact(fetcher, artifact) {
       contentDisposition,
       contentLength: contentLength === null ? null : Number(contentLength),
       cacheControl,
+      immutableObserved: cacheTokens.has("immutable"),
       xContentTypeOptions: response.headers.get("x-content-type-options"),
       downloadedBytes: body.length,
       downloadedSha256: sha256(body)
@@ -41,7 +52,8 @@ async function checkArtifact(fetcher, artifact) {
     if (!/^attachment(?:;|$)/iu.test(contentDisposition)) record.errors.push("CONTENT_DISPOSITION");
     if (contentDisposition.includes("filename=") && !contentDisposition.includes(artifact.name)) record.errors.push("CONTENT_DISPOSITION_FILENAME");
     if (Number(contentLength) !== artifact.bytes) record.errors.push("CONTENT_LENGTH");
-    if (!cacheTokens.has("public") || !cacheTokens.has("immutable") || !cacheTokens.has("max-age=31536000")) record.errors.push("CACHE_CONTROL");
+    const requiredCacheTokens = artifact.requiredCacheTokens || ["public", "max-age=31536000", "immutable"];
+    if (!requiredCacheTokens.every((token) => cacheTokens.has(token))) record.errors.push("CACHE_CONTROL");
     if ((record.xContentTypeOptions || "").toLowerCase() !== "nosniff") record.errors.push("X_CONTENT_TYPE_OPTIONS");
     if (body.length !== artifact.bytes) record.errors.push("BODY_BYTES");
     if (record.downloadedSha256 !== artifact.sha256) record.errors.push("BODY_SHA256");
@@ -81,9 +93,11 @@ async function selfTest() {
 
 const mode = process.argv[2] || "production-positive";
 if (mode === "self-test") await selfTest();
-if (!["production-positive", "expect-current-mismatch"].includes(mode)) throw new Error(`unsupported mode: ${mode}`);
-const records = await Promise.all(artifacts.map((artifact) => checkArtifact(fetch, artifact)));
+if (!["production-positive", "expect-current-mismatch", "rollback-baseline"].includes(mode)) throw new Error(`unsupported mode: ${mode}`);
+const selectedArtifacts = mode === "rollback-baseline" ? rollbackArtifacts : artifacts;
+const records = await Promise.all(selectedArtifacts.map((artifact) => checkArtifact(fetch, artifact)));
 const allPassed = records.every((record) => record.passed);
-const gatePassed = mode === "production-positive" ? allPassed : records.every((record) => !record.passed);
-console.log(JSON.stringify({ mode, carrierCommit, observedAt: new Date().toISOString(), records, allPassed, gatePassed, downloadHosted: allPassed, productionSigned: false, storeReleased: false, installedLocal: false, publicParity: false }, null, 2));
+const gatePassed = mode === "expect-current-mismatch" ? records.every((record) => !record.passed) : allPassed;
+const successorDownloadHosted = mode === "production-positive" && allPassed;
+console.log(JSON.stringify({ mode, carrierCommit, observedAt: new Date().toISOString(), records, allPassed, gatePassed, rollbackBaselineOnly: mode === "rollback-baseline", downloadHosted: successorDownloadHosted, productionSigned: false, storeReleased: false, installedLocal: false, publicParity: false }, null, 2));
 process.exit(gatePassed ? 0 : 1);

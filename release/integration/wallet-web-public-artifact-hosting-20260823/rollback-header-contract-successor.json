@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "decision": "ACCEPT_CURRENT_HEADER_CONTRACT_FOR_ROLLBACK_ONLY",
+  "reviewedAt": "2026-08-23T09:11:08Z",
+  "blockerResolved": "WALLET_ARTIFACT_ROLLBACK_FULL_GET_CACHE_CONTROL_BASELINE_DRIFT",
+  "policySources": [
+    {"name":"RFC 9111 HTTP Caching","url":"https://www.rfc-editor.org/rfc/rfc9111.html","finding":"max-age defines freshness lifetime"},
+    {"name":"RFC 8246 HTTP Immutable Responses","url":"https://www.rfc-editor.org/rfc/rfc8246.html","finding":"immutable suppresses conditional revalidation during freshness; it is not a body-integrity primitive"}
+  ],
+  "policyDecision": {
+    "rollbackRequiredCacheControlTokens": ["public", "max-age=31536000"],
+    "rollbackImmutableRequired": false,
+    "rollbackIntegrityStillRequires": ["content-addressed exact URL", "HTTP 200", "no redirect", "application/zip", "attachment", "exact Content-Length", "exact full-body bytes", "exact full-body SHA-256", "X-Content-Type-Options: nosniff"],
+    "successorRequiredCacheControlTokens": ["public", "max-age=31536000", "immutable"],
+    "successorPolicyLowered": false,
+    "headerRepairLeaseRequiredBeforeHosting": false,
+    "reason": "The old artifacts are an existing content-addressed rollback state and their complete bodies still match the frozen digests. Missing immutable changes revalidation behavior, not the verified body identity. The new successor publication retains the stricter immutable response gate."
+  },
+  "rawHeaderEvidence": "apps/wallet-web/evidence/contracts/wallet-web-artifact-rollback-header-drift-successor-20260823.json",
+  "verifier": "release/integration/wallet-web-public-artifact-hosting-20260823/verify-official-downloads.mjs rollback-baseline",
+  "truth": {"rollbackBaselinePassed":true,"rollbackImmutableObserved":false,"successorDownloadHosted":false,"productionSigned":false,"storeReleased":false,"installedLocal":false,"publicParity":false}
+}
