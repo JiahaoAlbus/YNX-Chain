@@ -61,7 +61,7 @@ async function restoreUpgrade({root,backup,built,baseline}){
 }
 async function upgrade(raw,opt={}){
   const root=opt.root||ROOT,stage=root+".upgrade-stage-"+(opt.nonce||process.pid),backup=root+".p0240-backup",baseline=opt.baseline||PROD_OLD;
-  await assertPlacement(root,baseline);const built=await buildUpgradeStage(raw,{root,stage,backup,baseline});let oldMoved=false,newMoved=false;
+  decode(raw);await assertPlacement(root,baseline);const built=await buildUpgradeStage(raw,{root,stage,backup,baseline});let oldMoved=false,newMoved=false;
   try{
     await assertPlacement(root,{...baseline,parent:{...baseline.parent,nlink:baseline.parent.nlink+1}});await fsp.rename(root,backup);oldMoved=true;await fsp.rename(stage,root);newMoved=true;await validateNewPlacement(root,built);await assertPlacement(backup,{...baseline,parent:{...baseline.parent,nlink:baseline.parent.nlink+1},receiptControlRoot:root});return{status:"UPGRADED_AWAITING_FORWARD",root,backup,built,baseline};
   }catch(error){
@@ -99,5 +99,5 @@ async function fixtureUpgrade(repoRoot){
   }finally{await fsp.rm(base,{recursive:true,force:true})}
 }
 async function stdin(){const a=[];for await(const c of process.stdin)a.push(c);return Buffer.concat(a)}
-async function main(){const command=process.argv[1];if(command==="fixture")return fixture();if(command==="fixture-real"){const repoRoot=process.argv[2];await fixtureParentAdversarial(repoRoot);return fixtureRealParentAbsent(repoRoot)}if(command==="fixture-upgrade")return fixtureUpgrade(process.argv[2]);if(command==="place"){process.stdout.write(stable(await place(await stdin()))+"\n");return}if(command==="upgrade-forward"){process.stdout.write(stable(await upgradeForward(await stdin(),process.argv.slice(2)))+"\n");return}if(command==="rollback-upgrade"){process.stdout.write(stable(await rollbackUpgrade(process.argv.slice(2)))+"\n");return}throw Error("USAGE: place|upgrade-forward <apiPid> <viewerPid> <preflightPort>|rollback-upgrade <apiPid> <viewerPid>|fixture|fixture-real <repoRoot>|fixture-upgrade <repoRoot>")}
+async function main(){const command=process.argv[2];if(command==="fixture")return fixture();if(command==="fixture-real"){const repoRoot=process.argv[3];await fixtureParentAdversarial(repoRoot);return fixtureRealParentAbsent(repoRoot)}if(command==="fixture-upgrade")return fixtureUpgrade(process.argv[3]);if(command==="place"){process.stdout.write(stable(await place(await stdin()))+"\n");return}if(command==="upgrade-forward"){process.stdout.write(stable(await upgradeForward(await stdin(),process.argv.slice(3)))+"\n");return}if(command==="rollback-upgrade"){process.stdout.write(stable(await rollbackUpgrade(process.argv.slice(3)))+"\n");return}throw Error("USAGE: place|upgrade-forward <apiPid> <viewerPid> <preflightPort>|rollback-upgrade <apiPid> <viewerPid>|fixture|fixture-real <repoRoot>|fixture-upgrade <repoRoot>")}
 main().catch(e=>{process.stderr.write(e.message+"\n");process.exitCode=1});

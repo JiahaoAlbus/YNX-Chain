@@ -66,8 +66,8 @@
     "requireRootAbsent": false,
     "mode": "ATOMIC_UPGRADE_EXISTING_EXACT_PLACEMENT",
     "transport": "apps/creator-studio/release-control-plane-transport.mjs",
-    "transportBytes": 27279,
-    "transportSha256": "ee0831453f73d8f25635b750400263859674b6514c3a2edc8564868620d62b0a",
+    "transportBytes": 27291,
+    "transportSha256": "9898c4c512a055f601326251add830b051c0911c6b3f98da36b856648f879cf3",
     "canonicalCarrierBytes": 370416,
     "canonicalCarrierSha256": "f6a111c4eed02a84b1e51abd5b7e98f68c8631d4980fcc63d6673df401e60094",
     "stdinExclusivelyCarriesCanonicalCarrier": true,
@@ -176,7 +176,10 @@
       "forwardFailureRestoresOldRootObjectsAndReceiptExact": true,
       "retainedSameBytesNewInodeRejected": true,
       "foreignReservedSiblingRejectedAndPreserved": true,
-      "foreignRootChildRejectedAndPreserved": true
+      "foreignRootChildRejectedAndPreserved": true,
+      "exactNodeEvalBase64ArgvFixturePassed": true,
+      "exactUpgradeForwardArgvReadsCommandAtArgv2AndArgumentsAtSlice3": true,
+      "exactUpgradeForwardMalformedStdinRejectedBeforeProductionPathRead": true
     },
     "exactSudoArgvShape": [
       "/usr/bin/sudo",
