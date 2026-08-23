@@ -1,0 +1,20 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "FINANCE_P0279_GUARDED_STAGING_ZERO_WRITE_DIAGNOSIS_REQUEST",
+  "requestStatus": "SOURCE_REQUEST_ONLY_NO_SSH_NO_MUTATION",
+  "predecessors": {
+    "p0279TerminalEvidenceCommit": "fb2fb7e417525e252bb9b11f6036f6cc28bf9323",
+    "p0279Executor": {"path": "/opt/ynx/leases/finance/p0279-finance-phase3-20260823T164408Z.executor.sh", "tuple": "64770:4620881:0:0:700:1:18432:regular file", "bytes": 18432, "sha256": "be7435a922b26482c830778ef23753e7de2e02ad307de914fef9aa83a77229c0"},
+    "p0279SignedLease": {"path": "/opt/ynx/leases/finance/p0279-finance-phase3-20260823T164408Z.json", "tuple": "64770:4620882:0:0:600:1:8140:regular file", "bytes": 8140, "sha256": "5b36af2367371cfb94490cf0ade3b0399c3a836b71b88886063ede6fb994bea9"},
+    "p0280EvidenceCommit": "8820efb486c6cbe975999d43d6f9e1dda7e22561",
+    "p0280Journal": {"window": "2026-08-23T16:46:00Z..2026-08-23T16:53:30Z", "bytes": 3410, "sha256": "64512f510252a7da344139d296969744675738bfb4f9e3a51aded703b7a91351", "normalizedClass": "OTHER_OR_EMPTY"}
+  },
+  "exactReadOnlyArgv": ["/usr/bin/ssh", "-i", "<protected-central-identity>", "-o", "IdentitiesOnly=yes", "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=yes", "-o", "UserKnownHostsFile=/Users/huangjiahao/.ssh/known_hosts", "-o", "ConnectTimeout=10", "-o", "ConnectionAttempts=1", "ubuntu@43.153.202.237", "/usr/bin/sudo", "-n", "/bin/bash", "-s", "--"],
+  "stdinCommandObject": {"required": true, "transport": "stdin only", "mustBeFrozenByCentral": true, "noRemoteTemporaryFiles": true},
+  "allowedReadOnlyInputs": ["full tuple/SHA/bytes of the two P0279 controls", "presence/absence and empty inventory of P0279 stage/backup/release paths", "systemd unit status/MainPID/NRestarts", "fixed P0279 journal window", "existing public and loopback HTTP metadata only"],
+  "allowedTerminalFields": ["inspection", "remoteExitStatus", "executorTupleSha256", "signedLeaseTupleSha256", "guardedStagingPhase", "firstFailureClass", "normalizedJournalClass", "journalBytes", "journalSha256", "stageBackupReleaseTruth", "servicePid", "serviceNRestarts", "oldRuntimeHttpMetadata", "mutationCount"],
+  "forbidden": ["journal body", "environment body or values", "private keys", "write/create/delete/rename/chmod/chown", "service lifecycle", "Caddy/current/release/env/state/unit mutation", "account/signature/transaction", "remote temp files", "deployment or rollback"],
+  "expectedOldRuntimeBaseline": {"currentRelease": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a", "servicePid": 2241003, "serviceNRestarts": 0, "state": "absent", "health": "200:485:d1e97a4314acd1ecccf94629d15bd598cb58ff78136b3622ac26d583a82e45c1", "version": "200:130:39789776da47e60b7a7df845789e02ebba16707ad8951eb6f27c84c1b40bb226"},
+  "singleResultFormat": "one nonempty line per allowedTerminalField; fields are fixed-order; all hashes are SHA-256; missing phase evidence emits guardedStagingPhase=UNAVAILABLE and firstFailureClass=UNPROVEN; mutationCount must equal 0",
+  "truth": {"diagnosisExecuted": false, "rootCauseProven": false, "deployment": false, "publicVerified": false}
+}
