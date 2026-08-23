@@ -6,7 +6,9 @@ const good=make();assert.equal(run(good).status,0);assert.ok(lstatSync(join(good
 for(const cut of [1,2,3]){const x=make(),lines=readFileSync(x.payload,'utf8').split('\n');assert.notEqual(run(x,Buffer.from(lines.slice(0,cut*2).join('\n'))).status,0);assert.equal(lstatSync(join(x.lp,`${id}.archive.tgz`),{throwIfNoEntry:false}),undefined);}
 const reorder=make();let lines=readFileSync(reorder.payload,'utf8').split('\n');[lines[1],lines[3]]=[lines[3],lines[1]];assert.notEqual(run(reorder,Buffer.from(lines.join('\n'))).status,0);
 const length=make();lines=readFileSync(length.payload,'utf8').split('\n');lines[1]=lines[1].replace(' 7 ',' 8 ');assert.notEqual(run(length,Buffer.from(lines.join('\n'))).status,0);
+const hash=make();lines=readFileSync(hash.payload,'utf8').split('\n');lines[1]=lines[1].replace(/[0-9a-f]{64}/,'0'.repeat(64));assert.notEqual(run(hash,Buffer.from(lines.join('\n'))).status,0);assert.equal(lstatSync(join(hash.lp,`${id}.archive.tgz`),{throwIfNoEntry:false}),undefined);
 const drift=make();drift.args[2]='0:0:0:0:0:0:0:directory';assert.notEqual(run(drift).status,0);
 const extra=make();assert.notEqual(run(extra,Buffer.concat([readFileSync(extra.payload),Buffer.from('x')])).status,0);
 const sym=make();symlinkSync(join(sym.d,'src','a'),join(sym.lp,`${id}.archive.tgz`));assert.notEqual(run(sym).status,0);assert.ok(lstatSync(join(sym.lp,`${id}.archive.tgz`)).isSymbolicLink());
+const regular=make();writeFileSync(join(regular.lp,`${id}.archive.tgz`),'keep');assert.notEqual(run(regular).status,0);assert.equal(readFileSync(join(regular.lp,`${id}.archive.tgz`),'utf8'),'keep');
 const sibling=make();mkdirSync(join(sibling.carrier,'s'));assert.notEqual(run(sibling).status,0);assert.ok(lstatSync(join(sibling.carrier,'s')).isDirectory());console.log('finance phase2a stdin fixture: pass');
