@@ -1,8 +1,32 @@
 {
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "version": "1.18.0",
+  "version": "1.19.0",
   "locks": [
+    {
+      "path": "{local:/Users/huangjiahao/Applications/YNX Browser Isolated,local:/Users/huangjiahao/Applications/YNX Browser Isolated/YNX Browser Testnet Preview-ad890f0a2fe5-aaed312ef608.app,local:/private/tmp/ynx-browser-preinstall-p0233.receipt,local:/private/tmp/ynx-browser-preinstall-p0233.diagnostic,local:/private/tmp/ynx-browser-preinstall-p0233.diagnostic.tmp,launchservices:default-handler:com.ynxweb4.browser.macos:ynxbrowser}",
+      "owner": "browser-macos-preinstall-owner",
+      "branch": "codex/p0-browser-current-source-verification-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/52-browser-p0",
+      "taskId": "P0-233",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_SINGLE_USE",
+      "acquiredAt": "2026-08-23T01:42:00Z",
+      "expiresAt": "2026-08-23T02:12:00Z",
+      "releasedAt": null,
+      "sourceCommit": "6ace4556ceaa7f4d72f896a4ad4a5505014f030c",
+      "sourceTree": "498aa15c87bc64e25d26f35c8eee4639b381d635",
+      "evidenceCommit": "0bb4c48700383090e5bb86198abb4a0ce940d2aa",
+      "artifactSha256": "a696f743a86518d8cc98d1a1335fd80fcbf3eed593491e53e7ed67589f019ba4",
+      "productionMutationAllowed": true,
+      "allowedExceptions": [
+        "one exact P0-233 forward and no retry",
+        "one exact receipt-bound rollback only after forward success or post-mutation failure",
+        "register and set only the exact candidate app URL as ynxbrowser default during forward",
+        "register and set only the exact preserved old app URL as ynxbrowser default during rollback",
+        "no application launch, scheme invocation, provider, account, signing or transaction action"
+      ]
+    },
     {
       "path": "{local:/Users/huangjiahao/Applications/YNX Browser Isolated,local:/Users/huangjiahao/Applications/YNX Browser Isolated/YNX Browser Testnet Preview-ad890f0a2fe5-aaed312ef608.app,local:/private/tmp/ynx-browser-preinstall-p0232.receipt,local:/private/tmp/ynx-browser-preinstall-p0232.diagnostic,local:/private/tmp/ynx-browser-preinstall-p0232.diagnostic.tmp,launchservices:candidate:com.ynxweb4.browser.macos:ynxbrowser}",
       "owner": null,
