@@ -10,7 +10,7 @@
       "worktree": "/tmp/ynx-video-p0237-freeze.EP3sYY/repo",
       "taskId": "P0-237",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE_SINGLE_USE",
+      "status": "EMERGENCY_BLOCKED_VIDEO_CONTROLLED_TAKEOVER_EXACT_RECOVERY_REQUIRED",
       "acquiredAt": "2026-08-23T04:02:00Z",
       "expiresAt": "2026-08-23T04:32:00Z",
       "releasedAt": null,
@@ -18,8 +18,8 @@
       "sourceTree": "3d89e751322d7ea9a30fe187188fd81083a2a2fd",
       "evidenceCommit": "2dbc1aad4281454ccde32191a1730e111255cc87",
       "artifactSha256": "6771deb82ccc62a9c14d62ed40e7bda961806ffe3c14681b9cf53ec27afef2df",
-      "productionMutationAllowed": true,
-      "allowedExceptions": ["one exact five-object SCP upload and no retry", "one exact controlled takeover command and no retry", "stop only legacy Viewer and start dedicated predecessor on 6494", "automatic receipt-bound legacy restore and dedicated cleanup on any failure", "no shared current, Caddy, API, Creator, candidate product, account, signing or transaction mutation"]
+      "productionMutationAllowed": false,
+      "allowedExceptions": ["P0-237 upload and takeover authorities are consumed and nonreusable", "no further Video mutation without a wholly-new exact recovery lease", "preserve receipt parent, identity, takeover receipt and five staged objects", "no shared current, Caddy, API, Creator, candidate product, account, signing or transaction mutation"]
     },
     {
       "path": "{host:43.153.202.237:finance-phase2b-preparation,production:/opt/ynx/leases/finance-preparation/p0228-finance-phase1-20260822T234100Z.json,production:/opt/ynx/leases/finance-preparation/p0228-finance-phase1-20260822T234100Z.json.pending,production:/opt/ynx/stage/finance/p0228-finance-phase1-20260822T234100Z/candidate.tgz,production:/opt/ynx/stage/finance/p0228-finance-phase1-20260822T234100Z/finance.env,local:release/integration/p0-wallet-connectivity/execution/p0-236-finance-phase2b-candidate-env-preparation-stdin-20260823.json}",
