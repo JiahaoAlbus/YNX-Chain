@@ -4,7 +4,25 @@
   "taskId": "P0-176",
   "owner": "integration,wallet-ios,wallet-macos",
   "status": "WAITING_EXTERNAL_PROTECTED_INPUTS_AND_HEAVY_SLOT",
-  "blocker": "PROTECTED_NATIVE_WALLETCONNECT_RUNTIME_PACKAGE_UNAVAILABLE",
+  "blocker": "PROTECTED_NATIVE_WALLETCONNECT_OPERATOR_CONFIRMATIONS_UNAVAILABLE",
+  "operatorPackage3bcAccepted": true,
+  "operatorInputRequest": {
+    "branch": "codex/walletconnect-runtime-hardening-20260823",
+    "commit": "3bc070e39e6ade7a7a210196ba8721d895fa6960",
+    "tree": "81e7c82bb6572ba138be551d55063e3f73550a98",
+    "path": "release/integration/wallet-protected-reown-runtime-operator-inputs.request.json",
+    "blob": "1a9a3a267b61a62f3e25708581271f49870ada8b",
+    "bytes": 11222,
+    "sha256": "86511c5fb4ad7ab64c658e766325983a0b9e72a6b992da644ede75e33c65bb97",
+    "verifierPath": "apps/wallet/scripts/verify-protected-reown-runtime-operator-inputs.rb",
+    "verifierBlob": "060287ea235a391e6a46e519809e16337e082c98",
+    "verifierBytes": 6421,
+    "verifierSha256": "34334d29def40299e1df8e12b4acbfe1eaf6e76e5e026b4afd89b0b8718ff89f",
+    "remoteExact": true,
+    "verification": "PASS",
+    "protectedInputCount": 6,
+    "secretValuesRecorded": false
+  },
   "sourceEvidence": {
     "commit": "65dffee2f35ec9dc254f8c2ac8c465a353bc1861",
     "tree": "9af8bc76caa2dc963ac484d981e25a504efe7ed5",
@@ -49,6 +67,30 @@
     "https://opensea.io",
     "https://app.safe.global"
   ],
+  "protectedReadiness": {
+    "reownProjectAllowlistReceiptAvailable": false,
+    "appleSignedAppGroupAndKeychainSignerAvailable": false,
+    "opaqueApprovedTestAccountHandleAvailable": false,
+    "boundedTestnetTransactionPolicyAvailable": false,
+    "firstPartyExactOriginAvailable": false,
+    "uniswapNamedOperatorAvailable": false,
+    "openseaNamedOperatorAvailable": false,
+    "safeNamedOperatorAvailable": false,
+    "eligibleSignedIosTargetAvailable": false,
+    "eligibleSignedMacosTargetAvailable": false,
+    "eligibleSignedAndroidTargetAvailable": false,
+    "officialSignedMetaMaskComparatorProvenanceAvailable": false,
+    "allProtectedReadinessTrue": false
+  },
+  "responsibilityDomains": {
+    "reownProjectAllowlist": "central-protected-runtime-operator",
+    "appleAppGroupKeychainAndIosMacosSigning": "wallet-apple-signing-owner",
+    "approvedAccountHandleAndTransactionPolicy": "wallet-testnet-signer-operator",
+    "firstPartyOrigin": "wallet-product-release-owner",
+    "uniswapOpenSeaSafe": "wallet-external-dapp-operator",
+    "androidSignedTarget": "wallet-android-signing-owner",
+    "officialMetaMaskComparatorProvenance": "wallet-metamask-comparator-owner"
+  },
   "runtimeAcceptance": [
     "real Reown SDK bundled and source-bound",
     "real relay and pairing",
@@ -73,6 +115,12 @@
     "relayPairingVerified": false,
     "installedRuntimeVerified": false,
     "productsConnected": "0/12",
-    "parityComplete": false
+    "parityComplete": false,
+    "realRelayConnected": false,
+    "pairingSucceeded": false,
+    "accountApproved": false,
+    "signSucceeded": false,
+    "transactionSucceeded": false,
+    "runtimeLeaseIssued": false
   }
 }
