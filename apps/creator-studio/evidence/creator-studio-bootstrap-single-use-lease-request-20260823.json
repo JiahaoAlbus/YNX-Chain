@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "1.0.0",
+  "requestType": "CREATOR_STUDIO_BOOTSTRAP_SINGLE_USE_LEASE",
+  "requestedExecutor": "release-control-plane",
+  "status": "REQUESTED_NOT_AUTHORIZED",
+  "purpose": "Create the dedicated Creator runtime pointer and service before any ordinary Creator deployment lease.",
+  "candidate": {"tag": "creator-studio-candidate-0e1a53c5", "commit": "0e1a53c5ad1fc9dc2cbfebc13c55f1f426c7e7ae", "carrier": "apps/creator-studio/release-candidates/candidate-0e1a53c5/creator-studio.tar", "sha256": "3f56aa4c3f9d87d27f7cdf19eafc0dacf1da78d83d31def2080f0162d92bdf8a"},
+  "dedicatedRuntime": {"root": "/opt/ynx-creator-studio-wallet", "releases": "/opt/ynx-creator-studio-wallet/releases", "current": "/opt/ynx-creator-studio-wallet/current", "unit": "/etc/systemd/system/ynx-creator-studio-wallet.service", "workingDirectory": "/opt/ynx-creator-studio-wallet/current", "execStart": "/usr/bin/node /opt/ynx-creator-studio-wallet/current/server.mjs", "port": 6495, "user": "ynx", "group": "ynx", "hardening": "Rendered from the exact old unit after SHA-256 verification; only Creator path fields are replaced."},
+  "guards": {"oldUnit": "/etc/systemd/system/ynx-video-studio.service", "oldUnitSha256": "dc08dec0a4a4596cec03e01055d5ae64715954d1aa652c3e11221106f06348d1", "oldCurrent": "/opt/ynx-video/current", "caddy": "/etc/caddy/ynx-chain.caddy", "caddySha256": "b606d1bdced436a984aed19981788f1a9471b4ccb7ad7f2c49b32015b729afa7", "requireApi6493AndViewer6494PidListenerUnchanged": true},
+  "sequence": ["verify candidate, old unit, Caddy, and old-current symlink", "extract candidate only under dedicated releases and preflight it on an unused loopback port", "render dedicated unit preserving verified old hardening", "daemon-reload; stop and disable ynx-video-studio.service; enable and start ynx-creator-studio-wallet.service", "on rollback, verify old unit/Caddy/shared-current tuple unchanged; stop and disable new unit; enable and start exact old unit"],
+  "forbidden": ["/opt/ynx-video mutation", "Caddy mutation", "API6493", "Viewer6494", "shared catalog", "wallet account request", "signature", "transaction"],
+  "truth": {"deploymentAuthorized": false, "bootstrapExecuted": false, "publicRuntimeVerified": false}
+}
