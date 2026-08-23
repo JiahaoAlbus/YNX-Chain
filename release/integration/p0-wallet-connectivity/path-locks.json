@@ -2145,10 +2145,10 @@
       "worktree": "/private/tmp/ynx-calendar-control-plane.y8FFQt/repo",
       "taskId": "P0-281",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE_SINGLE_USE",
+      "status": "CONSUMED_RELEASED_REMOTE_SUCCESS_FINANCE_P0281_P0279_CONTROL_CLEANUP_PENDING_INDEPENDENT_READBACK",
       "acquiredAt": "2026-08-23T17:09:00Z",
       "expiresAt": "2026-08-23T17:39:00Z",
-      "releasedAt": null,
+      "releasedAt": "2026-08-23T17:19:00Z",
       "sourceCommit": "28f530caec63f1141eb2f6f4dce3572b28330540",
       "sourceTree": "f39385e6071cdad83cd38b8466f22b067f209bd3",
       "evidenceCommit": "8820efb486c6cbe975999d43d6f9e1dda7e22561",
@@ -2160,7 +2160,34 @@
         "create and finalize only the two exact P0-281 temporary transport files",
         "retained parent identity must remain stable and parent must never be deleted or replaced",
         "no deploy, rollback, service lifecycle, current, env, state, unit, Caddy, stage, backup, release, public or Wallet mutation",
-        "P0-282 remains queued and unauthorized until P0-281 terminal release and independent readback"
+        "P0-282 remains queued and unauthorized until P0-281 terminal release and independent readback",
+        "one invocation returned a valid remote cleanup receipt and remoteExitStatus 0, but the local wrapper exited 1",
+        "cleanupComplete remains false; P0-281 is consumed and nonreusable and only P0-283 zero-write readback may follow"
+      ]
+    },
+    {
+      "path": "{host:43.153.202.237:finance-p0281-post-cleanup-readonly,readonly:/opt/ynx/leases/finance,readonly:/opt/ynx/leases/finance/p0279-finance-phase3-20260823T164408Z.*,readonly:/tmp/ynx-finance-p0281-finance-p0279-control-cleanup-20260823T170900Z.*,readonly:/opt/ynx/stage/finance/p0279-finance-phase3-20260823T164408Z/**,readonly:/var/backups/ynx-finance/p0279-finance-phase3-20260823T164408Z/**,readonly:/opt/ynx/releases/finance/p0279-finance-phase3-20260823T164408Z/**,readonly:/opt/ynx/finance-current,readonly:/etc/ynx/finance.env,readonly:/var/lib/ynx/finance/state.json,readonly:/etc/systemd/system/ynx-finance.service,readonly:/etc/caddy/conf.d/ynx-finance.caddy,readonly:ynx-finance.service,readonly:http://127.0.0.1:6483/**,readonly:https://finance.ynxweb4.com/**}",
+      "owner": "finance-release-control-plane-readonly-verification",
+      "branch": "codex/p0-wallet-connectivity-control-plane-20260820",
+      "worktree": "/private/tmp/ynx-calendar-control-plane.y8FFQt/repo",
+      "taskId": "P0-283",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_SINGLE_USE",
+      "acquiredAt": "2026-08-23T17:19:00Z",
+      "expiresAt": "2026-08-23T17:49:00Z",
+      "releasedAt": null,
+      "sourceCommit": "54484d568714ca697a174005114d8f35b4c7c09b",
+      "sourceTree": "16ec7e0ac640865494157dccf95561f96512c393",
+      "evidenceCommit": "54484d568714ca697a174005114d8f35b4c7c09b",
+      "artifactSha256": "cc5892495c9776d84572fa742caeca9c9c130c067113c97fbb1d4dbbc438827e",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "one exact zero-write Finance-only SSH verification and no retry",
+        "output only classifications, tuples, bytes, SHA, service fields and HTTP metadata",
+        "prove both P0-279 controls and both P0-281 temporary files absent and retained parent stable and empty",
+        "prove old current, env, absent state, unit, Caddy, service PID/NRestarts and public/loopback metadata unchanged",
+        "no cleanup, deploy, rollback, restart, service lifecycle or runtime/public mutation",
+        "P0-282 remains queued and unauthorized until P0-283 terminal release"
       ]
     }
   ]
