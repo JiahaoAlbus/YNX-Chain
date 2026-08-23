@@ -6,13 +6,13 @@
     "ownerRequestCommit": "c560497db9c78a1106ab7f0d52d9555652e76cc4",
     "ownerRequestTree": "e8251f0c0a88b6f60d52d5eb4463dd7c5ed9d0bb",
     "requestSha256": "18130afa5aeabafa814e0148eb678a3626c2efabb1efd30915c46fa276d5525b",
-    "centralDecision": "NO_GO_FINANCE_PHASE3_MANUAL_ROLLBACK_LEASE_POST_RENAME_IDENTITY_RECHECK_MISSING",
-    "correction": "After pending-to-final rename, explicitly require a regular non-symlink final target with the original pending inode identity and exact captured tuple/bytes/SHA/mode before disabling cleanup or invoking rollback. A same-bytes, same-mode replacement on a new inode must fail closed and remain preserved."
+    "centralDecision": "FINANCE_PHASE3_SUCCESS_RECEIPT_MISSING_BACKUP_AND_SERVICE_BINDINGS_FOR_SIGNED_MANUAL_ROLLBACK",
+    "correction": "The deploy success output now directly emits the immutable full backup tuple and observed candidate service PID/NRestarts after candidate verification. The separate signed manual-rollback lease fixture consumes only those parsed success receipt fields and never reconstructs them locally."
   },
   "owner": {
     "branch": "codex/p0-finance-wallet-connectivity-20260820",
-    "implementationCommit": "6773cc7bc65151c7b09a0216192ed8cc912a4aef",
-    "implementationTree": "88128d884fa2788a774460944f858462a1b4dad4",
+    "implementationCommit": "c0e37c753cfcea9709bf17a5e2511a52eea5807a",
+    "implementationTree": "ba1611b130cb6a951fc1556bfd7a45937cddc3be",
     "rule": "This successor evidence commit must be a non-self-referential child of the reviewed implementation."
   },
   "acceptedPrerequisite": {
@@ -84,28 +84,28 @@
     },
     "productionExecutor": {
       "path": "apps/finance/scripts/finance-production-rollback-first.sh",
-      "blob": "5270306098d9d085cdaf4c980115025997509263",
-      "bytes": 15558,
-      "sha256": "a3652132e17bbbcd063153aacb61ebbe4dfda10330693d0ec9b9dbf503a42f0f",
+      "blob": "1511ce0d1cb9de23b478dece300c7cde1de066e9",
+      "bytes": 15907,
+      "sha256": "8f9e2ede5418e8f65739f2a5f3af7a78c266474f4c428951d8daf27f20e56315",
       "ownerCommandFixture": "PASS",
       "ownerActualShellFixture": "PASS",
       "immutableCarrierIdSeparatedFromDeploymentLeaseId": true
     },
     "productionCommandFixture": {
       "path": "apps/finance/scripts/test-finance-production-command-object.mjs",
-      "blob": "a9f74846a041081258540a0f08611d2a2fb87a24",
-      "bytes": 2481,
-      "sha256": "a3c35ad84eb6a121f5a867322fcda3fc21f02ed44ed0f99ac61d4cb1ae16f1e4",
+      "blob": "7a25fcfcf8b659fab2fc416678406ad43e12f4e6",
+      "bytes": 2545,
+      "sha256": "f8cca6b4eeebf02e5585d0d3d0b5e002024d5db34968cbff11bb7d65942c2c50",
       "ownerRerun": "PASS"
     },
     "productionActualShellFixture": {
       "path": "apps/finance/scripts/test-finance-production-fixture.mjs",
-      "blob": "4a66dd694579d45314da49299a60e191858b41b9",
-      "bytes": 36487,
-      "sha256": "63ca7a3b9d736539415f436f1296424781e419b2249a91eb833ea96899b5ad80",
+      "blob": "b3792d704fdaf8870a35ae1e81817a19340fd66b",
+      "bytes": 36831,
+      "sha256": "98092c2beec4d781cfd1b5da9226d769ac267e0474ce80b2dc01e5ff68776e95",
       "ownerRerun": "PASS",
       "crossStageCoverage": "exact Phase3 stdin bootstrap invokes the reviewed production executor against the P0-236-style fixed carrier while a distinct new Phase3 lease ID owns stage, backup and a release container that starts absent",
-      "releaseContainerCoverage": ["positive no-replace creation with path/owner/mode/tuple receipt", "missing release parent fails before creation", "foreign non-empty and symlink creation are preserved and fail closed", "pre-move failure removes only the exact empty created container", "normal post-move verifier failure removes exact candidate release inventory then exact empty container", "post-move release substitution restores old current and preserves the foreign object", "real deploy success then external-gate boundary then stdin rollback-lease transport and one real rollback restores old runtime and deletes exact release/container", "manual rollback foreign inventory and release substitution fail before the first write and preserve foreign objects"]
+      "releaseContainerCoverage": ["positive no-replace creation with path/owner/mode/tuple receipt", "missing release parent fails before creation", "foreign non-empty and symlink creation are preserved and fail closed", "pre-move failure removes only the exact empty created container", "normal post-move verifier failure removes exact candidate release inventory then exact empty container", "post-move release substitution restores old current and preserves the foreign object", "real deploy success directly emits backupTuple/candidateServicePid/candidateServiceNRestarts; the external-gate boundary and stdin rollback transport consume only parsed success receipts before one real rollback", "manual rollback foreign inventory and release substitution fail before the first write and preserve foreign objects"]
     }
   },
   "framingContract": {
@@ -180,6 +180,8 @@
     "manualRollbackLeaseTransportFixturePassed": true,
     "manualRollbackPostRenameIdentityRecheckImplemented": true,
     "sameBytesSameModeNewInodeSubstitutionFixturePassed": true,
+    "deploySuccessReceiptDirectlyEmitsBackupAndServiceBindings": true,
+    "manualRollbackLeaseFixtureUsesReceiptBindingsOnly": true,
     "phase3LeaseIssued": false,
     "productionSsh": false,
     "deployed": false,
