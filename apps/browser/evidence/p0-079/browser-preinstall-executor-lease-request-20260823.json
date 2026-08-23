@@ -1,12 +1,12 @@
 {
-  "schemaVersion": "ynx-browser-preinstall-executor-lease-request/3",
+  "schemaVersion": "ynx-browser-preinstall-executor-lease-request/4",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "taskId": "P0-BROWSER-PREINSTALL-DIAGNOSTIC-JOURNAL-SUCCESSOR-20260823",
+  "taskId": "P0-BROWSER-PREINSTALL-DEFAULT-HANDLER-SUCCESSOR-20260823",
   "productId": "ynx-browser",
   "owner": "browser",
-  "generatedAt": "2026-08-23T01:11:13Z",
+  "generatedAt": "2026-08-23T01:32:00Z",
   "status": "REQUESTED_NOT_AUTHORIZED",
-  "supersedesBlocker": "BROWSER_PREINSTALL_PRE_RECEIPT_FAILURE_STAGE_NOT_DURABLY_RECORDED",
+  "supersedesBlocker": "BROWSER_PREINSTALL_REGISTERED_CANDIDATE_DID_NOT_BECOME_DEFAULT_SCHEME_HANDLER",
   "scope": {
     "productPaths": ["apps/browser/**"],
     "platform": "macOS",
@@ -21,9 +21,9 @@
   },
   "source": {
     "branch": "codex/p0-browser-current-source-verification-20260821",
-    "implementationCommit": "dd5dd0586cc4b6857e446cc95c988ad26eb3abbe",
-    "implementationTree": "2c9313b67e946cf57684d7173643743c0a397d88",
-    "parent": "4ad839a199769c726a0e7a23e2fc38460b1c35b9",
+    "implementationCommit": "7d35babd1049df2b3898ce9425410564e21c110e",
+    "implementationTree": "41e2fa179b19f3f38cc605c90eb156c69ad6267d",
+    "parent": "a40b2e6a4a371125ffe4115515a83f3c7e6c996b",
     "remoteReadbackExact": true
   },
   "candidate": {
@@ -68,8 +68,8 @@
     "substitutionOrUnexpectedEntryBehavior": "REFUSE_BEFORE_LAUNCHSERVICES_ROLLBACK_MUTATION"
   },
   "diagnosticJournalContract": {
-    "path": "/private/tmp/ynx-browser-preinstall-p0232.diagnostic",
-    "atomicTemporaryPath": "/private/tmp/ynx-browser-preinstall-p0232.diagnostic.tmp",
+    "path": "/private/tmp/ynx-browser-preinstall-p0233.diagnostic",
+    "atomicTemporaryPath": "/private/tmp/ynx-browser-preinstall-p0233.diagnostic.tmp",
     "prewriteRequired": "BOTH_ABSENT",
     "retainedOnSuccess": true,
     "retainedAfterFailClosedCleanup": true,
@@ -104,6 +104,7 @@
       "COPY_CANDIDATE",
       "VERIFY_CANDIDATE",
       "REGISTER_CANDIDATE",
+      "SET_DEFAULT_HANDLER_CANDIDATE",
       "RESOLVE_CANDIDATE_HANDLER",
       "VERIFY_OLD_HANDLER_POSTREGISTER",
       "VERIFY_ROOT_EXCLUSIVE",
@@ -112,6 +113,39 @@
     "failureTerminalStatus": "FAILED_CLEANED",
     "successTerminalStatus": "FORWARD_COMPLETE/SUCCESS",
     "rollbackErasesJournal": false
+  },
+  "defaultHandlerSetterContract": {
+    "path": "apps/browser/scripts/set-macos-default-handler.swift",
+    "bytes": 2180,
+    "sha256": "2c8d2efbb45f21b5ad7dce1905e4484a33d391c245bc683f1098cd2a22f5cef4",
+    "publicApi": "NSWorkspace.setDefaultApplication(at:toOpenURLsWithScheme:completionHandler:)",
+    "apiIntroduced": "macOS 12",
+    "bindsExactApplicationURL": true,
+    "scheme": "ynxbrowser",
+    "opensScheme": false,
+    "launchesApplication": false,
+    "completionTimeoutSeconds": 15,
+    "postSetResolutionMustEqualRequestedPath": true,
+    "forwardRequestedPath": "/Users/huangjiahao/Applications/YNX Browser Isolated/YNX Browser Testnet Preview-ad890f0a2fe5-aaed312ef608.app",
+    "rollbackRequestedPath": "/Users/huangjiahao/Applications/YNX Browser Preserved/YNX Browser Testnet Preview-preserved-95ddf592badb.app",
+    "realNoMutationProbe": {
+      "result": "PASS",
+      "bundleId": "com.ynxweb4.browser.macos",
+      "schemeClaim": "ynxbrowser",
+      "requestedCandidateSourcePath": "/Users/huangjiahao/Desktop/YNX Final Worktrees/52-browser-p0/apps/browser/dist/macos/YNX Browser Testnet Preview.app",
+      "resolvedBeforeAndAfter": "/Users/huangjiahao/Applications/YNX Browser Preserved/YNX Browser Testnet Preview-preserved-95ddf592badb.app",
+      "setterInvoked": false,
+      "schemeOpened": false,
+      "applicationLaunched": false
+    },
+    "currentClaims": {
+      "rank": "Default",
+      "roles": "Viewer",
+      "flags": "url-type",
+      "binding": "ynxbrowser:",
+      "sameBundleIdPaths": 11,
+      "explicitPathSetterRequired": true
+    }
   },
   "freshRollbackReadback": {
     "capturedAt": "2026-08-23T00:31:33Z",
@@ -134,8 +168,8 @@
   "executor": {
     "path": "apps/browser/scripts/browser-preinstall-executor.sh",
     "absolutePath": "/Users/huangjiahao/Desktop/YNX Final Worktrees/52-browser-p0/apps/browser/scripts/browser-preinstall-executor.sh",
-    "bytes": 15859,
-    "sha256": "3a441fae95821c5ac15f346feb36593698094c2811695a456bc89fe46ccf82d0",
+    "bytes": 16323,
+    "sha256": "66895f67e2ec7e3459f4ccc1fdf8358637e8c11298e2f409e1516d3757fb385b",
     "defaultProductionAuthorization": false,
     "commonEnvironment": {
       "YNX_BROWSER_EXECUTION_MODE": "production",
@@ -159,9 +193,9 @@
       "YNX_BROWSER_OLD_HANDLER": "/Users/huangjiahao/Applications/YNX Browser Preserved/YNX Browser Testnet Preview-preserved-95ddf592badb.app",
       "YNX_BROWSER_OLD_HANDLER_DEV_INODE": "16777239:149132970",
       "YNX_BROWSER_OLD_BINARY_SHA256": "95ddf592badbdb3cdf4babc31c0febdd186e917d1b1ca81a4a400c2f8839d81e",
-      "YNX_BROWSER_RECEIPT": "/private/tmp/ynx-browser-preinstall-p0232.receipt",
-      "YNX_BROWSER_DIAGNOSTIC_JOURNAL": "/private/tmp/ynx-browser-preinstall-p0232.diagnostic",
-      "YNX_BROWSER_DIAGNOSTIC_JOURNAL_TEMP": "/private/tmp/ynx-browser-preinstall-p0232.diagnostic.tmp"
+      "YNX_BROWSER_RECEIPT": "/private/tmp/ynx-browser-preinstall-p0233.receipt",
+      "YNX_BROWSER_DIAGNOSTIC_JOURNAL": "/private/tmp/ynx-browser-preinstall-p0233.diagnostic",
+      "YNX_BROWSER_DIAGNOSTIC_JOURNAL_TEMP": "/private/tmp/ynx-browser-preinstall-p0233.diagnostic.tmp"
     },
     "forwardCommand": {
       "executable": "/bin/bash",
@@ -181,23 +215,24 @@
       "Create exactly the one isolated root directory with mode 0700 and record device/inode/uid/gid/mode/nlink",
       "Extract into a private temporary directory and copy only the candidate app into that root",
       "Require the root contain exactly the candidate target before registering only that candidate",
-      "Resolve the handler without opening the scheme and preserve every old app and PID",
+      "Use NSWorkspace.setDefaultApplication(at:toOpenURLsWithScheme:) to bind the exact candidate app URL to ynxbrowser without opening the scheme, then resolve the exact candidate path",
+      "Preserve every old app and PID",
       "Before every pre-receipt stage atomically replace the exact diagnostic journal with stage, status, exit and current non-sensitive filesystem tuples",
       "On failure complete receipt-aware cleanup first, then preserve FAILED_CLEANED plus the exact failure stage and cleanup result; on success preserve FORWARD_COMPLETE"
     ],
     "rollbackSemantics": [
       "Before LaunchServices mutation require the receipt, isolated-root identity, root contains only target, candidate inode and binary SHA, and no candidate process",
-      "Unregister only the candidate and re-register only the exact old handler",
+      "Unregister only the candidate, re-register only the exact old handler, and set the exact old app URL back as ynxbrowser default without opening the scheme",
       "Delete only the exact candidate and then delete only the exact empty isolated root created by forward",
       "Never move, unregister, launch, terminate or delete any old app or old PID"
     ]
   },
   "actualShellFixture": {
     "path": "apps/browser/test/preinstall-executor.test.js",
-    "bytes": 12999,
-    "sha256": "af0ccf2d3717dec581f19d8cdb471324dbb14b0c36fdfc322a9e59001a1cd190",
-    "result": "PASS_22_OF_22",
-    "preReceiptStagesInjected": 15,
+    "bytes": 13780,
+    "sha256": "24086942b4ce4115466ac792caca854d51e4a5f183bc1eee4acb8f4d8961e958",
+    "result": "PASS_23_OF_23",
+    "preReceiptStagesInjected": 16,
     "everyInjectedStageJournalExact": true,
     "everyInjectedStageCleanupComplete": true,
     "rootAbsentForwardCreateReceiptRollbackDelete": true,
@@ -213,8 +248,8 @@
     "forwardRollbackOperationsExact": ["REGISTER_CANDIDATE", "UNREGISTER_CANDIDATE", "REGISTER_EXACT_OLD_HANDLER"]
   },
   "verification": {
-    "preinstallExecutorTests": "PASS_22_OF_22",
-    "fullNodeTests": "PASS_40_OF_40",
+    "preinstallExecutorTests": "PASS_23_OF_23",
+    "fullNodeTests": "PASS_41_OF_41",
     "smoke": "PASS",
     "sourceGate": "PASS",
     "jsonAndDiff": "PASS",
@@ -238,9 +273,9 @@
     "writableFilesystemPaths": [
       "/Users/huangjiahao/Applications/YNX Browser Isolated",
       "/Users/huangjiahao/Applications/YNX Browser Isolated/YNX Browser Testnet Preview-ad890f0a2fe5-aaed312ef608.app",
-      "/private/tmp/ynx-browser-preinstall-p0232.receipt",
-      "/private/tmp/ynx-browser-preinstall-p0232.diagnostic",
-      "/private/tmp/ynx-browser-preinstall-p0232.diagnostic.tmp"
+      "/private/tmp/ynx-browser-preinstall-p0233.receipt",
+      "/private/tmp/ynx-browser-preinstall-p0233.diagnostic",
+      "/private/tmp/ynx-browser-preinstall-p0233.diagnostic.tmp"
     ],
     "parentCreationMaximum": 1,
     "launchServicesRegistrationTarget": "CANDIDATE_ONLY",
@@ -264,14 +299,20 @@
     "transaction": false,
     "productComplete": false
   },
-  "p0231Terminal": {
-    "centralCommit": "0adeb8b08f28b34558e336d59b80b95baf51061c",
-    "status": "CONSUMED_RELEASED_FAILED_CLOSED_BROWSER_P0231_PREINSTALL_ROLLED_BACK_AUTOMATIC_FORWARD_CLEANUP",
+  "p0232Terminal": {
+    "centralCommit": "dac81185ea479058d19f4e8af8d098dc271ec828",
+    "centralTree": "58fc3fda4f5261fb64fe0af1f59900bb1bb4ea4b",
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_BROWSER_P0232_DIAGNOSTIC_PREINSTALL_CLEANED",
     "heavyReleased": true,
     "forwardAttempts": 1,
     "retryAttempts": 0,
-    "externalRollbackAttempts": 0,
+    "externalRollbackAttempts": 1,
+    "failureStage": "RESOLVE_CANDIDATE_HANDLER",
+    "cleanupStatus": "COMPLETE",
+    "journalPath": "/private/tmp/ynx-browser-preinstall-p0232.diagnostic",
+    "journalSha256": "b48b4b0984371b81ce457f9e68fcd1891e7a82b4bdbbc403f73fd92c28d84dc8",
+    "journalRetainedAndImmutableForSuccessor": true,
     "finalStateRestored": true
   },
-  "singleExecutableBlocker": "Central must independently review this diagnostic-journal successor and issue one wholly new nonreusable Browser-only P0-232 lease that explicitly authorizes the exact journal and temp paths in addition to the prior isolated-root, receipt and candidate paths."
+  "singleExecutableBlocker": "After atomically releasing P0-232, Central must independently review this path-specific default-handler successor and issue one wholly new nonreusable Browser-only P0-233 lease with unique receipt/journal paths and explicit authority for the non-launching NSWorkspace default-handler setter plus exact old-handler restoration."
 }
