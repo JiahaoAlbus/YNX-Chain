@@ -2344,15 +2344,15 @@
       "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
       "taskId": "P0-289",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_REMOTE_EXIT_1_EMPTY_TERMINAL_REMOTE_STATE_UNKNOWN",
       "acquiredAt": "2026-08-23T18:34:00Z",
       "expiresAt": "2026-08-23T19:04:00Z",
-      "releasedAt": null,
+      "releasedAt": "2026-08-23T18:38:02Z",
       "sourceCommit": "c10a647ffd2a219083864d83d410a251b43b7e3b",
       "sourceTree": "43a4bd2a519dcf824de89a9226741736e400d1f9",
       "evidenceCommit": "c10a647ffd2a219083864d83d410a251b43b7e3b",
-      "artifactSha256": "d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d",
-      "productionMutationAllowed": true,
+      "artifactSha256": "4b7b9f0fb5e91bad194dd7e8f23023c3e390d61b13337aeb5301f3607281abac",
+      "productionMutationAllowed": false,
       "allowedExceptions": [
         "one exact direct 25-element argv invocation and one rollback-first Finance deploy with no retry",
         "outer executor may observe only process rc and must not open, create, redirect, truncate or append declared stdout, stderr, receipt or receipt.pending",
@@ -2360,7 +2360,11 @@
         "create only exact P0-289 control, stage, backup and release paths; switch only Finance env/current and restart only ynx-finance.service",
         "unit and Caddy are immutable read-only invariants",
         "executor-owned automatic rollback on first failure; manual rollback requires a wholly-new separately signed lease",
-        "no Wallet path, account request, signature, typed data, transaction, secret output or predecessor reuse"
+        "no Wallet path, account request, signature, typed data, transaction, secret output or predecessor reuse",
+        "one compliant direct argv attempt reached one SSH and returned remote exit 1 with empty stdout and stderr",
+        "the transport receipt is exact but terminalReceiptValidated=false; remote mutation, rollback, runtime and residue state remain unknown",
+        "P0-289 and all mutation authority are consumed and nonreusable; Heavy and P0-289 locks are released",
+        "only a wholly-new zero-write remote-state inspection request may follow"
       ]
     }
   ]

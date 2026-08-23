@@ -1,0 +1,81 @@
+{
+  "schemaVersion": "p0-finance-p0290-remote-state-zero-write-request@1",
+  "kind": "FINANCE_P0289_REMOTE_STATE_ZERO_WRITE_INSPECTION_REQUEST",
+  "requestId": "P0-290",
+  "requestStatus": "SOURCE_REQUEST_ONLY_NO_LEASE_NO_SSH_NO_MUTATION",
+  "predecessor": {
+    "taskId": "P0-289",
+    "centralReleaseStatus": "CONSUMED_RELEASED_FAILED_CLOSED_REMOTE_EXIT_1_EMPTY_TERMINAL_REMOTE_STATE_UNKNOWN",
+    "terminalReceiptSha256": "4b7b9f0fb5e91bad194dd7e8f23023c3e390d61b13337aeb5301f3607281abac",
+    "sshAttempts": 1,
+    "remoteExitStatus": 1,
+    "terminalReceiptValidated": false,
+    "remoteState": "UNKNOWN",
+    "reusable": false
+  },
+  "requestedScope": {
+    "attemptLimit": 1,
+    "zeroWrite": true,
+    "paths": [
+      "/opt/ynx/leases/finance",
+      "/opt/ynx/leases/finance/p0289-finance-phase3-20260824t010000z.executor.sh.pending",
+      "/opt/ynx/leases/finance/p0289-finance-phase3-20260824t010000z.executor.sh",
+      "/opt/ynx/leases/finance/p0289-finance-phase3-20260824t010000z.json.pending",
+      "/opt/ynx/leases/finance/p0289-finance-phase3-20260824t010000z.json",
+      "/opt/ynx/stage/finance",
+      "/opt/ynx/stage/finance/p0289-finance-phase3-20260824t010000z",
+      "/opt/ynx/stage/finance/p0289-finance-phase3-20260824t010000z/stage",
+      "/var/backups/ynx-finance",
+      "/var/backups/ynx-finance/p0289-finance-phase3-20260824t010000z",
+      "/var/backups/ynx-finance/p0289-finance-phase3-20260824t010000z/backup",
+      "/opt/ynx/releases/finance",
+      "/opt/ynx/releases/finance/p0289-finance-phase3-20260824t010000z",
+      "/opt/ynx/releases/finance/p0289-finance-phase3-20260824t010000z/ynx-finance-7824af677dd0",
+      "/opt/ynx/finance-current",
+      "/etc/ynx/finance.env",
+      "/var/lib/ynx/finance/state.json",
+      "/etc/systemd/system/ynx-finance.service",
+      "/etc/caddy/conf.d/ynx-finance.caddy"
+    ],
+    "service": [
+      "ynx-finance.service LoadState/ActiveState/SubState/MainPID/NRestarts/User/Group/WorkingDirectory"
+    ],
+    "http": [
+      "http://127.0.0.1:6483/{root,health,version}",
+      "https://finance.ynxweb4.com/{root,health,version}"
+    ],
+    "outputOnly": [
+      "classification",
+      "lstat/full tuple",
+      "direct-child count",
+      "NUL-record inventory SHA-256",
+      "regular-file bytes/SHA-256",
+      "symlink literal target digest",
+      "service metadata",
+      "HTTP status/bytes/SHA-256/MIME",
+      "inspectionComplete",
+      "mutationCount"
+    ]
+  },
+  "forbidden": [
+    "remote or local temporary controls",
+    "cleanup",
+    "deploy",
+    "rollback",
+    "restart or service lifecycle",
+    "current/env/state/unit/Caddy/public mutation",
+    "HTTP bodies",
+    "environment values",
+    "signed lease contents",
+    "Wallet/account/signature/typed data/transaction",
+    "retry"
+  ],
+  "truth": {
+    "leaseIssued": false,
+    "sshExecuted": false,
+    "mutationCount": 0,
+    "cleanupAuthorized": false,
+    "deploymentAuthorized": false
+  },
+  "singleBlocker": "Central must independently review and freeze an exact zero-write command object, literal SSH argv/stdin bytes/SHA and fresh Heavy/path lock before execution."
+}
