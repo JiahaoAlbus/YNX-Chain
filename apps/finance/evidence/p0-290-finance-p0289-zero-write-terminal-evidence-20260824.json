@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "p0-finance-zero-write-terminal-evidence@1",
+  "kind": "FINANCE_P0289_REMOTE_STATE_ZERO_WRITE_TERMINAL",
+  "terminalStatus": "DIRECT_ZERO_WRITE_SUCCESS",
+  "execution": {
+    "sshInvocationCount": 1,
+    "localExitStatus": 0,
+    "remoteExitStatus": 0,
+    "mutationCount": 0,
+    "stdout": {"bytes": 3659, "sha256": "21b3fac0ad8516237ea2eeeffd0571da5b4fcbdcbdfbc18f11829c48825f52b0"},
+    "stderr": {"bytes": 0, "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
+  },
+  "p0289Residues": {
+    "executor": {"path": "/opt/ynx/leases/finance/p0289-finance-phase3-20260824t010000z.executor.sh", "fullTuple": "64770:4620784:0:0:700:1:18432:regular file", "bytes": 18432, "sha256": "be7435a922b26482c830778ef23753e7de2e02ad307de914fef9aa83a77229c0"},
+    "signedLease": {"path": "/opt/ynx/leases/finance/p0289-finance-phase3-20260824t010000z.json", "fullTuple": "64770:4620785:0:0:600:1:9252:regular file", "bytes": 9252, "sha256": "b3583c982ac2be861af11e35f7bdfa6a608243d52b44d8200f1171ecfbfa1ce3"},
+    "executorPending": "absent",
+    "signedLeasePending": "absent",
+    "stageContainer": {"path": "/opt/ynx/stage/finance/p0289-finance-phase3-20260824t010000z", "fullTuple": "64770:4620786:0:0:700:2:4096:directory", "directChildren": 0, "inventorySha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    "stage": "absent",
+    "backupContainer": {"path": "/var/backups/ynx-finance/p0289-finance-phase3-20260824t010000z", "fullTuple": "64770:2663622:0:0:700:2:4096:directory", "directChildren": 0, "inventorySha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    "backup": "absent",
+    "releaseContainer": "absent",
+    "release": "absent",
+    "currentNext": "absent",
+    "currentRollback": "absent"
+  },
+  "parents": {
+    "leaseParent": "64770:4594822:0:0:750:2:4096:directory|directChildren=2|inventorySha256=ba5ccdf943883fa8433199e5c64843ec7e5b824102cf611fa961f2e04ddac4b4",
+    "stageParent": "64770:3450041:0:0:750:6:4096:directory|directChildren=4|inventorySha256=c31bb854268d818c88fd8ac2baf121734848e614880f7813d3eddad841fa155f",
+    "backupParent": "64770:1481354:0:0:755:12:4096:directory|directChildren=10|inventorySha256=9b15184fc9e0ec23c19390794bc8e2cfaf98b40c54c299ff7f4ebac52d839eaa"
+  },
+  "oldRuntimeStillExact": {
+    "currentRelease": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a",
+    "oldBinarySha256": "0cc43c8a77c12975a0fcbada65971f08f2bc3a52345d547ea194dd3ccd60d83f",
+    "envSha256": "854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252",
+    "unitSha256": "2e72cdad422a3a714c46d074ea97b725233576cf726dbbfd43e82e99c2c2975b",
+    "caddySha256": "dcf75a7aed315c54632321b8bb80e44c0abc22f6700fadfbfa9a7da21b88a282",
+    "service": "loaded:active:running:MainPID=2241003:NRestarts=0",
+    "loopbackAndPublic": "root, health and version all HTTP 200 with the prior exact hashes"
+  },
+  "journal": {"class": "SERVICE_OR_EXECUTOR_FAILURE", "bytes": 1232, "sha256": "e2e8fe8c77460cb2fb61f1218ac91281355a32a24c496d26145d2388e9f19219"},
+  "truth": {"productionSwitchOccurred": false, "cleanupComplete": false, "publicVerified": false},
+  "nextBoundary": "Only a wholly new cleanup-only lease may delete the two exact regular control files and rmdir the two exact empty containers; a later independent zero-write verification is mandatory."
+}
