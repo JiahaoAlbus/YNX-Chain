@@ -1,0 +1,197 @@
+{
+  "schemaVersion": "ynx-video-dedicated-viewer-bootstrap-lease-request/1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-VIDEO-DEDICATED-VIEWER-BOOTSTRAP-20260823",
+  "productId": "ynx-video",
+  "owner": "video",
+  "generatedAt": "2026-08-23T00:31:12Z",
+  "status": "REQUESTED_NOT_AUTHORIZED",
+  "supersedesBlocker": "VIDEO_DEDICATED_VIEWER_ROOT_AND_UNIT_PREDECESSOR_ABSENT",
+  "implementation": {
+    "branch": "codex/video-p0-wallet-router",
+    "commit": "f1e8ed4cce6fcd4cad383addcefce8a14f420d59",
+    "tree": "95c955d24f3be796b5fe17398bb706e4f534f671",
+    "parent": "5d24a27ce5ffd7baa546ea7145a724522ff752e8",
+    "candidateProductSource": "12606124dad61f5cb8032e302087c2d00c040b4d",
+    "candidateProductTree": "b039e5e8e3afc239e833669a329e9423cf07be1f",
+    "remoteReadbackExact": true
+  },
+  "predecessor": {
+    "sourceCommit": "e5ce33550bbd8a4be09a55a6bb3dd73cd3cb8833",
+    "sourceTree": "3d89e7513ed860e08757a07ad8d1fe750937615a",
+    "releaseId": "ynx-video-predecessor-e5ce33550bbd8a4be09a55a6bb3dd73cd3cb8833",
+    "carrier": {
+      "buildCommand": [
+        "/bin/bash",
+        "apps/video/scripts/build-predecessor-runtime.sh",
+        "/private/tmp/ynx-video-predecessor-e5ce335-runtime.tar.gz"
+      ],
+      "referencePath": "/private/tmp/ynx-video-predecessor-e5ce335-runtime-1.tar.gz",
+      "bytes": 13323,
+      "sha256": "6771deb82ccc62a9c14d62ed40e7bda961806ffe3c14681b9cf53ec27afef2df",
+      "repeatBuildByteExact": true,
+      "embeddedManifestBytes": 2151,
+      "embeddedManifestSha256": "30df70e652d519e32dcd7648493b8c17e03425a67ec332efcc826bc50ca366da"
+    },
+    "publicRollbackIdentity": {
+      "url": "https://web4.ynxweb4.com/video/",
+      "capturedAt": "2026-08-23T00:31:12Z",
+      "sourceCommitInferredByExactTrackedBytes": "e5ce33550bbd8a4be09a55a6bb3dd73cd3cb8833",
+      "runtimeIdentityEndpointPresent": false,
+      "resources": [
+        {"path": "/video/", "http": 200, "bytes": 3285, "sha256": "5c6aa1b9207680ff40f77df6d063571f67beff40719d727acf5d2fa0c05b591a"},
+        {"path": "/video/app.js", "http": 200, "bytes": 11585, "sha256": "ff7d300d2c84b0580b53e05524524385914f0547f7c869cee34d7ec0b93f26c4"},
+        {"path": "/video/styles.css", "http": 200, "bytes": 5950, "sha256": "9f0b031c26f2f4f4ffc1fdb1209f85250080fd5c0e76ecb2e5bf2dbca5f15c43"},
+        {"path": "/video/wallet-connection.js", "http": 200, "bytes": 2392, "sha256": "33f5449c96f7b58286b0cc7afa070b0a115210a3c49459e0c4516cfcd72adf9e"},
+        {"path": "/video/i18n.js", "http": 200, "bytes": 1381, "sha256": "b43f600316d2dd5d33c92205e5e1490a093cdc55005072943ad68a6e3311aae4"},
+        {"path": "/video/responsive.css", "http": 200, "bytes": 1564, "sha256": "28078b12ed41f6aacf08e6b0177d8f1dd426755aa638d9b1cf56ab8bdd4502de"},
+        {"path": "/video/ynx-dapp-connect-sdk/discovery.js", "http": 200, "bytes": 799, "sha256": "7e8fed32b7ba6528054743c3cd8fafa95370d1ece0c8541d154ae37f05d75f13"},
+        {"path": "/video/ynx-dapp-connect-sdk/errors.js", "http": 200, "bytes": 2883, "sha256": "e766988819ed54eb7eeb3bf79c7943de30daa7cbaf682d92ec74c68b63f1ed4c"},
+        {"path": "/video/ynx-dapp-connect-sdk/provider.js", "http": 200, "bytes": 4038, "sha256": "67d48625c5c97df7e327f37ae96d4563dee9467078725d65100a2fe752912335"},
+        {"path": "/video/ynx-dapp-connect-sdk/constants.js", "http": 200, "bytes": 755, "sha256": "c07741eab50a665810dd000dd533f51dfd3078d2c829138cba2eb9d3bb91908c"}
+      ]
+    }
+  },
+  "frozenFiles": {
+    "predecessorBuilder": {"path": "apps/video/scripts/build-predecessor-runtime.sh", "blob": "8e4de8e24f1e09b14d2817e1b88c9f73c52d0f8b", "bytes": 2280, "sha256": "c309632fd065ce55714fa5c1a3da3d6bbc1b9cf73ccc8a57adf3b9e04028c172"},
+    "bootstrapExecutor": {"path": "apps/video/scripts/video-runtime-bootstrap.sh", "blob": "1186e1c95fff9b67ce63f06faab11df3dc7247da", "bytes": 8450, "sha256": "c12264f8582522bcafa31ada5f116307081f6f1162a65b0db7d56472373a5a5a"},
+    "deployExecutor": {"path": "apps/video/scripts/video-runtime-executor.sh", "blob": "16d670c5cb163c0894b0e5592c52304d9378c8d8", "bytes": 6025, "sha256": "61ab79afdc1f43ded9dfaa64e592ff4c0f6487d4cfeb2d8f08ee5ccfddaca927"},
+    "unitTemplate": {"path": "apps/video/runtime/ynx-video-viewer-wallet.service", "blob": "d9b7d34ad024dc6343cdc8b82fed1a0c6b01127d", "bytes": 403, "sha256": "bb08d1cdc657a98290c8b90d6b40fca0f896d9c2c055654abdb3859009df6527"},
+    "actualShellTests": {"path": "apps/video/runtime.test.mjs", "blob": "19de8edfc53b19a6b56777c86bbd1c66b96f729a", "bytes": 15347, "sha256": "aeeef89fb3aa982b924545bc79821666b9ee6da4a2f071b711244e77f7a1282b"}
+  },
+  "productionBoundary": {
+    "dedicatedRoot": "/opt/ynx-video-viewer-wallet",
+    "dedicatedCurrent": "/opt/ynx-video-viewer-wallet/current",
+    "dedicatedUnit": "/etc/systemd/system/ynx-video-viewer-wallet.service",
+    "viewerPort": 6494,
+    "serviceUser": "ynx",
+    "serviceGroup": "ynx",
+    "nodeBinary": "/usr/bin/node",
+    "receipt": "/var/lib/ynx-release-evidence/video-viewer-wallet-bootstrap-f1e8ed4c.receipt",
+    "sharedRootForbidden": "/opt/ynx-video/current",
+    "legacyUnitForbidden": "ynx-video-viewer.service",
+    "apiPortForbidden": 6493,
+    "creatorPortForbidden": 6495,
+    "caddyMutationAllowed": false
+  },
+  "literalRemoteCommandObjects": {
+    "bootstrap": {
+      "argv": [
+        "/usr/bin/env",
+        "YNX_VIDEO_EXECUTION_MODE=production",
+        "YNX_VIDEO_LEASE_AUTHORIZED=P0_VIDEO_BOOTSTRAP_SINGLE_USE",
+        "YNX_VIDEO_VIEWER_ROOT=/opt/ynx-video-viewer-wallet",
+        "YNX_VIDEO_VIEWER_UNIT=ynx-video-viewer-wallet.service",
+        "YNX_VIDEO_VIEWER_UNIT_PATH=/etc/systemd/system/ynx-video-viewer-wallet.service",
+        "YNX_VIDEO_PREDECESSOR_RELEASE_ID=ynx-video-predecessor-e5ce33550bbd8a4be09a55a6bb3dd73cd3cb8833",
+        "YNX_VIDEO_PREDECESSOR_CARRIER=/var/tmp/ynx-video-predecessor-e5ce335-runtime.tar.gz",
+        "YNX_VIDEO_PREDECESSOR_CARRIER_SHA256=6771deb82ccc62a9c14d62ed40e7bda961806ffe3c14681b9cf53ec27afef2df",
+        "YNX_VIDEO_PREDECESSOR_SOURCE_COMMIT=e5ce33550bbd8a4be09a55a6bb3dd73cd3cb8833",
+        "YNX_VIDEO_BOOTSTRAP_RECEIPT=/var/lib/ynx-release-evidence/video-viewer-wallet-bootstrap-f1e8ed4c.receipt",
+        "YNX_VIDEO_UNIT_TEMPLATE=/var/tmp/ynx-video-viewer-wallet.service",
+        "YNX_VIDEO_UNIT_TEMPLATE_SHA256=bb08d1cdc657a98290c8b90d6b40fca0f896d9c2c055654abdb3859009df6527",
+        "/bin/bash",
+        "/var/tmp/ynx-video-runtime-bootstrap-f1e8ed4c.sh",
+        "bootstrap"
+      ]
+    },
+    "rollbackBootstrap": {
+      "argv": [
+        "/usr/bin/env",
+        "YNX_VIDEO_EXECUTION_MODE=production",
+        "YNX_VIDEO_LEASE_AUTHORIZED=P0_VIDEO_BOOTSTRAP_SINGLE_USE",
+        "YNX_VIDEO_VIEWER_ROOT=/opt/ynx-video-viewer-wallet",
+        "YNX_VIDEO_VIEWER_UNIT=ynx-video-viewer-wallet.service",
+        "YNX_VIDEO_VIEWER_UNIT_PATH=/etc/systemd/system/ynx-video-viewer-wallet.service",
+        "YNX_VIDEO_PREDECESSOR_RELEASE_ID=ynx-video-predecessor-e5ce33550bbd8a4be09a55a6bb3dd73cd3cb8833",
+        "YNX_VIDEO_PREDECESSOR_CARRIER=/var/tmp/ynx-video-predecessor-e5ce335-runtime.tar.gz",
+        "YNX_VIDEO_PREDECESSOR_CARRIER_SHA256=6771deb82ccc62a9c14d62ed40e7bda961806ffe3c14681b9cf53ec27afef2df",
+        "YNX_VIDEO_PREDECESSOR_SOURCE_COMMIT=e5ce33550bbd8a4be09a55a6bb3dd73cd3cb8833",
+        "YNX_VIDEO_BOOTSTRAP_RECEIPT=/var/lib/ynx-release-evidence/video-viewer-wallet-bootstrap-f1e8ed4c.receipt",
+        "YNX_VIDEO_UNIT_TEMPLATE=/var/tmp/ynx-video-viewer-wallet.service",
+        "YNX_VIDEO_UNIT_TEMPLATE_SHA256=bb08d1cdc657a98290c8b90d6b40fca0f896d9c2c055654abdb3859009df6527",
+        "/bin/bash",
+        "/var/tmp/ynx-video-runtime-bootstrap-f1e8ed4c.sh",
+        "rollback-bootstrap"
+      ]
+    }
+  },
+  "mandatoryFreshPrewrite": [
+    "Central names the exact release-control executor, host and lease expiry.",
+    "Dedicated root /opt/ynx-video-viewer-wallet and dedicated unit path are both absent.",
+    "Legacy ynx-video-viewer.service is already inactive and 127.0.0.1:6494 is unbound; this lease may not stop, disable, restart or edit that legacy unit.",
+    "The current public rollback resources still match every frozen predecessor byte and SHA above.",
+    "The exact /usr/bin/node bytes/version and the existing ynx:ynx service identity are recorded.",
+    "The exact Caddy /video route is read and frozen without authorizing a Caddy write.",
+    "API 6493 and Creator 6495 process/unit/path identities plus response digests are frozen and outside the writable set.",
+    "The three /var/tmp staged files match the frozen carrier, executor and unit-template SHA values before bootstrap."
+  ],
+  "failureSemantics": {
+    "beforeSuccess": "The ERR trap stops/disables only ynx-video-viewer-wallet.service, removes the unit only if its SHA is exact, daemon-reloads, and removes the dedicated root only if its ownership shape is exact.",
+    "afterSuccess": "The one rollback-bootstrap command requires the source-bound receipt, exact current predecessor target and exact unit SHA, then returns the dedicated root and unit to absence.",
+    "unexpectedDedicatedState": "Fail closed without deletion.",
+    "legacyUnitTouched": false,
+    "sharedCurrentTouched": false,
+    "apiOrCreatorTouched": false
+  },
+  "actualShellFixture": {
+    "startsWithDedicatedRootAbsent": true,
+    "startsWithDedicatedUnitAbsent": true,
+    "bootstrapCreatesPredecessorCurrentAndUnit": true,
+    "candidateSwitchThenRollbackRestoresPredecessor": true,
+    "restoredIndexSha256": "5c6aa1b9207680ff40f77df6d063571f67beff40719d727acf5d2fa0c05b591a",
+    "injectedEnableFailureReturnsRootAbsent": true,
+    "injectedEnableFailureReturnsUnitAbsent": true,
+    "sharedCurrentSentinelUnchanged": true,
+    "legacyUnitSentinelUnchanged": true,
+    "api6493SentinelUnchanged": true,
+    "creator6495SentinelUnchanged": true
+  },
+  "verification": {
+    "videoCheck": "PASS_13_OF_13",
+    "i18n": "PASS_12_LOCALES_22_KEYS",
+    "smoke": "PASS",
+    "bashSyntax": "PASS",
+    "json": "PASS",
+    "diffCheck": "PASS",
+    "productionMutationPerformed": false
+  },
+  "requestedPhaseBootstrapLease": {
+    "owner": "video-deploy-owner",
+    "singleUse": true,
+    "nonReusable": true,
+    "writablePaths": [
+      "/opt/ynx-video-viewer-wallet",
+      "/etc/systemd/system/ynx-video-viewer-wallet.service",
+      "/var/lib/ynx-release-evidence/video-viewer-wallet-bootstrap-f1e8ed4c.receipt",
+      "/var/tmp/ynx-video-predecessor-e5ce335-runtime.tar.gz",
+      "/var/tmp/ynx-video-runtime-bootstrap-f1e8ed4c.sh",
+      "/var/tmp/ynx-video-viewer-wallet.service"
+    ],
+    "allowedUnitOperations": [
+      "daemon-reload",
+      "enable --now ynx-video-viewer-wallet.service",
+      "stop ynx-video-viewer-wallet.service on failure or rollback",
+      "disable ynx-video-viewer-wallet.service on failure or rollback"
+    ],
+    "bootstrapCommandCount": 1,
+    "rollbackBootstrapCommandCountOnFailure": 1,
+    "productCandidateDeployAllowed": false,
+    "caddyMutationAllowed": false,
+    "accountRequestAllowed": false,
+    "signatureAllowed": false,
+    "transactionAllowed": false
+  },
+  "truth": {
+    "predecessorBytesFrozen": true,
+    "dedicatedBootstrapExecutorFrozen": true,
+    "dedicatedUnitTemplateFrozen": true,
+    "actualShellAbsentStateBootstrapPassed": true,
+    "actualShellFailureCleanupPassed": true,
+    "productionBootstrapExecuted": false,
+    "productionCandidateDeployed": false,
+    "sourceBoundPublic": false,
+    "productComplete": false
+  },
+  "singleExecutableBlocker": "Central must issue one exact Video-only Phase-bootstrap lease after binding the fresh absent-state, legacy-unit-inactive/6494-free condition, the staged object SHAs and the forbidden 6493/6495/shared topology."
+}
