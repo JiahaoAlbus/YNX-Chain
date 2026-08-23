@@ -5,9 +5,10 @@
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-p0272-remote-state-zero-write-inspection-20260823T154000Z",
   "owner": "finance-release-control-plane-readonly-inspection",
   "executor": "finance-release-control-plane",
-  "status": "ACTIVE_SINGLE_USE",
+  "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0273_P0272_REMOTE_STATE_ZERO_WRITE_INSPECTION",
   "issuedAt": "2026-08-23T15:40:00Z",
   "expiresAt": "2026-08-23T16:10:00Z",
+  "releasedAt": "2026-08-23T15:47:00Z",
   "singleUse": true,
   "reusable": false,
   "productionMutationAllowed": false,
@@ -104,10 +105,40 @@
   },
   "truthBoundary": {
     "readOnlyInspectionOnly": true,
-    "remoteStateKnown": false,
+    "remoteStateKnown": true,
     "cleanupAuthorized": false,
     "deploymentAuthorized": false,
     "rollbackAuthorized": false,
     "accountSignTxAllowed": false
+  },
+  "terminalEvidence": {
+    "ownerCommit": "b4b0bf8720d561e9fa022b9327c569fc75506266",
+    "ownerTree": "eea92b08911baa0d882121d445b69c6d650033e0",
+    "path": "apps/finance/evidence/finance-p0273-p0272-terminal-state-readonly-evidence-20260823.json",
+    "blob": "0c6b4b41ee9743d723b56212429dbb374a521606",
+    "bytes": 5382,
+    "sha256": "03f181baab420761a86b5b6c28452d39e53b9e5ba66189497fd12fc46bd81df4",
+    "sshAttempts": 1,
+    "exitStatus": 0,
+    "retryPerformed": false,
+    "mutationCount": 0,
+    "oldRuntimeExact": true,
+    "currentTarget": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a",
+    "servicePid": 2241003,
+    "serviceNRestarts": 0,
+    "stateAbsent": true,
+    "p0272ExecutorTupleSha256": "64770:4620881:0:0:700:1:18403:regular file|2ab4d1923ce180a35e0247c7ebe0628f2eb58ace0416060edb2d6a25be083fde",
+    "p0272SignedLeaseTupleSha256": "64770:4620882:0:0:600:1:7696:regular file|e46d0d6f9050ee0377750683babd004c4306c48cfb6e52d1f6ab7cdf10ba1986",
+    "stageContainerEmpty": true,
+    "backupContainerEmpty": true,
+    "releaseContainerAbsent": true,
+    "pendingAndManualRollbackAbsent": true,
+    "candidateDeploymentProven": false,
+    "automaticRollbackProven": false
+  },
+  "nextBoundary": {
+    "cleanupLeaseIssued": false,
+    "requiredNextLease": "Wholly-new cleanup-only lease for exactly the two identity-bound P0-272 executor and signed-lease children, proving /opt/ynx/leases/finance identity unchanged and empty after deletion",
+    "deployRollbackLifecycleAuthorized": false
   }
 }

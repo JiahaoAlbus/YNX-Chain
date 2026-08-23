@@ -2020,10 +2020,10 @@
       "worktree": "/private/tmp/ynx-calendar-control-plane.y8FFQt/repo",
       "taskId": "P0-273",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE_SINGLE_USE",
+      "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0273_P0272_REMOTE_STATE_ZERO_WRITE_INSPECTION",
       "acquiredAt": "2026-08-23T15:40:00Z",
       "expiresAt": "2026-08-23T16:10:00Z",
-      "releasedAt": null,
+      "releasedAt": "2026-08-23T15:47:00Z",
       "sourceCommit": "2eba42e2484606baf70d14c7a9ce08024af7ec6d",
       "sourceTree": "7d51ecb5af1a38f7f2a7c6446652656310353c7f",
       "evidenceCommit": "2eba42e2484606baf70d14c7a9ce08024af7ec6d",
@@ -2032,7 +2032,9 @@
       "allowedExceptions": [
         "one exact zero-write read-only SSH inspection and no retry",
         "output only tuples, bytes, hashes, normalized journal class and HTTP metadata; no bodies or values",
-        "no cleanup, deploy, rollback, service lifecycle, Wallet, account, signing or transaction action"
+        "no cleanup, deploy, rollback, service lifecycle, Wallet, account, signing or transaction action",
+        "old runtime exact; P0-272 executor and signed lease remain identity-bound under retained parent",
+        "a wholly-new cleanup-only lease is required before deleting either control file"
       ]
     }
   ]
