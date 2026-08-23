@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "5.0.0",
+  "schemaVersion": "6.0.0",
   "requestType": "CREATOR_STUDIO_BOOTSTRAP_SINGLE_USE_LEASE",
   "requestedExecutor": "release-control-plane",
   "status": "REQUESTED_NOT_AUTHORIZED",
@@ -59,6 +59,82 @@
     "publicRuntimeVerified": false,
     "publicTerminalFixtureCoverage": false,
     "publicTerminalLiveLeaseGateRequired": true
+  },
+  "controlPlanePlacement": {
+    "status": "SOURCE_AND_ACTUAL_SHELL_FIXTURE_VERIFIED_NOT_EXECUTED",
+    "root": "/opt/ynx-release-control-plane/creator-studio",
+    "requireRootAbsent": true,
+    "transport": "apps/creator-studio/release-control-plane-transport.mjs",
+    "transportBytes": 7692,
+    "transportSha256": "dc2161bcdeef40f8d4b430789672ba44343993f75b10ae2ca650f5b013f0dd8a",
+    "canonicalCarrierBytes": 368461,
+    "canonicalCarrierSha256": "80ed4418486985e4ce225d0c92350150e26f21d0abb53bb41c145e70c9600d2e",
+    "stdinExclusivelyCarriesCanonicalCarrier": true,
+    "objectsInExactOrder": [
+      {
+        "name": "release-bootstrap-executor.mjs",
+        "bytes": 14685,
+        "sha256": "bfd51fa79429aab8884301389c8f7737f3d3e2206b2c685f8c68716da8171fad",
+        "mode": 448
+      },
+      {
+        "name": "release-bootstrap-unit.service",
+        "bytes": 568,
+        "sha256": "c66091b013fdb3c34cd427172ae537f5d104c1faca6fc9182b6722cf469a4f11",
+        "mode": 384
+      },
+      {
+        "name": "creator-studio.tar",
+        "bytes": 159232,
+        "sha256": "3f56aa4c3f9d87d27f7cdf19eafc0dacf1da78d83d31def2080f0162d92bdf8a",
+        "mode": 384
+      },
+      {
+        "name": "live-frontend-carrier.tar",
+        "bytes": 101376,
+        "sha256": "be8c68af8cd342539bc2f98955b61c4bc9665867e08d91cd46afc7dcfdc53e27",
+        "mode": 384
+      }
+    ],
+    "receiptBinds": [
+      "ordinary regular file",
+      "nlink=1",
+      "uid",
+      "gid",
+      "mode",
+      "bytes",
+      "sha256",
+      "device",
+      "inode"
+    ],
+    "identityBoundFailureCleanupBeforeForward": true,
+    "preserveExecutorAndRollbackPairAfterForwardBegins": true,
+    "actualShellFixture": {
+      "passed": true,
+      "success": true,
+      "truncationRejected": true,
+      "extraBytesRejected": true,
+      "reorderRejected": true,
+      "malformedRejected": true,
+      "partialPlacementCleaned": true,
+      "sameBytesNewInodeRejectedWithoutDeletion": true,
+      "symlinkRejectedWithoutDeletion": true,
+      "hardlinkRejectedWithoutDeletion": true,
+      "foreignStageRejectedAndPreserved": true,
+      "siblingPreserved": true,
+      "forwardStartRetainsExecutorRollbackPair": true
+    },
+    "exactSudoArgvShape": [
+      "/usr/bin/sudo",
+      "-n",
+      "/usr/bin/node",
+      "-e",
+      "eval(Buffer.from(process.argv[1],\"base64\").toString(\"utf8\"))",
+      "<exact-transport-base64>",
+      "place"
+    ],
+    "executionLimit": 1,
+    "retryAllowed": false
   },
   "studioReleaseDir": "/opt/ynx-creator-studio-wallet/releases/creator-studio-0e1a53c5",
   "rollback": {
