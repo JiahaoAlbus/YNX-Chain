@@ -2172,10 +2172,10 @@
       "worktree": "/private/tmp/ynx-calendar-control-plane.y8FFQt/repo",
       "taskId": "P0-283",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE_SINGLE_USE",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0283_TRANSPORT_CONNECT_TIMEOUT_PRE_REMOTE",
       "acquiredAt": "2026-08-23T17:19:00Z",
       "expiresAt": "2026-08-23T17:49:00Z",
-      "releasedAt": null,
+      "releasedAt": "2026-08-23T17:24:12Z",
       "sourceCommit": "54484d568714ca697a174005114d8f35b4c7c09b",
       "sourceTree": "16ec7e0ac640865494157dccf95561f96512c393",
       "evidenceCommit": "54484d568714ca697a174005114d8f35b4c7c09b",
@@ -2187,7 +2187,10 @@
         "prove both P0-279 controls and both P0-281 temporary files absent and retained parent stable and empty",
         "prove old current, env, absent state, unit, Caddy, service PID/NRestarts and public/loopback metadata unchanged",
         "no cleanup, deploy, rollback, restart, service lifecycle or runtime/public mutation",
-        "P0-282 remains queued and unauthorized until P0-283 terminal release"
+        "P0-282 remains queued and unauthorized until P0-283 terminal release",
+        "the sole SSH attempt timed out before remote script output; no remote state was newly observed",
+        "P0-283 is consumed and nonreusable; cleanupComplete remains false and P0-281 remote receipt is preserved",
+        "only a wholly-new P0-284 zero-write request with fresh transport preflight may follow"
       ]
     }
   ]
