@@ -1,0 +1,74 @@
+{
+  "schemaVersion": "p0-finance-zero-write-inspection-request@1",
+  "kind": "FINANCE_P0289_TERMINAL_REMOTE_STATE_ZERO_WRITE_INSPECTION_REQUEST",
+  "requestStatus": "SOURCE_REQUEST_ONLY_AWAITING_CENTRAL_READONLY_SINGLE_USE_LEASE",
+  "requestId": "P0-290",
+  "predecessor": {
+    "p0289TerminalEvidence": {
+      "path": "apps/finance/evidence/p0-289-finance-deployment-terminal-fail-closed-20260824.json",
+      "knownRemoteExitStatus": 1,
+      "remoteState": "UNKNOWN"
+    },
+    "mustBeReleasedNonReusable": "P0-289"
+  },
+  "scope": {
+    "oneSsh": true,
+    "retryAllowed": false,
+    "remoteWrites": 0,
+    "noRemoteTemporaryFiles": true,
+    "noSecretOutput": true,
+    "noServiceLifecycle": true,
+    "forbidden": ["deployment", "rollback", "cleanup", "delete", "mkdir", "touch", "symlink", "env mutation", "unit mutation", "Caddy mutation", "account", "signature", "transaction"]
+  },
+  "exactPathsToInventory": {
+    "stage": [
+      "/opt/ynx/stage/finance/p0289-finance-phase3-20260824t010000z",
+      "/opt/ynx/stage/finance/p0289-finance-phase3-20260824t010000z/stage"
+    ],
+    "backup": [
+      "/var/backups/ynx-finance/p0289-finance-phase3-20260824t010000z",
+      "/var/backups/ynx-finance/p0289-finance-phase3-20260824t010000z/backup"
+    ],
+    "release": [
+      "/opt/ynx/releases/finance/p0289-finance-phase3-20260824t010000z",
+      "/opt/ynx/releases/finance/p0289-finance-phase3-20260824t010000z/ynx-finance-7824af677dd0",
+      "/opt/ynx/finance-current.next",
+      "/opt/ynx/finance-current.rollback"
+    ],
+    "controls": [
+      "/opt/ynx/leases/finance/p0289-finance-phase3-20260824t010000z.executor.sh.pending",
+      "/opt/ynx/leases/finance/p0289-finance-phase3-20260824t010000z.executor.sh",
+      "/opt/ynx/leases/finance/p0289-finance-phase3-20260824t010000z.json.pending",
+      "/opt/ynx/leases/finance/p0289-finance-phase3-20260824t010000z.json"
+    ],
+    "retainedParents": ["/opt/ynx/stage/finance", "/var/backups/ynx-finance", "/opt/ynx/releases/finance", "/opt/ynx/leases/finance"],
+    "oldRuntime": ["/opt/ynx/finance-current", "/etc/ynx/finance.env", "/etc/systemd/system/ynx-finance.service", "/var/lib/ynx/finance/state.json"],
+    "activeCaddyRouteConfig": "Central must read only the active Finance Caddy route/config path established by its current service routing record, then return its tuple/SHA without reading unrelated Caddy files."
+  },
+  "requiredReadOnlyReceipts": {
+    "paths": "For every exact path: absent or non-symlink full device:inode:uid:gid:mode:nlink:bytes:type tuple; for a present directory also direct child count plus canonical inventory SHA-256. Never enumerate outside the listed path.",
+    "service": ["LoadState", "ActiveState", "SubState", "MainPID", "NRestarts", "ExecStart", "WorkingDirectory", "User", "Group"],
+    "http": "Loopback and public root, health and version each with URL, HTTP status, bytes, body SHA-256 and MIME; stream only, no remote output file.",
+    "env": "Tuple and whole-file SHA-256 only; never output content or values.",
+    "journal": "Bounded normalized class/message SHA and bytes only, if required to classify the remote exit; no secret-bearing raw journal export.",
+    "terminal": "One normalized stdout receipt with inspection kind, remote exit status, all P0289 residue states, old runtime tuples/hashes, service receipt, HTTP receipts and mutationCount=0."
+  },
+  "baselineForComparisonOnly": {
+    "currentRelease": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a",
+    "oldBinarySha256": "0cc43c8a77c12975a0fcbada65971f08f2bc3a52345d547ea194dd3ccd60d83f",
+    "envSha256": "854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252",
+    "unitSha256": "2e72cdad422a3a714c46d074ea97b725233576cf726dbbfd43e82e99c2c2975b",
+    "caddySha256": "dcf75a7aed315c54632321b8bb80e44c0abc22f6700fadfbfa9a7da21b88a282",
+    "servicePid": 2241003,
+    "serviceNRestarts": 0,
+    "health": "200:485:d1e97a4314acd1ecccf94629d15bd598cb58ff78136b3622ac26d583a82e45c1:application/json",
+    "version": "200:130:39789776da47e60b7a7df845789e02ebba16707ad8951eb6f27c84c1b40bb226:application/json"
+  },
+  "truth": {
+    "inspectionExecuted": false,
+    "p0289RemoteStateKnown": false,
+    "deployment": false,
+    "publicVerified": false
+  },
+  "singleBlocker": "Central must issue one new readonly P0-290 lease with exact signed argv/stdin and current protected-host identity."
+}

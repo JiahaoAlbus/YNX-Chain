@@ -1,0 +1,59 @@
+{
+  "schemaVersion": "p0-finance-deployment-terminal-evidence@1",
+  "kind": "FINANCE_P0289_SINGLE_USE_EXECUTION_FAIL_CLOSED",
+  "terminalStatus": "CONSUMED_RELEASED_FAILED_CLOSED_REMOTE_EXIT_1_EMPTY_TERMINAL_REMOTE_STATE_UNKNOWN",
+  "sourceRequest": {
+    "commit": "c10a647ffd2a219083864d83d410a251b43b7e3b",
+    "tree": "43a4bd2a519dcf824de89a9226741736e400d1f9",
+    "path": "apps/finance/evidence/finance-p0289-direct-literal-argv-rollback-first-deployment-request-20260824.json",
+    "blob": "8ae6bb364ba554ee8d462de8315fd55298c71a8e",
+    "bytes": 9131,
+    "sha256": "61aff130e8f59149905988e4f8afbd5ce63daa199a4d1fe461514e5d432dd986"
+  },
+  "execution": {
+    "literalArgvInvokedOnce": true,
+    "outerExecutor": "observed process rc only and did not open, create, redirect, truncate or otherwise touch signed stdout/stderr/receipt paths",
+    "localExitStatus": 1,
+    "sshInvocationCount": 1,
+    "deployInvocationCount": 1,
+    "retryAllowed": false,
+    "retryPerformed": false,
+    "manualRollbackOrCleanupPerformed": false
+  },
+  "terminalFiles": {
+    "transportReceipt": {
+      "exists": true,
+      "bytes": 202,
+      "sha256": "4b7b9f0fb5e91bad194dd7e8f23023c3e390d61b13337aeb5301f3607281abac",
+      "fields": {
+        "transport": "FINANCE_PHASE3_OPENSSH_SERIALIZED",
+        "sshExitStatus": 1,
+        "remoteExitStatus": 1,
+        "stdoutBytes": 0,
+        "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "terminalReceiptValidated": false
+      }
+    },
+    "stdout": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "truth": {
+    "remoteMutation": "UNKNOWN",
+    "residueState": "UNKNOWN",
+    "currentRelease": "UNKNOWN",
+    "serviceState": "UNKNOWN",
+    "deploymentSucceeded": false,
+    "publicVerified": false,
+    "walletAccount": false,
+    "signature": false,
+    "transaction": false
+  },
+  "mandatoryNextBoundary": "No retry, deployment, manual rollback or cleanup is authorized. A wholly new Central-signed zero-write inspection must establish exact P0289 residue, old runtime and HTTP truth before any further mutable action.",
+  "requiredCentralAction": "Atomically release P0-289 as consumed/nonreusable with Heavy=null."
+}
