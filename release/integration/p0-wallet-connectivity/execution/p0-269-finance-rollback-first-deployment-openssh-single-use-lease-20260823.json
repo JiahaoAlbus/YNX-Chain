@@ -5,9 +5,10 @@
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-rollback-first-deployment-openssh-20260823T144200Z",
   "owner": "finance-release-control-plane",
   "executor": "finance-release-control-plane",
-  "status": "ACTIVE_SINGLE_USE",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0269_PRE_SSH_LOCAL_RUNTIME_DEPENDENCY_MISSING_NO_REMOTE_MUTATION",
   "issuedAt": "2026-08-23T14:42:00Z",
   "expiresAt": "2026-08-23T15:12:00Z",
+  "releasedAt": "2026-08-23T14:53:11Z",
   "singleUse": true,
   "reusable": false,
   "productionMutationAllowed": true,
@@ -163,5 +164,31 @@
     "manualRollbackAuthorized": false,
     "walletMutationAllowed": false,
     "accountSignTxAllowed": false
+  },
+  "terminalEvidence": {
+    "ownerCommit": "e7108f3eff755e611ea00e37bffc9e3b73d93696",
+    "ownerTree": "6140e20073c4c7e6572e66c95adbb58d0b98c5b0",
+    "blob": "c352914a0b25d756c532ee3f5f6ee1f0c607c363",
+    "bytes": 1731,
+    "sha256": "ed7d644644585b0bc7514deede63914b88d74b3752d3692a9509704d5e76996f",
+    "remoteExact": true,
+    "clean": true,
+    "exitStatus": 65,
+    "failureClass": "PRE_SSH_LOCAL_RUNTIME_DEPENDENCY_MISSING",
+    "failureReason": "The exact empty process environment left the local transport unable to resolve sha256sum before SSH entry.",
+    "sshAttemptCount": 0,
+    "deployInvocationCount": 0,
+    "remoteMutationPerformed": false,
+    "automaticRollbackInvoked": false,
+    "manualRollbackInvoked": false,
+    "retryPerformed": false,
+    "allFourLocalOutputAndReceiptPathsAbsent": true,
+    "leaseIdTextMismatchPreserved": "Owner evidence leaseId text differs from the immutable Central lease ID; Central commit, tree, lease blob, bytes and SHA256 match exactly and are authoritative.",
+    "nonreusable": true
+  },
+  "successorRequirement": {
+    "leaseIssued": false,
+    "code": "FINANCE_PHASE3_LOCAL_TOOL_RESOLUTION_CONTRACT_REQUIRED",
+    "requirement": "Freeze absolute local tool paths or a minimal signed PATH contract with no secret-bearing environment values, rerun the exact OpenSSH transport fixtures under that environment, and fresh-read the full production baseline before any wholly-new deployment lease."
   }
 }
