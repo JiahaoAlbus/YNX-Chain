@@ -1,0 +1,89 @@
+{
+  "schemaVersion": "p0-finance-stage-backup-container-lifecycle-successor-request@1",
+  "taskId": "P0-302",
+  "status": "SOURCE_ONLY_AWAITING_WHOLELY_NEW_CENTRAL_LEASE",
+  "owner": {
+    "branch": "codex/p0-finance-p0302-stage-backup-containers-20260824",
+    "implementationCommit": "170145e461146b53937d2b8e665008c2a9451db5",
+    "implementationTree": "430dddee86d1428000e35de0f473b1331617a699",
+    "parent": "00a9375d1d5eef1d37656b71924c31929281c9a1"
+  },
+  "centralZeroWriteBoundary": {
+    "commit": "3d5c4b9316a988ab4505ee0962ec22dea2b4ca10",
+    "tree": "f6e77bba8d84141b59c30acee266e44f8c3e24e2",
+    "evidencePath": "release/integration/p0-wallet-connectivity/execution/objects/p0-301-finance-p0300-remote-state-zero-write-terminal-evidence-20260824.json",
+    "evidenceBlob": "99175b020cea1d6cdf0fdb521f0ca1f3821056de",
+    "evidenceSha256": "7ba2c85f26ce2b1c4f0dc7e8ab35965de4ae3702d7dcfe79306efa8cfceceb90",
+    "truth": "P0-300 stageContainer, stage, backupContainer, backup, releaseContainer and release are absent; old runtime is exact and healthy; mutationCount is zero; P0-300 is nonreusable"
+  },
+  "reviewedObjects": [
+    {
+      "path": "apps/finance/scripts/finance-production-rollback-first.sh",
+      "blob": "e96661ccf722a66589384b4f290d39595978067e",
+      "bytes": 25790,
+      "sha256": "a42d4a85c8ba98d55ea890e5978ccc14acd2a4aacb7931ebcbfc51daafdffe8c",
+      "role": "signed-lease-only deploy and manual rollback executor with explicit stage and backup container lifecycle"
+    },
+    {
+      "path": "apps/finance/scripts/test-finance-production-command-object.mjs",
+      "blob": "787dd3d492d502eb1daec0410b9f2e0c99f03023",
+      "bytes": 3126,
+      "sha256": "bd79f04aa47f60158436f40b7ec4945338fb30a5a5213bb0b55f01b52a81125d",
+      "role": "static signed schema and secret-safe command-object regression"
+    },
+    {
+      "path": "apps/finance/scripts/test-finance-production-fixture.mjs",
+      "blob": "c6e19d55ea4241ae2f1120ab6e313dfb2dcca01f",
+      "bytes": 46810,
+      "sha256": "8728b6ddada823458313f52a327099dc4f206e38291d2c4a525b10f21686f251",
+      "role": "production-faithful actual-shell fixture with initially absent lease containers"
+    }
+  ],
+  "rootCauseCorrection": {
+    "priorDefect": "The signed stage and backup leaf paths included a lease-id intermediate directory, but the executor neither signed nor created that directory. The former fixture recursively pre-created both directories and masked the production failure.",
+    "stageContainer": "The new signed lease must bind path, uid, gid and mode for the exact stage parent slash lease id. It must be absent and non-symlink before writes, created no-replace, and captured by device and inode identity before the stage leaf is created.",
+    "backupContainer": "The new signed lease must bind path, uid, gid and mode for the exact backup parent slash lease id. It must be absent and non-symlink before writes, created no-replace, and captured by device and inode identity before the backup leaf is created.",
+    "cleanup": "Every failure and automatic rollback removes only an exact identity and inventory matched leaf, then only its exact empty identity matched container. Foreign, non-empty, symlinked or substituted objects are preserved and cause terminal fail-closed status.",
+    "success": "A successful deployment removes the exact empty stage leaf and stage container before the switch, retains the exact backup leaf and backup container as rollback material, and emits both full tuples, identity tuples and inventory hashes.",
+    "manualRollback": "The separately signed manual rollback lease must consume the emitted backupContainer and backup receipts, prove stage and stageContainer remain absent, restore the old runtime, remove only the exact backup leaf, and remove only the exact empty backup container."
+  },
+  "localValidation": {
+    "bashSyntax": true,
+    "commandObject": "PASS",
+    "productionActualShell": "PASS",
+    "phase3StdinBootstrap": "PASS",
+    "diffCheck": "PASS",
+    "coverage": [
+      "stage and backup lease containers begin absent in the real executor fixture",
+      "positive deploy creates both containers without recursive parent fabrication",
+      "successful deploy removes stage leaf and container while retaining exact backup leaf and container",
+      "candidate verification failure automatically restores the old runtime and removes all exact stage and backup objects",
+      "manual rollback consumes only receipt-derived backup leaf and container bindings then removes both",
+      "missing retained parent fails before any child write",
+      "foreign and symlink prewrite objects are preserved",
+      "foreign, non-empty and symlink substitutions immediately after mkdir fail before ownership mutation and are preserved",
+      "leaf creation failure removes only the exact empty created container",
+      "stdin bootstrap starts with all six mutable deployment paths absent and preserves the expanded success receipt"
+    ]
+  },
+  "requestedWhollyNewLease": {
+    "scope": "Finance-only single-use rollback-first deployment using a fresh P0-302 successor namespace",
+    "requiredFreshBindings": [
+      "current release, binary, env, unit, Caddy, state, service PID and NRestarts, six HTTP receipts",
+      "immutable carrier, archive and candidate env tuples, bytes and SHA-256",
+      "retained stage, backup and release parent tuples",
+      "stageContainer, stage, backupContainer, backup, releaseContainer and release absence",
+      "exact reviewed executor, stdin bootstrap, signed stdin bytes and literal launcher argv",
+      "stageContainer and backupContainer path, uid, gid and mode contracts"
+    ],
+    "terminalSuccess": "Retain only the signed backup leaf and backup container, release container, release, and exact control objects; current and service must match the candidate and all candidate gates.",
+    "terminalFailure": "Restore the exact old runtime and remove only identity-bound owned objects; substituted or foreign objects remain and force fail closed.",
+    "manualRollback": "Requires a separately signed rollback lease constructed only from the terminal success receipt, including backupContainer and backup bindings."
+  },
+  "prohibited": [
+    "No production write, SSH, deploy, restart, current-link, env, unit, Caddy or public mutation occurred in this source continuation.",
+    "No secret body, private key, recovery material, account request, signature or transaction is requested or emitted.",
+    "P0-300 and P0-301 are nonreusable and grant no authority to this request."
+  ],
+  "singleExecutableBlocker": "Central must independently review the exact P0-302 objects, freshly bind the production baseline and new six-path namespace, and issue a wholly new Finance-only single-use lease before any production action."
+}
