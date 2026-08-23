@@ -86,6 +86,15 @@
       "sha256": "cccdae8ae5b5f694ca7db68540da30582564ff741978e616f7435d448a20fe3e",
       "architecture": "ELF x86-64"
     },
+    "webAssets": [
+      {"pathWithinArchive": "web/index.html", "bytes": 11128, "sha256": "5d95950e9bccbd1012265b3f96eef6ddf2111b0dbd16315583060871ed5328ca"},
+      {"pathWithinArchive": "web/app.js", "bytes": 14970, "sha256": "7684dc198cbd91cca40bed56e00c07a1fd49dbe87ea75b18d9141683ba65718b"},
+      {"pathWithinArchive": "web/read-sources.js", "bytes": 1440, "sha256": "3812db52ff26bdb3a6fcd3aed0784070306d0097e5c694f27e4c4790913bf3c0"},
+      {"pathWithinArchive": "web/styles.css", "bytes": 12073, "sha256": "35c6bb6bc2cb3b8846e848eae32e4fb195d0054ffa209a1fdf91f2ea78cb881c"},
+      {"pathWithinArchive": "web/manifest.webmanifest", "bytes": 241, "sha256": "3f7bec35f54aad6a095151e9d4d553e7ea10cbbbcc9e16f0f3fe7abd242b6d05"},
+      {"pathWithinArchive": "web/ynx-logo.png", "bytes": 104171, "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"},
+      {"pathWithinArchive": "web/wallet-connect.js", "bytes": 19446, "sha256": "44a2054a7f58bf0458ff466a3f9c4d1a391adab20c321fef74977e8fa2fd4690"}
+    ],
     "candidateEnv": {
       "path": "/opt/ynx/stage/finance/p0228-finance-phase1-20260822T234100Z/finance.env",
       "fullTuple": "64770:4620873:0:986:640:1:1545:regular file",
