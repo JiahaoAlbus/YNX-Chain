@@ -1,0 +1,76 @@
+{
+  "schemaVersion": "p0-finance-retained-parent-cross-stage-successor-request@1",
+  "kind": "FINANCE_ROLLBACK_FIRST_DEPLOYMENT_RETAINED_PARENT_CROSS_STAGE_SUCCESSOR",
+  "requestState": "AWAITING_WHOLELY_NEW_CENTRAL_SINGLE_USE_LEASE",
+  "supersedes": {
+    "p0271": "NO_GO_FULL_PRODUCTION_ACTUAL_SHELL_FIXTURE_OBSOLETE_ABSENT_PARENT_CONTRACT",
+    "reviewedP0271Request": "fec5cef2d04b9fe74ea63d3187aebe1451a8488d"
+  },
+  "reviewedCommandCheckpoint": {
+    "commit": "c7e485ff6c3a025d649f9fe71e761c41d77cee50",
+    "tree": "c46b71112718700b8303094012f14b483ee78147",
+    "nonSelfReferential": true
+  },
+  "retainedLeaseParent": {
+    "path": "/opt/ynx/leases/finance",
+    "bootstrapArgumentIndex": 4,
+    "mustExistBeforeInvocation": true,
+    "mustBe": ["directory", "non-symlink", "canonical realpath", "fresh full tuple", "expected owner/group/mode"],
+    "forbiddenOperations": ["mkdir", "rmdir", "replace", "delete"],
+    "childPlacement": "Only new P0272 lease-specific pending/final executor and signed-lease child files may be created with no-clobber. Before deploy failure, finalization deletes only matching inode- and SHA-bound children and rechecks the parent full tuple. After deploy starts, the retained pair remains the separately signed manual-rollback boundary.",
+    "bootstrap": {
+      "path": "apps/finance/scripts/finance-phase3-stdin-deployment-bootstrap.sh",
+      "blob": "42148d1cf69a0fc60dafa302808c9ff0149c9309",
+      "bytes": 5001,
+      "sha256": "1a57420a0f0c932aa5234166c7aaa81d3743f384016b9a0f26360e7657db570d"
+    },
+    "bootstrapFixture": {
+      "path": "apps/finance/scripts/test-finance-phase3-stdin-deployment-bootstrap-fixture.mjs",
+      "blob": "b7184086a9009abb0cf9a5426ced5823f0fc8325",
+      "bytes": 11695,
+      "sha256": "5f7a121a37620ed86f7fe1e5a3cfe284b1b3b70ebbc2c427bde3399f4ecff99b"
+    },
+    "fullActualShellFixture": {
+      "path": "apps/finance/scripts/test-finance-production-fixture.mjs",
+      "blob": "c4631f22b601ae464ec6dc9699a16fb3acdcbe31",
+      "bytes": 39525,
+      "sha256": "e065a3539fa4fba814688c60e0af7475f8d23bbb44375a401be880c320684a94",
+      "crossStageAssertions": ["pre-existing Finance lease parent", "exact parent tuple passed at bootstrap index 4", "stable parent identity unchanged after child placement", "only lease-specific controls retained after deploy" ]
+    }
+  },
+  "transport": {
+    "environment": {},
+    "literalArgvLength": 25,
+    "oneSshAndOneDeployOnly": true,
+    "noRetry": true,
+    "absoluteTools": {
+      "path": "apps/finance/scripts/finance-phase3-openssh-serialized-command.sh",
+      "blob": "93bc85466ce876c791f34c74a57816e13536a6c1",
+      "bytes": 2844,
+      "sha256": "7e02fef69c6589274159d1c5769f828f0e2632c919e4b59af29db753a3ce4192"
+    },
+    "emptyEnvironmentFixture": {
+      "path": "apps/finance/scripts/test-finance-phase3-openssh-serialized-command-fixture.mjs",
+      "blob": "766dd0d54ac9b70c5d4bea24251499cffafa2170",
+      "bytes": 3733,
+      "sha256": "7c93449eb662d1cc724ef1af62af89d8997e526f7ca4398389781ace1539c6ab"
+    },
+    "rollback": "Automatic rollback is executor-only on first deploy failure. A manual rollback is forbidden unless Central signs a distinct later lease."
+  },
+  "freshNamespace": {
+    "idPattern": "p0272-finance-phase3-<Central-UTC-timestamp>",
+    "localTemp": ["/tmp/ynx-finance-p0272-phase3-signed.json", "/tmp/ynx-finance-p0272-phase3.stdout", "/tmp/ynx-finance-p0272-phase3.stderr", "/tmp/ynx-finance-p0272-phase3.receipt", "/tmp/ynx-finance-p0272-phase3.receipt.pending"],
+    "remote": ["/opt/ynx/leases/finance/<id>.executor.sh.pending", "/opt/ynx/leases/finance/<id>.executor.sh", "/opt/ynx/leases/finance/<id>.json.pending", "/opt/ynx/leases/finance/<id>.json", "/opt/ynx/stage/finance/<id>", "/var/backups/ynx-finance/<id>", "/opt/ynx/releases/finance/<id>", "/opt/ynx/releases/finance/<id>/ynx-finance-7824af677dd0"],
+    "allLeaseSpecificTargetsAbsentAndNonSymlink": true
+  },
+  "requiredFreshBindings": ["P0-268 old runtime/service/current/env/unit/Caddy/state/public-loopback evidence", "P0-236 archive/env/binary/assets identity", "retained Finance lease parent tuple and owner/group/mode", "root:ynx traversal preflight", "all P0272 stage/backup/release/control targets absent and non-symlink", "literal argv and signed stdin bytes"],
+  "tests": {
+    "fullProductionActualShellFixture": true,
+    "retainedParentBootstrapFixture": true,
+    "emptyEnvironmentTransportFixture": true,
+    "productionCommandObjectGate": true,
+    "syntaxAndDiff": true
+  },
+  "truth": {"leaseIssued": false, "sshExecuted": false, "deployed": false, "publicVerified": false, "walletAccountOrTransactionAction": false},
+  "singleBlocker": "Central must issue a fresh P0272 single-use deployment lease binding the existing Finance lease-parent tuple at bootstrap argv index 4 and all new P0272 targets."
+}
