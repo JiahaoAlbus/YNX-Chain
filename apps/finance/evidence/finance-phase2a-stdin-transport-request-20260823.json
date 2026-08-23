@@ -1,1 +1,20 @@
-{"kind":"FINANCE_PHASE2A_STDIN_TRANSPORT_REQUEST_ONLY","supersedes":"finance-phase2a-placement-request-20260823.json","central":{"commit":"f971effaea38b9346fa28c3977e1cb0a9a6bd6b7","tree":"98878d0c321d93c72abb288ff8487dc5d29faa7a","recordBlob":"ed3f17e1f346449225f2c9360aa77058df8b9d2f","recordSha256":"6dcdcb66a856be54ae2d1a2883a47f6c75ba262f1eab2c9de49cd50fc6977db0"},"owner":{"parent":"6a5544fc9388aabe75d71c0ed99e070c73943413","tree":"8b265b14765bbee92b2601d6c60265a8ac15ccb8"},"carrier":{"format":"YNX-FINANCE-P2A-1 fixed archive.tgz,generator.sh,phase2b.sh frames","remoteArgv":"ssh HOST /bin/bash -c BOOTSTRAP_BASE64_AND_BASH_C phase2a BOOTSTRAP_BASE64 ID CARRIER TUPLES","stdinOnly":true},"forbidden":["ssh without lease","env","generator execution","phase2b execution","carrier write","deploy","restart","current","unit","Caddy","public","account","sign","tx","secret output"],"truth":{"leaseIssued":false,"executed":false,"productionMutation":false}}
+{
+  "kind": "FINANCE_PHASE2A_STDIN_TRANSPORT_REQUEST_ONLY",
+  "supersedes": "finance-phase2a-placement-request-20260823.json",
+  "central": {"commit": "f971effaea38b9346fa28c3977e1cb0a9a6bd6b7", "tree": "98878d0c321d93c72abb288ff8487dc5d29faa7a", "recordBlob": "ed3f17e1f346449225f2c9360aa77058df8b9d2f", "recordSha256": "6dcdcb66a856be54ae2d1a2883a47f6c75ba262f1eab2c9de49cd50fc6977db0"},
+  "owner": {"predecessor": "eac7a1977aad243ffa954bb2d0cda1b8c9d6a33e", "tree": "7ab1354ffcd56a4160020f73da343acf74927ea6"},
+  "settledTuples": {"root": "64770:1312502:0:0:755:47:4096:directory", "stage": "64770:3450040:0:0:750:3:4096:directory", "finance": "64770:3450041:0:0:750:3:4096:directory", "leases": "64770:3450042:0:0:750:3:4096:directory", "leaseParent": "64770:4594820:0:0:750:2:4096:directory", "carrier": "64770:4594821:0:0:700:2:4096:directory"},
+  "carrierEmpty": true,
+  "literalRemoteArgvTemplate": "ssh HOST /bin/bash -c 'boot=$(printf %s \"$1\" | base64 -d); shift; /bin/bash -c \"$boot\" phase2a \"$@\"' phase2a BOOTSTRAP_BASE64 ID CARRIER ROOT_TUPLE STAGE_PARENT_TUPLE STAGE_TUPLE LEASES_PARENT_TUPLE LEASE_PARENT_TUPLE CARRIER_TUPLE",
+  "stdinCarrierFormat": "YNX-FINANCE-P2A-1; fixed ordered base64 frames",
+  "transportObjects": [
+    {"name":"bootstrap","path":"apps/finance/scripts/finance-phase2a-stdin-bootstrap.sh"},
+    {"name":"builder","path":"apps/finance/scripts/build-finance-phase2a-stdin-carrier.mjs"},
+    {"name":"fixture","path":"apps/finance/scripts/test-finance-phase2a-stdin-fixture.mjs"},
+    {"name":"handoff","path":"apps/finance/FINANCE_PHASE2A_STDIN_TRANSPORT_REQUEST_20260823.md"}
+  ],
+  "payloadFrames": [{"name":"archive.tgz","mode":"0600","order":1},{"name":"generator.sh","mode":"0700","order":2},{"name":"phase2b.sh","mode":"0700","order":3}],
+  "tests": {"success":true,"truncation":true,"reorder":true,"lengthMismatch":true,"shaMismatch":true,"extraBytes":true,"symlink":true,"regularSubstitution":true,"frame2Cleanup":true,"frame3Cleanup":true,"leaseParentSiblingPreserved":true,"carrierNonempty":true,"tupleDrift":true},
+  "forbidden": ["ssh without lease","env read","generator execution","phase2b execution","carrier write","deploy","restart","current","unit","Caddy","public","account","sign","tx","secret output"],
+  "truth": {"leaseIssued":false,"executed":false,"productionMutation":false,"deployedPublic":false}
+}
