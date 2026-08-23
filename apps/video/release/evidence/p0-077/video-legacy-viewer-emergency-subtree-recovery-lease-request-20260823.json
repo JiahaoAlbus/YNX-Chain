@@ -1,9 +1,11 @@
 {
-  "schemaVersion": "ynx-video-legacy-viewer-emergency-subtree-recovery-request/1",
-  "generatedAt": "2026-08-23T04:30:00Z",
+  "schemaVersion": "ynx-video-legacy-viewer-emergency-subtree-recovery-request/2",
+  "generatedAt": "2026-08-23T04:35:00Z",
   "status": "REQUESTED_NO_PRODUCTION_AUTHORITY",
   "incident": {
-    "cause": "P0-237 stopped the legacy Viewer and its automatic recovery could not start because the unchanged Creator shared-current target lacks apps/video/server.mjs.",
+    "cause": "P0-237 stopped the legacy Viewer and its automatic recovery could not start because the unchanged Creator shared-current target lacks apps/video/server.mjs. P0-238 did not enter the recovery script because its remote shell transport split the expected symbolic-link tuple at its embedded space; production remained unchanged.",
+    "p0238ScriptEntered": false,
+    "p0238ProductionMutation": false,
     "legacyUnit": "ynx-video-viewer.service",
     "state": "failed",
     "nRestarts": 5,
@@ -12,10 +14,13 @@
     "creator6495Healthy": true
   },
   "successor": {
-    "script": {"path": "apps/video/scripts/video-legacy-viewer-emergency-recovery.sh", "blob": "e46f2085779b35bf6f420ba3145b8d8dbdd5b88f", "bytes": 7521, "sha256": "d07748594ab2007b665d6c34b055f13759ebb8de28362d4697c426c4e819b503"},
-    "fixture": {"path": "apps/video/emergency-recovery.test.mjs", "blob": "4051abcfd3613798573fbf501ab8f2ff51c38ce7", "bytes": 4656, "sha256": "ad9b6d953a3d8f6a173820edd8b9a6dae1ee71f0be371aab43e355ff2b50f1ea"},
+    "implementationCommit": "91819424aec3dd6e02581c740f9f3e31a5fcc0d5",
+    "implementationTree": "6504d139bc2f8abca6717c7fcaa1e0127cc85b96",
+    "implementationParent": "5d32f8f11e487fb5152dec5b6c4915bac2ffd023",
+    "script": {"path": "apps/video/scripts/video-legacy-viewer-emergency-recovery.sh", "blob": "7aeaf01b82ee034195e2676c1327f84872f25abe", "bytes": 7792, "sha256": "a1acb36475baed0bbee6c1b41568dc241549680cc88273241b26953024855cc3"},
+    "fixture": {"path": "apps/video/emergency-recovery.test.mjs", "blob": "ca6d8d75bc90b5e96461c2b6985131205732c475", "bytes": 5411, "sha256": "faa8cc0549c9f9941ba10adb0254a4900a55579c34cb1bc2ef9a43d7a61150dc"},
     "package": {"path": "apps/video/package.json", "blob": "acb1ad0471d9b99d8cb8bb80828d11b1ab0e7066", "bytes": 610, "sha256": "95470a3796dff7e91a3b32ba74876ca565157760b8458605d1776956f3679dbb"},
-    "tests": {"video": "22/22", "emergencyFixture": "3/3", "sameByteReplacementInodeRefused": true, "i18n": "12 locales x 22 keys", "bashSyntax": true, "diffCheck": true}
+    "tests": {"video": "23/23", "emergencyFixture": "4/4", "sameByteReplacementInodeRefused": true, "actualShellSpaceBearingTupleTransport": true, "i18n": "12 locales x 22 keys", "bashSyntax": true, "diffCheck": true}
   },
   "freshProductionBindings": {
     "sharedCurrent": {"path": "/opt/ynx-video/current", "tuple": "64770:1324617:0:0:777:1:53:symbolic link", "target": "/opt/ynx-video/releases/p0205-creator-studio-0e1a53c5"},
@@ -30,8 +35,9 @@
   },
   "requestedSingleUseExecution": {
     "leaseToken": "P0_VIDEO_LEGACY_SUBTREE_RECOVERY_SINGLE_USE",
-    "upload": {"localPath": "apps/video/scripts/video-legacy-viewer-emergency-recovery.sh", "remotePath": "/var/tmp/ynx-video-legacy-viewer-emergency-recovery.sh", "sha256": "d07748594ab2007b665d6c34b055f13759ebb8de28362d4697c426c4e819b503", "mode": "0755", "count": 1},
-    "argv": ["sudo", "env", "YNX_VIDEO_EXECUTION_MODE=production", "YNX_VIDEO_LEASE_AUTHORIZED=P0_VIDEO_LEGACY_SUBTREE_RECOVERY_SINGLE_USE", "YNX_VIDEO_SHARED_CURRENT=/opt/ynx-video/current", "YNX_VIDEO_SHARED_TARGET=/opt/ynx-video/releases/p0205-creator-studio-0e1a53c5", "YNX_VIDEO_SHARED_LINK_TUPLE=64770:1324617:0:0:777:1:53:symbolic link", "YNX_VIDEO_SHARED_TARGET_TUPLE=64770:2621453:995:986:755:3:4096:directory", "YNX_VIDEO_SHARED_APPS_TUPLE=64770:2663541:995:986:755:3:4096:directory", "YNX_VIDEO_PREDECESSOR_CARRIER=/var/tmp/ynx-video-predecessor-e5ce335-runtime.tar.gz", "YNX_VIDEO_PREDECESSOR_CARRIER_SHA256=6771deb82ccc62a9c14d62ed40e7bda961806ffe3c14681b9cf53ec27afef2df", "YNX_VIDEO_LEGACY_UNIT=ynx-video-viewer.service", "YNX_VIDEO_LEGACY_UNIT_PATH=/etc/systemd/system/ynx-video-viewer.service", "YNX_VIDEO_LEGACY_UNIT_SHA256=c0518f813134f2879382cc3f7c999f8abf9b4660c513bc2651487a6fe9ed29c9", "YNX_VIDEO_CADDY_PATH=/etc/caddy/Caddyfile", "YNX_VIDEO_CADDY_SHA256=077fe80ea9aab24a32d64ba1fab3584e8aab10304e200e58d976d2c33edfb39f", "YNX_VIDEO_RECOVERY_RECEIPT=/var/lib/ynx-video-viewer-wallet-evidence/video-legacy-viewer-emergency-recovery.receipt", "/var/tmp/ynx-video-legacy-viewer-emergency-recovery.sh", "recover"],
+    "upload": {"localPath": "apps/video/scripts/video-legacy-viewer-emergency-recovery.sh", "remotePath": "/var/tmp/ynx-video-legacy-viewer-emergency-recovery.sh", "sha256": "a1acb36475baed0bbee6c1b41568dc241549680cc88273241b26953024855cc3", "mode": "0755", "count": 1},
+    "transport": "The only space-bearing expected tuple is canonical base64 in one environment assignment. The script rejects the raw tuple variable, decodes exactly once, and requires canonical re-encoding before any binding or mutation.",
+    "argv": ["sudo", "env", "YNX_VIDEO_EXECUTION_MODE=production", "YNX_VIDEO_LEASE_AUTHORIZED=P0_VIDEO_LEGACY_SUBTREE_RECOVERY_SINGLE_USE", "YNX_VIDEO_SHARED_CURRENT=/opt/ynx-video/current", "YNX_VIDEO_SHARED_TARGET=/opt/ynx-video/releases/p0205-creator-studio-0e1a53c5", "YNX_VIDEO_SHARED_LINK_TUPLE_B64=NjQ3NzA6MTMyNDYxNzowOjA6Nzc3OjE6NTM6c3ltYm9saWMgbGluaw==", "YNX_VIDEO_SHARED_TARGET_TUPLE=64770:2621453:995:986:755:3:4096:directory", "YNX_VIDEO_SHARED_APPS_TUPLE=64770:2663541:995:986:755:3:4096:directory", "YNX_VIDEO_PREDECESSOR_CARRIER=/var/tmp/ynx-video-predecessor-e5ce335-runtime.tar.gz", "YNX_VIDEO_PREDECESSOR_CARRIER_SHA256=6771deb82ccc62a9c14d62ed40e7bda961806ffe3c14681b9cf53ec27afef2df", "YNX_VIDEO_LEGACY_UNIT=ynx-video-viewer.service", "YNX_VIDEO_LEGACY_UNIT_PATH=/etc/systemd/system/ynx-video-viewer.service", "YNX_VIDEO_LEGACY_UNIT_SHA256=c0518f813134f2879382cc3f7c999f8abf9b4660c513bc2651487a6fe9ed29c9", "YNX_VIDEO_CADDY_PATH=/etc/caddy/Caddyfile", "YNX_VIDEO_CADDY_SHA256=077fe80ea9aab24a32d64ba1fab3584e8aab10304e200e58d976d2c33edfb39f", "YNX_VIDEO_RECOVERY_RECEIPT=/var/lib/ynx-video-viewer-wallet-evidence/video-legacy-viewer-emergency-recovery.receipt", "/var/tmp/ynx-video-legacy-viewer-emergency-recovery.sh", "recover"],
     "mutationCount": 1,
     "retryAllowed": false
   },
