@@ -427,25 +427,25 @@
     }
   ],
   "heavy": {
-    "owner": "website-release-control-plane-wallet-artifact-only",
-    "taskId": "P0-259",
-    "status": "ACTIVE_SINGLE_USE",
+    "owner": null,
+    "taskId": null,
+    "status": "IDLE",
     "acquiredAt": "2026-08-23T11:32:52Z",
     "expiresAt": "2026-08-23T12:02:52Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-23T11:40:20Z",
     "sourceCommit": "be26edbd67c512e22a4f373206d5d82af4c6b0d4",
     "evidenceCommit": "be26edbd67c512e22a4f373206d5d82af4c6b0d4",
     "runtimeHost": "vercel:dpl_CBz4cfFxf9WsMDzeLqzaPJGiXLZd:www.ynxweb4.com",
     "currentRuntime": "DPL_574RBU3XBZE4BH1JYGV2YJRUAYFZ_WWW_HTML_FALLBACK_NOT_HOSTED",
     "candidateRuntime": "DPL_CBZ4CFFXF9WSMDZELQZAPJGIXLZD_READY_EXACT_GIT_PREVIEW_PENDING_AUTHENTICATED_GATE",
     "artifactSha256": "2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d",
-    "productionMutationAllowed": true,
+    "productionMutationAllowed": false,
     "singleUse": true,
     "reusable": false,
     "previousOwner": "website-release-control-plane-wallet-artifact-only",
     "previousTaskId": "P0-258",
-    "reviewDecision": "GO_WALLET_TEMPORARY_OFFICIAL_DOMAIN_PREFLIGHT_ALIAS_THEN_WWW_ALIAS_SINGLE_USE",
-    "reason": "P0-258 is released and nonreusable. The exact temporary hostname has no explicit DNS record or existing Vercel alias, is reachable through the controlled wildcard TLS path, and currently returns exact Vercel 404 DEPLOYMENT_NOT_FOUND. The temporary alias must be removed and proven absent before any www alias switch."
+    "reviewDecision": "CONSUMED_RELEASED_FAILED_CLOSED_WALLET_TEMP_PREFLIGHT_ALIAS_REMOVED",
+    "reason": "The exact temporary alias was created once and pointed to the exact preview, but all four resource reads returned Vercel SSO 302 text/plain no-store with the same Redirecting body. The temporary alias was removed exactly once and proven absent with 404 DEPLOYMENT_NOT_FOUND before any www mutation. P0-259 is consumed and nonreusable."
   },
   "wave": {
     "id": "B-financial-apps-quant",
