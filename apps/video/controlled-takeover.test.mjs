@@ -116,7 +116,8 @@ cat '${join(control, "caddy")}'
   const dedicatedRoot = join(dir, "dedicated-root");
   const dedicatedUnitPath = join(dir, "dedicated-unit.service");
   executable(bootstrap, `#!/bin/sh
-printf '%s\n' "$1" >> '${join(control, "bootstrap.log")}'
+printf '%s:%s\n' "$YNX_VIDEO_LEASE_AUTHORIZED" "$1" >> '${join(control, "bootstrap.log")}'
+test "$YNX_VIDEO_LEASE_AUTHORIZED" = P0_VIDEO_BOOTSTRAP_SINGLE_USE || exit 77
 case "$1" in
   bootstrap)
     test "$(cat '${join(control, "failure")}')" != bootstrap || exit 1
@@ -129,6 +130,7 @@ esac
   const env = {
     ...process.env,
     YNX_VIDEO_EXECUTION_MODE: "fixture",
+    YNX_VIDEO_LEASE_AUTHORIZED: "P0_VIDEO_CONTROLLED_TAKEOVER_SINGLE_USE",
     YNX_VIDEO_FIXTURE_CONTROL: control,
     YNX_VIDEO_LEGACY_UNIT: "ynx-video-viewer.service",
     YNX_VIDEO_VIEWER_UNIT: "ynx-video-viewer-wallet.service",
@@ -173,6 +175,10 @@ test("controlled takeover freezes predecessor, switches once, and restores a ver
   assert.equal(readFileSync(join(f.receiptContainer, "unrelated-sibling"), "utf8"), "preserve me\n");
   assert.match(readFileSync(join(f.control, "systemctl.log"), "utf8"), /stop ynx-video-viewer\.service/);
   assert.match(readFileSync(join(f.control, "systemctl.log"), "utf8"), /start ynx-video-viewer\.service/);
+  assert.equal(
+    readFileSync(join(f.control, "bootstrap.log"), "utf8"),
+    "P0_VIDEO_BOOTSTRAP_SINGLE_USE:bootstrap\nP0_VIDEO_BOOTSTRAP_SINGLE_USE:rollback-bootstrap\n"
+  );
   const urls = readFileSync(join(f.control, "curl.log"), "utf8");
   assert.match(urls, /^http:\/\/127\.0\.0\.1:6495\/creator-studio\.manifest\.json$/m);
   assert.doesNotMatch(urls, /\/release-manifest\.json/);

@@ -203,7 +203,7 @@ trap release_lock EXIT
 restore_legacy() {
   set +e
   if [[ -f "$bootstrap_receipt" ]]; then
-    "$bootstrap" rollback-bootstrap
+    env YNX_VIDEO_LEASE_AUTHORIZED=P0_VIDEO_BOOTSTRAP_SINGLE_USE "$bootstrap" rollback-bootstrap
     bootstrap_code=$?
   elif [[ ! -e "$dedicated_root" && ! -L "$dedicated_root" && ! -e "$dedicated_unit_path" && ! -L "$dedicated_unit_path" ]]; then
     bootstrap_code=0
@@ -261,7 +261,7 @@ if ! port_free; then
   false
 fi
 
-"$bootstrap" bootstrap
+env YNX_VIDEO_LEASE_AUTHORIZED=P0_VIDEO_BOOTSTRAP_SINGLE_USE "$bootstrap" bootstrap
 assert_hashes "$viewer_expected"
 systemctl_exact is-active --quiet "$dedicated_unit"
 cp "$receipt" "${receipt}.complete"
