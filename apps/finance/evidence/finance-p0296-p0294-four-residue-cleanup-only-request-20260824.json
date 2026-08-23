@@ -1,0 +1,46 @@
+{
+  "schemaVersion": "p0-finance-cleanup-only-request@1",
+  "kind": "FINANCE_P0294_FOUR_RESIDUE_CLEANUP_ONLY_REQUEST",
+  "requestStatus": "SOURCE_REQUEST_ONLY_AWAITING_NEW_CENTRAL_SINGLE_USE_CLEANUP_LEASE",
+  "requestId": "P0-296",
+  "predecessor": {
+    "p0295TerminalEvidence": "apps/finance/evidence/p0-295-finance-p0294-bootstrap-boundary-zero-write-terminal-evidence-20260824.json",
+    "status": "DIRECT_ZERO_WRITE_SUCCESS",
+    "p0294MustRemainNonReusable": true
+  },
+  "cleanupScope": {
+    "oneSsh": true,
+    "oneCleanupInvocation": true,
+    "retryAllowed": false,
+    "permittedMutations": ["unlink two exact P0294 control files", "rmdir two exact empty P0294 containers"],
+    "forbidden": ["deploy", "rollback", "restart", "service lifecycle", "current link mutation", "env/state/unit/Caddy mutation", "release mutation", "account", "signature", "transaction", "delete a sibling or parent"]
+  },
+  "prewriteIdentityContract": {
+    "controls": [
+      {"path": "/opt/ynx/leases/finance/p0294-finance-phase3-20260824t020000z.executor.sh", "fullTuple": "64770:4620810:0:0:700:1:19070:regular file", "bytes": 19070, "sha256": "4446b9245ee81256bf02b6b46960e70ff83caa83838e91f6f80034b5a1fc5741"},
+      {"path": "/opt/ynx/leases/finance/p0294-finance-phase3-20260824t020000z.json", "fullTuple": "64770:4620811:0:0:600:1:7409:regular file", "bytes": 7409, "sha256": "102c4cabac131eef5ccfb16ac76b95509116ba38768924d9f9b9baab798b96fb"}
+    ],
+    "emptyContainers": [
+      {"path": "/opt/ynx/stage/finance/p0294-finance-phase3-20260824t020000z", "fullTuple": "64770:4620812:0:0:700:2:4096:directory", "directChildren": 0, "inventorySha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+      {"path": "/var/backups/ynx-finance/p0294-finance-phase3-20260824t020000z", "fullTuple": "64770:2663622:0:0:700:2:4096:directory", "directChildren": 0, "inventorySha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
+    ],
+    "mustStayAbsent": [
+      "/opt/ynx/leases/finance/p0294-finance-phase3-20260824t020000z.executor.sh.pending",
+      "/opt/ynx/leases/finance/p0294-finance-phase3-20260824t020000z.json.pending",
+      "/opt/ynx/stage/finance/p0294-finance-phase3-20260824t020000z/stage",
+      "/var/backups/ynx-finance/p0294-finance-phase3-20260824t020000z/backup",
+      "/opt/ynx/releases/finance/p0294-finance-phase3-20260824t020000z",
+      "/opt/ynx/finance-current.next",
+      "/opt/ynx/finance-current.rollback"
+    ],
+    "parentPreAndPostContracts": {
+      "leaseParent": {"path": "/opt/ynx/leases/finance", "pre": "64770:4594822:0:0:750:2:4096:directory|directChildren=2|inventorySha256=058c2a80621673376556076f74e49ecb5456126fd00d4af087dc765aaae880c7", "post": "same tuple|directChildren=0|inventorySha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+      "stageParent": {"path": "/opt/ynx/stage/finance", "pre": "64770:3450041:0:0:750:6:4096:directory|directChildren=4|inventorySha256=c2962d52adf7648f8986d389b1525655ca58a535a69cbe880562985f826e4ece", "post": "same device/inode/owner/mode/type; nlink=5; directChildren=3; Central must bind the freshly reread complete inventory SHA-256 rather than infer it from this request"},
+      "backupParent": {"path": "/var/backups/ynx-finance", "pre": "64770:1481354:0:0:755:12:4096:directory|directChildren=10|inventorySha256=4201a0347c708fc1a721c7f9eb47a3d8fb1d57216c63337ff6cc7a163d0edc2e", "post": "same device/inode/owner/mode/type; nlink=11; directChildren=9; Central must bind the freshly reread complete inventory SHA-256 rather than infer it from this request"}
+    }
+  },
+  "failClosedDeletionRule": "Immediately before each unlink/rmdir require canonical exact target, non-symlink status, full tuple, bytes/SHA or empty inventory and parent tuple/inventory. On any drift, race, foreign object, nonempty directory or missing required target, stop without further deletion.",
+  "terminalRequirements": {"exactTargetAbsence": true, "parentPostContracts": true, "oldRuntimeMustRemainUntouched": true, "independentVerificationRequired": "P0-297 or successor"},
+  "truth": {"cleanupExecuted": false, "cleanupComplete": false, "deployment": false, "publicVerified": false},
+  "singleBlocker": "Central must issue a new cleanup-only lease with a separately signed transport. This request has no deployment authority."
+}

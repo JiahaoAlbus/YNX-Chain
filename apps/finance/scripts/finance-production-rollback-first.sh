@@ -156,6 +156,27 @@ restore(){
   fi
   cleanup_staging_residues
 }
+phase_failure_phase=
+phase_failure_cleanup=
+emit_owned_phase_failure(){
+  local original_rc=$? cleanup_rc=0 terminal_rc
+  trap - EXIT
+  set +e
+  case "$phase_failure_cleanup" in
+    pre_switch_cleanup|post_move_pre_switch_cleanup|restore) "$phase_failure_cleanup" >/dev/null 2>&1 || cleanup_rc=$? ;;
+    *) cleanup_rc=74 ;;
+  esac
+  set -e
+  terminal_rc=$original_rc
+  [[ "$cleanup_rc" = 0 ]] || terminal_rc=74
+  printf 'phase=%s\nfailureClass=POSTWRITE_%s\nfailureExitStatus=%s\n' "$phase_failure_phase" "$phase_failure_phase" "$terminal_rc"
+  exit "$terminal_rc"
+}
+arm_owned_phase_failure(){
+  phase_failure_phase=$1
+  phase_failure_cleanup=$2
+  trap emit_owned_phase_failure EXIT
+}
 if [[ "$mode" == rollback ]]; then
   release_container_tuple=$(get '.success.releaseContainer.tuple'); release_container_empty_tuple=$(get '.success.releaseContainer.emptyTuple'); release_container_identity_tuple=$(get '.success.releaseContainer.identityTuple'); release_tuple=$(get '.success.release.tuple'); release_inventory=$(get '.success.release.inventorySha256'); success_backup_tuple=$(get '.success.backup.tuple'); success_pid=$(get '.success.service.pid'); success_restarts=$(get '.success.service.nrestarts')
   rollback_guard(){ "$@" || exit 74; }
@@ -196,11 +217,16 @@ assert_fresh
 prewrite_phase=CANDIDATE_INTEGRITY
 test "$(bytes "$archive")" = "$archive_bytes"; test "$(hash "$archive")" = "$archive_sha"; test "$(hash "$new_env")" = "$new_env_sha"
 prewrite_open=false
-trap pre_switch_cleanup EXIT
-mkdir -p -m 0700 "$stage" "$backup"; stage_created=true; backup_created=true; stage_identity_tuple=$(identity_tuple "$stage"); backup_identity_tuple=$(identity_tuple "$backup"); trap pre_switch_cleanup EXIT
-cp --preserve=mode,ownership "$env" "$backup/env"; if [[ "$state_absent" = true ]]; then test ! -e "$state" && test ! -L "$state"; : >"$backup/state-absent"; else cp --preserve=mode,ownership "$state" "$backup/state"; fi; backup_inventory=$(tree_inventory "$backup"); tar --warning=no-unknown-keyword -xzf "$archive" -C "$stage"
+arm_owned_phase_failure STAGING_BACKUP pre_switch_cleanup
+mkdir -m 0700 -- "$stage"; stage_created=true; stage_identity_tuple=$(identity_tuple "$stage")
+mkdir -m 0700 -- "$backup"; backup_created=true; backup_identity_tuple=$(identity_tuple "$backup")
+cp --preserve=mode,ownership "$env" "$backup/env"; if [[ "$state_absent" = true ]]; then test ! -e "$state" && test ! -L "$state"; : >"$backup/state-absent"; else cp --preserve=mode,ownership "$state" "$backup/state"; fi; backup_inventory=$(tree_inventory "$backup")
+arm_owned_phase_failure ARCHIVE_EXTRACT pre_switch_cleanup
+tar --warning=no-unknown-keyword -xzf "$archive" -C "$stage"
+arm_owned_phase_failure CANDIDATE_VERIFY pre_switch_cleanup
 candidate="$stage/$(basename "$release")"; test -x "$candidate/ynx-finance"; test "$(hash "$candidate/ynx-finance")" = "$binary_sha"; test "$(bytes "$candidate/ynx-finance")" = "$binary_bytes"; file "$candidate/ynx-finance" | grep -q 'ELF 64-bit.*x86-64'
 verify_local_assets "$candidate"; stage_inventory=$(tree_inventory "$stage")
+arm_owned_phase_failure RELEASE_MATERIALIZE pre_switch_cleanup
 mkdir -m "$release_container_mode" -- "$release_container"; release_container_created=true; release_container_preownership_identity=$(identity_tuple "$release_container")
 chown "$release_container_uid:$release_container_gid" "$release_container"; chmod "$release_container_mode" "$release_container"
 test -d "$release_container" || exit 74
@@ -214,11 +240,12 @@ release_tuple=$(stat -Lc '%d:%i:%u:%g:%a:%h:%s:%F' "$candidate"); release_invent
 mv "$candidate" "$release"; release_created=true
 test "$(stat -Lc '%d:%i:%u:%g:%a:%h:%s:%F' "$release")" = "$release_tuple"; test "$(tree_inventory "$release")" = "$release_inventory"
 release_container_tuple=$(stat -Lc '%d:%i:%u:%g:%a:%h:%s:%F' "$release_container")
-trap post_move_pre_switch_cleanup EXIT
+arm_owned_phase_failure SERVICE_USER_ACCESS post_move_pre_switch_cleanup
 assert_service_user_candidate_access
-trap 'restore' EXIT
+arm_owned_phase_failure PRE_SWITCH restore
 tmp=$(mktemp "$(dirname "$env")/.finance.env.next.XXXXXX"); cp --preserve=mode,ownership "$new_env" "$tmp"; mv -Tf "$tmp" "$env"
 link="$current.next"; absent "$link"; ln -s "$release" "$link"; mv -Tf "$link" "$current"; systemctl restart "$service"
+arm_owned_phase_failure CANDIDATE_VERIFY restore
 get '.candidate.sourceCommit' | grep -qx '7824af677dd052d20321431381523ab302614d98'; verify_candidate_live
 backup_tuple=$(stat -Lc '%d:%i:%u:%g:%a:%h:%s:%F' "$backup")
 candidate_service_pid=$(systemctl show -p MainPID --value "$service")

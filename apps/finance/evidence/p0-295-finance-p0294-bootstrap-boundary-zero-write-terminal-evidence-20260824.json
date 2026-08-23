@@ -1,0 +1,74 @@
+{
+  "schemaVersion": "p0-finance-zero-write-terminal-evidence@1",
+  "kind": "FINANCE_P0294_BOOTSTRAP_BOUNDARY_ZERO_WRITE_TERMINAL_EVIDENCE",
+  "requestId": "P0-295",
+  "status": "DIRECT_ZERO_WRITE_SUCCESS",
+  "execution": {
+    "sshInvocationCount": 1,
+    "localExitStatus": 0,
+    "remoteExitStatus": 0,
+    "mutationCount": 0,
+    "stdout": {
+      "bytes": 3715,
+      "sha256": "b30f4d45364a0a67d5c33ecdeb5ff04c1ebf9bab380a2fc3d60310943c26e4fd"
+    },
+    "stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "p0294Residues": {
+    "leaseParent": "64770:4594822:0:0:750:2:4096:directory|directChildren=2|inventorySha256=058c2a80621673376556076f74e49ecb5456126fd00d4af087dc765aaae880c7",
+    "executor": {
+      "path": "/opt/ynx/leases/finance/p0294-finance-phase3-20260824t020000z.executor.sh",
+      "tuple": "64770:4620810:0:0:700:1:19070:regular file",
+      "bytes": 19070,
+      "sha256": "4446b9245ee81256bf02b6b46960e70ff83caa83838e91f6f80034b5a1fc5741"
+    },
+    "signedLease": {
+      "path": "/opt/ynx/leases/finance/p0294-finance-phase3-20260824t020000z.json",
+      "tuple": "64770:4620811:0:0:600:1:7409:regular file",
+      "bytes": 7409,
+      "sha256": "102c4cabac131eef5ccfb16ac76b95509116ba38768924d9f9b9baab798b96fb"
+    },
+    "stageContainer": {
+      "path": "/opt/ynx/stage/finance/p0294-finance-phase3-20260824t020000z",
+      "tuple": "64770:4620812:0:0:700:2:4096:directory",
+      "directChildren": 0,
+      "inventorySha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "backupContainer": {
+      "path": "/var/backups/ynx-finance/p0294-finance-phase3-20260824t020000z",
+      "tuple": "64770:2663622:0:0:700:2:4096:directory",
+      "directChildren": 0,
+      "inventorySha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "mustRemainAbsent": [
+      "executor.pending",
+      "signedLease.pending",
+      "stage leaf",
+      "backup leaf",
+      "releaseContainer",
+      "release",
+      "finance-current.next",
+      "finance-current.rollback"
+    ]
+  },
+  "runtimeTruth": {
+    "currentRelease": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a",
+    "binarySha256": "0cc43c8a77c12975a0fcbada65971f08f2bc3a52345d547ea194dd3ccd60d83f",
+    "envSha256": "854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252",
+    "unitSha256": "2e72cdad422a3a714c46d074ea97b725233576cf726dbbfd43e82e99c2c2975b",
+    "caddySha256": "dcf75a7aed315c54632321b8bb80e44c0abc22f6700fadfbfa9a7da21b88a282",
+    "state": "absent",
+    "service": {"loaded": true, "active": true, "running": true, "mainPid": 2241003, "nRestarts": 0},
+    "httpSixGates": "loopback and public root/health/version each HTTP 200 with the pre-existing hashes",
+    "journal": {"class": "SERVICE_OR_EXECUTOR_FAILURE", "bytes": 1233, "sha256": "0e94e437fcb91d959034babec8217a85b340414bbfb22c5c510c03c847f5fa98"}
+  },
+  "diagnosis": {
+    "proven": "The P0294 executor passed prewrite and entered guarded staging; its existing owned cleanup removed stage and backup leaves before release/current switching.",
+    "notProven": ["the exact failing staging command", "any production switch", "public candidate runtime"],
+    "safeNext": "Remove only the four exact P0294 residues under a separate cleanup-only lease, then independently verify old-runtime continuity."
+  },
+  "truth": {"deployment": false, "rollback": false, "cleanupComplete": false, "publicVerified": false, "walletApproval": false, "productSession": false}
+}

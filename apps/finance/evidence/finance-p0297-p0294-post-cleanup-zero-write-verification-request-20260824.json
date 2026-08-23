@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "p0-finance-zero-write-verification-request@1",
+  "kind": "FINANCE_P0294_POST_CLEANUP_ZERO_WRITE_VERIFICATION_REQUEST",
+  "requestStatus": "SOURCE_REQUEST_ONLY_AWAITING_P0296_CLEANUP_AND_NEW_CENTRAL_READONLY_LEASE",
+  "requestId": "P0-297",
+  "predecessor": {"requiredCleanup": "P0-296 direct terminal cleanup success", "p0295Evidence": "apps/finance/evidence/p0-295-finance-p0294-bootstrap-boundary-zero-write-terminal-evidence-20260824.json"},
+  "scope": {"oneSsh": true, "retryAllowed": false, "remoteWrites": 0, "noRemoteTemporaryFiles": true, "forbidden": ["cleanup", "deploy", "rollback", "restart", "service lifecycle", "current/env/state/unit/Caddy mutation", "account", "signature", "transaction"]},
+  "requiredReadOnlyReceipts": {
+    "absence": ["both P0294 controls", "both P0294 empty containers", "two pending controls", "stage and backup leaves", "release container/release", "current.next/current.rollback"],
+    "parentPostState": ["lease parent tuple/directChildren=0/empty inventory", "stage parent exact post tuple/directChildren=3", "backup parent exact post tuple/directChildren=9"],
+    "runtime": ["current symlink tuple/target and resolved binary SHA", "env/unit/Caddy tuple/SHA without values", "state absence or tuple/SHA", "service loaded/active/running/MainPID/NRestarts"],
+    "httpSixGates": "loopback and public root/health/version each report URL, status, bytes, SHA-256 and MIME through stream-only verification",
+    "terminal": "one secret-safe receipt with remote exit status, mutationCount=0 and verificationComplete=true only after every assertion passes"
+  },
+  "expectedOldRuntime": {"currentRelease": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a", "binarySha256": "0cc43c8a77c12975a0fcbada65971f08f2bc3a52345d547ea194dd3ccd60d83f", "serviceMainPid": 2241003, "serviceNRestarts": 0, "state": "absent"},
+  "truth": {"verificationExecuted": false, "cleanupComplete": false, "deployment": false, "publicVerified": false},
+  "singleBlocker": "P0-296 must first remove only its signed four residues; Central must then issue a separate zero-write verification lease."
+}
