@@ -1,0 +1,55 @@
+{
+  "kind": "FINANCE_PHASE2A_PRIVILEGED_STDIN_PLACEMENT_TERMINAL_EVIDENCE",
+  "observedAt": "2026-08-23T03:21:36Z",
+  "central": {
+    "commit": "7eb4ed11cdefbc9aac68a06251200d6bb6c9c398",
+    "tree": "0a05df5eec024e48d71c0c0c1719c2af39594bbc",
+    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-phase2a-privileged-stdin-placement-20260823T031700Z",
+    "leaseBlob": "10d7e2d780ea2a1d4875bea1f76125c93c8925b4",
+    "leaseBytes": 8985,
+    "leaseSha256": "80edf7327d64377c499ee2b3b589a4b317bd28848443bf8b6f32c0b63fea7df5"
+  },
+  "owner": {
+    "requestCommit": "a7a651d4c10b65627b4a0f152b18a6932c39a931",
+    "requestTree": "c7657c13489516c99698d9ecad8bdfd2db4fa8fa",
+    "requestSha256": "65149eda18af5694ce1118ed4a1b4968d3051ca77513dfc993155fc4e63ed042"
+  },
+  "execution": {
+    "sshInvocationCount": 1,
+    "retryCount": 0,
+    "remoteBootstrapReachedTerminalOutput": true,
+    "remoteStderrEmpty": true,
+    "remoteCommandExitZero": true,
+    "exitEvidence": "The zsh wrapper used set -e and advanced past the ssh invocation to its next statement; it then exited locally because zsh reserves the variable name status. The remote bootstrap had already emitted all three terminal receipts and stderr was empty.",
+    "wrapperExit": 1,
+    "wrapperFailureAfterRemoteCompletion": "zsh: read-only variable: status",
+    "stdout": {"path": "/tmp/ynx-finance-p0235-phase2a-stdout.txt", "bytes": 843, "sha256": "1187e60571232e791eb7e0b696b1913fa3caf417dd0ec777f4ee851b3e92fcd3"},
+    "stderr": {"path": "/tmp/ynx-finance-p0235-phase2a-stderr.txt", "bytes": 0, "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
+  },
+  "placed": [
+    {"path": "/opt/ynx/leases/finance-preparation/p0228-finance-phase1-20260822T234100Z.archive.tgz", "tuple": "64770:4620790:0:0:600:1:3937491:regular file", "bytes": 3937491, "sha256": "d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d"},
+    {"path": "/opt/ynx/leases/finance-preparation/p0228-finance-phase1-20260822T234100Z.generator.sh", "tuple": "64770:4620791:0:0:700:1:1698:regular file", "bytes": 1698, "sha256": "cf7b804be50e8f75765f52b67e39e62a67e211add8bb17edcadf2b4e25940c07"},
+    {"path": "/opt/ynx/leases/finance-preparation/p0228-finance-phase1-20260822T234100Z.phase2b.sh", "tuple": "64770:4620792:0:0:700:1:4247:regular file", "bytes": 4247, "sha256": "6897bbfa02a191caf4ba834c43bf0441e86a302ee4e8a8c14c34a2646a23259e"}
+  ],
+  "postRead": {
+    "performedByExecutor": false,
+    "reason": "The lease permits exactly one SSH attempt; no second read-only SSH was attempted. Central release review must perform the independent post-read.",
+    "carrierEmpty": "CENTRAL_RELEASE_READ_REQUIRED",
+    "financeServiceUnchanged": "CENTRAL_RELEASE_READ_REQUIRED"
+  },
+  "truth": {
+    "phase2aPlacementExecuted": true,
+    "candidateEnvGenerated": false,
+    "phase2bExecuted": false,
+    "envRead": false,
+    "deployed": false,
+    "serviceRestarted": false,
+    "currentChanged": false,
+    "unitChanged": false,
+    "caddyChanged": false,
+    "publicChanged": false,
+    "account": false,
+    "signature": false,
+    "transaction": false
+  }
+}
