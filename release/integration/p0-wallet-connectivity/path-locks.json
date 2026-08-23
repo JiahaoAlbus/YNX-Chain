@@ -1,16 +1,40 @@
 {
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "version": "1.19.0",
+  "version": "1.20.0",
   "locks": [
     {
-      "path": "{local:/Users/huangjiahao/Applications/YNX Browser Isolated,local:/Users/huangjiahao/Applications/YNX Browser Isolated/YNX Browser Testnet Preview-ad890f0a2fe5-aaed312ef608.app,local:/private/tmp/ynx-browser-preinstall-p0233.receipt,local:/private/tmp/ynx-browser-preinstall-p0233.diagnostic,local:/private/tmp/ynx-browser-preinstall-p0233.diagnostic.tmp,launchservices:default-handler:com.ynxweb4.browser.macos:ynxbrowser}",
+      "path": "{local:/Users/huangjiahao/Applications/YNX Browser Isolated,local:/Users/huangjiahao/Applications/YNX Browser Isolated/YNX Browser Testnet Preview-ad890f0a2fe5-aaed312ef608.app,local:/private/tmp/ynx-browser-preinstall-p0233.diagnostic,local:/private/tmp/ynx-browser-preinstall-p0232.diagnostic,local:/private/tmp/ynx-browser-preinstall-p0234-recovery.receipt,local:/private/tmp/ynx-browser-preinstall-p0234-recovery.diagnostic,local:/private/tmp/ynx-browser-preinstall-p0234-recovery.diagnostic.tmp,launchservices:unregister-exact-p0233-candidate:com.ynxweb4.browser.macos:ynxbrowser}",
       "owner": "browser-macos-preinstall-owner",
+      "branch": "codex/p0-browser-current-source-verification-20260821",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/52-browser-p0",
+      "taskId": "P0-234",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_SINGLE_USE_EMERGENCY_RECOVERY",
+      "acquiredAt": "2026-08-23T02:03:00Z",
+      "expiresAt": "2026-08-23T02:33:00Z",
+      "releasedAt": null,
+      "sourceCommit": "6ace4556ceaa7f4d72f896a4ad4a5505014f030c",
+      "sourceTree": "498aa15c87bc64e25d26f35c8eee4639b381d635",
+      "evidenceCommit": "68fef379915e522ff9c5033bb1414da8ad7b111c",
+      "artifactSha256": "aaed312ef608445504ba1cc21ff24d14bc5b4e48c2d6b505dc3cfb545daa0de5",
+      "productionMutationAllowed": true,
+      "allowedExceptions": [
+        "one exact P0-234 emergency recovery attempt and no retry",
+        "unregister only the exact residual P0-233 candidate",
+        "delete only the exact candidate app and same empty isolated root after all inode, SHA, process and exclusivity checks",
+        "write only the exact P0-234 recovery receipt, journal and journal temp",
+        "no default-handler change, application launch, scheme invocation, provider, account, signing or transaction action"
+      ]
+    },
+    {
+      "path": "{local:/Users/huangjiahao/Applications/YNX Browser Isolated,local:/Users/huangjiahao/Applications/YNX Browser Isolated/YNX Browser Testnet Preview-ad890f0a2fe5-aaed312ef608.app,local:/private/tmp/ynx-browser-preinstall-p0233.receipt,local:/private/tmp/ynx-browser-preinstall-p0233.diagnostic,local:/private/tmp/ynx-browser-preinstall-p0233.diagnostic.tmp,launchservices:default-handler:com.ynxweb4.browser.macos:ynxbrowser}",
+      "owner": null,
       "branch": "codex/p0-browser-current-source-verification-20260821",
       "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/52-browser-p0",
       "taskId": "P0-233",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "EMERGENCY_BLOCKED_BROWSER_P0233_EXACT_ROLLBACK_REQUIRED_NO_FURTHER_ACTION",
+      "status": "EMERGENCY_BLOCKED_BROWSER_P0233_SUPERSEDED_BY_ACTIVE_P0234_RECOVERY",
       "acquiredAt": "2026-08-23T01:42:00Z",
       "expiresAt": "2026-08-23T02:12:00Z",
       "releasedAt": null,
@@ -23,7 +47,7 @@
         "P0-233 forward and rollback quotas are consumed and nonreusable",
         "retain the exact remaining candidate root, app and diagnostic journal without further mutation",
         "the exact old preserved app remains the default handler and PID 93119 remains unchanged",
-        "a wholly new bounded recovery lease is required before any cleanup or LaunchServices mutation",
+        "P0-234 now exclusively owns the bounded recovery authority and overlapping paths",
         "no application launch, scheme invocation, provider, account, signing or transaction action"
       ]
     },
