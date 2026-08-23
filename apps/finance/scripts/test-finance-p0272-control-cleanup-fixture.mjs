@@ -9,14 +9,15 @@ import { execFileSync, spawnSync } from 'node:child_process';
 const repo = process.cwd();
 const source = join(repo, 'apps/finance/scripts/finance-p0272-control-cleanup.sh');
 const gstat = '/opt/homebrew/bin/gstat', grm = '/opt/homebrew/bin/grm';
-const id = 'p0272-finance-phase3-20260823T152627Z';
+const targetId = 'p0272-finance-phase3-20260823T152627Z';
+const id = 'p0275-finance-p0272-control-cleanup-20260823T160000Z';
 const sha = path => createHash('sha256').update(readFileSync(path)).digest('hex');
 const tuple = path => execFileSync(gstat, ['-Lc', '%d:%i:%u:%g:%a:%h:%s:%F', path], { encoding: 'utf8' }).trim();
 const stable = path => execFileSync(gstat, ['-Lc', '%d:%i:%u:%g:%a:%F', path], { encoding: 'utf8' }).trim();
 function make() {
   const root = mkdtempSync(join(tmpdir(), 'finance-p0272-cleanup-'));
   const parent = join(root, 'opt', 'ynx', 'leases', 'finance'); mkdirSync(parent, { recursive: true, mode: 0o750 }); chmodSync(parent, 0o750);
-  const executor = join(parent, `${id}.executor.sh`), signedLease = join(parent, `${id}.json`);
+  const executor = join(parent, `${targetId}.executor.sh`), signedLease = join(parent, `${targetId}.json`);
   writeFileSync(executor, 'P0272 reviewed executor\n'); chmodSync(executor, 0o700);
   writeFileSync(signedLease, '{"lease":{"signed":true}}\n'); chmodSync(signedLease, 0o600);
   const lease = join(root, 'cleanup.json');

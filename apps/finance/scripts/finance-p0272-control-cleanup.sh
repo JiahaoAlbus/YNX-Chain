@@ -11,8 +11,9 @@ get() { jq -er "$1" "$lease"; }
 
 test "$(get '.lease.signed')" = true
 test "$(get '.lease.kind')" = FINANCE_P0272_CONTROL_CLEANUP_ONLY
-id=$(get '.lease.id')
-case "$id" in p0272-finance-phase3-20260823T152627Z) ;; *) exit 65 ;; esac
+cleanup_id=$(get '.lease.id')
+case "$cleanup_id" in p0275-finance-p0272-control-cleanup-[0-9TtZz-]*) ;; *) exit 65 ;; esac
+target_id=p0272-finance-phase3-20260823T152627Z
 
 tuple() { test -e "$1" && test ! -L "$1" && stat -Lc '%d:%i:%u:%g:%a:%h:%s:%F' -- "$1"; }
 stable() { test -d "$1" && test ! -L "$1" && stat -Lc '%d:%i:%u:%g:%a:%F' -- "$1"; }
@@ -27,8 +28,12 @@ case "$parent" in
   /opt/ynx/leases/finance) ;;
   *) [[ "${FINANCE_P0272_CONTROL_CLEANUP_TEST_ROOT:-}" = 1 ]] || exit 65 ;;
 esac
-test "$executor" = "$parent/$id.executor.sh"
-test "$signed_lease" = "$parent/$id.json"
+case "$lease" in
+  /tmp/ynx-finance-p0275-control-cleanup-*.json) ;;
+  *) [[ "${FINANCE_P0272_CONTROL_CLEANUP_TEST_ROOT:-}" = 1 ]] || exit 65 ;;
+esac
+test "$executor" = "$parent/$target_id.executor.sh"
+test "$signed_lease" = "$parent/$target_id.json"
 
 assert_parent() {
   test -d "$parent" && test ! -L "$parent"
