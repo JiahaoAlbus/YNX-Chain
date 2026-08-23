@@ -16,6 +16,8 @@ exact(request.wwwLifecycle.rollbackDeploymentId, "dpl_574RBu3xBzE4Bh1jygv2YJruAY
 exact(request.boundedSsoWindow.maxDisabledSeconds, 180, "SSO bound");
 exact(request.candidateReads.length, 4, "candidate reads");
 exact(request.officialReads.length, 4, "official reads");
+exact(request.boundedSsoWindow.disabledReadbackRequired, { projectId: "prj_tPB0KDTFohQ9FXZAzq25mYFWkbNa", projectName: "ynx-web4-website-new", ssoProtection: null }, "CLI 54 disabled readback");
+exact(request.boundedSsoWindow.restoredReadbackRequired.ssoProtection, { deploymentType: "prod_deployment_urls_and_all_previews" }, "CLI 54 restored readback");
 if (!request.boundedSsoWindow.restoreRequiredOnEveryTerminalPathAfterSuccessfulDisable) fail("SSO restore not mandatory");
 if (!request.temporaryAliasLifecycle.removeRequiredAfterAnySuccessfulSet) fail("temporary alias cleanup not mandatory");
 if (!request.temporaryAliasLifecycle.removalProofRequiredBeforeWwwMutation) fail("temporary alias proof not before www");
