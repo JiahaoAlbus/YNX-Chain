@@ -2092,21 +2092,47 @@
       "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
       "taskId": "P0-279",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE_SINGLE_USE",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0279_EMPTY_REMOTE_TERMINAL_STATE_UNKNOWN",
       "acquiredAt": "2026-08-23T16:46:35Z",
       "expiresAt": "2026-08-23T17:16:35Z",
-      "releasedAt": null,
+      "releasedAt": "2026-08-23T16:54:34Z",
       "sourceCommit": "78782bd55bc9de087fd706e995970122c7fc97e9",
       "sourceTree": "89ababef266c86a5de83ad4a5f95a805368f2cd7",
       "evidenceCommit": "78782bd55bc9de087fd706e995970122c7fc97e9",
       "artifactSha256": "d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d",
-      "productionMutationAllowed": true,
+      "productionMutationAllowed": false,
       "allowedExceptions": [
         "one exact serialized OpenSSH invocation and one rollback-first Finance deploy with no retry",
         "create only the exact P0-279 control, stage, backup and release paths; switch only Finance env/current and restart only ynx-finance.service",
         "unit and Caddy are read-only invariants and must not change",
         "executor-owned automatic rollback on first failure; any later manual rollback requires a wholly-new separately signed lease",
-        "no Wallet path, account request, signature, typed data, transaction, secret output or P0-272 reuse"
+        "no Wallet path, account request, signature, typed data, transaction, secret output or P0-272 reuse",
+        "one SSH returned remote status 1 with empty stdout/stderr and no terminal receipt; deploy, rollback and runtime state remain unknown",
+        "all P0-279 mutation authority is consumed and nonreusable; only a wholly-new zero-write inspection may follow"
+      ]
+    },
+    {
+      "path": "{host:43.153.202.237:finance-p0279-readonly,readonly:/opt/ynx/leases/finance/p0279-finance-phase3-20260823T164408Z.*,readonly:/opt/ynx/stage/finance/p0279-finance-phase3-20260823T164408Z/**,readonly:/var/backups/ynx-finance/p0279-finance-phase3-20260823T164408Z/**,readonly:/opt/ynx/releases/finance/p0279-finance-phase3-20260823T164408Z/**,readonly:/opt/ynx/finance-current*,readonly:/etc/ynx/finance.env*,readonly:/var/lib/ynx/finance/state.json*,readonly:/etc/systemd/system/ynx-finance.service,readonly:/etc/caddy/conf.d/ynx-finance.caddy,readonly:ynx-finance.service,readonly:journal:2026-08-23T16:46:00Z..2026-08-23T16:53:30Z,readonly:http://127.0.0.1:6483/**,readonly:https://finance.ynxweb4.com/**}",
+      "owner": "finance-release-control-plane-readonly-inspection",
+      "branch": "codex/p0-wallet-connectivity-control-plane-20260820",
+      "worktree": "/private/tmp/ynx-calendar-control-plane.y8FFQt/repo",
+      "taskId": "P0-280",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_SINGLE_USE",
+      "acquiredAt": "2026-08-23T16:54:34Z",
+      "expiresAt": "2026-08-23T17:24:34Z",
+      "releasedAt": null,
+      "sourceCommit": "fb2fb7e417525e252bb9b11f6036f6cc28bf9323",
+      "sourceTree": "57ffebb9101deac31781e7c6835f5c922ebaf89a",
+      "evidenceCommit": "fb2fb7e417525e252bb9b11f6036f6cc28bf9323",
+      "artifactSha256": "142f300b08e331af6dff419d8f58552d00a0a363eb9eb058d87377563995846d",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "one exact zero-write Finance-only SSH inspection and no retry",
+        "output only classification, lstat tuples, bytes, SHA, inventory, normalized journal class, service fields and HTTP metadata",
+        "no raw journal messages, response bodies, environment values or signed lease contents",
+        "no cleanup, deploy, rollback, restart, current/env/state/unit/Caddy/public mutation",
+        "no Wallet path, account, signature, typed data or transaction action"
       ]
     }
   ]
