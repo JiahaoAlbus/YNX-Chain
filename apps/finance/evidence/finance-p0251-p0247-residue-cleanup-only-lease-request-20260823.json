@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "kind": "FINANCE_P0247_RESIDUE_CLEANUP_ONLY_LEASE_REQUEST",
+  "requestState": "PENDING_CENTRAL_SINGLE_USE_LEASE_REVIEW",
+  "owner": {
+    "branch": "codex/p0-finance-wallet-connectivity-20260820",
+    "reviewedCommandCheckpoint": "c515cfbec53b283deaa8f9ff2ec67e66029ebaa6",
+    "reviewedCommandTree": "1287d8ebe5d10d5b365fca4528757305f5e6fda7",
+    "nonSelfReferential": true
+  },
+  "scope": {
+    "p0247Id": "p0247-finance-phase3-20260823T073800Z",
+    "operation": "delete only the two exact P0-247 stage and backup residue trees after a fresh Central-bound read",
+    "prohibits": ["deploy", "rollback", "restart", "service mutation", "current-link mutation", "env mutation", "state mutation", "unit mutation", "Caddy mutation", "public-route mutation", "wallet account", "signature", "typed-data", "transaction"]
+  },
+  "commandObjects": {
+    "executor": {"path": "apps/finance/scripts/finance-p0247-residue-cleanup.sh", "blob": "5005145c4e908bfb95e6d7ffbd693990d3744e5c", "bytes": 5871, "sha256": "0eaec24e13f8fda19eec9e523a681691d733f192da02474776c197dfb627b38d", "remoteMode": "0700"},
+    "actualShellFixture": {"path": "apps/finance/scripts/test-finance-p0247-residue-cleanup-fixture.mjs", "blob": "ea2d7cdc4869bd5456cd1c3633d961c057f75f64", "bytes": 7715, "sha256": "ab1e946e70ace63d90d02a00dac28d925cf458f4f3d9792f63062237a8bb0f5c"}
+  },
+  "authoritativePriorObservation": {
+    "evidencePath": "apps/finance/evidence/p0-249-finance-phase3-partial-inventory-stdout-20260823.txt",
+    "stage": {"path": "/opt/ynx/stage/finance/p0247-finance-phase3-20260823T073800Z", "parent": "/opt/ynx/stage/finance", "parentTuple": "64770:4620782:0:0:700:3:4096:directory", "tuple": "64770:4620783:0:0:700:2:4096:directory", "inventorySha256": "61181f33dcf9b11282732fe26f02ad9e3b0f5135dead72ca690606c722d9bf62"},
+    "backup": {"path": "/var/backups/ynx-finance/p0247-finance-phase3-20260823T073800Z", "parent": "/var/backups/ynx-finance", "parentTuple": "64770:2663604:0:0:700:3:4096:directory", "tuple": "64770:3450049:0:0:700:2:4096:directory", "inventorySha256": "e78ba1c645bfeeffa9d1f373fd2c773326a358c23caca7ad9fd48834b71a3e19", "knownEntries": [{"relativePath": "env", "tuple": "64770:3450050:0:986:640:1:1545:regular file", "sha256": "854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252"}, {"relativePath": "state-absent", "tuple": "64770:3450051:0:0:600:1:0:regular empty file", "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}]}
+  },
+  "freshLeaseMustBind": {
+    "readImmediatelyBeforeDelete": ["each target absolute path and basename", "each target full device:inode:uid:gid:mode:nlink:bytes:type tuple", "each target canonical inventory SHA-256 and every inventory entry", "each parent full tuple and realpath/no-symlink state", "finance-current target", "env/unit/Caddy tuples and SHA-256", "service active/MainPID/NRestarts", "public health/version URL/status/bytes/SHA-256"],
+    "preconditions": ["both target trees are exact present regular directories", "no target, parent, or inventory entry is a symlink", "parents have no tuple drift", "target inventory has no foreign/sibling/substituted entry", "old runtime and public receipts match signed fresh values"],
+    "idempotence": {"bothAbsent": "verified no-op success after unchanged-runtime checks", "exactlyOneAbsent": "fail closed with no deletion", "bothPresent": "verify both before the first delete, then remove stage and backup separately with rechecks"},
+    "postconditions": ["both exact paths absent", "parent stable identity fields remain intact", "finance current/env/unit/Caddy/service/public receipts unchanged"],
+    "failureHandling": "no repair, deploy, rollback, restart, or broad cleanup; stop on first mismatch and retain every still-present object for a separately authorized inspection"
+  },
+  "fixtureCoverage": ["exact cleanup success", "target symlink substitution refusal", "inventory/changed-hash refusal", "foreign sibling preservation", "concurrent replacement refusal", "both-absent verified no-op", "one-absent partial-state refusal", "no current/env/unit/Caddy/service mutation"],
+  "testResults": {"bashSyntax": "PASS", "actualShellFixture": "PASS", "goFinance": "PASS"},
+  "truth": {"leaseIssued": false, "sshExecuted": false, "residuesCleaned": false, "deployed": false, "rollback": false, "publicVerified": false, "walletApproval": false, "signature": false, "transaction": false},
+  "separateFutureAuthorizationRequired": "A cleanup terminal receipt does not authorize any Finance deployment, rollback, service action, or wallet action."
+}
