@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "kind": "FINANCE_P0251_REMOTE_STATE_READONLY_INSPECTION_LEASE_REQUEST",
+  "requestState": "PENDING_CENTRAL_SINGLE_USE_READONLY_LEASE_REVIEW",
+  "owner": {
+    "branch": "codex/p0-finance-wallet-connectivity-20260820",
+    "predecessorTerminalEvidenceCommit": "73e489577768415d2ac2ef25711419681ed2a57e",
+    "predecessorTerminalEvidenceTree": "4cfbb52760f988e5bac95a6c82f50d33856c01e5",
+    "nonSelfReferential": true
+  },
+  "centralRelease": {
+    "commit": "e714666a7f1da341c39aad99c81a7e6c22e8e1c6",
+    "tree": "d307d17c4bff3a03e0030d186b5935c549287bf9",
+    "terminalLeaseBlob": "82d0f967de47ebd51abf610cda39415ec57dafac",
+    "terminalLeaseBytes": 8500,
+    "terminalLeaseSha256": "feae1ff05059c752ad37da2171202bf5d959fc98430d780e946915e9b16e2194",
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0251_LITERAL_TRANSPORT_PRINTF_USAGE_REMOTE_STATE_UNKNOWN",
+    "p0251Reusable": false,
+    "heavy": "IDLE",
+    "pathLock": "RELEASED"
+  },
+  "requestedLease": {
+    "singleUse": true,
+    "readOnly": true,
+    "productionMutationAllowed": false,
+    "sshBeforeLease": false,
+    "retryAllowed": false,
+    "purpose": "determine whether the P0-251 literal transport created any exact placement object or changed either exact P0-247 residue tree; no state repair is permitted"
+  },
+  "exactReadScope": {
+    "residues": [
+      {"path": "/opt/ynx/stage/finance/p0247-finance-phase3-20260823T073800Z", "parent": "/opt/ynx/stage/finance"},
+      {"path": "/var/backups/ynx-finance/p0247-finance-phase3-20260823T073800Z", "parent": "/var/backups/ynx-finance"}
+    ],
+    "possiblePlacementObjects": [
+      "/opt/ynx/leases/finance/p0251-finance-p0247-cleanup-20260823T100000Z.executor.sh",
+      "/opt/ynx/leases/finance/p0251-finance-p0247-cleanup-20260823T100000Z.json"
+    ],
+    "placementParent": "/opt/ynx/leases/finance",
+    "runtimeIdentityOnly": [
+      "/opt/ynx/finance-current",
+      "/etc/ynx/finance.env",
+      "/etc/systemd/system/ynx-finance.service",
+      "/etc/caddy/ynx-chain.caddy",
+      "ynx-finance.service",
+      "https://finance.ynxweb4.com/health",
+      "https://finance.ynxweb4.com/version"
+    ]
+  },
+  "requiredReceipts": {
+    "forEveryPath": ["absolute path", "present/absent/symlink classification", "realpath where applicable", "device:inode:uid:gid:mode:nlink:bytes:type tuple", "SHA-256 for regular files", "canonical bounded inventory SHA-256 for directories"],
+    "parents": ["full tuple", "direct-child names only", "no mutation count"],
+    "runtime": ["current target and link tuple", "env/unit/Caddy tuple plus SHA-256", "service active/substate/MainPID/NRestarts", "public health/version status/bytes/SHA-256"],
+    "transportOutcome": ["both placement object classifications", "both residue classifications", "explicit remoteStateUnknown resolution"],
+    "outputPolicy": "never print env contents, credentials, private keys, or signed lease body"
+  },
+  "strictForbidden": ["mkdir", "touch", "chmod", "chown", "mv", "cp", "rm", "rmdir", "find -delete", "temporary files/directories", "upload", "deploy", "rollback", "cleanup", "systemctl restart/start/stop", "current/env/state/unit/Caddy/public mutation", "wallet account", "signature", "typed-data", "transaction"],
+  "commandShape": {
+    "transport": "one Central-frozen SSH invocation with a read-only stdin command only; no remote script placement and no local-path reference on host",
+    "allowedRemotePrograms": ["test", "stat", "readlink", "find without delete", "sha256sum", "wc", "systemctl is-active/show", "curl streaming stdout only", "awk", "sort", "printf"],
+    "proofOfReadOnly": "terminal stdout/stderr, exit status, and command object hash are retained; no command in the signed argv can write, delete, or restart"
+  },
+  "truth": {"leaseIssued": false, "sshExecuted": false, "remoteStateKnown": false, "residuesCleaned": false, "placementObjectsCreated": false, "deployed": false, "rollback": false, "publicVerified": false, "walletApproval": false, "signature": false, "transaction": false},
+  "nextAuthorizationBoundary": "After the inspection terminal receipt, Central alone decides whether a wholly new cleanup lease, a release-only remediation, or no further action is appropriate."
+}
