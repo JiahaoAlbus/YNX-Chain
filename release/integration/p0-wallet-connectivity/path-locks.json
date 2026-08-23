@@ -2118,21 +2118,24 @@
       "worktree": "/private/tmp/ynx-calendar-control-plane.y8FFQt/repo",
       "taskId": "P0-280",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE_SINGLE_USE",
+      "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0280_P0279_REMOTE_STATE_ZERO_WRITE_INSPECTION",
       "acquiredAt": "2026-08-23T16:54:34Z",
       "expiresAt": "2026-08-23T17:24:34Z",
-      "releasedAt": null,
-      "sourceCommit": "fb2fb7e417525e252bb9b11f6036f6cc28bf9323",
-      "sourceTree": "57ffebb9101deac31781e7c6835f5c922ebaf89a",
-      "evidenceCommit": "fb2fb7e417525e252bb9b11f6036f6cc28bf9323",
-      "artifactSha256": "142f300b08e331af6dff419d8f58552d00a0a363eb9eb058d87377563995846d",
+      "releasedAt": "2026-08-23T17:02:05Z",
+      "sourceCommit": "8820efb486c6cbe975999d43d6f9e1dda7e22561",
+      "sourceTree": "90ee82c909918007c84ebcd3b41c97bab8882d4b",
+      "evidenceCommit": "8820efb486c6cbe975999d43d6f9e1dda7e22561",
+      "artifactSha256": "6fd2eb49e8cd32e40961b61fa60afc9993734c2be2f29b40cb5dd9bc17f162ee",
       "productionMutationAllowed": false,
       "allowedExceptions": [
         "one exact zero-write Finance-only SSH inspection and no retry",
         "output only classification, lstat tuples, bytes, SHA, inventory, normalized journal class, service fields and HTTP metadata",
         "no raw journal messages, response bodies, environment values or signed lease contents",
         "no cleanup, deploy, rollback, restart, current/env/state/unit/Caddy/public mutation",
-        "no Wallet path, account, signature, typed data or transaction action"
+        "no Wallet path, account, signature, typed data or transaction action",
+        "zero-write readback proved no P0-279 deployment and exact old Finance runtime remained healthy",
+        "only the exact P0-279 executor and signed lease remain; their deletion requires a wholly-new cleanup-only lease",
+        "P0-279 and P0-280 are consumed and nonreusable; no deployment authority is active"
       ]
     }
   ]
