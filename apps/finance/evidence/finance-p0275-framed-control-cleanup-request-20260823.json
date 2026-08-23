@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "p0-finance-framed-control-cleanup-request@1",
+  "kind": "FINANCE_P0272_CONTROL_FILES_CLEANUP_FRAMED_TRANSPORT_ONLY",
+  "requestState": "AWAITING_WHOLELY_NEW_CENTRAL_SINGLE_USE_LEASE",
+  "supersedes": {"p0274": "NO_GO_SIGNED_CLEANUP_LEASE_REMOTE_TRANSPORT_UNDEFINED", "p0274RequestCommit": "0661dccdbfe32fce2f1c7f417931a7894a354b82"},
+  "reviewedCommandCheckpoint": {"commit": "fdb0cf2d53741489e9171683e46cbbaa25d0848e", "tree": "d50dc835b1aada22c7e1aa89b4d3ee3f472e244f", "nonSelfReferential": true},
+  "persistentDeletionScope": {
+    "parent": {"path": "/opt/ynx/leases/finance", "fullTuple": "64770:4594822:0:0:750:2:4096:directory", "stableIdentity": "64770:4594822:0:0:750:directory", "mustRemain": true},
+    "onlyTargets": [
+      {"path": "/opt/ynx/leases/finance/p0272-finance-phase3-20260823T152627Z.executor.sh", "tuple": "64770:4620881:0:0:700:1:18403:regular file", "bytes": 18403, "sha256": "2ab4d1923ce180a35e0247c7ebe0628f2eb58ace0416060edb2d6a25be083fde"},
+      {"path": "/opt/ynx/leases/finance/p0272-finance-phase3-20260823T152627Z.json", "tuple": "64770:4620882:0:0:600:1:7696:regular file", "bytes": 7696, "sha256": "e46d0d6f9050ee0377750683babd004c4306c48cfb6e52d1f6ab7cdf10ba1986"}
+    ],
+    "preconditions": ["exact parent tuple and stable identity", "exactly two direct children and no foreign child", "each target non-symlink full tuple/bytes/SHA match", "immediate recheck before unlink"],
+    "postconditions": ["both exact targets absent", "parent stable identity unchanged", "parent has no direct children"]
+  },
+  "remoteTransport": {
+    "sshAttemptLimit": 1,
+    "cleanupInvocationLimit": 1,
+    "retryAllowed": false,
+    "remoteBootstrap": {"path": "apps/finance/scripts/finance-p0275-cleanup-stdin-bootstrap.sh", "blob": "4f07789c2d38e72b91f66a4aee417369c28609b2", "bytes": 3158, "sha256": "7567cf4ede6ecbf487a8b20626de699c8559ac016fc57253b7565bcd94f16405"},
+    "remoteLaunch": "single SSH invokes sudo -n /bin/bash -c with only the exact base64-encoded bootstrap bytes and signed P0275 metadata in argv; stdin remains exclusively the two-frame carrier",
+    "carrierFormat": {"version": "YNX_FINANCE_P0275_CLEANUP_FRAMES_V1", "frames": ["executor<TAB>bytes<TAB>sha256<TAB>700<TAB>base64", "signedLease<TAB>bytes<TAB>sha256<TAB>600<TAB>base64", "END"], "strictOrder": true, "rejects": ["empty carrier", "truncated carrier", "duplicate/reordered frame", "header byte/SHA/mode mismatch", "extra data"]},
+    "temporaryObjects": {
+      "paths": ["/tmp/ynx-finance-<p0275-id>.executor.sh", "/tmp/ynx-finance-<p0275-id>.json"],
+      "mustStartAbsentNonSymlink": true,
+      "creation": "no-clobber, 0700 executor and 0600 signed lease, exact bytes/SHA/full tuple receipt",
+      "finalizer": "on every terminal path delete only matching identity+bytes+SHA temporary files, reject substitution/symlink/hardlink drift, then prove both paths absent"
+    },
+    "signedLeaseRequirements": ["kind FINANCE_P0272_CONTROL_CLEANUP_ONLY", "fresh p0275-finance-p0272-control-cleanup id", "transport executor path/bytes/SHA and temporary signed-lease path", "no P0272 deployment JSON reuse"]
+  },
+  "cleanupExecutor": {"path": "apps/finance/scripts/finance-p0272-control-cleanup.sh", "blob": "8ddca875d4f27da87632e8060aff7e42f373712e", "bytes": 2937, "sha256": "513ed29b48c866c8c4fc37cd8ae3130c40a68c840d89b77a54a13345563c6828"},
+  "actualShellFixture": {"path": "apps/finance/scripts/test-finance-p0275-cleanup-stdin-bootstrap-fixture.mjs", "blob": "742ac295ccf98d4822ab8530074a056aed270747", "bytes": 5452, "sha256": "b756159eef83e96578ec233b03b402511e200c0145c5ace990341302ee2e2774", "coverage": ["base64-decoded remote bash-c launch with stdin carrier", "positive cleanup and temporary finalizer", "empty carrier", "truncation", "duplicate frame", "silent rc0 executor rejection"]},
+  "forbidden": ["stage", "backup", "release", "current", "env", "state", "service", "unit", "Caddy", "public routes", "wallet", "account", "sign", "typed data", "transaction", "deployment", "rollback"],
+  "freshNamespace": {"idPattern": "p0275-finance-p0272-control-cleanup-<Central-UTC-timestamp>", "localReceipts": ["/tmp/ynx-finance-p0275-control-cleanup.stdout", "/tmp/ynx-finance-p0275-control-cleanup.stderr", "/tmp/ynx-finance-p0275-control-cleanup.receipt"], "allMustStartAbsentNonSymlink": true},
+  "truth": {"leaseIssued": false, "sshExecuted": false, "cleanupExecuted": false, "persistentControlDeletionProven": false, "walletAccountOrTransactionAction": false},
+  "singleBlocker": "Central must bind exact fresh P0275 carrier bytes, signed cleanup JSON, bootstrap argv, temporary path tuples and a single non-retry SSH invocation."
+}
