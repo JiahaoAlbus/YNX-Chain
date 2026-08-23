@@ -1,0 +1,10 @@
+{
+  "kind": "FINANCE_P0279_POST_CLEANUP_ZERO_WRITE_VERIFICATION_REQUEST",
+  "requestStatus": "SOURCE_REQUEST_ONLY_NO_SSH_NO_MUTATION",
+  "predecessor": {"p0281RemoteReceiptSha256": "d6f29f0ebd2cf91beba06d9f49f319c39b4fc2375a11d10694bd8d1bb6dd23aa", "localWrapperExitStatus": 1, "remoteExitStatus": 0, "cleanupComplete": false},
+  "exactReadOnlyArgv": ["/usr/bin/ssh", "-i", "<protected-central-identity>", "-o", "IdentitiesOnly=yes", "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=yes", "-o", "UserKnownHostsFile=/Users/huangjiahao/.ssh/known_hosts", "-o", "ConnectTimeout=10", "-o", "ConnectionAttempts=1", "ubuntu@43.153.202.237", "/usr/bin/sudo", "-n", "/bin/bash", "-s", "--"],
+  "mustProve": ["P0279 executor absent", "P0279 signed lease absent", "P0281 temporary executor and lease absent", "retained /opt/ynx/leases/finance parent stable identity and empty", "old current/env/state/unit/Caddy/service PID/NRestarts unchanged", "loopback/public root health version status bytes SHA unchanged", "mutationCount=0"],
+  "forbidden": ["write", "cleanup", "deploy", "rollback", "restart", "current/env/state/unit/Caddy/public mutation", "account", "sign", "transaction"],
+  "singleResultFormat": "fixed nonempty receipt with all mustProve fields and remoteExitStatus; missing evidence fails closed",
+  "truth": {"verificationExecuted": false, "cleanupComplete": false, "deployment": false}
+}
