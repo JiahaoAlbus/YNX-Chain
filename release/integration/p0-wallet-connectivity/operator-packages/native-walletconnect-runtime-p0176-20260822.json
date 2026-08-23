@@ -6,6 +6,11 @@
   "status": "WAITING_EXTERNAL_PROTECTED_INPUTS_AND_HEAVY_SLOT",
   "blocker": "PROTECTED_NATIVE_WALLETCONNECT_OPERATOR_CONFIRMATIONS_UNAVAILABLE",
   "operatorPackage3bcAccepted": true,
+  "centralAcceptance": {
+    "commit": "8e8d5317b823d0c834b781ced197f909c2582491",
+    "tree": "b12da3c1df2493e56eba897bcccdc3e22d226802",
+    "secretValuesRecorded": false
+  },
   "operatorInputRequest": {
     "branch": "codex/walletconnect-runtime-hardening-20260823",
     "commit": "3bc070e39e6ade7a7a210196ba8721d895fa6960",
@@ -90,6 +95,75 @@
     "uniswapOpenSeaSafe": "wallet-external-dapp-operator",
     "androidSignedTarget": "wallet-android-signing-owner",
     "officialMetaMaskComparatorProvenance": "wallet-metamask-comparator-owner"
+  },
+  "booleanOnlyNamedOwnerRouting": {
+    "status": "ROUTED_AWAITING_NON_SECRET_BOOLEAN_CONFIRMATIONS",
+    "secretValuesRequested": false,
+    "secretValuesRecorded": false,
+    "confirmations": [
+      {
+        "owner": "central-protected-runtime-operator",
+        "boolean": "reownProjectAllowlistReceiptAvailable",
+        "current": false
+      },
+      {
+        "owner": "wallet-apple-signing-owner",
+        "boolean": "appleSignedAppGroupAndKeychainSignerAvailable",
+        "current": false
+      },
+      {
+        "owner": "wallet-apple-signing-owner",
+        "boolean": "eligibleSignedIosTargetAvailable",
+        "current": false
+      },
+      {
+        "owner": "wallet-apple-signing-owner",
+        "boolean": "eligibleSignedMacosTargetAvailable",
+        "current": false
+      },
+      {
+        "owner": "wallet-testnet-signer-operator",
+        "boolean": "opaqueApprovedTestAccountHandleAvailable",
+        "current": false
+      },
+      {
+        "owner": "wallet-testnet-signer-operator",
+        "boolean": "boundedTestnetTransactionPolicyAvailable",
+        "current": false
+      },
+      {
+        "owner": "wallet-product-release-owner",
+        "boolean": "firstPartyExactOriginAvailable",
+        "current": false
+      },
+      {
+        "owner": "wallet-external-dapp-operator",
+        "boolean": "uniswapNamedOperatorAvailable",
+        "current": false
+      },
+      {
+        "owner": "wallet-external-dapp-operator",
+        "boolean": "openseaNamedOperatorAvailable",
+        "current": false
+      },
+      {
+        "owner": "wallet-external-dapp-operator",
+        "boolean": "safeNamedOperatorAvailable",
+        "current": false
+      },
+      {
+        "owner": "wallet-android-signing-owner",
+        "boolean": "eligibleSignedAndroidTargetAvailable",
+        "current": false
+      },
+      {
+        "owner": "wallet-metamask-comparator-owner",
+        "boolean": "officialSignedMetaMaskComparatorProvenanceAvailable",
+        "current": false
+      }
+    ],
+    "allProtectedReadinessTrue": false,
+    "runtimeLeaseEligible": false
   },
   "runtimeAcceptance": [
     "real Reown SDK bundled and source-bound",

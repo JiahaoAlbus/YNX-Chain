@@ -6410,7 +6410,7 @@
       "operatorPackage3bcAccepted": true,
       "blocker": "PROTECTED_NATIVE_WALLETCONNECT_OPERATOR_CONFIRMATIONS_UNAVAILABLE",
       "productsConnected": "0/12",
-      "nextAction": "Keep runtime false while P0-281 owns Heavy. Named protected operators must return only readiness booleans for Reown allowlist, Apple app-group/Keychain signer, opaque approved-account handle, bounded Testnet policy, first-party origin, Uniswap/OpenSea/Safe, eligible signed iOS/macOS/Android targets and official signed MetaMask comparator provenance. Issue no runtime lease until every boolean is true under a wholly-new path-scoped review."
+      "nextAction": "Heavy is idle after Finance P0-282 release, but every protected readiness boolean remains false. Named protected operators must return only non-secret availability booleans and non-sensitive receipt/provenance IDs when true for Reown allowlist, Apple app-group/Keychain signer, opaque approved-account handle, bounded Testnet policy, first-party origin, Uniswap/OpenSea/Safe, eligible signed iOS/macOS/Android targets and official signed MetaMask comparator provenance. Issue no runtime lease until every boolean is true under a wholly-new path-scoped review."
     },
     {
       "taskId": "P0-177",
