@@ -12,6 +12,7 @@ command -v jq >/dev/null || { echo 'jq required for signed lease object' >&2; ex
 signed=$(jq -er '.lease.signed' "$lease"); test "$signed" = true
 get(){ jq -r "$1" "$lease"; }
 LEASE_ID=$(get '.lease.id')
+test "$(get '.lease.kind')" = FINANCE_ROLLBACK_FIRST_PRODUCTION_DEPLOYMENT
 hash(){ sha256sum "$1" | awk '{print $1}'; }
 bytes(){ wc -c < "$1" | tr -d ' '; }
 http_check(){ local path=$1 tmp status url; url=$(get "$path.url"); tmp=$(mktemp); status=$(curl --silent --show-error --max-time 10 -o "$tmp" -w '%{http_code}' "$url"); test "$status" = "$(get "$path.status")"; test "$(bytes "$tmp")" = "$(get "$path.bytes")"; test "$(hash "$tmp")" = "$(get "$path.sha256")"; rm -f "$tmp"; }
@@ -21,16 +22,30 @@ binary_bytes=$(get '.candidate.binary.bytes')
 binary_sha=$(get '.candidate.binary.sha256'); current=$(get '.fresh.currentLink'); old=$(get '.fresh.activeRelease'); old_binary=$(get '.fresh.binary.path'); old_binary_sha=$(get '.fresh.binary.sha256')
 env=$(get '.fresh.env.path'); env_sha=$(get '.fresh.env.sha256'); unit=$(get '.fresh.unit.path'); unit_sha=$(get '.fresh.unit.sha256'); caddy=$(get '.fresh.caddy.path'); caddy_sha=$(get '.fresh.caddy.sha256'); service=$(get '.fresh.service.name')
 stage=$(get '.paths.stage'); backup=$(get '.paths.backup'); release=$(get '.paths.release'); new_env=$(get '.candidate.env.path'); new_env_sha=$(get '.candidate.env.sha256'); state=$(get '.fresh.state.path'); state_absent=$(get '.fresh.state.absent')
-assert_exact_child(){
+carrier=$(get '.candidate.carrier.path'); carrier_id=$(get '.candidate.carrier.id'); carrier_tuple=$(get '.candidate.carrier.tuple')
+case "$carrier_id" in ''|*/*|.|..|*..*) exit 65;; esac
+test "$carrier_id" = p0228-finance-phase1-20260822T234100Z
+test "$carrier" = "/opt/ynx/stage/finance/$carrier_id"
+test -d "$carrier" && test ! -L "$carrier" && test "$(realpath -e "$carrier")" = "$carrier"
+test "$(stat -Lc '%d:%i:%u:%g:%a:%h:%s:%F' "$carrier")" = "$carrier_tuple"
+assert_carrier_child(){
+  local name=$1 value=$2 base
+  base=$(get ".paths.basenames.$name")
+  case "$base" in ''|*/*|.|..|*..*) exit 65;; esac
+  test "$value" = "$carrier/$base"
+  test -f "$value" && test ! -L "$value"
+}
+assert_lease_child(){
   local name=$1 value=$2 parent tuple base
   parent=$(get ".paths.parents.$name.path"); tuple=$(get ".paths.parents.$name.tuple"); base=$(get ".paths.basenames.$name")
   case "$base" in ''|*/*|.|..|*..*) exit 65;; esac
   test "$value" = "$parent/$LEASE_ID/$base"
   test -d "$parent" && test ! -L "$parent" && test "$(realpath -e "$parent")" = "$parent"
   test "$(stat -Lc '%u:%g:%a:%h' "$parent")" = "$tuple"
-  case "$name" in archive|newEnv) test -f "$value" && test ! -L "$value";; *) absent "$value";; esac
+  absent "$value"
 }
-assert_exact_child archive "$archive"; assert_exact_child newEnv "$new_env"; assert_exact_child stage "$stage"; assert_exact_child backup "$backup"; assert_exact_child release "$release"
+assert_carrier_child archive "$archive"; assert_carrier_child newEnv "$new_env"
+assert_lease_child stage "$stage"; assert_lease_child backup "$backup"; assert_lease_child release "$release"
 verify_old_live(){ http_check '.fresh.verifier.loopbackHealth'; http_check '.fresh.verifier.loopbackVersion'; http_check '.fresh.verifier.publicHealth'; http_check '.fresh.verifier.publicVersion'; }
 asset_path(){
   local root=$1 rel=$2 path
