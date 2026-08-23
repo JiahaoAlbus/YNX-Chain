@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "p0-finance-zero-write-verification-request@1",
+  "kind": "FINANCE_P0289_POST_CLEANUP_INDEPENDENT_ZERO_WRITE_VERIFICATION_REQUEST",
+  "requestStatus": "SOURCE_REQUEST_ONLY_AWAITING_NEW_CENTRAL_READONLY_SINGLE_USE_LEASE",
+  "requestId": "P0-292",
+  "predecessor": {
+    "p0291Terminal": {
+      "path": "apps/finance/evidence/p0-291-finance-p0289-four-residue-cleanup-terminal-evidence-20260824.json",
+      "status": "DIRECT_CLEANUP_SUCCESS_PENDING_INDEPENDENT_ZERO_WRITE_VERIFICATION",
+      "stdoutSha256": "cc2383c80d92034912a537bcc2d268c4405e3e500acc4ab6ddd4a2c1e402439f"
+    }
+  },
+  "scope": {
+    "oneSsh": true,
+    "retryAllowed": false,
+    "remoteWrites": 0,
+    "noRemoteTemporaryFiles": true,
+    "forbidden": ["cleanup", "deploy", "rollback", "restart", "service lifecycle", "current/env/state/unit/Caddy mutation", "account", "signature", "transaction"]
+  },
+  "requiredAbsence": [
+    "/opt/ynx/leases/finance/p0289-finance-phase3-20260824t010000z.executor.sh",
+    "/opt/ynx/leases/finance/p0289-finance-phase3-20260824t010000z.json",
+    "/opt/ynx/leases/finance/p0289-finance-phase3-20260824t010000z.executor.sh.pending",
+    "/opt/ynx/leases/finance/p0289-finance-phase3-20260824t010000z.json.pending",
+    "/opt/ynx/stage/finance/p0289-finance-phase3-20260824t010000z",
+    "/opt/ynx/stage/finance/p0289-finance-phase3-20260824t010000z/stage",
+    "/var/backups/ynx-finance/p0289-finance-phase3-20260824t010000z",
+    "/var/backups/ynx-finance/p0289-finance-phase3-20260824t010000z/backup",
+    "/opt/ynx/releases/finance/p0289-finance-phase3-20260824t010000z",
+    "/opt/ynx/releases/finance/p0289-finance-phase3-20260824t010000z/ynx-finance-7824af677dd0",
+    "/opt/ynx/finance-current.next",
+    "/opt/ynx/finance-current.rollback"
+  ],
+  "requiredParentReceipts": {
+    "/opt/ynx/leases/finance": "64770:4594822:0:0:750:2:4096:directory|directChildren=0|inventorySha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "/opt/ynx/stage/finance": "64770:3450041:0:0:750:5:4096:directory|directChildren=3|inventorySha256=0d11124b36a42c6201f7e0d491fd20279ea47950554f92c6b1cc960aaa0fee91",
+    "/var/backups/ynx-finance": "64770:1481354:0:0:755:11:4096:directory|directChildren=9|inventorySha256=a59008acfeccfb0a2f88de5b029871b713b42d0bf43ad1ba87786c962e6659be"
+  },
+  "oldRuntimeReceipts": {
+    "currentRelease": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a",
+    "currentBinarySha256": "0cc43c8a77c12975a0fcbada65971f08f2bc3a52345d547ea194dd3ccd60d83f",
+    "envSha256": "854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252",
+    "unitSha256": "2e72cdad422a3a714c46d074ea97b725233576cf726dbbfd43e82e99c2c2975b",
+    "caddySha256": "dcf75a7aed315c54632321b8bb80e44c0abc22f6700fadfbfa9a7da21b88a282",
+    "state": "absent",
+    "service": "loaded:active:running:MainPID=2241003:NRestarts=0",
+    "loopbackAndPublic": ["root HTTP 200 / 11427 B / c1fc45eecd7f88de6fc3e049d15161b8d4e9878e31f20c977fc52b383a18ed53", "health HTTP 200 / 485 B / d1e97a4314acd1ecccf94629d15bd598cb58ff78136b3622ac26d583a82e45c1", "version HTTP 200 / 130 B / 39789776da47e60b7a7df845789e02ebba16707ad8951eb6f27c84c1b40bb226"]
+  },
+  "terminalReceipt": "Return one normalized non-secret read-only receipt containing every absence, parent tuple/inventory, old runtime receipt, HTTP status/bytes/SHA/MIME, remote exit status and mutationCount=0.",
+  "truth": {"verificationExecuted": false, "cleanupComplete": false, "deployment": false, "publicVerified": false},
+  "singleBlocker": "Central must issue an independent P0-292 readonly lease; P0-291 direct cleanup receipt cannot substitute for this verification."
+}

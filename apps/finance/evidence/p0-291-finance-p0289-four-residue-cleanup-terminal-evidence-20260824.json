@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "p0-finance-cleanup-terminal-evidence@1",
+  "kind": "FINANCE_P0289_FOUR_RESIDUE_CLEANUP_TERMINAL",
+  "terminalStatus": "DIRECT_CLEANUP_SUCCESS_PENDING_INDEPENDENT_ZERO_WRITE_VERIFICATION",
+  "execution": {
+    "sshInvocationCount": 1,
+    "cleanupInvocationCount": 1,
+    "localExitStatus": 0,
+    "remoteExitStatus": 0,
+    "stdout": {"bytes": 701, "sha256": "cc2383c80d92034912a537bcc2d268c4405e3e500acc4ab6ddd4a2c1e402439f"},
+    "stderr": {"bytes": 0, "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
+  },
+  "receipt": {
+    "cleanup": "P0289_FOUR_RESIDUES_REMOVED",
+    "executorFinal": "absent",
+    "signedLeaseFinal": "absent",
+    "stageContainerFinal": "absent",
+    "backupContainerFinal": "absent",
+    "leaseParentPost": "64770:4594822:0:0:750:2:4096:directory|directChildren=0|inventorySha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stageParentPost": "64770:3450041:0:0:750:5:4096:directory|directChildren=3|inventorySha256=0d11124b36a42c6201f7e0d491fd20279ea47950554f92c6b1cc960aaa0fee91",
+    "backupParentPost": "64770:1481354:0:0:755:11:4096:directory|directChildren=9|inventorySha256=a59008acfeccfb0a2f88de5b029871b713b42d0bf43ad1ba87786c962e6659be",
+    "cleanupComplete": "pending-independent-zero-write-verification"
+  },
+  "forbiddenActionsNotPerformed": ["deploy", "rollback", "service lifecycle", "current link", "env", "state", "unit", "Caddy", "public route", "account", "signature", "transaction"],
+  "truth": {"cleanupCompletedByDirectReceipt": true, "cleanupIndependentlyVerified": false, "deployment": false, "publicVerified": false},
+  "requiredCentralAction": "Atomically release P0-291 as cleanup-success pending independent verification, then issue a wholly new P0-292 zero-write verification lease."
+}
