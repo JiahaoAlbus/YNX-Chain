@@ -2137,6 +2137,31 @@
         "only the exact P0-279 executor and signed lease remain; their deletion requires a wholly-new cleanup-only lease",
         "P0-279 and P0-280 are consumed and nonreusable; no deployment authority is active"
       ]
+    },
+    {
+      "path": "{host:43.153.202.237:finance-p0279-control-cleanup,stable-parent:/opt/ynx/leases/finance,delete:/opt/ynx/leases/finance/p0279-finance-phase3-20260823T164408Z.executor.sh,delete:/opt/ynx/leases/finance/p0279-finance-phase3-20260823T164408Z.json,temp:/tmp/ynx-finance-p0281-finance-p0279-control-cleanup-20260823T170900Z.executor.sh,temp:/tmp/ynx-finance-p0281-finance-p0279-control-cleanup-20260823T170900Z.json}",
+      "owner": "finance-release-control-plane-cleanup-only",
+      "branch": "codex/p0-wallet-connectivity-control-plane-20260820",
+      "worktree": "/private/tmp/ynx-calendar-control-plane.y8FFQt/repo",
+      "taskId": "P0-281",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_SINGLE_USE",
+      "acquiredAt": "2026-08-23T17:09:00Z",
+      "expiresAt": "2026-08-23T17:39:00Z",
+      "releasedAt": null,
+      "sourceCommit": "28f530caec63f1141eb2f6f4dce3572b28330540",
+      "sourceTree": "f39385e6071cdad83cd38b8466f22b067f209bd3",
+      "evidenceCommit": "8820efb486c6cbe975999d43d6f9e1dda7e22561",
+      "artifactSha256": "e9edb38568549e41e56144d00884aaf0d78f39ec791ac66a4da7c413c45ecb22",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "one exact framed SSH transport and one cleanup invocation with no retry",
+        "delete only the two exact P0-279 control files after repeated parent, exact-child, tuple, link-count, bytes and SHA validation",
+        "create and finalize only the two exact P0-281 temporary transport files",
+        "retained parent identity must remain stable and parent must never be deleted or replaced",
+        "no deploy, rollback, service lifecycle, current, env, state, unit, Caddy, stage, backup, release, public or Wallet mutation",
+        "P0-282 remains queued and unauthorized until P0-281 terminal release and independent readback"
+      ]
     }
   ]
 }
