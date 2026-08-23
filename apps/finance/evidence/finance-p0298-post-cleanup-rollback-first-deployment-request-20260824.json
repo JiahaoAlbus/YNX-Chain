@@ -4,7 +4,7 @@
   "requestStatus": "SOURCE_REQUEST_ONLY_AWAITING_P0297_CENTRAL_RELEASE_AND_NEW_CENTRAL_SIGNED_SINGLE_USE_LEASE",
   "requestId": "P0-298",
   "owner": {
-    "branch": "codex/p0-finance-wallet-connectivity-20260820",
+    "branch": "codex/p0-finance-p0298-terminal-contract-correction-20260824",
     "reviewedCommandCheckpoint": {"commit": "b6e10dea58083dcfda040d57ba14f803ba7d8994", "tree": "bd9df1aed5290ecaa357ec9dd7893a7b0e61aeee"}
   },
   "predecessor": {
@@ -62,7 +62,12 @@
     "terminalGate": "A remote exit 0 is accepted only with the nonempty signed terminal receipt. Any nonzero, silent receipt, stale tuple, output precreation or incomplete rollback is fail-closed and consumes the lease.",
     "forbidden": ["manual rollback", "account", "signature", "typed data", "transaction", "unit/Caddy mutation"]
   },
-  "rollbackAndResidueGates": {"rollbackFirst": true, "foreignSubstitutionFences": ["parent realpath/non-symlink", "no-replace placement", "device/inode/owner/group/mode/nlink/bytes/type/SHA rechecks", "inventory-bound removal only", "foreign object preservation"], "zeroResidue": "Every P0298 stage/backup/release/control pending and temporary path must be absent after success or automatic rollback; retained parents and old runtime must match the newly signed baseline."},
+  "rollbackAndResidueGates": {
+    "rollbackFirst": true,
+    "foreignSubstitutionFences": ["parent realpath/non-symlink", "no-replace placement", "device/inode/owner/group/mode/nlink/bytes/type/SHA rechecks", "inventory-bound removal only", "foreign object preservation"],
+    "successTerminal": "After verified deployment success, the exact signed P0298 release container, release, backup, executor and signed lease remain as rollback material; current resolves to the exact candidate release, the candidate service PID/NRestarts and live gates match the terminal receipt, and all pending and temporary paths are absent. Success does not require restoring the old runtime or deleting retained rollback material.",
+    "automaticRollbackTerminal": "After any failure following an owned write, automatic rollback restores the newly signed old env/state/current/service and verifies the old live receipts before terminal failure emission. Only identity-bound P0298 stage, backup, release, control, pending and temporary objects are removed; every such owned residue is absent after rollback, retained parents match the newly signed baseline, and foreign or substituted objects are preserved fail-closed."
+  },
   "tests": {"shellSyntax": true, "nodeSyntax": true, "actualShellFixture": true, "json": true, "diff": true},
   "truth": {"leaseIssued": false, "sshExecuted": false, "deployed": false, "publicVerified": false, "walletApproval": false, "signature": false, "transaction": false},
   "singleBlocker": "Central must first release P0297, then provide a new P0298 Finance-only single-use deployment lease with fresh signed baseline, paths, stdin identity and literal argv."
