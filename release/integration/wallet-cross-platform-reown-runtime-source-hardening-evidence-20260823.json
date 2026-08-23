@@ -6,15 +6,19 @@
   "asOf": "2026-08-23T16:53:35+08:00",
   "implementation": {
     "branch": "codex/walletconnect-runtime-hardening-20260823",
-    "commit": "b25c8c565c1e83687bafd957c199b51a8e92eab0",
-    "tree": "7df36395581bef2d371dd272b9fb706b871a1557",
-    "parent": "b50e22ea26e3cf928aee90e602680955297573b8",
+    "commit": "9f8e6aca883af7d31875e04ca01b8b20fac47892",
+    "tree": "683a59ae5c80224cf6ec62f3567402c71e1078e2",
+    "parent": "5d66e08c79a175e739d277f215e352b2a8d50dab",
+    "implementationCommits": [
+      "b25c8c565c1e83687bafd957c199b51a8e92eab0",
+      "9f8e6aca883af7d31875e04ca01b8b20fac47892"
+    ],
     "files": [
       {
         "path": "apps/wallet/macos/Sources/YNXWalletMacCore/WalletConnectRelayRuntime.swift",
-        "blob": "1fea3d14ee16b939a36eb9187da06156bf8b218e",
-        "sha256": "016d314a500d1a4599500a46845c33009524696e746c9f61e4ef2954d303dce5",
-        "bytes": 21197
+        "blob": "ad2d4e3b7edc871dd1996e9c7f42903f1a45e90b",
+        "sha256": "cfaa7175d087825feec92eb018249dc0fdd3144c6a957239d2da8450016d26cf",
+        "bytes": 21610
       },
       {
         "path": "apps/wallet/macos/Sources/YNXWalletMacCore/WalletConnectV2Policy.swift",
