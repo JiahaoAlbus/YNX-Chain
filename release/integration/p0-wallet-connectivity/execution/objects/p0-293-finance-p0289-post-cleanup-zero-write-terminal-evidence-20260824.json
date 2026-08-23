@@ -1,0 +1,46 @@
+{
+  "schemaVersion": "p0-finance-zero-write-terminal-evidence@1",
+  "taskId": "P0-293",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-p0289-post-cleanup-zero-write-p0293-20260823T191000Z",
+  "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0293_P0289_CLEANUP_ZERO_WRITE_VERIFIED",
+  "attempts": 1,
+  "localExitStatus": 0,
+  "stdout": {
+    "path": "release/integration/p0-wallet-connectivity/execution/objects/p0-293-finance-p0289-post-cleanup-zero-write-terminal-stdout.txt",
+    "blob": "b2eff563c090902a8a45f1bec7941a1529556e2f",
+    "bytes": 2035,
+    "sha256": "79cd6696f5d0b653c112292a73fc205051a0e98a8134abdb210bc0001473610d"
+  },
+  "stderr": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "directTruth": {
+    "allTwelveP0289PathsAbsent": true,
+    "leaseParent": "64770:4594822:0:0:750:2:4096:directory|directChildren=0|inventorySha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stageParent": "64770:3450041:0:0:750:5:4096:directory|directChildren=3|inventorySha256=0d11124b36a42c6201f7e0d491fd20279ea47950554f92c6b1cc960aaa0fee91",
+    "backupParent": "64770:1481354:0:0:755:11:4096:directory|directChildren=9|inventorySha256=a59008acfeccfb0a2f88de5b029871b713b42d0bf43ad1ba87786c962e6659be",
+    "currentTarget": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a",
+    "resolvedBinary": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a/ynx-finance",
+    "oldBinarySha256": "0cc43c8a77c12975a0fcbada65971f08f2bc3a52345d547ea194dd3ccd60d83f",
+    "envSha256": "854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252",
+    "unitSha256": "2e72cdad422a3a714c46d074ea97b725233576cf726dbbfd43e82e99c2c2975b",
+    "caddySha256": "dcf75a7aed315c54632321b8bb80e44c0abc22f6700fadfbfa9a7da21b88a282",
+    "stateAbsent": true,
+    "service": "loaded:active:running:2241003:0:/opt/ynx/finance-current:ynx:ynx",
+    "sixHttpReceiptsExact": true,
+    "remoteExitStatus": 0,
+    "verificationComplete": true,
+    "cleanupComplete": true,
+    "mutationCount": 0
+  },
+  "truth": {
+    "cleanupComplete": true,
+    "oldRuntimeUnchanged": true,
+    "deployment": false,
+    "rollback": false,
+    "remoteMutation": false,
+    "p0293Reusable": false,
+    "p0294DeploymentAuthority": false
+  }
+}
