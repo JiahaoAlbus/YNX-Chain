@@ -74,6 +74,13 @@ assert_runtime() {
     [[ "$(stat -c '%a' "$root/server.mjs")" == 755 ]] || return 1
   fi
 }
+assert_production_identity() {
+  [[ "$mode" != production ]] && return 0
+  [[ -z "$(find "$1" \( ! -user ynx -o ! -group ynx \) -print -quit)" ]] || return 1
+  [[ -z "$(find "$1" -type d ! -perm 0755 -print -quit)" ]] || return 1
+  [[ -z "$(find "$1" -type f ! -name server.mjs ! -perm 0644 -print -quit)" ]] || return 1
+  [[ "$(stat -c '%a' "$1/server.mjs")" == 755 ]] || return 1
+}
 assert_bindings() {
   [[ -L "$link" && "$(readlink "$link")" == "$target" && "$(tuple "$link")" == "$link_tuple" ]] || return 1
   [[ "$(tuple "$target")" == "$target_tuple" && "$(tuple "$target/apps")" == "$apps_tuple" ]] || return 1
@@ -87,12 +94,17 @@ creator_before=$(probe creator 6495 / | shasum -a 256 | awk '{print $1}')
 stage="$target/apps/.video-recovery.$$"
 mkdir "$stage"
 created=false
+created_tuple=""
 cleanup() {
   local code=$?
   trap - ERR INT TERM
   systemctl_exact stop "$unit" >/dev/null 2>&1 || true
   if [[ "$created" == true && -d "$target/apps/video" ]]; then
-    assert_runtime "$target/apps/video" && find "$target/apps/video" -depth -delete
+    if [[ "$(tuple "$target/apps/video")" == "$created_tuple" ]] && assert_runtime "$target/apps/video" && assert_production_identity "$target/apps/video"; then
+      find "$target/apps/video" -depth -delete
+    else
+      echo "new Viewer subtree identity changed; refusing cleanup" >&2
+    fi
   elif [[ -d "$stage" ]]; then
     find "$stage" -depth -delete
   fi
@@ -106,12 +118,18 @@ if [[ "$mode" == production ]]; then chown -R 995:986 "$stage/runtime"; fi
 mv "$stage/runtime" "$target/apps/video"
 rmdir "$stage"
 created=true
+created_tuple=$(tuple "$target/apps/video")
+assert_runtime "$target/apps/video"
+assert_production_identity "$target/apps/video"
 systemctl_exact reset-failed "$unit"
 systemctl_exact start "$unit"
+attempts=${YNX_VIDEO_RECOVERY_PROBE_ATTEMPTS:-25}
+delay=${YNX_VIDEO_RECOVERY_PROBE_DELAY_SECONDS:-0.2}
+[[ "$attempts" =~ ^[1-9][0-9]*$ && "$attempts" -le 60 && "$delay" =~ ^(0|[0-9]+([.][0-9]+)?)$ ]] || exit 65
 ready=false
-for _ in $(seq 1 25); do
+for _ in $(seq 1 "$attempts"); do
   if viewer_sha=$(probe viewer 6494 / 2>/dev/null | shasum -a 256 | awk '{print $1}') && [[ "$viewer_sha" == 5c6aa1b9207680ff40f77df6d063571f67beff40719d727acf5d2fa0c05b591a ]]; then ready=true; break; fi
-  sleep 0.2
+  sleep "$delay"
 done
 [[ "$ready" == true ]] || exit 74
 api_after=$(probe api 6493 /health | shasum -a 256 | awk '{print $1}')
@@ -121,6 +139,6 @@ creator_after=$(probe creator 6495 / | shasum -a 256 | awk '{print $1}')
 pid=$(systemctl_exact show "$unit" --property MainPID --value)
 restarts=$(systemctl_exact show "$unit" --property NRestarts --value)
 [[ "$pid" =~ ^[1-9][0-9]*$ && "$restarts" == 0 ]] || exit 74
-printf 'recovered=true\nsubtree=%s\ncarrier_sha256=%s\nviewer_sha256=%s\napi_sha256=%s\ncreator_sha256=%s\npid=%s\nnrestarts=%s\n' \
-  "$target/apps/video" "$carrier_sha" 5c6aa1b9207680ff40f77df6d063571f67beff40719d727acf5d2fa0c05b591a "$api_after" "$creator_after" "$pid" "$restarts" > "$receipt"
+printf 'recovered=true\nsubtree=%s\nsubtree_tuple=%s\ncarrier_sha256=%s\nviewer_sha256=%s\napi_sha256=%s\ncreator_sha256=%s\npid=%s\nnrestarts=%s\n' \
+  "$target/apps/video" "$created_tuple" "$carrier_sha" 5c6aa1b9207680ff40f77df6d063571f67beff40719d727acf5d2fa0c05b591a "$api_after" "$creator_after" "$pid" "$restarts" > "$receipt"
 trap - ERR INT TERM
