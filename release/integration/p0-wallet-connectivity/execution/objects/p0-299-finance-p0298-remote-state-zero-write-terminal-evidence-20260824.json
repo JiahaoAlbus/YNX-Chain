@@ -1,0 +1,55 @@
+{
+  "schemaVersion": "p0-finance-zero-write-terminal-evidence@1",
+  "taskId": "P0-299",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-p0298-state-readonly-p0299-20260823T202000Z",
+  "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0299_P0298_REMOTE_STATE_ZERO_WRITE_INSPECTION",
+  "attempts": 1,
+  "retryCount": 0,
+  "localExitStatus": 0,
+  "remoteExitStatus": 0,
+  "mutationCount": 0,
+  "stdout": {
+    "path": "/tmp/ynx-finance-p0299-p0298-remote-state-zero-write-20260823T202000Z.stdout",
+    "bytes": 3186,
+    "sha256": "9432b356169824664c952a1b194c90221c9fe447ba6181146a3a15f312d100d2"
+  },
+  "stderr": {
+    "path": "/tmp/ynx-finance-p0299-p0298-remote-state-zero-write-20260823T202000Z.stderr",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "remoteTruth": {
+    "allP0298ControlPendingAndManualRollbackPathsAbsent": true,
+    "stageContainerAndStageAbsent": true,
+    "backupContainerAndBackupAbsent": true,
+    "releaseContainerAndReleaseAbsent": true,
+    "currentNextAndCurrentRollbackAbsent": true,
+    "currentTarget": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a",
+    "currentBinarySha256": "0cc43c8a77c12975a0fcbada65971f08f2bc3a52345d547ea194dd3ccd60d83f",
+    "environmentSha256": "854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252",
+    "unitSha256": "2e72cdad422a3a714c46d074ea97b725233576cf726dbbfd43e82e99c2c2975b",
+    "caddySha256": "dcf75a7aed315c54632321b8bb80e44c0abc22f6700fadfbfa9a7da21b88a282",
+    "state": "absent",
+    "serviceLoadState": "loaded",
+    "serviceActiveState": "active",
+    "serviceSubState": "running",
+    "servicePid": 2241003,
+    "serviceNRestarts": 0,
+    "sixLoopbackPublicGatesExact": true,
+    "journalClass": "SERVICE_OR_EXECUTOR_FAILURE",
+    "journalBytes": 4991,
+    "journalSha256": "74edde2d2263108fe58884baf0f1ddc112fb9c492ab3c26df0508e6494406f9f",
+    "inspectionComplete": true,
+    "productionSwitchOccurred": false
+  },
+  "truth": {
+    "productionMutationObserved": false,
+    "remoteMaterializationObserved": false,
+    "deploymentCompleted": false,
+    "rollbackOccurred": false,
+    "remoteTemporaryFiles": 0,
+    "p0298Reusable": false,
+    "futureDeploymentAuthorityInferred": false,
+    "futureBoundary": "wholly-new lease with a Central-frozen outer invocation that invokes the exact argv without process replacement or empty-environment kill and does not precreate declared outputs"
+  }
+}

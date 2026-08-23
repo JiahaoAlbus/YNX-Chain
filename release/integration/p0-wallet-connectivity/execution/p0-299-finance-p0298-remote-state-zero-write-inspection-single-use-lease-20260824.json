@@ -5,9 +5,10 @@
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-p0298-state-readonly-p0299-20260823T202000Z",
   "owner": "finance-release-control-plane-readonly-inspection",
   "executor": "finance-release-control-plane-readonly-inspection",
-  "status": "ACTIVE",
+  "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0299_P0298_REMOTE_STATE_ZERO_WRITE_INSPECTION",
   "issuedAt": "2026-08-23T20:20:00Z",
   "expiresAt": "2026-08-23T20:50:00Z",
+  "releasedAt": "2026-08-23T20:25:00Z",
   "singleUse": true,
   "reusable": false,
   "productionMutationAllowed": false,
@@ -94,7 +95,10 @@
     "success": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0299_P0298_REMOTE_STATE_ZERO_WRITE_INSPECTION",
     "failure": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0299_ZERO_WRITE_INSPECTION",
     "releaseOnlyAfterDirectTerminalEvidence": true,
-    "cleanupRollbackOrDeploymentAuthorityInferred": false
+    "cleanupRollbackOrDeploymentAuthorityInferred": false,
+    "terminalEvidencePath": "release/integration/p0-wallet-connectivity/execution/objects/p0-299-finance-p0298-remote-state-zero-write-terminal-evidence-20260824.json",
+    "terminalEvidenceAccepted": true,
+    "productionStateKnown": true,
+    "productionSwitchOccurred": false
   }
 }
-

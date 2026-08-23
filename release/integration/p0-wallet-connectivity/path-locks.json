@@ -2586,15 +2586,15 @@
     },
     {
       "path": "{host:43.153.202.237:finance-p0298-state-zero-write-inspection,readonly:/opt/ynx/leases/finance/p0298-finance-phase3-20260824t201500z.*,readonly:/opt/ynx/stage/finance/p0298-finance-phase3-20260824t201500z/**,readonly:/var/backups/ynx-finance/p0298-finance-phase3-20260824t201500z/**,readonly:/opt/ynx/releases/finance/p0298-finance-phase3-20260824t201500z/**,readonly:/opt/ynx/finance-current*,readonly:/etc/ynx/finance.env,readonly:/var/lib/ynx/finance/state.json,readonly:/etc/systemd/system/ynx-finance.service,readonly:/etc/caddy/conf.d/ynx-finance.caddy,readonly:service:ynx-finance.service,readonly:http://127.0.0.1:6483/**,readonly:https://finance.ynxweb4.com/**}",
-      "owner": "finance-release-control-plane-readonly-inspection",
+      "owner": null,
       "branch": "codex/p0-wallet-connectivity-control-plane-20260820",
       "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration",
       "taskId": "P0-299",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE",
+      "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0299_P0298_REMOTE_STATE_ZERO_WRITE_INSPECTION",
       "acquiredAt": "2026-08-23T20:20:00Z",
       "expiresAt": "2026-08-23T20:50:00Z",
-      "releasedAt": null,
+      "releasedAt": "2026-08-23T20:25:00Z",
       "sourceCommit": "63cdaf84f0622764f80d2f6614094100515cada8",
       "sourceTree": "7917e25ac218760d635112b159c8cc1fcbda05c7",
       "evidenceCommit": "e7a30c37f9ba41977fc77e525361fc92306835da",
@@ -2604,7 +2604,9 @@
         "exactly one read-only SSH inspection and no retry",
         "read P0-298 controls stage backup release current env state unit Caddy service six HTTP gates and bounded normalized journal metadata",
         "no remote temp file or write",
-        "no cleanup rollback deploy lifecycle config public Wallet account signature typed-data or transaction mutation"
+        "no cleanup rollback deploy lifecycle config public Wallet account signature typed-data or transaction mutation",
+        "direct terminal evidence proved every P0-298 owned path absent, old runtime and six HTTP gates exact, and mutationCount0",
+        "P0-299 is consumed and nonreusable; Heavy and the read-only path lock are released"
       ]
     }
   ]
