@@ -6,6 +6,12 @@ set -euo pipefail
 tuple(){ stat -c '%d:%i:%u:%g:%a:%h:%s:%F' -- "$1"; }
 sha(){ sha256sum -- "$1" | awk '{print $1}'; }
 bytes(){ wc -c < "$1" | tr -d ' '; }
+http_tmp_files=()
+cleanup_http_tmp(){
+  local tmp
+  for tmp in "${http_tmp_files[@]}"; do command rm -f -- "$tmp"; done
+}
+trap cleanup_http_tmp EXIT
 inventory(){
   local root=$1 path kind value
   (
@@ -43,11 +49,13 @@ parent_tuple(){
   printf '%s=%s\n' "$label" "$(tuple "$path")"
 }
 http_receipt(){
-  local label=$1 url=$2 response status body
-  response=$(curl --silent --show-error --max-time 10 --write-out $'\n%{http_code}' "$url")
-  status=${response##*$'\n'}; body=${response%$'\n'*}
+  local label=$1 url=$2 tmp status
+  tmp=$(mktemp); http_tmp_files+=("$tmp")
+  status=$(curl --silent --show-error --max-time 10 --output "$tmp" --write-out '%{http_code}' "$url")
   [[ "$status" =~ ^[0-9]{3}$ ]]
-  printf '%sUrl=%s\n%sStatus=%s\n%sBytes=%s\n%sSha256=%s\n' "$label" "$url" "$label" "$status" "$label" "$(printf %s "$body" | wc -c | tr -d ' ')" "$label" "$(printf %s "$body" | sha256sum | awk '{print $1}')"
+  printf '%sUrl=%s\n%sStatus=%s\n%sBytes=%s\n%sSha256=%s\n' "$label" "$url" "$label" "$status" "$label" "$(bytes "$tmp")" "$label" "$(sha "$tmp")"
+  command rm -f -- "$tmp"
+  http_tmp_files=("${http_tmp_files[@]/$tmp}")
 }
 
 id=p0302-finance-phase3-20260823t211500z
