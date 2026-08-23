@@ -83,20 +83,24 @@ function releasePostMoveSubstitutionFixture() {
   assert.ok(lstatSync(p.releaseContainer).isDirectory(), 'non-empty release container preserved');
 }
 function manualRollbackFixture(kind = 'success') {
-  const fixture = makeFixture(false); const p = fixture.paths;
+  const id = 'p0999-finance-phase3-20260823T000000Z'; const fixture = makeFixture(false, { id }); const p = fixture.paths;
   const env = { ...process.env, PATH: `${fixture.bin}:${process.env.PATH}`, FINANCE_FIXTURE_SERVICE: p.service, FINANCE_FIXTURE_RESPONSES: p.responses, FINANCE_FIXTURE_STATE_PATH: p.state, FINANCE_FIXTURE_CANDIDATE_STATE_MODE: 'none', FINANCE_FIXTURE_SYMLINK_TARGET: p.old };
   const deployed = spawnSync('/bin/bash', [fixture.copied, 'deploy', p.lease], { env, encoding: 'utf8' });
   assert.equal(deployed.status, 0, `${deployed.stdout}${deployed.stderr}`);
   const receipt = Object.fromEntries(deployed.stdout.trim().split('\n').filter(line => line.includes('=')).map(line => [line.slice(0, line.indexOf('=')), line.slice(line.indexOf('=') + 1)]));
   assert.equal(receipt.releaseContainer, p.releaseContainer); assert.equal(receipt.release, p.release);
   const rollbackLease = JSON.parse(readFileSync(p.lease, 'utf8')); rollbackLease.lease.kind = 'FINANCE_ROLLBACK_FIRST_PRODUCTION_MANUAL_ROLLBACK'; rollbackLease.success = { parents: { stage: { tuple: receipt.stageParentTuple }, backup: { tuple: receipt.backupParentTuple }, release: { tuple: receipt.releaseParentTuple } }, releaseContainer: { identityTuple: receipt.releaseContainerIdentityTuple, emptyTuple: receipt.releaseContainerEmptyTuple, tuple: receipt.releaseContainerTuple }, release: { tuple: receipt.releaseTuple, inventorySha256: receipt.releaseInventorySha256 }, backup: { tuple: phase1DirectoryTuple(p.backup) }, service: { pid: 102, nrestarts: 7 } };
-  const rollbackPath = join(dirname(p.lease), `manual-${kind}.json`); write(rollbackPath, `${JSON.stringify(rollbackLease)}\n`);
+  const rollbackBytes = Buffer.from(`${JSON.stringify(rollbackLease)}\n`); const financeParent = dirname(p.lease); const installedExecutor = join(financeParent, `${id}.executor.sh`); cpSync(fixture.copied, installedExecutor); chmodSync(installedExecutor, 0o700);
   const foreignTarget = join(fixture.root, `manual-${kind}-foreign`); mkdirSync(foreignTarget); write(join(foreignTarget, 'sentinel'), 'keep');
   if (kind === 'foreign') write(join(p.release, 'foreign'), 'foreign');
   if (kind === 'substitution') { rmSync(p.release, { recursive: true }); symlinkSync(foreignTarget, p.release); }
   // This boundary represents a separately observed external/browser gate
   // failure after deploy success and before Central signs manual rollback.
-  const rolledBack = spawnSync('/bin/bash', [fixture.copied, 'rollback', rollbackPath], { env, encoding: 'utf8' });
+  let rollbackBootstrap = readFileSync(new URL('./finance-phase3-stdin-manual-rollback-bootstrap.sh', import.meta.url), 'utf8').replaceAll('/opt/ynx', dirname(dirname(p.env))).replaceAll('stat -Lc', '/opt/homebrew/bin/gstat -Lc').replaceAll('mv -T --', '/bin/mv --');
+  const foreignManualTarget = join(fixture.root, `manual-${kind}-transport-foreign`); mkdirSync(foreignManualTarget); write(join(foreignManualTarget, 'sentinel'), 'keep');
+  if (kind === 'substitution') rollbackBootstrap = rollbackBootstrap.replace('/bin/mv -- "$pending" "$target"', '/bin/mv -- "$pending" "$target"; /bin/rm -f "$target"; /bin/ln -s "' + foreignManualTarget + '" "$target"');
+  const rollbackArgs = [id, phase1DirectoryTuple(financeParent), installedExecutor, phase1DirectoryTuple(installedExecutor), sha(installedExecutor), String(rollbackBytes.length), shaBuffer(rollbackBytes), '600'];
+  const rolledBack = spawnSync('/bin/bash', ['-c', rollbackBootstrap, 'manual', ...rollbackArgs], { input: rollbackBytes, env, encoding: 'utf8' });
   if (kind === 'success') {
     assert.equal(rolledBack.status, 0, `${rolledBack.stdout}${rolledBack.stderr}`);
     assert.equal(readlinkSync(p.current), p.old, 'separate manual rollback restores old current');
@@ -107,7 +111,7 @@ function manualRollbackFixture(kind = 'success') {
     assert.notEqual(rolledBack.status, 0, `manual rollback ${kind} fails closed`);
     assert.equal(readlinkSync(p.current), p.release, `manual rollback ${kind} does not mutate current before identity proof`);
     if (kind === 'foreign') assert.equal(readFileSync(join(p.release, 'foreign'), 'utf8'), 'foreign', 'foreign release content preserved');
-    else { assert.ok(lstatSync(p.release).isSymbolicLink(), 'substituted release preserved'); assert.equal(readFileSync(join(foreignTarget, 'sentinel'), 'utf8'), 'keep'); }
+    else { assert.ok(lstatSync(p.release).isSymbolicLink(), 'substituted release preserved'); assert.equal(readFileSync(join(foreignTarget, 'sentinel'), 'utf8'), 'keep'); assert.ok(lstatSync(join(financeParent, `${id}.manual-rollback.json`)).isSymbolicLink(), 'transport-substituted rollback target preserved'); assert.equal(readFileSync(join(foreignManualTarget, 'sentinel'), 'utf8'), 'keep'); }
   }
 }
 function generatorNegative(kind) {
