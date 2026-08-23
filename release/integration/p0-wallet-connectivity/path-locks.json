@@ -1836,19 +1836,41 @@
       "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
       "taskId": "P0-248",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE_SINGLE_USE_READONLY",
+      "status": "CONSUMED_RELEASED_SUCCESS_ZERO_WRITE_INSPECTION_OLD_RUNTIME_UNCHANGED_PARTIAL_STAGE_BACKUP_RETAINED",
       "acquiredAt": "2026-08-23T07:47:00Z",
       "expiresAt": "2026-08-23T08:07:00Z",
-      "releasedAt": null,
+      "releasedAt": "2026-08-23T08:04:00Z",
       "sourceCommit": "7824af677dd052d20321431381523ab302614d98",
       "sourceTree": "3db34ee2397a49852bbdf15e3841e7c9cecf9444",
       "evidenceCommit": "6309808d19aadbb3af9c25bf4df4e1de438dc7b0",
       "artifactSha256": "d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d",
       "productionMutationAllowed": false,
       "allowedExceptions": [
-        "one exact stdin-only zero-write SSH inspection, no retry",
-        "local-only stdout and stderr receipt creation",
+        "P0-248 inspection quota is consumed and nonreusable",
+        "old runtime exact; partial P0-247 stage and backup retained without mutation",
         "no deploy, rollback, cleanup, service, current, environment, state, release, unit, Caddy, account, signature or transaction mutation"
+      ]
+    },
+    {
+      "path": "{host:43.153.202.237:finance-phase3-partial-inventory-readonly,readonly:/opt/ynx/leases/finance,readonly:/opt/ynx/stage/finance/p0247-finance-phase3-20260823T073800Z,readonly:/var/backups/ynx-finance/p0247-finance-phase3-20260823T073800Z,readonly:/opt/ynx/releases/finance/p0247-finance-phase3-20260823T073800Z,readonly:/opt/ynx/finance-current,readonly:/etc/ynx/finance.env,readonly:service:ynx-finance.service}",
+      "owner": "finance-release-control-plane-readonly-inventory",
+      "branch": "codex/p0-finance-wallet-connectivity-20260820",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
+      "taskId": "P0-249",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_SINGLE_USE_READONLY",
+      "acquiredAt": "2026-08-23T08:04:00Z",
+      "expiresAt": "2026-08-23T08:24:00Z",
+      "releasedAt": null,
+      "sourceCommit": "7824af677dd052d20321431381523ab302614d98",
+      "sourceTree": "3db34ee2397a49852bbdf15e3841e7c9cecf9444",
+      "evidenceCommit": "0ea878234832170434f91c818f4beab765667af2",
+      "artifactSha256": "d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "one exact stdin-only zero-write detailed inventory SSH, no retry",
+        "local-only stdout and stderr receipt creation",
+        "no cleanup, rollback, deploy, service, current, environment, state, release, unit, Caddy, non-Finance or sensitive mutation"
       ]
     }
   ]
