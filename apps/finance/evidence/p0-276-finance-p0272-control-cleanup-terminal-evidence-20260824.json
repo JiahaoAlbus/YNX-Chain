@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "1.0",
+  "kind": "finance-p0276-control-cleanup-terminal-evidence",
+  "recordedAt": "2026-08-24",
+  "central": {
+    "commit": "3561c39b6921d62a063b74ba8dfab89dc658a15e",
+    "tree": "ca220e62060c77dc0c873eeeaf04eb74444583d0",
+    "leaseBlob": "ad102f8b2e839a13a9212804f64b81f7cbf49fa0",
+    "leaseBytes": 7414,
+    "leaseSha256": "8d05d30106759696a4ea9b725f7760306d854edcc15ebb01d454ce218aabdfc5",
+    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-p0272-control-cleanup-p0276-20260823T160645Z"
+  },
+  "execution": {
+    "workingDirectory": "/private/tmp/ynx-calendar-control-plane.y8FFQt/repo",
+    "literalArgv": [
+      "/bin/bash",
+      "/private/tmp/ynx-calendar-control-plane.y8FFQt/repo/release/integration/p0-wallet-connectivity/execution/objects/p0-276-finance-p0272-control-cleanup-invoker.local.sh"
+    ],
+    "attempts": 1,
+    "retries": 0,
+    "localInvokerExitCode": 0,
+    "terminalStdout": {
+      "path": "/tmp/ynx-finance-p0276-control-cleanup.stdout",
+      "bytes": 89,
+      "sha256": "cab8c242cd82b7d5c3bf06702089b0531e70aefac657428180c0816caba8f6ff",
+      "lines": [
+        "cleanup=P0272_CONTROL_FILES_REMOVED",
+        "parentStableIdentity=64770:4594822:0:0:750:directory"
+      ]
+    },
+    "terminalStderr": {
+      "path": "/tmp/ynx-finance-p0276-control-cleanup.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "truth": {
+    "cleanupReceiptEmitted": true,
+    "twoPersistentControlsRemoved": "reported_by_terminal_receipt_only",
+    "retainedParentIdentity": "reported_by_terminal_receipt_only",
+    "remoteExitCode": "not_emitted",
+    "twoTemporaryFilesAbsent": "not_emitted",
+    "retainedParentEmpty": "not_emitted",
+    "servicePidAndNRestarts": "not_emitted",
+    "forbiddenMutationAbsence": "not_emitted",
+    "deployment": false,
+    "walletApproval": false,
+    "account": false,
+    "signature": false,
+    "transaction": false
+  },
+  "nextAction": "Central must atomically release the consumed single-use lease and, if required, issue a separate zero-write verification lease for assertions not emitted by this terminal receipt."
+}
