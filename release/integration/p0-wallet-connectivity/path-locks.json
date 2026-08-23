@@ -3141,15 +3141,15 @@
     },
     {
       "path": "{host:43.153.202.237:finance-p0300-state-zero-write-inspection}",
-      "owner": "finance-release-control-plane-readonly-inspection",
+      "owner": null,
       "branch": "codex/p0-wallet-connectivity-control-plane-20260820",
       "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration",
       "taskId": "P0-301",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE",
+      "status": "CONSUMED_RELEASED_SUCCESS_ZERO_WRITE_P0300_REMOTE_STATE_KNOWN",
       "acquiredAt": "2026-08-23T20:51:00Z",
       "expiresAt": "2026-08-23T21:21:00Z",
-      "releasedAt": null,
+      "releasedAt": "2026-08-23T20:53:40Z",
       "sourceCommit": "e7a5927c6de14ae63a482d58de829724ac5ed3bc",
       "sourceTree": "e7e0d72071c8e17e8123c0a30fb8dee7de6d9e92",
       "evidenceCommit": null,
@@ -3157,7 +3157,9 @@
       "productionMutationAllowed": false,
       "allowedExceptions": [
         "one exact read-only SSH inspection and no retry",
-        "no write temp cleanup rollback deploy lifecycle config or public mutation"
+        "no write temp cleanup rollback deploy lifecycle config or public mutation",
+        "direct zero-write evidence proved P0-300 remote state known and old runtime exact",
+        "P0-301 consumed and nonreusable; Heavy and lock released"
       ]
     }
   ]
