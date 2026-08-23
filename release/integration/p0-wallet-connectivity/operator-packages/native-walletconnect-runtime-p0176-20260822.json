@@ -246,6 +246,8 @@
       "boundedTestnetTransactionPolicyAvailable": "019ffe33-11a7-7e91-9400-eea29b139b59",
       "eligibleSignedAndroidTargetAvailable": "019ffe33-f59c-70b2-909c-2029f901ec38"
     },
-    "allProtectedReadinessTrue": false
+    "allProtectedReadinessTrue": false,
+    "directResponsesCollected": true,
+    "runtimeLeaseIssued": false
   }
 }

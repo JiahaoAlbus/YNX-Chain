@@ -2,7 +2,8 @@
   "schemaVersion": "p0-wallet-protected-owner-boolean-routing@1",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "taskId": "P0-176",
-  "status": "DISPATCHED_BOOLEAN_ONLY_PARTIAL_VALID_RECEIPTS",
+  "status": "NAMED_OWNER_BOOLEAN_ONLY_DIRECT_FALSE_RESPONSES_COLLECTED",
+  "directResponsesCollected": true,
   "runtimeLeaseIssued": false,
   "secretValuesRequested": false,
   "secretValuesRecorded": false,
@@ -56,6 +57,12 @@
     "accountAddressRecorded": false,
     "keyOrSigningMaterialRecorded": false,
     "policyContentsRecorded": false,
-    "runtimeAction": false
+    "runtimeAction": false,
+    "runtimeLeaseIssued": false,
+    "onlyTrueProtectedReadinessFields": [
+      "firstPartyExactOriginAvailable",
+      "officialSignedMetaMaskComparatorProvenanceAvailable"
+    ],
+    "externalDappDirectDiscoveryPendingUserConfirmation": true
   }
 }
