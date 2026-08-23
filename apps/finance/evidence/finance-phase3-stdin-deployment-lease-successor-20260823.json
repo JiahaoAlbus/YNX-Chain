@@ -6,13 +6,13 @@
     "ownerRequestCommit": "c560497db9c78a1106ab7f0d52d9555652e76cc4",
     "ownerRequestTree": "e8251f0c0a88b6f60d52d5eb4463dd7c5ed9d0bb",
     "requestSha256": "18130afa5aeabafa814e0148eb678a3626c2efabb1efd30915c46fa276d5525b",
-    "centralDecision": "NO_GO_FINANCE_PHASE3_CANDIDATE_PATHS_CANNOT_SHARE_NEW_LEASE_ID",
-    "correction": "Keep the immutable P0-228/P0-236 carrier ID and exact archive/environment paths independent from the new Phase3 deployment lease ID; only stage, backup and release use the new lease ID."
+    "centralDecision": "NO_GO_FINANCE_PHASE3_RELEASE_LEASE_DIRECTORY_NOT_CREATED",
+    "correction": "Keep the immutable P0-228/P0-236 carrier independent, create the new lease-owned release container no-replace under the existing release parent, bind owner/mode/path, return exact container plus candidate-release tuple/inventory receipts, and remove only exact owned objects on failure."
   },
   "owner": {
     "branch": "codex/p0-finance-wallet-connectivity-20260820",
-    "implementationCommit": "6470820da0a421a947896445c75e37f45cfcee85",
-    "implementationTree": "4d8602c0a4aef80887466361f2c5390a83482045",
+    "implementationCommit": "62f62c372abe50261a3535c7b09b5f3508e20a5c",
+    "implementationTree": "110cfc3e04a28c6f3d520822ee4ec98f68b9fbc6",
     "rule": "This successor evidence commit must be a non-self-referential child of the reviewed implementation."
   },
   "acceptedPrerequisite": {
@@ -77,27 +77,28 @@
     },
     "productionExecutor": {
       "path": "apps/finance/scripts/finance-production-rollback-first.sh",
-      "blob": "9ecaa85d1a5cd74818b6205829fab1f0f78d5af3",
-      "bytes": 9764,
-      "sha256": "0beaa023dfc2b778d78869aaa9644b3e5a026bd364f91ce0f3ca51d50832b6fc",
+      "blob": "835b966bc57684b831f16abf32c4621c855844fb",
+      "bytes": 12577,
+      "sha256": "3ef249201bdcf750c3a3153c4fccb0409122e199bb1e86028a3cafb18746e6c5",
       "ownerCommandFixture": "PASS",
       "ownerActualShellFixture": "PASS",
       "immutableCarrierIdSeparatedFromDeploymentLeaseId": true
     },
     "productionCommandFixture": {
       "path": "apps/finance/scripts/test-finance-production-command-object.mjs",
-      "blob": "a4b3f8429b24f3e3caf2c2494209a51575b9153b",
-      "bytes": 1208,
-      "sha256": "edd2d06284a82d9a2e8d6f731e4724318cbc8806a023fedc162e406da628e719",
+      "blob": "1c9f58033ec29750d6c2edd7d3b277caa1a996a2",
+      "bytes": 1424,
+      "sha256": "4ba06fe64ebf04f6fb57a71b5fd28fa12878ed2cf19f2fe0d672a3243d6d1460",
       "ownerRerun": "PASS"
     },
     "productionActualShellFixture": {
       "path": "apps/finance/scripts/test-finance-production-fixture.mjs",
-      "blob": "b56973e8d50fbacb9728e2adce0b3dec9de28769",
-      "bytes": 26273,
-      "sha256": "2ac0a2153f26b053036a711b1a987807d68346a14d83ded4d2131e461a2e438e",
+      "blob": "0572b46ea3ae6c5f39e9343369bca423b03ff064",
+      "bytes": 31636,
+      "sha256": "e18a298be111b894d78e01e3cd2f57416039ccf44362e3ef3aefd7cdb87ef5d9",
       "ownerRerun": "PASS",
-      "crossStageCoverage": "exact Phase3 stdin bootstrap invokes the reviewed production executor against the P0-236-style fixed carrier while a distinct new Phase3 lease ID owns stage, backup and release"
+      "crossStageCoverage": "exact Phase3 stdin bootstrap invokes the reviewed production executor against the P0-236-style fixed carrier while a distinct new Phase3 lease ID owns stage, backup and a release container that starts absent",
+      "releaseContainerCoverage": ["positive no-replace creation with path/owner/mode/tuple receipt", "missing release parent fails before creation", "foreign non-empty and symlink creation are preserved and fail closed", "pre-move failure removes only the exact empty created container", "normal post-move verifier failure removes exact candidate release inventory then exact empty container", "post-move release substitution restores old current and preserves the foreign object"]
     }
   },
   "framingContract": {
@@ -113,7 +114,8 @@
       "/opt/ynx/leases/finance absent and not a symlink",
       "unique lease-id executor, executor.pending, JSON and JSON.pending paths absent and not symlinks",
       "P0-236 carrier exact tuple and exact content set candidate.tgz plus finance.env",
-      "candidate archive and environment exact tuple/bytes/SHA"
+      "candidate archive and environment exact tuple/bytes/SHA",
+      "existing release parent exact tuple plus absent new lease-owned release container"
     ],
     "executorPath": "/opt/ynx/leases/finance/<central-signed-id>.executor.sh",
     "leasePath": "/opt/ynx/leases/finance/<central-signed-id>.json",
@@ -129,7 +131,7 @@
     "frozenManualRollback": "<exact placed executor> rollback <exact placed lease>",
     "manualRollbackLimit": 1,
     "manualRollbackCondition": "only a Central-authorized terminal recovery after the primary failure or failed post-switch verification; never a deploy retry",
-    "successReceipts": ["deploy parent path/tuple", "executor path/tuple/bytes/SHA", "lease path/tuple/bytes/SHA", "literal rollback argv0/argv1/argv2"]
+    "successReceipts": ["deploy parent path/tuple", "executor path/tuple/bytes/SHA", "lease path/tuple/bytes/SHA", "lease-owned release-container path/full tuple", "moved candidate-release path/full tuple/tree-inventory SHA-256", "literal rollback argv0/argv1/argv2"]
   },
   "candidate": {
     "immutableCarrierId": "p0228-finance-phase1-20260822T234100Z",
@@ -151,6 +153,9 @@
     "exact Central-signed production lease bytes/SHA/expiry/id and all fresh live release/binary/env/unit/Caddy/state/service/public assertions from the predecessor request",
     "immutable carrier id/path/tuple must remain exact P0-228/P0-236 and must not equal or derive from the new Phase3 deployment lease id",
     "only new stage, backup and release children derive from the new Phase3 deployment lease id and must be absent before execution",
+    "existing release parent tuple plus expected new release-container path/uid/gid/mode; the container is created no-replace and starts absent",
+    "terminal receipts bind the release-container full tuple and moved candidate-release full tuple plus deterministic tree-inventory SHA-256",
+    "failure cleanup removes the moved candidate only after exact tuple/inventory recheck and the container only after exact tuple plus empty recheck; substitutions and foreign objects are preserved",
     "exact bootstrap and executor blobs/bytes/SHA plus their base64 derivations",
     "complete literal outer SSH argv, decoder command, all 16 bootstrap arguments and exact stdin path",
     "one primary SSH/deploy attempt and at most one separately conditioned rollback SSH; no retry",
@@ -160,6 +165,7 @@
     "bootstrapSourceImplemented": true,
     "bootstrapFixturePassed": true,
     "crossStageBootstrapAndRealExecutorFixturePassed": true,
+    "releaseContainerLifecycleFixturePassed": true,
     "phase3LeaseIssued": false,
     "productionSsh": false,
     "deployed": false,
