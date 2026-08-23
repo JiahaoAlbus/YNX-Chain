@@ -2222,6 +2222,31 @@
         "P0-284 is consumed and nonreusable; Heavy and this read-only path lock are released",
         "P0-282 remains queued and unauthorized; only a wholly-new P0-285 cleanup-only lease plus later independent readback may follow"
       ]
+    },
+    {
+      "path": "{host:43.153.202.237:finance-p0281-temp-control-cleanup-only,delete:/tmp/ynx-finance-p0281-finance-p0279-control-cleanup-20260823T170900Z.executor.sh,delete:/tmp/ynx-finance-p0281-finance-p0279-control-cleanup-20260823T170900Z.json}",
+      "owner": "finance-release-control-plane-temp-cleanup-only",
+      "branch": "codex/p0-wallet-connectivity-control-plane-20260820",
+      "worktree": "/private/tmp/ynx-calendar-control-plane.y8FFQt/repo",
+      "taskId": "P0-285",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_SINGLE_USE",
+      "acquiredAt": "2026-08-23T17:36:00Z",
+      "expiresAt": "2026-08-23T18:06:00Z",
+      "releasedAt": null,
+      "sourceCommit": "9cb12879ef812ea401c49a8de7466af5460f8416",
+      "sourceTree": "988acffed84833b1cce8479638526242a2e92c91",
+      "evidenceCommit": "9cb12879ef812ea401c49a8de7466af5460f8416",
+      "artifactSha256": "c79d95808d6526874bcebc2f89dc2f8f140f8fc998ea27e8e7d6c8087ea888fb",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "delete only the two literal P0-281 temporary control paths after two complete exact identity and SHA validations",
+        "one SSH attempt and one cleanup invocation with no retry",
+        "no persistent Finance lease-parent or sibling access or mutation",
+        "no service, Caddy, current, environment, state, stage, backup, release or public mutation",
+        "terminal receipt is necessary but cleanupComplete remains false until a separate zero-write readback",
+        "P0-282 remains queued and unauthorized"
+      ]
     }
   ]
 }
