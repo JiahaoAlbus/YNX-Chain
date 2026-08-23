@@ -83,12 +83,21 @@ esac
 test "$(cat '${join(control, "failure")}')" != port || exit 1
 test ! -f '${join(control, "legacy-active")}' && test ! -f '${join(control, "dedicated-active")}'
 `);
-  for (const name of Object.keys(bodies)) executable(join(control, `probe-${name}`), `#!/bin/sh
-cat '${join(control, name)}'
-`);
-  executable(join(control, "probe-viewer"), `#!/bin/sh
-test -f '${join(control, "legacy-active")}' -o -f '${join(control, "dedicated-active")}' || exit 1
-if test -f '${join(control, "dedicated-active")}' && test "$(cat '${join(control, "failure")}')" = post; then printf 'wrong-viewer\n'; else cat '${join(control, "old-viewer")}'; fi
+  executable(join(control, "curl"), `#!/bin/sh
+url=$1
+printf '%s\n' "$url" >> '${join(control, "curl.log")}'
+case "$url" in
+  http://127.0.0.1:6494/)
+    test -f '${join(control, "legacy-active")}' -o -f '${join(control, "dedicated-active")}' || exit 1
+    if test -f '${join(control, "dedicated-active")}' && test "$(cat '${join(control, "failure")}')" = post; then printf 'wrong-viewer\n'; else cat '${join(control, "old-viewer")}'; fi ;;
+  http://127.0.0.1:6493/) cat '${join(control, "api-root")}' ;;
+  http://127.0.0.1:6493/health) cat '${join(control, "api-health")}' ;;
+  http://127.0.0.1:6493/version) cat '${join(control, "api-version")}' ;;
+  http://127.0.0.1:6495/) cat '${join(control, "creator-root")}' ;;
+  http://127.0.0.1:6495/creator-studio.manifest.json) cat '${join(control, "creator-manifest")}' ;;
+  http://127.0.0.1:6495/i18n/catalog.json) cat '${join(control, "creator-catalog")}' ;;
+  *) echo "unexpected production probe URL: $url" >&2; exit 64 ;;
+esac
 `);
   executable(join(control, "caddy-snapshot"), `#!/bin/sh
 cat '${join(control, "caddy")}'
@@ -146,6 +155,9 @@ test("controlled takeover freezes predecessor, switches once, and restores a ver
   assert.match(readFileSync(`${f.receipt}.complete`, "utf8"), /restored_legacy=true/);
   assert.match(readFileSync(join(f.control, "systemctl.log"), "utf8"), /stop ynx-video-viewer\.service/);
   assert.match(readFileSync(join(f.control, "systemctl.log"), "utf8"), /start ynx-video-viewer\.service/);
+  const urls = readFileSync(join(f.control, "curl.log"), "utf8");
+  assert.match(urls, /^http:\/\/127\.0\.0\.1:6495\/creator-studio\.manifest\.json$/m);
+  assert.doesNotMatch(urls, /\/release-manifest\.json/);
 });
 
 for (const stage of ["stop", "port", "bootstrap", "post"]) {

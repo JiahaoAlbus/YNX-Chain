@@ -41,7 +41,7 @@ fi
 if [[ "$mode" == production ]]; then
   [[ "${YNX_VIDEO_LEASE_AUTHORIZED:-}" == P0_VIDEO_CONTROLLED_TAKEOVER_SINGLE_USE ]] || { echo "production takeover lease missing" >&2; exit 77; }
 else
-  [[ -n "$control" && -x "$control/systemctl" && -x "$control/legacy-snapshot" && -x "$control/probe-viewer" && -x "$control/caddy-snapshot" && -x "$control/port-6494-free" ]] || { echo "fixture control missing" >&2; exit 65; }
+  [[ -n "$control" && -x "$control/systemctl" && -x "$control/legacy-snapshot" && -x "$control/curl" && -x "$control/caddy-snapshot" && -x "$control/port-6494-free" ]] || { echo "fixture control missing" >&2; exit 65; }
 fi
 
 sha_stream() { shasum -a 256 | awk '{print $1}'; }
@@ -49,16 +49,23 @@ sha_file() { shasum -a 256 "$1" | awk '{print $1}'; }
 systemctl_exact() { if [[ "$mode" == fixture ]]; then "$control/systemctl" "$@"; else systemctl "$@"; fi; }
 probe() {
   local role=$1
-  if [[ "$mode" == fixture ]]; then "$control/probe-$role"; else
-    case "$role" in
-      viewer) curl --fail --silent --show-error --max-time 5 http://127.0.0.1:6494/ ;;
-      api-root) curl --silent --show-error --max-time 5 http://127.0.0.1:6493/ ;;
-      api-health) curl --fail --silent --show-error --max-time 5 http://127.0.0.1:6493/health ;;
-      api-version) curl --fail --silent --show-error --max-time 5 http://127.0.0.1:6493/version ;;
-      creator-root) curl --fail --silent --show-error --max-time 5 http://127.0.0.1:6495/ ;;
-      creator-manifest) curl --fail --silent --show-error --max-time 5 http://127.0.0.1:6495/release-manifest.json ;;
-      creator-catalog) curl --fail --silent --show-error --max-time 5 http://127.0.0.1:6495/i18n/catalog.json ;;
-    esac
+  local url
+  case "$role" in
+    viewer) url=http://127.0.0.1:6494/ ;;
+    api-root) url=http://127.0.0.1:6493/ ;;
+    api-health) url=http://127.0.0.1:6493/health ;;
+    api-version) url=http://127.0.0.1:6493/version ;;
+    creator-root) url=http://127.0.0.1:6495/ ;;
+    creator-manifest) url=http://127.0.0.1:6495/creator-studio.manifest.json ;;
+    creator-catalog) url=http://127.0.0.1:6495/i18n/catalog.json ;;
+    *) return 64 ;;
+  esac
+  if [[ "$mode" == fixture ]]; then
+    "$control/curl" "$url"
+  elif [[ "$role" == api-root ]]; then
+    curl --silent --show-error --max-time 5 "$url"
+  else
+    curl --fail --silent --show-error --max-time 5 "$url"
   fi
 }
 legacy_snapshot() {
