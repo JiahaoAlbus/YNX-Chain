@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "kind": "FINANCE_P0264_P0247_CLEANUP_INVENTORY_ALIGNMENT_SUCCESSOR_LEASE_REQUEST",
+  "requestState": "AWAITING_WHOLELY_NEW_CENTRAL_SINGLE_USE_LEASE",
+  "supersedes": {
+    "requestCommit": "bd6b8f81cc937c11726da8c5f0cded764313fecf",
+    "reason": "NO_GO_FINANCE_P0264_CLEANUP_INVENTORY_DIGEST_ALGORITHM_MISMATCH",
+    "productionMutationUnderPriorRequest": false
+  },
+  "owner": {
+    "branch": "codex/p0-finance-wallet-connectivity-20260820",
+    "reviewedAlignmentCheckpoint": "a77bc1510187ae6e755ffb22dbec9e6df10d5c91",
+    "reviewedAlignmentTree": "9b7faac4e906cc9bc6361d557b2ef3e80569dc65",
+    "nonSelfReferential": true
+  },
+  "acceptedReadonlyAudit": {
+    "terminalEvidence": "apps/finance/evidence/p0-252-finance-remote-state-readonly-stdout-20260823.txt",
+    "auditCommand": {"path": "apps/finance/scripts/finance-p0252-remote-state-readonly-inspection.sh", "blob": "7fbc1376bb7d18fa90f2b5c3ce05fd87e936baa7", "bytes": 4651, "sha256": "abaa974ee8dfdd353b25680bc1489ab457867f0838fc5d4e0fa141fff2286393"},
+    "stageDigest": "61181f33dcf9b11282732fe26f02ad9e3b0f5135dead72ca690606c722d9bf62",
+    "backupDigest": "e78ba1c645bfeeffa9d1f373fd2c773326a358c23caca7ad9fd48834b71a3e19"
+  },
+  "alignedCleanupExecutor": {
+    "path": "apps/finance/scripts/finance-p0247-residue-cleanup.sh",
+    "blob": "85433b046e9aa3dfd5ad269ae143d35eab20e510",
+    "bytes": 8451,
+    "sha256": "fd7637a5d353bb8bee9e1ba981c7983f0ead0a8d473d544e62b15dcd340b9e50",
+    "fixturePath": "apps/finance/scripts/test-finance-p0247-residue-cleanup-fixture.mjs",
+    "fixtureBlob": "1ed244e4d192908713626420d8e7918916814728",
+    "fixtureBytes": 11194,
+    "fixtureSha256": "4b7c9be2b414af7c3d3f5c9df72669b4c77ba06c096b6868cacb6d869c7b0dcb"
+  },
+  "oneCanonicalDirectoryInventoryAlgorithm": {
+    "name": "P0252_NUL_PATH_TYPE_METADATA_VALUE_SHA256_V1",
+    "record": "for every `find -P . -mindepth 1 -print0 | LC_ALL=C sort -z` path emit path NUL stat-type NUL uid:gid:mode:nlink:bytes NUL value NUL; value is SHA-256 for regular file, readlink target for symbolic link, empty otherwise; SHA-256 the complete byte stream",
+    "auditAndCleanupMustMatchExactly": true,
+    "cleanupSafetyLayer": "before deletion the cleanup executor separately rejects a link, block/character device, fifo, or socket anywhere under either directory; digest compatibility never relaxes fail-closed object safety"
+  },
+  "freshPrewriteLeaseMustBind": {
+    "stage": {"path": "/opt/ynx/stage/finance/p0247-finance-phase3-20260823T073800Z", "tuple": "64770:4620782:0:0:700:3:4096:directory", "inventoryAlgorithm": "P0252_NUL_PATH_TYPE_METADATA_VALUE_SHA256_V1", "inventorySha256": "61181f33dcf9b11282732fe26f02ad9e3b0f5135dead72ca690606c722d9bf62"},
+    "backup": {"path": "/var/backups/ynx-finance/p0247-finance-phase3-20260823T073800Z", "tuple": "64770:2663604:0:0:700:3:4096:directory", "inventoryAlgorithm": "P0252_NUL_PATH_TYPE_METADATA_VALUE_SHA256_V1", "inventorySha256": "e78ba1c645bfeeffa9d1f373fd2c773326a358c23caca7ad9fd48834b71a3e19"},
+    "requireFreshCentralRead": true,
+    "mismatchAction": "fail closed before placement or deletion; no fallback to the former cleanup-only tuple inventory is permitted"
+  },
+  "retainedAtomicTransport": {
+    "implementationCommit": "ef4036afebf61a8e02e2bfe8c9b11cdb8ce54fa5",
+    "builder": {"path": "apps/finance/scripts/build-finance-p0264-cleanup-atomic-carrier.mjs", "blob": "3ffd40ba933e68da438127d070c43f8d5f679497", "sha256": "a865bd19d1756c862b5f7d7c666cfbdc6667af3162ecd2d327b45309ddd27264"},
+    "bootstrap": {"path": "apps/finance/scripts/finance-p0264-cleanup-atomic-transport-bootstrap.sh", "blob": "2e73994c0d7046428b8afcb0205601aac3685e1c", "sha256": "f2b09b6eb8df7061e2985caa271f7ad0fa02b12132125069ae72d3636bdfabbd"},
+    "literalCommand": {"path": "apps/finance/scripts/finance-p0264-cleanup-literal-transport-command.sh", "blob": "90113c3df529f2359bd25584a426e22681a58004", "sha256": "1f3dda14a318186c45a8376cffdf49e3cc7c22f4604a43eda03d6666bf19c40f"},
+    "fixture": {"path": "apps/finance/scripts/test-finance-p0264-cleanup-atomic-transport-fixture.mjs", "blob": "d9e7b821c55bff6b2f9dd7e0d312c680c082f6c2", "sha256": "b6da0020d571f49c259e4529daa0b35b40cb802ef66fcd083ec4b0cb4f40c23a"},
+    "oneSshAttempt": true,
+    "oneCleanupInvocation": true,
+    "retryAllowed": false
+  },
+  "tests": {"cleanupProductionShapedActualShell": "PASS", "atomicTransportActualShell": "PASS", "bashSyntax": "PASS", "goFinance": "PASS", "diffCheck": "PASS", "auditCleanupAlgorithmParity": "PASS"},
+  "strictForbidden": ["SSH before a new lease", "remote write", "cleanup", "deploy", "rollback", "restart", "service/current/env/state/unit/Caddy/public mutation", "wallet account", "signature", "typed-data", "transaction"],
+  "truth": {"centralLeaseIssued": false, "sshExecuted": false, "cleanupExecuted": false, "deployed": false, "rollback": false, "publicVerified": false, "walletApproval": false, "signature": false, "transaction": false}
+}
