@@ -2307,6 +2307,31 @@
         "P0-282 is consumed and nonreusable; Heavy and read-only locks are released",
         "diagnostic success is not deployment, cleanup, rollback or lifecycle authority"
       ]
+    },
+    {
+      "path": "{host:43.153.202.237:finance-p0288-rollback-first-deploy,stable-parent:/opt/ynx/leases/finance,control:/opt/ynx/leases/finance/p0288-finance-phase3-20260823T181900Z.*,stage:/opt/ynx/stage/finance/p0288-finance-phase3-20260823T181900Z/**,backup:/var/backups/ynx-finance/p0288-finance-phase3-20260823T181900Z/**,release:/opt/ynx/releases/finance/p0288-finance-phase3-20260823T181900Z/**,current:/opt/ynx/finance-current,env:/etc/ynx/finance.env,state:/var/lib/ynx/finance/state.json,service:ynx-finance.service,readonly-unit:/etc/systemd/system/ynx-finance.service,readonly-caddy:/etc/caddy/conf.d/ynx-finance.caddy,public:https://finance.ynxweb4.com/**}",
+      "owner": "finance-release-control-plane",
+      "branch": "codex/p0-finance-wallet-connectivity-20260820",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
+      "taskId": "P0-288",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE",
+      "acquiredAt": "2026-08-23T18:19:00Z",
+      "expiresAt": "2026-08-23T18:49:00Z",
+      "releasedAt": null,
+      "sourceCommit": "7780b583dcf79dd9c746f16d2a3082047d80862f",
+      "sourceTree": "20467cfa09275c90fbe26dc7a878050a9df012fc",
+      "evidenceCommit": "7780b583dcf79dd9c746f16d2a3082047d80862f",
+      "artifactSha256": "d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d",
+      "productionMutationAllowed": true,
+      "allowedExceptions": [
+        "one exact serialized OpenSSH invocation and one rollback-first Finance deploy with no retry",
+        "create only exact P0-288 control, stage, backup and release paths; switch only Finance env/current and restart only ynx-finance.service",
+        "unit and Caddy are immutable read-only invariants",
+        "executor-owned automatic rollback on first failure; manual rollback requires a wholly-new separately signed lease",
+        "stage parent full tuple/inventory and backup parent full tuple/inventory are frozen at issuance and rechecked before writes",
+        "no Wallet path, account request, signature, typed data, transaction, secret output or P0-279 reuse"
+      ]
     }
   ]
 }
