@@ -1,44 +1,12 @@
-import {cp, mkdtemp, mkdir, readFile, rename, rm, writeFile} from "node:fs/promises";
+import {lstat, mkdir, readFile, rename, writeFile} from "node:fs/promises";
 import {createHash} from "node:crypto";
+import {execFileSync} from "node:child_process";
 import {dirname, join} from "node:path";
-import {tmpdir} from "node:os";
 import {fileURLToPath} from "node:url";
-
-const root = fileURLToPath(new URL(".", import.meta.url));
-const rollbackCarrier = join(root, "release-candidates/live-20260823/studio");
-
-async function applyCarrier(carrier, target) {
-  const stage = `${target}.next`;
-  const backup = `${target}.previous`;
-  await rm(stage, {recursive: true, force: true});
-  await cp(carrier, stage, {recursive: true});
-  await rm(backup, {recursive: true, force: true});
-  await rename(target, backup);
-  await rename(stage, target);
-  return backup;
-}
-
-const sha256 = async path => createHash("sha256").update(await readFile(path)).digest("hex");
-const commands = Object.freeze({
-  forward: ["node", "apps/creator-studio/release-carrier-fixture.mjs", "apply", "--carrier", "$CANDIDATE_STUDIO_DIR", "--target", "$STUDIO_RELEASE_DIR"],
-  rollback: ["node", "apps/creator-studio/release-carrier-fixture.mjs", "apply", "--carrier", "apps/creator-studio/release-candidates/live-20260823/studio", "--target", "$STUDIO_RELEASE_DIR"],
-});
-
-if (process.argv[2] === "fixture") {
-  const temporary = await mkdtemp(join(tmpdir(), "creator-release-fixture-"));
-  const studio = join(temporary, "video/studio");
-  const api = join(temporary, "video/api/sentinel.txt");
-  const viewer = join(temporary, "video/viewer/sentinel.txt");
-  await mkdir(dirname(api), {recursive: true});
-  await mkdir(dirname(viewer), {recursive: true});
-  await writeFile(api, "api-preserved");
-  await writeFile(viewer, "viewer-preserved");
-  await cp(rollbackCarrier, studio, {recursive: true});
-  await applyCarrier(join(root, "dist"), studio);
-  if (await readFile(api, "utf8") !== "api-preserved" || await readFile(viewer, "utf8") !== "viewer-preserved") throw new Error("Fixture modified a sibling Video route.");
-  await applyCarrier(rollbackCarrier, studio);
-  const rollbackHash = await sha256(join(studio, "app.js"));
-  console.log(JSON.stringify({fixture: "passed", commands, rollbackAppSha256: rollbackHash}, null, 2));
-} else {
-  console.log(JSON.stringify({commands, requiredScope: "$STUDIO_RELEASE_DIR only; never /video/api or /video/viewer"}, null, 2));
-}
+const root=fileURLToPath(new URL(".",import.meta.url));
+const candidateCarrier=join(root,"release-candidates/candidate-0e1a53c5/creator-studio.tar"),rollbackCarrier=join(root,"release-candidates/live-20260823/live-frontend-carrier.tar"),appSha="77e7c42006e3be36c7af717e5e8b2a3cd847c3652dcadb1731c259aee5b01af5",productionTarget="/var/lib/ynx-release-control-plane/creator-studio/releases/creator-studio-0e1a53c5";
+const sha=async p=>createHash("sha256").update(await readFile(p)).digest("hex"),tuple=async p=>{const x=await lstat(p);return{dev:String(x.dev),ino:String(x.ino),uid:x.uid,gid:x.gid,mode:x.mode,nlink:x.nlink}},same=(a,b)=>JSON.stringify(a)===JSON.stringify(b);
+async function absent(p){try{await lstat(p);throw Error(`Path must be absent: ${p}`)}catch(e){if(e.code!=="ENOENT")throw e}}
+async function apply(carrier,target,expected,receipt){const stage=`${target}.${receipt}.next`,previous=`${target}.${receipt}.previous`;await absent(stage);await absent(previous);if(!same(await tuple(target),expected))throw Error("Target inode tuple changed before mutation.");await mkdir(stage);execFileSync("tar",["-xf",carrier,"-C",stage]);if(!same(await tuple(target),expected))throw Error("Target inode tuple changed during staging.");if(await sha(join(stage,"app.js"))!==appSha)throw Error("Carrier app.js hash mismatch.");await rename(target,previous);if(!same(await tuple(previous),expected))throw Error("Rename receipt mismatch.");await rename(stage,target);const after=await tuple(target);if(await sha(join(target,"app.js"))!==appSha)throw Error("Readback hash mismatch.");return{before:expected,after,previous}}
+const commands=Object.freeze({forward:["node","/var/lib/ynx-release-control-plane/creator-studio/executor/release-carrier-fixture.mjs","apply","--carrier","/var/lib/ynx-release-control-plane/creator-studio/carriers/creator-studio-0e1a53c5.tar","--target",productionTarget],rollback:["node","/var/lib/ynx-release-control-plane/creator-studio/executor/release-carrier-fixture.mjs","apply","--carrier","/var/lib/ynx-release-control-plane/creator-studio/carriers/live-frontend-carrier-20260823.tar","--target",productionTarget]});
+if(process.argv[2]==="fixture"){const base="/var/tmp/ynx-creator-release-fixture-0e1a53c5-v3",studio=join(base,"video/studio"),api=join(base,"video/api/sentinel"),viewer=join(base,"video/viewer/sentinel");await absent(base);await mkdir(dirname(api),{recursive:true});await mkdir(dirname(viewer),{recursive:true});await writeFile(api,"api");await writeFile(viewer,"viewer");await mkdir(studio);execFileSync("tar",["-xf",rollbackCarrier,"-C",studio]);const forward=await apply(candidateCarrier,studio,await tuple(studio),"forward");if(await readFile(api,"utf8")!=="api"||await readFile(viewer,"utf8")!=="viewer")throw Error("Sibling route changed.");const rollback=await apply(rollbackCarrier,studio,forward.after,"rollback");const substitute=join(base,"substitute");await mkdir(substitute);execFileSync("tar",["-xf",rollbackCarrier,"-C",substitute]);const expected=await tuple(substitute);await rename(substitute,`${substitute}.replaced`);await mkdir(substitute);let substitutionRejected=false;try{await apply(candidateCarrier,substitute,expected,"substitution")}catch{substitutionRejected=true}if(!substitutionRejected)throw Error("Inode substitution was not rejected.");console.log(JSON.stringify({fixture:"passed",commands,forward,rollback,substitutionRejected,rollbackAppSha256:await sha(join(studio,"app.js")),api:await readFile(api,"utf8"),viewer:await readFile(viewer,"utf8")},null,2))}else console.log(JSON.stringify({executor:"release-control-plane",commands,forbidden:["/opt/ynx-video/current","shared catalog","/video/api","/video/viewer","shared service switch"]},null,2));

@@ -1,103 +1,64 @@
 {
-  "schemaVersion": "1.0.0",
-  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "requestType": "CREATOR_STUDIO_SINGLE_USE_PRODUCTION_DEPLOYMENT_LEASE",
-  "requestedOwner": "creator-studio",
-  "requestedExecutor": "creator-studio",
+  "schemaVersion": "2.0.0",
+  "requestType": "CREATOR_STUDIO_SINGLE_USE_LEASE",
+  "requestedExecutor": "release-control-plane",
   "status": "REQUESTED_NOT_AUTHORIZED",
-  "scope": {
-    "product": "ynx-creator-studio",
-    "host": "43.153.202.237",
-    "service": "ynx-video-studio.service",
-    "publicUrl": "https://web4.ynxweb4.com/video/studio/",
-    "allowedReleaseRoot": "/opt/ynx-video/releases",
-    "allowedCurrentLink": "/opt/ynx-video/current",
-    "forbidden": [
-      "apps/video source mutation",
-      "Caddy mutation",
-      "systemd unit mutation",
-      "environment mutation",
-      "account approval",
-      "signature",
-      "transaction",
-      "other product paths or services"
+  "studioReleaseDir": "/var/lib/ynx-release-control-plane/creator-studio/releases/creator-studio-0e1a53c5",
+  "candidate": {
+    "tag": "creator-studio-candidate-0e1a53c5",
+    "commit": "0e1a53c5ad1fc9dc2cbfebc13c55f1f426c7e7ae",
+    "tree": "057ee8448ee8f8586cf3235dd043644060795301",
+    "carrier": "apps/creator-studio/release-candidates/candidate-0e1a53c5/creator-studio.tar",
+    "bytes": 159232,
+    "sha256": "3f56aa4c3f9d87d27f7cdf19eafc0dacf1da78d83d31def2080f0162d92bdf8a",
+    "manifestSha256": "5fd27ac55d9ea70b8e15aac0565324a9ce7b18706bd75cd5b430eaa4843de86f"
+  },
+  "rollback": {
+    "carrier": "apps/creator-studio/release-candidates/live-20260823/live-frontend-carrier.tar",
+    "bytes": 101376,
+    "sha256": "be8c68af8cd342539bc2f98955b61c4bc9665867e08d91cd46afc7dcfdc53e27",
+    "captureManifestSha256": "d6d85c52c17219a6916ceb1e089968b2a445604d60549bbb8fd9bb023f62f805",
+    "carrierManifestSha256": "518dbe7ae6ec3779294bc625abbb2d0aca8de8a54df3edc3e4184b2c008d5a1e"
+  },
+  "commands": {
+    "forward": [
+      "node",
+      "/var/lib/ynx-release-control-plane/creator-studio/executor/release-carrier-fixture.mjs",
+      "apply",
+      "--carrier",
+      "/var/lib/ynx-release-control-plane/creator-studio/carriers/creator-studio-0e1a53c5.tar",
+      "--target",
+      "/var/lib/ynx-release-control-plane/creator-studio/releases/creator-studio-0e1a53c5"
+    ],
+    "rollback": [
+      "node",
+      "/var/lib/ynx-release-control-plane/creator-studio/executor/release-carrier-fixture.mjs",
+      "apply",
+      "--carrier",
+      "/var/lib/ynx-release-control-plane/creator-studio/carriers/live-frontend-carrier-20260823.tar",
+      "--target",
+      "/var/lib/ynx-release-control-plane/creator-studio/releases/creator-studio-0e1a53c5"
     ]
   },
-  "candidate": {
-    "branch": "codex/p0-creator-build-contract-20260822",
-    "sourceCommit": "0e1a53c5ad1fc9dc2cbfebc13c55f1f426c7e7ae",
-    "sourceTree": "057ee8448ee8f8586cf3235dd043644060795301",
-    "archivePath": "/private/tmp/creator-studio-0e1a53c5ad1fc9dc2cbfebc13c55f1f426c7e7ae.tar",
-    "archiveBytes": 159232,
-    "archiveSha256": "3f56aa4c3f9d87d27f7cdf19eafc0dacf1da78d83d31def2080f0162d92bdf8a",
-    "manifestPath": "creator-studio.manifest.json",
-    "manifestBytes": 2299,
-    "manifestSha256": "5fd27ac55d9ea70b8e15aac0565324a9ce7b18706bd75cd5b430eaa4843de86f",
-    "upstreamCatalog": {
-      "commit": "7a89550d4964ea38b854cbd03f18775494c2f513",
-      "tree": "f8bf1e76e9729035156c6729d88c8a7a5e13a20d",
-      "path": "apps/video/i18n/catalog.json",
-      "blob": "ba01f2a1bed92537e30b0f4a0359e3927bd1deea",
-      "bytes": 14237,
-      "sha256": "4c86e3e1cdeac6d9c4570891d70bab4c3486c6a4429dd33fd1029f046ca9ecff"
-    }
+  "prewrite": {
+    "requireTargetLstatTuple": true,
+    "requireStageAndPreviousAbsent": true,
+    "requireReadback": true,
+    "rollbackRequiresCurrentCandidateTuple": true
   },
-  "independentCandidateVerification": {
-    "extractedIntoFreshEmptyDirectory": true,
-    "firstColdStart": {
-      "root": "HTTP200/14088/sha256:b37f78205f2c5443b2103ee42e98d6ecde65238c107733088e63893a3c1de697",
-      "manifest": "HTTP200/2299/sha256:5fd27ac55d9ea70b8e15aac0565324a9ce7b18706bd75cd5b430eaa4843de86f",
-      "catalog": "HTTP200/14237/sha256:4c86e3e1cdeac6d9c4570891d70bab4c3486c6a4429dd33fd1029f046ca9ecff",
-      "appJs": "HTTP200/35660/sha256:77e7c42006e3be36c7af717e5e8b2a3cd847c3652dcadb1731c259aee5b01af5",
-      "browser": "Chrome 151 headless, html lang=en, heading=Creator overview, wallet status=Wallet not connected, page error pattern matches=0"
-    },
-    "secondColdStart": {
-      "serverProcessRestartedFromSameFreshExtraction": true,
-      "browser": "fresh Chrome profile, html lang=en, heading=Creator overview, wallet status=Wallet not connected, page error pattern matches=0"
-    },
-    "sourceDirectoryUsedAsRuntime": false
-  },
-  "freshPublicReadBeforeRequest": {
-    "root": "HTTP200/12919/sha256:bc5344845c1b0ada346b1a0a1088f9442d15412dc077d824d7bd8fb2dcc7fd5e",
-    "appJs": "HTTP200/50611/sha256:7c9d884304bca81c83417a2563dfaab8c728284cbf2c8db815e32233ec66e015",
-    "productRelease": "HTTP200/2438/sha256:49536c796fe46c1666b95db09526f46f131729c7a73ffa93f220065751341020",
-    "health": "HTTP200/278/sha256:b14684492820350504ee7a06247e0b4670416bff721678bb39645b6808972384",
-    "version": "HTTP200/152/sha256:dffdf161c67cec481eafc8601ca0087908adce8a6cf40920a24df357cb003fb8",
-    "reportedBackendCommit": "1883d406f77f94cb81171b79fe9518882ede0b16",
-    "reportedBackendRelease": "ynx-video-1883d406"
-  },
-  "requiredPrewriteSignedRollbackReceipt": {
-    "mustBeCapturedByTheSingleNamedExecutorBeforeAnyWrite": true,
-    "required": [
-      "timestamp and executor identity",
-      "SSH host-key fingerprint",
-      "readlink and lstat device/inode/uid/gid/mode/nlink for current link and target",
-      "full systemd unit bytes/hash plus User Group WorkingDirectory ExecStart EnvironmentFile",
-      "full Caddy route bytes/hash for /video/studio only",
-      "MainPID and NRestarts",
-      "active and rollback release existence plus recursive file hashes",
-      "fresh public root/app/product-release/health/version bytes and hashes",
-      "signed receipt SHA256 before candidate copy or service mutation"
-    ],
-    "historicalExpectedActive": "/opt/ynx-video/releases/p0131-creator-wallet-993e7cc9",
-    "historicalExpectedRollback": "/opt/ynx-video/releases/p0122b-creator-wallet-650070ce",
-    "historicalValuesAreNotAuthority": true
-  },
-  "requestedSingleUseExecution": [
-    "Re-read and bind every prewrite rollback field; fail closed on any mismatch or unreadable value",
-    "Create one unique previously absent candidate release directory and verify archive, manifest, every manifest file, and catalog before activation",
-    "Cold-start candidate on a spare loopback port and require root, manifest, catalog, default English, and no page errors",
-    "Atomically switch only the verified Creator Studio current target and restart only ynx-video-studio.service",
-    "Require public root/app/manifest/catalog exact source-bound hashes, health/version 200, stable /video/studio/ URL, one tab, default English, and zero page console errors",
-    "On any failure perform at most one rollback to the freshly captured pre-switch target and prove the old public hashes and service health",
-    "Emit terminal deployment or rollback evidence and release the lease"
+  "forbidden": [
+    "/opt/ynx-video/current",
+    "shared catalog",
+    "/video/api",
+    "/video/viewer",
+    "shared current switch",
+    "shared service restart"
   ],
-  "truthBoundary": {
+  "truth": {
     "deploymentAuthorized": false,
     "productionMutationOccurred": false,
-    "publicSourceBound": false,
-    "walletAccountApproval": false,
-    "signature": false,
-    "transaction": false
+    "accountApproved": false,
+    "signatureExecuted": false,
+    "transactionExecuted": false
   }
 }
