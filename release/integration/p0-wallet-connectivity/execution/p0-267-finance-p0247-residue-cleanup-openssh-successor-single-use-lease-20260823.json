@@ -5,10 +5,10 @@
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-p0247-residue-cleanup-openssh-successor-20260823T140755Z",
   "owner": "finance-release-control-plane-cleanup-only",
   "executor": "finance-release-control-plane-cleanup-only",
-  "status": "ACTIVE_SINGLE_USE",
+  "status": "CONSUMED_RELEASED_SUCCESSFUL_EXECUTION_PENDING_INDEPENDENT_READBACK",
   "issuedAt": "2026-08-23T14:07:55Z",
   "expiresAt": "2026-08-23T14:37:55Z",
-  "releasedAt": null,
+  "releasedAt": "2026-08-23T14:18:05Z",
   "singleUse": true,
   "reusable": false,
   "productionMutationAllowed": true,
@@ -185,11 +185,29 @@
   ],
   "truthBoundary": {
     "leaseIssued": true,
-    "cleanupExecuted": false,
+    "cleanupExecuted": true,
+    "cleanupExecutionAcknowledged": true,
     "cleanupCompletionAccepted": false,
     "deploymentExecuted": false,
     "serviceLifecycleExecuted": false,
     "publicMutationExecuted": false,
     "walletMutationExecuted": false
+  },
+  "terminalEvidence": {
+    "ownerCommit": "1fa5804c494abda9b4b811ec2708c1bdcccc50bc",
+    "ownerTree": "e6e9cf40821bb64524b6617981c5a27dd745e60f",
+    "path": "apps/finance/evidence/p0-267-finance-p0247-cleanup-terminal-evidence-20260823.json",
+    "blob": "c046d2fbe3f106003d04b389af23389cfeb9f559",
+    "bytes": 2131,
+    "sha256": "ce42f4bc36666661fa6c5af9c4382a81bde86ef39e0ff74c8e0371fee6f1453f",
+    "attemptCount": 1,
+    "retryCount": 0,
+    "exitCode": 0,
+    "stdoutBytes": 227,
+    "stdoutSha256": "59193043771f7c37c85f458714abc590bf7741729a2d10c1ab4e89d8a83b2b56",
+    "stderrBytes": 0,
+    "exactSixLineReceipt": true,
+    "cleanupCompletionAccepted": false,
+    "nextRequiredAction": "A wholly-new zero-write read-only lease must directly verify residue and control absences plus unchanged old runtime."
   }
 }
