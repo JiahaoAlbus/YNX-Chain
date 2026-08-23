@@ -1941,6 +1941,29 @@
         "automatic rollback restored the old runtime; cleanup and redeployment remain unauthorized",
         "future sequence requires corrected source/request, then a wholly-new residue cleanup-only lease, then a separate wholly-new deployment lease"
       ]
+    },
+    {
+      "path": "{host:43.153.202.237:finance-phase3,service:ynx-finance.service,port:127.0.0.1:6483,production:/opt/ynx/leases/finance/p0269-finance-phase3-20260823T144200Z.*,production:/opt/ynx/stage/finance/p0269-finance-phase3-20260823T144200Z,production:/var/backups/ynx-finance/p0269-finance-phase3-20260823T144200Z,production:/opt/ynx/releases/finance/p0269-finance-phase3-20260823T144200Z,production:/opt/ynx/finance-current,production:/etc/ynx/finance.env,production:/var/lib/ynx/finance/state.json,public:https://finance.ynxweb4.com/**}",
+      "owner": "finance-release-control-plane",
+      "branch": "codex/p0-finance-wallet-connectivity-20260820",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
+      "taskId": "P0-269",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_SINGLE_USE",
+      "acquiredAt": "2026-08-23T14:42:00Z",
+      "expiresAt": "2026-08-23T15:12:00Z",
+      "releasedAt": null,
+      "sourceCommit": "7824af677dd052d20321431381523ab302614d98",
+      "sourceTree": "3db34ee2397a49852bbdf15e3841e7c9cecf9444",
+      "evidenceCommit": "b53bcbec3fb7d03781773c4504ed5c939ea81ca4",
+      "artifactSha256": "d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d",
+      "productionMutationAllowed": true,
+      "allowedExceptions": [
+        "one exact OpenSSH-serialized deployment invocation with no retry",
+        "automatic rollback on executor failure is allowed only within the exact frozen executor contract",
+        "manual rollback is not authorized and requires a wholly-new separately signed lease",
+        "no Wallet path lock or mutation, unit or Caddy mutation, account request, signature, typed data, transaction or secret output"
+      ]
     }
   ]
 }
