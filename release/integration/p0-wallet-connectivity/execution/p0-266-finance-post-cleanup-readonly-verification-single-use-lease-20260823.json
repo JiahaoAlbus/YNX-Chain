@@ -5,9 +5,10 @@
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-post-cleanup-readonly-verification-20260823T135037Z",
   "owner": "finance-release-control-plane-readonly",
   "executor": "finance-release-control-plane-readonly",
-  "status": "ACTIVE_SINGLE_USE_READONLY",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0266_READONLY_CONFIRMED_P0265_NO_CLEANUP_RUNTIME_UNCHANGED",
   "issuedAt": "2026-08-23T13:50:37Z",
   "expiresAt": "2026-08-23T14:20:37Z",
+  "releasedAt": "2026-08-23T14:00:48Z",
   "singleUse": true,
   "reusable": false,
   "productionMutationAllowed": false,
@@ -116,9 +117,34 @@
   ],
   "truthBoundary": {
     "leaseIssued": true,
-    "verificationExecuted": false,
+    "verificationExecuted": true,
     "cleanupOutcomeAccepted": false,
+    "p0265CleanupExecuted": false,
+    "fourP0247ResiduesStillPresent": true,
+    "fourP0265ControlPathsAbsent": true,
+    "oldFinanceRuntimeUnchangedHealthy": true,
     "productionMutationAllowed": false,
     "walletMutationAllowed": false
+  },
+  "terminalEvidence": {
+    "ownerCommit": "ed7db93dfcf3f4a44360a7fa1c3e05f983af851d",
+    "ownerTree": "6ff618bd3bfe80a63c03f4067137f41b50ab3b52",
+    "evidenceBlob": "6a5633b971f7baaa0350c954552937a1e3e03abe",
+    "evidenceBytes": 2768,
+    "evidenceSha256": "bce8b145bed99a056f4b3dd8cd924694518ce45588bd047a00c6fe7e991fb556",
+    "sshAttempts": 1,
+    "retryCount": 0,
+    "exitCode": 0,
+    "mutationCount": 0,
+    "fourP0247ResiduesStillPresent": true,
+    "fourP0265ControlPathsAbsent": true,
+    "serviceMainPid": 2241003,
+    "serviceNRestarts": 0,
+    "loopbackAndPublicHealthVersionHttp200": true
+  },
+  "nextBlocker": {
+    "code": "FINANCE_P0265_OPENSSH_REMOTE_COMMAND_SERIALIZATION_DROPPED_BASH_C_BOOTSTRAP",
+    "newCleanupLeaseAllowed": false,
+    "requirement": "Freeze a source-only successor that serializes the complete sudo bash -c command as one shell-escaped OpenSSH remote command string, keeps the carrier on stdin, and tests real OpenSSH join-and-shell semantics before any new cleanup lease."
   }
 }
