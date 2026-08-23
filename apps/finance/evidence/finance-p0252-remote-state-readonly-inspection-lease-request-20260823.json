@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 1,
+  "kind": "FINANCE_P0252_REMOTE_STATE_READONLY_INSPECTION_LEASE_REQUEST",
+  "requestState": "PENDING_CENTRAL_SINGLE_USE_READONLY_LEASE_REVIEW",
+  "owner": {
+    "branch": "codex/p0-finance-wallet-connectivity-20260820",
+    "implementationCommit": "bf3ec44e31b23f15a6c30b578447abc736667c6e",
+    "implementationTree": "39b37e30149e18338b3321dd7cf983381f24c9bc",
+    "nonSelfReferential": true
+  },
+  "centralRelease": {
+    "commit": "e714666a7f1da341c39aad99c81a7e6c22e8e1c6",
+    "tree": "d307d17c4bff3a03e0030d186b5935c549287bf9",
+    "terminalLeaseBytes": 8500,
+    "terminalLeaseSha256": "feae1ff05059c752ad37da2171202bf5d959fc98430d780e946915e9b16e2194",
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0251_LITERAL_TRANSPORT_PRINTF_USAGE_REMOTE_STATE_UNKNOWN",
+    "p0251Reusable": false,
+    "heavy": "IDLE",
+    "pathLock": "RELEASED"
+  },
+  "commandObject": {
+    "path": "apps/finance/scripts/finance-p0252-remote-state-readonly-inspection.sh",
+    "blob": "7fbc1376bb7d18fa90f2b5c3ce05fd87e936baa7",
+    "bytes": 4651,
+    "sha256": "abaa974ee8dfdd353b25680bc1489ab457867f0838fc5d4e0fa141fff2286393",
+    "bashSyntax": "PASS"
+  },
+  "fixture": {
+    "path": "apps/finance/scripts/test-finance-p0252-remote-state-readonly-inspection.mjs",
+    "blob": "5b19726b721cefa3205e743390a379d14fb61cb9",
+    "bytes": 1237,
+    "sha256": "e98ed71479a5323d6c7680a14691d491551d639f03d8508c4311f3ba7567acbe",
+    "result": "PASS",
+    "assertions": [
+      "all exact P0-247 and possible P0-251 paths are frozen",
+      "runtime identity and four health/version reads are present",
+      "no filesystem mutation or service lifecycle command is present",
+      "no environment body is printed"
+    ]
+  },
+  "requestedLease": {
+    "singleUse": true,
+    "readOnly": true,
+    "productionMutationAllowed": false,
+    "sshBeforeLease": false,
+    "sshAttemptLimit": 1,
+    "retryAllowed": false,
+    "remoteTemporaryFile": false,
+    "purpose": "resolve the exact post-P0-251 remote state and re-freeze the retained P0-247 residue and unchanged Finance runtime before Central decides any separate cleanup authorization"
+  },
+  "literalArgv": [
+    "/usr/bin/ssh",
+    "-i",
+    "/Users/huangjiahao/Downloads/Huang.pem",
+    "-o",
+    "IdentitiesOnly=yes",
+    "-o",
+    "BatchMode=yes",
+    "-o",
+    "StrictHostKeyChecking=yes",
+    "-o",
+    "UserKnownHostsFile=/Users/huangjiahao/.ssh/known_hosts",
+    "-o",
+    "ConnectTimeout=10",
+    "-o",
+    "ConnectionAttempts=1",
+    "ubuntu@43.153.202.237",
+    "/usr/bin/sudo",
+    "-n",
+    "/bin/bash",
+    "-s",
+    "--"
+  ],
+  "transport": {
+    "stdin": "exact commandObject bytes only",
+    "localStdout": "/tmp/ynx-finance-p0252-remote-state-readonly.stdout",
+    "localStderr": "/tmp/ynx-finance-p0252-remote-state-readonly.stderr",
+    "localRedirectionOnly": true,
+    "statusCapture": "if <literal argv>; then finance_p0252_ssh_rc=0; else finance_p0252_ssh_rc=$?; fi",
+    "reservedStatusVariableForbidden": true,
+    "negatedCommandStatusCaptureForbidden": true,
+    "successRequires": [
+      "finance_p0252_ssh_rc equals 0",
+      "stderr bytes equals 0",
+      "stdout contains exactly one inspection header and terminal inspectionComplete=true plus mutationCount=0",
+      "every required label occurs exactly once",
+      "stdout/stderr bytes and SHA-256 are frozen before interpretation"
+    ]
+  },
+  "exactScope": {
+    "parents": [
+      "/opt/ynx/leases",
+      "/opt/ynx/leases/finance",
+      "/opt/ynx/stage/finance",
+      "/var/backups/ynx-finance",
+      "/opt/ynx/releases/finance"
+    ],
+    "p0247": [
+      "/opt/ynx/leases/finance/p0247-finance-phase3-20260823T073800Z.executor.sh",
+      "/opt/ynx/leases/finance/p0247-finance-phase3-20260823T073800Z.executor.sh.pending",
+      "/opt/ynx/leases/finance/p0247-finance-phase3-20260823T073800Z.json",
+      "/opt/ynx/leases/finance/p0247-finance-phase3-20260823T073800Z.json.pending",
+      "/opt/ynx/leases/finance/p0247-finance-phase3-20260823T073800Z.manual-rollback.json",
+      "/opt/ynx/stage/finance/p0247-finance-phase3-20260823T073800Z",
+      "/var/backups/ynx-finance/p0247-finance-phase3-20260823T073800Z",
+      "/opt/ynx/releases/finance/p0247-finance-phase3-20260823T073800Z",
+      "/opt/ynx/releases/finance/p0247-finance-phase3-20260823T073800Z/ynx-finance-7824af677dd0"
+    ],
+    "possibleP0251Placement": [
+      "/opt/ynx/leases/finance/p0251-finance-p0247-cleanup-20260823T100000Z.executor.sh",
+      "/opt/ynx/leases/finance/p0251-finance-p0247-cleanup-20260823T100000Z.executor.sh.pending",
+      "/opt/ynx/leases/finance/p0251-finance-p0247-cleanup-20260823T100000Z.json",
+      "/opt/ynx/leases/finance/p0251-finance-p0247-cleanup-20260823T100000Z.json.pending"
+    ],
+    "runtime": [
+      "/opt/ynx/finance-current",
+      "/etc/ynx/finance.env",
+      "/etc/systemd/system/ynx-finance.service",
+      "/etc/caddy/conf.d/ynx-finance.caddy",
+      "/var/lib/ynx/finance/state.json",
+      "ynx-finance.service",
+      "http://127.0.0.1:6483/health",
+      "http://127.0.0.1:6483/version",
+      "https://finance.ynxweb4.com/health",
+      "https://finance.ynxweb4.com/version"
+    ]
+  },
+  "expectedOutput": {
+    "paths": "classification plus absolute path; lstat tuple; regular-file bytes/SHA; symlink target; directory immediate-entry count and canonical recursive inventory SHA",
+    "parents": "full tuple and sorted direct-child basenames only",
+    "runtime": "current target/resolution, env/unit/Caddy/state classifications, service LoadState/ActiveState/SubState/MainPID/NRestarts",
+    "http": "status, exact body bytes and SHA-256 without printing response bodies",
+    "secretSafe": true
+  },
+  "strictForbidden": [
+    "mkdir, touch, chmod, chown, mv, cp, rm, rmdir or find -delete",
+    "remote temp files or directories",
+    "upload, deploy, rollback or cleanup",
+    "systemctl restart, start, stop or reload",
+    "current, env, state, unit, Caddy or public mutation",
+    "printing environment contents, credentials, signed lease bodies, private keys or recovery material",
+    "wallet account request, approval, signature, typed data or transaction"
+  ],
+  "truth": {
+    "leaseIssued": false,
+    "sshExecuted": false,
+    "remoteStateKnown": false,
+    "residuesCleaned": false,
+    "placementObjectsCreated": false,
+    "deployed": false,
+    "rollback": false,
+    "publicVerified": false,
+    "walletApproval": false,
+    "signature": false,
+    "transaction": false
+  },
+  "nextBoundary": "Only after Central accepts a terminal read-only receipt may it consider a wholly new, separately signed identity-bound cleanup lease. This request cannot delete or repair anything."
+}
