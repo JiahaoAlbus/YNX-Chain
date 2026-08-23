@@ -1,0 +1,136 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "WALLET-CROSS-PLATFORM-REOWN-RUNTIME-SOURCE-HARDENING-20260823",
+  "owner": "walletconnect-runtime-successor",
+  "status": "SOURCE_HARDENING_COMPLETE_RUNTIME_BLOCKED_ON_PROTECTED_INPUTS",
+  "asOf": "2026-08-23T16:53:35+08:00",
+  "implementation": {
+    "branch": "codex/walletconnect-runtime-hardening-20260823",
+    "commit": "b25c8c565c1e83687bafd957c199b51a8e92eab0",
+    "tree": "7df36395581bef2d371dd272b9fb706b871a1557",
+    "parent": "b50e22ea26e3cf928aee90e602680955297573b8",
+    "files": [
+      {
+        "path": "apps/wallet/macos/Sources/YNXWalletMacCore/WalletConnectRelayRuntime.swift",
+        "blob": "1fea3d14ee16b939a36eb9187da06156bf8b218e",
+        "sha256": "016d314a500d1a4599500a46845c33009524696e746c9f61e4ef2954d303dce5",
+        "bytes": 21197
+      },
+      {
+        "path": "apps/wallet/macos/Sources/YNXWalletMacCore/WalletConnectV2Policy.swift",
+        "blob": "10d427add83092201c77bc917deddc262c9679b0",
+        "sha256": "949285d4e079bd3d76a1e4237658805bd9c46811a4b39582f3a1bba9b690cf4a",
+        "bytes": 10171
+      },
+      {
+        "path": "apps/wallet/macos/Tests/YNXWalletMacCoreTests/WalletConnectV2PolicyTests.swift",
+        "blob": "1c018b2a2a8a4d4ca561fd65886355a2ab9fb115",
+        "sha256": "4bfa119d5deb211abf37b832ccc705a186684637aec2b8cc2baa309a2e5a50b7",
+        "bytes": 6280
+      }
+    ],
+    "sourceChanges": [
+      "SDK-restored sessions are revalidated against exact eip155:6423, the single approved lowercase 0x account, supported methods and supported events before display or use",
+      "incoming JSON-RPC requests require the method to have been approved by the matching restored Reown session, not merely supported globally",
+      "wallet_addEthereumChain and wallet_switchEthereumChain parse one structural params object and reject substring-based 0x1917 spoofing, widened keys, foreign RPC URLs and invalid YNXT metadata",
+      "invalid incoming requests are answered immediately with bounded EIP-1193-compatible errors 4100, 4200, 4901 or -32602 and never enter the approval UI",
+      "no project ID, signer, account, private key, transaction target or production authority is embedded"
+    ]
+  },
+  "platformAudit": {
+    "apple": {
+      "baselineCommit": "b50e22ea26e3cf928aee90e602680955297573b8",
+      "baselineTree": "c8689aee160e80436148102cb24b45f964ad0781",
+      "sdk": "official Reown Swift 2.3.1",
+      "sdkTagObject": "968a82d440e51c4de18857928b60a03d36af7a2a",
+      "sdkProducts": [
+        "WalletConnectNetworking",
+        "WalletConnectPairing",
+        "WalletConnect"
+      ],
+      "packageSwiftBlob": "07452e1c9f01e09b2c5fb1ff9de4d6befd980b04",
+      "packageResolvedBlob": "c88bd90776cf5fe55a5b6382acf3364c778cba0b",
+      "projectIDEntry": "YNXWalletConnectProjectID / YNX_WALLETCONNECT_PROJECT_ID; default empty",
+      "appGroupEntry": "YNXWalletConnectAppGroup / YNX_WALLETCONNECT_APP_GROUP; default empty",
+      "relayPairingSessionSourcePresent": true,
+      "realProjectIDConfigured": false,
+      "realRelayConnected": false
+    },
+    "android": {
+      "baselineCommit": "bf478361f009c3ad086e240d7af2007d98f98eb8",
+      "baselineTree": "a618897771a6cc44c75702e9d2ca5fe5c14d9ec4",
+      "walletKit": "@reown/walletkit 1.5.6",
+      "walletConnectCore": "@walletconnect/core 2.23.10",
+      "reactNativeCompat": "@walletconnect/react-native-compat 2.23.10",
+      "packageBlob": "7814f9fdea08bce75468624a9b0f164042180e23",
+      "runtimePortPath": "apps/wallet/src/dapp/reownWalletConnectPort.ts",
+      "runtimePortBlob": "8a3cc18c16169d0572ca746dad4e3f1d1fc82d78",
+      "appEntryBlob": "8f478ca9f1485b3a9376b5bf50b4bb1ebed82012",
+      "projectIDEntries": [
+        "globalThis.__YNX_WALLETCONNECT_RUNTIME__.projectId",
+        "EXPO_PUBLIC_WALLETCONNECT_PROJECT_ID"
+      ],
+      "relayPairingApproveRejectRestoreDisconnectSourcePresent": true,
+      "realProjectIDConfigured": false,
+      "realRelayConnected": false
+    },
+    "webExtension": {
+      "baselineCommit": "8190b1b7b8a3b6258d52814445e9fbb285877fcd",
+      "baselineTree": "d182e740798834dd49e6d421c060e7e8cc10c4b3",
+      "packageBlob": "369c2b19a748dcd022f58c4af051f22613576bc0",
+      "providerPath": "apps/wallet-web/extension/page-provider.js",
+      "providerBlob": "09eae3e823bd9cf86e0e391d78617c4af9cf384e",
+      "eip1193ProviderSourcePresent": true,
+      "reownWalletKitSourcePresent": false,
+      "projectIDEntryPresent": false,
+      "boundary": "The injected browser provider is a distinct YNX EIP-1193 provider. It must not pretend to be MetaMask or claim WalletConnect relay authority."
+    }
+  },
+  "validation": {
+    "swiftPolicyTypecheck": true,
+    "swiftRuntimePolicyTestsParse": true,
+    "executablePolicyProbe": "WALLETCONNECT_RUNTIME_POLICY_PROBE sessionBound=true methodBound=true chainStructural=true relay=false",
+    "plistAndEntitlementsLint": "4/4",
+    "gitDiffCheck": true,
+    "localSwiftPM": false,
+    "localSwiftPMBlocker": "CommandLineTools SwiftBuild fails before compilation because Apple platform xcspec definitions are registered twice; no full-Xcode developer directory exists on this host",
+    "hostedCITriggered": false,
+    "hostedCINote": "Existing wallet-macos and wallet-ios push workflows are branch-scoped to main and the Apple owner branch. This independent successor branch did not widen workflow triggers or dispatch CI."
+  },
+  "singleExecutableBlocker": {
+    "id": "PROTECTED_REAL_REOWN_RUNTIME_INPUTS_AND_INSTALLED_TARGETS_UNAVAILABLE",
+    "summary": "Source plumbing exists and is default-off, but real relay interoperability cannot execute without a protected Reown project binding, signed persistence identity, approved test account through the existing signer, bounded test transaction policy and eligible installed targets.",
+    "requiredAction": "A named Central release owner must issue one path-scoped native WalletConnect execution lease and inject the already-frozen protected values into an eligible signed iOS/macOS or Android test build. Values must remain outside chat, evidence and git.",
+    "requiredProtectedInputs": [
+      "real Reown project ID and relay allowlist receipt",
+      "signing-authorized Apple app group/keychain identity or Android secure persistence identity",
+      "approved Testnet 0x account bound through the existing native signer; never a raw private key",
+      "operator-approved Testnet transaction recipient/value/gas boundary",
+      "exact first-party, Uniswap, OpenSea and Safe execution URLs",
+      "named immediate confirmations for approve, reject, sign, EIP-712, send and disconnect/revoke"
+    ],
+    "secretValuesRecorded": false
+  },
+  "currentTruth": {
+    "appleRuntimeSourceHardened": true,
+    "androidRuntimeSourcePresent": true,
+    "webReownRuntimePresent": false,
+    "projectIDConfigured": false,
+    "realRelayConnected": false,
+    "pairingSucceeded": false,
+    "proposalApproved": false,
+    "proposalRejected": false,
+    "sessionRestoredFromRealRelay": false,
+    "firstPartyDAppRuntime": false,
+    "externalDAppRuntimeCount": 0,
+    "personalSignSucceeded": false,
+    "eip712Succeeded": false,
+    "testnetSendSucceeded": false,
+    "disconnectRevoked": false,
+    "installedProviderParity": false,
+    "publicParity": false,
+    "productsConnected": 0,
+    "productsMigratedV2": 0
+  },
+  "promotionRule": "This checkpoint proves source hardening and platform inventory only. It cannot promote relay, installed, public, account, signature, transaction, external-DApp or product completion gates."
+}
