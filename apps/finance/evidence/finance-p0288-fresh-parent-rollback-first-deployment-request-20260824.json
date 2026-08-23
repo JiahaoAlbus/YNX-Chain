@@ -108,9 +108,13 @@
       "sha256": "854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252"
     },
     "unit": {
+      "fullTuple": "64770:161304:0:0:644:1:515:regular file",
+      "bytes": 515,
       "sha256": "2e72cdad422a3a714c46d074ea97b725233576cf726dbbfd43e82e99c2c2975b"
     },
     "caddy": {
+      "fullTuple": "64770:1051759:0:0:644:1:255:regular file",
+      "bytes": 255,
       "sha256": "dcf75a7aed315c54632321b8bb80e44c0abc22f6700fadfbfa9a7da21b88a282"
     },
     "state": "absent",
@@ -186,6 +190,15 @@
   },
   "centralSigningContract": {
     "environment": {},
+    "signedStdinCarrier": {
+      "localPath": "/tmp/ynx-finance-p0288-finance-phase3-20260824t000000z-signed.json",
+      "requiredKind": "FINANCE_ROLLBACK_FIRST_PRODUCTION_DEPLOYMENT",
+      "requiredLeaseSigned": true,
+      "requiredBytes": "CENTRAL_SIGNED_STDIN_BYTES",
+      "requiredSha256": "CENTRAL_SIGNED_STDIN_SHA256",
+      "availability": "not-created; Central alone must sign a wholly new carrier after re-reading the requested runtime and parent receipts",
+      "historicalCarrierIsExplicitlyForbidden": "P0-279 signed stdin 8140B/5b36af2367371cfb94490cf0ade3b0399c3a836b71b88886063ede6fb994bea9 is nonreusable and cannot be copied or re-signed by the owner"
+    },
     "literalArgvLength": 25,
     "literalArgvTemplate": [
       "/bin/bash",
