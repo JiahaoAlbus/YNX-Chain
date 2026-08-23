@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "kind": "FINANCE_P0251_SINGLE_USE_TERMINAL_TRANSPORT_FAILURE_EVIDENCE",
+  "centralAuthorization": {
+    "commit": "46f3a3f5176eac40dc377fafb4295cf28fdc8d20",
+    "tree": "834c6575e5adc86ffd2a55e0858c0968240d878d",
+    "leaseBlob": "141e601573b544e9fe807c369cd93dfd83f9fcba",
+    "leaseBytes": 7094,
+    "leaseSha256": "d5f83548510619823edc70748cc321e08f74cde44ee7f522f24ed384a0b58aed",
+    "leaseId": "p0251-finance-p0247-cleanup-20260823T100000Z",
+    "singleUse": true,
+    "retryAllowed": false
+  },
+  "preflight": {
+    "carrierPath": "/tmp/ynx-finance-p0251-cleanup-placement.carrier",
+    "carrierBytes": 18537,
+    "carrierSha256": "b479dca672dbf8de2a4dbf88abec325c625ddcc0fe6b716520ae88fe99925266",
+    "bootstrapBytes": 4506,
+    "bootstrapSha256": "5bf73c6da921097b4fef5601b378faabc0be417c44e91bc38ce1e75cc2a03903",
+    "bootstrapBase64Sha256": "e45c75fb9308acd070b4e12a1410af17353a0e7109623e55ae282deeeca0f156",
+    "allSignedInputsMatched": true
+  },
+  "singleAttempt": {
+    "sshInvoked": true,
+    "sshExitStatus": 0,
+    "stdoutLocalPath": "/tmp/ynx-finance-p0251-cleanup-terminal.stdout",
+    "stdoutBytes": 0,
+    "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderrLocalPath": "/tmp/ynx-finance-p0251-cleanup-terminal.stderr",
+    "stderrBytes": 50,
+    "stderrSha256": "d0ceb00af4231f211fa378e5b15ae24adaacc5c4fe35a6b052cd0326362541f6",
+    "stderrExact": "printf: usage: printf [-v var] format [arguments]\\n",
+    "placementReceiptPresent": false,
+    "cleanupReceiptPresent": false
+  },
+  "terminalAssessment": {
+    "status": "FAILED_CLOSED_P0251_LITERAL_TRANSPORT_PRINTF_USAGE",
+    "reason": "The signed literal SSH transport emitted a printf usage error and no bootstrap, placement, or cleanup receipt. Exit status 0 is not accepted as success because the signed terminal evidence is absent.",
+    "remoteMutationProven": false,
+    "remoteMutationClaim": "none; a Central-authorized read-only inspection is required before any later cleanup authorization",
+    "secondSshAttempt": false,
+    "retry": false,
+    "deployment": false,
+    "rollback": false,
+    "restart": false,
+    "walletAccount": false,
+    "signature": false,
+    "transaction": false
+  },
+  "requestedCentralAction": "Atomically consume and release P0-251 as failed closed. Do not reuse it. If residue status must be determined, issue a new read-only inspection lease; a future cleanup requires a wholly new corrected transport lease."
+}
