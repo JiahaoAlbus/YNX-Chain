@@ -1,0 +1,72 @@
+{
+  "kind": "FINANCE_P0247_PHASE3_SOURCE_ONLY_ROOT_CAUSE_ANALYSIS",
+  "scope": "local-frozen-artifact-and-P0248-readonly-evidence-only",
+  "productionMutation": false,
+  "ssh": false,
+  "inputs": {
+    "p0247ControlLease": {
+      "blob": "f6faf457ea12ebd3fb9c11ef7e0ffd8b4324884b",
+      "bytes": 11527,
+      "sha256": "c378b4be8c0a527319082ed09dd2f6355839cbeda419253bdbb4367c023f90ca"
+    },
+    "p0247SignedDeploymentLease": {
+      "blob": "9c0ed531edc801faca6547e38b186181a0618ed5",
+      "bytes": 6829,
+      "sha256": "49aec85704a6282cab675373f56cb71a240433f3625f08b5e7426bbb1bbfee80"
+    },
+    "executor": {
+      "path": "apps/finance/scripts/finance-production-rollback-first.sh",
+      "blob": "1511ce0d1cb9de23b478dece300c7cde1de066e9",
+      "bytes": 15907,
+      "sha256": "8f9e2ede5418e8f65739f2a5f3af7a78c266474f4c428951d8daf27f20e56315"
+    },
+    "bootstrap": {
+      "path": "apps/finance/scripts/finance-phase3-stdin-deployment-bootstrap.sh",
+      "blob": "1e606b976f16d54bc2db14beecdba7d673d2848d",
+      "bytes": 5277,
+      "sha256": "c25e4bc3d41a1677d00937467e2af103bcfcf35df8c21a0558613e31c74edf83"
+    },
+    "p0248EvidenceCommit": "0ea878234832170434f91c818f4beab765667af2",
+    "p0248StdoutSha256": "5e9daa3a281ccf9c0f9b836e3f72b58752e6ebb77c6e439dd08ab73e3f335897"
+  },
+  "localArchiveVerification": {
+    "archivePath": "/tmp/ynx-finance-7824af677dd0-linux-amd64-p0146.tar.gz",
+    "bytes": 3937491,
+    "sha256": "d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d",
+    "binary": {"bytes": 8573112, "sha256": "cccdae8ae5b5f694ca7db68540da30582564ff741978e616f7435d448a20fe3e", "elfX8664": true},
+    "sevenSignedWebAssetsVerified": true,
+    "archiveInventoryMatchesSignedLease": true
+  },
+  "observations": {
+    "prewriteServicePid": 877083,
+    "p0248ServicePid": 2241003,
+    "p0248NRestarts": 0,
+    "stageContainer": "PRESENT with one immediate entry",
+    "backupContainer": "PRESENT with three immediate entries",
+    "releaseContainer": "ABSENT",
+    "release": "ABSENT",
+    "currentResolved": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a",
+    "manualRollbackLease": "ABSENT",
+    "loopbackAndPublicResponses": "both returned the signed old runtime HTTP 200 receipts"
+  },
+  "controlFlowDeduction": {
+    "stageAndBackupCreation": "executor line 153 completed: it is the only path that creates both preserved containers and extracts the archive into the lease-owned stage.",
+    "postSwitchReached": "Within the P0-247 executor, a changed active MainPID can only follow line 167 systemctl restart after the candidate has moved into the release path. The exact P0-248 old-link plus absent release/releaseContainer state then matches the armed restore trap (lines 107-115), which restores old env/link/service and deletes only the exact candidate release and empty container.",
+    "likelyFailureWindow": "line 168 verify_candidate_live, after restart and before success receipt emission. The candidate archive, executable and all signed web assets are locally verified, so the remaining runtime predicates are service-active/new-PID/NRestarts and the signed candidate loopback/public health, version and seven-asset HTTP receipts.",
+    "notProven": "P0-247 did not retain executor stdout/stderr or a per-predicate verifier receipt. The exact failing verify_candidate_live predicate cannot be reconstructed from the restored old runtime. The earlier local exit-code claim is therefore not authoritative and must not be used as a successful-deploy receipt."
+  },
+  "singleExecutableBlocker": {
+    "code": "P0247_VERIFY_CANDIDATE_LIVE_FAILURE_PREDICATE_UNCAPTURED",
+    "neededAuthority": "a wholly new, one-use, zero-write Finance forensic-read lease; no deploy, rollback, cleanup, restart, symlink, env, state, unit or Caddy operation",
+    "minimumBoundedRead": "a secret-safe, fixed P0-247 time-window journal classifier for ynx-finance.service and its candidate verifier failure, emitting only signed-safe fields {timestamp, unit, priority, normalizedFailureClass, messageSha256}; the raw environment and journal message body must not be emitted",
+    "purpose": "distinguish the exact line-168 runtime predicate from an external browser-only gate before any successor production deployment lease is considered"
+  },
+  "truth": {
+    "p0247DeploymentSuccess": false,
+    "candidatePublicRuntime": false,
+    "manualRollbackAuthorized": false,
+    "walletApproval": false,
+    "signature": false,
+    "transaction": false
+  }
+}
