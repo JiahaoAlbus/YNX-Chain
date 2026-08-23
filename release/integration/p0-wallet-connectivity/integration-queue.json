@@ -6025,7 +6025,10 @@
       "paths": [
         "release/integration/p0-wallet-connectivity/acceptance/wallet-web-router-interop-consumption-p0157-20260822.json"
       ],
-      "dependencies": ["P0-155", "P0-156"],
+      "dependencies": [
+        "P0-155",
+        "P0-156"
+      ],
       "webSource": "a9653f9f73eb79f77b45f04c845c4f56c012ab4b",
       "webEvidence": "4f1e1b8ebdbc5e67900f675d970421d73d3a574b",
       "routerCheckpoint": "2e2eb37277613e52208f3e42b450a3a28a2ed08b",
@@ -6044,7 +6047,10 @@
       "paths": [
         "release/integration/p0-wallet-connectivity/acceptance/wallet-native-interop-source-checkpoint-p0158-20260822.json"
       ],
-      "dependencies": ["P0-151", "P0-155"],
+      "dependencies": [
+        "P0-151",
+        "P0-155"
+      ],
       "iosSource": "560d801b9a2d3cd856b3dfdbdc8d66aa3114d1b5",
       "iosRunStatus": "IN_PROGRESS",
       "macosSource": "25fc6771acd437c4b2a78c4ee279758f5bbd45da",
@@ -6064,7 +6070,11 @@
       "paths": [
         "release/integration/p0-wallet-connectivity/acceptance/wallet-router-central-regression-binding-p0159-20260822.json"
       ],
-      "dependencies": ["P0-156", "P0-157", "P0-158"],
+      "dependencies": [
+        "P0-156",
+        "P0-157",
+        "P0-158"
+      ],
       "routerCheckpoint": "762ebb08810af807a8626ca59aea02e7a39c56e8",
       "centralCheckpoint": "a23feb5e31dd89d1812f9c2211dac7efdeceeb23",
       "executionLeaseIssued": false,
@@ -6081,7 +6091,9 @@
       "paths": [
         "release/integration/p0-wallet-connectivity/acceptance/wallet-router-receipt-loop-closure-p0160-20260822.json"
       ],
-      "dependencies": ["P0-159"],
+      "dependencies": [
+        "P0-159"
+      ],
       "routerReceiptCheckpoint": "747c63c7e3ee84843f1b770f9f3d3b1d390c3c02",
       "centralCheckpoint": "347a202564035e902e945b7308bbb5c5397964a4",
       "executionLeaseIssued": false,
@@ -6098,7 +6110,11 @@
       "paths": [
         "release/integration/p0-wallet-connectivity/acceptance/wallet-ios-walletconnect-decision-state-p0161-20260822.json"
       ],
-      "dependencies": ["P0-151", "P0-155", "P0-158"],
+      "dependencies": [
+        "P0-151",
+        "P0-155",
+        "P0-158"
+      ],
       "iosWalletConnectSource": "e829f38b9f35d47be1afd924cf609cf2e59e3be7",
       "biometricFailureEvidence": "cdac464e9fd09c42ad921e5a9d7f5304b912348d",
       "routerCheckpoint": "fdd6d856bbc57536dc566ef1263abd2217daa141",
@@ -6117,7 +6133,9 @@
       "paths": [
         "release/integration/p0-wallet-connectivity/acceptance/wallet-ios-walletconnect-route-source-p0162-20260822.json"
       ],
-      "dependencies": ["P0-161"],
+      "dependencies": [
+        "P0-161"
+      ],
       "decisionStateSource": "e829f38b9f35d47be1afd924cf609cf2e59e3be7",
       "routeSource": "aba683d5dc90ee6a8df339240510e77680c9fa9c",
       "evidence": "c1b630bd2d6d101b3705b0d6ebdf0eec86f08672",
@@ -6137,7 +6155,9 @@
       "paths": [
         "release/integration/p0-wallet-connectivity/acceptance/wallet-ios-simulator-callback-fail-closed-p0163-20260822.json"
       ],
-      "dependencies": ["P0-162"],
+      "dependencies": [
+        "P0-162"
+      ],
       "source": "aba683d5dc90ee6a8df339240510e77680c9fa9c",
       "evidence": "0ba02e5f6b218e59e23169b35588b1baebf36540",
       "routerCheckpoint": "34a9c6627ade57281f19b61d113b322f7736f17b",
@@ -6157,7 +6177,10 @@
       "paths": [
         "release/integration/p0-wallet-connectivity/acceptance/wallet-macos-isolated-callback-fail-closed-p0164-20260822.json"
       ],
-      "dependencies": ["P0-158", "P0-162"],
+      "dependencies": [
+        "P0-158",
+        "P0-162"
+      ],
       "source": "bea12cd61997ea0b868967ed573c3c31b981c1e1",
       "evidence": "5d57ba0706b0b77c1b323c5eebdad4dddbb83e63",
       "routerCheckpoint": "47b824aa571ba3c57867e7ae4ea6767f47ff814f",
@@ -6177,7 +6200,9 @@
       "paths": [
         "release/integration/p0-wallet-connectivity/acceptance/wallet-macos-walletconnect-cold-start-p0165-20260822.json"
       ],
-      "dependencies": ["P0-164"],
+      "dependencies": [
+        "P0-164"
+      ],
       "source": "130a30d4392b0439aaa3abe360e0aa83d686ec76",
       "evidence": "932d2d23c4293a1c5fa73af1de09825e73e771b5",
       "routerCheckpoint": "393a8556eb0799ab9456c01b98abdd09b3212cf4",
@@ -6197,7 +6222,9 @@
       "paths": [
         "release/integration/p0-wallet-connectivity/acceptance/wallet-native-walletconnect-dapp-identity-p0166-20260822.json"
       ],
-      "dependencies": ["P0-165"],
+      "dependencies": [
+        "P0-165"
+      ],
       "source": "40280e03b318eb7b9c9866fffd09fda7e2688365",
       "evidence": "7431e002e017127ee7012354f123fa7cf31289b7",
       "routerCheckpoint": "fe7be7d3d7ad1b76232f3d8b3ff988c6605558ec",
@@ -6218,7 +6245,9 @@
       "paths": [
         "release/integration/p0-wallet-connectivity/acceptance/wallet-native-walletconnect-reproposal-identity-p0167-20260822.json"
       ],
-      "dependencies": ["P0-166"],
+      "dependencies": [
+        "P0-166"
+      ],
       "source": "4b17a22d05df6385737363344c8da62e81e24062",
       "evidence": "bc82f2e4c7d18f1c2c0e229abf45512d55c7f24b",
       "routerCheckpoint": "ff3253e0f87f9ec3f16ecab4ea87e373ef2d3eb4",
@@ -6238,7 +6267,9 @@
       "paths": [
         "release/integration/p0-wallet-connectivity/acceptance/wallet-native-walletconnect-single-pending-p0168-20260822.json"
       ],
-      "dependencies": ["P0-167"],
+      "dependencies": [
+        "P0-167"
+      ],
       "source": "443482d725645bd84dfa22d34622cbd5a83e0093",
       "evidence": "a6c71a3159f99cb313db5f332fef1447d8503d7b",
       "routerCheckpoint": "4d77641e23afa7846bc178ab0f0740317b3a7cca",
@@ -6258,7 +6289,9 @@
       "paths": [
         "release/integration/p0-wallet-connectivity/acceptance/wallet-native-walletconnect-display-name-ambiguity-p0169-20260822.json"
       ],
-      "dependencies": ["P0-168"],
+      "dependencies": [
+        "P0-168"
+      ],
       "source": "04124abf617cc22b151e2f1bc4e74131d5d30047",
       "evidence": "3355c5804c851f30462d75722dac6a3114eefca8",
       "routerCheckpoint": "2cb19f9e3da294896fa02dceffd7f34ab6d6044b",
@@ -6279,7 +6312,9 @@
       "paths": [
         "release/integration/p0-wallet-connectivity/acceptance/wallet-native-walletconnect-canonical-topic-p0170-20260822.json"
       ],
-      "dependencies": ["P0-169"],
+      "dependencies": [
+        "P0-169"
+      ],
       "source": "b54c2b5e1c7d29398b8d3d2574da271a6d1de82e",
       "evidence": "4f5ab74142f08f6ac5d518f3a3bca9b13f00397f",
       "routerCheckpoint": "cdecaac5465eaef65d361b82a132cf2027e66a79",
@@ -6300,7 +6335,9 @@
       "paths": [
         "release/integration/p0-wallet-connectivity/acceptance/wallet-native-walletconnect-canonical-digest-account-p0171-20260822.json"
       ],
-      "dependencies": ["P0-170"],
+      "dependencies": [
+        "P0-170"
+      ],
       "source": "c4782357955e1825dcb2d83ff135500c478f3bad",
       "evidence": "212a9c6fd3877d843cc933106776a02c87260218",
       "routerCheckpoint": "dd1f3eda42a47ac772fc39b5096ea1325345495a",
@@ -6321,7 +6358,9 @@
       "paths": [
         "release/integration/p0-wallet-connectivity/acceptance/wallet-native-walletconnect-request-id-controls-p0172-20260822.json"
       ],
-      "dependencies": ["P0-171"],
+      "dependencies": [
+        "P0-171"
+      ],
       "source": "aacdf8eb97235729c1532774b0866d488a13d816",
       "evidence": "a3f27e542b9606d4dd3c15a4a4173de53a23e74e",
       "routerCheckpoint": "1e4958c878ba0bdb0152b9d1cbb04a25e81b68bb",
@@ -6344,7 +6383,10 @@
         "release/integration/p0-wallet-connectivity/wallet-metamask-level-interoperability-matrix-20260822.json",
         "release/integration/p0-wallet-connectivity/wallet-standard-parity-queue-20260822.json"
       ],
-      "dependencies": ["P0-155", "P0-172"],
+      "dependencies": [
+        "P0-155",
+        "P0-172"
+      ],
       "heavyOwnerAtDispatch": null,
       "activeExecutionLeasesAtDispatch": 0,
       "walletPathOverlap": false,
@@ -6368,7 +6410,9 @@
       "paths": [
         "release/integration/p0-wallet-connectivity/acceptance/finance-production-state-absence-nogo-p0174-20260822.json"
       ],
-      "dependencies": ["P0-146"],
+      "dependencies": [
+        "P0-146"
+      ],
       "request": "50829559012300324a11dc26696233dec3184f14",
       "executionLeaseIssued": false,
       "p0141Reusable": false,
@@ -6383,7 +6427,9 @@
         "release/integration/p0-wallet-connectivity/leases/wallet-public-identity-routing-p0175-20260822.json",
         "vercel:wallet.ynxweb4.com"
       ],
-      "dependencies": ["P0-173"],
+      "dependencies": [
+        "P0-173"
+      ],
       "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-public-identity-routing-20260822T074225Z",
       "expiresAt": "2026-08-22T08:12:25Z",
       "releasedAt": "2026-08-22T07:56:13Z",
@@ -6405,12 +6451,21 @@
       "paths": [
         "release/integration/p0-wallet-connectivity/operator-packages/native-walletconnect-runtime-p0176-20260822.json"
       ],
-      "dependencies": ["P0-173", "P0-175"],
+      "dependencies": [
+        "P0-173",
+        "P0-175"
+      ],
       "executionLeaseIssued": false,
       "operatorPackage3bcAccepted": true,
-      "blocker": "EXTERNAL_DAPP_NAMED_OPERATOR_TASKS_AND_DIRECT_RECEIPTS_UNMAPPED",
+      "blocker": "EXTERNAL_DAPP_DIRECT_DISCOVERY_RECEIPTS_AND_OTHER_PROTECTED_INPUTS_PENDING",
       "productsConnected": "0/12",
-      "nextAction": "firstPartyExactOriginAvailable is true from the non-sensitive Developer receipt, but this is eligibility only. Do not create or infer wallet-external-dapp-operator ownership. Central must map the abstract owner to an existing named task or thread and obtain a non-secret direct receipt for the eligible installed Wallet target, independently opened exact Uniswap/OpenSea/Safe origin and permitted lifecycle. The three named-operator booleans remain false; issue no runtime lease until all protected readiness booleans are true under a wholly-new path-scoped review."
+      "nextAction": "Wallet Web task 019ffaf5-3c19-77b1-8bfd-2a12641a739f is mapped as the named discovery-only operator for exact Uniswap/OpenSea/Safe origins. Each boolean remains false until a separate non-secret direct receipt exists after the user immediate Chrome-launch confirmation. Other protected readiness inputs remain false; no runtime lease.",
+      "officialSignedMetaMaskComparatorProvenanceAvailable": true,
+      "externalDappNamedOperatorTask": {
+        "threadId": "019ffaf5-3c19-77b1-8bfd-2a12641a739f",
+        "scope": "discovery-only",
+        "chromeLaunchConfirmationRequired": true
+      }
     },
     {
       "taskId": "P0-177",
@@ -6420,7 +6475,9 @@
         "release/integration/p0-wallet-connectivity/leases/wallet-public-candidate-reachability-p0177-20260822.json",
         "vercel-project:wallet-web:candidate-redeploy"
       ],
-      "dependencies": ["P0-175"],
+      "dependencies": [
+        "P0-175"
+      ],
       "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-candidate-reachability-20260822T080354Z",
       "expiresAt": "2026-08-22T08:33:54Z",
       "releasedAt": "2026-08-22T08:09:09Z",
@@ -6441,7 +6498,9 @@
         "release/integration/p0-wallet-connectivity/leases/wallet-web-sso-preflight-window-p0178-20260822.json",
         "vercel-project:prj_K4emrdkST7sdb0K9mhmLM0QZh0I3:ssoProtection"
       ],
-      "dependencies": ["P0-177"],
+      "dependencies": [
+        "P0-177"
+      ],
       "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-web-sso-preflight-20260822T081205Z",
       "expiresAt": "2026-08-22T08:27:05Z",
       "releasedAt": "2026-08-22T08:15:51Z",
@@ -6465,7 +6524,9 @@
         ".github/workflows/wallet-web-public-preflight-p0.yml",
         "vercel-project:prj_K4emrdkST7sdb0K9mhmLM0QZh0I3:ssoProtection"
       ],
-      "dependencies": ["P0-178"],
+      "dependencies": [
+        "P0-178"
+      ],
       "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-web-hosted-preflight-20260822T083814Z",
       "expiresAt": "2026-08-22T09:08:14Z",
       "releasedAt": "2026-08-22T08:45:27Z",
@@ -6488,7 +6549,9 @@
         ".github/workflows/wallet-web-public-preflight-p0.yml",
         "vercel-project:prj_K4emrdkST7sdb0K9mhmLM0QZh0I3:ssoProtection"
       ],
-      "dependencies": ["P0-179"],
+      "dependencies": [
+        "P0-179"
+      ],
       "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-web-hosted-preflight-literal-refspec-20260822T084819Z",
       "expiresAt": "2026-08-22T09:18:19Z",
       "releasedAt": "2026-08-22T08:53:23Z",
@@ -6512,7 +6575,9 @@
         "release/integration/p0-wallet-connectivity/leases/wallet-public-identity-routing-p0181-20260822.json",
         "vercel:wallet.ynxweb4.com"
       ],
-      "dependencies": ["P0-180"],
+      "dependencies": [
+        "P0-180"
+      ],
       "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-public-identity-routing-20260822T085730Z",
       "expiresAt": "2026-08-22T09:27:30Z",
       "releasedAt": "2026-08-22T09:02:40Z",
@@ -6539,7 +6604,9 @@
         ".github/workflows/wallet-web-public-preflight-p0.yml",
         "vercel-project:prj_K4emrdkST7sdb0K9mhmLM0QZh0I3:ssoProtection"
       ],
-      "dependencies": ["P0-181"],
+      "dependencies": [
+        "P0-181"
+      ],
       "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-web-v11-hosted-browser-preflight-20260822T091900Z",
       "expiresAt": "2026-08-22T09:49:00Z",
       "releasedAt": "2026-08-22T09:30:02Z",
@@ -6569,7 +6636,9 @@
         ".github/workflows/wallet-web-public-preflight-p0.yml",
         "vercel-project:prj_K4emrdkST7sdb0K9mhmLM0QZh0I3:ssoProtection"
       ],
-      "dependencies": ["P0-182"],
+      "dependencies": [
+        "P0-182"
+      ],
       "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-web-v11-no-store-hosted-browser-preflight-20260822T095800Z",
       "expiresAt": "2026-08-22T10:28:00Z",
       "releasedAt": "2026-08-22T10:05:02Z",
@@ -6597,7 +6666,9 @@
         ".github/workflows/wallet-web-public-preflight-p0.yml",
         "vercel-project:prj_K4emrdkST7sdb0K9mhmLM0QZh0I3:ssoProtection"
       ],
-      "dependencies": ["P0-183"],
+      "dependencies": [
+        "P0-183"
+      ],
       "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-web-v11-source-bound-readiness-preflight-20260822T104600Z",
       "expiresAt": "2026-08-22T11:16:00Z",
       "releasedAt": "2026-08-22T11:02:00Z",
@@ -6633,7 +6704,9 @@
         "production:/var/lib/ynx-chain/calendar/state.json",
         "production:/var/lib/ynx-chain/calendar/state.json.hmac-key"
       ],
-      "dependencies": ["P0-185"],
+      "dependencies": [
+        "P0-185"
+      ],
       "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-calendar-7db160aa-public-recovery-20260822T111600Z",
       "expiresAt": "2026-08-22T11:46:00Z",
       "releasedAt": "2026-08-22T11:29:30Z",
@@ -6658,7 +6731,9 @@
         ".github/workflows/wallet-web-public-preflight-p0.yml",
         "vercel-project:prj_K4emrdkST7sdb0K9mhmLM0QZh0I3:ssoProtection"
       ],
-      "dependencies": ["P0-185"],
+      "dependencies": [
+        "P0-185"
+      ],
       "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-web-v11-service-worker-lifecycle-preflight-20260822T113300Z",
       "expiresAt": "2026-08-22T12:03:00Z",
       "releasedAt": "2026-08-22T11:53:04Z",
@@ -6686,7 +6761,9 @@
         ".github/workflows/wallet-web-public-preflight-p0.yml",
         "vercel-project:prj_K4emrdkST7sdb0K9mhmLM0QZh0I3:ssoProtection"
       ],
-      "dependencies": ["P0-187"],
+      "dependencies": [
+        "P0-187"
+      ],
       "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-web-v11-lifecycle-measurement-successor-20260822T115800Z",
       "expiresAt": "2026-08-22T12:28:00Z",
       "releasedAt": "2026-08-22T12:05:31Z",
@@ -6714,7 +6791,9 @@
         ".github/workflows/wallet-web-public-preflight-p0.yml",
         "vercel-project:prj_K4emrdkST7sdb0K9mhmLM0QZh0I3:ssoProtection"
       ],
-      "dependencies": ["P0-188"],
+      "dependencies": [
+        "P0-188"
+      ],
       "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-web-v11-stable-second-launch-20260822T121300Z",
       "expiresAt": "2026-08-22T12:43:00Z",
       "releasedAt": "2026-08-22T12:28:47Z",
@@ -6742,7 +6821,9 @@
         "release/integration/p0-wallet-connectivity/leases/wallet-official-source-bound-routing-p0190-20260822.json",
         "vercel:wallet.ynxweb4.com"
       ],
-      "dependencies": ["P0-189"],
+      "dependencies": [
+        "P0-189"
+      ],
       "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-official-source-bound-routing-20260822T123100Z",
       "expiresAt": "2026-08-22T13:01:00Z",
       "releasedAt": "2026-08-22T12:40:21Z",
@@ -6768,7 +6849,10 @@
         "release/integration/p0-wallet-connectivity/leases/wallet-official-frozen-verifier-routing-p0191-20260822.json",
         "vercel:wallet.ynxweb4.com"
       ],
-      "dependencies": ["P0-189", "P0-190"],
+      "dependencies": [
+        "P0-189",
+        "P0-190"
+      ],
       "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-official-frozen-verifier-routing-20260822T125300Z",
       "expiresAt": "2026-08-22T13:23:00Z",
       "releasedAt": "2026-08-22T13:01:26Z",
@@ -6798,7 +6882,10 @@
         "internal/calendar/**",
         "production:calendar-testnet.43.153.202.237.sslip.io"
       ],
-      "dependencies": ["P0-186", "P0-191"],
+      "dependencies": [
+        "P0-186",
+        "P0-191"
+      ],
       "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-calendar-7db160aa-inode-safe-public-recovery-20260822T133900Z",
       "expiresAt": "2026-08-22T14:09:00Z",
       "releasedAt": "2026-08-22T14:08:30Z",
@@ -6824,8 +6911,16 @@
       "taskId": "P0-193",
       "owner": "card",
       "status": "CONSUMED_RELEASED_FAILED_CLOSED_CARD_PUBLIC_DEPLOYMENT",
-      "paths": ["release/integration/p0-wallet-connectivity/execution/p0-193-card-wallet-provider-public-deployment-lease-20260822.json","apps/card/**","vercel-project:prj_DU37JeDK4Rx0MjxIV745veV5Qgxp","https://card.ynxweb4.com/**"],
-      "dependencies": ["P0-191", "P0-192"],
+      "paths": [
+        "release/integration/p0-wallet-connectivity/execution/p0-193-card-wallet-provider-public-deployment-lease-20260822.json",
+        "apps/card/**",
+        "vercel-project:prj_DU37JeDK4Rx0MjxIV745veV5Qgxp",
+        "https://card.ynxweb4.com/**"
+      ],
+      "dependencies": [
+        "P0-191",
+        "P0-192"
+      ],
       "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-card-wallet-provider-public-deployment-20260822T145700Z",
       "expiresAt": "2026-08-22T15:27:00Z",
       "source": "45c4013a95008027cf55f2ac4d7bdded70640ae1",
@@ -6854,7 +6949,9 @@
         "release/integration/p0-wallet-connectivity/wallet-standard-parity-queue-20260822.json",
         "release/integration/p0-wallet-connectivity/integration-queue.json"
       ],
-      "dependencies": ["P0-191"],
+      "dependencies": [
+        "P0-191"
+      ],
       "routerCommit": "12a79eb01c5939fd67a9a1a7f884f30dbde0a99a",
       "routerTree": "b21f6b3a81bbcd1fc081d8cba562573f71e47f90",
       "routerParent": "9ec5162eef8e3aed3689a8a065256749b431f8b9",
@@ -6903,7 +7000,12 @@
         "ownedPathsFrozen": false,
         "classification": "interactiveWalletConsumer",
         "protectedRuntimeCommit": "bde6939223693d5cdf5d05f309ac888c091ab815",
-        "sourceLocalChecks": {"node":"14/14","swift":"20/20","registry":"15/15","adhocPreviewOnly":true},
+        "sourceLocalChecks": {
+          "node": "14/14",
+          "swift": "20/20",
+          "registry": "15/15",
+          "adhocPreviewOnly": true
+        },
         "installedLocal": false,
         "gatekeeperAccepted": false,
         "oldInstalledBundleIdConflict": true,
@@ -6927,7 +7029,10 @@
         "vercel-project:prj_DU37JeDK4Rx0MjxIV745veV5Qgxp",
         "https://card.ynxweb4.com/**"
       ],
-      "dependencies": ["P0-193", "P0-194"],
+      "dependencies": [
+        "P0-193",
+        "P0-194"
+      ],
       "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-card-static-envelope-public-deployment-20260822T152200Z",
       "expiresAt": "2026-08-22T15:52:00Z",
       "source": "350602410b868322d911c869145c879c120b641e",
@@ -6959,7 +7064,9 @@
         "vercel-project:prj_DU37JeDK4Rx0MjxIV745veV5Qgxp",
         "https://card.ynxweb4.com/**"
       ],
-      "dependencies": ["P0-195"],
+      "dependencies": [
+        "P0-195"
+      ],
       "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-card-nested-envelope-public-deployment-20260822T153300Z",
       "expiresAt": "2026-08-22T16:03:00Z",
       "source": "2183b8d7a18dec3c7e7773f3c777882deeac6f82",
@@ -6995,7 +7102,10 @@
         "branch:codex/calendar-fable5-completion-20260821:.github/workflows/calendar-public-browser-preflight-p0.yml",
         "https://calendar-testnet.43.153.202.237.sslip.io/**"
       ],
-      "dependencies": ["P0-191", "P0-192"],
+      "dependencies": [
+        "P0-191",
+        "P0-192"
+      ],
       "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-calendar-public-hosted-browser-preflight-20260822T161100Z",
       "expiresAt": "2026-08-22T16:41:00Z",
       "remoteParent": "f56341a155e67705d4dba445ce3466c83c0b1482",
@@ -7030,7 +7140,9 @@
         "branch:codex/calendar-fable5-completion-20260821:.github/workflows/calendar-public-browser-preflight-p0.yml",
         "https://calendar-testnet.43.153.202.237.sslip.io/**"
       ],
-      "dependencies": ["P0-197"],
+      "dependencies": [
+        "P0-197"
+      ],
       "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-calendar-public-hosted-browser-schema-fix-20260822T162400Z",
       "expiresAt": "2026-08-22T16:54:00Z",
       "remoteParent": "306dc4196bd025e0a60636ad5a5f8ae635bf5732",
@@ -7237,7 +7349,9 @@
       "paths": [
         "release/integration/p0-wallet-connectivity/execution/objects/p0-298-finance-phase-diagnostic-deployment-request-nogo-review-20260824.json"
       ],
-      "dependencies": ["P0-297"],
+      "dependencies": [
+        "P0-297"
+      ],
       "requestCommit": "1aa9f7f14cef780b18cde688b4fdf82f405464ad",
       "requestBlob": "59f308466a6089aaf847a544f3d224af3a17e468",
       "executionLeaseIssued": false,

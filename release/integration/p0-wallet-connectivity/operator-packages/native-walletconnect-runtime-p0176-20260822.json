@@ -84,7 +84,7 @@
     "eligibleSignedIosTargetAvailable": false,
     "eligibleSignedMacosTargetAvailable": false,
     "eligibleSignedAndroidTargetAvailable": false,
-    "officialSignedMetaMaskComparatorProvenanceAvailable": false,
+    "officialSignedMetaMaskComparatorProvenanceAvailable": true,
     "allProtectedReadinessTrue": false
   },
   "responsibilityDomains": {
@@ -218,5 +218,21 @@
     "signSucceeded": false,
     "transactionSucceeded": false,
     "runtimeLeaseIssued": false
+  },
+  "comparatorProvenanceAcceptance": {
+    "owner": "wallet-metamask-comparator-owner",
+    "path": "release/integration/p0-wallet-connectivity/operator-packages/p0-176-official-metamask-comparator-provenance-acceptance-20260824.json",
+    "available": true,
+    "secretValuesRecorded": false
+  },
+  "externalDappNamedOperatorMapping": {
+    "responsibilityDomain": "wallet-external-dapp-operator",
+    "taskId": "Wallet Web",
+    "threadId": "019ffaf5-3c19-77b1-8bfd-2a12641a739f",
+    "scope": "discovery-only receipts after immediate user Chrome-launch confirmation",
+    "uniswapNamedOperatorAvailable": false,
+    "openseaNamedOperatorAvailable": false,
+    "safeNamedOperatorAvailable": false,
+    "directReceiptsExist": false
   }
 }

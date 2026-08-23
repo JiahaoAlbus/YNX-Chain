@@ -2,7 +2,7 @@
   "schemaVersion": "p0-wallet-protected-operator-mapping-audit@1",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "taskId": "P0-176",
-  "status": "TERMINAL_READ_ONLY_MAPPING_AUDIT_EXTERNAL_DAPP_OPERATORS_UNMAPPED",
+  "status": "MAPPED_EXISTING_WALLET_WEB_TASK_DIRECT_RECEIPTS_PENDING",
   "mutationCount": 0,
   "secretValuesRequested": false,
   "secretValuesRecorded": false,
@@ -12,7 +12,7 @@
     "pinnedAndRecentTasksReviewed": 58,
     "acceptedOperatorPackageCommit": "3bc070e39e6ade7a7a210196ba8721d895fa6960",
     "routerReference": "875",
-    "mappedExistingTaskOrThreadFound": false
+    "mappedExistingTaskOrThreadFound": true
   },
   "capabilityBooleans": {
     "uniswapNamedOperatorAvailable": false,
@@ -21,15 +21,15 @@
   },
   "blockers": [
     {
-      "code": "UNISWAP_NAMED_OPERATOR_TASK_AND_DIRECT_RECEIPT_UNMAPPED",
+      "code": "UNISWAP_DIRECT_DISCOVERY_RECEIPT_PENDING",
       "origin": "https://app.uniswap.org"
     },
     {
-      "code": "OPENSEA_NAMED_OPERATOR_TASK_AND_DIRECT_RECEIPT_UNMAPPED",
+      "code": "OPENSEA_DIRECT_DISCOVERY_RECEIPT_PENDING",
       "origin": "https://opensea.io"
     },
     {
-      "code": "SAFE_NAMED_OPERATOR_TASK_AND_DIRECT_RECEIPT_UNMAPPED",
+      "code": "SAFE_DIRECT_DISCOVERY_RECEIPT_PENDING",
       "origin": "https://app.safe.global"
     }
   ],
@@ -40,9 +40,17 @@
     "explicit permitted lifecycle boundary"
   ],
   "forbidden": [
-    "invent or create an unmapped owner task without explicit Central authority",
     "secret Project ID token account address key or recovery material",
     "Chrome launch install account request signature or transaction",
-    "runtime completion inference"
-  ]
+    "runtime completion inference",
+    "set any named-operator boolean true before its separate direct receipt",
+    "launch Chrome without the user immediate confirmation"
+  ],
+  "namedOperatorTask": {
+    "taskName": "Wallet Web",
+    "threadId": "019ffaf5-3c19-77b1-8bfd-2a12641a739f",
+    "responsibilityDomain": "wallet-external-dapp-operator",
+    "scope": "Uniswap OpenSea Safe discovery-only",
+    "immediateChromeLaunchConfirmationRequired": true
+  }
 }
