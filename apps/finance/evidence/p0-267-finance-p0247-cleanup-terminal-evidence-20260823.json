@@ -1,0 +1,42 @@
+{
+  "schemaVersion": "p0-finance-cleanup-terminal-evidence@2",
+  "recordedAtUtc": "2026-08-23T14:14:23Z",
+  "central": {
+    "commit": "155ec3c94bc91a8af06773f6fe98da737b2b4284",
+    "tree": "d91edf49475c3d4fa281db12c946ab6680132443",
+    "leaseBlob": "6b116d31679f5ec409170f46439de6c8066a4fa7",
+    "leaseBytes": 10172,
+    "leaseSha256": "f99ecbcd9d634eaed559d34e5debbbf2e93985320d56024060af9921559a8ea2",
+    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-p0247-residue-cleanup-openssh-successor-20260823T140755Z"
+  },
+  "signedInputs": {
+    "cleanupLease": {"path": "/tmp/ynx-finance-p0267-cleanup-signed.json", "bytes": 4156, "sha256": "b217bb0fe603d53d62c573bc579c46245e03a6e833987e01b201e32b608b5464"},
+    "carrier": {"path": "/tmp/ynx-finance-p0267-cleanup-atomic.carrier", "bytes": 17040, "sha256": "49b24636095c2d39d59aaf95ab5e32d2f70c5b83e038d2ca2cd033ee539633e5"}
+  },
+  "execution": {
+    "attemptCount": 1,
+    "cleanupInvocationCount": 1,
+    "retryPerformed": false,
+    "localCommandExitStatus": 0,
+    "stdout": {"bytes": 227, "sha256": "59193043771f7c37c85f458714abc590bf7741729a2d10c1ab4e89d8a83b2b56"},
+    "stderr": {"bytes": 0, "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    "status": {"bytes": 2, "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa", "value": "0"},
+    "exactReceipt": [
+      "cleanup=P0247_RESIDUES_REMOVED",
+      "transport=P0264_ATOMIC_CONTROL_PLACEMENT",
+      "cleanupInvocationCount=1",
+      "cleanupExitStatus=0",
+      "controlObjectsFinalAbsent=true",
+      "carrierSha256=49b24636095c2d39d59aaf95ab5e32d2f70c5b83e038d2ca2cd033ee539633e5"
+    ]
+  },
+  "truth": {
+    "cleanupInvocationAcknowledged": true,
+    "fourResidueAbsencesIndependentlyReadBack": false,
+    "oldRuntimeIndependentlyReadBack": false,
+    "newControlPathAbsencesIndependentlyReadBack": false,
+    "deploymentOrServiceMutationPerformed": false,
+    "publicWalletOrTransactionEvidence": false
+  },
+  "nextRequiredAction": "Issue a wholly separate single-use, zero-write post-cleanup verification lease before accepting cleanup completion."
+}
