@@ -92,14 +92,24 @@ assert_target() {
 }
 
 http_check() {
-  local path=$1 url status tmp
+  local path=$1 url report status actual_bytes actual_sha
   url=$(get "$path.url")
-  tmp=$(mktemp)
-  status=$(curl --silent --show-error --max-time 10 -o "$tmp" -w '%{http_code}' "$url")
+  # The response is never placed on remote storage. Curl appends a fixed
+  # trailer to its stdout body and Perl consumes that one stream, returning
+  # only status, byte count, and digest. The last trailer is unambiguous even
+  # when a response happens to contain the marker text.
+  report=$(curl --silent --show-error --max-time 10 -o - -w $'\n__YNX_FINANCE_HTTP_META__%{http_code}\t%{size_download}\n' "$url" | perl -MDigest::SHA=sha256_hex -e '
+local $/; my $data = <STDIN>; my $marker = "\n__YNX_FINANCE_HTTP_META__";
+my $at = rindex($data, $marker); exit 65 if $at < 0;
+my $body = substr($data, 0, $at); my $meta = substr($data, $at + length($marker));
+$meta =~ /\A([0-9]+)\t([0-9]+)\n\z/ or exit 65;
+length($body) == $2 or exit 65;
+print "$1\t" . length($body) . "\t" . sha256_hex($body) . "\n";
+')
+  IFS=$'\t' read -r status actual_bytes actual_sha <<<"$report"
   test "$status" = "$(get "$path.status")"
-  test "$(bytes "$tmp")" = "$(get "$path.bytes")"
-  test "$(hash "$tmp")" = "$(get "$path.sha256")"
-  rm -f -- "$tmp"
+  test "$actual_bytes" = "$(get "$path.bytes")"
+  test "$actual_sha" = "$(get "$path.sha256")"
 }
 
 verify_unchanged() {
