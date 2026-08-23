@@ -1,0 +1,154 @@
+{
+  "schemaVersion": "p0-finance-zero-write-inspection-request@1",
+  "taskId": "P0-303",
+  "status": "SOURCE_REQUEST_ONLY_AWAITING_CENTRAL_READONLY_LEASE",
+  "owner": {
+    "branch": "codex/p0-finance-p0303-p0302-zero-write-inspection-20260824",
+    "implementationCommit": "7df870c26d6c7ebd37fc85b8e78d2e4c3264c11d",
+    "implementationTree": "22b13b3352c0cee52d0967f7c4d61558860f70c2",
+    "parent": "639873d2c9e61bb50438cf062de5b8d839435cf5"
+  },
+  "p0302TerminalBoundary": {
+    "centralCommit": "6aae8661b",
+    "centralTree": "0138e03f8e7d20216671da26ab6d9b36e6807cde",
+    "lease": {
+      "path": "release/integration/p0-wallet-connectivity/execution/p0-302-finance-stage-backup-containers-rollback-first-deployment-single-use-lease-20260824.json",
+      "blob": "13e48c94cc1e27209d52a8e6ee1f9608548baab2",
+      "bytes": 44412,
+      "sha256": "c36b13afa49f10b47ec5ba28d39c1f001e015184bd6c9cc7d1a329e44d314db4"
+    },
+    "signedDeploymentLease": {
+      "blob": "73da6da0db9ff65d1abb47c7ca167aad314ac55a",
+      "bytes": 11072,
+      "sha256": "512f129861c6ae5db100f467c4ed52ef3785b32fa3309daae21a21250a4322b0"
+    },
+    "observerContract": {
+      "blob": "d9006ee19c5073dff857f7d371a353899aefa269",
+      "bytes": 36117,
+      "sha256": "b511daa14c322fce3b19b5027b83a3420c2531bf13f4a88078156a6c6f1502b4"
+    },
+    "attempts": 1,
+    "retryAllowed": false,
+    "manualRollbackAllowed": false,
+    "observerExitStatus": 1,
+    "stdout": {
+      "bytes": 89,
+      "sha256": "a452b935eb54565df1303b60ad12ed3a3843e08cdd44eeee910f3f19436b2373",
+      "phase": "RELEASE_MATERIALIZE",
+      "failureClass": "POSTWRITE_RELEASE_MATERIALIZE",
+      "failureExitStatus": 1
+    },
+    "stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "transportReceipt": {
+      "bytes": 203,
+      "sha256": "0a396a211524d3f9fce54ee174e7dc4923c543e7677987c783f20624f80307ce",
+      "terminalReceiptValidated": false
+    },
+    "remoteState": "UNKNOWN_UNTIL_P0303",
+    "p0302Reusable": false
+  },
+  "p0302CentralRelease": {
+    "commit": "1979e248b",
+    "tree": "f7b634b5fa1ee6128cf81cd8c9b34b4f2e96cf44",
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0302_POSTWRITE_RELEASE_MATERIALIZE_REMOTE_STATE_UNKNOWN",
+    "heavy": "IDLE"
+  },
+  "reviewedReadOnlyObjects": [
+    {
+      "path": "apps/finance/scripts/finance-p0303-p0302-remote-state-readonly-inspection.sh",
+      "blob": "e9df370f18a1ace7131132b2baa006207512e932",
+      "bytes": 5059,
+      "sha256": "ab128f3046db0dd4c70b2a32175b2ea019652327366a7c492d7578d115f43070"
+    },
+    {
+      "path": "apps/finance/scripts/test-finance-p0303-p0302-remote-state-readonly-inspection.mjs",
+      "blob": "6aa45366f53995c3f0a3c13a122464f6799e9d69",
+      "bytes": 1619,
+      "sha256": "60d00ded811daa28fd4339b696c88fb5beedbf62b659e44a23f0af23ddb9d098"
+    }
+  ],
+  "requestedLease": {
+    "kind": "FINANCE_P0302_TERMINAL_REMOTE_STATE_ZERO_WRITE_INSPECTION",
+    "singleUse": true,
+    "sshAttempts": 1,
+    "retryAllowed": false,
+    "remoteWrites": 0,
+    "noRemoteTemporaryFiles": true,
+    "requiredOrder": [
+      "re-read P0-302 as consumed, released and nonreusable",
+      "independently verify the exact inspection object bytes and SHA-256",
+      "freeze one literal protected-host SSH argv and the exact inspection object as stdin",
+      "execute once and capture stdout, stderr and remote exit status without creating remote files",
+      "validate every required path, service and HTTP field before claiming the remote state known",
+      "atomically release P0-303"
+    ]
+  },
+  "exactPathsToInspect": {
+    "controls": [
+      "/opt/ynx/leases/finance/p0302-finance-phase3-20260823t211500z.executor.sh.pending",
+      "/opt/ynx/leases/finance/p0302-finance-phase3-20260823t211500z.executor.sh",
+      "/opt/ynx/leases/finance/p0302-finance-phase3-20260823t211500z.json.pending",
+      "/opt/ynx/leases/finance/p0302-finance-phase3-20260823t211500z.json",
+      "/opt/ynx/leases/finance/p0302-finance-phase3-20260823t211500z.manual-rollback.json"
+    ],
+    "deploymentObjects": [
+      "/opt/ynx/stage/finance/p0302-finance-phase3-20260823t211500z",
+      "/opt/ynx/stage/finance/p0302-finance-phase3-20260823t211500z/stage",
+      "/var/backups/ynx-finance/p0302-finance-phase3-20260823t211500z",
+      "/var/backups/ynx-finance/p0302-finance-phase3-20260823t211500z/backup",
+      "/opt/ynx/releases/finance/p0302-finance-phase3-20260823t211500z",
+      "/opt/ynx/releases/finance/p0302-finance-phase3-20260823t211500z/ynx-finance-7824af677dd0"
+    ],
+    "switchObjects": [
+      "/opt/ynx/finance-current",
+      "/opt/ynx/finance-current.next",
+      "/opt/ynx/finance-current.rollback"
+    ],
+    "runtime": [
+      "/etc/ynx/finance.env",
+      "/etc/systemd/system/ynx-finance.service",
+      "/etc/caddy/conf.d/ynx-finance.caddy",
+      "/var/lib/ynx/finance/state.json"
+    ],
+    "retainedParents": [
+      "/opt/ynx/leases/finance",
+      "/opt/ynx/stage/finance",
+      "/var/backups/ynx-finance",
+      "/opt/ynx/releases/finance"
+    ]
+  },
+  "requiredReceipts": {
+    "eachExactPath": "ABSENT, or kind plus non-symlink device:inode:uid:gid:mode:nlink:bytes:type tuple; files add whole-file SHA-256; directories add direct-child count and canonical inventory SHA-256; symlinks add target and are never followed for cleanup because cleanup is forbidden",
+    "current": "link tuple, target and canonical resolved release plus current.next and current.rollback state",
+    "service": ["LoadState", "ActiveState", "SubState", "MainPID", "NRestarts", "ExecStart metadata hash", "WorkingDirectory", "User", "Group"],
+    "http": "loopback and public root, health and version URL, status, bytes and whole-body SHA-256",
+    "secretSafety": "environment, unit, Caddy and state content must never be output; only tuple, bytes and SHA-256 metadata",
+    "terminal": "inspectionComplete=true and mutationCount=0 only after every exact read succeeds"
+  },
+  "sourceHypothesisNotYetPromoted": {
+    "phaseBoundary": "RELEASE_MATERIALIZE begins before release-container creation and ends after candidate move plus exact stage cleanup, so the phase receipt alone cannot locate the failed statement.",
+    "highestProbabilityDefect": "The executor captures release_container_preownership_identity before chown, then compares device:inode:uid:gid after chown. A deliberate root:root to root:service-group ownership change changes gid and fails that comparison. The local fixture signed the process's existing gid, so its chown was a no-op and the defect was masked.",
+    "alternativeStatesToDiscriminate": [
+      "releaseContainer present and empty with no release implies failure during ownership or identity recheck",
+      "release present and stage empty implies failure during stage leaf or stageContainer cleanup",
+      "all release objects absent with stage or backup residue implies the cleanup trap reached a different guarded failure"
+    ],
+    "promotionRule": "Do not create or authorize a deployment successor until direct P0-303 evidence identifies the terminal remote state."
+  },
+  "forbidden": [
+    "write, mkdir, cleanup, delete, deploy, rollback, retry, restart, reload or link mutation",
+    "environment, unit, Caddy, state or public mutation",
+    "raw environment output, secret output, private key, account request, signature or transaction"
+  ],
+  "truth": {
+    "inspectionExecuted": false,
+    "p0302RemoteStateKnown": false,
+    "deploymentSucceeded": false,
+    "manualRollbackAuthorized": false,
+    "deploymentSuccessorPrepared": false
+  },
+  "singleExecutableBlocker": "Central must issue and execute one new P0-303 read-only single-use lease for the exact reviewed inspection object."
+}
