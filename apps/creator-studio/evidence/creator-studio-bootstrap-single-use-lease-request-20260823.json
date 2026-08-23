@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "4.0.0",
+  "schemaVersion": "5.0.0",
   "requestType": "CREATOR_STUDIO_BOOTSTRAP_SINGLE_USE_LEASE",
   "requestedExecutor": "release-control-plane",
   "status": "REQUESTED_NOT_AUTHORIZED",
@@ -32,7 +32,10 @@
     "requireApi6493AndViewer6494PidListenerUnchanged": true,
     "requirePublicHashValidation": true,
     "requireApi6493AndViewer6494PidCmdlineCwdListenerUnchanged": true,
-    "requireApi6493AndViewer6494CompleteTuple": true
+    "requireApi6493AndViewer6494CompleteTuple": true,
+    "fixedProductionPaths": true,
+    "requireNew6495TerminalCmdlineCwdListenAndPublicHash": true,
+    "requireNewUnitAndRootReceiptInodeShaBeforeRemoval": true
   },
   "sequence": [
     "capture complete PID/cmdline/cwd/LISTEN tuples for API6493 and Viewer6494",
@@ -60,12 +63,42 @@
     "carrier": "apps/creator-studio/release-candidates/live-20260823/live-frontend-carrier.tar",
     "sha256": "be8c68af8cd342539bc2f98955b61c4bc9665867e08d91cd46afc7dcfdc53e27",
     "requiresOldServiceActive": true,
-    "requiresIdentityBoundDedicatedRootAndUnitAbsence": true
+    "requiresIdentityBoundDedicatedRootAndUnitAbsence": true,
+    "requiresRollbackCarrierRunnableServerVerification": true,
+    "restoreScope": "/video/studio frontend only",
+    "resourceSet": [
+      "app.js",
+      "styles.css",
+      "enhancements.css",
+      "i18n.js",
+      "index.html",
+      "wallet-auth.js",
+      "standard-wallet-connect-state.js"
+    ]
   },
-  "bootstrapExecutor": "apps/creator-studio/release-bootstrap-successor.mjs",
+  "bootstrapExecutor": "apps/creator-studio/release-bootstrap-executor.mjs",
   "forwardBinding": {
     "studioReleaseDir": "/opt/ynx-creator-studio-wallet/releases/creator-studio-0e1a53c5",
     "requireSameMaterializedTargetCurrentReceiptInodeAndCandidateSha": true,
-    "requireRootCurrentNewUnitStageAbsenceReceipts": true
+    "requireRootCurrentNewUnitStageAbsenceReceipts": true,
+    "requireDereferencedCurrentInodeEqualsRelease": true,
+    "requireSingleFinalReceiptWrite": true
+  },
+  "commands": {
+    "forward": [
+      "/usr/bin/node",
+      "/opt/ynx-release-control-plane/creator-studio/release-bootstrap-executor.mjs",
+      "forward",
+      "<api6493-pid>",
+      "<viewer6494-pid>",
+      "<unused-loopback-port>"
+    ],
+    "rollback": [
+      "/usr/bin/node",
+      "/opt/ynx-release-control-plane/creator-studio/release-bootstrap-executor.mjs",
+      "rollback",
+      "<captured-api6493-pid>",
+      "<captured-viewer6494-pid>"
+    ]
   }
 }
