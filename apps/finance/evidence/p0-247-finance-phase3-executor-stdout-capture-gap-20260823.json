@@ -1,0 +1,9 @@
+{
+  "kind": "FINANCE_P0247_EXECUTOR_SUCCESS_RECEIPT_CAPTURE_GAP",
+  "lease": {"centralCommit": "cef225978c85a406dfe9a4be5520b0be18aafd5a", "leaseBlob": "f6faf457ea12ebd3fb9c11ef7e0ffd8b4324884b", "leaseSha256": "c378b4be8c0a527319082ed09dd2f6355839cbeda419253bdbb4367c023f90ca", "singleUse": true},
+  "ssh": {"attempts": 1, "exitStatus": 0, "stdoutCaptured": false, "stderrWarnings": ["tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'", "tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'"]},
+  "requiredExecutorReceiptFieldsUnavailable": ["releaseContainer", "releaseContainerIdentityTuple", "releaseContainerEmptyTuple", "releaseContainerTuple", "release", "releaseTuple", "releaseInventorySha256", "stageParentTuple", "backupParentTuple", "releaseParentTuple", "backupTuple", "candidateServicePid", "candidateServiceNRestarts", "placedExecutor", "placedLease"],
+  "publicOldRuntime": {"versionStatus": 200, "versionBytes": 130, "versionSha256": "39789776da47e60b7a7df845789e02ebba16707ad8951eb6f27c84c1b40bb226", "commit": "3b2383f5c18ab3eb5ce7f7f6a267d2cfe7c7e6a4", "release": "ynx-finance-3b2383f5c18a", "healthStatus": 200, "healthBytes": 485, "healthSha256": "d1e97a4314acd1ecccf94629d15bd598cb58ff78136b3622ac26d583a82e45c1"},
+  "blocker": "P0247_EXECUTOR_SUCCESS_STDOUT_RECEIPTS_NOT_CAPTURED; separate manual rollback lease cannot be safely bound without Central-authorized recovery evidence.",
+  "truth": {"manualRollbackRequested": false, "manualRollbackAuthorized": false, "sshRetry": false, "productionMutation": false}
+}
