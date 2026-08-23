@@ -1,0 +1,206 @@
+{
+  "schemaVersion": "ynx-video-controlled-takeover-bootstrap-lease-request/1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-VIDEO-CONTROLLED-TAKEOVER-BOOTSTRAP-20260823",
+  "productId": "ynx-video",
+  "owner": "video",
+  "generatedAt": "2026-08-23T00:49:00Z",
+  "status": "REQUESTED_NOT_AUTHORIZED",
+  "supersedes": {
+    "requestCommit": "e83ad7ca2d36873f6943879cf1bca07ba8a0166f",
+    "centralDecision": "NO_GO_LEGACY_VIEWER_ACTIVE_AND_6494_BOUND",
+    "reason": "The old Viewer is active and owns 6494, so an absent/free bootstrap is not executable."
+  },
+  "implementation": {
+    "branch": "codex/video-p0-wallet-router",
+    "commit": "225b11f319f8e620572121b60ed690ce596a828f",
+    "tree": "09168b2c8571c0d12045be7ec5adfb28e57a216c",
+    "parent": "e83ad7ca2d36873f6943879cf1bca07ba8a0166f",
+    "candidateProductSource": "12606124dad61f5cb8032e302087c2d00c040b4d",
+    "candidateDeployAllowed": false
+  },
+  "frozenFiles": {
+    "controlledTakeover": {
+      "path": "apps/video/scripts/video-runtime-controlled-takeover.sh",
+      "blob": "8c446d2c43d83ecf4ed820f871c72925793714f6",
+      "bytes": 9816,
+      "sha256": "d67515b4c743c70e3c3c30dfc47058315105a4a336d8272a7ec8a8a39e101619"
+    },
+    "actualShellFixture": {
+      "path": "apps/video/controlled-takeover.test.mjs",
+      "blob": "b457e4d60d191ad36358dbac69b26c2dd895d1ac",
+      "bytes": 8030,
+      "sha256": "750b2e50960df9962b58f4e6bece41617e74cb60a4572e1930a9391bd80875bb"
+    },
+    "bootstrapExecutor": {
+      "path": "apps/video/scripts/video-runtime-bootstrap.sh",
+      "blob": "1186e1c95fff9b67ce63f06faab11df3dc7247da",
+      "sha256": "c12264f8582522bcafa31ada5f116307081f6f1162a65b0db7d56472373a5a5a"
+    },
+    "unitTemplate": {
+      "path": "apps/video/runtime/ynx-video-viewer-wallet.service",
+      "blob": "d9b7d34ad024dc6343cdc8b82fed1a0c6b01127d",
+      "sha256": "bb08d1cdc657a98290c8b90d6b40fca0f896d9c2c055654abdb3859009df6527"
+    },
+    "legacyBaseline": {
+      "path": "apps/video/release/evidence/p0-077/video-legacy-viewer-controlled-takeover-baseline-20260823.txt",
+      "bytes": 658,
+      "sha256": "8a269f34ad15979f7cb58015886abb4e31651ad2bf98dc58163c140a255a5e58"
+    }
+  },
+  "legacyRuntimeBaseline": {
+    "capturedAt": "2026-08-23T00:42:56Z",
+    "host": "43.153.202.237",
+    "unit": "ynx-video-viewer.service",
+    "loadState": "loaded",
+    "activeState": "active",
+    "subState": "running",
+    "unitFileState": "enabled",
+    "mainPid": 789902,
+    "nRestarts": 0,
+    "fragmentPath": "/etc/systemd/system/ynx-video-viewer.service",
+    "execStart": "/usr/bin/node /opt/ynx-video/current/apps/video/server.mjs",
+    "pid": {
+      "exe": "/usr/bin/node",
+      "cwd": "/",
+      "cmdlineSha256": "b4dd391073117e4585a51fb98bb58698843ccc65fbe43854f4c1a27e7aca370f",
+      "starttime": "1008860468"
+    },
+    "unitTuple": "64770:161341:0:0:600:1:337:regular file",
+    "unitSha256": "c0518f813134f2879382cc3f7c999f8abf9b4660c513bc2651487a6fe9ed29c9",
+    "sharedCurrentTuple": "64770:1324617:0:0:777:1:53:symbolic link",
+    "sharedCurrentTarget": "/opt/ynx-video/releases/p0205-creator-studio-0e1a53c5",
+    "caddyTuple": "64770:1056275:0:0:644:1:3412:regular file",
+    "caddySha256": "b606d1bdced436a984aed19981788f1a9471b4ccb7ad7f2c49b32015b729afa7",
+    "videoRouteBlocksBytes": 197,
+    "videoRouteBlocksSha256": "0bdaf79c20669ab364895a443b4f4169eb0f8e17755ea2d83e64b153272f3e07"
+  },
+  "responseBindings": {
+    "viewerRoot": {"url": "http://127.0.0.1:6494/", "http": 200, "bytes": 3285, "sha256": "5c6aa1b9207680ff40f77df6d063571f67beff40719d727acf5d2fa0c05b591a"},
+    "apiRoot": {"url": "http://127.0.0.1:6493/", "http": 401, "bytes": 67, "sha256": "f8d9f03ca1df849c0f612dbc48445e8f86ab81739eed6556ac49dec581c72613"},
+    "apiHealth": {"url": "http://127.0.0.1:6493/health", "http": 200, "bytes": 278, "sha256": "b14684492820350504ee7a06247e0b4670416bff721678bb39645b6808972384"},
+    "apiVersion": {"url": "http://127.0.0.1:6493/version", "http": 200, "bytes": 152, "sha256": "dffdf161c67cec481eafc8601ca0087908adce8a6cf40920a24df357cb003fb8"},
+    "creatorRoot": {"url": "http://127.0.0.1:6495/", "http": 200, "bytes": 14088, "sha256": "b37f78205f2c5443b2103ee42e98d6ecde65238c107733088e63893a3c1de697"},
+    "creatorManifest": {"url": "http://127.0.0.1:6495/release-manifest.json", "http": 200, "bytes": 2299, "sha256": "5fd27ac55d9ea70b8e15aac0565324a9ce7b18706bd75cd5b430eaa4843de86f"},
+    "creatorCatalog": {"url": "http://127.0.0.1:6495/i18n/catalog.json", "http": 200, "bytes": 14237, "sha256": "4c86e3e1cdeac6d9c4570891d70bab4c3486c6a4429dd33fd1029f046ca9ecff"}
+  },
+  "predecessorCarrier": {
+    "sourceCommit": "e5ce33550bbd8a4be09a55a6bb3dd73cd3cb8833",
+    "releaseId": "ynx-video-predecessor-e5ce33550bbd8a4be09a55a6bb3dd73cd3cb8833",
+    "stagedPath": "/var/tmp/ynx-video-predecessor-e5ce335-runtime.tar.gz",
+    "bytes": 13323,
+    "sha256": "6771deb82ccc62a9c14d62ed40e7bda961806ffe3c14681b9cf53ec27afef2df"
+  },
+  "orderedControlledTakeover": [
+    "Acquire the exact single-use Video lease and atomic takeover lock.",
+    "Freshly reproduce the complete legacy baseline file plus all response and Caddy bindings.",
+    "Write the rollback receipt before stopping the legacy unit.",
+    "Stop only ynx-video-viewer.service without editing or disabling its unit or shared current.",
+    "Prove 6494 has no listener.",
+    "Run the existing absent-state bootstrap to install/start the dedicated predecessor unit.",
+    "Prove the dedicated unit owns 6494 and serves exact predecessor bytes while all API, Creator, Caddy and shared-current bindings remain exact.",
+    "On every failure after legacy stop: rollback the dedicated bootstrap, start the exact legacy unit, require a new successor PID with identical exe/cwd/cmdline/unit/shared identity and exact old 6494 bytes."
+  ],
+  "literalCommandObjects": {
+    "commonEnvironment": [
+      "YNX_VIDEO_EXECUTION_MODE=production",
+      "YNX_VIDEO_LEASE_AUTHORIZED=P0_VIDEO_CONTROLLED_TAKEOVER_SINGLE_USE",
+      "YNX_VIDEO_LEGACY_UNIT=ynx-video-viewer.service",
+      "YNX_VIDEO_VIEWER_UNIT=ynx-video-viewer-wallet.service",
+      "YNX_VIDEO_LEGACY_SNAPSHOT_EXPECTED=/var/tmp/video-legacy-viewer-controlled-takeover-baseline.txt",
+      "YNX_VIDEO_LEGACY_UNIT_PATH=/etc/systemd/system/ynx-video-viewer.service",
+      "YNX_VIDEO_SHARED_CURRENT=/opt/ynx-video/current",
+      "YNX_VIDEO_LEGACY_VIEWER_SHA256=5c6aa1b9207680ff40f77df6d063571f67beff40719d727acf5d2fa0c05b591a",
+      "YNX_VIDEO_LEGACY_VIEWER_BYTES=3285",
+      "YNX_VIDEO_API_ROOT_SHA256=f8d9f03ca1df849c0f612dbc48445e8f86ab81739eed6556ac49dec581c72613",
+      "YNX_VIDEO_API_ROOT_BYTES=67",
+      "YNX_VIDEO_API_HEALTH_SHA256=b14684492820350504ee7a06247e0b4670416bff721678bb39645b6808972384",
+      "YNX_VIDEO_API_HEALTH_BYTES=278",
+      "YNX_VIDEO_API_VERSION_SHA256=dffdf161c67cec481eafc8601ca0087908adce8a6cf40920a24df357cb003fb8",
+      "YNX_VIDEO_API_VERSION_BYTES=152",
+      "YNX_VIDEO_CREATOR_ROOT_SHA256=b37f78205f2c5443b2103ee42e98d6ecde65238c107733088e63893a3c1de697",
+      "YNX_VIDEO_CREATOR_ROOT_BYTES=14088",
+      "YNX_VIDEO_CREATOR_MANIFEST_SHA256=5fd27ac55d9ea70b8e15aac0565324a9ce7b18706bd75cd5b430eaa4843de86f",
+      "YNX_VIDEO_CREATOR_MANIFEST_BYTES=2299",
+      "YNX_VIDEO_CREATOR_CATALOG_SHA256=4c86e3e1cdeac6d9c4570891d70bab4c3486c6a4429dd33fd1029f046ca9ecff",
+      "YNX_VIDEO_CREATOR_CATALOG_BYTES=14237",
+      "YNX_VIDEO_CADDY_SHA256=b606d1bdced436a984aed19981788f1a9471b4ccb7ad7f2c49b32015b729afa7",
+      "YNX_VIDEO_CADDY_FILE=/etc/caddy/ynx-chain.caddy",
+      "YNX_VIDEO_TAKEOVER_RECEIPT=/var/lib/ynx-release-evidence/video-viewer-wallet-controlled-takeover-225b11f3.receipt",
+      "YNX_VIDEO_BOOTSTRAP_SCRIPT=/var/tmp/ynx-video-runtime-bootstrap-f1e8ed4c.sh",
+      "YNX_VIDEO_TAKEOVER_LOCK=/run/lock/ynx-video-viewer-wallet-takeover.lock",
+      "YNX_VIDEO_VIEWER_ROOT=/opt/ynx-video-viewer-wallet",
+      "YNX_VIDEO_VIEWER_UNIT_PATH=/etc/systemd/system/ynx-video-viewer-wallet.service",
+      "YNX_VIDEO_PREDECESSOR_RELEASE_ID=ynx-video-predecessor-e5ce33550bbd8a4be09a55a6bb3dd73cd3cb8833",
+      "YNX_VIDEO_PREDECESSOR_CARRIER=/var/tmp/ynx-video-predecessor-e5ce335-runtime.tar.gz",
+      "YNX_VIDEO_PREDECESSOR_CARRIER_SHA256=6771deb82ccc62a9c14d62ed40e7bda961806ffe3c14681b9cf53ec27afef2df",
+      "YNX_VIDEO_PREDECESSOR_SOURCE_COMMIT=e5ce33550bbd8a4be09a55a6bb3dd73cd3cb8833",
+      "YNX_VIDEO_BOOTSTRAP_RECEIPT=/var/lib/ynx-release-evidence/video-viewer-wallet-bootstrap-225b11f3.receipt",
+      "YNX_VIDEO_UNIT_TEMPLATE=/var/tmp/ynx-video-viewer-wallet.service",
+      "YNX_VIDEO_UNIT_TEMPLATE_SHA256=bb08d1cdc657a98290c8b90d6b40fca0f896d9c2c055654abdb3859009df6527"
+    ],
+    "takeoverArgvTail": ["/bin/bash", "/var/tmp/ynx-video-runtime-controlled-takeover-225b11f3.sh", "takeover"],
+    "restoreArgvTail": ["/bin/bash", "/var/tmp/ynx-video-runtime-controlled-takeover-225b11f3.sh", "restore-legacy"]
+  },
+  "actualShellFixture": {
+    "successTakeoverAndRestore": true,
+    "failureStages": ["legacy-stop", "port-still-bound", "dedicated-bootstrap", "post-takeover-response"],
+    "everyPostStopFailureRestoresLegacySuccessor": true,
+    "successorPidMustDiffer": true,
+    "stableExeCwdCmdlineUnitSharedIdentityRequired": true,
+    "exactOldViewerBytesRequired": true,
+    "concurrencyLockRejectsSecondExecutorBeforeMutation": true,
+    "testCount": 6,
+    "testResult": "PASS_6_OF_6"
+  },
+  "requestedLease": {
+    "phase": "CONTROLLED_TAKEOVER_BOOTSTRAP_ONLY",
+    "owner": "video-deploy-owner",
+    "singleUse": true,
+    "nonReusable": true,
+    "executor": "release-control-plane",
+    "writablePaths": [
+      "/opt/ynx-video-viewer-wallet",
+      "/etc/systemd/system/ynx-video-viewer-wallet.service",
+      "/var/lib/ynx-release-evidence/video-viewer-wallet-controlled-takeover-225b11f3.receipt*",
+      "/var/lib/ynx-release-evidence/video-viewer-wallet-bootstrap-225b11f3.receipt",
+      "/run/lock/ynx-video-viewer-wallet-takeover.lock.d",
+      "/var/tmp/ynx-video-runtime-controlled-takeover-225b11f3.sh",
+      "/var/tmp/ynx-video-runtime-bootstrap-f1e8ed4c.sh",
+      "/var/tmp/ynx-video-viewer-wallet.service",
+      "/var/tmp/ynx-video-predecessor-e5ce335-runtime.tar.gz",
+      "/var/tmp/video-legacy-viewer-controlled-takeover-baseline.txt"
+    ],
+    "allowedLegacyOperations": ["systemctl stop ynx-video-viewer.service", "systemctl start ynx-video-viewer.service on failure or explicit bootstrap rollback"],
+    "forbidden": [
+      "editing, disabling, replacing or deleting /etc/systemd/system/ynx-video-viewer.service",
+      "editing /opt/ynx-video/current or any shared release",
+      "editing Caddy",
+      "mutating API 6493 or Creator 6495",
+      "candidate product deployment",
+      "account request, signature or transaction"
+    ],
+    "takeoverCommandCount": 1,
+    "restoreCommandCount": "AT_MOST_ONE_AFTER_SUCCESS_OR_AUTOMATIC_ON_FAILURE"
+  },
+  "verification": {
+    "videoCheck": "PASS_19_OF_19",
+    "controlledFixture": "PASS_6_OF_6",
+    "i18n": "PASS_12_LOCALES_22_KEYS",
+    "smoke": "PASS",
+    "bashSyntax": "PASS",
+    "json": "PASS",
+    "diffCheck": "PASS",
+    "productionMutationPerformed": false
+  },
+  "truth": {
+    "controlledTakeoverSourceReady": true,
+    "legacyBaselineFrozen": true,
+    "productionTakeoverExecuted": false,
+    "dedicatedViewerInstalled": false,
+    "candidateProductDeployed": false,
+    "sourceBoundPublic": false,
+    "productComplete": false
+  },
+  "singleExecutableBlocker": "Central must independently review this exact source/evidence, wait for Heavy availability, freshly re-read every legacy/API/Creator/Caddy binding, stage the exact objects, and issue one Video-only controlled-takeover bootstrap lease."
+}

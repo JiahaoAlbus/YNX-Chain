@@ -1,0 +1,16 @@
+load_state=loaded
+active_state=active
+sub_state=running
+fragment_path=/etc/systemd/system/ynx-video-viewer.service
+exec_start=/usr/bin/node /opt/ynx-video/current/apps/video/server.mjs
+main_pid=789902
+nrestarts=0
+unit_file_state=enabled
+pid_exe=/usr/bin/node
+pid_cwd=/
+pid_cmdline_sha256=b4dd391073117e4585a51fb98bb58698843ccc65fbe43854f4c1a27e7aca370f
+pid_starttime=1008860468
+legacy_unit_tuple=64770:161341:0:0:600:1:337:regular file
+legacy_unit_sha256=c0518f813134f2879382cc3f7c999f8abf9b4660c513bc2651487a6fe9ed29c9
+shared_current_target=/opt/ynx-video/releases/p0205-creator-studio-0e1a53c5
+shared_current_lstat=64770:1324617:0:0:777:1:53:symbolic link
