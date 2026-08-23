@@ -66,10 +66,10 @@
     "requireRootAbsent": false,
     "mode": "ATOMIC_UPGRADE_EXISTING_EXACT_PLACEMENT",
     "transport": "apps/creator-studio/release-control-plane-transport.mjs",
-    "transportBytes": 27291,
-    "transportSha256": "9898c4c512a055f601326251add830b051c0911c6b3f98da36b856648f879cf3",
-    "canonicalCarrierBytes": 372040,
-    "canonicalCarrierSha256": "10db6d8b4137210ce11fd7315977e6820d175bb1f1a718c3d47df4fba078a287",
+    "transportBytes": 27380,
+    "transportSha256": "e00486fb3503cd005ad879a1e0357482f37b9f04d80f313483266be5af5f75f1",
+    "canonicalCarrierBytes": 377820,
+    "canonicalCarrierSha256": "d4433a49d1bab0343c9791187fb573556151d0147db14b0d340c82c7cdd88947",
     "stdinExclusivelyCarriesCanonicalCarrier": true,
     "relativeLayoutMatchesFrozenExecutor": true,
     "controlParent": "/opt/ynx-release-control-plane",
@@ -105,8 +105,8 @@
     "objectsInExactOrder": [
       {
         "name": "release-bootstrap-executor.mjs",
-        "bytes": 17345,
-        "sha256": "2e1655dd444c0155a159be6c72d771302d99ccd9cb97616770990d00dc051de0",
+        "bytes": 21680,
+        "sha256": "ce4c42affd30687a8e725a32c07cf381581088c8b816262cc0ac73e1e906155c",
         "mode": 448
       },
       {
@@ -188,7 +188,16 @@
       ,
       "resolvedReleaseCwdPositiveFixturePassed": true,
       "substitutedCurrentSymlinkTargetRejected": true,
-      "currentSymlinkTargetAndDereferencedReleaseInodeSeparatelyBound": true
+      "currentSymlinkTargetAndDereferencedReleaseInodeSeparatelyBound": true,
+      "terminalPredicateReceiptWrittenBeforeCleanup": true,
+      "terminalCmdlineActualExpectedAndDigestReceipted": true,
+      "terminalResolvedCwdPathAndTupleReceipted": true,
+      "terminalCurrentLstatTargetAndDereferencedTupleReceipted": true,
+      "terminalListenerPidReceipted": true,
+      "terminalRootManifestCatalogStatusBytesShaReceipted": true,
+      "terminalSourceCommitAndTreeReceipted": true,
+      "eachTerminalPredicateForcedFalseFixtureIdentifiesExactField": true,
+      "transportPropagatesExecutorStderrReceiptBeforeOldPlacementRestore": true
     },
     "exactSudoArgvShape": [
       "/usr/bin/sudo",
@@ -224,8 +233,8 @@
     ]
   },
   "bootstrapExecutor": "apps/creator-studio/release-bootstrap-executor.mjs",
-  "bootstrapExecutorBytes": 17345,
-  "bootstrapExecutorSha256": "2e1655dd444c0155a159be6c72d771302d99ccd9cb97616770990d00dc051de0",
+  "bootstrapExecutorBytes": 21680,
+  "bootstrapExecutorSha256": "ce4c42affd30687a8e725a32c07cf381581088c8b816262cc0ac73e1e906155c",
   "nodeCompatibleUnitHardening": {
     "memoryDenyWriteExecute": false,
     "removedBecauseDirectP0241SystemdJournalProvedNodeV8ExecutableMemoryCoreDump": true,
