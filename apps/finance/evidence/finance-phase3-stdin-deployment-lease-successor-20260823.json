@@ -6,13 +6,13 @@
     "ownerRequestCommit": "c560497db9c78a1106ab7f0d52d9555652e76cc4",
     "ownerRequestTree": "e8251f0c0a88b6f60d52d5eb4463dd7c5ed9d0bb",
     "requestSha256": "18130afa5aeabafa814e0148eb678a3626c2efabb1efd30915c46fa276d5525b",
-    "centralDecision": "NO_GO_FINANCE_PHASE3_MANUAL_ROLLBACK_PRESENT_STATE_UNSUPPORTED",
-    "correction": "Split deploy and manual rollback modes. Deploy requires absent lease-owned paths. A separately Central-signed manual-rollback lease must bind the successful deploy parent/container/release/backup/service receipts, prove the candidate is still current, then restore the old runtime and remove only the exact release inventory and exact empty container."
+    "centralDecision": "NO_GO_FINANCE_PHASE3_MANUAL_ROLLBACK_LEASE_TRANSPORT_AND_REMOTE_PLACEMENT_UNFROZEN",
+    "correction": "Add a reviewed stdin/sudo manual-rollback lease bootstrap that binds parent/executor identity, exact lease bytes/SHA/mode and absent target paths, installs atomically, preserves foreign or substituted objects, and invokes rollback exactly once without logging the lease body."
   },
   "owner": {
     "branch": "codex/p0-finance-wallet-connectivity-20260820",
-    "implementationCommit": "8ac6a2e13944892d6f054c05be95800e839234dd",
-    "implementationTree": "17c57217b77852fad3e9b561d088039238e47873",
+    "implementationCommit": "9fd55d90e092f3ba14decfcc79009c91b62c9e25",
+    "implementationTree": "433e449335f99180e7abc2d4a1b757d030bfe831",
     "rule": "This successor evidence commit must be a non-self-referential child of the reviewed implementation."
   },
   "acceptedPrerequisite": {
@@ -60,6 +60,13 @@
     "productionMutation": false
   },
   "commandObjects": {
+    "manualRollbackBootstrap": {
+      "path": "apps/finance/scripts/finance-phase3-stdin-manual-rollback-bootstrap.sh",
+      "blob": "64d71d3494da2fc07b54750c85f8c8a843a122e0",
+      "bytes": 2780,
+      "sha256": "e5746bf8331839caab24e4e92682af4069fc19429e9b89b03834a310b1059a6c",
+      "role": "atomic stdin placement of one separately signed manual-rollback lease followed by exactly one retained-executor rollback invocation"
+    },
     "bootstrap": {
       "path": "apps/finance/scripts/finance-phase3-stdin-deployment-bootstrap.sh",
       "blob": "1e606b976f16d54bc2db14beecdba7d673d2848d",
@@ -69,11 +76,11 @@
     },
     "bootstrapFixture": {
       "path": "apps/finance/scripts/test-finance-phase3-stdin-deployment-bootstrap-fixture.mjs",
-      "blob": "80005424dc6c8c91c5ced74c9488157c4d4aeca8",
-      "bytes": 3916,
-      "sha256": "54aa6a9fe92ed964309ebb46c1a755cf49ee18365dcd4ee98ea3f53b739cb5fe",
+      "blob": "4faac7963c218cac8dcf12eb29cebe6c066b2c51",
+      "bytes": 9760,
+      "sha256": "f0f77c636977e98daaeaf386e87ceb62c1ffc7f23f970bc874e57d25366ba872",
       "ownerRerun": "PASS",
-      "coverage": ["success exact placement and modes", "malformed stdin cleanup", "foreign carrier refusal", "symlink parent preservation", "deploy failure retains exact pair and frozen manual rollback succeeds"]
+      "coverage": ["success exact placement and modes", "malformed stdin cleanup", "foreign carrier refusal", "symlink parent preservation", "separate stdin rollback-lease placement and one rollback invocation", "malformed rollback body cleanup", "foreign final/pending preservation", "parent and post-rename target substitution preservation"]
     },
     "productionExecutor": {
       "path": "apps/finance/scripts/finance-production-rollback-first.sh",
@@ -86,26 +93,27 @@
     },
     "productionCommandFixture": {
       "path": "apps/finance/scripts/test-finance-production-command-object.mjs",
-      "blob": "a7d0ce6dc5d421e8aefaa92e546200a52c7e00f2",
-      "bytes": 1802,
-      "sha256": "44bea6d394a7630c91937b32ed3196c242bb6d3d9a480b99313a54943cba1c8f",
+      "blob": "f9e0d6734488c51d7cf395f5b648231e3f790efc",
+      "bytes": 2404,
+      "sha256": "c8a6000d89cfbaa543bbd698e6d06e680d05ba3f0cda306e9962aab69ffba388",
       "ownerRerun": "PASS"
     },
     "productionActualShellFixture": {
       "path": "apps/finance/scripts/test-finance-production-fixture.mjs",
-      "blob": "cf76e6436f6d93b848cf20f9e7633569d829abf2",
-      "bytes": 35162,
-      "sha256": "319ab3c64d9741e9c4e4bee8202d37fccd212a7423e686939b31c37ce5c30d08",
+      "blob": "4a66dd694579d45314da49299a60e191858b41b9",
+      "bytes": 36487,
+      "sha256": "63ca7a3b9d736539415f436f1296424781e419b2249a91eb833ea96899b5ad80",
       "ownerRerun": "PASS",
       "crossStageCoverage": "exact Phase3 stdin bootstrap invokes the reviewed production executor against the P0-236-style fixed carrier while a distinct new Phase3 lease ID owns stage, backup and a release container that starts absent",
-      "releaseContainerCoverage": ["positive no-replace creation with path/owner/mode/tuple receipt", "missing release parent fails before creation", "foreign non-empty and symlink creation are preserved and fail closed", "pre-move failure removes only the exact empty created container", "normal post-move verifier failure removes exact candidate release inventory then exact empty container", "post-move release substitution restores old current and preserves the foreign object", "real deploy success followed by a separate signed manual-rollback invocation restores old current/env/state/service and deletes only the exact release inventory plus exact empty container", "manual rollback foreign inventory and release substitution fail before the first write and preserve the candidate current plus foreign object"]
+      "releaseContainerCoverage": ["positive no-replace creation with path/owner/mode/tuple receipt", "missing release parent fails before creation", "foreign non-empty and symlink creation are preserved and fail closed", "pre-move failure removes only the exact empty created container", "normal post-move verifier failure removes exact candidate release inventory then exact empty container", "post-move release substitution restores old current and preserves the foreign object", "real deploy success then external-gate boundary then stdin rollback-lease transport and one real rollback restores old runtime and deletes exact release/container", "manual rollback foreign inventory and release substitution fail before the first write and preserve foreign objects"]
     }
   },
   "framingContract": {
     "stdin": "the raw bytes of exactly one Central-signed non-secret FINANCE_ROLLBACK_FIRST_PRODUCTION_DEPLOYMENT JSON object; no length prefix, suffix or second frame",
     "bootstrapTransport": "base64 of the exact reviewed bootstrap is argv[1] to the outer sudo bash decoder",
     "executorTransport": "base64 of the exact reviewed production executor is bootstrap argument 12",
-    "leaseBytesAndSha": "the final two bootstrap arguments bind exact raw stdin bytes and SHA-256",
+    "leaseBytesAndSha": "the final two deployment-bootstrap arguments bind exact raw stdin bytes and SHA-256",
+    "manualRollbackStdin": "exactly one separately Central-signed FINANCE_ROLLBACK_FIRST_PRODUCTION_MANUAL_ROLLBACK JSON object; no body logging, retry, second frame or reused deployment lease",
     "secretValuesPresent": false
   },
   "remotePlacementContract": {
@@ -128,7 +136,7 @@
     "primaryAttemptLimit": 1,
     "retryAllowed": false,
     "failureBehavior": "Once deploy begins the bootstrap disables placement cleanup and retains the exact executor/lease pair. The production executor owns first-failure rollback through its existing EXIT trap.",
-    "frozenManualRollback": "<exact placed executor> rollback <separately Central-signed manual-rollback lease>",
+    "frozenManualRollback": "<reviewed manual-rollback stdin bootstrap> <signed parent/executor/bytes/SHA/mode arguments>, with exact rollback lease bytes on stdin; it invokes the retained executor rollback exactly once",
     "manualRollbackLimit": 1,
     "manualRollbackCondition": "only after deployment success and a later external/browser verification failure; Central must sign a wholly new FINANCE_ROLLBACK_FIRST_PRODUCTION_MANUAL_ROLLBACK lease from the immutable success receipt; never reuse or mutate the deployment lease",
     "successReceipts": ["deploy parent path/tuple", "executor path/tuple/bytes/SHA", "lease path/tuple/bytes/SHA", "lease-owned release-container stable identity/empty/present tuples", "moved candidate-release path/full tuple/tree-inventory SHA-256", "stage/backup/release parent tuples, backup tuple and candidate service PID/NRestarts", "literal rollback argv0/argv1/argv2"]
@@ -158,7 +166,7 @@
     "failure cleanup removes the moved candidate only after exact tuple/inventory recheck and the container only after exact tuple plus empty recheck; substitutions and foreign objects are preserved",
     "exact bootstrap and executor blobs/bytes/SHA plus their base64 derivations",
     "complete literal outer SSH argv, decoder command, all 16 bootstrap arguments and exact stdin path",
-    "one primary SSH/deploy attempt; any later manual rollback requires a wholly new Central-signed rollback lease binding the successful deployment receipt and permits one rollback invocation only; no retry",
+    "one primary SSH/deploy attempt; any later manual rollback requires a wholly new Central-signed rollback lease, one reviewed stdin/sudo placement command and one rollback invocation only; no retry",
     "post-read and terminal release rules for success, restored failure, or recovery blocker"
   ],
   "truth": {
@@ -168,6 +176,8 @@
     "releaseContainerLifecycleFixturePassed": true,
     "separateSignedManualRollbackFixturePassed": true,
     "manualRollbackForeignAndSubstitutionPrewriteGuardsPassed": true,
+    "manualRollbackLeaseStdinAtomicPlacementImplemented": true,
+    "manualRollbackLeaseTransportFixturePassed": true,
     "phase3LeaseIssued": false,
     "productionSsh": false,
     "deployed": false,
