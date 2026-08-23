@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "finance-p0303-zero-write-request-nogo-review@1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-303",
+  "status": "NO_GO_FINANCE_P0303_HTTP_WHOLE_BODY_RECEIPT_TRAILING_NEWLINE_STRIPPED",
+  "reviewedAt": "2026-08-23T21:24:00Z",
+  "leaseIssued": false,
+  "sshInspectionExecuted": false,
+  "productionMutation": false,
+  "source": {
+    "branch": "codex/p0-finance-p0303-p0302-zero-write-inspection-20260824",
+    "implementationCommit": "7df870c26d6c7ebd37fc85b8e78d2e4c3264c11d",
+    "implementationTree": "22b13b3352c0cee52d0967f7c4d61558860f70c2",
+    "requestCommit": "e85dba3cb0b5036469a9bbca26489adf8511b73e",
+    "requestTree": "967a3e745ba2b9121e261a6fc3b1fe25e0b42838",
+    "requestBlob": "134401a39aca5981ac78da2ccc859028c3c0931f",
+    "requestBytes": 7762,
+    "requestSha256": "32689847f60717045db3e824b7b5402a34cb490cad8de02dccf2e154d075f4d4",
+    "inspectionBlob": "e9df370f18a1ace7131132b2baa006207512e932",
+    "inspectionBytes": 5059,
+    "inspectionSha256": "ab128f3046db0dd4c70b2a32175b2ea019652327366a7c492d7578d115f43070"
+  },
+  "passingReview": {
+    "remoteExactClean": true,
+    "bashSyntax": true,
+    "staticNoMutationTest": true,
+    "p0302TerminalBoundaryExact": true,
+    "heavyIdle": true
+  },
+  "blocker": {
+    "code": "P0303_HTTP_WHOLE_BODY_RECEIPT_TRAILING_NEWLINE_STRIPPED",
+    "location": "apps/finance/scripts/finance-p0303-p0302-remote-state-readonly-inspection.sh:http_receipt",
+    "cause": "response=$(curl ...) uses shell command substitution, which strips trailing newline bytes before bytes and SHA-256 are calculated",
+    "directPrecheck": "All six current loopback/public root, health and version bodies end in byte 0x0a",
+    "impact": "Every emitted HTTP bytes and SHA-256 receipt is one byte short and does not represent the whole response body required by the signed request"
+  },
+  "directExamples": {
+    "root": {
+      "actual": "11427:c1fc45eecd7f88de6fc3e049d15161b8d4e9878e31f20c977fc52b383a18ed53",
+      "script": "11426:c3088978e2739a32dddc093b3f2539d4f17ae8c5a461414ec3694bea9509e256"
+    },
+    "health": {
+      "actual": "485:d1e97a4314acd1ecccf94629d15bd598cb58ff78136b3622ac26d583a82e45c1",
+      "script": "484:e0af4560fc38f8e4b5284f916610abf113a05fdff6f383af974728b2b8ac6241"
+    },
+    "version": {
+      "actual": "130:39789776da47e60b7a7df845789e02ebba16707ad8951eb6f27c84c1b40bb226",
+      "script": "129:617136ac6d65a5e8445581e9e6dffdabf6c7a10510a65647ccf0272ad8ee6269"
+    }
+  },
+  "requiredSuccessor": "Use a byte-preserving streaming receipt implementation with no remote temporary files, rerun the no-mutation and exact trailing-newline fixtures, and submit a wholly-new remote-exact request. P0-303 is not reusable.",
+  "nextAuthority": "NONE_UNTIL_CORRECTED_WHOLE_BODY_RECEIPT_SUCCESSOR"
+}
