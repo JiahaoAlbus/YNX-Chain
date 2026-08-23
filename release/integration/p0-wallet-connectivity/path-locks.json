@@ -2258,10 +2258,10 @@
       "worktree": "/private/tmp/ynx-calendar-control-plane.y8FFQt/repo",
       "taskId": "P0-286",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE_SINGLE_USE",
+      "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0286_P0281_TEMP_CLEANUP_ZERO_WRITE_VERIFIED",
       "acquiredAt": "2026-08-23T17:44:00Z",
       "expiresAt": "2026-08-23T18:14:00Z",
-      "releasedAt": null,
+      "releasedAt": "2026-08-23T17:47:52Z",
       "sourceCommit": "4d598916416055554aff30fb2bde65194efb2b41",
       "sourceTree": "9d2c6fc67b3c15991b26b059c3222764cfe26ca5",
       "evidenceCommit": "4d598916416055554aff30fb2bde65194efb2b41",
@@ -2273,7 +2273,11 @@
         "environment values and HTTP bodies must not be output",
         "no cleanup, deploy, rollback, lifecycle, SCP, symlink, stage, backup, release or public mutation",
         "P0-285 is consumed and nonreusable; cleanupComplete remains false until direct P0-286 success",
-        "P0-282 remains queued and unauthorized"
+        "the single zero-write verification proved both P0-281 temporary controls absent and retained parent empty",
+        "old current, env metadata, absent state, unit, Caddy, service PID/NRestarts and loopback/public metadata remained exact",
+        "verificationComplete=true, cleanupComplete=true and mutationCount=0 with no environment values output",
+        "P0-286 is consumed and nonreusable; Heavy and read-only locks are released",
+        "P0-282 becomes eligible only for a separate independent review and remains unauthorized here"
       ]
     }
   ]
