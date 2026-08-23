@@ -427,25 +427,25 @@
     }
   ],
   "heavy": {
-    "owner": "finance-release-control-plane-readonly-inspection",
-    "taskId": "P0-252",
-    "status": "ACTIVE_SINGLE_USE",
+    "owner": null,
+    "taskId": null,
+    "status": "IDLE",
     "acquiredAt": "2026-08-23T10:20:50Z",
     "expiresAt": "2026-08-23T10:50:50Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-23T10:28:42Z",
     "sourceCommit": "bf3ec44e31b23f15a6c30b578447abc736667c6e",
     "evidenceCommit": "abca737ec80c8edad17083fafc2229c0263d069b",
     "runtimeHost": "43.153.202.237",
     "currentRuntime": "YNX_FINANCE_3B2383F5C18A_CONFIRMED_OLD_RUNTIME",
-    "candidateRuntime": "UNKNOWN_AFTER_P0251_TRANSPORT_FAILURE_READONLY_INSPECTION_REQUIRED",
+    "candidateRuntime": "P0251_PLACEMENT_ABSENT_P0247_RESIDUES_RETAINED_OLD_RUNTIME_HEALTHY",
     "artifactSha256": "abaa974ee8dfdd353b25680bc1489ab457867f0838fc5d4e0fa141fff2286393",
     "productionMutationAllowed": false,
     "singleUse": true,
     "reusable": false,
     "previousOwner": "finance-release-control-plane-cleanup-only",
     "previousTaskId": "P0-251",
-    "reviewDecision": "GO_FINANCE_P0252_REMOTE_STATE_ZERO_WRITE_READONLY_INSPECTION_SINGLE_USE",
-    "reason": "P0-251 is released and nonreusable. The exact P0-252 command object, request, fixture, literal SSH argv, stdin transport and secret-safe zero-write output contract independently match; one read-only SSH inspection is authorized and cleanup/deployment remain forbidden."
+    "reviewDecision": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0252_REMOTE_STATE_ZERO_WRITE_INSPECTION",
+    "reason": "The sole authorized read-only SSH completed with exact zero-write receipts. P0-251 placement objects are absent, P0-247 residues remain unchanged, and the old Finance runtime is healthy. P0-252 is consumed and nonreusable; any cleanup requires a wholly-new identity-bound lease."
   },
   "wave": {
     "id": "B-financial-apps-quant",
