@@ -21,11 +21,12 @@ function setup() {
   const leaseBytes = Buffer.from(JSON.stringify(payload) + '\n');
   const frame = (name, data, mode) => `${name}\t${data.length}\t${digest(data)}\t${mode}\t${data.toString('base64')}\n`;
   const carrier = (a = executorBytes, b = leaseBytes, end = 'END\n') => Buffer.from(frame('executor', a, '700') + frame('signedLease', b, '600') + end);
-  const runner = join(root, 'bootstrap.sh'); writeFileSync(runner, readFileSync(join(repo, 'apps/finance/scripts/finance-p0275-cleanup-stdin-bootstrap.sh'), 'utf8').replaceAll('/tmp/ynx-finance', join(temp, 'ynx-finance')).replaceAll('stat -Lc', `${gstat} -Lc`).replaceAll('rm --', `${grm} --`).replaceAll('base64 -d', 'base64 -D')); chmodSync(runner, 0o700);
+  const bootstrap = readFileSync(join(repo, 'apps/finance/scripts/finance-p0275-cleanup-stdin-bootstrap.sh'), 'utf8').replaceAll('/tmp/ynx-finance', join(temp, 'ynx-finance')).replaceAll('stat -Lc', `${gstat} -Lc`).replaceAll('rm --', `${grm} --`).replaceAll('base64 -d', 'base64 -D');
+  const remoteLauncher = 'bootstrap_source=$(printf "%s" "$1" | base64 -D) || exit 65; shift; exec /bin/bash -c "$bootstrap_source" p0275 "$@"';
   const args = [id, executor, String(executorBytes.length), digest(executorBytes), lease, String(leaseBytes.length), digest(leaseBytes)];
-  return { root, parent, targetExecutor, targetLease, executor, lease, executorBytes, leaseBytes, carrier, runner, args };
+  return { root, parent, targetExecutor, targetLease, executor, lease, executorBytes, leaseBytes, carrier, bootstrapB64: Buffer.from(bootstrap).toString('base64'), remoteLauncher, args };
 }
-const run = (f, input) => spawnSync('/bin/bash', [...(process.env.FINANCE_TRACE ? ['-x'] : []), f.runner, ...f.args], { input, env: { ...process.env, FINANCE_P0272_CONTROL_CLEANUP_TEST_ROOT: '1' }, encoding: 'utf8' });
+const run = (f, input) => spawnSync('/bin/bash', [...(process.env.FINANCE_TRACE ? ['-x'] : []), '-c', f.remoteLauncher, 'p0275', f.bootstrapB64, ...f.args], { input, env: { ...process.env, FINANCE_P0272_CONTROL_CLEANUP_TEST_ROOT: '1' }, encoding: 'utf8' });
 const gone = f => { assert.equal(existsSync(f.executor), false, 'temporary executor finalized'); assert.equal(existsSync(f.lease), false, 'temporary signed lease finalized'); };
 const clean = f => rmSync(f.root, { recursive: true, force: true });
 { const f = setup(), before = stable(f.parent), r = run(f, f.carrier()); assert.equal(r.status, 0, `${r.stdout}${r.stderr}`); assert.match(r.stdout, /cleanup=P0272_CONTROL_FILES_REMOVED/); assert.equal(existsSync(f.targetExecutor), false); assert.equal(existsSync(f.targetLease), false); assert.equal(stable(f.parent), before); gone(f); clean(f); }
