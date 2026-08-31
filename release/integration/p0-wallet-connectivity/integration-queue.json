@@ -7404,10 +7404,11 @@
     {
       "taskId": "P0-303",
       "owner": "integration,financial-apps",
-      "status": "LEASED_ACTIVE_SINGLE_USE_FINANCE_P0303_PURE_STREAMING_ZERO_WRITE_INSPECTION",
+      "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0303_P0302_REMOTE_STATE_ZERO_WRITE_INSPECTION",
       "paths": [
         "release/integration/p0-wallet-connectivity/execution/p0-303-finance-p0302-remote-state-zero-write-inspection-single-use-lease-20260831.json",
-        "release/integration/p0-wallet-connectivity/execution/objects/p0-303-finance-p0302-remote-state-zero-write-inspection.sh"
+        "release/integration/p0-wallet-connectivity/execution/objects/p0-303-finance-p0302-remote-state-zero-write-inspection.sh",
+        "release/integration/p0-wallet-connectivity/execution/objects/p0-303-finance-p0302-remote-state-zero-write-terminal-evidence-20260831.json"
       ],
       "dependencies": [
         "P0-302"
@@ -7415,10 +7416,10 @@
       "requestCommit": "9742166ce7cea2b62743b3e6aa5a5ef46a106409",
       "requestBlob": "884ac150d8f901aa3c8f576b6c1a76ae3b28ca1b",
       "executionLeaseIssued": true,
-      "sshInspectionExecuted": false,
+      "sshInspectionExecuted": true,
       "productionMutation": false,
       "p0302Reusable": false,
-      "nextAction": "Execute the exact unexpired P0-303 lease once, with the reviewed object as stdin and no retry; return direct terminal evidence and atomically release Heavy."
+      "nextAction": "P0-303 is consumed and nonreusable. P0-302 remote state is known, no deployment residue exists and the old runtime is exact. A future RELEASE_MATERIALIZE ownership-fence correction requires a wholly-new source request and lease; no deployment authority is inferred."
     }
   ]
 }

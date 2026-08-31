@@ -5,9 +5,10 @@
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-p0302-state-readonly-p0303-20260831T015927Z",
   "owner": "finance-release-control-plane-readonly-inspection",
   "executor": "finance-release-control-plane-readonly-inspection",
-  "status": "ACTIVE_SINGLE_USE",
+  "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0303_P0302_REMOTE_STATE_ZERO_WRITE_INSPECTION",
   "issuedAt": "2026-08-31T01:59:27Z",
   "expiresAt": "2026-08-31T02:29:27Z",
+  "releasedAt": "2026-08-31T02:04:26Z",
   "singleUse": true,
   "reusable": false,
   "productionMutationAllowed": false,
@@ -116,6 +117,14 @@
     "failure": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0303_ZERO_WRITE_INSPECTION",
     "releaseHeavyAndAllLocksOnTerminal": true,
     "noDeploymentSuccessInference": true,
-    "p0302RemainsNonreusable": true
+    "p0302RemainsNonreusable": true,
+    "terminalEvidenceAccepted": true,
+    "terminalEvidencePath": "release/integration/p0-wallet-connectivity/execution/objects/p0-303-finance-p0302-remote-state-zero-write-terminal-evidence-20260831.json",
+    "stdoutBytes": 3990,
+    "stdoutSha256": "d90759e066f1fde8c39dfe1265937f477542113c7b3d6328322a38f36bf7f976",
+    "stderrBytes": 0,
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "remoteExitStatus": 0,
+    "mutationCount": 0
   }
 }
