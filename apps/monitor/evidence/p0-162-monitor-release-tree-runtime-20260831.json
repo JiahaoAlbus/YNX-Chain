@@ -1,0 +1,16 @@
+{
+  "schemaVersion": "ynx.monitor.release-tree-runtime.v1",
+  "observedAt": "2026-08-31T09:04:48Z",
+  "owner": "explorer-monitor",
+  "candidate": {"sourceCommit": "a3292a2b6d30409caf7db66b81c47e8d09ad76f1", "release": "ynx-explorer-monitor-a3292a2b6d30", "artifactSha256": "706e4aef26c8c7d0799242c26aa86e88717d4733d9d17322b764822ca9dcadca"},
+  "runner": {"kind": "isolated local extracted release tree", "node": "v26.7.0", "network": "loopback only", "production": false, "dependencies": "npm ci --ignore-scripts --omit=dev from the frozen package-lock"},
+  "startupSafety": {"withoutUsersConfiguration": "refused startup with YNX_MONITOR_USERS required unless explicit local YNX_MONITOR_DEV_USERS=1", "productionInference": "false"},
+  "configuredLocalRun": {
+    "identity": {"commit": "a3292a2b6d30409caf7db66b81c47e8d09ad76f1", "release": "ynx-explorer-monitor-a3292a2b6d30", "versionSha256": "2b0ab558783a61007a332ffaf0ae0f5fdd025c62eec4f87d9c05572a896c430c"},
+    "health": {"httpStatus": 200, "sha256": "3a989f19854556eca62a41548c7ae017e64ed6aed788801e44f2549462e15231"},
+    "status": {"httpStatus": 503, "classification": "public_status_unavailable", "sha256": "33cf78cf16271203c1f3051137fdf330ae321176554c6d209b1ea35d7ba509a6", "failClosed": true},
+    "connectivity": {"httpStatus": 200, "contentType": "application/json; charset=utf-8", "cacheControl": "no-store", "schemaVersion": "ynx.monitor.p0-connectivity.v1", "status": "not_configured", "sha256": "28545735906a07d2602a85a785cea6fd71e59b2390c914b6eb7076cebc270ada", "htmlFallback": false}
+  },
+  "states": {"implementedLocal": true, "testedLocal": true, "integratedCentral": false, "deployedStaging": false, "deployedPublic": false, "downloadHosted": false, "productionSigned": false, "publicVerified": false, "computerControlVerified": false},
+  "nextGate": "A Central lease must bind a signed real public-status source and approved P0 connectivity probe configuration before official-domain deployment/readback."
+}
