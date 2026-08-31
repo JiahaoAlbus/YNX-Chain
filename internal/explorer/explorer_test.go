@@ -626,6 +626,17 @@ func TestExplorerProvidesCompleteLocaleAndRTLScaffolding(t *testing.T) {
 			t.Fatalf("Explorer locale dictionary missing locale %q", locale)
 		}
 	}
+	messagesStart := strings.Index(indexHTML, "const messages = {")
+	messagesEnd := strings.Index(indexHTML, "const supplementalKeys")
+	if messagesStart < 0 || messagesEnd <= messagesStart {
+		t.Fatal("Explorer locale catalog boundary is missing")
+	}
+	if strings.Contains(indexHTML[messagesStart:messagesEnd], "accountLeaderboardCopy:") {
+		t.Fatal("Explorer locale catalog must not retain a second, potentially stale leaderboard-coverage claim")
+	}
+	if !strings.Contains(indexHTML, "const observedLeaderboardText") {
+		t.Fatal("Explorer must use the single observed-participant leaderboard coverage catalog")
+	}
 }
 
 func TestExplorerLocalizesWalletChooserAndSuppressesProviderErrors(t *testing.T) {
