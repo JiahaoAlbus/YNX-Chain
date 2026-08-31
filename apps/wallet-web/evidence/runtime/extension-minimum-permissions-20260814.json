@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "sourceCommit": "60a756991fbe07311c9d2b0dbade8a9d670dab04",
-  "generatedAt": "2026-08-22T04:55:45.102Z",
+  "sourceCommit": "2e2158866348a56bbb704d153af00a6589306e28",
+  "generatedAt": "2026-08-31T08:32:53.979Z",
   "gateClass": "exact built-artifact manifest and external URL inspection; not a browser installation",
   "externalUrlClasses": {
     "rpcAuthority": "https://evm.ynxweb4.com",
@@ -16,18 +16,18 @@
   "artifacts": [
     {
       "name": "ynx-wallet-chrome-edge-0.1.0.zip",
-      "bytes": 468402,
-      "sha256": "769bc63f93b5e85cfac6b85ed44002a037202ccabe8af013009ab989c566bfd6",
+      "bytes": 469295,
+      "sha256": "40a15a6dc43b9f1db28f8187114ba805ccbea8df6c6f9b63737b3e080f602439",
       "permissions": [
         "activeTab",
         "scripting",
         "storage"
       ],
       "hostPermissions": [
-        "https://evm.ynxweb4.com/*"
+        "https://*/*"
       ],
       "csp": "script-src 'self'; object-src 'self'; connect-src https://evm.ynxweb4.com",
-      "persistentContentScripts": false,
+      "persistentContentScripts": true,
       "webAccessibleProvider": false,
       "externalUrls": [
         "https://evm.ynxweb4.com",
@@ -46,18 +46,18 @@
     },
     {
       "name": "ynx-wallet-firefox-0.1.0.zip",
-      "bytes": 468441,
-      "sha256": "3eba0cacacded62932670f36ca5f2ea852680cda7cf696fce4515b7e1d1509c6",
+      "bytes": 469329,
+      "sha256": "2bdcedada71b9980be525b95494bc396590e5845e85f0dd3cbe80b03062cc3b9",
       "permissions": [
         "activeTab",
         "scripting",
         "storage"
       ],
       "hostPermissions": [
-        "https://evm.ynxweb4.com/*"
+        "https://*/*"
       ],
       "csp": "script-src 'self'; object-src 'self'; connect-src https://evm.ynxweb4.com",
-      "persistentContentScripts": false,
+      "persistentContentScripts": true,
       "webAccessibleProvider": false,
       "externalUrls": [
         "https://evm.ynxweb4.com",
