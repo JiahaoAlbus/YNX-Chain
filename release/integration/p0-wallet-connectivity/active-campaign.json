@@ -427,25 +427,25 @@
     }
   ],
   "heavy": {
-    "owner": "creator-studio-emergency-readonly-inspector",
-    "taskId": "P0-306",
-    "status": "ACTIVE_EMERGENCY_ZERO_WRITE_STATE_FREEZE",
+    "owner": "creator-studio-deploy-owner",
+    "taskId": "P0-305",
+    "status": "EMERGENCY_BLOCKED_CREATOR_OLD_RUNTIME_ACTIVE_EXACT_P0305_RESIDUES_RETAINED_CLEANUP_ONLY_REQUIRED",
     "acquiredAt": "2026-08-31T03:12:54Z",
-    "expiresAt": "2026-08-31T03:32:54Z",
+    "expiresAt": null,
     "releasedAt": null,
     "sourceCommit": "cce7e4016a6f1fd9413799d42c06578ed7707357",
     "evidenceCommit": "cce7e4016a6f1fd9413799d42c06578ed7707357",
     "runtimeHost": "43.153.202.237",
-    "currentRuntime": "CREATOR_0E1A53C5_SOURCE_BOUND_PUBLIC_EXACT",
-    "candidateRuntime": "CREATOR_3F97A13D_NOT_YET_EXECUTED",
+    "currentRuntime": "CREATOR_0E1A53C5_SOURCE_BOUND_PUBLIC_EXACT_PID2747844",
+    "candidateRuntime": "CREATOR_3F97A13D_INACTIVE_RESIDUES_RETAINED",
     "artifactSha256": "947d0055b4080f09870fb6c00c491339be72288fe3b4f94b65f167031b413850",
     "productionMutationAllowed": false,
     "singleUse": true,
     "reusable": false,
     "previousOwner": "finance-release-control-plane-readonly-inspection",
     "previousTaskId": "P0-303",
-    "reviewDecision": "GO_CREATOR_P0306_EMERGENCY_ZERO_WRITE_STATE_FREEZE_ONLY",
-    "reason": "P0-305 remains emergency-blocked after failed automatic rollback. Exactly one no-temp, zero-write state inspection is authorized to classify control, release, current, receipt, service, listener and public state before any recovery decision."
+    "reviewDecision": "P0306_ZERO_WRITE_PROVED_OLD_RUNTIME_ACTIVE_EXACT_P0305_RESIDUES_RETAINED",
+    "reason": "One read-only SSH exited zero with mutationCount0. Current and all old public hashes are exact, Creator PID2747844 NRestarts0 is active, API and Viewer are unchanged. Exact candidate release, control root and valid FORWARD_SWITCHED_AWAITING_TERMINAL receipt remain. Retain Heavy; only a wholly-new identity-bound residue-cleanup-only recovery may follow."
   },
   "wave": {
     "id": "B-financial-apps-quant",

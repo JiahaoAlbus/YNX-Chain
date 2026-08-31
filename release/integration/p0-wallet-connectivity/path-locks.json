@@ -3242,10 +3242,10 @@
       "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration",
       "taskId": "P0-306",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE",
+      "status": "CONSUMED_RELEASED_SUCCESS_CREATOR_P0306_EMERGENCY_ZERO_WRITE_STATE_KNOWN_OLD_RUNTIME_ACTIVE_RESIDUES_RETAINED",
       "acquiredAt": "2026-08-31T03:12:54Z",
       "expiresAt": "2026-08-31T03:32:54Z",
-      "releasedAt": null,
+      "releasedAt": "2026-08-31T03:14:38Z",
       "sourceCommit": "c2f8e3177fd27ea3fb364e9cdf33af414c5e0a47",
       "sourceTree": "c4d879f527c3bdc3708f28c65f7e4b7f7da40516",
       "evidenceCommit": "c2f8e3177fd27ea3fb364e9cdf33af414c5e0a47",
@@ -3255,7 +3255,8 @@
         "exactly one zero-write SSH inspection and no retry",
         "no remote temp files or receipt body output",
         "read only Creator P0-305 control release current receipt service listener and public state",
-        "retain Heavy and P0-305 emergency locks after inspection",
+        "direct inspection proved old runtime active exact and P0-305 residues retained",
+        "P0-306 is consumed and nonreusable; retain P0-305 Heavy and emergency locks for cleanup-only recovery",
         "no cleanup rollback forward lifecycle unrelated Heavy Wallet account signature typed-data or transaction action"
       ]
     }
