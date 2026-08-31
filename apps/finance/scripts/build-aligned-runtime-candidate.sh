@@ -28,5 +28,5 @@ printf '{"schemaVersion":1,"product":"finance","classification":"local-unsigned-
   done > INVENTORY.tsv
 )
 
-gtar --sort=name --mtime='UTC 2026-08-31' --owner=0 --group=0 --numeric-owner -C "$stage_root" -czf "$output_dir/$release_name-runtime.tar.gz" "$release_name"
+GZIP=-n gtar --sort=name --mtime='UTC 2026-08-31' --owner=0 --group=0 --numeric-owner -C "$stage_root" -czf "$output_dir/$release_name-runtime.tar.gz" "$release_name"
 printf '%s\n' "$output_dir/$release_name-runtime.tar.gz"
