@@ -7712,11 +7712,12 @@
     {
       "taskId": "P0-327",
       "owner": "integration,chain-peer-release-control-plane",
-      "status": "ACTIVE_CHAIN_PEER_LEGACY_RETIREMENT",
+      "status": "CONSUMED_RELEASED_SUCCESS_CHAIN_6423_PUBLIC_RECOVERED_PEER_LEGACY_SERVICES_MASKED",
       "paths": [
         "release/integration/p0-wallet-connectivity/execution/p0-327-chain-peer-legacy-retirement-single-use-lease-20260831.json",
         "release/integration/p0-wallet-connectivity/execution/objects/p0-327-chain-peer-legacy-retirement-signed-input.json",
         "release/integration/p0-wallet-connectivity/execution/objects/p0-327-chain-peer-legacy-retirement-executor.sh",
+        "release/integration/p0-wallet-connectivity/execution/objects/p0-327-chain-peer-legacy-retirement-terminal-evidence-20260831.json",
         "/tmp/p0-327-chain-peer-legacy-retirement.stdout",
         "/tmp/p0-327-chain-peer-legacy-retirement.stderr",
         "/tmp/p0-327-chain-peer-legacy-retirement.receipt"
@@ -7732,7 +7733,24 @@
       "caddyMutationAuthorized": false,
       "deploymentAuthorized": false,
       "serviceLifecycleAuthorized": "only ynx-v2-peer.service on Singapore, Silicon Valley and Seoul plus the already inactive Singapore ynx-v2-node.service",
-      "nextAction": "Named executor may run the exact P0-327 argv once before expiry. Stop on the first failed peer; retain the safe public 6423 route and do not attempt peer rollback or retry."
+      "attemptCount": 1,
+      "localExitStatus": 0,
+      "terminalReceiptSha256": "d8e2b086730377a1185dc2a42ab6125e2a0575d7d0373c46b358f1ec0e53d956",
+      "stdoutSha256": "68a2339c9dfa6c0796fec714c8b2ddd851c08f633de0035f4d9e0e0e8fa17d5c",
+      "stderrSha256": "041d330955eefe672ed4f084d6878b2a75972465f1e965d9d4c17a414b25a854",
+      "nextAction": "P0-327 is consumed and nonreusable. P0-328 is restricted to a new read-only three-peer 6423 deployment-preparation inventory; no peer start, restart, broadcast, unjail or validator operation follows from this retirement lease."
+    },
+    {
+      "taskId": "P0-328",
+      "owner": "integration,chain-peer-release-control-plane-readonly-preparation",
+      "status": "QUEUED_CHAIN_PEER_6423_DEPLOYMENT_PREPARATION_READONLY",
+      "dependencies": ["P0-327"],
+      "executionLeaseIssued": false,
+      "remoteMutation": false,
+      "deploymentAuthorized": false,
+      "scope": "Read only: bind per-peer 6423 artifact, unit, config, identity, listener, data-dir and rollback baselines needed for a later distinct deployment lease.",
+      "forbidden": ["peer start", "peer restart", "new chain deployment", "Caddy operation", "broadcast", "unjail", "validator operation", "account", "signature", "typed-data", "transaction"],
+      "nextAction": "A fresh one-SSH-per-peer read-only lease may be reviewed only after source-side artifact and rollback candidates are frozen. Full four-node BFT redundancy remains unproven."
     }
   ]
 }
