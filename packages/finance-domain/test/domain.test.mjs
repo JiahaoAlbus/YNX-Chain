@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import { ERROR_CODES, FINANCE_DOMAIN_VERSION, FINANCE_READ_ENVELOPE_VERSION, FINANCE_STREAM_ENVELOPE_VERSION, MODEL_KINDS, ORDER_STATUSES, assertOrderTransition, assertStrategyRiskAuthorization, compareDecimal, createError, evaluateWritePrecondition, validateDecimal, validateModel, validateReadEnvelope, validateStreamEnvelope, validateWriteHeaders } from "../src/index.js";
+import { ERROR_CODES, FINANCE_DOMAIN_VERSION, FINANCE_READ_ENVELOPE_VERSION, FINANCE_STREAM_ENVELOPE_VERSION, MODEL_KINDS, ORDER_STATUSES, assertOrderTransition, assertStrategyRiskAuthorization, compareDecimal, createError, evaluateWritePrecondition, validateDecimal, validateModel, validateReadEnvelope, validateSource, validateStreamEnvelope, validateWriteHeaders } from "../src/index.js";
 
 const source = Object.freeze({ owner: "oracle", system: "ynx-oracle", version: "v1", asOf: "2026-08-13T12:00:00.000Z", classification: "testnet", status: "live" });
 const examples = {
@@ -26,6 +26,14 @@ test("all required finance domain models accept source-bound records", () => {
 test("models fail closed without provenance or required fields", () => {
   assert.throws(() => validateModel("Order", { schemaVersion: FINANCE_DOMAIN_VERSION, ...examples.Order }), /source/);
   assert.throws(() => validateModel("Order", { schemaVersion: FINANCE_DOMAIN_VERSION, source, ...examples.Order, orderId: undefined }), /required|invalid/);
+});
+
+test("source evidence annotations remain bounded and non-diagnostic", () => {
+  const annotated = { ...source, coverage: "explorer:account_balance;pay:payment-history", syncStatus: "aggregated-partial", error: "pay-unavailable" };
+  assert.equal(validateSource(annotated), annotated);
+  assert.throws(() => validateSource({ ...annotated, error: "Pay receipt source is not configured" }), /source.error/);
+  assert.throws(() => validateSource({ ...annotated, coverage: "https://untrusted.example" }), /source.coverage/);
+  assert.throws(() => validateSource({ ...annotated, syncStatus: { status: "partial" } }), /source.syncStatus/);
 });
 
 test("models reject invalid finance semantics instead of accepting field-shaped records", () => {

@@ -21,6 +21,9 @@ export interface SourceMetadata {
   status: SourceStatus;
   confidence?: string;
   coverage?: string;
+  syncStatus?: string;
+  /** Fixed, non-sensitive source-health code; never an upstream diagnostic. */
+  error?: string;
 }
 export interface DomainRecord { schemaVersion: typeof FINANCE_DOMAIN_VERSION; source: SourceMetadata; [key: string]: unknown }
 export interface FinanceReadEnvelope {

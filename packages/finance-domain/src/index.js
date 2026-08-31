@@ -61,6 +61,7 @@ const idPattern = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
 const zeroDecimalPattern = /^0(?:\.0+)?$/;
 const sha256Pattern = /^[a-f0-9]{64}$/;
 const errorDetailKeyPattern = /^[A-Za-z][A-Za-z0-9._-]{0,63}$/;
+const sourceAnnotationPattern = /^[A-Za-z0-9][A-Za-z0-9_:-]{0,127}(;[A-Za-z0-9][A-Za-z0-9_:-]{0,127})*$/;
 const forbiddenErrorDetailKeys = new Set([
   "privatekey",
   "seed",
@@ -107,6 +108,11 @@ function assertID(value, field) {
 
 function assertTimestamp(value, field) {
   assert(typeof value === "string" && Number.isFinite(Date.parse(value)), ERROR_CODES.INVALID_REQUEST, `${field} is invalid`);
+  return value;
+}
+
+function assertSourceAnnotation(value, field) {
+  assert(typeof value === "string" && value.length <= 255 && sourceAnnotationPattern.test(value), ERROR_CODES.INVALID_REQUEST, `${field} is invalid`);
   return value;
 }
 
@@ -169,6 +175,9 @@ export function validateSource(source) {
   assertTimestamp(source.asOf, "source.asOf");
   assert(["authoritative", "verified-index", "reference", "testnet"].includes(source.classification), ERROR_CODES.INVALID_REQUEST, "source.classification is invalid");
   assert(["live", "stale", "unavailable", "partial"].includes(source.status), ERROR_CODES.INVALID_REQUEST, "source.status is invalid");
+  for (const field of ["confidence", "coverage", "syncStatus", "error"]) {
+    if (source[field] !== undefined) assertSourceAnnotation(source[field], `source.${field}`);
+  }
   return source;
 }
 
