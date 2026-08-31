@@ -70,3 +70,9 @@ Central must bind one authoritative HTTPS Data Fabric origin and the exact runti
 - Replays use the same audit ID and exact microsecond-canonicalized UTC tuple; a changed cutoff fails closed and cannot create a second deletion effect.
 - Local validation passed: `go test ./internal/datafabric ./internal/datafabricpostgres`, `go test -race ./internal/datafabric ./internal/datafabricpostgres`, and `go vet ./internal/datafabric ./internal/datafabricpostgres`.
 - No retention policy duration, scheduler, production database migration, service mutation, deployment, or public endpoint is claimed. `P0-147` remains `WAITING_EXTERNAL_PUBLIC_ENDPOINT_UNBOUND`.
+
+## Retention replay test correction — 2026-08-31
+
+- Test-only precision correction: `c134290a4800a30c2f1f5a57523adf1daea34ad3` makes the recording PostgreSQL driver return the same microsecond `timestamptz` precision as the real database.
+- It fixes the negative CI result from run `33373383241`: runtime behavior was already microsecond-canonical; the prior fixture incorrectly returned nanosecond values and therefore simulated a parameter drift on a same-audit-ID replay.
+- Focused PostgreSQL tests, race tests, vet, TypeScript SDK tests and release-truth validation pass locally. Exact-source remote CI is pending for the pushed binding head; no central, runtime, or public state changes are claimed.
