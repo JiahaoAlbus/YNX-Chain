@@ -109,6 +109,20 @@
     "oldCurrentEnvironmentStateAndServiceMustBeRestored": true,
     "manualAfterSuccessRequiresWhollyNewCentralSignedRollbackLease": true
   },
+  "failClosedFixtures": {
+    "archiveTruncation": true,
+    "archiveHashMismatch": true,
+    "foreignCarrier": true,
+    "carrierSymlink": true,
+    "postMoveSubstitution": true,
+    "partialPlacementCleanup": true,
+    "preSwitchFailureCleanup": true,
+    "successRetention": true,
+    "automaticRollback": true,
+    "wrongNamespace": true,
+    "legacyWalletConnectReintroduction": true,
+    "buildIdentityRouteMissing": true
+  },
   "truth": {
     "signedCarrierLease": false,
     "carrierPlaced": false,
