@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "product": "ynx-creator-studio",
+  "sourceCommit": "3f97a13d5ff6e0a43d434eb6b630785564e59e3e",
+  "sourceTree": "5ed64b144ec149e05f201ca9e406e460fa19f9f9",
+  "carrier": "apps/creator-studio/release-candidates/candidate-3f97a13d/creator-studio.tar",
+  "bytes": 159232,
+  "sha256": "b99c791393bba7b9a0780fe13ac4c61104754a2766d12fb3990af15b447aec89",
+  "manifest": {
+    "path": "creator-studio.manifest.json",
+    "bytes": 2299,
+    "sha256": "fcd0f3346de18e51580af8f7c4f040b8694f7e2ef74bb92cc1ce942e03bea624"
+  },
+  "catalog": {
+    "path": "i18n/catalog.json",
+    "bytes": 14237,
+    "sha256": "4c86e3e1cdeac6d9c4570891d70bab4c3486c6a4429dd33fd1029f046ca9ecff"
+  },
+  "i18nModule": {
+    "path": "i18n.js",
+    "bytes": 10810,
+    "sha256": "077ffd891f876de3ec37838d923854f401172213bc671527059c78f4875de80f",
+    "catalogResolution": "new URL(\"./i18n/catalog.json\", import.meta.url)"
+  }
+}

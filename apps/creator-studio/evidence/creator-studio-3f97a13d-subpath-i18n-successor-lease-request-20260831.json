@@ -1,0 +1,121 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "requestType": "CREATOR_STUDIO_SUBPATH_I18N_SUCCESSOR_SINGLE_USE_DEPLOYMENT_LEASE",
+  "requestedOwner": "creator-studio-deploy-owner",
+  "status": "REQUESTED_NOT_AUTHORIZED",
+  "purpose": "Replace the already-public 0e1a53c5 Creator Studio runtime with the route-relative catalog successor after a clean-browser console error exposed the shared-root dependency.",
+  "source": {
+    "branch": "codex/p0-creator-studio-subpath-i18n-20260831",
+    "baselineCommit": "52cc1063023c457b4a5522109a0fd6c5f70b6d7e",
+    "implementationCommit": "3f97a13d5ff6e0a43d434eb6b630785564e59e3e",
+    "implementationTree": "5ed64b144ec149e05f201ca9e406e460fa19f9f9",
+    "changedProductFiles": [
+      "apps/creator-studio/i18n.js",
+      "apps/creator-studio/app.test.mjs"
+    ]
+  },
+  "candidate": {
+    "carrierPath": "apps/creator-studio/release-candidates/candidate-3f97a13d/creator-studio.tar",
+    "carrierBytes": 159232,
+    "carrierSha256": "b99c791393bba7b9a0780fe13ac4c61104754a2766d12fb3990af15b447aec89",
+    "manifestBytes": 2299,
+    "manifestSha256": "fcd0f3346de18e51580af8f7c4f040b8694f7e2ef74bb92cc1ce942e03bea624",
+    "manifestFilesVerified": 12,
+    "i18nModuleBytes": 10810,
+    "i18nModuleSha256": "077ffd891f876de3ec37838d923854f401172213bc671527059c78f4875de80f",
+    "catalogBytes": 14237,
+    "catalogSha256": "4c86e3e1cdeac6d9c4570891d70bab4c3486c6a4429dd33fd1029f046ca9ecff"
+  },
+  "currentPublicReadOnlyBaseline": {
+    "observedAt": "2026-08-31T02:24:00Z",
+    "url": "https://web4.ynxweb4.com/video/studio/",
+    "root": "HTTP200/14088/sha256:b37f78205f2c5443b2103ee42e98d6ecde65238c107733088e63893a3c1de697",
+    "appJs": "HTTP200/35660/sha256:77e7c42006e3be36c7af717e5e8b2a3cd847c3652dcadb1731c259aee5b01af5",
+    "manifest": "HTTP200/2299/sha256:5fd27ac55d9ea70b8e15aac0565324a9ce7b18706bd75cd5b430eaa4843de86f",
+    "manifestSourceCommit": "0e1a53c5ad1fc9dc2cbfebc13c55f1f426c7e7ae",
+    "manifestSourceTree": "057ee8448ee8f8586cf3235dd043644060795301",
+    "studioCatalog": "HTTP200/14237/sha256:4c86e3e1cdeac6d9c4570891d70bab4c3486c6a4429dd33fd1029f046ca9ecff",
+    "sharedRootCatalog": "HTTP502/0/sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "health": "HTTP200/278/sha256:b14684492820350504ee7a06247e0b4670416bff721678bb39645b6808972384",
+    "version": "HTTP200/152/sha256:dffdf161c67cec481eafc8601ca0087908adce8a6cf40920a24df357cb003fb8",
+    "browserFailure": "Chrome console Error: i18n unavailable at /video/studio/i18n.js:33 because the deployed module fetched /i18n/catalog.json."
+  },
+  "verification": {
+    "creatorCheck": "PASS 5/5",
+    "build": "PASS",
+    "smoke": "PASS",
+    "routeResolutionRegression": {
+      "moduleUrl": "https://web4.ynxweb4.com/video/studio/i18n.js",
+      "resolvedCatalogUrl": "https://web4.ynxweb4.com/video/studio/i18n/catalog.json",
+      "sharedRootCatalogRejected": true
+    },
+    "localSubpathFixture": {
+      "root": "HTTP200/14088/sha256:b37f78205f2c5443b2103ee42e98d6ecde65238c107733088e63893a3c1de697",
+      "studioCatalog": "HTTP200/14237/sha256:4c86e3e1cdeac6d9c4570891d70bab4c3486c6a4429dd33fd1029f046ca9ecff",
+      "sharedRootCatalog": "HTTP502/0/sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "cleanChrome": {
+      "profile": "fresh temporary user-data directory; extensions and translation disabled",
+      "domBytes": 15056,
+      "domSha256": "b74d3e0e192f60f2f58d4b5527742dfa12abced7eb11e1ebba9e755e2c16ec9a",
+      "htmlLang": "en",
+      "direction": "ltr",
+      "heading": "Creator overview",
+      "walletStatus": "Wallet not connected.",
+      "walletProofButtonsDisabled": 3,
+      "pageConsoleErrorPatternMatches": 0,
+      "accountRequest": false,
+      "signature": false,
+      "transaction": false
+    }
+  },
+  "requestedSingleUseScope": {
+    "host": "43.153.202.237",
+    "service": "ynx-creator-studio-wallet.service",
+    "publicUrl": "https://web4.ynxweb4.com/video/studio/",
+    "currentLink": "/opt/ynx-creator-studio-wallet/current",
+    "expectedCurrentTarget": "/opt/ynx-creator-studio-wallet/releases/creator-studio-0e1a53c5",
+    "candidateTarget": "/opt/ynx-creator-studio-wallet/releases/creator-studio-3f97a13d",
+    "rollbackCarrier": "apps/creator-studio/release-candidates/candidate-0e1a53c5/creator-studio.tar",
+    "rollbackCarrierBytes": 159232,
+    "rollbackCarrierSha256": "3f56aa4c3f9d87d27f7cdf19eafc0dacf1da78d83d31def2080f0162d92bdf8a",
+    "maximumForwardAttempts": 1,
+    "maximumRollbackAttempts": 1,
+    "mustFreezeNamedExecutorAndLiteralTransportArgvBeforeLease": true,
+    "mustCaptureFreshPrewriteTargetUnitProcessAndPublicReceipt": true,
+    "mustColdStartCandidateOnFreshFreeLoopbackPort": true,
+    "mustVerifyEveryManifestFileBeforeSwitch": true,
+    "mustAtomicallySwitchOnlyCurrentLink": true,
+    "mustRestartOnlyNamedService": true,
+    "mustVerifySourceBoundPublicResourcesAndCleanBrowser": true
+  },
+  "postSwitchRequired": {
+    "root": "HTTP200/14088/sha256:b37f78205f2c5443b2103ee42e98d6ecde65238c107733088e63893a3c1de697",
+    "appJs": "HTTP200/35660/sha256:77e7c42006e3be36c7af717e5e8b2a3cd847c3652dcadb1731c259aee5b01af5",
+    "manifest": "HTTP200/2299/sha256:fcd0f3346de18e51580af8f7c4f040b8694f7e2ef74bb92cc1ce942e03bea624",
+    "i18nJs": "HTTP200/10810/sha256:077ffd891f876de3ec37838d923854f401172213bc671527059c78f4875de80f",
+    "catalog": "HTTP200/14237/sha256:4c86e3e1cdeac6d9c4570891d70bab4c3486c6a4429dd33fd1029f046ca9ecff",
+    "browser": "fresh profile; stable /video/studio/ URL; one top-level tab; html lang=en; Creator overview; Wallet not connected; no blank tab; console errors 0"
+  },
+  "forbidden": [
+    "reuse any prior lease",
+    "more than one forward attempt",
+    "Caddy mutation",
+    "shared /i18n/catalog.json mutation",
+    "Video API or Viewer mutation",
+    "Wallet account request",
+    "signature or typed data",
+    "transaction",
+    "private key or recovery material"
+  ],
+  "truthBoundary": {
+    "deploymentAuthorized": false,
+    "productionMutationOccurred": false,
+    "currentPublicStillOldCandidate": true,
+    "successorPublicSourceBound": false,
+    "walletAccountApproved": false,
+    "signature": false,
+    "transaction": false
+  }
+}
