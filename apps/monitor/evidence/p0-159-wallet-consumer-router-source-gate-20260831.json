@@ -22,8 +22,15 @@
         "classification": "interactiveWalletConsumer",
         "sourceRoute": "internal/explorer/web.go#metamaskButton",
         "canonicalWalletRequired": true,
-        "state": "not-yet-router-compliant",
-        "blocker": "The separate Explorer MetaMask compatibility button still has no EIP-6963 provider identity chooser, account lifecycle, or direct public E2E evidence."
+        "sourceGate": {
+          "eip6963Discovery": "internal/explorer/web.go#addWalletProvider",
+          "providerIdentity": "announced provider name and safe icon; legacy fallback is named only from explicit provider flags",
+          "accountApproval": "eth_requestAccounts is called only after a provider is chosen",
+          "networkReadback": "ensureYNXTestnet requires eth_chainId 0x1917 after add/switch",
+          "lifecycle": ["accountsChanged", "chainChanged", "disconnect", "no guest read is gated"]
+        },
+        "state": "implementedLocal-and-testedLocal-only",
+        "blocker": "A source-bound public Explorer runtime and direct provider lifecycle evidence are still absent."
       },
       "productSessionConsumer": "evidence-backed notApplicable: public Explorer read/search paths have no Product Session API."
     },
@@ -59,6 +66,7 @@
     "monitorTests": "npm test: 52 passing",
     "monitorBuild": "npm run build: passing",
     "sdkWalletTests": "node --test sdk/js/wallet.test.mjs: 7 passing",
+    "explorerTests": "go test ./internal/explorer: passing",
     "directPublicOrInstalledE2E": false,
     "computerControlVerified": false
   },
@@ -72,5 +80,5 @@
     "productionSigned": false,
     "publicVerified": false
   },
-  "oneExecutableBlocker": "A fresh Explorer/Monitor production lease plus a source-bound official Monitor runtime is required to run the user-approved direct provider lifecycle. Explorer remains a separately identified interactive-consumer remediation; no guest read is treated as a Wallet connection."
+  "oneExecutableBlocker": "A fresh Explorer/Monitor production lease plus source-bound official Explorer and Monitor runtimes is required to run the user-approved direct provider lifecycle. No guest read is treated as a Wallet connection."
 }

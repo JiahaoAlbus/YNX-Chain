@@ -132,7 +132,7 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	}
 	html := string(body)
 	for _, marker := range []string{
-		"Open MetaMask compatibility",
+		"Connect EVM compatibility wallet",
 		"/api/dashboard",
 		"new EventSource('/api/stream')",
 		"Network TPS",
@@ -429,6 +429,19 @@ func TestExplorerDoesNotExposeUpstreamErrorsToPublicClients(t *testing.T) {
 		}
 		if payload["classification"] != testCase.classification {
 			t.Fatalf("%s classification=%q, want %q", testCase.path, payload["classification"], testCase.classification)
+		}
+	}
+}
+
+func TestExplorerWalletCompatibilityUsesProviderDiscoveryWithoutCustomNavigation(t *testing.T) {
+	for _, marker := range []string{"eip6963:requestProvider", "eth_requestAccounts", "wallet_switchEthereumChain", "eth_chainId", "accountsChanged", "chainChanged", "disconnect"} {
+		if !strings.Contains(indexHTML, marker) {
+			t.Fatalf("Explorer wallet compatibility missing %q", marker)
+		}
+	}
+	for _, forbidden := range []string{"ynxwallet://", "ynx-wallet://", "location.href ="} {
+		if strings.Contains(indexHTML, forbidden) {
+			t.Fatalf("Explorer web wallet path must not contain %q", forbidden)
 		}
 	}
 }

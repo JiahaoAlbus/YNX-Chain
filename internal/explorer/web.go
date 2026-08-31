@@ -328,8 +328,8 @@ const indexHTML = `<!doctype html>
       </section>
 
       <section class="wallet-band">
-        <div><h2>YNX-native identity comes first.</h2><p>YNX applications use the checksummed ynx1 address by default. Standard MetaMask remains available through the isolated EVM compatibility adapter for the same account.</p></div>
-        <button id="metamaskButton" class="wallet-button" type="button">Open MetaMask compatibility</button>
+        <div><h2>YNX-native identity comes first.</h2><p>YNX applications use the checksummed ynx1 address by default. An installed EIP-1193 wallet, including MetaMask when it announces itself, is optional EVM compatibility only; search and detail reads never require it.</p></div>
+        <button id="metamaskButton" class="wallet-button" type="button">Connect EVM compatibility wallet</button>
       </section>
     </div>
   </main>
@@ -354,6 +354,8 @@ const indexHTML = `<!doctype html>
     let previousTxHash = '';
     let lastStreamAt = 0;
     let toastTimer = null;
+    const walletProviders = new Map();
+    let connectedWallet = null;
     const $ = (id) => document.getElementById(id);
     const escapeHTML = (value) => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const compact = (value, start = 10, end = 7) => { const text = String(value ?? ''); return text.length > start + end + 3 ? text.slice(0,start) + '...' + text.slice(-end) : text || '--'; };
@@ -370,6 +372,54 @@ const indexHTML = `<!doctype html>
       const response = await fetch(api + path, {headers:{accept:'application/json'}});
       if (!response.ok) { let detail = ''; try { detail = (await response.json()).error || ''; } catch (_) {} throw new Error(detail || path + ' returned ' + response.status); }
       return response.json();
+    }
+    function walletName(provider, info) {
+      const announced = typeof info?.name === 'string' ? info.name.trim().slice(0,120) : '';
+      if (announced) return announced;
+      if (provider?.isYNXWallet) return 'YNX Wallet';
+      if (provider?.isMetaMask) return 'MetaMask';
+      return 'Browser wallet';
+    }
+    function walletIcon(value) {
+      if (typeof value !== 'string' || value.length > 16384) return '';
+      try { const url = new URL(value, location.origin); return url.protocol === 'https:' || url.protocol === 'data:' ? url.href : ''; } catch (_) { return ''; }
+    }
+    function addWalletProvider(provider, info, source) {
+      if (!provider || typeof provider.request !== 'function') return;
+      const id = source + ':' + (typeof info?.uuid === 'string' && info.uuid ? info.uuid : (typeof info?.rdns === 'string' ? info.rdns : walletName(provider,info)));
+      for (const [existingId, existing] of walletProviders) { if (existing.provider === provider) { if (existing.source === 'legacy-eip1193' && source === 'eip6963') walletProviders.delete(existingId); else return; } }
+      walletProviders.set(id,{id,name:walletName(provider,info),icon:walletIcon(info?.icon),provider,source});
+    }
+    window.addEventListener('eip6963:announceProvider', event => addWalletProvider(event.detail?.provider,event.detail?.info,'eip6963'));
+    window.dispatchEvent(new Event('eip6963:requestProvider'));
+    if (window.ethereum) addWalletProvider(window.ethereum,{},'legacy-eip1193');
+    function showWalletResult(title, subtitle, body, error) {
+      $('resultPanel').classList.add('visible'); $('resultTitle').textContent = title; $('resultSubtitle').textContent = subtitle;
+      $('resultBody').innerHTML = '<div class="' + (error ? 'result-error' : 'empty') + '">' + escapeHTML(body) + '</div>';
+    }
+    async function ensureYNXTestnet(provider) {
+      const expected = walletConfig?.chainIdHex || '0x1917';
+      const initial = await provider.request({method:'eth_chainId'});
+      if (initial !== expected) { try { await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:expected}]}); } catch (error) { if (error?.code !== 4902) throw error; await provider.request({method:'wallet_addEthereumChain',params:[{chainId:expected,chainName:walletConfig.chainName,nativeCurrency:{name:walletConfig.nativeCurrencyName,symbol:walletConfig.nativeSymbol,decimals:walletConfig.decimals},rpcUrls:walletConfig.rpcUrls,blockExplorerUrls:walletConfig.blockExplorerUrls}]}); await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:expected}]}); } }
+      if (await provider.request({method:'eth_chainId'}) !== expected) throw new Error('Wallet did not select YNX Testnet (0x1917).');
+    }
+    function attachWalletLifecycle(wallet, account) {
+      const clear = message => { connectedWallet = null; showWalletResult('Wallet disconnected','Explorer browsing remains public',message,false); };
+      wallet.provider.on?.('accountsChanged', accounts => { if (!Array.isArray(accounts) || !accounts.some(value => typeof value === 'string' && value.toLowerCase() === account.toLowerCase())) clear('The selected account changed. Connect again only if you need EVM compatibility.'); });
+      wallet.provider.on?.('chainChanged', chainId => { if (chainId !== (walletConfig?.chainIdHex || '0x1917')) clear('The selected network changed. Explorer reads remain available without a wallet.'); });
+      wallet.provider.on?.('disconnect', () => clear('The wallet disconnected. Explorer reads remain available without a wallet.'));
+    }
+    async function connectWallet(id) {
+      const wallet = walletProviders.get(id);
+      if (!wallet) return showWalletResult('Wallet unavailable','Provider selection changed','Choose an announced EIP-1193 wallet and try again.',true);
+      if (!walletConfig) await load();
+      try { const accounts = await wallet.provider.request({method:'eth_requestAccounts'}); const account = Array.isArray(accounts) && typeof accounts[0] === 'string' && /^0x[0-9a-f]{40}$/i.test(accounts[0]) ? accounts[0] : ''; if (!account) throw new Error('Wallet did not return an EVM account.'); await ensureYNXTestnet(wallet.provider); connectedWallet = {id:wallet.id,account}; attachWalletLifecycle(wallet,account); showWalletResult('EVM compatibility connected',wallet.name + ' selected YNX Testnet (0x1917).','Connected account ' + compact(account,10,8) + '. Explorer search and detail reads remain guest-only.',false); }
+      catch (error) { const rejected = error?.code === 4001; showWalletResult(rejected ? 'Wallet request declined' : 'Wallet compatibility unavailable','No connection was created.',rejected ? 'The wallet request was rejected.' : 'The selected provider could not complete account and network verification.',true); }
+    }
+    function chooseWallet() {
+      if (!walletProviders.size) return showWalletResult('Wallet not detected','Explorer browsing remains public','Install or open an EIP-1193 compatible wallet, then retry.',true);
+      $('resultPanel').classList.add('visible'); $('resultTitle').textContent = 'Choose a wallet'; $('resultSubtitle').textContent = 'Provider identities are announced by installed wallets.';
+      $('resultBody').innerHTML = [...walletProviders.values()].map(wallet => '<button class="wallet-button" type="button" data-wallet-provider="' + escapeHTML(wallet.id) + '">' + (wallet.icon ? '<img src="' + escapeHTML(wallet.icon) + '" alt="" width="20" height="20">' : '') + 'Connect ' + escapeHTML(wallet.name) + '</button>').join('');
     }
     function removeSkeletons() { document.querySelectorAll('.skeleton').forEach(node => node.classList.remove('skeleton')); }
     function blockRow(block,index = 0) {
@@ -624,14 +674,8 @@ const indexHTML = `<!doctype html>
     $('txFilter').onchange = renderTransactions;
     $('refreshButton').onclick = () => load().catch(showLoadError);
     document.querySelectorAll('[data-refresh]').forEach(button => button.onclick = () => load().catch(showLoadError));
-    $('metamaskButton').onclick = async () => {
-      if (!window.ethereum) { $('resultPanel').classList.add('visible'); $('resultTitle').textContent = 'Wallet not detected'; $('resultSubtitle').textContent = 'Install or open an EIP-1193 compatible wallet.'; $('resultBody').innerHTML = '<div class="result-error">MetaMask is not available in this browser.</div>'; return; }
-      if (!walletConfig) await load();
-      try {
-        await window.ethereum.request({method:'wallet_addEthereumChain',params:[{chainId:walletConfig.chainIdHex,chainName:walletConfig.chainName,nativeCurrency:{name:walletConfig.nativeCurrencyName,symbol:walletConfig.nativeSymbol,decimals:walletConfig.decimals},rpcUrls:walletConfig.rpcUrls,blockExplorerUrls:walletConfig.blockExplorerUrls}]});
-        $('resultPanel').classList.add('visible'); $('resultTitle').textContent = 'Compatibility request sent'; $('resultSubtitle').textContent = 'Confirm the YNX Testnet EVM adapter in MetaMask.'; $('resultBody').innerHTML = '<div class="empty">YNX-native applications continue to identify this account with its ynx1 address.</div>';
-      } catch (error) { $('resultPanel').classList.add('visible'); $('resultTitle').textContent = 'Wallet request declined'; $('resultBody').innerHTML = '<div class="result-error">' + escapeHTML(error.message) + '</div>'; }
-    };
+    $('metamaskButton').onclick = chooseWallet;
+    $('resultBody').onclick = event => { const button = event.target.closest('[data-wallet-provider]'); if (button) void connectWallet(button.dataset.walletProvider); };
     function showLoadError(error) { $('statusText').textContent = 'Explorer unavailable'; $('statusDetail').textContent = error.message; $('status').className = 'status-bar warn'; $('refreshButton').disabled = false; removeSkeletons(); }
     load().catch(showLoadError).finally(() => {
       const transactionHash = transactionHashFromPath();
