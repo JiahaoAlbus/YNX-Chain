@@ -40,7 +40,9 @@ CREATE TABLE IF NOT EXISTS ynx_exchange_state (
 - `npm --prefix apps/exchange run verify:wallet-connect`
 - `npm --prefix apps/exchange test`
 
-The focused Go tests cover durable-refresh at the API boundary, conflict fail-closed behavior, and explicit file-backend non-multi-instance health disclosure. PostgreSQL migration/execution still requires an operator-provisioned Testnet database and is not claimed as locally or publicly verified.
+The focused Go tests cover durable-refresh at the API boundary, conflict fail-closed behavior, and explicit file-backend non-multi-instance health disclosure. PostgreSQL integration test source checkpoint `ba9abc14706dd922f6e20c241e10d12b2bb1bd1b` (tree `ecc7429b1b9fbb1fff995c7ea4e22950fcf0f0b5`) was run once against an ephemeral local PostgreSQL 16 container bound to loopback only. It proved two independent Exchange services have exactly one CAS winner and one conflict, restart recovery, backend health metadata, and durable quote-balance readback. The container was stopped and removed after the test.
+
+This does not provision a product database or prove a public Testnet release.
 
 ## Central deployment prerequisite
 
