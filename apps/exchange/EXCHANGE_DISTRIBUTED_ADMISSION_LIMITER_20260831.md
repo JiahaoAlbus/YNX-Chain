@@ -58,6 +58,23 @@ The manifest excludes itself and was checked after extracting the archive.
 It is an offline artifact, not a public URL, signed release, or installed
 application.
 
+## Public runtime read-only check
+
+At 2026-08-31T13:58Z, the public Exchange domain did **not** expose an
+Exchange service runtime:
+
+```text
+https://exchange.ynxweb4.com/          body: 18603 B, SHA-256 64c5b7862099eb06a316fbc6d1c665e81355f427fa27b26584bbf586ac4eacde
+https://exchange.ynxweb4.com/health    HTTP 200, text/html, 18603 B, same SHA-256
+https://exchange.ynxweb4.com/version   HTTP 200, text/html, 18603 B, same SHA-256
+```
+
+`/health` and `/version` are therefore static-HTML fallbacks rather than the
+candidate's JSON endpoints. One header/body request hit a transient TLS timeout
+while independent successful body reads still produced the identity above.
+This is public mismatch evidence only; it is not a public release,
+wallet-connection proof, or trading proof.
+
 ## Truthful remaining gates
 
 This is source and local-test evidence only. It does not prove a public
