@@ -1,9 +1,18 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-[[ "${1:-}" == inspect ]] || { echo "usage: video-retained-takeover-preflight.sh inspect" >&2; exit 64; }
-[[ "${YNX_VIDEO_EXECUTION_MODE:-}" == production ]] || { echo "production execution mode required" >&2; exit 65; }
-[[ "${YNX_VIDEO_LEASE_AUTHORIZED:-}" == P0_VIDEO_RETAINED_TAKEOVER_PREFLIGHT_ZERO_WRITE ]] || { echo "zero-write preflight lease missing" >&2; exit 77; }
+action=${1:-}
+case "$action" in inspect|fixture-http) ;;
+  *) echo "usage: video-retained-takeover-preflight.sh inspect|fixture-http <url>" >&2; exit 64 ;;
+esac
+mode=${YNX_VIDEO_EXECUTION_MODE:-}
+[[ "$mode" == production || "$mode" == fixture ]] || { echo "execution mode must be production or fixture" >&2; exit 65; }
+if [[ "$mode" == production ]]; then
+  [[ "$action" == inspect ]] || { echo "fixture action forbidden in production" >&2; exit 77; }
+  [[ "${YNX_VIDEO_LEASE_AUTHORIZED:-}" == P0_VIDEO_RETAINED_TAKEOVER_PREFLIGHT_ZERO_WRITE ]] || { echo "zero-write preflight lease missing" >&2; exit 77; }
+else
+  [[ "$action" == fixture-http && -x "${YNX_VIDEO_PREFLIGHT_HTTP_CLIENT:-}" ]] || { echo "fixture HTTP client missing" >&2; exit 65; }
+fi
 
 sha_file() { sha256sum "$1" | awk '{print $1}'; }
 stat_full() { stat -c '%d:%i:%u:%g:%a:%h:%s:%F' "$1"; }
@@ -31,11 +40,24 @@ emit_listener() {
   printf 'listener.%s=%s\n' "$port" "$(ss -H -ltnp "sport = :$port" | tr '\n' ';')"
 }
 emit_http() {
-  local key=$1 url=$2 bytes digest
-  bytes=$(curl --fail --silent --show-error --max-time 5 "$url" | wc -c | tr -d ' ')
-  digest=$(curl --fail --silent --show-error --max-time 5 "$url" | sha256sum | awk '{print $1}')
-  printf '%s.url=%s\n%s.bytes=%s\n%s.sha256=%s\n' "$key" "$url" "$key" "$bytes" "$key" "$digest"
+  local key=$1 url=$2 body_b64 bytes digest
+  if [[ "$mode" == fixture ]]; then
+    body_b64=$("$YNX_VIDEO_PREFLIGHT_HTTP_CLIENT" "$url" | base64 | tr -d '\n')
+  else
+    body_b64=$(curl --fail --silent --show-error --max-time 5 "$url" | base64 | tr -d '\n')
+  fi
+  [[ -n "$body_b64" && "$(printf '%s' "$body_b64" | base64 -d | base64 | tr -d '\n')" == "$body_b64" ]] || { echo "HTTP body base64 capture invalid" >&2; return 76; }
+  bytes=$(printf '%s' "$body_b64" | base64 -d | wc -c | tr -d ' ')
+  digest=$(printf '%s' "$body_b64" | base64 -d | sha256sum | awk '{print $1}')
+  printf '%s.url=%s\n%s.bytes=%s\n%s.sha256=%s\n%s.base64=%s\n' "$key" "$url" "$key" "$bytes" "$key" "$digest" "$key" "$body_b64"
 }
+
+if [[ "$action" == fixture-http ]]; then
+  [[ -n "${2:-}" ]] || exit 64
+  emit_http fixture "$2"
+  printf 'terminal=VIDEO_RETAINED_TAKEOVER_PREFLIGHT_HTTP_FIXTURE_COMPLETE\n'
+  exit 0
+fi
 
 printf 'schema=ynx-video-retained-takeover-preflight/1\n'
 printf 'mutation_count=0\n'
