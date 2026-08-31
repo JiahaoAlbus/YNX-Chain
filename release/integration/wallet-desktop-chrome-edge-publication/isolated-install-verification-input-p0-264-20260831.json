@@ -1,0 +1,133 @@
+{
+  "schemaVersion": "wallet-chrome-isolated-install-verification-input@1",
+  "preparedAt": "2026-08-31T07:47:20Z",
+  "mode": "PREPARED_NOT_EXECUTED",
+  "scope": "non-sensitive isolated Chrome installation verification input only",
+  "owner": "Wallet Desktop/CLI/SDK",
+  "ownerBaseline": {
+    "branch": "codex/wallet-desktop-provider-authority-p0-20260822",
+    "commit": "eee9cdf25b0ab8655ef43466c1d445f8e260145d",
+    "tree": "632c540b7ff3d377f599708b79627f40778fe810"
+  },
+  "officialPublishedArtifact": {
+    "publicationTask": "P0-264",
+    "centralReleaseCommit": "457a030966a4e2a49b0b21763bbf6ff1cbee4d63",
+    "url": "https://downloads.ynxweb4.com/wallet/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip",
+    "httpStatus": 200,
+    "bytes": 471181,
+    "sha256": "2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d",
+    "contentType": "application/zip",
+    "contentDisposition": "attachment; filename=\"ynx-wallet-chrome-edge-0.1.0.zip\"",
+    "cacheControl": "public, max-age=31536000, immutable",
+    "xContentTypeOptions": "nosniff",
+    "signingClass": "unsigned-unpacked-extension",
+    "storeReleased": false,
+    "embeddedBuildIdentity": {
+      "sourceCommit": "fb443431555bed7324b3c2e1fb37aab982a8e243",
+      "sourceTree": "15a0f909dde78093b28917bb89c9016848a0e67b",
+      "providerAuthorityCommit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+      "providerEvidenceCommit": "d3831c300560507f64a50e73117bab7b85926d9a",
+      "chainId": "0x1917"
+    },
+    "manifest": {
+      "sha256": "c44360eeaf627e665ea1bf58c81f2497758b1776f49a3b061852a3c5efda7c4d",
+      "manifestVersion": 3,
+      "name": "YNX Wallet",
+      "version": "0.1.0",
+      "minimumChromeVersion": "120",
+      "permissions": ["activeTab", "scripting", "storage"],
+      "hostPermissions": ["http://*/*", "https://*/*"],
+      "updateUrl": null
+    },
+    "buildIdentitySha256": "62ff69060338941029a508c4ad90a5fcdd9b59797397d64ea6dcf0b7d432c099"
+  },
+  "currentWalletCandidate": {
+    "evidenceBranch": "codex/wallet-extension-public-identity-audit-20260831",
+    "evidenceCommit": "90132a04168d2f5a65cef4eaaba81109fdc8788c",
+    "candidateCommit": "4134c6a32a75e3e577bfb024d9e1c17da07598ba",
+    "candidateTree": "09340a4f12562cc1fb5ecc8bf39ca37de73f98e2",
+    "frozenSourceCommit": "7df37ca32a643a403bd23a7f555354261f789441",
+    "chromeEdgeBytes": 469149,
+    "chromeEdgeSha256": "5eb083449c2cc8e9c02db0345d5f078f9d8c12e9bdc13d029ce2ff76c5ead26e",
+    "manifest": {
+      "manifestVersion": 3,
+      "name": "YNX Wallet",
+      "version": "0.1.0",
+      "minimumChromeVersion": "120",
+      "permissions": ["activeTab", "scripting", "storage"],
+      "hostPermissions": ["https://evm.ynxweb4.com/*"],
+      "updateUrl": null
+    }
+  },
+  "reconciliation": {
+    "artifactBytesMatch": false,
+    "artifactSha256Match": false,
+    "embeddedSourceMatchesCurrentCandidate": false,
+    "hostPermissionsMatch": false,
+    "providerAuthorityMatches": true,
+    "chainIdMatches": true,
+    "classification": "PUBLISHED_SOURCE_BOUND_LEGACY_ARTIFACT_NOT_CURRENT_CANDIDATE",
+    "safeForCurrentCandidateInstallationClaim": false,
+    "currentCandidateDownloadHosted": false
+  },
+  "localPreparedInput": {
+    "chromeBinary": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+    "chromeVersionObserved": "151.0.7922.175",
+    "downloadedArtifact": "/private/tmp/ynx-wallet-chrome-public-audit-20260831/ynx-wallet-chrome-edge-0.1.0.zip",
+    "unpackedReadOnlyAuditDirectory": "/private/tmp/ynx-wallet-chrome-public-audit-20260831/unpacked",
+    "proposedIsolatedProfile": "/private/tmp/ynx-wallet-chrome-isolated-profile-p0264-20260831",
+    "proposedProfileExistsAtPreparation": false,
+    "archiveIntegrityVerified": true,
+    "archiveEntryCount": 35,
+    "extensionLoadPathIsNotAnInstalledProfile": true,
+    "proposedLaunchArgv": [
+      "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+      "--user-data-dir=/private/tmp/ynx-wallet-chrome-isolated-profile-p0264-20260831",
+      "--disable-extensions-except=/private/tmp/ynx-wallet-chrome-public-audit-20260831/unpacked",
+      "--load-extension=/private/tmp/ynx-wallet-chrome-public-audit-20260831/unpacked",
+      "--no-first-run",
+      "--no-default-browser-check",
+      "chrome://extensions/"
+    ],
+    "launchAuthorized": false,
+    "launchAttempted": false
+  },
+  "postConfirmationVerificationEnvelope": {
+    "artifactUnderTest": "officialPublishedArtifact only; must not be reported as currentWalletCandidate",
+    "allowed": [
+      "verify visible extension name and version in isolated chrome://extensions",
+      "verify popup opens without blank top-level tabs",
+      "verify EIP-6963 discovery identifies YNX Wallet distinctly",
+      "verify isYNXWallet=true and isMetaMask=false",
+      "verify eth_chainId returns exact 0x1917 without an account grant",
+      "verify eth_accounts remains empty before explicit approval",
+      "verify closing the isolated profile does not alter the existing Chrome profile"
+    ],
+    "forbidden": [
+      "requesting or approving an account",
+      "creating or importing a wallet secret",
+      "signing a message or typed data",
+      "submitting a transaction",
+      "starting WalletConnect pairing",
+      "claiming current-candidate installation or provider parity",
+      "modifying release, Caddy, server, registry or public files"
+    ]
+  },
+  "truthAtPreparation": {
+    "officialArtifactDownloadHosted": true,
+    "currentCandidateDownloadHosted": false,
+    "extensionLaunchAttempted": false,
+    "extensionInstalled": false,
+    "providerDiscoveryVerified": false,
+    "chainIdRuntimeVerified": false,
+    "accountRequestAttempted": false,
+    "accountApproved": false,
+    "signatureAttempted": false,
+    "transactionAttempted": false,
+    "walletConnectPairingAttempted": false
+  },
+  "nextBoundary": {
+    "requiresImmediateUserConfirmation": true,
+    "confirmationText": "确认启动隔离 Chrome 并加载官网未签名的 YNX Wallet 旧源制品；本轮只验证安装身份、Provider discovery、YNX/MetaMask 身份分离、0x1917 与未授权空账户，不请求账户、不签名、不发交易。"
+  }
+}
