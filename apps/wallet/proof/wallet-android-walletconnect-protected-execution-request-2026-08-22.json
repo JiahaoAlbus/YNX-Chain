@@ -22,7 +22,18 @@
       "blob": "51857585317e6dbbe3629bae2d7e68fee996ee69",
       "sha256": "0c103cd1145edc07d9086f84a6f3548c4887d7438b1f473940217418017161ef"
     },
-    "androidSourceParent": "ea0ef85b6ff98b6b47e460cd9cfb468450fe7fca"
+    "androidSourceParent": "bf478361f009c3ad086e240d7af2007d98f98eb8",
+    "disposableQaInstalledBaseline": {
+      "evidenceCommit": "30700421784286dc37c42198914aef788a380f84",
+      "evidenceTree": "0fc97c2649d35f4eefbc31d9f3e7e7ff0b2145b4",
+      "path": "apps/wallet/proof/wallet-android-api36-current-source-installed-qa-2026-08-31.json",
+      "blob": "a311c0c61cdd67185e339db7f364ff757297f081",
+      "sha256": "0f8a25ce98f06ebf3ef3e8eb10bfc2d34d6691cd73fb7b16c7f685a3be97b637",
+      "apkSha256": "df5b70a3de63280fbc10cb46090b162b0dc532fdb2f74207880c29d77b3968e2",
+      "installedDisposableQa": true,
+      "cleanupComplete": true,
+      "qualifiesAsProtectedExecutionTarget": false
+    }
   },
   "requestedLease": {
     "kind": "path-scoped-installed-runtime",
@@ -130,7 +141,7 @@
   },
   "singleExecutionBlocker": {
     "id": "PROTECTED_ANDROID_WALLETCONNECT_RUNTIME_PACKAGE_UNAVAILABLE",
-    "summary": "No approved path-scoped lease or protected runtime package currently supplies the real Reown project/relay binding, authorized installed target, existing-signer test-account binding, bounded Testnet transaction policy and exact four-DApp execution URLs.",
+    "summary": "The exact disposable QA APK now has clean API 36 arm64 install, cold-launch, chain-identity and fail-closed evidence and was removed with its disposable AVD. No approved path-scoped lease or protected runtime package currently supplies a persistent authorized target, real Reown project/relay binding, existing-signer test-account binding, bounded Testnet transaction policy and exact four-DApp execution URLs.",
     "ownerAction": "A named Central release owner must issue the requested lease and populate wallet-android-walletconnect-runtime without returning protected values in chat, evidence or the repository."
   }
 }
