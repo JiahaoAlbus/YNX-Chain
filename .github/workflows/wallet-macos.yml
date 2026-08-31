@@ -148,11 +148,16 @@ jobs:
           result = json.loads(pathlib.Path('apps/wallet/proof/ci-macos/gateway-testnet-fail-closed.json').read_text())
           assert result['matrixID'] == 'ynx-wallet-auth-public-endpoint-service-discovery-v1'
           assert result['chainID'] == '0x1917'
-          assert result['restStatus'] == 200
-          assert result['walletCompletionError'] == 'UNKNOWN_OR_MISSING_FIELD'
-          assert result['walletIntrospectionError'] == 'PROOF_REQUIRED'
-          assert result['productSessionIntrospectionError'] == 'UNKNOWN_OR_MISSING_FIELD'
-          assert result['stateUnchanged'] is True
+          assert result['layer1Verified'] is True
+          if result['privateServiceDegraded']:
+            assert result['gatewayNegativeVerified'] is False
+          else:
+            assert result['gatewayNegativeVerified'] is True
+            assert result['restStatus'] == 200
+            assert result['walletCompletionError'] == 'UNKNOWN_OR_MISSING_FIELD'
+            assert result['walletIntrospectionError'] == 'PROOF_REQUIRED'
+            assert result['productSessionIntrospectionError'] == 'UNKNOWN_OR_MISSING_FIELD'
+            assert result['stateUnchanged'] is True
           for key in ['authorizationSuccess', 'accountAvailable', 'signing', 'send', 'transaction']:
             assert result[key] is False
           PY
