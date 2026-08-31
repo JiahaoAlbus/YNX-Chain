@@ -1,5 +1,6 @@
 import {connectVideoWallet, WALLET_INSTALLATION_OPTIONS, discoverWalletCandidates, walletChoiceNeedsResolution, walletCandidatesFromError} from "./wallet-connection.js";
 import {ready as i18nReady, t} from "./i18n.js";
+import {YNX_TESTNET} from "./ynx-dapp-connect-sdk/constants.js";
 
 const publicAPI = `${location.origin}/video/api`, localAPI = "http://127.0.0.1:8423";
 const API = localStorage.getItem("ynx.video.api") || ((location.hostname === "127.0.0.1" || location.hostname === "localhost") ? localAPI : publicAPI);
@@ -96,8 +97,8 @@ function bindWalletEvents(walletState) {
   };
 
   const onChainChanged = (chainId) => {
-    if (String(chainId).toLowerCase() !== "0x1917") {
-      setConnectionMessage("Wallet chain changed away from 0x1917; reconnect or switch back in your Wallet to continue.");
+    if (String(chainId).toLowerCase() !== YNX_TESTNET.evmChainHex) {
+      setConnectionMessage(`Wallet chain changed away from ${YNX_TESTNET.evmChainHex}; reconnect or switch back in your Wallet to continue.`);
       return;
     }
     currentWallet = {...currentWallet, chainId: String(chainId).toLowerCase()};
@@ -271,7 +272,7 @@ async function restoreWalletFromSession() {
     const accounts = await request({method: "eth_accounts"});
     const chainId = await request({method: "eth_chainId"});
     if (!Array.isArray(accounts) || accounts[0]?.toLowerCase() !== state.account.toLowerCase()) return;
-    if (String(chainId).toLowerCase() !== "0x1917") return;
+    if (String(chainId).toLowerCase() !== YNX_TESTNET.evmChainHex) return;
     currentWallet = {
       account: accounts[0],
       chainId: String(chainId).toLowerCase(),

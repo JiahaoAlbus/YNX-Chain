@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {createHash} from "node:crypto";
 import {readFile} from "node:fs/promises";
 import {connectVideoWallet,discoverWalletCandidates,WALLET_INSTALLATION_OPTIONS} from "./wallet-connection.js";
+import {YNX_TESTNET} from "./ynx-dapp-connect-sdk/constants.js";
 
 const read=name=>readFile(new URL(name,import.meta.url),"utf8");
 const sha=value=>createHash("sha256").update(value).digest("hex");
@@ -16,6 +17,9 @@ test("viewer exposes complete truthful interaction paths",async()=>{
   assert.match(js,/No placeholder records/);
   assert.doesNotMatch(js,/walletAuthorizationURL|ynx-video-web-v1|chain_id=6423|authorize\\?client=/);
   assert.doesNotMatch(js,/Math\\.random|fake views/i);
+  assert.match(html,/href="\.\//);
+  assert.match(html,/assets\/ynx-logo\.svg/);
+  assert.doesNotMatch(html,/ynxwallet:\/\/|ynxvideo:\/\//i);
 });
 
 test("accepted browser-safe SDK modules remain byte exact",async()=>{
@@ -23,6 +27,14 @@ test("accepted browser-safe SDK modules remain byte exact",async()=>{
   for(const [file,expected] of Object.entries(manifest.files))assert.equal(sha(await read("ynx-dapp-connect-sdk/"+file)),expected,file);
   assert.equal(manifest.acceptedSdkSource,"315897e75c0ffe3e63435fe73cfec42244b851cc");
   assert.equal(manifest.productSessionIncluded,false);
+});
+
+test("Video has one strict 6423 Testnet configuration and excludes legacy ingress",async()=>{
+  assert.deepEqual(YNX_TESTNET,{cosmosChainId:"ynx_6423-1",evmChainId:6423,evmChainHex:"0x1917",nativeAsset:"YNXT",externalAccountFormat:"0x-prefixed EVM account only"});
+  for(const file of ["app.js","wallet-connection.js","ynx-dapp-connect-sdk/constants.js","product-release.json"]){
+    const source=await read(file);
+    assert.doesNotMatch(source,/9102|0x238e/i,`${file} retains a legacy chain ingress`);
+  }
 });
 
 test("YNX EIP-6963 provider is preferred and switches to 0x1917",async()=>{

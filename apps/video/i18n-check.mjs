@@ -15,5 +15,7 @@ assert(manifest.includes('android:supportsRtl="true"')&&android.includes('LAYOUT
 assert(plist.includes("ynxvideo")&&plist.includes("$(PRODUCT_BUNDLE_IDENTIFIER)"),"iOS identity/deep link missing");
 for(const source of [android,swift])for(const feature of ["formatDate","formatCurrency"]){const alternatives=feature==="formatCurrency"?["formatCurrency","format(currency","formatMoney"]:[feature,"format(date"] ;assert(alternatives.some(x=>source.includes(x)),`${feature} localization missing`)}
 assert(web.includes('document.documentElement.dir=locale==="ar"?"rtl":"ltr"'),"Web RTL direction missing");
+assert(web.includes('let catalog={};'),"Web catalog must remain replaceable after a successful fetch");
+assert(web.includes('new URL("./i18n/catalog.json",import.meta.url)'),"Web catalog must resolve under the public /video/ route");
 assert(swift.includes("layoutDirection")&&swift.includes('model.locale=="ar"'),"iOS RTL missing");
 console.log(`i18n audit passed: ${required.length} locales, ${keys.length} exact keys, RTL and critical semantics`);

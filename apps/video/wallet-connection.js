@@ -1,6 +1,7 @@
 import {discoverEIP6963} from "./ynx-dapp-connect-sdk/discovery.js";
 import {DAppConnectError} from "./ynx-dapp-connect-sdk/errors.js";
 import {StandardWalletConnection} from "./ynx-dapp-connect-sdk/provider.js";
+import {YNX_TESTNET} from "./ynx-dapp-connect-sdk/constants.js";
 
 const REDUCE_STATES = Object.freeze({
   RESTORE: "RESTORE",
@@ -44,9 +45,9 @@ export function reduceStandardWalletConnectState(state = REDUCE_STATES.RESTORE, 
 }
 
 export const YNX_TESTNET_ADD_CHAIN = Object.freeze({
-  chainId: "0x1917",
-  chainName: "YNX Testnet",
-  nativeCurrency: Object.freeze({name: "YNX Testnet", symbol: "YNXT", decimals: 18}),
+  chainId: YNX_TESTNET.evmChainHex,
+  chainName: `YNX Testnet (${YNX_TESTNET.cosmosChainId})`,
+  nativeCurrency: Object.freeze({name: "YNX Testnet", symbol: YNX_TESTNET.nativeAsset, decimals: 18}),
   rpcUrls: Object.freeze(["https://evm.ynxweb4.com"]),
   blockExplorerUrls: Object.freeze(["https://explorer.ynxweb4.com"]),
 });
@@ -178,7 +179,7 @@ export async function connectVideoWallet(windowLike = window, {timeoutMs = 250, 
   reduceStandardWalletConnectState({state: REDUCE_STATES.OPEN_CHOOSER}, "ACCOUNT_APPROVED", {account: connected.account});
   await connection.ensureYNXTestnet({addChain: YNX_TESTNET_ADD_CHAIN});
   const chainId = await selected.provider.request({method: "eth_chainId"});
-  if (String(chainId).toLowerCase() !== "0x1917") throw new DAppConnectError("WRONG_CHAIN", "Wallet did not finish switching to YNX Testnet.");
+  if (String(chainId).toLowerCase() !== YNX_TESTNET.evmChainHex) throw new DAppConnectError("WRONG_CHAIN", "Wallet did not finish switching to YNX Testnet.");
   reduceStandardWalletConnectState({state: REDUCE_STATES.OPEN_CHOOSER}, "CHAIN_CONFIRMED", {chainId});
   return Object.freeze({
     account: connected.account,

@@ -6,7 +6,9 @@ button,input,textarea{font:inherit}
 .sr-only,.skip{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
 .skip:focus{width:auto;height:auto;clip:auto;left:12px;top:12px;background:var(--surface);padding:10px 14px;z-index:20}
 .topbar{height:68px;padding:0 28px;display:grid;grid-template-columns:180px minmax(240px,640px) minmax(240px,1fr);grid-template-areas:"brand search actions";direction:ltr;align-items:center;gap:24px;background:var(--surface);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
-.brand{grid-area:brand;display:flex;align-items:baseline;gap:8px;color:inherit;text-decoration:none;letter-spacing:-.02em}
+.brand{grid-area:brand;display:flex;align-items:center;gap:8px;color:inherit;text-decoration:none;letter-spacing:-.02em}
+.brand-mark{display:grid;place-items:center;width:32px;height:32px;padding:5px;border-radius:9px;background:linear-gradient(145deg,#003dce,#001f79);box-shadow:inset 0 0 0 1px #ffffff38}
+.brand-mark img{display:block;width:100%;height:100%}
 .brand strong{color:var(--blue);font-size:1.08rem}
 .brand span{font-weight:650}
 .header-actions{grid-area:actions;justify-self:end;display:flex;align-items:center;gap:8px}

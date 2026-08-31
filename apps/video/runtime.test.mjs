@@ -53,6 +53,12 @@ test("self-contained server serves the public /video path without a shared relea
     const response = await fetch(`http://127.0.0.1:${port}/video/`);
     assert.equal(response.status, 200);
     assert.match(await response.text(), /YNX Video/);
+    const catalog = await fetch(`http://127.0.0.1:${port}/video/i18n/catalog.json`);
+    assert.equal(catalog.status, 200);
+    assert.match(await catalog.text(), /"zh-CN"/);
+    const i18nSource = readFileSync(join(videoRoot, "i18n.js"), "utf8");
+    assert.match(i18nSource, /new URL\("\.\/i18n\/catalog\.json",import\.meta\.url\)/);
+    assert.doesNotMatch(i18nSource, /fetch\("\/i18n\/catalog\.json"\)/);
   } finally {
     child.kill("SIGTERM");
     await once(child, "exit");
