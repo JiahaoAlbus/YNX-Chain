@@ -75,4 +75,4 @@ Central must bind one authoritative HTTPS Data Fabric origin and the exact runti
 
 - Test-only precision correction: `c134290a4800a30c2f1f5a57523adf1daea34ad3` makes the recording PostgreSQL driver return the same microsecond `timestamptz` precision as the real database.
 - It fixes the negative CI result from run `33373383241`: runtime behavior was already microsecond-canonical; the prior fixture incorrectly returned nanosecond values and therefore simulated a parameter drift on a same-audit-ID replay.
-- Focused PostgreSQL tests, race tests, vet, TypeScript SDK tests and release-truth validation pass locally. Exact-source remote CI is pending for the pushed binding head; no central, runtime, or public state changes are claimed.
+- Focused PostgreSQL tests, race tests, vet, TypeScript SDK tests and release-truth validation pass locally. GitHub Actions run `33374309851` passed all six jobs for the pushed binding head `f818ee876dbd7e20016f9363c09ef8e0a6fedeb3`; no central, runtime, or public state changes are claimed.

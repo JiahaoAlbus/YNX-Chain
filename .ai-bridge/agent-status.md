@@ -5,7 +5,7 @@
 - Workspace: exact configured YNX 26 Worktree verified
 - Branch: `codex/final-data-fabric`
 - Engineering Source Commit: `c134290a4800a30c2f1f5a57523adf1daea34ad3`
-- Remote Source Commit: exact-source CI is pending for this engineering commit. Prior run `33371153886` remains successful evidence for the preceding receipt implementation only; it is not Central integration or public runtime proof.
+- Remote Source Commit: GitHub Actions run `33374309851` completed successfully for binding head `f818ee876dbd7e20016f9363c09ef8e0a6fedeb3`, a descendant of engineering source `c134290a4800a30c2f1f5a57523adf1daea34ad3`. All six Data Fabric jobs passed. This is CI evidence only, not Central integration or public runtime proof.
 - Source evidence CI: Run `31811137802` passed both jobs at v26-bound head `58eff9dad4a0a3dc27105716928f2a9b7c4f6460`, including the three-replica JetStream TCP route-partition/heal gate. Its eleven-file artifact was downloaded and every SHA-256 value verified. Earlier leader-loss evidence remains preserved in Runs `31797308684` and `31799837096`.
 - Concurrent writer: no Git writer detected; an existing CodexPro server process was left untouched
 - Dirty state: candidate source, delivery documents and exact-source CI receipt are committed on the review branch; legacy recovery files remain preserved under `recovery/2026-07-23/`

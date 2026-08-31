@@ -6,7 +6,7 @@
   "overallStatus": "ACTIVE",
   "sourceCommit": "c134290a4800a30c2f1f5a57523adf1daea34ad3",
   "release": "ynx-data-fabric-c134290a4800",
-  "lastUpdated": "2026-08-31T08:31:48Z",
+  "lastUpdated": "2026-08-31T08:50:22Z",
   "items": [
     {
       "id": "DF-RECOVER-001",
@@ -387,7 +387,7 @@
       "blockedBy": [],
       "owner": "YNX Data Fabric",
   "nextAction": "Obtain an approved retention-policy and scheduler binding before activating recurring sweeps; add encrypted PII references without placing PII in canonical events.",
-  "lastUpdated": "2026-08-31T08:28:10Z"
+  "lastUpdated": "2026-08-31T08:50:22Z"
     },
     {
       "id": "DF-AUTH-001",
