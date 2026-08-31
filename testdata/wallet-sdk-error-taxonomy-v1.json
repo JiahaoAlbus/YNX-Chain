@@ -21,6 +21,17 @@
     "TRANSPORT_TLS",
     "WRONG_CHAIN"
   ],
+  "diagnostics": {
+    "ACCOUNT_NOT_FOUND": {"summary": "The account was not found.", "remediation": "VERIFY_ACCOUNT_AND_RETRY"},
+    "HTTP_ERROR": {"summary": "The endpoint rejected the request.", "remediation": "CHECK_ENDPOINT_STATUS"},
+    "JSON_RPC_ERROR": {"summary": "The RPC returned an application error.", "remediation": "CHECK_RPC_METHOD_SUPPORT"},
+    "MALFORMED_RESPONSE": {"summary": "The endpoint response was invalid.", "remediation": "VERIFY_RPC_RESPONSE"},
+    "RPC_UNAVAILABLE": {"summary": "The RPC service is unavailable.", "remediation": "CHECK_NETWORK_AND_RETRY"},
+    "TRANSPORT_CANCELLED": {"summary": "The request was cancelled.", "remediation": "RETRY_WHEN_READY"},
+    "TRANSPORT_TIMEOUT": {"summary": "The request timed out.", "remediation": "CHECK_NETWORK_AND_RETRY"},
+    "TRANSPORT_TLS": {"summary": "TLS validation failed.", "remediation": "CHECK_SYSTEM_TIME_AND_CERTIFICATES"},
+    "WRONG_CHAIN": {"summary": "The RPC is not YNX Testnet 6423 (0x1917).", "remediation": "USE_YNX_TESTNET_6423"}
+  },
   "httpCases": [
     {
       "name": "authoritative-account-absence",

@@ -62,8 +62,12 @@ func TestSharedTypeScriptGoTaxonomyVectorAnd6423OnlyPolicy(t *testing.T) {
 			ImplicitRetries bool `json:"implicitRetries"`
 			MaximumAttempts int  `json:"maximumAttempts"`
 		} `json:"requestPolicy"`
-		ErrorCodes []ErrorCode `json:"errorCodes"`
-		HTTPCases  []struct {
+		ErrorCodes  []ErrorCode `json:"errorCodes"`
+		Diagnostics map[ErrorCode]struct {
+			Summary     string `json:"summary"`
+			Remediation string `json:"remediation"`
+		} `json:"diagnostics"`
+		HTTPCases []struct {
 			Name          string         `json:"name"`
 			Status        int            `json:"status"`
 			AccountLookup bool           `json:"accountLookup"`
@@ -88,6 +92,10 @@ func TestSharedTypeScriptGoTaxonomyVectorAnd6423OnlyPolicy(t *testing.T) {
 		if vector.ErrorCodes[index] != wantCodes[index] {
 			t.Fatalf("error code %d: got %s want %s", index, vector.ErrorCodes[index], wantCodes[index])
 		}
+		summary, remediation := ErrorDiagnostic(wantCodes[index])
+		if summary != vector.Diagnostics[wantCodes[index]].Summary || remediation != vector.Diagnostics[wantCodes[index]].Remediation {
+			t.Fatalf("diagnostic %s drifted", wantCodes[index])
+		}
 	}
 	if len(vector.Network.ForbiddenChainIDs) != 2 || vector.Network.ForbiddenChainIDs[0] != float64(9102) || vector.Network.ForbiddenChainIDs[1] != "0x238e" {
 		t.Fatalf("9102 rejection vector drifted: %+v", vector.Network.ForbiddenChainIDs)
@@ -99,6 +107,26 @@ func TestSharedTypeScriptGoTaxonomyVectorAnd6423OnlyPolicy(t *testing.T) {
 		}
 		if actual := ClassifyHTTPFailure(item.Status, body, item.AccountLookup); actual.Code != item.Expected {
 			t.Fatalf("%s: got %s, want %s", item.Name, actual.Code, item.Expected)
+		}
+	}
+}
+
+func TestExact6423ConfigAndLegacy9102FailClosed(t *testing.T) {
+	if err := ValidateYNXTestnetConfig(YNXNativeChainID, YNXChainID, YNXEVMChainID); err != nil {
+		t.Fatal(err)
+	}
+	for _, item := range []struct {
+		native  string
+		decimal int
+		evm     string
+	}{
+		{native: "ynx_9102-1", decimal: 6423, evm: "0x1917"},
+		{native: "ynx_6423-1", decimal: 9102, evm: "0x1917"},
+		{native: "ynx_6423-1", decimal: 6423, evm: "0x238e"},
+	} {
+		var classified *TransportError
+		if err := ValidateYNXTestnetConfig(item.native, item.decimal, item.evm); !errors.As(err, &classified) || classified.Code != ErrorWrongChain {
+			t.Fatalf("legacy config accepted or misclassified: %v", err)
 		}
 	}
 }
@@ -148,7 +176,7 @@ func TestRedactedDiagnosticExcludesCauseDetailAndEndpoint(t *testing.T) {
 	if marshalErr != nil {
 		t.Fatal(marshalErr)
 	}
-	if strings.Contains(string(encoded), secret) || string(encoded) != `{"code":"JSON_RPC_ERROR","httpStatus":200,"rpcCode":-32001}` {
+	if strings.Contains(string(encoded), secret) || string(encoded) != `{"code":"JSON_RPC_ERROR","summary":"The RPC returned an application error.","remediation":"CHECK_RPC_METHOD_SUPPORT","httpStatus":200,"rpcCode":-32001}` {
 		t.Fatalf("unsafe diagnostic: %s", encoded)
 	}
 }

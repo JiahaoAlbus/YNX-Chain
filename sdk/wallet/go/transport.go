@@ -42,9 +42,36 @@ type TransportError struct {
 }
 
 type Diagnostic struct {
-	Code       string `json:"code"`
-	HTTPStatus int    `json:"httpStatus,omitempty"`
-	RPCCode    int    `json:"rpcCode,omitempty"`
+	Code        string `json:"code"`
+	Summary     string `json:"summary"`
+	Remediation string `json:"remediation"`
+	HTTPStatus  int    `json:"httpStatus,omitempty"`
+	RPCCode     int    `json:"rpcCode,omitempty"`
+}
+
+func ErrorDiagnostic(code ErrorCode) (string, string) {
+	switch code {
+	case ErrorAccountNotFound:
+		return "The account was not found.", "VERIFY_ACCOUNT_AND_RETRY"
+	case ErrorHTTP:
+		return "The endpoint rejected the request.", "CHECK_ENDPOINT_STATUS"
+	case ErrorJSONRPC:
+		return "The RPC returned an application error.", "CHECK_RPC_METHOD_SUPPORT"
+	case ErrorMalformedResponse:
+		return "The endpoint response was invalid.", "VERIFY_RPC_RESPONSE"
+	case ErrorRPCUnavailable:
+		return "The RPC service is unavailable.", "CHECK_NETWORK_AND_RETRY"
+	case ErrorTransportCancelled:
+		return "The request was cancelled.", "RETRY_WHEN_READY"
+	case ErrorTransportTimeout:
+		return "The request timed out.", "CHECK_NETWORK_AND_RETRY"
+	case ErrorTransportTLS:
+		return "TLS validation failed.", "CHECK_SYSTEM_TIME_AND_CERTIFICATES"
+	case ErrorWrongChain:
+		return "The RPC is not YNX Testnet 6423 (0x1917).", "USE_YNX_TESTNET_6423"
+	default:
+		return "The request failed.", "CHECK_INPUT_AND_RETRY"
+	}
 }
 
 // RedactedDiagnostic intentionally excludes causes, response bodies, URLs and
@@ -52,9 +79,17 @@ type Diagnostic struct {
 func RedactedDiagnostic(err error) Diagnostic {
 	var classified *TransportError
 	if errors.As(err, &classified) {
-		return Diagnostic{Code: string(classified.Code), HTTPStatus: classified.HTTPStatus, RPCCode: classified.RPCCode}
+		summary, remediation := ErrorDiagnostic(classified.Code)
+		return Diagnostic{Code: string(classified.Code), Summary: summary, Remediation: remediation, HTTPStatus: classified.HTTPStatus, RPCCode: classified.RPCCode}
 	}
-	return Diagnostic{Code: "INTERNAL_ERROR"}
+	return Diagnostic{Code: "INTERNAL_ERROR", Summary: "The request failed.", Remediation: "CHECK_INPUT_AND_RETRY"}
+}
+
+func ValidateYNXTestnetConfig(nativeChainID string, chainID int, evmChainID string) error {
+	if nativeChainID != YNXNativeChainID || chainID != YNXChainID || evmChainID != YNXEVMChainID {
+		return &TransportError{Code: ErrorWrongChain, Detail: "YNX network configuration must use ynx_6423-1 / 6423 / 0x1917"}
+	}
+	return nil
 }
 
 func (e *TransportError) Error() string {

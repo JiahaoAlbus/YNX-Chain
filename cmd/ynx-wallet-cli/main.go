@@ -21,6 +21,20 @@ var version = "dev"
 // Central endpoint matrix d0f89797 freezes this as the canonical public EVM RPC.
 const defaultRPC = "https://rpc.ynxweb4.com/evm"
 
+const usageText = `YNX Wallet CLI (Testnet)
+
+Usage:
+  ynx-wallet-cli help
+  ynx-wallet-cli version
+  ynx-wallet-cli validate-config [--native-chain ynx_6423-1] [--chain-id 6423] [--evm-chain-id 0x1917]
+  ynx-wallet-cli chain-status [--rpc https://rpc.ynxweb4.com/evm] [--timeout 8s]
+  ynx-wallet-cli verify-vector [--file PATH]
+  ynx-wallet-cli sign-self-test
+
+Network: ynx_6423-1 / 6423 / 0x1917 / YNXT
+Safety: read-only chain-status makes one request; it never requests an account, signs, or sends a transaction.
+`
+
 const (
 	exitOK          = 0
 	exitGeneral     = 1
@@ -76,12 +90,26 @@ func exitCode(err error) int {
 }
 
 func runContext(parent context.Context, args []string, out io.Writer, client *http.Client) error {
-	if len(args) == 0 {
-		return errors.New("command required: version, verify-vector, sign-self-test, or chain-status")
+	if len(args) == 0 || args[0] == "help" || args[0] == "--help" || args[0] == "-h" {
+		_, err := io.WriteString(out, usageText)
+		return err
 	}
 	switch args[0] {
 	case "version":
-		return json.NewEncoder(out).Encode(map[string]any{"name": "ynx-wallet-cli", "version": version, "protocol": "YNX_PRODUCT_SESSION_HTTP_PROOF_V1", "productionSigned": false})
+		return json.NewEncoder(out).Encode(map[string]any{"name": "ynx-wallet-cli", "version": version, "protocol": "YNX_PRODUCT_SESSION_HTTP_PROOF_V1", "nativeChainId": wallet.YNXNativeChainID, "chainId": wallet.YNXChainID, "evmChainId": wallet.YNXEVMChainID, "productionSigned": false})
+	case "validate-config":
+		flags := flag.NewFlagSet("validate-config", flag.ContinueOnError)
+		flags.SetOutput(io.Discard)
+		nativeChainID := flags.String("native-chain", wallet.YNXNativeChainID, "native YNX chain ID")
+		chainID := flags.Int("chain-id", wallet.YNXChainID, "decimal YNX chain ID")
+		evmChainID := flags.String("evm-chain-id", wallet.YNXEVMChainID, "hex EVM chain ID")
+		if err := flags.Parse(args[1:]); err != nil || flags.NArg() != 0 {
+			return errors.New("invalid validate-config arguments")
+		}
+		if err := wallet.ValidateYNXTestnetConfig(*nativeChainID, *chainID, *evmChainID); err != nil {
+			return err
+		}
+		return json.NewEncoder(out).Encode(map[string]any{"valid": true, "nativeChainId": *nativeChainID, "chainId": *chainID, "evmChainId": *evmChainID, "nativeCurrency": "YNXT"})
 	case "verify-vector":
 		flags := flag.NewFlagSet("verify-vector", flag.ContinueOnError)
 		flags.SetOutput(io.Discard)

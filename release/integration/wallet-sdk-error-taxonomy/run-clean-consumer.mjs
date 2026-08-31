@@ -36,13 +36,20 @@ try {
   const sourceWorktreeDirty = command("git", ["status", "--short"], root).trim() !== "";
   await writeFile(resolve(temporary, "consumer.mjs"), `
 import assert from "node:assert/strict";
-import {YNXSDKError, classifyYNXHTTPFailure, proveYNXTestnetRPC, redactYNXSDKError, ynxErrorCodes, ynxPublicEndpoints, ynxTestnet} from "@ynx-chain/sdk";
+import {YNXSDKError, classifyYNXHTTPFailure, proveYNXTestnetRPC, redactYNXSDKError, validateYNXTestnetConfig, ynxErrorCodes, ynxErrorDiagnostic, ynxPublicEndpoints, ynxTestnet} from "@ynx-chain/sdk";
 
 assert.equal(ynxTestnet.chainId, "0x1917");
 assert.equal(ynxTestnet.chainIdDecimal, 6423);
 assert.equal(ynxPublicEndpoints.rpcUrl, "https://rpc.ynxweb4.com/evm");
 assert.equal(classifyYNXHTTPFailure(404, {code: "ACCOUNT_NOT_FOUND"}, {accountLookup: true}), ynxErrorCodes.accountNotFound);
 assert.equal(classifyYNXHTTPFailure(404, {code: "ACCOUNT_NOT_FOUND"}), ynxErrorCodes.httpError);
+assert.deepEqual(validateYNXTestnetConfig({nativeChainId: "ynx_6423-1", chainIdDecimal: 6423, evmChainId: "0x1917"}), {nativeChainId: "ynx_6423-1", chainIdDecimal: 6423, evmChainId: "0x1917"});
+for (const input of [
+  {nativeChainId: "ynx_9102-1", chainIdDecimal: 6423, evmChainId: "0x1917"},
+  {nativeChainId: "ynx_6423-1", chainIdDecimal: 9102, evmChainId: "0x1917"},
+  {nativeChainId: "ynx_6423-1", chainIdDecimal: 6423, evmChainId: "0x238e"}
+]) assert.throws(() => validateYNXTestnetConfig(input), (error) => error.code === ynxErrorCodes.wrongChain);
+assert.deepEqual(ynxErrorDiagnostic(ynxErrorCodes.wrongChain), {summary: "The RPC is not YNX Testnet 6423 (0x1917).", remediation: "USE_YNX_TESTNET_6423"});
 
 let requests = 0;
 const valid = await proveYNXTestnetRPC(undefined, {fetchImpl: async () => {
@@ -92,10 +99,10 @@ for (const malformed of [
 }
 
 const diagnostic = redactYNXSDKError(new YNXSDKError("secret-url-and-body", {cause: new Error("secret-url-and-body"), code: ynxErrorCodes.jsonRPCError, rpcCode: -32001, status: 200}));
-assert.deepEqual(diagnostic, {name: "YNXSDKError", code: "JSON_RPC_ERROR", status: 200, rpcCode: -32001});
+assert.deepEqual(diagnostic, {name: "YNXSDKError", code: "JSON_RPC_ERROR", summary: "The RPC returned an application error.", remediation: "CHECK_RPC_METHOD_SUPPORT", status: 200, rpcCode: -32001});
 assert.equal(JSON.stringify(diagnostic).includes("secret-url-and-body"), false);
 
-console.log(JSON.stringify({cleanConsumer: true, installedFromTarball: true, exactChainId: valid.chainId, chain9102Rejected: true, implicitRetries: false, abortSignalCancellation: true, malformedRPCSeparated: true, malformedBatchNotificationRejected: true, jsonRPCErrorSeparated: true, redactedDiagnostics: true}));
+console.log(JSON.stringify({cleanConsumer: true, installedFromTarball: true, exactChainId: valid.chainId, exactConfigValidated: true, chain9102Rejected: true, remediationContractVerified: true, implicitRetries: false, abortSignalCancellation: true, malformedRPCSeparated: true, malformedBatchNotificationRejected: true, jsonRPCErrorSeparated: true, redactedDiagnostics: true}));
 `);
   const consumer = command(process.execPath, [resolve(temporary, "consumer.mjs")], temporary);
   const result = JSON.parse(consumer.trim());

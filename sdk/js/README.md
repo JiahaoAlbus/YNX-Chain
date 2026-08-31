@@ -29,4 +29,9 @@ fields. It deliberately excludes causes, URLs, server response bodies, and
 free-form messages. JSON-RPC batch arrays and notifications without the exact
 request ID are rejected as `MALFORMED_RESPONSE`.
 
+`validateYNXTestnetConfig` accepts only `ynx_6423-1`, decimal `6423`, and EVM
+`0x1917`; legacy `9102`/`0x238e` values fail closed as `WRONG_CHAIN`.
+`ynxErrorDiagnostic` provides the same safe English summary and remediation
+code consumed by the Go SDK and CLI.
+
 Run `npm test`, then `node examples/real-testnet-read.mjs`. The example fails closed if the public endpoint is unavailable, returns invalid JSON-RPC, or identifies any chain other than `0x1917`.

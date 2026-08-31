@@ -41,7 +41,9 @@ export declare const ynxErrorCodes: Readonly<{
   transportTimeout: "TRANSPORT_TIMEOUT";
   wrongChain: "WRONG_CHAIN";
 }>;
-export declare function redactYNXSDKError(error: unknown): Readonly<{name: "YNXSDKError"; code: string; status?: number; rpcCode?: number}>;
+export declare function redactYNXSDKError(error: unknown): Readonly<{name: "YNXSDKError"; code: string; summary?: string; remediation?: string; status?: number; rpcCode?: number}>;
+export declare function ynxErrorDiagnostic(code: string): Readonly<{summary: string; remediation: string}>;
+export declare function validateYNXTestnetConfig(input: {nativeChainId: string; chainIdDecimal: number; evmChainId: string}): Readonly<{nativeChainId: "ynx_6423-1"; chainIdDecimal: 6423; evmChainId: "0x1917"}>;
 export declare function classifyYNXHTTPFailure(status: number, data: unknown, options?: {accountLookup?: boolean}): "ACCOUNT_NOT_FOUND" | "HTTP_ERROR" | "RPC_UNAVAILABLE";
 export declare class YNXWalletError extends Error { readonly code?: number | string; readonly method?: string }
 export declare function toYNXAddress(value: string): string;

@@ -81,8 +81,34 @@ func TestTypedExitCodesAndRedactedDiagnostics(t *testing.T) {
 	if code := execute(ctx, []string{"chain-status", "-rpc", "https://rpc.example.invalid"}, io.Discard, &diagnostics, client); code != exitCancelled {
 		t.Fatalf("got exit %d: %s", code, diagnostics.String())
 	}
-	if requests != 0 || strings.Contains(diagnostics.String(), secret) || diagnostics.String() != "{\"error\":{\"code\":\"TRANSPORT_CANCELLED\"},\"ok\":false}\n" {
+	if requests != 0 || strings.Contains(diagnostics.String(), secret) || diagnostics.String() != "{\"error\":{\"code\":\"TRANSPORT_CANCELLED\",\"summary\":\"The request was cancelled.\",\"remediation\":\"RETRY_WHEN_READY\"},\"ok\":false}\n" {
 		t.Fatalf("unsafe diagnostic or request count: requests=%d diagnostic=%s", requests, diagnostics.String())
+	}
+}
+
+func TestHelpAndExactConfigValidation(t *testing.T) {
+	var help bytes.Buffer
+	if err := run([]string{"help"}, &help, &http.Client{}); err != nil {
+		t.Fatal(err)
+	}
+	for _, required := range []string{"YNX Wallet CLI (Testnet)", "ynx_6423-1 / 6423 / 0x1917 / YNXT", "never requests an account, signs, or sends a transaction"} {
+		if !strings.Contains(help.String(), required) {
+			t.Fatalf("help missing %q", required)
+		}
+	}
+	var output bytes.Buffer
+	if err := run([]string{"validate-config"}, &output, &http.Client{}); err != nil || !strings.Contains(output.String(), `"chainId":6423`) || !strings.Contains(output.String(), `"evmChainId":"0x1917"`) {
+		t.Fatalf("valid config failed: %v %s", err, output.String())
+	}
+	for _, args := range [][]string{
+		{"validate-config", "--native-chain", "ynx_9102-1"},
+		{"validate-config", "--chain-id", "9102"},
+		{"validate-config", "--evm-chain-id", "0x238e"},
+	} {
+		var diagnostics bytes.Buffer
+		if code := execute(context.Background(), args, io.Discard, &diagnostics, &http.Client{}); code != exitConfig || !strings.Contains(diagnostics.String(), `"remediation":"USE_YNX_TESTNET_6423"`) {
+			t.Fatalf("legacy config did not fail closed: code=%d diagnostic=%s", code, diagnostics.String())
+		}
 	}
 }
 

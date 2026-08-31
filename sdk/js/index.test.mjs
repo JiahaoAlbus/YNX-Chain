@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import {after, before, test} from "node:test";
 import http from "node:http";
 import {readFile} from "node:fs/promises";
-import {YNXClient, YNXSDKError, assertYNXTestnetSnapshot, callYNXEVM, classifyYNXHTTPFailure, getYNXStatus, normalizeYNXAddress, proveYNXTestnetRPC, redactYNXSDKError, toEVMAddress, toYNXAddress, ynxErrorCodes, ynxPublicEndpoints} from "./index.js";
+import {YNXClient, YNXSDKError, assertYNXTestnetSnapshot, callYNXEVM, classifyYNXHTTPFailure, getYNXStatus, normalizeYNXAddress, proveYNXTestnetRPC, redactYNXSDKError, toEVMAddress, toYNXAddress, validateYNXTestnetConfig, ynxErrorCodes, ynxErrorDiagnostic, ynxPublicEndpoints} from "./index.js";
 
 let baseUrl;
 let server;
@@ -84,9 +84,19 @@ test("matches the shared TS/Go error taxonomy vector and 6423-only policy", asyn
   assert.deepEqual(vector.network, {nativeChainId: "ynx_6423-1", chainIdDecimal: 6423, evmChainId: "0x1917", forbiddenChainIds: [9102, "0x238e"]});
   assert.deepEqual(vector.requestPolicy, {implicitRetries: false, maximumAttempts: 1});
   assert.deepEqual(vector.errorCodes, ["ACCOUNT_NOT_FOUND", "HTTP_ERROR", "JSON_RPC_ERROR", "MALFORMED_RESPONSE", "RPC_UNAVAILABLE", "TRANSPORT_CANCELLED", "TRANSPORT_TIMEOUT", "TRANSPORT_TLS", "WRONG_CHAIN"]);
+  for (const code of vector.errorCodes) assert.deepEqual(ynxErrorDiagnostic(code), vector.diagnostics[code], code);
   for (const item of vector.httpCases) {
     assert.equal(classifyYNXHTTPFailure(item.status, item.body, {accountLookup: item.accountLookup}), item.expected, item.name);
   }
+});
+
+test("validates the exact 6423 configuration and rejects legacy 9102", () => {
+  assert.deepEqual(validateYNXTestnetConfig({nativeChainId: "ynx_6423-1", chainIdDecimal: 6423, evmChainId: "0x1917"}), {nativeChainId: "ynx_6423-1", chainIdDecimal: 6423, evmChainId: "0x1917"});
+  for (const input of [
+    {nativeChainId: "ynx_9102-1", chainIdDecimal: 6423, evmChainId: "0x1917"},
+    {nativeChainId: "ynx_6423-1", chainIdDecimal: 9102, evmChainId: "0x1917"},
+    {nativeChainId: "ynx_6423-1", chainIdDecimal: 6423, evmChainId: "0x238e"},
+  ]) assert.throws(() => validateYNXTestnetConfig(input), (error) => error.code === ynxErrorCodes.wrongChain);
 });
 
 test("distinguishes caller cancellation from timeout in browser and Node fetch", async () => {
@@ -128,7 +138,7 @@ test("redacts causes, URLs, response bodies and messages from diagnostics", () =
     cause: new Error(secret), code: ynxErrorCodes.jsonRPCError, rpcCode: -32001, status: 200,
   });
   const diagnostic = redactYNXSDKError(error);
-  assert.deepEqual(diagnostic, {name: "YNXSDKError", code: "JSON_RPC_ERROR", status: 200, rpcCode: -32001});
+  assert.deepEqual(diagnostic, {name: "YNXSDKError", code: "JSON_RPC_ERROR", summary: "The RPC returned an application error.", remediation: "CHECK_RPC_METHOD_SUPPORT", status: 200, rpcCode: -32001});
   assert.equal(JSON.stringify(diagnostic).includes(secret), false);
 });
 

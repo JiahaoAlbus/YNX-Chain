@@ -44,12 +44,36 @@ export const ynxErrorCodes = Object.freeze({
   wrongChain: "WRONG_CHAIN",
 });
 
+const ERROR_DIAGNOSTICS = Object.freeze({
+  [ynxErrorCodes.accountNotFound]: Object.freeze({summary: "The account was not found.", remediation: "VERIFY_ACCOUNT_AND_RETRY"}),
+  [ynxErrorCodes.httpError]: Object.freeze({summary: "The endpoint rejected the request.", remediation: "CHECK_ENDPOINT_STATUS"}),
+  [ynxErrorCodes.jsonRPCError]: Object.freeze({summary: "The RPC returned an application error.", remediation: "CHECK_RPC_METHOD_SUPPORT"}),
+  [ynxErrorCodes.malformedResponse]: Object.freeze({summary: "The endpoint response was invalid.", remediation: "VERIFY_RPC_RESPONSE"}),
+  [ynxErrorCodes.rpcUnavailable]: Object.freeze({summary: "The RPC service is unavailable.", remediation: "CHECK_NETWORK_AND_RETRY"}),
+  [ynxErrorCodes.transportCancelled]: Object.freeze({summary: "The request was cancelled.", remediation: "RETRY_WHEN_READY"}),
+  [ynxErrorCodes.transportTimeout]: Object.freeze({summary: "The request timed out.", remediation: "CHECK_NETWORK_AND_RETRY"}),
+  [ynxErrorCodes.transportTLS]: Object.freeze({summary: "TLS validation failed.", remediation: "CHECK_SYSTEM_TIME_AND_CERTIFICATES"}),
+  [ynxErrorCodes.wrongChain]: Object.freeze({summary: "The RPC is not YNX Testnet 6423 (0x1917).", remediation: "USE_YNX_TESTNET_6423"}),
+});
+
+export function ynxErrorDiagnostic(code) {
+  return ERROR_DIAGNOSTICS[code] ?? Object.freeze({summary: "The request failed.", remediation: "CHECK_INPUT_AND_RETRY"});
+}
+
 export function redactYNXSDKError(error) {
   if (!(error instanceof YNXSDKError)) return Object.freeze({name: "YNXSDKError", code: "INTERNAL_ERROR"});
-  const diagnostic = {name: error.name, code: typeof error.code === "string" ? error.code : "INTERNAL_ERROR"};
+  const code = typeof error.code === "string" ? error.code : "INTERNAL_ERROR";
+  const diagnostic = {name: error.name, code, ...ynxErrorDiagnostic(code)};
   if (Number.isInteger(error.status)) diagnostic.status = error.status;
   if (Number.isInteger(error.rpcCode)) diagnostic.rpcCode = error.rpcCode;
   return Object.freeze(diagnostic);
+}
+
+export function validateYNXTestnetConfig({nativeChainId, chainIdDecimal, evmChainId} = {}) {
+  if (nativeChainId !== "ynx_6423-1" || chainIdDecimal !== 6423 || evmChainId !== "0x1917") {
+    throw new YNXSDKError("YNX network configuration must use ynx_6423-1 / 6423 / 0x1917", {code: ynxErrorCodes.wrongChain});
+  }
+  return Object.freeze({nativeChainId, chainIdDecimal, evmChainId});
 }
 
 export function classifyYNXHTTPFailure(status, data, {accountLookup = false} = {}) {
