@@ -45,6 +45,7 @@ export interface FinanceStreamEnvelope {
 }
 export function validateSource(source: SourceMetadata): SourceMetadata;
 export function validateDecimal(value: string, field?: string): string;
+export function compareDecimal(left: string, right: string): -1 | 0 | 1;
 export function validateModel(kind: ModelKind, value: DomainRecord): DomainRecord;
 export function validateReadEnvelope(value: FinanceReadEnvelope): FinanceReadEnvelope;
 export function validateStreamEnvelope(value: FinanceStreamEnvelope): FinanceStreamEnvelope;
@@ -57,3 +58,10 @@ export function evaluateWritePrecondition(input: {
   idempotencyRecord?: { idempotencyKey: string; requestDigest: string; resourceVersion: string; outcome: "accepted" | "rejected" | "execution_unknown" };
 }): Readonly<{ action: "create"; expectedVersion: string } | { action: "replay"; outcome: "accepted" | "rejected" | "execution_unknown"; resourceVersion: string }>;
 export function assertOrderTransition(fromStatus: OrderStatus, toStatus: OrderStatus): OrderStatus;
+export function assertStrategyRiskAuthorization(input: {
+  strategy: DomainRecord & { strategyId: string; ownerAccountId: string; lifecycle: "draft" | "paper" | "testnet" | "paused" | "stopped" | "completed" };
+  riskLimit: DomainRecord & { riskLimitId: string; ownerAccountId: string; maxNotional: string; maxOrderNotional: string; maxSlippageBps: number; expiresAt: string; killSwitch: boolean };
+  requestedNotional: string;
+  requestedSlippageBps: number;
+  evaluatedAt: string;
+}): Readonly<{ ownerAccountId: string; strategyId: string; riskLimitId: string; evaluatedAt: string }>;

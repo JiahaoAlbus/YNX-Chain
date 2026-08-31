@@ -125,6 +125,20 @@ export function validateDecimal(value, field = "value") {
   return value;
 }
 
+export function compareDecimal(left, right) {
+  validateDecimal(left, "left decimal");
+  validateDecimal(right, "right decimal");
+  const [leftWhole, leftFraction = ""] = left.split(".");
+  const [rightWhole, rightFraction = ""] = right.split(".");
+  if (leftWhole.length !== rightWhole.length) return leftWhole.length > rightWhole.length ? 1 : -1;
+  if (leftWhole !== rightWhole) return leftWhole > rightWhole ? 1 : -1;
+  const precision = Math.max(leftFraction.length, rightFraction.length);
+  const normalizedLeft = leftFraction.padEnd(precision, "0");
+  const normalizedRight = rightFraction.padEnd(precision, "0");
+  if (normalizedLeft === normalizedRight) return 0;
+  return normalizedLeft > normalizedRight ? 1 : -1;
+}
+
 export function validateModel(kind, value) {
   assert(MODEL_KINDS.includes(kind), ERROR_CODES.INVALID_REQUEST, "unknown finance model kind");
   assert(isRecord(value), ERROR_CODES.INVALID_REQUEST, `${kind} must be an object`);
@@ -304,4 +318,24 @@ export function assertOrderTransition(fromStatus, toStatus) {
   assert(ORDER_STATUSES.includes(toStatus), ERROR_CODES.INVALID_REQUEST, "toStatus is invalid");
   assert(orderTransitions[fromStatus].includes(toStatus), ERROR_CODES.CONCURRENT_MODIFICATION, `order transition ${fromStatus} -> ${toStatus} is not allowed`);
   return toStatus;
+}
+
+// A product must invoke this before it persists or submits a Quant/Exchange/DEX
+// strategy action. It is an authorization guard only: it cannot start a
+// strategy, sign, transfer, or submit an order.
+export function assertStrategyRiskAuthorization({ strategy, riskLimit, requestedNotional, requestedSlippageBps, evaluatedAt }) {
+  validateModel("Strategy", strategy);
+  validateModel("RiskLimit", riskLimit);
+  assert(strategy.ownerAccountId === riskLimit.ownerAccountId, ERROR_CODES.FORBIDDEN, "strategy and risk limit owners must match");
+  assert(["paper", "testnet"].includes(strategy.lifecycle), ERROR_CODES.FORBIDDEN, "strategy lifecycle is not executable");
+  assert(riskLimit.source.status === "live", ERROR_CODES.SOURCE_STALE, "risk limit source is not live");
+  assert(riskLimit.killSwitch === false, ERROR_CODES.RISK_REJECTED, "risk kill switch is enabled");
+  assertTimestamp(evaluatedAt, "evaluatedAt");
+  assert(Date.parse(evaluatedAt) < Date.parse(riskLimit.expiresAt), ERROR_CODES.RISK_REJECTED, "risk limit has expired");
+  assertDecimal(requestedNotional, "requestedNotional", true);
+  assertInteger(requestedSlippageBps, "requestedSlippageBps", 0, 10_000);
+  assert(compareDecimal(requestedNotional, riskLimit.maxNotional) <= 0, ERROR_CODES.RISK_REJECTED, "requested notional exceeds maxNotional");
+  assert(compareDecimal(requestedNotional, riskLimit.maxOrderNotional) <= 0, ERROR_CODES.RISK_REJECTED, "requested notional exceeds maxOrderNotional");
+  assert(requestedSlippageBps <= riskLimit.maxSlippageBps, ERROR_CODES.RISK_REJECTED, "requested slippage exceeds maxSlippageBps");
+  return Object.freeze({ ownerAccountId: strategy.ownerAccountId, strategyId: strategy.strategyId, riskLimitId: riskLimit.riskLimitId, evaluatedAt });
 }

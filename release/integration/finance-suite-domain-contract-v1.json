@@ -1,5 +1,5 @@
 {
-  "schemaVersion": "1.0.0-candidate.2",
+  "schemaVersion": "1.0.0-candidate.3",
   "contractId": "ynx-finance-suite-domain-v1",
   "owner": "finance-suite",
   "acceptanceOwner": "29-integration",
@@ -12,6 +12,7 @@
     "idempotency": "product persistence stores key, requestDigest, resourceVersion and outcome atomically with the action effect; replay is allowed only for the exact same digest",
     "concurrency": "new writes require expectedVersion to equal the persisted currentVersion",
     "orderStateMachine": "pending->open|cancelled|rejected|execution_unknown; open->partially_filled|filled|cancelled|expired|execution_unknown; partially_filled->filled|cancelled|expired|execution_unknown; execution_unknown reconciles to a terminal or active authoritative state",
+    "strategyRiskGuard": "before any product-owned strategy action, require Strategy/RiskLimit owner match, paper or testnet lifecycle, live non-expired limit, killSwitch=false, and requested notional/slippage within the exact decimal limits",
     "confirmation": "exact-wallet-bound-intent-required",
     "timeoutResult": "FIN_EXECUTION_UNKNOWN",
     "reconciliationRequired": true

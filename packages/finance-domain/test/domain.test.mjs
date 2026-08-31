@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import { ERROR_CODES, FINANCE_DOMAIN_VERSION, FINANCE_READ_ENVELOPE_VERSION, FINANCE_STREAM_ENVELOPE_VERSION, MODEL_KINDS, ORDER_STATUSES, assertOrderTransition, createError, evaluateWritePrecondition, validateDecimal, validateModel, validateReadEnvelope, validateStreamEnvelope, validateWriteHeaders } from "../src/index.js";
+import { ERROR_CODES, FINANCE_DOMAIN_VERSION, FINANCE_READ_ENVELOPE_VERSION, FINANCE_STREAM_ENVELOPE_VERSION, MODEL_KINDS, ORDER_STATUSES, assertOrderTransition, assertStrategyRiskAuthorization, compareDecimal, createError, evaluateWritePrecondition, validateDecimal, validateModel, validateReadEnvelope, validateStreamEnvelope, validateWriteHeaders } from "../src/index.js";
 
 const source = Object.freeze({ owner: "oracle", system: "ynx-oracle", version: "v1", asOf: "2026-08-13T12:00:00.000Z", classification: "testnet", status: "live" });
 const examples = {
@@ -128,14 +128,33 @@ test("order transitions preserve terminal states and require authoritative recon
   assert.throws(() => assertOrderTransition("open", "rejected"), (error) => error.code === ERROR_CODES.CONCURRENT_MODIFICATION);
 });
 
+test("risk authorization uses exact decimal limits and fails closed before a strategy action", () => {
+  const strategy = { schemaVersion: FINANCE_DOMAIN_VERSION, source, ...examples.Strategy };
+  const riskLimit = { schemaVersion: FINANCE_DOMAIN_VERSION, source, ...examples.RiskLimit };
+  assert.equal(compareDecimal("1.10", "1.1"), 0);
+  assert.equal(compareDecimal("10.000000000000000001", "10"), 1);
+  assert.deepEqual(assertStrategyRiskAuthorization({
+    strategy,
+    riskLimit,
+    requestedNotional: "2",
+    requestedSlippageBps: 100,
+    evaluatedAt: "2026-08-13T12:00:00.000Z",
+  }), { ownerAccountId: "a:1", strategyId: "s:1", riskLimitId: "r:1", evaluatedAt: "2026-08-13T12:00:00.000Z" });
+  assert.throws(() => assertStrategyRiskAuthorization({ strategy, riskLimit, requestedNotional: "2.000000000000000001", requestedSlippageBps: 100, evaluatedAt: "2026-08-13T12:00:00.000Z" }), (error) => error.code === ERROR_CODES.RISK_REJECTED);
+  assert.throws(() => assertStrategyRiskAuthorization({ strategy, riskLimit: { ...riskLimit, killSwitch: true }, requestedNotional: "2", requestedSlippageBps: 100, evaluatedAt: "2026-08-13T12:00:00.000Z" }), (error) => error.code === ERROR_CODES.RISK_REJECTED);
+  assert.throws(() => assertStrategyRiskAuthorization({ strategy: { ...strategy, ownerAccountId: "a:2" }, riskLimit, requestedNotional: "2", requestedSlippageBps: 100, evaluatedAt: "2026-08-13T12:00:00.000Z" }), (error) => error.code === ERROR_CODES.FORBIDDEN);
+  assert.throws(() => assertStrategyRiskAuthorization({ strategy, riskLimit, requestedNotional: "2", requestedSlippageBps: 101, evaluatedAt: "2026-08-13T12:00:00.000Z" }), (error) => error.code === ERROR_CODES.RISK_REJECTED);
+});
+
 test("integration contract version-locks the durable write precondition boundary", async () => {
   const contractPath = fileURLToPath(new URL("../../../release/integration/finance-suite-domain-contract-v1.json", import.meta.url));
   const contract = JSON.parse(await readFile(contractPath, "utf8"));
-  assert.equal(contract.schemaVersion, "1.0.0-candidate.2");
+  assert.equal(contract.schemaVersion, "1.0.0-candidate.3");
   assert.match(contract.writeProtocol.requiredRequestDigest, /RFC 8785 JCS/);
   assert.match(contract.writeProtocol.idempotency, /atomically/);
   assert.match(contract.writeProtocol.concurrency, /expectedVersion/);
   assert.match(contract.writeProtocol.orderStateMachine, /execution_unknown/);
+  assert.match(contract.writeProtocol.strategyRiskGuard, /killSwitch=false/);
 });
 
 test("error envelopes use stable codes and request correlation", () => {
