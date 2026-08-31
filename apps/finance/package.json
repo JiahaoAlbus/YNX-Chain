@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build:standard-wallet": "node scripts/build-standard-wallet-runtime.mjs",
     "test": "node --test tests/*.test.mjs",
     "security": "node scripts/security-check.mjs",
     "smoke": "bash scripts/smoke.sh",
