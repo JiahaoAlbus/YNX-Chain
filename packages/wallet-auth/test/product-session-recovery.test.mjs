@@ -90,6 +90,36 @@ test("network loss, rejection and Guest mode never synthesize identity, balance,
   assert.equal("session" in guest, false);
 });
 
+test("Guest intent wins an in-flight Gateway completion, revokes the issued session and survives restart", async () => {
+  const setup = harness(); let releaseCompletion; let markCompletionStarted;
+  const completionStarted = new Promise((resolve) => { markCompletionStarted = resolve; });
+  const completionRelease = new Promise((resolve) => { releaseCompletion = resolve; });
+  const gateway = {
+    ...setup.gateway,
+    async complete(input) { markCompletionStarted(); await completionRelease; return setup.gateway.complete(input); },
+  };
+  let tokenIndex = 0;
+  const client = new RecoverableProductSessionClient({ registry, productId: "social", platform: "android", storage: setup.storage, gateway, device, tokenFactory: () => token(`guest-race-${tokenIndex++}`), clock: () => NOW });
+  const connecting = await client.begin({ walletInstalled: true, schemeRegistered: true });
+  const approval = signProductSessionApproval(registry, connecting.request, { accountSecret, scopes: connecting.request.scopes, expiresAt: "2026-08-14T01:03:00.000Z" }, NOW);
+  const returning = client.handleReturn(createProductSessionReturnURL(registry, connecting.request, { result: "approved", approval }, NOW));
+  await completionStarted;
+  assert.equal(client.enterGuest().status, PRODUCT_SESSION_CLIENT_STATE.GUEST);
+  releaseCompletion();
+  const result = await returning;
+  assert.equal(result.status, PRODUCT_SESSION_CLIENT_STATE.GUEST);
+  assert.equal("session" in result, false);
+  assert.equal(setup.authority.snapshot().sessions.length, 1);
+  assert.equal(setup.authority.snapshot().revokedSessions.length, 1);
+  assert.equal(await setup.storage.get(client.storageKey), null);
+  assert.equal(await setup.storage.get(`${client.storageKey}:pending`), null);
+  assert.equal(await setup.storage.get(`${client.storageKey}:return`), null);
+
+  const restarted = new RecoverableProductSessionClient({ registry, productId: "social", platform: "android", storage: setup.storage, gateway, device, tokenFactory: () => token("guest-race-restart"), clock: () => NOW });
+  assert.equal((await restarted.restore(true)).status, PRODUCT_SESSION_CLIENT_STATE.GUEST);
+  assert.equal("session" in restarted.current, false);
+});
+
 test("second-launch Gateway outage preserves protected session and Retry re-introspects without new approval", async () => {
   const first = harness();
   const connecting = await first.client.begin({ walletInstalled: true, schemeRegistered: true });
