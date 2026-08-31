@@ -11,17 +11,17 @@
   },
   "source": {
     "branch": "codex/ynx-6423-portal-tronscan-inspired",
-    "portalCommit": "0efeec62b01824a5611cbaf985150174945de5af",
-    "portalTree": "03139a3febf3c5a0df4b3eade878f392f89119e1",
+    "portalCommit": "757f2508c49dd9eba617bf9686962e8dd5bddf80",
+    "portalTree": "5f4ab777e1757707864b766ca052bce2f8f05f16",
     "pushedToOrigin": true,
     "files": [
       {
         "path": "internal/explorer/web.go",
-        "sha256": "9c7d0699969228954ceac4c4b692036d8febdb1d04b884b0547d018e94071fb2"
+        "sha256": "0896fa8a3cf69bb0b1544aa726c8fc881039c4b1a8b33f515a728284b284213d"
       },
       {
         "path": "internal/explorer/explorer_test.go",
-        "sha256": "77c0caec1ead38cd50c0ef7df9163a5f3603f09ef3714db3b4b21ac37a9943a4"
+        "sha256": "bc80aa1061411b979d477faaeaee1993eedf5f4382aa6bf8140443923eedf6d3"
       },
       {
         "path": "scripts/verify/explorer-check.sh",
@@ -60,7 +60,7 @@
   },
   "publicClaimPolicy": "Only the local source and verification facts in this record may be claimed. Ecosystem products, downloads, public RPC endpoints, public deployment, signing, and store release remain unavailable unless separately evidenced.",
   "rollback": {
-    "sourceCommit": "e46b439377b3b2425d6b6d65c80a0f2bc279babe",
+    "sourceCommit": "0efeec62b01824a5611cbaf985150174945de5af",
     "scope": "Source rollback baseline only; it does not authorize a runtime, DNS, Caddy, Vercel, or alias mutation."
   },
   "deploymentBlocker": "A current, scope-bound deployment authorization naming the exact target, executor, portal source commit, rollback commit, and accepted public endpoint is required before any staging or public mutation."
