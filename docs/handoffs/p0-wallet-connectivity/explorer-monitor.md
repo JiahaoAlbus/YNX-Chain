@@ -2,29 +2,38 @@
 
 ## Superseding state (2026-08-31, current)
 
-- Current owner source checkpoint is `cd9baa29cc198ccfa624fea726efddd84c905953`
-  (tree `9e3eef3ac4e8ff2f5946649d30533e2854e473cc`), on
-  `codex/p0-explorer-monitor-20260820`, PR #107. Its source-bearing parent is
-  `a3292a2b6d30409caf7db66b81c47e8d09ad76f1`: both Explorer and Monitor now
-  use EIP-6963 provider discovery with EIP-1193 account approval, `0x1917`
-  add/switch/readback and lifecycle invalidation. They have no top-level
-  Wallet custom-scheme navigation or pasted-signature input. Guest Explorer
-  search/detail and public Monitor status remain unauthenticated reads.
-- The only current release candidate artifacts are frozen in
-  `apps/monitor/evidence/p0-160-wallet-consumer-release-preparation-20260831.json`.
-  Its Explorer binary, Indexer binary and Monitor release-tree hashes all come
-  from `a3292a2b…`; P0-157 and every earlier artifact generation are forbidden
-  from deployment with this successor source.
-- Direct public evidence remains mixed: native RPC reports chain ID `6423` and
-  EVM reports `0x1917`, while Explorer, Indexer and Monitor serve the older
-  `8bf7716e…` release. Monitor `/connectivity` is still the 641-byte HTML
-  fallback rather than the required JSON API. This means candidate deployment,
-  public verification and Computer Control verification all remain false.
+- Current source-bearing Explorer/Monitor checkpoint is
+  `4165b993708e7087ddad55ae29243505713fc280`
+  (tree `664157ffa1511addabeb9908b2ada015ce1fe993`) on
+  `codex/p0-explorer-monitor-20260820`, PR #107. Its owner evidence head is
+  `8c76cc42b9fb0909d7822b70b89f5f7865d6bda0`. Explorer and Monitor use
+  EIP-6963 discovery with EIP-1193 account approval, `0x1917` add/switch
+  readback and lifecycle invalidation. Explorer now localizes the complete
+  provider chooser and its user-safe wallet states across all 12 locales;
+  it does not show provider raw errors or use a custom Wallet scheme. Guest
+  Explorer search/detail and public Monitor status remain unauthenticated reads.
+- The only current candidate artifacts are frozen in
+  `apps/monitor/evidence/p0-172-localized-wallet-artifact-checkpoint-20260831.json`:
+  Explorer `2ece6f23b0f84ce814cf8587133be5cedc24a0ed47880c959c2057a68d620e62`,
+  Indexer `4b1a7e5c95ff6f55a22e2a574922117a314599337f364b1ff805f1de8bd3a5c3`,
+  and Monitor release tree
+  `bf95e3e772db66437411a72c9cd19e8d6a037ed5d5756b64c5c0d628c640cfbb`.
+  P0-170/P0-171 and every earlier generation are forbidden from deployment
+  with this successor source.
+- Direct public evidence remains mixed: native RPC is expected to report
+  chain ID `6423` and EVM `0x1917`, while Explorer and Monitor `/version`
+  still identify the older `8bf7716e…` release. Monitor `/connectivity` is
+  still a static HTML fallback rather than the required JSON API. The browser
+  also observed that `https://ynxweb4.com/dapp` has no matching public route;
+  the homepage exposes Explorer but no Monitor entry. The Website owner must
+  repair that route and consume a truthful release record; Explorer/Monitor
+  must not write Website authority paths. Candidate deployment, public
+  verification and Computer Control verification all remain false.
 - Before any production write, Central must issue one scoped lease binding the
-  current artifact hashes to freshly captured runtime/rollback digests and the
-  exact Monitor `/connectivity` matcher. The deployment operator must capture
-  the rollback material before mutation, verify official source identity and
-  JSON readback afterwards, and then perform real browser acceptance.
+  P0-172 hashes to freshly captured runtime/rollback digests and the exact
+  Monitor `/connectivity` matcher. The deployment operator must capture the
+  rollback material before mutation, verify official source identity and JSON
+  readback afterwards, and then perform real browser acceptance.
 
 ## Superseding state (2026-08-22)
 
