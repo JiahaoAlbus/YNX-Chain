@@ -7507,10 +7507,11 @@
     {
       "taskId": "P0-318",
       "owner": "integration,financial-apps",
-      "status": "ACTIVE_FINANCE_NONREGRESSIVE_NAMESPACED_PHASE3_SINGLE_USE_LEASE",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0318_CANDIDATE_VERIFY_AUTOMATIC_ROLLBACK_OLD_RUNTIME_RESTORED_CONTROLS_RETAINED",
       "paths": [
         "release/integration/p0-wallet-connectivity/execution/p0-318-finance-nonregressive-namespaced-phase3-single-use-lease-20260831.json",
         "release/integration/p0-wallet-connectivity/execution/objects/p0-318-finance-nonregressive-phase3-signed-lease.json",
+        "release/integration/p0-wallet-connectivity/execution/objects/p0-318-finance-nonregressive-phase3-terminal-fail-closed-20260831.json",
         "/opt/ynx/stage/finance/finance-combined-4f7fba323a89-20260831t041500z"
       ],
       "dependencies": ["P0-314"],
@@ -7520,11 +7521,16 @@
       "sshAttemptLimit": 1,
       "deployInvocationLimit": 1,
       "retryAllowed": false,
-      "productionMutationAllowed": true,
+      "productionMutationAllowed": false,
       "automaticRollbackAuthorized": true,
       "manualRollbackAuthorized": false,
       "accountSignTransactionAuthorized": false,
-      "nextAction": "Execute only the frozen literal 27-element argv once before expiry with exact empty environment and no output precreation. Return the complete transport and deploy terminal receipts; do not infer product completion."
+      "attemptCount": 1,
+      "terminalPhase": "CANDIDATE_VERIFY",
+      "automaticRollbackOldRuntimeRestored": true,
+      "retainedControlsPresent": true,
+      "deploymentSucceeded": false,
+      "nextAction": "P0-318 is consumed and nonreusable. Preserve the exact retained executor and signed lease for a wholly-new identity-bound cleanup review, and require a corrected candidate whose local verification passes before any future deployment request."
     }
   ]
 }

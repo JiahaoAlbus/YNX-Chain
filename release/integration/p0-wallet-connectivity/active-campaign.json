@@ -427,25 +427,25 @@
     }
   ],
   "heavy": {
-    "owner": "finance-release-control-plane",
+    "owner": null,
     "taskId": "P0-318",
-    "status": "ACTIVE_FINANCE_NONREGRESSIVE_NAMESPACED_PHASE3_SINGLE_USE_LEASE",
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0318_CANDIDATE_VERIFY_AUTOMATIC_ROLLBACK_OLD_RUNTIME_RESTORED_CONTROLS_RETAINED",
     "acquiredAt": "2026-08-31T05:45:56Z",
     "expiresAt": "2026-08-31T06:15:56Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-31T05:55:03Z",
     "sourceCommit": "96d33a9a027a6a6a21154f9a33298aa70d590ab6",
     "evidenceCommit": "96d33a9a027a6a6a21154f9a33298aa70d590ab6",
     "runtimeHost": "43.153.202.237",
     "currentRuntime": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a",
     "candidateRuntime": "/opt/ynx/releases/finance/finance-combined-4f7fba323a89-20260831t041500z/ynx-finance-4f7fba323a89",
     "artifactSha256": "4f3bcb186750ad792588a660e7c60c7a6ab8e4045a43a23018fb3260e1392038",
-    "productionMutationAllowed": true,
+    "productionMutationAllowed": false,
     "singleUse": true,
     "reusable": false,
     "previousOwner": null,
     "previousTaskId": "P0-317",
-    "reviewDecision": "P0318_GO_FINANCE_NONREGRESSIVE_PHASE3_EXACT_SINGLE_USE",
-    "reason": "Independent object and fixture review passed; fresh parent, carrier, six-path absence, old runtime, service-user traversal and whole-body loopback/public prewrite all matched. Exactly one serialized Finance deployment attempt is authorized with automatic rollback and no retry."
+    "reviewDecision": "P0318_TERMINAL_FAIL_CLOSED_CANDIDATE_VERIFY_AUTOMATIC_ROLLBACK_EXACT",
+    "reason": "The sole deployment attempt failed at POSTWRITE_CANDIDATE_VERIFY. Exact zero-write terminal inspection proves automatic rollback restored old current, env, state absence, active service and old live receipts; all stage backup and release paths are absent. The exact executor and signed lease remain for forensic cleanup, P0-318 is consumed and nonreusable, and Heavy is released."
   },
   "wave": {
     "id": "B-financial-apps-quant",

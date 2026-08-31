@@ -5,7 +5,7 @@
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-nonregressive-namespaced-phase3-20260831T054556Z",
   "owner": "finance-release-control-plane",
   "executor": "finance-release-control-plane",
-  "status": "ACTIVE",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0318_CANDIDATE_VERIFY_AUTOMATIC_ROLLBACK_OLD_RUNTIME_RESTORED_CONTROLS_RETAINED",
   "issuedAt": "2026-08-31T05:45:56Z",
   "expiresAt": "2026-08-31T06:15:56Z",
   "singleUse": true,
@@ -154,6 +154,12 @@
     "failure": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0318_NONREGRESSIVE_PHASE3_DEPLOYMENT",
     "retainHeavyOnUnresolvedRemoteState": true,
     "releaseOnlyAfterDirectTerminalEvidence": true,
-    "productCompletionInferred": false
-  }
+    "productCompletionInferred": false,
+    "terminalEvidenceAccepted": true,
+    "terminalEvidencePath": "release/integration/p0-wallet-connectivity/execution/objects/p0-318-finance-nonregressive-phase3-terminal-fail-closed-20260831.json",
+    "automaticRollbackOldRuntimeRestored": true,
+    "retainedControlsPresent": true,
+    "nextAuthority": "WHOLLY_NEW_IDENTITY_BOUND_CONTROL_CLEANUP_OR_CORRECTED_CANDIDATE_REQUEST_ONLY"
+  },
+  "releasedAt": "2026-08-31T05:55:03Z"
 }
