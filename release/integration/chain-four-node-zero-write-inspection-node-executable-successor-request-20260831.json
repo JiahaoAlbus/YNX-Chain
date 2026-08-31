@@ -1,0 +1,109 @@
+{
+  "schemaVersion": "ynx-chain-four-node-zero-write-inspection-node-executable-successor-request/v1",
+  "recordedAt": "2026-08-31T05:38:00Z",
+  "scope": "chain-only-zero-write-four-node-inspection",
+  "supersedes": {
+    "taskId": "P0-317",
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_CHAIN_P0317_LOCAL_NODE_EXECUTABLE_ABSENT_PRE_INSPECTOR",
+    "centralCommit": "8096095e1a10fb45a95fd68cb38d8250e375e1ca",
+    "centralTree": "9743ea08703f06e936f45f470fe59966182dcda8",
+    "terminalEvidenceBlob": "c75273ea16010db0369c87a3ecd6f616ef86d097",
+    "terminalEvidenceBytes": 1054,
+    "terminalEvidenceSha256": "092108d01738363cc73263790baf07157888fa5c74e50223c9a6965b85e2235e",
+    "failure": "The exact local argv used /usr/bin/node, which does not exist in the named protected operator context. The inspector never started.",
+    "sshAttempts": 0,
+    "remoteConnections": 0,
+    "mutations": 0,
+    "reusable": false
+  },
+  "source": {
+    "branch": "codex/chain-four-node-readonly-inspector-20260831",
+    "parent": "8af069d2554736939e81bf03a4f5d6c590d712f3",
+    "parentTree": "320c4310c5552c59da8c3c9e8269b5c49558bdf7",
+    "remoteExactBeforeSuccessor": true,
+    "worktreeCleanBeforeSuccessor": true
+  },
+  "nodeExecutable": {
+    "path": "/opt/homebrew/bin/node",
+    "exists": true,
+    "readable": true,
+    "executable": true,
+    "symlinkTarget": "../Cellar/node/26.7.0/bin/node",
+    "resolvedPath": "/opt/homebrew/Cellar/node/26.7.0/bin/node",
+    "resolvedFileType": "regular",
+    "device": 16777239,
+    "inode": 173702776,
+    "uid": 501,
+    "gid": 80,
+    "mode": "555",
+    "nlink": 1,
+    "bytes": 50320,
+    "sha256": "1ef99ea25fe70c9b67e7efe768ef8ee22148d3cabc703db6131b57aeb617d040",
+    "version": "v26.7.0",
+    "processExecPath": "/opt/homebrew/Cellar/node/26.7.0/bin/node",
+    "namedProtectedOperatorReadback": true
+  },
+  "positiveLocalInvocationFixture": {
+    "executable": "/opt/homebrew/bin/node",
+    "workingDirectory": "/private/tmp/ynx-chain-peer-readiness.fXjb67",
+    "selfTestArgv": [
+      "/opt/homebrew/bin/node",
+      "scripts/verify/remote-smoke-test.mjs",
+      "--self-test-chain-four-node-readonly-inspection"
+    ],
+    "selfTestExitCode": 0,
+    "selfTestStdoutBytes": 134,
+    "selfTestStdoutSha256": "b79905ec6dc36192757f552d140edbc173fb87b4963f800ac25c667bdcdd4001",
+    "selfTestStderrBytes": 0,
+    "selfTestStderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "printedPlanExitCode": 0,
+    "printedPlanBytes": 6074,
+    "printedPlanSha256": "f06b2a2a138130fc634d4fe8ce788bd1b78c0193aee7d5b19f240cc19eaafbb5",
+    "result": "PASS"
+  },
+  "unchangedAcceptedObjects": {
+    "requestBlob": "117082d9070ae702262545f365e02697ce6e21bb",
+    "requestBytes": 3994,
+    "requestSha256": "9dcf7fa642f4aef27e522b4c7d7bd422a7dd768979ac4270f48c6743fb31c9cb",
+    "readinessBlob": "a5e2857ca2a216e4a2eb99bf783be2aa2ad0dd0c",
+    "readinessBytes": 1623,
+    "readinessSha256": "8448e0b6bd389e187efc540afc8d5d1a387c7a2591c493ff973b5ceff1b7112c",
+    "receiptCorrectionBlob": "6e3f800a830293ed1158944727dda96caacfcde3",
+    "receiptCorrectionBytes": 3355,
+    "receiptCorrectionSha256": "03dfb1e8d1ca5bc00b7baeed983c261ed4f4dc6ffcc17e0eb2cfa7a2e3b6a1fa",
+    "inspectorCommit": "de393ce295ae50f77967cbd3ad15e8bf0988684e",
+    "inspectorBlob": "8a4e1c62f4072c984cd5ca1621e3a6fd2eb9ee23",
+    "inspectorBytes": 82263,
+    "inspectorSha256": "0ea6dbff7be60da2ceb647cb905635292c5fac422e0ccedc80147f7d9046a0b5",
+    "remotePayloadBytes": 2501,
+    "remotePayloadSha256": "48548c8039b09d72e1a6dc30ebfbae7cd35b3451860676286a133890d0d74573",
+    "globalRollbackCommit": "e728be2bb2fa52ae03fafac635c841f1eb0e1221",
+    "allFiveProtectedOperatorBooleansTrue": true
+  },
+  "requestedExecution": {
+    "whollyNewLease": true,
+    "workingDirectory": "/private/tmp/ynx-chain-peer-readiness.fXjb67",
+    "argv": [
+      "/opt/homebrew/bin/node",
+      "scripts/verify/remote-smoke-test.mjs",
+      "--chain-four-node-readonly-inspection"
+    ],
+    "ack": "P0-CHAIN-FOUR-NODE-ZERO-WRITE-INSPECTION-20260831:EXECUTE",
+    "evidencePath": "/tmp/p0-318-chain-four-node-zero-write-evidence-20260831.json",
+    "evidencePathMustBeAbsentBeforeExecution": true,
+    "maximumDurationMinutes": 20,
+    "attemptLimitPerNode": 1,
+    "retryAllowed": false,
+    "remoteTemporaryFiles": false,
+    "mutationAllowed": false,
+    "serviceLifecycleAllowed": false,
+    "deploymentAllowed": false,
+    "validatorOrChainStateMutationAllowed": false
+  },
+  "decision": {
+    "localExecutableBlockerResolved": true,
+    "leaseIssued": false,
+    "sshAttemptsAfterP0317": 0,
+    "nextAction": "Central independently verifies the executable tuple and positive local invocation fixture, then decides a wholly-new Chain-only zero-write inspection lease."
+  }
+}
