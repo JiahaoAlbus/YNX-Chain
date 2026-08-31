@@ -29,7 +29,8 @@ export const STANDARD_WALLET_CONNECTION_TOKENS = Object.freeze({
 });
 
 export function reduceStandardWalletConnectState(state = REDUCE_STATES.RESTORE, action, payload = null) {
-  const nextState = String(state ?? REDUCE_STATES.RESTORE);
+  const prior = state && typeof state === "object" ? state : {};
+  const nextState = String(state?.state ?? state ?? REDUCE_STATES.RESTORE);
   if (action === REDUCE_ACTIONS.RESTORE) return Object.freeze({state: REDUCE_STATES.RESTORE, ...payload});
   if (action === REDUCE_ACTIONS.OPEN_CHOOSER) return Object.freeze({state: REDUCE_STATES.OPEN_CHOOSER, ...payload});
   if (action === REDUCE_ACTIONS.ACCOUNT_APPROVED) return Object.freeze({state: REDUCE_STATES.OPEN_CHOOSER, account: payload?.account ?? null, ...payload, source: "walletConnection"});
@@ -37,8 +38,8 @@ export function reduceStandardWalletConnectState(state = REDUCE_STATES.RESTORE, 
   if (action === REDUCE_ACTIONS.CHAIN_CHANGED) return Object.freeze({state: REDUCE_STATES.RESTORE, ...payload});
   if (action === REDUCE_ACTIONS.ACCOUNTS_CHANGED) return Object.freeze({state: REDUCE_STATES.RESTORE, ...payload});
   if (action === REDUCE_ACTIONS.PROVIDER_DISCONNECT) return Object.freeze({state: REDUCE_STATES.RESTORE, ...payload});
-  if (action === REDUCE_ACTIONS.PRIVATE_SERVICE_DEGRADED) return Object.freeze({state: nextState, privateService: REDUCE_STATES.PRIVATE_SERVICE_DEGRADED, ...payload});
-  if (action === REDUCE_ACTIONS.PRIVATE_SESSION_DEGRADED) return Object.freeze({state: nextState, privateSession: REDUCE_STATES.PRIVATE_SESSION_DEGRADED, ...payload});
+  if (action === REDUCE_ACTIONS.PRIVATE_SERVICE_DEGRADED) return Object.freeze({...prior, state: nextState, privateService: REDUCE_STATES.PRIVATE_SERVICE_DEGRADED, ...payload});
+  if (action === REDUCE_ACTIONS.PRIVATE_SESSION_DEGRADED) return Object.freeze({...prior, state: nextState, privateSession: REDUCE_STATES.PRIVATE_SESSION_DEGRADED, ...payload});
   if (action === REDUCE_ACTIONS.RPC_PROBE_DEGRADED) return Object.freeze({state: REDUCE_STATES.RPC_PROBE_DEGRADED, ...payload});
   return Object.freeze({state: nextState});
 }
