@@ -160,11 +160,11 @@ func (s *Server) freshDashboardSnapshot(ctx context.Context) (dashboardSnapshot,
 	}
 	warnings := []string{}
 	if validatorsErr != nil {
-		warnings = append(warnings, "validator state unavailable: "+validatorsErr.Error())
+		warnings = append(warnings, "validator state temporarily unavailable")
 		validators = map[string]any{}
 	}
 	if resourceAnalyticsErr != nil {
-		warnings = append(warnings, "resource analytics unavailable: "+resourceAnalyticsErr.Error())
+		warnings = append(warnings, "resource analytics temporarily unavailable")
 		resources = map[string]any{}
 	}
 	summary.Build = s.build
@@ -190,7 +190,7 @@ func (s *Server) dashboardSnapshot() (dashboardSnapshot, error) {
 		stale := s.dashboardCached
 		stale.Summary.OK = false
 		stale.Summary.IndexerError = "live refresh failed; showing a recent verified snapshot"
-		stale.Warnings = append(append([]string{}, stale.Warnings...), err.Error())
+		stale.Warnings = append(append([]string{}, stale.Warnings...), "live data temporarily unavailable")
 		return stale, nil
 	}
 	return dashboardSnapshot{}, err
@@ -258,7 +258,7 @@ func (s *Server) runStream() {
 		event := streamEvent{event: "dashboard"}
 		if err != nil {
 			event.event = "upstream-error"
-			event.payload, _ = json.Marshal(map[string]string{"error": err.Error()})
+			event.payload, _ = json.Marshal(publicErrorPayload(http.StatusBadGateway))
 		} else {
 			event.id = fmt.Sprintf("%d-%d-%d", snapshot.Summary.RPCHeight, snapshot.Summary.IndexedHeight, snapshot.Summary.IndexedTxCount)
 			event.payload, err = json.Marshal(snapshot)
@@ -337,7 +337,10 @@ func normalizeCanonicalTransactionHash(value string) (string, bool) {
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	summary, err := s.service.Summary(r.Context())
 	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]any{"ok": false, "service": "ynx-explorerd", "error": err.Error()})
+		payload := publicErrorPayload(http.StatusBadGateway)
+		payload["ok"] = false
+		payload["service"] = "ynx-explorerd"
+		writeJSON(w, http.StatusBadGateway, payload)
 		return
 	}
 	summary.Build = s.build
@@ -348,7 +351,7 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleSummary(w http.ResponseWriter, r *http.Request) {
 	summary, err := s.service.Summary(r.Context())
 	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]any{"error": err.Error()})
+		writePublicError(w, http.StatusBadGateway)
 		return
 	}
 	summary.Build = s.build
@@ -359,7 +362,7 @@ func (s *Server) handleSummary(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleDashboard(w http.ResponseWriter, _ *http.Request) {
 	snapshot, err := s.dashboardSnapshot()
 	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]any{"error": err.Error()})
+		writePublicError(w, http.StatusBadGateway)
 		return
 	}
 	writeJSON(w, http.StatusOK, snapshot)
@@ -368,7 +371,7 @@ func (s *Server) handleDashboard(w http.ResponseWriter, _ *http.Request) {
 func (s *Server) handleLatestBlocks(w http.ResponseWriter, r *http.Request) {
 	blocks, err := s.service.LatestBlocks(r.Context(), intQuery(r, "limit", 10))
 	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]any{"error": err.Error()})
+		writePublicError(w, http.StatusBadGateway)
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"blocks": blocks})
@@ -377,7 +380,7 @@ func (s *Server) handleLatestBlocks(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleBlock(w http.ResponseWriter, r *http.Request) {
 	block, err := s.service.Block(r.Context(), r.PathValue("height"))
 	if err != nil {
-		writeJSON(w, http.StatusNotFound, map[string]any{"error": err.Error()})
+		writePublicError(w, http.StatusNotFound)
 		return
 	}
 	writeJSON(w, http.StatusOK, block)
@@ -386,7 +389,7 @@ func (s *Server) handleBlock(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleTransactions(w http.ResponseWriter, r *http.Request) {
 	txs, err := s.service.Transactions(r.Context(), intQuery(r, "limit", 10))
 	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]any{"error": err.Error()})
+		writePublicError(w, http.StatusBadGateway)
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"transactions": txs})
@@ -395,7 +398,7 @@ func (s *Server) handleTransactions(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleTransaction(w http.ResponseWriter, r *http.Request) {
 	tx, err := s.service.Transaction(r.Context(), r.PathValue("hash"))
 	if err != nil {
-		writeJSON(w, http.StatusNotFound, map[string]any{"error": err.Error()})
+		writePublicError(w, http.StatusNotFound)
 		return
 	}
 	writeJSON(w, http.StatusOK, tx)
@@ -404,7 +407,7 @@ func (s *Server) handleTransaction(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleAccount(w http.ResponseWriter, r *http.Request) {
 	account, err := s.service.Account(r.Context(), r.PathValue("address"))
 	if err != nil {
-		writeJSON(w, http.StatusNotFound, map[string]any{"error": err.Error()})
+		writePublicError(w, http.StatusNotFound)
 		return
 	}
 	writeJSON(w, http.StatusOK, account)
@@ -413,7 +416,7 @@ func (s *Server) handleAccount(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleToken(w http.ResponseWriter, r *http.Request) {
 	token, err := s.service.Token(r.Context(), r.PathValue("symbol"))
 	if err != nil {
-		writeJSON(w, http.StatusNotFound, map[string]any{"error": err.Error()})
+		writePublicError(w, http.StatusNotFound)
 		return
 	}
 	writeJSON(w, http.StatusOK, token)
@@ -422,7 +425,7 @@ func (s *Server) handleToken(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleValidators(w http.ResponseWriter, r *http.Request) {
 	validators, err := s.service.Validators(r.Context())
 	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]any{"error": err.Error()})
+		writePublicError(w, http.StatusBadGateway)
 		return
 	}
 	writeJSON(w, http.StatusOK, validators)
@@ -431,7 +434,7 @@ func (s *Server) handleValidators(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleResources(w http.ResponseWriter, r *http.Request) {
 	resources, err := s.service.Resources(r.Context(), r.PathValue("address"))
 	if err != nil {
-		writeJSON(w, http.StatusNotFound, map[string]any{"error": err.Error()})
+		writePublicError(w, http.StatusNotFound)
 		return
 	}
 	writeJSON(w, http.StatusOK, resources)
@@ -440,7 +443,7 @@ func (s *Server) handleResources(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleResourceAnalytics(w http.ResponseWriter, r *http.Request) {
 	analytics, err := s.service.ResourceAnalytics(r.Context())
 	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]any{"error": err.Error()})
+		writePublicError(w, http.StatusBadGateway)
 		return
 	}
 	writeJSON(w, http.StatusOK, analytics)
@@ -449,7 +452,7 @@ func (s *Server) handleResourceAnalytics(w http.ResponseWriter, r *http.Request)
 func (s *Server) handleFee(w http.ResponseWriter, r *http.Request) {
 	tx, err := s.service.Transaction(r.Context(), r.PathValue("hash"))
 	if err != nil {
-		writeJSON(w, http.StatusNotFound, map[string]any{"error": err.Error()})
+		writePublicError(w, http.StatusNotFound)
 		return
 	}
 	writeJSON(w, http.StatusOK, FeeDetailFromTx(tx))
@@ -458,7 +461,7 @@ func (s *Server) handleFee(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
 	result, err := s.service.Search(r.Context(), r.URL.Query().Get("q"))
 	if err != nil {
-		writeJSON(w, http.StatusNotFound, map[string]any{"error": err.Error()})
+		writePublicError(w, http.StatusNotFound)
 		return
 	}
 	writeJSON(w, http.StatusOK, result)
@@ -467,7 +470,7 @@ func (s *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 	summary, err := s.service.Summary(context.Background())
 	if err != nil {
-		writeJSON(w, http.StatusBadGateway, map[string]any{"error": err.Error()})
+		writePublicError(w, http.StatusBadGateway)
 		return
 	}
 	labels := fmt.Sprintf(`network="%s",chain_id="%d",native_symbol="%s"`, prometheusLabel(summary.Network.Name), summary.Network.ChainID, prometheusLabel(summary.NativeSymbol))
@@ -492,6 +495,20 @@ func writeJSON(w http.ResponseWriter, status int, payload any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(payload)
+}
+
+// publicErrorPayload deliberately does not include an upstream error. Explorer
+// may call loopback-only RPC and Indexer services, and their errors must never
+// cross the public boundary as hosts, paths, credentials, or stack details.
+func publicErrorPayload(status int) map[string]any {
+	if status == http.StatusNotFound {
+		return map[string]any{"error": "requested data was not found", "classification": "NOT_FOUND"}
+	}
+	return map[string]any{"error": "live chain data is temporarily unavailable", "classification": "UPSTREAM_UNAVAILABLE"}
+}
+
+func writePublicError(w http.ResponseWriter, status int) {
+	writeJSON(w, status, publicErrorPayload(status))
 }
 
 func intQuery(r *http.Request, key string, fallback int) int {

@@ -391,3 +391,44 @@ func TestExplorerRejectsNonCanonicalIndexerService(t *testing.T) {
 		t.Fatalf("non-canonical indexer identity did not fail closed: %v", err)
 	}
 }
+
+func TestExplorerDoesNotExposeUpstreamErrorsToPublicClients(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, "credential=should-never-reach-public-client", http.StatusBadGateway)
+	}))
+	defer upstream.Close()
+	svc, err := New(Config{RPCURL: upstream.URL, IndexerURL: upstream.URL})
+	if err != nil {
+		t.Fatal(err)
+	}
+	handler := NewServer(svc).Handler()
+	for _, testCase := range []struct {
+		path           string
+		status         int
+		classification string
+	}{
+		{path: "/health", status: http.StatusBadGateway, classification: "UPSTREAM_UNAVAILABLE"},
+		{path: "/api/summary", status: http.StatusBadGateway, classification: "UPSTREAM_UNAVAILABLE"},
+		{path: "/api/dashboard", status: http.StatusBadGateway, classification: "UPSTREAM_UNAVAILABLE"},
+		{path: "/api/blocks/latest", status: http.StatusBadGateway, classification: "UPSTREAM_UNAVAILABLE"},
+		{path: "/api/txs", status: http.StatusBadGateway, classification: "UPSTREAM_UNAVAILABLE"},
+		{path: "/api/txs/0x" + strings.Repeat("a", 64), status: http.StatusNotFound, classification: "NOT_FOUND"},
+	} {
+		response := httptest.NewRecorder()
+		handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, testCase.path, nil))
+		body := response.Body.String()
+		if response.Code != testCase.status {
+			t.Fatalf("%s returned %d, want %d: %s", testCase.path, response.Code, testCase.status, body)
+		}
+		if strings.Contains(body, upstream.URL) || strings.Contains(body, "127.0.0.1") || strings.Contains(body, "credential=") {
+			t.Fatalf("%s leaked upstream details: %s", testCase.path, body)
+		}
+		var payload map[string]any
+		if err := json.Unmarshal(response.Body.Bytes(), &payload); err != nil {
+			t.Fatalf("%s returned non-JSON public error: %v", testCase.path, err)
+		}
+		if payload["classification"] != testCase.classification {
+			t.Fatalf("%s classification=%q, want %q", testCase.path, payload["classification"], testCase.classification)
+		}
+	}
+}
