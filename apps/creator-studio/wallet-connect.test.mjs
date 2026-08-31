@@ -65,18 +65,25 @@ test("empty accountsChanged disconnects instead of becoming an invalid-account e
 });
 
 test("wallet UI uses distinct image assets and same-tab provider flow", async () => {
-  const [html, app, auth, callback, release, ynxLogo, metamaskLogo] = await Promise.all([
-    load("index.html"), load("app.js"), load("wallet-auth.js"), load("wallet-callback.html"), load("product-release.json"), load("assets/ynx-wallet.svg"), load("assets/metamask.svg"),
+  const [html, app, auth, callback, release, ynxLogo, metamaskLogo, brandLogo] = await Promise.all([
+    load("index.html"), load("app.js"), load("wallet-auth.js"), load("wallet-callback.html"), load("product-release.json"), load("assets/ynx-wallet.svg"), load("assets/metamask.svg"), readFile(new URL("../../assets/brand/ynx-logo.png", import.meta.url)),
   ]);
   assert.match(html, /id="wallet-details"/);
   assert.match(html, /id="wallet-switch-account"/);
   assert.match(html, /id="wallet-detail-disconnect"/);
+  assert.match(html, /src="assets\/ynx-logo\.png"/);
+  assert.match(html, /alt="YNX"/);
+  assert.ok(brandLogo.length > 1000, "official YNX logo asset is unexpectedly empty");
   assert.match(app, /assets\/ynx-wallet\.svg/);
   assert.match(app, /assets\/metamask\.svg/);
   assert.match(ynxLogo, /YNX Wallet/);
   assert.match(metamaskLogo, /MetaMask/);
   assert.match(auth, /ethereum#initialized/);
   assert.match(auth, /DISCOVERY_PHASES_MS[^\n]*250[^\n]*750[^\n]*1500/);
+  for (const identity of ["ynx_6423-1", "6423", "0x1917", "YNXT"]) {
+    assert.match(`${app}\n${auth}`, new RegExp(identity, "i"), `missing YNX Testnet identity: ${identity}`);
+  }
+  assert.doesNotMatch(`${app}\n${auth}`, /9102|0x238e|ynx_9102/i);
   assert.doesNotMatch(`${app}\n${auth}\n${html}`, /window\.open|ynxwallet:|target=["']_blank/i);
   assert.match(callback, /candidate\.origin === location\.origin/);
   assert.equal(JSON.parse(release).currentSourceBoundPublic, false);

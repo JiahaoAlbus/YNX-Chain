@@ -1,4 +1,10 @@
-const STANDARD_WALLET_CHAIN_ID = "0x1917";
+const YNX_TESTNET = Object.freeze({
+  cosmosChainId: "ynx_6423-1",
+  evmChainId: 6423,
+  evmChainIdHex: "0x1917",
+  nativeAsset: "YNXT",
+});
+const STANDARD_WALLET_CHAIN_ID = YNX_TESTNET.evmChainIdHex;
 const WALLET_PROVIDER_KIND = Object.freeze({ YNX: "ynx-wallet", METAMASK: "metamask" });
 const WALLET_PROVIDER_DISCOVERY_STATUS = Object.freeze({
   AVAILABLE: "available",
@@ -11,7 +17,7 @@ const WALLET_PROVIDER_DISCOVERY_STATUS = Object.freeze({
 const CHAIN_CONFIG = Object.freeze({
   chainId: STANDARD_WALLET_CHAIN_ID,
   chainName: "YNX Testnet",
-  nativeCurrency: Object.freeze({ name: "YNX Testnet", symbol: "YNXT", decimals: 18 }),
+  nativeCurrency: Object.freeze({ name: "YNX Testnet", symbol: YNX_TESTNET.nativeAsset, decimals: 18 }),
   rpcUrls: Object.freeze(["https://evm.ynxweb4.com"]),
   blockExplorerUrls: Object.freeze(["https://explorer.ynxweb4.com"]),
 });

@@ -23,6 +23,7 @@ const runtimeFiles = Object.freeze([
   "wallet-auth.js",
   "wallet-callback.html",
   "assets/metamask.svg",
+  "assets/ynx-logo.png",
   "assets/ynx-wallet.svg",
 ]);
 

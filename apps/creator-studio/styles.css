@@ -3,8 +3,8 @@
 html{min-width:320px}
 body{margin:0;display:grid;grid-template-columns:226px minmax(0,1fr);grid-template-rows:78px minmax(0,1fr);min-height:100vh;background:var(--surface-2);color:#17191e}
 aside{grid-row:1/-1;background:var(--surface);border-inline-end:1px solid var(--line);padding:24px 14px 18px;display:flex;flex-direction:column;min-width:0}
-.brand{color:inherit;text-decoration:none;display:flex;align-items:baseline;gap:9px;padding:0 11px}
-.brand span{font-weight:800;color:var(--blue)}
+.brand{color:inherit;text-decoration:none;display:flex;align-items:center;gap:9px;padding:0 11px}
+.brand img{display:block;width:31px;height:31px;object-fit:contain}
 .brand b{font-size:.96rem}
 nav{display:grid;gap:3px;margin-top:34px}
 nav button{border:1px solid transparent;border-radius:8px;background:transparent;color:#3d4551;text-align:start;padding:10px 11px;cursor:pointer;font:inherit;font-weight:600}
@@ -41,7 +41,8 @@ header>div:first-child{margin-inline-end:auto;min-width:0}
 .wallet-meta{color:var(--muted);font-size:.8rem}
 #signin{white-space:nowrap}
 h1{margin:2px 0;font-size:1.35rem;letter-spacing:-.025em}
-.eyebrow{font-size:.67rem;font-weight:750;text-transform:uppercase;letter-spacing:.13em;color:var(--blue);margin:0}
+.eyebrow{font-size:.67rem;font-weight:750;text-transform:uppercase;letter-spacing:.13em;color:var(--blue);margin:0;display:flex;align-items:center;gap:5px}
+.eyebrow img{width:16px;height:16px;object-fit:contain}
 .locale-controls{display:flex;gap:10px;align-items:end}
 .locale-controls label{font-size:.68rem;color:var(--muted)}
 .locale-controls select{min-width:92px;padding:7px;margin-top:3px}
