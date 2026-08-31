@@ -1,0 +1,61 @@
+{
+  "schemaVersion": "dex-c7-source-bound-deploy-preparation@1",
+  "classification": "local-unsigned-deployment-preparation",
+  "status": "CANDIDATE_FROZEN_AWAITING_DEX_ONLY_EXECUTOR_AND_FRESH_HOST_PREFLIGHT",
+  "product": "ynx-dex",
+  "source": {
+    "commit": "c7a96d48f17f9dc70bbdc42389cf1052771ee904",
+    "tree": "85b8d018ee8541cc560b0865fb5f3cc0acfa2767"
+  },
+  "candidate": {
+    "archive": {
+      "path": "apps/dex/evidence/release-candidates/ynx-dex-c7a96d48f17f-runtime.tar.gz",
+      "bytes": 3514259,
+      "sha256": "f5f247e8c9a291d60e36beecbf103fb7f7ebe8b53785a8cc2509f5bf2ed6a506"
+    },
+    "binary": {
+      "relativePath": "ynx-dex-c7a96d48f17f/ynx-dex-indexerd",
+      "bytes": 6942868,
+      "sha256": "65d22ea56078cb63db3a88fb6672b6643963f431c7527c6bb7ef50b664f3114d",
+      "format": "ELF 64-bit x86-64 static"
+    },
+    "archiveVerification": "Extracted candidate SHA256SUMS verified all 16 packaged files."
+  },
+  "currentPublicReadback": {
+    "version": {
+      "url": "https://dex.ynxweb4.com/version",
+      "status": 200,
+      "commit": "ac775de24176b293b5dbb5ab7114cf29428f8046",
+      "release": "ynx-dex-ac775de24176"
+    },
+    "health": {
+      "url": "https://dex.ynxweb4.com/health",
+      "status": 200,
+      "bytes": 238,
+      "sha256": "20a96d0ac7dede526b2b37bea77dccc430b9d3cf32372fd2b038e733c38567a3"
+    },
+    "sourceBoundToCandidate": false
+  },
+  "centralMustFreshlyBind": [
+    "DEX host architecture, service, ExecStart, WorkingDirectory, unit, env, Caddy, state, active release and rollback target",
+    "current public root, health and version response bytes and hashes",
+    "unique stage, release and same-filesystem backup paths",
+    "a c7-specific rollback-first executor and its exact command bytes"
+  ],
+  "legacyExecutor": {
+    "path": "scripts/dex-public-runtime-release.sh",
+    "usableForCandidate": false,
+    "reason": "It is hard-bound to source 7563dc6604540715f87d4e1e46b4ed41feaf6235 and must reject this c7 candidate."
+  },
+  "truth": {
+    "leaseIssued": false,
+    "sshExecuted": false,
+    "deployed": false,
+    "sourceBoundPublicRuntime": false,
+    "walletProviderApproved": false,
+    "swap": false,
+    "liquidity": false,
+    "transaction": false
+  },
+  "singleExecutableBlocker": "Central must approve a new DEX-only c7 rollback-first executor after fresh host/runtime preflight; no existing DEX deployment lease or executor is reusable."
+}
