@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-08-31T07:20:00Z",
+  "scope": "anonymous official extension download backread; no installation",
+  "officialArtifact": {
+    "url": "https://downloads.ynxweb4.com/wallet/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip",
+    "httpStatus": 200,
+    "contentType": "application/zip",
+    "contentDisposition": "attachment; filename=ynx-wallet-chrome-edge-0.1.0.zip",
+    "cacheControl": "public, max-age=31536000, immutable",
+    "nosniff": true,
+    "bytes": 471181,
+    "sha256": "2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d",
+    "manifest": {
+      "manifestVersion": 3,
+      "name": "YNX Wallet",
+      "version": "0.1.0",
+      "permissions": ["activeTab", "scripting", "storage"],
+      "hostPermissions": ["http://*/*", "https://*/*"],
+      "updateUrl": null
+    },
+    "embeddedBuildIdentity": {
+      "sourceCommit": "fb443431555bed7324b3c2e1fb37aab982a8e243",
+      "providerAuthorityCommit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+      "chainId": "0x1917"
+    }
+  },
+  "currentCandidate": {
+    "candidateCommit": "4134c6a32a75e3e577bfb024d9e1c17da07598ba",
+    "candidateTree": "09340a4f12562cc1fb5ecc8bf39ca37de73f98e2",
+    "frozenSourceCommit": "7df37ca32a643a403bd23a7f555354261f789441",
+    "chromeEdgeBytes": 469149,
+    "chromeEdgeSha256": "5eb083449c2cc8e9c02db0345d5f078f9d8c12e9bdc13d029ce2ff76c5ead26e",
+    "hostPermissions": ["https://evm.ynxweb4.com/*"]
+  },
+  "comparison": {
+    "bytesMatch": false,
+    "sha256Match": false,
+    "embeddedSourceMatchesCurrentCandidate": false,
+    "hostPermissionsMatch": false,
+    "currentCandidateSourceBoundToOfficialDownload": false
+  },
+  "truth": {
+    "publishedArtifactDownloadHosted": true,
+    "currentCandidateDownloadHosted": false,
+    "currentCandidateDeployedPublic": false,
+    "safeForCurrentCandidateInstallationClaim": false,
+    "extensionInstalled": false,
+    "providerDiscoveryVerified": false,
+    "accountAuthorized": false,
+    "networkChanged": false,
+    "signatureCreated": false,
+    "transactionSubmitted": false,
+    "walletConnectPaired": false
+  },
+  "requiredRemediation": "Integration must select one immutable source identity, rebuild the Chrome/Edge package from that source, publish a new immutable URL, and independently backread bytes, SHA-256, build-identity and permissions before an isolated-browser installation is requested."
+}
