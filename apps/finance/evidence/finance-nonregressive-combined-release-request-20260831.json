@@ -1,0 +1,159 @@
+{
+  "schemaVersion": "financeNonregressiveCombinedReleaseRequest@1",
+  "status": "SOURCE_AND_DETERMINISTIC_ARTIFACT_READY_AWAITING_FRESH_CENTRAL_FINANCE_ONLY_LEASE",
+  "owner": {
+    "branch": "codex/p0-finance-nonregressive-combined-candidate-20260831",
+    "sourceCommit": "4f7fba323a89ffb83a81fe2e2f2b97d23947de87",
+    "sourceTree": "9fbf7a11fecf362ef79d331debd59938c14b1d60"
+  },
+  "lineage": {
+    "backendAuthorityCommit": "7824af677dd052d20321431381523ab302614d98",
+    "backendAuthorityTree": "3db34ee2397a49852bbdf15e3841e7c9cecf9444",
+    "backendExactTrees": {
+      "apps/finance/cmd": "1aaa3d7ddbcc1b56646dea61809a387350b8830d",
+      "internal/finance": "53d984bc7dad4d911d578689edd03e9131ab4beb",
+      "go.mod": "058025dc14f6a053f6541953dec0c8cae5aff105",
+      "go.sum": "a550963b0904796dce377b113ce565d9d45bb9ab"
+    },
+    "frontendAuthorityCommit": "75f0299aaf53263e4279acf93e9a06db9d055e38",
+    "frontendAuthorityTree": "8587b41347154c4715239ccf8e51c67e9cab9154",
+    "mergeBase": "f28b0aa29a0d93a2b7f20a00b835c4a1aa6175b3",
+    "authoritiesDiverged": true,
+    "nonRegressionPolicy": "7824 backend exact plus 75f Standard Wallet frontend exact; neither authority is represented as an ancestor of the other"
+  },
+  "buildIdentity": {
+    "sourceCommit": "4f7fba323a89ffb83a81fe2e2f2b97d23947de87",
+    "release": "ynx-finance-4f7fba323a89",
+    "buildTime": "2026-08-31T04:15:00.000Z",
+    "frontendSourceCommit": "75f0299aaf53263e4279acf93e9a06db9d055e38",
+    "relativePath": "web/build-identity.json",
+    "bytes": 219,
+    "sha256": "e4bcdb3a983642bd05dae884794f0856142546212479ed4406767dcb4a17adf5"
+  },
+  "deterministicArchive": {
+    "path": "apps/finance/evidence/release-candidates/ynx-finance-4f7fba323a89-linux-amd64.tar.gz",
+    "blob": "eeaa2a545704c72ba53975a51d281eeebe0a3b3c",
+    "bytes": 3938517,
+    "sha256": "55e8d98317eab27248644e6c1168e5ef9f72221a9708a8b80c0ee6502760147d",
+    "repeatBuildExact": true,
+    "binary": {
+      "bytes": 8573076,
+      "sha256": "1a32d3f9a7f6de43fd5c44580c8a72b1068fab65bdacaa080130efa210bb8050",
+      "format": "ELF 64-bit LSB x86-64 static stripped"
+    },
+    "sha256SumsVerified": true,
+    "legacyWalletConnectPresent": false
+  },
+  "preservedPublicFrontend": [
+    {"url":"https://finance.ynxweb4.com/","relativePath":"web/index.html","status":200,"bytes":11427,"sha256":"c1fc45eecd7f88de6fc3e049d15161b8d4e9878e31f20c977fc52b383a18ed53"},
+    {"url":"https://finance.ynxweb4.com/app.js","relativePath":"web/app.js","status":200,"bytes":17371,"sha256":"a1ed94de08fc5b73f075cf35c1b17481e24b6046732ad92d82209959b694c6d6"},
+    {"url":"https://finance.ynxweb4.com/read-sources.js","relativePath":"web/read-sources.js","status":200,"bytes":10920,"sha256":"e19b7b266c14b181a4d88b10c6e1975398bdafb77660272f37ba22b48fc18c70"},
+    {"url":"https://finance.ynxweb4.com/styles.css","relativePath":"web/styles.css","status":200,"bytes":13935,"sha256":"bd01b920fee3693204a63aed364c27becf4c9c84f3ee1ed9dd3e2d35a39b5d9f"},
+    {"url":"https://finance.ynxweb4.com/manifest.webmanifest","relativePath":"web/manifest.webmanifest","status":200,"bytes":241,"sha256":"3f7bec35f54aad6a095151e9d4d553e7ea10cbbbcc9e16f0f3fe7abd242b6d05"},
+    {"url":"https://finance.ynxweb4.com/ynx-logo.png","relativePath":"web/ynx-logo.png","status":200,"bytes":104171,"sha256":"df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"},
+    {"url":"https://finance.ynxweb4.com/wallet-auth.js","relativePath":"web/wallet-auth.js","status":200,"bytes":66997,"sha256":"be5c90e938e5d5b6e181199f2e1e3949b8f343c4e1af4d8aceab27b1ed41bf6d"}
+  ],
+  "negativeRegressionGates": {
+    "eachOfSevenResourcesMutatedFails": true,
+    "walletConnectJsReintroducedFails": true,
+    "walletConnectEntryJsReintroducedFails": true,
+    "indexWalletScriptBindingChangedFails": true,
+    "buildIdentityFieldMismatchFails": true,
+    "postDeployWalletConnectUrl": {"url":"https://finance.ynxweb4.com/wallet-connect.js","requiredStatus":404}
+  },
+  "reviewedExecutor": {
+    "path": "apps/finance/scripts/finance-production-rollback-first.sh",
+    "bytes": 26885,
+    "sha256": "c1daf6801e124c05e364e6bb27740d2124b414c9edc3a8c7ddab42994b3c047c",
+    "requiresSignedBuildIdentity": true,
+    "automaticRollbackOnCandidateFailure": true,
+    "manualRollbackRequiresSeparateSignedLease": true
+  },
+  "uniqueSixPathNamespace": {
+    "id": "finance-combined-4f7fba323a89-20260831t041500z",
+    "stageContainer": "/opt/ynx/stage/finance/finance-combined-4f7fba323a89-20260831t041500z",
+    "stage": "/opt/ynx/stage/finance/finance-combined-4f7fba323a89-20260831t041500z/stage",
+    "backupContainer": "/var/backups/ynx-finance/finance-combined-4f7fba323a89-20260831t041500z",
+    "backup": "/var/backups/ynx-finance/finance-combined-4f7fba323a89-20260831t041500z/backup",
+    "releaseContainer": "/opt/ynx/releases/finance/finance-combined-4f7fba323a89-20260831t041500z",
+    "release": "/opt/ynx/releases/finance/finance-combined-4f7fba323a89-20260831t041500z/ynx-finance-4f7fba323a89",
+    "allSixMustBeFreshlyAbsent": true
+  },
+  "parentAndInodeFences": {
+    "parents": ["/opt/ynx/stage/finance","/var/backups/ynx-finance","/opt/ynx/releases/finance"],
+    "freshFullTupleAndInventoryRequired": true,
+    "containerPostMkdirDeviceInodeTypeFence": true,
+    "containerPostChownDeviceInodeStableFence": true,
+    "leafDeviceInodeOwnershipModeNlinkBytesFence": true,
+    "substitutionAndForeignContentFailClosed": true
+  },
+  "commandObjects": {
+    "carrierPlacement": {
+      "kind": "CENTRAL_MUST_FREEZE_LITERAL_ARGV_AFTER_PROTECTED_IDENTITY_AND_FRESH_REMOTE_PARENT_READBACK",
+      "localSource": "apps/finance/evidence/release-candidates/ynx-finance-4f7fba323a89-linux-amd64.tar.gz",
+      "remoteTarget": "/opt/ynx/stage/finance/finance-combined-4f7fba323a89-carrier/candidate.tgz",
+      "noOverwrite": true,
+      "oneAttempt": true
+    },
+    "candidateEnv": {
+      "mustDeriveFromFreshCurrentEnvWithoutLoggingValues": true,
+      "target": "/opt/ynx/stage/finance/finance-combined-4f7fba323a89-carrier/finance.env",
+      "requiredWebDir": "/opt/ynx/releases/finance/finance-combined-4f7fba323a89-20260831t041500z/ynx-finance-4f7fba323a89/web"
+    },
+    "deployment": {
+      "transport": "apps/finance/scripts/finance-phase3-openssh-serialized-command.sh",
+      "bootstrap": "apps/finance/scripts/finance-phase3-stdin-deployment-bootstrap.sh",
+      "executor": "apps/finance/scripts/finance-production-rollback-first.sh",
+      "literalArgvMustBeFrozenAfterFreshRead": true,
+      "environmentMustBeEmpty": true,
+      "oneSshAttempt": true,
+      "oneDeployInvocation": true,
+      "retryAllowed": false
+    },
+    "rollback": {
+      "automaticBeforeSuccessReceipt": true,
+      "manualAfterSuccessRequiresWhollyNewSignedRollbackLease": true,
+      "oldCurrentMustBeFreshlyBound": true
+    }
+  },
+  "centralMustFreshlyReadBeforeAnyWrite": [
+    "Heavy owner and Finance path lock",
+    "current symlink and active release full tuples",
+    "old binary/env/unit/Caddy/state/service hashes and tuples",
+    "loopback and public health/version raw receipts",
+    "three parent full tuples/direct-child inventories",
+    "new carrier parent and target absence",
+    "all six unique namespace absences",
+    "service uid/gid traversal",
+    "protected SSH identity availability without exposing its value"
+  ],
+  "requestedAuthorization": {
+    "product": "finance",
+    "order": ["fresh read-only prewrite","no-overwrite carrier placement","candidate env derivation","rollback-first deploy","raw public verification"],
+    "singleUse": true,
+    "timeBounded": true,
+    "pathScoped": true,
+    "forbidsDexExchangeQuant": true
+  },
+  "validation": {
+    "nonRegressionFixtures": "PASS",
+    "productionCommandObject": "PASS",
+    "productionActualShellFixture": "PASS",
+    "parentPreservingObserver": "PASS",
+    "opensshSerializedCommandFixture": "PASS",
+    "stdinDeploymentBootstrapFixture": "PASS",
+    "goFinanceTests": "PASS"
+  },
+  "truth": {
+    "sshExecuted": false,
+    "productionReadThisCandidate": false,
+    "productionWrite": false,
+    "deployed": false,
+    "publicSourceBound": false,
+    "walletRuntimeApproved": false,
+    "accountRequested": false,
+    "signatureCreated": false,
+    "transactionSubmitted": false
+  },
+  "singleExecutableBlocker": "Central must complete the fresh read-only Finance prewrite, freeze the protected literal carrier/deploy argv objects, and issue a wholly-new Finance-only single-use lease; the previous P0-304 candidate is nonreusable because it would regress the current Standard Wallet frontend."
+}
