@@ -7404,20 +7404,20 @@
     {
       "taskId": "P0-303",
       "owner": "integration,financial-apps",
-      "status": "NO_GO_FINANCE_P0303_HTTP_WHOLE_BODY_RECEIPT_TRAILING_NEWLINE_STRIPPED",
+      "status": "NO_GO_FINANCE_P0303_ZERO_WRITE_CONTRACT_CONTRADICTS_REMOTE_TEMP_BODY_FILES",
       "paths": [
-        "release/integration/p0-wallet-connectivity/execution/objects/p0-303-finance-zero-write-inspection-request-nogo-review-20260824.json"
+        "release/integration/p0-wallet-connectivity/execution/objects/p0-303-finance-zero-write-temp-contract-nogo-review-20260831.json"
       ],
       "dependencies": [
         "P0-302"
       ],
-      "requestCommit": "e85dba3cb0b5036469a9bbca26489adf8511b73e",
-      "requestBlob": "134401a39aca5981ac78da2ccc859028c3c0931f",
+      "requestCommit": "8cc058cd0515f088fb75c66ae1bf05a6e87d9489",
+      "requestBlob": "5b720f363a1533238240fb2d1499d529d2ff711e",
       "executionLeaseIssued": false,
       "sshInspectionExecuted": false,
       "productionMutation": false,
       "p0302Reusable": false,
-      "nextAction": "Submit a wholly-new zero-write successor whose HTTP receipt preserves trailing newline bytes and directly proves exact whole-body bytes/SHA without remote temporary files; rerun exact trailing-newline and no-mutation fixtures."
+      "nextAction": "Submit a wholly-new contract-aligned successor: either preserve strict zero-remote-write with no remote files, or explicitly authorize only six identity-bound ephemeral HTTP body files and their terminal cleanup while keeping productionWrites zero. Rerun success and failure-cleanup fixtures."
     }
   ]
 }
