@@ -7424,7 +7424,7 @@
     {
       "taskId": "P0-314",
       "owner": "integration,financial-apps",
-      "status": "ACTIVE_SINGLE_USE_FINANCE_NONREGRESSIVE_CARRIER_PREPARATION_ONLY",
+      "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_NONREGRESSIVE_CARRIER_PREPARED",
       "paths": [
         "release/integration/p0-wallet-connectivity/execution/p0-314-finance-nonregressive-carrier-preparation-single-use-lease-20260831.json",
         "release/integration/p0-wallet-connectivity/execution/objects/p0-314-finance-nonregressive-carrier-signed-lease.json",
@@ -7434,10 +7434,12 @@
       "requestCommit": "59b129faee447941fa9d8e89fc5079ed20ceebd1",
       "requestBlob": "45a9fbb8bb8a764d40e66bdd3bfc85b0fa8c8ada",
       "executionLeaseIssued": true,
-      "carrierPlacementExecuted": false,
+      "carrierPlacementExecuted": true,
+      "carrierPrepared": true,
+      "independentReadbackExact": true,
       "phase3Authorized": false,
       "deploymentAuthorized": false,
-      "nextAction": "Execute the exact 14-element carrier-preparation argv once before expiry. Return direct carrier/archive/candidate-env tuples, bytes and SHA-256; Phase3 remains unauthorized until separate independent readback and a wholly-new lease."
+      "nextAction": "P0-314 is consumed and nonreusable. A wholly-new Phase3 review may begin only from the exact terminal carrier tuples and a fresh six-parent/runtime prewrite; no deployment authority is inferred."
     }
   ]
 }

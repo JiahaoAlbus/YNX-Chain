@@ -427,25 +427,25 @@
     }
   ],
   "heavy": {
-    "owner": "finance-release-control-plane-carrier-preparation",
+    "owner": null,
     "taskId": "P0-314",
-    "status": "ACTIVE_SINGLE_USE_FINANCE_NONREGRESSIVE_CARRIER_PREPARATION_ONLY",
+    "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_NONREGRESSIVE_CARRIER_PREPARED",
     "acquiredAt": "2026-08-31T04:57:37Z",
     "expiresAt": "2026-08-31T05:27:37Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-31T05:05:13Z",
     "sourceCommit": "59b129faee447941fa9d8e89fc5079ed20ceebd1",
     "evidenceCommit": "59b129faee447941fa9d8e89fc5079ed20ceebd1",
     "runtimeHost": "43.153.202.237",
     "currentRuntime": "FINANCE_3B2383F5_EXACT_PID2241003_NRESTARTS0",
-    "candidateRuntime": "FINANCE_4F7FBA323A89_CARRIER_NOT_YET_PLACED",
+    "candidateRuntime": "FINANCE_4F7FBA323A89_CARRIER_PREPARED_NOT_DEPLOYED",
     "artifactSha256": "55e8d98317eab27248644e6c1168e5ef9f72221a9708a8b80c0ee6502760147d",
-    "productionMutationAllowed": true,
+    "productionMutationAllowed": false,
     "singleUse": true,
     "reusable": false,
     "previousOwner": null,
     "previousTaskId": "P0-313",
-    "reviewDecision": "P0314_FINANCE_NONREGRESSIVE_CARRIER_PREPARATION_ONLY_GO",
-    "reason": "The exact remote branch and carrier objects are remote-clean, all three carrier/transport fixtures pass, fresh root/stage/environment metadata matches, all five carrier paths and local output paths are absent, and post-move device:inode continuity is enforced. Authority is limited to one carrier-preparation SSH invocation; Phase3 remains unauthorized."
+    "reviewDecision": "P0314_FINANCE_NONREGRESSIVE_CARRIER_PREPARATION_TERMINAL_SUCCESS_RELEASED",
+    "reason": "The sole authorized SSH invocation returned rc0 with an exact validated terminal receipt. Independent readback proved the carrier, archive and derived environment exact, all Phase3 paths absent and the old Finance runtime unchanged. P0-314 is consumed and nonreusable; Heavy and the Finance lock are released."
   },
   "wave": {
     "id": "B-financial-apps-quant",

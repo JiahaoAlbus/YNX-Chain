@@ -1,0 +1,79 @@
+{
+  "schemaVersion": "financeNonregressiveCarrierTerminalEvidence@1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-314",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-nonregressive-carrier-p0314-20260831T045737Z",
+  "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_NONREGRESSIVE_CARRIER_PREPARED",
+  "terminalAt": "2026-08-31T05:05:13Z",
+  "attempts": 1,
+  "retry": false,
+  "remoteExitStatus": 0,
+  "stdout": {
+    "path": "/tmp/ynx-finance-nonregressive-carrier.stdout",
+    "bytes": 670,
+    "sha256": "4d6c2a5a8140dc8be63a164a872855353688f393d2e3b753092cefaeb5e3ae87"
+  },
+  "stderr": {
+    "path": "/tmp/ynx-finance-nonregressive-carrier.stderr",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "transportReceipt": {
+    "path": "/tmp/ynx-finance-nonregressive-carrier.receipt",
+    "bytes": 300,
+    "sha256": "3cb025a5eaf92ee2bf761466f96e57d59c81ab26253e2b5aec484a07c98feee7",
+    "sshExitStatus": 0,
+    "remoteExitStatus": 0,
+    "leaseBytes": 1540,
+    "leaseSha256": "c1ba8a0de0d7fe95c0290334abaec43b5ba604db6550bb328b2e5cc937311ebb",
+    "stdoutBytes": 670,
+    "stdoutSha256": "4d6c2a5a8140dc8be63a164a872855353688f393d2e3b753092cefaeb5e3ae87",
+    "terminalReceiptValidated": true
+  },
+  "directPlacement": {
+    "carrier": {
+      "path": "/opt/ynx/stage/finance/finance-combined-4f7fba323a89-20260831t041500z",
+      "tuple": "64770:4594824:0:0:700:2:4096:directory",
+      "directChildren": 2
+    },
+    "archive": {
+      "path": "/opt/ynx/stage/finance/finance-combined-4f7fba323a89-20260831t041500z/candidate.tgz",
+      "tuple": "64770:4594825:0:0:600:1:3938517:regular file",
+      "bytes": 3938517,
+      "sha256": "55e8d98317eab27248644e6c1168e5ef9f72221a9708a8b80c0ee6502760147d"
+    },
+    "candidateEnvironment": {
+      "path": "/opt/ynx/stage/finance/finance-combined-4f7fba323a89-20260831t041500z/finance.env",
+      "tuple": "64770:4594832:0:986:640:1:1592:regular file",
+      "bytes": 1592,
+      "sha256": "06d54c7c930c1d9af7dad9cc4322bf23b9755b521101e18e3574be4ae83aaed7",
+      "requiredKeyCount": 1,
+      "releaseWebDirExact": true,
+      "valuesRecorded": false
+    }
+  },
+  "independentReadback": {
+    "carrierTupleExact": true,
+    "carrierDirectChildrenExact": true,
+    "archiveTupleBytesSha256Exact": true,
+    "candidateEnvironmentTupleBytesSha256Exact": true,
+    "phase3StageBackupReleaseAndSwitchPathsAbsent": true,
+    "currentTarget": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a",
+    "liveEnvironmentSha256": "854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252",
+    "unitSha256": "2e72cdad422a3a714c46d074ea97b725233576cf726dbbfd43e82e99c2c2975b",
+    "caddySha256": "dcf75a7aed315c54632321b8bb80e44c0abc22f6700fadfbfa9a7da21b88a282",
+    "service": "active:running:2241003:0",
+    "mutationCount": 0
+  },
+  "truthBoundary": {
+    "carrierPrepared": true,
+    "phase3Invoked": false,
+    "archiveExtracted": false,
+    "deploymentStarted": false,
+    "currentEnvironmentUnitCaddyServicePublicMutated": false,
+    "account": false,
+    "signature": false,
+    "transaction": false
+  },
+  "nextBoundary": "P0-314 is consumed and nonreusable. Any Phase3 review requires a wholly-new task and lease bound to these direct carrier tuples plus a fresh six-parent and runtime prewrite."
+}
