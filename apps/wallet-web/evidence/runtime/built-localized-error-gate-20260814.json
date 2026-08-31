@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
-  "sourceCommit": "dbf17086803d2bc2aeba7f8ed0d52d91b069449c",
-  "generatedAt": "2026-08-14T07:35:26.390Z",
+  "sourceCommit": "0add9f817b79790cfe3d26a88c9a64f90fdaeebb",
+  "generatedAt": "2026-08-31T10:18:12.542Z",
   "gateClass": "exact built ZIP locale module and UI-source inspection; not visible browser runtime",
   "artifacts": [
     {
       "name": "ynx-wallet-web-pwa-0.1.0.zip",
-      "bytes": 272707,
-      "sha256": "c84679c16d0ae48bdb4796bcaeb86a60c17f25bec4ec1cb87b202b00fbd300bf",
+      "bytes": 287016,
+      "sha256": "48cda06f09a69850a61c4694bc11015af8195f85f02b1d77e59b8d40f68346e2",
       "localeChecks": [
         {
           "locale": "en",
@@ -81,8 +81,8 @@
     },
     {
       "name": "ynx-wallet-chrome-edge-0.1.0.zip",
-      "bytes": 188846,
-      "sha256": "c733093dea47c6612c8a9d5ecea40be2227f62402f4b4966955c9e1accf4e2aa",
+      "bytes": 469940,
+      "sha256": "72bde3f0cf2cf22af271d88b0d63a0de78e96d98a60bcfc7d0b8f78082ccd442",
       "localeChecks": [
         {
           "locale": "en",
@@ -156,8 +156,8 @@
     },
     {
       "name": "ynx-wallet-firefox-0.1.0.zip",
-      "bytes": 188883,
-      "sha256": "417d9b9e5babf05fdfdf8161504389eb99c636be75f94444bf4ff91a9b4536b3",
+      "bytes": 469973,
+      "sha256": "027ef2810ea1bfddb2cba6a82b4fc84a2ef7693ed2d981107fd8e8f408e084e9",
       "localeChecks": [
         {
           "locale": "en",

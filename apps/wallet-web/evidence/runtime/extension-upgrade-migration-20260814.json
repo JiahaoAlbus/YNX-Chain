@@ -1,20 +1,20 @@
 {
   "schemaVersion": 1,
-  "sourceCommit": "1ac8c4edd2c8f1b794b3aec9b70b1cf262576f3a",
-  "generatedAt": "2026-08-14T05:19:13.804Z",
+  "sourceCommit": "0add9f817b79790cfe3d26a88c9a64f90fdaeebb",
+  "generatedAt": "2026-08-31T10:18:12.314Z",
   "gateClass": "executable migration policy imported from exact built ZIPs; not a browser installation",
   "passed": true,
   "artifacts": [
     {
       "name": "ynx-wallet-chrome-edge-0.1.0.zip",
       "platform": "chromium",
-      "bytes": 185831,
-      "sha256": "d0498d3009a3414252fd0ba0e0038531e5a6c8b4ec6c9dd052a8f4040aa206aa",
+      "bytes": 469940,
+      "sha256": "72bde3f0cf2cf22af271d88b0d63a0de78e96d98a60bcfc7d0b8f78082ccd442",
       "firstInstallOrUpgrade": {
         "schemaVersion": 1,
-        "migrationVersion": 2,
+        "migrationVersion": 3,
         "legacyOriginsRemoved": [
-          "https://*/*",
+          "http://*/*",
           "http://localhost/*",
           "http://127.0.0.1/*"
         ],
@@ -25,23 +25,23 @@
           "legacy-refresh"
         ],
         "alarmCleanup": "verified-empty",
-        "rpcOriginRetained": true,
+        "httpsProviderOriginRetained": true,
         "accountStateTouched": false,
         "completedAt": "1970-01-01T00:00:00.000Z"
       },
       "secondStartup": {
         "schemaVersion": 1,
-        "migrationVersion": 2,
+        "migrationVersion": 3,
         "legacyOriginsRemoved": [],
         "dynamicScriptIdsRemoved": [],
         "alarmNamesRemoved": [],
         "alarmCleanup": "verified-empty",
-        "rpcOriginRetained": true,
+        "httpsProviderOriginRetained": true,
         "accountStateTouched": false,
         "completedAt": "1970-01-01T00:00:01.000Z"
       },
       "finalOrigins": [
-        "https://evm.ynxweb4.com/*"
+        "https://*/*"
       ],
       "dynamicScriptsRemaining": 0,
       "alarmsRemaining": 0,
@@ -50,13 +50,13 @@
         "failedClosed": true,
         "code": "MIGRATION_ORIGIN_REMAINS"
       },
-      "rpcFailure": {
+      "providerPermissionFailure": {
         "failedClosed": true,
-        "code": "REQUIRED_RPC_PERMISSION_MISSING"
+        "code": "REQUIRED_PROVIDER_PERMISSION_MISSING"
       },
       "messageFailure": {
         "discovery": {
-          "ynx": false,
+          "ynx": true,
           "metamask": false,
           "error": {
             "code": "MIGRATION_INCOMPLETE",
@@ -78,13 +78,13 @@
     {
       "name": "ynx-wallet-firefox-0.1.0.zip",
       "platform": "firefox",
-      "bytes": 185868,
-      "sha256": "22b3591b306a8ead5f9f31ae0b9e9d8684c85adb9d897d5d6896d49edbc06acb",
+      "bytes": 469973,
+      "sha256": "027ef2810ea1bfddb2cba6a82b4fc84a2ef7693ed2d981107fd8e8f408e084e9",
       "firstInstallOrUpgrade": {
         "schemaVersion": 1,
-        "migrationVersion": 2,
+        "migrationVersion": 3,
         "legacyOriginsRemoved": [
-          "https://*/*",
+          "http://*/*",
           "http://localhost/*",
           "http://127.0.0.1/*"
         ],
@@ -93,23 +93,23 @@
         ],
         "alarmNamesRemoved": [],
         "alarmCleanup": "not-declared-api-unavailable",
-        "rpcOriginRetained": true,
+        "httpsProviderOriginRetained": true,
         "accountStateTouched": false,
         "completedAt": "1970-01-01T00:00:00.000Z"
       },
       "secondStartup": {
         "schemaVersion": 1,
-        "migrationVersion": 2,
+        "migrationVersion": 3,
         "legacyOriginsRemoved": [],
         "dynamicScriptIdsRemoved": [],
         "alarmNamesRemoved": [],
         "alarmCleanup": "not-declared-api-unavailable",
-        "rpcOriginRetained": true,
+        "httpsProviderOriginRetained": true,
         "accountStateTouched": false,
         "completedAt": "1970-01-01T00:00:01.000Z"
       },
       "finalOrigins": [
-        "https://evm.ynxweb4.com/*"
+        "https://*/*"
       ],
       "dynamicScriptsRemaining": 0,
       "alarmsRemaining": "API unavailable and permission never declared",
@@ -118,13 +118,13 @@
         "failedClosed": true,
         "code": "MIGRATION_ORIGIN_REMAINS"
       },
-      "rpcFailure": {
+      "providerPermissionFailure": {
         "failedClosed": true,
-        "code": "REQUIRED_RPC_PERMISSION_MISSING"
+        "code": "REQUIRED_PROVIDER_PERMISSION_MISSING"
       },
       "messageFailure": {
         "discovery": {
-          "ynx": false,
+          "ynx": true,
           "metamask": false,
           "error": {
             "code": "MIGRATION_INCOMPLETE",

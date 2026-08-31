@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet Web/PWA/Extensions",
+  "status": "SOURCE_AND_BUILT_ARTIFACT_READY_NOT_INSTALLED_NOT_PUBLIC",
+  "sourceCommit": "0add9f817b79790cfe3d26a88c9a64f90fdaeebb",
+  "sourceTree": "74e0b9be4ffc445b18dc4d042df6732f55be98cb",
+  "branch": "codex/wallet-extension-current-source-release-20260831",
+  "acceptedProviderBaseline": "98c6d5d784d212df8981a53b17118a511e246ad2",
+  "evidence": "apps/wallet-web/evidence/contracts/wallet-extension-https-discovery-current-source-20260831.json",
+  "artifactManifest": "apps/wallet-web/artifact-manifest.json",
+  "summary": "Current YNX extension candidates announce a distinct YNX Wallet provider at document_start on top-level HTTPS DApps, answer repeated EIP-6963 discovery requests, coexist with window.ethereum and ethereum.providers, classify missing/locked/site-access-denied states without guessing installation, and fail closed when the required HTTPS provider permission or migration cleanup is unavailable.",
+  "tests": [
+    "npm test: 121/121 pass",
+    "npm run package internal source suite: 121/121 pass",
+    "npm run verify:package: 3/3 pass",
+    "npm run test:artifact:permissions: pass",
+    "npm run test:artifact:migration: pass",
+    "npm run test:artifact:localized-errors: pass",
+    "npm run test:artifact:localized-regions: pass"
+  ],
+  "artifacts": [
+    {
+      "name": "ynx-wallet-web-pwa-0.1.0.zip",
+      "bytes": 287016,
+      "sha256": "48cda06f09a69850a61c4694bc11015af8195f85f02b1d77e59b8d40f68346e2",
+      "signingClass": "unsigned-web-bundle"
+    },
+    {
+      "name": "ynx-wallet-chrome-edge-0.1.0.zip",
+      "bytes": 469940,
+      "sha256": "72bde3f0cf2cf22af271d88b0d63a0de78e96d98a60bcfc7d0b8f78082ccd442",
+      "signingClass": "unsigned-unpacked-extension"
+    },
+    {
+      "name": "ynx-wallet-firefox-0.1.0.zip",
+      "bytes": 469973,
+      "sha256": "027ef2810ea1bfddb2cba6a82b4fc84a2ef7693ed2d981107fd8e8f408e084e9",
+      "signingClass": "unsigned-unpacked-extension"
+    }
+  ],
+  "publicBlocker": {
+    "checkedAt": "2026-08-31T10:33:40Z",
+    "finding": "The official wallet origin returns the same 2196-byte Website HTML for root, build identity, manifest and service worker.",
+    "sha256": "e69b3fb2f695584978dae7b5309584a760ccf7f534de649882ee41efaec78954",
+    "currentSourceBoundPublic": false,
+    "websiteMutationRequested": false
+  },
+  "notPerformed": [
+    "browser launch",
+    "extension load or installation",
+    "site permission grant",
+    "account request or approval",
+    "signing",
+    "transaction submission",
+    "WalletConnect pairing",
+    "deployment"
+  ],
+  "allDirectRuntimeAndReleaseGatesRemainFalse": true
+}

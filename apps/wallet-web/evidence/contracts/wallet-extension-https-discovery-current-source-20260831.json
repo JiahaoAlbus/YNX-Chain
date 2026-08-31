@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet Web/PWA/Extensions",
+  "recordedAt": "2026-08-31T10:33:40Z",
+  "scope": "current-source deterministic HTTPS external-DApp provider discovery and built artifacts; no browser installation",
+  "source": {
+    "commit": "0add9f817b79790cfe3d26a88c9a64f90fdaeebb",
+    "tree": "74e0b9be4ffc445b18dc4d042df6732f55be98cb",
+    "parent": "90132a04168d2f5a65cef4eaaba81109fdc8788c",
+    "branch": "codex/wallet-extension-current-source-release-20260831",
+    "acceptedProviderBaseline": "98c6d5d784d212df8981a53b17118a511e246ad2"
+  },
+  "providerIdentity": {
+    "name": "YNX Wallet",
+    "rdns": "com.ynx.wallet",
+    "isYNXWallet": true,
+    "isMetaMask": false,
+    "metaMaskMustRemainIndependent": true
+  },
+  "discovery": {
+    "eip6963InitialAnnouncement": true,
+    "eip6963RepeatedRequestHandling": true,
+    "lateDiscoveryHandled": true,
+    "windowEthereumFallback": true,
+    "windowEthereumProvidersFallback": true,
+    "documentStart": true,
+    "topFrameOnly": true,
+    "matches": [
+      "https://*/*"
+    ],
+    "topLevelCustomSchemeNavigation": false
+  },
+  "classification": {
+    "noProviderIsConservative": true,
+    "lockedRequiresExplicitDiagnostic": true,
+    "siteAccessDeniedRequiresExplicitDiagnostic": true,
+    "installedStateNeverGuessed": true,
+    "englishDynamicErrorsCovered": true
+  },
+  "manifestPolicy": {
+    "permissions": [
+      "activeTab",
+      "scripting",
+      "storage"
+    ],
+    "hostPermissions": [
+      "https://*/*"
+    ],
+    "httpHostPermission": false,
+    "fileHostPermission": false,
+    "customSchemePermission": false,
+    "csp": "script-src 'self'; object-src 'self'; connect-src https://evm.ynxweb4.com",
+    "migrationVersion": 3,
+    "migrationFailsClosedIfRequiredHttpsPermissionMissing": true,
+    "migrationTouchesAccountState": false
+  },
+  "tests": {
+    "source": "121/121 pass",
+    "packageBuildSourceSuite": "121/121 pass",
+    "packageVerification": "3/3 pass",
+    "artifactPermissions": "pass",
+    "artifactMigration": "pass",
+    "artifactLocalizedErrors": "pass",
+    "artifactLocalizedRegions": "pass"
+  },
+  "artifacts": [
+    {
+      "name": "ynx-wallet-web-pwa-0.1.0.zip",
+      "bytes": 287016,
+      "sha256": "48cda06f09a69850a61c4694bc11015af8195f85f02b1d77e59b8d40f68346e2",
+      "minimumOS": "modern browser with Service Worker and Web Crypto support",
+      "signingClass": "unsigned-web-bundle"
+    },
+    {
+      "name": "ynx-wallet-chrome-edge-0.1.0.zip",
+      "bytes": 469940,
+      "sha256": "72bde3f0cf2cf22af271d88b0d63a0de78e96d98a60bcfc7d0b8f78082ccd442",
+      "minimumOS": "Chrome 120 / Edge 120",
+      "signingClass": "unsigned-unpacked-extension"
+    },
+    {
+      "name": "ynx-wallet-firefox-0.1.0.zip",
+      "bytes": 469973,
+      "sha256": "027ef2810ea1bfddb2cba6a82b4fc84a2ef7693ed2d981107fd8e8f408e084e9",
+      "minimumOS": "Firefox 128",
+      "signingClass": "unsigned-unpacked-extension"
+    }
+  ],
+  "currentPublicReadOnlyFinding": {
+    "checkedAt": "2026-08-31T10:33:40Z",
+    "origin": "https://wallet.ynxweb4.com",
+    "root": {
+      "status": 200,
+      "bytes": 2196,
+      "sha256": "e69b3fb2f695584978dae7b5309584a760ccf7f534de649882ee41efaec78954",
+      "contentType": "text/html; charset=utf-8"
+    },
+    "buildIdentityReturnsSameHtml": true,
+    "manifestReturnsSameHtml": true,
+    "serviceWorkerReturnsSameHtml": true,
+    "currentSourceBoundPublic": false
+  },
+  "falseUntilDirectEvidence": {
+    "installedLocal": false,
+    "browserVisibleDiscovery": false,
+    "firstPartyDappDiscovery": false,
+    "externalDappDiscovery": false,
+    "providerConnected": false,
+    "accountApproved": false,
+    "providerChainId1917Verified": false,
+    "refreshRestoreVerified": false,
+    "disconnectAndEventsVerified": false,
+    "personalSignVerified": false,
+    "typedDataVerified": false,
+    "transactionSubmitted": false,
+    "walletConnectPaired": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "deployedPublic": false,
+    "parityComplete": false
+  }
+}

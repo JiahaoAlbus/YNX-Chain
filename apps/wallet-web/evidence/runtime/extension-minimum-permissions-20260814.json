@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "sourceCommit": "60a756991fbe07311c9d2b0dbade8a9d670dab04",
-  "generatedAt": "2026-08-22T04:55:45.102Z",
+  "sourceCommit": "0add9f817b79790cfe3d26a88c9a64f90fdaeebb",
+  "generatedAt": "2026-08-31T10:18:12.316Z",
   "gateClass": "exact built-artifact manifest and external URL inspection; not a browser installation",
   "externalUrlClasses": {
     "rpcAuthority": "https://evm.ynxweb4.com",
@@ -16,22 +16,46 @@
   "artifacts": [
     {
       "name": "ynx-wallet-chrome-edge-0.1.0.zip",
-      "bytes": 468402,
-      "sha256": "769bc63f93b5e85cfac6b85ed44002a037202ccabe8af013009ab989c566bfd6",
+      "bytes": 469940,
+      "sha256": "72bde3f0cf2cf22af271d88b0d63a0de78e96d98a60bcfc7d0b8f78082ccd442",
       "permissions": [
         "activeTab",
         "scripting",
         "storage"
       ],
       "hostPermissions": [
-        "https://evm.ynxweb4.com/*"
+        "https://*/*"
       ],
       "csp": "script-src 'self'; object-src 'self'; connect-src https://evm.ynxweb4.com",
-      "persistentContentScripts": false,
+      "persistentContentScripts": true,
+      "contentScripts": [
+        {
+          "matches": [
+            "https://*/*"
+          ],
+          "js": [
+            "content-script.js"
+          ],
+          "run_at": "document_start",
+          "all_frames": false,
+          "match_about_blank": false
+        },
+        {
+          "matches": [
+            "https://*/*"
+          ],
+          "js": [
+            "page-provider.js"
+          ],
+          "run_at": "document_start",
+          "all_frames": false,
+          "match_about_blank": false,
+          "world": "MAIN"
+        }
+      ],
       "webAccessibleProvider": false,
       "externalUrls": [
         "https://evm.ynxweb4.com",
-        "https://evm.ynxweb4.com/*",
         "https://explorer.ynxweb4.com",
         "https://metamask.app.link",
         "https://metamask.io/download",
@@ -46,22 +70,46 @@
     },
     {
       "name": "ynx-wallet-firefox-0.1.0.zip",
-      "bytes": 468441,
-      "sha256": "3eba0cacacded62932670f36ca5f2ea852680cda7cf696fce4515b7e1d1509c6",
+      "bytes": 469973,
+      "sha256": "027ef2810ea1bfddb2cba6a82b4fc84a2ef7693ed2d981107fd8e8f408e084e9",
       "permissions": [
         "activeTab",
         "scripting",
         "storage"
       ],
       "hostPermissions": [
-        "https://evm.ynxweb4.com/*"
+        "https://*/*"
       ],
       "csp": "script-src 'self'; object-src 'self'; connect-src https://evm.ynxweb4.com",
-      "persistentContentScripts": false,
+      "persistentContentScripts": true,
+      "contentScripts": [
+        {
+          "matches": [
+            "https://*/*"
+          ],
+          "js": [
+            "content-script.js"
+          ],
+          "run_at": "document_start",
+          "all_frames": false,
+          "match_about_blank": false
+        },
+        {
+          "matches": [
+            "https://*/*"
+          ],
+          "js": [
+            "page-provider.js"
+          ],
+          "run_at": "document_start",
+          "all_frames": false,
+          "match_about_blank": false,
+          "world": "MAIN"
+        }
+      ],
       "webAccessibleProvider": false,
       "externalUrls": [
         "https://evm.ynxweb4.com",
-        "https://evm.ynxweb4.com/*",
         "https://explorer.ynxweb4.com",
         "https://metamask.app.link",
         "https://metamask.io/download",
