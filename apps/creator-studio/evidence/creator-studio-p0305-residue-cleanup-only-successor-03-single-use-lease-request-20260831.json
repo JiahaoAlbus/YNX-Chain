@@ -1,0 +1,113 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "owner": "creator-studio-deploy-owner",
+  "requestType": "WHOLLY_NEW_IDENTITY_BOUND_CREATOR_P0305_RESIDUE_CLEANUP_ONLY_SUCCESSOR_03",
+  "supersedes": {
+    "requestCommit": "9666cea2260fd16c33f82b115b1c7278382b4d95",
+    "executionTaskId": "P0-307",
+    "reason": "CANDIDATE_INVENTORY_DRIFT_EXACT_16_APPLEDOUBLE_FILES_NOT_BOUND"
+  },
+  "implementation": {
+    "commit": "54b8bb36d439092ebd5a7df03cea44f1786d1453",
+    "tree": "f15832042585414905620812dd6dba69cc6cf213",
+    "path": "apps/creator-studio/release-residue-cleanup-3f97a13d.mjs",
+    "bytes": 27531,
+    "sha256": "bf79b77db47cc0141d5fe3a80aa16240d8325f557bba15259c5086b33b535092"
+  },
+  "authoritativeZeroWriteInventory": {
+    "taskId": "P0-308",
+    "centralCommit": "46a630042e8f20797851a374d4f4b5f11ac25fec",
+    "centralTree": "6367218373818b236a39d0b768a72fa5bc159622",
+    "remoteExitStatus": 0,
+    "mutationCount": 0,
+    "inspectionComplete": true,
+    "oldRuntimeExact": true,
+    "allThreeResiduesRetained": true,
+    "allNextAndStagePathsAbsent": true
+  },
+  "appleDoubleInventory": {
+    "count": 16,
+    "bytesEach": 163,
+    "sha256Each": "b2b37d54e78052e7810fb65d04b2e7d916c6e85c69e04164c936f4fc8e7375d3",
+    "wildcardsAllowed": false,
+    "exactRelativePathTuples": {
+      "._.": "64770:1483919:995:986:755:1:163:regular file",
+      "._app.js": "64770:1483942:995:986:644:1:163:regular file",
+      "._assets": "64770:1483936:995:986:755:1:163:regular file",
+      "._creator-studio.manifest.json": "64770:1483928:995:986:644:1:163:regular file",
+      "._enhancements.css": "64770:1483920:995:986:644:1:163:regular file",
+      "._i18n": "64770:1483934:995:986:755:1:163:regular file",
+      "._i18n.js": "64770:1483940:995:986:644:1:163:regular file",
+      "._index.html": "64770:1483924:995:986:644:1:163:regular file",
+      "._server.mjs": "64770:1483932:995:986:644:1:163:regular file",
+      "._standard-wallet-connect-state.js": "64770:1483930:995:986:644:1:163:regular file",
+      "._styles.css": "64770:1483926:995:986:644:1:163:regular file",
+      "._wallet-auth.js": "64770:1483938:995:986:644:1:163:regular file",
+      "._wallet-callback.html": "64770:1483922:995:986:644:1:163:regular file",
+      "assets/._metamask.svg": "64770:1483944:995:986:644:1:163:regular file",
+      "assets/._ynx-wallet.svg": "64770:1483946:995:986:644:1:163:regular file",
+      "i18n/._catalog.json": "64770:1483948:995:986:644:1:163:regular file"
+    }
+  },
+  "payloadBinding": {
+    "manifestListedFiles": 12,
+    "manifestSha256": "fcd0f3346de18e51580af8f7c4f040b8694f7e2ef74bb92cc1ce942e03bea624",
+    "sourceCommit": "3f97a13d5ff6e0a43d434eb6b630785564e59e3e",
+    "sourceTree": "5ed64b144ec149e05f201ca9e406e460fa19f9f9",
+    "everyManifestFileShaRequired": true,
+    "anyOtherFileOrDirectoryRejected": true
+  },
+  "canonicalInput": {
+    "bytes": 1625,
+    "sha256": "b8cfef3abdd568b44b04b463cbb56f0fdaca58248c04f28be10e300a87a2ea7c",
+    "base64": "eyJzY2hlbWFWZXJzaW9uIjoiMS4wLjAiLCJhY3Rpb24iOiJDUkVBVE9SX1AwMzA1X1JFU0lEVUVfQ0xFQU5VUF9PTkxZIiwiY29udHJvbFR1cGxlIjoiNjQ3NzA6MTQ4MzgzMDowOjA6NzAwOjM6NDA5NjpkaXJlY3RvcnkiLCJjYW5kaWRhdGVUdXBsZSI6IjY0NzcwOjE0ODM5MTg6OTk1Ojk4Njo3NTU6NDo0MDk2OmRpcmVjdG9yeSIsImN1cnJlbnRUdXBsZSI6IjY0NzcwOjE0ODM5NTE6MDowOjc3NzoxOjYzOnN5bWJvbGljIGxpbmsiLCJvbGRSZWxlYXNlVHVwbGUiOiI2NDc3MDoxNDgzODc3Ojk5NTo5ODY6NzU1OjQ6NDA5NjpkaXJlY3RvcnkiLCJmb3J3YXJkUmVjZWlwdFR1cGxlIjoiNjQ3NzA6MTQ4MzkwOTowOjA6NjAwOjE6ODI1MDA6cmVndWxhciBmaWxlIiwiZm9yd2FyZFJlY2VpcHRTaGEyNTYiOiIwM2I0YjM4YWZiYmEzZDFlZjIyNjdjYTZlOWJhMmVjNzYxMmRjYTI1NTcxM2ZkNTE4Mzc2ZTAzMTNmMmY1ZGM1IiwiY3JlYXRvclBpZCI6Mjc0Nzg0NCwiY3JlYXRvck5SZXN0YXJ0cyI6MCwiYXBpUGlkIjozMTA4MjEwLCJ2aWV3ZXJQaWQiOjIxNTk1MzYsImNhbmRpZGF0ZUFwcGxlRG91YmxlIjp7Ii5fLiI6IjY0NzcwOjE0ODM5MTk6OTk1Ojk4Njo3NTU6MToxNjM6cmVndWxhciBmaWxlIiwiLl9hcHAuanMiOiI2NDc3MDoxNDgzOTQyOjk5NTo5ODY6NjQ0OjE6MTYzOnJlZ3VsYXIgZmlsZSIsIi5fYXNzZXRzIjoiNjQ3NzA6MTQ4MzkzNjo5OTU6OTg2Ojc1NToxOjE2MzpyZWd1bGFyIGZpbGUiLCIuX2NyZWF0b3Itc3R1ZGlvLm1hbmlmZXN0Lmpzb24iOiI2NDc3MDoxNDgzOTI4Ojk5NTo5ODY6NjQ0OjE6MTYzOnJlZ3VsYXIgZmlsZSIsIi5fZW5oYW5jZW1lbnRzLmNzcyI6IjY0NzcwOjE0ODM5MjA6OTk1Ojk4Njo2NDQ6MToxNjM6cmVndWxhciBmaWxlIiwiLl9pMThuIjoiNjQ3NzA6MTQ4MzkzNDo5OTU6OTg2Ojc1NToxOjE2MzpyZWd1bGFyIGZpbGUiLCIuX2kxOG4uanMiOiI2NDc3MDoxNDgzOTQwOjk5NTo5ODY6NjQ0OjE6MTYzOnJlZ3VsYXIgZmlsZSIsIi5faW5kZXguaHRtbCI6IjY0NzcwOjE0ODM5MjQ6OTk1Ojk4Njo2NDQ6MToxNjM6cmVndWxhciBmaWxlIiwiLl9zZXJ2ZXIubWpzIjoiNjQ3NzA6MTQ4MzkzMjo5OTU6OTg2OjY0NDoxOjE2MzpyZWd1bGFyIGZpbGUiLCIuX3N0YW5kYXJkLXdhbGxldC1jb25uZWN0LXN0YXRlLmpzIjoiNjQ3NzA6MTQ4MzkzMDo5OTU6OTg2OjY0NDoxOjE2MzpyZWd1bGFyIGZpbGUiLCIuX3N0eWxlcy5jc3MiOiI2NDc3MDoxNDgzOTI2Ojk5NTo5ODY6NjQ0OjE6MTYzOnJlZ3VsYXIgZmlsZSIsIi5fd2FsbGV0LWF1dGguanMiOiI2NDc3MDoxNDgzOTM4Ojk5NTo5ODY6NjQ0OjE6MTYzOnJlZ3VsYXIgZmlsZSIsIi5fd2FsbGV0LWNhbGxiYWNrLmh0bWwiOiI2NDc3MDoxNDgzOTIyOjk5NTo5ODY6NjQ0OjE6MTYzOnJlZ3VsYXIgZmlsZSIsImFzc2V0cy8uX21ldGFtYXNrLnN2ZyI6IjY0NzcwOjE0ODM5NDQ6OTk1Ojk4Njo2NDQ6MToxNjM6cmVndWxhciBmaWxlIiwiYXNzZXRzLy5feW54LXdhbGxldC5zdmciOiI2NDc3MDoxNDgzOTQ2Ojk5NTo5ODY6NjQ0OjE6MTYzOnJlZ3VsYXIgZmlsZSIsImkxOG4vLl9jYXRhbG9nLmpzb24iOiI2NDc3MDoxNDgzOTQ4Ojk5NTo5ODY6NjQ0OjE6MTYzOnJlZ3VsYXIgZmlsZSJ9fQo="
+  },
+  "requestedExecution": {
+    "executor": "release-control-plane",
+    "runtimeHost": "43.153.202.237",
+    "attemptLimit": 1,
+    "retryAllowed": false,
+    "sshStdin": {
+      "path": "apps/creator-studio/release-residue-cleanup-3f97a13d.mjs",
+      "bytes": 27531,
+      "sha256": "bf79b77db47cc0141d5fe3a80aa16240d8325f557bba15259c5086b33b535092"
+    },
+    "remoteArgvSuffix": [
+      "/usr/bin/sudo",
+      "-n",
+      "/usr/bin/node",
+      "--input-type=module",
+      "-",
+      "cleanup",
+      "<canonicalInput.base64 exact literal>"
+    ],
+    "sshPolicy": "Central must freeze the complete literal local SSH argv with the exact canonicalInput base64 and protected existing identity reference."
+  },
+  "fixtureEvidence": {
+    "passed": true,
+    "appleDoubleExactCount": 16,
+    "appleDoubleReplacementRejectedWithZeroDeletion": true,
+    "extraFileRejectedWithZeroDeletion": true,
+    "receiptCandidateAndControlBoundaryReplacementRejected": true,
+    "parentAndRemainingTargetFences": true,
+    "successServiceLifecycleActions": 0,
+    "successTerminalAbsence": true
+  },
+  "terminalRule": "Retain Creator Heavy after the one cleanup attempt. A wholly-new zero-write readback must prove all three residues and all next/stage paths absent and the old runtime exact before release.",
+  "forbidden": [
+    "wildcard inventory acceptance",
+    "old rollback or forward argv",
+    "retry or blind cleanup",
+    "service current old release API Viewer unit Caddy shared-current or public mutation",
+    "remote temp files",
+    "Wallet account request signature typed data or transaction"
+  ],
+  "truthBoundary": {
+    "sourceOnly": true,
+    "sshExecuted": false,
+    "productionMutation": false,
+    "cleanupComplete": false,
+    "publicRuntimeChanged": false
+  }
+}
