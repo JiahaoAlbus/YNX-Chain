@@ -5,7 +5,7 @@
 - Workspace: exact configured YNX 26 Worktree verified
 - Branch: `codex/final-data-fabric`
 - Engineering Source Commit: `cc62be999b619ca4dfab635a3bd640792204decd`
-- Remote Source Commit: pending for the canonical PostgreSQL erasure-authority source commit. GitHub Actions run `33375432866` exposed the prior timestamp mismatch at source `60d92d33db3c69080bb72a2cd1ccf6149f43de2b`; its failure is not attributed to this source. The older successful run `33374309851` remains evidence only for `c134290a4800a30c2f1f5a57523adf1daea34ad3`. CI is not Central integration or public runtime proof.
+- Remote Source Commit: GitHub Actions run `33376722565` completed successfully at binding head `5dee482b702132284cb7f32138f516d9d078f4a5`, a descendant of engineering source `cc62be999b619ca4dfab635a3bd640792204decd`. GitHub Actions run `33375432866` preserved the prior timestamp mismatch at source `60d92d33db3c69080bb72a2cd1ccf6149f43de2b`; it is not attributed to this source. CI is not Central integration or public runtime proof.
 - Source evidence CI: Run `31811137802` passed both jobs at v26-bound head `58eff9dad4a0a3dc27105716928f2a9b7c4f6460`, including the three-replica JetStream TCP route-partition/heal gate. Its eleven-file artifact was downloaded and every SHA-256 value verified. Earlier leader-loss evidence remains preserved in Runs `31797308684` and `31799837096`.
 - Concurrent writer: no Git writer detected; an existing CodexPro server process was left untouched
 - Dirty state: candidate source, delivery documents and exact-source CI receipt are committed on the review branch; legacy recovery files remain preserved under `recovery/2026-07-23/`

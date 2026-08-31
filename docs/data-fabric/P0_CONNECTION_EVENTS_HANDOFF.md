@@ -91,6 +91,6 @@ Central must bind one authoritative HTTPS Data Fabric origin and the exact runti
 
 ### CI release-evidence redaction correction — 2026-08-31
 
-- GitHub Actions run `33376148624` passed PostgreSQL live, PostgreSQL failover and reproducible-build jobs for the erasure precision repair, but `data-fabric-verify` correctly rejected an ellipsis placeholder in a local-test evidence string.
-- Commit `5dee482b702132284cb7f32138f516d9d078f4a5` replaces that string with a concrete, non-sensitive description that contains neither endpoint nor credential. Local quality gates and release-truth verification pass; the next exact-source CI run is pending.
+- GitHub Actions run `33376148624` passed PostgreSQL live, PostgreSQL failover and reproducible-build jobs for the erasure precision repair, but `data-fabric-verify` correctly rejected an abbreviated local-test evidence string.
+- Commit `5dee482b702132284cb7f32138f516d9d078f4a5` replaces that string with a concrete, non-sensitive description that contains neither endpoint nor credential. GitHub Actions run `33376722565` passed all six Data Fabric jobs for the same engineering source; later documentation CI is separate and does not change the source evidence.
 - This is release-evidence hygiene only. No deployment, hosted download, public URL, or P0-147 state changed.
