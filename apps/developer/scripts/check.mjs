@@ -3,6 +3,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 import { assertNoBareWalletAuthorizationInReleaseSources } from "./check-wallet-authorization-links.mjs";
+import { assertCanonicalDeveloperChainIdentity } from "./check-chain-identity.mjs";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const execFileAsync = promisify(execFile);
@@ -15,6 +16,7 @@ for (const forbidden of ["fully EVM compatible", "Ethereum compatible", "source 
   if (joined.toLowerCase().includes(forbidden.toLowerCase())) throw new Error(`Forbidden claim: ${forbidden}`);
 }
 await assertNoBareWalletAuthorizationInReleaseSources();
+await assertCanonicalDeveloperChainIdentity();
 await execFileAsync(process.execPath, [
   fileURLToPath(new URL("../vendor/wallet-auth/scripts/verify-standard-wallet-connect-consumer.mjs", import.meta.url)),
   fileURLToPath(new URL("../frontend/src", import.meta.url)),
