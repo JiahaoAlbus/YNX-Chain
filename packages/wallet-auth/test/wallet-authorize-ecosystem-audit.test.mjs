@@ -921,6 +921,18 @@ test("Central released Finance and Explorer paths plus P0-150 parity are tracked
   assert.equal(auditV3.standardWalletParityConformance.nativeWalletConnectControlCharacterRequestId.runtimeControlCharacterRequestIdRejected, true);
   assert.equal(auditV3.standardWalletParityConformance.nativeWalletConnectControlCharacterRequestId.persistedControlCharacterRequestIdFailsClosedAsCorrupt, true);
   assert.equal(auditV3.standardWalletParityConformance.nativeWalletConnectControlCharacterRequestId.realDappRuntime, false);
+  const hardening = auditV3.standardWalletParityConformance.crossPlatformReownRuntimeHardening;
+  assert.equal(hardening.ownerHead, "bbfbd9441005694981902c3be7d02b4bf09d141e");
+  assert.equal(hardening.implementationCommit, "9f8e6aca883af7d31875e04ca01b8b20fac47892");
+  assert.equal(hardening.supersedes.implementationCommit, "b25c8c565c1e83687bafd957c199b51a8e92eab0");
+  assert.equal(hardening.supersedes.evidenceCommit, "5d66e08c79a175e739d277f215e352b2a8d50dab");
+  assert.equal(hardening.evidenceBlob, "4b64f282d13f8c0d1382cf327ff124261efe59c5");
+  assert.equal(hardening.evidenceSha256, "f03272df8ed45d4be50f5db905c7d2263b61b93b80aaa4dd6f65f00e3af6b918");
+  assert.equal(hardening.malformedAddSwitchRequestRejectedBeforeApproval, true);
+  assert.equal(hardening.sourceOnly, true);
+  assert.equal(hardening.hostedCITriggered, false);
+  assert.equal(hardening.relay, false);
+  assert.equal(hardening.parityComplete, false);
 });
 
 test("Central P0-155 makes installed E2E the only interoperability completion tier", () => {
