@@ -67,6 +67,15 @@ export default function App(){
   const walletProvider=useRef<Eip1193Provider|null>(null);
   const walletProviderKind=useRef<WalletProviderKind|null>(null);
   const pendingAuthorization=useRef<PendingAuthorizationRequest|null>(null);
+  useEffect(()=>{
+    if(Platform.OS!=="web")return;
+    const probe=()=>{void discoverWalletProviders(globalThis,0).catch(()=>{});};
+    probe();
+    const timers=[250,750,1500].map(delay=>setTimeout(probe,delay));
+    const initialized=()=>probe();
+    globalThis.addEventListener?.("ethereum#initialized",initialized);
+    return()=>{timers.forEach(clearTimeout);globalThis.removeEventListener?.("ethereum#initialized",initialized);};
+  },[]);
   const persistSimulationLedger=useCallback(async(next:readonly SimulationAuditRecord[])=>{
     const normalized=Object.freeze(next.slice(0,TESTNET_SIMULATION_MAX_EVENTS));
     await saveSimulationAudit(normalized);
