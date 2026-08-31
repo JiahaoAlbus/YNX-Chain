@@ -136,6 +136,38 @@
     "realRuntime": false,
     "runtimePromoted": false
   },
+  "walletStrategyMandateReviewSource": {
+    "ownerBranch": "codex/wallet-strategy-mandate-review-20260831",
+    "sourceCommit": "24d632978f9b16e43d296014450ea185e3545231",
+    "sourceTree": "07562180c030fc3eef0df9e922b3b258b226f2f3",
+    "parentAndroidWalletBaseline": "9f8079be143bbaea13c27c1073d0ae539de3e2ee",
+    "sourceOnly": true,
+    "strictMandateReview": {
+      "fullIdentityEngineScopeVenuesAssetsMarketsMethods": true,
+      "limitsLossDrawdownExpiryAndNoWithdraw": true,
+      "feesHighWaterMarkAndLossCarry": true,
+      "killRevokeEmergencyAndRealPnlNetAssets": true,
+      "testnetDisclosure": true,
+      "exchangeSubaccountNoWithdraw": true,
+      "dexVaultPoolRouterMethodAndNoTransferOwnerUnlimitedApproval": true,
+      "rejectAlwaysVisible": true,
+      "approveRequiresParserValidRiskAndFeeAcknowledgements": true,
+      "pureEffects": true
+    },
+    "validation": {
+      "typecheck": "PASS",
+      "walletTests": "PASS_53_OF_53",
+      "productCheck": "PASS"
+    },
+    "provider": false,
+    "account": false,
+    "callback": false,
+    "signature": false,
+    "network": false,
+    "installed": false,
+    "deployed": false,
+    "runtimePromoted": false
+  },
   "truth": {
     "registryExpandedToAllResponsibilityDomains": true,
     "directRuntimeEvidenceComplete": false,
