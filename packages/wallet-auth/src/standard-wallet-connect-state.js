@@ -95,7 +95,11 @@ export function reduceStandardWalletConnectState(current, event) {
     case "CHAIN_CHANGED": {
       if (previous.providerKind === null || previous.account === null) fail("INVALID_STANDARD_WALLET_TRANSITION", "Chain changes require a prior Wallet connection");
       const chainId = chain(event.chainId);
-      if (chainId !== STANDARD_WALLET_CHAIN_ID) return state({ ...previous, status: STANDARD_WALLET_CONNECT_STATUS.WRONG_CHAIN, chainId, standardPermissions: EMPTY, productAccess: "guest-or-public-only", chooserOpen: false, chooserMode: "closed" });
+      // A connected provider that changes away from YNX Testnet must re-enter
+      // the actionable switch-required state.  Silently closing the chooser
+      // strands the user in a permissionless state with no canonical recovery
+      // surface; it must never preserve Standard Wallet authority instead.
+      if (chainId !== STANDARD_WALLET_CHAIN_ID) return state({ ...previous, status: STANDARD_WALLET_CONNECT_STATUS.WRONG_CHAIN, chainId, standardPermissions: EMPTY, productAccess: "guest-or-public-only", chooserOpen: true, chooserMode: "wrong-chain", focusRestoreTarget: null });
       return connected(previous.providerKind, previous.account, previous.privateService);
     }
     case "PROVIDER_DISCONNECT":

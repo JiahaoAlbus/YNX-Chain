@@ -111,8 +111,12 @@ test("account, chain and provider events are the only connection-invalidating tr
   const wrong = reduce(standard, "CHAIN_CHANGED", { chainId: "0x1" });
   assert.equal(wrong.status, STANDARD_WALLET_CONNECT_STATUS.WRONG_CHAIN);
   assert.deepEqual(wrong.standardPermissions, []);
+  assert.equal(wrong.chooserOpen, true);
+  assert.equal(wrong.chooserMode, "wrong-chain");
+  assert.equal(wrong.productAccess, "guest-or-public-only");
   const recovered = reduce(wrong, "CHAIN_CHANGED", { chainId: "0x1917" });
   assert.equal(recovered.status, STANDARD_WALLET_CONNECT_STATUS.CONNECTED);
+  assert.equal(recovered.chooserOpen, false);
   assert.equal(reduce(standard, "PROVIDER_DISCONNECT").disconnectReason, "provider-disconnect");
   assert.equal(reduce(standard, "DISCONNECT").disconnectReason, "user-disconnect");
 });
