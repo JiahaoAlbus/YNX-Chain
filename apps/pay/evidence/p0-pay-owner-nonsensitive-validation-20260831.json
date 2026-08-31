@@ -1,0 +1,61 @@
+{
+  "schemaVersion": "payOwnerNonSensitiveValidation@1.0.0-p0.0",
+  "ownerScope": ["apps/pay/**"],
+  "observedAt": "2026-08-31T10:46:19Z",
+  "source": {
+    "commit": "525b915bc8d7884373d4e5c603b23157f2606d1d",
+    "payTree": "e2e64b604271b3933e1c9a5a57ebdff11eae97bd",
+    "baseCarrier": "origin/codex/pay-carrier-20260831-ops7mu"
+  },
+  "canonicalNetwork": {
+    "cosmosChainId": "ynx_6423-1",
+    "evmChainId": 6423,
+    "evmChainHex": "0x1917",
+    "nativeAsset": "YNXT",
+    "legacy9102Rejected": true
+  },
+  "localValidation": {
+    "commands": ["npm ci", "npm run typecheck", "npm test", "npm run bundle-check"],
+    "tests": {"passed": 23, "failed": 0},
+    "webExport": {
+      "indexSha256": "c0bc61c41a42facc7b6ac987880915158e3da961e1e40de75ac48c62f6d0023c",
+      "mainBundleSha256": "868be300eefb06e4c80208a3b2fac9cd5718734bf291fa91de50e5949ef13c0b",
+      "lockfileSha256": "da7c449fff2be3a36a14f3a42ccee583ef2c98cef535ee213caefb7cb1402a3c"
+    }
+  },
+  "isolatedBrowser": {
+    "target": "local Expo web export served at 127.0.0.1:4175",
+    "firstShellVisible": true,
+    "smallViewportHorizontalOverflowPx": 0,
+    "noProviderFallbackVisible": true,
+    "noProviderCopyNamesYNXWalletAndMetaMask": true,
+    "accountRequestSent": false,
+    "signatureSent": false,
+    "transactionSent": false,
+    "arabicRtlContainers": 28,
+    "arabicHorizontalOverflowPx": 0
+  },
+  "publicObservation": {
+    "url": "https://pay.ynxweb4.com/",
+    "rootHttpStatus": 200,
+    "bundleUrl": "https://pay.ynxweb4.com/_expo/static/js/web/index-7b0e541eda1df37fa2c19e3d7df84d2f.js",
+    "bundleSha256": "94c7d8da1d22464092658af66e8024d543db64ed60e304ab8d9c48588bfd0840",
+    "bundleBytes": 2668358,
+    "carrierRecord": "apps/pay/evidence/p0-pay-current-release-carrier-contract-20260831.json",
+    "sourceBinding": "The observed public bundle matches the existing carrier record, not this newly exported local bundle."
+  },
+  "truth": {
+    "sourceAndLocalWebCandidateValidated": true,
+    "publicCarrierReachable": true,
+    "publicDeploymentOfThisCandidate": false,
+    "nativeInstalled": false,
+    "ynxWalletApproval": false,
+    "metaMaskApproval": false,
+    "chainSwitchReadback": false,
+    "callback": false,
+    "signature": false,
+    "transaction": false,
+    "productBackendActivated": false
+  },
+  "completionBoundary": "This is a local, non-sensitive validation record. It does not grant a deployment or install lease and does not prove Wallet approval, chain switching, callback, signing, transaction, or a live Pay product backend."
+}
