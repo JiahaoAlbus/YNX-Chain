@@ -16,6 +16,7 @@
       "window.ethereum and ethereum.providers fallback"
     ],
     "accountRequestIssued": false,
+    "ethChainIdReadIssued": true,
     "chainRequestIssued": false,
     "addOrSwitchRequested": false,
     "signRequested": false,
@@ -31,7 +32,8 @@
       "metaMask": {
         "eip6963": true,
         "injected": true,
-        "rdns": "io.metamask"
+        "rdns": "io.metamask",
+        "ethChainId": "0x238e"
       },
       "ynxWallet": {
         "eip6963": false,
@@ -97,6 +99,7 @@
     "accountApprovalObserved": false,
     "rejectObserved": false,
     "chain0x1917Observed": false,
+    "wrongProviderChainDirectlyObserved": true,
     "connectedAccountObserved": false,
     "refreshRestoreObserved": false,
     "disconnectObserved": false,
