@@ -6,6 +6,7 @@ import {
   bareAuthorizationFindings,
   consumerAuthorizationFindings,
   legacyCallbackShorthandFindings,
+  noncanonicalWalletAuthorizeFindings,
   verifyNoBareWalletAuthorize,
   webAuthorizationBehaviorFindings,
   webWalletCapabilityAudit,
@@ -68,6 +69,17 @@ test("consumer audit rejects direct legacy callback shorthand while preserving p
   ]);
   assert.deepEqual(consumerAuthorizationFindings("apps/example/web/wallet.js", `const productId = "ynx-social";`), []);
   assert.deepEqual(consumerAuthorizationFindings("packages/wallet-auth/src/product-session-registry.js", `const legacyCallbacks = ["ynx-social"];`), []);
+});
+
+test("consumer audit rejects a YNX-like but noncanonical authorization scheme", () => {
+  assert.deepEqual(noncanonicalWalletAuthorizeFindings("apps/example/web/wallet.js", "location.href = \"ynx-wallet://authorize?request=payload\""), [
+    { file: "apps/example/web/wallet.js", line: 1, code: "NONCANONICAL_WALLET_AUTHORIZE_URI" },
+  ]);
+  assert.deepEqual(consumerAuthorizationFindings("apps/example/web/wallet.js", "location.href = \"ynx-wallet://authorize?request=payload\""), [
+    { file: "apps/example/web/wallet.js", line: 1, code: "WEB_TOP_LEVEL_WALLET_AUTHORIZATION_NAVIGATION" },
+    { file: "apps/example/web/wallet.js", line: 1, code: "NONCANONICAL_WALLET_AUTHORIZE_URI" },
+  ]);
+  assert.deepEqual(noncanonicalWalletAuthorizeFindings("apps/example/web/wallet.js", `const callback = "ynxsocial://wallet-auth/callback";`), []);
 });
 
 test("Web behavior audit rejects indirect top-level navigation and handwritten request encoding", () => {

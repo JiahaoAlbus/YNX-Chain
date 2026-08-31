@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 const SOURCE_EXTENSIONS = new Set([".c", ".cc", ".cpp", ".cs", ".dart", ".go", ".h", ".html", ".java", ".js", ".jsx", ".kt", ".kts", ".mjs", ".mm", ".rs", ".swift", ".ts", ".tsx"]);
 const EXCLUDED_SEGMENTS = new Set([".git", "build", "coverage", "dist", "docs", "evidence", "node_modules", "release", "test", "testdata", "tests", "vendor"]);
 const ROUTE = "ynxwallet://authorize";
+const YNX_AUTHORIZE_ROUTE = /\bynx[a-z0-9-]*:\/\/authorize\b/gi;
 const WEB_SOURCE_EXTENSIONS = new Set([".html", ".js", ".jsx", ".mjs", ".ts", ".tsx"]);
 const NATIVE_PATH_SEGMENTS = new Set(["android", "desktop", "ios", "macos", "mobile", "native", "windows"]);
 const LEGACY_CALLBACK_PROPERTY = /\b(?:callback|callbackUrl|returnUrl|deepLink|targetUrl|uri|url|href|location)\b\s*(?::|=)\s*(["'`])(ynx(?:-[a-z0-9]+|[a-z0-9]+))\1/gi;
@@ -111,6 +112,18 @@ export function bareAuthorizationFindings(relative, text) {
   return Object.freeze(findings);
 }
 
+export function noncanonicalWalletAuthorizeFindings(relative, text) {
+  const findings = [];
+  YNX_AUTHORIZE_ROUTE.lastIndex = 0;
+  let match;
+  while ((match = YNX_AUTHORIZE_ROUTE.exec(text)) !== null) {
+    if (match[0].toLowerCase() !== ROUTE) {
+      findings.push(Object.freeze({ file: relative, line: lineAt(text, match.index), code: "NONCANONICAL_WALLET_AUTHORIZE_URI" }));
+    }
+  }
+  return Object.freeze(findings);
+}
+
 export function legacyCallbackShorthandFindings(relative, text) {
   if (isProtocolOwnerSource(relative)) return Object.freeze([]);
   const findings = [];
@@ -125,7 +138,7 @@ export function legacyCallbackShorthandFindings(relative, text) {
 }
 
 export function consumerAuthorizationFindings(relative, text) {
-  const findings = [...bareAuthorizationFindings(relative, text), ...webAuthorizationBehaviorFindings(relative, text), ...legacyCallbackShorthandFindings(relative, text)];
+  const findings = [...bareAuthorizationFindings(relative, text), ...webAuthorizationBehaviorFindings(relative, text), ...noncanonicalWalletAuthorizeFindings(relative, text), ...legacyCallbackShorthandFindings(relative, text)];
   if (isProtocolOwnerSource(relative)) return Object.freeze(findings);
   let offset = 0;
   while ((offset = text.indexOf(ROUTE, offset)) !== -1) {

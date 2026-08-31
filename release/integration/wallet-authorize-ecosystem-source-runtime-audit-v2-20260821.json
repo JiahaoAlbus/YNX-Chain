@@ -37,12 +37,13 @@
     },
     "releaseGate": "PASS_ZERO_BARE_OR_PAYLOAD_FREE_URI",
     "consumerAudit": "EXPECTED_FAIL_UNTIL_FINDINGS_MIGRATE",
-    "findingCount": 29,
+    "findingCount": 32,
     "findingCountsByCode": {
       "MANUAL_WALLET_AUTHORIZE_URI": 13,
       "WEB_TOP_LEVEL_WALLET_AUTHORIZATION_NAVIGATION": 5,
       "HANDWRITTEN_AUTHORIZATION_REQUEST_ENCODING": 5,
-      "WEB_CUSTOM_SCHEME_AUTHORIZE_URI": 6
+      "WEB_CUSTOM_SCHEME_AUTHORIZE_URI": 6,
+      "NONCANONICAL_WALLET_AUTHORIZE_URI": 3
     },
     "registeredBaselineFindingCount": 11,
     "registeredBaselineFindings": [
