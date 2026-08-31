@@ -73,6 +73,12 @@ The reference and implementation were captured together in the browser QA compar
 - Regression gate: `scripts/verify/explorer-i18n-check.mjs` now verifies nine markup attribute families across all five locales. `make static-check` executes it, so incomplete HTML-bound translations fail before a source candidate can be advanced.
 - Scope: this is a local presentation and localization proof only. It does not turn unavailable public services, downloads, historical data, or ecosystem products into live services.
 
+## 2026-08-31 route-link integrity gate
+
+- `scripts/verify/explorer-link-integrity-check.mjs` now verifies every initial-document `href` and `data-route`: all nine required routes are present, same-portal anchors resolve to known routes, only packaged `/assets/` paths are used locally, and no blank, second-tab, local-host, placeholder, or unverified external target is admitted.
+- The gate deliberately evaluates the initial document separately from the controlled runtime route builder, so a legitimate in-page dynamic link does not hide a malformed static navigation target or create a false positive.
+- `make static-check` runs this gate with the locale, Go vet, shell syntax, and MJS syntax checks. This is source-level link integrity evidence; it does not assert a public URL or enable any unavailable external product.
+
 ## 2026-08-31 live-runtime recheck
 
 - Runtime: local Chrome opened `http://127.0.0.1:6437/#home` with the portal connected to the local 6423 node and indexer. The verified snapshot returned chain ID `6423`, EVM `0x1917`, native token `YNXT`, an advancing RPC height, and indexed transaction data. Wallet-visible RPC and Explorer URL arrays remained empty because no verified public HTTPS endpoint was supplied.
