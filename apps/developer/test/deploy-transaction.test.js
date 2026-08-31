@@ -30,6 +30,7 @@ test("public candidate transaction is exact-source, preflighted and rollback-saf
   assert.match(transaction, /runuser_bin=\/usr\/sbin\/runuser/);
   assert.match(transaction, /reviewed runuser binary is missing/);
   assert.match(transaction, /merge-base --is-ancestor/);
+  assert.match(transaction, /rev-parse "\$expected_commit\^\{tree\}"/);
   assert.match(transaction, /status --porcelain=v1 --untracked-files=normal/);
   assert.match(transaction, /candidate_dir="\$candidate_root\/\$expected_commit"/);
   assert.match(transaction, /npm run code:check && npm run code:build && npm test/);
@@ -54,6 +55,10 @@ test("public candidate transaction is exact-source, preflighted and rollback-saf
   assert.match(transaction, /live-public-candidate-check\.mjs prepare/);
   assert.match(transaction, /systemctl restart "\$service"/);
   assert.match(transaction, /health-after-restart\.json/);
+  assert.match(transaction, /YNX_CODE_SOURCE_COMMIT/);
+  assert.match(transaction, /YNX_CODE_SOURCE_TREE/);
+  assert.match(transaction, /v\.sourceCommit!==process\.argv\[3\]/);
+  assert.match(transaction, /v\.sourceTree!==process\.argv\[4\]/);
   assert.match(transaction, /live-public-candidate-check\.mjs resume/);
   assert.match(transaction, /live-package-install-check\.mjs resume/);
   assert.match(transaction, /package-devices-after-restart\.json/);

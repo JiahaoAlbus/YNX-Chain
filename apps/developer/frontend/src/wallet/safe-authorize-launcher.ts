@@ -96,16 +96,30 @@ export async function connectDeveloperWebWallet(providerKind?: WalletProviderCan
   try {
     await candidate.provider.request({ method: "wallet_switchEthereumChain", params: [{ chainId: YNX_TESTNET_EIP1193_CHAIN.chainId }] });
   } catch (value) {
-    if (providerErrorCode(value) !== 4902) throw value;
-    await candidate.provider.request({ method: "wallet_addEthereumChain", params: [YNX_TESTNET_EIP1193_CHAIN] });
-    await candidate.provider.request({ method: "wallet_switchEthereumChain", params: [{ chainId: YNX_TESTNET_EIP1193_CHAIN.chainId }] });
+    if (providerErrorCode(value) !== 4902) return failedConnection(providerFailureDetail(value, "CHAIN_SWITCH"), candidate.kind, discovery.launch);
+    try {
+      await candidate.provider.request({ method: "wallet_addEthereumChain", params: [YNX_TESTNET_EIP1193_CHAIN] });
+      await candidate.provider.request({ method: "wallet_switchEthereumChain", params: [{ chainId: YNX_TESTNET_EIP1193_CHAIN.chainId }] });
+    } catch (error) {
+      return failedConnection(providerFailureDetail(error, "CHAIN_ADD_OR_SWITCH"), candidate.kind, discovery.launch);
+    }
   }
-  const accounts = await candidate.provider.request({ method: "eth_requestAccounts" });
+  let accounts: unknown;
+  try {
+    accounts = await candidate.provider.request({ method: "eth_requestAccounts" });
+  } catch (value) {
+    return failedConnection(providerFailureDetail(value, "ACCOUNT_REQUEST"), candidate.kind, discovery.launch);
+  }
   if (!Array.isArray(accounts) || typeof accounts[0] !== "string" || !/^0x[0-9a-f]{40}$/i.test(accounts[0])) {
-    throw new Error("The Wallet did not return a valid EIP-1193 account.");
+    return failedConnection("EIP1193_INVALID_ACCOUNT_RESPONSE", candidate.kind, discovery.launch);
   }
   connection = reduceStandardWalletConnectState(connection, { type: "ACCOUNT_APPROVED", account: accounts[0] });
-  const chainId = await candidate.provider.request({ method: "eth_chainId" });
+  let chainId: unknown;
+  try {
+    chainId = await candidate.provider.request({ method: "eth_chainId" });
+  } catch (value) {
+    return failedConnection(providerFailureDetail(value, "CHAIN_READ"), candidate.kind, discovery.launch);
+  }
   connection = reduceStandardWalletConnectState(connection, { type: "CHAIN_CONFIRMED", chainId });
   if (connection.status !== STANDARD_WALLET_CONNECT_STATUS.CONNECTED) {
     return Object.freeze({ status: "unsupported", detail: "EIP1193_WRONG_CHAIN", account: connection.account, providerKind: candidate.kind, connection, launch: discovery.launch });
@@ -217,8 +231,23 @@ function unsupportedConnection(detail: string, launch: AuthorizationLaunchResult
   return Object.freeze({ status: "unsupported", detail, account: null, providerKind: null, connection: createStandardWalletConnectState(), launch });
 }
 
+function failedConnection(detail: string, providerKind: WalletProviderCandidate["kind"], launch: AuthorizationLaunchResult): DeveloperWebWalletConnection {
+  return Object.freeze({ status: "unsupported", detail, account: null, providerKind, connection: createStandardWalletConnectState(), launch });
+}
+
+function providerFailureDetail(value: unknown, phase: "CHAIN_SWITCH" | "CHAIN_ADD_OR_SWITCH" | "ACCOUNT_REQUEST" | "CHAIN_READ"): string {
+  const code = providerErrorCode(value);
+  if (code === 4001) return `EIP1193_${phase}_REJECTED`;
+  if (code === 4100) return "EIP1193_PROVIDER_UNAUTHORIZED";
+  if (code === 4900 || code === 4901) return "EIP1193_PROVIDER_DISCONNECTED";
+  if (code === 4902) return "EIP1193_CHAIN_NOT_AVAILABLE";
+  return `EIP1193_${phase}_FAILED`;
+}
+
 function providerErrorCode(value: unknown): number | null {
-  return typeof value === "object" && value !== null && "code" in value && typeof (value as { code?: unknown }).code === "number"
-    ? (value as { code: number }).code
-    : null;
+  if (typeof value !== "object" || value === null || !("code" in value)) return null;
+  const code = (value as { code?: unknown }).code;
+  if (typeof code === "number" && Number.isInteger(code)) return code;
+  if (typeof code === "string" && /^\d+$/.test(code)) return Number(code);
+  return null;
 }

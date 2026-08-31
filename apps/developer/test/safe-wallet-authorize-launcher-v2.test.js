@@ -70,6 +70,21 @@ test("Developer requires an explicit browser Wallet selection when YNX Wallet an
   assert.deepEqual(calls, ["metamask:wallet_switchEthereumChain", "metamask:eth_requestAccounts", "metamask:eth_chainId"]);
 });
 
+test("Developer reports rejected or unavailable browser Wallet requests without retaining an account", async () => {
+  const scope = browserScope();
+  scope.ethereum = { isMetaMask:true, providerInfo:{rdns:"io.metamask"}, async request(input) { throw { code: input.method === "wallet_switchEthereumChain" ? 4001 : 4900 }; } };
+  const rejected = await connectDeveloperWebWallet("metamask", scope);
+  assert.equal(rejected.status, "unsupported");
+  assert.equal(rejected.detail, "EIP1193_CHAIN_SWITCH_REJECTED");
+  assert.equal(rejected.account, null);
+  assert.equal(rejected.providerKind, "metamask");
+  scope.ethereum = { isMetaMask:true, providerInfo:{rdns:"io.metamask"}, async request(input) { if (input.method === "wallet_switchEthereumChain") return null; throw { code: 4900 }; } };
+  const unavailable = await connectDeveloperWebWallet("metamask", scope);
+  assert.equal(unavailable.status, "unsupported");
+  assert.equal(unavailable.detail, "EIP1193_PROVIDER_DISCONNECTED");
+  assert.equal(unavailable.account, null);
+});
+
 test("Developer restores only approved accounts on the selected provider and preserves Standard Wallet through optional-service degradation", async () => {
   const calls = [];
   const provider = { isMetaMask:true, providerInfo:{rdns:"io.metamask"}, async request(input) { calls.push(input.method); if (input.method === "eth_accounts") return ["0x2222222222222222222222222222222222222222"]; if (input.method === "eth_chainId") return "0x1917"; throw new Error(`unexpected ${input.method}`); } };

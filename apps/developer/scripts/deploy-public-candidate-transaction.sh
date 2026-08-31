@@ -82,6 +82,8 @@ git_safe=(git -c "safe.directory=$repo_dir")
 [[ $("${git_safe[@]}" rev-parse HEAD) == "$expected_commit" ]] || fail "checkout does not match the approved commit"
 [[ -z $("${git_safe[@]}" status --porcelain=v1 --untracked-files=normal) ]] || fail "source checkout is dirty"
 "${git_safe[@]}" merge-base --is-ancestor "$expected_commit" origin/codex/ynx-code-platform-v1 || fail "commit is not on the reviewed remote branch"
+expected_tree=$("${git_safe[@]}" rev-parse "$expected_commit^{tree}")
+[[ $expected_tree =~ ^[0-9a-f]{40}$ ]] || fail "commit did not resolve to an exact Git tree"
 [[ ! -e $candidate_dir ]] || fail "immutable candidate directory already exists: $candidate_dir"
 [[ ! -e $staging_dir ]] || fail "candidate staging directory already exists: $staging_dir"
 [[ -f $env_file ]] || fail "candidate environment file is missing"
@@ -159,8 +161,9 @@ stopped=true
 tar -C "$state_dir" --exclude=deploy-evidence -cpf "$backup_tar" .
 sha256sum "$backup_tar" | sed "s#$backup_tar#state-before.tar#" > "$transaction_dir/state-before.sha256"
 
-node - "$env_file" "$image_fingerprint" "$release" "$package_network" <<'NODE'
-const fs=require("node:fs"),[file,image,release,packageNetwork]=process.argv.slice(2),lines=fs.readFileSync(file,"utf8").split(/\r?\n/),updates=new Map([["YNX_CODE_LXD_IMAGE",image],["YNX_CODE_RELEASE",release],["YNX_CODE_LXD_PACKAGE_NETWORK",packageNetwork]]),seen=new Set(),output=[];
+node - "$env_file" "$image_fingerprint" "$release" "$package_network" "$expected_commit" "$expected_tree" <<'NODE'
+const fs=require("node:fs"),[file,image,release,packageNetwork,sourceCommit,sourceTree]=process.argv.slice(2),lines=fs.readFileSync(file,"utf8").split(/\r?\n/),updates=new Map([["YNX_CODE_LXD_IMAGE",image],["YNX_CODE_RELEASE",release],["YNX_CODE_LXD_PACKAGE_NETWORK",packageNetwork],["YNX_CODE_SOURCE_COMMIT",sourceCommit],["YNX_CODE_SOURCE_TREE",sourceTree]]),seen=new Set(),output=[];
+if(!/^[0-9a-f]{40}$/.test(sourceCommit)||!/^[0-9a-f]{40}$/.test(sourceTree))throw new Error("source identity must use exact lowercase Git objects");
 for(const line of lines){const match=line.match(/^([A-Z][A-Z0-9_]*)=/);if(match&&updates.has(match[1])){output.push(`${match[1]}=${updates.get(match[1])}`);seen.add(match[1]);}else if(line)output.push(line)}
 for(const[key,value]of updates)if(!seen.has(key))output.push(`${key}=${value}`);
 fs.writeFileSync(file,`${output.join("\n")}\n`,{mode:0o600});
@@ -177,7 +180,7 @@ for _ in $(seq 1 30); do
   if curl -fsS --max-time 3 http://127.0.0.1:18113/healthz > "$transaction_dir/health.json"; then break; fi
   sleep 1
 done
-node -e 'const fs=require("node:fs"),v=JSON.parse(fs.readFileSync(process.argv[1]));if(!v.ok||v.version!==process.argv[2])process.exit(1)' "$transaction_dir/health.json" "$release"
+node -e 'const fs=require("node:fs"),v=JSON.parse(fs.readFileSync(process.argv[1]));if(!v.ok||v.version!==process.argv[2]||v.sourceCommit!==process.argv[3]||v.sourceTree!==process.argv[4])process.exit(1)' "$transaction_dir/health.json" "$release" "$expected_commit" "$expected_tree"
 
 cd "$candidate_dir/apps/developer"
 run_cloud_container_gate() {
@@ -200,14 +203,14 @@ for _ in $(seq 1 30); do
   if curl -fsS --max-time 3 http://127.0.0.1:18113/healthz > "$transaction_dir/health-after-restart.json"; then break; fi
   sleep 1
 done
-node -e 'const fs=require("node:fs"),v=JSON.parse(fs.readFileSync(process.argv[1]));if(!v.ok||v.version!==process.argv[2])process.exit(1)' "$transaction_dir/health-after-restart.json" "$release"
+node -e 'const fs=require("node:fs"),v=JSON.parse(fs.readFileSync(process.argv[1]));if(!v.ok||v.version!==process.argv[2]||v.sourceCommit!==process.argv[3]||v.sourceTree!==process.argv[4])process.exit(1)' "$transaction_dir/health-after-restart.json" "$release" "$expected_commit" "$expected_tree"
 YNX_CODE_CHECK_BASE=http://127.0.0.1:18113 YNX_CODE_CHECK_STATE="$state_dir/.persistence-probe-$transaction_id" node scripts/live-public-candidate-check.mjs resume | tee "$transaction_dir/restart-resume.log"
 YNX_CODE_CHECK_BASE=http://127.0.0.1:18113 YNX_CODE_CHECK_STATE="$package_probe_state" node scripts/live-package-install-check.mjs resume | tee "$transaction_dir/package-resume.log"
 assert_package_egress_detached "$transaction_dir/package-devices-after-restart.json"
 
 systemctl is-active --quiet "$service"
 curl -fsS --max-time 10 https://developer.ynxweb4.com/healthz > "$transaction_dir/public-health.json"
-node -e 'const fs=require("node:fs"),v=JSON.parse(fs.readFileSync(process.argv[1]));if(!v.ok||v.version!==process.argv[2])process.exit(1)' "$transaction_dir/public-health.json" "$release"
+node -e 'const fs=require("node:fs"),v=JSON.parse(fs.readFileSync(process.argv[1]));if(!v.ok||v.version!==process.argv[2]||v.sourceCommit!==process.argv[3]||v.sourceTree!==process.argv[4])process.exit(1)' "$transaction_dir/public-health.json" "$release" "$expected_commit" "$expected_tree"
 printf '%s\n' "$image_fingerprint" > "$transaction_dir/image-fingerprint.txt"
 printf 'passed\n' > "$transaction_dir/result.txt"
 sha256sum "$transaction_dir"/*.json "$transaction_dir"/*.log "$transaction_dir"/*.txt > "$transaction_dir/evidence-sha256.txt"

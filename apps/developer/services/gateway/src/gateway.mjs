@@ -33,8 +33,11 @@ export function createGateway({
   runtime = createWorkspaceRuntime(),
   handlers = [],
   version = process.env.YNX_CODE_RELEASE || "development",
+  sourceCommit = process.env.YNX_CODE_SOURCE_COMMIT || null,
+  sourceTree = process.env.YNX_CODE_SOURCE_TREE || null,
 }) {
   const root = resolve(staticRoot);
+  const buildIdentity = exactBuildIdentity({ sourceCommit, sourceTree });
   return async function handler(request, response) {
     try {
       if (await runtime.handler(request, response)) return;
@@ -49,6 +52,7 @@ export function createGateway({
           ok: true,
           service: "ynx-code-gateway",
           version,
+          ...buildIdentity,
           ...runtime.status(),
         });
       }
@@ -97,6 +101,12 @@ export function createGateway({
       else response.destroy(error);
     }
   };
+}
+function exactBuildIdentity({ sourceCommit, sourceTree }) {
+  if (sourceCommit === null && sourceTree === null) return Object.freeze({ sourceCommit: null, sourceTree: null });
+  if (typeof sourceCommit !== "string" || !/^[0-9a-f]{40}$/.test(sourceCommit)) throw new Error("YNX_CODE_SOURCE_COMMIT must be an exact lowercase Git commit.");
+  if (typeof sourceTree !== "string" || !/^[0-9a-f]{40}$/.test(sourceTree)) throw new Error("YNX_CODE_SOURCE_TREE must be an exact lowercase Git tree.");
+  return Object.freeze({ sourceCommit, sourceTree });
 }
 function safeAsset(root, path) {
   const target = normalize(join(root, path));

@@ -231,9 +231,12 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
         setWebWalletAccount(result.account || undefined);
         if (result.status === "connected" && result.providerKind) storeWebWalletProvider(result.providerKind);
         else clearStoredWebWalletProvider();
-        setWalletState(result.status === "connected" ? `Standard ${result.providerKind === "ynx-wallet" ? "YNX Wallet" : "MetaMask"} connected as ${result.account}. YNX Testnet 0x1917 is selected; no YNX authorization URI, callback or Product Session was created.` : result.status === "selection-required" ? "Select YNX Wallet or MetaMask below before accounts are requested. This page did not open a custom scheme, frame, popup or blank tab." : "No unambiguous browser Wallet provider was found. Choose an official Wallet option below; this page did not open a custom scheme, frame, popup or blank tab.");
+        setWalletState(browserWalletResultMessage(result));
       } catch {
-        setWalletState("Browser Wallet connection was declined or failed closed. No custom authorization request, callback or Product Session was created.");
+        clearStoredWebWalletProvider();
+        setWebWalletConnection(undefined);
+        setWebWalletAccount(undefined);
+        setWalletState("Browser Wallet discovery failed closed. Retry discovery or choose an official Wallet option; no authorization request, callback or Product Session was created.");
       } finally {
         setBusy(false);
       }
@@ -266,6 +269,21 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
     setWebWalletAccount(undefined);
     clearStoredWebWalletProvider();
     setWalletState("Switch the account in the selected Wallet, then reconnect from this page. No account picker, custom URI, callback or Product Session was created.");
+  };
+  const refreshBrowserWalletDiscovery = async () => {
+    if (wallet) return;
+    setBusy(true);
+    setError("");
+    try {
+      const result = await discoverDeveloperWebWalletChoices();
+      setWebWalletDiscovery(result);
+      setWalletState(result.status === "ready" ? `Browser Wallet discovery refreshed. ${result.choices.length === 1 ? "One provider is ready for an explicit connection click." : "Choose YNX Wallet or MetaMask explicitly before any account request."}` : "No unambiguous browser Wallet provider is available yet. You can retry after installing or unlocking a Wallet; no account request was sent.");
+    } catch {
+      setWebWalletDiscovery(undefined);
+      setWalletState("Browser Wallet discovery failed closed. Retry after the extension is ready; no account request was sent.");
+    } finally {
+      setBusy(false);
+    }
   };
   const enterWalletV2Guest = async () => {
     setBusy(true); setError("");
@@ -403,6 +421,7 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
                   {webWalletDiscovery.choices.map((choice) => <Button key={choice.kind} disabled={busy} onClick={() => openWallet(choice.kind)}>{webWalletAccount ? `Reconnect ${choice.label}` : choice.kind === "ynx-wallet" ? "Connect YNX Wallet" : "Connect MetaMask"}</Button>)}
                 </>
               ) : <Button disabled={busy} onClick={() => openWallet()}>{webWalletAccount ? "Reconnect browser Wallet" : "Connect browser Wallet"}</Button>}
+              <Button variant="ghost" disabled={busy} onClick={refreshBrowserWalletDiscovery}>Retry browser Wallet discovery</Button>
               <p>{webWalletAccount ? `Standard Wallet account ${webWalletAccount} is connected on YNX Testnet 0x1917. Product Session remains optional and separate.` : webWalletDiscovery?.status === "ready" ? "Choose a listed Wallet before any account request is sent." : "No browser Wallet provider is available. The official download and MetaMask choices remain on this page."}</p>
               {webWalletConnection?.status === "connected" && <Button variant="ghost" disabled={busy} onClick={() => setWebWalletConnection(openDeveloperWebWalletConnectionDetails(webWalletConnection))}>Wallet connection details</Button>}
               {webWalletConnection?.chooserOpen && webWalletConnection.chooserMode === "connection-details" && (
@@ -445,4 +464,14 @@ function storeWebWalletProvider(providerKind: "ynx-wallet" | "metamask") {
 }
 function clearStoredWebWalletProvider() {
   try { window.sessionStorage.removeItem(WEB_WALLET_PROVIDER_KEY); } catch { /* browser storage is optional */ }
+}
+
+function browserWalletResultMessage(result: Awaited<ReturnType<typeof connectDeveloperWebWallet>>): string {
+  if (result.status === "connected") return `Standard ${result.providerKind === "ynx-wallet" ? "YNX Wallet" : "MetaMask"} connected as ${result.account}. YNX Testnet 0x1917 is selected; no YNX authorization URI, callback or Product Session was created.`;
+  if (result.status === "selection-required") return "Select YNX Wallet or MetaMask below before accounts are requested. This page did not open a custom scheme, frame, popup or blank tab.";
+  if (result.detail.endsWith("_REJECTED")) return "The selected Wallet rejected this request. No account was retained; unlock or review the Wallet, then retry from this page.";
+  if (result.detail === "EIP1193_PROVIDER_DISCONNECTED") return "The selected Wallet is disconnected. Reconnect the extension, then retry browser Wallet discovery; no account was retained.";
+  if (result.detail === "EIP1193_PROVIDER_UNAUTHORIZED") return "The selected Wallet did not authorize this page. Retry only after reviewing its permissions; no account was retained.";
+  if (result.detail === "EIP1193_CHAIN_NOT_AVAILABLE") return "YNX Testnet 0x1917 could not be added or selected. Verify the Wallet network settings, then retry; no account was retained.";
+  return "No unambiguous browser Wallet provider was found. Choose an official Wallet option below; this page did not open a custom scheme, frame, popup or blank tab.";
 }
