@@ -1,0 +1,46 @@
+{
+  "schemaVersion": "ynx-chain-four-node-zero-write-terminal-failure/v1",
+  "taskId": "P0-319",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-chain-four-node-zero-write-node-successor-20260831T060300Z",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_CHAIN_P0319_PROTECTED_IDENTITIES_NOT_INJECTED_PRE_SSH",
+  "releasedAt": "2026-08-31T06:07:29Z",
+  "singleUse": true,
+  "reusable": false,
+  "execution": {
+    "attemptCount": 1,
+    "retryCount": 0,
+    "localExitStatus": 1,
+    "inspectorStarted": true,
+    "sshAttempts": 0,
+    "remoteConnections": 0,
+    "remoteTemporaryFiles": 0,
+    "mutations": 0,
+    "serviceLifecycleActions": 0,
+    "deploymentActions": 0
+  },
+  "evidence": {
+    "path": "/tmp/p0-319-chain-four-node-zero-write-evidence-20260831.json",
+    "bytes": 992,
+    "sha256": "da9e51798405c3dea8f88e09d107bd161a967a51a401db25de58706bd7cf6c99",
+    "attemptLimitPerNode": 1,
+    "remoteTemporaryFiles": false,
+    "mutationCommandsExecuted": false,
+    "blocker": "PRIMARY_NODE_SSH_KEY protected identity reference is unavailable"
+  },
+  "perNodeTransportAttempts": {
+    "primary": 0,
+    "singapore": 0,
+    "siliconValley": 0,
+    "seoul": 0
+  },
+  "directTruth": {
+    "primaryIdentityReferenceAvailable": false,
+    "primaryTransportAttempted": false,
+    "remainingNodesReached": false,
+    "serviceFileAndProbeTruth": "UNKNOWN_NOT_INSPECTED",
+    "finalInspectionSuccess": false,
+    "priorAllFiveProtectedOperatorBooleansTrueSuperseded": true
+  },
+  "nextBlocker": "CHAIN_PROTECTED_IDENTITIES_NOT_INJECTED_IN_NAMED_EXECUTION_RUNTIME",
+  "nextRequirement": "The named secret owner must provision and inject all protected identity references into the exact execution process context and return a non-disclosing pre-execution availability receipt bound to that runtime. Paths values and hashes remain forbidden."
+}

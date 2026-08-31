@@ -427,16 +427,16 @@
     }
   ],
   "heavy": {
-    "owner": "chain-protected-runtime-operator",
+    "owner": null,
     "taskId": "P0-319",
-    "status": "ACTIVE_CHAIN_FOUR_NODE_ZERO_WRITE_INSPECTION_NODE_SUCCESSOR",
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_CHAIN_P0319_PROTECTED_IDENTITIES_NOT_INJECTED_PRE_SSH",
     "acquiredAt": "2026-08-31T06:03:00Z",
     "expiresAt": "2026-08-31T06:23:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-31T06:07:29Z",
     "sourceCommit": "2392e4984aa7f504f4ed92592eeb8f4f066b83f4",
     "evidenceCommit": "2392e4984aa7f504f4ed92592eeb8f4f066b83f4",
     "runtimeHost": "CHAIN_FOUR_NODE_TARGET_SET",
-    "currentRuntime": "UNINSPECTED_ZERO_WRITE_ONLY",
+    "currentRuntime": "UNKNOWN_INSPECTOR_STOPPED_BEFORE_FIRST_SSH",
     "candidateRuntime": "NO_DEPLOYMENT_AUTHORIZED",
     "artifactSha256": "0ea6dbff7be60da2ceb647cb905635292c5fac422e0ccedc80147f7d9046a0b5",
     "productionMutationAllowed": false,
@@ -444,8 +444,8 @@
     "reusable": false,
     "previousOwner": null,
     "previousTaskId": "P0-318",
-    "reviewDecision": "GO_P0319_CHAIN_FOUR_NODE_ZERO_WRITE_INSPECTION_NODE_SUCCESSOR_ONLY",
-    "reason": "The wholly-new source and request are remote exact and clean; the corrected /opt/homebrew/bin/node symlink and resolved regular-file identity, version, self-test and printed plan match exactly. P0-317 had zero SSH attempts and is nonreusable. One read-only SSH attempt per node is authorized with no retry, remote temporary file, mutation, lifecycle or deployment."
+    "reviewDecision": "P0319_TERMINAL_FAIL_CLOSED_PROTECTED_IDENTITIES_NOT_INJECTED_RELEASED",
+    "reason": "The exact corrected Node inspector started once but the actual execution process lacked PRIMARY_NODE_SSH_KEY and exited before the first SSH. All four transport attempts, remote connections, remote temporary files, mutations, lifecycle and deployment actions remained zero. The earlier declarative protected-readiness booleans are superseded by direct runtime truth; P0-319 is consumed, released and nonreusable."
   },
   "wave": {
     "id": "B-financial-apps-quant",

@@ -3,12 +3,12 @@
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "taskId": "P0-319",
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-chain-four-node-zero-write-node-successor-20260831T060300Z",
-  "status": "ACTIVE_CHAIN_FOUR_NODE_ZERO_WRITE_INSPECTION_NODE_SUCCESSOR",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_CHAIN_P0319_PROTECTED_IDENTITIES_NOT_INJECTED_PRE_SSH",
   "singleUse": true,
   "reusable": false,
   "issuedAt": "2026-08-31T06:03:00Z",
   "expiresAt": "2026-08-31T06:23:00Z",
-  "releasedAt": null,
+  "releasedAt": "2026-08-31T06:07:29Z",
   "owner": "chain-protected-runtime-operator",
   "namedExecutor": "chain-protected-runtime-operator",
   "scope": "CHAIN_FOUR_NODE_ZERO_WRITE_INSPECTION_ONLY",
@@ -114,6 +114,18 @@
   "terminal": {
     "releaseHeavyAndAllChainLocks": true,
     "partialInspectionIsNotCompletion": true,
-    "noRuntimePromotion": true
+    "noRuntimePromotion": true,
+    "inspectorStarted": true,
+    "localExitStatus": 1,
+    "sshAttempts": 0,
+    "remoteConnections": 0,
+    "remoteTemporaryFilesCreated": 0,
+    "mutations": 0,
+    "blocker": "CHAIN_PROTECTED_IDENTITIES_NOT_INJECTED_IN_NAMED_EXECUTION_RUNTIME",
+    "terminalEvidence": {
+      "path": "release/integration/p0-wallet-connectivity/execution/objects/p0-319-chain-four-node-zero-write-terminal-failure-20260831.json",
+      "executionEvidenceBytes": 992,
+      "executionEvidenceSha256": "da9e51798405c3dea8f88e09d107bd161a967a51a401db25de58706bd7cf6c99"
+    }
   }
 }

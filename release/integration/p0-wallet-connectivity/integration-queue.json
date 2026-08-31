@@ -7535,10 +7535,11 @@
     {
       "taskId": "P0-319",
       "owner": "integration,chain-protected-runtime-operator",
-      "status": "ACTIVE_CHAIN_FOUR_NODE_ZERO_WRITE_INSPECTION_NODE_SUCCESSOR",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_CHAIN_P0319_PROTECTED_IDENTITIES_NOT_INJECTED_PRE_SSH",
       "paths": [
         "release/integration/p0-wallet-connectivity/execution/p0-319-chain-four-node-zero-write-inspection-node-successor-single-use-lease-20260831.json",
-        "/tmp/p0-319-chain-four-node-zero-write-evidence-20260831.json"
+        "/tmp/p0-319-chain-four-node-zero-write-evidence-20260831.json",
+        "release/integration/p0-wallet-connectivity/execution/objects/p0-319-chain-four-node-zero-write-terminal-failure-20260831.json"
       ],
       "dependencies": ["P0-318"],
       "requestCommit": "2392e4984aa7f504f4ed92592eeb8f4f066b83f4",
@@ -7549,7 +7550,11 @@
       "remoteMutation": false,
       "serviceLifecycleAuthorized": false,
       "deploymentAuthorized": false,
-      "nextAction": "Named protected operator executes the exact corrected Node inspector once. Return the local byte-preserving evidence envelope and terminal attempt truth; release Heavy and all Chain locks on every terminal outcome."
+      "inspectorStarted": true,
+      "sshAttempts": 0,
+      "localExitStatus": 1,
+      "protectedIdentityInjectionConfirmed": false,
+      "nextAction": "P0-319 is consumed and nonreusable. Do not issue another lease from declarative booleans alone; require the named secret owner to inject all four identity references into the exact execution process and return a non-disclosing same-process pre-execution availability receipt."
     }
   ]
 }
