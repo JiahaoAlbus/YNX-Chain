@@ -28,10 +28,20 @@ const (
 )
 
 const (
-	YNXNativeChainID = "ynx_6423-1"
-	YNXEVMChainID    = "0x1917"
-	YNXChainID       = 6423
+	YNXNativeChainID  = "ynx_6423-1"
+	YNXEVMChainID     = "0x1917"
+	YNXChainID        = 6423
+	YNXNativeCurrency = "YNXT"
 )
+
+type NetworkConfig struct {
+	NativeChainID  string `json:"nativeChainId"`
+	ChainID        int    `json:"chainIdDecimal"`
+	EVMChainID     string `json:"evmChainId"`
+	NativeCurrency string `json:"nativeCurrency"`
+}
+
+var YNXTestnetNetworkConfig = NetworkConfig{NativeChainID: YNXNativeChainID, ChainID: YNXChainID, EVMChainID: YNXEVMChainID, NativeCurrency: YNXNativeCurrency}
 
 type TransportError struct {
 	Code       ErrorCode
@@ -86,8 +96,12 @@ func RedactedDiagnostic(err error) Diagnostic {
 }
 
 func ValidateYNXTestnetConfig(nativeChainID string, chainID int, evmChainID string) error {
-	if nativeChainID != YNXNativeChainID || chainID != YNXChainID || evmChainID != YNXEVMChainID {
-		return &TransportError{Code: ErrorWrongChain, Detail: "YNX network configuration must use ynx_6423-1 / 6423 / 0x1917"}
+	return ValidateYNXNetworkConfig(NetworkConfig{NativeChainID: nativeChainID, ChainID: chainID, EVMChainID: evmChainID, NativeCurrency: YNXNativeCurrency})
+}
+
+func ValidateYNXNetworkConfig(config NetworkConfig) error {
+	if config != YNXTestnetNetworkConfig {
+		return &TransportError{Code: ErrorWrongChain, Detail: "YNX network configuration must use ynx_6423-1 / 6423 / 0x1917 / YNXT"}
 	}
 	return nil
 }
@@ -160,6 +174,13 @@ func ClassifyHTTPFailure(status int, body []byte, accountLookup bool) *Transport
 }
 
 func ProbeYNXTestnetRPC(ctx context.Context, client *http.Client, endpoint string) (string, error) {
+	return ProbeYNXTestnetRPCWithConfig(ctx, client, endpoint, YNXTestnetNetworkConfig)
+}
+
+func ProbeYNXTestnetRPCWithConfig(ctx context.Context, client *http.Client, endpoint string, config NetworkConfig) (string, error) {
+	if err := ValidateYNXNetworkConfig(config); err != nil {
+		return "", err
+	}
 	if err := ctx.Err(); err != nil {
 		return "", ClassifyTransportError(err)
 	}

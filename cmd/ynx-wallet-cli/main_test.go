@@ -104,10 +104,31 @@ func TestHelpAndExactConfigValidation(t *testing.T) {
 		{"validate-config", "--native-chain", "ynx_9102-1"},
 		{"validate-config", "--chain-id", "9102"},
 		{"validate-config", "--evm-chain-id", "0x238e"},
+		{"validate-config", "--native-currency", "OLD"},
 	} {
 		var diagnostics bytes.Buffer
 		if code := execute(context.Background(), args, io.Discard, &diagnostics, &http.Client{}); code != exitConfig || !strings.Contains(diagnostics.String(), `"remediation":"USE_YNX_TESTNET_6423"`) {
 			t.Fatalf("legacy config did not fail closed: code=%d diagnostic=%s", code, diagnostics.String())
+		}
+	}
+}
+
+func TestChainStatusRejectsLegacyConfigBeforeTransport(t *testing.T) {
+	for _, args := range [][]string{
+		{"chain-status", "--native-chain", "ynx_9102-1"},
+		{"chain-status", "--chain-id", "9102"},
+		{"chain-status", "--evm-chain-id", "0x238e"},
+		{"chain-status", "--native-currency", "OLD"},
+	} {
+		requests := 0
+		client := &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+			requests++
+			return nil, errors.New("transport must not execute")
+		})}
+		var diagnostics bytes.Buffer
+		code := execute(context.Background(), args, io.Discard, &diagnostics, client)
+		if code != exitConfig || requests != 0 || !strings.Contains(diagnostics.String(), `"remediation":"USE_YNX_TESTNET_6423"`) {
+			t.Fatalf("args=%v code=%d requests=%d diagnostic=%s", args, code, requests, diagnostics.String())
 		}
 	}
 }

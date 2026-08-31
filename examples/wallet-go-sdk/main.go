@@ -31,12 +31,20 @@ func run(args []string, out io.Writer, client *http.Client) error {
 	rpc := flags.String("rpc", defaultRPC, "YNX EVM HTTPS RPC")
 	vectorPath := flags.String("vector", "packages/wallet-auth/testdata/product-session-http-proof-v1.json", "frozen Wallet Auth vector")
 	timeout := flags.Duration("timeout", 10*time.Second, "RPC timeout")
+	nativeChainID := flags.String("native-chain", wallet.YNXNativeChainID, "native YNX chain ID")
+	chainID := flags.Int("chain-id", wallet.YNXChainID, "decimal YNX chain ID")
+	evmChainID := flags.String("evm-chain-id", wallet.YNXEVMChainID, "hex EVM chain ID")
+	nativeCurrency := flags.String("native-currency", wallet.YNXNativeCurrency, "native currency symbol")
 	if err := flags.Parse(args); err != nil || flags.NArg() != 0 || *timeout <= 0 {
 		return errors.New("invalid arguments")
 	}
 	parsedRPC, err := url.Parse(*rpc)
 	if err != nil || parsedRPC.Scheme != "https" || parsedRPC.Host == "" || parsedRPC.User != nil {
 		return errors.New("RPC must be an absolute HTTPS URL without userinfo")
+	}
+	config := wallet.NetworkConfig{NativeChainID: *nativeChainID, ChainID: *chainID, EVMChainID: *evmChainID, NativeCurrency: *nativeCurrency}
+	if err := wallet.ValidateYNXNetworkConfig(config); err != nil {
+		return err
 	}
 
 	vector, err := os.ReadFile(*vectorPath)
@@ -65,9 +73,9 @@ func run(args []string, out io.Writer, client *http.Client) error {
 	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
 	defer cancel()
 	client.Timeout = *timeout
-	chainID, err := wallet.ProbeYNXTestnetRPC(ctx, client, parsedRPC.String())
+	observedChainID, err := wallet.ProbeYNXTestnetRPCWithConfig(ctx, client, parsedRPC.String(), config)
 	if err != nil {
 		return err
 	}
-	return json.NewEncoder(out).Encode(map[string]any{"chainId": chainID, "connected": true, "ephemeralSigningVerified": true, "privateKeyPersisted": false, "protocol": "YNX_PRODUCT_SESSION_HTTP_PROOF_V1", "rpc": parsedRPC.String(), "vectorVerified": true})
+	return json.NewEncoder(out).Encode(map[string]any{"chainId": observedChainID, "connected": true, "ephemeralSigningVerified": true, "privateKeyPersisted": false, "protocol": "YNX_PRODUCT_SESSION_HTTP_PROOF_V1", "rpc": parsedRPC.String(), "vectorVerified": true})
 }

@@ -30,7 +30,9 @@ free-form messages. JSON-RPC batch arrays and notifications without the exact
 request ID are rejected as `MALFORMED_RESPONSE`.
 
 `validateYNXTestnetConfig` accepts only `ynx_6423-1`, decimal `6423`, and EVM
-`0x1917`; legacy `9102`/`0x238e` values fail closed as `WRONG_CHAIN`.
+`0x1917` with native currency `YNXT`; legacy `9102`/`0x238e` or another
+currency fail closed as `WRONG_CHAIN`. `getYNXStatus`, `callYNXEVM`,
+`proveYNXTestnetRPC`, and `YNXClient` apply this preflight before transport.
 `ynxErrorDiagnostic` provides the same safe English summary and remediation
 code consumed by the Go SDK and CLI.
 

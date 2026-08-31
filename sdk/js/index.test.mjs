@@ -81,7 +81,7 @@ test("keeps authoritative account absence distinct from transport and HTTP failu
 
 test("matches the shared TS/Go error taxonomy vector and 6423-only policy", async () => {
   const vector = JSON.parse(await readFile(new URL("../../testdata/wallet-sdk-error-taxonomy-v1.json", import.meta.url), "utf8"));
-  assert.deepEqual(vector.network, {nativeChainId: "ynx_6423-1", chainIdDecimal: 6423, evmChainId: "0x1917", forbiddenChainIds: [9102, "0x238e"]});
+  assert.deepEqual(vector.network, {nativeChainId: "ynx_6423-1", chainIdDecimal: 6423, evmChainId: "0x1917", nativeCurrency: "YNXT", forbiddenChainIds: [9102, "0x238e"]});
   assert.deepEqual(vector.requestPolicy, {implicitRetries: false, maximumAttempts: 1});
   assert.deepEqual(vector.errorCodes, ["ACCOUNT_NOT_FOUND", "HTTP_ERROR", "JSON_RPC_ERROR", "MALFORMED_RESPONSE", "RPC_UNAVAILABLE", "TRANSPORT_CANCELLED", "TRANSPORT_TIMEOUT", "TRANSPORT_TLS", "WRONG_CHAIN"]);
   for (const code of vector.errorCodes) assert.deepEqual(ynxErrorDiagnostic(code), vector.diagnostics[code], code);
@@ -91,12 +91,27 @@ test("matches the shared TS/Go error taxonomy vector and 6423-only policy", asyn
 });
 
 test("validates the exact 6423 configuration and rejects legacy 9102", () => {
-  assert.deepEqual(validateYNXTestnetConfig({nativeChainId: "ynx_6423-1", chainIdDecimal: 6423, evmChainId: "0x1917"}), {nativeChainId: "ynx_6423-1", chainIdDecimal: 6423, evmChainId: "0x1917"});
+  assert.deepEqual(validateYNXTestnetConfig({nativeChainId: "ynx_6423-1", chainIdDecimal: 6423, evmChainId: "0x1917", nativeCurrency: "YNXT"}), {nativeChainId: "ynx_6423-1", chainIdDecimal: 6423, evmChainId: "0x1917", nativeCurrency: "YNXT"});
   for (const input of [
     {nativeChainId: "ynx_9102-1", chainIdDecimal: 6423, evmChainId: "0x1917"},
     {nativeChainId: "ynx_6423-1", chainIdDecimal: 9102, evmChainId: "0x1917"},
     {nativeChainId: "ynx_6423-1", chainIdDecimal: 6423, evmChainId: "0x238e"},
+    {nativeChainId: "ynx_6423-1", chainIdDecimal: 6423, evmChainId: "0x1917", nativeCurrency: "OLD"},
   ]) assert.throws(() => validateYNXTestnetConfig(input), (error) => error.code === ynxErrorCodes.wrongChain);
+});
+
+test("gates every TS network entry before transport", async () => {
+  const network = {nativeChainId: "ynx_6423-1", chainIdDecimal: 9102, evmChainId: "0x238e", nativeCurrency: "OLD"};
+  let requests = 0;
+  const fetchImpl = async () => {
+    requests += 1;
+    throw new Error("transport must not execute");
+  };
+  await assert.rejects(getYNXStatus("https://rest.example.invalid", {network, fetchImpl}), (error) => error.code === ynxErrorCodes.wrongChain);
+  await assert.rejects(callYNXEVM("https://rpc.example.invalid", "eth_chainId", [], {network, fetchImpl}), (error) => error.code === ynxErrorCodes.wrongChain);
+  await assert.rejects(proveYNXTestnetRPC("https://rpc.example.invalid", {network, fetchImpl}), (error) => error.code === ynxErrorCodes.wrongChain);
+  assert.throws(() => new YNXClient({restUrl: "https://rest.example.invalid", evmUrl: "https://rpc.example.invalid", network, fetchImpl}), (error) => error.code === ynxErrorCodes.wrongChain);
+  assert.equal(requests, 0);
 });
 
 test("distinguishes caller cancellation from timeout in browser and Node fetch", async () => {

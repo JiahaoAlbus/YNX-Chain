@@ -56,6 +56,7 @@ func TestSharedTypeScriptGoTaxonomyVectorAnd6423OnlyPolicy(t *testing.T) {
 			NativeChainID     string `json:"nativeChainId"`
 			ChainIDDecimal    int    `json:"chainIdDecimal"`
 			EVMChainID        string `json:"evmChainId"`
+			NativeCurrency    string `json:"nativeCurrency"`
 			ForbiddenChainIDs []any  `json:"forbiddenChainIds"`
 		} `json:"network"`
 		RequestPolicy struct {
@@ -78,7 +79,7 @@ func TestSharedTypeScriptGoTaxonomyVectorAnd6423OnlyPolicy(t *testing.T) {
 	if err := json.Unmarshal(data, &vector); err != nil {
 		t.Fatal(err)
 	}
-	if vector.Version != 1 || vector.Network.NativeChainID != YNXNativeChainID || vector.Network.ChainIDDecimal != YNXChainID || vector.Network.EVMChainID != YNXEVMChainID {
+	if vector.Version != 1 || vector.Network.NativeChainID != YNXNativeChainID || vector.Network.ChainIDDecimal != YNXChainID || vector.Network.EVMChainID != YNXEVMChainID || vector.Network.NativeCurrency != YNXNativeCurrency {
 		t.Fatalf("unexpected frozen network: %+v", vector.Network)
 	}
 	if vector.RequestPolicy.ImplicitRetries || vector.RequestPolicy.MaximumAttempts != 1 {
@@ -116,18 +117,34 @@ func TestExact6423ConfigAndLegacy9102FailClosed(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, item := range []struct {
-		native  string
-		decimal int
-		evm     string
+		native   string
+		decimal  int
+		evm      string
+		currency string
 	}{
-		{native: "ynx_9102-1", decimal: 6423, evm: "0x1917"},
-		{native: "ynx_6423-1", decimal: 9102, evm: "0x1917"},
-		{native: "ynx_6423-1", decimal: 6423, evm: "0x238e"},
+		{native: "ynx_9102-1", decimal: 6423, evm: "0x1917", currency: "YNXT"},
+		{native: "ynx_6423-1", decimal: 9102, evm: "0x1917", currency: "YNXT"},
+		{native: "ynx_6423-1", decimal: 6423, evm: "0x238e", currency: "YNXT"},
+		{native: "ynx_6423-1", decimal: 6423, evm: "0x1917", currency: "OLD"},
 	} {
 		var classified *TransportError
-		if err := ValidateYNXTestnetConfig(item.native, item.decimal, item.evm); !errors.As(err, &classified) || classified.Code != ErrorWrongChain {
+		if err := ValidateYNXNetworkConfig(NetworkConfig{NativeChainID: item.native, ChainID: item.decimal, EVMChainID: item.evm, NativeCurrency: item.currency}); !errors.As(err, &classified) || classified.Code != ErrorWrongChain {
 			t.Fatalf("legacy config accepted or misclassified: %v", err)
 		}
+	}
+}
+
+func TestGoProbeRejectsWrongConfigBeforeTransport(t *testing.T) {
+	requests := 0
+	client := &http.Client{Transport: transportFunc(func(*http.Request) (*http.Response, error) {
+		requests++
+		return nil, errors.New("transport must not execute")
+	})}
+	config := NetworkConfig{NativeChainID: YNXNativeChainID, ChainID: 9102, EVMChainID: "0x238e", NativeCurrency: "OLD"}
+	_, err := ProbeYNXTestnetRPCWithConfig(context.Background(), client, "https://rpc.example.invalid", config)
+	var classified *TransportError
+	if !errors.As(err, &classified) || classified.Code != ErrorWrongChain || requests != 0 {
+		t.Fatalf("error=%v requests=%d", err, requests)
 	}
 }
 

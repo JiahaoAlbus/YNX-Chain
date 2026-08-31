@@ -26,8 +26,8 @@ const usageText = `YNX Wallet CLI (Testnet)
 Usage:
   ynx-wallet-cli help
   ynx-wallet-cli version
-  ynx-wallet-cli validate-config [--native-chain ynx_6423-1] [--chain-id 6423] [--evm-chain-id 0x1917]
-  ynx-wallet-cli chain-status [--rpc https://rpc.ynxweb4.com/evm] [--timeout 8s]
+  ynx-wallet-cli validate-config [--native-chain ynx_6423-1] [--chain-id 6423] [--evm-chain-id 0x1917] [--native-currency YNXT]
+  ynx-wallet-cli chain-status [--rpc https://rpc.ynxweb4.com/evm] [--timeout 8s] [network flags]
   ynx-wallet-cli verify-vector [--file PATH]
   ynx-wallet-cli sign-self-test
 
@@ -103,13 +103,15 @@ func runContext(parent context.Context, args []string, out io.Writer, client *ht
 		nativeChainID := flags.String("native-chain", wallet.YNXNativeChainID, "native YNX chain ID")
 		chainID := flags.Int("chain-id", wallet.YNXChainID, "decimal YNX chain ID")
 		evmChainID := flags.String("evm-chain-id", wallet.YNXEVMChainID, "hex EVM chain ID")
+		nativeCurrency := flags.String("native-currency", wallet.YNXNativeCurrency, "native currency symbol")
 		if err := flags.Parse(args[1:]); err != nil || flags.NArg() != 0 {
 			return errors.New("invalid validate-config arguments")
 		}
-		if err := wallet.ValidateYNXTestnetConfig(*nativeChainID, *chainID, *evmChainID); err != nil {
+		config := wallet.NetworkConfig{NativeChainID: *nativeChainID, ChainID: *chainID, EVMChainID: *evmChainID, NativeCurrency: *nativeCurrency}
+		if err := wallet.ValidateYNXNetworkConfig(config); err != nil {
 			return err
 		}
-		return json.NewEncoder(out).Encode(map[string]any{"valid": true, "nativeChainId": *nativeChainID, "chainId": *chainID, "evmChainId": *evmChainID, "nativeCurrency": "YNXT"})
+		return json.NewEncoder(out).Encode(map[string]any{"valid": true, "nativeChainId": *nativeChainID, "chainId": *chainID, "evmChainId": *evmChainID, "nativeCurrency": *nativeCurrency})
 	case "verify-vector":
 		flags := flag.NewFlagSet("verify-vector", flag.ContinueOnError)
 		flags.SetOutput(io.Discard)
@@ -152,20 +154,28 @@ func runContext(parent context.Context, args []string, out io.Writer, client *ht
 		flags.SetOutput(io.Discard)
 		rpc := flags.String("rpc", defaultRPC, "YNX EVM HTTPS RPC")
 		timeout := flags.Duration("timeout", 8*time.Second, "request timeout")
+		nativeChainID := flags.String("native-chain", wallet.YNXNativeChainID, "native YNX chain ID")
+		chainID := flags.Int("chain-id", wallet.YNXChainID, "decimal YNX chain ID")
+		evmChainID := flags.String("evm-chain-id", wallet.YNXEVMChainID, "hex EVM chain ID")
+		nativeCurrency := flags.String("native-currency", wallet.YNXNativeCurrency, "native currency symbol")
 		if err := flags.Parse(args[1:]); err != nil || flags.NArg() != 0 || *timeout <= 0 {
 			return errors.New("invalid chain-status arguments")
 		}
 		if len(*rpc) < 8 || (*rpc)[:8] != "https://" {
 			return errors.New("RPC must use HTTPS")
 		}
+		config := wallet.NetworkConfig{NativeChainID: *nativeChainID, ChainID: *chainID, EVMChainID: *evmChainID, NativeCurrency: *nativeCurrency}
+		if err := wallet.ValidateYNXNetworkConfig(config); err != nil {
+			return err
+		}
 		ctx, cancel := context.WithTimeout(parent, *timeout)
 		defer cancel()
 		client.Timeout = *timeout
-		chainID, err := wallet.ProbeYNXTestnetRPC(ctx, client, *rpc)
+		observedChainID, err := wallet.ProbeYNXTestnetRPCWithConfig(ctx, client, *rpc, config)
 		if err != nil {
 			return err
 		}
-		return json.NewEncoder(out).Encode(map[string]any{"connected": true, "chainId": chainID, "network": "YNX Testnet", "rpc": *rpc, "source": "eth_chainId", "asOf": time.Now().UTC().Format(time.RFC3339Nano)})
+		return json.NewEncoder(out).Encode(map[string]any{"connected": true, "chainId": observedChainID, "network": "YNX Testnet", "rpc": *rpc, "source": "eth_chainId", "asOf": time.Now().UTC().Format(time.RFC3339Nano)})
 	default:
 		return fmt.Errorf("unknown command %q", args[0])
 	}

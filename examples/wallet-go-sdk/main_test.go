@@ -76,3 +76,17 @@ func TestDefaultRPCConsumesCentralEndpointMatrix(t *testing.T) {
 		t.Fatalf("unexpected default RPC %q", requested)
 	}
 }
+
+func TestExampleRejectsLegacyConfigBeforeTransport(t *testing.T) {
+	requests := 0
+	client := &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		requests++
+		return nil, errors.New("transport must not execute")
+	})}
+	args := []string{"-rpc", "https://rpc.example.invalid", "-vector", "../../packages/wallet-auth/testdata/product-session-http-proof-v1.json", "-chain-id", "9102"}
+	err := run(args, io.Discard, client)
+	var classified *wallet.TransportError
+	if !errors.As(err, &classified) || classified.Code != wallet.ErrorWrongChain || requests != 0 {
+		t.Fatalf("error=%v requests=%d", err, requests)
+	}
+}

@@ -22,6 +22,8 @@ export const ynxPublicEndpoints = Object.freeze({
   integratedCentral: false,
 });
 
+export const ynxNetworkConfig = Object.freeze({nativeChainId: "ynx_6423-1", chainIdDecimal: 6423, evmChainId: "0x1917", nativeCurrency: "YNXT"});
+
 export class YNXSDKError extends Error {
   constructor(message, {cause, status, code, rpcCode} = {}) {
     super(message, {cause});
@@ -69,11 +71,11 @@ export function redactYNXSDKError(error) {
   return Object.freeze(diagnostic);
 }
 
-export function validateYNXTestnetConfig({nativeChainId, chainIdDecimal, evmChainId} = {}) {
-  if (nativeChainId !== "ynx_6423-1" || chainIdDecimal !== 6423 || evmChainId !== "0x1917") {
-    throw new YNXSDKError("YNX network configuration must use ynx_6423-1 / 6423 / 0x1917", {code: ynxErrorCodes.wrongChain});
+export function validateYNXTestnetConfig({nativeChainId, chainIdDecimal, evmChainId, nativeCurrency = "YNXT"} = {}) {
+  if (nativeChainId !== "ynx_6423-1" || chainIdDecimal !== 6423 || evmChainId !== "0x1917" || nativeCurrency !== "YNXT") {
+    throw new YNXSDKError("YNX network configuration must use ynx_6423-1 / 6423 / 0x1917 / YNXT", {code: ynxErrorCodes.wrongChain});
   }
-  return Object.freeze({nativeChainId, chainIdDecimal, evmChainId});
+  return Object.freeze({nativeChainId, chainIdDecimal, evmChainId, nativeCurrency});
 }
 
 export function classifyYNXHTTPFailure(status, data, {accountLookup = false} = {}) {
@@ -213,7 +215,8 @@ function endpoint(baseUrl, path = "") {
   return url;
 }
 
-async function requestJSON(url, {accountLookup = false, body, timeoutMs = DEFAULT_TIMEOUT_MS, fetchImpl = globalThis.fetch, signal} = {}) {
+async function requestJSON(url, {accountLookup = false, body, timeoutMs = DEFAULT_TIMEOUT_MS, fetchImpl = globalThis.fetch, signal, network = ynxNetworkConfig} = {}) {
+  validateYNXTestnetConfig(network);
   if (typeof fetchImpl !== "function") throw new YNXSDKError("fetch is not available");
   if (!Number.isInteger(timeoutMs) || timeoutMs <= 0) throw new YNXSDKError("timeoutMs must be a positive integer");
   if (signal !== undefined && (typeof signal !== "object" || typeof signal.addEventListener !== "function" || typeof signal.removeEventListener !== "function" || typeof signal.aborted !== "boolean")) {
@@ -301,6 +304,7 @@ export async function callYNXEVM(evmUrl, method, params = [], options = {}) {
 }
 
 export async function proveYNXTestnetRPC(evmUrl = ynxPublicEndpoints.rpcUrl, options = {}) {
+  validateYNXTestnetConfig(options.network ?? ynxNetworkConfig);
   let url;
   try {
     url = new URL(evmUrl);
@@ -330,10 +334,11 @@ function parseHexQuantity(value, name) {
 }
 
 export class YNXClient {
-  constructor({restUrl, evmUrl, timeoutMs = DEFAULT_TIMEOUT_MS, fetchImpl = globalThis.fetch}) {
+  constructor({restUrl, evmUrl, timeoutMs = DEFAULT_TIMEOUT_MS, fetchImpl = globalThis.fetch, network = ynxNetworkConfig}) {
+    validateYNXTestnetConfig(network);
     this.restUrl = endpoint(restUrl).toString();
     this.evmUrl = endpoint(evmUrl).toString();
-    this.options = {timeoutMs, fetchImpl};
+    this.options = {timeoutMs, fetchImpl, network};
   }
 
   getStatus() {

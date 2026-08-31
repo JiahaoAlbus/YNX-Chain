@@ -11,7 +11,8 @@ export interface YNXNetworkMetadata {
 }
 
 export interface EIP1193Provider { request(input: { method: string; params?: unknown[] }): Promise<unknown> }
-export interface FetchOptions { timeoutMs?: number; fetchImpl?: typeof fetch; id?: string | number; signal?: AbortSignal }
+export interface YNXNetworkConfig { nativeChainId: string; chainIdDecimal: number; evmChainId: string; nativeCurrency?: string }
+export interface FetchOptions { timeoutMs?: number; fetchImpl?: typeof fetch; id?: string | number; signal?: AbortSignal; network?: YNXNetworkConfig }
 export interface YNXStatus { chainId: number; nativeCurrencySymbol: string; publicNetwork: boolean; height: number; [key: string]: unknown }
 export interface YNXSnapshot { status: YNXStatus; evmChainId: string; evmBlockHex: string; evmBlockNumber: number }
 
@@ -29,6 +30,7 @@ export declare const ynxPublicEndpoints: Readonly<{
   allRequiredServicesCorsReady: false;
   integratedCentral: false;
 }>;
+export declare const ynxNetworkConfig: Readonly<{nativeChainId: "ynx_6423-1"; chainIdDecimal: 6423; evmChainId: "0x1917"; nativeCurrency: "YNXT"}>;
 export declare class YNXSDKError extends Error { readonly status?: number; readonly code?: string; readonly rpcCode?: number }
 export declare const ynxErrorCodes: Readonly<{
   accountNotFound: "ACCOUNT_NOT_FOUND";
@@ -43,7 +45,7 @@ export declare const ynxErrorCodes: Readonly<{
 }>;
 export declare function redactYNXSDKError(error: unknown): Readonly<{name: "YNXSDKError"; code: string; summary?: string; remediation?: string; status?: number; rpcCode?: number}>;
 export declare function ynxErrorDiagnostic(code: string): Readonly<{summary: string; remediation: string}>;
-export declare function validateYNXTestnetConfig(input: {nativeChainId: string; chainIdDecimal: number; evmChainId: string}): Readonly<{nativeChainId: "ynx_6423-1"; chainIdDecimal: 6423; evmChainId: "0x1917"}>;
+export declare function validateYNXTestnetConfig(input: YNXNetworkConfig): Readonly<{nativeChainId: "ynx_6423-1"; chainIdDecimal: 6423; evmChainId: "0x1917"; nativeCurrency: "YNXT"}>;
 export declare function classifyYNXHTTPFailure(status: number, data: unknown, options?: {accountLookup?: boolean}): "ACCOUNT_NOT_FOUND" | "HTTP_ERROR" | "RPC_UNAVAILABLE";
 export declare class YNXWalletError extends Error { readonly code?: number | string; readonly method?: string }
 export declare function toYNXAddress(value: string): string;
@@ -56,7 +58,7 @@ export declare function assertYNXTestnetSnapshot(snapshot: YNXSnapshot, options?
 export declare function ynxTestnetAddEthereumChainParameter(): object;
 export declare function ensureYNXTestnet(provider: EIP1193Provider): Promise<Readonly<{ added: boolean; chainId: string; switched: boolean }>>;
 export declare class YNXClient {
-  constructor(options: { restUrl: string; evmUrl: string; timeoutMs?: number; fetchImpl?: typeof fetch });
+  constructor(options: { restUrl: string; evmUrl: string; timeoutMs?: number; fetchImpl?: typeof fetch; network?: YNXNetworkConfig });
   getStatus(): Promise<YNXStatus>;
   callEVM(method: string, params?: unknown[]): Promise<unknown>;
   getChainSnapshot(): Promise<YNXSnapshot>;

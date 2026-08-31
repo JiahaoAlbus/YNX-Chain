@@ -4,6 +4,7 @@
     "nativeChainId": "ynx_6423-1",
     "chainIdDecimal": 6423,
     "evmChainId": "0x1917",
+    "nativeCurrency": "YNXT",
     "forbiddenChainIds": [9102, "0x238e"]
   },
   "requestPolicy": {
