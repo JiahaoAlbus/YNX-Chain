@@ -268,8 +268,14 @@ func TestServerExecutionCannotBeOpenedByMarketReadiness(t *testing.T) {
 	server.SetRuntimeBoundary(true, true)
 	recorder := httptest.NewRecorder()
 	server.Handler().ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/health", nil))
-	if !strings.Contains(recorder.Body.String(), `"executionAvailable":false`) || !strings.Contains(recorder.Body.String(), `"executionGateSatisfied":false`) {
-		t.Fatalf("custody gate must fail closed: %s", recorder.Body.String())
+	for _, expected := range []string{
+		`"executionAvailable":false`,
+		`"executionGate":"chain_core_strategy_vault_v1_35_product_evidence"`,
+		`"executionGateSatisfied":false`,
+	} {
+		if !strings.Contains(recorder.Body.String(), expected) {
+			t.Fatalf("custody gate must fail closed on %s: %s", expected, recorder.Body.String())
+		}
 	}
 }
 
