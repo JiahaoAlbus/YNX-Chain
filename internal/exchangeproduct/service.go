@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -21,9 +22,11 @@ import (
 var allowedScopes = map[string]bool{"exchange:read": true, "exchange:trade": true, "exchange:deposit": true, "exchange:withdraw": true, "exchange:withdrawal-review": true, "exchange:ai": true}
 
 type Service struct {
-	mu    sync.Mutex
-	cfg   Config
-	state persistentState
+	mu        sync.Mutex
+	requestMu sync.Mutex
+	cfg       Config
+	store     stateStore
+	state     persistentState
 }
 
 type CompleteSessionRequest struct {
@@ -54,6 +57,7 @@ type WithdrawalReviewRequest struct {
 
 func New(cfg Config) (*Service, error) {
 	cfg.StatePath = strings.TrimSpace(cfg.StatePath)
+	cfg.DatabaseURL = strings.TrimSpace(cfg.DatabaseURL)
 	cfg.APIKey = strings.TrimSpace(cfg.APIKey)
 	cfg.WalletCallback = strings.TrimSpace(cfg.WalletCallback)
 	if cfg.Now == nil {
@@ -80,7 +84,7 @@ func New(cfg Config) (*Service, error) {
 	cfg.GatewayURL = strings.TrimRight(strings.TrimSpace(cfg.GatewayURL), "/")
 	cfg.GatewayClientID = strings.TrimSpace(cfg.GatewayClientID)
 	cfg.IndexerURL = strings.TrimRight(strings.TrimSpace(cfg.IndexerURL), "/")
-	if cfg.StatePath == "" || len(cfg.APIKey) < 16 || cfg.WalletCallback == "" || cfg.RequiredConfirmations < 1 || cfg.MakerFeeBPS < 0 || cfg.TakerFeeBPS < cfg.MakerFeeBPS || cfg.TakerFeeBPS > 1000 || cfg.WithdrawalFeeMicroYNXT < 0 {
+	if (cfg.StatePath == "" && cfg.DatabaseURL == "") || len(cfg.APIKey) < 16 || cfg.WalletCallback == "" || cfg.RequiredConfirmations < 1 || cfg.MakerFeeBPS < 0 || cfg.TakerFeeBPS < cfg.MakerFeeBPS || cfg.TakerFeeBPS > 1000 || cfg.WithdrawalFeeMicroYNXT < 0 {
 		return nil, fmt.Errorf("%w: exchange configuration", ErrInvalid)
 	}
 	if cfg.CustodyAddress != "" {
@@ -90,8 +94,13 @@ func New(cfg Config) (*Service, error) {
 		}
 		cfg.CustodyAddress = address
 	}
-	s, existed, err := loadState(cfg.StatePath)
+	store, err := openStateStore(cfg.StatePath, cfg.DatabaseURL)
 	if err != nil {
+		return nil, err
+	}
+	s, existed, err := store.load()
+	if err != nil {
+		store.close()
 		return nil, err
 	}
 	if cfg.CustodyAddress != "" {
@@ -101,13 +110,37 @@ func New(cfg Config) (*Service, error) {
 	if err != nil {
 		return nil, err
 	}
-	service := &Service{cfg: cfg, state: s}
+	service := &Service{cfg: cfg, store: store, state: s}
 	if !existed || migrated {
-		if err := saveState(cfg.StatePath, &service.state); err != nil {
+		if err := service.store.save(&service.state); err != nil {
+			store.close()
 			return nil, err
 		}
 	}
 	return service, nil
+}
+
+// WithFreshState serializes one API request per process and refreshes the
+// durable snapshot before it runs. PostgreSQL saves use compare-and-swap, so
+// competing instances fail closed rather than silently overwriting orders.
+func (s *Service) WithFreshState(fn func()) error {
+	s.requestMu.Lock()
+	defer s.requestMu.Unlock()
+	state, _, err := s.store.load()
+	if err != nil {
+		return err
+	}
+	s.mu.Lock()
+	s.state = state
+	s.mu.Unlock()
+	fn()
+	return nil
+}
+
+func (s *Service) Close() error { return s.store.close() }
+
+func (s *Service) StorageStatus() (backend string, multiInstance bool) {
+	return s.store.backend(), s.store.multiInstance()
 }
 
 func (s *Service) Integrations() IntegrationStatus {
@@ -951,8 +984,11 @@ func (s *Service) feeLocked(account, asset string, amount int64, kind, ref strin
 	s.state.Fees = append(s.state.Fees, FeeRecord{ID: s.nextIDLocked("fee"), Account: account, Asset: asset, AmountMicro: amount, Kind: kind, Reference: ref, CreatedAt: s.cfg.Now().UTC()})
 }
 func (s *Service) saveOrRollbackLocked(before persistentState) error {
-	if err := saveState(s.cfg.StatePath, &s.state); err != nil {
+	if err := s.store.save(&s.state); err != nil {
 		s.state = before
+		if errors.Is(err, errStateConflict) {
+			return ErrConflict
+		}
 		return err
 	}
 	return nil

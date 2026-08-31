@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "classification": "source-tested-not-deployed",
+  "product": "exchange",
+  "reviewedBaseCommit": "11d5bd06880c9fe95a08e814d4d8ea01a3d17bdf",
+  "scope": [
+    "apps/exchange/**",
+    "internal/exchangeproduct/**"
+  ],
+  "persistence": {
+    "fileSnapshot": {
+      "stateBackend": "file_snapshot",
+      "multiInstance": false,
+      "allowedUse": "local development and isolated fixtures only"
+    },
+    "postgresql": {
+      "environmentVariable": "YNX_EXCHANGE_DATABASE_URL",
+      "table": "ynx_exchange_state",
+      "concurrency": "revision compare-and-swap; concurrent writes fail with conflict",
+      "migrationExecuted": false,
+      "publicRuntimeVerified": false
+    }
+  },
+  "chain": {
+    "nativeChainId": "ynx_6423-1",
+    "evmChainIdHex": "0x1917",
+    "legacy9102Rejected": true
+  },
+  "tests": {
+    "goExchangeProduct": "passed",
+    "goExchangeServer": "passed",
+    "goSeedCommand": "passed",
+    "webWalletVerifier": "passed",
+    "webUiTests": "passed"
+  },
+  "truth": {
+    "databaseProvisioned": false,
+    "publicDeployed": false,
+    "sourceBoundPublicRuntime": false,
+    "walletApproval": false,
+    "orderSubmitted": false,
+    "orderMatchedOrSettled": false,
+    "installedRuntime": false,
+    "computerControl": false
+  },
+  "centralPrerequisite": "A fresh Exchange-only deployment lease must bind PostgreSQL provisioning, runtime rollback, migration, source-bound health/version receipts, and public verification."
+}

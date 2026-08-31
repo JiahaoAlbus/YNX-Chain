@@ -16,6 +16,7 @@ import (
 func main() {
 	addr := env("YNX_EXCHANGE_HTTP_ADDR", "127.0.0.1:6442")
 	state := env("YNX_EXCHANGE_STATE_PATH", ".ynx/exchange/state.json")
+	databaseURL := strings.TrimSpace(os.Getenv("YNX_EXCHANGE_DATABASE_URL"))
 	apiKey := strings.TrimSpace(os.Getenv("YNX_EXCHANGE_ADMIN_API_KEY"))
 	if len(apiKey) < 16 {
 		log.Fatal("YNX_EXCHANGE_ADMIN_API_KEY of at least 16 characters is required")
@@ -30,10 +31,11 @@ func main() {
 	if gatewayURL != "" {
 		gateway = exchangeproduct.HTTPGatewayAuthorizer{BaseURL: gatewayURL, Client: &http.Client{Timeout: 5 * time.Second}}
 	}
-	service, err := exchangeproduct.New(exchangeproduct.Config{StatePath: state, APIKey: apiKey, WalletCallback: callback, CustodyAddress: strings.TrimSpace(os.Getenv("YNX_EXCHANGE_CUSTODY_ADDRESS")), GatewayURL: gatewayURL, GatewayClientID: strings.TrimSpace(os.Getenv("YNX_EXCHANGE_GATEWAY_CLIENT_ID")), Gateway: gateway, IndexerURL: strings.TrimSpace(os.Getenv("YNX_EXCHANGE_INDEXER_URL")), RequiredConfirmations: int64(envInt("YNX_EXCHANGE_CONFIRMATIONS", 12)), MakerFeeBPS: int64(envInt("YNX_EXCHANGE_MAKER_FEE_BPS", 10)), TakerFeeBPS: int64(envInt("YNX_EXCHANGE_TAKER_FEE_BPS", 20)), WithdrawalFeeMicroYNXT: envInt64("YNX_EXCHANGE_WITHDRAWAL_FEE_MICRO", 10000), MaxOrderNotionalMicro: envInt64("YNX_EXCHANGE_MAX_ORDER_NOTIONAL_MICRO", 100_000*exchangeproduct.AmountScale), MaxWithdrawalMicro: envInt64("YNX_EXCHANGE_MAX_WITHDRAWAL_MICRO", 25_000*exchangeproduct.AmountScale), Chain: chain})
+	service, err := exchangeproduct.New(exchangeproduct.Config{StatePath: state, DatabaseURL: databaseURL, APIKey: apiKey, WalletCallback: callback, CustodyAddress: strings.TrimSpace(os.Getenv("YNX_EXCHANGE_CUSTODY_ADDRESS")), GatewayURL: gatewayURL, GatewayClientID: strings.TrimSpace(os.Getenv("YNX_EXCHANGE_GATEWAY_CLIENT_ID")), Gateway: gateway, IndexerURL: strings.TrimSpace(os.Getenv("YNX_EXCHANGE_INDEXER_URL")), RequiredConfirmations: int64(envInt("YNX_EXCHANGE_CONFIRMATIONS", 12)), MakerFeeBPS: int64(envInt("YNX_EXCHANGE_MAKER_FEE_BPS", 10)), TakerFeeBPS: int64(envInt("YNX_EXCHANGE_TAKER_FEE_BPS", 20)), WithdrawalFeeMicroYNXT: envInt64("YNX_EXCHANGE_WITHDRAWAL_FEE_MICRO", 10000), MaxOrderNotionalMicro: envInt64("YNX_EXCHANGE_MAX_ORDER_NOTIONAL_MICRO", 100_000*exchangeproduct.AmountScale), MaxWithdrawalMicro: envInt64("YNX_EXCHANGE_MAX_WITHDRAWAL_MICRO", 25_000*exchangeproduct.AmountScale), Chain: chain})
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer service.Close()
 	api := exchangeproduct.NewServer(service)
 	mux := http.NewServeMux()
 	mux.Handle("/api/", http.StripPrefix("/api", api))

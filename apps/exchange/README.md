@@ -19,3 +19,9 @@ The current authoritative chain/indexer transfer API expresses native transfer a
 The native client uses the exact Wallet Auth v1 protocol and a P-256 product-device key stored in platform secure storage. The exact `ynx-exchange-v1` client, callback, bundle and five least-privilege scopes are approved for public-Testnet Wallet sessions. Session completion and every account read use fresh proof-bound requests; bearer-only authentication is rejected. Protected order, cancel and withdrawal actions still fail closed until the Wallet-reviewed product-action contract is deployed and attested. The Web companion remains a public read-only terminal and never accepts pasted or browser-stored bearer tokens.
 
 The backend creates a short-lived deposit intent before accepting a chain transaction reference. Confirmed deposits, test credits, reservations, withdrawal review and matches produce source-digested ledger/audit records. `/v1/config` reports Gateway, registry, custody, indexer and cross-chain status independently; configuration never implies central acceptance.
+
+## Durable state and horizontal scaling
+
+`YNX_EXCHANGE_STATE_PATH` is a local JSON snapshot backend for development and isolated fixtures only. Its `/health` and `/version` responses explicitly report `stateBackend: "file_snapshot"` and `multiInstance: false`; it must not be deployed as a horizontally scaled venue.
+
+For a multi-instance deployment, set `YNX_EXCHANGE_DATABASE_URL` to the operator-provisioned PostgreSQL DSN. The service creates its own `ynx_exchange_state` table, refreshes the durable snapshot at the API boundary, and saves mutations with revision compare-and-swap. A concurrent update returns a conflict instead of silently overwriting an order or idempotency record. The database endpoint and credentials are runtime-only configuration and must never be placed in Web assets, release evidence, or logs.

@@ -30,7 +30,11 @@ const (
 var BuildCommit = "development"
 
 type Config struct {
-	StatePath              string
+	StatePath string
+	// DatabaseURL enables the PostgreSQL state backend. When configured, it is
+	// authoritative over StatePath and supports compare-and-swap persistence
+	// across independently running Exchange instances.
+	DatabaseURL            string
 	APIKey                 string
 	WalletCallback         string
 	RequiredConfirmations  int64

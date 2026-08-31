@@ -47,13 +47,17 @@ func NewServer(service *Service) *Server {
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("Cache-Control", "no-store")
-	s.mux.ServeHTTP(w, r)
+	if err := s.service.WithFreshState(func() { s.mux.ServeHTTP(w, r) }); err != nil {
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "exchange durable state unavailable"})
+	}
 }
 func (s *Server) health(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, 200, map[string]any{"status": "ok", "productId": ProductID, "version": Version, "commit": BuildCommit, "venue": "owned deterministic testnet only", "chainId": ChainID, "productionCustody": false})
+	backend, multiInstance := s.service.StorageStatus()
+	writeJSON(w, 200, map[string]any{"status": "ok", "productId": ProductID, "version": Version, "commit": BuildCommit, "venue": "owned deterministic testnet only", "chainId": ChainID, "productionCustody": false, "stateBackend": backend, "multiInstance": multiInstance})
 }
 func (s *Server) version(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, 200, map[string]any{"productId": ProductID, "version": Version, "commit": BuildCommit})
+	backend, multiInstance := s.service.StorageStatus()
+	writeJSON(w, 200, map[string]any{"productId": ProductID, "version": Version, "commit": BuildCommit, "stateBackend": backend, "multiInstance": multiInstance})
 }
 func (s *Server) config(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{"chainId": ChainID, "evmChainId": EVMChainID, "nativeAsset": NativeAsset, "custodyAddress": s.service.state.CustodyAddress, "networks": s.service.Networks(), "integrations": s.service.Integrations(), "warnings": []string{"Not an exchange listing", "Not production custody", "No third-party liquidity, price, volume or market depth"}})
