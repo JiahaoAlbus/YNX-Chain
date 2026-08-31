@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "contract": "coreAuthGatewayNetworkBoundary@1.0.0-p0.0",
+  "network": {
+    "nativeChainId": "ynx_6423-1",
+    "evmChainId": 6423,
+    "evmChainQuantity": "0x1917",
+    "legacyChain9102Allowed": false
+  },
+  "boundaries": {
+    "standardWalletRpc": "fixed-network-object-6423",
+    "productSessionChallenge": "local-request-and-approval-chain-preflight-before-fetch",
+    "productSessionComplete": "local-request-approval-and-challenge-chain-preflight-before-fetch",
+    "wrongOrMissingNetworkRequestCount": 0
+  },
+  "identity": {
+    "ynxWallet": {
+      "isYNXWallet": true,
+      "isMetaMask": false,
+      "rdns": "com.ynx.wallet"
+    },
+    "metaMask": {
+      "isMetaMask": true,
+      "isYNXWallet": false
+    },
+    "mixedIdentityAccepted": false,
+    "mixedIdentityProviderRequestCount": 0
+  },
+  "authority": {
+    "standardWallet": "standard-wallet-eip1193",
+    "productSessionMayOverrideStandardWallet": false,
+    "privateServiceDegradedPreservesApprovedAccountAndChain": true
+  },
+  "truth": {
+    "sourceImplemented": true,
+    "installedRuntimeProven": false,
+    "publicRuntimeProven": false,
+    "accountApproved": false,
+    "signingProven": false,
+    "transactionProven": false,
+    "deployed": false
+  }
+}

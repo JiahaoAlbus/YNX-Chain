@@ -97,7 +97,11 @@ async function providerRequest(provider, method, params, switching = false) {
 
 function isExplicitMetaMaskProvider(provider) {
   if (typeof provider !== "object" || provider === null) return false;
-  try { return typeof provider.request === "function" && provider.isMetaMask === true; } catch { return false; }
+  try {
+    return typeof provider.request === "function"
+      && provider.isMetaMask === true
+      && provider.isYNXWallet !== true;
+  } catch { return false; }
 }
 
 function providerErrorCode(error) {

@@ -62,12 +62,18 @@ test("fetch adapter recovers lost completion response with one platform signatur
 test("fetch adapter rejects unsafe origins, malformed responses and network fallback", async () => {
   const capabilities = { walletInstalled: async () => false, schemeRegistered: async () => false, timeoutMs: 5_000 };
   assert.throws(() => new ProductSessionGatewayFetchAdapter({ endpoint: "http://gateway.test", fetch: async () => null, ...capabilities }), code("INVALID_GATEWAY"));
+  let rejectedRequestCount = 0;
+  const localBoundary = new ProductSessionGatewayFetchAdapter({ endpoint: "https://gateway.test", fetch: async () => { rejectedRequestCount += 1; return null; }, ...capabilities });
+  await assert.rejects(() => localBoundary.challenge({ requestId: "req_adapter_boundary_001", request: {}, approval: {} }), code("INVALID_SESSION_REQUEST"));
+  await assert.rejects(() => localBoundary.challenge({ requestId: "req_adapter_boundary_002", request: { chainId: "ynx_9102-1" }, approval: { chainId: "ynx_9102-1" } }), code("WRONG_NETWORK"));
+  await assert.rejects(() => localBoundary.complete({ requestId: "req_adapter_boundary_003", request: { chainId: "ynx_6423-1" }, approval: { chainId: "ynx_6423-1" }, completion: { challenge: { chainId: "ynx_9102-1" } } }), code("WRONG_NETWORK"));
+  assert.equal(rejectedRequestCount, 0);
   const malformed = new ProductSessionGatewayFetchAdapter({ endpoint: "https://gateway.test", fetch: async () => new Response("{}", { status: 200, headers: { "content-type": "application/json", "x-request-id": "req_adapter_response_001" } }), ...capabilities });
-  await assert.rejects(() => malformed.challenge({ requestId: "req_adapter_response_001", request: {}, approval: {} }), code("INVALID_GATEWAY_RESPONSE"));
+  await assert.rejects(() => malformed.challenge({ requestId: "req_adapter_response_001", request: { chainId: "ynx_6423-1" }, approval: { chainId: "ynx_6423-1" } }), code("INVALID_GATEWAY_RESPONSE"));
   const unavailable = new ProductSessionGatewayFetchAdapter({ endpoint: "https://gateway.test", fetch: async () => { throw new TypeError("offline"); }, ...capabilities });
-  await assert.rejects(() => unavailable.challenge({ requestId: "req_adapter_network_0001", request: {}, approval: {} }), code("NETWORK_UNAVAILABLE"));
+  await assert.rejects(() => unavailable.challenge({ requestId: "req_adapter_network_0001", request: { chainId: "ynx_6423-1" }, approval: { chainId: "ynx_6423-1" } }), code("NETWORK_UNAVAILABLE"));
   const interrupted = new ProductSessionGatewayFetchAdapter({ endpoint: "https://gateway.test", fetch: async () => ({ status: 200, headers: new Headers({ "content-type": "application/json", "cache-control": "no-store", "x-request-id": "req_adapter_stream_00001" }), async text() { throw new TypeError("stream reset"); } }), ...capabilities });
-  await assert.rejects(() => interrupted.challenge({ requestId: "req_adapter_stream_00001", request: {}, approval: {} }), code("NETWORK_UNAVAILABLE"));
+  await assert.rejects(() => interrupted.challenge({ requestId: "req_adapter_stream_00001", request: { chainId: "ynx_6423-1" }, approval: { chainId: "ynx_6423-1" } }), code("NETWORK_UNAVAILABLE"));
 });
 
 function code(expected) { return (error) => error instanceof WalletAuthError && error.code === expected; }

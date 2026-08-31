@@ -4,6 +4,7 @@ import { parseProductSessionProofV2 } from "./product-session-proof-v2.js";
 import { PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION } from "./product-session-gateway.js";
 
 export const PRODUCT_SESSION_GATEWAY_PROOF_HEADER_V2 = "x-ynx-product-session-proof-v2";
+export const PRODUCT_SESSION_GATEWAY_NATIVE_CHAIN_ID = "ynx_6423-1";
 const MAX_RESPONSE_BYTES = 1_048_576;
 
 export class ProductSessionGatewayFetchAdapter {
@@ -21,11 +22,19 @@ export class ProductSessionGatewayFetchAdapter {
 
   async challenge(input) {
     exactFields(input, ["requestId", "request", "approval"], "Product Session Gateway challenge request");
+    assertNativeGatewayEnvelope(input.request, "Product Session request");
+    assertNativeGatewayEnvelope(input.approval, "Product Session approval");
     return this.#post(input.requestId, "/v2/product-sessions/challenge", { request: input.request, approval: input.approval }, null);
   }
 
   async complete(input) {
     exactFields(input, ["requestId", "request", "approval", "completion"], "Product Session Gateway completion request");
+    assertNativeGatewayEnvelope(input.request, "Product Session request");
+    assertNativeGatewayEnvelope(input.approval, "Product Session approval");
+    if (!object(input.completion)) fail("INVALID_SESSION_REQUEST", "Product Session completion is invalid");
+    let challenge;
+    try { challenge = input.completion.challenge; } catch { fail("INVALID_SESSION_REQUEST", "Product Session completion is invalid"); }
+    assertNativeGatewayEnvelope(challenge, "Product Session completion challenge");
     return this.#post(input.requestId, "/v2/product-sessions/complete", { request: input.request, approval: input.approval, completion: input.completion }, null);
   }
 
@@ -95,5 +104,13 @@ export function encodeProductSessionGatewayProofHeaderV2(value) {
 }
 
 function endpoint(value) { if (typeof value !== "string" || value.length > 512) fail("INVALID_GATEWAY", "Product Session Gateway endpoint is invalid"); let parsed; try { parsed = new URL(value); } catch { fail("INVALID_GATEWAY", "Product Session Gateway endpoint is invalid"); } if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.port || parsed.search || parsed.hash || parsed.pathname !== "/" || value !== parsed.origin) fail("INVALID_GATEWAY", "Product Session Gateway endpoint must be a canonical HTTPS origin"); return parsed.origin; }
+function assertNativeGatewayEnvelope(value, label) {
+  if (!object(value)) fail("INVALID_SESSION_REQUEST", `${label} is invalid`);
+  let chainId;
+  try { chainId = value.chainId; } catch { fail("INVALID_SESSION_REQUEST", `${label} is invalid`); }
+  if (chainId === undefined) fail("INVALID_SESSION_REQUEST", `${label} is invalid`);
+  if (chainId !== PRODUCT_SESSION_GATEWAY_NATIVE_CHAIN_ID) fail("WRONG_NETWORK", `${label} must target YNX chain 6423`);
+}
+function object(value) { return typeof value === "object" && value !== null && !Array.isArray(value); }
 function capability(value, label) { if (typeof value !== "boolean") fail("INVALID_GATEWAY", `${label} must return a boolean`); return value; }
 function fail(code, message) { throw new WalletAuthError(code, message); }

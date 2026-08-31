@@ -95,6 +95,10 @@ test("MetaMask adapter rejects unavailable, generic, and non-EVM providers befor
   await assert.rejects(generic.connect(), code("INVALID_METAMASK_PROVIDER"));
   const hostile = new MetaMaskEvmConnectionAdapter({ registry, productId: "dex", provider: Object.defineProperty({}, "request", { get() { throw new Error("secret provider failure"); } }) });
   await assert.rejects(hostile.connect(), code("INVALID_METAMASK_PROVIDER"));
+  let mixedIdentityRequestCount = 0;
+  const mixedIdentity = new MetaMaskEvmConnectionAdapter({ registry, productId: "dex", provider: { isMetaMask: true, isYNXWallet: true, async request() { mixedIdentityRequestCount += 1; return "0x1917"; } } });
+  await assert.rejects(mixedIdentity.connect(), code("INVALID_METAMASK_PROVIDER"));
+  assert.equal(mixedIdentityRequestCount, 0);
   assert.throws(() => new MetaMaskEvmConnectionAdapter({ registry, productId: "social", provider: null }), code("EVM_NOT_SUPPORTED"));
   assert.throws(() => new MetaMaskEvmConnectionAdapter({ registry, productId: "missing", provider: null }), code("UNKNOWN_PRODUCT"));
 });
