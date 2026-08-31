@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "ynx-chain-four-node-protected-operator-readiness/v1",
+  "recordedAt": "2026-08-31T05:12:00Z",
+  "scope": "chain-only-boolean-capability-handoff",
+  "request": {
+    "commit": "536a25472d0ee728979663f6f7fe87458e471a2c",
+    "tree": "f68caf6ba18316e962d2b4fadd30f3eea9b345c9",
+    "path": "release/integration/chain-four-node-zero-write-inspection-lease-request-20260831.json",
+    "sha256": "9dcf7fa642f4aef27e522b4c7d7bd422a7dd768979ac4270f48c6743fb31c9cb"
+  },
+  "producer": {
+    "kind": "existing-authorized-chain-runtime-task",
+    "taskId": "019f2bc5-bdcf-7e71-b5a3-f43293378a86",
+    "responseMode": "boolean-only"
+  },
+  "capability": {
+    "PRIMARY_NODE_SSH_KEY_AVAILABLE": true,
+    "SG_NODE_SSH_KEY_AVAILABLE": true,
+    "SILICON_VALLEY_NODE_SSH_KEY_AVAILABLE": true,
+    "SEOUL_NODE_SSH_KEY_AVAILABLE": true,
+    "ALL_FOUR_TARGETS_AUTHORIZED": true
+  },
+  "privacyBoundary": {
+    "identityValuesRequested": false,
+    "identityValuesRecorded": false,
+    "identityPathsRequested": false,
+    "identityPathsRecorded": false,
+    "secretHashesRecorded": false
+  },
+  "executionTruth": {
+    "sshAttempts": 0,
+    "remoteConnections": 0,
+    "remoteTemporaryFiles": 0,
+    "mutations": 0,
+    "serviceLifecycleActions": 0,
+    "deploymentActions": 0
+  },
+  "decision": {
+    "protectedCapabilityBlockerCleared": true,
+    "leaseIssued": false,
+    "executionAuthorized": false,
+    "nextAction": "Central must fresh-read Heavy and Chain locks, then issue a wholly-new time-bounded zero-write inspection lease whose exact execution handoff targets the named protected operator context."
+  }
+}
