@@ -41,6 +41,12 @@ test("extension source never opens a top-level ynxwallet navigation",async()=>{
   for(const source of sources){assert.doesNotMatch(source,/window\.open\s*\(/u);assert.doesNotMatch(source,/(?:window\.)?location(?:\.href)?\s*=\s*[`'"]ynxwallet:\/\//u)}
 });
 
+test("both automatic and activeTab injection keep the provider HTTPS-only",async()=>{
+  const pageProvider=await import("node:fs/promises").then(({readFile})=>readFile(new URL("../extension/page-provider.js",import.meta.url),"utf8"));
+  assert.match(pageProvider,/location\.protocol!=="https:"/u);
+  assert.doesNotMatch(pageProvider,/https\?:/u);
+});
+
 test("unsigned Chromium package stays honest about identity and minimum runtime", () => {
   assert.equal(chromiumManifest.minimum_chrome_version, "120");
   assert.equal("key" in chromiumManifest, false);
