@@ -469,6 +469,10 @@ func TestPostgresErasureCountsAndSuppressionRecordCommitTogether(t *testing.T) {
 	if !connection.committed || len(connection.execs) != 3 || !strings.Contains(connection.execs[0], "erasure_requests") || !strings.Contains(connection.execs[1], "ynx_analytics.event_facts") || !strings.Contains(connection.execs[2], "erasure_deletion_receipts") {
 		t.Fatalf("erasure suppression record was not committed: %+v", connection)
 	}
+	authorityTime, ok := connection.execArguments[0][2].Value.(time.Time)
+	if !ok || !authorityTime.Equal(now.Truncate(time.Microsecond)) || !authorityTime.Equal(record.RequestedAt) {
+		t.Fatalf("erasure authority timestamp is not receipt-canonical: authority=%v record=%v", authorityTime, record.RequestedAt)
+	}
 }
 
 func TestPostgresAnalyticsFactAndInboxShareTransaction(t *testing.T) {
@@ -603,6 +607,7 @@ func (d recordingDriver) Open(string) (driver.Conn, error) { return d.connection
 type recordingConn struct {
 	mu                          sync.Mutex
 	execs                       []string
+	execArguments               [][]driver.NamedValue
 	envelope                    []byte
 	existingEnvelope            []byte
 	schemaChecksum              string
@@ -642,10 +647,11 @@ func (c *recordingConn) BeginTx(context.Context, driver.TxOptions) (driver.Tx, e
 	c.committed, c.rolledBack = false, false
 	return recordingTx{connection: c}, nil
 }
-func (c *recordingConn) ExecContext(_ context.Context, query string, _ []driver.NamedValue) (driver.Result, error) {
+func (c *recordingConn) ExecContext(_ context.Context, query string, arguments []driver.NamedValue) (driver.Result, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.execs = append(c.execs, compactSQL(query))
+	c.execArguments = append(c.execArguments, append([]driver.NamedValue(nil), arguments...))
 	return driver.RowsAffected(1), nil
 }
 func (c *recordingConn) QueryContext(_ context.Context, query string, arguments []driver.NamedValue) (driver.Rows, error) {

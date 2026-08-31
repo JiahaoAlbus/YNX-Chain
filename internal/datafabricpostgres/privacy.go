@@ -46,6 +46,10 @@ func (s *Store) ExportSubject(ctx context.Context, accountID, sourceVersion stri
 }
 
 func (s *Store) RecordErasure(ctx context.Context, accountID, auditID string, privacyKey []byte, now time.Time) (datafabric.ErasureRecord, error) {
+	// PostgreSQL timestamptz persists microseconds. The immutable erasure
+	// authority and its deferred receipt trigger must therefore receive the
+	// same canonical time that the portable deletion receipt binds.
+	now = now.UTC().Truncate(time.Microsecond)
 	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
 	if err != nil {
 		return datafabric.ErasureRecord{}, err
