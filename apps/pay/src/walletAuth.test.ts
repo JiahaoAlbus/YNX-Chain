@@ -51,3 +51,25 @@ test('accepted RPC probe degradation preserves a completed Pay Standard Wallet s
   state=reduceStandardWalletConnectState(state,{type:'RPC_PROBE_DEGRADED',probeTransport:STANDARD_WALLET_RPC_PROBE_TRANSPORT,code:'RPC_UNAVAILABLE'});
   assert.equal(state.status,'connected');assert.equal(state.rpcProbe,STANDARD_WALLET_RPC_PROBE.DEGRADED);assert.equal(state.account,account);assert.equal(state.chooserOpen,false);assert.equal(state.pendingIntent,null);
 });
+
+test('Pay rejects legacy chain configuration and pins the canonical YNX network',()=>{
+  const manifest=assertPayConsumerContract();
+  assert.equal(manifest.cosmosChainId,'ynx_6423-1');
+  assert.equal(manifest.evmChainId,6423);
+  assert.equal(manifest.evmChainHex,'0x1917');
+  const runtime=[readFileSync(new URL('./wallet.ts',import.meta.url),'utf8'),readFileSync(new URL('./endpoint-manifest.ts',import.meta.url),'utf8'),readFileSync(new URL('./contract/public-endpoint-manifest.json',import.meta.url),'utf8')].join('\n');
+  assert.doesNotMatch(runtime,/0x238e|ynx_9102|chainId\s*[:=]\s*9102/);
+});
+
+test('Pay Standard Wallet details, account switch, and disconnect remain reducer-bound',()=>{
+  const first='0x1234567890abcdef1234567890abcdef12345678';const second='0xabcdefabcdefabcdefabcdefabcdefabcdefabcd';let state=createStandardWalletConnectState();
+  state=reduceStandardWalletConnectState(state,{type:'BEGIN',pendingIntent:'paydetailsintent_20260831'});state=reduceStandardWalletConnectState(state,{type:'PROVIDER_SELECTED',providerKind:'ynx-wallet'});state=reduceStandardWalletConnectState(state,{type:'ACCOUNT_APPROVED',account:first});state=reduceStandardWalletConnectState(state,{type:'CHAIN_CONFIRMED',chainId:'0x1917'});
+  state=reduceStandardWalletConnectState(state,{type:'OPEN_CHOOSER'});
+  assert.equal(state.chooserMode,'connection-details');assert.deepEqual(state.chooserActions,['disconnect','switch-account','close']);
+  state=reduceStandardWalletConnectState(state,{type:'DISCONNECT'});
+  assert.equal(state.status,'disconnected');assert.equal(state.disconnectReason,'user-disconnect');
+  state=reduceStandardWalletConnectState(state,{type:'RESTORE',providerKind:'metamask',accounts:[first],chainId:'0x1917'});state=reduceStandardWalletConnectState(state,{type:'ACCOUNTS_CHANGED',accounts:[second]});
+  assert.equal(state.account,second);
+  state=reduceStandardWalletConnectState(state,{type:'CHAIN_CHANGED',chainId:'0x1917'});
+  assert.equal(state.status,'connected');assert.equal(state.providerKind,'metamask');
+});
