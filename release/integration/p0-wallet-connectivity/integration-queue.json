@@ -7606,6 +7606,31 @@
       "contentDrift": false,
       "correctedCanonicalCandidateTuple": "64770:1483917:995:986:755:4:4096:directory",
       "nextAction": "P0-321 is consumed and nonreusable. Require a wholly-new full zero-write request using the corrected canonical candidate tuple to collect service control parent absence and public evidence; cleanup remains unauthorized."
+    },
+    {
+      "taskId": "P0-322",
+      "owner": "integration,finance-release-control-plane-cleanup",
+      "status": "ACTIVE_FINANCE_P0318_RETAINED_CONTROL_PAIR_CLEANUP_ONLY",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/execution/p0-322-finance-p0318-retained-control-cleanup-only-single-use-lease-20260831.json",
+        "release/integration/p0-wallet-connectivity/execution/objects/p0-322-finance-p0318-retained-control-cleanup-signed-lease.json",
+        "/tmp/ynx-finance-p0318-retained-control-cleanup.stdout",
+        "/tmp/ynx-finance-p0318-retained-control-cleanup.stderr",
+        "/tmp/ynx-finance-p0318-retained-control-cleanup.receipt"
+      ],
+      "dependencies": ["P0-318", "P0-321"],
+      "requestCommit": "477ff5b0c643498959e88a70ac890c771815e7c4",
+      "requestBlob": "3e8dac4d499011e28bf5a1fb3c27e7df046fea39",
+      "executionLeaseIssued": true,
+      "sshAttemptLimit": 1,
+      "cleanupInvocationLimit": 1,
+      "retryAllowed": false,
+      "remoteMutation": true,
+      "cleanupAuthorized": true,
+      "deploymentAuthorized": false,
+      "serviceLifecycleAuthorized": false,
+      "mandatoryIndependentPostCleanupReadback": true,
+      "nextAction": "Named Finance cleanup executor may invoke the exact literal argv once before expiry. On any terminal result release P0-322; even on a signed cleanup receipt, cleanupComplete remains false until a wholly-new zero-write readback proves the pair and quarantine paths absent, four preserved siblings exact, parent identity/inventory exact and old runtime unchanged."
     }
   ]
 }

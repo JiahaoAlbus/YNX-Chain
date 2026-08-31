@@ -1,0 +1,77 @@
+{
+  "schemaVersion": "financeP0318RetainedControlCleanupLease@1",
+  "lease": {
+    "signed": true,
+    "kind": "FINANCE_P0318_RETAINED_CONTROL_CLEANUP_ONLY",
+    "id": "p0322-finance-p0318-retained-control-cleanup-20260831t063800z",
+    "taskId": "P0-322",
+    "issuedAt": "2026-08-31T06:38:00Z",
+    "expiresAt": "2026-08-31T07:08:00Z",
+    "singleUse": true,
+    "retryAllowed": false,
+    "centralSignature": "P0-WALLET-CONNECTIVITY-2026-08:P0-322:FINANCE_P0318_RETAINED_CONTROL_CLEANUP_ONLY"
+  },
+  "parent": {
+    "path": "/opt/ynx/leases/finance",
+    "parentFullTuple": "64770:4594822:0:0:750:2:4096:directory",
+    "parentStableIdentity": "64770:4594822:0:0:750:directory",
+    "directChildren": 6,
+    "inventorySha256": "a18b0ef95a389b6f710a4c3da5f006563d5ff0aa82fa7357cbe515a2646ee369"
+  },
+  "targets": {
+    "executor": {
+      "path": "/opt/ynx/leases/finance/finance-combined-4f7fba323a89-20260831t041500z.executor.sh",
+      "tuple": "64770:4594834:0:0:700:1:27826:regular file",
+      "bytes": 27826,
+      "sha256": "1899f8a57bcd4ad0477f0f4fc34bd867a79e96bc309f31fa8f1f7637dd42ad93"
+    },
+    "signedLease": {
+      "path": "/opt/ynx/leases/finance/finance-combined-4f7fba323a89-20260831t041500z.json",
+      "tuple": "64770:4594835:0:0:600:1:9930:regular file",
+      "bytes": 9930,
+      "sha256": "4f3bcb186750ad792588a660e7c60c7a6ab8e4045a43a23018fb3260e1392038"
+    }
+  },
+  "postCleanup": {
+    "parentStableIdentity": "64770:4594822:0:0:750:directory",
+    "directChildren": 4,
+    "inventorySha256": "deb186c19791039c1074c279f667004250e78992fea703bcd513abff58604607"
+  },
+  "preservedSiblings": [
+    {"name":"p0300-finance-phase3-20260824t210000z.executor.sh","tuple":"64770:4620810:0:0:700:1:20058:regular file","sha256":"fe124f17ead7120a7737efc104ce2f9ce6d14340f8be595bd85f9ffde1350682"},
+    {"name":"p0300-finance-phase3-20260824t210000z.json","tuple":"64770:4620811:0:0:600:1:10685:regular file","sha256":"8433c91ac315743cd577c549231cc683b2a38b5a6e9918bb2d8123d6158c8506"},
+    {"name":"p0302-finance-phase3-20260823t211500z.executor.sh","tuple":"64770:4620861:0:0:700:1:25790:regular file","sha256":"a42d4a85c8ba98d55ea890e5978ccc14acd2a4aacb7931ebcbfc51daafdffe8c"},
+    {"name":"p0302-finance-phase3-20260823t211500z.json","tuple":"64770:4620862:0:0:600:1:11072:regular file","sha256":"512f129861c6ae5db100f467c4ed52ef3785b32fa3309daae21a21250a4322b0"}
+  ],
+  "quarantinePaths": [
+    "/opt/ynx/leases/finance/.p0322-finance-p0318-retained-control-cleanup-20260831t063800z.executor.owned",
+    "/opt/ynx/leases/finance/.p0322-finance-p0318-retained-control-cleanup-20260831t063800z.signedLease.owned"
+  ],
+  "freshRuntimeFence": {
+    "current": "64770:1330149:0:0:777:1:50:symbolic link",
+    "currentTarget": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a",
+    "binary": "64770:1860512:0:0:755:1:8573112:regular file|sha256=0cc43c8a77c12975a0fcbada65971f08f2bc3a52345d547ea194dd3ccd60d83f",
+    "environment": "64770:1312291:0:986:640:1:1545:regular file|sha256=854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252",
+    "unit": "64770:161304:0:0:644:1:515:regular file|sha256=2e72cdad422a3a714c46d074ea97b725233576cf726dbbfd43e82e99c2c2975b",
+    "caddy": "64770:1051759:0:0:644:1:255:regular file|sha256=dcf75a7aed315c54632321b8bb80e44c0abc22f6700fadfbfa9a7da21b88a282",
+    "state": "absent",
+    "service": "loaded:active:running:MainPID=2818779:NRestarts=0:User=ynx:Group=ynx",
+    "loopbackRoot": "200:11427:c1fc45eecd7f88de6fc3e049d15161b8d4e9878e31f20c977fc52b383a18ed53",
+    "loopbackHealth": "200:485:d1e97a4314acd1ecccf94629d15bd598cb58ff78136b3622ac26d583a82e45c1",
+    "loopbackVersion": "200:130:39789776da47e60b7a7df845789e02ebba16707ad8951eb6f27c84c1b40bb226",
+    "publicRoot": "200:11427:c1fc45eecd7f88de6fc3e049d15161b8d4e9878e31f20c977fc52b383a18ed53",
+    "publicHealth": "200:485:d1e97a4314acd1ecccf94629d15bd598cb58ff78136b3622ac26d583a82e45c1",
+    "publicVersion": "200:130:39789776da47e60b7a7df845789e02ebba16707ad8951eb6f27c84c1b40bb226",
+    "buildIdentity": "404:19:b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793",
+    "walletConnect": "404:19:b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793"
+  },
+  "truthBoundary": {
+    "cleanupOnly": true,
+    "deploymentAuthorized": false,
+    "rollbackAuthorized": false,
+    "serviceLifecycleAuthorized": false,
+    "publicMutationAuthorized": false,
+    "accountSignTxAllowed": false,
+    "mandatoryIndependentPostCleanupReadback": true
+  }
+}

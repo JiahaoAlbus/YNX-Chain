@@ -3650,6 +3650,31 @@
         "corrected canonical tuple is 64770:1483917:995:986:755:4:4096:directory",
         "P0-321 is consumed and nonreusable; Heavy and Creator readback locks are released"
       ]
+    },
+    {
+      "path": "{finance-cleanup-only:host:43.153.202.237,/opt/ynx/leases/finance/finance-combined-4f7fba323a89-20260831t041500z.executor.sh,/opt/ynx/leases/finance/finance-combined-4f7fba323a89-20260831t041500z.json,/opt/ynx/leases/finance/.p0322-finance-p0318-retained-control-cleanup-20260831t063800z.*.owned}",
+      "owner": "finance-release-control-plane-cleanup",
+      "branch": "codex/p0-finance-nonregressive-combined-candidate-20260831",
+      "worktree": "/private/tmp/ynx-finance-nonregressive-20260831",
+      "taskId": "P0-322",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_FINANCE_P0318_RETAINED_CONTROL_PAIR_CLEANUP_ONLY",
+      "acquiredAt": "2026-08-31T06:38:00Z",
+      "expiresAt": "2026-08-31T07:08:00Z",
+      "sourceCommit": "477ff5b0c643498959e88a70ac890c771815e7c4",
+      "sourceTree": "5b53a3e22b43be174197645c25a08135c0fd6fdf",
+      "evidenceCommit": "477ff5b0c643498959e88a70ac890c771815e7c4",
+      "artifactSha256": "403c5bec917eea2c28250f1a3e3de9068b81e40b7b82746d95bbcd55a3ad3933",
+      "productionMutationAllowed": true,
+      "allowedExceptions": [
+        "exactly one SSH and one cleanup invocation with no retry",
+        "remove only the exact retained P0-318 executor and signed lease after signed tuple SHA inode inventory and TOCTOU checks",
+        "lease-specific renameat2 no-replace quarantine and exact failure restoration",
+        "preserve the four exact sibling controls and retained parent identity",
+        "no carrier stage backup release current env state unit Caddy service or public mutation",
+        "no deployment rollback account signature typed data or transaction",
+        "cleanupComplete remains false until a separate wholly-new zero-write post-cleanup readback"
+      ]
     }
   ]
 }
