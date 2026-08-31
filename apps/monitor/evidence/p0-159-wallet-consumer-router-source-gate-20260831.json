@@ -1,0 +1,76 @@
+{
+  "schemaVersion": "ynx.wallet-consumer-router-source-gate.v1",
+  "observedAt": "2026-08-31T09:15:00Z",
+  "owner": "explorer-monitor",
+  "routerAuthority": {
+    "commit": "875be208e8a7ddb60345d55b93fc299949664e5c",
+    "tree": "3499ddfbe2a4bb08cbbcaef8c71b911aca51dde4"
+  },
+  "registrySubmission": {
+    "target": "Central 36-domain Wallet registry",
+    "scope": ["explorer", "monitor"],
+    "integrationState": "owner-evidence-ready; Central registry write remains unclaimed"
+  },
+  "products": {
+    "explorer": {
+      "guestOnlyPublicRead": {
+        "routes": ["/", "/api/search", "/api/tx/:hash", "/api/address/:address"],
+        "walletRequired": false,
+        "evidence": "internal/explorer/web.go serves search and detail reads without provider discovery or authorization."
+      },
+      "privilegedWalletAction": {
+        "classification": "interactiveWalletConsumer",
+        "sourceRoute": "internal/explorer/web.go#metamaskButton",
+        "canonicalWalletRequired": true,
+        "state": "not-yet-router-compliant",
+        "blocker": "The separate Explorer MetaMask compatibility button still has no EIP-6963 provider identity chooser, account lifecycle, or direct public E2E evidence."
+      },
+      "productSessionConsumer": "evidence-backed notApplicable: public Explorer read/search paths have no Product Session API."
+    },
+    "monitor": {
+      "guestOnlyPublicRead": {
+        "routes": ["/health", "/version", "/status", "/connectivity"],
+        "walletRequired": false,
+        "evidence": "apps/monitor/server/app.ts public routes are independent of /ops/wallet/challenges and /ops/wallet/sessions."
+      },
+      "privilegedWalletAction": {
+        "classification": "interactiveWalletConsumer",
+        "sourceRoutes": ["apps/monitor/src/App.tsx#WalletLogin", "POST /ops/wallet/challenges", "POST /ops/wallet/sessions"],
+        "canonicalWalletRequired": true,
+        "sourceGate": {
+          "eip6963Discovery": "apps/monitor/src/eip1193.ts#discoverWalletProviders",
+          "providerIdentity": "announced provider name and safe icon; legacy fallback is named only from explicit provider flags",
+          "accountApproval": "eth_requestAccounts is called only by the chosen provider button",
+          "networkReadback": "shared sdk/js/wallet.js#ensureYNXTestnet requires eth_chainId 0x1917 after add/switch",
+          "signature": "personal_sign is requested only after account and network acceptance; no private key input or pasted signature field exists",
+          "lifecycle": ["eth_accounts refresh binding", "accountsChanged", "chainChanged", "disconnect", "local session invalidation"]
+        },
+        "state": "implementedLocal-and-testedLocal-only"
+      },
+      "productSessionConsumer": "evidence-backed notApplicable: Monitor wallet login uses its bounded challenge/session verifier, not a Wallet Product Session endpoint."
+    }
+  },
+  "negativeAssertions": [
+    "No Monitor top-level ynx-wallet:// or ynxwallet:// authorization navigation remains.",
+    "No Monitor field accepts a Wallet private key, seed phrase, or manually pasted signature.",
+    "Guest public reads do not imply an approved Wallet connection."
+  ],
+  "localVerification": {
+    "monitorTests": "npm test: 52 passing",
+    "monitorBuild": "npm run build: passing",
+    "sdkWalletTests": "node --test sdk/js/wallet.test.mjs: 7 passing",
+    "directPublicOrInstalledE2E": false,
+    "computerControlVerified": false
+  },
+  "states": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "publicVerified": false
+  },
+  "oneExecutableBlocker": "A fresh Explorer/Monitor production lease plus a source-bound official Monitor runtime is required to run the user-approved direct provider lifecycle. Explorer remains a separately identified interactive-consumer remediation; no guest read is treated as a Wallet connection."
+}

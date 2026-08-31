@@ -1,7 +1,12 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { can, login, request, type Session } from "./api";
+import { discoverWalletProviders, providerErrorCode, selectedAccount, type EIP1193Provider, type WalletProvider } from "./eip1193";
 import { localeNames, locales, type Locale, useI18n } from "./i18n";
 import ynxLogo from "../../../assets/brand/ynx-logo.png";
+// The generated SDK helper is the canonical bounded EIP-3085/EIP-1193 chain
+// switcher. It never requests accounts, signatures, or transactions by itself.
+// @ts-expect-error The source-bound SDK has no declaration file.
+import { ensureYNXTestnet } from "../../../sdk/js/wallet.js";
 
 interface Probe {
   id: string;
@@ -125,6 +130,9 @@ export function App() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [selectedIncident, setSelectedIncident] = useState<Incident>();
+  const [walletProviders, setWalletProviders] = useState<WalletProvider[]>([]);
+  const [walletProviderId, setWalletProviderId] = useState(() => sessionStorage.getItem("ynx-monitor-wallet-provider") || "");
+  const activeWalletProvider = walletProviders.find((provider) => provider.id === walletProviderId);
   async function refresh() {
     if (!session) return;
     setLoading(true);
@@ -161,18 +169,43 @@ export function App() {
       removeEventListener("beforeinstallprompt", install);
     };
   }, []);
+  useEffect(() => discoverWalletProviders(setWalletProviders), []);
+  useEffect(() => {
+    if (!session || !session.principal.username.startsWith("wallet:") || !activeWalletProvider?.provider.on) return;
+    const expectedAccount = sessionStorage.getItem("ynx-monitor-wallet-account")?.toLowerCase();
+    const invalidate = () => logout();
+    const accountsChanged = (accounts: unknown) => {
+      if (!expectedAccount || !Array.isArray(accounts) || !accounts.some((account) => typeof account === "string" && account.toLowerCase() === expectedAccount)) invalidate();
+    };
+    const chainChanged = (chainId: unknown) => { if (chainId !== "0x1917") invalidate(); };
+    activeWalletProvider.provider.on("accountsChanged", accountsChanged);
+    activeWalletProvider.provider.on("chainChanged", chainChanged);
+    activeWalletProvider.provider.on("disconnect", invalidate);
+    void activeWalletProvider.provider.request({ method: "eth_accounts" }).then(accountsChanged).catch(invalidate);
+    return () => {
+      activeWalletProvider.provider.removeListener?.("accountsChanged", accountsChanged);
+      activeWalletProvider.provider.removeListener?.("chainChanged", chainChanged);
+      activeWalletProvider.provider.removeListener?.("disconnect", invalidate);
+    };
+  }, [session, activeWalletProvider]);
   useEffect(() => {
     if (!session) return;
     const timer = setInterval(() => void refresh(), 15_000);
     return () => clearInterval(timer);
   }, [session]);
-  function onLogin(next: Session) {
+  function onLogin(next: Session, provider?: WalletProvider, account?: string) {
     sessionStorage.setItem("ynx-monitor-session", JSON.stringify(next));
+    if (provider) sessionStorage.setItem("ynx-monitor-wallet-provider", provider.id);
+    if (account) sessionStorage.setItem("ynx-monitor-wallet-account", account.toLowerCase());
     setSession(next);
+    if (provider) setWalletProviderId(provider.id);
   }
   function logout() {
     sessionStorage.removeItem("ynx-monitor-session");
+    sessionStorage.removeItem("ynx-monitor-wallet-provider");
+    sessionStorage.removeItem("ynx-monitor-wallet-account");
     setSession(null);
+    setWalletProviderId("");
     setOverview(undefined);
   }
   if (!session)
@@ -184,6 +217,7 @@ export function App() {
         setLocale={setLocale}
         setAILanguage={setAILanguage}
         t={t}
+        walletProviders={walletProviders}
       />
     );
   const role = session.principal.role;
@@ -407,13 +441,15 @@ function Login({
   setLocale,
   setAILanguage,
   t,
+  walletProviders,
 }: {
-  onLogin: (s: Session) => void;
+  onLogin: (s: Session, provider?: WalletProvider, account?: string) => void;
   locale: Locale;
   aiLanguage: Locale;
   setLocale: (x: Locale) => void;
   setAILanguage: (x: Locale) => void;
   t: (key: any) => string;
+  walletProviders: WalletProvider[];
 }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -533,7 +569,7 @@ function Login({
           </p>
         )}
         <button disabled={busy}>{busy ? "Authenticating…" : t("enter")}</button>
-        <WalletLogin onLogin={onLogin} label={t("walletSignIn")} />
+        <WalletLogin onLogin={onLogin} label={t("walletSignIn")} walletProviders={walletProviders} t={t} />
         <small>{t("privacy")}</small>
       </form>
     </main>
@@ -543,77 +579,49 @@ function Login({
 function WalletLogin({
   onLogin,
   label,
+  walletProviders,
+  t,
 }: {
-  onLogin: (s: Session) => void;
+  onLogin: (s: Session, provider?: WalletProvider, account?: string) => void;
   label: string;
+  walletProviders: WalletProvider[];
+  t: (key: any) => string;
 }) {
-  const [challenge, setChallenge] = useState<any>();
-  const [signature, setSignature] = useState("");
-  const [payload, setPayload] = useState("");
   const [error, setError] = useState("");
-  async function begin() {
+  const [busy, setBusy] = useState(false);
+  async function begin(wallet: WalletProvider) {
     setError("");
+    setBusy(true);
     try {
+      const account = selectedAccount(await wallet.provider.request({ method: "eth_requestAccounts" }));
+      const network = await ensureYNXTestnet(wallet.provider as EIP1193Provider);
+      if (network.chainId !== "0x1917") throw new Error("Wallet did not select YNX Testnet (0x1917).");
       const next = await request<any>("/ops/wallet/challenges", undefined, {
         method: "POST",
-        body: "{}",
+        body: JSON.stringify({ accountHint: account }),
       });
-      setChallenge(next);
-      setPayload(JSON.stringify(next));
-      location.href = `ynx-wallet://authorize?challenge=${encodeURIComponent(JSON.stringify(next))}`;
+      const signedPayload = JSON.stringify(next);
+      const signature = await wallet.provider.request({ method: "personal_sign", params: [signedPayload, account] });
+      if (typeof signature !== "string" || !/^0x[0-9a-f]{130}$/i.test(signature)) throw new Error("Wallet returned an invalid challenge signature.");
+      onLogin(await request<Session>("/ops/wallet/sessions", undefined, {
+        method: "POST",
+        body: JSON.stringify({ challengeId: next.challengeId, nonce: next.nonce, signature, signedPayload }),
+      }), wallet, account);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Wallet unavailable");
-    }
-  }
-  async function complete() {
-    try {
-      onLogin(
-        await request<Session>("/ops/wallet/sessions", undefined, {
-          method: "POST",
-          body: JSON.stringify({
-            challengeId: challenge.challengeId,
-            nonce: challenge.nonce,
-            signature,
-            signedPayload: payload,
-          }),
-        }),
-      );
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Wallet verification failed");
+      setError(t(providerErrorCode(e) === "wallet_rejected" ? "walletRejected" : "walletRequestFailed"));
+    } finally {
+      setBusy(false);
     }
   }
   return (
     <div className="wallet-login">
-      <button type="button" onClick={begin}>
-        {label}
-      </button>
-      {challenge && (
-        <>
-          <p>
-            Challenge expires{" "}
-            {new Date(challenge.expiresAt).toLocaleTimeString()}. Complete
-            signing in the wallet, then paste its signature.
-          </p>
-          <textarea
-            aria-label="Signed wallet payload"
-            value={payload}
-            onChange={(e) => setPayload(e.target.value)}
-          />
-          <input
-            aria-label="Wallet signature"
-            value={signature}
-            onChange={(e) => setSignature(e.target.value)}
-            placeholder="Wallet signature"
-          />
-          <button
-            type="button"
-            disabled={!signature || !payload}
-            onClick={complete}
-          >
-            Verify signed challenge
-          </button>
-        </>
-      )}
+      <p>{t("walletGuidance")}</p>
+      {walletProviders.length ? walletProviders.map((wallet) => (
+        <button type="button" key={wallet.id} disabled={busy} onClick={() => void begin(wallet)} aria-label={`${label} using ${wallet.name}`}>
+          {wallet.icon ? <img src={wallet.icon} alt="" width="20" height="20" referrerPolicy="no-referrer" /> : null}
+          {busy ? t("walletConnecting") : `${label}: ${wallet.name}`}
+        </button>
+      )) : <p role="status">{t("walletNotFound")}</p>}
       {error && (
         <p className="form-error" role="alert">
           {error}
