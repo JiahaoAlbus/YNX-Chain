@@ -192,7 +192,9 @@ func (s *Server) handleLatestBlocks(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"blocks": LatestBlocks(db, intQuery(r, "limit", 25))})
+	limit, offset := intQuery(r, "limit", 25), offsetQuery(r)
+	blocks, total := LatestBlocksPage(db, limit, offset)
+	writeJSON(w, http.StatusOK, map[string]any{"blocks": blocks, "total": total, "limit": limit, "offset": offset, "hasMore": offset+len(blocks) < total})
 }
 
 func (s *Server) handleBlock(w http.ResponseWriter, r *http.Request) {
@@ -215,7 +217,21 @@ func (s *Server) handleTransactions(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"transactions": LatestTransactions(db, intQuery(r, "limit", 25))})
+	limit, offset := intQuery(r, "limit", 25), offsetQuery(r)
+	txs, total := LatestTransactionsPage(db, limit, offset)
+	writeJSON(w, http.StatusOK, map[string]any{"transactions": txs, "total": total, "limit": limit, "offset": offset, "hasMore": offset+len(txs) < total})
+}
+
+func offsetQuery(r *http.Request) int {
+	raw := r.URL.Query().Get("offset")
+	if raw == "" {
+		return 0
+	}
+	offset, err := strconv.Atoi(raw)
+	if err != nil || offset < 0 || offset > 100000 {
+		return 0
+	}
+	return offset
 }
 
 func (s *Server) handleTransaction(w http.ResponseWriter, r *http.Request) {

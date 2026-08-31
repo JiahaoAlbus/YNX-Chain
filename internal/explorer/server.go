@@ -257,12 +257,12 @@ func (s *Server) handleSummary(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleLatestBlocks(w http.ResponseWriter, r *http.Request) {
-	blocks, err := s.service.LatestBlocks(r.Context(), intQuery(r, "limit", 10))
+	page, err := s.service.LatestBlocksPage(r.Context(), intQuery(r, "limit", 10), offsetQuery(r))
 	if err != nil {
 		writeJSON(w, http.StatusBadGateway, map[string]any{"error": err.Error()})
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"blocks": blocks})
+	writeJSON(w, http.StatusOK, page)
 }
 
 func (s *Server) handleBlock(w http.ResponseWriter, r *http.Request) {
@@ -275,12 +275,12 @@ func (s *Server) handleBlock(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleTransactions(w http.ResponseWriter, r *http.Request) {
-	txs, err := s.service.Transactions(r.Context(), intQuery(r, "limit", 10))
+	page, err := s.service.TransactionsPage(r.Context(), intQuery(r, "limit", 10), offsetQuery(r))
 	if err != nil {
 		writeJSON(w, http.StatusBadGateway, map[string]any{"error": err.Error()})
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"transactions": txs})
+	writeJSON(w, http.StatusOK, page)
 }
 
 func (s *Server) handleTransaction(w http.ResponseWriter, r *http.Request) {
@@ -400,6 +400,18 @@ func intQuery(r *http.Request, key string, fallback int) int {
 	parsed, err := strconv.Atoi(raw)
 	if err != nil || parsed <= 0 || parsed > 100 {
 		return fallback
+	}
+	return parsed
+}
+
+func offsetQuery(r *http.Request) int {
+	raw := r.URL.Query().Get("offset")
+	if raw == "" {
+		return 0
+	}
+	parsed, err := strconv.Atoi(raw)
+	if err != nil || parsed < 0 || parsed > 100000 {
+		return 0
 	}
 	return parsed
 }

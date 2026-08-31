@@ -327,8 +327,19 @@ func (i *Indexer) SyncOnce(ctx context.Context) (SyncResult, error) {
 }
 
 func LatestBlocks(db Database, limit int) []chain.Block {
+	blocks, _ := LatestBlocksPage(db, limit, 0)
+	return blocks
+}
+
+// LatestBlocksPage returns newest-first blocks and the authoritative indexed total.
+// It only paginates the local verified index; it never reaches through to an
+// unverified upstream history service.
+func LatestBlocksPage(db Database, limit, offset int) ([]chain.Block, int) {
 	if limit <= 0 || limit > 100 {
 		limit = 25
+	}
+	if offset < 0 {
+		offset = 0
 	}
 	heights := make([]int, 0, len(db.Blocks))
 	for raw := range db.Blocks {
@@ -338,27 +349,38 @@ func LatestBlocks(db Database, limit int) []chain.Block {
 		}
 	}
 	sort.Sort(sort.Reverse(sort.IntSlice(heights)))
-	blocks := make([]chain.Block, 0, min(limit, len(heights)))
-	for _, height := range heights {
-		if len(blocks) >= limit {
-			break
-		}
+	if offset >= len(heights) {
+		return []chain.Block{}, len(heights)
+	}
+	end := min(offset+limit, len(heights))
+	blocks := make([]chain.Block, 0, end-offset)
+	for _, height := range heights[offset:end] {
 		blocks = append(blocks, db.Blocks[strconv.Itoa(height)])
 	}
-	return blocks
+	return blocks, len(heights)
 }
 
 func LatestTransactions(db Database, limit int) []chain.Transaction {
+	txs, _ := LatestTransactionsPage(db, limit, 0)
+	return txs
+}
+
+// LatestTransactionsPage returns newest-first indexed transactions and total.
+func LatestTransactionsPage(db Database, limit, offset int) ([]chain.Transaction, int) {
 	if limit <= 0 || limit > 100 {
 		limit = 25
+	}
+	if offset < 0 {
+		offset = 0
 	}
 	txs := make([]chain.Transaction, 0, len(db.Transactions))
 	for _, tx := range db.Transactions {
 		txs = append(txs, tx)
 	}
 	sort.Slice(txs, func(a, b int) bool { return txs[a].Timestamp.After(txs[b].Timestamp) })
-	if len(txs) > limit {
-		txs = txs[:limit]
+	if offset >= len(txs) {
+		return []chain.Transaction{}, len(txs)
 	}
-	return txs
+	end := min(offset+limit, len(txs))
+	return append([]chain.Transaction(nil), txs[offset:end]...), len(txs)
 }

@@ -78,7 +78,7 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	server := httptest.NewServer(NewServerWithBuild(svc, buildinfo.Info{Commit: "abc123", Release: "ynx-chain-abc123", BuildTime: "2026-07-10T00:00:00Z"}).Handler())
 	defer server.Close()
 
-	for _, path := range []string{"/health", "/api/summary", "/api/blocks/latest", "/api/txs", "/api/accounts?limit=10", "/api/accounts/ynx_explorer_bob", "/api/accounts/" + ynxAddress, "/api/tokens/YNXT", "/api/validators", "/api/resources/ynx_explorer_bob", "/api/resource-market/analytics", "/api/fees/" + tx.Hash, "/api/fees/" + sponsoredTx.Hash, "/api/search?q=" + tx.Hash, "/api/search?q=" + ynxAddress, "/metrics"} {
+	for _, path := range []string{"/health", "/api/summary", "/api/blocks/latest", "/api/txs", "/api/accounts?limit=10", "/api/accounts/ynx_explorer_bob", "/api/accounts/" + ynxAddress, "/api/tokens/YNXT", "/api/validators", "/api/resources/ynx_explorer_bob", "/api/resource-market/analytics", "/api/fees/" + tx.Hash, "/api/fees/" + sponsoredTx.Hash, "/api/search?q=" + tx.Hash, "/api/search?q=" + ynxAddress, "/api/search?q=YNXT", "/api/search?q=ynx-local-validator-0", "/metrics"} {
 		resp, err := http.Get(server.URL + path)
 		if err != nil {
 			t.Fatal(err)
@@ -89,6 +89,25 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 			t.Fatalf("%s returned %d: %s", path, resp.StatusCode, string(body))
 		}
 		_ = resp.Body.Close()
+	}
+	for _, endpoint := range []string{"/api/blocks/latest?limit=1&offset=1", "/api/txs?limit=1&offset=1"} {
+		pageResponse, err := http.Get(server.URL + endpoint)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var page struct {
+			Total  int `json:"total"`
+			Limit  int `json:"limit"`
+			Offset int `json:"offset"`
+		}
+		if err := json.NewDecoder(pageResponse.Body).Decode(&page); err != nil {
+			_ = pageResponse.Body.Close()
+			t.Fatal(err)
+		}
+		_ = pageResponse.Body.Close()
+		if page.Total < 2 || page.Limit != 1 || page.Offset != 1 {
+			t.Fatalf("%s did not expose a verified page envelope: %+v", endpoint, page)
+		}
 	}
 	aliasResponse, err := http.Get(server.URL + "/api/accounts/" + ynxAddress)
 	if err != nil {
@@ -161,6 +180,10 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 		"block-chip-meta",
 		"portal-callout-stats",
 		"data-chart-range=\"24h\"",
+		"loadBlockchainPage",
+		"setDetailLocation",
+		"data-page-kind",
+		"portalMessages",
 		"zh-CN",
 		"zh-TW",
 		"option value=\"ja\"",

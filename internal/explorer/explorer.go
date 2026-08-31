@@ -228,13 +228,34 @@ func (s *Service) IndexerHealth(ctx context.Context) (IndexerHealth, error) {
 }
 
 func (s *Service) LatestBlocks(ctx context.Context, limit int) ([]chain.Block, error) {
-	var out struct {
-		Blocks []chain.Block `json:"blocks"`
-	}
-	if err := s.indexerClient.getJSON(ctx, "/blocks/latest?limit="+strconv.Itoa(limit), &out); err != nil {
+	page, err := s.LatestBlocksPage(ctx, limit, 0)
+	if err != nil {
 		return nil, err
 	}
-	return out.Blocks, nil
+	return page.Blocks, nil
+}
+
+type BlockPage struct {
+	Blocks  []chain.Block `json:"blocks"`
+	Total   int           `json:"total"`
+	Limit   int           `json:"limit"`
+	Offset  int           `json:"offset"`
+	HasMore bool          `json:"hasMore"`
+}
+
+func (s *Service) LatestBlocksPage(ctx context.Context, limit, offset int) (BlockPage, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 25
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	var page BlockPage
+	path := "/blocks/latest?limit=" + strconv.Itoa(limit) + "&offset=" + strconv.Itoa(offset)
+	if err := s.indexerClient.getJSON(ctx, path, &page); err != nil {
+		return BlockPage{}, err
+	}
+	return page, nil
 }
 
 func (s *Service) Block(ctx context.Context, height string) (chain.Block, error) {
@@ -246,13 +267,34 @@ func (s *Service) Block(ctx context.Context, height string) (chain.Block, error)
 }
 
 func (s *Service) Transactions(ctx context.Context, limit int) ([]chain.Transaction, error) {
-	var out struct {
-		Transactions []chain.Transaction `json:"transactions"`
-	}
-	if err := s.indexerClient.getJSON(ctx, "/txs?limit="+strconv.Itoa(limit), &out); err != nil {
+	page, err := s.TransactionsPage(ctx, limit, 0)
+	if err != nil {
 		return nil, err
 	}
-	return out.Transactions, nil
+	return page.Transactions, nil
+}
+
+type TransactionPage struct {
+	Transactions []chain.Transaction `json:"transactions"`
+	Total        int                 `json:"total"`
+	Limit        int                 `json:"limit"`
+	Offset       int                 `json:"offset"`
+	HasMore      bool                `json:"hasMore"`
+}
+
+func (s *Service) TransactionsPage(ctx context.Context, limit, offset int) (TransactionPage, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 25
+	}
+	if offset < 0 {
+		offset = 0
+	}
+	var page TransactionPage
+	path := "/txs?limit=" + strconv.Itoa(limit) + "&offset=" + strconv.Itoa(offset)
+	if err := s.indexerClient.getJSON(ctx, path, &page); err != nil {
+		return TransactionPage{}, err
+	}
+	return page, nil
 }
 
 func (s *Service) Transaction(ctx context.Context, hash string) (chain.Transaction, error) {
@@ -531,6 +573,12 @@ func (s *Service) Search(ctx context.Context, query string) (SearchResult, error
 	if query == "" {
 		return SearchResult{}, fmt.Errorf("query is required")
 	}
+	if strings.EqualFold(query, "YNXT") {
+		if _, err := s.Token(ctx, "YNXT"); err != nil {
+			return SearchResult{}, err
+		}
+		return SearchResult{Query: "YNXT", Type: "token", Path: "/api/tokens/YNXT", TruthfulStatus: "native-token-from-rpc-status"}, nil
+	}
 	if _, err := strconv.ParseUint(query, 10, 64); err == nil {
 		if _, err := s.Block(ctx, query); err != nil {
 			return SearchResult{}, err
@@ -540,6 +588,23 @@ func (s *Service) Search(ctx context.Context, query string) (SearchResult, error
 	if strings.HasPrefix(query, "0x") {
 		if _, err := s.Transaction(ctx, query); err == nil {
 			return SearchResult{Query: query, Type: "transaction", Path: "/api/txs/" + query, TruthfulStatus: "resolved-from-indexer"}, nil
+		}
+	}
+	validators, err := s.Validators(ctx)
+	if err == nil {
+		encoded, _ := json.Marshal(validators)
+		var payload struct {
+			Validators []struct {
+				Address string `json:"address"`
+				Moniker string `json:"moniker"`
+			} `json:"validators"`
+		}
+		if json.Unmarshal(encoded, &payload) == nil {
+			for _, validator := range payload.Validators {
+				if strings.EqualFold(query, validator.Address) || strings.EqualFold(query, validator.Moniker) {
+					return SearchResult{Query: query, Type: "validator", Path: "/api/validators", TruthfulStatus: "resolved-from-rpc-validator-set"}, nil
+				}
+			}
 		}
 	}
 	normalized, err := normalizeExplorerAddress(query)

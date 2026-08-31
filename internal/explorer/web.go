@@ -413,6 +413,13 @@ const indexHTML = `<!doctype html>
     .record-actions { display:flex; flex-wrap:wrap; gap:6px; }
     .record-actions button { padding:5px 7px; border:1px solid var(--line); border-radius:4px; color:#4f5b6d; background:#fff; font-size:11px; font-weight:650; }
     .record-actions button:hover,.record-actions button:focus-visible { border-color:#a8bcf9; color:var(--blue); background:#f8faff; outline:0; }
+    .table-link { padding:0; border:0; color:var(--blue); background:transparent; font:inherit; font-weight:700; }
+    .table-link:hover,.table-link:focus-visible { text-decoration:underline; outline:0; }
+    .page-controls { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:12px; color:var(--muted); font-size:12px; }
+    .page-controls div { display:flex; gap:7px; }
+    .page-controls button { min-height:32px; padding:6px 10px; border:1px solid var(--line); border-radius:4px; color:#445164; background:#fff; font-size:12px; font-weight:700; }
+    .page-controls button:not(:disabled):hover,.page-controls button:not(:disabled):focus-visible { border-color:#a8bcf9; color:var(--blue); outline:0; }
+    .page-controls button:disabled { cursor:not-allowed; opacity:.52; }
     .chart-toolbar { display:flex; flex-wrap:wrap; gap:7px; margin:13px 0; }
     .chart-toolbar button { padding:7px 10px; border:1px solid var(--line); border-radius:4px; color:#536072; background:#fff; font-size:12px; font-weight:650; }
     .chart-toolbar button.active { border-color:var(--blue); color:#fff; background:var(--blue); }
@@ -428,13 +435,13 @@ const indexHTML = `<!doctype html>
     <div class="shell nav-inner">
       <a class="brand" href="#top" aria-label="YNX Chain Explorer home"><img class="brand-logo" src="/assets/ynx-logo.png?v=df071f54b" width="30" height="30" alt=""><span>YNX Chain</span></a>
       <div class="nav-links">
-        <a href="#home" data-route="home">Home</a><span class="nav-menu"><a href="#blockchain" data-route="blockchain">Blockchain</a><span class="more-popover"><a href="#blockchain" data-route="blockchain">Blocks &amp; transactions</a><a href="#blockchain" data-route="blockchain">Addresses &amp; contracts</a><a href="#blockchain" data-route="blockchain">Validators &amp; network status</a></span></span><span class="nav-menu"><a href="#tokens" data-route="tokens">Tokens</a><span class="more-popover"><a href="#tokens" data-route="tokens">YNXT native asset</a><a href="#tokens" data-route="tokens">Verified token registry</a></span></span><span class="nav-menu"><a href="#data" data-route="data">Data</a><span class="more-popover"><a href="#data" data-route="data">Network activity</a><a href="#data" data-route="data">Data source status</a></span></span><a href="#governance" data-route="governance">Governance</a><span class="nav-menu"><a href="#ecosystem" data-route="ecosystem">YNX Ecosystem</a><span class="more-popover"><a href="#ecosystem" data-route="ecosystem">Wallet &amp; permissions</a><a href="#ecosystem" data-route="ecosystem">DeFi &amp; Payments</a><a href="#ecosystem" data-route="ecosystem">Developer &amp; Infrastructure</a><a href="#ecosystem" data-route="ecosystem">AI, Social, Data &amp; Media</a><a href="#ecosystem" data-route="ecosystem">Commerce</a></span></span><span class="nav-menu"><a href="#developers" data-route="developers">Developers</a><span class="more-popover"><a href="#developers" data-route="developers">Network configuration</a><a href="#developers" data-route="developers">SDK, CLI &amp; contracts</a><a href="#developers" data-route="developers">Faucet &amp; service status</a></span></span><a href="#downloads" data-route="downloads">Downloads</a><span class="more-wrap"><button id="moreButton" type="button" aria-expanded="false" aria-controls="morePopover">More</button><span class="more-popover" id="morePopover"><a href="#blockchain" data-route="blockchain">Validators &amp; nodes</a><a href="#blockchain" data-route="blockchain">Accounts</a><a href="#documentation" data-route="documentation">Documentation</a></span></span>
+        <a href="#home" data-route="home" data-i18n="home">Home</a><span class="nav-menu"><a href="#blockchain" data-route="blockchain" data-i18n="blockchain">Blockchain</a><span class="more-popover"><a href="#blockchain" data-route="blockchain" data-i18n="blocksTransactions">Blocks &amp; transactions</a><a href="#blockchain" data-route="blockchain" data-i18n="addressesContracts">Addresses &amp; contracts</a><a href="#blockchain" data-route="blockchain" data-i18n="validatorsStatus">Validators &amp; network status</a></span></span><span class="nav-menu"><a href="#tokens" data-route="tokens" data-i18n="tokens">Tokens</a><span class="more-popover"><a href="#tokens" data-route="tokens" data-i18n="ynxtNative">YNXT native asset</a><a href="#tokens" data-route="tokens" data-i18n="tokenRegistry">Verified token registry</a></span></span><span class="nav-menu"><a href="#data" data-route="data" data-i18n="data">Data</a><span class="more-popover"><a href="#data" data-route="data" data-i18n="networkActivity">Network activity</a><a href="#data" data-route="data" data-i18n="dataSourceStatus">Data source status</a></span></span><a href="#governance" data-route="governance" data-i18n="governance">Governance</a><span class="nav-menu"><a href="#ecosystem" data-route="ecosystem" data-i18n="ecosystem">YNX Ecosystem</a><span class="more-popover"><a href="#ecosystem" data-route="ecosystem" data-i18n="walletPermissions">Wallet &amp; permissions</a><a href="#ecosystem" data-route="ecosystem" data-i18n="defiPayments">DeFi &amp; Payments</a><a href="#ecosystem" data-route="ecosystem" data-i18n="developerInfrastructure">Developer &amp; Infrastructure</a><a href="#ecosystem" data-route="ecosystem" data-i18n="aiSocialDataMedia">AI, Social, Data &amp; Media</a><a href="#ecosystem" data-route="ecosystem" data-i18n="commerce">Commerce</a></span></span><span class="nav-menu"><a href="#developers" data-route="developers" data-i18n="developers">Developers</a><span class="more-popover"><a href="#developers" data-route="developers" data-i18n="networkConfiguration">Network configuration</a><a href="#developers" data-route="developers" data-i18n="sdkCliContracts">SDK, CLI &amp; contracts</a><a href="#developers" data-route="developers" data-i18n="faucetServiceStatus">Faucet &amp; service status</a></span></span><a href="#downloads" data-route="downloads" data-i18n="downloads">Downloads</a><span class="more-wrap"><button id="moreButton" type="button" aria-expanded="false" aria-controls="morePopover" data-i18n="more">More</button><span class="more-popover" id="morePopover"><a href="#blockchain" data-route="blockchain" data-i18n="validatorsNodes">Validators &amp; nodes</a><a href="#blockchain" data-route="blockchain" data-i18n="accounts">Accounts</a><a href="#documentation" data-route="documentation" data-i18n="documentation">Documentation</a></span></span>
       </div>
-      <div class="nav-actions"><span id="networkName" hidden>Testnet</span><a href="#documentation" data-route="documentation">Docs</a><select class="language-select" id="languageSelect" aria-label="Language"><option value="en">English</option><option value="zh-CN">简体中文</option><option value="zh-TW">繁體中文</option><option value="ja">日本語</option><option value="ko">한국어</option></select><button class="wallet-connect" id="walletConnectButton" type="button">Connect Wallet</button></div>
+      <div class="nav-actions"><span id="networkName" hidden>Testnet</span><a href="#documentation" data-route="documentation" data-i18n="docs">Docs</a><select class="language-select" id="languageSelect" aria-label="Language"><option value="en">English</option><option value="zh-CN">简体中文</option><option value="zh-TW">繁體中文</option><option value="ja">日本語</option><option value="ko">한국어</option></select><button class="wallet-connect" id="walletConnectButton" type="button" data-i18n="connectWallet">Connect Wallet</button></div>
     </div>
   </nav>
 
-  <div class="announcement" role="status"><div class="shell"><span class="announcement-dot"></span><strong>YNX 6423 Testnet portal</strong><span>Live figures appear only when the RPC and indexer agree.</span><a href="#documentation">Read the data policy</a></div></div>
+  <div class="announcement" role="status"><div class="shell"><span class="announcement-dot"></span><strong data-i18n="portalAnnouncement">YNX 6423 Testnet portal</strong><span data-i18n="portalLivePolicy">Live figures appear only when the RPC and indexer agree.</span><a href="#documentation" data-i18n="readDataPolicy">Read the data policy</a></div></div>
 
   <header class="hero" id="top">
     <div class="shell">
@@ -567,6 +574,7 @@ const indexHTML = `<!doctype html>
     let toastTimer = null;
     let lastDashboard = null;
     let connectedYNXWallet = null;
+    const blockchainPages = {blocks:{items:[],total:0,limit:10,offset:0,hasMore:false},transactions:{items:[],total:0,limit:10,offset:0,hasMore:false}};
     const $ = (id) => document.getElementById(id);
     const messages = {
       en:{brand:'Chain Explorer',navOverview:'Overview',navBlockchain:'Blockchain',navAccounts:'Accounts',navValidators:'Validators',navResources:'Resources',heroTitle:'YNX Chain network explorer',heroCopy:'Live blocks, transactions, validators, accounts, fees, and native YNXT resource economics from the public testnet.',searchPlaceholder:'Search ynx1 address, transaction, block, or EVM compatibility address',search:'Search',latestBlock:'Latest block',networkTps:'Network TPS',indexedWindow:'Latest indexed window',blockTime:'Block time',observedAverage:'Observed average',indexedTxs:'Transactions indexed',verifiedIndexer:'Verified by the indexer',validators:'Validators',reportedRpc:'Reported by chain RPC',indexerSync:'Indexer sync',networkDetails:'Network details',networkDetailsCopy:'Current chain configuration',latestBlocks:'Real-time blocks',latestBlocksCopy:'Five newest finalized blocks, updated live',refresh:'Refresh',latestTransactions:'Real-time transactions',latestTransactionsCopy:'Five newest indexed transfers and actions',quickFindPlaceholder:'Find hash, address, amount…',accountLeaderboard:'YNXT account leaderboard',accountLeaderboardCopy:'Ranks full-ledger balances when available; otherwise shows a clearly labeled indexed-participant sample.',operational:'Network operational',degraded:'Upstream degraded',fullySynced:'Fully synchronized',catchingUp:'Indexer catching up',noMatching:'No matching transactions in the indexed transaction feed.',rpcResponding:'RPC and indexer are responding',live:'Live'},
@@ -575,10 +583,17 @@ const indexHTML = `<!doctype html>
       ja:{brand:'チェーンエクスプローラー',navOverview:'概要',navBlockchain:'ブロックチェーン',navAccounts:'アカウント',navValidators:'バリデーター',navResources:'リソース',heroTitle:'YNX Chain ネットワークエクスプローラー',heroCopy:'公開テストネットのライブブロック、トランザクション、バリデーター、アカウント、手数料、YNXT リソース経済を確認します。',searchPlaceholder:'ynx1 アドレス、トランザクション、ブロック、EVM 互換アドレスを検索',search:'検索',latestBlock:'最新ブロック',networkTps:'ネットワーク TPS',indexedWindow:'最新のインデックス範囲',blockTime:'ブロック時間',observedAverage:'観測平均',indexedTxs:'インデックス済みトランザクション',verifiedIndexer:'インデクサーで検証済み',validators:'バリデーター',reportedRpc:'チェーン RPC の報告値',indexerSync:'インデクサー同期',networkDetails:'ネットワーク詳細',networkDetailsCopy:'現在のチェーン設定',latestBlocks:'ライブブロック',latestBlocksCopy:'最新の確定済み 5 ブロックをライブ更新',refresh:'更新',latestTransactions:'ライブトランザクション',latestTransactionsCopy:'最新のインデックス済み転送と操作',quickFindPlaceholder:'ハッシュ、アドレス、金額を検索…',accountLeaderboard:'YNXT アカウントランキング',accountLeaderboardCopy:'利用可能な場合は台帳残高を順位付けし、それ以外はインデックス済み参加者サンプルを表示します。',operational:'ネットワークは稼働中',degraded:'上流サービス低下',fullySynced:'完全に同期済み',catchingUp:'インデクサーが追随中',noMatching:'インデックス済みフィードに一致するトランザクションはありません。',rpcResponding:'RPC とインデクサーが応答中',live:'ライブ'},
       ko:{brand:'체인 탐색기',navOverview:'개요',navBlockchain:'블록체인',navAccounts:'계정',navValidators:'검증인',navResources:'리소스',heroTitle:'YNX Chain 네트워크 탐색기',heroCopy:'공개 테스트넷의 실시간 블록, 거래, 검증인, 계정, 수수료 및 YNXT 리소스 경제를 확인합니다.',searchPlaceholder:'ynx1 주소, 거래, 블록 또는 EVM 호환 주소 검색',search:'검색',latestBlock:'최신 블록',networkTps:'네트워크 TPS',indexedWindow:'최신 인덱스 범위',blockTime:'블록 시간',observedAverage:'관측 평균',indexedTxs:'인덱싱된 거래',verifiedIndexer:'인덱서 검증',validators:'검증인',reportedRpc:'체인 RPC 보고',indexerSync:'인덱서 동기화',networkDetails:'네트워크 상세',networkDetailsCopy:'현재 체인 설정',latestBlocks:'실시간 블록',latestBlocksCopy:'최근 확정 블록 5개를 실시간 갱신',refresh:'새로 고침',latestTransactions:'실시간 거래',latestTransactionsCopy:'최근 인덱싱된 전송 및 작업',quickFindPlaceholder:'해시, 주소, 금액 찾기…',accountLeaderboard:'YNXT 계정 순위',accountLeaderboardCopy:'가능하면 전체 원장 잔액 순위를, 그 외에는 인덱싱된 참여자 표본을 표시합니다.',operational:'네트워크 정상',degraded:'업스트림 서비스 저하',fullySynced:'완전히 동기화됨',catchingUp:'인덱서 동기화 중',noMatching:'인덱싱된 거래 피드에서 일치 항목이 없습니다.',rpcResponding:'RPC와 인덱서가 응답 중',live:'실시간'}
     };
+    const portalMessages = {
+      en:{home:'Home',blockchain:'Blockchain',tokens:'Tokens',data:'Data',governance:'Governance',ecosystem:'YNX Ecosystem',developers:'Developers',downloads:'Downloads',more:'More',docs:'Docs',documentation:'Documentation',connectWallet:'Connect Wallet',accounts:'Accounts',blocksTransactions:'Blocks & transactions',addressesContracts:'Addresses & contracts',validatorsStatus:'Validators & network status',ynxtNative:'YNXT native asset',tokenRegistry:'Verified token registry',networkActivity:'Network activity',dataSourceStatus:'Data source status',walletPermissions:'Wallet & permissions',defiPayments:'DeFi & Payments',developerInfrastructure:'Developer & Infrastructure',aiSocialDataMedia:'AI, Social, Data & Media',commerce:'Commerce',networkConfiguration:'Network configuration',sdkCliContracts:'SDK, CLI & contracts',faucetServiceStatus:'Faucet & service status',validatorsNodes:'Validators & nodes',portalAnnouncement:'YNX 6423 Testnet portal',portalLivePolicy:'Live figures appear only when the RPC and indexer agree.',readDataPolicy:'Read the data policy'},
+      'zh-CN':{home:'首页',blockchain:'区块链',tokens:'代币',data:'数据',governance:'治理',ecosystem:'YNX 生态',developers:'开发者',downloads:'下载',more:'更多',docs:'文档',documentation:'文档中心',connectWallet:'连接钱包',accounts:'账户',blocksTransactions:'区块与交易',addressesContracts:'地址与合约',validatorsStatus:'验证者与网络状态',ynxtNative:'YNXT 原生资产',tokenRegistry:'已验证代币目录',networkActivity:'网络活动',dataSourceStatus:'数据源状态',walletPermissions:'钱包与权限',defiPayments:'DeFi 与支付',developerInfrastructure:'开发者与基础设施',aiSocialDataMedia:'AI、社交、数据与媒体',commerce:'商业',networkConfiguration:'网络配置',sdkCliContracts:'SDK、CLI 与合约',faucetServiceStatus:'水龙头与服务状态',validatorsNodes:'验证者与节点',portalAnnouncement:'YNX 6423 测试网门户',portalLivePolicy:'仅当 RPC 与索引器一致时才展示实时数据。',readDataPolicy:'阅读数据政策'},
+      'zh-TW':{home:'首頁',blockchain:'區塊鏈',tokens:'代幣',data:'資料',governance:'治理',ecosystem:'YNX 生態',developers:'開發者',downloads:'下載',more:'更多',docs:'文件',documentation:'文件中心',connectWallet:'連接錢包',accounts:'帳戶',blocksTransactions:'區塊與交易',addressesContracts:'位址與合約',validatorsStatus:'驗證者與網路狀態',ynxtNative:'YNXT 原生資產',tokenRegistry:'已驗證代幣目錄',networkActivity:'網路活動',dataSourceStatus:'資料來源狀態',walletPermissions:'錢包與權限',defiPayments:'DeFi 與支付',developerInfrastructure:'開發者與基礎設施',aiSocialDataMedia:'AI、社群、資料與媒體',commerce:'商務',networkConfiguration:'網路設定',sdkCliContracts:'SDK、CLI 與合約',faucetServiceStatus:'水龍頭與服務狀態',validatorsNodes:'驗證者與節點',portalAnnouncement:'YNX 6423 測試網入口',portalLivePolicy:'僅在 RPC 與索引器一致時顯示即時資料。',readDataPolicy:'閱讀資料政策'},
+      ja:{home:'ホーム',blockchain:'ブロックチェーン',tokens:'トークン',data:'データ',governance:'ガバナンス',ecosystem:'YNX エコシステム',developers:'開発者',downloads:'ダウンロード',more:'その他',docs:'ドキュメント',documentation:'ドキュメント',connectWallet:'ウォレットに接続',accounts:'アカウント',blocksTransactions:'ブロックと取引',addressesContracts:'アドレスとコントラクト',validatorsStatus:'バリデーターとネットワーク状態',ynxtNative:'YNXT ネイティブ資産',tokenRegistry:'検証済みトークン一覧',networkActivity:'ネットワーク活動',dataSourceStatus:'データソースの状態',walletPermissions:'ウォレットと権限',defiPayments:'DeFi と決済',developerInfrastructure:'開発者とインフラ',aiSocialDataMedia:'AI、ソーシャル、データ、メディア',commerce:'コマース',networkConfiguration:'ネットワーク設定',sdkCliContracts:'SDK、CLI、コントラクト',faucetServiceStatus:'フォーセットとサービス状態',validatorsNodes:'バリデーターとノード',portalAnnouncement:'YNX 6423 テストネットポータル',portalLivePolicy:'RPC とインデクサーが一致した場合のみライブ値を表示します。',readDataPolicy:'データポリシーを読む'},
+      ko:{home:'홈',blockchain:'블록체인',tokens:'토큰',data:'데이터',governance:'거버넌스',ecosystem:'YNX 생태계',developers:'개발자',downloads:'다운로드',more:'더보기',docs:'문서',documentation:'문서',connectWallet:'지갑 연결',accounts:'계정',blocksTransactions:'블록 및 거래',addressesContracts:'주소 및 컨트랙트',validatorsStatus:'검증인 및 네트워크 상태',ynxtNative:'YNXT 네이티브 자산',tokenRegistry:'검증된 토큰 목록',networkActivity:'네트워크 활동',dataSourceStatus:'데이터 소스 상태',walletPermissions:'지갑 및 권한',defiPayments:'DeFi 및 결제',developerInfrastructure:'개발자 및 인프라',aiSocialDataMedia:'AI, 소셜, 데이터 및 미디어',commerce:'커머스',networkConfiguration:'네트워크 구성',sdkCliContracts:'SDK, CLI 및 컨트랙트',faucetServiceStatus:'수도꼭지 및 서비스 상태',validatorsNodes:'검증인 및 노드',portalAnnouncement:'YNX 6423 테스트넷 포털',portalLivePolicy:'RPC와 인덱서가 일치할 때만 실시간 수치를 표시합니다.',readDataPolicy:'데이터 정책 보기'}
+    };
     const supportedLanguages = ['en','zh-CN','zh-TW','ja','ko'];
     const detectLanguage = () => { const preferred = navigator.language || 'en'; if (preferred.toLowerCase().startsWith('zh-tw') || preferred.toLowerCase().startsWith('zh-hk')) return 'zh-TW'; if (preferred.toLowerCase().startsWith('zh')) return 'zh-CN'; if (preferred.toLowerCase().startsWith('ja')) return 'ja'; if (preferred.toLowerCase().startsWith('ko')) return 'ko'; return 'en'; };
     let language = supportedLanguages.includes(localStorage.getItem('ynx-explorer-language')) ? localStorage.getItem('ynx-explorer-language') : detectLanguage();
-    const t = key => messages[language]?.[key] || messages.en[key] || key;
+    const t = key => messages[language]?.[key] || portalMessages[language]?.[key] || messages.en[key] || portalMessages.en[key] || key;
     const isChinese = () => language.startsWith('zh');
     function applyLanguage(nextLanguage) {
       language = messages[nextLanguage] ? nextLanguage : 'en';
@@ -588,6 +603,7 @@ const indexHTML = `<!doctype html>
       document.querySelectorAll('[data-i18n-placeholder]').forEach(node => { node.placeholder = t(node.dataset.i18nPlaceholder); });
       $('languageSelect').value = language;
       renderTransactions();
+      if (typeof renderLocation === 'function') renderLocation();
     }
     const escapeHTML = (value) => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const compact = (value, start = 10, end = 7) => { const text = String(value ?? ''); return text.length > start + end + 3 ? text.slice(0,start) + '...' + text.slice(-end) : text || '--'; };
@@ -856,10 +872,54 @@ const indexHTML = `<!doctype html>
       document.body.style.overflow = 'hidden';
       $('detailClose').focus();
     }
-    function closeDrawer() {
+    function dismissDrawer() {
       $('detailBackdrop').classList.remove('visible');
       $('detailBackdrop').setAttribute('aria-hidden','true');
       document.body.style.overflow = '';
+    }
+    function closeDrawer() {
+      dismissDrawer();
+      if (location.hash.includes('?detail=')) location.hash = '#blockchain';
+    }
+    function parsePortalLocation() {
+      const raw = location.hash.slice(1) || 'home';
+      const [route,query = ''] = raw.split('?');
+      return {route:route || 'home',params:new URLSearchParams(query)};
+    }
+    function setDetailLocation(type,query) {
+      const next = '#blockchain?detail=' + encodeURIComponent(type + ':' + query);
+      if (location.hash === next) openDetailFromLocation(type,query);
+      else location.hash = next;
+    }
+    async function openDetailFromLocation(type,query) {
+      try {
+        let detail;
+        if (type === 'block') detail = await get('/api/blocks/' + encodeURIComponent(query));
+        else if (type === 'transaction') detail = await get('/api/txs/' + encodeURIComponent(query));
+        else if (type === 'account') detail = await get('/api/accounts/' + encodeURIComponent(query));
+        else if (type === 'token') detail = await get('/api/tokens/' + encodeURIComponent(query));
+        else if (type === 'validator') {
+          const validators = await get('/api/validators');
+          detail = (validators.validators || []).find(validator => String(validator.address).toLowerCase() === String(query).toLowerCase() || String(validator.moniker).toLowerCase() === String(query).toLowerCase());
+          if (!detail) throw new Error('validator-not-found');
+        } else throw new Error('unsupported-detail');
+        showDrawer(type,query,detail);
+      } catch (error) {
+        $('detailKicker').textContent = 'Search result';
+        $('detailTitle').textContent = 'Not found';
+        $('detailContent').innerHTML = '<div class="result-error">No matching verified 6423 record was found.</div>';
+        $('detailBackdrop').classList.add('visible');
+        $('detailBackdrop').setAttribute('aria-hidden','false');
+      }
+    }
+    function renderLocation() {
+      const current = parsePortalLocation();
+      renderPortalRoute(current.route);
+      const detail = current.params.get('detail');
+      if (!detail) { dismissDrawer(); return; }
+      const separator = detail.indexOf(':');
+      if (separator < 1 || !detail.slice(separator + 1)) return;
+      openDetailFromLocation(detail.slice(0,separator),detail.slice(separator + 1));
     }
     function showToast(message) {
       $('toast').textContent = message;
@@ -884,6 +944,39 @@ const indexHTML = `<!doctype html>
       if (!items?.length) return unavailable('No live records are available from the current 6423 source.');
       return '<div class="table-shell"><table class="route-table"><thead><tr>' + columns.map(column => '<th>' + escapeHTML(column.label) + '</th>').join('') + '</tr></thead><tbody>' + items.map(item => '<tr>' + columns.map(column => '<td class="mono">' + escapeHTML(String(column.value(item) ?? '—')) + '</td>').join('') + '</tr>').join('') + '</tbody></table></div>';
     }
+    function paginationControls(kind,page) {
+      const previousDisabled = page.offset === 0 ? ' disabled aria-disabled="true"' : '';
+      const nextDisabled = page.hasMore ? '' : ' disabled aria-disabled="true"';
+      const shown = page.items.length ? (page.offset + 1) + '–' + (page.offset + page.items.length) : '0';
+      return '<div class="page-controls" aria-label="' + escapeHTML(kind) + ' pagination"><span>' + escapeHTML(shown) + ' of ' + escapeHTML(number(page.total)) + ' verified indexed records</span><div><button type="button" data-page-kind="' + escapeHTML(kind) + '" data-page-offset="' + Math.max(0,page.offset-page.limit) + '"' + previousDisabled + '>Previous</button><button type="button" data-page-kind="' + escapeHTML(kind) + '" data-page-offset="' + (page.offset+page.limit) + '"' + nextDisabled + '>Next</button></div></div>';
+    }
+    function renderBlockchainPage(kind) {
+      const page = blockchainPages[kind];
+      const tbody = $(kind === 'blocks' ? 'blockchainBlocksBody' : 'blockchainTransactionsBody');
+      const controls = $(kind === 'blocks' ? 'blockchainBlocksControls' : 'blockchainTransactionsControls');
+      if (!tbody || !controls) return;
+      const filter = $(kind === 'blocks' ? 'blockchainBlockFilter' : 'blockchainTransactionFilter')?.value || 'all';
+      const items = page.items.filter(item => kind === 'blocks' ? (filter === 'all' || (filter === 'empty' ? (item.transactions || []).length === 0 : (item.transactions || []).length > 0)) : (filter === 'all' || String(item.type || '').toLowerCase() === filter));
+      if (kind === 'blocks') {
+        tbody.innerHTML = items.length ? items.map(block => '<tr><td><button type="button" class="table-link mono" data-query="' + escapeHTML(block.height) + '">#' + escapeHTML(number(block.height)) + '</button></td><td title="' + escapeHTML(exactTime(block.time)) + '">' + escapeHTML(relativeTime(block.time)) + '</td><td>' + escapeHTML(number((block.transactions || []).length)) + '</td><td><span class="type-tag">' + ((block.transactions || []).length ? 'Finalized' : 'Empty') + '</span></td><td><button type="button" class="copy-button" data-copy="' + encodeURIComponent(block.hash || '') + '">Copy hash</button></td></tr>').join('') : '<tr><td colspan="5" class="empty">No verified block matches this filter.</td></tr>';
+      } else {
+        tbody.innerHTML = items.length ? items.map(tx => '<tr><td><button type="button" class="table-link mono" data-query="' + escapeHTML(tx.hash) + '">' + escapeHTML(compact(tx.hash,12,8)) + '</button></td><td><span class="type-tag">' + escapeHTML(tx.type || 'transaction') + '</span></td><td class="mono">' + escapeHTML(compact(tx.from,9,6)) + '</td><td class="mono">' + escapeHTML(compact(tx.to,9,6)) + '</td><td>' + escapeHTML(number(tx.amount)) + ' YNXT</td><td><button type="button" class="copy-button" data-copy="' + encodeURIComponent(tx.hash || '') + '">Copy hash</button></td></tr>').join('') : '<tr><td colspan="6" class="empty">No verified transaction matches this filter.</td></tr>';
+      }
+      controls.innerHTML = paginationControls(kind,page);
+      bindQueries();
+    }
+    async function loadBlockchainPage(kind,offset = 0) {
+      const endpoint = kind === 'blocks' ? '/api/blocks/latest' : '/api/txs';
+      const target = $(kind === 'blocks' ? 'blockchainBlocksBody' : 'blockchainTransactionsBody');
+      if (target) target.innerHTML = '<tr><td colspan="6" class="empty">Loading verified indexed records…</td></tr>';
+      try {
+        const page = await get(endpoint + '?limit=10&offset=' + Math.max(0,offset));
+        blockchainPages[kind] = {items:kind === 'blocks' ? (page.blocks || []) : (page.transactions || []),total:Number(page.total || 0),limit:Number(page.limit || 10),offset:Number(page.offset || 0),hasMore:Boolean(page.hasMore)};
+        renderBlockchainPage(kind);
+      } catch (_) {
+        if (target) target.innerHTML = '<tr><td colspan="6" class="empty">Verified 6423 indexed records are unavailable. Retry from the network status panel.</td></tr>';
+      }
+    }
     function showPortalNotice(message) { $('resultPanel').classList.add('visible'); $('resultTitle').textContent = 'Availability'; $('resultSubtitle').textContent = 'Evidence-gated portal control'; $('resultBody').innerHTML = '<div class="empty">' + escapeHTML(message) + '</div>'; }
     function showWalletSession() {
       if (!connectedYNXWallet) return;
@@ -903,7 +996,17 @@ const indexHTML = `<!doctype html>
       const txs = snapshot?.transactions || [];
       const set = (title,copy,body) => { view.innerHTML = routeHead(title,copy) + body; document.title = title + ' | YNX Chain'; };
       const chainFacts = summary ? [['Cosmos chain ID','ynx_6423-1'],['Numeric chain ID',String(summary.network?.chainId || 6423)],['EVM chain ID',String(summary.wallet?.chainIdHex || '0x1917')],['Native asset',String(summary.nativeSymbol || 'YNXT')],['Data source',String(summary.truthfulStatus || 'unavailable')]] : [];
-      if (route === 'blockchain') { set('Blockchain','Live 6423 records come from the Explorer API. Search opens an in-place detail drawer and never creates a blank tab.','<div class="route-grid two">' + portalPanel('Network status',summary ? facts(chainFacts) : unavailable('The 6423 RPC and indexer have not returned a verified snapshot yet.'),summary?.ok ? 'RPC + indexer backed' : 'Degraded or unavailable') + portalPanel('Latest blocks',portalTable(blocks.slice(0,12),[{label:'Height',value:b => '#' + number(b.height)},{label:'Finalized at',value:b => exactTime(b.time)},{label:'Transactions',value:b => (b.transactions || []).length},{label:'Hash',value:b => compact(b.hash,12,8)}])) + '</div><section class="section">' + portalPanel('Latest transactions',portalTable(txs.slice(0,12),[{label:'Hash',value:t => compact(t.hash,12,8)},{label:'Type',value:t => t.type},{label:'From',value:t => compact(t.from,10,7)},{label:'To',value:t => compact(t.to,10,7)},{label:'Amount',value:t => number(t.amount) + ' YNXT'}])) + '</section>'); return; }
+      if (route === 'blockchain') {
+        const blockTable = '<div class="record-actions"><label>Filter <select id="blockchainBlockFilter"><option value="all">All finalized blocks</option><option value="withTransactions">With transactions</option><option value="empty">Empty blocks</option></select></label><button type="button" data-share-route="blockchain">Copy this route</button></div><div class="table-shell"><table class="route-table"><thead><tr><th>Height</th><th>Finalized</th><th>Transactions</th><th>Status</th><th>Hash</th></tr></thead><tbody id="blockchainBlocksBody"><tr><td colspan="5" class="empty">Loading verified indexed blocks…</td></tr></tbody></table></div><div id="blockchainBlocksControls"></div>';
+        const txTable = '<div class="record-actions"><label>Filter <select id="blockchainTransactionFilter"><option value="all">All transaction types</option><option value="transfer">Transfers</option><option value="resource_sponsored_action">Resource actions</option><option value="faucet">Faucet</option></select></label><button type="button" data-share-route="blockchain">Copy this route</button></div><div class="table-shell"><table class="route-table"><thead><tr><th>Hash</th><th>Type</th><th>From</th><th>To</th><th>Amount</th><th>Copy</th></tr></thead><tbody id="blockchainTransactionsBody"><tr><td colspan="6" class="empty">Loading verified indexed transactions…</td></tr></tbody></table></div><div id="blockchainTransactionsControls"></div>';
+        const contracts = unavailable('No verified 6423 contract-index endpoint is configured. Contract search and detail remain unavailable rather than inferred from arbitrary addresses.');
+        set('Blockchain','Browse verified indexed blocks and transactions. Record details open in this tab; pagination never requests an unverified history source.','<div class="route-grid two">' + portalPanel('Network status',summary ? facts(chainFacts) : unavailable('The 6423 RPC and indexer have not returned a verified snapshot yet.'),summary?.ok ? 'RPC + indexer backed' : 'Degraded or unavailable') + portalPanel('Contracts',contracts,'Unavailable') + '</div><section class="section">' + portalPanel('Blocks',blockTable,'Verified local-index pagination') + '</section><section class="section">' + portalPanel('Transactions',txTable,'Verified local-index pagination') + '</section>');
+        $('blockchainBlockFilter').onchange = () => renderBlockchainPage('blocks');
+        $('blockchainTransactionFilter').onchange = () => renderBlockchainPage('transactions');
+        loadBlockchainPage('blocks');
+        loadBlockchainPage('transactions');
+        return;
+      }
       if (route === 'tokens') { const body = summary ? '<p>YNXT is the native 6423 asset. Price, market cap, holders, and liquidity remain unavailable until an authoritative source is connected.</p>' + facts([['Symbol','YNXT'],['Network','ynx_6423-1 / 6423 / 0x1917'],['Decimals',String(summary.wallet?.decimals ?? '—')],['Source','native-token-from-rpc-status']]) : unavailable('Token metadata requires a verified 6423 RPC snapshot.'); set('Tokens','Only verified token metadata from a current 6423 source is displayed. This portal does not invent market data.','<div class="route-grid two">' + portalPanel('YNXT',body,'Native token') + portalPanel('Verified token registry',unavailable('No verified public token-list endpoint is configured for this portal.'),'Unavailable') + '</div>'); return; }
       if (route === 'data') {
         const rows = summary ? [['Latest block',number(summary.rpcHeight)],['Indexed transactions',number(summary.indexedTxCount)],['Validators',number(summary.validatorCount)],['Indexer lag',number(summary.syncLagBlocks) + ' blocks'],['Snapshot time',exactTime(summary.lastCheckedAt)]] : [];
@@ -977,8 +1080,7 @@ const indexHTML = `<!doctype html>
       document.body.style.overflow = 'hidden';
       try {
         const resolved = await get('/api/search?q=' + encodeURIComponent(q));
-        const detail = await get(resolved.path);
-        showDrawer(resolved.type,q,detail);
+        setDetailLocation(resolved.type,resolved.query || q);
       } catch (error) {
         $('detailKicker').textContent = 'Search result';
         $('detailTitle').textContent = 'Not found';
@@ -1047,6 +1149,10 @@ const indexHTML = `<!doctype html>
     document.addEventListener('click',async event => {
       const suggestion = event.target.closest('[data-suggestion]');
       if (suggestion) { $('searchInput').value = decodeURIComponent(suggestion.dataset.suggestion); search(); return; }
+      const page = event.target.closest('[data-page-kind]');
+      if (page && !page.disabled) { loadBlockchainPage(page.dataset.pageKind,Number(page.dataset.pageOffset || 0)); return; }
+      const share = event.target.closest('[data-share-route]');
+      if (share) { try { await navigator.clipboard.writeText(location.origin + '/#' + share.dataset.shareRoute); showToast('Route copied'); } catch (_) { showToast('Clipboard unavailable'); } return; }
       const copy = event.target.closest('[data-copy]');
       if (copy) { try { await navigator.clipboard.writeText(decodeURIComponent(copy.dataset.copy)); showToast('Copied to clipboard'); } catch (_) { showToast('Clipboard unavailable'); } return; }
       const range = event.target.closest('[data-chart-range]');
@@ -1063,12 +1169,12 @@ const indexHTML = `<!doctype html>
       if (walletAction?.dataset.walletSession === 'disconnect') { connectedYNXWallet = null; $('walletConnectButton').textContent = 'Connect Wallet'; showPortalNotice('The YNX Wallet account was cleared from this portal. No wallet permission, signature, or transaction was changed.'); return; }
       if (walletAction?.dataset.walletSession === 'switch') { if (!connectedYNXWallet?.provider) return; try { const accounts = await connectedYNXWallet.provider.request({method:'eth_requestAccounts'}); const account = Array.isArray(accounts) && accounts[0] ? accounts[0] : connectedYNXWallet.account; connectedYNXWallet.account = account; $('walletConnectButton').textContent = compact(account,6,4); showWalletSession(); } catch (error) { showPortalNotice('YNX Wallet account selection was not approved: ' + (error?.message || 'request declined')); } }
     });
-    window.addEventListener('hashchange',() => renderPortalRoute(location.hash.slice(1) || 'home'));
+    window.addEventListener('hashchange',renderLocation);
     function showLoadError() { $('statusText').textContent = 'Explorer unavailable'; $('statusDetail').textContent = 'The verified 6423 data source is unavailable. Refresh to retry.'; $('status').className = 'status-bar warn'; $('refreshButton').disabled = false; removeSkeletons(); }
     applyLanguage(language);
     load().catch(showLoadError);
     connectLiveStream();
-    renderPortalRoute(location.hash.slice(1) || 'home');
+    renderLocation();
     window.setInterval(() => {
       if (!lastStreamAt) return;
       const age = Math.floor((Date.now() - lastStreamAt) / 1000);
