@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "financeNonregressiveCandidate@1",
+  "sourceCommit": "7d145955a05212921dc006abc2479dfc63bbcfa0",
+  "release": "ynx-finance-7d145955a052",
+  "buildTime": "2026-08-31T06:00:48.000Z",
+  "frontendSourceCommit": "75f0299aaf53263e4279acf93e9a06db9d055e38",
+  "archive": {
+    "path": "ynx-finance-7d145955a052-linux-amd64.tar.gz",
+    "bytes": 3938617,
+    "sha256": "f60f35037d1e8710b2b98979e42bcc0119a74b8cca1eea847310c9ac32412ef2"
+  }
+}
