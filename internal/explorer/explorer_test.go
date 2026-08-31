@@ -189,6 +189,7 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 		"routeUI",
 		"routeContent",
 		"interactionUI",
+		"walletUI",
 		"hasPublicWalletNetworkConfig",
 		"renderPortalRoute(activeRoute)",
 		"ecosystemProducts",
