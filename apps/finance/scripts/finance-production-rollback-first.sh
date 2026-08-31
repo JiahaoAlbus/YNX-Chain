@@ -116,6 +116,7 @@ tree_inventory(){
   ) | sha256sum | awk '{print $1}'
 }
 identity_tuple(){ stat -Lc '%d:%i:%u:%g:%a' "$1"; }
+container_identity_tuple(){ stat -Lc '%d:%i:%h:%F' "$1"; }
 cleanup_owned_tree(){
   local path=$1 identity=$2 inventory=$3
   test -n "$identity" && test -d "$path" && test ! -L "$path" && test "$(identity_tuple "$path")" = "$identity" || return 74
@@ -250,17 +251,19 @@ prewrite_phase=CANDIDATE_INTEGRITY
 test "$(bytes "$archive")" = "$archive_bytes"; test "$(hash "$archive")" = "$archive_sha"; test "$(hash "$new_env")" = "$new_env_sha"
 prewrite_open=false
 arm_owned_phase_failure STAGING_BACKUP pre_switch_cleanup
-mkdir -m "$stage_container_mode" -- "$stage_container"; stage_container_created=true; stage_container_preownership_identity=$(identity_tuple "$stage_container")
+mkdir -m "$stage_container_mode" -- "$stage_container"; stage_container_created=true; stage_container_preownership_identity=$(container_identity_tuple "$stage_container")
 if ! test -d "$stage_container" || test -L "$stage_container" || [[ "$(realpath -e "$stage_container")" != "$stage_container" ]] || [[ -n "$(find "$stage_container" -mindepth 1 -print -quit)" ]]; then exit 74; fi
 chown "$stage_container_uid:$stage_container_gid" "$stage_container"; chmod "$stage_container_mode" "$stage_container"
 if ! test -d "$stage_container" || test -L "$stage_container" || [[ "$(realpath -e "$stage_container")" != "$stage_container" ]] || [[ -n "$(find "$stage_container" -mindepth 1 -print -quit)" ]]; then exit 74; fi
-stage_container_identity_tuple=$(identity_tuple "$stage_container"); if [[ "${stage_container_identity_tuple%:*}" != "${stage_container_preownership_identity%:*}" ]] || [[ "$(stat -Lc '%u:%g:%a' "$stage_container")" != "$stage_container_uid:$stage_container_gid:$stage_container_mode" ]]; then exit 74; fi
+if [[ "$(container_identity_tuple "$stage_container")" != "$stage_container_preownership_identity" ]] || [[ "$(stat -Lc '%u:%g:%a' "$stage_container")" != "$stage_container_uid:$stage_container_gid:$stage_container_mode" ]]; then exit 74; fi
+stage_container_identity_tuple=$(identity_tuple "$stage_container")
 mkdir -m 0700 -- "$stage"; stage_created=true; stage_identity_tuple=$(identity_tuple "$stage")
-mkdir -m "$backup_container_mode" -- "$backup_container"; backup_container_created=true; backup_container_preownership_identity=$(identity_tuple "$backup_container")
+mkdir -m "$backup_container_mode" -- "$backup_container"; backup_container_created=true; backup_container_preownership_identity=$(container_identity_tuple "$backup_container")
 if ! test -d "$backup_container" || test -L "$backup_container" || [[ "$(realpath -e "$backup_container")" != "$backup_container" ]] || [[ -n "$(find "$backup_container" -mindepth 1 -print -quit)" ]]; then exit 74; fi
 chown "$backup_container_uid:$backup_container_gid" "$backup_container"; chmod "$backup_container_mode" "$backup_container"
 if ! test -d "$backup_container" || test -L "$backup_container" || [[ "$(realpath -e "$backup_container")" != "$backup_container" ]] || [[ -n "$(find "$backup_container" -mindepth 1 -print -quit)" ]]; then exit 74; fi
-backup_container_identity_tuple=$(identity_tuple "$backup_container"); if [[ "${backup_container_identity_tuple%:*}" != "${backup_container_preownership_identity%:*}" ]] || [[ "$(stat -Lc '%u:%g:%a' "$backup_container")" != "$backup_container_uid:$backup_container_gid:$backup_container_mode" ]]; then exit 74; fi
+if [[ "$(container_identity_tuple "$backup_container")" != "$backup_container_preownership_identity" ]] || [[ "$(stat -Lc '%u:%g:%a' "$backup_container")" != "$backup_container_uid:$backup_container_gid:$backup_container_mode" ]]; then exit 74; fi
+backup_container_identity_tuple=$(identity_tuple "$backup_container")
 mkdir -m 0700 -- "$backup"; backup_created=true; backup_identity_tuple=$(identity_tuple "$backup")
 cp --preserve=mode,ownership "$env" "$backup/env"; if [[ "$state_absent" = true ]]; then test ! -e "$state" && test ! -L "$state"; : >"$backup/state-absent"; else cp --preserve=mode,ownership "$state" "$backup/state"; fi; backup_inventory=$(tree_inventory "$backup")
 arm_owned_phase_failure ARCHIVE_EXTRACT pre_switch_cleanup
@@ -269,13 +272,14 @@ arm_owned_phase_failure CANDIDATE_VERIFY pre_switch_cleanup
 candidate="$stage/$(basename "$release")"; test -x "$candidate/ynx-finance"; test "$(hash "$candidate/ynx-finance")" = "$binary_sha"; test "$(bytes "$candidate/ynx-finance")" = "$binary_bytes"; file "$candidate/ynx-finance" | grep -q 'ELF 64-bit.*x86-64'
 verify_local_assets "$candidate"; stage_inventory=$(tree_inventory "$stage")
 arm_owned_phase_failure RELEASE_MATERIALIZE pre_switch_cleanup
-mkdir -m "$release_container_mode" -- "$release_container"; release_container_created=true; release_container_preownership_identity=$(identity_tuple "$release_container")
+mkdir -m "$release_container_mode" -- "$release_container"; release_container_created=true; release_container_preownership_identity=$(container_identity_tuple "$release_container")
 if ! test -d "$release_container" || test -L "$release_container" || [[ "$(realpath -e "$release_container")" != "$release_container" ]] || [[ -n "$(find "$release_container" -mindepth 1 -print -quit)" ]]; then exit 74; fi
 chown "$release_container_uid:$release_container_gid" "$release_container"; chmod "$release_container_mode" "$release_container"
 if ! test -d "$release_container" || test -L "$release_container" || [[ "$(realpath -e "$release_container")" != "$release_container" ]] || [[ -n "$(find "$release_container" -mindepth 1 -print -quit)" ]]; then exit 74; fi
 release_container_empty_tuple=$(stat -Lc '%d:%i:%u:%g:%a:%h:%s:%F' "$release_container")
-release_container_identity_tuple=$(stat -Lc '%d:%i:%u:%g:%a' "$release_container")
-test "${release_container_identity_tuple%:*}" = "${release_container_preownership_identity%:*}"; test "$(stat -Lc '%u:%g:%a' "$release_container")" = "$release_container_uid:$release_container_gid:$release_container_mode"
+test "$(container_identity_tuple "$release_container")" = "$release_container_preownership_identity"
+test "$(stat -Lc '%u:%g:%a' "$release_container")" = "$release_container_uid:$release_container_gid:$release_container_mode"
+release_container_identity_tuple=$(identity_tuple "$release_container")
 release_tuple=$(stat -Lc '%d:%i:%u:%g:%a:%h:%s:%F' "$candidate"); release_inventory=$(tree_inventory "$candidate"); release_created=false
 mv "$candidate" "$release"; release_created=true
 test "$(stat -Lc '%d:%i:%u:%g:%a:%h:%s:%F' "$release")" = "$release_tuple"; test "$(tree_inventory "$release")" = "$release_inventory"
