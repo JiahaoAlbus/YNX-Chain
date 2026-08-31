@@ -315,13 +315,13 @@ const indexHTML = `<!doctype html>
     .trending-label { color:#4b5360; font-weight:650; }
     .trending button { padding:0; border:0; color:#5f6876; background:transparent; font:inherit; }
     .trending button:hover { color:var(--blue); text-decoration:underline; }
-    .portal-callout { display:flex; flex-direction:column; justify-content:space-between; min-height:112px; padding:18px 20px; border:1px solid #dce5ff; border-radius:7px; color:#fff; background:var(--blue); }
+    .portal-callout { display:flex; flex-direction:column; justify-content:space-between; min-height:0; padding:14px 16px; border:1px solid #dce5ff; border-radius:7px; color:#fff; background:var(--blue); }
     .portal-callout p { margin:0; color:#bfd0ff; font-size:12px; letter-spacing:.04em; text-transform:uppercase; }
-    .portal-callout h2 { max-width:280px; margin:7px 0 15px; font-size:19px; line-height:1.18; letter-spacing:-.3px; }
+    .portal-callout h2 { max-width:320px; margin:5px 0 9px; font-size:17px; line-height:1.18; letter-spacing:-.25px; }
     .portal-callout-links { display:flex; flex-wrap:wrap; gap:9px; }
     .portal-callout-links a { padding:6px 9px; border:1px solid rgba(255,255,255,.34); border-radius:4px; color:#fff; font-size:12px; }
     .portal-callout-links a:hover { background:#fff; color:var(--blue); }
-    .portal-callout-stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:7px; margin:13px 0 14px; }
+    .portal-callout-stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:7px; margin:8px 0; }
     .portal-callout-stats span { display:block; padding:7px 8px; border:1px solid rgba(255,255,255,.18); border-radius:4px; background:rgba(0,25,100,.16); }
     .portal-callout-stats small,.portal-callout-stats strong { display:block; }
     .portal-callout-stats small { color:#bfd0ff; font-size:9px; letter-spacing:.04em; text-transform:uppercase; }
@@ -353,10 +353,10 @@ const indexHTML = `<!doctype html>
     .asset-fact small { display:block; margin-top:3px; color:#657184; font-size:10px; }
     .block-ribbon { display:block; min-height:0; margin:0 0 25px; border:0; border-radius:0; background:transparent; overflow:visible; }
     .ribbon-label { display:flex; flex-direction:row; align-items:baseline; justify-content:space-between; padding:0 0 12px; border:0; color:#1d2028; font-size:21px; font-weight:750; }
-    .ribbon-label span { display:none; }
-    .ribbon-label strong { display:flex; width:100%; align-items:center; justify-content:space-between; color:#1d2028; font-size:0; }
-    .ribbon-label strong::before { content:"Blocks"; font-size:21px; }
-    .ribbon-label strong::after { content:"More"; color:#596271; font-size:13px; font-weight:500; }
+    .ribbon-label > span:first-child,.ribbon-label strong { display:none; }
+    .ribbon-label .ribbon-heading { display:block; color:#1d2028; font-size:21px; font-weight:750; }
+    .ribbon-label .ribbon-more { color:#596271; font-size:13px; font-weight:500; }
+    .ribbon-label .ribbon-more:hover { color:var(--blue); }
     .block-track { gap:16px; overflow:visible; }
     .block-chip { flex:1 1 0; min-height:128px; padding:18px 19px; border:1px solid var(--line); border-radius:7px; background:#fff; box-shadow:none; text-align:left; }
     .block-chip:hover { border-color:#b9c9fb; background:#fff; }
@@ -464,8 +464,9 @@ const indexHTML = `<!doctype html>
       <div class="hero-grid"><div><p class="eyebrow" data-home-i18n="testnet">YNX Testnet</p><h1 data-i18n="heroTitle">YNX Chain network explorer</h1><p class="hero-copy" data-i18n="heroCopy">Live blocks, transactions, validators, accounts, fees, and native YNXT resource economics from the public testnet.</p>
         <div class="search-wrap"><form class="search" id="searchForm"><input id="searchInput" aria-label="Search the chain" aria-autocomplete="list" aria-controls="searchSuggestions" data-i18n-placeholder="searchPlaceholder" placeholder="Search token, account, contract, transaction, or block" autocomplete="off" spellcheck="false"><button type="submit" data-i18n="search">Search</button></form><div class="search-suggestions" id="searchSuggestions" role="listbox" hidden></div></div>
         <div class="trending"><span class="trending-label" data-home-i18n="quickSearch">Quick search:</span><button type="button" data-search="latest" data-home-i18n="latestBlock">Latest block</button><button type="button" data-search="YNXT" data-home-i18n="ynxtToken">YNXT token</button><button type="button" data-search="6423" data-home-i18n="block6423">Block 6423</button><button type="button" data-search="0x1917" data-home-i18n="evmNetwork">EVM network</button></div>
+        <div class="status-bar" id="status"><span class="state"><span class="pulse"></span><span id="statusText">Connecting</span></span><span id="statusDetail">Reading RPC and indexer state</span><span class="stream-clock" id="streamClock"><span class="stream-dot"></span><span id="streamClockText">Opening live stream</span></span><button class="refresh" id="refreshButton" type="button" data-live-i18n="refresh">Refresh</button></div>
         <div class="hero-meta"><span><span class="pulse"></span>RPC + indexer verified</span><span id="lastUpdated">Connecting to the network</span><span id="heroHeight">Waiting for the latest block</span></div>
-      </div><aside class="portal-callout"><div><p data-home-i18n="developerEntry">Developer entry point</p><h2 data-home-i18n="developerCallout">Build and inspect on YNX 6423.</h2><div class="portal-callout-stats" aria-label="YNX network identity"><span><small>Chain</small><strong>6423</strong></span><span><small>EVM</small><strong>0x1917</strong></span><span><small>Native</small><strong>YNXT</strong></span></div></div><div class="portal-callout-links"><a href="#developers" data-home-i18n="developerTools">Developer tools</a><a href="#documentation" data-i18n="documentation">Documentation</a><a href="#downloads" data-i18n="downloads">Downloads</a></div></aside></div>
+      </div><aside class="portal-callout"><div><p data-home-i18n="developerEntry">Developer entry point</p><h2 data-home-i18n="developerCallout">Build and inspect on YNX 6423.</h2><div class="portal-callout-stats" aria-label="YNX network identity"><span><small data-live-i18n="chain">Chain</small><strong>6423</strong></span><span><small>EVM</small><strong>0x1917</strong></span><span><small data-live-i18n="native">Native</small><strong>YNXT</strong></span></div></div><div class="portal-callout-links"><a href="#developers" data-home-i18n="developerTools">Developer tools</a><a href="#documentation" data-i18n="documentation">Documentation</a><a href="#downloads" data-i18n="downloads">Downloads</a></div></aside></div>
       <section class="result-panel" id="resultPanel" aria-live="polite">
         <div class="panel-head"><div><h2 id="resultTitle">Search result</h2><p id="resultSubtitle"></p></div><button class="result-close" id="resultClose" type="button">Close</button></div>
         <div id="resultBody"></div>
@@ -475,8 +476,6 @@ const indexHTML = `<!doctype html>
 
   <main id="homeContent">
     <div class="shell">
-      <div class="status-bar" id="status"><span class="state"><span class="pulse"></span><span id="statusText">Connecting</span></span><span id="statusDetail">Reading RPC and indexer state</span><span class="stream-clock" id="streamClock"><span class="stream-dot"></span><span id="streamClockText">Opening live stream</span></span><button class="refresh" id="refreshButton" type="button">Refresh</button></div>
-
       <section class="network-summary" aria-label="Network summary">
       <div class="metrics" aria-label="Network metrics">
         <article class="metric"><div class="metric-label" data-i18n="latestBlock">Latest block</div><div class="metric-value skeleton" id="rpcHeight">0000</div><div class="metric-foot" id="blockAge">Waiting for block data</div></article>
@@ -486,11 +485,11 @@ const indexHTML = `<!doctype html>
         <article class="metric"><div class="metric-label" data-i18n="validators">Validators</div><div class="metric-value skeleton" id="validatorCount">00</div><div class="metric-foot" data-i18n="reportedRpc">Reported by chain RPC</div></article>
         <article class="metric"><div class="metric-label" data-i18n="indexerSync">Indexer sync</div><div class="metric-value skeleton" id="syncValue">0 blocks</div><div class="metric-foot" id="syncState">Checking consistency</div></article>
       </div>
-      <aside class="asset-overview" aria-label="YNXT network summary"><div class="asset-overview-head"><div class="asset-token"><img src="/assets/ynx-icon.png?v=df071f54b" width="34" height="34" alt=""><div><strong>YNXT</strong><small>Native asset · 6423</small></div></div><div><strong id="assetTruthState">Connecting</strong><small>Network source</small></div></div><div class="asset-overview-body"><div class="asset-fact"><span>Chain identity</span><strong>6423 / 0x1917</strong><small>ynx_6423-1</small></div><div class="asset-fact"><span>Validators</span><strong id="assetValidatorCount">--</strong><small>Reported by RPC</small></div><div class="asset-fact"><span>Pending transactions</span><strong id="assetPendingCount">--</strong><small>Current RPC status</small></div><div class="asset-fact"><span>Last verified</span><strong id="assetVerifiedAt">--</strong><small id="assetHeight">Awaiting latest block</small></div></div></aside>
+      <aside class="asset-overview" aria-label="YNXT network summary"><div class="asset-overview-head"><div class="asset-token"><img src="/assets/ynx-icon.png?v=df071f54b" width="34" height="34" alt=""><div><strong>YNXT</strong><small data-live-i18n="nativeAsset">Native asset · 6423</small></div></div><div><strong id="assetTruthState">Connecting</strong><small data-live-i18n="networkSource">Network source</small></div></div><div class="asset-overview-body"><div class="asset-fact"><span data-live-i18n="chainIdentity">Chain identity</span><strong>6423 / 0x1917</strong><small>ynx_6423-1</small></div><div class="asset-fact"><span data-i18n="validators">Validators</span><strong id="assetValidatorCount">--</strong><small data-i18n="reportedRpc">Reported by RPC</small></div><div class="asset-fact"><span data-live-i18n="pendingTransactions">Pending transactions</span><strong id="assetPendingCount">--</strong><small data-live-i18n="currentRPC">Current RPC status</small></div><div class="asset-fact"><span data-live-i18n="lastVerified">Last verified</span><strong id="assetVerifiedAt">--</strong><small id="assetHeight">Awaiting latest block</small></div></div></aside>
       </section>
 
       <section class="block-ribbon" aria-label="Live finalized block stream">
-        <div class="ribbon-label"><span data-home-i18n="finality">FINALITY</span><strong id="finalityState">Connecting</strong></div>
+        <div class="ribbon-label"><span data-home-i18n="finality">FINALITY</span><span class="ribbon-heading" data-live-i18n="blocks">Blocks</span><a class="ribbon-more" href="#blockchain" data-route="blockchain" data-live-i18n="more">More</a><strong id="finalityState">Connecting</strong></div>
         <div class="block-track" id="blockTrack"><div class="empty">Waiting for finalized blocks...</div></div>
       </section>
 
@@ -694,6 +693,13 @@ const indexHTML = `<!doctype html>
       ja:{testnet:'YNX テストネット',quickSearch:'クイック検索:',latestBlock:'最新ブロック',ynxtToken:'YNXT トークン',block6423:'ブロック 6423',evmNetwork:'EVM ネットワーク',developerEntry:'開発者向け入口',developerCallout:'YNX 6423 で構築・検証。',developerTools:'開発者ツール',finality:'ファイナリティ',intelligence:'ネットワーク分析',intelligenceCopy:'ライブチェーン API からのバリデーターとリソース経済の状態',resourceEconomy:'リソース経済',walletTitle:'YNX ネイティブIDを優先。',walletCopy:'YNX アプリケーションは既定でチェックサム付き ynx1 アドレスを使用します。同じアカウントで標準 MetaMask は分離された EVM 互換アダプターから利用できます。',metaMask:'MetaMask 互換を開く',ecosystemCopy:'YNX 6423 上の独立したプロダクトです。対応するリリース証拠なしに公開ダウンロード可能とは表示しません。',viewDirectory:'一覧を見る',availability:'利用可否の詳細',openDeveloper:'開発者ポータルを開く'},
       ko:{testnet:'YNX 테스트넷',quickSearch:'빠른 검색:',latestBlock:'최신 블록',ynxtToken:'YNXT 토큰',block6423:'블록 6423',evmNetwork:'EVM 네트워크',developerEntry:'개발자 진입점',developerCallout:'YNX 6423에서 구축하고 확인하세요.',developerTools:'개발자 도구',finality:'최종성',intelligence:'네트워크 인사이트',intelligenceCopy:'실시간 체인 API의 검증인 및 리소스 경제 상태',resourceEconomy:'리소스 경제',walletTitle:'YNX 네이티브 ID를 우선합니다.',walletCopy:'YNX 애플리케이션은 기본적으로 체크섬 ynx1 주소를 사용합니다. 동일한 계정에서 표준 MetaMask는 분리된 EVM 호환 어댑터로 계속 사용할 수 있습니다.',metaMask:'MetaMask 호환 열기',ecosystemCopy:'YNX 6423의 독립 제품입니다. 일치하는 릴리스 증거가 없으면 공개 다운로드 가능으로 표시하지 않습니다.',viewDirectory:'디렉터리 보기',availability:'이용 가능 세부 정보',openDeveloper:'개발자 포털 열기'}
     };
+    const liveUI = {
+      en:{refresh:'Refresh',chain:'Chain',native:'Native',blocks:'Blocks',more:'More',nativeAsset:'Native asset · 6423',networkSource:'Network source',chainIdentity:'Chain identity',pendingTransactions:'Pending transactions',currentRPC:'Current RPC status',lastVerified:'Last verified',awaitingBlock:'Awaiting latest block',manualSnapshot:'Manual snapshot',liveSSE:'Live SSE',updatedNow:'Updated now',updatedAgo:'Updated {seconds}s ago',noEvent:'No event for {seconds}s',liveConnected:'Live stream connected',reconnecting:'Reconnecting live data',snapshotFallback:'Using 10-second snapshot fallback',streamReconnecting:'Stream reconnecting',unavailable:'Explorer unavailable',retry:'The verified 6423 data source is unavailable. Refresh to retry.'},
+      'zh-CN':{refresh:'刷新',chain:'链',native:'原生',blocks:'区块',more:'更多',nativeAsset:'原生资产 · 6423',networkSource:'网络来源',chainIdentity:'链身份',pendingTransactions:'待处理交易',currentRPC:'当前 RPC 状态',lastVerified:'最后验证',awaitingBlock:'等待最新区块',manualSnapshot:'手动快照',liveSSE:'实时 SSE',updatedNow:'刚刚更新',updatedAgo:'{seconds} 秒前更新',noEvent:'{seconds} 秒没有事件',liveConnected:'实时流已连接',reconnecting:'正在重连实时数据',snapshotFallback:'使用 10 秒快照回退',streamReconnecting:'实时流正在重连',unavailable:'浏览器暂不可用',retry:'经验证的 6423 数据来源暂不可用，请刷新重试。'},
+      'zh-TW':{refresh:'重新整理',chain:'鏈',native:'原生',blocks:'區塊',more:'更多',nativeAsset:'原生資產 · 6423',networkSource:'網路來源',chainIdentity:'鏈身分',pendingTransactions:'待處理交易',currentRPC:'目前 RPC 狀態',lastVerified:'最後驗證',awaitingBlock:'等待最新區塊',manualSnapshot:'手動快照',liveSSE:'即時 SSE',updatedNow:'剛剛更新',updatedAgo:'{seconds} 秒前更新',noEvent:'{seconds} 秒沒有事件',liveConnected:'即時串流已連線',reconnecting:'正在重新連線即時資料',snapshotFallback:'使用 10 秒快照回退',streamReconnecting:'即時串流正在重新連線',unavailable:'瀏覽器暫時不可用',retry:'已驗證的 6423 資料來源暫時不可用，請重新整理重試。'},
+      ja:{refresh:'更新',chain:'チェーン',native:'ネイティブ',blocks:'ブロック',more:'もっと見る',nativeAsset:'ネイティブ資産 · 6423',networkSource:'ネットワークソース',chainIdentity:'チェーンID',pendingTransactions:'保留中のトランザクション',currentRPC:'現在の RPC 状態',lastVerified:'最終検証',awaitingBlock:'最新ブロックを待機中',manualSnapshot:'手動スナップショット',liveSSE:'ライブ SSE',updatedNow:'更新済み',updatedAgo:'{seconds} 秒前に更新',noEvent:'{seconds} 秒間イベントなし',liveConnected:'ライブストリーム接続済み',reconnecting:'ライブデータを再接続中',snapshotFallback:'10 秒のスナップショットにフォールバック中',streamReconnecting:'ストリームを再接続中',unavailable:'エクスプローラーを利用できません',retry:'検証済みの 6423 データソースを利用できません。更新して再試行してください。'},
+      ko:{refresh:'새로 고침',chain:'체인',native:'네이티브',blocks:'블록',more:'더 보기',nativeAsset:'네이티브 자산 · 6423',networkSource:'네트워크 소스',chainIdentity:'체인 ID',pendingTransactions:'보류 중인 거래',currentRPC:'현재 RPC 상태',lastVerified:'마지막 검증',awaitingBlock:'최신 블록 대기 중',manualSnapshot:'수동 스냅샷',liveSSE:'실시간 SSE',updatedNow:'방금 업데이트됨',updatedAgo:'{seconds}초 전 업데이트됨',noEvent:'{seconds}초 동안 이벤트 없음',liveConnected:'실시간 스트림 연결됨',reconnecting:'실시간 데이터 재연결 중',snapshotFallback:'10초 스냅샷 대체 사용 중',streamReconnecting:'스트림 재연결 중',unavailable:'Explorer를 사용할 수 없음',retry:'검증된 6423 데이터 소스를 사용할 수 없습니다. 새로 고침 후 다시 시도하세요.'}
+    };
     const developerUI = {
       en:{configuration:'YNX 6423 configuration',testnetOnly:'Testnet only',tools:'Tools & documentation',copyNetwork:'Copy Add Network configuration',networkJSON:'6423 Testnet JSON',apiReference:'API reference',sdk:'SDK & CLI',faucet:'Faucet',unavailable:'Unavailable',sourceOnly:'Source-bound only',checkStatus:'Check status first',serviceDirectory:'6423 service directory',serviceCopy:'Verified Explorer and stream entries update in this browser session; unavailable services fail closed.',example:'Read-only Explorer API example',exampleCopy:'This example queries the currently served portal summary; it does not request wallet access, a signature, or a transaction.',copyExample:'Copy example',serviceSchema:'Service & schema',expectedIdentity:'Expected identity',officialEndpoint:'Official endpoint',timeoutCache:'Timeout & cache',verification:'Verification / degraded behavior',notVerified:'Not verified in this browser session',cache:'Cache',health:'Health'},
       'zh-CN':{configuration:'YNX 6423 配置',testnetOnly:'仅测试网',tools:'工具与文档',copyNetwork:'复制添加网络配置',networkJSON:'6423 测试网 JSON',apiReference:'API 参考',sdk:'SDK 与 CLI',faucet:'水龙头',unavailable:'暂不可用',sourceOnly:'仅限源代码',checkStatus:'请先检查状态',serviceDirectory:'6423 服务目录',serviceCopy:'已验证的 Explorer 和流服务会在此浏览器会话更新；不可用服务会 fail-closed。',example:'只读 Explorer API 示例',exampleCopy:'该示例查询当前门户提供的摘要；不会请求钱包访问、签名或交易。',copyExample:'复制示例',serviceSchema:'服务与 schema',expectedIdentity:'预期身份',officialEndpoint:'官方端点',timeoutCache:'超时与缓存',verification:'验证 / 降级行为',notVerified:'未在此浏览器会话验证',cache:'缓存',health:'健康检查'},
@@ -704,6 +710,7 @@ const indexHTML = `<!doctype html>
     const v = key => developerUI[language]?.[key] || developerUI.en[key] || key;
     const doc = key => documentationUI[language]?.[key] || documentationUI.en[key] || key;
     const home = key => homeUI[language]?.[key] || homeUI.en[key] || key;
+    const live = (key, values = {}) => (liveUI[language]?.[key] || liveUI.en[key] || key).replace(/\{(\w+)\}/g, (_, name) => values[name] ?? '');
     const isChinese = () => language.startsWith('zh');
     function applyLanguage(nextLanguage) {
       language = messages[nextLanguage] ? nextLanguage : 'en';
@@ -711,6 +718,7 @@ const indexHTML = `<!doctype html>
       document.documentElement.lang = language;
       document.querySelectorAll('[data-i18n]').forEach(node => { node.textContent = t(node.dataset.i18n); });
       document.querySelectorAll('[data-home-i18n]').forEach(node => { node.textContent = home(node.dataset.homeI18n); });
+      document.querySelectorAll('[data-live-i18n]').forEach(node => { node.textContent = live(node.dataset.liveI18n); });
       document.querySelectorAll('[data-i18n-placeholder]').forEach(node => { node.placeholder = t(node.dataset.i18nPlaceholder); });
       $('languageSelect').value = language;
       renderTransactions();
@@ -855,9 +863,9 @@ const indexHTML = `<!doctype html>
       $('syncValue').textContent = number(summary.syncLagBlocks) + (isChinese() ? ' 个区块' : (summary.syncLagBlocks === 1 ? ' block' : ' blocks'));
       $('assetValidatorCount').textContent = number(summary.validatorCount);
       $('assetPendingCount').textContent = number(summary.pendingTxCount);
-      $('assetTruthState').textContent = summary.ok ? 'RPC + Indexer' : 'Degraded';
+      $('assetTruthState').textContent = summary.ok ? 'RPC + Indexer' : t('degraded');
       $('assetVerifiedAt').textContent = exactTime(summary.lastCheckedAt);
-      $('assetHeight').textContent = 'Block #' + number(summary.rpcHeight) + ' · ' + number(summary.syncLagBlocks) + '-block lag';
+      $('assetHeight').textContent = 'Block #' + number(summary.rpcHeight) + ' · ' + number(summary.syncLagBlocks) + (language === 'en' ? '-block lag' : ' ' + t('indexerSync'));
       $('syncState').textContent = summary.syncLagBlocks === 0 ? t('fullySynced') : t('catchingUp');
       $('syncState').className = 'metric-foot' + (summary.syncLagBlocks === 0 ? ' good' : '');
       $('blockAge').textContent = relativeTime(summary.latestBlockTime);
@@ -867,7 +875,7 @@ const indexHTML = `<!doctype html>
       $('latestHash').textContent = compact(summary.latestBlockHash,12,9);
       $('latestHash').title = summary.latestBlockHash || '';
       $('truthState').textContent = summary.truthfulStatus === 'rpc-and-indexer-backed' ? 'RPC + Indexer' : summary.truthfulStatus;
-      $('lastUpdated').textContent = 'Updated ' + new Date(summary.lastCheckedAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+      $('lastUpdated').textContent = live('lastVerified') + ' ' + new Date(summary.lastCheckedAt).toLocaleTimeString(language === 'en' ? 'en-US' : language, {hour:'2-digit',minute:'2-digit',second:'2-digit'});
       $('heroHeight').textContent = 'Block #' + number(summary.rpcHeight) + ' / ' + number(summary.syncLagBlocks) + '-block index lag';
       // Dashboard refreshes continue after route navigation. Keep the document
       // identity on the portal rather than replacing it with a transient block
@@ -879,7 +887,7 @@ const indexHTML = `<!doctype html>
       renderIntelligence(validatorData, resources);
       bindQueries();
       $('statusText').textContent = summary.ok ? t('operational') : t('degraded');
-      $('statusDetail').textContent = summary.ok ? source + ' / ' + t('rpcResponding') : (summary.indexerError || (isChinese() ? '一个或多个上游服务已降级' : 'One or more upstream services are degraded'));
+      $('statusDetail').textContent = summary.ok ? (source === 'Manual snapshot' ? live('manualSnapshot') : source === 'Live SSE' ? live('liveSSE') : source) + ' / ' + t('rpcResponding') : (summary.indexerError || t('degraded'));
       $('status').className = 'status-bar' + (summary.ok ? '' : ' warn');
       if (incomingHeight > previousHeight) {
         const metric = $('rpcHeight').closest('.metric');
@@ -921,7 +929,7 @@ const indexHTML = `<!doctype html>
         serviceRuntime.get('stream').lastVerifiedAt = new Date().toISOString();
         serviceRuntime.get('stream').lastError = null;
         $('streamClock').className = 'stream-clock live';
-        $('streamClockText').textContent = 'Live stream connected';
+        $('streamClockText').textContent = live('liveConnected');
       };
       eventSource.addEventListener('dashboard', event => {
         try {
@@ -936,11 +944,11 @@ const indexHTML = `<!doctype html>
       });
       eventSource.onerror = () => {
         serviceRuntime.get('stream').lastError = serviceDirectory.stream.degraded;
-        $('statusText').textContent = 'Reconnecting live data';
-        $('statusDetail').textContent = 'Using 10-second snapshot fallback';
+        $('statusText').textContent = live('reconnecting');
+        $('statusDetail').textContent = live('snapshotFallback');
         $('status').className = 'status-bar warn';
         $('streamClock').className = 'stream-clock stale';
-        $('streamClockText').textContent = 'Stream reconnecting';
+        $('streamClockText').textContent = live('streamReconnecting');
         startFallbackPolling();
       };
     }
@@ -1330,7 +1338,7 @@ const indexHTML = `<!doctype html>
       if (walletAction?.dataset.walletSession === 'switch') { if (!connectedYNXWallet?.provider) return; try { const accounts = await connectedYNXWallet.provider.request({method:'eth_accounts'}); const account = Array.isArray(accounts) && accounts[0] ? accounts[0] : null; if (!account) { clearWalletSession('No provider account is currently exposed.'); showPortalNotice('No YNX Wallet account is currently exposed to this portal.'); return; } connectedYNXWallet.account = account; connectedYNXWallet.chainId = await readWalletChain(connectedYNXWallet.provider); updateWalletButton(); showWalletSession(); } catch (error) { showPortalNotice('YNX Wallet account refresh failed: ' + (error?.message || 'provider unavailable')); } }
     });
     window.addEventListener('hashchange',renderLocation);
-    function showLoadError() { $('statusText').textContent = 'Explorer unavailable'; $('statusDetail').textContent = 'The verified 6423 data source is unavailable. Refresh to retry.'; $('status').className = 'status-bar warn'; $('refreshButton').disabled = false; removeSkeletons(); }
+    function showLoadError() { $('statusText').textContent = live('unavailable'); $('statusDetail').textContent = live('retry'); $('status').className = 'status-bar warn'; $('refreshButton').disabled = false; removeSkeletons(); }
     applyLanguage(language);
     load().catch(showLoadError);
     connectLiveStream();
@@ -1339,7 +1347,7 @@ const indexHTML = `<!doctype html>
       if (!lastStreamAt) return;
       const age = Math.floor((Date.now() - lastStreamAt) / 1000);
       $('streamClock').className = 'stream-clock ' + (age < 8 ? 'live' : 'stale');
-      $('streamClockText').textContent = age < 2 ? 'Updated now' : (age < 8 ? 'Updated ' + age + 's ago' : 'No event for ' + age + 's');
+      $('streamClockText').textContent = age < 2 ? live('updatedNow') : (age < 8 ? live('updatedAgo',{seconds:age}) : live('noEvent',{seconds:age}));
     },1000);
     document.addEventListener('keydown',event => { if (event.key === 'Escape') closeDrawer(); });
     document.addEventListener('visibilitychange',() => { if (!document.hidden) load().catch(showLoadError); });
