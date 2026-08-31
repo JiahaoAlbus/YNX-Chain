@@ -468,7 +468,7 @@ test("Wallet Web/PWA and macOS DMG publication remain outside product authority"
   assert.equal(publicConsumerHandshake.ownerSourceCommit, "f418a8dbc36aa4855396741fed8cafac5d498858");
   assert.equal(publicConsumerHandshake.subpath, "@ynx-chain/wallet-auth/standard-wallet-public-consumer");
   assert.equal(publicConsumerHandshake.contractSha256, "0b20c0188e86b707de6c0110415cfb82a60592b2bdf6368ebe87d6477ce95952");
-  assert.equal(publicConsumerHandshake.implementationSha256, "bedeb87336b3b7f271083fc817584306b372ee158058a9bd4482673130a1b44f");
+  assert.equal(publicConsumerHandshake.implementationSha256, "b35c6d5837c1fa652c73593dda0efeb6b67a23f917deffada2d67e3061e55570");
   assert.deepEqual(publicConsumerHandshake.requiredForDirectE2EProducts, ["calendar", "card", "creator-studio", "developer", "dex", "exchange", "finance", "pay", "quant", "shop", "social", "video"]);
   assert.equal(publicConsumerHandshake.requiredForResponsibilityRegistry.domainDenominator, 36);
   assert.equal(publicConsumerHandshake.soleProviderMethod, "eth_chainId");

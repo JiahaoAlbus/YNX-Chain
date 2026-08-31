@@ -12,9 +12,8 @@ export const STANDARD_WALLET_PUBLIC_HANDSHAKE_STATUS = Object.freeze({
 export const STANDARD_WALLET_PUBLIC_HANDSHAKE_AUTHORITY = "discovery-and-chain-readback-only";
 
 /**
- * Executes the non-privileged, source-bound public consumer handshake.
- * This never asks for accounts, signatures, transactions, Product Sessions,
- * or Gateway authority; it is intentionally not a connection success claim.
+ * Performs the non-privileged public-consumer handshake. This boundary never
+ * requests accounts, signatures, transactions, Product Sessions, or Gateway authority.
  */
 export async function runStandardWalletPublicConsumerHandshake(config) {
   exactConfig(config);
@@ -84,7 +83,10 @@ function privateServiceStatus(value) {
   return value;
 }
 function exactYnxIdentity(provider, candidate) {
-  try { return provider.isYNXWallet === true && provider.isMetaMask === false && provider.providerInfo?.rdns === "com.ynx.wallet" && candidate.rdns === "com.ynx.wallet"; }
-  catch { return false; }
+  try {
+    return provider.isYNXWallet === true && provider.isMetaMask === false
+      && provider.providerInfo?.rdns === "com.ynx.wallet"
+      && candidate.rdns === "com.ynx.wallet";
+  } catch { return false; }
 }
 function object(value) { return typeof value === "object" && value !== null && !Array.isArray(value); }
