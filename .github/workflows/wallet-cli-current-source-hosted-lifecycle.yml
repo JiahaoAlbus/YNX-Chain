@@ -1,0 +1,190 @@
+name: Wallet CLI current-source hosted lifecycle
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/wallet-sdk-error-taxonomy-20260831]
+    paths:
+      - .github/workflows/wallet-cli-current-source-hosted-lifecycle.yml
+
+permissions:
+  contents: read
+
+env:
+  ARTIFACT_SOURCE_COMMIT: 68b68bbcbc7a301c113db82a2183537191976ff0
+
+jobs:
+  unix-native-lifecycle:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15-intel
+            target: darwin-amd64
+            archive: release/wallet-cli/artifacts/ynx-wallet-cli-darwin-amd64.gz
+            sha256: c2fe1f4aceab5e2628f8f56768834347e89a48f090227910c12e916764b6d6d1
+            bytes: 5199151
+            minimum_os: macOS 12 Monterey
+            signing_class: ad_hoc_linker_signed_cross_arch_static_candidate
+          - runner: ubuntu-24.04
+            target: linux-amd64
+            archive: release/wallet-cli/artifacts/ynx-wallet-cli-linux-amd64.gz
+            sha256: 05291586e1039df381df8095f50c45612f9644c881422d57e0fac693b5e7dd75
+            bytes: 5059944
+            minimum_os: Linux kernel 3.2
+            signing_class: unsigned_local_testnet_cli_candidate
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: 1.25.0
+          cache: true
+      - name: Verify exact artifact and native runner
+        env:
+          ARCHIVE: ${{ matrix.archive }}
+          EXPECTED_SHA: ${{ matrix.sha256 }}
+          EXPECTED_BYTES: ${{ matrix.bytes }}
+          TARGET: ${{ matrix.target }}
+        run: |
+          set -euo pipefail
+          test "$(uname -m)" = x86_64
+          test "$(stat -f %z "$ARCHIVE" 2>/dev/null || stat -c %s "$ARCHIVE")" = "$EXPECTED_BYTES"
+          test "$(shasum -a 256 "$ARCHIVE" 2>/dev/null | awk '{print $1}' || sha256sum "$ARCHIVE" | awk '{print $1}')" = "$EXPECTED_SHA"
+      - name: Install, upgrade, cold start, second start, validate 6423 and uninstall
+        env:
+          ARCHIVE: ${{ matrix.archive }}
+          EXPECTED_SHA: ${{ matrix.sha256 }}
+          EXPECTED_BYTES: ${{ matrix.bytes }}
+          TARGET: ${{ matrix.target }}
+          MINIMUM_OS: ${{ matrix.minimum_os }}
+          SIGNING_CLASS: ${{ matrix.signing_class }}
+        run: |
+          set -euo pipefail
+          prefix="$RUNNER_TEMP/ynx-wallet-cli-$TARGET"
+          evidence="$RUNNER_TEMP/evidence-$TARGET"
+          mkdir -p "$prefix/bin" "$evidence"
+          go build -trimpath -buildvcs=false -ldflags='-buildid= -X main.version=preflight-hosted' -o "$prefix/bin/ynx-wallet-cli" ./cmd/ynx-wallet-cli
+          test "$("$prefix/bin/ynx-wallet-cli" version | python3 -c 'import json,sys;print(json.load(sys.stdin)["version"])')" = preflight-hosted
+          gzip -dc "$ARCHIVE" > "$prefix/bin/ynx-wallet-cli.new"
+          chmod 0755 "$prefix/bin/ynx-wallet-cli.new"
+          mv "$prefix/bin/ynx-wallet-cli.new" "$prefix/bin/ynx-wallet-cli"
+          cold="$("$prefix/bin/ynx-wallet-cli" version)"
+          second="$("$prefix/bin/ynx-wallet-cli" version)"
+          test "$(printf '%s' "$cold" | python3 -c 'import json,sys;print(json.load(sys.stdin)["version"])')" = "$ARTIFACT_SOURCE_COMMIT"
+          test "$cold" = "$second"
+          config="$("$prefix/bin/ynx-wallet-cli" validate-config)"
+          printf '%s' "$config" | python3 -c 'import json,sys;e=json.load(sys.stdin);assert e=={"chainId":6423,"evmChainId":"0x1917","nativeChainId":"ynx_6423-1","nativeCurrency":"YNXT","valid":True}'
+          set +e
+          "$prefix/bin/ynx-wallet-cli" chain-status --chain-id 9102 > "$evidence/legacy.json"
+          legacy_rc=$?
+          set -e
+          test "$legacy_rc" = 78
+          python3 -c 'import json,sys;e=json.load(open(sys.argv[1]));assert e["error"]["code"]=="WRONG_CHAIN" and e["error"]["remediation"]=="USE_YNX_TESTNET_6423"' "$evidence/legacy.json"
+          codesign_class=null
+          team_identifier_present=false
+          if test "$TARGET" = darwin-amd64; then
+            codesign --verify --strict "$prefix/bin/ynx-wallet-cli"
+            codesign -dv --verbose=4 "$prefix/bin/ynx-wallet-cli" > "$evidence/codesign.txt" 2>&1
+            grep -F 'Signature=adhoc' "$evidence/codesign.txt"
+            grep -F 'TeamIdentifier=not set' "$evidence/codesign.txt"
+            codesign_class=adhoc
+          fi
+          rm "$prefix/bin/ynx-wallet-cli"
+          test -z "$(find "$prefix/bin" -mindepth 1 -print -quit)"
+          rmdir "$prefix/bin" "$prefix"
+          test ! -e "$prefix"
+          python3 - <<'PY' > "$evidence/lifecycle.json"
+          import json, os, platform
+          print(json.dumps({
+            "schemaVersion":1,"workflowSourceCommit":os.environ["GITHUB_SHA"],"artifactSourceCommit":os.environ["ARTIFACT_SOURCE_COMMIT"],
+            "workflowRunId":int(os.environ["GITHUB_RUN_ID"]),"target":os.environ["TARGET"],"nativeRunner":os.environ["RUNNER_NAME"],
+            "runnerMachine":platform.machine(),"artifact":{"path":os.environ["ARCHIVE"],"bytes":int(os.environ["EXPECTED_BYTES"]),"sha256":os.environ["EXPECTED_SHA"],"minimumOS":os.environ["MINIMUM_OS"],"signingClass":os.environ["SIGNING_CLASS"],"productionSigned":False},
+            "lifecycle":{"installed":True,"upgradeVerified":True,"coldStart":True,"secondStart":True,"config6423ValidatedOffline":True,"legacy9102Rejected":True,"legacyExitCode":78,"uninstallVerified":True,"residueAbsent":True},
+            "remoteProbeRun":False,"connected":False,"accountRequested":False,"signingRequested":False,"transactionRequested":False,"downloadHosted":False,"deployedPublic":False,"storeReleased":False
+          },indent=2))
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: wallet-cli-${{ matrix.target }}-hosted-lifecycle
+          path: ${{ runner.temp }}/evidence-${{ matrix.target }}
+          if-no-files-found: error
+
+  windows-native-lifecycle:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: windows-2025
+            architecture: AMD64
+            target: windows-amd64
+            archive: release/wallet-cli/artifacts/ynx-wallet-cli-windows-amd64.exe.gz
+            sha256: 05b3deb66ca924b6b872f6fbbb3b524b649e6a677deaec1176459d9d4fb2c72d
+            bytes: 5059829
+          - runner: windows-11-arm
+            architecture: ARM64
+            target: windows-arm64
+            archive: release/wallet-cli/artifacts/ynx-wallet-cli-windows-arm64.exe.gz
+            sha256: 7cbf0fbddecc907292263d2f055b3e6def5b57b14588f6e8fe1f6324d3d64804
+            bytes: 4603630
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version: 1.25.0
+          cache: true
+      - name: Install, upgrade, cold start, second start, validate 6423 and uninstall
+        shell: pwsh
+        env:
+          ARCHIVE: ${{ matrix.archive }}
+          EXPECTED_SHA: ${{ matrix.sha256 }}
+          EXPECTED_BYTES: ${{ matrix.bytes }}
+          EXPECTED_ARCH: ${{ matrix.architecture }}
+          TARGET: ${{ matrix.target }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:PROCESSOR_ARCHITECTURE -ne $env:EXPECTED_ARCH) { throw "runner architecture mismatch: $env:PROCESSOR_ARCHITECTURE" }
+          $item = Get-Item $env:ARCHIVE
+          if ($item.Length -ne [long]$env:EXPECTED_BYTES -or (Get-FileHash $item.FullName -Algorithm SHA256).Hash.ToLowerInvariant() -ne $env:EXPECTED_SHA) { throw 'artifact integrity mismatch' }
+          $prefix = Join-Path $env:RUNNER_TEMP "ynx-wallet-cli-$env:TARGET"
+          $bin = Join-Path $prefix 'bin'
+          $evidence = Join-Path $env:RUNNER_TEMP "evidence-$env:TARGET"
+          New-Item -ItemType Directory -Force $bin,$evidence | Out-Null
+          $exe = Join-Path $bin 'ynx-wallet-cli.exe'
+          go build -trimpath -buildvcs=false -ldflags '-buildid= -X main.version=preflight-hosted' -o $exe ./cmd/ynx-wallet-cli
+          if ($LASTEXITCODE -ne 0 -or ((& $exe version | ConvertFrom-Json).version -ne 'preflight-hosted')) { throw 'preflight install failed' }
+          $new = "$exe.new"
+          $input = [IO.File]::OpenRead($item.FullName)
+          try { $gzip = [IO.Compression.GZipStream]::new($input,[IO.Compression.CompressionMode]::Decompress); try { $output = [IO.File]::Create($new); try { $gzip.CopyTo($output) } finally { $output.Dispose() } } finally { $gzip.Dispose() } } finally { $input.Dispose() }
+          Move-Item -Force $new $exe
+          $cold = & $exe version | ConvertFrom-Json
+          $second = & $exe version | ConvertFrom-Json
+          if ($cold.version -ne $env:ARTIFACT_SOURCE_COMMIT -or $second.version -ne $cold.version) { throw 'cold/second identity mismatch' }
+          $config = & $exe validate-config | ConvertFrom-Json
+          if (-not $config.valid -or $config.nativeChainId -ne 'ynx_6423-1' -or $config.chainId -ne 6423 -or $config.evmChainId -ne '0x1917' -or $config.nativeCurrency -ne 'YNXT') { throw '6423 config mismatch' }
+          $legacyText = & $exe chain-status --chain-id 9102 2>&1
+          $legacyRc = $LASTEXITCODE
+          $global:LASTEXITCODE = 0
+          $legacy = $legacyText | ConvertFrom-Json
+          if ($legacyRc -ne 78 -or $legacy.error.code -ne 'WRONG_CHAIN' -or $legacy.error.remediation -ne 'USE_YNX_TESTNET_6423') { throw 'legacy chain rejection mismatch' }
+          $signature = Get-AuthenticodeSignature $exe
+          if ($signature.Status -ne 'NotSigned') { throw 'unexpected Authenticode state' }
+          Remove-Item $exe
+          if ((Get-ChildItem $bin -Force | Measure-Object).Count -ne 0) { throw 'install residue remains' }
+          Remove-Item $bin,$prefix
+          if (Test-Path $prefix) { throw 'prefix residue remains' }
+          [ordered]@{
+            schemaVersion=1; workflowSourceCommit=$env:GITHUB_SHA; artifactSourceCommit=$env:ARTIFACT_SOURCE_COMMIT; workflowRunId=[long]$env:GITHUB_RUN_ID;
+            target=$env:TARGET; nativeRunner=$env:RUNNER_NAME; runnerArchitecture=$env:PROCESSOR_ARCHITECTURE;
+            artifact=[ordered]@{path=$env:ARCHIVE;bytes=[long]$env:EXPECTED_BYTES;sha256=$env:EXPECTED_SHA;minimumOS='Windows 10 or Windows Server 2016';signingClass='unsigned_local_testnet_cli_candidate';authenticodeStatus=$signature.Status.ToString();productionSigned=$false};
+            lifecycle=[ordered]@{installed=$true;upgradeVerified=$true;coldStart=$true;secondStart=$true;config6423ValidatedOffline=$true;legacy9102Rejected=$true;legacyExitCode=78;uninstallVerified=$true;residueAbsent=$true};
+            remoteProbeRun=$false;connected=$false;accountRequested=$false;signingRequested=$false;transactionRequested=$false;downloadHosted=$false;deployedPublic=$false;storeReleased=$false
+          } | ConvertTo-Json -Depth 8 | Set-Content (Join-Path $evidence 'lifecycle.json')
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: wallet-cli-${{ matrix.target }}-hosted-lifecycle
+          path: ${{ runner.temp }}\evidence-${{ matrix.target }}
+          if-no-files-found: error
