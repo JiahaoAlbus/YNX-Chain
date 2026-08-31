@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "scope": "wallet-desktop-cli-sdk",
+  "branch": "codex/wallet-sdk-error-taxonomy-20260831",
+  "implementationCommit": "06bee00121b28352983c40fd96f267c622ca6617",
+  "implementationTree": "003fb1b7c187576dc1b6e296971beda95e4dd0f9",
+  "parentCommit": "a4ac16aa6fb5f10a03cd00d7158e80c437b2320b",
+  "frozenNetwork": {
+    "nativeChainId": "ynx_6423-1",
+    "chainIdDecimal": 6423,
+    "evmChainId": "0x1917",
+    "nativeCurrency": "YNXT",
+    "rpc": "https://rpc.ynxweb4.com/evm",
+    "endpointAuthorityCommit": "d0f89797d13c7667cc187b0c64d5c9e1cb1d8f59"
+  },
+  "taxonomy": {
+    "TRANSPORT_TIMEOUT": "Abort/deadline/socket connect timeout, including nested fetch cause chains",
+    "TRANSPORT_TLS": "TLS handshake or certificate validation failure",
+    "ACCOUNT_NOT_FOUND": "HTTP 404 only for an account lookup carrying exact ACCOUNT_NOT_FOUND or account not found semantics",
+    "MALFORMED_RESPONSE": "Invalid JSON, oversized response, or invalid JSON-RPC envelope",
+    "WRONG_CHAIN": "A valid eth_chainId response other than exact 0x1917",
+    "RPC_UNAVAILABLE": "Connection failure or HTTP 502/503/504",
+    "HTTP_ERROR": "Other non-success HTTP responses, including unrelated 404"
+  },
+  "deterministicTests": [
+    {
+      "command": "node --test sdk/js/index.test.mjs sdk/js/wallet.test.mjs",
+      "result": "PASS",
+      "tests": 16
+    },
+    {
+      "command": "go test ./sdk/wallet/go ./cmd/ynx-wallet-cli ./examples/wallet-go-sdk",
+      "result": "PASS",
+      "packages": 3
+    },
+    {
+      "command": "go vet ./sdk/wallet/go ./cmd/ynx-wallet-cli ./examples/wallet-go-sdk",
+      "result": "PASS"
+    },
+    {
+      "command": "npm run pack:check",
+      "workingDirectory": "sdk/js",
+      "result": "PASS",
+      "package": "@ynx-chain/sdk@0.2.1",
+      "packedBytes": 6446,
+      "unpackedBytes": 20808
+    }
+  ],
+  "liveReadOnlyProbes": [
+    {
+      "client": "curl",
+      "operation": "eth_chainId",
+      "endpoint": "https://rpc.ynxweb4.com/evm",
+      "result": "TRANSPORT_TIMEOUT",
+      "exitCode": 28,
+      "detail": "SSL connection timeout; HTTP status 000",
+      "accountRequested": false,
+      "signed": false,
+      "transactionCreated": false
+    },
+    {
+      "client": "@ynx-chain/sdk",
+      "operation": "eth_chainId",
+      "endpoint": "https://rpc.ynxweb4.com/evm",
+      "result": "PASS",
+      "chainId": "0x1917",
+      "connected": true,
+      "accountRequested": false,
+      "signed": false,
+      "transactionCreated": false
+    },
+    {
+      "client": "ynx-wallet-cli",
+      "operation": "chain-status / eth_chainId",
+      "endpoint": "https://rpc.ynxweb4.com/evm",
+      "result": "PASS",
+      "chainId": "0x1917",
+      "connected": true,
+      "accountRequested": false,
+      "signed": false,
+      "transactionCreated": false
+    }
+  ],
+  "truthBoundaries": {
+    "noFakeBalance": true,
+    "noFakeTransaction": true,
+    "accountRequested": false,
+    "walletProviderLifecycleProved": false,
+    "installedArtifactProvedByThisSlice": false,
+    "productionSigned": false,
+    "notarized": false,
+    "downloadHostedChanged": false,
+    "deployedPublicChanged": false,
+    "accountApprovalProved": false,
+    "personalSignProved": false,
+    "eip712SignProved": false,
+    "testnetTransactionProved": false
+  }
+}

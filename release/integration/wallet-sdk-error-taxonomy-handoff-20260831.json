@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "owner": "wallet-desktop-cli-sdk",
+  "branch": "codex/wallet-sdk-error-taxonomy-20260831",
+  "implementationCommit": "06bee00121b28352983c40fd96f267c622ca6617",
+  "implementationTree": "003fb1b7c187576dc1b6e296971beda95e4dd0f9",
+  "evidencePath": "docs/integration/wallet-sdk-error-taxonomy-evidence-20260831.json",
+  "consumerPaths": [
+    "sdk/js/index.js",
+    "sdk/js/index.d.ts",
+    "sdk/wallet/go/transport.go",
+    "cmd/ynx-wallet-cli/main.go",
+    "examples/wallet-go-sdk/main.go"
+  ],
+  "resolvedDefect": "An authoritative account-not-found response is no longer required to share the same error class as a network outage; TS and Go expose exact, fail-closed categories.",
+  "integrationNotes": [
+    "ACCOUNT_NOT_FOUND requires an account lookup plus an exact semantic 404; a generic route 404 remains HTTP_ERROR.",
+    "The CLI and Go example now consume the Go SDK probe rather than maintaining divergent response logic.",
+    "The source-bound read-only probes requested only eth_chainId and proved exact 0x1917 when the endpoint was reachable.",
+    "The earlier curl timeout remains recorded as a timeout and is not promoted to a successful connection."
+  ],
+  "remainingFalse": [
+    "installedArtifactProvedByThisSlice",
+    "walletProviderLifecycleProved",
+    "accountApprovalProved",
+    "personalSignProved",
+    "eip712SignProved",
+    "testnetTransactionProved",
+    "productionSigned",
+    "notarized",
+    "downloadHostedChanged",
+    "deployedPublicChanged"
+  ]
+}
