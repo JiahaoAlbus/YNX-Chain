@@ -11,17 +11,17 @@
   },
   "source": {
     "branch": "codex/ynx-6423-portal-tronscan-inspired",
-    "portalCommit": "f76c4ee33e59ec271bdc2789fcfd68599ea43bb9",
-    "portalTree": "5dce788c7c9b4ed074fbadf738f0980637dc0534",
+    "portalCommit": "6d9af9c42127930d89b07d037bfc66ed6628b7c8",
+    "portalTree": "0b7f4052dbbdb4a943355644faa45b6a59b3b560",
     "pushedToOrigin": true,
     "files": [
       {
         "path": "internal/explorer/web.go",
-        "sha256": "48df80815054d515e54336e556669498281467594ac3f695439827d316a16004"
+        "sha256": "367b72030ba0ff0cabb89da5f562a4f2e85a9946985aa3ae01b9e56f9fab8cab"
       },
       {
         "path": "internal/explorer/explorer_test.go",
-        "sha256": "1932763dfbd361f7d5a305d003102da2aa3fd26dbd47934d9556a86259492104"
+        "sha256": "c266709dd915c388e0b784661bb13c0b334539f519ea50cac4d1d5607712d4f2"
       },
       {
         "path": "scripts/verify/explorer-check.sh",
