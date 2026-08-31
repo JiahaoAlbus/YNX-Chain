@@ -582,6 +582,23 @@ func (s *Service) Token(ctx context.Context, symbol string) (TokenDetail, error)
 	}, nil
 }
 
+// Contract reads the canonical chain RPC contract record. The Explorer does
+// not synthesize contract metadata from source files or transaction guesses.
+func (s *Service) Contract(ctx context.Context, address string) (chain.ContractArtifact, error) {
+	address, err := normalizeExplorerAddress(address)
+	if err != nil {
+		return chain.ContractArtifact{}, err
+	}
+	var contract chain.ContractArtifact
+	if err := s.rpcClient.getJSON(ctx, "/contracts/"+url.PathEscape(address), &contract); err != nil {
+		return chain.ContractArtifact{}, err
+	}
+	if strings.TrimSpace(contract.Address) == "" || !strings.EqualFold(contract.Address, address) {
+		return chain.ContractArtifact{}, fmt.Errorf("contract RPC returned an invalid identity")
+	}
+	return contract, nil
+}
+
 type FeeDetail struct {
 	Hash             string           `json:"hash"`
 	Type             string           `json:"type"`
@@ -634,6 +651,12 @@ func (s *Service) Search(ctx context.Context, query string) (SearchResult, error
 	if query == "" {
 		return SearchResult{}, fmt.Errorf("query is required")
 	}
+	if strings.EqualFold(query, "YNXT") {
+		if _, err := s.Token(ctx, query); err != nil {
+			return SearchResult{}, err
+		}
+		return SearchResult{Query: "YNXT", Type: "token", Path: "/api/tokens/YNXT", TruthfulStatus: "resolved-from-rpc-status"}, nil
+	}
 	if _, err := strconv.ParseUint(query, 10, 64); err == nil {
 		if _, err := s.Block(ctx, query); err != nil {
 			return SearchResult{}, err
@@ -648,6 +671,9 @@ func (s *Service) Search(ctx context.Context, query string) (SearchResult, error
 	normalized, err := normalizeExplorerAddress(query)
 	if err != nil {
 		return SearchResult{}, err
+	}
+	if contract, err := s.Contract(ctx, normalized); err == nil {
+		return SearchResult{Query: query, Type: "contract", Path: "/api/contracts/" + url.PathEscape(contract.Address), NormalizedAddress: contract.Address, TruthfulStatus: "resolved-from-rpc-contract-record"}, nil
 	}
 	if _, err := s.Account(ctx, normalized); err == nil {
 		return SearchResult{Query: query, Type: "account", Path: "/api/accounts/" + url.PathEscape(normalized), NormalizedAddress: normalized, TruthfulStatus: "resolved-from-rpc"}, nil

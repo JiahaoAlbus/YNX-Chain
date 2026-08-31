@@ -104,6 +104,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/accounts/{address}", s.handleAccount)
 	s.mux.HandleFunc("GET /api/accounts/{address}/activity", s.handleAccountActivity)
 	s.mux.HandleFunc("GET /api/tokens/{symbol}", s.handleToken)
+	s.mux.HandleFunc("GET /api/contracts/{address}", s.handleContract)
 	s.mux.HandleFunc("GET /api/validators", s.handleValidators)
 	s.mux.HandleFunc("GET /api/resources/{address}", s.handleResources)
 	s.mux.HandleFunc("GET /api/resource-market/analytics", s.handleResourceAnalytics)
@@ -440,6 +441,15 @@ func (s *Server) handleToken(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, token)
+}
+
+func (s *Server) handleContract(w http.ResponseWriter, r *http.Request) {
+	contract, err := s.service.Contract(r.Context(), r.PathValue("address"))
+	if err != nil {
+		writePublicError(w, http.StatusNotFound)
+		return
+	}
+	writeJSON(w, http.StatusOK, contract)
 }
 
 func (s *Server) handleValidators(w http.ResponseWriter, r *http.Request) {

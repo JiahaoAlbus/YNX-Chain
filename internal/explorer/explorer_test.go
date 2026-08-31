@@ -58,6 +58,10 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	contract, _, err := devnet.DeployContract("ynx_explorer_alice", "ExplorerDirectory", "contract ExplorerDirectory { event Registered(address indexed account); function ping() public pure returns (bool) { return true; } }")
+	if err != nil {
+		t.Fatal(err)
+	}
 	devnet.ProduceBlock()
 
 	const resourceUpstreamKey = "explorer-resource-upstream-key"
@@ -81,7 +85,7 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	server := httptest.NewServer(NewServerWithBuild(svc, buildinfo.Info{Commit: "abc123", Release: "ynx-chain-abc123", BuildTime: "2026-07-10T00:00:00Z"}).Handler())
 	defer server.Close()
 
-	for _, path := range []string{"/health", "/version", "/api/summary", "/api/dashboard", "/api/blocks/latest", "/api/txs", "/api/accounts?limit=10", "/api/accounts/ynx_explorer_bob", "/api/accounts/ynx_explorer_bob/activity?limit=1", "/api/accounts/" + ynxAddress, "/api/tokens/YNXT", "/api/validators", "/api/resources/ynx_explorer_bob", "/api/resource-market/analytics", "/api/fees/" + tx.Hash, "/api/fees/" + sponsoredTx.Hash, "/api/search?q=" + tx.Hash, "/api/search?q=" + ynxAddress, "/metrics"} {
+	for _, path := range []string{"/health", "/version", "/api/summary", "/api/dashboard", "/api/blocks/latest", "/api/txs", "/api/accounts?limit=10", "/api/accounts/ynx_explorer_bob", "/api/accounts/ynx_explorer_bob/activity?limit=1", "/api/accounts/" + ynxAddress, "/api/tokens/YNXT", "/api/contracts/" + contract.Address, "/api/validators", "/api/resources/ynx_explorer_bob", "/api/resource-market/analytics", "/api/fees/" + tx.Hash, "/api/fees/" + sponsoredTx.Hash, "/api/search?q=" + tx.Hash, "/api/search?q=" + ynxAddress, "/api/search?q=YNXT", "/api/search?q=" + contract.Address, "/metrics"} {
 		resp, err := http.Get(server.URL + path)
 		if err != nil {
 			t.Fatal(err)
@@ -116,6 +120,18 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	}
 	if leaderboardResponse.StatusCode != http.StatusOK || leaderboard.Failed || leaderboard.Total == 0 || leaderboard.CandidateCount < leaderboard.Total || leaderboard.TruthfulStatus != "observed-indexed-participant-account-ranking" || !strings.Contains(leaderboard.Coverage, "retained Indexer") {
 		t.Fatalf("Explorer returned an untruthful or empty observed-participant leaderboard: %+v", leaderboard)
+	}
+	contractResponse, err := http.Get(server.URL + "/api/contracts/" + contract.Address)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer contractResponse.Body.Close()
+	var fetchedContract chain.ContractArtifact
+	if err := json.NewDecoder(contractResponse.Body).Decode(&fetchedContract); err != nil {
+		t.Fatal(err)
+	}
+	if contractResponse.StatusCode != http.StatusOK || fetchedContract.Address != contract.Address || fetchedContract.Name != "ExplorerDirectory" {
+		t.Fatalf("Explorer did not return the RPC-backed contract record: %+v", fetchedContract)
 	}
 	feeResponse, err := http.Get(server.URL + "/api/fees/" + sponsoredTx.Hash)
 	if err != nil {
@@ -226,7 +242,7 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if summary.NativeSymbol != "YNXT" || summary.IndexedTxCount != 7 || summary.Wallet.ChainIDHex != "0x1917" {
+	if summary.NativeSymbol != "YNXT" || summary.IndexedTxCount != 8 || summary.Wallet.ChainIDHex != "0x1917" {
 		t.Fatalf("unexpected summary: %+v", summary)
 	}
 	resp, err = http.Get(server.URL + "/health")
@@ -280,7 +296,7 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	}
 	cancelStream()
 	_ = streamResp.Body.Close()
-	if streamData == "" || !strings.Contains(streamData, `"indexedTxCount":7`) || !strings.Contains(streamData, `"resource_sponsored_action"`) || !strings.Contains(streamData, `"sponsorPoolId"`) || !strings.Contains(streamData, `"blocks"`) || !strings.Contains(streamData, `"validators"`) || !strings.Contains(streamData, `"resources"`) {
+	if streamData == "" || !strings.Contains(streamData, `"indexedTxCount":8`) || !strings.Contains(streamData, `"resource_sponsored_action"`) || !strings.Contains(streamData, `"sponsorPoolId"`) || !strings.Contains(streamData, `"blocks"`) || !strings.Contains(streamData, `"validators"`) || !strings.Contains(streamData, `"resources"`) {
 		t.Fatalf("stream did not return a live dashboard snapshot: %s", streamData)
 	}
 }
