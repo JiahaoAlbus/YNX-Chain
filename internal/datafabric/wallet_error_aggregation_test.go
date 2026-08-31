@@ -88,3 +88,33 @@ func TestAggregateWalletCanonicalErrorRejectsUnknownAndCannotPersistSourceDetail
 		t.Fatalf("raw canonical error code was accepted into an event: %v", err)
 	}
 }
+
+func TestAggregateWalletConnectivityOnlyAccepts6423AndNeverReturnsRawInputs(t *testing.T) {
+	for _, chainID := range []string{"6423", "0x1917"} {
+		t.Run(chainID, func(t *testing.T) {
+			aggregate, err := AggregateWalletConnectivity(chainID, "GATEWAY_UNAVAILABLE")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if aggregate.ChainID != "0x1917" || aggregate.ErrorClass != "gateway-unavailable" || !aggregate.Retryable {
+				t.Fatalf("unexpected bounded aggregate: %+v", aggregate)
+			}
+			encoded, err := json.Marshal(aggregate)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, prohibited := range []string{"6423", "GATEWAY_UNAVAILABLE", "developerMessage", "accountId", "walletAddress"} {
+				if strings.Contains(string(encoded), prohibited) {
+					t.Fatalf("aggregate retained raw input %q: %s", prohibited, encoded)
+				}
+			}
+		})
+	}
+	for _, chainID := range []string{"9102", "0x238e", "0x1", "unknown"} {
+		t.Run("reject_"+chainID, func(t *testing.T) {
+			if _, err := AggregateWalletConnectivity(chainID, "GATEWAY_UNAVAILABLE"); ErrorCodeOf(err) != CodeSchemaCompatibilityViolation || strings.Contains(err.Error(), chainID) || len(ErrorEvidenceOf(err)) != 0 {
+				t.Fatalf("unsupported chain did not fail closed without retention: %v", err)
+			}
+		})
+	}
+}

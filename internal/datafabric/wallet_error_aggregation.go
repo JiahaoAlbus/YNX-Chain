@@ -12,6 +12,17 @@ type WalletErrorAggregate struct {
 	Retryable  bool
 }
 
+// WalletConnectivityAggregate is the complete bounded result that a Wallet
+// producer may hand to the asynchronous ConnectionEvent adapter. It has no
+// raw error, message, account, address, session, provider, or chain input.
+type WalletConnectivityAggregate struct {
+	ChainID    string
+	ErrorClass string
+	Retryable  bool
+}
+
+const canonicalWalletConnectivityChainID = "0x1917"
+
 // AggregateWalletCanonicalError converts one accepted Wallet/Auth canonical
 // error code into the already accepted, fixed-cardinality connection-event
 // fields. The input is transient: callers must not persist it alongside the
@@ -23,6 +34,23 @@ func AggregateWalletCanonicalError(code string) (WalletErrorAggregate, error) {
 		return WalletErrorAggregate{}, Reject(CodeSchemaCompatibilityViolation, "wallet canonical error code is not accepted for connection aggregation", nil)
 	}
 	return aggregate, nil
+}
+
+// AggregateWalletConnectivity accepts the two spellings of the sole supported
+// YNX Wallet Testnet identity and returns its canonical EIP-1193 form with a
+// privacy-bounded error aggregate. This is an asynchronous data-plane helper;
+// it must never gate standard Wallet connection, approval, signing, or a
+// transaction. Legacy 9102 and every other chain identity fail closed before
+// an event can be built or persisted.
+func AggregateWalletConnectivity(chainID, code string) (WalletConnectivityAggregate, error) {
+	if chainID != "6423" && chainID != canonicalWalletConnectivityChainID {
+		return WalletConnectivityAggregate{}, Reject(CodeSchemaCompatibilityViolation, "wallet connectivity chain is not accepted", nil)
+	}
+	aggregate, err := AggregateWalletCanonicalError(code)
+	if err != nil {
+		return WalletConnectivityAggregate{}, err
+	}
+	return WalletConnectivityAggregate{ChainID: canonicalWalletConnectivityChainID, ErrorClass: aggregate.ErrorClass, Retryable: aggregate.Retryable}, nil
 }
 
 var walletCanonicalErrorAggregates = map[string]WalletErrorAggregate{

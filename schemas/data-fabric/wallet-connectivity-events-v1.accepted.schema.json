@@ -26,7 +26,7 @@
     "transport": {"enum": ["eip1193", "eip6963", "walletconnect-v2", "deep-link", "product-session", "gateway", "faucet", "unknown"]},
     "connectionId": {"type": "string", "pattern": "^pc_[A-Za-z0-9_-]{16,96}$"},
     "sessionClass": {"enum": ["standard-wallet", "product-session", "walletconnect", "none"]},
-    "chainId": {"type": "string", "pattern": "^(ynx_[0-9]+-[0-9]+|0x[0-9a-fA-F]+|unknown)$"},
+    "chainId": {"const": "0x1917", "description": "Canonical YNX Wallet Testnet identity. Producers may normalize decimal 6423 only through the asynchronous Data Fabric adapter; legacy 9102 and every other chain are rejected."},
     "result": {"enum": ["requested", "approved", "rejected", "established", "disconnected", "recovered", "expired", "revoked", "completed", "failed", "degraded"]},
     "errorClass": {"enum": ["none", "user-rejected", "device-proof", "device-key", "session-binding", "protocol", "expiry-or-clock-skew", "callback", "registry", "endpoint-schema", "gateway-unavailable", "relay-unavailable", "client-retired", "faucet-not-accepted", "faucet-pending-finality", "unknown"]},
     "retryable": {"type": "boolean"},

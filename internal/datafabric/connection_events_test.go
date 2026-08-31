@@ -90,6 +90,18 @@ func TestConnectionEventAdapterRejectsGapsUnknownFieldsAndFaucetDeepLinkCompleti
 	}
 }
 
+func TestConnectionEventRejectsLegacy9102AndUnnormalized6423(t *testing.T) {
+	for _, chainID := range []string{"9102", "0x238e", "6423", "unknown"} {
+		t.Run(chainID, func(t *testing.T) {
+			event := connectionEventFixture("event.connection.chain."+strings.ReplaceAll(chainID, "0x", "hex")+".0001", "wallet.connection.requested", 1)
+			event.ChainID = chainID
+			if err := event.Validate(); ErrorCodeOf(err) != CodeSchemaCompatibilityViolation || strings.Contains(err.Error(), chainID) || len(ErrorEvidenceOf(err)) != 1 {
+				t.Fatalf("unsupported chain was not rejected by the persistence boundary: %v", err)
+			}
+		})
+	}
+}
+
 func TestConnectionDiagnosticsAreFixedCardinalityAndReplayIdempotent(t *testing.T) {
 	store, err := OpenStore(filepath.Join(t.TempDir(), "connection-events.json"))
 	if err != nil {

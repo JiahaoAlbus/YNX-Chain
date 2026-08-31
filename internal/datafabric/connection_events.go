@@ -120,7 +120,7 @@ func (event ConnectionEvent) Validate() error {
 	if !contains([]string{"web", "ios", "android", "desktop", "extension", "server", "unknown"}, event.Platform) ||
 		!contains([]string{"eip1193", "eip6963", "walletconnect-v2", "deep-link", "product-session", "gateway", "faucet", "unknown"}, event.Transport) ||
 		!contains([]string{"standard-wallet", "product-session", "walletconnect", "none"}, event.SessionClass) ||
-		!chainIDPattern(event.ChainID) ||
+		event.ChainID != canonicalWalletConnectivityChainID ||
 		!contains([]string{"requested", "approved", "rejected", "established", "disconnected", "recovered", "expired", "revoked", "completed", "failed", "degraded"}, event.Result) ||
 		!contains([]string{"none", "user-rejected", "device-proof", "device-key", "session-binding", "protocol", "expiry-or-clock-skew", "callback", "registry", "endpoint-schema", "gateway-unavailable", "relay-unavailable", "client-retired", "faucet-not-accepted", "faucet-pending-finality", "unknown"}, event.ErrorClass) ||
 		!contains([]string{"queued", "pending", "published", "dead-letter"}, event.Status) {
