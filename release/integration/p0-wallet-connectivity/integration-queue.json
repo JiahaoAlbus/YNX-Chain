@@ -7681,12 +7681,13 @@
     {
       "taskId": "P0-326",
       "owner": "integration,chain-host-release-control-plane",
-      "status": "ACTIVE_CHAIN_6423_EMERGENCY_PRIMARY_RECOVERY",
+      "status": "CONSUMED_RELEASED_SUCCESS_CHAIN_6423_PUBLIC_RECOVERED_PRIMARY_9102_SERVICES_MASKED",
       "paths": [
         "release/integration/p0-wallet-connectivity/execution/p0-326-chain-6423-emergency-primary-recovery-single-use-lease-20260831.json",
         "release/integration/p0-wallet-connectivity/execution/objects/p0-326-chain-6423-emergency-cutover-signed-input.json",
         "release/integration/p0-wallet-connectivity/execution/objects/p0-326-chain-6423-emergency-ingress.caddy",
         "release/integration/p0-wallet-connectivity/execution/objects/p0-326-chain-6423-emergency-recovery-executor.sh",
+        "release/integration/p0-wallet-connectivity/execution/objects/p0-326-chain-6423-emergency-primary-terminal-evidence-20260831.json",
         "/tmp/p0-326-chain-6423-emergency.stdout",
         "/tmp/p0-326-chain-6423-emergency.stderr",
         "/tmp/p0-326-chain-6423-emergency.receipt"
@@ -7701,7 +7702,37 @@
       "peerLegacyRetirementAuthorized": false,
       "deploymentAuthorized": false,
       "serviceLifecycleAuthorized": "only seven exact primary-host ynx-v2 units",
-      "nextAction": "Named chain-host executor may run the exact P0-326 argv once before expiry. On clean success require a wholly-new full service-matrix readback and a separately signed peer-retirement lease; Finance P0-326 draft was never issued and remains queued for a later new task ID."
+      "attemptCount": 1,
+      "localExitStatus": 0,
+      "terminalReceiptSha256": "2f480907d6436baee9aa4297e696a4d14bf4152a484a30e04cf789359c8941ed",
+      "stdoutSha256": "22c5b3176d3b1bbdab2297256fcfd5fefb3906b62af46874f49fb1f86a864952",
+      "stderrSha256": "33a5720bd878892da361acd985d7fba7aace7c3222953dc1dab312cd93904bf7",
+      "nextAction": "P0-326 is consumed and nonreusable. P0-327 is a separately issued peer-only retirement lease; it is not authorized to mutate primary 6423 runtime or Caddy."
+    },
+    {
+      "taskId": "P0-327",
+      "owner": "integration,chain-peer-release-control-plane",
+      "status": "ACTIVE_CHAIN_PEER_LEGACY_RETIREMENT",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/execution/p0-327-chain-peer-legacy-retirement-single-use-lease-20260831.json",
+        "release/integration/p0-wallet-connectivity/execution/objects/p0-327-chain-peer-legacy-retirement-signed-input.json",
+        "release/integration/p0-wallet-connectivity/execution/objects/p0-327-chain-peer-legacy-retirement-executor.sh",
+        "/tmp/p0-327-chain-peer-legacy-retirement.stdout",
+        "/tmp/p0-327-chain-peer-legacy-retirement.stderr",
+        "/tmp/p0-327-chain-peer-legacy-retirement.receipt"
+      ],
+      "dependencies": ["P0-326"],
+      "executionLeaseIssued": true,
+      "sshAttemptLimit": 3,
+      "perHostAttemptLimit": 1,
+      "retryAllowed": false,
+      "remoteMutation": true,
+      "peerLegacyRetirementAuthorized": true,
+      "primary6423MutationAuthorized": false,
+      "caddyMutationAuthorized": false,
+      "deploymentAuthorized": false,
+      "serviceLifecycleAuthorized": "only ynx-v2-peer.service on Singapore, Silicon Valley and Seoul plus the already inactive Singapore ynx-v2-node.service",
+      "nextAction": "Named executor may run the exact P0-327 argv once before expiry. Stop on the first failed peer; retain the safe public 6423 route and do not attempt peer rollback or retry."
     }
   ]
 }
