@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "ynx.explorer-monitor.source-bound-release-preparation.v6",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-172",
+  "observedAt": "2026-08-31T10:08:00Z",
+  "owner": "explorer-monitor",
+  "authority": {"productionMutationAllowed": false, "publicVerified": false, "computerControlVerified": false, "statement": "Local artifact checkpoint only; no production host, service, ingress or wallet state was changed."},
+  "candidate": {
+    "branch": "codex/p0-explorer-monitor-20260820",
+    "artifactSourceCommit": "4165b993708e7087ddad55ae29243505713fc280",
+    "artifactSourceTree": "664157ffa1511addabeb9908b2ada015ce1fe993",
+    "pullRequest": "https://github.com/JiahaoAlbus/YNX-Chain/pull/107",
+    "release": "ynx-explorer-monitor-4165b993708e",
+    "build": {"goos": "linux", "goarch": "amd64", "cgoEnabled": false, "trimpath": true, "buildvcs": false, "buildTime": "2026-08-31T18:06:57+08:00"}
+  },
+  "supersession": {
+    "supersedes": ["apps/monitor/evidence/p0-170-explorer-localized-artifact-checkpoint-20260831.json", "apps/monitor/evidence/p0-171-deployment-readonly-baseline-request-20260831.json"],
+    "reason": "P0-172 adds the fully localized provider chooser and user-safe wallet error states. Every prior artifact and baseline request came from an earlier source generation and must not be deployed with this source.",
+    "mixingForbidden": true
+  },
+  "artifacts": {
+    "explorerd": {"carrierPath": "/private/tmp/ynx-explorer-monitor-p0172.v10ft1/bin/ynx-explorerd", "bytes": 8958100, "sha256": "2ece6f23b0f84ce814cf8587133be5cedc24a0ed47880c959c2057a68d620e62", "format": "linux amd64 static ELF"},
+    "indexerd": {"carrierPath": "/private/tmp/ynx-explorer-monitor-p0172.v10ft1/bin/ynx-indexerd", "bytes": 7512212, "sha256": "4b1a7e5c95ff6f55a22e2a574922117a314599337f364b1ff805f1de8bd3a5c3", "format": "linux amd64 static ELF"},
+    "monitorReleaseTree": {"carrierPath": "/private/tmp/ynx-explorer-monitor-p0172.v10ft1/monitor-release-tree.tar", "bytes": 2273280, "sha256": "bf95e3e772db66437411a72c9cd19e8d6a037ed5d5756b64c5c0d628c640cfbb", "format": "deterministic GNU tar with built dist; excludes node_modules and .env", "inputs": {"packageLockSha256": "3329447e950589f80129b59e1c6e99d5856d869da06672c0b525ed129e291694", "distIndexHtmlSha256": "0f7d2e816a6cfdfaec8bd953c7be2562d3ff11e89b2a21fe372dd5bf169117d0"}}
+  },
+  "validation": {
+    "explorerIndexer": "go test ./internal/explorer ./internal/indexer -count=1: passing",
+    "sponsorRegression": "bash scripts/verify/resource-sponsor-check.sh: passing",
+    "monitor": "npm test: 55 app tests plus 10 script tests passing; npm run build: passing",
+    "monitorArtifactRuntime": {"path": "/private/tmp/ynx-monitor-p0172-run.IDYsLL/apps/monitor", "version": {"httpStatus": 200, "bytes": 264, "sha256": "19bc227e16fae04d30894a75a5085fc281c2cd7c083e100e104ecd0939675b6a", "commit": "4165b993708e7087ddad55ae29243505713fc280", "release": "ynx-explorer-monitor-4165b993708e"}, "connectivity": {"httpStatus": 200, "contentType": "application/json; charset=utf-8", "bytes": 262, "sha256": "5c2132329f87f9f5ce397f2395b2f8aee0ded59f63e15626c803b4bea989353c", "status": "not_configured"}},
+    "linuxGoRuntime": "Not executed on this macOS workstation because the candidate binaries target Linux amd64; file format and source tests passed."
+  },
+  "productScope": {
+    "implemented": ["canonical native chain ID 6423 and EVM 0x1917 fail-closed checks", "all twelve Explorer wallet-provider chooser and user-safe error strings", "separate announced YNX Wallet and MetaMask identities with no custom scheme navigation"],
+    "notClaimed": ["provider approval", "personal_sign", "transaction", "public deployment", "Computer Control acceptance"]
+  },
+  "states": {"implementedLocal": true, "testedLocal": true, "integratedCentral": false, "deployedStaging": false, "deployedPublic": false, "downloadHosted": false, "productionSigned": false, "publicVerified": false, "computerControlVerified": false},
+  "nextAction": "Central must capture a new read-only production baseline and issue a single-use lease binding exactly these three artifacts before deployment."
+}
