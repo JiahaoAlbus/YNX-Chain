@@ -313,7 +313,7 @@
         "exact old service PID/NRestarts semantics",
         "exact old loopback/public gates"
       ],
-      "removed": "only identity-bound P0298 owned stage backup release control pending and temporary residues",
+      "removed": "only identity-bound P0-304 stage container, stage, backup container, backup, release container, release, control, pending and temporary residues within the p0304-finance-phase3-20260831t030400z namespace",
       "foreignSubstitution": "preserved and fail closed"
     },
     "manualRollback": "forbidden without a separately signed exact-present Central lease"

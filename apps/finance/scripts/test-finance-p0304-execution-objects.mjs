@@ -12,6 +12,7 @@ const requestPath = `${root}/apps/finance/evidence/finance-p0304-execution-objec
 const candidatePath = `${root}/apps/finance/evidence/finance-p0304-unsigned-lease-stdin-candidate-20260831.json`;
 const argvPath = `${root}/apps/finance/evidence/finance-p0304-literal-argv-candidate-20260831.json`;
 const observerPath = `${root}/apps/finance/evidence/finance-p0304-parent-preserving-observer-contract-20260831.json`;
+const handoffPath = `${root}/apps/finance/FINANCE_P0304_EXECUTION_OBJECTS_HANDOFF_20260831.md`;
 const request = json(requestPath);
 
 function identity(path) {
@@ -42,7 +43,7 @@ function assertLiteralArgv(argv) {
 }
 
 assert.equal(request.taskId, 'P0-304');
-assert.equal(request.status, 'SOURCE_ONLY_UNSIGNED_CENTRAL_SIGNATURE_READY');
+assert.equal(request.status, 'SOURCE_ONLY_UNSIGNED_CENTRAL_SIGNATURE_READY_P0304_NAMESPACE_CORRECTED');
 assert.deepEqual(request.truth, {
   centralSignaturePresent: false,
   leaseIssued: false,
@@ -109,6 +110,11 @@ assert.equal(request.literalExecution.shellOrVariableReconstructionForbidden, tr
 assert.equal(request.literalExecution.oneSshAttempt, 1);
 assert.equal(request.literalExecution.oneDeployInvocation, 1);
 assert.equal(request.literalExecution.retryAllowed, false);
+
+const staleMarker = String.fromCharCode(80, 48, 50, 57, 56);
+for (const path of [requestPath, candidatePath, argvPath, observerPath, handoffPath, fileURLToPath(import.meta.url)]) {
+  assert.equal(bytes(path).includes(Buffer.from(staleMarker)), false, `stale namespace reference in ${path}`);
+}
 
 const mutated = [...argvManifest.argv];
 mutated[3] = '$(echo reconstructed)';

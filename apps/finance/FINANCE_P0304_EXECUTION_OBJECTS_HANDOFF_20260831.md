@@ -16,6 +16,9 @@ approval, signature, or transaction.
 
 ## Frozen objects
 
+- The successor corrects automatic rollback scope to the exact P0-304
+  six-path namespace. It never inherits a prior deployment namespace's cleanup
+  authority.
 - `apps/finance/evidence/finance-p0304-execution-objects-request-20260831.json`
   binds all objects and the unique namespace.
 - `apps/finance/evidence/finance-p0304-unsigned-lease-stdin-candidate-20260831.json`
