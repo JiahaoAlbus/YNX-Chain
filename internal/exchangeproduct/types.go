@@ -91,6 +91,19 @@ type Market struct {
 	Status        string `json:"status"`
 }
 
+// SourceMetadata travels with every Exchange read model. It distinguishes a
+// truthful local/Testnet read from a deployable multi-instance public venue.
+type SourceMetadata struct {
+	Authority      string    `json:"authority"`
+	Version        string    `json:"version"`
+	AsOf           time.Time `json:"asOf"`
+	Classification string    `json:"classification"`
+	Status         string    `json:"status"`
+	Coverage       string    `json:"coverage"`
+	StateBackend   string    `json:"stateBackend"`
+	MultiInstance  bool      `json:"multiInstance"`
+}
+
 type AssetNetwork struct {
 	Asset                      string `json:"asset"`
 	Network                    string `json:"network"`
@@ -292,7 +305,8 @@ type AuditEvent struct {
 }
 
 type OrderBook struct {
-	Market string  `json:"market"`
-	Bids   []Order `json:"bids"`
-	Asks   []Order `json:"asks"`
+	Market         string         `json:"market"`
+	Bids           []Order        `json:"bids"`
+	Asks           []Order        `json:"asks"`
+	SourceMetadata SourceMetadata `json:"sourceMetadata"`
 }

@@ -81,11 +81,11 @@ func (s *Server) config(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{"chainId": ChainID, "evmChainId": EVMChainID, "nativeAsset": NativeAsset, "custodyAddress": s.service.state.CustodyAddress, "networks": s.service.Networks(), "integrations": s.service.Integrations(), "warnings": []string{"Not an exchange listing", "Not production custody", "No third-party liquidity, price, volume or market depth"}})
 }
 func (s *Server) markets(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, 200, map[string]any{"markets": Markets(), "source": "YNX-owned deterministic order state only"})
+	writeJSON(w, 200, map[string]any{"markets": Markets(), "source": "YNX-owned deterministic order state only", "sourceMetadata": s.service.readSource("market-catalog")})
 }
 func (s *Server) book(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, s.service.Book()) }
 func (s *Server) marketTrades(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, 200, map[string]any{"market": DefaultMarket, "source": "YNX-owned deterministic matched trades only", "externalPrice": false, "trades": s.service.PublicTrades(1000)})
+	writeJSON(w, 200, map[string]any{"market": DefaultMarket, "source": "YNX-owned deterministic matched trades only", "sourceMetadata": s.service.readSource("matched-trades"), "externalPrice": false, "trades": s.service.PublicTrades(1000)})
 }
 func (s *Server) account(w http.ResponseWriter, r *http.Request) {
 	session, ok := s.auth(w, r, "exchange:read")

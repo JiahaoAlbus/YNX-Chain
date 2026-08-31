@@ -143,6 +143,24 @@ func (s *Service) StorageStatus() (backend string, multiInstance bool) {
 	return s.store.backend(), s.store.multiInstance()
 }
 
+func (s *Service) readSource(coverage string) SourceMetadata {
+	backend, multiInstance := s.StorageStatus()
+	status := "live"
+	if !multiInstance {
+		status = "degraded_single_host"
+	}
+	return SourceMetadata{
+		Authority:      "YNX-owned deterministic order state",
+		Version:        "exchange-public-state-v1",
+		AsOf:           s.cfg.Now().UTC(),
+		Classification: "testnet",
+		Status:         status,
+		Coverage:       coverage,
+		StateBackend:   backend,
+		MultiInstance:  multiInstance,
+	}
+}
+
 func (s *Service) Integrations() IntegrationStatus {
 	status := IntegrationStatus{Gateway: "unavailable", GatewayReason: "Central Gateway route and Exchange scope registration are not configured", WalletRegistry: "pending_registration", Custody: "unavailable", Indexer: "unavailable", CrossChain: "unavailable"}
 	if s.cfg.GatewayURL != "" && s.cfg.GatewayClientID != "" {
@@ -724,7 +742,7 @@ func (s *Service) releaseOrderReserveLocked(o *Order) {
 func (s *Service) Book() OrderBook {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	book := OrderBook{Market: DefaultMarket, Bids: []Order{}, Asks: []Order{}}
+	book := OrderBook{Market: DefaultMarket, Bids: []Order{}, Asks: []Order{}, SourceMetadata: s.readSource("open-orders-price-time-priority")}
 	for _, o := range s.state.Orders {
 		if o.Market == DefaultMarket && (o.Status == "open" || o.Status == "partially_filled") {
 			if o.Side == "buy" {
@@ -740,6 +758,7 @@ func (s *Service) Book() OrderBook {
 }
 
 type AccountSnapshot struct {
+	SourceMetadata SourceMetadata   `json:"sourceMetadata"`
 	Balances       []Balance        `json:"balances"`
 	Ledger         []LedgerEntry    `json:"ledger"`
 	DepositIntents []DepositIntent  `json:"depositIntents"`
@@ -757,7 +776,7 @@ type AccountSnapshot struct {
 func (s *Service) Snapshot(account string) AccountSnapshot {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	r := AccountSnapshot{Balances: []Balance{s.balanceLocked(account, NativeAsset), s.balanceLocked(account, QuoteAsset)}, Ledger: []LedgerEntry{}, DepositIntents: []DepositIntent{}, Orders: []Order{}, Trades: []Trade{}, Fees: []FeeRecord{}, Deposits: []Deposit{}, Withdrawals: []Withdrawal{}, Security: s.securityLocked(account), Support: []SupportCase{}, AI: []AIRecord{}, Audit: []AuditEvent{}}
+	r := AccountSnapshot{SourceMetadata: s.readSource("account-ledger-orders-trades-fees-audit"), Balances: []Balance{s.balanceLocked(account, NativeAsset), s.balanceLocked(account, QuoteAsset)}, Ledger: []LedgerEntry{}, DepositIntents: []DepositIntent{}, Orders: []Order{}, Trades: []Trade{}, Fees: []FeeRecord{}, Deposits: []Deposit{}, Withdrawals: []Withdrawal{}, Security: s.securityLocked(account), Support: []SupportCase{}, AI: []AIRecord{}, Audit: []AuditEvent{}}
 	for _, v := range s.state.Ledger {
 		if v.Account == account {
 			r.Ledger = append(r.Ledger, v)

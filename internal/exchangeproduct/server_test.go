@@ -71,3 +71,24 @@ func TestReadyAcceptsMultiInstanceDurableStore(t *testing.T) {
 		t.Fatalf("durable backend readiness was not reported: %+v", body)
 	}
 }
+
+func TestPublicReadsDiscloseSourceCoverageAndFileBackendDegradation(t *testing.T) {
+	service, _, _ := newTestService(t)
+	server := NewServer(service)
+	for _, path := range []string{"/v1/markets", "/v1/orderbook", "/v1/market-data/trades"} {
+		response := httptest.NewRecorder()
+		server.ServeHTTP(response, httptest.NewRequest(http.MethodGet, path, nil))
+		if response.Code != http.StatusOK {
+			t.Fatalf("path=%s status=%d body=%s", path, response.Code, response.Body.String())
+		}
+		var body struct {
+			SourceMetadata SourceMetadata `json:"sourceMetadata"`
+		}
+		if err := json.NewDecoder(response.Body).Decode(&body); err != nil {
+			t.Fatal(err)
+		}
+		if body.SourceMetadata.Authority != "YNX-owned deterministic order state" || body.SourceMetadata.Classification != "testnet" || body.SourceMetadata.Status != "degraded_single_host" || body.SourceMetadata.MultiInstance || body.SourceMetadata.Coverage == "" || body.SourceMetadata.AsOf.IsZero() {
+			t.Fatalf("path=%s invalid source metadata: %+v", path, body.SourceMetadata)
+		}
+	}
+}
