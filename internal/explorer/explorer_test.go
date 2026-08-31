@@ -191,6 +191,7 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 		"downloadProducts",
 		"dataChartCopy",
 		"governancePanels",
+		"documentationUI",
 		"developerUI",
 		"code-sample",
 		"walletListenerProviders",
