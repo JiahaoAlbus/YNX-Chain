@@ -67,6 +67,21 @@ describe("YNX DEX consensus product shell", () => {
       ).toBeInTheDocument(),
     );
   });
+  it("automatically reloads the read-only snapshot after the browser reconnects", async () => {
+    const reconnectFetch = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("network unavailable"))
+      .mockImplementation(nativeFetch());
+    vi.stubGlobal("fetch", reconnectFetch);
+    render(<App />);
+    expect(await screen.findByText(/network unavailable/)).toBeInTheDocument();
+    window.dispatchEvent(new Event("online"));
+    await waitFor(() => expect(reconnectFetch).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(screen.getByText("No executable route")).toBeInTheDocument(),
+    );
+    expect(screen.queryByText(/network unavailable/)).not.toBeInTheDocument();
+  });
   it("offers YNX Wallet, its official download and MetaMask while native signing remains separately gated", async () => {
     render(<App />);
     fireEvent.click(screen.getByRole("button", { name: "Connect Wallet" }));
