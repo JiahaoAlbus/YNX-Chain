@@ -141,7 +141,7 @@ SELECT
 }
 
 func erasuresFromQueryer(ctx context.Context, queryer sqlQueryer) ([]datafabric.ErasureRecord, error) {
-	rows, err := queryer.QueryContext(ctx, `SELECT account_pseudonym,audit_id,requested_at,status,operational_records,financial_records_retained,audit_records_retained,legal_hold_records_retained FROM ynx_fabric.erasure_requests ORDER BY requested_at,account_pseudonym`)
+	rows, err := queryer.QueryContext(ctx, `SELECT r.account_pseudonym,r.audit_id,r.requested_at,r.status,r.operational_records,r.financial_records_retained,r.audit_records_retained,r.legal_hold_records_retained,COALESCE(d.derived_analytics_deleted,0),COALESCE(d.deletion_receipt,'') FROM ynx_fabric.erasure_requests r LEFT JOIN ynx_fabric.erasure_deletion_receipts d USING (account_pseudonym) ORDER BY r.requested_at,r.account_pseudonym`)
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +149,7 @@ func erasuresFromQueryer(ctx context.Context, queryer sqlQueryer) ([]datafabric.
 	var records []datafabric.ErasureRecord
 	for rows.Next() {
 		var record datafabric.ErasureRecord
-		if err := rows.Scan(&record.AccountPseudonym, &record.AuditID, &record.RequestedAt, &record.Status, &record.Operational, &record.Financial, &record.Audit, &record.LegalHold); err != nil {
+		if err := rows.Scan(&record.AccountPseudonym, &record.AuditID, &record.RequestedAt, &record.Status, &record.Operational, &record.Financial, &record.Audit, &record.LegalHold, &record.DerivedAnalyticsDeleted, &record.DeletionReceipt); err != nil {
 			return nil, err
 		}
 		record.RequestedAt = record.RequestedAt.UTC()

@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-const storeSchemaVersion = 3
+const storeSchemaVersion = 4
 
 type OutboxRecord struct {
 	EventID      string    `json:"eventId"`
@@ -110,6 +110,17 @@ func OpenStore(path string) (*Store, error) {
 	}
 	if s.state.ErasureRequests == nil {
 		s.state.ErasureRequests = map[string]ErasureRecord{}
+		migrated = true
+	}
+	for pseudonym, record := range s.state.ErasureRequests {
+		if record.DeletionReceipt != "" {
+			continue
+		}
+		bound, err := BindErasureDeletionReceipt(record, 0)
+		if err != nil {
+			return nil, fmt.Errorf("migrate privacy erasure record: %w", err)
+		}
+		s.state.ErasureRequests[pseudonym] = bound
 		migrated = true
 	}
 	if s.state.RedeliveryRuns == nil {

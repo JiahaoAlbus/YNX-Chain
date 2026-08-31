@@ -75,10 +75,25 @@ func (s *Store) RecordErasure(ctx context.Context, accountID, auditID string, pr
 		if !exists {
 			return datafabric.ErasureRecord{}, errors.New("erasure conflict exists but record is unreadable")
 		}
+		if err := datafabric.ValidateErasureRecord(existing); err != nil {
+			return datafabric.ErasureRecord{}, errors.New("existing erasure request has no valid deletion receipt")
+		}
 		return existing, datafabric.ErrDuplicate
 	}
-	if _, err := tx.ExecContext(ctx, `DELETE FROM ynx_analytics.event_facts WHERE account_pseudonym=$1`, record.AccountPseudonym); err != nil {
+	deleted, err := tx.ExecContext(ctx, `DELETE FROM ynx_analytics.event_facts WHERE account_pseudonym=$1`, record.AccountPseudonym)
+	if err != nil {
 		return datafabric.ErasureRecord{}, errors.New("delete subject analytics projection")
+	}
+	deletedCount, err := deleted.RowsAffected()
+	if err != nil || deletedCount < 0 {
+		return datafabric.ErasureRecord{}, errors.New("count deleted subject analytics projection")
+	}
+	record, err = datafabric.BindErasureDeletionReceipt(record, uint64(deletedCount))
+	if err != nil {
+		return datafabric.ErasureRecord{}, err
+	}
+	if _, err := tx.ExecContext(ctx, `INSERT INTO ynx_fabric.erasure_deletion_receipts(account_pseudonym,audit_id,requested_at,derived_analytics_deleted,deletion_receipt) VALUES ($1,$2,$3,$4,$5)`, record.AccountPseudonym, record.AuditID, record.RequestedAt, record.DerivedAnalyticsDeleted, record.DeletionReceipt); err != nil {
+		return datafabric.ErasureRecord{}, errors.New("record subject analytics deletion receipt")
 	}
 	if err := tx.Commit(); err != nil {
 		return datafabric.ErasureRecord{}, err
@@ -102,7 +117,7 @@ func (s *Store) ErasureRecords(ctx context.Context) ([]datafabric.ErasureRecord,
 
 func erasureRecord(ctx context.Context, queryer sqlQueryer, pseudonym string) (datafabric.ErasureRecord, bool, error) {
 	var record datafabric.ErasureRecord
-	err := queryer.QueryRowContext(ctx, `SELECT account_pseudonym,audit_id,requested_at,status,operational_records,financial_records_retained,audit_records_retained,legal_hold_records_retained FROM ynx_fabric.erasure_requests WHERE account_pseudonym=$1`, pseudonym).Scan(&record.AccountPseudonym, &record.AuditID, &record.RequestedAt, &record.Status, &record.Operational, &record.Financial, &record.Audit, &record.LegalHold)
+	err := queryer.QueryRowContext(ctx, `SELECT r.account_pseudonym,r.audit_id,r.requested_at,r.status,r.operational_records,r.financial_records_retained,r.audit_records_retained,r.legal_hold_records_retained,COALESCE(d.derived_analytics_deleted,0),COALESCE(d.deletion_receipt,'') FROM ynx_fabric.erasure_requests r LEFT JOIN ynx_fabric.erasure_deletion_receipts d USING (account_pseudonym) WHERE r.account_pseudonym=$1`, pseudonym).Scan(&record.AccountPseudonym, &record.AuditID, &record.RequestedAt, &record.Status, &record.Operational, &record.Financial, &record.Audit, &record.LegalHold, &record.DerivedAnalyticsDeleted, &record.DeletionReceipt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return datafabric.ErasureRecord{}, false, nil
 	}

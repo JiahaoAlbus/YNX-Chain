@@ -461,12 +461,12 @@ func TestPostgresErasureCountsAndSuppressionRecordCommitTogether(t *testing.T) {
 	connection.envelope, _ = json.Marshal(event)
 	now := time.Now().UTC()
 	record, err := store.RecordErasure(context.Background(), event.Actor.AccountID, "audit.erase.0001", postgresTestKey, now)
-	if err != nil || record.Financial != 1 || record.Operational != 0 {
+	if err != nil || record.Financial != 1 || record.Operational != 0 || record.DerivedAnalyticsDeleted != 1 || len(record.DeletionReceipt) != 64 {
 		t.Fatalf("erasure record failed: record=%+v err=%v", record, err)
 	}
 	connection.mu.Lock()
 	defer connection.mu.Unlock()
-	if !connection.committed || len(connection.execs) != 2 || !strings.Contains(connection.execs[0], "erasure_requests") || !strings.Contains(connection.execs[1], "ynx_analytics.event_facts") {
+	if !connection.committed || len(connection.execs) != 3 || !strings.Contains(connection.execs[0], "erasure_requests") || !strings.Contains(connection.execs[1], "ynx_analytics.event_facts") || !strings.Contains(connection.execs[2], "erasure_deletion_receipts") {
 		t.Fatalf("erasure suppression record was not committed: %+v", connection)
 	}
 }

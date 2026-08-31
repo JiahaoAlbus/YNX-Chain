@@ -136,7 +136,7 @@ func AuditRecords(keys map[string][]byte, eventRecords []EventEnvelope, outboxRe
 	for _, record := range erasures {
 		pseudonym := record.AccountPseudonym
 		decoded, err := hex.DecodeString(pseudonym)
-		if seenPseudonyms[pseudonym] || err != nil || len(decoded) != sha256.Size || !idPattern.MatchString(record.AuditID) || record.RequestedAt.IsZero() || record.RequestedAt.Location() != time.UTC || record.Status != "analytics-suppressed-authoritative-retention-applied" {
+		if seenPseudonyms[pseudonym] || err != nil || len(decoded) != sha256.Size || ValidateErasureRecord(record) != nil {
 			return errors.New("privacy erasure record is invalid")
 		}
 		seenPseudonyms[pseudonym] = true
