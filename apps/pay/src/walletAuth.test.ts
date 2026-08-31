@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import {paymentIntent,paymentIntentDigest} from './walletAuth';
 import {assertPayConsumerContract} from './endpoint-manifest';
 import {createStandardWalletConnectState,reduceStandardWalletConnectState,STANDARD_WALLET_RPC_PROBE,STANDARD_WALLET_RPC_PROBE_TRANSPORT} from '../node_modules/@ynx-chain/wallet-auth/src/standard-wallet-connect-state.js';
+import * as routerCoordinator from '@ynx-chain/wallet-auth/wallet-connection-coordinator';
 
 test('Pay keeps payment quotes preview-bound while its product endpoint is pending',()=>{
   const intent=paymentIntent({requestId:'payment_request_abcdefghijklmnop',sessionBinding:'a'.repeat(64),invoiceId:'inv_'+'a'.repeat(20),centralInvoiceId:'abcdef0123456789abcdef01',merchantId:'mrc_'+'b'.repeat(20),merchantName:'Merchant',payoutAddress:'ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80',amount:12,asset:'YNXT',fee:1,total:13,quoteIssuedAt:'2026-08-21T00:00:00.000Z',quoteExpiresAt:'2026-08-21T00:03:00.000Z',invoiceSignature:'c'.repeat(128)});
@@ -72,4 +73,13 @@ test('Pay Standard Wallet details, account switch, and disconnect remain reducer
   assert.equal(state.account,second);
   state=reduceStandardWalletConnectState(state,{type:'CHAIN_CHANGED',chainId:'0x1917'});
   assert.equal(state.status,'connected');assert.equal(state.providerKind,'metamask');
+});
+
+test('Pay consumes the public Router coordinator handoff without copying callback or opener logic',()=>{
+  assert.equal(typeof routerCoordinator.WalletConnectionCoordinator,'function');
+  assert.equal(routerCoordinator.WALLET_CONNECTION_COORDINATOR_STATUS.WALLET_OPENED,'wallet-opened');
+  const wallet=readFileSync(new URL('./wallet.ts',import.meta.url),'utf8');
+  assert.match(wallet,/@ynx-chain\/wallet-auth\/wallet-connection-coordinator/);
+  assert.match(wallet,/23c21054d8c86f245b77bffb2d03cecd2b3f80cf/);
+  assert.doesNotMatch(wallet,/wallet-connection-coordinator\.js/);
 });

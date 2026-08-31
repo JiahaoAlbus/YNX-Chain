@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "payWalletRouterHandoff@1.0.0-p0.0",
+  "ownerScope": ["apps/pay/**"],
+  "routerSource": {
+    "branch": "codex/wallet-session-router-recovery",
+    "commit": "23c21054d8c86f245b77bffb2d03cecd2b3f80cf",
+    "tree": "d478c3050bd62ba072e97de63c060abc882e87c1",
+    "parent": "cdf934a",
+    "surface": "@ynx-chain/wallet-auth/wallet-connection-coordinator"
+  },
+  "consumption": {
+    "vendoredArchive": "vendor/ynx-chain-wallet-auth-1.1.0-provider-connect-state-p0.tgz",
+    "archiveSha256": "7c1a67a13f4cd98cd435338d8b7b4430d501b0f3cbfe491a51adb50b11892a61",
+    "publicCoordinatorImported": true,
+    "localCallbackOrOpenerForked": false
+  },
+  "verification": {
+    "payUnitTests": {"passed": 20, "failed": 0},
+    "payTypecheck": "passed",
+    "routerPlanCommit": "875be208e8a7ddb60345d55b93fc299949664e5c",
+    "routerPlanTree": "3499ddfbe2a4bb08cbbcaef8c71b911aca51dde4",
+    "routerPlanGate": "passed for 12 registered products"
+  },
+  "truth": {
+    "sourceConsumption": true,
+    "providerApproval": false,
+    "providerRejection": false,
+    "chainAddSwitchReadback": false,
+    "refreshEventsDisconnect": false,
+    "installedCandidate": false,
+    "sourceBoundPublicLifecycle": false,
+    "productSessionActivated": false,
+    "signature": false,
+    "transaction": false
+  },
+  "boundary": "This source handoff does not authorize an account request, Wallet opener, callback invocation, signing, transaction, deployment, or completion claim."
+}

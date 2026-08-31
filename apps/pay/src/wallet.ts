@@ -2,6 +2,7 @@ import {DAppConnectError,StandardWalletConnection,classifyWalletError} from '@yn
 import {canonicalJSON} from '@ynx-chain/wallet-auth/src/canonical.js';
 import {launchCanonicalAuthorization} from '@ynx-chain/wallet-auth/src/authorize-launcher.js';
 import {parseAuthorizationCallbackURL,parseAuthorizationRequest} from '@ynx-chain/wallet-auth/src/protocol.js';
+import {WalletConnectionCoordinator,WALLET_CONNECTION_COORDINATOR_STATUS} from '@ynx-chain/wallet-auth/wallet-connection-coordinator';
 import {createStandardWalletConnectState,reduceStandardWalletConnectState,STANDARD_WALLET_CONNECT_STATUS,STANDARD_WALLET_RPC_PROBE_TRANSPORT} from '../node_modules/@ynx-chain/wallet-auth/src/standard-wallet-connect-state.js';
 import type {AuthorizationLaunchResult,AuthorizationRequest} from '@ynx-chain/wallet-auth';
 import * as SecureStore from 'expo-secure-store';
@@ -21,6 +22,8 @@ type DeviceDescriptor={id:string;key:string};
 type PaySecureDevice={descriptor:()=>Promise<DeviceDescriptor>;sign:(payload:string)=>Promise<string>};
 type PayAuthorizationCapabilities=Readonly<{device:DeviceDescriptor;resolver:(url:string)=>Promise<boolean>;openWallet:(url:string)=>Promise<Readonly<{opened:true}|{opened:false;code:string}>>}>;
 const CANONICAL_AUTHORIZATION_PENDING_KEY='ynx.pay.wallet-authorize.v1.pending';
+/** Pay consumes the public Router coordinator surface; callback and opener serialization remain Wallet/Auth-owned. */
+export const PAY_WALLET_ROUTER_HANDOFF=Object.freeze({sourceCommit:'23c21054d8c86f245b77bffb2d03cecd2b3f80cf',sourceTree:'d478c3050bd62ba072e97de63c060abc882e87c1',coordinator:WalletConnectionCoordinator.name,statuses:WALLET_CONNECTION_COORDINATOR_STATUS});
 let standardWalletState=createStandardWalletConnectState();
 const discoveredProviders=new Map<EIP1193Provider,PayWalletProvider>();
 
