@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "evidenceKind": "wallet-ios-physical-device-signing-candidate-preflight",
+  "observedAt": "2026-08-31T17:05:00+08:00",
+  "ownerBranch": "codex/wallet-ios-macos-20260813",
+  "source": {
+    "commit": "cfe4822f99614a38f76df383d9a4399df7f8bcbf",
+    "tree": "12af5b0fbdcf84bb7c7cf46f579423136fcf5abc",
+    "parent": "a2f4a89f538269ad3018bcd1758f873df94e7409",
+    "remoteExact": true,
+    "preflight": {
+      "path": "apps/wallet/ios/scripts/ios-device-candidate-preflight.rb",
+      "blob": "a987e346f37ef77f59b17217f5b5e7175d28153a",
+      "bytes": 6604,
+      "sha256": "b34c3f3c858358252351e7d98bf300309ee022577cd1ec26cfff44dfc8a55d43"
+    },
+    "tests": {
+      "path": "apps/wallet/ios/scripts/test-ios-device-candidate-preflight.sh",
+      "blob": "3eb7b5f365b446972f530467b3231f8c0651fe5f",
+      "bytes": 4139,
+      "sha256": "b81d2cf67db32058e66d89ef2eb9909739d674a25e8a7a47d8f09ec095673c69"
+    }
+  },
+  "localVerification": {
+    "rubySyntax": true,
+    "shellSyntax": true,
+    "fixtureTestsPassed": true,
+    "correctIdentitySimulatorRejectedAsPhysicalCandidate": true,
+    "unsignedDeviceShapedFixtureRejected": true,
+    "wrongBundleAndSchemeRejected": true,
+    "protectedEntitlementValuesRecorded": false,
+    "applicationInstalled": false,
+    "applicationLaunched": false,
+    "signingAttempted": false,
+    "runtimeLeaseRequested": false
+  },
+  "identityContract": {
+    "bundleIdentifier": "com.ynxweb4.wallet",
+    "customScheme": "ynxwallet",
+    "distinctFromMetaMask": true
+  },
+  "signingReadinessBoundary": {
+    "preflightRequiresPhysicalDevicePlatform": true,
+    "preflightRejectsSimulatorPlatform": true,
+    "preflightRequiresArm64": true,
+    "preflightRequiresStrictDeepCodesign": true,
+    "preflightRequiresEmbeddedProvisioningProfile": true,
+    "preflightRequiresApplicationIdentifierPresence": true,
+    "preflightRequiresTeamIdentifierPresence": true,
+    "preflightRequiresKeychainAccessGroupPresence": true,
+    "preflightRequiresApplicationGroupPresence": true,
+    "preflightOutputsProtectedEntitlementValues": false,
+    "activeProjectEntitlementHasApplicationGroupKey": false,
+    "alternateWalletConnectEntitlementFileHasApplicationGroupKey": true,
+    "protectedApplicationGroupBindingAuthorized": false
+  },
+  "boundedArtifactInspection": {
+    "runId": 32561814133,
+    "headSha": "8c38fa44c39eab242edc46e2156cfc813a00eba7",
+    "artifactId": 9473281728,
+    "artifactName": "ynx-wallet-ios-simulator",
+    "apiMetadataBytes": 112984629,
+    "apiDigest": "sha256:bef7d4abda404cc60bb01521e85f0d77ff52e1b14b7cb448e9aca2545756fea2",
+    "expired": false,
+    "directApiDownloadAttempted": true,
+    "directApiDownloadSemanticResult": "TLS_HANDSHAKE_FAILED",
+    "alternateCliDownloadAttempted": true,
+    "alternateCliDownloadSemanticResult": "TLS_HANDSHAKE_FAILED",
+    "downloadedBytes": 0,
+    "artifactDownloadInspected": false,
+    "artifactIdentityPromoted": false,
+    "note": "The metadata describes a Simulator artifact and cannot prove a signed physical-device candidate even if a later download succeeds."
+  },
+  "hostedVerification": {
+    "runId": 33375499879,
+    "jobId": 99435955927,
+    "headSha": "cfe4822f99614a38f76df383d9a4399df7f8bcbf",
+    "statusAtEvidenceCreation": "IN_PROGRESS",
+    "hostedPreflightVerified": false,
+    "physicalDeviceVerified": false,
+    "productionSigningVerified": false
+  },
+  "networkAndRuntimeScope": {
+    "cosmosChainId": "ynx_6423-1",
+    "evmChainIdDecimal": 6423,
+    "evmChainIdHex": "0x1917",
+    "chain9102Allowed": false,
+    "realReownProjectIdPresent": false,
+    "realRelayPairingVerified": false,
+    "installedWalletConnectRuntimeVerified": false
+  },
+  "gates": {
+    "appleSignedAppGroupAndKeychainSignerAvailable": false,
+    "eligibleSignedIosTargetAvailable": false,
+    "eligibleSignedMacosTargetAvailable": false,
+    "runtimeLeaseIssued": false,
+    "physicalIosInstallVerified": false,
+    "productionSigned": false,
+    "publicNativeWalletPublished": false,
+    "walletConnectRelay": false,
+    "walletConnectPairing": false,
+    "walletConnectApproveReject": false,
+    "walletConnectSessionRestore": false,
+    "walletConnectPersonalSign": false,
+    "walletConnectEip712": false,
+    "walletConnectTestnetSend": false,
+    "walletConnectDisconnectRevoke": false
+  }
+}
