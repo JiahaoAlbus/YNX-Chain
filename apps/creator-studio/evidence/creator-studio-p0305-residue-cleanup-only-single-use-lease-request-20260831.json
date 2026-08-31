@@ -1,0 +1,109 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "owner": "creator-studio-deploy-owner",
+  "requestType": "WHOLLY_NEW_IDENTITY_BOUND_CREATOR_P0305_RESIDUE_CLEANUP_ONLY",
+  "implementation": {
+    "commit": "a348d1c251cd0b7fb0fcd7611e3f61b2147871b5",
+    "tree": "8b4e24b4073d9ab43badf07f251219be00c16183",
+    "parent": "cce7e4016a6f1fd9413799d42c06578ed7707357",
+    "path": "apps/creator-studio/release-residue-cleanup-3f97a13d.mjs",
+    "bytes": 14170,
+    "sha256": "21b72131b606da88baf2670c1e5d9bdd5e5f8d59f4d8a059b3b52f62ba1ee023"
+  },
+  "authoritativeInspection": {
+    "centralCommit": "b93ff7da8250dd081575639465aaae03fc30cc2e",
+    "centralTree": "b88128e00c0edeec79d1058963c9f018309510b8",
+    "taskId": "P0-306",
+    "status": "CONSUMED_RELEASED_SUCCESS_CREATOR_P0306_EMERGENCY_ZERO_WRITE_STATE_KNOWN_OLD_RUNTIME_ACTIVE_RESIDUES_RETAINED",
+    "mutationCount": 0,
+    "recoveryRequired": "WHOLLY_NEW_IDENTITY_BOUND_CREATOR_P0305_RESIDUE_CLEANUP_ONLY"
+  },
+  "cleanupScope": {
+    "deleteOnly": [
+      "/opt/ynx-creator-studio-wallet/receipts/upgrade-3f97a13d.json",
+      "/opt/ynx-creator-studio-wallet/releases/creator-studio-3f97a13d",
+      "/opt/ynx-release-control-plane/creator-studio-3f97a13d"
+    ],
+    "mustRemainAbsent": [
+      "/opt/ynx-release-control-plane/creator-studio-3f97a13d.next",
+      "/opt/ynx-creator-studio-wallet/releases/creator-studio-3f97a13d.next",
+      "/opt/ynx-creator-studio-wallet/current.next-3f97a13d",
+      "/opt/ynx-creator-studio-wallet/receipts/upgrade-3f97a13d.json.next"
+    ],
+    "serviceLifecycleActions": 0,
+    "currentSymlinkMutations": 0,
+    "publicMutations": 0
+  },
+  "canonicalInput": {
+    "bytes": 547,
+    "sha256": "b3a0884811c3304996bde022408c4bd7474077cfef87c7f0c39be5f44d69078a",
+    "base64": "eyJzY2hlbWFWZXJzaW9uIjoiMS4wLjAiLCJhY3Rpb24iOiJDUkVBVE9SX1AwMzA1X1JFU0lEVUVfQ0xFQU5VUF9PTkxZIiwiY29udHJvbFR1cGxlIjoiNjQ3NzA6MTQ4MzgzMDowOjA6NzAwOjM6NDA5NjpkaXJlY3RvcnkiLCJjYW5kaWRhdGVUdXBsZSI6IjY0NzcwOjE0ODM5MTg6OTk1Ojk4Njo3NTU6NDo0MDk2OmRpcmVjdG9yeSIsImN1cnJlbnRUdXBsZSI6IjY0NzcwOjE0ODM5NTE6MDowOjc3NzoxOjYzOnN5bWJvbGljIGxpbmsiLCJvbGRSZWxlYXNlVHVwbGUiOiI2NDc3MDoxNDgzODc3Ojk5NTo5ODY6NzU1OjQ6NDA5NjpkaXJlY3RvcnkiLCJmb3J3YXJkUmVjZWlwdFR1cGxlIjoiNjQ3NzA6MTQ4MzkwOTowOjA6NjAwOjE6ODI1MDA6cmVndWxhciBmaWxlIiwiZm9yd2FyZFJlY2VpcHRTaGEyNTYiOiIwM2I0YjM4YWZiYmEzZDFlZjIyNjdjYTZlOWJhMmVjNzYxMmRjYTI1NTcxM2ZkNTE4Mzc2ZTAzMTNmMmY1ZGM1IiwiY3JlYXRvclBpZCI6Mjc0Nzg0NCwiY3JlYXRvck5SZXN0YXJ0cyI6MCwiYXBpUGlkIjozMTA4MjEwLCJ2aWV3ZXJQaWQiOjIxNTk1MzZ9Cg=="
+  },
+  "requestedExecution": {
+    "executor": "release-control-plane",
+    "runtimeHost": "43.153.202.237",
+    "attemptLimit": 1,
+    "retryAllowed": false,
+    "stdin": {
+      "path": "apps/creator-studio/release-residue-cleanup-3f97a13d.mjs",
+      "bytes": 14170,
+      "sha256": "21b72131b606da88baf2670c1e5d9bdd5e5f8d59f4d8a059b3b52f62ba1ee023"
+    },
+    "remoteArgv": [
+      "/usr/bin/sudo",
+      "-n",
+      "/usr/bin/node",
+      "--input-type=module",
+      "-",
+      "cleanup",
+      "eyJzY2hlbWFWZXJzaW9uIjoiMS4wLjAiLCJhY3Rpb24iOiJDUkVBVE9SX1AwMzA1X1JFU0lEVUVfQ0xFQU5VUF9PTkxZIiwiY29udHJvbFR1cGxlIjoiNjQ3NzA6MTQ4MzgzMDowOjA6NzAwOjM6NDA5NjpkaXJlY3RvcnkiLCJjYW5kaWRhdGVUdXBsZSI6IjY0NzcwOjE0ODM5MTg6OTk1Ojk4Njo3NTU6NDo0MDk2OmRpcmVjdG9yeSIsImN1cnJlbnRUdXBsZSI6IjY0NzcwOjE0ODM5NTE6MDowOjc3NzoxOjYzOnN5bWJvbGljIGxpbmsiLCJvbGRSZWxlYXNlVHVwbGUiOiI2NDc3MDoxNDgzODc3Ojk5NTo5ODY6NzU1OjQ6NDA5NjpkaXJlY3RvcnkiLCJmb3J3YXJkUmVjZWlwdFR1cGxlIjoiNjQ3NzA6MTQ4MzkwOTowOjA6NjAwOjE6ODI1MDA6cmVndWxhciBmaWxlIiwiZm9yd2FyZFJlY2VpcHRTaGEyNTYiOiIwM2I0YjM4YWZiYmEzZDFlZjIyNjdjYTZlOWJhMmVjNzYxMmRjYTI1NTcxM2ZkNTE4Mzc2ZTAzMTNmMmY1ZGM1IiwiY3JlYXRvclBpZCI6Mjc0Nzg0NCwiY3JlYXRvck5SZXN0YXJ0cyI6MCwiYXBpUGlkIjozMTA4MjEwLCJ2aWV3ZXJQaWQiOjIxNTk1MzZ9Cg=="
+    ],
+    "sshPolicy": "Central must bind the existing protected identity reference without exposing it and freeze the complete literal local argv in the lease. The executor source bytes are the exact SSH stdin."
+  },
+  "prewriteGates": [
+    "fresh Central lease is remote exact, unexpired, owner and Heavy locks bind Creator only",
+    "all tuples, receipt SHA/status, PIDs/NRestarts and ports still equal canonicalInput",
+    "control inventory and every placed object are exact and substitution-free",
+    "candidate manifest, complete file inventory and every file SHA are exact",
+    "current remains the old 0e1a53c5 release, unit hash and all five public old-runtime hashes remain exact",
+    "all four next/stage paths remain absent"
+  ],
+  "terminalGates": [
+    "all three exact cleanup targets absent",
+    "all four next/stage paths absent",
+    "current, old release, unit, Creator/API/Viewer PIDs and NRestarts unchanged",
+    "all five public old-runtime hashes unchanged",
+    "service lifecycle action count zero",
+    "a separate Central zero-write readback is required before Heavy release"
+  ],
+  "fixtureEvidence": {
+    "command": "node apps/creator-studio/release-residue-cleanup-3f97a13d.mjs fixture",
+    "passed": true,
+    "substitutionRejected": true,
+    "inventoryBound": true,
+    "oldRuntimeBoundBeforeAndAfter": true,
+    "serviceLifecycleActions": 0,
+    "terminalAbsence": true
+  },
+  "forbidden": [
+    "old P0-305 rollback or forward argv",
+    "blind or unbounded cleanup",
+    "service restart stop start reload or daemon-reload",
+    "current symlink or old release mutation",
+    "API Viewer unit Caddy shared-current or public mutation",
+    "remote temporary files",
+    "retry",
+    "Wallet account request",
+    "signature",
+    "typed data",
+    "transaction"
+  ],
+  "truthBoundary": {
+    "sourceOnly": true,
+    "sshExecuted": false,
+    "productionMutation": false,
+    "cleanupComplete": false,
+    "publicRuntimeChanged": false
+  }
+}
