@@ -156,16 +156,18 @@ func (s *Server) stream(w http.ResponseWriter, r *http.Request) {
 	defer connection.Close()
 	s.metrics.activeWebSockets.Add(1)
 	defer s.metrics.activeWebSockets.Add(^uint64(0))
+	snapshot := s.service.Snapshot()
 	connection.SetWriteDeadline(time.Now().Add(5 * time.Second))
 	if err := connection.WriteJSON(map[string]any{
-		"type":       "snapshot",
-		"requestId":  requestID(r),
-		"traceId":    traceID(r),
-		"source":     s.service.StorageSource(),
-		"asOf":       time.Now().UTC(),
-		"version":    Version,
-		"confidence": "authoritative",
-		"data":       s.service.Snapshot(),
+		"type":           "snapshot",
+		"requestId":      requestID(r),
+		"traceId":        traceID(r),
+		"source":         snapshot["source"],
+		"asOf":           snapshot["asOf"],
+		"version":        Version,
+		"confidence":     "authoritative",
+		"sourceMetadata": snapshot["sourceMetadata"],
+		"data":           snapshot,
 	}); err != nil {
 		return
 	}

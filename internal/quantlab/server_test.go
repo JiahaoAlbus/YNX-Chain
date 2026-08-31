@@ -70,6 +70,32 @@ func TestHealthAndVersionDiscloseFilesystemSnapshotIsNotMultiInstance(t *testing
 	}
 }
 
+func TestSnapshotDisclosesSourceCoverageAndSingleHostDegradation(t *testing.T) {
+	s, err := New(Config{StatePath: filepath.Join(t.TempDir(), "s.json")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := httptest.NewServer(NewServer(s))
+	defer server.Close()
+	response, err := server.Client().Get(server.URL + "/v1/snapshot")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	var payload struct {
+		SourceMetadata SnapshotSourceMetadata `json:"sourceMetadata"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
+		t.Fatal(err)
+	}
+	if response.StatusCode != http.StatusOK || payload.SourceMetadata.Source != "ynx-quant-authoritative-local-state" || payload.SourceMetadata.Classification != "testnet" || payload.SourceMetadata.Status != "degraded_single_host" || payload.SourceMetadata.Coverage == "" || payload.SourceMetadata.AsOf.IsZero() {
+		t.Fatalf("status=%d metadata=%+v", response.StatusCode, payload.SourceMetadata)
+	}
+	if multiInstance, _ := payload.SourceMetadata.Storage["multiInstance"].(bool); multiInstance {
+		t.Fatalf("filesystem snapshot overclaimed multi-instance state: %+v", payload.SourceMetadata.Storage)
+	}
+}
+
 func TestReadyRejectsFilesystemSnapshotForDeployableQuantService(t *testing.T) {
 	s, err := New(Config{StatePath: filepath.Join(t.TempDir(), "s.json")})
 	if err != nil {

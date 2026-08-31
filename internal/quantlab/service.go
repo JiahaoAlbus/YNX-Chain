@@ -296,6 +296,17 @@ type Service struct {
 	store stateStore
 }
 
+type SnapshotSourceMetadata struct {
+	Source         string         `json:"source"`
+	AsOf           time.Time      `json:"asOf"`
+	Version        string         `json:"version"`
+	Classification string         `json:"classification"`
+	Status         string         `json:"status"`
+	Confidence     string         `json:"confidence"`
+	Coverage       string         `json:"coverage"`
+	Storage        map[string]any `json:"storage"`
+}
+
 // StorageStatus describes the persistence contract that this Service is
 // actually running. The file snapshot is durable across a process restart and
 // guarded against concurrent writers on one shared filesystem, but it is not
@@ -322,6 +333,27 @@ func (s *Service) StorageSource() string {
 		return "ynx-quant-authoritative-postgresql-state"
 	}
 	return "ynx-quant-authoritative-local-state"
+}
+
+func (s *Service) snapshotSourceMetadata(status string) SnapshotSourceMetadata {
+	storage := s.StorageStatus()
+	if status == "" {
+		if multiInstance, _ := storage["multiInstance"].(bool); multiInstance {
+			status = "live"
+		} else {
+			status = "degraded_single_host"
+		}
+	}
+	return SnapshotSourceMetadata{
+		Source:         s.StorageSource(),
+		AsOf:           s.cfg.Now().UTC(),
+		Version:        Version,
+		Classification: "testnet",
+		Status:         status,
+		Confidence:     "authoritative-for-quant-owned-persisted-state",
+		Coverage:       "local-research-paper-and-bounded-testnet-records",
+		Storage:        storage,
+	}
 }
 
 func New(cfg Config) (*Service, error) {
@@ -1056,6 +1088,10 @@ func (s *Service) Snapshot() map[string]any {
 	if refreshErr != nil {
 		failure = map[string]string{"code": "state_refresh_failed", "message": "authoritative state is temporarily unavailable"}
 	}
+	metadata := s.snapshotSourceMetadata("")
+	if refreshErr != nil {
+		metadata = s.snapshotSourceMetadata("unavailable")
+	}
 	publicOrders := make(map[string]TestnetOrder, len(s.state.TestnetOrders))
 	for id, order := range s.state.TestnetOrders {
 		order.WalletSignature = ""
@@ -1069,6 +1105,7 @@ func (s *Service) Snapshot() map[string]any {
 		"asOf":             s.cfg.Now(),
 		"version":          Version,
 		"coverage":         "local-research-paper-and-bounded-testnet-records",
+		"sourceMetadata":   metadata,
 		"failure":          failure,
 		"paper":            s.state.Paper,
 		"datasets":         s.state.Datasets,
