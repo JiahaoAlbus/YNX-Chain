@@ -54,14 +54,14 @@ umask 077
 set -C; exec 3> "$executor_pending"; set +C; executor_pending_created=true; executor_pending_identity=$(identity "$executor_pending")
 printf %s "$executor_b64" | base64 -d >&3; exec 3>&-; chmod 0700 "$executor_pending"
 test "$(identity "$executor_pending")" = "$executor_pending_identity"; executor_pending_tuple=$(ft "$executor_pending"); exact "$executor_pending" "$executor_pending_tuple" "$executor_sha" "$executor_bytes"
-mv -T -- "$executor_pending" "$executor"; executor_pending_created=false; executor_created=true; executor_post_tuple=$(ft "$executor")
+mv -T -- "$executor_pending" "$executor"; executor_pending_created=false; executor_created=true; test "$(identity "$executor")" = "$executor_pending_identity"; executor_post_tuple=$(ft "$executor")
 set -C; exec 4> "$lease_pending"; set +C; lease_pending_created=true; lease_pending_identity=$(identity "$lease_pending")
 cat >&4; exec 4>&-; chmod 0600 "$lease_pending"
 test "$(identity "$lease_pending")" = "$lease_pending_identity"; lease_pending_tuple=$(ft "$lease_pending"); exact "$lease_pending" "$lease_pending_tuple" "$lease_sha" "$lease_bytes"; jq -e . "$lease_pending" >/dev/null
 test "$(jq -r '.lease.signed' "$lease_pending")" = true
 test "$(jq -r '.lease.kind' "$lease_pending")" = FINANCE_ROLLBACK_FIRST_PRODUCTION_DEPLOYMENT
 test "$(jq -r '.lease.id' "$lease_pending")" = "$id"
-mv -T -- "$lease_pending" "$lease"; lease_pending_created=false; lease_created=true; lease_post_tuple=$(ft "$lease")
+mv -T -- "$lease_pending" "$lease"; lease_pending_created=false; lease_created=true; test "$(identity "$lease")" = "$lease_pending_identity"; lease_post_tuple=$(ft "$lease")
 
 # From this boundary forward retain the exact pair on every outcome. The deploy
 # executor owns first-failure rollback. A later Central-authorized manual

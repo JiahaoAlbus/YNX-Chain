@@ -32,7 +32,7 @@ for (const kind of ['truncated', 'hash', 'existing', 'symlink']) {
 {
   const x = fixture();
   const foreign = join(x.dir, 'foreign-archive'); writeFileSync(foreign, x.archive);
-  const move = 'chmod 0600 "$archive_pending"; mv -T -- "$archive_pending" "$archive"; archive_pending_created=false; archive_created=true; archive_identity=$(identity "$archive"); archive_sha=$(sha "$archive")';
+  const move = 'chmod 0600 "$archive_pending"; mv -T -- "$archive_pending" "$archive"; archive_pending_created=false; archive_created=true; archive_identity=$(identity "$archive"); test "$archive_identity" = "$archive_pending_identity"; archive_sha=$(sha "$archive")';
   const inject = 'chmod 0600 "$archive_pending"; mv -T -- "$archive_pending" "$archive"; archive_pending_created=false; rm "$archive"; ln -s "' + foreign + '" "$archive"; exit 73';
   let substituted = source.replace(move, inject);
   assert.notEqual(substituted, source, 'substitution fixture must patch the post-move boundary');

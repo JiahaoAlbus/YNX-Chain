@@ -54,7 +54,7 @@ cat >&3; exec 3>&-
 test "$(identity "$archive_pending")" = "$archive_pending_identity"
 test "$(bytes "$archive_pending")" = "$(get '.candidate.archive.bytes')"
 test "$(sha "$archive_pending")" = "$(get '.candidate.archive.sha256')"
-chmod 0600 "$archive_pending"; mv -T -- "$archive_pending" "$archive"; archive_pending_created=false; archive_created=true; archive_identity=$(identity "$archive"); archive_sha=$(sha "$archive")
+chmod 0600 "$archive_pending"; mv -T -- "$archive_pending" "$archive"; archive_pending_created=false; archive_created=true; archive_identity=$(identity "$archive"); test "$archive_identity" = "$archive_pending_identity"; archive_sha=$(sha "$archive")
 test -f "$archive" && test ! -L "$archive" && test "$(bytes "$archive")" = "$(get '.candidate.archive.bytes')" && test "$archive_sha" = "$(get '.candidate.archive.sha256')"
 set -C; exec 4> "$env_pending"; set +C; env_pending_created=true; env_pending_identity=$(identity "$env_pending")
 awk -v value="$release_web" 'BEGIN{count=0} /^YNX_FINANCE_WEB_DIR=/{print "YNX_FINANCE_WEB_DIR=" value;count++;next} {print} END{if(count!=1)exit 65}' "$env" >&4
@@ -62,7 +62,7 @@ exec 4>&-
 test "$(identity "$env_pending")" = "$env_pending_identity"
 chown "$(stat -Lc '%u:%g' "$env")" "$env_pending"; chmod "$(stat -Lc '%a' "$env")" "$env_pending"
 test "$(grep -c '^YNX_FINANCE_WEB_DIR=' "$env_pending")" = 1
-mv -T -- "$env_pending" "$candidate_env"; env_pending_created=false; env_created=true; env_identity=$(identity "$candidate_env"); env_sha=$(sha "$candidate_env")
+mv -T -- "$env_pending" "$candidate_env"; env_pending_created=false; env_created=true; env_identity=$(identity "$candidate_env"); test "$env_identity" = "$env_pending_identity"; env_sha=$(sha "$candidate_env")
 test -f "$candidate_env" && test ! -L "$candidate_env"
 expected=$(printf '%s\n%s\n' "$archive" "$candidate_env" | LC_ALL=C sort)
 observed=$(find "$carrier" -mindepth 1 -maxdepth 1 -print | LC_ALL=C sort)
