@@ -3,10 +3,10 @@
   "asOf": "2026-08-31",
   "owner": "explorer-monitor",
   "candidate": {
-    "sourceCommit": "1a5d23ee80b6f1f2cd149cf779ba79853fa09de4",
-    "sourceTree": "df8b55f5f7871fabb95d896909950d1279c50461",
+    "sourceCommit": "85e5f7da77eda91127b2b8847111ce4c6dc81b39",
+    "sourceTree": "82e5548626248262f3aecf7c0f7785eb3343b267",
     "pullRequest": "https://github.com/JiahaoAlbus/YNX-Chain/pull/107",
-    "artifactState": "unfrozen: the 0f23cedde artifacts predate removal of stale per-locale leaderboard coverage claims in 1a5d23ee and must not be deployed with this source; Central integration/deployment/production signing/public verification remain false"
+    "artifactState": "frozen locally in apps/monitor/evidence/explorer-monitor-85e5f7da7-artifact-freeze-20260831.json; Central integration/deployment/production signing/public verification remain false"
   },
   "stateDefinition": {
     "implementedLocal": "Owner source contains the behavior; this is not deployment evidence.",

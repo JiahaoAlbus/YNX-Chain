@@ -23,21 +23,19 @@
   dictionaries no longer retain a second, stale "full ledger when available"
   fallback: every locale gets leaderboard coverage wording from the one observed
   Indexer-participant source of truth.
-- `apps/monitor/evidence/explorer-monitor-0f23cedde-artifact-freeze-20260831.json`
-  is tied to predecessor source `0f23cedde15f04110219a2c8ce0c09d80f63d8cc`,
-  not this localization-truth successor. Its byte-identical artifacts—
+- `apps/monitor/evidence/explorer-monitor-85e5f7da7-artifact-freeze-20260831.json`
+  freezes all current-source artifacts with byte-identical rebuild evidence:
   `ynx-explorerd` SHA-256
-  `3c72070ae7fbc9afeb8e6db486916401cf7424eb2d1f5c25a0742241c07c639b`,
+  `8158ae80578d0f1d34d03d6d7065beba2f789d7e60441e4f3bbff1dd22dba3ec`,
   `ynx-indexerd` SHA-256
-  `9a88e5767e5fa0df26e7b304673283f1a3b2a9e06e5aa2cae4b0291713d900b6`,
+  `91aa40d63f10e72fdbf3a4c0da803dde5f96aedc94bd63b8f7ca71ae0f2184a4`,
   and deterministic Monitor release tree SHA-256
-  `70f8f54129bc03fc75d6f1e7547a2c60d2ec02c317dac23a64f068d438628d7b`.
-  —the former 8df3 artifact freeze, and every older artifact are forbidden from
-  deployment with `1a5d…`. A fresh coherent artifact freeze is required after
-  final current-source regression. No artifact record grants deployment
-  authority: Central must first bind exact successor hashes to a fresh
-  production/rollback baseline, remote CI readback and a new single-use lease.
-- Final local evidence for `1a5d…`: `go test -race ./internal/indexer
+  `3ca26c420732ca0e901b5329bf7f9170fa112589c0cc01450a8096eb39e5d96a`.
+  The former 0f23, 8df3 and every older artifact are forbidden from deployment
+  with `85e5…`. This record grants no deployment authority: Central must bind
+  these exact hashes to fresh production/rollback facts, remote CI and a new
+  single-use lease.
+- Final local evidence for `85e5…`: `go test -race ./internal/indexer
   ./internal/explorer -count=1` passes; Monitor `npm test` (55 application and
   10 script tests) and `npm run build` pass. `go test ./...` reaches
   unrelated pre-existing failures in `internal/bftgateway` and
