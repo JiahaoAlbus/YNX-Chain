@@ -427,12 +427,12 @@
     }
   ],
   "heavy": {
-    "owner": "video-readonly-inspector",
+    "owner": null,
     "taskId": "P0-312",
-    "status": "ACTIVE_SINGLE_USE_VIDEO_RETAINED_TAKEOVER_ZERO_WRITE_PREFLIGHT",
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_VIDEO_PREFLIGHT_SSH_AUTHENTICATION_DENIED",
     "acquiredAt": "2026-08-31T04:38:04Z",
     "expiresAt": "2026-08-31T04:53:04Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-31T04:43:40Z",
     "sourceCommit": "20e6005288de561a7bc7b223d7fa0ba684e887ab",
     "evidenceCommit": "20e6005288de561a7bc7b223d7fa0ba684e887ab",
     "runtimeHost": "43.153.202.237",
@@ -444,8 +444,8 @@
     "reusable": false,
     "previousOwner": null,
     "previousTaskId": "P0-311",
-    "reviewDecision": "P0312_VIDEO_ZERO_WRITE_PREFLIGHT_LEASE_ISSUED",
-    "reason": "P0-312 authorizes exactly one no-retry SSH inspection with exact inspector bytes on stdin. It permits no remote writes, temporary files, lifecycle, placement, takeover, cleanup, rollback, deployment, account request, signature or transaction."
+    "reviewDecision": "P0312_VIDEO_ZERO_WRITE_PREFLIGHT_SSH_AUTHENTICATION_DENIED_RELEASED",
+    "reason": "The sole authorized SSH attempt exited 255 with authentication denied before the remote inspector started. No retry occurred; remote mutation, temporary files, lifecycle, placement, takeover, cleanup and deployment are zero. A wholly-new lease requires BOOLEAN-only confirmation of an eligible Video SSH identity and target authorization."
   },
   "wave": {
     "id": "B-financial-apps-quant",

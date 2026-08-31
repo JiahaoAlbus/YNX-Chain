@@ -5,11 +5,13 @@
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-video-retained-takeover-preflight-zero-write-20260831T043804Z",
   "owner": "video-readonly-inspector",
   "executor": "release-control-plane",
-  "status": "ACTIVE_SINGLE_USE",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_VIDEO_PREFLIGHT_SSH_AUTHENTICATION_DENIED",
   "issuedAt": "2026-08-31T04:38:04Z",
   "expiresAt": "2026-08-31T04:53:04Z",
   "singleUse": true,
   "reusable": false,
+  "consumedAt": "2026-08-31T04:43:40Z",
+  "releasedAt": "2026-08-31T04:43:40Z",
   "executionAuthorized": true,
   "productionMutationAllowed": false,
   "source": {
@@ -105,6 +107,17 @@
     "Wallet account request signature typed data or transaction"
   ],
   "terminalRule": "Consume and release this lease after its sole terminal attempt. Its output may support a wholly-new takeover request but does not authorize placement, takeover, deployment, rollback, cleanup, or product completion.",
+  "terminalEvidence": {
+    "attempts": 1,
+    "retryAttempts": 0,
+    "localExitStatus": 255,
+    "classification": "SSH_AUTHENTICATION_DENIED_PUBLICKEY_PASSWORD",
+    "remoteInspectorStarted": false,
+    "remoteMutationCount": 0,
+    "remoteTemporaryFiles": 0,
+    "serviceLifecycleActions": 0,
+    "placementTakeoverCleanupDeploymentActions": 0
+  },
   "truthBoundary": {
     "leaseIssued": true,
     "inspectionStarted": false,
