@@ -19,7 +19,7 @@
     }
   },
   "artifact": {
-    "path": "apps/pay/evidence/artifacts/ynx-pay-6423-wallet-ui-candidate-20260831.tgz",
+    "path": "apps/pay/evidence/artifacts/ynx-pay-6423-wallet-lifecycle-localized-20260831.tgz",
     "sha256": "706ce45e5cac5c1129301db085afa436965e75423137613a216451114bb8ef4e",
     "bytes": 3605320,
     "contents": "Expo Android, iOS, and Web export from the exact candidate worktree before commit; local candidate only",

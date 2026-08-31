@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx --test src/**/*.test.ts",
     "verify:canonical-authorize": "node scripts/verify-canonical-authorize.mjs",
+    "verify:release-candidate": "node scripts/verify-release-candidate.mjs",
     "bundle-check": "npm run verify:canonical-authorize && expo export --platform android --platform ios --platform web --output-dir dist",
     "test:web": "playwright test",
     "check": "npm run typecheck && npm test && npm run bundle-check && npm run test:web"
