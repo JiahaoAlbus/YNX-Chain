@@ -165,6 +165,9 @@ func (s *Service) Summary(ctx context.Context) (Summary, error) {
 	if status.NativeCurrencySymbol != "YNXT" || health.NativeSymbol != "YNXT" {
 		return Summary{}, fmt.Errorf("native symbol mismatch: rpc=%s indexer=%s", status.NativeCurrencySymbol, health.NativeSymbol)
 	}
+	if status.ChainID != 6423 || health.ChainID != 6423 {
+		return Summary{}, fmt.Errorf("6423 identity mismatch: rpc=%d indexer=%d", status.ChainID, health.ChainID)
+	}
 	lag := uint64(0)
 	if status.Height > health.LastIndexedHeight {
 		lag = status.Height - health.LastIndexedHeight
