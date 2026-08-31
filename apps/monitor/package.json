@@ -1,0 +1,37 @@
+{
+  "name": "@ynx/monitor",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "server": "tsx server/index.ts",
+    "build": "tsc -b && vite build",
+    "test": "tsx --test src/*.test.ts server/*.test.ts && node --test scripts/*.test.mjs",
+    "test:a11y": "tsx --test src/accessibility.test.ts",
+    "test:e2e": "playwright test --config playwright.managed.config.ts",
+    "security:gate": "node scripts/supply-chain-gate.mjs",
+    "security:check": "npm run test && npm audit --omit=dev --audit-level=high --registry=https://registry.npmjs.org && npm run security:gate",
+    "smoke": "tsx scripts/real-service-smoke.ts"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "6.0.3",
+    "express": "5.1.0",
+    "express-rate-limit": "8.6.2",
+    "react": "19.1.0",
+    "react-dom": "19.1.0",
+    "tsx": "4.21.0",
+    "typescript": "5.8.3",
+    "vite": "8.1.4",
+    "@types/express": "5.0.6",
+    "@types/node": "22.13.10",
+    "@types/react": "19.0.10",
+    "@types/react-dom": "19.0.4"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.61.1"
+  },
+  "overrides": {
+    "esbuild": "0.28.1"
+  }
+}

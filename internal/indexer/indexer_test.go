@@ -285,3 +285,51 @@ func TestIndexerHTTPServer(t *testing.T) {
 		t.Fatalf("unexpected indexer overview: %+v", overview)
 	}
 }
+
+func TestIndexerDoesNotExposePrivateSyncErrorsToPublicClients(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, "credential=must-not-be-public", http.StatusBadGateway)
+	}))
+	defer upstream.Close()
+	idx, err := New(Config{RPCURL: upstream.URL, StorePath: t.TempDir() + "/indexer-db.json"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := NewServer(idx)
+	if _, err := server.SyncOnce(context.Background()); err == nil {
+		t.Fatal("fixture source must fail to populate the private sync error")
+	}
+	for _, testCase := range []struct {
+		method         string
+		path           string
+		status         int
+		classification string
+	}{
+		{method: http.MethodGet, path: "/health", status: http.StatusServiceUnavailable, classification: "UPSTREAM_UNAVAILABLE"},
+		{method: http.MethodGet, path: "/ynx/overview", status: http.StatusOK, classification: "UPSTREAM_UNAVAILABLE"},
+		{method: http.MethodPost, path: "/sync", status: http.StatusBadGateway, classification: "UPSTREAM_UNAVAILABLE"},
+	} {
+		response := httptest.NewRecorder()
+		server.Handler().ServeHTTP(response, httptest.NewRequest(testCase.method, testCase.path, nil))
+		if response.Code != testCase.status {
+			t.Fatalf("%s returned %d, want %d: %s", testCase.path, response.Code, testCase.status, response.Body.String())
+		}
+		body := response.Body.String()
+		if strings.Contains(body, upstream.URL) || strings.Contains(body, "127.0.0.1") || strings.Contains(body, "credential=") {
+			t.Fatalf("%s leaked private sync detail: %s", testCase.path, body)
+		}
+		var payload map[string]any
+		if err := json.Unmarshal(response.Body.Bytes(), &payload); err != nil {
+			t.Fatalf("%s returned non-JSON response: %v", testCase.path, err)
+		}
+		if testCase.path == "/health" || testCase.path == "/ynx/overview" {
+			if payload["lastError"] != "chain source temporarily unavailable" || payload["lastErrorClassification"] != testCase.classification {
+				t.Fatalf("overview did not project a safe sync state: %+v", payload)
+			}
+			continue
+		}
+		if payload["classification"] != testCase.classification {
+			t.Fatalf("%s classification=%q, want %q", testCase.path, payload["classification"], testCase.classification)
+		}
+	}
+}

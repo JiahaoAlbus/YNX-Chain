@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "ynx.monitor.release-tree-runtime.v2",
+  "observedAt": "2026-08-31T09:13:11Z",
+  "owner": "explorer-monitor",
+  "candidate": {"sourceCommit": "c0f49a35a9336487a50ff8aeac480dd68e7a7246", "release": "ynx-explorer-monitor-c0f49a35a933", "artifactSha256": "5fa7ccd22c601297d6a4d7082123d788e7c787ea634231a0e6ae3d68f204036f"},
+  "runner": {"kind": "isolated local extracted release tree", "node": "v26.7.0", "network": "loopback only", "production": false, "dependencies": "npm ci --ignore-scripts --omit=dev"},
+  "results": {"version": {"httpStatus": 200, "sha256": "36176548448c1b75c96c0beaa9355d8d788dd452fd63e78817454fab0300f5f4", "commit": "c0f49a35a9336487a50ff8aeac480dd68e7a7246", "release": "ynx-explorer-monitor-c0f49a35a933"}, "connectivity": {"httpStatus": 200, "contentType": "application/json; charset=utf-8", "cacheControl": "no-store", "sha256": "f7d95463054f5ba2bd3480e5e43ec455e984b346c5d7222c840a423cb1ac8b6c", "htmlFallback": false, "status": "not_configured", "notOffline": true}},
+  "states": {"implementedLocal": true, "testedLocal": true, "integratedCentral": false, "deployedStaging": false, "deployedPublic": false, "downloadHosted": false, "productionSigned": false, "publicVerified": false, "computerControlVerified": false},
+  "nextGate": "A Central lease binding this exact candidate, a signed public status source and approved public connectivity probes is required before official-domain execution."
+}

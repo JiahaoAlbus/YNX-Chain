@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "ynx.explorer-monitor.single-use-runtime-lease-request.v1",
+  "requestedAt": "2026-08-31T09:07:19Z",
+  "owner": "explorer-monitor",
+  "requestState": "REQUESTED_NOT_GRANTED",
+  "authority": {"productionMutationAllowed": false, "publicVerified": false, "statement": "This document is a reviewable request and is not a deployment instruction or authorization."},
+  "candidate": {"sourceBearingCommit": "a3292a2b6d30409caf7db66b81c47e8d09ad76f1", "sourceTree": "335f92a35091de440a23a83e96489ce4cc185d51", "evidenceHead": "326339d79b5708918620e61d3bd61d5dedd0f19a", "pullRequest": "https://github.com/JiahaoAlbus/YNX-Chain/pull/107", "release": "ynx-explorer-monitor-a3292a2b6d30"},
+  "immutableInputs": {
+    "explorerd": {"sha256": "550045af8e4f889dfef2a1da4ea3f74136673c16b590b6e1443a066133c8cb1e", "bytes": 8872084, "target": "/usr/local/bin/ynx-explorerd"},
+    "indexerd": {"sha256": "4074bc0033de23c02dd2ecb4f2833c128772185c0493d098759ca62389f10091", "bytes": 7512212, "target": "/usr/local/bin/ynx-indexerd"},
+    "monitorReleaseTree": {"sha256": "706e4aef26c8c7d0799242c26aa86e88717d4733d9d17322b764822ca9dcadca", "bytes": 2222080, "target": "/opt/ynx-monitor/releases/ynx-explorer-monitor-a3292a2b6d30"}
+  },
+  "scope": {"services": ["ynx-explorerd.service", "ynx-indexerd.service", "ynx-monitor.service"], "unownedPathsExcluded": ["Wallet/Auth", "Finance", "Data Fabric", "Faucet runtime", "Chain Core"]},
+  "publicBaseline": {"explorerIndexerSourceCommit": "8bf7716ee671a5a9b64517280743c5a281899712", "monitorConnectivity": "not proven JSON; last direct read timed out", "evidence": "apps/monitor/evidence/p0-163-public-runtime-readback-20260831.json"},
+  "prewriteReceiptRequired": [
+    "authorized operator, Central lease id, UTC expiry and immutable input hash match",
+    "fresh sha256/mode of both target binaries; current Monitor resolved release tree hash; ingress snippet hash; scoped environment file hashes without values",
+    "current service state and official /version,/health,/status,/connectivity HTTP/body hashes",
+    "captured rollback archive/target references before replacing any target",
+    "Caddy matcher proof that /health,/version,/status,/connectivity,/ops/* are proxied to Monitor rather than static fallback"
+  ],
+  "postwriteAcceptanceRequired": [
+    "Explorer and Indexer /version identify a3292a2b6d30409caf7db66b81c47e8d09ad76f1 and ynx-explorer-monitor-a3292a2b6d30",
+    "Monitor /version identifies the same source/release; /connectivity is HTTP 200 application/json with Cache-Control no-store and never HTML",
+    "native RPC reports 6423 and EVM RPC reports 0x1917; dependency failures remain user-safe and fail closed",
+    "full transaction-hash deep link resolves real indexed from/to/value/fee/block/status data",
+    "rollback executes on any mismatch and records restored public hashes",
+    "direct browser and Computer Control evidence is separately required before publicVerified can change"
+  ],
+  "rollbackFirst": {"triggers": ["hash mismatch", "wrong source/release", "connectivity HTML/non-JSON", "unsafe error disclosure", "real transaction detail failure", "visual acceptance failure"], "actions": ["restore captured Explorer and Indexer binaries", "restore captured Monitor release target and ingress", "validate/reload only scoped proxy configuration", "restart only scoped services", "record restored official-domain hashes"]},
+  "ciGate": {"required": "all PR #107 required checks completed successfully at the same remote head", "observedAtRequest": "dependency-review and dependency/build-script audit succeeded; source-analysis and static checks were in progress"},
+  "states": {"implementedLocal": true, "testedLocal": true, "integratedCentral": false, "deployedStaging": false, "deployedPublic": false, "downloadHosted": false, "productionSigned": false, "publicVerified": false}
+}

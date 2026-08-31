@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "ynx.explorer-monitor.public-readback.v2",
+  "observedAt": "2026-08-31T09:07:19Z",
+  "owner": "explorer-monitor",
+  "method": {"kind": "direct HTTPS/read-only", "connectTimeoutSeconds": 5, "maxTimeSeconds": 15, "computerControl": false},
+  "chain": {
+    "rpcStatus": {"httpStatus": 200, "bytes": 2916, "sha256": "0161600bcb22319743210182ef24e181a047338b281b951a5936a05681957a3a", "chainId": 6423, "height": 1305954, "validatorCount": 4, "readyValidatorCount": 4, "nativeSymbol": "YNXT", "buildCommit": "be9f03833ac3"},
+    "evmChainId": {"httpStatus": 200, "bytes": 49, "sha256": "414e7c1cf38c9a548c7b0126f99dc2d2ffcb41622a34291c83d145330815c255", "result": "0x1917"}
+  },
+  "monitor": {
+    "health": {"httpStatus": 200, "bytes": 159, "sha256": "37f01d78e6b8754cd5e965b2c7006d7da54d2de2e082940850b83c67cb7b973f", "internalDetailLeaked": false},
+    "status": {"httpStatus": 200, "bytes": 11543, "sha256": "739290faf52fad2b93fd99d6215fcf8483d1d4a46e219c8ab0f88974ab633a61", "contentType": "application/json; charset=utf-8", "cacheControl": "no-store", "state": "operational", "explorerSourceCommit": "8bf7716ee671a5a9b64517280743c5a281899712", "indexerSourceCommit": "8bf7716ee671a5a9b64517280743c5a281899712"},
+    "version": {"result": "tls_connect_timeout", "notClassifiedAs": "service-or-chain-offline"},
+    "connectivity": {"result": "tls_connect_timeout", "notClassifiedAs": "service-or-chain-offline"}
+  },
+  "explorer": {
+    "health": {"result": "tls_connect_timeout", "notClassifiedAs": "service-or-chain-offline"},
+    "version": {"result": "tls_connect_timeout", "notClassifiedAs": "service-or-chain-offline"}
+  },
+  "crossOwnerFinding": {"scope": "Chain Core public RPC response", "finding": "The direct RPC response contains infrastructure-specific peer/validator transport metadata. Explorer/Monitor UI projection must continue to redact it; runtime remediation belongs to the Chain Core owner.", "ownerAction": "reported-only; no source modification outside Explorer/Monitor"},
+  "states": {"implementedLocal": true, "testedLocal": true, "integratedCentral": false, "deployedStaging": false, "deployedPublic": false, "downloadHosted": false, "productionSigned": false, "publicVerified": false, "computerControlVerified": false},
+  "conclusion": "The PR candidate is not the public Explorer/Monitor runtime. HTTP source/status evidence and direct visible interaction are still required after a Central deployment lease."
+}

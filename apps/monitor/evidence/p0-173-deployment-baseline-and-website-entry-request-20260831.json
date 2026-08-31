@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "ynx.explorer-monitor.production-baseline-request.v2",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-173",
+  "observedAt": "2026-08-31T10:09:00Z",
+  "owner": "explorer-monitor",
+  "authority": {"productionMutationAllowed": false, "publicVerified": false, "computerControlVerified": false},
+  "candidateInputs": {
+    "sourceCommit": "4165b993708e7087ddad55ae29243505713fc280",
+    "sourceTree": "664157ffa1511addabeb9908b2ada015ce1fe993",
+    "release": "ynx-explorer-monitor-4165b993708e",
+    "explorerdSha256": "2ece6f23b0f84ce814cf8587133be5cedc24a0ed47880c959c2057a68d620e62",
+    "indexerdSha256": "4b1a7e5c95ff6f55a22e2a574922117a314599337f364b1ff805f1de8bd3a5c3",
+    "monitorReleaseTreeSha256": "bf95e3e772db66437411a72c9cd19e8d6a037ed5d5756b64c5c0d628c640cfbb"
+  },
+  "requiredCentralBaseline": {
+    "mustBind": ["current Explorer and Indexer binary digests/modes", "Monitor current symlink and release-tree digest", "scoped environment-file digests only", "Monitor ingress/Caddy digest and syntax validation", "unit state/ExecStart/restarts", "exact rollback target", "named operator, expiry and receipt"],
+    "doesNotAuthorize": ["unscoped host mutation", "wallet approval", "signature", "transaction", "public verification promotion"]
+  },
+  "websiteEntryReadOnlyEvidence": {
+    "observedWith": "direct in-app browser DOM inspection",
+    "dappUrl": "https://ynxweb4.com/dapp",
+    "dappResult": "No routes matched location /dapp; rendered DOM was empty.",
+    "homeUrl": "https://ynxweb4.com/",
+    "homeResult": "Homepage rendered an Explorer link to explorer.ynxweb4.com but no Monitor link.",
+    "ownerBoundary": "Website source was observed on a separate faucet-runtime branch and is not writable by Explorer/Monitor. The Website owner must add truthful Explorer and Monitor cards/routes only after consuming the release record."
+  },
+  "states": {"implementedLocal": true, "testedLocal": true, "integratedCentral": false, "deployedStaging": false, "deployedPublic": false, "downloadHosted": false, "productionSigned": false, "publicVerified": false, "computerControlVerified": false},
+  "nextAction": "Central must return a receipt-complete baseline and a new single-use scoped lease for P0-172; Website owner must repair /dapp and the homepage Monitor entry without claiming the candidate is public before deployment."
+}

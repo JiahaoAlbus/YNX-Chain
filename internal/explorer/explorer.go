@@ -3,11 +3,14 @@ package explorer
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
@@ -24,9 +27,10 @@ type Config struct {
 }
 
 type Service struct {
-	cfg           Config
-	rpcClient     *client
-	indexerClient *client
+	cfg            Config
+	rpcClient      *client
+	indexerClient  *client
+	accountReadSem chan struct{}
 }
 
 func New(cfg Config) (*Service, error) {
@@ -42,12 +46,30 @@ func New(cfg Config) (*Service, error) {
 	if cfg.PublicExplorerURL == "" {
 		cfg.PublicExplorerURL = "http://127.0.0.1:6427"
 	}
-	return &Service{cfg: cfg, rpcClient: newClient(cfg.RPCURL), indexerClient: newClient(cfg.IndexerURL)}, nil
+	return &Service{cfg: cfg, rpcClient: newClient(cfg.RPCURL), indexerClient: newClient(cfg.IndexerURL), accountReadSem: make(chan struct{}, 8)}, nil
 }
 
 type client struct {
 	baseURL    string
 	httpClient *http.Client
+}
+
+// upstreamHTTPError preserves only an HTTP status for internal routing. The
+// original response is intentionally never returned to a public caller: RPC
+// and Indexer errors may contain loopback hosts, filesystem paths, or keys.
+type upstreamHTTPError struct {
+	statusCode int
+}
+
+var errLookupNotFound = errors.New("requested data was not found")
+
+func (e *upstreamHTTPError) Error() string {
+	return fmt.Sprintf("upstream returned HTTP %d", e.statusCode)
+}
+
+func isLookupNotFound(err error) bool {
+	var upstream *upstreamHTTPError
+	return errors.Is(err, errLookupNotFound) || (errors.As(err, &upstream) && upstream.statusCode == http.StatusNotFound)
 }
 
 func newClient(baseURL string) *client {
@@ -74,7 +96,7 @@ func (c *client) getJSONWithHeaders(ctx context.Context, path string, headers ma
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("GET %s returned %d", path, resp.StatusCode)
+		return &upstreamHTTPError{statusCode: resp.StatusCode}
 	}
 	return json.NewDecoder(resp.Body).Decode(out)
 }
@@ -226,6 +248,20 @@ func (s *Service) IndexerHealth(ctx context.Context) (IndexerHealth, error) {
 	return health, nil
 }
 
+func (s *Service) requireHealthyCanonicalIndexer(ctx context.Context) (IndexerHealth, error) {
+	health, err := s.IndexerHealth(ctx)
+	if err != nil {
+		return IndexerHealth{}, err
+	}
+	if !health.OK || strings.TrimSpace(health.LastError) != "" {
+		return IndexerHealth{}, fmt.Errorf("indexer dependency is not healthy")
+	}
+	if health.Service != "ynx-indexerd" || health.ChainID != 6423 || health.NativeSymbol != "YNXT" {
+		return IndexerHealth{}, fmt.Errorf("indexer dependency identity mismatch")
+	}
+	return health, nil
+}
+
 func (s *Service) LatestBlocks(ctx context.Context, limit int) ([]chain.Block, error) {
 	var out struct {
 		Blocks []chain.Block `json:"blocks"`
@@ -237,6 +273,9 @@ func (s *Service) LatestBlocks(ctx context.Context, limit int) ([]chain.Block, e
 }
 
 func (s *Service) Block(ctx context.Context, height string) (chain.Block, error) {
+	if _, err := strconv.ParseUint(height, 10, 64); err != nil {
+		return chain.Block{}, fmt.Errorf("%w: invalid block height", errLookupNotFound)
+	}
 	var block chain.Block
 	if err := s.indexerClient.getJSON(ctx, "/blocks/"+url.PathEscape(height), &block); err != nil {
 		return chain.Block{}, err
@@ -267,6 +306,7 @@ type AccountDetail struct {
 	AddressFormats *AddressFormats       `json:"addressFormats,omitempty"`
 	Resources      chain.ResourceBalance `json:"resources"`
 	Trace          chain.TrustTrace      `json:"trace"`
+	Activity       *AccountActivity      `json:"activity,omitempty"`
 }
 
 type AddressFormats struct {
@@ -274,10 +314,65 @@ type AddressFormats struct {
 	YNX string `json:"ynxAddress"`
 }
 
+type IndexedAccountParticipant struct {
+	Address          string `json:"address"`
+	TransactionCount int    `json:"transactionCount"`
+	InboundYNXT      int64  `json:"inboundYnxt"`
+	OutboundYNXT     int64  `json:"outboundYnxt"`
+	LatestBlock      uint64 `json:"latestBlock"`
+}
+
+type IndexedParticipants struct {
+	Accounts       []IndexedAccountParticipant `json:"accounts"`
+	Total          int                         `json:"total"`
+	NextCursor     string                      `json:"nextCursor,omitempty"`
+	TruthfulStatus string                      `json:"truthfulStatus"`
+	Coverage       string                      `json:"coverage"`
+	CheckedAt      time.Time                   `json:"checkedAt"`
+}
+
+type AccountActivity struct {
+	Address               string              `json:"address"`
+	Transactions          []chain.Transaction `json:"transactions"`
+	NextCursor            string              `json:"nextCursor,omitempty"`
+	LastIndexedHeight     uint64              `json:"lastIndexedHeight"`
+	ContractActivityCount int                 `json:"contractActivityCount"`
+	FundsFlow             FundsFlow           `json:"fundsFlow"`
+	TruthfulStatus        string              `json:"truthfulStatus"`
+	Coverage              string              `json:"coverage"`
+	CheckedAt             time.Time           `json:"checkedAt"`
+}
+
+type FundsFlow struct {
+	InboundYNXT  int64 `json:"inboundYnxt"`
+	OutboundYNXT int64 `json:"outboundYnxt"`
+}
+
+type LeaderboardAccount struct {
+	Address          string `json:"address"`
+	Balance          int64  `json:"balance"`
+	Staked           int64  `json:"staked"`
+	Nonce            uint64 `json:"nonce"`
+	TransactionCount int    `json:"transactionCount"`
+}
+
+type AccountLeaderboard struct {
+	Accounts          []LeaderboardAccount `json:"accounts"`
+	Total             int                  `json:"total"`
+	CandidateCount    int                  `json:"candidateCount"`
+	UnresolvedCount   int                  `json:"unresolvedCount"`
+	LastIndexedHeight uint64               `json:"lastIndexedHeight"`
+	Coverage          string               `json:"coverage"`
+	CheckedAt         time.Time            `json:"checkedAt"`
+	TruthfulStatus    string               `json:"truthfulStatus"`
+	Degraded          bool                 `json:"degraded"`
+	Failed            bool                 `json:"failed"`
+}
+
 func (s *Service) Account(ctx context.Context, address string) (AccountDetail, error) {
 	address, err := normalizeExplorerAddress(address)
 	if err != nil {
-		return AccountDetail{}, err
+		return AccountDetail{}, fmt.Errorf("%w: invalid account address", errLookupNotFound)
 	}
 	var account AccountDetail
 	if err := s.rpcClient.getJSON(ctx, "/accounts/"+url.PathEscape(address), &account); err != nil {
@@ -293,6 +388,161 @@ func (s *Service) Account(ctx context.Context, address string) (AccountDetail, e
 	return account, nil
 }
 
+func (s *Service) IndexedParticipants(ctx context.Context, limit int, cursor string) (IndexedParticipants, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 25
+	}
+	path := "/accounts?limit=" + strconv.Itoa(limit)
+	if strings.TrimSpace(cursor) != "" {
+		path += "&cursor=" + url.QueryEscape(cursor)
+	}
+	var participants IndexedParticipants
+	if err := s.indexerClient.getJSON(ctx, path, &participants); err != nil {
+		return IndexedParticipants{}, err
+	}
+	if participants.TruthfulStatus != "observed-indexed-participants" {
+		return IndexedParticipants{}, fmt.Errorf("unexpected indexed participant status %q", participants.TruthfulStatus)
+	}
+	return participants, nil
+}
+
+func (s *Service) AccountActivity(ctx context.Context, address string, limit int, cursor string) (AccountActivity, error) {
+	address, err := normalizeExplorerAddress(address)
+	if err != nil {
+		return AccountActivity{}, fmt.Errorf("%w: invalid account address", errLookupNotFound)
+	}
+	if limit <= 0 || limit > 100 {
+		limit = 25
+	}
+	path := "/accounts/" + url.PathEscape(address) + "/activity?limit=" + strconv.Itoa(limit)
+	if strings.TrimSpace(cursor) != "" {
+		path += "&cursor=" + url.QueryEscape(cursor)
+	}
+	var activity AccountActivity
+	if err := s.indexerClient.getJSON(ctx, path, &activity); err != nil {
+		return AccountActivity{}, err
+	}
+	if activity.TruthfulStatus != "retained-indexed-account-activity" {
+		return AccountActivity{}, fmt.Errorf("unexpected indexed account activity status %q", activity.TruthfulStatus)
+	}
+	health, err := s.requireHealthyCanonicalIndexer(ctx)
+	if err != nil {
+		return AccountActivity{}, err
+	}
+	activity.LastIndexedHeight = health.LastIndexedHeight
+	flow := FundsFlow{}
+	for _, tx := range activity.Transactions {
+		if strings.EqualFold(address, tx.To) {
+			flow.InboundYNXT += tx.Amount
+		}
+		if strings.EqualFold(address, tx.From) {
+			flow.OutboundYNXT += tx.Amount + tx.Fee
+		}
+		if tx.Type == "contract" || len(tx.Logs) > 0 {
+			activity.ContractActivityCount++
+		}
+	}
+	activity.FundsFlow = flow
+	return activity, nil
+}
+
+func (s *Service) AccountWithActivity(ctx context.Context, address string) (AccountDetail, error) {
+	account, err := s.Account(ctx, address)
+	if err != nil {
+		return AccountDetail{}, err
+	}
+	activity, err := s.AccountActivity(ctx, account.Account.Address, 25, "")
+	if err != nil {
+		return AccountDetail{}, err
+	}
+	account.Activity = &activity
+	return account, nil
+}
+
+func (s *Service) Leaderboard(ctx context.Context, limit int) (AccountLeaderboard, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 10
+	}
+	participants, err := s.IndexedParticipants(ctx, 100, "")
+	if err != nil {
+		return AccountLeaderboard{}, err
+	}
+	health, err := s.requireHealthyCanonicalIndexer(ctx)
+	if err != nil {
+		return AccountLeaderboard{}, err
+	}
+	result := AccountLeaderboard{
+		CandidateCount:    participants.Total,
+		LastIndexedHeight: health.LastIndexedHeight,
+		Coverage:          fmt.Sprintf("current live RPC balances for %d of %d participants observed in retained Indexer transactions; this is not a full-ledger census", len(participants.Accounts), participants.Total),
+		CheckedAt:         time.Now().UTC(),
+		TruthfulStatus:    "observed-indexed-participant-account-ranking",
+	}
+	lookupCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	type lookupResult struct {
+		participant IndexedAccountParticipant
+		account     AccountDetail
+		err         error
+	}
+	jobs := make(chan IndexedAccountParticipant)
+	results := make(chan lookupResult, len(participants.Accounts))
+	workerCount := min(4, len(participants.Accounts))
+	var workers sync.WaitGroup
+	for range workerCount {
+		workers.Add(1)
+		go func() {
+			defer workers.Done()
+			for participant := range jobs {
+				select {
+				case s.accountReadSem <- struct{}{}:
+				case <-lookupCtx.Done():
+					results <- lookupResult{participant: participant, err: lookupCtx.Err()}
+					continue
+				}
+				account, accountErr := s.Account(lookupCtx, participant.Address)
+				<-s.accountReadSem
+				results <- lookupResult{participant: participant, account: account, err: accountErr}
+			}
+		}()
+	}
+	go func() {
+		for _, participant := range participants.Accounts {
+			select {
+			case jobs <- participant:
+			case <-lookupCtx.Done():
+				results <- lookupResult{participant: participant, err: lookupCtx.Err()}
+			}
+		}
+		close(jobs)
+		workers.Wait()
+		close(results)
+	}()
+	for lookup := range results {
+		if lookup.err != nil {
+			result.UnresolvedCount++
+			continue
+		}
+		result.Accounts = append(result.Accounts, LeaderboardAccount{Address: lookup.account.Account.Address, Balance: lookup.account.Account.Balance, Staked: lookup.account.Account.Staked, Nonce: lookup.account.Account.Nonce, TransactionCount: lookup.participant.TransactionCount})
+	}
+	result.Degraded = result.UnresolvedCount > 0
+	if len(result.Accounts) == 0 && participants.Total > 0 {
+		result.Failed = true
+		return result, nil
+	}
+	sort.Slice(result.Accounts, func(a, b int) bool {
+		if result.Accounts[a].Balance == result.Accounts[b].Balance {
+			return result.Accounts[a].Address < result.Accounts[b].Address
+		}
+		return result.Accounts[a].Balance > result.Accounts[b].Balance
+	})
+	if len(result.Accounts) > limit {
+		result.Accounts = result.Accounts[:limit]
+	}
+	result.Total = len(result.Accounts)
+	return result, nil
+}
+
 func (s *Service) Validators(ctx context.Context) (map[string]any, error) {
 	var validators map[string]any
 	if err := s.rpcClient.getJSON(ctx, "/validators", &validators); err != nil {
@@ -304,7 +554,7 @@ func (s *Service) Validators(ctx context.Context) (map[string]any, error) {
 func (s *Service) Resources(ctx context.Context, address string) (chain.ResourceBalance, error) {
 	address, err := normalizeExplorerAddress(address)
 	if err != nil {
-		return chain.ResourceBalance{}, err
+		return chain.ResourceBalance{}, fmt.Errorf("%w: invalid account address", errLookupNotFound)
 	}
 	var resources chain.ResourceBalance
 	if err := s.rpcClient.getJSON(ctx, "/resources/"+url.PathEscape(address), &resources); err != nil {
@@ -338,7 +588,7 @@ func (s *Service) Token(ctx context.Context, symbol string) (TokenDetail, error)
 		return TokenDetail{}, err
 	}
 	if !strings.EqualFold(symbol, "YNXT") {
-		return TokenDetail{}, fmt.Errorf("token %s is not indexed by this explorer", symbol)
+		return TokenDetail{}, fmt.Errorf("%w: token is not indexed by this explorer", errLookupNotFound)
 	}
 	return TokenDetail{
 		Symbol:   "YNXT",
@@ -366,6 +616,23 @@ func (s *Service) Token(ctx context.Context, symbol string) (TokenDetail, error)
 		},
 		TruthfulStatus: "native-token-from-rpc-status",
 	}, nil
+}
+
+// Contract reads the canonical chain RPC contract record. The Explorer does
+// not synthesize contract metadata from source files or transaction guesses.
+func (s *Service) Contract(ctx context.Context, address string) (chain.ContractArtifact, error) {
+	address, err := normalizeExplorerAddress(address)
+	if err != nil {
+		return chain.ContractArtifact{}, fmt.Errorf("%w: invalid contract address", errLookupNotFound)
+	}
+	var contract chain.ContractArtifact
+	if err := s.rpcClient.getJSON(ctx, "/contracts/"+url.PathEscape(address), &contract); err != nil {
+		return chain.ContractArtifact{}, err
+	}
+	if strings.TrimSpace(contract.Address) == "" || !strings.EqualFold(contract.Address, address) {
+		return chain.ContractArtifact{}, fmt.Errorf("contract RPC returned an invalid identity")
+	}
+	return contract, nil
 }
 
 type FeeDetail struct {
@@ -411,6 +678,7 @@ type SearchResult struct {
 	Query             string `json:"query"`
 	Type              string `json:"type"`
 	Path              string `json:"path"`
+	DeepLink          string `json:"deepLink"`
 	NormalizedAddress string `json:"normalizedAddress,omitempty"`
 	TruthfulStatus    string `json:"truthfulStatus"`
 }
@@ -420,25 +688,39 @@ func (s *Service) Search(ctx context.Context, query string) (SearchResult, error
 	if query == "" {
 		return SearchResult{}, fmt.Errorf("query is required")
 	}
+	if strings.EqualFold(query, "YNXT") {
+		if _, err := s.Token(ctx, query); err != nil {
+			return SearchResult{}, err
+		}
+		return SearchResult{Query: "YNXT", Type: "token", Path: "/api/tokens/YNXT", DeepLink: "/token/YNXT", TruthfulStatus: "resolved-from-rpc-status"}, nil
+	}
 	if _, err := strconv.ParseUint(query, 10, 64); err == nil {
 		if _, err := s.Block(ctx, query); err != nil {
 			return SearchResult{}, err
 		}
-		return SearchResult{Query: query, Type: "block", Path: "/api/blocks/" + query, TruthfulStatus: "resolved-from-indexer"}, nil
+		return SearchResult{Query: query, Type: "block", Path: "/api/blocks/" + query, DeepLink: "/block/" + query, TruthfulStatus: "resolved-from-indexer"}, nil
 	}
-	if strings.HasPrefix(query, "0x") {
-		if _, err := s.Transaction(ctx, query); err == nil {
-			return SearchResult{Query: query, Type: "transaction", Path: "/api/txs/" + query, TruthfulStatus: "resolved-from-indexer"}, nil
+	if transactionHash, ok := normalizeCanonicalTransactionHash(query); ok {
+		if _, err := s.Transaction(ctx, transactionHash); err != nil {
+			return SearchResult{}, err
 		}
+		return SearchResult{Query: transactionHash, Type: "transaction", Path: "/api/txs/" + transactionHash, DeepLink: "/tx/" + transactionHash, TruthfulStatus: "resolved-from-indexer"}, nil
 	}
 	normalized, err := normalizeExplorerAddress(query)
 	if err != nil {
+		return SearchResult{}, fmt.Errorf("%w: invalid account or contract address", errLookupNotFound)
+	}
+	if contract, err := s.Contract(ctx, normalized); err == nil {
+		return SearchResult{Query: query, Type: "contract", Path: "/api/contracts/" + url.PathEscape(contract.Address), DeepLink: "/contract/" + url.PathEscape(contract.Address), NormalizedAddress: contract.Address, TruthfulStatus: "resolved-from-rpc-contract-record"}, nil
+	} else if !isLookupNotFound(err) {
 		return SearchResult{}, err
 	}
 	if _, err := s.Account(ctx, normalized); err == nil {
-		return SearchResult{Query: query, Type: "account", Path: "/api/accounts/" + url.PathEscape(normalized), NormalizedAddress: normalized, TruthfulStatus: "resolved-from-rpc"}, nil
+		return SearchResult{Query: query, Type: "account", Path: "/api/accounts/" + url.PathEscape(normalized), DeepLink: "/address/" + url.PathEscape(normalized), NormalizedAddress: normalized, TruthfulStatus: "resolved-from-rpc"}, nil
+	} else if !isLookupNotFound(err) {
+		return SearchResult{}, err
 	}
-	return SearchResult{}, fmt.Errorf("query not found")
+	return SearchResult{}, errLookupNotFound
 }
 
 func normalizeExplorerAddress(value string) (string, error) {

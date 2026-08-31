@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "ynx.explorer-monitor.source-bound-release-preparation.v5",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-170",
+  "observedAt": "2026-08-31T09:53:00Z",
+  "owner": "explorer-monitor",
+  "authority": {
+    "productionMutationAllowed": false,
+    "publicVerified": false,
+    "computerControlVerified": false,
+    "statement": "This checkpoint freezes local artifacts only. It authorizes no host access, file transfer, service restart, proxy reload or public claim."
+  },
+  "candidate": {
+    "branch": "codex/p0-explorer-monitor-20260820",
+    "artifactSourceCommit": "e5238926cc4b255eae6bae1767dd25c2c386130a",
+    "artifactSourceTree": "3908b77a9c2d7492fe92903959ed05a37bbc36c9",
+    "pullRequest": "https://github.com/JiahaoAlbus/YNX-Chain/pull/107",
+    "release": "ynx-explorer-monitor-e5238926cc4b",
+    "build": {"goos": "linux", "goarch": "amd64", "cgoEnabled": false, "trimpath": true, "buildvcs": false, "buildTime": "2026-08-31T17:49:02+08:00"}
+  },
+  "artifacts": {
+    "explorerd": {"carrierPath": "/private/tmp/ynx-explorer-monitor-p0170.Xk4xEA/bin/ynx-explorerd", "bytes": 8945812, "sha256": "7f11378371e783a54a337c7ec4527a0d85c274de3ea6c2adb83fdeba26aa71d5", "format": "linux amd64 static ELF"},
+    "indexerd": {"carrierPath": "/private/tmp/ynx-explorer-monitor-p0170.Xk4xEA/bin/ynx-indexerd", "bytes": 7512212, "sha256": "75086835f78fa0532b1f41654ec234593bcff703da8c00c2ccda2a209da19cca", "format": "linux amd64 static ELF"},
+    "monitorReleaseTree": {"carrierPath": "/private/tmp/ynx-explorer-monitor-p0170.Xk4xEA/monitor-release-tree.tar", "bytes": 2263040, "sha256": "95b2bc67b09c04ea4390d943fc5a5418dae1def672644c40f110cefc70c448b8", "format": "deterministic GNU tar, built dist, excludes node_modules and .env", "inputs": {"packageLockSha256": "3329447e950589f80129b59e1c6e99d5856d869da06672c0b525ed129e291694", "distIndexHtmlSha256": "0f7d2e816a6cfdfaec8bd953c7be2562d3ff11e89b2a21fe372dd5bf169117d0"}}
+  },
+  "validation": {
+    "explorer": "go test ./internal/explorer -count=1: passing",
+    "sponsorRegression": "bash scripts/verify/resource-sponsor-check.sh: passing",
+    "monitor": "npm test: 55 app tests plus 10 script tests passing; npm run build: passing",
+    "monitorArtifactRuntime": {"path": "/private/tmp/ynx-monitor-p0170-run.2Pllkx/apps/monitor", "version": {"httpStatus": 200, "bytes": 264, "sha256": "9591fbee7ff22129697d69a406bd94225999800a03f9285c55bcda9030a4433f", "commit": "e5238926cc4b255eae6bae1767dd25c2c386130a", "release": "ynx-explorer-monitor-e5238926cc4b"}, "connectivity": {"httpStatus": 200, "contentType": "application/json; charset=utf-8", "bytes": 262, "sha256": "6f8b122a2e3aa3409752006b34cd898fd0a83eb495b54570f2cfb2bc3293a95c", "status": "not_configured"}},
+    "goArtifactRuntime": "Not executed: these artifacts target Linux amd64 and the owner workstation is macOS. File format and source tests passed; Linux runtime validation remains a deployment-gated verifier step."
+  },
+  "publicDrift": {
+    "explorerVersion": {"httpStatus": 200, "bytes": 330, "sha256": "ab6b2427b64f39755ab2f3d1ee381312673567f08fdb97b6a443877df91e3d9e", "commit": "8bf7716ee671a5a9b64517280743c5a281899712", "release": "ynx-explorer-monitor-8bf7716ee671"},
+    "monitorVersion": {"httpStatus": 200, "bytes": 264, "sha256": "d0cb952655a41dad6a353f463c5b9f623f509b31303d35404e242a8a334b70ce", "commit": "8bf7716ee671a5a9b64517280743c5a281899712", "release": "ynx-explorer-monitor-8bf7716ee671"},
+    "explorerConnectivity": {"httpStatus": 404, "bytes": 18, "sha256": "99eb12f2ab3c4866a353e098ffa3cb7a967e617c49b98480394ec5d8ea92b094", "classification": "not-an-explorer-route"},
+    "monitorConnectivity": {"classification": "unverified-static-html-fallback", "bytes": 640, "sha256": "36fc6c0691ccc1bd91f39a965bd5f7584941abef7c883f360f4103826497fac2", "statement": "A static HTML body was observed and is not accepted as JSON connectivity proof."}
+  },
+  "states": {"implementedLocal": true, "testedLocal": true, "integratedCentral": false, "deployedStaging": false, "deployedPublic": false, "downloadHosted": false, "productionSigned": false, "publicVerified": false, "computerControlVerified": false},
+  "nextAction": "Central must independently bind current host, services, environment digests, Monitor ingress and rollback target, then grant a fresh one-use deployment lease for exactly these three hashes."
+}

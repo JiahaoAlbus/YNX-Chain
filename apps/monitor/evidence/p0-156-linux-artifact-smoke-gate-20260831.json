@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "ynx.explorer-monitor.linux-artifact-smoke-gate.v1",
+  "observedAt": "2026-08-31T08:30:00Z",
+  "owner": "explorer-monitor",
+  "candidate": {
+    "sourceCommit": "29382a5325d540d8231e2616b140855b50cea62f",
+    "release": "ynx-explorer-monitor-29382a5325d5",
+    "artifactRecord": "apps/monitor/evidence/p0-155-source-bound-release-preparation-20260831.json"
+  },
+  "artifacts": {
+    "explorerd": {"sha256": "27405993233517afe0a04150ad9db29fbf3d262c6e3ea50924b75358757a7dc2", "format": "ELF 64-bit linux amd64 static executable"},
+    "indexerd": {"sha256": "5ef58e7d2e059768636ef465ee4b05afecc8a295c4e3ca2f1e2a7db834acc3a6", "format": "ELF 64-bit linux amd64 static executable"},
+    "monitorReleaseTree": {"sha256": "d644eb1209c83b93691530a76d6e537d9d920772c6e39285947ca89ed9219d3e", "format": "GNU tar with built Monitor dist"}
+  },
+  "localHostAttempt": {
+    "hostPlatform": "darwin",
+    "attempted": true,
+    "result": "not executable on this host by design: cannot execute binary file",
+    "productionArtifactRuntimeTested": false,
+    "statement": "No local HTTP server started and no runtime claim is made from this incompatible host."
+  },
+  "requiredNextGate": {
+    "environment": "isolated GNU/Linux amd64 runner, not production",
+    "steps": [
+      "verify all three artifact sha256 values before use",
+      "start the two Go services on loopback-only test ports with a fixture or approved read-only 6423 RPC",
+      "read /version and require the candidate commit and release",
+      "force unavailable upstream and require only the public UPSTREAM_UNAVAILABLE classification with no internal address or credential",
+      "build and serve the Monitor release tree, then require /connectivity application/json from its API matcher"
+    ],
+    "doesNotAuthorize": ["production transfer", "Caddy mutation", "systemd mutation", "publicVerified promotion"]
+  },
+  "states": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "publicVerified": false,
+    "computerControlVerified": false
+  }
+}

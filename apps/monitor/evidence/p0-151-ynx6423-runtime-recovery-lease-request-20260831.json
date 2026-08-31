@@ -1,0 +1,84 @@
+{
+  "schemaVersion": "ynx.explorer-monitor.ynx6423-runtime-recovery.v1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-151",
+  "observedAt": "2026-08-31T07:06:17Z",
+  "centralControlCommit": "a6f5750484455f63b71bc847b667807bb897ad63",
+  "authority": {
+    "productionMutationAllowed": false,
+    "publicVerified": false,
+    "computerControlVerified": false,
+    "statement": "This is a recovery lease request and rollback baseline, not a deployment receipt."
+  },
+  "candidate": {
+    "sourceCommit": "49cbb1507e25f4681018af883da7e4649e415de9",
+    "sourceTree": "54c1100a36b45d3e9955fb4ba0504042bab1d73a",
+    "release": "ynx-explorer-monitor-49cbb1507e25",
+    "artifacts": {
+      "explorerd": { "carrierPath": "/private/tmp/ynx-explorer-monitor-p0147/bin/ynx-explorerd", "bytes": 8872120, "sha256": "826a256b2b22e6862456024afea0263842f17f295a26c3d0e8732b5c536179f5" },
+      "indexerd": { "carrierPath": "/private/tmp/ynx-explorer-monitor-p0147/bin/ynx-indexerd", "bytes": 7512248, "sha256": "7efcae26d1afe78a0a55fdca2f2bd902432977b3865a6886334f5ec624858d32" },
+      "monitorReleaseTree": { "carrierPath": "/private/tmp/ynx-explorer-monitor-p0147/monitor-release-tree.tar", "bytes": 1034240, "sha256": "5df0a9ff8fbed84544890ee18a8a3a4c6e7728d9094fd2cd3fc3446b2af2eb3e" }
+    }
+  },
+  "currentRuntimeRollbackBinding": {
+    "observedHostLabel": "VM-4-3-ubuntu",
+    "observedAt": "2026-08-31T07:06:17Z",
+    "services": {
+      "chain": { "unit": "ynx-chaind.service", "state": "active/running", "restarts": 0, "binarySha256": "eb96a2d09859f041221917489589100f5a94ef0bbf4f5ad4f6fcf5c753846fd4" },
+      "explorer": { "unit": "ynx-explorerd.service", "state": "active/running", "restarts": 0, "binarySha256": "5ac2ae449ff877f3f427807161e294b2ef62bb3b12b84ac9820b939707c13b76" },
+      "indexer": { "unit": "ynx-indexerd.service", "state": "active/running", "restarts": 0, "binarySha256": "f45e53951899ef498c8494bd0f422d877280e4b59656d19343281e6187b50696" },
+      "monitor": { "unit": "ynx-monitor.service", "state": "active/running", "restarts": 0, "release": "ynx-explorer-monitor-8bf7716ee671", "releaseTreeSha256": "133e064f7015206f81ae18cbe8f5a349b388a3e00e8a7dc062021302674dc65b" }
+    },
+    "environmentDigests": {
+      "chain": "d2b2587daef4e74d6d452c8c084b96e3dc2ffb436d10e42f22452a735f966d48",
+      "explorer": "4c6a33bb491641e49fe7984570b6ed043b99c54b391af67e6cb4e58573757c03",
+      "monitor": "5b2645f1a008a3601721618cbc92417b20c71edcaa013d4b1a3a59a98e66c569"
+    },
+    "ingress": {
+      "caddyMainSha256": "7123e3fbf4ebbaa2053d28c2ddbed8393203e4745f3d84c9018aedb8e2827a53",
+      "monitorSnippetSha256": "d0b9c48e33f279ae43a130fd3dca82f94611ebc69215e0710f31121cd2b98d10",
+      "currentMatcher": "@control path /health /version /status /ops/*",
+      "requiredMatcher": "@control path /health /version /status /connectivity /ops/*",
+      "validation": "passed"
+    }
+  },
+  "publicFailureBaseline": {
+    "targetNativeChainId": "ynx_6423-1",
+    "targetEvmChainId": "0x1917",
+    "observedNativeChainId": "ynx_9102-1",
+    "observedEvmChainId": "0x238e",
+    "explorerVersion": { "httpStatus": 404, "bytes": 9, "sha256": "e3ebaa16dd9d9b9fc107c42183fb6cf9d22927e1af03dbbdfa0ccc38e4e4ac31" },
+    "indexerVersion": { "httpStatus": 404, "bytes": 32, "sha256": "8e4a404a550a765c8410cb38d835d6546b1c668931795d873c8d617883a18366" },
+    "monitorVersion": { "httpStatus": "timeout", "identity": "unverified in this sampling window" },
+    "monitorConnectivity": { "httpStatus": 200, "contentType": "text/html; charset=utf-8", "bytes": 641, "sha256": "efbf2403f89259511dd861a6014e09d5fb11a7bf549a609bd17adacde41af44a", "classification": "static fallback, not connectivity JSON" },
+    "indexerHealthDisclosure": "public response includes internal upstream detail; it must not be treated as safe public identity evidence"
+  },
+  "recoveryPlan": {
+    "chainDependency": {
+      "owner": "Chain Core runtime owner",
+      "requiredOutcome": "Restore the authoritative public Chain runtime to ynx_6423-1 and EVM eth_chainId 0x1917 before Explorer/Indexer/Monitor promotion.",
+      "ownerBoundary": "Explorer/Monitor must not alter the chain binary, chain environment, genesis, validators, RPC listener, or Faucet."
+    },
+    "explorerMonitorSlice": [
+      "Verify every candidate artifact hash before transfer.",
+      "Capture the rollback binding above before mutation.",
+      "Install only the candidate Explorer and Indexer binaries and the Monitor release tree.",
+      "Change only the exact Monitor API matcher so /connectivity reaches the existing JSON route before static fallback.",
+      "Validate ingress, restart only Explorer/Indexer/Monitor, and fail closed if their local health or identity differs from candidate.",
+      "Read official-domain version, connectivity JSON, native chain, EVM 0x1917, indexed transaction and browser UI after deployment; rollback on any mismatch."
+    ],
+    "rollback": "Restore captured Explorer/Indexer binaries, Monitor release target and Monitor ingress snippet; validate/reload ingress; restart only the three scoped services; record post-rollback official version and connectivity bytes/SHA."
+  },
+  "requiredReceipt": {
+    "before": ["singleUseLeaseId", "operator", "candidate source/tree/artifact hashes", "rollback binary/release/ingress/environment digests", "preflight native and EVM chain IDs"],
+    "mutation": ["artifact transfer verification", "backup manifest", "exact ingress diff", "proxy validation", "scoped restart states"],
+    "after": ["Explorer/Indexer/Monitor official version source/release", "Monitor connectivity application/json schema", "native ynx_6423-1", "EVM 0x1917", "transaction API/deep-link", "browser evidence", "rollback result if any"],
+    "failure": "Any timeout, identity mismatch, wrong chain, HTML fallback, internal disclosure, transaction lookup failure or browser failure triggers rollback and preserves publicVerified=false."
+  },
+  "singleUseLeaseRequest": {
+    "requested": true,
+    "scope": "YNX 6423 public-runtime recovery dependency gate plus Explorer/Indexer/Monitor candidate release and exact Monitor connectivity ingress matcher",
+    "requires": ["separate Chain Core runtime authorization", "candidate and rollback digest binding", "named deployment operator and expiry", "receipt schema above", "official-domain post-deploy verification"],
+    "doesNotAuthorize": ["Chain Core modification by Explorer/Monitor", "Faucet modification", "Wallet modification", "financial product modification", "publicVerified promotion without browser evidence"]
+  }
+}

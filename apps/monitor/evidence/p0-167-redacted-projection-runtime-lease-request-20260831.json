@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "ynx.explorer-monitor.single-use-runtime-lease-request.v2",
+  "requestedAt": "2026-08-31T09:13:11Z",
+  "owner": "explorer-monitor",
+  "requestState": "REQUESTED_NOT_GRANTED",
+  "supersedes": {"record": "apps/monitor/evidence/p0-164-single-use-runtime-lease-request-20260831.json", "reason": "P0-164 binds pre-redaction source a3292a2b and P0-160 artifacts; both are forbidden after c0f49a35/P0-165."},
+  "authority": {"productionMutationAllowed": false, "publicVerified": false, "computerControlVerified": false, "statement": "A Central-granted id, operator and expiry are mandatory before any production mutation."},
+  "candidate": {"sourceBearingCommit": "c0f49a35a9336487a50ff8aeac480dd68e7a7246", "sourceTree": "96d90ef1e107f44f492be523998be968eec07c6a", "evidenceHead": "309cdb2e5156391014b3bba94ec336c4a87efac1", "release": "ynx-explorer-monitor-c0f49a35a933", "pullRequest": "https://github.com/JiahaoAlbus/YNX-Chain/pull/107"},
+  "immutableInputs": {"explorerd": {"sha256": "fe60395650a010c1c9219b025c40bfde64dff339e09d65934b3cbe9bbb713ec0", "bytes": 8872084, "target": "/usr/local/bin/ynx-explorerd"}, "indexerd": {"sha256": "37e3eb1ce8b6173e9353ff181c09797ce60f309eb6cf1191be9e99012faa903e", "bytes": 7512212, "target": "/usr/local/bin/ynx-indexerd"}, "monitorReleaseTree": {"sha256": "5fa7ccd22c601297d6a4d7082123d788e7c787ea634231a0e6ae3d68f204036f", "bytes": 2242560, "target": "/opt/ynx-monitor/releases/ynx-explorer-monitor-c0f49a35a933"}},
+  "scope": {"services": ["ynx-explorerd.service", "ynx-indexerd.service", "ynx-monitor.service"], "requiredIngress": {"matcher": "@control path /health /version /status /connectivity /ops/*", "connectivity": "200 JSON, no-store; never static HTML"}, "excludedOwners": ["Chain Core", "Wallet/Auth", "Finance", "Data Fabric", "Faucet runtime"]},
+  "prewriteReceipts": ["Central lease id/operator/expiry and all immutable input hash matches", "fresh current binary modes/hashes, Monitor resolved current release hash, ingress hash and environment-file hashes without values", "current service state plus official /version,/health,/status,/connectivity HTTP/body hashes", "rollback copies/references captured before any replacement", "Caddy matcher proof for control paths before release activation"],
+  "postwriteGates": ["all three official versions identify c0f49a35/release", "Monitor connectivity is JSON/no-store and reports only safe classifications", "6423 native and 0x1917 EVM identity", "real indexed transaction deep link details", "redacted dependency projection negative behavior", "rollback on any mismatch", "direct browser + Computer Control before publicVerified changes"],
+  "ciGate": "All required PR #107 checks must be successful at the exact evidence head or an explicitly Central-accepted descendant before mutation.",
+  "states": {"implementedLocal": true, "testedLocal": true, "integratedCentral": false, "deployedStaging": false, "deployedPublic": false, "downloadHosted": false, "productionSigned": false, "publicVerified": false}
+}

@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "ynx.explorer-monitor.source-bound-release-preparation.v2",
+  "observedAt": "2026-08-31T08:35:30Z",
+  "owner": "explorer-monitor",
+  "authority": {
+    "productionMutationAllowed": false,
+    "publicVerified": false,
+    "computerControlVerified": false,
+    "statement": "This is a local successor artifact freeze. A Central single-use lease remains mandatory before any production action."
+  },
+  "candidate": {
+    "sourceCommit": "41d4886b59776de8127bd21e2a9826edc1b66305",
+    "sourceTree": "ac7d154067a7d930febc784dc6d44aee3e2733eb",
+    "pullRequest": "https://github.com/JiahaoAlbus/YNX-Chain/pull/107",
+    "release": "ynx-explorer-monitor-41d4886b5977",
+    "build": {"goos": "linux", "goarch": "amd64", "cgoEnabled": false, "trimpath": true, "buildvcs": false, "buildTime": "2026-08-31T08:35:30Z"}
+  },
+  "supersession": {
+    "supersedesArtifactRecord": "apps/monitor/evidence/p0-155-source-bound-release-preparation-20260831.json",
+    "reason": "P0-155 was built before the public Indexer error-boundary fix at source commit 41d4886b. Its artifacts must not be deployed with this successor source generation.",
+    "mixingForbidden": true
+  },
+  "artifacts": {
+    "explorerd": {"carrierPath": "/private/tmp/ynx-explorer-monitor-p0157.atR52N/bin/ynx-explorerd", "bytes": 8867988, "sha256": "5e62b9b3fb75910be15959a99e6777fa74fd26b06a1cf1d81cea9dc9268e57ce", "format": "linux amd64 static ELF"},
+    "indexerd": {"carrierPath": "/private/tmp/ynx-explorer-monitor-p0157.atR52N/bin/ynx-indexerd", "bytes": 7512212, "sha256": "bcac35a370da11385fe83d23c3bee146d1f12c20e9d658f3b42cdd1136278dfc", "format": "linux amd64 static ELF"},
+    "monitorReleaseTree": {
+      "carrierPath": "/private/tmp/ynx-explorer-monitor-p0157.atR52N/monitor-release-tree.tar",
+      "bytes": 2191360,
+      "sha256": "90be13c7a40621531db7329bca8f3fe571910c7921a3e0783b1a90e70c883edd",
+      "format": "deterministic GNU tar with built dist, no node_modules or .env",
+      "inputs": {"packageLockSha256": "3329447e950589f80129b59e1c6e99d5856d869da06672c0b525ed129e291694", "distIndexHtmlSha256": "efbf2403f89259511dd861a6014e09d5fb11a7bf549a609bd17adacde41af44a", "distJsSha256": "ec91c2a6b8b5d00ab4a35072d07ac66bf67f346b1611e0b50a8fc95a452d873b", "distCssSha256": "512e460fd87a10dff58c1a76b2c9ad419c184a5574aed372603241dab4407239"}
+    }
+  },
+  "runtimeAndRollbackContract": {
+    "scopedServices": ["ynx-explorerd.service", "ynx-indexerd.service", "ynx-monitor.service"],
+    "requiredVersionIdentity": {"commit": "41d4886b59776de8127bd21e2a9826edc1b66305", "release": "ynx-explorer-monitor-41d4886b5977"},
+    "monitorIngress": {"requiredMatcher": "@control path /health /version /status /connectivity /ops/*", "requiredConnectivity": "200 application/json with cache-control no-store; never static HTML"},
+    "beforeMutation": ["fresh current binary/release/ingress/environment digests", "resolved Monitor current target", "proxy validation", "rollback archive and receipt binding"],
+    "rollbackOnAnyFailure": ["restore captured Explorer and Indexer binaries", "restore Monitor target and ingress", "validate/reload scoped proxy configuration", "restart only three scoped services", "record official-domain restored identity and connectivity hashes"]
+  },
+  "localValidation": {
+    "explorerIndexerTests": "go test -race ./internal/indexer ./internal/explorer and go vet passed",
+    "negativeCoverage": "Explorer and Indexer public endpoints suppress injected loopback and credential-bearing upstream errors while returning stable classifications",
+    "monitor": "50 Monitor tests, 10 scripts and production build passed",
+    "linuxArtifactRuntime": "not yet tested: current owner host is macOS and the frozen linux amd64 ELF binaries correctly refuse execution there"
+  },
+  "requiredLease": {
+    "scope": "only these exact three hashes plus the Monitor /connectivity matcher",
+    "mustBind": ["named authorized operator and expiry", "fresh production rollback digests", "post-deploy 6423 and 0x1917 verification", "official source/version/readback", "transaction detail and real browser evidence"],
+    "doesNotAuthorize": ["Chain Core, Faucet, Wallet, Finance or Data Fabric mutation", "unscoped Caddy/systemd change", "publicVerified promotion"]
+  }
+}

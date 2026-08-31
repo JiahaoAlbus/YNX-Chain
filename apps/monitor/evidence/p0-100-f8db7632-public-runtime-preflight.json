@@ -1,0 +1,210 @@
+{
+  "schemaVersion": "ynx.monitor.runtime-preflight.v1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-100",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-explorer-monitor-f8db7632-preflight-20260821T023738Z",
+  "centralControlCommit": "fa587c52da33afb0ba8333196bc120237d200af0",
+  "productionMutationAllowed": false,
+  "startingCommit": "f8db7632fb37e9363858a4d4d977eea7b3585c7e",
+  "startingTree": "7af361c456c446433530ee16d36922792f3e18e8",
+  "preflightReadbackAt": "2026-08-21T02:43:36.113Z",
+  "sourceArchive": {
+    "format": "tar",
+    "sourcePaths": [
+      "apps/monitor",
+      "internal/explorer",
+      "cmd/ynx-explorerd"
+    ],
+    "bytes": 2150400,
+    "sha256": "2216865540de5cc863a9446b698674b5669b71f887d982941818e572ee2928cc"
+  },
+  "sourceBlobs": {
+    "apps/monitor/scripts/publish-public-status.mjs": "56229a362a3b9af95e25b42cb64d34aab7d15f9b",
+    "apps/monitor/server/app.ts": "7f22c15825de4871d7139b61fbee4d6ab9e81595",
+    "cmd/ynx-explorerd/main.go": "1d3138319972ad8b72f8c79b451ec56135a0dc2d",
+    "internal/explorer/server.go": "61edc7c2882da326e1c6de2fc131c37d2ec9163b"
+  },
+  "builds": {
+    "monitor": {
+      "commands": [
+        "npm test",
+        "npm run build"
+      ],
+      "result": "passed",
+      "tests": {
+        "application": 48,
+        "script": 10,
+        "capacity": {
+          "requests": 1000,
+          "concurrency": 25,
+          "failures": 0,
+          "throughputPerSecond": 1820.2,
+          "p50Milliseconds": 7.285,
+          "p95Milliseconds": 41.902,
+          "p99Milliseconds": 138.757
+        }
+      },
+      "dist": [
+        { "path": "dist/assets/index-CU1vpbuu.css", "bytes": 17159, "sha256": "512e460fd87a10dff58c1a76b2c9ad419c184a5574aed372603241dab4407239" },
+        { "path": "dist/assets/index-Dza9I6YL.js", "bytes": 227002, "sha256": "ec91c2a6b8b5d00ab4a35072d07ac66bf67f346b1611e0b50a8fc95a452d873b" },
+        { "path": "dist/assets/ynx-logo-D80L-uL1.png", "bytes": 104171, "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d" },
+        { "path": "dist/icon.svg", "bytes": 273, "sha256": "8ed1d0e4fa1dc02412c01f241a12c0f88e4c2e33e7164d23dce94c6332f1111f" },
+        { "path": "dist/index.html", "bytes": 641, "sha256": "efbf2403f89259511dd861a6014e09d5fb11a7bf549a609bd17adacde41af44a" },
+        { "path": "dist/manifest.webmanifest", "bytes": 298, "sha256": "4ca2fcd329ee9b666ab20b45deb2e4d5e673ed844898b839a4e575b890462d61" },
+        { "path": "dist/sw.js", "bytes": 832, "sha256": "ec7a0f60362e365a75253d7e96ea544745a1caaf5f51e8367ab4ff2b1d331f8e" }
+      ]
+    },
+    "explorer": {
+      "command": "DEPLOY_DRY_RUN=1 YNX_STABLE_RESERVE_DEPLOY_ENABLED=false YNX_ECONOMICS_EXPLORER_RELEASE_CLASS=central_testnet bash scripts/deploy/deploy-economics-explorer.sh",
+      "result": "passed",
+      "release": "ynx-economics-explorer-f8db7632fb37",
+      "ephemeralArchiveSha256": "6b710c7d97568bba41f0a1aeadc8ab076155619885aa44702f5b486f0760dc2c",
+      "note": "The dry run produced no remote connection and no persistent deployment artifact. It is artifact preflight only, not a production authorization."
+    }
+  },
+  "deploymentSources": {
+    "scripts/deploy/deploy-economics-explorer.sh": "3f1614a74346dc6beb7c993f54ecd1a863d147c8324c086f0fb0fd4ce2eec5c9",
+    "scripts/deploy/remote/install-economics-explorer.sh": "a665104723def099519fa7df8bc2f9ff8204ae5c59518a6d9469f40356f7fc99",
+    "scripts/ops/rollback.sh": "4bf82f97083bd2c7442e95577dc19ef3e63c1baa83b08fd2bdb3bb37c093c320",
+    "infra/systemd/ynx-explorerd.example.service": "cdf3bc5d3363edc79f18c44cade6f51a502c3133bf2755b8a74dd92365e90519",
+    "infra/systemd/ynx-indexerd.example.service": "ba1b47a8d0b0dc5e06c5ca96b432b85b49f9ccfb1e334c0c61273e108217372d",
+    "apps/monitor/server/app.ts": "3a7d0cec86992d22708f8b17b9598e01eba0c4e9e7637ebe2a7f739bab4bf8f4",
+    "apps/monitor/scripts/publish-public-status.mjs": "08b11c9c4695f4a608c09260ed1fb6e02f59a28f3994f346b13202ad8c3a313f"
+  },
+  "exactTargets": {
+    "explorer": {
+      "service": "ynx-explorerd.service",
+      "binary": "/usr/local/bin/ynx-explorerd",
+      "serviceUnit": "/etc/systemd/system/ynx-explorerd.service",
+      "environmentFile": "/etc/ynx/ynx-explorerd.env",
+      "optionalAttestation": "/etc/ynx/stable-reserve-attestation.json",
+      "backupRoot": "/var/backups/ynx-chain/<release>",
+      "installer": "scripts/deploy/remote/install-economics-explorer.sh"
+    },
+    "indexer": {
+      "service": "ynx-indexerd.service",
+      "binary": "/usr/local/bin/ynx-indexerd",
+      "serviceTemplate": "infra/systemd/ynx-indexerd.example.service",
+      "readOnlyPreflightOnly": true
+    },
+    "monitor": {
+      "runtimeTarget": "UNRESOLVED_BY_SOURCE_ONLY_PREFLIGHT",
+      "reason": "No owner-scoped Monitor runtime target, deployment unit/container, status-source file, or environment binding is present in the accepted production transaction.",
+      "mutationPermitted": false
+    }
+  },
+  "rollbackFirst": {
+    "required": true,
+    "validatedDryRun": "DEPLOY_DRY_RUN=1 YNX_STABLE_RESERVE_DEPLOY_ENABLED=false YNX_ECONOMICS_EXPLORER_RELEASE_CLASS=central_testnet bash scripts/deploy/deploy-economics-explorer.sh",
+    "installerBehavior": "The installer backs up the Explorer targets, installs only after validation, and its EXIT trap restores the previous files, daemon-reloads, and restarts the service on failure before completion.",
+    "genericRollbackReference": "scripts/ops/rollback.sh restores /usr/local/bin/ynx-indexerd and /usr/local/bin/ynx-explorerd from /opt/ynx-chain/releases/<release>; it is a future, separately authorized operation and was not run.",
+    "futureMutationPreconditions": [
+      "A new central lease explicitly permits production mutation.",
+      "The official runtime host, release string, source commit, and rollback release are bound in the deployment transaction.",
+      "The Monitor runtime target and manifest-bound status configuration are identified.",
+      "Post-deploy source identity and route content-type readbacks are recorded."
+    ]
+  },
+  "currentPublicReadback": [
+    {
+      "url": "https://monitor.ynxweb4.com/health",
+      "httpStatus": 200,
+      "contentType": "application/json",
+      "bytes": 159,
+      "sha256": "db2c7b36aec6ddba3250f081d13c1acfdabb435ca898045e11723a95a270256d",
+      "observedStartedAt": "2026-08-15T03:43:52.909Z",
+      "observedCheckedAt": "2026-08-21T02:43:36.113Z"
+    },
+    {
+      "url": "https://monitor.ynxweb4.com/version",
+      "httpStatus": 200,
+      "contentType": "application/json",
+      "bytes": 264,
+      "sha256": "d0cb952655a41dad6a353f463c5b9f623f509b31303d35404e242a8a334b70ce",
+      "sourceCommit": "8bf7716ee671a5a9b64517280743c5a281899712",
+      "release": "ynx-explorer-monitor-8bf7716ee671"
+    },
+    {
+      "url": "https://monitor.ynxweb4.com/connectivity",
+      "httpStatus": 200,
+      "contentType": "text/html",
+      "bytes": 641,
+      "sha256": "efbf2403f89259511dd861a6014e09d5fb11a7bf549a609bd17adacde41af44a",
+      "classification": "spa_fallback_not_connectivity_api"
+    },
+    {
+      "url": "https://monitor.ynxweb4.com/status",
+      "httpStatus": 200,
+      "contentType": "application/json",
+      "bytes": 7045,
+      "sha256": "83e1eb529bf71269ad665d66101312d2303e1422f43d804537c88a1f5ac8f17b"
+    },
+    {
+      "url": "https://explorer.ynxweb4.com/health",
+      "httpStatus": 200,
+      "contentType": "application/json",
+      "bytes": 1188,
+      "sha256": "39bcc84ff9835f21c8d6b6bbe4540d2126039b1b6b7f168d5c330a164b4d5a7c",
+      "rpcHeight": 1137843,
+      "indexedHeight": 1137843,
+      "indexedBlockCount": 1137844,
+      "indexedTransactionCount": 584,
+      "validatorCount": 4
+    },
+    {
+      "url": "https://explorer.ynxweb4.com/version",
+      "httpStatus": 200,
+      "contentType": "application/json",
+      "bytes": 331,
+      "sha256": "bc2982203cd9d2b8bb699b87e34205eeb8edf7bf13054d2c9569cf885ec106e5",
+      "sourceCommit": "8bf7716ee671a5a9b64517280743c5a281899712",
+      "release": "ynx-explorer-monitor-8bf7716ee671"
+    },
+    {
+      "url": "https://indexer.ynxweb4.com/health",
+      "httpStatus": 200,
+      "contentType": "application/json",
+      "bytes": 849,
+      "sha256": "c6ca6bcb94834e4f6ab6310f681b24fab633435c2f0b0b142ebaa889fde36025",
+      "sourceCommit": "8bf7716ee671a5a9b64517280743c5a281899712"
+    },
+    {
+      "url": "https://indexer.ynxweb4.com/version",
+      "httpStatus": 200,
+      "contentType": "application/json",
+      "bytes": 307,
+      "sha256": "070a856715b6843be1db4526990cc61aaf0d68ded0bae5352741491fe66c51c7",
+      "sourceCommit": "8bf7716ee671a5a9b64517280743c5a281899712",
+      "release": "ynx-explorer-monitor-8bf7716ee671"
+    }
+  ],
+  "expectedPostDeploymentEvidence": {
+    "monitor": [
+      "GET /version returns 200 JSON with the bound source commit and deployment release.",
+      "GET /connectivity returns a JSON connectivity snapshot, never the SPA fallback; a missing or invalid configuration is an explicit JSON fail-closed response.",
+      "GET /health returns sanitized JSON without loopback, internal upstream, filesystem, or secret detail.",
+      "GET /status is accepted only when it is manifest-bound; otherwise its fail-closed response is retained."
+    ],
+    "explorerAndIndexer": [
+      "GET /version returns the source commit and deployment release bound by the new transaction.",
+      "GET /health exposes only sanitized health and canonical indexing state."
+    ]
+  },
+  "acceptedRuntimeContext": {
+    "fourNodeChainSourceCommit": "be9f03833ac3a7579bd96f22f6bf49f3d8dccc7b",
+    "fourNodeEvidenceCommit": "c1813fb33bddf3479382d2d24f4e255d52b5dd43",
+    "fixedHeight": 1130847,
+    "publicDomainVerified": false,
+    "computerControlVerified": false,
+    "note": "This is fixed-height four-node Testnet runtime evidence. It is not official-domain or Computer Control evidence."
+  },
+  "declarations": {
+    "deploymentMutationStarted": false,
+    "remoteCredentialsRead": false,
+    "remoteConnectionAttempted": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "publicVerified": false,
+    "computerControlVerified": false
+  }
+}

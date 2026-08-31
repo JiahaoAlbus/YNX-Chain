@@ -334,15 +334,17 @@ grep -Fq "reverse_proxy 127.0.0.1:6420" "$release_dir/caddy/ynx-chain.caddy" || 
 grep -Fq "reverse_proxy 127.0.0.1:6426" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet missing indexer proxy target"; exit 1; }
 grep -Fq "reverse_proxy 127.0.0.1:6427" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet missing explorer proxy target"; exit 1; }
 grep -Fq "reverse_proxy 127.0.0.1:6428" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet missing faucet proxy target"; exit 1; }
-grep -Fq "bridge.www.ynx.test" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet must preserve bridge route"; exit 1; }
-grep -A2 -F "bridge.www.ynx.test" "$release_dir/caddy/ynx-chain.caddy" | grep -Fq "reverse_proxy 127.0.0.1:6433" || { echo "Caddy Bridge route must target the current chain-bound coordinator"; exit 1; }
-if grep -A2 -F "bridge.www.ynx.test" "$release_dir/caddy/ynx-chain.caddy" | grep -Fq "38083"; then
-  echo "Caddy Bridge route must not target the retired v2 bridge"
+grep -A2 -F "bridge.www.ynx.test" "$release_dir/caddy/ynx-chain.caddy" | grep -Fq "respond \"service unavailable: canonical 6423 bridge runtime required\" 503" || { echo "Caddy Bridge route must fail closed without canonical runtime"; exit 1; }
+grep -Fq "web4.www.ynx.test" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet must preserve Web4 route"; exit 1; }
+grep -A2 -F "web4.www.ynx.test" "$release_dir/caddy/ynx-chain.caddy" | grep -Fq "respond \"service unavailable: canonical 6423 Web4 runtime required\" 503" || { echo "Caddy Web4 route must fail closed without canonical runtime"; exit 1; }
+grep -Fq "grpc.www.ynx.test" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet must preserve gRPC route"; exit 1; }
+grep -A2 -F "grpc.www.ynx.test" "$release_dir/caddy/ynx-chain.caddy" | grep -Fq "respond \"service unavailable: canonical 6423 gRPC runtime required\" 503" || { echo "Caddy gRPC route must fail closed without canonical runtime"; exit 1; }
+grep -Fq "evm-ws.www.ynx.test" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet must preserve EVM WebSocket route"; exit 1; }
+grep -A2 -F "evm-ws.www.ynx.test" "$release_dir/caddy/ynx-chain.caddy" | grep -Fq "respond \"service unavailable: canonical 6423 EVM WebSocket runtime required\" 503" || { echo "Caddy EVM WebSocket route must fail closed without canonical runtime"; exit 1; }
+if grep -Eq 'ynx_9102-1|0x238e|36657|127\.0\.0\.1:(38545|38546|380(8[0-9]|9[0-1])|39090|31317)' "$release_dir/caddy/ynx-chain.caddy"; then
+  echo "Caddy ingress contains a forbidden legacy or unbound target"
   exit 1
 fi
-grep -Fq "web4.www.ynx.test" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet must preserve Web4 route"; exit 1; }
-grep -Fq "grpc.www.ynx.test" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet must preserve gRPC route"; exit 1; }
-grep -Fq "evm-ws.www.ynx.test" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet must preserve EVM WebSocket route"; exit 1; }
 grep -Fq "BEGIN YNX_CHAIN_MANAGED_INGRESS" "$release_dir/scripts/install-caddy-ingress.sh" || { echo "Caddy install script missing managed block marker"; exit 1; }
 grep -Fq "import \${dest}" "$release_dir/scripts/install-caddy-ingress.sh" || { echo "Caddy install script missing managed import"; exit 1; }
 
@@ -397,6 +399,21 @@ managed_count="$(grep -Fc "# BEGIN YNX_CHAIN_MANAGED_INGRESS" "$caddy_check_dir/
 cmp "$release_dir/caddy/ynx-chain.caddy" "$caddy_check_dir/ynx-chain.caddy" >/dev/null || { echo "Caddy installer wrote wrong snippet"; exit 1; }
 [[ -r "$caddy_check_dir/Caddyfile.pre-ynx-${release}" ]] || { echo "Caddy installer missing backup"; exit 1; }
 grep -Fq "reload caddy" "$caddy_check_dir/systemctl.log" || { echo "Caddy installer did not reload caddy"; exit 1; }
+legacy_caddy="$caddy_check_dir/legacy-ynx-chain.caddy"
+for legacy_marker in ynx_9102-1 0x238e 36657 38545 38546 38080 38081 38082 38083 38084 38085 38086 38087 38088 38089 38090 38091 39090 31317; do
+  cp "$release_dir/caddy/ynx-chain.caddy" "$legacy_caddy"
+  case "$legacy_marker" in
+    38545|38546|38080|38081|38082|38083|38084|38085|38086|38087|38088|38089|38090|38091|39090|31317)
+      printf '\nlegacy.example { reverse_proxy 127.0.0.1:%s }\n' "$legacy_marker" >> "$legacy_caddy"
+      ;;
+    *) printf '\n# forbidden marker %s\n' "$legacy_marker" >> "$legacy_caddy" ;;
+  esac
+  if PATH="$caddy_check_dir/bin:$PATH" bash "$release_dir/scripts/install-caddy-ingress.sh" \
+    "$legacy_caddy" "$caddy_check_dir/Caddyfile" "$caddy_check_dir/rejected-ynx-chain.caddy" "$release"; then
+    echo "Caddy installer accepted forbidden legacy marker: $legacy_marker"
+    exit 1
+  fi
+done
 bash "$release_dir/scripts/check-local-services.sh" --self-test
 
 ynx_check_role_env() {

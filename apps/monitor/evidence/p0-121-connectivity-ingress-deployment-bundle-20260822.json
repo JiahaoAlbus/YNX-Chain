@@ -1,0 +1,127 @@
+{
+  "schemaVersion": "ynx.monitor.connectivity-ingress-deployment-bundle.v1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-121",
+  "bundleCreatedAt": "2026-08-21T17:07:13Z",
+  "authorityBoundary": {
+    "productionMutationAllowed": false,
+    "activeLeaseRequired": true,
+    "deploymentAttempted": false,
+    "publicVerified": false,
+    "computerControlVerified": false,
+    "statement": "This is a local, deployment-ready candidate bundle. It authorizes neither production mutation nor a public-success claim."
+  },
+  "candidate": {
+    "sourceCommit": "49cbb1507e25f4681018af883da7e4649e415de9",
+    "sourceTree": "54c1100a36b45d3e9955fb4ba0504042bab1d73a",
+    "candidatePR": "https://github.com/JiahaoAlbus/YNX-Chain/pull/107",
+    "proposedRelease": "ynx-explorer-monitor-49cbb1507e25",
+    "sourceInputs": {
+      "monitor": "b76d5baf91d3de5b5a7924608bd1e15c3921eefc",
+      "explorer": "f38a975d24e73d679c3e3117ec1efde3561193a1",
+      "indexer": "e0d3665de2656b37badcb04e68fc0c33cf5be067"
+    },
+    "sourceArchive": {
+      "format": "git archive tar",
+      "paths": [
+        "apps/monitor",
+        "cmd/ynx-explorerd",
+        "cmd/ynx-indexerd",
+        "internal/explorer",
+        "internal/indexer"
+      ],
+      "bytes": 2273280,
+      "sha256": "5b586808fe933b8ef7d201c517951767dd65fcab53cb1d4b5d6c302710bab474"
+    }
+  },
+  "candidateArtifacts": {
+    "build": {
+      "goos": "linux",
+      "goarch": "amd64",
+      "cgoEnabled": false,
+      "trimpath": true,
+      "buildvcs": false,
+      "releaseEmbedded": "ynx-explorer-monitor-49cbb1507e25"
+    },
+    "explorerBinary": {
+      "role": "ynx-explorerd",
+      "bytes": 8872120,
+      "sha256": "567ecb64270240995561de5b2e62e273e023be98a408156ebec39e344f1a1550"
+    },
+    "indexerBinary": {
+      "role": "ynx-indexerd",
+      "bytes": 7512248,
+      "sha256": "e97e0c605f283123701eaca28e9abb9daa8d3e59ad29c5dea4eab06cd1034f1c"
+    },
+    "monitorReleaseTree": {
+      "format": "git archive tar",
+      "sourcePath": "apps/monitor",
+      "bytes": 1034240,
+      "sha256": "5df0a9ff8fbed84544890ee18a8a3a4c6e7728d9094fd2cd3fc3446b2af2eb3e"
+    }
+  },
+  "monitorSupplyChain": {
+    "result": "passed",
+    "summarySha256": "08aeddf312e147403df637676de4c58dac1dfd63c0da3a0adc1356a78fc8727a",
+    "sbomSha256": "160e36dcc70824d0f611f6dbb8b4aabaffed318d06535029288f9db8d05e10af",
+    "provenanceSha256": "5b04e969e19ffb1b00c2f1747907a8b357eaa772c39e87c199e38a0d32e2d082",
+    "dependencyReviewSha256": "149c91ec68c98019289603eb0776c488a9e5220e6ada1048edd3fc5326852d86",
+    "buildManifestSha256": "d4fb8e9da55a9515fa6867e6eb38a2e7effa69d89205cf6d2e120604bbe6d0c3"
+  },
+  "ingressRepair": {
+    "scope": "Official Monitor API route only",
+    "requiredChange": "Route the exact /connectivity path to the existing Monitor service before the static application fallback.",
+    "invariants": [
+      "Do not route arbitrary application paths to the Monitor API.",
+      "Keep /health, /version, /status, and /ops behaviour unchanged.",
+      "Keep static fallback only for non-API application routes.",
+      "Do not alter Monitor environment, service unit, credentials, Faucet runtime, Wallet protocol, or another owner path."
+    ],
+    "expectedResponse": {
+      "httpStatus": 200,
+      "contentTypePrefix": "application/json",
+      "cacheControl": "no-store",
+      "schemaVersion": "ynx.monitor.p0-connectivity.v1",
+      "forbidden": ["text/html", "static application fallback", "internal endpoint", "raw upstream error"]
+    },
+    "localRouteEvidence": {
+      "test": "P0 public connectivity route is cache-free and truthful before probe activation",
+      "result": "passed",
+      "truthfulUnconfiguredStatus": "not_configured",
+      "unconfiguredMeaning": "not an offline classification"
+    }
+  },
+  "currentPublicBaseline": {
+    "release": "ynx-explorer-monitor-8bf7716ee671",
+    "sourceCommit": "8bf7716ee671a5a9b64517280743c5a281899712",
+    "monitorConnectivity": {
+      "httpStatus": 200,
+      "contentTypeClass": "text/html",
+      "bytes": 641,
+      "sha256": "efbf2403f89259511dd861a6014e09d5fb11a7bf549a609bd17adacde41af44a",
+      "classification": "static application fallback; not connectivity API"
+    }
+  },
+  "rollback": {
+    "requiredBeforeMutation": "Capture and checksum the active Monitor ingress configuration and current release target.",
+    "onAnyFailure": "Restore the captured ingress configuration and exact current release target, validate the proxy configuration, reload it, then prove the prior public version identity.",
+    "successIsNot": ["a local build", "a process restart", "an HTML fallback", "an unverified browser screenshot"]
+  },
+  "singleUseLeaseRequest": {
+    "required": true,
+    "scope": "Explorer, Indexer, Monitor candidate release and Monitor /connectivity ingress route only",
+    "bind": [
+      "candidate source and artifacts in this bundle",
+      "authoritative current release and rollback target",
+      "approved deployment operator and lease expiry",
+      "post-deploy official-domain readback"
+    ],
+    "postDeployChecks": [
+      "Explorer and Indexer version endpoints identify the candidate source and release.",
+      "Monitor version identifies the candidate source and release.",
+      "Monitor /connectivity is JSON with the expected schema and never HTML fallback.",
+      "Both known Faucet transaction hashes resolve through canonical Explorer routes and indexed APIs expose from, to, amount, fee, block, and status.",
+      "Any failed identity, JSON, transaction, or rollback check restores the exact prior release and records the rollback readback."
+    ]
+  }
+}

@@ -131,6 +131,7 @@ fi
 [[ "$NATIVE_SYMBOL" == "YNXT" ]] || { echo "NATIVE_SYMBOL must be YNXT"; exit 1; }
 [[ "$NATIVE_COIN_NAME" == "YNXT" ]] || { echo "NATIVE_COIN_NAME must be YNXT"; exit 1; }
 [[ "$CHAIN_ID" =~ ^[0-9]+$ ]] || { echo "CHAIN_ID must be numeric"; exit 1; }
+[[ "$CHAIN_ID" == "6423" ]] || { echo "CHAIN_ID must be canonical Testnet 6423; refusing legacy or unbound ingress"; exit 1; }
 
 if [[ "${DEPLOY_DRY_RUN:-0}" != "1" ]]; then
   ynx_require_clean_worktree
@@ -929,10 +930,16 @@ ${RESOURCE_API_DOMAIN} {
 }
 
 ${NGINX_SERVER_NAME}, ${TESTNET_DOMAIN}, ${RPC_DOMAIN}, ${EVM_RPC_DOMAIN} {
+  handle /bridge* {
+    respond "service unavailable: canonical 6423 bridge runtime required" 503
+  }
   reverse_proxy 127.0.0.1:6420
 }
 
 ${REST_DOMAIN}, ${API_DOMAIN}, ${IDE_DOMAIN} {
+  handle /bridge* {
+    respond "service unavailable: canonical 6423 bridge runtime required" 503
+  }
   handle /v1/wallet/* {
     reverse_proxy 127.0.0.1:6439
   }
@@ -957,19 +964,19 @@ ${REST_DOMAIN}, ${API_DOMAIN}, ${IDE_DOMAIN} {
 }
 
 bridge.${WEBSITE_DOMAIN} {
-  reverse_proxy 127.0.0.1:6433
+  respond "service unavailable: canonical 6423 bridge runtime required" 503
 }
 
 web4.${WEBSITE_DOMAIN} {
-  reverse_proxy 127.0.0.1:38091
+  respond "service unavailable: canonical 6423 Web4 runtime required" 503
 }
 
 grpc.${WEBSITE_DOMAIN} {
-  reverse_proxy h2c://127.0.0.1:39090
+  respond "service unavailable: canonical 6423 gRPC runtime required" 503
 }
 
 evm-ws.${WEBSITE_DOMAIN} {
-  reverse_proxy 127.0.0.1:38546
+  respond "service unavailable: canonical 6423 EVM WebSocket runtime required" 503
 }
 EOF
 
@@ -996,6 +1003,15 @@ restore_legacy_on_error() {
 
 [[ -r "$src" ]] || { echo "missing readable Caddy ingress snippet: $src"; exit 1; }
 command -v caddy >/dev/null 2>&1 || { echo "caddy binary not found"; exit 1; }
+if grep -Eq 'ynx_9102-1|0x238e|36657|127\.0\.0\.1:(38545|38546|380(8[0-9]|9[0-1])|39090|31317)' "$src"; then
+  echo "refusing legacy or unbound Caddy ingress target"
+  exit 1
+fi
+grep -Fq 'reverse_proxy 127.0.0.1:6427' "$src" || { echo "Caddy ingress missing Explorer target 6427"; exit 1; }
+grep -Fq 'reverse_proxy 127.0.0.1:6426' "$src" || { echo "Caddy ingress missing Indexer target 6426"; exit 1; }
+grep -Fq 'reverse_proxy 127.0.0.1:6428' "$src" || { echo "Caddy ingress missing Faucet target 6428"; exit 1; }
+grep -Fq 'reverse_proxy 127.0.0.1:6429' "$src" || { echo "Caddy ingress missing AI target 6429"; exit 1; }
+grep -Fq 'reverse_proxy 127.0.0.1:6420' "$src" || { echo "Caddy ingress missing canonical RPC target 6420"; exit 1; }
 
 sudo install -d -m 0755 "$(dirname "$caddyfile")" "$(dirname "$dest")"
 sudo install -m 0644 "$src" "$dest"

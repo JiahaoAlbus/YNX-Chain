@@ -1,0 +1,111 @@
+{
+  "schemaVersion": "ynx.explorer-monitor.source-bound-release-preparation.v9",
+  "observedAt": "2026-08-31T11:27:00Z",
+  "owner": "explorer-monitor",
+  "authority": {
+    "productionMutationAllowed": false,
+    "publicVerified": false,
+    "computerControlVerified": false,
+    "statement": "Local, reproducible artifact freeze only. No production host, service, ingress, Caddy configuration, account, signature, transaction, Wallet state or other-owner path changed."
+  },
+  "candidate": {
+    "branch": "codex/p0-explorer-monitor-20260820",
+    "sourceCommit": "0f23cedde15f04110219a2c8ce0c09d80f63d8cc",
+    "sourceTree": "465794c7e507cfcfb7eb0ddf06f7ae49e2e9f5c6",
+    "monitorSourceTree": "d64ceb475fc179038ea194d91b5a8ca9bdcf0f9f",
+    "walletRefreshSafetyCommit": "c6aabec55bb7a5b4f8589e71ca5c69370baa9a56",
+    "pullRequest": "https://github.com/JiahaoAlbus/YNX-Chain/pull/107",
+    "release": "ynx-explorer-monitor-0f23cedde15f",
+    "build": {
+      "goos": "linux",
+      "goarch": "amd64",
+      "cgoEnabled": false,
+      "trimpath": true,
+      "buildvcs": false,
+      "sourceDateEpoch": 1788175401,
+      "buildTime": "2026-08-31T19:23:21+08:00",
+      "linkerIdentity": "main.buildCommit, main.buildRelease, main.buildTime"
+    }
+  },
+  "supersession": {
+    "supersedes": ["apps/monitor/evidence/explorer-monitor-8df3bc4108-artifact-freeze-20260831.json"],
+    "reason": "The predecessor artifacts predate the refresh-safe selected EIP-1193 Provider restoration. All three artifacts are regenerated from the single 0f23cedde source snapshot; mixing is forbidden.",
+    "mixingForbidden": true
+  },
+  "artifacts": {
+    "explorerd": {
+      "carrierPath": "/private/tmp/ynx-explorer-monitor-0f23cedde.1HGJ3v/bin/ynx-explorerd",
+      "bytes": 9007252,
+      "sha256": "3c72070ae7fbc9afeb8e6db486916401cf7424eb2d1f5c25a0742241c07c639b",
+      "format": "linux amd64 static ELF, stripped"
+    },
+    "indexerd": {
+      "carrierPath": "/private/tmp/ynx-explorer-monitor-0f23cedde.1HGJ3v/bin/ynx-indexerd",
+      "bytes": 7528596,
+      "sha256": "9a88e5767e5fa0df26e7b304673283f1a3b2a9e06e5aa2cae4b0291713d900b6",
+      "format": "linux amd64 static ELF, stripped"
+    },
+    "monitorReleaseTree": {
+      "carrierPath": "/private/tmp/ynx-explorer-monitor-0f23cedde.1HGJ3v/monitor-release-tree.tar",
+      "bytes": 1566720,
+      "sha256": "70f8f54129bc03fc75d6f1e7547a2c60d2ec02c317dac23a64f068d438628d7b",
+      "format": "deterministic GNU tar from the exact Monitor source tree with built dist; no node_modules or .env",
+      "inputs": {
+        "packageLockSha256": "3329447e950589f80129b59e1c6e99d5856d869da06672c0b525ed129e291694",
+        "distIndexHtmlSha256": "0f7d2e816a6cfdfaec8bd953c7be2562d3ff11e89b2a21fe372dd5bf169117d0"
+      }
+    }
+  },
+  "validation": {
+    "explorerIndexerRace": "go test -race ./internal/indexer ./internal/explorer -count=1: passing",
+    "monitor": "npm test: 55 application tests plus 10 script tests passing; npm run build: passing",
+    "walletRefreshSafety": "Explorer source test verifies refresh restoration requires saved provider identity plus read-only eth_accounts and eth_chainId, and forbids eth_requestAccounts, wallet_switchEthereumChain and wallet_addEthereumChain in that path.",
+    "artifactIntegrity": "All three artifacts were independently rebuilt with the same source epoch, linker identity and deterministic archive settings; cmp was byte-identical for every artifact. Both ELF binaries contain the full source commit. Archive listing contains neither node_modules nor .env.",
+    "monitorArtifactRuntime": {
+      "mode": "isolated extracted release tree with npm ci --ignore-scripts --omit=dev and local dummy secrets only",
+      "version": {
+        "httpStatus": 200,
+        "bytes": 264,
+        "sha256": "2806c2d8aef1fefd9039f17a07d7c93b73d48667b74b2165e2fa2d2a4cad7e41",
+        "commit": "0f23cedde15f04110219a2c8ce0c09d80f63d8cc",
+        "release": "ynx-explorer-monitor-0f23cedde15f"
+      },
+      "connectivity": {
+        "httpStatus": 200,
+        "contentType": "application/json; charset=utf-8",
+        "cacheControl": "no-store",
+        "bytes": 262,
+        "sha256": "066e7fb4d2b9802a1f8d14bfc2ae30910b2193a3983f57063300a091787baf68",
+        "availability": "available",
+        "status": "not_configured",
+        "htmlFallback": false,
+        "internalDetailLeak": false
+      }
+    },
+    "linuxRuntime": "Not run on this macOS builder because the binaries target Linux amd64; static ELF format, embedded identity, source race tests and exact byte reproducibility were verified."
+  },
+  "requiredCentralGate": {
+    "beforeProductionMutation": [
+      "Fresh read-only capture of the authoritative host, services, environment, Caddy matcher, current release and rollback artifact digests.",
+      "A new single-use lease binding exactly the three hashes, production target and rollback receipt schema.",
+      "A remote commit and required CI readback; this record alone grants no SSH, deployment or mutation authority."
+    ],
+    "afterProductionMutation": [
+      "Official Explorer, Indexer and Monitor /version source/release must equal 0f23cedde15f04110219a2c8ce0c09d80f63d8cc.",
+      "Monitor /connectivity must be cache-free JSON with canonical Testnet identity, never the 641-byte HTML SPA fallback.",
+      "A fresh real Testnet transaction must resolve through full-hash search and its deep-link detail page.",
+      "Direct desktop and narrow-screen Computer Control evidence must include the selected YNX Wallet and MetaMask lifecycle before publicVerified or computerControlVerified can be true."
+    ]
+  },
+  "states": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "publicVerified": false,
+    "computerControlVerified": false
+  }
+}

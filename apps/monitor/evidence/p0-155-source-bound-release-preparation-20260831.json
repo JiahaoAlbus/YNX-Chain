@@ -1,0 +1,118 @@
+{
+  "schemaVersion": "ynx.explorer-monitor.source-bound-release-preparation.v1",
+  "observedAt": "2026-08-31T08:24:02Z",
+  "owner": "explorer-monitor",
+  "authority": {
+    "productionMutationAllowed": false,
+    "publicVerified": false,
+    "computerControlVerified": false,
+    "statement": "This record freezes local candidate artifacts only. It does not authorize transfer, configuration changes, service restart, proxy reload, or a public-success claim."
+  },
+  "candidate": {
+    "branch": "codex/p0-explorer-monitor-20260820",
+    "sourceCommit": "29382a5325d540d8231e2616b140855b50cea62f",
+    "sourceTree": "b43156cb9f96fab3ef3c97c4bdf21430588675eb",
+    "pullRequest": "https://github.com/JiahaoAlbus/YNX-Chain/pull/107",
+    "release": "ynx-explorer-monitor-29382a5325d5",
+    "build": {
+      "goos": "linux",
+      "goarch": "amd64",
+      "cgoEnabled": false,
+      "trimpath": true,
+      "buildvcs": false,
+      "buildTime": "2026-08-31T08:24:02Z",
+      "ldflags": "-s -w -buildid= plus source commit, release and build time identity"
+    }
+  },
+  "artifacts": {
+    "explorerd": {
+      "carrierPath": "/private/tmp/ynx-explorer-monitor-p0155.7tqPE0/bin/ynx-explorerd",
+      "bytes": 8867988,
+      "sha256": "27405993233517afe0a04150ad9db29fbf3d262c6e3ea50924b75358757a7dc2",
+      "format": "linux amd64 static ELF"
+    },
+    "indexerd": {
+      "carrierPath": "/private/tmp/ynx-explorer-monitor-p0155.7tqPE0/bin/ynx-indexerd",
+      "bytes": 7512212,
+      "sha256": "5ef58e7d2e059768636ef465ee4b05afecc8a295c4e3ca2f1e2a7db834acc3a6",
+      "format": "linux amd64 static ELF"
+    },
+    "monitorReleaseTree": {
+      "carrierPath": "/private/tmp/ynx-explorer-monitor-p0155.7tqPE0/monitor-release-tree.tar",
+      "bytes": 2181120,
+      "sha256": "d644eb1209c83b93691530a76d6e537d9d920772c6e39285947ca89ed9219d3e",
+      "format": "deterministic GNU tar, source plus built dist, excludes node_modules and .env",
+      "inputs": {
+        "packageLockSha256": "3329447e950589f80129b59e1c6e99d5856d869da06672c0b525ed129e291694",
+        "distIndexHtmlSha256": "efbf2403f89259511dd861a6014e09d5fb11a7bf549a609bd17adacde41af44a",
+        "distJsSha256": "ec91c2a6b8b5d00ab4a35072d07ac66bf67f346b1611e0b50a8fc95a452d873b",
+        "distCssSha256": "512e460fd87a10dff58c1a76b2c9ad419c184a5574aed372603241dab4407239"
+      }
+    }
+  },
+  "requiredRuntimeBinding": {
+    "explorer": {
+      "unit": "ynx-explorerd.service",
+      "binaryTarget": "/usr/local/bin/ynx-explorerd",
+      "requiredVersionCommit": "29382a5325d540d8231e2616b140855b50cea62f",
+      "requiredRelease": "ynx-explorer-monitor-29382a5325d5"
+    },
+    "indexer": {
+      "unit": "ynx-indexerd.service",
+      "binaryTarget": "/usr/local/bin/ynx-indexerd",
+      "requiredVersionCommit": "29382a5325d540d8231e2616b140855b50cea62f",
+      "requiredRelease": "ynx-explorer-monitor-29382a5325d5"
+    },
+    "monitor": {
+      "unit": "ynx-monitor.service",
+      "releaseTarget": "/opt/ynx-monitor/current",
+      "requiredVersionCommit": "29382a5325d540d8231e2616b140855b50cea62f",
+      "requiredRelease": "ynx-explorer-monitor-29382a5325d5",
+      "requiredIngressMatcher": "@control path /health /version /status /connectivity /ops/*",
+      "requiredConnectivity": "HTTP 200 application/json, cache-control no-store, not static HTML"
+    }
+  },
+  "rollbackFirst": {
+    "mustCaptureBeforeMutation": [
+      "sha256 and mode of current Explorer and Indexer binaries",
+      "resolved current Monitor release target and checksummed release tree",
+      "current Monitor ingress snippet and its sha256",
+      "current service states and version endpoint bodies",
+      "current environment file digests without recording secret contents"
+    ],
+    "restoreOnAnyFailure": [
+      "restore captured Explorer and Indexer binaries",
+      "restore the captured Monitor release target and ingress snippet",
+      "validate and reload only the scoped proxy configuration",
+      "restart only ynx-explorerd, ynx-indexerd and ynx-monitor",
+      "record the restored official version and connectivity hashes"
+    ],
+    "failureTriggers": [
+      "artifact hash mismatch",
+      "non-6423 native identity or non-0x1917 EVM identity",
+      "Monitor connectivity HTML fallback or non-JSON schema",
+      "internal-detail disclosure",
+      "transaction search or detail failure",
+      "browser acceptance failure"
+    ]
+  },
+  "requiredSingleUseLease": {
+    "scope": "only the three source-bound artifacts and the exact Monitor /connectivity matcher",
+    "mustBind": [
+      "candidate source commit, tree and all three artifact hashes",
+      "fresh current runtime and rollback digests collected by the authorized production operator",
+      "named operator, expiry, receipt schema and rollback authority",
+      "post-deploy official-domain source, HTTP, JSON, transaction and visual verification"
+    ],
+    "doesNotAuthorize": [
+      "Chain Core, Faucet, Wallet, Finance or Data Fabric mutation",
+      "unscoped Caddy or systemd changes",
+      "publicVerified or computerControlVerified promotion without direct evidence"
+    ]
+  },
+  "localValidation": {
+    "explorerIndexer": "go test ./internal/explorer ./internal/indexer passed",
+    "monitor": "50 Monitor tests plus 10 scripts and production build passed",
+    "fullGoSuite": "Explorer and Indexer passed; unrelated bftgateway and consensus tests require a missing devtools SampleEVMWriteCounter artifact and did not exercise this owner change"
+  }
+}

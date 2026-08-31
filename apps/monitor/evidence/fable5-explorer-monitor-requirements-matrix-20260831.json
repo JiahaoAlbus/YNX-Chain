@@ -1,0 +1,160 @@
+{
+  "schemaVersion": "ynx.explorer-monitor.fable5-requirements-matrix.v1",
+  "asOf": "2026-08-31",
+  "owner": "explorer-monitor",
+  "candidate": {
+    "sourceCommit": "85e5f7da77eda91127b2b8847111ce4c6dc81b39",
+    "sourceTree": "82e5548626248262f3aecf7c0f7785eb3343b267",
+    "pullRequest": "https://github.com/JiahaoAlbus/YNX-Chain/pull/107",
+    "artifactState": "frozen locally in apps/monitor/evidence/explorer-monitor-85e5f7da7-artifact-freeze-20260831.json; Central integration/deployment/production signing/public verification remain false"
+  },
+  "stateDefinition": {
+    "implementedLocal": "Owner source contains the behavior; this is not deployment evidence.",
+    "testedLocal": "A relevant local test/build directly exercises the behavior.",
+    "integratedCentral": "Central accepted the exact candidate and its contract/runtime mapping.",
+    "deployedStaging": "The exact candidate has direct staging runtime evidence.",
+    "deployedPublic": "The exact candidate has direct official-domain runtime identity evidence.",
+    "downloadHosted": "A real installable artifact is hosted; web-only surfaces remain false.",
+    "productionSigned": "A signing ceremony directly proved the artifact/runtime identity.",
+    "publicVerified": "Official-domain behavior and visual acceptance are directly proved.",
+    "computerControlVerified": "Required desktop and narrow-screen interactive acceptance has direct Computer Control evidence."
+  },
+  "currentOfficialDomainObservation": {
+    "observedAt": "2026-08-31",
+    "explorerHealth": {
+      "url": "https://explorer.ynxweb4.com/health",
+      "httpStatus": 200,
+      "bytes": 1189,
+      "sha256": "20ee3775249db2ea020ab23d55902ad1d9b0badde361741c999be8b85c8931fc",
+      "service": "ynx-explorerd",
+      "chainId": 6423,
+      "nativeSymbol": "YNXT",
+      "runtimeCommit": "8bf7716ee671a5a9b64517280743c5a281899712",
+      "runtimeRelease": "ynx-explorer-monitor-8bf7716ee671"
+    },
+    "indexerHealth": {
+      "url": "https://indexer.ynxweb4.com/health",
+      "httpStatus": 200,
+      "bytes": 849,
+      "sha256": "3960c960557e4babcc2c88761408860df5a5eec91999d8aaa8a105c1d3de38aa",
+      "service": "ynx-indexerd",
+      "chainId": 6423,
+      "nativeSymbol": "YNXT",
+      "runtimeCommit": "8bf7716ee671a5a9b64517280743c5a281899712",
+      "runtimeRelease": "ynx-explorer-monitor-8bf7716ee671"
+    },
+    "monitorHealth": {
+      "url": "https://monitor.ynxweb4.com/health",
+      "httpStatus": 200,
+      "bytes": 159,
+      "sha256": "1298e86add61b9c19b5050ac22a29c036716680ef473c1f6bb93ba58fef82f60"
+    },
+    "monitorConnectivity": {
+      "url": "https://monitor.ynxweb4.com/connectivity",
+      "httpStatus": 200,
+      "contentType": "text/html; charset=utf-8",
+      "bytes": 641,
+      "sha256": "efbf2403f89259511dd861a6014e09d5fb11a7bf549a609bd17adacde41af44a",
+      "classification": "static SPA fallback; required JSON API is not deployed"
+    },
+    "truthBoundary": "The observed official runtime is an older source generation, so it cannot set any current candidate deployment or public verification state true."
+  },
+  "requirements": [
+    {
+      "id": "explorer.real-rpc-indexer-data",
+      "requirement": "Explorer reads real chain RPC and Indexer data; it does not manufacture blocks, transactions, or balances.",
+      "evidence": ["internal/explorer/explorer.go", "scripts/verify/explorer-check.sh", "internal/indexer/indexer.go"],
+      "states": {"implementedLocal": true, "testedLocal": true, "integratedCentral": false, "deployedStaging": false, "deployedPublic": false, "downloadHosted": false, "productionSigned": false, "publicVerified": false, "computerControlVerified": false},
+      "nextGate": "Bind the exact candidate to an approved official runtime and execute a real Testnet smoke." 
+    },
+    {
+      "id": "explorer.blocks-transactions-accounts-search-deeplinks",
+      "requirement": "Explorer provides blocks, transactions, accounts, search, copy-safe deep links, and transaction detail backed by Indexer data.",
+      "evidence": ["internal/explorer/explorer.go#Search", "internal/explorer/explorer.go#Contract", "internal/explorer/server.go#handleBlockWeb", "internal/explorer/server.go#handleTransactionWeb", "internal/explorer/server.go#handleAddressWeb", "internal/explorer/server.go#handleTokenWeb", "internal/explorer/server.go#handleContractWeb", "internal/explorer/explorer_test.go#TestExplorerServesRPCAndIndexerBackedData", "scripts/verify/explorer-check.sh"],
+      "states": {"implementedLocal": true, "testedLocal": true, "integratedCentral": false, "deployedStaging": false, "deployedPublic": false, "downloadHosted": false, "productionSigned": false, "publicVerified": false, "computerControlVerified": false},
+      "nextGate": "Official-domain transaction hash search and detail readback against fresh Testnet transactions." 
+    },
+    {
+      "id": "explorer.realtime-sse-recovery-pagination-reorg",
+      "requirement": "Explorer supports cursor pagination, SSE reconnect/gap fallback and Indexer checkpoint, replay and reorganization recovery.",
+      "evidence": ["internal/indexer/indexer.go", "internal/indexer/cursor_test.go", "evidence/testnet/indexer-explorer-concurrency-recovery-20260802.json"],
+      "states": {"implementedLocal": true, "testedLocal": true, "integratedCentral": false, "deployedStaging": false, "deployedPublic": false, "downloadHosted": false, "productionSigned": false, "publicVerified": false, "computerControlVerified": false},
+      "nextGate": "Run recovery and subscription behavior against the exact public candidate." 
+    },
+    {
+      "id": "explorer.rich-list-flow-fee-and-economic-truth",
+      "requirement": "Explorer presents rich list, address flow, fee and YNXT/block-reward semantics only from sourced Indexer or chain evidence.",
+      "evidence": ["internal/indexer/indexer.go#IndexedAccountParticipantsPage", "internal/indexer/indexer.go#IndexedAccountActivityPage", "internal/explorer/explorer.go#Leaderboard", "internal/explorer/explorer_test.go#TestExplorerServesRPCAndIndexerBackedData", "internal/indexer/cursor_test.go#TestIndexedAccountParticipantsAndActivityRemainExplicitlyObserved"],
+      "states": {"implementedLocal": true, "testedLocal": true, "integratedCentral": false, "deployedStaging": false, "deployedPublic": false, "downloadHosted": false, "productionSigned": false, "publicVerified": false, "computerControlVerified": false},
+      "nextGate": "Deploy the exact candidate and read an official-domain sampled leaderboard, address activity and fee detail against fresh Testnet transactions."
+    },
+    {
+      "id": "explorer.multilingual-rtl-responsive-a11y-logo",
+      "requirement": "Explorer defaults to English and provides 12 languages, RTL, responsive/a11y behavior, and an uncropped proportional YNX logo.",
+      "evidence": ["internal/explorer/web.go", "internal/explorer/explorer_test.go", "apps/monitor/evidence/p0-169-explorer-locale-rtl-source-checkpoint-20260831.json"],
+      "states": {"implementedLocal": true, "testedLocal": true, "integratedCentral": false, "deployedStaging": false, "deployedPublic": false, "downloadHosted": false, "productionSigned": false, "publicVerified": false, "computerControlVerified": false},
+      "nextGate": "Freeze one exact artifact lineage, then run 390px responsive/a11y and official-domain visual tests against the approved deployment; source and local tests do not prove a public UI."
+    },
+    {
+      "id": "indexer.fail-closed-no-internal-error",
+      "requirement": "Indexer failure is fail-closed and public browsers do not receive loopback URLs or raw upstream errors.",
+      "evidence": ["internal/indexer/server.go#publicIndexerErrorPayload", "internal/indexer/indexer_test.go#TestIndexerDoesNotExposePrivateSyncErrorsToPublicClients", "internal/explorer/explorer.go#upstreamHTTPError", "internal/explorer/server.go#writeLookupError", "internal/explorer/explorer_test.go#TestExplorerDoesNotExposeUpstreamErrorsToPublicClients", "internal/explorer/explorer_test.go#TestExplorerLookupPreservesOnlyARealNotFoundClassification"],
+      "states": {"implementedLocal": true, "testedLocal": true, "integratedCentral": false, "deployedStaging": false, "deployedPublic": false, "downloadHosted": false, "productionSigned": false, "publicVerified": false, "computerControlVerified": false},
+      "nextGate": "Public Indexer and Explorer responses must be re-read after deployment; local redaction tests cannot prove the older official runtime is remediated."
+    },
+    {
+      "id": "indexer.concurrency-backpressure-capacity",
+      "requirement": "Indexer and Explorer have bounded concurrent-read, search-storm, subscription and recovery evidence with latency/error/resource metrics.",
+      "evidence": ["evidence/testnet/explorer-concurrency-100-20260802.json", "evidence/testnet/indexer-explorer-concurrency-recovery-20260802.json"],
+      "states": {"implementedLocal": true, "testedLocal": true, "integratedCentral": false, "deployedStaging": false, "deployedPublic": false, "downloadHosted": false, "productionSigned": false, "publicVerified": false, "computerControlVerified": false},
+      "nextGate": "Repeat against the accepted release/runtime rather than treating historical local evidence as public capacity proof." 
+    },
+    {
+      "id": "monitor.service-identity-and-connectivity",
+      "requirement": "Monitor shows health, version/source identity, dependency state, and fails closed on wrong chain identity without exposing internal details.",
+      "evidence": ["apps/monitor/server/p0-connectivity.ts", "apps/monitor/server/p0-connectivity.test.ts", "apps/monitor/server/public-status.test.ts"],
+      "states": {"implementedLocal": true, "testedLocal": true, "integratedCentral": false, "deployedStaging": false, "deployedPublic": false, "downloadHosted": false, "productionSigned": false, "publicVerified": false, "computerControlVerified": false},
+      "nextGate": "Deploy the exact candidate and require `/connectivity` JSON with canonical 6423 identity checks." 
+    },
+    {
+      "id": "monitor.validators-finality-tps-peers-streambft",
+      "requirement": "Monitor truthfully shows four-validator health, heights, finality, block interval, TPS, peers/sync and StreamBFT only as shadow/candidate.",
+      "evidence": ["apps/monitor/server/app.ts", "apps/monitor/server/auth.test.ts"],
+      "states": {"implementedLocal": true, "testedLocal": true, "integratedCentral": false, "deployedStaging": false, "deployedPublic": false, "downloadHosted": false, "productionSigned": false, "publicVerified": false, "computerControlVerified": false},
+      "nextGate": "Fresh four-validator Testnet evidence and official Monitor runtime deployment." 
+    },
+    {
+      "id": "monitor.alert-incident-backup-rollback",
+      "requirement": "Monitor has alert, incident, SLO, history, recovery, backup/restore and rollback-proposal evidence without unapproved infrastructure mutation.",
+      "evidence": ["apps/monitor/server/store.ts", "apps/monitor/server/incident.test.ts", "apps/monitor/server/backup.test.ts"],
+      "states": {"implementedLocal": true, "testedLocal": true, "integratedCentral": false, "deployedStaging": false, "deployedPublic": false, "downloadHosted": false, "productionSigned": false, "publicVerified": false, "computerControlVerified": false},
+      "nextGate": "Operator-authorized Testnet drills with runtime receipts." 
+    },
+    {
+      "id": "website.explorer-monitor-entry-and-release-truth",
+      "requirement": "Official website exposes real Explorer/Monitor entries, status, searchable product information, support/risk/SEO metadata and no placeholder links.",
+      "evidence": ["docs/public/WEBSITE_INTEGRATION_HANDOFF.md", "docs/integration/WEBSITE_HANDOFF.md"],
+      "states": {"implementedLocal": false, "testedLocal": false, "integratedCentral": false, "deployedStaging": false, "deployedPublic": false, "downloadHosted": false, "productionSigned": false, "publicVerified": false, "computerControlVerified": false},
+      "nextGate": "Website owner must consume a truthful Explorer/Monitor release record; this owner must not alter Website authority paths." 
+    },
+    {
+      "id": "public-runtime-source-and-computer-control-acceptance",
+      "requirement": "Official domains serve the exact candidate; desktop and narrow-screen interaction verifies search, transaction detail, realtime data, rich list, locales, reconnect and website links.",
+      "evidence": ["currentOfficialDomainObservation", "apps/monitor/evidence/p0-151-ynx6423-runtime-recovery-lease-request-20260831.json"],
+      "states": {"implementedLocal": false, "testedLocal": false, "integratedCentral": false, "deployedStaging": false, "deployedPublic": false, "downloadHosted": false, "productionSigned": false, "publicVerified": false, "computerControlVerified": false},
+      "nextGate": "A new scoped deployment lease, exact source readback and working Computer Control browser surface are all required."
+    }
+  ],
+  "overall": {
+    "implementedLocal": false,
+    "testedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "publicVerified": false,
+    "computerControlVerified": false,
+    "statement": "Overall false is intentional: local source/test evidence and an older official runtime do not prove completion of the Fable5 product or public acceptance."
+  }
+}

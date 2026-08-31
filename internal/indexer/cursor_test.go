@@ -68,6 +68,26 @@ func TestLatestPagesRemainStableWhenNewRecordsArrive(t *testing.T) {
 	}
 }
 
+func TestIndexedAccountParticipantsAndActivityRemainExplicitlyObserved(t *testing.T) {
+	now := time.Unix(100, 0).UTC()
+	db := Database{Transactions: map[string]chain.Transaction{
+		"tx-a": {Hash: "tx-a", From: "alice", To: "bob", Amount: 12, Fee: 1, BlockNum: 3, Timestamp: now},
+		"tx-b": {Hash: "tx-b", From: "bob", To: "carol", Amount: 4, Fee: 1, BlockNum: 4, Timestamp: now.Add(time.Second)},
+	}}
+	accounts, next, total, err := IndexedAccountParticipantsPage(db, 2, "")
+	if err != nil || total != 3 || len(accounts) != 2 || next == "" || accounts[0].Address != "alice" || accounts[0].OutboundYNXT != 13 {
+		t.Fatalf("unexpected observed participants: accounts=%+v next=%q total=%d err=%v", accounts, next, total, err)
+	}
+	activity, nextActivity, err := IndexedAccountActivityPage(db, "bob", 1, "")
+	if err != nil || len(activity) != 1 || nextActivity == "" || activity[0].Hash != "tx-b" {
+		t.Fatalf("unexpected first observed activity page: activity=%+v next=%q err=%v", activity, nextActivity, err)
+	}
+	activity, nextActivity, err = IndexedAccountActivityPage(db, "bob", 1, nextActivity)
+	if err != nil || len(activity) != 1 || nextActivity != "" || activity[0].Hash != "tx-a" {
+		t.Fatalf("unexpected second observed activity page: activity=%+v next=%q err=%v", activity, nextActivity, err)
+	}
+}
+
 func TestIndexerHTTPPaginationUsesOpaqueFeedBoundCursors(t *testing.T) {
 	store := NewStore(t.TempDir() + "/cursor-db.json")
 	if err := store.Save(cursorFixtureDatabase()); err != nil {
@@ -102,13 +122,13 @@ func TestIndexerHTTPPaginationUsesOpaqueFeedBoundCursors(t *testing.T) {
 	if err := json.NewDecoder(crossFeed.Body).Decode(&failure); err != nil {
 		t.Fatal(err)
 	}
-	if failure["error"] != "invalid_cursor" || !strings.Contains(failure["detail"].(string), "different feed") {
+	if failure["error"] != "invalid request" || failure["classification"] != "INVALID_REQUEST" || failure["detail"] != nil {
 		t.Fatalf("unexpected cross-feed failure: %+v", failure)
 	}
 
 	tampered := first.NextCursor[:len(first.NextCursor)-1] + "A"
 	failurePage := readBlockPage(t, httpServer.URL+"/blocks/latest?cursor="+url.QueryEscape(tampered), http.StatusBadRequest)
-	if failurePage.Error != "invalid_cursor" {
+	if failurePage.Error != "invalid request" {
 		t.Fatalf("tampered cursor failure was not explicit: %+v", failurePage)
 	}
 }

@@ -1,0 +1,77 @@
+{
+  "schemaVersion": "ynx.wallet-consumer-boundary-audit.v1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-152",
+  "observedAt": "2026-08-31T07:10:08Z",
+  "authority": {
+    "routerCommit": "875be208e8a7ddb60345d55b93fc299949664e5c",
+    "routerTree": "3499ddfbe2a4bb08cbbcaef8c71b911aca51dde4",
+    "publicVerified": false,
+    "computerControlVerified": false,
+    "rule": "This is an owner-scoped registry input. It does not assert a Wallet connection, signature, transaction, installed client, or public browser E2E."
+  },
+  "products": {
+    "explorer": {
+      "classification": "interactiveWalletConsumer",
+      "guestOnlyBoundary": {
+        "routes": ["/", "/tx/{hash}", "/api/search", "/api/txs/{hash}"],
+        "walletRequired": false,
+        "meaning": "Public chain browsing and transaction lookup are guest reads; a successful response is never Wallet-connection evidence."
+      },
+      "privilegedWalletAction": {
+        "source": "internal/explorer/web.go:332,627",
+        "canonicalWalletRequired": true,
+        "currentBehavior": "The MetaMask compatibility button invokes window.ethereum wallet_addEthereumChain directly.",
+        "missingRouterRequirements": ["EIP-6963 discovery and provider chooser", "separate YNX Wallet and MetaMask identity/logo", "eth_requestAccounts approve and reject evidence", "eth_chainId 0x1917 readback after add or switch", "accountsChanged, chainChanged, disconnect and revoke lifecycle", "source-bound public direct E2E with stable single-tab URL"]
+      },
+      "productSessionConsumer": "evidence-backed notApplicable: Explorer has no Product Session endpoint in this action path.",
+      "registryState": "SOURCE_BOUND_INCOMPLETE_NOT_E2E"
+    },
+    "monitor": {
+      "classification": "interactiveWalletConsumer",
+      "guestOnlyBoundary": {
+        "routes": ["/health", "/version", "/status", "/connectivity"],
+        "walletRequired": false,
+        "meaning": "Public health and network-status reads are guest reads; they must not be represented as Wallet connectivity."
+      },
+      "privilegedWalletAction": {
+        "source": "apps/monitor/src/App.tsx:557-571; apps/monitor/server/app.ts:98-99",
+        "canonicalWalletRequired": true,
+        "currentBehavior": "The UI opens top-level ynx-wallet://authorize and accepts a manually pasted signature for the challenge/session API.",
+        "routerViolation": "The Router authority prohibits top-level custom-scheme Web navigation.",
+        "missingRouterRequirements": ["EIP-6963/EIP-1193 provider discovery", "separate YNX Wallet and MetaMask identity/logo", "approve/reject and eth_chainId 0x1917 readback", "refresh/accountsChanged/chainChanged/disconnect/revoke lifecycle", "real public direct E2E"]
+      },
+      "productSessionConsumer": "evidence-backed notApplicable: the privileged wallet-sign-in flow calls the Monitor challenge/session APIs, not a Product Session endpoint.",
+      "registryState": "SOURCE_BOUND_INCOMPLETE_NOT_E2E"
+    }
+  },
+  "directPublicBoundaryEvidence": {
+    "explorerHealth": {
+      "url": "https://explorer.ynxweb4.com/health",
+      "httpStatus": 404,
+      "bytes": 9,
+      "sha256": "e3ebaa16dd9d9b9fc107c42183fb6cf9d22927e1af03dbbdfa0ccc38e4e4ac31",
+      "classification": "guest endpoint unavailable; no Wallet assertion"
+    },
+    "monitorHealth": {
+      "url": "https://monitor.ynxweb4.com/health",
+      "httpStatus": 200,
+      "contentType": "application/json; charset=utf-8",
+      "bytes": 159,
+      "sha256": "5adf54e45f80b50bf81069ebd8dc39dff3c0b87e8b05945425d0d0e163b2d894",
+      "classification": "guest endpoint reachable; no Wallet assertion"
+    },
+    "monitorConnectivity": {
+      "url": "https://monitor.ynxweb4.com/connectivity",
+      "httpStatus": 200,
+      "contentType": "text/html; charset=utf-8",
+      "bytes": 641,
+      "sha256": "efbf2403f89259511dd861a6014e09d5fb11a7bf549a609bd17adacde41af44a",
+      "classification": "static SPA fallback, not the required JSON guest-status API"
+    }
+  },
+  "registryHandoff": {
+    "requiredCentralAction": "Insert the two product records into the 36-domain Wallet registry using the exact classifications and incomplete state above; Central owns the registry path.",
+    "oneExecutableBlocker": "A fresh Explorer/Monitor owner lease and writable paths are required to replace both incomplete Web wallet actions with the Router-compliant EIP-6963/EIP-1193 flow and to publish direct public E2E evidence. No user account, signature, or transaction will be requested until the user initiates that action."
+  }
+}

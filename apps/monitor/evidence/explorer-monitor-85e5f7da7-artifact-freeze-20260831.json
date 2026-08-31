@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "ynx.explorer-monitor.source-bound-release-preparation.v10",
+  "observedAt": "2026-08-31T11:38:00Z",
+  "owner": "explorer-monitor",
+  "authority": {
+    "productionMutationAllowed": false,
+    "publicVerified": false,
+    "computerControlVerified": false,
+    "statement": "Local reproducible artifact freeze only. No production host, service, ingress, Caddy configuration, account, signature, transaction, Wallet state or other-owner path changed."
+  },
+  "candidate": {
+    "branch": "codex/p0-explorer-monitor-20260820",
+    "sourceCommit": "85e5f7da77eda91127b2b8847111ce4c6dc81b39",
+    "sourceTree": "82e5548626248262f3aecf7c0f7785eb3343b267",
+    "monitorSourceTree": "cc9385f940870454ae251024c1cde16fd3e3c169",
+    "explorerLocaleTruthCommit": "1a5d23ee80b6f1f2cd149cf779ba79853fa09de4",
+    "pullRequest": "https://github.com/JiahaoAlbus/YNX-Chain/pull/107",
+    "release": "ynx-explorer-monitor-85e5f7da77ed",
+    "build": {
+      "goos": "linux",
+      "goarch": "amd64",
+      "cgoEnabled": false,
+      "trimpath": true,
+      "buildvcs": false,
+      "sourceDateEpoch": 1788176319,
+      "buildTime": "2026-08-31T19:38:39+08:00",
+      "linkerIdentity": "main.buildCommit, main.buildRelease, main.buildTime"
+    }
+  },
+  "supersession": {
+    "supersedes": ["apps/monitor/evidence/explorer-monitor-0f23cedde-artifact-freeze-20260831.json"],
+    "reason": "0f23cedde artifacts predate removal of stale localized leaderboard coverage claims. All three artifacts are regenerated from one 85e5f7da source snapshot; mixing is forbidden.",
+    "mixingForbidden": true
+  },
+  "artifacts": {
+    "explorerd": {"carrierPath": "/private/tmp/ynx-explorer-monitor-85e5f7da7.cT92FR/bin/ynx-explorerd", "bytes": 9007252, "sha256": "8158ae80578d0f1d34d03d6d7065beba2f789d7e60441e4f3bbff1dd22dba3ec", "format": "linux amd64 static ELF, stripped"},
+    "indexerd": {"carrierPath": "/private/tmp/ynx-explorer-monitor-85e5f7da7.cT92FR/bin/ynx-indexerd", "bytes": 7528596, "sha256": "91aa40d63f10e72fdbf3a4c0da803dde5f96aedc94bd63b8f7ca71ae0f2184a4", "format": "linux amd64 static ELF, stripped"},
+    "monitorReleaseTree": {"carrierPath": "/private/tmp/ynx-explorer-monitor-85e5f7da7.cT92FR/monitor-release-tree.tar", "bytes": 1576960, "sha256": "3ca26c420732ca0e901b5329bf7f9170fa112589c0cc01450a8096eb39e5d96a", "format": "deterministic GNU tar from exact Monitor source with built dist; no node_modules or .env", "inputs": {"packageLockSha256": "3329447e950589f80129b59e1c6e99d5856d869da06672c0b525ed129e291694", "distIndexHtmlSha256": "0f7d2e816a6cfdfaec8bd953c7be2562d3ff11e89b2a21fe372dd5bf169117d0"}}
+  },
+  "validation": {
+    "explorerIndexerRace": "go test -race ./internal/indexer ./internal/explorer -count=1: passing",
+    "monitor": "npm test: 55 application tests plus 10 script tests passing; npm run build: passing",
+    "localeTruth": "Explorer test proves the primary locale dictionary has no duplicate accountLeaderboardCopy claim and that all 12 locales receive observed Indexer-participant coverage wording from one catalog.",
+    "artifactIntegrity": "All three artifacts were independently rebuilt with one source epoch, linker identity and deterministic archive settings; cmp was byte-identical for every artifact. Both ELF binaries contain the full source commit. Archive listing contains neither node_modules nor .env.",
+    "linuxRuntime": "Not run on this macOS builder because the binaries target Linux amd64; static ELF format, embedded identity, source race tests and exact byte reproducibility were verified."
+  },
+  "requiredCentralGate": {
+    "beforeProductionMutation": ["Fresh read-only authoritative host/service/environment/Caddy/current-release/rollback-digest capture.", "A single-use lease binding exactly these three hashes, the target and rollback receipt schema.", "Remote exact-head CI readback and named authorized operator with expiry."],
+    "afterProductionMutation": ["Official Explorer, Indexer and Monitor /version source/release must equal 85e5f7da77eda91127b2b8847111ce4c6dc81b39.", "Monitor /connectivity must be cache-free JSON with canonical Testnet identity, not HTML fallback.", "Fresh Testnet full-hash search and detail must succeed.", "Desktop and narrow-screen Computer Control must directly verify UI and Provider lifecycle before public verification."]
+  },
+  "states": {"implementedLocal": true, "testedLocal": true, "integratedCentral": false, "deployedStaging": false, "deployedPublic": false, "downloadHosted": false, "productionSigned": false, "publicVerified": false, "computerControlVerified": false}
+}

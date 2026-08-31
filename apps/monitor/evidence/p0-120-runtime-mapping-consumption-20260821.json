@@ -1,0 +1,69 @@
+{
+  "schemaVersion": "ynx.monitor.runtime-mapping-consumption.v1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-120",
+  "observedAt": "2026-08-21T13:39:55Z",
+  "mappingAuthority": {
+    "owner": "integration",
+    "status": "independently_resolved_read_only",
+    "consumptionRule": "The authoritative host, service, configuration, and rollback details are intentionally not duplicated into a public repository evidence file. This record preserves only safe public identities and the deployment gate."
+  },
+  "officialDomainReadback": {
+    "explorer": {
+      "health": {
+        "url": "https://explorer.ynxweb4.com/health",
+        "httpStatus": 200,
+        "bytes": 1189,
+        "sha256": "5ebe825b9756fa33af8f6b57d9818103076ddfdc373d6355345934b7b68a65cf"
+      },
+      "version": {
+        "url": "https://explorer.ynxweb4.com/version",
+        "httpStatus": 200,
+        "bytes": 331,
+        "sha256": "bc2982203cd9d2b8bb699b87e34205eeb8edf7bf13054d2c9569cf885ec106e5",
+        "sourceCommit": "8bf7716ee671a5a9b64517280743c5a281899712",
+        "release": "ynx-explorer-monitor-8bf7716ee671"
+      }
+    },
+    "monitor": {
+      "health": {
+        "url": "https://monitor.ynxweb4.com/health",
+        "httpStatus": 200,
+        "bytes": 159,
+        "sha256": "8ca5332640303784d23fbc5559ef2258c3473b82c1499684b0cb1512569ea171"
+      },
+      "version": {
+        "url": "https://monitor.ynxweb4.com/version",
+        "httpStatus": 200,
+        "bytes": 264,
+        "sha256": "d0cb952655a41dad6a353f463c5b9f623f509b31303d35404e242a8a334b70ce",
+        "sourceCommit": "8bf7716ee671a5a9b64517280743c5a281899712",
+        "release": "ynx-explorer-monitor-8bf7716ee671"
+      }
+    }
+  },
+  "candidate": {
+    "commit": "8571509583a1390b56b1812e1008f5d634ef594f",
+    "tree": "7261b10af311c801811a6d61fc04c723a68e0cae",
+    "candidatePR": "https://github.com/JiahaoAlbus/YNX-Chain/pull/107",
+    "change": "Canonical /tx/{hash} routing accepts only full hexadecimal transaction hashes, and the Explorer shell resolves that path through the indexed /api/search and /api/txs detail flow."
+  },
+  "deploymentGate": {
+    "productionMutationAllowed": false,
+    "requiredLease": "A new Central Integration lease must bind this exact candidate commit to the authoritative current release and an executable rollback release before production mutation.",
+    "expectedPostDeployEvidence": [
+      "official Explorer /version identifies the deployed candidate lineage",
+      "both canonical Faucet transaction deep links render indexed from, to, value, fee, block, and status details",
+      "official Monitor /connectivity returns the approved JSON API rather than a static application fallback",
+      "rollback readback identifies the previously bound release"
+    ]
+  },
+  "declarations": {
+    "remoteMutationPerformed": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "publicVerified": false,
+    "computerControlVerified": false,
+    "decision": "READY_TO_REQUEST_BOUNDED_DEPLOYMENT_LEASE"
+  }
+}
