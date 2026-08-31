@@ -180,6 +180,7 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 		"serviceDirectory",
 		"serviceNameUI",
 		"serviceTextUI",
+		"runtimeUI",
 		"dataFabric",
 		"infrastructure",
 		"YNX DeFi services",
@@ -236,6 +237,11 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	}
 	if strings.Contains(html, "runtime.lastError || service.degraded") {
 		t.Fatal("explorer web response may expose raw runtime service errors in the public directory")
+	}
+	for _, retiredDynamicCopy := range []string{" of ' + escapeHTML(number(page.total)) + ' verified indexed records", "native-token-from-rpc-status"} {
+		if strings.Contains(html, retiredDynamicCopy) {
+			t.Fatalf("explorer web contains non-localized runtime copy %q", retiredDynamicCopy)
+		}
 	}
 	for _, forbidden := range []string{"9102", "0x238e", "ynx_9102-1"} {
 		if strings.Contains(strings.ToLower(html), strings.ToLower(forbidden)) {
