@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "recordType": "PAY_OFFICIAL_CURRENT_PUBLIC_READ_ONLY_RECONCILIATION",
+  "recordedAt": "2026-08-31T02:48:04Z",
+  "officialRuntime": {
+    "url": "https://pay.ynxweb4.com/",
+    "sourceCommit": "5f4ce98eb458550b976c17e3bc6d77cce4081a59",
+    "sourceTree": "8f0c25c4d86eb22a564f3c7aeff9db6709a9b9f0",
+    "chainId": "0x1917",
+    "centralTerminalCommit": "41cb1c4aa9b609a27147bf0be1415820f0ed0f9c"
+  },
+  "freshPublicReadback": {
+    "root": "200:1174:22f743c62a976928abd8a6bc3d123d366b5e1cac774b6ad3d20c21cfa07d917e",
+    "buildIdentity": "200:322:7b57cc88fc9287c546ba41d0e61a00c13665cdfd8aa8cc34c2f7347f8abb0b81",
+    "releaseManifest": "200:1316:0d7a85febde4fc6d055c25d5181c321a0506f1aebe278840a28b71d6aab71644",
+    "health": "200:589:c80f364087b41c2cd37819a93b192fba56eb7f651b6a9b57893d404744d1fc10",
+    "healthService": "ynx-payd",
+    "healthNetwork": "YNX Testnet",
+    "healthChainId": 6423,
+    "healthErrors": 0
+  },
+  "immutableCarrier": {
+    "path": "release/pay/ynx-pay-web-5f4ce98e-static.tar.gz",
+    "bytes": 608368,
+    "sha256": "ae552951d8e569f04aced60db69e3c11422910cc1098a6e7061b0e84005ad09e",
+    "manifestFilesVerified": 7
+  },
+  "supersededSource": {
+    "commit": "dbdd3491",
+    "carrier": "4febdea",
+    "forwardDeployAllowed": false,
+    "reason": "The source is older than the exact current source-bound official runtime and would regress production."
+  },
+  "decision": {
+    "classification": "PAY_OFFICIAL_ALREADY_CURRENT_RECONCILIATION_NO_FORWARD_DEPLOY",
+    "reconciliationComplete": true,
+    "deploymentLeaseIssued": false,
+    "heavyLeaseRequired": false
+  },
+  "truthBoundary": {
+    "hostedNonSensitive": true,
+    "installedProvider": false,
+    "approveRejectLifecycle": false,
+    "chain0x1917ProviderReadback": false,
+    "events": false,
+    "disconnect": false,
+    "signature": false,
+    "eip712": false,
+    "transaction": false,
+    "walletConnect": false,
+    "productCompletion": false
+  }
+}
