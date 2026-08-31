@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "ynx.explorer-monitor.source-bound-release-preparation.v7",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-175",
+  "observedAt": "2026-08-31T10:37:09Z",
+  "owner": "explorer-monitor",
+  "authority": {
+    "productionMutationAllowed": false,
+    "publicVerified": false,
+    "computerControlVerified": false,
+    "statement": "Local artifact and isolated-runtime checkpoint only. No production host, service, ingress, account, signature, transaction, or Wallet state was changed."
+  },
+  "candidate": {
+    "branch": "codex/p0-explorer-monitor-20260820",
+    "artifactSourceCommit": "c4c1affea3ab10ade8336c9387eec72f18b9e385",
+    "artifactSourceTree": "455c0411eeefc9848e81a66618bcea1112da2e06",
+    "pullRequest": "https://github.com/JiahaoAlbus/YNX-Chain/pull/107",
+    "release": "ynx-explorer-monitor-c4c1affea3ab",
+    "build": {"goos": "linux", "goarch": "amd64", "cgoEnabled": false, "trimpath": true, "buildvcs": false, "buildTime": "2026-08-31T10:37:03Z"}
+  },
+  "supersession": {
+    "supersedes": ["apps/monitor/evidence/p0-174-explorer-account-data-artifact-checkpoint-20260831.json"],
+    "reason": "P0-175 adds real YNXT and RPC-backed contract lookup/search. P0-174 and every earlier artifact must not be deployed with this successor source.",
+    "mixingForbidden": true
+  },
+  "artifacts": {
+    "explorerd": {"carrierPath": "/private/tmp/ynx-explorer-monitor-p0175.eyAnlb/bin/ynx-explorerd", "bytes": 8986772, "sha256": "5945c63acfe95287b0629ec39a62712539fa8dadc52b3cf1ef27994982c653a6", "format": "linux amd64 static ELF"},
+    "indexerd": {"carrierPath": "/private/tmp/ynx-explorer-monitor-p0175.eyAnlb/bin/ynx-indexerd", "bytes": 7528596, "sha256": "9c4b00842fac37a051d7372cbc70afdb75f2a61803d6ff5e68b80812e36294f6", "format": "linux amd64 static ELF"},
+    "monitorReleaseTree": {"carrierPath": "/private/tmp/ynx-explorer-monitor-p0175.eyAnlb/monitor-release-tree.tar", "bytes": 2293760, "sha256": "c4c764e9b876d310d2abe1dad17954aa971933f98000e9f03f3991177b2542fd", "format": "deterministic GNU tar with built dist; excludes node_modules and .env", "inputs": {"packageLockSha256": "3329447e950589f80129b59e1c6e99d5856d869da06672c0b525ed129e291694", "distIndexHtmlSha256": "0f7d2e816a6cfdfaec8bd953c7be2562d3ff11e89b2a21fe372dd5bf169117d0"}}
+  },
+  "validation": {
+    "explorerIndexerRace": "go test -race ./internal/indexer ./internal/explorer -count=1: passing",
+    "searchVectors": "A local chain fixture deploys a real contract and proves /api/contracts/{address}, YNXT search, contract-address search, transaction search, and safe contract metadata rendering. No contract is invented when chain RPC returns no record.",
+    "monitor": "npm test: 55 app tests plus 10 script tests passing; npm run build: passing",
+    "monitorArtifactRuntime": {"mode": "isolated lockfile install with local dummy secrets only", "version": {"httpStatus": 200, "bytes": 264, "sha256": "a4de2d1b2a13355050041a4c34dc99cfb94f7dfa9afb81c5cddbad37db402d60", "commit": "c4c1affea3ab10ade8336c9387eec72f18b9e385", "release": "ynx-explorer-monitor-c4c1affea3ab"}, "connectivity": {"httpStatus": 200, "contentType": "application/json; charset=utf-8", "bytes": 262, "sha256": "611bd86f72215178846406b3e5d1657c8bc26a1cceb941c2abfad98e25000c4e", "status": "not_configured"}},
+    "linuxGoRuntime": "Not executed on this macOS workstation because the candidate binaries target Linux amd64; static ELF format, embedded source identity, and source race tests passed."
+  },
+  "productScope": {
+    "implemented": ["real native-token search", "real RPC contract address search/detail", "safe not-found behavior for absent contracts", "previous P0-174 observed Indexer account ranking/activity/funds-flow behavior"],
+    "notClaimed": ["public deployment", "public Testnet contract or account readback", "Wallet approval or signature", "Computer Control acceptance"]
+  },
+  "states": {"implementedLocal": true, "testedLocal": true, "integratedCentral": false, "deployedStaging": false, "deployedPublic": false, "downloadHosted": false, "productionSigned": false, "publicVerified": false, "computerControlVerified": false},
+  "nextAction": "Central must capture a fresh read-only production baseline and issue one scoped deployment lease bound exactly to these three artifacts. After deployment, verify official Explorer token/contract search, observed account/activity APIs, a full real transaction hash deep link, and Monitor /connectivity JSON before any public claim."
+}

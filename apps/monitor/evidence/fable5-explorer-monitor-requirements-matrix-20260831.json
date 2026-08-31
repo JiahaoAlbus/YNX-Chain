@@ -3,8 +3,8 @@
   "asOf": "2026-08-31",
   "owner": "explorer-monitor",
   "candidate": {
-    "sourceCommit": "79402fd42bcd5af9784c9c2595da9d232c931411",
-    "sourceTree": "2d6595767be7eb43bdf6fff97690baaf6dade1f5",
+    "sourceCommit": "c4c1affea3ab10ade8336c9387eec72f18b9e385",
+    "sourceTree": "455c0411eeefc9848e81a66618bcea1112da2e06",
     "pullRequest": "https://github.com/JiahaoAlbus/YNX-Chain/pull/107"
   },
   "stateDefinition": {
@@ -69,7 +69,7 @@
     {
       "id": "explorer.blocks-transactions-accounts-search-deeplinks",
       "requirement": "Explorer provides blocks, transactions, accounts, search, copy-safe deep links, and transaction detail backed by Indexer data.",
-      "evidence": ["internal/explorer/server.go", "scripts/verify/explorer-check.sh"],
+      "evidence": ["internal/explorer/explorer.go#Search", "internal/explorer/explorer.go#Contract", "internal/explorer/server.go#handleContract", "internal/explorer/explorer_test.go#TestExplorerServesRPCAndIndexerBackedData", "scripts/verify/explorer-check.sh"],
       "states": {"implementedLocal": true, "testedLocal": true, "integratedCentral": false, "deployedStaging": false, "deployedPublic": false, "downloadHosted": false, "productionSigned": false, "publicVerified": false, "computerControlVerified": false},
       "nextGate": "Official-domain transaction hash search and detail readback against fresh Testnet transactions." 
     },

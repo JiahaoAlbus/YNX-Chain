@@ -3,13 +3,15 @@
 ## Superseding state (2026-08-31, current)
 
 - Current source-bearing Explorer/Monitor checkpoint is
-  `79402fd42bcd5af9784c9c2595da9d232c931411`
-  (tree `2d6595767be7eb43bdf6fff97690baaf6dade1f5`) on
+  `c4c1affea3ab10ade8336c9387eec72f18b9e385`
+  (tree `455c0411eeefc9848e81a66618bcea1112da2e06`) on
   `codex/p0-explorer-monitor-20260820`, PR #107. It repairs the previously
   unserved Explorer rich-list and account-activity routes: Indexer reports
   retained transaction participants/activity only, while Explorer obtains
   current balances from RPC, labels the result as an observed sample, exposes
-  indexed coverage/failure state, and bounds concurrent RPC reads. Explorer and Monitor use
+  indexed coverage/failure state, and bounds concurrent RPC reads. It also
+  resolves YNXT and chain-RPC contract records from search rather than leaving
+  the advertised Token/Contract UI paths unserved. Explorer and Monitor use
   EIP-6963 discovery with EIP-1193 account approval, `0x1917` add/switch
   readback and lifecycle invalidation. Explorer now localizes the complete
   provider chooser and its user-safe wallet states across all 12 locales;
@@ -19,8 +21,8 @@
   labelled optional providers, not prerequisites for guest Explorer
   search/detail or public Monitor status reads.
 - The only current candidate artifacts are frozen in
-  `apps/monitor/evidence/p0-174-explorer-account-data-artifact-checkpoint-20260831.json`.
-  P0-172 and every earlier generation are forbidden from deployment with this
+  `apps/monitor/evidence/p0-175-explorer-contract-search-artifact-checkpoint-20260831.json`.
+  P0-174 and every earlier generation are forbidden from deployment with this
   successor source.
 - Direct public evidence remains mixed: native RPC is expected to report
   chain ID `6423` and EVM `0x1917`, while Explorer and Monitor `/version`
@@ -32,7 +34,7 @@
   must not write Website authority paths. Candidate deployment, public
   verification and Computer Control verification all remain false.
 - Before any production write, Central must issue one scoped lease binding the
-  P0-174 hashes to freshly captured runtime/rollback digests and the exact
+  P0-175 hashes to freshly captured runtime/rollback digests and the exact
   Monitor `/connectivity` matcher. The deployment operator must capture the
   rollback material before mutation, verify official source identity and JSON
   readback afterwards, and then perform real browser acceptance.
