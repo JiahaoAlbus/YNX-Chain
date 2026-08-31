@@ -199,6 +199,10 @@ func (s *Service) PublicTrades(limit int) []Trade {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	return s.publicTradesLocked(limit)
+}
+
+func (s *Service) publicTradesLocked(limit int) []Trade {
 	items := make([]Trade, 0, len(s.state.Trades))
 	for _, trade := range s.state.Trades {
 		items = append(items, trade)
@@ -742,6 +746,10 @@ func (s *Service) releaseOrderReserveLocked(o *Order) {
 func (s *Service) Book() OrderBook {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	return s.bookLocked()
+}
+
+func (s *Service) bookLocked() OrderBook {
 	book := OrderBook{Market: DefaultMarket, Bids: []Order{}, Asks: []Order{}, SourceMetadata: s.readSource("open-orders-price-time-priority")}
 	for _, o := range s.state.Orders {
 		if o.Market == DefaultMarket && (o.Status == "open" || o.Status == "partially_filled") {
@@ -755,6 +763,28 @@ func (s *Service) Book() OrderBook {
 	sort.Slice(book.Bids, func(i, j int) bool { return book.Bids[i].PriceMicro > book.Bids[j].PriceMicro })
 	sort.Slice(book.Asks, func(i, j int) bool { return book.Asks[i].PriceMicro < book.Asks[j].PriceMicro })
 	return book
+}
+
+// MarketDataSnapshot is a read-only point-in-time view used by the public
+// SSE feed. Revision is the durable-store revision, not an in-memory counter.
+type MarketDataSnapshot struct {
+	Revision       int64          `json:"revision"`
+	Market         string         `json:"market"`
+	OrderBook      OrderBook      `json:"orderBook"`
+	Trades         []Trade        `json:"trades"`
+	SourceMetadata SourceMetadata `json:"sourceMetadata"`
+}
+
+func (s *Service) marketDataSnapshot() (MarketDataSnapshot, string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return MarketDataSnapshot{
+		Revision:       s.state.Revision,
+		Market:         DefaultMarket,
+		OrderBook:      s.bookLocked(),
+		Trades:         s.publicTradesLocked(1000),
+		SourceMetadata: s.readSource("stream-orderbook-matched-trades"),
+	}, fmt.Sprintf("%d:%s", s.state.Revision, s.state.IntegrityHash)
 }
 
 type AccountSnapshot struct {

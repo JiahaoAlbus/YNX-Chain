@@ -21,6 +21,8 @@ type Server struct {
 	mux     *http.ServeMux
 }
 
+var marketDataStreamPollInterval = 5 * time.Second
+
 func NewServer(service *Service) *Server {
 	s := &Server{service: service, mux: http.NewServeMux()}
 	s.mux.HandleFunc("GET /health", s.health)
@@ -30,6 +32,7 @@ func NewServer(service *Service) *Server {
 	s.mux.HandleFunc("GET /v1/markets", s.markets)
 	s.mux.HandleFunc("GET /v1/orderbook", s.book)
 	s.mux.HandleFunc("GET /v1/market-data/trades", s.marketTrades)
+	s.mux.HandleFunc("GET /v1/market-data/stream", s.marketDataStream)
 	s.mux.HandleFunc("GET /v1/account", s.account)
 	s.mux.HandleFunc("POST /v1/deposit-intents", s.depositIntent)
 	s.mux.HandleFunc("POST /v1/deposits", s.deposit)
@@ -48,6 +51,13 @@ func NewServer(service *Service) *Server {
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("Cache-Control", "no-store")
+	// A long-lived stream performs its own bounded durable-state refresh for
+	// every snapshot. Keeping it inside the request-wide mutex would block all
+	// Exchange API calls and deadlock its own refresh loop.
+	if r.Method == http.MethodGet && r.URL.Path == "/v1/market-data/stream" {
+		s.mux.ServeHTTP(w, r)
+		return
+	}
 	if err := s.service.WithFreshState(func() { s.mux.ServeHTTP(w, r) }); err != nil {
 		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "exchange durable state unavailable"})
 	}
@@ -86,6 +96,76 @@ func (s *Server) markets(w http.ResponseWriter, r *http.Request) {
 func (s *Server) book(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, s.service.Book()) }
 func (s *Server) marketTrades(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{"market": DefaultMarket, "source": "YNX-owned deterministic matched trades only", "sourceMetadata": s.service.readSource("matched-trades"), "externalPrice": false, "trades": s.service.PublicTrades(1000)})
+}
+
+// marketDataStream is a product-owned, read-only SSE feed. Each subscriber
+// receives an actual durable-state snapshot and later reconciliations only
+// when the persisted revision changes. It never replays a Wallet action or
+// exposes a mutation endpoint through the event transport.
+func (s *Server) marketDataStream(w http.ResponseWriter, r *http.Request) {
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "streaming response writer unavailable"})
+		return
+	}
+	type streamSnapshot struct {
+		value       MarketDataSnapshot
+		fingerprint string
+	}
+	load := func() (streamSnapshot, error) {
+		var snapshot MarketDataSnapshot
+		var fingerprint string
+		err := s.service.WithFreshState(func() { snapshot, fingerprint = s.service.marketDataSnapshot() })
+		return streamSnapshot{value: snapshot, fingerprint: fingerprint}, err
+	}
+	snapshot, err := load()
+	if err != nil {
+		writeJSON(w, http.StatusServiceUnavailable, map[string]string{"error": "exchange durable state unavailable"})
+		return
+	}
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("X-Accel-Buffering", "no")
+	lastFingerprint := ""
+	emit := func(event string, stream streamSnapshot) error {
+		value := stream.value
+		payload, err := json.Marshal(value)
+		if err != nil {
+			return err
+		}
+		if _, err := fmt.Fprintf(w, "id: state-%s\nevent: %s\ndata: %s\n\n", stream.fingerprint, event, payload); err != nil {
+			return err
+		}
+		flusher.Flush()
+		lastFingerprint = stream.fingerprint
+		return nil
+	}
+	if err := emit("snapshot", snapshot); err != nil {
+		return
+	}
+	ticker := time.NewTicker(marketDataStreamPollInterval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-r.Context().Done():
+			return
+		case <-ticker.C:
+			snapshot, err := load()
+			if err != nil {
+				_, _ = fmt.Fprint(w, "event: source-unavailable\ndata: {\"code\":\"FIN_SOURCE_UNAVAILABLE\",\"retryable\":true}\n\n")
+				flusher.Flush()
+				return
+			}
+			if snapshot.fingerprint != lastFingerprint {
+				if err := emit("reconciled", snapshot); err != nil {
+					return
+				}
+				continue
+			}
+			_, _ = fmt.Fprint(w, ": keepalive\n\n")
+			flusher.Flush()
+		}
+	}
 }
 func (s *Server) account(w http.ResponseWriter, r *http.Request) {
 	session, ok := s.auth(w, r, "exchange:read")
