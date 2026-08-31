@@ -7404,20 +7404,21 @@
     {
       "taskId": "P0-303",
       "owner": "integration,financial-apps",
-      "status": "NO_GO_FINANCE_P0303_ZERO_WRITE_CONTRACT_CONTRADICTS_REMOTE_TEMP_BODY_FILES",
+      "status": "LEASED_ACTIVE_SINGLE_USE_FINANCE_P0303_PURE_STREAMING_ZERO_WRITE_INSPECTION",
       "paths": [
-        "release/integration/p0-wallet-connectivity/execution/objects/p0-303-finance-zero-write-temp-contract-nogo-review-20260831.json"
+        "release/integration/p0-wallet-connectivity/execution/p0-303-finance-p0302-remote-state-zero-write-inspection-single-use-lease-20260831.json",
+        "release/integration/p0-wallet-connectivity/execution/objects/p0-303-finance-p0302-remote-state-zero-write-inspection.sh"
       ],
       "dependencies": [
         "P0-302"
       ],
-      "requestCommit": "8cc058cd0515f088fb75c66ae1bf05a6e87d9489",
-      "requestBlob": "5b720f363a1533238240fb2d1499d529d2ff711e",
-      "executionLeaseIssued": false,
+      "requestCommit": "9742166ce7cea2b62743b3e6aa5a5ef46a106409",
+      "requestBlob": "884ac150d8f901aa3c8f576b6c1a76ae3b28ca1b",
+      "executionLeaseIssued": true,
       "sshInspectionExecuted": false,
       "productionMutation": false,
       "p0302Reusable": false,
-      "nextAction": "Submit a wholly-new contract-aligned successor: either preserve strict zero-remote-write with no remote files, or explicitly authorize only six identity-bound ephemeral HTTP body files and their terminal cleanup while keeping productionWrites zero. Rerun success and failure-cleanup fixtures."
+      "nextAction": "Execute the exact unexpired P0-303 lease once, with the reviewed object as stdin and no retry; return direct terminal evidence and atomically release Heavy."
     }
   ]
 }

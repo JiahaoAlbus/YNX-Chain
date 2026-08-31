@@ -3185,6 +3185,30 @@
         "only a wholly-new zero-write P0-303 inspection may be authorized next",
         "no retry manual rollback cleanup deploy lifecycle config public Wallet account signature typed-data or transaction mutation"
       ]
+    },
+    {
+      "path": "{host:43.153.202.237:finance-p0302-state-zero-write-inspection,readonly:/opt/ynx/leases/finance/p0302-finance-phase3-20260823t211500z.*,readonly:/opt/ynx/stage/finance/p0302-finance-phase3-20260823t211500z/**,readonly:/var/backups/ynx-finance/p0302-finance-phase3-20260823t211500z/**,readonly:/opt/ynx/releases/finance/p0302-finance-phase3-20260823t211500z/**,readonly:/opt/ynx/finance-current*,readonly:/etc/ynx/finance.env,readonly:/var/lib/ynx/finance/state.json,readonly:/etc/systemd/system/ynx-finance.service,readonly:/etc/caddy/conf.d/ynx-finance.caddy,readonly:service:ynx-finance.service,readonly:http://127.0.0.1:6483/**,readonly:https://finance.ynxweb4.com/**}",
+      "owner": "finance-release-control-plane-readonly-inspection",
+      "branch": "codex/p0-finance-p0303-streaming-zero-write-20260831",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration",
+      "taskId": "P0-303",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_SINGLE_USE_ZERO_WRITE_INSPECTION",
+      "acquiredAt": "2026-08-31T01:59:27Z",
+      "expiresAt": "2026-08-31T02:29:27Z",
+      "releasedAt": null,
+      "sourceCommit": "9742166ce7cea2b62743b3e6aa5a5ef46a106409",
+      "sourceTree": "7d05e48b66aa73a506ed67e75bfb168ebafdfccc",
+      "evidenceCommit": "9742166ce7cea2b62743b3e6aa5a5ef46a106409",
+      "artifactSha256": "d5a10112f869c6e61c3b5e90779d139d63240efa41277d7e8d3e9324425ea8fc",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "exactly one read-only SSH inspection and no retry",
+        "raw HTTP bodies remain on anonymous pipes with no remote file or write",
+        "read P0-302 controls stage backup release current env state unit Caddy service and six HTTP gates",
+        "no cleanup rollback deploy lifecycle config public Wallet account signature typed-data or transaction mutation",
+        "release Heavy and this read-only lock on direct terminal evidence"
+      ]
     }
   ]
 }
