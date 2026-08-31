@@ -44,3 +44,13 @@ Public or installed evidence still requires a product-specific deployment
 lease, exact version/readback identity, and direct user-controlled provider
 approval/reject/callback lifecycle evidence. All those gates remain false at
 this checkpoint.
+
+## Native pending-API boundary
+
+`apps/finance/mobile/App.tsx` consumes the same bundled endpoint manifest. If
+the connected Wallet is valid but Finance remains `PENDING`, it renders only a
+selected-account/chain confirmation and explicit reconnect/sign-out controls.
+The API client is not constructed, the data-workspace navigation is hidden,
+and cached data is not presented as current. Android and iOS JavaScript export
+passed locally; this is a bundle-build result, not an APK/AAB/IPA installation
+or distribution claim.

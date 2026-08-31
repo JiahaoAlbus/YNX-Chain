@@ -29,3 +29,9 @@ test('Wallet migration keeps standard connection and never creates a local Produ
   assert.ok(app.includes('no fiat value is inferred'));
   assert.ok(i18n.toLowerCase().includes('cannot move assets'));
 });
+
+test('a connected wallet remains visible without invoking a pending Finance API',()=>{
+  for(const marker of ["financeEndpointManifest.endpointStates.products.finance.status==='PENDING'",'const connectedPending=','Wallet confirmed. Finance data is pending.','No portfolio, activity, Pay, planning, report, AI, or Product Session request was sent.','connection&&!productApiPending?new FinanceAPI(connection):null'])assert.ok(app.includes(marker),marker);
+  assert.match(app,/if\(productApiPending\)return connectedPending/);
+  assert.match(app,/connection&&!productApiPending\?<View style=\{\[st\.nav/);
+});
