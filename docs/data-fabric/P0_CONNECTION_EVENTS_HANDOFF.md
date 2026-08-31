@@ -94,3 +94,9 @@ Central must bind one authoritative HTTPS Data Fabric origin and the exact runti
 - GitHub Actions run `33376148624` passed PostgreSQL live, PostgreSQL failover and reproducible-build jobs for the erasure precision repair, but `data-fabric-verify` correctly rejected an abbreviated local-test evidence string.
 - Commit `5dee482b702132284cb7f32138f516d9d078f4a5` replaces that string with a concrete, non-sensitive description that contains neither endpoint nor credential. GitHub Actions run `33376722565` passed all six Data Fabric jobs for the same engineering source; later documentation CI is separate and does not change the source evidence.
 - This is release-evidence hygiene only. No deployment, hosted download, public URL, or P0-147 state changed.
+
+### 6423-only Wallet connectivity aggregation — 2026-08-31
+
+- Source commit `6e2ddc50a6db83a526c81312d63d73d9fe3d6d60` accepts only transient `6423` or `0x1917` at the Data Fabric aggregation boundary, emits canonical `0x1917`, and requires that exact value for persisted accepted connection events.
+- Legacy `9102`/`0x238e`, unknown chains and raw canonical errors fail closed before event construction; rejection evidence is empty and aggregates contain only canonical chain ID, bounded error class and retryability. The adapter remains asynchronous and cannot block or relabel standard Wallet connection, approval, signing or transaction behavior.
+- Focused unit and race tests pass locally. Remote CI is pending for this source. No Gateway, Wallet, Card, Finance, Explorer, endpoint, deployment or public state changed.
