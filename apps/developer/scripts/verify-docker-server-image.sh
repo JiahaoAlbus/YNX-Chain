@@ -22,9 +22,10 @@ for (const [key, expected] of Object.entries({"org.opencontainers.image.title":"
 
 # Docker's default seccomp and AppArmor profiles block the non-root clone and
 # mount-propagation operations Bubblewrap needs for its inner namespaces. The
+# CI runner also requires the host user namespace for its UID map. The
 # verification container itself has no network, so Bubblewrap shares that
 # already-isolated network namespace and needs no retained capabilities.
-docker run --detach --name "$name" --user 10001:10001 --read-only --network=none --tmpfs /tmp:rw,nosuid,nodev,size=64m --tmpfs /var/lib/ynx-code:rw,nosuid,nodev,uid=10001,gid=10001,mode=0700,size=256m --cap-drop=ALL --security-opt no-new-privileges --security-opt seccomp=unconfined --security-opt apparmor=unconfined -e YNX_CODE_OUTER_NETWORK_ISOLATED=1 -e YNX_CODE_WORKSPACE_SESSION_KEY=ci-nonsecret-session-key "$image" >/dev/null
+docker run --detach --name "$name" --user 10001:10001 --userns=host --read-only --network=none --tmpfs /tmp:rw,nosuid,nodev,size=64m --tmpfs /var/lib/ynx-code:rw,nosuid,nodev,uid=10001,gid=10001,mode=0700,size=256m --cap-drop=ALL --security-opt no-new-privileges --security-opt seccomp=unconfined --security-opt apparmor=unconfined -e YNX_CODE_OUTER_NETWORK_ISOLATED=1 -e YNX_CODE_WORKSPACE_SESSION_KEY=ci-nonsecret-session-key "$image" >/dev/null
 health=""
 health_response=""
 for _ in {1..100}; do
@@ -47,7 +48,7 @@ node -e 'const value=JSON.parse(process.argv[1]);if(!value.ok||value.language!==
 image_id=$(docker image inspect "$image" --format '{{.Id}}')
 node -e '
 const fs=require("fs"); const [output,image,id,commit,runtime,health,compile]=process.argv.slice(1);
-const value={schemaVersion:1,platform:"linux-container",image,localImageId:id,sourceCommit:commit,runtimeCheckpoint:runtime,runAsNonRoot:true,readOnlyRootFilesystem:true,capDropAll:true,outerContainerNetwork:"none",ciHealthTransport:"docker-exec-loopback",noNewPrivileges:true,outerContainerSeccomp:"unconfined-required-for-bubblewrap-user-namespaces",outerContainerAppArmor:"unconfined-required-for-bubblewrap-mount-propagation",coldStart:true,health:JSON.parse(health),realCppCompile:true,compile:JSON.parse(compile),productionSigned:false,registryPublished:false};
+const value={schemaVersion:1,platform:"linux-container",image,localImageId:id,sourceCommit:commit,runtimeCheckpoint:runtime,runAsNonRoot:true,readOnlyRootFilesystem:true,capDropAll:true,outerContainerUserNamespace:"host-required-for-bubblewrap-uid-map",outerContainerNetwork:"none",ciHealthTransport:"docker-exec-loopback",noNewPrivileges:true,outerContainerSeccomp:"unconfined-required-for-bubblewrap-user-namespaces",outerContainerAppArmor:"unconfined-required-for-bubblewrap-mount-propagation",coldStart:true,health:JSON.parse(health),realCppCompile:true,compile:JSON.parse(compile),productionSigned:false,registryPublished:false};
 fs.writeFileSync(output,`${JSON.stringify(value,null,2)}\n`);
 ' "$output_dir/docker-image-evidence.json" "$image" "$image_id" "$expected_commit" "$expected_runtime" "$health" "$compile"
 echo "Docker image cold start, isolated health and real C++ compile passed: $image"
