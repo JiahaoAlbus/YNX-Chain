@@ -37,6 +37,29 @@ test('P0 monitor rejects a successful EVM response from the wrong chain', async 
   assert.equal(result.chainId, 1);
 });
 
+test('P0 monitor verifies canonical identity for every configured non-EVM service', async () => {
+  const result = await probeP0Connectivity({
+    id: 'explorer', name: 'Explorer', kind: 'product-api', url: 'https://explorer.ynxweb4.com/health',
+    expectedChainId: 6423, expectedCosmosChainId: 'ynx_6423-1', expectedNativeSymbol: 'YNXT',
+  }, { fetch: async () => response({ ok: true, network: { chainId: 6423 }, cometChainId: 'ynx_6423-1', nativeSymbol: 'YNXT' }) });
+  assert.equal(result.status, 'operational');
+  assert.deepEqual(result.chainIdentity, { chainId: 6423, cosmosChainId: 'ynx_6423-1', nativeSymbol: 'YNXT' });
+});
+
+test('P0 monitor fails closed when a successful service reports legacy or incomplete chain identity', async () => {
+  const config: P0ConnectivityProbeConfig = {
+    id: 'indexer', name: 'Indexer', kind: 'product-api', url: 'https://indexer.ynxweb4.com/health',
+    expectedChainId: 6423, expectedCosmosChainId: 'ynx_6423-1', expectedNativeSymbol: 'YNXT',
+  };
+  const legacy = await probeP0Connectivity(config, { fetch: async () => response({ ok: true, chainId: 9102, cosmosChainId: 'ynx_9102-1', nativeSymbol: 'YNXT' }) });
+  const incomplete = await probeP0Connectivity(config, { fetch: async () => response({ ok: true, chainId: 6423, nativeSymbol: 'YNXT' }) });
+  assert.equal(legacy.status, 'unavailable');
+  assert.equal(legacy.errorCode, 'CHAIN_IDENTITY_MISMATCH');
+  assert.deepEqual(legacy.chainIdentity, { chainId: 9102, cosmosChainId: 'ynx_9102-1', nativeSymbol: 'YNXT' });
+  assert.equal(incomplete.status, 'unavailable');
+  assert.equal(incomplete.errorCode, 'CHAIN_IDENTITY_MISMATCH');
+});
+
 test('P0 monitor maps accepted Product Session errors without turning them into offline or standard-Wallet failures', async () => {
   const protocol = await probeP0Connectivity({ id: 'gateway', name: 'Wallet Gateway', kind: 'gateway', url: 'https://wallet-auth.ynxweb4.com/health' }, { fetch: async () => response({ code: 'UNKNOWN_OR_MISSING_FIELD' }, 400) });
   const proof = await probeP0Connectivity({ id: 'gateway-proof', name: 'Wallet Gateway', kind: 'gateway', url: 'https://wallet-auth.ynxweb4.com/health' }, { fetch: async () => response({ code: 'INVALID_DEVICE_PROOF' }, 400) });
