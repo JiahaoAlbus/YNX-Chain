@@ -11,8 +11,8 @@
   },
   "source": {
     "branch": "codex/ynx-6423-portal-tronscan-inspired",
-    "portalCommit": "e34dfc34d0e4fc06615b4e9a237114fa1c4c3d16",
-    "portalTree": "f466a4b605513cb7b37d3b643f7889b053620070",
+    "portalCommit": "12e4212dc0f62d19ccbf75fdebd7fea795028e1b",
+    "portalTree": "932ad022eb313e22d622918d5f1049db7bf4deb4",
     "pushedToOrigin": true,
     "files": [
       {
@@ -30,6 +30,10 @@
       {
         "path": "scripts/verify/explorer-i18n-check.mjs",
         "sha256": "fc61029a2e6895183cc538c71f78706f119adf32710c78ed9f28f4b213ed6421"
+      },
+      {
+        "path": "scripts/verify/explorer-link-integrity-check.mjs",
+        "sha256": "3a8ee63b52ee17433f32ad3b22431b19adb27f9fcb41b0c787b50890238021aa"
       }
     ]
   },
@@ -56,7 +60,7 @@
   },
   "publicClaimPolicy": "Only the local source and verification facts in this record may be claimed. Ecosystem products, downloads, public RPC endpoints, public deployment, signing, and store release remain unavailable unless separately evidenced.",
   "rollback": {
-    "sourceCommit": "a765e827d614309c0d24c0c89fe10370d01c07ee",
+    "sourceCommit": "fd0f074a318d81fb03bcc7f4f16d95bcb27f298a",
     "scope": "Source rollback baseline only; it does not authorize a runtime, DNS, Caddy, Vercel, or alias mutation."
   },
   "deploymentBlocker": "A current, scope-bound deployment authorization naming the exact target, executor, portal source commit, rollback commit, and accepted public endpoint is required before any staging or public mutation."
