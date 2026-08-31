@@ -132,3 +132,8 @@ This is local responsive and accessibility evidence against the 6423 node/indexe
 
 - `make explorer-check` passed against the active local 6423 node. The check built a fresh isolated index database, verified the 6423/`0x1917`/YNXT summary contract, exercised block, transaction, account, resource, token, validator, fee, and search endpoints, then checked the application shell and metrics.
 - The gate can now take explicit local test ports (`YNX_EXPLORER_CHECK_INDEXER_ADDR` and `YNX_EXPLORER_CHECK_HTTP_ADDR`) so it does not collide with an already-running local portal. This run used `127.0.0.1:6439` and `127.0.0.1:6440`; no public endpoint was involved.
+
+## 2026-08-31 download fail-closed follow-up
+
+- Home download cards now use real disabled controls when a public artifact has not been verified; they no longer provide an enabled button that merely opens a notice. The disabled control exposes the localized artifact-verification reason as its title.
+- Browser evidence: Chinese Home showed three disabled `下载暂不可用` controls with `aria-disabled="true"` and the public-artifact verification explanation. The full Downloads route rendered nine items, zero enabled download buttons, and no horizontal overflow.

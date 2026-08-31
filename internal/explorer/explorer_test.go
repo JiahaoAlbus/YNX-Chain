@@ -269,6 +269,9 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	if !strings.Contains(html, "event.key !== 'Tab'") || !strings.Contains(html, "event.shiftKey && document.activeElement === first") {
 		t.Fatal("explorer web must retain keyboard focus inside an open detail drawer")
 	}
+	if strings.Contains(html, `data-download="home-`) || !strings.Contains(html, `disabled aria-disabled="true" title="' + escapeHTML(d('installProof'))`) {
+		t.Fatal("home download cards must remain disabled until a verified public artifact exists")
+	}
 	for _, forbidden := range []string{"9102", "0x238e", "ynx_9102-1"} {
 		if strings.Contains(strings.ToLower(html), strings.ToLower(forbidden)) {
 			t.Fatalf("explorer web contains retired network identity %q", forbidden)

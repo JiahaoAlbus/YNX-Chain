@@ -897,7 +897,7 @@ const indexHTML = `<!doctype html>
       }
       const downloads = $('homeDownloads');
       if (downloads) {
-        downloads.innerHTML = (downloadProducts[language] || downloadProducts.en).slice(0,3).map(([name,platform],index) => '<article class="download-item"><strong>' + escapeHTML(name) + '</strong><span>' + escapeHTML(platform) + '</span><span>' + escapeHTML(d('installProof')) + '</span><button type="button" data-download="home-' + index + '">' + escapeHTML(d('downloadUnavailable')) + '</button></article>').join('');
+        downloads.innerHTML = (downloadProducts[language] || downloadProducts.en).slice(0,3).map(([name,platform]) => '<article class="download-item"><strong>' + escapeHTML(name) + '</strong><span>' + escapeHTML(platform) + '</span><span>' + escapeHTML(d('installProof')) + '</span><button type="button" disabled aria-disabled="true" title="' + escapeHTML(d('installProof')) + '">' + escapeHTML(d('downloadUnavailable')) + '</button></article>').join('');
       }
     }
     function applyLanguage(nextLanguage) {
