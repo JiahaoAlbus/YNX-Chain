@@ -178,6 +178,7 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 		"sponsorPoolId",
 		"expected6423",
 		"serviceDirectory",
+		"serviceNameUI",
 		"dataFabric",
 		"infrastructure",
 		"YNX DeFi services",
