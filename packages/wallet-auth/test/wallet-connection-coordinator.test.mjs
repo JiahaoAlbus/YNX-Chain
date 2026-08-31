@@ -163,6 +163,26 @@ test("coordinator converts a Wallet availability probe failure into an actionabl
   assert.equal(sessionClient.current.status, PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED);
 });
 
+test("chooser preserves Guest, download and an independently injected MetaMask when platform probing fails", async () => {
+  const calls=[];
+  const failedProbe = gateway({ async walletInstalled() { throw new Error("private platform detail"); } });
+  const sessionClient = client("dex", failedProbe);
+  const value = coordinator({ productId: "dex", sessionClient, scope: { ethereum: metaMaskProvider(calls) } });
+
+  const options = await value.options();
+  assert.equal(options.status, WALLET_CONNECTION_COORDINATOR_STATUS.OPTIONS_UNAVAILABLE);
+  assert.equal(options.code, "WALLET_UNAVAILABLE");
+  assert.equal(options.environment, null);
+  assert.equal(options.message.includes("private platform detail"), false);
+  assert.deepEqual(options.choices.map(({ id }) => id), ["download-ynx-wallet", "metamask", "guest"]);
+
+  const connected = await value.connectMetaMask();
+  assert.equal(connected.status, WALLET_CONNECTION_COORDINATOR_STATUS.EVM_CONNECTED);
+  assert.equal(connected.connection.authority, "eip-1193-provider-only");
+  assert.deepEqual(calls.map(({ method }) => method), ["eth_chainId", "eth_requestAccounts"]);
+  assert.equal(sessionClient.current.status, PRODUCT_SESSION_CLIENT_STATE.DISCONNECTED);
+});
+
 test("MetaMask connects through central discovery only when YNX is absent and product is EVM compatible", async () => {
   const calls=[];const metamask=metaMaskProvider(calls);const value=coordinator({productId:"dex",sessionClient:noYNXClient("dex"),scope:{ethereum:metamask}});
   const result=await value.connectMetaMask();

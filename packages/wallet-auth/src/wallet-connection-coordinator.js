@@ -6,6 +6,7 @@ import { discoverWalletProviders, walletAvailabilityFromDiscovery } from "./wall
 
 export const WALLET_CONNECTION_COORDINATOR_STATUS = Object.freeze({
   OPTIONS_READY: "options-ready",
+  OPTIONS_UNAVAILABLE: "options-unavailable",
   SESSION_STATE: "session-state",
   WALLET_OPENED: "wallet-opened",
   WALLET_OPEN_FAILED: "wallet-open-failed",
@@ -35,7 +36,18 @@ export class WalletConnectionCoordinator {
   get connectionBinding() { return this.#client.connectionBinding; }
 
   async options() {
-    const [discovery, environment] = await Promise.all([discoverWalletProviders(this.#scope, this.#waitMs), this.#client.detectWalletEnvironment()]);
+    const discovery = await discoverWalletProviders(this.#scope, this.#waitMs);
+    let environment;
+    try { environment = await this.#client.detectWalletEnvironment(); }
+    catch {
+      // A platform capability probe is not a reason to hide genuine Web
+      // providers or Guest / download choices.  The unavailable platform is
+      // reported explicitly and grants no Product Session authority.
+      const injected = walletAvailabilityFromDiscovery(discovery);
+      const availability = Object.freeze({ ynxWalletInstalled: injected.ynxWalletInstalled, metaMaskAvailable: injected.metaMaskAvailable });
+      const choices = this.#client.connectionChoices(availability);
+      return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.OPTIONS_UNAVAILABLE, code: "WALLET_UNAVAILABLE", message: "Wallet availability could not be verified; retry, choose an available provider, or continue as Guest", actions: ["retry", "guest"], discovery, environment: null, availability, choices });
+    }
     const injected = walletAvailabilityFromDiscovery(discovery);
     const availability = Object.freeze({ ynxWalletInstalled: environment.walletInstalled || injected.ynxWalletInstalled, metaMaskAvailable: injected.metaMaskAvailable });
     const choices = this.#client.connectionChoices(availability);
@@ -65,10 +77,13 @@ export class WalletConnectionCoordinator {
 
   async connectMetaMask() {
     const optionState = await this.options(), { discovery, environment, choices } = optionState;
-    if (environment.walletInstalled || discovery.ynx !== null) return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.YNX_WALLET_PREFERRED, code: "YNX_WALLET_PREFERRED", message: "YNX Wallet is available and remains the preferred Wallet", actions: ["open-ynx-wallet", "guest", "return-to-product"], discovery, environment, choices });
+    if (environment?.walletInstalled === true || discovery.ynx !== null) return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.YNX_WALLET_PREFERRED, code: "YNX_WALLET_PREFERRED", message: "YNX Wallet is available and remains the preferred Wallet", actions: ["open-ynx-wallet", "guest", "return-to-product"], discovery, environment, choices });
     if (discovery.metamask === null) {
       const ambiguous = discovery.ambiguities.includes("metamask"), download = choices.find((item) => item.id === "metamask" && item.action === "download-evm-wallet");
-      return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.EVM_UNAVAILABLE, code: ambiguous ? "AMBIGUOUS_WALLET_PROVIDER" : "WALLET_PROVIDER_NOT_INJECTED", message: ambiguous ? "Multiple MetaMask providers require an explicit platform chooser" : "MetaMask was not injected into this page; unlock or enable the extension, grant site access, and retry", actions: ambiguous ? ["retry", "guest", "return-to-product"] : ["unlock-extension", "grant-site-access", "enable-extension", "retry", "download-metamask", "guest", "return-to-product"], ...(download ? { downloadUrl: download.url } : {}), discovery, environment, choices });
+      const code = ambiguous ? "AMBIGUOUS_WALLET_PROVIDER" : optionState.status === WALLET_CONNECTION_COORDINATOR_STATUS.OPTIONS_UNAVAILABLE ? "WALLET_UNAVAILABLE" : "WALLET_PROVIDER_NOT_INJECTED";
+      const message = ambiguous ? "Multiple MetaMask providers require an explicit platform chooser" : code === "WALLET_UNAVAILABLE" ? "Wallet availability could not be verified and no MetaMask provider was injected; retry or continue as Guest" : "MetaMask was not injected into this page; unlock or enable the extension, grant site access, and retry";
+      const actions = ambiguous ? ["retry", "guest", "return-to-product"] : code === "WALLET_UNAVAILABLE" ? ["retry", "guest", "return-to-product"] : ["unlock-extension", "grant-site-access", "enable-extension", "retry", "download-metamask", "guest", "return-to-product"];
+      return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.EVM_UNAVAILABLE, code, message, actions, ...(download ? { downloadUrl: download.url } : {}), discovery, environment, choices });
     }
     try {
       const connection = await new MetaMaskEvmConnectionAdapter({ registry: this.#registry, productId: this.#productId, provider: discovery.metamask.provider }).connect();
