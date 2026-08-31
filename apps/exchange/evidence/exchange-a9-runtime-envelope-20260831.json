@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "exchange-a9-runtime-envelope@1",
+  "classification": "local-unsigned-runtime-envelope",
+  "status": "CANDIDATE_FROZEN_AWAITING_HOST_MAPPING_AND_EXCHANGE_DEPLOY_LEASE",
+  "source": {
+    "commit": "a9cf3d86594ceaf9d5a36d04182590d77acccf0b",
+    "tree": "f92bede69b28fdda81586ac245d94d269cd24a83"
+  },
+  "candidate": {
+    "archive": {
+      "path": "apps/exchange/evidence/release-candidates/ynx-exchange-a9cf3d86594c-runtime.tar.gz",
+      "bytes": 3406293,
+      "sha256": "4de9f877f3aa71382e216e3171e6b8b783a9284704c54c8b4e3794e6c9451ac3"
+    },
+    "binary": {"bytes":7516308,"sha256":"45fd389542d28006f465125d9f498b0cf9ac4ce55ef7f925e47b8e49c317373e","format":"ELF 64-bit x86-64 static"}
+  },
+  "currentPublicReadback": {
+    "root": {"url":"https://exchange.ynxweb4.com/","status":200,"bytes":18603,"sha256":"64c5b7862099eb06a316fbc6d1c665e81355f427fa27b26584bbf586ac4eacde","contentType":"text/html; charset=utf-8"},
+    "health": {"url":"https://exchange.ynxweb4.com/health","status":200,"bytes":18603,"sha256":"64c5b7862099eb06a316fbc6d1c665e81355f427fa27b26584bbf586ac4eacde","contentType":"text/html; charset=utf-8","validHealthEnvelope":false},
+    "version": {"url":"https://exchange.ynxweb4.com/version","status":200,"bytes":18603,"sha256":"64c5b7862099eb06a316fbc6d1c665e81355f427fa27b26584bbf586ac4eacde","contentType":"text/html; charset=utf-8","validVersionEnvelope":false},
+    "sourceBoundToCandidate": false
+  },
+  "centralMustFreshlyBind": ["Exchange host/service/current release/rollback mapping", "valid JSON health and version endpoints", "stage and backup paths", "candidate source/artifact bytes", "rollback-first executor and command objects"],
+  "truth": {"leaseIssued":false,"sshExecuted":false,"deployed":false,"sourceBoundPublicRuntime":false,"providerApproved":false,"orderSubmitted":false,"tradeSettled":false},
+  "singleExecutableBlocker": "Central must supply a source-bound Exchange host/runtime mapping with non-fallback health and version envelopes before a single-use deployment lease can be constructed."
+}
