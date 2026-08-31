@@ -17,6 +17,11 @@ if(!/^[0-9a-f]{40}$/.test(evidence.candidate?.tree??""))fail("candidate tree is 
 
 const gitTree=execFileSync("git",["show","-s","--format=%T",evidence.candidate.commit],{cwd:projectRoot,encoding:"utf8"}).trim();
 if(gitTree!==evidence.candidate.tree)fail("candidate commit/tree binding mismatch");
+const candidateFile=path=>execFileSync("git",["show",`${evidence.candidate.commit}:apps/pay/${path}`],{cwd:projectRoot,encoding:"utf8"});
+const appSource=candidateFile("App.tsx");
+for(const marker of ["walletUICopy[locale]","walletTextRef.current.disconnected","WalletIdentity","MetaMask fox logo","YNX Wallet logo","walletText.noProviderTitle","walletText.switchAccount","walletText.disconnect"]){if(!appSource.includes(marker))fail(`candidate Wallet UI marker missing: ${marker}`)}
+const walletSource=candidateFile("src/wallet.ts");
+for(const marker of ["0x1917","PRIVATE_SERVICE_DEGRADED","WalletConnectionCoordinator"]){if(!walletSource.includes(marker))fail(`candidate provider lifecycle marker missing: ${marker}`)}
 
 const artifactPath=resolve(projectRoot,evidence.artifact.path.replace(/^apps\/pay\//,""));
 const artifact=readFileSync(artifactPath);
