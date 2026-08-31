@@ -7,6 +7,7 @@
     "dev": "vite --host 127.0.0.1",
     "build": "tsc --noEmit && vite build",
     "verify:canonical-authorize": "node scripts/verify-canonical-authorize.mjs",
+    "verify:legacy-route-quarantine": "node scripts/verify-legacy-route-quarantine.mjs",
     "test": "vitest run",
     "test:e2e": "npm run build && playwright test",
     "package:pwa": "npm run build && node ../../scripts/dex/package-web.mjs",
