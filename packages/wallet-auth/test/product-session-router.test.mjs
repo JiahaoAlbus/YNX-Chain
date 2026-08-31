@@ -4,7 +4,7 @@ import { test } from "node:test";
 import { p256 } from "@noble/curves/nist.js";
 import {
   canonicalReturnTarget, createProductSessionRequest, createProductSessionReturnURL,
-  migrateLegacyCallback, migrateLegacyProductSessionRequest, migrateProductSessionRegistryV1, migrateProductSessionRegistryV2, parseProductSessionRegistry, parseProductSessionReturnURL,
+  encodeProductSessionWalletURL, migrateLegacyCallback, migrateLegacyProductSessionRequest, migrateProductSessionRegistryV1, migrateProductSessionRegistryV2, parseProductSessionRegistry, parseProductSessionReturnURL, parseProductSessionWalletURL,
   prepareWalletOpen, productPlatformBinding, productPlatformStatus, walletConnectionChoices, WalletAuthError, WALLET_ROUTE_STATUS,
 } from "../src/index.js";
 
@@ -160,6 +160,14 @@ test("router returns actionable unavailable states and never opens an unregister
   assert.equal(prepareWalletOpen(registry, pending, { networkAvailable: true, walletInstalled: false, schemeRegistered: true }, NOW).status, WALLET_ROUTE_STATUS.WALLET_NOT_INSTALLED);
   assert.equal(prepareWalletOpen(registry, pending, { networkAvailable: true, walletInstalled: true, schemeRegistered: false }, NOW).status, WALLET_ROUTE_STATUS.SCHEME_NOT_REGISTERED);
   assert.match(prepareWalletOpen(registry, pending, { networkAvailable: true, walletInstalled: true, schemeRegistered: true }, NOW).url, /^ynxwallet:\/\/authorize\?request=/);
+});
+
+test("router rejects noncanonical and handwritten Wallet authorize URLs before parsing a request", () => {
+  const pending = request();
+  const canonical = encodeProductSessionWalletURL(registry, pending, NOW);
+  assert.deepEqual(parseProductSessionWalletURL(registry, canonical, NOW), pending);
+  assert.throws(() => parseProductSessionWalletURL(registry, canonical.replace("ynxwallet://authorize", "ynx-wallet://authorize"), NOW), code("SCHEME_NOT_REGISTERED"));
+  assert.throws(() => parseProductSessionWalletURL(registry, "ynxwallet://authorize?challenge=attacker", NOW), code("SCHEME_NOT_REGISTERED"));
 });
 
 test("return router binds route, nonce and state and reports rejection without creating a session", () => {
