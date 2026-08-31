@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "ynx-video-runtime-candidate/1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-077",
+  "productId": "ynx-video",
+  "routerPlan": {
+    "commit": "875be208e8a7ddb60345d55b93fc299949664e5c",
+    "tree": "3499ddfbe2a4bb08cbbcaef8c71b911aca51dde4"
+  },
+  "source": {
+    "commit": "53edaa43b5fa515969a78a12ff1ca84da672477d",
+    "tree": "052bfa332a551bfe784b055b804c150b81b5edf5",
+    "branch": "codex/video-wallet-6423-lifecycle",
+    "chain": {"evmDecimal": 6423, "evmHex": "0x1917"}
+  },
+  "artifact": {
+    "path": "apps/video/release/evidence/p0-077/candidates/ynx-video-53edaa43-runtime.tar.gz",
+    "bytes": 26359,
+    "sha256": "1bac6a8bbb48cd5e5c1be1067df46bb70ef88dcd34af079853ac9ef02533963e",
+    "entrypoint": "runtime/server.mjs"
+  },
+  "truth": {
+    "sourceCandidate": true,
+    "sourceConsumerCoordinator": false,
+    "deployedPublic": false,
+    "sourceBoundPublic": false,
+    "installedWallet": false,
+    "approvedAccount": false,
+    "rejectedAccount": false,
+    "chain1917Direct": false,
+    "refreshEventsDisconnectDirect": false,
+    "personalSign": false,
+    "eip712": false,
+    "testnetTransaction": false,
+    "productSessionComplete": false,
+    "privateKeyCollected": false
+  },
+  "releaseBoundary": "Candidate artifact only. Central lease and direct runtime evidence are required before deployment or any completion claim."
+}
