@@ -2,10 +2,13 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
 	"testing"
+
+	wallet "github.com/JiahaoAlbus/YNX-Chain/sdk/wallet/go"
 )
 
 type roundTripFunc func(*http.Request) (*http.Response, error)
@@ -17,6 +20,26 @@ func rpcClient(result string) *http.Client {
 		body := `{"jsonrpc":"2.0","id":1,"result":"` + result + `"}`
 		return &http.Response{StatusCode: http.StatusOK, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(body))}, nil
 	})}
+}
+
+func TestConsumerPreservesWrongChainAndUnavailableTaxonomy(t *testing.T) {
+	args := []string{"-rpc", "https://rpc.example.invalid", "-vector", "../../packages/wallet-auth/testdata/product-session-http-proof-v1.json"}
+	for _, item := range []struct {
+		name   string
+		client *http.Client
+		code   wallet.ErrorCode
+	}{
+		{name: "wrong-chain", client: rpcClient("0x1"), code: wallet.ErrorWrongChain},
+		{name: "unavailable", client: &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) { return nil, errors.New("connection refused") })}, code: wallet.ErrorRPCUnavailable},
+	} {
+		t.Run(item.name, func(t *testing.T) {
+			err := run(args, io.Discard, item.client)
+			var classified *wallet.TransportError
+			if !errors.As(err, &classified) || classified.Code != item.code {
+				t.Fatalf("got %v, want %s", err, item.code)
+			}
+		})
+	}
 }
 
 func TestRealConsumerFlowAndWrongChainFailClosed(t *testing.T) {

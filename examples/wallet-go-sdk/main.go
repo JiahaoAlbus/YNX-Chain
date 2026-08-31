@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -63,33 +62,12 @@ func run(args []string, out io.Writer, client *http.Client) error {
 		return errors.New("ephemeral signing self-test failed")
 	}
 
-	requestBody := []byte(`{"jsonrpc":"2.0","id":1,"method":"eth_chainId","params":[]}`)
 	ctx, cancel := context.WithTimeout(context.Background(), *timeout)
 	defer cancel()
-	request, err := http.NewRequestWithContext(ctx, http.MethodPost, parsedRPC.String(), bytes.NewReader(requestBody))
+	client.Timeout = *timeout
+	chainID, err := wallet.ProbeYNXTestnetRPC(ctx, client, parsedRPC.String())
 	if err != nil {
 		return err
 	}
-	request.Header.Set("content-type", "application/json")
-	client.Timeout = *timeout
-	response, err := client.Do(request)
-	if err != nil {
-		return fmt.Errorf("RPC unavailable: %w", err)
-	}
-	defer response.Body.Close()
-	if response.StatusCode != http.StatusOK {
-		return fmt.Errorf("RPC HTTP status %d", response.StatusCode)
-	}
-	var result struct {
-		JSONRPC string          `json:"jsonrpc"`
-		ID      json.RawMessage `json:"id"`
-		Result  string          `json:"result"`
-		Error   json.RawMessage `json:"error"`
-	}
-	decoder := json.NewDecoder(io.LimitReader(response.Body, 1<<20))
-	decoder.DisallowUnknownFields()
-	if err := decoder.Decode(&result); err != nil || result.JSONRPC != "2.0" || string(result.ID) != "1" || result.Result != "0x1917" || len(result.Error) != 0 {
-		return errors.New("RPC did not prove YNX Testnet chain 0x1917")
-	}
-	return json.NewEncoder(out).Encode(map[string]any{"chainId": result.Result, "connected": true, "ephemeralSigningVerified": true, "privateKeyPersisted": false, "protocol": "YNX_PRODUCT_SESSION_HTTP_PROOF_V1", "rpc": parsedRPC.String(), "vectorVerified": true})
+	return json.NewEncoder(out).Encode(map[string]any{"chainId": chainID, "connected": true, "ephemeralSigningVerified": true, "privateKeyPersisted": false, "protocol": "YNX_PRODUCT_SESSION_HTTP_PROOF_V1", "rpc": parsedRPC.String(), "vectorVerified": true})
 }

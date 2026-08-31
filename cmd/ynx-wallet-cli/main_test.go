@@ -2,10 +2,14 @@ package main
 
 import (
 	"bytes"
+	"context"
+	"errors"
 	"io"
 	"net/http"
 	"strings"
 	"testing"
+
+	wallet "github.com/JiahaoAlbus/YNX-Chain/sdk/wallet/go"
 )
 
 type roundTripFunc func(*http.Request) (*http.Response, error)
@@ -23,6 +27,33 @@ func TestSelfTestAndNetworkFailClosed(t *testing.T) {
 	if err := run([]string{"chain-status", "-rpc", "https://localhost.invalid"}, io.Discard, client); err == nil {
 		t.Fatal("wrong chain accepted")
 	}
+}
+
+func TestChainStatusPreservesStrictSDKTaxonomy(t *testing.T) {
+	for _, item := range []struct {
+		name   string
+		client *http.Client
+		code   wallet.ErrorCode
+	}{
+		{name: "timeout", client: &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) { return nil, context.DeadlineExceeded })}, code: wallet.ErrorTransportTimeout},
+		{name: "malformed", client: responseClient(200, "not-json"), code: wallet.ErrorMalformedResponse},
+		{name: "wrong-chain", client: responseClient(200, `{"jsonrpc":"2.0","id":1,"result":"0x1"}`), code: wallet.ErrorWrongChain},
+		{name: "unavailable", client: responseClient(503, `{"error":"down"}`), code: wallet.ErrorRPCUnavailable},
+	} {
+		t.Run(item.name, func(t *testing.T) {
+			err := run([]string{"chain-status", "-rpc", "https://rpc.example.invalid"}, io.Discard, item.client)
+			var classified *wallet.TransportError
+			if !errors.As(err, &classified) || classified.Code != item.code {
+				t.Fatalf("got %v, want %s", err, item.code)
+			}
+		})
+	}
+}
+
+func responseClient(status int, body string) *http.Client {
+	return &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) {
+		return &http.Response{StatusCode: status, Body: io.NopCloser(strings.NewReader(body)), Header: make(http.Header)}, nil
+	})}
 }
 
 func TestChainStatusUsesCanonicalPublicRPCByDefault(t *testing.T) {

@@ -31,6 +31,51 @@ export class YNXSDKError extends Error {
   }
 }
 
+export const ynxErrorCodes = Object.freeze({
+  accountNotFound: "ACCOUNT_NOT_FOUND",
+  httpError: "HTTP_ERROR",
+  malformedResponse: "MALFORMED_RESPONSE",
+  rpcUnavailable: "RPC_UNAVAILABLE",
+  transportTLS: "TRANSPORT_TLS",
+  transportTimeout: "TRANSPORT_TIMEOUT",
+  wrongChain: "WRONG_CHAIN",
+});
+
+function authoritativeAccountAbsence(status, data) {
+  if (status !== 404 || data === null || typeof data !== "object" || Array.isArray(data)) return false;
+  const code = data.code ?? data.error?.code;
+  const message = data.message ?? data.error?.message ?? data.error;
+  return code === ynxErrorCodes.accountNotFound || (typeof message === "string" && /^account not found$/i.test(message.trim()));
+}
+
+function causeChain(cause) {
+  const result = [];
+  const seen = new Set();
+  while (cause && (typeof cause === "object" || typeof cause === "function") && !seen.has(cause) && result.length < 8) {
+    seen.add(cause);
+    result.push(cause);
+    cause = cause.cause;
+  }
+  return result;
+}
+
+function timeoutFailure(cause) {
+  return causeChain(cause).some((item) => {
+    const name = typeof item?.name === "string" ? item.name.toUpperCase() : "";
+    const code = typeof item?.code === "string" ? item.code.toUpperCase() : "";
+    const message = typeof item?.message === "string" ? item.message.toLowerCase() : "";
+    return name === "ABORTERROR" || name === "TIMEOUTERROR" || code === "ETIMEDOUT" || code.includes("CONNECT_TIMEOUT") || message.includes("timed out") || message.includes("timeout");
+  });
+}
+
+function tlsFailure(cause) {
+  return causeChain(cause).some((item) => {
+    const code = typeof item?.code === "string" ? item.code.toUpperCase() : "";
+    const message = typeof item?.message === "string" ? item.message.toLowerCase() : "";
+    return code.includes("TLS") || code.includes("CERT") || code === "UNABLE_TO_VERIFY_LEAF_SIGNATURE" || message.includes("tls handshake") || message.includes("certificate");
+  });
+}
+
 function convertAddressBits(data, fromBits, toBits, pad) {
   let accumulator = 0;
   let bits = 0;
@@ -147,17 +192,24 @@ async function requestJSON(url, {body, timeoutMs = DEFAULT_TIMEOUT_MS, fetchImpl
     try {
       data = JSON.parse(text);
     } catch (cause) {
-      throw new YNXSDKError(`YNX endpoint returned invalid JSON (${response.status})`, {cause, status: response.status});
+      throw new YNXSDKError(`YNX endpoint returned invalid JSON (${response.status})`, {cause, status: response.status, code: ynxErrorCodes.malformedResponse});
     }
     if (!response.ok) {
       const detail = data?.error?.message || data?.error || data?.message || response.statusText;
-      throw new YNXSDKError(`YNX endpoint failed (${response.status}): ${detail}`, {status: response.status});
+      if (authoritativeAccountAbsence(response.status, data)) {
+        throw new YNXSDKError(`YNX account does not exist (${response.status})`, {status: response.status, code: ynxErrorCodes.accountNotFound});
+      }
+      const code = [502, 503, 504].includes(response.status) ? ynxErrorCodes.rpcUnavailable : ynxErrorCodes.httpError;
+      throw new YNXSDKError(`YNX endpoint failed (${response.status}): ${detail}`, {status: response.status, code});
     }
     return data;
   } catch (cause) {
     if (cause instanceof YNXSDKError) throw cause;
-    if (cause?.name === "AbortError") throw new YNXSDKError(`YNX endpoint timed out after ${timeoutMs}ms`, {cause});
-    throw new YNXSDKError(`YNX endpoint request failed: ${cause?.message || cause}`, {cause});
+    if (timeoutFailure(cause)) {
+      throw new YNXSDKError(`YNX endpoint timed out after ${timeoutMs}ms`, {cause, code: ynxErrorCodes.transportTimeout});
+    }
+    if (tlsFailure(cause)) throw new YNXSDKError("YNX endpoint TLS validation failed", {cause, code: ynxErrorCodes.transportTLS});
+    throw new YNXSDKError(`YNX endpoint request failed: ${cause?.message || cause}`, {cause, code: ynxErrorCodes.rpcUnavailable});
   } finally {
     clearTimeout(timeout);
   }
@@ -176,12 +228,12 @@ export async function callYNXEVM(evmUrl, method, params = [], options = {}) {
     body: {jsonrpc: "2.0", id, method, params},
   });
   if (response?.jsonrpc !== "2.0" || response?.id !== id) {
-    throw new YNXSDKError("YNX EVM returned a mismatched JSON-RPC response");
+    throw new YNXSDKError("YNX EVM returned a mismatched JSON-RPC response", {code: ynxErrorCodes.malformedResponse});
   }
   if (response.error) {
     throw new YNXSDKError(`YNX EVM error ${response.error.code}: ${response.error.message}`, {code: response.error.code});
   }
-  if (!("result" in response)) throw new YNXSDKError("YNX EVM response is missing result");
+  if (!("result" in response)) throw new YNXSDKError("YNX EVM response is missing result", {code: ynxErrorCodes.malformedResponse});
   return response.result;
 }
 
@@ -197,7 +249,7 @@ export async function proveYNXTestnetRPC(evmUrl = ynxPublicEndpoints.rpcUrl, opt
   }
   const chainId = await callYNXEVM(url.href, "eth_chainId", [], options);
   if (chainId !== ynxTestnet.chainId) {
-    throw new YNXSDKError(`RPC did not prove YNX Testnet chain ${ynxTestnet.chainId}`, {code: "CHAIN_MISMATCH"});
+    throw new YNXSDKError(`RPC did not prove YNX Testnet chain ${ynxTestnet.chainId}`, {code: ynxErrorCodes.wrongChain});
   }
   return Object.freeze({chainId, connected: true, network: ynxTestnet.chainName, rpc: url.href});
 }

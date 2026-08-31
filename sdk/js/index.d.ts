@@ -30,6 +30,15 @@ export declare const ynxPublicEndpoints: Readonly<{
   integratedCentral: false;
 }>;
 export declare class YNXSDKError extends Error { readonly status?: number; readonly code?: number | string }
+export declare const ynxErrorCodes: Readonly<{
+  accountNotFound: "ACCOUNT_NOT_FOUND";
+  httpError: "HTTP_ERROR";
+  malformedResponse: "MALFORMED_RESPONSE";
+  rpcUnavailable: "RPC_UNAVAILABLE";
+  transportTLS: "TRANSPORT_TLS";
+  transportTimeout: "TRANSPORT_TIMEOUT";
+  wrongChain: "WRONG_CHAIN";
+}>;
 export declare class YNXWalletError extends Error { readonly code?: number | string; readonly method?: string }
 export declare function toYNXAddress(value: string): string;
 export declare function toEVMAddress(value: string): string;

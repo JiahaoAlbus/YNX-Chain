@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import {after, before, test} from "node:test";
 import http from "node:http";
 import {readFile} from "node:fs/promises";
-import {YNXClient, YNXSDKError, assertYNXTestnetSnapshot, callYNXEVM, getYNXStatus, normalizeYNXAddress, proveYNXTestnetRPC, toEVMAddress, toYNXAddress, ynxPublicEndpoints} from "./index.js";
+import {YNXClient, YNXSDKError, assertYNXTestnetSnapshot, callYNXEVM, getYNXStatus, normalizeYNXAddress, proveYNXTestnetRPC, toEVMAddress, toYNXAddress, ynxErrorCodes, ynxPublicEndpoints} from "./index.js";
 
 let baseUrl;
 let server;
@@ -63,9 +63,34 @@ test("proves YNX Testnet only over HTTPS and fails closed on the wrong chain", a
   await assert.rejects(proveYNXTestnetRPC("http://127.0.0.1:1"), (error) => error instanceof YNXSDKError && error.code === "RPC_HTTPS_REQUIRED");
   await assert.rejects(proveYNXTestnetRPC("https://user@example.invalid"), (error) => error instanceof YNXSDKError && error.code === "RPC_HTTPS_REQUIRED");
   const wrongChainFetch = async () => new Response(JSON.stringify({jsonrpc: "2.0", id: 1, result: "0x1"}), {status: 200});
-  await assert.rejects(proveYNXTestnetRPC("https://rpc.example.invalid", {fetchImpl: wrongChainFetch}), (error) => error instanceof YNXSDKError && error.code === "CHAIN_MISMATCH");
+  await assert.rejects(proveYNXTestnetRPC("https://rpc.example.invalid", {fetchImpl: wrongChainFetch}), (error) => error instanceof YNXSDKError && error.code === ynxErrorCodes.wrongChain);
   const unavailableFetch = async () => { throw new Error("unreachable"); };
-  await assert.rejects(proveYNXTestnetRPC("https://rpc.example.invalid", {fetchImpl: unavailableFetch}), (error) => error instanceof YNXSDKError && /request failed/.test(error.message));
+  await assert.rejects(proveYNXTestnetRPC("https://rpc.example.invalid", {fetchImpl: unavailableFetch}), (error) => error instanceof YNXSDKError && error.code === ynxErrorCodes.rpcUnavailable);
+});
+
+test("keeps authoritative account absence distinct from transport and HTTP failures", async () => {
+  const accountMissing = async () => new Response(JSON.stringify({code: "ACCOUNT_NOT_FOUND", message: "account not found"}), {status: 404});
+  await assert.rejects(getYNXStatus("https://rest.example.invalid", {fetchImpl: accountMissing}), (error) => error instanceof YNXSDKError && error.status === 404 && error.code === ynxErrorCodes.accountNotFound);
+
+  const unrelated404 = async () => new Response(JSON.stringify({error: "route not found"}), {status: 404});
+  await assert.rejects(getYNXStatus("https://rest.example.invalid", {fetchImpl: unrelated404}), (error) => error instanceof YNXSDKError && error.status === 404 && error.code === ynxErrorCodes.httpError);
+
+  const unavailable = async () => new Response(JSON.stringify({error: "temporarily unavailable"}), {status: 503});
+  await assert.rejects(getYNXStatus("https://rest.example.invalid", {fetchImpl: unavailable}), (error) => error instanceof YNXSDKError && error.code === ynxErrorCodes.rpcUnavailable);
+});
+
+test("classifies timeout, TLS and malformed responses without inventing network state", async () => {
+  const timeout = async () => { throw Object.assign(new Error("deadline"), {name: "AbortError"}); };
+  await assert.rejects(getYNXStatus("https://rest.example.invalid", {fetchImpl: timeout}), (error) => error instanceof YNXSDKError && error.code === ynxErrorCodes.transportTimeout);
+
+  const wrappedTimeout = async () => { throw new TypeError("fetch failed", {cause: Object.assign(new Error("Connect Timeout Error"), {code: "UND_ERR_CONNECT_TIMEOUT"})}); };
+  await assert.rejects(getYNXStatus("https://rest.example.invalid", {fetchImpl: wrappedTimeout}), (error) => error instanceof YNXSDKError && error.code === ynxErrorCodes.transportTimeout);
+
+  const tls = async () => { throw new TypeError("fetch failed", {cause: Object.assign(new Error("certificate verify failed"), {code: "CERT_HAS_EXPIRED"})}); };
+  await assert.rejects(getYNXStatus("https://rest.example.invalid", {fetchImpl: tls}), (error) => error instanceof YNXSDKError && error.code === ynxErrorCodes.transportTLS);
+
+  const malformed = async () => new Response("not-json", {status: 200});
+  await assert.rejects(getYNXStatus("https://rest.example.invalid", {fetchImpl: malformed}), (error) => error instanceof YNXSDKError && error.code === ynxErrorCodes.malformedResponse);
 });
 
 test("consumes the immutable Central public endpoint matrix without promoting unavailable services", async () => {
