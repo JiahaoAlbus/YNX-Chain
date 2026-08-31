@@ -40,6 +40,11 @@
       "types": "./src/index.d.ts",
       "import": "./src/standard-wallet-conformance.js",
       "default": "./src/standard-wallet-conformance.js"
+    },
+    "./standard-wallet-public-consumer": {
+      "types": "./src/index.d.ts",
+      "import": "./src/standard-wallet-public-consumer.js",
+      "default": "./src/standard-wallet-public-consumer.js"
     }
   },
   "types": "./src/index.d.ts",

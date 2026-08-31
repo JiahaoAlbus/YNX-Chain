@@ -26,6 +26,7 @@ export * from "./metamask-evm-adapter.js";
 export * from "./wallet-provider-discovery.js";
 export * from "./standard-wallet-connect-state.js";
 export * from "./standard-wallet-conformance.js";
+export * from "./standard-wallet-public-consumer.js";
 export * from "./product-wallet-migration-evidence.js";
 export * from "./installable-artifact-gate.js";
 export * from "./wallet-error-contract.js";
