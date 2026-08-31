@@ -31,14 +31,19 @@ for (const [goos, goarch, minimumOS, runtimeTested] of targets) {
   fs.writeFileSync(archivePath, zlib.gzipSync(binary, { level: 9, mtime: 0 }));
   fs.rmSync(binaryPath);
   const archive = fs.readFileSync(archivePath);
-  const signingClass = goos === "darwin" ? "ad_hoc_linker_signed_local_testnet_cli_candidate" : "unsigned_local_testnet_cli_candidate";
+  const signingClass = goos === "darwin"
+    ? (runtimeTested ? "ad_hoc_linker_signed_local_testnet_cli_candidate" : "ad_hoc_linker_signed_cross_arch_static_candidate")
+    : "unsigned_local_testnet_cli_candidate";
+  const minimumOSBasis = goos === "darwin"
+    ? "Go 1.25 official minimum requirements; Mach-O LC_BUILD_VERSION records 12.0"
+    : `Go 1.25 official ${goos} minimum requirements`;
   artifacts.push({
     artifactId: `ynx-wallet-cli-${goos}-${goarch}`,
     path: `release/wallet-cli/artifacts/${archiveName}`,
     format: goos === "windows" ? "gzip-compressed PE executable" : `gzip-compressed ${goos === "darwin" ? "Mach-O" : "ELF"} executable`,
     target: { goos, goarch }, minimumOS,
     minimumOSReference: "https://go.dev/wiki/MinimumRequirements",
-    minimumOSBasis: "Go 1.25 official minimum requirements; Darwin binary LC_BUILD_VERSION also records 12.0",
+    minimumOSBasis,
     signingClass,
     bytes: archive.length, sha256: crypto.createHash("sha256").update(archive).digest("hex"),
     binaryBytes: binary.length, binarySha256: crypto.createHash("sha256").update(binary).digest("hex"),
