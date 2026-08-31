@@ -219,3 +219,9 @@ This is local responsive and accessibility evidence against the 6423 node/indexe
 - Direct opening of `#blockchain` previously loaded the independently paginated tables but left Network status in its pre-snapshot unavailable state. The route now re-renders after the verified dashboard snapshot arrives, matching the existing Tokens, Data, and Developers behavior.
 - The verified Network status panel now contains the canonical 6423 identifiers plus measured current-window TPS, observed block time, indexed-block lag, last verification time, and RPC/indexer source state. These are current-window calculations and are not presented as a public historical series.
 - Browser evidence: a fresh direct Chinese route opened with `0.00` TPS, `2.0s` observed block time, zero index lag at block `1,928`, a localized timestamp, and `RPC 与索引器已验证`; the earlier snapshot-unavailable message was absent. At 390 x 844 CSS px, the 351 px network panel and all three responsive table shells remained visible without document-width overflow; both Copy route controls remained visible. Console errors remained zero.
+
+## 2026-08-31 local developer API reference follow-up
+
+- Documentation now covers every currently served local Explorer read surface: summary, blocks, transactions, account list/detail, native token, validators, account resources, resource-market analytics, transaction fees, search, and the SSE stream. This improves the developer path without claiming an unverified public HTTPS API.
+- Browser evidence: the Chinese Documentation view rendered all 12 endpoint rows, including `/api/resource-market/analytics`, `/api/resources/{address}`, `/api/fees/{hash}`, and `/api/stream (SSE)`. It retained the explicit statement that the endpoints are not public RPC endpoints; console errors were zero.
+- At 390 x 844 CSS px, the API table remained 315 px wide inside its scroll-safe shell with 12 visible rows and no document-width overflow.

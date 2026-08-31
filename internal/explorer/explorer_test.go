@@ -280,6 +280,11 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	if !strings.Contains(html, `href="#documentation" data-route="documentation">' + escapeHTML(v('apiReference'))`) || !strings.Contains(html, `title="' + escapeHTML(doc('publicAPIUnavailable'))`) {
 		t.Fatal("developer tools must route local API documentation in-portal and explain missing public developer services")
 	}
+	for _, endpoint := range []string{"/api/accounts/{address}", "/api/resources/{address}", "/api/resource-market/analytics", "/api/fees/{hash}", "/api/stream (SSE)"} {
+		if !strings.Contains(html, endpoint) {
+			t.Fatalf("local developer documentation is missing supported API endpoint %q", endpoint)
+		}
+	}
 	for _, forbidden := range []string{"9102", "0x238e", "ynx_9102-1"} {
 		if strings.Contains(strings.ToLower(html), strings.ToLower(forbidden)) {
 			t.Fatalf("explorer web contains retired network identity %q", forbidden)
