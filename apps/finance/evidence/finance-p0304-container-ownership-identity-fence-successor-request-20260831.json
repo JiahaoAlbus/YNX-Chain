@@ -1,0 +1,90 @@
+{
+  "schemaVersion": "p0-finance-container-ownership-identity-fence-successor-request@1",
+  "taskId": "P0-304",
+  "status": "SOURCE_ONLY_AWAITING_WHOLELY_NEW_CENTRAL_LEASE",
+  "owner": {
+    "branch": "codex/p0-finance-p0304-ownership-identity-fence-20260831",
+    "implementationCommit": "448851ba7d33399385b89eb3356bc9ce4f345721",
+    "implementationTree": "d407c85c98e616e001c2cf4260dbfee918c47557",
+    "parent": "639873d2c9e61bb50438cf062de5b8d839435cf5"
+  },
+  "authoritativeP0302Source": {
+    "requestCommit": "639873d2c9e61bb50438cf062de5b8d839435cf5",
+    "implementationCommit": "170145e461146b53937d2b8e665008c2a9451db5",
+    "implementationTree": "430dddee86d1428000e35de0f473b1331617a699"
+  },
+  "centralP0303ZeroWriteTerminal": {
+    "commit": "8a15916604e8115c1bc13ebb21a5391a771bd505",
+    "tree": "c0989b450183c51b530ad8e73bb2698e3b1266bf",
+    "evidencePath": "release/integration/p0-wallet-connectivity/execution/objects/p0-303-finance-p0302-remote-state-zero-write-terminal-evidence-20260831.json",
+    "evidenceBlob": "d94148544d0ee3d12560199361563fab48aa7929",
+    "evidenceBytes": 2667,
+    "evidenceSha256": "c87a5580124c69767e2998c48a9831e6d40a947f4d13bbcdca542892523503d2",
+    "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0303_P0302_REMOTE_STATE_ZERO_WRITE_INSPECTION",
+    "truth": "P0-302 stage, backup and release leaves and containers are absent; old runtime 3b2383f5 is healthy; mutationCount is zero; cleanupNeeded is false; Heavy is IDLE; P0-302 and P0-303 are nonreusable"
+  },
+  "reviewedObjects": [
+    {
+      "path": "apps/finance/scripts/finance-production-rollback-first.sh",
+      "blob": "69f69b46d1290e95e9c99b5ee03f459799e80cd7",
+      "bytes": 25880,
+      "sha256": "d3b604223a6f1e93279481a8b0db06ddb6acfb20dff316d22329337498d2bcdb",
+      "role": "signed-lease-only executor with immutable pre/post ownership container identity fence"
+    },
+    {
+      "path": "apps/finance/scripts/test-finance-production-command-object.mjs",
+      "blob": "3d9f32aa35749a572dcc9f0ff829c6031bf711a3",
+      "bytes": 3335,
+      "sha256": "2d64b6cd6fc37c848f9e677f04aae8522220bc3eb21fc829995e2b913d31f97e",
+      "role": "static command contract covering the ownership identity fence"
+    },
+    {
+      "path": "apps/finance/scripts/test-finance-production-fixture.mjs",
+      "blob": "42fd56720f185a60edf2bce6e6ab7dcabf627a0b",
+      "bytes": 49932,
+      "sha256": "3dfb6c115b5964eeeb2d2a92d9b8535d00b5ff2941ab0ce7bab3b40be623af70",
+      "role": "production-faithful actual-shell fixture with a real non-noop gid transition and ownership-boundary inode substitution negatives"
+    }
+  ],
+  "rootCauseCorrection": {
+    "priorDefect": "The preownership tuple included uid and gid. A legitimate chown from the freshly created root-owned release container to the signed root:ynx identity changed gid, so the equality fence rejected the owned container during RELEASE_MATERIALIZE. The prior fixture used a no-op local gid and did not reproduce production.",
+    "immutableFence": "Before ownership changes, stageContainer, backupContainer and releaseContainer bind only device, inode, nlink and directory type after explicit non-symlink, exact-realpath and empty checks. After chown and chmod, the same immutable tuple must still match.",
+    "settledOwnership": "After the immutable tuple matches, uid, gid and mode are independently required to equal the signed lease values. Only then is the settled cleanup identity tuple captured.",
+    "substitution": "Replacing any container at the ownership boundary changes inode and fails closed. Cleanup refuses to delete the unbound replacement. Existing non-empty, symlink, foreign-inode and post-move protections remain in force.",
+    "lifecycle": "The P0-302 stage and backup cleanup, automatic rollback, manual rollback and receipt contracts are preserved without widening any path or deletion authority."
+  },
+  "localValidation": {
+    "bashSyntax": "PASS",
+    "commandObject": "PASS",
+    "productionActualShell": "PASS",
+    "diffCheck": "PASS",
+    "goTests": "PASS: go test -count=1 ./internal/readintegration ./internal/finance ./apps/finance/cmd/admin ./apps/finance/cmd/server",
+    "goRace": "PASS: go test -count=1 -race ./internal/finance",
+    "newCoverage": [
+      "real filesystem chown changes release-container gid to a different supplementary gid and deployment reaches the signed candidate",
+      "stage-container replacement between preownership capture and chown is detected by device/inode/nlink/type mismatch and preserved",
+      "backup-container replacement at the same boundary fails closed and is preserved",
+      "release-container replacement at the same boundary fails closed and is preserved"
+    ]
+  },
+  "requestedWhollyNewLease": {
+    "scope": "Finance-only single-use rollback-first deployment using a fresh post-P0-303 namespace and the exact P0-304 reviewed objects",
+    "requiredFreshBindings": [
+      "current old release 3b2383f5, binary, env, unit, Caddy, state, service PID and NRestarts and six HTTP receipts",
+      "immutable carrier, archive and candidate env tuples, bytes and SHA-256",
+      "retained stage, backup and release parent device/inode/uid/gid/mode/nlink/type tuples",
+      "fresh stageContainer, stage, backupContainer, backup, releaseContainer and release absence",
+      "signed stage, backup and release container uid, gid and mode including the real ynx service gid",
+      "exact reviewed executor, stdin bootstrap, signed stdin bytes and literal launcher argv",
+      "rollback cleanup and separately signed manual rollback receipt contracts"
+    ],
+    "terminalSuccess": "Current and service match the candidate and all gates; only exact signed rollback/control material remains.",
+    "terminalFailure": "The exact old runtime is restored and only identity-bound owned objects are removed; substituted or foreign objects remain and force fail closed."
+  },
+  "prohibited": [
+    "No SSH, production read, production write, cleanup, deployment, restart, link, environment, unit, Caddy or public mutation occurred.",
+    "No secret value, account request, private key, recovery material, signature or transaction is requested or emitted.",
+    "P0-302 and P0-303 are nonreusable and grant no authority to this request."
+  ],
+  "singleExecutableBlocker": "Central must independently review the exact P0-304 objects, freshly bind the production baseline and fresh six-path namespace, and issue a wholly new Finance-only single-use lease before any production action."
+}
