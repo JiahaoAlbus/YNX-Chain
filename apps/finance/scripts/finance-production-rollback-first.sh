@@ -44,7 +44,7 @@ service_user=$(get '.fresh.service.user'); service_gid=$(get '.fresh.service.gid
 carrier=$(get '.candidate.carrier.path'); carrier_id=$(get '.candidate.carrier.id'); carrier_tuple=$(get '.candidate.carrier.tuple')
 prewrite_phase=CARRIER_ASSERTION
 case "$carrier_id" in ''|*/*|.|..|*..*) exit 65;; esac
-test "$carrier_id" = p0228-finance-phase1-20260822T234100Z
+case "$carrier_id" in finance-combined-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]-[0-9TtZz-]*) ;; *) exit 65;; esac
 test "$carrier" = "/opt/ynx/stage/finance/$carrier_id"
 test -d "$carrier" && test ! -L "$carrier" && test "$(realpath -e "$carrier")" = "$carrier"
 test "$(stat -Lc '%d:%i:%u:%g:%a:%h:%s:%F' "$carrier")" = "$carrier_tuple"

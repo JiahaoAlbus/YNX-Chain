@@ -25,7 +25,11 @@ exact(){ test "$(ft "$1")" = "$2" && test "$(sha "$1")" = "$3" && test "$(bytes 
 identity(){ test -f "$1" && test ! -L "$1" && stat -Lc '%d:%i' "$1"; }
 
 root=/opt/ynx; deploy_parent="$root/leases/finance"
-test "$carrier" = "$root/stage/finance/p0228-finance-phase1-20260822T234100Z"
+carrier_id=${carrier##*/}
+case "$carrier_id" in finance-combined-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]-[0-9TtZz-]*) ;; *) exit 65;; esac
+case "$carrier_id" in *[!A-Za-z0-9-]*|*..*|*/*) exit 65;; esac
+test "$carrier" = "$root/stage/finance/$carrier_id"
+test "$(realpath -e "$carrier")" = "$carrier"
 test "$(dt "$root")" = "$root_tuple"; test "$(dt "$deploy_parent")" = "$deploy_parent_tuple"; test "$(realpath -e "$deploy_parent")" = "$deploy_parent"; test "$(dt "$carrier")" = "$carrier_tuple"
 archive="$carrier/candidate.tgz"; candidate_env="$carrier/finance.env"
 exact "$archive" "$archive_tuple" "$archive_sha" "$archive_bytes"; exact "$candidate_env" "$env_tuple" "$env_sha" "$env_bytes"

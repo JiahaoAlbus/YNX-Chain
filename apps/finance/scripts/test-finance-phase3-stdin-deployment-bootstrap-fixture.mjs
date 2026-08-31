@@ -12,7 +12,7 @@ const sha=p=>shaBuffer(readFileSync(p)); const bytes=p=>readFileSync(p).length;
 const stat=p=>spawnSync('/opt/homebrew/bin/gstat',['-Lc','%d:%i:%u:%g:%a:%h:%s:%F',p],{encoding:'utf8'}).stdout.trim();
 
 function make({deployFails=false}={}){
-  const d=mkdtempSync(join(root,'r-')),ynx=join(d,'opt','ynx'),carrier=join(ynx,'stage','finance','p0228-finance-phase1-20260822T234100Z');
+  const d=mkdtempSync(join(root,'r-')),ynx=join(d,'opt','ynx'),carrier=join(ynx,'stage','finance','finance-combined-4f7fba323a89-20260831t041500z');
   mkdirSync(carrier,{recursive:true}); mkdirSync(join(ynx,'leases','finance'),{recursive:true,mode:0o750});
   const archive=join(carrier,'candidate.tgz'),env=join(carrier,'finance.env'); writeFileSync(archive,'archive');chmodSync(archive,0o600);writeFileSync(env,'KEY=redacted\n');chmodSync(env,0o640);
   const executor=Buffer.from(`#!/bin/bash\nset -euo pipefail\ntest -f "$2"\nif [[ "$1" == rollback ]]; then echo rollback-ok; exit 0; fi\n${deployFails?'exit 71':'echo deploy-ok'}\n`);

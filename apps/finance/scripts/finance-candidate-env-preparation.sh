@@ -40,7 +40,9 @@ test -f "$env" && test ! -L "$env"
 test "$(sha "$env")" = "$(get '.fresh.env.sha256')"
 test "$(bytes "$env")" = "$(get '.fresh.env.bytes')"
 for key in $(get '.requiredEnvKeys[]'); do case "$key" in *[!A-Z0-9_]*|'') exit 65;; esac; test "$(grep -c "^$key=" "$env")" = 1; done
-release_web=$(get '.candidate.releaseWebDir'); case "$release_web" in /opt/ynx/releases/finance/ynx-finance-*/web) ;; *) exit 65;; esac
+release_web=$(get '.candidate.releaseWebDir')
+case "$release_web" in /opt/ynx/releases/finance/ynx-finance-*/web|/opt/ynx/releases/finance/*/ynx-finance-*/web) ;; *) exit 65;; esac
+case "$release_web" in *..*|*//*) exit 65;; esac
 test ! -e "$archive" && test ! -L "$archive" && test ! -e "$candidate" && test ! -L "$candidate"
 
 archive_created=false; candidate_created=false
