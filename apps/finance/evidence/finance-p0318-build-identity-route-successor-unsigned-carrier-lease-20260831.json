@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "financeNonregressiveCarrierLease@1",
+  "lease": {
+    "signed": false,
+    "kind": "FINANCE_NONREGRESSIVE_CARRIER_PREPARATION",
+    "id": "finance-combined-7d145955a052-20260831t060048z",
+    "taskId": "P0-FINANCE-P0318-BUILD-IDENTITY-ROUTE-SUCCESSOR",
+    "issuedAt": null,
+    "expiresAt": null,
+    "singleUse": true,
+    "retryAllowed": false,
+    "centralSignature": null
+  },
+  "paths": {
+    "carrier": "/opt/ynx/stage/finance/finance-combined-7d145955a052-20260831t060048z"
+  },
+  "fresh": {
+    "rootTuple": null,
+    "stageTuple": null,
+    "env": {
+      "tuple": null,
+      "bytes": null,
+      "sha256": null,
+      "valuesRecorded": false
+    }
+  },
+  "candidate": {
+    "carrierOwnerMode": null,
+    "releaseWebDir": "/opt/ynx/releases/finance/finance-combined-7d145955a052-20260831t060048z/ynx-finance-7d145955a052/web",
+    "archive": {
+      "bytes": 3938617,
+      "sha256": "f60f35037d1e8710b2b98979e42bcc0119a74b8cca1eea847310c9ac32412ef2"
+    }
+  },
+  "executionCandidate": {
+    "executable": false,
+    "reason": "Central must fresh-read and sign every null freshness field, then freeze the signed lease bytes and SHA into a wholly-new literal carrier argv object"
+  }
+}
