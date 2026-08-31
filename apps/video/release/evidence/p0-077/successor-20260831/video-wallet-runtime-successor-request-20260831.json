@@ -1,0 +1,172 @@
+{
+  "schemaVersion": "ynx-video-wallet-runtime-successor-request/1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-VIDEO-WALLET-RUNTIME-SUCCESSOR-20260831",
+  "productId": "ynx-video",
+  "owner": "video",
+  "generatedAt": "2026-08-31T00:00:00Z",
+  "status": "REQUESTED_NOT_AUTHORIZED",
+  "source": {
+    "branch": "codex/video-wallet-runtime-successor-20260831",
+    "commit": "560c467d61e74f7939b8ce527f14316c736b88a7",
+    "tree": "82290b8d0c41615d9e48eff33e34d38695bbfc01",
+    "base": "f338be32321f63e49d5a2d10d37480b7e0ce7cca",
+    "walletSemanticsAncestor": "b00229a6a86a3fb5afa374d8321cc0f48f1ff281"
+  },
+  "durableCandidate": {
+    "path": "apps/video/release/evidence/p0-077/successor-20260831/ynx-video-560c467d-runtime.tar.gz",
+    "bytes": 25780,
+    "sha256": "ebd197fd46eeef17ffeb9d9936c08997867dd3ff540ce332a73d06a8e8662a3f",
+    "repeatBuildByteExact": true,
+    "entrypoint": {
+      "path": "runtime/server.mjs",
+      "bytes": 1180,
+      "sha256": "ed5b3dce7df13aa1c5695bfb69987bad9046a4121fc82fb38221a1d8938703d6"
+    },
+    "requiredEntries": [
+      "runtime/server.mjs",
+      "runtime/runtime-manifest.json",
+      "runtime/runtime/topology.json",
+      "runtime/runtime/post-p0239-recovery-baseline.json",
+      "runtime/app.js",
+      "runtime/wallet-connection.js",
+      "runtime/ynx-dapp-connect-sdk/provider.js"
+    ]
+  },
+  "walletBehavior": {
+    "ynxIdentity": {
+      "name": "YNX Wallet",
+      "rdns": "com.ynx.wallet",
+      "isYNXWallet": true,
+      "isMetaMask": false
+    },
+    "metaMaskIdentity": {
+      "name": "MetaMask",
+      "rdns": "io.metamask",
+      "isYNXWallet": false,
+      "isMetaMask": true
+    },
+    "explicitChooser": true,
+    "lateDiscoveryPhasesMs": [250, 750, 1500],
+    "providerEvents": ["accountsChanged", "chainChanged", "disconnect"],
+    "explicitUserRevoke": true,
+    "chainId": "0x1917",
+    "automaticAccountRequest": false,
+    "customSchemeLaunch": false,
+    "blankTopLevelNavigation": false
+  },
+  "postP0239RecoveryBinding": {
+    "baselinePath": "apps/video/runtime/post-p0239-recovery-baseline.json",
+    "baselineBytes": 3049,
+    "baselineSha256": "ad1a57218eebdf161f7d87001bcbee15cf4360d22c697ac9d9ddd4670352794a",
+    "centralCommit": "d257e91941542ed83a67d253cdb85fec8711a001",
+    "legacySource": "e5ce33550bbd8a4be09a55a6bb3dd73cd3cb8833",
+    "legacyCarrier": "/var/tmp/ynx-video-predecessor-e5ce335-runtime.tar.gz",
+    "legacyCarrierSha256": "6771deb82ccc62a9c14d62ed40e7bda961806ffe3c14681b9cf53ec27afef2df",
+    "legacyViewerUnit": "ynx-video-viewer.service",
+    "legacySharedCurrent": "/opt/ynx-video/current",
+    "legacySharedCurrentTarget": "/opt/ynx-video/releases/p0205-creator-studio-0e1a53c5",
+    "legacySharedCurrentTuple": "64770:1324617:0:0:777:1:53:symbolic link",
+    "legacyCaddySha256": "077fe80ea9aab24a32d64ba1fab3584e8aab10304e200e58d976d2c33edfb39f",
+    "legacyRecoveryArgvFrozenInBaseline": true
+  },
+  "isolatedRuntime": {
+    "root": "/opt/ynx-video-viewer-wallet",
+    "current": "/opt/ynx-video-viewer-wallet/current",
+    "unit": "ynx-video-viewer-wallet.service",
+    "unitTemplate": "apps/video/runtime/ynx-video-viewer-wallet.service",
+    "unitTemplateSha256": "bb08d1cdc657a98290c8b90d6b40fca0f896d9c2c055654abdb3859009df6527",
+    "viewerPort": 6494,
+    "preflightPort": 16494,
+    "apiPortPreserved": 6493,
+    "creatorPortPreserved": 6495,
+    "sharedCurrentWritable": false,
+    "caddyWritable": false
+  },
+  "executionObjects": {
+    "deployRollbackExecutor": {
+      "path": "apps/video/scripts/video-runtime-executor.sh",
+      "bytes": 6026,
+      "sha256": "53260aab2d7f27f145ee70caf3bd5c46bead0619771a8c1546511f34dce24edd"
+    },
+    "controlledTakeover": {
+      "path": "apps/video/scripts/video-runtime-controlled-takeover.sh",
+      "bytes": 14533,
+      "sha256": "d2db388c5940a285ea54588ec34bc3a1f52eb6068d7490a8dc2c3bfc05ae1a1c"
+    },
+    "dedicatedBootstrap": {
+      "path": "apps/video/scripts/video-runtime-bootstrap.sh",
+      "bytes": 9049,
+      "sha256": "302b2eee4d889e9671d1f7b2891355f76b2182355ab6d20346fdcf40e0442ad7"
+    },
+    "legacyEmergencyRecovery": {
+      "path": "apps/video/scripts/video-legacy-viewer-emergency-recovery.sh",
+      "bytes": 7792,
+      "sha256": "a1acb36475baed0bbee6c1b41568dc241549680cc88273241b26953024855cc3"
+    }
+  },
+  "fixtureEvidence": {
+    "appAndRuntimeTests": "PASS_25_OF_25",
+    "i18nAudit": "PASS_12_LOCALES_22_KEYS",
+    "deterministicCarrierRepeat": "PASS_BYTE_EXACT",
+    "extractedCarrierSmoke": {
+      "port": 16494,
+      "root": "200:3834:48ce327ed86de9ccdac94072cc561bd369ff752166613ca436334d97a7c2f557",
+      "walletConnection": "200:11515:b02ff55fbfd903845cf20c36bd77eb0ab77341fcbf3d3712d25816426c4f7454",
+      "distinctIdentityMarkersPresent": true
+    },
+    "postSwitchViewerFailureAutoRollback": {
+      "passed": true,
+      "exactPredecessorRestored": true,
+      "api6493Unchanged": true,
+      "creator6495Unchanged": true,
+      "receiptAbsentAfterFailure": true
+    },
+    "controlledTakeoverFailureStages": ["stop", "port", "bootstrap", "post"],
+    "controlledTakeoverFailureRecoveryPassed": true
+  },
+  "requestedLeaseBoundary": {
+    "leaseType": "VIDEO_ONLY_SINGLE_USE_POST_P0239_SUCCESSOR",
+    "freshReadRequired": true,
+    "freshBindings": [
+      "P0-239 legacy unit/current/Caddy tuples and exact public bytes",
+      "API 6493 and Creator 6495 PID/unit/response hashes",
+      "dedicated root/unit/current absence or exact predecessor state",
+      "durable candidate Git blob and SHA256",
+      "protected SSH executor identity without recording its value"
+    ],
+    "allowedMutation": [
+      "/opt/ynx-video-viewer-wallet/**",
+      "/etc/systemd/system/ynx-video-viewer-wallet.service",
+      "/var/lib/ynx-video-viewer-wallet-evidence/**"
+    ],
+    "forbiddenMutation": [
+      "/opt/ynx-video/current",
+      "/etc/systemd/system/ynx-video-viewer.service",
+      "/etc/caddy/Caddyfile",
+      "API 6493",
+      "Creator 6495"
+    ],
+    "accountRequestAllowed": false,
+    "signatureAllowed": false,
+    "transactionAllowed": false,
+    "retryAllowed": false
+  },
+  "truth": {
+    "sourceComplete": true,
+    "durableCarrierComplete": true,
+    "runtimeEntrypointIncluded": true,
+    "walletDualIdentityLifecycleIncluded": true,
+    "postP0239RollbackFrozen": true,
+    "automaticRollbackFixturePassed": true,
+    "sshPerformed": false,
+    "productionDeployed": false,
+    "sourceBoundPublic": false,
+    "realProvider": false,
+    "accountApproved": false,
+    "signature": false,
+    "transaction": false,
+    "productComplete": false
+  },
+  "singleExecutableBlocker": "Central must independently verify this durable carrier and issue one wholly-new Video-only single-use post-P0-239 lease after fresh production tuple readback."
+}
