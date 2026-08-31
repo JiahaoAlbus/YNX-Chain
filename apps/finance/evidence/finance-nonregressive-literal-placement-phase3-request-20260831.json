@@ -9,8 +9,8 @@
   "resolvedCentralBlocker": "FINANCE_NONREGRESSIVE_CANDIDATE_LITERAL_PLACEMENT_AND_PHASE3_COMMAND_OBJECTS_UNFROZEN",
   "owner": {
     "branch": "codex/p0-finance-nonregressive-combined-candidate-20260831",
-    "implementationCommit": "1338301623d63065d66c4f73b0a7e2f39c91dbc3",
-    "implementationTree": "b6303b288905708a1e471d527734ce066cd51013"
+    "implementationCommit": "95048bf58c3b60eac6f3bd7dc5c875f010a6ce79",
+    "implementationTree": "1f9268b269f14954b4407ffbcd6c9f54a830defc"
   },
   "candidate": {
     "sourceCommit": "4f7fba323a89ffb83a81fe2e2f2b97d23947de87",
@@ -36,15 +36,15 @@
     },
     "twoPhaseCommandContract": {
       "path": "apps/finance/evidence/finance-nonregressive-two-phase-command-contract-20260831.json",
-      "blob": "3dbd8915e0acafbe5103756cbc4db9a0a7d5fe7c",
+      "blob": "1ac300abf158c4147e03dd470a85a21992c5cc07",
       "bytes": 3962,
-      "sha256": "84296374be15291f424a5f001d1a3bd19fe6a6c8c15e0198f6e55788e277452d"
+      "sha256": "a6d015bf4a2f7b6581e4df3089f79d29130b5955e0a99c4ca5c687276ca5a494"
     },
     "carrierBootstrap": {
       "path": "apps/finance/scripts/finance-nonregressive-carrier-bootstrap.sh",
-      "blob": "a14ba457c12dc3dd7668b70b14c5853cc933745e",
-      "bytes": 5620,
-      "sha256": "6c22bcd0322485391ec5294ea4474653649084a68c5bad725009161cdb47bb6c"
+      "blob": "0ccb8865c1b6f8fcc817f98232b6e5991c2140e0",
+      "bytes": 5724,
+      "sha256": "bbb4fcf01ee9627024e9c90488042bde64c9e93e2e1d09e524b4a408f06cf7b8"
     },
     "carrierTransport": {
       "path": "apps/finance/scripts/finance-nonregressive-carrier-openssh.sh",
@@ -54,9 +54,9 @@
     },
     "phase3Bootstrap": {
       "path": "apps/finance/scripts/finance-phase3-stdin-deployment-bootstrap.sh",
-      "blob": "f40dfc6d51135191efbe86eefc948ec547339f35",
-      "bytes": 5280,
-      "sha256": "caf5ff24608086231d9b81989bd29eaad0846d33fac4392655a771b467ed43f7"
+      "blob": "a9228bd5690b8506922e23d2cd27f08f80bc8aea",
+      "bytes": 5400,
+      "sha256": "66617d80aaba962488d8ab706bd0457ef37fea0f7963154ccfe8828a11ed3533"
     },
     "phase3Transport": {
       "path": "apps/finance/scripts/finance-phase3-openssh-serialized-command.sh",
@@ -107,6 +107,7 @@
     "foreignCarrier": "PRESERVED_FAIL_CLOSED",
     "carrierSymlink": "PRESERVED_FAIL_CLOSED",
     "sameBytesPostMoveSubstitution": "PRESERVED_FAIL_CLOSED",
+    "executorAndLeaseSameBytesNewInodeSubstitution": "PRESERVED_FAIL_CLOSED_BEFORE_DEPLOY",
     "partialPlacement": "IDENTITY_BOUND_CLEANUP",
     "preSwitchFailure": "IDENTITY_BOUND_CLEANUP",
     "postSwitchFailure": "AUTOMATIC_ROLLBACK",
