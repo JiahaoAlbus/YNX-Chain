@@ -365,24 +365,28 @@
       "applicability": "applicable",
       "status": "testedLocal",
       "evidence": [
-        "internal/datafabric/privacy.go",
-        "internal/datafabricpostgres/privacy.go",
-        "internal/datafabricpostgres/analytics.go",
-        "internal/datafabricapi/server.go"
+      "internal/datafabric/privacy.go",
+      "internal/datafabricpostgres/privacy.go",
+      "internal/datafabricpostgres/analytics.go",
+      "internal/datafabricapi/server.go",
+      "internal/datafabricpostgres/migrations/0008_erasure_deletion_receipts.up.sql",
+      "docs/data-fabric/ERASURE_DELETION_RECEIPTS.md"
       ],
   "sourceCommit": "7edb2034027219eaa8d25a24d7dcdd5576fd1943",
       "tests": [
-        "internal/datafabric/privacy_test.go",
-        "internal/datafabricpostgres/live_integration_test.go",
-        "internal/datafabricapi/server_test.go",
+      "internal/datafabric/privacy_test.go",
+      "internal/datafabricpostgres/live_integration_test.go",
+      "internal/datafabricpostgres/store_test.go",
+      "internal/datafabricpostgres/migrate_test.go",
+      "internal/datafabricapi/server_test.go",
         "internal/datafabricapi/account_isolation_test.go"
       ],
       "artifact": null,
       "publicProof": null,
       "blockedBy": [],
       "owner": "YNX Data Fabric",
-      "nextAction": "Add encrypted PII references, scheduled retention partitions and downstream deletion receipts.",
-      "lastUpdated": "2026-08-14T04:48:52Z"
+  "nextAction": "Add encrypted PII references and scheduled retention partitions; downstream deletion receipts are now locally and CI verified.",
+  "lastUpdated": "2026-08-31T08:09:56Z"
     },
     {
       "id": "DF-AUTH-001",
