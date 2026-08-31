@@ -3,7 +3,9 @@ package explorer
 import (
 	"bufio"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -240,6 +242,9 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	}
 	if logoResponse.StatusCode != http.StatusOK || logoResponse.Header.Get("Content-Type") != "image/png" || len(logoBody) < 8 || string(logoBody[:8]) != "\x89PNG\r\n\x1a\n" {
 		t.Fatalf("explorer logo asset is invalid: status=%d content-type=%q size=%d", logoResponse.StatusCode, logoResponse.Header.Get("Content-Type"), len(logoBody))
+	}
+	if got := fmt.Sprintf("%x", sha256.Sum256(logoBody)); got != "38196080c2d56746fb37094abe68d1d89eabd8a2b29ab4f17bae48ac7e3effde" {
+		t.Fatalf("explorer does not serve the required official YNX logo: sha256=%s", got)
 	}
 
 	summary, err := svc.Summary(context.Background())
