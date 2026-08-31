@@ -10,8 +10,8 @@
   },
   "candidate": {
     "branch": "codex/pay-carrier-20260831-ops7mu",
-    "commit": "0ae7999c3a6002e75aa533b5170acc82ceecc9a8",
-    "tree": "915c09d200e47e95c899a3faadb2ebbd4fe15e70",
+    "commit": "bb223ab48f6df22c7ebafbb767ef92409f2bcc79",
+    "tree": "3b1858375481cea708c60a052178217c6524d6e7",
     "routerCoordinator": {
       "commit": "23c21054d8c86f245b77bffb2d03cecd2b3f80cf",
       "tree": "d478c3050bd62ba072e97de63c060abc882e87c1",
@@ -20,8 +20,8 @@
   },
   "artifact": {
     "path": "apps/pay/evidence/artifacts/ynx-pay-6423-wallet-ui-candidate-20260831.tgz",
-    "sha256": "e2c295ac03d2cb1266cc4bacc6f81a697875937807e4138b16efae90f40ff3b4",
-    "bytes": 3605083,
+    "sha256": "706ce45e5cac5c1129301db085afa436965e75423137613a216451114bb8ef4e",
+    "bytes": 3605320,
     "contents": "Expo Android, iOS, and Web export from the exact candidate worktree before commit; local candidate only",
     "installable": false,
     "public": false
