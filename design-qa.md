@@ -9,7 +9,7 @@
 
 **Full-view and focused comparison evidence**
 
-The reference and implementation were captured together in the browser QA comparison input. The implementation preserves the target's thin fixed-feeling header, announcement strip, wide search field, right-side contextual card, high-density summary, four-card block rail, and layered hover navigation. Focused checks covered the top navigation/hover surface, the metrics-plus-asset region, and the responsive header/search region. The blue YNX mark and unavailable market panel are intentional original substitutions: no TronScan branding, market claims, imagery, or token facts are copied or fabricated.
+The reference and implementation were captured together in the browser QA comparison input. The implementation preserves the target's thin fixed-feeling header, announcement strip, wide search field, right-side contextual card, high-density summary, four-card block rail, and layered hover navigation. Focused checks covered the top navigation/hover surface, the metrics-plus-asset region, the richer finalized-block cards, and the responsive header/search region. The blue YNX mark and unavailable market panel are intentional original substitutions: no TronScan branding, market claims, imagery, or token facts are copied or fabricated.
 
 **Findings**
 
@@ -24,6 +24,18 @@ The reference and implementation were captured together in the browser QA compar
   Evidence: the initial implementation displayed blocks before the primary metrics; the reference introduces metrics first and blocks second.
   Impact: the page read as a live feed before it read as a network overview.
   Fix: metrics now lead, use a two-column overview matrix plus a YNXT side card, and are followed by exactly four block cards.
+
+- [P1, fixed] The first dense 1264 px desktop pass overran its single-row header after Downloads was added.
+  Location: `@media (max-width:1360px)` in `internal/explorer/web.go`.
+  Evidence: the first capture placed the compact navigation and wallet controls on top of each other. That is visibly worse than the reference's contained navigation.
+  Impact: the primary route targets appeared crowded at an ordinary laptop width.
+  Fix: the controlled two-row compact header now begins at 1360 px, has an explicit auto-height inner layout, and retains the full document width without horizontal page overflow.
+
+- [P2, fixed] Low-activity 6423 blocks made the home rail look empty.
+  Location: `renderBlockTrack` and `.block-chip` in `internal/explorer/web.go`.
+  Evidence: empty blocks initially showed only the height and relative time, while the reference's block cards have several readable data layers.
+  Impact: a real but quiet Testnet looked under-populated.
+  Fix: each card now exposes its genuine finality state, transaction count, observed slot duration, and exact-time tooltip. The developer callout also carries the actual 6423, `0x1917`, and YNXT identity triad rather than a decorative empty field.
 
 - [P3] The YNXT side card has a deliberately unavailable market/supply state instead of a chart.
   Location: `.asset-overview`.
@@ -49,6 +61,7 @@ The reference and implementation were captured together in the browser QA compar
 
 1. Initial visual pass: P2 tablet overflow and P2 metrics/block order found.
 2. Iteration: wrapped tablet navigation; moved metrics before blocks; changed the summary into a left data matrix plus a right fail-closed YNXT card; limited the rail to four cards.
-3. Post-fix pass: desktop 1264 x 712, tablet 1024 x 900, and mobile 390 x 844 captured; primary routes, hover menu, five locale options, and console logs verified. No actionable P0/P1/P2 findings remain.
+3. Density review: the user compared the quiet-Testnet layout with the reference. Empty block cards and a sparse contextual card were identified as the principal visual causes.
+4. Final pass: desktop 1264 x 712 showed no document-width overflow, complete 6423 identity density, readable block metadata, and zero browser console errors. No actionable P0/P1/P2 visual findings remain.
 
 **Final result:** passed

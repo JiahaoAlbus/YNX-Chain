@@ -290,10 +290,16 @@ const indexHTML = `<!doctype html>
     .hero-grid { display:grid; grid-template-columns:minmax(0,1fr) 390px; gap:22px; align-items:stretch; }
     .hero-copy,.eyebrow,.hero h1 { display:none; }
     .search { max-width:none; min-height:58px; }
+    .search-wrap { position:relative; }
     .search input { height:58px; padding:0 144px 0 48px; border:1px solid #e5e8ee; border-radius:7px; background:#fff; box-shadow:none; font-size:16px; }
     .search::before { content:""; position:absolute; left:19px; width:14px; height:14px; border:2px solid #7b8492; border-radius:50%; }
     .search::after { content:""; position:absolute; left:32px; top:35px; width:7px; height:2px; background:#7b8492; transform:rotate(45deg); }
     .search button { right:6px; height:44px; padding:0 18px; border-radius:5px; background:var(--blue); }
+    .search-suggestions { position:absolute; z-index:20; top:64px; right:0; left:0; display:grid; gap:2px; padding:7px; border:1px solid var(--line); border-radius:7px; background:#fff; box-shadow:0 15px 36px rgba(18,34,64,.14); }
+    .search-suggestions[hidden] { display:none; }
+    .search-suggestions button { position:static; display:flex; align-items:center; justify-content:space-between; width:100%; height:auto; min-height:38px; padding:8px 10px; border:0; border-radius:5px; color:var(--ink); background:#fff; font-size:12px; font-weight:500; text-align:left; }
+    .search-suggestions button:hover,.search-suggestions button:focus-visible { color:var(--blue); background:var(--blue-soft); outline:0; }
+    .search-suggestions small { color:var(--muted); font-size:11px; }
     .hero-meta { display:none; }
     .trending { display:flex; flex-wrap:wrap; align-items:center; gap:8px 20px; margin-top:12px; color:#5f6876; font-size:13px; }
     .trending-label { color:#4b5360; font-weight:650; }
@@ -305,6 +311,11 @@ const indexHTML = `<!doctype html>
     .portal-callout-links { display:flex; flex-wrap:wrap; gap:9px; }
     .portal-callout-links a { padding:6px 9px; border:1px solid rgba(255,255,255,.34); border-radius:4px; color:#fff; font-size:12px; }
     .portal-callout-links a:hover { background:#fff; color:var(--blue); }
+    .portal-callout-stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:7px; margin:13px 0 14px; }
+    .portal-callout-stats span { display:block; padding:7px 8px; border:1px solid rgba(255,255,255,.18); border-radius:4px; background:rgba(0,25,100,.16); }
+    .portal-callout-stats small,.portal-callout-stats strong { display:block; }
+    .portal-callout-stats small { color:#bfd0ff; font-size:9px; letter-spacing:.04em; text-transform:uppercase; }
+    .portal-callout-stats strong { margin-top:3px; color:#fff; font-size:12px; font-weight:750; }
     main { padding:0 0 64px; }
     .status-bar { min-height:30px; margin-bottom:10px; padding:0 2px; }
     .status-bar .state { padding:5px 8px; border-radius:4px; font-size:12px; }
@@ -312,22 +323,24 @@ const indexHTML = `<!doctype html>
     .metrics { grid-template-columns:repeat(2,minmax(0,1fr)); gap:0; margin:0; border:1px solid var(--line); border-radius:7px; background:#fff; overflow:hidden; }
     .metric { min-height:112px; padding:21px 22px; border:0; border-right:1px solid var(--line); border-bottom:1px solid var(--line); border-radius:0; box-shadow:none; }
     .metric:nth-child(2n) { border-right:0; }
-    .metric:nth-child(n+5) { border-bottom:0; }
+    .metric:nth-child(n+5) { display:none; border-bottom:0; }
     .metric:hover { background:#fafcff; }
     .metric-label { color:#9299a5; font-size:14px; }
     .metric-value { margin-top:7px; color:#1d2028; font-size:25px; font-weight:750; letter-spacing:-.45px; }
     .metric-foot { margin-top:8px; font-size:12px; }
-    .asset-overview { display:grid; grid-template-rows:auto 1fr; min-height:248px; border:1px solid var(--line); border-radius:7px; background:#fff; overflow:hidden; }
+    .asset-overview { display:grid; grid-template-rows:auto 1fr; min-height:226px; border:1px solid var(--line); border-radius:7px; background:#fff; overflow:hidden; }
     .asset-overview-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:18px 20px; border-bottom:1px solid var(--line); }
     .asset-token { display:flex; align-items:center; gap:10px; }
     .asset-token img { width:34px; height:34px; object-fit:contain; }
     .asset-token strong { display:block; color:#1d2028; font-size:16px; }
     .asset-token small,.asset-overview-head small { display:block; margin-top:3px; color:var(--muted); font-size:11px; }
-    .asset-overview-body { display:grid; grid-template-columns:1fr auto; gap:16px; padding:20px; }
-    .asset-unavailable { display:flex; align-items:flex-end; min-height:118px; padding:13px; border:1px dashed #cbd4e2; border-radius:5px; color:#697585; background:linear-gradient(180deg,#fbfcff,#f4f7ff); font-size:12px; line-height:1.45; }
-    .asset-facts { display:grid; align-content:start; gap:15px; min-width:105px; text-align:right; }
-    .asset-facts span { color:#8b94a2; font-size:11px; }
-    .asset-facts strong { display:block; margin-top:4px; color:#303846; font-size:13px; }
+    .asset-overview-body { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0; padding:0; }
+    .asset-fact { min-height:73px; padding:13px 15px; border-right:1px solid var(--line); border-bottom:1px solid var(--line); }
+    .asset-fact:nth-child(2n) { border-right:0; }
+    .asset-fact:nth-child(n+3) { border-bottom:0; }
+    .asset-fact span { display:block; color:#8b94a2; font-size:11px; }
+    .asset-fact strong { display:block; margin-top:6px; color:#303846; font-size:14px; overflow-wrap:anywhere; }
+    .asset-fact small { display:block; margin-top:3px; color:#657184; font-size:10px; }
     .block-ribbon { display:block; min-height:0; margin:0 0 25px; border:0; border-radius:0; background:transparent; overflow:visible; }
     .ribbon-label { display:flex; flex-direction:row; align-items:baseline; justify-content:space-between; padding:0 0 12px; border:0; color:#1d2028; font-size:21px; font-weight:750; }
     .ribbon-label span { display:none; }
@@ -335,10 +348,13 @@ const indexHTML = `<!doctype html>
     .ribbon-label strong::before { content:"Blocks"; font-size:21px; }
     .ribbon-label strong::after { content:"More"; color:#596271; font-size:13px; font-weight:500; }
     .block-track { gap:16px; overflow:visible; }
-    .block-chip { flex:1 1 0; min-height:128px; padding:18px 19px; border:1px solid var(--line); border-radius:7px; background:#fff; box-shadow:none; }
+    .block-chip { flex:1 1 0; min-height:128px; padding:18px 19px; border:1px solid var(--line); border-radius:7px; background:#fff; box-shadow:none; text-align:left; }
     .block-chip:hover { border-color:#b9c9fb; background:#fff; }
     .block-chip strong { color:#1c2028; font-size:17px; }
     .block-chip span { margin-top:9px; font-size:12px; }
+    .block-chip .block-chip-meta { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:16px; padding-top:10px; border-top:1px solid var(--line-soft); color:#697586; }
+    .block-chip .block-chip-meta b { color:#303846; font-size:11px; font-weight:750; }
+    .block-chip .block-chip-meta em { color:#7a8594; font-size:11px; font-style:normal; }
     .overview { grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr); gap:16px; margin:0 0 30px; }
     .overview .network-facts-panel { display:none; }
     .panel { border-color:var(--line); border-radius:7px; box-shadow:none; }
@@ -394,8 +410,16 @@ const indexHTML = `<!doctype html>
     .unavailable { padding:18px; border:1px dashed #c8d0dd; border-radius:6px; color:#5d6775; background:#fafbfc; font-size:13px; line-height:1.5; }
     .route-table { width:100%; margin-top:0; }
     .route-table td,.route-table th { padding:13px 14px; }
+    .record-actions { display:flex; flex-wrap:wrap; gap:6px; }
+    .record-actions button { padding:5px 7px; border:1px solid var(--line); border-radius:4px; color:#4f5b6d; background:#fff; font-size:11px; font-weight:650; }
+    .record-actions button:hover,.record-actions button:focus-visible { border-color:#a8bcf9; color:var(--blue); background:#f8faff; outline:0; }
+    .chart-toolbar { display:flex; flex-wrap:wrap; gap:7px; margin:13px 0; }
+    .chart-toolbar button { padding:7px 10px; border:1px solid var(--line); border-radius:4px; color:#536072; background:#fff; font-size:12px; font-weight:650; }
+    .chart-toolbar button.active { border-color:var(--blue); color:#fff; background:var(--blue); }
+    .chart-empty { display:grid; min-height:210px; place-items:center; padding:24px; border:1px dashed #c6cfde; border-radius:6px; color:#5d6878; background:linear-gradient(180deg,#fcfdff,#f7f9ff); text-align:center; font-size:13px; line-height:1.55; }
     @media (max-width:760px) { .route-grid,.route-grid.two { grid-template-columns:1fr; } .route-head { align-items:flex-start; flex-direction:column; } }
-    @media (max-width:1050px) { .nav { height:auto; } .nav-inner { flex-wrap:wrap; min-height:58px; padding:9px 0; } .nav-links { order:3; width:100%; overflow-x:auto; } .nav-links a,.nav-links button { padding:0 9px; } .hero-grid,.network-summary { grid-template-columns:1fr; } .portal-callout { min-height:0; } .ecosystem-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+    @media (max-width:1360px) { .nav { height:auto; } .nav-inner { height:auto; flex-wrap:wrap; min-height:58px; padding:9px 0; } .nav-links { order:3; width:100%; overflow-x:auto; } .nav-links a,.nav-links button { height:42px; padding:0 9px; } }
+    @media (max-width:1050px) { .hero-grid,.network-summary { grid-template-columns:1fr; } .portal-callout { min-height:0; } .ecosystem-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
     @media (max-width:760px) { .shell { width:min(100% - 24px,1430px); } .nav { height:auto; } .nav-inner { flex-wrap:wrap; min-height:58px; gap:4px 12px; padding:9px 0; } .nav-links { order:3; width:100%; overflow:auto; } .nav-links a,.nav-links button { height:38px; padding:0 10px; font-size:12px; } .nav-actions { gap:8px; } .nav-actions a { display:none; } .metrics { grid-template-columns:1fr 1fr; } .metric:nth-child(2n) { border-right:0; } .metric:nth-child(n+5) { border-bottom:0; } .block-track { overflow:auto; padding-bottom:2px; } .block-chip { flex:0 0 220px; } .overview { grid-template-columns:1fr; } .download-grid { grid-template-columns:1fr; } .ecosystem-grid { grid-template-columns:1fr; } }
   </style>
 </head>
@@ -404,7 +428,7 @@ const indexHTML = `<!doctype html>
     <div class="shell nav-inner">
       <a class="brand" href="#top" aria-label="YNX Chain Explorer home"><img class="brand-logo" src="/assets/ynx-logo.png?v=df071f54b" width="30" height="30" alt=""><span>YNX Chain</span></a>
       <div class="nav-links">
-        <a href="#home" data-route="home">Home</a><span class="nav-menu"><a href="#blockchain" data-route="blockchain">Blockchain</a><span class="more-popover"><a href="#blockchain" data-route="blockchain">Blocks &amp; transactions</a><a href="#blockchain" data-route="blockchain">Addresses &amp; contracts</a><a href="#blockchain" data-route="blockchain">Validators &amp; network status</a></span></span><span class="nav-menu"><a href="#tokens" data-route="tokens">Tokens</a><span class="more-popover"><a href="#tokens" data-route="tokens">YNXT native asset</a><a href="#tokens" data-route="tokens">Verified token registry</a></span></span><span class="nav-menu"><a href="#data" data-route="data">Data</a><span class="more-popover"><a href="#data" data-route="data">Network activity</a><a href="#data" data-route="data">Data source status</a></span></span><a href="#governance" data-route="governance">Governance</a><span class="nav-menu"><a href="#ecosystem" data-route="ecosystem">YNX Ecosystem</a><span class="more-popover"><a href="#ecosystem" data-route="ecosystem">Wallet &amp; permissions</a><a href="#ecosystem" data-route="ecosystem">DeFi &amp; Payments</a><a href="#ecosystem" data-route="ecosystem">Developer &amp; Infrastructure</a><a href="#ecosystem" data-route="ecosystem">AI, Social, Data &amp; Media</a><a href="#ecosystem" data-route="ecosystem">Commerce</a></span></span><span class="nav-menu"><a href="#developers" data-route="developers">Developers</a><span class="more-popover"><a href="#developers" data-route="developers">Network configuration</a><a href="#developers" data-route="developers">SDK, CLI &amp; contracts</a><a href="#developers" data-route="developers">Faucet &amp; service status</a></span></span><span class="more-wrap"><button id="moreButton" type="button" aria-expanded="false" aria-controls="morePopover">More</button><span class="more-popover" id="morePopover"><a href="#blockchain" data-route="blockchain">Validators &amp; nodes</a><a href="#blockchain" data-route="blockchain">Accounts</a><a href="#downloads" data-route="downloads">Download center</a><a href="#documentation" data-route="documentation">Documentation</a></span></span>
+        <a href="#home" data-route="home">Home</a><span class="nav-menu"><a href="#blockchain" data-route="blockchain">Blockchain</a><span class="more-popover"><a href="#blockchain" data-route="blockchain">Blocks &amp; transactions</a><a href="#blockchain" data-route="blockchain">Addresses &amp; contracts</a><a href="#blockchain" data-route="blockchain">Validators &amp; network status</a></span></span><span class="nav-menu"><a href="#tokens" data-route="tokens">Tokens</a><span class="more-popover"><a href="#tokens" data-route="tokens">YNXT native asset</a><a href="#tokens" data-route="tokens">Verified token registry</a></span></span><span class="nav-menu"><a href="#data" data-route="data">Data</a><span class="more-popover"><a href="#data" data-route="data">Network activity</a><a href="#data" data-route="data">Data source status</a></span></span><a href="#governance" data-route="governance">Governance</a><span class="nav-menu"><a href="#ecosystem" data-route="ecosystem">YNX Ecosystem</a><span class="more-popover"><a href="#ecosystem" data-route="ecosystem">Wallet &amp; permissions</a><a href="#ecosystem" data-route="ecosystem">DeFi &amp; Payments</a><a href="#ecosystem" data-route="ecosystem">Developer &amp; Infrastructure</a><a href="#ecosystem" data-route="ecosystem">AI, Social, Data &amp; Media</a><a href="#ecosystem" data-route="ecosystem">Commerce</a></span></span><span class="nav-menu"><a href="#developers" data-route="developers">Developers</a><span class="more-popover"><a href="#developers" data-route="developers">Network configuration</a><a href="#developers" data-route="developers">SDK, CLI &amp; contracts</a><a href="#developers" data-route="developers">Faucet &amp; service status</a></span></span><a href="#downloads" data-route="downloads">Downloads</a><span class="more-wrap"><button id="moreButton" type="button" aria-expanded="false" aria-controls="morePopover">More</button><span class="more-popover" id="morePopover"><a href="#blockchain" data-route="blockchain">Validators &amp; nodes</a><a href="#blockchain" data-route="blockchain">Accounts</a><a href="#documentation" data-route="documentation">Documentation</a></span></span>
       </div>
       <div class="nav-actions"><span id="networkName" hidden>Testnet</span><a href="#documentation" data-route="documentation">Docs</a><select class="language-select" id="languageSelect" aria-label="Language"><option value="en">English</option><option value="zh-CN">简体中文</option><option value="zh-TW">繁體中文</option><option value="ja">日本語</option><option value="ko">한국어</option></select><button class="wallet-connect" id="walletConnectButton" type="button">Connect Wallet</button></div>
     </div>
@@ -415,10 +439,10 @@ const indexHTML = `<!doctype html>
   <header class="hero" id="top">
     <div class="shell">
       <div class="hero-grid"><div><p class="eyebrow">YNX Testnet</p><h1 data-i18n="heroTitle">YNX Chain network explorer</h1><p class="hero-copy" data-i18n="heroCopy">Live blocks, transactions, validators, accounts, fees, and native YNXT resource economics from the public testnet.</p>
-        <form class="search" id="searchForm"><input id="searchInput" aria-label="Search the chain" data-i18n-placeholder="searchPlaceholder" placeholder="Search token, account, contract, transaction, or block" autocomplete="off" spellcheck="false"><button type="submit" data-i18n="search">Search</button></form>
+        <div class="search-wrap"><form class="search" id="searchForm"><input id="searchInput" aria-label="Search the chain" aria-autocomplete="list" aria-controls="searchSuggestions" data-i18n-placeholder="searchPlaceholder" placeholder="Search token, account, contract, transaction, or block" autocomplete="off" spellcheck="false"><button type="submit" data-i18n="search">Search</button></form><div class="search-suggestions" id="searchSuggestions" role="listbox" hidden></div></div>
         <div class="trending"><span class="trending-label">Quick search:</span><button type="button" data-search="latest">Latest block</button><button type="button" data-search="YNXT">YNXT token</button><button type="button" data-search="6423">Block 6423</button><button type="button" data-search="0x1917">EVM network</button></div>
         <div class="hero-meta"><span><span class="pulse"></span>RPC + indexer verified</span><span id="lastUpdated">Connecting to the network</span><span id="heroHeight">Waiting for the latest block</span></div>
-      </div><aside class="portal-callout"><div><p>Developer entry point</p><h2>Build and inspect on YNX 6423.</h2></div><div class="portal-callout-links"><a href="#developers">Developer tools</a><a href="#documentation">Documentation</a><a href="#downloads">Downloads</a></div></aside></div>
+      </div><aside class="portal-callout"><div><p>Developer entry point</p><h2>Build and inspect on YNX 6423.</h2><div class="portal-callout-stats" aria-label="YNX network identity"><span><small>Chain</small><strong>6423</strong></span><span><small>EVM</small><strong>0x1917</strong></span><span><small>Native</small><strong>YNXT</strong></span></div></div><div class="portal-callout-links"><a href="#developers">Developer tools</a><a href="#documentation">Documentation</a><a href="#downloads">Downloads</a></div></aside></div>
       <section class="result-panel" id="resultPanel" aria-live="polite">
         <div class="panel-head"><div><h2 id="resultTitle">Search result</h2><p id="resultSubtitle"></p></div><button class="result-close" id="resultClose" type="button">Close</button></div>
         <div id="resultBody"></div>
@@ -439,7 +463,7 @@ const indexHTML = `<!doctype html>
         <article class="metric"><div class="metric-label" data-i18n="validators">Validators</div><div class="metric-value skeleton" id="validatorCount">00</div><div class="metric-foot" data-i18n="reportedRpc">Reported by chain RPC</div></article>
         <article class="metric"><div class="metric-label" data-i18n="indexerSync">Indexer sync</div><div class="metric-value skeleton" id="syncValue">0 blocks</div><div class="metric-foot" id="syncState">Checking consistency</div></article>
       </div>
-      <aside class="asset-overview" aria-label="YNXT asset summary"><div class="asset-overview-head"><div class="asset-token"><img src="/assets/ynx-icon.png?v=df071f54b" width="34" height="34" alt=""><div><strong>YNXT</strong><small>Native asset · 6423</small></div></div><div><strong>Unavailable</strong><small>Market source</small></div></div><div class="asset-overview-body"><div class="asset-unavailable">Historical supply, price, market capitalization, and staking data are intentionally unavailable until an authoritative 6423 source is connected.</div><div class="asset-facts"><div><span>Supply</span><strong>Unavailable</strong></div><div><span>Staked</span><strong>Unavailable</strong></div></div></div></aside>
+      <aside class="asset-overview" aria-label="YNXT network summary"><div class="asset-overview-head"><div class="asset-token"><img src="/assets/ynx-icon.png?v=df071f54b" width="34" height="34" alt=""><div><strong>YNXT</strong><small>Native asset · 6423</small></div></div><div><strong id="assetTruthState">Connecting</strong><small>Network source</small></div></div><div class="asset-overview-body"><div class="asset-fact"><span>Chain identity</span><strong>6423 / 0x1917</strong><small>ynx_6423-1</small></div><div class="asset-fact"><span>Validators</span><strong id="assetValidatorCount">--</strong><small>Reported by RPC</small></div><div class="asset-fact"><span>Pending transactions</span><strong id="assetPendingCount">--</strong><small>Current RPC status</small></div><div class="asset-fact"><span>Last verified</span><strong id="assetVerifiedAt">--</strong><small id="assetHeight">Awaiting latest block</small></div></div></aside>
       </section>
 
       <section class="block-ribbon" aria-label="Live finalized block stream">
@@ -524,6 +548,15 @@ const indexHTML = `<!doctype html>
   <script>
     const api = '';
     const expected6423 = Object.freeze({numericChainId:6423,evmChainId:'0x1917',cosmosChainId:'ynx_6423-1',nativeSymbol:'YNXT'});
+    const serviceDirectory = Object.freeze({
+      explorer: Object.freeze({name:'YNX Explorer 6423 adapter',officialURL:'/api',expectedChainID:'6423 / 0x1917 / ynx_6423-1',healthEndpoint:'/health',schema:'Explorer JSON summary, blocks, transactions, accounts, token, validators, resources, and fees',timeoutMs:8000,cache:'no-store',degraded:'Keep existing verified snapshot and label the portal degraded.'}),
+      stream: Object.freeze({name:'YNX Explorer live stream',officialURL:'/api/stream',expectedChainID:'6423 / 0x1917 / ynx_6423-1',healthEndpoint:'/health',schema:'Server-sent dashboard snapshot',timeoutMs:10000,cache:'event stream',degraded:'Fall back to the Explorer snapshot at a 10-second interval.'}),
+      wallet: Object.freeze({name:'YNX Wallet provider',officialURL:'EIP-6963 / EIP-1193',expectedChainID:'0x1917 when connected',healthEndpoint:'Provider discovery',schema:'Standard provider and account response',timeoutMs:8000,cache:'session only',degraded:'Do not fall back to MetaMask or request an account.'}),
+      governance: Object.freeze({name:'6423 governance',officialURL:'Unavailable',expectedChainID:'6423 / 0x1917 / ynx_6423-1',healthEndpoint:'Unavailable',schema:'Proposal, vote, and parameter records',timeoutMs:0,cache:'none',degraded:'Show unavailable; no governance data endpoint is configured.'}),
+      history: Object.freeze({name:'6423 historical analytics',officialURL:'Unavailable',expectedChainID:'6423 / 0x1917 / ynx_6423-1',healthEndpoint:'Unavailable',schema:'Timestamped blocks, transactions, addresses, gas, node health, and token activity',timeoutMs:0,cache:'none',degraded:'Show an interactive empty chart; do not infer historical values.'}),
+      releases: Object.freeze({name:'YNX signed release manifest',officialURL:'Unavailable',expectedChainID:'6423 / 0x1917 / ynx_6423-1',healthEndpoint:'Unavailable',schema:'Public URL, version, size, SHA-256, signing, source, and published time',timeoutMs:0,cache:'none',degraded:'Disable download controls and explain missing artifact evidence.'})
+    });
+    const serviceRuntime = new Map(Object.keys(serviceDirectory).map(key => [key,{lastVerifiedAt:null,lastError:null}]));
     let walletConfig = null;
     let refreshTimer = null;
     let eventSource = null;
@@ -575,10 +608,29 @@ const indexHTML = `<!doctype html>
       return Math.floor(seconds / 3600) + ' hours ago';
     };
     const exactTime = (value) => { const date = new Date(value); return Number.isNaN(date.getTime()) ? '--' : date.toLocaleString(language === 'en' ? 'en-US' : language, {dateStyle:'medium',timeStyle:'medium'}); };
-    async function get(path) {
-      const response = await fetch(api + path, {headers:{accept:'application/json'}});
-      if (!response.ok) { let detail = ''; try { detail = (await response.json()).error || ''; } catch (_) {} throw new Error(detail || path + ' returned ' + response.status); }
-      return response.json();
+    function serviceState(key) { return serviceRuntime.get(key) || {lastVerifiedAt:null,lastError:'Unknown service'}; }
+    function clientError(error, fallback = 'The requested verified 6423 data is unavailable right now.') {
+      if (error?.name === 'AbortError') return 'The verified 6423 service took too long to respond. Please retry.';
+      return fallback;
+    }
+    async function get(path, serviceKey = 'explorer') {
+      const service = serviceDirectory[serviceKey] || serviceDirectory.explorer;
+      if (!service.timeoutMs) throw new Error(service.degraded);
+      const controller = new AbortController();
+      const timeout = window.setTimeout(() => controller.abort(),service.timeoutMs);
+      try {
+        const response = await fetch(api + path, {headers:{accept:'application/json','cache-control':service.cache},cache:'no-store',signal:controller.signal});
+        if (!response.ok) throw new Error('verified-service-unavailable');
+        const payload = await response.json();
+        const state = serviceRuntime.get(serviceKey) || serviceRuntime.get('explorer');
+        state.lastVerifiedAt = new Date().toISOString();
+        state.lastError = null;
+        return payload;
+      } catch (error) {
+        const state = serviceRuntime.get(serviceKey) || serviceRuntime.get('explorer');
+        state.lastError = clientError(error,service.degraded);
+        throw error;
+      } finally { window.clearTimeout(timeout); }
     }
     function assert6423Snapshot(summary) {
       const actualNumeric = Number(summary?.network?.chainId);
@@ -620,10 +672,13 @@ const indexHTML = `<!doctype html>
     }
     function renderBlockTrack(blocks,incomingHeight) {
       $('finalityState').textContent = blocks.length ? 'Block #' + number(blocks[0].height) : 'Waiting';
+      const slot = calculateWindow(blocks).blockTime;
       $('blockTrack').innerHTML = blocks.slice(0,4).map((block,index) => {
         const arrived = index === 0 && previousHeight && incomingHeight > previousHeight;
         const txs = (block.transactions || []).length;
-        return '<button class="block-chip' + (txs === 0 ? ' empty-block' : '') + (arrived ? ' new' : '') + '" type="button" data-query="' + escapeHTML(block.height) + '"><strong class="mono">#' + escapeHTML(number(block.height)) + '</strong><span>' + (txs === 0 ? (isChinese() ? '空区块' : 'empty') : txs + (isChinese() ? ' 笔' : (txs === 1 ? ' tx' : ' txs'))) + ' / ' + escapeHTML(relativeTime(block.time)) + '</span></button>';
+        const state = txs === 0 ? (isChinese() ? '空区块' : 'Empty') : (isChinese() ? '已最终确定' : 'Finalized');
+        const slotLabel = slot > 0 ? slot.toFixed(1) + 's slot' : 'Finality observed';
+        return '<button class="block-chip' + (txs === 0 ? ' empty-block' : '') + (arrived ? ' new' : '') + '" type="button" data-query="' + escapeHTML(block.height) + '"><strong class="mono">#' + escapeHTML(number(block.height)) + '</strong><span>' + escapeHTML(state) + ' · ' + txs + (isChinese() ? ' 笔交易' : (txs === 1 ? ' transaction' : ' transactions')) + '</span><span class="block-chip-meta"><b>' + escapeHTML(slotLabel) + '</b><em title="' + escapeHTML(exactTime(block.time)) + '">' + escapeHTML(relativeTime(block.time)) + '</em></span></button>';
       }).join('') || '<div class="empty">No finalized blocks yet.</div>';
     }
     function renderIntelligence(validatorData, resources) {
@@ -671,6 +726,11 @@ const indexHTML = `<!doctype html>
       $('txCount').textContent = number(summary.indexedTxCount);
       $('validatorCount').textContent = number(summary.validatorCount);
       $('syncValue').textContent = number(summary.syncLagBlocks) + (isChinese() ? ' 个区块' : (summary.syncLagBlocks === 1 ? ' block' : ' blocks'));
+      $('assetValidatorCount').textContent = number(summary.validatorCount);
+      $('assetPendingCount').textContent = number(summary.pendingTxCount);
+      $('assetTruthState').textContent = summary.ok ? 'RPC + Indexer' : 'Degraded';
+      $('assetVerifiedAt').textContent = exactTime(summary.lastCheckedAt);
+      $('assetHeight').textContent = 'Block #' + number(summary.rpcHeight) + ' · ' + number(summary.syncLagBlocks) + '-block lag';
       $('syncState').textContent = summary.syncLagBlocks === 0 ? t('fullySynced') : t('catchingUp');
       $('syncState').className = 'metric-foot' + (summary.syncLagBlocks === 0 ? ' good' : '');
       $('blockAge').textContent = relativeTime(summary.latestBlockTime);
@@ -728,6 +788,8 @@ const indexHTML = `<!doctype html>
       if (!window.EventSource) { startFallbackPolling(); return; }
       eventSource = new EventSource('/api/stream');
       eventSource.onopen = () => {
+        serviceRuntime.get('stream').lastVerifiedAt = new Date().toISOString();
+        serviceRuntime.get('stream').lastError = null;
         $('streamClock').className = 'stream-clock live';
         $('streamClockText').textContent = 'Live stream connected';
       };
@@ -743,6 +805,7 @@ const indexHTML = `<!doctype html>
         try { showLoadError(new Error(JSON.parse(event.data).error || 'Live upstream error')); } catch (_) { showLoadError(new Error('Live upstream error')); }
       });
       eventSource.onerror = () => {
+        serviceRuntime.get('stream').lastError = serviceDirectory.stream.degraded;
         $('statusText').textContent = 'Reconnecting live data';
         $('statusDetail').textContent = 'Using 10-second snapshot fallback';
         $('status').className = 'status-bar warn';
@@ -808,6 +871,15 @@ const indexHTML = `<!doctype html>
     const routeHead = (title,copy) => '<div class="route-head"><div><button class="route-back" type="button" data-route="home">← Back to portal</button><h1>' + escapeHTML(title) + '</h1><p>' + escapeHTML(copy) + '</p></div></div>';
     const unavailable = message => '<div class="unavailable">' + escapeHTML(message) + '</div>';
     const facts = rows => '<dl>' + rows.map(([key,value]) => '<dt>' + escapeHTML(key) + '</dt><dd class="mono">' + escapeHTML(value) + '</dd>').join('') + '</dl>';
+    function serviceDirectoryTable() {
+      const rows = Object.entries(serviceDirectory).map(([key,service]) => {
+        const runtime = serviceState(key);
+        const verified = runtime.lastVerifiedAt ? exactTime(runtime.lastVerifiedAt) : 'Not verified in this browser session';
+        const timeout = service.timeoutMs ? (service.timeoutMs / 1000) + 's' : 'Unavailable';
+        return '<tr><td><strong>' + escapeHTML(service.name) + '</strong><span class="muted">' + escapeHTML(service.schema) + '</span></td><td class="mono">' + escapeHTML(service.expectedChainID) + '</td><td class="mono">' + escapeHTML(service.officialURL) + '<br><small>Health: ' + escapeHTML(service.healthEndpoint) + '</small></td><td><span>' + escapeHTML(timeout) + '</span><br><small>Cache: ' + escapeHTML(service.cache) + '</small></td><td><span>' + escapeHTML(verified) + '</span><br><small>' + escapeHTML(runtime.lastError || service.degraded) + '</small></td></tr>';
+      }).join('');
+      return '<div class="table-shell"><table class="route-table"><thead><tr><th>Service & schema</th><th>Expected identity</th><th>Official endpoint</th><th>Timeout & cache</th><th>Verification / degraded behavior</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+    }
     function portalTable(items,columns) {
       if (!items?.length) return unavailable('No live records are available from the current 6423 source.');
       return '<div class="table-shell"><table class="route-table"><thead><tr>' + columns.map(column => '<th>' + escapeHTML(column.label) + '</th>').join('') + '</tr></thead><tbody>' + items.map(item => '<tr>' + columns.map(column => '<td class="mono">' + escapeHTML(String(column.value(item) ?? '—')) + '</td>').join('') + '</tr>').join('') + '</tbody></table></div>';
@@ -833,7 +905,11 @@ const indexHTML = `<!doctype html>
       const chainFacts = summary ? [['Cosmos chain ID','ynx_6423-1'],['Numeric chain ID',String(summary.network?.chainId || 6423)],['EVM chain ID',String(summary.wallet?.chainIdHex || '0x1917')],['Native asset',String(summary.nativeSymbol || 'YNXT')],['Data source',String(summary.truthfulStatus || 'unavailable')]] : [];
       if (route === 'blockchain') { set('Blockchain','Live 6423 records come from the Explorer API. Search opens an in-place detail drawer and never creates a blank tab.','<div class="route-grid two">' + portalPanel('Network status',summary ? facts(chainFacts) : unavailable('The 6423 RPC and indexer have not returned a verified snapshot yet.'),summary?.ok ? 'RPC + indexer backed' : 'Degraded or unavailable') + portalPanel('Latest blocks',portalTable(blocks.slice(0,12),[{label:'Height',value:b => '#' + number(b.height)},{label:'Finalized at',value:b => exactTime(b.time)},{label:'Transactions',value:b => (b.transactions || []).length},{label:'Hash',value:b => compact(b.hash,12,8)}])) + '</div><section class="section">' + portalPanel('Latest transactions',portalTable(txs.slice(0,12),[{label:'Hash',value:t => compact(t.hash,12,8)},{label:'Type',value:t => t.type},{label:'From',value:t => compact(t.from,10,7)},{label:'To',value:t => compact(t.to,10,7)},{label:'Amount',value:t => number(t.amount) + ' YNXT'}])) + '</section>'); return; }
       if (route === 'tokens') { const body = summary ? '<p>YNXT is the native 6423 asset. Price, market cap, holders, and liquidity remain unavailable until an authoritative source is connected.</p>' + facts([['Symbol','YNXT'],['Network','ynx_6423-1 / 6423 / 0x1917'],['Decimals',String(summary.wallet?.decimals ?? '—')],['Source','native-token-from-rpc-status']]) : unavailable('Token metadata requires a verified 6423 RPC snapshot.'); set('Tokens','Only verified token metadata from a current 6423 source is displayed. This portal does not invent market data.','<div class="route-grid two">' + portalPanel('YNXT',body,'Native token') + portalPanel('Verified token registry',unavailable('No verified public token-list endpoint is configured for this portal.'),'Unavailable') + '</div>'); return; }
-      if (route === 'data') { const rows = summary ? [['Latest block',number(summary.rpcHeight)],['Indexed transactions',number(summary.indexedTxCount)],['Validators',number(summary.validatorCount)],['Indexer lag',number(summary.syncLagBlocks) + ' blocks'],['Snapshot time',exactTime(summary.lastCheckedAt)]] : []; set('Data','Current snapshot metrics are available below. Historical charts remain empty until a time-series API is verified.','<div class="route-grid two">' + portalPanel('Current 6423 snapshot',facts(rows),'Live source') + portalPanel('Historical charts',unavailable('No authenticated historical time-series endpoint is available. Blocks, transactions, active addresses, gas, node health, and token-activity charts are fail-closed.')) + '</div>'); return; }
+      if (route === 'data') {
+        const rows = summary ? [['Latest block',number(summary.rpcHeight)],['Indexed transactions',number(summary.indexedTxCount)],['Validators',number(summary.validatorCount)],['Indexer lag',number(summary.syncLagBlocks) + ' blocks'],['Snapshot time',exactTime(summary.lastCheckedAt)]] : [];
+        const chart = '<div class="chart-toolbar" role="toolbar" aria-label="Historical data range"><button type="button" class="active" data-chart-range="24h">24h</button><button type="button" data-chart-range="7d">7d</button><button type="button" data-chart-range="30d">30d</button><button type="button" data-chart-range="all">All</button></div><div class="chart-empty" id="historyChart" role="status">Select a range to inspect verified history. No authenticated historical time-series endpoint currently provides blocks, transactions, active addresses, gas, node health, or token activity for 6423.<br><small>Source: ' + escapeHTML(serviceDirectory.history.officialURL) + ' · Last verified: unavailable</small></div>';
+        set('Data','Current snapshot metrics are live. Historical controls stay interactive, while unverified series remain explicitly empty.','<div class="route-grid two">' + portalPanel('Current 6423 snapshot',facts(rows),'Live source') + portalPanel('Historical analytics',chart,'Fail closed') + '</div>'); return;
+      }
       if (route === 'governance') { set('Governance','Proposals, votes, and parameters appear only after the portal can read a verified 6423 governance source.','<div class="route-grid two">' + portalPanel('Governance proposals',unavailable('A 6423 governance endpoint is not available from the current Explorer service.'),'Unavailable') + portalPanel('Voting & parameters',unavailable('No verified on-chain voting or parameter snapshot is available.'),'Unavailable') + '</div>'); return; }
       if (route === 'ecosystem') {
         const products = [
@@ -851,7 +927,13 @@ const indexHTML = `<!doctype html>
         const cards = products.map(([name,copy,state,platform]) => '<article class="ecosystem-card"><div class="product-title"><img class="product-mark" src="/assets/ynx-icon.png?v=df071f54b" width="28" height="28" alt="YNX identity mark"><h3>' + escapeHTML(name) + '</h3></div><p>' + escapeHTML(copy) + '</p><span class="product-state">' + escapeHTML(state) + '</span><div class="product-meta"><span><strong>6423 support:</strong> ' + (name === 'Developer' || name === 'Infrastructure' ? 'Live endpoint dependent' : 'Not publicly verified') + '</span><span><strong>Platforms:</strong> ' + escapeHTML(platform) + '</span></div><div class="product-actions"><button type="button" disabled aria-disabled="true">Open</button><button type="button" disabled aria-disabled="true">Docs</button><button type="button" disabled aria-disabled="true">Download</button><button type="button" data-portal-note="' + encodeURIComponent(name + ': no verified public product link, documentation route, or download artifact is configured.') + '">Status</button></div></article>').join('');
         set('YNX Ecosystem','Each product remains independent. The official YNX identity mark represents categories whose own public icon or release proof is not yet verified. Open, documentation, and download controls are disabled until that evidence exists.','<div class="ecosystem-grid">' + cards + '</div>'); return;
       }
-      if (route === 'developers') { const rpc = summary?.wallet?.rpcUrls?.[0] || 'Unavailable'; const explorer = summary?.wallet?.blockExplorerUrls?.[0] || 'Unavailable'; set('Developers','Copy exact Testnet configuration only after the live source passes its 6423 identity check.','<div class="route-grid two">' + portalPanel('YNX 6423 configuration',facts([['Cosmos chain ID','ynx_6423-1'],['Numeric chain ID','6423'],['EVM chain ID','0x1917'],['Native asset','YNXT'],['RPC endpoint',rpc],['Explorer endpoint',explorer]]),'Testnet only') + portalPanel('Tools & documentation','<div class="portal-list"><button type="button" data-portal-note="Public API documentation URL is not verified for this portal.">API reference <small>Unavailable</small></button><button type="button" data-portal-note="SDK artifact identity is not verified for download.">SDK & CLI <small>Source-bound only</small></button><button type="button" data-portal-note="Faucet availability must be verified independently before opening.">Faucet <small>Check status first</small></button></div>') + '</div>'); return; }
+      if (route === 'developers') {
+        const rpc = summary?.wallet?.rpcUrls?.[0] || 'Unavailable';
+        const explorer = summary?.wallet?.blockExplorerUrls?.[0] || 'Unavailable';
+        const config = facts([['Cosmos chain ID','ynx_6423-1'],['Numeric chain ID','6423'],['EVM chain ID','0x1917'],['Native asset','YNXT'],['RPC endpoint',rpc],['Explorer endpoint',explorer]]);
+        const tools = '<div class="portal-list"><button type="button" data-copy="' + encodeURIComponent(JSON.stringify({chainId:'0x1917',chainName:summary?.wallet?.chainName || 'YNX 6423 Testnet',nativeCurrency:{name:summary?.wallet?.nativeCurrencyName || 'YNXT',symbol:'YNXT',decimals:summary?.wallet?.decimals ?? 18},rpcUrls:summary?.wallet?.rpcUrls || [],blockExplorerUrls:summary?.wallet?.blockExplorerUrls || []},null,2)) + '">Copy Add Network configuration <small>6423 Testnet JSON</small></button><button type="button" data-portal-note="Public API documentation URL is not verified for this portal.">API reference <small>Unavailable</small></button><button type="button" data-portal-note="SDK artifact identity is not verified for download.">SDK & CLI <small>Source-bound only</small></button><button type="button" data-portal-note="Faucet availability must be verified independently before opening.">Faucet <small>Check status first</small></button></div>';
+        set('Developers','The service directory is the single 6423 data adapter. Copy configuration only after the current source passes its identity check.','<div class="route-grid two">' + portalPanel('YNX 6423 configuration',config,'Testnet only') + portalPanel('Tools & documentation',tools) + '</div><section class="section">' + portalPanel('6423 service directory',serviceDirectoryTable(),'Verified Explorer and stream entries update in this browser session; unavailable services fail closed.') + '</section>'); return;
+      }
       if (route === 'downloads') {
         const products = [
           ['YNX Wallet browser extension','Browser extension','Unavailable'],['YNX Wallet desktop','macOS / Windows / Linux','Unavailable'],['YNX Wallet mobile','Android / iOS','Unavailable'],['Developer CLI and SDK','Developer tooling','Unavailable'],['YNX web applications','Web / PWA','Unavailable'],['Other ecosystem applications','Product-specific platforms','Unavailable']
@@ -862,9 +944,30 @@ const indexHTML = `<!doctype html>
       if (route === 'documentation') { set('Documentation','This portal keeps routes and release claims conservative: source documentation is not presented as a public production endpoint.','<div class="route-grid two">' + portalPanel('Using this portal','<div class="portal-list"><a href="#blockchain" data-route="blockchain">Search and browse blocks, transactions, and accounts</a><a href="#developers" data-route="developers">Use verified Testnet identifiers</a><a href="#downloads" data-route="downloads">Review download evidence requirements</a></div>') + portalPanel('Status policy',unavailable('A product, download, or service with no verified public evidence is shown as unavailable instead of being linked to a placeholder.')) + '</div>'); return; }
       renderPortalRoute('home');
     }
+    function updateSearchSuggestions() {
+      const query = String($('searchInput').value || '').trim();
+      const box = $('searchSuggestions');
+      if (!query) { box.hidden = true; box.innerHTML = ''; return; }
+      const lower = query.toLowerCase();
+      const snapshot = lastDashboard || {};
+      const suggestions = [];
+      const add = (value,label,kind) => { if (value && !suggestions.some(item => item.value === value)) suggestions.push({value,label,kind}); };
+      (snapshot.blocks || []).filter(block => String(block.height).includes(lower) || String(block.hash || '').toLowerCase().includes(lower)).slice(0,3).forEach(block => add(String(block.height),'Block #' + number(block.height),'Block'));
+      (snapshot.transactions || []).filter(tx => [tx.hash,tx.from,tx.to].some(value => String(value || '').toLowerCase().includes(lower))).slice(0,3).forEach(tx => add(tx.hash,compact(tx.hash,14,9),'Transaction'));
+      if ('ynxt'.includes(lower) || lower.includes('ynxt')) add('YNXT','YNXT native token','Token');
+      const validators = Array.isArray(snapshot.validatorData) ? snapshot.validatorData : (snapshot.validatorData?.validators || []);
+      validators.filter(validator => [validator.moniker,validator.address].some(value => String(value || '').toLowerCase().includes(lower))).slice(0,2).forEach(validator => add(validator.address,validator.moniker || compact(validator.address,14,9),'Validator address'));
+      if (/^\d+$/.test(query)) add(query,'Search block height #' + query,'Block');
+      if (/^0x[0-9a-f]+$/i.test(query)) add(query,'Search transaction or EVM-compatible address','Transaction / address');
+      if (suggestions.length === 0) add(query,'Search current 6423 index','Search');
+      box.innerHTML = suggestions.slice(0,6).map(item => '<button type="button" role="option" data-suggestion="' + encodeURIComponent(item.value) + '"><span class="mono">' + escapeHTML(item.label) + '</span><small>' + escapeHTML(item.kind) + '</small></button>').join('');
+      box.hidden = false;
+    }
+    function closeSearchSuggestions() { $('searchSuggestions').hidden = true; }
     async function search(query) {
       const q = String(query || $('searchInput').value).trim();
       if (!q) return;
+      closeSearchSuggestions();
       $('searchInput').value = q;
       $('detailKicker').textContent = 'Searching live chain data';
       $('detailTitle').textContent = compact(q,18,10);
@@ -879,10 +982,13 @@ const indexHTML = `<!doctype html>
       } catch (error) {
         $('detailKicker').textContent = 'Search result';
         $('detailTitle').textContent = 'Not found';
-        $('detailContent').innerHTML = '<div class="result-error">' + escapeHTML(error.message) + '</div>';
+        $('detailContent').innerHTML = '<div class="result-error">' + escapeHTML(clientError(error,'No matching verified 6423 record was found.')) + '</div>';
       }
     }
     $('searchForm').onsubmit = event => { event.preventDefault(); search(); };
+    $('searchInput').oninput = updateSearchSuggestions;
+    $('searchInput').onfocus = updateSearchSuggestions;
+    $('searchInput').onkeydown = event => { if (event.key === 'Escape') closeSearchSuggestions(); };
     $('resultClose').onclick = () => $('resultPanel').classList.remove('visible');
     $('detailClose').onclick = closeDrawer;
     $('detailBackdrop').onclick = event => { if (event.target === $('detailBackdrop')) closeDrawer(); };
@@ -931,12 +1037,20 @@ const indexHTML = `<!doctype html>
         const accounts = await ynx.provider.request({method:'eth_requestAccounts'});
         const account = Array.isArray(accounts) && accounts[0] ? accounts[0] : 'No account returned';
         connectedYNXWallet = {provider:ynx.provider,account};
+        serviceRuntime.get('wallet').lastVerifiedAt = new Date().toISOString();
+        serviceRuntime.get('wallet').lastError = null;
         $('walletConnectButton').textContent = compact(account,6,4);
         showWalletSession();
       } catch (error) { showPortalNotice('YNX Wallet connection was not approved: ' + (error?.message || 'request declined')); }
     };
     $('moreButton').onclick = () => { const wrap = $('moreButton').closest('.more-wrap'); const open = !wrap.classList.contains('open'); wrap.classList.toggle('open',open); $('moreButton').setAttribute('aria-expanded',String(open)); };
     document.addEventListener('click',async event => {
+      const suggestion = event.target.closest('[data-suggestion]');
+      if (suggestion) { $('searchInput').value = decodeURIComponent(suggestion.dataset.suggestion); search(); return; }
+      const copy = event.target.closest('[data-copy]');
+      if (copy) { try { await navigator.clipboard.writeText(decodeURIComponent(copy.dataset.copy)); showToast('Copied to clipboard'); } catch (_) { showToast('Clipboard unavailable'); } return; }
+      const range = event.target.closest('[data-chart-range]');
+      if (range) { document.querySelectorAll('[data-chart-range]').forEach(button => button.classList.toggle('active',button === range)); const chart = $('historyChart'); if (chart) chart.innerHTML = 'Range: <strong>' + escapeHTML(range.dataset.chartRange) + '</strong>. No verified historical 6423 records are available for this interval, so this chart remains intentionally empty.<br><small>Source: ' + escapeHTML(serviceDirectory.history.officialURL) + ' · Last verified: unavailable</small>'; return; }
       const route = event.target.closest('[data-route]');
       if (route) { event.preventDefault(); const next = route.dataset.route; if (location.hash.slice(1) !== next) location.hash = next; else renderPortalRoute(next); $('moreButton').closest('.more-wrap').classList.remove('open'); $('moreButton').setAttribute('aria-expanded','false'); return; }
       const quick = event.target.closest('[data-search]');
