@@ -7658,6 +7658,20 @@
       "failure": "CARRIER_INVENTORY",
       "cleanupComplete": false,
       "nextAction": "P0-323 is consumed and nonreusable. Require a wholly-new raw-first carrier diagnostic emitting actual child identities and inventory before comparison; build-identity carrier and Phase3 remain unauthorized."
+    },
+    {
+      "taskId":"P0-324",
+      "owner":"integration,finance-release-control-plane-readonly-diagnostic",
+      "status":"ACTIVE_FINANCE_P0318_CARRIER_RAW_FIRST_ZERO_WRITE_DIAGNOSTIC_ONLY",
+      "paths":["release/integration/p0-wallet-connectivity/execution/p0-324-finance-carrier-raw-first-zero-write-single-use-lease-20260831.json","release/integration/p0-wallet-connectivity/execution/objects/p0-324-finance-carrier-raw-first-zero-write-inspector.py","/tmp/p0-324-finance-carrier-raw-first-zero-write.json","/tmp/p0-324-finance-carrier-raw-first-zero-write.stderr"],
+      "dependencies":["P0-323"],
+      "executionLeaseIssued":true,
+      "sshAttemptLimit":1,
+      "retryAllowed":false,
+      "remoteMutation":false,
+      "cleanupAuthorized":false,
+      "deploymentAuthorized":false,
+      "nextAction":"Execute one raw-first zero-write carrier diagnostic and terminally release; do not inspect runtime or authorize the build-identity successor."
     }
   ]
 }

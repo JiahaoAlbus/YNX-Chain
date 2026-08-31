@@ -3698,6 +3698,22 @@
         "read target quarantine sibling parent carrier runtime service and HTTP metadata only",
         "no cleanup carrier mutation deploy rollback lifecycle account signature typed data or transaction"
       ]
+    },
+    {
+      "path":"{readonly:host:43.153.202.237:/opt/ynx/stage/finance/finance-combined-4f7fba323a89-20260831t041500z/**}",
+      "owner":"finance-release-control-plane-readonly-diagnostic",
+      "branch":"codex/p0-wallet-connectivity-control-plane-20260820",
+      "worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration",
+      "taskId":"P0-324",
+      "campaignId":"P0-WALLET-CONNECTIVITY-2026-08",
+      "status":"ACTIVE_FINANCE_P0318_CARRIER_RAW_FIRST_ZERO_WRITE_DIAGNOSTIC_ONLY",
+      "acquiredAt":"2026-08-31T06:55:00Z",
+      "expiresAt":"2026-08-31T07:10:00Z",
+      "sourceCommit":"6825c6d44c54f5a8ed0283ffcfd469a12fe2f185",
+      "sourceTree":"0b06800772966b92ba7a91e893f3a6ea7b1e9270",
+      "artifactSha256":"a41e41738cb15795747e3f10abf90c42628dac490813f704f936fb6fdbb1d477",
+      "productionMutationAllowed":false,
+      "allowedExceptions":["one read-only SSH and no retry","stdin-only inspector with no remote temp files","emit raw carrier child identities and canonical inventory bytes before comparison","no cleanup placement deployment lifecycle runtime HTTP account signature typed data or transaction action"]
     }
   ]
 }
