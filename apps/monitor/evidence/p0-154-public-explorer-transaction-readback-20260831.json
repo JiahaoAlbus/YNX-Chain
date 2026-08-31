@@ -1,0 +1,68 @@
+{
+  "schemaVersion": "ynx.explorer-monitor.public-transaction-readback.v1",
+  "observedAt": "2026-08-31T07:52:00Z",
+  "owner": "explorer-monitor",
+  "candidate": {
+    "branch": "codex/p0-explorer-monitor-20260820",
+    "commit": "35405c0d65cea8bf198dba597beb02caed1ad5b5",
+    "pullRequest": "https://github.com/JiahaoAlbus/YNX-Chain/pull/107"
+  },
+  "observedPublicRuntime": {
+    "commit": "8bf7716ee671a5a9b64517280743c5a281899712",
+    "release": "ynx-explorer-monitor-8bf7716ee671",
+    "isCandidate": false
+  },
+  "transaction": {
+    "hash": "0x3d7da1dbf3b9bb02c98a48fcefc54525d0dfe6a310b05c3ed42aabbd91dbec25",
+    "type": "faucet",
+    "from": "ynx_faucet",
+    "to": "0x2a9e6737d07f7c2ec86df47f381df179b1c40fe8",
+    "amount": 100,
+    "fee": 0,
+    "nonce": 0,
+    "blockNumber": 1155062,
+    "timestamp": "2026-08-22T02:26:42.761619308Z",
+    "eventCount": 1
+  },
+  "readOnlyPublicEvidence": [
+    {
+      "url": "https://explorer.ynxweb4.com/api/txs/0x3d7da1dbf3b9bb02c98a48fcefc54525d0dfe6a310b05c3ed42aabbd91dbec25",
+      "httpStatus": 200,
+      "contentType": "application/json",
+      "bytes": 2046,
+      "sha256": "4462733c0358bf2ba7e36055b29139baadbc368bd271ead8ffca32ea22809295",
+      "outcome": "resolved transaction detail from the public Indexer-backed API"
+    },
+    {
+      "url": "https://explorer.ynxweb4.com/api/search?q=0x3d7da1dbf3b9bb02c98a48fcefc54525d0dfe6a310b05c3ed42aabbd91dbec25",
+      "httpStatus": 200,
+      "contentType": "application/json",
+      "bytes": 310,
+      "sha256": "ceab8fa11d2c0729af4c1749a7b0f3fe9defff9656202237a3d55d0cf0a5f7ea",
+      "outcome": "transaction search resolved with truthfulStatus resolved-from-indexer and deepLink /tx/{hash}"
+    },
+    {
+      "url": "https://explorer.ynxweb4.com/tx/0x3d7da1dbf3b9bb02c98a48fcefc54525d0dfe6a310b05c3ed42aabbd91dbec25",
+      "httpStatus": 200,
+      "contentType": "text/html",
+      "bytes": 123345,
+      "sha256": "6aca33146a6635719a46c550ef22a0e1d313700d279e70ce08dd07f5816369bd",
+      "outcome": "SPA document served; this does not prove rendered transaction details or browser acceptance"
+    }
+  ],
+  "candidateStates": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "publicVerified": false,
+    "computerControlVerified": false
+  },
+  "remainingVerification": [
+    "Deploy the exact candidate before treating official runtime evidence as candidate deployment evidence.",
+    "Use Computer Control to search the full hash, open the deep link, refresh, and inspect the rendered transaction fields without a blank page."
+  ]
+}
