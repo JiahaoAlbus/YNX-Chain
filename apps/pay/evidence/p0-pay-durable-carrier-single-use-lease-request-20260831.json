@@ -1,0 +1,80 @@
+{
+  "schemaVersion": "payDurableCarrierSingleUseLeaseRequest@1.0.0-p0.0",
+  "requestId": "P0-PAY-DURABLE-CARRIER-SINGLE-USE-LEASE-20260831",
+  "classification": "NO_GO_SOURCE_BOUND_CARRIER_REQUEST_ONLY",
+  "owner": "pay",
+  "ownerScope": ["apps/pay/**"],
+  "baseline": {
+    "candidateSourceCommit": "dbdd3491e63186cc02541ca7e8a20d8f098b31b9",
+    "candidateSourceTree": "3a454e44f4830cf20be0caf57e28d2db3c6f304d",
+    "priorLeaseRequestCommit": "4febdea428685e404f8ffb6bc84b7b7ca16f0b1b",
+    "p0051": "EXPIRED_NONREUSABLE"
+  },
+  "networkTarget": {
+    "cosmosChainId": "ynx_6423-1",
+    "evmChainId": 6423,
+    "evmChainHex": "0x1917"
+  },
+  "durableCarrier": {
+    "path": "apps/pay/evidence/artifacts/ynx-pay-dbdd3491-expo-export-20260831.tgz",
+    "gitBlob": "ca272637b92d6396f9f0702008ab51fbebcd6f33",
+    "sha256": "f67a97354f5b5fc7b536280f7d028623fe59f49a68d6d0713874e2b4f41cc613",
+    "bytes": 3413552,
+    "kind": "Expo Android/iOS/Web export archive",
+    "build": "npm ci && npm run bundle-check",
+    "sourceBound": true,
+    "installable": false,
+    "publiclyHosted": false
+  },
+  "currentState": {
+    "observedAt": "2026-08-31T15:07:52+08:00",
+    "publicTarget": "https://pay.ynxweb4.com/",
+    "publicHttpStatus": 200,
+    "publicIdentityReadback": false,
+    "installedCandidate": false,
+    "nativeDeviceAssigned": false,
+    "rollbackTargetBound": false,
+    "executorBound": false
+  },
+  "singleUseLeaseRequired": {
+    "leaseId": "CENTRAL_MUST_ASSIGN_NEW_ID",
+    "executor": "CENTRAL_MUST_ASSIGN_NAMED_EXECUTOR",
+    "expiry": "CENTRAL_MUST_ASSIGN_FUTURE_ISO_8601_EXPIRY",
+    "permittedInstallTarget": "one Central-designated compatible Android or iOS device; bundleId com.ynxweb4.pay; cold-start and non-sensitive validation only",
+    "permittedPublicTarget": "https://pay.ynxweb4.com/ only after immutable artifact hosting and exact source/tree provenance readback",
+    "requiredBindings": [
+      "A signed or explicitly test-signed installable artifact derived from the durable carrier, with immutable URL, bytes, SHA-256, bundleId, source commit, and source tree.",
+      "A named executor and expiry before deployment or installation.",
+      "A pre-deploy public identity and a rollback artifact/runtime target, each with source/tree and SHA-256 readback.",
+      "A read-only provenance endpoint that returns the exact deployed source/tree and artifact identity."
+    ],
+    "rollbackProcedure": [
+      "Record the pre-deploy URL, source/tree identity, and artifact SHA-256.",
+      "Execute only through the bound executor before the bound expiry.",
+      "On any provenance, boot, resolver-first, callback fail-close, or passive lifecycle failure, restore the bound rollback target.",
+      "Read back the restored source/tree and artifact SHA-256 before lease closure."
+    ]
+  },
+  "nonSensitiveLifecycleOnly": {
+    "allowed": [
+      "Separate YNX Wallet and MetaMask provider discovery, labels, and logos.",
+      "Resolver-first unavailable behavior and callback fail-close behavior.",
+      "Prompt-free eth_accounts and eth_chainId readback only for an already-approved provider.",
+      "Passive accountsChanged, chainChanged, disconnect, and local revoke state handling.",
+      "No-blank-tab first-party Pay and separately opened Uniswap, OpenSea, and Safe."
+    ],
+    "forbidden": ["eth_requestAccounts", "personal_sign", "eth_signTypedData_v4", "eth_sendTransaction", "wallet_addEthereumChain", "wallet_switchEthereumChain", "private-key collection"],
+    "verified": false
+  },
+  "truth": {
+    "carrierDurableInGit": true,
+    "leaseIssued": false,
+    "artifactInstallable": false,
+    "artifactHosted": false,
+    "publicDeploymentVerified": false,
+    "installedCandidateVerified": false,
+    "rollbackVerified": false,
+    "providerLifecycleVerified": false
+  },
+  "completionRule": "This committed carrier and request are not deployment, installation, Wallet approval, callback, signing, transaction, or direct public E2E completion evidence."
+}
