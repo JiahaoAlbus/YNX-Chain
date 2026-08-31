@@ -43,15 +43,19 @@
     "productsMigratedV2": 0
   },
   "consumed": {
-    "count": 6,
-    "products": ["calendar", "developer", "dex", "exchange", "pay", "shop"],
-    "sourceOnlyProducts": ["developer", "dex", "exchange", "pay"],
+    "count": 7,
+    "products": ["calendar", "developer", "dex", "exchange", "pay", "quant", "shop"],
+    "sourceOnlyProducts": ["developer", "dex", "exchange", "pay", "quant"],
     "sourceAndPublicProducts": ["calendar", "shop"],
     "realApprovalProducts": ["calendar"],
     "calendarEvidenceCommit": "8f45566073f0d9979b5b1460b35144d954acc692",
     "calendarBoundary": "Real MetaMask approval and refresh chooser closure are verified; callback, disconnect handling and Product Session v2 remain false.",
     "shopEvidenceCommit": "35dc239546c2bf963534d5031d4c35c4e22c2d1c",
-    "shopBoundary": "Existing approved MetaMask account restores on 0x1917 and chooser closes; new approval, callback and Product Session v2 remain false."
+    "shopBoundary": "Existing approved MetaMask account restores on 0x1917 and chooser closes; new approval, callback and Product Session v2 remain false.",
+    "quantOwnerAuditCommit": "301b680ac8bec297108a75920b1c34354345b574",
+    "quantOwnerAuditTree": "9bf449bb52d8d2d1a3c6222da4f4891f7f22e9e0",
+    "quantOwnerAuditRemotePublished": false,
+    "quantBoundary": "Source-only owner audit confirms selected-provider discovery, 4902 add/re-switch/readback, event listener teardown and Product Session degradation separation. The audit commit is locally ahead of remote head 3bcf54ad; public runtime, approval, callback and Product Session v2 remain false."
   },
   "pending": [
     {
@@ -85,14 +89,6 @@
       "handoff": "Correct only the source-tree evidence binding, rerun the tested gate, then bind the exact public source and prove real approval/callback/refresh-disconnect."
     },
     {
-      "productId": "quant",
-      "owner": "finance-suite-quant",
-      "currentSourceCommit": "5fd6794b2fa0431b4353b96b1ab9146d7b69a82c",
-      "latestOwnerActivityCommit": "7d455a7211f78977c023480b33c86af758934b8d",
-      "publicSourceBound": false,
-      "handoff": "Consume the shared reducer while preserving Research/Paper guest mode and provider-only transport. Prove protected device, public Provider approval, callback and Product Session separately."
-    },
-    {
       "productId": "social",
       "owner": "social",
       "currentSourceCommit": "22c26bcb7a8d618cb8e38b30940b1c07bf4237c8",
@@ -108,7 +104,7 @@
     }
   ],
   "truth": {
-    "pendingProducts": 6,
+    "pendingProducts": 5,
     "newProductConsumptionRecorded": true,
     "newPublicRuntimeRecorded": true,
     "newApprovalRecorded": true,

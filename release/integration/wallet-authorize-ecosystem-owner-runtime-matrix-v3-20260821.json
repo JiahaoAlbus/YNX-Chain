@@ -18,7 +18,7 @@
     "canonicalConnectStateFixedSource": true,
     "directBrowserRpcIsConnectionPrerequisite": false,
     "acceptedCorsSafeRpcProbeRequired": true,
-    "registeredProductConsumers": 6,
+    "registeredProductConsumers": 7,
     "publicRuntimeConsumers": 2,
     "realAccountApprovalProducts": 1,
     "productsConnected": 0,
@@ -256,11 +256,11 @@
       "ownerHandoff":"Keep Web guest-only; prove Native resolver-first request, approval/rejection callback and cold-start recovery, then bind public and Product Session runtime."
     },
     {
-      "productId":"quant","owner":"finance-suite-quant","sourceCommit":"5fd6794b2fa0431b4353b96b1ab9146d7b69a82c","ownerEvidenceCommit":"20e827822e4768f5c1d0f54668c36bc3a842ed4a",
+      "productId":"quant","owner":"finance-suite-quant","sourceCommit":"301b680ac8bec297108a75920b1c34354345b574","sourceTree":"9bf449bb52d8d2d1a3c6222da4f4891f7f22e9e0","sharedProviderConnectConsumed":true,"ownerAuditRemotePublished":false,"ownerAuditRemoteHead":"3bcf54ad78bec3b65b331f88d3fee93da05bd37f","ownerEvidenceCommit":"20e827822e4768f5c1d0f54668c36bc3a842ed4a",
       "web":{"topLevelOrHandwrittenYnxwallet":false,"standardProvider":true,"metaMaskAddSwitch0x1917":true,"guest":"research-paper-source-preserved"},
       "runtime":{"sourceBoundPublic":false,"realInstalledApproval":false,"callback":false,"productSessionV2":false,"computerControl":false},
-      "blocker":"Protected device, public current-source runtime and real account approval remain absent.",
-      "ownerHandoff":"Preserve Research/Paper guest mode and provider-only transport; prove protected device, public real provider, callback and Product Session separately."
+      "blocker":"Owner audit source is locally ahead of its remote branch; protected device, source-bound public runtime and real account approval remain absent.",
+      "ownerHandoff":"Shared reducer consumption is source-audited at 301b680a but not remote-published. Preserve Research/Paper guest mode and provider-only transport; publish the exact source, then prove protected device, public real provider, callback and Product Session separately."
     },
     {
       "productId":"shop","owner":"shop","sourceCommit":"e35c950d57a6f9a4477877d3806cf1e4566ce74e","sourceTree":"1d26c1f76706ca4788e31e8f57a76759167d5fd9","ownerEvidenceCommit":"35dc239546c2bf963534d5031d4c35c4e22c2d1c","ownerEvidenceTree":"8264c02757e58ac82835c90405b0af3c0c0f15c2","ownerEvidencePath":"release/integration/shop-standard-wallet-connect-publication-evidence-20260821.json","ownerEvidenceBlob":"6a538a98c2f6b32da0e3a35a188deea50e253619","ownerEvidenceSha256":"3b11fd760b52dfa4c33960f2f892abb926fea6576e1b1c082b6012f7c64ae9f6","priorOwnerEvidenceCommit":"7b91f2120e7850a91be101b5ca7148dfb36beda6","centralEvidenceCommit":"a92dbe423afc93a235923de33d7d96454417b66b","centralEvidencePath":"release/integration/p0-wallet-connectivity/shop-web-standard-wallet-public-evidence-20260821.json",

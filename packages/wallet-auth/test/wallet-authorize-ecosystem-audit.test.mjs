@@ -575,11 +575,15 @@ test("current Wallet Web identity drift blocks public source binding without tre
 
 test("shared Provider/connect recovery hands off to all products without promoting runtime", () => {
   assert.equal(auditV3.sharedProviderConnectRecovery.sourceCommit, providerRecovery.source.commit);
-  assert.equal(auditV3.sharedProviderConnectRecovery.registeredProductConsumers, 6);
+  assert.equal(auditV3.sharedProviderConnectRecovery.registeredProductConsumers, 7);
   assert.equal(auditV3.sharedProviderConnectRecovery.publicRuntimeConsumers, 2);
   assert.equal(auditV3.sharedProviderConnectRecovery.realAccountApprovalProducts, 1);
   assert.deepEqual(providerRecovery.registeredProductHandoffs.map(({ productId }) => productId).sort(), auditV3.registeredProducts.map(({ productId }) => productId).sort());
-  assert.deepEqual(providerRecovery.registeredProductHandoffs.filter(({ consumed }) => consumed).map(({ productId }) => productId), ["calendar", "developer", "dex", "exchange", "pay", "shop"]);
+  assert.deepEqual(providerRecovery.registeredProductHandoffs.filter(({ consumed }) => consumed).map(({ productId }) => productId), ["calendar", "developer", "dex", "exchange", "pay", "quant", "shop"]);
+  const quantRecovery = providerRecovery.registeredProductHandoffs.find(({ productId }) => productId === "quant");
+  assert.equal(quantRecovery.sourceCommit, "301b680ac8bec297108a75920b1c34354345b574");
+  assert.equal(quantRecovery.ownerAuditRemotePublished, false);
+  assert.equal(quantRecovery.publicSourceBound, false);
   const calendarRecovery = providerRecovery.registeredProductHandoffs.find(({ productId }) => productId === "calendar");
   assert.equal(calendarRecovery.publicSourceBound, true);
   assert.equal(calendarRecovery.realProviderApproval, true);
@@ -608,13 +612,13 @@ test("shared Provider/connect recovery hands off to all products without promoti
   assert.equal(providerRecovery.truth.websiteDirectLinksRestored, false);
 });
 
-test("pending Provider/connect handoffs cover the remaining six owners and preserve connection authority", () => {
+test("pending Provider/connect handoffs cover the remaining five owners and preserve connection authority", () => {
   const consumed = providerRecovery.registeredProductHandoffs.filter(({ consumed }) => consumed).map(({ productId }) => productId);
   const pending = providerRecovery.registeredProductHandoffs.filter(({ consumed }) => !consumed).map(({ productId }) => productId).sort();
-  assert.deepEqual(consumed, ["calendar", "developer", "dex", "exchange", "pay", "shop"]);
-  assert.equal(pendingOwnerHandoffs.consumed.count, 6);
+  assert.deepEqual(consumed, ["calendar", "developer", "dex", "exchange", "pay", "quant", "shop"]);
+  assert.equal(pendingOwnerHandoffs.consumed.count, 7);
   assert.deepEqual(pendingOwnerHandoffs.consumed.products, consumed);
-  assert.equal(pendingOwnerHandoffs.pending.length, 6);
+  assert.equal(pendingOwnerHandoffs.pending.length, 5);
   assert.deepEqual(pendingOwnerHandoffs.pending.map(({ productId }) => productId).sort(), pending);
   assert.ok(pendingOwnerHandoffs.pending.every(({ currentSourceCommit, handoff }) => /^[0-9a-f]{40}$/.test(currentSourceCommit) && handoff.length > 80));
   assert.deepEqual(pendingOwnerHandoffs.connectionAuthority.successRequires, ["selected-provider", "approved-account", "provider-request-chain-0x1917"]);
@@ -631,6 +635,7 @@ test("pending Provider/connect handoffs cover the remaining six owners and prese
   assert.equal(auditV3.registeredProducts.find(({ productId }) => productId === "finance").candidateEvidenceSourceTreeMismatch, true);
   assert.equal(pendingOwnerHandoffs.truth.newProductConsumptionRecorded, true);
   assert.equal(pendingOwnerHandoffs.truth.aggregateConnected, false);
+  assert.equal(pendingOwnerHandoffs.consumed.quantOwnerAuditRemotePublished, false);
   const pendingCard = pendingOwnerHandoffs.pending.find(({ productId }) => productId === "card");
   assert.equal(pendingCard.currentSourceCommit, "345e0bdb41e9ad7cd5b208ffb1d144bc1b3b328b");
   assert.equal(pendingCard.sharedProviderConnectConsumed, false);
