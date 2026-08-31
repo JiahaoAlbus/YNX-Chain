@@ -2,6 +2,28 @@
   "schema": "ynx.social.6423.release-candidate.v1",
   "status": "CANDIDATE_NOT_DEPLOYED",
   "target": "https://social.ynxweb4.com/",
+  "currentPublicDeployment": {
+    "url": "https://social.ynxweb4.com/",
+    "identityStatus": "STALE_READBACK_REQUIRES_CENTRAL_REFRESH",
+    "capturedAt": "2026-08-22",
+    "files": [
+      {
+        "url": "https://social.ynxweb4.com/",
+        "bytes": 5563,
+        "sha256": "ce6f038a1171d0597398f13895e714f62d5e00ab00c9748b337861c9f248abee"
+      },
+      {
+        "url": "https://social.ynxweb4.com/app.js",
+        "bytes": 3003,
+        "sha256": "8860c1cfa3f6746c8a9610bb744dc1fb2e353551df558a1472cd6b0135a88845"
+      },
+      {
+        "url": "https://social.ynxweb4.com/styles.css",
+        "bytes": 5950,
+        "sha256": "00d15e63efced9e0bb0284270e2ce9164795a06da40864e93f1b6d77e74e188f"
+      }
+    ]
+  },
   "source": {
     "repositoryCommit": "c963f16853f73abb44aa578213cb91b4aa11d8f3",
     "parentCommit": "60e7426c1758fc3bae9e52923214abab6732806b",
@@ -40,9 +62,15 @@
     "expiry": "CENTRAL_LEASE_EXPIRY_TO_BE_NAMED"
   },
   "rollback": {
-    "artifact": "CENTRAL_RELEASE_RECORD_REQUIRED",
+    "artifact": {
+      "path": "apps/social/evidence/release-candidates/ynx-social-ecffe336.tar.gz",
+      "sourceCommit": "ecffe336a3a380e8b13b6a7926720efb1bfe4ae2",
+      "sourceTree": "a7289a70cb7464b4debdb24163f93572194681eb",
+      "bytes": 921443,
+      "sha256": "ff94c7ab3b93b6f953b2ec25af896a6408219809f9df9ea59933f53eebb1235e"
+    },
     "deployment": "CENTRAL_RELEASE_RECORD_REQUIRED",
-    "procedure": "CENTRAL_RELEASE_RECORD_REQUIRED"
+    "procedure": "Central must atomically restore the exact rollback artifact to https://social.ynxweb4.com/, read back the served file hashes, and retain the release record."
   },
   "sensitiveBoundary": {
     "accountRequest": "FORBIDDEN",

@@ -1,0 +1,27 @@
+{
+  "schema": "ynx.social.6423.nonsensitive-browser-preflight.v1",
+  "status": "PREPARED_NOT_OBSERVED",
+  "sourceCommit": "c963f16853f73abb44aa578213cb91b4aa11d8f3",
+  "sourceTree": "90ed6c10ccd816e81f0aec76b094f26a240d98f8",
+  "artifactSha256": "f0de92beb645875c3340f9eac6245c36547ea896ea75925d337725766bfe5b37",
+  "target": "https://social.ynxweb4.com/",
+  "chain": {
+    "evmChainId": 6423,
+    "evmChainQuantity": "0x1917",
+    "nativeChainId": "ynx_6423-1",
+    "forbidden": ["ynx_9102-1", "0x238e", 9102]
+  },
+  "checks": {
+    "englishDefault": "NOT_OBSERVED",
+    "distinctYNXIdentityAndLogo": "NOT_OBSERVED",
+    "distinctMetaMaskIdentityAndLogo": "NOT_OBSERVED",
+    "lateProvider": "NOT_OBSERVED",
+    "noProvider": "NOT_OBSERVED",
+    "stableURL": "NOT_OBSERVED",
+    "singleTopLevelTab": "NOT_OBSERVED",
+    "noBlankPage": "NOT_OBSERVED",
+    "consoleZeroErrors": "NOT_OBSERVED"
+  },
+  "authority": "source-bound preparation only; no public or installed runtime evidence",
+  "forbiddenActions": ["eth_requestAccounts", "wallet signing", "transaction submission"]
+}
