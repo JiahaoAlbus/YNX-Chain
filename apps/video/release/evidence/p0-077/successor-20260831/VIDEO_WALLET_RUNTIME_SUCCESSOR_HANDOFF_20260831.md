@@ -22,10 +22,11 @@ The shell fixture proves that a candidate Viewer failure after the current-link 
 
 ## Verification
 
-- Video check: 25/25
+- Video check: 26/26
 - i18n audit: 12 locales, 22 exact keys
 - deterministic carrier: byte-exact repeat
 - extracted carrier served at isolated port 16494; root and Wallet module were read back with exact hashes and both identity markers
+- public browser verifier is hard-bound to the official URL and source, reuses one persistent profile across cold/second launch, requires one top-level page, stable URL, console 0, and distinct chooser UI; its synthetic providers reject every request and are not installed-provider evidence
 - no SSH, deployment, provider, account, signature or transaction action
 
 Central must independently verify the Git carrier and issue a wholly-new Video-only single-use lease after a fresh production tuple readback. Earlier P0-237/P0-238/P0-239 leases are nonreusable.

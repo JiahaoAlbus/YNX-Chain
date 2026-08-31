@@ -106,7 +106,7 @@
     }
   },
   "fixtureEvidence": {
-    "appAndRuntimeTests": "PASS_25_OF_25",
+    "appAndRuntimeTests": "PASS_26_OF_26",
     "i18nAudit": "PASS_12_LOCALES_22_KEYS",
     "deterministicCarrierRepeat": "PASS_BYTE_EXACT",
     "extractedCarrierSmoke": {
@@ -124,6 +124,22 @@
     },
     "controlledTakeoverFailureStages": ["stop", "port", "bootstrap", "post"],
     "controlledTakeoverFailureRecoveryPassed": true
+  },
+  "publicBrowserAcceptance": {
+    "path": "apps/video/scripts/verify-public-browser.mjs",
+    "bytes": 7403,
+    "sha256": "e8b2accc8ba5e66ee4356298d4a5ea22ecc0bc9b66a2379d292bfd9fe123c535",
+    "canonicalUrlOnly": "https://web4.ynxweb4.com/video/",
+    "sourceCommitExact": "560c467d61e74f7939b8ce527f14316c736b88a7",
+    "rawResourcesExact": ["root", "app.js", "wallet-connection.js", "runtime-manifest.json"],
+    "persistentProfileColdAndSecondLaunch": true,
+    "oneTopLevelPage": true,
+    "stableUrl": true,
+    "consoleErrorsRequired": 0,
+    "distinctChooserEvidence": ["YNX Wallet/com.ynx.wallet", "MetaMask/io.metamask"],
+    "providerRequestMethodsRequired": [],
+    "syntheticProvidersAreNonSensitiveUiEvidenceOnly": true,
+    "realInstalledProviderClaimed": false
   },
   "requestedLeaseBoundary": {
     "leaseType": "VIDEO_ONLY_SINGLE_USE_POST_P0239_SUCCESSOR",
