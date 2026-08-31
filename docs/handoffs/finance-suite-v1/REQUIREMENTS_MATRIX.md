@@ -1,8 +1,12 @@
 # YNX finance suite requirements matrix
 
-Authority: Fable5 Coordinated Final Testnet Prompt Pack v2. This file records the finance-suite interpretation only; it does not redefine Wallet, Oracle, Data Fabric, Explorer, Bridge, Website, Security/SRE or Governance ownership.
+Authority: [`YNX_Chain_Fable5_Coordinated_Ultimate_Goal_Prompts.md`](/Users/huangjiahao/Downloads/YNX_Chain_Fable5_Coordinated_Ultimate_Goal_Prompts.md), 10,125 lines / 678,638 bytes / SHA-256 `21f86acd7de45053982eda918b2c4ae47c1e1e8409c57838723897f6e87244c1` (read 2026-08-31). Finance-suite extraction covers the common product constitution plus Exchange §07 (lines 1867–2158), Quant Lab §08 (2159–2523), Finance §24 (6518–6769), DEX §27 (7302–7588), and Oracle & Market Data §19 for shared price provenance. This file records the finance-suite interpretation only; it does not redefine Wallet, Oracle, Data Fabric, Explorer, Bridge, Website, Security/SRE or Governance ownership.
 
 Status vocabulary: `proven-public`, `tested-local`, `partial`, `missing`, `external-blocked`. Testnet, paper, unsigned artifacts and production are deliberately separate.
+
+## Review boundary
+
+The Fable5 scope requires product-owned Testnet evidence, not a source or CI receipt. A product is therefore **not complete** until its exact deployed/installed runtime, source identity, Wallet lifecycle, protected write preview/confirmation, recovery, and public/Explorer evidence are all directly observed. This review preserves the accepted Chain Core v1.35 vault constraints: the persisted vault owner equals the StrategyMandate owner; a closed vault holds zero YNXT; engines cannot withdraw, change owner, or widen a mandate.
 
 | Product | Requirement group | Current status | Direct evidence / next closure |
 | --- | --- | --- | --- |
