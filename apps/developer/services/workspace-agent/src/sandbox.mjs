@@ -10,6 +10,10 @@ export function detectSandbox(options = {}) {
     return {
       kind: "linux-bubblewrap-prlimit",
       ready: commandExists("bwrap") && commandExists("prlimit"),
+      // A Docker verifier may already have removed every external network
+      // interface. In that case Bubblewrap can share the outer namespace
+      // instead of requiring NET_ADMIN merely to configure a fresh loopback.
+      outerNetworkIsolated: process.env.YNX_CODE_OUTER_NETWORK_ISOLATED === "1",
     };
   return { kind: `unsupported-${process.platform}`, ready: false };
 }
@@ -138,9 +142,12 @@ export function sandboxLaunch({
         host,
         guest,
       ]),
+      namespaceFlags = sandbox.outerNetworkIsolated
+        ? ["--unshare-user", "--unshare-ipc", "--unshare-pid", "--unshare-uts", "--unshare-cgroup"]
+        : ["--unshare-all"],
       bubblewrap = [
         "bwrap",
-        "--unshare-all",
+        ...namespaceFlags,
         "--die-with-parent",
         "--new-session",
         "--proc",
