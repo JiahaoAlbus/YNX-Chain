@@ -5,15 +5,15 @@
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-creator-studio-3f97a13d-post-switch-fenced-upgrade-20260831T044812Z",
   "owner": "creator-studio-deploy-owner",
   "executor": "release-control-plane",
-  "status": "ACTIVE",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_REMOTE_ARGV_SHELL_QUOTING_PRE_EXECUTION",
   "issuedAt": "2026-08-31T04:48:12Z",
   "expiresAt": "2026-08-31T05:18:12Z",
   "singleUse": true,
   "reusable": false,
-  "consumedAt": null,
-  "releasedAt": null,
-  "executionAuthorized": true,
-  "productionMutationAllowed": true,
+  "consumedAt": "2026-08-31T04:51:28Z",
+  "releasedAt": "2026-08-31T04:51:28Z",
+  "executionAuthorized": false,
+  "productionMutationAllowed": false,
   "ownerAuthority": {
     "branch": "codex/p0-creator-studio-subpath-i18n-20260831",
     "head": "3e24caff2beba38a0a3ab0f7e333590d2f00e568",
@@ -137,6 +137,27 @@
     "emergency": "EMERGENCY_BLOCKED_CREATOR_3F97A13D_EXACT_RECEIPT_BOUND_RECOVERY_REQUIRED_NO_FURTHER_ACTION",
     "independentReadbackRequired": true
   },
+  "terminalEvidence": {
+    "forwardAttempts": 1,
+    "retryAttempts": 0,
+    "remoteShellExitStatus": 2,
+    "signal": null,
+    "stdoutBytes": 0,
+    "failureClass": "REMOTE_ARGV_SHELL_QUOTING_PRE_EXECUTION",
+    "failureMessage": "bash rejected the unquoted eval(Buffer.from(process.argv[1],base64).toString(utf8)) expression before sudo or node started",
+    "sudoStarted": false,
+    "nodeStarted": false,
+    "transportEvaluated": false,
+    "carrierEvaluated": false,
+    "placementStarted": false,
+    "serviceLifecycleStarted": false,
+    "currentMutationStarted": false,
+    "publicMutationStarted": false,
+    "conditionalRollbackAuthorized": false,
+    "conditionalRollbackAttempts": 0,
+    "productionMutationCount": 0,
+    "remoteStateClassification": "PRE_EXECUTION_NO_PRODUCTION_MUTATION"
+  },
   "locks": [
     "heavy:creator-studio-deploy-owner",
     "host:43.153.202.237:creator-studio-3f97-upgrade",
@@ -147,5 +168,5 @@
     "public:https://web4.ynxweb4.com/video/studio/**"
   ],
   "forbidden": ["retry", "pre-switch rollback", "unfenced recursive deletion", "mutate Caddy", "mutate API6493 or Viewer6494", "mutate shared /opt/ynx-video/current", "Wallet account request", "signature", "typed data", "transaction"],
-  "truthBoundary": {"leaseIssued": true, "executionStarted": false, "sourceBoundPublic": false, "account": false, "signature": false, "transaction": false, "productComplete": false}
+  "truthBoundary": {"leaseIssued": true, "outerSshAttempted": true, "remoteProductExecutionStarted": false, "sourceBoundPublic": false, "account": false, "signature": false, "transaction": false, "productComplete": false}
 }

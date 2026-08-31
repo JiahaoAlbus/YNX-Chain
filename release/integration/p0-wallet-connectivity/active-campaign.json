@@ -427,25 +427,25 @@
     }
   ],
   "heavy": {
-    "owner": "creator-studio-deploy-owner",
+    "owner": null,
     "taskId": "P0-313",
-    "status": "ACTIVE",
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_REMOTE_ARGV_SHELL_QUOTING_PRE_EXECUTION",
     "acquiredAt": "2026-08-31T04:48:12Z",
     "expiresAt": "2026-08-31T05:18:12Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-31T04:51:28Z",
     "sourceCommit": "3e24caff2beba38a0a3ab0f7e333590d2f00e568",
     "evidenceCommit": "3e24caff2beba38a0a3ab0f7e333590d2f00e568",
     "runtimeHost": "43.153.202.237",
     "currentRuntime": "CREATOR_0E1A53C5_EXACT_PID2747844",
     "candidateRuntime": "CREATOR_3F97A13D_SOURCE_ONLY_NOT_DEPLOYED",
     "artifactSha256": "e7325c867c13c97a99a8210b905be979d01eb49357a8a1c359ae7bcf59fee151",
-    "productionMutationAllowed": true,
+    "productionMutationAllowed": false,
     "singleUse": true,
     "reusable": false,
     "previousOwner": null,
     "previousTaskId": "P0-312",
-    "reviewDecision": "P0313_CREATOR_POST_SWITCH_FENCED_UPGRADE_LEASE_ISSUED",
-    "reason": "Owner source and exact request are remote exact and clean; executor and transport fixtures pass; fresh zero-write prewrite matches the old Creator runtime, sibling services, unit, seven target absences and five public resources. One forward is authorized with at most one receipt-bound conditional rollback and mandatory independent terminal readback."
+    "reviewDecision": "P0313_CREATOR_REMOTE_ARGV_SHELL_QUOTING_PRE_EXECUTION_RELEASED",
+    "reason": "The sole authorized SSH attempt exited 2 because the remote shell parsed the unquoted node eval expression before sudo or node started. Transport, carrier, placement, service lifecycle, current and public mutation never started. No retry or rollback occurred; a wholly-new successor must bind and test true SSH remote-command serialization."
   },
   "wave": {
     "id": "B-financial-apps-quant",
