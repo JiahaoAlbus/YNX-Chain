@@ -269,8 +269,13 @@ export class RecoverableProductSessionClient {
     });
     return this.#state;
   }
-  #offline(message = "Network unavailable; cached Product Session is not treated as authoritative") { this.#state = state(PRODUCT_SESSION_CLIENT_STATE.NETWORK_UNAVAILABLE, message, { actions: ["retry", "guest"] }); return this.#state; }
-  #routeUnavailable(message) { this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, message, { actions: ["retry", "guest"] }); return this.#state; }
+  // Keep the Product Session failure exact and consumable by the shared
+  // Standard Wallet state machine.  It remains a private-service failure;
+  // callers must not turn it into a synthetic account, session, or chain
+  // connection.  `GATEWAY_UNAVAILABLE` is the canonical public alias for a
+  // transient Product Session transport failure.
+  #offline(message = "Network unavailable; cached Product Session is not treated as authoritative") { this.#state = state(PRODUCT_SESSION_CLIENT_STATE.NETWORK_UNAVAILABLE, message, { code: "GATEWAY_UNAVAILABLE", actions: ["retry", "guest"] }); return this.#state; }
+  #routeUnavailable(message) { this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, message, { code: "ROUTE_NOT_MOUNTED", actions: ["retry", "guest"] }); return this.#state; }
   #networkTransition(message) { if (!this.#networkAvailable) return this.#offline(message); this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, message, { actions: ["retry", "guest"] }); return this.#state; }
 }
 

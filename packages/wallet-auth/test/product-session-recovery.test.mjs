@@ -122,8 +122,12 @@ test("second-launch Wallet availability probe failure clears stale pending autho
 
 test("network loss, rejection and Guest mode never synthesize identity, balance, transaction or Chain state", async () => {
   const setup = harness();
-  assert.equal(setup.client.setNetworkAvailable(false).status, PRODUCT_SESSION_CLIENT_STATE.NETWORK_UNAVAILABLE);
-  assert.equal((await setup.client.restore(false)).status, PRODUCT_SESSION_CLIENT_STATE.NETWORK_UNAVAILABLE);
+  const offline = setup.client.setNetworkAvailable(false);
+  assert.equal(offline.status, PRODUCT_SESSION_CLIENT_STATE.NETWORK_UNAVAILABLE);
+  assert.equal(offline.code, "GATEWAY_UNAVAILABLE");
+  const restoredOffline = await setup.client.restore(false);
+  assert.equal(restoredOffline.status, PRODUCT_SESSION_CLIENT_STATE.NETWORK_UNAVAILABLE);
+  assert.equal(restoredOffline.code, "GATEWAY_UNAVAILABLE");
   setup.client.setNetworkAvailable(true);
   const connecting = await setup.client.retry({ walletInstalled: true, schemeRegistered: true });
   const rejection = createProductSessionReturnURL(registry, connecting.request, { result: "rejected", reason: "user_rejected" }, NOW);
@@ -406,6 +410,7 @@ test("an unmounted canonical Gateway route retains the approved callback for exp
   const callback = createProductSessionReturnURL(registry, connecting.request, { result: "approved", approval }, NOW);
   const unavailable = await client.handleReturn(callback);
   assert.equal(unavailable.status, PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED);
+  assert.equal(unavailable.code, "ROUTE_NOT_MOUNTED");
   assert.match(unavailable.message, /route is not mounted/);
   assert.notEqual(await setup.storage.get(`${client.storageKey}:pending`), null);
   assert.equal(await setup.storage.get(`${client.storageKey}:return`), callback);
