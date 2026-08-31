@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "owner": "wallet-desktop-cli-sdk",
+  "branch": "codex/wallet-sdk-error-taxonomy-20260831",
+  "implementationCommit": "6fefb82068f84aa1d96cc9dcff490a1ae8d78109",
+  "implementationTree": "fec0d22ae2b4160e5e8b733641d4edfd8453ac9f",
+  "evidencePath": "docs/integration/wallet-cli-6423-remediation-compatibility-evidence-20260831.json",
+  "result": "SOURCE_PACKAGE_AND_COMPATIBILITY_GATES_PASS_RUNTIME_PUBLIC_GATES_FALSE",
+  "claims": {
+    "englishCLIHelp": true,
+    "safeRemediationContract": true,
+    "exact6423ConfigValidated": true,
+    "legacy9102FailsClosed": true,
+    "crossLanguageContract": true,
+    "cleanPackageConsumer": true,
+    "legacyConsumerCompatible": true,
+    "remoteProbeRepeated": false,
+    "chain9102Accessed": false,
+    "accountRequested": false,
+    "signed": false,
+    "transactionCreated": false
+  }
+}

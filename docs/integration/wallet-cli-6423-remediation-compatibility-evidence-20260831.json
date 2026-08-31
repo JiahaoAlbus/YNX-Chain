@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "scope": "wallet-desktop-cli-sdk",
+  "branch": "codex/wallet-sdk-error-taxonomy-20260831",
+  "implementationCommit": "6fefb82068f84aa1d96cc9dcff490a1ae8d78109",
+  "implementationTree": "fec0d22ae2b4160e5e8b733641d4edfd8453ac9f",
+  "parentCommit": "3c4235019773ae0b2439123217750bb01f203f03",
+  "cliHelp": {
+    "defaultLanguage": "en",
+    "commandsDocumented": ["help", "version", "validate-config", "chain-status", "verify-vector", "sign-self-test"],
+    "networkShown": "ynx_6423-1 / 6423 / 0x1917 / YNXT",
+    "readOnlySafetyShown": true,
+    "accountRequestClaimed": false,
+    "signingClaimed": false,
+    "transactionClaimed": false
+  },
+  "exactConfigContract": {
+    "nativeChainId": "ynx_6423-1",
+    "chainIdDecimal": 6423,
+    "evmChainId": "0x1917",
+    "nativeCurrency": "YNXT",
+    "validConfigResult": "PASS",
+    "legacyCases": [
+      {"nativeChainId": "ynx_9102-1", "result": "WRONG_CHAIN", "exitCode": 78},
+      {"chainIdDecimal": 9102, "result": "WRONG_CHAIN", "exitCode": 78},
+      {"evmChainId": "0x238e", "result": "WRONG_CHAIN", "exitCode": 78}
+    ],
+    "remediation": "USE_YNX_TESTNET_6423",
+    "chain9102Accessed": false
+  },
+  "crossLanguageContract": {
+    "vector": "testdata/wallet-sdk-error-taxonomy-v1.json",
+    "vectorSha256": "1a59319f3aabf8584d9c96e6242c13fca154b2d3c11929acb017155a16b4b728",
+    "typescriptConsumer": "PASS",
+    "goConsumer": "PASS",
+    "cliConsumer": "PASS",
+    "diagnosticCodes": 9,
+    "safeEnglishSummaries": true,
+    "stableRemediationCodes": true
+  },
+  "cleanPackageConsumer": {
+    "runner": "release/integration/wallet-sdk-error-taxonomy/run-clean-consumer.mjs",
+    "runnerSha256": "ed0659c7157e32ff3fa34b8b587712abc1efb36ed129abee3cb042b30fcaf5bd",
+    "package": "@ynx-chain/sdk@0.2.1",
+    "sourceCommit": "6fefb82068f84aa1d96cc9dcff490a1ae8d78109",
+    "sourceTree": "fec0d22ae2b4160e5e8b733641d4edfd8453ac9f",
+    "sourceWorktreeDirty": false,
+    "tarballBytes": 8333,
+    "tarballSha256": "33d92662118126184e9c4d4bbd815bcfc15f9332547980475149a6b739388653",
+    "packageLockSha256": "253cac2527c31bad510234f42c5ca98026508ab8808de87838e053a89be940aa",
+    "installedFilesSha256": "68392f87978770ab9bebb3a72d2cb30ea1742724d8764d990c8d7256eea3f803",
+    "consecutiveIdenticalRuns": 2,
+    "exactConfigValidated": true,
+    "chain9102Rejected": true,
+    "remediationContractVerified": true,
+    "legacyExportsCompatible": true,
+    "legacyReadOnlyFlowCompatible": true,
+    "temporaryConsumerRemoved": true
+  },
+  "tests": [
+    {"command": "node --test sdk/js/index.test.mjs sdk/js/wallet.test.mjs", "result": "PASS", "tests": 22},
+    {"command": "go test ./sdk/wallet/go ./cmd/ynx-wallet-cli ./examples/wallet-go-sdk", "result": "PASS", "packages": 3},
+    {"command": "go vet ./sdk/wallet/go ./cmd/ynx-wallet-cli ./examples/wallet-go-sdk", "result": "PASS"},
+    {"command": "node release/integration/wallet-sdk-error-taxonomy/run-clean-consumer.mjs", "result": "PASS", "consecutiveRuns": 2}
+  ],
+  "nonProductToolBoundary": {
+    "temporaryBinaryDemoAttempted": false,
+    "reason": "The combined local command was rejected before execution because it included a disallowed temporary-directory deletion operation; unit and package consumer gates already cover the requested behavior.",
+    "externalMutation": false
+  },
+  "runtimeTruth": {
+    "remoteProbeRepeated": false,
+    "currentRemoteChainConnectionProved": false,
+    "accountRequested": false,
+    "signed": false,
+    "transactionCreated": false,
+    "installedArtifactProvedByThisSlice": false,
+    "providerLifecycleProved": false,
+    "productionSigned": false,
+    "downloadHostedChanged": false,
+    "deployedPublicChanged": false
+  }
+}
