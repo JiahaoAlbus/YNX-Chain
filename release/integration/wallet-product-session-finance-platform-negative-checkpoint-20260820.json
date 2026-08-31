@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-WALLET-PRODUCT-SESSION-FINANCE-PLATFORM-NEGATIVE-20260820",
+  "capturedAt": "2026-08-20T16:20:00Z",
+  "owner": "wallet-protocol",
+  "sourceOwner": "finance",
+  "sourceBranch": "codex/p0-finance-wallet-connectivity-20260820",
+  "remoteCommit": "f711745dc44cea17ac46abd6332af87f6db2ffa6",
+  "remoteTree": "51e72c24d83091625b61f2a062ad9c2f9bcb967a",
+  "ownerLocalFeatureCommit": "1fff241a319dbc5b969c818a46bbdc0ecf1fc869",
+  "ownerLocalEvidenceCommit": "94c9e2cd958c93d83619282bb2e50c32e4a28864",
+  "remoteTreeMatchesOwnerLocalFinalTree": true,
+  "forceUpdateUsed": false,
+  "acceptedWalletAuthSource": "203be5e108be468350591615a64d5d36ab87a8f1",
+  "consumer": {
+    "rootFactoryConsumed": true,
+    "gatewayOrigin": "https://wallet-auth.ynxweb4.com",
+    "androidKeystoreP256Bridge": true,
+    "javascriptReceivesPrivateKey": false,
+    "standardWalletSeparatedFromProductSession": true,
+    "callerEndpointOrSessionInjectionAllowed": false
+  },
+  "ownerReportedVerification": {
+    "financeTestsPassed": 10,
+    "financeTestsFailed": 0,
+    "mobileTestsPassed": 9,
+    "mobileTestsFailed": 0,
+    "androidReleaseApkBuilt": true,
+    "localGatewayV2Routes": [
+      "/v2/product-sessions/challenge",
+      "/v2/product-sessions/complete",
+      "/v2/product-sessions/introspect",
+      "/v2/product-sessions/revoke"
+    ],
+    "publicStateFreeChallengeStatus": 400,
+    "publicStateFreeChallengeSchemaVersion": 2,
+    "publicStateCreated": false
+  },
+  "installedPlatformEvidence": {
+    "platform": "android-emulator",
+    "device": "emulator-5560",
+    "financeApkSha256": "c830de2665d11d685b26f0c01dfd6ed5098cefba6f708d460a0993f5df0600f1",
+    "financeApkSigning": "LOCAL_ANDROID_DEBUG",
+    "walletPackage": "com.ynxweb4.wallet",
+    "rootFactoryOpenedInstalledWallet": true,
+    "walletState": "LOCKED",
+    "walletResult": "PROTOCOL_SCHEMA_FIELD_MISMATCH",
+    "sessionCreated": false,
+    "approvalVerified": false,
+    "ownerEvidencePaths": [
+      "apps/finance/P0_PRODUCT_SESSION_V2_EVIDENCE_20260820.md",
+      "apps/finance/evidence/p0-finance-v2-first-launch-20260820.png",
+      "apps/finance/evidence/p0-finance-v2-wallet-rejection-20260820.png"
+    ]
+  },
+  "evidenceBoundary": {
+    "publicGatewayLifecycleForFinanceVerified": false,
+    "installedVisibleSuccessVerified": false,
+    "installedVisibleNegativeVerified": true,
+    "rejectCallbackVerified": false,
+    "timeoutVerified": false,
+    "revokeVerified": false,
+    "secondLaunchRestoreVerified": false,
+    "networkLossRetryVerified": false,
+    "migratedV2": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

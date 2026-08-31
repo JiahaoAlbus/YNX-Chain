@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "WALLET-STANDARD-WALLET-E2E-EXECUTION-PLAN-P0-20260822",
+  "owner": "wallet-protocol-router",
+  "version": "standardWalletE2EExecution@1.0.0-p0.0",
+  "purpose": "Single owner-executable route from accepted source conformance to real Wallet interoperability. This plan is a release gate, not runtime evidence.",
+  "authoritativeInputs": {
+    "standardConnectionContract": {
+      "path": "release/integration/wallet-standard-connection-conformance-contract-p0-20260822.json",
+      "version": "standardWalletConformance@1.0.0-p0.0",
+      "protocolCommit": "66003e76e804da16d472255efde50cb879055b96",
+      "sdkCommit": "315897e75c0ffe3e63435fe73cfec42244b851cc"
+    },
+    "sharedProvider": {
+      "commit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+      "tree": "51a60a362d4ad5dd748bcdefb101f71b1d9e0cee",
+      "evidence": "c3ab255c32bdeb9c8e056882c315f8ad43c29c7f"
+    },
+    "sharedCore": {
+      "implementationCommit": "d8cda9f77918cab5bdfdd0568370f3c19742c14c",
+      "evidenceCommit": "0e5af17d4f784a30390452b5c2b750047e93727d"
+    },
+    "walletWebProviderIdentity": {
+      "commit": "a3310cc9f0c757d27dae83282b68361c116c22a3",
+      "ynx": {"name": "YNX Wallet", "rdns": "com.ynx.wallet", "isYNXWallet": true, "isMetaMask": false},
+      "metamask": {"isMetaMask": true, "isYNXWallet": false}
+    }
+  },
+  "invariants": {
+    "chain": {"cosmos": "ynx_6423-1", "evmDecimal": 6423, "evmHex": "0x1917", "symbol": "YNXT", "defaultLanguage": "en"},
+    "connectionSuccess": ["selected-provider", "approved-0x-account", "provider-request-eth_chainId-0x1917"],
+    "layer1Independence": "Gateway or Product Session failures may set PRIVATE_SERVICE_DEGRADED only; they cannot revoke, hide, reconnect or reopen a completed Layer 1 Standard Wallet connection.",
+    "rpcBoundary": "A browser fetch to a CORS-disabled RPC endpoint is never a connection prerequisite. An accepted CORS-safe probe may be reported separately as degraded.",
+    "webTransport": "Web may not navigate a custom scheme, use an iframe launcher, open a blank top-level target, or encode a handwritten authorization request. Native remains resolver-first and uses the canonical request builder.",
+    "authority": "A product never fabricates an account, approval, signature, transaction, WalletConnect session or Product Session. Reject and unavailable paths retain no new authority."
+  },
+  "requiredProviderIdentityProof": {
+    "ynxWallet": ["EIP-6963 provider info is YNX Wallet", "rdns is com.ynx.wallet", "isYNXWallet is true", "isMetaMask is false", "distinct YNX icon is visible"],
+    "metaMask": ["MetaMask is independently discovered or selected", "isMetaMask is true", "isYNXWallet is false", "distinct MetaMask icon is visible"],
+    "ambiguity": "Multiple indistinguishable providers fail closed with a visible selection/error; install/download fallback is not a successful connection."
+  },
+  "realE2EScenarios": [
+    {"id": "discovery", "steps": ["request EIP-6963 before DOMContentLoaded", "request again after DOMContentLoaded", "fall back to window.ethereum.providers then window.ethereum", "classify locked, denied, disabled, unavailable and ambiguous separately"], "promotes": false},
+    {"id": "approve-reject", "steps": ["select a real provider", "approve eth_requestAccounts using a dedicated test account", "record account only in redacted 0x form", "repeat with user rejection", "prove rejected path creates no authority"], "promotes": false},
+    {"id": "chain", "steps": ["read eth_chainId", "if needed execute exact 4902 add/switch flow", "re-read provider.request eth_chainId", "require exact 0x1917 before success"], "promotes": false},
+    {"id": "sign-and-send", "steps": ["explicit user-action personal_sign", "explicit user-action eth_signTypedData_v4 with chain-bound domain", "explicit user-action eth_sendTransaction from approved test account on Testnet", "record request IDs, redacted account, transaction hash and receipt only after direct success"], "promotes": false},
+    {"id": "lifecycle", "steps": ["success closes chooser/modal and restores trigger focus", "refresh restores approved account and 0x1917 without reopening chooser", "accountsChanged empty revokes permission", "chainChanged wrong chain enters switch-required state", "disconnect and explicit revoke clear authority", "URL, original tab and console remain stable with no blank tab"], "promotes": false},
+    {"id": "product-session-boundary", "steps": ["force only private Product Session/Gateway unavailable", "show PRIVATE_SERVICE_DEGRADED", "preserve selected provider, approved account and completed standard connection"], "promotes": false},
+    {"id": "walletconnect-v2", "steps": ["use real configured project ID and relay", "pair a first-party DApp and one external DApp", "approve and reject proposals", "approve only 0x account/methods/eip155:6423", "restart restore", "personal_sign, EIP-712 and testnet send", "disconnect/revoke purges session"], "promotes": false}
+  ],
+  "dappCoverage": {
+    "firstParty": {"id": "ynx-first-party", "ownerMustRecordExactUrl": true},
+    "external": [
+      {"id": "uniswap-interface-reference", "class": "independent-standard-evm-dapp", "ownerMustRecordExactUrl": true},
+      {"id": "opensea-reference", "class": "independent-standard-evm-dapp", "ownerMustRecordExactUrl": true},
+      {"id": "safe-reference", "class": "independent-standard-evm-dapp", "ownerMustRecordExactUrl": true}
+    ],
+    "requirement": "All four DApps must be separately opened in a real browser or installed client; fixtures, provider detection and static URLs do not count."
+  },
+  "evidenceEnvelope": {
+    "required": ["owner source commit/tree and shared-source consumer gate output", "public deployment URL plus exact source/version/build identity", "real browser or installed-device screenshots and console output", "provider identity/selection trace", "approve and reject request IDs", "eth_chainId and 0x1917 add/switch trace", "redacted account lifecycle trace", "signature request IDs, transaction hash/receipt when user approves", "WalletConnect relay/pairing/session traces where applicable", "refresh/events/disconnect/revoke trace", "rollback target and observed rollback result"],
+    "forbiddenSubstitutes": ["HTTP 200 alone", "URI resolver can-open result", "synthetic fixture", "provider detected", "download/install fallback", "source or CI only", "ComputerControl inferred from ordinary browser evidence"]
+  },
+  "ownerDispatch": [
+    {"productId": "calendar", "owner": "calendar", "sourceConsumption": true, "publicRuntime": true, "nextE2E": ["execute disconnect", "execute account switch or accountsChanged", "new approve/reject callback", "Product Session lifecycle"]},
+    {"productId": "card", "owner": "card", "sourceConsumption": false, "publicRuntime": true, "restriction": "Card has an independent goal; Protocol Owner must not change Card source.", "nextE2E": ["consume shared discovery/connect state", "resolve same-Chrome provider detection", "all standard lifecycle and Product Session evidence"]},
+    {"productId": "creator-studio", "owner": "creator-studio", "sourceConsumption": false, "publicRuntime": true, "nextE2E": ["consume shared reducer", "provider approve/reject", "refresh/events/disconnect", "Product Session lifecycle"]},
+    {"productId": "developer", "owner": "developer", "sourceConsumption": true, "publicRuntime": false, "nextE2E": ["protected exact-source public release", "full real provider lifecycle", "Product Session lifecycle"]},
+    {"productId": "dex", "owner": "finance-suite-dex", "sourceConsumption": true, "publicRuntime": false, "nextE2E": ["exact public release", "full real provider lifecycle", "Product Session lifecycle"]},
+    {"productId": "exchange", "owner": "finance-suite-exchange", "sourceConsumption": true, "publicRuntime": false, "nextE2E": ["exact public release", "4902 add/switch proof", "full real provider lifecycle", "Product Session lifecycle"]},
+    {"productId": "finance", "owner": "finance-suite-finance", "sourceConsumption": false, "publicRuntime": false, "nextE2E": ["correct authoritative tree binding", "exact public release", "full real provider lifecycle", "Product Session lifecycle"]},
+    {"productId": "pay", "owner": "pay", "sourceConsumption": true, "publicRuntime": false, "nextE2E": ["native resolver-first request/callback", "cold-start recovery", "full real provider lifecycle", "Product Session lifecycle"]},
+    {"productId": "quant", "owner": "finance-suite-quant", "sourceConsumption": false, "publicRuntime": false, "nextE2E": ["consume shared reducer", "exact public release", "full real provider lifecycle", "Product Session lifecycle"]},
+    {"productId": "shop", "owner": "shop", "sourceConsumption": false, "publicRuntime": true, "sourceGateBlocker": "Current consumer audit detects handwritten/top-level authorize paths in apps/shop/wallet-auth.js and native WalletAuth.java; remove them through the canonical public SDK before source consumption can be true.", "nextE2E": ["remove legacy authorize paths and pass consumer audit", "connected account opens details rather than chooser", "disconnect and switch controls", "new approve/reject callback", "Product Session lifecycle"]},
+    {"productId": "social", "owner": "social", "sourceConsumption": false, "publicRuntime": true, "nextE2E": ["consume shared reducer", "full real provider lifecycle", "Product Session lifecycle"]},
+    {"productId": "video", "owner": "video", "sourceConsumption": false, "publicRuntime": false, "nextE2E": ["consume safe launcher v2/canonical native builder", "exact public release", "full real provider lifecycle", "Product Session lifecycle"]}
+  ],
+  "promotionRule": "A product is not connected or migrated until its owner has supplied the source-consumption, source-bound-public-runtime and direct visible E2E envelope. All product rows also need the Layer 1 degradation boundary. Aggregate parity additionally requires all 12 product rows and all four DApp profiles.",
+  "truth": {
+    "executionPlanImplemented": true,
+    "ownerDispatchPrepared": true,
+    "realDappDirectRuntimeCount": 0,
+    "walletConnectRealRelay": false,
+    "productsConnected": 0,
+    "productsMigratedV2": 0,
+    "installedWalletApproved": false,
+    "deployedPublicAggregate": false,
+    "computerControl": false
+  }
+}

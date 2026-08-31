@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-14T07:23:53Z",
+  "branch": "codex/wallet-session-router-recovery",
+  "sourceCommit": "17417e47d79116abbfea86bfa2b65c2dd66d63c5",
+  "platform": {
+    "avd": "YNX_Proof_2",
+    "androidRelease": "16",
+    "abi": "arm64-v8a",
+    "headless": true
+  },
+  "artifact": {
+    "url": "https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk",
+    "bytes": 78392878,
+    "sha256": "fd924ef853cf17d42ca2d36504528ef879c73fcb4b01ea72b1bfe7ae85085fef",
+    "hashVerifiedBeforeInstall": true,
+    "installResult": "Success",
+    "packageId": "com.ynxweb4.wallet"
+  },
+  "schemeResolution": {
+    "url": "ynxwallet://authorize?request=<canonical-base64url-json>",
+    "activityCount": 1,
+    "default": true,
+    "activity": "com.ynxweb4.wallet/.MainActivity"
+  },
+  "canonicalRequest": {
+    "requestId": "req_android_visible_zg2OxmswHskBc_Lfr-HEkM-qP2doHijfsnBTXFX2UYk",
+    "productId": "social",
+    "platform": "android",
+    "applicationId": "com.ynx.social",
+    "packageId": "com.ynx.social",
+    "callback": "ynx-social://com.ynx.social",
+    "chainId": "ynx_6423-1",
+    "scope": ["account:read", "profile:link"],
+    "generatedBy": ["createProductSessionRequest", "prepareWalletOpen"]
+  },
+  "intentDelivery": {
+    "action": "android.intent.action.VIEW",
+    "category": "android.intent.category.BROWSABLE",
+    "status": "ok",
+    "launchState": "UNKNOWN",
+    "activity": "com.ynxweb4.wallet/.MainActivity",
+    "deliveredToRunningTopInstance": true,
+    "couldNotOpenUrl": false
+  },
+  "runtimeObservation": {
+    "processStarted": true,
+    "reactNativeMainStarted": true,
+    "approvalUiObserved": false,
+    "uiAutomationResult": "null-root-node",
+    "screenshotResult": "black-headless-display",
+    "approvalResult": null,
+    "callbackObserved": false,
+    "productSessionObserved": false
+  },
+  "truthBoundary": {
+    "provesInstalledPackage": true,
+    "provesRegisteredCanonicalWalletScheme": true,
+    "provesCanonicalIntentDelivery": true,
+    "provesWalletApproval": false,
+    "provesProductSession": false,
+    "balanceRead": false,
+    "messageSigned": false,
+    "transactionSubmitted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "failedAvdAttempts": [
+    "YNX_WALLET_101_QA host-GPU run exited 139",
+    "YNX_WALLET_101_QA and YNX_WALLET_FINAL Google APIs images stalled Package Manager post-install services"
+  ]
+}

@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-14T12:50:00Z",
+  "origin": "https://rest.ynxweb4.com",
+  "sourceCommit": "37f2485ed604d88ed1457bc497d50f3f7a037469",
+  "release": "ynx-product-session-v2-37f2485ed604",
+  "service": "ynx-product-session-gatewayd",
+  "loopbackPort": 6441,
+  "sharedStateIntegritySourceCommit": "3387fd5bc7362f60b27b3326b10368f4ef43967b",
+  "registryRuntimeSha256": "3b1ee629685651fab161d56b99b005d1acfd101b6d84a4c0894f144b5142eb17",
+  "deployArchiveSha256": "feea0a9bc1af275eb287229f93db6cae5ab04ef261965436ab173718ff47c4c2",
+  "rollbackDrill": {
+    "passed": true,
+    "evidenceDirectory": "/var/backups/ynx-chain/product-session-v2-ynx-product-session-v2-37f2485ed604-rollback-drill-20260814T123508Z",
+    "candidateLifecyclePassed": true,
+    "publicMountBeforeRollback": true,
+    "restoredPreviousSourceCommit": "d26ed915516c97d07cb4d58e5fc4646486afc851",
+    "previousUnitEnvironmentAndStateMatchedBackup": true,
+    "legacyWalletGatewayActive": true,
+    "legacyAppGatewayActive": true
+  },
+  "deployment": {
+    "passed": true,
+    "evidenceDirectory": "/var/backups/ynx-chain/product-session-v2-ynx-product-session-v2-37f2485ed604-deploy-20260814T123539Z",
+    "publicMountPassed": true,
+    "publicLifecyclePassed": true,
+    "deployedStateSha256": "d6489bc4dce29d04d324dc7d7086bb83a645c774a27e25f12df4fe00a2849da3"
+  },
+  "restartIdempotency": {
+    "passed": true,
+    "evidenceCommit": "99523546c6486f65825d84aa884190fc5bd76128",
+    "evidenceUrl": "https://github.com/JiahaoAlbus/YNX-Chain/blob/99523546c6486f65825d84aa884190fc5bd76128/packages/wallet-auth/evidence/product-session-v2-public-restart-idempotency-20260814.json",
+    "completionRequestId": "req_psv2_restart_complete_DD5FQzhSFjgEn0P-",
+    "completionResponseBytes": 1122,
+    "completionResponseSha256": "a02b0576441a5d9607513fe79a25f58f5784443ddbb82c326fc085bfad2ec7c9",
+    "byteIdenticalAcrossRestart": true,
+    "stateFileSha256Before": "2843220ca8c8fb5e9d4af16175f878575edb887752a50125a135019132e36e9c",
+    "stateFileSha256After": "2843220ca8c8fb5e9d4af16175f878575edb887752a50125a135019132e36e9c",
+    "revokeRequestId": "req_psv2_restart_cleanup_duBzEXoBKLVk",
+    "postRevokeRequestId": "req_psv2_restart_postrevoke_HnBm5UGckCPi",
+    "postRevokeHttpStatus": 403,
+    "postRevokeErrorCode": "SESSION_REVOKED",
+    "privateRetryRecordDeleted": true
+  },
+  "publicStateIntegrityRegression": {
+    "passed": true,
+    "evidenceDirectory": "/var/backups/ynx-chain/product-session-v2-ynx-product-session-v2-37f2485ed604-integrity-regression-20260814T124716Z",
+    "baselineFileSha256": "6c39572e751db4646c7ad8c7f8f0a15fd9252f88306748a9ba18944730da15f2",
+    "finalFileSha256": "6c39572e751db4646c7ad8c7f8f0a15fd9252f88306748a9ba18944730da15f2",
+    "baselineStateDigest": "f61853a8376133fff74e0305a96855eb8ece2d81396489a22fb821440fc9b14e",
+    "finalStateDigest": "f61853a8376133fff74e0305a96855eb8ece2d81396489a22fb821440fc9b14e",
+    "attacks": [
+      {"name":"world-readable","requestId":"req_integrity_world_readable_001","httpStatus":503,"errorCode":"INSECURE_STATE_FILE","zeroMutation":true},
+      {"name":"hardlink-replacement","requestId":"req_integrity_hardlink_0001","httpStatus":503,"errorCode":"INSECURE_STATE_FILE","zeroMutation":true},
+      {"name":"symlink-replacement","requestId":"req_integrity_symlink_0001","httpStatus":503,"errorCode":"INSECURE_STATE_FILE","zeroMutation":true},
+      {"name":"same-bytes-inode-replacement","requestId":"req_integrity_inode_replace_01","httpStatus":503,"errorCode":"STATE_FILE_CHANGED","stateFileSha256":"6c39572e751db4646c7ad8c7f8f0a15fd9252f88306748a9ba18944730da15f2","deviceInodeBefore":"64770:1862903","deviceInodeAfter":"64770:1862907","zeroMutation":true},
+      {"name":"snapshot-digest-mismatch","requestId":"req_integrity_digest_tamper_01","httpStatus":503,"errorCode":"STATE_TAMPERED","attackedFileSha256":"453df451fab6a45ba0564786ec2b6acf1ab190d45925fb672485788c8b1b37b6","zeroMutation":true}
+    ],
+    "restoredStateFile": "0600 ynx:ynx nlink=1",
+    "legacyWalletGatewayActive": true,
+    "legacyAppGatewayActive": true,
+    "caddyActive": true
+  },
+  "postRegressionLifecycle": {
+    "passed": true,
+    "publicMountRequestId": "req_public_v2_cWmYg7DfO9XyGBjqkTc01CAy",
+    "publicLifecycleRequestIds": {
+      "challenge": "req_psv2_challenge_G5QmVSVdPL8ITF_o",
+      "complete": "req_psv2_complete_G5QmVSVdPL8ITF_o",
+      "introspect": "req_psv2_introspect_G5QmVSVdPL8ITF_o",
+      "replay": "req_psv2_replay_G5QmVSVdPL8ITF_o",
+      "revoke": "req_psv2_revoke_G5QmVSVdPL8ITF_o",
+      "postRevoke": "req_psv2_postrevoke_G5QmVSVdPL8ITF_o"
+    },
+    "proofReplayRejected": true,
+    "revoked": true,
+    "visibleWalletApproval": false,
+    "finalStateDigest": "5035844cebf38f2d0da0cfd5fb3f460ac76f575b793aba1bf4d4b748155b5ac9",
+    "finalStateFile": "0600 ynx:ynx nlink=1",
+    "servicesActive": ["ynx-product-session-gatewayd", "ynx-wallet-gatewayd", "ynx-app-gatewayd", "caddy"]
+  },
+  "boundary": {
+    "legacyPortsReplaced": false,
+    "runtimeProductsMigrated": 0,
+    "integratedCentral": false,
+    "installedWalletApprovalVerified": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

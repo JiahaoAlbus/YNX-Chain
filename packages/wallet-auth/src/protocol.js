@@ -17,6 +17,11 @@ const RESPONSE_FIELDS = [
   "bundleId", "productDeviceAlgorithm", "productDeviceKey", "callback", "account", "accountPublicKey", "grantedScopes",
   "purpose", "issuedAt", "expiresAt", "walletSignature",
 ];
+const REJECTION_FIELDS = [
+  "version", "decision", "requestDigest", "nonce", "chainId", "requestingProduct", "productClientId",
+  "bundleId", "callback", "decisionCode", "rejectedAt", "authorityGranted", "grantedScopes",
+];
+const REJECTION_INPUT_FIELDS = ["decisionCode", "rejectedAt"];
 
 export function parseAuthorizationRequest(input, options) {
   const raw = typeof input === "string" ? parseJSON(input) : input;
@@ -88,6 +93,56 @@ export function createApprovalPayload(request, approval) {
 
 export function approvalSignBytes(payload) {
   return `YNX_WALLET_AUTH_APPROVAL_V1\n${canonicalJSON(payload)}`;
+}
+
+export function createAuthorizationRejection(request, input) {
+  exactFields(input, REJECTION_INPUT_FIELDS, "Wallet authorization rejection input");
+  const rejectedAt = strictTime(input.rejectedAt, "rejectedAt");
+  if (input.decisionCode !== "USER_REJECTED") throw new WalletAuthError("INVALID_REJECTION", "Wallet authorization rejection decision code is invalid");
+  if (rejectedAt < request.issuedAt || rejectedAt >= request.expiresAt) throw new WalletAuthError("INVALID_REJECTION_TIME", "Wallet authorization rejection must occur during the request lifetime");
+  return Object.freeze({
+    version: WALLET_AUTH_VERSION,
+    decision: "rejected",
+    requestDigest: requestDigest(request),
+    nonce: request.nonce,
+    chainId: request.chainId,
+    requestingProduct: request.requestingProduct,
+    productClientId: request.productClientId,
+    bundleId: request.bundleId,
+    callback: request.callback,
+    decisionCode: "USER_REJECTED",
+    rejectedAt,
+    authorityGranted: false,
+    grantedScopes: Object.freeze([]),
+  });
+}
+
+export function parseAuthorizationRejection(input) {
+  const raw = typeof input === "string" ? parseJSON(input) : input;
+  exactFields(raw, REJECTION_FIELDS, "Wallet authorization rejection");
+  if (raw.version !== WALLET_AUTH_VERSION || raw.decision !== "rejected" || raw.chainId !== YNX_NATIVE_CHAIN_ID || raw.decisionCode !== "USER_REJECTED") throw new WalletAuthError("INVALID_REJECTION", "Wallet authorization rejection is invalid");
+  requiredPattern(raw.requestDigest, "requestDigest", /^[0-9a-f]{64}$/);
+  requiredPattern(raw.nonce, "nonce", /^[A-Za-z0-9_-]{32,64}$/);
+  requiredPattern(raw.requestingProduct, "requestingProduct", /^[a-z][a-z0-9-]{1,31}$/);
+  requiredPattern(raw.productClientId, "productClientId", /^[a-z][a-z0-9._-]{2,63}$/);
+  requiredPattern(raw.bundleId, "bundleId", /^[A-Za-z][A-Za-z0-9.-]{2,127}$/);
+  strictURL(raw.callback, "callback");
+  strictTime(raw.rejectedAt, "rejectedAt");
+  if (raw.authorityGranted !== false || !Array.isArray(raw.grantedScopes) || raw.grantedScopes.length !== 0) throw new WalletAuthError("AUTHORITY_ON_REJECTION", "Wallet authorization rejection cannot grant authority or scopes");
+  return Object.freeze({ ...raw, grantedScopes: Object.freeze([]) });
+}
+
+export function verifyAuthorizationRejection(input, request, at = new Date()) {
+  const rejection = parseAuthorizationRejection(input);
+  const expected = {
+    requestDigest: requestDigest(request), nonce: request.nonce, chainId: request.chainId,
+    requestingProduct: request.requestingProduct, productClientId: request.productClientId,
+    bundleId: request.bundleId, callback: request.callback,
+  };
+  for (const [key, value] of Object.entries(expected)) if (rejection[key] !== value) throw new WalletAuthError("AUTHORIZATION_REJECTION_MISMATCH", `Wallet authorization rejection ${key} does not match the request`);
+  if (!(at instanceof Date) || !Number.isFinite(at.getTime())) throw new WalletAuthError("INVALID_TIME", "Wallet authorization rejection verification time is invalid");
+  if (rejection.rejectedAt < request.issuedAt || rejection.rejectedAt >= request.expiresAt || Date.parse(rejection.rejectedAt) > at.getTime() + 30_000) throw new WalletAuthError("INVALID_REJECTION_TIME", "Wallet authorization rejection time is outside the request verification window");
+  return rejection;
 }
 
 export function parseAuthorizationResponse(input) {

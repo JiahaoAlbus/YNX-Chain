@@ -1,0 +1,171 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "WALLET-PROVIDER-OWNER-PUBLIC-COMPLETION-CHECKPOINT-20260821",
+  "owner": "wallet-protocol-router",
+  "auditedAt": "2026-08-21T16:28:00Z",
+  "previousPublicRecheck": {
+    "commit": "de781af64d8e065a29359e6255f7ed4c4fa28ba4",
+    "tree": "e91a976185c48b99849e74aace430ae99f26da8b",
+    "path": "release/integration/wallet-provider-public-owner-recheck-20260821.json",
+    "blob": "3727d5a09306d2430085efb7f218b87e01f1945e",
+    "sha256": "26fc536b35041c5af83273f656fbfc924823a30105ab78ad98d6c8f0fefafcae"
+  },
+  "completionRule": {
+    "ownerFixRequired": true,
+    "ownerDeploymentRequired": true,
+    "ownerMustPersonallyOpenRealPublicEntry": true,
+    "ownerMustWalkCompleteWalletFlow": true,
+    "sourceOrPrOrTestsAloneComplete": false,
+    "historicalGuestOrNoProviderProofAloneComplete": false,
+    "requiredVisibleWalletFacts": [
+      "real-provider-discovery-and-selection",
+      "approve-and-reject",
+      "provider-chain-0x1917-add-or-switch",
+      "chooser-closed-after-success",
+      "refresh-restore",
+      "connected-details-disconnect-account-and-chain-change",
+      "stable-url-zero-blank-tabs-language-and-console",
+      "Product-Session-degradation-preserves-Standard-Connection"
+    ]
+  },
+  "ownerReadback": {
+    "calendar": {
+      "ownerThread": "019fa947-b618-7500-a4ec-dc6ae812a011",
+      "latestActivity": "P0-143 Wallet connection-details public replacement",
+      "sourceCommit": "d2044bd9a8ec6bdc6235dfb625a62c3dd5c58b04",
+      "sourceTree": "b11b1e65b0026ed2bfd5d3306bd85a5c63ab3f53",
+      "evidenceCommit": "2426c2e2184f685467886fb7427950f78d089024",
+      "evidencePath": "apps/calendar/release/evidence/p0-143/calendar-wallet-details-public-replacement-20260822.json",
+      "ownerOpenedLocalEntry": true,
+      "localEntry": "http://127.0.0.1:24777/",
+      "ownerOpenedRealPublicEntryAfterRegression": true,
+      "ownerFixDeployedPublic": true,
+      "regressionClosed": true,
+      "connectionDetailsVisible": true,
+      "disconnectControlVisible": true,
+      "switchAccountControlVisible": true,
+      "refreshRestoredWithChooserClosed": true,
+      "disconnectExecuted": false,
+      "switchAccountExecuted": false,
+      "newApproveRejectCallbackProved": false,
+      "productSessionV2": false,
+      "complete": false,
+      "blocker": "The public connection-details regression is closed, but disconnect/switch-account were not executed and no new approve/reject callback, Product Session v2, sign/transaction or ComputerControl proof exists."
+    },
+    "card": {
+      "ownerThread": "01a01e51-9eea-7500-bd8c-23d5bfb137ce",
+      "latestActivity": "Active vendored shared-state integration; dependency/build failures under correction",
+      "ownerOpenedHistoricalPublicEntry": true,
+      "ownerOpenedRealPublicEntryAfterFix": false,
+      "ownerFixDeployedPublic": false,
+      "regressionClosed": false,
+      "blocker": "No successful new build/source commit/deployment exists yet; same-Chrome MetaMask discovery remains unproven after a fix."
+    },
+    "creator-studio": {
+      "ownerThread": null,
+      "latestActivity": "Historical public Guest and no-provider proof only",
+      "ownerOpenedHistoricalPublicEntry": true,
+      "ownerOpenedRealPublicEntryAfterSharedSourceConsumption": false,
+      "ownerFixDeployedPublic": false,
+      "regressionClosed": false,
+      "blocker": "Shared source 98c6d5d7/tree 51a60a36, real installed approval, callback and refresh/disconnect are absent."
+    },
+    "developer": {
+      "ownerThread": "019ffb52-68bb-73f1-a5e9-7f15d6750581",
+      "latestActivity": "Shared source consumed in source, protected public release not bound",
+      "ownerOpenedRealPublicEntryAfterCurrentDeployment": false,
+      "ownerFixDeployedPublic": false,
+      "regressionClosed": false,
+      "blocker": "Current public Developer runtime is not bound to the shared-source consumer commit and has no complete real provider lifecycle."
+    },
+    "dex": {
+      "ownerThread": "019ffb08-3344-70b1-9d1a-33f8535a302e",
+      "latestActivity": "Shared source consumed locally; no exact public runtime",
+      "ownerOpenedRealPublicEntryAfterCurrentDeployment": false,
+      "ownerFixDeployedPublic": false,
+      "regressionClosed": false,
+      "blocker": "No source-bound public deployment or real approval/callback/refresh-disconnect evidence."
+    },
+    "exchange": {
+      "ownerThread": "019ffb08-3344-70b1-9d1a-33f8535a302e",
+      "latestActivity": "Shared source consumed locally; no exact public runtime",
+      "ownerOpenedRealPublicEntryAfterCurrentDeployment": false,
+      "ownerFixDeployedPublic": false,
+      "regressionClosed": false,
+      "blocker": "No source-bound public deployment or real approval/callback/refresh-disconnect evidence."
+    },
+    "finance": {
+      "ownerThread": "019ffb08-3344-70b1-9d1a-33f8535a302e",
+      "latestActivity": "Offline amd64 release candidate fd0f1367/source 50892538; no production mutation",
+      "ownerOpenedRealPublicEntryAfterCandidateDeployment": false,
+      "ownerFixDeployedPublic": false,
+      "regressionClosed": false,
+      "blocker": "The candidate is not deployed and has no post-deploy public provider lifecycle; a single-use Integration lease is still required."
+    },
+    "pay": {
+      "ownerThread": null,
+      "latestActivity": "Shared source consumed; Web remains Guest-only and Native lifecycle is absent",
+      "ownerOpenedRealPublicEntryAfterCurrentDeployment": false,
+      "ownerFixDeployedPublic": false,
+      "regressionClosed": false,
+      "blocker": "No bootable Native resolver/callback/cold-start proof and no source-bound public completion flow."
+    },
+    "quant": {
+      "ownerThread": "019ffb08-3344-70b1-9d1a-33f8535a302e",
+      "latestActivity": "No shared-source public runtime candidate accepted",
+      "ownerOpenedRealPublicEntryAfterCurrentDeployment": false,
+      "ownerFixDeployedPublic": false,
+      "regressionClosed": false,
+      "blocker": "No exact shared-source consumption, public deployment, real provider lifecycle, callback or Product Session evidence."
+    },
+    "shop": {
+      "ownerThread": "019fa770-48bf-7d32-b31d-c3cc03c87042",
+      "latestActivity": "YNX_09 mandatory workspace/branch connector failed twice; no repository read or modification",
+      "ownerOpenedHistoricalPublicEntry": true,
+      "ownerOpenedRealPublicEntryAfterRegressionFix": false,
+      "ownerFixDeployedPublic": false,
+      "regressionClosed": false,
+      "blocker": "The connected-account chooser regression is unfixed; required connector could not verify the Shop worktree and branch."
+    },
+    "social": {
+      "ownerThread": null,
+      "latestActivity": "Historical public Guest and no-provider proof only",
+      "ownerOpenedHistoricalPublicEntry": true,
+      "ownerOpenedRealPublicEntryAfterSharedSourceConsumption": false,
+      "ownerFixDeployedPublic": false,
+      "regressionClosed": false,
+      "blocker": "Shared source 98c6d5d7/tree 51a60a36, real installed approval, callback and refresh/disconnect are absent."
+    },
+    "video": {
+      "ownerThread": null,
+      "latestActivity": "No current source-bound public provider lifecycle",
+      "ownerOpenedRealPublicEntryAfterCurrentDeployment": false,
+      "ownerFixDeployedPublic": false,
+      "regressionClosed": false,
+      "blocker": "Current public runtime, real provider approval, callback, refresh/disconnect and Product Session are absent."
+    }
+  },
+  "continuationsSent": [
+    {"productIds":["calendar","creator-studio","social","video"],"thread":"019fa947-b618-7500-a4ec-dc6ae812a011","sent":true},
+    {"productIds":["card"],"thread":"01a01e51-9eea-7500-bd8c-23d5bfb137ce","sent":true},
+    {"productIds":["shop"],"thread":"019fa770-48bf-7d32-b31d-c3cc03c87042","sent":true},
+    {"productIds":["finance","quant"],"thread":"019ffb08-3344-70b1-9d1a-33f8535a302e","sent":true}
+  ],
+  "counts": {
+    "registeredProducts": 12,
+    "ownersWithHistoricalPublicOpenEvidence": 4,
+    "ownersWithPostFixPublicOpenEvidence": 1,
+    "ownerFixesDeployedPublic": 1,
+    "completeProducts": 0,
+    "productsConnected": 0,
+    "productsMigratedV2": 0
+  },
+  "truth": {
+    "checkpointIsCompletion": false,
+    "sourceConsumedMeansComplete": false,
+    "localBrowserMeansPublic": false,
+    "historicalGuestProofMeansCurrentFix": false,
+    "deployedPublicAggregate": false,
+    "integratedCentral": false
+  }
+}

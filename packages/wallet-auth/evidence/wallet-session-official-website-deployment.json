@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-14T10:12:42Z",
+  "scope": "official website publication of the Wallet Product Session v2 source package and truthful release metadata",
+  "website": {
+    "repository": "https://github.com/JiahaoAlbus/YNX-Chain-website",
+    "commit": "11f53023a419701e240f7e0980440d848a9f5af2",
+    "sourceRef": "main",
+    "productionDeploymentId": "dpl_764jDRPtfWyGCivuoqq8eEf4Fnng",
+    "productionDeploymentUrl": "https://ynx-web4-website-9vt02xxkm-jiahaoalbus-projects.vercel.app",
+    "state": "READY",
+    "target": "production",
+    "promoted": true,
+    "aliases": [
+      "https://www.ynxweb4.com",
+      "https://wallet.ynxweb4.com",
+      "https://ynxweb4.com"
+    ],
+    "aliasError": null
+  },
+  "publicBackRead": [
+    {
+      "url": "https://www.ynxweb4.com/releases/wallet-session-router/d8863f6b2875/release.json",
+      "httpStatus": 200,
+      "bytes": 1132,
+      "sha256": "5553a8b1ea4ea3ee35ceba5ec50ca3edcb236cfb6a9d999673503700d549f6e6",
+      "matchesPublishedSource": true
+    },
+    {
+      "url": "https://www.ynxweb4.com/releases/wallet-session-router/d8863f6b2875/product-session-registry.json",
+      "httpStatus": 200,
+      "bytes": 6130,
+      "sha256": "d2826eb419abca4444ccb50d79537fa7f6a3643948d82ed9b52914b7169c107b",
+      "matchesPublishedSource": true
+    },
+    {
+      "url": "https://www.ynxweb4.com/releases/wallet-session-router/d8863f6b2875/migration-matrix.json",
+      "httpStatus": 200,
+      "bytes": 1131,
+      "sha256": "f0ec2affe78e37cd4266e9efd21fa05cdc9b21fac5164b4c4ff0bf3727dadbd8",
+      "matchesPublishedSource": true
+    },
+    {
+      "url": "https://www.ynxweb4.com/releases/wallet-session-router/d8863f6b2875/validation-summary.json",
+      "httpStatus": 200,
+      "bytes": 822,
+      "sha256": "99d530a03bb351b38489e05add1e9004684d01f93fbab2039c302bc89bf6779a",
+      "matchesPublishedSource": true
+    },
+    {
+      "url": "https://www.ynxweb4.com/releases/wallet-session-router/d8863f6b2875/ynx-chain-wallet-auth-1.1.0.tgz",
+      "httpStatus": 200,
+      "bytes": 101437,
+      "sha256": "7c7f36c364c89d5c51808cd4098d4fcbde147eda698960c80da8301f5f58276b",
+      "matchesPublishedSource": true
+    }
+  ],
+  "visibleBrowserVerification": {
+    "url": "https://www.ynxweb4.com/docs",
+    "visible": true,
+    "verifiedClaims": [
+      "shared fail-closed Product Session source package",
+      "178 tests and 120 concurrent Product Sessions",
+      "Download source package",
+      "Verify release record",
+      "View callback registry",
+      "Product runtime migrations: 0 verified",
+      "Public App Gateway: Not deployed",
+      "Android: scheme resolved / intent delivered / approval not proven"
+    ],
+    "screenshot": "evidence/wallet-session-official-website-visible-20260814.png",
+    "screenshotBytes": 67382,
+    "screenshotSha256": "156c14e70a1232f3510c240e9c1b16dd15678dec72487f5e2de0d4bf1b93b62a"
+  },
+  "computerControl": {
+    "attempted": true,
+    "passed": false,
+    "error": "Sky Computer Use native pipe startup failed",
+    "fallback": "visible in-app browser verification only"
+  },
+  "truthBoundary": {
+    "sourcePackageDeployedPublic": true,
+    "officialWebsiteReleaseMetadataDeployedPublic": true,
+    "appGatewayDeployedPublic": false,
+    "runtimeProductsMigrated": 0,
+    "installedApprovalSessionValidated": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

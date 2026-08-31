@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "2.0.0",
+  "contractId": "YNX-WALLET-SAFE-AUTHORIZE-LAUNCHER-V2",
+  "contractVersion": "safeWalletAuthorizeLauncher@2.0.0-p0.0",
+  "status": "SOURCE_ONLY_SUCCESSOR_CANDIDATE",
+  "owner": "wallet-protocol-router",
+  "supersedes": {
+    "contractVersion": "safeWalletAuthorizeLauncher@1.0.0-p0.0",
+    "sourceCommit": "4679de8e8d0675e2013254c92ff1935191f87c21",
+    "status": "SUPERSEDED_CANDIDATE",
+    "reason": "Chrome can materialize an empty top-level tab when a hidden iframe navigates to the custom scheme. Top-level product URL stability alone did not prove safe Web behavior."
+  },
+  "canonicalRequest": {
+    "unchanged": true,
+    "builder": "@ynx-chain/wallet-auth#encodeRequestDeepLink",
+    "forbidBareAuthorizeRoute": true,
+    "forbidPerProductUriConcatenation": true
+  },
+  "platformMatrix": {
+    "android": "native-resolver: resolve the complete canonical URI before opening",
+    "ios": "native-resolver: resolve the complete canonical URI before opening",
+    "macos": "native-resolver: resolve the complete canonical URI before opening",
+    "windows": "native-resolver: resolve the complete canonical URI before opening",
+    "web": "standard-provider-discovery: EIP-6963 then injected EIP-1193; never navigate a custom scheme",
+    "extension": "standard-provider-discovery: EIP-6963 then injected EIP-1193; never navigate a custom scheme"
+  },
+  "webRules": {
+    "hiddenIframeAllowed": false,
+    "customSchemeNavigationAllowed": false,
+    "blankTargetAllowed": false,
+    "topLevelPageCreationAllowed": false,
+    "providerPriority": ["ynx-wallet", "metamask"],
+    "providerAuthority": "unverified-injected-candidate",
+    "automaticAccountRequestAllowed": false,
+    "noProviderResult": "unsupported",
+    "noProviderActions": ["official-ynx-wallet-download", "standard-metamask"]
+  },
+  "nativeRules": {
+    "resolverFirst": true,
+    "resolverSuccessMeansInstalledWallet": false,
+    "futureTransportsRequiringSeparateEvidence": ["app-link", "universal-link", "walletconnect"]
+  },
+  "resultStatuses": ["installed", "provider-ready", "unsupported"],
+  "truth": {
+    "sourceImplemented": true,
+    "equivalentBrowserNoNewTopLevelPageTested": true,
+    "realChromeSuccessorRetest": false,
+    "installedWalletVerified": false,
+    "walletApprovalVerified": false,
+    "callbackVerified": false,
+    "sessionCreated": false,
+    "deployedPublic": false,
+    "integratedCentral": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

@@ -17,6 +17,7 @@
     "@noble/ciphers": "2.2.0",
     "@noble/curves": "2.2.0",
     "@noble/hashes": "2.2.0",
+    "@ynx-chain/wallet-auth": "file:../../packages/wallet-auth",
     "expo": "~57.0.4",
     "expo-camera": "~57.0.2",
     "expo-contacts": "~57.0.0",

@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "WALLET-PROVIDER-PUBLIC-OWNER-RECHECK-20260821",
+  "owner": "wallet-protocol-router",
+  "observedAt": "2026-08-21T16:06:56Z",
+  "routerCheckpoint": {
+    "commit": "e8125d56f8c28efbfa0f87c673717c620ca023e7",
+    "tree": "3e22e2854912eaec6f9f464e35d8c281f0957306"
+  },
+  "sharedProviderConnectAuthority": {
+    "sourceCommit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+    "sourceTree": "51a60a362d4ad5dd748bcdefb101f71b1d9e0cee",
+    "evidenceCommit": "c3ab255c32bdeb9c8e056882c315f8ad43c29c7f"
+  },
+  "method": {
+    "browser": "existing-user-Chrome-with-MetaMask-extension",
+    "sessionName": "YNX Wallet public connection recheck",
+    "newSensitiveRequestTriggered": false,
+    "newAccountApprovalTriggered": false,
+    "signatureRequested": false,
+    "transactionRequested": false,
+    "privateKeyReadOrTransmitted": false,
+    "screenshotsEmittedInline": true,
+    "screenshotsCommitted": false,
+    "consoleRead": true,
+    "note": "Existing redacted account labels were read from visible product UI. No new account-sharing action was performed because action-time confirmation is required before invoking eth_requestAccounts."
+  },
+  "products": {
+    "shop": {
+      "url": "https://shop.ynxweb4.com/shop/?verify=router-e812",
+      "http": 200,
+      "htmlBytes": 7782,
+      "htmlSha256": "5b4b549cb6b26f192e448c4c482db64b125450dc261a02bc118f9cd92b63bc98",
+      "assetSha256": {
+        "app.js": "0fc43657de5c16bf6d972a49dbbecbf0e2377fed7bf6cb213ead0d802d3b939a",
+        "wallet-auth.js": "dcb5fae27fe59b69c9bc79f90bb3434cb9d99b4b222bb7201751abbcc1f0da19",
+        "sw.js": "b795c28147d00843921c63289aa2d3170bcc81fa5cc81c31fb358f091afadb88"
+      },
+      "existingMetaMaskAccountRestored": true,
+      "visibleProvider": "MetaMask",
+      "visibleAccount": "redacted-0xb906-f3ab",
+      "visibleChain": "YNX Testnet",
+      "connectChooserInitiallyClosed": true,
+      "privateProductSessionFailureRemovedStandardConnection": false,
+      "connectedAccountActionOpenedConnectionChooser": true,
+      "connectedAccountActionOpenedConnectionDetails": false,
+      "disconnectActionVisible": false,
+      "switchAccountActionVisible": false,
+      "urlPreserved": true,
+      "newTopLevelBlankObservedDuringBoundedClickInterval": true,
+      "exclusiveCausalityToShopClickProven": false,
+      "languageMismatchObserved": true,
+      "languageMismatchDetail": "Visible selectors displayed English while the rendered product copy and document language were Simplified Chinese in the same captured state.",
+      "consoleErrors": 0,
+      "consoleWarnings": [
+        "MetaMask content-script MaxListenersExceededWarning",
+        "MetaMask ObjectMultiplex orphaned liveness stream"
+      ],
+      "completionGate": false,
+      "blocker": "A restored standard connection exists, but the connected-account action reopens the chooser instead of showing connection details with disconnect/switch-account. Tab-stability and language-consistency gates also remain unproven."
+    },
+    "calendar": {
+      "url": "https://calendar-testnet.43.153.202.237.sslip.io/?verify=router-e812",
+      "http": 200,
+      "htmlBytes": 15815,
+      "htmlSha256": "1cf18a93d89803dc42c5d69b5d035fc8af0f343c2503fa89a166c5b3885bba5c",
+      "assetSha256": {
+        "app.js": "e092ca2a244e43352555e8b758e921b5877ff344044829f7aef7c15bf293bb36",
+        "i18n.js": "0ce192f12298da7359eec554a86812068d10db87d120dd74f166e9b1d4be524a"
+      },
+      "existingMetaMaskAccountRestored": true,
+      "visibleProvider": "MetaMask",
+      "visibleAccount": "redacted-0xb906-f3ab",
+      "visibleChain": "YNX Testnet",
+      "language": "English",
+      "privateCalendarSyncDegraded": true,
+      "privateProductSessionFailureRemovedStandardConnection": false,
+      "urlPreserved": true,
+      "newTopLevelTabsAfterConnectedAccountAction": 0,
+      "connectedAccountActionOpenedConnectionDetails": false,
+      "connectedAccountActionOpenedGuestLocalDataDialog": true,
+      "disconnectActionVisible": false,
+      "switchAccountActionVisible": false,
+      "completionGate": false,
+      "blocker": "Refresh restore and private-service degradation separation remain visible, but the connected-account action exposes Guest local-data controls instead of canonical connection details, disconnect and switch-account controls."
+    },
+    "card": {
+      "url": "https://card.ynxweb4.com/?verify=router-e812",
+      "http": 200,
+      "htmlBytes": 1717,
+      "htmlSha256": "f3221be26c4882488d51307d9ded3a4fc9e5b9336ae9d2e8db96cb9c43d2c764",
+      "bundleUrl": "https://card.ynxweb4.com/_expo/static/js/web/index-4e855d46bb979d4a6fe69836feb66c97.js",
+      "bundleBytes": 2893657,
+      "bundleSha256": "ee2925ada20ab0ec919094a276dbc504b7d0dfc7c5a607c67fde6d0060ed99cc",
+      "guestEntryVisible": true,
+      "testnetRegistrationEntryVisible": true,
+      "standardConnectionIndependenceCopyVisible": true,
+      "metaMaskExtensionKnownPresentInSameChrome": true,
+      "metaMaskRestoredInShopAndCalendarSameChrome": true,
+      "cardMetaMaskConnected": false,
+      "cardMetaMaskDetectionSucceeded": false,
+      "ynxWalletDetectionSucceeded": false,
+      "newAccountApprovalTriggered": false,
+      "completionGate": false,
+      "blocker": "Card remained NOT CONNECTED and displayed the MetaMask installation fallback although the same Chrome restored MetaMask in Shop and Calendar. Card has not consumed the exact shared source/tree and no approval was triggered without action-time confirmation."
+    }
+  },
+  "newWalletPlatformOwnerEvidence": {
+    "iosSecondLaunchMalformedCallback": {
+      "evidenceCommit": "714c91e758d9f08d3c9ee25bf2a9543f0046ed15",
+      "evidenceTree": "6631b5fd902b13ee77bf66c1ac26835e02364a2d",
+      "evidenceBlob": "a8140df1b49f536475d1d0f1a7d9152c64fc6758",
+      "evidenceSha256": "23441dd22e4350514147c4a9bda541256eb2637467b12603b4607016992e431a",
+      "simulatorSecondLaunchMalformedCallbackVisibleFailClosed": true,
+      "authorization": false,
+      "approval": false,
+      "account": false,
+      "productSession": false,
+      "public": false,
+      "productionSigned": false,
+      "appStore": false
+    }
+  },
+  "truth": {
+    "shopComplete": false,
+    "calendarComplete": false,
+    "cardComplete": false,
+    "productsConnected": 0,
+    "productsMigratedV2": 0,
+    "deployedPublicAggregate": false,
+    "integratedCentral": false
+  }
+}

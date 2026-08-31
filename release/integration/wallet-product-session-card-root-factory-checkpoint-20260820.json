@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-WALLET-PRODUCT-SESSION-CARD-ROOT-FACTORY-20260820",
+  "capturedAt": "2026-08-20T16:00:00Z",
+  "owner": "wallet-protocol",
+  "sourceOwner": "card",
+  "sourceBranch": "codex/p0-card-testnet-virtual-20260820-fix",
+  "sourceCommit": "e935b760",
+  "acceptedWalletAuthSource": "203be5e108be468350591615a64d5d36ab87a8f1",
+  "consumer": {
+    "rootFactoryConsumed": true,
+    "gatewayOrigin": "https://wallet-auth.ynxweb4.com",
+    "callerEndpointInjectionAllowed": false,
+    "callerCallbackInjectionAllowed": false,
+    "callerOriginInjectionAllowed": false,
+    "callerSessionInjectionAllowed": false,
+    "productSessionSeparatedFromLegacyCardApiSession": true,
+    "legacyCardApiSessionGrantsFromProductSession": false
+  },
+  "ownerReportedVerification": {
+    "cleanInstall": true,
+    "runtimeTestsPassed": 24,
+    "runtimeTestsFailed": 0,
+    "typecheckPassed": true,
+    "localGatewayV2Vectors": [
+      "challenge",
+      "complete",
+      "introspect",
+      "revoke",
+      "restore",
+      "revoked-session"
+    ]
+  },
+  "evidenceBoundary": {
+    "localHandlerOnly": true,
+    "publicGatewayLifecycleForCardVerified": false,
+    "installedOrBrowserVisibleFlowVerified": false,
+    "migratedV2": false,
+    "npmArtifactPublished": false,
+    "deployedPublic": false,
+    "walletApprovalVerified": false,
+    "accountSigningTransactionVerified": false
+  }
+}

@@ -1,0 +1,330 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-14T11:31:02Z",
+  "scope": "Product Session v2 protocol, router, protected deployment and public runtime validation",
+  "registrySchemaVersion": 2,
+  "branch": "codex/wallet-session-router-recovery",
+  "sourceBaseline": "2a78ace0a647b73dd2961fae3361189116453a7d",
+  "targetedTest": {
+    "command": "node --test test/metamask-evm-adapter.test.mjs test/wallet-provider-discovery.test.mjs test/wallet-connection-coordinator.test.mjs test/product-session-gateway-client.test.mjs test/product-session-gateway-http.test.mjs test/product-session-gateway.test.mjs test/product-session-migration.test.mjs test/product-session-products.test.mjs test/product-session-recovery.test.mjs test/product-session-router.test.mjs test/product-session-v2.test.mjs",
+    "passed": 76,
+    "failed": 0,
+    "concurrentSessions": 120
+  },
+  "fullPackageTest": {
+    "command": "npm test",
+    "passed": 191,
+    "failed": 0,
+    "exitCode": 0
+  },
+  "packageDryRun": {
+    "command": "npm_config_cache=<isolated-temp-cache> npm pack --dry-run",
+    "exitCode": 0,
+    "version": "1.1.0",
+    "files": 64,
+    "bytes": 109829,
+    "unpackedBytes": 500170,
+    "shasum": "9dd89431de7d9df2ce0a55563687edb0317af653",
+    "published": false
+  },
+  "deviceSecretBoundary": {
+    "clientLocalSigning": [
+      "Gateway challenge validation and P-256 completion signing",
+      "sender-constrained introspection proof signing"
+    ],
+    "gatewayAdapterReceivesDeviceSecret": false,
+    "substitutedChallengeSigned": false
+  },
+  "gatewayIdempotency": {
+    "schemaVersion": 2,
+    "paths": [
+      "/v2/product-sessions/challenge",
+      "/v2/product-sessions/complete"
+    ],
+    "stableRequestIds": true,
+    "restartSafe": true,
+    "expiredEntriesPruned": true,
+    "cachedResponseCannotBypassProofPolicy": true,
+    "responseLossRecovery": "exact cached response for identical request ID, route, and canonical body",
+    "conflictingReuse": "IDEMPOTENCY_CONFLICT"
+  },
+  "gatewayHttpBoundary": {
+    "handler": "ProductSessionGatewayHttpHandler",
+    "mountableWithoutLegacyHostChanges": true,
+    "canonicalJsonRequired": true,
+    "maxBodyBytes": 1048576,
+    "proofHeader": "x-ynx-product-session-proof-v2",
+    "loopbackEnvelopeVerified": true,
+    "fetchAdapterToHandlerResponseLossRecoveryVerified": true
+  },
+  "persistentProductSessionV2NodeHost": {
+    "implementation": "src/product-session-gateway-node-host.js",
+    "service": "scripts/ynx-product-session-gatewayd.mjs",
+    "lifecycleVerifier": "scripts/verify-product-session-v2-lifecycle.mjs",
+    "stateSchemaVersion": 1,
+    "productSessionGatewaySchemaVersion": 2,
+    "atomicStateBeforeResponse": true,
+    "registryDigestBound": true,
+    "stateDigestBound": true,
+    "mode0700DirectoryRequired": true,
+    "mode0600StateRequired": true,
+    "nonRootServiceRequired": true,
+    "serializedConcurrentMutation": true,
+    "responseLossIdempotencyRestartSafe": true,
+    "remoteBuildIdentityRequired": true,
+    "dedicatedTestsPassed": 6,
+    "runtimePermissionTamperZeroMutationFailClosed": true,
+    "concurrentPersistentRequests": 100,
+    "deployedPublic": true,
+    "deployedSourceCommit": "37f2485ed604d88ed1457bc497d50f3f7a037469",
+    "deploymentEvidence": "evidence/product-session-v2-state-integrity-public-deployment-20260814.json"
+  },
+  "productSessionV2DeploymentTransaction": {
+    "orchestrator": "scripts/deploy/deploy-product-session-v2-testnet.sh",
+    "remoteInstaller": "scripts/deploy/install-product-session-v2-testnet-remote.sh",
+    "separateLoopbackPort": 6441,
+    "legacyWalletGatewayPort": 6439,
+    "appGatewayPort": 6437,
+    "caddyRoute": "/v2/product-sessions/*",
+    "routeBeforeChainJsonRpcFallback": true,
+    "candidatePort": 17441,
+    "rollbackDrillRequiredBeforeDeploy": true,
+    "rollbackTargets": ["Caddy route", "systemd unit", "environment file", "dedicated v2 state"],
+    "legacyServicesReplaced": false,
+    "executed": true,
+    "rollbackVerified": true,
+    "deployedPublic": true,
+    "deployedSourceCommit": "37f2485ed604d88ed1457bc497d50f3f7a037469",
+    "rollbackEvidenceDirectory": "/var/backups/ynx-chain/product-session-v2-ynx-product-session-v2-37f2485ed604-rollback-drill-20260814T123508Z",
+    "deploymentEvidenceDirectory": "/var/backups/ynx-chain/product-session-v2-ynx-product-session-v2-37f2485ed604-deploy-20260814T123539Z",
+    "stateIntegrityEvidenceDirectory": "/var/backups/ynx-chain/product-session-v2-ynx-product-session-v2-37f2485ed604-integrity-regression-20260814T124716Z",
+    "runtimePermissionTamperPublicZeroMutationVerified": true,
+    "runtimeStateReplacementPublicZeroMutationVerified": true,
+    "restartIdempotencyVerified": true
+  },
+  "networkRecovery": {
+    "storedSessionOnIntrospectionOutage": "retained-non-authoritative-until-retry",
+    "approvedCallbackOnCompletionOutage": "retained-in-protected-storage-until-restart-or-retry",
+    "invalidOrRevokedSession": "removed-and-one-controlled-reconnect",
+    "tests": [
+      "second-launch Gateway outage preserves protected session and Retry re-introspects without new approval",
+      "approved callback survives a completion outage and resumes from protected storage after restart",
+      "dangling or malformed protected callbacks fail closed and are removed"
+    ]
+  },
+  "metaMaskDownload": {
+    "url": "https://metamask.io/download",
+    "officialPageVerifiedAt": "2026-08-14T04:02:00.000Z",
+    "availabilityRule": "EVM-compatible products show a real MetaMask option even when MetaMask must first be installed"
+  },
+  "walletProviderDiscovery": {
+    "implementation": "src/wallet-provider-discovery.js",
+    "packageSubpath": "@ynx-chain/wallet-auth/wallet-provider-discovery",
+    "protocols": ["EIP-6963", "legacy injected EIP-1193"],
+    "authority": "unverified-injected-candidate",
+    "ynxPriority": true,
+    "sameKindAmbiguityFailsClosed": true,
+    "duplicateUuidConflictFailsClosed": true,
+    "hostileMetadataFailsClosed": true,
+    "routerAvailabilityAdapter": "walletAvailabilityFromDiscovery",
+    "browserEvidence": "evidence/wallet-provider-discovery-browser.json",
+    "browserScreenshot": "evidence/wallet-provider-discovery-browser.png",
+    "browserModuleValidated": true,
+    "installedExtensionRevisionValidated": false
+  },
+  "walletConnectionCoordinator": {
+    "implementation": "src/wallet-connection-coordinator.js",
+    "packageSubpath": "@ynx-chain/wallet-auth/wallet-connection-coordinator",
+    "nativeAndInjectedAvailabilityMerged": true,
+    "ynxPriority": true,
+    "platformOpenTimeoutMilliseconds": "10-30000",
+    "secondLaunchControlledOpen": "at most one automatic canonical Wallet open before explicit Retry",
+    "openRequestId": "req_ps_open_<Product Session nonce>",
+    "metaMaskEligibility": "registry evmCompatible=true only and no available YNX Wallet",
+    "actionableFailures": ["WALLET_NOT_INSTALLED", "SCHEME_NOT_REGISTERED", "NETWORK_UNAVAILABLE", "USER_REJECTED", "WALLET_OPEN_TIMEOUT"],
+    "localDeterministicTestsPassed": true,
+    "fallback": "none"
+  },
+  "metaMaskEvmAdapter": {
+    "implementation": "src/metamask-evm-adapter.js",
+    "eligibleProducts": "registry evmCompatible=true only",
+    "provider": "explicit MetaMask EIP-1193 provider",
+    "chainId": 6423,
+    "chainQuantity": "0x1917",
+    "providerMethods": ["eth_chainId", "wallet_switchEthereumChain", "wallet_addEthereumChain", "eth_requestAccounts"],
+    "walletAddEthereumChain": {
+      "onlyAfterSwitch4902": true,
+      "chainName": "YNX Testnet",
+      "rpc": "https://evm.ynxweb4.com",
+      "explorer": "https://explorer.ynxweb4.com",
+      "callerOverride": false,
+      "rpcChainIdVerified": "0x1917",
+      "verifiedAt": "2026-08-14T04:51:06.000Z"
+    },
+    "authority": "eip-1193-provider-only",
+    "ynxProductSession": false,
+    "localDeterministicProviderTestsPassed": true,
+    "liveHarness": "evidence/metamask-eip1193-live.html",
+    "liveObservation": "evidence/metamask-eip1193-live-observation.json",
+    "liveAdapterLoaded": true,
+    "liveConnectionRequestTriggered": true,
+    "installedExtensionFlowValidated": false,
+    "fallback": "none"
+  },
+  "migrationEvidenceGate": {
+    "matrix": "release/integration/wallet-product-session-router-migration.json",
+    "coveredProducts": 12,
+    "branchLocalEvidencePathsVerified": true,
+    "requiredForMigratedV2": [
+      "runtime WalletConnectionCoordinator usage",
+      "runtimeEvidence",
+      "gatewayEvidence",
+      "platformEvidence"
+    ],
+    "runtimeProductsMigrated": 0
+  },
+  "publicWalletDownload": {
+    "verifiedAt": "2026-08-14T03:47:47.000Z",
+    "center": "https://www.ynxweb4.com/dapp/download",
+    "releaseRegistry": "https://www.ynxweb4.com/releases/ecosystem-release-registry.json",
+    "artifact": "https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk",
+    "httpStatus": 200,
+    "contentType": "application/vnd.android.package-archive",
+    "bytes": 78392878,
+    "sha256": "fd924ef853cf17d42ca2d36504528ef879c73fcb4b01ea72b1bfe7ae85085fef",
+    "hashVerifiedByFullBackRead": true,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "officialWebsiteRelease": {
+    "evidence": "evidence/wallet-session-official-website-deployment.json",
+    "websiteCommit": "11f53023a419701e240f7e0980440d848a9f5af2",
+    "productionDeploymentId": "dpl_764jDRPtfWyGCivuoqq8eEf4Fnng",
+    "productionDeploymentUrl": "https://ynx-web4-website-9vt02xxkm-jiahaoalbus-projects.vercel.app",
+    "officialDocsUrl": "https://www.ynxweb4.com/docs",
+    "sourcePackageUrl": "https://www.ynxweb4.com/releases/wallet-session-router/d8863f6b2875/ynx-chain-wallet-auth-1.1.0.tgz",
+    "sourcePackageBytes": 101437,
+    "sourcePackageSha256": "7c7f36c364c89d5c51808cd4098d4fcbde147eda698960c80da8301f5f58276b",
+    "publicBackReadMatches": true,
+    "visibleBrowserVerified": true,
+    "screenshot": "evidence/wallet-session-official-website-visible-20260814.png",
+    "screenshotSha256": "156c14e70a1232f3510c240e9c1b16dd15678dec72487f5e2de0d4bf1b93b62a",
+    "computerControlPassed": false,
+    "computerControlError": "Sky Computer Use native pipe startup failed"
+  },
+  "publicProductSessionV2RouteProbe": {
+    "evidence": "evidence/product-session-v2-public-route-probe-20260814.json",
+    "target": "https://rest.ynxweb4.com",
+    "capturedAt": "2026-08-14T10:29:16Z",
+    "appGatewayHealthStatus": 200,
+    "legacyWalletSessionControlStatus": 400,
+    "legacyWalletSessionRouteReached": true,
+    "v2ChallengeProbeStatus": 200,
+    "v2ChallengeProbeResponse": "JSON-RPC -32601 method not implemented",
+    "v2RoutingOutcome": "historical-pre-deployment-misroute-to-chain-json-rpc-catch-all",
+    "supersededBy": "evidence/product-session-v2-public-deployment-20260814.json",
+    "productSessionV2RoutesDeployedPublicAtCapture": false,
+    "productSessionV2RoutesDeployedPublicCurrent": true,
+    "stateCreated": false,
+    "mountReleaseGate": "scripts/probe-product-session-v2-public.mjs",
+    "mountReleaseGateUnitTestsPassed": 7,
+    "mountReleaseGateLiveResultAtCapture": "UNEXPECTED_HTTP_STATUS",
+    "mountReleaseGateLiveExitCodeAtCapture": 1,
+    "mountReleaseGateCurrentResult": "passed"
+  },
+  "visibleComputerControl": {
+    "app": "Microsoft Edge",
+    "title": "YNX Product Session v2 visible proof",
+    "verified": [
+      "LOCAL PROTOCOL FIXTURE",
+      "Native identity: com.ynx.social",
+      "req_visible_complete_001",
+      "req_visible_introspect_001",
+      "req_visible_restart_001",
+      "NETWORK_UNAVAILABLE",
+      "req_visible_offline_001",
+      "req_visible_revoke_001",
+      "SESSION_REVOKED",
+      "req_visible_revoked_001",
+      "Guest / Try",
+      "Truth boundary"
+    ],
+    "screenshot": "evidence/product-session-visible-proof-computercontrol.jpeg"
+  },
+  "installedWalletCompanion": {
+    "app": "YNX Wallet Testnet Companion",
+    "url": "http://127.0.0.1:4173/",
+    "observedState": "NO SUPPORTED WALLET DETECTED",
+    "verified": [
+      "Connect to YNX Testnet",
+      "Download YNX Wallet",
+      "Use MetaMask",
+      "Not connected",
+      "YNX Testnet · Chain 6423 · 0x1917",
+      "no fabricated account, balance, transaction, or connected Chain state"
+    ],
+    "ynxWalletArtifact": "https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk",
+    "metaMaskDownload": "https://metamask.io/download",
+    "screenshot": "evidence/ynx-wallet-installed-unavailable-computercontrol.jpeg"
+  },
+  "installedAndroidWalletObservation": {
+    "evidence": "evidence/ynx-wallet-android-deeplink-observation.json",
+    "avd": "YNX_Proof_2",
+    "androidRelease": "16",
+    "artifactHashVerified": true,
+    "packageInstalled": "com.ynxweb4.wallet",
+    "canonicalSchemeResolved": true,
+    "canonicalIntentDelivered": true,
+    "requestId": "req_android_visible_zg2OxmswHskBc_Lfr-HEkM-qP2doHijfsnBTXFX2UYk",
+    "approvalFlowValidated": false,
+    "truthBoundary": "Installed package, registered ynxwallet scheme and canonical ACTION_VIEW delivery only; headless Wallet UI was black and approval/session were not observed"
+  },
+  "installedMetaMaskObservation": {
+    "evidence": "evidence/metamask-installed-observation.json",
+    "screenshot": "evidence/metamask-biometric-timeout-computercontrol.png",
+    "chromeExtensionId": "nkbihfbeogaeaoehlefnkodbefgpgknn",
+    "version": "13.42.0",
+    "enabled": true,
+    "siteAccess": "full",
+    "unlockRouteReached": true,
+    "biometricResult": "later-unlocked-with-user-touch-id",
+    "providerInjected": true,
+    "ynxTestnetSelected": true,
+    "liveHarnessAdapterLoaded": true,
+    "liveHarnessConnectionRequestTriggered": true,
+    "providerDiscoveryRevisionValidated": false,
+    "liveHarnessApprovalResult": "unverified-computer-use-native-pipe-closed",
+    "coordinatorRecoveryRetry": "2026-08-14 Computer Use timed out for Chrome, then the native pipe closed by bundle identifier and failed to start for the MetaMask app; no approval result or connection authority was observed",
+    "approvalFlowValidated": false
+  },
+  "truthBoundary": {
+    "runtimeProductsMigrated": 0,
+    "installedPlatformsValidated": ["android-package-scheme-and-intent-delivery-only"],
+    "visibleUnavailableFlowValidated": [
+      "macos-wallet-companion"
+    ],
+    "platformValidationBlocked": [
+      "MetaMask 13.42.0 was unlocked with user Touch ID, injected a provider, and the central EIP-1193 harness loaded and triggered a connection request; Computer Use timed out and its native pipe closed before the approval result, request ID, chain, or masked account could be observed",
+      "The post-coordinator Computer Use retry timed out for Chrome, closed its native pipe by bundle identifier, and failed native-pipe startup for the MetaMask app",
+      "Android 16 installed the hash-verified YNX Wallet APK and accepted the canonical ACTION_VIEW route, but its headless UI stayed black and no approval callback or Product Session was observable",
+      "The Wallet Companion detected the injected provider but its browser RPC preflight to https://evm.ynxweb4.com failed CORS before account approval; Wallet UI and Chain deployment configuration are outside this branch scope",
+      "No installed YNX Wallet application was available for a real approval/session flow"
+    ],
+    "publicDeployment": false,
+    "publicDeploymentMeaning": "App Gateway and migrated product runtimes",
+    "sourcePackageDeployedPublic": true,
+    "sourcePackageCommit": "d8863f6b28752f427929a1c953dd035e096820ff",
+    "currentHeadReleaseGateDeployedPublic": false,
+    "officialWebsiteReleaseMetadataDeployedPublic": true,
+    "appGatewayDeployedPublic": false,
+    "publicAppGatewayReachable": true,
+    "legacyWalletSessionRoutesReachable": true,
+    "productSessionV2RoutesDeployedPublic": true,
+    "productSessionV2DeployedSourceCommit": "37f2485ed604d88ed1457bc497d50f3f7a037469",
+    "productSessionV2GatewayBoundary": "independent 6441 service; legacy 6437 and 6439 binaries not replaced",
+    "downloadHosted": true,
+    "downloadHostedScope": "Android Testnet Preview artifact only",
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

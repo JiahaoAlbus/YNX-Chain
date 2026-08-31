@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-WALLET-PRODUCT-SESSION-DEVELOPER-SDK-20260821",
+  "capturedAt": "2026-08-21T00:00:00+08:00",
+  "owner": "wallet-protocol",
+  "scope": "read-only-consumption-of-central-developer-sdk-acceptance",
+  "centralAcceptance": {
+    "taskId": "P0-003",
+    "commit": "f4ef7d56a8dcc8dc8e96dc7a5925fc0e132a4c05",
+    "parent": "88a75ed10ba6a3da3cc99baebced8aedd82717fe",
+    "tree": "228dc22bd704a920a0ff796bb0d5479bf45e72a2",
+    "classification": "SDK_ONLY_CLEAN_REBASE_SOURCE_ACCEPTED",
+    "changedBlobReadback": "17/17",
+    "acceptedPaths": "packages/dapp-connect-sdk/**",
+    "appsDeveloperPathsChanged": false
+  },
+  "developerCandidate": {
+    "pr": "https://github.com/JiahaoAlbus/YNX-Chain/pull/130",
+    "prHead": "e649cd7cddf753d732033e24c9c3b73ecf7b807a",
+    "manifestCommit": "3437be2f3e4d174cd8a35949e08de673f31942b8",
+    "manifestParentActual": "a6d69e118c84b7b8df4d38198ae353fec6d2cd38",
+    "reportedBaseImplementationWasNotAnObject": "a6d69e11d98d71da19f02ba81f33636a0f9b7f25",
+    "centralMergeParent": "c0a66cb6bfe42d2f1f658ebd93f41eec0f245f2d",
+    "sdkTree": "c526fd89d08024cc955a12055b9d5d5643e1cb6f",
+    "materialization": "EXACT_PR_HEAD_SDK_SUBTREE_WITHOUT_MERGE_HISTORY",
+    "changedSdkPaths": 13,
+    "manifestDeltaPaths": 5,
+    "testsPassed": 12,
+    "testsFailed": 0,
+    "migrationFindings": 0,
+    "manifestResult": "BUNDLED_SHA256_ACCEPTED",
+    "manifestReleaseId": "P0-WALLET-CONNECTIVITY-2026-08-endpoints-2",
+    "compatibilityLabExplicitSkips": 10,
+    "simulatedCompatibilityPasses": 0
+  },
+  "truth": {
+    "sdkSourceAcceptedCentral": true,
+    "endpointManifestBundledAccepted": true,
+    "remoteManifestReplacementEnabled": false,
+    "realAdaptersVerified": false,
+    "productMigration": false,
+    "publicSdkReleased": false,
+    "deployedPublic": false,
+    "integratedCentral": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

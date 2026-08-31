@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "recordId": "wallet-canonical-authorize-p0-source-handoff-20260821",
+  "status": "SOURCE_ONLY_FROZEN_AWAITING_SDK_AND_PLATFORM_CONSUMPTION",
+  "owner": "wallet-protocol-router",
+  "contract": "packages/wallet-auth/integration/canonical-wallet-authorize-v1.json",
+  "contractSha256": "e572042f18c1e32dfe86da26ee2ab52f9372c9803eae3b492c26932e50251c03",
+  "implementation": [
+    "packages/wallet-auth/src/deep-link.js",
+    "packages/wallet-auth/src/index.d.ts"
+  ],
+  "releaseGate": {
+    "script": "packages/wallet-auth/scripts/verify-no-bare-wallet-authorize.mjs",
+    "command": "npm run verify:no-bare-authorize --prefix packages/wallet-auth",
+    "currentResult": "PASS",
+    "negativeTest": "packages/wallet-auth/test/no-bare-wallet-authorize.test.mjs"
+  },
+  "protocolTests": [
+    "packages/wallet-auth/test/deep-link.test.mjs",
+    "packages/wallet-auth/test/canonical-authorize-contract.test.mjs",
+    "packages/wallet-auth/test/cross-app.test.mjs",
+    "packages/wallet-auth/test/authorization-rejection.test.mjs"
+  ],
+  "handoff": "docs/integration/P0_CANONICAL_WALLET_AUTHORIZE_HANDOFF_20260821.md",
+  "handoffSha256": "73c12fd1d9832c248e15e76cf1599af9ccd08afc5171477336d182978a1388ca",
+  "requiredOwnerEvidence": {
+    "sdk": ["exact accepted source", "builder and callback consumer tests", "release scan and public consumer proof"],
+    "platform": ["exact accepted source", "populated approval screen plus approve/reject callback", "cold-start/activity-or-scene-reuse/browser-return plus replay and tamper negatives"],
+    "product": ["exact shared SDK consumption", "public Gateway lifecycle without disabling Standard Wallet", "installed or browser-visible absent/present/approve/reject/timeout/revoke/second-launch/network-loss evidence"]
+  },
+  "truth": {
+    "protocolSourceImplemented": true,
+    "bareUriSourceGatePassed": true,
+    "productUiModified": false,
+    "sdkConsumed": false,
+    "platformConsumed": false,
+    "deviceOrEmulatorVerified": false,
+    "browserVerified": false,
+    "walletApprovalVerified": false,
+    "accountVerified": false,
+    "signatureVerifiedOnDevice": false,
+    "productSessionVerifiedPublic": false,
+    "transactionVerified": false,
+    "productMigrations": "0/12",
+    "deployedPublic": false,
+    "integratedCentral": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

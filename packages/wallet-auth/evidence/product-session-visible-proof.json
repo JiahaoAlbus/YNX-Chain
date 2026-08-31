@@ -1,0 +1,134 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-14T04:29:24.982Z",
+  "fixtureBoundary": "LOCAL PROTOCOL FIXTURE — deterministic test keys, no production login, balance, transaction or public deployment claim",
+  "protocolVersion": "2",
+  "product": {
+    "productId": "social",
+    "clientId": "ynx-social-v1",
+    "platform": "macos",
+    "applicationId": "com.ynx.social",
+    "bundleId": "com.ynx.social",
+    "packageId": null,
+    "origin": "app://macos/com.ynx.social",
+    "callback": "ynx-social://com.ynx.social"
+  },
+  "session": {
+    "sessionBinding": "025f475aa68f9c60b1cce1ee6091daae52ff92d2fd234eb5d89ce5a3f583a5b8",
+    "account": "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80",
+    "deviceBinding": "c0405fed760d1848a6e28bd39f6fffd2e1982960ea945c5cd7394b267c2a8676",
+    "nonce": "gzgc4vi9D--43lrFIxKhWHC8D8sBWbv6w6Dfq-PEB-c",
+    "state": "aGDOgXZE8X10y_FAGujJ95WClYnb69XK7qd0URlQb7Q",
+    "scopes": [
+      "account:read",
+      "profile:link"
+    ],
+    "issuedAt": "2026-08-14T01:00:00.000Z",
+    "expiresAt": "2026-08-14T01:03:00.000Z"
+  },
+  "flows": [
+    {
+      "id": "wallet-installed",
+      "label": "YNX Wallet installed",
+      "outcome": "ready",
+      "requestId": "local-router-only",
+      "detail": "Validated allowlisted ynxwallet://authorize route"
+    },
+    {
+      "id": "wallet-not-installed",
+      "label": "YNX Wallet not installed",
+      "outcome": "wallet-not-installed",
+      "requestId": "local-router-only",
+      "detail": "Install YNX Wallet or return to Guest / Try mode"
+    },
+    {
+      "id": "metamask-not-installed",
+      "label": "MetaMask not installed (EVM only)",
+      "outcome": "download-evm-wallet",
+      "requestId": "local-router-only",
+      "detail": "https://metamask.io/download"
+    },
+    {
+      "id": "approved",
+      "label": "Wallet approval + Gateway completion",
+      "outcome": "connected",
+      "requestId": "req_visible_complete_001",
+      "detail": "025f475aa68f9c60b1cce1ee6091daae52ff92d2fd234eb5d89ce5a3f583a5b8"
+    },
+    {
+      "id": "challenge-response-loss",
+      "label": "Challenge response lost + Retry",
+      "outcome": "idempotent",
+      "requestId": "req_visible_challenge_001",
+      "detail": "Same request ID and canonical body returned the exact issued challenge"
+    },
+    {
+      "id": "completion-response-loss",
+      "label": "Completion response lost + Retry",
+      "outcome": "idempotent",
+      "requestId": "req_visible_complete_001",
+      "detail": "Same request ID returned the exact Session without consuming the request twice"
+    },
+    {
+      "id": "rejected",
+      "label": "User rejected",
+      "outcome": "user-rejected",
+      "requestId": "local-router-only",
+      "detail": "No Product Session was created"
+    },
+    {
+      "id": "introspection",
+      "label": "Sender-constrained introspection",
+      "outcome": "active",
+      "requestId": "req_visible_introspect_001",
+      "detail": "Method, path, body, product, bundle/package, origin, callback, account and device bound"
+    },
+    {
+      "id": "second-open",
+      "label": "Second app open",
+      "outcome": "restored-after-introspection",
+      "requestId": "req_visible_restart_001",
+      "detail": "Gateway state snapshot restored; cached session re-introspected"
+    },
+    {
+      "id": "network-loss",
+      "label": "Chain/Gateway network loss",
+      "outcome": "NETWORK_UNAVAILABLE",
+      "requestId": "req_visible_offline_001",
+      "detail": "Cached session was not accepted offline; Retry remains required"
+    },
+    {
+      "id": "revoke",
+      "label": "Session revoke",
+      "outcome": "revoked",
+      "requestId": "req_visible_revoke_001",
+      "detail": "025f475aa68f9c60b1cce1ee6091daae52ff92d2fd234eb5d89ce5a3f583a5b8"
+    },
+    {
+      "id": "post-revoke",
+      "label": "Use after revoke",
+      "outcome": "SESSION_REVOKED",
+      "requestId": "req_visible_revoked_001",
+      "detail": "Fail closed after restart-safe revocation"
+    },
+    {
+      "id": "guest",
+      "label": "Guest / Try",
+      "outcome": "limited",
+      "requestId": "local-router-only",
+      "detail": "not-signed-in, no-wallet-balance, no-transactions, no-chain-authority"
+    }
+  ],
+  "releaseBoundary": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": true,
+    "downloadHostedScope": "Android Testnet Preview artifact only",
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

@@ -14,6 +14,7 @@ module.exports = {
       bundleIdentifier: "com.ynx.social",
       supportsTablet: true,
       infoPlist: {
+        LSApplicationQueriesSchemes: ["ynxwallet"],
         NSContactsUsageDescription: "YNX Social matches locally selected contact hashes only after you allow access.",
         NSPhotoLibraryUsageDescription: "Choose an image to share in a Social post or message.",
         NSCameraUsageDescription: "Scan a YNX Social profile QR only when you choose the QR discovery method."

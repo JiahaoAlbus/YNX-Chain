@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "contractId": "YNX-CANONICAL-WALLET-AUTHORIZE-V1",
+  "status": "FROZEN_SOURCE_ONLY",
+  "owner": "wallet-protocol-router",
+  "authorizeTransport": {
+    "routeBase": "ynxwallet://authorize",
+    "canonicalTemplate": "ynxwallet://authorize?request=<base64url(canonical-json-request)>",
+    "soleQueryParameter": "request",
+    "builder": "@ynx-chain/wallet-auth#encodeRequestDeepLink",
+    "parser": "@ynx-chain/wallet-auth#parseWalletDeepLink",
+    "bareRouteAllowed": false,
+    "emptyRequestAllowed": false,
+    "extraQueryAllowed": false,
+    "fragmentAllowed": false
+  },
+  "request": {
+    "version": "1",
+    "requestIdBinding": "The product launch requestId is derived from and correlated with the canonical nonce; it is not an unbound second authority field in the v1 envelope.",
+    "exactFields": [
+      "version",
+      "nonce",
+      "chainId",
+      "requestingProduct",
+      "productClientId",
+      "bundleId",
+      "productDeviceAlgorithm",
+      "productDeviceKey",
+      "callback",
+      "scopes",
+      "purpose",
+      "issuedAt",
+      "expiresAt"
+    ],
+    "tamperBinding": {
+      "domain": "YNX_WALLET_AUTH_REQUEST_V1",
+      "field": "requestDigest",
+      "approvalSignature": "secp256k1 compact low-S over YNX_WALLET_AUTH_APPROVAL_V1 and canonical approval JSON"
+    },
+    "maximumLifetimeSeconds": 300
+  },
+  "walletReview": {
+    "requiredVisibleFields": [
+      "requestingProduct",
+      "productClientId",
+      "bundleId",
+      "callback",
+      "selectedAccount",
+      "chainId",
+      "scopes",
+      "purpose",
+      "expiresAt"
+    ],
+    "approvalWithoutVisibleRequest": false
+  },
+  "callbackTransport": {
+    "canonicalTemplate": "<exact-registered-callback>?response=<base64url(canonical-json-response)>",
+    "soleQueryParameter": "response",
+    "builder": "@ynx-chain/wallet-auth#createCallbackURL",
+    "parserAndVerifier": "@ynx-chain/wallet-auth#parseAuthorizationCallbackURL",
+    "approve": "wallet-signed AuthorizationResponse bound to requestDigest, nonce, chain, product, client, bundle, device key, callback, scopes, purpose and expiry",
+    "reject": "AuthorizationRejection with authorityGranted=false and grantedScopes=[] bound to the same request",
+    "redirectFallbackAllowed": false
+  },
+  "pendingState": {
+    "storageClassRequired": ["hardware-backed", "os-protected"],
+    "survives": ["wallet-cold-start", "activity-reuse", "browser-round-trip", "product-restart"],
+    "recovery": "restore then exact introspection; one controlled reconnect only after confirmed invalidation; explicit Retry thereafter",
+    "localOrCannedSessionAllowed": false
+  },
+  "independentConnections": {
+    "standardWallet": ["EIP-1193", "EIP-6963", "WalletConnect", "SIWE"],
+    "productSessionFailureMayDisableStandardWallet": false,
+    "walletAbsentActions": ["official-ynx-wallet-download", "metamask-or-standard-wallet-when-compatible", "guest-try-with-limitations"]
+  },
+  "releaseGate": {
+    "command": "npm run verify:no-bare-authorize --prefix packages/wallet-auth",
+    "failureCode": "BARE_WALLET_AUTHORIZE_URI",
+    "scannedRoots": ["apps", "internal", "packages"],
+    "generatedDocsTestsEvidenceAndBuildOutputsExcluded": true
+  },
+  "negativeVectors": [
+    {"id": "bare", "uri": "ynxwallet://authorize", "error": "MISSING_AUTHORIZATION_REQUEST"},
+    {"id": "empty-query", "uri": "ynxwallet://authorize?", "error": "MISSING_AUTHORIZATION_REQUEST"},
+    {"id": "empty-request", "uri": "ynxwallet://authorize?request=", "error": "MISSING_AUTHORIZATION_REQUEST"},
+    {"id": "wrong-query", "uri": "ynxwallet://authorize?redirect=https%3A%2F%2Fattacker.example", "error": "MISSING_AUTHORIZATION_REQUEST"},
+    {"id": "fragment", "uri": "ynxwallet://authorize#request", "error": "MISSING_AUTHORIZATION_REQUEST"},
+    {"id": "route-substitution", "mutation": "authorize to approve", "error": "INVALID_DEEP_LINK"},
+    {"id": "extra-query", "mutation": "append redirect", "error": "INVALID_DEEP_LINK"},
+    {"id": "tampered-payload", "mutation": "invalid base64url or canonical request field", "error": "INVALID_DEEP_LINK_OR_REQUEST_VALIDATION_ERROR"},
+    {"id": "wrong-product-chain-callback-scope-or-expiry", "mutation": "change one bound field", "error": "FAIL_CLOSED_BY_PROTOCOL_VALIDATOR"},
+    {"id": "replay", "mutation": "reuse nonce/requestDigest", "error": "REPLAY"}
+  ],
+  "truth": {
+    "sourceContractFrozen": true,
+    "sourceGatePassed": true,
+    "sdkConsumed": false,
+    "androidConsumed": false,
+    "iosConsumed": false,
+    "desktopConsumed": false,
+    "walletVisibleReviewVerified": false,
+    "approveCallbackDeviceVerified": false,
+    "rejectCallbackDeviceVerified": false,
+    "coldStartRecoveryDeviceVerified": false,
+    "browserRoundTripVerified": false,
+    "productMigrations": "0/12",
+    "deployedPublic": false,
+    "integratedCentral": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

@@ -1,0 +1,204 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-WALLET-ROUTER-CONTINUATION-20260820T143001Z",
+  "capturedAt": "2026-08-20T14:30:01Z",
+  "owner": "wallet-protocol",
+  "branch": "codex/wallet-session-router-recovery",
+  "sourceBaseline": "9759576afdd4e02fa5375dde371acd41be038c2c",
+  "acceptedArchitecture": {
+    "standardWalletProtocolCommit": "66003e76e804da16d472255efde50cb879055b96",
+    "standardWalletProtocolContentConsumed": true,
+    "standardWalletProtocolContractPath": "packages/wallet-auth/integration/p0-wallet-connectivity-candidate.json",
+    "standardWalletProtocolTestPath": "packages/wallet-auth/test/p0-wallet-connectivity-candidate.test.mjs",
+    "standardWalletProtocolAcceptanceCommit": "9b6e101f29c9028b9d5a477258e341aa05ebc89f",
+    "standardWalletConsumerSdkCommit": "315897e75c0ffe3e63435fe73cfec42244b851cc",
+    "standardConnectionSurvivesProductSessionFailure": true,
+    "privateServiceBecomesDegraded": true,
+    "localOrCannedProductSessionAllowed": false,
+    "productConsumptionVerified": false,
+    "installedInteroperabilityVerified": false
+  },
+  "publicReadback": {
+    "baseUrl": "https://wallet-auth.ynxweb4.com",
+    "health": {
+      "status": 200,
+      "bytes": 197,
+      "sha256": "f9765260d72e329c50d34ab68968b7f225350c7d914786e9b55974084eb874c6"
+    },
+    "ready": {
+      "status": 200,
+      "bytes": 195,
+      "sha256": "36027914c982004b11c943c53a3aff7332767f3e477bf7cb15d27d4105ae497c"
+    },
+    "version": {
+      "status": 200,
+      "bytes": 301,
+      "sha256": "5ec386007e0b3e24bfd7d1f1afd37b4e98aedf7f4e1f7b2b39efca136a5d52d0",
+      "sourceCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+      "release": "p0-v2-state-isolated-6cf3ef84"
+    },
+    "registeredOriginOptions": {
+      "origin": "https://finance.ynxweb4.com",
+      "path": "/v2/product-sessions/challenge",
+      "status": 204,
+      "allowOriginExact": true,
+      "allowMethodPost": true,
+      "cacheControlNoStore": true
+    },
+    "unregisteredOriginOptions": {
+      "origin": "https://attacker.example",
+      "path": "/v2/product-sessions/challenge",
+      "status": 403,
+      "requestId": "req_invalid_request_000",
+      "cacheControlNoStore": true
+    },
+    "transportObservation": "The first local TLS handshake failed with LibreSSL SSL_ERROR_SYSCALL; the bounded retry recovered and returned the exact accepted source and CORS results. No protocol request was sent by the failed handshake."
+  },
+  "websitePublicReadback20260821": {
+    "evidencePath": "release/integration/wallet-auth-website-public-readback-20260821.json",
+    "apexAndWwwDocsMatch": true,
+    "apexAndWwwRuntimePublicationMatch": true,
+    "runtimeSourceCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "registryV3ShopRetirementDeployedPublic": false
+  },
+  "authoritativeProductFactoryOrigin": {
+    "evidencePath": "release/integration/wallet-product-session-authoritative-origin-audit-20260820.json",
+    "origin": "https://wallet-auth.ynxweb4.com",
+    "buildSource": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "historicalRestOriginStillMounted": true,
+    "historicalRestOriginBuildIdentifiable": false,
+    "callerOverrideAllowed": false,
+    "centralAcceptanceCommit": "8db659b8e55e54d3b49d4ff7479448877b97ff40",
+    "centralDecision": "ACCEPTED_SOURCE_ONLY_SDK_PACKAGE_CHECKPOINT",
+    "artifactPublished": false,
+    "npmRegistryPublished": false
+  },
+  "tests": {
+    "walletAuth": {
+      "command": "npm test --prefix packages/wallet-auth",
+      "passed": 243,
+      "failed": 0
+    },
+    "unifiedErrorContract": {
+      "command": "node --test packages/wallet-auth/test/wallet-error-contract.test.mjs",
+      "passed": 4,
+      "failed": 0,
+      "providerErrors": 6,
+      "ynxErrors": 20,
+      "packDryRunIncludesImplementationAndTypes": true
+    },
+    "authoritativeProductFactoryOrigin": {
+      "focusedCommand": "node --test packages/wallet-auth/test/product-wallet-connection.test.mjs packages/wallet-auth/test/product-session-public-probe.test.mjs packages/wallet-auth/test/product-session-migration.test.mjs",
+      "focusedPassed": 18,
+      "focusedFailed": 0,
+      "fullWalletAuthPassed": 243,
+      "fullWalletAuthFailed": 0,
+      "defaultPublicMountProbePassed": true,
+      "packageDryRunIncludesFactoryAndTypes": true
+    },
+    "acceptedProtocolContract": {
+      "command": "node --test packages/wallet-auth/test/p0-wallet-connectivity-candidate.test.mjs packages/wallet-auth/test/product-session-migration.test.mjs",
+      "passed": 7,
+      "failed": 0
+    },
+    "migrationContract": {
+      "command": "node --test packages/wallet-auth/test/product-session-migration.test.mjs",
+      "passed": 4,
+      "failed": 0
+    },
+    "shopAndroidRetirement": {
+      "evidencePath": "release/integration/wallet-product-session-shop-android-retirement-checkpoint-20260821.json",
+      "focusedPassed": 24,
+      "focusedFailed": 0,
+      "fullWalletAuthPassed": 243,
+      "fullWalletAuthFailed": 0,
+      "newAuthorizationHttpStatus": 410,
+      "newAuthorizationCode": "CLIENT_RETIRED",
+      "publicRuntimeVerified": false
+    },
+    "socialReadOnlyCheckpoint": {
+      "sourceCommit": "9759576afdd4e02fa5375dde371acd41be038c2c",
+      "testsPassed": 18,
+      "smokePassed": true,
+      "typecheckPassed": true,
+      "classification": "canonical-launcher-v1",
+      "installedAndroidEvidencePath": "release/integration/wallet-product-session-social-android-visible-negative-20260821.json",
+      "installedWalletVersion": "1.0.4-testnet-preview",
+      "installedWalletOpenVerified": true,
+      "installedWalletRejectionVerified": true,
+      "secondLaunchNoResurrectionVerified": true,
+      "socialBackendTlsHandshakeFailed": true,
+      "productSessionV2Verified": false,
+      "migratedV2": false
+    },
+    "jsonAndDiff": {
+      "jqValid": true,
+      "diffCheckPassed": true
+    }
+  },
+  "migration": {
+    "requestedProductsMigrated": 0,
+    "requestedProductsRequired": 12,
+    "rootFactorySourceOnlyProducts": ["card", "dex", "exchange", "quant"],
+    "cardOwnerCheckpoint": "a0ae3567337a69f43a33eb3d0bd33f55a0591b18",
+    "cardEndpointManifestCheckpoint": "2c2e117e42b4daacf96cd74abc6844c72398c522",
+    "cardRootFactoryCheckpoint": "e935b760",
+    "cardRootFactoryConsumed": true,
+    "cardPublicGatewayLifecycleVerified": false,
+    "cardInstalledOrBrowserVisibleFlowVerified": false,
+    "cardArbitraryHttpsGatewayGapOpen": false,
+    "cardAcceptedAppGatewayState": "UNAVAILABLE",
+    "socialCanonicalLauncherV1Only": true,
+    "financeOwnerCheckpoint": "f7efbd9e9658aaea75f8d9fbbb58f79ee1a48365",
+    "financeRootFactoryRemoteCheckpoint": "f711745dc44cea17ac46abd6332af87f6db2ffa6",
+    "financeRootFactoryConsumed": true,
+    "financeInstalledWalletOpened": true,
+    "financeInstalledWalletResult": "PROTOCOL_SCHEMA_FIELD_MISMATCH_WHILE_LOCKED",
+    "financeInstalledVisibleSuccessVerified": false,
+    "financeProductSessionUnavailableAndNotFabricated": true,
+    "financialAdaptersCheckpoint": "release/integration/wallet-product-session-financial-adapters-checkpoint-20260821.json",
+    "exchangeRootFactoryOwnerCheckpoint": "ffc5cf89fbba81bf439835350bb91d09ece158ab",
+    "exchangeRemoteCommitReadable": true,
+    "dexRootFactoryOwnerCheckpoint": "aa5d4e5b5999a1dee28ce41adcc509abe96f95e9",
+    "dexRemoteCommitReadable": false,
+    "quantRootFactoryOwnerCheckpoint": "f66fd4d14ff047efa6bb7e66fc2e140773826b16",
+    "quantRemoteCommitReadable": false,
+    "financialAdaptersRuntimeOrPublicMigrationVerified": false,
+    "shopAndroidRetirementCheckpoint": "source-only-registry-v3",
+    "shopAndroidClientRetiredInSource": true,
+    "shopWebPwaRemainsRegistered": true,
+    "shopRegistryV3DeployedPublic": false
+  },
+  "computerControl": {
+    "evidencePath": "release/integration/wallet-auth-website-computercontrol-evidence-20260820.json",
+    "screenshotPath": "release/integration/evidence/wallet-auth-website-computercontrol-20260820T145755Z.jpeg",
+    "channelAvailable": true,
+    "websiteWalletAuthPublicationCardVisible": true,
+    "visibleDocsRuntimeSource": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
+    "visibleDocsRuntimeSourceMatchesCurrentPublicVersion": false,
+    "websiteRecordStatus": "PREDEPLOY_VISIBLE_RECORD_STALE",
+    "postDeploymentEvidencePath": "release/integration/wallet-auth-website-postdeploy-readback-20260820.json",
+    "websiteProductionDeploymentReady": true,
+    "publishedFrontendAssetUsesCurrentRuntimeSource": true,
+    "ownerPostDeploymentRenderedCardVerified": false,
+    "ownerPostDeploymentRenderedCardFailure": "MAC_LOCKED_AUTOMATIC_UNLOCK_FAILED",
+    "priorCentralDeploymentRenderedCardVerified": true,
+    "currentAuthoritativeDeploymentRenderedCardVerified": false,
+    "currentAuthoritativeDeploymentRenderedCardFailure": "CG_WINDOW_NOT_FOUND",
+    "centralVisibleRuntimeSource": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "productSessionFlowVerified": false
+  },
+  "truth": {
+    "walletAuthGatewayDeployedPublic": true,
+    "productSessionV2PublicLifecycleVerifiedByPriorAcceptedEvidence": true,
+    "currentReadbackMatchesAcceptedSource": true,
+    "productRuntimeMigrationComplete": false,
+    "standardWalletProductConsumptionComplete": false,
+    "computerControlWebsitePublicationVisibleOnCurrentAuthoritativeDeployment": false,
+    "computerControlVisibleFlowVerified": false,
+    "installedWalletApprovalVerified": false,
+    "aggregateDeployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

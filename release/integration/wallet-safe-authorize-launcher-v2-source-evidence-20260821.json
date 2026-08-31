@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "recordId": "wallet-safe-authorize-launcher-v2-source-evidence-20260821",
+  "status": "SOURCE_ONLY_SUCCESSOR_READY_FOR_INDEPENDENT_REVIEW",
+  "owner": "wallet-protocol-router",
+  "source": {
+    "branch": "codex/wallet-session-router-recovery",
+    "commit": "f1ba5013a817d4c03157e1cf83d7685606951a12",
+    "tree": "3b319dda94dbd703cc4b6a0151e843dd2411604e",
+    "parent": "ac55c0f43edf2b9687a6b9800da89bf5ab760743"
+  },
+  "supersession": {
+    "oldContractVersion": "safeWalletAuthorizeLauncher@1.0.0-p0.0",
+    "oldSourceCommit": "4679de8e8d0675e2013254c92ff1935191f87c21",
+    "oldStatus": "SUPERSEDED_CANDIDATE",
+    "reportedRegression": "A real Chrome click on the hidden-iframe launcher added a top-level tab whose URL and title were empty even though the product page URL remained unchanged.",
+    "canonicalRequestRebuilt": false
+  },
+  "successor": {
+    "contractVersion": "safeWalletAuthorizeLauncher@2.0.0-p0.0",
+    "contractPath": "packages/wallet-auth/integration/safe-wallet-authorize-launcher-v2.json",
+    "contractBlob": "875fabcd90bb77ace32124f7ecbe81cd1b7499d2",
+    "contractSha256": "defd0db6281839ef5efdfdb6b7b4734369058306f0dd7a90a16fbb6e1f776f6c",
+    "implementationPath": "packages/wallet-auth/src/authorize-launcher.js",
+    "implementationBlob": "62faa1f2dce3bbea1d048bb62aad06987c805408",
+    "implementationSha256": "e86cc541465b4b36a449393d2af395cd517125558976bb245b7bf2376a1bb0ca",
+    "testPath": "packages/wallet-auth/test/authorize-launcher.test.mjs",
+    "testBlob": "ffba56006e17f0ebe6278796de8c9cdf6cafe61f",
+    "testSha256": "6d4e3db6046cb589c95d5399fe3513279624c6d8c042855aa77b6fd2a71a2c20"
+  },
+  "behavior": {
+    "web": {
+      "strategy": "standard-provider-discovery",
+      "providerOrder": ["EIP-6963", "legacy-injected-EIP-1193"],
+      "ynxPreferredOverMetaMask": true,
+      "ambiguousOrConflictedProviderFailsClosed": true,
+      "noProviderStatus": "unsupported",
+      "noProviderActions": ["official-ynx-wallet-download", "standard-metamask"],
+      "customSchemeTriggered": false,
+      "iframeCreated": false,
+      "accountRequestTriggered": false
+    },
+    "native": {
+      "strategy": "native-resolver",
+      "completeCanonicalUriOnly": true,
+      "resolverResultIsApprovalProof": false
+    }
+  },
+  "verification": {
+    "focused": "15/15",
+    "walletAuthFull": "256/256",
+    "bareAuthorizeGate": "PASS",
+    "equivalentBrowserAssertions": {
+      "openTabsOrTopLevelPageCountUnchanged": true,
+      "productUrlUnchanged": true,
+      "blankTargetAbsent": true,
+      "domElementOrIframeCreationAbsent": true,
+      "providerRequestAbsent": true
+    },
+    "packageDryRun": {
+      "files": 73,
+      "bytes": 131505,
+      "containsLauncher": true,
+      "containsContract": true
+    }
+  },
+  "truth": {
+    "sourceImplemented": true,
+    "equivalentBrowserTested": true,
+    "realChromeSuccessorRetested": false,
+    "installedWalletVerified": false,
+    "walletApprovalVerified": false,
+    "callbackVerified": false,
+    "productSessionCreated": false,
+    "platformConsumed": false,
+    "productsConsumed": "0/12",
+    "deployedPublic": false,
+    "integratedCentral": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "productionOperations": {
+    "ssh": false,
+    "privateStateRead": false,
+    "leaseRequestedOrUsed": false,
+    "deployment": false,
+    "productUiChanged": false
+  }
+}

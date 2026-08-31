@@ -20,19 +20,45 @@
       "types": "./src/gateway-backup.d.ts",
       "import": "./src/gateway-backup.js",
       "default": "./src/gateway-backup.js"
+    },
+    "./wallet-provider-discovery": {
+      "types": "./src/index.d.ts",
+      "import": "./src/wallet-provider-discovery.js",
+      "default": "./src/wallet-provider-discovery.js"
+    },
+    "./metamask-evm": {
+      "types": "./src/index.d.ts",
+      "import": "./src/metamask-evm-adapter.js",
+      "default": "./src/metamask-evm-adapter.js"
+    },
+    "./wallet-connection-coordinator": {
+      "types": "./src/index.d.ts",
+      "import": "./src/wallet-connection-coordinator.js",
+      "default": "./src/wallet-connection-coordinator.js"
+    },
+    "./standard-wallet-conformance": {
+      "types": "./src/index.d.ts",
+      "import": "./src/standard-wallet-conformance.js",
+      "default": "./src/standard-wallet-conformance.js"
     }
   },
   "types": "./src/index.d.ts",
-  "files": ["src", "scripts", "testdata", "integration", "central-registry.json", "registry-conflict-evidence.json", "CENTRAL_INTEGRATION.md"],
+  "files": ["src", "scripts", "testdata", "integration", "central-registry.json", "product-session-registry.json", "registry-conflict-evidence.json", "CENTRAL_INTEGRATION.md"],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
     "ynx-wallet-gateway-backup": "scripts/ynx-wallet-gateway-backup.mjs"
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "check": "npm test",
+    "check": "npm test && npm run verify:no-bare-authorize && npm run verify:standard-wallet-connect && npm run verify:standard-wallet-e2e-execution",
+    "check:release": "npm run check && npm run audit:authorize-consumers",
+    "verify:no-bare-authorize": "node scripts/verify-no-bare-wallet-authorize.mjs",
+    "verify:standard-wallet-connect": "node scripts/verify-standard-wallet-connect-consumer.mjs",
+    "verify:standard-wallet-e2e-execution": "node scripts/verify-standard-wallet-e2e-execution-plan.mjs",
+    "audit:authorize-consumers": "node scripts/verify-no-bare-wallet-authorize.mjs --consumer-audit",
     "drill:backup": "node scripts/run-gateway-backup-drill.mjs",
     "benchmark:gateway": "node scripts/benchmark-gateway.mjs",
+    "proof:product-session": "node test/generate-product-session-visible-proof.mjs",
     "vector:strategy": "node scripts/generate-strategy-mandate-vector.mjs"
   },
   "dependencies": {

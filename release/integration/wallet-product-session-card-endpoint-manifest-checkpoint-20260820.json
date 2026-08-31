@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-WALLET-CARD-ENDPOINT-MANIFEST-2C2E117E-20260820",
+  "owner": "wallet-protocol-read-only-audit",
+  "productOwner": "card",
+  "branch": "codex/p0-card-testnet-virtual-20260820-fix",
+  "commit": "2c2e117e42b4daacf96cd74abc6844c72398c522",
+  "parent": "a0ae3567337a69f43a33eb3d0bd33f55a0591b18",
+  "ownerTrackingRefExact": true,
+  "independentLsRemoteReadback": false,
+  "independentLsRemoteFailure": "Two bounded attempts failed during the local GitHub TLS handshake; the Card Owner reported a successful push and its tracking ref resolves exactly to this commit.",
+  "acceptedEndpointManifest": {
+    "version": "1.0.0-p0.2",
+    "sourceCommit": "bfd850a2c7bd238e3febc7267ff31be17890888d",
+    "sha256": "d559741a20fe37cf1e0a9fec2bf00d144709a1bfe579a13ec139354fa1fe0e74",
+    "appGateway": "https://gateway.ynxweb4.com",
+    "currentAppGatewayState": "UNAVAILABLE"
+  },
+  "directBlobs": {
+    "apps/card/src/wallet.ts": "d2b6194d7f586c6b44e73c7416546c2335afb887",
+    "apps/card/src/wallet.test.ts": "042b8aec41b3ea175a53cba70611c208449da424",
+    "apps/card/src/publicEndpointManifest.ts": "cfe5cb83a8a7999d27315c8fc5c738feb80ceecc",
+    "apps/card/vendor/public-endpoint-manifest-1.0.0-p0.2.json": "b2f32365814a00ef2dc0db44cfc94d4c12fd7452",
+    "apps/card/evidence/p0-wallet-contract-consumption.md": "e872648ab4eabf8f2158968289db7eb43be2df30"
+  },
+  "directSourceEvidence": {
+    "callerSuppliedGatewayRemoved": true,
+    "environmentSuppliedGatewayRemoved": true,
+    "fixedCanonicalAppGatewayOnly": true,
+    "hostileHttpsHostRejected": true,
+    "credentialsRejected": true,
+    "pathRejected": true,
+    "queryRejected": true,
+    "unavailableManifestFailsClosedBeforeNetwork": true,
+    "standardWalletConnectionPreserved": true,
+    "legacyCardRoutesAreV2Evidence": false
+  },
+  "ownerReportedVerification": {
+    "npmTestPassed": 22,
+    "npmTestFailed": 0,
+    "typecheckPassed": true
+  },
+  "truth": {
+    "classification": "standard-wallet-only",
+    "arbitraryHttpsGatewayGapOpen": false,
+    "appGatewayAvailable": false,
+    "productSessionV2GatewayEvidenced": false,
+    "visiblePlatformEvidenced": false,
+    "migratedV2": false,
+    "deployedPublic": false
+  }
+}

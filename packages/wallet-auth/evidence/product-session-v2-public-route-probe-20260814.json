@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-14T10:29:16Z",
+  "target": "https://rest.ynxweb4.com",
+  "purpose": "state-free negative probe of the public App Gateway routing boundary for Product Session v2",
+  "appGatewayHealth": {
+    "method": "GET",
+    "path": "/app/health",
+    "httpStatus": 200,
+    "service": "ynx-app-gatewayd",
+    "remoteDeployed": true,
+    "truthfulStatus": "remote-first-party-app-gateway",
+    "walletUpstream": {
+      "ok": true,
+      "service": "ynx-wallet-gatewayd",
+      "remoteDeployed": true,
+      "truthfulStatus": "remote-canonical-wallet-gateway",
+      "buildIdentityPresent": false
+    }
+  },
+  "v1Control": {
+    "method": "POST",
+    "path": "/v1/wallet/sessions/complete",
+    "request": {},
+    "httpStatus": 400,
+    "contentType": "application/json; charset=utf-8",
+    "responseSchemaVersion": 1,
+    "responseErrorCode": "UNKNOWN_OR_MISSING_FIELD",
+    "walletGatewayRouteReached": true,
+    "transientObservation": "one SSL connection timeout occurred before curl retry received the canonical response"
+  },
+  "v2Probe": {
+    "method": "POST",
+    "path": "/v2/product-sessions/challenge",
+    "requestId": "req_public_v2_probe_20260814",
+    "request": {},
+    "httpStatus": 200,
+    "response": {
+      "jsonrpc": "2.0",
+      "id": null,
+      "error": {
+        "code": -32601,
+        "message": "method  is not implemented by the local YNX devnet RPC"
+      }
+    },
+    "expectedProductSessionV2Boundary": {
+      "httpStatus": 400,
+      "responseSchemaVersion": 2,
+      "requestIdEchoRequired": true,
+      "cacheControlNoStoreRequired": true
+    },
+    "productSessionV2BoundaryReached": false,
+    "routingOutcome": "misrouted-to-chain-json-rpc-catch-all"
+  },
+  "headObservations": {
+    "paths": [
+      "/v2/product-sessions/challenge",
+      "/v2/product-sessions/complete",
+      "/v2/product-sessions/introspect",
+      "/v2/product-sessions/revoke",
+      "/v2/product-sessions/devices/revoke"
+    ],
+    "status": 405,
+    "allow": "POST",
+    "interpretation": "the public proxy accepts POST-shaped paths, but HEAD alone does not prove that the Product Session v2 handler is mounted"
+  },
+  "safety": {
+    "validAuthorizationSubmitted": false,
+    "validDeviceProofSubmitted": false,
+    "challengeCreated": false,
+    "sessionCreated": false,
+    "sessionRevoked": false,
+    "secretMaterialRecorded": false
+  },
+  "conclusion": {
+    "publicAppGatewayReachable": true,
+    "legacyWalletSessionRouteReachable": true,
+    "productSessionV2RoutesDeployedPublic": false,
+    "requiredIntegrationAction": "mount the exact ProductSessionGatewayHttpHandler for /v2/product-sessions/* ahead of the Chain JSON-RPC catch-all, deploy with persisted v2 state, then run challenge, completion, introspection, replay, revoke and restart recovery acceptance"
+  },
+  "releaseGate": {
+    "implementation": "scripts/probe-product-session-v2-public.mjs",
+    "test": "test/product-session-public-probe.test.mjs",
+    "unitTestsPassed": 6,
+    "unitTestsFailed": 0,
+    "networkAttempts": "1-3 bounded attempts with one stable request ID and an invalid empty canonical body",
+    "command": "YNX_PRODUCT_SESSION_V2_PUBLIC_PROBE=1 YNX_PRODUCT_SESSION_V2_PUBLIC_URL=https://rest.ynxweb4.com node scripts/probe-product-session-v2-public.mjs",
+    "executedAt": "2026-08-14T10:39:34Z",
+    "exitCode": 1,
+    "errorCode": "UNEXPECTED_HTTP_STATUS",
+    "message": "Product Session v2 mount probe expected HTTP 400, received 200",
+    "outcome": "correctly-blocked-public-v2-deployment-claim"
+  }
+}

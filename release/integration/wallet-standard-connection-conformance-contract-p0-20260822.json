@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "WALLET-STANDARD-CONNECTION-CONFORMANCE-CONTRACT-P0-20260822",
+  "owner": "wallet-protocol-router",
+  "version": "standardWalletConformance@1.0.0-p0.0",
+  "authoritativeInputs": {
+    "standardProtocolCommit": "66003e76e804da16d472255efde50cb879055b96",
+    "standardSdkCommit": "315897e75c0ffe3e63435fe73cfec42244b851cc",
+    "sharedProvider": {"commit":"98c6d5d784d212df8981a53b17118a511e246ad2","tree":"51a60a362d4ad5dd748bcdefb101f71b1d9e0cee","evidence":"c3ab255c32bdeb9c8e056882c315f8ad43c29c7f"},
+    "sharedCoreProviderSource": {"branch":"codex/wallet-core-auth-gateway-continuation-20260814","implementationCommit":"d8cda9f77918cab5bdfdd0568370f3c19742c14c","implementationTree":"83af2d80038dd9cc7f39343efb7994ad0bb2815a","evidenceCommit":"0e5af17d4f784a30390452b5c2b750047e93727d","evidenceTree":"4f8d5006138315f26c2cc2874747cf38f31b77b2","evidencePath":"release/integration/wallet-standard-provider-core-source-evidence-20260822.json","evidenceBlob":"db781971cd557b75de9ac88bef4dad3c24599069","evidenceSha256":"39df6f1f38961e7253cab538bd394202c225125b214b7d128915d97599ea3697","historyMergedIntoRouterBranch":false},
+    "centralParityQueue": {"commit":"f92757f7491c3e28106664aacc2066663bbd52bb","tree":"c3b8aa28ca0cccefcb24319f65e2adfa0621123f","path":"release/integration/p0-wallet-connectivity/wallet-standard-parity-queue-20260822.json","blob":"a6809588dbf2ba66fb8652a34bf942cce9b8a7dc","sha256":"a7448b5d6c8f6fafe7cf4611a17a10fd6c069f66be3ed80318a22ff4de76937e"}
+  },
+  "layering": {
+    "standardWallet": "Layer 1 EIP-1193 authority independent of Gateway, Product Registry and Product Session",
+    "productSessionFailure": {"standardConnection":"CONNECTED","privateService":"DEGRADED","fabricatedSession":false},
+    "successCondition": ["selected-provider","approved-0x-account","provider-request-eth_chainId-0x1917"],
+    "directBrowserRpcFetchIsPrerequisite": false
+  },
+  "chain": {"cosmosChainId":"ynx_6423-1","evmChainId":6423,"evmChainHex":"0x1917","nativeSymbol":"YNXT","defaultLanguage":"en"},
+  "protocolSurface": {
+    "discovery":["EIP-6963","legacy EIP-1193"],
+    "transports":["injected EIP-1193","WalletConnect v2 EIP-1193 bridge"],
+    "explicitUserActions":["eth_requestAccounts","personal_sign","eth_signTypedData_v4","eth_sendTransaction"],
+    "chainActions":["wallet_addEthereumChain","wallet_switchEthereumChain","eth_chainId"],
+    "events":["accountsChanged","chainChanged","disconnect","revoke"],
+    "identity": ["SIWE","EIP-712"],
+    "externalDappAccountFormat":"approved 0x-prefixed EVM account only"
+  },
+  "sourceConformanceProfiles": {
+    "firstParty":["ynx-first-party"],
+    "externalReferenceFixtures":["uniswap-interface-reference","opensea-reference","safe-reference"],
+    "transportReferenceFixtures":["walletconnect-v2-reference"],
+    "fixtureOnly":true,
+    "doesNotClaimExternalDappRuntime":true,
+    "doesNotInvokeRealWallet":true
+  },
+  "executableInteropFixture": {
+    "version":"standardWalletInteropFixture@1.0.0-p0.0",
+    "scope":"explicit synthetic provider and explicit event driver only",
+    "profiles":["ynx-first-party","uniswap-interface-reference","opensea-reference","safe-reference","walletconnect-v2-reference"],
+    "chainRecovery":["eth_chainId non-0x1917","wallet_switchEthereumChain 4902","wallet_addEthereumChain exact canonical YNX Testnet config","wallet_switchEthereumChain 0x1917","eth_chainId 0x1917"],
+    "userActionMethods":["eth_requestAccounts","personal_sign","eth_signTypedData_v4","eth_sendTransaction"],
+    "restartAndEvents":["eth_accounts restore","accountsChanged","chainChanged wrong/canonical","accountsChanged empty permission revocation","disconnect"],
+    "privateServiceBoundary":{"duringProductSessionDegraded":"standard connection remains connected before user/provider events","productSessionUsed":false},
+    "fixtureOnly":true,
+    "realBrowserOrInstalledWallet":false,
+    "realExternalDapp":false,
+    "realWalletConnectRelay":false
+  },
+  "requiredDirectEvidenceBeforePromotion": [
+    "installed provider selected in a real browser or installed client",
+    "user-approved eth_requestAccounts and exact 0x1917 chain result",
+    "approve and reject paths with no invented authority",
+    "refresh restore, accountsChanged, chainChanged, disconnect and revoke",
+    "chooser closes after success with stable URL and no blank top-level tab",
+    "Product Session outage preserves Layer 1 as DEGRADED private service only",
+    "three independently opened non-YNX standard EVM DApps plus a first-party DApp"
+  ],
+  "truth": {
+    "sharedCoreSourceConsumedIntoRouterMatrix": true,
+    "sharedCoreRuntimeMergedIntoRouterBranch": false,
+    "sourceConformanceImplemented": true,
+    "sourceConformanceFixtureExecuted": true,
+    "firstPartyDirectRuntime": false,
+    "externalDappDirectRuntimeCount": 0,
+    "realApproveReject": false,
+    "productsConnected": 0,
+    "productsMigratedV2": 0,
+    "deploymentLease": false,
+    "installedClient": false,
+    "computerControl": false
+  }
+}

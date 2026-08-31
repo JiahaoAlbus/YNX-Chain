@@ -1,0 +1,28 @@
+{
+  "contract": "installableWalletArtifact@1.0.0-p0.0",
+  "owner": "wallet-protocol-router",
+  "rule": "An official download entry is publishable only after the exact installer, install, cold launch, second launch, network, version, SHA-256, signing and rollback evidence pass together.",
+  "formats": {
+    "macos": {"allowed":["dmg"],"requires":["mounted-dmg","app-bundle","cold-launch","second-launch","network","version","sha256","signing-status","rollback"]},
+    "windows": {"allowed":["exe","msix"],"requires":["install","cold-launch","second-launch","network","version","sha256","signing-status","rollback"]},
+    "android": {"allowed":["apk","aab"],"directDownload":"apk-only","storeUpload":"aab-only","requires":["install","cold-launch","second-launch","network","version","sha256","signing-status","rollback"]},
+    "web-pwa": {"allowed":["web-pwa"],"downloadArtifact":false,"mustBeLabeled":"Web/PWA"}
+  },
+  "prohibited": [
+    "ZIP labeled as an installer",
+    "AAB offered as a direct install",
+    "unsigned or test-signed artifact described as production-signed",
+    "download URL restored before every evidence field passes",
+    "desktop package invented for a Web/PWA-only product"
+  ],
+  "temporaryDowngradeBoundary": "A ZIP may remain an explicitly non-installable evidence archive, but it cannot satisfy or restore an official installer link.",
+  "currentTruth": {
+    "officialInstallerEntriesAcceptedByProtocolOwner": 0,
+    "websiteDirectLinksRestoredByProtocolOwner": false,
+    "macosDmgVerified": false,
+    "windowsExeOrMsixVerified": false,
+    "androidApkOrAabVerified": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

@@ -5,5 +5,11 @@ wallet-auth.ynxweb4.com, wallet-auth-testnet.43.153.202.237.sslip.io {
     X-Content-Type-Options "nosniff"
     Referrer-Policy "no-referrer"
   }
-  reverse_proxy 127.0.0.1:18445
+  @ynx_product_session_v2 path /v2/product-sessions/*
+  handle @ynx_product_session_v2 {
+    reverse_proxy 127.0.0.1:6441
+  }
+  handle {
+    reverse_proxy 127.0.0.1:18445
+  }
 }

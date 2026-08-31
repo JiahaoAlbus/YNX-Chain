@@ -1,0 +1,137 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-14T16:50:00Z",
+  "owner": "wallet-session-router-recovery",
+  "centralContract": {
+    "commit": "d0f89797d13c7667cc187b0c64d5c9e1cb1d8f59",
+    "endpointMatrixPath": "release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json",
+    "endpointMatrixBlob": "d402fcdc844aa39bd5ee351a99d93acb4852dc37",
+    "endpointMatrixSha256": "d344c607c2bbbf7bb0d9d3662b424976d0d6c4ff20428025dd1e2fb92bf31392",
+    "androidLauncherPath": "release/integration/wallet-auth-android-launcher-contract.json",
+    "androidLauncherBlob": "83c9f91779701288861cff5e4dc6c487ffcdc26c",
+    "androidLauncherSha256": "d296732141a4029b1811b655f0001cc7d81a1d45019a4bd87d21b2b4b256d1a6",
+    "consumedWithoutRecreation": true
+  },
+  "source": {
+    "commit": "577f81202a85ff7314dd862f60aa337b0f2fd1f1",
+    "tree": "782128ecca42544359124eaefe74736e90ac3dcc",
+    "release": "ynx-product-session-v2-577f81202a85",
+    "registryFileSha256": "d2826eb419abca4444ccb50d79537fa7f6a3643948d82ed9b52914b7169c107b",
+    "registryRuntimeSha256": "3b1ee629685651fab161d56b99b005d1acfd101b6d84a4c0894f144b5142eb17",
+    "deployArchiveSha256": "fcaf936b9bb64a7ca2396e5803cd73a9c8cc513263dd8194c7af891b82aa5d55"
+  },
+  "tests": {
+    "walletAuthPackage": {"passed": 204, "failed": 0},
+    "appGatewayGo": {"passed": true, "command": "go test ./internal/appgateway"},
+    "registryBoundCorsFocused": {"passed": 6, "failed": 0},
+    "concurrentProductSessions": 120,
+    "minimumRequiredConcurrentProductSessions": 100
+  },
+  "rollbackDrill": {
+    "passed": true,
+    "evidenceDirectory": "/var/backups/ynx-chain/product-session-v2-ynx-product-session-v2-577f81202a85-rollback-drill-20260814T163932Z",
+    "candidatePublicMountPassed": true,
+    "candidateLifecyclePassed": true,
+    "restoredSourceCommit": "37f2485ed604d88ed1457bc497d50f3f7a037469",
+    "unitEnvironmentAndStateMatchedBackup": true,
+    "legacyAppGatewayActive": true,
+    "legacyWalletGatewayActive": true
+  },
+  "deployment": {
+    "passed": true,
+    "evidenceDirectory": "/var/backups/ynx-chain/product-session-v2-ynx-product-session-v2-577f81202a85-deploy-20260814T164557Z",
+    "publicMountPassed": true,
+    "publicLifecyclePassed": true,
+    "stateSha256AtTransactionCompletion": "a502d2dc99242d5ec9ab6520b26b111db023b3dd209cb80778b7d385dfae1ba7",
+    "stateFile": "0600 ynx:ynx nlink=1",
+    "serviceActive": true
+  },
+  "mobileBrowserCors": {
+    "origin": "https://finance.ynxweb4.com",
+    "route": "https://rest.ynxweb4.com/v2/product-sessions/challenge",
+    "preflight": {
+      "httpStatus": 204,
+      "responseBytes": 0,
+      "responseSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "allowOrigin": "https://finance.ynxweb4.com",
+      "allowMethods": "POST, OPTIONS",
+      "allowHeaders": "Accept, Content-Type, X-Request-Id, X-YNX-Product-Session-Proof-V2",
+      "vary": "Origin",
+      "stateFileSha256Before": "766ac140d7ec3dd3de660869bbcd8aac5e40d6d16a960e5b5812a056893902a0",
+      "stateFileSha256After": "766ac140d7ec3dd3de660869bbcd8aac5e40d6d16a960e5b5812a056893902a0",
+      "stateDigestBefore": "31df15bcd544557a1331693ef7df5f5eb0b29d4eff20564906812c29a7ff2731",
+      "stateDigestAfter": "31df15bcd544557a1331693ef7df5f5eb0b29d4eff20564906812c29a7ff2731",
+      "zeroMutation": true
+    },
+    "actualInvalidPost": {
+      "requestId": "req_public_mobile_cors_0001",
+      "httpStatus": 400,
+      "responseBytes": 207,
+      "responseSha256": "7b9e42e5f271c766af70158be296c467cacb121ee1aceb8c452334b090c2c609",
+      "errorCode": "UNKNOWN_OR_MISSING_FIELD",
+      "allowOrigin": "https://finance.ynxweb4.com",
+      "exposeHeaders": "X-Request-Id",
+      "responseRequestIdMatched": true,
+      "fabricatedSession": false
+    },
+    "unregisteredOrigin": {
+      "origin": "https://finance.ynxweb4.com.evil.example",
+      "httpStatus": 403,
+      "responseBytes": 175,
+      "responseSha256": "1232295afbb4b824e39c05d27973fef887fba035a8814019640aa4ff5595637e",
+      "errorCode": "ORIGIN_NOT_ALLOWED",
+      "allowOriginHeaderPresent": false
+    },
+    "registeredOriginsAuthority": "packages/wallet-auth/product-session-registry.json products[].webOrigin",
+    "wildcardOriginAllowed": false,
+    "credentialsAllowed": false
+  },
+  "publicEndpointMatrix": [
+    {"id":"official-apex-docs","url":"https://ynxweb4.com/docs","httpStatus":200,"responseBytes":4748,"responseSha256":"d9835b449ec60ee6ff7206b061d2e744a8ba8c92a68dcdce9826e54751ef6b40","transport":"reachable"},
+    {"id":"official-www-docs","url":"https://www.ynxweb4.com/docs","httpStatus":200,"responseBytes":4748,"responseSha256":"d9835b449ec60ee6ff7206b061d2e744a8ba8c92a68dcdce9826e54751ef6b40","transport":"reachable"},
+    {"id":"wallet-runtime-json","url":"https://wallet.ynxweb4.com/releases/wallet-session-router/37f2485ed604/runtime.json","httpStatus":200,"responseBytes":2059,"responseSha256":"35d50f3e48d0f27656e0011e8c415fc8cd639fe7008d7397e5208b8a9e1586ae","transport":"reachable","websiteMetadataSupersededByRuntimeSource":true},
+    {"id":"chain-rpc-evm-host","url":"https://evm.ynxweb4.com","httpStatus":200,"responseBytes":43,"responseSha256":"5c4a05f13a54a9563933c7daa16938e313e9b35240d6689abc92c1351ebaff79","rpcMethod":"eth_chainId","result":"0x1917","browserCorsReady":false,"optionsStatus":405,"ownerHandoff":"Core/Caddy"},
+    {"id":"chain-rpc-host","url":"https://rpc.ynxweb4.com","httpStatus":200,"responseBytes":43,"responseSha256":"5c4a05f13a54a9563933c7daa16938e313e9b35240d6689abc92c1351ebaff79","rpcMethod":"eth_chainId","result":"0x1917","browserCorsReady":false,"ownerHandoff":"Core/Caddy"},
+    {"id":"app-gateway","url":"https://rest.ynxweb4.com/app/health","httpStatus":200,"loopbackPort":6437,"sourceCommit":"63582190fdff2a74460073f8b7ce79f37ec9e7f7","changedByThisDeployment":false},
+    {"id":"wallet-gateway-health","url":"https://rest.ynxweb4.com/wallet-gateway/health","httpStatus":200,"loopbackPort":6439,"sourceCommit":"c6ac582c8d490ef980a8cadfd9172f133d1b1a49","changedByThisDeployment":false},
+    {"id":"wallet-gateway-v1-preflight","url":"https://rest.ynxweb4.com/v1/wallet/authorizations/reject","httpStatus":204,"allowOrigin":"https://www.ynxweb4.com","allowHeaders":"Accept, Content-Type, X-YNX-Product-Session-Proof"},
+    {"id":"wallet-gateway-v1-rejection-route","url":"https://rest.ynxweb4.com/v1/wallet/authorizations/reject","httpStatus":404,"responseBytes":203,"responseSha256":"9840804b11067fb3e4a9830ecc87f25f89f5493fa3a19ea59fd81cd0e38454c6","errorCode":"ROUTE_NOT_FOUND","fixedByThisDeployment":false,"nextOwnerGap":true},
+    {"id":"product-session-v2","url":"https://rest.ynxweb4.com/v2/product-sessions/","httpStatus":"route-specific","loopbackPort":6441,"sourceCommit":"577f81202a85ff7314dd862f60aa337b0f2fd1f1","browserCorsReady":true,"publicLifecyclePassed":true},
+    {"id":"faucet","url":"https://faucet.ynxweb4.com/health","httpStatus":200,"responseBytes":513,"responseSha256":"a7639ac45f1c63a8d7ee2c36f98867ca4fd9912372d7f31e1917c149ae2c69e6","sourceCommit":"8fe48738f309c469bd7a16e31fbfe9e106d7de3c","earlierObservedStatus":502,"recoveredByOtherOwner":true,"fixedByThisDeployment":false}
+  ],
+  "dnsTlsSni": {
+    "apiARecords": {"rest.ynxweb4.com":"43.153.202.237","evm.ynxweb4.com":"43.153.202.237","rpc.ynxweb4.com":"43.153.202.237","faucet.ynxweb4.com":"43.153.202.237"},
+    "restCertificateSha256Fingerprint": "B6:58:03:EB:7D:05:6A:DD:B8:5B:5A:C1:6D:DD:41:7A:F6:88:C2:0F:C6:D7:C6:81:B9:B2:3E:26:49:C4:85:A3",
+    "evmCertificateSha256Fingerprint": "89:E1:72:24:C1:31:BA:CE:CD:54:6C:7E:47:4A:20:B6:63:D1:04:D8:0A:A2:07:99:54:A4:41:9D:12:D8:AD:81",
+    "rpcCertificateSha256Fingerprint": "AE:8B:AF:24:AC:BE:DB:60:E7:73:D4:54:E7:AE:BE:B0:B5:02:4C:0F:26:23:F0:AC:6C:A5:51:C3:8B:50:01:18",
+    "faucetCertificateSha256Fingerprint": "88:A7:9D:79:B6:A8:05:AA:E5:61:67:D4:97:F0:89:46:18:0E:13:78:0B:1F:8C:0E:F0:33:C4:72:7D:16:D0:33",
+    "certificateNotAfter": "2026-09-24T13:45:30Z"
+  },
+  "mobileDiscoveryBoundary": {
+    "canonicalModes": ["injected-eip1193","ynx-wallet-canonical-authorization","metamask-mobile-dapp-link"],
+    "externalChromeReturnIsInjectedProviderSuccess": false,
+    "walletPackage": "com.ynxweb4.wallet",
+    "walletDeepLinkTemplate": "ynxwallet://authorize?request=<base64url-canonical-authorization-request>",
+    "sharedBuilder": "@ynx-chain/wallet-auth encodeRequestDeepLink",
+    "callerUriConcatenationAllowed": false,
+    "androidResolveActivityVerified": false,
+    "androidQueryIntentActivitiesVerified": false,
+    "installedWalletApprovalVerified": false,
+    "callbackVerified": false,
+    "secondLaunchVerified": false,
+    "accountVerified": false,
+    "signVerified": false,
+    "sendVerified": false
+  },
+  "truthBoundary": {
+    "isolatedProductSessionV2DeployedPublic": true,
+    "runtimeProductsMigrated": 0,
+    "walletGatewayV1RejectionRouteFixed": false,
+    "evmBrowserCorsReady": false,
+    "installedWalletApprovalVerified": false,
+    "integratedCentral": false,
+    "aggregateDeployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

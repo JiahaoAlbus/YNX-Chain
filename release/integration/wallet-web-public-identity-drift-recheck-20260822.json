@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "WALLET-WEB-PUBLIC-IDENTITY-DRIFT-RECHECK-20260822",
+  "owner": "wallet-protocol-router",
+  "performedAt": "2026-08-22T04:53:57Z",
+  "method": {
+    "kind": "READ_ONLY_REAL_CHROME_AND_HTTPS",
+    "accountRequestTriggered": false,
+    "signatureRequested": false,
+    "transactionRequested": false,
+    "customSchemeNavigationTriggered": false,
+    "computerControl": false
+  },
+  "expectedV10": {
+    "sourceCommit": "7032948364c507f898a2b0cdba2a62d4039388fc",
+    "buildIdentityBytes": 267,
+    "buildIdentitySha256": "5d72796f5430daa82427ecd0621d0ae6952c1263b7228a85d5affa18cff5224e"
+  },
+  "observedPublic": {
+    "url": "https://wallet.ynxweb4.com/",
+    "root": {"http": 200, "bytes": 821, "sha256": "2df10866a35b074a6fb366439197646dd4e979bc83bdae3aba0ba6db3802986c"},
+    "buildIdentity": {
+      "http": 200,
+      "bytes": 250,
+      "sha256": "b2f9b275a4295c6f1cd230daf2b39519a81c4cb3ecf361e820ace9195adbbf9b",
+      "sourceCommit": "uncommitted-source-tree",
+      "providerAuthorityCommit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+      "providerEvidenceCommit": "d3831c300560507f64a50e73117bab7b85926d9a",
+      "chainId": "0x1917"
+    },
+    "visibleChrome": {
+      "title": "YNX Wallet — Testnet companion",
+      "urlStable": true,
+      "selectedLanguage": "zh-Hans",
+      "selectedLanguageIsFactoryDefaultProven": false,
+      "providerInjected": false,
+      "status": "Not connected",
+      "officialYnxAndroidDownloadVisible": true,
+      "officialMetaMaskDownloadVisible": true,
+      "consoleErrorCount": 0
+    }
+  },
+  "conclusion": {
+    "historicalV10EvidencePreserved": true,
+    "currentSourceMatchesExpectedV10": false,
+    "currentSourceBoundPublic": false,
+    "currentNoProviderFallbackVisible": true,
+    "standardWalletConnected": false,
+    "productSessionV2": false,
+    "productsConnected": 0,
+    "productsMigratedV2": 0,
+    "deployedPublicAggregate": false
+  },
+  "requiredOwnerRemediation": "Wallet Web owner must restore or publish an immutable build identity with the exact reviewed source commit, then provide fresh public HTTP identity and visible-browser evidence. Do not infer English-default behavior from this existing Chrome profile; validate it in a clean profile."
+}
