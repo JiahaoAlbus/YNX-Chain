@@ -3,11 +3,228 @@ import fs from "node:fs";
 import path from "node:path";
 import net from "node:net";
 import tls from "node:tls";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
+import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { createRemoteSmokeDispatcher, parseRemoteSmokeTransport, remoteSocketTarget } from "./lib/remote-smoke-transport.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const chainInspectionMode = process.argv[2] || "";
+const chainInspectionAck = "P0-CHAIN-FOUR-NODE-ZERO-WRITE-INSPECTION-20260831:EXECUTE";
+const chainInspectionTargets = Object.freeze([
+  Object.freeze({ role: "primary", host: "43.153.202.237", user: "ubuntu", identityEnv: "PRIMARY_NODE_SSH_KEY" }),
+  Object.freeze({ role: "singapore", host: "43.134.23.58", user: "root", identityEnv: "SG_NODE_SSH_KEY" }),
+  Object.freeze({ role: "silicon-valley", host: "43.162.100.54", user: "ubuntu", identityEnv: "SILICON_VALLEY_NODE_SSH_KEY" }),
+  Object.freeze({ role: "seoul", host: "43.164.132.81", user: "root", identityEnv: "SEOUL_NODE_SSH_KEY" }),
+]);
+const chainInspectionRemotePayload = String.raw`set -euo pipefail
+role="\${1:?role is required}"
+unit=ynx-chaind.service
+sha_file() {
+  sudo -n sha256sum "$1" | awk '{print $1}'
+}
+stat_field() {
+  sudo -n stat -c "$1" "$2"
+}
+file_fact() {
+  label="$1"
+  file="$2"
+  if sudo -n test -e "$file"; then
+    printf 'FILE\t%s\tpresent\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+      "$label" "$file" "$(sha_file "$file")" "$(stat_field %d "$file")" \
+      "$(stat_field %i "$file")" "$(stat_field %u "$file")" "$(stat_field %g "$file")" \
+      "$(stat_field %a "$file")" "$(stat_field %h "$file")" "$(stat_field %s "$file")"
+  else
+    printf 'FILE\t%s\tmissing\t%s\n' "$label" "$file"
+  fi
+}
+probe() {
+  label="$1"
+  url="$2"
+  transport_rc=0
+  if response="$(curl --fail-with-body --silent --show-error --max-time 8 --max-filesize 1048576 --write-out $'\n%{http_code}' "$url")"; then
+    transport_rc=0
+  else
+    transport_rc="$?"
+  fi
+  if [[ "$response" == *$'\n'* ]]; then
+    code="\${response##*$'\n'}"
+    body="\${response%$'\n'*}"
+  else
+    code=000
+    body="$response"
+  fi
+  bytes="$(printf %s "$body" | wc -c | tr -d ' ')"
+  digest="$(printf %s "$body" | sha256sum | awk '{print $1}')"
+  encoded="$(printf %s "$body" | base64 | tr -d '\n')"
+  [[ -n "$encoded" ]] || encoded=-
+  printf 'PROBE\t%s\t%s\t%s\t%s\t%s\t%s\n' "$label" "$transport_rc" "$code" "$bytes" "$digest" "$encoded"
+}
+exec_start_encoded="$(systemctl show "$unit" --property=ExecStart --value | base64 | tr -d '\n')"
+[[ -n "$exec_start_encoded" ]] || exec_start_encoded=-
+printf 'NODE\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+  "$role" \
+  "$(systemctl show "$unit" --property=ActiveState --value)" \
+  "$(systemctl show "$unit" --property=SubState --value)" \
+  "$(systemctl show "$unit" --property=MainPID --value)" \
+  "$(systemctl show "$unit" --property=NRestarts --value)" \
+  "$(systemctl show "$unit" --property=User --value)" \
+  "$(systemctl show "$unit" --property=Group --value)" \
+  "$(systemctl show "$unit" --property=FragmentPath --value)" \
+  "$exec_start_encoded"
+file_fact currentBinary /usr/local/bin/ynx-chaind
+file_fact currentManifest /etc/ynx/release-manifest.json
+file_fact rollbackBinary /usr/local/bin/ynx-chaind.backup-20260821-be9f0383
+file_fact rollbackManifest /etc/ynx/release-manifest.json.backup-20260821-be9f0383
+probe health http://127.0.0.1:6420/health
+probe status http://127.0.0.1:6420/status
+probe nodeIdentity http://127.0.0.1:6420/node/identity
+probe peerSync http://127.0.0.1:6420/validators/peer-sync
+printf 'FINAL\t%s\tZERO_WRITE_INSPECTION_COMPLETE\n' "$role"
+`.replaceAll("\\${", "${");
+
+function sha256Text(value) {
+  return crypto.createHash("sha256").update(value).digest("hex");
+}
+
+function chainInspectionArgv(target, identity = `<protected:${target.identityEnv}>`) {
+  return [
+    "/usr/bin/ssh", "-i", identity,
+    "-o", "BatchMode=yes", "-o", "IdentitiesOnly=yes",
+    "-o", "StrictHostKeyChecking=yes", "-o", "ConnectTimeout=8",
+    `${target.user}@${target.host}`, "/bin/bash", "-s", "--", target.role,
+  ];
+}
+
+function assertChainInspectionPayloadSafe() {
+  const forbidden = [
+    /\b(?:rm|mv|cp|install|tee|truncate|touch|mkdir|chmod|chown|ln)\b/,
+    /\bsystemctl\s+(?:start|stop|restart|reload|enable|disable|mask|unmask|daemon-reload)\b/,
+    /\bcurl\b[^\n]*(?:--request|-X|--data|-d)\b/,
+    /\/tmp\//,
+    /(?:^|[^<])>(?:>|\|)?\s*[^&]/m,
+  ];
+  for (const pattern of forbidden) {
+    if (pattern.test(chainInspectionRemotePayload)) {
+      throw new Error(`chain zero-write inspection payload contains forbidden mutation surface: ${pattern}`);
+    }
+  }
+  for (const required of ["ActiveState", "SubState", "MainPID", "NRestarts", "currentBinary", "currentManifest", "rollbackBinary", "rollbackManifest", "/node/identity", "/validators/peer-sync", "ZERO_WRITE_INSPECTION_COMPLETE"]) {
+    if (!chainInspectionRemotePayload.includes(required)) throw new Error(`chain inspection payload is missing ${required}`);
+  }
+}
+
+function printChainInspectionPlan() {
+  assertChainInspectionPayloadSafe();
+  const inspectorBytes = fs.readFileSync(fileURLToPath(import.meta.url));
+  process.stdout.write(`${JSON.stringify({
+    schemaVersion: "ynx-chain-four-node-zero-write-inspection-plan/v1",
+    candidate: { commit: "064dcbee799fa986f808d8b2346aa38b64c11973", tree: "17a8f4cba7dd5f655b0f16d612bd48ef8fb07aee" },
+    ack: chainInspectionAck,
+    attemptLimitPerNode: 1,
+    remoteTemporaryFiles: false,
+    mutationAllowed: false,
+    inspectorBytes: inspectorBytes.length,
+    inspectorSha256: crypto.createHash("sha256").update(inspectorBytes).digest("hex"),
+    remotePayloadBytes: Buffer.byteLength(chainInspectionRemotePayload),
+    remotePayloadSha256: sha256Text(chainInspectionRemotePayload),
+    remotePayloadBase64: Buffer.from(chainInspectionRemotePayload).toString("base64"),
+    targets: chainInspectionTargets.map((target) => ({ ...target, argv: chainInspectionArgv(target) })),
+  }, null, 2)}\n`);
+}
+
+function parseChainInspectionOutput(target, stdout) {
+  const node = { role: target.role, host: target.host, user: target.user, files: {}, probes: {} };
+  let final = false;
+  for (const line of stdout.trim().split("\n")) {
+    const fields = line.split("\t");
+    if (fields[0] === "NODE" && fields[1] === target.role && fields.length === 10) {
+      Object.assign(node, { activeState: fields[2], subState: fields[3], mainPID: Number(fields[4]), nRestarts: Number(fields[5]), serviceUser: fields[6], serviceGroup: fields[7], fragmentPath: fields[8], execStartBase64: fields[9] });
+    } else if (fields[0] === "FILE" && fields[2] === "present" && fields.length === 12) {
+      node.files[fields[1]] = { status: fields[2], path: fields[3], sha256: fields[4], device: fields[5], inode: fields[6], uid: Number(fields[7]), gid: Number(fields[8]), mode: fields[9], nlink: Number(fields[10]), bytes: Number(fields[11]) };
+    } else if (fields[0] === "FILE" && fields[2] === "missing" && fields.length === 4) {
+      node.files[fields[1]] = { status: fields[2], path: fields[3] };
+    } else if (fields[0] === "PROBE" && fields.length === 7) {
+      const body = fields[6] === "-" ? "" : Buffer.from(fields[6], "base64").toString("utf8");
+      if (Buffer.byteLength(body) !== Number(fields[4]) || sha256Text(body) !== fields[5]) throw new Error(`${target.role} ${fields[1]} probe framing mismatch`);
+      let json = null;
+      try { json = JSON.parse(body); } catch { /* The bounded raw body remains available. */ }
+      node.probes[fields[1]] = { transportExitCode: Number(fields[2]), httpStatus: Number(fields[3]), bytes: Number(fields[4]), sha256: fields[5], body: json ?? body };
+    } else if (fields[0] === "FINAL" && fields[1] === target.role && fields[2] === "ZERO_WRITE_INSPECTION_COMPLETE") {
+      final = true;
+    } else if (line) {
+      throw new Error(`${target.role} returned an unrecognized inspection line`);
+    }
+  }
+  if (!final || !node.activeState || !Number.isSafeInteger(node.mainPID) || !Number.isSafeInteger(node.nRestarts)) throw new Error(`${target.role} inspection output is incomplete`);
+  for (const label of ["currentBinary", "currentManifest", "rollbackBinary", "rollbackManifest"]) if (!node.files[label]) throw new Error(`${target.role} is missing ${label} inspection output`);
+  for (const label of ["health", "status", "nodeIdentity", "peerSync"]) if (!node.probes[label]) throw new Error(`${target.role} is missing ${label} loopback output`);
+  return node;
+}
+
+function runChainInspection() {
+  assertChainInspectionPayloadSafe();
+  if (process.env.YNX_CHAIN_FOUR_NODE_READONLY_INSPECTION_ACK !== chainInspectionAck) throw new Error(`YNX_CHAIN_FOUR_NODE_READONLY_INSPECTION_ACK must equal ${chainInspectionAck}`);
+  const evidencePath = process.env.YNX_CHAIN_FOUR_NODE_READONLY_INSPECTION_EVIDENCE;
+  if (!evidencePath || !path.isAbsolute(evidencePath)) throw new Error("YNX_CHAIN_FOUR_NODE_READONLY_INSPECTION_EVIDENCE must be an absolute local output path");
+  const inspectorBytes = fs.readFileSync(fileURLToPath(import.meta.url));
+  const evidence = {
+    schemaVersion: "ynx-chain-four-node-zero-write-inspection/v1",
+    generatedAt: new Date().toISOString(),
+    candidate: { commit: "064dcbee799fa986f808d8b2346aa38b64c11973", tree: "17a8f4cba7dd5f655b0f16d612bd48ef8fb07aee" },
+    inspector: { path: "scripts/verify/remote-smoke-test.mjs", bytes: inspectorBytes.length, sha256: crypto.createHash("sha256").update(inspectorBytes).digest("hex"), remotePayloadBytes: Buffer.byteLength(chainInspectionRemotePayload), remotePayloadSha256: sha256Text(chainInspectionRemotePayload) },
+    attemptLimitPerNode: 1,
+    remoteTemporaryFiles: false,
+    mutationCommandsExecuted: false,
+    nodes: [],
+  };
+  let terminalError = null;
+  for (const target of chainInspectionTargets) {
+    const identity = process.env[target.identityEnv];
+    if (!identity || !path.isAbsolute(identity) || !fs.existsSync(identity)) {
+      evidence.nodes.push({ role: target.role, host: target.host, user: target.user, identityReference: target.identityEnv, identityReferenceAvailable: false, transportAttempted: false });
+      terminalError = new Error(`${target.identityEnv} protected identity reference is unavailable`);
+      break;
+    }
+    const args = chainInspectionArgv(target, identity).slice(1);
+    const result = spawnSync("/usr/bin/ssh", args, { input: chainInspectionRemotePayload, encoding: "utf8", maxBuffer: 4 * 1024 * 1024, timeout: 30000 });
+    if (result.error || result.status !== 0) {
+      evidence.nodes.push({ role: target.role, host: target.host, user: target.user, identityReference: target.identityEnv, identityReferenceAvailable: true, transportAttempted: true, transportExitCode: result.status, stdoutBytes: Buffer.byteLength(result.stdout || ""), stdoutSha256: sha256Text(result.stdout || "") });
+      terminalError = result.error || new Error(`${target.role} single inspection attempt failed rc=${result.status}`);
+      break;
+    }
+    evidence.nodes.push({ ...parseChainInspectionOutput(target, result.stdout), identityReference: target.identityEnv, identityReferenceAvailable: true, transportAttempted: true, transportExitCode: 0 });
+  }
+  evidence.status = terminalError ? "failed" : "passed";
+  if (terminalError) evidence.blocker = terminalError.message;
+  fs.mkdirSync(path.dirname(evidencePath), { recursive: true });
+  fs.writeFileSync(evidencePath, `${JSON.stringify(evidence, null, 2)}\n`, { flag: "wx", mode: 0o600 });
+  if (terminalError) throw terminalError;
+  console.log(`chain four-node zero-write inspection complete: ${evidencePath}`);
+}
+
+function selfTestChainInspection() {
+  assertChainInspectionPayloadSafe();
+  const shellCheck = spawnSync("/bin/bash", ["-n"], { input: chainInspectionRemotePayload, encoding: "utf8" });
+  if (shellCheck.status !== 0) throw new Error(`chain inspection payload shell syntax failed: ${shellCheck.stderr}`);
+  if (new Set(chainInspectionTargets.map((target) => `${target.user}@${target.host}`)).size !== 4) throw new Error("chain inspection targets are not unique");
+  for (const target of chainInspectionTargets) {
+    const argv = chainInspectionArgv(target);
+    if (argv.join(" ").includes("undefined") || argv.at(-1) !== target.role || argv.filter((value) => value === target.host).length !== 0) throw new Error(`${target.role} literal argv is invalid`);
+  }
+  const synthetic = [
+    "NODE\tprimary\tactive\trunning\t42\t0\tynx\tynx\t/etc/systemd/system/ynx-chaind.service\tZXhlYw==",
+    "FILE\tcurrentBinary\tpresent\t/usr/local/bin/ynx-chaind\t" + "a".repeat(64) + "\t1\t2\t0\t0\t755\t1\t123",
+    "FILE\tcurrentManifest\tmissing\t/etc/ynx/release-manifest.json",
+    "FILE\trollbackBinary\tmissing\t/usr/local/bin/ynx-chaind.backup-20260821-be9f0383",
+    "FILE\trollbackManifest\tmissing\t/etc/ynx/release-manifest.json.backup-20260821-be9f0383",
+    ...["health", "status", "nodeIdentity", "peerSync"].map((label) => { const body = "{}"; return `PROBE\t${label}\t0\t200\t2\t${sha256Text(body)}\t${Buffer.from(body).toString("base64")}`; }),
+    "FINAL\tprimary\tZERO_WRITE_INSPECTION_COMPLETE",
+  ].join("\n");
+  const parsed = parseChainInspectionOutput(chainInspectionTargets[0], synthetic);
+  if (parsed.activeState !== "active" || parsed.probes.peerSync.httpStatus !== 200 || parsed.files.currentManifest.status !== "missing") throw new Error("chain inspection parser self-test failed");
+  console.log(`chain four-node zero-write inspector self-test passed: payloadSha256=${sha256Text(chainInspectionRemotePayload)}`);
+}
 const evidencePath = process.env.YNX_REMOTE_EVIDENCE_PATH || path.join(repoRoot, "tmp/remote-smoke-test/evidence.json");
 const releaseManifestEvidencePath = process.env.YNX_RELEASE_MANIFEST_EVIDENCE_PATH || path.join(repoRoot, "tmp/verify-testnet/release-manifest-evidence.json");
 const timeoutMs = Number(process.env.YNX_REMOTE_TIMEOUT_MS || 12000);
@@ -1208,6 +1425,24 @@ async function main() {
   if (!ok) {
     const failed = checks.filter((check) => !check.ok).map((check) => check.name).join(", ");
     console.error(`remote-smoke-test failed checks: ${failed}`);
+    process.exit(1);
+  }
+}
+
+if (chainInspectionMode === "--print-chain-four-node-readonly-plan") {
+  printChainInspectionPlan();
+  process.exit(0);
+}
+if (chainInspectionMode === "--self-test-chain-four-node-readonly-inspection") {
+  selfTestChainInspection();
+  process.exit(0);
+}
+if (chainInspectionMode === "--chain-four-node-readonly-inspection") {
+  try {
+    runChainInspection();
+    process.exit(0);
+  } catch (err) {
+    console.error(err.stack || err.message);
     process.exit(1);
   }
 }
