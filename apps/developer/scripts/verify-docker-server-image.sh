@@ -26,11 +26,17 @@ for (const [key, expected] of Object.entries({"org.opencontainers.image.title":"
 # already-isolated network namespace and needs no retained capabilities.
 docker run --detach --name "$name" --user 10001:10001 --read-only --network=none --tmpfs /tmp:rw,nosuid,nodev,size=64m --tmpfs /var/lib/ynx-code:rw,nosuid,nodev,uid=10001,gid=10001,mode=0700,size=256m --cap-drop=ALL --security-opt no-new-privileges --security-opt seccomp=unconfined --security-opt apparmor=unconfined -e YNX_CODE_OUTER_NETWORK_ISOLATED=1 -e YNX_CODE_WORKSPACE_SESSION_KEY=ci-nonsecret-session-key "$image" >/dev/null
 health=""
+health_response=""
 for _ in {1..100}; do
-  if health=$(docker exec --user 10001:10001 "$name" curl --fail --silent --show-error --cookie-jar "$cookie_jar" "http://127.0.0.1:4190/runtime/health" 2>/dev/null); then break; fi
+  if health_response=$(docker exec --user 10001:10001 "$name" curl --silent --show-error --cookie-jar "$cookie_jar" --write-out $'\n%{http_code}' "http://127.0.0.1:4190/runtime/health" 2>/dev/null); then
+    health_status=${health_response##*$'\n'}
+    health=${health_response%$'\n'*}
+    [[ "$health_status" == "200" ]] && break
+  fi
   docker inspect --format '{{.State.Running}}' "$name" | grep -Fxq true || { docker logs "$name" >&2; echo "Docker image exited during cold start." >&2; exit 1; }
   sleep 0.1
 done
+[[ -n "$health" && "${health_status:-}" == "200" ]] || { printf 'Docker runtime health failed: HTTP %s; body=%s\n' "${health_status:-unavailable}" "${health_response:0:2048}" >&2; exit 1; }
 node -e 'const value=JSON.parse(process.argv[1]);if(value.ok!==true||value.service!=="ynx-code-workspace-agent"||value.sandboxReady!==true)throw new Error(`invalid Docker runtime health: ${JSON.stringify(value)}`)' "$health"
 compile=$(docker exec --user 10001:10001 "$name" curl --fail --silent --show-error --cookie "$cookie_jar" -X POST "http://127.0.0.1:4190/runtime/tasks" -H 'content-type: application/json' --data '{"protocolVersion":"ynx-code/v1","task":"build-run-active","approval":"execute-once","activePath":"hello.cpp","projectId":"docker-image-cpp","files":{"hello.cpp":"#include <iostream>\nint main(){std::cout << \"YNX-DOCKER-CPP\";return 0;}}}')
 node -e 'const value=JSON.parse(process.argv[1]);if(!value.ok||value.language!=="cpp"||value.sandbox?.network!==false||!String(value.output||"").includes("YNX-DOCKER-CPP"))throw new Error(`Docker C++ compile failed: ${JSON.stringify(value)}`)' "$compile"
