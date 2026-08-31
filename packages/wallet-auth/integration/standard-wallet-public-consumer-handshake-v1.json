@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "contract": "standardWalletPublicConsumerHandshake@1.0.0-p0.0",
+  "consumerSourceBinding": ["consumerId", "sourceCommit", "same-origin-https-publicUrl"],
+  "providerHandshake": {
+    "discovery": "EIP-6963-then-EIP-1193",
+    "identity": {"name": "YNX Wallet", "rdns": "com.ynx.wallet", "isYNXWallet": true, "isMetaMask": false},
+    "soleProviderMethod": "eth_chainId",
+    "expectedChainId": "0x1917",
+    "nativeChainId": "ynx_6423-1",
+    "evmChainId": 6423,
+    "accountAuthority": false,
+    "productSessionAuthority": false
+  },
+  "privateServiceDegradation": {
+    "status": "degraded",
+    "providerDiscoveryPreserved": true,
+    "chainReadbackPreserved": true,
+    "standardWalletAuthorityChanged": false
+  },
+  "failClosed": ["missing-source-binding", "cross-origin-url", "ambiguous-provider", "mixed-wallet-identity", "wrong-network", "provider-error", "callback-error"],
+  "forbiddenMethods": ["eth_requestAccounts", "personal_sign", "eth_signTypedData_v4", "eth_sendTransaction"],
+  "truth": {
+    "sourceImplemented": true,
+    "browserCompatibleHarnessImplemented": true,
+    "realInstalledWallet": false,
+    "sourceBoundPublicDeployment": false,
+    "accountApproved": false,
+    "signature": false,
+    "transaction": false,
+    "productSession": false,
+    "deployed": false
+  }
+}

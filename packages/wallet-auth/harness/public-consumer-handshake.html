@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>YNX Standard Wallet public consumer handshake</title></head>
+<body>
+  <main><h1>YNX Standard Wallet handshake</h1><pre id="result">WAITING_FOR_SOURCE_BINDING</pre></main>
+  <script type="module">
+    import { runStandardWalletPublicConsumerHandshake } from "../src/standard-wallet-public-consumer.js";
+    const output = document.querySelector("#result");
+    const sourceBinding = globalThis.__YNX_PUBLIC_CONSUMER_SOURCE_BINDING__;
+    const privateServiceStatus = globalThis.__YNX_PRIVATE_SERVICE_STATUS__ ?? "not-requested";
+    try {
+      const result = await runStandardWalletPublicConsumerHandshake({
+        scope: globalThis,
+        waitMs: 160,
+        sourceBinding,
+        privateServiceStatus,
+        onResult(value) { globalThis.dispatchEvent(new CustomEvent("ynx:standard-wallet-public-handshake", { detail: value })); },
+      });
+      output.textContent = JSON.stringify(result, null, 2);
+    } catch (error) {
+      output.textContent = JSON.stringify({ status: "FAIL_CLOSED", code: error?.code ?? "INVALID_SOURCE_BINDING" });
+    }
+  </script>
+</body>
+</html>

@@ -11,4 +11,5 @@ export * from "./standard-wallet-walletconnect-runtime.js";
 export * from "./standard-wallet-platform-runtime.js";
 export * from "./standard-wallet-web-runtime.js";
 export * from "./standard-wallet-native-bridge.js";
+export * from "./standard-wallet-public-consumer.js";
 export * from "./wallet-provider-discovery.js";

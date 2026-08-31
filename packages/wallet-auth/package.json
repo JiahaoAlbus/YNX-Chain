@@ -21,6 +21,11 @@
       "import": "./src/standard-wallet-web-runtime.js",
       "default": "./src/standard-wallet-web-runtime.js"
     },
+    "./standard-wallet-public-consumer": {
+      "types": "./src/index.d.ts",
+      "import": "./src/standard-wallet-public-consumer.js",
+      "default": "./src/standard-wallet-public-consumer.js"
+    },
     "./standard-wallet-native": {
       "types": "./src/index.d.ts",
       "import": "./src/standard-wallet-native-bridge.js",
