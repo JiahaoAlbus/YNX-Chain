@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "kind": "PAY_ONLY_SINGLE_USE_RELEASE_LEASE_REQUEST",
+  "status": "PENDING_CENTRAL_BINDING_NO_MUTATION",
+  "generatedAt": "2026-08-31",
+  "scope": {
+    "product": "pay",
+    "allowedPaths": ["apps/pay/**"],
+    "excludedOwners": ["Finance", "DEX", "Exchange", "Quant", "Wallet Protocol", "SDK", "Website", "Central control plane"]
+  },
+  "candidate": {
+    "branch": "codex/pay-carrier-20260831-ops7mu",
+    "commit": "0ae7999c3a6002e75aa533b5170acc82ceecc9a8",
+    "tree": "915c09d200e47e95c899a3faadb2ebbd4fe15e70",
+    "routerCoordinator": {
+      "commit": "23c21054d8c86f245b77bffb2d03cecd2b3f80cf",
+      "tree": "d478c3050bd62ba072e97de63c060abc882e87c1",
+      "consumedThrough": "@ynx-chain/wallet-auth/wallet-connection-coordinator"
+    }
+  },
+  "artifact": {
+    "path": "apps/pay/evidence/artifacts/ynx-pay-6423-wallet-ui-candidate-20260831.tgz",
+    "sha256": "e2c295ac03d2cb1266cc4bacc6f81a697875937807e4138b16efae90f40ff3b4",
+    "bytes": 3605083,
+    "contents": "Expo Android, iOS, and Web export from the exact candidate worktree before commit; local candidate only",
+    "installable": false,
+    "public": false
+  },
+  "currentState": {
+    "remoteBranch": "codex/pay-carrier-20260831-ops7mu",
+    "remoteCommit": "6730c51f30ce8b3ebe0ac09b039a3520de2962b8",
+    "publicTarget": null,
+    "installedTarget": null,
+    "reason": "No fresh Pay-only release lease binds an executor, public/install target, or current deployed identity."
+  },
+  "rollback": {
+    "sourceRollbackCommit": "6730c51f30ce8b3ebe0ac09b039a3520de2962b8",
+    "publicRollbackTarget": null,
+    "procedure": "Before any release, Central records the exact active public/install identity. If the leased verification fails, the bound executor restores that recorded identity and returns a fresh readback. No alias or device action is authorized by this request."
+  },
+  "nonSensitiveVerification": {
+    "commands": ["npm test", "npm run typecheck", "npm run bundle-check"],
+    "result": "pass: 23 tests, TypeScript, canonical-authorize scan, Android/iOS/Web export",
+    "knownWarning": "Existing Wallet Auth src/* deep-import export warnings were emitted during Metro export; no release claim is made from this candidate."
+  },
+  "lifecycleTruth": {
+    "ynxAndMetaMaskIdentitySeparated": true,
+    "noProviderRecoveryUI": true,
+    "disconnectAndSwitchDetails": true,
+    "canonicalChain0x1917": true,
+    "installed": false,
+    "public": false,
+    "approve": false,
+    "reject": false,
+    "chainAddSwitchReadback": false,
+    "refreshEventsDisconnectRevoke": false,
+    "personalSign": false,
+    "eip712": false,
+    "testnetSend": false,
+    "walletConnectRelay": false
+  },
+  "requestedLease": {
+    "singleUse": true,
+    "executor": "CENTRAL_RELEASE_EXECUTOR_MUST_BE_NAMED",
+    "expiry": "CENTRAL_MUST_SET_A_FRESH_EXPLICIT_EXPIRY",
+    "permittedTarget": "CENTRAL_MUST_BIND_ONE_PAY_NATIVE_OR_PUBLIC_TARGET",
+    "permittedActions": ["publish or install the exact candidate artifact", "non-sensitive provider discovery and visual lifecycle inspection", "readback of target identity and rollback identity"],
+    "prohibitedActions": ["eth_requestAccounts", "personal_sign", "eth_signTypedData", "eth_sendTransaction", "private-key or recovery-phrase collection", "unscoped changes"],
+    "acceptance": "A source-bound public or installed readback must name this candidate commit/tree and artifact SHA-256; otherwise all unproven lifecycle fields remain false."
+  }
+}
