@@ -102,13 +102,13 @@ func TestIndexerHTTPPaginationUsesOpaqueFeedBoundCursors(t *testing.T) {
 	if err := json.NewDecoder(crossFeed.Body).Decode(&failure); err != nil {
 		t.Fatal(err)
 	}
-	if failure["error"] != "invalid_cursor" || !strings.Contains(failure["detail"].(string), "different feed") {
+	if failure["error"] != "invalid request" || failure["classification"] != "INVALID_REQUEST" || failure["detail"] != nil {
 		t.Fatalf("unexpected cross-feed failure: %+v", failure)
 	}
 
 	tampered := first.NextCursor[:len(first.NextCursor)-1] + "A"
 	failurePage := readBlockPage(t, httpServer.URL+"/blocks/latest?cursor="+url.QueryEscape(tampered), http.StatusBadRequest)
-	if failurePage.Error != "invalid_cursor" {
+	if failurePage.Error != "invalid request" {
 		t.Fatalf("tampered cursor failure was not explicit: %+v", failurePage)
 	}
 }
