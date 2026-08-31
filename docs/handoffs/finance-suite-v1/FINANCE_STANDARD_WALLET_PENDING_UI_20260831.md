@@ -54,3 +54,10 @@ The API client is not constructed, the data-workspace navigation is hidden,
 and cached data is not presented as current. Android and iOS JavaScript export
 passed locally; this is a bundle-build result, not an APK/AAB/IPA installation
 or distribution claim.
+
+The native adapter restores only already-approved accounts using
+`eth_accounts` and validates `eth_chainId == 0x1917`. Its EIP-1193 event
+subscription clears the in-app standard-connection state after a disconnect,
+empty account, or wrong-chain change, and updates an approved account switch.
+It never calls `eth_requestAccounts` during restoration, sends a Finance API
+request while the API is pending, or creates a device proof/Product Session.

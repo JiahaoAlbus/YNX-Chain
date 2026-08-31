@@ -1,4 +1,4 @@
-import React,{createContext,useContext,useEffect,useMemo,useState} from 'react';
+import React,{createContext,useContext,useEffect,useMemo,useRef,useState} from 'react';
 import {ActivityIndicator,Alert,I18nManager,Pressable,ScrollView,StyleSheet,Switch,Text,TextInput,useColorScheme,useWindowDimensions,View} from 'react-native';
 import {SafeAreaProvider,SafeAreaView} from 'react-native-safe-area-context';
 import {StatusBar} from 'expo-status-bar';
@@ -9,7 +9,7 @@ import {AIJob,DEXFinancePayload,ExchangeFinancePayload,FinanceAPI,Overview,Priva
 import {Locale,formatDate,formatYNXT,locales,messages,normalizeLocale} from './src/i18n';
 import {defaultSettings,loadCache,loadSettings,saveCache,saveSettings} from './src/storage';
 import {financeEndpointManifest} from './src/endpoint-manifest';
-import {connectStandardWallet,type FinanceWalletConnection} from './src/wallet';
+import {connectStandardWallet,restoreStandardWallet,watchStandardWallet,type FinanceWalletConnection} from './src/wallet';
 
 type Tab='overview'|'activity'|'plan'|'reports'|'ai'|'settings';
 type AIKind='categorize'|'explain_fees'|'draft_budget'|'detect_anomalies'|'explain_recurring';
@@ -28,6 +28,7 @@ export default function App(){
   const [settings,setSettings]=useState(defaultSettings);
   const palette=settings.theme==='system'?(system==='dark'?dark:light):(settings.theme==='dark'?dark:light);
   const [connection,setConnection]=useState<FinanceWalletConnection|null>(null),[data,setData]=useState<Overview|null>(null),[cached,setCached]=useState(false),[busy,setBusy]=useState(true),[error,setError]=useState('');
+  const stopWalletWatch=useRef<()=>void>(()=>{});
   const [tab,setTab]=useState<Tab>('overview'),[review,setReview]=useState<Record<string,unknown>|null>(null),[audit,setAudit]=useState<Array<Record<string,unknown>>>([]);
   const [name,setName]=useState(''),[amount,setAmount]=useState(''),[categoryId,setCategoryId]=useState(''),[note,setNote]=useState(''),[noteRecord,setNoteRecord]=useState('');
   const [selected,setSelected]=useState<string[]>([]),[aiKind,setAIKind]=useState<AIKind>('detect_anomalies'),[aiConsent,setAIConsent]=useState(false),[aiJob,setAIJob]=useState<AIJob|null>(null);
@@ -37,7 +38,10 @@ export default function App(){
   const maxWidth=Math.min(width,860);
 
   const refresh=async()=>{if(!api)return;setBusy(true);setError('');try{const next=await api.overview();setData(next);setCached(false);if(!categoryId&&next.profile.categories[0])setCategoryId(next.profile.categories[0].id);await saveCache(next)}catch(value){setError(messageOf(value));const saved=await loadCache();if(saved?.data){setData(saved.data as Overview);setCached(true)}}finally{setBusy(false)}};
+  const clearWalletConnection=()=>{stopWalletWatch.current();stopWalletWatch.current=()=>{};setConnection(null);setData(null);setAudit([])};
+  const retainWalletConnection=(next:FinanceWalletConnection)=>{stopWalletWatch.current();setConnection(next);stopWalletWatch.current=watchStandardWallet((current,error)=>{if(error)setError(messageOf(error));if(!current){clearWalletConnection();return}setConnection(current)})};
   useEffect(()=>{void(async()=>{const loaded=await loadSettings();setSettings(loaded);const saved=await loadCache();if(saved?.data){setData(saved.data as Overview);setCached(true)}setBusy(false)})()},[]);
+  useEffect(()=>{void restoreStandardWallet().then(next=>{if(next)retainWalletConnection(next)}).catch(value=>setError(messageOf(value)));return()=>stopWalletWatch.current()},[]);
   useEffect(()=>{if(api)void refresh()},[api]);
 
   const persist=async(next:typeof settings)=>{setSettings(next);await saveSettings(next)};
@@ -53,8 +57,8 @@ export default function App(){
   const copyExport=async(format:'json'|'csv')=>{if(!api)return;try{const output=await api.export(format);await Clipboard.setStringAsync(format==='json'?JSON.stringify({schema:'ynx-finance-export-v1',exportedAt:new Date().toISOString(),data:JSON.parse(output)},null,2):output);Alert.alert(t.exportData,format==='json'?'Versioned JSON copied. It contains private planning data; store it securely.':'CSV copied. Amount and fee columns are YNXT minor units; no fiat value is inferred.')}catch(value){setError(messageOf(value))}};
   const runAI=async()=>{if(!api||!selected.length||!aiConsent)return;try{setBusy(true);setAIJob(await api.ai({kind:aiKind,recordIds:selected,contextClasses:['owned_activity'],consent:true,outputLocale:settings.aiLocale}));setAIConsent(false)}catch(value){setError(messageOf(value))}finally{setBusy(false)}};
   const decideAI=async(decision:'apply'|'reject')=>{if(!api||!aiJob)return;try{setAIJob(await api.decision(aiJob.id,decision));await refresh()}catch(value){setError(messageOf(value))}};
-  const signOut=async()=>{setConnection(null);setData(null);setAudit([])};
-  const reconnectWallet=()=>connectStandardWallet().then(setConnection).catch(value=>setError(messageOf(value)));
+  const signOut=async()=>{clearWalletConnection()};
+  const reconnectWallet=()=>connectStandardWallet().then(retainWalletConnection).catch(value=>setError(messageOf(value)));
 
   const signedOut=<View style={st.authWrap}><View style={[st.authGlow,{backgroundColor:palette.primarySoft}]}/><Card elevated><View style={st.lockMark}><LockKeyhole size={24} color={palette.onPrimary}/></View><Eyebrow>YNX CHAIN · PERSONAL FINANCE</Eyebrow><Heading>{t.title}</Heading><Text style={[st.authLead,{color:palette.muted}]}>Connect a standard wallet to YNX Testnet. Finance private services remain unavailable until their endpoint is accepted; this never removes your wallet connection.</Text><Button label={t.signIn} icon={<WalletCards size={19} color={palette.onPrimary}/>} onPress={()=>void connectStandardWallet().then(setConnection).catch(value=>setError(messageOf(value)))}/><View style={[st.boundary,{borderColor:palette.line}]}><ShieldCheck size={18} color={palette.success}/><Text style={[st.body,{color:palette.muted,flex:1}]}>{t.legal}</Text></View><Text style={[st.meta,{color:palette.muted}]}>Standard EIP-1193 connection only · no device proof · no recovery material · no local session fallback</Text></Card></View>;
   const connectedPending=<View style={st.authWrap}><View style={[st.authGlow,{backgroundColor:palette.primarySoft}]}/><Card elevated><View style={st.lockMark}><ShieldCheck size={24} color={palette.onPrimary}/></View><Eyebrow>STANDARD WALLET CONNECTED</Eyebrow><Heading>Wallet confirmed. Finance data is pending.</Heading><Text selectable style={[st.authLead,{color:palette.muted}]}>{connection?.account} · {connection?.chainId}</Text><Text style={[st.body,{color:palette.muted}]}>The accepted Finance endpoint manifest marks the product API as pending. No portfolio, activity, Pay, planning, report, AI, or Product Session request was sent.</Text><View style={st.actions}><Button label="Reconnect Wallet" icon={<RefreshCw size={18} color={palette.onPrimary}/>} onPress={()=>void reconnectWallet()}/><Button label="Sign out" secondary onPress={()=>void signOut()}/></View><View style={[st.boundary,{borderColor:palette.line}]}><ShieldCheck size={18} color={palette.success}/><Text style={[st.body,{color:palette.muted,flex:1}]}>A private-service outage never removes this Standard Wallet connection. No balance or other Finance value is inferred.</Text></View></Card></View>;

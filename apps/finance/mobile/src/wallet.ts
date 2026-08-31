@@ -1,10 +1,12 @@
 import {DAppConnectError,StandardWalletConnection,classifyWalletError} from '@ynx/dapp-connect-sdk';
 import {assertFinanceConsumerContract} from './endpoint-manifest';
 
-type EIP1193Provider={request:(args:{method:string;params?:unknown[]})=>Promise<unknown>;on?:(event:string,listener:(value:unknown)=>void)=>void;removeListener?:(event:string,listener:(value:unknown)=>void)=>void};
+export type EIP1193Provider={request:(args:{method:string;params?:unknown[]})=>Promise<unknown>;on?:(event:string,listener:(value:unknown)=>void)=>void;removeListener?:(event:string,listener:(value:unknown)=>void)=>void};
 export type FinanceWalletConnection={account:string;chainId:string;state:'STANDARD_CONNECTED'};
+export type FinanceWalletListener=(connection:FinanceWalletConnection|null,error?:Error)=>void;
 
 function runtimeProvider(){return (globalThis as unknown as {ethereum?:EIP1193Provider}).ethereum}
+const validAccount=(value:unknown):value is string=>typeof value==='string'&&/^0x[0-9a-fA-F]{40}$/.test(value);
 
 export function financeConnectionError(error:unknown){
   const classified=error instanceof DAppConnectError?error:classifyWalletError(error);
@@ -22,6 +24,31 @@ export async function connectStandardWallet(provider:EIP1193Provider|undefined=r
     await connection.ensureYNXTestnet({addChain:{chainId:manifest.evmChainHex,chainName:'YNX Testnet',nativeCurrency:{name:'YNX Testnet',symbol:'YNXT',decimals:18},rpcUrls:[manifest.evmRpc],blockExplorerUrls:[manifest.explorer]}});
     return {account:connection.account!,chainId:connection.chainId!,state:'STANDARD_CONNECTED'};
   }catch(error){throw financeConnectionError(error)}
+}
+
+/** Restores only an already-approved account; it never calls eth_requestAccounts. */
+export async function restoreStandardWallet(provider:EIP1193Provider|undefined=runtimeProvider()):Promise<FinanceWalletConnection|null>{
+  const manifest=assertFinanceConsumerContract();
+  if(!provider)return null;
+  try{
+    const accounts=await provider.request({method:'eth_accounts'});
+    if(!Array.isArray(accounts)||!validAccount(accounts[0]))return null;
+    const chainId=await provider.request({method:'eth_chainId'});
+    if(String(chainId).toLowerCase()!==manifest.evmChainHex)throw new Error('WRONG_CHAIN: Switch the selected Wallet to YNX Testnet (0x1917).');
+    return {account:accounts[0],chainId:String(chainId),state:'STANDARD_CONNECTED'};
+  }catch(error){throw financeConnectionError(error)}
+}
+
+/** Subscribes to standard EIP-1193 lifecycle events for the SDK-selected provider. */
+export function watchStandardWallet(listener:FinanceWalletListener,provider:EIP1193Provider|undefined=runtimeProvider()):()=>void{
+  if(!provider)return()=>{};
+  const notify=async()=>{
+    try{listener(await restoreStandardWallet(provider))}catch(error){listener(null,financeConnectionError(error))}
+  };
+  if(typeof provider.on!=='function')return()=>{};
+  const onAccounts=()=>{void notify()},onChain=()=>{void notify()},onDisconnect=()=>listener(null,new Error('CONNECTION_REVOKED: Wallet provider disconnected.'));
+  provider.on('accountsChanged',onAccounts);provider.on('chainChanged',onChain);provider.on('disconnect',onDisconnect);
+  return()=>{provider.removeListener?.('accountsChanged',onAccounts);provider.removeListener?.('chainChanged',onChain);provider.removeListener?.('disconnect',onDisconnect)};
 }
 
 export function productSessionUnavailable(){

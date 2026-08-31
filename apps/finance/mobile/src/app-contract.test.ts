@@ -23,11 +23,12 @@ test('AI drafts require selected owned evidence, consent, and apply or reject',(
 });
 
 test('Wallet migration keeps standard connection and never creates a local Product Session',()=>{
-  for(const value of ['connectStandardWallet','StandardWalletConnection','PRODUCT_SESSION_UNAVAILABLE','WALLET_NOT_FOUND'])assert.ok(wallet.includes(value),value);
+  for(const value of ['connectStandardWallet','restoreStandardWallet','watchStandardWallet','StandardWalletConnection','eth_accounts','accountsChanged','chainChanged','disconnect','PRODUCT_SESSION_UNAVAILABLE','WALLET_NOT_FOUND'])assert.ok(wallet.includes(value),value);
   for(const prohibited of ['p256','createGatewayChallenge','sessions/complete','createProductSessionProof','encodeRequestDeepLink'])assert.equal(wallet.includes(prohibited),false,prohibited);
   for(const prohibited of ['Guaranteed return','APY 8%','USD balance','Visa card','insured deposit'])assert.equal(app.includes(prohibited),false,prohibited);
   assert.ok(app.includes('no fiat value is inferred'));
   assert.ok(i18n.toLowerCase().includes('cannot move assets'));
+  for(const marker of ['restoreStandardWallet().then','watchStandardWallet(','clearWalletConnection','retainWalletConnection'])assert.ok(app.includes(marker),marker);
 });
 
 test('a connected wallet remains visible without invoking a pending Finance API',()=>{
