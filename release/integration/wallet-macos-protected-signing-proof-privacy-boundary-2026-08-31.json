@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "evidenceKind": "wallet-macos-protected-signing-proof-privacy-boundary",
+  "observedAt": "2026-08-31T17:20:00+08:00",
+  "ownerBranch": "codex/wallet-ios-macos-20260813",
+  "source": {
+    "commit": "7c0f8bf3590cac942751333552c29a671f64e70a",
+    "tree": "7d247d044e8e432f70710f090ac7c52641bf376c",
+    "parent": "eee2a4e0a84daebaa314dfa6bb368e3540069d54",
+    "remoteExactViaGitRefApi": true,
+    "files": [
+      {
+        "path": ".github/workflows/wallet-macos-notarized-release.yml",
+        "blob": "8e96c0be698120ddf1add9991e27bb9f98130aa1",
+        "bytes": 16470,
+        "sha256": "854f4b8bd7a08f13b07e037f8d0482d8556ffc37e4b62061162a552dbe2eebe0"
+      },
+      {
+        "path": "apps/wallet/macos/scripts/verify-notarized-release-source.rb",
+        "blob": "556e8463b122fb34622fabd1411e1a2400e56826",
+        "bytes": 4315,
+        "sha256": "340c48318485c07cf1b51db01c979b82c57fe89b8f979e1df397ad87025707fe"
+      }
+    ]
+  },
+  "implementedBoundary": {
+    "developerIdIdentityLookupIsQuiet": true,
+    "developerIdIdentityValuePersistedInProof": false,
+    "rawCodesignInspectionPersistedInProof": false,
+    "rawEntitlementInspectionPersistedInProof": false,
+    "booleanOnlyProtectedSigningPreflightPersisted": true,
+    "booleanPreflightIncludesOwnerIdentitySignatureHardenedRuntimeAndApplicationGroupPresence": true,
+    "protectedValuesRecordedByNewProof": false
+  },
+  "localVerification": {
+    "notarizedReleaseSourceContract": true,
+    "workflowYamlParsed": true,
+    "finalDmgVerificationScriptShellSyntax": true,
+    "rawProtectedInspectionProofPathScanClean": true
+  },
+  "operations": {
+    "protectedValuesRequested": false,
+    "protectedValuesRead": false,
+    "workflowDispatchExecuted": false,
+    "developerIdSigningExecuted": false,
+    "notarizationSubmitted": false,
+    "staplingExecuted": false,
+    "gatekeeperAssessmentExecuted": false,
+    "applicationInstalled": false,
+    "applicationLaunched": false,
+    "releasePublished": false,
+    "runtimeLeaseRequested": false
+  },
+  "gates": {
+    "appleSignedAppGroupAndKeychainSignerAvailable": false,
+    "eligibleSignedIosTargetAvailable": false,
+    "eligibleSignedMacosTargetAvailable": false,
+    "developerIdSigned": false,
+    "notarized": false,
+    "stapled": false,
+    "gatekeeperAccepted": false,
+    "realReownProjectIdPresent": false,
+    "realRelayPairingVerified": false,
+    "installedWalletConnectRuntimeVerified": false,
+    "publicNativeWalletPublished": false
+  },
+  "chainBoundary": {
+    "cosmosChainId": "ynx_6423-1",
+    "evmChainIdDecimal": 6423,
+    "evmChainIdHex": "0x1917",
+    "chain9102Allowed": false
+  }
+}
