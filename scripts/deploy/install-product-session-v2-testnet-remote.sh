@@ -137,24 +137,30 @@ trap on_exit EXIT
 install -d -m 0700 -o ynx -g ynx "$state_dir"
 install -m 0644 "$new_unit" "$unit"
 install -m 0600 "$new_env" "$env_file"
-if ! grep -Fq '# BEGIN YNX PRODUCT SESSION V2' "$caddy_file"; then
+if ! grep -Fq '# BEGIN YNX PRODUCT SESSION V2 WALLET AUTH' "$caddy_file"; then
   awk '
-    $0=="rest.ynxweb4.com, api.ynxweb4.com, ide.ynxweb4.com {" && !inserted {
-      print;
-      print "  # BEGIN YNX PRODUCT SESSION V2";
-      print "  handle /v2/product-sessions/* {";
+    $0=="wallet-auth.ynxweb4.com, wallet-auth-testnet.43.153.202.237.sslip.io {" { in_wallet_auth=1 }
+    in_wallet_auth && $0=="  reverse_proxy 127.0.0.1:18445" && !inserted {
+      print "  # BEGIN YNX PRODUCT SESSION V2 WALLET AUTH";
+      print "  @ynx_product_session_v2 path /v2/product-sessions/*";
+      print "  handle @ynx_product_session_v2 {";
       print "    reverse_proxy 127.0.0.1:6441";
       print "  }";
-      print "  # END YNX PRODUCT SESSION V2";
+      print "  handle {";
+      print "    reverse_proxy 127.0.0.1:18445";
+      print "  }";
+      print "  # END YNX PRODUCT SESSION V2 WALLET AUTH";
       inserted=1;
       next
     }
+    in_wallet_auth && $0=="}" { in_wallet_auth=0 }
     {print}
     END{if(!inserted)exit 42}
   ' "$caddy_file" >"$backup_dir/ynx-chain.caddy.new"
   install -m 0644 "$backup_dir/ynx-chain.caddy.new" "$caddy_file"
 fi
-grep -Fq '# BEGIN YNX PRODUCT SESSION V2' "$caddy_file"
+grep -Fq '# BEGIN YNX PRODUCT SESSION V2 WALLET AUTH' "$caddy_file"
+grep -Fq '@ynx_product_session_v2 path /v2/product-sessions/*' "$caddy_file"
 grep -Fq 'reverse_proxy 127.0.0.1:6441' "$caddy_file"
 caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile >/dev/null
 systemctl daemon-reload
@@ -173,7 +179,7 @@ NODE
   sleep 1
 done
 [[ "$runtime_ok" == true ]] || { echo "Product Session v2 runtime failed local verification" >&2; exit 1; }
-YNX_PRODUCT_SESSION_V2_PUBLIC_PROBE=1 YNX_PRODUCT_SESSION_V2_PUBLIC_URL=https://rest.ynxweb4.com node "$release_dir/wallet-auth/scripts/probe-product-session-v2-public.mjs" >"$backup_dir/public-mount.json"
+YNX_PRODUCT_SESSION_V2_PUBLIC_PROBE=1 YNX_PRODUCT_SESSION_V2_PUBLIC_URL=https://wallet-auth.ynxweb4.com node "$release_dir/wallet-auth/scripts/probe-product-session-v2-public.mjs" >"$backup_dir/public-mount.json"
 
 if [[ "$mode" == rollback-drill ]]; then
   rollback
@@ -192,12 +198,12 @@ if [[ "$mode" == rollback-drill ]]; then
       sleep 1
     done
     [[ "$previous_commit" =~ ^[0-9a-f]{40}$ && "$previous_commit" != "$source_commit" ]]
-    YNX_PRODUCT_SESSION_V2_PUBLIC_PROBE=1 YNX_PRODUCT_SESSION_V2_PUBLIC_URL=https://rest.ynxweb4.com node "$release_dir/wallet-auth/scripts/probe-product-session-v2-public.mjs" >"$backup_dir/post-rollback-mount.json"
+    YNX_PRODUCT_SESSION_V2_PUBLIC_PROBE=1 YNX_PRODUCT_SESSION_V2_PUBLIC_URL=https://wallet-auth.ynxweb4.com node "$release_dir/wallet-auth/scripts/probe-product-session-v2-public.mjs" >"$backup_dir/post-rollback-mount.json"
     post_rollback_result="restored-previous-v2-source-$previous_commit"
   else
     [[ ! -e "$unit" && ! -e "$env_file" && ! -e "$state_dir" ]] || { echo "rollback drill did not remove new service state" >&2; exit 1; }
-    ! grep -Fq '# BEGIN YNX PRODUCT SESSION V2' "$caddy_file"
-    if YNX_PRODUCT_SESSION_V2_PUBLIC_PROBE=1 YNX_PRODUCT_SESSION_V2_PUBLIC_URL=https://rest.ynxweb4.com node "$release_dir/wallet-auth/scripts/probe-product-session-v2-public.mjs" >"$backup_dir/post-rollback-mount.stdout" 2>"$backup_dir/post-rollback-mount.json"; then echo "rollback drill left the new v2 public route mounted" >&2; exit 1; fi
+    ! grep -Fq '# BEGIN YNX PRODUCT SESSION V2 WALLET AUTH' "$caddy_file"
+    if YNX_PRODUCT_SESSION_V2_PUBLIC_PROBE=1 YNX_PRODUCT_SESSION_V2_PUBLIC_URL=https://wallet-auth.ynxweb4.com node "$release_dir/wallet-auth/scripts/probe-product-session-v2-public.mjs" >"$backup_dir/post-rollback-mount.stdout" 2>"$backup_dir/post-rollback-mount.json"; then echo "rollback drill left the new v2 public route mounted" >&2; exit 1; fi
     grep -Fq 'UNEXPECTED_HTTP_STATUS' "$backup_dir/post-rollback-mount.json"
     post_rollback_result="restored-pre-v2-public-fallback"
   fi
@@ -209,7 +215,7 @@ if [[ "$mode" == rollback-drill ]]; then
   exit 0
 fi
 
-YNX_PRODUCT_SESSION_V2_LIFECYCLE=1 YNX_PRODUCT_SESSION_V2_LIFECYCLE_URL=https://rest.ynxweb4.com node "$release_dir/wallet-auth/scripts/verify-product-session-v2-lifecycle.mjs" >"$backup_dir/public-lifecycle.json"
+YNX_PRODUCT_SESSION_V2_LIFECYCLE=1 YNX_PRODUCT_SESSION_V2_LIFECYCLE_URL=https://wallet-auth.ynxweb4.com node "$release_dir/wallet-auth/scripts/verify-product-session-v2-lifecycle.mjs" >"$backup_dir/public-lifecycle.json"
 systemctl is-active --quiet ynx-wallet-gatewayd
 systemctl is-active --quiet ynx-app-gatewayd
 rollback_on_error=false
