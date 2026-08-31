@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "evidenceClass": "wallet-cli-release-readiness-materials",
+  "artifactSourceCommit": "68b68bbcbc7a301c113db82a2183537191976ff0",
+  "artifactSourceTree": "79274e02ed14e316851d512db3e14da68fe5620e",
+  "hostedLifecycleRun": 33384806411,
+  "generator": {
+    "path": "scripts/release/build-wallet-cli-release-readiness.mjs",
+    "sha256": "8332b120a72a218d073a43ee77b9db08422f4d29f150bd23e16cf4a4d5bb67b9"
+  },
+  "verifier": {
+    "path": "scripts/verify/wallet-cli-release-readiness.mjs",
+    "sha256": "53dbb59cd52ac05f043e96789e163650f43b90faf3607300658245cb28319c12"
+  },
+  "outputs": [
+    {"path":"release/wallet-cli/readiness/SHA256SUMS","sha256":"2dc8cc266cfd5f904a80aa46693736e4cc25d612eec0bab78ca45785e3da35a4","purpose":"six exact artifact checksums"},
+    {"path":"release/wallet-cli/readiness/download-manifest.json","sha256":"fe45adfa53a1ffd94ec551aeb53f24e89e37a504550c65e0811dd6dafc4f1da7","purpose":"source-bound deterministic download metadata"},
+    {"path":"release/wallet-cli/readiness/sbom.spdx.json","sha256":"325ecef7fbf70737284d7ea6113956462cc2ec0bc6944dc52c43d307bd294aa6","purpose":"SPDX 2.3 runtime SBOM"},
+    {"path":"release/wallet-cli/readiness/INSTALL.md","sha256":"d25c5e550596c5b9d17aac2e485fdc3cfd26327aed1ac2f8a4edd40dfb678c1f","purpose":"platform install, 6423 validation and uninstall instructions"},
+    {"path":"release/wallet-cli/readiness/operator-lease-request.json","sha256":"4d6c66a056823aadf77c205cbdff5a410f044a4ddaac5314a7575394952ff068","purpose":"secret-free exact path-scoped signing and publication authority request"}
+  ],
+  "determinism": {
+    "independentGenerationCount": 2,
+    "recursiveDiffEqual": true,
+    "committedGenerationVerified": true
+  },
+  "sbomBoundary": {
+    "format": "SPDX-2.3",
+    "artifactFiles": 6,
+    "runtimePackages": 2,
+    "runtimePackageNames": ["YNX Wallet CLI", "Go standard library"],
+    "embeddedThirdPartyModules": 0,
+    "goVersion": "go1.25.7"
+  },
+  "signingTruth": {
+    "darwinArm64": "ad_hoc_linker_signed_local_testnet_cli_candidate",
+    "darwinAmd64": "unsigned_macos_cross_arch_candidate",
+    "linuxArm64": "unsigned_local_testnet_cli_candidate",
+    "linuxAmd64": "unsigned_local_testnet_cli_candidate",
+    "windowsArm64": "unsigned_local_testnet_cli_candidate; Authenticode NotSigned",
+    "windowsAmd64": "unsigned_local_testnet_cli_candidate; Authenticode NotSigned",
+    "productionSigned": false,
+    "notarized": false
+  },
+  "operatorBoundary": {
+    "containsSecrets": false,
+    "leaseIssued": false,
+    "executionAuthorized": false,
+    "signingExecuted": false,
+    "publicationExecuted": false,
+    "signedSuccessorRequiresNewManifestAndLease": true
+  },
+  "behavior": {
+    "nativeChainId": "ynx_6423-1",
+    "chainId": 6423,
+    "evmChainId": "0x1917",
+    "nativeCurrency": "YNXT",
+    "legacy9102ExitCode": 78,
+    "legacy9102Error": "WRONG_CHAIN",
+    "remoteProbeRun": false,
+    "accountRequested": false,
+    "signingRequested": false,
+    "transactionRequested": false
+  },
+  "releaseState": {"downloadHosted":false,"deployedPublic":false,"productionSigned":false,"notarized":false,"storeReleased":false}
+}

@@ -1,0 +1,187 @@
+{
+  "spdxVersion": "SPDX-2.3",
+  "dataLicense": "CC0-1.0",
+  "SPDXID": "SPDXRef-DOCUMENT",
+  "name": "YNX-Wallet-CLI-68b68bbcbc7a",
+  "documentNamespace": "https://ynxweb4.com/spdx/wallet-cli/68b68bbcbc7a301c113db82a2183537191976ff0",
+  "creationInfo": {
+    "created": "2026-08-31T09:51:40Z",
+    "creators": [
+      "Organization: YNX Chain",
+      "Tool: build-wallet-cli-release-readiness.mjs"
+    ]
+  },
+  "documentDescribes": [
+    "SPDXRef-Package-YNX-Wallet-CLI"
+  ],
+  "packages": [
+    {
+      "name": "YNX Wallet CLI",
+      "SPDXID": "SPDXRef-Package-YNX-Wallet-CLI",
+      "versionInfo": "68b68bbcbc7a301c113db82a2183537191976ff0",
+      "downloadLocation": "NOASSERTION",
+      "filesAnalyzed": true,
+      "licenseConcluded": "NOASSERTION",
+      "licenseDeclared": "NOASSERTION",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:golang/github.com/JiahaoAlbus/YNX-Chain/cmd/ynx-wallet-cli@68b68bbcbc7a301c113db82a2183537191976ff0"
+        }
+      ]
+    },
+    {
+      "name": "Go standard library",
+      "SPDXID": "SPDXRef-Package-Go-Stdlib",
+      "versionInfo": "go1.25.7",
+      "downloadLocation": "https://go.dev/dl/",
+      "filesAnalyzed": false,
+      "licenseConcluded": "BSD-3-Clause",
+      "licenseDeclared": "BSD-3-Clause",
+      "copyrightText": "NOASSERTION",
+      "externalRefs": [
+        {
+          "referenceCategory": "PACKAGE-MANAGER",
+          "referenceType": "purl",
+          "referenceLocator": "pkg:golang/stdlib@1.25.7"
+        }
+      ]
+    }
+  ],
+  "files": [
+    {
+      "fileName": "ynx-wallet-cli-darwin-amd64.gz",
+      "SPDXID": "SPDXRef-File-1",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "c2fe1f4aceab5e2628f8f56768834347e89a48f090227910c12e916764b6d6d1"
+        }
+      ],
+      "fileTypes": [
+        "BINARY"
+      ],
+      "copyrightText": "NOASSERTION",
+      "comment": "darwin/amd64; macOS 12 Monterey; unsigned_macos_cross_arch_candidate; 5199151 bytes"
+    },
+    {
+      "fileName": "ynx-wallet-cli-darwin-arm64.gz",
+      "SPDXID": "SPDXRef-File-2",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "8deca300b859ebb87a1a0914df2297283941c9e0d67edcde60dea382758efff1"
+        }
+      ],
+      "fileTypes": [
+        "BINARY"
+      ],
+      "copyrightText": "NOASSERTION",
+      "comment": "darwin/arm64; macOS 12 Monterey; ad_hoc_linker_signed_local_testnet_cli_candidate; 4874812 bytes"
+    },
+    {
+      "fileName": "ynx-wallet-cli-linux-amd64.gz",
+      "SPDXID": "SPDXRef-File-3",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "05291586e1039df381df8095f50c45612f9644c881422d57e0fac693b5e7dd75"
+        }
+      ],
+      "fileTypes": [
+        "BINARY"
+      ],
+      "copyrightText": "NOASSERTION",
+      "comment": "linux/amd64; Linux kernel 3.2; unsigned_local_testnet_cli_candidate; 5059944 bytes"
+    },
+    {
+      "fileName": "ynx-wallet-cli-linux-arm64.gz",
+      "SPDXID": "SPDXRef-File-4",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "edf65972dfba52018d47321e5e91c409ec9d8a2aac45a4001511521a64d980a9"
+        }
+      ],
+      "fileTypes": [
+        "BINARY"
+      ],
+      "copyrightText": "NOASSERTION",
+      "comment": "linux/arm64; Linux kernel 3.2; unsigned_local_testnet_cli_candidate; 4632209 bytes"
+    },
+    {
+      "fileName": "ynx-wallet-cli-windows-amd64.exe.gz",
+      "SPDXID": "SPDXRef-File-5",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "05b3deb66ca924b6b872f6fbbb3b524b649e6a677deaec1176459d9d4fb2c72d"
+        }
+      ],
+      "fileTypes": [
+        "BINARY"
+      ],
+      "copyrightText": "NOASSERTION",
+      "comment": "windows/amd64; Windows 10 or Windows Server 2016; unsigned_local_testnet_cli_candidate; 5059829 bytes"
+    },
+    {
+      "fileName": "ynx-wallet-cli-windows-arm64.exe.gz",
+      "SPDXID": "SPDXRef-File-6",
+      "checksums": [
+        {
+          "algorithm": "SHA256",
+          "checksumValue": "7cbf0fbddecc907292263d2f055b3e6def5b57b14588f6e8fe1f6324d3d64804"
+        }
+      ],
+      "fileTypes": [
+        "BINARY"
+      ],
+      "copyrightText": "NOASSERTION",
+      "comment": "windows/arm64; Windows 10 or Windows Server 2016; unsigned_local_testnet_cli_candidate; 4603630 bytes"
+    }
+  ],
+  "relationships": [
+    {
+      "spdxElementId": "SPDXRef-DOCUMENT",
+      "relationshipType": "DESCRIBES",
+      "relatedSpdxElement": "SPDXRef-Package-YNX-Wallet-CLI"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-YNX-Wallet-CLI",
+      "relationshipType": "DEPENDS_ON",
+      "relatedSpdxElement": "SPDXRef-Package-Go-Stdlib"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-YNX-Wallet-CLI",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-1"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-YNX-Wallet-CLI",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-2"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-YNX-Wallet-CLI",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-3"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-YNX-Wallet-CLI",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-4"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-YNX-Wallet-CLI",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-5"
+    },
+    {
+      "spdxElementId": "SPDXRef-Package-YNX-Wallet-CLI",
+      "relationshipType": "CONTAINS",
+      "relatedSpdxElement": "SPDXRef-File-6"
+    }
+  ]
+}

@@ -1,0 +1,147 @@
+{
+  "schemaVersion": 1,
+  "requestId": "wallet-cli-signing-publication-path-lease-20260831-01",
+  "status": "awaiting-new-lease",
+  "sourceCommit": "68b68bbcbc7a301c113db82a2183537191976ff0",
+  "candidateManifest": "release/wallet-cli/readiness/download-manifest.json",
+  "authorityRequested": {
+    "signing": [
+      {
+        "artifactId": "ynx-wallet-cli-darwin-amd64",
+        "currentSha256": "c2fe1f4aceab5e2628f8f56768834347e89a48f090227910c12e916764b6d6d1",
+        "credentialClassRequired": "Apple Developer ID Application plus notarization credentials",
+        "authorized": false,
+        "outputRequiresNewSha256AndContentAddressedPath": true,
+        "outputPublicationAuthorizedByThisRequest": false
+      },
+      {
+        "artifactId": "ynx-wallet-cli-darwin-arm64",
+        "currentSha256": "8deca300b859ebb87a1a0914df2297283941c9e0d67edcde60dea382758efff1",
+        "credentialClassRequired": "Apple Developer ID Application plus notarization credentials",
+        "authorized": false,
+        "outputRequiresNewSha256AndContentAddressedPath": true,
+        "outputPublicationAuthorizedByThisRequest": false
+      },
+      {
+        "artifactId": "ynx-wallet-cli-linux-amd64",
+        "currentSha256": "05291586e1039df381df8095f50c45612f9644c881422d57e0fac693b5e7dd75",
+        "credentialClassRequired": "approved Linux release signing identity or explicit unsigned-preview approval",
+        "authorized": false,
+        "outputRequiresNewSha256AndContentAddressedPath": true,
+        "outputPublicationAuthorizedByThisRequest": false
+      },
+      {
+        "artifactId": "ynx-wallet-cli-linux-arm64",
+        "currentSha256": "edf65972dfba52018d47321e5e91c409ec9d8a2aac45a4001511521a64d980a9",
+        "credentialClassRequired": "approved Linux release signing identity or explicit unsigned-preview approval",
+        "authorized": false,
+        "outputRequiresNewSha256AndContentAddressedPath": true,
+        "outputPublicationAuthorizedByThisRequest": false
+      },
+      {
+        "artifactId": "ynx-wallet-cli-windows-amd64",
+        "currentSha256": "05b3deb66ca924b6b872f6fbbb3b524b649e6a677deaec1176459d9d4fb2c72d",
+        "credentialClassRequired": "trusted Authenticode code-signing identity",
+        "authorized": false,
+        "outputRequiresNewSha256AndContentAddressedPath": true,
+        "outputPublicationAuthorizedByThisRequest": false
+      },
+      {
+        "artifactId": "ynx-wallet-cli-windows-arm64",
+        "currentSha256": "7cbf0fbddecc907292263d2f055b3e6def5b57b14588f6e8fe1f6324d3d64804",
+        "credentialClassRequired": "trusted Authenticode code-signing identity",
+        "authorized": false,
+        "outputRequiresNewSha256AndContentAddressedPath": true,
+        "outputPublicationAuthorizedByThisRequest": false
+      }
+    ],
+    "publicationPaths": [
+      {
+        "artifactId": "ynx-wallet-cli-darwin-amd64",
+        "candidateClass": "current-testnet-preview-with-recorded-signing-boundary",
+        "exactPath": "/opt/ynx/public-downloads/wallet/cli/sha256-c2fe1f4aceab5e2628f8f56768834347e89a48f090227910c12e916764b6d6d1/ynx-wallet-cli-darwin-amd64.gz",
+        "overwriteAllowed": false,
+        "authorized": false
+      },
+      {
+        "artifactId": "ynx-wallet-cli-darwin-arm64",
+        "candidateClass": "current-testnet-preview-with-recorded-signing-boundary",
+        "exactPath": "/opt/ynx/public-downloads/wallet/cli/sha256-8deca300b859ebb87a1a0914df2297283941c9e0d67edcde60dea382758efff1/ynx-wallet-cli-darwin-arm64.gz",
+        "overwriteAllowed": false,
+        "authorized": false
+      },
+      {
+        "artifactId": "ynx-wallet-cli-linux-amd64",
+        "candidateClass": "current-testnet-preview-with-recorded-signing-boundary",
+        "exactPath": "/opt/ynx/public-downloads/wallet/cli/sha256-05291586e1039df381df8095f50c45612f9644c881422d57e0fac693b5e7dd75/ynx-wallet-cli-linux-amd64.gz",
+        "overwriteAllowed": false,
+        "authorized": false
+      },
+      {
+        "artifactId": "ynx-wallet-cli-linux-arm64",
+        "candidateClass": "current-testnet-preview-with-recorded-signing-boundary",
+        "exactPath": "/opt/ynx/public-downloads/wallet/cli/sha256-edf65972dfba52018d47321e5e91c409ec9d8a2aac45a4001511521a64d980a9/ynx-wallet-cli-linux-arm64.gz",
+        "overwriteAllowed": false,
+        "authorized": false
+      },
+      {
+        "artifactId": "ynx-wallet-cli-windows-amd64",
+        "candidateClass": "current-testnet-preview-with-recorded-signing-boundary",
+        "exactPath": "/opt/ynx/public-downloads/wallet/cli/sha256-05b3deb66ca924b6b872f6fbbb3b524b649e6a677deaec1176459d9d4fb2c72d/ynx-wallet-cli-windows-amd64.exe.gz",
+        "overwriteAllowed": false,
+        "authorized": false
+      },
+      {
+        "artifactId": "ynx-wallet-cli-windows-arm64",
+        "candidateClass": "current-testnet-preview-with-recorded-signing-boundary",
+        "exactPath": "/opt/ynx/public-downloads/wallet/cli/sha256-7cbf0fbddecc907292263d2f055b3e6def5b57b14588f6e8fe1f6324d3d64804/ynx-wallet-cli-windows-arm64.exe.gz",
+        "overwriteAllowed": false,
+        "authorized": false
+      }
+    ],
+    "configPath": {
+      "path": "/etc/caddy/conf.d/downloads.ynxweb4.com.caddy",
+      "mutationAuthorized": false
+    }
+  },
+  "requiredLease": {
+    "singleUse": true,
+    "pathScoped": true,
+    "sourceBound": true,
+    "artifactHashBound": true,
+    "expiresAtRequired": true,
+    "literalInvocationRequired": true,
+    "rollbackRequired": true
+  },
+  "handling": {
+    "containsSecrets": false,
+    "submitSecretsInChat": false,
+    "commitCredentials": false,
+    "injectOnlyThroughAuthorizedSecretProvider": true
+  },
+  "execution": {
+    "sign": false,
+    "notarize": false,
+    "upload": false,
+    "configure": false,
+    "reload": false,
+    "deploy": false,
+    "publish": false,
+    "signedSuccessorRequiresNewManifestAndLease": true
+  },
+  "acceptanceRequiredBeforePromotion": {
+    "signedArtifactRehash": true,
+    "signatureVerificationOnTargetOS": true,
+    "fullPublicGet": true,
+    "publicBytesAndSha256Match": true,
+    "contentTypeAndDispositionMatch": true,
+    "installColdSecondUninstallRepeat": true
+  },
+  "releaseState": {
+    "productionSigned": false,
+    "notarized": false,
+    "downloadHosted": false,
+    "deployedPublic": false,
+    "storeReleased": false
+  }
+}

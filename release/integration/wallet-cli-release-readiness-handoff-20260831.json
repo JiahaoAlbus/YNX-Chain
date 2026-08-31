@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "handoffClass": "wallet-cli-release-readiness",
+  "owner": "Wallet Desktop/CLI/SDK",
+  "artifactSourceCommit": "68b68bbcbc7a301c113db82a2183537191976ff0",
+  "branch": "codex/wallet-sdk-error-taxonomy-20260831",
+  "evidence": "docs/integration/wallet-cli-release-readiness-evidence-20260831.json",
+  "checksums": "release/wallet-cli/readiness/SHA256SUMS",
+  "sbom": "release/wallet-cli/readiness/sbom.spdx.json",
+  "downloadManifest": "release/wallet-cli/readiness/download-manifest.json",
+  "installationDocumentation": "release/wallet-cli/readiness/INSTALL.md",
+  "operatorLeaseRequest": "release/wallet-cli/readiness/operator-lease-request.json",
+  "candidateCount": 6,
+  "allCandidateRuntimeLifecyclesProved": true,
+  "authorityRequiredForNextStep": "A wholly new, single-use, source/hash/path-scoped signing or publication lease. Signed outputs require new SHA-256, content-addressed paths, manifest and lease.",
+  "containsSecrets": false,
+  "mutationPerformed": {"signed":false,"notarized":false,"uploaded":false,"configured":false,"deployed":false,"published":false},
+  "releaseState": {"downloadHosted":false,"deployedPublic":false,"productionSigned":false,"notarized":false,"storeReleased":false}
+}
