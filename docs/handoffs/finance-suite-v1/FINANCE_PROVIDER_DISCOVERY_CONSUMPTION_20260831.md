@@ -50,6 +50,17 @@ npm run security
 The generated runtime SHA-256 is recorded in the owning commit and must be
 recomputed from the source-bound tree before any release candidate is signed.
 
+## Frozen owner evidence
+
+| Item | Exact value |
+| --- | --- |
+| Owner branch | `codex/final-finance-suite` |
+| Source checkpoint | `77a801703415d444d62757860afd4d5a5c938b32` |
+| Source tree | `7abaf622bf9482a2ee52a0b9c8e8970a0e25a08e` |
+| Generated runtime | `apps/finance/web/standard-wallet-runtime.js`, 15,263 bytes, SHA-256 `3ef16fae6cdfd559a60464dcbb42ea55a87b826e88e6e44b5b358674909943a4` |
+| Tests | `npm run build:standard-wallet`; `npm test` 21/21; `npm run security` passed across 283 text files |
+| Transfer bundle | `/tmp/ynx-finance-suite-77a801703.bundle`, SHA-256 `b4a1bcc5dc0e92fa976ba9d3455574910b4922e576d837c52bccac2dccdf3595`, requires `0892cd45037dd158e92c041643e3352393fe85c4` |
+
 ## Truth boundary
 
 This is source and local-test evidence only. `publicRuntimeBound`,
