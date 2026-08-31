@@ -250,7 +250,7 @@ if(location.pathname==="/video/studio/wallet-auth/callback"){
   const requested=callbackParams.get("redirect_to")||"/video/studio/";
   let next="/video/studio/";
   try{const candidate=new URL(requested,location.origin);if(candidate.origin===location.origin)next=`${candidate.pathname}${candidate.search}${candidate.hash}`}catch{}
-  location.replace(`${next}${location.hash}`);
+  history.replaceState(null,"",`${next}${location.hash}`);
 }
 if(session()){sessionStorage.setItem("ynx.video.session",session());history.replaceState(null,"",location.pathname);$("#signin").textContent="Wallet connected"}
 resetWalletFlow();
