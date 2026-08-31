@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-08-31T07:21:46Z",
+  "scope": "public Wallet domain regression; no provider or account action",
+  "publicAlias": "https://wallet.ynxweb4.com/",
+  "observedDocument": {
+    "url": "https://wallet.ynxweb4.com/?verify=provider-preflight-20260831&lang=en&ynx-sw-recovery=ynx-wallet-web-v11",
+    "title": "YNX Web4 | AI-Native Sovereign Execution Layer",
+    "htmlLanguage": "en",
+    "cjkVisible": false,
+    "servedApplication": "YNX public testnet homepage shell",
+    "walletCompanionVisible": false,
+    "expectedWalletTitle": "YNX Wallet — Testnet companion"
+  },
+  "candidate": {
+    "commit": "4134c6a32a75e3e577bfb024d9e1c17da07598ba",
+    "tree": "09340a4f12562cc1fb5ecc8bf39ca37de73f98e2",
+    "pwaEntrypoint": "apps/wallet-web/dist/pwa/index.html",
+    "publicDeploymentIdentityMatched": false
+  },
+  "websiteOwnerReadOnlyContext": {
+    "worktree": "/Users/huangjiahao/Desktop/YNX-Chain-website",
+    "head": "89db27bb82bcb0d740d3ffb42b427704aaff247e",
+    "tree": "d65c90a000904cdf3494704dff271c8ffbbee91c",
+    "dirty": false,
+    "walletRoutesAreWebsiteRoutes": true
+  },
+  "safetyBoundary": {
+    "extensionLaunchOrInstallAttempted": false,
+    "providerRequestOrAnnouncementAttempted": false,
+    "accountRequestAttempted": false,
+    "networkMutationAttempted": false,
+    "signatureAttempted": false,
+    "transactionAttempted": false,
+    "walletConnectPairingAttempted": false
+  },
+  "requiredRemediation": "A Website/Integration owner must bind wallet.ynxweb4.com to a source-bound Wallet Companion deployment rooted at the candidate PWA output, with immutable build identity, worker assets and rollback. Do not alter Chain, Caddy, systemd or Gateway routes for this correction.",
+  "truth": {
+    "publicWalletCompanion": false,
+    "providerDiscoveryVerified": false,
+    "installedProviderVerified": false,
+    "externalDappVerified": false,
+    "walletConnectVerified": false,
+    "deployedPublic": false
+  }
+}
