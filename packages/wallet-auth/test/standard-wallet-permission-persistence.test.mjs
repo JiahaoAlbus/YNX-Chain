@@ -121,6 +121,42 @@ test("approval persistence and inventory removal linearize without restart resur
   assert.equal((await engine(storage, { walletAccounts: [OTHER] }).restorePermissions()).connected, false);
 });
 
+test("disconnect wins an in-flight account approval without connect events or restart resurrection", async () => {
+  const storage = new InMemoryStandardWalletPermissionStorage();
+  let releaseApproval;
+  const blockedApproval = new Promise((resolve) => { releaseApproval = resolve; });
+  const provider = engine(storage, { approveAccounts: async () => blockedApproval });
+  const events = [];
+  provider.on("accountsChanged", (accounts) => events.push(["accountsChanged", accounts]));
+  provider.on("connect", (payload) => events.push(["connect", payload]));
+  provider.on("disconnect", (payload) => events.push(["disconnect", payload]));
+  const pending = provider.request({ method: "eth_requestAccounts" });
+  assert.equal((await provider.disconnect()).connected, false);
+  releaseApproval([ACCOUNT]);
+  await assert.rejects(pending, rpcCode(4100));
+  assert.deepEqual(await provider.request({ method: "eth_accounts" }), []);
+  assert.deepEqual(events.map(([name]) => name), ["disconnect"]);
+  assert.equal((await engine(storage).restorePermissions()).connected, false);
+});
+
+test("wallet_revokePermissions wins an in-flight approval without publishing any account authority", async () => {
+  const storage = new InMemoryStandardWalletPermissionStorage();
+  let releaseApproval;
+  const blockedApproval = new Promise((resolve) => { releaseApproval = resolve; });
+  const provider = engine(storage, { approveAccounts: async () => blockedApproval });
+  const events = [];
+  provider.on("accountsChanged", (accounts) => events.push(["accountsChanged", accounts]));
+  provider.on("connect", (payload) => events.push(["connect", payload]));
+  provider.on("disconnect", (payload) => events.push(["disconnect", payload]));
+  const pending = provider.request({ method: "eth_requestAccounts" });
+  assert.equal(await provider.request({ method: "wallet_revokePermissions", params: [{ eth_accounts: {} }] }), null);
+  releaseApproval([ACCOUNT]);
+  await assert.rejects(pending, rpcCode(4100));
+  assert.deepEqual(await provider.request({ method: "eth_accounts" }), []);
+  assert.deepEqual(events, []);
+  assert.equal((await engine(storage).restorePermissions()).connected, false);
+});
+
 test("durable mutation failures do not report revocation or replacement success", async () => {
   const backing = new InMemoryStandardWalletPermissionStorage();
   const provider = engine(backing);
