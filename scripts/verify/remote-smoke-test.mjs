@@ -380,7 +380,14 @@ function checkValidatorPeers(json) {
 
 function checkValidatorPeerSync(json) {
   const syncs = Array.isArray(json?.syncs) ? json.syncs : [];
-  const healthy = syncs.filter((sync) => ["synced", "lagging"].includes(sync?.status) && typeof sync?.source === "string" && typeof sync?.target === "string" && sync.source !== sync.target && typeof sync?.updatedAt === "string");
+  const sampleTimes = new Set(syncs.map((sync) => sync?.readinessSampledAt).filter(Boolean));
+  const healthy = syncs.filter((sync) => sync?.status === "synced" &&
+    sync?.readinessReady === true && sync?.readinessFresh === true &&
+    !sync?.readinessReason && sync?.readinessStatus === "ready" &&
+    typeof sync?.source === "string" && typeof sync?.target === "string" && sync.source !== sync.target &&
+    sync?.readinessRecordKey === `${sync.source}->${sync.target}` &&
+    Number.isInteger(Number(sync?.lagBlocks)) && Math.abs(Number(sync.lagBlocks)) <= 1 &&
+    typeof sync?.updatedAt === "string" && typeof sync?.readinessSampledAt === "string");
   const ok = healthy.length >= Math.max(1, expected.minValidators - 1);
   record(
     "rpc.validators.peerSync",
@@ -388,11 +395,19 @@ function checkValidatorPeerSync(json) {
     ok ? `${healthy.length} validator peer height observations` : `expected validator peer height observations, got ${healthy.length}`,
     { syncCount: healthy.length, syncs }
   );
-  return ok;
+  const coherentSample = syncs.length > 0 && sampleTimes.size === 1;
+  record(
+    "rpc.validators.peerSync.sampleConsistency",
+    coherentSample,
+    coherentSample ? `all peer sync records sampled at ${[...sampleTimes][0]}` : `peer sync records do not share one sample time: ${clip(syncs)}`,
+    { sampleTimes: [...sampleTimes], syncCount: syncs.length }
+  );
+  return ok && coherentSample;
 }
 
 function checkNodeIdentity(json) {
   const freshness = json?.peerSyncFreshness ?? {};
+  const readiness = json?.validatorReadiness ?? {};
   const targetCount = Number(json?.peerSyncTargetCount ?? 0);
   const expectedCount = Number(json?.expectedValidatorCount ?? 0);
   const configured = json?.configured === true && typeof json?.validatorAddress === "string" && json.validatorAddress.length > 0;
@@ -403,6 +418,13 @@ function checkNodeIdentity(json) {
     Number(freshness?.missing ?? 0) === 0 &&
     Number(freshness?.stale ?? 0) === 0 &&
     Number(freshness?.fresh ?? 0) >= Math.max(1, expected.minValidators - 1);
+  const readinessOk = readiness?.status === "ready" &&
+    Number(readiness?.ready ?? 0) >= expected.minValidators &&
+    Number(readiness?.notReady ?? 0) === 0 &&
+    Number(readiness?.total ?? 0) >= expected.minValidators &&
+    typeof readiness?.sampledAt === "string" && readiness.sampledAt === freshness?.generatedAt &&
+    Array.isArray(readiness?.records) && readiness.records.length >= expected.minValidators &&
+    readiness.records.every((record) => record?.ready === true && record?.status === "ready" && !record?.reason);
   record(
     "rpc.nodeIdentity.configured",
     configured,
@@ -433,7 +455,29 @@ function checkNodeIdentity(json) {
     freshnessOk ? `fresh peer height observations (${freshness.status})` : `expected fresh peer height observations, got ${clip(freshness)}`,
     freshness
   );
-  return configured && authoritativeProducer && expectedCountOk && targetCountOk && freshnessOk;
+  record(
+    "rpc.nodeIdentity.validatorReadiness",
+    readinessOk,
+    readinessOk ? `${readiness.ready}/${readiness.total} validators ready at ${readiness.sampledAt}` : `validator readiness is not a coherent ready sample: ${clip(readiness)}`,
+    readiness
+  );
+  return configured && authoritativeProducer && expectedCountOk && targetCountOk && freshnessOk && readinessOk;
+}
+
+function checkStatusValidatorReadiness(json) {
+  const readiness = json?.validatorPeerReadiness ?? {};
+  const identityReadiness = json?.nodeIdentity?.validatorReadiness ?? {};
+  const freshness = json?.nodeIdentity?.peerSyncFreshness ?? {};
+  const ok = readiness?.status === "ready" && Number(json?.readyValidatorCount ?? -1) === Number(readiness?.ready ?? -2) &&
+    Number(readiness?.ready ?? 0) >= expected.minValidators && Number(readiness?.notReady ?? 0) === 0 &&
+    typeof readiness?.sampledAt === "string" && readiness.sampledAt === identityReadiness?.sampledAt && readiness.sampledAt === freshness?.generatedAt;
+  record(
+    "rpc.status.validatorReadiness",
+    ok,
+    ok ? `${readiness.ready}/${readiness.total} validators share one status sample` : `status readiness is missing or internally inconsistent: ${clip(json)}`,
+    { readyValidatorCount: json?.readyValidatorCount, readiness, identityReadiness, freshnessGeneratedAt: freshness?.generatedAt }
+  );
+  return ok;
 }
 
 function checkBuildIdentity(name, json) {
@@ -719,6 +763,7 @@ async function main() {
   const releaseManifestOk = checkReleaseManifestEvidence();
   const rpcChainOk = rpcStatus1 ? checkChain("rpc.status.chain", rpcStatus1) : false;
   const rpcBuildOk = rpcStatus1 ? checkBuildIdentity("rpc.status", rpcStatus1) : false;
+  const rpcValidatorReadinessOk = rpcStatus1 ? checkStatusValidatorReadiness(rpcStatus1) : false;
   const height1 = rpcStatus1 ? heightOf(rpcStatus1) : null;
   record("rpc.status.height.initial", height1 !== null, height1 !== null ? `height ${height1}` : "missing latest height", { height: height1 });
 
@@ -842,7 +887,7 @@ async function main() {
     checkWeb4ChainBinding(web4Health);
   }
 
-  const publicChainReady = releaseManifestOk && rpcChainOk && rpcBuildOk && grew && validatorsOk && nodeIdentityOk && nodeIdentityBuildOk && validatorPeersOk && validatorPeerSyncOk && evmChainOk && evmBlockOk && restChainOk && grpcOk && faucetChainOk && faucetNativeOk && aiHealthOk && payHealthOk && Boolean(payGatewayAPIKey) && trustHealthOk && Boolean(trustGatewayAPIKey) && resourceHealthOk && Boolean(resourceGatewayAPIKey) && requestValidityRulesOk && transparencyInitialOk;
+  const publicChainReady = releaseManifestOk && rpcChainOk && rpcBuildOk && rpcValidatorReadinessOk && grew && validatorsOk && nodeIdentityOk && nodeIdentityBuildOk && validatorPeersOk && validatorPeerSyncOk && evmChainOk && evmBlockOk && restChainOk && grpcOk && faucetChainOk && faucetNativeOk && aiHealthOk && payHealthOk && Boolean(payGatewayAPIKey) && trustHealthOk && Boolean(trustGatewayAPIKey) && resourceHealthOk && Boolean(resourceGatewayAPIKey) && requestValidityRulesOk && transparencyInitialOk;
   if (!publicChainReady) {
     record("mutable.remote.actions", false, "skipped faucet/pay/trust/resource/IDE/governance mutations because public endpoints are not verified as the new YNX Testnet with Chain Law APIs", {});
   } else {

@@ -536,17 +536,18 @@ func (d *Devnet) Status() map[string]any {
 	defer d.mu.RUnlock()
 	latest := d.blocks[len(d.blocks)-1]
 	now := time.Now().UTC()
-	readyCount := d.readyValidatorCountLocked()
+	readiness := d.validatorReadinessLocked(now)
+	readyCount := readiness.Ready
 	expectedPeers, observedPeers := d.validatorPeerDiscoveryCountsLocked()
-	syncedPeers, laggingPeers := d.validatorPeerSyncCountsLocked()
-	identity := d.nodeIdentityLocked(now)
+	syncedPeers, laggingPeers := d.validatorPeerSyncCountsLocked(now)
+	identity := d.nodeIdentityWithReadinessLocked(now, readiness)
 	return map[string]any{
 		"network": d.cfg.Name, "slug": d.cfg.Slug, "chainId": d.cfg.ChainID,
 		"nativeCoinName": d.cfg.NativeCoinName, "nativeCurrencySymbol": d.cfg.NativeCurrencySymbol,
 		"decimals": d.cfg.Decimals, "publicNetwork": d.cfg.IsPublicNet,
 		"height": latest.Height, "latestBlockHash": latest.Hash, "latestBlockTime": latest.Time,
 		"validatorCount": len(d.validators), "readyValidatorCount": readyCount, "pendingTxCount": len(d.pending),
-		"validatorPeerReadiness": map[string]any{"ready": readyCount, "total": len(d.validators)},
+		"validatorPeerReadiness": readiness,
 		"validatorPeerDiscovery": map[string]any{"expected": expectedPeers, "observed": observedPeers, "total": len(d.validatorPeers)},
 		"validatorPeerSync":      map[string]any{"synced": syncedPeers, "lagging": laggingPeers, "total": len(d.validatorPeerSyncs)},
 		"nodeIdentity":           identity,
@@ -596,7 +597,8 @@ func normalizeBuildInfo(input BuildInfo) BuildInfo {
 func (d *Devnet) NodeIdentity() NodeIdentity {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
-	return d.nodeIdentityLocked(time.Now().UTC())
+	now := time.Now().UTC()
+	return d.nodeIdentityWithReadinessLocked(now, d.validatorReadinessLocked(now))
 }
 
 func (d *Devnet) ExplorerSummary() ExplorerSummary {
@@ -756,8 +758,29 @@ func (d *Devnet) ValidatorPeers() []ValidatorPeer {
 func (d *Devnet) ValidatorPeerSyncs() []ValidatorPeerSync {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
+	now := time.Now().UTC()
+	readiness := d.validatorReadinessLocked(now)
+	readinessByTarget := make(map[string]ValidatorReadinessRecord, len(readiness.Records))
+	for _, record := range readiness.Records {
+		readinessByTarget[record.Address] = record
+	}
 	syncs := make([]ValidatorPeerSync, 0, len(d.validatorPeerSyncs))
-	for _, sync := range d.validatorPeerSyncs {
+	for key, sync := range d.validatorPeerSyncs {
+		sampledAt := now
+		sync.ReadinessRecordKey = key
+		sync.ReadinessSampledAt = &sampledAt
+		if record, ok := readinessByTarget[sync.Target]; ok {
+			sync.ReadinessStatus = record.Status
+			sync.ReadinessReason = record.Reason
+			sync.ReadinessReady = record.Ready && record.RecordCount == 1 && key == validatorPeerSyncKey(sync.Source, sync.Target)
+			if record.UpdatedAt != nil && !record.UpdatedAt.After(now) {
+				sync.ReadinessFresh = record.AgeSeconds <= readiness.StaleAfterSeconds
+				sync.ReadinessAgeSeconds = record.AgeSeconds
+			}
+		} else {
+			sync.ReadinessStatus = "not_ready"
+			sync.ReadinessReason = "unexpected_sync_target"
+		}
 		syncs = append(syncs, sync)
 	}
 	sort.Slice(syncs, func(i, j int) bool {
@@ -871,7 +894,10 @@ func (d *Devnet) RecordValidatorPeerSync(input ValidatorPeerSyncInput) (Validato
 	}
 	now := time.Now().UTC()
 	key := validatorPeerSyncKey(input.Source, input.Target)
-	lag := int64(input.SourceHeight) - int64(input.TargetHeight)
+	lag, lagOK := validatorPeerSyncLag(input.SourceHeight, input.TargetHeight)
+	if !lagOK {
+		return ValidatorPeerSync{}, errors.New("peer sync height delta exceeds supported range")
+	}
 	status := input.Status
 	if status == "" {
 		if lag <= 1 && lag >= -1 {
@@ -903,6 +929,21 @@ func (d *Devnet) RecordValidatorPeerSync(input ValidatorPeerSyncInput) (Validato
 		LatestHeight: input.TargetHeight,
 		Evidence:     input.Evidence,
 	}, now)
+	for i := range d.validators {
+		if d.validators[i].Address != input.Target {
+			continue
+		}
+		seenAt := now
+		d.validators[i].PeerReady = true
+		d.validators[i].PeerStatus = status
+		if input.TargetHeight > d.validators[i].LatestHeight {
+			d.validators[i].LatestHeight = input.TargetHeight
+		}
+		d.validators[i].LastSeenAt = &seenAt
+		d.validators[i].UpdatedAt = &seenAt
+		d.validators[i].PeerEvidence = input.Evidence
+		break
+	}
 	// Peer polling is high-frequency operational evidence. It is checkpointed
 	// by normal block or replication persistence; rewriting the full append-only
 	// chain snapshot for every peer observation would starve concurrent reads.
@@ -2835,14 +2876,204 @@ func (d *Devnet) markValidatorProducedBlockLocked(address string, height uint64,
 	}
 }
 
-func (d *Devnet) readyValidatorCountLocked() int {
-	count := 0
+const validatorReadyMaxLagBlocks int64 = 1
+
+func effectivePeerSyncStaleAfter(interval, staleAfter time.Duration) time.Duration {
+	if staleAfter <= 0 {
+		staleAfter = interval * 3
+	}
+	if staleAfter < 15*time.Second {
+		staleAfter = 15 * time.Second
+	}
+	return staleAfter
+}
+
+// validatorReadinessLocked evaluates every active validator against one
+// sampled timestamp. A heartbeat alone is not enough when this node has an
+// explicit peer-sync topology: the corresponding sync must be canonical,
+// unique, fresh, non-future, within the accepted lag and bound to the current
+// validator/peer identity. Persisted or injected duplicate/replaced records
+// therefore fail closed instead of inflating readyValidatorCount.
+func (d *Devnet) validatorReadinessLocked(now time.Time) ValidatorReadinessSummary {
+	staleAfter := effectivePeerSyncStaleAfter(d.nodeIdentity.PeerSyncInterval, d.nodeIdentity.StaleAfter)
+	summary := ValidatorReadinessSummary{
+		Status:            "ready",
+		Total:             len(d.validators),
+		StaleAfterSeconds: int64(staleAfter.Seconds()),
+		SampledAt:         now,
+		Records:           make([]ValidatorReadinessRecord, 0, len(d.validators)),
+	}
+	source := strings.TrimSpace(d.nodeIdentity.ValidatorAddress)
+	targets := normalizeNodePeerSyncTargets(d.nodeIdentity.PeerSyncTargets)
+	if source == "" || len(targets) == 0 {
+		for _, validator := range d.validators {
+			record := ValidatorReadinessRecord{Address: validator.Address, Ready: validator.Active && validator.PeerReady, Status: "ready"}
+			if !validator.Active {
+				record.Status, record.Reason = "not_ready", "validator_inactive"
+			} else if !validator.PeerReady {
+				record.Status, record.Reason = "not_ready", "peer_not_ready"
+			}
+			if record.Ready {
+				summary.Ready++
+			} else {
+				summary.NotReady++
+			}
+			summary.Records = append(summary.Records, record)
+		}
+		sort.Slice(summary.Records, func(i, j int) bool { return summary.Records[i].Address < summary.Records[j].Address })
+		if summary.NotReady > 0 {
+			summary.Status = "not_ready"
+		}
+		return summary
+	}
+
+	active := make(map[string]Validator, len(d.validators))
 	for _, validator := range d.validators {
-		if validator.Active && validator.PeerReady {
-			count++
+		if validator.Active {
+			active[validator.Address] = validator
 		}
 	}
-	return count
+	targetSet := make(map[string]struct{}, len(targets))
+	for _, target := range targets {
+		targetSet[target.Address] = struct{}{}
+	}
+	byTarget := make(map[string][]struct {
+		key  string
+		sync ValidatorPeerSync
+	})
+	for key, sync := range d.validatorPeerSyncs {
+		if sync.Source == source {
+			byTarget[sync.Target] = append(byTarget[sync.Target], struct {
+				key  string
+				sync ValidatorPeerSync
+			}{key: key, sync: sync})
+		} else if _, expected := targetSet[sync.Target]; expected {
+			// A record for an expected target from another source is an identity
+			// replacement attempt, not additional readiness evidence.
+			byTarget[sync.Target] = append(byTarget[sync.Target], struct {
+				key  string
+				sync ValidatorPeerSync
+			}{key: key, sync: sync})
+		}
+	}
+
+	targetReady := make(map[string]bool, len(targets))
+	for _, target := range targets {
+		record := ValidatorReadinessRecord{Address: target.Address, Source: source, Target: target.Address, Status: "not_ready"}
+		validator, validatorOK := active[target.Address]
+		candidates := byTarget[target.Address]
+		record.RecordCount = len(candidates)
+		switch {
+		case !validatorOK:
+			record.Reason = "target_validator_missing_or_inactive"
+		case !validator.PeerReady:
+			record.Reason = "peer_not_ready"
+		case len(candidates) == 0:
+			record.Reason = "missing_peer_sync"
+		case len(candidates) != 1:
+			record.Reason = "duplicate_peer_sync"
+		default:
+			candidate := candidates[0]
+			sync := candidate.sync
+			record.SyncID = sync.ID
+			record.LagBlocks = sync.LagBlocks
+			updatedAt := sync.UpdatedAt
+			record.UpdatedAt = &updatedAt
+			if !updatedAt.After(now) {
+				record.AgeSeconds = int64(now.Sub(updatedAt).Seconds())
+			}
+			peer, peerOK := d.validatorPeers[target.Address]
+			expectedID := hashParts("validator-peer-sync", source, target.Address)
+			computedLag, lagOK := validatorPeerSyncLag(sync.SourceHeight, sync.TargetHeight)
+			switch {
+			case candidate.key != validatorPeerSyncKey(source, target.Address):
+				record.Reason = "replaced_peer_sync_key"
+			case sync.ID != expectedID:
+				record.Reason = "replaced_peer_sync_id"
+			case sync.Source != source || sync.Target != target.Address:
+				record.Reason = "replaced_peer_sync_identity"
+			case !peerOK || !peer.Expected || !peer.Observed || strings.TrimSpace(peer.PeerID) == "" || peer.PeerID != validator.PeerID:
+				record.Reason = "replaced_peer_identity"
+			case updatedAt.IsZero():
+				record.Reason = "missing_peer_sync_timestamp"
+			case updatedAt.After(now):
+				record.Reason = "future_peer_sync"
+			case now.Sub(updatedAt) > staleAfter:
+				record.Reason = "stale_peer_sync"
+			case !lagOK || computedLag != sync.LagBlocks:
+				record.Reason = "invalid_peer_sync_lag"
+			case sync.LagBlocks < -validatorReadyMaxLagBlocks || sync.LagBlocks > validatorReadyMaxLagBlocks:
+				record.Reason = "peer_sync_lag_exceeded"
+			case sync.Status != "synced":
+				record.Reason = "peer_sync_not_synced"
+			case strings.TrimSpace(sync.Evidence) == "":
+				record.Reason = "missing_peer_sync_evidence"
+			default:
+				record.Ready = true
+				record.Status = "ready"
+				targetReady[target.Address] = true
+			}
+		}
+		summary.Records = append(summary.Records, record)
+	}
+
+	// A configured local validator is only ready when it is itself live and
+	// every configured target has valid evidence from this same sample.
+	if local, ok := active[source]; ok {
+		record := ValidatorReadinessRecord{Address: source, Source: source, Status: "not_ready", Ready: local.PeerReady}
+		if !local.PeerReady {
+			record.Reason = "peer_not_ready"
+		} else {
+			for _, target := range targets {
+				if !targetReady[target.Address] {
+					record.Ready = false
+					record.Reason = "peer_sync_topology_not_ready"
+					break
+				}
+			}
+		}
+		if record.Ready {
+			record.Status = "ready"
+		}
+		summary.Records = append(summary.Records, record)
+	}
+	for _, validator := range d.validators {
+		if validator.Address == source {
+			continue
+		}
+		if _, expected := targetSet[validator.Address]; expected {
+			continue
+		}
+		summary.Records = append(summary.Records, ValidatorReadinessRecord{Address: validator.Address, Status: "not_ready", Reason: "missing_peer_sync_target"})
+	}
+	for _, record := range summary.Records {
+		if record.Ready {
+			summary.Ready++
+		} else {
+			summary.NotReady++
+		}
+	}
+	summary.Total = len(summary.Records)
+	if summary.NotReady > 0 {
+		summary.Status = "not_ready"
+	}
+	sort.Slice(summary.Records, func(i, j int) bool { return summary.Records[i].Address < summary.Records[j].Address })
+	return summary
+}
+
+func validatorPeerSyncLag(sourceHeight, targetHeight uint64) (int64, bool) {
+	if sourceHeight >= targetHeight {
+		delta := sourceHeight - targetHeight
+		if delta > uint64(math.MaxInt64) {
+			return 0, false
+		}
+		return int64(delta), true
+	}
+	delta := targetHeight - sourceHeight
+	if delta > uint64(math.MaxInt64) {
+		return 0, false
+	}
+	return -int64(delta), true
 }
 
 func (d *Devnet) validatorPeerDiscoveryCountsLocked() (int, int) {
@@ -2858,10 +3089,15 @@ func (d *Devnet) validatorPeerDiscoveryCountsLocked() (int, int) {
 	return expected, observed
 }
 
-func (d *Devnet) validatorPeerSyncCountsLocked() (int, int) {
+func (d *Devnet) validatorPeerSyncCountsLocked(now time.Time) (int, int) {
 	synced, lagging := 0, 0
+	readiness := d.validatorReadinessLocked(now)
+	readyByTarget := make(map[string]bool, len(readiness.Records))
+	for _, record := range readiness.Records {
+		readyByTarget[record.Address] = record.Ready
+	}
 	for _, sync := range d.validatorPeerSyncs {
-		if sync.Status == "synced" {
+		if sync.Status == "synced" && readyByTarget[sync.Target] {
 			synced++
 		} else {
 			lagging++
@@ -2871,6 +3107,10 @@ func (d *Devnet) validatorPeerSyncCountsLocked() (int, int) {
 }
 
 func (d *Devnet) nodeIdentityLocked(now time.Time) NodeIdentity {
+	return d.nodeIdentityWithReadinessLocked(now, d.validatorReadinessLocked(now))
+}
+
+func (d *Devnet) nodeIdentityWithReadinessLocked(now time.Time, readiness ValidatorReadinessSummary) NodeIdentity {
 	cfg := d.nodeIdentity
 	targets := normalizeNodePeerSyncTargets(cfg.PeerSyncTargets)
 	targetAddresses := make([]string, 0, len(targets))
@@ -2900,17 +3140,13 @@ func (d *Devnet) nodeIdentityLocked(now time.Time) NodeIdentity {
 		identity.ValidatorPeerID = validator.PeerID
 	}
 	identity.PeerSyncFreshness = d.validatorPeerSyncFreshnessLocked(cfg.ValidatorAddress, targets, cfg.PeerSyncInterval, cfg.StaleAfter, now)
+	identity.ValidatorReadiness = readiness
 	identity.Replication = d.replicationRuntimeStatusLocked(now, cfg.PeerSyncInterval, cfg.StaleAfter)
 	return identity
 }
 
 func (d *Devnet) validatorPeerSyncFreshnessLocked(source string, targets []ValidatorPeerSyncTarget, interval, staleAfter time.Duration, now time.Time) ValidatorPeerSyncFreshness {
-	if staleAfter <= 0 {
-		staleAfter = interval * 3
-	}
-	if staleAfter < 15*time.Second {
-		staleAfter = 15 * time.Second
-	}
+	staleAfter = effectivePeerSyncStaleAfter(interval, staleAfter)
 	freshness := ValidatorPeerSyncFreshness{
 		Status:            "no_local_validator_configured",
 		TargetCount:       len(targets),
@@ -2926,6 +3162,11 @@ func (d *Devnet) validatorPeerSyncFreshnessLocked(source string, targets []Valid
 		freshness.Status = "no_peer_sync_targets"
 		return freshness
 	}
+	readiness := d.validatorReadinessLocked(now)
+	readinessByTarget := make(map[string]ValidatorReadinessRecord, len(readiness.Records))
+	for _, record := range readiness.Records {
+		readinessByTarget[record.Address] = record
+	}
 	freshness.Status = "synced"
 	for _, target := range targets {
 		entry := ValidatorPeerSyncFreshnessEntry{Target: target.Address, Status: "missing"}
@@ -2936,24 +3177,31 @@ func (d *Devnet) validatorPeerSyncFreshnessLocked(source string, targets []Valid
 			continue
 		}
 		age := now.Sub(sync.UpdatedAt)
-		if age < 0 {
-			age = 0
-		}
 		updatedAt := sync.UpdatedAt
 		entry.Status = sync.Status
 		entry.LagBlocks = sync.LagBlocks
 		entry.UpdatedAt = &updatedAt
-		entry.AgeSeconds = int64(age.Seconds())
-		entry.Fresh = age <= staleAfter
 		entry.Evidence = sync.Evidence
-		if entry.Fresh {
-			freshness.Fresh++
+		record := readinessByTarget[target.Address]
+		entry.Ready = record.Ready
+		entry.Reason = record.Reason
+		if age < 0 {
+			entry.Status = "future"
+			entry.Reason = "future_peer_sync"
+			freshness.Future++
 		} else {
-			freshness.Stale++
+			entry.AgeSeconds = int64(age.Seconds())
+			entry.Fresh = age <= staleAfter && record.Ready
 		}
-		if sync.Status == "synced" {
+		if entry.Fresh && entry.Ready {
+			freshness.Fresh++
 			freshness.Synced++
+		} else if age >= 0 && age > staleAfter {
+			freshness.Stale++
 		} else {
+			freshness.Invalid++
+		}
+		if !entry.Ready && sync.Status != "synced" {
 			freshness.Lagging++
 		}
 		freshness.Records = append(freshness.Records, entry)
@@ -2961,10 +3209,12 @@ func (d *Devnet) validatorPeerSyncFreshnessLocked(source string, targets []Valid
 	sort.Slice(freshness.Records, func(i, j int) bool { return freshness.Records[i].Target < freshness.Records[j].Target })
 	if freshness.Missing > 0 {
 		freshness.Status = "missing_peer_sync"
+	} else if freshness.Future > 0 {
+		freshness.Status = "future_peer_sync"
 	} else if freshness.Stale > 0 {
 		freshness.Status = "stale_peer_sync"
-	} else if freshness.Lagging > 0 {
-		freshness.Status = "fresh_with_lag"
+	} else if freshness.Invalid > 0 {
+		freshness.Status = "invalid_peer_sync"
 	}
 	return freshness
 }

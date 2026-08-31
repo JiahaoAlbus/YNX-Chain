@@ -253,6 +253,16 @@ type ValidatorPeerSync struct {
 	Evidence     string    `json:"evidence,omitempty"`
 	CreatedAt    time.Time `json:"createdAt"`
 	UpdatedAt    time.Time `json:"updatedAt"`
+	// Readiness fields are derived when the record is read. They are never
+	// authoritative persisted input: callers can use them to prove that every
+	// record in one response was evaluated at the same sampled time.
+	ReadinessRecordKey  string     `json:"readinessRecordKey,omitempty"`
+	ReadinessStatus     string     `json:"readinessStatus,omitempty"`
+	ReadinessReason     string     `json:"readinessReason,omitempty"`
+	ReadinessReady      bool       `json:"readinessReady"`
+	ReadinessFresh      bool       `json:"readinessFresh"`
+	ReadinessAgeSeconds int64      `json:"readinessAgeSeconds,omitempty"`
+	ReadinessSampledAt  *time.Time `json:"readinessSampledAt,omitempty"`
 }
 
 type ValidatorPeerSyncInput struct {
@@ -303,7 +313,32 @@ type NodeIdentity struct {
 	RuntimeEvidence         string                     `json:"runtimeEvidence"`
 	Build                   BuildInfo                  `json:"build"`
 	PeerSyncFreshness       ValidatorPeerSyncFreshness `json:"peerSyncFreshness"`
+	ValidatorReadiness      ValidatorReadinessSummary  `json:"validatorReadiness"`
 	Replication             ReplicationRuntimeStatus   `json:"replication"`
+}
+
+type ValidatorReadinessSummary struct {
+	Status            string                     `json:"status"`
+	Ready             int                        `json:"ready"`
+	NotReady          int                        `json:"notReady"`
+	Total             int                        `json:"total"`
+	StaleAfterSeconds int64                      `json:"staleAfterSeconds"`
+	SampledAt         time.Time                  `json:"sampledAt"`
+	Records           []ValidatorReadinessRecord `json:"records"`
+}
+
+type ValidatorReadinessRecord struct {
+	Address     string     `json:"address"`
+	Ready       bool       `json:"ready"`
+	Status      string     `json:"status"`
+	Reason      string     `json:"reason,omitempty"`
+	Source      string     `json:"source,omitempty"`
+	Target      string     `json:"target,omitempty"`
+	SyncID      string     `json:"syncId,omitempty"`
+	LagBlocks   int64      `json:"lagBlocks,omitempty"`
+	UpdatedAt   *time.Time `json:"updatedAt,omitempty"`
+	AgeSeconds  int64      `json:"ageSeconds,omitempty"`
+	RecordCount int        `json:"recordCount,omitempty"`
 }
 
 type ReplicationRuntimeStatus struct {
@@ -335,6 +370,8 @@ type ValidatorPeerSyncFreshness struct {
 	Lagging           int                               `json:"lagging"`
 	Missing           int                               `json:"missing"`
 	Stale             int                               `json:"stale"`
+	Future            int                               `json:"future"`
+	Invalid           int                               `json:"invalid"`
 	Fresh             int                               `json:"fresh"`
 	TotalRecords      int                               `json:"totalRecords"`
 	StaleAfterSeconds int64                             `json:"staleAfterSeconds"`
@@ -349,6 +386,8 @@ type ValidatorPeerSyncFreshnessEntry struct {
 	UpdatedAt  *time.Time `json:"updatedAt,omitempty"`
 	AgeSeconds int64      `json:"ageSeconds,omitempty"`
 	Fresh      bool       `json:"fresh"`
+	Ready      bool       `json:"ready"`
+	Reason     string     `json:"reason,omitempty"`
 	Evidence   string     `json:"evidence,omitempty"`
 }
 

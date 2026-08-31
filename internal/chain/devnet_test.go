@@ -114,7 +114,7 @@ func TestValidatorPeerReadinessPersistence(t *testing.T) {
 	if got == nil {
 		t.Fatalf("restored validator not found")
 	}
-	if got.Moniker != "singapore-updated" || !got.PeerReady || got.PeerStatus != "reachable" || got.LatestHeight != 7 || got.PeerEvidence != "local-heartbeat-unit-test" {
+	if got.Moniker != "singapore-updated" || !got.PeerReady || got.PeerStatus != "synced" || got.LatestHeight != 7 || got.PeerEvidence != "local-sync-unit-test" {
 		t.Fatalf("expected config reload to preserve peer runtime state, got %+v", got)
 	}
 	restoredPeer := peerByAddress(restored.ValidatorPeers(), "ynx_val_sg")
@@ -169,7 +169,7 @@ func TestNodeIdentityAndPeerSyncFreshness(t *testing.T) {
 		t.Fatalf("unexpected node identity: %+v", identity)
 	}
 	if identity.PeerSyncFreshness.Status != "missing_peer_sync" || identity.PeerSyncFreshness.Synced != 1 || identity.PeerSyncFreshness.Missing != 1 || identity.PeerSyncFreshness.Fresh != 1 {
-		t.Fatalf("expected one fresh sync and one missing sync, got %+v", identity.PeerSyncFreshness)
+		t.Fatalf("expected one ready sync and one missing sync, got %+v", identity.PeerSyncFreshness)
 	}
 	if identity.Build.Commit != "abc123" || identity.Build.Release != "ynx-chain-abc123" || identity.Build.BuildTime != "2026-07-10T00:00:00Z" {
 		t.Fatalf("unexpected build identity: %+v", identity.Build)
@@ -220,6 +220,132 @@ func TestNodeIdentityPeerSyncFreshnessStaleRecord(t *testing.T) {
 	identity := devnet.NodeIdentity()
 	if identity.PeerSyncFreshness.Status != "stale_peer_sync" || identity.PeerSyncFreshness.Stale != 1 || identity.PeerSyncFreshness.Lagging != 1 {
 		t.Fatalf("expected stale lagging peer sync, got %+v", identity.PeerSyncFreshness)
+	}
+}
+
+func TestValidatorReadinessFailsClosedForInvalidPeerSyncEvidence(t *testing.T) {
+	newReadyDevnet := func(t *testing.T) *Devnet {
+		t.Helper()
+		validators, err := ParseValidatorSet("ynx_val_primary|primary|127.0.0.1|primary validator|peer-primary;ynx_val_sg|singapore|127.0.0.2|bonded validator|peer-sg")
+		if err != nil {
+			t.Fatal(err)
+		}
+		peers, err := ParseValidatorPeers("ynx_val_primary|peer-primary|127.0.0.1|127.0.0.1:26656|primary validator;ynx_val_sg|peer-sg|127.0.0.2|127.0.0.2:26656|bonded validator")
+		if err != nil {
+			t.Fatal(err)
+		}
+		devnet := NewDevnetWithValidatorsAndPeers(DefaultNetworkConfig("testnet"), validators, peers)
+		devnet.SetNodeIdentityConfig(NodeIdentityConfig{
+			ValidatorAddress: "ynx_val_primary",
+			PeerSyncTargets:  []ValidatorPeerSyncTarget{{Address: "ynx_val_sg", URL: "http://127.0.0.1:6421"}},
+			PeerSyncInterval: time.Second,
+			StaleAfter:       30 * time.Second,
+		})
+		ready := true
+		for _, address := range []string{"ynx_val_primary", "ynx_val_sg"} {
+			if _, err := devnet.UpdateValidatorPeerState(ValidatorPeerHeartbeatInput{Address: address, Ready: &ready, Status: "reachable", LatestHeight: 10, Evidence: "readiness-test-heartbeat"}); err != nil {
+				t.Fatal(err)
+			}
+		}
+		if _, err := devnet.RecordValidatorPeerSync(ValidatorPeerSyncInput{Source: "ynx_val_primary", Target: "ynx_val_sg", SourceHeight: 10, TargetHeight: 10, Evidence: "readiness-test-sync"}); err != nil {
+			t.Fatal(err)
+		}
+		return devnet
+	}
+
+	assertReadiness := func(t *testing.T, devnet *Devnet, wantReady int, targetReason string) {
+		t.Helper()
+		status := devnet.Status()
+		if got := status["readyValidatorCount"].(int); got != wantReady {
+			t.Fatalf("readyValidatorCount=%d, want %d: %+v", got, wantReady, status["validatorPeerReadiness"])
+		}
+		summary := status["validatorPeerReadiness"].(ValidatorReadinessSummary)
+		identity := status["nodeIdentity"].(NodeIdentity)
+		if !summary.SampledAt.Equal(identity.ValidatorReadiness.SampledAt) || !summary.SampledAt.Equal(identity.PeerSyncFreshness.GeneratedAt) {
+			t.Fatalf("status surfaces were not evaluated at one sampled time: summary=%s identity=%s freshness=%s", summary.SampledAt, identity.ValidatorReadiness.SampledAt, identity.PeerSyncFreshness.GeneratedAt)
+		}
+		for _, record := range summary.Records {
+			if record.Address == "ynx_val_sg" {
+				if record.Reason != targetReason {
+					t.Fatalf("target readiness reason=%q, want %q: %+v", record.Reason, targetReason, summary)
+				}
+				if targetReason != "" {
+					wantFreshnessStatus := "invalid_peer_sync"
+					switch targetReason {
+					case "missing_peer_sync":
+						wantFreshnessStatus = "missing_peer_sync"
+					case "stale_peer_sync":
+						wantFreshnessStatus = "stale_peer_sync"
+					case "future_peer_sync":
+						wantFreshnessStatus = "future_peer_sync"
+					}
+					if identity.PeerSyncFreshness.Status != wantFreshnessStatus || identity.PeerSyncFreshness.Fresh != 0 {
+						t.Fatalf("freshness disagrees with readiness: reason=%s freshness=%+v", targetReason, identity.PeerSyncFreshness)
+					}
+				}
+				return
+			}
+		}
+		t.Fatalf("target readiness record missing: %+v", summary)
+	}
+
+	valid := newReadyDevnet(t)
+	assertReadiness(t, valid, 2, "")
+	syncs := valid.ValidatorPeerSyncs()
+	if len(syncs) != 1 || !syncs[0].ReadinessReady || !syncs[0].ReadinessFresh || syncs[0].ReadinessSampledAt == nil || syncs[0].ReadinessReason != "" {
+		t.Fatalf("valid peer sync lacks coherent readiness annotation: %+v", syncs)
+	}
+
+	tests := []struct {
+		name   string
+		reason string
+		mutate func(*Devnet)
+	}{
+		{name: "missing", reason: "missing_peer_sync", mutate: func(d *Devnet) {
+			delete(d.validatorPeerSyncs, validatorPeerSyncKey("ynx_val_primary", "ynx_val_sg"))
+		}},
+		{name: "stale", reason: "stale_peer_sync", mutate: func(d *Devnet) {
+			key := validatorPeerSyncKey("ynx_val_primary", "ynx_val_sg")
+			sync := d.validatorPeerSyncs[key]
+			sync.UpdatedAt = time.Now().UTC().Add(-time.Minute)
+			d.validatorPeerSyncs[key] = sync
+		}},
+		{name: "future", reason: "future_peer_sync", mutate: func(d *Devnet) {
+			key := validatorPeerSyncKey("ynx_val_primary", "ynx_val_sg")
+			sync := d.validatorPeerSyncs[key]
+			sync.UpdatedAt = time.Now().UTC().Add(time.Minute)
+			d.validatorPeerSyncs[key] = sync
+		}},
+		{name: "lag_excess", reason: "peer_sync_lag_exceeded", mutate: func(d *Devnet) {
+			key := validatorPeerSyncKey("ynx_val_primary", "ynx_val_sg")
+			sync := d.validatorPeerSyncs[key]
+			sync.SourceHeight, sync.TargetHeight, sync.LagBlocks, sync.Status = 20, 10, 10, "synced"
+			d.validatorPeerSyncs[key] = sync
+		}},
+		{name: "duplicate", reason: "duplicate_peer_sync", mutate: func(d *Devnet) {
+			sync := d.validatorPeerSyncs[validatorPeerSyncKey("ynx_val_primary", "ynx_val_sg")]
+			d.validatorPeerSyncs["duplicate-record"] = sync
+		}},
+		{name: "replaced_record", reason: "replaced_peer_sync_id", mutate: func(d *Devnet) {
+			key := validatorPeerSyncKey("ynx_val_primary", "ynx_val_sg")
+			sync := d.validatorPeerSyncs[key]
+			sync.ID = hashParts("validator-peer-sync", "ynx_val_attacker", "ynx_val_sg")
+			d.validatorPeerSyncs[key] = sync
+		}},
+		{name: "replaced_peer_identity", reason: "replaced_peer_identity", mutate: func(d *Devnet) {
+			peer := d.validatorPeers["ynx_val_sg"]
+			peer.PeerID = "peer-sg-replaced"
+			d.validatorPeers["ynx_val_sg"] = peer
+		}},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			devnet := newReadyDevnet(t)
+			devnet.mu.Lock()
+			tc.mutate(devnet)
+			devnet.mu.Unlock()
+			assertReadiness(t, devnet, 0, tc.reason)
+		})
 	}
 }
 

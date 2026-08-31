@@ -328,8 +328,8 @@ func TestValidatorPeerReadinessAPI(t *testing.T) {
 
 	var status map[string]any
 	doJSON(t, http.MethodGet, server.URL+"/status", nil, http.StatusOK, &status)
-	if status["readyValidatorCount"].(float64) != 1 {
-		t.Fatalf("expected ready validator count 1: %v", status)
+	if status["readyValidatorCount"].(float64) != 0 {
+		t.Fatalf("heartbeat without peer-sync evidence must fail closed: %v", status)
 	}
 	discovery := status["validatorPeerDiscovery"].(map[string]any)
 	if discovery["expected"].(float64) != 2 || discovery["observed"].(float64) != 1 {
@@ -385,19 +385,28 @@ func TestValidatorPeerReadinessAPI(t *testing.T) {
 	if len(syncValues) != 1 || syncValues[0].(map[string]any)["target"] != "ynx_val_sg" {
 		t.Fatalf("expected readable peer sync records: %v", syncsOut)
 	}
+	peerSync := syncValues[0].(map[string]any)
+	if peerSync["readinessReady"] != false || peerSync["readinessStatus"] != "not_ready" || peerSync["readinessReason"] != "peer_sync_lag_exceeded" || peerSync["readinessSampledAt"] == nil {
+		t.Fatalf("lag-excess peer sync must be sampled and fail closed: %v", syncsOut)
+	}
 	var identity map[string]any
 	doJSON(t, http.MethodGet, server.URL+"/node/identity", nil, http.StatusOK, &identity)
 	if identity["validatorAddress"] != "ynx_val_primary" || identity["validatorRole"] != "primary validator" || identity["expectedValidatorCount"].(float64) != 2 || identity["peerSyncTargetCount"].(float64) != 1 {
 		t.Fatalf("unexpected node identity: %v", identity)
 	}
 	freshness := identity["peerSyncFreshness"].(map[string]any)
-	if freshness["status"] != "fresh_with_lag" || freshness["lagging"].(float64) != 1 || freshness["fresh"].(float64) != 1 {
+	if freshness["status"] != "invalid_peer_sync" || freshness["lagging"].(float64) != 1 || freshness["invalid"].(float64) != 1 || freshness["fresh"].(float64) != 0 {
 		t.Fatalf("unexpected peer sync freshness: %v", freshness)
 	}
 	doJSON(t, http.MethodGet, server.URL+"/status", nil, http.StatusOK, &status)
 	statusIdentity := status["nodeIdentity"].(map[string]any)
-	if statusIdentity["validatorAddress"] != "ynx_val_primary" || statusIdentity["peerSyncFreshness"].(map[string]any)["status"] != "fresh_with_lag" {
+	if statusIdentity["validatorAddress"] != "ynx_val_primary" || statusIdentity["peerSyncFreshness"].(map[string]any)["status"] != "invalid_peer_sync" {
 		t.Fatalf("status missing node identity freshness: %v", status)
+	}
+	statusReadiness := status["validatorPeerReadiness"].(map[string]any)
+	identityReadiness := statusIdentity["validatorReadiness"].(map[string]any)
+	if statusReadiness["sampledAt"] != identityReadiness["sampledAt"] || statusReadiness["ready"].(float64) != status["readyValidatorCount"].(float64) {
+		t.Fatalf("status and embedded node identity must use one readiness sample: %v", status)
 	}
 	var bad map[string]any
 	doJSON(t, http.MethodPost, server.URL+"/validators/ynx_missing/heartbeat", map[string]any{"ready": true}, http.StatusBadRequest, &bad)
