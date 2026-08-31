@@ -6,10 +6,20 @@ import tls from "node:tls";
 import { execFileSync, spawnSync } from "node:child_process";
 import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
-import { createRemoteSmokeDispatcher, parseRemoteSmokeTransport, remoteSocketTarget } from "./lib/remote-smoke-transport.mjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
 const chainInspectionMode = process.argv[2] || "";
+const chainInspectionOnly = new Set([
+  "--print-chain-four-node-readonly-plan",
+  "--self-test-chain-four-node-readonly-inspection",
+  "--chain-four-node-readonly-inspection",
+]).has(chainInspectionMode);
+let createRemoteSmokeDispatcher;
+let parseRemoteSmokeTransport;
+let remoteSocketTarget;
+if (!chainInspectionOnly) {
+  ({ createRemoteSmokeDispatcher, parseRemoteSmokeTransport, remoteSocketTarget } = await import("./lib/remote-smoke-transport.mjs"));
+}
 const chainInspectionAck = "P0-CHAIN-FOUR-NODE-ZERO-WRITE-INSPECTION-20260831:EXECUTE";
 const chainInspectionTargets = Object.freeze([
   Object.freeze({ role: "primary", host: "43.153.202.237", user: "ubuntu", identityEnv: "PRIMARY_NODE_SSH_KEY" }),
@@ -231,8 +241,8 @@ const timeoutMs = Number(process.env.YNX_REMOTE_TIMEOUT_MS || 12000);
 const aiStreamTimeoutMs = Number(process.env.YNX_REMOTE_AI_STREAM_TIMEOUT_MS || Math.max(timeoutMs, 45000));
 const explorerIndexAttempts = Number(process.env.YNX_REMOTE_EXPLORER_INDEX_ATTEMPTS || 30);
 const growthDelayMs = Number(process.env.YNX_REMOTE_BLOCK_GROWTH_DELAY_MS || 2500);
-const remoteTransport = parseRemoteSmokeTransport();
-const remoteDispatcher = createRemoteSmokeDispatcher(remoteTransport, timeoutMs);
+const remoteTransport = chainInspectionOnly ? null : parseRemoteSmokeTransport();
+const remoteDispatcher = chainInspectionOnly ? null : createRemoteSmokeDispatcher(remoteTransport, timeoutMs);
 const currentGitCommit = readGitCommit();
 const defaultShortCommit = currentGitCommit === "unknown" ? "unknown" : currentGitCommit.slice(0, 12);
 const expectedReleaseCommit = process.env.YNX_EXPECTED_RELEASE_COMMIT || defaultShortCommit;
