@@ -180,10 +180,14 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 		"/^\\/tx\\/(0[xX][0-9a-fA-F]{64})$/",
 		"/api/accounts?limit=10",
 		"fundsFlow",
+		"Observed Indexer-participant sample ranked by current RPC balance; not a full-ledger census.",
 	} {
 		if !strings.Contains(html, marker) {
 			t.Fatalf("explorer web is missing live interaction marker %q", marker)
 		}
+	}
+	if strings.Contains(html, "Authoritative public-ledger ranking") {
+		t.Fatal("Explorer initial leaderboard markup must not claim a full-ledger ranking when it only reports observed Indexer participants")
 	}
 	deepLinkResponse, err := http.Get(server.URL + "/tx/" + tx.Hash)
 	if err != nil {

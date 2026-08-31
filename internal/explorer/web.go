@@ -353,7 +353,7 @@ const indexHTML = `<!doctype html>
       </section>
 
       <section class="section" id="accounts">
-        <div class="section-head"><div><h2 data-i18n="accountLeaderboard">YNXT account leaderboard</h2><p data-i18n="accountLeaderboardCopy">Authoritative public-ledger ranking by current liquid YNXT balance</p></div><span class="muted" id="accountTotal">Loading accounts…</span></div>
+        <div class="section-head"><div><h2 data-i18n="accountLeaderboard">YNXT account leaderboard</h2><p data-i18n="accountLeaderboardCopy">Observed Indexer-participant sample ranked by current RPC balance; not a full-ledger census.</p></div><span class="muted" id="accountTotal">Loading observed accounts…</span></div>
         <div class="table-shell"><table class="accounts-table"><thead><tr><th style="width:9%" data-i18n="rank">Rank</th><th style="width:43%" data-i18n="account">Account</th><th style="width:18%" data-i18n="balance">Balance</th><th style="width:16%" data-i18n="staked">Staked</th><th style="width:14%" data-i18n="nonce">Nonce</th></tr></thead><tbody id="accountsBody"><tr><td colspan="5" class="empty" data-i18n="loadingAccounts">Loading authoritative account balances...</td></tr></tbody></table></div>
       </section>
 
