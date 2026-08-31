@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
+import vm from 'node:vm';
 
 const base=new URL('../',import.meta.url);
 const html=await readFile(new URL('web/index.html',base),'utf8');
@@ -8,6 +9,7 @@ const js=await readFile(new URL('web/app.js',base),'utf8');
 const css=await readFile(new URL('web/styles.css',base),'utf8');
 const wallet=await readFile(new URL('mobile/src/wallet.ts',base),'utf8');
 const webWallet=await readFile(new URL('web/wallet-auth-entry.js',base),'utf8');
+const webWalletDistribution=await readFile(new URL('web/wallet-auth.js',base),'utf8');
 
 test('product states its non-bank and non-custodial boundary',()=>{
   for(const phrase of ['No custody','bank account','No fiat conversion inferred','Finance cannot freeze assets']) assert.ok(html.includes(phrase),phrase);
@@ -33,7 +35,24 @@ test('wallet uses the accepted standard SDK while private service routes degrade
 test('web wallet chooser links to the centrally managed downloads page and standard connection',()=>{
   for(const marker of ['Download YNX Wallet','Connect compatible wallet','Wallet version details','id="connect-metamask"']) assert.ok(html.includes(marker),marker);
   for(const marker of ['0x1917','evmRpc','StandardWalletConnection','WALLET_NOT_FOUND']) assert.ok(webWallet.includes(marker),marker);
+  const distribution=html.indexOf('src="/wallet-auth.js"');
+  const entry=html.indexOf('src="/wallet-auth-entry.js"');
+  const application=html.indexOf('src="/app.js"');
+  assert.ok(distribution>=0,'the accepted browser SDK distribution must load');
+  assert.ok(entry>distribution,'Finance wallet entry must load after its SDK distribution');
+  assert.ok(application>entry,'Finance application must load after window.YNXFinanceWallet is defined');
   assert.equal(html.includes('test-signed.apk'),false);
+});
+test('web SDK distribution and Finance entry define the fail-closed wallet bridge before application code',async()=>{
+  const window={};
+  const context=vm.createContext({window,document:{querySelector:()=>null},Promise,Error,Object,Date,CustomEvent:class CustomEvent{}});
+  vm.runInContext(webWalletDistribution,context,{filename:'wallet-auth.js'});
+  vm.runInContext(webWallet,context,{filename:'wallet-auth-entry.js'});
+  await window.YNXFinanceWallet.ready;
+  assert.equal(typeof window.YNXFinanceWallet.connect,'function');
+  assert.equal(typeof window.YNXFinanceWallet.disconnect,'function');
+  assert.equal(window.YNXFinanceWallet.connected(),false);
+  assert.throws(()=>window.YNXFinanceWallet.requireProof(),/PRODUCT_SESSION_UNAVAILABLE/);
 });
 test('public and private read reconnect are bounded and mutations are never automatically replayed',()=>{
   for(const marker of ['id="network-retry"','Reconnect YNX Chain']) assert.ok(html.includes(marker),marker);
