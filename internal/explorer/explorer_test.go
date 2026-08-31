@@ -181,6 +181,18 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 		"/api/accounts?limit=10",
 		"fundsFlow",
 		"Observed Indexer-participant sample ranked by current RPC balance; not a full-ledger census.",
+		"const observedLeaderboardText",
+		"this is not a full-ledger census.",
+		"这不是全账本普查。",
+		"全台帳の調査ではありません。",
+		"전체 원장 조사가 아닙니다.",
+		"no es un censo de todo el libro mayor.",
+		"ce n’est pas un recensement complet du registre.",
+		"dies ist keine vollständige Ledger-Erhebung.",
+		"não é um censo do livro completo.",
+		"это не полная перепись реестра.",
+		"وليست تعدادًا كاملاً لدفتر الحسابات.",
+		"ini bukan sensus seluruh ledger.",
 	} {
 		if !strings.Contains(html, marker) {
 			t.Fatalf("explorer web is missing live interaction marker %q", marker)

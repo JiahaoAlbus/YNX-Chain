@@ -354,7 +354,7 @@ const indexHTML = `<!doctype html>
 
       <section class="section" id="accounts">
         <div class="section-head"><div><h2 data-i18n="accountLeaderboard">YNXT account leaderboard</h2><p data-i18n="accountLeaderboardCopy">Observed Indexer-participant sample ranked by current RPC balance; not a full-ledger census.</p></div><span class="muted" id="accountTotal">Loading observed accounts…</span></div>
-        <div class="table-shell"><table class="accounts-table"><thead><tr><th style="width:9%" data-i18n="rank">Rank</th><th style="width:43%" data-i18n="account">Account</th><th style="width:18%" data-i18n="balance">Balance</th><th style="width:16%" data-i18n="staked">Staked</th><th style="width:14%" data-i18n="nonce">Nonce</th></tr></thead><tbody id="accountsBody"><tr><td colspan="5" class="empty" data-i18n="loadingAccounts">Loading authoritative account balances...</td></tr></tbody></table></div>
+        <div class="table-shell"><table class="accounts-table"><thead><tr><th style="width:9%" data-i18n="rank">Rank</th><th style="width:43%" data-i18n="account">Account</th><th style="width:18%" data-i18n="balance">Balance</th><th style="width:16%" data-i18n="staked">Staked</th><th style="width:14%" data-i18n="nonce">Nonce</th></tr></thead><tbody id="accountsBody"><tr><td colspan="5" class="empty" data-i18n="loadingAccounts">Loading observed participant balances...</td></tr></tbody></table></div>
       </section>
 
       <section class="wallet-band">
@@ -427,6 +427,26 @@ const indexHTML = `<!doctype html>
 	Object.entries(supplementalValues).forEach(([locale,values]) => {
 	  if (values.length !== supplementalKeys.length) throw new Error('Incomplete Explorer locale: ' + locale);
 	  supplementalKeys.forEach((key,index) => { messages[locale][key] = values[index]; });
+	});
+	// The Indexer retains observed transaction participants, not a complete
+	// ledger census. Keep this boundary explicit after every locale switch.
+	const observedLeaderboardText = {
+	  en:{copy:'Shows a clearly labeled Indexer-participant sample ranked by current RPC balance; this is not a full-ledger census.',loading:'Loading observed participant balances...'},
+	  'zh-CN':{copy:'显示按当前 RPC 余额排序、且明确标注的索引器参与者样本；这不是全账本普查。',loading:'正在加载已观测参与者余额…'},
+	  'zh-TW':{copy:'顯示依目前 RPC 餘額排序且明確標示的索引器參與者樣本；這不是完整帳本普查。',loading:'正在載入已觀測參與者餘額…'},
+	  ja:{copy:'現在の RPC 残高で順位付けした、明示されたインデクサー参加者サンプルを表示します。全台帳の調査ではありません。',loading:'観測済み参加者の残高を読み込み中…'},
+	  ko:{copy:'현재 RPC 잔액으로 순위를 매긴, 명확히 표시된 인덱서 참여자 표본을 보여 줍니다. 전체 원장 조사가 아닙니다.',loading:'관측된 참여자 잔액을 불러오는 중…'},
+	  es:{copy:'Muestra una muestra claramente etiquetada de participantes del indexador, ordenada por el saldo RPC actual; no es un censo de todo el libro mayor.',loading:'Cargando saldos de participantes observados…'},
+	  fr:{copy:'Affiche un échantillon clairement étiqueté de participants de l’indexeur, classé selon le solde RPC actuel ; ce n’est pas un recensement complet du registre.',loading:'Chargement des soldes des participants observés…'},
+	  de:{copy:'Zeigt eine klar gekennzeichnete Indexer-Teilnehmerstichprobe, nach aktuellem RPC-Guthaben sortiert; dies ist keine vollständige Ledger-Erhebung.',loading:'Beobachtete Teilnehmerguthaben werden geladen…'},
+	  pt:{copy:'Mostra uma amostra claramente identificada de participantes do indexador, classificada pelo saldo RPC atual; não é um censo do livro completo.',loading:'Carregando saldos de participantes observados…'},
+	  ru:{copy:'Показывает явно обозначенную выборку участников индексатора, ранжированную по текущему балансу RPC; это не полная перепись реестра.',loading:'Загрузка балансов наблюдаемых участников…'},
+	  ar:{copy:'يعرض عينة مشاركين من المفهرس موضحة بوضوح ومرتبة حسب رصيد RPC الحالي؛ وليست تعدادًا كاملاً لدفتر الحسابات.',loading:'جارٍ تحميل أرصدة المشاركين المرصودة…'},
+	  id:{copy:'Menampilkan sampel peserta pengindeks yang diberi label jelas, diurutkan menurut saldo RPC saat ini; ini bukan sensus seluruh ledger.',loading:'Memuat saldo peserta yang teramati…'}
+	};
+	Object.entries(observedLeaderboardText).forEach(([locale,text]) => {
+	  messages[locale].accountLeaderboardCopy = text.copy;
+	  messages[locale].loadingAccounts = text.loading;
 	});
 	const accessibilityMessages = {
 	  en:{language:'Language',networkMetrics:'Network metrics'},
