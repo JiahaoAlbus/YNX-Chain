@@ -66,6 +66,15 @@ The reference and implementation were captured together in the browser QA compar
 
 **Final result:** passed
 
+## 2026-08-31 full portal interaction regression follow-up
+
+- Download safety: the full Downloads route exposed six product download actions. All six were disabled, exposed `aria-disabled="true"`, and supplied the localized public-artifact-verification reason through their title; there were zero disabled actions without an explanation.
+- Route and layout coverage: at 1280 × 820 CSS px, all nine portal routes rendered meaningful content with no document-width overflow. At 390 × 844 CSS px, Home, Blockchain, Ecosystem, Downloads, and Documentation also rendered with no horizontal overflow. The narrow layout preserves the route strip as horizontally reachable navigation instead of silently hiding core destinations.
+- Functional evidence: a real browser search for the live local block height `1024` opened the existing same-tab detail drawer at `#blockchain?detail=block%3A1024` and showed its live block fields. An Ecosystem Status control opened the in-page evidence-gated notice; it did not create a new tab or navigate to `about:blank`.
+- Locale evidence: switching the visible language selector to Simplified Chinese, reloading, and checking the selected value preserved `zh-CN` and the localized search placeholder. The check then restored the user-visible selection to Korean. The Chinese mobile view had no document-width overflow.
+
+This is a local browser regression against the active 6423 node/indexer. It confirms responsive rendering and in-portal behavior only; it does not claim a public deployment, public product link, wallet provider availability, or downloadable artifact.
+
 ## 2026-08-31 full-shell locale gate follow-up
 
 - The previously static first-render labels for connection state, live-stream opening, verified source state, block waiting, chain facts, and the EVM label now resolve through the same five-locale dictionary as the routed content.

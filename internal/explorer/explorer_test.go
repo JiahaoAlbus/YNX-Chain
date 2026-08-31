@@ -409,6 +409,13 @@ func TestPortalLocalizesDynamicStatesAndKeepsProviderErrorsPrivate(t *testing.T)
 	}
 }
 
+func TestPortalExplainsDisabledDownloadActions(t *testing.T) {
+	required := `disabled aria-disabled="true" title="' + escapeHTML(d('installProof')) + '"`
+	if !strings.Contains(indexHTML, required) {
+		t.Fatal("downloads route has a disabled action without the localized public-artifact evidence reason")
+	}
+}
+
 func TestPublicWalletURLFailsClosedForNonPublicEndpoints(t *testing.T) {
 	tests := []struct {
 		name string
