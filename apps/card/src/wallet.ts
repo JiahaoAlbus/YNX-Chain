@@ -200,7 +200,12 @@ export function watchMetaMaskProvider(provider:Eip1193Provider|null,events:Walle
 
 export async function disconnectEip1193Wallet(provider:Eip1193Provider|null,kind:WalletProviderKind):Promise<"revoked"|"local-only">{
   if(!isExpectedWalletProvider(provider,kind))throw new Error("Selected wallet provider is no longer available");
-  try{await provider.request({method:"wallet_revokePermissions",params:[{eth_accounts:{}}]});return "revoked";}
+  try{
+    await provider.request({method:"wallet_revokePermissions",params:[{eth_accounts:{}}]});
+    const accounts=await provider.request({method:"eth_accounts",params:[]});
+    if(!Array.isArray(accounts))throw new Error("Wallet did not return an account list after permission revocation");
+    return accounts.some(address)?"local-only":"revoked";
+  }
   catch(error){const code=object(error)?error.code:undefined;if(code===4200||code===-32601)return "local-only";throw error;}
 }
 

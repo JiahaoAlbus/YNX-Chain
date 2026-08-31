@@ -171,7 +171,7 @@ export default function App(){
     const provider=walletProvider.current,kind=walletProviderKind.current;
     if(!provider||!kind){setStandardWalletState(current=>reduceStandardWalletConnectState(current,{type:"DISCONNECT"}));setWalletSession(null);return;}
     setWalletBusy(true);setWalletError("");
-    try{const result=await disconnectEip1193Wallet(provider,kind);setWalletError(result==="local-only"?"Disconnected from Card locally. This wallet does not support site permission revocation; revoke Card in the wallet if needed.":"");setStandardWalletState(current=>reduceStandardWalletConnectState(current,{type:"DISCONNECT"}));setWalletSession(null);walletProvider.current=null;walletProviderKind.current=null;setPrivateSession(null);}
+    try{const result=await disconnectEip1193Wallet(provider,kind);setWalletError(result==="local-only"?"Card cleared its local Wallet connection. The Wallet still reports this site's account permission; revoke Card in the Wallet if needed.":"");setStandardWalletState(current=>reduceStandardWalletConnectState(current,{type:"DISCONNECT"}));setWalletSession(null);walletProvider.current=null;walletProviderKind.current=null;setPrivateSession(null);}
     catch(e){setWalletError(classifyCardWalletError(e).safeMessage);}
     finally{if(mounted.current)setWalletBusy(false);}
   };
