@@ -4,6 +4,7 @@ import { broadcastDeveloperDeployment, chainRpc, completeDeveloperWalletSession,
 import { canonicalJSON, consumeDeveloperDeploymentRequest, consumeDeveloperWalletRequest, createDeveloperSessionIntrospection, createDeveloperWalletCompletion, desktopWalletBridge, openDeveloperDeploymentReview, openDeveloperWalletReview, parseDeveloperDeploymentCallback, saveDeveloperWalletSession, subscribeDeveloperDeploymentCallbacks, subscribeDeveloperWalletCallbacks, ynxAccountToEVM } from "../wallet/transport";
 import { enterDeveloperWalletV2Guest, inspectDeveloperWalletV2Runtime } from "../wallet/product-session-v2";
 import { closeDeveloperWebWalletConnectionDetails, connectDeveloperWebWallet, disconnectDeveloperWebWallet, discoverDeveloperWebWalletChoices, openDeveloperWebWalletConnectionDetails, restoreDeveloperWebWallet, subscribeDeveloperWebWalletEvents, switchDeveloperWebWalletAccount } from "../wallet/safe-authorize-launcher";
+import { WalletIdentityMark } from "../wallet/WalletIdentityMark";
 import { StandardWalletDappCompatibilityLab } from "../dapp/StandardWalletDappCompatibilityLab";
 import type { StandardWalletConnectState } from "../../../vendor/wallet-auth/src/index.js";
 
@@ -427,7 +428,7 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
               {webWalletDiscovery?.choices.length ? (
                 <>
                   <p>{webWalletDiscovery.choices.length > 1 ? "Choose a browser Wallet. No Wallet is selected automatically and no account request is sent until you choose." : `Browser provider ready: ${webWalletDiscovery.detail}. Connect requests accounts and YNX Testnet 0x1917 only after your click.`}</p>
-                  {webWalletDiscovery.choices.map((choice) => <Button key={choice.kind} disabled={busy} onClick={() => openWallet(choice.kind)}>{webWalletAccount ? `Reconnect ${choice.label}` : choice.kind === "ynx-wallet" ? "Connect YNX Wallet" : "Connect MetaMask"}</Button>)}
+                  {webWalletDiscovery.choices.map((choice) => <Button key={choice.kind} disabled={busy} onClick={() => openWallet(choice.kind)}><WalletIdentityMark kind={choice.kind} />{webWalletAccount ? `Reconnect ${choice.label}` : choice.kind === "ynx-wallet" ? "Connect YNX Wallet" : "Connect MetaMask"}</Button>)}
                 </>
               ) : <Button disabled={busy} onClick={() => openWallet()}>{webWalletAccount ? "Reconnect browser Wallet" : "Connect browser Wallet"}</Button>}
               <Button variant="ghost" disabled={busy} onClick={refreshBrowserWalletDiscovery}>Retry browser Wallet discovery</Button>
@@ -436,7 +437,7 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
               {webWalletConnection?.chooserOpen && webWalletConnection.chooserMode === "connection-details" && (
                 <div className="chain-tool" aria-label="Wallet connection details">
                   <b>Wallet connection details</b>
-                  <p>Provider: <b>{webWalletConnection.providerKind === "ynx-wallet" ? "YNX Wallet" : "MetaMask"}</b></p>
+                  <p>Provider: <WalletIdentityMark kind={webWalletConnection.providerKind} /><b>{webWalletConnection.providerKind === "ynx-wallet" ? "YNX Wallet" : "MetaMask"}</b></p>
                   <p>Account: <code>{webWalletConnection.account}</code></p>
                   <p>Network: <b>YNX Testnet</b> · <code>{webWalletConnection.chainId}</code></p>
                   <p>Product Session: {webWalletConnection.privateService === "degraded" ? "Optional service degraded; Standard Wallet remains connected." : "Optional and separate from this Standard Wallet connection."}</p>

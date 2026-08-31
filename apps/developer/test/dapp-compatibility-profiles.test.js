@@ -30,14 +30,21 @@ test("each real-provider profile emits only its standard EIP-1193 request and va
   await assert.rejects(() => executeDappCompatibilityOperation(provider, "walletconnect-v2-bridge", account), /does not simulate sessions/);
 });
 
-test("the visible lab keeps YNX Wallet and MetaMask identities separate and contains no custom scheme, popup, or simulated runtime", async () => {
-  const [lab, profiles] = await Promise.all([
+test("the visible lab and chooser keep YNX Wallet and MetaMask identities separate without custom navigation", async () => {
+  const [lab, profiles, identityMark, panel] = await Promise.all([
     readFile(new URL("../frontend/src/dapp/StandardWalletDappCompatibilityLab.tsx", import.meta.url), "utf8"),
     readFile(new URL("../frontend/src/dapp/standard-wallet-dapp-profiles.ts", import.meta.url), "utf8"),
+    readFile(new URL("../frontend/src/wallet/WalletIdentityMark.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../frontend/src/chain/ChainPanel.tsx", import.meta.url), "utf8"),
   ]);
   assert.match(lab, /YNX Wallet and MetaMask are independently discovered/);
   assert.match(lab, /MetaMask marker is an original neutral identifier/);
   assert.match(lab, /WalletIdentityMark/);
+  assert.match(panel, /WalletIdentityMark kind=\{choice\.kind\}/);
+  assert.match(panel, /WalletIdentityMark kind=\{webWalletConnection\.providerKind\}/);
+  assert.match(identityMark, /YNX Wallet identity mark/);
+  assert.match(identityMark, /MetaMask identity mark/);
+  assert.match(identityMark, /not a copied third-party logo/);
   assert.match(lab, /Standard Wallet identity reference/);
   assert.match(lab, /com\.ynx\.wallet/);
   assert.match(lab, /isMetaMask=true/);
@@ -46,5 +53,5 @@ test("the visible lab keeps YNX Wallet and MetaMask identities separate and cont
   assert.match(profiles, /personal_sign/);
   assert.match(profiles, /eth_signTypedData_v4/);
   assert.match(profiles, /eth_sendTransaction/);
-  assert.doesNotMatch(lab + profiles, /ynxwallet:\/\/authorize|window\.open\s*\(|<iframe|target="_blank"/);
+  assert.doesNotMatch(lab + profiles + panel, /ynxwallet:\/\/authorize|window\.open\s*\(|<iframe|target="_blank"/);
 });
