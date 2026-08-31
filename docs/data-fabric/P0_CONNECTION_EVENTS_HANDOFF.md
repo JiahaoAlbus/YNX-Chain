@@ -48,3 +48,9 @@
 This is a committed local runtime-adapter checkpoint, not central deployment, public deployment, installed-product proof, Wallet integration proof, or Card E2E funding proof. `integratedCentral`, `deployedStaging`, `deployedPublic`, `downloadHosted`, `productionSigned`, and `storeReleased` remain false absent their own direct evidence.
 
 Integration may record this checkpoint and release the `wallet-canonical-error-to-connectivity-aggregation` Light Slice only after remote push verification. The next external integration step is for Wallet/Financial/Card producers to invoke these adapters asynchronously after their own authoritative outcomes; no product may introduce a synchronous dependency.
+
+## P0-147 public runtime lease request — 2026-08-31
+
+`P0_147_PUBLIC_RUNTIME_LEASE_REQUEST.json` freezes a Data-Fabric-only request for the missing public topology, protected-reference presence booleans, service identity, and current/rollback mapping. It is deliberately `REQUESTED_NOT_AUTHORIZED`: every endpoint and secret-manager reference is unset, `productionMutationAllowed` is false, and it cannot be used as a production configuration.
+
+Central must bind one authoritative HTTPS Data Fabric origin and the exact runtime/service/rollback tuple before issuing a single-use writable lease. The subsequent verification is `/health`, `/version`, `/metrics`, and one already-authoritative producer outcome through Event, Outbox, Inbox, and Ledger effect. No Wallet account request, signature, transaction, Provider/Gateway change, or synchronous Wallet dependency is in this scope.
