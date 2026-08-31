@@ -15,7 +15,7 @@ currently compiled and tested.
 
 | Item | Current checkout | `release/dex/artifact-manifest.json` binding |
 | --- | --- | --- |
-| Checkout commit/tree | `0068b75d1e9f65fa706ec829d5cd07ea996af6da` / `05260fa85864bf10af45f430664aaa2a18631ff0` | — |
+| Checkout commit/tree | `7475fe72cba07c0757e21d07fe121bf36c261574` / `573c66aabf0bbc033b2ed8782fce3b703c68d01b` | — |
 | Manifest source base | — | `5b4eb9e1511577ce73291d97fdc0b9aa376b0383` |
 | `YNXDexFactory.sol` blob | `97b480200791555f19a27a6b97aa3e9da72c7489` | `3634985c2fd17b131ff418a8e5582a6a0a408d63` |
 | Bytes | `5665` | `5653` |
@@ -35,13 +35,22 @@ not source-bound to the contract integration result below.
 
 ## Required next action
 
-The DEX release owner must create a new immutable contract artifact package
-from one exact source commit, regenerate its manifest and all compiled artifact
-hashes, and independently verify the package before requesting any Testnet
-deployment lease.  The replacement must retain truthful release flags: current
-local contract integration is not evidence of public deployment, installed
-delivery, Wallet approval, LP activity, Swap execution, or production signing.
+Central's independently recorded DEX C7 decision is
+`DEX_C7_SHARED_BINDING_IS_NOT_ROOT_FILE_ONLY_AND_REQUIRED_COHERENT_MANIFEST_SET_NOT_FROZEN`
+(`release/integration/p0-wallet-connectivity/acceptance/dex-c7-shared-release-binding-no-go-20260831.json`).
+It prohibits a root-only update: the source commit must be bound coherently in
+the DEX product release, Chain Core contract record, public-product metadata,
+and operator runtime-source input before packaging.
+
+The next DEX release owner must first freeze one composed source checkpoint
+that includes the current C7 Wallet lifecycle candidate and this v1.35
+fail-closed custody change. Central must then produce the coherent four-file
+binding from that exact composed checkpoint. Only after that may the owner
+regenerate an immutable contract artifact package and all compiled hashes, run
+the manifest/artifact gates, and request a separate Testnet deployment lease.
+The replacement must retain truthful release flags: local contract integration
+is not evidence of public deployment, installed delivery, Wallet approval, LP
+activity, Swap execution, or production signing.
 
 Do not use the existing `release/dex` artifact manifest to authorize a current
 contract deployment.
-
