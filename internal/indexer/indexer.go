@@ -813,6 +813,116 @@ func LatestTransactionsPage(db Database, limit int, after string) ([]chain.Trans
 	return page, nextAfter, nil
 }
 
+// IndexedAccountParticipant is deliberately a record of observed indexed
+// transaction participation, not an account-balance claim. Explorer combines
+// these candidates with a live RPC account read before it presents balances.
+// That distinction lets a truncated local Indexer stay truthful about coverage.
+type IndexedAccountParticipant struct {
+	Address          string `json:"address"`
+	TransactionCount int    `json:"transactionCount"`
+	InboundYNXT      int64  `json:"inboundYnxt"`
+	OutboundYNXT     int64  `json:"outboundYnxt"`
+	LatestBlock      uint64 `json:"latestBlock"`
+}
+
+func IndexedAccountParticipantsPage(db Database, limit int, after string) ([]IndexedAccountParticipant, string, int, error) {
+	limit = normalizePageLimit(limit)
+	participants := map[string]IndexedAccountParticipant{}
+	add := func(address string, tx chain.Transaction, inbound, outbound int64) {
+		address = strings.TrimSpace(address)
+		if address == "" {
+			return
+		}
+		entry := participants[address]
+		entry.Address = address
+		entry.TransactionCount++
+		entry.InboundYNXT += inbound
+		entry.OutboundYNXT += outbound
+		if tx.BlockNum > entry.LatestBlock {
+			entry.LatestBlock = tx.BlockNum
+		}
+		participants[address] = entry
+	}
+	for _, tx := range db.Transactions {
+		add(tx.From, tx, 0, tx.Amount+tx.Fee)
+		add(tx.To, tx, tx.Amount, 0)
+		if tx.Sponsor != tx.From && tx.Sponsor != tx.To {
+			add(tx.Sponsor, tx, 0, 0)
+		}
+	}
+	accounts := make([]IndexedAccountParticipant, 0, len(participants))
+	for _, account := range participants {
+		accounts = append(accounts, account)
+	}
+	sort.Slice(accounts, func(a, b int) bool { return accounts[a].Address < accounts[b].Address })
+	start := 0
+	if after != "" {
+		found := false
+		for index, account := range accounts {
+			if account.Address == after {
+				start, found = index+1, true
+				break
+			}
+		}
+		if !found {
+			return nil, "", len(accounts), fmt.Errorf("account cursor position is no longer retained")
+		}
+	}
+	end := min(start+limit, len(accounts))
+	page := append([]IndexedAccountParticipant(nil), accounts[start:end]...)
+	nextAfter := ""
+	if end < len(accounts) && len(page) > 0 {
+		nextAfter = page[len(page)-1].Address
+	}
+	return page, nextAfter, len(accounts), nil
+}
+
+// IndexedAccountActivityPage returns only transactions retained by this
+// Indexer. It does not infer missing historical activity or account balances.
+func IndexedAccountActivityPage(db Database, address string, limit int, after string) ([]chain.Transaction, string, error) {
+	address = strings.TrimSpace(address)
+	if address == "" {
+		return nil, "", fmt.Errorf("account address is required")
+	}
+	all := make([]chain.Transaction, 0, len(db.Transactions))
+	for _, tx := range db.Transactions {
+		all = append(all, tx)
+	}
+	sort.Slice(all, func(a, b int) bool {
+		if all[a].Timestamp.Equal(all[b].Timestamp) {
+			return all[a].Hash < all[b].Hash
+		}
+		return all[a].Timestamp.After(all[b].Timestamp)
+	})
+	transactions := make([]chain.Transaction, 0, len(all))
+	for _, tx := range all {
+		if strings.EqualFold(address, tx.From) || strings.EqualFold(address, tx.To) || strings.EqualFold(address, tx.Sponsor) {
+			transactions = append(transactions, tx)
+		}
+	}
+	limit = normalizePageLimit(limit)
+	start := 0
+	if after != "" {
+		found := false
+		for index, tx := range transactions {
+			if tx.Hash == after {
+				start, found = index+1, true
+				break
+			}
+		}
+		if !found {
+			return nil, "", fmt.Errorf("account activity cursor position is no longer retained")
+		}
+	}
+	end := min(start+limit, len(transactions))
+	page := append([]chain.Transaction(nil), transactions[start:end]...)
+	nextAfter := ""
+	if end < len(transactions) && len(page) > 0 {
+		nextAfter = page[len(page)-1].Hash
+	}
+	return page, nextAfter, nil
+}
+
 func normalizePageLimit(limit int) int {
 	if limit <= 0 || limit > 100 {
 		return 25

@@ -644,7 +644,9 @@ const indexHTML = `<!doctype html>
 		return;
 	  }
       const observed = leaderboard?.truthfulStatus === 'observed-indexed-participant-account-ranking';
-	  $('accountTotal').textContent = number(leaderboard?.total || accounts.length) + ' ' + t(observed ? 'observedAccounts' : 'publicAccounts') + ' / ' + number(accounts.length) + ' · ' + exactTime(leaderboard?.checkedAt);
+	  const candidates = Number(leaderboard?.candidateCount || leaderboard?.total || accounts.length);
+	  const indexedHeight = Number(leaderboard?.lastIndexedHeight || 0);
+	  $('accountTotal').textContent = number(accounts.length) + ' ' + t(observed ? 'observedAccounts' : 'publicAccounts') + ' / ' + number(candidates) + ' ' + t('observedAccounts') + (indexedHeight ? ' · ' + t('throughBlock') + ' #' + number(indexedHeight) : '') + (leaderboard?.degraded ? ' · ' + t('degraded') + ' ' + number(leaderboard?.unresolvedCount) : '') + ' · ' + exactTime(leaderboard?.checkedAt);
 	  $('accountsBody').innerHTML = accounts.length ? accounts.map((account,index) => '<tr data-query="' + escapeHTML(account.address) + '"><td><strong>#' + (index + 1) + '</strong></td><td><span class="link mono hash" title="' + escapeHTML(account.address) + '">' + escapeHTML(account.address) + '</span></td><td class="amount">' + escapeHTML(number(account.balance)) + ' YNXT</td><td>' + escapeHTML(number(account.staked)) + ' YNXT</td><td class="mono">' + escapeHTML(number(account.nonce)) + '</td></tr>').join('') : '<tr><td colspan="5" class="empty">' + escapeHTML(t('noBalances')) + '</td></tr>';
       bindQueries();
     }

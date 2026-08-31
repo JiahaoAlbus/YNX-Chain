@@ -99,6 +99,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /blocks/{height}", s.handleBlock)
 	s.mux.HandleFunc("GET /txs", s.handleTransactions)
 	s.mux.HandleFunc("GET /txs/{hash}", s.handleTransaction)
+	s.mux.HandleFunc("GET /accounts", s.handleAccounts)
+	s.mux.HandleFunc("GET /accounts/{address}/activity", s.handleAccountActivity)
 }
 
 func (s *Server) handleVersion(w http.ResponseWriter, r *http.Request) {
@@ -413,6 +415,69 @@ func (s *Server) handleTransaction(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, tx)
+}
+
+func (s *Server) handleAccounts(w http.ResponseWriter, r *http.Request) {
+	after, err := s.cursor.decode(r.URL.Query().Get("cursor"), "accounts")
+	if err != nil {
+		writePublicIndexerError(w, http.StatusBadRequest)
+		return
+	}
+	var accounts []IndexedAccountParticipant
+	var nextAfter string
+	var total int
+	err = s.indexer.Store().View(func(db Database) error {
+		var pageErr error
+		accounts, nextAfter, total, pageErr = IndexedAccountParticipantsPage(db, intQuery(r, "limit", 25), after)
+		return pageErr
+	})
+	if err != nil {
+		writePublicIndexerError(w, http.StatusBadRequest)
+		return
+	}
+	nextCursor := ""
+	if nextAfter != "" {
+		nextCursor, err = s.cursor.encode("accounts", nextAfter)
+		if err != nil {
+			writePublicIndexerError(w, http.StatusInternalServerError)
+			return
+		}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"accounts": accounts, "total": total, "nextCursor": nextCursor, "cursorVersion": cursorVersion,
+		"truthfulStatus": "observed-indexed-participants", "coverage": "retained indexed transaction participants; balances are not derived here", "checkedAt": time.Now().UTC(),
+	})
+}
+
+func (s *Server) handleAccountActivity(w http.ResponseWriter, r *http.Request) {
+	after, err := s.cursor.decode(r.URL.Query().Get("cursor"), "account-activity")
+	if err != nil {
+		writePublicIndexerError(w, http.StatusBadRequest)
+		return
+	}
+	var transactions []chain.Transaction
+	var nextAfter string
+	err = s.indexer.Store().View(func(db Database) error {
+		var pageErr error
+		transactions, nextAfter, pageErr = IndexedAccountActivityPage(db, r.PathValue("address"), intQuery(r, "limit", 25), after)
+		return pageErr
+	})
+	if err != nil {
+		writePublicIndexerError(w, http.StatusBadRequest)
+		return
+	}
+	nextCursor := ""
+	if nextAfter != "" {
+		nextCursor, err = s.cursor.encode("account-activity", nextAfter)
+		if err != nil {
+			writePublicIndexerError(w, http.StatusInternalServerError)
+			return
+		}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"address": r.PathValue("address"), "transactions": transactions, "nextCursor": nextCursor, "cursorVersion": cursorVersion,
+		"truthfulStatus": "retained-indexed-account-activity", "coverage": "retained indexed transactions only", "checkedAt": time.Now().UTC(),
+	})
 }
 
 func writeJSON(w http.ResponseWriter, status int, payload any) {

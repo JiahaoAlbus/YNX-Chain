@@ -100,7 +100,9 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/blocks/{height}", s.handleBlock)
 	s.mux.HandleFunc("GET /api/txs", s.handleTransactions)
 	s.mux.HandleFunc("GET /api/txs/{hash}", s.handleTransaction)
+	s.mux.HandleFunc("GET /api/accounts", s.handleAccounts)
 	s.mux.HandleFunc("GET /api/accounts/{address}", s.handleAccount)
+	s.mux.HandleFunc("GET /api/accounts/{address}/activity", s.handleAccountActivity)
 	s.mux.HandleFunc("GET /api/tokens/{symbol}", s.handleToken)
 	s.mux.HandleFunc("GET /api/validators", s.handleValidators)
 	s.mux.HandleFunc("GET /api/resources/{address}", s.handleResources)
@@ -405,12 +407,30 @@ func (s *Server) handleTransaction(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleAccount(w http.ResponseWriter, r *http.Request) {
-	account, err := s.service.Account(r.Context(), r.PathValue("address"))
+	account, err := s.service.AccountWithActivity(r.Context(), r.PathValue("address"))
 	if err != nil {
 		writePublicError(w, http.StatusNotFound)
 		return
 	}
 	writeJSON(w, http.StatusOK, account)
+}
+
+func (s *Server) handleAccounts(w http.ResponseWriter, r *http.Request) {
+	leaderboard, err := s.service.Leaderboard(r.Context(), intQuery(r, "limit", 10))
+	if err != nil {
+		writePublicError(w, http.StatusBadGateway)
+		return
+	}
+	writeJSON(w, http.StatusOK, leaderboard)
+}
+
+func (s *Server) handleAccountActivity(w http.ResponseWriter, r *http.Request) {
+	activity, err := s.service.AccountActivity(r.Context(), r.PathValue("address"), intQuery(r, "limit", 25), r.URL.Query().Get("cursor"))
+	if err != nil {
+		writePublicError(w, http.StatusNotFound)
+		return
+	}
+	writeJSON(w, http.StatusOK, activity)
 }
 
 func (s *Server) handleToken(w http.ResponseWriter, r *http.Request) {

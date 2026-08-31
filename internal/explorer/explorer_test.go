@@ -81,7 +81,7 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	server := httptest.NewServer(NewServerWithBuild(svc, buildinfo.Info{Commit: "abc123", Release: "ynx-chain-abc123", BuildTime: "2026-07-10T00:00:00Z"}).Handler())
 	defer server.Close()
 
-	for _, path := range []string{"/health", "/version", "/api/summary", "/api/dashboard", "/api/blocks/latest", "/api/txs", "/api/accounts/ynx_explorer_bob", "/api/accounts/" + ynxAddress, "/api/tokens/YNXT", "/api/validators", "/api/resources/ynx_explorer_bob", "/api/resource-market/analytics", "/api/fees/" + tx.Hash, "/api/fees/" + sponsoredTx.Hash, "/api/search?q=" + tx.Hash, "/api/search?q=" + ynxAddress, "/metrics"} {
+	for _, path := range []string{"/health", "/version", "/api/summary", "/api/dashboard", "/api/blocks/latest", "/api/txs", "/api/accounts?limit=10", "/api/accounts/ynx_explorer_bob", "/api/accounts/ynx_explorer_bob/activity?limit=1", "/api/accounts/" + ynxAddress, "/api/tokens/YNXT", "/api/validators", "/api/resources/ynx_explorer_bob", "/api/resource-market/analytics", "/api/fees/" + tx.Hash, "/api/fees/" + sponsoredTx.Hash, "/api/search?q=" + tx.Hash, "/api/search?q=" + ynxAddress, "/metrics"} {
 		resp, err := http.Get(server.URL + path)
 		if err != nil {
 			t.Fatal(err)
@@ -102,8 +102,20 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	if err := json.NewDecoder(aliasResponse.Body).Decode(&aliasDetail); err != nil {
 		t.Fatal(err)
 	}
-	if aliasDetail.Account.Address != canonicalAddress || aliasDetail.AddressFormats == nil || aliasDetail.AddressFormats.YNX != ynxAddress || aliasDetail.AddressFormats.EVM != canonicalAddress {
+	if aliasDetail.Account.Address != canonicalAddress || aliasDetail.AddressFormats == nil || aliasDetail.AddressFormats.YNX != ynxAddress || aliasDetail.AddressFormats.EVM != canonicalAddress || aliasDetail.Activity == nil || aliasDetail.Activity.TruthfulStatus != "retained-indexed-account-activity" {
 		t.Fatalf("explorer did not expose equivalent address formats: %+v", aliasDetail)
+	}
+	leaderboardResponse, err := http.Get(server.URL + "/api/accounts?limit=10")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer leaderboardResponse.Body.Close()
+	var leaderboard AccountLeaderboard
+	if err := json.NewDecoder(leaderboardResponse.Body).Decode(&leaderboard); err != nil {
+		t.Fatal(err)
+	}
+	if leaderboardResponse.StatusCode != http.StatusOK || leaderboard.Failed || leaderboard.Total == 0 || leaderboard.CandidateCount < leaderboard.Total || leaderboard.TruthfulStatus != "observed-indexed-participant-account-ranking" || !strings.Contains(leaderboard.Coverage, "retained Indexer") {
+		t.Fatalf("Explorer returned an untruthful or empty observed-participant leaderboard: %+v", leaderboard)
 	}
 	feeResponse, err := http.Get(server.URL + "/api/fees/" + sponsoredTx.Hash)
 	if err != nil {
@@ -150,6 +162,8 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 		"sponsorPoolId",
 		"transactionHashFromPath",
 		"/^\\/tx\\/(0[xX][0-9a-fA-F]{64})$/",
+		"/api/accounts?limit=10",
+		"fundsFlow",
 	} {
 		if !strings.Contains(html, marker) {
 			t.Fatalf("explorer web is missing live interaction marker %q", marker)

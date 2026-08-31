@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
@@ -24,9 +26,10 @@ type Config struct {
 }
 
 type Service struct {
-	cfg           Config
-	rpcClient     *client
-	indexerClient *client
+	cfg            Config
+	rpcClient      *client
+	indexerClient  *client
+	accountReadSem chan struct{}
 }
 
 func New(cfg Config) (*Service, error) {
@@ -42,7 +45,7 @@ func New(cfg Config) (*Service, error) {
 	if cfg.PublicExplorerURL == "" {
 		cfg.PublicExplorerURL = "http://127.0.0.1:6427"
 	}
-	return &Service{cfg: cfg, rpcClient: newClient(cfg.RPCURL), indexerClient: newClient(cfg.IndexerURL)}, nil
+	return &Service{cfg: cfg, rpcClient: newClient(cfg.RPCURL), indexerClient: newClient(cfg.IndexerURL), accountReadSem: make(chan struct{}, 8)}, nil
 }
 
 type client struct {
@@ -267,11 +270,67 @@ type AccountDetail struct {
 	AddressFormats *AddressFormats       `json:"addressFormats,omitempty"`
 	Resources      chain.ResourceBalance `json:"resources"`
 	Trace          chain.TrustTrace      `json:"trace"`
+	Activity       *AccountActivity      `json:"activity,omitempty"`
 }
 
 type AddressFormats struct {
 	EVM string `json:"evmAddress"`
 	YNX string `json:"ynxAddress"`
+}
+
+type IndexedAccountParticipant struct {
+	Address          string `json:"address"`
+	TransactionCount int    `json:"transactionCount"`
+	InboundYNXT      int64  `json:"inboundYnxt"`
+	OutboundYNXT     int64  `json:"outboundYnxt"`
+	LatestBlock      uint64 `json:"latestBlock"`
+}
+
+type IndexedParticipants struct {
+	Accounts       []IndexedAccountParticipant `json:"accounts"`
+	Total          int                         `json:"total"`
+	NextCursor     string                      `json:"nextCursor,omitempty"`
+	TruthfulStatus string                      `json:"truthfulStatus"`
+	Coverage       string                      `json:"coverage"`
+	CheckedAt      time.Time                   `json:"checkedAt"`
+}
+
+type AccountActivity struct {
+	Address               string              `json:"address"`
+	Transactions          []chain.Transaction `json:"transactions"`
+	NextCursor            string              `json:"nextCursor,omitempty"`
+	LastIndexedHeight     uint64              `json:"lastIndexedHeight"`
+	ContractActivityCount int                 `json:"contractActivityCount"`
+	FundsFlow             FundsFlow           `json:"fundsFlow"`
+	TruthfulStatus        string              `json:"truthfulStatus"`
+	Coverage              string              `json:"coverage"`
+	CheckedAt             time.Time           `json:"checkedAt"`
+}
+
+type FundsFlow struct {
+	InboundYNXT  int64 `json:"inboundYnxt"`
+	OutboundYNXT int64 `json:"outboundYnxt"`
+}
+
+type LeaderboardAccount struct {
+	Address          string `json:"address"`
+	Balance          int64  `json:"balance"`
+	Staked           int64  `json:"staked"`
+	Nonce            uint64 `json:"nonce"`
+	TransactionCount int    `json:"transactionCount"`
+}
+
+type AccountLeaderboard struct {
+	Accounts          []LeaderboardAccount `json:"accounts"`
+	Total             int                  `json:"total"`
+	CandidateCount    int                  `json:"candidateCount"`
+	UnresolvedCount   int                  `json:"unresolvedCount"`
+	LastIndexedHeight uint64               `json:"lastIndexedHeight"`
+	Coverage          string               `json:"coverage"`
+	CheckedAt         time.Time            `json:"checkedAt"`
+	TruthfulStatus    string               `json:"truthfulStatus"`
+	Degraded          bool                 `json:"degraded"`
+	Failed            bool                 `json:"failed"`
 }
 
 func (s *Service) Account(ctx context.Context, address string) (AccountDetail, error) {
@@ -291,6 +350,161 @@ func (s *Service) Account(ctx context.Context, address string) (AccountDetail, e
 		account.AddressFormats = &AddressFormats{EVM: account.Account.Address, YNX: alias}
 	}
 	return account, nil
+}
+
+func (s *Service) IndexedParticipants(ctx context.Context, limit int, cursor string) (IndexedParticipants, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 25
+	}
+	path := "/accounts?limit=" + strconv.Itoa(limit)
+	if strings.TrimSpace(cursor) != "" {
+		path += "&cursor=" + url.QueryEscape(cursor)
+	}
+	var participants IndexedParticipants
+	if err := s.indexerClient.getJSON(ctx, path, &participants); err != nil {
+		return IndexedParticipants{}, err
+	}
+	if participants.TruthfulStatus != "observed-indexed-participants" {
+		return IndexedParticipants{}, fmt.Errorf("unexpected indexed participant status %q", participants.TruthfulStatus)
+	}
+	return participants, nil
+}
+
+func (s *Service) AccountActivity(ctx context.Context, address string, limit int, cursor string) (AccountActivity, error) {
+	address, err := normalizeExplorerAddress(address)
+	if err != nil {
+		return AccountActivity{}, err
+	}
+	if limit <= 0 || limit > 100 {
+		limit = 25
+	}
+	path := "/accounts/" + url.PathEscape(address) + "/activity?limit=" + strconv.Itoa(limit)
+	if strings.TrimSpace(cursor) != "" {
+		path += "&cursor=" + url.QueryEscape(cursor)
+	}
+	var activity AccountActivity
+	if err := s.indexerClient.getJSON(ctx, path, &activity); err != nil {
+		return AccountActivity{}, err
+	}
+	if activity.TruthfulStatus != "retained-indexed-account-activity" {
+		return AccountActivity{}, fmt.Errorf("unexpected indexed account activity status %q", activity.TruthfulStatus)
+	}
+	health, err := s.IndexerHealth(ctx)
+	if err != nil {
+		return AccountActivity{}, err
+	}
+	activity.LastIndexedHeight = health.LastIndexedHeight
+	flow := FundsFlow{}
+	for _, tx := range activity.Transactions {
+		if strings.EqualFold(address, tx.To) {
+			flow.InboundYNXT += tx.Amount
+		}
+		if strings.EqualFold(address, tx.From) {
+			flow.OutboundYNXT += tx.Amount + tx.Fee
+		}
+		if tx.Type == "contract" || len(tx.Logs) > 0 {
+			activity.ContractActivityCount++
+		}
+	}
+	activity.FundsFlow = flow
+	return activity, nil
+}
+
+func (s *Service) AccountWithActivity(ctx context.Context, address string) (AccountDetail, error) {
+	account, err := s.Account(ctx, address)
+	if err != nil {
+		return AccountDetail{}, err
+	}
+	activity, err := s.AccountActivity(ctx, account.Account.Address, 25, "")
+	if err != nil {
+		return AccountDetail{}, err
+	}
+	account.Activity = &activity
+	return account, nil
+}
+
+func (s *Service) Leaderboard(ctx context.Context, limit int) (AccountLeaderboard, error) {
+	if limit <= 0 || limit > 100 {
+		limit = 10
+	}
+	participants, err := s.IndexedParticipants(ctx, 100, "")
+	if err != nil {
+		return AccountLeaderboard{}, err
+	}
+	health, err := s.IndexerHealth(ctx)
+	if err != nil {
+		return AccountLeaderboard{}, err
+	}
+	result := AccountLeaderboard{
+		CandidateCount:    participants.Total,
+		LastIndexedHeight: health.LastIndexedHeight,
+		Coverage:          fmt.Sprintf("current live RPC balances for %d of %d participants observed in retained Indexer transactions; this is not a full-ledger census", len(participants.Accounts), participants.Total),
+		CheckedAt:         time.Now().UTC(),
+		TruthfulStatus:    "observed-indexed-participant-account-ranking",
+	}
+	lookupCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+	type lookupResult struct {
+		participant IndexedAccountParticipant
+		account     AccountDetail
+		err         error
+	}
+	jobs := make(chan IndexedAccountParticipant)
+	results := make(chan lookupResult, len(participants.Accounts))
+	workerCount := min(4, len(participants.Accounts))
+	var workers sync.WaitGroup
+	for range workerCount {
+		workers.Add(1)
+		go func() {
+			defer workers.Done()
+			for participant := range jobs {
+				select {
+				case s.accountReadSem <- struct{}{}:
+				case <-lookupCtx.Done():
+					results <- lookupResult{participant: participant, err: lookupCtx.Err()}
+					continue
+				}
+				account, accountErr := s.Account(lookupCtx, participant.Address)
+				<-s.accountReadSem
+				results <- lookupResult{participant: participant, account: account, err: accountErr}
+			}
+		}()
+	}
+	go func() {
+		for _, participant := range participants.Accounts {
+			select {
+			case jobs <- participant:
+			case <-lookupCtx.Done():
+				results <- lookupResult{participant: participant, err: lookupCtx.Err()}
+			}
+		}
+		close(jobs)
+		workers.Wait()
+		close(results)
+	}()
+	for lookup := range results {
+		if lookup.err != nil {
+			result.UnresolvedCount++
+			continue
+		}
+		result.Accounts = append(result.Accounts, LeaderboardAccount{Address: lookup.account.Account.Address, Balance: lookup.account.Account.Balance, Staked: lookup.account.Account.Staked, Nonce: lookup.account.Account.Nonce, TransactionCount: lookup.participant.TransactionCount})
+	}
+	result.Degraded = result.UnresolvedCount > 0
+	if len(result.Accounts) == 0 && participants.Total > 0 {
+		result.Failed = true
+		return result, nil
+	}
+	sort.Slice(result.Accounts, func(a, b int) bool {
+		if result.Accounts[a].Balance == result.Accounts[b].Balance {
+			return result.Accounts[a].Address < result.Accounts[b].Address
+		}
+		return result.Accounts[a].Balance > result.Accounts[b].Balance
+	})
+	if len(result.Accounts) > limit {
+		result.Accounts = result.Accounts[:limit]
+	}
+	result.Total = len(result.Accounts)
+	return result, nil
 }
 
 func (s *Service) Validators(ctx context.Context) (map[string]any, error) {
