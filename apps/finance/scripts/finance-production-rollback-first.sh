@@ -168,6 +168,7 @@ verify_candidate_live(){
   verify_local_assets "$release"; verify_build_identity "$release"
   http_check '.candidate.verifier.loopbackHealth'; http_check '.candidate.verifier.loopbackVersion'; http_check '.candidate.verifier.publicHealth'; http_check '.candidate.verifier.publicVersion'
   while IFS= read -r n; do test -n "$n"; http_check ".candidate.assets[$n]"; done < <(jq -r '.candidate.assets|keys[]' "$lease")
+  if jq -e '.candidate.absentUrls' "$lease" >/dev/null; then while IFS= read -r n; do test -n "$n"; http_check ".candidate.absentUrls[$n]"; done < <(jq -r '.candidate.absentUrls|keys[]' "$lease"); fi
 }
 assert_fresh(){
   test "$(readlink -f "$current")" = "$old"; test "$(hash "$old_binary")" = "$old_binary_sha"; file "$old_binary" | grep -q 'ELF 64-bit.*x86-64'
