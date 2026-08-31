@@ -6,6 +6,7 @@
 @media(max-width:720px){.signed-out-state main{padding:0 22px 48px}.signed-out-state .topbar{padding-top:24px}.signed-out-state .hero{padding:44px 0;min-height:auto}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 .account{overflow-wrap:anywhere}.chip-dot{background:var(--blue)}
+.account-summary{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;overflow-wrap:anywhere}
 @media(prefers-color-scheme:dark){
   :root{--blue:#7ea2ff;--blue-dark:#9bb5ff;--ink:#f7f9fc;--muted:#a9b4c6;--line:#293449;--soft:#1b2433;--white:#0b101b;--danger:#fda29b;--warning:#fec84b;--shadow:0 18px 50px rgba(0,0,0,.28)}
   body,.sidebar{background:var(--white)}

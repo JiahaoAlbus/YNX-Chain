@@ -29,6 +29,16 @@
         <div class="truth-card"><span class="status-dot"></span><div><strong>What appears here</strong><p>Only live indexed YNXT records, authorized Pay receipts, and planning data you create. Empty or unavailable sources stay visibly empty.</p></div></div>
       </section>
 
+      <section id="connected-degraded" class="hero hidden" aria-labelledby="connected-degraded-title">
+        <div>
+          <span class="eyebrow">Standard Wallet connected</span>
+          <h2 id="connected-degraded-title">Wallet confirmed.<br>Finance data is not activated.</h2>
+          <p id="connected-wallet" class="account-summary">Your selected account is connected to YNX Testnet. The Finance product API is still pending in the accepted endpoint manifest, so no Finance data request was sent for portfolio, activity, planning, Pay, or AI data.</p>
+          <p>Public connectivity can be checked with the reconnect control. A private-service outage never disconnects the standard Wallet connection. You can sign out at any time.</p>
+        </div>
+        <div class="truth-card"><span class="status-dot"></span><div><strong>Nothing is inferred</strong><p>No balance, receipt, budget, statement, AI result, or product session is shown until Finance has an accepted product API and source-bound runtime.</p></div></div>
+      </section>
+
       <div id="workspace" class="hidden">
         <section id="overview" class="view active-view">
           <div class="balance-card"><div><span class="eyebrow light">READ-ONLY PORTFOLIO</span><p class="account" id="account">—</p></div><div class="balance-row"><div><span>Available evidence</span><strong id="balance">— YNXT</strong><small id="balance-source">Waiting for Explorer</small></div><div><span>Staked on-chain</span><strong id="staked">— YNXT</strong><small>No fiat conversion inferred</small></div></div></div>
