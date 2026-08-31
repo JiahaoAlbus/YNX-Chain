@@ -7,7 +7,15 @@ case "$machine_arch" in
   x86_64) platform="macos-x64"; pty_arch="darwin-x64" ;;
   *) echo "Unsupported macOS architecture: $machine_arch" >&2; exit 1 ;;
 esac
-dmg="$PWD/.ynx-developer-local/ynx-developer-testnet-preview-${platform}-unsigned.dmg"
+source_commit=$(/usr/bin/git rev-parse HEAD)
+candidate_root="$PWD/.ynx-developer-candidates"
+root="${YNX_DEVELOPER_MACOS_OUTPUT_DIR:-$candidate_root/${source_commit:0:12}-${platform}}"
+case "$root" in
+  "$candidate_root"/*) ;;
+  *) echo "YNX_DEVELOPER_MACOS_OUTPUT_DIR must stay under $candidate_root" >&2; exit 1 ;;
+esac
+[[ "$root" != *"/../"* && "$root" != */.. ]] || { echo "YNX_DEVELOPER_MACOS_OUTPUT_DIR must not contain parent traversal" >&2; exit 1; }
+dmg="$root/ynx-developer-testnet-preview-${platform}-unsigned.dmg"
 [[ -f "$dmg" ]] || { echo "Build the macOS DMG first." >&2; exit 1; }
 work=$(mktemp -d /private/tmp/ynx-developer-install.XXXXXX)
 cleanup() {

@@ -18,12 +18,18 @@ case "$machine_arch" in
   arm64|x86_64) platform="macos-$([[ "$machine_arch" == arm64 ]] && printf arm64 || printf x64)" ;;
   *) echo "Unsupported macOS architecture: $machine_arch" >&2; exit 1 ;;
 esac
+candidate_root="$PWD/.ynx-developer-candidates"
+root="${YNX_DEVELOPER_MACOS_OUTPUT_DIR:-$candidate_root/${source_commit:0:12}-${platform}}"
+case "$root" in
+  "$candidate_root"/*) ;;
+  *) echo "YNX_DEVELOPER_MACOS_OUTPUT_DIR must stay under $candidate_root" >&2; exit 1 ;;
+esac
+[[ "$root" != *"/../"* && "$root" != */.. ]] || { echo "YNX_DEVELOPER_MACOS_OUTPUT_DIR must not contain parent traversal" >&2; exit 1; }
+[[ ! -e "$root" ]] || { echo "Refusing to overwrite existing macOS package candidate: $root" >&2; exit 1; }
 
 npm run code:build
-root="$PWD/.ynx-developer-local"
 app="$root/YNX Developer Testnet Preview.app"
-rm -rf "$root"
-mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources/runtime" "$app/Contents/Resources/code/apps/developer/frontend"
+mkdir -p "$root" "$app/Contents/MacOS" "$app/Contents/Resources/runtime" "$app/Contents/Resources/code/apps/developer/frontend"
 /usr/bin/clang -fobjc-arc -fmodules-cache-path="$root/module-cache" desktop/macos/main.m -o "$app/Contents/MacOS/YNXDeveloper" -framework Cocoa -framework Security -framework WebKit
 cp desktop/macos/Info.plist "$app/Contents/Info.plist"
 cp desktop/code-server.mjs "$app/Contents/Resources/server.mjs"
@@ -96,7 +102,6 @@ if ! grep -Fq 'Signature=adhoc' <<<"$signature" || ! grep -Fq 'TeamIdentifier=no
 fi
 dmg_root="$root/dmg-root"
 dmg="$root/ynx-developer-testnet-preview-${platform}-unsigned.dmg"
-rm -rf "$dmg_root"
 mkdir -p "$dmg_root"
 COPYFILE_DISABLE=1 cp -XR "$app" "$dmg_root/"
 /usr/bin/hdiutil create -ov -format UDZO -volname "YNX Developer Testnet Preview" -srcfolder "$dmg_root" "$dmg" >/dev/null
