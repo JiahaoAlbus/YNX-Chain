@@ -100,6 +100,7 @@ function trackedEngineeringFiles(repoRoot) {
     "configs/data-fabric.env.example",
     "configs/data-fabric-event-keys.example.json",
     "integration/product-event-contracts.json",
+    "scripts/data-fabric/release-truth-check.mjs",
     "scripts/data-fabric/api-capacity/main.go",
     "internal/bftgateway/pay.go",
     "internal/bftgateway/pay_test.go",
@@ -119,6 +120,7 @@ function trackedEngineeringFiles(repoRoot) {
     "sdk/datafabric-typescript/",
     "schemas/data-fabric/",
     "infra/data-fabric/",
+    "scripts/data-fabric/",
   ];
 
   return tracked.filter((file) => {

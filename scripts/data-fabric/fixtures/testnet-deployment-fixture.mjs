@@ -2,10 +2,14 @@
 import fs from "node:fs";
 import http from "node:http";
 
-const [readyPath, commit] = process.argv.slice(2);
+const [readyPath, commit, identityMode = "canonical"] = process.argv.slice(2);
 if (!readyPath || !/^[0-9a-f]{12}$/.test(commit ?? "")) throw new Error("ready path and 12-char commit are required");
+if (!["canonical", "legacy-chain", "legacy-symbol"].includes(identityMode)) throw new Error("identity mode is invalid");
 const fabricRelease = `ynx-data-fabric-${commit}`;
 const bftRelease = `ynx-bft-gateway-${commit}`;
+const chainId = identityMode === "legacy-chain" ? 9102 : 6423;
+const nativeSymbol = identityMode === "legacy-symbol" ? "NYXT" : "YNXT";
+const cometChainId = identityMode === "legacy-chain" ? "ynx_9102-1" : "ynx_6423-1";
 
 const json = (response, status, value) => {
   const body = Buffer.from(JSON.stringify(value));
@@ -35,9 +39,9 @@ const fabric = http.createServer((request, response) => {
 const bft = http.createServer((request, response) => {
   const build = {commit, release: bftRelease};
   if (request.url === "/health") {
-    json(response, 200, {ok: true, service: "ynx-bft-gatewayd", chainId: 6423, nativeSymbol: "YNXT", cometChainId: "ynx_6423-1", validatorCount: 4, build});
+    json(response, 200, {ok: true, service: "ynx-bft-gatewayd", chainId, nativeSymbol, cometChainId, validatorCount: 4, build});
   } else if (request.url === "/status") {
-    json(response, 200, {chainId: 6423, nativeCurrencySymbol: "YNXT", truthfulStatus: "cometbft-rpc-and-abci-backed", build});
+    json(response, 200, {chainId, nativeCurrencySymbol: nativeSymbol, truthfulStatus: "cometbft-rpc-and-abci-backed", build});
   } else if (request.url === "/pay/events") {
     json(response, 200, {events: [{id: "111111111111111111111111", type: "invoice.paid"}]});
   } else {
