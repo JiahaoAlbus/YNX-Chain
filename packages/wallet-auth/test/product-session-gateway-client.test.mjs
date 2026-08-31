@@ -5,7 +5,7 @@ import { test } from "node:test";
 import { p256 } from "@noble/curves/nist.js";
 import {
   createProductSessionReturnURL,
-  ProductSessionGatewayFetchAdapter, ProductSessionGatewayHttpHandler, RecoverableProductSessionClient,
+  canonicalJSON, ProductSessionGatewayFetchAdapter, ProductSessionGatewayHttpHandler, RecoverableProductSessionClient,
   signProductSessionApproval, PRODUCT_SESSION_CLIENT_STATE, PRODUCT_SESSION_GATEWAY_PROOF_HEADER_V2, WalletAuthError,
 } from "../src/index.js";
 
@@ -61,6 +61,18 @@ test("fetch adapter rejects unsafe origins, malformed responses and network fall
   await assert.rejects(() => unavailable.challenge({ requestId: "req_adapter_network_0001", request: {}, approval: {} }), code("NETWORK_UNAVAILABLE"));
   const interrupted = new ProductSessionGatewayFetchAdapter({ endpoint: "https://gateway.test", fetch: async () => ({ status: 200, headers: new Headers({ "content-type": "application/json", "cache-control": "no-store", "x-request-id": "req_adapter_stream_00001" }), async text() { throw new TypeError("stream reset"); } }), ...capabilities });
   await assert.rejects(() => interrupted.challenge({ requestId: "req_adapter_stream_00001", request: {}, approval: {} }), code("NETWORK_UNAVAILABLE"));
+  const unmounted = new ProductSessionGatewayFetchAdapter({
+    endpoint: "https://gateway.test",
+    fetch: async () => new Response(canonicalJSON({ error: { code: "ROUTE_NOT_FOUND", message: "Product Session Gateway route is not registered" }, ok: false, requestId: "req_invalid_request_000", schemaVersion: 2 }), { status: 404, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-request-id": "req_invalid_request_000" } }),
+    ...capabilities,
+  });
+  await assert.rejects(() => unmounted.challenge({ requestId: "req_adapter_route_00001", request: {}, approval: {} }), code("ROUTE_NOT_MOUNTED"));
+  const substitutedUnmounted = new ProductSessionGatewayFetchAdapter({
+    endpoint: "https://gateway.test",
+    fetch: async () => new Response(canonicalJSON({ error: { code: "ROUTE_NOT_FOUND", message: "Product Session Gateway route is not registered" }, ok: false, requestId: "req_invalid_request_000", schemaVersion: 2 }), { status: 404, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-request-id": "req_substituted_request_0" } }),
+    ...capabilities,
+  });
+  await assert.rejects(() => substitutedUnmounted.challenge({ requestId: "req_adapter_route_00001", request: {}, approval: {} }), code("INVALID_GATEWAY_RESPONSE"));
 });
 
 function code(expected) { return (error) => error instanceof WalletAuthError && error.code === expected; }

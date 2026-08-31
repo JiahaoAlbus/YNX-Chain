@@ -63,7 +63,7 @@ export class ProductSessionGatewayFetchAdapter {
     const responseRequestId = response.headers.get("x-request-id");
     const cacheControl = response.headers.get("cache-control") ?? "";
     const contentLength = response.headers.get("content-length");
-    if (!/^application\/json(?:;\s*charset=utf-8)?$/i.test(contentType) || responseRequestId !== requestId || !/(^|,)\s*no-store\s*(,|$)/i.test(cacheControl)) fail("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response headers are invalid");
+    if (!/^application\/json(?:;\s*charset=utf-8)?$/i.test(contentType) || !/(^|,)\s*no-store\s*(,|$)/i.test(cacheControl)) fail("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response headers are invalid");
     if (contentLength !== null && (!/^\d+$/.test(contentLength) || Number(contentLength) > MAX_RESPONSE_BYTES)) fail("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response exceeds policy");
     let text; try { text = await response.text(); } catch { fail("NETWORK_UNAVAILABLE", "Product Session Gateway response stream was interrupted; no local response was substituted"); }
     if (new TextEncoder().encode(text).length > MAX_RESPONSE_BYTES) fail("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response exceeds policy");
@@ -71,12 +71,14 @@ export class ProductSessionGatewayFetchAdapter {
     if (canonicalJSON(payload) !== text) fail("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response is not canonical JSON");
     if (response.status >= 200 && response.status < 300) {
       exactFields(payload, ["ok", "requestId", "result", "schemaVersion"], "Product Session Gateway success response");
-      if (payload.ok !== true || payload.requestId !== requestId || payload.schemaVersion !== PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION) fail("INVALID_GATEWAY_RESPONSE", "Product Session Gateway success response binding is invalid");
+      if (payload.ok !== true || payload.requestId !== requestId || responseRequestId !== requestId || payload.schemaVersion !== PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION) fail("INVALID_GATEWAY_RESPONSE", "Product Session Gateway success response binding is invalid");
       return payload.result;
     }
     exactFields(payload, ["error", "ok", "requestId", "schemaVersion"], "Product Session Gateway error response");
     exactFields(payload.error, ["code", "message"], "Product Session Gateway public error");
-    if (payload.ok !== false || payload.requestId !== requestId || payload.schemaVersion !== PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION || typeof payload.error.code !== "string" || !/^[A-Z][A-Z0-9_]{2,63}$/.test(payload.error.code) || typeof payload.error.message !== "string" || payload.error.message.length > 300) fail("INVALID_GATEWAY_RESPONSE", "Product Session Gateway error response binding is invalid");
+    const unmountedRoute = response.status === 404 && payload.error.code === "ROUTE_NOT_FOUND" && payload.requestId === responseRequestId;
+    if (payload.ok !== false || (!unmountedRoute && (payload.requestId !== requestId || responseRequestId !== requestId)) || payload.schemaVersion !== PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION || typeof payload.error.code !== "string" || !/^[A-Z][A-Z0-9_]{2,63}$/.test(payload.error.code) || typeof payload.error.message !== "string" || payload.error.message.length > 300) fail("INVALID_GATEWAY_RESPONSE", "Product Session Gateway error response binding is invalid");
+    if (unmountedRoute) fail("ROUTE_NOT_MOUNTED", "Canonical Product Session Gateway route is not mounted; no local response was substituted");
     throw new WalletAuthError(payload.error.code, payload.error.message);
   }
 }

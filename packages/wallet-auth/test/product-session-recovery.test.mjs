@@ -353,6 +353,22 @@ test("approved callback survives a completion outage and resumes from protected 
   assert.equal(await setup.storage.get(`${client.storageKey}:return`), null);
 });
 
+test("an unmounted canonical Gateway route retains the approved callback for explicit Retry", async () => {
+  const setup = harness(); let mounted = false;
+  const gateway = { ...setup.gateway, async challenge(input) { if (!mounted) throw new WalletAuthError("ROUTE_NOT_MOUNTED", "old Gateway deployment"); return setup.gateway.challenge(input); } };
+  const client = new RecoverableProductSessionClient({ registry, productId: "social", platform: "android", storage: setup.storage, gateway, device, tokenFactory: (() => { let i = 0; return () => token(`route-not-mounted-${i++}`); })(), clock: () => NOW });
+  const connecting = await client.begin({ walletInstalled: true, schemeRegistered: true });
+  const approval = signProductSessionApproval(registry, connecting.request, { accountSecret, scopes: connecting.request.scopes, expiresAt: "2026-08-14T01:03:00.000Z" }, NOW);
+  const callback = createProductSessionReturnURL(registry, connecting.request, { result: "approved", approval }, NOW);
+  const unavailable = await client.handleReturn(callback);
+  assert.equal(unavailable.status, PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED);
+  assert.match(unavailable.message, /route is not mounted/);
+  assert.notEqual(await setup.storage.get(`${client.storageKey}:pending`), null);
+  assert.equal(await setup.storage.get(`${client.storageKey}:return`), callback);
+  mounted = true;
+  assert.equal((await client.retry({ walletInstalled: true, schemeRegistered: true })).status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
+});
+
 test("device secret never crosses the Gateway adapter boundary", async () => {
   const setup = harness(); const seen = [];
   const gateway = {

@@ -127,6 +127,7 @@ export class RecoverableProductSessionClient {
       return this.#state;
     } catch (error) {
       if (isNetworkUnavailable(error)) return this.#offline("Network unavailable while completing Wallet approval; the protected callback was retained for Retry");
+      if (isRouteNotMounted(error)) return this.#routeUnavailable("Canonical Product Session route is not mounted; protected callback was retained for Retry");
       await this.#storage.remove(this.storageKey); await this.#clearPending();
       this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, "Gateway did not issue or confirm a valid Product Session", { actions: ["retry", "guest"] });
       return this.#state;
@@ -232,12 +233,14 @@ export class RecoverableProductSessionClient {
       return this.#state;
     } catch (error) {
       if (isNetworkUnavailable(error)) return this.#offline("Network unavailable during Product Session re-introspection; protected state was retained but is not authoritative");
+      if (isRouteNotMounted(error)) return this.#routeUnavailable("Canonical Product Session route is not mounted; protected state was retained for Retry");
       await this.#storage.remove(this.storageKey);
       return null;
     }
   }
   async #clearPending() { await this.#storage.remove(`${this.storageKey}:pending`); await this.#storage.remove(`${this.storageKey}:return`); }
   #offline(message = "Network unavailable; cached Product Session is not treated as authoritative") { this.#state = state(PRODUCT_SESSION_CLIENT_STATE.NETWORK_UNAVAILABLE, message, { actions: ["retry", "guest"] }); return this.#state; }
+  #routeUnavailable(message) { this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, message, { actions: ["retry", "guest"] }); return this.#state; }
   #networkTransition(message) { if (!this.#networkAvailable) return this.#offline(message); this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, message, { actions: ["retry", "guest"] }); return this.#state; }
 }
 
@@ -248,5 +251,6 @@ function device(value) { const fields = Object.keys(value ?? {}).sort().join("\n
 function tokenFactory(value) { if (typeof value !== "function") fail("INVALID_RANDOM_SOURCE", "Product Session client requires a cryptographic token factory"); return () => { const token = value(); if (typeof token !== "string" || !/^[A-Za-z0-9_-]{32,64}$/.test(token)) fail("INVALID_RANDOM_SOURCE", "Product Session token factory returned an invalid token"); return token; }; }
 function clock(value) { if (typeof value !== "function") fail("INVALID_TIME", "Product Session client requires a clock"); return () => { const result = value(); if (!(result instanceof Date) || !Number.isFinite(result.getTime())) fail("INVALID_TIME", "Product Session clock returned invalid time"); return result; }; }
 function isNetworkUnavailable(error) { return error instanceof WalletAuthError && error.code === "NETWORK_UNAVAILABLE"; }
+function isRouteNotMounted(error) { return error instanceof WalletAuthError && error.code === "ROUTE_NOT_MOUNTED"; }
 function gatewayRequestId(kind, token) { return `req_ps_${kind}_${token}`; }
 function fail(code, message) { throw new WalletAuthError(code, message); }
