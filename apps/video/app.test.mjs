@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {createHash} from "node:crypto";
 import {readFile} from "node:fs/promises";
-import {connectVideoWallet,discoverWalletCandidates,WALLET_INSTALLATION_OPTIONS} from "./wallet-connection.js";
+import {connectVideoWallet,discoverWalletCandidates,reduceStandardWalletConnectState,WALLET_INSTALLATION_OPTIONS} from "./wallet-connection.js";
 
 const read=name=>readFile(new URL(name,import.meta.url),"utf8");
 const sha=value=>createHash("sha256").update(value).digest("hex");
@@ -15,7 +15,20 @@ test("viewer exposes complete truthful interaction paths",async()=>{
   assert.match(js,/Product Session v2/);
   assert.match(js,/No placeholder records/);
   assert.doesNotMatch(js,/walletAuthorizationURL|ynx-video-web-v1|chain_id=6423|authorize\\?client=/);
+  assert.doesNotMatch(js,/9102|0x238e/i);
+  for(const control of ["wallet-details","wallet-switch","Disconnect &amp; revoke"])assert.match(html,new RegExp(control));
+  assert.match(js,/currentWallet\)\s*\{\s*showWalletDetails/);
+  assert.match(js,/wallet_addEthereumChain/);
   assert.doesNotMatch(js,/Math\\.random|fake views/i);
+});
+
+test("private Product Session degradation preserves the completed Layer 1 connection",()=>{
+  const connected={state:"CHAIN_CONFIRMED",account:"0x1111111111111111111111111111111111111111",chainId:"0x1917"};
+  const degraded=reduceStandardWalletConnectState(connected,"PRIVATE_SERVICE_DEGRADED",{reason:"gateway-unavailable"});
+  assert.equal(degraded.state,"CHAIN_CONFIRMED");
+  assert.equal(degraded.account,connected.account);
+  assert.equal(degraded.chainId,"0x1917");
+  assert.equal(degraded.privateService,"PRIVATE_SERVICE_DEGRADED");
 });
 
 test("accepted browser-safe SDK modules remain byte exact",async()=>{

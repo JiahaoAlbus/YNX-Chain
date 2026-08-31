@@ -1,4 +1,4 @@
-import {connectVideoWallet, WALLET_INSTALLATION_OPTIONS, discoverWalletCandidates, walletChoiceNeedsResolution, walletCandidatesFromError} from "./wallet-connection.js";
+import {connectVideoWallet, WALLET_INSTALLATION_OPTIONS, YNX_TESTNET_ADD_CHAIN, discoverWalletCandidates, walletChoiceNeedsResolution, walletCandidatesFromError} from "./wallet-connection.js";
 import {ready as i18nReady, t} from "./i18n.js";
 
 const publicAPI = `${location.origin}/video/api`, localAPI = "http://127.0.0.1:8423";
@@ -54,6 +54,9 @@ function resetWallet(message = "Wallet disconnected. Guest playback remains avai
   setConnectionMessage(message + " Private actions remain unavailable until Product Session v2 is accepted.");
   $("#signin").textContent = "Connect Wallet";
   $("#revoke").hidden = true;
+  $("#wallet-details").hidden = true;
+  $("#wallet-switch").hidden = true;
+  $("#wallet-status").hidden = true;
   $("#wallet-status").classList.remove("wallet-connected");
   for (const unsub of unsubscribeEvents) {
     try { unsub?.(); } catch {}
@@ -66,6 +69,8 @@ function renderWalletState(state) {
   $("#signin").textContent = `${getWalletName(state)} · ${maskAccount(state.account)}`;
   $("#wallet-status").classList.add("wallet-connected");
   $("#revoke").hidden = false;
+  $("#wallet-details").hidden = false;
+  $("#wallet-switch").hidden = false;
   setConnectionMessage(`Connected to ${getWalletName(state)} on YNX Testnet (${state.chainId}). ` +
     "Public actions are available; private actions still require Product Session v2.");
   $("#wallet-install").hidden = true;
@@ -77,6 +82,39 @@ function renderWalletState(state) {
     walletKind: state.walletKind,
     providerKey: state.providerKey,
   });
+}
+
+function showWalletDetails() {
+  if (!currentWallet) return;
+  const status = $("#wallet-status");
+  status.hidden = false;
+  status.textContent = `${getWalletName(currentWallet)} (${currentWallet.providerInfo?.rdns || "unknown provider"}) · ${maskAccount(currentWallet.account)} · ${currentWallet.chainId}. Private Product Session remains degraded.`;
+}
+
+async function switchWalletChain() {
+  const provider = currentWallet?.connection?.provider || currentWallet?.provider;
+  if (!provider?.request) return;
+  try {
+    let chainId = await provider.request({method: "eth_chainId"});
+    if (String(chainId).toLowerCase() !== "0x1917") {
+      try {
+        await provider.request({method: "wallet_switchEthereumChain", params: [{chainId: "0x1917"}]});
+      } catch (error) {
+        if (`${error?.code}` !== "4902") throw error;
+        await provider.request({method: "wallet_addEthereumChain", params: [YNX_TESTNET_ADD_CHAIN]});
+        await provider.request({method: "wallet_switchEthereumChain", params: [{chainId: "0x1917"}]});
+      }
+      chainId = await provider.request({method: "eth_chainId"});
+    }
+    if (String(chainId).toLowerCase() !== "0x1917") throw new Error("Wallet did not switch to YNX Testnet (0x1917).");
+    currentWallet = {...currentWallet, chainId: "0x1917"};
+    renderWalletState(currentWallet);
+    showWalletDetails();
+    notice("YNX Testnet switch confirmed without requesting an account.");
+  } catch (error) {
+    setConnectionMessage(error?.message || "Unable to switch Wallet to YNX Testnet.");
+    notice(error?.message || "Unable to switch Wallet to YNX Testnet.", true);
+  }
 }
 
 function bindWalletEvents(walletState) {
@@ -429,6 +467,10 @@ async function showHistory(button) {
 }
 
 $("#signin").onclick = async () => {
+  if (currentWallet) {
+    showWalletDetails();
+    return;
+  }
   try {
     const candidates = await discoverWalletCandidates(window, {timeoutMs: 250});
     const ynxCount = candidates.filter(c => c.isYNXWallet).length;
@@ -452,6 +494,8 @@ $("#signin").onclick = async () => {
 };
 
 $("#revoke").onclick = () => revokeWallet("user-requested");
+$("#wallet-details").onclick = showWalletDetails;
+$("#wallet-switch").onclick = switchWalletChain;
 $("#search").onsubmit = event => { event.preventDefault(); loadVideos($("#query").value); };
 $("#close").onclick = async () => { await flushWatch(false); $("#video").pause(); $("#player").close(); };
 $("#video").addEventListener("pause", () => flushWatch(false));
