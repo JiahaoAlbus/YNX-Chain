@@ -7743,7 +7743,7 @@
     {
       "taskId": "P0-328",
       "owner": "integration,chain-peer-release-control-plane-readonly-preparation",
-      "status": "COMPLETED_READONLY_BLOCKED_PEER_6423_CONFIG_AND_IDENTITY_UNBOUND",
+      "status": "INVALIDATED_READONLY_WRONG_ENV_AND_STATE_PATH_MODEL",
       "dependencies": ["P0-327"],
       "executionLeaseIssued": false,
       "remoteMutation": false,
@@ -7752,10 +7752,40 @@
       "sshAttemptCount": 3,
       "mutationCount": 0,
       "terminalEvidence": "release/integration/p0-wallet-connectivity/execution/objects/p0-328-chain-peer-6423-readonly-preparation-terminal-evidence-20260831.json",
-      "terminalEvidenceSha256": "f0820db1bbc1d63e6bbb7582c6df54e9ecaf0585307ad62e1ca9f04bbc52cfd1",
+      "terminalEvidenceSha256": "59843815d8d3b3c44bd89f974f93fc050e0f8d926cdd7b6a03bf185c18514051",
       "scope": "Read only: bind per-peer 6423 artifact, unit, config, identity, listener, data-dir and rollback baselines needed for a later distinct deployment lease.",
       "forbidden": ["peer start", "peer restart", "new chain deployment", "Caddy operation", "broadcast", "unjail", "validator operation", "account", "signature", "typed-data", "transaction"],
-      "nextAction": "Unique blocker: PEER_6423_DEPLOYMENT_ARTIFACT_CONFIG_IDENTITY_AND_ROLLBACK_UNBOUND. Freeze one exact per-peer artifact/config/data-dir/genesis/node-identity/seed-peer/listener/rollback package and literal no-retry argv; only then may a new deployment lease be reviewed. Full four-node BFT redundancy remains unproven."
+      "sourceIngressRepair": {"commit":"d33a6c790ec26223394810ff48da92b404526136","tree":"67c58d744a5d2c34472d2a5c1d230c23aa602569","authorityWorktree":"/Users/huangjiahao/Desktop/YNX Chain","remoteMainDivergence":"behind=309,ahead=7","deploymentAuthority":false},
+      "nextAction": "P0-328 is invalidated for path-model insufficiency. Preserve its zero-write fact, but use P0-330's correct-path readback for all future preparation. The source ingress repair remains source-only and must be safely integrated on a fresh branch, never pushed from the behind-309 main worktree."
+    },
+    {
+      "taskId": "P0-329",
+      "owner": "integration,chain-peer-release-control-plane-readonly-preparation",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_READONLY_INSUFFICIENT_PRIVILEGE",
+      "dependencies": ["P0-328"],
+      "executionLeaseIssued": false,
+      "remoteMutation": false,
+      "attemptCount": 1,
+      "sshAttemptCount": 2,
+      "mutationCount": 0,
+      "terminalEvidence": "release/integration/p0-wallet-connectivity/execution/objects/p0-329-chain-peer-6423-corrected-readonly-preparation-terminal-failure-20260831.json",
+      "terminalEvidenceSha256": "ad6532c259fde61e4fe5d7bd80250c81268b6b7e638b8484a015954a0a35f984",
+      "nextAction": "P0-329 is nonreusable. P0-330 corrected the privilege boundary with a separately bounded sudo -n read-only pass; no deployment follows."
+    },
+    {
+      "taskId": "P0-330",
+      "owner": "integration,chain-peer-release-control-plane-readonly-preparation",
+      "status": "COMPLETED_READONLY_BLOCKED_PEER_6423_START_AND_ROLLBACK_CANDIDATE_UNFROZEN",
+      "dependencies": ["P0-329"],
+      "executionLeaseIssued": false,
+      "remoteMutation": false,
+      "attemptCount": 1,
+      "sshAttemptCount": 3,
+      "mutationCount": 0,
+      "terminalEvidence": "release/integration/p0-wallet-connectivity/execution/objects/p0-330-chain-peer-6423-privileged-readonly-preparation-terminal-evidence-20260831.json",
+      "terminalEvidenceSha256": "ef3e1226d5e7551791541804a15ce5b0a61ab9b2b1368b1fa7eed9d772062917",
+      "blocker": "PEER_6423_START_AND_ROLLBACK_CANDIDATE_UNFROZEN",
+      "nextAction": "Freeze exact per-peer artifact/config/state migration or reuse plan, post-start node identity/peer-sync predicates, rollback object and literal one-attempt argv. Only then may a new peer deployment lease be reviewed."
     }
   ]
 }

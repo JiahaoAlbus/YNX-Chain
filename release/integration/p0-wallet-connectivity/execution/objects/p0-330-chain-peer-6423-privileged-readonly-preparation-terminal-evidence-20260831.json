@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "1.0.0",
+  "taskId": "P0-330",
+  "status": "COMPLETED_READONLY_BLOCKED_PEER_6423_START_AND_ROLLBACK_CANDIDATE_UNFROZEN",
+  "attemptCount": 1,
+  "sshAttemptCount": 3,
+  "retryAllowed": false,
+  "mutationCount": 0,
+  "stdout": {"path": "/tmp/p0-330-chain-peer-6423-privileged-readonly-preparation.stdout", "bytes": 6099, "sha256": "346392d59e9d46eb4ec76d27bce5247234eb8ec5a3f7b1a160243876b0cb682c"},
+  "common": {
+    "unitSha256": "29b3e4834bb2a81f252f8662b6547893893e3343372dab0ac00619bd63330a95",
+    "unitExecStartSha256": "41f4a40dc48fefe6e6626ffc9fe8d02c7bd075f06998ec28712240c7aafdf0cc",
+    "unitEnvironmentFilesSha256": "c576ad2eb5ab0e71a7f9d9ef7ea7af5001f74674518b241df1d0ab929506260a",
+    "correctEnvironmentPath": "/etc/ynx/ynx-chaind.env",
+    "requiredNonsecretKeys": ["YNX_LOCAL_VALIDATOR_ADDRESS", "YNX_PEER_RPC_URLS", "YNX_REPLICATION_SOURCE_URL"],
+    "requiredNonsecretKeysPresentOnEveryPeer": true,
+    "listener6420": "absent on every peer",
+    "healthAndStatus6420": "HTTP transport 000 on every peer",
+    "serviceState": "ynx-chaind.service loaded:inactive:dead:MainPID=0:NRestarts=0:disabled on every peer"
+  },
+  "peers": {
+    "singapore": {"host":"43.134.23.58","binarySha256":"1432eb9c00e03aa65167d08b382e618f72c32daff775fc3c51e2ff90fabb02ec","binaryBytes":20160696,"envSha256":"514bca6d21dfc23d265f833f2a052ba44a883dae9f8c8d11c71bb0309f0a27d3","testnetInventorySha256":"b51f0948299a4168356a6e8a8ae0ec0bb0cdf32ac3c24a1c5fc7090a00e077d5","releaseManifestInventorySha256":"4d94e4db23a4f299aae791f0ad9a106d93c609118d87f167b9e3e1ebf33a9729","backupManifestInventorySha256":"3bffde051d930ef89a323de7f0d888aef58b4a3ebdbef4bdcdb79ce14372a60f"},
+    "siliconValley": {"host":"43.162.100.54","binarySha256":"eb96a2d09859f041221917489589100f5a94ef0bbf4f5ad4f6fcf5c753846fd4","binaryBytes":20418744,"envSha256":"bc2530e4ef231a59b3c7cd89a430ed30c8384a16a7f60f2698215558c8036a88","testnetInventorySha256":"66336cea3954609d0fb4b7f45f96581a74fc4bcc02ec8273529869c1bf7da60d","releaseManifestInventorySha256":"191b9cd3f5e0711e30f9d8b706e6d74d302843817e0597581028d986b96c8e1a","backupManifestInventorySha256":"1a0e1652f4d296f0b5bf477b4fd0cb94cd6b1c600bbd1f4480095326903bfe09"},
+    "seoul": {"host":"43.164.132.81","binarySha256":"eb96a2d09859f041221917489589100f5a94ef0bbf4f5ad4f6fcf5c753846fd4","binaryBytes":20418744,"envSha256":"1c08615c413d9307ded3e9756a3d1fc5758475f0b89da6a0b533d8b1dccc1d4e","testnetInventorySha256":"e67cdac6a54f83cb45b1992e96bc354aed2093cfb9c45f2d2a8407ad41756f76","releaseManifestInventorySha256":"c0cd03f039d45faa5da24badfb2a79dee63ddcabd9636bc88dbc4a31fc6875fc","backupManifestInventorySha256":"b28ff3b839702c9ec72ef952f1046c59bbbebc567ea5f9f7fd09b19fb6b51d56"}
+  },
+  "blocker": "PEER_6423_START_AND_ROLLBACK_CANDIDATE_UNFROZEN",
+  "reason": "Correct current unit, secret-safe environment semantics, state inventories, release manifests and backup inventories are now bound. However no peer listener is running, Singapore binary differs from Silicon Valley and Seoul, and no exact per-peer start artifact/config/rollback transaction has been frozen. The P0-328 source-only ingress repair does not resolve this runtime contract.",
+  "nextAction": "Freeze exactly one candidate binary/config/state migration or reuse plan per peer, explicit expected post-start node identity and peer-sync predicates, the associated rollback object, and a literal one-attempt argv. Then request a wholly-new peer deployment lease."
+}

@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "taskId": "P0-328",
-  "status": "COMPLETED_READONLY_BLOCKED_PEER_6423_CONFIG_AND_IDENTITY_UNBOUND",
+  "status": "INVALIDATED_READONLY_WRONG_ENV_AND_STATE_PATH_MODEL",
   "attemptCount": 1,
   "sshAttemptCount": 3,
   "retryAllowed": false,
@@ -37,7 +37,22 @@
       "legacyPeer": "masked:inactive:dead:0:0"
     }
   },
-  "blocker": "PEER_6423_DEPLOYMENT_ARTIFACT_CONFIG_IDENTITY_AND_ROLLBACK_UNBOUND",
-  "reason": "There is no frozen per-peer config home, genesis, node identity, seed/persistent-peer binding, 6420 listener contract, or rollback object. Singapore's binary differs from the matching Silicon Valley and Seoul binary. The primary reports stale_peer_sync, so no four-node BFT redundancy claim is available.",
-  "nextAction": "A source owner must freeze exactly one artifact/config/data-dir/genesis/node-identity/seed-peer/rollback package per peer and a literal no-retry deploy argv. Only then may Central review a wholly-new deployment lease."
+  "invalidatedConclusion": "The original inspection queried /etc/ynx-chain/ynx-chaind.env and Comet/Tendermint-style homes. The authoritative unit instead uses /etc/ynx/ynx-chaind.env and /var/lib/ynx-chain/testnet. Its absence claims are invalid and cannot support a deployment decision.",
+  "blocker": "SUPERSEDED_BY_P0_330_CORRECT_PATH_READONLY_EVIDENCE",
+  "reason": "P0-328 itself remained zero-write, but its model of the environment and state paths was incomplete. P0-330 repeats the check with the authority unit's actual EnvironmentFile and privileged read-only access.",
+  "sourceIngressRepair": {
+    "authorityWorktree": "/Users/huangjiahao/Desktop/YNX Chain",
+    "branch": "main",
+    "commit": "d33a6c790ec26223394810ff48da92b404526136",
+    "tree": "67c58d744a5d2c34472d2a5c1d230c23aa602569",
+    "parent": "60e7426c1758fc3bae9e52923214abab6732806b",
+    "remoteMainDivergence": "behind=309,ahead=7",
+    "untrackedExcluded": [".codex-worktrees/", ".workbuddy-ai/"],
+    "scope": "Five source files prevent executable deployment paths from regenerating retired 9102 ingress: Bridge to 6433, Web4 redirect, gRPC/EVM-WS explicit 503, Shop staging no 38091, and a source verifier plus dry-run negative check.",
+    "sourceVerifier": "scripts/verify/chain-6423-ingress-source-check.sh",
+    "sourceVerifierSha256": "9b67a65b801302456c156cc4dc0b0eca30ef318a692d53b84952fb9af52aa0e2",
+    "verification": ["git diff --check", "bash -n", "py_compile", "make chain-6423-ingress-source-check", "make caddy-ingress-check"],
+    "deploymentAuthority": false
+  },
+  "nextAction": "Unique next action: create a dedicated integration branch from a freshly fetched current remote target, cherry-pick only d33a6c790ec26223394810ff48da92b404526136, rerun the ingress source and generated-Caddy negative checks, and bind the resulting new commit/tree before any later peer deployment review. Do not push the behind-309 main worktree or treat this source patch as a deployment lease."
 }
