@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "finance-aligned-runtime-candidate@1",
+  "classification": "local-unsigned-source-and-artifact-candidate",
+  "status": "SOURCE_AND_ARTIFACT_FROZEN_AWAITING_NEW_ZERO_WRITE_PREWRITE",
+  "product": "finance",
+  "combinedSource": {
+    "commit": "55a8483f55c095c6cd32ca9076a32a90e530d85e",
+    "tree": "b0cc450f3b3c2b915df94843c2302de09099fc8b",
+    "backendSourceCommit": "7824af677dd052d20321431381523ab302614d98",
+    "publicFrontendSourceCommit": "75f0299aaf53263e4279acf93e9a06db9d055e38",
+    "mergeBase": "f28b0aa29a0d93a2b7f20a00b835c4a1aa6175b3",
+    "composition": "7824af6 backend retained; seven current 75f public Finance frontend resources retained byte-for-byte."
+  },
+  "artifact": {
+    "classification": "local-linux-amd64-unsigned-not-hosted",
+    "path": "/tmp/ynx-finance-aligned-final.41YryB/ynx-finance-55a8483f55c0-runtime.tar.gz",
+    "bytes": 3957529,
+    "sha256": "ee939ceae83773e900326aabbb265e1040d35145e4b33af6d3c60c10b41c440f",
+    "reproducibleRepeatSha256": "ee939ceae83773e900326aabbb265e1040d35145e4b33af6d3c60c10b41c440f",
+    "binary": {
+      "relativePath": "ynx-finance",
+      "bytes": 8573076,
+      "sha256": "2c8e0de3dc658901f674ca56b0619c0a69a61c86e1fbb9747938617ff561e3f6",
+      "format": "ELF 64-bit x86-64 static"
+    }
+  },
+  "publicFrontendAssets": [
+    {"relativePath":"web/index.html","url":"https://finance.ynxweb4.com/","bytes":11427,"sha256":"c1fc45eecd7f88de6fc3e049d15161b8d4e9878e31f20c977fc52b383a18ed53"},
+    {"relativePath":"web/app.js","url":"https://finance.ynxweb4.com/app.js","bytes":17371,"sha256":"a1ed94de08fc5b73f075cf35c1b17481e24b6046732ad92d82209959b694c6d6"},
+    {"relativePath":"web/read-sources.js","url":"https://finance.ynxweb4.com/read-sources.js","bytes":10920,"sha256":"e19b7b266c14b181a4d88b10c6e1975398bdafb77660272f37ba22b48fc18c70"},
+    {"relativePath":"web/styles.css","url":"https://finance.ynxweb4.com/styles.css","bytes":13935,"sha256":"bd01b920fee3693204a63aed364c27becf4c9c84f3ee1ed9dd3e2d35a39b5d9f"},
+    {"relativePath":"web/manifest.webmanifest","url":"https://finance.ynxweb4.com/manifest.webmanifest","bytes":241,"sha256":"3f7bec35f54aad6a095151e9d4d553e7ea10cbbbcc9e16f0f3fe7abd242b6d05"},
+    {"relativePath":"web/ynx-logo.png","url":"https://finance.ynxweb4.com/ynx-logo.png","bytes":104171,"sha256":"df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"},
+    {"relativePath":"web/wallet-auth.js","url":"https://finance.ynxweb4.com/wallet-auth.js","bytes":66997,"sha256":"be5c90e938e5d5b6e181199f2e1e3949b8f343c4e1af4d8aceab27b1ed41bf6d"}
+  ],
+  "invalidatedExecutionObjects": {
+    "branch": "codex/p0-finance-p0304-execution-objects-20260831",
+    "commit": "f18bbb1da3324e00e4ebd1c1e668d8373bed87d4",
+    "reason": "Its candidate archive expects a divergent 7824af6 frontend and would regress the currently public 75f frontend resource set.",
+    "leaseIssued": false,
+    "deployAllowed": false
+  },
+  "nextRequiredGate": {
+    "kind": "Finance-only zero-write prewrite",
+    "mustFreshlyBind": ["current public asset receipts", "stage and backup parent tuples", "carrier and candidate paths", "old runtime/service/env/unit/Caddy receipts"],
+    "then": "Regenerate all unsigned stdin, literal argv, observer and deployment-request identities from the fresh prewrite values; do not reuse P0-304 objects."
+  },
+  "truth": {
+    "leaseIssued": false,
+    "sshExecuted": false,
+    "deployed": false,
+    "publicVerified": false,
+    "accountApproved": false,
+    "signatureCreated": false,
+    "transactionSubmitted": false
+  }
+}
