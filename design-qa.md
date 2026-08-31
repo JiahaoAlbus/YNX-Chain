@@ -98,3 +98,10 @@ These checks validate the local 6423 runtime only. They do not assert public dep
 - History: navigating `Tokens → Developers → Back` restored `#tokens` and its route view. Forward followed by a reload preserved `#developers` and its route view.
 - Dynamic Chinese UI: on the verified Blockchain route, both record tables loaded. Pagination now read `已显示 1–10 / 共 5,382 条已验证索引记录` and `已显示 1–10 / 共 71 条已验证索引记录`; transaction badges rendered `转账` and `水龙头`. The prior English pagination fragment and raw `rpc-and-indexer-backed` upstream value were absent from the user-visible route.
 - Scope: this proves local browser routing and localized rendering against the current 6423 node/indexer only. It does not establish a public deployment, external product availability, or a public wallet endpoint.
+
+## 2026-08-31 localized detail-drawer follow-up
+
+- Detail data boundary: the public drawer now uses explicit field sets for block, transaction, account, and YNXT token records instead of recursively flattening an arbitrary API object. This keeps record values available while avoiding backend object keys and unrelated nested metadata.
+- Chinese browser evidence: a verified transaction detail showed localized `数量`、`费用`、`区块高度`、`时间戳` and `批次流转`; the type rendered as `转账`. It did not expose `blockHash`, `resourceConsumed`, or `lotFlows` as interface labels.
+- Account evidence: the drawer showed native and EVM-compatible address fields, balances, stake, nonce, resource-use counters, and bounded lot/trace counts. It did not expose `addressFormats` or `resourceUsage` object keys.
+- Token evidence: YNXT displayed localized native-asset type, localized use cases, and `已验证 RPC 原生资产状态`. Block detail displayed height, hashes, time, validator, and real transaction count. All four drawers were visible in the same local portal tab.

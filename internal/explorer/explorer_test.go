@@ -172,8 +172,8 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 		"No event for ",
 		"/assets/ynx-logo.png",
 		"/assets/ynx-icon.png",
-		"YNX native address (default)",
-		"EVM compatibility address",
+		"ynxAddress",
+		"evmAddress",
 		"tx.sponsor",
 		"sponsorPoolId",
 		"expected6423",
@@ -181,6 +181,8 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 		"serviceNameUI",
 		"serviceTextUI",
 		"runtimeUI",
+		"detailUI",
+		"function detailRows",
 		"dataFabric",
 		"infrastructure",
 		"YNX DeFi services",
@@ -238,10 +240,16 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	if strings.Contains(html, "runtime.lastError || service.degraded") {
 		t.Fatal("explorer web response may expose raw runtime service errors in the public directory")
 	}
-	for _, retiredDynamicCopy := range []string{" of ' + escapeHTML(number(page.total)) + ' verified indexed records", "native-token-from-rpc-status"} {
+	for _, retiredDynamicCopy := range []string{" of ' + escapeHTML(number(page.total)) + ' verified indexed records"} {
 		if strings.Contains(html, retiredDynamicCopy) {
 			t.Fatalf("explorer web contains non-localized runtime copy %q", retiredDynamicCopy)
 		}
+	}
+	if !strings.Contains(html, "native-token-from-rpc-status' ? runtime('sourceNative')") {
+		t.Fatal("explorer web does not localize the native-token source status")
+	}
+	if strings.Contains(html, "function flatten(value") {
+		t.Fatal("explorer web must not flatten arbitrary detail payloads into the public drawer")
 	}
 	for _, forbidden := range []string{"9102", "0x238e", "ynx_9102-1"} {
 		if strings.Contains(strings.ToLower(html), strings.ToLower(forbidden)) {
