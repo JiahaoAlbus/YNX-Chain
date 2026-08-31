@@ -7639,7 +7639,7 @@
     {
       "taskId": "P0-323",
       "owner": "integration,finance-release-control-plane-readonly-verification",
-      "status": "ACTIVE_FINANCE_P0318_POST_CLEANUP_ZERO_WRITE_READBACK_ONLY",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0323_CARRIER_INVENTORY_DRIFT",
       "paths": [
         "release/integration/p0-wallet-connectivity/execution/p0-323-finance-p0318-post-cleanup-zero-write-single-use-lease-20260831.json",
         "release/integration/p0-wallet-connectivity/execution/objects/p0-323-finance-p0318-post-cleanup-zero-write-inspector.py",
@@ -7653,7 +7653,11 @@
       "remoteMutation": false,
       "cleanupAuthorized": false,
       "deploymentAuthorized": false,
-      "nextAction": "Execute exactly one read-only SSH before expiry. Terminally release on direct success or one field-level failure; do not clean carrier or authorize the build-identity successor in this lease."
+      "attemptCount": 1,
+      "localExitStatus": 65,
+      "failure": "CARRIER_INVENTORY",
+      "cleanupComplete": false,
+      "nextAction": "P0-323 is consumed and nonreusable. Require a wholly-new raw-first carrier diagnostic emitting actual child identities and inventory before comparison; build-identity carrier and Phase3 remain unauthorized."
     }
   ]
 }
