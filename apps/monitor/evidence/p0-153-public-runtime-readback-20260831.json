@@ -1,0 +1,88 @@
+{
+  "schemaVersion": "ynx.explorer-monitor.public-runtime-readback.v1",
+  "observedAt": "2026-08-31T07:48:12Z",
+  "owner": "explorer-monitor",
+  "candidate": {
+    "branch": "codex/p0-explorer-monitor-20260820",
+    "commit": "8ba5c25f1666c5405c63fe918c1e73c6ca26064c",
+    "pullRequest": "https://github.com/JiahaoAlbus/YNX-Chain/pull/107"
+  },
+  "readOnlyPublicEvidence": [
+    {
+      "id": "native-rpc-status",
+      "url": "https://rpc.ynxweb4.com/status",
+      "httpStatus": 200,
+      "bytes": 2916,
+      "sha256": "189d3c46ee88fa0dcedf250a9b1acac86398a45aea8f0b22cc3cd62ddc1e9760",
+      "observedChainId": 6423,
+      "observedNetwork": "YNX Testnet",
+      "runtimeCommit": "be9f03833ac3",
+      "runtimeRelease": "ynx-chain-be9f03833ac3"
+    },
+    {
+      "id": "evm-chain-id",
+      "url": "https://evm.ynxweb4.com",
+      "request": {"jsonrpc": "2.0", "id": "ynx-monitor-readback", "method": "eth_chainId", "params": []},
+      "httpStatus": 200,
+      "bytes": 64,
+      "sha256": "4419f392117c5cc67fd39c1f1a753cde808bfcabdfc4046d4633bdbab9decfe6",
+      "result": "0x1917",
+      "observedChainId": 6423
+    },
+    {
+      "id": "explorer-health",
+      "url": "https://explorer.ynxweb4.com/health",
+      "httpStatus": 200,
+      "bytes": 1189,
+      "sha256": "65f44e205c40fe60fa18311082d7ddfd411be673efbcb663e72e3101668edb30",
+      "service": "ynx-explorerd",
+      "observedChainId": 6423,
+      "nativeSymbol": "YNXT",
+      "runtimeCommit": "8bf7716ee671a5a9b64517280743c5a281899712",
+      "runtimeRelease": "ynx-explorer-monitor-8bf7716ee671"
+    },
+    {
+      "id": "indexer-health",
+      "url": "https://indexer.ynxweb4.com/health",
+      "httpStatus": 200,
+      "bytes": 849,
+      "sha256": "cd2c4538b071d1c22d4ac3fe38839dcbb8d45fb4aeff3f4685f35daf0a62af05",
+      "service": "ynx-indexerd",
+      "observedChainId": 6423,
+      "nativeSymbol": "YNXT",
+      "runtimeCommit": "8bf7716ee671a5a9b64517280743c5a281899712",
+      "runtimeRelease": "ynx-explorer-monitor-8bf7716ee671"
+    },
+    {
+      "id": "monitor-version",
+      "url": "https://monitor.ynxweb4.com/version",
+      "httpStatus": 200,
+      "bytes": 264,
+      "sha256": "d0cb952655a41dad6a353f463c5b9f623f509b31303d35404e242a8a334b70ce",
+      "service": "ynx-monitor-control-plane",
+      "runtimeCommit": "8bf7716ee671a5a9b64517280743c5a281899712",
+      "runtimeRelease": "ynx-explorer-monitor-8bf7716ee671"
+    },
+    {
+      "id": "monitor-connectivity",
+      "url": "https://monitor.ynxweb4.com/connectivity",
+      "httpStatus": 200,
+      "contentType": "text/html",
+      "bytes": 641,
+      "sha256": "efbf2403f89259511dd861a6014e09d5fb11a7bf549a609bd17adacde41af44a",
+      "outcome": "static SPA fallback, not the required cache-free JSON connectivity API"
+    }
+  ],
+  "candidateStates": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "publicVerified": false,
+    "computerControlVerified": false
+  },
+  "blockingGate": "A Central-issued, path-scoped production lease must bind the exact candidate to the official runtime, update Monitor ingress so /connectivity reaches the JSON API, and require post-deploy source/hash/rollback plus real browser evidence."
+}
