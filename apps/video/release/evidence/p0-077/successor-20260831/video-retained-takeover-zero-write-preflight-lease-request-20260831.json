@@ -6,9 +6,9 @@
   "status": "REQUESTED_NOT_AUTHORIZED",
   "source": {
     "branch": "codex/video-wallet-runtime-successor-20260831",
-    "commit": "6c0c8a4c942b082954479eccdfecaeec1ff98250",
-    "tree": "8043b3d768f7e59c9c93fc4bd9a248fee3bc3198",
-    "parent": "741bfd9e2a3c9a909b6c1cfd392e1add96efbb53"
+    "commit": "8b88fb8f8ce3f9636012a08c03f5804caa092364",
+    "tree": "01cff6a18c7adb0779f6094196490ce47719d254",
+    "parent": "3e710258e9f7b39c2c3df3fb5205cfd7d4c0567c"
   },
   "reason": "Central accepted the retained-evidence guard and 42 source fixtures but requires a fresh zero-write observation of every remote object and runtime identity before it can sign a literal takeover execution contract.",
   "preflightInspector": {
@@ -98,9 +98,9 @@
   },
   "futureUnsignedTransportContract": {
     "path": "apps/video/scripts/video-retained-takeover-transport.mjs",
-    "blob": "b660c27b562cb9d7ee1875abc504e79eafce675a",
-    "bytes": 8398,
-    "sha256": "579b50dbd29e5a135b1e92b45ca2d3fcee99181cc81583f2d48296560cbeae63",
+    "blob": "f2672e0fce45d0b5adc44b969b942d072169b027",
+    "bytes": 8774,
+    "sha256": "349bfd1a49268b0391c0f7f050877e89cbd5c81dcbbe0f1d39fdaecd02ba60a4",
     "fixedRoot": "/opt/ynx-release-control-plane/video-viewer-wallet-560c467d",
     "fixedObjectCount": 3,
     "commands": ["place", "observe", "cleanup"],
@@ -117,12 +117,14 @@
     }
   },
   "fixtures": {
-    "videoCheck": "PASS_42_OF_42",
+    "videoCheck": "PASS_44_OF_44",
     "i18n": "PASS_12_LOCALES_22_KEYS",
     "placementSuccessObserved": true,
     "placementCleanupExact": true,
     "placementFailureStageRemoved": true,
     "prewriteFailureStageRemoved": true,
+    "foreignStageChildRejectsBeforeOwnedDeletion": true,
+    "sameByteReplacementRejectsBeforeAnyDeletion": true,
     "controlParentSiblingPreserved": true,
     "stoppedFailureRestoresLegacy": true,
     "successfulTakeoverAndRollback": true,
