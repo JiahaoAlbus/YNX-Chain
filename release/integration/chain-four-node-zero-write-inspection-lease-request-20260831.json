@@ -1,0 +1,89 @@
+{
+  "schemaVersion": "ynx-chain-four-node-zero-write-inspection-lease-request/v1",
+  "recordedAt": "2026-08-31T05:10:00Z",
+  "owner": "chain-core",
+  "scope": "chain-only-zero-write-four-node-inspection",
+  "source": {
+    "branch": "codex/chain-four-node-readonly-inspector-20260831",
+    "commit": "e728be2bb2fa52ae03fafac635c841f1eb0e1221",
+    "tree": "36a463f75594bedfc68105e3e6366471e98564ec",
+    "remoteExact": true,
+    "worktreeClean": true
+  },
+  "acceptedInspector": {
+    "commit": "de393ce295ae50f77967cbd3ad15e8bf0988684e",
+    "tree": "e45e6bc10060315a32186dfa748e5e6aacf2e63a",
+    "path": "scripts/verify/remote-smoke-test.mjs",
+    "blob": "8a4e1c62f4072c984cd5ca1621e3a6fd2eb9ee23",
+    "bytes": 82263,
+    "sha256": "0ea6dbff7be60da2ceb647cb905635292c5fac422e0ccedc80147f7d9046a0b5",
+    "remotePayloadBytes": 2501,
+    "remotePayloadSha256": "48548c8039b09d72e1a6dc30ebfbae7cd35b3451860676286a133890d0d74573",
+    "printedPlanBytes": 6074,
+    "printedPlanSha256": "f06b2a2a138130fc634d4fe8ce788bd1b78c0193aee7d5b19f240cc19eaafbb5",
+    "ack": "P0-CHAIN-FOUR-NODE-ZERO-WRITE-INSPECTION-20260831:EXECUTE"
+  },
+  "globalRollbackContract": {
+    "commit": "e728be2bb2fa52ae03fafac635c841f1eb0e1221",
+    "tree": "36a463f75594bedfc68105e3e6366471e98564ec",
+    "path": "release/integration/chain-four-node-readiness-global-rollback-contract-20260831.json",
+    "rolloutOrder": ["singapore", "silicon-valley", "seoul", "primary"],
+    "parallelNodeMutation": false,
+    "stopForwardOnAnyNodeFailure": true,
+    "reverseRollbackPreviouslyPromotedNodes": true,
+    "partialPromotionCountsAsCompletion": false,
+    "verifierResult": "PASS"
+  },
+  "targets": [
+    {"role": "primary", "host": "43.153.202.237", "user": "ubuntu", "identityReference": "PRIMARY_NODE_SSH_KEY"},
+    {"role": "singapore", "host": "43.134.23.58", "user": "root", "identityReference": "SG_NODE_SSH_KEY"},
+    {"role": "silicon-valley", "host": "43.162.100.54", "user": "ubuntu", "identityReference": "SILICON_VALLEY_NODE_SSH_KEY"},
+    {"role": "seoul", "host": "43.164.132.81", "user": "root", "identityReference": "SEOUL_NODE_SSH_KEY"}
+  ],
+  "requestedLease": {
+    "whollyNew": true,
+    "maximumDurationMinutes": 20,
+    "attemptLimitPerNode": 1,
+    "remoteTemporaryFiles": false,
+    "mutationAllowed": false,
+    "serviceLifecycleAllowed": false,
+    "deploymentAllowed": false,
+    "validatorOrChainStateMutationAllowed": false,
+    "evidence": "one local byte-preserving JSON envelope containing every attempted node and terminal truth",
+    "releaseHeavyAndAllChainLocksOnTerminal": true
+  },
+  "freshControlPlaneRead": {
+    "centralBranch": "codex/p0-wallet-connectivity-control-plane-20260820",
+    "centralCommit": "b737b5a0c346b9933dfc82057a7bd16c2561ba49",
+    "centralTree": "5c9a6fcb11b8cf7d0bc0dd9c9a5c0a4d0f98dab3",
+    "p0314Status": "CONSUMED_RELEASED_SUCCESS_FINANCE_NONREGRESSIVE_CARRIER_PREPARED",
+    "heavyOwner": null
+  },
+  "ownerRuntimeCapability": {
+    "secretValuesRequested": false,
+    "secretValuesRecorded": false,
+    "PRIMARY_NODE_SSH_KEY_AVAILABLE": false,
+    "SG_NODE_SSH_KEY_AVAILABLE": false,
+    "SILICON_VALLEY_NODE_SSH_KEY_AVAILABLE": false,
+    "SEOUL_NODE_SSH_KEY_AVAILABLE": false,
+    "sshAttempts": 0,
+    "remoteConnections": 0,
+    "mutationCount": 0
+  },
+  "requiredNamedOperatorResponse": {
+    "format": "boolean-only",
+    "fields": [
+      "PRIMARY_NODE_SSH_KEY_AVAILABLE",
+      "SG_NODE_SSH_KEY_AVAILABLE",
+      "SILICON_VALLEY_NODE_SSH_KEY_AVAILABLE",
+      "SEOUL_NODE_SSH_KEY_AVAILABLE",
+      "ALL_FOUR_TARGETS_AUTHORIZED"
+    ],
+    "forbidIdentityPathOrValueDisclosure": true
+  },
+  "decision": {
+    "leaseReadyInThisOwnerContext": false,
+    "singleExecutableBlocker": "CHAIN_FOUR_PROTECTED_NODE_IDENTITIES_OR_TARGET_AUTHORIZATION_UNAVAILABLE",
+    "nextAction": "The named Chain protected runtime operator returns only the five required booleans. Central may issue the requested zero-write lease only when all five are true."
+  }
+}
