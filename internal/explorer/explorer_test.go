@@ -187,6 +187,8 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 		"routeMessages",
 		"routeHeadings",
 		"routeUI",
+		"routeContent",
+		"renderPortalRoute(activeRoute)",
 		"ecosystemProducts",
 		"downloadProducts",
 		"dataChartCopy",
