@@ -3454,6 +3454,31 @@
         "P0-314 is consumed and nonreusable; Heavy and this Finance lock are released",
         "Phase3 remains unauthorized and requires a wholly-new task and lease"
       ]
+    },
+    {
+      "path": "{host:43.153.202.237:creator-studio-3f97-upgrade,write:/opt/ynx-release-control-plane/creator-studio-3f97a13d/**,write:/opt/ynx-creator-studio-wallet/releases/creator-studio-3f97a13d*,write:/opt/ynx-creator-studio-wallet/receipts/upgrade-3f97a13d.json*,write:/opt/ynx-creator-studio-wallet/current*,lifecycle:ynx-creator-studio-wallet.service,readonly:/etc/systemd/system/ynx-creator-studio-wallet.service,readonly:service:{ynx-videod,ynx-video-viewer}.service,verify:https://web4.ynxweb4.com/video/studio/**}",
+      "owner": "creator-studio-deploy-owner",
+      "branch": "codex/p0-creator-studio-subpath-i18n-20260831",
+      "worktree": "/private/tmp/ynx-creator-subpath-i18n.PcnLN2",
+      "taskId": "P0-315",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_CREATOR_STUDIO_3F97A13D_SHELL_SAFE_SINGLE_USE_UPGRADE",
+      "acquiredAt": "2026-08-31T05:17:00Z",
+      "expiresAt": "2026-08-31T05:47:00Z",
+      "releasedAt": null,
+      "sourceCommit": "4253f90700b8dd25b610aa3ac9df26a80c37dc71",
+      "sourceTree": "75536d9b65716633c3863a365a52ea240e4d3614",
+      "evidenceCommit": "4253f90700b8dd25b610aa3ac9df26a80c37dc71",
+      "artifactSha256": "e7325c867c13c97a99a8210b905be979d01eb49357a8a1c359ae7bcf59fee151",
+      "productionMutationAllowed": true,
+      "allowedExceptions": [
+        "exactly one no-retry Creator carrier placement and forward invocation",
+        "the final SSH argv element must be the exact 21243-byte shell-safe command string SHA8250fd4b; carrier bytes are stdin only",
+        "at most one receipt-bound conditional rollback only after successful forward and external validation failure",
+        "recursive cleanup requires complete-tree and per-object identity, exclusive quarantine reservation, Linux no-clobber move and post-quarantine revalidation",
+        "foreign child or same-bytes new-inode substitution must fail closed and preserve forensic state",
+        "API6493 Viewer6494 unit Caddy shared-current Finance account signature typed-data and transaction mutation remain forbidden"
+      ]
     }
   ]
 }

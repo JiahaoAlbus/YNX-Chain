@@ -7440,6 +7440,27 @@
       "phase3Authorized": false,
       "deploymentAuthorized": false,
       "nextAction": "P0-314 is consumed and nonreusable. A wholly-new Phase3 review may begin only from the exact terminal carrier tuples and a fresh six-parent/runtime prewrite; no deployment authority is inferred."
+    },
+    {
+      "taskId": "P0-315",
+      "owner": "integration,creator-studio-deploy-owner",
+      "status": "ACTIVE_CREATOR_STUDIO_3F97A13D_SHELL_SAFE_SINGLE_USE_UPGRADE",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/execution/p0-315-creator-studio-3f97a13d-shell-safe-upgrade-single-use-lease-20260831.json",
+        "/opt/ynx-release-control-plane/creator-studio-3f97a13d",
+        "/opt/ynx-creator-studio-wallet/releases/creator-studio-3f97a13d",
+        "/opt/ynx-creator-studio-wallet/receipts/upgrade-3f97a13d.json"
+      ],
+      "dependencies": ["P0-313"],
+      "requestCommit": "4253f90700b8dd25b610aa3ac9df26a80c37dc71",
+      "requestBlob": "5b720f363a1533238240fb2d1499d529d2ff711e",
+      "executionLeaseIssued": true,
+      "forwardAttemptLimit": 1,
+      "retryAllowed": false,
+      "conditionalRollbackAttemptLimit": 1,
+      "financeAuthorized": false,
+      "accountSignTransactionAuthorized": false,
+      "nextAction": "Execute the exact carrier through the exact single shell-safe final SSH command argument once. Return direct terminal receipt and request a wholly-new independent zero-write readback before any product-completion promotion."
     }
   ]
 }
