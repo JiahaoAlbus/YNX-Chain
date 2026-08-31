@@ -51,6 +51,7 @@
   "scripts": {
     "test": "node --test test/*.test.mjs",
     "check": "npm test && npm run verify:no-bare-authorize && npm run verify:standard-wallet-connect && npm run verify:standard-wallet-e2e-execution",
+    "check:release": "npm run check && npm run audit:authorize-consumers",
     "verify:no-bare-authorize": "node scripts/verify-no-bare-wallet-authorize.mjs",
     "verify:standard-wallet-connect": "node scripts/verify-standard-wallet-connect-consumer.mjs",
     "verify:standard-wallet-e2e-execution": "node scripts/verify-standard-wallet-e2e-execution-plan.mjs",

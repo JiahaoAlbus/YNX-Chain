@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 import {
@@ -27,6 +28,11 @@ test("release source gate accepts only a visibly populated request parameter", (
 test("current publishable source contains no bare authorization URI", async () => {
   const root = fileURLToPath(new URL("../../..", import.meta.url));
   assert.deepEqual(await verifyNoBareWalletAuthorize(root), []);
+});
+
+test("release check chains the cross-product consumer audit instead of treating the package check as migration proof", async () => {
+  const packageJson = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
+  assert.equal(packageJson.scripts["check:release"], "npm run check && npm run audit:authorize-consumers");
 });
 
 test("consumer audit rejects Web custom-scheme and native manual URI construction", () => {
