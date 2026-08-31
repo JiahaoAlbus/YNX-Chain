@@ -3321,15 +3321,15 @@
       "worktree": "/private/tmp/ynx-creator-subpath-i18n.PcnLN2",
       "taskId": "P0-309",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE_SINGLE_USE_CREATOR_P0309_P0305_RESIDUE_CLEANUP_ONLY_SUCCESSOR_04",
+      "status": "CONSUMED_SUCCESS_CREATOR_P0309_P0305_THREE_RESIDUES_REMOVED_PENDING_ZERO_WRITE_READBACK",
       "acquiredAt": "2026-08-31T03:53:13Z",
       "expiresAt": "2026-08-31T04:13:13Z",
-      "releasedAt": null,
+      "releasedAt": "2026-08-31T03:59:24Z",
       "sourceCommit": "5397d18f1f4fe51e614ac59405f39e606a15a438",
       "sourceTree": "d8155a82581381c5ef038b6fe51639873ba29115",
       "evidenceCommit": "5397d18f1f4fe51e614ac59405f39e606a15a438",
       "artifactSha256": "9a79fb958f815fff5a47b0c84b0dc09847fd38aca6f345e7af9e72d455771dcf",
-      "productionMutationAllowed": true,
+      "productionMutationAllowed": false,
       "allowedExceptions": [
         "exactly one no-retry identity-bound cleanup-only SSH invocation",
         "delete only the exact signed P0-305 receipt candidate release and control root in that order",
@@ -3338,6 +3338,24 @@
         "retain Heavy and all Creator locks after execution until a separate zero-write readback terminally verifies cleanup",
         "no unrelated Heavy Wallet account signature typed-data or transaction action"
       ]
+    },
+    {
+      "path": "{host:43.153.202.237:creator-p0309-post-cleanup-zero-write,readonly:/opt/ynx-release-control-plane/creator-studio-3f97a13d*,readonly:/opt/ynx-creator-studio-wallet/releases/creator-studio-{0e1a53c5,3f97a13d}*,readonly:/opt/ynx-creator-studio-wallet/current*,readonly:/opt/ynx-creator-studio-wallet/receipts/upgrade-3f97a13d.json*,readonly:/etc/systemd/system/ynx-creator-studio-wallet.service,readonly:service:{ynx-creator-studio-wallet,ynx-video-viewer,ynx-videod}.service,readonly:https://web4.ynxweb4.com/video/studio/**}",
+      "owner": "creator-studio-emergency-readonly-inspector",
+      "branch": "codex/p0-wallet-connectivity-control-plane-20260820",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration",
+      "taskId": "P0-310",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_SINGLE_USE_CREATOR_P0310_POST_CLEANUP_ZERO_WRITE_READBACK",
+      "acquiredAt": "2026-08-31T03:59:24Z",
+      "expiresAt": "2026-08-31T04:19:24Z",
+      "releasedAt": null,
+      "sourceCommit": "fe407ccf4e93e4378455f9ba2336317e1e84367e",
+      "sourceTree": "e0d117c25e650dca50a35708da75de4c7a2f4084",
+      "evidenceCommit": "fe407ccf4e93e4378455f9ba2336317e1e84367e",
+      "artifactSha256": "94ee365a961a96908fcccf20f7f1528e739931625d3c06e21d5803f8a1f9e520",
+      "productionMutationAllowed": false,
+      "allowedExceptions": ["exactly one zero-write SSH inspection and no retry", "no remote temporary files", "read only P0-305 residues old current services listeners unit and five public resources", "release Creator Heavy only on exact terminal absence and unchanged old runtime", "no cleanup deploy lifecycle unrelated Heavy Wallet account signature typed-data or transaction action"]
     }
   ]
 }

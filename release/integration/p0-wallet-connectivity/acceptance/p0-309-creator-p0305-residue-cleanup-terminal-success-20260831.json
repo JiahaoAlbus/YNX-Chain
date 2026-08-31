@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-309",
+  "recordType": "CREATOR_P0305_RESIDUE_CLEANUP_TERMINAL",
+  "status": "CONSUMED_SUCCESS_CREATOR_P0309_P0305_THREE_RESIDUES_REMOVED_PENDING_ZERO_WRITE_READBACK",
+  "recordedAt": "2026-08-31T03:59:24Z",
+  "execution": {
+    "attempts": 1,
+    "retryAttempts": 0,
+    "remoteExitStatus": 0,
+    "executorStatus": "CREATOR_P0305_RESIDUE_CLEANUP_TERMINAL_PASSED",
+    "serviceLifecycleActions": 0
+  },
+  "directReceipt": {
+    "receiptAbsent": true,
+    "candidateReleaseAbsent": true,
+    "controlRootAbsent": true,
+    "controlNextAbsent": true,
+    "candidateNextAbsent": true,
+    "currentNextAbsent": true,
+    "receiptNextAbsent": true,
+    "oldCurrentAndRuntimeExact": true,
+    "creatorPid": 2747844,
+    "creatorNRestarts": 0,
+    "apiPid": 3108210,
+    "viewerPid": 2159536,
+    "fivePublicHashesExact": true
+  },
+  "decision": {
+    "cleanupAttemptConsumed": true,
+    "cleanupComplete": false,
+    "heavyReleased": false,
+    "nextAllowedAction": "WHOLLY_NEW_CREATOR_P0310_ZERO_WRITE_TERMINAL_READBACK"
+  },
+  "forbidden": ["cleanup retry", "deploy", "service lifecycle", "current unit Caddy API Viewer public mutation", "unrelated Heavy lease", "Wallet account request signature typed data or transaction"]
+}

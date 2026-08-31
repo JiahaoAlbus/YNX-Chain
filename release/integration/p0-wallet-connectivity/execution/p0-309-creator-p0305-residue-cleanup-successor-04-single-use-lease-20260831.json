@@ -5,11 +5,12 @@
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-creator-p0305-residue-cleanup-only-s04-20260831T035313Z",
   "owner": "creator-studio-deploy-owner",
   "executor": "release-control-plane",
-  "status": "ACTIVE_SINGLE_USE_CREATOR_P0305_RESIDUE_CLEANUP_ONLY_SUCCESSOR_04",
+  "status": "CONSUMED_SUCCESS_CREATOR_P0309_P0305_THREE_RESIDUES_REMOVED_PENDING_ZERO_WRITE_READBACK",
   "issuedAt": "2026-08-31T03:53:13Z",
   "expiresAt": "2026-08-31T04:13:13Z",
   "singleUse": true,
   "reusable": false,
+  "consumedAt": "2026-08-31T03:58:30Z",
   "attemptLimit": 1,
   "retryAllowed": false,
   "executionAuthorized": true,
@@ -105,7 +106,7 @@
   ],
   "truthBoundary": {
     "leaseIssued": true,
-    "executionStarted": false,
+    "executionStarted": true,
     "cleanupComplete": false,
     "heavyReleased": false
   }
