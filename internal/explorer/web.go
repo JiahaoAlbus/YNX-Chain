@@ -574,6 +574,7 @@ const indexHTML = `<!doctype html>
     let toastTimer = null;
     let lastDashboard = null;
     let connectedYNXWallet = null;
+    const walletListenerProviders = new WeakSet();
     const blockchainPages = {blocks:{items:[],total:0,limit:10,offset:0,hasMore:false},transactions:{items:[],total:0,limit:10,offset:0,hasMore:false}};
     const $ = (id) => document.getElementById(id);
     const messages = {
@@ -980,10 +981,53 @@ const indexHTML = `<!doctype html>
     function showPortalNotice(message) { $('resultPanel').classList.add('visible'); $('resultTitle').textContent = 'Availability'; $('resultSubtitle').textContent = 'Evidence-gated portal control'; $('resultBody').innerHTML = '<div class="empty">' + escapeHTML(message) + '</div>'; }
     function showWalletSession() {
       if (!connectedYNXWallet) return;
+      const onExpectedNetwork = String(connectedYNXWallet.chainId || '').toLowerCase() === expected6423.evmChainId;
       $('resultPanel').classList.add('visible');
       $('resultTitle').textContent = 'YNX Wallet connected';
       $('resultSubtitle').textContent = 'EIP-6963 / EIP-1193 session — no signature or transaction was requested';
-      $('resultBody').innerHTML = '<dl class="detail-body"><div class="detail-row"><dt>Account</dt><dd class="mono">' + escapeHTML(connectedYNXWallet.account) + '</dd></div><div class="detail-row"><dt>Network</dt><dd class="mono">6423 / 0x1917 / ynx_6423-1</dd></div></dl><div class="portal-list"><button type="button" data-wallet-session="switch">Switch account <small>Requests the wallet chooser</small></button><button type="button" data-wallet-session="disconnect">Disconnect <small>Clears this portal session only</small></button></div>';
+      $('resultBody').innerHTML = '<dl class="detail-body"><div class="detail-row"><dt>Account</dt><dd class="mono">' + escapeHTML(connectedYNXWallet.account) + '</dd></div><div class="detail-row"><dt>Provider</dt><dd>YNX Wallet only · MetaMask remains separate</dd></div><div class="detail-row"><dt>Connected chain</dt><dd class="mono">' + escapeHTML(connectedYNXWallet.chainId || 'Unavailable') + '</dd></div><div class="detail-row"><dt>Required Testnet</dt><dd class="mono">6423 / 0x1917 / ynx_6423-1</dd></div></dl><div class="' + (onExpectedNetwork ? 'status-note' : 'unavailable') + '">' + (onExpectedNetwork ? 'Connected to YNX 6423 Testnet' : 'This provider is on a different network. Connection remains intact until you choose to switch.') + '</div><div class="portal-list"><button type="button" data-wallet-session="network">Switch to 0x1917 <small>Requests a wallet network change</small></button><button type="button" data-wallet-session="switch">Refresh selected account <small>Reads the provider account list</small></button><button type="button" data-wallet-session="disconnect">Disconnect <small>Clears this portal session only</small></button></div>';
+    }
+    function updateWalletButton() { $('walletConnectButton').textContent = connectedYNXWallet ? compact(connectedYNXWallet.account,6,4) : t('connectWallet'); }
+    function clearWalletSession(reason) {
+      connectedYNXWallet = null;
+      serviceRuntime.get('wallet').lastError = reason || null;
+      updateWalletButton();
+    }
+    async function readWalletChain(provider) {
+      const chainId = await provider.request({method:'eth_chainId'});
+      return String(chainId || '').toLowerCase();
+    }
+    function attachWalletListeners(provider) {
+      if (typeof provider?.on !== 'function' || walletListenerProviders.has(provider)) return;
+      walletListenerProviders.add(provider);
+      provider.on('accountsChanged', async accounts => {
+        if (!connectedYNXWallet || connectedYNXWallet.provider !== provider) return;
+        const account = Array.isArray(accounts) && accounts[0];
+        if (!account) { clearWalletSession('The provider disconnected its account list.'); showPortalNotice('YNX Wallet no longer exposes an account to this portal. No wallet permission, signature, or transaction changed.'); return; }
+        connectedYNXWallet.account = account;
+        updateWalletButton();
+        showToast('YNX Wallet account updated');
+      });
+      provider.on('chainChanged', chainId => {
+        if (!connectedYNXWallet || connectedYNXWallet.provider !== provider) return;
+        connectedYNXWallet.chainId = String(chainId || '').toLowerCase();
+        serviceRuntime.get('wallet').lastVerifiedAt = new Date().toISOString();
+        showToast(connectedYNXWallet.chainId === expected6423.evmChainId ? 'YNX 6423 network selected' : 'Wallet network changed');
+      });
+      provider.on('disconnect', () => { if (connectedYNXWallet?.provider === provider) { clearWalletSession('The provider disconnected.'); showPortalNotice('YNX Wallet disconnected from this portal.'); } });
+    }
+    async function switchYNXWalletNetwork() {
+      if (!connectedYNXWallet?.provider || !walletConfig) return;
+      const provider = connectedYNXWallet.provider;
+      try {
+        await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:expected6423.evmChainId}]});
+      } catch (error) {
+        if (Number(error?.code) !== 4902) throw error;
+        await provider.request({method:'wallet_addEthereumChain',params:[{chainId:walletConfig.chainIdHex,chainName:walletConfig.chainName,nativeCurrency:{name:walletConfig.nativeCurrencyName,symbol:walletConfig.nativeSymbol,decimals:walletConfig.decimals},rpcUrls:walletConfig.rpcUrls,blockExplorerUrls:walletConfig.blockExplorerUrls}]});
+        await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:expected6423.evmChainId}]});
+      }
+      connectedYNXWallet.chainId = await readWalletChain(provider);
+      showWalletSession();
     }
     function renderPortalRoute(route) {
       if (!route || route === 'home') { $('homeContent').hidden = false; $('routeView').hidden = true; document.title = 'YNX Chain | 6423 Testnet portal'; return; }
@@ -1124,10 +1168,13 @@ const indexHTML = `<!doctype html>
     $('refreshButton').onclick = () => load().catch(showLoadError);
     document.querySelectorAll('[data-refresh]').forEach(button => button.onclick = () => load().catch(showLoadError));
     $('metamaskButton').onclick = async () => {
-      if (!window.ethereum) { $('resultPanel').classList.add('visible'); $('resultTitle').textContent = 'Wallet not detected'; $('resultSubtitle').textContent = 'Install or open an EIP-1193 compatible wallet.'; $('resultBody').innerHTML = '<div class="result-error">MetaMask is not available in this browser.</div>'; return; }
+      window.dispatchEvent(new Event('eip6963:requestProvider'));
+      const metamask = walletProviders.find(item => item.provider?.isMetaMask === true && item.provider?.isYNXWallet !== true) || (window.ethereum?.isMetaMask === true && window.ethereum?.isYNXWallet !== true ? {provider:window.ethereum} : null);
+      if (!metamask) { $('resultPanel').classList.add('visible'); $('resultTitle').textContent = 'MetaMask not detected'; $('resultSubtitle').textContent = 'YNX Wallet is intentionally not used as a MetaMask fallback.'; $('resultBody').innerHTML = '<div class="result-error">Open MetaMask or install an EIP-1193 MetaMask provider to use the compatibility adapter.</div>'; return; }
       if (!walletConfig) await load();
       try {
-        await window.ethereum.request({method:'wallet_addEthereumChain',params:[{chainId:walletConfig.chainIdHex,chainName:walletConfig.chainName,nativeCurrency:{name:walletConfig.nativeCurrencyName,symbol:walletConfig.nativeSymbol,decimals:walletConfig.decimals},rpcUrls:walletConfig.rpcUrls,blockExplorerUrls:walletConfig.blockExplorerUrls}]});
+        await metamask.provider.request({method:'wallet_addEthereumChain',params:[{chainId:walletConfig.chainIdHex,chainName:walletConfig.chainName,nativeCurrency:{name:walletConfig.nativeCurrencyName,symbol:walletConfig.nativeSymbol,decimals:walletConfig.decimals},rpcUrls:walletConfig.rpcUrls,blockExplorerUrls:walletConfig.blockExplorerUrls}]});
+        await metamask.provider.request({method:'wallet_switchEthereumChain',params:[{chainId:expected6423.evmChainId}]});
         $('resultPanel').classList.add('visible'); $('resultTitle').textContent = 'Compatibility request sent'; $('resultSubtitle').textContent = 'Confirm the YNX Testnet EVM adapter in MetaMask.'; $('resultBody').innerHTML = '<div class="empty">YNX-native applications continue to identify this account with its ynx1 address.</div>';
       } catch (error) { $('resultPanel').classList.add('visible'); $('resultTitle').textContent = 'Wallet request declined'; $('resultBody').innerHTML = '<div class="result-error">' + escapeHTML(error.message) + '</div>'; }
     };
@@ -1145,10 +1192,12 @@ const indexHTML = `<!doctype html>
       try {
         const accounts = await ynx.provider.request({method:'eth_requestAccounts'});
         const account = Array.isArray(accounts) && accounts[0] ? accounts[0] : 'No account returned';
-        connectedYNXWallet = {provider:ynx.provider,account};
+        const chainId = await readWalletChain(ynx.provider);
+        connectedYNXWallet = {provider:ynx.provider,account,chainId};
+        attachWalletListeners(ynx.provider);
         serviceRuntime.get('wallet').lastVerifiedAt = new Date().toISOString();
         serviceRuntime.get('wallet').lastError = null;
-        $('walletConnectButton').textContent = compact(account,6,4);
+        updateWalletButton();
         showWalletSession();
       } catch (error) { showPortalNotice('YNX Wallet connection was not approved: ' + (error?.message || 'request declined')); }
     };
@@ -1173,8 +1222,9 @@ const indexHTML = `<!doctype html>
       const download = event.target.closest('[data-download]');
       if (download) { showPortalNotice('No publicly verifiable download artifact is configured for ' + download.dataset.download + '.'); }
       const walletAction = event.target.closest('[data-wallet-session]');
-      if (walletAction?.dataset.walletSession === 'disconnect') { connectedYNXWallet = null; $('walletConnectButton').textContent = 'Connect Wallet'; showPortalNotice('The YNX Wallet account was cleared from this portal. No wallet permission, signature, or transaction was changed.'); return; }
-      if (walletAction?.dataset.walletSession === 'switch') { if (!connectedYNXWallet?.provider) return; try { const accounts = await connectedYNXWallet.provider.request({method:'eth_requestAccounts'}); const account = Array.isArray(accounts) && accounts[0] ? accounts[0] : connectedYNXWallet.account; connectedYNXWallet.account = account; $('walletConnectButton').textContent = compact(account,6,4); showWalletSession(); } catch (error) { showPortalNotice('YNX Wallet account selection was not approved: ' + (error?.message || 'request declined')); } }
+      if (walletAction?.dataset.walletSession === 'disconnect') { clearWalletSession(); showPortalNotice('The YNX Wallet account was cleared from this portal. No wallet permission, signature, or transaction was changed.'); return; }
+      if (walletAction?.dataset.walletSession === 'network') { try { await switchYNXWalletNetwork(); } catch (error) { showPortalNotice('YNX Wallet network change was not approved: ' + (error?.message || 'request declined')); } return; }
+      if (walletAction?.dataset.walletSession === 'switch') { if (!connectedYNXWallet?.provider) return; try { const accounts = await connectedYNXWallet.provider.request({method:'eth_accounts'}); const account = Array.isArray(accounts) && accounts[0] ? accounts[0] : null; if (!account) { clearWalletSession('No provider account is currently exposed.'); showPortalNotice('No YNX Wallet account is currently exposed to this portal.'); return; } connectedYNXWallet.account = account; connectedYNXWallet.chainId = await readWalletChain(connectedYNXWallet.provider); updateWalletButton(); showWalletSession(); } catch (error) { showPortalNotice('YNX Wallet account refresh failed: ' + (error?.message || 'provider unavailable')); } }
     });
     window.addEventListener('hashchange',renderLocation);
     function showLoadError() { $('statusText').textContent = 'Explorer unavailable'; $('statusDetail').textContent = 'The verified 6423 data source is unavailable. Refresh to retry.'; $('status').className = 'status-bar warn'; $('refreshButton').disabled = false; removeSkeletons(); }
