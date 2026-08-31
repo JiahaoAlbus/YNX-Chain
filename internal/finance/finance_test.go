@@ -370,6 +370,33 @@ func TestDomainPortfolioEndpointReturnsStableSchema(t *testing.T) {
 	if portfolio.Source.Status != "partial" {
 		t.Fatalf("expected partial status for current upstream setup, got %q", portfolio.Source.Status)
 	}
+	if portfolio.Source.Coverage == "" || portfolio.Source.SyncStatus != "aggregated-partial" || portfolio.Source.Error != "pay-unavailable" {
+		t.Fatalf("unexpected source evidence summary: %+v", portfolio.Source)
+	}
+	if strings.Contains(portfolio.Source.Error, "not configured") {
+		t.Fatalf("domain source leaked raw upstream error: %q", portfolio.Source.Error)
+	}
+}
+
+func TestDomainSourceEvidenceAggregatesCoverageWithoutRawError(t *testing.T) {
+	portfolio := Portfolio{
+		ExplorerStatus: SourceStatus{Available: true, Coverage: "account_balance", SyncStatus: "indexed"},
+		PayStatus:      SourceStatus{Available: false, Coverage: "payment-history", SyncStatus: "unavailable", Error: "secret=must-not-leak"},
+	}
+	source := domainSourceFromUpstreams(portfolio, "test-build")
+	if source.Coverage != "explorer:account_balance;pay:payment-history" {
+		t.Fatalf("unexpected coverage summary: %q", source.Coverage)
+	}
+	if source.SyncStatus != "aggregated-partial" || source.Error != "pay-unavailable" {
+		t.Fatalf("unexpected safe source status: %+v", source)
+	}
+	if strings.Contains(source.Error, "secret") {
+		t.Fatalf("domain source leaked upstream error: %q", source.Error)
+	}
+	portfolio.ExplorerStatus.Coverage = "https://untrusted.example/coverage"
+	if got := domainSourceFromUpstreams(portfolio, "test-build").Coverage; !strings.Contains(got, "explorer:not-reported") {
+		t.Fatalf("unexpected untrusted coverage label: %q", got)
+	}
 }
 
 func TestAIBudgetDraftOnlyAppliesAfterReview(t *testing.T) {

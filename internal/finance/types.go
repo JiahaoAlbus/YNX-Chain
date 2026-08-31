@@ -166,6 +166,9 @@ type DomainSource struct {
 	AsOf           string `json:"asOf"`
 	Classification string `json:"classification"`
 	Status         string `json:"status"`
+	Coverage       string `json:"coverage"`
+	SyncStatus     string `json:"syncStatus"`
+	Error          string `json:"error"`
 }
 
 type DomainHolding struct {
