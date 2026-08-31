@@ -1,0 +1,64 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "recordType": "CHAIN_FOUR_NODE_ZERO_WRITE_INSPECTION_LEASE_DECISION",
+  "recordedAt": "2026-08-31T02:54:35Z",
+  "candidate": {
+    "commit": "064dcbee799fa986f808d8b2346aa38b64c11973",
+    "tree": "17a8f4cba7dd5f655b0f16d612bd48ef8fb07aee",
+    "deploymentAuthorized": false
+  },
+  "knownCurrent": {
+    "sourceCommit": "be9f0383",
+    "sourceTree": "9988cb47",
+    "primary": {
+      "pid": 446684,
+      "nrestarts": 0,
+      "binarySha256": "eb96a2d0",
+      "manifestSha256": "8ff7a939",
+      "rollbackBinarySha256": "19fa0ace",
+      "rollbackManifestSha256": "3b58f883"
+    },
+    "singapore": {
+      "pid": 389226,
+      "nrestarts": 76944,
+      "actualBinarySha256": "1432eb9c00e03aa65167d08b382e618f72c32daff775fc3c51e2ff90fabb02ec",
+      "manifestClaim": "be9f0383/8ff7a939",
+      "loopback6420": "CONNECTION_REFUSED",
+      "binaryMatchedByRepositoryEvidence": false
+    },
+    "siliconValleyProtectedIdentityAvailable": false,
+    "seoulProtectedIdentityAvailable": false
+  },
+  "requestedInspection": [
+    "current binary and manifest SHA256 plus device and inode on all four nodes",
+    "systemd ActiveState, SubState, MainPID and NRestarts on all four nodes",
+    "loopback identity on all four nodes",
+    "exact rollback file SHA256 plus device and inode on all four nodes",
+    "Singapore mismatch and loopback failure classification"
+  ],
+  "decision": {
+    "status": "NO_GO",
+    "inspectionLeaseIssued": false,
+    "deploymentLeaseIssued": false,
+    "heavyLeaseAcquired": false
+  },
+  "singleExecutableBlocker": "CHAIN_FOUR_NODE_READONLY_INSPECTOR_LITERAL_ARGV_OUTPUT_PROTOCOL_AND_PROTECTED_TARGET_IDENTITY_REFS_NOT_FROZEN",
+  "requiredSourceOnlySuccessor": [
+    "named protected executor",
+    "exact four target references without credential values",
+    "zero-write inspector bytes and SHA256",
+    "literal per-node argv and one-attempt limits",
+    "bounded output schema containing only requested identities and statuses",
+    "static mutation-command rejection and actual-shell serialization fixtures",
+    "no remote temporary files"
+  ],
+  "laterDeploymentBlocker": "CHAIN_FOUR_NODE_LIVE_BINARY_ROLLBACK_AND_ATOMIC_LITERAL_EXECUTOR_RECONCILIATION_REQUIRED",
+  "truthBoundary": {
+    "ssh": false,
+    "inspectionExecuted": false,
+    "deployment": false,
+    "validatorMutation": false,
+    "transaction": false
+  }
+}
