@@ -28,7 +28,7 @@ const indexHTML = `<!doctype html>
     }
     * { box-sizing:border-box; }
     html { scroll-behavior:smooth; }
-    body { margin:0; min-width:320px; font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue",Arial,sans-serif; color:var(--ink); background:var(--page); -webkit-font-smoothing:antialiased; }
+    body { margin:0; min-width:0; font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue",Arial,sans-serif; color:var(--ink); background:var(--page); -webkit-font-smoothing:antialiased; }
     button,input { font:inherit; }
     button { cursor:pointer; }
     a { color:inherit; text-decoration:none; }

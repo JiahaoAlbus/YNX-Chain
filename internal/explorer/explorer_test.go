@@ -295,6 +295,9 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 			t.Fatalf("explorer web contains retired network identity %q", forbidden)
 		}
 	}
+	if strings.Contains(html, "min-width:320px") || !strings.Contains(html, "body { margin:0; min-width:0;") {
+		t.Fatal("explorer shell must not impose a document-width floor that breaks narrow browser windows")
+	}
 	logoResponse, err := http.Get(server.URL + "/assets/ynx-logo.png")
 	if err != nil {
 		t.Fatal(err)
