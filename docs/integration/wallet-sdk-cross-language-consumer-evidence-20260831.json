@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "scope": "wallet-desktop-cli-sdk",
+  "branch": "codex/wallet-sdk-error-taxonomy-20260831",
+  "implementationCommit": "940fbb37fef6bc1cd864445a7f96df242eb4008c",
+  "implementationTree": "297de12bfe89e8dbd9930f633faa85ff1f23a534",
+  "parentCommit": "19c41e5dfb3e808e528507b6efe324c193246b9d",
+  "sharedVector": {
+    "path": "testdata/wallet-sdk-error-taxonomy-v1.json",
+    "sha256": "64ac8a8fa712d17acfe5369f665fa9dc4ddbc84d580a33888889b167f6098e11",
+    "consumers": ["sdk/js/index.test.mjs", "sdk/wallet/go/transport_test.go"],
+    "nativeChainId": "ynx_6423-1",
+    "chainIdDecimal": 6423,
+    "evmChainId": "0x1917",
+    "forbiddenChainIds": [9102, "0x238e"],
+    "implicitRetries": false,
+    "maximumAttempts": 1
+  },
+  "cleanConsumer": {
+    "runner": "release/integration/wallet-sdk-error-taxonomy/run-clean-consumer.mjs",
+    "runnerSha256": "5bf247794bfe336d3acdcb990afac0d12ed08b0b7fc1350e022feadf36d21d3e",
+    "installedFromTarball": true,
+    "package": "@ynx-chain/sdk@0.2.1",
+    "tarball": "ynx-chain-sdk-0.2.1.tgz",
+    "tarballBytes": 6899,
+    "tarballSha256": "53472838b82e2b32d49327e5a89a2b9f45876b068372262d94fe7d2257c7e7c5",
+    "temporaryConsumerRemoved": true,
+    "exactChainId": "0x1917",
+    "chain9102Rejected": true,
+    "implicitRetries": false,
+    "result": "PASS"
+  },
+  "tests": [
+    {"command": "node --test sdk/js/index.test.mjs sdk/js/wallet.test.mjs", "result": "PASS", "tests": 18},
+    {"command": "go test ./sdk/wallet/go ./cmd/ynx-wallet-cli ./examples/wallet-go-sdk", "result": "PASS", "packages": 3},
+    {"command": "node release/integration/wallet-sdk-error-taxonomy/run-clean-consumer.mjs", "result": "PASS"}
+  ],
+  "remoteReadOnlyRepetition": {
+    "operation": "eth_chainId",
+    "endpoint": "https://rpc.ynxweb4.com/evm",
+    "endpointAuthorityCommit": "d0f89797d13c7667cc187b0c64d5c9e1cb1d8f59",
+    "independentAttempts": 3,
+    "implicitRetry": false,
+    "results": [
+      {"attempt": 1, "at": "2026-08-31T09:07:59.366Z", "result": "PASS", "chainId": "0x1917"},
+      {"attempt": 2, "at": "2026-08-31T09:07:59.920Z", "result": "PASS", "chainId": "0x1917"},
+      {"attempt": 3, "at": "2026-08-31T09:08:00.011Z", "result": "PASS", "chainId": "0x1917"}
+    ],
+    "accountRequested": false,
+    "signed": false,
+    "transactionCreated": false,
+    "chain9102Accessed": false
+  },
+  "remainingFalse": {
+    "installedArtifactProvedByThisSlice": false,
+    "providerLifecycleProved": false,
+    "accountApprovalProved": false,
+    "personalSignProved": false,
+    "eip712SignProved": false,
+    "testnetTransactionProved": false,
+    "productionSigned": false,
+    "notarized": false,
+    "downloadHostedChanged": false,
+    "deployedPublicChanged": false
+  }
+}

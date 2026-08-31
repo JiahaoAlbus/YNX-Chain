@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "owner": "wallet-desktop-cli-sdk",
+  "branch": "codex/wallet-sdk-error-taxonomy-20260831",
+  "implementationCommit": "940fbb37fef6bc1cd864445a7f96df242eb4008c",
+  "implementationTree": "297de12bfe89e8dbd9930f633faa85ff1f23a534",
+  "evidencePath": "docs/integration/wallet-sdk-cross-language-consumer-evidence-20260831.json",
+  "vectorPath": "testdata/wallet-sdk-error-taxonomy-v1.json",
+  "consumerRunner": "release/integration/wallet-sdk-error-taxonomy/run-clean-consumer.mjs",
+  "result": "PASS",
+  "claims": {
+    "typescriptGoTaxonomyConsistent": true,
+    "cleanTarballConsumerProved": true,
+    "singleAttemptBoundaryProved": true,
+    "exact6423ReadOnlyRepeated": true,
+    "chain9102Used": false,
+    "accountRequested": false,
+    "signed": false,
+    "transactionCreated": false
+  },
+  "integrationBoundary": "This handoff adds SDK and CLI source/test evidence only. It grants no install, signing, deployment, account, signing, or transaction authority."
+}
