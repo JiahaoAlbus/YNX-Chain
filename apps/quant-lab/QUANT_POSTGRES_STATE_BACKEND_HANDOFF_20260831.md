@@ -7,6 +7,10 @@
 - PostgreSQL integration-test checkpoint:
   `64f662e9e3d20d853b17d5e0c4d7f19e5577dcb7`
 - Integration-test tree: `00f0c4c3b445f9b57ec79377e623fed890e410d4`
+- Tenant HTTP isolation-test checkpoint:
+  `95ca0e94e1bf7fec9b0f0bc81593f6ed7af12ba0`
+- Tenant HTTP isolation-test tree:
+  `b2253320ee38f14706eaa088e504002530a08a89`
 - Migration: `apps/quant-lab/migrations/0001_quant_state_postgres.sql`
 - Local Linux build candidate SHA-256:
   `92241fb096cffa78fd905435724592fbca4662e96bbd07f15841eaa2b255fe3d`
@@ -49,6 +53,11 @@ receive exactly one CAS winner and one conflict, restart recovery, the
 PostgreSQL health contract, and namespace tenant isolation. The container was
 stopped and removed after the test. This is not a product database, public
 deployment, or production lease.
+
+A second isolated local PostgreSQL 16 run exercised the real `TenantServer`
+HTTP route: tenant A activated a local-paper Kill Switch, tenant B stayed
+unaffected, and the root health route reported the PostgreSQL multi-instance
+backend. Neither test requested an account, signature, order, or transaction.
 
 ## Central integration prerequisites
 

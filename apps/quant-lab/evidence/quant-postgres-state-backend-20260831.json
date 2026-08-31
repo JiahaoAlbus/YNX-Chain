@@ -10,6 +10,10 @@
     "commit": "64f662e9e3d20d853b17d5e0c4d7f19e5577dcb7",
     "tree": "00f0c4c3b445f9b57ec79377e623fed890e410d4"
   },
+  "tenantHTTPIsolationTestSource": {
+    "commit": "95ca0e94e1bf7fec9b0f0bc81593f6ed7af12ba0",
+    "tree": "b2253320ee38f14706eaa088e504002530a08a89"
+  },
   "migration": {
     "path": "apps/quant-lab/migrations/0001_quant_state_postgres.sql",
     "table": "ynx_quant_state",
@@ -35,7 +39,8 @@
       "revision CAS single winner and conflict",
       "restart recovery",
       "tenant namespace isolation",
-      "PostgreSQL health contract"
+      "PostgreSQL health contract",
+      "two HTTP tenants with isolated Kill Switch state"
     ]
   },
   "localArtifact": {
