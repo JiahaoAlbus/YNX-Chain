@@ -31,6 +31,14 @@ test("private Product Session degradation preserves the completed Layer 1 connec
   assert.equal(degraded.privateService,"PRIVATE_SERVICE_DEGRADED");
 });
 
+test("native surfaces do not handwrite or navigate Wallet authorization requests",async()=>{
+  const android=await read("android/app/src/main/java/com/ynxweb4/video/MainActivity.java");
+  const ios=await read("ios/YNXVideo/ContentView.swift");
+  for(const source of [android,ios])assert.doesNotMatch(source,/ynxwallet:\/\/authorize\?request=/);
+  assert.match(android,/shared YNX Wallet transport/);
+  assert.match(ios,/requestWalletThroughSharedTransport/);
+});
+
 test("accepted browser-safe SDK modules remain byte exact",async()=>{
   const manifest=JSON.parse(await read("ynx-dapp-connect-sdk/manifest.json"));
   for(const [file,expected] of Object.entries(manifest.files))assert.equal(sha(await read("ynx-dapp-connect-sdk/"+file)),expected,file);

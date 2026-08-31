@@ -17,6 +17,11 @@ struct VideoRecord: Identifiable, Decodable {
 }
 
 @MainActor final class VideoModel: ObservableObject {
+    private static let walletCallbackRoute = "ynxvideo://wallet-auth/callback"
+    private static let sharedWalletApplicationId = "com.ynxweb4.video"
+    private static let sharedWalletProductId = "ynx-video-mobile-v1"
+    private static let sharedWalletChainId = "ynx_6423-1"
+    private static let sharedWalletDeviceAlgorithm = "p256-sha256"
     enum LoadState { case loading, loaded, library(String,[String]), empty, failure(String), offline, unavailable }
     static let supported = ["en","zh-CN","zh-TW","ja","ko","es","fr","de","pt","ru","ar","id"]
     @Published var locale: String
@@ -25,6 +30,7 @@ struct VideoRecord: Identifiable, Decodable {
     @Published var videos: [VideoRecord] = []
     @Published var selected: VideoRecord?
     @Published var operationMessage = ""
+    @Published var walletMessage = ""
     private var catalog: [String:[String:String]] = [:]
     private var gatewaySession: String?
     let gateway = URL(string: UserDefaults.standard.string(forKey: "ynx.video.gateway") ?? "http://127.0.0.1:8423")!
@@ -67,20 +73,11 @@ struct VideoRecord: Identifiable, Decodable {
         catch { state = .failure(error.localizedDescription) }
     }
 
-    func walletURL() -> URL? {
-        let now=Date(), expires=now.addingTimeInterval(300)
-        let iso=ISO8601DateFormatter(); iso.formatOptions=[.withInternetDateTime,.withFractionalSeconds]
-        let nonce=random(24), key=ProductDeviceKey.shared.compressedPublicKey ?? "unavailable"
-        let request: [String:Any] = ["bundleId":"com.ynxweb4.video","callback":"ynxvideo://wallet-auth/callback","chainId":"ynx_6423-1","expiresAt":iso.string(from:expires),"issuedAt":iso.string(from:now),"nonce":nonce,"productClientId":"ynx-video-mobile-v1","productDeviceAlgorithm":"p256-sha256","productDeviceKey":key,"purpose":text("privacy"),"requestingProduct":"ynx-video","scopes":["video.comment","video.history","video.read","video.report","video.subscribe"],"version":"1"]
-        guard JSONSerialization.isValidJSONObject(request), let data=try? JSONSerialization.data(withJSONObject:request,options:[.sortedKeys]) else{return nil}
-        let encoded=data.base64EncodedString().replacingOccurrences(of:"+",with:"-").replacingOccurrences(of:"/",with:"_").replacingOccurrences(of:"=",with:"")
-        return URL(string:"ynxwallet://authorize?request=\(encoded)")
-    }
+    func requestWalletThroughSharedTransport() { walletMessage = "Wallet authorization for \(Self.sharedWalletProductId) on \(Self.sharedWalletChainId) requires the shared YNX Wallet transport. Guest playback remains available." }
 
-    func handle(url: URL) { guard url.scheme=="ynxvideo",url.host=="wallet-auth" else{return}; gatewaySession=URLComponents(url:url,resolvingAgainstBaseURL:false)?.queryItems?.first(where:{$0.name=="gateway_session"})?.value; state = gatewaySession == nil ? .unavailable : .loading; if gatewaySession != nil { Task{await load()} } }
+    func handle(url: URL) { guard url.absoluteString.hasPrefix(Self.walletCallbackRoute) else{return}; gatewaySession=URLComponents(url:url,resolvingAgainstBaseURL:false)?.queryItems?.first(where:{$0.name=="gateway_session"})?.value; state = gatewaySession == nil ? .unavailable : .loading; if gatewaySession != nil { Task{await load()} } }
     func mutate(_ path:String,body:[String:Any]) async { do { var request=URLRequest(url:gateway.appending(path:path));request.httpMethod="POST";request.httpBody=try JSONSerialization.data(withJSONObject:body);request.setValue("application/json",forHTTPHeaderField:"Content-Type");request.setValue(UUID().uuidString,forHTTPHeaderField:"Idempotency-Key");if let gatewaySession{request.setValue(gatewaySession,forHTTPHeaderField:"X-YNX-App-Session")};let(_,response)=try await URLSession.shared.data(for:request);guard let http=response as? HTTPURLResponse,http.statusCode>=200,http.statusCode<300 else{operationMessage=text("unavailable");return};operationMessage=text("loading") } catch { operationMessage=error.localizedDescription } }
     func transcript(_ track:VideoRecord.Caption) async ->String { guard track.human_approved else{return text("unavailable")};do{let(data,response)=try await URLSession.shared.data(from:gateway.appending(path:"/media/\(track.object_key)"));guard (response as? HTTPURLResponse)?.statusCode==200 else{return text("unavailable")};return String(decoding:data,as:UTF8.self).split(separator:"\n").filter{!$0.contains("-->") && $0 != "WEBVTT"}.joined(separator:"\n")}catch{return error.localizedDescription} }
-    private func random(_ count:Int)->String { var bytes=[UInt8](repeating:0,count:count); _=SecRandomCopyBytes(kSecRandomDefault,count,&bytes); return Data(bytes).base64EncodedString().replacingOccurrences(of:"+",with:"-").replacingOccurrences(of:"/",with:"_").replacingOccurrences(of:"=",with:"") }
 }
 
 final class ProductDeviceKey {
@@ -100,12 +97,12 @@ final class ProductDeviceKey {
 
 struct ContentView: View {
     @EnvironmentObject private var model: VideoModel
-    @Environment(\.openURL) private var openURL
     @State private var query=""
     var body: some View {
         NavigationStack {
             VStack(spacing:0) {
-                HStack { Text("YNX Video").font(.title.bold()).foregroundStyle(.white); Spacer(); Button(model.text("signIn")){if let url=model.walletURL(){openURL(url)}}.buttonStyle(.borderedProminent).tint(.white).foregroundStyle(Color(red:0,green:47/255,blue:167/255)).accessibilityLabel(model.text("signIn")) }.padding().background(Color(red:0,green:47/255,blue:167/255))
+                HStack { Text("YNX Video").font(.title.bold()).foregroundStyle(.white); Spacer(); Button(model.text("signIn")){model.requestWalletThroughSharedTransport()}.buttonStyle(.borderedProminent).tint(.white).foregroundStyle(Color(red:0,green:47/255,blue:167/255)).accessibilityLabel(model.text("signIn")) }.padding().background(Color(red:0,green:47/255,blue:167/255))
+                if !model.walletMessage.isEmpty { Text(model.walletMessage).font(.caption).padding(.horizontal) }
                 HStack { TextField(model.text("search"),text:$query).textFieldStyle(.roundedBorder).accessibilityLabel(model.text("search")); Button(model.text("search")){Task{await model.load(query:query)}} }.padding()
                 HStack { Button(model.text("discover")){Task{await model.load()}}; Button(model.text("subscriptions")){Task{await model.loadLibrary("/v1/subscriptions",label:model.text("subscriptions"))}}; Button(model.text("playlists")){Task{await model.loadLibrary("/v1/playlists",label:model.text("playlists"))}}; Button(model.text("history")){Task{await model.loadLibrary("/v1/history",label:model.text("history"))}} }.buttonStyle(.bordered).font(.caption).accessibilityElement(children:.contain)
                 stateView.frame(maxWidth:.infinity,maxHeight:.infinity)

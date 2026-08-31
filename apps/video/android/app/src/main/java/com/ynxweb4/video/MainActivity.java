@@ -61,6 +61,10 @@ import android.security.keystore.KeyProperties;
 
 public final class MainActivity extends Activity {
     private static final int BLUE = Color.rgb(0, 47, 167);
+    private static final String WALLET_CALLBACK_ROUTE = "ynxvideo://wallet-auth/callback";
+    private static final String SHARED_WALLET_PRODUCT = "ynx-video-mobile-v1";
+    private static final String SHARED_WALLET_CHAIN = "ynx_6423-1";
+    private static final String SHARED_WALLET_DEVICE_ALGORITHM = "p256-sha256";
     private static final String[] LOCALES = {"en","zh-CN","zh-TW","ja","ko","es","fr","de","pt","ru","ar","id"};
     private final ExecutorService worker = Executors.newSingleThreadExecutor();
     private JSONObject catalog, words;
@@ -239,27 +243,7 @@ public final class MainActivity extends Activity {
     private void showState(String message, boolean failed) { status.setText(message); status.setTextColor(failed ? Color.rgb(155,35,53) : Color.DKGRAY); progress.setVisibility(failed ? View.GONE : View.VISIBLE); }
 
     private void startWallet() {
-        try {
-            Instant issued = Instant.now().truncatedTo(ChronoUnit.MILLIS), expires = issued.plus(5, ChronoUnit.MINUTES);
-            String nonce = randomBase64(24), deviceKey = productDeviceKey();
-            String[] scopes = {"video.comment","video.history","video.read","video.report","video.subscribe"};
-            String json = "{" +
-                "\"bundleId\":\"com.ynxweb4.video\"," +
-                "\"callback\":\"ynxvideo://wallet-auth/callback\"," +
-                "\"chainId\":\"ynx_6423-1\"," +
-                "\"expiresAt\":" + JSONObject.quote(expires.toString()) + "," +
-                "\"issuedAt\":" + JSONObject.quote(issued.toString()) + "," +
-                "\"nonce\":" + JSONObject.quote(nonce) + "," +
-                "\"productClientId\":\"ynx-video-mobile-v1\"," +
-                "\"productDeviceAlgorithm\":\"p256-sha256\"," +
-                "\"productDeviceKey\":" + JSONObject.quote(deviceKey) + "," +
-                "\"purpose\":" + JSONObject.quote(t("privacy")) + "," +
-                "\"requestingProduct\":\"ynx-video\"," +
-                "\"scopes\":[\"video.comment\",\"video.history\",\"video.read\",\"video.report\",\"video.subscribe\"]," +
-                "\"version\":\"1\"}";
-            String request = Base64.encodeToString(json.getBytes(StandardCharsets.UTF_8), Base64.URL_SAFE | Base64.NO_WRAP | Base64.NO_PADDING);
-            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("ynxwallet://authorize?request=" + Uri.encode(request))));
-        } catch (Exception error) { showState(t("unavailable") + ": " + error.getMessage(), true); }
+        showState("Wallet authorization for " + SHARED_WALLET_PRODUCT + " on " + SHARED_WALLET_CHAIN + " requires the shared YNX Wallet transport. Guest playback remains available.", true);
     }
 
     private void handleIntent(Intent intent) {
