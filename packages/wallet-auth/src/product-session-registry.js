@@ -210,7 +210,7 @@ function callback(value, label, options) {
     fail("INVALID_ROUTER_REGISTRY", `${label} is not canonical or uses a forbidden scheme`);
   }
   if (parsed.protocol === "https:" && !options.allowHttps) fail("INVALID_ROUTER_REGISTRY", `${label} must use its registered application scheme`);
-  if (parsed.protocol !== "https:" && !/^[a-z][a-z0-9+.-]*:$/.test(parsed.protocol)) fail("INVALID_ROUTER_REGISTRY", `${label} scheme is invalid`);
+  if (parsed.protocol !== "https:" && !/^ynx[a-z0-9+.-]*:$/.test(parsed.protocol)) fail("INVALID_ROUTER_REGISTRY", `${label} must use the private YNX application scheme namespace`);
   return normalized;
 }
 

@@ -93,6 +93,18 @@ test("Wallet download registrations are pinned to the official allowlist", () =>
   assert.throws(() => parseProductSessionRegistry({ ...registrySource, wallet: { ...registrySource.wallet, metaMaskDownloadUrl: "https://attacker.example/metamask" } }), code("INVALID_ROUTER_REGISTRY"));
 });
 
+test("native callback registry accepts the current YNX namespace and rejects arbitrary OS handoff schemes", () => {
+  const current = parseProductSessionRegistry(registrySource);
+  assert.equal(current.products.every((product) => new URL(product.nativeCallback).protocol.startsWith("ynx")), true);
+  for (const scheme of ["ftp", "mailto", "tel", "intent"]) {
+    const tampered = structuredClone(registrySource);
+    const social = tampered.products.find((product) => product.productId === "social");
+    social.nativeCallback = `${scheme}://com.ynx.social/wallet-auth/callback`;
+    social.legacyCallbacks = [social.nativeCallback, "ynx-social"].sort();
+    assert.throws(() => parseProductSessionRegistry(tampered), code("INVALID_ROUTER_REGISTRY"));
+  }
+});
+
 test("registry v1 and v2 migrate explicitly to v3 while preserving the exact Shop Android retirement", () => {
   const productsV2 = registrySource.products.map(({ retiredClients: _retiredClients, ...product }) => product);
   const legacyV2 = { ...registrySource, schemaVersion: 2, products: productsV2 };
