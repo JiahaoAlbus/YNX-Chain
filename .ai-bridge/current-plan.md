@@ -2,8 +2,8 @@
 
 Status: `ACTIVE`
 Phase: `INTEGRATE`
-Engineering Source Commit: `c134290a4800a30c2f1f5a57523adf1daea34ad3`
-Release Candidate: `ynx-data-fabric-c134290a4800`
+Engineering Source Commit: `60d92d33db3c69080bb72a2cd1ccf6149f43de2b`
+Release Candidate: `ynx-data-fabric-60d92d33db3c`
 
 ## Completed and protected
 
@@ -30,6 +30,7 @@ Release Candidate: `ynx-data-fabric-c134290a4800`
 - The published source-only prerelease predates this engineering commit and truthfully records `currentSourceIncluded=false`; it is recovery evidence, not a download for the current release candidate.
 - PostgreSQL migration `0009_analytics_retention_sweeps` deletes only explicitly expired, payload-free `transient` and `operational` Analytics facts in one serializable transaction and appends bounded deletion counts under an idempotent audit ID. It never selects canonical events, Outbox, Inbox, Ledger, financial, audit-7y, or legal-hold records; cutoffs must be supplied by an approved caller and no scheduler or runtime deployment is claimed.
 - Exact-source GitHub Actions run `33374309851` passed all six Data Fabric jobs for engineering source `c134290a4800a30c2f1f5a57523adf1daea34ad3` at binding head `f818ee876dbd7e20016f9363c09ef8e0a6fedeb3`, including complete Go/race/vet/release-truth, PostgreSQL live and failover, and reproducible-build gates.
+- The next source commit rejects a PostgreSQL DSN unless it is a secret `postgres://` or `postgresql://` URI with exactly `sslmode=verify-full`, before any database dial and without logging credentials. Database/backup at-rest encryption, KMS authority and certificate issuance remain runtime mapping obligations; remote CI is pending for this source.
 - Central integration, shared Testnet, staging, public deployment, hosted download and production signing remain false without direct receipts.
 
 ## Current slice
