@@ -1,4 +1,5 @@
 export const FINANCE_DOMAIN_VERSION = "ynx-finance-domain-v1";
+export const FINANCE_READ_ENVELOPE_VERSION = "ynx-finance-read-envelope-v1";
 
 export const MODEL_KINDS = Object.freeze([
   "Asset",
@@ -198,6 +199,21 @@ export function validateModel(kind, value) {
       assert(typeof value.killSwitch === "boolean", ERROR_CODES.INVALID_REQUEST, "RiskLimit.killSwitch is invalid");
       break;
   }
+  return value;
+}
+
+// Product APIs may use this envelope for a source-bound financial read. It is
+// deliberately not a Data Fabric event format and contains no mutation grant.
+export function validateReadEnvelope(value) {
+  assert(isRecord(value), ERROR_CODES.INVALID_REQUEST, "read envelope must be an object");
+  assert(value.schemaVersion === FINANCE_READ_ENVELOPE_VERSION, ERROR_CODES.INVALID_REQUEST, "read envelope schemaVersion is invalid");
+  assert(MODEL_KINDS.includes(value.kind), ERROR_CODES.INVALID_REQUEST, "read envelope kind is invalid");
+  assertID(value.requestId, "read envelope requestId");
+  assert(value.readOnly === true, ERROR_CODES.FORBIDDEN, "read envelope must be read-only");
+  assert(Array.isArray(value.capabilities) && value.capabilities.length > 0 && value.capabilities.every((capability) => capability === "read"), ERROR_CODES.FORBIDDEN, "read envelope capabilities are invalid");
+  validateModel(value.kind, value.data);
+  assert(value.sourceStatus === value.data.source.status, ERROR_CODES.INVALID_REQUEST, "read envelope sourceStatus must match model provenance");
+  if (value.cursor !== undefined) assertID(value.cursor, "read envelope cursor");
   return value;
 }
 

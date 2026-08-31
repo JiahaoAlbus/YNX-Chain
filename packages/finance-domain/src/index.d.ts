@@ -1,4 +1,5 @@
 export const FINANCE_DOMAIN_VERSION: "ynx-finance-domain-v1";
+export const FINANCE_READ_ENVELOPE_VERSION: "ynx-finance-read-envelope-v1";
 export const MODEL_KINDS: readonly ["Asset", "Market", "Quote", "Candle", "Order", "Trade", "Position", "Portfolio", "LiquidityPool", "Strategy", "RiskLimit"];
 export type ModelKind = typeof MODEL_KINDS[number];
 export const ERROR_CODES: Readonly<Record<string, string>>;
@@ -16,8 +17,19 @@ export interface SourceMetadata {
   coverage?: string;
 }
 export interface DomainRecord { schemaVersion: typeof FINANCE_DOMAIN_VERSION; source: SourceMetadata; [key: string]: unknown }
+export interface FinanceReadEnvelope {
+  schemaVersion: typeof FINANCE_READ_ENVELOPE_VERSION;
+  kind: ModelKind;
+  requestId: string;
+  readOnly: true;
+  capabilities: readonly "read"[];
+  sourceStatus: SourceStatus;
+  data: DomainRecord;
+  cursor?: string;
+}
 export function validateSource(source: SourceMetadata): SourceMetadata;
 export function validateDecimal(value: string, field?: string): string;
 export function validateModel(kind: ModelKind, value: DomainRecord): DomainRecord;
+export function validateReadEnvelope(value: FinanceReadEnvelope): FinanceReadEnvelope;
 export function createError(input: { code: string; message: string; requestId: string; retryable?: boolean; details?: unknown }): Readonly<object>;
 export function validateWriteHeaders(headers: { requestId: string; idempotencyKey: string; expectedVersion: string }): object;

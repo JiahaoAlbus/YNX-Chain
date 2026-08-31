@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { ERROR_CODES, FINANCE_DOMAIN_VERSION, MODEL_KINDS, createError, validateDecimal, validateModel, validateWriteHeaders } from "../src/index.js";
+import { ERROR_CODES, FINANCE_DOMAIN_VERSION, FINANCE_READ_ENVELOPE_VERSION, MODEL_KINDS, createError, validateDecimal, validateModel, validateReadEnvelope, validateWriteHeaders } from "../src/index.js";
 
 const source = Object.freeze({ owner: "oracle", system: "ynx-oracle", version: "v1", asOf: "2026-08-13T12:00:00.000Z", classification: "testnet", status: "live" });
 const examples = {
@@ -35,6 +35,26 @@ test("models reject invalid finance semantics instead of accepting field-shaped 
   assert.throws(() => validateModel("LiquidityPool", { schemaVersion: FINANCE_DOMAIN_VERSION, source, ...examples.LiquidityPool, reserves: ["10"] }), /LiquidityPool.reserves/);
   assert.throws(() => validateModel("Strategy", { schemaVersion: FINANCE_DOMAIN_VERSION, source, ...examples.Strategy, lifecycle: "live" }), /Strategy.lifecycle/);
   assert.throws(() => validateModel("RiskLimit", { schemaVersion: FINANCE_DOMAIN_VERSION, source, ...examples.RiskLimit, maxSlippageBps: 10001 }), /RiskLimit.maxSlippageBps/);
+});
+
+test("read envelopes preserve source truth and never carry a mutation capability", () => {
+  const data = { schemaVersion: FINANCE_DOMAIN_VERSION, source, ...examples.Portfolio };
+  const envelope = {
+    schemaVersion: FINANCE_READ_ENVELOPE_VERSION,
+    kind: "Portfolio",
+    requestId: "portfolio-read-1",
+    readOnly: true,
+    capabilities: ["read"],
+    sourceStatus: "live",
+    cursor: "page:2",
+    data,
+  };
+  assert.equal(validateReadEnvelope(envelope), envelope);
+  assert.throws(() => validateReadEnvelope({ ...envelope, readOnly: false }), /read-only/);
+  assert.throws(() => validateReadEnvelope({ ...envelope, capabilities: [] }), /capabilities/);
+  assert.throws(() => validateReadEnvelope({ ...envelope, capabilities: ["write"] }), /capabilities/);
+  assert.throws(() => validateReadEnvelope({ ...envelope, sourceStatus: "stale" }), /sourceStatus/);
+  assert.throws(() => validateReadEnvelope({ ...envelope, cursor: "bad cursor" }), /cursor/);
 });
 
 test("money uses strings and write requests require concurrency controls", () => {
