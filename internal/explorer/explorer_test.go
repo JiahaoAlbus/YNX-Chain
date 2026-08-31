@@ -194,6 +194,8 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 		"walletUI",
 		"ariaUI",
 		"walletRuntimeUI",
+		"footerUI",
+		"data-footer-i18n",
 		"data-i18n-aria",
 		"renderHomeDirectory",
 		"id=\"homeEcosystem\"",

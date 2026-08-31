@@ -593,7 +593,7 @@ const indexHTML = `<!doctype html>
 
   <section class="route-view shell" id="routeView" hidden aria-live="polite"></section>
 
-  <footer><div class="shell footer-inner"><span>YNX Chain · 6423 Testnet portal</span><span><a href="#documentation" data-route="documentation">Documentation</a> · Live testnet data. Mainnet launch is not claimed.</span></div></footer>
+  <footer><div class="shell footer-inner"><span data-footer-i18n="portal">YNX Chain · 6423 Testnet portal</span><span><a href="#documentation" data-route="documentation" data-i18n="documentation">Documentation</a> · <span data-footer-i18n="disclaimer">Live testnet data. Mainnet launch is not claimed.</span></span></div></footer>
 
   <div class="drawer-backdrop" id="detailBackdrop" aria-hidden="true">
     <aside class="drawer" id="detailDrawer" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
@@ -783,6 +783,14 @@ const indexHTML = `<!doctype html>
       ko:{connected:'YNX 지갑 연결됨',session:'EIP-6963 / EIP-1193 세션 — 서명이나 트랜잭션을 요청하지 않았습니다',account:'계정',provider:'제공자',providerValue:'YNX 지갑만 사용하며 MetaMask는 분리되어 유지됩니다',connectedChain:'연결된 체인',requiredTestnet:'필수 테스트넷',onExpected:'YNX 6423 테스트넷에 연결됨',wrongNetwork:'이 제공자는 다른 네트워크에 있습니다. 전환을 선택할 때까지 연결이 유지됩니다.',switchNetwork:'0x1917로 전환',switchHelp:'지갑 네트워크 변경을 요청합니다',refreshAccount:'선택한 계정 새로 고침',refreshHelp:'제공자 계정 목록을 읽습니다',disconnect:'연결 해제',disconnectHelp:'이 포털 세션만 지웁니다',configUnavailable:'이 지갑 작업에 사용할 검증된 공개 6423 네트워크 구성이 없습니다.'}
     };
     const w = key => walletUI[language]?.[key] || walletUI.en[key] || key;
+    const footerUI = {
+      en:{portal:'YNX Chain · 6423 Testnet portal',disclaimer:'Live testnet data. Mainnet launch is not claimed.'},
+      'zh-CN':{portal:'YNX Chain · 6423 测试网门户',disclaimer:'显示实时测试网数据；不声明主网上线。'},
+      'zh-TW':{portal:'YNX Chain · 6423 測試網入口',disclaimer:'顯示即時測試網資料；不宣稱主網已上線。'},
+      ja:{portal:'YNX Chain · 6423 テストネットポータル',disclaimer:'ライブテストネットデータを表示します。メインネット公開は主張しません。'},
+      ko:{portal:'YNX Chain · 6423 테스트넷 포털',disclaimer:'실시간 테스트넷 데이터를 표시하며 메인넷 출시를 주장하지 않습니다.'}
+    };
+    const footer = key => footerUI[language]?.[key] || footerUI.en[key] || key;
     const ariaUI = {
       en:{primaryNavigation:'Primary navigation',explorerHome:'YNX Chain Explorer home',language:'Language',searchChain:'Search the chain',networkSummary:'Network summary',networkMetrics:'Network metrics',assetSummary:'YNXT network summary',liveBlockStream:'Live finalized block stream',quickFindTransactions:'Quick find transactions',filterTransactionType:'Filter transaction type',networkIntelligenceViews:'Network intelligence views',closeDetail:'Close detail panel'},
       'zh-CN':{primaryNavigation:'主导航',explorerHome:'YNX Chain 浏览器首页',language:'语言',searchChain:'搜索链上数据',networkSummary:'网络摘要',networkMetrics:'网络指标',assetSummary:'YNXT 网络摘要',liveBlockStream:'实时最终确定区块流',quickFindTransactions:'快速查找交易',filterTransactionType:'筛选交易类型',networkIntelligenceViews:'网络洞察视图',closeDetail:'关闭详情面板'},
@@ -821,6 +829,7 @@ const indexHTML = `<!doctype html>
       document.querySelectorAll('[data-home-i18n]').forEach(node => { node.textContent = home(node.dataset.homeI18n); });
       document.querySelectorAll('[data-live-i18n]').forEach(node => { node.textContent = live(node.dataset.liveI18n); });
       document.querySelectorAll('[data-download-i18n]').forEach(node => { node.textContent = d(node.dataset.downloadI18n); });
+      document.querySelectorAll('[data-footer-i18n]').forEach(node => { node.textContent = footer(node.dataset.footerI18n); });
       document.querySelectorAll('[data-i18n-placeholder]').forEach(node => { node.placeholder = t(node.dataset.i18nPlaceholder); });
       document.querySelectorAll('[data-i18n-aria]').forEach(node => { node.setAttribute('aria-label',a(node.dataset.i18nAria)); });
       renderHomeDirectory();
