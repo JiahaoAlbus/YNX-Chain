@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -80,6 +81,9 @@ func main() {
 		dsn, err := datafabricconfig.LoadSecretFile(*postgresDSNFile, "PostgreSQL DSN")
 		if err != nil {
 			fail(err.Error())
+		}
+		if err := validatePostgresTLSDSN(string(dsn)); err != nil {
+			fail("PostgreSQL TLS configuration invalid: " + err.Error())
 		}
 		db, err := sql.Open("postgres", string(dsn))
 		if err != nil {
@@ -220,6 +224,25 @@ func env(name, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+// validatePostgresTLSDSN keeps the production PostgreSQL boundary on a
+// certificate-verified connection without ever logging the DSN or its
+// credentials. Encryption at rest remains a database/KMS authority concern;
+// this process only rejects an unsafe transport configuration before dialing.
+func validatePostgresTLSDSN(dsn string) error {
+	if dsn != strings.TrimSpace(dsn) || dsn == "" {
+		return errors.New("DSN is empty or contains surrounding whitespace")
+	}
+	parsed, err := url.Parse(dsn)
+	if err != nil || (parsed.Scheme != "postgres" && parsed.Scheme != "postgresql") || parsed.Host == "" {
+		return errors.New("DSN must be a PostgreSQL URI with a host")
+	}
+	sslModes, exists := parsed.Query()["sslmode"]
+	if !exists || len(sslModes) != 1 || sslModes[0] != "verify-full" {
+		return errors.New("DSN must set exactly one sslmode=verify-full")
+	}
+	return nil
 }
 
 func envUint(name string, fallback uint) uint {
