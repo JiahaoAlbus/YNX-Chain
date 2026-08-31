@@ -1,0 +1,42 @@
+{
+  "schemaVersion": "payPublicBundleReadback@1.0.0-p0.0",
+  "observedAt": "2026-08-31",
+  "ownerScope": ["apps/pay/**"],
+  "currentRemoteCandidate": {
+    "commit": "e29611c9d2bab70dceafb22185c8dfbff3135f26",
+    "tree": "60f554e4e1f52856a91816da83bdd0be5bd708c6"
+  },
+  "publicWeb": {
+    "url": "https://pay.ynxweb4.com/",
+    "title": "YNX Pay",
+    "visibleFirstPartyShell": true,
+    "blankTopLevelPage": false,
+    "bundleUrl": "https://pay.ynxweb4.com/_expo/static/js/web/index-7b0e541eda1df37fa2c19e3d7df84d2f.js",
+    "bundleSha256": "94c7d8da1d22464092658af66e8024d543db64ed60e304ab8d9c48588bfd0840",
+    "bundleBytes": 2668358,
+    "exactCandidateProvenance": false,
+    "embeddedManifest": {
+      "payProductStatus": "PENDING",
+      "reason": "No Pay product API endpoint has direct public release and identity evidence in this manifest.",
+      "network": "ynx_6423-1 / 0x1917"
+    }
+  },
+  "nonSensitiveProviderDiscovery": {
+    "metaMaskVisible": true,
+    "metaMaskIdentityAndFoxLogoVisible": true,
+    "ynxWalletProviderVisible": false,
+    "accountRequestSent": false,
+    "signatureSent": false,
+    "transactionSent": false
+  },
+  "truth": {
+    "sourceBoundPublicRuntime": false,
+    "installedCandidate": false,
+    "providerApproval": false,
+    "providerRejection": false,
+    "chainAddSwitchReadback": false,
+    "refreshEventsDisconnect": false,
+    "walletConnectRelay": false
+  },
+  "conclusion": "The public shell and MetaMask discovery are direct non-sensitive observations, but the bundle is not bound to the current candidate and declares Pay public identity PENDING. It is not release or lifecycle completion evidence."
+}
