@@ -1,11 +1,11 @@
 {
   "schemaVersion": 1,
   "kind": "walletWebFreshMainCandidateBuild",
-  "builtAt": "2026-08-31T11:23:02Z",
+  "builtAt": "2026-08-31T13:39:17Z",
   "candidate": {
     "baselineMainCommit": "babfc57cebf60eadaec51398202de11cda742901",
     "ownerSourceCommit": "0add9f817b79790cfe3d26a88c9a64f90fdaeebb",
-    "candidateRuntimeSourceCommit": "ead6a7fa8248155404f36a0dd8b6232d76ca37ec",
+    "candidateRuntimeSourceCommit": "5a1f6e176b6ece953b22d8d62d94d401d69668bd",
     "importedPaths": [
       "apps/wallet-web",
       "release/integration/wallet-web-pwa-site"
@@ -29,7 +29,7 @@
   "validation": {
     "npmCi": true,
     "walletWebTests": {
-      "passed": 121,
+      "passed": 122,
       "failed": 0
     },
     "package": true,
@@ -39,7 +39,7 @@
     "artifactLocalizedErrorsGate": true,
     "artifactLocalizedRegionsGate": true,
     "buildIdentity": {
-      "sourceCommit": "0add9f817b79790cfe3d26a88c9a64f90fdaeebb",
+      "sourceCommit": "5a1f6e176b6ece953b22d8d62d94d401d69668bd",
       "providerAuthorityCommit": "98c6d5d784d212df8981a53b17118a511e246ad2",
       "chainId": "0x1917"
     }
@@ -47,20 +47,20 @@
   "artifacts": [
     {
       "name": "ynx-wallet-web-pwa-0.1.0.zip",
-      "bytes": 287018,
-      "sha256": "cb66b49abd4829dc582c8d89ebae55e6d74b6427f65daea8b5836dab42538ff2",
+      "bytes": 287134,
+      "sha256": "6653d117bb219344224380e9087f548893784164d1c09b036127b57aaa588080",
       "signingClass": "unsigned-web-bundle"
     },
     {
       "name": "ynx-wallet-chrome-edge-0.1.0.zip",
-      "bytes": 469921,
-      "sha256": "486597794590c31fbf58c90ff5e865bb9910a9f463d0ce41727194e846a02139",
+      "bytes": 470036,
+      "sha256": "393ca91b07f1cbc431c792ff9c26b07e59fe8ba68702c61de2d2495a6a2d7b2a",
       "signingClass": "unsigned-unpacked-extension"
     },
     {
       "name": "ynx-wallet-firefox-0.1.0.zip",
-      "bytes": 469954,
-      "sha256": "0cc5807b2bd9fa0cc0ab5d9f4927b48c22851fa4cfdbb05db09aad1c9d329b7e",
+      "bytes": 470069,
+      "sha256": "b0bf4434d689909834873aaebdd124d8c9cd85c9953bc9888a6b2d60740a0851",
       "signingClass": "unsigned-unpacked-extension"
     }
   ],
