@@ -225,3 +225,9 @@ This is local responsive and accessibility evidence against the 6423 node/indexe
 - Documentation now covers every currently served local Explorer read surface: summary, blocks, transactions, account list/detail, native token, validators, account resources, resource-market analytics, transaction fees, search, and the SSE stream. This improves the developer path without claiming an unverified public HTTPS API.
 - Browser evidence: the Chinese Documentation view rendered all 12 endpoint rows, including `/api/resource-market/analytics`, `/api/resources/{address}`, `/api/fees/{hash}`, and `/api/stream (SSE)`. It retained the explicit statement that the endpoints are not public RPC endpoints; console errors were zero.
 - At 390 x 844 CSS px, the API table remained 315 px wide inside its scroll-safe shell with 12 visible rows and no document-width overflow.
+
+## 2026-08-31 homepage account-count follow-up
+
+- The YNXT asset overview now uses its four-cell hierarchy for the verified account count instead of a less useful pending-transaction value. This aligns the Home summary with the required real account coverage while preserving live height, TPS, indexed transaction, validator, and synchronization metrics.
+- Evidence: the active local `/api/accounts?limit=10` response declared `authoritative-public-ledger-account-ranking`, with `total: 4` and four returned records. Browser Home rendered `账户 / 4 / 由索引器验证` and the matching `4 个全账本账户 / 展示前 4` leaderboard label.
+- At 390 x 844 CSS px the account fact occupied a 175 px column in a 351 px asset overview, the value remained 14 px, and no document-width overflow or console error occurred.

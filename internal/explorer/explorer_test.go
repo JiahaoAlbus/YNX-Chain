@@ -396,7 +396,7 @@ func TestExplorerPortalRoutesStayInOne6423Document(t *testing.T) {
 			t.Fatalf("portal route behavior is missing %q", behavior)
 		}
 	}
-	for _, required := range []string{"const observedWindow = calculateWindow(blocks)", "observedWindow.tps.toFixed(2)", "observedWindow.blockTime ? observedWindow.blockTime.toFixed(1) + 's'", "i('blockLag'"} {
+	for _, required := range []string{"const observedWindow = calculateWindow(blocks)", "observedWindow.tps.toFixed(2)", "observedWindow.blockTime ? observedWindow.blockTime.toFixed(1) + 's'", "i('blockLag'", "id=\"assetAccountCount\"", "$('assetAccountCount').textContent"} {
 		if !strings.Contains(indexHTML, required) {
 			t.Fatalf("blockchain network status is missing verified runtime fact %q", required)
 		}
