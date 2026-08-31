@@ -74,6 +74,30 @@
     "pathLockRequired": true,
     "freshMainBasedWorktreeRequired": true,
     "requiredSourceOperation": "Perform an explicit three-way merge of the exact dedicated shell and Provider-fix source commits; resolve and review conflicts before generating a new immutable build identity.",
+    "mergePreflight": {
+      "performedInIsolatedDetachedWorktree": true,
+      "firstMergeCommit": "9a51e89dee80185d16598cbb9c664b9f2bc4c557",
+      "firstMergeClean": true,
+      "secondMergeCommit": "3651ba0c4322e0564e29b4573f3def90828dba67",
+      "secondMergeClean": false,
+      "conflicts": [
+        "apps/wallet-web/artifact-manifest.json",
+        "apps/wallet-web/artifacts/ynx-wallet-chrome-edge-0.1.0.zip",
+        "apps/wallet-web/artifacts/ynx-wallet-firefox-0.1.0.zip",
+        "apps/wallet-web/artifacts/ynx-wallet-web-pwa-0.1.0.zip",
+        "apps/wallet-web/public/app.js",
+        "apps/wallet-web/public/index.html",
+        "apps/wallet-web/scripts/build.mjs",
+        "apps/wallet-web/src/i18n.js",
+        "apps/wallet-web/src/provider.js",
+        "apps/wallet-web/src/service-worker-policy.js",
+        "apps/wallet-web/test/provider.test.js",
+        "apps/wallet-web/test/service-worker-policy.test.js",
+        "apps/wallet-web/test/ui-contract.test.js"
+      ],
+      "binaryArtifactReuseForbidden": true,
+      "requiredResolution": "Resolve source conflicts under the Website path lock, then rebuild and regenerate every artifact manifest and ZIP from the resolved source."
+    },
     "requiredValidation": [
       "wallet-web focused and full tests",
       "build and package",
