@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-045-CALENDAR-STANDARD-WALLET-SOURCE-8FF6EB24-20260821",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "owner": "integration",
+  "source": {
+    "branch": "codex/final-calendar",
+    "commit": "8ff6eb24705155fbbeddf983d44f87e9e20d944f",
+    "remoteReadbackExact": true,
+    "worktreeClean": true
+  },
+  "sdk": {
+    "acceptedSource": "315897e75c0ffe3e63435fe73cfec42244b851cc",
+    "centralCleanRebase": "f4ef7d56a8dcc8dc8e96dc7a5925fc0e132a4c05",
+    "consumption": "byte-identical browser-safe source vendor; no provider reimplementation",
+    "verifiedModuleCount": 4
+  },
+  "tests": {
+    "calendar": "17/17",
+    "go": "apps/calendar and internal/calendar passed",
+    "build": "ynx-calendard built successfully",
+    "moduleHttpReadback": true,
+    "browserConsoleErrors": 0
+  },
+  "browserReadback": {
+    "target": "http://127.0.0.1:18096/",
+    "noWalletStatus": "No Wallet found. Download YNX Wallet or install MetaMask, then retry.",
+    "ynxWalletDownload": "https://www.ynxweb4.com/dapp/download",
+    "metaMaskDownload": "https://metamask.io/download/",
+    "guestTrialEntered": true,
+    "guestCreateEnabled": true,
+    "actualProviderApproval": false
+  },
+  "closedGaps": [
+    "Web connect action performs EIP-6963 discovery and standard EIP-1193 account and chain requests",
+    "YNX Wallet is preferred and MetaMask remains an explicit standard EVM fallback",
+    "YNX Testnet 0x1917 add/switch is fail-closed and source-tested",
+    "no-Wallet state exposes two fixed HTTPS installation choices",
+    "guest trial remains available",
+    "private Calendar service remains PRIVATE_SERVICE_DEGRADED without deleting Standard Wallet state"
+  ],
+  "truth": {
+    "standardWalletSourceImplemented": true,
+    "standardWalletConnectedVisible": false,
+    "productSessionV2": false,
+    "installedApprovalVerified": false,
+    "deployedPublic": false,
+    "publicVerified": false,
+    "computerControlVerified": false,
+    "productsMigrated": 0,
+    "productsRequired": 12
+  }
+}

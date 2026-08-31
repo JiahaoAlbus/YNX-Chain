@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-WALLET-AUTH-WEBSITE-RUNTIME-SOURCE-PRODUCTION-20260820",
+  "checkedAt": "2026-08-20T15:14:14Z",
+  "ownerPostdeployCheckpoint": {
+    "commit": "ddc4ea884b7659fdd989cf2721b71f4c34ef3b61",
+    "path": "release/integration/wallet-auth-website-postdeploy-readback-20260820.json",
+    "visibleCardVerifiedByOwner": false,
+    "ownerVisibleBlocker": "MAC_LOCKED_AUTOMATIC_UNLOCK_FAILED"
+  },
+  "officialProduction": {
+    "websiteSourceCommit": "09d5be41436404bba74315d0013c0229cab1e32b",
+    "websiteSourceTree": "8b104a6b98c286534b549c8c4146bb945ecfebbb",
+    "sourceChangedByIntegration": false,
+    "deploymentId": "dpl_awLjPQTGudm2huQmNHPk9UpmugfV",
+    "deploymentUrl": "https://ynx-web4-website-qpxf97xly-jiahaoalbus-projects.vercel.app",
+    "target": "production",
+    "readyState": "READY",
+    "officialAliases": [
+      "https://ynxweb4.com",
+      "https://www.ynxweb4.com",
+      "https://wallet.ynxweb4.com"
+    ]
+  },
+  "publicReadback": {
+    "apexDocs": {
+      "url": "https://ynxweb4.com/docs",
+      "status": 200,
+      "bytes": 4748,
+      "sha256": "d4ab589c6b113e95168d0d2d2032c1792c7d1ad990d287f298efb8b130bafa1f"
+    },
+    "wwwDocs": {
+      "url": "https://www.ynxweb4.com/docs",
+      "status": 200,
+      "bytes": 4748,
+      "sha256": "d4ab589c6b113e95168d0d2d2032c1792c7d1ad990d287f298efb8b130bafa1f"
+    },
+    "apexRuntime": {
+      "url": "https://ynxweb4.com/releases/wallet-auth-runtime/6cf3ef845202bd879ed94515a71b323dd2fc9e14/runtime-publication.json",
+      "status": 200,
+      "bytes": 1900,
+      "sha256": "635fefdcc1cd5675a1787a9bf17c87102ccadd1c8232450be7b847333fe75941",
+      "runtimeSourceCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14"
+    },
+    "wwwRuntime": {
+      "url": "https://www.ynxweb4.com/releases/wallet-auth-runtime/6cf3ef845202bd879ed94515a71b323dd2fc9e14/runtime-publication.json",
+      "status": 200,
+      "bytes": 1900,
+      "sha256": "635fefdcc1cd5675a1787a9bf17c87102ccadd1c8232450be7b847333fe75941",
+      "runtimeSourceCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14"
+    },
+    "apexFrontendAsset": {
+      "url": "https://ynxweb4.com/assets/index-B5LdNRfU.js",
+      "status": 200,
+      "bytes": 585512,
+      "sha256": "8726a271e7109da6883df6f09dd05345f3fc036f61d81dcf47c7a1e5b7bef11b",
+      "containsCurrentRuntimeSource": true
+    },
+    "wwwFrontendAsset": {
+      "url": "https://www.ynxweb4.com/assets/index-B5LdNRfU.js",
+      "status": 200,
+      "bytes": 585512,
+      "sha256": "8726a271e7109da6883df6f09dd05345f3fc036f61d81dcf47c7a1e5b7bef11b",
+      "containsCurrentRuntimeSource": true
+    }
+  },
+  "visibleBrowserAcceptance": {
+    "tool": "in-app Browser Chrome extension",
+    "url": "https://ynxweb4.com/docs",
+    "heading": "A public Wallet/Auth service record, with its limits shown",
+    "runtimeSourceShown": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "runtimeSourceMatchesPublicVersion": true,
+    "installedWalletClientVerifiedShown": false,
+    "accountSignSendTransactionOrChainDisconnectVerifiedShown": false,
+    "productsMigratedShown": 0,
+    "productsRequiredShown": 12,
+    "centralIntegrationShown": false,
+    "aggregatePublicReadinessShown": false,
+    "productionSigningShown": false,
+    "storeReleaseShown": false,
+    "productSessionFlowExecuted": false
+  },
+  "truth": {
+    "websiteProductionDeploymentReady": true,
+    "websiteWalletAuthRecordDeployedPublic": true,
+    "renderedVisibleCardVerifiedAfterDeployment": true,
+    "renderedVisibleCardUsesCurrentRuntimeSource": true,
+    "installedWalletClientVerified": false,
+    "walletApprovalVerified": false,
+    "accountVerified": false,
+    "signingVerified": false,
+    "transactionVerified": false,
+    "chainDisconnectVerified": false,
+    "productsMigrated": 0,
+    "productsRequired": 12,
+    "integratedCentral": false,
+    "aggregateDeployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

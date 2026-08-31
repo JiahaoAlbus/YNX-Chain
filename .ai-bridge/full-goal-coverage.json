@@ -2,7 +2,7 @@
   "schemaVersion": "1.0.0",
   "owner": "29-integration",
   "product": "YNX Integration / Founder Control",
-  "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+  "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
   "allowedStatuses": [
     "notStarted",
     "inProgress",
@@ -25,14 +25,14 @@
       "evidence": [
         "workspace and branch matched; takeover status was clean"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [],
       "artifact": null,
       "publicProof": [],
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Repeat the takeover audit at every new session.",
-      "lastUpdated": "2026-07-30T18:30:42.137Z"
+      "lastUpdated": "2026-08-01T12:51:41.501Z"
     },
     {
       "id": "INT-PROTECT-001",
@@ -43,14 +43,14 @@
       "evidence": [
         "origin/codex/final-integration created and synchronized before this implementation slice"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [],
       "artifact": null,
       "publicProof": [],
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Recheck Local and Remote SHA after every protected slice.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.502Z"
     },
     {
       "id": "INT-CONCURRENCY-001",
@@ -61,14 +61,14 @@
       "evidence": [
         "no active same-worktree handoff state or matching writer was observed at takeover"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [],
       "artifact": null,
       "publicProof": [],
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Repeat the process and handoff-state check before each long write/test/push slice.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.502Z"
     },
     {
       "id": "INT-REGISTRY-001",
@@ -80,7 +80,7 @@
         "release/integration/product-registry.json",
         "release/integration/acceptance-matrix.json"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "refresh-integration-acceptance --self-test",
         "integration-acceptance-check --self-test"
@@ -90,7 +90,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Keep the registry synchronized with exact owner branches and rerun the matrix before every acceptance decision.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.502Z"
     },
     {
       "id": "INT-FREEZE-001",
@@ -102,7 +102,7 @@
         "release/integration/integration-contract.json",
         "docs/integration/DEPENDENCY_ACCEPTANCE.md"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "integration-acceptance-check",
         "integration-acceptance-check --self-test"
@@ -112,7 +112,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Bind the protected commit, then validate every Phase 0 authority bundle and record explicit conflict resolution.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.502Z"
     },
     {
       "id": "INT-AUTH-001",
@@ -121,7 +121,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "CP-001",
         "CP-002",
@@ -137,7 +137,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Review 02 and rerun the central auth negative vectors.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.502Z"
     },
     {
       "id": "INT-SOURCE-001",
@@ -146,7 +146,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [],
       "artifact": null,
       "publicProof": [],
@@ -157,7 +157,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Freeze source semantics across Oracle and Data Fabric.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.502Z"
     },
     {
       "id": "INT-ASSET-001",
@@ -166,7 +166,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "CP-004",
         "CP-005",
@@ -183,7 +183,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Review Wallet mandates, Exchange no-withdraw sessions and DEX vault ownership.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.502Z"
     },
     {
       "id": "INT-AI-001",
@@ -192,7 +192,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "CP-009"
       ],
@@ -206,7 +206,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Review the AI approval contract and execute CP-009.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.502Z"
     },
     {
       "id": "INT-PROVIDER-001",
@@ -215,7 +215,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [],
       "artifact": null,
       "publicProof": [],
@@ -227,7 +227,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Aggregate provider registers and verify fail-closed adapters.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.502Z"
     },
     {
       "id": "INT-L10N-001",
@@ -236,7 +236,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [],
       "artifact": null,
       "publicProof": [],
@@ -246,7 +246,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Define and run one central locale and accessibility conformance harness.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.502Z"
     },
     {
       "id": "INT-PLATFORM-001",
@@ -255,7 +255,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [],
       "artifact": null,
       "publicProof": [],
@@ -265,7 +265,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Import owner platform manifests and rerun installation evidence.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.502Z"
     },
     {
       "id": "INT-SLO-001",
@@ -274,7 +274,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [],
       "artifact": null,
       "publicProof": [],
@@ -289,7 +289,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Collect comparable SLO and capacity artifacts.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.502Z"
     },
     {
       "id": "INT-ECON-001",
@@ -298,7 +298,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [],
       "artifact": null,
       "publicProof": [],
@@ -311,7 +311,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Reconcile owner economics records against Billing Ledger facts.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.502Z"
     },
     {
       "id": "INT-MIGRATION-001",
@@ -320,7 +320,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [],
       "artifact": null,
       "publicProof": [],
@@ -334,7 +334,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Freeze schema versions and execute forward/rollback vectors.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.502Z"
     },
     {
       "id": "INT-RESTORE-001",
@@ -343,7 +343,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [],
       "artifact": null,
       "publicProof": [],
@@ -355,7 +355,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Consume the Security/SRE restore policy and execute the shared drill.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.502Z"
     },
     {
       "id": "INT-OBS-001",
@@ -364,7 +364,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [],
       "artifact": null,
       "publicProof": [],
@@ -376,7 +376,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Freeze common evidence fields and run Monitor integration.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.502Z"
     },
     {
       "id": "INT-SEC-001",
@@ -388,7 +388,7 @@
         "release/integration/acceptance-matrix.json",
         "release/integration/evidence/product-30-central-acceptance-a472d588.json"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "npm run security:test",
         "npm run security:verify",
@@ -402,7 +402,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Retain the accepted source lock and execute the separate shared-Testnet security, monitoring and recovery drills.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.502Z"
     },
     {
       "id": "INT-NPM-AUDIT-001",
@@ -413,7 +413,7 @@
       "evidence": [
         "release/integration/security/npm-audit-policy.json"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "integration-npm-audit-policy-check",
         "integration-npm-audit-policy-check-test"
@@ -425,7 +425,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Retain the locked policy and re-evaluate default-branch alerts after the accepted remediation reaches main.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.502Z"
     },
     {
       "id": "INT-PREFLIGHT-001",
@@ -436,7 +436,7 @@
       "evidence": [
         "release/integration/evidence/protect-preflight-d05ddf0a.json"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "integration-acceptance-check",
         "contract-tooling-check",
@@ -452,7 +452,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Require the same green gate on every subsequent protected source commit and in the pull-request workflow.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.502Z"
     },
     {
       "id": "INT-FEE-001",
@@ -461,7 +461,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "CP-004",
         "CP-005",
@@ -479,7 +479,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Reconcile Quant, Exchange, DEX and Economics fee authorities.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.502Z"
     },
     {
       "id": "INT-PUBLIC-001",
@@ -488,7 +488,7 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": [],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "CP-011"
       ],
@@ -500,7 +500,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Generate Integration public metadata and require Website consumption proof.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.502Z"
     },
     {
       "id": "INT-EVIDENCE-001",
@@ -513,7 +513,7 @@
         "release/integration/central-acceptance-decisions.json",
         "release/integration/github-evidence.json"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "integration-acceptance-check",
         "integration-acceptance-check --self-test"
@@ -523,7 +523,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Keep every acceptance decision fail-closed against source, merge ancestry, exact-head CI and its central test receipt.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.502Z"
     },
     {
       "id": "INT-KPI-001",
@@ -532,7 +532,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [],
       "artifact": null,
       "publicProof": [],
@@ -545,7 +545,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Map KPI owners and exclude internal test traffic.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.502Z"
     },
     {
       "id": "INT-INPUTS-001",
@@ -554,7 +554,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [],
       "artifact": null,
       "publicProof": [],
@@ -563,7 +563,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Aggregate 01–36 input records after autonomous work is complete.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.502Z"
     },
     {
       "id": "INT-PHASE-001",
@@ -574,14 +574,14 @@
       "evidence": [
         "release/integration/integration-contract.json"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [],
       "artifact": null,
       "publicProof": [],
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Complete PROTECT verification before promoting the controller gate to FREEZE.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.502Z"
     },
     {
       "id": "INT-CROSS-DEFINITION-001",
@@ -592,7 +592,7 @@
       "evidence": [
         "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "integration-acceptance-check",
         "integration-acceptance-check --self-test"
@@ -602,7 +602,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Bind the protected commit, rerun exact-commit validation and keep vectors synchronized with accepted contracts.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.502Z"
     },
     {
       "id": "INT-CROSS-001",
@@ -613,7 +613,7 @@
       "evidence": [
         "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "CP-001 through CP-012"
       ],
@@ -625,7 +625,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Execute CP-001 through CP-012 after Phase 0 acceptance.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.502Z"
     },
     {
       "id": "INT-QUANT-001",
@@ -634,7 +634,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "CP-004",
         "CP-005"
@@ -659,7 +659,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Review 08 as the sole engine owner and reject duplicate engines.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.502Z"
     },
     {
       "id": "INT-CAPITAL-001",
@@ -668,7 +668,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "CP-012"
       ],
@@ -690,7 +690,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Freeze evidence contracts and execute fail-closed shortfall and exit drills.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.502Z"
     },
     {
       "id": "INT-GITHUB-001",
@@ -699,14 +699,14 @@
       "applicability": "applicable",
       "status": "inProgress",
       "evidence": [],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [],
       "artifact": "release/integration/github-evidence.json",
       "publicProof": [],
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Generate source-bound GitHub evidence and require CI on the Integration branch.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.502Z"
     },
     {
       "id": "INT-PUBLICNET-001",
@@ -715,7 +715,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [],
       "artifact": null,
       "publicProof": [],
@@ -726,7 +726,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Start only after FREEZE and INTEGRATE gates pass.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.502Z"
     },
     {
       "id": "INT-SEO-001",
@@ -735,7 +735,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [],
       "artifact": null,
       "publicProof": [],
@@ -747,7 +747,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Consume Website evidence and record observed indexing separately.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.502Z"
     },
     {
       "id": "INT-MAINNET-001",
@@ -758,14 +758,14 @@
       "evidence": [
         "release/integration/integration-contract.json"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [],
       "artifact": null,
       "publicProof": [],
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Retain false production states until independent Mainnet evidence exists.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.502Z"
     },
     {
       "id": "INT-FINAL-001",
@@ -774,7 +774,7 @@
       "applicability": "applicable",
       "status": "notStarted",
       "evidence": [],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [],
       "artifact": null,
       "publicProof": [],
@@ -783,7 +783,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Execute only after every autonomous item is closed or truly externally blocked.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.502Z"
     },
     {
       "id": "INT-PRODUCT-01",
@@ -802,7 +802,7 @@
         "docs/integration/CHAIN_CORE_DEPENDENCY_ACCEPTANCE.md",
         "release/chain-core/artifact-registry.json"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "central acceptance row 01"
       ],
@@ -811,7 +811,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Keep source acceptance locked and proceed to shared Testnet verification without implying staging, public, signing, store or Mainnet release.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.502Z"
     },
     {
       "id": "INT-PRODUCT-02",
@@ -829,7 +829,7 @@
         "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
         "docs/integration/DEPENDENCY_ACCEPTANCE.md"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "central acceptance row 02"
       ],
@@ -838,7 +838,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Keep source acceptance locked and proceed to shared Testnet verification without implying staging, public, signing, store or Mainnet release.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.502Z"
     },
     {
       "id": "INT-PRODUCT-03",
@@ -856,7 +856,7 @@
         "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
         "docs/integration/DEPENDENCY_ACCEPTANCE.md"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "central acceptance row 03"
       ],
@@ -865,7 +865,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Run owner contract tests, central negative vectors, artifact verification and dependency acceptance before promotion.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.502Z"
     },
     {
       "id": "INT-PRODUCT-04",
@@ -883,7 +883,7 @@
         "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
         "docs/integration/DEPENDENCY_ACCEPTANCE.md"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "central acceptance row 04"
       ],
@@ -894,7 +894,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.502Z"
     },
     {
       "id": "INT-PRODUCT-05",
@@ -912,7 +912,7 @@
         "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
         "docs/integration/DEPENDENCY_ACCEPTANCE.md"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "central acceptance row 05"
       ],
@@ -927,7 +927,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.502Z"
     },
     {
       "id": "INT-PRODUCT-06",
@@ -945,7 +945,7 @@
         "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
         "docs/integration/DEPENDENCY_ACCEPTANCE.md"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "central acceptance row 06"
       ],
@@ -957,7 +957,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.502Z"
     },
     {
       "id": "INT-PRODUCT-07",
@@ -975,7 +975,7 @@
         "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
         "docs/integration/DEPENDENCY_ACCEPTANCE.md"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "central acceptance row 07"
       ],
@@ -988,7 +988,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.502Z"
     },
     {
       "id": "INT-PRODUCT-08",
@@ -1006,7 +1006,7 @@
         "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
         "docs/integration/DEPENDENCY_ACCEPTANCE.md"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "central acceptance row 08"
       ],
@@ -1019,7 +1019,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.502Z"
     },
     {
       "id": "INT-PRODUCT-09",
@@ -1037,7 +1037,7 @@
         "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
         "docs/integration/DEPENDENCY_ACCEPTANCE.md"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "central acceptance row 09"
       ],
@@ -1051,7 +1051,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.502Z"
     },
     {
       "id": "INT-PRODUCT-10",
@@ -1069,7 +1069,7 @@
         "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
         "docs/integration/DEPENDENCY_ACCEPTANCE.md"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "central acceptance row 10"
       ],
@@ -1083,7 +1083,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.502Z"
     },
     {
       "id": "INT-PRODUCT-11",
@@ -1101,7 +1101,7 @@
         "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
         "docs/integration/DEPENDENCY_ACCEPTANCE.md"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "central acceptance row 11"
       ],
@@ -1115,7 +1115,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.503Z"
     },
     {
       "id": "INT-PRODUCT-12",
@@ -1133,7 +1133,7 @@
         "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
         "docs/integration/DEPENDENCY_ACCEPTANCE.md"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "central acceptance row 12"
       ],
@@ -1145,7 +1145,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.503Z"
     },
     {
       "id": "INT-PRODUCT-13",
@@ -1163,7 +1163,7 @@
         "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
         "docs/integration/DEPENDENCY_ACCEPTANCE.md"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "central acceptance row 13"
       ],
@@ -1172,7 +1172,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Run owner contract tests, central negative vectors, artifact verification and dependency acceptance before promotion.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.503Z"
     },
     {
       "id": "INT-PRODUCT-14",
@@ -1190,7 +1190,7 @@
         "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
         "docs/integration/DEPENDENCY_ACCEPTANCE.md"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "central acceptance row 14"
       ],
@@ -1201,7 +1201,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.503Z"
     },
     {
       "id": "INT-PRODUCT-15",
@@ -1219,7 +1219,7 @@
         "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
         "docs/integration/DEPENDENCY_ACCEPTANCE.md"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "central acceptance row 15"
       ],
@@ -1231,7 +1231,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.503Z"
     },
     {
       "id": "INT-PRODUCT-16",
@@ -1249,7 +1249,7 @@
         "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
         "docs/integration/DEPENDENCY_ACCEPTANCE.md"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "central acceptance row 16"
       ],
@@ -1260,7 +1260,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.503Z"
     },
     {
       "id": "INT-PRODUCT-17",
@@ -1280,7 +1280,7 @@
         "release/economics/product-release.json",
         "release/economics-testnet-cli-artifact.json"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "central acceptance row 17"
       ],
@@ -1289,7 +1289,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Keep source acceptance locked and proceed to shared Testnet verification without implying staging, public, signing, store or Mainnet release.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.503Z"
     },
     {
       "id": "INT-PRODUCT-18",
@@ -1306,7 +1306,7 @@
         "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
         "docs/integration/DEPENDENCY_ACCEPTANCE.md"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "central acceptance row 18"
       ],
@@ -1321,7 +1321,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.503Z"
     },
     {
       "id": "INT-PRODUCT-19",
@@ -1340,7 +1340,7 @@
         "docs/integration/ORACLE_DEPENDENCY_ACCEPTANCE.md",
         "release/oracle/product-state.json"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "central acceptance row 19"
       ],
@@ -1349,7 +1349,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Keep source acceptance locked and proceed to shared Testnet verification without implying staging, public, signing, store or Mainnet release.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.503Z"
     },
     {
       "id": "INT-PRODUCT-20",
@@ -1367,7 +1367,7 @@
         "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
         "docs/integration/DEPENDENCY_ACCEPTANCE.md"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "central acceptance row 20"
       ],
@@ -1381,7 +1381,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.503Z"
     },
     {
       "id": "INT-PRODUCT-21",
@@ -1400,7 +1400,7 @@
         "docs/bridge/DEPENDENCY_ACCEPTANCE.md",
         "docs/bridge/product-release.json"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "central acceptance row 21"
       ],
@@ -1409,7 +1409,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Keep source acceptance locked and proceed to shared Testnet verification without implying staging, public, signing, store or Mainnet release.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.503Z"
     },
     {
       "id": "INT-PRODUCT-22",
@@ -1427,7 +1427,7 @@
         "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
         "docs/integration/DEPENDENCY_ACCEPTANCE.md"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "central acceptance row 22"
       ],
@@ -1439,7 +1439,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.503Z"
     },
     {
       "id": "INT-PRODUCT-23",
@@ -1457,7 +1457,7 @@
         "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
         "docs/integration/DEPENDENCY_ACCEPTANCE.md"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "central acceptance row 23"
       ],
@@ -1470,7 +1470,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.503Z"
     },
     {
       "id": "INT-PRODUCT-24",
@@ -1488,7 +1488,7 @@
         "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
         "docs/integration/DEPENDENCY_ACCEPTANCE.md"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "central acceptance row 24"
       ],
@@ -1497,7 +1497,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Run owner contract tests, central negative vectors, artifact verification and dependency acceptance before promotion.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.503Z"
     },
     {
       "id": "INT-PRODUCT-25",
@@ -1515,7 +1515,7 @@
         "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
         "docs/integration/DEPENDENCY_ACCEPTANCE.md"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "central acceptance row 25"
       ],
@@ -1528,7 +1528,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Resolve: fullGoalCoverage lacks an exact sourceCommit.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.503Z"
     },
     {
       "id": "INT-PRODUCT-26",
@@ -1546,7 +1546,7 @@
         "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
         "docs/integration/DEPENDENCY_ACCEPTANCE.md"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "central acceptance row 26"
       ],
@@ -1555,7 +1555,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Keep source acceptance locked and proceed to shared Testnet verification without implying staging, public, signing, store or Mainnet release.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.503Z"
     },
     {
       "id": "INT-PRODUCT-27",
@@ -1573,7 +1573,7 @@
         "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
         "docs/integration/DEPENDENCY_ACCEPTANCE.md"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "central acceptance row 27"
       ],
@@ -1586,7 +1586,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.503Z"
     },
     {
       "id": "INT-PRODUCT-28",
@@ -1604,7 +1604,7 @@
         "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
         "docs/integration/DEPENDENCY_ACCEPTANCE.md"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "central acceptance row 28"
       ],
@@ -1613,7 +1613,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Run owner contract tests, central negative vectors, artifact verification and dependency acceptance before promotion.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.503Z"
     },
     {
       "id": "INT-PRODUCT-29",
@@ -1631,7 +1631,7 @@
         "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
         "docs/integration/DEPENDENCY_ACCEPTANCE.md"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "central acceptance row 29"
       ],
@@ -1644,7 +1644,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Resolve: local and remote final branch SHAs differ.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.503Z"
     },
     {
       "id": "INT-PRODUCT-30",
@@ -1664,7 +1664,7 @@
         "release/security-platform/platform-status.json",
         "release/security-platform/artifact-registry.json"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "central acceptance row 30"
       ],
@@ -1673,7 +1673,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Keep source acceptance locked and proceed to shared Testnet verification without implying staging, public, signing, store or Mainnet release.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.503Z"
     },
     {
       "id": "INT-PRODUCT-31",
@@ -1692,7 +1692,7 @@
         "docs/governance/DEPENDENCY_ACCEPTANCE.md",
         "release/governance/product-release.json"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "central acceptance row 31"
       ],
@@ -1701,7 +1701,7 @@
       "blockedBy": [],
       "owner": "29-integration",
       "nextAction": "Keep source acceptance locked and proceed to shared Testnet verification without implying staging, public, signing, store or Mainnet release.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.503Z"
     },
     {
       "id": "INT-PRODUCT-32",
@@ -1719,7 +1719,7 @@
         "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
         "docs/integration/DEPENDENCY_ACCEPTANCE.md"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "central acceptance row 32"
       ],
@@ -1732,7 +1732,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.503Z"
     },
     {
       "id": "INT-PRODUCT-33",
@@ -1749,7 +1749,7 @@
         "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
         "docs/integration/DEPENDENCY_ACCEPTANCE.md"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "central acceptance row 33"
       ],
@@ -1761,7 +1761,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Resolve: public metadata is missing from the branch tree.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.503Z"
     },
     {
       "id": "INT-PRODUCT-34",
@@ -1779,7 +1779,7 @@
         "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
         "docs/integration/DEPENDENCY_ACCEPTANCE.md"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "central acceptance row 34"
       ],
@@ -1791,7 +1791,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.503Z"
     },
     {
       "id": "INT-PRODUCT-35",
@@ -1809,7 +1809,7 @@
         "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
         "docs/integration/DEPENDENCY_ACCEPTANCE.md"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "central acceptance row 35"
       ],
@@ -1822,7 +1822,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.503Z"
     },
     {
       "id": "INT-PRODUCT-36",
@@ -1840,7 +1840,7 @@
         "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
         "docs/integration/DEPENDENCY_ACCEPTANCE.md"
       ],
-      "sourceCommit": "e36b937b5f814d3187c2162b4401094a729f57bf",
+      "sourceCommit": "68acaf5408a51f1d02a975e276cbd1e5210d3110",
       "tests": [
         "central acceptance row 36"
       ],
@@ -1853,7 +1853,7 @@
       ],
       "owner": "29-integration",
       "nextAction": "Resolve: registered final worktree has uncommitted changes.",
-      "lastUpdated": "2026-07-30T18:30:42.138Z"
+      "lastUpdated": "2026-08-01T12:51:41.503Z"
     }
   ]
 }

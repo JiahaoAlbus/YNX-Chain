@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "acceptanceId": "P0-WALLET-AUTH-WEBSITE-VISIBLE-DRIFT-F6EF9D76-20260820",
+  "decision": "ACCEPTED_READ_ONLY_VISIBLE_DRIFT_EVIDENCE",
+  "ownerCheckpointCommit": "f6ef9d76dd3a33c9c12b56f0183e700863301cb5",
+  "ownerCheckpointParent": "b789ec97374c6bc2fe926797f1fb35b4bfbba971",
+  "ownerCheckpointTree": "f1a45f6f449ab632cd742a22cacd0d5e3d003488",
+  "driftEvidence": {
+    "path": "release/integration/wallet-auth-website-computercontrol-evidence-20260820.json",
+    "blob": "d9192cbfb15b090e80e7396dcf2200fbe4dab4d4",
+    "bytes": 1803,
+    "sha256": "8e8a73f81dd030bf5d34748f62919502b1be60174666eea61fbcbc30e8112358"
+  },
+  "screenshot": {
+    "path": "release/integration/evidence/wallet-auth-website-computercontrol-20260820T145755Z.jpeg",
+    "blob": "eb082fdab83975473e887ebb8faba011bfebd3be",
+    "bytes": 152180,
+    "sha256": "6e473de5ea76b57f99bd3e11d47f1fe5806cee66c25698739414c10399a79078"
+  },
+  "observedBeforeCorrection": {
+    "visibleRuntimeSource": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
+    "authoritativePublicRuntimeSource": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "visibleSourceMatched": false,
+    "status": "WEBSITE_VISIBLE_RECORD_STALE"
+  },
+  "truth": {
+    "computerControlChannelAvailable": true,
+    "websiteWalletAuthPublicationCardVisible": true,
+    "computerControlProductSessionFlowVerified": false,
+    "installedWalletClientVerified": false,
+    "walletApprovalVerified": false,
+    "accountVerified": false,
+    "signingVerified": false,
+    "transactionVerified": false,
+    "productsMigrated": 0,
+    "productsRequired": 12,
+    "integratedCentral": false,
+    "aggregateDeployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

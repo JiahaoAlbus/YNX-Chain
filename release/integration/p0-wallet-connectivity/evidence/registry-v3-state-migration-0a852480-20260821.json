@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-040-REGISTRY-V3-STATE-MIGRATION-0A852480-20260821",
+  "capturedAt": "2026-08-20T17:45:00Z",
+  "remote": {
+    "branch": "codex/wallet-core-auth-gateway-continuation-20260814",
+    "commit": "0a85248046f110e87c3036d353d0a54d0cfa19ea",
+    "parent": "deb2cefb00b52e5c2ab9c357201d690918320424",
+    "tree": "82101047f8e69625c4e415323c32e09573437d42",
+    "walletAuthTree": "3bbc26c336beb87fb7a682c70d36d01359658e7d",
+    "readbackExact": true
+  },
+  "ownerEvidence": {
+    "path": "release/integration/wallet-product-session-registry-v3-state-migration-contract-20260821.json",
+    "blob": "27e37444f9bf9273b60e2850a1022824cd5ddee4",
+    "sha256": "6e567a51873e5517c8083ce9831333d48ea1d871c1600f3981968c5ddbb4e50c",
+    "focused": "2/2",
+    "walletAuthFull": "342/342",
+    "export": "pass",
+    "npmPackFiles": 96,
+    "sshOrDeploymentPerformed": false
+  },
+  "deterministicArtifact": {
+    "archivePrefix": "ynx-wallet-auth-0a852480/",
+    "archiveBytes": 596794,
+    "archiveSha256": "3aa68ce414b9f9f18bf15f335b09235c5a3739ad958764717f653307fe453368",
+    "inventoryEntries": 206,
+    "inventoryBytes": 23052,
+    "inventorySha256": "b687a2c89f27613d54fb3cf6e900208e850807c0a2fe738492343728d1df6d7e",
+    "packageLockSha256": "c32e52b9c87743ee5870ec146590f203f0084926dfbf9a66b7edb5a9224ce606"
+  },
+  "reviewedTransition": {
+    "oldSchemaVersion": 2,
+    "oldProductCount": 12,
+    "newSchemaVersion": 3,
+    "newProductCount": 13,
+    "onlyAddedProduct": "wallet-web-companion",
+    "onlyRetiredClient": "shop/android",
+    "unchangedProductsRequired": true,
+    "sourceStateCopiedOnly": true,
+    "sourceEnvelopeMutation": false,
+    "unknownRegistryOrDigestRejectedWithoutMutation": true,
+    "retiredSessionsDevicesPendingAndCachePurged": true,
+    "deterministicRepeat": true
+  },
+  "digestCorrection": {
+    "oldArtifactSha256": "d2826eb419abca4444ccb50d79537fa7f6a3643948d82ed9b52914b7169c107b",
+    "oldStateBindingSha256": "1c4a8736b26c9fa13b984c968c8ef104b9cd7b72bf92e3983f51656287a9d794",
+    "newArtifactSha256": "810c58777a62a798e286d2d30e0430334b88603653f672821642e80e3553c46c",
+    "newStateBindingSha256": "f300fb098c832161aaeb2bcf62b61a7b5b674ea0b443ebd9ca0189592e0b10d7",
+    "invalidVersionExpectation": "810c58777a62a798e286d2d30e0430334b88603653f672821642e80e3553c46c",
+    "correctVersionExpectation": "f300fb098c832161aaeb2bcf62b61a7b5b674ea0b443ebd9ca0189592e0b10d7"
+  },
+  "truth": {
+    "executionLeaseIssued": false,
+    "migrationExecuted": false,
+    "candidateDeployedPublic": false,
+    "publicRegistryV3RetirementVerified": false,
+    "integratedCentral": false,
+    "aggregatePublic": false
+  }
+}

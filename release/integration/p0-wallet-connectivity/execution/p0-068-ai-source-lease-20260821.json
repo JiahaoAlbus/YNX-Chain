@@ -1,0 +1,18 @@
+{
+  "schemaVersion":1,
+  "campaignId":"P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId":"P0-068",
+  "leaseId":"P0-068_LIGHT_SOURCE_ONLY",
+  "status":"SOURCE_CHECKPOINT_REACHED_LIGHT_RELEASED",
+  "owner":"integration",
+  "branch":"codex/p0-ai-wallet-connectivity-20260821",
+  "worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/43-ai-p0",
+  "startingCommit":"a781300124b8f31c910aeb182f9b1b13e1ab4893",
+  "leasedAt":"2026-08-20T21:31:04Z",
+  "releasedAt":"2026-08-20T21:43:16Z",
+  "implementationCommit":"e38d222131e89a924dcba13d4e2bd4a32cc0c536",
+  "evidenceCommit":"2cbd93564255e25c2c861eeab68d7b8ef9831014",
+  "scope":["apps/ai/**","internal/aiproduct/**"],
+  "requirements":["recover exact clean owner source","compare against Fable5 AI","consume accepted SDK without copying shared protocol","prefer YNX Wallet and support MetaMask fallback","preserve guest public status and provider inspection","isolate unavailable generation/private services","test build local-browser verify push release"],
+  "forbidden":["shared AI Gateway, Wallet/Auth or SDK changes","provider credentials or model changes","public deployment","installed or ComputerControl claim","fake provider answer","whole-app Offline on Product Session failure"]
+}

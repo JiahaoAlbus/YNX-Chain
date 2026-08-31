@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "target": {
+    "repository": "JiahaoAlbus/YNX-Chain",
+    "walletAuthSourceBranch": "codex/ecosystem-wallet-auth",
+    "walletAuthSourceCommit": "efe827f467107e23482289a5b1f69ac9ff83e694",
+    "canonicalPackage": "@ynx-chain/wallet-auth@1.0.0",
+    "centralVerifier": "verifyCentralWalletSession",
+    "activeSessionGuard": "assertCentralWalletSessionActive"
+  },
+  "registryEntries": [
+    {
+      "schemaVersion": 2,
+      "productClientId": "ynx-pay-v1",
+      "requestingProduct": "pay",
+      "bundleId": "com.ynxweb4.pay",
+      "callbacks": ["ynxpay://wallet-auth/callback"],
+      "scopes": ["account:read", "pay:case:create", "pay:route:select", "pay:settlement:submit", "pay:sponsorship:request"],
+      "maxScopes": 5,
+      "productDeviceAlgorithms": ["p256-sha256"]
+    },
+    {
+      "schemaVersion": 2,
+      "productClientId": "ynx-merchant-console-v1",
+      "requestingProduct": "pay-merchant",
+      "bundleId": "com.ynxweb4.merchant-console",
+      "callbacks": ["https://pay.ynxweb4.com/merchant/wallet-auth/callback"],
+      "scopes": ["account:read", "merchant:session:create"],
+      "maxScopes": 2,
+      "productDeviceAlgorithms": ["p256-sha256"]
+    },
+    {
+      "schemaVersion": 2,
+      "productClientId": "ynx-card-v1",
+      "requestingProduct": "ynx-card",
+      "bundleId": "com.ynxweb4.card",
+      "callbacks": ["ynxcard://wallet-auth/callback"],
+      "scopes": ["account:read", "card:application:write", "card:controls:write", "card:dispute:write"],
+      "maxScopes": 4,
+      "productDeviceAlgorithms": ["p256-sha256"]
+    }
+  ],
+  "gatewayIntegration": {
+    "nativeClientBindings": [
+      {"clientId": "ynx-pay-v1", "binding": "ynx-pay://com.ynxweb4.pay", "services": ["pay-product"]},
+      {"clientId": "ynx-card-v1", "binding": "ynx-card://com.ynxweb4.card", "services": ["card-product"]}
+    ],
+    "webClientBindings": [
+      {"clientId": "ynx-merchant-console-v1", "origin": "https://pay.ynxweb4.com", "callbackPath": "/merchant/wallet-auth/callback", "services": ["pay-product"]}
+    ],
+    "walletSessionRoutes": [
+      {"method": "POST", "path": "/app/{product}/session/challenges", "behavior": "parse registry entry and authorization request, verify Wallet approval, create short-lived product-device challenge"},
+      {"method": "POST", "path": "/app/{product}/session/complete", "behavior": "call verifyCentralWalletSession, transactionally consume request digest and challenge, persist token hash, return product-bound session"}
+    ],
+    "productRoutes": [
+      {"prefix": "/app/pay-product/v1/", "upstream": "ynx-pay-productd", "binding": "ynx-pay-v1"},
+      {"prefix": "/app/pay-merchant/v1/", "upstream": "ynx-pay-productd", "binding": "ynx-merchant-console-v1"},
+      {"prefix": "/app/card/v1/", "upstream": "ynx-card-productd", "binding": "ynx-card-v1"}
+    ],
+    "productAssertions": {
+      "domain": "YNX_PRODUCT_GATEWAY_ASSERTION_V1",
+      "serverOnlyKeys": {"card": "YNX_CARD_PRODUCT_GATEWAY_ASSERTION_KEY", "payAndMerchant": "YNX_PAY_PRODUCT_GATEWAY_ASSERTION_KEY"},
+      "baseMaterialOrder": ["domain", "method", "escapedPath", "bodySha256", "account", "sessionId", "deviceId", "productId", "clientId", "bundleId", "callback", "chainId", "sortedScopes", "requestDigest", "issuedAt", "expiresAt", "nonce"],
+      "payMaterialOrder": ["domain", "method", "escapedPath", "bodySha256", "account", "sessionId", "deviceId", "productId", "clientId", "bundleId", "callback", "chainId", "sortedScopes", "sessionBinding", "requestDigest", "issuedAt", "expiresAt", "nonce"],
+      "headers": ["X-YNX-Account", "X-YNX-Session-ID", "X-YNX-Device-ID", "X-YNX-Product", "X-YNX-Client", "X-YNX-Bundle", "X-YNX-Callback", "X-YNX-Chain", "X-YNX-Scopes", "X-YNX-Session-Binding (Pay only)", "X-YNX-Request-Digest", "X-YNX-Issued-At", "X-YNX-Expires-At", "X-YNX-Nonce", "X-YNX-Gateway-Signature"],
+      "maximumLifetimeSeconds": 300,
+      "persistentNonceReplayRejection": true
+    }
+  },
+  "acceptance": {
+    "productBranchHasCanonicalPackage": true,
+    "centralMainContainsRegistryEntries": false,
+    "centralMainContainsVerifier": false,
+    "gatewayDeployedWithBindings": false,
+    "integratedCentral": false,
+    "failureBehavior": "mobile clients fail closed before product API access"
+  }
+}

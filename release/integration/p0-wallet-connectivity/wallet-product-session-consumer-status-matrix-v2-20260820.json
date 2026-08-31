@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 2,
+  "supersedes": "release/integration/p0-wallet-connectivity/wallet-product-session-consumer-status-matrix-20260820.json",
+  "updatedByCheckpoint": "b789ec97374c6bc2fe926797f1fb35b4bfbba971",
+  "productsRequired": 12,
+  "productsMigratedV2": 0,
+  "standardWalletOnlyProducts": ["card"],
+  "products": {
+    "card": {
+      "classification": "standard-wallet-only",
+      "sourceCommit": "2c2e117e42b4daacf96cd74abc6844c72398c522",
+      "standardWalletConnectedOnPrivateFailure": true,
+      "privateFailureState": "PRIVATE_SERVICE_DEGRADED",
+      "canonicalErrorContractConsumed": true,
+      "fixedEndpointManifestConsumed": true,
+      "endpointManifestVersion": "1.0.0-p0.2",
+      "endpointManifestSha256": "d559741a20fe37cf1e0a9fec2bf00d144709a1bfe579a13ec139354fa1fe0e74",
+      "appGatewayAvailable": false,
+      "productSessionV2GatewayEvidenced": false,
+      "visiblePlatformEvidenced": false,
+      "migratedV2": false,
+      "blockers": [
+        "legacy /app/card/session/challenges and /app/card/session/complete routes",
+        "accepted manifest currently marks App Gateway UNAVAILABLE",
+        "no v2 Gateway lifecycle evidence",
+        "no visible installed or browser platform evidence"
+      ]
+    }
+  },
+  "truth": {
+    "integratedCentral": false,
+    "aggregatePublic": false
+  }
+}

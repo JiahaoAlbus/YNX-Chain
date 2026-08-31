@@ -484,14 +484,8 @@ const indexHTML = `<!doctype html>
     }
     async function load() {
       $('refreshButton').disabled = true;
-      const [summary, blockData, txData, validators, resources] = await Promise.all([
-        get('/api/summary'),
-        get('/api/blocks/latest?limit=12'),
-        get('/api/txs?limit=12'),
-        get('/api/validators').catch(() => ({})),
-        get('/api/resource-market/analytics').catch(() => ({}))
-      ]);
-      renderDashboard(summary, blockData.blocks, txData.transactions, validators, resources, 'Manual snapshot');
+      const snapshot = await get('/api/dashboard');
+      renderDashboard(snapshot.summary, snapshot.blocks || [], snapshot.transactions || [], snapshot.validators || {}, snapshot.resources || {}, 'Shared live snapshot');
     }
     function startFallbackPolling() {
       if (refreshTimer) return;

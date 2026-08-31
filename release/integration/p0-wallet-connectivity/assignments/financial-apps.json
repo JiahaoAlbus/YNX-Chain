@@ -1,0 +1,29 @@
+{
+  "taskId": "P0-141",
+  "owner": "financial-apps",
+  "status": "FAILED_CLOSED_PREWRITE_CHECKPOINT_HEAVY_RELEASED",
+  "acceptedContracts": ["walletTransport@p0-wallet-connection-v1", "errorContract@p0-wallet-connection-v1", "dappConnectSDK@0.1.0-p0.0", "publicEndpointManifest@1.0.0-p0.2", "sharedStandardWalletConnectState@2026-08-21"],
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-50892538-20260821T131500Z",
+  "leasedAt": "2026-08-21T13:15:00Z",
+  "expiresAt": "2026-08-21T14:00:00Z",
+  "releasedAt": "2026-08-21T13:24:12Z",
+  "activeProduct": {
+    "id": "finance",
+    "pathLock": "apps/finance/**",
+    "branch": "codex/p0-finance-wallet-connectivity-20260820",
+    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
+    "sourceCommit": "50892538dc237ef519d95c491f4b918a125a6c8e",
+    "sourceTree": "bd83a62e63cce0db7435c79e7b6dd0f116788f76",
+    "evidenceCommit": "fd0f1367c4642e843d514727fc838773ad4b9b1a",
+    "scope": "Deploy the exact offline-complete Finance runtime once, rollback-first, and return immutable public version and health evidence."
+  },
+  "prohibitions": ["do not rewrite shared protocol", "do not hard-code endpoints", "do not deploy any artifact other than exact d35f2e155ae3802b07048dd6f045b63ba477adeb1b12bc381d6e170294290915", "do not enable capital execution", "do not promote Product Session, installed Wallet, approval, signature or transaction claims"],
+  "failureEvidenceCommit": "02a482b9c714525dc8c5fd0dd820767cbbf63c67",
+  "failureEvidenceTree": "bc1963bb10333bbe1a29003ccc903a768952366b",
+  "failureEvidenceSha256": "95b63b2b62db59d79ec0629a4adce4354875f44d7eb19ead20509363a24e9891",
+  "failureClassification": "PREWRITE_ROLLBACK_BINARY_PATH_MISMATCH",
+  "deployedPublic": false,
+  "publicVerified": false,
+  "computerControlVerified": false,
+  "nextAction": "Preserve the fail-closed checkpoint. Any later Finance deployment requires a wholly new lease that independently binds the actual current binary path and digests; P0-141 cannot be reused."
+}

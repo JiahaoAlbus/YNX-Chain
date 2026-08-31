@@ -1,0 +1,15 @@
+{
+  "schemaVersion":1,
+  "campaignId":"P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId":"P0-071",
+  "leaseId":"P0-071_LIGHT_SOURCE_ONLY",
+  "status":"ACTIVE_BOUNDED_CLOUD_SOURCE_ONLY",
+  "owner":"integration",
+  "branch":"codex/p0-cloud-wallet-connectivity-20260821",
+  "worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/44-cloud-p0",
+  "startingCommit":"f048f5ee028b",
+  "leasedAt":"2026-08-20T21:54:29Z",
+  "scope":["apps/cloud/**","internal/cloud/**"],
+  "requirements":["recover exact clean owner source","compare against Fable5 Cloud","replace public self-signed fixture login with accepted Standard Wallet SDK","preserve public health and guest product explanation","keep private files and mutations fail closed without Product Session v2","test build local-browser verify push release"],
+  "forbidden":["shared Cloud storage provider, Wallet/Auth or SDK changes","production object or state access","public deployment","installed or ComputerControl claim","fabricated Product Session","whole-app Offline on private service failure"]
+}

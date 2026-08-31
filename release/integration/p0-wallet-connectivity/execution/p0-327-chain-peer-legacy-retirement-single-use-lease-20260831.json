@@ -1,0 +1,98 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-327",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-chain-peer-legacy-retirement-20260831T074300Z",
+  "status": "ACTIVE",
+  "issuedAt": "2026-08-31T07:43:00Z",
+  "expiresAt": "2026-08-31T08:15:00Z",
+  "singleUse": true,
+  "reusable": false,
+  "owner": "chain-peer-release-control-plane",
+  "namedExecutor": "release-control-plane",
+  "scope": "CHAIN_PEER_LEGACY_YNX_V2_RETIREMENT_ONLY",
+  "predecessor": {
+    "taskId": "P0-326",
+    "terminal": "CHAIN_6423_PUBLIC_RECOVERED_PRIMARY_9102_SERVICES_MASKED",
+    "receiptSha256": "2f480907d6436baee9aa4297e696a4d14bf4152a484a30e04cf789359c8941ed",
+    "publicIngressSha256": "15a722a950e4ec07583da1affb938c08522b5565c8da29adf27afaccb2335867"
+  },
+  "freshPrewrite": {
+    "performedAt": "2026-08-31T07:43:00Z",
+    "singapore": {
+      "host": "43.134.23.58",
+      "user": "root",
+      "peer": "active:running:enabled:465310:0:65027:131437:0:0:644:1:468:regular file:78f078e6f1b2e766db9f810dd78ac1886c7b0508ce834fbef1c708eb4e23be47",
+      "node": "inactive:dead:disabled:0:0:65027:129921:0:0:644:1:515:regular file:04f0ce2d669708181429f3758fa4437fccb679de1ac7bf4e794877bd8adf67b8"
+    },
+    "siliconValley": {
+      "host": "43.162.100.54",
+      "user": "ubuntu",
+      "peer": "active:running:enabled:1391001:0:64770:2699:1000:1001:664:1:496:regular file:bffb284b2ff3e923b2e2bf44d7bf47e3bbe02e4ed5608f1d472bbfed942f85a4",
+      "node": "not-found:inactive:dead:0:0:absent"
+    },
+    "seoul": {
+      "host": "43.164.132.81",
+      "user": "root",
+      "peer": "active:running:enabled:772747:0:65025:150455:0:0:644:1:464:regular file:d34f321aae404655d5d39901f4302849c144f3d49c5f807b8bba6919382bfa36",
+      "node": "not-found:inactive:dead:0:0:absent"
+    },
+    "privilege": "root direct on Singapore and Seoul; sudo -n available to Ubuntu on Silicon Valley"
+  },
+  "objects": {
+    "signedInput": {
+      "path": "release/integration/p0-wallet-connectivity/execution/objects/p0-327-chain-peer-legacy-retirement-signed-input.json",
+      "bytes": 2230,
+      "sha256": "6e6b14e5e27e463c1fb61c1e503c4c07d6bcfa69a79bf3e550e1726ad95cc9dd"
+    },
+    "executor": {
+      "path": "release/integration/p0-wallet-connectivity/execution/objects/p0-327-chain-peer-legacy-retirement-executor.sh",
+      "bytes": 6885,
+      "sha256": "fbc6f371b630aa906e1d78dce1e6dbbe71ad31c1f7bf3d076bc07b10cd8b0560"
+    }
+  },
+  "protectedEnvironment": {
+    "required": [
+      "YNX_CHAIN_SG_SSH_IDENTITY",
+      "YNX_CHAIN_SV_SSH_IDENTITY",
+      "YNX_CHAIN_SEOUL_SSH_IDENTITY"
+    ],
+    "forbiddenOutput": ["identity paths", "key material", "environment values"]
+  },
+  "execution": {
+    "workingDirectory": "/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration",
+    "argv": [
+      "/bin/bash",
+      "/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration/release/integration/p0-wallet-connectivity/execution/objects/p0-327-chain-peer-legacy-retirement-executor.sh",
+      "/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration/release/integration/p0-wallet-connectivity/execution/objects/p0-327-chain-peer-legacy-retirement-signed-input.json",
+      "6e6b14e5e27e463c1fb61c1e503c4c07d6bcfa69a79bf3e550e1726ad95cc9dd",
+      "/tmp/p0-327-chain-peer-legacy-retirement.stdout",
+      "/tmp/p0-327-chain-peer-legacy-retirement.stderr",
+      "/tmp/p0-327-chain-peer-legacy-retirement.receipt",
+      "P0-327:EXECUTE_CHAIN_PEER_LEGACY_RETIREMENT_ONCE"
+    ],
+    "sshAttemptLimit": 3,
+    "perHostAttemptLimit": 1,
+    "retryAllowed": false,
+    "outerOutputPrecreationForbidden": true
+  },
+  "authorizedActions": [
+    "one SSH to each exact peer host in fixed Singapore, Silicon Valley, Seoul order",
+    "identity-bound backup of only the exact prewrite legacy unit files",
+    "stop, disable and mask ynx-v2-peer.service on each peer",
+    "mask the preexisting inactive Singapore ynx-v2-node.service only",
+    "daemon-reload and prove exact masked/inactive state and legacy listener absence"
+  ],
+  "forbidden": [
+    "any 6423 service stop, restart, configuration or deployment",
+    "Caddy change, reload or restart",
+    "public ingress change or rollback",
+    "peer retry, peer service restore or foreign unit mutation",
+    "broadcast, unjail, account, signature, typed-data or transaction action"
+  ],
+  "terminal": {
+    "success": "CHAIN_6423_PUBLIC_RECOVERED_PEER_LEGACY_SERVICES_MASKED",
+    "failure": "EMERGENCY_BLOCKED_RETAIN_SAFE_6423_PUBLIC_ROUTE_AND_PEER_STATE",
+    "requires": ["stdout SHA", "stderr SHA", "receipt SHA", "per-peer masked/inactive proofs"]
+  }
+}

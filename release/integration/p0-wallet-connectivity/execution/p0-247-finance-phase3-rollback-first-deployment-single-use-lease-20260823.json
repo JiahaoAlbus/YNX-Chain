@@ -1,0 +1,207 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-247",
+  "leaseId": "p0247-finance-phase3-20260823T073800Z",
+  "owner": "financial-apps",
+  "executor": "finance-release-control-plane",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_PHASE3_EXECUTOR_SUCCESS_STDOUT_RECEIPTS_NOT_CAPTURED_STATE_UNCERTAIN",
+  "issuedAt": "2026-08-23T07:38:00Z",
+  "expiresAt": "2026-08-23T08:08:00Z",
+  "releasedAt": "2026-08-23T07:47:00Z",
+  "singleUse": true,
+  "reusable": false,
+  "executionAuthorized": false,
+  "productionMutationAllowed": false,
+  "scope": "Finance-only rollback-first Phase3 deployment of the exact P0-236 prepared candidate, followed by exact non-sensitive public verification; no unit, Caddy, non-Finance or sensitive-wallet mutation",
+  "centralPrecondition": {
+    "parentCommit": "441b8bd2be4f404b33922ede48532cea6cae151c",
+    "parentTree": "972b5c7f6902ed86e6adc642696e7bbb3272bc01",
+    "p0236CentralCommit": "0e53348c4635aed2dd663c8c8e1734f61b46adb8",
+    "p0236TerminalLeaseSha256": "bc97bd1ef875f7d4e9156fea4211015fbdfaa7685e42e218a0cbcd570ef308f0",
+    "p0236Status": "CONSUMED_RELEASED_SUCCESS_FINANCE_PHASE2B_CANDIDATE_ENV_PREPARATION_ONLY",
+    "heavyWasNullAndIdle": true,
+    "noConflictingFinanceProductionLock": true
+  },
+  "ownerAuthority": {
+    "branch": "codex/p0-finance-wallet-connectivity-20260820",
+    "requestHead": "3424885fac543d8a860201100ba294a6a5581602",
+    "requestTree": "20ed1160f6b13af9c854384a72b9324b6e474ce6",
+    "implementationCommit": "c0e37c753cfcea9709bf17a5e2511a52eea5807a",
+    "implementationTree": "ba1611b130cb6a951fc1556bfd7a45937cddc3be",
+    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
+    "remoteAndLocalExactClean": true,
+    "request": {
+      "path": "apps/finance/evidence/finance-phase3-stdin-deployment-lease-successor-20260823.json",
+      "blob": "88ff9d8bf5b4cb7c0fabcc6d38d93a7406b1b43c",
+      "bytes": 13242,
+      "sha256": "0dc9f3bbb8a438cde15a554b8f55191f9a3bf585703bf56e15d43d669797621b"
+    }
+  },
+  "commandObjects": {
+    "deploymentBootstrap": {
+      "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance/apps/finance/scripts/finance-phase3-stdin-deployment-bootstrap.sh",
+      "blob": "1e606b976f16d54bc2db14beecdba7d673d2848d",
+      "bytes": 5277,
+      "sha256": "c25e4bc3d41a1677d00937467e2af103bcfcf35df8c21a0558613e31c74edf83"
+    },
+    "productionExecutor": {
+      "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance/apps/finance/scripts/finance-production-rollback-first.sh",
+      "blob": "1511ce0d1cb9de23b478dece300c7cde1de066e9",
+      "bytes": 15907,
+      "sha256": "8f9e2ede5418e8f65739f2a5f3af7a78c266474f4c428951d8daf27f20e56315"
+    },
+    "manualRollbackBootstrap": {
+      "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance/apps/finance/scripts/finance-phase3-stdin-manual-rollback-bootstrap.sh",
+      "blob": "6523f1cb1296b20344a1640c4486ce90112dab18",
+      "bytes": 2967,
+      "sha256": "055571ed79028c7d6d549e5414cddc2bc3a6e6a99e96313c7cb9563f49f9633f",
+      "authorization": "reviewed but not executable under P0-247; requires a wholly-new Central-signed manual-rollback lease after a successful deploy and later external-gate failure"
+    },
+    "centralRerun": {
+      "bashSyntax": "PASS",
+      "json": "PASS",
+      "productionCommandObject": "PASS",
+      "phase3StdinBootstrapFixture": "PASS",
+      "productionActualShellFixture": "PASS",
+      "successReceiptDerivedManualRollback": "PASS",
+      "postRenameInodeTupleBytesShaGuard": "PASS"
+    }
+  },
+  "signedStdin": {
+    "path": "/private/tmp/ynx-calendar-control-plane.y8FFQt/repo/release/integration/p0-wallet-connectivity/execution/p0-247-finance-phase3-rollback-first-deployment-stdin-20260823.json",
+    "repositoryPath": "release/integration/p0-wallet-connectivity/execution/p0-247-finance-phase3-rollback-first-deployment-stdin-20260823.json",
+    "blob": "9c0ed531edc801faca6547e38b186181a0618ed5",
+    "bytes": 6829,
+    "sha256": "49aec85704a6282cab675373f56cb71a240433f3625f08b5e7426bbb1bbfee80",
+    "secretValuesPresent": false
+  },
+  "freshPrewrite": {
+    "observedAt": "2026-08-23T07:35:00Z",
+    "host": "43.153.202.237",
+    "user": "ubuntu",
+    "architecture": "x86_64",
+    "identity": "/Users/huangjiahao/Downloads/Huang.pem",
+    "knownHosts": "/Users/huangjiahao/.ssh/known_hosts",
+    "strictHostKeyChecking": true,
+    "sudoNoninteractive": true,
+    "rootTuple": "64770:1312502:0:0:755:49:4096:directory",
+    "leasesParentTuple": "64770:3450042:0:0:750:3:4096:directory",
+    "deployParentAbsent": true,
+    "stageParentTuple": "64770:3450041:0:0:750:3:4096:directory",
+    "backupParentTuple": "64770:1481354:0:0:755:9:4096:directory",
+    "releaseParentTuple": "64770:1607576:0:0:755:7:4096:directory",
+    "leaseOwnedStageContainerAbsent": true,
+    "leaseOwnedBackupContainerAbsent": true,
+    "leaseOwnedReleaseContainerAbsent": true,
+    "carrierTuple": "64770:4594821:0:0:700:2:4096:directory",
+    "carrierSetExact": ["candidate.tgz", "finance.env"],
+    "archiveTuple": "64770:4620871:0:0:600:1:3937491:regular file",
+    "archiveSha256": "d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d",
+    "candidateEnvTuple": "64770:4620873:0:986:640:1:1545:regular file",
+    "candidateEnvSha256": "ceec9fba17116e087d6e2a9cb160808b39e027e687a7ad561174a40daf58b71a",
+    "currentLinkTuple": "64770:1324724:0:0:777:1:50:symbolic link",
+    "currentTarget": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a",
+    "oldReleaseTuple": "64770:1860506:0:0:755:3:4096:directory",
+    "oldBinaryTuple": "64770:1860512:0:0:755:1:8573112:regular file",
+    "oldBinarySha256": "0cc43c8a77c12975a0fcbada65971f08f2bc3a52345d547ea194dd3ccd60d83f",
+    "productionEnvTuple": "64770:1312539:0:986:640:1:1545:regular file",
+    "productionEnvSha256": "854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252",
+    "productionEnvRequiredKeyCount": 1,
+    "environmentValuesReadOrRecorded": false,
+    "unitTuple": "64770:161304:0:0:644:1:515:regular file",
+    "unitSha256": "2e72cdad422a3a714c46d074ea97b725233576cf726dbbfd43e82e99c2c2975b",
+    "caddyTuple": "64770:1051759:0:0:644:1:255:regular file",
+    "caddySha256": "dcf75a7aed315c54632321b8bb80e44c0abc22f6700fadfbfa9a7da21b88a282",
+    "stateAbsent": true,
+    "service": {"active": true, "subState": "running", "mainPid": 877083, "nrestarts": 0, "listener": "127.0.0.1:6483"},
+    "oldPublicHealth": {"status": 200, "bytes": 485, "sha256": "d1e97a4314acd1ecccf94629d15bd598cb58ff78136b3622ac26d583a82e45c1"},
+    "oldPublicVersion": {"status": 200, "bytes": 130, "sha256": "39789776da47e60b7a7df845789e02ebba16707ad8951eb6f27c84c1b40bb226"}
+  },
+  "execution": {
+    "localShell": "/bin/zsh -f",
+    "bootstrapBase64Derivation": "BOOTSTRAP_BASE64=$(/usr/bin/base64 < '/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance/apps/finance/scripts/finance-phase3-stdin-deployment-bootstrap.sh' | /usr/bin/tr -d '\\n') after exact bytes/SHA verification",
+    "executorBase64Derivation": "EXECUTOR_BASE64=$(/usr/bin/base64 < '/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance/apps/finance/scripts/finance-production-rollback-first.sh' | /usr/bin/tr -d '\\n') after exact bytes/SHA verification",
+    "remoteCommandSingleArgument": "/usr/bin/sudo -n /bin/bash -c 'boot=$(printf %s \"$1\" | base64 -d); shift; /bin/bash -c \"$boot\" phase3 \"$@\"' phase3 '$BOOTSTRAP_BASE64' 'p0247-finance-phase3-20260823T073800Z' '/opt/ynx/stage/finance/p0228-finance-phase1-20260822T234100Z' '64770:1312502:0:0:755:49:4096:directory' '64770:3450042:0:0:750:3:4096:directory' '64770:4594821:0:0:700:2:4096:directory' '64770:4620871:0:0:600:1:3937491:regular file' 'd8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d' '3937491' '64770:4620873:0:986:640:1:1545:regular file' 'ceec9fba17116e087d6e2a9cb160808b39e027e687a7ad561174a40daf58b71a' '1545' '$EXECUTOR_BASE64' '15907' '8f9e2ede5418e8f65739f2a5f3af7a78c266474f4c428951d8daf27f20e56315' '6829' '49aec85704a6282cab675373f56cb71a240433f3625f08b5e7426bbb1bbfee80'",
+    "sshArgvPrefix": [
+      "/usr/bin/ssh", "-i", "/Users/huangjiahao/Downloads/Huang.pem",
+      "-o", "IdentitiesOnly=yes", "-o", "BatchMode=yes",
+      "-o", "StrictHostKeyChecking=yes", "-o", "UserKnownHostsFile=/Users/huangjiahao/.ssh/known_hosts",
+      "-o", "ConnectTimeout=10", "-o", "ConnectionAttempts=1", "ubuntu@43.153.202.237"
+    ],
+    "stdin": "/private/tmp/ynx-calendar-control-plane.y8FFQt/repo/release/integration/p0-wallet-connectivity/execution/p0-247-finance-phase3-rollback-first-deployment-stdin-20260823.json",
+    "sshAttemptLimit": 1,
+    "deployAttemptLimit": 1,
+    "retryAllowed": false
+  },
+  "authorizedWrites": [
+    "/opt/ynx/leases/finance",
+    "/opt/ynx/leases/finance/p0247-finance-phase3-20260823T073800Z.executor.sh",
+    "/opt/ynx/leases/finance/p0247-finance-phase3-20260823T073800Z.executor.sh.pending",
+    "/opt/ynx/leases/finance/p0247-finance-phase3-20260823T073800Z.json",
+    "/opt/ynx/leases/finance/p0247-finance-phase3-20260823T073800Z.json.pending",
+    "/opt/ynx/stage/finance/p0247-finance-phase3-20260823T073800Z",
+    "/var/backups/ynx-finance/p0247-finance-phase3-20260823T073800Z",
+    "/opt/ynx/releases/finance/p0247-finance-phase3-20260823T073800Z",
+    "/etc/ynx/finance.env",
+    "/opt/ynx/finance-current",
+    "/var/lib/ynx/finance/state.json"
+  ],
+  "postDeployRequired": {
+    "raw": "exact candidate loopback/public health and version plus all seven signed public assets",
+    "browser": "one clean stable official Finance tab, no blank/custom scheme, console zero, distinct YNX Wallet and MetaMask identity/logo, canonical chain 0x1917, no account request",
+    "successReceipts": ["release-container identity/empty/present tuples", "release tuple and inventory SHA-256", "stage/backup/release parent tuples", "backupTuple", "candidateServicePid", "candidateServiceNRestarts", "retained executor and deployment-lease tuples/bytes/SHA", "literal rollback argv"]
+  },
+  "manualRollbackBoundary": {
+    "authorizedByP0247": false,
+    "condition": "only after deploy success and a later raw/browser gate failure",
+    "requirement": "retain Heavy and request a wholly-new Central-signed FINANCE_ROLLBACK_FIRST_PRODUCTION_MANUAL_ROLLBACK lease constructed only from immutable P0-247 success receipts",
+    "attemptLimitUnderFutureLease": 1,
+    "deployRetryAllowed": false
+  },
+  "forbidden": [
+    "any second SSH/bootstrap/deploy attempt or retry",
+    "manual rollback without a separate newly signed Central lease",
+    "outputting production environment values or secrets",
+    "unit or Caddy mutation",
+    "DEX, Exchange, Quant or other non-Finance path/service mutation",
+    "provider account request or approval, signature, typed data, transaction or private-key action"
+  ],
+  "terminalRules": {
+    "success": "CONSUMED_RELEASED_SUCCESS_FINANCE_PHASE3_SOURCE_BOUND_OFFICIAL_PUBLIC_NON_SENSITIVE",
+    "automaticRestoredFailure": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_PHASE3_AUTOMATIC_ROLLBACK_RESTORED",
+    "postDeployExternalFailure": "ACTIVE_AWAITING_SEPARATELY_SIGNED_FINANCE_MANUAL_ROLLBACK",
+    "emergency": "EMERGENCY_BLOCKED_FINANCE_PHASE3_EXACT_RECOVERY_REQUIRED",
+    "releaseHeavyAndAllLocksOnlyOnProvenTerminal": true
+  },
+  "terminalEvidence": {
+    "ownerCommit": "6309808d19aadbb3af9c25bf4df4e1de438dc7b0",
+    "ownerTree": "a17e3835ea65b4c6a19c15841f56a5c3eb3cc9d0",
+    "path": "apps/finance/evidence/p0-247-finance-phase3-executor-stdout-capture-gap-20260823.json",
+    "blob": "f87207b5cef891f4db270cb694ef41225519454f",
+    "bytes": 1607,
+    "sha256": "b5e1037651e5470f469c096d1733b09b81ddaeea681328f323a91894d6726187",
+    "sshAttempts": 1,
+    "reportedRemoteExitStatus": 0,
+    "retryAttempts": 0,
+    "manualRollbackAttempts": 0,
+    "capturedOutput": "only two tar extended-attribute warnings; no required success receipt fields",
+    "requiredSuccessReceiptsAvailable": false,
+    "publicStillOldRuntime": true,
+    "deploymentSuccessInferred": false,
+    "automaticRollbackInferred": false,
+    "safeManualRollbackLeaseConstructible": false,
+    "nextAction": "only a wholly-new zero-write Finance incident inspection lease may determine current state; no blind rollback or cleanup"
+  },
+  "truthBoundary": {
+    "financeOnly": true,
+    "sourceBoundPublicOnDirectSuccess": true,
+    "walletChooserIdentityNonSensitiveOnly": true,
+    "account": false,
+    "signature": false,
+    "typedData": false,
+    "transaction": false,
+    "dexExchangeQuantCompletion": false,
+    "fullWalletE2EComplete": false
+  }
+}

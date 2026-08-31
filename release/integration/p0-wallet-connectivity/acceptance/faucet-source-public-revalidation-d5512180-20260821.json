@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-012",
+  "decision": "SOURCE_ACCEPTED_PUBLIC_RUNTIME_DRIFT_CONFIRMED",
+  "sourceCommit": "ea0e068becd9103f5f0a2a6c3a0d20ab7932d006",
+  "sourceTree": "c6930d0267c643507d106bab5a1eb331339f206b",
+  "auditCommit": "d551218097b707755a8be017689a6d6983c8068e",
+  "auditTree": "28fd61edbfce8923b00fc12d47e87ccfc4d610e9",
+  "auditBlob": "3657ca4f35f67c1d9d584fb21b76147eb8582837",
+  "auditContentSha256": "e6ccaf744d7a1f0b5bb18007b138f7a264ad2f1929caa6967cd3b4cb795a06b3",
+  "linuxArtifact": {
+    "bytes": 19083448,
+    "sha256": "a78eb845c88911b069bb0e53642dd91084f983be895b53910949232909186a4a",
+    "format": "ELF 64-bit x86-64 statically linked"
+  },
+  "publicBefore": {
+    "sourceCommit": "8fe48738f309c469bd7a16e31fbfe9e106d7de3c",
+    "healthHttp": 200,
+    "healthSafe": false,
+    "healthLeaks": ["rpcUrl-loopback", "requestLog-absolute-path"],
+    "versionHttp": 404,
+    "versionAvailable": false
+  },
+  "sourceAccepted": true,
+  "deployedPublic": false,
+  "walletPlatformFaucetVerified": false,
+  "publicVerified": false,
+  "computerControlVerified": false
+}

@@ -1,0 +1,46 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.5",
+  "serialNumber": "urn:uuid:0df3c225-8441-4adc-887a-a71940fd5c26",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-08-20T12:24:41Z",
+    "component": {
+      "type": "application",
+      "bom-ref": "git:6cf3ef845202bd879ed94515a71b323dd2fc9e14#packages/wallet-auth",
+      "name": "YNX Wallet/Auth v2 runtime dependency closure",
+      "version": "6cf3ef845202bd879ed94515a71b323dd2fc9e14"
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40noble/curves@2.2.0",
+      "group": "@noble",
+      "name": "curves",
+      "version": "2.2.0",
+      "purl": "pkg:npm/%40noble/curves@2.2.0",
+      "hashes": [
+        {"alg": "SHA-256", "content": "6daf47e557e070b0657eda25549466bae3d07df555de4f702363355e8fb92ec8"},
+        {"alg": "SHA-512", "content": "4ff0681e01578ab6f410d48f06abb35f4adc8d778ce8ba3cf766b68e560992a93cdcba99c7497539fec3ce5289ea3929bccae41d29c07206f925e80bf1278891"}
+      ]
+    },
+    {
+      "type": "library",
+      "bom-ref": "pkg:npm/%40noble/hashes@2.2.0",
+      "group": "@noble",
+      "name": "hashes",
+      "version": "2.2.0",
+      "purl": "pkg:npm/%40noble/hashes@2.2.0",
+      "hashes": [
+        {"alg": "SHA-256", "content": "018b38bd7af36645fa0ece8f89eba21c828f3e4d219da5aacadd78bd0e654606"},
+        {"alg": "SHA-512", "content": "218a831a24d769be859e20209d2759c2059ba26c69cbd16d62f2cab3bc0252cd9af119084c6f831463b50ccf5cafe137fd18000d1a458eb295689d73eac8ed12"}
+      ]
+    }
+  ],
+  "dependencies": [
+    {"ref": "git:6cf3ef845202bd879ed94515a71b323dd2fc9e14#packages/wallet-auth", "dependsOn": ["pkg:npm/%40noble/curves@2.2.0", "pkg:npm/%40noble/hashes@2.2.0"]},
+    {"ref": "pkg:npm/%40noble/curves@2.2.0", "dependsOn": ["pkg:npm/%40noble/hashes@2.2.0"]},
+    {"ref": "pkg:npm/%40noble/hashes@2.2.0", "dependsOn": []}
+  ]
+}

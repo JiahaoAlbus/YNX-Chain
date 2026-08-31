@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-installed-client-computer-control-lease-20260820T101002Z",
+  "status": "PRECHECK_REJECTED_NO_ELIGIBLE_INSTALLED_CLIENT",
+  "issuedBy": "02-wallet-auth-central-integration",
+  "issuedAt": "2026-08-20T10:10:02Z",
+  "expiresAt": "2026-08-20T12:10:02Z",
+  "leaseOwner": "wallet-protocol",
+  "executionOwner": "wallet-installed-client-computer-control-owner",
+  "ownerThreadId": "019ffdef-abe9-7e33-b25d-944698ec736d",
+  "prerequisite": {
+    "publicRuntimeEvidenceCommit": "b30775951dcea09bf6b72aeb4806f47ff81b3bef",
+    "publicRuntimeEvidenceBlob": "6e42677719fca8c591d77eb02548b4ab0cc7b76d",
+    "publicRuntimeSourceCommit": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
+    "deploymentRegistrySha256": "ae156b317b9a97bfd42397cca634021deefe10ffb009102899e24276d8721e31",
+    "publicRuntimeVerified": true
+  },
+  "authorization": {
+    "executionAuthorized": false,
+    "singleInstalledClientWindow": true,
+    "maximumWindowSeconds": 1800,
+    "targetPlatformMustBeDeclaredBeforeExecution": true,
+    "allowedEffects": [
+      "launch-one-exact-installed-client",
+      "create-and-clean-test-product-session",
+      "capture-visible-computer-control-evidence"
+    ],
+    "forbiddenEffects": [
+      "runtime-deploy",
+      "runtime-config-change",
+      "registry-change",
+      "website-change",
+      "wallet-source-change",
+      "platform-source-change",
+      "unrelated-service-restart",
+      "production-signing-claim",
+      "store-release-claim"
+    ]
+  },
+  "preflightRequired": [
+    "record exact installed app package or bundle identity source commit artifact SHA bytes signing class and installation provenance",
+    "reject simulator temporary unpacked disposable or unsigned evidence as production installation",
+    "record exact physical or persistent device OS and client version",
+    "verify public runtime /version source 49e30d999e9a9cbdd2c565021009f2cab0dc125c and registry SHA before interaction",
+    "declare whether the flow is YNX canonical authorization or a standard injected-provider wallet; never conflate the two"
+  ],
+  "acceptanceRequired": [
+    "visible first and second launch of the same installed client",
+    "canonical authorization approve and reject are separately visible and callback-bound",
+    "Product Session complete introspect restart restore revoke and post-revoke rejection are bound to the installed client",
+    "wrong product bundle callback origin device and scope fail closed",
+    "cleanup revokes every test session and records zero orphan authority",
+    "standard wallet connection remains false unless a real injected provider separately proves account chain sign and send"
+  ],
+  "releaseTruth": {
+    "installedClientVerified": false,
+    "standardWalletConnectionClientVerified": false,
+    "accountVerified": false,
+    "signVerified": false,
+    "sendVerified": false,
+    "transactionVerified": false,
+    "integratedCentral": false,
+    "aggregatePublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "executionState": {
+    "targetDeclared": false,
+    "preflightComplete": false,
+    "computerControlStarted": false,
+    "acceptanceComplete": false,
+    "cleanupRequired": false,
+    "cleanupComplete": false,
+    "cleanupState": "NOT_STARTED_NO_MUTATION"
+  },
+  "closedAt": "2026-08-20T10:17:05Z",
+  "preflightRejectedReason": "NO_ELIGIBLE_SIGNED_INSTALLED_CLIENT",
+  "preflightEvidence": {
+    "frozenPath": "release/integration/p0-wallet-protocol-installed-client-preflight-evidence.json",
+    "blob": "8974960c4a2511bc8706311f3106a144505ace4f",
+    "ownerEvidenceCommit": "2d6c9aa354a459b224b79c11c69aab670336a41d",
+    "ownerEvidencePath": "packages/wallet-auth/integration/p0-wallet-protocol-installed-client-preflight-20260820.json",
+    "status": "PRECHECK_REJECTED_NO_ELIGIBLE_INSTALLED_CLIENT"
+  }
+}

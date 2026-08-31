@@ -1,0 +1,169 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-201",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-social-console-clean-candidate-deployment-20260822T170500Z",
+  "owner": "social",
+  "executor": "social-vercel-release",
+  "status": "CONSUMED_RELEASED_SUCCESS_SOCIAL_CONSOLE_CLEAN_CANDIDATE_CREATED",
+  "issuedAt": "2026-08-22T17:05:00Z",
+  "expiresAt": "2026-08-22T17:35:00Z",
+  "singleUse": true,
+  "reusable": false,
+  "executionAuthorized": false,
+  "dependencies": [
+    "P0-200"
+  ],
+  "branch": "codex/social-release-evidence-ecffe336",
+  "request": {
+    "commit": "3aff48f04ff02a3fb0530574bb778fcda8b824a9",
+    "tree": "4769a6499baab572a19832c32e69eea1f5b01fd3",
+    "path": "apps/social/evidence/release-candidates/social-console-clean-single-use-lease-request.json",
+    "blob": "d9fbf9a1ffa87b35815d8b5118c9142a86af5fa1",
+    "bytes": 3962,
+    "sha256": "4e17f7b1ce73aa405c107734106ee8ac9431845c14312ae4f1b5ae2e2e031e51",
+    "remoteExact": true
+  },
+  "source": {
+    "commit": "e7756cb387233376c03043c54fb8b051c241e94e",
+    "tree": "8607f57fdc9c1060a8749748ca0c87fa472692aa",
+    "socialTree": "68939fb426275213621cf5d06937d49024bc2c03",
+    "parent": "28a03c49e2f8dd76b750e65d8f24299706233fc1",
+    "fixBoundary": [
+      "explicit existing YNX Wallet SVG favicon",
+      "remove the CORS-unsafe direct private-service health fetch from the static public shell",
+      "render truthful PRIVATE_SERVICE_DEGRADED without clearing active Standard Wallet provider/account/chain",
+      "no console filtering or error hiding"
+    ]
+  },
+  "carrier": {
+    "path": "apps/social/evidence/release-candidates/ynx-social-e7756cb3.tar.gz",
+    "blob": "fd61ac8babfdb3235a1eae72b75b67d3133ee94e",
+    "bytes": 922243,
+    "sha256": "9ffe3eff10175589eeaa7a377e9dc61f3c3a62a77b0a9bcfa415c4764f512b81",
+    "executionExtractionRoot": "/tmp/ynx-social-p0201-exec",
+    "deploymentRoot": "/tmp/ynx-social-p0201-exec/apps/social/apps/social"
+  },
+  "independentValidation": {
+    "remoteRequestAndCarrier": "PASS",
+    "freshExtractionBuildOne": "PASS",
+    "freshExtractionBuildTwo": "PASS",
+    "buildsByteIdentical": true,
+    "walletTests": "PASS_8_OF_8",
+    "faviconRegression": "PASS",
+    "corsUnsafeStaticHealthFetchAbsent": "PASS",
+    "privateServiceDegradedExplicit": "PASS",
+    "standardWalletPreservedOnPrivateDegradation": "PASS",
+    "outputs": {
+      "index.html": {"bytes":6098,"sha256":"783f835245b9acbb4cbfe29cb56faa55243d593858c80692d39034e97e42a05b"},
+      "app.js": {"bytes":6928,"sha256":"966a47ae3d285a625ab666ddeca91defa156f04337b700fc07bd6c73e97ee51d"},
+      "styles.css": {"bytes":6327,"sha256":"1f80ec6b7ab8c2ff0d1d66edf083d301af89386c802483733fd670a5ada26c42"},
+      "wallet-provider.js": {"bytes":7749,"sha256":"d8df8193407f835ff16913417acca0db2ae1f091defc16e0b29a98996ffdea75"},
+      "assets/metamask.svg": {"bytes":755,"sha256":"f761f46f4fe7052a84b47cf23b63c2f20cc3d043df640b7f79c2adcb245e5f21"},
+      "assets/ynx-wallet.svg": {"bytes":280,"sha256":"e92207903e61b41c7a662e57e2a3bcfd84627b49c22a29e9240d5eafcd0229fb"}
+    }
+  },
+  "productionBinding": {
+    "scope": "jiahaoalbus-projects",
+    "project": "ynx-social-web",
+    "projectId": "prj_QGgUyxilarbPPLZyoES83m2aneQN",
+    "canonicalAlias": "social.ynxweb4.com",
+    "canonicalAliasMutationAllowed": false,
+    "currentDeploymentId": "dpl_2sei8CpmoN1Gi5YKnc6FdvNRyXGy",
+    "currentDeploymentUrl": "https://ynx-social-h8cqxnkud-jiahaoalbus-projects.vercel.app",
+    "currentDeploymentStatus": "READY",
+    "currentRoot": {"http":200,"bytes":5563,"sha256":"ce6f038a1171d0597398f13895e714f62d5e00ab00c9748b337861c9f248abee"},
+    "previousRejectedCandidate": "dpl_8tcTgggBktks6z8bHcRnhdjajaGR",
+    "previousRejectedCandidateReusable": false,
+    "readOnlyCheckedAt": "2026-08-22T17:02:53Z"
+  },
+  "locks": {
+    "heavy": "P0-201",
+    "owner": "social",
+    "vercelProject": "prj_QGgUyxilarbPPLZyoES83m2aneQN",
+    "paths": [
+      "release/integration/p0-wallet-connectivity/execution/p0-201-social-console-clean-candidate-deployment-lease-20260822.json",
+      "/tmp/ynx-social-p0201-exec/**"
+    ],
+    "canonicalAlias": "READ_ONLY_NO_MUTATION"
+  },
+  "execution": {
+    "preconditions": [
+      "fresh-read this ACTIVE_SINGLE_USE lease, unexpired Heavy owner and exact project lock",
+      "fresh-read owner branch at request commit/tree and reverify carrier blob/bytes/SHA256",
+      "fresh-read project prj_QGgUyxilarbPPLZyoES83m2aneQN and official alias at dpl_2sei8CpmoN1Gi5YKnc6FdvNRyXGy",
+      "create a new empty /tmp/ynx-social-p0201-exec, extract the exact carrier and require all six build outputs exact before deployment"
+    ],
+    "deployCommand": "vercel deploy /tmp/ynx-social-p0201-exec/apps/social/apps/social --project prj_QGgUyxilarbPPLZyoES83m2aneQN --prod --skip-domain --yes --scope jiahaoalbus-projects",
+    "deploymentAttemptLimit": 1,
+    "retryAllowed": false,
+    "terminalAcceptance": [
+      "capture exactly one new deployment id and immutable URL",
+      "require the new deployment belongs to prj_QGgUyxilarbPPLZyoES83m2aneQN, production target and READY state",
+      "capture Vercel source/build metadata that binds request 3aff48f04ff02a3fb0530574bb778fcda8b824a9 and source e7756cb387233376c03043c54fb8b051c241e94e",
+      "read official social.ynxweb4.com and require it remains at dpl_2sei8CpmoN1Gi5YKnc6FdvNRyXGy",
+      "return the exact new deployment id/immutable URL for a separately reviewed hardcoded hosted preflight"
+    ],
+    "rawCandidateHttpRequiredInThisLease": false,
+    "candidateBrowserRequiredInThisLease": false,
+    "aliasAttemptLimit": 0,
+    "rollbackAttemptLimit": 0
+  },
+  "forbidden": [
+    "any explicit alias command, canonical alias mutation, rollback command, DNS, SSO or Vercel project setting mutation",
+    "deployment retry or reuse of dpl_8tcTgggBktks6z8bHcRnhdjajaGR",
+    "Social product source or UI mutation during execution",
+    "any other product, Website, Wallet or shared path mutation",
+    "eth_requestAccounts, provider approval, personal_sign, EIP-712, transaction or private-key handling",
+    "candidate raw/browser, official source-bound-public or product-completion promotion from deployment metadata alone"
+  ],
+  "terminalRules": {
+    "success": "CONSUMED_RELEASED_SUCCESS_SOCIAL_CONSOLE_CLEAN_IMMUTABLE_CANDIDATE_CREATED",
+    "failure": "CONSUMED_RELEASED_FAILED_CLOSED_SOCIAL_CONSOLE_CLEAN_CANDIDATE_DEPLOYMENT"
+  },
+  "terminalEvidence": {
+    "releasedAt": "2026-08-22T17:06:36Z",
+    "preconditionsPassedAt": "2026-08-22T17:05:40Z",
+    "centralLeaseCommit": "c942945ca10d79c44bfa3f3c665271256c89291a",
+    "deploymentAttemptCount": 1,
+    "deploymentCommandExit": 0,
+    "retryCount": 0,
+    "candidateDeploymentId": "dpl_34kzw3uk4B1wwjk1wQUq8y29mTxX",
+    "candidateDeploymentUrl": "https://ynx-social-i38c5m9dw-jiahaoalbus-projects.vercel.app",
+    "candidateInspectorUrl": "https://vercel.com/jiahaoalbus-projects/ynx-social-web/34kzw3uk4B1wwjk1wQUq8y29mTxX",
+    "candidateProject": "ynx-social-web",
+    "candidateProjectId": "prj_QGgUyxilarbPPLZyoES83m2aneQN",
+    "candidateTarget": "production",
+    "candidateStatus": "READY",
+    "candidateInspectedAt": "2026-08-22T17:06:36Z",
+    "candidateCreated": true,
+    "candidateRawResourcesVerified": false,
+    "candidateBrowserVerified": false,
+    "aliasAttemptCount": 0,
+    "rollbackAttemptCount": 0,
+    "settingsMutationCount": 0,
+    "sourceMutationCount": 0,
+    "officialCanonicalDeployment": "dpl_2sei8CpmoN1Gi5YKnc6FdvNRyXGy",
+    "officialCanonicalUnchanged": true,
+    "officialRootReadback": {"http":200,"bytes":5563,"sha256":"ce6f038a1171d0597398f13895e714f62d5e00ab00c9748b337861c9f248abee","requestId":"sin1::2r9n2-1787418407331-821931a2b408"},
+    "accountRequestAttempted": false,
+    "signatureAttempted": false,
+    "typedDataAttempted": false,
+    "transactionAttempted": false,
+    "officialSourceBoundPublic": false,
+    "productComplete": false,
+    "nextAction": "Freeze a new sole-path workflow hardcoded to the exact immutable candidate URL and request a separate one-push/one-run hosted raw and browser preflight lease; alias remains forbidden until that direct evidence passes."
+  },
+  "truthBeforeExecution": {
+    "candidateCreated": false,
+    "candidateRawResourcesVerified": false,
+    "candidateBrowserVerified": false,
+    "officialSourceBoundPublic": false,
+    "installedProvider": false,
+    "accountApproved": false,
+    "signatureExecuted": false,
+    "typedDataExecuted": false,
+    "transactionExecuted": false,
+    "productComplete": false
+  }
+}

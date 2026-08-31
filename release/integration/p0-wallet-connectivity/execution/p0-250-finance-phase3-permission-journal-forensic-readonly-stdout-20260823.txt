@@ -1,0 +1,56 @@
+inspection=P0-250
+journalSince=2026-08-23 07:38:00 UTC
+journalUntil=2026-08-23 07:47:00 UTC
+journalLineCount=21
+journalNormalizedFailureClass=PERMISSION_OR_WORKING_DIRECTORY_TRAVERSE
+journalNormalizedMessageSha256=bc148c0295daf6f542ddde32945508c4444e8af5681d3c640087a700e27c9511
+unitUser=ynx
+unitGroup=ynx
+unitWorkingDirectory=/opt/ynx/finance-current
+unitExecStartSha256=fab5b105c420e9811c59ab85336133044ca651ad12cc54aa01ec1d0c8997e47a
+unitExecStartNormalized={ path=/opt/ynx/finance-current/ynx-finance ; argv[]=/opt/ynx/finance-current/ynx-finance ; ignore_errors=no ; start_time=[Sun 2026-08-23 15:42:35 CST] ; stop_time=[n/a] ; pid=2241003 ; code=(null) ; status=0/0 }
+ynxUid=995
+ynxGid=986
+ynxGroups=986
+signedFormerReleaseContainerOwner=0:0
+signedFormerReleaseContainerMode=750
+signedFormerReleaseContainerTraverseForYnx=DENIED_BY_ROOT_ROOT_0750
+currentPathNameiBegin
+f: /opt/ynx/finance-current/ynx-finance
+ drwxr-xr-x root root /
+ drwxr-xr-x root root opt
+ drwxr-xr-x root root ynx
+ lrwxrwxrwx root root finance-current -> /opt/ynx/releases/finance/ynx-finance-3b2383f5c18a
+   drwxr-xr-x root root /
+   drwxr-xr-x root root opt
+   drwxr-xr-x root root ynx
+   drwxr-xr-x root root releases
+   drwxr-xr-x root root finance
+   drwxr-xr-x root root ynx-finance-3b2383f5c18a
+ -rwxr-xr-x root root ynx-finance
+currentPathNameiEnd
+formerPathNameiBegin
+f: /opt/ynx/releases/finance/p0247-finance-phase3-20260823T073800Z/ynx-finance-7824af677dd0/ynx-finance
+ drwxr-xr-x root root /
+ drwxr-xr-x root root opt
+ drwxr-xr-x root root ynx
+ drwxr-xr-x root root releases
+ drwxr-xr-x root root finance
+                       p0247-finance-phase3-20260823T073800Z - No such file or directory
+formerPathNameiEnd
+ynxCanTraverseOpt=PASS
+ynxCanTraverseYnx=PASS
+ynxCanTraverseReleases=PASS
+ynxCanTraverseFinanceReleases=PASS
+ynxCanTraverseCurrentRelease=PASS
+ynxCanExecuteCurrentBinary=PASS
+currentLinkTuple=64770:1312291:0:0:777:1:50:symbolic link
+currentTarget=/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a
+currentReleaseTuple=64770:1860506:0:0:755:3:4096:directory
+productionEnvTuple=64770:1324724:0:986:640:1:1545:regular file
+productionEnvSha256=854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252
+serviceActiveState=active
+serviceSubState=running
+servicePid=2241003
+serviceNRestarts=0
+inspectionComplete=true

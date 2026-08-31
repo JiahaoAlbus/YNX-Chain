@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "1.0.0",
+  "taskId": "P0-322",
+  "leaseId": "p0322-finance-p0318-retained-control-cleanup-20260831t063800z",
+  "status": "CONSUMED_RELEASED_REMOTE_SUCCESS_FINANCE_P0322_P0318_RETAINED_CONTROL_PAIR_CLEANUP_PENDING_INDEPENDENT_READBACK",
+  "attemptCount": 1,
+  "retryCount": 0,
+  "localExitStatus": 0,
+  "terminalOutput": {
+    "stdout": {"path":"/tmp/ynx-finance-p0318-retained-control-cleanup.stdout","bytes":310,"sha256":"31f21cef8f93654bfd151bcd738c3e453218743ea4d788034670c1aed2eb3d7b"},
+    "stderr": {"path":"/tmp/ynx-finance-p0318-retained-control-cleanup.stderr","bytes":0,"sha256":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    "transportReceipt": {"path":"/tmp/ynx-finance-p0318-retained-control-cleanup.receipt","bytes":408,"sha256":"2509a0b78e26c7781a0b016795d14e6c76a5b89b6791f1a4645094056e52768c","sshExitStatus":0,"remoteExitStatus":0,"terminalReceiptValidated":true}
+  },
+  "remoteReceipt": {
+    "cleanup": "P0318_RETAINED_CONTROL_PAIR_REMOVED",
+    "executorFinal": "absent",
+    "signedLeaseFinal": "absent",
+    "oldRuntimeMutationCount": 0,
+    "parentStableIdentity": "64770:4594822:0:0:750:directory",
+    "remainingDirectChildren": 4,
+    "remainingInventorySha256": "deb186c19791039c1074c279f667004250e78992fea703bcd513abff58604607"
+  },
+  "truthBoundary": {
+    "cleanupInvocationSucceeded": true,
+    "cleanupComplete": false,
+    "mandatoryIndependentZeroWriteReadback": true,
+    "deployment": false,
+    "rollback": false,
+    "serviceLifecycle": false,
+    "publicMutation": false,
+    "accountSignTx": false,
+    "reusable": false
+  },
+  "releasedAt": "2026-08-31T06:44:27Z"
+}

@@ -1,0 +1,64 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-091",
+  "owner": "integration",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-faucet-ea0e068b-validator-v2-20260821T004500Z",
+  "status": "ACTIVE_BOUNDED_SINGLE_USE_ROLLBACK_FIRST",
+  "issuedAt": "2026-08-21T00:45:00Z",
+  "expiresAt": "2026-08-21T02:45:00Z",
+  "singleUse": true,
+  "predecessorLease": "P0-WALLET-CONNECTIVITY-2026-08-faucet-ea0e068b-20260821T003500Z",
+  "predecessorNonreusable": true,
+  "sourceCommit": "ea0e068becd9103f5f0a2a6c3a0d20ab7932d006",
+  "startingCheckpoint": "11b34a4af0ddf3c3b9e29db0a4672f8137c52edf",
+  "artifact": {
+    "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/29-faucet-runtime-p0/tmp/deploy/ynx-chain-ea0e068becd9/bin/ynx-faucetd",
+    "bytes": 19083448,
+    "sha256": "a78eb845c88911b069bb0e53642dd91084f983be895b53910949232909186a4a"
+  },
+  "target": {
+    "sshHost": "43.153.202.237",
+    "sshPort": 22,
+    "sshUser": "ubuntu",
+    "identityFile": "/Users/huangjiahao/Downloads/Huang.pem",
+    "strictHostKeyChecking": true,
+    "service": "ynx-faucetd.service",
+    "binary": "/usr/local/bin/ynx-faucetd",
+    "unit": "/etc/systemd/system/ynx-faucetd.service",
+    "environment": "/etc/ynx/ynx-faucetd.env",
+    "publicBaseUrl": "https://faucet.ynxweb4.com"
+  },
+  "freshPaths": {
+    "backup": "/var/backups/ynx-chain/faucet-ea0e068b-p0091",
+    "staging": "/var/tmp/ynx-faucet-p0091-ea0e068b"
+  },
+  "versionContract": {
+    "service": "ynx-faucetd",
+    "buildCommitJsonPath": ".build.commit",
+    "buildCommit": "ea0e068becd9",
+    "buildReleaseJsonPath": ".build.release",
+    "buildRelease": "ynx-chain-ea0e068becd9",
+    "dependenciesJsonPath": ".dependencies"
+  },
+  "allowed": [
+    "fresh strict-host-key read-only production digest preflight",
+    "new root-only P0-091 backup and staging without reading environment contents",
+    "stream and verify exact accepted binary",
+    "install exact binary and restart only ynx-faucetd.service",
+    "validate topology-safe health and actual nested PublicVersion build identity",
+    "local and public readback",
+    "rollback old binary on first failure"
+  ],
+  "forbidden": [
+    "reuse P0-090 backup, staging or authorization as authority",
+    "read or export funding-key or environment contents",
+    "modify request log, Chain, Wallet Gateway, Caddy, endpoint manifest or another service",
+    "retry after P0-091 is consumed",
+    "claim Wallet platform Faucet or ComputerControl"
+  ],
+  "rollbackFirst": true,
+  "productionMutationAllowed": true,
+  "publicVerified": false,
+  "computerControlVerified": false
+}

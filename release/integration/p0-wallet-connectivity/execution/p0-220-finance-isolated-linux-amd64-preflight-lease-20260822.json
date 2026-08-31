@@ -1,0 +1,348 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-220",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-isolated-linux-preflight-20260822T211600Z",
+  "owner": null,
+  "executor": "finance-linux-preflight",
+  "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_ISOLATED_LINUX_AMD64_PREFLIGHT_ONLY",
+  "issuedAt": "2026-08-22T21:16:00Z",
+  "expiresAt": "2026-08-22T22:01:00Z",
+  "releasedAt": "2026-08-22T21:25:00Z",
+  "singleUse": true,
+  "reusable": false,
+  "executionAuthorized": false,
+  "productionMutationAllowed": false,
+  "preflightMutationAllowed": false,
+  "scope": "Finance-only new-carrier isolated Linux amd64 preflight with signed three-level carrier tuples and two mandatory Linux regressions before one candidate execution",
+  "predecessors": [
+    {
+      "taskId": "P0-217",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_ISOLATED_LINUX_PREFLIGHT_RECEIPT_PATH_CANONICALIZATION",
+      "reusable": false
+    },
+    {
+      "taskId": "P0-218",
+      "centralReleaseCommit": "beb673a83995d6a84e5bbbc866a84779f1d4ae61",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_ISOLATED_PREFLIGHT_CARRIER_PREFIX_CONTRACT",
+      "reusable": false
+    },
+    {
+      "taskId": "P0-219",
+      "status": "NO_GO_FINANCE_P0219_CARRIER_ROOT_SIGNED_NLINK_MISMATCH",
+      "leaseIssued": false,
+      "reusable": false
+    }
+  ],
+  "ownerAuthority": {
+    "branch": "codex/p0-finance-wallet-connectivity-20260820",
+    "remoteHeadAtIssuance": "565b96cef09efbabfe719d44333f98f229473d7c",
+    "remoteTreeAtIssuance": "12bd26d328866415ebf4ebf819626e7302d0a9b3",
+    "sourceFixCheckpoint": "c5ff310e6373c474cc52d6b6bca106602e77bc63",
+    "sourceFixTree": "a40a70f797ddd72abe93a896aae425ecbc45e100",
+    "remoteReadbackExact": true
+  },
+  "request": {
+    "path": "apps/finance/evidence/finance-linux-amd64-preflight-only-lease-request-20260822.json",
+    "blob": "10fad920626cd837faebd412f8c9a97bd622340d",
+    "bytes": 5375,
+    "sha256": "437f5642e076db8ac747c1324efcf4b1da28bd7d2d3dab96147a54073db42348",
+    "jsonValid": true,
+    "independentlyRead": true
+  },
+  "candidate": {
+    "sourceCommit": "7824af677dd052d20321431381523ab302614d98",
+    "sourceTree": "3db34ee2397a49852bbdf15e3841e7c9cecf9444",
+    "localArchive": "/tmp/ynx-finance-7824af677dd0-linux-amd64-p0146.tar.gz",
+    "archiveBasename": "ynx-finance-7824af677dd0-linux-amd64-p0146.tar.gz",
+    "archiveBytes": 3937491,
+    "archiveSha256": "d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d",
+    "binary": {
+      "bytes": 8573112,
+      "sha256": "cccdae8ae5b5f694ca7db68540da30582564ff741978e616f7435d448a20fe3e",
+      "format": "ELF 64-bit LSB x86-64 static stripped"
+    }
+  },
+  "scripts": {
+    "preflight": {
+      "sourcePath": "apps/finance/scripts/finance-linux-amd64-absent-state-preflight.sh",
+      "localCarrier": "/tmp/finance-p0220-carriers/finance-linux-amd64-absent-state-preflight.sh",
+      "blob": "359e9c0940b1299e5138e7cc000c1adafcbf146f",
+      "bytes": 8878,
+      "sha256": "17e84f676ec645307890940bb04498c05beb5ffff34abd9b01b999bd471beab0",
+      "bashSyntax": "PASS",
+      "argumentCount": 7
+    },
+    "carrierRegression": {
+      "sourcePath": "apps/finance/scripts/test-finance-preflight-carrier.mjs",
+      "localCarrier": "/tmp/finance-p0220-carriers/test-finance-preflight-carrier.mjs",
+      "blob": "caeddd75f347e6db21b9ba77d0bfbe46f4561436",
+      "bytes": 1469,
+      "sha256": "b8317ff4100ec0516e4d8276c267466f64d392107382b501efd64d780a7a6dca",
+      "nodeSyntax": "PASS",
+      "localExecution": "PASS"
+    },
+    "manifestVerifier": {
+      "sourcePath": "apps/finance/scripts/verify-finance-receipt-manifest.py",
+      "localCarrier": "/tmp/finance-p0220-carriers/verify-finance-receipt-manifest.py",
+      "blob": "203baadc6a304eaad1cda42ed21b9de14b46d82f",
+      "bytes": 2044,
+      "sha256": "a48ad5279656775a87d73533512cfc09cbc684cbbf0dc157ed9fa3caadee4cab",
+      "canonicalization": "Exactly one GNU ./ prefix; absolute, traversal, duplicate, self, temporary-manifest, symlink, digest and exact-set mismatches fail closed."
+    },
+    "manifestRegression": {
+      "sourcePath": "apps/finance/scripts/test-finance-receipt-manifest.sh",
+      "localCarrier": "/tmp/finance-p0220-carriers/test-finance-receipt-manifest.sh",
+      "blob": "8be20c14e42bb6d1b8bd7c2021b63981d1559424",
+      "bytes": 1563,
+      "sha256": "8ed3b386f0e27609cde0feec4ff53d6a0ea7a3fb79c06a5e0841bc65c1c00512",
+      "bashSyntax": "PASS",
+      "realLinuxExecutionRequired": true
+    },
+    "rollback": {
+      "sourcePath": "apps/finance/scripts/finance-absent-state-rollback-command.sh",
+      "localCarrier": "/tmp/finance-p0220-carriers/finance-absent-state-rollback-command.sh",
+      "blob": "9ceefa187ce7488f6d4617281e097fce7d5f8a6a",
+      "bytes": 1380,
+      "sha256": "753f322303cbb264b7cd3f07d7b434ae4d2e2d0f95919768224fb2f5be891f9e",
+      "bashSyntax": "PASS"
+    }
+  },
+  "host": {
+    "address": "43.153.202.237",
+    "hostname": "VM-4-3-ubuntu",
+    "arch": "x86_64",
+    "node": "v22.23.1",
+    "python": "Python 3.12.3",
+    "sshUser": "ubuntu",
+    "identityFile": "/Users/huangjiahao/Downloads/Huang.pem",
+    "strictHostKeyChecking": true,
+    "hostKeyAlgorithm": "ssh-ed25519",
+    "hostKeyFingerprint": "SHA256:7wrOak1OZoD6oDAr0e3En+UD4fs8QnAM1n0Jvwi6Ha8",
+    "batchMode": true,
+    "nonInteractiveSudo": true
+  },
+  "locks": [
+    "heavy:finance",
+    "host:43.153.202.237:finance-preflight-only",
+    "path:/opt/ynx/preflight/finance/artifacts/p0220",
+    "path:/opt/ynx/preflight/finance/runs/P0-WALLET-CONNECTIVITY-2026-08-finance-isolated-linux-preflight-20260822T211600Z",
+    "loopback:127.0.0.1:45263"
+  ],
+  "paths": {
+    "artifactRoot": "/opt/ynx/preflight/finance/artifacts",
+    "carrierRoot": "/opt/ynx/preflight/finance/artifacts/p0220",
+    "digestDirectory": "/opt/ynx/preflight/finance/artifacts/p0220/sha256-d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d",
+    "remoteArchive": "/opt/ynx/preflight/finance/artifacts/p0220/sha256-d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d/ynx-finance-7824af677dd0-linux-amd64-p0146.tar.gz",
+    "runRoot": "/opt/ynx/preflight/finance/runs",
+    "runDirectory": "/opt/ynx/preflight/finance/runs/P0-WALLET-CONNECTIVITY-2026-08-finance-isolated-linux-preflight-20260822T211600Z",
+    "receiptDirectory": "/opt/ynx/preflight/finance/runs/P0-WALLET-CONNECTIVITY-2026-08-finance-isolated-linux-preflight-20260822T211600Z/receipts",
+    "receiptManifest": "/opt/ynx/preflight/finance/runs/P0-WALLET-CONNECTIVITY-2026-08-finance-isolated-linux-preflight-20260822T211600Z/receipts/SHA256SUMS",
+    "carrierRootAndRunDirectoryAbsentAtIssuance": true
+  },
+  "signedTuples": {
+    "format": "uid:gid:mode:nlink",
+    "carrierRoot": "0:0:755:3",
+    "digestDirectory": "0:0:755:2",
+    "archive": "0:0:644:1",
+    "sameFilesystemStructureDirectlyObserved": true,
+    "mustBeFreshlyReadImmediatelyBeforeCandidateInvocation": true
+  },
+  "protectedResidue": {
+    "writeDeleteOverwriteOrReuseForbidden": true,
+    "p0217Carrier": "/opt/ynx/preflight/finance/artifacts/sha256-d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d",
+    "p0217Run": "/opt/ynx/preflight/finance/runs/P0-WALLET-CONNECTIVITY-2026-08-finance-isolated-linux-preflight-20260822T204500Z",
+    "p0218Carrier": "/opt/ynx/preflight/finance/artifacts/p0218",
+    "p0218Run": "/opt/ynx/preflight/finance/runs/P0-WALLET-CONNECTIVITY-2026-08-finance-isolated-linux-preflight-20260822T205800Z",
+    "p0217CarrierAndRunObservedPresent": true,
+    "p0218CarrierObservedPresent": true,
+    "p0218RunObservedAbsent": true,
+    "p0219CarrierObservedAbsent": true
+  },
+  "loopback": {
+    "address": "127.0.0.1",
+    "port": 45263,
+    "rangeValidated": true,
+    "unusedAtIssuance": true,
+    "mustBeRecheckedBeforeEachRegressionAndImmediatelyBeforeRunCreation": true,
+    "nonLoopbackListenerForbidden": true
+  },
+  "carrierPlacement": {
+    "prepareCommand": "ssh -i /Users/huangjiahao/Downloads/Huang.pem -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=15 ubuntu@43.153.202.237 'sudo -n install -d -m 0755 -o root -g root /opt/ynx/preflight/finance/artifacts/p0220 && sudo -n install -d -m 0700 -o ubuntu -g ubuntu /opt/ynx/preflight/finance/artifacts/p0220/sha256-d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d'",
+    "prepareAttemptLimit": 1,
+    "uploadCommand": "gtimeout 600 scp -C -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=15 -o ServerAliveInterval=20 -o ServerAliveCountMax=20 -i /Users/huangjiahao/Downloads/Huang.pem /tmp/ynx-finance-7824af677dd0-linux-amd64-p0146.tar.gz /tmp/finance-p0220-carriers/finance-linux-amd64-absent-state-preflight.sh /tmp/finance-p0220-carriers/test-finance-preflight-carrier.mjs /tmp/finance-p0220-carriers/verify-finance-receipt-manifest.py /tmp/finance-p0220-carriers/test-finance-receipt-manifest.sh /tmp/finance-p0220-carriers/finance-absent-state-rollback-command.sh ubuntu@43.153.202.237:/opt/ynx/preflight/finance/artifacts/p0220/sha256-d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d/",
+    "uploadAttemptLimit": 1,
+    "finalizeAndVerifyCommand": "ssh -i /Users/huangjiahao/Downloads/Huang.pem -o BatchMode=yes -o StrictHostKeyChecking=yes ubuntu@43.153.202.237 'sudo -n chown root:root /opt/ynx/preflight/finance/artifacts/p0220/sha256-d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d/* && sudo -n chmod 0644 /opt/ynx/preflight/finance/artifacts/p0220/sha256-d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d/ynx-finance-7824af677dd0-linux-amd64-p0146.tar.gz && sudo -n chmod 0755 /opt/ynx/preflight/finance/artifacts/p0220/sha256-d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d/finance-linux-amd64-absent-state-preflight.sh /opt/ynx/preflight/finance/artifacts/p0220/sha256-d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d/test-finance-preflight-carrier.mjs /opt/ynx/preflight/finance/artifacts/p0220/sha256-d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d/verify-finance-receipt-manifest.py /opt/ynx/preflight/finance/artifacts/p0220/sha256-d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d/test-finance-receipt-manifest.sh /opt/ynx/preflight/finance/artifacts/p0220/sha256-d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d/finance-absent-state-rollback-command.sh && sudo -n chown root:root /opt/ynx/preflight/finance/artifacts/p0220 /opt/ynx/preflight/finance/artifacts/p0220/sha256-d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d && sudo -n chmod 0755 /opt/ynx/preflight/finance/artifacts/p0220 /opt/ynx/preflight/finance/artifacts/p0220/sha256-d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d'",
+    "requiredGate": "Exactly six regular nlink1 files with exact bytes/SHA/modes; signed tuples exactly 0:0:755:3, 0:0:755:2 and 0:0:644:1; no transfer process; protected residue unchanged; run absent; port 45263 free.",
+    "retryAllowed": false
+  },
+  "regressions": {
+    "carrier": {
+      "exactCommand": "ssh -i /Users/huangjiahao/Downloads/Huang.pem -o BatchMode=yes -o StrictHostKeyChecking=yes ubuntu@43.153.202.237 'sudo -n node /opt/ynx/preflight/finance/artifacts/p0220/sha256-d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d/test-finance-preflight-carrier.mjs'",
+      "attemptLimit": 1,
+      "requiredExitCode": 0,
+      "requiredStdout": "finance carrier authorization regression: pass"
+    },
+    "manifest": {
+      "exactCommand": "ssh -i /Users/huangjiahao/Downloads/Huang.pem -o BatchMode=yes -o StrictHostKeyChecking=yes ubuntu@43.153.202.237 'sudo -n env TMPDIR=/opt/ynx/preflight/finance/artifacts/p0220 bash /opt/ynx/preflight/finance/artifacts/p0220/sha256-d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d/test-finance-receipt-manifest.sh'",
+      "attemptLimit": 1,
+      "requiredExitCode": 0,
+      "requiredStdout": "finance receipt manifest regression: pass"
+    },
+    "retryAllowed": false,
+    "requiredPostcondition": "Both pass; no regression temp remains; exact six carriers and all three tuples unchanged; run absent; port 45263 free; protected residue unchanged.",
+    "candidateAuthorizedOnlyAfterBothPass": true
+  },
+  "candidateExecution": {
+    "signedArguments": [
+      "/opt/ynx/preflight/finance/artifacts/p0220",
+      "ynx-finance-7824af677dd0-linux-amd64-p0146.tar.gz",
+      "0:0:755:3",
+      "0:0:755:2",
+      "0:0:644:1",
+      "/opt/ynx/preflight/finance/runs/P0-WALLET-CONNECTIVITY-2026-08-finance-isolated-linux-preflight-20260822T211600Z",
+      "45263"
+    ],
+    "exactCommand": "ssh -i /Users/huangjiahao/Downloads/Huang.pem -o BatchMode=yes -o StrictHostKeyChecking=yes ubuntu@43.153.202.237 'sudo -n bash /opt/ynx/preflight/finance/artifacts/p0220/sha256-d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d/finance-linux-amd64-absent-state-preflight.sh /opt/ynx/preflight/finance/artifacts/p0220 ynx-finance-7824af677dd0-linux-amd64-p0146.tar.gz 0:0:755:3 0:0:755:2 0:0:644:1 /opt/ynx/preflight/finance/runs/P0-WALLET-CONNECTIVITY-2026-08-finance-isolated-linux-preflight-20260822T211600Z 45263'",
+    "attemptLimit": 1,
+    "retryAllowed": false,
+    "freshTupleReadRequiredImmediatelyBeforeInvocation": true,
+    "requiredReceipts": [
+      "archive and extracted binary SHA256",
+      "cold version and health exact source",
+      "pre-switch and post-cold absence",
+      "candidate-created device/inode/uid/gid/mode/nlink/bytes/SHA256",
+      "candidate stopped",
+      "exact-inode deletion and final absence",
+      "cleanup.json and result.txt",
+      "last-written SHA256SUMS with every digest and exact canonical retained-file-set equality",
+      "command exit status"
+    ],
+    "successRequires": "Exit zero, full verified receipts, candidate/mock stopped, no listener on 45263, isolated state absent after exact-inode cleanup, protected residue unchanged and no production mutation."
+  },
+  "terminalEvidence": {
+    "decision": "DIRECT_SUCCESS",
+    "observedAt": "2026-08-22T21:24:56Z",
+    "counts": {
+      "prepare": 1,
+      "upload": 1,
+      "finalize": 1,
+      "carrierRegression": 1,
+      "manifestRegression": 1,
+      "candidateExecution": 1,
+      "retry": 0,
+      "productionAction": 0
+    },
+    "regressions": {
+      "carrier": "PASS",
+      "manifest": "PASS"
+    },
+    "candidate": {
+      "exitCode": 0,
+      "sourceCommit": "7824af677dd052d20321431381523ab302614d98",
+      "release": "ynx-finance-7824af677dd0",
+      "healthExact": true,
+      "versionExact": true,
+      "categoryPostHttpStatus": 201
+    },
+    "receipts": {
+      "directory": "/opt/ynx/preflight/finance/runs/P0-WALLET-CONNECTIVITY-2026-08-finance-isolated-linux-preflight-20260822T211600Z/receipts",
+      "manifestBytes": 1062,
+      "manifestSha256": "a4581e24da7d9208d4d5b1f067134ed52fbdfd5cbfb0f143d5e1311d489ded63",
+      "manifestVerifier": "PASS",
+      "resultBytes": 144,
+      "resultSha256": "b8c5cf7d9e4174f6f46f128fa6cf4844ac159c7d74177b6fdf51467f35b7fad5",
+      "result": "PREFLIGHT_OK",
+      "retainedReceiptCountExcludingManifest": 12
+    },
+    "candidateCreatedState": {
+      "device": "64770",
+      "inode": "4620852",
+      "uid": 0,
+      "gid": 0,
+      "mode": "600",
+      "nlink": 1,
+      "bytes": 1059,
+      "sha256": "833312c7958cf2ce960dbb3ddea00ad0249e9884004007dbaaaf1cef8d97fabc"
+    },
+    "cleanup": {
+      "candidateStopped": true,
+      "mockStopped": true,
+      "matchedDevice": "64770",
+      "matchedInode": "4620852",
+      "exactInodeDeleted": true,
+      "finalStateJsonAbsent": true,
+      "zeroByteStateLockRetained": true,
+      "loopbackPort45263Free": true,
+      "isolatedCandidateProcessAbsent": true
+    },
+    "signedTuplesReadback": {
+      "carrierRoot": "0:0:755:3",
+      "digestDirectory": "0:0:755:2",
+      "archive": "0:0:644:1",
+      "exact": true
+    },
+    "protectedResidue": {
+      "p0217CarrierDeviceInode": "64770:2663578",
+      "p0217RunDeviceInode": "64770:2663582",
+      "p0218CarrierDeviceInode": "64770:3450039",
+      "unchanged": true
+    },
+    "production": {
+      "financePid": 877083,
+      "processUntouched": true,
+      "publicVersionHttpStatus": 200,
+      "publicVersionBytes": 130,
+      "publicVersionSha256": "39789776da47e60b7a7df845789e02ebba16707ad8951eb6f27c84c1b40bb226",
+      "publicSourceCommit": "3b2383f5c18ab3eb5ce7f7f6a267d2cfe7c7e6a4",
+      "publicRelease": "ynx-finance-3b2383f5c18a",
+      "systemctlAction": false,
+      "stateMutation": false,
+      "symlinkMutation": false,
+      "environmentMutation": false,
+      "caddyMutation": false,
+      "publicRouteMutation": false
+    },
+    "sensitiveActions": {
+      "account": false,
+      "sign": false,
+      "transaction": false
+    },
+    "truthBoundary": "This promotes only exact Finance isolated Linux amd64 preflight evidence. It does not authorize or prove production deployment, source-bound public, installed provider, account, signing or transaction behavior."
+  },
+  "releasedLocks": {
+    "releasedAt": "2026-08-22T21:25:00Z",
+    "heavyOwner": null,
+    "hostPreflightOwner": null,
+    "p0220CarrierRootOwner": null,
+    "p0220RunDirectoryOwner": null,
+    "loopbackPortOwner": null
+  },
+  "forbidden": [
+    "write, delete, overwrite or reuse any P0-217 or P0-218 evidence",
+    "systemctl or any production process action",
+    "production state, finance-current symlink, environment, unit, Caddy, DNS or public-route mutation",
+    "write outside the p0220 carrier root and exact P0-220 run directory",
+    "non-loopback listener",
+    "retry, second upload, second regression or second candidate execution",
+    "eth_requestAccounts, account approval, signing, EIP-712 or transaction",
+    "production deployment or public completion claim"
+  ],
+  "terminal": {
+    "successStatus": "CONSUMED_RELEASED_SUCCESS_FINANCE_ISOLATED_LINUX_AMD64_PREFLIGHT_ONLY",
+    "failureStatus": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_ISOLATED_LINUX_AMD64_PREFLIGHT",
+    "onEveryTerminalPath": [
+      "stop only processes started under P0-220",
+      "perform exact-inode cleanup only for P0-220 isolated state when applicable",
+      "prove port 45263 has no listener and candidate/mock are absent",
+      "preserve P0-217 and P0-218 evidence unchanged",
+      "retain P0-220 receipts when safely available",
+      "release Heavy and every Finance p0220 path/port lock",
+      "mark P0-220 consumed, released and nonreusable"
+    ],
+    "productionDeploymentAuthorized": false,
+    "sourceBoundPublicPromoted": false,
+    "installedProviderPromoted": false,
+    "accountSignTransactionPromoted": false
+  }
+}

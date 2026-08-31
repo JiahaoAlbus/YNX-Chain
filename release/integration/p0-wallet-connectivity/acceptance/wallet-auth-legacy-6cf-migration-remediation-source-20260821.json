@@ -1,0 +1,19 @@
+{
+  "schemaVersion":1,
+  "acceptanceId":"P0-053-WALLET-AUTH-LEGACY-6CF-MIGRATION-REMEDIATION-SOURCE-20260821",
+  "taskId":"P0-053",
+  "decision":"SOURCE_AND_OFFLINE_ARTIFACTS_ACCEPTED_FRESH_PRODUCTION_READ_REQUIRED_NO_LEASE",
+  "sourceEvidence":{"path":"release/integration/p0-wallet-connectivity/evidence/wallet-auth-legacy-6cf-migration-remediation-source-20260821.json"},
+  "sourceCommit":"ff395e3d1d7c012784e81eb02c3ae8782fbf1298",
+  "ownerEvidenceCommit":"bbaa11f3f3217bafd7492d2e19b2646753204788",
+  "activeHeavyTask":null,
+  "executionLeaseIssued":false,
+  "executionLeaseId":null,
+  "p0039LeaseReusable":false,
+  "p0050LeaseReusable":false,
+  "productsMigratedV2":0,
+  "registryV3Public":false,
+  "deployedPublic":false,
+  "computerControlVerified":false,
+  "integratedCentral":false
+}

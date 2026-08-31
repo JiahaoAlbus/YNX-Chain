@@ -1,0 +1,18 @@
+{
+  "taskId":"P0-015",
+  "owner":"integration",
+  "status":"CANDIDATE_READY",
+  "branch":"codex/p0-bounded-replication-repair-20260820",
+  "worktree":"29-chain-replication-p0",
+  "commit":"7c89a31ed22221c09572a27737b31c5001d9b42b",
+  "draftPR":"https://github.com/JiahaoAlbus/YNX-Chain/pull/128",
+  "paths":["cmd/ynx-chaind/replication*.go","internal/api/server*.go","internal/chain/replication*.go","scripts/ops/deploy-bounded-replication-recovery.sh"],
+  "observedFailure":"All follower nodes are behind the primary and repeatedly reject an authenticated replication response above the fixed 268435456-byte ceiling.",
+  "objective":"Bound each suffix by bytes as well as block count so a follower can make authenticated forward progress without raising the decompressed response ceiling.",
+  "invariants":["the active 256 MiB maximum remains enforced on fetch and apply","every response remains HMAC authenticated","every batch retains base/end continuity and integrity verification","final state remains separately sealed and validated","the recovery tool may touch only the existing ynx-chaind binary and its release-manifest; it preserves units, environment, state and every other service","no public status changes occur before protected deployment acceptance"],
+  "requiredEvidence":["focused chain and daemon tests including oversized-history progress","go build ./cmd/ynx-chaind","race check for chain and daemon","diff check","candidate rollback commit","node-only deployment-tool syntax and dry run","separate protected deployment acceptance before any remote mutation"],
+  "localEvidence":{"tests":"passed: go test ./internal/chain ./internal/api ./cmd/ynx-chaind; go build ./cmd/ynx-chaind; go test -race ./internal/chain ./cmd/ynx-chaind; make static-check; git diff --check","behavior":"non-final replication suffixes select the largest HMAC-authenticated contiguous block range fitting the 64 MiB transport target; the 256 MiB fetch/apply ceiling and final-state seal are retained","releaseTool":"scripts/ops/deploy-bounded-replication-recovery.sh passed bash -n and a four-node DEPLOY_DRY_RUN. It validates the exact package, binary and manifest digests, backs up only the current ynx-chaind binary per node, restores it when post-restart status fails, preserves units, state, environment and all other services, and requires a gate-bound full commit before a real mutation."},
+  "rollback":"Revert the dedicated candidate commits. The node-only recovery tool creates a per-node copy of the preexisting binary before restart and restores it on a failed post-restart health check; keep the current production release untouched until a separate deployment gate accepts exact source and follower convergence.",
+  "preflight":{"status":"PASSED","nodes":["primary","singapore","silicon-valley","seoul"],"detail":"An earlier false blocker was corrected: /etc/ynx/ynx-chaind.env is intentionally systemd-readable rather than ordinary-SSH-user-readable. The tool now verifies it with sudo without reading or disclosing values. The four-node read-only preflight confirmed active service, expected binary, systemd-readable environment, archive tools and local status endpoint on each node."},
+  "publicVerified":false
+}

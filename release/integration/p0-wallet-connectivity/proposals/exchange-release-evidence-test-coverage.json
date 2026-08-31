@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "proposalId": "P0-PROPOSAL-EXCHANGE-RELEASE-EVIDENCE-001",
+  "status": "PENDING_OWNER",
+  "targetOwner": "financial-apps",
+  "requestedBy": "integration",
+  "createdAt": "2026-08-20T10:38:46Z",
+  "scope": "Exchange-owned release-evidence test wiring only; no protocol, endpoint, Wallet, Finance, Pay, DEX or Quant changes.",
+  "reproduction": {
+    "command": "node --test apps/exchange/tests/release-evidence.test.mjs",
+    "repositoryRoot": "/Users/huangjiahao/Desktop/YNX Final Worktrees/07-exchange-public",
+    "observed": "FAIL: the test invokes scripts/verify-p0-release-evidence.mjs relative to process.cwd(), so it resolves to the repository root instead of apps/exchange/scripts/verify-p0-release-evidence.mjs.",
+    "control": "npm run verify:release-evidence --prefix apps/exchange -- --apk mobile/android/app/build/outputs/apk/release/app-release.apk passes and binds source ac884471e plus APK SHA-256 0c5940a4835fb9e141fb51c1f7f9a0cb795d0eb677c6ceae2adb81e45e9efc48.",
+    "risk": "The recorded P0 test command is not independently reproducible from the repository root, and the default Exchange test script does not include release-evidence.test.mjs."
+  },
+  "expectedContract": {
+    "productRootResolution": "The test resolves its own apps/exchange root from import.meta.url; it must not depend on the caller working directory.",
+    "automatedCoverage": "A documented product-scoped test command executes the release-evidence test in addition to existing UI/browser tests.",
+    "releaseBoundary": "The verifier must continue to reject public-release claims and direct Exchange product API routes while the manifest status is PENDING."
+  },
+  "testVectors": [
+    "From repository root: node --test apps/exchange/tests/release-evidence.test.mjs passes.",
+    "From apps/exchange: npm run test:p0-release (or equivalent documented command) passes.",
+    "APK-bound verifier rejects an APK whose SHA-256 differs from product-release.json.",
+    "Verifier continues to require Exchange product endpoint status PENDING and no direct product API request."
+  ],
+  "blockingReason": "Integration cannot release apps/exchange/** as SAFE_CHECKPOINT until the claimed release-evidence test is reproducible and included in a documented product-scoped test entrypoint."
+}

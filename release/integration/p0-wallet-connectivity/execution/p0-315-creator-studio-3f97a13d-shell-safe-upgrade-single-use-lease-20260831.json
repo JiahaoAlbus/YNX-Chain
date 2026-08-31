@@ -1,0 +1,147 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-315",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-creator-studio-3f97a13d-shell-safe-upgrade-20260831T051700Z",
+  "status": "ACTIVE",
+  "singleUse": true,
+  "reusable": false,
+  "issuedAt": "2026-08-31T05:17:00Z",
+  "expiresAt": "2026-08-31T05:47:00Z",
+  "owner": "creator-studio-deploy-owner",
+  "namedExecutor": "release-control-plane",
+  "runtimeHost": "43.153.202.237",
+  "source": {
+    "branch": "codex/p0-creator-studio-subpath-i18n-20260831",
+    "commit": "4253f90700b8dd25b610aa3ac9df26a80c37dc71",
+    "tree": "75536d9b65716633c3863a365a52ea240e4d3614",
+    "remoteExact": true,
+    "clean": true,
+    "requestPath": "apps/creator-studio/evidence/creator-studio-3f97a13d-shell-safe-remote-command-successor-single-use-lease-request-20260831.json",
+    "requestBlob": "5b720f363a1533238240fb2d1499d529d2ff711e",
+    "requestBytes": 65092,
+    "requestSha256": "05b81ec50729d83daddf8ac3778185d0f25f14f181561e27394c3f9d507554bb"
+  },
+  "supersedes": {
+    "taskId": "P0-313",
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_REMOTE_ARGV_SHELL_QUOTING_PRE_EXECUTION",
+    "reusable": false
+  },
+  "objects": {
+    "stdinCarrier": {
+      "path": "apps/creator-studio/release-candidates/candidate-3f97a13d/control-plane-carrier.json",
+      "bytes": 429192,
+      "sha256": "e7325c867c13c97a99a8210b905be979d01eb49357a8a1c359ae7bcf59fee151"
+    },
+    "transport": {
+      "path": "apps/creator-studio/release-upgrade-transport-3f97a13d.cjs",
+      "bytes": 15848,
+      "sha256": "ac3906e40a8ccddace582e81584112265018f85597dddb0a496a45612195a900",
+      "base64Bytes": 21132,
+      "base64Sha256": "84fef01c9239324ddf1a76ac3bc8a6db3f898f2b729055174d9a5fb9036db8f4"
+    },
+    "executor": {
+      "path": "apps/creator-studio/release-upgrade-executor-3f97a13d.mjs",
+      "bytes": 29114,
+      "sha256": "69ae3a6e75310dfbb00a9b93c22476e07075c092dbe0ca54d81f29573337d1e2"
+    },
+    "candidateArchive": {
+      "bytes": 133120,
+      "sha256": "064acfe84c481941549d33473cb78f124e0ae5dfebda16d2f0cac1f4898c3046",
+      "manifestSha256": "fcd0f3346de18e51580af8f7c4f040b8694f7e2ef74bb92cc1ce942e03bea624"
+    },
+    "rollbackArchive": {
+      "bytes": 159232,
+      "sha256": "3f56aa4c3f9d87d27f7cdf19eafc0dacf1da78d83d31def2080f0162d92bdf8a",
+      "manifestSha256": "5fd27ac55d9ea70b8e15aac0565324a9ce7b18706bd75cd5b430eaa4843de86f"
+    },
+    "shellCommandFixtureSha256": "595cc161d6d893a9a5a2f981dc61fcab59694356ef9505fc227c0a7ef47aa499"
+  },
+  "freshPrewrite": {
+    "readAt": "2026-08-31T05:12:00Z",
+    "candidateAndControlPathsAbsent": true,
+    "currentLstatTuple": "64770:1483951:0:0:777:1:63:symbolic link",
+    "currentTarget": "/opt/ynx-creator-studio-wallet/releases/creator-studio-0e1a53c5",
+    "oldManifestTuple": "64770:1483888:995:986:644:1:2299:regular file",
+    "oldManifestSha256": "5fd27ac55d9ea70b8e15aac0565324a9ce7b18706bd75cd5b430eaa4843de86f",
+    "oldSourceCommit": "0e1a53c5ad1fc9dc2cbfebc13c55f1f426c7e7ae",
+    "oldSourceTree": "057ee8448ee8f8586cf3235dd043644060795301",
+    "unitTuple": "64770:131976:0:0:644:1:540:regular file",
+    "unitSha256": "06a55f91bf5530952c347db146daa827510cc72f161d999943da7d5737b8c006",
+    "creatorPid": 2747844,
+    "creatorNRestarts": 0,
+    "creatorPort": 6495,
+    "apiPid": 3108210,
+    "apiPort": 6493,
+    "viewerPid": 2159536,
+    "viewerNRestarts": 0,
+    "viewerPort": 6494,
+    "publicOldBindingsExact": true
+  },
+  "execution": {
+    "workingDirectory": "/private/tmp/ynx-creator-subpath-i18n.PcnLN2",
+    "sshPrefix": [
+      "/usr/bin/ssh",
+      "-i",
+      "/Users/huangjiahao/Downloads/Huang.pem",
+      "-o",
+      "IdentitiesOnly=yes",
+      "-o",
+      "BatchMode=yes",
+      "-o",
+      "StrictHostKeyChecking=yes",
+      "-o",
+      "UserKnownHostsFile=/Users/huangjiahao/.ssh/known_hosts",
+      "-o",
+      "ConnectTimeout=10",
+      "-o",
+      "ConnectionAttempts=1",
+      "ubuntu@43.153.202.237"
+    ],
+    "forwardRemoteCommand": {
+      "sourceJsonPath": "apps/creator-studio/evidence/creator-studio-3f97a13d-shell-safe-remote-command-successor-single-use-lease-request-20260831.json",
+      "jsonPointer": "/exactExecution/forwardRemoteCommand",
+      "mustBeFinalSingleArgvElement": true,
+      "bytes": 21243,
+      "sha256": "8250fd4bcbda9ddf5e0f2d8ca31d26ec331429a3d7d074d23324b1c5479b7574"
+    },
+    "stdin": "exact objects.stdinCarrier bytes",
+    "attemptLimit": 1,
+    "retryAllowed": false,
+    "localShellReconstructionForbidden": true,
+    "legacyMultiArgumentRemoteArgvForbidden": true
+  },
+  "conditionalRollback": {
+    "authorizedOnlyAfterForwardSuccessAndExternalValidationFailure": true,
+    "preSwitchRollbackForbidden": true,
+    "attemptLimit": 1,
+    "sourceJsonPath": "apps/creator-studio/evidence/creator-studio-3f97a13d-shell-safe-remote-command-successor-single-use-lease-request-20260831.json",
+    "jsonPointer": "/exactExecution/conditionalRollbackRemoteCommand",
+    "mustBeFinalSingleArgvElement": true,
+    "bytes": 21238,
+    "sha256": "27a33fedf74afdabdb49e44b36f49a905cf04ff19efdbf9ef0dc586f52868652"
+  },
+  "requiredTerminal": {
+    "directReceipt": true,
+    "independentZeroWriteReadbackRequiredBeforePromotion": true,
+    "candidateCurrentTarget": "/opt/ynx-creator-studio-wallet/releases/creator-studio-3f97a13d",
+    "creatorPidMustDifferFrom": 2747844,
+    "creatorNRestartsMustNotDecreaseFrom": 0,
+    "apiPidMustRemain": 3108210,
+    "viewerPidMustRemain": 2159536,
+    "publicCandidateHashes": {
+      "root": "b37f78205f2c5443b2103ee42e98d6ecde65238c107733088e63893a3c1de697",
+      "appJs": "77e7c42006e3be36c7af717e5e8b2a3cd847c3652dcadb1731c259aee5b01af5",
+      "manifest": "fcd0f3346de18e51580af8f7c4f040b8694f7e2ef74bb92cc1ce942e03bea624",
+      "i18nJs": "077ffd891f876de3ec37838d923854f401172213bc671527059c78f4875de80f",
+      "catalog": "4c86e3e1cdeac6d9c4570891d70bab4c3486c6a4429dd33fd1029f046ca9ecff"
+    }
+  },
+  "forbidden": [
+    "Finance review deployment or path lock",
+    "API6493 or Viewer6494 mutation",
+    "unit Caddy shared-current or unrelated product mutation",
+    "Wallet account request approval rejection signature typed-data transaction or WalletConnect action",
+    "retry or reuse of P0-313"
+  ]
+}

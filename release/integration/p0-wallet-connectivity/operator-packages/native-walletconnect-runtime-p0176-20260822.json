@@ -1,0 +1,253 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-176",
+  "owner": "integration,wallet-ios,wallet-macos",
+  "status": "WAITING_EXTERNAL_PROTECTED_INPUTS",
+  "blocker": "EXTERNAL_DAPP_NAMED_OPERATOR_TASKS_AND_DIRECT_RECEIPTS_UNMAPPED",
+  "operatorPackage3bcAccepted": true,
+  "centralAcceptance": {
+    "commit": "8e8d5317b823d0c834b781ced197f909c2582491",
+    "tree": "b12da3c1df2493e56eba897bcccdc3e22d226802",
+    "secretValuesRecorded": false
+  },
+  "operatorInputRequest": {
+    "branch": "codex/walletconnect-runtime-hardening-20260823",
+    "commit": "3bc070e39e6ade7a7a210196ba8721d895fa6960",
+    "tree": "81e7c82bb6572ba138be551d55063e3f73550a98",
+    "path": "release/integration/wallet-protected-reown-runtime-operator-inputs.request.json",
+    "blob": "1a9a3a267b61a62f3e25708581271f49870ada8b",
+    "bytes": 11222,
+    "sha256": "86511c5fb4ad7ab64c658e766325983a0b9e72a6b992da644ede75e33c65bb97",
+    "verifierPath": "apps/wallet/scripts/verify-protected-reown-runtime-operator-inputs.rb",
+    "verifierBlob": "060287ea235a391e6a46e519809e16337e082c98",
+    "verifierBytes": 6421,
+    "verifierSha256": "34334d29def40299e1df8e12b4acbfe1eaf6e76e5e026b4afd89b0b8718ff89f",
+    "remoteExact": true,
+    "verification": "PASS",
+    "protectedInputCount": 6,
+    "secretValuesRecorded": false
+  },
+  "sourceEvidence": {
+    "commit": "65dffee2f35ec9dc254f8c2ac8c465a353bc1861",
+    "tree": "9af8bc76caa2dc963ac484d981e25a504efe7ed5",
+    "blob": "51857585317e6dbbe3629bae2d7e68fee996ee69",
+    "sha256": "0c103cd1145edc07d9086f84a6f3548c4887d7438b1f473940217418017161ef"
+  },
+  "lease": {
+    "issued": false,
+    "leaseId": null,
+    "startCondition": "every earlier Heavy lease is terminally consumed and released, heavy.owner is null, and every protected input below is confirmed by its authorized operator"
+  },
+  "futurePathScope": [
+    "apps/wallet/ios/**",
+    "apps/wallet/macos/**",
+    "exact protected CI environment references for native WalletConnect only"
+  ],
+  "protectedInputs": [
+    {
+      "name": "YNX_WALLETCONNECT_PROJECT_ID",
+      "handling": "protected environment secret reference only; value never enters repository, logs or evidence"
+    },
+    {
+      "name": "YNX_WALLETCONNECT_APP_GROUP",
+      "handling": "signing-authorized entitlement confirmed by Apple platform operator; identifier may be recorded only after authorization"
+    },
+    {
+      "name": "approvedTestnetAccount",
+      "handling": "existing native signer binding only; never export, request or record a raw private key"
+    },
+    {
+      "name": "testnetTransactionPolicy",
+      "handling": "bounded recipient, value, gas, chain 0x1917 and maximum-attempt policy approved before send"
+    }
+  ],
+  "eligibleTargets": {
+    "ios": "physical installed build with valid signing/profile receipt",
+    "macos": "Developer ID signed, notarized, stapled and Gatekeeper-accepted installed build"
+  },
+  "namedOperatorConfirmations": [
+    "first-party YNX DApp exact public URL",
+    "https://app.uniswap.org",
+    "https://opensea.io",
+    "https://app.safe.global"
+  ],
+  "protectedReadiness": {
+    "reownProjectAllowlistReceiptAvailable": false,
+    "appleSignedAppGroupAndKeychainSignerAvailable": false,
+    "opaqueApprovedTestAccountHandleAvailable": false,
+    "boundedTestnetTransactionPolicyAvailable": false,
+    "firstPartyExactOriginAvailable": true,
+    "uniswapNamedOperatorAvailable": false,
+    "openseaNamedOperatorAvailable": false,
+    "safeNamedOperatorAvailable": false,
+    "eligibleSignedIosTargetAvailable": false,
+    "eligibleSignedMacosTargetAvailable": false,
+    "eligibleSignedAndroidTargetAvailable": false,
+    "officialSignedMetaMaskComparatorProvenanceAvailable": true,
+    "allProtectedReadinessTrue": false
+  },
+  "responsibilityDomains": {
+    "reownProjectAllowlist": "central-protected-runtime-operator",
+    "appleAppGroupKeychainAndIosMacosSigning": "wallet-apple-signing-owner",
+    "approvedAccountHandleAndTransactionPolicy": "wallet-testnet-signer-operator",
+    "firstPartyOrigin": "wallet-product-release-owner",
+    "uniswapOpenSeaSafe": "wallet-external-dapp-operator",
+    "androidSignedTarget": "wallet-android-signing-owner",
+    "officialMetaMaskComparatorProvenance": "wallet-metamask-comparator-owner"
+  },
+  "externalDappOperatorMappingAudit": {
+    "path": "release/integration/p0-wallet-connectivity/operator-packages/p0-176-external-dapp-operator-mapping-audit-20260824.json",
+    "status": "TERMINAL_READ_ONLY_MAPPING_AUDIT_EXTERNAL_DAPP_OPERATORS_UNMAPPED",
+    "pinnedAndRecentTasksReviewed": 58,
+    "mappedExistingTaskOrThreadFound": false,
+    "uniswapBlocker": "UNISWAP_NAMED_OPERATOR_TASK_AND_DIRECT_RECEIPT_UNMAPPED",
+    "openseaBlocker": "OPENSEA_NAMED_OPERATOR_TASK_AND_DIRECT_RECEIPT_UNMAPPED",
+    "safeBlocker": "SAFE_NAMED_OPERATOR_TASK_AND_DIRECT_RECEIPT_UNMAPPED",
+    "taskCreatedOrRecovered": false,
+    "runtimeCompletionInferred": false
+  },
+  "firstPartyExactOriginReceipt": {
+    "path": "release/integration/p0-wallet-connectivity/operator-packages/p0-176-first-party-exact-origin-capability-20260824.json",
+    "available": true,
+    "origin": "https://developer.ynxweb4.com/",
+    "owner": "developer",
+    "ownerThread": "019ffb52-68bb-73f1-a5e9-7f15d6750581",
+    "source": "d4052228a2261c5ced6a8e8cfcbf763edabf2103",
+    "sourceTree": "89beb658b0971fb20d0d92a6bebc2010fdbb33e7",
+    "eligibilityOnly": true,
+    "runtimeCompletionInferred": false
+  },
+  "booleanOnlyNamedOwnerRouting": {
+    "status": "ROUTED_AWAITING_NON_SECRET_BOOLEAN_CONFIRMATIONS",
+    "secretValuesRequested": false,
+    "secretValuesRecorded": false,
+    "confirmations": [
+      {
+        "owner": "central-protected-runtime-operator",
+        "boolean": "reownProjectAllowlistReceiptAvailable",
+        "current": false
+      },
+      {
+        "owner": "wallet-apple-signing-owner",
+        "boolean": "appleSignedAppGroupAndKeychainSignerAvailable",
+        "current": false
+      },
+      {
+        "owner": "wallet-apple-signing-owner",
+        "boolean": "eligibleSignedIosTargetAvailable",
+        "current": false
+      },
+      {
+        "owner": "wallet-apple-signing-owner",
+        "boolean": "eligibleSignedMacosTargetAvailable",
+        "current": false
+      },
+      {
+        "owner": "wallet-testnet-signer-operator",
+        "boolean": "opaqueApprovedTestAccountHandleAvailable",
+        "current": false
+      },
+      {
+        "owner": "wallet-testnet-signer-operator",
+        "boolean": "boundedTestnetTransactionPolicyAvailable",
+        "current": false
+      },
+      {
+        "owner": "wallet-product-release-owner",
+        "boolean": "firstPartyExactOriginAvailable",
+        "current": true
+      },
+      {
+        "owner": "wallet-external-dapp-operator",
+        "boolean": "uniswapNamedOperatorAvailable",
+        "current": false
+      },
+      {
+        "owner": "wallet-external-dapp-operator",
+        "boolean": "openseaNamedOperatorAvailable",
+        "current": false
+      },
+      {
+        "owner": "wallet-external-dapp-operator",
+        "boolean": "safeNamedOperatorAvailable",
+        "current": false
+      },
+      {
+        "owner": "wallet-android-signing-owner",
+        "boolean": "eligibleSignedAndroidTargetAvailable",
+        "current": false
+      },
+      {
+        "owner": "wallet-metamask-comparator-owner",
+        "boolean": "officialSignedMetaMaskComparatorProvenanceAvailable",
+        "current": false
+      }
+    ],
+    "allProtectedReadinessTrue": false,
+    "runtimeLeaseEligible": false
+  },
+  "runtimeAcceptance": [
+    "real Reown SDK bundled and source-bound",
+    "real relay and pairing",
+    "approve and reject",
+    "restart restore",
+    "personal_sign",
+    "EIP-712 typed data",
+    "bounded testnet transaction",
+    "disconnect and revoke",
+    "same installed application and approved account throughout evidence"
+  ],
+  "forbidden": [
+    "secret values in repository or logs",
+    "raw private key collection",
+    "MetaMask impersonation",
+    "source-only or hosted-CI-only completion",
+    "lease inference before the start condition"
+  ],
+  "truth": {
+    "reownSdkBundled": false,
+    "projectIdConfigured": false,
+    "relayPairingVerified": false,
+    "installedRuntimeVerified": false,
+    "productsConnected": "0/12",
+    "parityComplete": false,
+    "realRelayConnected": false,
+    "pairingSucceeded": false,
+    "accountApproved": false,
+    "signSucceeded": false,
+    "transactionSucceeded": false,
+    "runtimeLeaseIssued": false
+  },
+  "comparatorProvenanceAcceptance": {
+    "owner": "wallet-metamask-comparator-owner",
+    "path": "release/integration/p0-wallet-connectivity/operator-packages/p0-176-official-metamask-comparator-provenance-acceptance-20260824.json",
+    "available": true,
+    "secretValuesRecorded": false
+  },
+  "externalDappNamedOperatorMapping": {
+    "responsibilityDomain": "wallet-external-dapp-operator",
+    "taskId": "Wallet Web",
+    "threadId": "019ffaf5-3c19-77b1-8bfd-2a12641a739f",
+    "scope": "discovery-only receipts after immediate user Chrome-launch confirmation",
+    "uniswapNamedOperatorAvailable": false,
+    "openseaNamedOperatorAvailable": false,
+    "safeNamedOperatorAvailable": false,
+    "directReceiptsExist": false
+  },
+  "protectedOwnerBooleanRouting": {
+    "path": "release/integration/p0-wallet-connectivity/operator-packages/p0-176-protected-owner-boolean-routing-20260824.json",
+    "ownerThreads": {
+      "reownProjectAllowlistReceiptAvailable": "019ffaf1-32a9-7231-b909-922a66d9f4d5",
+      "appleSignedAppGroupAndKeychainSignerAvailable": "019ffaf5-3c12-7830-8196-3748a053c876",
+      "eligibleSignedIosTargetAvailable": "019ffaf5-3c12-7830-8196-3748a053c876",
+      "eligibleSignedMacosTargetAvailable": "019ffaf5-3c12-7830-8196-3748a053c876",
+      "opaqueApprovedTestAccountHandleAvailable": "019ffe33-11a7-7e91-9400-eea29b139b59",
+      "boundedTestnetTransactionPolicyAvailable": "019ffe33-11a7-7e91-9400-eea29b139b59",
+      "eligibleSignedAndroidTargetAvailable": "019ffe33-f59c-70b2-909c-2029f901ec38"
+    },
+    "allProtectedReadinessTrue": false,
+    "directResponsesCollected": true,
+    "runtimeLeaseIssued": false
+  }
+}

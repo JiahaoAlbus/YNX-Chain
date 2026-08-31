@@ -1,0 +1,27 @@
+{
+  "taskId": "P0-014",
+  "owner": "integration",
+  "status": "DEFERRED_EXISTING_PRODUCT",
+  "scope": ["apps/calendar/**", "internal/calendar/**"],
+  "recoveredSource": {
+    "branch": "codex/final-calendar",
+    "commit": "ab2db4a4c07dc153fc10a42686ef7cdad6715820"
+  },
+  "acceptedContracts": [
+    "walletTransport@p0-wallet-connection-v1",
+    "errorContract@p0-wallet-connection-v1",
+    "dappConnectSDK@0.1.0-p0.0",
+    "publicEndpointManifest@1.0.0-p0.2"
+  ],
+  "productRequirements": [
+    "Preserve full Calendar scope: event lifecycle, invitations and RSVP, recurrence and DST, shared calendars and roles, conflict drafts, offline recovery, audit and English-first 12-locale accessibility.",
+    "Standard Wallet Connection is independent of Product Session. Product Session failure may degrade private Calendar features but must not remove standard connection or public data.",
+    "No fake production, mail delivery, AI execution, public deployment or installed-client claim."
+  ],
+  "deferral": "Calendar's core product scope is already implemented. This P0 scheduling correction releases its path without source changes so Explorer/Monitor can receive the next bounded Heavy Slice.",
+  "prohibitions": [
+    "Do not modify Wallet Protocol, Gateway kernel, SDK source, Website source, Chain Core, Finance or Card.",
+    "Do not hard-code RPC/Gateway endpoints or use localhost in a release.",
+    "Do not replace shared calendars, recurrence, privacy or audit semantics with a new toy implementation."
+  ]
+}

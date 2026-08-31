@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-runtime-lease-20260820T095840Z",
+  "supersedesLeaseId": "P0-WALLET-CONNECTIVITY-2026-08-runtime-lease-20260820T092717Z",
+  "supersededAcceptanceCommit": "401eee474ac188fed1fc1e6089d6a0f9e1250651",
+  "authoritativeBaseCommit": "15d5ae2bc5278088fd2168cdbcb3746066bc851c",
+  "status": "COMPLETED_PUBLIC_RUNTIME_VERIFIED",
+  "issuedBy": "02-wallet-auth-central-integration",
+  "issuedAt": "2026-08-20T09:58:40Z",
+  "expiresAt": "2026-08-20T11:58:40Z",
+  "leaseOwner": "wallet-protocol",
+  "deploymentOwner": "wallet-auth-gateway-runtime-owner",
+  "ownerThreadId": "019ffdef-abe9-7e33-b25d-944698ec736d",
+  "executionChannel": "codex/p0-wallet-protocol-integration-20260820",
+  "target": {
+    "service": "ynx-wallet-gatewayd",
+    "publicBaseUrl": "https://wallet-auth.ynxweb4.com",
+    "currentSourceCommit": "6ed04310383ed924065d23affc71f3e4d4c29d49",
+    "candidateRuntimeCommit": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
+    "candidateCorsCommit": "b28609abab6df3ed88bb58cf04472308068eaa0c",
+    "acceptedEvidenceHead": "30ba2a0c41d7b070dec56f37e39653e21a780ead",
+    "deploymentRegistryPath": "release/integration/p0-wallet-protocol-deployment-registry-v4.json",
+    "deploymentRegistryBlob": "f11f73bb10943e6ae4e3ecd9f4e5bcedfb7b4701",
+    "deploymentRegistrySha256": "ae156b317b9a97bfd42397cca634021deefe10ffb009102899e24276d8721e31",
+    "runtimeVerifierCommit": "30ba2a0c41d7b070dec56f37e39653e21a780ead",
+    "requiredVersionSourceAfterDeploy": "49e30d999e9a9cbdd2c565021009f2cab0dc125c"
+  },
+  "authorization": {
+    "executionAuthorized": false,
+    "singleControlledTransaction": true,
+    "automaticRollbackRequired": true,
+    "exclusiveProductionWindowRequired": true,
+    "maximumMutationWindowSeconds": 1800,
+    "allowedRoots": [
+      "packages/wallet-auth"
+    ],
+    "allowedEffects": [
+      "wallet-auth-runtime-build",
+      "wallet-auth-registry-bound-cors",
+      "wallet-auth-route-mount",
+      "wallet-auth-service-restart",
+      "wallet-auth-scoped-rollback"
+    ],
+    "forbiddenEffects": [
+      "wallet-ui-change",
+      "wallet-platform-change",
+      "other-product-change",
+      "chain-core-change",
+      "wallet-app-package-change",
+      "website-change",
+      "unrelated-service-restart",
+      "whole-tree-merge"
+    ]
+  },
+  "preflightRequired": [
+    "capture current /health /ready /version source",
+    "capture current service configuration and registry digest",
+    "verify deployment registry blob f11f73bb10943e6ae4e3ecd9f4e5bcedfb7b4701 and SHA-256 ae156b317b9a97bfd42397cca634021deefe10ffb009102899e24276d8721e31",
+    "boot exact 49e30d999e9a9cbdd2c565021009f2cab0dc125c read-only against a copy of actual 18445 state and prove both historical wallet-auth-v1 shapes load only as SESSION_RETIRED",
+    "capture TLS certificate DNS and reverse-proxy routing facts",
+    "create source-bound runtime and state backup",
+    "record exact rollback command and rollback artifact digest",
+    "prove no unrelated service or product path is in the mutation set"
+  ],
+  "runtimeAcceptanceRequired": [
+    "health ready and version expose exact source 49e30d999e9a9cbdd2c565021009f2cab0dc125c",
+    "registered exact Origin OPTIONS succeeds with exact allow-origin and no credentials",
+    "unregistered Origin fails with zero state mutation",
+    "wrong method route and header fail closed",
+    "Wallet/Auth route does not fall through to JSON-RPC",
+    "public challenge complete introspect revoke lifecycle passes",
+    "controlled restart preserves the exact Product Session state and replay boundary",
+    "rollback drill restores the captured prior source and configuration"
+  ],
+  "postRuntimeBoundary": {
+    "installedClientComputerControlIncluded": false,
+    "separateInstalledClientLeaseRequired": true,
+    "publicTruthMayChangeBeforeAllRuntimeAcceptancePasses": false,
+    "aggregateTruthMayChangeUnderThisLease": false
+  },
+  "executionState": {
+    "preflightComplete": true,
+    "backupComplete": true,
+    "deploymentStarted": true,
+    "deploymentComplete": true,
+    "rollbackDrillComplete": true,
+    "runtimeAcceptanceComplete": true,
+    "installedClientAcceptanceComplete": false,
+    "productionStateCompatibilityPreflightComplete": true
+  },
+  "closedAt": "2026-08-20T10:10:02Z",
+  "completion": {
+    "evidenceCommit": "b30775951dcea09bf6b72aeb4806f47ff81b3bef",
+    "evidenceBlob": "6e42677719fca8c591d77eb02548b4ab0cc7b76d",
+    "evidencePath": "packages/wallet-auth/integration/p0-wallet-protocol-public-runtime-evidence-20260820.json",
+    "runtimeSourceCommit": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
+    "deploymentRegistrySha256": "ae156b317b9a97bfd42397cca634021deefe10ffb009102899e24276d8721e31",
+    "healthReadyVersionVerified": true,
+    "registeredOriginCorsVerified": true,
+    "negativeZeroMutationVerified": true,
+    "publicLifecycleVerified": true,
+    "controlledRestartVerified": true,
+    "rollbackVerified": true,
+    "installedClientVerified": false,
+    "standardWalletConnectionClientVerified": false,
+    "integratedCentral": false,
+    "aggregatePublic": false,
+    "websitePublished": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

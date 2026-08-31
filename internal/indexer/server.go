@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 )
 
 type Server struct {
@@ -20,9 +21,11 @@ type Server struct {
 	lastResult   SyncResult
 	lastError    string
 	errorCount   int64
+	reorgCount   int64
 	lastSyncedAt time.Time
 	startedAt    time.Time
 	build        buildinfo.Info
+	cursor       *cursorCodec
 }
 
 func NewServer(indexer *Indexer) *Server {
@@ -30,9 +33,21 @@ func NewServer(indexer *Indexer) *Server {
 }
 
 func NewServerWithBuild(indexer *Indexer, build buildinfo.Info) *Server {
-	s := &Server{indexer: indexer, mux: http.NewServeMux(), startedAt: time.Now().UTC(), build: buildinfo.Normalize(build)}
+	server, err := NewServerWithBuildAndCursorKey(indexer, build, nil)
+	if err != nil {
+		panic(err)
+	}
+	return server
+}
+
+func NewServerWithBuildAndCursorKey(indexer *Indexer, build buildinfo.Info, cursorKey []byte) (*Server, error) {
+	codec, err := newCursorCodec(cursorKey)
+	if err != nil {
+		return nil, err
+	}
+	s := &Server{indexer: indexer, mux: http.NewServeMux(), startedAt: time.Now().UTC(), build: buildinfo.Normalize(build), cursor: codec}
 	s.routes()
-	return s
+	return s, nil
 }
 
 func (s *Server) Handler() http.Handler {
@@ -50,6 +65,9 @@ func (s *Server) SyncOnce(ctx context.Context) (SyncResult, error) {
 	}
 	s.lastError = ""
 	s.lastResult = result
+	if result.ReorgDetected {
+		s.reorgCount++
+	}
 	s.lastSyncedAt = time.Now().UTC()
 	return result, nil
 }
@@ -92,17 +110,70 @@ func (s *Server) handleVersion(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+type databaseSummary struct {
+	Network              string
+	ChainID              int64
+	NativeSymbol         string
+	LastIndexedHeight    uint64
+	LastSourceHeight     uint64
+	SourceEarliestHeight uint64
+	SourceEarliestHash   string
+	SourceEarliestTime   time.Time
+	IndexedBlockCount    int
+	IndexedTxCount       int
+}
+
+func summarizeDatabase(store *Store) (databaseSummary, error) {
+	var summary databaseSummary
+	err := store.View(func(db Database) error {
+		summary = databaseSummary{
+			Network:              db.Network,
+			ChainID:              db.ChainID,
+			NativeSymbol:         db.NativeSymbol,
+			LastIndexedHeight:    db.LastIndexedHeight,
+			LastSourceHeight:     db.LastSourceHeight,
+			SourceEarliestHeight: db.SourceEarliestHeight,
+			SourceEarliestHash:   db.SourceEarliestHash,
+			SourceEarliestTime:   db.SourceEarliestTime,
+			IndexedBlockCount:    len(db.Blocks),
+			IndexedTxCount:       len(db.Transactions),
+		}
+		return nil
+	})
+	return summary, err
+}
+
+func trySummarizeDatabase(store *Store) (databaseSummary, bool, error) {
+	var summary databaseSummary
+	ready, err := store.TryView(func(db Database) error {
+		summary = databaseSummary{
+			Network:              db.Network,
+			ChainID:              db.ChainID,
+			NativeSymbol:         db.NativeSymbol,
+			LastIndexedHeight:    db.LastIndexedHeight,
+			LastSourceHeight:     db.LastSourceHeight,
+			SourceEarliestHeight: db.SourceEarliestHeight,
+			SourceEarliestHash:   db.SourceEarliestHash,
+			SourceEarliestTime:   db.SourceEarliestTime,
+			IndexedBlockCount:    len(db.Blocks),
+			IndexedTxCount:       len(db.Transactions),
+		}
+		return nil
+	})
+	return summary, ready, err
+}
+
 func (s *Server) handleOverview(w http.ResponseWriter, r *http.Request) {
-	db, err := s.indexer.Store().Load()
+	db, err := summarizeDatabase(s.indexer.Store())
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]any{"ok": false, "error": err.Error()})
 		return
 	}
 	s.mu.RLock()
-	lastError, lastSyncedAt := s.lastError, s.lastSyncedAt
+	lastError, lastSyncedAt, lastResult := s.lastError, s.lastSyncedAt, s.lastResult
 	s.mu.RUnlock()
 	writeJSON(w, http.StatusOK, map[string]any{
-		"ok":                   lastError == "",
+		"ok":                   lastError == "" && !lastSyncedAt.IsZero(),
 		"service":              "ynx-indexerd",
 		"network":              db.Network,
 		"chainId":              db.ChainID,
@@ -112,27 +183,38 @@ func (s *Server) handleOverview(w http.ResponseWriter, r *http.Request) {
 		"sourceEarliestHeight": db.SourceEarliestHeight,
 		"sourceEarliestHash":   db.SourceEarliestHash,
 		"sourceEarliestTime":   db.SourceEarliestTime,
-		"indexedBlockCount":    len(db.Blocks),
-		"indexedTxCount":       len(db.Transactions),
+		"indexedBlockCount":    db.IndexedBlockCount,
+		"indexedTxCount":       db.IndexedTxCount,
 		"lastSyncedAt":         lastSyncedAt,
 		"lastError":            lastError,
+		"lastRecoveryMode":     lastResult.RecoveryMode,
+		"lastReorgDetected":    lastResult.ReorgDetected,
+		"lastCommonAncestor":   lastResult.CommonAncestorHeight,
+		"lastRollbackFrom":     lastResult.RollbackFromHeight,
+		"lastRolledBackBlocks": lastResult.RolledBackBlockCount,
+		"lastRolledBackTxs":    lastResult.RolledBackTxCount,
+		"maxReorgDepth":        lastResult.MaxReorgDepth,
 		"build":                s.build,
+		"cursorVersion":        cursorVersion,
+		"cursorPersistence":    cursorPersistence(s.cursor),
 		"truthfulStatus":       "local-indexer",
 	})
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
-	db, err := s.indexer.Store().Load()
+	db, storeReady, err := trySummarizeDatabase(s.indexer.Store())
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]any{"ok": false, "error": err.Error()})
 		return
 	}
 	s.mu.RLock()
-	lastError, lastSyncedAt, errorCount := s.lastError, s.lastSyncedAt, s.errorCount
+	lastError, lastSyncedAt, errorCount, reorgCount, lastResult := s.lastError, s.lastSyncedAt, s.errorCount, s.reorgCount, s.lastResult
 	s.mu.RUnlock()
-	ready := lastError == "" && !lastSyncedAt.IsZero()
+	ready := storeReady && lastError == "" && !lastSyncedAt.IsZero()
 	dependencyStatus := "healthy"
-	if lastError != "" {
+	if !storeReady {
+		dependencyStatus = "warming"
+	} else if lastError != "" {
 		dependencyStatus = "unavailable"
 	} else if lastSyncedAt.IsZero() {
 		dependencyStatus = "not-yet-synced"
@@ -152,29 +234,37 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 		"lastSourceHeight":     db.LastSourceHeight,
 		"sourceEarliestHeight": db.SourceEarliestHeight,
 		"sourceEarliestHash":   db.SourceEarliestHash,
-		"indexedBlockCount":    len(db.Blocks),
-		"indexedTxCount":       len(db.Transactions),
+		"indexedBlockCount":    db.IndexedBlockCount,
+		"indexedTxCount":       db.IndexedTxCount,
 		"lastSyncedAt":         lastSyncedAt,
 		"lastError":            lastError,
 		"syncErrorCount":       errorCount,
+		"reorgRecoveryCount":   reorgCount,
+		"lastRecoveryMode":     lastResult.RecoveryMode,
+		"lastReorgDetected":    lastResult.ReorgDetected,
+		"lastCommonAncestor":   lastResult.CommonAncestorHeight,
+		"lastRollbackFrom":     lastResult.RollbackFromHeight,
+		"lastRolledBackBlocks": lastResult.RolledBackBlockCount,
+		"lastRolledBackTxs":    lastResult.RolledBackTxCount,
+		"maxReorgDepth":        lastResult.MaxReorgDepth,
+		"build":                s.build,
+		"cursorVersion":        cursorVersion,
+		"cursorPersistence":    cursorPersistence(s.cursor),
 		"dependencies": map[string]any{
-			"chainRpc": map[string]any{
-				"status": dependencyStatus,
-			},
+			"chainRpc": map[string]any{"status": dependencyStatus},
 		},
-		"build":          s.build,
 		"truthfulStatus": "local-indexer",
 	})
 }
 
 func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
-	db, err := s.indexer.Store().Load()
+	db, err := summarizeDatabase(s.indexer.Store())
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
 		return
 	}
 	s.mu.RLock()
-	errorCount := s.errorCount
+	errorCount, reorgCount, lastResult := s.errorCount, s.reorgCount, s.lastResult
 	s.mu.RUnlock()
 	lag := int64(db.LastSourceHeight) - int64(db.LastIndexedHeight)
 	if lag < 0 {
@@ -196,13 +286,25 @@ func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 	_, _ = fmt.Fprintf(w, "ynx_indexer_sync_lag_blocks{%s} %d\n", labels, lag)
 	_, _ = fmt.Fprintf(w, "# HELP ynx_indexer_blocks_total Blocks stored by ynx-indexerd.\n")
 	_, _ = fmt.Fprintf(w, "# TYPE ynx_indexer_blocks_total gauge\n")
-	_, _ = fmt.Fprintf(w, "ynx_indexer_blocks_total{%s} %d\n", labels, len(db.Blocks))
+	_, _ = fmt.Fprintf(w, "ynx_indexer_blocks_total{%s} %d\n", labels, db.IndexedBlockCount)
 	_, _ = fmt.Fprintf(w, "# HELP ynx_indexer_transactions_total Transactions stored by ynx-indexerd.\n")
 	_, _ = fmt.Fprintf(w, "# TYPE ynx_indexer_transactions_total gauge\n")
-	_, _ = fmt.Fprintf(w, "ynx_indexer_transactions_total{%s} %d\n", labels, len(db.Transactions))
+	_, _ = fmt.Fprintf(w, "ynx_indexer_transactions_total{%s} %d\n", labels, db.IndexedTxCount)
 	_, _ = fmt.Fprintf(w, "# HELP ynx_indexer_sync_errors_total Sync errors observed by ynx-indexerd.\n")
 	_, _ = fmt.Fprintf(w, "# TYPE ynx_indexer_sync_errors_total counter\n")
 	_, _ = fmt.Fprintf(w, "ynx_indexer_sync_errors_total{%s} %d\n", labels, errorCount)
+	_, _ = fmt.Fprintf(w, "# HELP ynx_indexer_reorg_recoveries_total Canonical fork or source-height rollback recoveries completed by ynx-indexerd.\n")
+	_, _ = fmt.Fprintf(w, "# TYPE ynx_indexer_reorg_recoveries_total counter\n")
+	_, _ = fmt.Fprintf(w, "ynx_indexer_reorg_recoveries_total{%s} %d\n", labels, reorgCount)
+	_, _ = fmt.Fprintf(w, "# HELP ynx_indexer_last_common_ancestor_height Common ancestor height used by the latest recovery.\n")
+	_, _ = fmt.Fprintf(w, "# TYPE ynx_indexer_last_common_ancestor_height gauge\n")
+	_, _ = fmt.Fprintf(w, "ynx_indexer_last_common_ancestor_height{%s} %d\n", labels, lastResult.CommonAncestorHeight)
+	_, _ = fmt.Fprintf(w, "# HELP ynx_indexer_last_rolled_back_blocks Blocks removed by the latest recovery.\n")
+	_, _ = fmt.Fprintf(w, "# TYPE ynx_indexer_last_rolled_back_blocks gauge\n")
+	_, _ = fmt.Fprintf(w, "ynx_indexer_last_rolled_back_blocks{%s} %d\n", labels, lastResult.RolledBackBlockCount)
+	_, _ = fmt.Fprintf(w, "# HELP ynx_indexer_last_rolled_back_transactions Transactions removed by the latest recovery.\n")
+	_, _ = fmt.Fprintf(w, "# TYPE ynx_indexer_last_rolled_back_transactions gauge\n")
+	_, _ = fmt.Fprintf(w, "ynx_indexer_last_rolled_back_transactions{%s} %d\n", labels, lastResult.RolledBackTxCount)
 }
 
 func (s *Server) handleSync(w http.ResponseWriter, r *http.Request) {
@@ -215,21 +317,44 @@ func (s *Server) handleSync(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleLatestBlocks(w http.ResponseWriter, r *http.Request) {
-	db, err := s.indexer.Store().Load()
+	after, err := s.cursor.decode(r.URL.Query().Get("cursor"), "blocks")
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
+		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid_cursor", "detail": err.Error()})
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"blocks": LatestBlocks(db, intQuery(r, "limit", 25))})
+	var blocks []chain.Block
+	var nextAfter string
+	err = s.indexer.Store().View(func(db Database) error {
+		var pageErr error
+		blocks, nextAfter, pageErr = LatestBlocksPage(db, intQuery(r, "limit", 25), after)
+		return pageErr
+	})
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid_cursor", "detail": err.Error()})
+		return
+	}
+	nextCursor := ""
+	if nextAfter != "" {
+		nextCursor, err = s.cursor.encode("blocks", nextAfter)
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "cursor_encoding_failed"})
+			return
+		}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"blocks": blocks, "nextCursor": nextCursor, "cursorVersion": cursorVersion})
 }
 
 func (s *Server) handleBlock(w http.ResponseWriter, r *http.Request) {
-	db, err := s.indexer.Store().Load()
+	var block chain.Block
+	var ok bool
+	err := s.indexer.Store().View(func(db Database) error {
+		block, ok = db.Blocks[r.PathValue("height")]
+		return nil
+	})
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
 		return
 	}
-	block, ok := db.Blocks[r.PathValue("height")]
 	if !ok {
 		writeJSON(w, http.StatusNotFound, map[string]any{"error": "indexed block not found"})
 		return
@@ -238,21 +363,44 @@ func (s *Server) handleBlock(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleTransactions(w http.ResponseWriter, r *http.Request) {
-	db, err := s.indexer.Store().Load()
+	after, err := s.cursor.decode(r.URL.Query().Get("cursor"), "transactions")
 	if err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
+		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid_cursor", "detail": err.Error()})
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"transactions": LatestTransactions(db, intQuery(r, "limit", 25))})
+	var transactions []chain.Transaction
+	var nextAfter string
+	err = s.indexer.Store().View(func(db Database) error {
+		var pageErr error
+		transactions, nextAfter, pageErr = LatestTransactionsPage(db, intQuery(r, "limit", 25), after)
+		return pageErr
+	})
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]any{"error": "invalid_cursor", "detail": err.Error()})
+		return
+	}
+	nextCursor := ""
+	if nextAfter != "" {
+		nextCursor, err = s.cursor.encode("transactions", nextAfter)
+		if err != nil {
+			writeJSON(w, http.StatusInternalServerError, map[string]any{"error": "cursor_encoding_failed"})
+			return
+		}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"transactions": transactions, "nextCursor": nextCursor, "cursorVersion": cursorVersion})
 }
 
 func (s *Server) handleTransaction(w http.ResponseWriter, r *http.Request) {
-	db, err := s.indexer.Store().Load()
+	var tx chain.Transaction
+	var ok bool
+	err := s.indexer.Store().View(func(db Database) error {
+		tx, ok = db.Transactions[r.PathValue("hash")]
+		return nil
+	})
 	if err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]any{"error": err.Error()})
 		return
 	}
-	tx, ok := db.Transactions[r.PathValue("hash")]
 	if !ok {
 		writeJSON(w, http.StatusNotFound, map[string]any{"error": "indexed transaction not found"})
 		return

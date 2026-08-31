@@ -1,0 +1,12 @@
+{
+  "proposalId":"P0-WALLET-CONNECTIVITY-2026-08-dapp-connect-sdk-v1",
+  "status":"ACCEPTED",
+  "acceptedBy":"integration",
+  "acceptedAt":"2026-08-20T08:20:00Z",
+  "candidate":{"branch":"codex/p0-developer-sdk-20260820","commit":"315897e75c0ffe3e63435fe73cfec42244b851cc","pullRequest":"https://github.com/JiahaoAlbus/YNX-Chain/pull/105"},
+  "acceptedContract":"dappConnectSDK",
+  "reviewEvidence":{"ownership":"only packages/dapp-connect-sdk/** changed","focusedTests":"npm test: 8/8 passed; migration scan clean; git diff --check clean","staticReview":"no localhost, loopback, example endpoint, secret marker or TODO placeholder found in the candidate diff"},
+  "acceptanceBoundary":"This accepts the source-level consumer SDK contract only. It does not accept a hosted endpoint manifest, WalletConnect relay, installed client, external wallet interoperability, or public deployment.",
+  "rollback":"revert this acceptance and keep consumers on their previous integration until an accepted replacement exists.",
+  "nextConsumers":["financial-apps","data-fabric","integration unassigned-product migrations"]
+}

@@ -1,0 +1,81 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-304",
+  "recordType": "FINANCE_EXECUTION_OBJECTS_LEASE_DECISION",
+  "recordedAt": "2026-08-31T02:48:04Z",
+  "source": {
+    "branch": "codex/p0-finance-p0304-execution-objects-20260831",
+    "commit": "4ecd9dc3972442c635879b3c46282f67ba37ca54",
+    "tree": "b5c0f80dd2b06bade96dd8888253532ab5a5b81b",
+    "parent": "1d50967685e249789d6fec752279c39277a60931",
+    "remoteExact": true
+  },
+  "objects": {
+    "request": {
+      "blob": "af46d043d353e7afff2fc386dcd03cea1bb2fcc4",
+      "bytes": 6169,
+      "sha256": "658e57dbb3c11ea8b3ac4c4cc169d7fa139a53b231bffaada638d9285d097173"
+    },
+    "unsignedStdin": {
+      "blob": "9038191d99c8eda1eb786c32d6f55a5e702e1075",
+      "bytes": 11565,
+      "sha256": "6cbc25e28dfb8e14e4686baef69eeef7ecf017f224edcfb65ceaf82dcc05c80b"
+    },
+    "literalArgv": {
+      "blob": "4ccf284c304a41a6b42eff12eb32a306737724c8",
+      "bytes": 37368,
+      "sha256": "9a8383917cf6428e0a9f7e61baad33d5578f3a299f7797366d3f016e608bd354",
+      "length": 25
+    },
+    "observer": {
+      "blob": "8e2d2d156a51661b5fdc55b258e74655e1853662",
+      "bytes": 37095,
+      "sha256": "af12a8b38622a5b0d9e161b609b2c24c3e16ce34673081378d395be99b7af590"
+    },
+    "executor": {
+      "commit": "448851ba7d33399385b89eb3356bc9ce4f345721",
+      "blob": "69f69b46d1290e95e9c99b5ee03f459799e80cd7",
+      "bytes": 25880,
+      "sha256": "d3b604223a6f1e93279481a8b0db06ddb6acfb20dff316d22329337498d2bcdb"
+    }
+  },
+  "independentVerification": {
+    "executionObjectFixture": "PASS",
+    "parentPreservingObserverFixture": "PASS",
+    "objectHashesExact": true
+  },
+  "decision": {
+    "status": "NO_GO",
+    "leaseIssued": false,
+    "centralSignatureCreated": false,
+    "heavyLeaseAcquired": false,
+    "remotePrewriteSkipped": true,
+    "remotePrewriteSkipReason": "The immutable unsigned execution contract is already internally inconsistent, so no remote state can make it signable."
+  },
+  "singleExecutableBlocker": "P0304_AUTOMATIC_ROLLBACK_OWNERSHIP_NAMESPACE_STILL_NAMES_P0298",
+  "defect": {
+    "path": "apps/finance/evidence/finance-p0304-unsigned-lease-stdin-candidate-20260831.json",
+    "jsonPointer": "/terminalContract/automaticRollback/removed",
+    "actual": "only identity-bound P0298 owned stage backup release control pending and temporary residues",
+    "required": "Name only the exact P0304 lease-owned stage, backup, release, control, pending and temporary residues, consistently with p0304-finance-phase3-20260831t030400z.",
+    "safetyReason": "Central must not sign a cleanup boundary that names another nonreusable deployment namespace."
+  },
+  "requiredSuccessor": [
+    "correct the immutable unsigned stdin contract from P0298 to exact P0304 ownership",
+    "recompute unsigned stdin bytes and SHA256",
+    "recompute literal argv and observer contract bytes and SHA256 because they bind stdin",
+    "rerun execution-object, transport, observer and full production shell fixtures",
+    "force-false push a new exact source-only successor",
+    "then perform a fresh remote prewrite before Central signing and expiry assignment"
+  ],
+  "truthBoundary": {
+    "ssh": false,
+    "deployment": false,
+    "rollback": false,
+    "cleanup": false,
+    "account": false,
+    "signature": false,
+    "transaction": false
+  }
+}

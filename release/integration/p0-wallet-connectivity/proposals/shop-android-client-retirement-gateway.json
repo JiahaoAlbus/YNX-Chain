@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "proposalId": "P0-PROPOSAL-SHOP-ANDROID-CLIENT-RETIREMENT-001",
+  "status": "PENDING_OWNER",
+  "targetOwner": "wallet-protocol",
+  "requestedBy": "integration",
+  "createdAt": "2026-08-20T09:30:00Z",
+  "scope": "Gateway and authorization enforcement only; no Wallet UI or Shop product implementation.",
+  "reproduction": {
+    "currentTruth": "Shop Android is marked RETIREMENT_IN_PROGRESS. The P0 integration baseline contains no verified enforcement that returns CLIENT_RETIRED for the retired package/callback, and public runtime retirement must not be claimed.",
+    "risk": "A retired client can be misclassified as Offline or Device Proof Rejected instead of receiving an actionable retirement response."
+  },
+  "expectedContract": {
+    "retiredClientResponse": "CLIENT_RETIRED",
+    "requiredFields": ["code", "clientId", "replacementURL", "minimumClientVersion", "correlationId"],
+    "forbiddenResponses": ["OFFLINE", "DEVICE_PROOF_REJECTED"],
+    "requiredRevocations": ["productSessions", "approvals", "deviceGrants", "legacyCallbacks", "legacyAppLinks"],
+    "preservation": ["Standard EIP-1193 connection remains independent", "historical release evidence is not deleted", "no remote uninstall claim"]
+  },
+  "testVectors": [
+    "Retired Shop Android package attempts Product Session: typed CLIENT_RETIRED response with replacement URL and correlation ID.",
+    "Retired Shop Android package cannot create a new approval, device grant or product session.",
+    "Existing standard wallet provider connection is not converted to Offline merely because the private Shop Product Session is retired.",
+    "Legacy callback/App Link cannot restore a pending private Shop session."
+  ],
+  "blockingReason": "The source retirement candidate is base-diverged and has not activated a compatible gateway enforcement path."
+}

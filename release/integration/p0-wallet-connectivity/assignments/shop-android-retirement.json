@@ -1,0 +1,104 @@
+{
+  "taskId": "P0-011",
+  "owner": "integration",
+  "status": "SHOP_ANDROID_RETIRED_WEB_PUBLIC_STANDARD_WALLET_DEPLOYED_COMPUTER_CONTROL_BLOCKED",
+  "paths": [
+    "apps/shop/** (released checkpoint preserved)",
+    "YNX-Chain-website:src/lib/ecosystemCatalog.js (active while awaiting owner records)",
+    "YNX-Chain-website:vercel.json (released exact-path handoff available)",
+    "YNX-Chain-website:public/releases/ecosystem-release-registry.json (released exact-path handoff available)"
+  ],
+  "pathLockDisposition": {
+    "recordedAt": "2026-08-23T09:24:36Z",
+    "websiteCheckpointCommit": "ed22d3c5abe8529684654d7d4e65d1c2c4b7ff15",
+    "releasedExactPaths": [
+      "vercel.json",
+      "public/releases/ecosystem-release-registry.json"
+    ],
+    "retainedExactPaths": [
+      "src/lib/ecosystemCatalog.js"
+    ],
+    "reason": "P0-011 activation remains blocked on three owner records, but the current blocked slice has no Website execution lease and does not require writes to vercel.json or the release registry."
+  },
+  "observedPublicArtifact": {
+    "version": "0.3.0-testnet-preview",
+    "signingClass": "android-debug-testnet-preview",
+    "websiteRoute": "/downloads/ynx-shop-0.3.0-testnet-preview-6fa2d6c5-debug-signed.apk"
+  },
+  "preserve": [
+    "Shop Web/PWA",
+    "Git history",
+    "historical release evidence"
+  ],
+  "webPwaWalletMigration": {
+    "taskId": "P0-126",
+    "sourceCommit": "f41cbf88b528d30e709bf07dc504c174a7e83073",
+    "checkpointCommit": "7b91f2120e7850a91be101b5ca7148dfb36beda6",
+    "activeRuntime": "/opt/ynx-shop/releases/p0126b-shop-wallet-f41cbf88",
+    "rollbackTarget": "/opt/ynx-shop/releases/88c0f3a5",
+    "standardConnection": "EIP-6963/EIP-1193",
+    "wallets": ["YNX Wallet", "MetaMask"],
+    "evmChainId": "0x1917",
+    "guestCatalogPreserved": true,
+    "productSessionV2": false,
+    "installedWalletApprovalVerified": false,
+    "publicNoProviderFallbackVerified": true,
+    "deployedPublic": true,
+    "computerControlVerified": false,
+    "computerControlBlocker": "cgWindowNotFound"
+  },
+  "enforce": [
+    "disable Android build/release workflow",
+    "remove public APK route and catalog listing",
+    "mark artifact retired",
+    "disable Android package/callback where implemented",
+    "use CLIENT_RETIRED after Wallet Protocol acceptance"
+  ],
+  "blockers": [
+    "Shop/iOS/Web supported identities have not moved to a reviewed non-colliding productClientId and callback.",
+    "Authoritative retiredAt, retired clientId/package-or-bundle, disabled callbacks and disabled App Links are absent.",
+    "No execution lease may be issued until Integration accepts all owner records."
+  ],
+  "walletProtocolCandidate": {
+    "featureCommit": "aff86fc5fb536039ea1eca0e76330bc87d626b44",
+    "handoffCommit": "a34d8a7b27d9b4179d259d1ecdb4078b408d0270",
+    "capability": "registry-v3-independent-retiredClients",
+    "executionLeaseIssued": false
+  },
+  "ownerCoordination": {
+    "status": "AWAITING_THREE_OWNER_RECORDS",
+    "requests": [
+      {
+        "owner": "shop",
+        "required": [
+          "supportedProductClientId",
+          "supportedCallback",
+          "retiredClientId",
+          "retiredPackageOrBundle",
+          "retiredAt",
+          "disabledCallbacks",
+          "disabledAppLinks",
+          "replacementURL",
+          "minimumClientVersion"
+        ]
+      },
+      {
+        "owner": "ios-shop",
+        "required": [
+          "supportedIdentityConfirmation",
+          "implementationSourceCommit",
+          "callbackBinding"
+        ]
+      },
+      {
+        "owner": "web-pwa-shop",
+        "required": [
+          "supportedIdentityConfirmation",
+          "implementationSourceCommit",
+          "publicReplacementRoute"
+        ]
+      }
+    ],
+    "inventValues": false
+  }
+}

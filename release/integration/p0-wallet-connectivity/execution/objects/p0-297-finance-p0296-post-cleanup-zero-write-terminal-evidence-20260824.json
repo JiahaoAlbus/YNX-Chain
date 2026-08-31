@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "p0-finance-zero-write-terminal-evidence@1",
+  "taskId": "P0-297",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-p0296-post-cleanup-zero-write-p0297-20260823T194700Z",
+  "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0297_P0296_POST_CLEANUP_ZERO_WRITE_VERIFICATION",
+  "attempts": 1,
+  "localExitStatus": 0,
+  "remoteExitStatus": 0,
+  "mutationCount": 0,
+  "stdout": {
+    "path": "release/integration/p0-wallet-connectivity/execution/objects/p0-297-finance-p0296-post-cleanup-zero-write-terminal-stdout.txt",
+    "blob": "7683c4ea34c3427bccb09d61ef1717c13f1b6cc6",
+    "bytes": 1170,
+    "sha256": "da9141154d3d9e27e661f2807f2bf9f7af6ed445220ff50a44468f3c8951a803"
+  },
+  "stderr": {"bytes": 0, "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+  "remoteTruth": {
+    "allP0294PathsAbsent": true,
+    "parentsRestored": true,
+    "currentTarget": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a",
+    "servicePid": 2241003,
+    "serviceNRestarts": 0,
+    "sixHttpGatesExact": true,
+    "verificationComplete": true,
+    "cleanupComplete": true
+  },
+  "truth": {
+    "productionMutation": false,
+    "deployment": false,
+    "rollback": false,
+    "remoteTemporaryFiles": 0,
+    "deploymentAuthorityInferred": false,
+    "p0294Reusable": false
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "acceptanceId": "P0-SHOP-ANDROID-RETIREMENT-REGISTRY-V3-95253DE9-20260821",
+  "walletProtocolSourceCommit": "95253de9c502335285dbb626ebd7ae37c14d6e5f",
+  "classification": "SOURCE_ACCEPTED_DEPLOYMENT_LEASE_REQUIRED",
+  "sourceEvidence": {
+    "path": "release/integration/p0-wallet-connectivity/evidence/shop-android-retirement-registry-v3-95253de9-20260821.json"
+  },
+  "accepted": {
+    "registryV3ClientRetirementSource": true,
+    "shopAndroidExactTupleRetired": true,
+    "shopWebPwaStillRegistered": true,
+    "stateRetirementAtomicitySourceTested": true
+  },
+  "truth": {
+    "executionLeaseIssued": false,
+    "publicRuntimeUsesRegistryV3": false,
+    "publicClientRetirementVerified": false,
+    "shopAndroidMigratedV2": false,
+    "shopWebPwaMigratedV2": false,
+    "productsMigratedV2": 0,
+    "deployedPublic": false,
+    "integratedCentral": false,
+    "aggregateDeployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

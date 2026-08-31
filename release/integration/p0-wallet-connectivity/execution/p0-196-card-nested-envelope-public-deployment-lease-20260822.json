@@ -1,0 +1,131 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-196",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-card-nested-envelope-public-deployment-20260822T153300Z",
+  "owner": "card",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_CARD_NESTED_ENVELOPE_PUBLIC_DEPLOYMENT_BROWSER_TIMEOUT_ROLLBACK_CONFIRMED",
+  "issuedAt": "2026-08-22T15:33:00Z",
+  "expiresAt": "2026-08-22T16:03:00Z",
+  "singleUse": true,
+  "reusable": false,
+  "executionAuthorized": true,
+  "branch": "codex/p0-card-static-deploy-envelope-20260822",
+  "request": {
+    "commit": "00191c9a5c38b92fed9ce224c9862c396ad9379d",
+    "tree": "6a2cb655d5f48dca30d05b2d8e78348b800c7ddb",
+    "parent": "2183b8d7a18dec3c7e7773f3c777882deeac6f82",
+    "path": "apps/card/evidence/card-nested-static-deployment-lease-request-20260822.json",
+    "blob": "b85bfe33c95e928ba09300c31970d8928ecfcdc9",
+    "bytes": 5875,
+    "sha256": "791286bcaeddd83ea6e3dd80c04d3967d6ccaefaa7613671adfd181458801e99",
+    "remoteExact": true
+  },
+  "source": {
+    "commit": "2183b8d7a18dec3c7e7773f3c777882deeac6f82",
+    "tree": "9a217df3da768afce32b29edbc5efa87947d5e22",
+    "parent": "e4213d6e17ca2eac6791e9b0838c24d8dcebd569",
+    "baseSemanticSource": "45c4013a95008027cf55f2ac4d7bdded70640ae1",
+    "deploymentRoot": "apps/card/deployment-envelope",
+    "fixedOutputDirectory": "dist-web",
+    "semanticChange": false
+  },
+  "independentValidation": {
+    "checkout": "/tmp/ynx-card-p0196-verify.nlNQL9",
+    "tests": "PASS_46_OF_46",
+    "typecheck": "PASS",
+    "webBuild": "PASS",
+    "nestedEnvelopeBuild": "PASS",
+    "nestedEnvelopeVerifier": "PASS",
+    "envelopeManifest": "PASS_14_OF_14_EXACT",
+    "nestedStaticParity": "PASS_12_OF_12_EXACT"
+  },
+  "productionBinding": {
+    "project": "jiahaoalbus-projects/ynx-card-testnet-simulation",
+    "projectId": "prj_DU37JeDK4Rx0MjxIV745veV5Qgxp",
+    "canonicalUrl": "https://card.ynxweb4.com/",
+    "rollbackDeploymentId": "dpl_DqMuEhno65bLFTNKBu9gs52soVri",
+    "rollbackDeploymentUrl": "https://ynx-card-testnet-simulation-bmeabqkk1-jiahaoalbus-projects.vercel.app",
+    "rollbackReady": true,
+    "rollbackOwnsCanonicalAlias": true,
+    "oldResponses": {
+      "html": {"http":200,"bytes":1717,"sha256":"56827ca95005951ae791245b6c3021691beace32683209936c7519324c28ed24"},
+      "javascript": {"path":"/_expo/static/js/web/index-250c974606522c0feefa0bf082cc41a1.js","http":200,"bytes":2907885,"sha256":"2103aba7f844d4a3c067eac0ecbf0acbc9ebf8fb8831c44fd248df90261a8568"},
+      "manifest": {"http":200,"bytes":460,"sha256":"f3e634129abe79c5b81b7fc8dac3950e5cb21f1d1263b1938fcd06a58e2c686f"},
+      "serviceWorker": {"http":200,"bytes":364,"sha256":"1a9acfe442d2920040a1999f4fe4efe3f97d7a42a9debef047d469972889638f"}
+    },
+    "readOnlyCheckedAt": "2026-08-22T15:32:00Z"
+  },
+  "execution": {
+    "executor": "card-owner",
+    "freshCheckout": "/tmp/ynx-card-p0196-exec",
+    "freshCheckoutMustStartAt": "00191c9a5c38b92fed9ce224c9862c396ad9379d",
+    "deploymentRootMustBe": "apps/card/deployment-envelope",
+    "allowedMutations": [
+      "create the fresh Card-only checkout and untracked dependency/build metadata",
+      "clean rebuild the Card web output and nested deployment envelope",
+      "verify all 14 envelope hashes and all 12 nested static-file hashes",
+      "create exactly one production deployment from apps/card/deployment-envelope in project prj_DU37JeDK4Rx0MjxIV745veV5Qgxp"
+    ],
+    "deploymentAttemptLimit": 1,
+    "retryAllowed": false,
+    "projectSettingsMutationAllowed": false,
+    "rollbackCommand": "vercel alias set ynx-card-testnet-simulation-bmeabqkk1-jiahaoalbus-projects.vercel.app card.ynxweb4.com --scope jiahaoalbus-projects",
+    "rollbackAttemptLimit": 1,
+    "rollbackRequiredOnAnyPostDeploymentFailure": true,
+    "postDeploy": [
+      "freeze new deployment id and immutable URL",
+      "require canonical HTML, candidate JavaScript, manifest and service-worker exact HTTP bytes and SHA",
+      "open one clean canonical Card tab and require stable URL, one tab, no blank page and console errors zero",
+      "verify distinct YNX Wallet and MetaMask identities/logos plus late-provider and truthful no-provider state without eth_requestAccounts",
+      "verify Product Session degradation does not fabricate or erase Standard Wallet state"
+    ]
+  },
+  "forbidden": [
+    "Vercel project setting or DNS mutation",
+    "other product, Website, Wallet, Gateway or shared source mutation",
+    "eth_requestAccounts, approve/reject, add/switch chain, personal_sign, EIP-712 or transaction",
+    "retry, reuse or product-completion promotion"
+  ],
+  "terminalRules": {
+    "success": "CONSUMED_RELEASED_SUCCESS_CARD_SOURCE_BOUND_PUBLIC_NON_SENSITIVE_LIFECYCLE",
+    "failure": "CONSUMED_RELEASED_FAILED_CLOSED_CARD_NESTED_ENVELOPE_PUBLIC_DEPLOYMENT",
+    "rollbackFailure": "EMERGENCY_BLOCKED_CARD_EXACT_ROLLBACK_REQUIRED_NO_FURTHER_ACTION"
+  },
+  "terminalEvidence": {
+    "releasedAt": "2026-08-22T15:49:57Z",
+    "deploymentAttemptCount": 1,
+    "retryCount": 0,
+    "candidateDeploymentId": "dpl_8qCEhiAq8hgiTYf2hA2FXU57W122",
+    "candidateDeploymentUrl": "https://ynx-card-testnet-simulation-dn1nbeei4-jiahaoalbus-projects.vercel.app",
+    "candidateCanonicalResourcesMatched": true,
+    "candidateCanonicalResponses": {
+      "html": {"http":200,"bytes":1717,"sha256Prefix":"f8b59f7b"},
+      "javascript": {"http":200,"bytes":2911045,"sha256Prefix":"f59fa3d4"},
+      "manifest": {"http":200,"bytes":460,"sha256":"f3e634129abe79c5b81b7fc8dac3950e5cb21f1d1263b1938fcd06a58e2c686f"},
+      "serviceWorker": {"http":200,"bytes":364,"sha256":"1a9acfe442d2920040a1999f4fe4efe3f97d7a42a9debef047d469972889638f"}
+    },
+    "cleanBrowserValidated": false,
+    "cleanBrowserFailure": "DIRECT_BROWSER_CONTROL_TIMEOUT_NO_WALLET_ACTION",
+    "rollbackAttemptCount": 1,
+    "rollbackCliExit": "NONZERO_AFTER_CREATING_ALIAS",
+    "rollbackInferredFromCli": false,
+    "centralEmergencyMutationRequired": false,
+    "centralReadOnlyAliasDeploymentId": "dpl_DqMuEhno65bLFTNKBu9gs52soVri",
+    "centralReadOnlyAliasStatus": "READY",
+    "centralReadOnlyAliasOwnsCanonical": true,
+    "centralReadOnlyCheckedAt": "2026-08-22T15:48:57Z",
+    "centralRollbackResponses": {
+      "html": {"http":200,"bytes":1717,"sha256":"56827ca95005951ae791245b6c3021691beace32683209936c7519324c28ed24","requestId":"sin1::t8chk-1787413755947-9be46efc58c6"},
+      "javascript": {"http":200,"bytes":2907885,"sha256":"2103aba7f844d4a3c067eac0ecbf0acbc9ebf8fb8831c44fd248df90261a8568","requestId":"sin1::c74g7-1787413779644-c795a128debc"},
+      "manifest": {"http":200,"bytes":460,"sha256":"f3e634129abe79c5b81b7fc8dac3950e5cb21f1d1263b1938fcd06a58e2c686f","requestId":"sin1::s6lww-1787413772160-c62e57c8c598"},
+      "serviceWorker": {"http":200,"bytes":364,"sha256":"1a9acfe442d2920040a1999f4fe4efe3f97d7a42a9debef047d469972889638f","requestId":"sin1::5nfmt-1787413772425-05735883f546"}
+    },
+    "accountApproved": false,
+    "signatureExecuted": false,
+    "transactionExecuted": false,
+    "sourceBoundPublic": false,
+    "productComplete": false
+  },
+  "truthBeforeExecution": {"sourceBoundPublic":false,"cleanBrowserValidated":false,"accountApproved":false,"signatureExecuted":false,"transactionExecuted":false,"productComplete":false}
+}

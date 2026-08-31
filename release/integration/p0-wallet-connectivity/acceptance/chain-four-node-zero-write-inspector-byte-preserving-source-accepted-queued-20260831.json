@@ -1,0 +1,75 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "recordType": "CHAIN_FOUR_NODE_ZERO_WRITE_INSPECTION_SOURCE_REVIEW",
+  "recordedAt": "2026-08-31T03:31:00Z",
+  "source": {
+    "branch": "codex/chain-four-node-readonly-inspector-20260831",
+    "commit": "de393ce295ae50f77967cbd3ad15e8bf0988684e",
+    "tree": "e45e6bc10060315a32186dfa748e5e6aacf2e63a",
+    "parent": "0f11025dda53a7fdf4195ade6f3b15fe20de3a9d",
+    "remoteExact": true
+  },
+  "objects": {
+    "inspector": {
+      "path": "scripts/verify/remote-smoke-test.mjs",
+      "bytes": 82263,
+      "sha256": "0ea6dbff7be60da2ceb647cb905635292c5fac422e0ccedc80147f7d9046a0b5"
+    },
+    "remotePayload": {
+      "bytes": 2501,
+      "sha256": "48548c8039b09d72e1a6dc30ebfbae7cd35b3451860676286a133890d0d74573"
+    },
+    "printedPlan": {
+      "bytes": 6074,
+      "sha256": "f06b2a2a138130fc634d4fe8ce788bd1b78c0193aee7d5b19f240cc19eaafbb5"
+    }
+  },
+  "independentVerification": {
+    "bashSyntax": "PASS",
+    "focusedSelfTest": "PASS",
+    "printedPlanReproduced": true,
+    "remotePayloadReproduced": true,
+    "staticZeroMutationCheck": "PASS",
+    "trailingNewlineRegression": {
+      "input": "x followed by two newline bytes",
+      "bytes": 3,
+      "base64": "eAoK",
+      "sha256": "d1329c6d1284e888680db5b03619fc08bdf1ee0b172c946ca6d1f18f5ea40d61",
+      "curlInvocationCount": 1,
+      "passed": true
+    },
+    "priorBlockerResolved": "CHAIN_FOUR_NODE_REMOTE_PROBE_BODY_COMMAND_SUBSTITUTION_STRIPS_TRAILING_NEWLINES"
+  },
+  "decision": {
+    "status": "SOURCE_ACCEPTED_QUEUED_BEHIND_CREATOR_EMERGENCY_HEAVY",
+    "leaseIssued": false,
+    "heavyLeaseAcquired": false,
+    "protectedIdentityAvailabilityChecked": false,
+    "sshExecuted": false,
+    "reason": "The byte-preserving source object is acceptable, but the Creator P0-305 emergency recovery remains nonterminal and retains the exclusive Heavy scheduling boundary."
+  },
+  "futureLeaseBoundary": [
+    "Creator P0-305 emergency cleanup and its independent zero-write readback must terminally release Heavy",
+    "fresh-read Heavy and Chain path locks",
+    "confirm the four protected identity references are available without disclosing their values",
+    "fresh-bind all four node production baselines and exact target argv",
+    "issue a wholly-new Chain-only zero-write lease with a maximum twenty-minute window and one attempt per node"
+  ],
+  "forbiddenUntilLease": [
+    "SSH",
+    "remote inspection",
+    "remote temporary files",
+    "service lifecycle",
+    "deployment",
+    "account request",
+    "signature",
+    "transaction"
+  ],
+  "truthBoundary": {
+    "sourceAccepted": true,
+    "productionInspected": false,
+    "runtimeComplete": false,
+    "mutation": false
+  }
+}

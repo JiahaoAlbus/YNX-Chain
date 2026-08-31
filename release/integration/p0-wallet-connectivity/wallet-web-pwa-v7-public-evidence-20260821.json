@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-123",
+  "owner": "integration",
+  "recordedAt": "2026-08-21T07:00:20Z",
+  "source": {
+    "branch": "codex/wallet-web-provider-v2-20260821",
+    "implementationCommit": "562ceb505469a6d0a6efd4d8761dfbd741916b50",
+    "implementationTree": "ce0e54cc9e475fc160bacd32a113cfcffae69e10",
+    "evidenceCommit": "4f23310091a59baa0d68660ef5a180692dc9b65a",
+    "evidenceTree": "fb22d06b9b96ddf95303f11f55c9e04c11ca72c8",
+    "remoteReadbackExact": true,
+    "tests": "91/91; build; package; package verification",
+    "pwaZipBytes": 282246,
+    "pwaZipSha256": "8f02a48e132a8402934b0078e0afdb6f4dd15a596b1641296f47494d17f2fbc6"
+  },
+  "deployment": {
+    "provider": "Vercel",
+    "project": "ynx-wallet-web",
+    "deploymentId": "dpl_81HVzHyGz8kzhsddaJH3QodSyByu",
+    "deploymentUrl": "https://ynx-wallet-3lmhyiezq-jiahaoalbus-projects.vercel.app",
+    "readyState": "READY",
+    "canonicalUrl": "https://wallet.ynxweb4.com/",
+    "previousDeploymentId": "dpl_DWQ96LmD9HuNG4deEdSR5fojg8bT",
+    "rollbackUrl": "https://ynx-wallet-hgms0jsnw-jiahaoalbus-projects.vercel.app",
+    "rollbackReady": true,
+    "rollbackExecuted": false
+  },
+  "publicReadback": {
+    "index": {"http": 200, "bytes": 845, "sha256": "9a3d2d9e580fa26e7f1ccd58179b937afbc2b1a7bf062cfe88990c4bdec18020"},
+    "sw.js": {"http": 200, "bytes": 3628, "sha256": "ff8e063ef072e858ee714ea6bc254280a91304f4a8039bfcbc08c541eaeddda1", "cacheControl": "no-store, max-age=0"},
+    "sw-v7.js": {"http": 200, "bytes": 217, "sha256": "e9546a2e8686207eac620002ada881e6861d6805677616115364c30244c75fee", "cacheControl": "no-store, max-age=0"},
+    "asset-integrity.js": {"http": 200, "bytes": 1632, "sha256": "ac1ecf5538fc588dbd7ac88c3b615ab6525e7ca842cc4e7c6ff97230e3554ecb", "cacheControl": "no-store, max-age=0"},
+    "service-worker-policy.js": {"http": 200, "bytes": 2380, "sha256": "118a0761af955cff5e896da2901beb3d7c2eb953d03cf07ec4d6b9f566d6ea51", "cacheControl": "no-store, max-age=0"},
+    "pwa-upgrade.html": {"http": 200, "bytes": 598, "sha256": "13723d0468f3e35d15bcceead6a278fe05bbadf90fff074e81fb16dedff462a0", "cacheControl": "no-store, max-age=0"},
+    "pwa-upgrade.js": {"http": 200, "bytes": 1132, "sha256": "b81b35d763a0eda7f0f161b85fe487c2a860249d7b0584e60f34cbc6de7cb7a9", "cacheControl": "no-store, max-age=0"}
+  },
+  "truth": {
+    "deployedPublic": true,
+    "publicBytesMatchBuild": true,
+    "publicControlAssetsNoStore": true,
+    "publicChromeRecoveryVerified": false,
+    "computerControlVerified": false,
+    "computerControlBlocker": "Mac locked; automatic unlock failed",
+    "installedPwaVerified": false,
+    "walletProviderConnected": false,
+    "accountAuthorized": false,
+    "messageSigned": false,
+    "transactionSubmitted": false,
+    "walletAuthCallbackSuccess": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "aggregateEcosystemFixed": false
+  }
+}

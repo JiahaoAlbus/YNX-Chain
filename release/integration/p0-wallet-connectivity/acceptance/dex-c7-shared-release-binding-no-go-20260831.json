@@ -1,0 +1,79 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "productId": "ynx-dex",
+  "recordType": "DEX_SHARED_RELEASE_BINDING_DECISION",
+  "recordedAt": "2026-08-31T03:00:59Z",
+  "candidate": {
+    "branch": "codex/final-dex",
+    "commit": "c7a96d48f17f9dc70bbdc42389cf1052771ee904",
+    "tree": "85b8d018ee8541cc560b0865fb5f3cc0acfa2767",
+    "parent": "c44b1cd7768457bba2def7386cee546818cbc62e",
+    "scope": [
+      "apps/dex/src/App.tsx",
+      "apps/dex/src/wallet-auth-v2-runtime.d.ts",
+      "apps/dex/src/wallet.test.ts",
+      "apps/dex/src/wallet.ts"
+    ]
+  },
+  "ownerRequest": {
+    "commit": "c0d77725f8cb529b9c88a42dd59ddd2250cb5ecd",
+    "tree": "19bcde443ba81b5c4c773cbfbb8ff4e80dd2f157",
+    "remoteExact": true,
+    "worktreeClean": true,
+    "path": "apps/dex/DEX_SHARED_RELEASE_BINDING_AND_PUBLICATION_LEASE_REQUEST_20260822.md"
+  },
+  "independentVerification": {
+    "dexTests": "PASS_25_OF_25",
+    "dexBuild": "PASS",
+    "candidateChangesWalletLifecycleOnly": true,
+    "currentPublic": {
+      "sourceCommit": "ac775de24176b293b5dbb5ab7114cf29428f8046",
+      "root": "200:931:aead21e2f53dce3b6b08b964f2021283147e19f44f9591316b7bb7d130f0492a",
+      "version": "200:126:da7de848ab2f74dfdb15b0f00f11dbba9b7cf95223abd7137d21ea9d35433296",
+      "health": "200:238:20a96d0ac7dede526b2b37bea77dccc430b9d3cf32372fd2b038e733c38567a3"
+    },
+    "rootProductReleaseCurrentCommit": "dec1ba994c7c9d48fb4708f37765cb3fe90e2e0f",
+    "rootOnlyUpdatePassesManifestGate": false
+  },
+  "decision": {
+    "status": "NO_GO",
+    "narrowRootOnlyAuthorityGranted": false,
+    "deploymentLeaseIssued": false,
+    "heavyLeaseAcquired": false,
+    "deployment": false
+  },
+  "singleExecutableBlocker": "DEX_C7_SHARED_BINDING_IS_NOT_ROOT_FILE_ONLY_AND_REQUIRED_COHERENT_MANIFEST_SET_NOT_FROZEN",
+  "defect": {
+    "requestedScope": [
+      "product-release.json"
+    ],
+    "requiredCoherentBindings": [
+      "product-release.json commit and runtimeCommit plus all source-bound localComponents",
+      "release/integration/ynx-dex-contract.json sourceCommit",
+      "public-product-metadata.json sourceCommit and artifactSourceCommit",
+      "release/operator-inputs.request.json runtimeSourceCommit"
+    ],
+    "evidence": "scripts/dex/check-manifests.mjs asserts these fields equal the root release commit/runtimeCommit. Updating only product-release.json to c7a96d48 would make the mandatory manifest gate fail.",
+    "safetyReason": "Central must not grant an exact-path handoff that is known to create an internally inconsistent release binding."
+  },
+  "requiredSuccessor": [
+    "freeze a source-only coherent four-file binding candidate for exact c7a96d48 without changing public deployment truth",
+    "keep current public source ac775de2 and all installed, account, signing, swap, liquidity and transaction gates unchanged",
+    "rerun scripts/dex/check-manifests.mjs, scripts/dex/verify-artifacts.mjs, DEX tests and DEX build",
+    "provide exact commit, tree, per-file blobs, bytes and SHA256 for Central review",
+    "request a new exact four-path shared binding handoff; packaging and deployment remain separate"
+  ],
+  "truthBoundary": {
+    "sourceCandidateValidated": true,
+    "sharedBindingUpdated": false,
+    "packageBuiltFromC7": false,
+    "deployed": false,
+    "installedProvider": false,
+    "account": false,
+    "signature": false,
+    "swap": false,
+    "liquidity": false,
+    "transaction": false
+  }
+}

@@ -1,0 +1,307 @@
+{
+  "lease": {
+    "signed": true,
+    "kind": "FINANCE_ROLLBACK_FIRST_PRODUCTION_DEPLOYMENT",
+    "id": "p0298-finance-phase3-20260824t201500z",
+    "taskId": "P0-298",
+    "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+    "issuedAt": "2026-08-23T20:15:00Z",
+    "expiresAt": "2026-08-23T20:45:00Z",
+    "singleUse": true,
+    "retryAllowed": false
+  },
+  "paths": {
+    "stage": "/opt/ynx/stage/finance/p0298-finance-phase3-20260824t201500z/stage",
+    "backup": "/var/backups/ynx-finance/p0298-finance-phase3-20260824t201500z/backup",
+    "release": "/opt/ynx/releases/finance/p0298-finance-phase3-20260824t201500z/ynx-finance-7824af677dd0",
+    "releaseContainer": {
+      "path": "/opt/ynx/releases/finance/p0298-finance-phase3-20260824t201500z",
+      "uid": 0,
+      "gid": 986,
+      "mode": 750
+    },
+    "parents": {
+      "stage": {
+        "path": "/opt/ynx/stage/finance",
+        "tuple": "0:0:750:5",
+        "fullTuple": "64770:3450041:0:0:750:5:4096:directory",
+        "directChildren": 3,
+        "inventorySha256": "0d11124b36a42c6201f7e0d491fd20279ea47950554f92c6b1cc960aaa0fee91"
+      },
+      "backup": {
+        "path": "/var/backups/ynx-finance",
+        "tuple": "0:0:755:11",
+        "fullTuple": "64770:1481354:0:0:755:11:4096:directory",
+        "directChildren": 9,
+        "inventorySha256": "a59008acfeccfb0a2f88de5b029871b713b42d0bf43ad1ba87786c962e6659be"
+      },
+      "release": {
+        "path": "/opt/ynx/releases/finance",
+        "tuple": "0:0:755:7",
+        "fullTuple": "64770:1607576:0:0:755:7:4096:directory",
+        "directChildren": 5,
+        "inventorySha256": "3b8985ca358662dc1e43b027b859b043a3ea974482f5b4b347adbe8bd7a01c4c"
+      }
+    },
+    "basenames": {
+      "archive": "candidate.tgz",
+      "newEnv": "finance.env",
+      "stage": "stage",
+      "backup": "backup",
+      "release": "ynx-finance-7824af677dd0"
+    }
+  },
+  "fresh": {
+    "currentLink": "/opt/ynx/finance-current",
+    "currentLinkTuple": "64770:1312291:0:0:777:1:50:symbolic link",
+    "activeRelease": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a",
+    "activeReleaseTuple": "64770:1860506:0:0:755:3:4096:directory",
+    "binary": {
+      "path": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a/ynx-finance",
+      "tuple": "64770:1860512:0:0:755:1:8573112:regular file",
+      "sha256": "0cc43c8a77c12975a0fcbada65971f08f2bc3a52345d547ea194dd3ccd60d83f"
+    },
+    "env": {
+      "path": "/etc/ynx/finance.env",
+      "tuple": "64770:1324724:0:986:640:1:1545:regular file",
+      "bytes": 1545,
+      "sha256": "854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252",
+      "ynxFinanceWebDirKeyCount": 1,
+      "valuesPresent": false
+    },
+    "unit": {
+      "path": "/etc/systemd/system/ynx-finance.service",
+      "tuple": "64770:161304:0:0:644:1:515:regular file",
+      "sha256": "2e72cdad422a3a714c46d074ea97b725233576cf726dbbfd43e82e99c2c2975b"
+    },
+    "caddy": {
+      "path": "/etc/caddy/conf.d/ynx-finance.caddy",
+      "tuple": "64770:1051759:0:0:644:1:255:regular file",
+      "sha256": "dcf75a7aed315c54632321b8bb80e44c0abc22f6700fadfbfa9a7da21b88a282"
+    },
+    "service": {
+      "name": "ynx-finance.service",
+      "pid": 2241003,
+      "nrestarts": 0,
+      "user": "ynx",
+      "gid": 986,
+      "releaseContainerOwnerUid": 0
+    },
+    "state": {
+      "path": "/var/lib/ynx/finance/state.json",
+      "absent": true
+    },
+    "verifier": {
+      "loopbackHealth": {
+        "url": "http://127.0.0.1:6483/health",
+        "status": 200,
+        "bytes": 485,
+        "sha256": "d1e97a4314acd1ecccf94629d15bd598cb58ff78136b3622ac26d583a82e45c1"
+      },
+      "loopbackVersion": {
+        "url": "http://127.0.0.1:6483/version",
+        "status": 200,
+        "bytes": 130,
+        "sha256": "39789776da47e60b7a7df845789e02ebba16707ad8951eb6f27c84c1b40bb226"
+      },
+      "publicHealth": {
+        "url": "https://finance.ynxweb4.com/health",
+        "status": 200,
+        "bytes": 485,
+        "sha256": "d1e97a4314acd1ecccf94629d15bd598cb58ff78136b3622ac26d583a82e45c1"
+      },
+      "publicVersion": {
+        "url": "https://finance.ynxweb4.com/version",
+        "status": 200,
+        "bytes": 130,
+        "sha256": "39789776da47e60b7a7df845789e02ebba16707ad8951eb6f27c84c1b40bb226"
+      }
+    },
+    "root": {
+      "path": "/opt/ynx",
+      "tuple": "64770:1312502:0:0:755:49:4096:directory"
+    },
+    "retainedControlParent": {
+      "path": "/opt/ynx/leases/finance",
+      "tuple": "64770:4594822:0:0:750:2:4096:directory",
+      "directChildren": 0,
+      "inventorySha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "candidate": {
+    "carrier": {
+      "id": "p0228-finance-phase1-20260822T234100Z",
+      "path": "/opt/ynx/stage/finance/p0228-finance-phase1-20260822T234100Z",
+      "tuple": "64770:4594821:0:0:700:2:4096:directory"
+    },
+    "archive": {
+      "path": "/opt/ynx/stage/finance/p0228-finance-phase1-20260822T234100Z/candidate.tgz",
+      "tuple": "64770:4620871:0:0:600:1:3937491:regular file",
+      "bytes": 3937491,
+      "sha256": "d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d"
+    },
+    "env": {
+      "path": "/opt/ynx/stage/finance/p0228-finance-phase1-20260822T234100Z/finance.env",
+      "tuple": "64770:4620873:0:986:640:1:1545:regular file",
+      "bytes": 1545,
+      "sha256": "ceec9fba17116e087d6e2a9cb160808b39e027e687a7ad561174a40daf58b71a"
+    },
+    "binary": {
+      "bytes": 8573112,
+      "sha256": "cccdae8ae5b5f694ca7db68540da30582564ff741978e616f7435d448a20fe3e"
+    },
+    "sourceCommit": "7824af677dd052d20321431381523ab302614d98",
+    "sourceTree": "3db34ee2397a49852bbdf15e3841e7c9cecf9444",
+    "verifier": {
+      "loopbackHealth": {
+        "url": "http://127.0.0.1:6483/health",
+        "status": 200,
+        "bytes": 481,
+        "sha256": "1be98b4cad2def12108809effbaaf9ed2afc950593f37b30a869f5f03977f785"
+      },
+      "loopbackVersion": {
+        "url": "http://127.0.0.1:6483/version",
+        "status": 200,
+        "bytes": 126,
+        "sha256": "162c534cfbbd6be97e2f2ef233caab2ec568f0d6a2fffdad85f48425c641bf02"
+      },
+      "publicHealth": {
+        "url": "https://finance.ynxweb4.com/health",
+        "status": 200,
+        "bytes": 481,
+        "sha256": "1be98b4cad2def12108809effbaaf9ed2afc950593f37b30a869f5f03977f785"
+      },
+      "publicVersion": {
+        "url": "https://finance.ynxweb4.com/version",
+        "status": 200,
+        "bytes": 126,
+        "sha256": "162c534cfbbd6be97e2f2ef233caab2ec568f0d6a2fffdad85f48425c641bf02"
+      }
+    },
+    "assets": [
+      {
+        "url": "https://finance.ynxweb4.com/",
+        "status": 200,
+        "bytes": 11128,
+        "sha256": "5d95950e9bccbd1012265b3f96eef6ddf2111b0dbd16315583060871ed5328ca",
+        "relativePath": "web/index.html"
+      },
+      {
+        "url": "https://finance.ynxweb4.com/app.js",
+        "status": 200,
+        "bytes": 14970,
+        "sha256": "7684dc198cbd91cca40bed56e00c07a1fd49dbe87ea75b18d9141683ba65718b",
+        "relativePath": "web/app.js"
+      },
+      {
+        "url": "https://finance.ynxweb4.com/read-sources.js",
+        "status": 200,
+        "bytes": 1440,
+        "sha256": "3812db52ff26bdb3a6fcd3aed0784070306d0097e5c694f27e4c4790913bf3c0",
+        "relativePath": "web/read-sources.js"
+      },
+      {
+        "url": "https://finance.ynxweb4.com/styles.css",
+        "status": 200,
+        "bytes": 12073,
+        "sha256": "35c6bb6bc2cb3b8846e848eae32e4fb195d0054ffa209a1fdf91f2ea78cb881c",
+        "relativePath": "web/styles.css"
+      },
+      {
+        "url": "https://finance.ynxweb4.com/manifest.webmanifest",
+        "status": 200,
+        "bytes": 241,
+        "sha256": "3f7bec35f54aad6a095151e9d4d553e7ea10cbbbcc9e16f0f3fe7abd242b6d05",
+        "relativePath": "web/manifest.webmanifest"
+      },
+      {
+        "url": "https://finance.ynxweb4.com/ynx-logo.png",
+        "status": 200,
+        "bytes": 104171,
+        "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+        "relativePath": "web/ynx-logo.png"
+      },
+      {
+        "url": "https://finance.ynxweb4.com/wallet-connect.js",
+        "status": 200,
+        "bytes": 19446,
+        "sha256": "44a2054a7f58bf0458ff466a3f9c4d1a391adab20c321fef74977e8fa2fd4690",
+        "relativePath": "web/wallet-connect.js"
+      }
+    ]
+  },
+  "prohibitions": {
+    "unitMutation": true,
+    "caddyMutation": true,
+    "nonFinanceMutation": true,
+    "environmentValueOutput": true,
+    "accountRequest": true,
+    "signature": true,
+    "typedData": true,
+    "transaction": true,
+    "manualRollback": true
+  },
+  "predecessorTerminal": {
+    "centralCommit": "d61f24aca9567b2c0325b3779a6951b7b1888e04",
+    "centralTree": "dda6cfd68d8f67ca6927620f5483242b1d926141",
+    "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0297_P0296_POST_CLEANUP_ZERO_WRITE_VERIFICATION",
+    "cleanupComplete": true,
+    "mutationCount": 0,
+    "p0297Reusable": false
+  },
+  "directLiteralArgvExecution": {
+    "required": true,
+    "outerWrapperMayObserveProcessRcOnly": true,
+    "outerWrapperMustNotOpenCreateRedirectTruncateOrAppendDeclaredOutputReceiptPaths": true,
+    "outerWrapperMustNotAlterStdinOrArgv": true
+  },
+  "prewriteDiagnostic": {
+    "enabled": true,
+    "beforeProductionWrite": true,
+    "fields": [
+      "phase",
+      "failureClass",
+      "failureExitStatus"
+    ],
+    "postCleanupPhases": [
+      "STAGING_BACKUP",
+      "ARCHIVE_EXTRACT",
+      "CANDIDATE_VERIFY",
+      "RELEASE_MATERIALIZE",
+      "SERVICE_USER_ACCESS",
+      "PRE_SWITCH"
+    ],
+    "secretValues": false
+  },
+  "terminalContract": {
+    "success": {
+      "retained": [
+        "exact signed releaseContainer",
+        "exact signed candidate release",
+        "exact signed backup",
+        "exact signed executor",
+        "exact signed deployment lease"
+      ],
+      "current": "resolves to exact candidate release",
+      "runtime": "candidate service PID and NRestarts plus candidate loopback/public gates exact",
+      "absent": [
+        "all pending paths",
+        "all temporary paths",
+        "stage leaf after materialization"
+      ]
+    },
+    "automaticRollback": {
+      "restored": [
+        "exact old env",
+        "exact old state or absence",
+        "exact old current",
+        "exact old service PID/NRestarts semantics",
+        "exact old loopback/public gates"
+      ],
+      "removed": "only identity-bound P0298 owned stage backup release control pending and temporary residues",
+      "foreignSubstitution": "preserved and fail closed"
+    },
+    "manualRollback": "forbidden without a separately signed exact-present Central lease"
+  }
+}
+

@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "acceptanceId": "P0-WALLET-AUTH-REGISTRY-V3-SOURCE-CANDIDATE-5D94DCD0-20260821",
+  "taskId": "P0-041",
+  "decision": "SOURCE_BLOCKERS_CLOSED_NO_EXECUTION_LEASE",
+  "sourceEvidence": {
+    "path": "release/integration/p0-wallet-connectivity/evidence/wallet-auth-registry-v3-source-candidate-5d94dcd0-20260821.json"
+  },
+  "accepted": {
+    "candidateSourceAccepted": true,
+    "fiveSourceBlockersClosed": true,
+    "offlineMigrationCliAccepted": true,
+    "aggregateVersionRoutesAccepted": true,
+    "dualRegistryHashSemanticsAccepted": true,
+    "legacyEnvelopeConversionAccepted": true,
+    "environmentAliasConflictRejectionAccepted": true
+  },
+  "truth": {
+    "executionLeaseIssued": false,
+    "sshUsed": false,
+    "deploymentAttempted": false,
+    "productionMutation": false,
+    "candidateDeployedPublic": false,
+    "publicRegistryV3": false,
+    "shopAndroidRetired410Public": false,
+    "shopWebPreservedOnRegistryV3Public": false,
+    "productsMigratedV2": 0,
+    "computerControlVerified": false,
+    "integratedCentral": false,
+    "aggregateDeployedPublic": false
+  }
+}

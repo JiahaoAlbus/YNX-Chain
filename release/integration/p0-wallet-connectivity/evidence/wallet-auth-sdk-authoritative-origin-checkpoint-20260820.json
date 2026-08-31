@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-WALLET-AUTH-SDK-AUTHORITATIVE-ORIGIN-203BE5E1-20260820",
+  "reviewedAt": "2026-08-20T15:18:00Z",
+  "ownerSource": {
+    "commit": "203be5e108be468350591615a64d5d36ab87a8f1",
+    "parent": "ddc4ea884b7659fdd989cf2721b71f4c34ef3b61",
+    "tree": "94e291a6757447f89c7cf6b8f01bbf811cb7d1f7",
+    "branch": "codex/wallet-session-router-recovery",
+    "scope": "packages/wallet-auth authoritative Product Session origin defaults plus evidence and handoff"
+  },
+  "criticalSourceBlobs": {
+    "packages/wallet-auth/src/product-wallet-connection.js": "c39ea66baa1df143440f8fe4f15dbcf209027463",
+    "packages/wallet-auth/src/index.d.ts": "f76d9e48c9c7ec7b82464b1383806c6b081f5275",
+    "packages/wallet-auth/scripts/probe-product-session-v2-public.mjs": "83fa71ba0aff29836150d1bc6fef0797782d549c",
+    "packages/wallet-auth/scripts/verify-product-session-v2-lifecycle.mjs": "67cea53a53fea99858b1de6dcffbc43f1a00618e",
+    "packages/wallet-auth/test/product-wallet-connection.test.mjs": "c03530508aafaa4761cf12c0b50a0d70a997e817",
+    "packages/wallet-auth/test/product-session-public-probe.test.mjs": "fe8b25a2a95e1091e9172c780b9b593854c113b1"
+  },
+  "acceptedRuntimeOrigin": {
+    "origin": "https://wallet-auth.ynxweb4.com",
+    "sourceCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "versionStatus": 200,
+    "buildIdentifiable": true,
+    "registeredFinanceOptionsStatus": 204,
+    "stateFreePublicMountStatus": 400,
+    "stateFreePublicMountSchemaVersion": 2,
+    "defaultProbeRequestId": "req_public_v2_KxiH1ad3YuXtHd912yf3_mO8"
+  },
+  "rejectedHistoricalDefault": {
+    "origin": "https://rest.ynxweb4.com",
+    "v2RouteMounted": true,
+    "registeredFinanceOptionsStatus": 204,
+    "versionStatus": 405,
+    "buildIdentifiable": false,
+    "reason": "aggregate REST origin cannot bind the product SDK to exact Wallet/Auth build identity"
+  },
+  "centralVerification": {
+    "focusedTestsPassed": 18,
+    "focusedTestsFailed": 0,
+    "fullWalletAuthTestsPassed": 240,
+    "fullWalletAuthTestsFailed": 0,
+    "diffCheckPassed": true,
+    "packageDryRun": {
+      "name": "@ynx-chain/wallet-auth",
+      "version": "1.0.0",
+      "filename": "ynx-chain-wallet-auth-1.0.0.tgz",
+      "bytes": 123903,
+      "unpackedBytes": 556313,
+      "integrity": "sha512-HVuw179MOKs8gKu6nK+in+4OYHFn48c1o0nLjTFjEJVt4smjHJOZfWck7uivNu3nsg9qcQ4SGIGZrVgqUBLIAg==",
+      "files": 69,
+      "factoryIncluded": true,
+      "typesIncluded": true
+    }
+  },
+  "decision": {
+    "sourceAccepted": true,
+    "sdkPackageCheckpointAccepted": true,
+    "productFactoryOrigin": "https://wallet-auth.ynxweb4.com",
+    "probeDefaultOrigin": "https://wallet-auth.ynxweb4.com",
+    "lifecycleDefaultOrigin": "https://wallet-auth.ynxweb4.com",
+    "callerMayOverrideFactoryOrigin": false,
+    "artifactPublished": false,
+    "npmRegistryPublished": false,
+    "productMigrationImplied": false
+  },
+  "truth": {
+    "productsMigrated": 0,
+    "productsRequired": 12,
+    "installedWalletClientVerified": false,
+    "walletApprovalVerified": false,
+    "accountVerified": false,
+    "signingVerified": false,
+    "transactionVerified": false,
+    "integratedCentral": false,
+    "aggregateDeployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

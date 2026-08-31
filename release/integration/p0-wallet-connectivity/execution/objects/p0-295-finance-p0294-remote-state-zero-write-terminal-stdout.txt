@@ -1,0 +1,46 @@
+inspection=FINANCE_P0294_REMOTE_STATE_ZERO_WRITE
+leaseParent=directory|64770:4594822:0:0:750:2:4096:directory|directChildren=2|inventorySha256=058c2a80621673376556076f74e49ecb5456126fd00d4af087dc765aaae880c7
+executorPending=absent
+executor=file|64770:4620810:0:0:700:1:19070:regular file|bytes=19070|sha256=4446b9245ee81256bf02b6b46960e70ff83caa83838e91f6f80034b5a1fc5741
+signedLeasePending=absent
+signedLease=file|64770:4620811:0:0:600:1:7409:regular file|bytes=7409|sha256=102c4cabac131eef5ccfb16ac76b95509116ba38768924d9f9b9baab798b96fb
+manualRollbackPending=absent
+manualRollbackLease=absent
+stageParent=directory|64770:3450041:0:0:750:6:4096:directory|directChildren=4|inventorySha256=c2962d52adf7648f8986d389b1525655ca58a535a69cbe880562985f826e4ece
+stageContainer=directory|64770:4620812:0:0:700:2:4096:directory|directChildren=0|inventorySha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stage=absent
+backupParent=directory|64770:1481354:0:0:755:12:4096:directory|directChildren=10|inventorySha256=4201a0347c708fc1a721c7f9eb47a3d8fb1d57216c63337ff6cc7a163d0edc2e
+backupContainer=directory|64770:2663622:0:0:700:2:4096:directory|directChildren=0|inventorySha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+backup=absent
+releaseParent=directory|64770:1607576:0:0:755:7:4096:directory|directChildren=5|inventorySha256=3b8985ca358662dc1e43b027b859b043a3ea974482f5b4b347adbe8bd7a01c4c
+releaseContainer=absent
+release=absent
+current=symlink|64770:1312291:0:0:777:1:50:symbolic link|target=/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a|targetSha256=f6e55a1183f3b973e81bc40c7ce51b4a8cc2ab93fcb940eb1dd8c719c550f952
+currentNext=absent
+currentRollback=absent
+currentBinary=file|64770:1860512:0:0:755:1:8573112:regular file|bytes=8573112|sha256=0cc43c8a77c12975a0fcbada65971f08f2bc3a52345d547ea194dd3ccd60d83f
+env=file|64770:1324724:0:986:640:1:1545:regular file|bytes=1545|sha256=854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252
+state=absent
+unit=file|64770:161304:0:0:644:1:515:regular file|bytes=515|sha256=2e72cdad422a3a714c46d074ea97b725233576cf726dbbfd43e82e99c2c2975b
+caddy=file|64770:1051759:0:0:644:1:255:regular file|bytes=255|sha256=dcf75a7aed315c54632321b8bb80e44c0abc22f6700fadfbfa9a7da21b88a282
+MainPID=2241003
+NRestarts=0
+ExecStart={ path=/opt/ynx/finance-current/ynx-finance ; argv[]=/opt/ynx/finance-current/ynx-finance ; ignore_errors=no ; start_time=[Sun 2026-08-23 15:42:35 CST] ; stop_time=[n/a] ; pid=2241003 ; code=(null) ; status=0/0 }
+WorkingDirectory=/opt/ynx/finance-current
+User=ynx
+Group=ynx
+LoadState=loaded
+ActiveState=active
+SubState=running
+loopbackRoot=http://127.0.0.1:6483/|200:11427:c1fc45eecd7f88de6fc3e049d15161b8d4e9878e31f20c977fc52b383a18ed53:text/html; charset=utf-8
+loopbackHealth=http://127.0.0.1:6483/health|200:485:d1e97a4314acd1ecccf94629d15bd598cb58ff78136b3622ac26d583a82e45c1:application/json; charset=utf-8
+loopbackVersion=http://127.0.0.1:6483/version|200:130:39789776da47e60b7a7df845789e02ebba16707ad8951eb6f27c84c1b40bb226:application/json; charset=utf-8
+publicRoot=https://finance.ynxweb4.com/|200:11427:c1fc45eecd7f88de6fc3e049d15161b8d4e9878e31f20c977fc52b383a18ed53:text/html; charset=utf-8
+publicHealth=https://finance.ynxweb4.com/health|200:485:d1e97a4314acd1ecccf94629d15bd598cb58ff78136b3622ac26d583a82e45c1:application/json; charset=utf-8
+publicVersion=https://finance.ynxweb4.com/version|200:130:39789776da47e60b7a7df845789e02ebba16707ad8951eb6f27c84c1b40bb226:application/json; charset=utf-8
+journalClass=SERVICE_OR_EXECUTOR_FAILURE
+journalBytes=1233
+journalSha256=0e94e437fcb91d959034babec8217a85b340414bbfb22c5c510c03c847f5fa98
+remoteExitStatus=0
+inspectionComplete=true
+mutationCount=0

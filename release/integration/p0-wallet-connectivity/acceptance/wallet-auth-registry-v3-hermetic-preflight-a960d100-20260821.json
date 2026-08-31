@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "acceptanceId": "P0-046-WALLET-AUTH-REGISTRY-V3-HERMETIC-PREFLIGHT-A960D100-20260821",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "status": "HERMETIC_SOURCE_AND_PRODUCTION_PREFLIGHT_ACCEPTED_DEPLOYABLE_ARTIFACT_REQUIRED",
+  "owner": "wallet-auth-core",
+  "sourceCommit": "a960d1007e7952c2af591d39e3673f1d9fe50e62",
+  "sourceTree": "8170c4d8c24955564bf1cbe7852b8a883a44f1b4",
+  "evidenceCommit": "98150b1fe0a985142c5717dcc478a918e0fe7bf9",
+  "evidence": "release/integration/p0-wallet-connectivity/evidence/wallet-auth-registry-v3-hermetic-preflight-a960d100-20260821.json",
+  "fullTests": "347/347 independently reproduced",
+  "packageSha256": "e354a19c155cfb0573113cffdcf9c639bc214e650a574a2b61e3339677a4bf1e",
+  "preflightBundleSha256": "bb3e68987d89a8d4f5937c6d13b7d097441e8a5e87d7959e707e419edb2ada86",
+  "executionLeaseIssued": false,
+  "executionLeaseId": null,
+  "productionMutationAuthorized": false,
+  "deployedPublic": false,
+  "publicVerified": false,
+  "productsMigrated": 0,
+  "productsRequired": 12,
+  "nextAction": "Core/Auth owner produces one exact a960d100 deployable source archive/inventory plus offline dependency runtime archive/SBOM. Integration independently verifies those artifacts before considering a wholly new single-use lease; P0-039 remains invalid and nonreusable."
+}

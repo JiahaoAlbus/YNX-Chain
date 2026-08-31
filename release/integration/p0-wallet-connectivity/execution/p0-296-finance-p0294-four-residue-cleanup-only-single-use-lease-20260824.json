@@ -1,0 +1,104 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-296",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-p0294-four-residue-cleanup-p0296-20260823T193900Z",
+  "owner": "finance-release-control-plane-cleanup-only",
+  "executor": "finance-release-control-plane-cleanup-only",
+  "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0296_P0294_FOUR_RESIDUE_CLEANUP_PENDING_INDEPENDENT_READBACK",
+  "issuedAt": "2026-08-23T19:39:00Z",
+  "expiresAt": "2026-08-23T20:09:00Z",
+  "releasedAt": "2026-08-23T19:47:00Z",
+  "singleUse": true,
+  "reusable": false,
+  "productionMutationAllowed": true,
+  "scope": "Exactly one Finance-only cleanup invocation deleting two exact P0-294 control files and removing two exact empty P0-294 containers, with no retry",
+  "predecessorTerminal": {
+    "taskId": "P0-295",
+    "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0295_P0294_REMOTE_STATE_ZERO_WRITE_INSPECTION",
+    "stdoutBlob": "93633e33a7e081cbb2f727a76225068ae50288f7",
+    "stdoutBytes": 3715,
+    "stdoutSha256": "b30f4d45364a0a67d5c33ecdeb5ff04c1ebf9bab380a2fc3d60310943c26e4fd",
+    "mutationCount": 0,
+    "productionSwitchOccurred": false,
+    "p0295Reusable": false
+  },
+  "reviewedObject": {
+    "path": "release/integration/p0-wallet-connectivity/execution/objects/p0-296-finance-p0294-four-residue-cleanup-only.sh",
+    "blob": "cff6ef11e1fd188abe622ea0fa2037bbdc2fd91e",
+    "bytes": 6031,
+    "sha256": "a7762eaa9109fa45c44c0cd09f8d5cc89d96f65b62f82d43f8f9a6dc290d04a5",
+    "bashSyntax": "PASS",
+    "mutationScopeStaticAudit": "PASS",
+    "authorizedUnlinkCount": 2,
+    "authorizedRmdirCount": 2
+  },
+  "freshPrewrite": {
+    "readAt": "2026-08-23T19:37:00Z",
+    "heavyIdleAfterP0295Release": true,
+    "executor": "64770:4620810:0:0:700:1:19070:regular file|sha256=4446b9245ee81256bf02b6b46960e70ff83caa83838e91f6f80034b5a1fc5741",
+    "signedLease": "64770:4620811:0:0:600:1:7409:regular file|sha256=102c4cabac131eef5ccfb16ac76b95509116ba38768924d9f9b9baab798b96fb",
+    "stageContainer": "64770:4620812:0:0:700:2:4096:directory|directChildren=0|inventorySha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "backupContainer": "64770:2663622:0:0:700:2:4096:directory|directChildren=0|inventorySha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "leaseParent": "64770:4594822:0:0:750:2:4096:directory|directChildren=2|inventorySha256=058c2a80621673376556076f74e49ecb5456126fd00d4af087dc765aaae880c7",
+    "stageParent": "64770:3450041:0:0:750:6:4096:directory|directChildren=4|inventorySha256=c2962d52adf7648f8986d389b1525655ca58a535a69cbe880562985f826e4ece",
+    "backupParent": "64770:1481354:0:0:755:12:4096:directory|directChildren=10|inventorySha256=4201a0347c708fc1a721c7f9eb47a3d8fb1d57216c63337ff6cc7a163d0edc2e",
+    "releaseParent": "64770:1607576:0:0:755:7:4096:directory|directChildren=5|inventorySha256=3b8985ca358662dc1e43b027b859b043a3ea974482f5b4b347adbe8bd7a01c4c",
+    "pendingLeafReleaseAndTransientPathsAbsent": true,
+    "oldRuntimeAndSixHttpGatesExact": true
+  },
+  "executionAuthority": {
+    "processWorkingDirectory": "/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration",
+    "literalArgv": ["/usr/bin/ssh","-i","/Users/huangjiahao/Downloads/Huang.pem","-o","IdentitiesOnly=yes","-o","BatchMode=yes","-o","StrictHostKeyChecking=yes","-o","UserKnownHostsFile=/Users/huangjiahao/.ssh/known_hosts","-o","ConnectTimeout=10","-o","ConnectionAttempts=1","ubuntu@43.153.202.237","/usr/bin/sudo","-n","/bin/bash","-s"],
+    "argvCount": 20,
+    "stdinPath": "/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration/release/integration/p0-wallet-connectivity/execution/objects/p0-296-finance-p0294-four-residue-cleanup-only.sh",
+    "stdinBytes": 6031,
+    "stdinSha256": "a7762eaa9109fa45c44c0cd09f8d5cc89d96f65b62f82d43f8f9a6dc290d04a5",
+    "stdoutPath": "/tmp/ynx-finance-p0296-p0294-four-residue-cleanup-20260823T193900Z.stdout",
+    "stderrPath": "/tmp/ynx-finance-p0296-p0294-four-residue-cleanup-20260823T193900Z.stderr",
+    "sshAttemptLimit": 1,
+    "cleanupInvocationLimit": 1,
+    "retryAllowed": false
+  },
+  "permittedMutations": [
+    "unlink /opt/ynx/leases/finance/p0294-finance-phase3-20260824t020000z.executor.sh only after exact parent tuple inventory and file tuple bytes SHA nlink recheck",
+    "unlink /opt/ynx/leases/finance/p0294-finance-phase3-20260824t020000z.json only after the same exact rechecks",
+    "rmdir /opt/ynx/stage/finance/p0294-finance-phase3-20260824t020000z only while exact identity-bound and empty",
+    "rmdir /var/backups/ynx-finance/p0294-finance-phase3-20260824t020000z only while exact identity-bound and empty"
+  ],
+  "requiredTerminalEvidence": [
+    "one SSH and one cleanup invocation with no retry",
+    "exit status zero and stderr empty",
+    "nonempty eleven-line cleanup terminal receipt with every field exactly once",
+    "all four exact residues absent and lease stage backup release parent postconditions exact",
+    "cleanupComplete remains pending independent P0-297 zero-write verification"
+  ],
+  "forbidden": [
+    "delete any parent sibling substituted object nonempty directory or path outside the four exact residues",
+    "deploy rollback current env state unit Caddy release or public mutation",
+    "service lifecycle",
+    "Wallet account signature typed data or transaction",
+    "secret or environment value output",
+    "retry predecessor reuse or P0-297 execution"
+  ],
+  "terminalEvidence": {
+    "attempts": 1,
+    "localExitStatus": 0,
+    "remoteExitStatus": 0,
+    "stdoutBytes": 314,
+    "stdoutSha256": "f05a011e71dc93222102f53cf0df3978f5ad909d0332c109aa7de8499f880a30",
+    "stderrBytes": 0,
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "cleanupReceiptValid": true,
+    "fourResiduesReportedAbsent": true,
+    "cleanupComplete": false,
+    "independentZeroWriteVerificationRequired": true,
+    "terminalEvidencePath": "release/integration/p0-wallet-connectivity/execution/objects/p0-296-finance-p0294-four-residue-cleanup-terminal-evidence-20260824.json"
+  },
+  "terminalRules": {
+    "success": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0296_P0294_FOUR_RESIDUE_CLEANUP_PENDING_INDEPENDENT_READBACK",
+    "failure": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0296_P0294_FOUR_RESIDUE_CLEANUP",
+    "cleanupCompleteOnReceiptAlone": false,
+    "releaseOnlyAfterDirectTerminalReceipt": true
+  }
+}

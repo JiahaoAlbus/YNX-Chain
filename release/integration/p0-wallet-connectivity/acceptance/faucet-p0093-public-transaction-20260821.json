@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-093",
+  "decision": "DEPLOYED_CANONICAL_TRANSACTION_VERIFIED_HEAVY_RELEASED",
+  "acceptedAt": "2026-08-21T01:15:00Z",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-faucet-02cf44d1-canonical-recipient-20260821T011000Z",
+  "centralLeaseCommit": "b97c6dc08fa7a2741262a005163d632e580cb0aa",
+  "sourceCommit": "02cf44d17b50dfd0f24a9f022e472b7d5eb0c1d4",
+  "ownerCheckpointCommit": "fe812300c9443fed62f74c9f39fbcc149b173a14",
+  "ownerEvidencePath": "internal/faucet/evidence/p0-093-canonical-recipient-public-transaction-20260821.json",
+  "ownerEvidenceBlob": "e7bc8898df6187a9a77baa6339aefbeb6b1f9808",
+  "ownerEvidenceSha256": "30c62b4b68c94f4e7293c7c58de230f7021792ed917426a798d822633cd19ed7",
+  "artifactSha256": "114c17a2dd79d76f632e151fd940d40f88394b2a014424e2d6f56cc0f25c2fd3",
+  "publicRuntime": {
+    "sourceCommit": "02cf44d17b50",
+    "release": "ynx-chain-02cf44d17b50",
+    "healthHttp": 200,
+    "versionHttp": 200,
+    "topologySafe": true
+  },
+  "funding": {
+    "address": "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80",
+    "evmAddress": "0x7e5f4552091a69125d5dfcb7b8c2659029395bdf",
+    "amountYNXT": 100,
+    "transactionHash": "0x88475de1deabddcb9ae011f7edebb81aeba21de047fe4e92e406598a5766530a",
+    "blockNumber": 1136721,
+    "chainRestVerified": true,
+    "explorerIndexerVerified": true,
+    "aliasRateLimitBypassRejected": true
+  },
+  "rollbackAvailable": true,
+  "walletPlatformFaucetVerified": false,
+  "computerControlVerified": false,
+  "aggregatePublicVerified": false
+}

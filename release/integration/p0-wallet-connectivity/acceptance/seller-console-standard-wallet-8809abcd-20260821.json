@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-056",
+  "status": "SOURCE_CHECKPOINT_ACCEPTED_LIGHT_RELEASED",
+  "branch": "codex/p0-seller-console-wallet-connectivity-20260821",
+  "implementationCommit": "2bfa3d3d7923410b02e02c9d243ef70e88653c66",
+  "checkpointCommit": "8809abcd7c39d47650086ae8895ecb307dcd0fdc",
+  "remoteReadbackExact": true,
+  "worktreeClean": true,
+  "tests": "9/9",
+  "build": "passed",
+  "localBrowser": {"desktop": true, "mobile390x844": true, "englishDefault": true, "guestPreview": true, "consoleWarningsOrErrors": 0},
+  "acceptedSourceClaims": {"eip6963": true, "eip1193": true, "ynxPreferred": true, "otherEvmFallback": true, "privateDegradedPreservesStandardConnection": true},
+  "falseGates": {"providerApprovalVisible": false, "productSessionV2": false, "installedClient": false, "deployedPublic": false, "publicVerified": false, "computerControlVerified": false}
+}

@@ -1,0 +1,68 @@
+{
+  "schemaVersion": "p0-wallet-protected-owner-boolean-routing@1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-176",
+  "status": "NAMED_OWNER_BOOLEAN_ONLY_DIRECT_FALSE_RESPONSES_COLLECTED",
+  "directResponsesCollected": true,
+  "runtimeLeaseIssued": false,
+  "secretValuesRequested": false,
+  "secretValuesRecorded": false,
+  "results": {
+    "reownProjectAllowlistReceiptAvailable": {
+      "boolean": false,
+      "nonSensitiveReceiptId": null,
+      "provenanceCommitOrDeploymentId": null,
+      "ownerThreadId": "019ffaf1-32a9-7231-b909-922a66d9f4d5"
+    },
+    "appleSignedAppGroupAndKeychainSignerAvailable": {
+      "boolean": false,
+      "nonSensitiveReceiptId": "P0-176/ec4bfaae5b29cfb151a7b5a792fd3fb1336cb12e",
+      "provenanceCommitOrDeploymentId": "8e8d5317b823d0c834b781ced197f909c2582491",
+      "ownerThreadId": "019ffaf5-3c12-7830-8196-3748a053c876"
+    },
+    "eligibleSignedIosTargetAvailable": {
+      "boolean": false,
+      "nonSensitiveReceiptId": "P0-176/ec4bfaae5b29cfb151a7b5a792fd3fb1336cb12e",
+      "provenanceCommitOrDeploymentId": "8e8d5317b823d0c834b781ced197f909c2582491",
+      "ownerThreadId": "019ffaf5-3c12-7830-8196-3748a053c876"
+    },
+    "eligibleSignedMacosTargetAvailable": {
+      "boolean": false,
+      "nonSensitiveReceiptId": "P0-176/ec4bfaae5b29cfb151a7b5a792fd3fb1336cb12e",
+      "provenanceCommitOrDeploymentId": "8e8d5317b823d0c834b781ced197f909c2582491",
+      "ownerThreadId": "019ffaf5-3c12-7830-8196-3748a053c876"
+    },
+    "opaqueApprovedTestAccountHandleAvailable": {
+      "boolean": false,
+      "nonSensitiveReceiptId": null,
+      "provenanceCommitOrDeploymentId": null,
+      "ownerThreadId": "019ffe33-11a7-7e91-9400-eea29b139b59"
+    },
+    "boundedTestnetTransactionPolicyAvailable": {
+      "boolean": false,
+      "nonSensitiveReceiptId": null,
+      "provenanceCommitOrDeploymentId": null,
+      "ownerThreadId": "019ffe33-11a7-7e91-9400-eea29b139b59"
+    },
+    "eligibleSignedAndroidTargetAvailable": {
+      "boolean": false,
+      "nonSensitiveReceiptId": null,
+      "provenanceCommitOrDeploymentId": null,
+      "ownerThreadId": "019ffe33-f59c-70b2-909c-2029f901ec38"
+    }
+  },
+  "truth": {
+    "allProtectedReadinessTrue": false,
+    "projectIdRecorded": false,
+    "accountAddressRecorded": false,
+    "keyOrSigningMaterialRecorded": false,
+    "policyContentsRecorded": false,
+    "runtimeAction": false,
+    "runtimeLeaseIssued": false,
+    "onlyTrueProtectedReadinessFields": [
+      "firstPartyExactOriginAvailable",
+      "officialSignedMetaMaskComparatorProvenanceAvailable"
+    ],
+    "externalDappDirectDiscoveryPendingUserConfirmation": true
+  }
+}

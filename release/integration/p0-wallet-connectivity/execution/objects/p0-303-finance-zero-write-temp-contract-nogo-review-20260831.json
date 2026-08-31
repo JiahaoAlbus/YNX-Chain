@@ -1,0 +1,51 @@
+{
+  "schemaVersion": "finance-p0303-zero-write-request-nogo-review@2",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-303",
+  "status": "NO_GO_FINANCE_P0303_ZERO_WRITE_CONTRACT_CONTRADICTS_REMOTE_TEMP_BODY_FILES",
+  "reviewedAt": "2026-08-31T01:47:13Z",
+  "leaseIssued": false,
+  "sshInspectionExecuted": false,
+  "productionMutation": false,
+  "heavy": "IDLE",
+  "source": {
+    "branch": "codex/p0-finance-p0303-p0302-zero-write-inspection-20260824",
+    "implementationCommit": "f255b82915c3ce839b567a452548f16d93b0ff7b",
+    "implementationTree": "67b42fff64a03107594abbe5bf0bb140e7d4b9e6",
+    "requestCommit": "8cc058cd0515f088fb75c66ae1bf05a6e87d9489",
+    "requestTree": "1a84a15bf257c1bb00408b03d2f12b2e6e1a8f6a",
+    "requestBlob": "5b720f363a1533238240fb2d1499d529d2ff711e",
+    "requestBytes": 8558,
+    "requestSha256": "3278d772174ba5c511ab7be35a49324cee3a7f785c9b3e2a3759b4d03a0dc2b4",
+    "inspectionBlob": "49a30ff3ae014db903dc7992f752787a224c61f1",
+    "inspectionBytes": 5207,
+    "inspectionSha256": "ce896327ef1ab67c351099077f4c04b9627b064c6dd69269bede4b74ab877b62",
+    "testBlob": "81929b76ad302ddacca6da2c4ff966525da35868",
+    "testBytes": 3863,
+    "testSha256": "3313e7c6277919381968399fad90ba0a6c2b4b6d14bf4fda1c37ef276579575f"
+  },
+  "passingReview": {
+    "remoteExactClean": true,
+    "bashSyntax": true,
+    "exactNodeRegressionTest": true,
+    "wholeBodyTrailingNewlinesPreserved": true,
+    "ownedTempRemovedInPositiveFixture": true,
+    "p0302TerminalBoundaryExact": true,
+    "heavyIdle": true
+  },
+  "blocker": {
+    "code": "P0303_ZERO_WRITE_CONTRACT_CONTRADICTS_REMOTE_TEMP_BODY_FILES",
+    "requestClaims": [
+      "requestedLease.remoteWrites=0",
+      "forbidden includes write, cleanup and delete"
+    ],
+    "commandReality": [
+      "http_receipt invokes mktemp once per HTTP response body",
+      "curl writes each response body to the remote temporary file",
+      "the helper and EXIT trap delete owned temporary files with rm"
+    ],
+    "impact": "The exact command cannot truthfully execute under the requested zero-remote-write and no-delete lease. Signing it would authorize behavior the signed request simultaneously forbids."
+  },
+  "requiredSuccessor": "Choose one coherent contract: either keep strict zero-remote-write and implement byte-preserving streaming without remote files, or explicitly authorize exactly six identity-bound ephemeral HTTP body files under frozen paths with initial absence, no-clobber creation, tuple capture, bounded bytes, cleanup on every terminal path, and terminal absence receipts. In the latter case remoteWrites and forbidden clauses must truthfully allow only those ephemeral writes/deletions while productionWrites remains zero. Submit a wholly-new remote-exact request and rerun success plus failure-cleanup fixtures.",
+  "nextAuthority": "NONE_UNTIL_CONTRACT_ALIGNED_WHOLE_BODY_RECEIPT_SUCCESSOR"
+}

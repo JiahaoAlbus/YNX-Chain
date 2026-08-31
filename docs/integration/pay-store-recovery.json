@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "product": "pay",
+  "owner": "04-pay",
+  "sourceCommit": "2303ceeed6ff8e7a8606b87a2e7155702e4e27b1",
+  "store": {
+    "envelopeVersion": 1,
+    "snapshotVersion": 1,
+    "integrity": "HMAC-SHA-256",
+    "writeMode": "0600",
+    "directoryMode": "0700",
+    "atomicWrite": "same-directory temporary file, file fsync, rename, directory fsync on non-Windows",
+    "unknownFields": "rejected",
+    "futureSnapshotVersion": "rejected"
+  },
+  "backup": {
+    "command": "YNX_PAY_PRODUCT_INTEGRITY_KEY=<secret-manager-reference> ynx-pay-store backup --store <offline-or-consistent-store> --output <new-immutable-backup>",
+    "overwritesExistingArtifact": false,
+    "receiptFields": [
+      "snapshotVersion",
+      "artifact",
+      "sha256",
+      "bytes",
+      "recordCount",
+      "startedAt",
+      "completedAt",
+      "durationNanos",
+      "verified"
+    ]
+  },
+  "restore": {
+    "command": "YNX_PAY_PRODUCT_INTEGRITY_KEY=<secret-manager-reference> ynx-pay-store restore --backup <verified-backup> --store <offline-destination>",
+    "mode": "offline",
+    "sourceRead": "single-read validation and use",
+    "validDestination": "preserved as hash-addressed verified rollback artifact",
+    "invalidDestination": "preserved byte-for-byte as hash-addressed quarantine artifact",
+    "postRestore": "strict reopen, HMAC verification, snapshot version verification and record count"
+  },
+  "migrations": [
+    "drop removed product-local walletChallenges",
+    "drop removed product-local walletSessions",
+    "initialize missing recurringDrafts",
+    "initialize missing splitPayments",
+    "initialize missing quantBills",
+    "normalize legacy failed webhook deliveries to dead_letter"
+  ],
+  "compatibility": {
+    "invoiceVersionsRead": [1, 2, 3, 4, 5],
+    "legacyWalletSessions": "not migrated; canonical Gateway session must be re-established",
+    "unknownFutureSnapshot": "fail closed"
+  },
+  "verification": [
+    {
+      "command": "go test ./internal/payproduct/... -count=1",
+      "result": "pass"
+    },
+    {
+      "command": "go test -race ./internal/payproduct/... -count=1",
+      "result": "pass",
+      "warning": "non-fatal macOS LC_DYSYMTAB linker warning"
+    },
+    {
+      "command": "go vet ./internal/payproduct/...",
+      "result": "pass"
+    },
+    {
+      "command": "make pay-api-check",
+      "result": "pass"
+    },
+    {
+      "command": "bash internal/payproduct/smoke.sh",
+      "result": "pass"
+    }
+  ],
+  "tests": [
+    "TestStoreFixtureMigrationBackupRestoreAndRollback",
+    "TestStoreRestoreRejectsCorruptionWrongKeyAndFutureVersionWithoutMutation",
+    "TestDecodeKeyDoesNotDowngradeShortHexToBase64",
+    "TestDecodeIntegrityKeyFailsClosed",
+    "TestRunRejectsUnknownCommandsAndMissingFlags"
+  ],
+  "status": "testedLocal",
+  "limitations": [
+    "No production-volume RTO/RPO measurement is claimed.",
+    "No remote backup retention, replication or restore evidence is claimed.",
+    "The operator must stop all writers before an offline restore.",
+    "Windows directory-fsync parity is not claimed."
+  ],
+  "generatedAt": "2026-07-27T15:49:17+01:00"
+}

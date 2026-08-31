@@ -1,0 +1,129 @@
+{
+  "schemaVersion": "1.0.0",
+  "generatedAt": "2026-08-21T14:21:40.775Z",
+  "controllerSourceCommit": "3877f66265d0f7cc6f4e94b5c64b585d2c7e3244",
+  "authority": "Oracle observations and reserve evidence; AI and frontend constants are prohibited price authorities",
+  "nativeAsset": {
+    "symbol": "YNXT",
+    "network": "YNX Testnet",
+    "classification": "testnet-native-asset-not-stablecoin",
+    "productionValueClaim": false
+  },
+  "oracleObservationRequiredFields": [
+    "asset",
+    "quoteAsset",
+    "value",
+    "sources",
+    "asOf",
+    "sequence",
+    "confidence",
+    "coverage",
+    "method",
+    "signature",
+    "stale",
+    "divergence",
+    "depegState",
+    "sourceCommit"
+  ],
+  "prohibitedPriceAuthorities": [
+    "AI",
+    "frontend constant",
+    "single unverified provider",
+    "manual static price"
+  ],
+  "oracle": {
+    "productNumber": "19",
+    "sourceCommit": "a059d573ed128a704ec447561711a13cb1e3d9dd",
+    "exactHeadCi": true,
+    "tests": {
+      "multiSourceAggregation": {
+        "status": "verified-candidate",
+        "evidence": [
+          "internal/oracle/aggregate_test.go"
+        ]
+      },
+      "medianWeightedMedian": {
+        "status": "verified-candidate",
+        "evidence": [
+          "internal/oracle/aggregate_test.go"
+        ]
+      },
+      "twap": {
+        "status": "verified-candidate",
+        "evidence": [
+          "internal/oracle/dex_twap_test.go"
+        ]
+      },
+      "providerFailure": {
+        "status": "verified-candidate",
+        "evidence": [
+          "internal/oracle/providers/runtime_test.go"
+        ]
+      },
+      "staleness": {
+        "status": "verified-candidate",
+        "evidence": [
+          "internal/oracle/server_test.go"
+        ]
+      },
+      "divergence": {
+        "status": "verified-candidate",
+        "evidence": [
+          "internal/oracle/aggregate_test.go"
+        ]
+      },
+      "lastGoodValue": {
+        "status": "verified-candidate",
+        "evidence": [
+          "internal/oracle/store_test.go"
+        ]
+      },
+      "circuitBreaker": {
+        "status": "verified-candidate",
+        "evidence": [
+          "internal/oracle/reserve_test.go"
+        ]
+      },
+      "depeg": {
+        "status": "verified-candidate",
+        "evidence": [
+          "internal/economics/stable_reserve_integration_test.go",
+          "internal/yusdsandbox/service_test.go"
+        ]
+      },
+      "recovery": {
+        "status": "verified-candidate",
+        "evidence": [
+          "internal/economics/stable_reserve_integration_test.go",
+          "internal/yusdsandbox/service_test.go"
+        ]
+      }
+    }
+  },
+  "stablecoins": [
+    {
+      "asset": "YUSD",
+      "status": "testnet-candidate",
+      "sourceCommit": "c173925ca8fa87cf85f66eea4a83725c7a9351df",
+      "reserve": "sandbox evidence only",
+      "reserveAttestation": "candidate cryptographic attestation; no bank custody claim",
+      "mint": "testnet sandbox",
+      "burn": "testnet sandbox",
+      "redemption": "testnet sandbox only",
+      "supplyReconciliation": "candidate tests",
+      "limits": "candidate controls",
+      "pause": "candidate controls",
+      "depegControl": "oracle-driven candidate",
+      "governanceBoundary": "candidate",
+      "solvencyBoundary": "no production reserve or redemption claim",
+      "productionStablecoin": false,
+      "mainnetReleased": false,
+      "evidence": [
+        "docs/stablecoin/STABLECOIN_RESERVE_REDEMPTION.md",
+        "docs/stablecoin/YUSD_SANDBOX.md",
+        "internal/stablecoinissuer/issuer_test.go",
+        "internal/economics/stable_reserve_integration_test.go"
+      ]
+    }
+  ]
+}

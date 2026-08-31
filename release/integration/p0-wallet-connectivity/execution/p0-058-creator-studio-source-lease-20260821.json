@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-058",
+  "leaseId": "P0-058_LIGHT_SOURCE_ONLY",
+  "status": "CHECKPOINT_REACHED_LIGHT_RELEASED",
+  "owner": "integration",
+  "branch": "codex/p0-creator-studio-wallet-connectivity-20260821",
+  "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/34-creator-studio-p0",
+  "startingCommit": "91f9710448f524a12a6ff4a452b5d5b7ef67ca8c",
+  "leasedAt": "2026-08-20T20:20:00Z",
+  "releasedAt": "2026-08-20T20:31:43Z",
+  "implementationCommit": "b8bd715d06c9522bdd07a051ddcf1670fd44c3aa",
+  "checkpointCommit": "2b1103063b47d2cfbf060837056e6b33fc7ecad3",
+  "scope": ["apps/creator-studio/**"],
+  "requirements": ["consume accepted EIP-6963/EIP-1193 SDK without copying it", "prefer YNX Wallet and support standard EVM wallet fallback", "preserve guest Creator Studio tour", "isolate legacy private Product Session v1 as degraded", "use accepted endpoint manifest only", "test, build, local-browser verify, push and release"],
+  "forbidden": ["shared Wallet/Auth or SDK changes", "Video or Gateway changes", "public deployment", "installed or Computer Control claim", "caller supplied Gateway or RPC", "whole-app Offline on Product Session failure"],
+  "truthAtGrant": {"legacyPrivateSessionVersion":"v1", "standardWalletSourceImplemented":false, "productSessionV2":false, "installedClientVerified":false, "deployedPublic":false, "publicVerified":false, "computerControlVerified":false},
+  "result": {"tests":"6/6", "build":true, "smoke":true, "localBrowserQA":true, "desktopHorizontalOverflow":false, "mobile390x844HorizontalOverflow":false, "consoleErrorsOrWarnings":0, "providerApprovalVisible":false, "productSessionV2":false, "deployedPublic":false, "publicVerified":false, "computerControlVerified":false}
+}

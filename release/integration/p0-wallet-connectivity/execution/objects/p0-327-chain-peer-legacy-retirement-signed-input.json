@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-327",
+  "operationId": "chain-peer-legacy-retirement-20260831T074300Z",
+  "ack": "P0-327:EXECUTE_CHAIN_PEER_LEGACY_RETIREMENT_ONCE",
+  "predecessor": {
+    "taskId": "P0-326",
+    "terminal": "CHAIN_6423_PUBLIC_RECOVERED_PRIMARY_9102_SERVICES_MASKED",
+    "receiptSha256": "2f480907d6436baee9aa4297e696a4d14bf4152a484a30e04cf789359c8941ed",
+    "publicIngressSha256": "15a722a950e4ec07583da1affb938c08522b5565c8da29adf27afaccb2335867"
+  },
+  "peers": [
+    {
+      "role": "singapore",
+      "host": "43.134.23.58",
+      "user": "root",
+      "identityReference": "YNX_CHAIN_SG_SSH_IDENTITY",
+      "legacyUnit": "ynx-v2-peer.service",
+      "pid": 465310,
+      "unitTuple": "65027:131437:0:0:644:1:468:regular file",
+      "unitSha256": "78f078e6f1b2e766db9f810dd78ac1886c7b0508ce834fbef1c708eb4e23be47",
+      "alsoMaskUnit": "ynx-v2-node.service",
+      "alsoMaskState": "inactive:dead:disabled",
+      "alsoMaskTuple": "65027:129921:0:0:644:1:515:regular file",
+      "alsoMaskSha256": "04f0ce2d669708181429f3758fa4437fccb679de1ac7bf4e794877bd8adf67b8"
+    },
+    {
+      "role": "silicon-valley",
+      "host": "43.162.100.54",
+      "user": "ubuntu",
+      "identityReference": "YNX_CHAIN_SV_SSH_IDENTITY",
+      "legacyUnit": "ynx-v2-peer.service",
+      "pid": 1391001,
+      "unitTuple": "64770:2699:1000:1001:664:1:496:regular file",
+      "unitSha256": "bffb284b2ff3e923b2e2bf44d7bf47e3bbe02e4ed5608f1d472bbfed942f85a4"
+    },
+    {
+      "role": "seoul",
+      "host": "43.164.132.81",
+      "user": "root",
+      "identityReference": "YNX_CHAIN_SEOUL_SSH_IDENTITY",
+      "legacyUnit": "ynx-v2-peer.service",
+      "pid": 772747,
+      "unitTuple": "65025:150455:0:0:644:1:464:regular file",
+      "unitSha256": "d34f321aae404655d5d39901f4302849c144f3d49c5f807b8bba6919382bfa36"
+    }
+  ],
+  "legacyPorts": [36657, 38545],
+  "forbidden": [
+    "all ynx 6423 service lifecycle or configuration changes",
+    "Caddy changes, reloads or restarts",
+    "new chain deployment, restart, broadcast or validator operation",
+    "account, signature, typed-data or transaction action",
+    "peer service rollback or retry"
+  ]
+}

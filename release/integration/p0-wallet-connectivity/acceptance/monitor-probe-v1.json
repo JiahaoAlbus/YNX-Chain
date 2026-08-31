@@ -1,0 +1,12 @@
+{
+  "proposalId":"P0-WALLET-CONNECTIVITY-2026-08-explorer-monitor-probe-v1",
+  "status":"ACCEPTED",
+  "acceptedBy":"integration",
+  "acceptedAt":"2026-08-20T08:30:00Z",
+  "candidate":{"branch":"codex/p0-explorer-monitor-20260820","commit":"7ef419e1191b8ded301e0f9941a698d673d55b1a","pullRequest":"https://github.com/JiahaoAlbus/YNX-Chain/pull/107"},
+  "acceptedContract":"monitorProbe",
+  "reviewEvidence":{"ownership":"candidate commit contains only apps/monitor/**","focusedTests":"45 TypeScript tests, 8 script tests and production build passed","staticReview":"candidate rule set excludes internal topology and maps errors without collapsing Product Session failure into Wallet or chain Offline"},
+  "acceptanceBoundary":"This accepts source-level probe behavior only. It does not prove the route is deployed, endpoints are safe, a manifest is signed, an installed client works or public Computer Control verification has occurred.",
+  "rollback":"revert isolated monitor candidate and remove any unverified public claim.",
+  "nextAction":"Activate only after public endpoint manifest acceptance and deployment evidence."
+}

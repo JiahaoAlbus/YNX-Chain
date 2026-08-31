@@ -1,0 +1,78 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-116",
+  "decision": "SAFE_WALLET_AUTHORIZE_LAUNCHER_V2_SOURCE_ACCEPTED_REAL_CHROME_PENDING",
+  "reviewedAt": "2026-08-21T05:26:00Z",
+  "owner": "wallet-protocol-router",
+  "sourceBranch": "codex/wallet-session-router-recovery",
+  "sourceCommit": "f1ba5013a817d4c03157e1cf83d7685606951a12",
+  "sourceTree": "3b319dda94dbd703cc4b6a0151e843dd2411604e",
+  "sourceParent": "ac55c0f43edf2b9687a6b9800da89bf5ab760743",
+  "evidenceCommit": "649107488520f0973805b32704cfe4a02e15aafa",
+  "evidenceTree": "514b2beef3c2171c67e5c4a07223009c4218c80f",
+  "evidencePath": "release/integration/wallet-safe-authorize-launcher-v2-source-evidence-20260821.json",
+  "evidenceBlob": "f1976f438c5eef91246b2bb1aae86f1f3de39eed",
+  "evidenceSha256": "fa25affbcd4931b3baed2c816b8bcb1b8e43b7b8caee99986daa4ffc5b7c6a99",
+  "contract": {
+    "id": "safeWalletAuthorizeLauncher",
+    "version": "2.0.0-p0.0",
+    "path": "packages/wallet-auth/integration/safe-wallet-authorize-launcher-v2.json",
+    "blob": "875fabcd90bb77ace32124f7ecbe81cd1b7499d2",
+    "sha256": "defd0db6281839ef5efdfdb6b7b4734369058306f0dd7a90a16fbb6e1f776f6c"
+  },
+  "supersedes": {
+    "version": "1.0.0-p0.0",
+    "sourceCommit": "4679de8e8d0675e2013254c92ff1935191f87c21",
+    "reason": "Real Chrome exposed a blank top-level tab from the hidden custom-scheme iframe strategy.",
+    "webHiddenFrameAccepted": false,
+    "nativeResolverSemanticsRetained": true
+  },
+  "independentReview": {
+    "remoteCommitTreeBlobReadbackExact": true,
+    "walletAuthTests": "256/256",
+    "ownerFocusedTests": "15/15",
+    "independentCombinedLauncherContractDeepLinkGateTests": "16/16",
+    "noBareAuthorizeGate": "PASS",
+    "diffCheck": "PASS",
+    "packageDryRun": {
+      "files": 73,
+      "bytes": 131505,
+      "containsLauncher": true,
+      "containsContract": true
+    }
+  },
+  "acceptedSourceBehavior": {
+    "canonicalRequestUnchanged": true,
+    "webAndExtensionCustomSchemeNavigation": false,
+    "webAndExtensionIframeCreation": false,
+    "webAndExtensionTopLevelPageCreation": false,
+    "providerDiscovery": "EIP-6963 then injected EIP-1193",
+    "singleExactYnxPreferred": true,
+    "ambiguousOrConflictedProviderFailsClosed": true,
+    "automaticProviderRequest": false,
+    "noProviderStatus": "unsupported",
+    "noProviderActions": ["official-ynx-wallet-download", "standard-metamask"],
+    "nativeResolverFirst": true,
+    "nativeResolverSuccessIsApprovalProof": false
+  },
+  "truth": {
+    "sourceAccepted": true,
+    "equivalentBrowserTested": true,
+    "realChromeSuccessorRetested": false,
+    "platformConsumed": false,
+    "productsConsumed": "0/12",
+    "installedWalletVerified": false,
+    "walletApprovalVerified": false,
+    "callbackVerified": false,
+    "productSessionCreated": false,
+    "deployedPublic": false,
+    "integratedCentral": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "executionLeaseIssued": false,
+  "sshUsed": false,
+  "deploymentAttempted": false,
+  "nextAction": "Consumers must replace the superseded hidden-frame Web strategy with v2 provider discovery and return exact source plus real Chrome/Extension or native visible-device approval/callback evidence. No v1 consumer checkpoint inherits v2 acceptance."
+}

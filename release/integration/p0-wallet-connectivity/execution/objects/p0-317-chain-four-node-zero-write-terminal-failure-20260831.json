@@ -1,0 +1,27 @@
+{
+  "schemaVersion": "1.0.0",
+  "taskId": "P0-317",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-chain-four-node-zero-write-inspection-20260831T053100Z",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_CHAIN_P0317_LOCAL_NODE_EXECUTABLE_ABSENT_PRE_INSPECTOR",
+  "terminalAt": "2026-08-31T05:34:48Z",
+  "invocationAttempts": 1,
+  "retryCount": 0,
+  "localExitStatus": 127,
+  "failure": "zsh:3: no such file or directory: /usr/bin/node",
+  "inspectorStarted": false,
+  "evidencePathFinal": "absent",
+  "sshAttempts": 0,
+  "sshAttemptLimit": 4,
+  "remoteConnections": 0,
+  "remoteTemporaryFiles": 0,
+  "remoteMutations": 0,
+  "serviceLifecycleActions": 0,
+  "deploymentActions": 0,
+  "nodeTruthKnown": false,
+  "localReadOnlySuccessorFact": {
+    "directlyResolvedNodePath": "/opt/homebrew/bin/node",
+    "directlyReadVersion": "v26.7.0",
+    "usrLocalBinNodeListedButNotVersionRead": true
+  },
+  "nextBoundary": "A wholly-new request must freeze an actually present executable path and receipt. P0-317 is nonreusable and no node inspection may be promoted."
+}

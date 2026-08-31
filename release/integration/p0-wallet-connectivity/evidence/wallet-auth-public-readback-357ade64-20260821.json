@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-WALLET-AUTH-PUBLIC-READBACK-357ADE64-20260821",
+  "checkedAt": "2026-08-21T00:45:00+08:00",
+  "ownerCheckpoint": {
+    "commit": "357ade642285648ce365f9a44396791da26993c9",
+    "parent": "78f4134947330ee4f26331f600cf51a4aca80ec9",
+    "tree": "619d5bebe7ae611cf48bec75904bbaeda71dc034",
+    "branch": "codex/wallet-session-router-recovery",
+    "remoteReadable": true,
+    "changedFiles": 2,
+    "sourceEvidence": {
+      "path": "release/integration/wallet-auth-website-public-readback-20260821.json",
+      "blob": "27b7f7c891c38268d92a17906d73be71a9896bb2"
+    }
+  },
+  "publicReadback": {
+    "walletAuthVersion": {
+      "url": "https://wallet-auth.ynxweb4.com/version",
+      "status": 200,
+      "bytes": 301,
+      "sha256": "5ec386007e0b3e24bfd7d1f1afd37b4e98aedf7f4e1f7b2b39efca136a5d52d0",
+      "sourceCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+      "release": "p0-v2-state-isolated-6cf3ef84"
+    },
+    "apexAndWwwDocs": {
+      "status": 200,
+      "bytes": 4748,
+      "sha256": "d4ab589c6b113e95168d0d2d2032c1792c7d1ad990d287f298efb8b130bafa1f"
+    },
+    "apexAndWwwRuntimePublication": {
+      "path": "/releases/wallet-auth-runtime/6cf3ef845202bd879ed94515a71b323dd2fc9e14/runtime-publication.json",
+      "status": 200,
+      "bytes": 1900,
+      "sha256": "635fefdcc1cd5675a1787a9bf17c87102ccadd1c8232450be7b847333fe75941",
+      "sourceCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14"
+    }
+  },
+  "transportBoundary": {
+    "subsequentApexMultiRequestSampleHadTlsFailure": true,
+    "failedSampleUsedAsSuccessEvidence": false,
+    "failedSampleMutatedState": false
+  },
+  "websiteTimeline": {
+    "ownerReportedWebsiteSource": "a7313313014bb8792f38e649e9f556dbee983c8c",
+    "ownerReportedDeploymentId": "dpl_5oP2L2ZHvP13YH3ZYWySLD49pj3P",
+    "remoteMainAtAudit": "3f5bb28d00b808d5c6827093319c50befea875b8",
+    "ownerReportedSourceIsRemoteMain": false,
+    "overridesCentralP0023": false,
+    "currentDeploymentRenderedCardVerified": false
+  },
+  "truth": {
+    "walletAuthGatewayVersionPublic": true,
+    "websiteRuntimeRecordPublic": true,
+    "websiteRuntimeRecordMatchesWalletAuthVersion": true,
+    "registryV3ShopRetirementDeployedPublic": false,
+    "installedWalletApprovalVerified": false,
+    "productsMigratedV2": 0,
+    "integratedCentral": false,
+    "aggregateDeployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

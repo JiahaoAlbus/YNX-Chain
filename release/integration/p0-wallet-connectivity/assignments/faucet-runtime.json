@@ -1,0 +1,23 @@
+{
+  "taskId":"P0-012",
+  "owner":"integration",
+  "status":"DEPLOYMENT_GATE_BLOCKED",
+  "branch":"codex/p0-faucet-runtime-20260820",
+  "worktree":"29-faucet-runtime-p0",
+  "commit":"ea0e068becd9103f5f0a2a6c3a0d20ab7932d006",
+  "candidatePR":"https://github.com/JiahaoAlbus/YNX-Chain/pull/108",
+  "paths":["cmd/ynx-faucetd/**","internal/faucet/**","infra/systemd/ynx-faucetd.example.service","infra/docker/ynx-faucetd.Dockerfile","scripts/verify/faucet-check.sh"],
+  "objective":"Remove internal topology from public Faucet health, expose a truthful public /version response and preserve real fault classification.",
+  "requiredEvidence":["focused tests","diff check","public response does not reveal loopback or private topology","isolated branch and PR"],
+  "currentPublicRuntime":"2026-08-20T10:42Z direct HTTPS probe returned rpcUrl=http://127.0.0.1:6420 and /version HTTP 404 from deployed source 8fe48738f309c469bd7a16e31fbfe9e106d7de3c; candidate ea0e068b is not deployed.",
+  "deploymentGate":{
+    "checkedAt":"2026-08-20T10:44:07Z",
+    "status":"BLOCKED_FAIL_CLOSED",
+    "blockers":["remote smoke requires release-manifest evidence bound to the candidate","public RPC source identity is a986a30c5a4ed8cfd66f7f08dd2d6f032b1cfdc8 rather than candidate ea0e068becd9","three follower nodes are materially behind the primary and report replication response exceeds 268435456 bytes","remote smoke cannot produce valid release evidence while the public runtime remains old and follower convergence is unproven"],
+    "verifiedPreconditions":["strict SSH host-key audit passed for primary, Singapore, Silicon Valley and Seoul","four-node pre-mutation recovery checkpoint is complete and integrity-checked","candidate branch is clean and pushed","non-mutating candidate package dry-run passed with release checksum da7b13dd03163c238d2e57c2cde8dda99846a713f9f576d88e61f86cca1f3b95"]
+  },
+  "legacyRuntimeBaseline":"release/integration/p0-wallet-connectivity/acceptance/legacy-runtime-baseline-20260820.json",
+  "prohibitedClaims":["deployed","public verified","Wallet Faucet works"],
+  "rollback":"revert the isolated Faucet runtime commit; do not alter the endpoint manifest until runtime deployment is independently observed.",
+  "nextAction":"Repair and verify bounded follower replication without bypassing the release gate; then produce the candidate-bound release manifest evidence, rerun the non-mutating remote smoke until it accepts candidate source identity, and only then run the normal deploy gate and deployment path."
+}

@@ -1,0 +1,58 @@
+{
+  "schemaVersion": "1.0.0",
+  "lease": {
+    "signed": true,
+    "kind": "FINANCE_P0279_CONTROL_CLEANUP_ONLY",
+    "id": "p0281-finance-p0279-control-cleanup-20260823T170900Z",
+    "taskId": "P0-281",
+    "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+    "issuedAt": "2026-08-23T17:09:00Z",
+    "expiresAt": "2026-08-23T17:39:00Z",
+    "singleUse": true,
+    "retryAllowed": false
+  },
+  "predecessor": {
+    "centralCommit": "8de0d7932280893938b4fc995fa9bd5ed42df513",
+    "centralTree": "45456e7f0876c878a8e6384dcf42afe56b57c135",
+    "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0280_P0279_REMOTE_STATE_ZERO_WRITE_INSPECTION",
+    "terminalLeaseBlob": "2eecfda2c1a8ee50c18d27726cf5a841e8dd5085",
+    "terminalLeaseSha256": "21e3108688c3c34b3ad487357c5b674ad2f68357df04de333347d29001dd5c66"
+  },
+  "parent": {
+    "path": "/opt/ynx/leases/finance",
+    "tuple": "64770:4594822:0:0:750:2:4096:directory",
+    "stableIdentity": "64770:4594822:0:0:750:directory"
+  },
+  "targets": {
+    "executor": {
+      "path": "/opt/ynx/leases/finance/p0279-finance-phase3-20260823T164408Z.executor.sh",
+      "tuple": "64770:4620881:0:0:700:1:18432:regular file",
+      "bytes": 18432,
+      "sha256": "be7435a922b26482c830778ef23753e7de2e02ad307de914fef9aa83a77229c0"
+    },
+    "signedLease": {
+      "path": "/opt/ynx/leases/finance/p0279-finance-phase3-20260823T164408Z.json",
+      "tuple": "64770:4620882:0:0:600:1:8140:regular file",
+      "bytes": 8140,
+      "sha256": "5b36af2367371cfb94490cf0ade3b0399c3a836b71b88886063ede6fb994bea9"
+    }
+  },
+  "transport": {
+    "executor": {
+      "path": "/tmp/ynx-finance-p0281-finance-p0279-control-cleanup-20260823T170900Z.executor.sh",
+      "bytes": 2441,
+      "sha256": "b33ebfe0b4a4da027f7db3d64672d8b73b6e7e714bcb0def304f4fed9fa5403b"
+    },
+    "lease": {
+      "path": "/tmp/ynx-finance-p0281-finance-p0279-control-cleanup-20260823T170900Z.json"
+    }
+  },
+  "forbidden": [
+    "deployment or rollback",
+    "service lifecycle",
+    "current, environment, state, unit or Caddy mutation",
+    "stage, backup or release mutation",
+    "public mutation",
+    "Wallet, account, signature, typed data or transaction"
+  ]
+}

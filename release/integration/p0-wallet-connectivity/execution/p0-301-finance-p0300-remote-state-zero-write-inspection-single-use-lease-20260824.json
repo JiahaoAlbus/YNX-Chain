@@ -1,0 +1,71 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-301",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-p0300-state-readonly-p0301-20260823T205100Z",
+  "owner": "finance-release-control-plane-readonly-inspection",
+  "executor": "finance-release-control-plane-readonly-inspection",
+  "status": "CONSUMED_RELEASED_SUCCESS_ZERO_WRITE_P0300_REMOTE_STATE_KNOWN",
+  "issuedAt": "2026-08-23T20:51:00Z",
+  "expiresAt": "2026-08-23T21:21:00Z",
+  "singleUse": true,
+  "reusable": false,
+  "productionMutationAllowed": false,
+  "scope": "Exactly one zero-write SSH inspection of unknown P0-300 state",
+  "reviewedObject": {
+    "path": "release/integration/p0-wallet-connectivity/execution/objects/p0-301-finance-p0300-remote-state-zero-write-inspection.sh",
+    "blob": "52c14c48d1cbe9a5a3bc8bbc1614968628eb149b",
+    "bytes": 5021,
+    "sha256": "6382ba743c72d2eab73c28aea48dc6a1c848f55821b2c9906c4f280b56d8e5c1",
+    "bashSyntax": "PASS",
+    "zeroWriteStaticAudit": "PASS"
+  },
+  "executionAuthority": {
+    "processWorkingDirectory": "/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration",
+    "literalArgv": [
+      "/usr/bin/ssh",
+      "-i",
+      "/Users/huangjiahao/Downloads/Huang.pem",
+      "-o",
+      "IdentitiesOnly=yes",
+      "-o",
+      "BatchMode=yes",
+      "-o",
+      "StrictHostKeyChecking=yes",
+      "-o",
+      "UserKnownHostsFile=/Users/huangjiahao/.ssh/known_hosts",
+      "-o",
+      "ConnectTimeout=10",
+      "-o",
+      "ConnectionAttempts=1",
+      "ubuntu@43.153.202.237",
+      "/usr/bin/sudo",
+      "-n",
+      "/bin/bash",
+      "-s"
+    ],
+    "argvCount": 20,
+    "stdinPath": "/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration/release/integration/p0-wallet-connectivity/execution/objects/p0-301-finance-p0300-remote-state-zero-write-inspection.sh",
+    "stdinBytes": 5021,
+    "stdinSha256": "6382ba743c72d2eab73c28aea48dc6a1c848f55821b2c9906c4f280b56d8e5c1",
+    "stdoutPath": "/tmp/ynx-finance-p0301-p0300-remote-state-zero-write.stdout",
+    "stderrPath": "/tmp/ynx-finance-p0301-p0300-remote-state-zero-write.stderr",
+    "sshAttemptLimit": 1,
+    "retryAllowed": false,
+    "remoteWrites": 0,
+    "remoteTemporaryFiles": 0
+  },
+  "forbidden": [
+    "write or remote temp",
+    "cleanup deletion deployment rollback or lifecycle",
+    "config public Wallet account signature typed-data or transaction mutation"
+  ],
+  "terminalRules": {
+    "success": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0301_P0300_REMOTE_STATE_ZERO_WRITE_INSPECTION",
+    "failure": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0301_ZERO_WRITE_INSPECTION",
+    "releaseOnlyAfterDirectTerminalEvidence": true,
+    "terminalEvidencePath": "release/integration/p0-wallet-connectivity/execution/objects/p0-301-finance-p0300-remote-state-zero-write-terminal-evidence-20260824.json",
+    "terminalEvidenceAccepted": true
+  },
+  "releasedAt": "2026-08-23T20:53:40Z"
+}

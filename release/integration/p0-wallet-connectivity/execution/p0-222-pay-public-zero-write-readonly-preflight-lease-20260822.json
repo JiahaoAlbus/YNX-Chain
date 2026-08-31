@@ -1,0 +1,202 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-222",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-pay-public-zero-write-readonly-preflight-20260822T220600Z",
+  "owner": "pay",
+  "executor": "pay-public-zero-write-preflight",
+  "status": "CONSUMED_RELEASED_SUCCESS_PAY_PUBLIC_ZERO_WRITE_READONLY_BASELINE_PREFLIGHT",
+  "issuedAt": "2026-08-22T22:06:00Z",
+  "expiresAt": "2026-08-22T22:36:00Z",
+  "releasedAt": "2026-08-22T22:10:00Z",
+  "singleUse": true,
+  "reusable": false,
+  "executionAuthorized": false,
+  "productionWritesAllowed": false,
+  "productionMutationAllowed": false,
+  "remoteTemporaryFilesAllowed": false,
+  "remoteRedirectionAllowed": false,
+  "remoteMutationAllowed": false,
+  "deploymentAllowed": false,
+  "scope": "Pay-only exact committed zero-write protected-host baseline collector; all evidence writes are local only",
+  "predecessor": {
+    "taskId": "P0-221",
+    "centralReleaseCommit": "27015fb00b08aa84ac73decf80eb8e3f13c6750b",
+    "centralReleaseTree": "4f0387ca10b50fd0da0c3eb89be32aa35098ed96",
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_PAY_PUBLIC_READONLY_BASELINE_PREFLIGHT_REMOTE_TMP_WRITE",
+    "leaseBlob": "ff692f43bcf8854a02f0d289aa5ff5d6618c682f",
+    "leaseContentSha256": "4a1f4b9465c767d6d412789e9f019a1ae6f5855ef9719c101c6e7204eb884eac",
+    "reusable": false
+  },
+  "ownerAuthority": {
+    "branch": "codex/p0-pay-wallet-connectivity-20260821",
+    "remoteHeadAtIssuance": "ca76d720bfbfeb212e0de49dbfbad2fa504b6e82",
+    "remoteTreeAtIssuance": "77ff12ddf359e78fd3576bd06dcf5bc409a692b9",
+    "executorBindingCommit": "deedb329a7572ce3f378a8828c8e75d4bc570b2e",
+    "executorBindingTree": "d1d3d3f475c85d657b2aeb5cb90e134358b2ae77",
+    "payProductCommit": "5f4ce98eb458550b976c17e3bc6d77cce4081a59",
+    "payProductTree": "8f0c25c4d86eb22a564f3c7aeff9db6709a9b9f0",
+    "remoteReadbackExact": true,
+    "worktreeClean": true
+  },
+  "request": {
+    "path": "apps/pay/evidence/pay-web-public-zero-write-preflight-lease-request-20260823.json",
+    "blob": "31e78408452220e9b3db0abadeaece879800a60c",
+    "bytes": 6027,
+    "sha256": "be162cf3f1e366dc4b798fb3d71bbc6b967b2852a96c2914fe8d08c9676692ac",
+    "jsonValid": true,
+    "independentlyRead": true
+  },
+  "commandObjects": {
+    "script": {
+      "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/04-pay-p0-clean/apps/pay/scripts/pay-public-zero-write-preflight.sh",
+      "repositoryPath": "apps/pay/scripts/pay-public-zero-write-preflight.sh",
+      "blob": "2baa7e25cdef1c87b547f5adf12ae9a85072e8a8",
+      "bytes": 4824,
+      "sha256": "54b95eef6c0c0afe94da4d6926e97aedeb2da474794ebdf6115fdd319a03e625",
+      "mode": "0755",
+      "bashSyntax": "PASS"
+    },
+    "staticVerifier": {
+      "path": "apps/pay/scripts/verify-pay-public-zero-write-preflight.mjs",
+      "blob": "911002410fcc9f4f78cf1e05393afe3cae399523",
+      "bytes": 1631,
+      "sha256": "84dc06cd3bd11cc2bbecb3640a02fe3efc5adf5972b28021e4d2168269f603b3",
+      "result": "PASS"
+    },
+    "remoteAllowlistStaticAndReadOnly": true,
+    "remoteStdoutRedirectedByLocalShellOnly": true
+  },
+  "executorBinding": {
+    "host": "43.153.202.237",
+    "user": "ubuntu",
+    "identityFile": "/Users/huangjiahao/Downloads/Huang.pem",
+    "identityBytes": 1674,
+    "identityMode": "0600",
+    "identitiesOnly": true,
+    "identityExplicitlyPassedWithDashI": true,
+    "knownHostsFile": "/Users/huangjiahao/.ssh/known_hosts",
+    "strictHostKeyChecking": true,
+    "hostKeyAlgorithm": "ssh-ed25519",
+    "hostKeyFingerprint": "SHA256:7wrOak1OZoD6oDAr0e3En+UD4fs8QnAM1n0Jvwi6Ha8",
+    "hostKeyPresentInPinnedKnownHosts": true
+  },
+  "candidate": {
+    "path": "release/pay/ynx-pay-web-5f4ce98e-static.tar.gz",
+    "blob": "cca37d7b48c1c37266a4141c7b79f44f1cf09f29",
+    "bytes": 608368,
+    "sha256": "ae552951d8e569f04aced60db69e3c11422910cc1098a6e7061b0e84005ad09e",
+    "deploymentAuthorized": false
+  },
+  "lastKnownBaseline": {
+    "caddyfileSha256": "077fe80ea9aab24a32d64ba1fab3584e8aab10304e200e58d976d2c33edfb39f",
+    "ynxChainCaddySha256": "df5f7ad73dd2631c0e934514e05a30ac97c75dc9efe2ec568b049c71c4024396",
+    "payAppCaddySha256": "5b09ff338529fe0744a5e79cef10c92d42df654e2b4d650502cfd2ad245b0350",
+    "merchantCaddySha256": "1213e915c4300a894acc90dd42946c974cdc66b4275ce4f92d2479289879ace6",
+    "adaptedCaddyBytes": 25233,
+    "adaptedCaddySha256": "f36d4ace086b55dfbd949fb6b2aaf837c7463f1a9b61303f270b8b885f80b213",
+    "payRoute": "catch-all reverse_proxy 127.0.0.1:6430",
+    "payWebRoot": "ABSENT:/opt/ynx-pay-web",
+    "payAppCurrent": "/opt/ynx/pay-app-current -> /opt/ynx/pay-app-53eb677c",
+    "paydBinarySha256": "9793542dba1dd3a70f0a035edb26efa7611563e0f684a276405571dc5fe2735c",
+    "paydService": "ynx-payd.service active NRestarts0",
+    "listeners": ["127.0.0.1:6430", "127.0.0.1:6484"],
+    "publicRoot": "404/19/SHA256:b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793",
+    "publicHealth": "200/589/SHA256:4e1b7b1a63b1b0d63a496def3515f41b1ac943ad27b9c13537b231f357d0de17",
+    "publicVersionAndCallback": "404/19/SHA256:b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793"
+  },
+  "locks": [
+    "heavy:pay",
+    "host:43.153.202.237:pay-zero-write-readonly",
+    "route:https://pay.ynxweb4.com/**:readonly",
+    "config:/etc/caddy/**:readonly",
+    "runtime:/opt/ynx/pay-app-current:readonly",
+    "runtime:/usr/local/bin/ynx-payd:readonly",
+    "local-evidence:/tmp/ynx-pay-p0222-zero-write-readonly-20260822T220600Z"
+  ],
+  "localEvidence": {
+    "directory": "/tmp/ynx-pay-p0222-zero-write-readonly-20260822T220600Z",
+    "absentAtIssuance": true,
+    "modeAfterCreation": "0700",
+    "onlyAuthorizedWriteScope": true
+  },
+  "execution": {
+    "maxAttempts": 1,
+    "retryAllowed": false,
+    "exactCommand": "PAY_KNOWN_HOSTS=/Users/huangjiahao/.ssh/known_hosts '/Users/huangjiahao/Desktop/YNX Final Worktrees/04-pay-p0-clean/apps/pay/scripts/pay-public-zero-write-preflight.sh' /tmp/ynx-pay-p0222-zero-write-readonly-20260822T220600Z",
+    "preconditions": [
+      "fresh-read this exact unexpired ACTIVE_SINGLE_USE lease, Heavy owner and all P0-222 locks",
+      "remote Pay owner remains exact ca76d720bfbfeb212e0de49dbfbad2fa504b6e82 and clean",
+      "script, verifier, request, identity bytes/mode and pinned host-key fingerprint remain exact",
+      "local evidence directory remains absent",
+      "run the static verifier once immediately before the exact command"
+    ],
+    "requiredTerminalReadback": [
+      "script exits once with no retry and every expected local evidence file is regular and locally contained",
+      "fresh baseline matches or any mismatch is recorded fail-closed",
+      "independently hash all local evidence files, including files created after evidence-sha256.txt",
+      "directly confirm no remote temporary file, redirection or mutation was attempted",
+      "confirm Caddy, pay-app symlink/root, ynx-payd binary/service/restart count and listeners remain unchanged",
+      "confirm no candidate upload, extraction, deployment, account, signing or transaction action"
+    ]
+  },
+  "forbidden": [
+    "any remote file or directory create, write, delete, move, chmod, chown or timestamp mutation",
+    "remote mktemp, redirection, tee, touch, mkdir, rm, cp, mv, install or tar",
+    "systemctl or service mutation, Caddy reload/edit, DNS or certificate mutation",
+    "candidate upload, extraction, deployment, installation, symlink or route switch",
+    "provider selection, eth_requestAccounts, approval, account, sign, EIP-712, transaction or private key action",
+    "Pay source/UI mutation or any other product action",
+    "public source-bound, installed-provider, account, signing, transaction or product-completion promotion"
+  ],
+  "executionOutcome": {
+    "result": "DIRECT_SUCCESS_ZERO_REMOTE_WRITE",
+    "attemptCount": 1,
+    "exitCode": 0,
+    "elapsedSeconds": 22.7,
+    "retryCount": 0,
+    "localEvidence": {
+      "directory": "/tmp/ynx-pay-p0222-zero-write-readonly-20260822T220600Z",
+      "fileCount": 25,
+      "totalBytes": 46613,
+      "archive": "/tmp/ynx-pay-p0222-zero-write-readonly-20260822T220600Z.tar.gz",
+      "archiveBytes": 8932,
+      "archiveSha256": "68b663210ccae1493994c591316797c2e0cb938b0957ad4e488b9a090ef5cdbc"
+    },
+    "freshBaseline": {
+      "caddyfile": "928B dev64770 inode1051746 root:root mode0644 nlink1 SHA256 077fe80ea9aab24a32d64ba1fab3584e8aab10304e200e58d976d2c33edfb39f",
+      "ynxChainCaddy": "2899B SHA256 df5f7ad73dd2631c0e934514e05a30ac97c75dc9efe2ec568b049c71c4024396",
+      "payAppCaddy": "306B SHA256 5b09ff338529fe0744a5e79cef10c92d42df654e2b4d650502cfd2ad245b0350",
+      "merchantCaddy": "489B SHA256 1213e915c4300a894acc90dd42946c974cdc66b4275ce4f92d2479289879ace6",
+      "caddyAdapt": "25233B SHA256 f36d4ace086b55dfbd949fb6b2aaf837c7463f1a9b61303f270b8b885f80b213; stdout captured directly by local shell; read-only formatting warning only",
+      "payWebRoot": "SIGNED_ABSENT:/opt/ynx-pay-web",
+      "payAppCurrent": "/opt/ynx/pay-app-current -> /opt/ynx/pay-app-53eb677c; link dev64770 inode1334188 root:root mode0777 nlink1 bytes25; full followed inventory and hashes captured including pre-existing AppleDouble residue",
+      "payd": "/usr/local/bin/ynx-payd SHA256 9793542dba1dd3a70f0a035edb26efa7611563e0f684a276405571dc5fe2735c; active/running PID2734498 NRestarts0 listener127.0.0.1:6430",
+      "separatePayProduct": "PID2739247 listener127.0.0.1:6484",
+      "publicRoot": "404/19B/SHA256 b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793",
+      "publicVersion": "404/19B/SHA256 b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793",
+      "publicCallback": "404/19B/SHA256 b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793",
+      "publicHealth": "200/SHA256 4a4cc961cf622e3f54ad50096a9b02f41a3aff07206c527681a09464cb4010f4; dynamic body parsed service=ynx-payd network=YNX Testnet chainId=6423"
+    },
+    "zeroWriteAudit": {
+      "passed": true,
+      "remoteCommandsFromCommittedAllowlistOnly": true,
+      "remoteStdoutCapturedLocallyOnly": true,
+      "remoteTemporaryFileCount": 0,
+      "remoteMutationCount": 0,
+      "deploymentCount": 0,
+      "accountRequestCount": 0,
+      "signingCount": 0,
+      "transactionCount": 0,
+      "productionStateUnchanged": true
+    },
+    "truthBoundary": "P0-222 proves only the zero-write protected Pay production baseline and rollback mapping. It does not prove or authorize the Pay public candidate, installed provider, account, approval, signing, transaction or product completion."
+  },
+  "terminal": {
+    "successStatus": "CONSUMED_RELEASED_SUCCESS_PAY_PUBLIC_ZERO_WRITE_READONLY_BASELINE_PREFLIGHT",
+    "failureStatus": "CONSUMED_RELEASED_FAILED_CLOSED_PAY_PUBLIC_ZERO_WRITE_READONLY_BASELINE_PREFLIGHT",
+    "releaseHeavyAndAllLocksOnEveryTerminalPath": true,
+    "futureDeploymentRequiresWhollyNewLease": true,
+    "successPromotion": "zero-write read-only Pay production baseline and rollback mapping only"
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-064",
+  "ownerTaskLabel": "P0-055",
+  "decision": "REJECT_SOURCE_ONLY_POST_COMMIT_RECEIPT_CONSTRUCTION",
+  "reviewedAt": "2026-08-20T21:08:00Z",
+  "sourceCommit": "2bd7a13d4e8fb12dfda6e98900504c0f2edeaaf0",
+  "sourceTree": "7a20dc435d83fd27c76a095eabfa3d55f751d91f",
+  "ownerEvidenceCommit": "33b2330ee31b7cbd203a73d4f69bbb93dd60918e",
+  "ownerEvidenceTree": "6bb9db3917d647495899e874e9d7fe9b4f1f4b2f",
+  "ownerEvidenceBlob": "016c7fa8710a1cf38a49e5df82372c2b5f42d4b2",
+  "ownerEvidenceSha256": "1332d0d2e22f666fdcd35597d69fdef7c51d60cb7172fcec3339f9c1f561b36e",
+  "ownerFocusedTests": "15/15",
+  "ownerTests": "363/363",
+  "ownerPackSha256": "f4fb923e4904ebdfd42142eea6569f98c75037041eac4920a2af70b22b2aae35",
+  "blockingFinding": {
+    "code": "POST_COMMIT_RECEIPT_CONSTRUCTION",
+    "summary": "The irreversible directory ownership transfer is correctly terminal for filesystem work, but the success receipt is allocated, computed and frozen afterward. A synchronous construction fault leaves committed output without a receipt.",
+    "reproduction": {"directoryTransferred":true,"receiptReturned":false,"caughtCode":"RETURN_FAULT","outputExists":true},
+    "requiredCorrection": [
+      "precompute and freeze the complete immutable receipt before directory fchown",
+      "perform the irreversible directory fchown only after receipt construction succeeds",
+      "after commit return only the preconstructed reference with no allocation, byte calculation or freeze",
+      "prove injected post-commit Object.freeze and finally faults cannot suppress the committed receipt"
+    ]
+  },
+  "sourceAccepted": false,
+  "executionLeaseIssued": false,
+  "sshUsed": false,
+  "productionRead": false,
+  "deploymentAttempted": false,
+  "publicRuntimeSource": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+  "registryV3Public": false,
+  "productsMigratedV2": 0,
+  "productsRequired": 12,
+  "publicVerified": false,
+  "computerControlVerified": false
+}

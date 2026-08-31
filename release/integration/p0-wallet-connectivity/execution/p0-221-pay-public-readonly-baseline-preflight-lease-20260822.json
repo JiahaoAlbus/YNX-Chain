@@ -1,0 +1,175 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-221",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-pay-public-readonly-baseline-preflight-20260822T214800Z",
+  "owner": "pay",
+  "executor": "pay-production-readonly-audit",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_PAY_PUBLIC_READONLY_BASELINE_PREFLIGHT_REMOTE_TMP_WRITE",
+  "issuedAt": "2026-08-22T21:48:00Z",
+  "expiresAt": "2026-08-22T22:18:00Z",
+  "releasedAt": "2026-08-22T21:54:00Z",
+  "singleUse": true,
+  "reusable": false,
+  "executionAuthorized": false,
+  "productionWritesAllowed": false,
+  "productionMutationAllowed": false,
+  "scope": "Pay-only protected-host read-only production baseline, routing and rollback-state inventory; no deployment, installation or runtime mutation",
+  "ownerAuthority": {
+    "branch": "codex/p0-pay-wallet-connectivity-20260821",
+    "remoteHeadAtIssuance": "e86198ce64a19687ff714bf9b67ddee619c2711f",
+    "remoteTreeAtIssuance": "033723d856e8ad9ba38630cb62c944f2de5a22a2",
+    "implementationCommit": "5f4ce98eb458550b976c17e3bc6d77cce4081a59",
+    "implementationTree": "8f0c25c4d86eb22a564f3c7aeff9db6709a9b9f0",
+    "baseCommit": "dbdd3491e63186cc02541ca7e8a20d8f098b31b9",
+    "remoteReadbackExact": true
+  },
+  "request": {
+    "path": "apps/pay/evidence/pay-web-public-preflight-lease-request-20260823.json",
+    "blob": "5c191c69940ad7231f111f9c8eccafc99ab5012d",
+    "bytes": 2990,
+    "sha256": "6a88baaf14d0ecdf9ef2bf2eb779e0853048f285395c53d7ed06889fc67bbe08",
+    "jsonValid": true,
+    "independentlyRead": true
+  },
+  "candidate": {
+    "sourceCommit": "5f4ce98eb458550b976c17e3bc6d77cce4081a59",
+    "sourceTree": "8f0c25c4d86eb22a564f3c7aeff9db6709a9b9f0",
+    "path": "release/pay/ynx-pay-web-5f4ce98e-static.tar.gz",
+    "blob": "cca37d7b48c1c37266a4141c7b79f44f1cf09f29",
+    "bytes": 608368,
+    "sha256": "ae552951d8e569f04aced60db69e3c11422910cc1098a6e7061b0e84005ad09e",
+    "releaseManifestFiles": 7,
+    "releaseManifestVerification": "PASS_7_OF_7",
+    "buildIdentitySourceExact": true,
+    "futureReleaseRootOnly": "/opt/ynx-pay-web/releases/5f4ce98eb458550b976c17e3bc6d77cce4081a59",
+    "deploymentAuthorized": false
+  },
+  "candidateEvidence": {
+    "path": "apps/pay/evidence/pay-web-static-candidate-20260823.json",
+    "blob": "c0219cfe0784bdf4a0d56c318eeb9ea9906ae578",
+    "bytes": 2527,
+    "sha256": "9af777ed28917f73d695d1ff6e541bf6514d958584e7b6822562ff9c3c1d9af5",
+    "truthBoundary": "source-bound deterministic static candidate only; not public, installed or account-capable evidence"
+  },
+  "host": {
+    "address": "43.153.202.237",
+    "hostname": "VM-4-3-ubuntu",
+    "arch": "x86_64",
+    "sshUser": "ubuntu",
+    "identityFile": "/Users/huangjiahao/Downloads/Huang.pem",
+    "strictHostKeyChecking": true,
+    "hostKeyAlgorithm": "ssh-ed25519",
+    "hostKeyFingerprint": "SHA256:7wrOak1OZoD6oDAr0e3En+UD4fs8QnAM1n0Jvwi6Ha8",
+    "batchMode": true,
+    "nonInteractiveSudo": true,
+    "readOnlyCapabilityVerifiedAt": "2026-08-22T21:46:00Z"
+  },
+  "officialBaseline": {
+    "origin": "https://pay.ynxweb4.com",
+    "dnsA": "43.153.202.237",
+    "root": {
+      "status": 404,
+      "bytes": 19,
+      "sha256": "b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793",
+      "freshlyReadAtIssuance": true
+    },
+    "caddyEntryFile": {
+      "path": "/etc/caddy/Caddyfile",
+      "bytes": 928,
+      "uid": 0,
+      "gid": 0,
+      "mode": "0644",
+      "nlink": 1,
+      "sha256": "077fe80ea9aab24a32d64ba1fab3584e8aab10304e200e58d976d2c33edfb39f",
+      "adaptReadable": true
+    }
+  },
+  "locks": [
+    "heavy:pay",
+    "host:43.153.202.237:pay-readonly-baseline",
+    "route:https://pay.ynxweb4.com/**:readonly",
+    "config:/etc/caddy/**:readonly",
+    "runtime:/opt/ynx-pay-web/**:readonly"
+  ],
+  "authorizedReadOnlyOperations": [
+    "fresh-read this exact unexpired ACTIVE_SINGLE_USE lease, Heavy owner and all Pay read-only locks",
+    "connect only to ubuntu@43.153.202.237 using BatchMode, StrictHostKeyChecking and the bound host key",
+    "read hostname, architecture, time, filesystem metadata and process or service status without changing state",
+    "read and hash complete effective Caddy source bytes and caddy adapt output; isolate the exact pay.ynxweb4.com route and every imported source file",
+    "enumerate and hash all Pay API, health, callback and merchant route matchers, handlers, upstreams and ordering",
+    "resolve the current Pay static root or produce a signed absence receipt; when present read its realpath, device, inode, uid, gid, mode, nlink, bytes, symlink status, sorted inventory and tree digest",
+    "identify any already-existing immutable rollback archive and exact restore procedure, or record signed absence; creation of a rollback archive is forbidden",
+    "identify exactly one eligible future deployment executor and its bounded sudo command surface without printing secret values",
+    "perform direct read-only HTTP probes of the current official Pay root and discovered non-sensitive health or callback route shapes without account actions",
+    "write evidence only into a fresh local /tmp/pay-p0221-readonly-* directory"
+  ],
+  "requiredReceipts": [
+    "lease/Heavy/lock/time/remote-head/host-key precheck",
+    "effective Caddy source file list with complete bytes, stat tuples and SHA-256",
+    "caddy adapt output bytes/SHA-256 and exact active pay.ynxweb4.com host stanza",
+    "ordered API, health, callback, merchant and static-fallback route map with upstream identities",
+    "current static root exact identity or signed absence, including parent path metadata",
+    "when a root exists, exact recursive inventory and tree digest plus device/inode/owner/mode/nlink/bytes",
+    "existing immutable rollback object bytes/SHA-256/readability and executable restore procedure, or signed absence",
+    "eligible future executor identity and sudo scope with secret values omitted",
+    "fresh official HTTP status/final URL/bytes/SHA-256/headers for root and every safe discovered route",
+    "terminal evidence SHA256SUMS and explicit zero-write audit"
+  ],
+  "forbidden": [
+    "any remote file or directory creation, modification, deletion, move, permission or ownership change",
+    "tar or other rollback archive creation",
+    "systemctl start, stop, restart, reload, enable, disable or daemon-reload",
+    "Caddy edit, format-in-place, reload, route activation, DNS or certificate mutation",
+    "candidate upload, extraction, installation, symlink switch or deployment",
+    "reading, printing or retaining secret values, private keys, account tokens or recovery material",
+    "browser provider selection, eth_requestAccounts, approval, account, personal_sign, EIP-712, transaction or payment execution",
+    "Pay source, UI, project settings or any other product mutation",
+    "public, installed-provider, account, signing, transaction or product-completion promotion"
+  ],
+  "executionOutcome": {
+    "result": "FAIL_CLOSED",
+    "reason": "REMOTE_TMP_WRITE_VIOLATED_ABSOLUTE_ZERO_REMOTE_WRITE_CONTRACT",
+    "retryCount": 0,
+    "deploymentCount": 0,
+    "installCount": 0,
+    "accountRequestCount": 0,
+    "signingCount": 0,
+    "transactionCount": 0,
+    "disclosedRemoteMutation": {
+      "path": "/tmp/tmp.7s0khxcCzL",
+      "createdOnce": true,
+      "deletedOnceByExitCleanup": true,
+      "directFinalReadback": "ABSENT",
+      "productionConfigRuntimePathTouched": false
+    },
+    "zeroWriteAuditPassed": false,
+    "successStatusClaimed": false,
+    "directPostFailureRuntime": {
+      "service": "ynx-payd",
+      "state": "active/running",
+      "pid": 2734498,
+      "nRestarts": 0,
+      "caddyAndSourceHashesUnchanged": true
+    },
+    "preservedReadOnlyReceipts": {
+      "caddyEntry": "/etc/caddy/Caddyfile 928B root:root 0644 nlink1 SHA256 077fe80ea9aab24a32d64ba1fab3584e8aab10304e200e58d976d2c33edfb39f",
+      "caddyAdapt": "25233B SHA256 f36d4ace086b55dfbd949fb6b2aaf837c7463f1a9b61303f270b8b885f80b213; generated from unchanged config",
+      "payRoute": "pay.ynxweb4.com is one catch-all reverse_proxy to 127.0.0.1:6430 in /etc/caddy/ynx-chain.caddy SHA256 prefix df5f7ad7; no static fallback or dedicated callback/merchant routes",
+      "futurePayStaticRoot": "/opt/ynx-pay-web signed absent; /opt parent dev 64770 inode 131076 root:root 0755 nlink13",
+      "existingPayStaticApp": "pay-app.ynxweb4.com uses /opt/ynx/pay-app-current -> /opt/ynx/pay-app-53eb677c; existing target directory is the rollback object, no separate immutable rollback archive discovered",
+      "merchantSeparation": "merchant.ynxweb4.com uses /opt/ynx/merchant-console-current and separate Caddy source SHA256 prefix 1213e915",
+      "runtime": "ynx-payd /usr/local/bin/ynx-payd SHA256 prefix 9793542d on 127.0.0.1:6430; separate pay product listens on 6484",
+      "public": "pay root 404/19B/SHA256 prefix b16e1576; health 200/589B/SHA256 prefix 4e1b7b1; version and merchant/wallet-auth/callback 404; pay-app root 200/1174B/SHA256 prefix 74c3cea0",
+      "futureExecutor": "ubuntu@43.153.202.237 strict ED25519 host key with sudo NOPASSWD ALL; future write lease must narrow exact commands"
+    },
+    "truthBoundary": "Useful read-only receipts are retained, but the remote temporary-file create/delete makes P0-221 a terminal failure and authorizes no deployment or runtime promotion."
+  },
+  "terminal": {
+    "successStatus": "CONSUMED_RELEASED_SUCCESS_PAY_PUBLIC_READONLY_BASELINE_AND_ROLLBACK_PREFLIGHT",
+    "failureStatus": "CONSUMED_RELEASED_FAILED_CLOSED_PAY_PUBLIC_READONLY_BASELINE_PREFLIGHT_REMOTE_TMP_WRITE",
+    "releaseHeavyAndAllLocksOnEveryTerminalPath": true,
+    "futureDeploymentRequiresWhollyNewLease": true,
+    "successPromotion": "read-only production baseline and rollback mapping only"
+  }
+}

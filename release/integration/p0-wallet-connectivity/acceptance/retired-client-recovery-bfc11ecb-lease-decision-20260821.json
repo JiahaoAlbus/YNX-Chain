@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 1,
+  "decisionId": "P0-RETIRED-CLIENT-RECOVERY-BFC11ECB-LEASE-DECISION-20260821",
+  "walletProtocolSourceCommit": "bfc11ecb4100725ae8f42c86d220fa0bc2d8212a",
+  "classification": "SOURCE_ACCEPTED_EXECUTION_LEASE_BLOCKED_RECONCILIATION_REQUIRED",
+  "sourceEvidence": {
+    "path": "release/integration/p0-wallet-connectivity/evidence/retired-client-recovery-bfc11ecb-lease-decision-20260821.json"
+  },
+  "decision": {
+    "centralSourceAccepted": true,
+    "consumerSdkUseAccepted": true,
+    "runtimeCandidateAccepted": false,
+    "executionLeaseIssued": false,
+    "executionLeaseId": null,
+    "executionLeaseExpiresAt": null,
+    "deploymentAuthorized": false
+  },
+  "truth": {
+    "bfcReconciledWithLatestCore": false,
+    "currentPublicRuntimeUsesRegistryV3": false,
+    "publicRegistryV3RetirementVerified": false,
+    "productsMigratedV2": 0,
+    "installedApprovalVerified": false,
+    "computerControlVerified": false,
+    "integratedCentral": false,
+    "aggregateDeployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

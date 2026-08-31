@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "p0-finance-cleanup-terminal-evidence@1",
+  "taskId": "P0-291",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-p0289-four-residue-cleanup-p0291-20260823T185500Z",
+  "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0291_P0289_FOUR_RESIDUE_CLEANUP_PENDING_INDEPENDENT_READBACK",
+  "attempts": 1,
+  "localExitStatus": 0,
+  "remoteExitStatus": 0,
+  "stdout": {
+    "path": "release/integration/p0-wallet-connectivity/execution/objects/p0-291-finance-p0289-four-residue-cleanup-terminal-stdout.txt",
+    "blob": "15cc6a08767872701c9ada9d3e9f62e3f424bb79",
+    "bytes": 701,
+    "sha256": "cc2383c80d92034912a537bcc2d268c4405e3e500acc4ab6ddd4a2c1e402439f"
+  },
+  "stderr": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "receipt": {
+    "cleanup": "P0289_FOUR_RESIDUES_REMOVED",
+    "executorFinal": "absent",
+    "signedLeaseFinal": "absent",
+    "stageContainerFinal": "absent",
+    "backupContainerFinal": "absent",
+    "leaseParentPost": "64770:4594822:0:0:750:2:4096:directory|directChildren=0|inventorySha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stageParentPost": "64770:3450041:0:0:750:5:4096:directory|directChildren=3|inventorySha256=0d11124b36a42c6201f7e0d491fd20279ea47950554f92c6b1cc960aaa0fee91",
+    "backupParentPost": "64770:1481354:0:0:755:11:4096:directory|directChildren=9|inventorySha256=a59008acfeccfb0a2f88de5b029871b713b42d0bf43ad1ba87786c962e6659be",
+    "cleanupInvocationCount": 1
+  },
+  "truth": {
+    "cleanupReceiptValid": true,
+    "cleanupComplete": false,
+    "independentZeroWriteVerificationRequired": true,
+    "deployment": false,
+    "rollback": false,
+    "serviceOrConfigMutationAuthorized": false
+  }
+}

@@ -1,0 +1,66 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-126",
+  "status": "PUBLIC_DEPLOYED_NO_PROVIDER_FALLBACK_VERIFIED_COMPUTER_CONTROL_BLOCKED",
+  "product": "shop-web-pwa",
+  "source": {
+    "implementationCommit": "f41cbf88b528d30e709bf07dc504c174a7e83073",
+    "implementationTree": "c8199f6088801e2f94435093effdd09ba72090f9",
+    "productEvidenceCommit": "7b91f2120e7850a91be101b5ca7148dfb36beda6",
+    "productEvidenceTree": "9d1365268a48241a7cdf1b7f10649ef95a17e924"
+  },
+  "deployment": {
+    "runtimeHost": "43.153.202.237",
+    "activeRuntime": "/opt/ynx-shop/releases/p0126b-shop-wallet-f41cbf88",
+    "rollbackTarget": "/opt/ynx-shop/releases/88c0f3a5",
+    "artifactPath": "/private/tmp/ynx-shop-web-f41cbf88.tgz",
+    "artifactBytes": 7437687,
+    "artifactSha256": "2067d32eeee86e655137199d9ec1d00d39baee0dab79f81297604e67b2a4df7f",
+    "service": "ynx-shopd.service",
+    "serviceActive": true,
+    "serviceRestarts": 0,
+    "deployedAt": "2026-08-21T07:43:31Z"
+  },
+  "preservedRuntime": {
+    "binarySha256": "c41654634eb6d7137f03b8e7afa71f72598b2675eacca52aa7c16e94e841a860",
+    "unitSha256": "a714e585c75b304f62dd6e2a150d0b794912a13bed121a2e060a117823e77d0c",
+    "environmentSha256": "f83ac0aaf512b0e21ebf937877ba37d420a0941073a602d570c25da6ff70ba46",
+    "stateSha256": "7f87079edc5b582acd384990002c3b21d21696d1f8de38612375b5abbb1cc52f",
+    "caddySha256": "df5f7ad73dd2631c0e934514e05a30ac97c75dc9efe2ec568b049c71c4024396"
+  },
+  "publicReadback": [
+    {"url":"https://shop.ynxweb4.com/shop/?verify=f41cbf88","http":200,"bytes":7782,"sha256":"5b4b549cb6b26f192e448c4c482db64b125450dc261a02bc118f9cd92b63bc98"},
+    {"url":"https://shop.ynxweb4.com/shop/app.js?verify=f41cbf88","http":200,"bytes":19536,"sha256":"06b63e30fe27878ee05a5406dd3b1df3d3e543c8292275fc38c016f5646cf4ea"},
+    {"url":"https://shop.ynxweb4.com/shop/wallet-auth.js?verify=f41cbf88","http":200,"bytes":13476,"sha256":"49aeca0f913cfd0ce74442fe560292116d2d45711b228d5907b4ee860bab31b3"},
+    {"url":"https://shop.ynxweb4.com/shop/wallet-provider-discovery.js?verify=f41cbf88","http":200,"bytes":5348,"sha256":"1226f47f341bdf1b45489a7317de01337bc161d9f2172dcb14f090915d1a6c36"},
+    {"url":"https://shop.ynxweb4.com/shop/sw.js?verify=f41cbf88","http":200,"bytes":1079,"sha256":"40e6312d9bed84da6faaa645aba9342ebf80f7fb57e5f95d1a8d4f5df0f7b009"}
+  ],
+  "browserEvidence": {
+    "tool": "Chrome extension browser control",
+    "verifiedUrl": "https://shop.ynxweb4.com/shop/?verify=f41cbf88",
+    "walletChoice": "YNX Wallet",
+    "providerInstalled": false,
+    "pageUrlPreserved": true,
+    "createdTopLevelTabs": 0,
+    "webCustomSchemeInvoked": false,
+    "visibleStatus": "YNX_WALLET_NOT_FOUND: YNX Wallet is not installed in this browser.",
+    "guestProductsVisible": 3,
+    "consoleErrors": 0,
+    "computerControlVerified": false,
+    "computerControlBlocker": "cgWindowNotFound"
+  },
+  "truthBoundaries": {
+    "standardWalletSourceImplemented": true,
+    "publicNoProviderFallbackVerified": true,
+    "metamaskDeterministicProviderFlowTested": true,
+    "realMetamaskAccountApproved": false,
+    "installedYnXWalletApproved": false,
+    "walletAccountVerified": false,
+    "realSignature": false,
+    "realTransaction": false,
+    "productSessionV2": false,
+    "aggregateEcosystemFixed": false,
+    "computerControlVerified": false
+  }
+}

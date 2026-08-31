@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "acceptanceId": "P0-FINANCE-PRODUCT-SESSION-SOURCE-CONSUMPTION-F711745D-20260820",
+  "ownerSourceCommit": "f711745dc44cea17ac46abd6332af87f6db2ffa6",
+  "classification": "SOURCE_AND_DISPOSABLE_EMULATOR_CHECKPOINT_ONLY",
+  "sourceEvidence": {
+    "path": "release/integration/p0-wallet-connectivity/evidence/finance-product-session-source-consumption-f711745d-20260820.json"
+  },
+  "accepted": {
+    "rootFactorySourceConsumed": true,
+    "androidKeystoreP256BoundaryVerifiedBySource": true,
+    "localV2HandlerLifecycleVerified": true,
+    "publicStateFreeMountVerified": true,
+    "disposableEmulatorOpenedInstalledWallet": true,
+    "walletRejectedLockedSchemaMismatch": true
+  },
+  "truth": {
+    "financeMigratedV2": false,
+    "productsMigratedV2": 0,
+    "approvalVerified": false,
+    "callbackVerified": false,
+    "revokeRestoreRetryVerified": false,
+    "accountSignTransactionVerified": false,
+    "productionInstalledClientVerified": false,
+    "deployedPublic": false,
+    "integratedCentral": false,
+    "aggregateDeployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

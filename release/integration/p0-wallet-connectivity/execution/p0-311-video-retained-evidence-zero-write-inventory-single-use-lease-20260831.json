@@ -1,0 +1,55 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-311",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-video-retained-evidence-zero-write-inventory-20260831T040906Z",
+  "owner": "video-emergency-readonly-inspector",
+  "executor": "release-control-plane",
+  "status": "CONSUMED_RELEASED_SUCCESS_VIDEO_P0311_RETAINED_EVIDENCE_ZERO_WRITE_INVENTORY",
+  "issuedAt": "2026-08-31T04:09:06Z",
+  "expiresAt": "2026-08-31T04:24:06Z",
+  "singleUse": true,
+  "reusable": false,
+  "consumedAt": "2026-08-31T04:10:15Z",
+  "releasedAt": "2026-08-31T04:10:43Z",
+  "executionAuthorized": true,
+  "productionMutationAllowed": false,
+  "predecessorDecision": {
+    "centralCommit": "5a69d43931080061e4d356a79f7de50bc70293b9",
+    "status": "VIDEO_SOURCE_ACCEPTED_LEASE_NO_GO_RETAINED_EVIDENCE_INVENTORY_INCOMPLETE",
+    "singleBlocker": "VIDEO_SUCCESSOR_FIXED_EVIDENCE_PARENT_CONFLICTS_WITH_RETAINED_P0239_EVIDENCE_AND_IDENTITY"
+  },
+  "inspector": {
+    "path": "release/integration/p0-wallet-connectivity/execution/p0-311-video-retained-evidence-zero-write-inventory.sh",
+    "bytes": 1332,
+    "sha256": "d31a683052493fcd44c33e01304dbf4bf1de7837d720bcb110dc73a20e90b19f",
+    "mode": "0755",
+    "bashSyntax": "PASS"
+  },
+  "execution": {
+    "workdir": "/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration",
+    "literalArgv": [
+      "/usr/bin/ssh", "-i", "/Users/huangjiahao/Downloads/Huang.pem",
+      "-o", "IdentitiesOnly=yes", "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=yes",
+      "-o", "UserKnownHostsFile=/Users/huangjiahao/.ssh/known_hosts", "-o", "ConnectTimeout=10",
+      "-o", "ConnectionAttempts=1", "ubuntu@43.153.202.237", "/usr/bin/sudo", "-n", "/bin/bash", "-s"
+    ],
+    "stdinPath": "release/integration/p0-wallet-connectivity/execution/p0-311-video-retained-evidence-zero-write-inventory.sh",
+    "stdinBytes": 1332,
+    "stdinSha256": "d31a683052493fcd44c33e01304dbf4bf1de7837d720bcb110dc73a20e90b19f",
+    "attemptLimit": 1,
+    "retryAllowed": false,
+    "remoteTempFilesAllowed": false
+  },
+  "readScope": [
+    "/var/lib/ynx-video-viewer-wallet-evidence lstat tuple",
+    "/var/lib/ynx-video-viewer-wallet-evidence.identity lstat tuple and regular-file SHA256",
+    "NUL-safe sorted direct-child set only",
+    "each direct child's lstat device inode uid gid mode nlink bytes type and regular-file SHA256",
+    "direct child and subdirectory counts"
+  ],
+  "forbidden": ["write or remote temporary file", "cleanup", "deploy", "service lifecycle", "unit Caddy shared-current Creator API or public mutation", "Wallet account request signature typed data or transaction"],
+  "terminalRule": "Consume and release this read-only lease on one terminal attempt. The result may support a later source successor but does not authorize cleanup or deployment.",
+  "terminalEvidence": {"attempts": 1, "retryAttempts": 0, "remoteExitStatus": 0, "mutationCount": 0, "inspectionComplete": true, "directChildCount": 5, "directSubdirectoryCount": 0, "everyChildRegularNlinkOne": true},
+  "truthBoundary": {"leaseIssued": true, "inspectionStarted": true, "mutationCount": 0, "deployment": false}
+}

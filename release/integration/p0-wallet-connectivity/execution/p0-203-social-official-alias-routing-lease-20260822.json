@@ -1,0 +1,195 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-203",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-social-official-alias-routing-20260822T171700Z",
+  "owner": "social",
+  "executor": "social-vercel-release",
+  "status": "CONSUMED_RELEASED_SUCCESS_SOCIAL_OFFICIAL_SOURCE_BOUND_NON_SENSITIVE",
+  "issuedAt": "2026-08-22T17:17:00Z",
+  "expiresAt": "2026-08-22T17:47:00Z",
+  "singleUse": true,
+  "reusable": false,
+  "executionAuthorized": false,
+  "dependencies": [
+    "P0-202"
+  ],
+  "candidateAuthority": {
+    "deploymentId": "dpl_34kzw3uk4B1wwjk1wQUq8y29mTxX",
+    "immutableUrl": "https://ynx-social-i38c5m9dw-jiahaoalbus-projects.vercel.app",
+    "project": "ynx-social-web",
+    "projectId": "prj_QGgUyxilarbPPLZyoES83m2aneQN",
+    "target": "production",
+    "status": "READY",
+    "sourceCommit": "e7756cb387233376c03043c54fb8b051c241e94e",
+    "carrierSha256": "9ffe3eff10175589eeaa7a377e9dc61f3c3a62a77b0a9bcfa415c4764f512b81",
+    "inspectedAt": "2026-08-22T17:15:50Z"
+  },
+  "hostedEvidenceAuthority": {
+    "centralReleaseCommit": "06940ca0aa21f8d2f2837e7b9ae6dc6afb794b08",
+    "runId": 32586962579,
+    "jobId": 97064706488,
+    "conclusion": "success",
+    "artifactId": 9479298029,
+    "artifactZipSha256": "cf2760009e3f98cd69358dae3c7c53ef82e849a46f40aa209e94977757861a46",
+    "hostedChromiumJsonSha256": "59a4fba16f81aa2b26b84df65277a26c513dbd88e9ce8f4356d54a53e7f9d515",
+    "rawSixResourcesPassed": true,
+    "browserPassed": true,
+    "accountRequestAttempted": false,
+    "signatureAttempted": false,
+    "transactionAttempted": false
+  },
+  "expectedCandidateResources": {
+    "/": {"http":200,"bytes":6098,"sha256":"783f835245b9acbb4cbfe29cb56faa55243d593858c80692d39034e97e42a05b"},
+    "/app.js": {"http":200,"bytes":6928,"sha256":"966a47ae3d285a625ab666ddeca91defa156f04337b700fc07bd6c73e97ee51d"},
+    "/styles.css": {"http":200,"bytes":6327,"sha256":"1f80ec6b7ab8c2ff0d1d66edf083d301af89386c802483733fd670a5ada26c42"},
+    "/wallet-provider.js": {"http":200,"bytes":7749,"sha256":"d8df8193407f835ff16913417acca0db2ae1f091defc16e0b29a98996ffdea75"},
+    "/assets/metamask.svg": {"http":200,"bytes":755,"sha256":"f761f46f4fe7052a84b47cf23b63c2f20cc3d043df640b7f79c2adcb245e5f21"},
+    "/assets/ynx-wallet.svg": {"http":200,"bytes":280,"sha256":"e92207903e61b41c7a662e57e2a3bcfd84627b49c22a29e9240d5eafcd0229fb"}
+  },
+  "rollbackBinding": {
+    "canonicalUrl": "https://social.ynxweb4.com/",
+    "deploymentId": "dpl_2sei8CpmoN1Gi5YKnc6FdvNRyXGy",
+    "immutableUrl": "https://ynx-social-h8cqxnkud-jiahaoalbus-projects.vercel.app",
+    "status": "READY",
+    "ownsCanonicalAlias": true,
+    "responses": {
+      "/": {"http":200,"bytes":5563,"sha256":"ce6f038a1171d0597398f13895e714f62d5e00ab00c9748b337861c9f248abee","requestId":"sin1::dv25p-1787418954871-71dcb1ec2531"},
+      "/app.js": {"http":200,"bytes":3003,"sha256":"8860c1cfa3f6746c8a9610bb744dc1fb2e353551df558a1472cd6b0135a88845","requestId":"sin1::9lbjh-1787418955096-5728a017c84f"},
+      "/styles.css": {"http":200,"bytes":5950,"sha256":"00d15e63efced9e0bb0284270e2ce9164795a06da40864e93f1b6d77e74e188f","requestId":"sin1::6ctkd-1787418955333-1dc32ef4955e"}
+    },
+    "readOnlyCheckedAt": "2026-08-22T17:15:50Z"
+  },
+  "locks": {
+    "heavy": "P0-203",
+    "owner": "social",
+    "project": "prj_QGgUyxilarbPPLZyoES83m2aneQN",
+    "canonicalAlias": "social.ynxweb4.com",
+    "paths": [
+      "release/integration/p0-wallet-connectivity/execution/p0-203-social-official-alias-routing-lease-20260822.json"
+    ]
+  },
+  "execution": {
+    "preconditions": [
+      "fresh-read this ACTIVE_SINGLE_USE lease, unexpired Heavy owner and exact project/alias lock",
+      "fresh-read candidate deployment dpl_34kzw3uk4B1wwjk1wQUq8y29mTxX as READY production in exact project",
+      "fresh-read official alias at dpl_2sei8CpmoN1Gi5YKnc6FdvNRyXGy and require all three rollback resources exact",
+      "rebind P0-202 success run, artifact ZIP and hosted Chromium evidence hashes"
+    ],
+    "forwardAliasCommand": "vercel alias set ynx-social-i38c5m9dw-jiahaoalbus-projects.vercel.app social.ynxweb4.com --scope jiahaoalbus-projects",
+    "forwardAliasAttemptLimit": 1,
+    "retryAllowed": false,
+    "postRouteRawRequirements": [
+      "read alias API and inspect official domain; require deploymentId dpl_34kzw3uk4B1wwjk1wQUq8y29mTxX",
+      "GET the official-domain six resources and freeze raw status, headers, bodies, bytes and SHA256",
+      "require every official-domain resource equals expectedCandidateResources"
+    ],
+    "postRouteBrowserRequirements": [
+      "open one clean isolated Social official-domain browser profile without clicking account or RPC controls",
+      "require exact stable https://social.ynxweb4.com/ URL, title YNX Social — Private by design and lang en",
+      "require truthful disconnected UI before and after, connected panel hidden and Connect wallet text",
+      "require distinct exact YNX Wallet and MetaMask names, SVG logos and alt identities",
+      "require late EIP-6963 providerCount 2 with exact independent classification and no provider RPC methods",
+      "require serviceState PRIVATE_SERVICE_DEGRADED and exact guest/private-session degradation text",
+      "require zero /social/health requests, one page, no blank, dialog closed and console/page/same-origin errors zero"
+    ],
+    "rollbackRequiredOnAnyPostRouteFailure": true,
+    "rollbackCommand": "vercel alias set ynx-social-h8cqxnkud-jiahaoalbus-projects.vercel.app social.ynxweb4.com --scope jiahaoalbus-projects",
+    "rollbackAttemptLimit": 1,
+    "rollbackVerification": [
+      "read alias API and inspect official domain; require deploymentId dpl_2sei8CpmoN1Gi5YKnc6FdvNRyXGy",
+      "require rollback root, app.js and styles.css exact HTTP bytes and SHA256 from rollbackBinding.responses"
+    ]
+  },
+  "forbidden": [
+    "alias retry or any alias other than the exact forward and conditional exact rollback commands",
+    "deployment, redeployment, DNS, SSO or Vercel project setting mutation",
+    "Social product source or UI mutation",
+    "any other project, alias, Website, Wallet or shared path mutation",
+    "eth_requestAccounts, any provider RPC, account approval, personal_sign, EIP-712, transaction, secret or private-key handling",
+    "installed-provider, sensitive lifecycle or aggregate product-completion promotion"
+  ],
+  "terminalRules": {
+    "success": "CONSUMED_RELEASED_SUCCESS_SOCIAL_SOURCE_BOUND_OFFICIAL_PUBLIC_NON_SENSITIVE_LIFECYCLE",
+    "failureWithRollback": "CONSUMED_RELEASED_FAILED_CLOSED_SOCIAL_OFFICIAL_ALIAS_ROUTING_ROLLED_BACK",
+    "rollbackFailure": "EMERGENCY_BLOCKED_SOCIAL_EXACT_ROLLBACK_REQUIRED_NO_FURTHER_ACTION"
+  },
+  "terminalEvidence": {
+    "releasedAt": "2026-08-22T17:20:25Z",
+    "preconditionsPassedAt": "2026-08-22T17:18:01Z",
+    "centralLeaseCommit": "ae26ef1c6dff15b80b6ec65d6883353e7ebf3b7c",
+    "forwardAliasAttemptCount": 1,
+    "forwardAliasSucceeded": true,
+    "retryCount": 0,
+    "rollbackAttemptCount": 0,
+    "rollbackRequired": false,
+    "deploymentCount": 0,
+    "settingsMutationCount": 0,
+    "sourceMutationCount": 0,
+    "officialDeploymentId": "dpl_34kzw3uk4B1wwjk1wQUq8y29mTxX",
+    "officialDeploymentUrl": "https://ynx-social-i38c5m9dw-jiahaoalbus-projects.vercel.app",
+    "officialDeploymentStatus": "READY",
+    "officialDeploymentTarget": "production",
+    "officialAliasExact": true,
+    "officialResources": {
+      "/": {"http":200,"bytes":6098,"sha256":"783f835245b9acbb4cbfe29cb56faa55243d593858c80692d39034e97e42a05b","contentType":"text/html; charset=utf-8","requestId":"sin1::nc4hg-1787419227702-7e0f68d499b3"},
+      "/app.js": {"http":200,"bytes":6928,"sha256":"966a47ae3d285a625ab666ddeca91defa156f04337b700fc07bd6c73e97ee51d","contentType":"application/javascript; charset=utf-8","requestId":"hnd1::lgmgk-1787419227970-aa4286ff7b82"},
+      "/styles.css": {"http":200,"bytes":6327,"sha256":"1f80ec6b7ab8c2ff0d1d66edf083d301af89386c802483733fd670a5ada26c42","contentType":"text/css; charset=utf-8","requestId":"hnd1::xsrwq-1787419228460-5a5c465144e7"},
+      "/wallet-provider.js": {"http":200,"bytes":7749,"sha256":"d8df8193407f835ff16913417acca0db2ae1f091defc16e0b29a98996ffdea75","contentType":"application/javascript; charset=utf-8","requestId":"hnd1::s6rvj-1787419229205-33ff1ca2f56d"},
+      "/assets/metamask.svg": {"http":200,"bytes":755,"sha256":"f761f46f4fe7052a84b47cf23b63c2f20cc3d043df640b7f79c2adcb245e5f21","contentType":"image/svg+xml","requestId":"hnd1::hg9rh-1787419229729-086dde8daa97"},
+      "/assets/ynx-wallet.svg": {"http":200,"bytes":280,"sha256":"e92207903e61b41c7a662e57e2a3bcfd84627b49c22a29e9240d5eafcd0229fb","contentType":"image/svg+xml","requestId":"hnd1::hg9rh-1787419230240-420b4568cf22"}
+    },
+    "browserEvidence": {
+      "jsonPath": "/tmp/social-p0203-official.json",
+      "jsonBytes": 1336,
+      "jsonSha256": "8c726f5ef68a82b18d1c575bd2211d77aa60d708a5d6214fa29db21c04d65c4f",
+      "screenshotPath": "/tmp/social-p0203-official.png",
+      "screenshotBytes": 379906,
+      "screenshotSha256": "fe8ea47164f52383aad13de6fe3517807d04f3485148ca4d8b3faf2d805d2491",
+      "passed": true,
+      "exactOfficialUrlStable": true,
+      "title": "YNX Social — Private by design",
+      "language": "en",
+      "truthfulDisconnected": true,
+      "connectedPanelHidden": true,
+      "connectWalletText": "Connect wallet",
+      "ynxIdentityAndExactLogoAlt": true,
+      "metamaskIdentityAndExactLogoAlt": true,
+      "lateEip6963ProviderCount": 2,
+      "classificationsIndependentNoSubstitution": true,
+      "providerRequestTripwireMethods": [],
+      "serviceState": "PRIVATE_SERVICE_DEGRADED",
+      "walletIndependentlyAvailable": true,
+      "privateServiceRequests": [],
+      "pageCount": 1,
+      "blankPages": 0,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "requestFailures": []
+    },
+    "accountRequestAttempted": false,
+    "providerRpcAttempted": false,
+    "signatureAttempted": false,
+    "typedDataAttempted": false,
+    "transactionAttempted": false,
+    "officialSourceBoundPublic": true,
+    "officialBrowserVerified": true,
+    "installedProvider": false,
+    "providerApproveReject": false,
+    "accountApproved": false,
+    "chain1917Lifecycle": false,
+    "eventsDisconnectRevoke": false,
+    "productSession": false,
+    "productComplete": false
+  },
+  "truthBeforeExecution": {
+    "officialSourceBoundPublic": false,
+    "officialBrowserVerified": false,
+    "installedProvider": false,
+    "accountApproved": false,
+    "signatureExecuted": false,
+    "typedDataExecuted": false,
+    "transactionExecuted": false,
+    "productComplete": false
+  }
+}

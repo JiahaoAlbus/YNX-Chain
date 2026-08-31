@@ -1,0 +1,70 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-118",
+  "owner": "card-testnet-virtual",
+  "recordedAt": "2026-08-21T05:55:15Z",
+  "source": {
+    "branch": "codex/card-registration-testnet-20260821",
+    "commit": "feef95a37cec8acf75f5855118e1fc79170721fd",
+    "ownerEvidenceCommit": "fbd378e8486540cfaea798a70faa2b7e51c88942",
+    "ownerEvidenceTree": "6c126cdca4a79f25a9755b2a927bc8c35df374e7",
+    "ownerEvidenceBlob": "1698e3d9a8d9de16984ff689fc7c8a8407dc07ba",
+    "ownerEvidenceSha256": "3d3918fa3088050a171432896dcae6bf7199f0947fab0c98dc3e1465ced132cf"
+  },
+  "deployment": {
+    "id": "dpl_DdMDsSbeAB7xV1npEWc6h2q2sUX2",
+    "canonicalUrl": "https://card.ynxweb4.com/",
+    "html": {
+      "httpStatus": 200,
+      "bytes": 1505,
+      "sha256": "e6f3ffbb1dbd161f9352630db4a73c9472d94090cda63bc9ab3ec0065c2f6003"
+    },
+    "asset": {
+      "path": "/_expo/static/js/web/index-be13f79710f6766e6e588dc6defe5518.js",
+      "httpStatus": 200,
+      "bytes": 2893420,
+      "sha256": "4488e36a198e64b12e2e4d675a907248db5f8cae8d4c8470131fdab3146307cd"
+    }
+  },
+  "verification": {
+    "tests": "37/37",
+    "typecheck": true,
+    "productionBuild": true,
+    "states": [
+      "DRAFT",
+      "APPROVAL_REQUIRED",
+      "SUBMITTED",
+      "ACTIVE",
+      "REJECTED",
+      "CANCELLED",
+      "DEGRADED"
+    ],
+    "idempotencyTested": true,
+    "walletIsolationTested": true,
+    "coldStartRestorationTested": true,
+    "guestPreviewPubliclyVisible": true,
+    "registrationEntryPubliclyVisible": true,
+    "walletRequiredBeforeApplication": true,
+    "noCardCreatedWithoutWallet": true,
+    "noBlankAuthorizeTabInObservedRegistrationGate": true,
+    "englishDocumentDefault": true,
+    "browserRenderedLanguageWasTranslatedByUserChrome": true
+  },
+  "truth": {
+    "registrationSourceImplemented": true,
+    "registrationPubliclyDeployed": true,
+    "walletSignatureVerified": false,
+    "backendReceiptVerified": false,
+    "sandboxAccountAccepted": false,
+    "activeCardVerified": false,
+    "realYnxtTopUpVerified": false,
+    "cardApiAccepted": false,
+    "panOrCvvExposed": false,
+    "balanceClaimed": false,
+    "fiatFunding": false,
+    "realPayment": false,
+    "computerControlVerified": false
+  },
+  "nextAction": "Connect a real approved wallet and accepted Card sandbox backend in a separate bounded slice; verify signature, receipt, ACTIVE transition, cold-start restoration and exact YNXT Testnet top-up before promoting any currently false gate."
+}

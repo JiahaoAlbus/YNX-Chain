@@ -1,0 +1,131 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-246",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-card-alias-only-restore-20260823T071000Z",
+  "owner": "card",
+  "executor": "website-release-control-plane",
+  "status": "CONSUMED_RELEASED_SUCCESS_CARD_P0196_ALIAS_RESTORED_TO_FROZEN_ROLLBACK_WITH_SECURITY_HEADERS",
+  "issuedAt": "2026-08-23T07:10:00Z",
+  "expiresAt": "2026-08-23T07:35:00Z",
+  "releasedAt": "2026-08-23T07:15:11Z",
+  "singleUse": true,
+  "reusable": false,
+  "productionMutationAllowed": false,
+  "scope": "Card-only canonical Vercel alias restoration from the current P0-196 candidate deployment to the exact frozen pre-P0-196 rollback deployment",
+  "centralPrecondition": {
+    "parentCommit": "4a9f76e744fd1beaff9a8ffcaddf1ddc45091ceb",
+    "parentTree": "6da85a4d4e34d66aaad94695362972eba15240c9",
+    "heavyWasNullAndIdle": true,
+    "noConflictingCardAliasLock": true
+  },
+  "ownerAuthority": {
+    "branch": "codex/card-p0196-alias-reconciliation-20260823",
+    "requestCommit": "64186d8b1462c4bf3e1a20dc985d38906b2217e1",
+    "requestTree": "2e0356b42c4da0568f0df12246f85878a4434c88",
+    "requestPath": "apps/card/evidence/card-p0196-alias-restore-lease-request-20260823.json",
+    "requestBlob": "6eee257a18c6ccddfca8b527877540010c3e1c68",
+    "requestSha256": "0e57710c617071f6e04b3f11c57988aab32a011d9f2d9b192cd0fe70e6170b3f",
+    "remoteAndLocalExactClean": true
+  },
+  "freshPrewrite": {
+    "observedAt": "2026-08-23T07:06:00Z",
+    "vercelCli": "/opt/homebrew/bin/vercel",
+    "vercelCliVersion": "54.6.1",
+    "scope": "jiahaoalbus-projects",
+    "project": "ynx-card-testnet-simulation",
+    "projectId": "prj_DU37JeDK4Rx0MjxIV745veV5Qgxp",
+    "alias": "card.ynxweb4.com",
+    "current": {
+      "deploymentId": "dpl_8qCEhiAq8hgiTYf2hA2FXU57W122",
+      "deploymentUrl": "ynx-card-testnet-simulation-dn1nbeei4-jiahaoalbus-projects.vercel.app",
+      "target": "production",
+      "readyState": "READY",
+      "buildId": "bld_4t5l1r96k"
+    },
+    "restore": {
+      "deploymentId": "dpl_DqMuEhno65bLFTNKBu9gs52soVri",
+      "deploymentUrl": "ynx-card-testnet-simulation-bmeabqkk1-jiahaoalbus-projects.vercel.app",
+      "target": "production",
+      "readyState": "READY",
+      "buildId": "bld_7jlztft2d"
+    },
+    "currentResources": [
+      {"path":"/","status":200,"bytes":1717,"sha256":"f8b59f7bb084fa22573df186b2f47fa35d3f85d6e078f09f1d3b1b53c764c695"},
+      {"path":"/_expo/static/js/web/index-6a16f2a248e25355f9aa7ee9626133a0.js","status":200,"bytes":2911045,"sha256":"f59fa3d43e4d855a91f224f239e8fc39bf4ffa73e83e42d5c0203aa70deae92e"},
+      {"path":"/manifest.webmanifest","status":200,"bytes":460,"sha256":"f3e634129abe79c5b81b7fc8dac3950e5cb21f1d1263b1938fcd06a58e2c686f"},
+      {"path":"/pwa-register.js","status":200,"bytes":201,"sha256":"87671daaddfae6a98e473eedf34a8844d5fd82676f2111808057e98d9b4012a6"},
+      {"path":"/sw.js","status":200,"bytes":364,"sha256":"1a9acfe442d2920040a1999f4fe4efe3f97d7a42a9debef047d469972889638f"}
+    ]
+  },
+  "authorizedExecution": {
+    "attemptLimit": 1,
+    "retryAllowed": false,
+    "literalArgv": [
+      "/opt/homebrew/bin/vercel", "alias", "set",
+      "ynx-card-testnet-simulation-bmeabqkk1-jiahaoalbus-projects.vercel.app",
+      "card.ynxweb4.com", "--scope", "jiahaoalbus-projects"
+    ],
+    "exactCommand": "/opt/homebrew/bin/vercel alias set ynx-card-testnet-simulation-bmeabqkk1-jiahaoalbus-projects.vercel.app card.ynxweb4.com --scope jiahaoalbus-projects"
+  },
+  "failureRollback": {
+    "condition": "only if the restore command succeeded but any required post-restore alias, resource, header or clean-browser gate failed",
+    "attemptLimit": 1,
+    "retryAllowed": false,
+    "literalArgv": [
+      "/opt/homebrew/bin/vercel", "alias", "set",
+      "ynx-card-testnet-simulation-dn1nbeei4-jiahaoalbus-projects.vercel.app",
+      "card.ynxweb4.com", "--scope", "jiahaoalbus-projects"
+    ],
+    "exactCommand": "/opt/homebrew/bin/vercel alias set ynx-card-testnet-simulation-dn1nbeei4-jiahaoalbus-projects.vercel.app card.ynxweb4.com --scope jiahaoalbus-projects"
+  },
+  "postRestoreRequired": {
+    "aliasDeploymentId": "dpl_DqMuEhno65bLFTNKBu9gs52soVri",
+    "resources": [
+      {"path":"/","status":200,"bytes":1717,"sha256":"56827ca95005951ae791245b6c3021691beace32683209936c7519324c28ed24"},
+      {"path":"/_expo/static/js/web/index-250c974606522c0feefa0bf082cc41a1.js","status":200,"bytes":2907885,"sha256":"2103aba7f844d4a3c067eac0ecbf0acbc9ebf8fb8831c44fd248df90261a8568"},
+      {"path":"/manifest.webmanifest","status":200,"bytes":460,"sha256":"f3e634129abe79c5b81b7fc8dac3950e5cb21f1d1263b1938fcd06a58e2c686f"},
+      {"path":"/sw.js","status":200,"bytes":364,"sha256":"1a9acfe442d2920040a1999f4fe4efe3f97d7a42a9debef047d469972889638f","cacheControl":"no-cache, no-store, must-revalidate"}
+    ],
+    "rootHeaders": {
+      "contentSecurityPolicy": "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; form-action 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' https://wallet-auth.ynxweb4.com https://evm.ynxweb4.com https://gateway.ynxweb4.com; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests",
+      "permissionsPolicy": "camera=(), microphone=(), geolocation=(), payment=(), usb=()",
+      "referrerPolicy": "strict-origin-when-cross-origin",
+      "xContentTypeOptions": "nosniff"
+    },
+    "browser": "one clean tab at exact official URL, stable URL, no blank/custom-scheme page and zero console errors; no provider request, account approval, signature or transaction",
+    "recordEveryXvercelId": true
+  },
+  "forbidden": [
+    "deployment or redeployment",
+    "Vercel project settings, SSO or DNS mutation",
+    "any alias other than card.ynxweb4.com",
+    "source or other-product mutation",
+    "provider request, account approval, signature, typed data, transaction or private-key action"
+  ],
+  "terminalRules": {
+    "success": "CONSUMED_RELEASED_SUCCESS_CARD_P0196_ALIAS_RESTORED_TO_FROZEN_ROLLBACK_WITH_SECURITY_HEADERS",
+    "restoredFailure": "CONSUMED_RELEASED_FAILED_CLOSED_CARD_ALIAS_RESTORE_POST_GATE_FAILED_CURRENT_CANDIDATE_RESTORED",
+    "emergency": "EMERGENCY_BLOCKED_CARD_ALIAS_RESTORE_UNCERTAIN_EXACT_READBACK_REQUIRED",
+    "releaseHeavyAndLockOnProvenTerminal": true
+  },
+  "terminalEvidence": {
+    "decision": "DIRECT_SUCCESS",
+    "restoreAttempts": 1,
+    "inverseAttempts": 0,
+    "retryAttempts": 0,
+    "aliasDeploymentId": "dpl_DqMuEhno65bLFTNKBu9gs52soVri",
+    "aliasDeploymentUrl": "ynx-card-testnet-simulation-bmeabqkk1-jiahaoalbus-projects.vercel.app",
+    "resources": [
+      {"path":"/","status":200,"bytes":1717,"sha256":"56827ca95005951ae791245b6c3021691beace32683209936c7519324c28ed24","requestId":"sin1::df8ll-1787469158456-8ed374afbe46"},
+      {"path":"/_expo/static/js/web/index-250c974606522c0feefa0bf082cc41a1.js","status":200,"bytes":2907885,"sha256":"2103aba7f844d4a3c067eac0ecbf0acbc9ebf8fb8831c44fd248df90261a8568","requestId":"sin1::tms4g-1787469158457-98a5f83694f8"},
+      {"path":"/manifest.webmanifest","status":200,"bytes":460,"sha256":"f3e634129abe79c5b81b7fc8dac3950e5cb21f1d1263b1938fcd06a58e2c686f"},
+      {"path":"/sw.js","status":200,"bytes":364,"sha256":"1a9acfe442d2920040a1999f4fe4efe3f97d7a42a9debef047d469972889638f"}
+    ],
+    "browser": {"stableOfficialUrl":true,"tabDelta":0,"consoleErrors":0,"englishVisibleWithoutCjk":true,"guestTestnetVisible":true,"distinctYnxWalletAndMetaMaskFoxVisible":true,"ynxwalletLinkAbsent":true},
+    "account": false,
+    "signature": false,
+    "transaction": false,
+    "completionBoundary": "Alias and frozen security/public baseline restored only; missing notranslate is not promoted."
+  }
+}

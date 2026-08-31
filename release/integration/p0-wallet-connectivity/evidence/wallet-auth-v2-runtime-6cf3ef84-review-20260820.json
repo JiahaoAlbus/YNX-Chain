@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-20T12:02:55Z",
+  "sourceCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+  "sourceParent": "07bd691d5d185a1808e1411026af3a02585cb54a",
+  "sourceTree": "c8b206fb039e68c362de8432d446eee5d53469fb",
+  "walletAuthTree": "4c544d2e2ddb63caef536ea67c8f27b45044fd89",
+  "handoffCommit": "0ed75659e8fd3e1556d8a9b3789b22b1ac94c89e",
+  "changedFiles": 7,
+  "verification": [
+    {"gate":"wallet-auth-full","result":"PASS","passed":231,"failed":0},
+    {"gate":"v2-combined","result":"PASS","passed":21,"failed":0},
+    {"gate":"v2-node-host","result":"PASS","passed":6,"failed":0},
+    {"gate":"daemon-mount","result":"PASS","passed":2,"failed":0},
+    {"gate":"dapp-connect-sdk","result":"PASS","passed":13,"failed":0},
+    {"gate":"pack-dry-run","result":"PASS","files":98},
+    {"gate":"diff-and-conflict-markers","result":"PASS"}
+  ],
+  "review": {
+    "v1Preserved": true,
+    "fiveV2RoutesMounted": true,
+    "durableV2NodeHostPresent": true,
+    "explicitRemoteRegistryAndStateRequired": true,
+    "tamperVectors": 5,
+    "localLifecycleVerified": true,
+    "candidateObservedPublic": false,
+    "productRuntimeMigrations": 0,
+    "installedClientVerified": false,
+    "aggregatePublic": false,
+    "sevenFileDependencyClosureCompleteOn49e": false,
+    "preflightFailedClosed": true,
+    "deploymentStarted": false,
+    "productionMutationObserved": false
+  }
+}

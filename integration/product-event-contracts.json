@@ -40,7 +40,8 @@
     {"products": ["cloud"], "branch": "codex/ecosystem-cloud-docs", "commit": "7b3c5f427c1751b8d5f43833e281811dd81f76bb", "dirtyWorktreeObserved": true},
     {"products": ["ai"], "branch": "codex/ecosystem-ai", "commit": "31d3c6b05a47b895f8db1192eff2df763cd4c4c8", "dirtyWorktreeObserved": false},
     {"products": ["trust", "resource"], "branch": "codex/ecosystem-trust-resource", "commit": "c7e4445598a74e60aa0ed05b9580790527bf71be", "dirtyWorktreeObserved": true},
-    {"products": ["finance"], "branch": "codex/ecosystem-finance", "commit": "63a14500b19ab3b35e29159092973e425837a9c5", "dirtyWorktreeObserved": true}
+    {"products": ["finance"], "branch": "codex/ecosystem-finance", "commit": "63a14500b19ab3b35e29159092973e425837a9c5", "dirtyWorktreeObserved": true},
+    {"products": ["calendar"], "branch": "codex/final-calendar", "commit": "f1305e6b52c7484c099fe6b2f6cbc2b6d36508e2", "dirtyWorktreeObserved": false}
   ],
   "contracts": [
     {"product": "wallet", "aggregate": "session", "eventTypes": ["wallet.session.opened", "wallet.session.revoked", "wallet.session.expired"], "saga": "wallet-session-revoke", "authority": "canonical-wallet-auth", "integratedCentral": false},
@@ -55,6 +56,7 @@
     {"product": "cloud", "aggregate": "usage", "eventTypes": ["cloud.usage.recorded", "cloud.billing.posted"], "saga": "cloud-usage-billing", "authority": "ynx-cloud", "integratedCentral": false},
     {"product": "ai", "aggregate": "usage", "eventTypes": ["ai.usage.recorded", "ai.cost.posted"], "saga": "ai-usage-cost", "authority": "ynx-ai-gateway", "integratedCentral": false},
     {"product": "mail", "aggregate": "delivery", "eventTypes": ["mail.delivery.accepted", "mail.delivery.completed", "mail.delivery.failed"], "saga": "mail-delivery", "authority": "ynx-mail", "integratedCentral": false},
+    {"product": "calendar", "aggregate": "event", "eventTypes": ["calendar.event.created.v1", "calendar.event.updated.v1", "calendar.event.cancelled.v1", "calendar.invitation.created.v1", "calendar.invitation.updated.v1", "calendar.invitation.cancelled.v1", "calendar.rsvp.updated.v1", "calendar.share.changed.v1", "calendar.reminder.due.v1", "calendar.ai.previewed.v1"], "saga": "calendar-event-invitation-delivery", "authority": "ynx-calendar", "implementedLocal": true, "testedLocal": true, "integrationEvidence": ["internal/datafabriccalendar/adapter_test.go", "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json#CAL-X-014"], "integratedCentral": false},
     {"product": "creator", "aggregate": "revenue", "eventTypes": ["creator.revenue.recognized", "creator.settlement.completed"], "saga": "creator-revenue", "authority": "originating-product-and-ledger", "integratedCentral": false}
   ]
 }

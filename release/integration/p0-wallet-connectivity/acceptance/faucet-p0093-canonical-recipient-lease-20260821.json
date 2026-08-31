@@ -1,0 +1,42 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-093",
+  "decision": "SOURCE_ARTIFACT_ACCEPTED_EXECUTION_LEASE_ISSUED",
+  "acceptedAt": "2026-08-21T01:10:00Z",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-faucet-02cf44d1-canonical-recipient-20260821T011000Z",
+  "expiresAt": "2026-08-21T03:10:00Z",
+  "singleUse": true,
+  "sourceCommit": "02cf44d17b50dfd0f24a9f022e472b7d5eb0c1d4",
+  "sourceBranchRemoteHead": "9a86ef556992e9bd48a48fca8ecd624b800973a9",
+  "ownerEvidencePath": "internal/faucet/evidence/p0-093-canonical-recipient-candidate-20260821.json",
+  "ownerEvidenceBlob": "814ec498d1b97ecbe5f14ee0a5f28ecfb68e928d",
+  "ownerEvidenceSha256": "2f5374c9e03b2b1cf2e77e9f1cf58bb6651009f0572e3023823f991064b43f60",
+  "artifact": {
+    "bytes": 19087508,
+    "sha256": "114c17a2dd79d76f632e151fd940d40f88394b2a014424e2d6f56cc0f25c2fd3",
+    "buildCommit": "02cf44d17b50",
+    "buildRelease": "ynx-chain-02cf44d17b50"
+  },
+  "freshPublicReadback": {
+    "observedAt": "2026-08-21T01:10:00Z",
+    "healthHttp": 200,
+    "healthSha256": "d9d9b5aabecd71d9998b57e3193d75eba1249097bab70e3712d2c3a13d1b609a",
+    "versionHttp": 200,
+    "versionSha256": "519112e351a2d4d4cf76f3d92242659708e9f1f7d3fc8e77a8d5150ddc8dd5e1",
+    "sourceCommit": "ea0e068becd9",
+    "release": "ynx-chain-ea0e068becd9"
+  },
+  "rollback": {
+    "required": true,
+    "freshBackupPath": "/var/backups/ynx-chain/faucet-02cf44d1-p0093",
+    "freshStagePath": "/var/tmp/ynx-faucet-p0093-02cf44d1",
+    "restartOnly": "ynx-faucetd.service"
+  },
+  "allowedMutation": "Replace only the Faucet binary after exact preflight; unit and environment remain immutable. After successful deployment, submit one 100 YNXT request to a valid canonical ynx1 address and verify the returned transaction independently.",
+  "publicFundingRequestVerified": false,
+  "explorerTransactionVerified": false,
+  "walletPlatformFaucetVerified": false,
+  "computerControlVerified": false,
+  "aggregatePublicVerified": false
+}

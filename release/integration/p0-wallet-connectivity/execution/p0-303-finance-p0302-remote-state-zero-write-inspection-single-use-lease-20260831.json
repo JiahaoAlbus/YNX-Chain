@@ -1,0 +1,130 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-303",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-p0302-state-readonly-p0303-20260831T015927Z",
+  "owner": "finance-release-control-plane-readonly-inspection",
+  "executor": "finance-release-control-plane-readonly-inspection",
+  "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0303_P0302_REMOTE_STATE_ZERO_WRITE_INSPECTION",
+  "issuedAt": "2026-08-31T01:59:27Z",
+  "expiresAt": "2026-08-31T02:29:27Z",
+  "releasedAt": "2026-08-31T02:04:26Z",
+  "singleUse": true,
+  "reusable": false,
+  "productionMutationAllowed": false,
+  "scope": "Exactly one pure-streaming zero-write SSH inspection of unknown P0-302 terminal state",
+  "source": {
+    "branch": "codex/p0-finance-p0303-streaming-zero-write-20260831",
+    "implementationCommit": "795ca2e1ef47046f6d1fbecdca3099bb951289a0",
+    "implementationTree": "766ace252518e7602d6c224ca8061456aea0e2ca",
+    "requestCommit": "9742166ce7cea2b62743b3e6aa5a5ef46a106409",
+    "requestTree": "7d05e48b66aa73a506ed67e75bfb168ebafdfccc",
+    "requestBlob": "884ac150d8f901aa3c8f576b6c1a76ae3b28ca1b",
+    "requestBytes": 9405,
+    "requestSha256": "7c9abfac9b760d2b03ad56f6e17318d9595d07329ffdea3d1fe65336d4f0dd99"
+  },
+  "supersedes": [
+    {
+      "centralCommit": "82acd227c00ee00c2c53abb22a30aac9bf95622a",
+      "status": "NO_GO_P0303_HTTP_WHOLE_BODY_RECEIPT_TRAILING_NEWLINE_STRIPPED"
+    },
+    {
+      "centralCommit": "8197c881a9d1034feb2d8272716b53c919ccc184",
+      "status": "NO_GO_P0303_ZERO_WRITE_CONTRACT_CONTRADICTS_REMOTE_TEMP_BODY_FILES"
+    }
+  ],
+  "reviewedObject": {
+    "path": "release/integration/p0-wallet-connectivity/execution/objects/p0-303-finance-p0302-remote-state-zero-write-inspection.sh",
+    "sourceBlob": "10bf010de768850eadf92ec65f89ca02904de440",
+    "bytes": 5769,
+    "sha256": "d5a10112f869c6e61c3b5e90779d139d63240efa41277d7e8d3e9324425ea8fc",
+    "bashSyntax": "PASS",
+    "exactNodeRegression": "PASS_25_REPEATS_PLUS_FINAL_VISIBLE_PASS",
+    "wholeBodyTrailingNewlines": "PASS_X_LF_LF_EQUALS_3_BYTES_EXACT_SHA",
+    "singleCurlPerReceipt": true,
+    "transportFailureFailsClosed": true,
+    "remoteTemporaryFiles": 0,
+    "remoteWrites": 0
+  },
+  "freshPreissue": {
+    "centralCommit": "8197c881a9d1034feb2d8272716b53c919ccc184",
+    "centralTree": "491c327f7aacb304a87de587c89f2857770d0a42",
+    "centralRemoteExact": true,
+    "heavyOwner": null,
+    "heavyStatus": "IDLE",
+    "p0302Status": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0302_POSTWRITE_RELEASE_MATERIALIZE_REMOTE_STATE_UNKNOWN",
+    "p0302Reusable": false,
+    "protectedSshIdentityAvailable": true,
+    "productionStateReadBeforeLease": false,
+    "reason": "The lease itself is the sole authorized read-only observation of the unknown P0-302 state."
+  },
+  "executionAuthority": {
+    "processWorkingDirectory": "/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration",
+    "literalArgv": [
+      "/usr/bin/ssh",
+      "-i",
+      "/Users/huangjiahao/Downloads/Huang.pem",
+      "-o",
+      "IdentitiesOnly=yes",
+      "-o",
+      "BatchMode=yes",
+      "-o",
+      "StrictHostKeyChecking=yes",
+      "-o",
+      "UserKnownHostsFile=/Users/huangjiahao/.ssh/known_hosts",
+      "-o",
+      "ConnectTimeout=10",
+      "-o",
+      "ConnectionAttempts=1",
+      "ubuntu@43.153.202.237",
+      "/usr/bin/sudo",
+      "-n",
+      "/bin/bash",
+      "-s"
+    ],
+    "argvCount": 20,
+    "stdinPath": "/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration/release/integration/p0-wallet-connectivity/execution/objects/p0-303-finance-p0302-remote-state-zero-write-inspection.sh",
+    "stdinBytes": 5769,
+    "stdinSha256": "d5a10112f869c6e61c3b5e90779d139d63240efa41277d7e8d3e9324425ea8fc",
+    "stdoutPath": "/tmp/ynx-finance-p0303-p0302-remote-state-zero-write.stdout",
+    "stderrPath": "/tmp/ynx-finance-p0303-p0302-remote-state-zero-write.stderr",
+    "sshAttemptLimit": 1,
+    "retryAllowed": false,
+    "remoteWrites": 0,
+    "remoteTemporaryFiles": 0,
+    "httpBodyTransport": "anonymous pipes only; only status byte-count and SHA-256 markers enter shell variables"
+  },
+  "requiredTerminalReceipt": {
+    "inspection": "FINANCE_P0303_P0302_REMOTE_STATE_ZERO_WRITE",
+    "allExactP0302Paths": true,
+    "allFourParentTuples": true,
+    "currentLinkResolvedNextRollback": true,
+    "productionEnvUnitCaddyStateMetadataOnly": true,
+    "serviceLoadActiveSubPidRestartsExecStartWorkingDirectoryUserGroup": true,
+    "sixHttpStatusBytesWholeBodySha256": true,
+    "inspectionComplete": true,
+    "mutationCount": 0
+  },
+  "forbidden": [
+    "any remote file or temporary file",
+    "write mkdir cleanup delete deploy rollback retry restart reload or link mutation",
+    "environment unit Caddy state or public mutation",
+    "raw environment or secret output",
+    "Wallet account signature typed-data or transaction action"
+  ],
+  "terminalRules": {
+    "success": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0303_P0302_REMOTE_STATE_ZERO_WRITE_INSPECTION",
+    "failure": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0303_ZERO_WRITE_INSPECTION",
+    "releaseHeavyAndAllLocksOnTerminal": true,
+    "noDeploymentSuccessInference": true,
+    "p0302RemainsNonreusable": true,
+    "terminalEvidenceAccepted": true,
+    "terminalEvidencePath": "release/integration/p0-wallet-connectivity/execution/objects/p0-303-finance-p0302-remote-state-zero-write-terminal-evidence-20260831.json",
+    "stdoutBytes": 3990,
+    "stdoutSha256": "d90759e066f1fde8c39dfe1265937f477542113c7b3d6328322a38f36bf7f976",
+    "stderrBytes": 0,
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "remoteExitStatus": 0,
+    "mutationCount": 0
+  }
+}

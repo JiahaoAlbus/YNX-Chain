@@ -1,0 +1,45 @@
+{
+  "taskId": "P0-005",
+  "owner": "data-fabric",
+  "status": "CANDIDATE_READY_LIGHT_LEASE_RELEASED",
+  "executionScope": "RELEASED_WALLET_ERROR_AGGREGATION_CHECKPOINT",
+  "branch": "codex/final-data-fabric",
+  "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/26-data-fabric",
+  "acceptedContracts": [
+    "connectionEvents@1.0.0-p0.0",
+    "walletTransport@p0-wallet-connection-v1",
+    "errorContract@p0-wallet-connection-v1",
+    "dappConnectSDK@0.1.0-p0.0"
+  ],
+  "acceptedEvidence": {
+    "candidateSourceCommit": "63a7d633a10bcb8f7f929a2aa67af32074f49ea7",
+    "candidateReleaseBinding": "f393d373e473822d5d3dedb5e617d4c28a86c951",
+    "currentEvidenceCommit": "da095e240be52023ecef19c162c869398bf9fbea",
+    "pr": "https://github.com/JiahaoAlbus/YNX-Chain/pull/92",
+    "ci": "six Data Fabric workflow jobs completed successfully on PR #92 run 32398061116 at exact da095e24",
+    "focusedVerification": "Integration replayed go test ./internal/datafabric and release-truth-check at exact da095e24"
+  },
+  "authorizedWork": [
+    "map only canonical Wallet errorClass and retryable into asynchronous privacy-safe aggregates",
+    "add positive and negative vector tests under Data Fabric owner paths",
+    "update the Data Fabric handoff",
+    "after the implementation commit, mechanically bind only the exact frozen-source and release-truth files listed by the active path lock"
+  ],
+  "boundaries": [
+    "asynchronous observer only; never gate standard Wallet connection, approval, signing or transaction flow",
+    "do not modify Wallet, Gateway, Card UI, Finance UI or Explorer UI",
+    "no private key, seed, bearer token, WalletConnect secret, signature, account address, PAN or CVV may enter an event",
+    "Card remains YNXT Testnet simulation until independently finalized funding and Explorer evidence exist"
+  ],
+  "requiredCheckpoint": [
+    "commit and push",
+    "Outbox/Inbox and negative-vector tests",
+    "handoff update",
+    "release the Light Lease"
+  ],
+  "publicVerified": false,
+  "releasedAt": "2026-08-20T17:50:14Z",
+  "lightLeaseGrantedAt": "2026-08-20T14:55:00Z",
+  "releaseBindingScopeExpandedAt": "2026-08-20T17:20:00Z",
+  "nextAction": "Wait for PR #92 review and Central consumption. Do not rebuild da095e24; public deployment, installed clients, product migration and Card funding remain false."
+}

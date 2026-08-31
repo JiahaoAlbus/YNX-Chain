@@ -1,0 +1,224 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-267",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-p0247-residue-cleanup-openssh-successor-20260823T140755Z",
+  "owner": "finance-release-control-plane-cleanup-only",
+  "executor": "finance-release-control-plane-cleanup-only",
+  "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0267_RESIDUE_CLEANUP_VERIFIED_BY_P0268",
+  "issuedAt": "2026-08-23T14:07:55Z",
+  "expiresAt": "2026-08-23T14:37:55Z",
+  "releasedAt": "2026-08-23T14:18:05Z",
+  "singleUse": true,
+  "reusable": false,
+  "productionMutationAllowed": true,
+  "deploymentAllowed": false,
+  "serviceLifecycleAllowed": false,
+  "scope": "One exact OpenSSH-serialized transport and one identity-bound cleanup invocation removing only the four exact P0-247 Finance residues; preserve old Finance current/env/state/unit/Caddy/service/public runtime and take no Wallet lock",
+  "prerequisite": {
+    "taskId": "P0-266",
+    "terminalStatus": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0266_READONLY_CONFIRMED_P0265_NO_CLEANUP_RUNTIME_UNCHANGED",
+    "centralCommit": "5f2b75622d845efd37345768cb531b7d0a212b08",
+    "centralTree": "85760de0ed46f92036fe9aed1fc3b274e4b973ee",
+    "ownerEvidenceCommit": "ed7db93dfcf3f4a44360a7fa1c3e05f983af851d",
+    "ownerEvidenceTree": "6ff618bd3bfe80a63c03f4067137f41b50ab3b52",
+    "ownerEvidenceBlob": "6a5633b971f7baaa0350c954552937a1e3e03abe",
+    "ownerEvidenceSha256": "bce8b145bed99a056f4b3dd8cd924694518ce45588bd047a00c6fe7e991fb556",
+    "p0265Nonreusable": true
+  },
+  "sourceRequest": {
+    "branch": "codex/p0-finance-wallet-connectivity-20260820",
+    "implementationCommit": "3e80004bcc236104d9a386e7daa7541c22dcb63a",
+    "implementationTree": "a69323c0a28bb0f40956c4f73417d18e4c9e1cfd",
+    "commit": "4c15d0a7a97dc69e409238e8fbb1c0e22d87a0b7",
+    "tree": "d83314970b465bea8dabd8f474126a2d5c1760b3",
+    "path": "apps/finance/evidence/finance-p0247-acknowledged-cleanup-successor-request-20260823.json",
+    "blob": "7fc1a611a95d33caf437856fe5aa0bef685c08ee",
+    "bytes": 4142,
+    "sha256": "4aab38726525376345e73457761bc232bf9c524dd94854e451eb8163872126cb",
+    "remoteExact": true,
+    "clean": true
+  },
+  "exactObjects": {
+    "literalTransport": {
+      "path": "apps/finance/scripts/finance-p0264-cleanup-literal-transport-command.sh",
+      "blob": "e087f6583757cc6ab906ee325b7d5d6fb20379b8",
+      "bytes": 3350,
+      "sha256": "c012a8215b34891e7a2f94825dfbd480defc2460c41464dd32052d94d51f68ee"
+    },
+    "atomicBootstrap": {
+      "path": "apps/finance/scripts/finance-p0264-cleanup-atomic-transport-bootstrap.sh",
+      "blob": "2e73994c0d7046428b8afcb0205601aac3685e1c",
+      "bytes": 6279,
+      "sha256": "f2b09b6eb8df7061e2985caa271f7ad0fa02b12132125069ae72d3636bdfabbd"
+    },
+    "cleanupExecutor": {
+      "path": "apps/finance/scripts/finance-p0247-residue-cleanup.sh",
+      "blob": "85433b046e9aa3dfd5ad269ae143d35eab20e510",
+      "bytes": 8451,
+      "sha256": "fd7637a5d353bb8bee9e1ba981c7983f0ead0a8d473d544e62b15dcd340b9e50"
+    },
+    "transportFixture": {
+      "path": "apps/finance/scripts/test-finance-p0264-cleanup-atomic-transport-fixture.mjs",
+      "blob": "9ff0a9952dc9bbc365d5e46ebf678b122510b420",
+      "bytes": 8367,
+      "sha256": "d9fc520051df051172554473db2743a99b35646ea0face90fc672b1794e600cc"
+    }
+  },
+  "signedCleanupLease": {
+    "path": "/tmp/ynx-finance-p0267-cleanup-signed.json",
+    "bytes": 4156,
+    "sha256": "b217bb0fe603d53d62c573bc579c46245e03a6e833987e01b201e32b608b5464",
+    "modeOnRemote": "0600",
+    "kind": "FINANCE_P0247_RESIDUE_CLEANUP_ONLY",
+    "id": "p0264-finance-p0247-cleanup-20260823T140755Z",
+    "centralTaskId": "P0-267",
+    "p0247Id": "p0247-finance-phase3-20260823T073800Z",
+    "bodyOutputForbidden": true
+  },
+  "deterministicCarrier": {
+    "path": "/tmp/ynx-finance-p0267-cleanup-atomic.carrier",
+    "bytes": 17040,
+    "sha256": "49b24636095c2d39d59aaf95ab5e32d2f70c5b83e038d2ca2cd033ee539633e5",
+    "stdinOnly": true,
+    "frames": [
+      {"name":"executor","mode":"0700","bytes":8451,"sha256":"fd7637a5d353bb8bee9e1ba981c7983f0ead0a8d473d544e62b15dcd340b9e50"},
+      {"name":"lease","mode":"0600","bytes":4156,"sha256":"b217bb0fe603d53d62c573bc579c46245e03a6e833987e01b201e32b608b5464"}
+    ]
+  },
+  "freshPrewrite": {
+    "checkedAt": "2026-08-23T14:07:55Z",
+    "heavyBeforeIssue": "IDLE",
+    "financeLocksBeforeIssue": "FREE",
+    "placementParentTuple": "64770:4594822:0:0:750:2:4096:directory",
+    "stageParentTuple": "64770:3450041:0:0:750:4:4096:directory",
+    "backupParentTuple": "64770:1481354:0:0:755:10:4096:directory",
+    "stageTuple": "64770:4620782:0:0:700:3:4096:directory",
+    "stageInventorySha256": "61181f33dcf9b11282732fe26f02ad9e3b0f5135dead72ca690606c722d9bf62",
+    "backupTuple": "64770:2663604:0:0:700:3:4096:directory",
+    "backupInventorySha256": "e78ba1c645bfeeffa9d1f373fd2c773326a358c23caca7ad9fd48834b71a3e19",
+    "placedExecutorTuple": "64770:4594823:0:0:700:1:15907:regular file",
+    "placedExecutorSha256": "8f9e2ede5418e8f65739f2a5f3af7a78c266474f4c428951d8daf27f20e56315",
+    "placedLeaseTuple": "64770:4594824:0:0:600:1:6829:regular file",
+    "placedLeaseSha256": "49aec85704a6282cab675373f56cb71a240433f3625f08b5e7426bbb1bbfee80",
+    "newControlAndPendingPathsAbsent": true,
+    "currentTuple": "64770:1312291:0:0:777:1:50:symbolic link",
+    "currentTarget": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a",
+    "envTupleSha256": "64770:1324724:0:986:640:1:1545:regular file|854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252",
+    "unitTupleSha256": "64770:161304:0:0:644:1:515:regular file|2e72cdad422a3a714c46d074ea97b725233576cf726dbbfd43e82e99c2c2975b",
+    "caddyTupleSha256": "64770:1051759:0:0:644:1:255:regular file|dcf75a7aed315c54632321b8bb80e44c0abc22f6700fadfbfa9a7da21b88a282",
+    "stateAbsent": true,
+    "serviceMainPid": 2241003,
+    "serviceNRestarts": 0,
+    "loopbackAndPublicHealth": "200:485:d1e97a4314acd1ecccf94629d15bd598cb58ff78136b3622ac26d583a82e45c1",
+    "loopbackAndPublicVersion": "200:130:39789776da47e60b7a7df845789e02ebba16707ad8951eb6f27c84c1b40bb226"
+  },
+  "executionAuthority": {
+    "processWorkingDirectory": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
+    "literalArgv": [
+      "/bin/bash",
+      "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance/apps/finance/scripts/finance-p0264-cleanup-literal-transport-command.sh",
+      "/tmp/ynx-finance-p0267-cleanup-atomic.carrier",
+      "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance/apps/finance/scripts/finance-p0264-cleanup-atomic-transport-bootstrap.sh",
+      "6279",
+      "f2b09b6eb8df7061e2985caa271f7ad0fa02b12132125069ae72d3636bdfabbd",
+      "p0264-finance-p0247-cleanup-20260823T140755Z",
+      "64770:4594822:0:0:750:2:4096:directory",
+      "fd7637a5d353bb8bee9e1ba981c7983f0ead0a8d473d544e62b15dcd340b9e50",
+      "b217bb0fe603d53d62c573bc579c46245e03a6e833987e01b201e32b608b5464",
+      "49b24636095c2d39d59aaf95ab5e32d2f70c5b83e038d2ca2cd033ee539633e5",
+      "/tmp/ynx-finance-p0267-cleanup-terminal.stdout",
+      "/tmp/ynx-finance-p0267-cleanup-terminal.stderr"
+    ],
+    "sshAttemptLimit": 1,
+    "cleanupInvocationLimit": 1,
+    "retryAllowed": false,
+    "stdoutPath": "/tmp/ynx-finance-p0267-cleanup-terminal.stdout",
+    "stderrPath": "/tmp/ynx-finance-p0267-cleanup-terminal.stderr",
+    "statusPath": "/tmp/ynx-finance-p0267-cleanup-terminal.stdout.status",
+    "allReceiptPathsInitiallyAbsent": true,
+    "completeSixLineReceiptRequiredForExitZero": true,
+    "silentZeroConvertedToStatus": 65,
+    "protectedSshIdentity": "embedded protected executor reference; value must not be printed or returned"
+  },
+  "authorizedMutation": {
+    "temporaryControlPaths": [
+      "/opt/ynx/leases/finance/p0264-finance-p0247-cleanup-20260823T140755Z.executor.sh.pending",
+      "/opt/ynx/leases/finance/p0264-finance-p0247-cleanup-20260823T140755Z.executor.sh",
+      "/opt/ynx/leases/finance/p0264-finance-p0247-cleanup-20260823T140755Z.json.pending",
+      "/opt/ynx/leases/finance/p0264-finance-p0247-cleanup-20260823T140755Z.json"
+    ],
+    "cleanupTargets": [
+      "/opt/ynx/stage/finance/p0247-finance-phase3-20260823T073800Z",
+      "/var/backups/ynx-finance/p0247-finance-phase3-20260823T073800Z",
+      "/opt/ynx/leases/finance/p0247-finance-phase3-20260823T073800Z.json",
+      "/opt/ynx/leases/finance/p0247-finance-phase3-20260823T073800Z.executor.sh"
+    ],
+    "allIdentityAndInventoryBound": true,
+    "foreignSubstitutionPreserved": true,
+    "allNewControlPathsMustEndAbsent": true
+  },
+  "terminalReceiptExactLines": [
+    "cleanup=P0247_RESIDUES_REMOVED",
+    "transport=P0264_ATOMIC_CONTROL_PLACEMENT",
+    "cleanupInvocationCount=1",
+    "cleanupExitStatus=0",
+    "controlObjectsFinalAbsent=true",
+    "carrierSha256=49b24636095c2d39d59aaf95ab5e32d2f70c5b83e038d2ca2cd033ee539633e5"
+  ],
+  "terminalEvidenceRequired": [
+    "literal command exit status zero, exact six-line stdout receipt and empty stderr",
+    "separate wholly-new read-only verification before cleanup completion is accepted",
+    "four exact P0-247 residues absent and four new control/pending paths absent",
+    "old current/env/state/unit/Caddy/service PID/NRestarts and loopback/public health/version unchanged",
+    "no deployment, service lifecycle, Wallet mutation, account, signing, typed-data, transaction or secret output"
+  ],
+  "forbidden": [
+    "any second SSH attempt or cleanup invocation",
+    "any deploy, rollback or candidate release creation",
+    "any service stop, start, restart or reload",
+    "any current, env, state, unit, Caddy or public mutation",
+    "any unbound deletion or deletion of a substituted or foreign object",
+    "any Wallet path lock or Wallet mutation",
+    "any account request, signing, typed data or transaction",
+    "any signed lease body, environment value, credential, private key or recovery material output"
+  ],
+  "truthBoundary": {
+    "leaseIssued": true,
+    "cleanupExecuted": true,
+    "cleanupExecutionAcknowledged": true,
+    "cleanupCompletionAccepted": true,
+    "deploymentExecuted": false,
+    "serviceLifecycleExecuted": false,
+    "publicMutationExecuted": false,
+    "walletMutationExecuted": false
+  },
+  "terminalEvidence": {
+    "ownerCommit": "1fa5804c494abda9b4b811ec2708c1bdcccc50bc",
+    "ownerTree": "e6e9cf40821bb64524b6617981c5a27dd745e60f",
+    "path": "apps/finance/evidence/p0-267-finance-p0247-cleanup-terminal-evidence-20260823.json",
+    "blob": "c046d2fbe3f106003d04b389af23389cfeb9f559",
+    "bytes": 2131,
+    "sha256": "ce42f4bc36666661fa6c5af9c4382a81bde86ef39e0ff74c8e0371fee6f1453f",
+    "attemptCount": 1,
+    "retryCount": 0,
+    "exitCode": 0,
+    "stdoutBytes": 227,
+    "stdoutSha256": "59193043771f7c37c85f458714abc590bf7741729a2d10c1ab4e89d8a83b2b56",
+    "stderrBytes": 0,
+    "exactSixLineReceipt": true,
+    "cleanupCompletionAccepted": false,
+    "nextRequiredAction": "Completed by P0-268 direct zero-write verification; any deployment requires a wholly-new deployment request and lease."
+  },
+  "independentReadback": {
+    "taskId": "P0-268",
+    "ownerCommit": "2065fe7fc349541255e5e4be2b1bf2750eeebeac",
+    "ownerTree": "ecd334c67078701adf5f4c5acf93292abccdb917",
+    "evidenceBlob": "3c767966cf83957f738f611a3928668ce7c8f6fc",
+    "evidenceSha256": "b8540f206e3925441d35e80344b6dcc5299f514d0efd48a85fe624a49e904767",
+    "fourResiduesAbsent": true,
+    "fourControlPathsAbsent": true,
+    "oldRuntimeUnchanged": true,
+    "cleanupCompleteAccepted": true
+  }
+}

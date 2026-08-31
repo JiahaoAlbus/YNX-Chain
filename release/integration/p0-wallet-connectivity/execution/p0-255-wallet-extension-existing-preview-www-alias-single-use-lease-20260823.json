@@ -1,0 +1,163 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-255",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-extension-existing-preview-www-alias-yes-20260823T105448Z",
+  "owner": "wallet-web-artifact-hosting",
+  "executor": "website-release-control-plane",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_WALLET_STATIC_EXISTING_PREVIEW_GATE",
+  "issuedAt": "2026-08-23T10:54:48Z",
+  "expiresAt": "2026-08-23T11:24:48Z",
+  "releasedAt": "2026-08-23T11:00:44Z",
+  "singleUse": true,
+  "reusable": false,
+  "productionMutationAllowed": false,
+  "pushAllowed": false,
+  "deploymentAllowed": false,
+  "scope": "Verify the already READY exact-source Website preview with four authenticated no-confirmation GETs from the exact linked cwd, switch only www.ynxweb4.com once, verify four official resources, and retain or restore www once",
+  "centralPrecondition": {
+    "parentCommit": "131bc2846b0745ffe9280c0d91de336b25fe4eae",
+    "parentTree": "873195e6457ad7875ba00cd3a0a587f1320d8edd",
+    "p0254TerminalLeaseBlob": "a54a7e3f0bbac8003110f04eebb70684f5c0fe4c",
+    "p0254TerminalLeaseBytes": 12053,
+    "p0254TerminalLeaseSha256": "73cc0e533703fd22b6137a8cefdf51f49abda1b248480afbd7d5a29910e465aa",
+    "p0254Status": "CONSUMED_RELEASED_FAILED_CLOSED_WALLET_STATIC_EXISTING_PREVIEW_GATE",
+    "p0254Reusable": false,
+    "heavyBeforeIssue": "IDLE",
+    "walletStaticPathAndWwwAliasLocksBeforeIssue": "RELEASED"
+  },
+  "cliContract": {
+    "vercelPath": "/opt/homebrew/bin/vercel",
+    "vercelVersion": "54.6.1",
+    "linkedWebsiteCwd": "/Users/huangjiahao/Desktop/YNX-Chain-website",
+    "linkedProjectId": "prj_tPB0KDTFohQ9FXZAzq25mYFWkbNa",
+    "linkedProjectName": "ynx-web4-website-new",
+    "linkedOrgId": "team_JYlLQCpX3qEQiL92qoWMjUrw",
+    "yesOptionParserCheck": "PASS",
+    "requireYesBeforeCurlSeparator": true,
+    "unlinkedCwdForbidden": true
+  },
+  "candidate": {
+    "branch": "codex/wallet-extension-static-carrier-prod-base-p0-20260823",
+    "commit": "be26edbd67c512e22a4f373206d5d82af4c6b0d4",
+    "tree": "0fa369a16e3099d59183852f3da076d7be2b95e0",
+    "parent": "89db27bb82bcb0d740d3ffb42b427704aaff247e",
+    "solePath": "public/downloads/wallet-web/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip",
+    "blob": "e8dfdfdcd19ea211db17b217c559108da0efe5a4",
+    "bytes": 471181,
+    "sha256": "2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d",
+    "remoteBranchExact": true,
+    "vercelJsonRegistryCatalogUnchanged": true
+  },
+  "preview": {
+    "deploymentId": "dpl_CBz4cfFxf9WsMDzeLqzaPJGiXLZd",
+    "url": "ynx-web4-website-i2i1g60xp-jiahaoalbus-projects.vercel.app",
+    "readyState": "READY",
+    "projectId": "prj_tPB0KDTFohQ9FXZAzq25mYFWkbNa",
+    "gitSourceType": "github",
+    "gitSourceRef": "codex/wallet-extension-static-carrier-prod-base-p0-20260823",
+    "gitSourceSha": "be26edbd67c512e22a4f373206d5d82af4c6b0d4",
+    "newDeploymentRequired": false
+  },
+  "baseline": {
+    "wwwDeploymentId": "dpl_574RBu3xBzE4Bh1jygv2YJruAYfz",
+    "wwwDeploymentUrl": "ynx-web4-website-amp9sntxu-jiahaoalbus-projects.vercel.app",
+    "apexDeploymentId": "dpl_574RBu3xBzE4Bh1jygv2YJruAYfz",
+    "walletDeploymentId": "dpl_EhSHsjrfQ17dzuTegLCqGvELeBte",
+    "root": {"status": 200, "bytes": 1018, "sha256": "3cc384404c5ee932a3803fe2fbc29071fbde803803935d1f937e8a2528e2d6a8"},
+    "css": {"path": "/assets/index-kbgmde29.css", "status": 200, "bytes": 83542, "sha256": "92b51007899ba39f42f566597caa9b378f94f5dcf17600e50147a578c8839392"},
+    "js": {"path": "/assets/index-D0C2uU3-.js", "status": 200, "bytes": 587657, "sha256": "ccaccc4bfe69de80b12ebb73b67eacc34280d39a3c8f4627a5ac648dca0e11c7"},
+    "artifact": {"status": 200, "contentType": "text/html; charset=utf-8", "bytes": 1018, "sha256": "3cc384404c5ee932a3803fe2fbc29071fbde803803935d1f937e8a2528e2d6a8", "hosted": false}
+  },
+  "execution": {
+    "order": ["freshPrewrite", "candidateReads", "candidateGate", "wwwAliasSet", "officialReads", "retainOrRollback"],
+    "freshPrewrite": [
+      "Heavy and exact preview-read/static-path/www-alias locks still owned by P0-255",
+      "linked Website cwd project binding exact and clean read-only for this execution",
+      "preview ID/URL/project/READY/git source exact and remote branch exact",
+      "www/apex/wallet alias targets exact",
+      "no push or deploy command exists"
+    ],
+    "candidateReads": [
+      ["/opt/homebrew/bin/vercel", "curl", "/", "--cwd", "/Users/huangjiahao/Desktop/YNX-Chain-website", "--deployment", "dpl_CBz4cfFxf9WsMDzeLqzaPJGiXLZd", "--scope", "jiahaoalbus-projects", "--yes", "--", "--silent", "--show-error", "--dump-header", "/tmp/p0255-preview-root.headers", "--output", "/tmp/p0255-preview-root.body"],
+      ["/opt/homebrew/bin/vercel", "curl", "/assets/index-kbgmde29.css", "--cwd", "/Users/huangjiahao/Desktop/YNX-Chain-website", "--deployment", "dpl_CBz4cfFxf9WsMDzeLqzaPJGiXLZd", "--scope", "jiahaoalbus-projects", "--yes", "--", "--silent", "--show-error", "--dump-header", "/tmp/p0255-preview-css.headers", "--output", "/tmp/p0255-preview-css.body"],
+      ["/opt/homebrew/bin/vercel", "curl", "/assets/index-D0C2uU3-.js", "--cwd", "/Users/huangjiahao/Desktop/YNX-Chain-website", "--deployment", "dpl_CBz4cfFxf9WsMDzeLqzaPJGiXLZd", "--scope", "jiahaoalbus-projects", "--yes", "--", "--silent", "--show-error", "--dump-header", "/tmp/p0255-preview-js.headers", "--output", "/tmp/p0255-preview-js.body"],
+      ["/opt/homebrew/bin/vercel", "curl", "/downloads/wallet-web/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip", "--cwd", "/Users/huangjiahao/Desktop/YNX-Chain-website", "--deployment", "dpl_CBz4cfFxf9WsMDzeLqzaPJGiXLZd", "--scope", "jiahaoalbus-projects", "--yes", "--", "--silent", "--show-error", "--dump-header", "/tmp/p0255-preview-zip.headers", "--output", "/tmp/p0255-preview-zip.body"]
+    ],
+    "candidateReadCount": 4,
+    "candidateReadRetryAllowed": false,
+    "aliasSetArgv": ["/opt/homebrew/bin/vercel", "alias", "set", "ynx-web4-website-i2i1g60xp-jiahaoalbus-projects.vercel.app", "www.ynxweb4.com", "--scope", "jiahaoalbus-projects"],
+    "wwwAliasSetAttemptLimit": 1,
+    "officialReads": [
+      ["/usr/bin/curl", "--silent", "--show-error", "--max-time", "20", "--dump-header", "/tmp/p0255-www-root.headers", "--output", "/tmp/p0255-www-root.body", "https://www.ynxweb4.com/"],
+      ["/usr/bin/curl", "--silent", "--show-error", "--max-time", "20", "--dump-header", "/tmp/p0255-www-css.headers", "--output", "/tmp/p0255-www-css.body", "https://www.ynxweb4.com/assets/index-kbgmde29.css"],
+      ["/usr/bin/curl", "--silent", "--show-error", "--max-time", "20", "--dump-header", "/tmp/p0255-www-js.headers", "--output", "/tmp/p0255-www-js.body", "https://www.ynxweb4.com/assets/index-D0C2uU3-.js"],
+      ["/usr/bin/curl", "--silent", "--show-error", "--max-time", "20", "--dump-header", "/tmp/p0255-www-zip.headers", "--output", "/tmp/p0255-www-zip.body", "https://www.ynxweb4.com/downloads/wallet-web/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip"]
+    ],
+    "officialReadCount": 4,
+    "officialReadRetryAllowed": false,
+    "rollbackArgv": ["/opt/homebrew/bin/vercel", "alias", "set", "ynx-web4-website-amp9sntxu-jiahaoalbus-projects.vercel.app", "www.ynxweb4.com", "--scope", "jiahaoalbus-projects"],
+    "rollbackAttemptLimit": 1,
+    "retryAllowed": false
+  },
+  "gates": {
+    "root": {"status": 200, "bytes": 1018, "sha256": "3cc384404c5ee932a3803fe2fbc29071fbde803803935d1f937e8a2528e2d6a8"},
+    "css": {"status": 200, "bytes": 83542, "sha256": "92b51007899ba39f42f566597caa9b378f94f5dcf17600e50147a578c8839392"},
+    "js": {"status": 200, "bytes": 587657, "sha256": "ccaccc4bfe69de80b12ebb73b67eacc34280d39a3c8f4627a5ac648dca0e11c7"},
+    "zip": {"status": 200, "bytes": 471181, "sha256": "2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d", "contentType": "application/zip", "cacheControl": "public, max-age=31536000, immutable", "contentDisposition": "attachment", "xContentTypeOptions": "nosniff", "basename": "ynx-wallet-chrome-edge-0.1.0.zip"},
+    "wwwAliasAfterSet": "dpl_CBz4cfFxf9WsMDzeLqzaPJGiXLZd",
+    "apexAliasUnchanged": "dpl_574RBu3xBzE4Bh1jygv2YJruAYfz",
+    "walletAliasUnchanged": "dpl_EhSHsjrfQ17dzuTegLCqGvELeBte",
+    "htmlFallbackIsFailure": true,
+    "fullGetRehashRequired": true
+  },
+  "rollbackRules": {
+    "beforeAliasFailure": "no rollback; www remains on dpl_574RBu3xBzE4Bh1jygv2YJruAYfz",
+    "afterAliasFailure": "invoke exact rollback argv once at most and prove www old deployment plus root/CSS/JS/HTML-fallback baseline",
+    "previewOrBranchMutationAllowed": false
+  },
+  "forbidden": [
+    "push, deploy, production promotion, retry or dispatch",
+    "Blob operation/token, vercel.json, registry or catalog mutation",
+    "apex, wallet or any non-www alias mutation",
+    "project settings, DNS, preview/branch deletion",
+    "browser download click, installation, provider, account request, approval, signature, typed data or transaction"
+  ],
+  "terminalRules": {
+    "success": "CONSUMED_RELEASED_SUCCESS_WALLET_EXTENSION_STATIC_ZIP_WWW_SOURCE_BOUND_HOSTED",
+    "failureBeforeAlias": "CONSUMED_RELEASED_FAILED_CLOSED_WALLET_STATIC_EXISTING_PREVIEW_GATE",
+    "failureAfterAliasRolledBack": "CONSUMED_RELEASED_FAILED_CLOSED_WALLET_STATIC_WWW_GATE_ROLLED_BACK",
+    "emergency": "EMERGENCY_BLOCKED_WALLET_STATIC_WWW_ALIAS_EXACT_ROLLBACK_REQUIRED",
+    "releaseHeavyAndAllLocksOnTerminal": true
+  },
+  "terminalEvidence": {
+    "path": "/tmp/p0-255-wallet-static-terminal-fail-closed.json",
+    "bytes": 1639,
+    "sha256": "5ad8a8894ffc250c7de57f4e8a8f037df502c8bd4634567eec7f7dc171c3a8b2",
+    "freshPrewriteExact": true,
+    "firstCandidateReadAttempts": 1,
+    "firstCandidateReadExitCode": 2,
+    "error": "curl: option --cwd: is unknown",
+    "cause": "lease argv placed Vercel global --cwd after the curl subcommand path, so Vercel forwarded it to the underlying curl process",
+    "httpRequestIssued": false,
+    "filesCreated": false,
+    "remainingCandidateReadsAttempted": 0,
+    "retryExecuted": false,
+    "wwwAliasCommandExecuted": false,
+    "rollbackCommandExecuted": false,
+    "wwwDeploymentId": "dpl_574RBu3xBzE4Bh1jygv2YJruAYfz",
+    "apexDeploymentId": "dpl_574RBu3xBzE4Bh1jygv2YJruAYfz",
+    "walletDeploymentId": "dpl_EhSHsjrfQ17dzuTegLCqGvELeBte",
+    "previewStillReadyAndExact": true,
+    "push": false,
+    "deployment": false,
+    "blobOperation": false,
+    "configCatalogRegistryMutation": false,
+    "install": false,
+    "account": false,
+    "signature": false,
+    "transaction": false,
+    "futureSingleBlocker": "NEW_LEASE_MUST_PLACE_GLOBAL_CWD_BEFORE_CURL_SUBCOMMAND_OR_OMIT_CWD_AND_SET_PROCESS_WORKDIR_TO_LINKED_WEBSITE_REPO"
+  },
+  "truthBoundary": {"hosted": false, "publicVerified": false, "candidateHttpRead": false, "wwwAliasChanged": false, "cleanBrowserDownload": false, "installed": false, "provider": false, "account": false, "signature": false, "transaction": false}
+}

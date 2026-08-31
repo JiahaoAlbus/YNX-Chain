@@ -556,9 +556,90 @@ func DefaultSchemaRegistry() *SchemaRegistry {
 			definitions = append(definitions, v1, v2)
 		}
 	}
+	definitions = append(definitions, calendarSchemaDefinitions(v2EnvelopeFields)...)
 	registry, err := NewSchemaRegistry("2.0", definitions)
 	if err != nil {
 		panic(err)
 	}
 	return registry
+}
+
+type calendarPayloadContract struct {
+	fields  []PayloadField
+	example json.RawMessage
+}
+
+func calendarSchemaDefinitions(requiredEnvelopeFields []string) []EventSchemaDefinition {
+	effectiveAt := time.Date(2026, 8, 14, 0, 0, 0, 0, time.UTC)
+	stringField := func(name string, required bool, values ...string) PayloadField {
+		return PayloadField{Name: name, Type: "string", Required: required, Enum: values}
+	}
+	withVersion := func(fields ...PayloadField) []PayloadField {
+		return append([]PayloadField{{Name: "aggregateVersion", Type: "integer", Required: true}}, fields...)
+	}
+	contracts := map[string]calendarPayloadContract{
+		"calendar.event.created.v1": {
+			fields:  withVersion(stringField("operation", true, "create"), stringField("scope", true)),
+			example: json.RawMessage(`{"aggregateVersion":1,"operation":"create","scope":"entire_series"}`),
+		},
+		"calendar.event.updated.v1": {
+			fields:  withVersion(stringField("operation", true, "update", "recurrence"), stringField("scope", true)),
+			example: json.RawMessage(`{"aggregateVersion":2,"operation":"update","scope":"entire_series"}`),
+		},
+		"calendar.event.cancelled.v1": {
+			fields:  withVersion(stringField("operation", true, "cancel"), stringField("scope", true)),
+			example: json.RawMessage(`{"aggregateVersion":3,"operation":"cancel","scope":"entire_series"}`),
+		},
+		"calendar.invitation.created.v1": {
+			fields:  withVersion(stringField("operation", true, "create"), stringField("recipient_ref", true), stringField("invitation_state", true)),
+			example: json.RawMessage(`{"aggregateVersion":1,"operation":"create","recipient_ref":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","invitation_state":"pending"}`),
+		},
+		"calendar.invitation.updated.v1": {
+			fields:  withVersion(stringField("operation", true, "update"), stringField("recipient_ref", true), stringField("invitation_state", true)),
+			example: json.RawMessage(`{"aggregateVersion":2,"operation":"update","recipient_ref":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","invitation_state":"pending"}`),
+		},
+		"calendar.invitation.cancelled.v1": {
+			fields:  withVersion(stringField("operation", true, "cancel"), stringField("recipient_ref", true), stringField("invitation_state", true)),
+			example: json.RawMessage(`{"aggregateVersion":3,"operation":"cancel","recipient_ref":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","invitation_state":"cancelled"}`),
+		},
+		"calendar.rsvp.updated.v1": {
+			fields:  withVersion(stringField("responder_ref", true), stringField("response", true, "yes", "no", "maybe", "pending")),
+			example: json.RawMessage(`{"aggregateVersion":2,"responder_ref":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","response":"yes"}`),
+		},
+		"calendar.share.changed.v1": {
+			fields:  withVersion(stringField("recipient_ref", true), stringField("role", false, "viewer", "editor", "availability"), stringField("state", true, "granted", "revoked")),
+			example: json.RawMessage(`{"aggregateVersion":2,"recipient_ref":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","role":"viewer","state":"granted"}`),
+		},
+		"calendar.reminder.due.v1": {
+			fields:  withVersion(stringField("reminder_id", true), stringField("occurrence_start", true), stringField("delivery_state", true)),
+			example: json.RawMessage(`{"aggregateVersion":2,"reminder_id":"reminder.0001","occurrence_start":"2026-08-14T08:00:00Z","delivery_state":"due"}`),
+		},
+		"calendar.ai.previewed.v1": {
+			fields:  withVersion(stringField("workflow", true), stringField("event_count", true), stringField("provider", true), stringField("model", true), stringField("cost_state", true)),
+			example: json.RawMessage(`{"aggregateVersion":1,"workflow":"summarize","event_count":"2","provider":"ynx-ai","model":"qwen3","cost_state":"estimated"}`),
+		},
+	}
+	eventTypes := make([]string, 0, len(contracts))
+	for eventType := range contracts {
+		eventTypes = append(eventTypes, eventType)
+	}
+	sort.Strings(eventTypes)
+	definitions := make([]EventSchemaDefinition, 0, len(eventTypes))
+	for _, eventType := range eventTypes {
+		contract := contracts[eventType]
+		definitions = append(definitions, EventSchemaDefinition{
+			EventType: eventType, Version: EnvelopeSchemaVersionV2, Owner: "36-calendar",
+			Product: "calendar", Producer: "ynx-calendar", Consumers: []string{"ynx-data-fabric"},
+			CompatibilityMode: CompatibilityNone, EffectiveAt: effectiveAt,
+			Migration:    "calendar-outbox-v1-to-data-fabric-envelope-v2",
+			Rollback:     "stop-consumption-without-acknowledging-calendar-sequence",
+			SourceCommit: "f1305e6b52c7484c099fe6b2f6cbc2b6d36508e2", Release: "calendar-canonical-event-v1",
+			TestVectors:    []string{"internal/datafabriccalendar/adapter_test.go", "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json#CAL-X-014"},
+			ExamplePayload: contract.example, PrivacyClassification: "restricted", RetentionClass: "operational", ResidencyClass: "account-home",
+			EnforceDataClassification: true,
+			ErrorCodes:                []ErrorCode{CodeUnknownField, CodeMissingRequiredField, CodeDuplicate, CodeOutOfOrder, CodeSequenceGap, CodeTampered, CodeWrongProduct, CodeReplay},
+			AllowUnknownPayloadFields: false, RequiredEnvelopeFields: append([]string(nil), requiredEnvelopeFields...), PayloadFields: contract.fields,
+		})
+	}
+	return definitions
 }

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-070",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-registry-v3-dda13e65-20260820T214557Z",
+  "status": "ACTIVE_BOUNDED_SINGLE_USE_ROLLBACK_FIRST",
+  "singleUse": true,
+  "reusable": false,
+  "owner": "wallet-auth-core",
+  "leasedAt": "2026-08-20T21:45:57Z",
+  "expiresAt": "2026-08-20T23:45:57Z",
+  "supersededLeases": [
+    {"taskId":"P0-039","reusable":false},
+    {"taskId":"P0-050","reusable":false},
+    {"taskId":"P0-054","reusable":false}
+  ],
+  "source": {"commit":"dda13e65e67e06f7fb45daa54a311daa96e0155a","tree":"25f0d7703b15f7cfc8b0dc5e0bef76266591185e","evidenceCommit":"c9032cf2b4f2d058e1276cf1d17be1f1b2d9b072","evidenceBlob":"24ed7f6b936601c8604039f8c0323b5ea8f2d50a","evidenceSha256":"47abe84c6c4ef3aeed109bcda7c4e9aeeff563f791c8586162268b2b96c70080","acceptanceCommit":"e74d8a17f070f80a826faedba4e7729c158de668"},
+  "artifacts": {"sourceArchiveSha256":"6a10469371a550b33a6b2f37a483309fa7ddfbbd4451273f070148dd6ed624f9","sourceInventorySha256":"d1c8300c26570dd256ff5cb500e2fda7a739b72a3e7e776e3609d21b82e5c3b8","runtimeArchiveSha256":"a17794bd15592f3eae1caab34094bc52ec70ce89efa0cbd9995219e94bc7bd86","runtimeInventorySha256":"5d3ee01194d684b226b6218ce73c1d7d36ff494493ef4f39060dbc32f5049641","sbomSha256":"e1ede575a2df485ddac661324f3bd498592fd30806787c660b5a1bc3a7e2031b"},
+  "freshProductionEvidence": "release/integration/p0-wallet-connectivity/evidence/p0-070-wallet-auth-fresh-readonly-binding-20260821.json",
+  "freshProduction": {"publicSourceCommit":"6cf3ef845202bd879ed94515a71b323dd2fc9e14","workingDirectory":"/opt/ynx/wallet-auth-6cf3ef84","v2StateSha256":"343f4cbbce0aed1e3cc5894156c4480e69dfc4775e0b347c63d555bd51790d23","v1StateSha256":"ac6b6523851c37c3d8b5472179fd218bc5d839e20d5a75177dcd2ac9494ea4ba","sharedStateSha256":"ba386fb9e474ea0886c2e41184db7fac3fcf6aea6dd02f5fe47122a62d3a8c9e","registrySha256":"d2826eb419abca4444ccb50d79537fa7f6a3643948d82ed9b52914b7169c107b","environmentSha256":"5117b5fe5fb58f77cc385fc59440b02042c9d455b2f92c6996283c9becd12437","baseEnvironmentSha256":"d342b6c44cb4393b2e5667c00d347c689462bbd85f9db76b41b36a66caac59cd","runtimeDropInSha256":"ee9540a1f8265a8d8589db6c433d0294f000c952d87318ea124da4adbf3d2c3a","callbackDropInSha256":"383f6a37db777091b16c6aa0bc63a5beee9d27dc58be748d0c6ec73fb31c6d42","baseUnitSha256":"b465463185b1539d04a3091c349f2b8bca4286be3521e1975091089cd6603ec4","caddyfileSha256":"077fe80ea9aab24a32d64ba1fab3584e8aab10304e200e58d976d2c33edfb39f","serviceNRestarts":0},
+  "transaction": {"target":"wallet-auth.ynxweb4.com backing ynx-wallet-gateway.service only","releaseRoot":"/opt/ynx/wallet-auth-dda13e65","candidateStateDirectory":"/var/lib/ynx-wallet-gateway/candidate-dda13e65","rollbackDirectory":"/var/backups/ynx-chain/wallet-auth-registry-v3-dda13e65-p0070","rollbackFirst":true},
+  "allowedOperations": ["strict-host-key fresh digest recheck","create and verify rollback backup before activation","stage exact accepted offline artifacts without npm or network install","stop only ynx-wallet-gateway.service for exact consistent state copy","run exact accepted migration and permission-safe materializer into absent candidate paths","cold-start candidate only after pre-write digests and rollback receipts match","run full rollback drill restoring exact 6cf identity and original hashes before final activation","activate only after rollback drill and source verifier pass","run public health ready version and Product Session lifecycle acceptance","release immediately on success or first failure"],
+  "forbidden": ["reuse P0-039 P0-050 or P0-054","retry after consumed failure","network dependency installation","source artifact or digest substitution","export production state contents","weaken source or target permissions","shared-state mutation","Caddy base-unit callback-drop-in or ReadWritePaths changes","unrelated service mutation","promotion without exact public lifecycle evidence"],
+  "failurePolicy": {"autoRollback":true,"failClosed":true,"releaseImmediately":true,"noRetry":true,"preserveEvidence":true},
+  "truth": {"executionStarted":false,"productionMutation":false,"registryV3Public":false,"productsMigratedV2":0,"computerControlVerified":false,"deployedPublic":false,"integratedCentral":false}
+}

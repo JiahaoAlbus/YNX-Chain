@@ -1,0 +1,172 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-276",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-p0272-control-cleanup-p0276-20260823T160645Z",
+  "owner": "finance-release-control-plane-cleanup",
+  "executor": "finance-release-control-plane",
+  "status": "CONSUMED_RELEASED_EXECUTED_FINANCE_P0276_LIMITED_RECEIPT_PENDING_INDEPENDENT_READBACK",
+  "issuedAt": "2026-08-23T16:06:45Z",
+  "expiresAt": "2026-08-23T16:36:45Z",
+  "releasedAt": "2026-08-23T16:20:16Z",
+  "singleUse": true,
+  "reusable": false,
+  "scope": "Delete exactly the two identity-bound P0-272 control files under the retained Finance lease parent through one framed stdin transport and one cleanup invocation",
+  "source": {
+    "branch": "codex/p0-finance-wallet-connectivity-20260820",
+    "implementationCommit": "ce5e8a4e78b4e512598151ec39558ce248139860",
+    "implementationTree": "305264da609f9d85d82747a8f8c955b52440e420",
+    "requestCommit": "d2bbcc37131ef60191efc5e41f7016cd703d55c6",
+    "requestTree": "58a7a9c49e1604571e908983a8e0b0ac8f1a2c6",
+    "requestPath": "apps/finance/evidence/finance-p0276-aligned-framed-control-cleanup-request-20260824.json",
+    "requestBlob": "1a1d2d0bbc007011290e35244fe69b5cc0071f9b",
+    "requestBytes": 4198,
+    "requestSha256": "eb96bdf71b03514adff517a765eda847bceccdf06a0861145bbc94b707a5ce04",
+    "remoteExactClean": true
+  },
+  "prerequisite": {
+    "p0273CentralReleaseCommit": "e88491159314d91f7a4f45c88c627f1180ac94f3",
+    "p0273CentralReleaseTree": "b08bdd385b9afdd482304d14549ab49c62bee31e",
+    "p0273OwnerEvidenceCommit": "b4b0bf8720d561e9fa022b9327c569fc75506266",
+    "p0273OwnerEvidenceTree": "eea92b08911baa0d882121d445b69c6d650033e0",
+    "p0273EvidenceBlob": "0c6b4b41ee9743d723b56212429dbb374a521606",
+    "p0273EvidenceSha256": "03f181baab420761a86b5b6c28452d39e53b9e5ba66189497fd12fc46bd81df4",
+    "oldRuntimePid": 2241003,
+    "oldRuntimeNRestarts": 0
+  },
+  "review": {
+    "bashSyntax": "PASS",
+    "cleanupActualShellFixture": "PASS",
+    "framedTransportProductionModeActualShellFixture": "PASS",
+    "productionModeTestBypassUsed": false,
+    "jsonAndDiff": "PASS",
+    "alignedTemporaryPathContract": true
+  },
+  "freshPrewrite": {
+    "readAt": "2026-08-23T16:08:00Z",
+    "host": "43.153.202.237",
+    "retainedParent": {
+      "path": "/opt/ynx/leases/finance",
+      "tuple": "64770:4594822:0:0:750:2:4096:directory",
+      "stableIdentity": "64770:4594822:0:0:750:directory",
+      "directChildren": 2
+    },
+    "executor": {
+      "path": "/opt/ynx/leases/finance/p0272-finance-phase3-20260823T152627Z.executor.sh",
+      "tuple": "64770:4620881:0:0:700:1:18403:regular file",
+      "sha256": "2ab4d1923ce180a35e0247c7ebe0628f2eb58ace0416060edb2d6a25be083fde"
+    },
+    "signedLease": {
+      "path": "/opt/ynx/leases/finance/p0272-finance-phase3-20260823T152627Z.json",
+      "tuple": "64770:4620882:0:0:600:1:7696:regular file",
+      "sha256": "e46d0d6f9050ee0377750683babd004c4306c48cfb6e52d1f6ab7cdf10ba1986"
+    },
+    "temporaryExecutorAbsent": true,
+    "temporaryLeaseAbsent": true,
+    "sudoNoninteractive": true,
+    "servicePid": 2241003,
+    "serviceNRestarts": 0
+  },
+  "objects": {
+    "bootstrap": {
+      "absolutePath": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance/apps/finance/scripts/finance-p0275-cleanup-stdin-bootstrap.sh",
+      "blob": "f31a280de6a463e300f725d5fd83c482e78a828d",
+      "bytes": 3158,
+      "sha256": "973c4ab4deeb9de50b4a16679d37cc30f4f188581e5c04ed393e6e15d8bf6462"
+    },
+    "cleanupExecutor": {
+      "path": "apps/finance/scripts/finance-p0272-control-cleanup.sh",
+      "blob": "826c7941dc1771a81b67a2b71d282a4198d0569a",
+      "bytes": 2951,
+      "sha256": "35d00626e9e7f6a1e15f832b6cac86772839267c7827949138f690c4be9e0aec"
+    },
+    "signedCleanupLease": {
+      "path": "release/integration/p0-wallet-connectivity/execution/objects/p0-276-finance-p0272-control-cleanup-signed-lease.json",
+      "bytes": 1499,
+      "sha256": "285319ee17514dd426e26c3b38f211d5bd5330a2b85702498b83267f6d272660"
+    },
+    "carrier": {
+      "path": "release/integration/p0-wallet-connectivity/execution/objects/p0-276-finance-p0272-control-cleanup.carrier",
+      "bytes": 6111,
+      "sha256": "64d480e27ff26d420b1ca333337c7e092b09ac5f1bfb1071052f06799a02a801",
+      "format": "two strict ordered frames then END"
+    },
+    "invoker": {
+      "path": "release/integration/p0-wallet-connectivity/execution/objects/p0-276-finance-p0272-control-cleanup-invoker.local.sh",
+      "absolutePath": "/private/tmp/ynx-calendar-control-plane.y8FFQt/repo/release/integration/p0-wallet-connectivity/execution/objects/p0-276-finance-p0272-control-cleanup-invoker.local.sh",
+      "bytes": 2021,
+      "sha256": "808d5663e44e6208391b34aa8f8e3e9e137560e2f26d6d5eb708804784b044e1"
+    }
+  },
+  "executionAuthority": {
+    "processWorkingDirectory": "/private/tmp/ynx-calendar-control-plane.y8FFQt/repo",
+    "literalArgv": [
+      "/bin/bash",
+      "/private/tmp/ynx-calendar-control-plane.y8FFQt/repo/release/integration/p0-wallet-connectivity/execution/objects/p0-276-finance-p0272-control-cleanup-invoker.local.sh"
+    ],
+    "remoteHost": "ubuntu@43.153.202.237",
+    "remoteLaunch": "one shell-quoted OpenSSH remote command invokes sudo -n /bin/bash -c; the bootstrap is base64 argv and stdin is exclusively the exact carrier",
+    "remoteTemporaryExecutor": "/tmp/ynx-finance-p0276-finance-p0272-control-cleanup-20260823T160645Z.executor.sh",
+    "remoteTemporaryLease": "/tmp/ynx-finance-p0276-finance-p0272-control-cleanup-20260823T160645Z.json",
+    "localStdout": "/tmp/ynx-finance-p0276-control-cleanup.stdout",
+    "localStderr": "/tmp/ynx-finance-p0276-control-cleanup.stderr",
+    "sshAttemptLimit": 1,
+    "cleanupInvocationLimit": 1,
+    "retryAllowed": false
+  },
+  "allowedMutations": [
+    "materialize the exact lease-scoped executor and signed cleanup JSON under /tmp with no-clobber identity and SHA checks",
+    "delete exactly the two frozen P0-272 control files after duplicate full prewrite revalidation",
+    "delete only the exact identity-bound P0-276 temporary executor and signed cleanup JSON on terminal exit"
+  ],
+  "requiredTerminalEvidence": [
+    "one SSH attempt and one cleanup invocation with no retry",
+    "cleanup=P0272_CONTROL_FILES_REMOVED exactly once",
+    "parentStableIdentity=64770:4594822:0:0:750:directory exactly once",
+    "both P0-272 control files absent, retained parent empty and stable",
+    "both P0-276 temporary files absent",
+    "local stdout/stderr bytes and SHA256 plus exit status"
+  ],
+  "forbidden": [
+    "delete, create or replace the retained /opt/ynx/leases/finance parent",
+    "touch stage, backup, release, current, environment, state, service, unit, Caddy or public routes",
+    "deploy, rollback, restart, reload, Wallet mutation, account request, signature, typed data or transaction",
+    "retry or reuse this lease"
+  ],
+  "terminalRules": {
+    "success": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0276_P0272_CONTROL_CLEANUP_PENDING_READBACK",
+    "failure": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0276_CONTROL_CLEANUP",
+    "releaseHeavyAndAllLocksOnTerminal": true,
+    "independentReadbackRequiredBeforeCleanupComplete": true
+  },
+  "truthBoundary": {
+    "cleanupOnly": true,
+    "cleanupExecuted": true,
+    "cleanupComplete": false,
+    "deploymentAuthorized": false,
+    "serviceLifecycleAuthorized": false,
+    "publicMutationAuthorized": false,
+    "accountSignTxAllowed": false
+  },
+  "terminalEvidence": {
+    "ownerCommit": "aa4c579449ee5a21086f22ec72d2b0704330fe92",
+    "ownerTree": "32a1a1991f0071eff10a5ca09c93742f8838b7ff",
+    "path": "apps/finance/evidence/p0-276-finance-p0272-control-cleanup-terminal-evidence-20260824.json",
+    "blob": "7d95aaf25ec973b85130773bf0488ea344e9cbf7",
+    "bytes": 2178,
+    "sha256": "e04d06245314bbd1830673f43e1d170774701cf3db089938d99fffef0b0a3de3",
+    "attempts": 1,
+    "retries": 0,
+    "localInvokerExitCode": 0,
+    "localStderrBytes": 0,
+    "receiptLines": [
+      "cleanup=P0272_CONTROL_FILES_REMOVED",
+      "parentStableIdentity=64770:4594822:0:0:750:directory"
+    ],
+    "remoteExitCodeEmitted": false,
+    "temporaryFinalAbsenceEmitted": false,
+    "servicePidAndNRestartsEmitted": false,
+    "forbiddenMutationAbsenceEmitted": false,
+    "independentReadbackRequired": true
+  }
+}

@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "recordType": "DEVELOPER_OFFICIAL_CURRENT_PUBLIC_READ_ONLY_RECONCILIATION",
+  "recordedAt": "2026-08-31T02:48:04Z",
+  "officialRuntime": {
+    "url": "https://developer.ynxweb4.com/",
+    "sourceCommit": "d4052228a2261c5ced6a8e8cfcbf763edabf2103",
+    "sourceTree": "89beb658b0971fb20d0d92a6bebc2010fdbb33e7",
+    "version": "0.2.0-testnet-preview-d4052228a226-candidate"
+  },
+  "freshPublicReadback": {
+    "root": "200:569:851a64521a95011033670cbfe585912a4edac9e247196b8acd7d2a95d7a9a696",
+    "healthz": "200:176:a86d4de97b22e9aa36334a67f56eb554d2960e8bb6cbf0085f66066bf666088d",
+    "runtimeHealth": "200:648:0da8973996fb46f88ebb1d4ada77e17041f39d4cfb3e5965fc370bf23506737a",
+    "sourceBoundVersionExact": true
+  },
+  "walletSurface": {
+    "ynxIdentityDistinct": true,
+    "metaMaskIdentityDistinct": true,
+    "namedDappProfilesPresent": [
+      "Uniswap",
+      "OpenSea",
+      "Safe"
+    ],
+    "nonSensitiveNoAccountEvidence": true
+  },
+  "decision": {
+    "classification": "DEVELOPER_OFFICIAL_ALREADY_CURRENT_RECONCILIATION_NO_FORWARD_DEPLOY",
+    "reconciliationComplete": true,
+    "deploymentLeaseIssued": false,
+    "heavyLeaseRequired": false
+  },
+  "singleExecutableBlockerBeforeAnySuccessorDeploy": "DEVELOPER_FULL_PRE_SWITCH_SNAPSHOT_MANIFEST_SHA_PATH_RUNTIME_TARGET_AND_LITERAL_ROLLBACK_NOT_FROZEN",
+  "requiredProtectedReadback": [
+    "full pre-switch snapshot identity",
+    "full manifest SHA256",
+    "snapshot path",
+    "image or binary identity",
+    "service target",
+    "literal rollback command"
+  ],
+  "truthBoundary": {
+    "installedProvider": false,
+    "accountLifecycle": false,
+    "signature": false,
+    "transaction": false,
+    "productCompletion": false
+  }
+}

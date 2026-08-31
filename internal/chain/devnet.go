@@ -971,9 +971,11 @@ func (d *Devnet) Faucet(address string, amount int64) (Transaction, error) {
 	d.lots[lotID] = TrustTraceLot{LotID: lotID, Amount: amount, Origin: "devnet faucet mint", RiskWeight: 0}
 	tx := d.newTxLocked("faucet", FaucetAddress, address, amount, 0, []LotFlow{{LotID: lotID, Amount: amount, From: FaucetAddress, To: address}}, "devnet faucet mint")
 	d.pending = append(d.pending, tx)
-	err := d.persistSnapshotLocked()
-	d.recordPersistenceErrorLocked(err)
-	return tx, err
+	// Pending transactions have mempool semantics: the block producer persists
+	// the complete batch atomically when it commits the next block. Persisting
+	// the full append-only history for every admission serialized concurrent
+	// users behind a multi-second snapshot rewrite and prevented useful batching.
+	return tx, nil
 }
 
 func (d *Devnet) Transfer(from, to string, amount int64) (Transaction, error) {
@@ -1001,9 +1003,7 @@ func (d *Devnet) Transfer(from, to string, amount int64) (Transaction, error) {
 	d.account(d.nextValidatorAddressLocked()).Balance += fee
 	tx := d.newTxLocked("transfer", from, to, amount, fee, flows, "native transfer")
 	d.pending = append(d.pending, tx)
-	err = d.persistSnapshotLocked()
-	d.recordPersistenceErrorLocked(err)
-	return tx, err
+	return tx, nil
 }
 
 func (d *Devnet) SubmitSignedTransfer(input SignedTransferInput) (Transaction, bool, error) {
@@ -1066,9 +1066,7 @@ func (d *Devnet) SubmitSignedTransfer(input SignedTransferInput) (Transaction, b
 		Timestamp: time.Now().UTC(), LotFlows: flows, Memo: "signed native YNXT transfer",
 	}
 	d.pending = append(d.pending, tx)
-	err = d.persistSnapshotLocked()
-	d.recordPersistenceErrorLocked(err)
-	return tx, false, err
+	return tx, false, nil
 }
 
 func (d *Devnet) Stake(address string, amount int64) (Transaction, ResourceBalance, error) {

@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-WALLET-PROTOCOL-CENTRAL-BINDINGS-F1862562-20260821",
+  "capturedAt": "2026-08-20T16:55:22Z",
+  "ownerCheckpoint": {
+    "branch": "codex/wallet-session-router-recovery",
+    "commit": "f1862562551c1a63d448404383cadb4ca9538d32",
+    "parent": "df7778fca133818d3d69ec4ca149bfe35d77a280",
+    "tree": "338e687e9cdc54e9d71c88fdfa287c377aaeb75d",
+    "remoteReadable": true,
+    "changedFiles": 2,
+    "changedBlobs": {
+      "release/integration/wallet-product-session-shop-android-retirement-checkpoint-20260821.json": "de0d341c67bdd911e742a390f5977a57cb27ebd4",
+      "release/integration/wallet-shop-retired-apk-website-remediation-20260821.json": "47bc2a954dcf0de22deb335216d14a90870e2a2c"
+    }
+  },
+  "centralBindings": {
+    "websiteRemediation": {
+      "acceptanceId": "P0-034",
+      "centralCommit": "27b87b94fbd5603f3ed7c56f4ac3f270e5484a9d",
+      "ownerEvidenceCommit": "df7778fca133818d3d69ec4ca149bfe35d77a280",
+      "blobReadbackPassed": 4,
+      "blobReadbackFailed": 0,
+      "promotedGatewayRuntime": false
+    },
+    "retirementExtension": {
+      "acceptanceId": "P0-035",
+      "centralCommit": "f1a394aaa4ca7d9423a0fa779f06cd36b58e1312",
+      "acceptedSourceCommit": "bfc11ecb4100725ae8f42c86d220fa0bc2d8212a",
+      "latestCoreAuthCommit": "92ae5404da908c0d649a3a62fd51bcc772e14efd",
+      "status": "SOURCE_AND_CONSUMER_SDK_ACCEPTED",
+      "reconciledRuntimeProvided": false,
+      "executionLeaseId": null,
+      "executionLeaseExpiresAt": null,
+      "deploymentLeaseIssued": false,
+      "blobReadbackPassed": 4,
+      "blobReadbackFailed": 0
+    }
+  },
+  "publicBoundary": {
+    "walletAuthRuntimeSource": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "registryV3DeployedPublic": false,
+    "websiteAndroidDownloadRemovalVerified": true,
+    "retiredBinaryHosted": false,
+    "retirementStatusRoutePublic": true,
+    "productsMigratedV2": 0,
+    "installedApprovalVerified": false,
+    "integratedCentral": false,
+    "aggregateDeployedPublic": false
+  },
+  "coordination": {
+    "coreOwnerReconciliationRequested": true,
+    "coreOwnerReconciliationCompleted": false,
+    "sshOrDeploymentAuthorized": false,
+    "nextAcceptedInput": "one exact force-false runtime commit reconciling bfc with latest Core/Auth plus Registry v3 migration, rollback and public verifier evidence"
+  }
+}

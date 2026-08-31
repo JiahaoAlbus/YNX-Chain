@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-096",
+  "ownerTaskLabel": "P0-094",
+  "decision": "ACCEPT_SOURCE_ONLY_PRELEASE_BUNDLE_NO_LEASE",
+  "reviewedAt": "2026-08-21T01:36:00Z",
+  "numbering": {
+    "ownerLabelPreserved": "P0-094",
+    "centralTaskId": "P0-096",
+    "reason": "Central P0-094 and P0-095 were already occupied by Faucet website publication and Calendar deployment; neither may be overwritten."
+  },
+  "source": {
+    "evidenceCommit": "1a67bdb2a77af92dfe2cc6a8e8bf9ddf6b644c8f",
+    "evidenceTree": "9a1ba6f52d140a4c8be024001b0fd09c0874b1a1",
+    "implementationCommit": "4b9d616a3eaed6b31694b0ba8db396fb337f76aa",
+    "implementationTree": "6d76b54c40cb46ad374689c52dcc83029a3fd21c",
+    "ownerEvidencePath": "release/integration/wallet-auth-p0094-linux-offline-execution-bundle-evidence-20260821.json",
+    "ownerEvidenceBlob": "663df23c91922fedd1cb5b73721d5386c24d4d78",
+    "ownerEvidenceSha256": "1757b0e8863b02f3d8a245304048d32670fb64e69fe382c4293daabb69765944"
+  },
+  "bundle": {
+    "path": "release/integration/p0-wallet-connectivity/p0-094-wallet-auth-linux-offline-execution-rollback-bundle.json",
+    "blob": "951a9c5595497d6042bb7c908d986625bb7128a6",
+    "sha256": "495a52258ea3d38352ceb04b98ade8f22b9a96824c117df6709fa1d707c00505",
+    "stagingDirectory": "/var/tmp/ynx-wallet-auth-p0094-dda13e655bdbf033",
+    "executionAuthorized": false,
+    "runtimeRollbackCommandFrozen": false
+  },
+  "commands": {
+    "sourceBlob": "292e585a7f2bcae06a3a3bef92f6815d11abb91b",
+    "sourceSha256": "ce7314d3ca9e6139345ac0e3d3db0de977920401ba3808ff8335d3caec57db3a",
+    "sourceBytes": 5838,
+    "runtimeBlob": "d2305059c61d6bca92b7318c8ca45acf14577b8d",
+    "runtimeSha256": "fe0b6a903785677b10909a7cc78bc177f6257cd60d570e942d484be04fa7f9c4",
+    "runtimeBytes": 5852,
+    "orderedSourceNulRuntimeSha256": "41b3bcecf23e481330bd6c7f51e5cf86a717952ef389056404d8055ed3521417",
+    "syntaxValidated": true,
+    "regeneratedByteIdentical": true
+  },
+  "independentVerification": {
+    "remoteCommitTreeAndBlobExact": true,
+    "focusedTests": "6/6",
+    "fullWalletAuthTests": "374/374",
+    "repeatPackSha256": "9c94eb245b739c984ce3a37e37e3ebe7aa84e991af8e4ea15d7dc324cfacd13a",
+    "repeatPackBytes": 186148,
+    "repeatPackEntries": 104,
+    "noNetworkInstall": true,
+    "noSecretLiteralScanOwnerEvidence": true
+  },
+  "futureExecutionRequirements": {
+    "freshPublicAndPrivateStateRead": true,
+    "freshUnitEnvironmentDropInCaddyRead": true,
+    "freshHostKeyAndConnectionTuple": true,
+    "freezeExactEnvironmentValues": true,
+    "freezeRuntimeRollbackCommand": true,
+    "newSingleUseLease": true,
+    "priorLeaseReuseForbidden": ["P0-039", "P0-050", "P0-054", "P0-070"]
+  },
+  "sourceAccepted": true,
+  "executionLeaseIssued": false,
+  "sshUsed": false,
+  "productionRead": false,
+  "deploymentAttempted": false,
+  "publicRuntimeSource": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+  "registryV3Public": false,
+  "productsMigratedV2": 0,
+  "productsRequired": 12,
+  "computerControlVerified": false,
+  "deployedPublic": false,
+  "integratedCentral": false,
+  "nextAction": "Retain this exact prelease bundle as source-only. Re-read all production and Heavy-slot bindings before any separate lease decision; this acceptance does not authorize execution."
+}

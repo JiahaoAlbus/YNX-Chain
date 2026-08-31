@@ -1,0 +1,162 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-268",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-post-cleanup-readonly-verification-20260823T141805Z",
+  "owner": "finance-release-control-plane-readonly",
+  "executor": "finance-release-control-plane-readonly",
+  "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0268_POST_CLEANUP_READONLY_VERIFICATION_CLEANUP_COMPLETE",
+  "issuedAt": "2026-08-23T14:18:05Z",
+  "expiresAt": "2026-08-23T14:48:05Z",
+  "releasedAt": "2026-08-23T14:23:34Z",
+  "singleUse": true,
+  "reusable": false,
+  "productionMutationAllowed": false,
+  "deploymentAllowed": false,
+  "cleanupAllowed": false,
+  "serviceLifecycleAllowed": false,
+  "scope": "One zero-write SSH inspection after P0-267: prove four P0-247 residue absences, four P0-267 control/pending absences, and unchanged old Finance current/env/state/unit/Caddy/service/loopback/public runtime without outputting bodies or environment values",
+  "prerequisite": {
+    "taskId": "P0-267",
+    "terminalStatus": "CONSUMED_RELEASED_SUCCESSFUL_EXECUTION_PENDING_INDEPENDENT_READBACK",
+    "centralLeaseCommit": "155ec3c94bc91a8af06773f6fe98da737b2b4284",
+    "centralLeaseTree": "d91edf49475c3d4fa281db12c946ab6680132443",
+    "ownerEvidenceCommit": "1fa5804c494abda9b4b811ec2708c1bdcccc50bc",
+    "ownerEvidenceTree": "e6e9cf40821bb64524b6617981c5a27dd745e60f",
+    "ownerEvidenceBlob": "c046d2fbe3f106003d04b389af23389cfeb9f559",
+    "ownerEvidenceSha256": "ce42f4bc36666661fa6c5af9c4382a81bde86ef39e0ff74c8e0371fee6f1453f",
+    "terminalReceiptSha256": "59193043771f7c37c85f458714abc590bf7741729a2d10c1ab4e89d8a83b2b56",
+    "p0267InvocationCount": 1,
+    "p0267RetryCount": 0,
+    "cleanupCompletionNotYetAccepted": true
+  },
+  "sourceRequest": {
+    "branch": "codex/p0-finance-wallet-connectivity-20260820",
+    "commit": "399f90807705500c4173163f4e2964cea113e991",
+    "tree": "39438fa2b2ccd86f35ca97d42e82d060d541e57e",
+    "path": "apps/finance/evidence/finance-p0267-post-cleanup-readonly-verification-request-20260823.json",
+    "blob": "eb2c24b03228c076ad6910069eacbda40a78d333",
+    "bytes": 2461,
+    "sha256": "0988b215b515e19916d9623613f27db48b061c0cb063eb4dda7ad3b5c7130586",
+    "remoteExact": true,
+    "clean": true
+  },
+  "commandObjects": {
+    "remoteReadonly": {
+      "path": "/tmp/ynx-finance-p0268-post-cleanup-readonly.sh",
+      "bytes": 2910,
+      "sha256": "74515b876373b6503617638e31cea5ce69ce4185695452a9a3db464db2dfd64c",
+      "bashSyntax": "PASS",
+      "mutationCommandsPresent": false,
+      "bodyAndEnvValueOutput": false
+    },
+    "localInvoker": {
+      "path": "/tmp/ynx-finance-p0268-post-cleanup-readonly-invoker.sh",
+      "bytes": 1221,
+      "sha256": "7f7d9f6a28f1876253d01a948651a8e9d1a843a7b904a0392b98d1a2b5be0546",
+      "bashSyntax": "PASS",
+      "sshConnectionAttempts": 1,
+      "safeRcCapture": true
+    }
+  },
+  "executionAuthority": {
+    "processWorkingDirectory": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
+    "literalArgv": [
+      "/bin/bash",
+      "/tmp/ynx-finance-p0268-post-cleanup-readonly-invoker.sh"
+    ],
+    "sshAttemptLimit": 1,
+    "retryAllowed": false,
+    "stdoutPath": "/tmp/ynx-finance-p0268-post-cleanup.stdout",
+    "stderrPath": "/tmp/ynx-finance-p0268-post-cleanup.stderr",
+    "statusPath": "/tmp/ynx-finance-p0268-post-cleanup.stdout.status",
+    "allOutputPathsInitiallyAbsent": true,
+    "protectedSshIdentity": "embedded protected executor reference; value must not be printed or returned"
+  },
+  "readOnlyPaths": {
+    "p0247Residues": [
+      "/opt/ynx/stage/finance/p0247-finance-phase3-20260823T073800Z",
+      "/var/backups/ynx-finance/p0247-finance-phase3-20260823T073800Z",
+      "/opt/ynx/leases/finance/p0247-finance-phase3-20260823T073800Z.executor.sh",
+      "/opt/ynx/leases/finance/p0247-finance-phase3-20260823T073800Z.json"
+    ],
+    "p0267Controls": [
+      "/opt/ynx/leases/finance/p0264-finance-p0247-cleanup-20260823T140755Z.executor.sh",
+      "/opt/ynx/leases/finance/p0264-finance-p0247-cleanup-20260823T140755Z.executor.sh.pending",
+      "/opt/ynx/leases/finance/p0264-finance-p0247-cleanup-20260823T140755Z.json",
+      "/opt/ynx/leases/finance/p0264-finance-p0247-cleanup-20260823T140755Z.json.pending"
+    ],
+    "runtime": [
+      "/opt/ynx/finance-current",
+      "/etc/ynx/finance.env",
+      "/etc/systemd/system/ynx-finance.service",
+      "/etc/caddy/conf.d/ynx-finance.caddy",
+      "/var/lib/ynx/finance/state.json",
+      "ynx-finance.service",
+      "http://127.0.0.1:6483/{health,version}",
+      "https://finance.ynxweb4.com/{health,version}"
+    ]
+  },
+  "successRequirements": {
+    "fourP0247ResiduesAbsent": true,
+    "fourP0267ControlAndPendingPathsAbsent": true,
+    "currentResolved": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a",
+    "envTupleSha256": "64770:1324724:0:986:640:1:1545:regular file|854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252",
+    "unitTupleSha256": "64770:161304:0:0:644:1:515:regular file|2e72cdad422a3a714c46d074ea97b725233576cf726dbbfd43e82e99c2c2975b",
+    "caddyTupleSha256": "64770:1051759:0:0:644:1:255:regular file|dcf75a7aed315c54632321b8bb80e44c0abc22f6700fadfbfa9a7da21b88a282",
+    "stateAbsent": true,
+    "serviceLoadActiveSub": "loaded:active:running",
+    "serviceMainPid": 2241003,
+    "serviceNRestarts": 0,
+    "loopbackAndPublicHealth": "200:485:d1e97a4314acd1ecccf94629d15bd598cb58ff78136b3622ac26d583a82e45c1",
+    "loopbackAndPublicVersion": "200:130:39789776da47e60b7a7df845789e02ebba16707ad8951eb6f27c84c1b40bb226",
+    "verificationComplete": true,
+    "mutationCount": 0
+  },
+  "forbidden": [
+    "any second SSH attempt or retry",
+    "any remote write, temp file, cleanup or deletion",
+    "any deploy, rollback or release creation",
+    "any service stop, start, restart or reload",
+    "any current, env, state, unit, Caddy or public mutation",
+    "any response body or environment value output",
+    "any Wallet path lock or Wallet mutation",
+    "any account request, signing, typed data or transaction",
+    "any credential, private key or recovery material output"
+  ],
+  "truthBoundary": {
+    "leaseIssued": true,
+    "verificationExecuted": true,
+    "cleanupCompletionAccepted": true,
+    "fourP0247ResiduesAbsent": true,
+    "fourP0267ControlPathsAbsent": true,
+    "oldFinanceRuntimeUnchangedHealthy": true,
+    "deploymentCompleted": false,
+    "walletLifecycleCompleted": false,
+    "productionMutationAllowed": false,
+    "walletMutationAllowed": false
+  },
+  "terminalEvidence": {
+    "ownerCommit": "2065fe7fc349541255e5e4be2b1bf2750eeebeac",
+    "ownerTree": "ecd334c67078701adf5f4c5acf93292abccdb917",
+    "path": "apps/finance/evidence/p0-268-finance-post-cleanup-readonly-terminal-evidence-20260823.json",
+    "blob": "3c767966cf83957f738f611a3928668ce7c8f6fc",
+    "bytes": 2080,
+    "sha256": "b8540f206e3925441d35e80344b6dcc5299f514d0efd48a85fe624a49e904767",
+    "attemptCount": 1,
+    "retryCount": 0,
+    "exitCode": 0,
+    "stderrBytes": 0,
+    "mutationCount": 0,
+    "fourP0247ResiduesAbsent": true,
+    "fourP0267ControlPathsAbsent": true,
+    "serviceMainPid": 2241003,
+    "serviceNRestarts": 0,
+    "loopbackAndPublicHealthVersionExact": true
+  },
+  "nextBlocker": {
+    "code": "FINANCE_DEPLOYMENT_REQUEST_STALE_AFTER_P0268_CLEANUP_BASELINE_REFRESH_REQUIRED",
+    "deploymentLeaseIssued": false,
+    "requirement": "Freeze a wholly-new Finance-only deployment request bound to the P0-268 terminal record, fresh prepared-candidate and old-runtime identities, fresh absence of all lease-owned stage/backup/release/control paths, corrected service-user traverse permissions, exact OpenSSH transport acknowledgement, and rollback-first/manual-rollback boundaries."
+  }
+}

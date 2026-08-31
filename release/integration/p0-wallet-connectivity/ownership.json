@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "version": "1.0.0",
+  "owners": [
+    {"id":"wallet-protocol","branch":"codex/final-wallet-auth","worktree":"02-wallet-auth","status":"ASSIGNED","scope":["transport","eip1193","eip6963","walletconnect","siwe","product-session","device-proof","gateway","callbacks","errors","vectors"]},
+    {"id":"wallet-platform","branch":"codex/final-wallet-auth","worktree":"02-wallet-auth","status":"ASSIGNED","scope":["wallet-clients","extension","dapp-browser","faucet","deep-links","wallet-artwork"]},
+    {"id":"developer-sdk","branch":"codex/final-developer","worktree":"11-developer","status":"ASSIGNED","scope":["dapp-sdk","adapters","compatibility","migration","artwork-validation"]},
+    {"id":"financial-apps","branch":"codex/final-finance-suite","worktree":"finance-suite","status":"ASSIGNED","scope":["finance","exchange","dex","pay","quant","financial-artwork"]},
+    {"id":"data-fabric","branch":"codex/final-data-fabric","worktree":"26-data-fabric","status":"ASSIGNED","scope":["connection-events","outbox","inbox","retry","diagnostics","privacy-aggregation"]},
+    {"id":"explorer-monitor","branch":"codex/explorer-monitor-fable5-20260814","worktree":"12-13-explorer-monitor-fable5","status":"ASSIGNED","scope":["explorer","monitor","public-probes","source-identity","evidence","artwork"]},
+    {"id":"integration","branch":"codex/final-integration","worktree":"29-integration","status":"ACTIVE","scope":["acceptance","locks","manifests","website-downloads","retirement","public-deployment","unassigned-products"]}
+  ]
+}

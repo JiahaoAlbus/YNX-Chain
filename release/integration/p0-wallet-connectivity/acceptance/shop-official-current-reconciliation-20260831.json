@@ -1,0 +1,57 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "recordType": "SHOP_OFFICIAL_CURRENT_PUBLIC_READ_ONLY_RECONCILIATION",
+  "recordedAt": "2026-08-31T02:54:35Z",
+  "officialRuntime": {
+    "url": "https://shop.ynxweb4.com/shop/",
+    "sourceCommit": "221a6bde7bef8aab83ca45f9b1dd4ecf9ac60aba",
+    "sourceTree": "126f6d5b30cbd9eb329b64aa12cef75d77a8b509",
+    "centralTerminalCommit": "82e1da5106a74f805e4d27fa0f9b64b21b277ce7",
+    "release": "/opt/ynx-shop/releases/221a6bde-p0215"
+  },
+  "freshPublicReadback": {
+    "root": "200:7689:2e862dddca76b2b9e4ec0e1d31cfd9a347a6469fdcec93e4c4fadd6883df0c15",
+    "version": "200:153:11f5804d2e15e49e8d8d35c4cdfd132926b9258583b6e3352ebe76ffd518cd69",
+    "health": "200:387:d6dc2e6fc0dac13a31df3a98ed8e7dec92ac4f32a55e779931048164de4d1c6a",
+    "appJs": "200:20706:40b5696a1cb10861422e69a9c40f4c0da25b1e7bb05d1aed240ec0eec8417fc9",
+    "walletAuthJs": "200:17991:3411f7078eeee40013069956697f295a14b47cbf2f7eb009555357100b00eafd",
+    "styles": "200:7079:5d44e2279e49861675279e626378b9eb85aadcd0a8628af2f90ceb3b1994a975",
+    "serviceWorker": "200:1067:c04fa2ef30c3602fe73b208cb1b83f47445230383401120b7b9e6fb5aa8f1888"
+  },
+  "runtimeReceipt": {
+    "binarySha256": "f881e70b",
+    "serviceActiveRunning": true,
+    "nrestarts": 0,
+    "rollbackRelease": "/opt/ynx-shop/releases/p0-shop-controls-99b2185f",
+    "rollbackStateSha256": "cb2f468f"
+  },
+  "walletSurface": {
+    "connectionDetails": true,
+    "providerAccountChainPermissions": true,
+    "switchAccount": true,
+    "disconnect": true,
+    "walletRevokePermissions": true,
+    "accountsChanged": true,
+    "chainChanged": true,
+    "ethRequestAccounts": true,
+    "chain0x1917Path": true,
+    "ynxAndMetaMaskDistinct": true
+  },
+  "decision": {
+    "classification": "SHOP_OFFICIAL_ALREADY_CURRENT_RECONCILIATION_NO_FORWARD_DEPLOY",
+    "reconciliationComplete": true,
+    "deploymentLeaseIssued": false,
+    "heavyLeaseRequired": false
+  },
+  "remainingBlocker": "IMMEDIATE_CONFIRMATION_REAL_INSTALLED_PROVIDER_APPROVE_REJECT_DETAILS_SWITCH_DISCONNECT_REVOKE_AND_CHAIN_0X1917_RUNTIME_REQUIRED",
+  "truthBoundary": {
+    "hostedNonSensitiveFixture": true,
+    "installedProvider": false,
+    "providerSelection": false,
+    "accountLifecycle": false,
+    "signature": false,
+    "transaction": false,
+    "productCompletion": false
+  }
+}

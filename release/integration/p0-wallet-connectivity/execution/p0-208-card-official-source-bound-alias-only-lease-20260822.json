@@ -1,0 +1,214 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-208",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-card-official-source-bound-alias-only-20260822T181600Z",
+  "owner": null,
+  "executor": "card-vercel-release",
+  "status": "CONSUMED_RELEASED_SUCCESS_CARD_SOURCE_BOUND_OFFICIAL_PUBLIC_NON_SENSITIVE_LIFECYCLE",
+  "issuedAt": "2026-08-22T18:16:00Z",
+  "expiresAt": "2026-08-22T18:46:00Z",
+  "releasedAt": "2026-08-22T18:20:11Z",
+  "singleUse": true,
+  "reusable": false,
+  "executionAuthorized": false,
+  "productionMutationAllowed": false,
+  "scope": "Card-only alias routing from the exact P0-206 hosted-verified immutable candidate to card.ynxweb4.com, official raw and non-sensitive browser verification, with one exact conditional rollback",
+  "request": {
+    "path": "/tmp/card-p0206-official-source-bound-alias-successor-lease-request.json",
+    "bytes": 6960,
+    "sha256": "272a6a563a8e2f49c675156a193ff1418981b0240fee4fc84595fec52b3e4583",
+    "jsonValid": true,
+    "independentlyRead": true
+  },
+  "predecessorAuthority": {
+    "taskId": "P0-206",
+    "centralReleaseCommit": "b556be8f5991fd20d235b9bc760fea358c0a144b",
+    "centralReleaseTree": "85bc9fb20580d45a8ad640f18dc96465a83cbf5b",
+    "leaseBlob": "5e71b8c49f3b53334c228382fdf390a26bc9fb34",
+    "leaseContentSha256": "a21b094fde0851494a47d19800cefeca6cfde407938b19db7f3eaac0b53b9266",
+    "status": "CONSUMED_RELEASED_SUCCESS_CARD_IMMUTABLE_CANDIDATE_HOSTED_BROWSER_NON_SENSITIVE_PREFLIGHT",
+    "reusable": false,
+    "run": {"id":32589053351,"jobId":97069859630,"conclusion":"success"},
+    "artifact": {"id":9479814900,"zipSha256":"2c1e362bbd54aca5af9ea0613a91e3a291874b82bce55cabd626723a82dad821","browserJsonSha256":"639857b60ce62e4590ea264d0b6eb2963733965b60b987fa173b0ded7d40ac68"},
+    "rawCandidateResourcesPassed": true,
+    "browserNonSensitivePassed": true,
+    "sensitiveActions": false
+  },
+  "project": {
+    "scope": "jiahaoalbus-projects",
+    "name": "ynx-card-testnet-simulation",
+    "id": "prj_DU37JeDK4Rx0MjxIV745veV5Qgxp",
+    "canonicalAlias": "card.ynxweb4.com"
+  },
+  "candidate": {
+    "deploymentId": "dpl_8qCEhiAq8hgiTYf2hA2FXU57W122",
+    "immutableUrl": "ynx-card-testnet-simulation-dn1nbeei4-jiahaoalbus-projects.vercel.app",
+    "target": "production",
+    "readyState": "READY",
+    "semanticSourceCommit": "45c4013a95008027cf55f2ac4d7bdded70640ae1",
+    "deploymentSourceCommit": "2183b8d7a18dec3c7e7773f3c777882deeac6f82",
+    "freshControlPlaneReadback": true,
+    "resources": {
+      "root": {"path":"/","http":200,"bytes":1717,"sha256":"f8b59f7bb084fa22573df186b2f47fa35d3f85d6e078f09f1d3b1b53c764c695"},
+      "appJs": {"path":"/_expo/static/js/web/index-6a16f2a248e25355f9aa7ee9626133a0.js","http":200,"bytes":2911045,"sha256":"f59fa3d43e4d855a91f224f239e8fc39bf4ffa73e83e42d5c0203aa70deae92e"},
+      "manifest": {"path":"/manifest.webmanifest","http":200,"bytes":460,"sha256":"f3e634129abe79c5b81b7fc8dac3950e5cb21f1d1263b1938fcd06a58e2c686f"},
+      "serviceWorker": {"path":"/sw.js","http":200,"bytes":364,"sha256":"1a9acfe442d2920040a1999f4fe4efe3f97d7a42a9debef047d469972889638f"},
+      "ynxLogo": {"path":"/assets/assets/icon.ac64b115433cc62063b01bbab973bec7.png","http":200,"bytes":863227,"sha256":"6252153a2fd0d12cb61a1223cea3277ceff863eb82b6073049419459b359f86f"},
+      "metaMaskLogo": {"path":"/assets/assets/metamask-fox.024a98855742a7b85946088532e2d4c1.png","http":200,"bytes":3682,"sha256":"25f2f224f9d01c78ae3dc2d07a339053cc402961a59cf818f2753c12db9ec796"}
+    }
+  },
+  "rollback": {
+    "deploymentId": "dpl_DqMuEhno65bLFTNKBu9gs52soVri",
+    "immutableUrl": "ynx-card-testnet-simulation-bmeabqkk1-jiahaoalbus-projects.vercel.app",
+    "readyState": "READY",
+    "freshControlPlaneReadback": true,
+    "checkedAt": "2026-08-22T18:14:12Z",
+    "resources": {
+      "root": {"path":"/","http":200,"bytes":1717,"sha256":"56827ca95005951ae791245b6c3021691beace32683209936c7519324c28ed24","requestId":"sin1::2d87l-1787422476287-c3fefdbae432"},
+      "appJs": {"path":"/_expo/static/js/web/index-250c974606522c0feefa0bf082cc41a1.js","http":200,"bytes":2907885,"sha256":"2103aba7f844d4a3c067eac0ecbf0acbc9ebf8fb8831c44fd248df90261a8568","requestId":"sin1::z9j2l-1787422476522-e92a159e9c13"},
+      "manifest": {"path":"/manifest.webmanifest","http":200,"bytes":460,"sha256":"f3e634129abe79c5b81b7fc8dac3950e5cb21f1d1263b1938fcd06a58e2c686f","requestId":"sin1::9dkcs-1787422477216-b1997d0ddb2b"},
+      "serviceWorker": {"path":"/sw.js","http":200,"bytes":364,"sha256":"1a9acfe442d2920040a1999f4fe4efe3f97d7a42a9debef047d469972889638f","requestId":"sin1::5b2tw-1787422477451-41f497ee16b9"}
+    },
+    "rootBindsExpectedOldAppJs": true
+  },
+  "forward": {
+    "exactCommand": "vercel alias set ynx-card-testnet-simulation-dn1nbeei4-jiahaoalbus-projects.vercel.app card.ynxweb4.com --scope jiahaoalbus-projects",
+    "attemptLimit": 1,
+    "retryAllowed": false
+  },
+  "orderedExecution": [
+    "Immediately before mutation re-read this exact unexpired ACTIVE_SINGLE_USE lease, Heavy owner, project and alias lock.",
+    "Freshly require candidate dpl_8qCEhiAq8hgiTYf2hA2FXU57W122 READY and official alias exact rollback dpl_DqMuEhno65bLFTNKBu9gs52soVri with all four rollback resources exact.",
+    "Execute the exact forward alias command once and never retry it.",
+    "Inspect the official alias and require exact candidate deployment id, then GET all six official resources and freeze complete status, headers, bodies, bytes, SHA256 and request ids.",
+    "Run one clean isolated read-only browser verification against exact https://card.ynxweb4.com/ without clicking provider/account/details/disconnect/revoke/switch/sign/transaction controls.",
+    "On any post-forward failure execute the exact rollback command at most once, then require exact rollback deployment id and four-resource identity before releasing fail-closed.",
+    "On complete success release without rollback and promote only Card official source-bound non-sensitive public evidence."
+  ],
+  "officialRawRequirements": {
+    "deploymentId": "dpl_8qCEhiAq8hgiTYf2hA2FXU57W122",
+    "allSixResourcesMustEqualCandidate": true,
+    "captureRawStatusHeadersBodiesBytesSha256RequestIds": true
+  },
+  "officialBrowserRequirements": {
+    "exactUrl": "https://card.ynxweb4.com/",
+    "title": "YNX Card",
+    "language": "en",
+    "onePage": true,
+    "blankPopupCustomScheme": false,
+    "truthfulNoProvider": true,
+    "fabricatedConnection": false,
+    "distinctYnxWalletIdentityAndLogo": true,
+    "distinctMetaMaskIdentityAndLogo": true,
+    "lateIndependentEip6963Providers": true,
+    "permittedProviderProbesOnly": ["eth_accounts","eth_chainId"],
+    "fixtureAccountAnd0x1917Visible": true,
+    "privateServiceDegradedPreservesStandardWallet": true,
+    "detailsDisconnectRevokeSwitchVisibleButNotClicked": true,
+    "consolePageSameOriginErrors": 0
+  },
+  "conditionalRollback": {
+    "requiredOnAnyPostForwardFailure": true,
+    "exactCommand": "vercel alias set ynx-card-testnet-simulation-bmeabqkk1-jiahaoalbus-projects.vercel.app card.ynxweb4.com --scope jiahaoalbus-projects",
+    "attemptLimit": 1,
+    "retryAllowed": false,
+    "requiredReadbackDeploymentId": "dpl_DqMuEhno65bLFTNKBu9gs52soVri",
+    "requiredFourResourcesExact": true
+  },
+  "locks": [
+    "heavy:card",
+    "project:prj_DU37JeDK4Rx0MjxIV745veV5Qgxp",
+    "alias:card.ynxweb4.com"
+  ],
+  "forbidden": [
+    "deploy, redeploy, build, artifact, workflow, DNS, SSO or project-setting mutation",
+    "forward alias retry, rollback retry or any alias command other than the two exact commands in this lease",
+    "Card product source or UI mutation",
+    "eth_requestAccounts, approve/reject, disconnect/revoke/switch clicks, personal_sign, EIP-712, transaction, secret or private-key handling",
+    "installed-provider, sensitive lifecycle or aggregate product-completion promotion"
+  ],
+  "terminalRules": {
+    "success": "CONSUMED_RELEASED_SUCCESS_CARD_SOURCE_BOUND_OFFICIAL_PUBLIC_NON_SENSITIVE_LIFECYCLE",
+    "failureWithRollback": "CONSUMED_RELEASED_FAILED_CLOSED_CARD_OFFICIAL_ALIAS_ROUTING_ROLLED_BACK",
+    "rollbackFailure": "EMERGENCY_BLOCKED_CARD_EXACT_ROLLBACK_REQUIRED_NO_FURTHER_ACTION",
+    "requiredReturn": "forward/rollback attempt counts, exact alias deployment readback, six official raw resources, clean browser evidence, all sensitive-action flags and terminal truth before expiry"
+  },
+  "truthBeforeExecution": {
+    "officialSourceBoundPublic": false,
+    "installedProvider": false,
+    "accountApprovalOrReject": false,
+    "eventsDisconnectOrRevoke": false,
+    "signatureOrTypedData": false,
+    "transaction": false,
+    "productComplete": false,
+    "productsConnected": "0/12"
+  },
+  "terminalEvidence": {
+    "classification": "DIRECT_OFFICIAL_SOURCE_BOUND_NON_SENSITIVE_SUCCESS",
+    "forwardAliasAttemptCount": 1,
+    "forwardAliasExitCode": 0,
+    "retryCount": 0,
+    "rollbackAttemptCount": 0,
+    "deployRedeploySettingSourceOrWorkflowMutation": false,
+    "officialAlias": {
+      "deploymentId": "dpl_8qCEhiAq8hgiTYf2hA2FXU57W122",
+      "immutableUrl": "ynx-card-testnet-simulation-dn1nbeei4-jiahaoalbus-projects.vercel.app",
+      "project": "ynx-card-testnet-simulation",
+      "target": "production",
+      "readyState": "READY",
+      "centralReadbackExact": true
+    },
+    "officialResources": {
+      "root": {"http":200,"bytes":1717,"sha256":"f8b59f7bb084fa22573df186b2f47fa35d3f85d6e078f09f1d3b1b53c764c695","contentType":"text/html","ownerRequestId":"sin1::ldw62-1787422723677-db10af458040","centralRequestId":"sin1::jss4l-1787422804447-00b483d0bf2b"},
+      "appJs": {"http":200,"bytes":2911045,"sha256":"f59fa3d43e4d855a91f224f239e8fc39bf4ffa73e83e42d5c0203aa70deae92e","contentType":"application/javascript","ownerRequestId":"sin1::2d87l-1787422724206-a30e33b0b7ea","centralRequestId":"sin1::pcphb-1787422804687-d6fd1dfbb239"},
+      "manifest": {"http":200,"bytes":460,"sha256":"f3e634129abe79c5b81b7fc8dac3950e5cb21f1d1263b1938fcd06a58e2c686f","contentType":"application/manifest+json","ownerRequestId":"sin1::96tng-1787422724949-b8e19ffb973d","centralRequestId":"sin1::48rwt-1787422805505-69779674876f"},
+      "serviceWorker": {"http":200,"bytes":364,"sha256":"1a9acfe442d2920040a1999f4fe4efe3f97d7a42a9debef047d469972889638f","contentType":"application/javascript","ownerRequestId":"sin1::nmpwn-1787422725204-afc13d7673a2","centralRequestId":"sin1::6rhwd-1787422805755-37c7d9141766"},
+      "ynxLogo": {"http":200,"bytes":863227,"sha256":"6252153a2fd0d12cb61a1223cea3277ceff863eb82b6073049419459b359f86f","contentType":"image/png","ownerRequestId":"sin1::rr577-1787422725451-6744d9950077","centralRequestId":"sin1::pvwtn-1787422805999-6232f5ec3674"},
+      "metaMaskLogo": {"http":200,"bytes":3682,"sha256":"25f2f224f9d01c78ae3dc2d07a339053cc402961a59cf818f2753c12db9ec796","contentType":"image/png","ownerRequestId":"sin1::6m7f4-1787422726800-a6dba0a45969","centralRequestId":"sin1::48jdr-1787422806510-3994c8f2b4d0"},
+      "ownerSha256SumsSha256": "e17c3d7dd6a579f94477d07986de024df416903c4abb1e00928533b099cd669f"
+    },
+    "browser": {
+      "passed": true,
+      "evidencePath": "/tmp/card-p0208-browser.KtY6av/card-candidate-preflight/browser/hosted-chromium.json",
+      "evidenceBytes": 11949,
+      "evidenceSha256": "e8735d24239388332eb9fa207c71029b279718853eaf7c34ca2cc6e82dc5cf45",
+      "exactUrl": "https://card.ynxweb4.com/",
+      "title": "YNX Card",
+      "language": "en",
+      "truthfulNoProvider": true,
+      "fabricatedConnected": false,
+      "distinctYnxAndMetaMaskIdentitiesAndLogos": true,
+      "lateIndependentEip6963Providers": true,
+      "rpcMethods": ["ynx:eth_accounts","ynx:eth_chainId","metamask:eth_accounts"],
+      "forbiddenMethods": [],
+      "fixtureAccount": "0x1111111111111111111111111111111111111111",
+      "fixtureChainId": "0x1917",
+      "connectionDetailsVisible": true,
+      "disconnectRevokeSwitchVisibleNotClicked": true,
+      "privateServiceDegradedPreservesWallet": true,
+      "pageCount": 1,
+      "blankPages": 0,
+      "consoleErrors": 0,
+      "pageErrors": 0,
+      "sameOriginFailures": 0,
+      "customSchemeRequests": 0,
+      "popups": 0,
+      "noProviderScreenshot": {"bytes":131129,"sha256":"18e4e54258aa6f2e0d33847f4144a26cea51efe15b3547fa2b28d0af3963a068"},
+      "lateProviderScreenshot": {"bytes":123650,"sha256":"94edee4dd88e9915115f975d3f4cdadbe00b5d0db363fef2bb8a9b8bb0e96209"},
+      "centralFileInspection": true
+    },
+    "accountRequestAttempted": false,
+    "accountApprovalOrReject": false,
+    "eventsDisconnectOrRevokeExecuted": false,
+    "callbackOrProductSessionSuccess": false,
+    "signingAttempted": false,
+    "typedDataAttempted": false,
+    "transactionAttempted": false,
+    "officialSourceBoundPublic": true,
+    "officialBrowserNonSensitiveVerified": true,
+    "installedProvider": false,
+    "productComplete": false,
+    "productsConnected": "0/12"
+  }
+}

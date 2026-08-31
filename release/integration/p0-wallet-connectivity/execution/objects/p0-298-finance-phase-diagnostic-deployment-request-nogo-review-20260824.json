@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "p0-finance-deployment-request-review@1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-298",
+  "status": "NO_GO_FINANCE_P0298_SUCCESS_AND_AUTOMATIC_ROLLBACK_TERMINAL_CONTRACT_COLLAPSED",
+  "leaseIssued": false,
+  "heavyAcquired": false,
+  "sshExecuted": false,
+  "deploymentExecuted": false,
+  "productionMutation": false,
+  "source": {
+    "branch": "codex/p0-finance-wallet-connectivity-20260820",
+    "implementationCommit": "b6e10dea58083dcfda040d57ba14f803ba7d8994",
+    "implementationTree": "bd9df1aed5290ecaa357ec9dd7893a7b0e61aeee",
+    "requestCommit": "1aa9f7f14cef780b18cde688b4fdf82f405464ad",
+    "requestTree": "d0f33df1f0ca1d9784328be4c13ba7a7e873f85e",
+    "requestPath": "apps/finance/evidence/finance-p0298-post-cleanup-rollback-first-deployment-request-20260824.json",
+    "requestBlob": "59f308466a6089aaf847a544f3d224af3a17e468",
+    "requestSha256": "7bce1cfbc19b7b9b25162d51bf54cba194e256899a07466b687e1a8c1eae554c",
+    "remoteExactClean": true
+  },
+  "acceptedReviewFacts": {
+    "p0297ReleasedCleanupComplete": true,
+    "freshProductionBaselineExact": true,
+    "allP0298PathsAbsent": true,
+    "candidateCarrierArchiveAndEnvExact": true,
+    "serviceUserBaselineTraversal": true,
+    "oldRuntimeAndSixHttpGatesExact": true,
+    "phaseDiagnosticExecutorReviewed": true
+  },
+  "singleBlocker": {
+    "code": "P0298_SUCCESS_AND_AUTOMATIC_ROLLBACK_TERMINAL_CONTRACT_COLLAPSED",
+    "requestLine": 65,
+    "conflictingText": "Every P0298 stage/backup/release/control pending and temporary path must be absent after success or automatic rollback; retained parents and old runtime must match the newly signed baseline.",
+    "reason": "A valid deployment success intentionally retains the signed release, backup and control objects and switches current to the candidate. The request instead requires those objects absent and the old runtime restored on both success and automatic rollback, so every valid success violates the signed terminal contract."
+  },
+  "requiredSuccessorContract": {
+    "success": "retain exact signed release, backup and control objects; current resolves to candidate; candidate service and public gates exact",
+    "automaticRollback": "remove only identity-bound lease-owned residues; restore exact old env, state, current, service and public runtime",
+    "manualRollback": "remains separately signed and out of the deployment lease",
+    "newRequestRequired": true,
+    "p0294Reusable": false
+  },
+  "forbidden": ["issue or execute P0-298","reuse P0-294","deploy rollback cleanup or service lifecycle","Wallet account signature typed data or transaction"]
+}

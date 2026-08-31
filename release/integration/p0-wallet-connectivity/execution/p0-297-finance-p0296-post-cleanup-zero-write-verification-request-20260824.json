@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "p0-finance-zero-write-request@1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-297",
+  "status": "LEASE_ISSUED_P0297_ZERO_WRITE_VERIFICATION_ONLY",
+  "leaseIssued": true,
+  "heavyOwner": "finance-release-control-plane-readonly-verification",
+  "scope": "One future independent zero-write verification of P0-296 cleanup and unchanged Finance runtime",
+  "precondition": "P0-296 terminated and released with a valid cleanup receipt; cleanupComplete remains false until P0-297 terminal direct evidence",
+  "reviewedObject": {
+    "path": "release/integration/p0-wallet-connectivity/execution/objects/p0-297-finance-p0296-post-cleanup-zero-write-verification.sh",
+    "blob": "bcabf47b634cabffc18e438343d4e08c1e56bfb9",
+    "bytes": 5534,
+    "sha256": "f2d531ecf6e44c8d079b99cd05b8a36f588adc7bf298144c422115cb11936268",
+    "bashSyntax": "PASS",
+    "zeroWriteStaticAudit": "PASS"
+  },
+  "futureExecutionShape": {
+    "sshAttempts": 1,
+    "retryAllowed": false,
+    "remoteWrites": 0,
+    "remoteTemporaryFiles": 0,
+    "literalArgvFrozenOnlyAfterFreshPostP0296Prewrite": true,
+    "freshPostP0296PrewritePassedAt": "2026-08-23T19:46:32Z"
+  },
+  "requiredTruth": [
+    "both P0-294 control files and both P0-294 containers absent",
+    "all pending leaf release and current transient paths absent",
+    "lease stage backup and release parent inventories exact post-cleanup",
+    "old current resolved binary env state unit Caddy service PID2241003 NRestarts0 exact",
+    "six loopback/public root health version receipts exact",
+    "verificationComplete=true cleanupComplete=true mutationCount=0"
+  ],
+  "forbidden": ["cleanup deletion deploy rollback remote temp or write","service lifecycle","current env state unit Caddy release or public mutation","Wallet account signature typed data or transaction","predecessor reuse or retry"],
+  "issuedLeasePath": "release/integration/p0-wallet-connectivity/execution/p0-297-finance-p0296-post-cleanup-zero-write-verification-single-use-lease-20260824.json"
+}

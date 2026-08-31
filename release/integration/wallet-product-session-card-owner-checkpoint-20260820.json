@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-WALLET-CARD-STANDARD-CONNECTION-A0AE3567-20260820",
+  "owner": "wallet-protocol-read-only-audit",
+  "productOwner": "card",
+  "branch": "codex/p0-card-testnet-virtual-20260820-fix",
+  "commit": "a0ae3567337a69f43a33eb3d0bd33f55a0591b18",
+  "remoteReadbackExact": true,
+  "walletAuthSourceCommit": "24cc3218c2cdc00c50dc3caa563652083afbd861",
+  "walletAuthTarballSha256": "d94eda02e7e76bde6a56159a50fe515fe310b3e17baa6674dbdd00b2b252f4dd",
+  "directBlobs": {
+    "apps/card/src/wallet.ts": "e19e1f531f631192432442ca43fdecfa62a5a98a",
+    "apps/card/src/wallet.test.ts": "7acff7d4e2d5059274b772931fe8e5e8b7f1aeb6",
+    "apps/card/evidence/p0-wallet-contract-consumption.md": "601b1085bef16d450234eabd1b6b36177d777dea",
+    "apps/card/vendor/ynx-chain-wallet-auth-1.0.0-24cc3218.tgz": "7b1f68e8130abf51ddff60a8607fcd8803b9d9f6"
+  },
+  "directSourceEvidence": {
+    "usesStandardWalletConnection": true,
+    "usesEnhanceWithProductSessionAfterStandardConnection": true,
+    "privateSessionFailureState": "PRIVATE_SERVICE_DEGRADED",
+    "standardWalletRemainsConnected": true,
+    "canonicalErrorContractConsumed": true,
+    "eip1193ProviderIdentitiesPreserved": [4001, 4100, 4200, 4900, 4901, 4902],
+    "developerMessageExposedToUi": false,
+    "unknownErrorsFailClosed": true
+  },
+  "ownerReportedVerification": {
+    "npmTestPassed": 21,
+    "npmTestFailed": 0,
+    "typecheckPassed": true
+  },
+  "remainingSecurityGap": {
+    "callerSuppliedArbitraryHttpsGatewayStillAccepted": true,
+    "function": "completeCentralSession(gatewayURL, pending, approval)",
+    "requiredBeforeV2Promotion": "bind to the accepted fixed endpoint manifest and reject a hostile HTTPS hostname"
+  },
+  "truth": {
+    "classification": "standard-wallet-only",
+    "productSessionV2GatewayEvidenced": false,
+    "visiblePlatformEvidenced": false,
+    "migratedV2": false,
+    "deployedPublic": false,
+    "installedClientVerified": false
+  }
+}

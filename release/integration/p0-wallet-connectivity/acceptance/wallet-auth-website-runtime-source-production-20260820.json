@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "acceptanceId": "P0-WALLET-AUTH-WEBSITE-RUNTIME-SOURCE-PRODUCTION-20260820",
+  "decision": "ACCEPTED_WEBSITE_PUBLICATION_AND_VISIBLE_SOURCE_CORRECTION",
+  "ownerPostdeployCommit": "ddc4ea884b7659fdd989cf2721b71f4c34ef3b61",
+  "ownerPostdeployEvidence": {
+    "path": "release/integration/wallet-auth-website-postdeploy-readback-20260820.json",
+    "blob": "a7bbd92534f52579f0e57e8797c858ec037a02ec",
+    "bytes": 3026,
+    "sha256": "787300a6334bb0993d17512995f873a4342f11102c11505aaf33794076c1c2eb"
+  },
+  "integrationDirectEvidence": {
+    "path": "release/integration/p0-wallet-connectivity/evidence/wallet-auth-website-runtime-source-production-20260820.json",
+    "blob": "c0cc986d51931004b44077a6ac797a4fc6c011b9",
+    "bytes": 3953,
+    "sha256": "7d118fd817adc0dcea85bce236ee58f6e08be25b286d69d3524a58e74c750966"
+  },
+  "websiteSourceCommit": "09d5be41436404bba74315d0013c0229cab1e32b",
+  "websiteDeploymentId": "dpl_awLjPQTGudm2huQmNHPk9UpmugfV",
+  "walletAuthRuntimeSource": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+  "closedGap": {
+    "apexAndWwwDocsVerified": true,
+    "apexAndWwwRuntimeVerified": true,
+    "frontendAssetVerified": true,
+    "renderedVisibleCardVerified": true,
+    "renderedVisibleCardUsesCurrentRuntimeSource": true
+  },
+  "truth": {
+    "websiteWalletAuthRecordDeployedPublic": true,
+    "installedWalletClientVerified": false,
+    "walletApprovalVerified": false,
+    "accountVerified": false,
+    "signingVerified": false,
+    "transactionVerified": false,
+    "productsMigrated": 0,
+    "productsRequired": 12,
+    "integratedCentral": false,
+    "aggregateDeployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

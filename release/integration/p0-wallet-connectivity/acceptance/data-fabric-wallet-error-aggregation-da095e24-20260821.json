@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-005",
+  "acceptedAt": "2026-08-20T17:50:14Z",
+  "classification": "candidate-ready-source-and-release-truth",
+  "implementationCommit": "2a5233ee9560e8855271d9681c1f7f41142cf117",
+  "releaseBindingCommit": "4e73419967436c40f04e78bc888ac63659645788",
+  "handoffCommit": "da095e240be52023ecef19c162c869398bf9fbea",
+  "walletErrorSource": "24cc3218c2cdc00c50dc3caa563652083afbd861",
+  "connectionEventsContract": "1.0.0-p0.0",
+  "focusedIntegrationTestsPassed": true,
+  "remoteCiRun": "32398061116",
+  "remoteCiJobsPassed": 6,
+  "remoteCiJobsFailed": 0,
+  "lightLeaseReleased": true,
+  "deployedPublic": false,
+  "publicVerified": false,
+  "productsMigrated": 0,
+  "boundaries": [
+    "The mapping is asynchronous and cannot gate Wallet connection, approval, signing or transaction flow.",
+    "Only canonical error class and retryability are aggregated; raw error, developerMessage and identity are excluded.",
+    "PR review, public deployment, installed-client connectivity and Card funding remain separate false gates."
+  ]
+}

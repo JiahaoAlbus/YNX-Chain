@@ -1,0 +1,55 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-160",
+  "owner": "integration",
+  "sourceOwner": "wallet-protocol-router",
+  "decision": "ROUTER_RECEIPT_ACCEPTED_AND_RECURSIVE_CHECKPOINT_LOOP_CLOSED",
+  "routerReceipt": {
+    "commit": "747c63c7e3ee84843f1b770f9f3d3b1d390c3c02",
+    "tree": "d06c3a90252d8af4f10a29129f542bc2e98a3726",
+    "parent": "762ebb08810af807a8626ca59aea02e7a39c56e8",
+    "matrixSha256": "80965c15f2a431b8c85eed57d1dc067b819fcf5fda2bc9435ff3cea9ec5ab701",
+    "activitySha256": "9a17c6bb63d1cfca359b34d185e0beb915302f4826b8c9966b106af759c16f26",
+    "remoteReadbackExact": true
+  },
+  "boundCentral": {
+    "commit": "347a202564035e902e945b7308bbb5c5397964a4",
+    "tree": "36e53d4405e57fe0a3093a38eb952f8790e3e2f2",
+    "acceptanceBlob": "065350cbd23207181dcf884f5ee88fa0ab6187e1",
+    "acceptanceSha256": "7fcf3cb29a3f754d8a90255f4cac3ee0e9c71a434f2f9786d73facf31415f374",
+    "matrixBlob": "d2fb68beecbd76111f845029fed5ca82b7300fca",
+    "matrixSha256": "deee43f5f12197411ae12757aa939ab687a52615650e4688c66b2fc2b128a026"
+  },
+  "validation": {
+    "walletAuth": "322/322",
+    "noBareAuthorize": true,
+    "standardWalletConsumerGate": true
+  },
+  "convergencePolicy": {
+    "receiptLoopClosed": true,
+    "receiptOnlyFollowupRequiresNewCentralCommit": false,
+    "nextAcceptedUpdateRequires": [
+      "NEW_CAPABILITY",
+      "DIRECT_INSTALLED_E2E",
+      "SECURITY_SEMANTIC_CHANGE"
+    ]
+  },
+  "truth": {
+    "executionLeaseIssued": false,
+    "browserLaunched": false,
+    "installedProviderComplete": false,
+    "realDappComplete": false,
+    "approvalRejectComplete": false,
+    "installedChainReadbackComplete": false,
+    "eventsComplete": false,
+    "signingComplete": false,
+    "typedDataComplete": false,
+    "transactionComplete": false,
+    "walletConnectRelayComplete": false,
+    "productsConnected": "0/12",
+    "productsMigratedV2": "0/12",
+    "parityComplete": false,
+    "aggregatePublic": false
+  }
+}

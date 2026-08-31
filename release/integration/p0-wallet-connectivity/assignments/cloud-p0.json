@@ -1,0 +1,11 @@
+{
+  "schemaVersion":1,
+  "campaignId":"P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId":"P0-071",
+  "owner":"integration",
+  "status":"ACTIVE_BOUNDED_CLOUD_SOURCE_ONLY",
+  "branch":"codex/p0-cloud-wallet-connectivity-20260821",
+  "startingCommit":"f048f5ee028b",
+  "acceptedContracts":["walletTransport","errorContract","dappConnectSDK","publicEndpointManifest"],
+  "truth":{"historicalPublicRuntime":true,"currentSourcePublicVerified":false,"installedCurrentSource":false,"productSessionV2":false,"computerControlVerified":false}
+}

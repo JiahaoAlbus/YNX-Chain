@@ -1,0 +1,97 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-154",
+  "owner": "integration",
+  "sourceOwner": "wallet-web",
+  "decision": "VAULT_SIGNER_SOURCE_AND_BUILT_ARTIFACT_ACCEPTED_INSTALLED_BROWSER_E2E_FALSE",
+  "source": {
+    "vaultCommit": "91562a4badeb23bb97cbd7c734a4590ccf3c53b3",
+    "vaultTree": "596fa7d5c7c9e5a013f440ca0da7b2abe72fff30",
+    "signerCommit": "60a756991fbe07311c9d2b0dbade8a9d670dab04",
+    "signerTree": "6a6fd70ef6dae23022e877ff9542daffa225d536",
+    "branch": "codex/wallet-web-pwa-extensions-20260813"
+  },
+  "ownerEvidence": {
+    "commit": "6fcf1a9cbc7900e5f0a5136d9d6bdc52c181a75c",
+    "tree": "3e8eef5c55911e7d6505d0ee81bbe838c8cb7d06",
+    "parent": "60a756991fbe07311c9d2b0dbade8a9d670dab04",
+    "evidencePath": "apps/wallet-web/evidence/contracts/ynx-extension-vault-signer-20260822.json",
+    "evidenceBlob": "5528dca2a7c962e1eb77a55058ced8c8c8694787",
+    "evidenceSha256": "eda12194c0458c2ed8153341d97d73459b7d7c41a770975c2980ffb96aa56963",
+    "handoffPath": "docs/integration/wallet-web-extension-vault-signer-handoff-20260822.json",
+    "handoffBlob": "bdda7c4f289c3f548ebc8dbad2edfa50355a0856",
+    "handoffSha256": "fb16de3feb594304e1cbeb6ff205b4a8340e01d208cf2e2e468e81ee25b3153d",
+    "remoteReadbackExact": true
+  },
+  "dependenciesConsumed": {
+    "centralP0152Commit": "803d8fa0735303a5987bbebfeb088cdd5542b388",
+    "centralP0152Blob": "4057c4ef26e415f6cee33e105ceb825c6797c0a9",
+    "centralP0152Sha256": "acb808830bef59707f9433e417bac3b4af6f0bc294c218b0f6468dfbba961f20",
+    "routerDriftCommit": "177240b5c3a2d5fbfdf9246fc568c3c3b57a0114",
+    "routerDriftBlob": "0d7760d57ffa78d8a69dce91ba6caec8178d5bd2",
+    "routerDriftSha256": "bcb33a7d0dc64a6864690d99bba91932ed08778fc724641e9c70f49a71143b2e"
+  },
+  "acceptedSourceClaims": {
+    "vaultKdf": "PBKDF2-SHA256-600000",
+    "vaultCipher": "AES-GCM-256",
+    "vaultKeyType": "secp256k1",
+    "vaultProviderAccountExactBinding": true,
+    "accountReplacementRevokesOriginPermissions": true,
+    "perRequestReviewAndPassword": true,
+    "personalSignRecoverable": true,
+    "typedDataDomainChainId": 6423,
+    "legacyTransactionExactSigning": true,
+    "nonceGasPriceFromCanonicalRpc": true,
+    "broadcastHashBoundToSignedTransaction": true,
+    "productSessionGrantsSigner": false,
+    "metamaskSubstitution": false
+  },
+  "tests": {
+    "source": "110/110",
+    "packageInternal": "83/83",
+    "packageVerification": true,
+    "minimumPermissionArtifactGate": true,
+    "productionDependencyAuditVulnerabilities": 0,
+    "directNodeRpcChainId": "0x1917",
+    "directNodeRpcIsInstalledBrowserProof": false
+  },
+  "artifacts": [
+    {"kind":"pwa","bytes":285229,"sha256":"fca3adbf181c3ff034cdfac1a79ae7d90f3610df71f1f1f63792dc1c69222eb5","signingClass":"unsigned-web-bundle"},
+    {"kind":"chrome-edge","bytes":468402,"sha256":"769bc63f93b5e85cfac6b85ed44002a037202ccabe8af013009ab989c566bfd6","signingClass":"unsigned-unpacked-extension"},
+    {"kind":"firefox","bytes":468441,"sha256":"3eba0cacacded62932670f36ca5f2ea852680cda7cf696fce4515b7e1d1509c6","signingClass":"unsigned-unpacked-extension"}
+  ],
+  "publicIdentity": {
+    "url": "https://wallet.ynxweb4.com/",
+    "observedBuildIdentitySourceCommit": "uncommitted-source-tree",
+    "currentSourceBoundPublic": false,
+    "releaseBlocked": true
+  },
+  "truth": {
+    "installedProviderVerified": false,
+    "realDappDiscoveryVerified": false,
+    "installedAccountVerified": false,
+    "approveVerified": false,
+    "rejectVerified": false,
+    "installedChainId1917Verified": false,
+    "refreshRestoreVerified": false,
+    "accountsChangedVerified": false,
+    "chainChangedVerified": false,
+    "disconnectVerified": false,
+    "personalSignVerified": false,
+    "typedDataVerified": false,
+    "transactionSubmitted": false,
+    "firstPartyDappsComplete": 0,
+    "externalDappsComplete": 0,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "deployedPublic": false,
+    "parityComplete": false
+  },
+  "execution": {
+    "installLeaseIssued": false,
+    "deploymentLeaseIssued": false,
+    "nextInstalledBrowserActionRequiresImmediateUserConfirmation": true
+  }
+}

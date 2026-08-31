@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-136",
+  "decision": "PUBLIC_BYTES_ACCEPTED_COMPUTER_CONTROL_BLOCKED",
+  "recordedAt": "2026-08-21T09:14:20Z",
+  "sourceCommit": "d2323ca6a0bf4cc9aed67bf3bd7ee533755999e3",
+  "sourceTree": "1652f3ceed9a36c2e0d79af5bd69d6de3b181077",
+  "ownerEvidenceCommit": "466aa828854e89ae4aadde60f98becabc7c5b674",
+  "ownerEvidencePath": "release/integration/p0-wallet-connectivity/search-p0136-canonical-subroute-public-evidence-20260821.json",
+  "artifactSha256": "88b7458a90fa56690fd3a92104f6d7354a67a0f161cdce89b7c5f168fca774ee",
+  "activeRuntime": "/opt/ynx/search-releases/p0136-search-subroute-d2323ca6",
+  "rollbackTarget": "/opt/ynx/search-releases/p0124-search-wallet-7604c88e",
+  "serviceActive": true,
+  "nRestarts": 0,
+  "publicAssetsExact": true,
+  "publicHealthCommit": "d2323ca6a0bf4cc9aed67bf3bd7ee533755999e3",
+  "publicUrls": [
+    "https://web4.ynxweb4.com/search/",
+    "https://web4.ynxweb4.com/search/app.js",
+    "https://web4.ynxweb4.com/search/runtime-config.js",
+    "https://web4.ynxweb4.com/search/styles.css",
+    "https://web4.ynxweb4.com/search/sw.js",
+    "https://web4.ynxweb4.com/search/api/health",
+    "https://web4.ynxweb4.com/search/api/index/status"
+  ],
+  "truth": {
+    "publicDeployed": true,
+    "publicHttpVerified": true,
+    "cleanEnglishBrowserVerified": false,
+    "realInjectedProvider": false,
+    "walletApprovalVerified": false,
+    "accountVerified": false,
+    "signatureVerified": false,
+    "transactionVerified": false,
+    "productSessionV2": false,
+    "computerControlVerified": false,
+    "aggregateEcosystemFixed": false
+  },
+  "blocker": "Chrome auto-translation replaced the English page representation and the locked Mac prevented selecting Show original through Computer Control."
+}

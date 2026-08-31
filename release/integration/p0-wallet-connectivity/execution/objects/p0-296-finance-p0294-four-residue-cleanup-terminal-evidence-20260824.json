@@ -1,0 +1,29 @@
+{
+  "schemaVersion": "p0-finance-cleanup-terminal-evidence@1",
+  "taskId": "P0-296",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-p0294-four-residue-cleanup-p0296-20260823T193900Z",
+  "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0296_P0294_FOUR_RESIDUE_CLEANUP_PENDING_INDEPENDENT_READBACK",
+  "attempts": 1,
+  "localExitStatus": 0,
+  "remoteExitStatus": 0,
+  "stdout": {
+    "path": "release/integration/p0-wallet-connectivity/execution/objects/p0-296-finance-p0294-four-residue-cleanup-terminal-stdout.txt",
+    "blob": "d67e06c578c8b111a5262aec811c9faa845b98b7",
+    "bytes": 314,
+    "sha256": "f05a011e71dc93222102f53cf0df3978f5ad909d0332c109aa7de8499f880a30"
+  },
+  "stderr": {"bytes": 0, "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+  "receipt": {
+    "cleanup": "P0294_FOUR_RESIDUES_REMOVED",
+    "executorFinal": "absent",
+    "signedLeaseFinal": "absent",
+    "stageContainerFinal": "absent",
+    "backupContainerFinal": "absent",
+    "leaseParentStable": true,
+    "stageParentRestored": true,
+    "backupParentRestored": true,
+    "cleanupInvocationCount": 1,
+    "cleanupComplete": "pending-independent-zero-write-verification"
+  },
+  "truth": {"cleanupReceiptValid": true, "cleanupComplete": false, "independentZeroWriteVerificationRequired": true, "deployment": false, "rollback": false, "serviceOrConfigMutationAuthorized": false}
+}

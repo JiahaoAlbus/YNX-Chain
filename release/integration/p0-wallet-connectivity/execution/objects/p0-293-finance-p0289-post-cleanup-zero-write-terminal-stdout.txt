@@ -1,0 +1,23 @@
+verification=FINANCE_P0289_POST_CLEANUP_ZERO_WRITE_CORRECTED
+allP0289Paths=absent
+leaseParent=64770:4594822:0:0:750:2:4096:directory|directChildren=0|inventorySha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stageParent=64770:3450041:0:0:750:5:4096:directory|directChildren=3|inventorySha256=0d11124b36a42c6201f7e0d491fd20279ea47950554f92c6b1cc960aaa0fee91
+backupParent=64770:1481354:0:0:755:11:4096:directory|directChildren=9|inventorySha256=a59008acfeccfb0a2f88de5b029871b713b42d0bf43ad1ba87786c962e6659be
+currentTarget=/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a
+resolvedBinary=/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a/ynx-finance
+oldBinarySha256=0cc43c8a77c12975a0fcbada65971f08f2bc3a52345d547ea194dd3ccd60d83f
+envSha256=854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252
+unitSha256=2e72cdad422a3a714c46d074ea97b725233576cf726dbbfd43e82e99c2c2975b
+caddySha256=dcf75a7aed315c54632321b8bb80e44c0abc22f6700fadfbfa9a7da21b88a282
+state=absent
+service=loaded:active:running:2241003:0:/opt/ynx/finance-current:ynx:ynx
+loopbackRoot=http://127.0.0.1:6483/|200:11427:c1fc45eecd7f88de6fc3e049d15161b8d4e9878e31f20c977fc52b383a18ed53:text/html; charset=utf-8
+loopbackHealth=http://127.0.0.1:6483/health|200:485:d1e97a4314acd1ecccf94629d15bd598cb58ff78136b3622ac26d583a82e45c1:application/json; charset=utf-8
+loopbackVersion=http://127.0.0.1:6483/version|200:130:39789776da47e60b7a7df845789e02ebba16707ad8951eb6f27c84c1b40bb226:application/json; charset=utf-8
+publicRoot=https://finance.ynxweb4.com/|200:11427:c1fc45eecd7f88de6fc3e049d15161b8d4e9878e31f20c977fc52b383a18ed53:text/html; charset=utf-8
+publicHealth=https://finance.ynxweb4.com/health|200:485:d1e97a4314acd1ecccf94629d15bd598cb58ff78136b3622ac26d583a82e45c1:application/json; charset=utf-8
+publicVersion=https://finance.ynxweb4.com/version|200:130:39789776da47e60b7a7df845789e02ebba16707ad8951eb6f27c84c1b40bb226:application/json; charset=utf-8
+remoteExitStatus=0
+verificationComplete=true
+cleanupComplete=true
+mutationCount=0

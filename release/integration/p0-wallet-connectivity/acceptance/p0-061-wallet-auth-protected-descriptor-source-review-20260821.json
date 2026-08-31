@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-061",
+  "ownerTaskLabel": "P0-055",
+  "decision": "REJECT_SOURCE_ONLY_POST_HANDOFF_CLOSE_SPLIT_BRAIN",
+  "reviewedAt": "2026-08-20T20:55:00Z",
+  "sourceCommit": "c2630b5b6ebe9cda541255a275d24095ca9bcd81",
+  "sourceTree": "c66143cd3d9551d0af922b0f2e0f134f25e46a28",
+  "sourceParent": "7d8afd52c4a426abfcb5fed3b01acdc063955999",
+  "ownerEvidenceCommit": "ec181ebaa95e4ac129923553a059185a89556084",
+  "ownerEvidenceTree": "350cd82862c088e730fd716da435c5944f1dec80",
+  "ownerEvidenceBlob": "7fcdc4c6469e8872d957172595ac95e72410784e",
+  "ownerEvidenceSha256": "cceb1d81ad7101ed7084560abae57c971a13d9cf475c2ad820b0a599c4989b68",
+  "ownerTests": "357/357",
+  "ownerPackSha256": "8f03d2ae9e6844a82d251c38192c6780be1589948fce6764f35a447986423099",
+  "acceptedFixes": [
+    "mutable temporary pathname removed",
+    "final output reserved with O_CREAT|O_EXCL|O_RDWR|O_NOFOLLOW in a root-protected mode-0700 directory",
+    "one output descriptor carries write, digest, ownership and inode verification",
+    "pre-handoff failures remove only the created inode and fsync the directory",
+    "unsupported atomic flags fail closed without rename or link fallback"
+  ],
+  "blockingFinding": {
+    "code": "POST_HANDOFF_CLOSE_SPLIT_BRAIN",
+    "summary": "After directory ownership handoff succeeds, a fallible descriptor close can still throw. The function then reports failure and returns no receipt while the formal output remains committed.",
+    "reproduction": {
+      "directoryTransferred": true,
+      "receiptReturned": false,
+      "caughtCode": "EIO",
+      "outputExists": true,
+      "outputMode": "0600"
+    },
+    "requiredCorrection": [
+      "close and confirm the output descriptor before directory ownership handoff while rollback remains root-protected",
+      "make successful directory fchown the explicit irreversible commit point",
+      "do not convert post-commit directory descriptor close failure into a failed transaction without receipt",
+      "prove pre-handoff output close failure and directory fchown failure leave no output or receipt",
+      "prove post-handoff directory close injection returns a consistent successful receipt",
+      "prove cleanup path replacement never unlinks an unrelated inode"
+    ]
+  },
+  "sourceAccepted": false,
+  "executionLeaseIssued": false,
+  "sshUsed": false,
+  "productionRead": false,
+  "deploymentAttempted": false,
+  "publicRuntimeSource": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+  "registryV3Public": false,
+  "productsMigratedV2": 0,
+  "productsRequired": 12,
+  "publicVerified": false,
+  "computerControlVerified": false
+}

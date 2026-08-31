@@ -1,0 +1,147 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-251",
+  "leaseId": "p0251-finance-p0247-cleanup-20260823T100000Z",
+  "owner": "financial-apps",
+  "executor": "finance-release-control-plane",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0251_LITERAL_TRANSPORT_PRINTF_USAGE_REMOTE_STATE_UNKNOWN",
+  "issuedAt": "2026-08-23T10:05:30Z",
+  "expiresAt": "2026-08-23T10:35:30Z",
+  "releasedAt": "2026-08-23T10:12:04Z",
+  "singleUse": true,
+  "reusable": false,
+  "productionMutationAllowed": false,
+  "deploymentAllowed": false,
+  "rollbackAllowed": false,
+  "scope": "Finance-only placement of one signed cleanup executor and this lease, followed by exactly one identity-bound deletion attempt limited to the two P0-247 residue trees",
+  "centralPrecondition": {
+    "parentCommit": "3cfa0108fd1f22105d19b3e4e64e3537252a5c80",
+    "parentTree": "768e21fd5af3591dfc68fe69b507d67fbad8111a",
+    "heavyWasIdle": true,
+    "p0247ThroughP0250Nonreusable": true,
+    "walletArtifactHostingLeaseIssued": false
+  },
+  "ownerRequest": {
+    "branch": "codex/p0-finance-wallet-connectivity-20260820",
+    "commit": "14616a2e5066759bace10ef2355ec1f4703b04c7",
+    "tree": "1c7921e7928f9cb172580893cc1d91a0d4b8267b",
+    "remoteExactClean": true,
+    "path": "apps/finance/evidence/finance-p0251-cleanup-placement-transport-successor-lease-request-20260823.json",
+    "blob": "b7f21a9f5c7a645bf75abbf58611d5ade651d084",
+    "bytes": 5611,
+    "sha256": "e1cb246af1fcd6ae262a06bbd4d6c74d00cdf973c3e35ac59ef4149dd6f3119b"
+  },
+  "commandObjects": {
+    "reviewedCheckpoint": "b02263a9b7f760d21dd2a2e95ec66d5ec21913b4",
+    "reviewedTree": "641f2606cfe6b56118a2aa52a70683c1d514064f",
+    "cleanupExecutor": {"path":"apps/finance/scripts/finance-p0247-residue-cleanup.sh","blob":"b56dda2e0f685d95f809ee8ba84b31bd15f79305","bytes":6642,"sha256":"d816d438dbad52b43c448ba925cade26ff609da1ee30cbfff32327054e0ea7d9","mode":"0700"},
+    "carrierBuilder": {"path":"apps/finance/scripts/build-finance-p0251-cleanup-placement-carrier.mjs","blob":"ef75eba7847045a1cecab21998bd8dc32da69c5b","bytes":1136,"sha256":"4954c33a1612682f58b8ed8dbe6d614cbac70dcaa90c4c05e467b09c2bea5bbd"},
+    "remoteBootstrap": {"path":"apps/finance/scripts/finance-p0251-cleanup-placement-bootstrap.sh","blob":"71091df825e496a7b65a70e232d42697c88fffa9","bytes":4506,"sha256":"5bf73c6da921097b4fef5601b378faabc0be417c44e91bc38ce1e75cc2a03903"},
+    "placementFixture": {"path":"apps/finance/scripts/test-finance-p0251-cleanup-placement-fixture.mjs","blob":"e4047851488cdf69afab47ec114f3f3fc8c93b7e","bytes":4237,"sha256":"090183226c608366efdcf289cdd8d509e7c99ac8e55f751891b3d21a928a34d2","result":"PASS"},
+    "cleanupFixture": {"path":"apps/finance/scripts/test-finance-p0247-residue-cleanup-fixture.mjs","result":"PASS"}
+  },
+  "lease": {
+    "signed": true,
+    "kind": "FINANCE_P0247_RESIDUE_CLEANUP_ONLY",
+    "id": "p0251-finance-p0247-cleanup-20260823T100000Z",
+    "p0247": {"id":"p0247-finance-phase3-20260823T073800Z"}
+  },
+  "placement": {
+    "parent": {"path":"/opt/ynx/leases/finance","tuple":"64770:4594822:0:0:750:2:4096:directory"},
+    "executor": {"path":"/opt/ynx/leases/finance/p0251-finance-p0247-cleanup-20260823T100000Z.executor.sh","mustBeAbsent":true,"mode":"0700","sha256":"d816d438dbad52b43c448ba925cade26ff609da1ee30cbfff32327054e0ea7d9"},
+    "lease": {"path":"/opt/ynx/leases/finance/p0251-finance-p0247-cleanup-20260823T100000Z.json","mustBeAbsent":true,"mode":"0600"},
+    "transport": "YNX-FINANCE-P0251-CLEANUP-PLACEMENT-1",
+    "stdinOnly": true,
+    "remoteTemporaryFilesAllowed": false,
+    "retryAllowed": false
+  },
+  "targets": {
+    "stage": {
+      "path": "/opt/ynx/stage/finance/p0247-finance-phase3-20260823T073800Z",
+      "basename": "p0247-finance-phase3-20260823T073800Z",
+      "parent": {"path":"/opt/ynx/stage/finance","tuple":"64770:3450041:0:0:750:4:4096:directory"},
+      "tuple": "64770:4620782:0:0:700:3:4096:directory",
+      "inventorySha256": "8a753b1dc68e76d85219263bc71d06ccc29cb11bcc64a6040fe89d80839071b3"
+    },
+    "backup": {
+      "path": "/var/backups/ynx-finance/p0247-finance-phase3-20260823T073800Z",
+      "basename": "p0247-finance-phase3-20260823T073800Z",
+      "parent": {"path":"/var/backups/ynx-finance","tuple":"64770:1481354:0:0:755:10:4096:directory"},
+      "tuple": "64770:2663604:0:0:700:3:4096:directory",
+      "inventorySha256": "e6f29cd259fd994702bd1ade38390262a29f971de902f1f3cc66b8ba5b1c200c"
+    }
+  },
+  "fresh": {
+    "current": {"path":"/opt/ynx/finance-current","linkTuple":"64770:1312291:0:0:777:1:50:symbolic link","target":"/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a"},
+    "env": {"path":"/etc/ynx/finance.env","tuple":"64770:1324724:0:986:640:1:1545:regular file","sha256":"854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252"},
+    "unit": {"path":"/etc/systemd/system/ynx-finance.service","tuple":"64770:161304:0:0:644:1:515:regular file","sha256":"2e72cdad422a3a714c46d074ea97b725233576cf726dbbfd43e82e99c2c2975b"},
+    "caddy": {"path":"/etc/caddy/ynx-chain.caddy","tuple":"64770:1056275:0:0:644:1:3412:regular file","sha256":"b606d1bdced436a984aed19981788f1a9471b4ccb7ad7f2c49b32015b729afa7"},
+    "service": {"name":"ynx-finance.service","activeState":"active","subState":"running","pid":"2241003","nrestarts":"0"},
+    "public": {
+      "health": {"url":"https://finance.ynxweb4.com/health","status":"200","bytes":"485","sha256":"d1e97a4314acd1ecccf94629d15bd598cb58ff78136b3622ac26d583a82e45c1"},
+      "version": {"url":"https://finance.ynxweb4.com/version","status":"200","bytes":"130","sha256":"39789776da47e60b7a7df845789e02ebba16707ad8951eb6f27c84c1b40bb226"}
+    }
+  },
+  "execution": {
+    "host": "ubuntu@43.153.202.237",
+    "identityFile": "/Users/huangjiahao/Downloads/Huang.pem",
+    "strictHostKeyChecking": true,
+    "sudoNoninteractive": true,
+    "attemptLimit": 1,
+    "retryAllowed": false,
+    "carrierPathLocal": "/tmp/ynx-finance-p0251-cleanup-placement.carrier",
+    "executionCompanionPath": "release/integration/p0-wallet-connectivity/execution/p0-251-finance-p0247-residue-cleanup-execution-handoff-20260823.json"
+  },
+  "forbidden": [
+    "any deletion outside the two exact residue roots",
+    "remote temporary file or directory creation outside the two exact placement files",
+    "deployment, rollback, restart, current/env/state/unit/Caddy/public mutation",
+    "non-Finance mutation, account request, signing, typed data or transaction",
+    "retry or second invocation"
+  ],
+  "terminalEvidence": {
+    "ownerCommit": "73e489577768415d2ac2ef25711419681ed2a57e",
+    "ownerTree": "4cfbb52760f988e5bac95a6c82f50d33856c01e5",
+    "ownerRemoteExactClean": true,
+    "path": "apps/finance/evidence/p0-251-finance-p0247-cleanup-terminal-transport-failure-20260823.json",
+    "blob": "8900893572bde5bb57de860d7d85c88cfce8b37e",
+    "bytes": 2504,
+    "sha256": "1c8ee4602043e3a95e964cb79e8f04288c694ca86d8d577ef92e2da3ed39756e",
+    "sshAttempts": 1,
+    "sshExitStatus": 0,
+    "stdoutBytes": 0,
+    "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderrBytes": 50,
+    "stderrSha256": "d0ceb00af4231f211fa378e5b15ae24adaacc5c4fe35a6b052cd0326362541f6",
+    "stderrExact": "printf: usage: printf [-v var] format [arguments]\n",
+    "placementReceiptPresent": false,
+    "cleanupReceiptPresent": false,
+    "remoteMutationProven": false,
+    "remoteStateKnown": false,
+    "retry": false,
+    "deployment": false,
+    "rollback": false,
+    "restart": false,
+    "account": false,
+    "signature": false,
+    "transaction": false,
+    "nextAuthority": "wholly-new Finance-only read-only remote-state inspection lease; corrected cleanup transport may be reviewed only after that inspection terminally freezes exact state"
+  },
+  "terminalRules": {
+    "success": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0251_P0247_RESIDUES_REMOVED_CLEANUP_ONLY",
+    "alreadyAbsent": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0251_RESIDUES_ALREADY_ABSENT_READONLY_NOOP",
+    "failure": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0251_CLEANUP_OR_PLACEMENT_FAILURE",
+    "emergency": "EMERGENCY_BLOCKED_FINANCE_P0251_RESIDUE_OR_PLACEMENT_SUBSTITUTION",
+    "releaseHeavyAndAllLocksOnTerminal": true
+  },
+  "truthBoundary": {
+    "cleanupOnly": true,
+    "deploymentAuthorized": false,
+    "rollbackAuthorized": false,
+    "publicRuntimePromoted": false,
+    "account": false,
+    "signature": false,
+    "transaction": false
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "schemaVersion":"1.0.0",
+  "taskId":"P0-324",
+  "leaseId":"P0-WALLET-CONNECTIVITY-2026-08-finance-carrier-raw-first-zero-write-20260831T065500Z",
+  "status":"CONSUMED_RELEASED_SUCCESS_FINANCE_P0324_CARRIER_RAW_FIRST_ZERO_WRITE_DIAGNOSTIC",
+  "attemptCount":1,
+  "retryCount":0,
+  "localExitStatus":0,
+  "stdout":{"path":"/tmp/p0-324-finance-carrier-raw-first-zero-write.json","bytes":1422,"sha256":"dd2b184cfca16f8ef01172d29c0124bdbd86a1f292f885839ba50c17a379a38c"},
+  "stderr":{"path":"/tmp/p0-324-finance-carrier-raw-first-zero-write.stderr","bytes":0,"sha256":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+  "directEvidence":{
+    "inspection":"FINANCE_P0318_CARRIER_RAW_FIRST_ZERO_WRITE",
+    "rootBefore":"64770:4594824:0:0:700:2:4096:directory",
+    "rootStableIdentity":"64770:4594824:0:0:700:directory",
+    "directChildren":2,
+    "children":[
+      {"name":"candidate.tgz","tuple":"64770:4594825:0:0:600:1:3938517:regular file","sha256":"55e8d98317eab27248644e6c1168e5ef9f72221a9708a8b80c0ee6502760147d"},
+      {"name":"finance.env","tuple":"64770:4594832:0:986:640:1:1592:regular file","sha256":"06d54c7c930c1d9af7dad9cc4322bf23b9755b521101e18e3574be4ae83aaed7"}
+    ],
+    "canonicalInventoryInputBytes":310,
+    "canonicalInventoryInputBase64":"W3sibmFtZSI6ImNhbmRpZGF0ZS50Z3oiLCJzaGEyNTYiOiI1NWU4ZDk4MzE3ZWFiMjcyNDg2NDRlNmMxMTY4ZTVlZjlmNzIyMjFhOTcwOGE4YjgwYzBlZTY1MDI3NjAxNDdkIiwidHVwbGUiOiI2NDc3MDo0NTk0ODI1OjA6MDo2MDA6MTozOTM4NTE3OnJlZ3VsYXIgZmlsZSJ9LHsibmFtZSI6ImZpbmFuY2UuZW52Iiwic2hhMjU2IjoiMDZkNTRjN2M5MzBjMWQ5YWY3ZGFkOWNjNDMyMmJmMjNiOTc1NWI1MjExMDFlMThlMzU3NGJlNGFlODNhYWVkNyIsInR1cGxlIjoiNjQ3NzA6NDU5NDgzMjowOjk4Njo2NDA6MToxNTkyOnJlZ3VsYXIgZmlsZSJ9XQ==",
+    "canonicalInventorySha256":"1a921cd16c549d3aa78d8b7a22c1f984597278e7a84cdb6946cba0bb73826f95",
+    "rootAfter":"64770:4594824:0:0:700:2:4096:directory",
+    "rootStableDuringRead":true,
+    "mutationCount":0
+  },
+  "diagnosis":"P0-323 expected inventory SHA 7da2fd25158089f0659a7d837b261ab0288c20f2ddcefdc4e91878135cb0ff73 does not match the exact canonical JSON algorithm used by its inspector. Carrier content and identities are unchanged; the corrected canonical digest is 1a921cd16c549d3aa78d8b7a22c1f984597278e7a84cdb6946cba0bb73826f95.",
+  "truthBoundary":{"cleanupComplete":false,"deployment":false,"cleanup":false,"carrierMutation":false,"serviceOrHttpRead":false,"accountSignTx":false,"reusable":false},
+  "releasedAt":"2026-08-31T06:57:20Z"
+}

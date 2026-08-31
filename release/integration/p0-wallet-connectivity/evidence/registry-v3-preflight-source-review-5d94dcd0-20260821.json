@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-044-REGISTRY-V3-PREFLIGHT-SOURCE-REVIEW-5D94DCD0-20260821",
+  "reviewedAt": "2026-08-20T18:16:57Z",
+  "reviewer": "integration",
+  "source": {
+    "commit": "5d94dcd0b25595df478ffe45a84cc346306ad4d4",
+    "tree": "b908a8054a2d321f75855f8030114cf9f1cba9ff",
+    "parent": "890ef0f8b31ba467c5a347b83b0ec8bdca5497cf",
+    "walletAuthTree": "3d638e6bf36a96bd5b861ef423cf51fbd394c2ba",
+    "ownerEvidenceCommit": "0f8cb1da72742cb988d72868f5b2acc4ff34a93a",
+    "ownerEvidenceSha256": "f85a5329019430f35ed1030be68b33e9193359eca34213d0273d2c1476069b5d"
+  },
+  "independentReview": {
+    "cleanClone": true,
+    "changedPathsRestrictedToWalletAuth": true,
+    "diffCheckPassed": true,
+    "focusedTests": {
+      "command": "node --test test/product-session-gateway-node-state-migration.test.mjs test/product-session-gateway-node-host.test.mjs test/product-session-gateway-runtime-config.test.mjs",
+      "passed": 10,
+      "failed": 0
+    },
+    "fullWalletAuthTests": {
+      "command": "npm test",
+      "passed": 345,
+      "failed": 2,
+      "ownerClaim": "347/347",
+      "reproducibleFromExactSource": false,
+      "failure": "Two Developer deployment tests require artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json, which is absent from the exact source tree."
+    },
+    "package": {
+      "repeatCount": 2,
+      "repeatSha256Matched": true,
+      "sha256": "5c4713c50fe7cbcbca6dad673a689960c53822c68910db9701a3376d8269c126",
+      "bytes": 179690,
+      "entries": 98
+    }
+  },
+  "fivePreflightBlockers": {
+    "legacy6cfOfflineConversion": "SOURCE_VERIFIED",
+    "getOnlyBuildIdentifiableVersionRoute": "SOURCE_VERIFIED_LOCAL_ONLY",
+    "rawAndParsedRegistryDigestEvidence": "SOURCE_VERIFIED_LOCAL_ONLY",
+    "conflictingCandidateEnvironmentBinding": "SOURCE_VERIFIED",
+    "failClosedMigrationArtifact": "SOURCE_VERIFIED_LOCAL_ONLY"
+  },
+  "decision": {
+    "sourceAccepted": true,
+    "executionLeaseIssued": false,
+    "reason": "The five source-level blockers are closed, but the exact clean source does not reproduce the claimed full test suite and no production-bound current-state digest, candidate environment layout, rollback artifact, or remotely observed version response is included.",
+    "requiredBeforeLease": [
+      "make the full Wallet/Auth suite hermetic or include the exact tracked Developer contract artifact and reproduce 347/347 from a clean clone",
+      "bind the actual current production state file digest and private copied-state input without exposing state contents",
+      "bind the exact production candidate registry path and state path using the accepted environment names",
+      "produce a source-bound migration receipt and rollback receipt for the copied production state",
+      "provide the exact candidate /v2/product-sessions/version expected response and post-start verification command"
+    ]
+  },
+  "truthBoundary": {
+    "currentPublicRuntimeSource": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "registryV3DeployedPublic": false,
+    "productionMutation": false,
+    "productsMigrated": 0,
+    "productsRequired": 12,
+    "computerControlVerified": false
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "1.0.0",
+  "taskId": "P0-326",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-chain-6423-emergency-primary-recovery-20260831T072800Z",
+  "status": "CONSUMED_RELEASED_SUCCESS_CHAIN_6423_PUBLIC_RECOVERED_PRIMARY_9102_SERVICES_MASKED",
+  "attemptCount": 1,
+  "retryAllowed": false,
+  "localExitStatus": 0,
+  "durationSeconds": 6.55,
+  "stdout": {"path": "/tmp/p0-326-chain-6423-emergency.stdout", "bytes": 288, "sha256": "22c5b3176d3b1bbdab2297256fcfd5fefb3906b62af46874f49fb1f86a864952"},
+  "stderr": {"path": "/tmp/p0-326-chain-6423-emergency.stderr", "bytes": 2503, "sha256": "33a5720bd878892da361acd985d7fba7aace7c3222953dc1dab312cd93904bf7"},
+  "receipt": {"path": "/tmp/p0-326-chain-6423-emergency.receipt", "bytes": 379, "sha256": "2f480907d6436baee9aa4297e696a4d14bf4152a484a30e04cf789359c8941ed"},
+  "terminal": "CHAIN_6423_PUBLIC_RECOVERED_PRIMARY_9102_SERVICES_MASKED",
+  "publicIngressSha256": "15a722a950e4ec07583da1affb938c08522b5565c8da29adf27afaccb2335867",
+  "primaryLegacyServices": "masked",
+  "successor": "P0-327 requires its own fresh three-peer bindings and is not authorized by P0-326."
+}

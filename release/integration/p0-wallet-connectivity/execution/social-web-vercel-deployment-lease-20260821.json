@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-128",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-social-web-vercel-20260821T080038Z",
+  "owner": "integration",
+  "status": "ACTIVE_SINGLE_USE",
+  "leasedAt": "2026-08-21T08:00:38Z",
+  "expiresAt": "2026-08-21T08:30:38Z",
+  "sourceCommit": "4791eafc6065280f2968a731479d38d75ff9fcc0",
+  "sourceTree": "9e4b8c59b46e47fe1344a3ef84304dbf53eccc57",
+  "ownerEvidenceCommit": "4b6c5fa3e7570427fd6da4a5682de6095d73fc39",
+  "archive": {
+    "path": "/tmp/ynx-social-web-4791eafc.tar.gz",
+    "sha256": "1a818c49106734be7e993f1d7cb4a7ec5cdd6dba2c12dd713d1384f25df6c95b",
+    "bytes": 7273,
+    "files": 5
+  },
+  "target": {
+    "platform": "Vercel",
+    "project": "ynx-social-web",
+    "officialAlias": "social.ynxweb4.com",
+    "priorAliasPresent": false,
+    "priorPublicState": "HTTP_404_DEPLOYMENT_NOT_FOUND"
+  },
+  "rollback": {
+    "action": "remove only the newly created social.ynxweb4.com alias from the new project",
+    "expectedState": "HTTP_404_DEPLOYMENT_NOT_FOUND",
+    "socialApiMutationAllowed": false
+  },
+  "allowedMutations": [
+    "create or update only Vercel project ynx-social-web from the exact static archive",
+    "bind only social.ynxweb4.com after deployment READY",
+    "remove only that new alias if public verification fails"
+  ],
+  "forbiddenMutations": [
+    "ynx-sociald service",
+    "Social API binary, state or environment",
+    "Wallet/Auth shared code or runtime",
+    "other product domains or Vercel projects"
+  ],
+  "truthBeforeExecution": {
+    "publicDeployed": false,
+    "publicVerified": false,
+    "computerControlVerified": false,
+    "installedWalletVerified": false,
+    "productSessionV2": false,
+    "migratedV2": false
+  }
+}

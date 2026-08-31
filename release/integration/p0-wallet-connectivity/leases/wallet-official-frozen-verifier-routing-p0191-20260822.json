@@ -1,0 +1,156 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-191",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-official-frozen-verifier-routing-20260822T125300Z",
+  "status": "CONSUMED_RELEASED_SUCCESS_SOURCE_BOUND_OFFICIAL_WALLET_PUBLIC_LIFECYCLE",
+  "owner": null,
+  "branch": "codex/website-wallet-public-identity-routing-20260822",
+  "worktree": "/Users/huangjiahao/Desktop/ynx-web4-website-new",
+  "issuedAt": "2026-08-22T12:53:00Z",
+  "expiresAt": "2026-08-22T13:23:00Z",
+  "releasedAt": "2026-08-22T13:01:26Z",
+  "singleUse": true,
+  "reusable": false,
+  "dependsOn": "P0-189,P0-190",
+  "scope": "WALLET_OFFICIAL_ALIAS_ONLY_WITH_FROZEN_POSITIVE_BROWSER_VERIFIER",
+  "acceptedCandidateEvidence": {
+    "centralCommit": "594225a459436c12f3efeb9deb3030bc4a5a285e",
+    "status": "CONSUMED_RELEASED_SUCCESS_DIRECT_HOSTED_CHROMIUM_V11_STABLE_SECOND_LAUNCH_PREFLIGHT",
+    "actionsRunId": 32572758708,
+    "artifactId": 9475757695
+  },
+  "predecessor": {
+    "taskId": "P0-190",
+    "centralRelease": "9d6cc0b7dccc282c0390daa5a1f8b31c98f0f6b2",
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_WALLET_OFFICIAL_ROUTING",
+    "reusable": false,
+    "rollbackVerified": true
+  },
+  "candidate": {
+    "deploymentId": "dpl_EhSHsjrfQ17dzuTegLCqGvELeBte",
+    "immutableUrl": "https://wallet-3re0s0lx4-jiahaoalbus-projects.vercel.app",
+    "projectId": "prj_K4emrdkST7sdb0K9mhmLM0QZh0I3",
+    "status": "READY",
+    "sourceCommit": "7df37ca32a643a403bd23a7f555354261f789441",
+    "resources": {
+      "root": {"http": 200, "bytes": 821, "sha256": "2df10866a35b074a6fb366439197646dd4e979bc83bdae3aba0ba6db3802986c"},
+      "buildIdentity": {"http": 200, "bytes": 267, "sha256": "caf151b49ea9c8ae55ca070aa05b2fda90ab2e7f5f6cb73dd4b9bc3c59ee1377", "cacheControl": "no-store"},
+      "manifest": {"http": 200, "bytes": 632, "sha256": "d2d131267483327ece949c5b8402c2dd80352bb15e791ea5571c879682ceba92"},
+      "serviceWorker": {"http": 200, "bytes": 4862, "sha256": "cf8a043c2159842ce4c63213477a4f62e931fb1ca08061d6fb92b833a48af1d3", "cacheControl": "no-store"}
+    }
+  },
+  "officialBefore": {
+    "domain": "wallet.ynxweb4.com",
+    "deploymentId": "dpl_Got2m9m84Sc3QDsrH8yu51W93JAe",
+    "immutableUrl": "https://wallet-mgwrbzwuy-jiahaoalbus-projects.vercel.app",
+    "buildIdentityHttp": 200,
+    "buildIdentityBytes": 250,
+    "buildIdentitySha256": "b2f9b275a4295c6f1cd230daf2b39519a81c4cb3ecf361e820ace9195adbbf9b",
+    "sourceCommit": "uncommitted-source-tree"
+  },
+  "frozenVerifier": {
+    "absolutePath": "/tmp/ynx-p0191-official-verifier.mjs",
+    "bytes": 15179,
+    "sha256": "8c97e188e31b1a82b8b4a293440b05fe5dde26cd839d1848030d3652c722bb70",
+    "nodeCheck": "PASS",
+    "reservedPathAssignmentScan": "PASS",
+    "dynamicUrlAllowed": false,
+    "exactPostRouteCommand": "node /tmp/ynx-p0191-official-verifier.mjs official-positive-browser",
+    "executionMaximum": 1,
+    "fixtureNegative": {"path": "/tmp/ynx-p0191-fixture-negative.json", "bytes": 131, "sha256": "f546620e0bdba0e5e352b4913db18bffc8d461fb5e447a4f60744579f7f9ef92", "result": "CANDIDATE_RESOURCE_MISMATCH"},
+    "officialOldNegative": {"path": "/tmp/ynx-p0191-official-old-negative.json", "bytes": 1908, "sha256": "c01eeaf6f4cd6570c5c0e91604440798325ff31346f0047f9019b43a6ef5f81a", "candidateMatch": false},
+    "fixturePositiveBrowser": {"path": "/tmp/ynx-p0191-fixture-positive-browser.json", "bytes": 57574, "sha256": "5cbb1620796b606619cc88ce91ecd836acbb15e1b0e1d0649bc5c05b1f3adf93", "browserPassed": true, "firstStableMilliseconds": 1597, "secondStableMilliseconds": 1585}
+  },
+  "writeAuthority": {
+    "aliasSetMaximum": 1,
+    "exactAliasCommand": "vercel alias set wallet-3re0s0lx4-jiahaoalbus-projects.vercel.app wallet.ynxweb4.com --scope jiahaoalbus-projects",
+    "retryAllowed": false,
+    "onlyMutation": "EXACT_OFFICIAL_ALIAS_SWITCH",
+    "sourceSsoOrProjectSettingMutationAllowed": false
+  },
+  "rollback": {
+    "requiredOnAnyVerifierOrPostAliasFailure": true,
+    "rollbackMaximum": 1,
+    "deploymentId": "dpl_Got2m9m84Sc3QDsrH8yu51W93JAe",
+    "immutableUrl": "https://wallet-mgwrbzwuy-jiahaoalbus-projects.vercel.app",
+    "exactRollbackCommand": "vercel alias set wallet-mgwrbzwuy-jiahaoalbus-projects.vercel.app wallet.ynxweb4.com --scope jiahaoalbus-projects",
+    "requiredRollbackIdentity": {"http": 200, "bytes": 250, "sha256": "b2f9b275a4295c6f1cd230daf2b39519a81c4cb3ecf361e820ace9195adbbf9b", "sourceCommit": "uncommitted-source-tree"}
+  },
+  "requiredSuccessEvidence": [
+    "the frozen verifier returns success after exact official four-resource hashes/source/no-store",
+    "fresh disposable persistent Chrome profile first launch is one stable official-domain English Wallet tab, ready, active registration, controller-v11 and v11-only cache",
+    "first process fully closes and second launch on the same profile again satisfies the complete official-domain predicate",
+    "each launch has one to two root document requests, one tab, no blank/integrity error and zero console/page/network errors",
+    "no provider, account, approval, signing or transaction control is clicked",
+    "official domain remains mapped to dpl_EhSH after verification"
+  ],
+  "orderedExecution": [
+    "fresh-read lease, Heavy/path lock, expiry, candidate READY, old official identity and verifier SHA",
+    "execute the exact forward alias command once",
+    "execute the exact frozen verifier command once",
+    "on any verifier/post-alias failure execute the exact rollback once and verify the old identity",
+    "request atomic terminal release"
+  ],
+  "forbidden": [
+    "reuse of P0-190",
+    "retry or a second forward alias command",
+    "SSO or Vercel project-setting mutation",
+    "Wallet product source, UI, build, deployment or extension-install mutation",
+    "account request, approval, signing or transaction",
+    "installed-provider, parity or products completion promotion"
+  ],
+  "terminalRules": {
+    "success": "CONSUMED_RELEASED_SUCCESS_SOURCE_BOUND_OFFICIAL_WALLET_PUBLIC_LIFECYCLE",
+    "failure": "CONSUMED_RELEASED_FAILED_CLOSED_WALLET_OFFICIAL_FROZEN_VERIFIER_ROUTING",
+    "rollbackFailure": "EMERGENCY_BLOCKED_OFFICIAL_ALIAS_ROLLBACK_REQUIRED",
+    "installedOrParityPromotion": false
+  },
+  "truthBeforeExecution": {
+    "currentSourceBoundPublic": false,
+    "installedProvider": false,
+    "accountAuthorized": false,
+    "signingOrTransaction": false,
+    "productsConnected": "0/12"
+  },
+  "terminalResult": {
+    "forwardAliasCount": 1,
+    "forwardAliasCliSuccess": true,
+    "verifierCount": 1,
+    "verifierExitCode": 0,
+    "browserPassed": true,
+    "rollbackCount": 0,
+    "officialDeploymentId": "dpl_EhSHsjrfQ17dzuTegLCqGvELeBte",
+    "officialDeploymentStatus": "READY",
+    "fourResourcesExact": true,
+    "identityAndServiceWorkerNoStore": true,
+    "officialSourceCommit": "7df37ca32a643a403bd23a7f555354261f789441",
+    "firstLaunchStableMilliseconds": 1590,
+    "firstLaunchPwaState": "ready",
+    "firstLaunchControllerVersion": "ynx-wallet-web-v11",
+    "firstLaunchRegistrationActive": true,
+    "firstLaunchCacheNames": ["ynx-wallet-web-v11"],
+    "firstLaunchPageCount": 1,
+    "firstLaunchRootRequests": 2,
+    "firstProcessClosed": true,
+    "secondLaunchStableMilliseconds": 1565,
+    "secondLaunchPwaState": "ready",
+    "secondLaunchControllerVersion": "ynx-wallet-web-v11",
+    "secondLaunchRegistrationActive": true,
+    "secondLaunchCacheNames": ["ynx-wallet-web-v11"],
+    "secondLaunchPageCount": 1,
+    "secondLaunchRootRequests": 1,
+    "consolePageAndNetworkErrorsZero": true,
+    "blankOrIntegrityError": false,
+    "resultJsonBytes": 62321,
+    "resultJsonSha256": "7f88116b3089b94dc3beb67c4d71bed0f36ab723039bb99412f20e34caeb9eee",
+    "ssoOrProjectSettingMutation": false,
+    "productInstallProviderAccountApprovalSignOrTransactionMutation": false,
+    "currentSourceBoundPublic": true,
+    "installedProvider": false,
+    "accountAuthorized": false,
+    "signingOrTransaction": false,
+    "parity": false,
+    "productsConnected": "0/12"
+  }
+}

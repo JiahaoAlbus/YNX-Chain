@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-124",
+  "owner": "integration",
+  "recordedAt": "2026-08-21T07:15:00Z",
+  "source": {
+    "branch": "codex/p0-search-wallet-visible-20260821",
+    "commit": "7604c88e5965bcfdf575c1b84bc9dbf57952c951",
+    "tree": "325103c1aa748a1f9d0bd14b4d0fbc42ab42f590",
+    "remoteReadbackExact": true,
+    "tests": "21/21; build; smoke; diff check",
+    "archiveBytes": 9113798,
+    "archiveSha256": "b939916b83c8460f815400a9b8feb916628d4a965c82741da677a45e7254f4ee"
+  },
+  "deployment": {
+    "host": "43.153.202.237",
+    "service": "ynx-search.service",
+    "release": "/opt/ynx/search-releases/p0124-search-wallet-7604c88e",
+    "activeSymlink": "/opt/ynx/search-current",
+    "staticDirectory": "/opt/ynx/search-current/apps/search/dist",
+    "rollbackTarget": "/opt/ynx/search-releases/a2601b6c1c49203fe386c8de55b5378fa86d1ff4",
+    "active": true,
+    "nRestarts": 0,
+    "rollbackExecuted": false
+  },
+  "publicReadback": {
+    "index": {"url":"https://web4.ynxweb4.com/search/","http":200,"bytes":7212,"sha256":"d18e15dd8fdae7eb39848cdbc3515d87018ca887072f2eae7c0b5b701f3aabe6"},
+    "app.js": {"url":"https://web4.ynxweb4.com/search/app.js","http":200,"bytes":66592,"sha256":"ea33e72f03041fbecbb13d6b1db015e2daf78a9f8c7dc74cb483f72258ccac13"},
+    "styles.css": {"url":"https://web4.ynxweb4.com/search/styles.css","http":200,"bytes":9493,"sha256":"f343acb4a37d8151784eca3a9026add2d5324cf16e9df92ee4165448bab82115"},
+    "runtime-config.js": {"url":"https://web4.ynxweb4.com/search/runtime-config.js","http":200,"bytes":528,"sha256":"7c5a534c2c708645a44dafbd26c5229b8e0f9b35d1b463f7c017740a812a8299"},
+    "sw.js": {"url":"https://web4.ynxweb4.com/search/sw.js","http":200,"bytes":576,"sha256":"e7464dca7dd64f08cb0c4f34d1cf06f91a1cff2b88da69bac6c48b645193f6c1"},
+    "healthBuildCommit": "7604c88e5965bcfdf575c1b84bc9dbf57952c951"
+  },
+  "truth": {
+    "deployedPublic": true,
+    "publicBytesMatchBuild": true,
+    "topLevelCustomSchemeNavigationRemoved": true,
+    "standardProviderDiscoveryImplemented": true,
+    "guestSearchPreserved": true,
+    "computerControlVerified": false,
+    "computerControlBlocker": "Mac locked; automatic unlock failed",
+    "installedWalletVerified": false,
+    "walletApprovalVerified": false,
+    "accountAuthorized": false,
+    "messageSigned": false,
+    "transactionSubmitted": false,
+    "productSessionV2": false,
+    "aggregateEcosystemFixed": false
+  }
+}

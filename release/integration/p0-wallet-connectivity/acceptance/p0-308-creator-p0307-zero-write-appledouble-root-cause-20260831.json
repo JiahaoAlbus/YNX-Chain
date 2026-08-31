@@ -1,0 +1,88 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-308",
+  "recordType": "CREATOR_P0307_TERMINAL_ZERO_WRITE_INVENTORY",
+  "status": "CONSUMED_RELEASED_SUCCESS_CREATOR_P0308_ZERO_WRITE_APPLEDOUBLE_INVENTORY_ROOT_CAUSE_FROZEN",
+  "recordedAt": "2026-08-31T03:43:00Z",
+  "execution": {
+    "attempts": 1,
+    "retryAttempts": 0,
+    "remoteExitStatus": 0,
+    "mutationCount": 0,
+    "inspectionComplete": true,
+    "remoteTempFiles": false
+  },
+  "directState": {
+    "oldCurrentTarget": "/opt/ynx-creator-studio-wallet/releases/creator-studio-0e1a53c5",
+    "creatorPid": 2747844,
+    "creatorNRestarts": 0,
+    "apiPid": 3108210,
+    "viewerPid": 2159536,
+    "unitExact": true,
+    "fivePublicOldRuntimeHashesExact": true,
+    "receiptCandidateControlRetainedAtP0306ExactTuples": true,
+    "allNextAndStagePathsAbsent": true,
+    "controlInventoryExact": true,
+    "candidatePayloadFilesAndManifestExact": true
+  },
+  "rootCause": {
+    "failureClass": "CANDIDATE_INVENTORY_DRIFT",
+    "classification": "SIXTEEN_EXPLICIT_MACOS_APPLEDOUBLE_FILES_OUTSIDE_MANIFEST",
+    "count": 16,
+    "paths": [
+      "._.",
+      "._app.js",
+      "._assets",
+      "._creator-studio.manifest.json",
+      "._enhancements.css",
+      "._i18n",
+      "._i18n.js",
+      "._index.html",
+      "._server.mjs",
+      "._standard-wallet-connect-state.js",
+      "._styles.css",
+      "._wallet-auth.js",
+      "._wallet-callback.html",
+      "assets/._metamask.svg",
+      "assets/._ynx-wallet.svg",
+      "i18n/._catalog.json"
+    ],
+    "commonIdentity": {
+      "type": "ordinary regular file",
+      "bytes": 163,
+      "uid": 995,
+      "gid": 986,
+      "nlink": 1,
+      "modesObserved": ["0644", "0755"],
+      "sha256": "b2b37d54e78052e7810fb65d04b2e7d916c6e85c69e04164c936f4fc8e7375d3"
+    },
+    "countCorrection": "The explicit corrected sixteen-path list supersedes earlier informal 13 and 15 counts."
+  },
+  "decision": {
+    "p0308LeaseReleased": true,
+    "creatorEmergencyHeavyReleased": false,
+    "cleanupComplete": false,
+    "nextAllowedAction": "SOURCE_ONLY_CREATOR_CLEANUP_SUCCESSOR_BINDING_EXACT_SIXTEEN_APPLEDOUBLE_PATHS_AND_IDENTITIES",
+    "cleanupLeaseIssued": false
+  },
+  "successorRequirements": [
+    "bind all sixteen AppleDouble paths explicitly with no wildcard",
+    "bind each observed tuple mode bytes SHA256 and ordinary nlink-one identity",
+    "accept no other candidate inventory additions",
+    "retain delete-boundary replacement fences for receipt candidate and control",
+    "rerun success and adversarial fixtures",
+    "request a wholly-new cleanup-only lease after remote exact source review"
+  ],
+  "forbidden": [
+    "P0-307 retry",
+    "cleanup before a new lease",
+    "service lifecycle",
+    "current unit Caddy public API or Viewer mutation",
+    "unrelated Heavy lease",
+    "Wallet account request",
+    "signature",
+    "typed data",
+    "transaction"
+  ]
+}

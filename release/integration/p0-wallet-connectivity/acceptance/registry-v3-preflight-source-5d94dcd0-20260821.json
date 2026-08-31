@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "acceptanceId": "P0-044-REGISTRY-V3-PREFLIGHT-SOURCE-5D94DCD0-20260821",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "status": "SOURCE_ACCEPTED_EXECUTION_LEASE_BLOCKED",
+  "owner": "wallet-auth-core",
+  "sourceCommit": "5d94dcd0b25595df478ffe45a84cc346306ad4d4",
+  "sourceTree": "b908a8054a2d321f75855f8030114cf9f1cba9ff",
+  "walletAuthTree": "3d638e6bf36a96bd5b861ef423cf51fbd394c2ba",
+  "evidence": "release/integration/p0-wallet-connectivity/evidence/registry-v3-preflight-source-review-5d94dcd0-20260821.json",
+  "acceptedCapabilities": [
+    "legacy6cfOfflineConversion",
+    "productSessionV2AdministrativeVersionRoute",
+    "registryArtifactAndStateBindingDualHashObservation",
+    "conflictRejectingCandidateRuntimePaths",
+    "failClosedOfflineMigrationCli"
+  ],
+  "executionLeaseIssued": false,
+  "executionLeaseId": null,
+  "productionMutationAuthorized": false,
+  "deployedPublic": false,
+  "publicVerified": false,
+  "productsMigrated": 0,
+  "productsRequired": 12,
+  "nextAction": "Core/Auth owner must make the exact-source full suite hermetic and return one production-bound no-secret preflight bundle containing current-state digest, candidate paths, migration and rollback receipts, and expected version readback. Integration then reviews and may issue a new single-use lease; P0-039 remains invalid and nonreusable."
+}

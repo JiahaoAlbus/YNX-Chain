@@ -1,0 +1,308 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-263",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-downloads-chrome-edge-publication-20260823T125627Z",
+  "owner": "wallet-desktop-provider-authority",
+  "executor": "downloads-release-control-plane",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_WALLET_DOWNLOADS_SERVICE_USER_PERMISSION_ROLLED_BACK_CLEAN",
+  "issuedAt": "2026-08-23T12:56:27Z",
+  "expiresAt": "2026-08-23T13:26:27Z",
+  "releasedAt": "2026-08-23T13:05:08Z",
+  "singleUse": true,
+  "reusable": false,
+  "productionMutationAllowed": false,
+  "pushAllowed": false,
+  "deploymentAllowed": false,
+  "terminalEvidence": {
+    "startedAt": "2026-08-23T13:02:41Z",
+    "endedAt": "2026-08-23T13:02:44Z",
+    "invocationAttempts": 1,
+    "invocationAttemptLimit": 1,
+    "invocationRc": 1,
+    "retryCount": 0,
+    "candidateValidation": "PASS",
+    "failureClass": "CADDY_SERVICE_USER_PERMISSION_DENIED_LIVE_CONFIG_AND_TARGET_MODE_0600",
+    "systemctlReload": "FAILED",
+    "terminalFinalizer": "TERMINAL_RESIDUE_CLEAN",
+    "rollback": "COMPLETE_BASE_CONFIG_AND_TARGET_ABSENCE_RESTORED",
+    "terminalCaddyMainPid": 1432803,
+    "terminalCaddyNRestarts": 0,
+    "terminalLiveConfigBytes": 1441,
+    "terminalLiveConfigMode": "0644",
+    "terminalLiveConfigSha256": "5149252cde4b3cba5b2e89c5d5d0f3e94506fa69beb7b10526e41dcee3cb1f1f",
+    "terminalSentinelBytes": 237777236,
+    "terminalSentinelSha256": "69b4fa5db7b8a9ab105af6633de44f5a5a4a9fceeaa0925a306f77b22381b044",
+    "terminalZipHttpStatus": 404,
+    "targetDirectoryStageReceiptBackupNextRestoreAbsent": true,
+    "secretValuesExposed": false
+  },
+  "terminalOutcome": {
+    "publicationSucceeded": false,
+    "hosted": false,
+    "singleExecutableBlocker": "SUCCESSOR_MUST_CHMOD_0644_AFTER_FULL_REHASH_REFRESH_IDENTITIES_PROVE_CADDY_USER_READABILITY_AND_VALIDATE_FULL_CONFIG_AS_CADDY_USER_USING_NEW_PATHS_REQUEST_AND_LEASE"
+  },
+  "scope": "Publish one exact content-addressed Chrome/Edge Wallet ZIP to downloads.ynxweb4.com, atomically install one exact Caddy matcher, reload Caddy once, verify the full public artifact and existing DMG sentinel, with identity-bound automatic rollback and terminal finalization",
+  "sourceRequest": {
+    "branch": "codex/wallet-desktop-provider-authority-p0-20260822",
+    "commit": "532f06ce8040502e43f9e4b9f242cc224f7f52c1",
+    "tree": "17bc9c05b4a54de174689d146f47fd046f4ef379",
+    "parent": "beacdbb277c9a1c9ee05f87a67535c82934d6ed9",
+    "path": "release/integration/wallet-desktop-chrome-edge-publication/successor-02/publication-lease-successor-request-20260823.json",
+    "blob": "ce8044ad9ecdddff336c61abc18be9543799f708",
+    "bytes": 7653,
+    "sha256": "ea0e71b4616d06de26b7e8fdd10c41b463ed2dfb2e1260748c30b0de2f737829",
+    "remoteExact": true
+  },
+  "exactObjects": {
+    "atomicRemote": {
+      "blob": "24b48215224051ace24ad83e283878ab22d8ae3a",
+      "bytes": 17679,
+      "sha256": "6a4b8b358fb02b467ff99476635e1fd6ed497b5310718d7827a5c2714e1368ae"
+    },
+    "localInvoker": {
+      "blob": "ae9a9a1ac55fff5d3516ab6c398016128f7d8031",
+      "bytes": 3225,
+      "sha256": "a3df09f05a7a31633d6d71b8006845bdd93d5c5d6dab265e4724a24b90ebf16d"
+    },
+    "baseCaddy": {
+      "blob": "f3d404ba5bea83093033f6bfa33edcc81de38851",
+      "bytes": 1441,
+      "sha256": "5149252cde4b3cba5b2e89c5d5d0f3e94506fa69beb7b10526e41dcee3cb1f1f"
+    },
+    "candidateCaddy": {
+      "blob": "49a9965db50eb1a80ba8056a24e5a4d2d630b62b",
+      "bytes": 1749,
+      "sha256": "9a3869d606e318540ec773e97c92f4f7b610852a3560a7aea7b256f0b3a77770"
+    },
+    "prestateEvidence": {
+      "blob": "cf4db455f1fc3cc9efb7cbfdb835201049d03364",
+      "bytes": 2201,
+      "sha256": "fd2d0e69c6e4ecad2fe9ad282da612c50451d9866db29b22ce604701d073ae45"
+    },
+    "finalizerTestEvidence": {
+      "blob": "4848eb07beee10221cc9980b3a5c6e35cf36966f",
+      "bytes": 1619,
+      "sha256": "d92acd8955f54b692b03faac3da5539710e1a046261042edcbca41f12683c126"
+    }
+  },
+  "centralPrecondition": {
+    "parentCommit": "6b208ffbacbcf67b968b765ff9e64521d55ab996",
+    "parentTree": "0002dda94ab2d6b005a4012764c724d24b856875",
+    "heavyBeforeIssue": "IDLE",
+    "downloadsLocksBeforeIssue": "FREE",
+    "sourceCheckout": "/private/tmp/ynx-wallet-desktop-installers-p0-20260821",
+    "sourceCheckoutHeadExact": true,
+    "exactLeasePackagePathsTracked": true,
+    "unrelatedUntrackedBuildArtifactsOutsideLeaseScopePreserved": true,
+    "protectedIdentityAvailable": true,
+    "nonInteractiveSudoAvailable": true,
+    "targetHttpStatus": 404,
+    "caddyMainPid": 1432803,
+    "caddyNRestarts": 0,
+    "allFrozenTuplesAndAbsencesMatched": true,
+    "sentinelSha256Matched": true
+  },
+  "executionAuthority": {
+    "processWorkingDirectory": "/private/tmp/ynx-wallet-desktop-installers-p0-20260821",
+    "protectedEnvironment": [
+      "YNX_DOWNLOADS_SSH_IDENTITY",
+      "YNX_CENTRAL_SINGLE_USE_LEASE_ID",
+      "YNX_LEASE_REPO_ROOT"
+    ],
+    "centralLeaseIdValue": "P0-WALLET-CONNECTIVITY-2026-08-wallet-downloads-chrome-edge-publication-20260823T125627Z",
+    "leaseRepoRootValue": "/private/tmp/ynx-wallet-desktop-installers-p0-20260821",
+    "acknowledgement": "P0-WALLET-CHROME-ZIP-PUBLICATION-20260823-02:EXECUTE",
+    "literalArgv": [
+      "/bin/bash",
+      "release/integration/wallet-desktop-chrome-edge-publication/successor-02/invoke-atomic-publication-after-lease.local.sh"
+    ],
+    "invocationAttemptLimit": 1,
+    "retryAllowed": false,
+    "rollback": "automatic inside the exact atomic remote program; no second invocation under this lease",
+    "terminalEvidenceRequired": [
+      "producer and transport_remote rc",
+      "PUBLICATION_GATE_PASS or exact fail-closed classification",
+      "TERMINAL_RESIDUE_CLEAN or FINALIZER_FOREIGN_IDENTITY_PRESERVED",
+      "terminal exact target/config/Caddy identities",
+      "full official GET status, headers, bytes and SHA256",
+      "existing DMG sentinel identity and public headers unchanged"
+    ]
+  },
+  "forbidden": [
+    "any second invocation or retry",
+    "any non-Wallet artifact path",
+    "overwrite of a preexisting target or reserved path",
+    "any source push or other deployment",
+    "account request",
+    "signing",
+    "typed data",
+    "transaction",
+    "secret disclosure"
+  ],
+  "frozenRequest": {
+    "schemaVersion": "wallet-downloads-publication-lease-successor-request@2",
+    "requestId": "P0-WALLET-CHROME-ZIP-PUBLICATION-20260823-02",
+    "status": "REQUESTED_NOT_ISSUED",
+    "executionAuthorized": false,
+    "supersedes": {
+      "requestId": "P0-WALLET-CHROME-ZIP-PUBLICATION-20260823-01",
+      "commit": "beacdbb277c9a1c9ee05f87a67535c82934d6ed9",
+      "reason": "WALLET_DOWNLOADS_PUBLICATION_PREPUBLISH_AND_TERMINAL_RESIDUE_CLEANUP_UNAVAILABLE"
+    },
+    "scope": {
+      "owner": "Wallet Desktop/CLI/SDK",
+      "origin": "https://downloads.ynxweb4.com",
+      "onlyArtifact": "ynx-wallet-chrome-edge-0.1.0.zip",
+      "onlyFinalPath": "/opt/ynx/public-downloads/wallet/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip",
+      "onlyLiveConfig": "/etc/caddy/conf.d/downloads.ynxweb4.com.caddy",
+      "overwriteAuthorized": false,
+      "unrelatedMutationAuthorized": false
+    },
+    "leaseBoundary": {
+      "issuer": "Central Integration",
+      "requiredLease": "wholly-new path-scoped single-use lease",
+      "requiredAcknowledgement": "P0-WALLET-CHROME-ZIP-PUBLICATION-20260823-02:EXECUTE",
+      "mayExecuteBeforeLease": false,
+      "secretValuesRecorded": false
+    },
+    "executor": {
+      "endpoint": "ubuntu@43.153.202.237",
+      "transport": "SSH_PUBLIC_KEY",
+      "publicKeyFingerprint": "SHA256:GXJwXo+PdNl+Hq1mNRi3CVsNZZYJkBoV3cm28E1wI5o",
+      "batchMode": true,
+      "strictHostKeyChecking": true,
+      "nonInteractiveSudo": true,
+      "protectedIdentityEnvironmentReference": "YNX_DOWNLOADS_SSH_IDENTITY"
+    },
+    "artifact": {
+      "sourceCommit": "be26edbd67c512e22a4f373206d5d82af4c6b0d4",
+      "sourceTree": "0fa369a16e3099d59183852f3da076d7be2b95e0",
+      "gitBlob": "e8dfdfdcd19ea211db17b217c559108da0efe5a4",
+      "bytes": 471181,
+      "sha256": "2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d",
+      "officialUrl": "https://downloads.ynxweb4.com/wallet/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip"
+    },
+    "frozenFiles": {
+      "baseCaddy": {
+        "path": "release/integration/wallet-desktop-chrome-edge-publication/successor-02/downloads.ynxweb4.com.base.caddy",
+        "bytes": 1441,
+        "sha256": "5149252cde4b3cba5b2e89c5d5d0f3e94506fa69beb7b10526e41dcee3cb1f1f"
+      },
+      "candidateCaddy": {
+        "path": "release/integration/wallet-desktop-chrome-edge-publication/successor-02/downloads.ynxweb4.com.candidate.caddy",
+        "bytes": 1749,
+        "sha256": "9a3869d606e318540ec773e97c92f4f7b610852a3560a7aea7b256f0b3a77770",
+        "contentType": "application/zip",
+        "contentDisposition": "attachment; filename=\"ynx-wallet-chrome-edge-0.1.0.zip\"",
+        "cacheControl": "public, max-age=31536000, immutable",
+        "xContentTypeOptions": "nosniff"
+      },
+      "remoteLifecycle": {
+        "path": "release/integration/wallet-desktop-chrome-edge-publication/successor-02/atomic-publication-after-lease.remote.sh",
+        "bytes": 17679,
+        "sha256": "6a4b8b358fb02b467ff99476635e1fd6ed497b5310718d7827a5c2714e1368ae"
+      },
+      "localAtomicInvoker": {
+        "path": "release/integration/wallet-desktop-chrome-edge-publication/successor-02/invoke-atomic-publication-after-lease.local.sh",
+        "bytes": 3225,
+        "sha256": "a3df09f05a7a31633d6d71b8006845bdd93d5c5d6dab265e4724a24b90ebf16d"
+      },
+      "prestateEvidence": {
+        "path": "release/integration/wallet-desktop-chrome-edge-publication/successor-02/read-only-prestate-evidence-20260823.json",
+        "bytes": 2201,
+        "sha256": "fd2d0e69c6e4ecad2fe9ad282da612c50451d9866db29b22ce604701d073ae45"
+      },
+      "testEvidence": {
+        "path": "release/integration/wallet-desktop-chrome-edge-publication/successor-02/terminal-finalizer-test-evidence-20260823.json",
+        "bytes": 1619,
+        "sha256": "d92acd8955f54b692b03faac3da5539710e1a046261042edcbca41f12683c126"
+      }
+    },
+    "atomicTransport": {
+      "invocations": 1,
+      "stdinLayout": [
+        {
+          "name": "ynx-wallet-chrome-edge-0.1.0.zip",
+          "bytes": 471181,
+          "sha256": "2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d"
+        },
+        {
+          "name": "downloads.ynxweb4.com.candidate.caddy",
+          "bytes": 1749,
+          "sha256": "9a3869d606e318540ec773e97c92f4f7b610852a3560a7aea7b256f0b3a77770"
+        }
+      ],
+      "remoteProgramTransport": "exact SHA-bound program encoded in SSH command argument; artifact and candidate remain the only stdin bytes",
+      "exclusiveReceive": "root-owned 0700 stage; noclobber-created 0600 files; identity captured before fixed-length read",
+      "extraBytesRejected": true,
+      "timeoutSeconds": 300,
+      "safeRcCapture": "producer and SSH/remote rc captured separately from PIPESTATUS before set -e is restored",
+      "literalInvocationAfterLeaseOnly": "YNX_DOWNLOADS_SSH_IDENTITY=<protected-path> YNX_CENTRAL_SINGLE_USE_LEASE_ID=<issued-id> YNX_LEASE_REPO_ROOT=<exact-checkout> bash release/integration/wallet-desktop-chrome-edge-publication/successor-02/invoke-atomic-publication-after-lease.local.sh"
+    },
+    "earlyIdentityRecord": {
+      "path": "/opt/ynx/public-downloads/.P0-WALLET-CHROME-ZIP-PUBLICATION-20260823-02.stage/early-identity.receipt",
+      "created": "immediately after exclusive stage creation and before payload bytes are read",
+      "records": [
+        "stage",
+        "upload ZIP inode",
+        "upload Caddy inode",
+        "target",
+        "Caddy backup",
+        "installed live config"
+      ],
+      "owner": "root:root",
+      "modeAfterEachAppend": "0400",
+      "inMemoryEquivalent": "device/inode/uid/gid/mode/nlink arrays are frozen before each subsequent operation"
+    },
+    "terminalFinalizer": {
+      "triggers": [
+        "EXIT",
+        "HUP",
+        "INT",
+        "TERM"
+      ],
+      "prepareFailure": "no stage, or exact captured stage is removed",
+      "uploadFailure": "partial files are re-bound to original device/inode/uid/gid/mode/nlink, terminal bytes/SHA are frozen and rechecked, then removed",
+      "publishFailure": "exact target is removed, prior hard-linked config is restored, validated and reloaded, then all residue is removed",
+      "publishSuccess": "target and candidate config remain; public full GET is exact; stage, GET copy, headers, receipt and Caddy backup are identity-bound and removed",
+      "rollback": "internal failure rollback removes exact target and restores exact base config before residue cleanup",
+      "foreignOrSymlink": "preserve all remaining state and exit 90 without deleting or replacing the foreign identity",
+      "unknownStageEntry": "preserved and exit 90",
+      "backupCleanup": "only after exact device/inode/uid/gid/mode/nlink/bytes/SHA recheck",
+      "stageCleanup": "only after exact inode recheck and empty-directory proof"
+    },
+    "tests": {
+      "linuxRuntime": "ubuntu:24.04@sha256:33ceb71981b602c1a7443a53469e4dba065f7503eab3078a2d7a57a2ab987517",
+      "shellSyntax": true,
+      "prepareEmpty": true,
+      "uploadPartialCleanup": true,
+      "publishSuccessResidueCleanup": true,
+      "rollbackResidueCleanup": true,
+      "symlinkPreserved": true,
+      "inodeSubstitutionPreserved": true,
+      "atomicProgramRoundtripSha": true,
+      "producerRcCapture": true,
+      "transportRemoteRcCapture": true,
+      "missingLeaseRefused": true
+    },
+    "postSuccessTruthBoundary": {
+      "productionSigned": false,
+      "storeReleased": false,
+      "accountApproved": false,
+      "messageSigned": false,
+      "transactionSubmitted": false,
+      "futureRollback": "requires a separate new lease using the frozen base Caddy; success finalizer intentionally leaves no backup residue"
+    },
+    "truthAtRequest": {
+      "leaseIssued": false,
+      "productionInvocationExecuted": false,
+      "upload": false,
+      "configInstalled": false,
+      "reload": false,
+      "downloadHosted": false,
+      "deployedPublic": false,
+      "residueCreated": false
+    }
+  }
+}

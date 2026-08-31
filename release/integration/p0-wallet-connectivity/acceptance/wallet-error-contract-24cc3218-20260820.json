@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "acceptanceId": "P0-WALLET-ERROR-CONTRACT-24CC3218-20260820",
+  "decision": "ACCEPTED_SOURCE_ONLY_CONSUMER_CONTRACT",
+  "ownerCommit": "24cc3218c2cdc00c50dc3caa563652083afbd861",
+  "ownerParent": "d7c582e656bf4b8ce2cbfb65e23077ea000cb1d1",
+  "ownerTree": "ca74b4cdffd18d5dd36edf4a5c3b1b3cdcaf3c22",
+  "sourceFiles": [
+    {"path":"packages/wallet-auth/src/index.d.ts","blob":"3b8c9afefee006ad55879e967e73eb929f3e9eb0"},
+    {"path":"packages/wallet-auth/src/index.js","blob":"f7afbd927adb22f7331cbe370fb5b7175bd23d05"},
+    {"path":"packages/wallet-auth/src/wallet-error-contract.js","blob":"aadad552795d39beec567edf06f597a6881257d0"},
+    {"path":"packages/wallet-auth/test/wallet-error-contract.test.mjs","blob":"395eaea07de67db6333e28494ad01ad8c5f5c332"}
+  ],
+  "evidence": {
+    "focusedCombined": "11/11",
+    "walletAuthFull": "240/240",
+    "packageDryRunIncludesImplementationAndTypes": true
+  },
+  "runtimeReview": {
+    "gatewayDaemonOrHandlerChanged": false,
+    "httpResponsePathUsesContractAtThisCommit": false,
+    "consumerOnly": true,
+    "executionLeaseIssued": false,
+    "leaseBlocker": "The exact source only exports a consumer error contract; it does not wire the contract into the public Gateway runtime response path. Deploying it alone would not prove public error-contract acceptance."
+  },
+  "routing": {
+    "targets": ["developer-sdk", "wallet-platform", "product-owners"],
+    "requiredEvidence": ["exact package consumption", "consumer tests for typed safe responses", "visible product behavior without generic Offline collapse"]
+  },
+  "truth": {
+    "currentPublicRuntimeSource": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "deployedPublic": false,
+    "publicErrorContractVerified": false,
+    "productsMigrated": 0,
+    "productsRequired": 12,
+    "integratedCentral": false,
+    "aggregatePublic": false
+  }
+}

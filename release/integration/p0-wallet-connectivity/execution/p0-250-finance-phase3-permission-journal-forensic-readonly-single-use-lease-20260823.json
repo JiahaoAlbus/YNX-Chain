@@ -1,0 +1,162 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-250",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-phase3-permission-journal-forensic-readonly-20260823T081300Z",
+  "owner": "financial-apps",
+  "executor": "finance-release-control-plane",
+  "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0250_ZERO_WRITE_PERMISSION_JOURNAL_FORENSIC_ONLY",
+  "issuedAt": "2026-08-23T08:13:00Z",
+  "expiresAt": "2026-08-23T08:33:00Z",
+  "singleUse": true,
+  "reusable": false,
+  "releasedAt": "2026-08-23T08:20:37Z",
+  "executionAuthorized": false,
+  "productionMutationAllowed": false,
+  "remoteMutationAllowed": false,
+  "remoteTemporaryFilesAllowed": false,
+  "scope": "Finance-only zero-write forensic classification of the P0-247 service failure boundary: normalized unit identity, ynx numeric identity/groups, current and signed-former path traversal, fixed-window journal failure class/message SHA, and unchanged old-runtime receipts",
+  "centralPrecondition": {
+    "parentCommit": "e0c2fb9591013e04c073ae301fa3a4eb55ba4d91",
+    "parentTree": "6550c5d5850239b8738ca01d1e073e6871b80f48",
+    "p0249TerminalLeaseBlob": "cd1ffece11f7f7164c758ec8359c7a5ce9de4b63",
+    "p0249TerminalLeaseBytes": 7598,
+    "p0249TerminalLeaseSha256": "8957bc5c3b135099b3892528ee25ba21026ac368c8f2ec0fe793694e3de329f0",
+    "p0249Status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0249_PARTIAL_STAGE_BACKUP_DETAILED_READONLY_INVENTORY",
+    "p0247ThroughP0249Nonreusable": true,
+    "oldRuntimeExact": true,
+    "cleanupOrRedeployAllowed": false
+  },
+  "ownerEvidence": {
+    "branch": "codex/p0-finance-wallet-connectivity-20260820",
+    "commit": "cd123e3b5447d4737b988a7d396d0af75a9624bb",
+    "tree": "b4919802047f87c1bf2796bf87a7341889f66727",
+    "jsonPath": "apps/finance/evidence/p0-249-finance-phase3-partial-inventory-20260823.json",
+    "jsonBlob": "d13bb036376e43b1a32a96a671e804360053be65",
+    "jsonSha256": "db645314985411d43283f12d11411a9e2f1fb608555f8908ea333ac17ef26407",
+    "stdoutPath": "apps/finance/evidence/p0-249-finance-phase3-partial-inventory-stdout-20260823.txt",
+    "stdoutBlob": "99ac48b73305305cd9a334a5bb95d9630a788631",
+    "stdoutBytes": 1525,
+    "stdoutSha256": "8ac08abf966b05b916b51a556733160953294a62b59bb064f1229b8499a919aa",
+    "remoteAndLocalExactClean": true
+  },
+  "commandObject": {
+    "path": "/private/tmp/ynx-calendar-control-plane.y8FFQt/repo/release/integration/p0-wallet-connectivity/execution/p0-250-finance-phase3-permission-journal-forensic-readonly-20260823.sh",
+    "repositoryPath": "release/integration/p0-wallet-connectivity/execution/p0-250-finance-phase3-permission-journal-forensic-readonly-20260823.sh",
+    "blob": "59a51e110df354a21e35c0369419dcd3825fdf9a",
+    "bytes": 4774,
+    "sha256": "a257d1ab188bfce184afcdca2165c1e74c5a6b639e0d31af5b1b9fc9df35b82f",
+    "bashSyntax": "PASS",
+    "staticZeroWriteAudit": "PASS"
+  },
+  "fixedJournalWindow": {
+    "unit": "ynx-finance.service",
+    "sinceUtc": "2026-08-23T07:38:00Z",
+    "untilUtc": "2026-08-23T07:47:00Z",
+    "outputAllowed": ["line count", "normalized failure class", "SHA-256 of normalized sorted messages"],
+    "rawJournalBodyAllowed": false,
+    "secretBodyAllowed": false
+  },
+  "freshBindingsFromP0249": {
+    "currentTarget": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a",
+    "productionEnvSha256": "854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252",
+    "servicePid": 2241003,
+    "serviceNRestarts": 0,
+    "releaseContainerAbsent": true,
+    "signedFormerReleaseContainer": {"uid": 0, "gid": 0, "mode": "0750"},
+    "stageAndBackupRetainedUnchanged": true
+  },
+  "execution": {
+    "literalArgv": [
+      "/usr/bin/ssh", "-i", "/Users/huangjiahao/Downloads/Huang.pem",
+      "-o", "IdentitiesOnly=yes", "-o", "BatchMode=yes",
+      "-o", "StrictHostKeyChecking=yes", "-o", "UserKnownHostsFile=/Users/huangjiahao/.ssh/known_hosts",
+      "-o", "ConnectTimeout=10", "-o", "ConnectionAttempts=1",
+      "ubuntu@43.153.202.237", "/usr/bin/sudo", "-n", "/bin/bash", "-s", "--"
+    ],
+    "stdin": "/private/tmp/ynx-calendar-control-plane.y8FFQt/repo/release/integration/p0-wallet-connectivity/execution/p0-250-finance-phase3-permission-journal-forensic-readonly-20260823.sh",
+    "localStdout": "/tmp/ynx-finance-p0250-permission-journal-20260823T081300Z.stdout.txt",
+    "localStderr": "/tmp/ynx-finance-p0250-permission-journal-20260823T081300Z.stderr.txt",
+    "localRedirectionOnly": true,
+    "sshAttemptLimit": 1,
+    "retryAllowed": false
+  },
+  "requiredReceipts": [
+    "fixed journal window, line count, normalized failure class and normalized-message SHA without raw journal lines",
+    "unit User, Group, WorkingDirectory and normalized ExecStart plus ExecStart SHA",
+    "ynx uid, gid and supplementary numeric groups",
+    "signed former root:root 0750 release-container traversal classification for ynx",
+    "namei/mode geometry for current and former paths",
+    "runuser-as-ynx current path traversal and binary execution checks",
+    "current link/target/release tuple, production env tuple/SHA and service active/substate/PID/NRestarts",
+    "local stdout/stderr bytes/SHA and terminal status"
+  ],
+  "forbidden": [
+    "raw journal messages, environment contents, backup contents or secret values",
+    "any second SSH or retry",
+    "remote file/directory/temp creation, deletion, rename, copy, upload or extraction",
+    "cleanup, rollback, deploy, candidate execution or service mutation",
+    "current, environment, state, release, backup, executor, lease, unit or Caddy mutation",
+    "non-Finance mutation, provider/account request, signature, typed data or transaction"
+  ],
+  "nextDecision": {
+    "permissionHypothesis": "root:root 0750 former release container may prevent User=ynx Group=ynx traversal unless ynx belongs to gid 0",
+    "sourceSuccessorRequirementsIfConfirmed": [
+      "bind release-container group/mode compatible with normalized unit User/Group",
+      "pre-switch runuser -u ynx traversal, WorkingDirectory and ExecStart access checks",
+      "install cleanup trap immediately after stage/backup creation",
+      "capture wrapper return code without assigning zsh readonly status",
+      "request separate inode/digest-bound residue cleanup and corrected deployment authority"
+    ],
+    "cleanupLeaseAllowedNow": false,
+    "deploymentLeaseAllowedNow": false
+  },
+  "terminalEvidence": {
+    "ownerCommit": "8b186dda04f6b1ed19526b72a3c2cf1f6bb0feca",
+    "ownerTree": "b2bdb3042eac02db4fa939627bc56bc782ebfb73",
+    "ownerRemoteExactClean": true,
+    "ownerJsonPath": "apps/finance/evidence/p0-250-finance-phase3-permission-journal-20260823.json",
+    "ownerJsonBlob": "d2401ca88a93185d8082d5e2dcb15dbdefad5879",
+    "ownerJsonBytes": 2765,
+    "ownerJsonSha256": "583735aed245ebe9ac290b41de5d85b1682e8477096b01c450513c306bdab284",
+    "ownerStdoutPath": "apps/finance/evidence/p0-250-finance-phase3-permission-journal-stdout-20260823.txt",
+    "ownerStdoutBlob": "a469c0a78cd7e76909c6d2465a123d98b7cbb84c",
+    "stdoutBytes": 2320,
+    "stdoutSha256": "d61b70d77b261804377936621e8e30758a8c7334f998cc2a82588d76b4bf829d",
+    "stderrBytes": 0,
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sshAttempts": 1,
+    "retry": false,
+    "zeroWrite": true,
+    "journalFailureClass": "PERMISSION_OR_WORKING_DIRECTORY_TRAVERSE",
+    "journalNormalizedMessageSha256": "bc148c0295daf6f542ddde32945508c4444e8af5681d3c640087a700e27c9511",
+    "unitUser": "ynx",
+    "unitGroup": "ynx",
+    "ynxUid": 995,
+    "ynxGid": 986,
+    "ynxSupplementaryGroups": [986],
+    "failedReleaseContainerOwner": "0:0",
+    "failedReleaseContainerMode": "0750",
+    "ynxTraversal": "DENIED_BY_ROOT_ROOT_0750",
+    "exactRootCause": "P0-247 candidate release container was root:root mode 0750 while the service ran as ynx:ynx uid995 gid986 with no gid0 membership, preventing traversal after the current switch; automatic rollback restored the old runtime.",
+    "currentOldRuntimeActive": true,
+    "cleanupAuthorized": false,
+    "redeployAuthorized": false,
+    "p0247Reusable": false
+  },
+  "terminalRules": {
+    "success": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0250_ZERO_WRITE_PERMISSION_JOURNAL_FORENSIC_ONLY",
+    "failure": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0250_FORENSIC_DRIFT_OR_INSPECTION_FAILURE",
+    "emergency": "EMERGENCY_BLOCKED_FINANCE_PHASE3_FORENSIC_STATE_SUBSTITUTION",
+    "releaseHeavyAndAllLocksOnTerminal": true
+  },
+  "truthBoundary": {
+    "zeroWriteForensicOnly": true,
+    "rootCauseConfirmedOnlyByReceipts": true,
+    "cleanupAuthorized": false,
+    "redeployAuthorized": false,
+    "account": false,
+    "signature": false,
+    "transaction": false
+  }
+}

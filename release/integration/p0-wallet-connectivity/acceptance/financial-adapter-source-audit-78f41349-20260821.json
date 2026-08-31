@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "acceptanceId": "P0-FINANCIAL-ADAPTER-SOURCE-AUDIT-78F41349-20260821",
+  "walletProtocolCheckpointCommit": "78f4134947330ee4f26331f600cf51a4aca80ec9",
+  "classification": "EXCHANGE_DEX_QUANT_SOURCE_ACCEPTED_PRODUCTS_UNMIGRATED",
+  "sourceEvidence": {
+    "path": "release/integration/p0-wallet-connectivity/evidence/financial-adapter-source-audit-78f41349-20260821.json"
+  },
+  "accepted": {
+    "exchangeRemoteSourceAccepted": true,
+    "dexRemoteSourceAccepted": true,
+    "quantRemoteSourceAccepted": true,
+    "ownerCheckpointTruthBoundariesAccepted": true,
+    "websiteObservationOverridesP0023": false
+  },
+  "truth": {
+    "exchangeMigratedV2": false,
+    "dexMigratedV2": false,
+    "quantMigratedV2": false,
+    "productsMigratedV2": 0,
+    "installedApprovalVerified": false,
+    "publicProductLifecycleVerified": false,
+    "deployedPublic": false,
+    "integratedCentral": false,
+    "aggregateDeployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

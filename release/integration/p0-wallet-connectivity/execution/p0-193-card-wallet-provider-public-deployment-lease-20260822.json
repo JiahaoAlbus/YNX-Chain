@@ -1,0 +1,107 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-193",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-card-wallet-provider-public-deployment-20260822T145700Z",
+  "owner": "card",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_CARD_PUBLIC_DEPLOYMENT",
+  "issuedAt": "2026-08-22T14:57:00Z",
+  "expiresAt": "2026-08-22T15:27:00Z",
+  "singleUse": true,
+  "reusable": false,
+  "executionAuthorized": true,
+  "branch": "codex/p0-card-wallet-parity-20260822",
+  "request": {
+    "commit": "452d02c48036d33a93f4370fe1600dd885d5c8de",
+    "tree": "96feb689f58427caf4ceacae2ece0da1ab79e316",
+    "parent": "45c4013a95008027cf55f2ac4d7bdded70640ae1",
+    "path": "apps/card/evidence/card-wallet-provider-public-deployment-lease-request-20260822.json",
+    "blob": "1153d3eac6e281cd3a5c4ec40c7164d7003b87eb",
+    "bytes": 6127,
+    "sha256": "7f0fd0edeb0662061cacf0f3a27f336e39b218d6e780b737231a622e6787a607",
+    "remoteExact": true
+  },
+  "source": {
+    "commit": "45c4013a95008027cf55f2ac4d7bdded70640ae1",
+    "tree": "fd1b786beb1a81d33a9100be874e4e32082fefde",
+    "providerAuthority": "98c6d5d784d212df8981a53b17118a511e246ad2",
+    "routerE2EGate": "875be208e8a7ddb60345d55b93fc299949664e5c",
+    "sourceGates": "44/44 plus typecheck, security, bundle and web build PASS"
+  },
+  "artifact": {
+    "buildCommand": "npm run build:web",
+    "outputDirectory": "apps/card/dist-web",
+    "fileCount": 11,
+    "exactManifestBoundByRequestSha256": "7f0fd0edeb0662061cacf0f3a27f336e39b218d6e780b737231a622e6787a607",
+    "entryHtml": {"bytes":1717,"sha256":"f8b59f7bb084fa22573df186b2f47fa35d3f85d6e078f09f1d3b1b53c764c695"},
+    "entryJavaScript": {"path":"_expo/static/js/web/index-6a16f2a248e25355f9aa7ee9626133a0.js","bytes":2911045,"sha256":"f59fa3d43e4d855a91f224f239e8fc39bf4ffa73e83e42d5c0203aa70deae92e"},
+    "manifest": {"bytes":460,"sha256":"f3e634129abe79c5b81b7fc8dac3950e5cb21f1d1263b1938fcd06a58e2c686f"},
+    "serviceWorker": {"bytes":364,"sha256":"1a9acfe442d2920040a1999f4fe4efe3f97d7a42a9debef047d469972889638f"}
+  },
+  "productionBinding": {
+    "project": "jiahaoalbus-projects/ynx-card-testnet-simulation",
+    "projectId": "prj_DU37JeDK4Rx0MjxIV745veV5Qgxp",
+    "canonicalUrl": "https://card.ynxweb4.com/",
+    "rollbackDeploymentId": "dpl_DqMuEhno65bLFTNKBu9gs52soVri",
+    "rollbackDeploymentUrl": "https://ynx-card-testnet-simulation-bmeabqkk1-jiahaoalbus-projects.vercel.app",
+    "rollbackReady": true,
+    "rollbackOwnsCanonicalAlias": true,
+    "oldResponses": {
+      "html":{"http":200,"bytes":1717,"sha256":"56827ca95005951ae791245b6c3021691beace32683209936c7519324c28ed24"},
+      "javascript":{"path":"/_expo/static/js/web/index-250c974606522c0feefa0bf082cc41a1.js","http":200,"bytes":2907885,"sha256":"2103aba7f844d4a3c067eac0ecbf0acbc9ebf8fb8831c44fd248df90261a8568"},
+      "manifest":{"http":200,"bytes":460,"sha256":"f3e634129abe79c5b81b7fc8dac3950e5cb21f1d1263b1938fcd06a58e2c686f"},
+      "serviceWorker":{"http":200,"bytes":364,"sha256":"1a9acfe442d2920040a1999f4fe4efe3f97d7a42a9debef047d469972889638f"}
+    },
+    "readOnlyCheckedAt": "2026-08-22T14:53:59Z"
+  },
+  "execution": {
+    "executor": "card-owner",
+    "freshCheckout": "/tmp/ynx-card-p0193-exec",
+    "freshCheckoutMustStartAt": "452d02c48036d33a93f4370fe1600dd885d5c8de",
+    "allowedMutations": [
+      "create the fresh Card-only checkout and its untracked build/link metadata",
+      "rebuild and verify all 11 exact dist files",
+      "create exactly one production deployment in project prj_DU37JeDK4Rx0MjxIV745veV5Qgxp"
+    ],
+    "deploymentAttemptLimit": 1,
+    "retryAllowed": false,
+    "rollbackCommand": "vercel alias set ynx-card-testnet-simulation-bmeabqkk1-jiahaoalbus-projects.vercel.app card.ynxweb4.com --scope jiahaoalbus-projects",
+    "rollbackAttemptLimit": 1,
+    "rollbackRequiredOnAnyPostDeploymentFailure": true,
+    "postDeploy": [
+      "freeze new deployment id and immutable URL",
+      "require canonical HTML and candidate JavaScript exact bytes/SHA plus manifest and service-worker HTTP 200",
+      "open one clean canonical Card tab; require stable URL, no blank/additional tab and console errors zero",
+      "verify distinct YNX Wallet and MetaMask identities/logos, late-provider and truthful no-provider state without eth_requestAccounts",
+      "verify Product Session degradation does not fabricate or erase Standard Wallet state"
+    ]
+  },
+  "forbidden": [
+    "other product, Website or Wallet source/path mutation",
+    "DNS, Vercel project settings or unrelated alias mutation",
+    "eth_requestAccounts, approve/reject, add/switch chain, personal_sign, EIP-712 or transaction",
+    "retry, reuse or product-completion promotion"
+  ],
+  "terminalRules": {
+    "success": "CONSUMED_RELEASED_SUCCESS_CARD_SOURCE_BOUND_PUBLIC_NON_SENSITIVE_LIFECYCLE",
+    "failure": "CONSUMED_RELEASED_FAILED_CLOSED_CARD_PUBLIC_DEPLOYMENT",
+    "rollbackFailure": "EMERGENCY_BLOCKED_CARD_EXACT_ROLLBACK_REQUIRED_NO_FURTHER_ACTION"
+  },
+  "terminalEvidence": {
+    "releasedAt": "2026-08-22T15:16:11Z",
+    "deploymentAttemptCount": 1,
+    "candidateDeploymentId": "dpl_ARb5FSfy9vrJaNM1bEVh3ynKxzXr",
+    "candidateDeploymentStatus": "Error",
+    "failure": "Vercel treated the static artifact directory as a Node build root, searched for package.json and attempted npm run build:web",
+    "retryCount": 0,
+    "rollbackAttemptCount": 1,
+    "rollbackDeploymentId": "dpl_DqMuEhno65bLFTNKBu9gs52soVri",
+    "rollbackResult": "already-current",
+    "rollbackHashesVerified": true,
+    "sourceBoundPublic": false,
+    "browserValidated": false,
+    "sensitiveActionsExecuted": false,
+    "nextAction": "Do not reuse P0-193. Card owner must freeze a corrected static publication package or project build configuration and submit a wholly new Card-only request."
+  },
+  "truthBeforeExecution": {"sourceBoundPublic":false,"cleanBrowserValidated":false,"accountApproved":false,"signatureExecuted":false,"transactionExecuted":false,"productComplete":false}
+}

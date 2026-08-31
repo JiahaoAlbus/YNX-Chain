@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-051",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-pay-source-build-install-20260820T191521Z",
+  "status": "RELEASED_CHECKPOINT",
+  "singleUse": true,
+  "owner": "financial-apps",
+  "branch": "codex/p0-pay-wallet-connectivity-20260821",
+  "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/04-pay-p0-clean",
+  "startingCommit": "a153ef9014e421c70ece70cdbffd8fe5ee3094b9",
+  "leasedAt": "2026-08-20T19:15:21Z",
+  "expiresAt": "2026-08-20T21:15:21Z",
+  "releasedAt": "2026-08-20T19:37:06Z",
+  "checkpointCommit": "851dc5b834e0d824f4891dc6e572da1e8d71ca75",
+  "checkpointTree": "93896134aa235e462a8dc37ddf03cc3a01ae055a",
+  "reusable": false,
+  "scope": ["apps/pay/**", "Pay owner tests", "Pay owner handoff and release evidence"],
+  "acceptedContracts": ["walletTransport", "errorContract", "dappConnectSDK", "publicEndpointManifest", "connectionEvents"],
+  "requirements": [
+    "consume accepted contracts without copying or rewriting shared Wallet/Auth, Device Proof or Product Session",
+    "keep Standard Wallet Connection usable when the private Product Session is unavailable or degraded",
+    "classify Provider, wrong-chain, RPC, API, relay, Gateway, Product Session and retired-client errors separately",
+    "run focused tests, typecheck, build and bundle release scans",
+    "return install and cold-start evidence for every platform claimed",
+    "commit, force-false push, update owner handoff and release the path lock at a clean checkpoint"
+  ],
+  "forbidden": [
+    "Finance, Exchange, DEX or Quant source changes",
+    "Wallet/Auth, Gateway, Data Fabric or Developer SDK source changes",
+    "localhost, 127.0.0.1, 0.0.0.0, 10.0.2.2 or example.com in release configuration",
+    "public deployment or publication under this lease",
+    "claiming Web evidence as installed Android or Desktop evidence",
+    "claiming Product Session failure as whole-application Offline"
+  ],
+  "truthAtGrant": {
+    "cleanWorktree": true,
+    "standardWalletProductMigrationComplete": false,
+    "productSessionV2Complete": false,
+    "installedConnectivityVerified": false,
+    "deployedPublic": false,
+    "publicVerified": false,
+    "computerControlVerified": false
+  }
+}

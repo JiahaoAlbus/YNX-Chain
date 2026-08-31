@@ -130,6 +130,9 @@ replacement before claiming the supply-chain gate passed.
 | REL-012 | Website integration handoff and structured-data suggestions | Drafted; Website acceptance not proved |
 | REL-013 | Press/support/incident/launch/legal packet | Drafted; external owners and approvals not proved |
 | REL-014 | Local read benchmark | 5,000/5,000 development reads passed; no production capacity claim |
+| REL-015 | Public Testnet native transfer batch | 100 signature-verified transfers with contiguous nonce `1..100` observed on 2026-08-01; operator evidence, not independent assurance |
+| REL-016 | Concurrent Testnet block admission | 20/20 operator Testnet transfers committed in block `712332`; local regression additionally commits and reloads 100 concurrent transfers in one block; no production SLO claim |
+| REL-017 | Bridge-bound source transactions | Ten real YNXT source transaction hashes registered in the coordinator; all remain pending and external submission remains disabled |
 
 ## Evidence sources to reconcile
 

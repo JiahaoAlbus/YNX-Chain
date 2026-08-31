@@ -1,0 +1,131 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-319",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-chain-four-node-zero-write-node-successor-20260831T060300Z",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_CHAIN_P0319_PROTECTED_IDENTITIES_NOT_INJECTED_PRE_SSH",
+  "singleUse": true,
+  "reusable": false,
+  "issuedAt": "2026-08-31T06:03:00Z",
+  "expiresAt": "2026-08-31T06:23:00Z",
+  "releasedAt": "2026-08-31T06:07:29Z",
+  "owner": "chain-protected-runtime-operator",
+  "namedExecutor": "chain-protected-runtime-operator",
+  "scope": "CHAIN_FOUR_NODE_ZERO_WRITE_INSPECTION_ONLY",
+  "supersedes": {
+    "taskId": "P0-317",
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_CHAIN_P0317_LOCAL_NODE_EXECUTABLE_ABSENT_PRE_INSPECTOR",
+    "centralCommit": "8096095e1a10fb45a95fd68cb38d8250e375e1ca",
+    "centralTree": "9743ea08703f06e936f45f470fe59966182dcda8",
+    "sshAttempts": 0,
+    "reusable": false
+  },
+  "source": {
+    "branch": "codex/chain-four-node-readonly-inspector-20260831",
+    "head": "2392e4984aa7f504f4ed92592eeb8f4f066b83f4",
+    "tree": "7b943b8c5b8340341ad02c550fbc34a7323931fc",
+    "remoteExact": true,
+    "clean": true
+  },
+  "request": {
+    "path": "release/integration/chain-four-node-zero-write-inspection-node-executable-successor-request-20260831.json",
+    "blob": "f2bd24492a8ccfbd64afecc67c00198a639d8fba",
+    "bytes": 4799,
+    "sha256": "53f40e485bdc0a9fca5b425153aab6c69302cfb30a3932911112cccb867d30dd"
+  },
+  "protectedReadiness": {
+    "path": "release/integration/chain-four-node-protected-operator-readiness-20260831.json",
+    "blob": "a5e2857ca2a216e4a2eb99bf783be2aa2ad0dd0c",
+    "bytes": 1623,
+    "sha256": "8448e0b6bd389e187efc540afc8d5d1a387c7a2591c493ff973b5ceff1b7112c",
+    "allFiveBooleansTrue": true,
+    "secretOrIdentityValuesRecorded": false
+  },
+  "inspector": {
+    "commit": "de393ce295ae50f77967cbd3ad15e8bf0988684e",
+    "path": "scripts/verify/remote-smoke-test.mjs",
+    "blob": "8a4e1c62f4072c984cd5ca1621e3a6fd2eb9ee23",
+    "bytes": 82263,
+    "sha256": "0ea6dbff7be60da2ceb647cb905635292c5fac422e0ccedc80147f7d9046a0b5",
+    "remotePayloadBytes": 2501,
+    "remotePayloadSha256": "48548c8039b09d72e1a6dc30ebfbae7cd35b3451860676286a133890d0d74573",
+    "printedPlanBytes": 6074,
+    "printedPlanSha256": "f06b2a2a138130fc634d4fe8ce788bd1b78c0193aee7d5b19f240cc19eaafbb5",
+    "selfTestStdoutBytes": 134,
+    "selfTestStdoutSha256": "b79905ec6dc36192757f552d140edbc173fb87b4963f800ac25c667bdcdd4001",
+    "selfTest": "PASS"
+  },
+  "nodeExecutable": {
+    "path": "/opt/homebrew/bin/node",
+    "symlinkTarget": "../Cellar/node/26.7.0/bin/node",
+    "resolvedPath": "/opt/homebrew/Cellar/node/26.7.0/bin/node",
+    "resolvedFileType": "regular",
+    "device": 16777239,
+    "inode": 173702776,
+    "uid": 501,
+    "gid": 80,
+    "mode": "555",
+    "nlink": 1,
+    "bytes": 50320,
+    "sha256": "1ef99ea25fe70c9b67e7efe768ef8ee22148d3cabc703db6131b57aeb617d040",
+    "version": "v26.7.0"
+  },
+  "targets": [
+    {"role": "primary", "host": "43.153.202.237", "user": "ubuntu", "identityReference": "PRIMARY_NODE_SSH_KEY"},
+    {"role": "singapore", "host": "43.134.23.58", "user": "root", "identityReference": "SG_NODE_SSH_KEY"},
+    {"role": "silicon-valley", "host": "43.162.100.54", "user": "ubuntu", "identityReference": "SILICON_VALLEY_NODE_SSH_KEY"},
+    {"role": "seoul", "host": "43.164.132.81", "user": "root", "identityReference": "SEOUL_NODE_SSH_KEY"}
+  ],
+  "execution": {
+    "workingDirectory": "/private/tmp/ynx-chain-peer-readiness.fXjb67",
+    "environment": {
+      "YNX_CHAIN_FOUR_NODE_READONLY_INSPECTION_ACK": "P0-CHAIN-FOUR-NODE-ZERO-WRITE-INSPECTION-20260831:EXECUTE",
+      "YNX_CHAIN_FOUR_NODE_READONLY_INSPECTION_EVIDENCE": "/tmp/p0-319-chain-four-node-zero-write-evidence-20260831.json",
+      "PRIMARY_NODE_SSH_KEY": "<protected runtime reference; never disclose>",
+      "SG_NODE_SSH_KEY": "<protected runtime reference; never disclose>",
+      "SILICON_VALLEY_NODE_SSH_KEY": "<protected runtime reference; never disclose>",
+      "SEOUL_NODE_SSH_KEY": "<protected runtime reference; never disclose>"
+    },
+    "argv": [
+      "/opt/homebrew/bin/node",
+      "scripts/verify/remote-smoke-test.mjs",
+      "--chain-four-node-readonly-inspection"
+    ],
+    "localEvidencePathMustBeAbsent": true,
+    "attemptLimitPerNode": 1,
+    "retryAllowed": false,
+    "maximumDurationMinutes": 20,
+    "remoteTemporaryFiles": false
+  },
+  "allowed": [
+    "read-only systemd unit and service metadata",
+    "read-only current and rollback binary and manifest identities",
+    "read-only loopback health status node identity and peer sync bodies",
+    "one local byte-preserving JSON evidence envelope"
+  ],
+  "forbidden": [
+    "remote file creation modification or deletion",
+    "service start stop restart reload or daemon-reload",
+    "deployment validator chain-state configuration firewall or Caddy mutation",
+    "parallel node mutation or any rollback execution",
+    "identity value path hash logging persistence or disclosure",
+    "Creator Finance Wallet account signature typed-data or transaction action"
+  ],
+  "terminal": {
+    "releaseHeavyAndAllChainLocks": true,
+    "partialInspectionIsNotCompletion": true,
+    "noRuntimePromotion": true,
+    "inspectorStarted": true,
+    "localExitStatus": 1,
+    "sshAttempts": 0,
+    "remoteConnections": 0,
+    "remoteTemporaryFilesCreated": 0,
+    "mutations": 0,
+    "blocker": "CHAIN_PROTECTED_IDENTITIES_NOT_INJECTED_IN_NAMED_EXECUTION_RUNTIME",
+    "terminalEvidence": {
+      "path": "release/integration/p0-wallet-connectivity/execution/objects/p0-319-chain-four-node-zero-write-terminal-failure-20260831.json",
+      "executionEvidenceBytes": 992,
+      "executionEvidenceSha256": "da9e51798405c3dea8f88e09d107bd161a967a51a401db25de58706bd7cf6c99"
+    }
+  }
+}

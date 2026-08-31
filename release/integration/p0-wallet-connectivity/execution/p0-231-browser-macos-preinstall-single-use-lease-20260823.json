@@ -1,0 +1,230 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-231",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-browser-macos-preinstall-20260823T004000Z",
+  "owner": "browser-macos-preinstall-owner",
+  "executor": "browser-macos-preinstall-owner",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_BROWSER_P0231_PREINSTALL_ROLLED_BACK_AUTOMATIC_FORWARD_CLEANUP",
+  "issuedAt": "2026-08-23T00:40:00Z",
+  "expiresAt": "2026-08-23T01:10:00Z",
+  "releasedAt": "2026-08-23T01:04:09Z",
+  "singleUse": true,
+  "reusable": false,
+  "executionAuthorized": false,
+  "productionMutationAllowed": false,
+  "scope": "Browser-only reversible preinstall: create one exact isolated root, copy one exact candidate app, register only that candidate with LaunchServices, resolve without opening, and on failure use at most one exact rollback that restores the old handler and deletes only receipt-bound candidate/root objects",
+  "centralPrecondition": {
+    "parentCommit": "f971effaea38b9346fa28c3977e1cb0a9a6bd6b7",
+    "parentTree": "98878d0c321d93c72abb288ff8487dc5d29faa7a",
+    "heavyWasNullAndIdle": true,
+    "financeP0230ReadOnlyAcceptanceDoesNotHoldHeavy": true,
+    "videoBootstrapReview": "NO_GO_VIDEO_LEGACY_VIEWER_ACTIVE_AND_PORT_6494_BOUND"
+  },
+  "ownerAuthority": {
+    "branch": "codex/p0-browser-current-source-verification-20260821",
+    "requestHead": "4ad839a199769c726a0e7a23e2fc38460b1c35b9",
+    "requestTree": "49d68a23ebe9fe3da366e0490b8230fb9ab7039a",
+    "implementationCommit": "dd9a9b6e0552868b6559c2edd0b5d3244804fdfc",
+    "implementationTree": "c92d934837dbfd87eaf493111ddd0b4da99c6666",
+    "implementationParent": "8ccfea1fa1cc07087dd725949202b8f677a15116",
+    "sourceCommit": "6ace4556ceaa7f4d72f896a4ad4a5505014f030c",
+    "sourceTree": "498aa15c87bc64e25d26f35c8eee4639b381d635",
+    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/52-browser-p0",
+    "remoteAndLocalExactClean": true
+  },
+  "request": {
+    "path": "apps/browser/evidence/p0-079/browser-preinstall-executor-lease-request-20260823.json",
+    "blob": "17c6cafd5bb1caeaffa2791e494a931fac462ed8",
+    "bytes": 10913,
+    "sha256": "79853f2b90aec32ecbb14cf610338fb540ba8b1457e1e2cf22233d9a083b789e",
+    "jsonValid": true
+  },
+  "candidate": {
+    "carrier": "/private/tmp/YNX-Browser-Testnet-Preview-ad890f0a2fe5-aaed312ef608.zip",
+    "carrierTuple": "16777239:182668190:501:20:0444:1:143157:regular-file",
+    "carrierSha256": "a696f743a86518d8cc98d1a1335fd80fcbf3eed593491e53e7ed67589f019ba4",
+    "bundleId": "com.ynxweb4.browser.macos",
+    "version": "0.2.0",
+    "build": "2",
+    "scheme": "ynxbrowser",
+    "architecture": "arm64",
+    "binaryRelativePath": "Contents/MacOS/YNXBrowserNative",
+    "binaryBytes": 463248,
+    "binarySha256": "aaed312ef608445504ba1cc21ff24d14bc5b4e48c2d6b505dc3cfb545daa0de5",
+    "codeSigning": "ad-hoc/no-Team-ID/Gatekeeper-rejected",
+    "isolatedRoot": "/Users/huangjiahao/Applications/YNX Browser Isolated",
+    "isolatedTarget": "/Users/huangjiahao/Applications/YNX Browser Isolated/YNX Browser Testnet Preview-ad890f0a2fe5-aaed312ef608.app",
+    "receipt": "/private/tmp/ynx-browser-preinstall-dd9a9b6e.receipt"
+  },
+  "executorObject": {
+    "path": "apps/browser/scripts/browser-preinstall-executor.sh",
+    "absolutePath": "/Users/huangjiahao/Desktop/YNX Final Worktrees/52-browser-p0/apps/browser/scripts/browser-preinstall-executor.sh",
+    "blob": "e4b3eb43264579609a0f82e47c44152c907c672b",
+    "bytes": 11969,
+    "sha256": "5841c41570308e588fa40fd2d4845553a91e9cc376d1ece0a23850a6d69042b8",
+    "bashSyntax": "PASS",
+    "actualShellFixture": {
+      "path": "apps/browser/test/preinstall-executor.test.js",
+      "blob": "9aa75c7d74e2a1526eb78f8a06c2a845f7ffe75a",
+      "bytes": 9772,
+      "sha256": "9903c4c3d4143f4dcb94a95c40550dd6a932c98fdd9fcedc5bac9562f012495a",
+      "centralRerun": "PASS_6_OF_6"
+    },
+    "fullNodeTestsCentralRerun": "PASS_24_OF_24"
+  },
+  "freshBaseline": {
+    "observedAt": "2026-08-23T00:37:00Z",
+    "applicationsParent": {
+      "path": "/Users/huangjiahao/Applications",
+      "tuple": "16777239:448444:501:20:0700:15:480:directory"
+    },
+    "isolatedRootAbsent": true,
+    "isolatedTargetAbsent": true,
+    "receiptAbsent": true,
+    "oldHandler": {
+      "path": "/Users/huangjiahao/Applications/YNX Browser Preserved/YNX Browser Testnet Preview-preserved-95ddf592badb.app",
+      "appTuple": "16777239:149132970:501:20:0755:3:96:directory",
+      "binaryDeviceInode": "16777239:149776624",
+      "binaryBytes": 330896,
+      "binarySha256": "95ddf592badbdb3cdf4babc31c0febdd186e917d1b1ca81a4a400c2f8839d81e",
+      "resolvedWithoutOpening": true
+    },
+    "oldProcess": {
+      "pid": 93119,
+      "ppid": 1,
+      "started": "Sat Aug 22 11:58:23 2026",
+      "exactOldHandlerExecutable": true,
+      "soleYnxBrowserNativeProcess": true
+    },
+    "sameBundleIdCopies": {
+      "filesystemExact": 11,
+      "spotlightExact": 11,
+      "launchServicesClaimsExact": 11,
+      "allFrozenBinaryHashesMatch": true
+    }
+  },
+  "exactEnvironment": {
+    "YNX_BROWSER_EXECUTION_MODE": "production",
+    "YNX_BROWSER_LEASE_AUTHORIZED": "P0_BROWSER_SINGLE_USE",
+    "YNX_BROWSER_CARRIER": "/private/tmp/YNX-Browser-Testnet-Preview-ad890f0a2fe5-aaed312ef608.zip",
+    "YNX_BROWSER_CARRIER_SHA256": "a696f743a86518d8cc98d1a1335fd80fcbf3eed593491e53e7ed67589f019ba4",
+    "YNX_BROWSER_ISOLATED_TARGET": "/Users/huangjiahao/Applications/YNX Browser Isolated/YNX Browser Testnet Preview-ad890f0a2fe5-aaed312ef608.app",
+    "YNX_BROWSER_ISOLATED_ROOT": "/Users/huangjiahao/Applications/YNX Browser Isolated",
+    "YNX_BROWSER_ISOLATED_ROOT_PREWRITE": "ABSENT_CREATE_ONE_DIRECTORY",
+    "YNX_BROWSER_ISOLATED_ROOT_PARENT": "/Users/huangjiahao/Applications",
+    "YNX_BROWSER_ISOLATED_ROOT_PARENT_DEV_INODE": "16777239:448444",
+    "YNX_BROWSER_ISOLATED_ROOT_PARENT_UID": "501",
+    "YNX_BROWSER_ISOLATED_ROOT_PARENT_GID": "20",
+    "YNX_BROWSER_ISOLATED_ROOT_PARENT_MODE": "700",
+    "YNX_BROWSER_ISOLATED_ROOT_PARENT_NLINK": "15",
+    "YNX_BROWSER_ISOLATED_ROOT_UID": "501",
+    "YNX_BROWSER_ISOLATED_ROOT_GID": "20",
+    "YNX_BROWSER_ISOLATED_ROOT_MODE": "700",
+    "YNX_BROWSER_ISOLATED_ROOT_NLINK": "2",
+    "YNX_BROWSER_CANDIDATE_BINARY_SHA256": "aaed312ef608445504ba1cc21ff24d14bc5b4e48c2d6b505dc3cfb545daa0de5",
+    "YNX_BROWSER_OLD_HANDLER": "/Users/huangjiahao/Applications/YNX Browser Preserved/YNX Browser Testnet Preview-preserved-95ddf592badb.app",
+    "YNX_BROWSER_OLD_HANDLER_DEV_INODE": "16777239:149132970",
+    "YNX_BROWSER_OLD_BINARY_SHA256": "95ddf592badbdb3cdf4babc31c0febdd186e917d1b1ca81a4a400c2f8839d81e",
+    "YNX_BROWSER_RECEIPT": "/private/tmp/ynx-browser-preinstall-dd9a9b6e.receipt"
+  },
+  "execution": {
+    "forwardExactArgv": [
+      "/bin/bash",
+      "/Users/huangjiahao/Desktop/YNX Final Worktrees/52-browser-p0/apps/browser/scripts/browser-preinstall-executor.sh",
+      "forward"
+    ],
+    "rollbackExactArgv": [
+      "/bin/bash",
+      "/Users/huangjiahao/Desktop/YNX Final Worktrees/52-browser-p0/apps/browser/scripts/browser-preinstall-executor.sh",
+      "rollback"
+    ],
+    "forwardAttemptLimit": 1,
+    "rollbackAttemptLimit": 1,
+    "retryAllowed": false,
+    "orderedPreconditions": [
+      "fresh-read this exact unexpired ACTIVE_SINGLE_USE lease, Heavy owner and every P0-231 lock",
+      "require owner remote/local exact clean 4ad839a1 and executor/request/fixture byte exact",
+      "require carrier tuple/SHA, Applications parent tuple, isolated root/target/receipt absence, old handler tuple/SHA and PID 93119 exact",
+      "require all eleven filesystem, Spotlight and LaunchServices claims and their frozen binary hashes exact",
+      "require no candidate executable process"
+    ],
+    "forwardSuccessRequired": [
+      "create exactly one isolated root mode 0700 and receipt its device/inode/uid/gid/mode/nlink",
+      "copy only the exact candidate app and receipt its app inode and binary SHA",
+      "register only the candidate, resolve handler without opening and require exact candidate target",
+      "prove all eleven old copies and PID 93119 remain unchanged",
+      "do not launch or invoke ynxbrowser"
+    ],
+    "rollbackOnlyAfterForwardOrPostCreateFailure": true,
+    "rollbackRequiredProof": "Before LaunchServices mutation require receipt/root/candidate identities and no candidate process; unregister only candidate, register exact old handler, resolve exact old handler without opening, delete only exact candidate, then rmdir only exact empty receipt-bound isolated root."
+  },
+  "locks": [
+    "heavy:browser-macos-preinstall-owner",
+    "path:/Users/huangjiahao/Applications/YNX Browser Isolated",
+    "path:/Users/huangjiahao/Applications/YNX Browser Isolated/YNX Browser Testnet Preview-ad890f0a2fe5-aaed312ef608.app",
+    "path:/private/tmp/ynx-browser-preinstall-dd9a9b6e.receipt",
+    "launchservices:candidate:com.ynxweb4.browser.macos:ynxbrowser"
+  ],
+  "immutableOutsideScope": {
+    "applicationsParent": "/Users/huangjiahao/Applications",
+    "oldHandler": "/Users/huangjiahao/Applications/YNX Browser Preserved/YNX Browser Testnet Preview-preserved-95ddf592badb.app",
+    "oldHandlerRegistrationException": "register -f exact old handler only during rollback; never unregister, move, delete or launch it",
+    "oldCopies": 11,
+    "oldPid": 93119
+  },
+  "forbidden": [
+    "any second forward, retry or second rollback",
+    "launching the candidate, invoking ynxbrowser, opening any scheme or creating a browser window",
+    "unregistering, moving, deleting, terminating or modifying any old app or PID",
+    "writing outside the exact isolated root, exact candidate target and receipt",
+    "provider runtime, eth_requestAccounts, account approval or reject, signature, typed data, transaction, private key or recovery material",
+    "installed-runtime, provider, sensitive lifecycle or product-completion promotion from preinstall evidence"
+  ],
+  "terminalRules": {
+    "success": "CONSUMED_RELEASED_SUCCESS_BROWSER_MACOS_PREINSTALL_REGISTERED_NOT_LAUNCHED",
+    "failureBeforeMutation": "CONSUMED_RELEASED_FAILED_CLOSED_BROWSER_P0231_PREWRITE_ZERO_MUTATION",
+    "failureRestored": "CONSUMED_RELEASED_FAILED_CLOSED_BROWSER_P0231_PREINSTALL_ROLLED_BACK",
+    "rollbackFailure": "EMERGENCY_BLOCKED_BROWSER_P0231_EXACT_ROLLBACK_REQUIRED_NO_FURTHER_ACTION",
+    "releaseHeavyAndAllLocksOnEveryTerminalPath": true,
+    "requiredReturn": "exact forward/rollback counts, parent/root/target/receipt tuples, resolved handler, eleven-copy and PID readback, and all launch/sensitive-action false boundaries"
+  },
+  "terminalEvidence": {
+    "prewritePassedAt": "2026-08-23T01:00:34Z",
+    "terminalReadbackAt": "2026-08-23T01:03:09Z",
+    "forwardAttemptCount": 1,
+    "retryCount": 0,
+    "externalRollbackAttemptCount": 0,
+    "automaticForwardFailClosedCleanupRan": true,
+    "forwardSuccessReceiptPresent": false,
+    "applicationsParentTuple": "16777239:448444:501:20:0700:15",
+    "isolatedRootAbsent": true,
+    "isolatedTargetAbsent": true,
+    "receiptAbsent": true,
+    "resolvedHandler": "/Users/huangjiahao/Applications/YNX Browser Preserved/YNX Browser Testnet Preview-preserved-95ddf592badb.app",
+    "oldHandlerAppTuple": "16777239:149132970:501:20:0755:3",
+    "oldHandlerBinaryTuple": "16777239:149776624:330896",
+    "oldHandlerBinarySha256": "95ddf592badbdb3cdf4babc31c0febdd186e917d1b1ca81a4a400c2f8839d81e",
+    "oldPid": 93119,
+    "oldPidExactAndSole": true,
+    "candidateProcessAbsent": true,
+    "filesystemCopies": 11,
+    "spotlightCopies": 11,
+    "launchServicesClaims": 11,
+    "allFrozenBinaryHashesExact": true,
+    "ownerRemoteLocalExactClean": true,
+    "failureReasonAvailable": false,
+    "nextBlocker": "Freeze a new executor revision that durably records the pre-receipt failure stage before cleanup, then request a wholly new lease; do not reuse P0-231."
+  },
+  "truthAfterTerminal": {
+    "preinstalled": false,
+    "registeredCandidate": false,
+    "launched": false,
+    "installedRuntime": false,
+    "walletProviderRuntime": false,
+    "account": false,
+    "signature": false,
+    "transaction": false,
+    "productComplete": false
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "schemaVersion": "p0-finance-p0289-terminal-evidence@1",
+  "taskId": "P0-289",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-rollback-first-deployment-p0289-20260823T183400Z",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_REMOTE_EXIT_1_EMPTY_TERMINAL_REMOTE_STATE_UNKNOWN",
+  "releasedAt": "2026-08-23T18:38:02Z",
+  "attempt": {
+    "literalArgvAttempts": 1,
+    "outerExecutionContractComplied": true,
+    "localExitStatus": 1,
+    "sshAttempts": 1,
+    "retryCount": 0,
+    "manualRollbackInvocations": 0,
+    "cleanupInvocations": 0
+  },
+  "stdout": {
+    "path": "/tmp/ynx-finance-p0289-finance-phase3-20260824t010000z.stdout",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "stderr": {
+    "path": "/tmp/ynx-finance-p0289-finance-phase3-20260824t010000z.stderr",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "transportReceipt": {
+    "path": "/tmp/ynx-finance-p0289-finance-phase3-20260824t010000z.receipt",
+    "bytes": 202,
+    "sha256": "4b7b9f0fb5e91bad194dd7e8f23023c3e390d61b13337aeb5301f3607281abac",
+    "fields": {
+      "transport": "FINANCE_PHASE3_OPENSSH_SERIALIZED",
+      "sshExitStatus": 1,
+      "remoteExitStatus": 1,
+      "stdoutBytes": 0,
+      "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "terminalReceiptValidated": false
+    }
+  },
+  "receiptPendingAbsent": true,
+  "truth": {
+    "deploymentSuccess": false,
+    "remoteMutationState": "UNKNOWN",
+    "automaticRollbackState": "UNKNOWN",
+    "productionRuntimeState": "UNKNOWN",
+    "residueState": "UNKNOWN",
+    "noRetry": true,
+    "noManualRollback": true,
+    "noCleanup": true
+  },
+  "nextAuthority": "WHOLLY_NEW_ZERO_WRITE_P0290_REMOTE_STATE_INSPECTION_REQUEST_ONLY"
+}

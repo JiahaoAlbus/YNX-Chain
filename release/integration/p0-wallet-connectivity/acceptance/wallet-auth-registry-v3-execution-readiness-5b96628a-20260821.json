@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "acceptanceId": "P0-WALLET-AUTH-REGISTRY-V3-EXECUTION-READINESS-5B96628A-20260821",
+  "taskId": "P0-042",
+  "decision": "SOURCE_ACCEPTED_EXECUTION_LEASE_BLOCKED",
+  "sourceEvidence": {
+    "path": "release/integration/p0-wallet-connectivity/evidence/wallet-auth-registry-v3-execution-readiness-5b96628a-20260821.json"
+  },
+  "accepted": {
+    "p0041SourceAcceptanceBinding": true,
+    "hermeticFailureBoundaryAccepted": true,
+    "productionBindingGapsAccepted": true
+  },
+  "truth": {
+    "p0039LeaseReusable": false,
+    "executionLeaseIssued": false,
+    "executionLeaseId": null,
+    "sshUsed": false,
+    "deploymentAttempted": false,
+    "productionMutation": false,
+    "candidateDeployedPublic": false,
+    "publicRegistryV3": false,
+    "productsMigratedV2": 0,
+    "computerControlVerified": false,
+    "integratedCentral": false,
+    "aggregateDeployedPublic": false
+  }
+}

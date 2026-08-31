@@ -1,0 +1,123 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-190",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-official-source-bound-routing-20260822T123100Z",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_WALLET_OFFICIAL_ROUTING",
+  "owner": null,
+  "branch": "codex/website-wallet-public-identity-routing-20260822",
+  "worktree": "/Users/huangjiahao/Desktop/ynx-web4-website-new",
+  "issuedAt": "2026-08-22T12:31:00Z",
+  "expiresAt": "2026-08-22T13:01:00Z",
+  "releasedAt": "2026-08-22T12:40:21Z",
+  "singleUse": true,
+  "reusable": false,
+  "dependsOn": "P0-189",
+  "scope": "WALLET_OFFICIAL_DOMAIN_ALIAS_ONLY_SOURCE_BOUND_V11_PUBLIC_LIFECYCLE",
+  "acceptedCandidateEvidence": {
+    "centralCommit": "594225a459436c12f3efeb9deb3030bc4a5a285e",
+    "centralTree": "a99109087843c6348cee515818eb9f7b09e323df",
+    "status": "CONSUMED_RELEASED_SUCCESS_DIRECT_HOSTED_CHROMIUM_V11_STABLE_SECOND_LAUNCH_PREFLIGHT",
+    "actionsRunId": 32572758708,
+    "actionsJobId": 97030575070,
+    "artifactId": 9475757695,
+    "artifactSha256": "b6dcb3892e3b264dfe2b673bf6cbb9cd1241602569ed6e0d838ffe3ef20553b5"
+  },
+  "candidate": {
+    "deploymentId": "dpl_EhSHsjrfQ17dzuTegLCqGvELeBte",
+    "immutableUrl": "https://wallet-3re0s0lx4-jiahaoalbus-projects.vercel.app",
+    "projectId": "prj_K4emrdkST7sdb0K9mhmLM0QZh0I3",
+    "status": "READY",
+    "target": "production",
+    "sourceCommit": "7df37ca32a643a403bd23a7f555354261f789441",
+    "resources": {
+      "root": {"http": 200, "bytes": 821, "sha256": "2df10866a35b074a6fb366439197646dd4e979bc83bdae3aba0ba6db3802986c"},
+      "buildIdentity": {"http": 200, "bytes": 267, "sha256": "caf151b49ea9c8ae55ca070aa05b2fda90ab2e7f5f6cb73dd4b9bc3c59ee1377", "cacheControl": "no-store"},
+      "manifest": {"http": 200, "bytes": 632, "sha256": "d2d131267483327ece949c5b8402c2dd80352bb15e791ea5571c879682ceba92"},
+      "serviceWorker": {"http": 200, "bytes": 4862, "sha256": "cf8a043c2159842ce4c63213477a4f62e931fb1ca08061d6fb92b833a48af1d3", "cacheControl": "no-store"}
+    }
+  },
+  "officialBefore": {
+    "domain": "wallet.ynxweb4.com",
+    "deploymentId": "dpl_Got2m9m84Sc3QDsrH8yu51W93JAe",
+    "immutableUrl": "https://wallet-mgwrbzwuy-jiahaoalbus-projects.vercel.app",
+    "buildIdentityHttp": 200,
+    "buildIdentityBytes": 250,
+    "buildIdentitySha256": "b2f9b275a4295c6f1cd230daf2b39519a81c4cb3ecf361e820ace9195adbbf9b",
+    "sourceCommit": "uncommitted-source-tree"
+  },
+  "writeAuthority": {
+    "aliasSetMaximum": 1,
+    "exactAliasCommand": "vercel alias set wallet-3re0s0lx4-jiahaoalbus-projects.vercel.app wallet.ynxweb4.com --scope jiahaoalbus-projects",
+    "retryAllowed": false,
+    "onlyMutation": "EXACT_OFFICIAL_ALIAS_SWITCH",
+    "sourceOrProjectSettingMutationAllowed": false
+  },
+  "rollback": {
+    "requiredOnAnyPostAliasFailure": true,
+    "rollbackMaximum": 1,
+    "deploymentId": "dpl_Got2m9m84Sc3QDsrH8yu51W93JAe",
+    "immutableUrl": "https://wallet-mgwrbzwuy-jiahaoalbus-projects.vercel.app",
+    "exactRollbackCommand": "vercel alias set wallet-mgwrbzwuy-jiahaoalbus-projects.vercel.app wallet.ynxweb4.com --scope jiahaoalbus-projects",
+    "requiredRollbackIdentity": {"http": 200, "bytes": 250, "sha256": "b2f9b275a4295c6f1cd230daf2b39519a81c4cb3ecf361e820ace9195adbbf9b", "sourceCommit": "uncommitted-source-tree"}
+  },
+  "requiredPostRouteEvidence": [
+    "official GET /, /build-identity.json, /manifest.webmanifest and /sw.js all HTTP 200 with the exact candidate bytes and SHA",
+    "official build identity sourceCommit equals 7df37ca32a643a403bd23a7f555354261f789441 and identity plus service worker include no-store",
+    "a fresh persistent Chrome profile opens exactly one official-domain tab with stable https://wallet.ynxweb4.com/ URL and English Wallet UI",
+    "first launch reaches pwaState ready, active registration, controller message ynx-wallet-web-v11 and v11-only cache with v8 absent",
+    "console, page and official candidate network errors are zero and no blank page or integrity error is visible",
+    "the first Chrome process fully closes; second launch on the same profile again reaches one stable official tab, ready/controller-v11/v11-only with v8 absent",
+    "DOM, screenshots, console, network, registration, controller and cache evidence are retained",
+    "no account, approval, signing, transaction, installed-provider or parity action occurs"
+  ],
+  "orderedExecution": [
+    "fresh-read lease, Heavy/path lock, expiry, old official deployment and identity, P0-189 success and candidate READY",
+    "execute the exact alias command once with no retry",
+    "perform official-domain four-resource readback and clean persistent-profile first/process-close/second browser lifecycle",
+    "on any post-alias failure execute the exact rollback command once and verify the old identity",
+    "request atomic release with terminal evidence"
+  ],
+  "forbidden": [
+    "SSO or any Vercel project-setting mutation",
+    "retry or a second forward alias command",
+    "Wallet product source, UI, build, deployment or extension-install mutation",
+    "account request, approval, rejection, signing or transaction",
+    "installed-provider, parity or products completion promotion"
+  ],
+  "terminalRules": {
+    "success": "CONSUMED_RELEASED_SUCCESS_SOURCE_BOUND_OFFICIAL_WALLET_PUBLIC_LIFECYCLE",
+    "failure": "CONSUMED_RELEASED_FAILED_CLOSED_WALLET_OFFICIAL_ROUTING",
+    "rollbackFailure": "EMERGENCY_BLOCKED_OFFICIAL_ALIAS_ROLLBACK_REQUIRED",
+    "installedOrParityPromotion": false
+  },
+  "truthBeforeExecution": {
+    "currentSourceBoundPublic": false,
+    "installedProvider": false,
+    "accountAuthorized": false,
+    "signingOrTransaction": false,
+    "productsConnected": "0/12"
+  },
+  "terminalResult": {
+    "forwardAliasCount": 1,
+    "forwardAliasCliSuccess": true,
+    "postRouteHttpVerdictProduced": false,
+    "postRouteBrowserRun": false,
+    "failureCause": "LOCAL_ZSH_RESERVED_PATH_PARAMETER_REPLACED_COMMAND_SEARCH_PATH",
+    "retry": false,
+    "rollbackCount": 1,
+    "rollbackCliSuccess": true,
+    "rollbackDeploymentId": "dpl_Got2m9m84Sc3QDsrH8yu51W93JAe",
+    "rollbackDeploymentStatus": "READY",
+    "rollbackIdentityHttp": 200,
+    "rollbackIdentityBytes": 250,
+    "rollbackIdentitySha256": "b2f9b275a4295c6f1cd230daf2b39519a81c4cb3ecf361e820ace9195adbbf9b",
+    "rollbackSourceCommit": "uncommitted-source-tree",
+    "ssoOrProjectSettingMutation": false,
+    "productInstallAccountSignOrTransactionMutation": false,
+    "currentSourceBoundPublic": false,
+    "installedProvider": false,
+    "productsConnected": "0/12",
+    "futureCondition": "A wholly new alias-only lease must use a post-route script that avoids the reserved zsh path parameter and retains the same one-forward/one-rollback bounds."
+  }
+}

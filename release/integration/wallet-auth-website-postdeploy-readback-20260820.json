@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-WALLET-AUTH-WEBSITE-POSTDEPLOY-20260820",
+  "capturedAt": "2026-08-20T15:04:00Z",
+  "owner": "wallet-protocol",
+  "readOnly": true,
+  "websiteOwnerDeployment": {
+    "sourceCommit": "a7313313014bb8792f38e649e9f556dbee983c8c",
+    "deploymentId": "dpl_5oP2L2ZHvP13YH3ZYWySLD49pj3P",
+    "deploymentUrl": "https://ynx-web4-website-4bjg8s2d1-jiahaoalbus-projects.vercel.app",
+    "productionReady": true,
+    "sourceModifiedByWalletProtocolOwner": false
+  },
+  "centralReadback": {
+    "apexAndWwwRuntimeStatus": 200,
+    "apexAndWwwRuntimeBytes": 1899,
+    "apexAndWwwRuntimeSha256": "d8556c46e81e430d408d0f2504f3379d152430be9406feac36838ac0423e75fa",
+    "runtimeSourceCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "apexDocsStatus": 200,
+    "apexDocsBytes": 4747,
+    "apexDocsSha256": "8451463823b838b4f84057f277d6272585820f4030f0da4097c76f6aafa501ba",
+    "wwwDocsDirectTlsSucceededInCentralPass": false
+  },
+  "independentReadback": {
+    "apexDocs": {
+      "status": 200,
+      "bytes": 4748,
+      "sha256": "d4ab589c6b113e95168d0d2d2032c1792c7d1ad990d287f298efb8b130bafa1f"
+    },
+    "wwwDocs": {
+      "status": 200,
+      "bytes": 4748,
+      "sha256": "d4ab589c6b113e95168d0d2d2032c1792c7d1ad990d287f298efb8b130bafa1f"
+    },
+    "frontendAsset": {
+      "path": "/assets/index-B5LdNRfU.js",
+      "status": 200,
+      "bytes": 585512,
+      "sha256": "8726a271e7109da6883df6f09dd05345f3fc036f61d81dcf47c7a1e5b7bef11b",
+      "currentRuntimeSourceOccurrences": 3,
+      "historicalRuntimeSourceOccurrences": 0
+    },
+    "apexRuntime": {
+      "status": 0,
+      "transport": "TLS_TIMEOUT_BEFORE_HTTP"
+    },
+    "wwwRuntime": {
+      "status": 200,
+      "bytes": 1900,
+      "sha256": "635fefdcc1cd5675a1787a9bf17c87102ccadd1c8232450be7b847333fe75941",
+      "runtimeSourceCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14"
+    },
+    "observation": "The independent edge returned the accepted 1900-byte newline variant after Central observed the 1899-byte production variant. Both records identify exact runtime source 6cf3ef84. Byte identity across observation times is therefore not claimed."
+  },
+  "computerControl": {
+    "postDeploymentAttempted": true,
+    "postDeploymentRenderedCardVerified": false,
+    "failure": "MAC_LOCKED_AUTOMATIC_UNLOCK_FAILED",
+    "preDeploymentDriftEvidencePath": "release/integration/wallet-auth-website-computercontrol-evidence-20260820.json"
+  },
+  "truth": {
+    "websiteProductionDeploymentReady": true,
+    "publishedFrontendAssetUsesCurrentRuntimeSource": true,
+    "publishedFrontendAssetContainsHistoricalRuntimeSource": false,
+    "renderedVisibleCardVerifiedAfterDeployment": false,
+    "installedWalletClientVerified": false,
+    "walletApprovalVerified": false,
+    "standardConnectionAccountSignSendOrTransactionVerified": false,
+    "productMigrationsCompleted": 0,
+    "productMigrationsRequired": 12,
+    "aggregateDeployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

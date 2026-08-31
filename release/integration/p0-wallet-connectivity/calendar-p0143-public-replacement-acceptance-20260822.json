@@ -1,0 +1,88 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-143",
+  "decision": "ACCEPT_PUBLIC_REPLACEMENT_RELEASE_HEAVY",
+  "acceptedAt": "2026-08-21T17:00:23Z",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-calendar-d2044bd9-20260821T164248Z",
+  "leaseConsumed": true,
+  "leaseReusable": false,
+  "source": {
+    "commit": "d2044bd9a8ec6bdc6235dfb625a62c3dd5c58b04",
+    "tree": "b11b1e65b0026ed2bfd5d3306bd85a5c63ab3f53"
+  },
+  "ownerEvidence": {
+    "commit": "2426c2e2184f685467886fb7427950f78d089024",
+    "tree": "a07a724e83f92076fd306056dc201f8154a453e9",
+    "path": "apps/calendar/release/evidence/p0-143/calendar-wallet-details-public-replacement-20260822.json",
+    "blob": "3d1a5c6ecaf899c1adac99bf4a25fcc245d0e574",
+    "bytes": 3894,
+    "sha256": "d4e2cdcb68c3b20109f469adbe62472844835dda41c6559d52b5133379f0bb90"
+  },
+  "artifact": {
+    "bytes": 7610516,
+    "sha256": "3fc3492d89978c32991d54abc2c8994d1dbe271df7d95364449cb81a6b781890"
+  },
+  "deployment": {
+    "origin": "https://calendar-testnet.43.153.202.237.sslip.io",
+    "service": "ynx-calendar.service",
+    "serviceActive": true,
+    "nRestarts": 0,
+    "rollbackBackup": "/var/backups/ynx-chain/calendar-d2044bd9-p0143-20260821T164248Z",
+    "stateSha256": "fbe1c9cf058658370373385dc659c8b43a14238a3adef9df62a8b5ef0d22bd9c",
+    "stateKeySha256": "bf7b567201cab33c4b9ed02e00f0d0165172b4e692484ca044d828d0a3fb5e62",
+    "stateAndKeyUnchanged": true
+  },
+  "publicReadback": {
+    "health": {
+      "http": 200,
+      "bytes": 215,
+      "sha256": "f07ee444605fe2b52aa1565a0601139fd876ad98aefe4dc376c7c861ef8b517e"
+    },
+    "version": {
+      "http": 200,
+      "bytes": 279,
+      "sha256": "c4add3bef2f0209a2dcfe0af6bad4e299239ba7f6c1fef7942d443c11ba701de"
+    },
+    "exactSource": true,
+    "exactRelease": "ynx-calendar-0.4.3-testnet-preview"
+  },
+  "visibleAcceptance": {
+    "tool": "Codex in-app Browser",
+    "defaultLanguage": "en",
+    "wallet": "MetaMask",
+    "account": "0xb906…f3ab",
+    "chainId": "0x1917",
+    "accountActionOpenedWalletDetails": true,
+    "guestDialogOpened": false,
+    "privateSyncDegradedIndependently": true,
+    "switchAccountControlVisible": true,
+    "disconnectControlVisible": true,
+    "reloadPreservedConnection": true,
+    "chooserClosedAfterReload": true,
+    "urlAndTitleStable": true,
+    "newTopLevelTabCreated": false
+  },
+  "truthBoundaries": {
+    "deployedPublicCurrentSource": true,
+    "publicHttpVerifiedCurrentSource": true,
+    "currentDeploymentRenderedVisibleVerified": true,
+    "standardWalletConnectionRestored": true,
+    "walletDetailsActionFixed": true,
+    "privateSyncFailurePreservesStandardConnection": true,
+    "switchAccountExecuted": false,
+    "disconnectExecuted": false,
+    "approvalExecuted": false,
+    "approveCallbackVerified": false,
+    "rejectCallbackVerified": false,
+    "productSessionV2": false,
+    "productsConnected": "0/12",
+    "productsMigratedV2": "0/12",
+    "signatureVerified": false,
+    "transactionVerified": false,
+    "computerControlVerified": false,
+    "integratedCentral": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

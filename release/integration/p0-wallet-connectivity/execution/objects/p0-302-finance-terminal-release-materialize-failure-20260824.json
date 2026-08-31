@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "finance-p0302-terminal-fail-closed@1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-302",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0302_POSTWRITE_RELEASE_MATERIALIZE_REMOTE_STATE_UNKNOWN",
+  "releasedAt": "2026-08-23T21:20:00Z",
+  "leaseReusable": false,
+  "observerInvocationCount": 1,
+  "retryCount": 0,
+  "manualRollbackInvocationCount": 0,
+  "observer": {
+    "status": 1,
+    "signal": null
+  },
+  "stdout": {
+    "path": "/tmp/ynx-finance-p0302-finance-phase3-20260823t211500z.stdout",
+    "bytes": 89,
+    "sha256": "a452b935eb54565df1303b60ad12ed3a3843e08cdd44eeee910f3f19436b2373",
+    "fields": {
+      "phase": "RELEASE_MATERIALIZE",
+      "failureClass": "POSTWRITE_RELEASE_MATERIALIZE",
+      "failureExitStatus": 1
+    }
+  },
+  "stderr": {
+    "path": "/tmp/ynx-finance-p0302-finance-phase3-20260823t211500z.stderr",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "transportReceipt": {
+    "path": "/tmp/ynx-finance-p0302-finance-phase3-20260823t211500z.receipt",
+    "bytes": 203,
+    "sha256": "0a396a211524d3f9fce54ee174e7dc4923c543e7677987c783f20624f80307ce",
+    "sshExitStatus": 1,
+    "remoteExitStatus": 1,
+    "terminalReceiptValidated": false
+  },
+  "classification": "POSTWRITE_REMOTE_STATE_UNKNOWN",
+  "automaticRollbackSuccessInferred": false,
+  "productionStateKnown": false,
+  "prohibitedNext": [
+    "retry",
+    "manual rollback",
+    "cleanup",
+    "new deployment",
+    "service lifecycle or config mutation",
+    "account signature typed data or transaction"
+  ],
+  "onlyNextBoundary": "A wholly-new Finance-only single-use zero-write P0-303 inspection must bind every P0302 control pending stage backup release current env state unit Caddy service and loopback/public path before any mutation."
+}

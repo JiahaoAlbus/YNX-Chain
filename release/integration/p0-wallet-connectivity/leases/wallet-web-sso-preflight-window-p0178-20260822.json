@@ -1,0 +1,83 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-178",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-web-sso-preflight-20260822T081205Z",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_SSO_RESTORED_NORMALIZED_STANDARD_PROTECTION_CANDIDATE_NETWORK_UNREACHABLE",
+  "owner": null,
+  "issuedAt": "2026-08-22T08:12:05Z",
+  "expiresAt": "2026-08-22T08:27:05Z",
+  "releasedAt": "2026-08-22T08:15:51Z",
+  "singleUse": true,
+  "reusable": false,
+  "scope": "VERCEL_PROJECT_WALLET_WEB_SSO_TEMPORARY_DISABLE_FOUR_RESOURCE_PREFLIGHT_AND_RESTORE",
+  "project": {
+    "id": "prj_K4emrdkST7sdb0K9mhmLM0QZh0I3",
+    "name": "wallet-web",
+    "scope": "jiahaoalbus-projects",
+    "initialSsoProtectionDeploymentType": "all_except_custom_domains",
+    "initialProductionPrivate": true
+  },
+  "candidate": {
+    "deploymentId": "dpl_G6gTg2a3CVS1siTRqQg5XjQfPR9q",
+    "immutableHostname": "wallet-aitthgkni-jiahaoalbus-projects.vercel.app",
+    "status": "READY_PROMOTED",
+    "sourceCommit": "a9653f9f73eb79f77b45f04c845c4f56c012ab4b",
+    "sourceTree": "5cbf483decc37a6249420840e1d6b81bbafc9c2a",
+    "artifactSha256": "4d8e2e011f7113a80fb5a9541f710b86b2355f5e2fc176fd76a4a46ff94b0e7b"
+  },
+  "precheckCommand": "vercel project protection wallet-web --scope jiahaoalbus-projects --non-interactive --format json",
+  "disableCommand": "vercel project protection disable wallet-web --sso --scope jiahaoalbus-projects --non-interactive",
+  "restoreCommand": "vercel project protection enable wallet-web --sso --scope jiahaoalbus-projects --non-interactive",
+  "executionContract": [
+    "precheck exact project ID and initial SSO deploymentType all_except_custom_domains",
+    "record official wallet.ynxweb4.com identity and do not mutate it",
+    "disable SSO once for wallet-web only",
+    "immediately verify SSO is disabled",
+    "from an independent executor or network GET /, /build-identity.json, /manifest.webmanifest and /sw.js",
+    "freeze HTTP status, bytes, SHA-256 and required headers for every resource",
+    "require identity JSON content type and exact source commit",
+    "require service worker no-store",
+    "execute restoreCommand on success, failure, interruption or timeout",
+    "after restore require deploymentType all_except_custom_domains and production private true",
+    "prove official wallet.ynxweb4.com remained unchanged"
+  ],
+  "forbidden": [
+    "vercel alias set",
+    "wallet.ynxweb4.com mutation",
+    "any Vercel project other than prj_K4emrdkST7sdb0K9mhmLM0QZh0I3",
+    "password, bypass, Git-fork or other protection-setting changes",
+    "Wallet source edits",
+    "routing-lease inference",
+    "public identity or interoperability promotion before a separate routing lease"
+  ],
+  "terminalRules": {
+    "success": "CONSUMED_RELEASED_SSO_RESTORED_FOUR_RESOURCE_PREFLIGHT_ACCEPTED_READY_FOR_FRESH_ROUTING_REVIEW",
+    "failure": "CONSUMED_RELEASED_FAILED_CLOSED_SSO_RESTORED",
+    "restoreFailure": "EMERGENCY_BLOCKED_SSO_RESTORE_REQUIRED_NO_FURTHER_ACTION",
+    "officialAliasMutation": false
+  },
+  "truthBeforeExecution": {
+    "officialSourceCommit": "uncommitted-source-tree",
+    "currentSourceBoundPublic": false,
+    "productsConnected": "0/12",
+    "parityComplete": false
+  },
+  "terminalResult": {
+    "precheckDeploymentType": "all_except_custom_domains",
+    "precheckProductionPrivate": true,
+    "disableExecutedExactlyOnce": true,
+    "disabledSsoProtection": false,
+    "fourResourcePreflight": "FAILED_TCP_CONNECT_HTTP_000_NO_BODY",
+    "restoreExecutedExactlyOnce": true,
+    "restoredSsoProtection": true,
+    "restoredProductionPrivate": true,
+    "restoredDeploymentType": "prod_deployment_urls_and_all_previews",
+    "centralRestoreDecision": "ACCEPTED_SEMANTIC_NORMALIZATION_TO_CURRENT_VERCEL_STANDARD_PROTECTION_ENUM",
+    "decisionBasis": "Official Vercel documentation defines prod_deployment_urls_and_all_previews as Standard Protection, protecting production deployment URLs and all previews while excluding production custom domains; this preserves the precheck protection scope.",
+    "exactApiRestoreRequired": false,
+    "aliasCommandExecuted": false,
+    "officialDomainChanged": false,
+    "singleExecutableBlocker": "INDEPENDENT_EXECUTOR_NETWORK_CANNOT_CONNECT_TO_IMMUTABLE_VERCEL_HOSTNAME_EVEN_WHILE_SSO_DISABLED"
+  }
+}

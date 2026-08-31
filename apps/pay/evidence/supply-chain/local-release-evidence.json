@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "product": "YNX Pay",
+  "owner": "04-pay",
+  "sourceCommit": "0600d5ab87a9062ccc5b757affe30e234f1b7730",
+  "sourceCommitTime": "2026-07-29T03:53:51+08:00",
+  "evidenceClass": "local-unsigned-unhosted",
+  "toolchain": {
+    "goBuild": "go1.25.7 darwin/arm64",
+    "goSecurityScan": "go1.25.12 darwin/arm64",
+    "govulncheck": "v1.6.0",
+    "node": "v24.5.0",
+    "npm": "11.5.1",
+    "cyclonedxNpm": "6.0.0",
+    "cyclonedxGoMod": "v1.10.0"
+  },
+  "checks": {
+    "goModVerify": "passed",
+    "govulncheckCalledCode": "passed: 0 vulnerabilities",
+    "npmAuditHighOrCritical": "passed: 0 high or critical vulnerabilities",
+    "secretScan": "passed",
+    "goRace": "passed",
+    "deterministicDoubleBuild": "passed"
+  },
+  "artifacts": [
+    {
+      "name": "ynx-pay-productd-linux-amd64",
+      "sha256": "01f2ec75d2e8fbf15016a016830551e4e29542db838591e7b7cd05d28cf6f12b",
+      "bytesHosted": false
+    },
+    {
+      "name": "ynx-pay-store-linux-amd64",
+      "sha256": "2590a7fb891792960ab1f1beeaacdf5f150af69037bf794cc7adb2df326fe5cd",
+      "bytesHosted": false
+    },
+    {
+      "name": "pay-client.cdx.json",
+      "sha256": "c46a412b23d7d0346974163fab41ca262b69a6323ccdd1d50e73aa47ddbdc5ef",
+      "bytesHosted": false
+    },
+    {
+      "name": "pay-server.cdx.json",
+      "sha256": "6a9916a7e51191d832127d0e37ddf7447c235a2bad9e0259e3b803222b08d85f",
+      "bytesHosted": false
+    }
+  ],
+  "residualFindings": [
+    "npm audit reports 10 moderate issues in the Expo/Xcode build-tool dependency path; the suggested automatic fix downgrades Expo across a breaking boundary and was not applied.",
+    "CycloneDX Go module generation could not infer a repository version for the untagged main module; the evidence record binds the SBOM to the exact source commit instead.",
+    "Artifacts are reproducible local candidates only. They are not production signed, independently attested or hosted."
+  ]
+}

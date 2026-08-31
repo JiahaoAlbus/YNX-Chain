@@ -1,0 +1,74 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-306",
+  "recordType": "CREATOR_STUDIO_EMERGENCY_ZERO_WRITE_STATE",
+  "status": "CONSUMED_RELEASED_SUCCESS_CREATOR_P0306_EMERGENCY_ZERO_WRITE_STATE_KNOWN_OLD_RUNTIME_ACTIVE_RESIDUES_RETAINED",
+  "execution": {
+    "sshAttempts": 1,
+    "retryAttempts": 0,
+    "remoteExitStatus": 0,
+    "mutationCount": 0,
+    "inspectionComplete": true,
+    "remoteTempFiles": false
+  },
+  "directState": {
+    "controlRoot": "64770:1483830:0:0:700:3:4096:directory",
+    "controlStage": "ABSENT",
+    "oldRelease": "64770:1483877:995:986:755:4:4096:directory",
+    "candidateRelease": "64770:1483918:995:986:755:4:4096:directory",
+    "candidateStage": "ABSENT",
+    "current": "64770:1483951:0:0:777:1:63:symbolic link",
+    "currentTarget": "/opt/ynx-creator-studio-wallet/releases/creator-studio-0e1a53c5",
+    "currentNext": "ABSENT",
+    "forwardReceipt": "64770:1483909:0:0:600:1:82500:regular file",
+    "forwardReceiptSha256": "03b4b38afbba3d1ef2267ca6e9ba2ec7612dca255713fd518376e0313f2f5dc5",
+    "forwardReceiptJsonValid": true,
+    "forwardReceiptStatus": "FORWARD_SWITCHED_AWAITING_TERMINAL",
+    "forwardReceiptNext": "ABSENT",
+    "oldManifestSha256": "5fd27ac55d9ea70b8e15aac0565324a9ce7b18706bd75cd5b430eaa4843de86f",
+    "candidateManifestSha256": "fcd0f3346de18e51580af8f7c4f040b8694f7e2ef74bb92cc1ce942e03bea624",
+    "unitSha256": "06a55f91bf5530952c347db146daa827510cc72f161d999943da7d5737b8c006",
+    "creatorService": "loaded:active:running:2747844:0",
+    "viewerService": "loaded:active:running:2159536:0",
+    "apiService": "loaded:active:running:3108210:0",
+    "listenersExact": true
+  },
+  "publicOldRuntime": {
+    "root": "200:14088:b37f78205f2c5443b2103ee42e98d6ecde65238c107733088e63893a3c1de697",
+    "appJs": "200:35660:77e7c42006e3be36c7af717e5e8b2a3cd847c3652dcadb1731c259aee5b01af5",
+    "manifest": "200:2299:5fd27ac55d9ea70b8e15aac0565324a9ce7b18706bd75cd5b430eaa4843de86f",
+    "i18nJs": "200:10755:451016ca4e3a16eeade02154397eabf9fabcc57a50fe948ec954b63e5ee12abe",
+    "catalog": "200:14237:4c86e3e1cdeac6d9c4570891d70bab4c3486c6a4429dd33fd1029f046ca9ecff"
+  },
+  "decision": {
+    "oldRuntimeRestoredAndHealthy": true,
+    "candidateRuntimeActive": false,
+    "cleanupComplete": false,
+    "heavyReleased": false,
+    "nextAllowedAction": "WHOLLY_NEW_IDENTITY_BOUND_CREATOR_P0305_RESIDUE_CLEANUP_ONLY"
+  },
+  "exactCleanupScopeRequired": [
+    "/opt/ynx-release-control-plane/creator-studio-3f97a13d",
+    "/opt/ynx-creator-studio-wallet/releases/creator-studio-3f97a13d",
+    "/opt/ynx-creator-studio-wallet/receipts/upgrade-3f97a13d.json"
+  ],
+  "cleanupPreconditions": [
+    "fresh exact tuple and complete inventory revalidation for controlRoot and candidateRelease",
+    "fresh exact tuple bytes SHA nlink and status revalidation for forwardReceipt",
+    "current remains exact old target and old public hashes remain exact",
+    "Creator API Viewer unit Caddy and shared current remain exact",
+    "foreign or substituted content fails closed without deletion"
+  ],
+  "forbidden": [
+    "old rollback argv",
+    "forward retry",
+    "blind recursive cleanup",
+    "unrelated Heavy lease",
+    "service lifecycle unless a new recovery request proves it necessary",
+    "Wallet account request",
+    "signature",
+    "typed data",
+    "transaction"
+  ]
+}

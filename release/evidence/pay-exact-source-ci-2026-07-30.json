@@ -1,0 +1,80 @@
+{
+  "schemaVersion": "1.0.0",
+  "productId": "pay",
+  "sourceCommit": "6cbac9f4654b5715d32f1e561819e593c868a6f1",
+  "observedAt": "2026-07-30T19:45:00Z",
+  "repository": "JiahaoAlbus/YNX-Chain",
+  "workflow": "ci",
+  "run": {
+    "id": 30575350364,
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30575350364",
+    "event": "pull_request",
+    "headSha": "6cbac9f4654b5715d32f1e561819e593c868a6f1",
+    "conclusion": "success",
+    "sourceIdentityGate": "passed"
+  },
+  "jobs": [
+    {
+      "id": 90982124680,
+      "name": "test",
+      "conclusion": "success"
+    },
+    {
+      "id": 90982124588,
+      "name": "pay-card-ios-native (pay, YNXPay, /Applications/Xcode_26.2.app/Contents/Developer)",
+      "conclusion": "success"
+    },
+    {
+      "id": 90982124653,
+      "name": "pay-card-ios-native (card, YNXCard, /Applications/Xcode_26.2.app/Contents/Developer)",
+      "conclusion": "success"
+    }
+  ],
+  "artifacts": [
+    {
+      "id": 8772707422,
+      "name": "ynx-pay-ios-simulator-6cbac9f4654b5715d32f1e561819e593c868a6f1",
+      "archiveDownloadApiUrl": "https://api.github.com/repos/JiahaoAlbus/YNX-Chain/actions/artifacts/8772707422/zip",
+      "sizeInBytes": 20151740,
+      "createdAt": "2026-07-30T19:43:01Z",
+      "expiresAt": "2026-08-29T19:42:56Z",
+      "expired": false,
+      "classification": "unsigned iOS Simulator CI artifact; authenticated GitHub access; expiring; not a public immutable download"
+    },
+    {
+      "id": 8772713880,
+      "name": "ynx-card-ios-simulator-6cbac9f4654b5715d32f1e561819e593c868a6f1",
+      "archiveDownloadApiUrl": "https://api.github.com/repos/JiahaoAlbus/YNX-Chain/actions/artifacts/8772713880/zip",
+      "sizeInBytes": 17981472,
+      "createdAt": "2026-07-30T19:43:15Z",
+      "expiresAt": "2026-08-29T19:43:11Z",
+      "expired": false,
+      "classification": "unsigned iOS Simulator CI artifact; authenticated GitHub access; expiring; not a public immutable download"
+    }
+  ],
+  "downloadInspection": {
+    "payBundleId": "com.ynxweb4.pay",
+    "coldLaunchOutput": "com.ynxweb4.pay: 28415",
+    "appContainerObserved": true,
+    "proof": {
+      "appContainerTxtSha256": "41401b12393bce23527acb95229c38c2a01061f2198f78d6bdbed0262323645e",
+      "coldLaunchTxtSha256": "98d971bae2a43512ee99fff32f718b26c28bc10917f50b766cb443079a31a07d",
+      "urlSchemeResolutionPngSha256": "a7c0869ce9f73dc31e772d01ba9250cb58530955509f7b91576da40337f58767",
+      "payInfoPlistSha256": "4223673408188f805ef1452fe93926d41f2d8255084164de6252ec3fd4d9782e",
+      "screenshotDimensions": "1206x2622"
+    },
+    "urlSchemeEvidence": "simctl openurl resolved ynxpay://invoice/inv_0123456789abcdef0123 to the installed YNX Pay application and produced the iOS confirmation dialog naming YNX Pay.",
+    "urlSchemeBoundary": "The screenshot does not prove that a user selected Open or that the post-confirmation invoice screen rendered."
+  },
+  "releaseStateConsequences": {
+    "installedLocal": true,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "deployedPublic": false
+  },
+  "excludedPriorEvidence": {
+    "runId": 30574539872,
+    "reason": "Its PR artifacts were named for GitHub's temporary merge SHA 932482437d5668b6f4ca5981b5913beea0892e0f and are not used as exact-source artifacts."
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "proposalId": "P0-092-wallet-platform-faucet-consumption",
+  "sourceOwner": "integration",
+  "targetOwner": "wallet-platform",
+  "status": "CONTINUATION_SENT",
+  "acceptedManifestVersion": "1.0.0-p0.3",
+  "manifestPayloadSha256": "886ae7a2f4ef691301483da037cd4f5e1274b697865834769f20f0e799952157",
+  "faucetSource": "ea0e068becd9103f5f0a2a6c3a0d20ab7932d006",
+  "faucetEvidence": "d8fa126fb32f37dcc68ff4d32c9f3e21e2c6a1b0",
+  "resumeCheckpoint": "fa770cd8bf3f23623f88bdd5aff81a58f33b8167",
+  "doNotRebuild": ["Wallet Protocol", "Gateway", "Faucet daemon", "EIP-6963"],
+  "exactGap": "Wallet publicFaucet client requires removed unsafe health metadata instead of accepted PublicHealth and PublicVersion schema.",
+  "requiredEvidence": ["exact branch/commit/tree", "focused and full tests", "typecheck/product/release/SBOM", "per-platform installed evidence or explicit false", "public endpoint readback", "remaining false boundaries"],
+  "threadId": "019ffaf1-32a9-7231-b909-922a66d9f4d5",
+  "sentAt": "2026-08-21T00:52:00Z"
+}

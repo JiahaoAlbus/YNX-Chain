@@ -1,0 +1,143 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-198",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-calendar-public-hosted-browser-schema-fix-20260822T162400Z",
+  "owner": "calendar",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_CALENDAR_PUBLIC_BROWSER_CONSOLE_401_AND_HARNESS_TIMEOUT",
+  "issuedAt": "2026-08-22T16:24:00Z",
+  "expiresAt": "2026-08-22T16:54:00Z",
+  "singleUse": true,
+  "reusable": false,
+  "executionAuthorized": true,
+  "productionMutationAllowed": false,
+  "branch": "codex/calendar-fable5-completion-20260821",
+  "predecessor": {
+    "taskId": "P0-197",
+    "centralReleaseCommit": "43aa4c5abc0a34422ac9f5b7b5393fa0682ff01f",
+    "centralReleaseTree": "c060a2e30643b7d3b5cbb87142638267326f9161",
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_CALENDAR_PUBLIC_HOSTED_BROWSER_PREFLIGHT_HARNESS_SCHEMA_MISMATCH",
+    "reusable": false
+  },
+  "source": {
+    "remoteParent": "306dc4196bd025e0a60636ad5a5f8ae635bf5732",
+    "implementationCommit": "7db160aa0bd589097e63190a260a343aafe4854c",
+    "remoteReadbackExact": true
+  },
+  "candidate": {
+    "commit": "7a3fb59ab59dcfc9868feb7a030dd85093a168cf",
+    "tree": "01fa577b292a4b395eb10d9b80722f30cdf42ac0",
+    "parent": "306dc4196bd025e0a60636ad5a5f8ae635bf5732",
+    "subject": "evidence(calendar): externally verify public browser recovery v2",
+    "soleChangedPath": ".github/workflows/calendar-public-browser-preflight-p0.yml",
+    "workflowBlob": "2720d63289531217be3e65013d8e7ec7bf97ffd7",
+    "workflowBytes": 10344,
+    "workflowSha256": "890fb7e1f5993ae92343befa4c95b136c8e1612724bdab7025a9b671f98ce2ab",
+    "diff": "2_INSERTIONS_2_DELETIONS_MESSAGE_GUARD_AND_PARSED_BUILD_COMMIT_ONLY"
+  },
+  "carrier": {
+    "path": "/tmp/calendar-p0198-hosted-browser-schema-fix.bundle",
+    "bytes": 3693527,
+    "sha256": "bbb10a82f9493f144ee687c6f1db37493c86f6e39d895f760f1232bf0bf8f7ca",
+    "bundleVerify": "PASS",
+    "completeHistory": true,
+    "freshImportFsck": "PASS"
+  },
+  "request": {
+    "path": "/tmp/calendar-p0198-hosted-browser-schema-fix-lease-request.json",
+    "bytes": 4272,
+    "sha256": "11c0d0e27f3f39adb75812d6409f384e30531c357b08d3f4c750cd2eff0052b6",
+    "jsonValid": true
+  },
+  "pathLock": {
+    "branch": "codex/calendar-fable5-completion-20260821",
+    "soleWritablePath": ".github/workflows/calendar-public-browser-preflight-p0.yml",
+    "commitLimit": 1,
+    "pushLimit": 1,
+    "hostedRunLimit": 1,
+    "force": false,
+    "retryAllowed": false,
+    "dispatchAllowed": false
+  },
+  "execution": {
+    "exactLiteralRefspec": "7a3fb59ab59dcfc9868feb7a030dd85093a168cf:refs/heads/codex/calendar-fable5-completion-20260821",
+    "exactPushCommand": "git push origin 7a3fb59ab59dcfc9868feb7a030dd85093a168cf:refs/heads/codex/calendar-fable5-completion-20260821",
+    "origin": "https://calendar-testnet.43.153.202.237.sslip.io",
+    "expectedSource": "7db160aa0bd589097e63190a260a343aafe4854c",
+    "versionSchemaPath": "build.commit",
+    "secrets": false,
+    "inputs": false,
+    "dynamicUrl": false,
+    "requiredEvidence": [
+      "raw source-bound resources with exact build.commit",
+      "visible default-English Calendar UI",
+      "truthful no-provider reset",
+      "toast visible then fully cleared",
+      "late EIP-6963 discovery using eth_accounts and eth_chainId only",
+      "stable exact URL, one tab, no blank page and console/page errors zero",
+      "isolated hosted artifact"
+    ]
+  },
+  "forbidden": [
+    "production, deployment, alias, DNS or service mutation",
+    "product source or UI mutation",
+    "any path other than the sole workflow path",
+    "retry, workflow_dispatch, secrets, inputs or dynamic URL",
+    "eth_requestAccounts, approve/reject, sign, EIP-712, transaction or private key"
+  ],
+  "terminalRules": {
+    "success": "CONSUMED_RELEASED_SUCCESS_CALENDAR_DIRECT_HOSTED_PUBLIC_BROWSER_RECOVERY_PREFLIGHT",
+    "failure": "CONSUMED_RELEASED_FAILED_CLOSED_CALENDAR_PUBLIC_HOSTED_BROWSER_SCHEMA_FIX_PREFLIGHT",
+    "requiredReturn": "exact remote readback, unique run/job/conclusion, artifact id/bytes/digest, direct evidence flags and terminal truth before expiry"
+  },
+  "terminalEvidence": {
+    "releasedAt": "2026-08-22T16:37:36Z",
+    "pushCount": 1,
+    "retryCount": 0,
+    "remoteHead": "7a3fb59ab59dcfc9868feb7a030dd85093a168cf",
+    "remoteTree": "01fa577b292a4b395eb10d9b80722f30cdf42ac0",
+    "remoteParent": "306dc4196bd025e0a60636ad5a5f8ae635bf5732",
+    "workflowBlob": "2720d63289531217be3e65013d8e7ec7bf97ffd7",
+    "runId": 32584663593,
+    "jobId": 97059127582,
+    "attempt": 1,
+    "conclusion": "cancelled",
+    "timeout": "10m0s",
+    "artifactId": 9478844331,
+    "artifactName": "calendar-public-browser-preflight-p0",
+    "artifactBytes": 36287,
+    "artifactZipSha256": "36377be8eef415a72bb7164ca5f66db751276c8a17d9d5a1daa1c14f42a63904",
+    "artifactZipIntegrity": "PASS",
+    "rawResources": {
+      "root": {"http":200,"bytes":15834,"sha256":"f5268942d012a0960446b396de5cb1297187f18480decd5847bf8de1e851ab4"},
+      "appJs": {"http":200,"bytes":73766,"sha256":"d45a4d4bafd8855a42f012cde66acb0e556d076ba7aae290625c7fd162d925dd"},
+      "walletConnectionJs": {"http":200,"bytes":11185,"sha256":"dcd4f04002a3c304fccf39aa79906861aba275ec144a27444c5dbcd99188df2a"},
+      "toastJs": {"http":200,"bytes":1415,"sha256":"141082f6dc4706b19d10d307db241f4f5bb07fdb701758650858f78e0ea58948"},
+      "serviceWorker": {"http":200,"bytes":1313,"sha256":"ceed91c3c01dd119b312af53e858d9b76e6860c5edad3d51f5b2a3d3044e2f41"},
+      "health": {"http":200,"bytes":215,"sha256":"be9b3affccdffc5275d693ba3de611d380f35a34f5a21e20f3858d3a8fd76d98","requestId":"cal_a1c70b47e16bc8d30f3758f95d397467"},
+      "version": {"http":200,"bytes":279,"sha256":"69befbd7caadc5709b5647670608bdb9bf8178be1c053d5f6614474c27c57d38","requestId":"cal_5c0b5bfb7dcc8c078f2d8f251c3fc618","buildCommit":"7db160aa0bd589097e63190a260a343aafe4854c"}
+    },
+    "failure": "NO_PROVIDER_CONSOLE_RESOURCE_401_THEN_CHROMIUM_LEFT_OPEN_UNTIL_JOB_TIMEOUT",
+    "chromiumLaunched": true,
+    "browserObserveReturned": false,
+    "defaultEnglishVisible": false,
+    "noProviderEvidence": false,
+    "toastLifecycleEvidence": false,
+    "lateProviderEvidence": false,
+    "urlTabConsoleEvidence": false,
+    "consoleZero": false,
+    "productionMutation": false,
+    "accountApproved": false,
+    "signatureExecuted": false,
+    "transactionExecuted": false,
+    "productComplete": false
+  },
+  "truthBeforeExecution": {
+    "directHostedBrowserEvidence": false,
+    "installedProvider": false,
+    "accountApproved": false,
+    "signatureExecuted": false,
+    "transactionExecuted": false,
+    "productComplete": false
+  }
+}

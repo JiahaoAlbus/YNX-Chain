@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-070",
+  "decision": "CONSUMED_RELEASED_FAILED_CLOSED_TRANSPORT",
+  "releasedAt": "2026-08-20T22:01:00Z",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-registry-v3-dda13e65-20260820T214557Z",
+  "leaseReusable": false,
+  "ownerEvidence": {
+    "commit": "9e0b8d800e83f14c6c31135b54857b90ed5c0b73",
+    "tree": "a836393f1d3c3c813e4164360c87a6c727356b05",
+    "path": "release/integration/wallet-auth-p0070-failed-closed-transport-evidence-20260821.json",
+    "sha256": "33c3cda91223cbf8b4487d2358c8b4240f443626093a5dd012208eb20ec2484c"
+  },
+  "failure": {
+    "phase": "OFFLINE_ARTIFACT_TRANSPORT_BEFORE_REMOTE_WRITE",
+    "code": "REMOTE_PATH_NOT_FOUND",
+    "linuxTarget": "/private/tmp/p0-070-wallet-auth-source-dda13e65.tar.gz",
+    "remoteBytesWritten": 0,
+    "fallbackAttempted": false,
+    "serviceStopped": false,
+    "productionMutation": false,
+    "rollbackRequired": false
+  },
+  "failClosedReadback": {
+    "activeRelease": "/opt/ynx/wallet-auth-6cf3ef84",
+    "publicSource": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "serviceActive": true,
+    "nRestarts": 0,
+    "v2StateSha256": "343f4cbbce0aed1e3cc5894156c4480e69dfc4775e0b347c63d555bd51790d23",
+    "v1StateSha256": "ac6b6523851c37c3d8b5472179fd218bc5d839e20d5a75177dcd2ac9494ea4ba",
+    "sharedStateSha256": "ba386fb9e474ea0886c2e41184db7fac3fcf6aea6dd02f5fe47122a62d3a8c9e",
+    "registrySha256": "d2826eb419abca4444ccb50d79537fa7f6a3643948d82ed9b52914b7169c107b"
+  },
+  "boundaries": {
+    "heavyOwnerAfterRelease": null,
+    "registryV3Public": false,
+    "productsMigratedV2": 0,
+    "productsRequired": 12,
+    "computerControlVerified": false,
+    "integrated": false,
+    "nonreusableLeases": ["P0-039", "P0-050", "P0-054", "P0-070"]
+  }
+}

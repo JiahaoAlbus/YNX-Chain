@@ -1,0 +1,13 @@
+{
+  "schemaVersion":"1.0.0",
+  "campaignId":"P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId":"P0-012",
+  "checkedAt":"2026-08-20T10:44:07Z",
+  "candidate":{"commit":"ea0e068becd9","fullCommit":"ea0e068becd9103f5f0a2a6c3a0d20ab7932d006","branch":"codex/p0-faucet-runtime-20260820","pr":"https://github.com/JiahaoAlbus/YNX-Chain/pull/108","sourceState":"clean and remote branch matched; audit now emits the stable release-manifest evidence keys consumed by the verifier"},
+  "publicObservation":{"url":"https://faucet.ynxweb4.com","health":{"httpStatus":200,"deployedSourceCommit":"8fe48738f309c469bd7a16e31fbfe9e106d7de3c","unsafeTopologyObserved":true},"version":{"httpStatus":404}},
+  "candidatePackage":{"dryRun":"passed without remote mutation","releaseId":"ynx-chain-ea0e068becd9","archive":"tmp/deploy/ynx-chain-ea0e068becd9.tar.gz","sha256":"da7b13dd03163c238d2e57c2cde8dda99846a713f9f576d88e61f86cca1f3b95","releaseManifestCheck":"passed","releaseManifestEvidenceSelfTest":"passed"},
+  "deploymentGate":{"status":"BLOCKED_FAIL_CLOSED","preconditions":["strict SSH host-key audit passed for all four declared nodes","four-node recovery archives are complete and integrity-checked","candidate source exists on its remote branch","candidate package dry-run and release-manifest check passed without remote mutation"],"blockers":["candidate-bound release-manifest evidence is absent from the active runtime","remote smoke expected candidate ea0e068becd9 but public RPC identifies a986a30c5a4ed8cfd66f7f08dd2d6f032b1cfdc8","three follower nodes are materially behind the primary and report replication response exceeds 268435456 bytes","remote smoke does not write valid remote evidence while identity mismatch and follower convergence failure remain"]},
+  "claimBoundary":{"deployed":false,"publicVerified":false,"walletFaucetWorks":false,"endpointManifestRevisionAllowed":false},
+  "nextAction":"Place the immutable candidate release manifest through the normal protected deployment workflow; run remote smoke again; only then let deploy-readiness-gate authorize remote mutation.",
+  "rollback":"No remote mutation was performed in this check. If a later deployment begins, use its recorded pre-deploy backup and the normal rollback path."
+}

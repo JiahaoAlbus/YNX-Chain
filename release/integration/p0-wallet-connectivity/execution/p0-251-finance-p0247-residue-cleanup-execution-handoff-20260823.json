@@ -1,0 +1,86 @@
+{
+  "schemaVersion": "1.0.0",
+  "taskId": "P0-251",
+  "leaseId": "p0251-finance-p0247-cleanup-20260823T100000Z",
+  "status": "CONSUMED_NONREUSABLE_FAILED_CLOSED_LITERAL_TRANSPORT_PRINTF_USAGE",
+  "lease": {
+    "path": "release/integration/p0-wallet-connectivity/execution/p0-251-finance-p0247-residue-cleanup-placement-single-use-lease-20260823.json",
+    "bytes": 7094,
+    "sha256": "d5f83548510619823edc70748cc321e08f74cde44ee7f522f24ed384a0b58aed"
+  },
+  "carrier": {
+    "localPath": "/tmp/ynx-finance-p0251-cleanup-placement.carrier",
+    "format": "YNX-FINANCE-P0251-CLEANUP-PLACEMENT-1",
+    "bytes": 18537,
+    "sha256": "b479dca672dbf8de2a4dbf88abec325c625ddcc0fe6b716520ae88fe99925266",
+    "frameOrder": ["executor", "lease"],
+    "executorBytes": 6642,
+    "executorSha256": "d816d438dbad52b43c448ba925cade26ff609da1ee30cbfff32327054e0ea7d9",
+    "leaseBytes": 7094,
+    "leaseSha256": "d5f83548510619823edc70748cc321e08f74cde44ee7f522f24ed384a0b58aed"
+  },
+  "bootstrap": {
+    "ownerPath": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance/apps/finance/scripts/finance-p0251-cleanup-placement-bootstrap.sh",
+    "blob": "71091df825e496a7b65a70e232d42697c88fffa9",
+    "bytes": 4506,
+    "sha256": "5bf73c6da921097b4fef5601b378faabc0be417c44e91bc38ce1e75cc2a03903",
+    "base64Sha256": "e45c75fb9308acd070b4e12a1410af17353a0e7109623e55ae282deeeca0f156",
+    "derivation": "base64 < ownerPath | tr -d newline; decoded bytes must match bootstrap bytes and SHA-256 before SSH"
+  },
+  "literalRemoteArgv": [
+    "/usr/bin/ssh",
+    "-i",
+    "/Users/huangjiahao/Downloads/Huang.pem",
+    "-o",
+    "IdentitiesOnly=yes",
+    "-o",
+    "BatchMode=yes",
+    "-o",
+    "StrictHostKeyChecking=yes",
+    "-o",
+    "UserKnownHostsFile=/Users/huangjiahao/.ssh/known_hosts",
+    "-o",
+    "ConnectTimeout=10",
+    "-o",
+    "ConnectionAttempts=1",
+    "ubuntu@43.153.202.237",
+    "sudo",
+    "-n",
+    "/bin/bash",
+    "-c",
+    "printf %s \"$1\" | base64 -d | /bin/bash -s -- \"${@:2}\"",
+    "finance-p0251-cleanup-bootstrap",
+    "<exact-base64-derived-from-frozen-bootstrap>",
+    "p0251-finance-p0247-cleanup-20260823T100000Z",
+    "/opt/ynx/leases/finance",
+    "64770:4594822:0:0:750:2:4096:directory",
+    "/opt/ynx/leases/finance/p0251-finance-p0247-cleanup-20260823T100000Z.executor.sh",
+    "/opt/ynx/leases/finance/p0251-finance-p0247-cleanup-20260823T100000Z.json",
+    "d816d438dbad52b43c448ba925cade26ff609da1ee30cbfff32327054e0ea7d9",
+    "d5f83548510619823edc70748cc321e08f74cde44ee7f522f24ed384a0b58aed",
+    "b479dca672dbf8de2a4dbf88abec325c625ddcc0fe6b716520ae88fe99925266"
+  ],
+  "stdin": {
+    "path": "/tmp/ynx-finance-p0251-cleanup-placement.carrier",
+    "mustMatchBytesAndSha256BeforeExecution": true,
+    "localRedirectionOnly": true
+  },
+  "executionCount": 1,
+  "retryAllowed": false,
+  "terminal": {
+    "releasedAt": "2026-08-23T10:12:04Z",
+    "sshExitStatus": 0,
+    "stdoutReceiptPresent": false,
+    "stderrExact": "printf: usage: printf [-v var] format [arguments]\n",
+    "remoteStateKnown": false,
+    "furtherExecutionAuthorized": false,
+    "requiredNextStep": "wholly-new read-only remote-state inspection lease"
+  },
+  "terminalEvidenceRequired": [
+    "bootstrap and cleanup exit status plus complete stdout/stderr bytes and SHA-256",
+    "placement executor/lease path, tuple, bytes and SHA-256 receipts",
+    "cleanup=P0247_RESIDUES_REMOVED or the exact fail-closed terminal boundary",
+    "direct post-read of both residue paths, placement files, current/env/unit/Caddy/service and health/version",
+    "no deployment, rollback, restart, account, signing, typed-data or transaction"
+  ]
+}

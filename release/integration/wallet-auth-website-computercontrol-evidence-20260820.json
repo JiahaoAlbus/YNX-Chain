@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-WALLET-AUTH-WEBSITE-COMPUTERCONTROL-20260820T145755Z",
+  "capturedAt": "2026-08-20T14:57:55Z",
+  "owner": "wallet-protocol",
+  "readOnly": true,
+  "tool": "ComputerControl",
+  "application": "Google Chrome",
+  "url": "https://ynxweb4.com/docs",
+  "screenshot": {
+    "path": "release/integration/evidence/wallet-auth-website-computercontrol-20260820T145755Z.jpeg",
+    "bytes": 152180,
+    "sha256": "6e473de5ea76b57f99bd3e11d47f1fe5806cee66c25698739414c10399a79078"
+  },
+  "visibleWalletAuthCard": {
+    "heading": "A public Wallet/Auth service record, with its limits shown",
+    "runtimeSourceShown": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
+    "installedWalletClientVerifiedShown": false,
+    "standardConnectionAccountSignSendOrTransactionVerifiedShown": false,
+    "centralIntegrationShown": false,
+    "aggregatePublicReadinessShown": false,
+    "productionSigningShown": false,
+    "storeReleaseShown": false
+  },
+  "comparison": {
+    "currentPublicWalletAuthVersionSource": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "visibleDocsRuntimeSourceMatchesCurrentPublicVersion": false,
+    "status": "WEBSITE_VISIBLE_RECORD_STALE",
+    "ownerAction": "Website owner must update the visible docs card from the latest authoritative website main without overwriting unrelated Website owner work."
+  },
+  "truth": {
+    "computerControlChannelAvailable": true,
+    "websiteWalletAuthPublicationCardVisible": true,
+    "computerControlProductSessionFlowVerified": false,
+    "installedWalletDetected": false,
+    "walletApprovalVerified": false,
+    "callbackVerified": false,
+    "accountVerified": false,
+    "signingVerified": false,
+    "transactionVerified": false,
+    "productMigrationImplied": false,
+    "aggregateDeployedPublic": false
+  }
+}

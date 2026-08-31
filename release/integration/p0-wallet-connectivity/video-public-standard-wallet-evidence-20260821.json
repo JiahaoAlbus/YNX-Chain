@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-121",
+  "recordedAt": "2026-08-21T06:42:19Z",
+  "source": {
+    "branch": "codex/p0-video-wallet-visible-20260821",
+    "commit": "2e516baac89278a767397b29e72eed67a97e60db",
+    "tests": "4/4 plus Node syntax checks",
+    "archiveBytes": 162648,
+    "archiveSha256": "1f29721b00c9f6407ba3d26e9964e0cc774887442efe15dad4aad6bdbdec00a6"
+  },
+  "deployment": {
+    "host": "43.153.202.237",
+    "service": "ynx-video-viewer.service",
+    "previousRelease": "/opt/ynx-video/releases/1883d406f77f94cb81171b79fe9518882ede0b16",
+    "activeRelease": "/opt/ynx-video/releases/p0121-video-wallet-2e516baa",
+    "rollbackTarget": "/opt/ynx-video/releases/1883d406f77f94cb81171b79fe9518882ede0b16",
+    "serviceActive": true,
+    "serviceRestarts": 0,
+    "onlyViewerRestarted": true
+  },
+  "publicReadback": [
+    {"url": "https://web4.ynxweb4.com/video/", "http": 200, "bytes": 3285, "sha256": "5c6aa1b9207680ff40f77df6d063571f67beff40719d727acf5d2fa0c05b591a"},
+    {"url": "https://web4.ynxweb4.com/video/app.js", "http": 200, "bytes": 11585, "sha256": "ff7d300d2c84b0580b53e05524524385914f0547f7c869cee34d7ec0b93f26c4"},
+    {"url": "https://web4.ynxweb4.com/video/wallet-connection.js", "http": 200, "bytes": 2392, "sha256": "33f5449c96f7b58286b0cc7afa070b0a115210a3c49459e0c4516cfcd72adf9e"}
+  ],
+  "computerControl": {
+    "verifiedAt": "2026-08-21T06:41:45Z",
+    "url": "https://web4.ynxweb4.com/video/?verify=2e516baa",
+    "connectButtonClicked": true,
+    "topLevelTabCreated": false,
+    "pageUrlPreserved": true,
+    "customSchemeNavigation": false,
+    "walletDownloadVisible": true,
+    "metaMaskInstallVisible": true,
+    "guestPlaybackPreserved": true,
+    "screenshotBytes": 85370,
+    "screenshotSha256": "33f847cdc61b95eb0f6c6e46f10746a1e344eb729107708df3432106ff7ccbc9",
+    "note": "Chrome had no supported injected provider. This proves the public no-provider recovery flow only. Chrome translation rendered some labels in Chinese; that is not recorded as source locale evidence."
+  },
+  "truth": {
+    "publicStandardWalletEntryDeployed": true,
+    "browserFallbackVerified": true,
+    "installedWalletVerified": false,
+    "accountApproved": false,
+    "signatureVerified": false,
+    "transactionVerified": false,
+    "productSessionV2": false,
+    "aggregateEcosystemFixed": false
+  }
+}

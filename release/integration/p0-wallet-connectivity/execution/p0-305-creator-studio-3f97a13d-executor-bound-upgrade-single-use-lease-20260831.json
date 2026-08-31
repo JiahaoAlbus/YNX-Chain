@@ -1,0 +1,190 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-305",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-creator-studio-3f97a13d-upgrade-20260831T030455Z",
+  "owner": "creator-studio-deploy-owner",
+  "executor": "release-control-plane",
+  "status": "EMERGENCY_BLOCKED_CREATOR_3F97A13D_EXACT_ROLLBACK_REQUIRED_NO_FURTHER_ACTION",
+  "issuedAt": "2026-08-31T03:04:55Z",
+  "expiresAt": "2026-08-31T03:34:55Z",
+  "singleUse": true,
+  "reusable": false,
+  "consumedAt": "2026-08-31T03:10:06Z",
+  "releasedAt": null,
+  "executionAuthorized": false,
+  "productionMutationAllowed": false,
+  "ownerAuthority": {
+    "branch": "codex/p0-creator-studio-subpath-i18n-20260831",
+    "head": "cce7e4016a6f1fd9413799d42c06578ed7707357",
+    "tree": "72d839f9204f34e8370ad218185e8ac104401729",
+    "parent": "7b441f260d32f9a118e40f8050cb39247d9ea0de",
+    "requestPath": "apps/creator-studio/evidence/creator-studio-3f97a13d-executor-bound-successor-02-single-use-lease-request-20260831.json",
+    "requestBlob": "d3ddb84ef8dc494405bd1d76a8927f6a436a8af3",
+    "requestBytes": 31371,
+    "requestSha256": "9fc4bd86d7e599dc65f8420ebadc39048cc1d79d0920df53c1195050556c7dba",
+    "remoteExact": true,
+    "clean": true
+  },
+  "objects": {
+    "executor": {
+      "bytes": 16279,
+      "sha256": "05f5372e368f74512f7142d70d6160d28ca5e9a7dbab6f555076f1af2874e1b9"
+    },
+    "transport": {
+      "path": "apps/creator-studio/release-upgrade-transport-3f97a13d.cjs",
+      "blob": "528216e6e7579678183bef974f710675985ad41e",
+      "bytes": 7871,
+      "sha256": "3585e76459232781dfd6a9bbfe056d09434ec2f91f8245899b51a6de2757663f",
+      "base64Bytes": 10496,
+      "base64Sha256": "4fa6dd63e9bd7a1cadcb15a8f4c5504fc932ddcb69aea8103f69f7d0ee09aac9"
+    },
+    "carrier": {
+      "path": "apps/creator-studio/release-candidates/candidate-3f97a13d/control-plane-carrier.json",
+      "bytes": 446896,
+      "sha256": "947d0055b4080f09870fb6c00c491339be72288fe3b4f94b65f167031b413850"
+    },
+    "candidate": {
+      "bytes": 159232,
+      "sha256": "b99c791393bba7b9a0780fe13ac4c61104754a2766d12fb3990af15b447aec89",
+      "manifestSha256": "fcd0f3346de18e51580af8f7c4f040b8694f7e2ef74bb92cc1ce942e03bea624"
+    },
+    "rollbackCarrier": {
+      "bytes": 159232,
+      "sha256": "3f56aa4c3f9d87d27f7cdf19eafc0dacf1da78d83d31def2080f0162d92bdf8a",
+      "manifestSha256": "5fd27ac55d9ea70b8e15aac0565324a9ce7b18706bd75cd5b430eaa4843de86f"
+    }
+  },
+  "freshPrewrite": {
+    "observedAt": "2026-08-31T03:03:00Z",
+    "controlRoot": "ABSENT",
+    "controlStage": "ABSENT",
+    "candidateTarget": "ABSENT",
+    "candidateStage": "ABSENT",
+    "receipt": "ABSENT",
+    "receiptNext": "ABSENT",
+    "currentNext": "ABSENT",
+    "currentLstat": "64770:1483909:0:0:777:1:63:symbolic link",
+    "currentTarget": "/opt/ynx-creator-studio-wallet/releases/creator-studio-0e1a53c5",
+    "currentRelease": "64770:1483877:995:986:755:4:4096:directory",
+    "oldManifest": "64770:1483888:995:986:644:1:2299:regular file:5fd27ac55d9ea70b8e15aac0565324a9ce7b18706bd75cd5b430eaa4843de86f",
+    "oldSourceCommit": "0e1a53c5ad1fc9dc2cbfebc13c55f1f426c7e7ae",
+    "oldSourceTree": "057ee8448ee8f8586cf3235dd043644060795301",
+    "unit": "64770:131976:0:0:644:1:540:regular file",
+    "unitSha256": "06a55f91bf5530952c347db146daa827510cc72f161d999943da7d5737b8c006",
+    "creatorService": "loaded:active:running:2201728:0",
+    "apiService": "loaded:active:running:3108210:0",
+    "viewerService": "loaded:active:running:2159536:0",
+    "listeners": {
+      "6493": 3108210,
+      "6494": 2159536,
+      "6495": 2201728
+    },
+    "public": {
+      "root": "200:14088:b37f78205f2c5443b2103ee42e98d6ecde65238c107733088e63893a3c1de697",
+      "appJs": "200:35660:77e7c42006e3be36c7af717e5e8b2a3cd847c3652dcadb1731c259aee5b01af5",
+      "manifest": "200:2299:5fd27ac55d9ea70b8e15aac0565324a9ce7b18706bd75cd5b430eaa4843de86f",
+      "i18nJs": "200:10755:451016ca4e3a16eeade02154397eabf9fabcc57a50fe948ec954b63e5ee12abe",
+      "catalog": "200:14237:4c86e3e1cdeac6d9c4570891d70bab4c3486c6a4429dd33fd1029f046ca9ecff"
+    }
+  },
+  "verification": {
+    "directCommonJsTransportFixture": "PASS",
+    "executorForwardAndRollbackFixture": "PASS",
+    "creatorCheck": "PASS_5_OF_5",
+    "substitutedPlacementRejected": true,
+    "targetAbsenceRejected": true,
+    "oldCurrentRestoredByFixture": true,
+    "newReleaseAbsentAfterFixture": true
+  },
+  "execution": {
+    "workdir": "/private/tmp/ynx-creator-subpath-i18n.PcnLN2",
+    "stdinPath": "apps/creator-studio/release-candidates/candidate-3f97a13d/control-plane-carrier.json",
+    "stdinBytes": 446896,
+    "stdinSha256": "947d0055b4080f09870fb6c00c491339be72288fe3b4f94b65f167031b413850",
+    "remoteArgvBinding": {
+      "sourceCommit": "cce7e4016a6f1fd9413799d42c06578ed7707357",
+      "requestPath": "apps/creator-studio/evidence/creator-studio-3f97a13d-executor-bound-successor-02-single-use-lease-request-20260831.json",
+      "jsonPointer": "/exactExecution/forwardRemoteArgv",
+      "requiredPrefix": [
+        "/usr/bin/sudo",
+        "-n",
+        "/usr/bin/node",
+        "-e",
+        "eval(Buffer.from(process.argv[1],\"base64\").toString(\"utf8\"))"
+      ],
+      "transportBase64Sha256": "4fa6dd63e9bd7a1cadcb15a8f4c5504fc932ddcb69aea8103f69f7d0ee09aac9",
+      "finalArgument": "place-forward"
+    },
+    "ssh": {
+      "host": "ubuntu@43.153.202.237",
+      "identityRef": "protected existing Central downloads/production SSH identity; never print",
+      "batchMode": true,
+      "strictHostKeyChecking": true,
+      "connectTimeoutSeconds": 10,
+      "connectionAttempts": 1
+    },
+    "attemptLimit": 1,
+    "retryAllowed": false
+  },
+  "conditionalRollback": {
+    "authorizedOnlyAfterForwardSucceededAndExternalValidationFailed": true,
+    "requiresExactForwardReceiptAndUnchangedCandidateState": true,
+    "remoteArgvJsonPointer": "/exactExecution/conditionalRollbackRemoteArgv",
+    "transportBase64Sha256": "4fa6dd63e9bd7a1cadcb15a8f4c5504fc932ddcb69aea8103f69f7d0ee09aac9",
+    "attemptLimit": 1,
+    "retryOfForwardForbidden": true
+  },
+  "terminalRules": {
+    "success": "CONSUMED_RELEASED_SUCCESS_CREATOR_3F97A13D_SOURCE_BOUND_PUBLIC_NON_SENSITIVE",
+    "cleanedFailure": "CONSUMED_RELEASED_FAILED_CLOSED_CREATOR_3F97A13D_OLD_RUNTIME_RESTORED_NEW_PATHS_ABSENT",
+    "emergency": "EMERGENCY_BLOCKED_CREATOR_3F97A13D_EXACT_ROLLBACK_REQUIRED_NO_FURTHER_ACTION"
+  },
+  "terminalEvidence": {
+    "forwardAttempts": 1,
+    "retryAttempts": 0,
+    "conditionalRollbackAttempts": 0,
+    "producerExitStatus": 1,
+    "stdoutBytes": 0,
+    "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderrBytes": 11065,
+    "stderrSha256": "0bbfcd1101b84e74774bb6cbd54adbba63a5b8c73930dc0c21326a1dc4161075",
+    "localEnvelopeBytes": 11761,
+    "localEnvelopeSha256": "736c31fa0449a51df5644e961b6175d8bfcec8543d2227b4f26114c118760fde",
+    "executorReachedSwitched": true,
+    "terminalFailureClass": "UNEXPECTED_END_OF_JSON_INPUT",
+    "automaticRollbackAttempted": true,
+    "automaticRollbackSucceeded": false,
+    "automaticRollbackFailureClass": "UNEXPECTED_END_OF_JSON_INPUT",
+    "remoteStateKnown": false,
+    "furtherForwardOrConditionalRollbackAuthorized": false
+  },
+  "locks": [
+    "heavy:creator-studio-deploy-owner",
+    "host:43.153.202.237:creator-studio-3f97-upgrade",
+    "service:ynx-creator-studio-wallet.service",
+    "port:127.0.0.1:6495",
+    "path:/opt/ynx-release-control-plane/creator-studio-3f97a13d",
+    "path:/opt/ynx-creator-studio-wallet",
+    "public:https://web4.ynxweb4.com/video/studio/**"
+  ],
+  "forbidden": [
+    "retry",
+    "mutate Caddy",
+    "mutate API6493 or Viewer6494",
+    "mutate shared /opt/ynx-video/current",
+    "Wallet account request",
+    "signature",
+    "typed data",
+    "transaction"
+  ],
+  "truthBoundary": {
+    "leaseIssued": true,
+    "executionStarted": true,
+    "sourceBoundPublic": false,
+    "account": false,
+    "signature": false,
+    "transaction": false,
+    "productComplete": false
+  }
+}

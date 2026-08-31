@@ -1,0 +1,24 @@
+{
+  "schemaVersion":"1.0.0",
+  "campaignId":"P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId":"P0-012",
+  "observedAt":"2026-08-20T11:58:00Z",
+  "method":"Authenticated SSH read-only localhost /status plus release-manifest existence checks on all declared nodes. No service or configuration was changed.",
+  "expectedCandidate":{"commit":"ea0e068becd9","release":"ynx-chain-ea0e068becd9"},
+  "observedRuntime":{"commit":"a986a30c5a4ed8cfd66f7f08dd2d6f032b1cfdc8","release":"ynx-chain-dex-a986a30c","chainId":6423},
+  "nodes":[
+    {"node":"primary","role":"authoritative-producer","height":1127543,"catchingUp":false,"releaseManifest":"absent"},
+    {"node":"singapore","role":"authoritative-follower","height":991257,"catchingUp":true,"releaseManifest":"absent","replication":"syncing","consecutiveFailures":35557,"lastError":"replication response exceeds 268435456 bytes"},
+    {"node":"silicon-valley","role":"authoritative-follower","height":991183,"catchingUp":true,"releaseManifest":"absent","replication":"syncing","consecutiveFailures":2837,"lastError":"replication response exceeds 268435456 bytes"},
+    {"node":"seoul","role":"authoritative-follower","height":991175,"catchingUp":true,"releaseManifest":"absent","replication":"syncing","consecutiveFailures":3945,"lastError":"replication response exceeds 268435456 bytes"}
+  ],
+  "deploymentDecision":"BLOCKED_FAIL_CLOSED",
+  "blockers":[
+    "No active-node release manifest binds the running source to an immutable release record.",
+    "The active runtime is not the Faucet candidate ea0e068becd9.",
+    "All three followers are materially behind the primary and report repeated replication failures caused by an oversized response."
+  ],
+  "requiredRecovery":"Repair and verify bounded follower replication before any coordinated release; generate and verify a candidate-bound release manifest through the protected deployment workflow; then rerun read-only source audit and remote smoke.",
+  "publicVerified":false,
+  "serviceMutationPerformed":false
+}

@@ -1,0 +1,200 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-228",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-phase1-placement-bootstrap-20260822T234000Z",
+  "owner": "financial-apps",
+  "executor": "finance-phase1-bootstrap",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_PHASE1_RECEIPT_FINAL_TUPLE_NLINK_MISMATCH",
+  "issuedAt": "2026-08-22T23:40:00Z",
+  "expiresAt": "2026-08-23T00:10:00Z",
+  "releasedAt": "2026-08-22T23:45:43Z",
+  "singleUse": true,
+  "reusable": false,
+  "executionAuthorized": false,
+  "productionMutationAllowed": false,
+  "scope": "Finance-only Phase 1 dynamic-tuple hierarchy and empty-carrier bootstrap; no object, archive, environment or production transfer",
+  "ownerAuthority": {
+    "branch": "codex/p0-finance-wallet-connectivity-20260820",
+    "remoteHead": "4f50537a98791aa5c72211e6533da058a22b6522",
+    "remoteTree": "11295f590cc3c2fd73e7cfdf4dcee34b8c7628cd",
+    "parent": "63eb21819e1e78dba5e6a4f4ea7d76ad51b28647",
+    "subject": "fix(finance): bind phase one intermediate parents",
+    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
+    "worktreeHeadExactAndClean": true
+  },
+  "request": {
+    "markdownPath": "apps/finance/FINANCE_CANDIDATE_ENV_PREPARATION_LEASE_REQUEST_20260823.md",
+    "markdownBlob": "034090624f90d28029bee92c0fe971e70b6ae121",
+    "markdownBytes": 2720,
+    "markdownSha256": "3eee945bd5e32601bb5db7642b212909d57f64c3c84c259a1927cc303efcfb39",
+    "jsonPath": "apps/finance/evidence/finance-candidate-env-preparation-lease-request-20260823.json",
+    "jsonBlob": "de8f78a82df38f14fc92d973c096476ade5b9d20",
+    "jsonBytes": 2148,
+    "jsonSha256": "42097a9722fb273ec943057b6993464cb3d86437c0c5d8c8d901ed7785b63851",
+    "jsonValid": true
+  },
+  "commandObjects": {
+    "bootstrap": {
+      "path": "apps/finance/scripts/finance-candidate-env-placement-bootstrap.sh",
+      "blob": "6b5d861eea245754a628c906c6448d80b3d4b92c",
+      "bytes": 3101,
+      "sha256": "afe97c3abec3ba01e0a9b3d0feee46096a603427dc80c8f7da59a24368108a96",
+      "bashSyntax": "PASS"
+    },
+    "actualShellFixture": {
+      "path": "apps/finance/scripts/test-finance-production-fixture.mjs",
+      "blob": "d216e42d06449c611a68c1d0d5330dee2a3d50e4",
+      "bytes": 21499,
+      "sha256": "11940f402a1a77fb62bfc70d4dd29699c05ae1b694baa3a469932e42eb8d2a43",
+      "independentRerun": "PASS"
+    }
+  },
+  "host": {
+    "target": "ubuntu@43.153.202.237",
+    "architecture": "x86_64",
+    "identityFile": "/Users/huangjiahao/Downloads/Huang.pem",
+    "identityFileMode": "0600",
+    "knownHosts": "/Users/huangjiahao/.ssh/known_hosts",
+    "hostKeyFingerprint": "SHA256:7wrOak1OZoD6oDAr0e3En+UD4fs8QnAM1n0Jvwi6Ha8",
+    "sudo": "sudo -n",
+    "remoteScriptPlacement": false
+  },
+  "run": {
+    "runId": "p0228-finance-phase1-20260822T234100Z",
+    "signedRoot": "/opt/ynx",
+    "signedRootTuple": "64770:1312502:0:0:755:47:4096:directory",
+    "initiallyAbsent": [
+      "/opt/ynx/stage",
+      "/opt/ynx/stage/finance",
+      "/opt/ynx/leases",
+      "/opt/ynx/leases/finance-preparation",
+      "/opt/ynx/stage/finance/p0228-finance-phase1-20260822T234100Z"
+    ],
+    "createdModes": {
+      "/opt/ynx/stage": "0750",
+      "/opt/ynx/stage/finance": "0750",
+      "/opt/ynx/leases": "0750",
+      "/opt/ynx/leases/finance-preparation": "0750",
+      "/opt/ynx/stage/finance/p0228-finance-phase1-20260822T234100Z": "0700"
+    },
+    "localReceipt": "/tmp/ynx-finance-p0228-phase1-receipt-20260822T234100Z.txt",
+    "localReceiptInitiallyAbsent": true
+  },
+  "execution": {
+    "attemptLimit": 1,
+    "retryAllowed": false,
+    "executable": "/bin/bash",
+    "argv": [
+      "/bin/bash",
+      "-o",
+      "pipefail",
+      "-c",
+      "ssh -i /Users/huangjiahao/Downloads/Huang.pem -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=/Users/huangjiahao/.ssh/known_hosts -o ConnectTimeout=10 ubuntu@43.153.202.237 'sudo -n /bin/bash -s -- p0228-finance-phase1-20260822T234100Z 64770:1312502:0:0:755:47:4096:directory' < '/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance/apps/finance/scripts/finance-candidate-env-placement-bootstrap.sh' | tee '/tmp/ynx-finance-p0228-phase1-receipt-20260822T234100Z.txt'"
+    ],
+    "orderedPreconditions": [
+      "fresh-read this exact unexpired ACTIVE_SINGLE_USE lease, Heavy owner financial-apps and every P0-228 lock",
+      "require Finance remote and clean worktree exact 4f50537a98791aa5c72211e6533da058a22b6522/tree 11295f590cc3c2fd73e7cfdf4dcee34b8c7628cd",
+      "require identity file mode 0600, strict known host and x86_64",
+      "require /opt/ynx exact signed tuple and all five run paths absent without symlinks",
+      "require local receipt path absent",
+      "execute the exact argv once with bootstrap bytes supplied only over stdin and no remote script placement",
+      "do not retry or execute any Phase 2 action"
+    ]
+  },
+  "requiredReceipt": {
+    "secretSafe": true,
+    "mustInclude": [
+      "phase=1",
+      "exact root path and signed root tuple",
+      "stage parent, stage leaf, leases parent, leases leaf and carrier paths",
+      "dynamic device/inode/uid/gid/mode/nlink/bytes/type tuple for every created directory",
+      "carrierEmpty=true"
+    ],
+    "successReadback": "all five paths remain exact directories with emitted tuples and carrier remains empty",
+    "failureReadback": "all created paths are absent unless an unowned substitution or sibling forces preservation and explicit blocked evidence"
+  },
+  "cleanupContract": {
+    "onFailure": "reverse-order removal only of captured tuple-matching empty created carrier, leaves and intermediate parents",
+    "refuseSymlinkOrSubstitution": true,
+    "preserveUnownedSiblings": true,
+    "noBroadRemoval": true
+  },
+  "locks": [
+    "heavy:financial-apps",
+    "host:43.153.202.237:finance-phase1-bootstrap",
+    "path:/opt/ynx/stage",
+    "path:/opt/ynx/stage/finance",
+    "path:/opt/ynx/leases",
+    "path:/opt/ynx/leases/finance-preparation",
+    "path:/opt/ynx/stage/finance/p0228-finance-phase1-20260822T234100Z",
+    "local-receipt:/tmp/ynx-finance-p0228-phase1-receipt-20260822T234100Z.txt"
+  ],
+  "forbidden": [
+    "remote placement of bootstrap, request, lease, generator, preparation executor, archive, candidate environment or other object",
+    "candidate environment generation or secret environment output",
+    "service, current symlink, unit, Caddy, release, state or public-route mutation",
+    "systemctl, non-loopback runtime, deployment or product-completion claim",
+    "provider selection, eth_requestAccounts, account approval/reject, signing, typed data or transaction"
+  ],
+  "terminalEvidence": {
+    "classification": "FAILED_CLOSED_RECEIPT_TUPLES_DO_NOT_EQUAL_FINAL_SETTLED_TUPLES",
+    "observedAt": "2026-08-22T23:45:43Z",
+    "counts": {
+      "bootstrapExecution": 1,
+      "retry": 0,
+      "remoteScriptPlacement": 0,
+      "archiveOrObjectTransfer": 0,
+      "candidateEnvironmentGeneration": 0,
+      "productionMutation": 0
+    },
+    "execution": {
+      "exitStatus": 0,
+      "localReceipt": "/tmp/ynx-finance-p0228-phase1-receipt-20260822T234100Z.txt",
+      "localReceiptBytes": 553,
+      "localReceiptSha256": "9e73bc473eb3fa4c35ab55216e64830a809e3339eed3c9c83af15637af5f6cc0"
+    },
+    "creationTuples": {
+      "/opt/ynx/stage": "64770:3450040:0:0:750:2:4096:directory",
+      "/opt/ynx/stage/finance": "64770:3450041:0:0:750:2:4096:directory",
+      "/opt/ynx/leases": "64770:3450042:0:0:750:2:4096:directory",
+      "/opt/ynx/leases/finance-preparation": "64770:4594820:0:0:750:2:4096:directory",
+      "/opt/ynx/stage/finance/p0228-finance-phase1-20260822T234100Z": "64770:4594821:0:0:700:2:4096:directory"
+    },
+    "finalSettledTuples": {
+      "/opt/ynx/stage": "64770:3450040:0:0:750:3:4096:directory",
+      "/opt/ynx/stage/finance": "64770:3450041:0:0:750:3:4096:directory",
+      "/opt/ynx/leases": "64770:3450042:0:0:750:3:4096:directory",
+      "/opt/ynx/leases/finance-preparation": "64770:4594820:0:0:750:2:4096:directory",
+      "/opt/ynx/stage/finance/p0228-finance-phase1-20260822T234100Z": "64770:4594821:0:0:700:2:4096:directory"
+    },
+    "mismatch": {
+      "fields": ["nlink"],
+      "paths": ["/opt/ynx/stage", "/opt/ynx/stage/finance", "/opt/ynx/leases"],
+      "deviceInodeStable": true,
+      "expectedCause": "child directory link settlement",
+      "leaseRequiredExactEmittedTupleReadback": true,
+      "successClaimAccepted": false
+    },
+    "finalState": {
+      "carrierEmpty": true,
+      "directoriesRetainedWithoutFurtherMutation": true,
+      "financeService": {
+        "activeState": "active",
+        "subState": "running",
+        "mainPid": 877083,
+        "nRestarts": 0
+      },
+      "productionUntouched": true,
+      "sensitiveActions": false
+    },
+    "futureBlocker": "A wholly new read-only Finance settled-tuple acceptance request must bind the five final tuples exactly and explicitly supersede the creation-time nlink values before any Phase 2 lease. No cleanup, object transfer or production action is authorized under P0-228."
+  },
+  "terminalRules": {
+    "success": "CONSUMED_RELEASED_SUCCESS_FINANCE_PHASE1_DYNAMIC_TUPLE_BOOTSTRAP_ONLY",
+    "failure": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_PHASE1_DYNAMIC_TUPLE_BOOTSTRAP",
+    "releaseHeavyAndAllLocksOnTerminal": true,
+    "requiredReturn": "exact command count, exit status, local receipt bytes/SHA, every emitted tuple, final path state, no remote object/env/production/sensitive action truth"
+  },
+  "truthBeforeExecution": {"phase1Prepared":false,"candidateEnvironmentGenerated":false,"productionMutation":false,"deployedPublic":false,"walletApproval":false,"signing":false,"transaction":false,"productComplete":false,"productsConnected":"0/12"}
+}

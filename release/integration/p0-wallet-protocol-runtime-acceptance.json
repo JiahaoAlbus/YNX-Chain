@@ -1,0 +1,228 @@
+{
+  "schemaVersion": 1,
+  "acceptanceId": "P0-WALLET-CONNECTIVITY-2026-08-origin-binding-runtime-acceptance",
+  "acceptedBy": "02-wallet-auth-central-integration",
+  "acceptedAt": "2026-08-20T09:58:40Z",
+  "authoritativeControlPlane": {
+    "branch": "codex/p0-wallet-connectivity-control-plane-20260820",
+    "baseCommit": "15d5ae2bc5278088fd2168cdbcb3746066bc851c",
+    "supersededAcceptanceCommit": "401eee474ac188fed1fc1e6089d6a0f9e1250651"
+  },
+  "decision": "ACCEPTED_FOR_CONTROLLED_RUNTIME_TRANSACTION",
+  "acceptedProtocolContract": {
+    "commit": "66003e76e804da16d472255efde50cb879055b96",
+    "pullRequest": 104,
+    "tree": "7df5dc9b1c4c158b0c13962ba68b8085e508b051",
+    "contractPath": "packages/wallet-auth/integration/p0-wallet-connectivity-candidate.json",
+    "contractBlob": "113f4c03e06fd6148b86fbaf62a494a6b2aace00"
+  },
+  "candidate": {
+    "branch": "codex/p0-wallet-protocol-integration-20260820",
+    "remoteEvidenceHead": "30ba2a0c41d7b070dec56f37e39653e21a780ead",
+    "remoteEvidenceTree": "c57681a9417071c4af83e6284ede9619889b9153",
+    "corsSourceCommit": "b28609abab6df3ed88bb58cf04472308068eaa0c",
+    "corsSourceTree": "457c90d393cc32dfd731599bce2b28c93eb00380",
+    "originBindingSourceCommit": "5231e7509d6218bbbf25029cf73d456992cc37bd",
+    "originBindingSourceTree": "3eed0f464ae45b43b73b3cfb8780051984fea713",
+    "handoffCommit": "b9194a3c3ffa012d5dbb8b9dd8dcf421abd1f9fd",
+    "handoffBlob": "758046ba05f2f69649eef4bd8483d0d1a58454f8",
+    "publicProbeCommit": "460353c654cd6fb907c734a884d54c21806cef23",
+    "publicProbeBlob": "5475e7724442d10606aa4dc11f0133b73d49e1c",
+    "ownerScopedRoot": "packages/wallet-auth",
+    "wholeTreeMergeAccepted": false,
+    "candidateRuntimeCommit": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
+    "candidateRuntimeTree": "39ed694f72486c50175db62b7fbe4b3eb6636946",
+    "runtimeCompatibilityParent": "460353c654cd6fb907c734a884d54c21806cef23",
+    "runtimeVerifierCommit": "30ba2a0c41d7b070dec56f37e39653e21a780ead",
+    "runtimeVerifierTree": "c57681a9417071c4af83e6284ede9619889b9153"
+  },
+  "securityBoundary": {
+    "authorizationVersion": "2",
+    "registrySchemaVersion": 4,
+    "canonicalOriginRule": "exact enabled registry HTTPS origin only",
+    "boundAcross": [
+      "authorization-request",
+      "approval",
+      "challenge",
+      "digest",
+      "product-session",
+      "http-proof",
+      "introspection",
+      "revoke"
+    ],
+    "legacySessionsAuthority": false,
+    "legacyInventoryAndRevokeOnly": true,
+    "originInferenceAllowed": false,
+    "silentOriginFallbackAllowed": false
+  },
+  "integrationVerification": {
+    "exactHeadMaterialized": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
+    "dependencyMode": "isolated git archive with read-only workspace node_modules",
+    "walletAuthTestsPassed": 122,
+    "walletAuthTestsFailed": 0,
+    "packageDryRunPassed": true,
+    "packageName": "@ynx-chain/wallet-auth",
+    "packageVersion": "1.0.0",
+    "packageFileCount": 73,
+    "focusedTestsPassed": 4,
+    "diffCheckPassed": true,
+    "runtimeVerifierCommit": "30ba2a0c41d7b070dec56f37e39653e21a780ead",
+    "productionStateCompatibilityPreflightPassed": true,
+    "runtimeSourceTestsPassed": 119,
+    "publicEvidenceTestsPassed": 2,
+    "exactEvidenceHeadMaterialized": "b30775951dcea09bf6b72aeb4806f47ff81b3bef",
+    "installedClientPreflightEvidenceTestsPassed": 1,
+    "exactLatestEvidenceHeadMaterialized": "2d6c9aa354a459b224b79c11c69aab670336a41d"
+  },
+  "requiredReconciliation": {
+    "currentPublicSourceCommit": "6ed04310383ed924065d23affc71f3e4d4c29d49",
+    "mode": "MATERIALIZE_EXACT_OWNER_SUBTREE_NO_WHOLE_TREE_MERGE",
+    "runtimeMaterializationCommit": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
+    "runtimeMaterializationPath": "packages/wallet-auth",
+    "preserveCurrentNonWalletServices": true,
+    "requiredVersionSourceAfterDeploy": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
+    "deploymentRegistryPath": "release/integration/p0-wallet-protocol-deployment-registry-v4.json",
+    "deploymentRegistryBlob": "f11f73bb10943e6ae4e3ecd9f4e5bcedfb7b4701",
+    "deploymentRegistrySha256": "ae156b317b9a97bfd42397cca634021deefe10ffb009102899e24276d8721e31",
+    "instruction": "Build and deploy only the exact packages/wallet-auth subtree at 49e30d99; retain 66003e76 as the accepted behavior contract, 5231e750 as Origin Binding provenance, 30ba2a0c as the runtime acceptance verifier, and do not merge the divergent candidate repository tree into the control-plane branch."
+  },
+  "deploymentRegistry": {
+    "path": "release/integration/p0-wallet-protocol-deployment-registry-v4.json",
+    "blob": "f11f73bb10943e6ae4e3ecd9f4e5bcedfb7b4701",
+    "sha256": "ae156b317b9a97bfd42397cca634021deefe10ffb009102899e24276d8721e31",
+    "bytes": 20037,
+    "registryVersion": 2,
+    "entrySchemaVersion": 4,
+    "sourcePublicCommit": "6ed04310383ed924065d23affc71f3e4d4c29d49",
+    "sourcePublicRegistryBlob": "955caecb0a9fefef4380b24f4d71018ae5b7b7af",
+    "sourcePublicRegistrySha256": "307953c4164d957a77c89d0ab6e23d9f6c8627a2dd8fe2858190fff05ea20c68",
+    "preservePreviouslyEnabledClients": true,
+    "previouslyEnabledClients": [
+      "calendar",
+      "developer",
+      "exchange",
+      "finance",
+      "quant",
+      "shop"
+    ],
+    "previouslyEnabledClientWebOrigins": {
+      "calendar": [],
+      "developer": [],
+      "exchange": [],
+      "finance": [],
+      "quant": [],
+      "shop": []
+    },
+    "social": {
+      "schemaVersion": 4,
+      "productId": "social",
+      "productClientId": "ynx-social-v1",
+      "bundleId": "com.ynx.social",
+      "callbacks": [
+        "ynx-social://com.ynx.social"
+      ],
+      "reviewState": "approved",
+      "enabled": true,
+      "webOrigins": [
+        "https://social.ynxweb4.com"
+      ]
+    },
+    "originInferenceAllowed": false,
+    "unlistedOriginsAllowed": false
+  },
+  "currentPublicEvidence": {
+    "baseUrl": "https://wallet-auth.ynxweb4.com",
+    "observedSourceCommit": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
+    "health": {
+      "httpStatus": 200,
+      "bytes": 197,
+      "sha256": "735bd784d083318f41a3fa9d06d5fa4919ec8994266b1da2d2b3292b6d6fe542"
+    },
+    "ready": {
+      "httpStatus": 200,
+      "bytes": 195,
+      "sha256": "7217ab0b2a0357a8820b37fae59a0cf75da2086ce5cae30d2a32d64377ad60d2"
+    },
+    "version": {
+      "httpStatus": 200,
+      "bytes": 298,
+      "sha256": "20e9602e0be838b982e8ab1c2ef71933e698a71b9588638d0a3eee60f6538a05"
+    },
+    "registeredOrigin": "https://social.ynxweb4.com",
+    "registeredOriginOptionsStatus": 204,
+    "registeredOriginOptionsAccepted": true,
+    "allowOriginExact": true,
+    "allowCredentialsAbsent": true,
+    "negativeZeroMutationVerified": true,
+    "controlledRestartVerified": true,
+    "replayRejected": true,
+    "revokeVerified": true,
+    "postRevokeRejected": true,
+    "publicEvidenceCommit": "b30775951dcea09bf6b72aeb4806f47ff81b3bef",
+    "publicEvidenceBlob": "6e42677719fca8c591d77eb02548b4ab0cc7b76d"
+  },
+  "releaseTruth": {
+    "implementedCandidate": true,
+    "acceptedForControlledRuntimeTransaction": true,
+    "integratedCentral": false,
+    "deployedPublic": true,
+    "publicCorsVerified": true,
+    "publicLifecycleVerified": true,
+    "installedClientVerified": false,
+    "clientEndToEndVerified": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "aggregatePublic": false
+  },
+  "amendment": {
+    "amendmentId": "P0-003",
+    "decision": "EXECUTED_PUBLIC_RUNTIME_VERIFIED",
+    "previousRuntimeCommit": "5231e7509d6218bbbf25029cf73d456992cc37bd",
+    "acceptedRuntimeCommit": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
+    "acceptedRuntimeTree": "39ed694f72486c50175db62b7fbe4b3eb6636946",
+    "verifierCommit": "30ba2a0c41d7b070dec56f37e39653e21a780ead",
+    "verifierTree": "c57681a9417071c4af83e6284ede9619889b9153",
+    "historicalStateCompatibility": "accept both wallet-auth-v1 shapes; when accountPublicKey is present it must derive the exact account",
+    "legacyAuthority": "SESSION_RETIRED_ONLY",
+    "originInferenceAllowed": false,
+    "authorityUpgradeAllowed": false,
+    "productionStateReadOnlyBootRequiredBeforeMutation": true
+  },
+  "recordedAt": "2026-08-20T10:10:02Z",
+  "runtimeCompletion": {
+    "status": "PUBLIC_RUNTIME_VERIFIED",
+    "recordedAt": "2026-08-20T10:10:02Z",
+    "executionLeaseId": "P0-WALLET-CONNECTIVITY-2026-08-runtime-lease-20260820T095840Z",
+    "evidenceCommit": "b30775951dcea09bf6b72aeb4806f47ff81b3bef",
+    "evidenceTree": "fca71ddfe7f711f2100ea00b1cc4aeb077eec8e7",
+    "evidencePath": "packages/wallet-auth/integration/p0-wallet-protocol-public-runtime-evidence-20260820.json",
+    "evidenceBlob": "6e42677719fca8c591d77eb02548b4ab0cc7b76d",
+    "runtimeSourceCommit": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
+    "registrySha256": "ae156b317b9a97bfd42397cca634021deefe10ffb009102899e24276d8721e31",
+    "rollbackRestoredPriorSource": "6ed04310383ed924065d23affc71f3e4d4c29d49",
+    "rollbackRestoredStateSha256": "e05306a69b71e5b625f32c6713c4a72deb0a61726c812e74b0aff4ff457c4eee",
+    "finalActivationVerified": true,
+    "integratedCentral": false,
+    "installedClientVerified": false,
+    "websitePublished": false,
+    "aggregatePublic": false
+  },
+  "installedClientPreflight": {
+    "status": "PRECHECK_REJECTED_NO_ELIGIBLE_INSTALLED_CLIENT",
+    "recordedAt": "2026-08-20T10:17:05Z",
+    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-installed-client-computer-control-lease-20260820T101002Z",
+    "preflightRejectedReason": "NO_ELIGIBLE_SIGNED_INSTALLED_CLIENT",
+    "evidencePath": "release/integration/p0-wallet-protocol-installed-client-preflight-evidence.json",
+    "evidenceBlob": "8974960c4a2511bc8706311f3106a144505ace4f",
+    "clientFlowStarted": false,
+    "acceptanceComplete": false,
+    "cleanupRequired": false,
+    "cleanupState": "NOT_STARTED_NO_MUTATION",
+    "publicRuntimeRemainsVerified": true,
+    "runtimeRollbackTriggered": false,
+    "ownerEvidenceCommit": "2d6c9aa354a459b224b79c11c69aab670336a41d",
+    "ownerEvidenceTree": "edb441f1d69078bb8a7fbe58d92a66439e5af635",
+    "ownerEvidencePath": "packages/wallet-auth/integration/p0-wallet-protocol-installed-client-preflight-20260820.json",
+    "preflightComplete": false
+  }
+}

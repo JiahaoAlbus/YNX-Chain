@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "product": "pay",
+  "checkedAt": "2026-07-22T00:00:00Z",
+  "destination": {
+    "network": "ynx_6423-1",
+    "evmChainId": 6423
+  },
+  "assets": [
+    {
+      "symbol": "YNXT",
+      "assetClass": "testnet_native",
+      "available": true,
+      "contractAddress": null,
+      "source": "ynx-chain-native-ledger"
+    },
+    {
+      "symbol": "USDC_TESTNET",
+      "assetClass": "testnet_stablecoin",
+      "available": false,
+      "contractAddress": null,
+      "cctpDomain": null,
+      "failure": "unsupported_chain",
+      "reason": "YNX does not appear in Circle's official USDC testnet contract list or CCTP supported domain list",
+      "source": [
+        "https://developers.circle.com/stablecoins/usdc-contract-addresses",
+        "https://developers.circle.com/cctp/concepts/supported-chains-and-domains"
+      ],
+      "confidence": "official-list-negative-match",
+      "coverage": "USDC testnet contracts and CCTP domains"
+    },
+    {
+      "symbol": "YUSD",
+      "assetClass": "testnet_stablecoin",
+      "available": false,
+      "contractAddress": null,
+      "failure": "issuer_controls_unavailable",
+      "requiredBeforeEnablement": [
+        "reserve evidence",
+        "mint and burn control",
+        "redemption evidence",
+        "attestation",
+        "supply reconciliation",
+        "limits",
+        "pause control",
+        "depeg control"
+      ]
+    }
+  ],
+  "rules": {
+    "nativeTokenIsStablecoin": false,
+    "testnetStablecoinIsFiat": false,
+    "unsupportedProviderBehavior": "unavailable",
+    "syntheticContractAddressesForbidden": true,
+    "authoritativePaymentReceiptStillRequired": true
+  }
+}

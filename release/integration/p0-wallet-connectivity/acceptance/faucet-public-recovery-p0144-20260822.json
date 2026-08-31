@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-144",
+  "acceptedAt": "2026-08-21T17:16:13Z",
+  "ownerSource": "89db27b",
+  "ownerEvidenceCommit": "87d953b459bed641822160c00c6f0d581f544c94",
+  "runtimeSource": "64efa498fa9982e12ffda888391d67082dc898bb",
+  "deploymentUrl": "https://ynx-web4-website-amp9sntxu-jiahaoalbus-projects.vercel.app",
+  "officialPage": {
+    "url": "https://www.ynxweb4.com/dapp/faucet",
+    "httpStatus": 200,
+    "bytes": 1018,
+    "sha256": "3cc384404c5ee932a3803fe2fbc29071fbde803803935d1f937e8a2528e2d6a8",
+    "bundle": "assets/index-D0C2uU3-.js",
+    "english": true,
+    "visibleStatus": "Verified · RPC backed",
+    "consoleErrors": 0
+  },
+  "runtimeReadback": {
+    "healthHttpStatus": 200,
+    "healthBytes": 383,
+    "healthSha256": "f2f9451960d4c26ed281b94825830c24f4c74c3e1d835328c53fc6ad8112c711",
+    "versionHttpStatus": 200,
+    "versionBytes": 130,
+    "versionSha256": "77da876f98314951bad53427ccd6e1f8baefae18d5b4a7944f91be4fee419397",
+    "chainId": 6423,
+    "evmChainId": "0x1917"
+  },
+  "claim": {
+    "amount": 100,
+    "symbol": "YNXT",
+    "transactionHash": "0xb15d2de15bdf899f7dab05d108385bb3bece5db0a104a5c46f6dfd60f3c4b1e9",
+    "blockNumber": 1148272,
+    "rpcVerified": true,
+    "explorerRouteHttpStatus": 200,
+    "replayHttpStatus": 429,
+    "duplicateTransfer": false
+  },
+  "computerControlVerified": false,
+  "aggregatePublic": false
+}

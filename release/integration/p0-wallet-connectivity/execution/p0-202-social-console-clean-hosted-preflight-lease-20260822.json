@@ -1,0 +1,204 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-202",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-social-console-clean-hosted-preflight-20260822T171000Z",
+  "owner": "social",
+  "executor": "social-vercel-release",
+  "status": "CONSUMED_RELEASED_SUCCESS_SOCIAL_CONSOLE_CLEAN_HOSTED_CANDIDATE_PREFLIGHT",
+  "issuedAt": "2026-08-22T17:10:00Z",
+  "expiresAt": "2026-08-22T17:40:00Z",
+  "singleUse": true,
+  "reusable": false,
+  "executionAuthorized": false,
+  "dependencies": [
+    "P0-201"
+  ],
+  "branch": {
+    "name": "codex/social-release-evidence-ecffe336",
+    "remoteParent": "3aff48f04ff02a3fb0530574bb778fcda8b824a9",
+    "soleWritablePath": ".github/workflows/social-public-candidate-preflight-p0.yml"
+  },
+  "candidateCommit": {
+    "commit": "448062cb25571aaa43355ff2ec5a8a2e6158cbbd",
+    "tree": "89da40a707d553b471606a74d6c1825286648344",
+    "parent": "3aff48f04ff02a3fb0530574bb778fcda8b824a9",
+    "subject": "evidence(social): hosted console-clean candidate preflight",
+    "soleDiff": ".github/workflows/social-public-candidate-preflight-p0.yml",
+    "workflowBlob": "f2e421d9549cadb9a896e794d1abbb7ce476c491",
+    "workflowBytes": 12047,
+    "workflowSha256": "8fa7614ed5e9b17e883881798485e5a1eee3101a1a573893a5a10be2dfe291f6"
+  },
+  "bundle": {
+    "path": "/tmp/ynx-social-p0202-console-clean-hosted-preflight.bundle",
+    "bytes": 71840440,
+    "sha256": "58e6c577fa867e9f765881db3a2daa2b9b88ad2e76b815b8a12a81c2a315a7ea",
+    "bundleVerify": "PASS_COMPLETE_HISTORY_SHA1",
+    "freshImportFsck": "PASS",
+    "freshImportObjectInspection": "PASS"
+  },
+  "runtimeBinding": {
+    "deploymentId": "dpl_34kzw3uk4B1wwjk1wQUq8y29mTxX",
+    "immutableUrl": "https://ynx-social-i38c5m9dw-jiahaoalbus-projects.vercel.app",
+    "project": "ynx-social-web",
+    "projectId": "prj_QGgUyxilarbPPLZyoES83m2aneQN",
+    "target": "production",
+    "status": "READY",
+    "sourceCommit": "e7756cb387233376c03043c54fb8b051c241e94e",
+    "officialAlias": "social.ynxweb4.com",
+    "officialDeploymentId": "dpl_2sei8CpmoN1Gi5YKnc6FdvNRyXGy",
+    "officialUnchanged": true,
+    "inspectedAt": "2026-08-22T17:08:33Z"
+  },
+  "expectedResources": {
+    "/": {"http":200,"bytes":6098,"sha256":"783f835245b9acbb4cbfe29cb56faa55243d593858c80692d39034e97e42a05b"},
+    "/app.js": {"http":200,"bytes":6928,"sha256":"966a47ae3d285a625ab666ddeca91defa156f04337b700fc07bd6c73e97ee51d"},
+    "/styles.css": {"http":200,"bytes":6327,"sha256":"1f80ec6b7ab8c2ff0d1d66edf083d301af89386c802483733fd670a5ada26c42"},
+    "/wallet-provider.js": {"http":200,"bytes":7749,"sha256":"d8df8193407f835ff16913417acca0db2ae1f091defc16e0b29a98996ffdea75"},
+    "/assets/metamask.svg": {"http":200,"bytes":755,"sha256":"f761f46f4fe7052a84b47cf23b63c2f20cc3d043df640b7f79c2adcb245e5f21"},
+    "/assets/ynx-wallet.svg": {"http":200,"bytes":280,"sha256":"e92207903e61b41c7a662e57e2a3bcfd84627b49c22a29e9240d5eafcd0229fb"}
+  },
+  "independentReview": {
+    "remoteParentExact": true,
+    "candidateCommitLocalOnly": true,
+    "soleWorkflowDiffVerified": true,
+    "yamlParse": "PASS",
+    "workflowStaticContract": "PASS",
+    "trigger": "push branch and sole workflow path only",
+    "commitMessageGuard": "exact",
+    "permissions": "contents:read",
+    "runner": "ubuntu-latest",
+    "timeoutMinutes": 8,
+    "inputsAllowed": false,
+    "secretsAllowed": false,
+    "dispatchAllowed": false,
+    "dynamicUrlAllowed": false,
+    "isolatedArtifactRoot": "RUNNER_TEMP/social-p0202-evidence"
+  },
+  "locks": {
+    "heavy": "P0-202",
+    "owner": "social",
+    "paths": [
+      "release/integration/p0-wallet-connectivity/execution/p0-202-social-console-clean-hosted-preflight-lease-20260822.json",
+      "branch:codex/social-release-evidence-ecffe336:.github/workflows/social-public-candidate-preflight-p0.yml"
+    ],
+    "runtimeReadOnly": [
+      "https://ynx-social-i38c5m9dw-jiahaoalbus-projects.vercel.app/**",
+      "https://social.ynxweb4.com/**"
+    ]
+  },
+  "execution": {
+    "preconditions": [
+      "fresh-read this ACTIVE_SINGLE_USE lease, unexpired Heavy owner and exact path lock",
+      "fresh-read remote branch at exact parent 3aff48f04ff02a3fb0530574bb778fcda8b824a9",
+      "fresh-read candidate commit/tree/parent/subject/sole diff/workflow blob/bytes/SHA256",
+      "fresh-read deployment dpl_34kzw3uk4B1wwjk1wQUq8y29mTxX as READY production and official alias at dpl_2sei8CpmoN1Gi5YKnc6FdvNRyXGy"
+    ],
+    "pushCommand": "git -C /Users/huangjiahao/.codex/worktrees/social-release-evidence-ecffe336 push origin 448062cb25571aaa43355ff2ec5a8a2e6158cbbd:refs/heads/codex/social-release-evidence-ecffe336",
+    "commitLimit": 1,
+    "pushLimit": 1,
+    "hostedRunLimit": 1,
+    "retryAllowed": false,
+    "dispatchAllowed": false,
+    "acceptance": [
+      "bind the unique push-triggered GitHub Actions run with exact head SHA 448062cb25571aaa43355ff2ec5a8a2e6158cbbd",
+      "require all six hardcoded immutable resources HTTP 200 with exact bytes/SHA256 and retain raw headers/bodies/status",
+      "require exact stable candidate URL, title YNX Social — Private by design, lang en, one page, no blank, closed dialog and console/page/same-origin errors zero",
+      "require truthful disconnected UI before and after with distinct exact YNX Wallet and MetaMask names/logos/alts",
+      "require two late EIP-6963 providers selected/classified without substitution and provider request tripwire methods empty",
+      "require visible serviceState PRIVATE_SERVICE_DEGRADED and exact guest/private-session degradation text",
+      "require zero requests whose URL contains /social/health",
+      "require isolated RUNNER_TEMP artifact upload and freeze run/job/artifact identifiers and digest"
+    ]
+  },
+  "forbidden": [
+    "deployment, redeployment, alias, rollback, SSO, Vercel project setting or DNS mutation",
+    "Social product source or UI mutation",
+    "any other workflow, branch or product path mutation",
+    "workflow dispatch, retry, secrets, inputs or dynamic URL",
+    "eth_requestAccounts, any provider RPC request, account approval, personal_sign, EIP-712, transaction or private-key handling",
+    "official source-bound-public or product-completion promotion from immutable-candidate evidence"
+  ],
+  "terminalRules": {
+    "success": "CONSUMED_RELEASED_SUCCESS_SOCIAL_DIRECT_HOSTED_CONSOLE_CLEAN_CANDIDATE_PREFLIGHT",
+    "failure": "CONSUMED_RELEASED_FAILED_CLOSED_SOCIAL_HOSTED_CONSOLE_CLEAN_CANDIDATE_PREFLIGHT"
+  },
+  "terminalEvidence": {
+    "releasedAt": "2026-08-22T17:13:05Z",
+    "pushCount": 1,
+    "retryCount": 0,
+    "dispatchCount": 0,
+    "remoteHead": "448062cb25571aaa43355ff2ec5a8a2e6158cbbd",
+    "runId": 32586962579,
+    "jobId": 97064706488,
+    "attempt": 1,
+    "event": "push",
+    "runConclusion": "success",
+    "runUrl": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/32586962579",
+    "artifactId": 9479298029,
+    "artifactName": "social-console-clean-candidate-preflight-p0202",
+    "artifactBytes": 403086,
+    "artifactExpired": false,
+    "artifactZipSha256": "cf2760009e3f98cd69358dae3c7c53ef82e849a46f40aa209e94977757861a46",
+    "artifactZipIntegrity": "PASS",
+    "hostedChromiumJsonSha256": "59a4fba16f81aa2b26b84df65277a26c513dbd88e9ce8f4356d54a53e7f9d515",
+    "rawResourceGatePassed": true,
+    "rawResources": {
+      "/": {"http":200,"bytes":6098,"sha256":"783f835245b9acbb4cbfe29cb56faa55243d593858c80692d39034e97e42a05b"},
+      "/app.js": {"http":200,"bytes":6928,"sha256":"966a47ae3d285a625ab666ddeca91defa156f04337b700fc07bd6c73e97ee51d"},
+      "/styles.css": {"http":200,"bytes":6327,"sha256":"1f80ec6b7ab8c2ff0d1d66edf083d301af89386c802483733fd670a5ada26c42"},
+      "/wallet-provider.js": {"http":200,"bytes":7749,"sha256":"d8df8193407f835ff16913417acca0db2ae1f091defc16e0b29a98996ffdea75"},
+      "/assets/metamask.svg": {"http":200,"bytes":755,"sha256":"f761f46f4fe7052a84b47cf23b63c2f20cc3d043df640b7f79c2adcb245e5f21"},
+      "/assets/ynx-wallet.svg": {"http":200,"bytes":280,"sha256":"e92207903e61b41c7a662e57e2a3bcfd84627b49c22a29e9240d5eafcd0229fb"}
+    },
+    "browserGatePassed": true,
+    "browser": {
+      "immutableUrlStable": true,
+      "title": "YNX Social — Private by design",
+      "language": "en",
+      "truthfulDisconnectedBeforeAndAfter": true,
+      "connectedPanelHidden": true,
+      "connectWalletText": "Connect wallet",
+      "chooserClosed": true,
+      "ynxIdentityAndExactLogoAlt": true,
+      "metamaskIdentityAndExactLogoAlt": true,
+      "lateEip6963ProviderCount": 2,
+      "ynxSelectedAndClassifiedWithoutSubstitution": true,
+      "metamaskSelectedAndClassifiedWithoutSubstitution": true,
+      "providerRequestTripwireMethods": [],
+      "serviceState": "PRIVATE_SERVICE_DEGRADED",
+      "serviceStatus": "Private Social service degraded — guest preview is still available",
+      "privateSessionState": "Private Social service degraded. Wallet connection remains independently available.",
+      "privateServiceRequests": [],
+      "pageCount": 1,
+      "blankPages": 0,
+      "consoleErrors": [],
+      "pageErrors": [],
+      "sameOriginFailures": []
+    },
+    "deploymentCount": 0,
+    "aliasCount": 0,
+    "settingsMutationCount": 0,
+    "officialCanonicalDeployment": "dpl_2sei8CpmoN1Gi5YKnc6FdvNRyXGy",
+    "officialCanonicalUnchanged": true,
+    "officialRootReadback": {"http":200,"bytes":5563,"sha256":"ce6f038a1171d0597398f13895e714f62d5e00ab00c9748b337861c9f248abee","requestId":"hnd1::dbjm7-1787418790711-759e4590bbb1"},
+    "accountRequestAttempted": false,
+    "signatureAttempted": false,
+    "typedDataAttempted": false,
+    "transactionAttempted": false,
+    "officialSourceBoundPublic": false,
+    "productComplete": false,
+    "nextAction": "A wholly new Social alias-only lease may bind the exact verified candidate, one alias command, official-domain raw/browser post-route gates and one exact rollback on any failure."
+  },
+  "truthBeforeExecution": {
+    "candidateRawResourcesVerified": false,
+    "candidateBrowserVerified": false,
+    "officialSourceBoundPublic": false,
+    "installedProvider": false,
+    "accountApproved": false,
+    "signatureExecuted": false,
+    "typedDataExecuted": false,
+    "transactionExecuted": false,
+    "productComplete": false
+  }
+}

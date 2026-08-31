@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "domain": "YNX_PAY_REFUND_AUTHORIZATION_V1",
+  "merchantRolesAllowedToSubmit": ["owner", "finance"],
+  "merchantRolesAllowedToRefresh": ["owner", "finance", "support"],
+  "walletAuthorizationFields": [
+    "version",
+    "requestId",
+    "invoiceId",
+    "chainId",
+    "merchantId",
+    "account",
+    "accountPublicKey",
+    "payer",
+    "amount",
+    "asset",
+    "transactionHash",
+    "issuedAt"
+  ],
+  "stateMachine": ["requested", "submitted", "refunded"],
+  "rules": {
+    "requestMovesFunds": false,
+    "merchantSessionAloneMovesFunds": false,
+    "walletSignatureRequired": true,
+    "aggregatePartialRefundsCannotExceedPaidAmount": true,
+    "transactionAndAuthorizationReplayRejected": true,
+    "refundedRequiresCommittedChainEvidence": true,
+    "originalPaymentReceiptIsImmutable": true
+  },
+  "authoritativeEvidenceFields": [
+    "refund ID and request ID",
+    "central invoice and intent IDs",
+    "chain ID",
+    "merchant identity and approving Wallet account",
+    "payer, asset and amount",
+    "refund transaction hash, block and finality",
+    "receipt ID and audit hash",
+    "source, as-of time, version and confidence"
+  ]
+}

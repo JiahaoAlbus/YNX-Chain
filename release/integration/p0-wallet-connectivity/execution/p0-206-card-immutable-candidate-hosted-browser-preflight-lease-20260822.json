@@ -1,0 +1,207 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-206",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-card-immutable-candidate-hosted-browser-preflight-20260822T175100Z",
+  "owner": null,
+  "executor": "card-owner",
+  "status": "CONSUMED_RELEASED_SUCCESS_CARD_IMMUTABLE_CANDIDATE_HOSTED_BROWSER_NON_SENSITIVE_PREFLIGHT",
+  "issuedAt": "2026-08-22T17:51:00Z",
+  "expiresAt": "2026-08-22T18:21:00Z",
+  "releasedAt": "2026-08-22T17:58:03Z",
+  "singleUse": true,
+  "reusable": false,
+  "executionAuthorized": false,
+  "productionMutationAllowed": false,
+  "scope": "Card-only read-only hosted Chromium preflight for one existing immutable candidate; one workflow push/run and a bounded SSO protection window only",
+  "predecessor": {
+    "taskId": "P0-196",
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_DIRECT_BROWSER_CONTROL_TIMEOUT",
+    "reusable": false,
+    "deploymentRetryAllowed": false,
+    "canonicalRollbackConfirmed": true
+  },
+  "candidate": {
+    "project": "ynx-card-testnet-simulation",
+    "projectId": "prj_DU37JeDK4Rx0MjxIV745veV5Qgxp",
+    "deploymentId": "dpl_8qCEhiAq8hgiTYf2hA2FXU57W122",
+    "immutableUrl": "https://ynx-card-testnet-simulation-dn1nbeei4-jiahaoalbus-projects.vercel.app",
+    "target": "production",
+    "readyState": "READY",
+    "readySubstate": "PROMOTED",
+    "publicBeforeWindow": false,
+    "metaCommit": "00191c9a5c38b92fed9ce224c9862c396ad9379d",
+    "controlPlaneReadbackExact": true
+  },
+  "workflowCandidate": {
+    "branch": "codex/p0-card-static-deploy-envelope-20260822",
+    "remoteParent": "00191c9a5c38b92fed9ce224c9862c396ad9379d",
+    "commit": "2c607361916c9cfd344fdd16d51095c1f6ccdc9c",
+    "tree": "6be66ad55720478507328ee0a41e590fb5b83152",
+    "parent": "00191c9a5c38b92fed9ce224c9862c396ad9379d",
+    "subject": "evidence(card): hosted immutable candidate browser preflight",
+    "soleChangedPath": ".github/workflows/card-public-candidate-preflight-p0.yml",
+    "workflowBlob": "6da11c048cc5f4fc49e2eb024e1e19546509715e",
+    "workflowBytes": 17245,
+    "workflowSha256": "bd5e2253459a6f69c4ed26507da1dabfdd882cce5ce87649bc7e7fe85c63ad23",
+    "remotePathAbsentAtParent": true,
+    "yamlParse": "PASS",
+    "soleDiffVerified": true
+  },
+  "carrier": {
+    "path": "/tmp/ynx-card-p0204-hosted-candidate-preflight.bundle",
+    "bytes": 25494338,
+    "sha256": "22d0dc924041153fd17b5677034ce24fda56f5faad1dabfb90ab18a161a66d6b",
+    "bundleVerify": "PASS",
+    "completeHistory": true,
+    "freshImportFsck": "PASS"
+  },
+  "candidateResources": {
+    "root": {"path":"/","http":200,"bytes":1717,"sha256":"f8b59f7bb084fa22573df186b2f47fa35d3f85d6e078f09f1d3b1b53c764c695"},
+    "appJs": {"path":"/_expo/static/js/web/index-6a16f2a248e25355f9aa7ee9626133a0.js","http":200,"bytes":2911045,"sha256":"f59fa3d43e4d855a91f224f239e8fc39bf4ffa73e83e42d5c0203aa70deae92e"},
+    "manifest": {"path":"/manifest.webmanifest","http":200,"bytes":460,"sha256":"f3e634129abe79c5b81b7fc8dac3950e5cb21f1d1263b1938fcd06a58e2c686f"},
+    "serviceWorker": {"path":"/sw.js","http":200,"bytes":364,"sha256":"1a9acfe442d2920040a1999f4fe4efe3f97d7a42a9debef047d469972889638f"},
+    "ynxLogo": {"path":"/assets/assets/icon.ac64b115433cc62063b01bbab973bec7.png","http":200,"bytes":863227,"sha256":"6252153a2fd0d12cb61a1223cea3277ceff863eb82b6073049419459b359f86f"},
+    "metaMaskLogo": {"path":"/assets/assets/metamask-fox.024a98855742a7b85946088532e2d4c1.png","http":200,"bytes":3682,"sha256":"25f2f224f9d01c78ae3dc2d07a339053cc402961a59cf818f2753c12db9ec796"}
+  },
+  "canonicalBinding": {
+    "domain": "card.ynxweb4.com",
+    "deploymentId": "dpl_DqMuEhno65bLFTNKBu9gs52soVri",
+    "immutableUrl": "ynx-card-testnet-simulation-bmeabqkk1-jiahaoalbus-projects.vercel.app",
+    "readyState": "READY",
+    "aliasApiReadbackExact": true,
+    "observedAt": "2026-08-22T17:49:31Z",
+    "resources": {
+      "root": {"http":200,"bytes":1717,"sha256":"56827ca95005951ae791245b6c3021691beace32683209936c7519324c28ed24"},
+      "pwaRegister": {"path":"/pwa-register.js","http":200,"bytes":201,"sha256":"87671daaddfae6a98e473eedf34a8844d5fd82676f2111808057e98d9b4012a6"},
+      "appJs": {"path":"/_expo/static/js/web/index-250c974606522c0feefa0bf082cc41a1.js","http":200,"bytes":2907885,"sha256":"2103aba7f844d4a3c067eac0ecbf0acbc9ebf8fb8831c44fd248df90261a8568"},
+      "manifest": {"http":200,"bytes":460,"sha256":"f3e634129abe79c5b81b7fc8dac3950e5cb21f1d1263b1938fcd06a58e2c686f"},
+      "serviceWorker": {"http":200,"bytes":364,"sha256":"1a9acfe442d2920040a1999f4fe4efe3f97d7a42a9debef047d469972889638f"}
+    }
+  },
+  "protection": {
+    "precheck": {"ssoProtectionDeploymentType":"all_except_custom_domains","candidatePrivate":true,"candidatePublic":false},
+    "disableCommand": "vercel project protection disable ynx-card-testnet-simulation --sso --scope jiahaoalbus-projects --non-interactive",
+    "disableAttemptLimit": 1,
+    "restoreCommand": "vercel project protection enable ynx-card-testnet-simulation --sso --scope jiahaoalbus-projects --non-interactive",
+    "restoreAttemptLimit": 1,
+    "restoreRequiredOnEveryTerminalPath": true,
+    "requiredRestoreReadback": "SSO protection enabled and production target private=true; record exact API serialization, accepting the CLI normalized protected enum only when private=true",
+    "noOtherProjectSettingMutation": true
+  },
+  "execution": {
+    "preconditions": [
+      "fresh-read this unexpired ACTIVE_SINGLE_USE lease, Heavy owner and exact workflow/project locks",
+      "fresh-read remote branch exact parent and target workflow path absent",
+      "fresh-read candidate exact READY/PROMOTED and canonical alias exact rollback dpl_DqMuEhno65bLFTNKBu9gs52soVri",
+      "fresh-read SSO all_except_custom_domains and candidate private=true"
+    ],
+    "exactPushCommand": "git -C /tmp/ynx-card-p0204-freeze.SciLG4/repo push origin 2c607361916c9cfd344fdd16d51095c1f6ccdc9c:refs/heads/codex/p0-card-static-deploy-envelope-20260822",
+    "pushAttemptLimit": 1,
+    "hostedRunLimit": 1,
+    "retryAllowed": false,
+    "dispatchAllowed": false,
+    "orderedBoundary": [
+      "execute protection.disableCommand once",
+      "execute execution.exactPushCommand once and bind exactly one push-triggered run with head 2c607361",
+      "wait only for that run's terminal conclusion and artifact",
+      "execute protection.restoreCommand once on success, failure, cancellation, timeout or missing run",
+      "verify protection.requiredRestoreReadback and canonicalBinding unchanged",
+      "release with only directly proven candidate facts"
+    ],
+    "requiredDirectEvidence": [
+      "six immutable candidate resources exact status/headers/bodies/bytes/SHA in isolated RUNNER_TEMP artifact",
+      "truthful no-provider/disconnected state and distinct exact YNX Wallet/com.ynx.wallet and MetaMask/io.metamask identities and logos",
+      "late EIP-6963 announcements for both independent providers using only eth_accounts and eth_chainId",
+      "fixture-restored YNX account and 0x1917 visibly preserved while PRIVATE_SERVICE_DEGRADED and details/disconnect/revoke/switch controls remain visible",
+      "stable immutable URL, one page, no blank/popup/custom scheme and console/page/same-origin errors zero",
+      "forbidden RPC methods, eth_requestAccounts, account approval, signing, EIP-712 and transaction all absent"
+    ]
+  },
+  "locks": [
+    "heavy:card",
+    "project:prj_DU37JeDK4Rx0MjxIV745veV5Qgxp:setting:ssoProtection",
+    "branch:codex/p0-card-static-deploy-envelope-20260822/path:.github/workflows/card-public-candidate-preflight-p0.yml"
+  ],
+  "forbidden": [
+    "deploy, redeploy, promote, alias, rollback, DNS or any Vercel setting other than the exact bounded SSO disable/restore",
+    "Card product source, UI, dist, deployment-envelope or any workflow path other than the sole path",
+    "retry, workflow_dispatch, secret, input or dynamic URL",
+    "clicking approve/reject/disconnect/switch or invoking eth_requestAccounts, personal_sign, EIP-712, transaction or private key",
+    "canonical source-bound-public, installed-provider, sensitive lifecycle or product-completion promotion"
+  ],
+  "terminalRules": {
+    "success": "CONSUMED_RELEASED_SUCCESS_CARD_IMMUTABLE_CANDIDATE_HOSTED_BROWSER_NON_SENSITIVE_PREFLIGHT",
+    "failureRestored": "CONSUMED_RELEASED_FAILED_CLOSED_CARD_IMMUTABLE_CANDIDATE_HOSTED_BROWSER_PREFLIGHT",
+    "restoreFailure": "EMERGENCY_BLOCKED_CARD_SSO_PROTECTION_RESTORE_REQUIRED_NO_FURTHER_ACTION"
+  },
+  "truthBeforeExecution": {
+    "candidateRawHostedVerified": false,
+    "candidateBrowserHostedVerified": false,
+    "canonicalSourceBoundPublic": false,
+    "installedProvider": false,
+    "accountApproved": false,
+    "signatureExecuted": false,
+    "transactionExecuted": false,
+    "productComplete": false,
+    "productsConnected": "0/12"
+  },
+  "terminalEvidence": {
+    "classification": "DIRECT_HOSTED_IMMUTABLE_CANDIDATE_NON_SENSITIVE_SUCCESS",
+    "ssoDisableAttemptCount": 1,
+    "pushAttemptCount": 1,
+    "retryCount": 0,
+    "remoteHead": "2c607361916c9cfd344fdd16d51095c1f6ccdc9c",
+    "remoteTree": "6be66ad55720478507328ee0a41e590fb5b83152",
+    "remoteParent": "00191c9a5c38b92fed9ce224c9862c396ad9379d",
+    "workflowBlob": "6da11c048cc5f4fc49e2eb024e1e19546509715e",
+    "run": {"id":32589053351,"jobId":97069859630,"attempt":1,"event":"push","headSha":"2c607361916c9cfd344fdd16d51095c1f6ccdc9c","conclusion":"success","allStepsPassed":true,"url":"https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/32589053351"},
+    "artifact": {"id":9479814900,"name":"card-immutable-candidate-browser-preflight-p0","bytes":1602904,"zipSha256":"2c1e362bbd54aca5af9ea0613a91e3a291874b82bce55cabd626723a82dad821","ownerUnzipIntegrity":"PASS","hostedChromiumJsonSha256":"639857b60ce62e4590ea264d0b6eb2963733965b60b987fa173b0ded7d40ac68","centralDownloadInspected":false,"centralDownloadBlocker":"bounded local artifact-download transport returned no bytes twice; GitHub API independently confirmed artifact metadata and every producer step success"},
+    "rawCandidateResources": {
+      "root": {"http":200,"bytes":1717,"sha256":"f8b59f7bb084fa22573df186b2f47fa35d3f85d6e078f09f1d3b1b53c764c695"},
+      "appJs": {"http":200,"bytes":2911045,"sha256":"f59fa3d43e4d855a91f224f239e8fc39bf4ffa73e83e42d5c0203aa70deae92e"},
+      "manifest": {"http":200,"bytes":460,"sha256":"f3e634129abe79c5b81b7fc8dac3950e5cb21f1d1263b1938fcd06a58e2c686f"},
+      "serviceWorker": {"http":200,"bytes":364,"sha256":"1a9acfe442d2920040a1999f4fe4efe3f97d7a42a9debef047d469972889638f"},
+      "ynxLogo": {"http":200,"bytes":863227,"sha256":"6252153a2fd0d12cb61a1223cea3277ceff863eb82b6073049419459b359f86f"},
+      "metaMaskLogo": {"http":200,"bytes":3682,"sha256":"25f2f224f9d01c78ae3dc2d07a339053cc402961a59cf818f2753c12db9ec796"}
+    },
+    "browser": {
+      "passed": true,
+      "truthfulNoProvider": true,
+      "fabricatedConnected": false,
+      "distinctYnxAndMetaMaskIdentityAndLogos": true,
+      "lateEip6963TwoIndependentProviders": true,
+      "permittedRpcMethodsOnly": ["eth_accounts","eth_chainId"],
+      "forbiddenMethods": [],
+      "fixtureAccountAndChainVisible": true,
+      "fixtureChainId": "0x1917",
+      "disconnectRevokeSwitchControlsVisibleNotClicked": true,
+      "privateServiceDegradedVisible": true,
+      "standardWalletStatePreserved": true,
+      "pageCount": 1,
+      "blankPages": 0,
+      "stableImmutableUrl": true,
+      "consoleErrors": 0,
+      "pageErrors": 0,
+      "sameOriginFailures": 0,
+      "customSchemeRequests": 0,
+      "popups": 0
+    },
+    "ssoRestoreAttemptCount": 1,
+    "ssoRestore": {"deploymentType":"prod_deployment_urls_and_all_previews","productionPrivate":true,"candidateReadyState":"READY","candidateReadySubstate":"PROMOTED"},
+    "canonicalAliasDeploymentId": "dpl_DqMuEhno65bLFTNKBu9gs52soVri",
+    "canonicalAliasUnchanged": true,
+    "deployAliasRollbackOrProductMutation": false,
+    "accountRequestAttempted": false,
+    "accountApprovalOrReject": false,
+    "signingAttempted": false,
+    "typedDataAttempted": false,
+    "transactionAttempted": false,
+    "candidateRawHostedVerified": true,
+    "candidateBrowserHostedVerified": true,
+    "canonicalSourceBoundPublic": false,
+    "installedProvider": false,
+    "productComplete": false,
+    "productsConnected": "0/12"
+  }
+}

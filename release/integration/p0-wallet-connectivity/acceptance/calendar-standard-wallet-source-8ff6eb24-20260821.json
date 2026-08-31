@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "acceptanceId": "P0-045-CALENDAR-STANDARD-WALLET-SOURCE-8FF6EB24-20260821",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "status": "STANDARD_WALLET_SOURCE_ACCEPTED_PROVIDER_AND_PRODUCT_SESSION_E2E_BLOCKED",
+  "owner": "integration",
+  "sourceCommit": "8ff6eb24705155fbbeddf983d44f87e9e20d944f",
+  "evidence": "release/integration/p0-wallet-connectivity/evidence/calendar-standard-wallet-source-8ff6eb24-20260821.json",
+  "acceptedContracts": ["walletTransport", "dappConnectSDK", "publicEndpointManifest"],
+  "standardWalletSourceImplemented": true,
+  "productSessionV2": false,
+  "installedApprovalVerified": false,
+  "deployedPublic": false,
+  "publicVerified": false,
+  "computerControlVerified": false,
+  "nextAction": "Verify one actual EIP-6963 or injected provider approve/reject/account/chain/disconnect lifecycle, then migrate the private Calendar session only after an accepted Registry v3 Product Session runtime is publicly available. Android and iOS remain separate installed-client gates."
+}

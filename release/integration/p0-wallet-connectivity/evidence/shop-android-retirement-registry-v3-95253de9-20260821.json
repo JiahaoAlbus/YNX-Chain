@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-SHOP-ANDROID-RETIREMENT-REGISTRY-V3-95253DE9-20260821",
+  "checkedAt": "2026-08-21T00:20:00+08:00",
+  "walletProtocolSource": {
+    "commit": "95253de9c502335285dbb626ebd7ae37c14d6e5f",
+    "parent": "08743535a10be9e6daa914d1518c49a2efd9c48f",
+    "tree": "cf575baced3d77a3beef46e79f0db22603000ea9",
+    "branch": "codex/wallet-session-router-recovery",
+    "remoteReadable": true,
+    "changedFiles": 15
+  },
+  "shopOwnerSource": {
+    "commit": "1752f12534166b6216e5c91c9ce87ab11caea072",
+    "tree": "76cbe5b19e1b9e8f980f4fc375f8ae0944b318dc",
+    "remoteReadable": true
+  },
+  "immutableBlobs": {
+    "registry": {
+      "path": "packages/wallet-auth/product-session-registry.json",
+      "blob": "2a0144ef24e1d69664bb8f85419c182125350d1f"
+    },
+    "ownerEvidence": {
+      "path": "release/integration/wallet-product-session-shop-android-retirement-checkpoint-20260821.json",
+      "blob": "3333e073514074fac8c1ce261ef6bfaef8a5d3c5"
+    },
+    "registryImplementation": {
+      "path": "packages/wallet-auth/src/product-session-registry.js",
+      "blob": "21bdfa61a11f8ac5a4b4a6a3f780d65bfed0de8f"
+    },
+    "gatewayImplementation": {
+      "path": "packages/wallet-auth/src/product-session-gateway.js",
+      "blob": "253f342ee2f811daec4321c73fc2597f9d61e258"
+    }
+  },
+  "acceptedSourceBehavior": {
+    "registrySchemaVersion": 3,
+    "productId": "shop",
+    "clientId": "ynx-shop-v1",
+    "retiredPlatform": "android",
+    "applicationId": "com.ynxweb4.shop",
+    "callback": "ynxshop://wallet-auth/callback",
+    "retiredAt": "2026-08-20T00:00:00.000Z",
+    "lastSupportedVersion": "0.3.0-testnet-preview",
+    "replacementUrl": "https://shop.ynxweb4.com/shop",
+    "newAuthorizationHttpStatus": 410,
+    "newAuthorizationCode": "CLIENT_RETIRED",
+    "existingSessionsRevoked": true,
+    "existingDeviceGrantsRevoked": true,
+    "pendingChallengesPurged": true,
+    "idempotencyCachePurged": true,
+    "shopWebPwaRemainsRegistered": true
+  },
+  "ownerVerification": {
+    "focusedPassed": 24,
+    "focusedFailed": 0,
+    "fullWalletAuthPassed": 243,
+    "fullWalletAuthFailed": 0,
+    "concurrentProductSessions": 120
+  },
+  "deploymentBoundary": {
+    "currentPublicRuntimeSource": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "currentPublicRuntimeUsesRegistryV3": false,
+    "executionLeaseIssued": false,
+    "candidateDeployedPublic": false,
+    "publicClientRetirementVerified": false,
+    "websiteAndroidDownloadRemovalVerified": false,
+    "installedHistoricalApkRemotelyUninstalled": false,
+    "shopWebPwaRootFactoryMigrated": false
+  },
+  "truth": {
+    "sourceAccepted": true,
+    "shopAndroidMigratedV2": false,
+    "shopWebPwaMigratedV2": false,
+    "productsMigratedV2": 0,
+    "deployedPublic": false,
+    "integratedCentral": false,
+    "aggregateDeployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

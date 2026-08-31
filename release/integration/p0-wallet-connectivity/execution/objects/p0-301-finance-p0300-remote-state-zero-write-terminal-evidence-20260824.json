@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "p0-finance-zero-write-terminal-evidence@1",
+  "taskId": "P0-301",
+  "status": "CONSUMED_RELEASED_SUCCESS_ZERO_WRITE_P0300_REMOTE_STATE_KNOWN",
+  "attempts": 1,
+  "retryCount": 0,
+  "localExitStatus": 0,
+  "remoteExitStatus": 0,
+  "mutationCount": 0,
+  "stdout": {
+    "path": "/tmp/ynx-finance-p0301-p0300-remote-state-zero-write.stdout",
+    "bytes": 3436,
+    "sha256": "772c3528071a5e0dcb71be4ed55d81a1d5faae694ef92190abe9dfbf20cf7fe9"
+  },
+  "stderr": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "remoteTruth": {
+    "stageContainer": "absent",
+    "stage": "absent",
+    "backupContainer": "absent",
+    "backup": "absent",
+    "releaseContainer": "absent",
+    "release": "absent",
+    "currentNext": "absent",
+    "currentRollback": "absent",
+    "executorAndSignedLease": "exact-retained",
+    "currentTarget": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a",
+    "oldBinaryEnvUnitCaddyExact": true,
+    "servicePid": 2241003,
+    "serviceNRestarts": 0,
+    "serviceActiveRunning": true,
+    "sixHttpGatesExact": true,
+    "inspectionComplete": true
+  },
+  "truth": {
+    "productionSwitchOccurred": false,
+    "p0300RemoteStateKnown": true,
+    "p0300Reusable": false,
+    "futureDeploymentAuthorityInferred": false,
+    "nextBoundary": "corrected P0-302 stage and backup container lifecycle source review"
+  }
+}

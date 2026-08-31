@@ -1,0 +1,58 @@
+{
+  "schemaVersion": "1.0.0",
+  "taskId": "P0-328",
+  "status": "INVALIDATED_READONLY_WRONG_ENV_AND_STATE_PATH_MODEL",
+  "attemptCount": 1,
+  "sshAttemptCount": 3,
+  "retryAllowed": false,
+  "mutationCount": 0,
+  "stdout": {"path": "/tmp/p0-328-chain-peer-6423-readonly-preparation.stdout", "bytes": 2784, "sha256": "cda83ed17b4bb28051372c0165d22c76782ad5a194ef764e2701e885c9b03726"},
+  "sharedFindings": {
+    "unit": "ynx-chaind.service is loaded but inactive:dead with MainPID=0 and NRestarts=0",
+    "listener6420": "absent",
+    "health6420": "HTTP transport 000",
+    "status6420": "HTTP transport 000",
+    "standardConfigHomes": ["/opt/ynx-chain/config", "/var/lib/ynx-chain/config", "/root/.ynx/config", "/home/ubuntu/.ynx/config"],
+    "standardConfigHomesPresent": false,
+    "envPath": "/etc/ynx-chain/ynx-chaind.env",
+    "envPresent": false
+  },
+  "perPeer": {
+    "singapore": {
+      "host": "43.134.23.58",
+      "binary": "65027:440654:0:0:755:1:20160696:regular file:1432eb9c00e03aa65167d08b382e618f72c32daff775fc3c51e2ff90fabb02ec",
+      "unit": "65027:131439:0:0:644:1:431:regular file:29b3e4834bb2a81f252f8662b6547893893e3343372dab0ac00619bd63330a95",
+      "legacyPeer": "masked:failed:failed:0:0"
+    },
+    "siliconValley": {
+      "host": "43.162.100.54",
+      "binary": "64770:6691:0:0:755:1:20418744:regular file:eb96a2d09859f041221917489589100f5a94ef0bbf4f5ad4f6fcf5c753846fd4",
+      "unit": "64770:132527:0:0:644:1:431:regular file:29b3e4834bb2a81f252f8662b6547893893e3343372dab0ac00619bd63330a95",
+      "legacyPeer": "masked:inactive:dead:0:0"
+    },
+    "seoul": {
+      "host": "43.164.132.81",
+      "binary": "65025:150484:0:0:755:1:20418744:regular file:eb96a2d09859f041221917489589100f5a94ef0bbf4f5ad4f6fcf5c753846fd4",
+      "unit": "65025:147480:0:0:644:1:431:regular file:29b3e4834bb2a81f252f8662b6547893893e3343372dab0ac00619bd63330a95",
+      "legacyPeer": "masked:inactive:dead:0:0"
+    }
+  },
+  "invalidatedConclusion": "The original inspection queried /etc/ynx-chain/ynx-chaind.env and Comet/Tendermint-style homes. The authoritative unit instead uses /etc/ynx/ynx-chaind.env and /var/lib/ynx-chain/testnet. Its absence claims are invalid and cannot support a deployment decision.",
+  "blocker": "SUPERSEDED_BY_P0_330_CORRECT_PATH_READONLY_EVIDENCE",
+  "reason": "P0-328 itself remained zero-write, but its model of the environment and state paths was incomplete. P0-330 repeats the check with the authority unit's actual EnvironmentFile and privileged read-only access.",
+  "sourceIngressRepair": {
+    "authorityWorktree": "/Users/huangjiahao/Desktop/YNX Chain",
+    "branch": "main",
+    "commit": "d33a6c790ec26223394810ff48da92b404526136",
+    "tree": "67c58d744a5d2c34472d2a5c1d230c23aa602569",
+    "parent": "60e7426c1758fc3bae9e52923214abab6732806b",
+    "remoteMainDivergence": "behind=309,ahead=7",
+    "untrackedExcluded": [".codex-worktrees/", ".workbuddy-ai/"],
+    "scope": "Five source files prevent executable deployment paths from regenerating retired 9102 ingress: Bridge to 6433, Web4 redirect, gRPC/EVM-WS explicit 503, Shop staging no 38091, and a source verifier plus dry-run negative check.",
+    "sourceVerifier": "scripts/verify/chain-6423-ingress-source-check.sh",
+    "sourceVerifierSha256": "9b67a65b801302456c156cc4dc0b0eca30ef318a692d53b84952fb9af52aa0e2",
+    "verification": ["git diff --check", "bash -n", "py_compile", "make chain-6423-ingress-source-check", "make caddy-ingress-check"],
+    "deploymentAuthority": false
+  },
+  "nextAction": "Unique next action: create a dedicated integration branch from a freshly fetched current remote target, cherry-pick only d33a6c790ec26223394810ff48da92b404526136, rerun the ingress source and generated-Caddy negative checks, and bind the resulting new commit/tree before any later peer deployment review. Do not push the behind-309 main worktree or treat this source patch as a deployment lease."
+}

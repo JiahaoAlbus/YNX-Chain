@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "decision": "ACCEPTED_WALLET_AUTH_CORE_SOURCE_CONSUMPTION_NO_PLATFORM_OR_PUBLIC_PROMOTION",
+  "acceptedAt": "2026-08-21T03:18:11Z",
+  "contract": "canonicalWalletAuthorize@1.0.0-p0.0",
+  "sourceBranch": "codex/wallet-core-auth-gateway-continuation-20260814",
+  "sourceCommit": "af4f9c77ce654951e299b359a84646f22c8433ed",
+  "sourceTree": "f1f23a4a812f22bd8fc3ac7469e0831d1bb41e4f",
+  "sourceParent": "1a67bdb2a77af92dfe2cc6a8e8bf9ddf6b644c8f",
+  "evidenceCommit": "201246290a843c5be61828a93c65cd3c516b896b",
+  "evidenceTree": "5c2c66248f8b4a0aa1feced8fabadb92b7fcfc3b",
+  "evidencePath": "release/integration/wallet-canonical-authorize-core-consumption-evidence-20260821.json",
+  "evidenceBlob": "d60275add03ef87d73adc1639b146e05e76e07ee",
+  "evidenceSha256": "862fb96e72d4a6d448f51e592dc582d533d00d9ef066a6c78fbf88eaee4b5f2b",
+  "contractSha256": "e572042f18c1e32dfe86da26ee2ab52f9372c9803eae3b492c26932e50251c03",
+  "handoffSha256": "73c12fd1d9832c248e15e76cf1599af9ccd08afc5171477336d182978a1388ca",
+  "independentFocusedTests": "10/10",
+  "independentReleaseGate": "PASS",
+  "ownerAuthoritativeCheck": "381/381 working clone and clean clone",
+  "ownerRepeatPack": {
+    "sha256": "07a67a4023751dbf63f537539087feea5f884465b5800106d41fc25c12ee47a2",
+    "bytes": 189713,
+    "entries": 106
+  },
+  "truth": {
+    "walletAuthCoreSourceConsumed": true,
+    "walletPlatformConsumed": false,
+    "deviceVisibleVerified": false,
+    "browserRoundTripVerified": false,
+    "productsMigrated": "0/12",
+    "deployedPublic": false,
+    "integratedPublic": false
+  }
+}

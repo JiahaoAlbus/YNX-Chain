@@ -1,0 +1,8 @@
+verification=FINANCE_P0289_FOUR_RESIDUE_POST_CLEANUP_ZERO_WRITE
+p0289Executor=absent
+p0289SignedLease=absent
+p0289StageContainer=absent
+p0289BackupContainer=absent
+leaseParent=64770:4594822:0:0:750:2:4096:directory|directChildren=0|inventorySha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+stageParent=64770:3450041:0:0:750:5:4096:directory|directChildren=3|inventorySha256=0d11124b36a42c6201f7e0d491fd20279ea47950554f92c6b1cc960aaa0fee91
+backupParent=64770:1481354:0:0:755:11:4096:directory|directChildren=9|inventorySha256=a59008acfeccfb0a2f88de5b029871b713b42d0bf43ad1ba87786c962e6659be

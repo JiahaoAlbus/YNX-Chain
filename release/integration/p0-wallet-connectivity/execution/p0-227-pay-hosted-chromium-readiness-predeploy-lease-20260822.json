@@ -1,0 +1,230 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-227",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-pay-hosted-chromium-readiness-predeploy-20260822T233300Z",
+  "owner": "pay",
+  "executor": "pay-hosted-chromium-readiness",
+  "status": "CONSUMED_RELEASED_SUCCESS_PAY_HOSTED_CHROMIUM_READINESS_PREDEPLOY",
+  "issuedAt": "2026-08-22T23:33:00Z",
+  "expiresAt": "2026-08-23T00:03:00Z",
+  "releasedAt": "2026-08-22T23:37:15Z",
+  "singleUse": true,
+  "reusable": false,
+  "executionAuthorized": false,
+  "productionMutationAllowed": false,
+  "scope": "Pay-only one force=false three-path push and exactly one resulting push-triggered hosted Chromium readiness run",
+  "predecessor": {
+    "taskId": "P0-226",
+    "centralReleaseCommit": "0283d444a3b046d76607b3e5c3d7b8904f790053",
+    "centralReleaseTree": "2878962e6e6636c197cd7611e8a36d2b90d3a5c9",
+    "terminalLeaseBlob": "b942800476f53782d92e033407b431bdc3443ad8",
+    "terminalLeaseBytes": 10042,
+    "terminalLeaseSha256": "eeefb02f83fbf8c2d6cc63ce8c25fd7116776bb24faeadf3d3462e31f92b5d9f",
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_PAY_HOSTED_CHROMIUM_PREDEPLOY_PREFLIGHT",
+    "reusable": false
+  },
+  "ownerAuthority": {
+    "branch": "codex/p0-pay-wallet-connectivity-20260821",
+    "remoteParentAtIssuance": "56ed9a4ba7a7eceae3ac47a78cbb0ede12a73573",
+    "candidateHead": "6f7d1525df3ee6e70e01e4c953cf8364e6355e64",
+    "candidateTree": "fc62c26cb916604324e7aa258d81763faec3b3fd",
+    "candidateParent": "d490150246275785b5ca544bf2c3bdf19efb490f",
+    "candidateSubject": "evidence(pay): capture hosted Chromium readiness",
+    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/04-pay-p0-clean",
+    "worktreeHeadExactAndClean": true,
+    "diffFromRemoteParent": [
+      ".github/workflows/pay-web-hosted-browser-preflight-p0226.yml",
+      "apps/pay/evidence/pay-web-hosted-browser-readiness-lease-request-p0227-20260823.json",
+      "apps/pay/PAY_P0227_HOSTED_BROWSER_READINESS_LEASE_REQUEST_20260823.md"
+    ]
+  },
+  "bundle": {
+    "path": "/tmp/ynx-pay-p0227-hosted-browser-readiness.bundle",
+    "bytes": 86678837,
+    "sha256": "0695de2c144d69b2dccd5e87d80fc4d61789d9971a9a431b9f8ed0b9f83dfa5e",
+    "verify": "PASS_COMPLETE_HISTORY_SHA1",
+    "independentEmptyRepositoryImport": "PASS"
+  },
+  "request": {
+    "path": "apps/pay/evidence/pay-web-hosted-browser-readiness-lease-request-p0227-20260823.json",
+    "blob": "0fcd799d74f4b868beb5202483e2df0f5a73c7cf",
+    "bytes": 5763,
+    "sha256": "93c607ce805310ab714a80ae2b20116271fca46c807cc951f312230b15a33891",
+    "jsonValid": true
+  },
+  "handoff": {
+    "path": "apps/pay/PAY_P0227_HOSTED_BROWSER_READINESS_LEASE_REQUEST_20260823.md",
+    "blob": "e2e6bc659a4482445958820a8b03dcb3dce0d224",
+    "bytes": 2557,
+    "sha256": "2654a130179da4772cb3a3b49590a3087156bde8709b441202758c07ef7f3dcb"
+  },
+  "workflow": {
+    "path": ".github/workflows/pay-web-hosted-browser-preflight-p0226.yml",
+    "implementationCommit": "d490150246275785b5ca544bf2c3bdf19efb490f",
+    "implementationTree": "2d9ed653cef5c49d49917fabaa12284aaf7b183d",
+    "blob": "90964b1503ba899a86f6801e338a0abd14889722",
+    "bytes": 12645,
+    "sha256": "e2a69af956895d68f21bd8e59ce62a9247d75ad3130e26057ad804fb14f2db2d",
+    "trigger": "push-only exact Pay branch and workflow path",
+    "runner": "ubuntu-latest",
+    "timeoutMinutes": 10,
+    "permissions": {"contents":"read"},
+    "dispatch": false,
+    "secrets": false,
+    "inputs": false,
+    "dynamicUrl": false
+  },
+  "candidate": {
+    "sourceCommit": "5f4ce98eb458550b976c17e3bc6d77cce4081a59",
+    "sourceTree": "8f0c25c4d86eb22a564f3c7aeff9db6709a9b9f0",
+    "archivePath": "release/pay/ynx-pay-web-5f4ce98e-static.tar.gz",
+    "archiveBlob": "cca37d7b48c1c37266a4141c7b79f44f1cf09f29",
+    "archiveBytes": 608368,
+    "archiveSha256": "ae552951d8e569f04aced60db69e3c11422910cc1098a6e7061b0e84005ad09e",
+    "origin": "http://127.0.0.1:4189"
+  },
+  "readinessContract": {
+    "captureBeforeEveryWait": true,
+    "capturedFields": ["DOM", "body text", "URL", "title", "language", "open pages", "console errors", "page errors", "failed requests", "response statuses", "screenshot"],
+    "positiveDisconnectedSignals": ["YNX Pay", "Sign in", "Settings", "Invoice, Split, or service bill", "Confirm before you pay", "lang=en"],
+    "negativeSignals": ["Connection details absent", "Connect a wallet absent", "0x1917 absent", "0x account absent", "one stable page", "zero console/page/request failures"],
+    "allowedLoadStates": ["domcontentloaded", "load"],
+    "forbiddenLoadState": "networkidle",
+    "persistentProfileColdCloseThenSecond": true,
+    "failureTerminalCapture": true
+  },
+  "equivalentFixture": {
+    "root": "/tmp/pay-p0227-fixture.F6ZUld",
+    "workflowBrowserBlockByteExact": true,
+    "coldJsonSha256": "ea2390e2d65404bd7e0baf40d5d523444bad3593a2a6fc3d4853b4b876c38ed8",
+    "secondJsonSha256": "fd480933d7ffb81b4845c22a5ead33d598de5eb273f10b1cc031ffcb54abcb2a",
+    "summarySha256": "9703196da3dbf7f1eecd78a226981d66b79ab3f13dcff00b4d6c52901ea5568c",
+    "terminalScreenshotSha256": "8513df9eb9e5191a9b32567a9adb67170417a0d44565ecf5332bc68af7481a01",
+    "coldAndSecondPassed": true,
+    "existingPayWebTests": "2/2 PASS"
+  },
+  "execution": {
+    "literalPushCommand": "git -C '/Users/huangjiahao/Desktop/YNX Final Worktrees/04-pay-p0-clean' push origin 6f7d1525df3ee6e70e01e4c953cf8364e6355e64:refs/heads/codex/p0-pay-wallet-connectivity-20260821",
+    "pushAttemptLimit": 1,
+    "resultingPushRunLimit": 1,
+    "retryAllowed": false,
+    "workflowDispatchAllowed": false,
+    "orderedPreconditions": [
+      "fresh-read this exact unexpired ACTIVE_SINGLE_USE lease, Heavy owner pay and every P0-227 lock",
+      "require remote Pay branch still exact 56ed9a4ba7a7eceae3ac47a78cbb0ede12a73573",
+      "require worktree exact clean head 6f7d1525df3ee6e70e01e4c953cf8364e6355e64/tree fc62c26cb916604324e7aa258d81763faec3b3fd",
+      "require bundle, three-path diff, request, handoff, workflow and archive identities exact",
+      "execute the literal push once and bind exactly one resulting push-event run with exact head and attempt 1",
+      "do not retry, dispatch, amend, rebase or push another commit"
+    ]
+  },
+  "writablePaths": [
+    ".github/workflows/pay-web-hosted-browser-preflight-p0226.yml",
+    "apps/pay/evidence/pay-web-hosted-browser-readiness-lease-request-p0227-20260823.json",
+    "apps/pay/PAY_P0227_HOSTED_BROWSER_READINESS_LEASE_REQUEST_20260823.md"
+  ],
+  "locks": [
+    "heavy:pay",
+    "branch:codex/p0-pay-wallet-connectivity-20260821:path:.github/workflows/pay-web-hosted-browser-preflight-p0226.yml",
+    "branch:codex/p0-pay-wallet-connectivity-20260821:path:apps/pay/evidence/pay-web-hosted-browser-readiness-lease-request-p0227-20260823.json",
+    "branch:codex/p0-pay-wallet-connectivity-20260821:path:apps/pay/PAY_P0227_HOSTED_BROWSER_READINESS_LEASE_REQUEST_20260823.md"
+  ],
+  "forbidden": [
+    "retry, dispatch, secret, input, dynamic URL or additional push",
+    "SSH, production deploy, Caddy, service, current, state, public route, alias, DNS or settings mutation",
+    "provider selection, eth_requestAccounts, account approval/reject, signing, typed data, transaction or private key action",
+    "Pay public, installed-provider, sensitive lifecycle, Product Session or aggregate product-completion promotion"
+  ],
+  "terminalEvidence": {
+    "classification": "DIRECT_HOSTED_COLD_AND_SECOND_READINESS_SUCCESS",
+    "observedAt": "2026-08-22T23:37:15Z",
+    "counts": {
+      "literalPush": 1,
+      "pushRun": 1,
+      "runAttempt": 1,
+      "retry": 0,
+      "dispatch": 0,
+      "ssh": 0,
+      "productionMutation": 0
+    },
+    "ownerRemote": {
+      "head": "6f7d1525df3ee6e70e01e4c953cf8364e6355e64",
+      "tree": "fc62c26cb916604324e7aa258d81763faec3b3fd",
+      "pushSucceeded": true
+    },
+    "githubRun": {
+      "runId": 32605605681,
+      "jobId": 97110081981,
+      "attempt": 1,
+      "event": "push",
+      "headSha": "6f7d1525df3ee6e70e01e4c953cf8364e6355e64",
+      "status": "completed",
+      "conclusion": "success",
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/32605605681",
+      "allStepsPassed": true
+    },
+    "artifact": {
+      "id": 9484042566,
+      "name": "pay-web-hosted-browser-preflight-p0227-6f7d1525df3ee6e70e01e4c953cf8364e6355e64",
+      "apiBytes": 571712,
+      "downloadedPath": "/tmp/pay-p0227-hosted-artifact.hKqLTc/artifact.zip",
+      "downloadedBytes": 571712,
+      "zipSha256": "6121587534a45ac0dd7e3c16be3263fa82b551cf3f74624a31dfd381b8b02bfa",
+      "unzipIntegrity": "PASS",
+      "isolatedRunGeneratedFileCount": 40,
+      "buildIdentity": "322B/7b57cc88fc9287c546ba41d0e61a00c13665cdfd8aa8cc34c2f7347f8abb0b81",
+      "localRoot": "1174B/22f743c62a976928abd8a6bc3d123d366b5e1cac774b6ad3d20c21cfa07d917e",
+      "coldJsonSha256": "ea2390e2d65404bd7e0baf40d5d523444bad3593a2a6fc3d4853b4b876c38ed8",
+      "secondJsonSha256": "fd480933d7ffb81b4845c22a5ead33d598de5eb273f10b1cc031ffcb54abcb2a",
+      "summarySha256": "9703196da3dbf7f1eecd78a226981d66b79ab3f13dcff00b4d6c52901ea5568c",
+      "coldTerminalScreenshotSha256": "c64faa6c5318a1f57f2a04c19d99875279052c2115710e8cc3ed0496c929a588",
+      "secondTerminalScreenshotSha256": "c64faa6c5318a1f57f2a04c19d99875279052c2115710e8cc3ed0496c929a588"
+    },
+    "directHostedBrowser": {
+      "sourceCommit": "5f4ce98eb458550b976c17e3bc6d77cce4081a59",
+      "sourceTree": "8f0c25c4d86eb22a564f3c7aeff9db6709a9b9f0",
+      "coldAndSecondPassed": true,
+      "persistentProfileReusedAfterColdClose": true,
+      "url": "http://127.0.0.1:4189/",
+      "title": "YNX Pay",
+      "language": "en",
+      "pageCountEachPhase": 1,
+      "visibleSignals": ["Sign in", "Confirm before you pay"],
+      "absentSignals": ["Connect a wallet", "Connection details", "0x account", "0x1917"],
+      "consoleErrors": [],
+      "pageErrors": [],
+      "failedRequests": [],
+      "resourceStatuses": "root, JavaScript and logo HTTP 200",
+      "allowedLoadStates": ["domcontentloaded", "load"],
+      "networkidleUsed": false
+    },
+    "sensitiveActions": {
+      "providerSelection": false,
+      "ethRequestAccounts": false,
+      "accountApprovalOrReject": false,
+      "signing": false,
+      "typedData": false,
+      "transaction": false
+    },
+    "truthBoundary": {
+      "candidateReadinessOnly": true,
+      "officialPayRemainsOld404BackendBaseline": true,
+      "sourceBoundPublic": false,
+      "installedProvider": false,
+      "accountApprovalOrReject": false,
+      "signingOrTypedData": false,
+      "transaction": false,
+      "productComplete": false,
+      "productsConnected": "0/12"
+    },
+    "futureAuthority": "Any Pay production action requires a wholly new rollback-first lease binding this P0-227 terminal evidence and a fresh production baseline."
+  },
+  "terminalRules": {
+    "success": "CONSUMED_RELEASED_SUCCESS_PAY_HOSTED_CHROMIUM_READINESS_PREDEPLOY",
+    "failure": "CONSUMED_RELEASED_FAILED_CLOSED_PAY_HOSTED_CHROMIUM_READINESS_PREDEPLOY",
+    "releaseHeavyAndAllLocksOnTerminal": true,
+    "requiredReturn": "exact push/run/job/attempt/head/conclusion, artifact identity and SHA, cold and second JSON/screenshot hashes, readiness assertions, no-sensitive-action and no-production-action truth"
+  },
+  "truthBeforeExecution": {"hostedCandidateBrowserVerified":false,"sourceBoundPublic":false,"installedProvider":false,"accountApprovalOrReject":false,"signingOrTypedData":false,"transaction":false,"productComplete":false,"productsConnected":"0/12"}
+}

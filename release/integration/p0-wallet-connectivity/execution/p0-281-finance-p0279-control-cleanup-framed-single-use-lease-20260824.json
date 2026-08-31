@@ -1,0 +1,167 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-281",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-p0279-control-cleanup-p0281-20260823T170900Z",
+  "owner": "finance-release-control-plane-cleanup-only",
+  "executor": "finance-release-control-plane",
+  "status": "CONSUMED_RELEASED_REMOTE_SUCCESS_FINANCE_P0281_P0279_CONTROL_CLEANUP_PENDING_INDEPENDENT_READBACK",
+  "issuedAt": "2026-08-23T17:09:00Z",
+  "expiresAt": "2026-08-23T17:39:00Z",
+  "releasedAt": "2026-08-23T17:19:00Z",
+  "singleUse": true,
+  "reusable": false,
+  "productionMutationAllowed": false,
+  "cleanupMutationAllowed": true,
+  "scope": "One Finance-only framed transport and one identity-bound deletion of the exact two retained P0-279 control files; no deploy, rollback, service lifecycle or runtime mutation",
+  "predecessor": {
+    "centralCommit": "8de0d7932280893938b4fc995fa9bd5ed42df513",
+    "centralTree": "45456e7f0876c878a8e6384dcf42afe56b57c135",
+    "terminalLeaseBlob": "2eecfda2c1a8ee50c18d27726cf5a841e8dd5085",
+    "terminalLeaseSha256": "21e3108688c3c34b3ad487357c5b674ad2f68357df04de333347d29001dd5c66",
+    "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0280_P0279_REMOTE_STATE_ZERO_WRITE_INSPECTION",
+    "cleanupComplete": false,
+    "p0279Reusable": false
+  },
+  "source": {
+    "branch": "codex/p0-finance-wallet-connectivity-20260820",
+    "requestCommit": "28f530caec63f1141eb2f6f4dce3572b28330540",
+    "requestTree": "f39385e6071cdad83cd38b8466f22b067f209bd3",
+    "requestPath": "apps/finance/evidence/finance-p0281-p0279-control-cleanup-request-20260824.json",
+    "requestBlob": "20a00d6f845b9588eb65141080a6cad98b3f282c",
+    "requestBytes": 2346,
+    "requestSha256": "0de2c2238124d033d904701d5b97ed144ce101b8c182167e04c61e9df3eff2b7",
+    "requestCommitRemoteReachable": true,
+    "currentRemoteHead": "7c00fefa5bceffe34b0e77a247a7b355a9711249",
+    "currentOwnerClean": true,
+    "p0282QueuedOnly": true
+  },
+  "freshPrewrite": {
+    "observedAt": "2026-08-23T17:06:31Z",
+    "parentTuple": "64770:4594822:0:0:750:2:4096:directory",
+    "parentStableIdentity": "64770:4594822:0:0:750:directory",
+    "directChildren": [
+      "p0279-finance-phase3-20260823T164408Z.executor.sh",
+      "p0279-finance-phase3-20260823T164408Z.json"
+    ],
+    "temporaryExecutorAbsent": true,
+    "temporaryLeaseAbsent": true,
+    "currentRelease": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a",
+    "serviceMainPID": 2241003,
+    "serviceNRestarts": 0,
+    "serviceActiveState": "active",
+    "serviceSubState": "running",
+    "productionEnvSha256": "854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252",
+    "unitSha256": "2e72cdad422a3a714c46d074ea97b725233576cf726dbbfd43e82e99c2c2975b",
+    "caddySha256": "dcf75a7aed315c54632321b8bb80e44c0abc22f6700fadfbfa9a7da21b88a282",
+    "stateAbsent": true
+  },
+  "reviewedObjects": {
+    "cleanupExecutor": {
+      "path": "release/integration/p0-wallet-connectivity/execution/objects/p0-281-finance-p0279-control-cleanup.sh",
+      "bytes": 2441,
+      "sha256": "b33ebfe0b4a4da027f7db3d64672d8b73b6e7e714bcb0def304f4fed9fa5403b",
+      "mode": "0700"
+    },
+    "stdinBootstrap": {
+      "path": "release/integration/p0-wallet-connectivity/execution/objects/p0-281-finance-p0279-control-cleanup-stdin-bootstrap.sh",
+      "bytes": 3509,
+      "sha256": "c52b95cd24da3846e4311830e8324cac406b92775e6f0739fe570b202b090304"
+    },
+    "signedLease": {
+      "path": "release/integration/p0-wallet-connectivity/execution/objects/p0-281-finance-p0279-control-cleanup-signed-lease.json",
+      "bytes": 2172,
+      "sha256": "11c0ec664f5601919d016555a57cb815dac09ba69f8d67a54ef8727ca949f93f",
+      "mode": "0600"
+    },
+    "carrier": {
+      "path": "release/integration/p0-wallet-connectivity/execution/objects/p0-281-finance-p0279-control-cleanup.carrier",
+      "bytes": 6327,
+      "sha256": "e9edb38568549e41e56144d00884aaf0d78f39ec791ac66a4da7c413c45ecb22",
+      "roundtrip": "PASS"
+    },
+    "invoker": {
+      "path": "release/integration/p0-wallet-connectivity/execution/objects/p0-281-finance-p0279-control-cleanup-invoker.local.sh",
+      "bytes": 2209,
+      "sha256": "4e45ebaa03f66624b63378c777d7c22b94bca823322db97e035caf70d89fcefd"
+    }
+  },
+  "executionAuthority": {
+    "processWorkingDirectory": "/private/tmp/ynx-calendar-control-plane.y8FFQt/repo",
+    "literalArgv": [
+      "/bin/bash",
+      "/private/tmp/ynx-calendar-control-plane.y8FFQt/repo/release/integration/p0-wallet-connectivity/execution/objects/p0-281-finance-p0279-control-cleanup-invoker.local.sh"
+    ],
+    "remoteHost": "ubuntu@43.153.202.237",
+    "remoteTemporaryExecutor": "/tmp/ynx-finance-p0281-finance-p0279-control-cleanup-20260823T170900Z.executor.sh",
+    "remoteTemporaryLease": "/tmp/ynx-finance-p0281-finance-p0279-control-cleanup-20260823T170900Z.json",
+    "localStdout": "/tmp/ynx-finance-p0281-control-cleanup.stdout",
+    "localStderr": "/tmp/ynx-finance-p0281-control-cleanup.stderr",
+    "sshAttemptLimit": 1,
+    "cleanupInvocationLimit": 1,
+    "retryAllowed": false
+  },
+  "persistentDeletionScope": {
+    "parent": "/opt/ynx/leases/finance",
+    "executor": "/opt/ynx/leases/finance/p0279-finance-phase3-20260823T164408Z.executor.sh",
+    "signedLease": "/opt/ynx/leases/finance/p0279-finance-phase3-20260823T164408Z.json",
+    "deleteParentAllowed": false,
+    "deleteSiblingAllowed": false
+  },
+  "requiredTerminalEvidence": [
+    "one SSH attempt and one cleanup invocation with no retry",
+    "cleanup=P0279_CONTROL_FILES_REMOVED exactly once",
+    "parentStableIdentity=64770:4594822:0:0:750:directory exactly once",
+    "remoteExitStatus=0 and temporaryControlsFinalAbsent=true exactly once",
+    "both P0-279 control files absent and retained parent stable and empty",
+    "both P0-281 temporary files absent",
+    "local stdout/stderr bytes and SHA256 plus local exit status",
+    "independent zero-write readback is required before cleanupComplete=true"
+  ],
+  "forbidden": [
+    "deploy or rollback",
+    "service lifecycle",
+    "current, environment, state, unit or Caddy mutation",
+    "stage, backup or release mutation",
+    "public or Wallet mutation",
+    "account request, signature, typed data or transaction",
+    "retry, P0-279 reuse, P0-280 reuse or P0-282 execution"
+  ],
+  "terminalRules": {
+    "success": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0281_P0279_CONTROL_CLEANUP_PENDING_INDEPENDENT_READBACK",
+    "failure": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0281_P0279_CONTROL_CLEANUP",
+    "releaseHeavyAndAllLocksOnTerminal": true,
+    "independentReadbackRequiredBeforeCleanupComplete": true
+  },
+  "terminalEvidence": {
+    "ownerCommit": "54484d568714ca697a174005114d8f35b4c7c09b",
+    "ownerTree": "16ec7e0ac640865494157dccf95561f96512c393",
+    "path": "apps/finance/evidence/finance-p0281-p0279-control-cleanup-terminal-20260824.json",
+    "blob": "aed6fe1b6fcb79eb0e5e38ab8e261b765527ce7a",
+    "bytes": 1023,
+    "sha256": "63d04c65f85e65cb75e195bfb99a70b6050b561ceb913b73df9fae64ebf33f17",
+    "authorizedInvokerCalls": 1,
+    "retryCount": 0,
+    "localExitStatus": 1,
+    "remoteExitStatus": 0,
+    "stdoutBytes": 142,
+    "stdoutSha256": "d6f29f0ebd2cf91beba06d9f49f319c39b4fc2375a11d10694bd8d1bb6dd23aa",
+    "stderrBytes": 0,
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "receiptLinesValidatedExactlyOnce": true,
+    "remoteCleanupReceipt": true,
+    "localWrapperSuccess": false,
+    "cleanupComplete": false,
+    "nextAuthority": "P0-283_ZERO_WRITE_POST_CLEANUP_VERIFICATION_ONLY"
+  },
+  "truthBoundary": {
+    "cleanupExecuted": true,
+    "remoteCleanupReportedSuccess": true,
+    "localWrapperSuccess": false,
+    "cleanupComplete": false,
+    "deploymentAuthorized": false,
+    "serviceLifecycleAuthorized": false,
+    "p0282Authorized": false,
+    "accountSignTxAllowed": false
+  }
+}

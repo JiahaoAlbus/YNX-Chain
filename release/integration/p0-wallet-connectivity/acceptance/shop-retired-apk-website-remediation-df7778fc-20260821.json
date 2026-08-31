@@ -1,0 +1,33 @@
+{
+  "schemaVersion": 1,
+  "acceptanceId": "P0-SHOP-RETIRED-APK-WEBSITE-REMEDIATION-DF7778FC-20260821",
+  "walletProtocolEvidenceCommit": "df7778fca133818d3d69ec4ca149bfe35d77a280",
+  "classification": "WEBSITE_REMEDIATION_ACCEPTED_GATEWAY_REGISTRY_V3_UNCHANGED",
+  "sourceEvidence": {
+    "path": "release/integration/p0-wallet-connectivity/evidence/shop-retired-apk-website-remediation-df7778fc-20260821.json"
+  },
+  "acceptedDirectTruth": {
+    "websiteAndroidDownloadRemovalVerified": true,
+    "retiredBinaryHosted": false,
+    "retirementStatusRoutePublic": true,
+    "retiredRouteHttpStatus": 410,
+    "retiredRouteBodyExact": true,
+    "automaticRedirect": false,
+    "shopReplacementWebVisible": true,
+    "websiteRetirementConsistentWithRegistry": true
+  },
+  "truth": {
+    "deploymentSourceCommitDirectlyBound": false,
+    "currentPublicRuntimeUsesRegistryV3": false,
+    "publicRegistryV3RetirementVerified": false,
+    "shopWebPwaRootFactoryMigrated": false,
+    "shopProductMigratedV2": false,
+    "productsMigratedV2": 0,
+    "installedApprovalVerified": false,
+    "computerControlVerified": false,
+    "integratedCentral": false,
+    "aggregateDeployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "taskId": "P0-004-FINANCE",
+  "status": "CHECKPOINT_REACHED",
+  "owner": "financial-apps",
+  "checkpoint": "f7efbd9e9658aaea75f8d9fbbb58f79ee1a48365",
+  "completedAt": "2026-08-20T10:10:07Z",
+  "verification": {
+    "worktreeCleanAndRemoteEqual": true,
+    "apk": {"sha256":"d18771c498fb94c5a5893a5899686e62ce864c72a877bd9f9dde7695033025be","bytes":77149970,"signature":"local Android debug v2 only","coldStartMs":244},
+    "wallet": "Real Finance button launched installed YNX Wallet. Wallet was locked, so account authorization was not verified.",
+    "network": "Eight manifest-declared non-product health endpoints returned HTTP 200; Finance product API was not called because it remains PENDING.",
+    "tests": ["Finance 10 tests", "security scan", "frontend smoke", "mobile typecheck", "8 mobile tests", "Android/iOS bundle export", "APK hash verification"]
+  },
+  "truth": {
+    "productSessionCreated": false,
+    "financeApiCalled": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "publicVerified": false
+  },
+  "unresolved": ["Finance API publication/direct identity evidence", "authorized unlocked-Wallet account flow"],
+  "handoff": "Finance path is locked at this checkpoint while Financial Apps advances to Exchange only."
+}

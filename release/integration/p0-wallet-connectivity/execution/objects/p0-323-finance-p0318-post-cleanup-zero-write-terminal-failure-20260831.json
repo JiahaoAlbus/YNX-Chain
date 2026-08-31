@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "1.0.0",
+  "taskId": "P0-323",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-p0318-post-cleanup-zero-write-20260831T064800Z",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0323_CARRIER_INVENTORY_DRIFT",
+  "attemptCount": 1,
+  "retryCount": 0,
+  "localExitStatus": 65,
+  "terminalOutput": {
+    "stdout": {"path":"/tmp/p0-323-finance-p0318-post-cleanup-zero-write.json","bytes":0,"sha256":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"},
+    "stderr": {"path":"/tmp/p0-323-finance-p0318-post-cleanup-zero-write.stderr","bytes":53,"sha256":"a3836d9a729fb1d28b6ecbda2a7708ab244445361e406a270376534d47e2004c","normalized":"p0323-zero-write-fail:RuntimeError:CARRIER_INVENTORY"}
+  },
+  "orderedPredicateTruth": {
+    "targetAndQuarantineAbsencePredicatePassedBeforeFailure": true,
+    "parentStableIdentityPredicatePassedBeforeFailure": true,
+    "fourPreservedSiblingInventoryPredicatePassedBeforeFailure": true,
+    "carrierTuplePredicatePassedBeforeFailure": true,
+    "carrierDirectChildrenOrInventoryPredicateFailed": true,
+    "runtimeServiceAndHttpPredicatesNotReached": true,
+    "completeCanonicalOutputProduced": false,
+    "mutationCount": 0
+  },
+  "truthBoundary": {
+    "cleanupComplete": false,
+    "deployment": false,
+    "cleanup": false,
+    "carrierMutation": false,
+    "serviceLifecycle": false,
+    "publicMutation": false,
+    "accountSignTx": false,
+    "reusable": false,
+    "nextAction": "Require a wholly-new raw-first zero-write carrier diagnostic that emits its actual full tuple, direct child list, every child tuple and SHA, and canonical inventory digest before comparison; do not authorize the build-identity successor carrier or Phase3."
+  },
+  "releasedAt": "2026-08-31T06:50:04Z"
+}

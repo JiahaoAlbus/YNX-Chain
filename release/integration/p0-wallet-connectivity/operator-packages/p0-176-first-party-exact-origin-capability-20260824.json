@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "p0-wallet-protected-capability-receipt@1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-176",
+  "capability": "firstPartyExactOriginAvailable",
+  "available": true,
+  "origin": "https://developer.ynxweb4.com/",
+  "owner": "developer",
+  "ownerThread": "019ffb52-68bb-73f1-a5e9-7f15d6750581",
+  "source": "d4052228a2261c5ced6a8e8cfcbf763edabf2103",
+  "sourceTree": "89beb658b0971fb20d0d92a6bebc2010fdbb33e7",
+  "publicVersion": "0.2.0-testnet-preview-d4052228a226-candidate",
+  "immutableImageSha256": "a4b86cbffad3b8c2beb2c538fec5157a3327651a9e6344d153f3fd8cbe386c74",
+  "deploymentEvidence": "20260822T112541Z-d4052228a226",
+  "directReadOnlyEvidence": {
+    "root": "200:569:851a64521a95011033670cbfe585912a4edac9e247196b8acd7d2a95d7a9a696",
+    "rootTitle": "YNX Code",
+    "healthz": "200:176:a86d4de97b22e9aa36334a67f56eb554d2960e8bb6cbf0085f66066bf666088d",
+    "runtimeHealth": "200:648:0da8973996fb46f88ebb1d4ada77e17041f39d4cfb3e5965fc370bf23506737a",
+    "exactReleaseMatches": true
+  },
+  "limits": {
+    "eligibilityOnly": true,
+    "installedProvider": false,
+    "directE2E": false,
+    "account": false,
+    "signature": false,
+    "transaction": false,
+    "runtimeCompletion": false,
+    "mutationCount": 0
+  }
+}

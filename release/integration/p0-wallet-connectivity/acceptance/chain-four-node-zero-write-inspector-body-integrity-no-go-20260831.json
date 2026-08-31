@@ -1,0 +1,67 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "recordType": "CHAIN_FOUR_NODE_ZERO_WRITE_INSPECTION_LEASE_DECISION",
+  "recordedAt": "2026-08-31T03:20:05Z",
+  "source": {
+    "branch": "codex/chain-four-node-readonly-inspector-20260831",
+    "commit": "0f11025dda53a7fdf4195ade6f3b15fe20de3a9d",
+    "tree": "2ddc87527b3c051c68dbac47d24a47e734c93691",
+    "parent": "582acb079dc150a50a3e5d7be186367181fc9775",
+    "remoteExact": true
+  },
+  "objects": {
+    "inspector": {
+      "path": "scripts/verify/remote-smoke-test.mjs",
+      "blob": "71ba5621",
+      "bytes": 80131,
+      "sha256": "2dcf78d2406d7568264d07d85dbe17ccc12f66d705adc3f679e39cc8350f594b"
+    },
+    "remotePayload": {
+      "bytes": 2531,
+      "sha256": "20a8c6ad9b60a07ad9fc5b58c656f748682b3c1bc3af81154ea73acae123fca2"
+    },
+    "printedPlan": {
+      "bytes": 6114,
+      "sha256": "ec78eab520ea7759f0f4fdd682b1ad8018ddaf8208937d1915d8950854eacede"
+    }
+  },
+  "independentVerification": {
+    "planReproduced": true,
+    "focusedSelfTest": "PASS",
+    "fourUniqueProtectedTargets": true,
+    "remoteMutationSurfaceStaticCheck": "PASS",
+    "exactHttpBodyIntegrity": false
+  },
+  "decision": {
+    "status": "NO_GO",
+    "leaseIssued": false,
+    "heavyLeaseAcquired": false,
+    "protectedIdentityAvailabilityChecked": false,
+    "sshExecuted": false,
+    "reason": "The immutable inspector cannot preserve exact HTTP response bytes, so production state cannot make this object safe to lease. Creator emergency remains independently held."
+  },
+  "singleExecutableBlocker": "CHAIN_FOUR_NODE_REMOTE_PROBE_BODY_COMMAND_SUBSTITUTION_STRIPS_TRAILING_NEWLINES",
+  "defect": {
+    "path": "scripts/verify/remote-smoke-test.mjs",
+    "surface": "chainInspectionRemotePayload probe()",
+    "actual": "response=\"$(curl ... --write-out $'\\n%{http_code}' ...)\" stores the body in a Bash command-substitution variable before computing bytes, SHA256 and base64.",
+    "impact": "Bash removes every trailing newline from command substitution. A body such as x\\n\\n is reported as one byte instead of three and receives the wrong SHA256, contradicting the exact health/status/nodeIdentity/peerSync receipt contract.",
+    "testGap": "The focused self-test uses only the two-byte body {} and therefore cannot detect trailing-newline loss."
+  },
+  "requiredSuccessor": [
+    "capture each HTTP body as bytes without shell command substitution and without a remote temporary file",
+    "retain one request per endpoint and preserve exact status bytes SHA256 and base64 framing",
+    "add a direct remote-payload regression fixture for x followed by two newlines proving 3 bytes and its exact SHA256",
+    "retain four protected refs, one attempt per node, strict host checking, no retry and no remote temp files",
+    "recompute inspector, payload and printed-plan identities and force-false push a new exact successor",
+    "request a wholly-new lease only after Creator emergency cleanup reaches terminal release"
+  ],
+  "truthBoundary": {
+    "sourceOnlyReview": true,
+    "remoteInspection": false,
+    "mutation": false,
+    "deployment": false,
+    "transaction": false
+  }
+}

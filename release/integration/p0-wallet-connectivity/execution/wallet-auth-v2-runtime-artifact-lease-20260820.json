@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-runtime-artifact-lease-20260820T122441Z",
+  "status": "SUPERSEDED_BEFORE_START_VERIFIER_SCHEMA_BUG",
+  "singleUse": true,
+  "issuedAt": "2026-08-20T12:24:41Z",
+  "expiresAt": "2026-08-20T14:24:41Z",
+  "supersededAt": "2026-08-20T12:33:16Z",
+  "supersededReason": "Signed copied-runtime verifier read sourceCommit and code at the response root, while exact daemon schemas place them at build.sourceCommit and error.code. No upload, install, switch, restart or production mutation occurred.",
+  "leaseOwner": "wallet-protocol",
+  "deploymentOwner": "wallet-auth-gateway-runtime-owner",
+  "deploymentChannel": "exclusive-wallet-auth-deterministic-runtime-transaction",
+  "acceptancePath": "release/integration/p0-wallet-connectivity/acceptance/wallet-auth-v2-runtime-artifact-6cf3ef84-20260820.json",
+  "authorization": {
+    "executionAuthorized": false,
+    "productionActivationBlockedUntilCopied49eColdStartPasses": true,
+    "singleControlledTransaction": true,
+    "exclusiveProductionWindowRequired": true,
+    "automaticRollbackRequired": true,
+    "allowedRoot": "packages/wallet-auth",
+    "materialization": "EXACT_WALLET_AUTH_TREE_4c544d2e_PLUS_RUNTIME_ARCHIVE_SHA256_2a2f2921",
+    "networkDependencyInstallAllowed": false,
+    "npmInstallAllowed": false,
+    "unreviewedNodeModulesAllowed": false,
+    "forbiddenTargets": ["6437", "6439", "6441", "Wallet UI or platform", "Chain Core", "Website", "Developer SDK", "Shop", "other products"],
+    "forbiddenEffects": ["whole-repository-merge", "origin-inference", "registry-mutation", "unrelated-service-restart", "installed-client-acceptance", "product-migration-claim"]
+  },
+  "source": {
+    "currentPublicRuntimeCommit": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
+    "candidateRuntimeCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "candidateWalletAuthTree": "4c544d2e2ddb63caef536ea67c8f27b45044fd89",
+    "requiredVersionSourceAfterActivation": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "sourceArchiveSha256": "fac046697f8cc3902976764f959d69f83e13067c37abfe2b37f9b8adf7ba2da0",
+    "sourceInventorySha256": "a96ba130a236459e6a3352d6c14be91c7c6bd0945b2eb019b5e65811ef3137b0",
+    "dependencyRuntimeArchiveSha256": "2a2f29218914580bce70dcc31852186223965b8cf1c5cd34c3cb66c7edf69a54",
+    "dependencyRuntimeArchiveBytes": 665983,
+    "dependencySbomSha256": "b3588ecf29e24242c621509bb5ee34b9d4bca6ea8583fead01d14c5c3efbcfad"
+  },
+  "registry": {
+    "v1CentralRegistrySha256": "ae156b317b9a97bfd42397cca634021deefe10ffb009102899e24276d8721e31",
+    "v2RegistryBlob": "4f1f1326031f1dade8eaaaee4673ee96badd0259",
+    "v2RegistrySha256": "d2826eb419abca4444ccb50d79537fa7f6a3643948d82ed9b52914b7169c107b",
+    "v2RegistryBytes": 6130,
+    "explicitAbsoluteMaterializedPathRequired": true,
+    "originInferenceAllowed": false,
+    "mutationAuthorized": false
+  },
+  "requiredCopiedRuntimeColdStart": {
+    "verifier": "scripts/verify/p0-wallet-auth-v2-copied-runtime-cold-start.mjs",
+    "exactV1StateSha256": "93b18583abac95d040e5feca6c1db778f9193ac3471c5415d38e411b60ac63cb",
+    "productionRuntimePathForbidden": true,
+    "externalNetworkForbidden": true,
+    "exactDependencyArchiveRequired": true,
+    "healthReadyVersionRequired": true,
+    "financeOriginOptionsRequired": true,
+    "invalidV2ChallengeFailClosedRequired": true,
+    "fullFiveRouteLifecycleRequiredBeforeActivation": true,
+    "zeroProductionMutationRequired": true
+  },
+  "requiredBackupRollbackAndPublicAcceptance": [
+    "begin only after copied-runtime cold-start verifier exits zero",
+    "capture and verify source symlink service environment Caddy registry v1-state and independent v2-state identities",
+    "drill rollback to exact 49e source and exact prior v1 state before final activation",
+    "prove v1 administration and Social CORS unchanged",
+    "prove five v2 routes, registered/attacker CORS, lifecycle, restart, replay, revoke, devices-revoke and tamper zero-mutation",
+    "retain all installed-client product-migration integratedCentral and aggregate claims false"
+  ],
+  "executionState": {
+    "staticArtifactVerified": true,
+    "copiedRuntimeColdStartComplete": false,
+    "preflightComplete": false,
+    "backupComplete": false,
+    "deploymentStarted": false,
+    "deploymentComplete": false,
+    "rollbackDrillComplete": false,
+    "publicAcceptanceComplete": false,
+    "leaseConsumed": false,
+    "productionMutationObserved": false
+    ,"supersededBeforeStart": true,
+    "verifierSchemaBugConfirmed": true
+  },
+  "truth": {
+    "candidateDeployedPublic": false,
+    "publicV2LifecycleVerified": false,
+    "installedClientVerified": false,
+    "productRuntimeMigrations": 0,
+    "integratedCentral": false,
+    "aggregatePublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

@@ -1,0 +1,26 @@
+86e20fb9d96ddb6cdbf9d8a5f33133b2ecfa0630 feat(integration): establish P0 wallet connectivity control plane
+10b877b5b18f9cb0026a6382cdd6588054fd16db docs(integration): bind Calendar mapping acceptance truth
+6f45ec22f7fb0eabc0a630d40d250de9caf75c28 feat(integration): accept strict Calendar Data Fabric mapping
+94261b323c9d6aee8ef975dfc392fe8b63c20771 docs(integration): refresh 36-product completion audit
+ffa337e79d8b4b6c9a5185a2c3716c25e10344e5 fix(integration): classify test-only audit deltas
+21b20142346348b6b81cb9aacee4a93050f0b2da audit(integration): refresh Fable5 product inventory
+aaac8f893e9827fb23b931b43374b34090069009 audit: record current Calendar native evidence
+d92a2bbf0a6938b8d88c816beb69776b0cf96524 audit: refresh Fable5 product evidence state
+83c01ba9a389642a798777a05645ce5b9cb3786b feat(integration): audit all 36 Fable5 product worktrees
+6c4ef5abb92ebe846be2c6f0e3b5f547c09e4ebd docs(integration): refresh release matrix evidence
+8081354dd25f4fc0864fb6d84bee1774f9bdb0c1 docs(testnet): record indexer concurrency recovery
+c5150caa35ee8cc563538d15acc9e404a6f2bf08 fix(indexer): restore scalable journal reads
+4abfb21bd2f0cb5044475b5a318798318752cb16 docs(explorer): record 100-user public capacity probe
+fb0a9f158c6222381342d159da4c082c4f1721f7 fix(explorer): share live snapshots across users
+914131f7bf1b24842f43808d8bfaf67ca055ec67 test(testnet): verify 100 public transfer transactions
+487e4ac72241a00edf872627c1a2bc93afcd1405 docs(testnet): add public stability campaign copy
+12cb03c2901eb146231904ac0d1dc491ac80c677 docs(integration): refresh active release train evidence
+296e9d149f31a939f116296dee55bc6e09c475bf feat(integration): audit Fable5 capability completion
+512bb11526d2dff45f0e580e88d1e2c7cb047291 chore(integration): bind controller to active release train
+0969d09e9db74e28c336e9bf81b1a5fd421fd716 fix(pay): close settlement and webhook review gaps
+bd4c0c4e9a80de48e1236b7ab60dd20ef9699e96 docs: record public testnet transfer and concurrency evidence
+b264945f5d9d1d10a893d7521e4529dc3d39ca0c perf: batch concurrent testnet transfers at block finality
+8259f74988343f6c8e74cbdb65df439a0286b394 fix(ingress): route bridge to current coordinator
+1a5e92f227bf7ed8f2e99e9988924ba2fefbe21c chore(integration): bind linear Pay acceptance coverage
+68acaf5408a51f1d02a975e276cbd1e5210d3110 fix(pay): remove tracked Android debug keystore
+d7ce44269c1c30f10d32bfd584fd3523f7442640 integration: accept protected Pay owner source

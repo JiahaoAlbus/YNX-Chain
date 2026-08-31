@@ -1,0 +1,13 @@
+{
+  "schemaVersion":1,
+  "campaignId":"P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId":"P0-068",
+  "owner":"integration",
+  "status":"SOURCE_CHECKPOINT_REACHED_LIGHT_RELEASED",
+  "branch":"codex/p0-ai-wallet-connectivity-20260821",
+  "startingCommit":"a781300124b8f31c910aeb182f9b1b13e1ab4893",
+  "implementationCommit":"e38d222131e89a924dcba13d4e2bd4a32cc0c536",
+  "evidenceCommit":"2cbd93564255e25c2c861eeab68d7b8ef9831014",
+  "acceptedContracts":["walletTransport","errorContract","dappConnectSDK","publicEndpointManifest"],
+  "truth":{"standardWalletSourceImplemented":true,"guestPreviewVerified":true,"privateServiceDegradedPreservesStandardConnection":true,"productSessionV2":false,"historicalPublicRuntime":true,"currentSourcePublicVerified":false,"generationLive":false,"installedCurrentSource":false,"computerControlVerified":false}
+}

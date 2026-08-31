@@ -1,0 +1,39 @@
+{
+  "schemaVersion": "p0-finance-zero-write-terminal-evidence@1",
+  "taskId": "P0-292",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-p0289-post-cleanup-zero-write-p0292-20260823T190000Z",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_ZERO_WRITE_VERIFIER_SYMLINK_CANONICAL_PATH_ASSERTION",
+  "attempts": 1,
+  "localExitStatus": 1,
+  "stdout": {
+    "path": "release/integration/p0-wallet-connectivity/execution/objects/p0-292-finance-p0289-post-cleanup-zero-write-terminal-stdout.txt",
+    "blob": "37fa0e161572a59f4c0f38ae2f8ad864bbe02c63",
+    "bytes": 613,
+    "sha256": "1dc8b2cc6c33f336220d4ff0b708c0f6c4ab101070e613ba3a82e5b5e52751b3"
+  },
+  "stderr": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "directTruth": {
+    "allTwelveP0289PathsAbsent": true,
+    "leaseParent": "64770:4594822:0:0:750:2:4096:directory|directChildren=0|inventorySha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stageParent": "64770:3450041:0:0:750:5:4096:directory|directChildren=3|inventorySha256=0d11124b36a42c6201f7e0d491fd20279ea47950554f92c6b1cc960aaa0fee91",
+    "backupParent": "64770:1481354:0:0:755:11:4096:directory|directChildren=9|inventorySha256=a59008acfeccfb0a2f88de5b029871b713b42d0bf43ad1ba87786c962e6659be",
+    "cleanupAbsenceProved": true,
+    "runtimeAndHttpVerificationComplete": false,
+    "mutationCount": 0
+  },
+  "rootCause": {
+    "class": "VERIFIER_SYMLINK_CANONICAL_PATH_ASSERTION",
+    "invalidPredicate": "realpath(/opt/ynx/finance-current/ynx-finance) == /opt/ynx/finance-current/ynx-finance",
+    "correctPredicate": "current is exact symlink to frozen release and realpath(current/ynx-finance) equals frozen resolved release binary path; tuple/bytes/SHA remain exact"
+  },
+  "truth": {
+    "cleanupComplete": false,
+    "deployment": false,
+    "rollback": false,
+    "remoteMutation": false,
+    "p0292Reusable": false
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "schemaVersion": "1.0.0",
+  "taskId": "P0-318",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-nonregressive-namespaced-phase3-20260831T054556Z",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0318_CANDIDATE_VERIFY_AUTOMATIC_ROLLBACK_OLD_RUNTIME_RESTORED_CONTROLS_RETAINED",
+  "attemptCount": 1,
+  "retryCount": 0,
+  "manualRollbackCount": 0,
+  "childExitStatus": 1,
+  "terminalOutput": {
+    "stdout": {
+      "bytes": 83,
+      "sha256": "49f2d5fb7f5d9a76cc6982001fdad3c256d8c95ac0a9e90f62d096cfc3e85116",
+      "fields": {
+        "phase": "CANDIDATE_VERIFY",
+        "failureClass": "POSTWRITE_CANDIDATE_VERIFY",
+        "failureExitStatus": 1
+      }
+    },
+    "stderr": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "transportReceipt": {
+      "bytes": 203,
+      "sha256": "8f1f562925e9a80c15db49d51728b592ac5fe905992b169058bec78df6bce886",
+      "sshExitStatus": 1,
+      "remoteExitStatus": 1,
+      "terminalReceiptValidated": false
+    }
+  },
+  "zeroWriteTerminalInspection": {
+    "executed": true,
+    "exitStatus": 0,
+    "mutationCount": 0,
+    "executor": "64770:4594834:0:0:700:1:27826:regular file|sha256=1899f8a57bcd4ad0477f0f4fc34bd867a79e96bc309f31fa8f1f7637dd42ad93",
+    "signedLease": "64770:4594835:0:0:600:1:9930:regular file|sha256=4f3bcb186750ad792588a660e7c60c7a6ab8e4045a43a23018fb3260e1392038",
+    "executorPendingAbsent": true,
+    "signedLeasePendingAbsent": true,
+    "manualRollbackLeaseAbsent": true,
+    "manualRollbackLeasePendingAbsent": true,
+    "stageContainerAbsent": true,
+    "stageAbsent": true,
+    "backupContainerAbsent": true,
+    "backupAbsent": true,
+    "releaseContainerAbsent": true,
+    "releaseAbsent": true,
+    "carrier": "64770:4594824:0:0:700:2:4096:directory|directChildren=2|inventorySha256=7da2fd25158089f0659a7d837b261ab0288c20f2ddcefdc4e91878135cb0ff73",
+    "current": {
+      "tuple": "64770:1330149:0:0:777:1:50:symbolic link",
+      "target": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a",
+      "resolved": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a"
+    },
+    "environment": "64770:1312291:0:986:640:1:1545:regular file|sha256=854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252",
+    "unit": "64770:161304:0:0:644:1:515:regular file|sha256=2e72cdad422a3a714c46d074ea97b725233576cf726dbbfd43e82e99c2c2975b",
+    "caddy": "64770:1051759:0:0:644:1:255:regular file|sha256=dcf75a7aed315c54632321b8bb80e44c0abc22f6700fadfbfa9a7da21b88a282",
+    "stateAbsent": true,
+    "service": {
+      "loadState": "loaded",
+      "activeState": "active",
+      "subState": "running",
+      "mainPid": 2818779,
+      "nrestarts": 0
+    },
+    "loopbackHealth": "200:485:d1e97a4314acd1ecccf94629d15bd598cb58ff78136b3622ac26d583a82e45c1:application/json; charset=utf-8",
+    "loopbackVersion": "200:130:39789776da47e60b7a7df845789e02ebba16707ad8951eb6f27c84c1b40bb226:application/json; charset=utf-8",
+    "publicHealth": "200:485:d1e97a4314acd1ecccf94629d15bd598cb58ff78136b3622ac26d583a82e45c1:application/json; charset=utf-8",
+    "publicVersion": "200:130:39789776da47e60b7a7df845789e02ebba16707ad8951eb6f27c84c1b40bb226:application/json; charset=utf-8"
+  },
+  "terminalTruth": {
+    "automaticRollbackOldRuntimeRestored": true,
+    "productionCandidatePromoted": false,
+    "retainedControlPairRequiresSeparateFutureCleanupReview": true,
+    "manualRollbackAuthorized": false,
+    "productCompletionInferred": false,
+    "accountRequested": false,
+    "signatureCreated": false,
+    "typedDataCreated": false,
+    "transactionSubmitted": false
+  },
+  "releasedAt": "2026-08-31T05:55:03Z"
+}

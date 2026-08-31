@@ -1,0 +1,100 @@
+{
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "epoch": 104,
+  "updatedAt": "2026-08-22T14:57:00Z",
+  "heavy": {
+    "owner": "card",
+    "status": "ACTIVE_SINGLE_USE",
+    "branch": "codex/p0-card-wallet-parity-20260822",
+    "worktree": null,
+    "taskId": "P0-193",
+    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-card-wallet-provider-public-deployment-20260822T145700Z",
+    "leasedAt": "2026-08-22T14:57:00Z",
+    "expiresAt": "2026-08-22T15:27:00Z",
+    "releasedAt": null,
+    "previousOwner": null,
+    "previousTaskId": "P0-192",
+    "previousCheckpoint": "0d157864dcc6d08a2ba233a6924a86b18b094322",
+    "executionScope": "CARD_ONLY_EXACT_SOURCE_PRODUCTION_DEPLOYMENT_AND_NON_SENSITIVE_PUBLIC_LIFECYCLE",
+    "releaseReason": null,
+    "onSafeCheckpoint": [
+      "one exact production deployment attempt and no retry",
+      "rollback exactly once to dpl_DqMuEhno65bLFTNKBu9gs52soVri on any post-deployment failure",
+      "no account, signature, transaction, Wallet, Website or other-product action"
+    ]
+  },
+  "light": {
+    "owner": "integration:/root",
+    "status": "ACTIVE_SOURCE_ONLY",
+    "branch": "codex/p0-creator-studio-visible-20260821",
+    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/57-creator-studio-visible-p0",
+    "taskId": "P0-148",
+    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-creator-studio-source-20260821T180934Z",
+    "leasedAt": "2026-08-21T18:09:34Z",
+    "expiresAt": "2026-08-21T18:39:34Z",
+    "releasedAt": null,
+    "checkpointCommit": "993e7cc99ea3919488d6765e097ca78a82a30704",
+    "previousOwner": null,
+    "previousCheckpoint": "5e094147832dca7ad72344f473dd150c30ffa1da",
+    "executionScope": "CREATOR_STUDIO_FABLE5_GAP_AUDIT_AND_SOURCE_REPAIR_NO_PRODUCTION",
+    "onSafeCheckpoint": [
+      "modify only apps/creator-studio source, tests and product-owned evidence",
+      "consume accepted Wallet Provider/connect-state source without recreating it",
+      "return a pushed clean source checkpoint and exact remaining public blockers"
+    ]
+  },
+  "explorerMonitor": {
+    "owner": "explorer-monitor",
+    "status": "CHECKPOINT_REACHED",
+    "branch": "codex/p0-explorer-monitor-20260820",
+    "commit": "f8db7632fb37e9363858a4d4d977eea7b3585c7e",
+    "pr": "https://github.com/JiahaoAlbus/YNX-Chain/pull/107",
+    "executionScope": "PUBLIC_ENDPOINT_AND_SOURCE_IDENTITY_POLICY_CHECKPOINT",
+    "leasedAt": "2026-08-20T17:28:11Z",
+    "releasedAt": "2026-08-20T17:40:54Z",
+    "evidence": "48 application tests, 10 script tests, build, audit and all PR #107 remote gates passed; exact f8db7632 is source-only and the public Monitor still runs 8bf7716e",
+    "publicVerified": false,
+    "firstTask": "WAIT_FOR_RUNTIME_DEPLOYMENT_AUTHORITY"
+  },
+  "dataFabric": {
+    "owner": "data-fabric",
+    "status": "CANDIDATE_READY",
+    "pr": "https://github.com/JiahaoAlbus/YNX-Chain/pull/92",
+    "acceptedContract": "connectionEvents@1.0.0-p0.0",
+    "checkpointCommit": "da095e240be52023ecef19c162c869398bf9fbea",
+    "activationBoundary": "asynchronous errorClass and retryable aggregation only; no Wallet, Gateway, Card UI, Finance UI or Explorer UI ownership"
+  },
+  "waveB": [
+    {
+      "owner": "financial-apps",
+      "status": "FINANCE_EXCHANGE_PAY_DEX_QUANT_SOURCE_CHECKPOINTS_HEAVY_RELEASED",
+      "dependsOn": "dappConnectSDK@0.1.0-p0.0",
+      "scope": "Finance, Exchange, Pay, DEX and Quant source/build checkpoints are retained through P0-110. Heavy is released; installed approval, Product Session, public runtime and real transaction evidence remain false and require separate bounded work."
+    },
+    {
+      "owner": "data-fabric",
+      "status": "CHECKPOINT_REMOTE_CI_PASSED",
+      "dependsOn": "connectionEvents@1.0.0-p0.0",
+      "scope": "asynchronous privacy-safe runtime adapter checkpoint completed; Light Lease released"
+    }
+  ],
+  "queue": [
+    "wallet-auth-core:registry-v3@failed-preflight-890ef0f8",
+    "wallet-auth-core:registry-v3-migration@source-accepted-no-lease",
+    "financial-apps:quant@checkpoint-b20a9088-heavy-released",
+    "data-fabric:error-aggregation-checkpoint@da095e24",
+    "explorer-monitor:runtime-binding-failed-closed@945cd65c",
+    "card-testnet-e2e:dependencies-prepared",
+    "wallet-platform:checkpoint",
+    "financial-apps:next-product-after-finance"
+  ],
+  "rules": [
+    "Only integration modifies this file.",
+    "MAX_HEAVY_OWNER=1.",
+    "A SAFE_CHECKPOINT is an ended atomic edit with protected clean worktree, commit, push or bundle, handoff and recorded tests, with no active migration, signing or deployment transaction.",
+    "Integration may preempt only after SAFE_CHECKPOINT; product/path ownership does not change.",
+    "No path has two active owners.",
+    "Data Fabric is not part of the Wallet synchronous connection, signing or transaction critical path.",
+    "publicVerified is false without direct public Computer Control evidence."
+  ]
+}

@@ -242,9 +242,11 @@ function validateMatrix(matrix, productMap, collector) {
   collector.expect(matrix?.owner === "29-integration", "acceptance matrix owner must be 29-integration");
   collector.expect(validDateTime(matrix?.generatedAt), "acceptance matrix generatedAt is invalid");
   validateSourceBinding(collector, "acceptance matrix", matrix?.controllerSourceCommit);
-  collector.expect(matrix?.repository?.currentBranch === "codex/final-integration", "matrix was not generated on the Integration final branch");
+  const controller = productMap.get("29");
+  const controllerBranch = controller?.controllerBranch ?? controller?.branch;
+  collector.expect(matrix?.repository?.currentBranch === controllerBranch, "matrix was not generated on the registered Integration controller branch");
   collector.expect(matrix?.repository?.localHead === matrix?.controllerSourceCommit, "matrix localHead differs from controllerSourceCommit");
-  collector.expect(matrix?.repository?.upstreamRef === "origin/codex/final-integration", "matrix upstream is invalid");
+  collector.expect(matrix?.repository?.upstreamRef === `origin/${controllerBranch}`, "matrix upstream is invalid");
   collector.expect(Array.isArray(matrix?.products), "matrix products must be an array");
   const products = Array.isArray(matrix?.products) ? matrix.products : [];
   collector.expect(products.length === 36, "matrix must contain exactly 36 products");
@@ -253,7 +255,8 @@ function validateMatrix(matrix, productMap, collector) {
     const expected = productMap.get(product.id);
     collector.expect(Boolean(expected), `matrix contains unknown product ${product.id}`);
     collector.expect(product.repository === (expected?.repository ?? "JiahaoAlbus/YNX-Chain"), `matrix product ${product.id} repository differs from registry`);
-    collector.expect(product.branch === expected?.branch, `matrix product ${product.id} branch differs from registry`);
+    const expectedBranch = product.id === "29" ? (expected?.controllerBranch ?? expected?.branch) : expected?.branch;
+    collector.expect(product.branch === expectedBranch, `matrix product ${product.id} branch differs from registry`);
     collector.expect(product.owner === expected?.owner, `matrix product ${product.id} owner differs from registry`);
     collector.expect(Array.isArray(product.blockers), `matrix product ${product.id} blockers must be an array`);
     collector.expect(typeof product.nextAction === "string" && product.nextAction.length > 0, `matrix product ${product.id} lacks nextAction`);

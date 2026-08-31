@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-062",
+  "ownerTaskLabel": "P0-055",
+  "decision": "REJECT_SOURCE_ONLY_POST_COMMIT_THROWABLE_PATH",
+  "reviewedAt": "2026-08-20T21:00:00Z",
+  "sourceCommit": "695b1330575e5f29e25cef7dd7f97caa2253f59e",
+  "sourceTree": "2781ca53eee8ad8a9955ed131bfbf464114647f3",
+  "sourceParent": "ec181ebaa95e4ac129923553a059185a89556084",
+  "ownerEvidenceCommit": "ad57ed5dcddb56d49605699bd07b364e17a43a8f",
+  "ownerEvidenceTree": "e5fb313a5951a0de28a4a4571f7fe9b9d3dc679b",
+  "ownerEvidenceBlob": "5c6aeb67a3a6ab9ac3e6b9d7c3478d51f1a42a79",
+  "ownerEvidenceSha256": "7fb7c735fad673601bff706ee4fecaddb16f774b310e6ab77f5b184a4d5877b8",
+  "ownerTests": "362/362",
+  "ownerPackSha256": "ac473131aa0281e97706074610ef2526363538a641e68ad21080f89c85423ef4",
+  "blockingFinding": {
+    "code": "POST_COMMIT_THROWABLE_PATH",
+    "summary": "Directory fchown is declared irreversible commit, but an after-transfer hook and path verification can still throw, leaving committed output with no receipt.",
+    "reproduction": {"directoryTransferred":true,"receiptReturned":false,"caughtCode":"EIO","outputExists":true},
+    "requiredCorrection": [
+      "move the final authoritative parent path verification before directory fchown",
+      "after directory fchown no operation may change the committed return outcome",
+      "post-commit diagnostics or parent replacement observations must still return an explicit committed receipt",
+      "add deterministic post-commit hook and parent replacement tests that return committed receipts"
+    ]
+  },
+  "sourceAccepted": false,
+  "executionLeaseIssued": false,
+  "sshUsed": false,
+  "productionRead": false,
+  "deploymentAttempted": false,
+  "publicRuntimeSource": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+  "registryV3Public": false,
+  "productsMigratedV2": 0,
+  "productsRequired": 12,
+  "publicVerified": false,
+  "computerControlVerified": false
+}

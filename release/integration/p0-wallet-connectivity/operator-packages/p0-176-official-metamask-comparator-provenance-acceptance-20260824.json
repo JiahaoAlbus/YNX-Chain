@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "p0-wallet-metamask-comparator-provenance-acceptance@1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-176",
+  "status": "ACCEPTED_NON_SECRET_OFFICIAL_SIGNED_METAMASK_COMPARATOR_PROVENANCE",
+  "owner": "wallet-metamask-comparator-owner",
+  "acceptedAt": "2026-08-23T21:00:00Z",
+  "capabilityBoolean": {
+    "officialSignedMetaMaskComparatorProvenanceAvailable": true
+  },
+  "provenance": {
+    "distribution": "Chrome Web Store official extension",
+    "extensionId": "nkbihfbeogaeaoehlefnkodbefgpgknn",
+    "version": "13.44.0",
+    "securePreferencesCanonicalReceiptSha256": "a2092a54a87694e195c0613a8fd0f3f9b708fbd6c29fa10abe301cabab63f561",
+    "manifestSha256": "c413a8db29064bacf68e72f8478f4ce20db2c6020354459394fe7eeb4e63f02e",
+    "verifiedContentsSha256": "321fad80e5beaa988049d98638029fa61389b8b27909b49e4486e318aea69a17",
+    "signatureSummaryReceiptSha256": "fc22826e53ffbdbe39a1499573b2f6536057102e9260d26b89ee6fd2c96f0acf",
+    "identityReceiptSha256": "a44c7ffede913a5dd8a4297b0fc645cce90d06b796a9c2e793612fa754d92ff8"
+  },
+  "truth": {
+    "secretValuesRecorded": false,
+    "chromeLaunched": false,
+    "installedWalletRuntimeProved": false,
+    "accountRequested": false,
+    "signature": false,
+    "transaction": false,
+    "runtimeLeaseIssued": false,
+    "productCompletionInferred": false
+  }
+}

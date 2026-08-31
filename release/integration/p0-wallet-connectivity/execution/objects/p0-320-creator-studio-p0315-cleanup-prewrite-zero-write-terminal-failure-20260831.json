@@ -1,0 +1,43 @@
+{
+  "schemaVersion": "1.0.0",
+  "taskId": "P0-320",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-creator-p0315-cleanup-prewrite-zero-write-20260831T061200Z",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_CREATOR_P0320_CANDIDATE_BINDING_DRIFT_BEFORE_OUTPUT",
+  "releasedAt": "2026-08-31T06:17:52Z",
+  "singleUse": true,
+  "reusable": false,
+  "execution": {
+    "attemptCount": 1,
+    "retryCount": 0,
+    "sshAttempts": 1,
+    "remoteExitStatus": 1,
+    "inspectorStarted": true,
+    "nodeVersion": "22.23.1",
+    "failure": "Error:CANDIDATE_BINDING_DRIFT",
+    "failureLocation": "compound candidate assertion before canonical output"
+  },
+  "stdoutEvidence": {
+    "path": "/tmp/p0-320-creator-studio-p0315-cleanup-prewrite-zero-write.json",
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "terminalTruth": {
+    "candidateRootTupleMismatchPossible": true,
+    "candidateManifestBytesOrShaMismatchPossible": true,
+    "candidateManifestSourceCommitOrTreeMismatchPossible": true,
+    "candidateManifestFileCountMismatchPossible": true,
+    "specificCandidatePredicateKnown": false,
+    "remoteTemporaryFiles": 0,
+    "cleanupActions": 0,
+    "deploymentActions": 0,
+    "rollbackActions": 0,
+    "serviceLifecycleActions": 0,
+    "currentSwitchActions": 0,
+    "productWrites": 0,
+    "repositoryClean": true,
+    "cleanupAuthorized": false,
+    "cleanupComplete": false
+  },
+  "nextRequirement": "A wholly-new raw-first zero-write diagnostic must emit the actual candidate root tuple, manifest raw bytes digest and parsed source commit tree file count, plus the complete per-object tree identities before evaluating each predicate separately and failing closed.",
+  "noLeaseReuse": true
+}

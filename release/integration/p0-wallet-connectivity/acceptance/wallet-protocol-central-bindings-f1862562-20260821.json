@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "acceptanceId": "P0-WALLET-PROTOCOL-CENTRAL-BINDINGS-F1862562-20260821",
+  "ownerCheckpointCommit": "f1862562551c1a63d448404383cadb4ca9538d32",
+  "classification": "OWNER_ACKNOWLEDGEMENT_ACCEPTED_NO_NEW_RUNTIME_AUTHORITY",
+  "sourceEvidence": {
+    "path": "release/integration/p0-wallet-connectivity/evidence/wallet-protocol-central-bindings-f1862562-20260821.json"
+  },
+  "acceptedBindings": {
+    "p0034WebsiteRemediation": true,
+    "p0035SafeRetirementSource": true,
+    "ownerTruthMatchesCentral": true
+  },
+  "truth": {
+    "reconciledRuntimeProvided": false,
+    "executionLeaseIssued": false,
+    "executionLeaseId": null,
+    "executionLeaseExpiresAt": null,
+    "deploymentAuthorized": false,
+    "currentPublicRuntimeUsesRegistryV3": false,
+    "productsMigratedV2": 0,
+    "installedApprovalVerified": false,
+    "computerControlVerified": false,
+    "integratedCentral": false,
+    "aggregateDeployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

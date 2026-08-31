@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "decision": "ACCEPTED_SOURCE_CONTRACT_PRODUCTS_UNMIGRATED",
+  "acceptedAt": "2026-08-21T03:18:11Z",
+  "contractId": "YNX-CANONICAL-WALLET-AUTHORIZE-V1",
+  "contractVersion": "1.0.0-p0.0",
+  "owner": "wallet-protocol-router",
+  "sourceBranch": "codex/wallet-session-router-recovery",
+  "sourceCommit": "46386ae8eeaa7633923ae762a5a9634b5eac98d9",
+  "sourceTree": "f5bffcf4b775d4a88af9fe3a6b53fa60d271912c",
+  "sourceParent": "67fa7130852bee5530ca631fa1268b4edd84638d",
+  "contractPath": "packages/wallet-auth/integration/canonical-wallet-authorize-v1.json",
+  "contractBlob": "86e19c9faa49debb9096e11cdccfff9f5bc84e96",
+  "contractSha256": "e572042f18c1e32dfe86da26ee2ab52f9372c9803eae3b492c26932e50251c03",
+  "handoffPath": "docs/integration/P0_CANONICAL_WALLET_AUTHORIZE_HANDOFF_20260821.md",
+  "handoffBlob": "f859633c516bf5bbea8524a5d510faa30ca7bb1a",
+  "handoffSha256": "73c12fd1d9832c248e15e76cf1599af9ccd08afc5171477336d182978a1388ca",
+  "independentReview": {
+    "walletAuthTests": "250/250",
+    "releaseGate": "PASS",
+    "packageDryRun": {
+      "name": "@ynx-chain/wallet-auth",
+      "version": "1.0.0",
+      "files": 71,
+      "bytes": 128859,
+      "containsContract": true,
+      "containsGate": true
+    },
+    "verifiedRules": [
+      "bare and payload-free ynxwallet://authorize fail MISSING_AUTHORIZATION_REQUEST",
+      "the only accepted launch shape is ynxwallet://authorize?request=<base64url canonical request>",
+      "approve and reject callbacks are parsed and verified against the exact request",
+      "the release scanner reports direct bare authorize sources"
+    ]
+  },
+  "consumerRule": "Consumers must call the package-root encodeRequestDeepLink and parseAuthorizationCallbackURL exports. Per-product URI concatenation is forbidden.",
+  "truth": {
+    "sourceAccepted": true,
+    "sdkConsumed": false,
+    "walletPlatformConsumed": false,
+    "productsConsumed": "0/12",
+    "deviceVisibleVerified": false,
+    "browserRoundTripVerified": false,
+    "deployedPublic": false,
+    "integratedCentral": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "contractId": "calendar-data-fabric-v2-mapping",
+  "generatedAt": "2026-08-14T01:52:00Z",
+  "calendar": {
+    "owner": "36-calendar",
+    "productId": "com.ynx.calendar",
+    "sourceBranch": "codex/final-calendar",
+    "sourceCommit": "f1305e6b52c7484c099fe6b2f6cbc2b6d36508e2",
+    "outboxSchema": "calendar-canonical-event/1.0",
+    "maximumPendingEvents": 10000,
+    "maximumBatchEvents": 1000,
+    "eventTypes": [
+      "calendar.event.created.v1",
+      "calendar.event.updated.v1",
+      "calendar.event.cancelled.v1",
+      "calendar.invitation.created.v1",
+      "calendar.invitation.updated.v1",
+      "calendar.invitation.cancelled.v1",
+      "calendar.rsvp.updated.v1",
+      "calendar.share.changed.v1",
+      "calendar.reminder.due.v1",
+      "calendar.ai.previewed.v1"
+    ]
+  },
+  "dataFabric": {
+    "owner": "26-data-fabric",
+    "centralSourceAcceptedCommit": "2a09d7455a5fef9eee56ca736be4b600d40a1831",
+    "centralAcceptanceReceipt": "release/integration/evidence/product-26-central-acceptance-01131b46.json",
+    "integrationAdapterCommit": "6f45ec22f7fb0eabc0a630d40d250de9caf75c28",
+    "envelopeVersion": "2.0",
+    "registryVersion": "2.0",
+    "registryDefinitions": 102,
+    "registryArtifact": "schemas/data-fabric/schema-registry-v2.json",
+    "registrySha256": "0caf243571ae87dedf3592023e0166b22a9d2ad8c5556e30a0ca8aa46800b485",
+    "adapter": "internal/datafabriccalendar/adapter.go"
+  },
+  "transportBoundary": {
+    "requiredContext": [
+      "Wallet/App Gateway authenticated productSessionId",
+      "requestId",
+      "traceId",
+      "sourceRelease",
+      "UTC receivedAt",
+      "residencyClass",
+      "registered integrity keyId and signing key"
+    ],
+    "missingContext": "reject-without-local-or-canned-substitution",
+    "identifierPolicy": "Calendar source event, aggregate, audit and idempotency identifiers are deterministically pseudonymized before central transport",
+    "ordering": "Calendar outbox sequence is preserved; Data Fabric partition is product/service/aggregate-type/opaque-aggregate",
+    "acknowledgement": "Calendar may acknowledge only the exact producer sequence after the matching signed envelope is durably accepted",
+    "overflow": "Calendar mutation remains rejected at the 10000-record pending boundary until durable central acceptance advances acknowledgement"
+  },
+  "privacyBoundary": {
+    "classification": "restricted",
+    "retention": "operational",
+    "residency": "account-home",
+    "unknownPayloadFields": "reject",
+    "excluded": [
+      "title",
+      "description",
+      "location",
+      "links",
+      "notes",
+      "attachment names or content",
+      "handles",
+      "raw Wallet accounts",
+      "credentials",
+      "AI prompt or response"
+    ]
+  },
+  "evidence": {
+    "producer": [
+      "TestCanonicalOutboxIsTransactionalPrivateReplaySafeAndPersistent",
+      "TestCanonicalOutboxOverflowAbortsCalendarMutation"
+    ],
+    "integration": [
+      "TestCalendarEventMapsToStrictPrivateV2Envelope",
+      "TestCalendarMappingFailsClosedWithoutSessionOrWithContractDrift",
+      "TestCalendarMappingIsReplayStableAndDataFabricOrderingSurvivesRestart",
+      "TestCalendarSchemasAreV2OnlyAndStrict"
+    ],
+    "commands": [
+      "go test -race ./internal/datafabriccalendar ./internal/datafabric",
+      "go vet ./internal/datafabriccalendar ./internal/datafabric ./cmd/ynx-data-fabricctl",
+      "node scripts/data-fabric/policy-scan.mjs runtime",
+      "node scripts/data-fabric/policy-scan.mjs public",
+      "node scripts/data-fabric/policy-scan.mjs secret"
+    ]
+  },
+  "acceptance": {
+    "producerOutboxTestedLocal": true,
+    "centralSchemaMappedLocal": true,
+    "authenticatedTransportDeployed": false,
+    "durableRuntimeAcceptanceVerified": false,
+    "mailDeliveryEnvelopeAccepted": false,
+    "sharedTestnetVerified": false,
+    "integratedCentral": false,
+    "deployedPublic": false
+  },
+  "remainingGates": [
+    "real Wallet/App Gateway product session and device-bound transport request",
+    "registered non-chat integrity key supplied through approved secret management",
+    "deployed Data Fabric inbox/outbox transport and durable acceptance receipt",
+    "Mail delivery command and outcome envelope acceptance",
+    "CAL-X-014 shared Testnet execution with request, trace, event and audit identifiers",
+    "central restart, broker outage, retry and acknowledgement recovery evidence"
+  ]
+}

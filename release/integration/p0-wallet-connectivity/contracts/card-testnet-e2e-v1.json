@@ -1,0 +1,51 @@
+{
+  "schemaVersion": "1.0.0",
+  "contractId": "card-testnet-e2e-v1",
+  "status": "DEPENDENCIES_PREPARED",
+  "environment": "YNX_TESTNET_PAYMENT_SIMULATION",
+  "productTruth": "YNX Card is a future real virtual-card product; this contract permits only Testnet YNXT funding and simulated authorization, capture, reversal and refund. It is not a real card network, fiat flow, merchant payment, PAN or CVV service.",
+  "chain": {
+    "evmChainId": "0x1917",
+    "cosmosChainId": "ynx_6423-1",
+    "asset": "YNXT"
+  },
+  "canonicalFunding": {
+    "intentAuthority": "Card service issues an exact, short-lived funding intent after accepted Wallet connection.",
+    "recipient": null,
+    "recipientStatus": "PENDING_CHAIN_ACCOUNT_ISSUANCE",
+    "recipientRule": "No client, callback or UI may invent, substitute or cache a recipient. A recipient becomes callable only when the Card runtime publishes an exact signed intent through an accepted endpoint manifest.",
+    "requiredIntentFields": ["id", "chainId", "recipient", "amountWei", "minConfirmations", "expiresAt"],
+    "minimumConfirmations": "intent-bound and >= 1"
+  },
+  "authoritativeFlow": [
+    "User Wallet submits the exact YNXT Testnet transaction",
+    "verify chainId, sender, recipient, amount, transaction hash, receipt status, block and required confirmations",
+    "deduplicate by finalized transaction hash plus canonical funding intent",
+    "emit card.funded only after finalized authoritative proof",
+    "publish the privacy-safe Data Fabric Outbox event",
+    "credit the immutable Card Ledger only after reconciliation state is matched",
+    "retain Explorer transaction evidence"
+  ],
+  "rejectionRules": [
+    "wrong chain, recipient, sender, amount or expired intent",
+    "failed, redirected or under-confirmed receipt",
+    "duplicate transaction/replay",
+    "callback-only or UI-only success",
+    "missing Data Fabric event or unmatched ledger reconciliation"
+  ],
+  "dependencies": {
+    "connectionEvents": "ACCEPTED",
+    "dataFabricRuntimeAdapter": "ACTIVE_LIGHT_SLICE",
+    "cardCandidate": {
+      "commit": "324de225314b9118abe2d19565b31e63c966764d",
+      "tests": "19/19 passed and TypeScript typecheck passed locally on 2026-08-20"
+    },
+    "canonicalFundingRecipient": "PENDING",
+    "realYnxtTransaction": "PENDING",
+    "explorerEvidence": "PENDING",
+    "ledgerReconciliation": "PENDING"
+  },
+  "rollback": "Reject the intent and leave Card available balance unchanged; append only compensating reversal/reconciliation records, never mutate a historical ledger entry.",
+  "publicVerified": false,
+  "createdAt": "2026-08-20T09:45:38Z"
+}

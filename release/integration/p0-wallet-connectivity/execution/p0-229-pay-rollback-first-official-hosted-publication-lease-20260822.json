@@ -1,0 +1,290 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-229",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-pay-rollback-first-official-hosted-publication-20260822T235200Z",
+  "owner": null,
+  "executor": "pay-production-hosted-release",
+  "status": "CONSUMED_RELEASED_SUCCESS_PAY_SOURCE_BOUND_OFFICIAL_PUBLIC_HOSTED_NON_SENSITIVE",
+  "issuedAt": "2026-08-22T23:52:00Z",
+  "expiresAt": "2026-08-23T00:52:00Z",
+  "releasedAt": "2026-08-22T23:58:30Z",
+  "singleUse": true,
+  "reusable": false,
+  "executionAuthorized": false,
+  "productionMutationAllowed": false,
+  "scope": "Pay-only exact rollback-first static publication followed by one literal workflow push and one push-triggered official-domain hosted Chromium run; retain only on complete direct success, otherwise execute at most one exact rollback",
+  "centralPrecondition": {
+    "parentCommit": "dcfdb94394ec53c646dfd2f93383dd5e92de7653",
+    "parentTree": "e2c32ca7f3296db1de2be25ef0264b2527c7480f",
+    "heavyWasNullAndIdle": true,
+    "previousTask": "P0-228",
+    "previousStatus": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_PHASE1_RECEIPT_FINAL_TUPLE_NLINK_MISMATCH",
+    "previousLeaseNonreusable": true
+  },
+  "ownerAuthority": {
+    "branch": "codex/p0-pay-wallet-connectivity-20260821",
+    "remoteHeadAtIssuance": "6f7d1525df3ee6e70e01e4c953cf8364e6355e64",
+    "remoteTreeAtIssuance": "fc62c26c3131decaed582b9baa78bdabf614190d",
+    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/04-pay-p0-clean",
+    "worktreeHead": "e29611c9d2bab70dceafb22185c8dfbff3135f26",
+    "worktreeTree": "60f554e4e1f52856a91816da83bdd0be5bd708c6",
+    "worktreeExactAndClean": true,
+    "candidateHeadParent": "f258ea7f22839f412db916dc01b79463e38741ea",
+    "candidateHeadSubject": "evidence(pay): validate official public candidate",
+    "sourceCommit": "5f4ce98eb458550b976c17e3bc6d77cce4081a59",
+    "sourceTree": "8f0c25c4d86eb22a564f3c7aeff9db6709a9b9f0"
+  },
+  "reviewCarrier": {
+    "path": "/tmp/ynx-pay-p0228-production-hosted-validation.bundle",
+    "bytes": 86686659,
+    "sha256": "9969e87941abfb3c53f122a1ba8cbbffe9f97d4e526862ce678d3fdd5dafe84c",
+    "bundleVerify": "PASS_COMPLETE_HISTORY_SHA1",
+    "head": "e29611c9d2bab70dceafb22185c8dfbff3135f26",
+    "headTree": "60f554e4e1f52856a91816da83bdd0be5bd708c6",
+    "implementationCommit": "8f5eaafeb8c4ea269d70aeb626982ba1fe76adb8",
+    "implementationTree": "0abb03b891f72894b3374fd75a1daddcfcc0f466",
+    "remoteBase": "6f7d1525df3ee6e70e01e4c953cf8364e6355e64",
+    "exactDiff": [
+      ".github/workflows/pay-web-hosted-browser-preflight-p0226.yml",
+      "apps/pay/evidence/pay-web-production-public-lease-request-p0228-20260823.json",
+      "apps/pay/PAY_P0228_PRODUCTION_HOSTED_BROWSER_LEASE_REQUEST_20260823.md"
+    ]
+  },
+  "request": {
+    "path": "apps/pay/evidence/pay-web-production-public-lease-request-p0228-20260823.json",
+    "blob": "5d16ae009dbe3d997c5ab012b2d6f20ed5517fc4",
+    "bytes": 10615,
+    "sha256": "4755359e23bcdbca223387b3fe1188b789e2698c722155c2346eed7e733d7e8d",
+    "jsonValid": true,
+    "localP0228LabelDoesNotSetCentralTaskNumber": true
+  },
+  "handoff": {
+    "path": "apps/pay/PAY_P0228_PRODUCTION_HOSTED_BROWSER_LEASE_REQUEST_20260823.md",
+    "blob": "1cf9b50d4b7d22ea9834a71bebc4f319106e4bd3",
+    "bytes": 3908,
+    "sha256": "d107945c4f3b691007b5fb3991108cdf0700ffb5ed4e19ceede45aadcff0ae15"
+  },
+  "p0227HostedCandidateAuthority": {
+    "centralReleaseCommit": "5edaa0efe9d30cc4e033105a46b62eb46184ce14",
+    "centralReleaseTree": "904faefaa5d177306db5e9131b310d889bcef1dc",
+    "terminalLeaseBlob": "9b292e21955198fb0ea5c9b12b9ba03a926a3fd6",
+    "terminalLeaseBytes": 11574,
+    "terminalLeaseSha256": "69c4e4b4b699cc2254bc0679c4f812eb6a336788849e6eff2a0abecb94c5065a",
+    "status": "CONSUMED_RELEASED_SUCCESS_PAY_HOSTED_CHROMIUM_READINESS_PREDEPLOY",
+    "run": 32605605681,
+    "job": 97110081981,
+    "artifactId": 9484042566,
+    "artifactZipSha256": "6121587534a45ac0dd7e3c16be3263fa82b551cf3f74624a31dfd381b8b02bfa",
+    "coldJsonSha256": "ea2390e2d65404bd7e0baf40d5d523444bad3593a2a6fc3d4853b4b876c38ed8",
+    "secondJsonSha256": "fd480933d7ffb81b4845c22a5ead33d598de5eb273f10b1cc031ffcb54abcb2a",
+    "summarySha256": "9703196da3dbf7f1eecd78a226981d66b79ab3f13dcff00b4d6c52901ea5568c"
+  },
+  "candidate": {
+    "archive": {
+      "path": "release/pay/ynx-pay-web-5f4ce98e-static.tar.gz",
+      "blob": "cca37d7b48c1c37266a4141c7b79f44f1cf09f29",
+      "bytes": 608368,
+      "sha256": "ae552951d8e569f04aced60db69e3c11422910cc1098a6e7061b0e84005ad09e"
+    },
+    "index": {"bytes": 1174, "sha256": "22f743c62a976928abd8a6bc3d123d366b5e1cac774b6ad3d20c21cfa07d917e"},
+    "buildIdentity": {"bytes": 322, "sha256": "7b57cc88fc9287c546ba41d0e61a00c13665cdfd8aa8cc34c2f7347f8abb0b81"},
+    "caddy": {"path": "release/pay/ynx-chain-pay-static-5f4ce98e.caddy", "blob": "c0a4ccabc8750837c815172626dc60b5e63fd8cc", "bytes": 3412, "sha256": "b606d1bdced436a984aed19981788f1a9471b4ccb7ad7f2c49b32015b729afa7"},
+    "rollbackCaddy": {"path": "release/pay/ynx-chain-pay-static-rollback-p0222.caddy", "blob": "5a33b5cf34077d69a8863ebf427ebc8a0477728c", "bytes": 2899, "sha256": "df5f7ad73dd2631c0e934514e05a30ac97c75dc9efe2ec568b049c71c4024396"},
+    "releaseRoot": "/opt/ynx-pay-web/releases/pay-web-5f4ce98e-release1",
+    "stagingRoot": "/opt/ynx-pay-web/incoming/pay-web-5f4ce98e-release1"
+  },
+  "commandObjects": {
+    "deploy": {"path": "apps/pay/scripts/pay-public-deploy-p0224.sh", "blob": "b10354101ded4318dac96cf567859d06bf1c5aae", "bytes": 7015, "sha256": "bb30f2d1ad28761efbf88de6b9b83fe2f81458a76a5042e08b1d3d8b23985802", "bashSyntax": "PASS", "fixture": "PASS", "attemptLimit": 1},
+    "rollback": {"path": "apps/pay/scripts/pay-public-rollback-p0224.sh", "blob": "8a4952ba55c758330d1684032ff647d733f4f331", "bytes": 3610, "sha256": "0bee0650f2aa351aba785c95369a0116bdd0d1da7a6ff2a3d3c8613e7365ce9e", "bashSyntax": "PASS", "fixture": "PASS", "attemptLimit": 1},
+    "fixture": {"path": "apps/pay/scripts/test-pay-public-deploy-fixture.sh", "blob": "b156ec0c6665709a0a51c7759d805e8a21605ecf", "bytes": 3482, "sha256": "34e0645884594cb755745da23ee7bef309a26cd787035fefa61c2ce3b0931848", "result": "PASS"}
+  },
+  "officialHostedWorkflow": {
+    "path": ".github/workflows/pay-web-hosted-browser-preflight-p0226.yml",
+    "blob": "f232f63bd904e2656b38957c0c8102a16e48fa85",
+    "bytes": 16787,
+    "sha256": "3a732cec381cc44ae50efdf5156fb4e2d8c2deaef9b9dfd2ad0d658316907aa4",
+    "origin": "https://pay.ynxweb4.com",
+    "pushOnly": true,
+    "dispatch": false,
+    "secrets": false,
+    "inputs": false,
+    "dynamicUrl": false,
+    "retry": false,
+    "loadStates": ["domcontentloaded", "load"],
+    "networkidleForbidden": true,
+    "expectedHeadMessage": "evidence(pay): validate official public candidate",
+    "requiredTruth": "exact official resources and source identity, health semantics, persistent-profile cold-close-second English disconnected UI, stable one official page, zero console/page/request failures and no fabricated account or chain"
+  },
+  "host": {
+    "address": "43.153.202.237",
+    "arch": "x86_64",
+    "sshUser": "ubuntu",
+    "identityFile": "/Users/huangjiahao/Downloads/Huang.pem",
+    "identityBytes": 1674,
+    "identityMode": "0600",
+    "knownHostsFile": "/Users/huangjiahao/.ssh/known_hosts",
+    "hostKeyFingerprint": "SHA256:7wrOak1OZoD6oDAr0e3En+UD4fs8QnAM1n0Jvwi6Ha8",
+    "strictHostKeyChecking": true
+  },
+  "freshBaseline": {
+    "observedAt": "2026-08-22T23:50:27Z",
+    "caddySha256": "df5f7ad73dd2631c0e934514e05a30ac97c75dc9efe2ec568b049c71c4024396",
+    "parentDirectories": [
+      {"path": "/opt/ynx-pay-web", "deviceInode": "64770:1483757", "owner": "root:root", "mode": "0755", "nlink": 4, "bytes": 4096, "type": "directory", "exactChildren": ["incoming", "releases"]},
+      {"path": "/opt/ynx-pay-web/releases", "deviceInode": "64770:1483839", "owner": "root:root", "mode": "0755", "nlink": 2, "bytes": 4096, "type": "directory", "empty": true},
+      {"path": "/opt/ynx-pay-web/incoming", "deviceInode": "64770:1483758", "owner": "root:root", "mode": "0755", "nlink": 2, "bytes": 4096, "type": "directory", "empty": true}
+    ],
+    "releaseRootAbsent": true,
+    "stagingRootAbsent": true,
+    "paydService": {"active": "active", "subState": "running", "mainPid": 2734498, "nRestarts": 0, "listener": "127.0.0.1:6430"},
+    "payProductListener": "127.0.0.1:6484",
+    "public": {
+      "root": "404/19B/b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793",
+      "buildIdentity": "404/19B/b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793",
+      "releaseManifest": "404/19B/b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793",
+      "callback": "404/19B/b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793",
+      "healthObserved": "200/589B/b52d0fe299a6e5ba6c9c2f682d5b84f28dd3c113a59a0cdcf442aa1589334118",
+      "healthRequiredSemantic": "service=ynx-payd/network=YNX Testnet/chainId=6423",
+      "healthBodyShaIsDynamicAndNotAReleaseIdentity": true
+    }
+  },
+  "execution": {
+    "evidenceDirectory": "/tmp/ynx-pay-p0228-public-release-20260823T000000Z",
+    "evidenceDirectoryMustBeAbsent": true,
+    "deployExactCommand": "'/Users/huangjiahao/Desktop/YNX Final Worktrees/04-pay-p0-clean/apps/pay/scripts/pay-public-deploy-p0224.sh' /tmp/ynx-pay-p0228-public-release-20260823T000000Z",
+    "pushExactCommand": "git -C '/Users/huangjiahao/Desktop/YNX Final Worktrees/04-pay-p0-clean' push origin e29611c9d2bab70dceafb22185c8dfbff3135f26:refs/heads/codex/p0-pay-wallet-connectivity-20260821",
+    "rollbackExactCommand": "'/Users/huangjiahao/Desktop/YNX Final Worktrees/04-pay-p0-clean/apps/pay/scripts/pay-public-rollback-p0224.sh' /tmp/ynx-pay-p0228-public-release-20260823T000000Z",
+    "attemptLimits": {"deploy": 1, "push": 1, "hostedRun": 1, "rollback": 1},
+    "retryAllowed": false,
+    "orderedContract": [
+      "fresh-read this exact unexpired ACTIVE_SINGLE_USE lease, Heavy owner pay, all locks and every freshBaseline value",
+      "require owner remote still 6f7d1525 and local worktree exact clean e29611c9 before deploy",
+      "require request, bundle, candidate archive, both Caddy objects, deploy, rollback, fixture and workflow byte exact",
+      "run the exact deploy command once",
+      "only after deploy success and direct raw exact-source Pay gate, run the exact literal force=false push once",
+      "bind exactly one push-triggered run at exact head e29611c9 and inspect its isolated artifact",
+      "retain publication only if the official raw and hosted cold-plus-second browser gates fully pass",
+      "on any deploy, raw, push, run, artifact or browser failure after deploy invocation, execute the exact rollback command at most once and prove the old baseline"
+    ]
+  },
+  "locks": [
+    "heavy:pay",
+    "host:43.153.202.237:caddy-pay-publication",
+    "path:/etc/caddy/ynx-chain.caddy",
+    "path:/opt/ynx-pay-web/releases/pay-web-5f4ce98e-release1",
+    "path:/opt/ynx-pay-web/incoming/pay-web-5f4ce98e-release1",
+    "route:https://pay.ynxweb4.com/**",
+    "branch:codex/p0-pay-wallet-connectivity-20260821:.github/workflows/pay-web-hosted-browser-preflight-p0226.yml",
+    "branch:codex/p0-pay-wallet-connectivity-20260821:apps/pay/evidence/pay-web-production-public-lease-request-p0228-20260823.json",
+    "branch:codex/p0-pay-wallet-connectivity-20260821:apps/pay/PAY_P0228_PRODUCTION_HOSTED_BROWSER_LEASE_REQUEST_20260823.md",
+    "local-evidence:/tmp/ynx-pay-p0228-public-release-20260823T000000Z"
+  ],
+  "forbidden": [
+    "any retry, second deploy, second push, workflow_dispatch, second hosted run or second rollback",
+    "deleting, replacing or changing ownership or mode on /opt/ynx-pay-web or its releases/incoming parent directories",
+    "Caddyfile, conf.d, unit, environment, backend binary/state, DNS, certificate, pay-app-current or non-Pay route mutation",
+    "provider selection, eth_requestAccounts, account approval or reject, personal_sign, EIP-712, transaction, private key or recovery material",
+    "installed-provider, sensitive lifecycle, Product Session or aggregate product-completion promotion"
+  ],
+  "terminalEvidence": {
+    "classification": "DIRECT_SUCCESS_PAY_SOURCE_BOUND_OFFICIAL_PUBLIC_HOSTED_NON_SENSITIVE",
+    "observedAt": "2026-08-22T23:58:30Z",
+    "counts": {
+      "deploy": 1,
+      "rawCollector": 1,
+      "literalForceFalsePush": 1,
+      "pushTriggeredHostedRun": 1,
+      "retry": 0,
+      "dispatch": 0,
+      "rollback": 0
+    },
+    "deploy": {
+      "exitCode": 0,
+      "release": {"path": "/opt/ynx-pay-web/releases/pay-web-5f4ce98e-release1", "deviceInode": "64770:1483840"},
+      "stageDeviceInode": "64770:1483832",
+      "activeCaddySha256": "b606d1bdced436a984aed19981788f1a9471b4ccb7ad7f2c49b32015b729afa7",
+      "payd": {"mainPid": 2734498, "active": "active", "subState": "running", "nRestarts": 0},
+      "listeners": ["127.0.0.1:6430", "127.0.0.1:6484"]
+    },
+    "ownerRemote": {
+      "head": "e29611c9d2bab70dceafb22185c8dfbff3135f26",
+      "tree": "60f554e4e1f52856a91816da83bdd0be5bd708c6",
+      "forceFalsePushCount": 1,
+      "readbackExact": true
+    },
+    "officialRaw": {
+      "root": "200/1174B/22f743c62a976928abd8a6bc3d123d366b5e1cac774b6ad3d20c21cfa07d917e",
+      "buildIdentity": "200/322B/7b57cc88fc9287c546ba41d0e61a00c13665cdfd8aa8cc34c2f7347f8abb0b81/application-json/no-store/source-5f4ce98e/tree-8f0c25c4",
+      "releaseManifest": "200/1316B/0d7a85febde4fc6d055c25d5181c321a0506f1aebe278840a28b71d6aab71644",
+      "manifestResources": "all eight distinct resources HTTP 200 with exact bytes and SHA-256",
+      "health": "200/589B/service=ynx-payd/network=YNX Testnet/chainId=6423",
+      "callback": "404/19B/b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793"
+    },
+    "hostedRun": {
+      "run": 32606504928,
+      "job": 97112183851,
+      "attempt": 1,
+      "event": "push",
+      "head": "e29611c9d2bab70dceafb22185c8dfbff3135f26",
+      "conclusion": "success",
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/32606504928",
+      "artifactId": 9484260327,
+      "artifactName": "pay-web-official-browser-validation-p0228-e29611c9d2bab70dceafb22185c8dfbff3135f26",
+      "artifactZipBytes": 1186773,
+      "artifactZipSha256": "88c0687d4cdb1aaee8e1b34d0ba8df6391b36c4f73855784b0dccfc81980afcb",
+      "unzipIntegrity": true,
+      "isolatedFiles": 67
+    },
+    "hostedEvidence": {
+      "officialResourceSummary": {"bytes": 1859, "sha256": "24338054474cadcb14332b12e5ee5bf66d38f46b8f36890d12ba2c48529c863e"},
+      "coldJson": {"bytes": 1046, "sha256": "dde67a2a9975b198f2c2637637917ff31f0ee01092f71d8a30ea9f558a8e667f"},
+      "secondJson": {"bytes": 1048, "sha256": "09b30ea779d75a070fbfa21bc6fb5a806ab02b51022eb4b3f70cda7017ef13d8"},
+      "summaryJson": {"bytes": 2545, "sha256": "8858df8c51a02e65eeb14b72b3afde954048b953ccbefae5e58e91a9e509b47a"},
+      "coldScreenshot": {"bytes": 49889, "sha256": "c64faa6c5318a1f57f2a04c19d99875279052c2115710e8cc3ed0496c929a588"},
+      "secondScreenshot": {"bytes": 49889, "sha256": "c64faa6c5318a1f57f2a04c19d99875279052c2115710e8cc3ed0496c929a588"},
+      "artifactHashListSha256": "a02024ea0b5d3d659c90f60130695746bc912055986e53ee488a1dc738ad9c1c",
+      "artifactByteListSha256": "7499a2d22a9f28501a6764261d8d992ac2cc7a3a29ef87f51c15db1e9eadb8e9",
+      "directTruth": "Cold and second persistent-profile launches each remained at exact https://pay.ynxweb4.com/, title YNX Pay, lang en, exactly one page, visible YNX Pay plus Sign in plus Confirm before you pay, root/JS/logo HTTP 200, console/page/request failures zero, and chooser/details/account/0x1917 absent. The browser context closed between launches."
+    },
+    "rollbackInvoked": false,
+    "publicationRetained": true,
+    "sensitiveActions": {
+      "providerSelection": false,
+      "ethRequestAccounts": false,
+      "accountApprovalOrReject": false,
+      "signing": false,
+      "typedData": false,
+      "transaction": false
+    },
+    "truthBoundary": "Promote only exact-source Pay official public static publication and direct hosted non-sensitive cold/second browser visibility. Installed provider, account lifecycle, 0x1917, events, signing, typed data, transaction, full parity and aggregate products remain false."
+  },
+  "terminalRules": {
+    "success": "CONSUMED_RELEASED_SUCCESS_PAY_SOURCE_BOUND_OFFICIAL_PUBLIC_HOSTED_NON_SENSITIVE",
+    "failurePrewrite": "CONSUMED_RELEASED_FAILED_CLOSED_PAY_P0229_PREWRITE_ZERO_PRODUCTION_MUTATION",
+    "failureRestored": "CONSUMED_RELEASED_FAILED_CLOSED_PAY_P0229_PUBLICATION_ROLLED_BACK",
+    "rollbackFailure": "EMERGENCY_BLOCKED_PAY_P0229_EXACT_ROLLBACK_REQUIRED_NO_FURTHER_ACTION",
+    "releaseHeavyAndAllLocksOnEveryTerminalPath": true,
+    "requiredReturn": "exact command counts, production receipts, official raw hashes, unique run/job/artifact identity, hosted cold and second evidence, rollback proof if used and all sensitive-action false boundaries"
+  },
+  "truthBeforeExecution": {
+    "sourceBoundPublic": false,
+    "installedProvider": false,
+    "accountApprovalOrReject": false,
+    "signingOrTypedData": false,
+    "transaction": false,
+    "productComplete": false,
+    "productsConnected": "0/12"
+  },
+  "truthAfterSuccess": {
+    "sourceBoundPublic": true,
+    "officialHostedBrowserNonSensitive": true,
+    "installedProvider": false,
+    "accountApprovalOrReject": false,
+    "signingOrTypedData": false,
+    "transaction": false,
+    "fullParity": false,
+    "productComplete": false,
+    "productsConnected": "0/12"
+  }
+}

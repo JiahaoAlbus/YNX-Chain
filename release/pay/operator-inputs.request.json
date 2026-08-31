@@ -1,0 +1,79 @@
+{
+  "schemaVersion": "1.0.0",
+  "productId": "pay",
+  "sourceCommit": "6cbac9f4654b5715d32f1e561819e593c868a6f1",
+  "requestStatus": "required-only-for-the-affected-external-release-states",
+  "generatedAt": "2026-07-30T19:45:00Z",
+  "instructions": {
+    "responseChannel": "approved control plane or named owner handoff",
+    "neverProvideInChatOrRepository": [
+      "private key",
+      "seed phrase",
+      "validator or paymaster signing key",
+      "PEM, keystore, provisioning profile private material, or store credential",
+      "complete provider secret",
+      "raw identity document or payment-card data"
+    ],
+    "secretMethod": "Provide only an approved secret-manager reference, receiving service account, access owner, and rotation/revocation policy."
+  },
+  "inputs": [
+    {
+      "id": "pay-central-and-testnet-deployment",
+      "ownerClass": "29-integration-and-testnet-operator",
+      "requiredFor": ["integratedCentral", "deployedStaging", "freshAuthoritativeTestnetFlow"],
+      "provide": [
+        "accepted exact Pay source commit and central integration receipt",
+        "Gateway route and Wallet product-registry deployment references",
+        "source-bound service deployment and health/version evidence",
+        "approved Faucet, chain RPC, Explorer, Monitor, Trust, Oracle, Bridge, and Data Fabric endpoints"
+      ]
+    },
+    {
+      "id": "pay-provider-and-verifier-acceptance",
+      "ownerClass": "paymaster-stable-bridge-quant-and-ledger-owners",
+      "requiredFor": ["sponsorship", "stableSettlement", "bridgeSettlement", "quantServiceBilling"],
+      "provide": [
+        "approved public contract addresses or provider identifiers",
+        "public verifier keys and key IDs",
+        "schema/source versions, freshness windows, limits, and fail-closed policy",
+        "rotation, revocation, outage, and destination-confirmation evidence"
+      ],
+      "prohibited": "Do not provide private signing or provider credentials."
+    },
+    {
+      "id": "pay-public-web-and-support",
+      "ownerClass": "28-website-and-domain-owner",
+      "requiredFor": ["deployedPublic", "paySpecificWebsiteRoute"],
+      "provide": [
+        "source-bound /pay deployment receipt and canonical metadata",
+        "Pay service URL and exact health/version observation",
+        "support, privacy, security, status, and accessibility review URLs",
+        "DNS/TLS and rollback ownership evidence"
+      ]
+    },
+    {
+      "id": "pay-production-artifacts-and-stores",
+      "ownerClass": "30-security-sre-and-mobile-release-owner",
+      "requiredFor": ["downloadHosted", "productionSigned", "storeReleased"],
+      "provide": [
+        "approved Android and iOS signing-class decision",
+        "secure signer and store-account references",
+        "artifact hashes, bytes, SBOM, provenance, scan, retention, and rollback receipts",
+        "device install/cold-start/deep-link evidence and store review receipts"
+      ],
+      "prohibited": "Do not provide signing keys, store passwords, or recovery codes."
+    },
+    {
+      "id": "pay-independent-acceptance",
+      "ownerClass": "named-security-legal-economic-accessibility-and-recovery-reviewers",
+      "requiredFor": ["productionReview", "manualAccessibilityAcceptance", "productionRecoveryAcceptance"],
+      "provide": [
+        "reviewer identity and organization",
+        "scope, jurisdiction, reviewed artifact digests, findings, and decision",
+        "production-volume RTO/RPO drill and immutable remote-retention evidence",
+        "manual screen-reader, 200-percent text, dark-theme, RTL, and device matrix results"
+      ]
+    }
+  ],
+  "releaseRule": "A missing input keeps only the affected state false or unavailable. It must never be replaced with fabricated configuration, approval, signature, provider health, install evidence, or public proof."
+}

@@ -1,0 +1,70 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-295",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-p0294-state-readonly-p0295-20260823T193100Z",
+  "owner": "finance-release-control-plane-readonly-inspection",
+  "executor": "finance-release-control-plane-readonly-inspection",
+  "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0295_P0294_REMOTE_STATE_ZERO_WRITE_INSPECTION",
+  "issuedAt": "2026-08-23T19:31:00Z",
+  "expiresAt": "2026-08-23T20:01:00Z",
+  "releasedAt": "2026-08-23T19:39:00Z",
+  "singleUse": true,
+  "reusable": false,
+  "productionMutationAllowed": false,
+  "scope": "Exactly one zero-write SSH inspection of unknown P0-294 remote state, residue, runtime, six HTTP gates and bounded normalized journal metadata",
+  "predecessorTerminal": {
+    "taskId": "P0-294",
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_REMOTE_EXIT_1_BEFORE_DIAGNOSTIC_REMOTE_STATE_UNKNOWN",
+    "sshAttempts": 1,
+    "remoteExitStatus": 1,
+    "stdoutBytes": 0,
+    "stderrBytes": 0,
+    "safeDiagnosticPresent": false,
+    "remoteStateKnown": false,
+    "p0294Reusable": false
+  },
+  "reviewedObject": {
+    "path": "release/integration/p0-wallet-connectivity/execution/objects/p0-295-finance-p0294-remote-state-zero-write-inspection.sh",
+    "blob": "0d519033b96ba530496006cccbe9815bce847fc9",
+    "bytes": 5021,
+    "sha256": "c7ce7403e25f165f43695c88baea0b3b9d33e599afe5ab55f0d9c1fb237b8b23",
+    "bashSyntax": "PASS",
+    "zeroWriteStaticAudit": "PASS"
+  },
+  "executionAuthority": {
+    "processWorkingDirectory": "/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration",
+    "literalArgv": ["/usr/bin/ssh","-i","/Users/huangjiahao/Downloads/Huang.pem","-o","IdentitiesOnly=yes","-o","BatchMode=yes","-o","StrictHostKeyChecking=yes","-o","UserKnownHostsFile=/Users/huangjiahao/.ssh/known_hosts","-o","ConnectTimeout=10","-o","ConnectionAttempts=1","ubuntu@43.153.202.237","/usr/bin/sudo","-n","/bin/bash","-s"],
+    "argvCount": 20,
+    "stdinPath": "/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration/release/integration/p0-wallet-connectivity/execution/objects/p0-295-finance-p0294-remote-state-zero-write-inspection.sh",
+    "stdinBytes": 5021,
+    "stdinSha256": "c7ce7403e25f165f43695c88baea0b3b9d33e599afe5ab55f0d9c1fb237b8b23",
+    "stdoutPath": "/tmp/ynx-finance-p0295-p0294-remote-state-zero-write-20260823T193100Z.stdout",
+    "stderrPath": "/tmp/ynx-finance-p0295-p0294-remote-state-zero-write-20260823T193100Z.stderr",
+    "sshAttemptLimit": 1,
+    "retryAllowed": false,
+    "remoteWrites": 0,
+    "remoteTemporaryFiles": 0
+  },
+  "forbidden": ["write or remote temp","cleanup deletion deployment or rollback","service lifecycle","current env state unit Caddy release or public mutation","Wallet account signature typed data or transaction","raw journal or environment value output","retry or predecessor reuse"],
+  "requiredTerminalEvidence": ["one SSH attempt and no retry","exit zero and stderr empty","classification, tuple, bytes, SHA, inventory and symlink target for every P0-294 path and parent","current/env/state/unit/Caddy/service PID and NRestarts","six loopback/public root health version receipts","bounded journal class/bytes/SHA only","remoteExitStatus=0 inspectionComplete=true mutationCount=0"],
+  "terminalEvidence": {
+    "attempts": 1,
+    "localExitStatus": 0,
+    "stdoutBytes": 3715,
+    "stdoutSha256": "b30f4d45364a0a67d5c33ecdeb5ff04c1ebf9bab380a2fc3d60310943c26e4fd",
+    "stderrBytes": 0,
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "inspectionComplete": true,
+    "mutationCount": 0,
+    "productionSwitchOccurred": false,
+    "fourResiduesRequireCleanup": true,
+    "terminalEvidencePath": "release/integration/p0-wallet-connectivity/execution/objects/p0-295-finance-p0294-remote-state-zero-write-terminal-evidence-20260824.json"
+  },
+  "terminalRules": {
+    "success": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0295_P0294_REMOTE_STATE_ZERO_WRITE_INSPECTION",
+    "failure": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0295_ZERO_WRITE_INSPECTION",
+    "releaseOnlyAfterDirectTerminalEvidence": true,
+    "cleanupOrDeploymentAuthorityInferred": false
+  }
+}

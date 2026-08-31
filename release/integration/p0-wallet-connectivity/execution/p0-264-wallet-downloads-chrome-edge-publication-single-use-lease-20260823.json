@@ -1,0 +1,211 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-264",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-downloads-chrome-edge-publication-successor-03-20260823T131655Z",
+  "owner": "wallet-desktop-provider-authority",
+  "executor": "downloads-release-control-plane",
+  "status": "CONSUMED_RELEASED_SUCCESS_WALLET_DOWNLOADS_CHROME_EDGE_ZIP_SOURCE_BOUND_PUBLIC",
+  "issuedAt": "2026-08-23T13:16:55Z",
+  "expiresAt": "2026-08-23T13:46:55Z",
+  "releasedAt": "2026-08-23T13:28:47Z",
+  "singleUse": true,
+  "reusable": false,
+  "productionMutationAllowed": false,
+  "pushAllowed": false,
+  "deploymentAllowed": true,
+  "scope": "Publish only the exact content-addressed Chrome/Edge Wallet ZIP to downloads.ynxweb4.com, atomically install only the exact Caddy matcher, reload Caddy once, and verify the exact public artifact and unchanged DMG sentinel, with identity-bound automatic rollback and terminal cleanup",
+  "supersedes": {
+    "taskId": "P0-263",
+    "centralReleaseCommit": "06075b54dcf51320aa1611dccfbdc48c084fb3be",
+    "terminalStatus": "CONSUMED_RELEASED_FAILED_CLOSED_WALLET_DOWNLOADS_SERVICE_USER_PERMISSION_ROLLED_BACK_CLEAN",
+    "retryOfPriorLeaseAuthorized": false,
+    "correction": "After exact full bytes and SHA revalidation, chmod both imported objects to 0644, refresh their identity receipts, require the caddy service user to read the final ZIP and installed live config, and validate the full Caddyfile as both root and caddy before reload"
+  },
+  "sourceRequest": {
+    "branch": "codex/wallet-desktop-provider-authority-p0-20260822",
+    "commit": "eee9cdf25b0ab8655ef43466c1d445f8e260145d",
+    "tree": "632c540b7ff3d377f599708b79627f40778fe810",
+    "parent": "532f06ce8040502e43f9e4b9f242cc224f7f52c1",
+    "path": "release/integration/wallet-desktop-chrome-edge-publication/successor-03/publication-lease-successor-03-request-20260823.json",
+    "blob": "ad444f1dcbe9712b2838b5c70e9b917f6b4b912f",
+    "bytes": 9292,
+    "sha256": "dd10f11bdef9e88f5b55666c4dd3be2c73081bedd221e23952e699133261afc9",
+    "remoteExact": true,
+    "cleanTrackedDiff": true,
+    "unrelatedUntrackedBuildArtifactsPreserved": true
+  },
+  "exactObjects": {
+    "atomicRemote": {
+      "path": "release/integration/wallet-desktop-chrome-edge-publication/successor-03/atomic-publication-after-lease.remote.sh",
+      "blob": "039faa8782e0b13216677d0df4c50263d26a6402",
+      "bytes": 21170,
+      "sha256": "da61412f0cd16b723d6631fffc4d81e8aaeee6f7a42ddeb1a545fbb919268f72"
+    },
+    "localInvoker": {
+      "path": "release/integration/wallet-desktop-chrome-edge-publication/successor-03/invoke-atomic-publication-after-lease.local.sh",
+      "blob": "e0793ec87889e66af7f392824d18acfe2574d99e",
+      "bytes": 3225,
+      "sha256": "bf388f1d0cc8e89c10ca2d1dc4392e7d7cadb82f0379dbf0a5628e9bcb02333c"
+    },
+    "baseCaddy": {
+      "blob": "f3d404ba5bea83093033f6bfa33edcc81de38851",
+      "bytes": 1441,
+      "sha256": "5149252cde4b3cba5b2e89c5d5d0f3e94506fa69beb7b10526e41dcee3cb1f1f"
+    },
+    "candidateCaddy": {
+      "blob": "49a9965db50eb1a80ba8056a24e5a4d2d630b62b",
+      "bytes": 1749,
+      "sha256": "9a3869d606e318540ec773e97c92f4f7b610852a3560a7aea7b256f0b3a77770"
+    },
+    "prestateEvidence": {
+      "blob": "68c4b4f2d2bd4090a64ce6c328c601b8c98b6db7",
+      "bytes": 2886,
+      "sha256": "215aeaabbef1c58b9316556eba846f4f9328d50e2ae32322506eb6bac0e1608a"
+    },
+    "finalizerTestEvidence": {
+      "blob": "a3b5c8fc6982e261570754002c51a8612aaad8d8",
+      "bytes": 2289,
+      "sha256": "f7d6b1ebb31510513436a452319d3b1ddc4901d4089831c42faa39e07f03fa54"
+    }
+  },
+  "artifact": {
+    "sourceCommit": "be26edbd67c512e22a4f373206d5d82af4c6b0d4",
+    "sourceTree": "0fa369a16e3099d59183852f3da076d7be2b95e0",
+    "gitBlob": "e8dfdfdcd19ea211db17b217c559108da0efe5a4",
+    "localSourcePath": "/private/tmp/ynx-wallet-hosting-prod-base.2tWxO9/public/downloads/wallet-web/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip",
+    "bytes": 471181,
+    "sha256": "2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d",
+    "finalPath": "/opt/ynx/public-downloads/wallet/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip",
+    "officialUrl": "https://downloads.ynxweb4.com/wallet/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip"
+  },
+  "freshPrewrite": {
+    "checkedAt": "2026-08-23T13:16:30Z",
+    "heavyBeforeIssue": "IDLE",
+    "downloadsLocksBeforeIssue": "FREE",
+    "protectedIdentityAvailable": true,
+    "nonInteractiveSudoAvailable": true,
+    "rootTuple": "64770:2:0:0:755:24:4096:directory",
+    "optTuple": "64770:131076:0:0:755:16:4096:directory",
+    "ynxTuple": "64770:1312502:0:0:755:49:4096:directory",
+    "downloadsTuple": "64770:2528711:0:0:755:3:4096:directory",
+    "walletTuple": "64770:2528712:0:0:755:6:4096:directory",
+    "caddyDirectoryTuple": "64770:1051238:0:0:755:3:4096:directory",
+    "caddyConfDirectoryTuple": "64770:1051258:0:0:755:2:4096:directory",
+    "entryTuple": "64770:1051746:0:0:644:1:928:regular file",
+    "entrySha256": "077fe80ea9aab24a32d64ba1fab3584e8aab10304e200e58d976d2c33edfb39f",
+    "liveTuple": "64770:1055513:0:0:644:1:1441:regular file",
+    "liveSha256": "5149252cde4b3cba5b2e89c5d5d0f3e94506fa69beb7b10526e41dcee3cb1f1f",
+    "sentinelTuple": "64770:2528715:0:0:644:1:237777236:regular file",
+    "sentinelSha256": "69b4fa5db7b8a9ab105af6633de44f5a5a4a9fceeaa0925a306f77b22381b044",
+    "caddyLoadActiveSub": "loaded:active:running",
+    "caddyMainPid": 1432803,
+    "caddyNRestarts": 0,
+    "currentLiveReadableByCaddy": true,
+    "currentFullConfigValidAsCaddy": true,
+    "targetHttpStatus": 404,
+    "successorStageTargetDirectoryTargetBackupNextRestoreAbsent": true
+  },
+  "executionAuthority": {
+    "processWorkingDirectory": "/private/tmp/ynx-wallet-desktop-installers-p0-20260821",
+    "executorBranch": "codex/wallet-desktop-provider-authority-p0-20260822",
+    "executorCommit": "eee9cdf25b0ab8655ef43466c1d445f8e260145d",
+    "protectedEnvironment": {
+      "YNX_DOWNLOADS_SSH_IDENTITY": "protected path supplied by downloads-release-control-plane; value must not be logged, committed or returned",
+      "YNX_CENTRAL_SINGLE_USE_LEASE_ID": "P0-WALLET-CONNECTIVITY-2026-08-wallet-downloads-chrome-edge-publication-successor-03-20260823T131655Z",
+      "YNX_LEASE_REPO_ROOT": "/private/tmp/ynx-wallet-desktop-installers-p0-20260821"
+    },
+    "acknowledgement": "P0-WALLET-CHROME-ZIP-PUBLICATION-20260823-03:EXECUTE",
+    "literalArgv": [
+      "/bin/bash",
+      "release/integration/wallet-desktop-chrome-edge-publication/successor-03/invoke-atomic-publication-after-lease.local.sh"
+    ],
+    "invocationAttemptLimit": 1,
+    "retryAllowed": false,
+    "rollback": "automatic inside the exact atomic remote lifecycle; no external or second invocation under this lease"
+  },
+  "authorizedMutation": {
+    "stage": "/opt/ynx/public-downloads/.P0-WALLET-CHROME-ZIP-PUBLICATION-20260823-03.stage",
+    "targetDirectory": "/opt/ynx/public-downloads/wallet/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d",
+    "target": "/opt/ynx/public-downloads/wallet/sha256-2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d/ynx-wallet-chrome-edge-0.1.0.zip",
+    "liveConfig": "/etc/caddy/conf.d/downloads.ynxweb4.com.caddy",
+    "rollbackNextRestore": "/etc/caddy/conf.d/downloads.ynxweb4.com.caddy.{rollback,next,restore}-P0-WALLET-CHROME-ZIP-PUBLICATION-20260823-03",
+    "serviceAction": "one caddy reload inside forward; one exact restore reload only on automatic failure rollback",
+    "objectModes": "incoming exclusive 0600; only after exact full bytes/SHA recheck chmod ZIP and candidate Caddy to 0644 and refresh identity receipts",
+    "preReloadRequired": [
+      "sudo -n -u caddy test -r exact final ZIP",
+      "sudo -n -u caddy test -r exact installed live config",
+      "caddy validate full /etc/caddy/Caddyfile as root",
+      "sudo -n -u caddy caddy validate full /etc/caddy/Caddyfile"
+    ]
+  },
+  "terminalEvidenceRequired": [
+    "producer and transport_remote rc",
+    "PUBLICATION_GATE_PASS or exact fail-closed classification",
+    "TERMINAL_RESIDUE_CLEAN or FINALIZER_FOREIGN_IDENTITY_PRESERVED",
+    "terminal target/config/Caddy tuples, modes, bytes and SHA256",
+    "proof final ZIP and live config are readable by caddy before reload",
+    "full Caddyfile validation as root and caddy before reload",
+    "official GET HTTP 200, application/zip, content-disposition, content-length, immutable cache, nosniff, bytes and SHA256",
+    "existing DMG sentinel tuple/SHA and public behavior unchanged",
+    "account/signing/typed-data/transaction actions all false"
+  ],
+  "terminalEvidence": {
+    "startedAt": "2026-08-23T13:27:32Z",
+    "endedAt": "2026-08-23T13:27:35Z",
+    "invocationAttempts": 1,
+    "invocationAttemptLimit": 1,
+    "invocationRc": 0,
+    "producerRc": 0,
+    "transportRemoteRc": 0,
+    "retryCount": 0,
+    "publicationGate": "PASS",
+    "terminalFinalizer": "TERMINAL_RESIDUE_CLEAN",
+    "targetTuple": "64770:2663623:0:0:644:1:471181:regular file",
+    "targetSha256": "2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d",
+    "liveConfigTuple": "64770:2663624:0:0:644:1:1749:regular file",
+    "liveConfigSha256": "9a3869d606e318540ec773e97c92f4f7b610852a3560a7aea7b256f0b3a77770",
+    "caddyActiveSub": "active:running",
+    "caddyMainPid": 1432803,
+    "caddyNRestarts": 0,
+    "targetReadableByCaddy": true,
+    "liveConfigReadableByCaddy": true,
+    "fullConfigValidatedAsCaddy": true,
+    "publicStatus": 200,
+    "publicBytes": 471181,
+    "publicSha256": "2491b66e46ed52a5fa450d2e808f05c5a8e22f1ebedd2daac87e767de636920d",
+    "publicContentType": "application/zip",
+    "publicContentDisposition": "attachment; filename=\"ynx-wallet-chrome-edge-0.1.0.zip\"",
+    "publicCacheControl": "public, max-age=31536000, immutable",
+    "publicXContentTypeOptions": "nosniff",
+    "publicContentLength": 471181,
+    "stageReceiptBackupNextRestoreAbsent": true,
+    "targetDirectoryEntries": 1,
+    "secretValuesExposed": false,
+    "accountRequested": false,
+    "signingPerformed": false,
+    "typedDataPerformed": false,
+    "transactionSubmitted": false
+  },
+  "forbidden": [
+    "any second invocation or retry",
+    "any overwrite of a preexisting target, reserved path or foreign identity",
+    "any non-Wallet artifact path",
+    "any source push or other deployment",
+    "any Caddy configuration outside the exact downloads include",
+    "any account request, signing, typed data or transaction",
+    "any secret disclosure"
+  ],
+  "truthBoundary": {
+    "leaseIssued": true,
+    "productionInvocationExecuted": true,
+    "downloadHosted": true,
+    "sourceBoundPublic": true,
+    "installed": false,
+    "providerRuntime": false,
+    "accountApproved": false,
+    "messageSigned": false,
+    "transactionSubmitted": false,
+    "productComplete": false
+  }
+}

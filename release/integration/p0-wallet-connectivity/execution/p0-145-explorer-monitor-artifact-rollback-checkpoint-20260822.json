@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-145",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-explorer-monitor-artifact-rollback-20260821T171613Z",
+  "owner": "explorer-monitor",
+  "branch": "codex/p0-explorer-monitor-20260820",
+  "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/12-13-explorer-monitor-fable5",
+  "issuedAt": "2026-08-21T17:16:13Z",
+  "expiresAt": "2026-08-21T18:01:13Z",
+  "singleUse": true,
+  "reusable": false,
+  "productionMutationAllowed": false,
+  "sourceCommit": "8571509583a1390b56b1812e1008f5d634ef594f",
+  "sourceTree": "7261b10af311c801811a6d61fc04c723a68e0cae",
+  "bundleCommit": "d6e406acf25868f14256d38efcd474d96dfb0df2",
+  "bundleTree": "7c17093db3e14731d8e7688e2a13411575156516",
+  "requiredArtifacts": {
+    "ynxExplorerd": {"bytes": 8872120, "sha256": "dab048ced7be02b8937ba7bbe75fa124e3fa83da59c489659a0a3e037f61f060"},
+    "ynxIndexerd": {"bytes": 7512248, "sha256": "c4ab4994a5cb1a04a18fdfe0bd171fec9a441c31f0b2f3b2dc4b0b52f5af2a2b"},
+    "monitorReleaseTree": {"bytes": 1024000, "sha256": "2d47bdc7c24458ad751540f7a6e4f66118714a13bf7e1875ad0150b4af1437f2"}
+  },
+  "requiredCheckpoint": {
+    "carrierRoot": "/private/tmp/ynx-explorer-monitor-p0145",
+    "freshRollbackRoot": "/var/backups/ynx-chain/explorer-monitor-8bf7716-p0145-20260821T171613Z",
+    "mustReturn": ["three exact carrier paths and hashes", "rollback-first command", "public acceptance verifier command"],
+    "publicConnectivityMustRemainFalse": true
+  },
+  "currentPublic": {
+    "sourceCommit": "8bf7716ee671a5a9b64517280743c5a281899712",
+    "monitorConnectivityHttpStatus": 200,
+    "monitorConnectivityContentClass": "text/html SPA fallback",
+    "monitorConnectivityBytes": 641,
+    "monitorConnectivitySha256": "efbf2403f89259511dd861a6014e09d5fb11a7bf549a609bd17adacde41af44a"
+  }
+}

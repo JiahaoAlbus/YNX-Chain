@@ -1,0 +1,161 @@
+{
+  "schemaVersion": 1,
+  "product": "pay",
+  "sourceCommit": "6cbac9f4654b5715d32f1e561819e593c868a6f1",
+  "vectors": [
+    {
+      "id": "pay-wallet-valid-session",
+      "owners": ["02-wallet-auth", "04-pay", "29-integration"],
+      "request": {
+        "productClientId": "ynx-pay-v1",
+        "bundleId": "com.ynxweb4.pay",
+        "callback": "ynxpay://wallet-auth/callback",
+        "orderedScopes": ["account:read", "pay:case:create", "pay:route:select", "pay:settlement:submit", "pay:sponsorship:request"]
+      },
+      "expected": "Gateway creates a short-lived product session bound to account, device, request digest and session binding."
+    },
+    {
+      "id": "pay-wallet-scope-reorder-rejected",
+      "owners": ["02-wallet-auth", "04-pay"],
+      "mutation": "reorder or widen the accepted Pay scopes",
+      "expected": "reject before product API access"
+    },
+    {
+      "id": "pay-settlement-authority",
+      "owners": ["01-chain-core", "04-pay", "12-explorer"],
+      "input": "Wallet-signed Pay intent and transaction result",
+      "requiredMatches": ["chainId", "invoiceId", "centralInvoiceId", "intentId", "merchant", "payoutAddress", "payer", "asset", "amount", "transactionHash", "blockNumber", "idempotencyKey", "auditHash"],
+      "expected": "committed only after authoritative central Pay evidence matches every field"
+    },
+    {
+      "id": "pay-settlement-webhook-not-authoritative",
+      "owners": ["04-pay", "26-data-fabric-billing-ledger"],
+      "input": "signed webhook reports paid but no matching chain settlement exists",
+      "expected": "invoice remains non-committed"
+    },
+    {
+      "id": "pay-split-valid-claim",
+      "owners": ["02-wallet-auth", "04-pay"],
+      "input": {
+        "splitState": "open",
+        "shareState": "open",
+        "walletScope": "pay:settlement:submit"
+      },
+      "expected": "create one Invoice v4 bound to splitPaymentId, splitShareId and claiming Wallet account; aggregate state becomes partially_claimed"
+    },
+    {
+      "id": "pay-split-wrong-payer-rejected",
+      "owners": ["01-chain-core", "04-pay"],
+      "mutation": "authoritative settlement payer differs from Invoice v4 expectedPayer",
+      "expected": "reject settlement; Split share does not become committed"
+    },
+    {
+      "id": "pay-split-public-redaction",
+      "owners": ["04-pay", "28-website"],
+      "input": "public Invoice or Split lookup after a share is claimed",
+      "expected": "raw expectedPayer and payerAccount are absent/empty, expectedPayerHash remains signed and independently verifiable, and authenticated merchant state retains the raw audit binding"
+    },
+    {
+      "id": "pay-split-tamper-rejected",
+      "owners": ["04-pay"],
+      "mutation": "alter share label, amount, ordering or total after merchant signature",
+      "expected": "Ed25519 verification fails"
+    },
+    {
+      "id": "pay-split-claim-replay",
+      "owners": ["02-wallet-auth", "04-pay"],
+      "input": "same account, share and idempotency key",
+      "expected": "return the same child Invoice; no duplicate central intent"
+    },
+    {
+      "id": "pay-split-conflicting-claim",
+      "owners": ["02-wallet-auth", "04-pay"],
+      "mutation": "different account attempts to claim an already claimed share",
+      "expected": "reject conflict"
+    },
+    {
+      "id": "pay-quant-valid-evidence",
+      "owners": ["08-quant-lab", "26-data-fabric-billing-ledger", "04-pay", "29-integration"],
+      "input": "accepted Ed25519-signed Quant evidence with period equity, net external flows, previous high-water mark, fixed fees and performance fee policy",
+      "expected": "Pay verifies the accepted key ID, recomputes adjusted equity and high-water-mark fees, persists a public-redacted Quant bill, and creates an Invoice v5 bound to serviceBillId, evidence digest and payer hash"
+    },
+    {
+      "id": "pay-quant-deposit-not-profit",
+      "owners": ["08-quant-lab", "26-data-fabric-billing-ledger", "04-pay"],
+      "input": "end equity increases only because of a matching external deposit",
+      "expected": "net-flow adjustment removes the deposit; eligible performance profit and performance fee remain zero"
+    },
+    {
+      "id": "pay-quant-tamper-stale-rejected",
+      "owners": ["08-quant-lab", "26-data-fabric-billing-ledger", "04-pay"],
+      "mutation": "alter PnL inputs, fee policy, payer hashes, source metadata or timestamps after evidence signature, or submit evidence outside the configured age",
+      "expected": "reject before Invoice creation"
+    },
+    {
+      "id": "pay-quant-missing-verifier-unavailable",
+      "owners": ["08-quant-lab", "26-data-fabric-billing-ledger", "29-integration"],
+      "input": "evidence key ID is not in the frozen verifier registry",
+      "expected": "Quant billing is explicitly unavailable; Pay does not trust frontend or manager-declared PnL"
+    },
+    {
+      "id": "pay-quant-wrong-payer-rejected",
+      "owners": ["01-chain-core", "04-pay"],
+      "mutation": "authoritative settlement payer differs from the private account bound to the signed Quant evidence and Invoice v5 expectedPayerHash",
+      "expected": "reject settlement; Quant bill remains non-committed"
+    },
+    {
+      "id": "pay-quant-public-verification",
+      "owners": ["04-pay", "28-website"],
+      "input": "public Quant bill and Invoice v5 lookup",
+      "expected": "raw payer is redacted while both payer hashes, evidence signature, evidence digest, high-water-mark inputs and fee breakdown remain independently verifiable"
+    },
+    {
+      "id": "pay-store-valid-backup-restore",
+      "owners": ["04-pay", "30-security-sre-release"],
+      "input": "integrity-valid snapshot v1, new immutable backup path and stopped destination writer",
+      "expected": "backup receipt binds SHA-256, bytes and record count; restore validates and uses one source read, creates a verified rollback artifact for the prior valid destination, atomically restores and re-verifies snapshot v1"
+    },
+    {
+      "id": "pay-store-corrupt-destination-quarantine",
+      "owners": ["04-pay", "30-security-sre-release"],
+      "input": "integrity-valid backup and corrupt current destination",
+      "expected": "preserve corrupt destination bytes in a hash-addressed quarantine artifact, do not label it rollback-valid, restore the verified source and report both hashes"
+    },
+    {
+      "id": "pay-store-corrupt-source-wrong-key-future-version",
+      "owners": ["04-pay", "30-security-sre-release"],
+      "mutation": "tamper backup bytes, use the wrong integrity key, or present an HMAC-valid unsupported snapshot version",
+      "expected": "reject before destination mutation"
+    },
+    {
+      "id": "pay-store-immutable-artifact",
+      "owners": ["04-pay", "30-security-sre-release"],
+      "mutation": "request backup to an existing path or live store path",
+      "expected": "reject; never overwrite the existing artifact or live store"
+    },
+    {
+      "id": "pay-recurring-no-standing-authority",
+      "owners": ["02-wallet-auth", "04-pay"],
+      "input": "merchant-signed recurring draft",
+      "expected": "draft cannot charge or mark paid; each occurrence needs a separate Wallet-approved Invoice"
+    },
+    {
+      "id": "pay-stablecoin-unavailable",
+      "owners": ["04-pay", "17-tokenomics", "19-oracle-market-data"],
+      "input": "asset has no approved issuer contract/reserve controls on YNX Testnet",
+      "expected": "return unavailable; do not fabricate contract, reserve or FX state"
+    },
+    {
+      "id": "pay-bridge-quote-not-deposit",
+      "owners": ["04-pay", "21-bridge-interoperability"],
+      "input": "bridge quote or source accepted event only",
+      "expected": "payment remains non-committed until destination proof and authoritative YNX settlement"
+    },
+    {
+      "id": "pay-event-ledger",
+      "owners": ["04-pay", "26-data-fabric-billing-ledger"],
+      "input": "invoice.committed or split.share.claim event",
+      "expected": "canonical event preserves source commit, request/audit identifiers and never describes burn as revenue"
+    }
+  ]
+}

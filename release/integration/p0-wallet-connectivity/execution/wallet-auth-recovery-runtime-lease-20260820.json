@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-recovery-runtime-lease-20260820T114911Z",
+  "status": "REVOKED_BEFORE_START",
+  "singleUse": true,
+  "issuedAt": "2026-08-20T11:49:11Z",
+  "expiresAt": "2026-08-20T13:49:11Z",
+  "revokedAt": "2026-08-20T11:56:24Z",
+  "revokedReason": "Candidate a5a2841e does not mount /v2/product-sessions/* in scripts/ynx-wallet-gatewayd.mjs; modules and tests alone are not a production runtime mount.",
+  "leaseOwner": "wallet-protocol",
+  "deploymentOwner": "wallet-auth-gateway-runtime-owner",
+  "deploymentChannel": "controlled-wallet-auth-runtime-transaction",
+  "acceptancePath": "release/integration/p0-wallet-connectivity/acceptance/wallet-auth-recovery-runtime-a5a2841e-20260820.json",
+  "authorization": {
+    "executionAuthorized": false,
+    "singleControlledTransaction": true,
+    "exclusiveProductionWindowRequired": true,
+    "automaticRollbackRequired": true,
+    "allowedRoots": ["packages/wallet-auth"],
+    "allowedTarget": "wallet-auth.ynxweb4.com runtime and its exact backing wallet-auth service only",
+    "forbiddenTargets": ["Wallet UI or platform code", "6437", "6439", "6441", "Chain Core", "Website", "Developer SDK", "Shop", "other products"],
+    "forbiddenEffects": ["whole-tree-merge", "registry-mutation", "origin-inference", "unrelated-service-restart", "installed-client-acceptance", "product-migration-claim"]
+  },
+  "source": {
+    "currentPublicRuntimeCommit": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
+    "candidateRuntimeCommit": "a5a2841e870d7d21df0f761179f2c47d9ca83ccc",
+    "candidateCommitTree": "618efc2ec85b8e0aa3ef589a49d790682f7e1cbc",
+    "candidateWalletAuthTree": "53790596eeba9388b02cb43ac8cc51939f00ce5d",
+    "requiredVersionSourceAfterDeploy": "a5a2841e870d7d21df0f761179f2c47d9ca83ccc",
+    "materializationMode": "EXACT_PACKAGES_WALLET_AUTH_SUBTREE_ONLY"
+  },
+  "deploymentRegistry": {
+    "path": "release/integration/p0-wallet-protocol-deployment-registry-v4.json",
+    "blob": "f11f73bb10943e6ae4e3ecd9f4e5bcedfb7b4701",
+    "sha256": "ae156b317b9a97bfd42397cca634021deefe10ffb009102899e24276d8721e31",
+    "bytes": 20037,
+    "mutationAuthorized": false
+  },
+  "requiredPreflight": [
+    "capture current /health /ready /version bodies, HTTP facts, bytes and SHA-256",
+    "capture current source, exact service unit, process user, config, registry digest, state digest and permissions",
+    "capture DNS, TLS and reverse-proxy route identity without changing unrelated routes",
+    "create verified runtime, registry, state and configuration backup with exact rollback commands",
+    "read-only boot the exact candidate against a copied production state and accepted registry",
+    "prove exact packages/wallet-auth tree and reject any whole-tree or successor-commit substitution"
+  ],
+  "requiredRollbackDrill": [
+    "restore source 49e30d999e9a9cbdd2c565021009f2cab0dc125c",
+    "restore exact preflight state, registry and configuration digests",
+    "prove prior health, readiness, version and registered Social OPTIONS remain byte-compatible",
+    "reactivate candidate only after rollback evidence passes"
+  ],
+  "requiredPublicAcceptance": [
+    "health ready and version return exact candidate source",
+    "registered Social OPTIONS returns exact CORS policy and attacker Origin fails closed",
+    "wrong route method media type header and oversized or noncanonical body fail closed with zero state mutation",
+    "challenge complete introspect replay reject revoke and post-revoke reject pass",
+    "controlled service restart preserves exact state and authoritative session outcome",
+    "disconnect performs exactly one sender-constrained revoke before clearing protected state",
+    "duplicate callback is single-flight and a distinct concurrent callback fails CONCURRENT_CALLBACK",
+    "callback-disconnect and restore-disconnect races cannot resurrect a session",
+    "post-completion introspection outage retains the issued protected session for Retry and revoke",
+    "network-epoch transition produces no late completion introspection or revoke mutation",
+    "platform secure signer failure and wrong key fail before complete",
+    "lost revoke acknowledgement clears state only after exact SESSION_REVOKED; SESSION_NOT_FOUND remains fail-closed"
+  ],
+  "executionState": {
+    "preflightComplete": false,
+    "backupComplete": false,
+    "deploymentStarted": false,
+    "deploymentComplete": false,
+    "rollbackDrillComplete": false,
+    "publicAcceptanceComplete": false,
+    "installedClientAcceptanceComplete": false,
+    "leaseConsumed": false,
+    "revokedBeforeStart": true,
+    "productionMutationObserved": false
+  },
+  "truthBoundary": {
+    "priorRuntimePublicVerified": true,
+    "candidateDeployedPublic": false,
+    "currentHeadDeployedPublic": false,
+    "runtimeProductsMigrated": 0,
+    "installedClientVerified": false,
+    "accountVerified": false,
+    "signVerified": false,
+    "sendVerified": false,
+    "transactionVerified": false,
+    "integratedCentral": false,
+    "aggregatePublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

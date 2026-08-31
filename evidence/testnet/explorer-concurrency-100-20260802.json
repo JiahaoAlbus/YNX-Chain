@@ -1,0 +1,27 @@
+{
+  "schema": "ynx-public-service-concurrency-evidence/v1",
+  "generatedAt": "2026-08-02T08:29:00Z",
+  "service": "ynx-explorerd",
+  "endpoint": "https://explorer.ynxweb4.com/api/dashboard",
+  "sourceCommit": "fb0a9f158c6222381342d159da4c082c4f1721f7",
+  "release": "ynx-economics-explorer-fb0a9f158c62",
+  "probeOrigin": "primary Testnet host through public TLS ingress",
+  "requests": 100,
+  "concurrency": 100,
+  "http200": 100,
+  "failures": 0,
+  "averageSeconds": 0.2611,
+  "p50Seconds": 0.257919,
+  "p95Seconds": 0.363517,
+  "maximumSeconds": 0.416246,
+  "serviceRestarts": 0,
+  "serviceActiveAfterProbe": true,
+  "implementation": {
+    "sharedSnapshotTTLSeconds": 2,
+    "verifiedStaleFallbackSeconds": 30,
+    "concurrentUserUnitTestUsers": 40,
+    "upstreamRPCRequestsFor40Users": 3,
+    "upstreamIndexerRequestsFor40Users": 3
+  },
+  "boundary": "This evidence covers the Explorer dashboard endpoint only. Other YNX services require their own concurrency and endurance evidence."
+}

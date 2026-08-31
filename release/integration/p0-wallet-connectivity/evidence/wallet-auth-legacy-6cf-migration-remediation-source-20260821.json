@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-053-WALLET-AUTH-LEGACY-6CF-MIGRATION-REMEDIATION-SOURCE-20260821",
+  "checkedAt": "2026-08-20T19:30:00Z",
+  "authoritativeParent": {"commit":"660633a97a337a6a6ee7149c0b77d9f26c15643a","tree":"fe2bef5416d7f6714263b9fb501866784c1d2a58","parent":"e977677c61626448e0707c375b799b3f7b65b470"},
+  "ownerSource": {
+    "commit":"ff395e3d1d7c012784e81eb02c3ae8782fbf1298","tree":"5d543e42eeec0ea03ae50d118b97f5e394daa64c","parent":"8bf1d4a0cb3dd6f62ef8c98fbcc928a18488890e",
+    "evidenceCommit":"bbaa11f3f3217bafd7492d2e19b2646753204788","evidenceTree":"6df5abb7abcc354c0ec4ff8af0c59006f17d7976","evidenceBlob":"c782de72596ae2196489cb95ae7ba433c105daf9","evidenceSha256":"efba8348c5410fca6cd9e6d8f7feb2548f0a3ea4ba5932ca61d0235e5432c4db","remoteReadbackExact":true
+  },
+  "repairBoundary": {
+    "legacyWriterCommit":"6cf3ef845202bd879ed94515a71b323dd2fc9e14","legacyWriterBlob":"07b55e35596a18b388e8e723b9f8b78a5c332db2","boundPrivateStateSha256":"343f4cbbce0aed1e3cc5894156c4480e69dfc4775e0b347c63d555bd51790d23","boundPrivateStateBytes":7608,"privateStateContentsIncluded":false,"acceptsOnlyCompleteBytesEqualCanonicalJson":true,"trimmingOrNormalizationAllowed":false,"outputCanonical":true,"sourceMutation":false,
+    "negativeCodes":{"trailingNewline":"REGISTRY_STATE_MISMATCH","duplicateRootKey":"REGISTRY_STATE_MISMATCH","unknownRootKey":"UNKNOWN_OR_MISSING_FIELD","trailingJsonToken":"INVALID_MIGRATION","sourceDigestSubstitution":"SOURCE_DIGEST_MISMATCH"}
+  },
+  "independentVerification":{"tarPathsSafe":true,"focusedTests":"5/5","fullWalletAuthTests":"348/348","offlineRuntimeOverlayUsed":true,"networkInstallUsed":false,"repeatPackSha256":"f9e1e6ef072e4c15716617d992a5c47ee79c139fbdeff79fc28cd7d42e52e944","repeatPackBytes":180724,"repeatPackEntries":100,"repeatPackByteIdentical":true,"secretPatternFindings":0},
+  "offlineArtifacts": {
+    "sourceArchive":{"sha256":"4ab615ddb0dda5b16ad92ebadfbd2a40ac8b3dcd9e94537e9abc65e2e68dda6d","bytes":180840,"entries":109,"fileEntries":101},
+    "sourceInventory":{"sha256":"853905bef020ea25baff52647135845807736cdafad2faac49908183d106a18e","bytes":24418},
+    "runtimeArchive":{"sha256":"c2472ca64f9f0d5d717f939cc81c167a086d828a5c5831bd7a5880d80598707d","bytes":662953,"entries":224,"fileEntries":212},
+    "runtimeInventory":{"sha256":"491a62410c00052dcf09f2a338b325bcea0de53446da90cdd7d63b1560191422","bytes":52591},
+    "sbom":{"sha256":"2130384170ee1a56b13b3472891e7d476b3864f32f2e6875cff94df786736b66","bytes":2265,"format":"CycloneDX 1.5","components":3,"dependencyNodes":3}
+  },
+  "heavySlot":{"maxHeavyOwner":1,"owner":null,"taskId":"P0-051","status":"RELEASED_CHECKPOINT","releasedAt":"2026-08-20T19:37:06Z","available":true},
+  "concurrentLightSlice":{"taskId":"P0-052","owner":"integration","status":"ACTIVE_BOUNDED_MERCHANT_CONSOLE_SOURCE_ONLY","preserved":true},
+  "truth":{"sourceAccepted":true,"executionLeaseIssued":false,"executionLeaseId":null,"productionStateReadAfterP0050":false,"sshUsed":false,"deploymentAttempted":false,"migrationExecuted":false,"rollbackExecuted":false,"candidateActivated":false,"publicRuntimeSource":"6cf3ef845202bd879ed94515a71b323dd2fc9e14","registryV3Public":false,"productsMigratedV2":0,"computerControlVerified":false,"deployedPublic":false,"integratedCentral":false}
+}

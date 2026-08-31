@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-SHOP-RETIRED-CLIENT-RECOVERY-BFC11ECB-20260821",
+  "capturedAt": "2026-08-21T00:00:00+08:00",
+  "walletProtocolSource": {
+    "branch": "codex/wallet-session-router-recovery",
+    "commit": "bfc11ecb4100725ae8f42c86d220fa0bc2d8212a",
+    "parent": "05a4bdb8b383e86fcd5b0e99230ed0cf2dc0144a",
+    "tree": "176fc2839469824abd147600a4eff8c99c9e6c0a",
+    "remoteReadable": true,
+    "changedFiles": 6,
+    "changedBlobs": {
+      "docs/integration/WALLET_PRODUCT_SESSION_ROUTER_HANDOFF.md": "d4508dfb83e7f339ee693be31937f843d279e727",
+      "packages/wallet-auth/src/index.d.ts": "d8f63a97521c6f3531c28ae64f62dfeef56f8bc3",
+      "packages/wallet-auth/src/product-session-registry.js": "27e397121d8e55910b94d60bc72d1d9ac3a2d9f2",
+      "packages/wallet-auth/test/product-session-router.test.mjs": "5ad587db434f0ae4bcbd4d442c608aac6facc11d",
+      "release/integration/wallet-product-session-router-contract.json": "2120c676e69730489e014dc8f2dc6be9d33b3861",
+      "release/integration/wallet-product-session-shop-android-retirement-checkpoint-20260821.json": "9801ab1593d46d2fe3fed0f49b4653500b8da5aa"
+    }
+  },
+  "acceptedSourceBehavior": {
+    "rootExport": "productPlatformStatus",
+    "retiredCode": "CLIENT_RETIRED",
+    "statusAuthority": "none",
+    "productSessionAuthority": false,
+    "actions": [
+      "open-replacement",
+      "return-to-product"
+    ],
+    "replacementUrl": "https://shop.ynxweb4.com/shop",
+    "replacementBoundToRegisteredWebOrigin": true,
+    "automaticRedirectAllowed": false,
+    "shopWebRemainsActive": true,
+    "shopAndroidAuthorityRemainsRevoked": true
+  },
+  "ownerVerification": {
+    "walletAuthPassed": 243,
+    "walletAuthFailed": 0,
+    "routerPassed": 9,
+    "routerFailed": 0,
+    "rootExportImportPassed": true,
+    "packageDryRunPassed": true,
+    "packageFiles": 69
+  },
+  "acceptanceBoundary": {
+    "priorCentralAcceptanceCommit": "c92bbee670649b5ee55d01184c92d9830d59e659",
+    "priorAcceptanceAppliesOnlyTo": "95253de9c502335285dbb626ebd7ae37c14d6e5f",
+    "thisExtensionSourceAccepted": true,
+    "thisExtensionDeploymentLeaseIssued": false,
+    "currentPublicRuntimeSource": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "currentPublicRuntimeUsesRegistryV3": false,
+    "publicRetiredClientRecoveryVerified": false,
+    "productsMigratedV2": 0,
+    "deployedPublic": false,
+    "integratedCentral": false
+  }
+}

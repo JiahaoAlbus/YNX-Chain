@@ -273,6 +273,1028 @@
       "payloadFields": []
     },
     {
+      "eventType": "calendar.ai.previewed.v1",
+      "version": "2.0",
+      "owner": "36-calendar",
+      "product": "calendar",
+      "producer": "ynx-calendar",
+      "consumers": [
+        "ynx-data-fabric"
+      ],
+      "compatibilityMode": "none",
+      "effectiveAt": "2026-08-14T00:00:00Z",
+      "migration": "calendar-outbox-v1-to-data-fabric-envelope-v2",
+      "rollback": "stop-consumption-without-acknowledging-calendar-sequence",
+      "sourceCommit": "f1305e6b52c7484c099fe6b2f6cbc2b6d36508e2",
+      "release": "calendar-canonical-event-v1",
+      "testVectors": [
+        "internal/datafabriccalendar/adapter_test.go",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json#CAL-X-014"
+      ],
+      "examplePayload": {
+        "aggregateVersion": 1,
+        "workflow": "summarize",
+        "event_count": "2",
+        "provider": "ynx-ai",
+        "model": "qwen3",
+        "cost_state": "estimated"
+      },
+      "privacyClassification": "restricted",
+      "retentionClass": "operational",
+      "residencyClass": "account-home",
+      "enforceDataClassification": true,
+      "errorCodes": [
+        "DF_EVENT_UNKNOWN_FIELD_V1",
+        "DF_EVENT_MISSING_REQUIRED_FIELD_V1",
+        "DF_EVENT_DUPLICATE_V1",
+        "DF_EVENT_OUT_OF_ORDER_V1",
+        "DF_EVENT_SEQUENCE_GAP_V1",
+        "DF_EVENT_TAMPERED_V1",
+        "DF_EVENT_WRONG_PRODUCT_V1",
+        "DF_EVENT_REPLAY_V1"
+      ],
+      "allowUnknownPayloadFields": false,
+      "requiredEnvelopeFields": [
+        "eventId",
+        "eventType",
+        "schemaVersion",
+        "product",
+        "service",
+        "aggregateId",
+        "actor",
+        "correlationId",
+        "sequence",
+        "timestamp",
+        "effectiveAt",
+        "sourceCommit",
+        "sourceRelease",
+        "integrity",
+        "privacyClassification",
+        "retentionClass",
+        "auditId",
+        "source",
+        "payload",
+        "producer",
+        "aggregateType",
+        "actorId",
+        "accountId",
+        "productSessionId",
+        "traceId",
+        "requestId",
+        "occurredAt",
+        "receivedAt",
+        "integrityHash",
+        "signature",
+        "residencyClass",
+        "idempotencyKey",
+        "partitionKey",
+        "orderingKey",
+        "metadata"
+      ],
+      "payloadFields": [
+        {
+          "name": "aggregateVersion",
+          "type": "integer",
+          "required": true
+        },
+        {
+          "name": "workflow",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "event_count",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "provider",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "model",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "cost_state",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "eventType": "calendar.event.cancelled.v1",
+      "version": "2.0",
+      "owner": "36-calendar",
+      "product": "calendar",
+      "producer": "ynx-calendar",
+      "consumers": [
+        "ynx-data-fabric"
+      ],
+      "compatibilityMode": "none",
+      "effectiveAt": "2026-08-14T00:00:00Z",
+      "migration": "calendar-outbox-v1-to-data-fabric-envelope-v2",
+      "rollback": "stop-consumption-without-acknowledging-calendar-sequence",
+      "sourceCommit": "f1305e6b52c7484c099fe6b2f6cbc2b6d36508e2",
+      "release": "calendar-canonical-event-v1",
+      "testVectors": [
+        "internal/datafabriccalendar/adapter_test.go",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json#CAL-X-014"
+      ],
+      "examplePayload": {
+        "aggregateVersion": 3,
+        "operation": "cancel",
+        "scope": "entire_series"
+      },
+      "privacyClassification": "restricted",
+      "retentionClass": "operational",
+      "residencyClass": "account-home",
+      "enforceDataClassification": true,
+      "errorCodes": [
+        "DF_EVENT_UNKNOWN_FIELD_V1",
+        "DF_EVENT_MISSING_REQUIRED_FIELD_V1",
+        "DF_EVENT_DUPLICATE_V1",
+        "DF_EVENT_OUT_OF_ORDER_V1",
+        "DF_EVENT_SEQUENCE_GAP_V1",
+        "DF_EVENT_TAMPERED_V1",
+        "DF_EVENT_WRONG_PRODUCT_V1",
+        "DF_EVENT_REPLAY_V1"
+      ],
+      "allowUnknownPayloadFields": false,
+      "requiredEnvelopeFields": [
+        "eventId",
+        "eventType",
+        "schemaVersion",
+        "product",
+        "service",
+        "aggregateId",
+        "actor",
+        "correlationId",
+        "sequence",
+        "timestamp",
+        "effectiveAt",
+        "sourceCommit",
+        "sourceRelease",
+        "integrity",
+        "privacyClassification",
+        "retentionClass",
+        "auditId",
+        "source",
+        "payload",
+        "producer",
+        "aggregateType",
+        "actorId",
+        "accountId",
+        "productSessionId",
+        "traceId",
+        "requestId",
+        "occurredAt",
+        "receivedAt",
+        "integrityHash",
+        "signature",
+        "residencyClass",
+        "idempotencyKey",
+        "partitionKey",
+        "orderingKey",
+        "metadata"
+      ],
+      "payloadFields": [
+        {
+          "name": "aggregateVersion",
+          "type": "integer",
+          "required": true
+        },
+        {
+          "name": "operation",
+          "type": "string",
+          "required": true,
+          "enum": [
+            "cancel"
+          ]
+        },
+        {
+          "name": "scope",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "eventType": "calendar.event.created.v1",
+      "version": "2.0",
+      "owner": "36-calendar",
+      "product": "calendar",
+      "producer": "ynx-calendar",
+      "consumers": [
+        "ynx-data-fabric"
+      ],
+      "compatibilityMode": "none",
+      "effectiveAt": "2026-08-14T00:00:00Z",
+      "migration": "calendar-outbox-v1-to-data-fabric-envelope-v2",
+      "rollback": "stop-consumption-without-acknowledging-calendar-sequence",
+      "sourceCommit": "f1305e6b52c7484c099fe6b2f6cbc2b6d36508e2",
+      "release": "calendar-canonical-event-v1",
+      "testVectors": [
+        "internal/datafabriccalendar/adapter_test.go",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json#CAL-X-014"
+      ],
+      "examplePayload": {
+        "aggregateVersion": 1,
+        "operation": "create",
+        "scope": "entire_series"
+      },
+      "privacyClassification": "restricted",
+      "retentionClass": "operational",
+      "residencyClass": "account-home",
+      "enforceDataClassification": true,
+      "errorCodes": [
+        "DF_EVENT_UNKNOWN_FIELD_V1",
+        "DF_EVENT_MISSING_REQUIRED_FIELD_V1",
+        "DF_EVENT_DUPLICATE_V1",
+        "DF_EVENT_OUT_OF_ORDER_V1",
+        "DF_EVENT_SEQUENCE_GAP_V1",
+        "DF_EVENT_TAMPERED_V1",
+        "DF_EVENT_WRONG_PRODUCT_V1",
+        "DF_EVENT_REPLAY_V1"
+      ],
+      "allowUnknownPayloadFields": false,
+      "requiredEnvelopeFields": [
+        "eventId",
+        "eventType",
+        "schemaVersion",
+        "product",
+        "service",
+        "aggregateId",
+        "actor",
+        "correlationId",
+        "sequence",
+        "timestamp",
+        "effectiveAt",
+        "sourceCommit",
+        "sourceRelease",
+        "integrity",
+        "privacyClassification",
+        "retentionClass",
+        "auditId",
+        "source",
+        "payload",
+        "producer",
+        "aggregateType",
+        "actorId",
+        "accountId",
+        "productSessionId",
+        "traceId",
+        "requestId",
+        "occurredAt",
+        "receivedAt",
+        "integrityHash",
+        "signature",
+        "residencyClass",
+        "idempotencyKey",
+        "partitionKey",
+        "orderingKey",
+        "metadata"
+      ],
+      "payloadFields": [
+        {
+          "name": "aggregateVersion",
+          "type": "integer",
+          "required": true
+        },
+        {
+          "name": "operation",
+          "type": "string",
+          "required": true,
+          "enum": [
+            "create"
+          ]
+        },
+        {
+          "name": "scope",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "eventType": "calendar.event.updated.v1",
+      "version": "2.0",
+      "owner": "36-calendar",
+      "product": "calendar",
+      "producer": "ynx-calendar",
+      "consumers": [
+        "ynx-data-fabric"
+      ],
+      "compatibilityMode": "none",
+      "effectiveAt": "2026-08-14T00:00:00Z",
+      "migration": "calendar-outbox-v1-to-data-fabric-envelope-v2",
+      "rollback": "stop-consumption-without-acknowledging-calendar-sequence",
+      "sourceCommit": "f1305e6b52c7484c099fe6b2f6cbc2b6d36508e2",
+      "release": "calendar-canonical-event-v1",
+      "testVectors": [
+        "internal/datafabriccalendar/adapter_test.go",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json#CAL-X-014"
+      ],
+      "examplePayload": {
+        "aggregateVersion": 2,
+        "operation": "update",
+        "scope": "entire_series"
+      },
+      "privacyClassification": "restricted",
+      "retentionClass": "operational",
+      "residencyClass": "account-home",
+      "enforceDataClassification": true,
+      "errorCodes": [
+        "DF_EVENT_UNKNOWN_FIELD_V1",
+        "DF_EVENT_MISSING_REQUIRED_FIELD_V1",
+        "DF_EVENT_DUPLICATE_V1",
+        "DF_EVENT_OUT_OF_ORDER_V1",
+        "DF_EVENT_SEQUENCE_GAP_V1",
+        "DF_EVENT_TAMPERED_V1",
+        "DF_EVENT_WRONG_PRODUCT_V1",
+        "DF_EVENT_REPLAY_V1"
+      ],
+      "allowUnknownPayloadFields": false,
+      "requiredEnvelopeFields": [
+        "eventId",
+        "eventType",
+        "schemaVersion",
+        "product",
+        "service",
+        "aggregateId",
+        "actor",
+        "correlationId",
+        "sequence",
+        "timestamp",
+        "effectiveAt",
+        "sourceCommit",
+        "sourceRelease",
+        "integrity",
+        "privacyClassification",
+        "retentionClass",
+        "auditId",
+        "source",
+        "payload",
+        "producer",
+        "aggregateType",
+        "actorId",
+        "accountId",
+        "productSessionId",
+        "traceId",
+        "requestId",
+        "occurredAt",
+        "receivedAt",
+        "integrityHash",
+        "signature",
+        "residencyClass",
+        "idempotencyKey",
+        "partitionKey",
+        "orderingKey",
+        "metadata"
+      ],
+      "payloadFields": [
+        {
+          "name": "aggregateVersion",
+          "type": "integer",
+          "required": true
+        },
+        {
+          "name": "operation",
+          "type": "string",
+          "required": true,
+          "enum": [
+            "update",
+            "recurrence"
+          ]
+        },
+        {
+          "name": "scope",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "eventType": "calendar.invitation.cancelled.v1",
+      "version": "2.0",
+      "owner": "36-calendar",
+      "product": "calendar",
+      "producer": "ynx-calendar",
+      "consumers": [
+        "ynx-data-fabric"
+      ],
+      "compatibilityMode": "none",
+      "effectiveAt": "2026-08-14T00:00:00Z",
+      "migration": "calendar-outbox-v1-to-data-fabric-envelope-v2",
+      "rollback": "stop-consumption-without-acknowledging-calendar-sequence",
+      "sourceCommit": "f1305e6b52c7484c099fe6b2f6cbc2b6d36508e2",
+      "release": "calendar-canonical-event-v1",
+      "testVectors": [
+        "internal/datafabriccalendar/adapter_test.go",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json#CAL-X-014"
+      ],
+      "examplePayload": {
+        "aggregateVersion": 3,
+        "operation": "cancel",
+        "recipient_ref": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "invitation_state": "cancelled"
+      },
+      "privacyClassification": "restricted",
+      "retentionClass": "operational",
+      "residencyClass": "account-home",
+      "enforceDataClassification": true,
+      "errorCodes": [
+        "DF_EVENT_UNKNOWN_FIELD_V1",
+        "DF_EVENT_MISSING_REQUIRED_FIELD_V1",
+        "DF_EVENT_DUPLICATE_V1",
+        "DF_EVENT_OUT_OF_ORDER_V1",
+        "DF_EVENT_SEQUENCE_GAP_V1",
+        "DF_EVENT_TAMPERED_V1",
+        "DF_EVENT_WRONG_PRODUCT_V1",
+        "DF_EVENT_REPLAY_V1"
+      ],
+      "allowUnknownPayloadFields": false,
+      "requiredEnvelopeFields": [
+        "eventId",
+        "eventType",
+        "schemaVersion",
+        "product",
+        "service",
+        "aggregateId",
+        "actor",
+        "correlationId",
+        "sequence",
+        "timestamp",
+        "effectiveAt",
+        "sourceCommit",
+        "sourceRelease",
+        "integrity",
+        "privacyClassification",
+        "retentionClass",
+        "auditId",
+        "source",
+        "payload",
+        "producer",
+        "aggregateType",
+        "actorId",
+        "accountId",
+        "productSessionId",
+        "traceId",
+        "requestId",
+        "occurredAt",
+        "receivedAt",
+        "integrityHash",
+        "signature",
+        "residencyClass",
+        "idempotencyKey",
+        "partitionKey",
+        "orderingKey",
+        "metadata"
+      ],
+      "payloadFields": [
+        {
+          "name": "aggregateVersion",
+          "type": "integer",
+          "required": true
+        },
+        {
+          "name": "operation",
+          "type": "string",
+          "required": true,
+          "enum": [
+            "cancel"
+          ]
+        },
+        {
+          "name": "recipient_ref",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "invitation_state",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "eventType": "calendar.invitation.created.v1",
+      "version": "2.0",
+      "owner": "36-calendar",
+      "product": "calendar",
+      "producer": "ynx-calendar",
+      "consumers": [
+        "ynx-data-fabric"
+      ],
+      "compatibilityMode": "none",
+      "effectiveAt": "2026-08-14T00:00:00Z",
+      "migration": "calendar-outbox-v1-to-data-fabric-envelope-v2",
+      "rollback": "stop-consumption-without-acknowledging-calendar-sequence",
+      "sourceCommit": "f1305e6b52c7484c099fe6b2f6cbc2b6d36508e2",
+      "release": "calendar-canonical-event-v1",
+      "testVectors": [
+        "internal/datafabriccalendar/adapter_test.go",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json#CAL-X-014"
+      ],
+      "examplePayload": {
+        "aggregateVersion": 1,
+        "operation": "create",
+        "recipient_ref": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "invitation_state": "pending"
+      },
+      "privacyClassification": "restricted",
+      "retentionClass": "operational",
+      "residencyClass": "account-home",
+      "enforceDataClassification": true,
+      "errorCodes": [
+        "DF_EVENT_UNKNOWN_FIELD_V1",
+        "DF_EVENT_MISSING_REQUIRED_FIELD_V1",
+        "DF_EVENT_DUPLICATE_V1",
+        "DF_EVENT_OUT_OF_ORDER_V1",
+        "DF_EVENT_SEQUENCE_GAP_V1",
+        "DF_EVENT_TAMPERED_V1",
+        "DF_EVENT_WRONG_PRODUCT_V1",
+        "DF_EVENT_REPLAY_V1"
+      ],
+      "allowUnknownPayloadFields": false,
+      "requiredEnvelopeFields": [
+        "eventId",
+        "eventType",
+        "schemaVersion",
+        "product",
+        "service",
+        "aggregateId",
+        "actor",
+        "correlationId",
+        "sequence",
+        "timestamp",
+        "effectiveAt",
+        "sourceCommit",
+        "sourceRelease",
+        "integrity",
+        "privacyClassification",
+        "retentionClass",
+        "auditId",
+        "source",
+        "payload",
+        "producer",
+        "aggregateType",
+        "actorId",
+        "accountId",
+        "productSessionId",
+        "traceId",
+        "requestId",
+        "occurredAt",
+        "receivedAt",
+        "integrityHash",
+        "signature",
+        "residencyClass",
+        "idempotencyKey",
+        "partitionKey",
+        "orderingKey",
+        "metadata"
+      ],
+      "payloadFields": [
+        {
+          "name": "aggregateVersion",
+          "type": "integer",
+          "required": true
+        },
+        {
+          "name": "operation",
+          "type": "string",
+          "required": true,
+          "enum": [
+            "create"
+          ]
+        },
+        {
+          "name": "recipient_ref",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "invitation_state",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "eventType": "calendar.invitation.updated.v1",
+      "version": "2.0",
+      "owner": "36-calendar",
+      "product": "calendar",
+      "producer": "ynx-calendar",
+      "consumers": [
+        "ynx-data-fabric"
+      ],
+      "compatibilityMode": "none",
+      "effectiveAt": "2026-08-14T00:00:00Z",
+      "migration": "calendar-outbox-v1-to-data-fabric-envelope-v2",
+      "rollback": "stop-consumption-without-acknowledging-calendar-sequence",
+      "sourceCommit": "f1305e6b52c7484c099fe6b2f6cbc2b6d36508e2",
+      "release": "calendar-canonical-event-v1",
+      "testVectors": [
+        "internal/datafabriccalendar/adapter_test.go",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json#CAL-X-014"
+      ],
+      "examplePayload": {
+        "aggregateVersion": 2,
+        "operation": "update",
+        "recipient_ref": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "invitation_state": "pending"
+      },
+      "privacyClassification": "restricted",
+      "retentionClass": "operational",
+      "residencyClass": "account-home",
+      "enforceDataClassification": true,
+      "errorCodes": [
+        "DF_EVENT_UNKNOWN_FIELD_V1",
+        "DF_EVENT_MISSING_REQUIRED_FIELD_V1",
+        "DF_EVENT_DUPLICATE_V1",
+        "DF_EVENT_OUT_OF_ORDER_V1",
+        "DF_EVENT_SEQUENCE_GAP_V1",
+        "DF_EVENT_TAMPERED_V1",
+        "DF_EVENT_WRONG_PRODUCT_V1",
+        "DF_EVENT_REPLAY_V1"
+      ],
+      "allowUnknownPayloadFields": false,
+      "requiredEnvelopeFields": [
+        "eventId",
+        "eventType",
+        "schemaVersion",
+        "product",
+        "service",
+        "aggregateId",
+        "actor",
+        "correlationId",
+        "sequence",
+        "timestamp",
+        "effectiveAt",
+        "sourceCommit",
+        "sourceRelease",
+        "integrity",
+        "privacyClassification",
+        "retentionClass",
+        "auditId",
+        "source",
+        "payload",
+        "producer",
+        "aggregateType",
+        "actorId",
+        "accountId",
+        "productSessionId",
+        "traceId",
+        "requestId",
+        "occurredAt",
+        "receivedAt",
+        "integrityHash",
+        "signature",
+        "residencyClass",
+        "idempotencyKey",
+        "partitionKey",
+        "orderingKey",
+        "metadata"
+      ],
+      "payloadFields": [
+        {
+          "name": "aggregateVersion",
+          "type": "integer",
+          "required": true
+        },
+        {
+          "name": "operation",
+          "type": "string",
+          "required": true,
+          "enum": [
+            "update"
+          ]
+        },
+        {
+          "name": "recipient_ref",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "invitation_state",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "eventType": "calendar.reminder.due.v1",
+      "version": "2.0",
+      "owner": "36-calendar",
+      "product": "calendar",
+      "producer": "ynx-calendar",
+      "consumers": [
+        "ynx-data-fabric"
+      ],
+      "compatibilityMode": "none",
+      "effectiveAt": "2026-08-14T00:00:00Z",
+      "migration": "calendar-outbox-v1-to-data-fabric-envelope-v2",
+      "rollback": "stop-consumption-without-acknowledging-calendar-sequence",
+      "sourceCommit": "f1305e6b52c7484c099fe6b2f6cbc2b6d36508e2",
+      "release": "calendar-canonical-event-v1",
+      "testVectors": [
+        "internal/datafabriccalendar/adapter_test.go",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json#CAL-X-014"
+      ],
+      "examplePayload": {
+        "aggregateVersion": 2,
+        "reminder_id": "reminder.0001",
+        "occurrence_start": "2026-08-14T08:00:00Z",
+        "delivery_state": "due"
+      },
+      "privacyClassification": "restricted",
+      "retentionClass": "operational",
+      "residencyClass": "account-home",
+      "enforceDataClassification": true,
+      "errorCodes": [
+        "DF_EVENT_UNKNOWN_FIELD_V1",
+        "DF_EVENT_MISSING_REQUIRED_FIELD_V1",
+        "DF_EVENT_DUPLICATE_V1",
+        "DF_EVENT_OUT_OF_ORDER_V1",
+        "DF_EVENT_SEQUENCE_GAP_V1",
+        "DF_EVENT_TAMPERED_V1",
+        "DF_EVENT_WRONG_PRODUCT_V1",
+        "DF_EVENT_REPLAY_V1"
+      ],
+      "allowUnknownPayloadFields": false,
+      "requiredEnvelopeFields": [
+        "eventId",
+        "eventType",
+        "schemaVersion",
+        "product",
+        "service",
+        "aggregateId",
+        "actor",
+        "correlationId",
+        "sequence",
+        "timestamp",
+        "effectiveAt",
+        "sourceCommit",
+        "sourceRelease",
+        "integrity",
+        "privacyClassification",
+        "retentionClass",
+        "auditId",
+        "source",
+        "payload",
+        "producer",
+        "aggregateType",
+        "actorId",
+        "accountId",
+        "productSessionId",
+        "traceId",
+        "requestId",
+        "occurredAt",
+        "receivedAt",
+        "integrityHash",
+        "signature",
+        "residencyClass",
+        "idempotencyKey",
+        "partitionKey",
+        "orderingKey",
+        "metadata"
+      ],
+      "payloadFields": [
+        {
+          "name": "aggregateVersion",
+          "type": "integer",
+          "required": true
+        },
+        {
+          "name": "reminder_id",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "occurrence_start",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "delivery_state",
+          "type": "string",
+          "required": true
+        }
+      ]
+    },
+    {
+      "eventType": "calendar.rsvp.updated.v1",
+      "version": "2.0",
+      "owner": "36-calendar",
+      "product": "calendar",
+      "producer": "ynx-calendar",
+      "consumers": [
+        "ynx-data-fabric"
+      ],
+      "compatibilityMode": "none",
+      "effectiveAt": "2026-08-14T00:00:00Z",
+      "migration": "calendar-outbox-v1-to-data-fabric-envelope-v2",
+      "rollback": "stop-consumption-without-acknowledging-calendar-sequence",
+      "sourceCommit": "f1305e6b52c7484c099fe6b2f6cbc2b6d36508e2",
+      "release": "calendar-canonical-event-v1",
+      "testVectors": [
+        "internal/datafabriccalendar/adapter_test.go",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json#CAL-X-014"
+      ],
+      "examplePayload": {
+        "aggregateVersion": 2,
+        "responder_ref": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "response": "yes"
+      },
+      "privacyClassification": "restricted",
+      "retentionClass": "operational",
+      "residencyClass": "account-home",
+      "enforceDataClassification": true,
+      "errorCodes": [
+        "DF_EVENT_UNKNOWN_FIELD_V1",
+        "DF_EVENT_MISSING_REQUIRED_FIELD_V1",
+        "DF_EVENT_DUPLICATE_V1",
+        "DF_EVENT_OUT_OF_ORDER_V1",
+        "DF_EVENT_SEQUENCE_GAP_V1",
+        "DF_EVENT_TAMPERED_V1",
+        "DF_EVENT_WRONG_PRODUCT_V1",
+        "DF_EVENT_REPLAY_V1"
+      ],
+      "allowUnknownPayloadFields": false,
+      "requiredEnvelopeFields": [
+        "eventId",
+        "eventType",
+        "schemaVersion",
+        "product",
+        "service",
+        "aggregateId",
+        "actor",
+        "correlationId",
+        "sequence",
+        "timestamp",
+        "effectiveAt",
+        "sourceCommit",
+        "sourceRelease",
+        "integrity",
+        "privacyClassification",
+        "retentionClass",
+        "auditId",
+        "source",
+        "payload",
+        "producer",
+        "aggregateType",
+        "actorId",
+        "accountId",
+        "productSessionId",
+        "traceId",
+        "requestId",
+        "occurredAt",
+        "receivedAt",
+        "integrityHash",
+        "signature",
+        "residencyClass",
+        "idempotencyKey",
+        "partitionKey",
+        "orderingKey",
+        "metadata"
+      ],
+      "payloadFields": [
+        {
+          "name": "aggregateVersion",
+          "type": "integer",
+          "required": true
+        },
+        {
+          "name": "responder_ref",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "response",
+          "type": "string",
+          "required": true,
+          "enum": [
+            "yes",
+            "no",
+            "maybe",
+            "pending"
+          ]
+        }
+      ]
+    },
+    {
+      "eventType": "calendar.share.changed.v1",
+      "version": "2.0",
+      "owner": "36-calendar",
+      "product": "calendar",
+      "producer": "ynx-calendar",
+      "consumers": [
+        "ynx-data-fabric"
+      ],
+      "compatibilityMode": "none",
+      "effectiveAt": "2026-08-14T00:00:00Z",
+      "migration": "calendar-outbox-v1-to-data-fabric-envelope-v2",
+      "rollback": "stop-consumption-without-acknowledging-calendar-sequence",
+      "sourceCommit": "f1305e6b52c7484c099fe6b2f6cbc2b6d36508e2",
+      "release": "calendar-canonical-event-v1",
+      "testVectors": [
+        "internal/datafabriccalendar/adapter_test.go",
+        "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json#CAL-X-014"
+      ],
+      "examplePayload": {
+        "aggregateVersion": 2,
+        "recipient_ref": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "role": "viewer",
+        "state": "granted"
+      },
+      "privacyClassification": "restricted",
+      "retentionClass": "operational",
+      "residencyClass": "account-home",
+      "enforceDataClassification": true,
+      "errorCodes": [
+        "DF_EVENT_UNKNOWN_FIELD_V1",
+        "DF_EVENT_MISSING_REQUIRED_FIELD_V1",
+        "DF_EVENT_DUPLICATE_V1",
+        "DF_EVENT_OUT_OF_ORDER_V1",
+        "DF_EVENT_SEQUENCE_GAP_V1",
+        "DF_EVENT_TAMPERED_V1",
+        "DF_EVENT_WRONG_PRODUCT_V1",
+        "DF_EVENT_REPLAY_V1"
+      ],
+      "allowUnknownPayloadFields": false,
+      "requiredEnvelopeFields": [
+        "eventId",
+        "eventType",
+        "schemaVersion",
+        "product",
+        "service",
+        "aggregateId",
+        "actor",
+        "correlationId",
+        "sequence",
+        "timestamp",
+        "effectiveAt",
+        "sourceCommit",
+        "sourceRelease",
+        "integrity",
+        "privacyClassification",
+        "retentionClass",
+        "auditId",
+        "source",
+        "payload",
+        "producer",
+        "aggregateType",
+        "actorId",
+        "accountId",
+        "productSessionId",
+        "traceId",
+        "requestId",
+        "occurredAt",
+        "receivedAt",
+        "integrityHash",
+        "signature",
+        "residencyClass",
+        "idempotencyKey",
+        "partitionKey",
+        "orderingKey",
+        "metadata"
+      ],
+      "payloadFields": [
+        {
+          "name": "aggregateVersion",
+          "type": "integer",
+          "required": true
+        },
+        {
+          "name": "recipient_ref",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "role",
+          "type": "string",
+          "required": false,
+          "enum": [
+            "viewer",
+            "editor",
+            "availability"
+          ]
+        },
+        {
+          "name": "state",
+          "type": "string",
+          "required": true,
+          "enum": [
+            "granted",
+            "revoked"
+          ]
+        }
+      ]
+    },
+    {
       "eventType": "capacity.event.recorded",
       "version": "1.0",
       "owner": "ynx-capacity",

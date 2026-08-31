@@ -1,0 +1,23 @@
+{
+  "schemaVersion": "1.0.0",
+  "taskId": "P0-327",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-chain-peer-legacy-retirement-20260831T074300Z",
+  "status": "CONSUMED_RELEASED_SUCCESS_CHAIN_6423_PUBLIC_RECOVERED_PEER_LEGACY_SERVICES_MASKED",
+  "attemptCount": 1,
+  "retryAllowed": false,
+  "localExitStatus": 0,
+  "stdout": {"path": "/tmp/p0-327-chain-peer-legacy-retirement.stdout", "bytes": 516, "sha256": "68a2339c9dfa6c0796fec714c8b2ddd851c08f633de0035f4d9e0e0e8fa17d5c"},
+  "stderr": {"path": "/tmp/p0-327-chain-peer-legacy-retirement.stderr", "bytes": 225, "sha256": "041d330955eefe672ed4f084d6878b2a75972465f1e965d9d4c17a414b25a854"},
+  "receipt": {"path": "/tmp/p0-327-chain-peer-legacy-retirement.receipt", "bytes": 380, "sha256": "d8e2b086730377a1185dc2a42ab6125e2a0575d7d0373c46b358f1ec0e53d956"},
+  "terminal": "CHAIN_6423_PUBLIC_RECOVERED_PEER_LEGACY_SERVICES_MASKED",
+  "postcheck": {
+    "primaryAndPeersLegacyListeners": "absent",
+    "legacyUnits": "masked and not running",
+    "singaporePeerActiveState": "failed with no process or listener",
+    "primaryPublic6423": "healthy and advancing",
+    "peer6423Listeners": "absent on Singapore, Silicon Valley and Seoul",
+    "redundancyClaim": false,
+    "reason": "No peer 6423 service has been independently materialized, activated and verified; primary /status reports stale_peer_sync."
+  },
+  "nextBoundary": "P0-328 may only perform read-only three-peer 6423 deployment-preparation binding. No start, restart, broadcast, unjail or validator operation is authorized."
+}

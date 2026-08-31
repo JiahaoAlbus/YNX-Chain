@@ -1,0 +1,12 @@
+{
+  "schemaVersion": "1.0.0",
+  "taskId": "P0-329",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_READONLY_INSUFFICIENT_PRIVILEGE",
+  "attemptCount": 1,
+  "sshAttemptCount": 2,
+  "retryAllowed": false,
+  "mutationCount": 0,
+  "stdout": {"path": "/tmp/p0-329-chain-peer-6423-corrected-readonly-preparation.stdout", "bytes": 3147, "sha256": "3e8a42a4ba42561d8aa00a6e5e7c719ac9a8fddf684cc0b8dc4f92c7060d7040"},
+  "failure": "The corrected paths were reached, but the unprivileged Silicon Valley read could not hash root-readable /etc/ynx/ynx-chaind.env or enumerate /var/backups/ynx-chain. The terminal body is incomplete and nonreusable.",
+  "nextAction": "P0-330 may make a new sudo -n read-only pass only; no lifecycle or deployment authority follows."
+}

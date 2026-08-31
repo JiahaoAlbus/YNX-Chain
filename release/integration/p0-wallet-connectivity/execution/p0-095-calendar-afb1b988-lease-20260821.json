@@ -1,0 +1,56 @@
+{
+  "schemaVersion": "p0-execution-lease/v1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-095",
+  "owner": "integration",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_STATE_MIGRATION_ROLLBACK",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-calendar-afb1b988-20260821T013320Z",
+  "issuedAt": "2026-08-21T01:33:20Z",
+  "expiresAt": "2026-08-21T03:33:20Z",
+  "sourceCommit": "afb1b988e5e47f02928163c345ff5fb1dc7a44e5",
+  "sourceBranch": "codex/p0-calendar-wallet-evidence-20260821",
+  "artifact": {
+    "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/48-calendar-p0/tmp/calendar-p0095-afb1b988/one/ynx-calendard",
+    "sha256": "f0ce5b354c7a68889e5cfd0450801fa4adea73eff97761c6346e6d5f4ac0c46b",
+    "bytes": 7549112,
+    "platform": "linux-amd64-static"
+  },
+  "scope": [
+    "fresh read-only Calendar service and runtime digest preflight",
+    "new root-only backup and lease-bound staging",
+    "install exact Calendar binary only",
+    "restart ynx-calendar.service only",
+    "verify local and public health/version/UI",
+    "rollback exact prior binary on any failed gate"
+  ],
+  "forbidden": [
+    "modify Calendar state or HMAC key",
+    "modify Wallet/Auth, Gateway, Card, Chain, Finance or other services",
+    "claim installed Wallet, Product Session v2, Mail delivery, AI provider or ComputerControl",
+    "reuse this lease after any execution attempt"
+  ],
+  "singleUse": true,
+  "nonreusableAfterAttempt": true,
+  "rollbackFirst": true,
+  "productionMutationAllowed": false,
+  "freshPreflight": {
+    "observedAt": "2026-08-21T01:35:00Z",
+    "service": "ynx-calendar.service",
+    "serviceState": "active",
+    "serviceRestarts": 0,
+    "localAddress": "127.0.0.1:18097",
+    "currentBinarySha256": "b74820c013771f29a5b106f7c9ec36e274c64c2501d101afbcb51492d84270ed",
+    "unitSha256": "c6fa3b4c1b2c34366233169973631928890838709ecb8183daf0cfeee9d4331f",
+    "caddyRouteSha256": "8b75b9d1332e49e702b610fb1a5e6fcf8a04b9495a1eb16e04dfc65330911f98",
+    "stateSha256": "04c4eda25667d1f1433e6ebcee4186fc8a4b8325f4a004326cf2399a64f43201",
+    "stateKeySha256": "bf7b567201cab33c4b9ed02e00f0d0165172b4e692484ca044d828d0a3fb5e62",
+    "publicSourceCommit": "635f6745db8b5d4e4f00253d72fd5ab97da471ac",
+    "publicVersionRouteStatus": 404
+  },
+  "releasedAt": "2026-08-21T01:41:00Z",
+  "checkpointCommit": "882e9a0e3b7d1d6e6741c3a20ce3e6a2f0f63de1",
+  "ownerEvidenceSha256": "13efe243d93b64ee57ae74369ec109c7883297700c7b8dd501cc8b0fc937b6d4",
+  "rollbackCompleted": true,
+  "publicSourceAfterRollback": "635f6745db8b5d4e4f00253d72fd5ab97da471ac",
+  "nonreusable": true
+}

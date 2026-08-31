@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "acceptanceId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-recovery-runtime-a5a2841e",
+  "recordedAt": "2026-08-20T11:49:11Z",
+  "decision": "REVOKED_RUNTIME_MOUNT_GAP",
+  "revokedAt": "2026-08-20T11:56:24Z",
+  "revocationReason": "The production entry scripts/ynx-wallet-gatewayd.mjs mounts only CanonicalWalletGatewayNodeHost v1; the accepted source contains Product Session v2 modules and tests but does not publicly mount /v2/product-sessions/*.",
+  "authoritativeControlPlane": {
+    "branch": "codex/p0-wallet-connectivity-control-plane-20260820",
+    "baseCommit": "5b176f56731831669f641f7f1aaddb94c6900d5b"
+  },
+  "ownerCandidate": {
+    "branch": "codex/p0-wallet-protocol-integration-20260820",
+    "acceptedCommit": "a5a2841e870d7d21df0f761179f2c47d9ca83ccc",
+    "parent": "9dec04cbc37061b988b416e3f7c2c6a4de40425d",
+    "commitTree": "618efc2ec85b8e0aa3ef589a49d790682f7e1cbc",
+    "walletAuthTree": "53790596eeba9388b02cb43ac8cc51939f00ce5d",
+    "ownerReportedHeadAtHandoff": "a5a2841e870d7d21df0f761179f2c47d9ca83ccc",
+    "remoteHeadObservedDuringReview": "07bd691d5d185a1808e1411026af3a02585cb54a",
+    "remoteHeadDriftAccepted": false,
+    "acceptedScope": ["packages/wallet-auth/**"],
+    "wholeTreeMergeAccepted": false,
+    "unknownSuccessorCommitsAccepted": false
+  },
+  "reconciliation": {
+    "mode": "MATERIALIZE_EXACT_PACKAGES_WALLET_AUTH_SUBTREE_NO_WHOLE_TREE_MERGE",
+    "requiredCurrentPublicRuntimeSource": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
+    "requiredCandidateSourceAfterDeploy": "a5a2841e870d7d21df0f761179f2c47d9ca83ccc",
+    "requiredWalletAuthTreeAfterDeploy": "53790596eeba9388b02cb43ac8cc51939f00ce5d",
+    "preserveUnrelatedRuntimeFiles": true,
+    "preserveStateAndRegistry": true
+  },
+  "runtimeMountGap": {
+    "productionEntry": "scripts/ynx-wallet-gatewayd.mjs",
+    "observedHost": "CanonicalWalletGatewayNodeHost v1 only",
+    "requiredRoutes": "/v2/product-sessions/*",
+    "requiredRoutesMounted": false,
+    "runtimeReady": false,
+    "deploymentAuthorized": false,
+    "replacementRequired": "new exact pushed Wallet/Auth source with durable v2 Node host, reviewed v2 registry/state environment, registered-origin CORS, restart idempotency and zero-mutation state-integrity gates"
+  },
+  "deploymentRegistry": {
+    "path": "release/integration/p0-wallet-protocol-deployment-registry-v4.json",
+    "blob": "f11f73bb10943e6ae4e3ecd9f4e5bcedfb7b4701",
+    "sha256": "ae156b317b9a97bfd42397cca634021deefe10ffb009102899e24276d8721e31",
+    "bytes": 20037,
+    "registryVersion": 2,
+    "entrySchemaVersion": 4,
+    "originInferenceAllowed": false,
+    "mutationAuthorized": false
+  },
+  "integrationVerification": {
+    "walletAuthTests": {"passed": 222, "failed": 0},
+    "recoveryCoordinatorTests": {"passed": 29, "failed": 0},
+    "sdkTests": {"passed": 13, "failed": 0},
+    "packageDryRunPassed": true,
+    "packageFiles": 95,
+    "recoveryImplementationPackaged": true,
+    "diffCheckPassed": true,
+    "conflictMarkerGatePassed": true,
+    "productMigrationRecords": 12,
+    "runtimeProductsMigrated": 0
+  },
+  "acceptedRuntimeSemantics": [
+    "sender-constrained disconnect revoke before protected-state clearing",
+    "identical callback single-flight and distinct concurrent callback rejection",
+    "callback-disconnect and restore-disconnect no-resurrection",
+    "issued session protected before post-completion confirmation",
+    "network-epoch fencing before late Gateway mutations",
+    "asynchronous platform secure signer with local key verification",
+    "lost revoke acknowledgement reconciled only by exact SESSION_REVOKED"
+  ],
+  "currentTruth": {
+    "priorRuntimeSourceStillPublic": true,
+    "priorRuntimeSource": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
+    "candidateImplemented": true,
+    "candidateAcceptedForControlledExecution": false,
+    "candidateDeployedPublic": false,
+    "currentHeadDeployedPublic": false,
+    "runtimeProductsMigrated": 0,
+    "installedClientVerified": false,
+    "accountVerified": false,
+    "signVerified": false,
+    "sendVerified": false,
+    "transactionVerified": false,
+    "integratedCentral": false,
+    "aggregatePublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

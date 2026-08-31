@@ -1,0 +1,129 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-320",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-creator-p0315-cleanup-prewrite-zero-write-20260831T061200Z",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_CREATOR_P0320_CANDIDATE_BINDING_DRIFT_BEFORE_OUTPUT",
+  "singleUse": true,
+  "reusable": false,
+  "issuedAt": "2026-08-31T06:12:00Z",
+  "expiresAt": "2026-08-31T06:32:00Z",
+  "releasedAt": "2026-08-31T06:17:52Z",
+  "owner": "creator-studio-readback-owner",
+  "namedExecutor": "release-control-plane",
+  "runtimeHost": "43.153.202.237",
+  "scope": "CREATOR_P0315_TERMINAL_CLEANUP_PREWRITE_ZERO_WRITE_ONLY",
+  "source": {
+    "branch": "codex/p0-creator-studio-subpath-i18n-20260831",
+    "head": "f8434f5ca47ceaa26e28c916fba877dfb24d1280",
+    "tree": "15d97669b8af383a239f4135c26318b25a03cc89",
+    "remoteExact": true,
+    "clean": true
+  },
+  "request": {
+    "path": "apps/creator-studio/evidence/creator-studio-p0315-terminal-cleanup-prewrite-zero-write-single-use-request-20260831.json",
+    "blob": "f04787db41c5aed957aed9de2c8e5889c1977871",
+    "bytes": 6473,
+    "sha256": "347547eb641a65a2b60db4039d1647843308d80eb2253b9fff931f0e5d362b1f"
+  },
+  "predecessor": {
+    "taskId": "P0-316",
+    "centralCommit": "5093fe8489e438b4edf2ee703399aea6d2e1a880",
+    "centralTree": "ce8c813eec19f9bdf43872c382629d44b9a5dcb3",
+    "status": "CONSUMED_RELEASED_SUCCESS_CREATOR_P0316_P0315_TERMINAL_ZERO_WRITE_READBACK_RESIDUES_RETAINED",
+    "evidenceBlob": "bf27f2e98d6bcc866a89414d4e1464821150e1f8",
+    "evidenceBytes": 2151,
+    "evidenceSha256": "a6298945c5d493c6d9ad9867be5dea85fdb56eaa1ede632bd8b37aca1919e6a1",
+    "cleanupComplete": false,
+    "reusable": false
+  },
+  "inspector": {
+    "commit": "16d5aaced72b2eb099b45c270c3ed8a38810c247",
+    "tree": "b69cd8deff7976c0f34e073e9bf8a24bb4643885",
+    "path": "apps/creator-studio/release-terminal-zero-write-inspector-3f97a13d.mjs",
+    "blob": "8426803150d558248599ae64998b38c25df84434",
+    "bytes": 10748,
+    "sha256": "20c7bb3a24824bd63ce3a4b4a1b00558faf1293c21fcf447f6fd54414e062319",
+    "selftest": "PASS",
+    "readOnlyImports": true,
+    "mutationApisImported": false,
+    "expectedCandidateFileCount": 12,
+    "expectedControlEntries": 7,
+    "publicResourceCount": 5
+  },
+  "execution": {
+    "workingDirectory": "/private/tmp/ynx-creator-subpath-i18n.PcnLN2",
+    "argv": [
+      "/usr/bin/ssh",
+      "-i",
+      "/Users/huangjiahao/Downloads/Huang.pem",
+      "-o",
+      "IdentitiesOnly=yes",
+      "-o",
+      "BatchMode=yes",
+      "-o",
+      "StrictHostKeyChecking=yes",
+      "-o",
+      "UserKnownHostsFile=/Users/huangjiahao/.ssh/known_hosts",
+      "-o",
+      "ConnectTimeout=10",
+      "-o",
+      "ConnectionAttempts=1",
+      "ubuntu@43.153.202.237",
+      "/usr/bin/sudo -n /usr/bin/node --input-type=module -"
+    ],
+    "stdin": {
+      "path": "apps/creator-studio/release-terminal-zero-write-inspector-3f97a13d.mjs",
+      "bytes": 10748,
+      "sha256": "20c7bb3a24824bd63ce3a4b4a1b00558faf1293c21fcf447f6fd54414e062319"
+    },
+    "localEvidencePath": "/tmp/p0-320-creator-studio-p0315-cleanup-prewrite-zero-write.json",
+    "localEvidencePathMustBeAbsent": true,
+    "attemptLimit": 1,
+    "sshInvocationLimit": 1,
+    "retryAllowed": false,
+    "maximumDurationMinutes": 20,
+    "remoteTemporaryFiles": false
+  },
+  "requiredOutput": [
+    "current symlink tuple literal target and dereferenced old-release tuple",
+    "old manifest tuple bytes and SHA256",
+    "Creator service metadata PID NRestarts and exact 6493 6494 6495 listener PIDs",
+    "unit and forward receipt exact identities and semantics",
+    "candidate root complete sorted tree and every object identity",
+    "control root placement receipt complete sorted tree and every object identity",
+    "receipt candidate and control parent tuples",
+    "all next and quarantine paths absent",
+    "five public resources status bytes SHA256 content-type and cache-control",
+    "inspection CREATOR_P0315_TERMINAL_CLEANUP_PREWRITE_ZERO_WRITE and mutationCount zero"
+  ],
+  "allowed": [
+    "one exact SSH invocation with inspector bytes only on stdin",
+    "read-only filesystem systemd listener and public HTTP inspection",
+    "one local canonical JSON evidence file"
+  ],
+  "forbidden": [
+    "cleanup deletion creation rename chmod chown link or any remote temporary path",
+    "deploy current switch rollback retry service start stop restart reload or daemon-reload",
+    "unit Caddy API Viewer public or unrelated product mutation",
+    "reuse of P0-315 P0-316 or another lease",
+    "Wallet account approval signature typed-data transaction or secret output"
+  ],
+  "terminal": {
+    "releaseHeavyAndAllCreatorReadbackLocks": true,
+    "completeCanonicalInspectorJsonRequired": true,
+    "cleanupAuthorized": false,
+    "cleanupComplete": false,
+    "deploymentAuthorized": false,
+    "creatorPromoted": false,
+    "attemptCount": 1,
+    "retryCount": 0,
+    "sshAttempts": 1,
+    "remoteExitStatus": 1,
+    "failure": "CANDIDATE_BINDING_DRIFT_BEFORE_OUTPUT",
+    "stdoutBytes": 0,
+    "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "terminalEvidencePath": "release/integration/p0-wallet-connectivity/execution/objects/p0-320-creator-studio-p0315-cleanup-prewrite-zero-write-terminal-failure-20260831.json",
+    "nextLeaseMustBeRawFirstZeroWriteDiagnostic": true
+  }
+}

@@ -1,0 +1,35 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "recordType": "CARD_P0_246_OFFICIAL_ROLLBACK_CURRENT_READ_ONLY_RECONCILIATION",
+  "recordedAt": "2026-08-31T02:48:04Z",
+  "officialRuntime": {
+    "url": "https://card.ynxweb4.com/",
+    "deploymentId": "dpl_DqMuEhno65bLFTNKBu9gs52soVri",
+    "centralTerminalCommit": "441b8bd2be4f404b33922ede48532cea6cae151c",
+    "classification": "SAFE_OLD_ROLLBACK_BASELINE_NOT_NEW_SOURCE_BOUND_RELEASE"
+  },
+  "freshPublicReadback": {
+    "root": "200:1717:56827ca95005951ae791245b6c3021691beace32683209936c7519324c28ed24",
+    "mainJsPath": "/_expo/static/js/web/index-250c974606522c0feefa0bf082cc41a1.js",
+    "mainJs": "200:2907885:2103aba7f844d4a3c067eac0ecbf0acbc9ebf8fb8831c44fd248df90261a8568",
+    "manifest": "200:460:f3e634129abe79c5b81b7fc8dac3950e5cb21f1d1263b1938fcd06a58e2c686f",
+    "serviceWorker": "200:364:1a9acfe442d2920040a1999f4fe4efe3f97d7a42a9debef047d469972889638f",
+    "buildIdentityStatus": 404,
+    "releaseManifestStatus": 404
+  },
+  "decision": {
+    "classification": "CARD_P0_246_ROLLBACK_ALREADY_CURRENT_NO_ALIAS_OR_FORWARD_DEPLOY",
+    "rollbackUncertaintyResolved": true,
+    "aliasLeaseIssued": false,
+    "deploymentLeaseIssued": false,
+    "heavyLeaseRequired": false
+  },
+  "truthBoundary": {
+    "installedProvider": false,
+    "accountLifecycle": false,
+    "signature": false,
+    "transaction": false,
+    "productCompletion": false
+  }
+}

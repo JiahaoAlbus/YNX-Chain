@@ -1,0 +1,193 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-236",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-phase2b-candidate-env-preparation-20260823T033300Z",
+  "owner": "financial-apps",
+  "executor": "finance-release-control-plane",
+  "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_PHASE2B_CANDIDATE_ENV_PREPARATION_ONLY",
+  "issuedAt": "2026-08-23T03:33:00Z",
+  "expiresAt": "2026-08-23T04:03:00Z",
+  "releasedAt": "2026-08-23T03:41:35Z",
+  "singleUse": true,
+  "reusable": false,
+  "executionAuthorized": false,
+  "productionMutationAllowed": false,
+  "scope": "Finance Phase2B preparation only: receive one exact non-secret signed lease JSON on stdin, atomically install that lease, execute the already placed exact Phase2B program once, copy the accepted archive to candidate.tgz, and generate one secret-safe candidate finance.env without exposing values",
+  "centralPrecondition": {
+    "parentCommit": "3d5f95ca7d907333781c32919a06405696864195",
+    "parentTree": "089e0e0ac2c62699961b6f0895177493dd8f98b0",
+    "p0235TerminalLeaseBlob": "2dc018e074f76322d9d3359b31c266d9638af4f9",
+    "p0235TerminalLeaseBytes": 10774,
+    "p0235TerminalLeaseSha256": "12922a29dca74fb7fb22a5baa4125c7890534425004d9193edbe1a786c3450fd",
+    "p0235Status": "CONSUMED_RELEASED_SUCCESS_FINANCE_PHASE2A_PRIVILEGED_STDIN_PLACEMENT_ONLY",
+    "heavyWasNullAndIdle": true
+  },
+  "ownerAuthority": {
+    "branch": "codex/p0-finance-wallet-connectivity-20260820",
+    "requestHead": "31c47ffcc71f3ce0a18f953790bda1a6c8d65715",
+    "requestTree": "dd6bc97427fe809ee8ce989b3586ac1f3edd5acc",
+    "implementationCommit": "275c749989c3cc7dad3a109c2c0c1ae6b51654b8",
+    "implementationTree": "4202e6642f1f7cea4b2f8819b84698b400d7ef0d",
+    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance",
+    "remoteAndLocalExactClean": true
+  },
+  "request": {
+    "path": "apps/finance/evidence/finance-phase2b-stdin-lease-execution-request-20260823.json",
+    "blob": "a989635f4f89fc87db2d1452aa95e98fecdbf820",
+    "bytes": 4026,
+    "sha256": "010ea8c14646e230bd62fbfc8819651d9079f49585ddae3da6384fd2e3c1172e",
+    "jsonValid": true
+  },
+  "commandObjects": {
+    "bootstrap": {
+      "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance/apps/finance/scripts/finance-phase2b-stdin-lease-bootstrap.sh",
+      "blob": "4b02cd9e0d5a2d95fb072cfd033f0a1feea9d762",
+      "bytes": 2976,
+      "sha256": "97790a74f78b5685dc79e42cc570a31757fa81f71643aff14259c4d610588cb3"
+    },
+    "fixture": {
+      "path": "apps/finance/scripts/test-finance-phase2b-stdin-lease-fixture.mjs",
+      "blob": "3233a18c7610e47f368b52b653f7650b0023cc09",
+      "bytes": 2959,
+      "sha256": "63b43b767680f7de8738136c812d1a29195e973542d0488ee5e14803f598e560",
+      "centralRerun": "PASS"
+    },
+    "productionActualShellFixture": "PASS"
+  },
+  "signedStdin": {
+    "path": "/private/tmp/ynx-calendar-control-plane.y8FFQt/repo/release/integration/p0-wallet-connectivity/execution/p0-236-finance-phase2b-candidate-env-preparation-stdin-20260823.json",
+    "repositoryPath": "release/integration/p0-wallet-connectivity/execution/p0-236-finance-phase2b-candidate-env-preparation-stdin-20260823.json",
+    "blob": "0618cc01f6e44bd105dd88b4dd57c61cc0abd8e0",
+    "bytes": 3027,
+    "sha256": "2c169174339f5cf2005e04e68cb8fa049ada050229492728566be59111e26b9e",
+    "secretValuesPresent": false
+  },
+  "freshPrewrite": {
+    "observedAt": "2026-08-23T03:29:00Z",
+    "host": "43.153.202.237",
+    "user": "ubuntu",
+    "architecture": "x86_64",
+    "identity": "/Users/huangjiahao/Downloads/Huang.pem",
+    "knownHosts": "/Users/huangjiahao/.ssh/known_hosts",
+    "strictHostKeyChecking": true,
+    "sudoNoninteractive": true,
+    "rootTuple": "64770:1312502:0:0:755:49:4096:directory",
+    "stageParentTuple": "64770:3450040:0:0:750:3:4096:directory",
+    "stageTuple": "64770:3450041:0:0:750:3:4096:directory",
+    "leasesParentTuple": "64770:3450042:0:0:750:3:4096:directory",
+    "leaseParentTuple": "64770:4594820:0:0:750:2:4096:directory",
+    "carrierTuple": "64770:4594821:0:0:700:2:4096:directory",
+    "carrier": "/opt/ynx/stage/finance/p0228-finance-phase1-20260822T234100Z",
+    "carrierEmpty": true,
+    "leaseAndPendingAbsent": true,
+    "archiveTuple": "64770:4620790:0:0:600:1:3937491:regular file",
+    "archiveSha256": "d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d",
+    "generatorTuple": "64770:4620791:0:0:700:1:1698:regular file",
+    "generatorSha256": "cf7b804be50e8f75765f52b67e39e62a67e211add8bb17edcadf2b4e25940c07",
+    "phase2bTuple": "64770:4620792:0:0:700:1:4247:regular file",
+    "phase2bSha256": "6897bbfa02a191caf4ba834c43bf0441e86a302ee4e8a8c14c34a2646a23259e",
+    "env": {
+      "path": "/etc/ynx/finance.env",
+      "tuple": "64770:1312539:0:986:640:1:1545:regular file",
+      "bytes": 1545,
+      "sha256": "854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252",
+      "ynxFinanceWebDirKeyCount": 1,
+      "valuesReadOrRecorded": false
+    },
+    "financeService": "active/running",
+    "financeMainPid": 877083,
+    "financeNRestarts": 0
+  },
+  "execution": {
+    "localShell": "/bin/zsh -f",
+    "bootstrapBase64Derivation": "BOOTSTRAP_BASE64=$(/usr/bin/base64 < '/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance/apps/finance/scripts/finance-phase2b-stdin-lease-bootstrap.sh' | /usr/bin/tr -d '\\n') after exact bytes and SHA verification",
+    "remoteCommandSingleArgument": "/usr/bin/sudo -n /bin/bash -c 'boot=$(printf %s \"$1\" | base64 -d); shift; /bin/bash -c \"$boot\" phase2b \"$@\"' phase2b '$BOOTSTRAP_BASE64' 'p0228-finance-phase1-20260822T234100Z' '/opt/ynx/stage/finance/p0228-finance-phase1-20260822T234100Z' '64770:1312502:0:0:755:49:4096:directory' '64770:3450040:0:0:750:3:4096:directory' '64770:3450041:0:0:750:3:4096:directory' '64770:3450042:0:0:750:3:4096:directory' '64770:4594820:0:0:750:2:4096:directory' '64770:4594821:0:0:700:2:4096:directory' '64770:4620790:0:0:600:1:3937491:regular file' 'd8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d' '3937491' '64770:4620791:0:0:700:1:1698:regular file' 'cf7b804be50e8f75765f52b67e39e62a67e211add8bb17edcadf2b4e25940c07' '1698' '64770:4620792:0:0:700:1:4247:regular file' '6897bbfa02a191caf4ba834c43bf0441e86a302ee4e8a8c14c34a2646a23259e' '4247' '3027' '2c169174339f5cf2005e04e68cb8fa049ada050229492728566be59111e26b9e'",
+    "sshArgvPrefix": [
+      "/usr/bin/ssh",
+      "-i", "/Users/huangjiahao/Downloads/Huang.pem",
+      "-o", "IdentitiesOnly=yes",
+      "-o", "BatchMode=yes",
+      "-o", "StrictHostKeyChecking=yes",
+      "-o", "UserKnownHostsFile=/Users/huangjiahao/.ssh/known_hosts",
+      "-o", "ConnectTimeout=10",
+      "-o", "ConnectionAttempts=1",
+      "ubuntu@43.153.202.237"
+    ],
+    "stdin": "/private/tmp/ynx-calendar-control-plane.y8FFQt/repo/release/integration/p0-wallet-connectivity/execution/p0-236-finance-phase2b-candidate-env-preparation-stdin-20260823.json",
+    "sshAttemptLimit": 1,
+    "retryAllowed": false,
+    "remoteBootstrapExecutionLimit": 1,
+    "phase2bExecutionLimit": 1
+  },
+  "authorizedWrites": [
+    "/opt/ynx/leases/finance-preparation/p0228-finance-phase1-20260822T234100Z.json",
+    "/opt/ynx/leases/finance-preparation/p0228-finance-phase1-20260822T234100Z.json.pending",
+    "/opt/ynx/stage/finance/p0228-finance-phase1-20260822T234100Z/candidate.tgz",
+    "/opt/ynx/stage/finance/p0228-finance-phase1-20260822T234100Z/finance.env"
+  ],
+  "forbidden": [
+    "any second SSH, bootstrap, generator or Phase2B execution attempt",
+    "outputting production env contents or secret values",
+    "release extraction or deployment",
+    "service restart, current symlink, release, state, unit, Caddy or public route mutation",
+    "non-Finance product mutation",
+    "account request, approval, signature, typed data, transaction or private key action",
+    "production authorization inferred from Phase2B preparation success"
+  ],
+  "terminalEvidence": {
+    "ownerCommit": "ad33f99f35d72fd178a29485e86f2a219a73d8c9",
+    "ownerTree": "e9262997df82f258449b1eb2623d69a054edf32d",
+    "path": "apps/finance/evidence/finance-phase2b-candidate-env-preparation-terminal-evidence-20260823.json",
+    "blob": "494342ecaafcd5898db8a3f91b86ab6212b2679e",
+    "bytes": 3584,
+    "sha256": "22a8d6cc8e93b934de6a877bdac9b56f4b426081b34cf8666cfee8d640f00a65",
+    "remoteExact": true,
+    "sshInvocationCount": 1,
+    "bootstrapInvocationCount": 1,
+    "phase2bInvocationCount": 1,
+    "retryCount": 0,
+    "exitCode": 0,
+    "stdoutBytes": 880,
+    "stdoutSha256": "5bb023e8d4f969d8733a6495cb0c3487ecd15ef8faad038d127a4c8a90e7d34f",
+    "stderrBytes": 0,
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "postRead": {
+      "carrierTuple": "64770:4594821:0:0:700:2:4096:directory",
+      "carrierSetExact": ["candidate.tgz", "finance.env"],
+      "candidateArchiveTuple": "64770:4620871:0:0:600:1:3937491:regular file",
+      "candidateArchiveSha256": "d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d",
+      "candidateEnvTuple": "64770:4620873:0:986:640:1:1545:regular file",
+      "candidateEnvSha256": "ceec9fba17116e087d6e2a9cb160808b39e027e687a7ad561174a40daf58b71a",
+      "candidateEnvRequiredKeyCount": 1,
+      "signedLeaseTuple": "64770:4620793:0:0:600:1:3027:regular file",
+      "signedLeaseSha256": "2c169174339f5cf2005e04e68cb8fa049ada050229492728566be59111e26b9e",
+      "pendingAbsent": true,
+      "productionEnvTuple": "64770:1312539:0:986:640:1:1545:regular file",
+      "productionEnvSha256": "854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252",
+      "productionEnvRequiredKeyCount": 1,
+      "environmentValuesReadOrRecorded": false,
+      "financeService": "active/running",
+      "financeMainPid": 877083,
+      "financeNRestarts": 0
+    },
+    "archiveExtracted": false,
+    "deploymentOrPublicMutation": false,
+    "accountSignatureTransaction": false
+  },
+  "terminalRules": {
+    "success": "CONSUMED_RELEASED_SUCCESS_FINANCE_PHASE2B_CANDIDATE_ENV_PREPARATION_ONLY",
+    "failure": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_PHASE2B_CANDIDATE_ENV_PREPARATION",
+    "releaseHeavyAndAllLocksOnTerminal": true,
+    "requiredReturn": "one SSH/bootstrap/Phase2B attempt and exit; exact lease, candidate.tgz and candidate finance.env path/stat/bytes/SHA receipts; fresh post-read; production env tuple/hash/key count unchanged without values; Finance service/PID/restarts unchanged; deployment/public/sensitive actions false"
+  },
+  "truthBoundary": {
+    "candidateEnvironmentPreparationOnly": true,
+    "archiveExtracted": false,
+    "deployed": false,
+    "publicVerified": false,
+    "account": false,
+    "signature": false,
+    "transaction": false
+  }
+}

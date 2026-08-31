@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-auth-v2-runtime-lease-20260820T120255Z",
+  "status": "SUPERSEDED_BEFORE_START_DEPENDENCY_CLOSURE",
+  "singleUse": true,
+  "issuedAt": "2026-08-20T12:02:55Z",
+  "expiresAt": "2026-08-20T14:02:55Z",
+  "supersededAt": "2026-08-20T12:10:54Z",
+  "supersededReason": "EXACT_SEVEN cannot cold-start on public 49e because its imported Product Session v2 dependency closure and product-session-registry.json are absent.",
+  "leaseOwner": "wallet-protocol",
+  "deploymentOwner": "wallet-auth-gateway-runtime-owner",
+  "deploymentChannel": "exclusive-wallet-auth-v1-plus-v2-runtime-transaction",
+  "acceptancePath": "release/integration/p0-wallet-connectivity/acceptance/wallet-auth-v2-runtime-6cf3ef84-20260820.json",
+  "authorization": {
+    "executionAuthorized": false,
+    "singleControlledTransaction": true,
+    "exclusiveProductionWindowRequired": true,
+    "automaticRollbackRequired": true,
+    "allowedRoot": "packages/wallet-auth",
+    "allowedTarget": "wallet-auth.ynxweb4.com and its exact existing ynx-wallet-gateway runtime only",
+    "forbiddenTargets": ["6437", "6439", "6441", "Wallet UI or platform", "Chain Core", "Website", "Developer SDK", "Shop", "other products"],
+    "forbiddenEffects": ["whole-tree-merge", "registry-inference", "registry-mutation", "unrelated-service-restart", "installed-client-acceptance", "product-migration-claim"]
+  },
+  "source": {
+    "currentPublicRuntimeCommit": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
+    "candidateRuntimeCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "candidateWalletAuthTree": "4c544d2e2ddb63caef536ea67c8f27b45044fd89",
+    "handoffCommit": "0ed75659e8fd3e1556d8a9b3789b22b1ac94c89e",
+    "requiredVersionSourceAfterDeploy": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "materializationMode": "EXACT_SEVEN_WALLET_AUTH_FILES_NO_WHOLE_TREE_MERGE"
+  },
+  "v2Registry": {
+    "sourcePath": "packages/wallet-auth/product-session-registry.json",
+    "sourceBlob": "4f1f1326031f1dade8eaaaee4673ee96badd0259",
+    "sha256": "d2826eb419abca4444ccb50d79537fa7f6a3643948d82ed9b52914b7169c107b",
+    "bytes": 6130,
+    "environmentVariable": "YNX_PRODUCT_SESSION_GATEWAY_REGISTRY_PATH",
+    "explicitAbsoluteMaterializedPathRequired": true,
+    "originInferenceAllowed": false,
+    "mutationAuthorized": false
+  },
+  "v2State": {
+    "environmentVariable": "YNX_PRODUCT_SESSION_GATEWAY_STATE_PATH",
+    "explicitAbsolutePathRequired": true,
+    "mustDifferFromV1StatePath": true,
+    "ownerControlledMode0700DirectoryRequired": true,
+    "initialStateFileMayBeAbsent": true,
+    "resolvedPathMustBeRecordedInPreflightEvidence": true
+  },
+  "requiredPreflight": [
+    "run node scripts/verify/p0-wallet-auth-v2-runtime-lease-check.mjs from the authoritative control-plane commit",
+    "capture current health ready version source service unit process user environment registry state and Caddy route digests",
+    "materialize and hash exactly seven accepted source files plus the immutable v2 registry blob",
+    "record exact absolute v2 registry and state paths without inferring an Origin or reusing the v1 state file",
+    "read-only boot exact candidate against copies of production v1 state and the accepted v2 registry",
+    "create verified source configuration registry v1-state and v2-state backups with exact rollback commands"
+  ],
+  "requiredRollbackDrill": [
+    "restore source 49e30d999e9a9cbdd2c565021009f2cab0dc125c",
+    "restore byte-exact v1 state registry configuration and reverse-proxy identity",
+    "remove or restore the candidate-created v2 state only from its exact recorded path",
+    "prove prior v1 health ready version Social OPTIONS and lifecycle remain unchanged",
+    "reactivate candidate only after rollback evidence passes"
+  ],
+  "requiredPublicAcceptance": [
+    "health ready version identify source 6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "v1 administration runtime and prior public lifecycle remain unchanged",
+    "all five exact v2 routes reach Product Session v2 and never fall through to v1 or Chain RPC",
+    "registered Origin OPTIONS succeeds without credentials and attacker Origin fails closed",
+    "wrong header method route query media type and canonical body fail closed with zero v2 business mutation",
+    "challenge complete response-loss retry restart introspect replay reject revoke devices-revoke and post-revoke gates pass",
+    "120 concurrent Product Sessions remain isolated",
+    "0644 symlink hardlink same-bytes inode replacement and snapshot-digest tamper each fail closed with zero business mutation",
+    "post-tamper controlled recovery returns exact state permissions identity and lifecycle",
+    "remote evidence records public URL HTTP facts request IDs state SHA registry SHA source commit and rollback result"
+  ],
+  "executionState": {
+    "preflightComplete": false,
+    "backupComplete": false,
+    "deploymentStarted": false,
+    "deploymentComplete": false,
+    "rollbackDrillComplete": false,
+    "publicAcceptanceComplete": false,
+    "installedClientAcceptanceComplete": false,
+    "leaseConsumed": false,
+    "supersededBeforeStart": true,
+    "productionMutationObserved": false
+  },
+  "truth": {
+    "priorRuntimePublicVerified": true,
+    "candidateDeployedPublic": false,
+    "publicV2LifecycleVerified": false,
+    "installedClientVerified": false,
+    "productRuntimeMigrations": 0,
+    "enhancedSdkAccepted": false,
+    "integratedCentral": false,
+    "aggregatePublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

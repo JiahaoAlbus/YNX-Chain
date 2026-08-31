@@ -1,0 +1,152 @@
+{
+  "schemaVersion": "1.1.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "observedAt": "2026-08-20T19:45:00Z",
+  "truthBoundary": "A checkpoint, branch, PR, CI result or local test is not completion. COMPLETE requires the specialist objective, deployed runtime, installed-platform evidence where applicable and required Computer Control verification.",
+  "specialists": [
+    {
+      "owner": "wallet-protocol",
+      "status": "ACTIVE",
+      "branch": "codex/wallet-core-auth-gateway-continuation-20260814",
+      "checkpoint": "P0-054 failed closed and exact 6cf was restored; permission-safe source 785ed7e8 / evidence 198f326c independently rejected for atomic no-replace TOCTOU",
+      "runtime": "wallet-auth.ynxweb4.com remains exact source 6cf3ef845202bd879ed94515a71b323dd2fc9e14 after INVALID_MIGRATION before service stop or symlink activation",
+      "publicVerified": false,
+      "lastActivity": "2026-08-20T20:15:00Z",
+      "remainingBlockers": ["atomic no-replace materializer and race test", "fresh production identity and state-digest preflight after source acceptance", "wholly new single-use deployment lease", "product migrations 0/12", "installed Wallet and external-DApp evidence"],
+      "supervision": "Integration independently reproduced concurrent target overwrite and rejected 785ed7e8 without deployment. Exact continuation was sent to the existing Owner task; no SSH, production read or lease is authorized.",
+      "nextAction": "Fix only the no-replace race, return new source/full tests/pack/evidence hashes, then undergo independent review. Never reuse P0-039, P0-050 or P0-054."
+    },
+    {
+      "owner": "wallet-platform",
+      "status": "CANDIDATE_READY",
+      "branch": "multiple owner-isolated Wallet worktrees",
+      "checkpoint": "713bfe0f61dd3aa821eea0dba73801a6e723685a plus later owner-specific evidence not promoted centrally",
+      "runtime": "installed and aggregate Wallet completion remain false",
+      "publicVerified": false,
+      "lastActivity": "2026-08-20T19:20:00Z",
+      "remainingBlockers": ["Android/iOS cold-start and deep-link E2E", "real DApp bridge and WalletConnect", "extension and DApp Browser", "desktop clients", "Faucet runtime and distinct artwork"],
+      "supervision": "Wallet Core and Wallet Central Integration tasks are active; older source checkpoints are not treated as installed success.",
+      "nextAction": "Continue owner-scoped platform work and return per-platform installed evidence without changing shared protocol."
+    },
+    {
+      "owner": "developer-sdk",
+      "status": "CANDIDATE_READY",
+      "branch": "codex/p0-developer-sdk-rebase-clean",
+      "checkpoint": "Developer product handoff 2e619a1932a7600d57bb1d8c396a5a98289662f7; SDK PR #130 head 8cfb3265b5b594cd98702abf6b36d453157f112e; six security checks SUCCESS; Draft",
+      "runtime": "Candidate service reported active at bc8a37bc source and local language/build gates passed, but external browser, installed platforms and aggregate completion remain unproved",
+      "publicVerified": false,
+      "lastActivity": "2026-08-20T19:48:00Z",
+      "remainingBlockers": ["external browser visibility", "macOS and Windows install/cold-start/networking", "Wallet v2 visible lifecycle", "production signing and store release", "Computer Control"],
+      "supervision": "Remote Developer handoff 2e619a19 and PR #130 exact 8cfb3265 with six successful security checks were independently read back. Draft SDK and local compiler evidence are not product completion.",
+      "nextAction": "Resume the existing Developer task from exact 2e619a19 only for the first missing visible platform gate; do not rebuild PR #130 or promote Draft SDK/public/install claims."
+    },
+    {
+      "owner": "financial-apps",
+      "status": "ACTIVE",
+      "branch": "codex/p0-pay-wallet-connectivity-20260821",
+      "checkpoint": "Finance f7efbd9e9658aaea75f8d9fbbb58f79ee1a48365; Exchange c78f0954f9137a3faf3ce4abb4ff69ed21facafd; Pay 851dc5b834e0d824f4891dc6e572da1e8d71ca75",
+      "runtime": "Pay source/build/export checkpoint released; Android install blocked before APK by duplicate Android 36 SDK directories; no public deployment authorized",
+      "publicVerified": false,
+      "lastActivity": "2026-08-20T19:45:00Z",
+      "remainingBlockers": ["Pay Android SDK environment repair and installed evidence", "later DEX and Quant migrations under separate leases", "real trading runtime evidence"],
+      "supervision": "Pay exact 851dc5b was pushed, tested and released. Install/cold-start/provider/Product Session/public gates remain false; Finance and Exchange checkpoints remain protected.",
+      "nextAction": "Resume Pay only after a separately authorized Android SDK environment-maintenance slice; do not rewrite the exact source checkpoint."
+    },
+    {
+      "owner": "data-fabric",
+      "status": "INTEGRATION_READY",
+      "branch": "codex/data-fabric-typescript-sdk-20260814",
+      "checkpoint": "PR #92 head da095e240be52023ecef19c162c869398bf9fbea; six checks SUCCESS; REVIEW_REQUIRED",
+      "runtime": "no product producer migration or public runtime completion claimed",
+      "publicVerified": false,
+      "lastActivity": "2026-08-20T17:36:45Z",
+      "remainingBlockers": ["independent approval and protected merge", "authentic product producers", "runtime deployment"],
+      "supervision": "Live PR and CI readback completed; no false merge or runtime claim.",
+      "nextAction": "Obtain independent approval, merge through the protected base, then separately prove runtime producers and deployment."
+    },
+    {
+      "owner": "explorer-monitor",
+      "status": "ACTIVE",
+      "branch": "codex/p0-explorer-monitor-20260820",
+      "checkpoint": "PR #107 head f8db7632fb37e9363858a4d4d977eea7b3585c7e; six checks SUCCESS; Draft and merge-clean",
+      "runtime": "official runtime is not exact PR #107 source",
+      "publicVerified": false,
+      "lastActivity": "2026-08-20T19:20:00Z",
+      "remainingBlockers": ["runtime/source mismatch", "public deployment", "Computer Control"],
+      "supervision": "Exact continuation sent to the existing Explorer/Monitor task after live PR and CI readback; no rebuild requested.",
+      "nextAction": "Continue from PR #107, close source identity and one owner-local UX slice, then push exact runtime and visual evidence."
+    },
+    {
+      "owner": "card-testnet-virtual",
+      "status": "CANDIDATE_READY",
+      "branch": "codex/p0-card-testnet-virtual-20260820-fix",
+      "checkpoint": "owner e935b760 root-factory source-only; Router evidence preserved",
+      "runtime": "standard-wallet-only; migrated-v2 and visible evidence false",
+      "publicVerified": false,
+      "lastActivity": "2026-08-20T14:30:00Z",
+      "remainingBlockers": ["accepted public Gateway v2", "finalized YNXT funding transaction", "Explorer reconciliation", "visible-platform E2E"],
+      "supervision": "Card has its own user-owned goal; Integration does not send it additional assignments.",
+      "nextAction": "Read and accept owner evidence only when submitted; do not edit or reassign Card."
+    },
+    {
+      "owner": "integration-chain-core",
+      "status": "INTEGRATION_READY",
+      "branch": "codex/p0-bounded-replication-runtime-compatible-20260820",
+      "checkpoint": "P0-015 released at 0be8967deefb08ecf9f1e14efe6f11ea621f6c5c; runtime source be9f03833ac3a7579bd96f22f6bf49f3d8dccc7b; evidence c1813fb33bddf3479382d2d24f4e255d52b5dd43",
+      "runtime": "four-node bounded replication verified; public domain and mainnet remain false",
+      "publicVerified": false,
+      "lastActivity": "2026-08-20T18:54:03Z",
+      "remainingBlockers": ["public domain exposure decision", "Computer Control", "mainnet readiness gates"],
+      "supervision": "The verified four-node slice is explicitly released and no longer holds Heavy.",
+      "nextAction": "Preserve the exact checkpoint and move only through a separately authorized public-domain or mainnet gate."
+    },
+    {
+      "owner": "merchant-console",
+      "status": "CANDIDATE_READY",
+      "branch": "codex/p0-merchant-console-wallet-connectivity-20260821",
+      "checkpoint": "implementation a59974d52b8c4fadaf1cd34db624f94b377f7cc5; evidence f3d36ab5785f910f3114c4a080f2c2551aabe656",
+      "runtime": "local Browser only: English UI, guest preview, private-service degradation and zero console errors",
+      "publicVerified": false,
+      "lastActivity": "2026-08-20T19:45:00Z",
+      "remainingBlockers": ["actual provider lifecycle", "accepted available product API and Product Session v2 runtime", "public deployment", "Computer Control"],
+      "supervision": "Integration completed and released the source-only checkpoint; no provider approval, install or public success was inferred.",
+      "nextAction": "Verify one actual provider approve/reject/account/chain/disconnect lifecycle under a future bounded slice."
+    },
+    {
+      "owner": "website",
+      "status": "INTEGRATION_READY",
+      "branch": "authoritative Website latest main",
+      "checkpoint": "website a7313313014bb8792f38e649e9f556dbee983c8c plus Shop Android retirement evidence df7778fca133818d3d69ec4ca149bfe35d77a280",
+      "runtime": "Wallet/Auth metadata shows exact 6cf source; Shop Android is visibly retired with Web/PWA replacement",
+      "publicVerified": false,
+      "lastActivity": "2026-08-20T14:33:53Z",
+      "remainingBlockers": ["separate product migrations", "installed-client evidence", "current-deployment Computer Control"],
+      "supervision": "Visible runtime facts are preserved with installed, aggregate, signing and store-release gates false.",
+      "nextAction": "Publish only newly accepted product runtime facts; never convert source evidence into product success."
+    },
+    {
+      "owner": "seller-console",
+      "status": "CANDIDATE_READY",
+      "branch": "codex/p0-seller-console-wallet-connectivity-20260821",
+      "checkpoint": "implementation 2bfa3d3d7923410b02e02c9d243ef70e88653c66; evidence 8809abcd7c39d47650086ae8895ecb307dcd0fdc",
+      "runtime": "local built Web only; Standard Wallet source and guest preview verified, Seller Product API remains PENDING and App Gateway UNAVAILABLE",
+      "publicVerified": false,
+      "lastActivity": "2026-08-20T20:15:00Z",
+      "remainingBlockers": ["real provider approval/account/chain/disconnect lifecycle", "accepted available Seller Product API", "Product Session v2", "public deployment", "Computer Control"],
+      "supervision": "Integration completed the bounded source slice, verified desktop and 390x844 local Browser UI, pushed exact checkpoint and released Light. No approval, signing, transaction, public or Computer Control success was inferred.",
+      "nextAction": "Preserve exact 8809abcd. Resume only under a new bounded provider or deployment slice after the relevant endpoint becomes available."
+    },
+    {
+      "owner": "calendar",
+      "status": "CANDIDATE_READY",
+      "branch": "codex/final-calendar",
+      "checkpoint": "8ff6eb24705155fbbeddf983d44f87e9e20d944f; central P0-045",
+      "runtime": "functional core and Standard Wallet source exist; installed and public lifecycle remain false",
+      "publicVerified": false,
+      "lastActivity": "2026-08-20T18:09:42Z",
+      "remainingBlockers": ["actual provider lifecycle", "Product Session v2 after public acceptance", "Android/iOS and public evidence"],
+      "supervision": "No rebuild requested; the existing Fable5 functional core is preserved.",
+      "nextAction": "Verify one real provider approval/account/chain/disconnect lifecycle; keep native and private-session gates false until proven."
+    }
+  ]
+}

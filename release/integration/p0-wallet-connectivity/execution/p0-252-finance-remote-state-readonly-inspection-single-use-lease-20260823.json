@@ -1,0 +1,193 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-252",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-p0252-remote-state-readonly-inspection-20260823T102050Z",
+  "owner": "financial-apps",
+  "executor": "finance-release-control-plane",
+  "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0252_REMOTE_STATE_ZERO_WRITE_INSPECTION",
+  "issuedAt": "2026-08-23T10:20:50Z",
+  "expiresAt": "2026-08-23T10:50:50Z",
+  "releasedAt": "2026-08-23T10:28:42Z",
+  "singleUse": true,
+  "reusable": false,
+  "executionAuthorized": false,
+  "productionMutationAllowed": false,
+  "remoteMutationAllowed": false,
+  "remoteTemporaryFilesAllowed": false,
+  "scope": "Finance-only zero-write inspection of the exact P0-247 residues, possible P0-251 placement objects and unchanged Finance runtime after the P0-251 literal transport produced no receipt",
+  "centralPrecondition": {
+    "parentCommit": "e714666a7f1da341c39aad99c81a7e6c22e8e1c6",
+    "parentTree": "d307d17c4bff3a03e0030d186b5935c549287bf9",
+    "p0251TerminalLeaseBlob": "82d0f967de47ebd51abf610cda39415ec57dafac",
+    "p0251TerminalLeaseBytes": 8500,
+    "p0251TerminalLeaseSha256": "feae1ff05059c752ad37da2171202bf5d959fc98430d780e946915e9b16e2194",
+    "p0251Status": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0251_LITERAL_TRANSPORT_PRINTF_USAGE_REMOTE_STATE_UNKNOWN",
+    "p0251Reusable": false,
+    "heavyBeforeIssue": "IDLE",
+    "p0251PathLockBeforeIssue": "RELEASED",
+    "remoteStateKnownBeforeInspection": false,
+    "cleanupAllowed": false,
+    "deploymentAllowed": false
+  },
+  "ownerEvidence": {
+    "branch": "codex/p0-finance-wallet-connectivity-20260820",
+    "commit": "abca737ec80c8edad17083fafc2229c0263d069b",
+    "tree": "b2734e88695dc6a45d55db5d93b24047a1d66740",
+    "implementationCommit": "bf3ec44e31b23f15a6c30b578447abc736667c6e",
+    "implementationTree": "39b37e30149e18338b3321dd7cf983381f24c9bc",
+    "requestPath": "apps/finance/evidence/finance-p0252-remote-state-readonly-inspection-lease-request-20260823.json",
+    "requestBlob": "36aceee784e5315d4e503c66eae36e3b35e5c02d",
+    "requestBytes": 6684,
+    "requestSha256": "47548eafadd9a9b55c11bcc7de56e81a0be53c0549339034f7c6b44c74d17ecb",
+    "remoteAndLocalExactClean": true
+  },
+  "commandObject": {
+    "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance/apps/finance/scripts/finance-p0252-remote-state-readonly-inspection.sh",
+    "repositoryPath": "apps/finance/scripts/finance-p0252-remote-state-readonly-inspection.sh",
+    "blob": "7fbc1376bb7d18fa90f2b5c3ce05fd87e936baa7",
+    "bytes": 4651,
+    "sha256": "abaa974ee8dfdd353b25680bc1489ab457867f0838fc5d4e0fa141fff2286393",
+    "bashSyntax": "PASS",
+    "staticZeroWriteAudit": "PASS",
+    "fixturePath": "apps/finance/scripts/test-finance-p0252-remote-state-readonly-inspection.mjs",
+    "fixtureBlob": "5b19726b721cefa3205e743390a379d14fb61cb9",
+    "fixtureBytes": 1237,
+    "fixtureSha256": "e98ed71479a5323d6c7680a14691d491551d639f03d8508c4311f3ba7567acbe",
+    "fixtureResult": "PASS"
+  },
+  "execution": {
+    "literalArgv": [
+      "/usr/bin/ssh", "-i", "/Users/huangjiahao/Downloads/Huang.pem",
+      "-o", "IdentitiesOnly=yes", "-o", "BatchMode=yes",
+      "-o", "StrictHostKeyChecking=yes", "-o", "UserKnownHostsFile=/Users/huangjiahao/.ssh/known_hosts",
+      "-o", "ConnectTimeout=10", "-o", "ConnectionAttempts=1",
+      "ubuntu@43.153.202.237", "/usr/bin/sudo", "-n", "/bin/bash", "-s", "--"
+    ],
+    "stdin": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance/apps/finance/scripts/finance-p0252-remote-state-readonly-inspection.sh",
+    "stdinBytes": 4651,
+    "stdinSha256": "abaa974ee8dfdd353b25680bc1489ab457867f0838fc5d4e0fa141fff2286393",
+    "localStdout": "/tmp/ynx-finance-p0252-remote-state-readonly.stdout",
+    "localStderr": "/tmp/ynx-finance-p0252-remote-state-readonly.stderr",
+    "localRedirectionOnly": true,
+    "statusCapture": "if <literal argv>; then finance_p0252_ssh_rc=0; else finance_p0252_ssh_rc=$?; fi",
+    "sshAttemptLimit": 1,
+    "retryAllowed": false
+  },
+  "readOnlyScope": {
+    "parents": [
+      "/opt/ynx/leases",
+      "/opt/ynx/leases/finance",
+      "/opt/ynx/stage/finance",
+      "/var/backups/ynx-finance",
+      "/opt/ynx/releases/finance"
+    ],
+    "p0247Residues": [
+      "/opt/ynx/leases/finance/p0247-finance-phase3-20260823T073800Z.executor.sh",
+      "/opt/ynx/leases/finance/p0247-finance-phase3-20260823T073800Z.executor.sh.pending",
+      "/opt/ynx/leases/finance/p0247-finance-phase3-20260823T073800Z.json",
+      "/opt/ynx/leases/finance/p0247-finance-phase3-20260823T073800Z.json.pending",
+      "/opt/ynx/leases/finance/p0247-finance-phase3-20260823T073800Z.manual-rollback.json",
+      "/opt/ynx/stage/finance/p0247-finance-phase3-20260823T073800Z",
+      "/var/backups/ynx-finance/p0247-finance-phase3-20260823T073800Z",
+      "/opt/ynx/releases/finance/p0247-finance-phase3-20260823T073800Z"
+    ],
+    "possibleP0251Placement": [
+      "/opt/ynx/leases/finance/p0251-finance-p0247-cleanup-20260823T100000Z.executor.sh",
+      "/opt/ynx/leases/finance/p0251-finance-p0247-cleanup-20260823T100000Z.executor.sh.pending",
+      "/opt/ynx/leases/finance/p0251-finance-p0247-cleanup-20260823T100000Z.json",
+      "/opt/ynx/leases/finance/p0251-finance-p0247-cleanup-20260823T100000Z.json.pending"
+    ],
+    "runtime": [
+      "/opt/ynx/finance-current",
+      "/etc/ynx/finance.env",
+      "/etc/systemd/system/ynx-finance.service",
+      "/etc/caddy/conf.d/ynx-finance.caddy",
+      "/var/lib/ynx/finance/state.json",
+      "ynx-finance.service",
+      "http://127.0.0.1:6483/health",
+      "http://127.0.0.1:6483/version",
+      "https://finance.ynxweb4.com/health",
+      "https://finance.ynxweb4.com/version"
+    ]
+  },
+  "requiredReceipts": [
+    "exact classification, lstat tuple, bytes and SHA or directory inventory for every frozen path",
+    "sorted direct-child basenames and full tuples for the five frozen parents",
+    "current target and resolution plus env, unit, Caddy and state metadata without contents",
+    "service LoadState, ActiveState, SubState, MainPID and NRestarts",
+    "loopback and public health/version status, body bytes and SHA without response bodies",
+    "inspectionComplete=true and mutationCount=0 exactly once",
+    "local stdout and stderr bytes, SHA and exact terminal SSH status"
+  ],
+  "acceptance": {
+    "sshExitCode": 0,
+    "stderrBytes": 0,
+    "singleInspectionHeader": true,
+    "everyRequiredLabelExactlyOnce": true,
+    "inspectionComplete": true,
+    "mutationCount": 0,
+    "remoteStateInterpretationOnlyAfterLocalEvidenceFrozen": true
+  },
+  "forbidden": [
+    "any second SSH or retry",
+    "remote file, directory or temporary object creation, deletion, rename, copy, upload or extraction",
+    "cleanup, rollback, deploy, candidate execution or service lifecycle mutation",
+    "current, environment, state, release, backup, executor, lease, unit, Caddy or public mutation",
+    "environment contents, credentials, signed lease bodies, private keys or recovery material",
+    "non-Finance mutation, provider or account request, signature, typed data or transaction"
+  ],
+  "nextDecision": {
+    "remoteStateKnownBeforeTerminalEvidence": false,
+    "cleanupLeaseAllowedNow": false,
+    "deploymentLeaseAllowedNow": false,
+    "afterTerminalAcceptance": "Central may separately review one wholly-new identity-bound cleanup request; this lease cannot delete, repair or deploy anything"
+  },
+  "terminalRules": {
+    "success": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0252_REMOTE_STATE_ZERO_WRITE_INSPECTION",
+    "failure": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0252_REMOTE_STATE_INSPECTION_FAILURE_OR_DRIFT",
+    "emergency": "EMERGENCY_BLOCKED_FINANCE_P0252_REMOTE_OBJECT_SUBSTITUTION_OR_UNEXPECTED_MUTATION",
+    "releaseHeavyAndAllLocksOnTerminal": true
+  },
+  "terminalEvidence": {
+    "ownerCommit": "b678621dea98c4ed40da2192ed330100650d4a82",
+    "ownerTree": "3cc9692b8506dcaac89b8b63a17d63ffc55e1e94",
+    "jsonPath": "apps/finance/evidence/p0-252-finance-remote-state-readonly-terminal-20260823.json",
+    "jsonBlob": "ed1cc84d55af93c05ba7843c37700ba75ced4539",
+    "jsonBytes": 4994,
+    "jsonSha256": "a73cc0e398f58860e0746ee3f689d702681a0ed138d15d268ab3029ca70cf33a",
+    "stdoutPath": "apps/finance/evidence/p0-252-finance-remote-state-readonly-stdout-20260823.txt",
+    "stdoutBlob": "1579d92cb8c8020023e01f77ca7af15865cc39a8",
+    "stdoutBytes": 4737,
+    "stdoutSha256": "bfeffd787312d321898cb11a0438a183e24ba01e33ffc59ee36dbfa01f774b3c",
+    "stderrBytes": 0,
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sshAttempts": 1,
+    "exitCode": 0,
+    "requiredLabelsExactlyOnce": true,
+    "inspectionComplete": true,
+    "mutationCount": 0,
+    "p0251PlacementObjectsAbsent": true,
+    "p0247ResiduesUnchanged": true,
+    "oldRuntimeHealthy": true,
+    "currentTarget": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a",
+    "servicePid": 2241003,
+    "serviceNRestarts": 0,
+    "remoteStateKnown": true,
+    "residuesCleaned": false,
+    "cleanupAuthorized": false,
+    "deploymentAuthorized": false
+  },
+  "truthBoundary": {
+    "readOnlyInspectionOnly": true,
+    "remoteStateKnown": true,
+    "residuesCleaned": false,
+    "placementObjectsCreated": false,
+    "deployed": false,
+    "rollback": false,
+    "publicVerified": false,
+    "account": false,
+    "signature": false,
+    "transaction": false
+  }
+}

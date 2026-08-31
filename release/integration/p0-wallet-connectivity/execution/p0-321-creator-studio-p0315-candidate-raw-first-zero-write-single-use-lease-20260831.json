@@ -1,0 +1,141 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-321",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-creator-p0315-candidate-raw-first-zero-write-20260831T062400Z",
+  "status": "CONSUMED_RELEASED_SUCCESS_CREATOR_P0321_RAW_FIRST_DIAGNOSTIC_ROOT_TUPLE_SCHEMA_OMISSION_IDENTIFIED",
+  "singleUse": true,
+  "reusable": false,
+  "issuedAt": "2026-08-31T06:24:00Z",
+  "expiresAt": "2026-08-31T06:44:00Z",
+  "releasedAt": "2026-08-31T06:28:34Z",
+  "owner": "creator-studio-readback-owner",
+  "namedExecutor": "release-control-plane",
+  "runtimeHost": "43.153.202.237",
+  "scope": "CREATOR_P0315_CANDIDATE_RAW_FIRST_ZERO_WRITE_DIAGNOSTIC_ONLY",
+  "supersedes": {
+    "taskId": "P0-320",
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_CREATOR_P0320_CANDIDATE_BINDING_DRIFT_BEFORE_OUTPUT",
+    "centralCommit": "c3a21d17025cbcf559a0b610aaaea85e2cf0138f",
+    "centralTree": "f68e1ffad426eb1ab3558bf79ea87b735a20b399",
+    "sshAttempts": 1,
+    "reusable": false
+  },
+  "source": {
+    "branch": "codex/p0-creator-studio-subpath-i18n-20260831",
+    "head": "9d01889b00d933dd217e917bfc5ed1d5a9062911",
+    "tree": "5ffc7e7c8e2be14f4dbfdf5f922b31ce1f2f703d",
+    "remoteExact": true,
+    "clean": true
+  },
+  "request": {
+    "path": "apps/creator-studio/evidence/creator-studio-p0315-candidate-raw-first-zero-write-successor-single-use-request-20260831.json",
+    "blob": "5d524de2e6f03dece9720c6f327c8c9b74b5496b",
+    "bytes": 5413,
+    "sha256": "451ee54a46f84f82d535fa639047fb6f94df5ae46d32aa959debd802aabea773"
+  },
+  "inspector": {
+    "commit": "5158945894246b1191168eca47712db1078fe5cf",
+    "tree": "9c52664f77be2c7764c6838ea93e6d0795e338f6",
+    "path": "apps/creator-studio/release-terminal-zero-write-inspector-3f97a13d.mjs",
+    "blob": "6e8e705ee15c882bee460f04924657c01cff22d6",
+    "bytes": 15096,
+    "sha256": "cd08c2f1fdfc182ae9f579e07a18151a57068f7a8fd0ece92c4a5a1c34123644",
+    "selftest": "PASS",
+    "stdinModeSelftest": "PASS",
+    "readOnlyImports": true,
+    "mutationApisImported": false,
+    "rawOutputBeforeComparison": true,
+    "singleFieldDriftClassifications": 8
+  },
+  "execution": {
+    "workingDirectory": "/private/tmp/ynx-creator-subpath-i18n.PcnLN2",
+    "argv": [
+      "/usr/bin/ssh",
+      "-i",
+      "/Users/huangjiahao/Downloads/Huang.pem",
+      "-o",
+      "IdentitiesOnly=yes",
+      "-o",
+      "BatchMode=yes",
+      "-o",
+      "StrictHostKeyChecking=yes",
+      "-o",
+      "UserKnownHostsFile=/Users/huangjiahao/.ssh/known_hosts",
+      "-o",
+      "ConnectTimeout=10",
+      "-o",
+      "ConnectionAttempts=1",
+      "ubuntu@43.153.202.237",
+      "/usr/bin/sudo -n /usr/bin/node --input-type=module -"
+    ],
+    "stdin": {
+      "path": "apps/creator-studio/release-terminal-zero-write-inspector-3f97a13d.mjs",
+      "bytes": 15096,
+      "sha256": "cd08c2f1fdfc182ae9f579e07a18151a57068f7a8fd0ece92c4a5a1c34123644"
+    },
+    "localEvidencePath": "/tmp/p0-321-creator-studio-p0315-candidate-raw-first-zero-write.ndjson",
+    "localEvidencePathMustBeAbsent": true,
+    "attemptLimit": 1,
+    "sshInvocationLimit": 1,
+    "retryAllowed": false,
+    "maximumDurationMinutes": 20,
+    "remoteTemporaryFiles": false
+  },
+  "requiredRawFirstOutput": {
+    "minimumStdoutLines": 2,
+    "firstInspection": "CREATOR_P0315_CANDIDATE_RAW_FIRST_ZERO_WRITE",
+    "secondInspection": "CREATOR_P0315_CANDIDATE_COMPARISON",
+    "rawCandidateFields": [
+      "root tuple and type",
+      "manifest tuple type nlink bytes SHA256 raw base64 and parsed source commit tree file count",
+      "complete sorted per-object path tuple type bytes and SHA256 identities",
+      "actual and manifest-derived expected inventory",
+      "safe inventory and payload hash booleans"
+    ],
+    "comparisonFields": [
+      "rootTuple",
+      "manifestType",
+      "manifestSha256",
+      "sourceCommit",
+      "sourceTree",
+      "fileCount",
+      "completeSafeInventory",
+      "payloadHashes"
+    ],
+    "nonzeroExitAllowedAfterBothLinesOnDrift": true,
+    "mutationCount": 0
+  },
+  "allowed": [
+    "one exact SSH invocation with inspector bytes only on stdin",
+    "read-only raw candidate manifest tree and comparison evidence",
+    "continued full Creator read-only evidence only if every candidate comparison matches",
+    "one local NDJSON evidence file"
+  ],
+  "forbidden": [
+    "reuse or retry of P0-320",
+    "cleanup deletion creation rename chmod chown link or any remote temporary path",
+    "deploy current switch rollback retry service start stop restart reload or daemon-reload",
+    "unit Caddy API Viewer public or unrelated product mutation",
+    "Wallet account approval signature typed-data transaction or secret output"
+  ],
+  "terminal": {
+    "releaseHeavyAndAllCreatorReadbackLocks": true,
+    "rawAndComparisonEvidenceRequiredEvenOnDrift": true,
+    "cleanupAuthorized": false,
+    "cleanupComplete": false,
+    "deploymentAuthorized": false,
+    "creatorPromoted": false,
+    "attemptCount": 1,
+    "retryCount": 0,
+    "sshAttempts": 1,
+    "remoteExitStatus": 1,
+    "remoteExitPermittedAfterDriftEvidence": true,
+    "evidenceLines": 2,
+    "evidenceBytes": 8893,
+    "evidenceSha256": "54a5bce5270cb0c559d370f4fabc95495425559675de5cff1e92e3265503be14",
+    "diagnosis": "CANDIDATE_ROOT_TUPLE_SCHEMA_SIZE_FIELD_OMISSION",
+    "correctedCanonicalTuple": "64770:1483917:995:986:755:4:4096:directory",
+    "terminalEvidencePath": "release/integration/p0-wallet-connectivity/execution/objects/p0-321-creator-studio-p0315-candidate-raw-first-zero-write-terminal-evidence-20260831.json"
+  }
+}

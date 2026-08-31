@@ -2,7 +2,7 @@
 .PHONY: bft-evm-receipt-check bft-ide-contract-check native-wallet-check chat-api-check square-api-check app-gateway-check app-account-ownership-check browser-signer-check mobile-check mobile-product-split-check mobile-android-native-check mobile-android-release-check mobile-android-release-installed-check mobile-biometric-installed-check
 .PHONY: deploy-bridge-testnet deploy-bridge-testnet-dry-run bridge-integration-check bridge-supply-chain-check bridge-release-candidate-check bridge-observability-check bridge-dependency-audit-check bridge-sdk-check bridge-route-adapter-check bridge-provider-check bridge-data-lifecycle-check bridge-capacity-check bridge-migration-check bridge-restore-check bridge-evidence-check
 .PHONY: upgrade-source-release-audit upgrade-source-release-evidence-check governance-check governance-testnet-drill
-.PHONY: integration-coverage-refresh integration-coverage-refresh-check integration-acceptance-refresh integration-acceptance-check integration-release-acceptance-check integration-product-release-matrix-refresh integration-product-release-matrix-check integration-npm-audit-policy-check integration-npm-audit-policy-check-test integration-protect-preflight
+.PHONY: integration-coverage-refresh integration-coverage-refresh-check integration-acceptance-refresh integration-acceptance-check integration-release-acceptance-check integration-product-release-matrix-refresh integration-product-release-matrix-check integration-capability-matrices-refresh integration-capability-matrices-check integration-completion-audit-refresh integration-completion-audit-check integration-npm-audit-policy-check integration-npm-audit-policy-check-test integration-protect-preflight
 .PHONY: bft-evm-legacy-transfer-check bft-evm-access-list-transfer-check bft-evm-dynamic-fee-transfer-check bft-evm-fee-suggestion-check bft-evm-fee-history-check asset-primitives-check
 .PHONY: yusd-sandbox-check yusd-restore-drill yusd-testnet-deploy-check read-availability-check economics-explorer-deploy-check economics-monitor-check economics-monitor-lifecycle-check economics-runtime-check staking-risk-runtime-check economics-integration-adapter-check economics-integration-store-check economics-local-testnet-evidence-check economics-shared-testnet-acceptance-check economics-testnet-cli-artifact-check economics-testnet-cli-artifact-evidence liquid-staking-candidate-check security-pools-candidate-check fee-market-candidate-check macro-stress-check economics-public-ui-check economics-public-package-check economics-supply-chain-check economics-release-boundary-check economics-integration-contract-check economics-local-candidate-check safety-module-candidate-check account-abstraction-check solvency-check integration-contract-check consensus-state-sync-check consensus-eip1559-commit-check consensus-fee-history-check streambft-candidate-check chain-core-release-check
 .PHONY: oracle-test oracle-web-test oracle-container oracle-dast oracle-testnet-package oracle-testnet-smoke oracle-release-package oracle-release-evidence oracle-release-integrity-check
@@ -88,13 +88,25 @@ integration-product-release-matrix-check:
 	node ./scripts/ops/refresh-product-release-matrix.mjs --self-test
 	node ./scripts/ops/refresh-product-release-matrix.mjs --check
 
+integration-capability-matrices-refresh:
+	node ./scripts/ops/refresh-fable5-capability-matrices.mjs
+
+integration-capability-matrices-check:
+	node ./scripts/ops/refresh-fable5-capability-matrices.mjs --check
+
+integration-completion-audit-refresh:
+	node ./scripts/ops/refresh-fable5-completion-audit.mjs
+
+integration-completion-audit-check:
+	node ./scripts/ops/refresh-fable5-completion-audit.mjs --check
+
 integration-npm-audit-policy-check:
 	node ./scripts/verify/npm-audit-policy-check.mjs
 
 integration-npm-audit-policy-check-test:
 	node ./scripts/verify/npm-audit-policy-check.mjs --self-test
 
-integration-protect-preflight: integration-coverage-refresh-check integration-acceptance-check integration-product-release-matrix-check contract-tooling-check integration-npm-audit-policy-check integration-npm-audit-policy-check-test
+integration-protect-preflight: integration-coverage-refresh-check integration-acceptance-check integration-product-release-matrix-check integration-capability-matrices-check integration-completion-audit-check contract-tooling-check integration-npm-audit-policy-check integration-npm-audit-policy-check-test
 	go test ./...
 	$(MAKE) no-placeholder-check
 	$(MAKE) secret-scan

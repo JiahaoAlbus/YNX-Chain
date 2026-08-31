@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "acceptanceId": "P0-RETIRED-CLIENT-CORE-RUNTIME-DEB2CEFB-LEASE-20260821",
+  "classification": "ACCEPTED_SOURCE_ARTIFACT_BOUND_LEASE_READY_BLOCKED_ACTIVE_HEAVY_PUBLIC_FALSE",
+  "sourceAcceptancePath": "release/integration/p0-wallet-connectivity/acceptance/wallet-core-retirement-reconciled-source-deb2cefb-20260821.json",
+  "source": {
+    "commit": "deb2cefb00b52e5c2ab9c357201d690918320424",
+    "tree": "06290f63aa0d2dd5c8c4aaa968516b094c2db0f0",
+    "walletAuthTree": "36a944555bbd20354489aaf12620bdee4063790b",
+    "registryBlob": "2a0144ef24e1d69664bb8f85419c182125350d1f",
+    "registrySha256": "810c58777a62a798e286d2d30e0430334b88603653f672821642e80e3553c46c"
+  },
+  "decision": {
+    "centralSourceAcceptedByP0038": true,
+    "deterministicRuntimeArtifactIdentityAccepted": true,
+    "executionLeaseIssued": false,
+    "executionLeaseId": null,
+    "executionLeaseExpiresAt": null,
+    "leaseCandidateId": "P0-WALLET-CONNECTIVITY-2026-08-retired-client-registry-v3-candidate-20260820T172528Z",
+    "deploymentAuthorized": false,
+    "blocker": "Explorer Monitor owns the single active Heavy Lease at authoritative Central parent 1390bb5e until release or 2026-08-20T19:28:11Z."
+  },
+  "truth": {
+    "currentPublicRuntimeSource": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "candidateDeployedPublic": false,
+    "publicRegistryV3RetirementVerified": false,
+    "shopWebPreservedPublic": false,
+    "productsMigratedV2": 0,
+    "installedApprovalVerified": false,
+    "computerControlVerified": false,
+    "integratedCentral": false,
+    "aggregateDeployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

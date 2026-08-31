@@ -1,0 +1,56 @@
+{
+  "schemaVersion": "p0-wallet-protected-operator-mapping-audit@1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-176",
+  "status": "MAPPED_EXISTING_WALLET_WEB_TASK_DIRECT_RECEIPTS_PENDING",
+  "mutationCount": 0,
+  "secretValuesRequested": false,
+  "secretValuesRecorded": false,
+  "runtimeLeaseIssued": false,
+  "abstractResponsibilityDomain": "wallet-external-dapp-operator",
+  "auditScope": {
+    "pinnedAndRecentTasksReviewed": 58,
+    "acceptedOperatorPackageCommit": "3bc070e39e6ade7a7a210196ba8721d895fa6960",
+    "routerReference": "875",
+    "mappedExistingTaskOrThreadFound": true
+  },
+  "capabilityBooleans": {
+    "uniswapNamedOperatorAvailable": false,
+    "openseaNamedOperatorAvailable": false,
+    "safeNamedOperatorAvailable": false
+  },
+  "blockers": [
+    {
+      "code": "UNISWAP_DIRECT_DISCOVERY_RECEIPT_PENDING",
+      "origin": "https://app.uniswap.org"
+    },
+    {
+      "code": "OPENSEA_DIRECT_DISCOVERY_RECEIPT_PENDING",
+      "origin": "https://opensea.io"
+    },
+    {
+      "code": "SAFE_DIRECT_DISCOVERY_RECEIPT_PENDING",
+      "origin": "https://app.safe.global"
+    }
+  ],
+  "requiredFutureMappingReceipt": [
+    "existing named operator task or thread identity",
+    "eligible installed Wallet target receipt",
+    "independently opened exact URL and origin receipt",
+    "explicit permitted lifecycle boundary"
+  ],
+  "forbidden": [
+    "secret Project ID token account address key or recovery material",
+    "Chrome launch install account request signature or transaction",
+    "runtime completion inference",
+    "set any named-operator boolean true before its separate direct receipt",
+    "launch Chrome without the user immediate confirmation"
+  ],
+  "namedOperatorTask": {
+    "taskName": "Wallet Web",
+    "threadId": "019ffaf5-3c19-77b1-8bfd-2a12641a739f",
+    "responsibilityDomain": "wallet-external-dapp-operator",
+    "scope": "Uniswap OpenSea Safe discovery-only",
+    "immediateChromeLaunchConfirmationRequired": true
+  }
+}

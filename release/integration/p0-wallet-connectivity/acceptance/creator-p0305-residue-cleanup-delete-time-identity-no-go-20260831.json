@@ -1,0 +1,70 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "recordType": "CREATOR_P0305_EMERGENCY_RESIDUE_CLEANUP_LEASE_DECISION",
+  "recordedAt": "2026-08-31T03:25:50Z",
+  "source": {
+    "branch": "codex/p0-creator-studio-subpath-i18n-20260831",
+    "implementationCommit": "a348d1c251cd0b7fb0fcd7611e3f61b2147871b5",
+    "implementationTree": "8b4e24b4073d9ab43badf07f251219be00c16183",
+    "requestCommit": "bd1715362aff9c66dc98d47010ce04cc9b982751",
+    "requestTree": "dc1dc922fb8015139295df532d74be3d100b6044",
+    "remoteExactAndClean": true
+  },
+  "objects": {
+    "request": {
+      "path": "apps/creator-studio/evidence/creator-studio-p0305-residue-cleanup-only-single-use-lease-request-20260831.json",
+      "blob": "f71bfe0fdd4bf1593c252fd5444bf5eb6deee855",
+      "sha256": "0679b7d0f81efa3a0e5fdcc43cad7aa0efffe4fd6695a3ce477052214c0239ad"
+    },
+    "executor": {
+      "path": "apps/creator-studio/release-residue-cleanup-3f97a13d.mjs",
+      "bytes": 14170,
+      "sha256": "21b72131b606da88baf2670c1e5d9bdd5e5f8d59f4d8a059b3b52f62ba1ee023"
+    }
+  },
+  "independentVerification": {
+    "nodeSyntax": "PASS",
+    "ownerFixture": "PASS",
+    "sourceAndRequestIdentity": "PASS",
+    "deleteTimeIdentityFence": "FAIL",
+    "postValidationReplacementFixture": "ABSENT"
+  },
+  "decision": {
+    "status": "NO_GO",
+    "leaseIssued": false,
+    "sshExecuted": false,
+    "productionMutation": false,
+    "heavyEmergencyReleased": false,
+    "reason": "The cleanup validates the receipt, candidate and control identities only before the deletion sequence, then deletes pathnames without a delete-time identity and inventory recheck. Production freshness cannot repair this immutable executor defect."
+  },
+  "singleExecutableBlocker": "CREATOR_P0305_CLEANUP_DELETE_TIME_IDENTITY_RECHECK_AND_POST_VALIDATION_SUBSTITUTION_FIX_REQUIRED",
+  "defect": {
+    "surface": "cleanup() in apps/creator-studio/release-residue-cleanup-3f97a13d.mjs",
+    "sequence": [
+      "validateRuntime, validateControl, validateCandidate and validateReceipt complete",
+      "rm(receipt) executes without re-reading the receipt tuple and SHA immediately before unlink",
+      "rm(candidate,{recursive:true}) executes without re-reading the candidate root tuple, exact manifest and inventory immediately before deletion",
+      "rm(control,{recursive:true}) executes without re-reading the control root tuple, placement receipt and full inventory immediately before deletion"
+    ],
+    "impact": "A same-path replacement after validation but before its rm can be deleted even when its inode differs. The recursive directory removals can delete a foreign replacement tree. This contradicts identity-bound cleanup and the request's substitution fail-close boundary.",
+    "testGap": "The fixture changes the supplied control tuple before validation. It does not replace the receipt, candidate directory or control directory after successful validation and before deletion."
+  },
+  "requiredSuccessor": [
+    "re-read and compare each target's exact dev/inode/type/nlink and signed bytes or complete inventory immediately at its deletion boundary",
+    "refuse deletion and retain the substitute when the receipt, candidate root/tree or control root/tree is replaced after initial validation",
+    "add direct adversarial fixtures for same-bytes-new-inode receipt replacement and same-inventory-new-inode candidate and control replacement after validation",
+    "preserve the old current, old release, unit, service, three listeners and five public hashes before and after every allowed mutation",
+    "force-false push a wholly-new exact request and request a wholly-new no-retry cleanup-only lease",
+    "require a separate zero-write readback before releasing the Creator emergency Heavy state"
+  ],
+  "truthBoundary": {
+    "sourceOnlyReview": true,
+    "cleanupComplete": false,
+    "oldRuntimeKnownFromP0306": true,
+    "deployment": false,
+    "accountRequest": false,
+    "signature": false,
+    "transaction": false
+  }
+}

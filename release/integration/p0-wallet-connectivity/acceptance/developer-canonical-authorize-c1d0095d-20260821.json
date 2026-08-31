@@ -1,0 +1,26 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "decision": "ACCEPTED_DEVELOPER_SOURCE_CONSUMPTION_PUBLIC_AND_INSTALLED_EVIDENCE_PENDING",
+  "acceptedAt": "2026-08-21T03:18:11Z",
+  "contract": "canonicalWalletAuthorize@1.0.0-p0.0",
+  "sourceBranch": "codex/ynx-code-platform-v1",
+  "sourceCommit": "c1d0095d7de990c251030c04a3d597d539db3958",
+  "sourceTree": "e508ba39fac97af815269070b07aa6a4ffde2f44",
+  "sourceParent": "8ca09578b1f01cf64223eba41cae07fdfeb4ee87",
+  "evidencePath": "apps/developer/evidence/integration/canonical-wallet-authorize-46386ae8-20260821.json",
+  "evidenceBlob": "2746bc16466b5cba7f8d510180bbb72f76207611",
+  "evidenceSha256": "001300924b05465389454211b8462d62cfe828d848d8ec9223f76c012a810bf5",
+  "vendorDeepLinkSha256": "051b6f1c75d6b1be06823529117e0a422394183a67b4822075dc18be1d85fea5",
+  "independentFocusedTests": "5/5",
+  "independentReleaseScanner": "PASS: 48 release source files",
+  "ownerValidation": "Developer 71/71; client 22/22; TypeScript PASS",
+  "truth": {
+    "developerSourceConsumed": true,
+    "installedVisibleVerified": false,
+    "approveRejectRoundTripVerified": false,
+    "coldStartRecoveryVerified": false,
+    "publicDeployed": false,
+    "migratedV2": false
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-WALLET-PRODUCT-SESSION-AUTHORITATIVE-ORIGIN-20260820",
+  "capturedAt": "2026-08-20T15:13:16Z",
+  "owner": "wallet-protocol",
+  "readOnlyPublicProbe": true,
+  "acceptedRuntime": {
+    "origin": "https://wallet-auth.ynxweb4.com",
+    "sourceCommit": "6cf3ef845202bd879ed94515a71b323dd2fc9e14",
+    "release": "p0-v2-state-isolated-6cf3ef84",
+    "versionStatus": 200,
+    "versionBuildIdentifiable": true,
+    "registeredFinanceOptionsStatus": 204,
+    "stateFreeMountStatus": 400,
+    "stateFreeMountSchemaVersion": 2,
+    "stateFreeMountRequestId": "req_public_v2_I_B0zTNcb7Au67LhQ3n3fo7e",
+    "defaultProbeAfterSourceCorrection": {
+      "status": 400,
+      "schemaVersion": 2,
+      "requestId": "req_public_v2_KxiH1ad3YuXtHd912yf3_mO8",
+      "attemptsUsed": 2,
+      "stateCreated": false
+    }
+  },
+  "historicalAggregateOrigin": {
+    "origin": "https://rest.ynxweb4.com",
+    "registeredFinanceOptionsStatus": 204,
+    "stateFreeMountStatus": 400,
+    "stateFreeMountSchemaVersion": 2,
+    "stateFreeMountRequestId": "req_public_v2_UPMQZAoywuU4fMDEh-9cDcjg",
+    "versionStatus": 405,
+    "versionBuildIdentifiable": false,
+    "observation": "The aggregate rest origin still mounts a v2 route but its /version falls through to the Testnet node boundary and cannot prove the accepted 6cf runtime identity."
+  },
+  "decision": {
+    "productFactoryOrigin": "https://wallet-auth.ynxweb4.com",
+    "probeDefaultOrigin": "https://wallet-auth.ynxweb4.com",
+    "lifecycleDefaultOrigin": "https://wallet-auth.ynxweb4.com",
+    "callerMayOverrideFactoryOrigin": false,
+    "historicalEvidenceRewritten": false,
+    "productMigrationImplied": false
+  }
+}

@@ -1,0 +1,137 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-249",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-phase3-partial-inventory-readonly-20260823T080400Z",
+  "owner": "financial-apps",
+  "executor": "finance-release-control-plane",
+  "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0249_PARTIAL_STAGE_BACKUP_DETAILED_READONLY_INVENTORY",
+  "issuedAt": "2026-08-23T08:04:00Z",
+  "expiresAt": "2026-08-23T08:24:00Z",
+  "releasedAt": "2026-08-23T08:12:00Z",
+  "singleUse": true,
+  "reusable": false,
+  "executionAuthorized": false,
+  "productionMutationAllowed": false,
+  "remoteMutationAllowed": false,
+  "remoteTemporaryFilesAllowed": false,
+  "scope": "Finance-only detailed zero-write inventory of the exact P0-247 retained deploy, stage and backup trees after P0-248 proved the old runtime is active and release materialization never occurred",
+  "centralPrecondition": {
+    "parentCommit": "588553b3ed3b615aec93eaf209ce8dace1b02031",
+    "parentTree": "08b17e80d32eff17d2efbf8f1799f61d3e5be950",
+    "p0248TerminalLeaseBlob": "b5accc390abcf3be2ec1c88dc86684d1453739c2",
+    "p0248TerminalLeaseBytes": 7550,
+    "p0248TerminalLeaseSha256": "fde92cca90fdb708d5d75abc590babac9ae920609e5a1d1ab5e884b07263fcb4",
+    "p0248Status": "CONSUMED_RELEASED_SUCCESS_ZERO_WRITE_INSPECTION_OLD_RUNTIME_UNCHANGED_PARTIAL_STAGE_BACKUP_RETAINED",
+    "p0247AndP0248Nonreusable": true,
+    "oldRuntimeExact": true,
+    "releaseContainerAbsent": true,
+    "blindCleanupAllowed": false
+  },
+  "ownerEvidence": {
+    "branch": "codex/p0-finance-wallet-connectivity-20260820",
+    "commit": "0ea878234832170434f91c818f4beab765667af2",
+    "tree": "fb022f40f92aa9300583ff41b1ce82fb8e06a521",
+    "jsonPath": "apps/finance/evidence/p0-248-finance-phase3-incident-readonly-20260823.json",
+    "jsonBlob": "f723b27cfe188f44e0ce0f787c021b245ebb7961",
+    "jsonSha256": "243425cffa5c96afe2c464f4faf08138a6199bc09d8b38fa2a92df86e900d460",
+    "stdoutPath": "apps/finance/evidence/p0-248-finance-phase3-incident-readonly-stdout-20260823.txt",
+    "stdoutBlob": "488054becf35077e4f05f4fdabb14080cf5be861",
+    "stdoutBytes": 2568,
+    "stdoutSha256": "5e9daa3a281ccf9c0f9b836e3f72b58752e6ebb77c6e439dd08ab73e3f335897",
+    "remoteAndLocalExactClean": true
+  },
+  "commandObject": {
+    "path": "/private/tmp/ynx-calendar-control-plane.y8FFQt/repo/release/integration/p0-wallet-connectivity/execution/p0-249-finance-phase3-partial-inventory-readonly-20260823.sh",
+    "repositoryPath": "release/integration/p0-wallet-connectivity/execution/p0-249-finance-phase3-partial-inventory-readonly-20260823.sh",
+    "blob": "6334aa5dc6262f23fd4d9df2671942865f8cd2db",
+    "bytes": 3217,
+    "sha256": "adb50d5868937afababd2d80a035d8527d3db75860d7ae1d9c1e60c3340cbe7b",
+    "bashSyntax": "PASS",
+    "staticZeroWriteAudit": "PASS"
+  },
+  "freshBindingsFromP0248": {
+    "deployParent": {"tuple": "64770:4594822:0:0:750:2:4096:directory", "inventorySha256": "55234705279df9c204fa85fb1488a0e8743fcfb99402c97936257edbb3744d36"},
+    "stageContainer": {"tuple": "64770:4620782:0:0:700:3:4096:directory", "entries": 1, "inventorySha256": "61181f33dcf9b11282732fe26f02ad9e3b0f5135dead72ca690606c722d9bf62"},
+    "backupContainer": {"tuple": "64770:2663604:0:0:700:3:4096:directory", "entries": 3, "inventorySha256": "e78ba1c645bfeeffa9d1f373fd2c773326a358c23caca7ad9fd48834b71a3e19"},
+    "currentTarget": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a",
+    "productionEnvSha256": "854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252",
+    "servicePid": 2241003,
+    "serviceNRestarts": 0,
+    "releaseContainerAbsent": true,
+    "manualRollbackLeaseAbsent": true
+  },
+  "execution": {
+    "literalArgv": [
+      "/usr/bin/ssh", "-i", "/Users/huangjiahao/Downloads/Huang.pem",
+      "-o", "IdentitiesOnly=yes", "-o", "BatchMode=yes",
+      "-o", "StrictHostKeyChecking=yes", "-o", "UserKnownHostsFile=/Users/huangjiahao/.ssh/known_hosts",
+      "-o", "ConnectTimeout=10", "-o", "ConnectionAttempts=1",
+      "ubuntu@43.153.202.237", "/usr/bin/sudo", "-n", "/bin/bash", "-s", "--"
+    ],
+    "stdin": "/private/tmp/ynx-calendar-control-plane.y8FFQt/repo/release/integration/p0-wallet-connectivity/execution/p0-249-finance-phase3-partial-inventory-readonly-20260823.sh",
+    "localStdout": "/tmp/ynx-finance-p0249-partial-inventory-20260823T080400Z.stdout.txt",
+    "localStderr": "/tmp/ynx-finance-p0249-partial-inventory-20260823T080400Z.stderr.txt",
+    "localRedirectionOnly": true,
+    "sshAttemptLimit": 1,
+    "retryAllowed": false
+  },
+  "requiredReceipts": [
+    "pre-read exact aggregate tuples and inventory SHA for deploy, stage and backup trees",
+    "every retained relative path with file type, full tuple and SHA for regular files or target for symlinks",
+    "old current target, production env SHA and service PID/NRestarts unchanged",
+    "release container and manual rollback lease still absent",
+    "local stdout/stderr bytes, SHA and terminal status"
+  ],
+  "forbidden": [
+    "any second SSH or retry",
+    "remote file/directory/temp creation, deletion, rename, copy, upload, extraction or content readout",
+    "cleanup, rollback, deploy, candidate execution or service mutation",
+    "current, environment, state, release, backup, executor, lease, unit or Caddy mutation",
+    "environment or backup contents and secret values",
+    "non-Finance mutation, provider/account request, signature, typed data or transaction"
+  ],
+  "nextDecision": {
+    "purpose": "isolate whether P0-247 failed during archive extraction, pre-materialization validation or rollback preparation",
+    "cleanupLeaseAllowedNow": false,
+    "deploymentLeaseAllowedNow": false,
+    "afterExactInventory": "owner must freeze the root cause and an inode/digest-bound cleanup or corrected deployment successor; Central reviews it under another wholly-new lease"
+  },
+  "terminalRules": {
+    "success": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0249_PARTIAL_STAGE_BACKUP_DETAILED_READONLY_INVENTORY",
+    "failure": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0249_PARTIAL_INVENTORY_DRIFT_OR_INSPECTION_FAILURE",
+    "emergency": "EMERGENCY_BLOCKED_FINANCE_PHASE3_RETAINED_OBJECT_SUBSTITUTION",
+    "releaseHeavyAndAllLocksOnTerminal": true
+  },
+  "terminalEvidence": {
+    "ownerCommit": "cd123e3b5447d4737b988a7d396d0af75a9624bb",
+    "ownerTree": "b4919802047f87c1bf2796bf87a7341889f66727",
+    "jsonPath": "apps/finance/evidence/p0-249-finance-phase3-partial-inventory-20260823.json",
+    "jsonBlob": "d13bb036376e43b1a32a96a671e804360053be65",
+    "jsonBytes": 3123,
+    "jsonSha256": "db645314985411d43283f12d11411a9e2f1fb608555f8908ea333ac17ef26407",
+    "stdoutPath": "apps/finance/evidence/p0-249-finance-phase3-partial-inventory-stdout-20260823.txt",
+    "stdoutBlob": "99ac48b73305305cd9a334a5bb95d9630a788631",
+    "stdoutBytes": 1525,
+    "stdoutSha256": "8ac08abf966b05b916b51a556733160953294a62b59bb064f1229b8499a919aa",
+    "stderrBytes": 0,
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sshAttempts": 1,
+    "exitCode": 0,
+    "zeroWrite": true,
+    "stageOnlyEmptyChildDirectory": true,
+    "backupExactOldEnvAndStateAbsentReceipt": true,
+    "candidateMoveAndAutomaticRestoreBoundaryProven": true,
+    "exactFailedRuntimePredicateKnown": false,
+    "cleanupOrRedeployAuthorized": false
+  },
+  "truthBoundary": {
+    "readOnlyInventoryOnly": true,
+    "p0247DeploySuccess": false,
+    "candidatePublic": false,
+    "cleanupAuthorized": false,
+    "account": false,
+    "signature": false,
+    "transaction": false
+  }
+}

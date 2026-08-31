@@ -1,0 +1,42 @@
+{
+  "name": "@ynx-chain/pay",
+  "version": "1.0.0",
+  "private": true,
+  "main": "index.ts",
+  "scripts": {
+    "start": "expo start",
+    "postinstall": "node scripts/patch-expo-modules-jsi.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test src/**/*.test.ts",
+    "bundle-check": "expo export --platform android --platform ios --platform web --output-dir dist",
+    "test:web": "playwright test",
+    "check": "npm run typecheck && npm test && npm run bundle-check && npm run test:web"
+  },
+  "dependencies": {
+    "@expo/metro-runtime": "~57.0.7",
+    "@noble/curves": "2.2.0",
+    "@noble/hashes": "2.2.0",
+    "@ynx-chain/wallet-auth": "file:vendor/ynx-chain-wallet-auth-1.0.0.tgz",
+    "expo": "~57.0.4",
+    "expo-camera": "~57.0.0",
+    "expo-clipboard": "57.0.0",
+    "expo-crypto": "~57.0.1",
+    "expo-linking": "~57.0.0",
+    "expo-localization": "~57.0.1",
+    "expo-secure-store": "~57.0.0",
+    "expo-status-bar": "~57.0.0",
+    "lucide-react-native": "1.24.0",
+    "react": "19.2.3",
+    "react-dom": "19.2.3",
+    "react-native": "0.86.0",
+    "react-native-safe-area-context": "~5.7.0",
+    "react-native-svg": "15.15.4",
+    "react-native-web": "^0.21.2"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.0",
+    "@types/react": "~19.2.2",
+    "tsx": "4.23.1",
+    "typescript": "~6.0.3"
+  }
+}

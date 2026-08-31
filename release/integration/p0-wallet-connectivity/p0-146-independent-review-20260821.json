@@ -1,0 +1,21 @@
+{
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-146",
+  "reviewedAt": "2026-08-21T17:57:35Z",
+  "decision": "ACCEPT_SOURCE_BUILD_ONLY",
+  "sourceBuildAccepted": true,
+  "deploymentAuthorized": false,
+  "leaseReleased": true,
+  "ownerCheckpointCommit": "5e094147832dca7ad72344f473dd150c30ffa1da",
+  "archive": {"bytes": 3937491, "sha256": "d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d"},
+  "binary": {"bytes": 8573112, "sha256": "cccdae8ae5b5f694ca7db68540da30582564ff741978e616f7435d448a20fe3e"},
+  "reproducibleBuild": true,
+  "testsPassed": true,
+  "webAssetsExact": true,
+  "productionDeployed": false,
+  "publicVerified": false,
+  "walletApprovalVerified": false,
+  "productSessionV2Verified": false,
+  "computerControlVerified": false,
+  "nextAction": "Fresh read-only production state and rollback binding, followed by a separate single-use production deployment lease."
+}

@@ -1,0 +1,55 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-305",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-creator-studio-3f97a13d-upgrade-20260831T030455Z",
+  "recordType": "CREATOR_STUDIO_TERMINAL_EMERGENCY",
+  "status": "EMERGENCY_BLOCKED_CREATOR_3F97A13D_EXACT_ROLLBACK_REQUIRED_NO_FURTHER_ACTION",
+  "startedAt": "2026-08-31T03:10:06Z",
+  "attempts": {
+    "forward": 1,
+    "retry": 0,
+    "conditionalRollback": 0
+  },
+  "process": {
+    "exitStatus": 1,
+    "signal": null,
+    "stdoutBytes": 0,
+    "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stderrBytes": 11065,
+    "stderrSha256": "0bbfcd1101b84e74774bb6cbd54adbba63a5b8c73930dc0c21326a1dc4161075"
+  },
+  "localEnvelope": {
+    "path": "/tmp/p0-305-creator-forward-terminal.json",
+    "bytes": 11761,
+    "sha256": "736c31fa0449a51df5644e961b6175d8bfcec8543d2227b4f26114c118760fde"
+  },
+  "directConclusion": {
+    "executorReachedSwitched": true,
+    "terminalFailureClass": "UNEXPECTED_END_OF_JSON_INPUT",
+    "automaticRollbackAttempted": true,
+    "automaticRollbackSucceeded": false,
+    "automaticRollbackFailureClass": "UNEXPECTED_END_OF_JSON_INPUT",
+    "remoteStateKnown": false,
+    "oldRuntimeRestored": "UNPROVED",
+    "candidateRuntimeActive": "UNPROVED"
+  },
+  "decision": {
+    "leaseReusable": false,
+    "heavyReleased": false,
+    "creatorLocksReleased": false,
+    "productionMutationAllowed": false,
+    "unrelatedHeavyLeaseAllowed": false,
+    "nextAllowedAction": "WHOLLY_NEW_CREATOR_ZERO_WRITE_REMOTE_STATE_FREEZE_ONLY"
+  },
+  "forbidden": [
+    "forward retry",
+    "old conditional rollback argv",
+    "blind cleanup",
+    "unrelated Heavy lease",
+    "Wallet account request",
+    "signature",
+    "typed data",
+    "transaction"
+  ]
+}

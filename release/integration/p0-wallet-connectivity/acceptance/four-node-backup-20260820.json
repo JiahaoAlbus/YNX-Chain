@@ -1,0 +1,19 @@
+{
+  "schemaVersion":"1.0.0",
+  "campaignId":"P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId":"P0-012",
+  "recordedAt":"2026-08-20T11:25:00Z",
+  "purpose":"Pre-mutation recovery evidence for the guarded Faucet runtime release path.",
+  "method":"Each archive completed the existing backup operation; gzip -t completed without an observed error, then SHA-256 and byte size were independently read over authenticated SSH. No running service, configuration, release pointer, manifest, client, or public endpoint was changed.",
+  "archives":[
+    {"node":"primary","path":"/var/backups/ynx-chain/ynx-chain-testnet-20260820T105021Z-primary.tar.gz","bytes":8904285103,"gzipTest":"passed","sha256":"1054ae538c8359a5b603b5d74ea1e0d292fc9bae07cd4522ffff5c2f882d076e"},
+    {"node":"singapore","path":"/var/backups/ynx-chain/ynx-chain-testnet-20260820T105021Z-singapore.tar.gz","bytes":18867466394,"gzipTest":"passed","sha256":"87c60f9ffb7bfbe55c87d3d19d13618e3e69da0e724319787841927f280c70a2"},
+    {"node":"silicon-valley","path":"/var/backups/ynx-chain/ynx-chain-testnet-20260820T105021Z-silicon-valley.tar.gz","bytes":5393103253,"gzipTest":"passed","sha256":"d9d5b902bd65fefed2278370b96b54872da1a48eadb3731ba0f7e9b74cb8cf02"},
+    {"node":"seoul","path":"/var/backups/ynx-chain/ynx-chain-testnet-20260820T105021Z-seoul.tar.gz","bytes":5116403712,"gzipTest":"passed","sha256":"6d867d163917cf991c5cd1e303ea1879f4440f5aa19aa752f7757318a03d5ff9"}
+  ],
+  "recoveryBoundary":"These archives are a verified recovery checkpoint only. They do not establish follower convergence, a candidate-bound release manifest, candidate deployment, Wallet Faucet availability, installed-client connectivity, or public verification.",
+  "rollbackReadiness":"A later authorized deployment must record its exact pre-deploy release pointer and use the normal rollback procedure. This record does not execute a rollback.",
+  "nextAction":"Use the verified archives as the recovery prerequisite while producing candidate-bound immutable release-manifest evidence; retain the existing fail-closed deployment gate until remote smoke identifies the exact candidate source.",
+  "serviceMutationPerformed":false,
+  "publicVerified":false
+}

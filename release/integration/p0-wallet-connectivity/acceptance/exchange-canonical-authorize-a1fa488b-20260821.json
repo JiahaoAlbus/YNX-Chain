@@ -1,0 +1,22 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-105",
+  "decision": "SOURCE_BUILD_CHECKPOINT_ACCEPTED_DEVICE_UNAVAILABLE",
+  "acceptedAt": "2026-08-21T04:17:21Z",
+  "owner": "financial-apps",
+  "branch": "codex/exchange-wallet-actions-20260809",
+  "checkpointCommit": "a1fa488ba31db88f8bd274f463f66ded25c18b45",
+  "checkpointTree": "f9248217f05932b30490418bfd8d6b571d3df391",
+  "evidencePath": "apps/exchange/evidence/p0-105-canonical-authorize-20260821.json",
+  "evidenceSha256": "9be2a36ff706a57f6477f49d259482dfcb444d4c1dd5665e835ebe40c9d967fa",
+  "tests": "typecheck; mobile 11/11; i18n 12 locales; canonical scan 7 files; Android/iOS exports; Exchange 7/7; release evidence; Android debug build",
+  "androidApkSha256": "8d9c95b0fe908e818cb3bd64e1e9383feea2733023c970ba967d347bbc0d1aa7",
+  "androidApkBytes": 155458696,
+  "deviceConnected": false,
+  "apkInstalled": false,
+  "walletApproveRejectCallbackVerified": false,
+  "migratedV2": false,
+  "deployedPublic": false,
+  "computerControlVerified": false
+}

@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "acceptanceId": "P0-040-REGISTRY-V3-STATE-MIGRATION-0A852480-20260821",
+  "classification": "MIGRATION_SOURCE_ACCEPTED_DUAL_HASH_CONTRACT_CORRECTED_NO_LEASE",
+  "source": {
+    "commit": "0a85248046f110e87c3036d353d0a54d0cfa19ea",
+    "parent": "deb2cefb00b52e5c2ab9c357201d690918320424",
+    "tree": "82101047f8e69625c4e415323c32e09573437d42",
+    "walletAuthTree": "3bbc26c336beb87fb7a682c70d36d01359658e7d",
+    "evidencePath": "release/integration/wallet-product-session-registry-v3-state-migration-contract-20260821.json",
+    "evidenceBlob": "27e37444f9bf9273b60e2850a1022824cd5ddee4",
+    "evidenceSha256": "6e567a51873e5517c8083ce9831333d48ea1d871c1600f3981968c5ddbb4e50c"
+  },
+  "registryDigests": {
+    "previousArtifactSha256": "d2826eb419abca4444ccb50d79537fa7f6a3643948d82ed9b52914b7169c107b",
+    "previousStateBindingSha256": "1c4a8736b26c9fa13b984c968c8ef104b9cd7b72bf92e3983f51656287a9d794",
+    "candidateArtifactSha256": "810c58777a62a798e286d2d30e0430334b88603653f672821642e80e3553c46c",
+    "candidateStateBindingSha256": "f300fb098c832161aaeb2bcf62b61a7b5b674ea0b443ebd9ca0189592e0b10d7",
+    "artifactAndStateBindingAreDistinct": true,
+    "runtimeVersionRegistrySha256Semantic": "parsed-canonical-state-binding"
+  },
+  "failedLease": {
+    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-retired-client-registry-v3-20260820T174054Z",
+    "ownerEvidenceCommit": "890ef0f8b31ba467c5a347b83b0ec8bdca5497cf",
+    "result": "invalidated-after-fail-closed-read-only-preflight",
+    "executionStarted": false,
+    "productionMutation": false,
+    "reusable": false
+  },
+  "decision": {
+    "migrationSourceAccepted": true,
+    "p0039DigestContractCorrected": true,
+    "executionLeaseIssued": false,
+    "executionLeaseId": null,
+    "executionLeaseExpiresAt": null,
+    "deploymentAuthorized": false,
+    "blocker": "A future candidate must source-bind the migration, expose an exact Product Session version route, bind the real environment layout and pass a fresh copied-state/rollback review."
+  },
+  "truth": {
+    "migrationExecuted": false,
+    "candidateDeployedPublic": false,
+    "publicRegistryV3RetirementVerified": false,
+    "productsMigratedV2": 0,
+    "installedClientVerified": false,
+    "integratedCentral": false,
+    "aggregateDeployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

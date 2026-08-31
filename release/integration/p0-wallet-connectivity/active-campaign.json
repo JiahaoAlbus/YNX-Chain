@@ -1,0 +1,485 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "owner": "integration",
+  "status": "P0135_SEARCH_CANONICAL_SUBROUTE_PREBUILT_ACTIVATION_ACTIVE",
+  "scope": [
+    "founder-control",
+    "wallet-connectivity",
+    "installed-client-networking",
+    "shop-android-retirement",
+    "artwork-governance"
+  ],
+  "frozen": [
+    "independent-ynx-id",
+    "nonessential-new-products",
+    "extra-finance-features",
+    "shop-android"
+  ],
+  "integrationBranch": "codex/final-integration",
+  "baselineCommit": "10b877b5b18f9cb0026a6382cdd6588054fd16db",
+  "protectedHistory": [
+    {
+      "branch": "codex/recovery/final-integration-pre-p0",
+      "reason": "preserved divergent pre-P0 integration history"
+    }
+  ],
+  "network": {
+    "cosmosChainId": "ynx_6423-1",
+    "evmChainId": 6423,
+    "evmChainHex": "0x1917",
+    "nativeAsset": "YNXT",
+    "nativeAddressPrefix": "ynx1"
+  },
+  "firstStop": {
+    "complete": true,
+    "publicConnectivityClaim": false,
+    "nextAction": "P0-133 omitted the shared SDK and P0-134 attempted a server rebuild with a copied macOS esbuild binary; both failed before production mutation. P0-135 may activate only the already locally built, exact-hash dist in corrected artifact 88b7458a after 22/22 server tests, without running esbuild on Linux."
+  },
+  "lightLeases": [
+    {
+      "owner": "data-fabric",
+      "taskId": "P0-005",
+      "status": "RELEASED_CHECKPOINT",
+      "grantedAt": "2026-08-20T14:55:00Z",
+      "releasedAt": "2026-08-20T17:50:14Z",
+      "checkpointCommit": "da095e240be52023ecef19c162c869398bf9fbea",
+      "scope": "wallet-canonical-error-to-connectivity-aggregation",
+      "constraints": [
+        "asynchronous only",
+        "aggregate class and retryability only",
+        "do not persist raw error, developerMessage or identity",
+        "no Wallet, Gateway, Card UI, Finance UI or Explorer UI changes"
+      ]
+    },
+    {
+      "owner": "integration",
+      "taskId": "P0-056",
+      "status": "RELEASED_CHECKPOINT",
+      "grantedAt": "2026-08-20T20:00:00Z",
+      "releasedAt": "2026-08-20T20:15:00Z",
+      "checkpointCommit": "8809abcd7c39d47650086ae8895ecb307dcd0fdc",
+      "scope": "seller-console-standard-wallet-source-only",
+      "constraints": [
+        "no public deployment",
+        "no provider approval claim",
+        "no Product Session v2 claim",
+        "no Computer Control claim"
+      ]
+    },
+    {
+      "owner": "integration",
+      "taskId": "P0-074",
+      "status": "RELEASED_CHECKPOINT",
+      "grantedAt": "2026-08-20T22:31:17Z",
+      "releasedAt": "2026-08-20T22:40:00Z",
+      "checkpointCommit": "b6f3184653eaef4275d5719686a2dffc724d5218",
+      "scope": "governance-standard-wallet-source-only",
+      "constraints": [
+        "no public deployment",
+        "no installed-client claim",
+        "no real vote, delegation or privileged control",
+        "no Product Session v2 claim",
+        "no Computer Control claim"
+      ]
+    },
+    {
+      "owner": "integration",
+      "taskId": "P0-075",
+      "status": "RELEASED_CHECKPOINT",
+      "grantedAt": "2026-08-20T22:40:00Z",
+      "releasedAt": "2026-08-20T22:46:48Z",
+      "checkpointCommit": "573989195f8b4f2f08bb4fb4c3bf9f245f8f2d68",
+      "scope": "calendar-existing-standard-wallet-source-verification",
+      "constraints": [
+        "deterministic provider evidence is not installed Wallet evidence",
+        "no shared calendar, Product Session v2, public or Computer Control claim"
+      ]
+    },
+    {
+      "owner": "integration",
+      "taskId": "P0-076",
+      "status": "RELEASED_CHECKPOINT",
+      "grantedAt": "2026-08-20T22:46:48Z",
+      "releasedAt": "2026-08-20T22:58:46Z",
+      "checkpointCommit": "df0bd07667d33dbf97635b881033db65129c32c6",
+      "scope": "music-standard-wallet-source-only",
+      "constraints": [
+        "preserve dirty historical Music worktree",
+        "clean remote baseline only",
+        "guest catalog and playback remain available",
+        "no private library, settlement, Product Session v2, installed/public or Computer Control claim"
+      ]
+    },
+    {
+      "owner": "integration",
+      "taskId": "P0-077",
+      "status": "RELEASED_CHECKPOINT",
+      "grantedAt": "2026-08-20T22:58:46Z",
+      "releasedAt": "2026-08-20T23:05:27Z",
+      "checkpointCommit": "2e516baac89278a767397b29e72eed67a97e60db",
+      "scope": "video-existing-standard-wallet-visible-verification",
+      "constraints": [
+        "do not rebuild accepted Video Standard Wallet source",
+        "deterministic provider evidence is not installed Wallet evidence",
+        "no Creator Studio, Product Session v2, public deployment or Computer Control claim"
+      ]
+    },
+    {
+      "owner": "integration",
+      "taskId": "P0-078",
+      "status": "RELEASED_CHECKPOINT",
+      "grantedAt": "2026-08-20T23:05:27Z",
+      "releasedAt": "2026-08-20T23:22:00Z",
+      "checkpointCommit": "a3b57a9d1e51d6d157a932b584dbdda1adc748a9",
+      "scope": "bridge-standard-wallet-source-only",
+      "constraints": [
+        "preserve the protected Bridge checkpoint",
+        "public route evidence stays guest-readable",
+        "no bridge execution, transfer, Product Session v2, public deployment or Computer Control claim"
+      ]
+    },
+    {
+      "owner": "integration",
+      "taskId": "P0-079",
+      "status": "RELEASED_CHECKPOINT",
+      "grantedAt": "2026-08-20T23:22:00Z",
+      "releasedAt": "2026-08-20T23:30:00Z",
+      "checkpointCommit": "590314a9468982ef9f58f745f60156e89a2cd66c",
+      "scope": "browser-current-source-install-second-launch-window-verification",
+      "constraints": [
+        "preserve accepted Browser source and existing product-owner evidence",
+        "YNX Browser is distinct from Wallet DApp Browser",
+        "no Wallet Provider, Product Session v2, public deployment, production signing, store or Computer Control claim",
+        "repair only reproducible Browser-owned defects and freeze current-source evidence"
+      ]
+    },
+    {
+      "owner": "integration",
+      "taskId": "P0-080",
+      "status": "RELEASED_CHECKPOINT",
+      "grantedAt": "2026-08-20T23:30:00Z",
+      "releasedAt": "2026-08-20T23:38:00Z",
+      "checkpointCommit": "d3038abbec4a393fd1d66b54dec4f0027f0c8962",
+      "scope": "oracle-anonymous-public-data-truth-verification",
+      "constraints": [
+        "preserve exact clean Oracle owner checkpoint",
+        "public evidence remains anonymous and read-only without Wallet",
+        "do not fabricate prices, endpoint health, lineage, coverage or confidence",
+        "no deployment, signing, store, Product Session or Computer Control claim"
+      ]
+    },
+    {
+      "owner": "integration",
+      "taskId": "P0-081",
+      "status": "RELEASED_CHECKPOINT",
+      "grantedAt": "2026-08-20T23:38:00Z",
+      "releasedAt": "2026-08-20T23:52:00Z",
+      "checkpointCommit": "c9de2692aad9f0e99edce5c49366265480b369da",
+      "scope": "search-existing-standard-wallet-visible-verification",
+      "constraints": [
+        "do not rebuild accepted Search Standard Wallet source",
+        "guest Search remains independent from private service",
+        "deterministic Provider evidence is not installed Wallet evidence",
+        "no Product Session v2, public deployment, indexing completeness or Computer Control claim"
+      ]
+    },
+    {
+      "owner": "integration",
+      "taskId": "P0-082",
+      "status": "RELEASED_CHECKPOINT",
+      "grantedAt": "2026-08-20T23:52:00Z",
+      "releasedAt": "2026-08-21T00:05:00Z",
+      "checkpointCommit": "6fba5d24bfccc41b33713aefad38aa12766151d2",
+      "scope": "merchant-console-existing-standard-wallet-visible-verification",
+      "constraints": [
+        "do not rebuild accepted Merchant Console Standard Wallet source",
+        "merchant read-only/public surfaces remain independent from private service",
+        "deterministic Provider evidence is not installed Wallet evidence",
+        "no settlement, Product Session v2, public deployment or Computer Control claim"
+      ]
+    },
+    {
+      "owner": "integration",
+      "taskId": "P0-083",
+      "status": "RELEASED_CHECKPOINT",
+      "grantedAt": "2026-08-21T00:05:00Z",
+      "releasedAt": "2026-08-21T00:20:00Z",
+      "checkpointCommit": "2e4b92a05007f8c7eccdcef77e6039e0b25fa0b2",
+      "scope": "seller-console-existing-standard-wallet-visible-verification",
+      "constraints": [
+        "do not rebuild accepted Seller Console Standard Wallet source",
+        "seller public preview remains independent from private service",
+        "deterministic Provider evidence is not installed Wallet evidence",
+        "no order, settlement, Product Session v2, public deployment or Computer Control claim"
+      ]
+    },
+    {
+      "owner": "integration",
+      "taskId": "P0-084",
+      "status": "RELEASED_CHECKPOINT",
+      "grantedAt": "2026-08-21T00:20:00Z",
+      "releasedAt": "2026-08-21T00:35:00Z",
+      "checkpointCommit": "73feca397ca0589c5d5a3e07c30944aaeb1b00d8",
+      "scope": "creator-studio-existing-standard-wallet-visible-verification",
+      "constraints": [
+        "do not rebuild accepted Creator Studio Standard Wallet source",
+        "guest creator preview remains available without Wallet",
+        "deterministic Provider evidence is not installed Wallet evidence",
+        "no upload, publish, monetization, Product Session v2, public deployment or Computer Control claim"
+      ]
+    },
+    {
+      "owner": "integration",
+      "taskId": "P0-085",
+      "status": "RELEASED_CHECKPOINT",
+      "grantedAt": "2026-08-21T00:35:00Z",
+      "releasedAt": "2026-08-21T00:50:00Z",
+      "checkpointCommit": "130c8757f8446b2236ac1582d5f2d47ac7828969",
+      "scope": "trust-center-existing-standard-wallet-visible-verification",
+      "constraints": [
+        "do not rebuild accepted Trust Center Standard Wallet source",
+        "guest public Trust data remains available without Wallet",
+        "deterministic Provider evidence is not installed Wallet evidence",
+        "no Trust API, Product Session v2, public deployment or Computer Control claim"
+      ]
+    },
+    {
+      "owner": "integration",
+      "taskId": "P0-086",
+      "status": "RELEASED_CHECKPOINT",
+      "grantedAt": "2026-08-21T00:50:00Z",
+      "releasedAt": "2026-08-21T01:10:00Z",
+      "checkpointCommit": "734e62bb1bf2cb12fbed02047ac78e310b5a3347",
+      "scope": "mail-existing-standard-wallet-visible-verification",
+      "constraints": [
+        "do not rebuild accepted Mail Standard Wallet source",
+        "guest Mail preview remains available without Wallet",
+        "deterministic Provider evidence is not installed Wallet evidence",
+        "no Mail API, Product Session v2, public deployment or Computer Control claim"
+      ]
+    },
+    {
+      "owner": "integration",
+      "taskId": "P0-087",
+      "status": "RELEASED_CHECKPOINT",
+      "grantedAt": "2026-08-21T01:10:00Z",
+      "releasedAt": "2026-08-21T01:30:00Z",
+      "checkpointCommit": "a427075261aebc2fcb493205840de0bc9f0bc87e",
+      "scope": "cloud-existing-standard-wallet-visible-verification",
+      "constraints": [
+        "do not rebuild accepted Cloud Standard Wallet source",
+        "guest Cloud preview remains available without Wallet",
+        "deterministic Provider evidence is not installed Wallet evidence",
+        "no Cloud API, Product Session v2, public deployment or Computer Control claim"
+      ]
+    },
+    {
+      "owner": "integration",
+      "taskId": "P0-088",
+      "status": "RELEASED_CHECKPOINT",
+      "grantedAt": "2026-08-21T01:30:00Z",
+      "releasedAt": "2026-08-21T01:50:00Z",
+      "checkpointCommit": "7eefdf5e3f5ead51912192bdf4806594112fc859",
+      "scope": "ai-existing-standard-wallet-visible-verification",
+      "constraints": [
+        "do not rebuild accepted AI Standard Wallet source",
+        "guest AI preview remains available without Wallet",
+        "deterministic Provider evidence is not installed Wallet evidence",
+        "no live generation, AI API, Product Session v2, public deployment or Computer Control claim"
+      ]
+    },
+    {
+      "owner": "integration",
+      "taskId": "P0-089",
+      "status": "RELEASED_CHECKPOINT",
+      "grantedAt": "2026-08-21T01:50:00Z",
+      "releasedAt": "2026-08-21T02:05:00Z",
+      "checkpointCommit": "0326004cb260863f214261acec635bd3ef2e5c0c",
+      "scope": "resource-existing-visible-evidence-and-release-truth-audit",
+      "constraints": [
+        "do not rebuild accepted Resource Standard Wallet source or repeat P0-072 development",
+        "verify exact existing approve/reject evidence and release truth",
+        "deterministic Provider evidence is not installed Wallet evidence",
+        "no settlement, Resource API, Product Session v2, public deployment or Computer Control claim"
+      ]
+    },
+    {
+      "owner": "integration",
+      "taskId": "P0-012",
+      "status": "RELEASED_CHECKPOINT",
+      "grantedAt": "2026-08-21T02:05:00Z",
+      "releasedAt": "2026-08-21T02:35:00Z",
+      "checkpointCommit": "d551218097b707755a8be017689a6d6983c8068e",
+      "scope": "faucet-existing-source-and-public-read-only-revalidation",
+      "constraints": [
+        "no SSH or production mutation under this Light Lease",
+        "verify exact existing source, tests and release-manifest evidence",
+        "public probes must be read-only and must not expose internal topology as accepted evidence",
+        "no endpoint manifest, installed Wallet, publicVerified or Computer Control promotion"
+      ]
+    },
+    {
+      "owner": "integration",
+      "taskId": "P0-127",
+      "status": "RELEASED_SOURCE_CHECKPOINT",
+      "grantedAt": "2026-08-21T07:50:17Z",
+      "releasedAt": "2026-08-21T08:00:38Z",
+      "checkpointCommit": "4b6c5fa3e7570427fd6da4a5682de6095d73fc39",
+      "startingCommit": "76b67a05fe5274f388d29f552b8a0b1e35dfe4ed",
+      "scope": "social-web-guest-and-standard-provider-source-only",
+      "constraints": [
+        "preserve the dirty historical Social worktree and use only the clean descendant worktree",
+        "do not modify packages/wallet-auth or packages/dapp-connect-sdk",
+        "production mutation is forbidden in this Light slice",
+        "Web must use EIP-6963/EIP-1193 and must never navigate to a custom wallet scheme",
+        "guest access remains available without a Wallet",
+        "Product Session v2 and account approval remain false until separate runtime evidence"
+      ]
+    },
+    {
+      "owner": "integration",
+      "taskId": "P0-128",
+      "status": "RELEASED_PUBLIC_CHECKPOINT",
+      "grantedAt": "2026-08-21T08:00:38Z",
+      "expiresAt": "2026-08-21T08:30:38Z",
+      "releasedAt": "2026-08-21T08:15:40Z",
+      "sourceCommit": "22c26bcb7a8d618cb8e38b30940b1c07bf4237c8",
+      "scope": "social-web-public-browser-checkpoint-complete",
+      "constraints": [
+        "deploy only the exact five-file Social Web archive",
+        "bind only social.ynxweb4.com and only after the immutable deployment is READY",
+        "do not mutate ynx-sociald, Social API state, Wallet/Auth or another product",
+        "rollback removes only the newly created alias and restores the proven DEPLOYMENT_NOT_FOUND state",
+        "installed Wallet, account approval, callback, signature, transaction, Product Session v2 and Computer Control remain false unless directly proved"
+      ]
+    },
+    {
+      "owner": "integration",
+      "taskId": "P0-129",
+      "status": "RELEASED_SOURCE_CHECKPOINT_PUBLIC_DEFECT_OPEN",
+      "grantedAt": "2026-08-21T08:20:52Z",
+      "releasedAt": "2026-08-21T08:28:50Z",
+      "startingCommit": "650070ce5c5a7928425509f6e9e7da0aec31910d",
+      "checkpointCommit": "993e7cc99ea3919488d6765e097ca78a82a30704",
+      "checkpointTree": "821b800fefcf05d4b20a848c5b44b0c4854ccfcd",
+      "scope": "creator-studio-explicit-wallet-choice-self-contained-bundle-source-only",
+      "constraints": [
+        "production mutation was forbidden in this Light slice",
+        "the current public runtime remains defective until a separate Heavy deployment succeeds",
+        "Web uses explicit EIP-6963/EIP-1193 YNX or MetaMask selection without provider substitution",
+        "guest access remains available without a Wallet",
+        "real provider approval, account, signature, transaction, Product Session v2 and Computer Control remain false"
+      ]
+    },
+    {
+      "owner": "integration",
+      "taskId": "P0-130",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_ARCHIVE_DIRECTORY_MODE",
+      "grantedAt": "2026-08-21T08:30:49Z",
+      "expiresAt": "2026-08-21T09:00:49Z",
+      "releasedAt": "2026-08-21T08:33:27Z",
+      "sourceCommit": "993e7cc99ea3919488d6765e097ca78a82a30704",
+      "scope": "creator-studio-self-contained-dist-public-repair",
+      "constraints": [
+        "deploy only archive SHA-256 444d6dd38bd919f3aad26a73ec0db56c4929bd904b05003080e213f8ecb81291",
+        "copy the exact current release before overlaying Creator Studio static files",
+        "preserve ynx-videod, Video viewer, systemd unit and Caddy configuration",
+        "activate only after local 6495 guest and static probes succeed",
+        "rollback to /opt/ynx-video/releases/p0122b-creator-wallet-650070ce on any failure",
+        "real provider approval, account, signature, transaction, Product Session v2 and Computer Control remain false unless directly proved"
+      ]
+    },
+    {
+      "owner": "integration",
+      "taskId": "P0-131",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_READINESS_WINDOW",
+      "grantedAt": "2026-08-21T08:34:52Z",
+      "expiresAt": "2026-08-21T09:04:52Z",
+      "releasedAt": "2026-08-21T08:37:16Z",
+      "sourceCommit": "993e7cc99ea3919488d6765e097ca78a82a30704",
+      "scope": "creator-studio-explicit-file-archive-public-repair",
+      "constraints": [
+        "deploy only archive SHA-256 9ec9385f2a1843e826f7a059f832b06a90f9828a13652595a4a6afe75e1c03de",
+        "archive contains six explicit mode-0644 files and no directory metadata",
+        "copy the exact current release before overlaying Creator Studio static files",
+        "activate only after unprivileged candidate hash and local port probes succeed",
+        "rollback to /opt/ynx-video/releases/p0122b-creator-wallet-650070ce on any failure",
+        "P0-130 remains nonreusable"
+      ]
+    },
+    {
+      "owner": "integration",
+      "taskId": "P0-132",
+      "status": "RELEASED_PUBLIC_CHECKPOINT_COMPUTER_CONTROL_BLOCKED",
+      "grantedAt": "2026-08-21T08:38:29Z",
+      "expiresAt": "2026-08-21T08:53:29Z",
+      "sourceCommit": "993e7cc99ea3919488d6765e097ca78a82a30704",
+      "releasedAt": "2026-08-21T08:43:39Z",
+      "scope": "activate-exact-preverified-p0131-with-bounded-readiness",
+      "constraints": [
+        "activate only the already verified p0131 candidate with exact app and index hashes",
+        "wait up to ten seconds for the service listener after restart",
+        "rollback to p0122b on any bounded probe failure",
+        "do not rebuild, restage or modify the accepted candidate",
+        "P0-130 and P0-131 remain nonreusable"
+      ]
+    }
+  ],
+  "heavy": null,
+  "wave": {
+    "id": "B-financial-apps-quant",
+    "owner": "financial-apps",
+    "executionScope": "QUANT_CANONICAL_AUTHORIZE_SOURCE_BUILD_VISIBLE_SLICE_COMPLETE",
+    "firstTask": "MIGRATE_QUANT_CANONICAL_AUTHORIZE_AND_SAFE_LAUNCHER",
+    "startingCheckpoint": "f66fd4d14ff047efa6bb7e66fc2e140773826b16",
+    "assignedAt": "2026-08-21T04:44:03Z",
+    "executionLease": null,
+    "releasedAt": "2026-08-21T04:58:00Z",
+    "checkpointCommit": "b20a908893010968d92045e8bb0bcb4ab1bd325c",
+    "productionMutation": false,
+    "deployedPublic": false,
+    "publicVerified": false,
+    "parallelSourceOnly": [
+      {
+        "owner": "wallet-auth-core",
+        "task": "P0-053 source and offline artifacts accepted; fresh production read and a wholly new lease still required",
+        "executionLease": "NONE_P0_050_AND_P0_039_NONREUSABLE"
+      },
+      {
+        "owner": "integration",
+        "task": "Merchant Console source checkpoint released at f3d36ab5785f910f3114c4a080f2c2551aabe656; provider-visible and public gates remain false",
+        "executionLease": "NONE_P0_052_RELEASED"
+      }
+    ],
+    "previousWave": {
+      "id": "P0-wallet-auth-registry-v3",
+      "owner": "wallet-auth-core",
+      "checkpoint": "P0-050 INVALID_MIGRATION",
+      "releasedAt": "2026-08-20T19:12:42Z",
+      "deployedPublic": false,
+      "publicVerified": false
+    }
+  },
+  "light": {
+    "owner": "integration:/root",
+    "status": "ACTIVE_SOURCE_ONLY",
+    "branch": "codex/p0-creator-studio-visible-20260821",
+    "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/57-creator-studio-visible-p0",
+    "taskId": "P0-148",
+    "leasedAt": "2026-08-21T18:09:34Z",
+    "expiresAt": "2026-08-21T18:39:34Z",
+    "releasedAt": null,
+    "checkpointCommit": "993e7cc99ea3919488d6765e097ca78a82a30704",
+    "productionMutationAllowed": false,
+    "previousOwner": null,
+    "previousCheckpoint": "5e094147832dca7ad72344f473dd150c30ffa1da",
+    "reason": "P0-146 released a clean source/build checkpoint; Integration now owns the bounded Creator Studio Fable5 audit and source-repair slice. Production mutation remains forbidden.",
+    "executionScope": "CREATOR_STUDIO_FABLE5_GAP_AUDIT_AND_SOURCE_REPAIR_NO_PRODUCTION",
+    "onSafeCheckpoint": [
+      "modify only Creator Studio-owned source, tests and evidence",
+      "consume accepted shared Wallet Provider/connect-state source",
+      "return a pushed clean checkpoint before requesting any public lease"
+    ]
+  }
+}

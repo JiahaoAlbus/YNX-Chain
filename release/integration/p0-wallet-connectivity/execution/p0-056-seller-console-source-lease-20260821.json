@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-056",
+  "leaseId": "P0-056_LIGHT_SOURCE_ONLY",
+  "status": "RELEASED_CHECKPOINT",
+  "owner": "integration",
+  "branch": "codex/p0-seller-console-wallet-connectivity-20260821",
+  "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/10-seller-console-p0",
+  "startingCommit": "0dc06695e67347e3e77fbf9d0709a6c35513a758",
+  "leasedAt": "2026-08-20T20:00:00Z",
+  "releasedAt": "2026-08-20T20:15:00Z",
+  "implementationCommit": "2bfa3d3d7923410b02e02c9d243ef70e88653c66",
+  "checkpointCommit": "8809abcd7c39d47650086ae8895ecb307dcd0fdc",
+  "scope": ["apps/seller-console/**"],
+  "requirements": ["consume accepted EIP-6963/EIP-1193 SDK without copying it", "prefer YNX Wallet and support standard EVM wallet fallback", "preserve guest and public seller preview", "isolate private Product Session as degraded", "use accepted endpoint manifest only", "test, build, local-browser verify, push and release"],
+  "forbidden": ["shared Wallet/Auth or SDK changes", "Shop, Pay or Merchant changes", "public deployment", "installed or Computer Control claim", "caller supplied Gateway or RPC", "whole-app Offline on Product Session failure"],
+  "truthAtGrant": {"legacyPrivateSessionOnly": true, "standardWalletSourceImplemented": false, "productSessionV2": false, "installedClientVerified": false, "deployedPublic": false, "publicVerified": false, "computerControlVerified": false},
+  "result": {"standardWalletSourceImplemented": true, "eip6963": true, "eip1193": true, "ynxPreferred": true, "otherEvmFallback": true, "guestPreviewVerified": true, "privateServiceDegradedPreservesStandardConnection": true, "tests": "9/9", "build": "passed", "localBrowserVerified": true, "mobile390x844Verified": true, "consoleWarningsOrErrors": 0, "providerApprovalVisible": false, "productSessionV2": false, "installedClientVerified": false, "deployedPublic": false, "publicVerified": false, "computerControlVerified": false}
+}

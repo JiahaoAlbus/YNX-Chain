@@ -1,0 +1,69 @@
+{
+  "schemaVersion": "p0-finance-zero-write-terminal-evidence@1",
+  "taskId": "P0-290",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-p0289-state-readonly-p0290-20260823T184400Z",
+  "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0290_P0289_REMOTE_STATE_ZERO_WRITE_INSPECTION",
+  "attempts": 1,
+  "localExitStatus": 0,
+  "mutationCount": 0,
+  "stdout": {
+    "path": "release/integration/p0-wallet-connectivity/execution/objects/p0-290-finance-p0289-remote-state-zero-write-terminal-stdout.txt",
+    "blob": "6aa165325f265af60d00315da8878599e367c72e",
+    "bytes": 3659,
+    "sha256": "21b3fac0ad8516237ea2eeeffd0571da5b4fcbdcbdfbc18f11829c48825f52b0"
+  },
+  "stderr": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "remoteTruth": {
+    "executor": "64770:4620784:0:0:700:1:18432:regular file",
+    "executorBytes": 18432,
+    "executorSha256": "be7435a922b26482c830778ef23753e7de2e02ad307de914fef9aa83a77229c0",
+    "signedLease": "64770:4620785:0:0:600:1:9252:regular file",
+    "signedLeaseBytes": 9252,
+    "signedLeaseSha256": "b3583c982ac2be861af11e35f7bdfa6a608243d52b44d8200f1171ecfbfa1ce3",
+    "controlPendingPathsAbsent": true,
+    "stageContainer": "64770:4620786:0:0:700:2:4096:directory",
+    "stageContainerDirectChildren": 0,
+    "stageContainerInventorySha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "stageAbsent": true,
+    "backupContainer": "64770:2663622:0:0:700:2:4096:directory",
+    "backupContainerDirectChildren": 0,
+    "backupContainerInventorySha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "backupAbsent": true,
+    "releaseContainerAbsent": true,
+    "releaseAbsent": true,
+    "currentTarget": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a",
+    "currentNextAbsent": true,
+    "currentRollbackAbsent": true,
+    "oldBinarySha256": "0cc43c8a77c12975a0fcbada65971f08f2bc3a52345d547ea194dd3ccd60d83f",
+    "envSha256": "854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252",
+    "unitSha256": "2e72cdad422a3a714c46d074ea97b725233576cf726dbbfd43e82e99c2c2975b",
+    "caddySha256": "dcf75a7aed315c54632321b8bb80e44c0abc22f6700fadfbfa9a7da21b88a282",
+    "service": {
+      "loadState": "loaded",
+      "activeState": "active",
+      "subState": "running",
+      "mainPid": 2241003,
+      "nRestarts": 0,
+      "user": "ynx",
+      "group": "ynx",
+      "workingDirectory": "/opt/ynx/finance-current"
+    },
+    "httpOldBaselineExact": true,
+    "journalClass": "SERVICE_OR_EXECUTOR_FAILURE",
+    "journalBytes": 1232,
+    "journalSha256": "e2e8fe8c77460cb2fb61f1218ac91281355a32a24c496d26145d2388e9f19219",
+    "productionSwitchOccurred": false,
+    "cleanupRequired": true
+  },
+  "truth": {
+    "inspectionComplete": true,
+    "remoteStateKnown": true,
+    "deploymentSucceeded": false,
+    "rollbackRequired": false,
+    "cleanupComplete": false,
+    "productionMutation": false
+  }
+}
