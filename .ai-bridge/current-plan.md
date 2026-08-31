@@ -2,8 +2,8 @@
 
 Status: `ACTIVE`
 Phase: `INTEGRATE`
-Engineering Source Commit: `6e2ddc50a6db83a526c81312d63d73d9fe3d6d60`
-Release Candidate: `ynx-data-fabric-6e2ddc50a6db`
+Engineering Source Commit: `c347eb46d6f496524a6ba4021bb9e4896df711ab`
+Release Candidate: `ynx-data-fabric-c347eb46d6f4`
 
 ## Completed and protected
 
@@ -32,7 +32,7 @@ Release Candidate: `ynx-data-fabric-6e2ddc50a6db`
 - Exact-source GitHub Actions run `33374309851` passed all six Data Fabric jobs for engineering source `c134290a4800a30c2f1f5a57523adf1daea34ad3` at binding head `f818ee876dbd7e20016f9363c09ef8e0a6fedeb3`, including complete Go/race/vet/release-truth, PostgreSQL live and failover, and reproducible-build gates.
 - The next source commit rejects a PostgreSQL DSN unless it is a secret `postgres://` or `postgresql://` URI with exactly `sslmode=verify-full`, before any database dial and without logging credentials. Database/backup at-rest encryption, KMS authority and certificate issuance remain runtime mapping obligations; remote CI is pending for this source.
 - The PostgreSQL live CI failure at the prior TLS source exposed a pre-existing mismatch: an erasure authority insert kept nanoseconds while the receipt and `timestamptz` readback use microseconds. The current source canonicalizes before both authority and receipt writes; the destructive live test passed on an ephemeral local PostgreSQL 17.10 container. Remote CI is pending for this source.
-- Wallet connectivity aggregation now accepts only transient decimal `6423` or hex `0x1917`, returns canonical `0x1917`, and persists only that canonical identity plus fixed-cardinality errorClass/retryable. Legacy `9102` and all other chains fail closed without raw error or identity retention; it remains outside standard Wallet connection control flow. Remote CI is pending for this source.
+- Wallet connectivity aggregation now accepts only transient decimal `6423` or hex `0x1917`, returns canonical `0x1917`, and persists only that canonical identity plus fixed-cardinality errorClass/retryable. The accepted producer/consumer fixture exercises both File Store and PostgreSQL `connection-diagnostics-v1` adapters, rejecting `9102`/`0x238e` and raw error/account/session fields before persistence. It remains outside standard Wallet connection control flow. Remote CI is pending for this source.
 - Central integration, shared Testnet, staging, public deployment, hosted download and production signing remain false without direct receipts.
 
 ## Current slice

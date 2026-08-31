@@ -23,7 +23,7 @@
     }
   },
   "releaseStatus": {
-    "release": "ynx-data-fabric-6e2ddc50a6db",
+    "release": "ynx-data-fabric-c347eb46d6f4",
     "channel": "testnet-preview",
     "implementedLocal": true,
     "testedLocal": true,

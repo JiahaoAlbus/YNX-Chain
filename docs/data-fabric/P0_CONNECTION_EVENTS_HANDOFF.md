@@ -43,6 +43,15 @@
 - Vectors cover all 26 canonical descriptors, reject unknown source codes without retaining their value, and reject a raw canonical code in an accepted event payload.
 - Local validation passed: `go test ./...`, `go test -race ./internal/datafabric ./internal/datafabricpostgres`, `go vet ./internal/datafabric ./internal/datafabricpostgres`, `npm test --prefix sdk/datafabric-typescript`, and `scripts/data-fabric/quality-gates.sh`.
 
+## Accepted 6423-only producer/consumer conformance — 2026-08-31
+
+- Implementation commit: `c347eb46d6f496524a6ba4021bb9e4896df711ab`.
+- Fixture: `schemas/data-fabric/wallet-connectivity-events-v1.accepted.conformance.vectors.json`; it retains the central acceptance commit and canonical Wallet error source as provenance, without copying Wallet behavior.
+- Both registered implementations of `connection-diagnostics-v1` are exercised: File Store and PostgreSQL. A `6423` producer input is normalized to persisted `0x1917`, commits only through the existing asynchronous Event/Outbox path, and reaches the Inbox-protected bounded aggregate effect.
+- `9102` and `0x238e` are rejected before either persistence implementation begins a write. Strict decode also rejects `rawError`, `developerMessage`, `accountId`, and `sessionId`; their values do not enter event, Outbox, Inbox, or diagnostic state.
+- Local validation passed: `jq empty schemas/data-fabric/wallet-connectivity-events-v1.accepted.conformance.vectors.json`, `go test ./internal/datafabric ./internal/datafabricpostgres -count=1`, and `go test -race ./internal/datafabric ./internal/datafabricpostgres -count=1`.
+- This adds no producer invocation, Wallet/Gateway call, deployment, account request, signature, transaction, public endpoint, or public-completion claim. P0-147 remains `WAITING_EXTERNAL_PUBLIC_ENDPOINT_UNBOUND`.
+
 ## Truth boundary and requested Integration action
 
 This is a committed local runtime-adapter checkpoint, not central deployment, public deployment, installed-product proof, Wallet integration proof, or Card E2E funding proof. `integratedCentral`, `deployedStaging`, `deployedPublic`, `downloadHosted`, `productionSigned`, and `storeReleased` remain false absent their own direct evidence.
