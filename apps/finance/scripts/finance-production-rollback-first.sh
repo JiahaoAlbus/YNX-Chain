@@ -116,6 +116,7 @@ tree_inventory(){
   ) | sha256sum | awk '{print $1}'
 }
 identity_tuple(){ stat -Lc '%d:%i:%u:%g:%a' "$1"; }
+physical_identity_tuple(){ stat -Lc '%d:%i' "$1"; }
 cleanup_owned_tree(){
   local path=$1 identity=$2 inventory=$3
   test -n "$identity" && test -d "$path" && test ! -L "$path" && test "$(identity_tuple "$path")" = "$identity" || return 74
@@ -269,13 +270,13 @@ arm_owned_phase_failure CANDIDATE_VERIFY pre_switch_cleanup
 candidate="$stage/$(basename "$release")"; test -x "$candidate/ynx-finance"; test "$(hash "$candidate/ynx-finance")" = "$binary_sha"; test "$(bytes "$candidate/ynx-finance")" = "$binary_bytes"; file "$candidate/ynx-finance" | grep -q 'ELF 64-bit.*x86-64'
 verify_local_assets "$candidate"; stage_inventory=$(tree_inventory "$stage")
 arm_owned_phase_failure RELEASE_MATERIALIZE pre_switch_cleanup
-mkdir -m "$release_container_mode" -- "$release_container"; release_container_created=true; release_container_preownership_identity=$(identity_tuple "$release_container")
+mkdir -m "$release_container_mode" -- "$release_container"; release_container_created=true; release_container_preownership_physical_identity=$(physical_identity_tuple "$release_container")
 if ! test -d "$release_container" || test -L "$release_container" || [[ "$(realpath -e "$release_container")" != "$release_container" ]] || [[ -n "$(find "$release_container" -mindepth 1 -print -quit)" ]]; then exit 74; fi
 chown "$release_container_uid:$release_container_gid" "$release_container"; chmod "$release_container_mode" "$release_container"
 if ! test -d "$release_container" || test -L "$release_container" || [[ "$(realpath -e "$release_container")" != "$release_container" ]] || [[ -n "$(find "$release_container" -mindepth 1 -print -quit)" ]]; then exit 74; fi
 release_container_empty_tuple=$(stat -Lc '%d:%i:%u:%g:%a:%h:%s:%F' "$release_container")
 release_container_identity_tuple=$(stat -Lc '%d:%i:%u:%g:%a' "$release_container")
-test "${release_container_identity_tuple%:*}" = "${release_container_preownership_identity%:*}"; test "$(stat -Lc '%u:%g:%a' "$release_container")" = "$release_container_uid:$release_container_gid:$release_container_mode"
+test "$(physical_identity_tuple "$release_container")" = "$release_container_preownership_physical_identity"; test "$(stat -Lc '%u:%g:%a' "$release_container")" = "$release_container_uid:$release_container_gid:$release_container_mode"
 release_tuple=$(stat -Lc '%d:%i:%u:%g:%a:%h:%s:%F' "$candidate"); release_inventory=$(tree_inventory "$candidate"); release_created=false
 mv "$candidate" "$release"; release_created=true
 test "$(stat -Lc '%d:%i:%u:%g:%a:%h:%s:%F' "$release")" = "$release_tuple"; test "$(tree_inventory "$release")" = "$release_inventory"

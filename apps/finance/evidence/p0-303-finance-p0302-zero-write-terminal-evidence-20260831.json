@@ -1,0 +1,9 @@
+{
+  "schemaVersion": "finance-p0303-zero-write-terminal-evidence@1",
+  "taskId": "P0-303",
+  "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0303_P0302_REMOTE_STATE_ZERO_WRITE_INSPECTION",
+  "central": {"commit": "8a15916604e8115c1bc13ebb21a5391a771bd505", "tree": "c0989b450183c51b530ad8e73bb2698e3b1266bf"},
+  "terminal": {"attempts": 1, "retry": false, "remoteExitStatus": 0, "mutationCount": 0, "stdout": {"bytes": 3990, "sha256": "d90759e066f1fde8c39dfe1265937f477542113c7b3d6328322a38f36bf7f976"}, "stderr": {"bytes": 0, "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}},
+  "directTruth": {"p0302Executor": "PRESENT_EXACT", "p0302SignedLease": "PRESENT_EXACT", "p0302DeploymentResidue": false, "currentTarget": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a", "state": "ABSENT", "service": "loaded:active:running:MainPID=2241003:NRestarts=0:User=ynx:Group=ynx", "httpPairsExact": true, "deploymentSucceeded": false},
+  "boundary": "P0-303 does not authorize deployment. It establishes that the P0-302 RELEASE_MATERIALIZE failure left no deployment residue and that a wholly new source/lease may correct the ownership identity fence after independent review."
+}

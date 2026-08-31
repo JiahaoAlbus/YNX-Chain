@@ -1,0 +1,21 @@
+{
+  "schemaVersion": "finance-source-test-results@1",
+  "scope": "P0-304 source-only RELEASE_MATERIALIZE ownership identity correction",
+  "results": {
+    "shellSyntax": "PASS",
+    "nodeSyntax": "PASS",
+    "productionActualShell": "PASS",
+    "opensshSerializedTransport": "PASS",
+    "stdinDeploymentBootstrap": "PASS",
+    "gnuTarMetadata": "BLOCKED_MISSING_IMMUTABLE_ARCHIVE",
+    "substitutionForeignStateFences": "PASS within production actual-shell fixture",
+    "json": "PENDING_REQUEST_FREEZE",
+    "diff": "PENDING_REQUEST_FREEZE"
+  },
+  "gnuTarMetadataBlocker": {
+    "requiredArchive": "/tmp/ynx-finance-7824af677dd0-linux-amd64-p0146.tar.gz",
+    "requiredSha256": "d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d",
+    "observation": "The immutable archive is absent from the local source worktree and searched available temporary/worktree paths. The metadata fixture failed before archive inspection; no replacement archive was generated."
+  },
+  "truth": {"sshExecuted": false, "deploymentExecuted": false, "productionMutation": false}
+}
