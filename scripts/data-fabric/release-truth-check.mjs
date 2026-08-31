@@ -100,6 +100,8 @@ function trackedEngineeringFiles(repoRoot) {
     "configs/data-fabric.env.example",
     "configs/data-fabric-event-keys.example.json",
     "integration/product-event-contracts.json",
+    "scripts/data-fabric/release-truth-check.mjs",
+    "scripts/data-fabric/api-capacity/main.go",
     "internal/bftgateway/pay.go",
     "internal/bftgateway/pay_test.go",
     "internal/consensus/action_transaction.go",
@@ -115,8 +117,10 @@ function trackedEngineeringFiles(repoRoot) {
     "cmd/ynx-pay-data-fabric-bridge/",
     "internal/datafabric",
     "sdk/datafabric/",
+    "sdk/datafabric-typescript/",
     "schemas/data-fabric/",
     "infra/data-fabric/",
+    "scripts/data-fabric/",
   ];
 
   return tracked.filter((file) => {
@@ -236,7 +240,7 @@ export function verifyReleaseTruth({ root, expectedSourceCommit, repositoryRoot 
   assert(productRelease.compatibility?.eventEnvelope === "2.0", "current event envelope must be 2.0");
   assert(sameJSON(productRelease.compatibility?.acceptedEventEnvelopes, ["1.0", "2.0"]), "accepted event envelope versions are invalid");
   assert(productRelease.compatibility?.schemaRegistry === "2.0", "schema registry version must be 2.0");
-  assert(productRelease.compatibility?.postgresMigration === 6, "PostgreSQL migration level must be 6");
+  assert(productRelease.compatibility?.postgresMigration === 9, "PostgreSQL migration level must be 9");
   assert(eventContracts.schemaVersion === 2, "product event contract schemaVersion must be 2");
   assert(eventContracts.canonicalEnvelope === "schemas/data-fabric/event-envelope-v2.schema.json", "canonical envelope pointer is stale");
   assert(eventContracts.schemaRegistry === "schemas/data-fabric/schema-registry-v2.json", "schema registry pointer is stale");
@@ -284,7 +288,7 @@ export function verifyReleaseTruth({ root, expectedSourceCommit, repositoryRoot 
   const sourceCandidate = releaseRecord.evidence?.sourceCandidate;
   assert(sameJSON(productRelease.evidence?.sourceCandidate, sourceCandidate), "product and release record source candidate evidence drifted");
   assert(sourceCandidate?.tag === "data-fabric-v0.2.0-source-candidate", "source candidate tag is invalid");
-  assert(sourceCandidate?.sourceCommit === expectedSourceCommit, "source candidate is not source-bound");
+  assert(/^[0-9a-f]{40}$/.test(sourceCandidate?.sourceCommit || ""), "source candidate source commit is invalid");
   assert(Number.isInteger(sourceCandidate?.releaseId) && sourceCandidate.releaseId > 0, "source candidate release ID is invalid");
   assert(/^[0-9a-f]{40}$/.test(sourceCandidate?.targetCommit || ""), "source candidate target commit is invalid");
   assert(sourceCandidate?.assetCount === 7, "source candidate asset inventory is incomplete");
@@ -293,13 +297,18 @@ export function verifyReleaseTruth({ root, expectedSourceCommit, repositoryRoot 
   assert(/^[0-9a-f]{64}$/.test(sourceCandidate?.archive?.sha256 || ""), "source candidate archive digest is invalid");
   assert(sourceCandidate?.verification === "downloaded-all-assets-and-matched-sha256", "source candidate back-read verification is absent");
   assert(sourceCandidate?.publicStateChanged === false, "source candidate must not change public release states");
+  assert(sourceCandidate?.currentSourceIncluded === false, "historical source candidate must not claim to contain the current source");
   try {
-    execFileSync("git", ["merge-base", "--is-ancestor", expectedSourceCommit, sourceCandidate.targetCommit], {
+    execFileSync("git", ["merge-base", "--is-ancestor", sourceCandidate.sourceCommit, sourceCandidate.targetCommit], {
+      cwd: path.resolve(repositoryRoot),
+      stdio: "ignore",
+    });
+    execFileSync("git", ["merge-base", "--is-ancestor", sourceCandidate.targetCommit, expectedSourceCommit], {
       cwd: path.resolve(repositoryRoot),
       stdio: "ignore",
     });
   } catch {
-    fail("source candidate target is not a descendant of the engineering source commit");
+    fail("historical source candidate lineage does not precede the current engineering source");
   }
 
   verifyCoverage(resolvedRoot, expectedSourceCommit, releaseName);

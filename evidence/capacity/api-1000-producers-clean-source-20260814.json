@@ -1,0 +1,38 @@
+{
+  "measuredAt": "2026-08-14T05:22:22.039738Z",
+  "sourceCommit": "59c60864ac433bdf474ce16f9199533907017deb",
+  "sourceRelease": "ynx-data-fabric-59c60864ac43",
+  "dirtyWorkingTree": false,
+  "goos": "darwin",
+  "goarch": "arm64",
+  "goVersion": "go1.25.13",
+  "cpuCount": 8,
+  "transport": "real-loopback-http",
+  "producers": 1000,
+  "simultaneousStart": true,
+  "producerConcurrencyLimit": 64,
+  "observedPeakServerInFlight": 64,
+  "succeeded": 1000,
+  "businessErrors": 0,
+  "requestAttempts": 16971,
+  "backpressureResponses": 15971,
+  "backpressureResponseRate": 0.9410759530964586,
+  "producerEndToEndLatency": {
+    "p50Milliseconds": 18715.501,
+    "p95Milliseconds": 39943.625,
+    "p99Milliseconds": 41917.306,
+    "maxMilliseconds": 42683.958
+  },
+  "committedEventsPerSecond": 23.366266931422825,
+  "transactionalOutboxQueueDepth": 1000,
+  "stateBytes": 1810846,
+  "storageBytesPerEvent": 1810.846,
+  "durationMilliseconds": 42796.737,
+  "limitations": [
+    "single local process and atomic JSON state-file rewrite",
+    "real loopback HTTP but no external network or TLS terminator",
+    "independent registered producer keys are deterministic test-only keys",
+    "transactional Outbox queue is measured before dispatch; no JetStream publication",
+    "no PostgreSQL, broker partition, database restart, consumer crash, long replay, RTO/RPO, availability, or public-scale claim"
+  ]
+}

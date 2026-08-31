@@ -5,6 +5,7 @@ cd "$(dirname "$0")/../.."
 
 node scripts/data-fabric/policy-scan.mjs runtime
 node scripts/data-fabric/policy-scan.mjs public
+npm test --prefix sdk/datafabric-typescript
 
 jq empty \
   schemas/data-fabric/*.json \
@@ -21,6 +22,7 @@ jq empty \
   infra/data-fabric/grafana-dashboard.json
 
 node scripts/data-fabric/evidence-path-check.mjs
+node scripts/data-fabric/verify-p0-147-public-runtime-lease-request.mjs
 node scripts/data-fabric/release-truth-check-check.mjs
 node scripts/data-fabric/policy-scan.mjs secret
 

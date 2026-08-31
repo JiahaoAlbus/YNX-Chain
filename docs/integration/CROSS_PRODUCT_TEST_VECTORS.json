@@ -1,160 +1,448 @@
 {
   "schemaVersion": 1,
   "productId": "ynx-data-fabric",
-  "sourceCommit": "84872ff9042ed9f4364645750bbfa2dc3475e80b",
+  "sourceCommit": "624ba818dcacd56dbcd0a606513210a06991cfca",
   "eventEnvelopeVersion": "2.0",
-  "generatedAt": "2026-07-29T20:25:09Z",
+  "generatedAt": "2026-08-31T10:38:26Z",
   "vectors": [
     {
       "id": "DF-XP-001",
       "class": "pay-happy-path",
-      "owners": ["YNX Pay", "YNX Data Fabric"],
-      "preconditions": ["authoritative BFT Pay source", "registered Pay signing key", "empty target aggregate"],
-      "input": ["pay.invoice.created", "pay.invoice.authorized", "pay.receipt.issued"],
-      "expected": ["strict v2 envelopes", "ordered sequences", "completed Pay Saga", "balanced merchant receipt Ledger entry", "audit correlation preserved"],
+      "owners": [
+        "YNX Pay",
+        "YNX Data Fabric"
+      ],
+      "preconditions": [
+        "authoritative BFT Pay source",
+        "registered Pay signing key",
+        "empty target aggregate"
+      ],
+      "input": [
+        "pay.invoice.created",
+        "pay.invoice.authorized",
+        "pay.receipt.issued"
+      ],
+      "expected": [
+        "strict v2 envelopes",
+        "ordered sequences",
+        "completed Pay Saga",
+        "balanced merchant receipt Ledger entry",
+        "audit correlation preserved"
+      ],
       "compensation": "not invoked",
       "status": "testedLocal",
-      "evidence": ["internal/datafabricpay/bridge_test.go", "internal/datafabricpayledger/processor_test.go", "internal/bftgateway/pay_test.go"]
+      "evidence": [
+        "internal/datafabricpay/bridge_test.go",
+        "internal/datafabricpayledger/processor_test.go",
+        "internal/bftgateway/pay_test.go"
+      ]
     },
     {
       "id": "DF-XP-002",
       "class": "pay-refund-correction",
-      "owners": ["YNX Pay", "YNX Data Fabric"],
-      "preconditions": ["recognized Pay receipt", "authoritative refund completion"],
-      "input": ["pay.refund.completed partial", "pay.refund.completed full"],
-      "expected": ["new reversal or adjustment entries", "no historical overwrite", "per-currency balance preserved", "duplicate refund rejected or idempotently acknowledged"],
+      "owners": [
+        "YNX Pay",
+        "YNX Data Fabric"
+      ],
+      "preconditions": [
+        "recognized Pay receipt",
+        "authoritative refund completion"
+      ],
+      "input": [
+        "pay.refund.completed partial",
+        "pay.refund.completed full"
+      ],
+      "expected": [
+        "new reversal or adjustment entries",
+        "no historical overwrite",
+        "per-currency balance preserved",
+        "duplicate refund rejected or idempotently acknowledged"
+      ],
       "compensation": "manual review only for contradictory authoritative facts",
       "status": "testedLocal",
-      "evidence": ["internal/datafabricpayledger/processor_test.go", "internal/datafabricapi/server_test.go"]
+      "evidence": [
+        "internal/datafabricpayledger/processor_test.go",
+        "internal/datafabricapi/server_test.go"
+      ]
     },
     {
       "id": "DF-XP-003",
       "class": "duplicate",
-      "owners": ["producer owner", "YNX Data Fabric"],
-      "preconditions": ["first event already committed"],
-      "input": ["same eventId and idempotencyKey delivered again"],
-      "expected": ["acknowledge without reapplying effect", "Inbox remains single-effect", "Ledger unchanged", "duplicate metric increments"],
+      "owners": [
+        "producer owner",
+        "YNX Data Fabric"
+      ],
+      "preconditions": [
+        "first event already committed"
+      ],
+      "input": [
+        "same eventId and idempotencyKey delivered again"
+      ],
+      "expected": [
+        "acknowledge without reapplying effect",
+        "Inbox remains single-effect",
+        "Ledger unchanged",
+        "duplicate metric increments"
+      ],
       "compensation": "none",
       "status": "testedLocal",
-      "evidence": ["internal/datafabric/datafabric_test.go", "internal/datafabricnats/broker_test.go"]
+      "evidence": [
+        "internal/datafabric/datafabric_test.go",
+        "internal/datafabricnats/broker_test.go"
+      ]
     },
     {
       "id": "DF-XP-004",
       "class": "out-of-order",
-      "owners": ["producer owner", "YNX Data Fabric"],
-      "preconditions": ["aggregate sequence 1 committed"],
-      "input": ["sequence 3 before sequence 2"],
-      "expected": ["sequence 3 rejected for ordered aggregate", "retry after gap", "sequence 2 accepted", "sequence 3 accepted only after gap closes"],
+      "owners": [
+        "producer owner",
+        "YNX Data Fabric"
+      ],
+      "preconditions": [
+        "aggregate sequence 1 committed"
+      ],
+      "input": [
+        "sequence 3 before sequence 2"
+      ],
+      "expected": [
+        "sequence 3 rejected for ordered aggregate",
+        "retry after gap",
+        "sequence 2 accepted",
+        "sequence 3 accepted only after gap closes"
+      ],
       "compensation": "dead-letter and manual recovery after retry exhaustion",
       "status": "testedLocal",
-      "evidence": ["internal/datafabric/datafabric_test.go", "internal/datafabric/dispatcher_test.go"]
+      "evidence": [
+        "internal/datafabric/datafabric_test.go",
+        "internal/datafabric/dispatcher_test.go"
+      ]
     },
     {
       "id": "DF-XP-005",
       "class": "tamper",
-      "owners": ["producer owner", "YNX Data Fabric", "Security/SRE"],
-      "preconditions": ["valid signed envelope captured"],
-      "input": ["modify payload, actor, partition, integrityHash or signature"],
-      "expected": ["reject", "quarantine", "alert", "no Outbox or Ledger mutation"],
+      "owners": [
+        "producer owner",
+        "YNX Data Fabric",
+        "Security/SRE"
+      ],
+      "preconditions": [
+        "valid signed envelope captured"
+      ],
+      "input": [
+        "modify payload, actor, partition, integrityHash or signature"
+      ],
+      "expected": [
+        "reject",
+        "quarantine",
+        "alert",
+        "no Outbox or Ledger mutation"
+      ],
       "compensation": "producer reissues a new valid event after incident review",
       "status": "testedLocal",
-      "evidence": ["internal/datafabric/envelope_v2_test.go", "internal/datafabric/datafabric_test.go", "internal/datafabricpay/bridge_test.go"]
+      "evidence": [
+        "internal/datafabric/envelope_v2_test.go",
+        "internal/datafabric/datafabric_test.go",
+        "internal/datafabricpay/bridge_test.go"
+      ]
     },
     {
       "id": "DF-XP-006",
       "class": "auth-replay-and-scope",
-      "owners": ["YNX Wallet/Auth", "YNX App Gateway", "YNX Data Fabric"],
-      "preconditions": ["canonical product session and signed request tuple"],
-      "input": ["replay nonce", "wrong product", "wrong bundle", "wrong device", "scope widening", "expired or revoked session"],
-      "expected": ["fail closed", "no upstream mutation", "structured audit error"],
+      "owners": [
+        "YNX Wallet/Auth",
+        "YNX App Gateway",
+        "YNX Data Fabric"
+      ],
+      "preconditions": [
+        "canonical product session and signed request tuple"
+      ],
+      "input": [
+        "replay nonce",
+        "wrong product",
+        "wrong bundle",
+        "wrong device",
+        "scope widening",
+        "expired or revoked session"
+      ],
+      "expected": [
+        "fail closed",
+        "no upstream mutation",
+        "structured audit error"
+      ],
       "compensation": "obtain a fresh authorized session and intent",
       "status": "testedLocal",
-      "evidence": ["internal/datafabricapi/server_test.go"]
+      "evidence": [
+        "internal/datafabricapi/server_test.go"
+      ]
+    },
+    {
+      "id": "DF-XP-017",
+      "class": "same-product-account-isolation",
+      "owners": [
+        "YNX Wallet/Auth",
+        "YNX App Gateway",
+        "YNX Data Fabric"
+      ],
+      "preconditions": [
+        "two active canonical accounts in the same product",
+        "each account has an authoritative event and derived Ledger or Saga state"
+      ],
+      "input": [
+        "account A lists product events, journal, billing settlements and reconciliation",
+        "account A reads or mutates account B event, journal, billing, Saga or reconciliation coordinates",
+        "100 canonical account sessions read concurrently"
+      ],
+      "expected": [
+        "ordinary reads return only the canonical account records",
+        "cross-account mutations reject before state change",
+        "Saga ownership is derived from matching authoritative event coordinates",
+        "all 100 local concurrent sessions observe exactly their own event",
+        "fabric.audit.export remains explicitly product-wide and privilege-scoped"
+      ],
+      "compensation": "none; obtain the correct canonical account session or use a separately authorized privileged operator scope",
+      "status": "testedLocal",
+      "evidence": [
+        "internal/datafabricapi/account_isolation_test.go",
+        "internal/datafabricapi/auth.go",
+        "internal/datafabricapi/server.go"
+      ]
     },
     {
       "id": "DF-XP-007",
       "class": "consumer-crash",
-      "owners": ["YNX Data Fabric", "consumer owner"],
-      "preconditions": ["message delivered", "consumer effect transaction open"],
-      "input": ["crash before commit", "crash after atomic effect and Inbox commit but before broker acknowledgement"],
-      "expected": ["before-commit redelivery applies once", "after-commit redelivery observes Inbox and does not reapply"],
+      "owners": [
+        "YNX Data Fabric",
+        "consumer owner"
+      ],
+      "preconditions": [
+        "message delivered",
+        "consumer effect transaction open"
+      ],
+      "input": [
+        "crash before commit",
+        "crash after atomic effect and Inbox commit but before broker acknowledgement"
+      ],
+      "expected": [
+        "before-commit redelivery applies once",
+        "after-commit redelivery observes Inbox and does not reapply"
+      ],
       "compensation": "leased redelivery or DLQ recovery",
       "status": "testedLocal",
-      "evidence": ["internal/datafabricnats/broker_test.go", "internal/datafabricpostgres/live_integration_test.go"]
+      "evidence": [
+        "internal/datafabricnats/broker_test.go",
+        "internal/datafabricpostgres/live_integration_test.go",
+        "internal/datafabricnats/postgres_process_crash_live_test.go",
+        "evidence/postgres/consumer-process-crash-clean-source-20260814.json",
+        "GitHub Actions run 31797308684 PostgreSQL job"
+      ]
     },
     {
       "id": "DF-XP-008",
       "class": "broker-outage",
-      "owners": ["YNX Data Fabric", "Security/SRE"],
-      "preconditions": ["transactional Outbox committed"],
-      "input": ["JetStream unavailable during dispatch"],
-      "expected": ["business commit remains durable", "Outbox remains pending", "bounded retry and backoff", "DLQ only after policy exhaustion", "no false completion"],
+      "owners": [
+        "YNX Data Fabric",
+        "Security/SRE"
+      ],
+      "preconditions": [
+        "transactional Outbox committed"
+      ],
+      "input": [
+        "JetStream unavailable during dispatch"
+      ],
+      "expected": [
+        "business commit remains durable",
+        "Outbox remains pending",
+        "bounded retry and backoff",
+        "DLQ only after policy exhaustion",
+        "no false completion"
+      ],
       "compensation": "resume dispatcher or operator-approved replay",
       "status": "testedLocal",
-      "evidence": ["internal/datafabric/dispatcher_test.go", "internal/datafabricnats/broker_test.go"]
+      "evidence": [
+        "internal/datafabric/dispatcher_test.go",
+        "internal/datafabricnats/broker_test.go"
+      ]
     },
     {
       "id": "DF-XP-009",
       "class": "saga-timeout-compensation",
-      "owners": ["product owner", "YNX Data Fabric"],
-      "preconditions": ["Saga started with deadline", "at least one completed reversible step"],
-      "input": ["next step times out", "recovery worker claims task"],
-      "expected": ["user-visible recovery state", "compensation task leased once", "stale lease rejected", "compensation event audited", "terminal state explicit"],
+      "owners": [
+        "product owner",
+        "YNX Data Fabric"
+      ],
+      "preconditions": [
+        "Saga started with deadline",
+        "at least one completed reversible step"
+      ],
+      "input": [
+        "next step times out",
+        "recovery worker claims task"
+      ],
+      "expected": [
+        "user-visible recovery state",
+        "compensation task leased once",
+        "stale lease rejected",
+        "compensation event audited",
+        "terminal state explicit"
+      ],
       "compensation": "product-defined inverse action or manual recovery",
       "status": "testedLocal",
-      "evidence": ["internal/datafabric/saga_test.go", "internal/datafabricpostgres/repository_contract_test.go"]
+      "evidence": [
+        "internal/datafabric/saga_test.go",
+        "internal/datafabricpostgres/repository_contract_test.go"
+      ]
     },
     {
       "id": "DF-XP-010",
       "class": "ledger-imbalance",
-      "owners": ["product owner", "YNX Data Fabric"],
-      "preconditions": ["journal proposal supplied"],
-      "input": ["debits do not equal credits", "currency mismatch", "contradictory duplicate event"],
-      "expected": ["reject before append", "no partial postings", "audit error preserves correlation"],
+      "owners": [
+        "product owner",
+        "YNX Data Fabric"
+      ],
+      "preconditions": [
+        "journal proposal supplied"
+      ],
+      "input": [
+        "debits do not equal credits",
+        "currency mismatch",
+        "contradictory duplicate event"
+      ],
+      "expected": [
+        "reject before append",
+        "no partial postings",
+        "audit error preserves correlation"
+      ],
       "compensation": "submit a new corrected balanced entry",
       "status": "testedLocal",
-      "evidence": ["internal/datafabric/ledger_test.go", "internal/datafabricpayledger/processor_test.go"]
+      "evidence": [
+        "internal/datafabric/ledger_test.go",
+        "internal/datafabricpayledger/processor_test.go"
+      ]
     },
     {
       "id": "DF-XP-011",
       "class": "schema-upgrade",
-      "owners": ["producer owner", "YNX Data Fabric", "YNX Integration"],
-      "preconditions": ["v1 producer active", "v2 registry frozen"],
-      "input": ["v1 accepted event", "v2 promoted event", "unknown 3.0 event", "unknown field"],
-      "expected": ["v1 remains readable in migration window", "v2 current fields enforced", "3.0 rejected and dead-lettered", "unknown field rejected"],
+      "owners": [
+        "producer owner",
+        "YNX Data Fabric",
+        "YNX Integration"
+      ],
+      "preconditions": [
+        "v1 producer active",
+        "v2 registry frozen"
+      ],
+      "input": [
+        "v1 accepted event",
+        "v2 promoted event",
+        "unknown 3.0 event",
+        "unknown field"
+      ],
+      "expected": [
+        "v1 remains readable in migration window",
+        "v2 current fields enforced",
+        "3.0 rejected and dead-lettered",
+        "unknown field rejected"
+      ],
       "compensation": "producer migrates and reissues under a registered version",
       "status": "testedLocal",
-      "evidence": ["internal/datafabric/envelope_v2_test.go", "internal/datafabric/schema_registry_test.go", "internal/datafabric/event_schema_artifact_test.go"]
+      "evidence": [
+        "internal/datafabric/envelope_v2_test.go",
+        "internal/datafabric/schema_registry_test.go",
+        "internal/datafabric/event_schema_artifact_test.go"
+      ]
     },
     {
       "id": "DF-XP-012",
       "class": "backup-restore-integrity",
-      "owners": ["YNX Data Fabric", "Security/SRE"],
-      "preconditions": ["events, Inbox, Outbox, Sagas and Ledger rows exist"],
-      "input": ["logical backup", "empty-target restore", "tampered backup", "non-empty target restore"],
-      "expected": ["manifest hashes verify", "Ledger remains balanced", "Event integrity verifies", "tamper fails", "non-empty target fails closed"],
+      "owners": [
+        "YNX Data Fabric",
+        "Security/SRE"
+      ],
+      "preconditions": [
+        "events, Inbox, Outbox, Sagas and Ledger rows exist"
+      ],
+      "input": [
+        "logical backup",
+        "empty-target restore",
+        "tampered backup",
+        "non-empty target restore"
+      ],
+      "expected": [
+        "manifest hashes verify",
+        "Ledger remains balanced",
+        "Event integrity verifies",
+        "tamper fails",
+        "non-empty target fails closed"
+      ],
       "compensation": "select a verified immutable backup and rerun restore",
       "status": "testedLocal",
-      "evidence": ["internal/datafabricbackup/backup_test.go", "internal/datafabricpgbackup/backup_test.go", "internal/datafabricpostgres/live_integration_test.go"]
+      "evidence": [
+        "internal/datafabricbackup/backup_test.go",
+        "internal/datafabricpgbackup/backup_test.go",
+        "internal/datafabricpostgres/live_integration_test.go"
+      ]
     },
     {
       "id": "DF-XP-013",
       "class": "privacy-export-delete",
-      "owners": ["product owner", "YNX Data Fabric", "Privacy"],
-      "preconditions": ["authorized subject request", "mixed operational, financial and analytics records"],
-      "input": ["scoped export", "erasure request", "legal-hold record", "private Mail or Social payload attempt"],
-      "expected": ["authorized scoped export", "eligible data removed or suppressed", "financial and legal-hold records retained with reason", "private raw content rejected from general analytics"],
+      "owners": [
+        "product owner",
+        "YNX Data Fabric",
+        "Privacy"
+      ],
+      "preconditions": [
+        "authorized subject request",
+        "mixed operational, financial and analytics records"
+      ],
+      "input": [
+        "scoped export",
+        "erasure request",
+        "legal-hold record",
+        "private Mail or Social payload attempt"
+      ],
+      "expected": [
+        "authorized scoped export",
+        "eligible data removed or suppressed",
+        "financial and legal-hold records retained with reason",
+        "private raw content rejected from general analytics"
+      ],
       "compensation": "manual privacy review for disputed retention",
       "status": "testedLocal",
-      "evidence": ["internal/datafabric/privacy_test.go", "internal/datafabricpostgres/live_integration_test.go"]
+      "evidence": [
+        "internal/datafabric/privacy_test.go",
+        "internal/datafabricpostgres/live_integration_test.go"
+      ]
     },
     {
       "id": "DF-XP-014",
       "class": "shared-testnet-pay",
-      "owners": ["YNX Pay", "YNX Chain Core", "YNX Wallet/Auth", "YNX Data Fabric", "YNX Integration"],
-      "preconditions": ["accepted endpoints", "real Testnet wallet approval", "durable broker and database", "registered producer key"],
-      "input": ["create and authorize invoice", "finalize settlement", "issue receipt", "complete refund", "observe chain and Pay sources"],
-      "expected": ["one correlated event stream", "Saga status visible", "balanced Ledger", "Pay and chain reconciliation match", "Explorer, Monitor and Trust evidence linked"],
+      "owners": [
+        "YNX Pay",
+        "YNX Chain Core",
+        "YNX Wallet/Auth",
+        "YNX Data Fabric",
+        "YNX Integration"
+      ],
+      "preconditions": [
+        "accepted endpoints",
+        "real Testnet wallet approval",
+        "durable broker and database",
+        "registered producer key"
+      ],
+      "input": [
+        "create and authorize invoice",
+        "finalize settlement",
+        "issue receipt",
+        "complete refund",
+        "observe chain and Pay sources"
+      ],
+      "expected": [
+        "one correlated event stream",
+        "Saga status visible",
+        "balanced Ledger",
+        "Pay and chain reconciliation match",
+        "Explorer, Monitor and Trust evidence linked"
+      ],
       "compensation": "void authorization or record refund and manual recovery according to authoritative state",
       "status": "notStarted",
       "evidence": []
@@ -162,13 +450,310 @@
     {
       "id": "DF-XP-015",
       "class": "public-release-boundary",
-      "owners": ["YNX Data Fabric", "Security/SRE", "YNX Website"],
-      "preconditions": ["approved release", "verified Linux cold-start evidence", "approved secure signer", "immutable HTTPS uploader"],
-      "input": ["sign release index and provenance", "upload exact object inventory", "HTTPS back-read all objects", "attempt modified or extra object"],
-      "expected": ["valid inventory promoted", "signature verified", "hosted hashes and bytes match", "modified, missing or extra object fails", "public metadata updated only after receipts"],
+      "owners": [
+        "YNX Data Fabric",
+        "Security/SRE",
+        "YNX Website"
+      ],
+      "preconditions": [
+        "approved release",
+        "verified Linux cold-start evidence",
+        "approved secure signer",
+        "immutable HTTPS uploader"
+      ],
+      "input": [
+        "sign release index and provenance",
+        "upload exact object inventory",
+        "HTTPS back-read all objects",
+        "attempt modified or extra object"
+      ],
+      "expected": [
+        "valid inventory promoted",
+        "signature verified",
+        "hosted hashes and bytes match",
+        "modified, missing or extra object fails",
+        "public metadata updated only after receipts"
+      ],
       "compensation": "revoke candidate and leave all public states false",
       "status": "testedLocalFixtureOnly",
-      "evidence": ["scripts/data-fabric/public-release-promotion-check.sh", "scripts/data-fabric/promote-public-release.sh"]
+      "evidence": [
+        "scripts/data-fabric/public-release-promotion-check.sh",
+        "scripts/data-fabric/promote-public-release.sh"
+      ]
+    },
+    {
+      "id": "DF-XP-016",
+      "class": "chain-commitment-reference-fail-closed",
+      "owners": [
+        "YNX Chain Core",
+        "YNX Data Fabric",
+        "producer owner"
+      ],
+      "preconditions": [
+        "Envelope v2 event is signed",
+        "optional chainCommitmentId is a 32-character lowercase hexadecimal external reference",
+        "Chain Core contract v1.35.0 implementation 6f380265c7d3cc055984e33082f877b4e75303d5 and contract commit 144bc1a354ba390c0ae4e17a93597f799e57c3d6",
+        "Chain Core v35 local delivery bundle SHA-256 340d7572eee0a36b2cb9b0402abd36ad9ff7d206a56ad92d0db22728e7af607f is verified",
+        "Bulk Data Commitment semantics are unchanged from v21; v35 only adds Strategy Vault custody invariants requiring owner-mandate equality and zero YNXT balance at closure"
+      ],
+      "input": [
+        "exact committed read",
+        "missing verifier",
+        "Chain Core 5xx",
+        "failure=true or coverage=none",
+        "mismatched commitment ID",
+        "v1 or malformed reference",
+        "tampered signed event"
+      ],
+      "expected": [
+        "accept only source ynx-consensus-abci version abci-state-v14 coverage exact failure false with the same ID",
+        "reject unavailable or contradictory evidence before Event Store mutation",
+        "verify event HMAC before external lookup",
+        "never derive commitment IDs or accept a client owner for Chain Core mutation",
+        "never put raw content, recipient lists, access tokens or encryption keys on-chain"
+      ],
+      "compensation": "resolve the exact commitment read or reissue a correctly signed Envelope v2 event; never create a new chain version blindly",
+      "status": "testedLocal",
+      "evidence": [
+        "internal/datafabric/chain_commitment_test.go",
+        "internal/datafabricapi/chain_commitment_test.go",
+        "schemas/data-fabric/event-envelope-v2.schema.json",
+        "sdk/datafabric-typescript/tests/sdk.test.mjs"
+      ]
+    },
+    {
+      "id": "DF-XP-018",
+      "class": "1000-producer-backpressure",
+      "owners": [
+        "producer owners",
+        "YNX Data Fabric",
+        "Security/SRE"
+      ],
+      "preconditions": [
+        "1000 independent test-only producer keys registered",
+        "real local HTTP server and file Store",
+        "producer concurrency gate set to 64",
+        "clean committed engineering source"
+      ],
+      "input": [
+        "1000 producer clients released from one start barrier",
+        "signed v2 capacity event per producer",
+        "bounded retry of only 429 producer_backpressure responses while preserving the same nonce"
+      ],
+      "expected": [
+        "1000 committed events and 1000 pending transactional Outbox records",
+        "zero business errors",
+        "observed server in-flight never exceeds 64",
+        "backpressured nonce remains retryable",
+        "p50 p95 p99 throughput queue depth and storage growth recorded",
+        "local file Store limitations remain explicit"
+      ],
+      "compensation": "clients honor Retry-After with bounded jitter; operators lower admitted concurrency or scale the PostgreSQL and JetStream path based on production-shaped evidence",
+      "status": "testedLocal",
+      "evidence": [
+        "internal/datafabricapi/producer_backpressure_test.go",
+        "scripts/data-fabric/api-capacity/main.go",
+        "evidence/capacity/api-1000-producers-clean-source-20260814.json",
+        "evidence/capacity/api-1000-producers-postgres-jetstream-clean-source-20260814.json",
+        "GitHub Actions run 31797308684 PostgreSQL job"
+      ]
+    },
+    {
+      "id": "DF-XP-019",
+      "class": "postgres-hotspot-duplicate-restart-long-replay",
+      "owners": [
+        "YNX Data Fabric",
+        "Security/SRE"
+      ],
+      "preconditions": [
+        "isolated PostgreSQL 17.10 database",
+        "exact PR-head source checkout",
+        "10000 signed canonical events",
+        "90 percent of events assigned in order to one aggregate",
+        "test-only HMAC and privacy keys"
+      ],
+      "input": [
+        "concurrent hotspot and cold-partition append",
+        "1000 duplicate writes released from one barrier",
+        "real PostgreSQL service-container restart",
+        "post-restart full integrity audit",
+        "10000-event Analytics replay followed by identical replay"
+      ],
+      "expected": [
+        "all 10000 canonical events and Outbox rows survive",
+        "all 1000 duplicate attempts reject and create no extra event",
+        "RPO is zero committed events",
+        "connection and integrity RTO recorded",
+        "first replay applies 10000 effects",
+        "second replay applies zero and skips 10000 through Inbox idempotency",
+        "latency throughput queue depth database bytes and per-event storage recorded"
+      ],
+      "compensation": "remain fail closed on unavailable database or failed integrity; preserve the Outbox and retry only after the exact database authority recovers",
+      "status": "testedLocal",
+      "evidence": [
+        "scripts/data-fabric/postgres-resilience/main.go",
+        "scripts/data-fabric/postgres-resilience/main_test.go",
+        "evidence/postgres/resilience-seed-clean-source-20260814.json",
+        "evidence/postgres/resilience-verify-clean-source-20260814.json",
+        "GitHub Actions run 31797308684 PostgreSQL job"
+      ]
+    },
+    {
+      "id": "DF-XP-020",
+      "class": "jetstream-capacity-backpressure",
+      "owners": [
+        "YNX Data Fabric",
+        "Security/SRE"
+      ],
+      "preconditions": [
+        "isolated PostgreSQL 17.10 database",
+        "256 committed canonical events and transactional Outbox rows",
+        "file-backed embedded JetStream constrained to 64 KiB with DiscardNew"
+      ],
+      "input": [
+        "dispatch all 256 Outbox rows against constrained capacity",
+        "retain rejected publications",
+        "explicitly expand stream capacity to 8 MiB",
+        "retry retained Outbox rows after bounded backoff"
+      ],
+      "expected": [
+        "some publications receive acknowledgements and some reject under pressure",
+        "every rejected event remains pending in PostgreSQL",
+        "no pressure rejection enters DLQ after one attempt",
+        "capacity expansion drains every retained row",
+        "final stream has exactly 256 messages with no duplicate",
+        "final Outbox and DLQ depth are zero"
+      ],
+      "compensation": "operators expand or restore broker capacity, then allow bounded Outbox retry; never mark an event published without a JetStream acknowledgement",
+      "status": "testedLocal",
+      "evidence": [
+        "internal/datafabricnats/postgres_process_crash_live_test.go",
+        "evidence/postgres/transport-backpressure-clean-source-20260814.json",
+        "GitHub Actions run 31797308684 PostgreSQL job"
+      ]
+    },
+    {
+      "id": "DF-XP-021",
+      "class": "jetstream-three-replica-stream-leader-loss",
+      "owners": [
+        "YNX Data Fabric",
+        "Security/SRE"
+      ],
+      "preconditions": [
+        "three independent embedded NATS server processes form one JetStream cluster on loopback",
+        "YNX_EVENTS uses file storage and replicas=3",
+        "128 canonical events and transactional Outbox rows exist",
+        "exact clean PR-head source checkout"
+      ],
+      "input": [
+        "publish 64 events with server acknowledgements",
+        "stop the current stream-leader process",
+        "wait for a different stream leader",
+        "publish the remaining 64 Outbox rows",
+        "restart the stopped server with its original file store",
+        "wait for all three replicas to report current"
+      ],
+      "expected": [
+        "stream leader changes",
+        "all 64 post-loss events receive acknowledgements",
+        "final Outbox depth is zero",
+        "final stream has exactly 128 messages and zero duplicates",
+        "all three replicas become current",
+        "leader-election and restarted-replica catch-up RTO are recorded"
+      ],
+      "compensation": "retain every unacknowledged Outbox row and retry only after quorum and a writable stream leader recover; never infer publication from client send alone",
+      "status": "testedLocal",
+      "evidence": [
+        "internal/datafabricnats/cluster_leader_loss_test.go",
+        "evidence/postgres/jetstream-cluster-leader-loss-clean-source-20260814.json",
+        "GitHub Actions run 31797308684 PostgreSQL job"
+      ]
+    },
+    {
+      "id": "DF-XP-022",
+      "class": "jetstream-three-replica-tcp-route-partition-and-heal",
+      "owners": [
+        "YNX Data Fabric",
+        "Security/SRE"
+      ],
+      "preconditions": [
+        "three live embedded NATS server processes form one file-backed JetStream cluster on loopback",
+        "every explicit and gossiped route uses an advertised per-node TCP fault proxy",
+        "YNX_EVENTS uses replicas=3",
+        "192 canonical events and transactional Outbox rows exist"
+      ],
+      "input": [
+        "publish 64 events with server acknowledgements",
+        "bidirectionally isolate the current stream leader at every route proxy without stopping its process",
+        "attempt one isolated-side publication and require timeout or rejection",
+        "publish 64 retained rows through the surviving quorum",
+        "heal the route proxies and wait for all three replicas to become current",
+        "publish the final 64 rows"
+      ],
+      "expected": [
+        "isolated server has zero routes while all three processes remain running",
+        "isolated-side publication fails closed and its Outbox row remains pending",
+        "surviving two-node quorum changes leader and acknowledges 64 events",
+        "during partition exactly two replicas are current",
+        "after healing all three replicas are current",
+        "final Outbox depth is zero and stream contains exactly 192 messages with zero duplicates",
+        "partition failover and healing RTO are recorded"
+      ],
+      "compensation": "retain every unacknowledged Outbox row; heal transport and retry through a confirmed writable quorum without treating client send as publication",
+      "status": "testedExactSourceLinuxCI",
+      "evidence": [
+        "internal/datafabricnats/cluster_partition_test.go",
+        ".github/workflows/data-fabric.yml",
+        "GitHub Actions run 31811137802 PostgreSQL job"
+      ],
+      "limitations": [
+        "one CI host and loopback transport",
+        "one bounded partition cycle",
+        "not packet loss, cross-zone WAN, simultaneous quorum loss, sustained load, shared Testnet or public availability evidence"
+      ]
+    },
+    {
+      "id": "DF-XP-023",
+      "class": "postgres-streaming-standby-manual-promotion",
+      "owners": [
+        "YNX Data Fabric",
+        "Security/SRE"
+      ],
+      "preconditions": [
+        "one PostgreSQL 17 primary and one asynchronous streaming standby run on an isolated Docker network",
+        "standby is in recovery and transaction_read_only is true",
+        "1000 canonical events and Outbox rows plus 100 duplicate rejects exist on the primary",
+        "standby replay LSN is at or beyond the primary flush LSN before failure"
+      ],
+      "input": [
+        "record the primary flush and standby replay LSNs",
+        "stop the primary container",
+        "manually promote the caught-up standby with pg_promote",
+        "connect Data Fabric to the promoted endpoint",
+        "audit canonical event integrity and all repository invariants",
+        "apply a 1000-event Analytics replay and repeat it idempotently"
+      ],
+      "expected": [
+        "the old primary remains stopped during verification",
+        "the promoted standby is writable",
+        "canonical-event RPO is zero for the bounded caught-up run",
+        "all 1000 events and pending Outbox rows survive",
+        "integrity audit passes",
+        "first replay applies 1000 Inbox/Analytics effects and second replay skips all 1000",
+        "connection and integrity-ready RTO are recorded"
+      ],
+      "compensation": "fence the old primary, promote only a verified caught-up standby, reconnect through an operator-controlled endpoint and keep writes unavailable until the new primary passes integrity checks",
+      "status": "testedLocalDirtyPendingExactSourceCI",
+      "evidence": [
+        "scripts/data-fabric/postgres-replica-failover.sh",
+        "scripts/data-fabric/postgres-resilience/main.go",
+        ".github/workflows/data-fabric.yml"
+      ],
+      "limitations": [
+        "manual promotion on one Docker host",
+        "asynchronous replication is accepted only after explicit pre-failure LSN catch-up",
+        "no automatic endpoint failover, fencing automation, synchronous quorum, cross-zone loss, regional disaster recovery, sustained load, shared Testnet or public availability claim"
+      ]
     }
   ]
 }

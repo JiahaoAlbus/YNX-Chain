@@ -461,13 +461,17 @@ func TestPostgresErasureCountsAndSuppressionRecordCommitTogether(t *testing.T) {
 	connection.envelope, _ = json.Marshal(event)
 	now := time.Now().UTC()
 	record, err := store.RecordErasure(context.Background(), event.Actor.AccountID, "audit.erase.0001", postgresTestKey, now)
-	if err != nil || record.Financial != 1 || record.Operational != 0 {
+	if err != nil || record.Financial != 1 || record.Operational != 0 || record.DerivedAnalyticsDeleted != 1 || len(record.DeletionReceipt) != 64 {
 		t.Fatalf("erasure record failed: record=%+v err=%v", record, err)
 	}
 	connection.mu.Lock()
 	defer connection.mu.Unlock()
-	if !connection.committed || len(connection.execs) != 2 || !strings.Contains(connection.execs[0], "erasure_requests") || !strings.Contains(connection.execs[1], "ynx_analytics.event_facts") {
+	if !connection.committed || len(connection.execs) != 3 || !strings.Contains(connection.execs[0], "erasure_requests") || !strings.Contains(connection.execs[1], "ynx_analytics.event_facts") || !strings.Contains(connection.execs[2], "erasure_deletion_receipts") {
 		t.Fatalf("erasure suppression record was not committed: %+v", connection)
+	}
+	authorityTime, ok := connection.execArguments[0][2].Value.(time.Time)
+	if !ok || !authorityTime.Equal(now.Truncate(time.Microsecond)) || !authorityTime.Equal(record.RequestedAt) {
+		t.Fatalf("erasure authority timestamp is not receipt-canonical: authority=%v record=%v", authorityTime, record.RequestedAt)
 	}
 }
 
@@ -484,6 +488,75 @@ func TestPostgresAnalyticsFactAndInboxShareTransaction(t *testing.T) {
 	defer connection.mu.Unlock()
 	if !connection.committed || len(connection.execs) != 2 || !strings.Contains(connection.execs[0], "ynx_analytics.event_facts") || !strings.Contains(connection.execs[1], "ynx_fabric.inbox") {
 		t.Fatalf("analytics fact and Inbox were not committed together: %+v", connection)
+	}
+}
+
+func TestPostgresAnalyticsRetentionSweepIsBoundedAndAudited(t *testing.T) {
+	db, connection := openRecordingDB(t)
+	store, _ := NewStore(db)
+	now := time.Now().UTC()
+	connection.retentionTransientDeleted = 3
+	connection.retentionOperationalDeleted = 7
+	result, err := store.SweepExpiredAnalytics(context.Background(), "audit.retention.0001", now, now.Add(-24*time.Hour), now.Add(-90*24*time.Hour))
+	if err != nil || result.TransientDeleted != 3 || result.OperationalDeleted != 7 {
+		t.Fatalf("analytics retention sweep failed: result=%+v err=%v", result, err)
+	}
+	connection.mu.Lock()
+	defer connection.mu.Unlock()
+	if !connection.committed || connection.rolledBack || len(connection.execs) != 0 {
+		t.Fatalf("retention sweep was not a committed query transaction: %+v", connection)
+	}
+}
+
+func TestPostgresAnalyticsRetentionSweepReplayIsIdempotentAndParameterBound(t *testing.T) {
+	db, connection := openRecordingDB(t)
+	store, _ := NewStore(db)
+	now := time.Now().UTC()
+	executedAt := now.Truncate(time.Microsecond)
+	transientBefore := now.Add(-time.Hour).Truncate(time.Microsecond)
+	operationalBefore := now.Add(-2 * time.Hour).Truncate(time.Microsecond)
+	connection.retentionSweep = &AnalyticsRetentionSweep{
+		AuditID: "audit.retention.0003", ExecutedAt: executedAt, TransientBefore: transientBefore, OperationalBefore: operationalBefore, TransientDeleted: 3, OperationalDeleted: 7,
+	}
+	result, err := store.SweepExpiredAnalytics(context.Background(), connection.retentionSweep.AuditID, now, transientBefore, operationalBefore)
+	if err != nil || result.TransientDeleted != 3 || result.OperationalDeleted != 7 {
+		t.Fatalf("retention sweep replay was not idempotent: result=%+v err=%v", result, err)
+	}
+	if _, err := store.SweepExpiredAnalytics(context.Background(), connection.retentionSweep.AuditID, now, now.Add(-3*time.Hour), connection.retentionSweep.OperationalBefore); err == nil {
+		t.Fatal("retention sweep replay accepted changed cutoffs")
+	}
+	connection.mu.Lock()
+	defer connection.mu.Unlock()
+	if connection.begun != 2 || !connection.rolledBack || len(connection.execs) != 0 {
+		t.Fatalf("retention sweep replay wrote another deletion effect: %+v", connection)
+	}
+}
+
+func TestPostgresAnalyticsRetentionSweepRejectsUnsafeInputBeforeDatabaseAccess(t *testing.T) {
+	db, connection := openRecordingDB(t)
+	store, _ := NewStore(db)
+	now := time.Now().UTC()
+	for _, input := range []struct {
+		auditID, transient, operational string
+	}{
+		{auditID: "bad", transient: "past", operational: "past"},
+		{auditID: "audit.retention.0002", transient: "future", operational: "past"},
+	} {
+		transient, operational := now.Add(-time.Hour), now.Add(-time.Hour)
+		if input.transient == "future" {
+			transient = now.Add(time.Hour)
+		}
+		if input.operational == "future" {
+			operational = now.Add(time.Hour)
+		}
+		if _, err := store.SweepExpiredAnalytics(context.Background(), input.auditID, now, transient, operational); err == nil {
+			t.Fatalf("unsafe retention input accepted: %+v", input)
+		}
+	}
+	connection.mu.Lock()
+	defer connection.mu.Unlock()
+	if connection.begun != 0 || len(connection.execs) != 0 {
+		t.Fatalf("unsafe retention input reached database: %+v", connection)
 	}
 }
 
@@ -532,23 +605,27 @@ type recordingDriver struct{ connection *recordingConn }
 func (d recordingDriver) Open(string) (driver.Conn, error) { return d.connection, nil }
 
 type recordingConn struct {
-	mu               sync.Mutex
-	execs            []string
-	envelope         []byte
-	existingEnvelope []byte
-	schemaChecksum   string
-	schemaChecksums  map[int64]string
-	claimed          [][]driver.Value
-	journal          *datafabric.JournalEntry
-	billingPlan      *datafabric.BillingRatePlan
-	existingReversal string
-	eventProduct     string
-	inboxExists      bool
-	lastSequence     int64
-	begun            int
-	committed        bool
-	rolledBack       bool
-	closed           bool
+	mu                          sync.Mutex
+	execs                       []string
+	execArguments               [][]driver.NamedValue
+	envelope                    []byte
+	existingEnvelope            []byte
+	schemaChecksum              string
+	schemaChecksums             map[int64]string
+	claimed                     [][]driver.Value
+	journal                     *datafabric.JournalEntry
+	billingPlan                 *datafabric.BillingRatePlan
+	existingReversal            string
+	eventProduct                string
+	inboxExists                 bool
+	lastSequence                int64
+	retentionTransientDeleted   int64
+	retentionOperationalDeleted int64
+	retentionSweep              *AnalyticsRetentionSweep
+	begun                       int
+	committed                   bool
+	rolledBack                  bool
+	closed                      bool
 }
 
 func (c *recordingConn) Prepare(string) (driver.Stmt, error) {
@@ -570,10 +647,11 @@ func (c *recordingConn) BeginTx(context.Context, driver.TxOptions) (driver.Tx, e
 	c.committed, c.rolledBack = false, false
 	return recordingTx{connection: c}, nil
 }
-func (c *recordingConn) ExecContext(_ context.Context, query string, _ []driver.NamedValue) (driver.Result, error) {
+func (c *recordingConn) ExecContext(_ context.Context, query string, arguments []driver.NamedValue) (driver.Result, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.execs = append(c.execs, compactSQL(query))
+	c.execArguments = append(c.execArguments, append([]driver.NamedValue(nil), arguments...))
 	return driver.RowsAffected(1), nil
 }
 func (c *recordingConn) QueryContext(_ context.Context, query string, arguments []driver.NamedValue) (driver.Rows, error) {
@@ -581,6 +659,14 @@ func (c *recordingConn) QueryContext(_ context.Context, query string, arguments 
 	defer c.mu.Unlock()
 	query = compactSQL(query)
 	switch {
+	case strings.Contains(query, "FROM ynx_analytics.retention_sweeps"):
+		if c.retentionSweep == nil {
+			return &recordingRows{columns: []string{"audit_id"}}, nil
+		}
+		run := c.retentionSweep
+		return &recordingRows{columns: []string{"audit_id", "executed_at", "transient_before", "operational_before", "transient_deleted", "operational_deleted"}, values: [][]driver.Value{{run.AuditID, run.ExecutedAt, run.TransientBefore, run.OperationalBefore, int64(run.TransientDeleted), int64(run.OperationalDeleted)}}}, nil
+	case strings.Contains(query, "INSERT INTO ynx_analytics.retention_sweeps"):
+		return &recordingRows{columns: []string{"transient_deleted", "operational_deleted"}, values: [][]driver.Value{{c.retentionTransientDeleted, c.retentionOperationalDeleted}}}, nil
 	case strings.Contains(query, "INSERT INTO ynx_fabric.aggregate_sequences"):
 		candidate := int64(0)
 		if len(arguments) >= 5 {

@@ -7,7 +7,7 @@ import (
 
 func TestInitialMigrationContainsTransactionalIntegrityGuards(t *testing.T) {
 	files, err := MigrationFiles()
-	if err != nil || len(files) != 6 {
+	if err != nil || len(files) != 9 {
 		t.Fatalf("unexpected migration set: %v %v", files, err)
 	}
 	body, err := migrations.ReadFile(files[0])
@@ -53,7 +53,7 @@ func TestInitialMigrationContainsTransactionalIntegrityGuards(t *testing.T) {
 
 func TestEnvelopeV2MigrationAndRollbackAreGuarded(t *testing.T) {
 	files, err := MigrationFiles()
-	if err != nil || len(files) != 6 || !strings.Contains(files[1], "0002_event_envelope_v2.up.sql") {
+	if err != nil || len(files) != 9 || !strings.Contains(files[1], "0002_event_envelope_v2.up.sql") {
 		t.Fatalf("v2 migration is missing: %v %v", files, err)
 	}
 	body, err := migrations.ReadFile(files[1])
@@ -82,7 +82,7 @@ func TestEnvelopeV2MigrationAndRollbackAreGuarded(t *testing.T) {
 
 func TestRedeliveryMigrationIsAppendOnlyAndRollbackGuarded(t *testing.T) {
 	files, err := MigrationFiles()
-	if err != nil || len(files) != 6 || !strings.Contains(files[2], "0003_redelivery_control_plane.up.sql") {
+	if err != nil || len(files) != 9 || !strings.Contains(files[2], "0003_redelivery_control_plane.up.sql") {
 		t.Fatalf("redelivery migration is missing: %v %v", files, err)
 	}
 	body, err := migrations.ReadFile(files[2])
@@ -116,7 +116,7 @@ func TestRedeliveryMigrationIsAppendOnlyAndRollbackGuarded(t *testing.T) {
 
 func TestImmutableLedgerCorrectionMigrationIsAtomicAndRollbackGuarded(t *testing.T) {
 	files, err := MigrationFiles()
-	if err != nil || len(files) != 6 || !strings.Contains(files[3], "0004_immutable_ledger_corrections.up.sql") {
+	if err != nil || len(files) != 9 || !strings.Contains(files[3], "0004_immutable_ledger_corrections.up.sql") {
 		t.Fatalf("ledger correction migration is missing: %v %v", files, err)
 	}
 	body, err := migrations.ReadFile(files[3])
@@ -148,7 +148,7 @@ func TestImmutableLedgerCorrectionMigrationIsAtomicAndRollbackGuarded(t *testing
 
 func TestSagaRecoveryMigrationHasLeasesAndRollbackGuard(t *testing.T) {
 	files, err := MigrationFiles()
-	if err != nil || len(files) != 6 || !strings.Contains(files[4], "0005_saga_recovery_runtime.up.sql") {
+	if err != nil || len(files) != 9 || !strings.Contains(files[4], "0005_saga_recovery_runtime.up.sql") {
 		t.Fatalf("Saga recovery migration is missing: %v %v", files, err)
 	}
 	body, err := migrations.ReadFile(files[4])
@@ -182,7 +182,7 @@ func TestSagaRecoveryMigrationHasLeasesAndRollbackGuard(t *testing.T) {
 
 func TestUsageBillingMigrationIsAtomicImmutableAndRollbackGuarded(t *testing.T) {
 	files, err := MigrationFiles()
-	if err != nil || len(files) != 6 || !strings.Contains(files[5], "0006_usage_billing_runtime.up.sql") {
+	if err != nil || len(files) != 9 || !strings.Contains(files[5], "0006_usage_billing_runtime.up.sql") {
 		t.Fatalf("usage Billing migration is missing: %v %v", files, err)
 	}
 	body, err := migrations.ReadFile(files[5])
@@ -212,6 +212,90 @@ func TestUsageBillingMigrationIsAtomicImmutableAndRollbackGuarded(t *testing.T) 
 	}
 	if !strings.Contains(string(down), "cannot roll back usage Billing runtime while rate or settlement history exists") {
 		t.Fatal("usage Billing rollback can discard immutable history")
+	}
+}
+
+func TestConnectionDiagnosticsMigrationIsPrivacySafeAndRollbackGuarded(t *testing.T) {
+	files, err := MigrationFiles()
+	if err != nil || len(files) != 9 || !strings.Contains(files[6], "0007_connection_event_diagnostics.up.sql") {
+		t.Fatalf("connection diagnostics migration is missing: %v %v", files, err)
+	}
+	body, err := migrations.ReadFile(files[6])
+	if err != nil {
+		t.Fatal(err)
+	}
+	up := string(body)
+	for _, required := range []string{"CREATE TABLE ynx_fabric.connection_diagnostics", "metric text NOT NULL", "dimension text NOT NULL", "count bigint NOT NULL", "PRIMARY KEY (metric, dimension)"} {
+		if !strings.Contains(up, required) {
+			t.Fatalf("connection diagnostics migration is missing %q", required)
+		}
+	}
+	down, err := RollbackMigration(7)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(down), "cannot roll back connection diagnostics while aggregate evidence exists") {
+		t.Fatal("connection diagnostics rollback can discard aggregate evidence")
+	}
+}
+
+func TestErasureDeletionReceiptMigrationIsAtomicAndRollbackGuarded(t *testing.T) {
+	files, err := MigrationFiles()
+	if err != nil || len(files) != 9 || !strings.Contains(files[7], "0008_erasure_deletion_receipts.up.sql") {
+		t.Fatalf("erasure deletion receipt migration is missing: %v %v", files, err)
+	}
+	body, err := migrations.ReadFile(files[7])
+	if err != nil {
+		t.Fatal(err)
+	}
+	up := string(body)
+	for _, required := range []string{
+		"CREATE TABLE ynx_fabric.erasure_deletion_receipts",
+		"derived_analytics_deleted bigint NOT NULL CHECK (derived_analytics_deleted >= 0)",
+		"deletion_receipt char(64) NOT NULL CHECK (deletion_receipt ~ '^[0-9a-f]{64}$')",
+		"erasure deletion receipt does not match immutable erasure authority",
+		"CREATE CONSTRAINT TRIGGER erasure_deletion_receipt_authority",
+		"CREATE TRIGGER erasure_deletion_receipts_append_only",
+	} {
+		if !strings.Contains(up, required) {
+			t.Fatalf("erasure deletion receipt migration is missing %q", required)
+		}
+	}
+	down, err := RollbackMigration(8)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(down), "cannot roll back erasure deletion receipts while audit history exists") {
+		t.Fatal("erasure deletion receipt rollback can discard audit history")
+	}
+}
+
+func TestAnalyticsRetentionSweepMigrationIsScopedAndRollbackGuarded(t *testing.T) {
+	files, err := MigrationFiles()
+	if err != nil || len(files) != 9 || !strings.Contains(files[8], "0009_analytics_retention_sweeps.up.sql") {
+		t.Fatalf("analytics retention sweep migration is missing: %v %v", files, err)
+	}
+	body, err := migrations.ReadFile(files[8])
+	if err != nil {
+		t.Fatal(err)
+	}
+	up := string(body)
+	for _, required := range []string{
+		"CREATE TABLE ynx_analytics.retention_sweeps",
+		"transient_deleted bigint NOT NULL CHECK (transient_deleted >= 0)",
+		"operational_deleted bigint NOT NULL CHECK (operational_deleted >= 0)",
+		"CREATE TRIGGER analytics_retention_sweeps_append_only",
+	} {
+		if !strings.Contains(up, required) {
+			t.Fatalf("analytics retention sweep migration is missing %q", required)
+		}
+	}
+	down, err := RollbackMigration(9)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(down), "cannot roll back analytics retention sweeps while audit history exists") {
+		t.Fatal("analytics retention sweep rollback can discard audit history")
 	}
 }
 

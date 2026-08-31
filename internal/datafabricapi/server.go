@@ -23,35 +23,41 @@ import (
 )
 
 type Config struct {
-	Store              *datafabric.Store
-	Repository         Repository
-	Authorizer         Authorizer
-	EventKeys          map[string][]byte
-	EventKeyProducts   map[string]string
-	PrivacyKey         []byte
-	SchemaRegistry     *datafabric.SchemaRegistry
-	BrokerKind         string
-	DatabaseKind       string
-	BrokerProbe        func(context.Context) error
-	SourceCommit       string
-	SourceRelease      string
-	MaxBodyBytes       int64
-	RateLimitPerMinute uint32
+	Store                    *datafabric.Store
+	Repository               Repository
+	Authorizer               Authorizer
+	EventKeys                map[string][]byte
+	EventKeyProducts         map[string]string
+	PrivacyKey               []byte
+	SchemaRegistry           *datafabric.SchemaRegistry
+	ChainCommitmentVerifier  datafabric.ChainCommitmentVerifier
+	BrokerKind               string
+	DatabaseKind             string
+	BrokerProbe              func(context.Context) error
+	SourceCommit             string
+	SourceRelease            string
+	MaxBodyBytes             int64
+	RateLimitPerMinute       uint32
+	ProducerConcurrencyLimit uint32
 }
 
 type Server struct {
-	cfg             Config
-	repo            Repository
-	mux             *http.ServeMux
-	requests        atomic.Uint64
-	errors          atomic.Uint64
-	replayMu        sync.Mutex
-	replays         map[string]time.Time
-	rateMu          sync.Mutex
-	rates           map[string]rateWindow
-	durationBuckets [11]atomic.Uint64
-	durationNanos   atomic.Uint64
-	startedAt       time.Time
+	cfg                  Config
+	repo                 Repository
+	mux                  *http.ServeMux
+	requests             atomic.Uint64
+	errors               atomic.Uint64
+	replayMu             sync.Mutex
+	replays              map[string]time.Time
+	rateMu               sync.Mutex
+	rates                map[string]rateWindow
+	durationBuckets      [11]atomic.Uint64
+	durationNanos        atomic.Uint64
+	producerSlots        chan struct{}
+	producerInFlight     atomic.Uint64
+	producerPeak         atomic.Uint64
+	producerBackpressure atomic.Uint64
+	startedAt            time.Time
 }
 
 func New(cfg Config) (*Server, error) {
@@ -75,6 +81,12 @@ func New(cfg Config) (*Server, error) {
 	if cfg.RateLimitPerMinute > 10000 {
 		return nil, errors.New("rate limit must be between 1 and 10000 requests per minute")
 	}
+	if cfg.ProducerConcurrencyLimit == 0 {
+		cfg.ProducerConcurrencyLimit = 128
+	}
+	if cfg.ProducerConcurrencyLimit > 4096 {
+		return nil, errors.New("producer concurrency limit must be between 1 and 4096")
+	}
 	if cfg.SchemaRegistry == nil {
 		cfg.SchemaRegistry = datafabric.DefaultSchemaRegistry()
 	}
@@ -92,7 +104,7 @@ func New(cfg Config) (*Server, error) {
 	if repository == nil {
 		repository = LocalRepository{Store: cfg.Store}
 	}
-	s := &Server{cfg: cfg, repo: repository, mux: http.NewServeMux(), replays: make(map[string]time.Time), rates: make(map[string]rateWindow), startedAt: time.Now().UTC()}
+	s := &Server{cfg: cfg, repo: repository, mux: http.NewServeMux(), replays: make(map[string]time.Time), rates: make(map[string]rateWindow), producerSlots: make(chan struct{}, cfg.ProducerConcurrencyLimit), startedAt: time.Now().UTC()}
 	s.routes()
 	return s, nil
 }
@@ -432,7 +444,7 @@ func (s *Server) appendEvent(w http.ResponseWriter, r *http.Request, principal P
 		s.writeDataFabricError(w, http.StatusBadRequest, err)
 		return
 	}
-	if event.Product != principal.Product || (principal.AccountID != "" && event.Actor.AccountID != principal.AccountID) || (principal.SessionID != "" && event.Actor.SessionID != principal.SessionID) {
+	if !principalOwnsEvent(principal, event, true) {
 		s.writeError(w, http.StatusForbidden, string(datafabric.CodeWrongProduct), "Event product, account, or session does not match canonical authorization")
 		return
 	}
@@ -447,6 +459,9 @@ func (s *Server) appendEvent(w http.ResponseWriter, r *http.Request, principal P
 	}
 	if s.cfg.EventKeyProducts[event.Integrity.KeyID] != event.Product {
 		s.writeError(w, http.StatusForbidden, "integrity_key_product_mismatch", "Event integrity key is not registered for this product")
+		return
+	}
+	if !s.verifyChainCommitment(w, r, event, key) {
 		return
 	}
 	if err := s.repo.Append(r.Context(), event, key); err != nil {
@@ -472,7 +487,7 @@ func (s *Server) listEvents(w http.ResponseWriter, r *http.Request, principal Pr
 		return
 	}
 	for _, event := range stored {
-		if event.Product == principal.Product {
+		if principalOwnsEvent(principal, event, false) {
 			events = append(events, event)
 		}
 	}
@@ -508,6 +523,12 @@ func (s *Server) appendProducerEvent(w http.ResponseWriter, r *http.Request) {
 		s.writeError(w, http.StatusUnauthorized, string(datafabric.CodeWrongSignature), "Product producer delivery signature is invalid")
 		return
 	}
+	if !s.acquireProducerSlot() {
+		w.Header().Set("Retry-After", "1")
+		s.writeError(w, http.StatusTooManyRequests, "producer_backpressure", "Product producer concurrency limit is saturated; retry with bounded backoff")
+		return
+	}
+	defer s.releaseProducerSlot()
 	if !s.consumeReplayKey("producer\x00"+keyID+"\x00"+nonce, requestTime.Add(10*time.Minute)) {
 		s.writeError(w, http.StatusUnauthorized, string(datafabric.CodeReplay), "Product producer delivery nonce was already consumed")
 		return
@@ -530,6 +551,9 @@ func (s *Server) appendProducerEvent(w http.ResponseWriter, r *http.Request) {
 		s.writeDataFabricError(w, http.StatusUnprocessableEntity, err)
 		return
 	}
+	if !s.verifyChainCommitment(w, r, event, key) {
+		return
+	}
 	if err := s.repo.Append(r.Context(), event, key); err != nil {
 		if errors.Is(err, datafabric.ErrDuplicate) {
 			writeJSON(w, http.StatusOK, map[string]any{"eventId": event.EventID, "status": "already-committed", "auditId": event.AuditID})
@@ -547,6 +571,43 @@ func (s *Server) appendProducerEvent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusAccepted, map[string]any{"eventId": event.EventID, "status": "committed-to-outbox", "auditId": event.AuditID})
+}
+
+func (s *Server) acquireProducerSlot() bool {
+	select {
+	case s.producerSlots <- struct{}{}:
+		inFlight := s.producerInFlight.Add(1)
+		for peak := s.producerPeak.Load(); inFlight > peak && !s.producerPeak.CompareAndSwap(peak, inFlight); peak = s.producerPeak.Load() {
+		}
+		return true
+	default:
+		s.producerBackpressure.Add(1)
+		return false
+	}
+}
+
+func (s *Server) releaseProducerSlot() {
+	<-s.producerSlots
+	s.producerInFlight.Add(^uint64(0))
+}
+
+func (s *Server) verifyChainCommitment(w http.ResponseWriter, r *http.Request, event datafabric.EventEnvelope, key []byte) bool {
+	if event.ChainCommitmentID == "" {
+		return true
+	}
+	if err := event.Verify(key); err != nil {
+		s.writeDataFabricError(w, http.StatusForbidden, err)
+		return false
+	}
+	if err := datafabric.VerifyChainCommitmentReference(r.Context(), s.cfg.ChainCommitmentVerifier, event); err != nil {
+		status := http.StatusUnprocessableEntity
+		if datafabric.ErrorCodeOf(err) == datafabric.CodeChainCommitmentUnavailable {
+			status = http.StatusServiceUnavailable
+		}
+		s.writeDataFabricError(w, status, err)
+		return false
+	}
+	return true
 }
 
 func readBoundedBody(r *http.Request, maxBodyBytes int64) ([]byte, error) {
@@ -572,8 +633,8 @@ func (s *Server) postJournal(w http.ResponseWriter, r *http.Request, principal P
 		s.writeRepositoryError(w)
 		return
 	}
-	if !exists || event.Product != principal.Product {
-		s.writeError(w, http.StatusForbidden, "journal_authority_mismatch", "Journal event is missing or belongs to another product")
+	if !exists || !principalOwnsEvent(principal, event, false) {
+		s.writeError(w, http.StatusForbidden, "journal_authority_mismatch", "Journal event is missing or belongs to another product or account")
 		return
 	}
 	if err := s.repo.PostJournal(r.Context(), entry); err != nil {
@@ -618,8 +679,8 @@ func (s *Server) postJournalCorrection(w http.ResponseWriter, r *http.Request, p
 		s.writeRepositoryError(w)
 		return
 	}
-	if !exists || !correctionEventExists || targetEvent.Product != principal.Product || correctionEvent.Product != principal.Product {
-		s.writeError(w, http.StatusForbidden, "journal_authority_mismatch", "Correction authority does not belong to this product")
+	if !exists || !correctionEventExists || !principalOwnsEvent(principal, targetEvent, false) || !principalOwnsEvent(principal, correctionEvent, false) {
+		s.writeError(w, http.StatusForbidden, "journal_authority_mismatch", "Correction authority does not belong to this product and account")
 		return
 	}
 	if err := s.repo.PostCorrection(r.Context(), entry); err != nil {
@@ -634,7 +695,7 @@ func (s *Server) postJournalCorrection(w http.ResponseWriter, r *http.Request, p
 }
 
 func (s *Server) listJournal(w http.ResponseWriter, r *http.Request, principal Principal) {
-	entries, err := s.journalForProduct(r.Context(), principal.Product)
+	entries, err := s.journalForPrincipal(r.Context(), principal)
 	if err != nil {
 		s.writeRepositoryError(w)
 		return
@@ -702,8 +763,8 @@ func (s *Server) settleUsage(w http.ResponseWriter, r *http.Request, principal P
 		s.writeRepositoryError(w)
 		return
 	}
-	if !exists || event.Product != principal.Product {
-		s.writeError(w, http.StatusForbidden, string(datafabric.CodeBillingAuthorityMismatch), "Usage event is missing or belongs to another product")
+	if !exists || !principalOwnsEvent(principal, event, false) {
+		s.writeError(w, http.StatusForbidden, string(datafabric.CodeBillingAuthorityMismatch), "Usage event is missing or belongs to another product or account")
 		return
 	}
 	input.SourceCommit, input.SourceRelease = s.cfg.SourceCommit, s.cfg.SourceRelease
@@ -727,7 +788,12 @@ func (s *Server) listBillingSettlements(w http.ResponseWriter, r *http.Request, 
 	}
 	settlements := make([]datafabric.BillingSettlement, 0)
 	for _, settlement := range stored {
-		if settlement.Product == principal.Product {
+		event, exists, eventErr := s.repo.Event(r.Context(), settlement.UsageEventID)
+		if eventErr != nil {
+			s.writeRepositoryError(w)
+			return
+		}
+		if exists && principalOwnsEvent(principal, event, false) {
 			settlements = append(settlements, settlement)
 		}
 	}
@@ -751,8 +817,11 @@ func (s *Server) getSaga(w http.ResponseWriter, r *http.Request, principal Princ
 		s.writeError(w, http.StatusNotFound, "saga_not_found", "Saga was not found")
 		return
 	}
-	if instance.Product != principal.Product {
-		s.writeError(w, http.StatusForbidden, "saga_authority_mismatch", "Saga belongs to another product")
+	if owned, authorityErr := s.principalOwnsSaga(r.Context(), principal, instance); authorityErr != nil {
+		s.writeRepositoryError(w)
+		return
+	} else if !owned {
+		s.writeError(w, http.StatusForbidden, "saga_authority_mismatch", "Saga belongs to another product or account")
 		return
 	}
 	writeJSON(w, http.StatusOK, instance)
@@ -766,7 +835,12 @@ func (s *Server) listReconciliations(w http.ResponseWriter, r *http.Request, pri
 		return
 	}
 	for _, run := range stored {
-		if run.Product == principal.Product {
+		owned, authorityErr := s.principalOwnsReconciliation(r.Context(), principal, run)
+		if authorityErr != nil {
+			s.writeRepositoryError(w)
+			return
+		}
+		if owned {
 			runs = append(runs, run)
 		}
 	}
@@ -848,6 +922,13 @@ func (s *Server) startSaga(w http.ResponseWriter, r *http.Request, principal Pri
 		s.writeError(w, http.StatusForbidden, "saga_authority_mismatch", "Saga kind does not belong to the authorized product")
 		return
 	}
+	if owned, authorityErr := s.principalOwnsSagaCoordinates(r.Context(), principal, input.AggregateID, input.CorrelationID); authorityErr != nil {
+		s.writeRepositoryError(w)
+		return
+	} else if !owned {
+		s.writeError(w, http.StatusForbidden, "saga_authority_mismatch", "Saga aggregate and correlation do not belong to the authorized account")
+		return
+	}
 	instance, err := datafabric.NewSaga(input.SagaID, input.Kind, input.AggregateID, input.CorrelationID, input.AuditID, time.Now().UTC(), input.Deadline)
 	if err != nil {
 		s.writeError(w, http.StatusBadRequest, "invalid_saga", err.Error())
@@ -862,7 +943,7 @@ func (s *Server) startSaga(w http.ResponseWriter, r *http.Request, principal Pri
 
 func (s *Server) completeSagaStep(w http.ResponseWriter, r *http.Request, principal Principal) {
 	input, err := decodeStrict[sagaEventRequest](w, r, s.cfg.MaxBodyBytes)
-	authorized, authorityErr := s.authorizedSagaEvent(r.Context(), r.PathValue("id"), input.EventID, principal.Product)
+	authorized, authorityErr := s.authorizedSagaEvent(r.Context(), r.PathValue("id"), input.EventID, principal)
 	if authorityErr != nil {
 		s.writeRepositoryError(w)
 		return
@@ -881,7 +962,7 @@ func (s *Server) completeSagaStep(w http.ResponseWriter, r *http.Request, princi
 
 func (s *Server) failSaga(w http.ResponseWriter, r *http.Request, principal Principal) {
 	input, err := decodeStrict[sagaFailureRequest](w, r, s.cfg.MaxBodyBytes)
-	authorized, authorityErr := s.authorizedSaga(r.Context(), r.PathValue("id"), principal.Product)
+	authorized, authorityErr := s.authorizedSaga(r.Context(), r.PathValue("id"), principal)
 	if authorityErr != nil {
 		s.writeRepositoryError(w)
 		return
@@ -915,7 +996,7 @@ func (s *Server) claimSagaRecoveries(w http.ResponseWriter, r *http.Request, pri
 
 func (s *Server) completeSagaCompensation(w http.ResponseWriter, r *http.Request, principal Principal) {
 	input, err := decodeStrict[sagaRecoveryCompletionRequest](w, r, s.cfg.MaxBodyBytes)
-	authorized, authorityErr := s.authorizedSagaEvent(r.Context(), r.PathValue("id"), input.EventID, principal.Product)
+	authorized, authorityErr := s.authorizedSagaEvent(r.Context(), r.PathValue("id"), input.EventID, principal)
 	if authorityErr != nil {
 		s.writeRepositoryError(w)
 		return
@@ -943,7 +1024,7 @@ func (s *Server) completeSagaCompensation(w http.ResponseWriter, r *http.Request
 
 func (s *Server) manualSagaRecovery(w http.ResponseWriter, r *http.Request, principal Principal) {
 	input, err := decodeStrict[sagaFailureRequest](w, r, s.cfg.MaxBodyBytes)
-	authorized, authorityErr := s.authorizedSaga(r.Context(), r.PathValue("id"), principal.Product)
+	authorized, authorityErr := s.authorizedSaga(r.Context(), r.PathValue("id"), principal)
 	if authorityErr != nil {
 		s.writeRepositoryError(w)
 		return
@@ -960,21 +1041,28 @@ func (s *Server) manualSagaRecovery(w http.ResponseWriter, r *http.Request, prin
 	writeJSON(w, http.StatusOK, instance)
 }
 
-func (s *Server) authorizedSaga(ctx context.Context, id, product string) (bool, error) {
+func (s *Server) authorizedSaga(ctx context.Context, id string, principal Principal) (bool, error) {
 	instance, exists, err := s.repo.Saga(ctx, id)
-	return exists && instance.Product == product, err
+	if err != nil || !exists {
+		return false, err
+	}
+	return s.principalOwnsSaga(ctx, principal, instance)
 }
 
-func (s *Server) authorizedSagaEvent(ctx context.Context, sagaID, eventID, product string) (bool, error) {
+func (s *Server) authorizedSagaEvent(ctx context.Context, sagaID, eventID string, principal Principal) (bool, error) {
 	instance, exists, err := s.repo.Saga(ctx, sagaID)
-	if err != nil || !exists || instance.Product != product {
+	if err != nil || !exists {
+		return false, err
+	}
+	owned, err := s.principalOwnsSaga(ctx, principal, instance)
+	if err != nil || !owned {
 		return false, err
 	}
 	event, eventExists, err := s.repo.Event(ctx, eventID)
 	if err != nil {
 		return false, err
 	}
-	return eventExists && event.Product == product && event.CorrelationID == instance.CorrelationID, nil
+	return eventExists && principalOwnsEvent(principal, event, false) && event.CorrelationID == instance.CorrelationID && event.AggregateID == instance.AggregateID, nil
 }
 
 type reconcileRequest struct {
@@ -1005,8 +1093,8 @@ func (s *Server) reconcile(w http.ResponseWriter, r *http.Request, principal Pri
 		s.writeRepositoryError(w)
 		return
 	}
-	if !exists || event.Product != principal.Product {
-		s.writeError(w, http.StatusForbidden, "reconciliation_authority_mismatch", "Journal belongs to another product")
+	if !exists || !principalOwnsEvent(principal, event, false) {
+		s.writeError(w, http.StatusForbidden, "reconciliation_authority_mismatch", "Journal belongs to another product or account")
 		return
 	}
 	run, err := s.repo.ReconcileJournal(r.Context(), input.RunID, input.JournalEntryID, input.AuditID, s.cfg.SourceCommit, s.cfg.SourceRelease, input.RequiredSources, input.Observations, time.Now().UTC())
@@ -1116,6 +1204,26 @@ func (s *Server) subjectErasure(w http.ResponseWriter, r *http.Request, principa
 	writeJSON(w, http.StatusOK, record)
 }
 
+func (s *Server) journalForPrincipal(ctx context.Context, principal Principal) ([]datafabric.JournalEntry, error) {
+	entries := make([]datafabric.JournalEntry, 0)
+	journal, err := s.repo.Journal(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, entry := range journal {
+		event, exists, err := s.repo.Event(ctx, entry.EventID)
+		if err != nil {
+			return nil, err
+		}
+		if exists && principalOwnsEvent(principal, event, false) {
+			entries = append(entries, entry)
+		}
+	}
+	return entries, nil
+}
+
+// journalForProduct is reserved for the product-wide fabric.audit.export
+// scope. User-facing ledger reads use journalForPrincipal instead.
 func (s *Server) journalForProduct(ctx context.Context, product string) ([]datafabric.JournalEntry, error) {
 	entries := make([]datafabric.JournalEntry, 0)
 	journal, err := s.repo.Journal(ctx)
@@ -1132,6 +1240,42 @@ func (s *Server) journalForProduct(ctx context.Context, product string) ([]dataf
 		}
 	}
 	return entries, nil
+}
+
+func principalOwnsEvent(principal Principal, event datafabric.EventEnvelope, requireSession bool) bool {
+	if !canonicalPrincipalIDPattern.MatchString(principal.AccountID) || event.Product != principal.Product || event.Actor.AccountID != principal.AccountID {
+		return false
+	}
+	return !requireSession || event.Actor.SessionID == principal.SessionID
+}
+
+func (s *Server) principalOwnsSagaCoordinates(ctx context.Context, principal Principal, aggregateID, correlationID string) (bool, error) {
+	events, err := s.repo.Events(ctx)
+	if err != nil {
+		return false, err
+	}
+	for _, event := range events {
+		if principalOwnsEvent(principal, event, false) && event.AggregateID == aggregateID && event.CorrelationID == correlationID {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (s *Server) principalOwnsSaga(ctx context.Context, principal Principal, instance datafabric.SagaInstance) (bool, error) {
+	if instance.Product != principal.Product {
+		return false, nil
+	}
+	return s.principalOwnsSagaCoordinates(ctx, principal, instance.AggregateID, instance.CorrelationID)
+}
+
+func (s *Server) principalOwnsReconciliation(ctx context.Context, principal Principal, run datafabric.ReconciliationRun) (bool, error) {
+	entry, exists, err := s.repo.JournalEntry(ctx, run.JournalEntry)
+	if err != nil || !exists {
+		return false, err
+	}
+	event, exists, err := s.repo.Event(ctx, entry.EventID)
+	return exists && principalOwnsEvent(principal, event, false), err
 }
 
 func decodeStrict[T any](w http.ResponseWriter, r *http.Request, maxBytes int64) (T, error) {
@@ -1235,6 +1379,12 @@ func (s *Server) metrics(w http.ResponseWriter, r *http.Request) {
 			"ynx_data_fabric_requests_total "+uintText(s.requests.Load())+"\n"+
 			"# TYPE ynx_data_fabric_errors_total counter\n"+
 			"ynx_data_fabric_errors_total "+uintText(s.errors.Load())+"\n"+
+			"# TYPE ynx_data_fabric_producer_inflight gauge\n"+
+			"ynx_data_fabric_producer_inflight "+uintText(s.producerInFlight.Load())+"\n"+
+			"ynx_data_fabric_producer_concurrency_limit "+uintText(uint64(s.cfg.ProducerConcurrencyLimit))+"\n"+
+			"ynx_data_fabric_producer_peak_inflight "+uintText(s.producerPeak.Load())+"\n"+
+			"# TYPE ynx_data_fabric_producer_backpressure_total counter\n"+
+			"ynx_data_fabric_producer_backpressure_total "+uintText(s.producerBackpressure.Load())+"\n"+
 			"ynx_data_fabric_events "+uintText(stats.Events)+"\n"+
 			"ynx_data_fabric_outbox_pending "+uintText(stats.OutboxPending)+"\n"+
 			"ynx_data_fabric_outbox_oldest_available_timestamp_seconds "+strconv.FormatFloat(stats.OutboxOldestUnix, 'f', 6, 64)+"\n"+

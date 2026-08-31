@@ -1,0 +1,56 @@
+{
+  "contractStatus": "ACCEPTED",
+  "contract": "connectionEvents@1.0.0-p0.0",
+  "integrationAcceptance": {
+    "centralCommit": "e13fca35d890427a25bff9d6122e7c7581247cdb",
+    "walletCanonicalErrorSource": "24cc3218c2cdc00c50dc3caa563652083afbd861"
+  },
+  "registeredConsumers": [
+    {
+      "name": "connection-diagnostics-v1",
+      "adapter": "file-store",
+      "effect": "Inbox-protected bounded diagnostic counters"
+    },
+    {
+      "name": "connection-diagnostics-v1",
+      "adapter": "postgres",
+      "effect": "Inbox-protected bounded diagnostic counters in the Event/Outbox transaction domain"
+    }
+  ],
+  "vectors": [
+    {
+      "id": "DF-WC-ACCEPTED-001",
+      "producerChainId": "6423",
+      "persistedChainId": "0x1917",
+      "outcome": "accepted-asynchronous"
+    },
+    {
+      "id": "DF-WC-ACCEPTED-002",
+      "producerChainId": "0x1917",
+      "persistedChainId": "0x1917",
+      "outcome": "accepted-asynchronous"
+    },
+    {
+      "id": "DF-WC-ACCEPTED-003",
+      "producerChainId": "9102",
+      "outcome": "reject-before-persistence"
+    },
+    {
+      "id": "DF-WC-ACCEPTED-004",
+      "producerChainId": "0x238e",
+      "outcome": "reject-before-persistence"
+    },
+    {
+      "id": "DF-WC-ACCEPTED-005",
+      "forbiddenFields": [
+        "rawError",
+        "developerMessage",
+        "accountId",
+        "sessionId"
+      ],
+      "outcome": "reject-before-persistence"
+    }
+  ],
+  "privacyInvariant": "No raw error, developer message, account, address, session identifier, or cross-product identity reaches the Event, Outbox, Inbox, or diagnostic projection.",
+  "synchronousDependency": "prohibited"
+}

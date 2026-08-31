@@ -55,12 +55,20 @@ func TestSubjectExportAndPseudonymousErasureRetention(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if record.Financial != 1 || record.LegalHold != 1 || record.AccountPseudonym == first.Actor.AccountID || !store.SubjectSuppressed(first.Actor.AccountID, privacyTestKey) {
+	if record.Financial != 1 || record.LegalHold != 1 || record.DerivedAnalyticsDeleted != 0 || len(record.DeletionReceipt) != 64 || record.AccountPseudonym == first.Actor.AccountID || !store.SubjectSuppressed(first.Actor.AccountID, privacyTestKey) {
 		t.Fatalf("erasure retention truth is wrong: %+v", record)
 	}
 	encoded, _ := json.Marshal(record)
 	if strings.Contains(string(encoded), first.Actor.AccountID) {
 		t.Fatal("erasure record retained the raw account ID")
+	}
+	if err := ValidateErasureRecord(record); err != nil {
+		t.Fatalf("erasure deletion receipt is not replayable: %v", err)
+	}
+	tampered := record
+	tampered.DerivedAnalyticsDeleted++
+	if err := ValidateErasureRecord(tampered); err == nil {
+		t.Fatal("tampered deletion count was accepted")
 	}
 	if _, err := store.RecordErasure(first.Actor.AccountID, "audit.privacy.erase.0002", privacyTestKey, now.Add(time.Second)); !errors.Is(err, ErrDuplicate) {
 		t.Fatalf("duplicate erasure was not idempotent: %v", err)
@@ -81,5 +89,25 @@ func TestSubjectExportAndPseudonymousErasureRetention(t *testing.T) {
 	}
 	if err := restarted.AuditIntegrity(map[string][]byte{"key.datafabric.0001": testKey}); err != nil {
 		t.Fatalf("privacy state failed restore audit: %v", err)
+	}
+}
+
+func TestErasureDeletionReceiptCanonicalizesPostgresTimestampPrecision(t *testing.T) {
+	now := time.Date(2026, 8, 31, 8, 5, 0, 123456789, time.UTC)
+	record, err := BuildErasureRecord("account.user.0001", "audit.erase.precision.0001", privacyTestKey, now, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	record, err = BindErasureDeletionReceipt(record, 7)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if record.RequestedAt.Nanosecond() != 123456000 {
+		t.Fatalf("receipt timestamp was not canonicalized to PostgreSQL precision: %s", record.RequestedAt)
+	}
+	postgresReadback := record
+	postgresReadback.RequestedAt = now.Truncate(time.Microsecond)
+	if err := ValidateErasureRecord(postgresReadback); err != nil {
+		t.Fatalf("PostgreSQL timestamp readback invalidated deletion receipt: %v", err)
 	}
 }

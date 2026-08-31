@@ -45,7 +45,7 @@ Before the first PostgreSQL-backed deployment, apply the checksum-locked schema 
 	--timeout 2m
 ```
 
-The API Repository abstraction propagates request cancellation/deadlines to PostgreSQL and covers events, Ledger, Saga, reconciliation, subject export/erasure, integrity health and metrics. Repository failures return a generic `503` without leaking DSNs or internal database details. The repository has direct isolated PostgreSQL 17.10 transaction/constraint evidence; do not interpret that bounded test as API, staging or deployment evidence.
+The API Repository abstraction propagates request cancellation/deadlines to PostgreSQL and covers events, Ledger, Saga, reconciliation, subject export/erasure, integrity health and metrics. Repository failures return a generic `503` without leaking DSNs or internal database details. The repository has direct isolated PostgreSQL 17.10 transaction/constraint evidence plus a clean-source bounded hotspot, duplicate-storm, service-restart, integrity-recovery and 10,000-event replay drill. Do not interpret those single-primary CI results as PostgreSQL-plus-JetStream API, replica failover, staging or deployment evidence.
 
 Start the PostgreSQL Outbox worker only after migration. It verifies every embedded migration checksum before accepting work, uses `FOR UPDATE SKIP LOCKED` leases for safe horizontal concurrency, and requires TLS plus NATS credentials:
 

@@ -1,0 +1,11 @@
+{
+  "contractStatus": "CANDIDATE",
+  "activation": "PROHIBITED_UNTIL_INTEGRATION_ACCEPTANCE",
+  "schema": "schemas/data-fabric/card-ledger-events-v1.candidate.schema.json",
+  "vectors": [
+    {"id": "DF-CARD-001", "name": "Testnet-only top-up", "expect": "card.funded is completed only with a finalized YNX Testnet transaction hash and authoritative receipt"},
+    {"id": "DF-CARD-002", "name": "Card payment data redaction", "expect": "PAN, CVV, track, PIN, cryptogram, and magnetic-stripe fields are rejected because additional properties are false"},
+    {"id": "DF-CARD-003", "name": "Immutable balanced journal", "expect": "each card event references a durable-ledger candidate journal entry; corrections are new reversal entries and reconciliation stays explicit"},
+    {"id": "DF-CARD-004", "name": "No wallet gate", "expect": "card simulation events are asynchronous observations and cannot change wallet connection or approval behavior"}
+  ]
+}

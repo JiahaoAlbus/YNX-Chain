@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"time"
 )
 
@@ -20,14 +21,16 @@ type SubjectExport struct {
 }
 
 type ErasureRecord struct {
-	AccountPseudonym string    `json:"accountPseudonym"`
-	AuditID          string    `json:"auditId"`
-	RequestedAt      time.Time `json:"requestedAt"`
-	Status           string    `json:"status"`
-	Operational      uint64    `json:"operationalRecords"`
-	Financial        uint64    `json:"financialRecordsRetained"`
-	Audit            uint64    `json:"auditRecordsRetained"`
-	LegalHold        uint64    `json:"legalHoldRecordsRetained"`
+	AccountPseudonym        string    `json:"accountPseudonym"`
+	AuditID                 string    `json:"auditId"`
+	RequestedAt             time.Time `json:"requestedAt"`
+	Status                  string    `json:"status"`
+	Operational             uint64    `json:"operationalRecords"`
+	Financial               uint64    `json:"financialRecordsRetained"`
+	Audit                   uint64    `json:"auditRecordsRetained"`
+	LegalHold               uint64    `json:"legalHoldRecordsRetained"`
+	DerivedAnalyticsDeleted uint64    `json:"derivedAnalyticsDeleted"`
+	DeletionReceipt         string    `json:"deletionReceipt"`
 }
 
 func (s *Store) ExportSubject(accountID, sourceVersion string, now time.Time) (SubjectExport, error) {
@@ -84,6 +87,10 @@ func (s *Store) RecordErasure(accountID, auditID string, privacyKey []byte, now 
 	if err != nil {
 		return ErasureRecord{}, err
 	}
+	record, err = BindErasureDeletionReceipt(record, 0)
+	if err != nil {
+		return ErasureRecord{}, err
+	}
 	pseudonym := record.AccountPseudonym
 	if existing, exists := s.state.ErasureRequests[pseudonym]; exists {
 		return existing, ErrDuplicate
@@ -118,6 +125,39 @@ func BuildErasureRecord(accountID, auditID string, privacyKey []byte, now time.T
 		}
 	}
 	return record, nil
+}
+
+// BindErasureDeletionReceipt binds the count of deleted derived analytics facts
+// to the already pseudonymous, immutable erasure request. It intentionally
+// accepts neither a raw account identifier nor event payload, so the audit
+// receipt remains safe to retain with the authoritative record.
+func BindErasureDeletionReceipt(record ErasureRecord, deleted uint64) (ErasureRecord, error) {
+	decoded, err := hex.DecodeString(record.AccountPseudonym)
+	if err != nil || len(decoded) != sha256.Size || !idPattern.MatchString(record.AuditID) || record.RequestedAt.IsZero() || record.RequestedAt.Location() != time.UTC || record.Status != "analytics-suppressed-authoritative-retention-applied" {
+		return ErasureRecord{}, errors.New("erasure record cannot bind a deletion receipt")
+	}
+	// PostgreSQL timestamptz is persisted at microsecond precision. Canonicalize
+	// before hashing so a readback cannot appear tampered merely due to storage
+	// precision loss, while retaining one portable receipt format for all stores.
+	record.RequestedAt = record.RequestedAt.UTC().Truncate(time.Microsecond)
+	record.DerivedAnalyticsDeleted = deleted
+	hash := sha256.New()
+	_, _ = hash.Write([]byte("ynx-data-fabric-erasure-deletion-v1\x00"))
+	_, _ = hash.Write([]byte(record.AccountPseudonym))
+	_, _ = hash.Write([]byte("\x00" + record.AuditID + "\x00" + record.RequestedAt.Format(time.RFC3339Nano) + "\x00"))
+	_, _ = hash.Write([]byte(fmt.Sprintf("%d", deleted)))
+	record.DeletionReceipt = hex.EncodeToString(hash.Sum(nil))
+	return record, nil
+}
+
+// ValidateErasureRecord rejects an incomplete or altered deletion receipt
+// during replay, restore, and idempotent retries.
+func ValidateErasureRecord(record ErasureRecord) error {
+	expected, err := BindErasureDeletionReceipt(record, record.DerivedAnalyticsDeleted)
+	if err != nil || record.DeletionReceipt == "" || !hmac.Equal([]byte(record.DeletionReceipt), []byte(expected.DeletionReceipt)) {
+		return errors.New("privacy erasure deletion receipt is invalid")
+	}
+	return nil
 }
 
 func SubjectPseudonym(accountID string, key []byte) (string, error) {

@@ -50,3 +50,23 @@ if scripts/data-fabric/verify-testnet-deployment.sh "$fabric_origin" "$bft_origi
   echo "deployment verifier accepted zero producer receipts" >&2
   exit 1
 fi
+
+for identity_mode in legacy-chain legacy-symbol; do
+  legacy_ready="$tmp/${identity_mode}.json"
+  node scripts/data-fabric/fixtures/testnet-deployment-fixture.mjs "$legacy_ready" "$commit" "$identity_mode" &
+  legacy_pid=$!
+  for _attempt in $(seq 1 50); do
+    [[ -s "$legacy_ready" ]] && break
+    sleep 0.1
+  done
+  [[ -s "$legacy_ready" ]] || { echo "${identity_mode} fixture did not start" >&2; exit 1; }
+  legacy_bft_origin="$(jq -er '.bftOrigin' "$legacy_ready")"
+  if scripts/data-fabric/verify-testnet-deployment.sh "$fabric_origin" "$legacy_bft_origin" "$commit" "$fabric_release" "$operator_env" "$bridge" >/dev/null 2>&1; then
+    kill "$legacy_pid" 2>/dev/null || true
+    wait "$legacy_pid" 2>/dev/null || true
+    echo "deployment verifier accepted ${identity_mode} identity" >&2
+    exit 1
+  fi
+  kill "$legacy_pid" 2>/dev/null || true
+  wait "$legacy_pid" 2>/dev/null || true
+done

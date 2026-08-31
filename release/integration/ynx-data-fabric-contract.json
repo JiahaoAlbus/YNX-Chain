@@ -6,14 +6,17 @@
   "slug": "data-fabric",
   "owner": "26-data-fabric",
   "serviceId": "ynx-data-fabric",
-  "release": "ynx-data-fabric-84872ff9042e",
-  "sourceCommit": "84872ff9042ed9f4364645750bbfa2dc3475e80b",
-  "generatedAt": "2026-07-29T20:25:09Z",
+  "release": "ynx-data-fabric-624ba818dcac",
+  "sourceCommit": "624ba818dcacd56dbcd0a606513210a06991cfca",
+  "generatedAt": "2026-08-31T10:38:26Z",
   "phase": "INTEGRATE",
   "protocol": {
     "eventEnvelope": {
       "currentVersion": "2.0",
-      "acceptedVersions": ["1.0", "2.0"],
+      "acceptedVersions": [
+        "1.0",
+        "2.0"
+      ],
       "schema": "schemas/data-fabric/event-envelope-v2.schema.json",
       "registry": "schemas/data-fabric/schema-registry-v2.json",
       "unknownField": "reject",
@@ -22,13 +25,290 @@
       "outOfOrder": "reject-for-ordered-aggregate-and-retry-after-gap",
       "tamper": "reject-quarantine-alert"
     },
+    "chainCommitmentReference": {
+      "field": "chainCommitmentId",
+      "envelopeVersion": "2.0",
+      "requiredShape": "32-lowercase-hex",
+      "authority": "external-YNX-Chain-Core",
+      "readContract": "GET /data/commitments/{id}",
+      "acceptedEvidence": {
+        "source": "ynx-consensus-abci",
+        "version": "abci-state-v14",
+        "coverage": "exact",
+        "failure": false
+      },
+      "chainCoreContractVersion": "1.35.0",
+      "chainCoreSourceCommit": "6f380265c7d3cc055984e33082f877b4e75303d5",
+      "chainCoreContractCommit": "144bc1a354ba390c0ae4e17a93597f799e57c3d6",
+      "chainCoreLocalDelivery": {
+        "bundle": "release/local-delivery/chain-core-data-commitment-v35.bundle",
+        "sha256": "340d7572eee0a36b2cb9b0402abd36ad9ff7d206a56ad92d0db22728e7af607f",
+        "bytes": 2913495533,
+        "verified": true,
+        "public": false,
+        "deployed": false
+      },
+      "chainCoreRuntimeIdentityEvidence": {
+        "serviceCount": 13,
+        "publicSmokeFailsClosed": true,
+        "candidateGatewayExactBuildIdentity": true,
+        "integrationVectorCount": 110,
+        "additiveMandateBoundStrategyExecution": true,
+        "bulkDataCommitmentSemanticsChanged": false,
+        "publicRuntimeMatchesSource": false,
+        "workspaceIsolatedReproducibleSolcBuild": true,
+        "pinnedSolcVersion": "0.8.24",
+        "soliditySourceCount": 9,
+        "selectorArtifactCount": 9,
+        "validatorQuorumIntersectionCardinality": {
+          "validatorCounts": [
+            4,
+            7,
+            13,
+            21
+          ],
+          "exactQuorumSubsetCardinality": true,
+          "exactOrderedQuorumPairCardinality": true,
+          "worstCaseIntersectionLowerBoundIncludesHonestValidator": true,
+          "finiteCasesChecked": 57619
+        },
+        "candidateEngineExecutionReplay": {
+          "traceCount": 128,
+          "generatedTransactionCount": 12288,
+          "executionCount": 2048,
+          "workerCounts": [
+            1,
+            2,
+            4,
+            8,
+            16
+          ],
+          "inputOrders": [
+            "canonical",
+            "reverse",
+            "deterministic-shuffle"
+          ],
+          "matched": [
+            "state",
+            "state-root",
+            "resource-accounting",
+            "parallel-applied-order"
+          ],
+          "scope": "local-candidate-engine-only"
+        },
+        "localFaultMatrix": {
+          "validatorCounts": [
+            4,
+            7,
+            13,
+            21
+          ],
+          "viewsPerProfile": 256,
+          "persistedViews": 1024,
+          "belowQuorumRejected": true,
+          "healedExactQuorumAccepted": true,
+          "invalidVoteClassesRejected": [
+            "duplicate",
+            "forged",
+            "unknown-validator",
+            "stale",
+            "equivocating",
+            "wrong-leader",
+            "locked-branch"
+          ],
+          "saturationTransactions": 10000,
+          "saturationAcceptedLimit": 100,
+          "scope": "deterministic-in-process-chain-core-only"
+        },
+        "durableValidatorSafetyState": {
+          "schema": "ynx-streambft-safety-state/v2",
+          "legacySchema": "ynx-streambft-safety-state/v1",
+          "checksumDomain": "YNX_STREAMBFT_SAFETY_STATE_V2",
+          "authenticationSealDomain": "YNX_STREAMBFT_SAFETY_STATE_SEAL_V2",
+          "authenticationSignature": "Ed25519",
+          "configuredValidatorPublicKeyRequired": true,
+          "legacyUnsealedStateRejectedInAuthenticatedMode": true,
+          "maximumBytes": 65536,
+          "fileMode": "0600",
+          "persistBeforeVoteAuthorizationSuccess": true,
+          "atomicTempSyncRenameAndDirectorySync": true,
+          "restartRechecked": true,
+          "rejected": [
+            "tamper",
+            "trailing-json",
+            "unknown-fields",
+            "unknown-version",
+            "symlink",
+            "last-voted-view-regression",
+            "locked-view-regression",
+            "locked-block-change-without-higher-qc",
+            "same-view-mutation",
+            "concurrent-double-sign"
+          ],
+          "recomputedChecksumWithoutValidSignatureRejected": true,
+          "differentValidatorKeyRejected": true,
+          "sealFailureIsAtomic": true,
+          "authenticatedOnlyHistoricalSignedSnapshotReplayRejected": false,
+          "anchoredHistoricalSignedSnapshotReplayRejected": true,
+          "externalMonotonicRollbackAnchorRequired": true,
+          "externalMonotonicRollbackAnchorImplemented": true,
+          "exclusiveProcessLease": true,
+          "leaseFileMode": "0600",
+          "leaseSymlinkRejected": true,
+          "leaseNonBlocking": true,
+          "leaseReleasedOnlyOnCloseOrProcessExit": true,
+          "secondOwnerRejectedBeforeStateLoad": true,
+          "reacquireAfterCloseOrProcessExit": true,
+          "supportedValidatorRuntimePlatforms": [
+            "macos",
+            "linux"
+          ],
+          "windowsValidatorRuntimeSupported": false,
+          "singleProcessOwnerStillRequired": false,
+          "scope": "chain-core-validator-safety-only"
+        },
+        "validatorVoteSigner": {
+          "signerInterface": "crypto.Signer",
+          "signatureScheme": "Ed25519",
+          "authenticatedSafetyStoreRequired": true,
+          "externalSafetyRollbackAnchorRequired": true,
+          "canonicalProposalValidatedBeforePersistence": true,
+          "configuredValidatorIdentityAndPublicKeyMatchedBeforePersistence": true,
+          "safetyStatePersistedBeforeSignerInvocation": true,
+          "signerFailureConsumesDurableView": true,
+          "sameViewRetryRejected": true,
+          "returnedSignatureLocallyVerified": true,
+          "externalSignerCustodyOwnedByDataFabric": false,
+          "deployedPublic": false,
+          "scope": "chain-core-validator-vote-signing-only"
+        },
+        "safetyRollbackAnchor": {
+          "schema": "ynx-streambft-safety-anchor/v1",
+          "authorityPlacement": "outside-validator-state-directory",
+          "compareAndSwap": true,
+          "completeSignedEnvelopeCommitted": true,
+          "commitBeforeLocalReplacement": true,
+          "commitReadbackVerified": true,
+          "boundedCallTimeout": true,
+          "maximumCallTimeoutSeconds": 30,
+          "localMissingOrOlderSnapshotRecovered": true,
+          "anchorAheadCrashRecoveryTestedLocal": true,
+          "emptyAnchorWithExistingLocalStateRejected": true,
+          "tamperedAnchorRejected": true,
+          "unsafeLocalRecoveryTargetRejected": true,
+          "productionAuthorityConfigured": false,
+          "remoteRecoveryDrillComplete": false,
+          "deployedPublic": false,
+          "scope": "chain-core-validator-safety-only"
+        },
+        "safetyRollbackAnchorHTTPS": {
+          "transport": "HTTPS",
+          "minimumTLSVersion": "1.3",
+          "mutualTLSRequired": true,
+          "environmentProxyDisabled": true,
+          "redirectsRejected": true,
+          "maximumResponseBytes": 131072,
+          "strictJSON": true,
+          "cacheControlNoStoreRequired": true,
+          "etagEnvelopeDigestRequired": true,
+          "initialCASHeader": "If-None-Match: *",
+          "existingCASHeader": "If-Match: quoted-envelope-sha256",
+          "conflictStatuses": [
+            409,
+            412
+          ],
+          "responseRecordExactMatchRequired": true,
+          "listenerFreeIntegrationTested": true,
+          "productionEndpointConfigured": false,
+          "productionClientCertificateProvisioned": false,
+          "deployedPublic": false,
+          "scope": "chain-core-validator-safety-only"
+        },
+        "safetyRollbackAnchorAuthority": {
+          "transport": "HTTPS",
+          "minimumTLSVersion": "1.3",
+          "verifiedClientCertificateRequired": true,
+          "certificateFingerprintBoundToExactValidator": true,
+          "canonicalPathRequired": true,
+          "maximumRequestBytes": 131072,
+          "strictJSON": true,
+          "conditionalWriteRequired": true,
+          "postgresSingleStatementCAS": true,
+          "exactCommittedRecordReadbackRequired": true,
+          "runtimeDatabaseRoleCreatesSchema": false,
+          "inProcessConcurrentSingleWinnerTested": true,
+          "protectedHealthProbe": true,
+          "protectedVersionProbe": true,
+          "protectedMetricsProbe": true,
+          "postgresDependencyFailClosed": true,
+          "rawDatabaseErrorsRedacted": true,
+          "metricsFixedCardinality": true,
+          "validatorIdentifiersExcludedFromMetrics": true,
+          "realPostgresIntegrationTested": false,
+          "productionDatabaseConfigured": false,
+          "productionCertificatesProvisioned": false,
+          "independentlyDeployedAuthority": false,
+          "remoteRecoveryDrillComplete": false,
+          "deployedPublic": false,
+          "scope": "chain-core-validator-safety-only"
+        },
+        "strategyVaultCustodyInvariants": {
+          "persistedVaultOwnerMustMatchReferencedMandateOwner": true,
+          "closedVaultRequiresZeroYNXTBalance": true,
+          "raceAndCapacityEvidencePassedLocal": true,
+          "streamBFTEvidenceSourceCommit": "c3ddcec34234d1ac575a417a03f937c2bff22a4f",
+          "scope": "chain-core-strategy-vault-only",
+          "deployedPublic": false
+        },
+        "notProvenByThisEvidence": [
+          "full-state-machine-safety",
+          "chain-core-real-network-partition",
+          "packet-loss",
+          "ddos",
+          "state-sync-restore",
+          "cometbft-or-public-differential-replay",
+          "independent-tlc-or-apalache",
+          "wan-soak",
+          "public-promotion"
+        ]
+      },
+      "failurePolicy": "reject-before-event-store-mutation",
+      "writeOwner": "derived-by-Chain-Core-from-transaction-signer-never-accepted-from-event",
+      "excludedFromChain": [
+        "raw-content",
+        "plaintext-private-metadata",
+        "recipient-lists",
+        "access-tokens",
+        "passwords",
+        "seed-phrases",
+        "private-keys",
+        "content-encryption-keys"
+      ]
+    },
     "ledger": {
       "schema": "schemas/data-fabric/journal-entry-v1.schema.json",
       "model": "append-only-double-entry",
       "balanceInvariant": "sum-debits-equals-sum-credits-per-currency-and-asset",
       "correction": "new-entry-reverses-or-adjusts-history-no-in-place-overwrite"
     },
-    "exactlyOnceBoundary": "idempotent-state-transition-with-transactional-inbox-not-network-delivery"
+    "exactlyOnceBoundary": "idempotent-state-transition-with-transactional-inbox-not-network-delivery",
+    "producerBackpressure": {
+      "admission": "bounded-nonblocking-concurrency-gate-after-delivery-signature-before-replay-consumption",
+      "defaultConcurrencyLimit": 128,
+      "configuration": "YNX_DATA_FABRIC_PRODUCER_CONCURRENCY_LIMIT",
+      "saturatedResponse": {
+        "status": 429,
+        "code": "producer_backpressure",
+        "retryAfterSeconds": 1
+      },
+      "retrySafety": "a request rejected by the concurrency gate does not consume its producer nonce",
+      "metrics": [
+        "ynx_data_fabric_producer_inflight",
+        "ynx_data_fabric_producer_concurrency_limit",
+        "ynx_data_fabric_producer_peak_inflight",
+        "ynx_data_fabric_producer_backpressure_total"
+      ]
+    }
   },
   "api": {
     "basePath": "/v1",
@@ -49,12 +329,20 @@
     ],
     "implementation": "internal/datafabricapi",
     "cli": "cmd/ynx-data-fabricctl",
-    "sdk": "sdk/datafabric"
+    "sdk": "sdk/datafabric",
+    "sdks": [
+      "sdk/datafabric",
+      "sdk/datafabric-typescript"
+    ]
   },
   "authorization": {
     "owner": "YNX Wallet/Auth and App Gateway",
     "credentialTransport": "opaque-app-session-and-device-signature-headers",
-    "rejectedCredentialTransport": ["authorization-bearer", "browser-long-lived-token", "browser-cookie"],
+    "rejectedCredentialTransport": [
+      "authorization-bearer",
+      "browser-long-lived-token",
+      "browser-cookie"
+    ],
     "requiredScopes": [
       "data-fabric.events.write",
       "data-fabric.events.read",
@@ -67,11 +355,62 @@
       "data-fabric.privacy.delete",
       "data-fabric.operator.recover"
     ],
-    "walletTuple": ["sessionId", "deviceId", "product", "bundleId", "accountId", "requiredScope"],
-    "signedIntentBindings": ["requestId", "requestNonce", "requestTimestamp", "requestMethod", "requestPath", "contentSha256", "requestSignature"],
+    "walletTuple": [
+      "sessionId",
+      "deviceId",
+      "product",
+      "bundleId",
+      "accountId",
+      "requiredScope"
+    ],
+    "accountIsolation": {
+      "requiredPrincipal": "canonical non-empty accountId from Wallet/Auth introspection",
+      "accountScopedSurfaces": [
+        "event append and read",
+        "Ledger journal read, write and correction",
+        "billing settlement read and write",
+        "Saga start, read and transition",
+        "reconciliation read and write",
+        "subject export and erasure"
+      ],
+      "productScopedPrivilegedSurfaces": [
+        "fabric.audit.export",
+        "fabric.redelivery.manage",
+        "fabric.sagas.recover"
+      ],
+      "productScopedMetadata": [
+        "billing rate plans"
+      ],
+      "sagaAuthority": "an existing authoritative event must match product, accountId, aggregateId and correlationId",
+      "failurePolicy": "same-product cross-account access rejects before mutation and authorized list results omit foreign-account records"
+    },
+    "signedIntentBindings": [
+      "requestId",
+      "requestNonce",
+      "requestTimestamp",
+      "requestMethod",
+      "requestPath",
+      "contentSha256",
+      "requestSignature"
+    ],
     "freshness": "not-older-than-2m-and-not-more-than-30s-future",
     "replay": "consume-session-device-nonce-after-successful-introspection",
-    "failClosed": ["introspection-unavailable", "inactive", "revoked", "expired", "wrong-session", "wrong-product", "wrong-bundle", "wrong-device", "scope-widening", "request-tamper", "replay"]
+    "failClosed": [
+      "introspection-unavailable",
+      "inactive",
+      "revoked",
+      "expired",
+      "missing-account",
+      "noncanonical-account",
+      "wrong-account",
+      "wrong-session",
+      "wrong-product",
+      "wrong-bundle",
+      "wrong-device",
+      "scope-widening",
+      "request-tamper",
+      "replay"
+    ]
   },
   "canonicalEvents": {
     "registry": "schemas/data-fabric/schema-registry-v2.json",
@@ -94,7 +433,20 @@
   },
   "errorCodes": {
     "implementation": "internal/datafabric/errors.go",
-    "classes": ["validation", "version", "privacy", "authorization", "integrity", "ordering", "duplicate", "ledger", "saga", "recovery", "storage", "provider-unavailable"],
+    "classes": [
+      "validation",
+      "version",
+      "privacy",
+      "authorization",
+      "integrity",
+      "ordering",
+      "duplicate",
+      "ledger",
+      "saga",
+      "recovery",
+      "storage",
+      "provider-unavailable"
+    ],
     "transport": "structured-error-with-request-error-and-audit-identifiers",
     "internalStackExposed": false
   },
@@ -115,17 +467,187 @@
   "testVectors": {
     "machineReadable": "docs/integration/CROSS_PRODUCT_TEST_VECTORS.json",
     "producerVectors": "integration/PRODUCER_TEST_VECTORS.md",
-    "requiredNegativeClasses": ["unknown-field", "invalid-version", "duplicate", "out-of-order", "tamper", "wrong-product", "wrong-device", "scope-widening", "expiry", "revoke", "broker-outage", "consumer-crash", "schema-upgrade", "ledger-imbalance", "stale-recovery-lease"]
+    "requiredNegativeClasses": [
+      "broker-leader-loss",
+      "broker-outage",
+      "chain-commitment-mismatch",
+      "chain-commitment-unavailable",
+      "consumer-crash",
+      "database-restart",
+      "duplicate",
+      "duplicate-storm",
+      "expiry",
+      "invalid-version",
+      "ledger-imbalance",
+      "long-replay",
+      "missing-account",
+      "out-of-order",
+      "partition-hotspot",
+      "producer-backpressure-retry",
+      "revoke",
+      "same-product-wrong-account",
+      "schema-upgrade",
+      "scope-widening",
+      "stale-recovery-lease",
+      "tamper",
+      "unknown-field",
+      "wrong-device",
+      "wrong-product"
+    ]
+  },
+  "capacityEvidence": {
+    "sourceCommit": "4bb2ddfb6337e44060f57adafc7ee1cc08faedbe",
+    "runId": 31797308684,
+    "postgresVersion": "17.10",
+    "events": 10000,
+    "hotAggregateShare": 0.9,
+    "duplicateStormAttempts": 1000,
+    "duplicateRejects": 1000,
+    "databaseRestarted": true,
+    "lostCommittedEvents": 0,
+    "acceptingConnectionsRTOMilliseconds": 421.883,
+    "integrityValidatedRTOMilliseconds": 1120.679,
+    "longReplayApplied": 10000,
+    "idempotentReplaySkipped": 10000,
+    "scope": "single-primary-linux-ci-plus-one-embedded-single-node-jetstream-consumer-crash-no-public-scale-claim",
+    "evidence": [
+      "evidence/postgres/resilience-seed-clean-source-20260814.json",
+      "evidence/postgres/resilience-verify-clean-source-20260814.json"
+    ]
+  },
+  "postgresReplicaFailoverEvidence": {
+    "status": "passed-exact-source-linux-ci-artifact-hash-verified",
+    "measuredSourceCommit": "2f9c7f92ed050d83b43668541dbb4841314319d0",
+    "implementationSourceCommit": "ed06ce8053d165122a0fa550f59af7c88d3b3c6b",
+    "exactSourceCIRunId": 31838660585,
+    "exactSourceCIHeadCommit": "1216adcfd889af371f52c96dbb2d1d3112b291ea",
+    "exactSourceCIConclusion": "success",
+    "exactSourceFailoverArtifact": "data-fabric-postgres-failover-1216adcfd889af371f52c96dbb2d1d3112b291ea",
+    "exactSourceArtifactDownloadVerified": true,
+    "exactSourceArtifactSha256": {
+      "seed": "f751be035a257e19c4bb2b5a51810f508445331dc2353fea2b8cd6aa9475d477",
+      "verify": "0d348846d4823700407c4abcf5be514d8946146996656e65d2aec3b7a70704a8",
+      "summary": "411de3ac29339c8cb7ec3a72af69a3a5288e0e71a313edafe0d7fa6097ee6b72"
+    },
+    "postgresVersion": "17.10",
+    "topology": "one-primary-one-asynchronous-streaming-standby-one-docker-host",
+    "standbyReadOnlyBeforeFailure": true,
+    "standbyCaughtUpThroughPrimaryFlushLSN": true,
+    "primaryStopped": true,
+    "promotion": "manual-pg-promote",
+    "promotedWritablePrimary": true,
+    "canonicalEvents": 1000,
+    "duplicateRejects": 100,
+    "lostCanonicalEvents": 0,
+    "acceptingConnectionsRTOMilliseconds": 1141.703,
+    "integrityValidatedRTOMilliseconds": 1418.547,
+    "replayApplied": 1000,
+    "idempotentReplaySkipped": 1000,
+    "outboxRowsPreserved": 1000,
+    "automaticEndpointFailover": false,
+    "fencingAutomation": false,
+    "synchronousQuorum": false,
+    "crossZoneOrRegionalDR": false,
+    "sharedTestnet": false,
+    "publicAvailabilityClaim": false,
+    "evidence": [
+      "scripts/data-fabric/postgres-replica-failover.sh",
+      "scripts/data-fabric/postgres-resilience/main.go",
+      ".github/workflows/data-fabric.yml"
+    ]
+  },
+  "consumerCrashEvidence": {
+    "runId": 31797308684,
+    "sourceCommit": "4bb2ddfb6337e44060f57adafc7ee1cc08faedbe",
+    "boundary": "after-postgresql-effect-and-inbox-commit-before-jetstream-ack",
+    "childExitCode": 86,
+    "deliveredConsumerSequence": 2,
+    "deliveredStreamSequence": 1,
+    "inboxEffects": 1,
+    "analyticsFacts": 1,
+    "duplicateBusinessEffects": 0,
+    "ackPending": 0,
+    "recoveryAfterHelperExitMilliseconds": 995.225,
+    "scope": "one-event-one-process-crash-single-postgresql-primary-embedded-single-node-jetstream",
+    "evidence": "evidence/postgres/consumer-process-crash-clean-source-20260814.json"
+  },
+  "transportBackpressureEvidence": {
+    "runId": 31797308684,
+    "sourceCommit": "4bb2ddfb6337e44060f57adafc7ee1cc08faedbe",
+    "canonicalEvents": 256,
+    "constrainedMaxBytes": 65536,
+    "constrainedPublished": 18,
+    "constrainedRejected": 238,
+    "outboxRetainedUnderPressure": 238,
+    "deadLettersUnderPressure": 0,
+    "expandedMaxBytes": 8388608,
+    "recoveredPublished": 238,
+    "finalOutboxPending": 0,
+    "finalDeadLetters": 0,
+    "finalStreamMessages": 256,
+    "duplicateStreamMessages": 0,
+    "scope": "bounded-256-event-batch-single-postgresql-primary-embedded-single-node-jetstream-explicit-capacity-expansion",
+    "evidence": "evidence/postgres/transport-backpressure-clean-source-20260814.json"
+  },
+  "producerPostgresJetStreamEvidence": {
+    "runId": 31797308684,
+    "sourceCommit": "4bb2ddfb6337e44060f57adafc7ee1cc08faedbe",
+    "signedProducers": 1000,
+    "producerConcurrencyLimit": 64,
+    "observedPeakServerInFlight": 64,
+    "succeeded": 1000,
+    "businessErrors": 0,
+    "requestAttempts": 5686,
+    "backpressureResponses": 4686,
+    "committedEventsPerSecond": 98.93267416423704,
+    "initialOutboxDepth": 1000,
+    "brokerPublished": 1000,
+    "finalOutboxDepth": 0,
+    "streamMessages": 1000,
+    "scope": "real-loopback-http-single-postgresql-primary-embedded-single-node-jetstream-bounded-batch",
+    "evidence": "evidence/capacity/api-1000-producers-postgres-jetstream-clean-source-20260814.json"
   },
   "dependencies": [
-    {"owner": "YNX Wallet/Auth", "contract": "canonical session, device challenge, introspection and revoke", "acceptance": "pending"},
-    {"owner": "YNX App Gateway", "contract": "signed request forwarding and product registration", "acceptance": "pending"},
-    {"owner": "YNX Pay", "contract": "BFT invoice, authorization, receipt and refund source", "acceptance": "testedLocal-not-central"},
-    {"owner": "YNX Chain Core", "contract": "finalized chain events and settlement observations", "acceptance": "pending-shared-testnet"},
-    {"owner": "product producers", "contract": "registered v2 events, fees and Saga compensation", "acceptance": "pending-except-local-pay-adapter"},
-    {"owner": "YNX Integration", "contract": "protocol freeze and shared Testnet ordering", "acceptance": "pending"},
-    {"owner": "YNX Security/SRE", "contract": "deployment, signer, broker, database, backup, alert and artifact policy", "acceptance": "pending"},
-    {"owner": "YNX Website", "contract": "truthful public metadata, status and download publication", "acceptance": "pending"}
+    {
+      "owner": "YNX Wallet/Auth",
+      "contract": "canonical session, device challenge, introspection and revoke",
+      "acceptance": "pending"
+    },
+    {
+      "owner": "YNX App Gateway",
+      "contract": "signed request forwarding and product registration",
+      "acceptance": "pending"
+    },
+    {
+      "owner": "YNX Pay",
+      "contract": "BFT invoice, authorization, receipt and refund source",
+      "acceptance": "testedLocal-not-central"
+    },
+    {
+      "owner": "YNX Chain Core",
+      "contract": "frozen Bulk Data Commitment v1 reference read boundary and finalized chain observations",
+      "acceptance": "contract-consumed-and-tested-local; shared-testnet-pending"
+    },
+    {
+      "owner": "product producers",
+      "contract": "registered v2 events, fees and Saga compensation",
+      "acceptance": "pending-except-local-pay-adapter"
+    },
+    {
+      "owner": "YNX Integration",
+      "contract": "protocol freeze and shared Testnet ordering",
+      "acceptance": "pending"
+    },
+    {
+      "owner": "YNX Security/SRE",
+      "contract": "deployment, signer, broker, database, backup, alert and artifact policy",
+      "acceptance": "pending"
+    },
+    {
+      "owner": "YNX Website",
+      "contract": "truthful public metadata, status and download publication",
+      "acceptance": "pending"
+    }
   ],
   "externalInputs": [
     "accepted central Wallet/Auth and App Gateway endpoints and trust roots",
@@ -144,5 +666,23 @@
     "downloadHosted": false,
     "productionSigned": false,
     "storeReleased": false
+  },
+  "jetStreamLeaderLossEvidence": {
+    "runId": 31797308684,
+    "sourceCommit": "4bb2ddfb6337e44060f57adafc7ee1cc08faedbe",
+    "clusterNodes": 3,
+    "streamReplicas": 3,
+    "canonicalEvents": 128,
+    "publishedBeforeLeaderLoss": 64,
+    "streamLeaderChanged": true,
+    "leaderFailoverRTOMilliseconds": 530.046,
+    "publishedAfterLeaderLoss": 64,
+    "finalOutboxPending": 0,
+    "finalStreamMessages": 128,
+    "duplicateStreamMessages": 0,
+    "currentReplicaCount": 3,
+    "restartedReplicaCatchupRTOMilliseconds": 2570.446,
+    "scope": "one-bounded-128-event-three-node-loopback-file-backed-jetstream-stream-leader-stop-and-restart",
+    "evidence": "evidence/postgres/jetstream-cluster-leader-loss-clean-source-20260814.json"
   }
 }

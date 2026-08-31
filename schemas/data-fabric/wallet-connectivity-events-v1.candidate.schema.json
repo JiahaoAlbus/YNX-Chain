@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.ynx.network/data-fabric/candidates/wallet-connectivity-events-v1.schema.json",
+  "title": "YNX Wallet Connectivity Events v1 Candidate",
+  "description": "Unactivated Data Fabric candidate. It records privacy-safe asynchronous observations only and MUST NOT participate in DApp, wallet approval, or standard wallet connection control flow.",
+  "x-contract-status": "CANDIDATE",
+  "x-activation": "PROHIBITED_UNTIL_INTEGRATION_ACCEPTANCE",
+  "x-candidate-revision": 2,
+  "x-owner": "data-fabric",
+  "x-review-target": "integration",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "eventId",
+    "eventType",
+    "schemaVersion",
+    "tenant",
+    "product",
+    "platform",
+    "transport",
+    "connectionId",
+    "sessionClass",
+    "chainId",
+    "result",
+    "errorClass",
+    "retryable",
+    "correlationId",
+    "causationId",
+    "sequence",
+    "sourceCommit",
+    "releaseId",
+    "timestamp",
+    "effectiveAt",
+    "privacyClass",
+    "retention",
+    "auditId",
+    "payloadHash",
+    "status"
+  ],
+  "properties": {
+    "eventId": {"$ref": "#/$defs/id"},
+    "eventType": {"enum": [
+      "wallet.connection.requested",
+      "wallet.connection.approved",
+      "wallet.connection.rejected",
+      "wallet.connection.established",
+      "wallet.connection.disconnected",
+      "wallet.connection.recovered",
+      "wallet.connection.expired",
+      "wallet.connection.revoked",
+      "product.session.upgrade.requested",
+      "product.session.upgrade.completed",
+      "product.session.upgrade.failed",
+      "product.session.revoked",
+      "walletconnect.pairing.created",
+      "walletconnect.session.established",
+      "walletconnect.session.disconnected",
+      "endpoint.health.degraded",
+      "endpoint.health.recovered",
+      "endpoint.schema.mismatch",
+      "faucet.requested",
+      "faucet.completed",
+      "faucet.failed",
+      "client.retired",
+      "client.retired.connection_rejected"
+    ]},
+    "schemaVersion": {"const": "1.0"},
+    "tenant": {"$ref": "#/$defs/tenant", "description": "Tenant or product partition, never a public cross-DApp user identifier."},
+    "product": {"$ref": "#/$defs/slug"},
+    "platform": {"enum": ["web", "ios", "android", "desktop", "extension", "server", "unknown"]},
+    "transport": {"enum": ["eip1193", "eip6963", "walletconnect-v2", "deep-link", "product-session", "gateway", "faucet", "unknown"]},
+    "connectionId": {"type": "string", "pattern": "^pc_[A-Za-z0-9_-]{16,96}$", "description": "Per-product keyed pseudonym; it is not an account, wallet address, device identifier, or cross-DApp public identifier."},
+    "sessionClass": {"enum": ["standard-wallet", "product-session", "walletconnect", "none"]},
+    "chainId": {"const": "0x1917", "description": "Canonical YNX Wallet Testnet identity. Producers may normalize decimal 6423 only through the asynchronous Data Fabric adapter; legacy 9102 and every other chain are rejected."},
+    "result": {"enum": ["requested", "approved", "rejected", "established", "disconnected", "recovered", "expired", "revoked", "completed", "failed", "degraded"]},
+    "errorClass": {"enum": ["none", "user-rejected", "device-proof", "device-key", "session-binding", "protocol", "expiry-or-clock-skew", "callback", "registry", "endpoint-schema", "gateway-unavailable", "relay-unavailable", "client-retired", "faucet-not-accepted", "faucet-pending-finality", "unknown"]},
+    "retryable": {"type": "boolean"},
+    "correlationId": {"$ref": "#/$defs/id"},
+    "causationId": {"$ref": "#/$defs/id"},
+    "sequence": {"type": "integer", "minimum": 1, "description": "Per-product pseudonymous connection sequence used for ordered asynchronous delivery."},
+    "sourceCommit": {"type": "string", "pattern": "^[0-9a-f]{7,64}$"},
+    "releaseId": {"type": "string", "minLength": 1, "maxLength": 128},
+    "timestamp": {"type": "string", "format": "date-time", "pattern": "Z$"},
+    "effectiveAt": {"type": "string", "format": "date-time", "pattern": "Z$", "description": "Time at which the observed result took effect; it is not a wallet control-plane deadline."},
+    "privacyClass": {"const": "pseudonymous"},
+    "retention": {"enum": ["operational", "audit-7y"]},
+    "auditId": {"$ref": "#/$defs/id"},
+    "payloadHash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$", "description": "Integrity reference only. The source payload is never copied into this event."},
+    "status": {"enum": ["queued", "pending", "published", "dead-letter"]},
+    "diagnostic": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "httpStatusClass": {"enum": ["none", "400", "403", "other"]},
+        "endpointClass": {"enum": ["gateway", "relay", "faucet", "registry", "callback", "unknown"]},
+        "clientVersion": {"type": "string", "maxLength": 64}
+      }
+    },
+    "faucet": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["acceptanceId", "txHash", "authoritativeReceiptId", "finality"],
+      "properties": {
+        "acceptanceId": {"$ref": "#/$defs/id"},
+        "txHash": {"type": "string", "pattern": "^0x[0-9a-fA-F]{64}$"},
+        "authoritativeReceiptId": {"$ref": "#/$defs/id"},
+        "finality": {"const": "finalized"}
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"eventType": {"const": "faucet.completed"}}, "required": ["eventType"]},
+      "then": {"required": ["faucet"]}
+    },
+    {
+      "if": {"properties": {"eventType": {"const": "faucet.completed"}}, "required": ["eventType"]},
+      "then": {"properties": {"result": {"const": "completed"}, "errorClass": {"const": "none"}, "retryable": {"const": false}}}
+    }
+  ],
+  "$defs": {
+    "id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$"},
+    "slug": {"type": "string", "pattern": "^[a-z][a-z0-9-]{1,63}$"},
+    "tenant": {"type": "string", "pattern": "^[a-z][a-z0-9-]{1,63}$"}
+  }
+}

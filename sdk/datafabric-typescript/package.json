@@ -1,0 +1,30 @@
+{
+  "name": "@ynx/data-fabric",
+  "version": "0.2.0",
+  "description": "Fail-closed TypeScript SDK for the YNX Data Fabric canonical event APIs",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "npm run build && node --test tests/*.test.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.5",
+    "typescript": "^5.9.3"
+  },
+  "license": "Apache-2.0"
+}

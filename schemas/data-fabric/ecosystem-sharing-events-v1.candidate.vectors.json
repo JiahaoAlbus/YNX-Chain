@@ -1,0 +1,12 @@
+{
+  "contractStatus": "CANDIDATE",
+  "activation": "PROHIBITED_UNTIL_INTEGRATION_ACCEPTANCE",
+  "schema": "schemas/data-fabric/ecosystem-sharing-events-v1.candidate.schema.json",
+  "vectors": [
+    {"id": "DF-SHARE-001", "name": "Opaque media metadata only", "expect": "published and versioned media events contain a digest and opaque reference, never raw video, music, messages, credentials, or keys"},
+    {"id": "DF-SHARE-002", "name": "Product-owned consent", "expect": "shared and access-granted events require an authorized permission summary; Data Fabric cannot create access authority"},
+    {"id": "DF-SHARE-003", "name": "Fail-closed revocation", "expect": "access revocation and asset deletion remain explicit, auditable, versioned events and cannot be silently overwritten"},
+    {"id": "DF-SHARE-004", "name": "Cross-product pseudonymization", "expect": "ownerReference is per-product pseudonymous and no public account, recipient list, or cross-product identifier is allowed"},
+    {"id": "DF-SHARE-005", "name": "Chain commitment is external", "expect": "chainCommitmentId is an optional read-only external integrity reference and does not copy raw content or control product permissions"}
+  ]
+}

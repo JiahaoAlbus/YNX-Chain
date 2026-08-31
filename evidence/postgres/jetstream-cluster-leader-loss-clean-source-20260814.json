@@ -1,0 +1,23 @@
+{
+  "broker": "three-node file-backed JetStream cluster",
+  "canonicalEvents": 128,
+  "clusterNodes": 3,
+  "currentReplicaCount": 3,
+  "duplicateStreamMessages": 0,
+  "finalOutboxPending": 0,
+  "finalStreamMessages": 128,
+  "leaderAfter": "DF-JS-2",
+  "leaderBefore": "DF-JS-1",
+  "leaderFailoverRTOMilliseconds": 530.046,
+  "limitations": [
+    "three embedded NATS processes on one CI host and loopback network",
+    "one bounded 128-event batch split around one stream-leader stop",
+    "no network partition, simultaneous quorum loss, cross-zone latency, sustained load, shared Testnet, or public availability claim"
+  ],
+  "publishedAfterLeaderLoss": 64,
+  "publishedBeforeLeaderLoss": 64,
+  "restartedReplicaCatchupRTOMilliseconds": 2570.446,
+  "sourceCommit": "4bb2ddfb6337e44060f57adafc7ee1cc08faedbe",
+  "streamLeaderChanged": true,
+  "streamReplicas": 3
+}

@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.ynx.network/data-fabric/candidates/durable-ledger-v1.schema.json",
+  "title": "YNX Durable Double-Entry Ledger v1 Candidate",
+  "description": "Unactivated Data Fabric ledger contract. It is an immutable journal: corrections are new, balanced reversal entries and never updates to history.",
+  "x-contract-status": "CANDIDATE",
+  "x-activation": "PROHIBITED_UNTIL_INTEGRATION_ACCEPTANCE",
+  "x-owner": "data-fabric",
+  "x-review-target": "integration",
+  "x-invariant": "For each journal and asset, total debit equals total credit. correctionOf must reference a prior immutable entry and reconciliationState is evidence, not settlement proof.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["journalId", "entries", "product", "timestamp", "source", "auditId"],
+  "properties": {
+    "journalId": {"$ref": "#/$defs/id"},
+    "product": {"$ref": "#/$defs/slug"},
+    "timestamp": {"type": "string", "format": "date-time", "pattern": "Z$"},
+    "source": {"enum": ["testnet", "data-fabric", "wallet", "financial-app", "card-simulation", "reconciliation"]},
+    "auditId": {"$ref": "#/$defs/id"},
+    "entries": {
+      "type": "array",
+      "minItems": 2,
+      "items": {"$ref": "#/$defs/entry"}
+    }
+  },
+  "$defs": {
+    "id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$"},
+    "slug": {"type": "string", "pattern": "^[a-z][a-z0-9-]{1,63}$"},
+    "entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entryId", "account", "counterpartyAccount", "asset", "debit", "credit", "amount", "eventId", "product", "timestamp", "source", "reconciliationState"],
+      "properties": {
+        "entryId": {"$ref": "#/$defs/id"},
+        "account": {"$ref": "#/$defs/id"},
+        "counterpartyAccount": {"$ref": "#/$defs/id"},
+        "asset": {"type": "string", "pattern": "^[A-Z][A-Z0-9]{1,15}$"},
+        "debit": {"type": "integer", "minimum": 0},
+        "credit": {"type": "integer", "minimum": 0},
+        "amount": {"type": "integer", "minimum": 1},
+        "eventId": {"$ref": "#/$defs/id"},
+        "product": {"$ref": "#/$defs/slug"},
+        "timestamp": {"type": "string", "format": "date-time", "pattern": "Z$"},
+        "source": {"type": "string", "minLength": 1, "maxLength": 64},
+        "correctionOf": {"$ref": "#/$defs/id"},
+        "reconciliationState": {"enum": ["pending", "matched", "mismatch", "incomplete"]}
+      },
+      "oneOf": [
+        {"properties": {"debit": {"minimum": 1}, "credit": {"const": 0}}, "required": ["debit", "credit"]},
+        {"properties": {"debit": {"const": 0}, "credit": {"minimum": 1}}, "required": ["debit", "credit"]}
+      ]
+    }
+  }
+}

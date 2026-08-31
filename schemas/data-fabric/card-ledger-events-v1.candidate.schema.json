@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schemas.ynx.network/data-fabric/candidates/card-ledger-events-v1.schema.json",
+  "title": "YNX Card Ledger Events v1 Candidate",
+  "description": "Unactivated Testnet-only card simulation contract. It does not represent Visa, Mastercard, fiat funding, merchant settlement, or payment-card data storage.",
+  "x-contract-status": "CANDIDATE",
+  "x-activation": "PROHIBITED_UNTIL_INTEGRATION_ACCEPTANCE",
+  "x-owner": "data-fabric",
+  "x-review-target": "integration",
+  "x-runtime-boundary": "Card events are asynchronous observations and ledger references only; no card event is a synchronous wallet connection gate.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["eventId", "eventType", "schemaVersion", "tenant", "product", "cardReference", "chainId", "result", "correlationId", "sequence", "timestamp", "effectiveAt", "sourceCommit", "releaseId", "auditId", "payloadHash", "ledgerReference"],
+  "properties": {
+    "eventId": {"$ref": "#/$defs/id"},
+    "eventType": {"enum": ["card.created", "card.funded", "card.authorization.requested", "card.authorization.approved", "card.authorization.declined", "card.capture.completed", "card.authorization.reversed", "card.refund.created", "card.refund.completed", "card.balance.adjusted", "card.frozen", "card.unfrozen", "card.closed"]},
+    "schemaVersion": {"const": "1.0"},
+    "tenant": {"$ref": "#/$defs/slug"},
+    "product": {"$ref": "#/$defs/slug"},
+    "cardReference": {"type": "string", "pattern": "^tcr_[A-Za-z0-9_-]{16,96}$", "description": "Per-product tokenized card reference; never PAN, CVV, track, PIN, or cryptogram."},
+    "chainId": {"type": "string", "pattern": "^(ynx_[0-9]+-[0-9]+|0x[0-9a-fA-F]+)$"},
+    "result": {"enum": ["created", "pending", "completed", "approved", "declined", "reversed", "adjusted", "frozen", "unfrozen", "closed", "failed"]},
+    "correlationId": {"$ref": "#/$defs/id"},
+    "sequence": {"type": "integer", "minimum": 1},
+    "timestamp": {"type": "string", "format": "date-time", "pattern": "Z$"},
+    "effectiveAt": {"type": "string", "format": "date-time", "pattern": "Z$"},
+    "sourceCommit": {"type": "string", "pattern": "^[0-9a-f]{7,64}$"},
+    "releaseId": {"type": "string", "minLength": 1, "maxLength": 128},
+    "auditId": {"$ref": "#/$defs/id"},
+    "payloadHash": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+    "ledgerReference": {"type": "object", "additionalProperties": false, "required": ["journalId", "entryId", "reconciliationState"], "properties": {"journalId": {"$ref": "#/$defs/id"}, "entryId": {"$ref": "#/$defs/id"}, "reconciliationState": {"enum": ["pending", "matched", "mismatch", "incomplete"]}}},
+    "funding": {"type": "object", "additionalProperties": false, "required": ["txHash", "authoritativeReceiptId", "finality"], "properties": {"txHash": {"type": "string", "pattern": "^0x[0-9a-fA-F]{64}$"}, "authoritativeReceiptId": {"$ref": "#/$defs/id"}, "finality": {"const": "finalized"}}}
+  },
+  "allOf": [
+    {"if": {"properties": {"eventType": {"const": "card.funded"}}, "required": ["eventType"]}, "then": {"required": ["funding"], "properties": {"result": {"const": "completed"}}}}
+  ],
+  "$defs": {"id": {"type": "string", "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$"}, "slug": {"type": "string", "pattern": "^[a-z][a-z0-9-]{1,63}$"}}
+}

@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -45,6 +46,7 @@ func main() {
 	sourceCommit := flag.String("source-commit", os.Getenv("YNX_DATA_FABRIC_SOURCE_COMMIT"), "source commit")
 	sourceRelease := flag.String("source-release", os.Getenv("YNX_DATA_FABRIC_SOURCE_RELEASE"), "source release")
 	rateLimitPerMinute := flag.Uint("rate-limit-per-minute", envUint("YNX_DATA_FABRIC_RATE_LIMIT_PER_MINUTE", 120), "per canonical session/device/product request limit per minute")
+	producerConcurrencyLimit := flag.Uint("producer-concurrency-limit", envUint("YNX_DATA_FABRIC_PRODUCER_CONCURRENCY_LIMIT", 128), "maximum producer ingress requests admitted concurrently before bounded 429 backpressure")
 	flag.Parse()
 
 	if _, _, err := net.SplitHostPort(*listen); err != nil {
@@ -52,6 +54,9 @@ func main() {
 	}
 	if *rateLimitPerMinute == 0 || *rateLimitPerMinute > 10000 {
 		fail("rate limit must be between 1 and 10000 requests per minute")
+	}
+	if *producerConcurrencyLimit == 0 || *producerConcurrencyLimit > 4096 {
+		fail("producer concurrency limit must be between 1 and 4096")
 	}
 	if !filepath.IsAbs(*keyRegistryPath) || !filepath.IsAbs(*privacyKeyPath) {
 		fail("privacy key and event key registry paths must be absolute")
@@ -66,7 +71,7 @@ func main() {
 	}
 	shutdownContext, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	apiConfig := datafabricapi.Config{Authorizer: datafabricapi.HTTPAuthorizer{Endpoint: *introspectionURL}, EventKeys: keys, EventKeyProducts: keyProducts, PrivacyKey: privacyKey, SourceCommit: *sourceCommit, SourceRelease: *sourceRelease, RateLimitPerMinute: uint32(*rateLimitPerMinute)}
+	apiConfig := datafabricapi.Config{Authorizer: datafabricapi.HTTPAuthorizer{Endpoint: *introspectionURL}, EventKeys: keys, EventKeyProducts: keyProducts, PrivacyKey: privacyKey, SourceCommit: *sourceCommit, SourceRelease: *sourceRelease, RateLimitPerMinute: uint32(*rateLimitPerMinute), ProducerConcurrencyLimit: uint32(*producerConcurrencyLimit)}
 	closeBackend := func() {}
 	switch *storeMode {
 	case "postgres":
@@ -76,6 +81,9 @@ func main() {
 		dsn, err := datafabricconfig.LoadSecretFile(*postgresDSNFile, "PostgreSQL DSN")
 		if err != nil {
 			fail(err.Error())
+		}
+		if err := validatePostgresTLSDSN(string(dsn)); err != nil {
+			fail("PostgreSQL TLS configuration invalid: " + err.Error())
 		}
 		db, err := sql.Open("postgres", string(dsn))
 		if err != nil {
@@ -216,6 +224,25 @@ func env(name, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+// validatePostgresTLSDSN keeps the production PostgreSQL boundary on a
+// certificate-verified connection without ever logging the DSN or its
+// credentials. Encryption at rest remains a database/KMS authority concern;
+// this process only rejects an unsafe transport configuration before dialing.
+func validatePostgresTLSDSN(dsn string) error {
+	if dsn != strings.TrimSpace(dsn) || dsn == "" {
+		return errors.New("DSN is empty or contains surrounding whitespace")
+	}
+	parsed, err := url.Parse(dsn)
+	if err != nil || (parsed.Scheme != "postgres" && parsed.Scheme != "postgresql") || parsed.Host == "" {
+		return errors.New("DSN must be a PostgreSQL URI with a host")
+	}
+	sslModes, exists := parsed.Query()["sslmode"]
+	if !exists || len(sslModes) != 1 || sslModes[0] != "verify-full" {
+		return errors.New("DSN must set exactly one sslmode=verify-full")
+	}
+	return nil
 }
 
 func envUint(name string, fallback uint) uint {

@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "requestId": "P0-147-data-fabric-public-runtime-lease-request",
+  "status": "REQUESTED_NOT_AUTHORIZED",
+  "generatedAt": "2026-08-31T00:00:00Z",
+  "authority": {
+    "centralCheckpoint": "99db2287ad1a9641b0a89eea7809c862fe595d7b",
+    "existingDataFabricCheckpoint": "da095e240be52023ecef19c162c869398bf9fbea",
+    "implementationCommit": "2a5233ee9560e8855271d9681c1f7f41142cf117",
+    "branch": "codex/data-fabric-typescript-sdk-20260814"
+  },
+  "scope": {
+    "dataFabricOnly": true,
+    "permittedPaths": [
+      "internal/datafabric/**",
+      "cmd/ynx-data-fabricd/**",
+      "docs/data-fabric/**"
+    ],
+    "forbidden": [
+      "Wallet synchronous connection, approval, signing, or transaction paths",
+      "Provider or Gateway implementation",
+      "account request, signature request, transaction, or WalletConnect pairing",
+      "production mutation before Central authorizes this request"
+    ]
+  },
+  "deploymentAuthorization": {
+    "productionMutationAllowed": false,
+    "leaseId": null,
+    "leaseSha256": null,
+    "singleUse": true,
+    "noRetryWithoutFreshLease": true
+  },
+  "authoritativeTopology": {
+    "fabric": {
+      "publicBaseUrl": null,
+      "healthUrl": null,
+      "versionUrl": null,
+      "metricsUrl": null,
+      "operatorConsoleUrl": null,
+      "tlsApprovalId": null
+    },
+    "dependencies": {
+      "postgresTlsEndpointPresent": false,
+      "postgresCredentialSecretReferencePresent": false,
+      "jetstreamTlsEndpointPresent": false,
+      "jetstreamCredentialSecretReferencePresent": false,
+      "eventKeySecretReferencePresent": false,
+      "deploymentIdentityPresent": false,
+      "bftPayOrigin": null
+    },
+    "service": {
+      "unit": "ynx-data-fabricd",
+      "bridgeUnit": "ynx-pay-data-fabric-bridge",
+      "currentRelease": null,
+      "currentArchiveSha256": null,
+      "currentConfigSha256": null
+    }
+  },
+  "requiredCurrentAndRollbackMapping": {
+    "currentMappingApproved": false,
+    "rollbackMappingApproved": false,
+    "beforeMutation": [
+      "Central records the active release, archive SHA-256, unit state, configuration checksum, endpoint identity, and deployment receipt path.",
+      "Central records the previous release, archive SHA-256, unit state, configuration checksum, and rollback receipt path."
+    ],
+    "rollbackInvariant": "Disable Data Fabric producers and consumers, retain committed Outbox records for audited replay, and restore only the Central-recorded prior immutable release. Do not alter Wallet connection or chain transaction behavior."
+  },
+  "verificationGate": {
+    "requiresExactSourceAndRelease": true,
+    "health": "GET /health proves PostgreSQL, JetStream, Ledger, integrity, and zero degraded state for the authorized source and release.",
+    "version": "GET /version proves service, commit, release, and schema version.",
+    "metrics": "GET /metrics proves the authoritative producer reaches Event, Outbox, Inbox, and Ledger effect without exposing sensitive dimensions.",
+    "producerBoundary": "Only a product owner's already-authoritative outcome may emit a sanitized asynchronous event; a Data Fabric failure never gates standard Wallet connection.",
+    "publicTruth": "No endpoint response, artifact, or dry run changes integratedCentral, deployedStaging, deployedPublic, downloadHosted, productionSigned, or storeReleased until Central records direct evidence."
+  },
+  "secrets": {
+    "valuesInThisRequest": false,
+    "allowedDelivery": "Access-controlled secret-manager references only"
+  },
+  "centralActionRequired": "Bind one authoritative public Data Fabric endpoint and complete runtime/service/current/rollback mapping, then issue one minimal writable lease with immutable input and receipt paths."
+}

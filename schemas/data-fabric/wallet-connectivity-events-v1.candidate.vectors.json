@@ -1,0 +1,19 @@
+{
+  "contractStatus": "CANDIDATE",
+  "activation": "PROHIBITED_UNTIL_INTEGRATION_ACCEPTANCE",
+  "schema": "schemas/data-fabric/wallet-connectivity-events-v1.candidate.schema.json",
+  "vectors": [
+    {"id": "DF-WC-001", "name": "Data Fabric outage does not block standard connection", "expect": "wallet.connection.established may be queued later; connection behavior has no synchronous Data Fabric dependency"},
+    {"id": "DF-WC-002", "name": "Broker outage retains observation", "expect": "canonical event remains in Outbox with bounded retry and no wallet-side business retry"},
+    {"id": "DF-WC-003", "name": "Broker recovery is idempotent", "expect": "one Inbox effect despite duplicate publication"},
+    {"id": "DF-WC-004", "name": "Out-of-order event is contained", "expect": "ordered aggregate policy rejects or requeues the observation without changing connection state"},
+    {"id": "DF-WC-005", "name": "Consumer crash and restart", "expect": "Inbox marker and aggregate effect are atomic; replay has no duplicate business effect"},
+    {"id": "DF-WC-006", "name": "Product Session revoke differs from wallet revoke", "expect": "product.session.revoked does not imply wallet.connection.revoked"},
+    {"id": "DF-WC-007", "name": "Retired client", "expect": "client.retired.connection_rejected is recorded with client-retired class and never as wallet offline"},
+    {"id": "DF-WC-008", "name": "Faucet deep-link is not completion", "expect": "faucet.completed requires acceptanceId, txHash, authoritativeReceiptId, and finalized finality"},
+    {"id": "DF-WC-009", "name": "Backup restore and tamper", "expect": "restored Outbox/Inbox retains idempotency; tampered records are rejected"},
+    {"id": "DF-WC-010", "name": "Privacy and aggregation", "expect": "payload has no seed, private key, device secret, bearer token, WalletConnect symmetric key, full signature, private message, PII, account address, or cross-DApp identifier"},
+    {"id": "DF-WC-011", "name": "Canonical delivery fields", "expect": "tenant, sequence, effectiveAt, and payloadHash are required; payloadHash is only a SHA-256 integrity reference"},
+    {"id": "DF-WC-012", "name": "Asynchronous ordering", "expect": "sequence supports per-pseudonym ordering in Outbox/Inbox without ever gating wallet approval or standard connection"}
+  ]
+}

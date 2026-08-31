@@ -2,10 +2,10 @@
   "schemaVersion": 2,
   "productId": "ynx-data-fabric",
   "productName": "YNX Data Fabric & Billing Ledger",
-  "release": "ynx-data-fabric-84872ff9042e",
+  "release": "ynx-data-fabric-624ba818dcac",
   "channel": "testnet-preview",
-  "sourceCommit": "84872ff9042ed9f4364645750bbfa2dc3475e80b",
-  "generatedAt": "2026-07-29T20:40:02Z",
+  "sourceCommit": "624ba818dcacd56dbcd0a606513210a06991cfca",
+  "generatedAt": "2026-08-31T14:56:00Z",
   "phase": "INTEGRATE",
   "overallStatus": "ACTIVE",
   "states": {
@@ -22,7 +22,10 @@
   "components": {
     "eventEnvelope": {
       "currentVersion": "2.0",
-      "acceptedVersions": ["1.0", "2.0"],
+      "acceptedVersions": [
+        "1.0",
+        "2.0"
+      ],
       "schema": "schemas/data-fabric/event-envelope-v2.schema.json",
       "runtime": "internal/datafabric/envelope.go",
       "unknownFields": "reject",
@@ -38,7 +41,7 @@
     },
     "storage": {
       "fileStoreSchema": 1,
-      "postgresMigration": 6,
+      "postgresMigration": 9,
       "rollbackMigrations": true,
       "appendOnlyLedgerCorrections": true,
       "leasedSagaRecovery": true,
@@ -52,11 +55,15 @@
       "deadLetter": true,
       "replayBackfill": true,
       "jetStreamAdapter": true,
+      "producerConcurrencyGate": true,
+      "producerBackpressure": "retryable-429-before-nonce-consumption",
+      "producerBackpressureMetrics": true,
       "exactlyOnceClaim": "idempotent-state-transition-with-inbox-not-network-delivery"
     },
     "productIntegration": {
       "payBFTBridge": "testedLocal",
       "payLedgerReconciliation": "testedLocal",
+      "chainCoreCommitmentReference": "testedLocal-contract-v1.35.0-implementation-6f380265c7d3cc055984e33082f877b4e75303d5-contract-144bc1a354ba390c0ae4e17a93597f799e57c3d6",
       "otherProducerOwners": "not-yet-integrated-central"
     },
     "releaseEngineering": {
@@ -73,23 +80,45 @@
   },
   "evidence": {
     "local": {
-      "sourceCommit": "84872ff9042ed9f4364645750bbfa2dc3475e80b",
+      "sourceCommit": "624ba818dcacd56dbcd0a606513210a06991cfca",
       "fullGoTest": "passed-with-standard-umask",
       "dataFabricRace": "passed",
+      "reachableVulnerabilities": "zero-with-go1.25.13-and-govulncheck-v1.6.0",
       "schemaContract": "passed",
-      "releaseTruth": "passed"
+      "releaseTruth": "passed",
+      "typeScriptSDK": "passed",
+      "jetStreamThreeReplicaLeaderLoss": "passed-local-loopback",
+      "jetStreamThreeReplicaTCPRoutePartition": "passed-exact-source-linux-ci-loopback",
+      "postgresStreamingStandbyPromotion": "passed-exact-source-linux-ci-one-host-manual-promotion"
     },
     "remoteCI": {
-      "runId": 30488889722,
+      "runId": 33403437777,
       "workflow": "data-fabric",
-      "sourceCommit": "84872ff9042ed9f4364645750bbfa2dc3475e80b",
-      "headCommit": "a737b19c92ae53f89792694cfe0d6de16567ae49",
+      "sourceCommit": "624ba818dcacd56dbcd0a606513210a06991cfca",
+      "headCommit": "40b58c6c089828722a9f2096173be848611d2b55",
       "status": "completed",
       "conclusion": "success",
-      "startedAt": "2026-07-29T20:33:05Z",
-      "duration": "3m28s",
+      "startedAt": "2026-08-31T14:34:36Z",
+      "duration": "6m1s",
       "artifactsPublished": false,
-      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/30488889722"
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/33403437777"
+    },
+    "engineeringEvidenceRun": {
+      "runId": 31797308684,
+      "sourceCommit": "4bb2ddfb6337e44060f57adafc7ee1cc08faedbe",
+      "postgresJobConclusion": "success",
+      "overallConclusion": "failure",
+      "verifyFailure": "release truth rejected the not-yet-updated frozen sourceCommit",
+      "artifactName": "data-fabric-postgres-resilience-4bb2ddfb6337e44060f57adafc7ee1cc08faedbe",
+      "seedSha256": "5a6777d338a1f9d6ebeb87dba1df7e51e29d70d42d60a897f278c11c85c6c66a",
+      "verifySha256": "9b169ab1b1cd24627e099a5730515e8eef1190ee91e1caf498e7848732e6c429",
+      "consumerCrashSha256": "19d544d896c64577880ea82459d064dd0774c4aea86df195aba061740fc95918",
+      "consumerCrashLogSha256": "bad6127820fc29bf20d128a819800c85577e0d16a5358493a13f72462fd1fd4f",
+      "transportBackpressureSha256": "bf7d474274a00a733df724ff916249d02c9cbaa63582e256b334e903ba65469f",
+      "transportBackpressureLogSha256": "90d3fd6cbc7d3a0deeb07ecdc482ea0be9e9adc6f667bb30f7548da331f37d26",
+      "producerPostgresJetStreamSha256": "5221134758831332b5296d0c09d5f616b1e9d5cdf12b6f05775e4f3f86a87d01",
+      "jetStreamClusterLeaderLossSha256": "f7347b401fa4b3d58da13aafcac0d48fe5beeb9b36ebad0d978f13ad9af51176",
+      "jetStreamClusterLeaderLossLogSha256": "c5fee8110da28845d1aa0c2290086b355b83514f2647329612a1b46e5201deb7"
     },
     "sourceCandidate": {
       "tag": "data-fabric-v0.2.0-source-candidate",
@@ -105,7 +134,8 @@
         "sha256": "83f7f9ab449a61dcc1fe4006889f230b0c662b4678d522b1f0e6499eb81df848"
       },
       "verification": "downloaded-all-assets-and-matched-sha256",
-      "publicStateChanged": false
+      "publicStateChanged": false,
+      "currentSourceIncluded": false
     },
     "coverage": ".ai-bridge/full-goal-coverage.json",
     "integrationContract": "release/integration/ynx-data-fabric-contract.json",
@@ -116,7 +146,7 @@
   "blockingEvidence": [
     "central Wallet/Auth and App Gateway owner acceptance",
     "shared Testnet product producer and consumer receipts",
-    "production-shaped JetStream and PostgreSQL capacity, partition and recovery drills",
+    "sustained replicated JetStream signed-producer E2E, repeated consumer/process crash, broker partition and PostgreSQL replica-failover drills",
     "approved secure signer path and immutable public HTTPS hosting",
     "public runtime, health, support, privacy, security and status URLs",
     "production artifact, SBOM, provenance, hash, bytes and cold-install receipts"

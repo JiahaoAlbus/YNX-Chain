@@ -1,0 +1,27 @@
+{
+  "broker": "file-backed embedded JetStream",
+  "canonicalEvents": 256,
+  "constrainedMaxBytes": 65536,
+  "constrainedPublished": 18,
+  "constrainedRejected": 238,
+  "database": "PostgreSQL",
+  "deadLettersUnderPressure": 0,
+  "duplicateStreamMessages": 0,
+  "expandedMaxBytes": 8388608,
+  "finalDeadLetters": 0,
+  "finalOutboxPending": 0,
+  "finalStreamBytes": 915625,
+  "finalStreamMessages": 256,
+  "limitations": [
+    "256-event bounded batch, not a sustained-duration soak",
+    "embedded single-node JetStream",
+    "single PostgreSQL primary",
+    "capacity recovery by explicit stream expansion, not automatic scaling",
+    "no broker partition, leader loss, shared Testnet or public-scale claim"
+  ],
+  "outboxRetainedUnderPressure": 238,
+  "pressureDurationMilliseconds": 627.619,
+  "recoveredPublished": 238,
+  "recoveryDurationMilliseconds": 508.617,
+  "sourceCommit": "4bb2ddfb6337e44060f57adafc7ee1cc08faedbe"
+}
