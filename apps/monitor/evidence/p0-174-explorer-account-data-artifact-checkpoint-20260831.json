@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "ynx.explorer-monitor.source-bound-release-preparation.v7",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-174",
+  "observedAt": "2026-08-31T10:31:53Z",
+  "owner": "explorer-monitor",
+  "authority": {
+    "productionMutationAllowed": false,
+    "publicVerified": false,
+    "computerControlVerified": false,
+    "statement": "Local artifact and isolated-runtime checkpoint only. No production host, service, ingress, account, signature, transaction, or Wallet state was changed."
+  },
+  "candidate": {
+    "branch": "codex/p0-explorer-monitor-20260820",
+    "artifactSourceCommit": "79402fd42bcd5af9784c9c2595da9d232c931411",
+    "artifactSourceTree": "2d6595767be7eb43bdf6fff97690baaf6dade1f5",
+    "pullRequest": "https://github.com/JiahaoAlbus/YNX-Chain/pull/107",
+    "release": "ynx-explorer-monitor-79402fd42bcd",
+    "build": {"goos": "linux", "goarch": "amd64", "cgoEnabled": false, "trimpath": true, "buildvcs": false, "buildTime": "2026-08-31T10:30:18Z"}
+  },
+  "supersession": {
+    "supersedes": ["apps/monitor/evidence/p0-172-localized-wallet-artifact-checkpoint-20260831.json", "apps/monitor/evidence/p0-173-deployment-baseline-and-website-entry-request-20260831.json"],
+    "reason": "P0-174 adds the previously absent Explorer account leaderboard and address-activity API routes. No P0-172 or earlier binary/tar may be mixed with this source generation.",
+    "mixingForbidden": true
+  },
+  "artifacts": {
+    "explorerd": {"carrierPath": "/private/tmp/ynx-explorer-monitor-p0174.cNQRXa/bin/ynx-explorerd", "bytes": 8978580, "sha256": "3eec18ab300fc472c59d269ecde1c7b1b87b6542f55c23734c4afb3e4940d7de", "format": "linux amd64 static ELF"},
+    "indexerd": {"carrierPath": "/private/tmp/ynx-explorer-monitor-p0174.cNQRXa/bin/ynx-indexerd", "bytes": 7528596, "sha256": "b66cf7666b241dd0d31d85d7fb5918bea0ed43d37eda3acec0be131c0887be48", "format": "linux amd64 static ELF"},
+    "monitorReleaseTree": {"carrierPath": "/private/tmp/ynx-explorer-monitor-p0174.cNQRXa/monitor-release-tree.tar", "bytes": 2283520, "sha256": "d5f78dbc2cb8890f121ffaaf78583a3d321e81376ef32e5b9d9e822e12162d33", "format": "deterministic GNU tar with built dist; excludes node_modules and .env", "inputs": {"packageLockSha256": "3329447e950589f80129b59e1c6e99d5856d869da06672c0b525ed129e291694", "distIndexHtmlSha256": "0f7d2e816a6cfdfaec8bd953c7be2562d3ff11e89b2a21fe372dd5bf169117d0"}}
+  },
+  "validation": {
+    "explorerIndexerRace": "go test -race ./internal/indexer ./internal/explorer -count=1: passing",
+    "accountVectors": "Explorer integration verifies sampled current RPC balances, retained Indexer activity, opaque activity pagination, coverage and no invented full-ledger claim; Indexer unit verifies deterministic observed participant and activity pagination.",
+    "monitor": "npm test: 55 app tests plus 10 script tests passing; npm run build: passing",
+    "monitorArtifactRuntime": {"mode": "isolated lockfile install with local dummy secrets only", "version": {"httpStatus": 200, "bytes": 264, "sha256": "45b1c7cd52c4a8cc3973ffb057fa9d9417ef90bcbd365403f8ddb0ec82017d12", "commit": "79402fd42bcd5af9784c9c2595da9d232c931411", "release": "ynx-explorer-monitor-79402fd42bcd"}, "connectivity": {"httpStatus": 200, "contentType": "application/json; charset=utf-8", "bytes": 262, "sha256": "d6219629cef98eda98a61d2ab81041c8f744e625e0b28d4529228d0a48daed0b", "status": "not_configured"}},
+    "linuxGoRuntime": "Not executed on this macOS workstation because the candidate binaries target Linux amd64; static ELF format, embedded source identity, and source race tests passed."
+  },
+  "productScope": {
+    "implemented": ["Indexer observed-participant catalog and opaque account-activity cursor", "Explorer sampled live-RPC balance ranking, retained activity, observed inbound/outbound flow and degraded/failure state", "bounded global concurrent RPC account reads with a ten-second request budget", "explicit sampled coverage rather than a fabricated full-ledger rich list"],
+    "notClaimed": ["public deployment", "public Testnet account/transaction readback", "Wallet approval or signature", "Computer Control acceptance"]
+  },
+  "states": {"implementedLocal": true, "testedLocal": true, "integratedCentral": false, "deployedStaging": false, "deployedPublic": false, "downloadHosted": false, "productionSigned": false, "publicVerified": false, "computerControlVerified": false},
+  "nextAction": "Central must capture a fresh read-only production baseline and issue one scoped deployment lease bound exactly to these three artifacts. After deployment, verify official Explorer /api/accounts, /api/accounts/{address}/activity, a full real transaction hash deep link, and Monitor /connectivity JSON before any public claim."
+}

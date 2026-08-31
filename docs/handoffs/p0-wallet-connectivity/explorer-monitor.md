@@ -3,10 +3,13 @@
 ## Superseding state (2026-08-31, current)
 
 - Current source-bearing Explorer/Monitor checkpoint is
-  `4165b993708e7087ddad55ae29243505713fc280`
-  (tree `664157ffa1511addabeb9908b2ada015ce1fe993`) on
-  `codex/p0-explorer-monitor-20260820`, PR #107. Its owner evidence head is
-  `729aa7d9c80e6345689bb4442f89dac2ef2a4dfb`. Explorer and Monitor use
+  `79402fd42bcd5af9784c9c2595da9d232c931411`
+  (tree `2d6595767be7eb43bdf6fff97690baaf6dade1f5`) on
+  `codex/p0-explorer-monitor-20260820`, PR #107. It repairs the previously
+  unserved Explorer rich-list and account-activity routes: Indexer reports
+  retained transaction participants/activity only, while Explorer obtains
+  current balances from RPC, labels the result as an observed sample, exposes
+  indexed coverage/failure state, and bounds concurrent RPC reads. Explorer and Monitor use
   EIP-6963 discovery with EIP-1193 account approval, `0x1917` add/switch
   readback and lifecycle invalidation. Explorer now localizes the complete
   provider chooser and its user-safe wallet states across all 12 locales;
@@ -16,13 +19,9 @@
   labelled optional providers, not prerequisites for guest Explorer
   search/detail or public Monitor status reads.
 - The only current candidate artifacts are frozen in
-  `apps/monitor/evidence/p0-172-localized-wallet-artifact-checkpoint-20260831.json`:
-  Explorer `2ece6f23b0f84ce814cf8587133be5cedc24a0ed47880c959c2057a68d620e62`,
-  Indexer `4b1a7e5c95ff6f55a22e2a574922117a314599337f364b1ff805f1de8bd3a5c3`,
-  and Monitor release tree
-  `bf95e3e772db66437411a72c9cd19e8d6a037ed5d5756b64c5c0d628c640cfbb`.
-  P0-170/P0-171 and every earlier generation are forbidden from deployment
-  with this successor source.
+  `apps/monitor/evidence/p0-174-explorer-account-data-artifact-checkpoint-20260831.json`.
+  P0-172 and every earlier generation are forbidden from deployment with this
+  successor source.
 - Direct public evidence remains mixed: native RPC is expected to report
   chain ID `6423` and EVM `0x1917`, while Explorer and Monitor `/version`
   still identify the older `8bf7716e…` release. Monitor `/connectivity` is
@@ -33,7 +32,7 @@
   must not write Website authority paths. Candidate deployment, public
   verification and Computer Control verification all remain false.
 - Before any production write, Central must issue one scoped lease binding the
-  P0-172 hashes to freshly captured runtime/rollback digests and the exact
+  P0-174 hashes to freshly captured runtime/rollback digests and the exact
   Monitor `/connectivity` matcher. The deployment operator must capture the
   rollback material before mutation, verify official source identity and JSON
   readback afterwards, and then perform real browser acceptance.

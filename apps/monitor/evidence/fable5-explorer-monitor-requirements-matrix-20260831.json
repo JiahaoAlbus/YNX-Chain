@@ -3,8 +3,8 @@
   "asOf": "2026-08-31",
   "owner": "explorer-monitor",
   "candidate": {
-    "sourceCommit": "45f10d2c43eefd2c3cae5b2a45d751bb6c34c261",
-    "sourceTree": "cadb73f26e9bb9d819ffdc9af211461e68a6c32f",
+    "sourceCommit": "79402fd42bcd5af9784c9c2595da9d232c931411",
+    "sourceTree": "2d6595767be7eb43bdf6fff97690baaf6dade1f5",
     "pullRequest": "https://github.com/JiahaoAlbus/YNX-Chain/pull/107"
   },
   "stateDefinition": {
@@ -83,9 +83,9 @@
     {
       "id": "explorer.rich-list-flow-fee-and-economic-truth",
       "requirement": "Explorer presents rich list, address flow, fee and YNXT/block-reward semantics only from sourced Indexer or chain evidence.",
-      "evidence": ["internal/explorer/explorer.go", "internal/explorer/server.go"],
-      "states": {"implementedLocal": false, "testedLocal": false, "integratedCentral": false, "deployedStaging": false, "deployedPublic": false, "downloadHosted": false, "productionSigned": false, "publicVerified": false, "computerControlVerified": false},
-      "nextGate": "Owner source audit and Testnet-backed UI/API vectors; no unsupported economic claim may be published." 
+      "evidence": ["internal/indexer/indexer.go#IndexedAccountParticipantsPage", "internal/indexer/indexer.go#IndexedAccountActivityPage", "internal/explorer/explorer.go#Leaderboard", "internal/explorer/explorer_test.go#TestExplorerServesRPCAndIndexerBackedData", "internal/indexer/cursor_test.go#TestIndexedAccountParticipantsAndActivityRemainExplicitlyObserved"],
+      "states": {"implementedLocal": true, "testedLocal": true, "integratedCentral": false, "deployedStaging": false, "deployedPublic": false, "downloadHosted": false, "productionSigned": false, "publicVerified": false, "computerControlVerified": false},
+      "nextGate": "Deploy the exact candidate and read an official-domain sampled leaderboard, address activity and fee detail against fresh Testnet transactions."
     },
     {
       "id": "explorer.multilingual-rtl-responsive-a11y-logo",
@@ -97,9 +97,9 @@
     {
       "id": "indexer.fail-closed-no-internal-error",
       "requirement": "Indexer failure is fail-closed and public browsers do not receive loopback URLs or raw upstream errors.",
-      "evidence": ["internal/indexer/server.go", "apps/monitor/evidence/p0-151-ynx6423-runtime-recovery-lease-request-20260831.json"],
-      "states": {"implementedLocal": false, "testedLocal": false, "integratedCentral": false, "deployedStaging": false, "deployedPublic": false, "downloadHosted": false, "productionSigned": false, "publicVerified": false, "computerControlVerified": false},
-      "nextGate": "Public Indexer response must be re-read after a redaction fix; prior runtime observations identified a loopback disclosure risk." 
+      "evidence": ["internal/indexer/server.go#publicIndexerErrorPayload", "internal/indexer/indexer_test.go#TestIndexerDoesNotExposePrivateSyncErrorsToPublicClients", "internal/explorer/explorer_test.go#TestExplorerDoesNotExposeUpstreamErrorsToPublicClients"],
+      "states": {"implementedLocal": true, "testedLocal": true, "integratedCentral": false, "deployedStaging": false, "deployedPublic": false, "downloadHosted": false, "productionSigned": false, "publicVerified": false, "computerControlVerified": false},
+      "nextGate": "Public Indexer and Explorer responses must be re-read after deployment; local redaction tests cannot prove the older official runtime is remediated."
     },
     {
       "id": "indexer.concurrency-backpressure-capacity",
