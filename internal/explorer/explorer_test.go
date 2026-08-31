@@ -184,6 +184,7 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 		"setDetailLocation",
 		"data-page-kind",
 		"portalMessages",
+		"routeMessages",
 		"walletListenerProviders",
 		"wallet_switchEthereumChain",
 		"isMetaMask === true && item.provider?.isYNXWallet !== true",
