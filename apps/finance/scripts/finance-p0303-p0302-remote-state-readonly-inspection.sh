@@ -6,12 +6,6 @@ set -euo pipefail
 tuple(){ stat -c '%d:%i:%u:%g:%a:%h:%s:%F' -- "$1"; }
 sha(){ sha256sum -- "$1" | awk '{print $1}'; }
 bytes(){ wc -c < "$1" | tr -d ' '; }
-http_tmp_files=()
-cleanup_http_tmp(){
-  local tmp
-  for tmp in "${http_tmp_files[@]}"; do command rm -f -- "$tmp"; done
-}
-trap cleanup_http_tmp EXIT
 inventory(){
   local root=$1 path kind value
   (
@@ -49,13 +43,25 @@ parent_tuple(){
   printf '%s=%s\n' "$label" "$(tuple "$path")"
 }
 http_receipt(){
-  local label=$1 url=$2 tmp status
-  tmp=$(mktemp); http_tmp_files+=("$tmp")
-  status=$(curl --silent --show-error --max-time 10 --output "$tmp" --write-out '%{http_code}' "$url")
+  local label=$1 url=$2 metrics status body_bytes body_sha
+  metrics=$(
+    exec 3>&1
+    curl --silent --show-error --max-time 10 \
+      --write-out $'%{stderr}__YNX_HTTP_STATUS__=%{http_code}\n' "$url" \
+      2> >(awk '/^__YNX_HTTP_STATUS__=/{print; next}{print > "/dev/stderr"}' >&3) |
+      tee >(wc -c | awk '{print "__YNX_HTTP_BYTES__=" $1}' >&3) |
+      sha256sum | awk '{print "__YNX_HTTP_SHA256__=" $1}'
+  )
+  status=$(printf '%s\n' "$metrics" | awk -F= '/^__YNX_HTTP_STATUS__=/{print $2}')
+  body_bytes=$(printf '%s\n' "$metrics" | awk -F= '/^__YNX_HTTP_BYTES__=/{print $2}')
+  body_sha=$(printf '%s\n' "$metrics" | awk -F= '/^__YNX_HTTP_SHA256__=/{print $2}')
   [[ "$status" =~ ^[0-9]{3}$ ]]
-  printf '%sUrl=%s\n%sStatus=%s\n%sBytes=%s\n%sSha256=%s\n' "$label" "$url" "$label" "$status" "$label" "$(bytes "$tmp")" "$label" "$(sha "$tmp")"
-  command rm -f -- "$tmp"
-  http_tmp_files=("${http_tmp_files[@]/$tmp}")
+  [[ "$body_bytes" =~ ^[0-9]+$ ]]
+  [[ "$body_sha" =~ ^[0-9a-f]{64}$ ]]
+  [[ $(printf '%s\n' "$metrics" | grep -c '^__YNX_HTTP_STATUS__=') -eq 1 ]]
+  [[ $(printf '%s\n' "$metrics" | grep -c '^__YNX_HTTP_BYTES__=') -eq 1 ]]
+  [[ $(printf '%s\n' "$metrics" | grep -c '^__YNX_HTTP_SHA256__=') -eq 1 ]]
+  printf '%sUrl=%s\n%sStatus=%s\n%sBytes=%s\n%sSha256=%s\n' "$label" "$url" "$label" "$status" "$label" "$body_bytes" "$label" "$body_sha"
 }
 
 id=p0302-finance-phase3-20260823t211500z
