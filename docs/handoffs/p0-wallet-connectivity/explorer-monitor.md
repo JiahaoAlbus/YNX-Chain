@@ -6,12 +6,15 @@
   `4165b993708e7087ddad55ae29243505713fc280`
   (tree `664157ffa1511addabeb9908b2ada015ce1fe993`) on
   `codex/p0-explorer-monitor-20260820`, PR #107. Its owner evidence head is
-  `8c76cc42b9fb0909d7822b70b89f5f7865d6bda0`. Explorer and Monitor use
+  `729aa7d9c80e6345689bb4442f89dac2ef2a4dfb`. Explorer and Monitor use
   EIP-6963 discovery with EIP-1193 account approval, `0x1917` add/switch
   readback and lifecycle invalidation. Explorer now localizes the complete
   provider chooser and its user-safe wallet states across all 12 locales;
-  it does not show provider raw errors or use a custom Wallet scheme. Guest
-  Explorer search/detail and public Monitor status remain unauthenticated reads.
+  it does not show provider raw errors or use a custom Wallet scheme. A
+  user-selected standard EIP-1193 provider is required only for the optional
+  compatibility/sign-in action: YNX Wallet and MetaMask remain separately
+  labelled optional providers, not prerequisites for guest Explorer
+  search/detail or public Monitor status reads.
 - The only current candidate artifacts are frozen in
   `apps/monitor/evidence/p0-172-localized-wallet-artifact-checkpoint-20260831.json`:
   Explorer `2ece6f23b0f84ce814cf8587133be5cedc24a0ed47880c959c2057a68d620e62`,

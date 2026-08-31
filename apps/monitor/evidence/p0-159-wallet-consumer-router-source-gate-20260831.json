@@ -21,7 +21,8 @@
       "privilegedWalletAction": {
         "classification": "interactiveWalletConsumer",
         "sourceRoute": "internal/explorer/web.go#metamaskButton",
-        "canonicalWalletRequired": true,
+        "canonicalWalletRequired": false,
+        "providerRequirement": "A user-selected EIP-1193 provider is required only when the optional compatibility action is started. YNX Wallet and MetaMask are separately named optional providers; guest search and detail reads do not require either one.",
         "sourceGate": {
           "eip6963Discovery": "internal/explorer/web.go#addWalletProvider",
           "providerIdentity": "announced provider name and safe icon; legacy fallback is named only from explicit provider flags",
@@ -43,7 +44,8 @@
       "privilegedWalletAction": {
         "classification": "interactiveWalletConsumer",
         "sourceRoutes": ["apps/monitor/src/App.tsx#WalletLogin", "POST /ops/wallet/challenges", "POST /ops/wallet/sessions"],
-        "canonicalWalletRequired": true,
+        "canonicalWalletRequired": false,
+        "providerRequirement": "A user-selected EIP-1193 provider is required only when an operator intentionally starts wallet sign-in. YNX Wallet and MetaMask are separately named optional providers; public Monitor health, version, status, and connectivity reads do not require either one.",
         "sourceGate": {
           "eip6963Discovery": "apps/monitor/src/eip1193.ts#discoverWalletProviders",
           "providerIdentity": "announced provider name and safe icon; legacy fallback is named only from explicit provider flags",
