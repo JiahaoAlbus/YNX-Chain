@@ -3,41 +3,54 @@
 ## Superseding state (2026-08-31, current)
 
 - Current source-bearing Explorer/Monitor checkpoint is
-  `c4c1affea3ab10ade8336c9387eec72f18b9e385`
-  (tree `455c0411eeefc9848e81a66618bcea1112da2e06`) on
-  `codex/p0-explorer-monitor-20260820`, PR #107. It repairs the previously
-  unserved Explorer rich-list and account-activity routes: Indexer reports
-  retained transaction participants/activity only, while Explorer obtains
-  current balances from RPC, labels the result as an observed sample, exposes
-  indexed coverage/failure state, and bounds concurrent RPC reads. It also
-  resolves YNXT and chain-RPC contract records from search rather than leaving
-  the advertised Token/Contract UI paths unserved. Explorer and Monitor use
-  EIP-6963 discovery with EIP-1193 account approval, `0x1917` add/switch
-  readback and lifecycle invalidation. Explorer now localizes the complete
-  provider chooser and its user-safe wallet states across all 12 locales;
-  it does not show provider raw errors or use a custom Wallet scheme. A
-  user-selected standard EIP-1193 provider is required only for the optional
-  compatibility/sign-in action: YNX Wallet and MetaMask remain separately
-  labelled optional providers, not prerequisites for guest Explorer
-  search/detail or public Monitor status reads.
-- The only current candidate artifacts are frozen in
-  `apps/monitor/evidence/p0-175-explorer-contract-search-artifact-checkpoint-20260831.json`.
-  P0-174 and every earlier generation are forbidden from deployment with this
-  successor source.
-- Direct public evidence remains mixed: native RPC is expected to report
-  chain ID `6423` and EVM `0x1917`, while Explorer and Monitor `/version`
-  still identify the older `8bf7716e…` release. Monitor `/connectivity` is
-  still a static HTML fallback rather than the required JSON API. The browser
-  also observed that `https://ynxweb4.com/dapp` has no matching public route;
-  the homepage exposes Explorer but no Monitor entry. The Website owner must
-  repair that route and consume a truthful release record; Explorer/Monitor
-  must not write Website authority paths. Candidate deployment, public
-  verification and Computer Control verification all remain false.
-- Before any production write, Central must issue one scoped lease binding the
-  P0-175 hashes to freshly captured runtime/rollback digests and the exact
-  Monitor `/connectivity` matcher. The deployment operator must capture the
-  rollback material before mutation, verify official source identity and JSON
-  readback afterwards, and then perform real browser acceptance.
+  `c1574d1d7ff51e959f7cbcf922c8beebca9d56bf`
+  (tree `780d3e613bb56a1f3950d5635abc2ad734d9debd`) on
+  `codex/p0-explorer-monitor-20260820`, PR #107 Draft. It retains the real
+  Indexer participant/activity, RPC balance, YNXT and chain-RPC contract work
+  from the preceding source, and adds refresh-safe shell routes for factual
+  block, transaction, address, token and contract detail URLs. Search returns
+  the exact URL to revisit; malformed detail paths fail closed. Lookup errors
+  now distinguish a real upstream 404 from unavailable dependencies without
+  exposing upstream text, addresses or credentials. Account activity and the
+  observed-participant leaderboard refuse an unhealthy or identity-mismatched
+  Indexer.
+- `apps/monitor/evidence/p0-175-explorer-contract-search-artifact-checkpoint-20260831.json`
+  is tied to source `c4c1affea3ab10ade8336c9387eec72f18b9e385`, not this
+  successor. It and every older artifact are forbidden from deployment with
+  `c1574…`; no current-source deployment artifact exists yet. Do not create a
+  release request until this PR head's CI is green and a single coherent
+  source/tree/artifact/rollback bundle is frozen.
+- Local evidence for `c1574…`: `go test -race ./internal/indexer
+  ./internal/explorer -count=1`, Monitor `npm test` (55 application and 10
+  script tests), and Monitor `npm run build` pass. `go test ./...` reaches
+  unrelated pre-existing failures in `internal/bftgateway` and
+  `internal/consensus`: a missing
+  `artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json`.
+  Explorer and Indexer pass in that run. The preceding P0-175 PR head had all
+  six Security/CodeQL checks green; `c1574…` CI is pending at this checkpoint.
+- Wallet boundary evidence is
+  `apps/monitor/evidence/p0-159-wallet-consumer-router-source-gate-20260831.json`:
+  Explorer search/detail and Monitor health/version/status/connectivity are
+  guest-only public reads. Their optional explicit provider actions are
+  separate `interactiveWalletConsumer` flows using user-selected EIP-6963 /
+  EIP-1193 providers; no guest read is a Wallet connection and neither product
+  consumes a Wallet Product Session. This is source/local evidence only, not
+  public lifecycle evidence.
+- Read-only public runtime evidence remains old and incompatible with this
+  candidate: Explorer `/version` reports `8bf7716ee671…` (200, 331 bytes,
+  SHA-256 `bc2982203cd9d2b8bb699b87e34205eeb8edf7bf13054d2c9569cf885ec106e5`),
+  Monitor `/version` reports the same source (200, 264 bytes,
+  SHA-256 `d0cb952655a41dad6a353f463c5b9f623f509b31303d35404e242a8a334b70ce`),
+  and Monitor `/connectivity` is still a 641-byte HTML SPA fallback
+  (`efbf2403f89259511dd861a6014e09d5fb11a7bf549a609bd17adacde41af44a`), not
+  the required JSON API. `publicVerified` and Computer Control verification
+  remain false.
+- Before any production write, Central must issue a new scoped single-use
+  lease binding the current-source artifacts to fresh runtime/rollback digests
+  and the exact Monitor `/connectivity` JSON matcher. The deployment operator
+  must capture rollback material before mutation, verify official source
+  identity and JSON readback afterwards, then perform direct browser
+  acceptance.
 
 ## Superseding state (2026-08-22)
 
