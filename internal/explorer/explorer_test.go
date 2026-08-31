@@ -467,3 +467,32 @@ func TestExplorerProvidesCompleteLocaleAndRTLScaffolding(t *testing.T) {
 		}
 	}
 }
+
+func TestExplorerLocalizesWalletChooserAndSuppressesProviderErrors(t *testing.T) {
+	start := strings.Index(indexHTML, "const walletMessages = {")
+	end := strings.Index(indexHTML, "const staleStreamPrefixes")
+	if start < 0 || end <= start {
+		t.Fatal("Explorer wallet locale catalog is missing")
+	}
+	walletCatalog := indexHTML[start:end]
+	for _, locale := range []string{"en", "zh-CN", "zh-TW", "ja", "ko", "es", "fr", "de", "pt", "ru", "ar", "id"} {
+		if !strings.Contains(walletCatalog, locale+`:{title:`) && !strings.Contains(walletCatalog, `'`+locale+`':{title:`) {
+			t.Fatalf("Explorer wallet locale catalog missing %q", locale)
+		}
+	}
+	for _, marker := range []string{
+		"walletText('choose')",
+		"walletText('connect')",
+		"walletText('connected')",
+		"walletText('notFound')",
+		"walletText('rejected')",
+		"walletText('network')",
+	} {
+		if !strings.Contains(indexHTML, marker) {
+			t.Fatalf("Explorer wallet chooser is missing localized behavior %q", marker)
+		}
+	}
+	if strings.Contains(indexHTML, "String(error?.message") {
+		t.Fatal("Explorer must not expose unlocalized provider errors")
+	}
+}

@@ -480,6 +480,22 @@ const indexHTML = `<!doctype html>
 	const supportedLocales = Object.keys(messages);
 	let language = localStorage.getItem('ynx-explorer-language') || 'en';
 	const t = key => messages[language]?.[key] || messages.en[key] || key;
+	const walletMessages = {
+	  en:{title:'Connect EVM compatibility wallet',copy:'YNX applications use the checksummed ynx1 address by default. An installed EIP-1193 provider, including YNX Wallet or MetaMask when it announces itself, is optional EVM compatibility only; search and detail reads never require it.',choose:'Choose an installed EIP-1193 wallet.',connect:'Connect',connected:'Wallet connected',notFound:'No compatible wallet was found. Explorer reads remain available without a wallet.',rejected:'Wallet request was rejected. No Explorer session was created.',noAccount:'The selected wallet did not return an EVM account.',network:'Wallet did not select YNX Testnet (0x1917).',failed:'Wallet connection could not be completed.'},
+	  'zh-CN':{title:'连接 EVM 兼容钱包',copy:'YNX 应用默认使用带校验和的 ynx1 地址。已安装且主动声明的 EIP-1193 提供方（包括 YNX Wallet 或 MetaMask）仅用于可选 EVM 兼容；搜索和详情读取永远不需要钱包。',choose:'选择已安装的 EIP-1193 钱包。',connect:'连接',connected:'钱包已连接',notFound:'未找到兼容钱包；无需钱包仍可读取 Explorer。',rejected:'钱包请求已被拒绝，未创建 Explorer 会话。',noAccount:'所选钱包未返回 EVM 账户。',network:'钱包未选择 YNX 测试网（0x1917）。',failed:'无法完成钱包连接。'},
+	  'zh-TW':{title:'連線 EVM 相容錢包',copy:'YNX 應用預設使用具校驗和的 ynx1 位址。已安裝且主動宣告的 EIP-1193 提供者（包括 YNX Wallet 或 MetaMask）僅用於可選 EVM 相容；搜尋與詳情讀取永遠不需要錢包。',choose:'選擇已安裝的 EIP-1193 錢包。',connect:'連線',connected:'錢包已連線',notFound:'找不到相容錢包；無需錢包仍可讀取 Explorer。',rejected:'錢包請求已被拒絕，未建立 Explorer 工作階段。',noAccount:'所選錢包未傳回 EVM 帳戶。',network:'錢包未選取 YNX 測試網（0x1917）。',failed:'無法完成錢包連線。'},
+	  ja:{title:'EVM 互換ウォレットを接続',copy:'YNX アプリは既定でチェックサム付き ynx1 アドレスを使用します。YNX Wallet や MetaMask を含む、通知された EIP-1193 プロバイダーは任意の EVM 互換用です。検索と詳細の読み取りにウォレットは不要です。',choose:'インストール済みの EIP-1193 ウォレットを選択してください。',connect:'接続',connected:'ウォレット接続済み',notFound:'互換ウォレットが見つかりません。Explorer の読み取りはウォレットなしで利用できます。',rejected:'ウォレット要求は拒否されました。Explorer セッションは作成されませんでした。',noAccount:'選択したウォレットは EVM アカウントを返しませんでした。',network:'ウォレットは YNX Testnet（0x1917）を選択しませんでした。',failed:'ウォレット接続を完了できませんでした。'},
+	  ko:{title:'EVM 호환 지갑 연결',copy:'YNX 앱은 기본적으로 체크섬 ynx1 주소를 사용합니다. YNX Wallet 또는 MetaMask를 포함해 알림을 보낸 EIP-1193 제공자는 선택적 EVM 호환용이며, 검색과 상세 읽기에는 지갑이 필요하지 않습니다.',choose:'설치된 EIP-1193 지갑을 선택하세요.',connect:'연결',connected:'지갑이 연결됨',notFound:'호환 지갑을 찾지 못했습니다. 지갑 없이도 Explorer 읽기를 사용할 수 있습니다.',rejected:'지갑 요청이 거부되었습니다. Explorer 세션은 생성되지 않았습니다.',noAccount:'선택한 지갑이 EVM 계정을 반환하지 않았습니다.',network:'지갑이 YNX Testnet(0x1917)을 선택하지 않았습니다.',failed:'지갑 연결을 완료할 수 없습니다.'},
+	  es:{title:'Conectar cartera compatible con EVM',copy:'Las aplicaciones YNX usan por defecto la dirección ynx1 con suma de control. Un proveedor EIP-1193 instalado que se anuncie, incluido YNX Wallet o MetaMask, solo sirve para compatibilidad EVM opcional; las búsquedas y detalles no requieren cartera.',choose:'Elige una cartera EIP-1193 instalada.',connect:'Conectar',connected:'Cartera conectada',notFound:'No se encontró una cartera compatible. Las lecturas de Explorer siguen disponibles sin cartera.',rejected:'Se rechazó la solicitud de cartera. No se creó una sesión de Explorer.',noAccount:'La cartera elegida no devolvió una cuenta EVM.',network:'La cartera no seleccionó YNX Testnet (0x1917).',failed:'No se pudo completar la conexión de cartera.'},
+	  fr:{title:'Connecter un portefeuille compatible EVM',copy:'Les applications YNX utilisent par défaut l’adresse ynx1 avec somme de contrôle. Un fournisseur EIP-1193 installé qui s’annonce, dont YNX Wallet ou MetaMask, ne sert qu’à la compatibilité EVM facultative ; la recherche et les détails ne nécessitent jamais de portefeuille.',choose:'Choisissez un portefeuille EIP-1193 installé.',connect:'Connecter',connected:'Portefeuille connecté',notFound:'Aucun portefeuille compatible trouvé. La lecture d’Explorer reste disponible sans portefeuille.',rejected:'La demande de portefeuille a été refusée. Aucune session Explorer n’a été créée.',noAccount:'Le portefeuille choisi n’a pas renvoyé de compte EVM.',network:'Le portefeuille n’a pas sélectionné YNX Testnet (0x1917).',failed:'La connexion du portefeuille n’a pas pu être terminée.'},
+	  de:{title:'EVM-kompatible Wallet verbinden',copy:'YNX-Anwendungen verwenden standardmäßig die geprüfte ynx1-Adresse. Ein installierter, angekündigter EIP-1193-Provider, einschließlich YNX Wallet oder MetaMask, dient nur der optionalen EVM-Kompatibilität; Suche und Detailansicht benötigen nie eine Wallet.',choose:'Wähle eine installierte EIP-1193-Wallet.',connect:'Verbinden',connected:'Wallet verbunden',notFound:'Keine kompatible Wallet gefunden. Explorer-Lesezugriffe bleiben ohne Wallet verfügbar.',rejected:'Die Wallet-Anfrage wurde abgelehnt. Es wurde keine Explorer-Sitzung erstellt.',noAccount:'Die gewählte Wallet hat kein EVM-Konto zurückgegeben.',network:'Die Wallet hat YNX Testnet (0x1917) nicht ausgewählt.',failed:'Die Wallet-Verbindung konnte nicht abgeschlossen werden.'},
+	  pt:{title:'Conectar carteira compatível com EVM',copy:'Aplicativos YNX usam por padrão o endereço ynx1 com checksum. Um provedor EIP-1193 instalado que se anuncia, incluindo YNX Wallet ou MetaMask, serve apenas para compatibilidade EVM opcional; pesquisa e detalhes nunca exigem carteira.',choose:'Escolha uma carteira EIP-1193 instalada.',connect:'Conectar',connected:'Carteira conectada',notFound:'Nenhuma carteira compatível foi encontrada. As leituras do Explorer continuam disponíveis sem carteira.',rejected:'A solicitação da carteira foi recusada. Nenhuma sessão do Explorer foi criada.',noAccount:'A carteira selecionada não retornou uma conta EVM.',network:'A carteira não selecionou YNX Testnet (0x1917).',failed:'Não foi possível concluir a conexão da carteira.'},
+	  ru:{title:'Подключить совместимый EVM-кошелёк',copy:'Приложения YNX по умолчанию используют адрес ynx1 с контрольной суммой. Установленный объявленный провайдер EIP-1193, включая YNX Wallet или MetaMask, нужен только для дополнительной EVM-совместимости; поиск и детали никогда не требуют кошелёк.',choose:'Выберите установленный кошелёк EIP-1193.',connect:'Подключить',connected:'Кошелёк подключён',notFound:'Совместимый кошелёк не найден. Чтение Explorer доступно без кошелька.',rejected:'Запрос кошелька отклонён. Сессия Explorer не создана.',noAccount:'Выбранный кошелёк не вернул учётную запись EVM.',network:'Кошелёк не выбрал YNX Testnet (0x1917).',failed:'Не удалось завершить подключение кошелька.'},
+	  ar:{title:'اتصال محفظة متوافقة مع EVM',copy:'تستخدم تطبيقات YNX عنوان ynx1 ذا المجموع الاختباري افتراضياً. مزود EIP-1193 المثبت الذي يعلن نفسه، بما في ذلك YNX Wallet أو MetaMask، مخصص فقط لتوافق EVM الاختياري؛ لا تتطلب عمليات البحث والتفاصيل محفظة أبداً.',choose:'اختر محفظة EIP-1193 مثبّتة.',connect:'اتصال',connected:'تم اتصال المحفظة',notFound:'لم يتم العثور على محفظة متوافقة. تبقى قراءات Explorer متاحة من دون محفظة.',rejected:'تم رفض طلب المحفظة. لم تُنشأ جلسة Explorer.',noAccount:'لم تُرجع المحفظة المختارة حساب EVM.',network:'لم تختر المحفظة YNX Testnet ‏(0x1917).',failed:'تعذر إكمال اتصال المحفظة.'},
+	  id:{title:'Hubungkan dompet kompatibel EVM',copy:'Aplikasi YNX memakai alamat ynx1 ber-checksum secara default. Penyedia EIP-1193 terpasang yang mengumumkan diri, termasuk YNX Wallet atau MetaMask, hanya untuk kompatibilitas EVM opsional; pencarian dan detail tidak pernah memerlukan dompet.',choose:'Pilih dompet EIP-1193 yang terpasang.',connect:'Hubungkan',connected:'Dompet terhubung',notFound:'Tidak ada dompet kompatibel yang ditemukan. Pembacaan Explorer tetap tersedia tanpa dompet.',rejected:'Permintaan dompet ditolak. Sesi Explorer tidak dibuat.',noAccount:'Dompet yang dipilih tidak mengembalikan akun EVM.',network:'Dompet tidak memilih YNX Testnet (0x1917).',failed:'Koneksi dompet tidak dapat diselesaikan.'}
+	};
+	Object.entries(walletMessages).forEach(([locale,values]) => { messages[locale].identityCopy = values.copy; messages[locale].openMetamask = values.title; });
+	const walletText = key => walletMessages[language]?.[key] || walletMessages.en[key];
 	const staleStreamPrefixes = {
 	  en:'No event for ', 'zh-CN':'已无事件 ', 'zh-TW':'已無事件 ', ja:'イベントなし: ', ko:'이벤트 없음: ', es:'Sin eventos durante ', fr:'Aucun événement depuis ', de:'Kein Ereignis seit ', pt:'Sem evento há ', ru:'Нет событий в течение ', ar:'لا أحداث منذ ', id:'Tidak ada peristiwa selama '
 	};
@@ -491,9 +507,10 @@ const indexHTML = `<!doctype html>
 	  document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr';
       document.querySelectorAll('[data-i18n]').forEach(node => { node.textContent = t(node.dataset.i18n); });
       document.querySelectorAll('[data-i18n-placeholder]').forEach(node => { node.placeholder = t(node.dataset.i18nPlaceholder); });
-      document.querySelectorAll('[data-i18n-aria]').forEach(node => { node.setAttribute('aria-label',t(node.dataset.i18nAria)); });
-      $('languageSelect').value = language;
-      renderTransactions();
+	  document.querySelectorAll('[data-i18n-aria]').forEach(node => { node.setAttribute('aria-label',t(node.dataset.i18nAria)); });
+	  $('languageSelect').value = language;
+	  $('metamaskButton').textContent = walletText('title');
+	  renderTransactions();
     }
     const escapeHTML = (value) => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const compact = (value, start = 10, end = 7) => { const text = String(value ?? ''); return text.length > start + end + 3 ? text.slice(0,start) + '...' + text.slice(-end) : text || '--'; };
@@ -540,7 +557,7 @@ const indexHTML = `<!doctype html>
       const expected = walletConfig?.chainIdHex || '0x1917';
       const initial = await provider.request({method:'eth_chainId'});
       if (initial !== expected) { try { await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:expected}]}); } catch (error) { if (error?.code !== 4902) throw error; await provider.request({method:'wallet_addEthereumChain',params:[{chainId:expected,chainName:walletConfig.chainName,nativeCurrency:{name:walletConfig.nativeCurrencyName,symbol:walletConfig.nativeSymbol,decimals:walletConfig.decimals},rpcUrls:walletConfig.rpcUrls,blockExplorerUrls:walletConfig.blockExplorerUrls}]}); await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:expected}]}); } }
-      if (await provider.request({method:'eth_chainId'}) !== expected) throw new Error('Wallet did not select YNX Testnet (0x1917).');
+	  if (await provider.request({method:'eth_chainId'}) !== expected) throw new Error(walletText('network'));
     }
     function attachWalletLifecycle(wallet, account) {
       const clear = message => { connectedWallet = null; showWalletResult(t('unavailable'),t('identityTitle'),message,false); };
@@ -550,15 +567,15 @@ const indexHTML = `<!doctype html>
     }
     async function connectWallet(id) {
       const wallet = walletProviders.get(id);
-      if (!wallet) return showWalletResult(t('unavailable'),t('openMetamask'),t('unavailable'),true);
-      if (!walletConfig) await load();
-      try { const accounts = await wallet.provider.request({method:'eth_requestAccounts'}); const account = Array.isArray(accounts) && typeof accounts[0] === 'string' && /^0x[0-9a-f]{40}$/i.test(accounts[0]) ? accounts[0] : ''; if (!account) throw new Error('Wallet did not return an EVM account.'); await ensureYNXTestnet(wallet.provider); connectedWallet = {id:wallet.id,account}; attachWalletLifecycle(wallet,account); showWalletResult(t('openMetamask'),wallet.name + ' · 0x1917',compact(account,10,8),false); }
-      catch (error) { showWalletResult(t('unavailable'),t('openMetamask'),error?.code === 4001 ? t('unavailable') : String(error?.message || t('unavailable')),true); }
-    }
-    function chooseWallet() {
-      if (!walletProviders.size) return showWalletResult(t('unavailable'),t('openMetamask'),t('unavailable'),true);
-      $('resultPanel').classList.add('visible'); $('resultTitle').textContent = t('openMetamask'); $('resultSubtitle').textContent = t('identityTitle');
-      $('resultBody').innerHTML = [...walletProviders.values()].map(wallet => '<button class="wallet-button" type="button" data-wallet-provider="' + escapeHTML(wallet.id) + '">' + (wallet.icon ? '<img src="' + escapeHTML(wallet.icon) + '" alt="" width="20" height="20">' : '') + 'Connect ' + escapeHTML(wallet.name) + '</button>').join('');
+	  if (!wallet) return showWalletResult(t('unavailable'),walletText('title'),walletText('notFound'),true);
+	  if (!walletConfig) await load();
+	  try { const accounts = await wallet.provider.request({method:'eth_requestAccounts'}); const account = Array.isArray(accounts) && typeof accounts[0] === 'string' && /^0x[0-9a-f]{40}$/i.test(accounts[0]) ? accounts[0] : ''; if (!account) throw new Error(walletText('noAccount')); await ensureYNXTestnet(wallet.provider); connectedWallet = {id:wallet.id,account}; attachWalletLifecycle(wallet,account); showWalletResult(walletText('connected'),wallet.name + ' · 0x1917',compact(account,10,8),false); }
+	  catch (error) { showWalletResult(t('unavailable'),walletText('title'),error?.code === 4001 ? walletText('rejected') : walletText('failed'),true); }
+	}
+	function chooseWallet() {
+	  if (!walletProviders.size) return showWalletResult(t('unavailable'),walletText('title'),walletText('notFound'),true);
+	  $('resultPanel').classList.add('visible'); $('resultTitle').textContent = walletText('title'); $('resultSubtitle').textContent = walletText('choose');
+	  $('resultBody').innerHTML = [...walletProviders.values()].map(wallet => '<button class="wallet-button" type="button" data-wallet-provider="' + escapeHTML(wallet.id) + '">' + (wallet.icon ? '<img src="' + escapeHTML(wallet.icon) + '" alt="" width="20" height="20">' : '') + escapeHTML(walletText('connect')) + ' ' + escapeHTML(wallet.name) + '</button>').join('');
     }
     function removeSkeletons() { document.querySelectorAll('.skeleton').forEach(node => node.classList.remove('skeleton')); }
     function blockRow(block,index = 0) {
