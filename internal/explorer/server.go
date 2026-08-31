@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/economics"
@@ -82,6 +83,10 @@ func (s *Server) Handler() http.Handler {
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /", s.handleWeb)
 	s.mux.HandleFunc("GET /tx/{hash}", s.handleTransactionWeb)
+	s.mux.HandleFunc("GET /block/{height}", s.handleBlockWeb)
+	s.mux.HandleFunc("GET /address/{address}", s.handleAddressWeb)
+	s.mux.HandleFunc("GET /token/{symbol}", s.handleTokenWeb)
+	s.mux.HandleFunc("GET /contract/{address}", s.handleContractWeb)
 	s.mux.HandleFunc("GET /ynxt", s.handleYNXTWeb)
 	s.mux.HandleFunc("GET /economics", s.handleEconomicsWeb)
 	s.mux.HandleFunc("GET /assets/ynx-logo.png", s.handleLogo)
@@ -313,6 +318,38 @@ func (s *Server) handleTransactionWeb(w http.ResponseWriter, r *http.Request) {
 	s.serveWebShell(w)
 }
 
+func (s *Server) handleBlockWeb(w http.ResponseWriter, r *http.Request) {
+	if _, err := strconv.ParseUint(r.PathValue("height"), 10, 64); err != nil {
+		http.NotFound(w, r)
+		return
+	}
+	s.serveWebShell(w)
+}
+
+func (s *Server) handleAddressWeb(w http.ResponseWriter, r *http.Request) {
+	if !isCanonicalExplorerAddress(r.PathValue("address")) {
+		http.NotFound(w, r)
+		return
+	}
+	s.serveWebShell(w)
+}
+
+func (s *Server) handleTokenWeb(w http.ResponseWriter, r *http.Request) {
+	if !strings.EqualFold(r.PathValue("symbol"), "YNXT") {
+		http.NotFound(w, r)
+		return
+	}
+	s.serveWebShell(w)
+}
+
+func (s *Server) handleContractWeb(w http.ResponseWriter, r *http.Request) {
+	if !isCanonicalExplorerAddress(r.PathValue("address")) {
+		http.NotFound(w, r)
+		return
+	}
+	s.serveWebShell(w)
+}
+
 func (s *Server) serveWebShell(w http.ResponseWriter) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-cache, no-store, must-revalidate")
@@ -335,6 +372,11 @@ func normalizeCanonicalTransactionHash(value string) (string, bool) {
 		}
 	}
 	return canonical, true
+}
+
+func isCanonicalExplorerAddress(value string) bool {
+	normalized, err := normalizeExplorerAddress(value)
+	return err == nil && accountaddress.IsCanonical(normalized)
 }
 
 func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
@@ -383,7 +425,7 @@ func (s *Server) handleLatestBlocks(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleBlock(w http.ResponseWriter, r *http.Request) {
 	block, err := s.service.Block(r.Context(), r.PathValue("height"))
 	if err != nil {
-		writePublicError(w, http.StatusNotFound)
+		writeLookupError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, block)
@@ -401,7 +443,7 @@ func (s *Server) handleTransactions(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleTransaction(w http.ResponseWriter, r *http.Request) {
 	tx, err := s.service.Transaction(r.Context(), r.PathValue("hash"))
 	if err != nil {
-		writePublicError(w, http.StatusNotFound)
+		writeLookupError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, tx)
@@ -410,7 +452,7 @@ func (s *Server) handleTransaction(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleAccount(w http.ResponseWriter, r *http.Request) {
 	account, err := s.service.AccountWithActivity(r.Context(), r.PathValue("address"))
 	if err != nil {
-		writePublicError(w, http.StatusNotFound)
+		writeLookupError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, account)
@@ -428,7 +470,7 @@ func (s *Server) handleAccounts(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleAccountActivity(w http.ResponseWriter, r *http.Request) {
 	activity, err := s.service.AccountActivity(r.Context(), r.PathValue("address"), intQuery(r, "limit", 25), r.URL.Query().Get("cursor"))
 	if err != nil {
-		writePublicError(w, http.StatusNotFound)
+		writeLookupError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, activity)
@@ -437,7 +479,7 @@ func (s *Server) handleAccountActivity(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleToken(w http.ResponseWriter, r *http.Request) {
 	token, err := s.service.Token(r.Context(), r.PathValue("symbol"))
 	if err != nil {
-		writePublicError(w, http.StatusNotFound)
+		writeLookupError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, token)
@@ -446,7 +488,7 @@ func (s *Server) handleToken(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleContract(w http.ResponseWriter, r *http.Request) {
 	contract, err := s.service.Contract(r.Context(), r.PathValue("address"))
 	if err != nil {
-		writePublicError(w, http.StatusNotFound)
+		writeLookupError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, contract)
@@ -464,7 +506,7 @@ func (s *Server) handleValidators(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleResources(w http.ResponseWriter, r *http.Request) {
 	resources, err := s.service.Resources(r.Context(), r.PathValue("address"))
 	if err != nil {
-		writePublicError(w, http.StatusNotFound)
+		writeLookupError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, resources)
@@ -482,7 +524,7 @@ func (s *Server) handleResourceAnalytics(w http.ResponseWriter, r *http.Request)
 func (s *Server) handleFee(w http.ResponseWriter, r *http.Request) {
 	tx, err := s.service.Transaction(r.Context(), r.PathValue("hash"))
 	if err != nil {
-		writePublicError(w, http.StatusNotFound)
+		writeLookupError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, FeeDetailFromTx(tx))
@@ -491,7 +533,7 @@ func (s *Server) handleFee(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleSearch(w http.ResponseWriter, r *http.Request) {
 	result, err := s.service.Search(r.Context(), r.URL.Query().Get("q"))
 	if err != nil {
-		writePublicError(w, http.StatusNotFound)
+		writeLookupError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, result)
@@ -539,6 +581,14 @@ func publicErrorPayload(status int) map[string]any {
 
 func writePublicError(w http.ResponseWriter, status int) {
 	writeJSON(w, status, publicErrorPayload(status))
+}
+
+func writeLookupError(w http.ResponseWriter, err error) {
+	if isLookupNotFound(err) {
+		writePublicError(w, http.StatusNotFound)
+		return
+	}
+	writePublicError(w, http.StatusBadGateway)
 }
 
 func intQuery(r *http.Request, key string, fallback int) int {

@@ -3,6 +3,7 @@ package explorer
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -53,6 +54,24 @@ type client struct {
 	httpClient *http.Client
 }
 
+// upstreamHTTPError preserves only an HTTP status for internal routing. The
+// original response is intentionally never returned to a public caller: RPC
+// and Indexer errors may contain loopback hosts, filesystem paths, or keys.
+type upstreamHTTPError struct {
+	statusCode int
+}
+
+var errLookupNotFound = errors.New("requested data was not found")
+
+func (e *upstreamHTTPError) Error() string {
+	return fmt.Sprintf("upstream returned HTTP %d", e.statusCode)
+}
+
+func isLookupNotFound(err error) bool {
+	var upstream *upstreamHTTPError
+	return errors.Is(err, errLookupNotFound) || (errors.As(err, &upstream) && upstream.statusCode == http.StatusNotFound)
+}
+
 func newClient(baseURL string) *client {
 	return &client{baseURL: strings.TrimRight(baseURL, "/"), httpClient: &http.Client{Timeout: 10 * time.Second}}
 }
@@ -77,7 +96,7 @@ func (c *client) getJSONWithHeaders(ctx context.Context, path string, headers ma
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return fmt.Errorf("GET %s returned %d", path, resp.StatusCode)
+		return &upstreamHTTPError{statusCode: resp.StatusCode}
 	}
 	return json.NewDecoder(resp.Body).Decode(out)
 }
@@ -229,6 +248,20 @@ func (s *Service) IndexerHealth(ctx context.Context) (IndexerHealth, error) {
 	return health, nil
 }
 
+func (s *Service) requireHealthyCanonicalIndexer(ctx context.Context) (IndexerHealth, error) {
+	health, err := s.IndexerHealth(ctx)
+	if err != nil {
+		return IndexerHealth{}, err
+	}
+	if !health.OK || strings.TrimSpace(health.LastError) != "" {
+		return IndexerHealth{}, fmt.Errorf("indexer dependency is not healthy")
+	}
+	if health.Service != "ynx-indexerd" || health.ChainID != 6423 || health.NativeSymbol != "YNXT" {
+		return IndexerHealth{}, fmt.Errorf("indexer dependency identity mismatch")
+	}
+	return health, nil
+}
+
 func (s *Service) LatestBlocks(ctx context.Context, limit int) ([]chain.Block, error) {
 	var out struct {
 		Blocks []chain.Block `json:"blocks"`
@@ -240,6 +273,9 @@ func (s *Service) LatestBlocks(ctx context.Context, limit int) ([]chain.Block, e
 }
 
 func (s *Service) Block(ctx context.Context, height string) (chain.Block, error) {
+	if _, err := strconv.ParseUint(height, 10, 64); err != nil {
+		return chain.Block{}, fmt.Errorf("%w: invalid block height", errLookupNotFound)
+	}
 	var block chain.Block
 	if err := s.indexerClient.getJSON(ctx, "/blocks/"+url.PathEscape(height), &block); err != nil {
 		return chain.Block{}, err
@@ -336,7 +372,7 @@ type AccountLeaderboard struct {
 func (s *Service) Account(ctx context.Context, address string) (AccountDetail, error) {
 	address, err := normalizeExplorerAddress(address)
 	if err != nil {
-		return AccountDetail{}, err
+		return AccountDetail{}, fmt.Errorf("%w: invalid account address", errLookupNotFound)
 	}
 	var account AccountDetail
 	if err := s.rpcClient.getJSON(ctx, "/accounts/"+url.PathEscape(address), &account); err != nil {
@@ -373,7 +409,7 @@ func (s *Service) IndexedParticipants(ctx context.Context, limit int, cursor str
 func (s *Service) AccountActivity(ctx context.Context, address string, limit int, cursor string) (AccountActivity, error) {
 	address, err := normalizeExplorerAddress(address)
 	if err != nil {
-		return AccountActivity{}, err
+		return AccountActivity{}, fmt.Errorf("%w: invalid account address", errLookupNotFound)
 	}
 	if limit <= 0 || limit > 100 {
 		limit = 25
@@ -389,7 +425,7 @@ func (s *Service) AccountActivity(ctx context.Context, address string, limit int
 	if activity.TruthfulStatus != "retained-indexed-account-activity" {
 		return AccountActivity{}, fmt.Errorf("unexpected indexed account activity status %q", activity.TruthfulStatus)
 	}
-	health, err := s.IndexerHealth(ctx)
+	health, err := s.requireHealthyCanonicalIndexer(ctx)
 	if err != nil {
 		return AccountActivity{}, err
 	}
@@ -431,7 +467,7 @@ func (s *Service) Leaderboard(ctx context.Context, limit int) (AccountLeaderboar
 	if err != nil {
 		return AccountLeaderboard{}, err
 	}
-	health, err := s.IndexerHealth(ctx)
+	health, err := s.requireHealthyCanonicalIndexer(ctx)
 	if err != nil {
 		return AccountLeaderboard{}, err
 	}
@@ -518,7 +554,7 @@ func (s *Service) Validators(ctx context.Context) (map[string]any, error) {
 func (s *Service) Resources(ctx context.Context, address string) (chain.ResourceBalance, error) {
 	address, err := normalizeExplorerAddress(address)
 	if err != nil {
-		return chain.ResourceBalance{}, err
+		return chain.ResourceBalance{}, fmt.Errorf("%w: invalid account address", errLookupNotFound)
 	}
 	var resources chain.ResourceBalance
 	if err := s.rpcClient.getJSON(ctx, "/resources/"+url.PathEscape(address), &resources); err != nil {
@@ -552,7 +588,7 @@ func (s *Service) Token(ctx context.Context, symbol string) (TokenDetail, error)
 		return TokenDetail{}, err
 	}
 	if !strings.EqualFold(symbol, "YNXT") {
-		return TokenDetail{}, fmt.Errorf("token %s is not indexed by this explorer", symbol)
+		return TokenDetail{}, fmt.Errorf("%w: token is not indexed by this explorer", errLookupNotFound)
 	}
 	return TokenDetail{
 		Symbol:   "YNXT",
@@ -587,7 +623,7 @@ func (s *Service) Token(ctx context.Context, symbol string) (TokenDetail, error)
 func (s *Service) Contract(ctx context.Context, address string) (chain.ContractArtifact, error) {
 	address, err := normalizeExplorerAddress(address)
 	if err != nil {
-		return chain.ContractArtifact{}, err
+		return chain.ContractArtifact{}, fmt.Errorf("%w: invalid contract address", errLookupNotFound)
 	}
 	var contract chain.ContractArtifact
 	if err := s.rpcClient.getJSON(ctx, "/contracts/"+url.PathEscape(address), &contract); err != nil {
@@ -642,6 +678,7 @@ type SearchResult struct {
 	Query             string `json:"query"`
 	Type              string `json:"type"`
 	Path              string `json:"path"`
+	DeepLink          string `json:"deepLink"`
 	NormalizedAddress string `json:"normalizedAddress,omitempty"`
 	TruthfulStatus    string `json:"truthfulStatus"`
 }
@@ -655,30 +692,35 @@ func (s *Service) Search(ctx context.Context, query string) (SearchResult, error
 		if _, err := s.Token(ctx, query); err != nil {
 			return SearchResult{}, err
 		}
-		return SearchResult{Query: "YNXT", Type: "token", Path: "/api/tokens/YNXT", TruthfulStatus: "resolved-from-rpc-status"}, nil
+		return SearchResult{Query: "YNXT", Type: "token", Path: "/api/tokens/YNXT", DeepLink: "/token/YNXT", TruthfulStatus: "resolved-from-rpc-status"}, nil
 	}
 	if _, err := strconv.ParseUint(query, 10, 64); err == nil {
 		if _, err := s.Block(ctx, query); err != nil {
 			return SearchResult{}, err
 		}
-		return SearchResult{Query: query, Type: "block", Path: "/api/blocks/" + query, TruthfulStatus: "resolved-from-indexer"}, nil
+		return SearchResult{Query: query, Type: "block", Path: "/api/blocks/" + query, DeepLink: "/block/" + query, TruthfulStatus: "resolved-from-indexer"}, nil
 	}
 	if transactionHash, ok := normalizeCanonicalTransactionHash(query); ok {
-		if _, err := s.Transaction(ctx, transactionHash); err == nil {
-			return SearchResult{Query: transactionHash, Type: "transaction", Path: "/api/txs/" + transactionHash, TruthfulStatus: "resolved-from-indexer"}, nil
+		if _, err := s.Transaction(ctx, transactionHash); err != nil {
+			return SearchResult{}, err
 		}
+		return SearchResult{Query: transactionHash, Type: "transaction", Path: "/api/txs/" + transactionHash, DeepLink: "/tx/" + transactionHash, TruthfulStatus: "resolved-from-indexer"}, nil
 	}
 	normalized, err := normalizeExplorerAddress(query)
 	if err != nil {
-		return SearchResult{}, err
+		return SearchResult{}, fmt.Errorf("%w: invalid account or contract address", errLookupNotFound)
 	}
 	if contract, err := s.Contract(ctx, normalized); err == nil {
-		return SearchResult{Query: query, Type: "contract", Path: "/api/contracts/" + url.PathEscape(contract.Address), NormalizedAddress: contract.Address, TruthfulStatus: "resolved-from-rpc-contract-record"}, nil
+		return SearchResult{Query: query, Type: "contract", Path: "/api/contracts/" + url.PathEscape(contract.Address), DeepLink: "/contract/" + url.PathEscape(contract.Address), NormalizedAddress: contract.Address, TruthfulStatus: "resolved-from-rpc-contract-record"}, nil
+	} else if !isLookupNotFound(err) {
+		return SearchResult{}, err
 	}
 	if _, err := s.Account(ctx, normalized); err == nil {
-		return SearchResult{Query: query, Type: "account", Path: "/api/accounts/" + url.PathEscape(normalized), NormalizedAddress: normalized, TruthfulStatus: "resolved-from-rpc"}, nil
+		return SearchResult{Query: query, Type: "account", Path: "/api/accounts/" + url.PathEscape(normalized), DeepLink: "/address/" + url.PathEscape(normalized), NormalizedAddress: normalized, TruthfulStatus: "resolved-from-rpc"}, nil
+	} else if !isLookupNotFound(err) {
+		return SearchResult{}, err
 	}
-	return SearchResult{}, fmt.Errorf("query not found")
+	return SearchResult{}, errLookupNotFound
 }
 
 func normalizeExplorerAddress(value string) (string, error) {

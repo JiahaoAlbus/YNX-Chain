@@ -214,8 +214,60 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	if err := json.NewDecoder(uppercaseSearchResponse.Body).Decode(&uppercaseSearch); err != nil {
 		t.Fatal(err)
 	}
-	if uppercaseSearchResponse.StatusCode != http.StatusOK || uppercaseSearch.Type != "transaction" || uppercaseSearch.Query != tx.Hash || uppercaseSearch.Path != "/api/txs/"+tx.Hash {
+	if uppercaseSearchResponse.StatusCode != http.StatusOK || uppercaseSearch.Type != "transaction" || uppercaseSearch.Query != tx.Hash || uppercaseSearch.Path != "/api/txs/"+tx.Hash || uppercaseSearch.DeepLink != "/tx/"+tx.Hash {
 		t.Fatalf("uppercase transaction search was not normalized to the indexed canonical hash: %+v", uppercaseSearch)
+	}
+	for _, testCase := range []struct {
+		path string
+		name string
+	}{
+		{path: "/block/1", name: "block"},
+		{path: "/address/" + ynxAddress, name: "YNX address"},
+		{path: "/token/YNXT", name: "native token"},
+		{path: "/contract/" + contract.Address, name: "contract"},
+	} {
+		response, err := http.Get(server.URL + testCase.path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		deepLinkHTML, readErr := io.ReadAll(response.Body)
+		_ = response.Body.Close()
+		if readErr != nil {
+			t.Fatal(readErr)
+		}
+		if response.StatusCode != http.StatusOK || !strings.Contains(response.Header.Get("Content-Type"), "text/html") || !strings.Contains(string(deepLinkHTML), "openDeepLink") {
+			t.Fatalf("%s deep link did not serve the refresh-safe Explorer shell: status=%d content-type=%q", testCase.name, response.StatusCode, response.Header.Get("Content-Type"))
+		}
+	}
+	for _, path := range []string{"/block/not-a-height", "/address/not-an-address", "/token/not-ynxt", "/contract/not-an-address"} {
+		response, err := http.Get(server.URL + path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		_ = response.Body.Close()
+		if response.StatusCode != http.StatusNotFound {
+			t.Fatalf("malformed Explorer detail deep link %s must fail closed, got %d", path, response.StatusCode)
+		}
+	}
+	for query, wantDeepLink := range map[string]string{
+		"1":              "/block/1",
+		ynxAddress:       "/address/" + canonicalAddress,
+		"YNXT":           "/token/YNXT",
+		contract.Address: "/contract/" + contract.Address,
+	} {
+		response, err := http.Get(server.URL + "/api/search?q=" + query)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var result SearchResult
+		decodeErr := json.NewDecoder(response.Body).Decode(&result)
+		_ = response.Body.Close()
+		if decodeErr != nil {
+			t.Fatal(decodeErr)
+		}
+		if response.StatusCode != http.StatusOK || result.DeepLink != wantDeepLink {
+			t.Fatalf("search %q did not return a refresh-safe detail link: status=%d result=%+v", query, response.StatusCode, result)
+		}
 	}
 	invalidDeepLinkResponse, err := http.Get(server.URL + "/tx/not-a-transaction-hash")
 	if err != nil {
@@ -422,6 +474,36 @@ func TestExplorerRejectsNonCanonicalIndexerService(t *testing.T) {
 	}
 }
 
+func TestExplorerAccountDataFailsClosedWhenIndexerIsUnhealthy(t *testing.T) {
+	rpc := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/accounts/alice":
+			_ = json.NewEncoder(w).Encode(AccountDetail{Account: chain.Account{Address: "alice", Balance: 10}})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer rpc.Close()
+	indexerHTTP := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/accounts":
+			_ = json.NewEncoder(w).Encode(IndexedParticipants{Accounts: []IndexedAccountParticipant{{Address: "alice", TransactionCount: 1}}, Total: 1, TruthfulStatus: "observed-indexed-participants"})
+		case "/health":
+			_ = json.NewEncoder(w).Encode(IndexerHealth{OK: false, Service: "ynx-indexerd", ChainID: 6423, NativeSymbol: "YNXT", LastError: "private failure detail"})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer indexerHTTP.Close()
+	svc, err := New(Config{RPCURL: rpc.URL, IndexerURL: indexerHTTP.URL})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := svc.Leaderboard(context.Background(), 10); err == nil || !strings.Contains(err.Error(), "not healthy") {
+		t.Fatalf("leaderboard did not fail closed on an unhealthy Indexer: %v", err)
+	}
+}
+
 func TestExplorerDoesNotExposeUpstreamErrorsToPublicClients(t *testing.T) {
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		http.Error(w, "credential=should-never-reach-public-client", http.StatusBadGateway)
@@ -442,7 +524,7 @@ func TestExplorerDoesNotExposeUpstreamErrorsToPublicClients(t *testing.T) {
 		{path: "/api/dashboard", status: http.StatusBadGateway, classification: "UPSTREAM_UNAVAILABLE"},
 		{path: "/api/blocks/latest", status: http.StatusBadGateway, classification: "UPSTREAM_UNAVAILABLE"},
 		{path: "/api/txs", status: http.StatusBadGateway, classification: "UPSTREAM_UNAVAILABLE"},
-		{path: "/api/txs/0x" + strings.Repeat("a", 64), status: http.StatusNotFound, classification: "NOT_FOUND"},
+		{path: "/api/txs/0x" + strings.Repeat("a", 64), status: http.StatusBadGateway, classification: "UPSTREAM_UNAVAILABLE"},
 	} {
 		response := httptest.NewRecorder()
 		handler.ServeHTTP(response, httptest.NewRequest(http.MethodGet, testCase.path, nil))
@@ -460,6 +542,22 @@ func TestExplorerDoesNotExposeUpstreamErrorsToPublicClients(t *testing.T) {
 		if payload["classification"] != testCase.classification {
 			t.Fatalf("%s classification=%q, want %q", testCase.path, payload["classification"], testCase.classification)
 		}
+	}
+}
+
+func TestExplorerLookupPreservesOnlyARealNotFoundClassification(t *testing.T) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		http.Error(w, "internal record path must never reach a browser", http.StatusNotFound)
+	}))
+	defer upstream.Close()
+	svc, err := New(Config{RPCURL: upstream.URL, IndexerURL: upstream.URL})
+	if err != nil {
+		t.Fatal(err)
+	}
+	response := httptest.NewRecorder()
+	NewServer(svc).Handler().ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/api/txs/0x"+strings.Repeat("a", 64), nil))
+	if response.Code != http.StatusNotFound || !strings.Contains(response.Body.String(), `"classification":"NOT_FOUND"`) || strings.Contains(response.Body.String(), "internal record") {
+		t.Fatalf("Explorer did not expose a safe real-not-found response: status=%d body=%s", response.Code, response.Body.String())
 	}
 }
 
