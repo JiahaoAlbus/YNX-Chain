@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "owner": "02-wallet-auth-ios-macos-native",
+  "evidenceKind": "public-macos-dmg-owner-native-identity-install-preflight",
+  "generatedAt": "2026-08-31T07:53:01Z",
+  "source": {
+    "branch": "codex/wallet-ios-macos-20260813",
+    "commit": "9615d794db130c2dd9fcab4757d2692591875086",
+    "tree": "2f5f1b869a1ca2416bed6737641d01457b3ddea2",
+    "preflightPath": "apps/wallet/macos/scripts/public-native-identity-preflight.rb",
+    "preflightBlob": "b4c503e677e2db3fe59fc8f1323289125c995355",
+    "preflightBytes": 6839,
+    "preflightSha256": "baefbeb558d30550b8bb23911036df7119821f157b75600a847a48d823988f8d",
+    "testPath": "apps/wallet/macos/scripts/test-public-native-identity-preflight.sh",
+    "testBlob": "3e295d429b519b62956c79223fe6722c66561b0e",
+    "testBytes": 3608,
+    "testSha256": "4c20d4843713987f37ea07944d40da425bc9d54b57c950ba31c647ac95336293"
+  },
+  "publicArtifact": {
+    "url": "https://downloads.ynxweb4.com/wallet/sha256-ad6e4077bc001743cf1a4163ceaca5a009a3c8a4d8a809cc4896798976cf56c0/ynx-wallet-desktop-0.1.1-universal.dmg",
+    "httpStatus": 200,
+    "contentType": "application/x-apple-diskimage",
+    "contentDisposition": "attachment",
+    "contentLength": 236661996,
+    "cacheControl": "public, max-age=31536000, immutable",
+    "fullDownloadCompleted": true,
+    "downloadedBytes": 236661996,
+    "downloadedSha256": "ad6e4077bc001743cf1a4163ceaca5a009a3c8a4d8a809cc4896798976cf56c0",
+    "urlDigestMatchesDownload": true,
+    "hdiutilVerify": true
+  },
+  "expectedOwnerNativeIdentity": {
+    "bundleIdentifier": "com.ynxweb4.wallet.macos",
+    "customScheme": "ynxwallet"
+  },
+  "containedApplication": {
+    "name": "YNX Wallet Testnet Preview.app",
+    "bundleIdentifier": "com.ynxweb4.wallet.desktop",
+    "shortVersion": "0.1.1",
+    "bundleVersion": "0.1.1",
+    "minimumOS": "12.0",
+    "architectures": [
+      "arm64",
+      "x86_64"
+    ],
+    "customSchemes": []
+  },
+  "identityAndSigning": {
+    "bundleIdentifierMatchesOwnerNative": false,
+    "ynxwalletSchemeRegistered": false,
+    "ownerNativeIdentityVerified": false,
+    "strictDeepCodesignVerified": false,
+    "strictDeepCodesignExit": 1,
+    "gatekeeperAccepted": false,
+    "gatekeeperExit": 3,
+    "eligibleSignedInstallCandidate": false,
+    "preflightPassed": false
+  },
+  "operationBoundary": {
+    "readOnlyMountCompleted": true,
+    "readOnlyMountDetached": true,
+    "applicationCopied": false,
+    "applicationInstalled": false,
+    "applicationLaunched": false,
+    "signingAttempted": false,
+    "runtimeLeaseRequested": false,
+    "accountActionAttempted": false,
+    "callbackAttempted": false,
+    "authorizationAttempted": false,
+    "transactionAttempted": false
+  },
+  "tests": {
+    "rubySyntax": "PASS",
+    "shellSyntax": "PASS",
+    "matchingIdentityFixture": "PASS",
+    "mismatchedBundleAndSchemeFixture": "PASS",
+    "requireOwnerIdentityExitOnMismatch": 3,
+    "result": "public native identity preflight tests PASS"
+  },
+  "truth": {
+    "publicArtifactReachable": true,
+    "publicArtifactIntegrityVerified": true,
+    "publicArtifactMatchesOwnerNativeIdentity": false,
+    "publicNativeWalletPublished": false,
+    "eligibleSignedMacosTargetAvailable": false,
+    "productionSigned": false,
+    "notarized": false,
+    "gatekeeperAccepted": false,
+    "installed": false,
+    "callbackVerified": false,
+    "authorizationVerified": false,
+    "accountAvailable": false,
+    "signSuccess": false,
+    "sendSuccess": false,
+    "transactionSuccess": false
+  },
+  "interpretation": "The immutable public DMG remains byte-exact and downloadable, but it is the desktop preview rather than the owner-native callback-capable macOS wallet. The reusable preflight rejects it before install because both bundle identity and ynxwallet registration are absent; the unsigned and Gatekeeper-rejected boundary independently remains false."
+}
