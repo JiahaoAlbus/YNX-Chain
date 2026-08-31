@@ -1,0 +1,40 @@
+{
+  "schemaVersion": "dex-public-readback@1",
+  "classification": "read-only-public-observation-not-deployment-evidence",
+  "observedAt": "2026-08-31T08:40:35Z",
+  "candidateSource": {
+    "commit": "2d2660a17cff4e09a34c81c729fe9421e3f7645f",
+    "state": "source-only; no candidate release archive frozen for this commit"
+  },
+  "publicReadback": {
+    "root": {
+      "url": "https://dex.ynxweb4.com/",
+      "status": 200,
+      "bytes": 931,
+      "sha256": "aead21e2f53dce3b6b08b964f2021283147e19f44f9591316b7bb7d130f0492a",
+      "lastModified": "2026-08-13T15:12:23Z"
+    },
+    "version": {
+      "url": "https://dex.ynxweb4.com/version",
+      "status": 200,
+      "bytes": 126,
+      "sha256": "da7de848ab2f74dfdb15b0f00f11dbba9b7cf95223abd7137d21ea9d35433296",
+      "commit": "ac775de24176b293b5dbb5ab7114cf29428f8046"
+    },
+    "health": {
+      "url": "https://dex.ynxweb4.com/health",
+      "status": null,
+      "failure": "curl timeout after 15 seconds; no response body captured"
+    }
+  },
+  "truth": {
+    "sourceBoundPublicRuntime": false,
+    "deployed": false,
+    "walletApproval": false,
+    "swap": false,
+    "liquidity": false,
+    "transaction": false,
+    "computerControl": false
+  },
+  "singleExecutableBlocker": "Central must issue a new DEX-only rollback-first deployment lease with fresh host, service, health and rollback bindings. The observed runtime is older than this source and health was unavailable."
+}

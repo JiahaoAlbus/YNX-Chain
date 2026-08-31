@@ -26,3 +26,7 @@ To promote multi-hop quotes to executable Testnet swaps, Chain Core must publish
 - `npm --prefix apps/dex run build` — passed.
 
 No public deployment, Wallet approval, signature, swap, liquidity operation, or transaction occurred. The existing public DEX is not source-bound to this checkpoint.
+
+## Fresh public observation
+
+At `2026-08-31T08:40:35Z`, a read-only check found the public root still served a 931-byte document (SHA-256 `aead21e2…f0492a`) last modified on 2026-08-13. `/version` returned commit `ac775de24176b293b5dbb5ab7114cf29428f8046`, not this checkpoint; `/health` timed out after 15 seconds without a body. The full non-secret receipt is `apps/dex/evidence/dex-public-readback-20260831.json`. This is deployment-blocker evidence, not a public-release claim.
