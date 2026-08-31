@@ -16,6 +16,17 @@ export const MODEL_KINDS = Object.freeze([
   "RiskLimit",
 ]);
 
+export const ORDER_STATUSES = Object.freeze([
+  "pending",
+  "open",
+  "partially_filled",
+  "filled",
+  "cancelled",
+  "rejected",
+  "expired",
+  "execution_unknown",
+]);
+
 export const ERROR_CODES = Object.freeze({
   INVALID_REQUEST: "FIN_INVALID_REQUEST",
   UNAUTHENTICATED: "FIN_UNAUTHENTICATED",
@@ -48,6 +59,17 @@ const requiredByKind = Object.freeze({
 const decimalPattern = /^(0|[1-9][0-9]*)(\.[0-9]+)?$/;
 const idPattern = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
 const zeroDecimalPattern = /^0(?:\.0+)?$/;
+const sha256Pattern = /^[a-f0-9]{64}$/;
+const orderTransitions = Object.freeze({
+  pending: Object.freeze(["open", "cancelled", "rejected", "execution_unknown"]),
+  open: Object.freeze(["partially_filled", "filled", "cancelled", "expired", "execution_unknown"]),
+  partially_filled: Object.freeze(["filled", "cancelled", "expired", "execution_unknown"]),
+  execution_unknown: Object.freeze(["open", "partially_filled", "filled", "cancelled", "rejected", "expired"]),
+  filled: Object.freeze([]),
+  cancelled: Object.freeze([]),
+  rejected: Object.freeze([]),
+  expired: Object.freeze([]),
+});
 
 function isRecord(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -149,7 +171,7 @@ export function validateModel(kind, value) {
       assert(["buy", "sell"].includes(value.side), ERROR_CODES.INVALID_REQUEST, "Order.side is invalid");
       assert(["limit", "market", "stop", "trigger"].includes(value.orderType), ERROR_CODES.INVALID_REQUEST, "Order.orderType is invalid");
       assertDecimal(value.quantity, "Order.quantity", true);
-      assert(["pending", "open", "partially_filled", "filled", "cancelled", "rejected", "expired", "execution_unknown"].includes(value.status), ERROR_CODES.INVALID_REQUEST, "Order.status is invalid");
+      assert(ORDER_STATUSES.includes(value.status), ERROR_CODES.INVALID_REQUEST, "Order.status is invalid");
       assertID(value.idempotencyKey, "Order.idempotencyKey");
       break;
     case "Trade":
@@ -252,4 +274,34 @@ export function validateWriteHeaders(headers) {
   assert(typeof headers.idempotencyKey === "string" && idPattern.test(headers.idempotencyKey), ERROR_CODES.INVALID_REQUEST, "idempotencyKey is invalid");
   assert(typeof headers.expectedVersion === "string" && idPattern.test(headers.expectedVersion), ERROR_CODES.INVALID_REQUEST, "expectedVersion is invalid");
   return headers;
+}
+
+// This is a pure boundary check. Product services must persist the
+// idempotency record and the resulting state transition atomically with the
+// effect; this package neither stores nor claims an action outcome.
+export function evaluateWritePrecondition({ headers, currentVersion, requestDigest, idempotencyRecord = undefined }) {
+  validateWriteHeaders(headers);
+  assertID(currentVersion, "currentVersion");
+  assert(typeof requestDigest === "string" && sha256Pattern.test(requestDigest), ERROR_CODES.INVALID_REQUEST, "requestDigest must be a lowercase SHA-256 hex digest");
+
+  if (idempotencyRecord !== undefined) {
+    assert(isRecord(idempotencyRecord), ERROR_CODES.INVALID_REQUEST, "idempotencyRecord must be an object");
+    assertID(idempotencyRecord.idempotencyKey, "idempotencyRecord.idempotencyKey");
+    assert(typeof idempotencyRecord.requestDigest === "string" && sha256Pattern.test(idempotencyRecord.requestDigest), ERROR_CODES.INVALID_REQUEST, "idempotencyRecord.requestDigest is invalid");
+    assertID(idempotencyRecord.resourceVersion, "idempotencyRecord.resourceVersion");
+    assert(["accepted", "rejected", "execution_unknown"].includes(idempotencyRecord.outcome), ERROR_CODES.INVALID_REQUEST, "idempotencyRecord.outcome is invalid");
+    assert(idempotencyRecord.idempotencyKey === headers.idempotencyKey, ERROR_CODES.IDEMPOTENCY_CONFLICT, "idempotency record key does not match request");
+    assert(idempotencyRecord.requestDigest === requestDigest, ERROR_CODES.IDEMPOTENCY_CONFLICT, "idempotency key was already used for a different request");
+    return Object.freeze({ action: "replay", outcome: idempotencyRecord.outcome, resourceVersion: idempotencyRecord.resourceVersion });
+  }
+
+  assert(headers.expectedVersion === currentVersion, ERROR_CODES.CONCURRENT_MODIFICATION, "expectedVersion does not match currentVersion");
+  return Object.freeze({ action: "create", expectedVersion: currentVersion });
+}
+
+export function assertOrderTransition(fromStatus, toStatus) {
+  assert(ORDER_STATUSES.includes(fromStatus), ERROR_CODES.INVALID_REQUEST, "fromStatus is invalid");
+  assert(ORDER_STATUSES.includes(toStatus), ERROR_CODES.INVALID_REQUEST, "toStatus is invalid");
+  assert(orderTransitions[fromStatus].includes(toStatus), ERROR_CODES.CONCURRENT_MODIFICATION, `order transition ${fromStatus} -> ${toStatus} is not allowed`);
+  return toStatus;
 }

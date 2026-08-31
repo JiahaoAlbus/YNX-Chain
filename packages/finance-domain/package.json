@@ -1,6 +1,6 @@
 {
   "name": "@ynx/finance-domain",
-  "version": "1.0.0-candidate.1",
+  "version": "1.0.0-candidate.2",
   "type": "module",
   "private": true,
   "exports": {

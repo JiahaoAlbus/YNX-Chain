@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import { ERROR_CODES, FINANCE_DOMAIN_VERSION, FINANCE_READ_ENVELOPE_VERSION, FINANCE_STREAM_ENVELOPE_VERSION, MODEL_KINDS, createError, validateDecimal, validateModel, validateReadEnvelope, validateStreamEnvelope, validateWriteHeaders } from "../src/index.js";
+import { ERROR_CODES, FINANCE_DOMAIN_VERSION, FINANCE_READ_ENVELOPE_VERSION, FINANCE_STREAM_ENVELOPE_VERSION, MODEL_KINDS, ORDER_STATUSES, assertOrderTransition, createError, evaluateWritePrecondition, validateDecimal, validateModel, validateReadEnvelope, validateStreamEnvelope, validateWriteHeaders } from "../src/index.js";
 
 const source = Object.freeze({ owner: "oracle", system: "ynx-oracle", version: "v1", asOf: "2026-08-13T12:00:00.000Z", classification: "testnet", status: "live" });
 const examples = {
@@ -99,6 +99,43 @@ test("money uses strings and write requests require concurrency controls", () =>
   assert.throws(() => validateDecimal(1.1), /base-10 string/);
   assert.deepEqual(validateWriteHeaders({ requestId: "req:1", idempotencyKey: "idem:1", expectedVersion: "v:7" }), { requestId: "req:1", idempotencyKey: "idem:1", expectedVersion: "v:7" });
   assert.throws(() => validateWriteHeaders({ requestId: "req:1", idempotencyKey: "idem:1" }), /expectedVersion/);
+});
+
+test("write preconditions fail closed on conflicts and only replay an exact persisted request", () => {
+  const headers = { requestId: "req:3", idempotencyKey: "idem:3", expectedVersion: "v:7" };
+  const digest = "a".repeat(64);
+  assert.deepEqual(evaluateWritePrecondition({ headers, currentVersion: "v:7", requestDigest: digest }), { action: "create", expectedVersion: "v:7" });
+  assert.throws(() => evaluateWritePrecondition({ headers, currentVersion: "v:8", requestDigest: digest }), (error) => error.code === ERROR_CODES.CONCURRENT_MODIFICATION);
+  assert.deepEqual(evaluateWritePrecondition({
+    headers,
+    currentVersion: "v:8",
+    requestDigest: digest,
+    idempotencyRecord: { idempotencyKey: "idem:3", requestDigest: digest, resourceVersion: "v:8", outcome: "execution_unknown" },
+  }), { action: "replay", resourceVersion: "v:8", outcome: "execution_unknown" });
+  assert.throws(() => evaluateWritePrecondition({
+    headers,
+    currentVersion: "v:8",
+    requestDigest: "b".repeat(64),
+    idempotencyRecord: { idempotencyKey: "idem:3", requestDigest: digest, resourceVersion: "v:8", outcome: "accepted" },
+  }), (error) => error.code === ERROR_CODES.IDEMPOTENCY_CONFLICT);
+});
+
+test("order transitions preserve terminal states and require authoritative reconciliation after unknown execution", () => {
+  assert.equal(ORDER_STATUSES.includes("execution_unknown"), true);
+  assert.equal(assertOrderTransition("pending", "open"), "open");
+  assert.equal(assertOrderTransition("execution_unknown", "filled"), "filled");
+  assert.throws(() => assertOrderTransition("filled", "open"), (error) => error.code === ERROR_CODES.CONCURRENT_MODIFICATION);
+  assert.throws(() => assertOrderTransition("open", "rejected"), (error) => error.code === ERROR_CODES.CONCURRENT_MODIFICATION);
+});
+
+test("integration contract version-locks the durable write precondition boundary", async () => {
+  const contractPath = fileURLToPath(new URL("../../../release/integration/finance-suite-domain-contract-v1.json", import.meta.url));
+  const contract = JSON.parse(await readFile(contractPath, "utf8"));
+  assert.equal(contract.schemaVersion, "1.0.0-candidate.2");
+  assert.match(contract.writeProtocol.requiredRequestDigest, /RFC 8785 JCS/);
+  assert.match(contract.writeProtocol.idempotency, /atomically/);
+  assert.match(contract.writeProtocol.concurrency, /expectedVersion/);
+  assert.match(contract.writeProtocol.orderStateMachine, /execution_unknown/);
 });
 
 test("error envelopes use stable codes and request correlation", () => {
