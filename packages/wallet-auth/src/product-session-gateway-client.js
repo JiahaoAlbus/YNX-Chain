@@ -69,6 +69,7 @@ export class ProductSessionGatewayFetchAdapter {
     if (new TextEncoder().encode(text).length > MAX_RESPONSE_BYTES) fail("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response exceeds policy");
     let payload; try { payload = JSON.parse(text); } catch { fail("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response is not JSON"); }
     if (canonicalJSON(payload) !== text) fail("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response is not canonical JSON");
+    if (legacyWalletRouteNotFound(response.status, responseRequestId, payload)) fail("ROUTE_NOT_MOUNTED", "Canonical Product Session Gateway route is not mounted; no local response was substituted");
     if (response.status >= 200 && response.status < 300) {
       exactFields(payload, ["ok", "requestId", "result", "schemaVersion"], "Product Session Gateway success response");
       if (payload.ok !== true || payload.requestId !== requestId || responseRequestId !== requestId || payload.schemaVersion !== PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION) fail("INVALID_GATEWAY_RESPONSE", "Product Session Gateway success response binding is invalid");
@@ -98,4 +99,11 @@ export function encodeProductSessionGatewayProofHeaderV2(value) {
 
 function endpoint(value) { if (typeof value !== "string" || value.length > 512) fail("INVALID_GATEWAY", "Product Session Gateway endpoint is invalid"); let parsed; try { parsed = new URL(value); } catch { fail("INVALID_GATEWAY", "Product Session Gateway endpoint is invalid"); } if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.port || parsed.search || parsed.hash || parsed.pathname !== "/" || value !== parsed.origin) fail("INVALID_GATEWAY", "Product Session Gateway endpoint must be a canonical HTTPS origin"); return parsed.origin; }
 function capability(value, label) { if (typeof value !== "boolean") fail("INVALID_GATEWAY", `${label} must return a boolean`); return value; }
+function legacyWalletRouteNotFound(status, responseRequestId, payload) {
+  if (status !== 404 || !uuid(responseRequestId) || !objectWithFields(payload, ["error", "ok", "schemaVersion", "stateDigest"])) return false;
+  if (payload.ok !== false || payload.schemaVersion !== 1 || typeof payload.stateDigest !== "string" || !/^[0-9a-f]{64}$/.test(payload.stateDigest)) return false;
+  return objectWithFields(payload.error, ["code", "message"]) && payload.error.code === "ROUTE_NOT_FOUND" && typeof payload.error.message === "string" && payload.error.message.length > 0 && payload.error.message.length <= 500;
+}
+function objectWithFields(value, fields) { return typeof value === "object" && value !== null && !Array.isArray(value) && JSON.stringify(Object.keys(value).sort()) === JSON.stringify(fields); }
+function uuid(value) { return typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(value); }
 function fail(code, message) { throw new WalletAuthError(code, message); }

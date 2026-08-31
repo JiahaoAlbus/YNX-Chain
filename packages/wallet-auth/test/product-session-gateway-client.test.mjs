@@ -67,12 +67,24 @@ test("fetch adapter rejects unsafe origins, malformed responses and network fall
     ...capabilities,
   });
   await assert.rejects(() => unmounted.challenge({ requestId: "req_adapter_route_00001", request: {}, approval: {} }), code("ROUTE_NOT_MOUNTED"));
+  const legacyUnmounted = new ProductSessionGatewayFetchAdapter({
+    endpoint: "https://gateway.test",
+    fetch: async () => new Response(canonicalJSON({ error: { code: "ROUTE_NOT_FOUND", message: "Canonical Wallet Gateway route was not found" }, ok: false, schemaVersion: 1, stateDigest: "a".repeat(64) }), { status: 404, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-request-id": "173e4567-e89b-42d3-a456-426614174000" } }),
+    ...capabilities,
+  });
+  await assert.rejects(() => legacyUnmounted.challenge({ requestId: "req_adapter_route_00001", request: {}, approval: {} }), code("ROUTE_NOT_MOUNTED"));
   const substitutedUnmounted = new ProductSessionGatewayFetchAdapter({
     endpoint: "https://gateway.test",
     fetch: async () => new Response(canonicalJSON({ error: { code: "ROUTE_NOT_FOUND", message: "Product Session Gateway route is not registered" }, ok: false, requestId: "req_invalid_request_000", schemaVersion: 2 }), { status: 404, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-request-id": "req_substituted_request_0" } }),
     ...capabilities,
   });
   await assert.rejects(() => substitutedUnmounted.challenge({ requestId: "req_adapter_route_00001", request: {}, approval: {} }), code("INVALID_GATEWAY_RESPONSE"));
+  const malformedLegacyUnmounted = new ProductSessionGatewayFetchAdapter({
+    endpoint: "https://gateway.test",
+    fetch: async () => new Response(canonicalJSON({ error: { code: "ROUTE_NOT_FOUND", message: "Canonical Wallet Gateway route was not found" }, ok: false, schemaVersion: 1, stateDigest: "not-a-digest" }), { status: 404, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-request-id": "173e4567-e89b-42d3-a456-426614174000" } }),
+    ...capabilities,
+  });
+  await assert.rejects(() => malformedLegacyUnmounted.challenge({ requestId: "req_adapter_route_00001", request: {}, approval: {} }), (error) => error instanceof WalletAuthError && error.code !== "ROUTE_NOT_MOUNTED");
 });
 
 function code(expected) { return (error) => error instanceof WalletAuthError && error.code === expected; }
