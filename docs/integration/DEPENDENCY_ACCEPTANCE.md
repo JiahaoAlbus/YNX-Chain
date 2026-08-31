@@ -3,8 +3,9 @@
 ## Current source
 
 - Product owner: `11-developer`
-- Branch: `codex/final-developer`
-- Runtime source commit: `8f352d0159eef0ab60fb6411e949cfcf3aafb551`
+- Branch: `codex/ynx-code-platform-v1`
+- Audited repository checkpoint: `e061a30e801a9075dfea212a854b3d7d578d7e85`
+- Runtime source checkpoint: `17ee9ae5bf50677a3316b0838884dd135de80599`
 - Contract version: `ynx-developer-integration-v1` / `1.0.0`
 - Current phase: `FREEZE`
 

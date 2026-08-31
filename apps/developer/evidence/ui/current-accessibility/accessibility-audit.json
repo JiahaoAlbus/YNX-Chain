@@ -2,11 +2,11 @@
   "schemaVersion": "1.0",
   "productNumber": "11",
   "productName": "YNX Developer / AI Build",
-  "sourceCommit": "f38aa95a9ec7ebff68b4d915f41b20ad8f903769",
+  "sourceCommit": "98fcbe3cff68b4b01ebfd94df2d1476b41ecf2b5",
   "sourceDirtyAtStart": false,
-  "startedAt": "2026-07-29T02:32:33.404Z",
-  "completedAt": "2026-07-29T02:32:41.909Z",
-  "browser": "Chrome/150.0.7871.187",
+  "startedAt": "2026-08-08T17:35:03.893Z",
+  "completedAt": "2026-08-08T17:35:10.571Z",
+  "browser": "Chrome/151.0.7922.76",
   "harness": "Chrome DevTools Protocol via Node.js built-in WebSocket",
   "status": "passed",
   "checks": [
@@ -63,9 +63,9 @@
           "navigation",
           "main",
           "status",
-          "textbox",
           "tablist",
-          "tab"
+          "tab",
+          "textbox"
         ],
         "sourceEditorNamed": true,
         "openAPINamed": true,
@@ -77,6 +77,26 @@
           },
           {
             "role": "status",
+            "name": "",
+            "live": "polite"
+          },
+          {
+            "role": "alert",
+            "name": "",
+            "live": "assertive"
+          },
+          {
+            "role": "alert",
+            "name": "",
+            "live": "assertive"
+          },
+          {
+            "role": "generic",
+            "name": "",
+            "live": "polite"
+          },
+          {
+            "role": "generic",
             "name": "",
             "live": "polite"
           },
@@ -209,8 +229,8 @@
   "screenshots": [
     {
       "path": "apps/developer/evidence/ui/current-accessibility/desktop-light-1440x900.png",
-      "sha256": "e58ca52b973bb2a68b210b78d254b8b75a334104bd909b2f0471db23f5c2e6f6",
-      "bytes": 113482,
+      "sha256": "e6c3a3970e1abb5b1c9c3dbaf74028fe07778e89abe8c0b427fcafd5c0cad0c0",
+      "bytes": 112974,
       "viewport": {
         "width": 1440,
         "height": 900
@@ -220,8 +240,8 @@
     },
     {
       "path": "apps/developer/evidence/ui/current-accessibility/keyboard-focus-api-studio-1440x900.png",
-      "sha256": "622c5ceba9746fcb98bdcf1e2af5c2965b9c88acb41117bc31ec9555eb0aa42a",
-      "bytes": 141949,
+      "sha256": "6a089e07d8ff1625732e9822e8588e102a3407c8b5e93f97e2d40539ba43064c",
+      "bytes": 142136,
       "viewport": {
         "width": 1440,
         "height": 900
@@ -232,8 +252,8 @@
     },
     {
       "path": "apps/developer/evidence/ui/current-accessibility/desktop-dark-1440x900.png",
-      "sha256": "30ec419a760c30cc228b19da8cf4af9af001142c50a15c8b167c9a80679aeb0b",
-      "bytes": 148111,
+      "sha256": "36d8edd1f46e538e9333700bf7004e7b3bd6a7427e15fd2ee92bf732e8a72cf1",
+      "bytes": 145499,
       "viewport": {
         "width": 1440,
         "height": 900
@@ -243,8 +263,8 @@
     },
     {
       "path": "apps/developer/evidence/ui/current-accessibility/mobile-light-390x844.png",
-      "sha256": "596d3aeda5bc2ca49b6ce9bf187a9f886485a411983d3ad168995953134d958b",
-      "bytes": 27625,
+      "sha256": "dde1086d9e8c712bb06524392a6434a8886529ebce2f455dc76b7cb377a06b09",
+      "bytes": 25803,
       "viewport": {
         "width": 390,
         "height": 844
@@ -254,8 +274,8 @@
     },
     {
       "path": "apps/developer/evidence/ui/current-accessibility/mobile-arabic-rtl-390x844.png",
-      "sha256": "459ae141073ba871856e30842de7bcfd0dd90ad39dc591fb2ab9a18af88eabce",
-      "bytes": 46756,
+      "sha256": "9e7f7c5caa0815cf34fd7868b81293ba1b038784e3c9fff33a159253514ff8cf",
+      "bytes": 45028,
       "viewport": {
         "width": 390,
         "height": 844
@@ -265,8 +285,8 @@
     },
     {
       "path": "apps/developer/evidence/ui/current-accessibility/mobile-large-text-390x844.png",
-      "sha256": "b7da98bc4d2f883e512e9d3bbf243c288a253fb41a38e082e342127251113fa4",
-      "bytes": 48654,
+      "sha256": "dc2ac64457f4b0d40fca1958d04fb02e72e30472e98df54f1a984f15acd2ee02",
+      "bytes": 42581,
       "viewport": {
         "width": 390,
         "height": 844

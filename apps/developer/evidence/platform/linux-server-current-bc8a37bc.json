@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-developer-v1",
+  "observedAt": "2026-08-20T16:44:00Z",
+  "artifact": {
+    "platform": "linux-x64-server",
+    "artifactClass": "unsigned-testnet-preview",
+    "deliveryMode": "self-hosted-server-appliance",
+    "filename": "ynx-developer-0.2.0-testnet-preview-bc8a37bc-linux-x64-server.tar.gz",
+    "sourceCommit": "bc8a37bc6f2bcfcbe9415cb0e9da17a5294046a3",
+    "packagerSourceCommit": "93409d9fddef6c8ddc59fb6a0119c3741a246da4",
+    "sourceEvidenceManifestSha256": "ae67d74070ebabee7001a1212a65bf27b549f9be195244e1f91ae7e94ce3e82b",
+    "sha256": "aab9fb6ea976fffab0ae66382401bf8e9886a05fb377f483dc46103fd8be4c05",
+    "bytes": 138538840,
+    "provenanceSha256": "b9ce1089126511bf9921ad991e5b28c4990f91980ce71c0cc8787b7763cb358c",
+    "minimumRuntime": {
+      "os": "Linux x86_64",
+      "node": ">=22"
+    },
+    "signingClass": "unsigned-server-archive"
+  },
+  "verification": {
+    "protectedEvidenceVerified": true,
+    "sourceEvidenceResult": "passed",
+    "archiveExtracted": true,
+    "coldStart": true,
+    "healthz": {
+      "ok": true,
+      "service": "ynx-code-gateway",
+      "sandboxReady": true
+    },
+    "workspaceStateExcluded": true,
+    "operatorEnvironmentExcluded": true
+  },
+  "publication": {
+    "downloadHosted": true,
+    "publicUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-bc8a37bc-linux-x64-server.tar.gz",
+    "provenanceUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-bc8a37bc-linux-x64-server-PROVENANCE.json",
+    "sha256SumsUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-bc8a37bc-linux-x64-server-SHA256SUMS.txt",
+    "officialRouteHashReadback": true,
+    "productionSigned": false,
+    "notarized": false,
+    "storeReleased": false
+  }
+}

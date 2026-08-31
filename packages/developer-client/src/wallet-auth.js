@@ -7,13 +7,8 @@ export const DEVELOPER_WALLET_BINDING = Object.freeze({
   scopes: Object.freeze(["account:read", "developer:deploy"]),
 });
 
-const exact = (value, fields, label) => {
-  invariant(value && typeof value === "object" && !Array.isArray(value), "wallet_invalid_response", `${label} must be an object.`);
-  invariant(Object.keys(value).sort().join("\n") === [...fields].sort().join("\n"), "wallet_tamper_rejected", `${label} contains missing or unknown fields.`);
-};
 const b64url = (bytes) => btoa(String.fromCharCode(...bytes)).replaceAll("+", "-").replaceAll("/", "_").replaceAll("=", "");
 const randomNonce = () => b64url(crypto.getRandomValues(new Uint8Array(32)));
-
 export class LocalNonceLedger {
   constructor(storage = globalThis.localStorage, key = "ynx.developer.wallet-auth.nonces.v1") { this.storage = storage; this.key = key; }
   values() { try { const value = JSON.parse(this.storage?.getItem(this.key) || "[]"); return Array.isArray(value) ? value.filter((item) => typeof item === "string").slice(-127) : []; } catch { return []; } }
@@ -21,37 +16,37 @@ export class LocalNonceLedger {
 }
 
 export class DeveloperWalletSession {
-  constructor({ wallet = globalThis.ynxWallet, gatewayURL = "/app", fetcher = fetch, ledger = new LocalNonceLedger(), clock = Date.now } = {}) {
-    this.wallet = wallet; this.gatewayURL = gatewayURL.replace(/\/$/, ""); this.fetcher = fetcher; this.ledger = ledger; this.clock = clock; this.session = null; this.audit = [];
+  constructor({ transport = globalThis.ynxDesktopWallet, authorizationBuilder = globalThis.ynxWalletAuthorization?.encodeRequestDeepLink, authorizationCallbackParser = globalThis.ynxWalletAuthorization?.parseAuthorizationCallbackURL, ledger = new LocalNonceLedger(), clock = Date.now } = {}) {
+    this.transport = transport; this.authorizationBuilder = authorizationBuilder; this.authorizationCallbackParser = authorizationCallbackParser; this.ledger = ledger; this.clock = clock; this.pending = null; this.approval = null; this.session = null; this.audit = [];
   }
-  async signIn({ approved = false } = {}) {
-    invariant(approved, "wallet_permission_required", "Sign in with YNX Wallet requires explicit approval.");
-    invariant(this.wallet && typeof this.wallet.getProductDevicePublicKey === "function" && typeof this.wallet.authorize === "function" && typeof this.wallet.signProductChallenge === "function", "wallet_unavailable", "YNX Wallet-only provider is unavailable.");
-    const issuedAt = new Date(this.clock()).toISOString(); const nonce = randomNonce();
-    const productDeviceKey = await this.wallet.getProductDevicePublicKey(DEVELOPER_WALLET_BINDING.productClientId);
-    invariant(/^[A-Za-z0-9_-]{44}$/.test(productDeviceKey), "wallet_device_key_invalid", "Wallet provider did not expose a canonical compressed P-256 product device key.");
-    const request = Object.freeze({ ...DEVELOPER_WALLET_BINDING, nonce, productDeviceAlgorithm: "p256-sha256", productDeviceKey, purpose: "Sign in to YNX Developer and review testnet deployments.", issuedAt, expiresAt: new Date(this.clock() + 5 * 60_000).toISOString() });
-    const approval = await this.wallet.authorize(request);
-    this.#verifyApproval(approval, request); this.ledger.consume(nonce);
-    const challengeResponse = await this.fetcher(`${this.gatewayURL}/wallet-auth/challenges`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ version: 1, request, approval }) });
-    if (!challengeResponse.ok) throw new DeveloperError("wallet_gateway_unavailable", `Central Wallet Gateway challenge is unavailable (HTTP ${challengeResponse.status}). Retry later; no session was created.`);
-    const challenge = await challengeResponse.json();
-    const completion = await this.wallet.signProductChallenge(challenge);
-    const completeResponse = await this.fetcher(`${this.gatewayURL}/wallet-auth/sessions`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ version: 1, request, approval, completion }) });
-    if (!completeResponse.ok) throw new DeveloperError("wallet_gateway_rejected", `Central Wallet Gateway rejected the device-bound completion (HTTP ${completeResponse.status}).`);
-    const session = await completeResponse.json();
-    exact(session, ["account", "expiresAt", "productClientId", "sessionToken", "scopes"], "Wallet session");
-    invariant(session.productClientId === DEVELOPER_WALLET_BINDING.productClientId && session.account === approval.account && session.expiresAt <= approval.expiresAt, "wallet_session_tamper", "Wallet session binding does not match the approved request.");
-    this.session = Object.freeze({ ...session }); this.audit.push({ at: new Date(this.clock()).toISOString(), event: "wallet.session.created", account: session.account, scopes: session.scopes });
-    return this.session;
+  async open({ approved = false } = {}) {
+    invariant(approved, "wallet_permission_required", "Opening YNX Wallet requires explicit approval.");
+    invariant(this.transport && typeof this.transport.getProductDevicePublicKey === "function" && typeof this.transport.openAuthorization === "function", "wallet_native_transport_required", "This Web surface cannot receive the registered ynxdeveloper callback. Install or open the reviewed desktop Developer client and YNX Wallet.");
+    invariant(typeof this.authorizationBuilder === "function", "wallet_canonical_builder_required", "This surface has no accepted Wallet authorization builder. Open the reviewed desktop Developer client.");
+    const productDeviceKey = await this.transport.getProductDevicePublicKey(DEVELOPER_WALLET_BINDING.productClientId);
+    invariant(/^[A-Za-z0-9_-]{44}$/.test(productDeviceKey), "wallet_device_key_invalid", "Developer did not expose a canonical compressed P-256 product-device key.");
+    const issuedAt = new Date(this.clock()).toISOString();
+    const request = Object.freeze({ ...DEVELOPER_WALLET_BINDING, nonce: randomNonce(), productDeviceAlgorithm: "p256-sha256", productDeviceKey, purpose: "Sign in to YNX Developer and review one exact Testnet deployment.", issuedAt, expiresAt: new Date(this.clock() + 5 * 60_000).toISOString() });
+    const deepLink = this.authorizationBuilder(request);
+    let parsed;
+    try { parsed = new URL(deepLink); } catch { throw new DeveloperError("wallet_canonical_builder_invalid", "The Wallet authorization builder returned an invalid canonical request."); }
+    invariant(parsed.protocol === "ynxwallet:" && parsed.hostname === "authorize" && parsed.pathname === "" && !parsed.hash && [...parsed.searchParams.keys()].join("\n") === "request" && /^[A-Za-z0-9_-]{80,8192}$/.test(parsed.searchParams.get("request") || ""), "wallet_canonical_builder_invalid", "The Wallet authorization builder returned an invalid canonical request.");
+    this.pending = request;
+    await this.transport.openAuthorization(deepLink);
+    this.audit.push({ at: issuedAt, event: "wallet.authorization.opened", productClientId: request.productClientId, scopes: request.scopes });
+    return Object.freeze({ status: "wallet-review-opened", deepLink, expiresAt: request.expiresAt });
   }
-  signOut() { if (this.session) this.audit.push({ at: new Date(this.clock()).toISOString(), event: "wallet.session.cleared", account: this.session.account }); this.session = null; }
-  #verifyApproval(value, request) {
-    const fields = ["version","requestDigest","nonce","chainId","requestingProduct","productClientId","bundleId","productDeviceAlgorithm","productDeviceKey","callback","account","accountPublicKey","grantedScopes","purpose","issuedAt","expiresAt","walletSignature"];
-    exact(value, fields, "Wallet approval");
-    for (const key of ["version","nonce","chainId","requestingProduct","productClientId","bundleId","productDeviceAlgorithm","productDeviceKey","callback","purpose"]) invariant(value[key] === request[key], "wallet_tamper_rejected", `Wallet approval ${key} does not match the request.`);
-    invariant(Array.isArray(value.grantedScopes) && value.grantedScopes.join("\n") === request.scopes.join("\n"), "wallet_scope_tamper", "Wallet approval scopes do not exactly match the request.");
-    invariant(/^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/.test(value.account) && /^[0-9a-f]{128}$/.test(value.walletSignature), "wallet_invalid_approval", "Wallet approval account or signature is invalid.");
-    invariant(value.expiresAt <= request.expiresAt && value.expiresAt > new Date(this.clock()).toISOString(), "wallet_approval_expired", "Wallet approval is expired or exceeds the request lifetime.");
+  acceptCallback(callbackURL) {
+    invariant(this.pending, "wallet_request_missing", "No pending Wallet authorization request exists.");
+    invariant(typeof this.authorizationCallbackParser === "function", "wallet_canonical_parser_required", "This surface has no accepted Wallet authorization callback parser. Open the reviewed desktop Developer client.");
+    let approval;
+    try { approval = this.authorizationCallbackParser(callbackURL, this.pending, new Date(this.clock())); }
+    catch { throw new DeveloperError("wallet_callback_invalid", "Wallet callback failed canonical signature, binding, callback or expiry validation."); }
+    this.ledger.consume(this.pending.nonce);
+    this.approval = Object.freeze({ ...approval, grantedScopes: Object.freeze([...approval.grantedScopes]) });
+    this.audit.push({ at: new Date(this.clock()).toISOString(), event: "wallet.approval.received", account: approval.account, scopes: approval.grantedScopes });
+    this.pending = null;
+    return Object.freeze({ status: "wallet-approved-gateway-required", account: approval.account, expiresAt: approval.expiresAt, scopes: approval.grantedScopes });
   }
+  signOut() { if (this.approval || this.session) this.audit.push({ at: new Date(this.clock()).toISOString(), event: "wallet.local-state.cleared" }); this.pending = null; this.approval = null; this.session = null; }
 }

@@ -426,7 +426,12 @@ try {
   try { client?.close(); } catch {}
   try { chrome?.kill("SIGTERM"); } catch {}
   try { server?.kill("SIGTERM"); } catch {}
-  if (profileDirectory) await rm(profileDirectory, { recursive: true, force: true });
+  if (profileDirectory) {
+    for (let attempt = 0; attempt < 8; attempt += 1) {
+      try { await rm(profileDirectory, { recursive: true, force: true, maxRetries: 3, retryDelay: 80 }); break; }
+      catch (error) { if (attempt === 7) throw error; await new Promise((resolve) => setTimeout(resolve, 100 * (attempt + 1))); }
+    }
+  }
 
   const failed = checks.filter((check) => check.status === "failed");
   const evidence = {

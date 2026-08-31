@@ -1,0 +1,48 @@
+[Unit]
+Description=YNX Code full-platform public candidate
+After=network-online.target ynx-wallet-gateway-developer-candidate.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/opt/ynx-developer/candidates/current/apps/developer
+EnvironmentFile=/etc/ynx/ynx-code-candidate.env
+Environment=NODE_ENV=production
+Environment=HOST=127.0.0.1
+Environment=PORT=18113
+Environment=YNX_CODE_STATE_DIR=/var/lib/ynx-code-candidate
+Environment=YNX_CODE_STATIC_ROOT=/opt/ynx-developer/candidates/current/apps/developer/frontend/dist
+Environment=YNX_CODE_DEBUGPY_ROOT=/opt/ynx-developer/candidates/current/apps/developer/.ynx-debugpy
+Environment=PATH=/snap/lxd/current/bin:/opt/ynx-developer/candidates/current/apps/developer/node_modules/.bin:/usr/local/bin:/usr/bin:/bin:/snap/bin
+Environment=LXD_CONF=/var/lib/ynx-code-candidate/lxd-client
+Environment=YNX_CODE_CHAIN_URL=http://127.0.0.1:6420
+Environment=YNX_CODE_WALLET_GATEWAY_URL=http://127.0.0.1:18447
+Environment=YNX_CODE_IDE_ACTION_PUBLIC_READY=false
+Environment=YNX_CODE_HOSTED_AI_URL=http://127.0.0.1:18111/ai-build
+Environment=YNX_CODE_HOSTED_AI_MODEL=qwen3:4b
+Environment=YNX_CODE_RUNTIME_CONCURRENCY=8
+Environment=YNX_CODE_RUNTIME_QUEUE=128
+Environment=YNX_CODE_LSP_CONCURRENCY=4
+Environment=YNX_CODE_LSP_QUEUE=128
+Environment=YNX_CODE_AI_CONCURRENCY=4
+Environment=YNX_CODE_AI_QUEUE=64
+ExecStart=/usr/bin/node services/gateway/src/server.mjs
+Restart=on-failure
+RestartSec=2
+TimeoutStopSec=15
+LimitNOFILE=65536
+TasksMax=512
+MemoryMax=4G
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/ynx-code-candidate
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+LockPersonality=true
+
+[Install]
+WantedBy=multi-user.target

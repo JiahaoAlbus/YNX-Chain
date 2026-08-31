@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-developer-v1",
+  "observedAt": "2026-08-20T16:12:04Z",
+  "candidate": {
+    "sourceCommit": "bc8a37bc6f2bcfcbe9415cb0e9da17a5294046a3",
+    "release": "0.2.0-testnet-preview-bc8a37bc6f2b-candidate",
+    "service": "ynx-code-candidate.service",
+    "imageFingerprint": "e0a8aba3b87cb995a8e5e039f0d489dda9fb0dc79c44006df030dbca28a994b8"
+  },
+  "deploymentTransaction": {
+    "result": "passed",
+    "evidencePath": "/var/lib/ynx-code-candidate/deploy-evidence/20260820T155718Z-bc8a37bc6f2b",
+    "evidenceManifestSha256": "ae67d74070ebabee7001a1212a65bf27b549f9be195244e1f91ae7e94ce3e82b",
+    "temporaryPackageEgressDetached": true,
+    "rollbackCandidate": "a29ca148fc3d6815e6257cbb9e9fc2045b5c9692"
+  },
+  "health": {
+    "url": "https://developer.ynxweb4.com/healthz",
+    "ok": true,
+    "sandbox": "linux-bubblewrap-prlimit",
+    "sandboxReady": true
+  },
+  "runtimeHealthProbe": {
+    "observedAt": "2026-08-21T02:44:00Z",
+    "url": "https://developer.ynxweb4.com/runtime/health",
+    "httpStatus": 200,
+    "sandbox": "linux-bubblewrap-prlimit",
+    "sandboxReady": true,
+    "compilers": {
+      "c": true,
+      "cpp": true,
+      "javascript": true,
+      "typescript": true,
+      "python": true,
+      "go": true,
+      "rust": true,
+      "java": false,
+      "solidity": true
+    },
+    "languageServers": {
+      "cpp": true,
+      "typescript": true,
+      "python": true,
+      "go": true,
+      "rust": true,
+      "solidity": true,
+      "java": true
+    },
+    "workspacePersistence": "sqlite-wal",
+    "durability": "server-local recovery; production object-store migration required",
+    "authenticatedProfilesWithoutSession": {
+      "httpStatus": 401,
+      "code": "workspace_session_required"
+    },
+    "javaRuntimeReady": false,
+    "javaRuntimeBlocker": "The current protected candidate has Java language-service health but no javac/java compiler runtime. No signed workspace session was available to run an authenticated task, and installing Java requires a reviewed candidate-image/package-egress transaction."
+  },
+  "verifiedGates": [
+    "source archive dependency install",
+    "64 Developer product tests",
+    "source-build gate for the reviewed nine-language image; current public runtime health is separately evidence-bound",
+    "current public runtime health: C/C++, JavaScript/TypeScript, Python, Go, Rust and Solidity compilers ready; Java compiler unavailable; seven language servers ready",
+    "Chain tools",
+    "Wallet readiness",
+    "workspace and signed-session restart recovery",
+    "npm and SHA-256-bound Python package persistence"
+  ],
+  "truthBoundaries": {
+    "externalBrowserVisible": false,
+    "productionSigned": false,
+    "desktopArtifactCurrent": false,
+    "walletProductSessionV2Migrated": false
+  }
+}

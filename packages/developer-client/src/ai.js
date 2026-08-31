@@ -6,24 +6,25 @@ function estimate(files, prompt) {
 }
 
 export class AICodingAgent {
-  constructor({ gatewayURL = "http://127.0.0.1:6429", fetcher = fetch, clock = Date.now } = {}) { this.gatewayURL = gatewayURL.replace(/\/$/, ""); this.fetcher = fetcher; this.clock = clock; this.controller = null; this.audit = []; }
+  constructor({ gatewayURL = "http://127.0.0.1:6429", fetcher = fetch, clock = Date.now, managedSession = false } = {}) { this.gatewayURL = gatewayURL.replace(/\/$/, ""); this.fetcher = (...args) => fetcher(...args); this.clock = clock; this.managedSession = managedSession; this.controller = null; this.audit = []; }
   async status() {
     const response = await this.fetcher(`${this.gatewayURL}/health`);
     const value = await response.json().catch(() => ({}));
-    return { available: response.ok && value.ok === true && value.providerConfigured === true, providerConfigured: value.providerConfigured === true, model: value.model || "unavailable", active: value.active ?? 0, error: response.ok ? value.error : `HTTP ${response.status}`, truthfulStatus: value.truthfulStatus || "unavailable" };
+    return { available: response.ok && value.ok === true && value.providerConfigured === true && value.available !== false, providerConfigured: value.providerConfigured === true, model: value.model || "unavailable", active: value.active ?? 0, error: response.ok ? value.error : `HTTP ${response.status}`, truthfulStatus: value.truthfulStatus || "unavailable" };
   }
   prepare({ intent, project, approvedPaths }) {
     intent = String(intent ?? "").trim();
     invariant(intent.length >= 4 && intent.length <= 4000, "invalid_ai_intent", "AI request must be 4-4000 characters.");
     invariant(Array.isArray(approvedPaths) && approvedPaths.length > 0, "context_approval_required", "Select and approve project files before sending context to AI.");
     const files = approvedPaths.map((path) => { invariant(path in project.files, "file_not_found", `Approved file is missing: ${path}`); return { path, content: project.files[path] }; });
-    const prompt = ["You are the YNX Developer coding agent. Use only the approved files below. Cite sources as path:line. Propose a unified diff and tests; do not claim commands ran.", `Intent: ${intent}`, ...files.map((file) => `\n--- ${file.path}\n${file.content}`)].join("\n");
-    invariant(prompt.length <= 7800, "ai_context_too_large", "Approved AI context exceeds the YNX AI Gateway 8,000-character request limit. Select fewer files or a smaller source excerpt.");
+    const prompt = ["You are the YNX Developer coding agent. Use only the explicitly attached files. Cite sources as path:line. Propose reviewable `ynx-file path=...` blocks and tests; do not claim commands ran.", `Intent: ${intent}`].join("\n");
+    const contextBytes = files.reduce((sum, file) => sum + new TextEncoder().encode(file.content).byteLength, 0);
+    invariant(prompt.length <= 7800 && contextBytes <= 7800, "ai_context_too_large", "Approved AI context exceeds the public Testnet coding-agent limit. Select fewer files or a smaller source excerpt.");
     return { intent, files, privacyPreview: files.map(({ path, content }) => ({ path, bytes: new TextEncoder().encode(content).byteLength })), estimate: estimate(files, intent), prompt };
   }
-  async stream(prepared, { accessToken, sessionId = crypto.randomUUID(), approved = false, outputLanguage = "en", model = "gateway-policy", onToken = () => {} } = {}) {
+  async stream(prepared, { accessToken, provider = "ynx-local", sessionId = crypto.randomUUID(), approved = false, outputLanguage = "en", model = "gateway-policy", onToken = () => {} } = {}) {
     invariant(approved, "ai_permission_required", "AI Gateway request requires explicit context and cost approval.");
-    invariant(typeof accessToken === "string" && accessToken.length >= 8, "gateway_token_required", "A session-only YNX AI Gateway access token is required.");
+    if (!this.managedSession || provider === "openai" || provider === "xai") invariant(typeof accessToken === "string" && accessToken.length >= 12, "gateway_token_required", "A session-only provider API key is required.");
     this.controller = new AbortController();
     invariant(/^[a-z]{2}(?:-[A-Z]{2})?$/.test(outputLanguage), "invalid_output_language", "AI output language is invalid.");
     const url = `${this.gatewayURL}/ai/stream`;
@@ -31,8 +32,17 @@ export class AICodingAgent {
     try {
       const response = await this.fetcher(url, {
         method: "POST",
-        headers: { "X-YNX-AI-Key": accessToken, accept: "text/event-stream", "content-type": "application/json" },
-        body: JSON.stringify({ version: 1, sessionId, workflow: "developer.coding-agent", model, outputLanguage, prompt: prepared.prompt }),
+        headers: { ...((!this.managedSession || provider === "openai" || provider === "xai") ? { "X-YNX-AI-Key": accessToken } : {}), "X-YNX-AI-Provider": provider, "X-YNX-AI-Model": model, accept: "text/event-stream", "content-type": "application/json" },
+        body: JSON.stringify({
+          session: sessionId,
+          prompt: prepared.prompt,
+          outputLanguage,
+          includedContext: ["conversation", "selected_files"],
+          excludedContext: ["selected_chain_records", "selected_trust_records", "selected_product_context"],
+          attachments: prepared.files.map((file, index) => ({ id: `developer-file-${index + 1}`, name: file.path, mimeType: file.path.endsWith(".json") ? "application/json" : file.path.endsWith(".md") ? "text/markdown" : "text/plain", text: file.content })),
+          productContexts: [],
+          continueFrom: "",
+        }),
         signal: this.controller.signal,
       });
       if (!response.ok) throw new DeveloperError("provider_unavailable", `YNX AI Gateway returned HTTP ${response.status}. Retry without applying any patch.`);

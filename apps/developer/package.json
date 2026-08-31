@@ -3,16 +3,41 @@
   "version": "0.2.0",
   "private": true,
   "type": "module",
+  "workspaces": [
+    "frontend",
+    "protocol",
+    "services/*"
+  ],
+  "overrides": {
+    "monaco-editor": {
+      "dompurify": "3.4.13"
+    },
+    "solc": {
+      "tmp": "0.2.7"
+    }
+  },
   "scripts": {
     "start": "node scripts/server.mjs",
     "build": "node scripts/build.mjs",
     "check": "node scripts/check.mjs",
+    "wallet:standard-connect-gate": "node vendor/wallet-auth/scripts/verify-standard-wallet-connect-consumer.mjs frontend/src",
     "desktop:sandbox-check": "node scripts/desktop-sandbox-check.mjs",
     "desktop:windows-source-check": "node scripts/verify-windows-source.mjs",
     "accessibility:audit": "node scripts/browser-accessibility-audit.mjs",
     "live-check": "bash scripts/live-check.sh",
     "proxy-check": "bash scripts/proxy-check.sh",
-    "test": "node --test test/*.test.js"
+    "test": "node --experimental-strip-types --test test/*.test.js",
+    "code:dev": "npm --workspace @ynx-code/frontend run dev",
+    "code:build": "npm --workspace @ynx-code/protocol run build && npm --workspace @ynx-code/frontend run build",
+    "code:check": "npm --workspace @ynx-code/protocol run check && npm --workspace @ynx-code/frontend run check && npm --workspace @ynx-code/workspace-manager test && npm --workspace @ynx-code/workspace-agent test && npm --workspace @ynx-code/language-service test && npm --workspace @ynx-code/environment-service test && npm --workspace @ynx-code/terminal-service test && npm --workspace @ynx-code/debug-service test && npm --workspace @ynx-code/git-service test && npm --workspace @ynx-code/extension-registry test && npm --workspace @ynx-code/model-router test && npm --workspace @ynx-code/agent-orchestrator test && npm --workspace @ynx-code/project-memory test && npm --workspace @ynx-code/collaboration-service test && npm --workspace @ynx-code/runtime-profile-service test && npm --workspace @ynx-code/chain-service test && npm --workspace @ynx-code/wallet-readiness test && npm --workspace @ynx-code/gateway test",
+    "candidate:install": "bash scripts/install-reviewed-dependencies.sh",
+    "code:runtime": "npm --workspace @ynx-code/workspace-agent start",
+    "code:serve": "npm --workspace @ynx-code/gateway start"
   },
-  "engines": { "node": ">=20" }
+  "engines": {
+    "node": ">=20"
+  },
+  "allowScripts": {
+    "node-pty@1.1.0": true
+  }
 }

@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 2,
+  "integrationId": "canonical-wallet-auth-v1",
+  "owner": "02-wallet-auth",
+  "sourceCommit": "2eb3198a99fcd98a1c6d56e3e99e97166ceab7f6",
+  "targetService": "ynx-app-gatewayd",
+  "protocol": {
+    "authorization": "wallet-auth-v1",
+    "productDeviceAlgorithm": "p256-sha256",
+    "httpProof": "YNX_PRODUCT_SESSION_HTTP_PROOF_V1",
+    "httpKernelVersion": 1,
+    "nodeStateVersion": 1,
+    "observabilityVersion": 1,
+    "registryDocumentVersion": 2,
+    "productSchemaVersion": 3,
+    "adapterStateVersion": 2,
+    "strategyMandateVersion": 2,
+    "strategyActionVersion": 1
+  },
+  "transport": {
+    "method": "POST",
+    "contentType": "application/json",
+    "body": "canonical JSON business payload, maximum 1048576 UTF-8 bytes",
+    "proof": "separate decoded P-256 Product Session proof header; excluded from bodyDigest",
+    "response": "canonical JSON, Cache-Control no-store, request/trace IDs on all responses, error ID on rejection, stateDigest on success and failure",
+    "stateDigestDomain": "YNX_CANONICAL_GATEWAY_HTTP_STATE_V1"
+  },
+  "routes": [
+    {"path":"/v1/wallet/sessions/complete","operation":"completeProductSession","authentication":"exact Wallet approval plus P-256 Gateway completion","requiredScope":null,"bodyFields":["authorizationRequest","walletApproval","gatewayCompletion"]},
+    {"path":"/v1/wallet/authorizations/reject","operation":"rejectAuthorization","authentication":"request-bound canonical Wallet rejection; grants no account, scope, session or authority","requiredScope":null,"bodyFields":["authorizationRequest","walletRejection"]},
+    {"path":"/v1/wallet/sessions/introspect","operation":"introspectProductSession","authentication":"separate sender-constrained P-256 Product Session proof","requiredScope":"route-selected subset","bodyFields":["requiredScopes"]},
+    {"path":"/v1/wallet/sessions/revoke","operation":"revokeProductSession","authentication":"separate path-bound P-256 Product Session proof","requiredScope":null,"bodyFields":[]},
+    {"path":"/v1/wallet/approvals/revoke","operation":"revokeOwnApproval","authentication":"separate path-bound P-256 Product Session proof from a session created by the approval","requiredScope":null,"bodyFields":[]},
+    {"path":"/v1/wallet/devices/revoke","operation":"revokeOwnProductDevice","authentication":"separate path-bound P-256 Product Session proof from the device being revoked","requiredScope":null,"bodyFields":[]},
+    {"path":"/v1/wallet/accounts/logout-all","operation":"logoutAllAccountDevices","authentication":"canonical Wallet Product Session only","requiredScope":"wallet:sessions","bodyFields":[]},
+    {"path":"/v1/wallet/mandates/activate","operation":"activateStrategyMandate","authentication":"separate sender-constrained P-256 Product Session proof","requiredScope":"quant:mandate:create","bodyFields":["mandate"]},
+    {"path":"/v1/wallet/mandates/authorize-action","operation":"authorizeStrategyAction","authentication":"separate sender-constrained P-256 Product Session proof","requiredScope":"quant:mandate:execute","bodyFields":["mandateId","action"]},
+    {"path":"/v1/wallet/mandates","operation":"listStrategyMandates","authentication":"separate sender-constrained P-256 Product Session proof","requiredScope":"quant:account","bodyFields":[]},
+    {"path":"/v1/wallet/mandates/revoke","operation":"revokeStrategyMandate","authentication":"separate sender-constrained P-256 Product Session proof","requiredScope":"quant:mandate:revoke","bodyFields":["mandateId"]},
+    {"path":"/v1/wallet/mandates/kill","operation":"killStrategyMandate","authentication":"separate sender-constrained P-256 Product Session proof","requiredScope":"quant:mandate:revoke","bodyFields":["mandateId"]},
+    {"path":"/v1/wallet/mandates/emergency-exit","operation":"emergencyExitStrategyMandate","authentication":"separate sender-constrained P-256 Product Session proof","requiredScope":"quant:mandate:revoke","bodyFields":["mandateId","reason"]}
+  ],
+  "administrativeRoutes": [
+    {"path":"/health","method":"GET","authentication":"loopback administrative probe","truthBoundary":"process health and local/remote classification"},
+    {"path":"/ready","method":"GET","authentication":"loopback administrative probe","truthBoundary":"runtimeReady separated from publicDeploymentReady"},
+    {"path":"/version","method":"GET","authentication":"loopback administrative probe","truthBoundary":"exact source commit, release, build time and schema versions"},
+    {"path":"/metrics","method":"GET","authentication":"loopback administrative probe","truthBoundary":"Prometheus text with bounded route and public-error labels"}
+  ],
+  "serverAuthority": [
+    "immutable parsed registry selection",
+    "enabled and approved state",
+    "session, revocation and Product Session proof replay state",
+    "StrategyMandate, action nonce and terminal state",
+    "request-atomic rollback",
+    "canonical error and state-digest response",
+    "exact remote build identity",
+    "bounded observability labels",
+    "redacted structured events"
+  ],
+  "observability": {
+    "responseIdentifiers": ["x-request-id", "x-trace-id", "x-error-id"],
+    "structuredEventFormat": "canonical JSON Lines",
+    "structuredEventFieldsExclude": ["request body", "Product Session proof", "authorization headers", "custody material", "signatures", "provider secrets", "state path"],
+    "eventSinkFailureIsolation": true,
+    "remoteDeploymentRequiresExactBuildIdentity": true,
+    "exactBuildIdentityFields": ["sourceCommit", "release", "buildTime"],
+    "nodeHostImport": "@ynx-chain/wallet-auth/gateway-node-host",
+    "universalPackageRootMobileSafe": true
+  },
+  "clientProhibited": [
+    "registry injection",
+    "wildcard scope",
+    "bearer-only authentication",
+    "callback replacement",
+    "proof in business body",
+    "proof reuse",
+    "noncanonical JSON",
+    "legacy Ed25519 session substitution"
+  ],
+  "stateSchema": "gateway-state.schema.json",
+  "testVectors": ["../testdata/product-session-http-proof-v1.json", "../testdata/strategy-mandate-v2.json", "../testdata/central-lifecycle-v1.json", "../../../apps/wallet/proof/gateway-observability-local-2026-07-27.json"],
+  "acceptanceCommands": [
+    {"cwd":"packages/wallet-auth","command":"npm test","expected":"94/94"},
+    {"cwd":"packages/wallet-auth","command":"node --test test/gateway-node-host.test.mjs","expected":"8/8"},
+    {"cwd":"packages/wallet-auth","command":"npm pack --dry-run","expected":"pass"},
+    {"cwd":"sdk/browser","command":"npm ci --ignore-scripts && npm test","expected":"7/7"},
+    {"cwd":"sdk/js","command":"npm test","expected":"5/5"},
+    {"cwd":".","command":"umask 0022; go test ./...","expected":"pass"}
+  ],
+  "deploymentState": "candidate-not-merged-not-deployed"
+}

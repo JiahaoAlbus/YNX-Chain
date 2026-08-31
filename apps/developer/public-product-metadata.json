@@ -4,12 +4,12 @@
   "productId": "ynx-developer-v1",
   "productName": "YNX Developer / YNX AI Build",
   "version": "0.2.0",
-  "branch": "codex/final-developer",
-  "sourceCommit": "70f7c3ca7540327aca3736b398c52a67b8e86f34",
+  "branch": "codex/ynx-code-platform-v1",
+  "sourceCommit": "d4052228a2261c5ced6a8e8cfcbf763edabf2103",
   "officialDomain": "https://ynxweb4.com",
   "canonicalPath": "/developer",
   "canonicalUrl": "https://ynxweb4.com/developer",
-  "routeStatus": "public-testnet-verified",
+  "routeStatus": "source-bound-public-runtime-readback; browser-visible-proof-pending",
   "deployedPublic": true,
   "publicRouteVerified": true,
   "releaseClass": "unsigned-testnet-preview",
@@ -22,7 +22,7 @@
     "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/developer-v0.2.0-testnet-preview.1",
     "prerelease": true
   },
-  "summary": "A bounded Web IDE and native Testnet Preview for YNX Chain projects, API Studio workflows, permissioned AI Build and Wallet-only deployment review.",
+  "summary": "The Developer web candidate is source-bound by receipt but still needs an independent current runtime readback. Current macOS arm64 DMG and Windows x64 MSIX have separate source-bound installation-candidate evidence; neither is an official download, and ZIP is not an installer.",
   "surfaces": [
     "web-ide",
     "api-studio",
@@ -36,46 +36,84 @@
     "installedLocal": true,
     "browserAccessibility": {
       "status": "passed",
-      "sourceCommit": "f38aa95a9ec7ebff68b4d915f41b20ad8f903769",
+      "sourceCommit": "98fcbe3cff68b4b01ebfd94df2d1476b41ecf2b5",
       "checksPassed": 15,
       "screenshots": 6,
       "manifest": "apps/developer/evidence/ui/current-accessibility/accessibility-audit.json",
       "independentCertification": false
     },
     "macosArm64": {
-      "sourceCommit": "7f976c1e06292360160325b00fa0875e6a2567f6",
-      "sha256": "ff9ae3d473f961f38294679a7bdb21c7cc0c905d7791efe9d4b114fc1df903f7",
-      "bytes": 38450128,
+      "sourceCommit": "76322af5e8c26a64fb6425c51d96c67d2b3df65f",
+      "sha256": "a7254bf0a4ecf3054d761a28d410ad956753a8ec0ff459ec7ba16192dff4449b",
+      "bytes": 177942906,
+      "sbomSha256": "1ce156c73e3c9b1bd6543111d387ecb31bb05a3db92295574644c8390daaba8c",
+      "sbomComponents": 267,
       "signingClass": "adhoc-no-team-id",
       "hosted": true,
-      "downloadUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-macos-arm64-unsigned.zip"
+      "currentFullPlatform": true,
+      "downloadUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-76322af5-macos-arm64-unsigned.zip"
+    },
+    "currentLocalMacArtifact": {
+      "evidence": "apps/developer/evidence/desktop/macos-current-ccab67b2.json",
+      "sourceCommit": "ccab67b2ceaeeaeb962dd6e67696bb3f73835120",
+      "sha256": "71eb57a55521ea42949ed24d8f5b078a3b9cfa1032cabcd2ca2717c64e6fe775",
+      "bytes": 300467545,
+      "hosted": false,
+      "downloadUrl": null,
+      "format": "dmg",
+      "signingClass": "adhoc-no-team-id",
+      "verification": "mounted DMG, isolated install copy, embedded provenance, ad-hoc signature, native absent-Wallet scheme discovery, cold launch, bounded C++ compile, persisted second launch and child cleanup passed"
+    },
+    "currentLocalWindowsArtifact": {
+      "evidence": "apps/developer/evidence/desktop/windows-current-591437c6.json",
+      "sourceCommit": "591437c64eb53adf987ebea779104d4c5962c6e9",
+      "runtimeCheckpoint": "d4052228a2261c5ced6a8e8cfcbf763edabf2103",
+      "sha256": "7459cc31a86d45516d0180d8426cc00a55a206e95f79abb6ae644f1e3ad57e86",
+      "bytes": 71572190,
+      "sbomSha256": "4da45f155a57a72cae656007b9e626683c5b4249b8549e68395be5fc48312a07",
+      "signingClass": "test-self-signed-not-production",
+      "hosted": false,
+      "deliveryMode": "hosted-workspace-client",
+      "localCompilerSandbox": false,
+      "downloadUrl": null,
+      "format": "msix",
+      "verification": "CI portable extraction, resource self-test, remote C++ compile, installed MSIX payload cold launch, second launch and uninstall passed"
+    },
+    "currentLinuxX64ServerArtifact": {
+      "evidence": "apps/developer/evidence/platform/linux-server-current-bc8a37bc.json",
+      "sourceCommit": "bc8a37bc6f2bcfcbe9415cb0e9da17a5294046a3",
+      "sha256": "aab9fb6ea976fffab0ae66382401bf8e9886a05fb377f483dc46103fd8be4c05",
+      "bytes": 138538840,
+      "hosted": true,
+      "downloadUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-bc8a37bc-linux-x64-server.tar.gz",
+      "signingClass": "unsigned-server-archive",
+      "minimumRuntime": "Linux x86_64 with Node.js 22 or newer",
+      "verification": "protected evidence binding, extracted archive cold start and health check passed; workspace state and operator environment are excluded"
     },
     "windowsX64": {
-      "sourceCommit": "7f976c1e06292360160325b00fa0875e6a2567f6",
-      "runId": 30417693593,
-      "artifactId": 8710756758,
-      "artifactExpiresAt": "2026-08-12T02:46:59Z",
-      "sha256": "1efaf486164da71d907a8869e5e749fe46bf0bb1a74625f12ddab1692d07fb29",
-      "bytes": 106341644,
+      "sourceCommit": "76322af5e8c26a64fb6425c51d96c67d2b3df65f",
+      "runId": 31513885748,
+      "artifactId": 9110259455,
+      "artifactExpiresAt": "2026-08-25T16:44:45Z",
+      "sha256": "289a1f48ed0fa37ec1027fc746ce283a407daba8e2544618eb42c50dfd39d57c",
+      "bytes": 72538906,
+      "sbomSha256": "1365778910b256c988d6553ff9b76876f9eb4965fcd965fb9d2e40424bd5f189",
       "signingClass": "unsigned-no-authenticode",
       "hosted": true,
-      "downloadUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-windows-x64-unsigned.zip"
+      "currentFullPlatform": true,
+      "deliveryMode": "hosted-workspace-client",
+      "localCompilerSandbox": false,
+      "downloadUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-76322af5-windows-x64-unsigned.zip"
     }
   },
   "publicEvidence": {
     "staging": true,
     "production": false,
-    "downloadHosted": true,
-    "immutableArtifactUrls": [
-      "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-macos-arm64-unsigned.zip",
-      "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-windows-x64-unsigned.zip",
-      "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-SHA256SUMS.txt",
-      "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-PROVENANCE.json",
-      "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-sbom.cdx.json"
-    ],
+    "downloadHosted": false,
+    "immutableArtifactUrls": [],
     "healthUrls": [
-      "https://developer.ynxweb4.com/health",
-      "https://developer.ynxweb4.com/chain/status"
+      "https://developer.ynxweb4.com/healthz",
+      "https://developer.ynxweb4.com/runtime/health"
     ],
     "verifiedUrls": [
       "https://developer.ynxweb4.com/",
@@ -91,7 +129,7 @@
     "screenshots": [
       {
         "path": "apps/developer/evidence/ui/current-accessibility/desktop-light-1440x900.png",
-        "sha256": "e58ca52b973bb2a68b210b78d254b8b75a334104bd909b2f0471db23f5c2e6f6"
+        "sha256": "e6c3a3970e1abb5b1c9c3dbaf74028fe07778e89abe8c0b427fcafd5c0cad0c0"
       },
       {
         "path": "apps/developer/evidence/ui/current-accessibility/desktop-dark-1440x900.png",
@@ -111,10 +149,26 @@
     "integratedCentral": false,
     "deployedStaging": true,
     "deployedPublic": true,
-    "downloadHosted": true,
+    "downloadHosted": false,
     "productionSigned": false,
     "storeReleased": false,
     "mainnetReleased": false
   },
-  "generatedAt": "2026-08-03T07:20:00+08:00"
+  "fullPlatformPublicEvidence": {
+    "sourceCommit": "bc8a37bc6f2bcfcbe9415cb0e9da17a5294046a3",
+    "deployedAt": "2026-08-20T15:57:18Z",
+    "nineRuntimes": true,
+    "sevenLanguageServers": true,
+    "concurrentTenantsVerified": 12,
+    "restartPersistence": true,
+    "hostedAiPlanner": "qwen3:4b",
+    "walletBindingAttested": true,
+    "walletPublicDeploymentReady": false,
+    "bftIdeActionPublicReady": false,
+    "rollbackUpstream": "prior immutable candidate a29ca148fc3d6815e6257cbb9e9fc2045b5c9692",
+    "imageFingerprint": "e0a8aba3b87cb995a8e5e039f0d489dda9fb0dc79c44006df030dbca28a994b8",
+    "evidenceManifestSha256": "ae67d74070ebabee7001a1212a65bf27b549f9be195244e1f91ae7e94ce3e82b",
+    "independentBrowserVisible": false
+  },
+  "generatedAt": "2026-08-12T01:00:00+08:00"
 }

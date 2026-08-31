@@ -45,7 +45,7 @@ These current-source properties are covered by static/runtime tests and are inst
 
 ### 2026-07-29 current-source browser recapture
 
-A deterministic, dependency-free Chrome DevTools Protocol harness now launches the real local Web Product from a clean pushed source commit, drives keyboard input, reads Chromium's accessibility tree, emulates media/viewport/page scale, and captures PNG evidence. `evidence/ui/current-accessibility/accessibility-audit.json` records 15/15 passed checks and six screenshot SHA-256 values for source `f38aa95a9ec7ebff68b4d915f41b20ad8f903769` using Chrome 150.0.7871.187.
+A deterministic, dependency-free Chrome DevTools Protocol harness now launches the real local Web Product from a clean pushed source commit, drives keyboard input, reads Chromium's accessibility tree, emulates media/viewport/page scale, and captures PNG evidence. `evidence/ui/current-accessibility/accessibility-audit.json` records 15/15 passed checks and six screenshot SHA-256 values for source `98fcbe3cff68b4b01ebfd94df2d1476b41ecf2b5` using Chrome 151.0.7922.76.
 
 Verified facts include first-tab skip navigation to the editor, one-stop roving panel tabs, named textboxes and navigation/main/tablist/status roles in the browser accessibility tree, a 3 px focus outline, Light/Dark state, reduced-motion animation removal, exact 390 px document width with inert closed drawers, single-column mobile API Studio, Arabic RTL with source/JSON kept LTR, 16 px large-text mode with 38 px controls, and Chromium visual viewport scale 2. No browser runtime exception was observed.
 
@@ -89,7 +89,14 @@ zero page-width overflow. The captures were manually inspected after generation.
 
 ## Remaining limits
 
-The editor is a bounded text editor, not Monaco or a complete language server.
+The editor now embeds Monaco 0.55.1 with per-file models, line numbers, minimap,
+bracket guides, suggestions and a fail-visible contenteditable fallback. C++,
+JavaScript/TypeScript, Python, Go, Rust and Solidity actions are connected to
+reviewed language servers for completion, definition, references, rename,
+formatting and diagnostics; a selected cloud runtime routes those requests into
+that owner/project-scoped container. It is not the complete VS Code desktop
+application: arbitrary VS Code extensions and debug adapters do not
+automatically run in Monaco.
 Not every explanatory paragraph is translated; the audited critical controls and
 safety vocabulary are. Resizable split handles and tablet-specific evidence are
 not shipped because the current product contract names desktop and phone; desktop

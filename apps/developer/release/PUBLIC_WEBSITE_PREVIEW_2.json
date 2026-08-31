@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-developer-v1",
+  "applicationVersion": "0.2.0",
+  "websiteReleaseId": "developer-v0.2.0-testnet-preview.2",
+  "packageSourceCommit": "9c4d75be3fb8e900e56000e384539be149c9a7b3",
+  "packageSourceTree": "06f71dfe62c2e317643160eda31fdc3d48226ecb",
+  "runtimeCheckpoint": "63a678ac3c423b53c9628fa35c415d554827eccb",
+  "publicWebCommit": "ad2b43ec",
+  "publicWebUpdatedByThisRelease": false,
+  "capabilities": {
+    "editor": "Monaco 0.55.1",
+    "languageEditing": [
+      "solidity", "javascript", "typescript", "json", "html", "css", "markdown",
+      "c", "cpp", "python", "java", "csharp", "go", "rust", "shell", "sql", "xml", "yaml"
+    ],
+    "toolchains": "Allowlisted real local adapters are reported available only when detected on the user's machine.",
+    "projectLocalAdapters": ["typescript@5.9.0 after explicit reviewed install"],
+    "languagePackImport": "Declarative highlighting and completion only; no arbitrary VS Code extension execution."
+  },
+  "artifacts": [
+    {
+      "platform": "macos-arm64",
+      "url": "https://www.ynxweb4.com/downloads/ynx-developer-testnet-preview-macos-unsigned.zip",
+      "sha256": "5f2adde82d203fe31428e476f69082752ad91db84ee3251ea615191273d9f2f9",
+      "bytes": 48248925,
+      "signingClass": "adhoc-no-team-id-not-notarized",
+      "verification": "Embedded provenance, Archive Utility-compatible extraction, resource self-test, cold launch, second launch, bundled runtime, bounded real C++ compile and child cleanup passed. Public ranged re-download and SHA-256 reconstruction passed."
+    },
+    {
+      "platform": "windows-x64",
+      "url": "https://www.ynxweb4.com/downloads/ynx-developer-testnet-preview-windows-x64-unsigned.zip",
+      "sha256": "f31474b2d10ef251e3bc2b2f9b4eb43c7dfcc5d4dcd826279ed5883bf17ccf52",
+      "bytes": 114784893,
+      "signingClass": "unsigned-no-authenticode",
+      "githubActions": {
+        "runId": 31265339556,
+        "jobId": 93122455971,
+        "artifactId": 9023985398,
+        "artifactOuterDigest": "sha256:3ad33d1435139ff22f1e90fac438e5d3240601f28404a01176c31b398a9895dc"
+      },
+      "verification": "Twenty-three tests, Monaco packaging, portable extraction, Authenticode NotSigned classification, cold launch, bundled server observation and child cleanup passed on the Windows runner. Public ranged re-download and SHA-256 reconstruction passed."
+    }
+  ],
+  "truthBoundaries": {
+    "productionSigned": false,
+    "notarized": false,
+    "storeReleased": false,
+    "arbitraryVSCodeExtensions": false,
+    "allLanguageToolchainsBundled": false
+  },
+  "publishedAt": "2026-08-09T00:15:00+08:00"
+}

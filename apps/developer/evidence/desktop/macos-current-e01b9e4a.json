@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-developer-v1",
+  "observedAt": "2026-08-20T16:52:00Z",
+  "artifact": {
+    "platform": "macos-arm64",
+    "artifactClass": "unsigned-testnet-preview",
+    "filename": "ynx-developer-0.2.0-testnet-preview-e01b9e4a-macos-arm64-unsigned.zip",
+    "sourceCommit": "e01b9e4a8cc00be2e590e86e8f043fd746696adf",
+    "sourceTree": "2145288c28c3bb75206db76d43e1b2c9bd31f034",
+    "runtimeCheckpoint": "bc8a37bc6f2bcfcbe9415cb0e9da17a5294046a3",
+    "sha256": "af4c57b89ad5d7cca6c42af47f33d156d182a92870e4d43ed1d558f51de1b01f",
+    "bytes": 168157529,
+    "sbomSha256": "37436588278850c5052d2032f917572dade2af7cf56c4228d4f79f5359568e9f",
+    "sbomComponents": 269,
+    "provenanceSha256": "3bd603666528dc9b14a7b7b4fc77a941e62db624fb42cbeb88fcdf6d2cc12419",
+    "signingClass": "adhoc-no-team-id"
+  },
+  "verification": {
+    "embeddedProvenance": true,
+    "adHocSignatureVerified": true,
+    "keychainStorageRoundTripAndCleanup": true,
+    "nativeWalletAvailability": {
+      "ynxWalletInstalled": false,
+      "schemeRegistered": false,
+      "source": "NSWorkspace URLForApplicationToOpenURL for ynxwallet"
+    },
+    "coldLaunch": true,
+    "boundedCppCompile": true,
+    "workspaceSecondLaunchPersistence": true,
+    "childCleanup": true
+  },
+  "publication": {
+    "downloadHosted": true,
+    "publicUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-e01b9e4a-macos-arm64-unsigned.zip",
+    "sbomUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-e01b9e4a-macos-arm64-sbom.cdx.json",
+    "provenanceUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-e01b9e4a-macos-arm64-PROVENANCE.json",
+    "sha256SumsUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-e01b9e4a-macos-arm64-SHA256SUMS.txt",
+    "officialRouteHashReadback": true,
+    "externalHttpsDownload": {
+      "observedAt": "2026-08-21T02:38:04Z",
+      "transport": "ipv4-http1.1",
+      "httpStatus": 200,
+      "contentLength": 168157529,
+      "downloadedBytes": 168157529,
+      "sha256": "af4c57b89ad5d7cca6c42af47f33d156d182a92870e4d43ed1d558f51de1b01f",
+      "sha256MatchesArtifact": true,
+      "sha256MatchesHostedFile": true,
+      "externalBrowserVisible": false
+    },
+    "productionSigned": false,
+    "notarized": false
+  },
+  "walletProductSessionV2": {
+    "nativeProtectedStorageEvidence": true,
+    "nativeAbsentWalletEvidence": true,
+    "runtimeFactoryVerified": false,
+    "visibleLifecycleVerified": false,
+    "migratedV2": false
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-21",
+  "owner": "developer-sdk",
+  "classification": "source-only-draft-not-consumed",
+  "pullRequest": "https://github.com/JiahaoAlbus/YNX-Chain/pull/130",
+  "branch": "codex/p0-developer-sdk-rebase-clean",
+  "head": "8cfb3265b5b594cd98702abf6b36d453157f112e",
+  "centralIntegrationBase": "63d53d7a2235ffb5498eba0cdded29b53152c274",
+  "acceptedSdkBase": "315897e75c0ffe3e63435fe73cfec42244b851cc",
+  "manifestDelta": {
+    "commit": "3437be2f3e4d174cd8a35949e08de673f31942b8",
+    "paths": [
+      "packages/dapp-connect-sdk/README.md",
+      "packages/dapp-connect-sdk/src/endpoints.js",
+      "packages/dapp-connect-sdk/src/index.js",
+      "packages/dapp-connect-sdk/test/consumer-sdk.test.mjs",
+      "packages/dapp-connect-sdk/tools/release-gate.mjs"
+    ]
+  },
+  "verification": {
+    "sdkTests": {"passed": 12, "failed": 0},
+    "migrationScanner": "clean",
+    "diffScope": "packages/dapp-connect-sdk/** only",
+    "releaseGate": "BUNDLED_SHA256_ACCEPTED",
+    "releaseId": "P0-WALLET-CONNECTIVITY-2026-08-endpoints-2",
+    "ci": {"requiredChecks": 6, "passed": 6}
+  },
+  "boundaries": {
+    "developerProductConsumesCandidate": false,
+    "npmRegistryPublished": false,
+    "publicSdkArtifact": false,
+    "faucetActivated": false,
+    "publicEndpointActivated": false,
+    "installedProductVerified": false,
+    "computerControlVerified": false,
+    "productMigratedV2": false
+  }
+}

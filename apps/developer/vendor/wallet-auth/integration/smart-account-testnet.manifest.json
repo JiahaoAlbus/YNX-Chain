@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "integrationId": "ynx-erc4337-testnet-v1",
+  "chainId": 6423,
+  "entryPoint": {"package":"@account-abstraction/contracts","version":"0.8.0","contract":"YNXEntryPoint"},
+  "contracts": ["YNXEntryPoint", "YNXSmartAccount", "YNXSmartAccountFactory", "YNXSponsorPaymaster"],
+  "accountCapabilities": ["owner", "webauthn-uv", "session-key", "batch-call", "per-call-native-value-limit", "daily-native-value-limit", "guardian-delay-recovery", "emergency-session-revoke"],
+  "sponsorTypes": ["product", "first-action", "merchant", "developer-testnet"],
+  "paymasterInvariants": ["eip712-signed-authorization", "operation-core-binding", "authorization-replay-protection", "product-daily-budget", "subject-daily-budget", "per-operation-budget", "first-action-once", "merchant-allowlist", "risk-officer-disable-only", "conservative-max-cost-reservation"],
+  "bundlerProtocol": "ERC-7769",
+  "deploymentCommand": "npm run hardhat:deploy:wallet-smart-account",
+  "testCommand": "npm run hardhat:test:wallet && npm --prefix packages/wallet-auth test",
+  "states": {"implementedLocal":true,"testedLocal":true,"integratedCentral":false,"deployedStaging":false,"deployedPublic":false,"sponsoredReceiptPublic":false}
+}

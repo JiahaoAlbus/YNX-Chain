@@ -1,0 +1,52 @@
+name: Developer macOS Intel package proof
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/final-developer, codex/ynx-code-platform-v1]
+    paths:
+      - "apps/developer/**"
+      - "packages/developer-client/**"
+      - ".github/workflows/developer-macos-intel.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: developer-macos-intel-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  package-and-cold-launch:
+    runs-on: macos-13
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22.17.0"
+      - name: Install pinned workspace dependencies
+        run: npm ci --ignore-scripts
+      - name: Install pinned Developer dependencies
+        working-directory: apps/developer
+        run: npm ci --ignore-scripts
+      - name: Client tests
+        working-directory: packages/developer-client
+        run: npm test
+      - name: Web and desktop boundary tests
+        working-directory: apps/developer
+        run: npm test
+      - name: Build Intel macOS package
+        working-directory: apps/developer
+        run: ./scripts/package-local-macos.sh
+      - name: Install and cold-launch Intel macOS package
+        working-directory: apps/developer
+        run: ./scripts/verify-local-macos-package.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ynx-developer-testnet-preview-macos-x64-unsigned
+          path: |
+            apps/developer/.ynx-developer-local/ynx-developer-testnet-preview-macos-x64-unsigned.dmg
+            apps/developer/.ynx-developer-local/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 14

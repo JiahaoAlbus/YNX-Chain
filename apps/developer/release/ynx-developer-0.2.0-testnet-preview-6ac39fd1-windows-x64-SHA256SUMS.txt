@@ -1,0 +1,6 @@
+10b6914614a86f694d9e58b21e311148b1dd0dc4b21ff39612c4a2486c5e0627  ynx-developer-0.2.0-testnet-preview-6ac39fd1-windows-x64-unsigned.zip
+8223b35dd1abb7a0a948af4360070b369afe278059d8a9ee7f3ff6ce931bf403  ynx-developer-0.2.0-testnet-preview-6ac39fd1-windows-x64-sbom.cdx.json
+d282af17bd29c1d41042a5502c531ba3dbe053d36ffee0d9ca87a982681f345a  ynx-developer-0.2.0-testnet-preview-6ac39fd1-windows-x64-PROVENANCE.json
+8acaa65470b1ace2004b7fb5bad927f70ffcab90fff2979c06c863fe95ff06cf  ynx-developer-0.2.0-testnet-preview-6ac39fd1-windows-x64-PACKAGE.json
+8a6a6be439c70e03aa68973c618e5f9012062d662ee58237000b2aa9d2c2100f  ynx-developer-0.2.0-testnet-preview-6ac39fd1-windows-x64-INSTALL-EVIDENCE.json
+8199fe3c2a85c9dc585f4b618f1c9408d5e4ef832ee16c7ca9c47861ca7db32e  ynx-developer-0.2.0-testnet-preview-6ac39fd1-windows-x64-NATIVE-SELF-TEST.json

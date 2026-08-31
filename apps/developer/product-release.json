@@ -1,15 +1,89 @@
 {
   "productId": "ynx-developer-v1",
   "name": "YNX Developer / YNX AI Build",
-  "branch": "codex/developer-hosted-preview-metadata",
-  "commit": "70f7c3ca7540327aca3736b398c52a67b8e86f34",
+  "branch": "codex/ynx-code-platform-v1",
+  "commit": "d4052228a2261c5ced6a8e8cfcbf763edabf2103",
   "version": "0.2.0",
-  "sourceCheckpoint": "public-testnet-web-and-desktop-artifacts-2026-08-03",
+  "sourceCheckpoint": "ynx-code-wallet-product-session-v2-root-factory-2026-08-20",
+  "currentPublicCandidate": {
+    "sourceCommit": "d4052228a2261c5ced6a8e8cfcbf763edabf2103",
+    "sourceTree": "89beb658b0971fb20d0d92a6bebc2010fdbb33e7",
+    "release": "0.2.0-testnet-preview-d4052228a226-candidate",
+    "publicHealth": "https://developer.ynxweb4.com/healthz",
+    "result": "source-bound-current-runtime-readback; browser-visible-proof-pending",
+    "independentCurrentRuntimeReadback": true,
+    "publicRuntimeEvidence": "apps/developer/evidence/public/current-public-source-bound-d4052228-20260831.json",
+    "note": "The preceding bc8a37bc protected deployment record remains historical. Current health and runtime-health release versions now match the d4052228 receipt; browser-visible evidence remains separate."
+  },
+  "currentLocalMacArtifact": {
+    "evidence": "apps/developer/evidence/desktop/macos-current-ccab67b2.json",
+    "sourceCommit": "ccab67b2ceaeeaeb962dd6e67696bb3f73835120",
+    "sourceTree": "38524871d45f8239377ed832fe04b51bceee476f",
+    "sha256": "71eb57a55521ea42949ed24d8f5b078a3b9cfa1032cabcd2ca2717c64e6fe775",
+    "bytes": 300467545,
+    "downloadHosted": false,
+    "downloadUrl": null,
+    "format": "dmg",
+    "productionSigned": false
+  },
+  "currentLocalWindowsArtifact": {
+    "evidence": "apps/developer/evidence/desktop/windows-current-591437c6.json",
+    "sourceCommit": "591437c64eb53adf987ebea779104d4c5962c6e9",
+    "sourceTree": "9914ca23f013eb731c030e13625c816179cb0cf1",
+    "runtimeCheckpoint": "d4052228a2261c5ced6a8e8cfcbf763edabf2103",
+    "sha256": "7459cc31a86d45516d0180d8426cc00a55a206e95f79abb6ae644f1e3ad57e86",
+    "bytes": 71572190,
+    "downloadHosted": false,
+    "downloadUrl": null,
+    "format": "msix",
+    "signingClass": "test-self-signed-not-production",
+    "productionSigned": false
+  },
+  "currentLinuxServerArtifact": {
+    "evidence": "apps/developer/evidence/platform/linux-server-current-bc8a37bc.json",
+    "sourceCommit": "bc8a37bc6f2bcfcbe9415cb0e9da17a5294046a3",
+    "sha256": "aab9fb6ea976fffab0ae66382401bf8e9886a05fb377f483dc46103fd8be4c05",
+    "bytes": 138538840,
+    "downloadHosted": true,
+    "downloadUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-bc8a37bc-linux-x64-server.tar.gz",
+    "productionSigned": false
+  },
+  "walletProductSessionV2": {
+    "acceptedSourceCommit": "203be5e108be468350591615a64d5d36ab87a8f1",
+    "acceptedSourceTree": "94e291a6757447f89c7cf6b8f01bbf811cb7d1f7",
+    "acceptedPackageTree": "02eb7176e2de175a68cf5a5ef27e55968cc17fea",
+    "authoritativeOrigin": "https://wallet-auth.ynxweb4.com",
+    "npmRegistryPublished": false,
+    "rootFactorySourceIntegrated": true,
+    "runtimeFactoryVerified": false,
+    "nativeAbsentWalletVerified": true,
+    "nativeAbsentWalletProof": {
+      "artifactSourceCommit": "e01b9e4a8cc00be2e590e86e8f043fd746696adf",
+      "method": "NSWorkspace URLForApplicationToOpenURL",
+      "ynxWalletInstalled": false,
+      "schemeRegistered": false
+    },
+    "publicV2RouteVerified": true,
+    "publicV2RouteProof": {
+      "kind": "state-free-fail-closed-mount-probe",
+      "path": "/v2/product-sessions/challenge",
+      "origin": "https://wallet-auth.ynxweb4.com",
+      "httpStatus": 400,
+      "responseSchemaVersion": 2,
+      "responseErrorCode": "UNKNOWN_OR_MISSING_FIELD",
+      "stateCreated": false,
+      "attemptsUsed": 2
+    },
+    "visibleLifecycleVerified": false,
+    "migratedV2": false,
+    "reason": "Native Keychain storage, an actual native absent-Wallet scheme lookup and a state-free public v2 mount proof exist, but native installed/approve/reject/timeout/revoke/second-launch/network-loss lifecycle evidence remains required."
+  },
   "surfaces": [
     "web-ide",
     "api-studio",
     "macos-arm64-testnet-preview",
     "windows-x64-testnet-preview",
+    "linux-x64-server-testnet-preview",
     "ynx-ai-build"
   ],
   "implementedLocal": true,
@@ -18,7 +92,7 @@
   "integratedCentral": false,
   "deployedStaging": true,
   "deployedPublic": true,
-  "downloadHosted": true,
+  "downloadHosted": false,
   "productionSigned": false,
   "storeReleased": false,
   "releasePublished": true,
@@ -31,17 +105,39 @@
     "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/developer-v0.2.0-testnet-preview.1"
   ],
   "healthUrls": [
-    "https://developer.ynxweb4.com/health",
-    "https://developer.ynxweb4.com/chain/status"
+    "https://developer.ynxweb4.com/healthz",
+    "https://developer.ynxweb4.com/runtime/health"
   ],
-  "artifactUrls": [
-    "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-macos-arm64-unsigned.zip",
-    "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-windows-x64-unsigned.zip",
-    "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-SHA256SUMS.txt",
-    "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-PROVENANCE.json",
-    "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-sbom.cdx.json"
-  ],
+  "artifactUrls": [],
   "featureStatus": {
+    "ynxCodePlatform": {
+      "macosArm64Current": true,
+      "webCurrent": true,
+      "windowsCurrent": true,
+      "linuxX64ServerCurrent": true,
+      "webSourceCommit": "d4052228a2261c5ced6a8e8cfcbf763edabf2103",
+      "macosArm64SourceCommit": "ccab67b2ceaeeaeb962dd6e67696bb3f73835120",
+      "windowsX64SourceCommit": "591437c64eb53adf987ebea779104d4c5962c6e9",
+      "windowsX64HistoricalSourceCommit": "76322af5e8c26a64fb6425c51d96c67d2b3df65f",
+      "capabilities": [
+        "React, TypeScript and Monaco multi-file workbench with tabs, split and diff views, search, replace, command palette, shortcuts and themes",
+        "JavaScript, TypeScript, Python, Rust, Go, C++ and Solidity compile or test runtimes with bounded process execution",
+        "PTY terminal, Git, extensions, debugging, project memory, model routing, permissioned engineering agents and collaboration services",
+        "YNX Chain inspection, Wallet-authenticated deployment review, contract templates and receipt-bound transaction debugging"
+      ],
+      "verification": "The current macOS arm64 DMG is a direct local installation candidate with provenance, a 269-component SBOM, ad-hoc classification, cold launch, bounded C++ compilation and persisted second launch. The current Windows x64 MSIX has source-bound CI portable and installed-payload cold/second-launch evidence plus a test-only self-signed package signature.",
+      "publicBoundary": "The source-bound public Web candidate is d4052228 pending independent current readback. macOS DMG and Windows MSIX remain non-public installer candidates; no ZIP is a supported desktop installer.",
+      "publicDeployment": {
+        "sourceCommit": "d4052228a2261c5ced6a8e8cfcbf763edabf2103",
+        "sourceTree": "89beb658b0971fb20d0d92a6bebc2010fdbb33e7",
+        "release": "0.2.0-testnet-preview-d4052228a226-candidate",
+        "service": "ynx-code-candidate.service",
+        "upstream": "127.0.0.1:18113",
+        "rollbackService": "ynx-developer-web.service on 127.0.0.1:18111",
+        "currentRuntimeReadback": true,
+        "verified": "Direct public health and runtime-health readback returns release d4052228a226. The source tree remains bound by the accepted receipt; image fingerprint, rollback, rendered-browser evidence and Wallet lifecycle remain unverified. The preceding bc8a37bc host-side record is historical only."
+      }
+    },
     "apiStudio": {
       "implementedLocal": true,
       "testedLocal": true,
@@ -56,16 +152,17 @@
       "sourceCommit": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
       "tests": {
         "developerClient": "22 passed",
-        "developerWeb": "21 passed locally; artifact-source Windows CI passed 20 before release-record consistency test",
+        "developerWeb": "24 passed locally and on current-source Windows CI",
         "staticCheck": "passed",
         "webBuild": "passed",
         "liveCheck": "passed",
         "sameOriginProxy": "passed",
         "placeholderGate": "passed with grep fallback because rg was unavailable",
         "credentialLeakGate": "passed with grep fallback because rg was unavailable",
-        "macosCurrentSourcePackage": "source 7f976c1e06292360160325b00fa0875e6a2567f6: embedded provenance, extracted self-test, ad-hoc classification, cold launch, bundled server observation and child cleanup passed",
-        "windowsCurrentSourcePackage": "GitHub Actions run 30417693593 for source 7f976c1e06292360160325b00fa0875e6a2567f6: 22 client tests, 20 Web tests, compile, embedded provenance, native self-test, Authenticode NotSigned classification, portable extraction, WPF cold launch, bundled server observation, child cleanup and artifact upload passed",
-        "browserAccessibilityAudit": "15/15 checks and six hashed screenshots passed on Chrome 150 from clean source f38aa95a9ec7ebff68b4d915f41b20ad8f903769"
+        "macosCurrentSourcePackage": "source e01b9e4a8cc00be2e590e86e8f043fd746696adf: full YNX Code resources, 269-component SBOM, extracted Keychain write/read/cleanup and native YNX Wallet scheme-absence self-tests, ad-hoc classification, cold launch, JavaScript/C++ toolchains, real bounded C++ compilation, workspace save, child cleanup and persistent second launch passed; artifact is hosted on the official Developer domain",
+        "windowsCurrentSourcePackage": "GitHub Actions run 32396185202 for source 6ac39fd140a54675526583c4c3ca6b07fc03af19: client and 67 Developer tests, build, exact runtime inventory, portable extraction, Authenticode NotSigned classification, WPF cold launch, public workspace connection, real remote C++ compile, second GUI launch and artifact upload passed; ZIP, SBOM, provenance and checksum are hosted on the official Developer domain",
+        "windowsHistoricalSourcePackage": "GitHub Actions run 31513885748 for source 76322af5e8c26a64fb6425c51d96c67d2b3df65f remains historical evidence only",
+        "browserAccessibilityAudit": "15/15 checks and six hashed screenshots passed on Chrome 151 from clean source 98fcbe3cff68b4b01ebfd94df2d1476b41ecf2b5"
       },
       "capabilities": [
         "OpenAPI 3.0/3.1 JSON import and validation",
@@ -88,9 +185,9 @@
   },
   "browserAccessibilityEvidence": {
     "status": "passed",
-    "sourceCommit": "f38aa95a9ec7ebff68b4d915f41b20ad8f903769",
+    "sourceCommit": "98fcbe3cff68b4b01ebfd94df2d1476b41ecf2b5",
     "sourceDirtyAtStart": false,
-    "browser": "Chrome/150.0.7871.187",
+    "browser": "Chrome/151.0.7922.76",
     "checksPassed": 15,
     "checksFailed": 0,
     "screenshots": 6,
@@ -111,23 +208,24 @@
     "installedDesktopRecapture": false,
     "publicDeploymentEvidence": true,
     "publicURL": "https://developer.ynxweb4.com/",
-    "publicBrowserVerification": "live chain height, twelve-language selector, IDE landmarks and bounded AI/provider state verified in the in-app browser on 2026-08-03"
+    "publicBrowserVerification": "historical API Studio browser evidence from 2026-08-03; a current full-platform ComputerControl recapture remains deferred until the final all-product acceptance pass",
+    "currentFullPlatformComputerControlRecapture": false
   },
   "sha256": {
-    "macosArm64UnsignedZip": "ff9ae3d473f961f38294679a7bdb21c7cc0c905d7791efe9d4b114fc1df903f7",
-    "windowsX64UnsignedZip": "1efaf486164da71d907a8869e5e749fe46bf0bb1a74625f12ddab1692d07fb29"
+    "macosArm64UnsignedZip": "a7254bf0a4ecf3054d761a28d410ad956753a8ec0ff459ec7ba16192dff4449b",
+    "windowsX64UnsignedZip": "289a1f48ed0fa37ec1027fc746ce283a407daba8e2544618eb42c50dfd39d57c"
   },
   "bytes": {
-    "macosArm64UnsignedZip": 38450128,
-    "windowsX64UnsignedZip": 106341644
+    "macosArm64UnsignedZip": 177942906,
+    "windowsX64UnsignedZip": 72538906
   },
   "artifactSourceCommits": {
-    "macosArm64UnsignedZip": "7f976c1e06292360160325b00fa0875e6a2567f6",
-    "windowsX64UnsignedZip": "7f976c1e06292360160325b00fa0875e6a2567f6"
+    "macosArm64UnsignedZip": "76322af5e8c26a64fb6425c51d96c67d2b3df65f",
+    "windowsX64UnsignedZip": "76322af5e8c26a64fb6425c51d96c67d2b3df65f"
   },
   "artifactRuntimeCheckpoints": {
-    "macosArm64UnsignedZip": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
-    "windowsX64UnsignedZip": "8f352d0159eef0ab60fb6411e949cfcf3aafb551"
+    "macosArm64UnsignedZip": "17ee9ae5bf50677a3316b0838884dd135de80599",
+    "windowsX64UnsignedZip": "17ee9ae5bf50677a3316b0838884dd135de80599"
   },
   "signingClass": {
     "macos": "adhoc-no-team-id",
@@ -142,52 +240,53 @@
     {
       "surface": "macos-arm64-testnet-preview",
       "class": "local-extracted-zip",
-      "sourceCommit": "7f976c1e06292360160325b00fa0875e6a2567f6",
-      "sourceTree": "0cf68963a1678e6611296684d522b471add4f652",
-      "runtimeCheckpoint": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
-      "artifactSha256": "ff9ae3d473f961f38294679a7bdb21c7cc0c905d7791efe9d4b114fc1df903f7",
-      "artifactBytes": 38450128,
-      "sbomSha256": "801af226eda24a8ad4e880f8d36da197ef8af375b62153435dd4c0c75cc8ac12",
+      "sourceCommit": "76322af5e8c26a64fb6425c51d96c67d2b3df65f",
+      "sourceTree": "dc7e76e917da31ac27f5fe45fac1513a0e26d0bc",
+      "runtimeCheckpoint": "17ee9ae5bf50677a3316b0838884dd135de80599",
+      "artifactSha256": "a7254bf0a4ecf3054d761a28d410ad956753a8ec0ff459ec7ba16192dff4449b",
+      "artifactBytes": 177942906,
+      "sbomSha256": "1ce156c73e3c9b1bd6543111d387ecb31bb05a3db92295574644c8390daaba8c",
       "provenanceEmbedded": true,
-      "result": "embedded source/tree/runtime/SBOM provenance, resource self-test, strict ad-hoc classification, real GUI cold launch, bundled server observation and child cleanup passed"
+      "result": "full YNX Code resources, embedded source/tree/runtime/SBOM provenance, 267-component SBOM, resource self-test, strict ad-hoc classification, real GUI cold launch, JavaScript/C++ toolchain discovery, real bounded C++ compilation, workspace save, second runtime launch, workspace persistence and child cleanup passed"
     },
     {
       "surface": "windows-x64-testnet-preview",
       "class": "windows-ci-portable-extract",
-      "sourceCommit": "7f976c1e06292360160325b00fa0875e6a2567f6",
-      "sourceTree": "0cf68963a1678e6611296684d522b471add4f652",
-      "runtimeCheckpoint": "8f352d0159eef0ab60fb6411e949cfcf3aafb551",
-      "artifactSha256": "1efaf486164da71d907a8869e5e749fe46bf0bb1a74625f12ddab1692d07fb29",
-      "artifactBytes": 106341644,
-      "sbomSha256": "15a29bf7e746a9b8cb9cfa10eed21c24c6bb53686cb3f45c00384390c2897e4c",
+      "sourceCommit": "76322af5e8c26a64fb6425c51d96c67d2b3df65f",
+      "sourceTree": "dc7e76e917da31ac27f5fe45fac1513a0e26d0bc",
+      "runtimeCheckpoint": "17ee9ae5bf50677a3316b0838884dd135de80599",
+      "artifactSha256": "289a1f48ed0fa37ec1027fc746ce283a407daba8e2544618eb42c50dfd39d57c",
+      "artifactBytes": 72538906,
+      "sbomSha256": "1365778910b256c988d6553ff9b76876f9eb4965fcd965fb9d2e40424bd5f189",
       "provenanceEmbedded": true,
       "authenticodeStatus": "NotSigned",
-      "runId": 30417693593,
-      "jobId": 90467659180,
-      "artifactId": 8710756758,
-      "artifactOuterDigest": "sha256:5c52a2f911525732fb8ded1e5f72ba79d8f8b48ff1907899870afa355c54c289",
-      "artifactExpiresAt": "2026-08-12T02:46:59Z",
-      "result": "compile, embedded provenance, native self-test, portable extraction, Authenticode NotSigned classification, WPF cold launch, bundled server observation, child cleanup and transient artifact upload passed"
+      "runId": 31513885748,
+      "jobId": 93854111720,
+      "artifactId": 9110259455,
+      "artifactOuterDigest": "sha256:7daec768b13c0871f2cc13fef5ba1f845938288827233733f40bba6c14c5f715",
+      "artifactExpiresAt": "2026-08-25T16:44:45Z",
+      "deliveryMode": "hosted-workspace-client",
+      "result": "portable extraction, exact resource inventory, Authenticode NotSigned classification, WPF cold launch, public workspace connection, real remote C++ compile, second GUI launch and transient artifact upload passed"
     }
   ],
   "centralIntegration": {
     "status": "not-integrated",
-    "walletRegistry": "exact ynx-developer-v1 binding is delivered in the handoff but is not merged/deployed centrally",
-    "aiGateway": "Developer uses bounded POST-body transport; canonical main remains outside this branch",
+    "walletRegistry": "exact ynx-developer-v1 Wallet binding, callback and session/deployment proofs are implemented and jointly tested; the remote candidate advertises the registration but public readiness and public BFT submission remain independently closed",
+    "aiGateway": "Public Web IDE defaults to the YNX-hosted qwen3:4b open-model service with two active generations and a queue of 32; xAI/OpenAI bring-your-own keys are request-only and browser JavaScript never persists them",
     "walletDeploymentProvider": "not present; UI fails closed and never uses a local key or unsigned deploy bypass",
     "apiCredentialBroker": "host contract is implemented and tested, but no central broker or provider credential is connected"
   },
   "knownLimitations": [
     "The Web IDE is a public Testnet preview; it is not a production or Mainnet development service.",
-    "Immutable GitHub pre-release URLs exist for both unsigned Testnet Preview packages; the separate Windows Actions artifact still expires after 14 days and is not the public release source.",
+    "Immutable YNX-domain direct URLs exist for both unsigned Testnet Preview packages; the separate Windows Actions artifact expires and is not the public download source.",
     "No Developer ID, notarization, Authenticode, signed installer, signed updater or store release exists.",
-    "No central Wallet registry/provider integration or real Wallet-signed deployment was performed.",
-    "No provider-backed AI generation was performed because no operator provider credential/configuration was supplied.",
+    "Exact Wallet registration, sign-in and receipt-bound deployment are implemented and jointly tested in current Developer and Wallet source, but public BFT IDE submission remains disabled pending identified custody approval and public cutover authorization.",
+    "YNX-hosted qwen3:4b AI is enabled through a bounded managed session; it is a small Testnet coding model, can queue under load, and its output must be reviewed before any write.",
     "API Studio secured requests require a reviewed host credential broker; no credential value is resolved in browser JavaScript.",
-    "Current-source API Studio is installed and cold-launched in local macOS arm64 and Windows x64 unsigned Testnet Previews; neither is a public, notarized, Authenticode-signed or production release.",
-    "The GitHub pre-release now hosts immutable unsigned Testnet Preview assets; the separate Windows Actions artifact remains transient and must not replace the release asset URL.",
+    "The Windows x64 download is a current hosted-workspace client for the public full YNX Code service; compiler and terminal execution occur in the bounded public workspace, not in a bundled local Windows runtime.",
+    "The GitHub pre-release is historical release evidence; current public CTAs must use the immutable YNX-domain downloads, and the transient Windows Actions artifact must not replace them.",
     "The optional official Grok Build source was audited and pinned but not built locally because Rust 1.92, Cargo and DotSlash were absent; no upstream binary is bundled.",
-    "The pinned chain compiler response truthfully reports deterministic analyzer output unless a matching production solc artifact exists; no arbitrary EVM or remote public verification claim is made."
+    "The Web IDE now executes pinned solc 0.8.24 in isolated workers and returns real ABI and EVM bytecode. Compilation does not imply that arbitrary EVM deployment is supported by YNX Testnet; deployment requires Wallet authorization and an authoritative receipt."
   ],
-  "generatedAt": "2026-08-03T07:20:00+08:00"
+  "generatedAt": "2026-08-12T01:00:00+08:00"
 }

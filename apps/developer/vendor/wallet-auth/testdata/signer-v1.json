@@ -1,0 +1,37 @@
+{
+  "request": {
+    "version": "1",
+    "nonce": "nonce_abcdefghijklmnopqrstuvwxyz12",
+    "chainId": "ynx_6423-1",
+    "requestingProduct": "social",
+    "productClientId": "ynx-social-v1",
+    "bundleId": "com.ynx.social",
+    "productDeviceAlgorithm": "p256-sha256",
+    "productDeviceKey": "AzrThhqVYhOSUWu1k-8FWD7S5YZvXLYmCjAXI3_Ym5Cv",
+    "callback": "ynx-social://com.ynx.social",
+    "scopes": ["account:read", "profile:link"],
+    "purpose": "Link this YNX account to the selected Social profile on this device.",
+    "issuedAt": "2026-07-15T11:59:00.000Z",
+    "expiresAt": "2026-07-15T12:04:00.000Z"
+  },
+  "requestDigest": "325a60c9502489c92d2f42a413166b84302cf27821dcf3110b04484da3900930",
+  "approval": {
+    "version": "1",
+    "requestDigest": "325a60c9502489c92d2f42a413166b84302cf27821dcf3110b04484da3900930",
+    "nonce": "nonce_abcdefghijklmnopqrstuvwxyz12",
+    "chainId": "ynx_6423-1",
+    "requestingProduct": "social",
+    "productClientId": "ynx-social-v1",
+    "bundleId": "com.ynx.social",
+    "productDeviceAlgorithm": "p256-sha256",
+    "productDeviceKey": "AzrThhqVYhOSUWu1k-8FWD7S5YZvXLYmCjAXI3_Ym5Cv",
+    "callback": "ynx-social://com.ynx.social",
+    "account": "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80",
+    "accountPublicKey": "0279be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798",
+    "grantedScopes": ["account:read", "profile:link"],
+    "purpose": "Link this YNX account to the selected Social profile on this device.",
+    "issuedAt": "2026-07-15T12:00:00.000Z",
+    "expiresAt": "2026-07-15T12:04:00.000Z",
+    "walletSignature": "d600cd74637f3bd8e7259531f5665d976c9da36aa41cfabae29d8b12fd76ca145dd16de1f4aa049c8d53dd1ddfa9f5ee46d22e7131710eabc6a48fdaa0c5ed80"
+  }
+}
