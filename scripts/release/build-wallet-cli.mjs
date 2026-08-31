@@ -32,7 +32,7 @@ for (const [goos, goarch, minimumOS, runtimeTested] of targets) {
   fs.rmSync(binaryPath);
   const archive = fs.readFileSync(archivePath);
   const signingClass = goos === "darwin"
-    ? (runtimeTested ? "ad_hoc_linker_signed_local_testnet_cli_candidate" : "ad_hoc_linker_signed_cross_arch_static_candidate")
+    ? (runtimeTested ? "ad_hoc_linker_signed_local_testnet_cli_candidate" : "unsigned_macos_cross_arch_candidate")
     : "unsigned_local_testnet_cli_candidate";
   const minimumOSBasis = goos === "darwin"
     ? "Go 1.25 official minimum requirements; Mach-O LC_BUILD_VERSION records 12.0"

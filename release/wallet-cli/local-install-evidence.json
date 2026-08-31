@@ -41,7 +41,7 @@
       "minimumOS": "macOS 12 Monterey",
       "minimumOSReference": "https://go.dev/wiki/MinimumRequirements",
       "minimumOSBasis": "Go 1.25 official minimum requirements; Mach-O LC_BUILD_VERSION records 12.0",
-      "signingClass": "ad_hoc_linker_signed_cross_arch_static_candidate",
+      "signingClass": "unsigned_macos_cross_arch_candidate",
       "bytes": 5199151,
       "sha256": "c2fe1f4aceab5e2628f8f56768834347e89a48f090227910c12e916764b6d6d1",
       "binaryBytes": 9389456,

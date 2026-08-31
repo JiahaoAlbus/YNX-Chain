@@ -25,7 +25,7 @@ jobs:
             sha256: c2fe1f4aceab5e2628f8f56768834347e89a48f090227910c12e916764b6d6d1
             bytes: 5199151
             minimum_os: macOS 12 Monterey
-            signing_class: ad_hoc_linker_signed_cross_arch_static_candidate
+            signing_class: unsigned_macos_cross_arch_candidate
           - runner: ubuntu-24.04
             target: linux-amd64
             archive: release/wallet-cli/artifacts/ynx-wallet-cli-linux-amd64.gz
@@ -87,14 +87,13 @@ jobs:
           set -e
           test "$legacy_rc" = 78
           python3 -c 'import json,sys;e=json.load(open(sys.argv[1]));assert e["error"]["code"]=="WRONG_CHAIN" and e["error"]["remediation"]=="USE_YNX_TESTNET_6423"' "$evidence/legacy.json"
-          codesign_class=null
-          team_identifier_present=false
           if test "$TARGET" = darwin-amd64; then
-            codesign --verify --strict "$prefix/bin/ynx-wallet-cli"
+            set +e
             codesign -dv --verbose=4 "$prefix/bin/ynx-wallet-cli" > "$evidence/codesign.txt" 2>&1
-            grep -F 'Signature=adhoc' "$evidence/codesign.txt"
-            grep -F 'TeamIdentifier=not set' "$evidence/codesign.txt"
-            codesign_class=adhoc
+            codesign_rc=$?
+            set -e
+            test "$codesign_rc" != 0
+            grep -F 'code object is not signed at all' "$evidence/codesign.txt"
           fi
           rm "$prefix/bin/ynx-wallet-cli"
           test -z "$(find "$prefix/bin" -mindepth 1 -print -quit)"
