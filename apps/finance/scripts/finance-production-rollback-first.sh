@@ -33,6 +33,8 @@ absent(){ test ! -e "$1" && test ! -L "$1"; }
 archive=$(get '.candidate.archive.path'); archive_sha=$(get '.candidate.archive.sha256'); archive_bytes=$(get '.candidate.archive.bytes')
 binary_bytes=$(get '.candidate.binary.bytes')
 binary_sha=$(get '.candidate.binary.sha256'); current=$(get '.fresh.currentLink'); old=$(get '.fresh.activeRelease'); old_binary=$(get '.fresh.binary.path'); old_binary_sha=$(get '.fresh.binary.sha256')
+candidate_source=$(get '.candidate.sourceCommit')
+printf '%s\n' "$candidate_source" | grep -Eq '^[0-9a-f]{40}$'
 env=$(get '.fresh.env.path'); env_sha=$(get '.fresh.env.sha256'); unit=$(get '.fresh.unit.path'); unit_sha=$(get '.fresh.unit.sha256'); caddy=$(get '.fresh.caddy.path'); caddy_sha=$(get '.fresh.caddy.sha256'); service=$(get '.fresh.service.name')
 stage=$(get '.paths.stage'); backup=$(get '.paths.backup'); release=$(get '.paths.release')
 stage_container=$(get '.paths.stageContainer.path'); stage_container_uid=$(get '.paths.stageContainer.uid'); stage_container_gid=$(get '.paths.stageContainer.gid'); stage_container_mode=$(get '.paths.stageContainer.mode')
@@ -103,6 +105,17 @@ verify_local_assets(){
     test "$(hash "$asset")" = "$(get ".candidate.assets[$n].sha256")"
   done < <(jq -r '.candidate.assets|keys[]' "$lease")
 }
+verify_build_identity(){
+  local root=$1 identity
+  identity="$root/web/build-identity.json"
+  jq -e '.candidate.buildIdentity' "$lease" >/dev/null || return 0
+  local candidate_release candidate_build_time candidate_frontend_source
+  candidate_release=$(get '.candidate.buildIdentity.release'); candidate_build_time=$(get '.candidate.buildIdentity.buildTime'); candidate_frontend_source=$(get '.candidate.buildIdentity.frontendSourceCommit')
+  printf '%s\n' "$candidate_frontend_source" | grep -Eq '^[0-9a-f]{40}$'
+  test -f "$identity" && test ! -L "$identity"
+  jq -e --arg source "$candidate_source" --arg release "$candidate_release" --arg buildTime "$candidate_build_time" --arg frontend "$candidate_frontend_source" '.sourceCommit==$source and .release==$release and .buildTime==$buildTime and .frontendSourceCommit==$frontend' "$identity" >/dev/null
+  jq -e 'keys|length==4' "$identity" >/dev/null
+}
 tree_inventory(){
   local root=$1 path kind value
   (
@@ -152,7 +165,7 @@ verify_candidate_live(){
   systemctl is-active --quiet "$service"; newpid=$(systemctl show -p MainPID --value "$service")
   test "$newpid" -gt 0 && test "$newpid" != "$(get '.fresh.service.pid')"
   test "$(systemctl show -p NRestarts --value "$service")" = "$(get '.fresh.service.nrestarts')"
-  verify_local_assets "$release"
+  verify_local_assets "$release"; verify_build_identity "$release"
   http_check '.candidate.verifier.loopbackHealth'; http_check '.candidate.verifier.loopbackVersion'; http_check '.candidate.verifier.publicHealth'; http_check '.candidate.verifier.publicVersion'
   while IFS= read -r n; do test -n "$n"; http_check ".candidate.assets[$n]"; done < <(jq -r '.candidate.assets|keys[]' "$lease")
 }
@@ -270,7 +283,7 @@ arm_owned_phase_failure ARCHIVE_EXTRACT pre_switch_cleanup
 tar --warning=no-unknown-keyword -xzf "$archive" -C "$stage"
 arm_owned_phase_failure CANDIDATE_VERIFY pre_switch_cleanup
 candidate="$stage/$(basename "$release")"; test -x "$candidate/ynx-finance"; test "$(hash "$candidate/ynx-finance")" = "$binary_sha"; test "$(bytes "$candidate/ynx-finance")" = "$binary_bytes"; file "$candidate/ynx-finance" | grep -q 'ELF 64-bit.*x86-64'
-verify_local_assets "$candidate"; stage_inventory=$(tree_inventory "$stage")
+verify_local_assets "$candidate"; verify_build_identity "$candidate"; stage_inventory=$(tree_inventory "$stage")
 arm_owned_phase_failure RELEASE_MATERIALIZE pre_switch_cleanup
 mkdir -m "$release_container_mode" -- "$release_container"; release_container_created=true; release_container_preownership_identity=$(container_identity_tuple "$release_container")
 if ! test -d "$release_container" || test -L "$release_container" || [[ "$(realpath -e "$release_container")" != "$release_container" ]] || [[ -n "$(find "$release_container" -mindepth 1 -print -quit)" ]]; then exit 74; fi
@@ -292,7 +305,7 @@ arm_owned_phase_failure PRE_SWITCH restore
 tmp=$(mktemp "$(dirname "$env")/.finance.env.next.XXXXXX"); cp --preserve=mode,ownership "$new_env" "$tmp"; mv -Tf "$tmp" "$env"
 link="$current.next"; absent "$link"; ln -s "$release" "$link"; mv -Tf "$link" "$current"; systemctl restart "$service"
 arm_owned_phase_failure CANDIDATE_VERIFY restore
-get '.candidate.sourceCommit' | grep -qx '7824af677dd052d20321431381523ab302614d98'; verify_candidate_live
+verify_candidate_live
 backup_tuple=$(stat -Lc '%d:%i:%u:%g:%a:%h:%s:%F' "$backup")
 backup_identity_tuple=$(identity_tuple "$backup"); backup_inventory=$(tree_inventory "$backup")
 backup_container_tuple=$(stat -Lc '%d:%i:%u:%g:%a:%h:%s:%F' "$backup_container"); backup_container_inventory=$(tree_inventory "$backup_container")
