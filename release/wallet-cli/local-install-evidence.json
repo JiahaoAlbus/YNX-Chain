@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "evidenceClass": "local-wallet-cli-artifact",
   "sourceCommit": "68b68bbcbc7a301c113db82a2183537191976ff0",
-  "generatedAt": "2026-08-31T09:58:21.655Z",
+  "generatedAt": "2026-08-31T10:07:19.415Z",
   "host": {
     "os": "darwin",
     "arch": "arm64",

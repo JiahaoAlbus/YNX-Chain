@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "handoffClass": "wallet-cli-current-source-six-platform-candidates",
+  "owner": "Wallet Desktop/CLI/SDK",
+  "artifactSourceCommit": "68b68bbcbc7a301c113db82a2183537191976ff0",
+  "branch": "codex/wallet-sdk-error-taxonomy-20260831",
+  "evidence": "docs/integration/wallet-cli-six-platform-candidate-lifecycle-evidence-20260831.json",
+  "manifest": "release/wallet-cli/artifacts/manifest.json",
+  "verifiedRuntimeTargets": [
+    "darwin/arm64 isolated transient user prefix",
+    "linux/arm64 isolated native-architecture container with network disabled"
+  ],
+  "unverifiedRuntimeTargets": ["darwin/amd64", "linux/amd64", "windows/arm64", "windows/amd64"],
+  "externalRunnerBlocker": "Native Windows x64/arm64 and Linux x64 lifecycle proof requires eligible external runners; macOS x64 requires Rosetta or an x64 macOS runner.",
+  "noNetworkExecution": true,
+  "noAccountRequest": true,
+  "noSigningRequest": true,
+  "noTransactionRequest": true,
+  "publicationAuthorized": false,
+  "allUnprovenReleaseFlagsFalse": true
+}
