@@ -240,7 +240,7 @@ jobs:
           done
           test -n "${COLD_PID:-}"
           printf 'pid=%s running=true\n' "$COLD_PID" | tee "$PROOF/cold-launch.txt"
-          COLD_NETWORK_READY=false
+          COLD_LAYER1_READY=false
           for _ in $(seq 1 60); do
             xcrun log show --style compact --last 5m \
               --predicate 'subsystem == "com.ynxweb4.wallet.macos" AND category == "network"' \
@@ -248,17 +248,20 @@ jobs:
             if grep -Fq "YNX_WALLET_MAC_ENDPOINT_MATRIX_LOADED pid=$COLD_PID matrixId=ynx-wallet-auth-public-endpoint-service-discovery-v1 rpcHost=rpc.ynxweb4.com rpcPath=/evm integratedCentral=false" \
                  "$PROOF/cold-launch-network-native.log" && \
                grep -Fq "YNX_WALLET_MAC_RPC_CHAIN_ID_VERIFIED pid=$COLD_PID chainId=0x1917" \
-                 "$PROOF/cold-launch-network-native.log" && \
-               grep -Fq "YNX_WALLET_MAC_REST_APP_GATEWAY_REACHABLE pid=$COLD_PID status=200" \
-                 "$PROOF/cold-launch-network-native.log" && \
-               grep -Fq "YNX_WALLET_MAC_GATEWAY_FAIL_CLOSED pid=$COLD_PID walletComplete=UNKNOWN_OR_MISSING_FIELD walletIntrospect=PROOF_REQUIRED productIntrospect=UNKNOWN_OR_MISSING_FIELD stateUnchanged=true" \
                  "$PROOF/cold-launch-network-native.log"; then
-              COLD_NETWORK_READY=true
+              COLD_LAYER1_READY=true
               break
             fi
             sleep 1
           done
-          test "$COLD_NETWORK_READY" = true
+          test "$COLD_LAYER1_READY" = true
+          COLD_PRIVATE_SERVICE_NEGATIVE_VERIFIED=false
+          if grep -Fq "YNX_WALLET_MAC_REST_APP_GATEWAY_REACHABLE pid=$COLD_PID status=200" \
+               "$PROOF/cold-launch-network-native.log" && \
+             grep -Fq "YNX_WALLET_MAC_GATEWAY_FAIL_CLOSED pid=$COLD_PID walletComplete=UNKNOWN_OR_MISSING_FIELD walletIntrospect=PROOF_REQUIRED productIntrospect=UNKNOWN_OR_MISSING_FIELD stateUnchanged=true" \
+               "$PROOF/cold-launch-network-native.log"; then
+            COLD_PRIVATE_SERVICE_NEGATIVE_VERIFIED=true
+          fi
           kill "$COLD_PID"
           for _ in $(seq 1 30); do
             kill -0 "$COLD_PID" 2>/dev/null || break
@@ -273,7 +276,7 @@ jobs:
           test -n "${SECOND_PID:-}"
           test "$SECOND_PID" != "$COLD_PID"
           printf 'pid=%s running=true\n' "$SECOND_PID" | tee "$PROOF/second-launch.txt"
-          SECOND_NETWORK_READY=false
+          SECOND_LAYER1_READY=false
           for _ in $(seq 1 60); do
             xcrun log show --style compact --last 5m \
               --predicate 'subsystem == "com.ynxweb4.wallet.macos" AND category == "network"' \
@@ -281,19 +284,27 @@ jobs:
             if grep -Fq "YNX_WALLET_MAC_ENDPOINT_MATRIX_LOADED pid=$SECOND_PID matrixId=ynx-wallet-auth-public-endpoint-service-discovery-v1 rpcHost=rpc.ynxweb4.com rpcPath=/evm integratedCentral=false" \
                  "$PROOF/second-launch-network-native.log" && \
                grep -Fq "YNX_WALLET_MAC_RPC_CHAIN_ID_VERIFIED pid=$SECOND_PID chainId=0x1917" \
-                 "$PROOF/second-launch-network-native.log" && \
-               grep -Fq "YNX_WALLET_MAC_REST_APP_GATEWAY_REACHABLE pid=$SECOND_PID status=200" \
-                 "$PROOF/second-launch-network-native.log" && \
-               grep -Fq "YNX_WALLET_MAC_GATEWAY_FAIL_CLOSED pid=$SECOND_PID walletComplete=UNKNOWN_OR_MISSING_FIELD walletIntrospect=PROOF_REQUIRED productIntrospect=UNKNOWN_OR_MISSING_FIELD stateUnchanged=true" \
                  "$PROOF/second-launch-network-native.log"; then
-              SECOND_NETWORK_READY=true
+              SECOND_LAYER1_READY=true
               break
             fi
             sleep 1
           done
-          test "$SECOND_NETWORK_READY" = true
-          printf 'coldPid=%s secondPid=%s walletComplete=UNKNOWN_OR_MISSING_FIELD walletIntrospect=PROOF_REQUIRED productIntrospect=UNKNOWN_OR_MISSING_FIELD stateUnchanged=true authorizationSuccess=false accountAvailable=false signing=false send=false transaction=false\n' \
-            "$COLD_PID" "$SECOND_PID" > "$PROOF/gateway-fail-closed.txt"
+          test "$SECOND_LAYER1_READY" = true
+          SECOND_PRIVATE_SERVICE_NEGATIVE_VERIFIED=false
+          if grep -Fq "YNX_WALLET_MAC_REST_APP_GATEWAY_REACHABLE pid=$SECOND_PID status=200" \
+               "$PROOF/second-launch-network-native.log" && \
+             grep -Fq "YNX_WALLET_MAC_GATEWAY_FAIL_CLOSED pid=$SECOND_PID walletComplete=UNKNOWN_OR_MISSING_FIELD walletIntrospect=PROOF_REQUIRED productIntrospect=UNKNOWN_OR_MISSING_FIELD stateUnchanged=true" \
+               "$PROOF/second-launch-network-native.log"; then
+            SECOND_PRIVATE_SERVICE_NEGATIVE_VERIFIED=true
+          fi
+          PRIVATE_SERVICE_DEGRADED=true
+          if test "$COLD_PRIVATE_SERVICE_NEGATIVE_VERIFIED" = true && test "$SECOND_PRIVATE_SERVICE_NEGATIVE_VERIFIED" = true; then
+            PRIVATE_SERVICE_DEGRADED=false
+          fi
+          printf 'coldPid=%s secondPid=%s layer1ChainId=0x1917 coldPrivateServiceNegativeVerified=%s secondPrivateServiceNegativeVerified=%s privateServiceDegraded=%s authorizationSuccess=false accountAvailable=false signing=false send=false transaction=false\n' \
+            "$COLD_PID" "$SECOND_PID" "$COLD_PRIVATE_SERVICE_NEGATIVE_VERIFIED" "$SECOND_PRIVATE_SERVICE_NEGATIVE_VERIFIED" "$PRIVATE_SERVICE_DEGRADED" \
+            > "$PROOF/gateway-fail-closed.txt"
           SECOND_READY=false
           for _ in $(seq 1 60); do
             xcrun log show --style compact --last 5m \
