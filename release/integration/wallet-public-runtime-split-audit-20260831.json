@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "kind": "walletPublicRuntimeSplitAudit",
+  "auditedAt": "2026-08-31T10:14:43Z",
+  "readOnlyAudit": true,
+  "scope": {
+    "excluded": [
+      "Website source mutation",
+      "Vercel alias mutation",
+      "Gateway mutation",
+      "account request",
+      "signing",
+      "transaction"
+    ]
+  },
+  "walletPublicEntry": {
+    "url": "https://wallet.ynxweb4.com/",
+    "httpStatus": 200,
+    "bytes": 2196,
+    "sha256": "e69b3fb2f695584978dae7b5309584a760ccf7f534de649882ee41efaec78954",
+    "server": "Vercel",
+    "cache": "HIT",
+    "title": "YNX Web4 | AI-Native Sovereign Execution Layer",
+    "legacyNetworkIdentifier": "9102",
+    "isDedicatedWalletCompanion": false
+  },
+  "testnetRpc": {
+    "url": "https://rpc.ynxweb4.com/evm",
+    "request": {
+      "method": "eth_chainId",
+      "id": "wallet-readonly-6423"
+    },
+    "httpStatus": 200,
+    "networkHeader": "testnet",
+    "truthfulStatusHeader": "ynx-testnet-node",
+    "result": "0x1917",
+    "chainVerified": true
+  },
+  "walletGateway": {
+    "url": "https://wallet-auth.ynxweb4.com/health",
+    "httpStatus": 200,
+    "cacheControl": "no-store",
+    "remoteDeployed": true,
+    "service": "ynx-wallet-gatewayd",
+    "stateDigest": "e299facdb4c678b59aa41c5ea042a0c6921bc8b901f54690108a0a0f358acc30",
+    "truthfulStatus": "remote-canonical-wallet-gateway"
+  },
+  "requiredIntegration": {
+    "websitePathLockRequired": true,
+    "freshMainBasedConflictResolutionRequired": true,
+    "companionSources": [
+      "9a51e89dee80185d16598cbb9c664b9f2bc4c557",
+      "3651ba0c4322e0564e29b4573f3def90828dba67"
+    ],
+    "productionRouteMutationPerformed": false
+  },
+  "truth": {
+    "rpcTestnetReachable": true,
+    "walletGatewayReachable": true,
+    "walletCompanionPublic": false,
+    "walletProviderAvailable": false,
+    "accountApproved": false,
+    "signatureProven": false,
+    "transactionProven": false,
+    "websiteRouteFixed": false
+  }
+}
