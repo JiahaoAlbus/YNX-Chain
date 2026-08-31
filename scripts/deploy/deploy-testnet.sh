@@ -820,19 +820,19 @@ ${REST_DOMAIN}, ${API_DOMAIN}, ${IDE_DOMAIN} {
 }
 
 bridge.${WEBSITE_DOMAIN} {
-  reverse_proxy 127.0.0.1:38083
+  reverse_proxy 127.0.0.1:6433
 }
 
 web4.${WEBSITE_DOMAIN} {
-  reverse_proxy 127.0.0.1:38091
+  redir https://www.${WEBSITE_DOMAIN}{uri} 302
 }
 
 grpc.${WEBSITE_DOMAIN} {
-  reverse_proxy h2c://127.0.0.1:39090
+  respond "YNX Testnet 6423 gRPC endpoint is not available" 503
 }
 
 evm-ws.${WEBSITE_DOMAIN} {
-  reverse_proxy 127.0.0.1:38546
+  respond "YNX Testnet 6423 EVM WebSocket endpoint is not available" 503
 }
 EOF
 

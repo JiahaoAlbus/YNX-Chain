@@ -12,12 +12,12 @@ def main() -> int:
     caddyfile = Path(sys.argv[1])
     backup = Path(sys.argv[2])
     old = """web4.ynxweb4.com {
-  reverse_proxy 127.0.0.1:38091
+  redir https://www.ynxweb4.com{uri} 302
 }
 """
     new = """web4.ynxweb4.com {
   import /etc/caddy/shop-staging.routes
-  reverse_proxy 127.0.0.1:38091
+  redir https://www.ynxweb4.com{uri} 302
 }
 """
     text = caddyfile.read_text()

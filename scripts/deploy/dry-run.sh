@@ -298,6 +298,14 @@ grep -Fq "bridge.www.ynx.test" "$release_dir/caddy/ynx-chain.caddy" || { echo "C
 grep -Fq "web4.www.ynx.test" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet must preserve Web4 route"; exit 1; }
 grep -Fq "grpc.www.ynx.test" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet must preserve gRPC route"; exit 1; }
 grep -Fq "evm-ws.www.ynx.test" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet must preserve EVM WebSocket route"; exit 1; }
+grep -Fq "reverse_proxy 127.0.0.1:6433" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet must route Bridge to the 6423 service"; exit 1; }
+grep -Fq "redir https://www.www.ynx.test{uri} 302" "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet must redirect the retired Web4 root"; exit 1; }
+grep -Fq 'respond "YNX Testnet 6423 gRPC endpoint is not available" 503' "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet must fail closed when 6423 gRPC is unavailable"; exit 1; }
+grep -Fq 'respond "YNX Testnet 6423 EVM WebSocket endpoint is not available" 503' "$release_dir/caddy/ynx-chain.caddy" || { echo "Caddy ingress snippet must fail closed when 6423 EVM WebSocket is unavailable"; exit 1; }
+if grep -Eq '127\.0\.0\.1:(36657|38545|38546|39090|31317|3808[0-9]|3809[01])' "$release_dir/caddy/ynx-chain.caddy"; then
+  echo "Caddy ingress snippet must not route to a retired 9102 listener"
+  exit 1
+fi
 grep -Fq "BEGIN YNX_CHAIN_MANAGED_INGRESS" "$release_dir/scripts/install-caddy-ingress.sh" || { echo "Caddy install script missing managed block marker"; exit 1; }
 grep -Fq "import \${dest}" "$release_dir/scripts/install-caddy-ingress.sh" || { echo "Caddy install script missing managed import"; exit 1; }
 
