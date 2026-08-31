@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "financeNonregressiveCarrierLease@1",
+  "lease": {
+    "signed": true,
+    "kind": "FINANCE_NONREGRESSIVE_CARRIER_PREPARATION",
+    "id": "finance-combined-4f7fba323a89-20260831t041500z",
+    "taskId": "P0-314",
+    "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+    "issuedAt": "2026-08-31T04:57:37Z",
+    "expiresAt": "2026-08-31T05:27:37Z",
+    "singleUse": true,
+    "retryAllowed": false,
+    "centralSignature": "P0-WALLET-CONNECTIVITY-2026-08:P0-314:FINANCE_NONREGRESSIVE_CARRIER_PREPARATION"
+  },
+  "paths": {
+    "carrier": "/opt/ynx/stage/finance/finance-combined-4f7fba323a89-20260831t041500z"
+  },
+  "fresh": {
+    "rootTuple": "64770:1312502:0:0:755:49:4096:directory",
+    "stageTuple": "64770:3450041:0:0:750:5:4096:directory",
+    "env": {
+      "tuple": "64770:1324724:0:986:640:1:1545:regular file",
+      "bytes": 1545,
+      "sha256": "854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252",
+      "requiredKeyCount": 1,
+      "valuesRecorded": false
+    }
+  },
+  "candidate": {
+    "carrierOwnerMode": "0:0:700",
+    "releaseWebDir": "/opt/ynx/releases/finance/finance-combined-4f7fba323a89-20260831t041500z/ynx-finance-4f7fba323a89/web",
+    "archive": {
+      "bytes": 3938517,
+      "sha256": "55e8d98317eab27248644e6c1168e5ef9f72221a9708a8b80c0ee6502760147d"
+    }
+  },
+  "authority": {
+    "carrierPreparationOnly": true,
+    "phase3Authorized": false,
+    "deploymentAuthorized": false,
+    "serviceLifecycleAuthorized": false,
+    "accountSignTransactionAuthorized": false
+  }
+}

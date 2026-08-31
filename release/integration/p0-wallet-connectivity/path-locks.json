@@ -3427,6 +3427,31 @@
         "no retry or conditional rollback; P0-313 is consumed and nonreusable",
         "Heavy and all Creator locks are released; any successor requires wholly-new shell-safe remote serialization and independent true-SSH fixture"
       ]
+    },
+    {
+      "path": "{host:43.153.202.237:finance-nonregressive-carrier-preparation,write:/opt/ynx/stage/finance/finance-combined-4f7fba323a89-20260831t041500z/**,readonly:/opt/ynx,readonly:/opt/ynx/stage/finance,readonly:/etc/ynx/finance.env}",
+      "owner": "finance-release-control-plane-carrier-preparation",
+      "branch": "codex/p0-finance-nonregressive-combined-candidate-20260831",
+      "worktree": "/private/tmp/ynx-finance-nonregressive-20260831",
+      "taskId": "P0-314",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_SINGLE_USE_FINANCE_NONREGRESSIVE_CARRIER_PREPARATION_ONLY",
+      "acquiredAt": "2026-08-31T04:57:37Z",
+      "expiresAt": "2026-08-31T05:27:37Z",
+      "releasedAt": null,
+      "sourceCommit": "59b129faee447941fa9d8e89fc5079ed20ceebd1",
+      "sourceTree": "5b861252b6ed50c09dc01a56016855ea648a3435",
+      "evidenceCommit": "59b129faee447941fa9d8e89fc5079ed20ceebd1",
+      "artifactSha256": "55e8d98317eab27248644e6c1168e5ef9f72221a9708a8b80c0ee6502760147d",
+      "productionMutationAllowed": true,
+      "allowedExceptions": [
+        "exactly one no-retry Finance carrier-preparation SSH/stdin invocation",
+        "create only the exact carrier directory, candidate.tgz and derived finance.env plus identity-bound pending intermediates",
+        "read production finance.env only to validate metadata and derive the candidate copy; never output values",
+        "post-move device:inode continuity and full bytes/SHA checks are mandatory",
+        "Phase3 deploy extraction current switch service lifecycle unit Caddy public Wallet account signature typed-data and transaction action remain forbidden",
+        "Heavy and this lock release only on terminal direct evidence"
+      ]
     }
   ]
 }

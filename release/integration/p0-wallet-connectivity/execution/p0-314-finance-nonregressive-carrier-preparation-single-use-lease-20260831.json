@@ -1,0 +1,161 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-314",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-finance-nonregressive-carrier-p0314-20260831T045737Z",
+  "owner": "finance-release-control-plane-carrier-preparation",
+  "executor": "finance-release-control-plane-carrier-preparation",
+  "status": "ACTIVE_SINGLE_USE_FINANCE_NONREGRESSIVE_CARRIER_PREPARATION_ONLY",
+  "issuedAt": "2026-08-31T04:57:37Z",
+  "expiresAt": "2026-08-31T05:27:37Z",
+  "singleUse": true,
+  "reusable": false,
+  "productionMutationAllowed": true,
+  "scope": "Exactly one Finance-only SSH/stdin carrier-preparation invocation creating only the signed carrier directory, candidate.tgz and derived finance.env; Phase3 and deployment remain unauthorized",
+  "source": {
+    "branch": "codex/p0-finance-nonregressive-combined-candidate-20260831",
+    "implementationCommit": "95048bf58c3b60eac6f3bd7dc5c875f010a6ce79",
+    "implementationTree": "1f9268b269f14954b4407ffbcd6c9f54a830defc",
+    "requestCommit": "59b129faee447941fa9d8e89fc5079ed20ceebd1",
+    "requestTree": "5b861252b6ed50c09dc01a56016855ea648a3435",
+    "requestBlob": "45a9fbb8bb8a764d40e66bdd3bfc85b0fa8c8ada",
+    "requestBytes": 5815,
+    "requestSha256": "467a45e646f08c06abde3c8c162610b3e6146ac3aef0b67373294f8bbc617be5",
+    "remoteExact": true,
+    "clean": true
+  },
+  "reviewedObjects": {
+    "signedCarrierLease": {
+      "path": "/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration/release/integration/p0-wallet-connectivity/execution/objects/p0-314-finance-nonregressive-carrier-signed-lease.json",
+      "bytes": 1540,
+      "sha256": "c1ba8a0de0d7fe95c0290334abaec43b5ba604db6550bb328b2e5cc937311ebb"
+    },
+    "transport": {
+      "path": "/private/tmp/ynx-finance-nonregressive-20260831/apps/finance/scripts/finance-nonregressive-carrier-openssh.sh",
+      "blob": "34795bbb5bfee8d0cf552e842910fdc6aa4a0d0e",
+      "bytes": 2539,
+      "sha256": "55a7a8a90af10a5d79b3df7cf7320fa7a46d45602cf03a581d238ca6e36ce58e"
+    },
+    "bootstrap": {
+      "path": "/private/tmp/ynx-finance-nonregressive-20260831/apps/finance/scripts/finance-nonregressive-carrier-bootstrap.sh",
+      "blob": "0ccb8865c1b6f8fcc817f98232b6e5991c2140e0",
+      "bytes": 5724,
+      "sha256": "bbb4fcf01ee9627024e9c90488042bde64c9e93e2e1d09e524b4a408f06cf7b8"
+    },
+    "archive": {
+      "path": "/private/tmp/ynx-finance-nonregressive-20260831/apps/finance/evidence/release-candidates/ynx-finance-4f7fba323a89-linux-amd64.tar.gz",
+      "blob": "eeaa2a545704c72ba53975a51d281eeebe0a3b3c",
+      "bytes": 3938517,
+      "sha256": "55e8d98317eab27248644e6c1168e5ef9f72221a9708a8b80c0ee6502760147d"
+    }
+  },
+  "verification": {
+    "bashSyntax": "PASS",
+    "carrierFixture": "PASS",
+    "carrierOpenSshFixture": "PASS",
+    "twoPhaseContractFixture": "PASS",
+    "postMoveArchiveIdentityContinuity": true,
+    "postMoveEnvironmentIdentityContinuity": true,
+    "sameBytesNewInodeSubstitutionRejected": true,
+    "failureCleanupIdentityBound": true
+  },
+  "freshPrewrite": {
+    "observedAt": "2026-08-31T04:56:00Z",
+    "inspectionMode": "ONE_SSH_ZERO_WRITE_NO_REMOTE_TEMP",
+    "rootTuple": "64770:1312502:0:0:755:49:4096:directory",
+    "stageTuple": "64770:3450041:0:0:750:5:4096:directory",
+    "environment": {
+      "tuple": "64770:1324724:0:986:640:1:1545:regular file",
+      "bytes": 1545,
+      "sha256": "854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252",
+      "requiredKeyCount": 1,
+      "valuesRecorded": false
+    },
+    "carrier": "ABSENT",
+    "archive": "ABSENT",
+    "archivePending": "ABSENT",
+    "candidateEnv": "ABSENT",
+    "candidateEnvPending": "ABSENT",
+    "carrierOwnerMode": "0:0:700",
+    "currentTarget": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a",
+    "service": "active:running:2241003:0",
+    "sudoNonInteractive": true,
+    "mutationCount": 0,
+    "localStdout": "ABSENT",
+    "localStderr": "ABSENT",
+    "localReceipt": "ABSENT",
+    "localReceiptPending": "ABSENT"
+  },
+  "executionAuthority": {
+    "processWorkingDirectory": "/private/tmp/ynx-finance-nonregressive-20260831",
+    "literalArgv": [
+      "/bin/bash",
+      "/private/tmp/ynx-finance-nonregressive-20260831/apps/finance/scripts/finance-nonregressive-carrier-openssh.sh",
+      "/private/tmp/ynx-finance-nonregressive-20260831/apps/finance/evidence/release-candidates/ynx-finance-4f7fba323a89-linux-amd64.tar.gz",
+      "/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration/release/integration/p0-wallet-connectivity/execution/objects/p0-314-finance-nonregressive-carrier-signed-lease.json",
+      "/tmp/ynx-finance-nonregressive-carrier.stdout",
+      "/tmp/ynx-finance-nonregressive-carrier.stderr",
+      "/tmp/ynx-finance-nonregressive-carrier.receipt",
+      "/private/tmp/ynx-finance-nonregressive-20260831/apps/finance/scripts/finance-nonregressive-carrier-bootstrap.sh",
+      "5724",
+      "bbb4fcf01ee9627024e9c90488042bde64c9e93e2e1d09e524b4a408f06cf7b8",
+      "3938517",
+      "55e8d98317eab27248644e6c1168e5ef9f72221a9708a8b80c0ee6502760147d",
+      "1540",
+      "c1ba8a0de0d7fe95c0290334abaec43b5ba604db6550bb328b2e5cc937311ebb"
+    ],
+    "argvCount": 14,
+    "sshAttemptLimit": 1,
+    "retryAllowed": false,
+    "stdin": "exact candidate archive only"
+  },
+  "allowedMutation": {
+    "carrier": "/opt/ynx/stage/finance/finance-combined-4f7fba323a89-20260831t041500z",
+    "finalFiles": ["candidate.tgz", "finance.env"],
+    "pendingFiles": ["candidate.tgz.pending", "finance.env.pending"],
+    "pendingFilesMustBeAbsentAtTerminal": true,
+    "productionEnvironmentValuesMayBeReadOnlyForDerivation": true,
+    "productionEnvironmentValuesMayBeOutput": false
+  },
+  "requiredTerminalReceipt": {
+    "phase": "carrier-preparation",
+    "carrierTuple": true,
+    "archiveTupleBytesSha256": true,
+    "candidateEnvTupleBytesSha256": true,
+    "stderrBytes": 0,
+    "terminalReceiptValidated": true,
+    "independentReadbackRequiredBeforePhase3": true
+  },
+  "phase3": {
+    "authorized": false,
+    "signedLease": false,
+    "deployment": false,
+    "serviceLifecycle": false,
+    "currentEnvUnitCaddyPublicMutation": false,
+    "nextBoundary": "Only after direct P0-314 terminal carrier receipt and a wholly-new fresh carrier plus six-parent read may Central independently consider Phase3"
+  },
+  "terminalRules": {
+    "success": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0314_NONREGRESSIVE_CARRIER_PREPARATION_PENDING_INDEPENDENT_READBACK",
+    "failure": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0314_NONREGRESSIVE_CARRIER_PREPARATION",
+    "releaseHeavyAndAllLocksOnTerminal": true,
+    "noDeploymentInference": true
+  },
+  "forbidden": [
+    "second SSH attempt or retry",
+    "Phase3 bootstrap transport executor or manual rollback",
+    "archive extraction deployment current switch environment replacement service restart unit or Caddy mutation",
+    "Dex Exchange Quant or unrelated product mutation",
+    "environment value output",
+    "Wallet account request signature typed-data or transaction"
+  ],
+  "truthBoundary": {
+    "leaseIssued": true,
+    "carrierPlacementExecuted": false,
+    "carrierPlaced": false,
+    "phase3Authorized": false,
+    "deployed": false,
+    "account": false,
+    "signature": false,
+    "transaction": false
+  }
+}

@@ -7420,6 +7420,24 @@
       "productionMutation": false,
       "p0302Reusable": false,
       "nextAction": "P0-303 is consumed and nonreusable. P0-302 remote state is known, no deployment residue exists and the old runtime is exact. A future RELEASE_MATERIALIZE ownership-fence correction requires a wholly-new source request and lease; no deployment authority is inferred."
+    },
+    {
+      "taskId": "P0-314",
+      "owner": "integration,financial-apps",
+      "status": "ACTIVE_SINGLE_USE_FINANCE_NONREGRESSIVE_CARRIER_PREPARATION_ONLY",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/execution/p0-314-finance-nonregressive-carrier-preparation-single-use-lease-20260831.json",
+        "release/integration/p0-wallet-connectivity/execution/objects/p0-314-finance-nonregressive-carrier-signed-lease.json",
+        "/opt/ynx/stage/finance/finance-combined-4f7fba323a89-20260831t041500z"
+      ],
+      "dependencies": ["P0-303"],
+      "requestCommit": "59b129faee447941fa9d8e89fc5079ed20ceebd1",
+      "requestBlob": "45a9fbb8bb8a764d40e66bdd3bfc85b0fa8c8ada",
+      "executionLeaseIssued": true,
+      "carrierPlacementExecuted": false,
+      "phase3Authorized": false,
+      "deploymentAuthorized": false,
+      "nextAction": "Execute the exact 14-element carrier-preparation argv once before expiry. Return direct carrier/archive/candidate-env tuples, bytes and SHA-256; Phase3 remains unauthorized until separate independent readback and a wholly-new lease."
     }
   ]
 }
