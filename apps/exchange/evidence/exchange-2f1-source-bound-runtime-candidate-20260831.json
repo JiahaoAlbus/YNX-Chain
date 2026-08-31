@@ -1,0 +1,58 @@
+{
+  "schemaVersion": "exchange-source-bound-runtime-candidate@1",
+  "classification": "local-unsigned-source-bound-runtime-candidate",
+  "status": "CANDIDATE_FROZEN_AWAITING_FRESH_EXCHANGE_ONLY_HOST_MAPPING_AND_DEPLOYMENT_LEASE",
+  "product": "ynx-exchange",
+  "source": {
+    "commit": "2f1b0f8bc08e2abedcf27bf9c2af902e49da4618",
+    "tree": "86a7b8ac89e0665ddc696b554ab408af0249cae0"
+  },
+  "candidate": {
+    "archive": {
+      "path": "apps/exchange/evidence/release-candidates/ynx-exchange-2f1b0f8bc08e-runtime.tar.gz",
+      "bytes": 3503813,
+      "sha256": "34b2ed6464ac031391aedeb062261a931aa94c318c88285ab3a720b6bf641359"
+    },
+    "binary": {
+      "relativePath": "ynx-exchange-2f1b0f8bc08e/ynx-exchanged",
+      "bytes": 7947794,
+      "sha256": "41e1acbbf8bcf518661a4a73ac36c81c0905e7e62eee86590d91a7be59c53c13",
+      "format": "ELF 64-bit x86-64 static",
+      "build": {"goos":"linux","goarch":"amd64","cgoEnabled":false,"trimpath":true,"buildVCS":false}
+    },
+    "layout": "The archive retains apps/exchange/web beneath the release root, matching the server's working-directory-relative static asset path.",
+    "archiveVerification": {"sha256Sums":"passed","payloadEntries":5,"totalEntries":7}
+  },
+  "localRuntime": {
+    "classification": "native-development-host-only; not Linux candidate execution",
+    "health": {"bytes":266,"sha256":"ec83a3383f7dfbe09f8ebffde22f14893bf207f59ce52fce4d8e931392697f1c","commit":"2f1b0f8bc08e2abedcf27bf9c2af902e49da4618"},
+    "version": {"bytes":160,"sha256":"4a37ce396155ed08b6262907272edc5afad7e71d79fac8920c6ad0634b0e06d6","commit":"2f1b0f8bc08e2abedcf27bf9c2af902e49da4618"},
+    "englishGuestIndex": {"bytes":11368,"sha256":"7e397fa8ba5e0ae6dad4f54dd7a794189bfa46ead8ba1e596af0e4bbfe63bc7b"}
+  },
+  "tests": {
+    "archiveIntegrity": "passed: SHA256SUMS for all payload files plus BUNDLE_MANIFEST",
+    "runtimeLayout": "passed: native test server served /api/health, /api/version and root from extracted archive layout",
+    "linuxCandidateRuntime": "not-run: macOS cannot execute the Linux amd64 candidate"
+  },
+  "currentPublicReadback": {
+    "rootHealthVersion": "all return the same 18603-byte HTML fallback with SHA-256 64c5b7862099eb06a316fbc6d1c665e81355f427fa27b26584bbf586ac4eacde",
+    "candidateBound": false
+  },
+  "requiredBeforeAnyDeployment": [
+    "fresh Exchange host, service, environment, static-root, unit, Caddy, state, current-release and rollback binding",
+    "fresh source-bound public health/version JSON and English guest-page response receipts",
+    "a new Exchange-only rollback-first executor with literal command bytes and unique stage, backup and release paths",
+    "a separate Central single-use deployment lease"
+  ],
+  "truth": {
+    "leaseIssued": false,
+    "sshExecuted": false,
+    "deployed": false,
+    "publicRuntimeSourceBound": false,
+    "walletProviderApproved": false,
+    "orderSubmitted": false,
+    "tradeSettled": false,
+    "computerControl": false
+  },
+  "singleExecutableBlocker": "Central must first provide a fresh Exchange-only host/runtime mapping with non-fallback public health and version endpoints, then approve a new rollback-first deployment executor and single-use lease."
+}
