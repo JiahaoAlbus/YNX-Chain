@@ -14,6 +14,12 @@ if(evidence.scope?.product!=="pay")fail("scope must remain Pay-only");
 if(!/^codex\/pay-/.test(evidence.candidate?.branch??""))fail("candidate branch must be an isolated codex/pay branch");
 if(!/^[0-9a-f]{40}$/.test(evidence.candidate?.commit??""))fail("candidate commit is not immutable");
 if(!/^[0-9a-f]{40}$/.test(evidence.candidate?.tree??""))fail("candidate tree is not immutable");
+if(!/^[0-9a-f]{40}$/.test(evidence.currentState?.remoteCommit??""))fail("current remote baseline is not immutable");
+if(evidence.rollback?.sourceRollbackCommit!==evidence.currentState.remoteCommit)fail("rollback source must equal the frozen remote baseline");
+if(evidence.currentState.publicTarget!==null||evidence.currentState.installedTarget!==null)fail("unleased candidate must not invent a public or installed target");
+if(evidence.rollback?.publicRollbackTarget!==null)fail("unleased candidate must not invent a public rollback target");
+if(evidence.requestedLease?.executor!=="CENTRAL_RELEASE_EXECUTOR_MUST_BE_NAMED")fail("executor may only be bound by Central");
+if(evidence.requestedLease?.expiry!=="CENTRAL_MUST_SET_A_FRESH_EXPLICIT_EXPIRY")fail("lease expiry may only be set by Central");
 
 const gitTree=execFileSync("git",["show","-s","--format=%T",evidence.candidate.commit],{cwd:projectRoot,encoding:"utf8"}).trim();
 if(gitTree!==evidence.candidate.tree)fail("candidate commit/tree binding mismatch");
