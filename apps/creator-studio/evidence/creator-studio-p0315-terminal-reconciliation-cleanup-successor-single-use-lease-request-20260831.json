@@ -1,0 +1,197 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "owner": "creator-studio-deploy-owner",
+  "requestType": "WHOLLY_NEW_CREATOR_P0315_TERMINAL_RECONCILIATION_CLEANUP_ONLY_SUCCESSOR",
+  "supersedes": {
+    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-creator-studio-3f97a13d-shell-safe-single-use-upgrade-20260831T051700Z",
+    "reason": "P0-315 is released unknown and nonreusable; P0-316 proved old current restored with the exact forward receipt, candidate release and control tree retained"
+  },
+  "implementation": {
+    "commit": "022bc6a5aa623bc399c9ecbb4f787df9c3ef535e",
+    "tree": "19507e3c54e357270d660e9b6e2c22f824605c9c",
+    "upgradeExecutor": {
+      "path": "apps/creator-studio/release-upgrade-executor-3f97a13d.mjs",
+      "blob": "4201e2d9a9af0cad91f7f99774a15ef6190b41b6",
+      "bytes": 32653,
+      "sha256": "423f9f8b1d1f90eb883a55b67a9c6fe12759cc0c0d558afcdf6f111f68323ee7"
+    },
+    "upgradeTransport": {
+      "path": "apps/creator-studio/release-upgrade-transport-3f97a13d.cjs",
+      "blob": "6d5d41ff267bb7c4046e2a5f1c1ca2dbcf74c86f",
+      "bytes": 15848,
+      "sha256": "56bc0a76d915bbc24c4bddc33d4264b7558c5f29657a9de7cdc497f1637f66f6"
+    },
+    "cleanupExecutor": {
+      "path": "apps/creator-studio/release-residue-cleanup-3f97a13d.mjs",
+      "blob": "d2ea2df92b76dc1b408c31fef505376eca3d5b79",
+      "bytes": 30724,
+      "sha256": "404d1b943d4a47b6b073202e6dfabab509d777e860885fc99404580ce2fae84b"
+    }
+  },
+  "authoritativeTerminalReadback": {
+    "taskId": "P0-316",
+    "centralCommit": "5093fe8489e438b4edf2ee703399aea6d2e1a880",
+    "centralTree": "ce8c813eec19f9bdf43872c382629d44b9a5dcb3",
+    "evidencePath": "release/integration/p0-wallet-connectivity/execution/objects/p0-316-creator-studio-p0315-terminal-zero-write-readback-evidence-20260831.json",
+    "evidenceBlob": "bf27f2e98d6bcc866a89414d4e1464821150e1f8",
+    "evidenceBytes": 2151,
+    "evidenceSha256": "a6298945c5d493c6d9ad9867be5dea85fdb56eaa1ede632bd8b37aca1919e6a1",
+    "mutationCount": 0,
+    "oldCurrentRestored": true,
+    "cleanupComplete": false,
+    "creatorPromoted": false
+  },
+  "retainedProductionFacts": {
+    "current": {
+      "tuple": "64770:1483933:0:0:777:1:63:symbolic link",
+      "target": "/opt/ynx-creator-studio-wallet/releases/creator-studio-0e1a53c5",
+      "currentNext": "absent"
+    },
+    "forwardReceipt": {
+      "path": "/opt/ynx-creator-studio-wallet/receipts/upgrade-3f97a13d.json",
+      "bytes": 85393,
+      "sha256": "37c0866d535f25ce59d27e66143410a7ec1c2130a1dbe91da6aecb799eba7d0d",
+      "status": "FORWARD_SWITCHED_AWAITING_TERMINAL",
+      "receiptNext": "absent"
+    },
+    "candidate": {
+      "path": "/opt/ynx-creator-studio-wallet/releases/creator-studio-3f97a13d",
+      "tuple": "64770:1483917:995:986:755:4:directory",
+      "exactInventory": true,
+      "rootSha256": "b37f78205f2c5443b2103ee42e98d6ecde65238c107733088e63893a3c1de697",
+      "appSha256": "77e7c42006e3be36c7af717e5e8b2a3cd847c3652dcadb1731c259aee5b01af5",
+      "manifestSha256": "fcd0f3346de18e51580af8f7c4f040b8694f7e2ef74bb92cc1ce942e03bea624",
+      "i18nSha256": "077ffd891f876de3ec37838d923854f401172213bc671527059c78f4875de80f",
+      "catalogSha256": "4c86e3e1cdeac6d9c4570891d70bab4c3486c6a4429dd33fd1029f046ca9ecff",
+      "stageAndQuarantinesAbsent": true
+    },
+    "control": {
+      "path": "/opt/ynx-release-control-plane/creator-studio-3f97a13d",
+      "tuple": "64770:1483830:0:0:700:3:directory",
+      "placementReceiptBytes": 951,
+      "placementReceiptSha256Prefix": "6af1175d",
+      "forwardRollbackCarriersAndExecutorExact": true,
+      "stageAndQuarantineAbsent": true
+    },
+    "unit": {
+      "tuple": "64770:131976:0:0:644:1:540:regular file",
+      "sha256": "06a55f91bf5530952c347db146daa827510cc72f161d999943da7d5737b8c006"
+    }
+  },
+  "failureReconciliation": {
+    "p0315ObservedChecks": {
+      "root": false,
+      "app": false,
+      "manifest": true,
+      "i18n": true,
+      "catalog": true,
+      "source": true
+    },
+    "boundedConclusion": "The prior verifier sampled each resource once immediately after restart and parsed manifest JSON before bounded status and hash handling. The split result is consistent with a transient or mixed-readiness public window, but the prior evidence did not freeze raw root/app responses, so no stronger root cause is claimed.",
+    "sourceFix": "The successor requires one complete same-attempt five-resource set, safely parses the manifest, retries at most 40 times with 250 ms spacing, records terminal statuses and hashes on bounded failure, and permits receipt-bound rollback to resume when current is already restored to the exact old release without restarting it again.",
+    "deploymentSuccessClaimed": false
+  },
+  "fixtureEvidence": {
+    "creatorCheck": "5/5 PASS",
+    "creatorBuild": "PASS",
+    "upgradeExecutorFixture": {
+      "passed": true,
+      "transientPublicRecovered": true,
+      "persistentPublicRejected": true,
+      "automaticRollbackTerminalInterrupted": true,
+      "oldCurrentRetainedAfterInterruptedRollback": true,
+      "receiptBoundRollbackResumedFromOldCurrent": true
+    },
+    "transportFixture": {
+      "passed": true,
+      "wouldBeCarrierBytes": 433912,
+      "wouldBeCarrierSha256": "1bec43b12ac163be96b56a75f0bac90da011868e4cbb79ae3818ce7f3ffa2b23"
+    },
+    "cleanupFixture": {
+      "passed": true,
+      "completeFileAndDirectoryInventoryBound": true,
+      "completePerObjectTupleBound": true,
+      "receiptCandidateControlReplacementRacesRejected": true,
+      "candidateSameBytesNewInodeRejected": true,
+      "controlSameBytesNewInodeRejected": true,
+      "unexpectedFileAndDirectoryRejected": true,
+      "serviceLifecycleActions": 0
+    }
+  },
+  "requestedPrewrite": {
+    "mode": "CENTRAL_ZERO_WRITE_FRESH_READ_BEFORE_ANY_CLEANUP_LEASE",
+    "required": true,
+    "freeze": [
+      "exact current symlink tuple target and dereferenced old-release tuple",
+      "Creator ActiveState SubState MainPID NRestarts unit WorkingDirectory and User",
+      "API Viewer and Creator listener PIDs",
+      "exact unit tuple bytes and SHA256",
+      "exact old public root app manifest i18n and catalog status bytes and SHA256",
+      "exact receipt tuple bytes SHA256 status and semantic bindings",
+      "exact candidate root tuple plus complete directory and per-object dev inode uid gid mode nlink type bytes SHA256 inventory",
+      "exact control root tuple plus complete directory and per-object dev inode uid gid mode nlink type bytes SHA256 inventory",
+      "exact parent device inode ownership mode and same-device relationships",
+      "absence of current.next receipt.next candidate.next control.next and all cleanup quarantine paths"
+    ],
+    "reason": "P0-316 did not freeze service/listener identifiers or complete per-object candidate/control identities required by the cleanup executor; no canonical cleanup input may be inferred from partial evidence."
+  },
+  "requestedExecution": {
+    "executor": "release-control-plane",
+    "runtimeHost": "43.153.202.237",
+    "attemptLimit": 1,
+    "retryAllowed": false,
+    "leaseMustFreeze": {
+      "canonicalInput": "stable JSON plus newline containing action CREATOR_P0315_RESIDUE_CLEANUP_ONLY and every requestedPrewrite identity",
+      "canonicalInputBase64": "exact literal generated from the fresh-read canonical input",
+      "sshPrefix": "exact protected existing identity and host argv without exposing credential material",
+      "remoteArgvSuffix": [
+        "/usr/bin/sudo",
+        "-n",
+        "/usr/bin/node",
+        "--input-type=module",
+        "-",
+        "cleanup",
+        "<exact canonicalInputBase64 literal>"
+      ],
+      "stdin": {
+        "path": "apps/creator-studio/release-residue-cleanup-3f97a13d.mjs",
+        "bytes": 30724,
+        "sha256": "404d1b943d4a47b6b073202e6dfabab509d777e860885fc99404580ce2fae84b"
+      }
+    },
+    "deletionOrder": [
+      "/opt/ynx-creator-studio-wallet/receipts/upgrade-3f97a13d.json",
+      "/opt/ynx-creator-studio-wallet/releases/creator-studio-3f97a13d",
+      "/opt/ynx-release-control-plane/creator-studio-3f97a13d"
+    ],
+    "mutationScopeOnly": "the three exact retained residue paths above",
+    "serviceLifecycleActions": 0
+  },
+  "safetyContract": {
+    "fullSnapshotBeforeAnyDelete": true,
+    "immediateFullTreeAndPerObjectRevalidationBeforeEachRecursiveDelete": true,
+    "remainingTargetsRevalidatedAfterEachDelete": true,
+    "sameBytesNewInodeRejected": true,
+    "foreignFileDirectorySymlinkMountSpecialOrHardlinkRejected": true,
+    "currentServicePortsUnitPublicRevalidatedBeforeAndAfter": true,
+    "noRollbackForwardRestartSwitchOrDeploy": true
+  },
+  "terminalRule": "Retain Creator Heavy after the one cleanup attempt. Release only after a wholly-new zero-write readback proves all residues and next/quarantine paths absent while old current, service, listener PIDs, unit and five public resources remain exact. Only then may a separate corrected deployment successor be rebuilt and reviewed.",
+  "forbidden": [
+    "reuse of P0-315 or P0-316",
+    "cleanup execution before Central freezes the complete canonical input and literal argv",
+    "SSH deploy restart switch rollback or service lifecycle under this request",
+    "recursive deletion after any identity drift",
+    "mutation of current old release API Viewer unit Caddy or public resources",
+    "Wallet account request signature typed data or transaction"
+  ],
+  "truthBoundary": {
+    "sourceOnly": true,
+    "sshExecuted": false,
+    "productionMutation": false,
+    "cleanupComplete": false,
+    "creatorPromoted": false,
+    "publicRuntimeChanged": false
+  }
+}
