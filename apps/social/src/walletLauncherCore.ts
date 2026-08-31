@@ -1,5 +1,6 @@
 import { encodeRequestDeepLink } from "@ynx-chain/wallet-auth";
 import type { WalletAuthorizationRequest } from "./walletAuth";
+import { assertSocialWalletChain } from "./walletNetwork";
 
 export const YNX_WALLET_DOWNLOAD_URL =
   "https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk";
@@ -29,6 +30,7 @@ export async function openWalletAuthorizationWithAdapter(
   request: WalletAuthorizationRequest,
   adapter: WalletLauncherAdapter,
 ): Promise<WalletOpenResult> {
+  assertSocialWalletChain(request.chainId);
   const url = encodeRequestDeepLink(request);
   if (adapter.platform === "android") {
     if (!adapter.android)
@@ -58,4 +60,3 @@ export async function openWalletAuthorizationWithAdapter(
     return Object.freeze({ opened: false, code: "SCHEME_NOT_REGISTERED" });
   }
 }
-
