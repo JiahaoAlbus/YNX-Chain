@@ -136,13 +136,13 @@
   },
   "summary": {
     "registeredProducts": 12,
-    "sourceConsumers": 6,
-    "sourceBoundPublicConsumers": 2,
+    "sourceConsumers": 5,
+    "sourceBoundPublicConsumers": 1,
     "realProviderApprovalProducts": 1,
     "threeSegmentCompleteProducts": 0,
     "productsConnected": 0,
     "productsMigratedV2": 0,
-    "stalledProducts": 6
+    "stalledProducts": 7
   },
   "products": [
     {"productId":"calendar","owner":"calendar","activityCommit":"8f45566073f0d9979b5b1460b35144d954acc692","sourceCommit":"983e9199dc03da6f1ac4db33d33119513642cacf","sourceConsumed":true,"publicRuntime":true,"realProviderApproval":true,"refreshChooserClose":true,"disconnect":false,"callback":false,"productSessionV2":false,"complete":false,"blocker":"Visible disconnect/account-change plus approve/reject callback and Product Session v2 remain unproven."},
@@ -154,11 +154,11 @@
     {"productId":"finance","owner":"finance-suite-finance","activityCommit":"bf8aff118793014aeeefa04ec0a9141e509627ef","evidenceSha256":"6467d03dfafec2a6f7cdcab6ce7c33fe2c23ee08d1659e71b5137b1d13f7ef78","sourceConsumed":false,"publicRuntime":false,"realProviderApproval":false,"refreshChooserClose":false,"disconnect":false,"callback":false,"productSessionV2":false,"complete":false,"centralStatus":"SOURCE_BUILD_ACCEPTED_LEASE_RELEASED_AWAITING_PRODUCTION_BINDING","blocker":"Finance source build is Centrally accepted and its lease released, but the prior consumer evidence still binds shared source 98c6d5d7 to non-authoritative tree 69ba84ea instead of 51a60a36; no public or Product completion is promoted."},
     {"productId":"pay","owner":"pay","activityCommit":"b3ed7141c623d57bc7d73bec6b8a1c21b1cd88ed","evidenceSha256":"9e0a0d4dafb25a43cd1ce298ac08d5daa19e5db5e80075e4abc1b7c81b1986c0","sourceConsumed":true,"publicRuntime":false,"realProviderApproval":false,"refreshChooserClose":false,"disconnect":false,"callback":false,"productSessionV2":false,"complete":false,"blocker":"Bootable current-source runtime and real approve/reject callback, refresh-disconnect and Product Session evidence are absent."},
     {"productId":"quant","owner":"finance-suite-quant","activityCommit":"7d455a7211f78977c023480b33c86af758934b8d","sourceConsumed":false,"publicRuntime":false,"realProviderApproval":false,"refreshChooserClose":false,"disconnect":false,"callback":false,"productSessionV2":false,"complete":false,"blocker":"Latest activity only corrects installer truth; shared Provider/connect consumption and all runtime lifecycle evidence remain absent."},
-    {"productId":"shop","owner":"shop","activityCommit":"35dc239546c2bf963534d5031d4c35c4e22c2d1c","sourceCommit":"e35c950d57a6f9a4477877d3806cf1e4566ce74e","sourceConsumed":true,"publicRuntime":true,"realProviderApproval":false,"existingAccountRestore":true,"refreshChooserClose":true,"disconnect":false,"callback":false,"productSessionV2":false,"complete":false,"blocker":"No new approval, callback, disconnect handling or Product Session v2 evidence; publication is static-only and full runtime identity remains unmatched."},
+    {"productId":"shop","owner":"shop","activityCommit":"35dc239546c2bf963534d5031d4c35c4e22c2d1c","sourceCommit":"e35c950d57a6f9a4477877d3806cf1e4566ce74e","sourceConsumed":false,"publicRuntime":true,"realProviderApproval":false,"existingAccountRestore":true,"refreshChooserClose":true,"disconnect":false,"callback":false,"productSessionV2":false,"complete":false,"routerConsumerAudit":{"commit":"7a1793e1b6a5aca01a2e2adabd2ce21c4c49fbc0","manualAuthorizationFindings":4,"legacyCallbackSchemeShorthandFindings":0,"passed":false},"blocker":"Current consumer audit finds four direct authorization paths in apps/shop/wallet-auth.js and native WalletAuth.java. Replace them through the canonical public SDK and pass the audit before source consumption can be true; static publication and account-restore evidence do not override this source gate."},
     {"productId":"social","owner":"social","sourceCommit":"22c26bcb7a8d618cb8e38b30940b1c07bf4237c8","sourceConsumed":false,"publicRuntime":true,"realProviderApproval":false,"refreshChooserClose":false,"disconnect":false,"callback":false,"productSessionV2":false,"complete":false,"blocker":"Public no-provider fallback is proven, but exact shared consumption and real Provider lifecycle evidence remain absent."},
     {"productId":"video","owner":"video","sourceCommit":"1d4532ffca4eabdc15f2ec66f3d1143f67e159fa","sourceConsumed":false,"publicRuntime":false,"realProviderApproval":false,"refreshChooserClose":false,"disconnect":false,"callback":false,"productSessionV2":false,"complete":false,"blocker":"Exact shared Web/Native consumption, public runtime and real Provider lifecycle evidence remain absent."}
   ],
-  "stalledOwners": ["card", "creator-studio", "finance-suite-finance", "finance-suite-quant", "social", "video"],
+  "stalledOwners": ["card", "creator-studio", "finance-suite-finance", "finance-suite-quant", "shop", "social", "video"],
   "faucetTracking": {
     "modifiedByProtocolOwner": false,
     "ownerBranch": "codex/faucet-runtime-64efa498-20260821",
