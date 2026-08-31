@@ -75,6 +75,22 @@ test('web restores an approved provider and clears only the standard connection 
   assert.equal(window.YNXFinanceWallet.connected(),false,'wrong-chain event must clear only the standard connection');
   assert.equal(window.YNXFinanceWallet.session(),null,'Product Session remains unavailable rather than fabricated');
 });
+test('web verifies or adds YNX Testnet before requesting a Finance account',async()=>{
+  const calls=[],state={accounts:['0x1111111111111111111111111111111111111111'],chainId:'0x1',switches:0};
+  const provider={request:async({method})=>{calls.push(method);if(method==='eth_accounts')return [];if(method==='wallet_switchEthereumChain'&&++state.switches===1)throw Object.assign(new Error('unknown chain'),{code:4902});if(method==='wallet_switchEthereumChain'){state.chainId='0x1917';return null}if(method==='wallet_addEthereumChain')return null;if(method==='eth_chainId')return state.chainId;if(method==='eth_requestAccounts')return state.accounts;throw new Error(`unexpected ${method}`)}};
+  const window={ethereum:provider,dispatchEvent:()=>{}};
+  const context=vm.createContext({window,document:{querySelector:()=>null},Promise,Error,Object,Date,CustomEvent:class CustomEvent{},Array,String,RegExp,Number});
+  vm.runInContext(webWalletDistribution,context,{filename:'wallet-auth.js'});vm.runInContext(webWallet,context,{filename:'wallet-auth-entry.js'});await window.YNXFinanceWallet.ready;calls.length=0;
+  await window.YNXFinanceWallet.connect();
+  assert.deepEqual(calls,['wallet_switchEthereumChain','wallet_addEthereumChain','wallet_switchEthereumChain','eth_chainId','eth_requestAccounts','eth_chainId']);
+});
+test('web wrong-chain failure never requests a Finance account',async()=>{
+  const calls=[],provider={request:async({method})=>{calls.push(method);if(method==='eth_accounts')return [];if(method==='wallet_switchEthereumChain')return null;if(method==='eth_chainId')return '0x1';throw new Error(`unexpected ${method}`)}};
+  const window={ethereum:provider,dispatchEvent:()=>{}};
+  const context=vm.createContext({window,document:{querySelector:()=>null},Promise,Error,Object,Date,CustomEvent:class CustomEvent{},Array,String,RegExp,Number});
+  vm.runInContext(webWalletDistribution,context,{filename:'wallet-auth.js'});vm.runInContext(webWallet,context,{filename:'wallet-auth-entry.js'});await window.YNXFinanceWallet.ready;calls.length=0;
+  await assert.rejects(window.YNXFinanceWallet.connect(),/WRONG_CHAIN/);assert.deepEqual(calls,['wallet_switchEthereumChain','eth_chainId']);
+});
 test('public and private read reconnect are bounded and mutations are never automatically replayed',()=>{
   for(const marker of ['id="network-retry"','Reconnect YNX Chain']) assert.ok(html.includes(marker),marker);
   for(const marker of ['READ_RETRY_DELAYS=[0,600,1600]','fetch(\'/health\'','AbortSignal.timeout(10_000)',"window.addEventListener('online'",'FINANCE_SERVICE_UNAVAILABLE','Finance service reachable · Wallet not connected']) assert.ok(js.includes(marker),marker);
