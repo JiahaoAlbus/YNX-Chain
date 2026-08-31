@@ -443,7 +443,48 @@ const indexHTML = `<!doctype html>
     /* The final responsive layer wins over the dense desktop presentation above. */
     .route-head h1 { font-size:clamp(23px,1.4vw + 17px,32px); line-height:1.15; }
     .metric-value { font-size:clamp(19px,1.1vw + 14px,25px); line-height:1.08; }
-    @media (max-width:480px) { .route-head h1 { font-size:clamp(22px,6vw + 3px,27px); } .metric-value { font-size:clamp(18px,4vw + 4px,22px); } .portal-panel,.download-item { padding:16px; } .code-sample { padding:12px; font-size:11px; } }
+    /* Keep the dense desktop hierarchy, while allowing text and controls to
+       breathe on narrow or unusually shaped browser windows.  Browser zoom
+       still uses the user agent's normal scaling; these rules only govern
+       responsive layout. */
+    @media (max-width:480px) {
+      .route-head h1 { font-size:clamp(22px,6vw + 3px,27px); }
+      .metric-value { font-size:clamp(18px,4vw + 4px,22px); }
+      .portal-panel,.download-item { padding:16px; }
+      .code-sample { padding:12px; font-size:11px; }
+      .announcement .shell { align-items:flex-start; padding:9px 0; font-size:clamp(11px,2.9vw,13px); line-height:1.4; }
+      .announcement a { flex:none; }
+      .nav-actions { width:100%; justify-content:space-between; margin-left:0; }
+      .language-select { min-width:0; flex:1 1 auto; }
+      .wallet-connect { min-width:0; max-width:52%; padding:0 11px; overflow:hidden; text-overflow:ellipsis; }
+      .search input { height:52px; padding-right:94px; padding-left:42px; font-size:clamp(13px,3.6vw,15px); }
+      .search button { height:40px; padding:0 12px; font-size:12px; }
+      .trending { gap:7px 12px; font-size:12px; }
+      .portal-callout { padding:18px; }
+      .portal-callout h2 { font-size:clamp(16px,5vw,20px); }
+      .portal-callout-links { gap:6px; }
+      .portal-callout-links a { flex:1 1 auto; text-align:center; }
+      .status-bar { align-items:flex-start; gap:7px; font-size:11px; }
+      .status-bar .refresh { min-height:30px; }
+      .metric { min-height:104px; padding:16px 14px; }
+      .metric-label { font-size:clamp(11px,3.1vw,13px); }
+      .asset-overview-head { align-items:flex-start; flex-direction:column; }
+      .block-chip { flex-basis:190px; min-height:116px; padding:15px; }
+      .block-chip strong { font-size:clamp(15px,4.7vw,17px); }
+      .live-row { min-height:58px; padding:8px 12px; }
+      .row-title,.row-side strong { font-size:12px; }
+      .row-subtitle,.row-side { font-size:11px; }
+      .address-chip { max-width:78px; }
+      .flow-arrow { width:18px; }
+      .page-controls { align-items:flex-start; flex-direction:column; }
+      .page-controls div { width:100%; }
+      .page-controls button { flex:1 1 0; }
+      .detail-summary { grid-template-columns:1fr; }
+      .detail-row { grid-template-columns:1fr auto; gap:5px 10px; }
+      .detail-row dd { grid-column:1 / -1; }
+      .detail-row .copy-button { grid-column:2; grid-row:1; }
+      .toast { width:min(calc(100% - 24px),460px); text-align:center; }
+    }
   </style>
 </head>
 <body>
