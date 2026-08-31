@@ -107,7 +107,7 @@ test('public and private read reconnect are bounded and mutations are never auto
 });
 test('a standard Wallet connection has a visible no-data state while the Finance API is pending',()=>{
   for(const marker of ['id="connected-degraded"','Standard Wallet connected','Nothing is inferred','no Finance data request was sent']) assert.ok(html.includes(marker),marker);
-  for(const marker of ['async function signIn(){try{await window.YNXFinanceWallet.connect();await load()}','function renderConnectedDegraded()','renderConnectedDegraded();try{await publicHealth()','connected-degraded\').classList.remove(\'hidden\')']) assert.ok(js.includes(marker),marker);
+  for(const marker of ['async function signIn(){try{await window.YNXFinanceWallet.connect();await load()}','function renderConnectedDegraded()','function applyStandardWalletState(wallet)','ynx-finance-standard-wallet-state','renderConnectedDegraded();try{await publicHealth()','connected-degraded\').classList.remove(\'hidden\')']) assert.ok(js.includes(marker),marker);
   assert.equal(js.includes("await api('/api/overview')"),false,'pending product API must not be queried after Wallet connection');
 });
 test('responsive and accessibility contracts exist',()=>{
