@@ -111,7 +111,7 @@ jobs:
           security import "$CERTIFICATE" -k "$KEYCHAIN" -P "$YNX_DEVELOPER_ID_P12_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
           security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
           security list-keychains -d user -s "$KEYCHAIN"
-          security find-identity -v -p codesigning "$KEYCHAIN" | grep -F "$YNX_DEVELOPER_ID_APPLICATION"
+          security find-identity -v -p codesigning "$KEYCHAIN" | grep -Fq "$YNX_DEVELOPER_ID_APPLICATION"
       - name: Build, Developer ID sign, notarize and staple the universal app and DMG
         shell: bash
         run: |
@@ -148,14 +148,19 @@ jobs:
           chmod 755 "$APP/Contents/MacOS/YNXWalletMac"
           codesign --force --sign "$YNX_DEVELOPER_ID_APPLICATION" --keychain "$YNX_SIGNING_KEYCHAIN" --options runtime --timestamp --entitlements "$WALLETCONNECT_ENTITLEMENTS" "$APP"
           codesign --verify --deep --strict --verbose=4 "$APP"
-          codesign -dv --verbose=4 "$APP" 2> "$PROOF/codesign-before-notarization.txt"
-          grep -F "Authority=$YNX_DEVELOPER_ID_APPLICATION" "$PROOF/codesign-before-notarization.txt"
-          grep -F "TeamIdentifier=$YNX_APPLE_TEAM_ID" "$PROOF/codesign-before-notarization.txt"
-          grep -F 'flags=0x10000(runtime)' "$PROOF/codesign-before-notarization.txt"
-          codesign -d --entitlements :- "$APP" > "$PROOF/entitlements.plist" 2> "$PROOF/entitlements-codesign.txt"
-          test "$(/usr/libexec/PlistBuddy -c 'Print :com.apple.security.application-groups:0' "$PROOF/entitlements.plist")" = "$YNX_WALLETCONNECT_APP_GROUP"
+          CODESIGN_INSPECTION="$RUNNER_TEMP/ynx-macos-codesign-inspection.txt"
+          ENTITLEMENTS_INSPECTION="$RUNNER_TEMP/ynx-macos-entitlements-inspection.plist"
+          codesign -dv --verbose=4 "$APP" 2> "$CODESIGN_INSPECTION"
+          grep -Fq "Authority=$YNX_DEVELOPER_ID_APPLICATION" "$CODESIGN_INSPECTION"
+          grep -Fq "TeamIdentifier=$YNX_APPLE_TEAM_ID" "$CODESIGN_INSPECTION"
+          grep -Fq 'flags=0x10000(runtime)' "$CODESIGN_INSPECTION"
+          codesign -d --entitlements :- "$APP" > "$ENTITLEMENTS_INSPECTION" 2> /dev/null
+          test "$(/usr/libexec/PlistBuddy -c 'Print :com.apple.security.application-groups:0' "$ENTITLEMENTS_INSPECTION")" = "$YNX_WALLETCONNECT_APP_GROUP"
           test "$(/usr/libexec/PlistBuddy -c 'Print :YNXWalletConnectAppGroup' "$APP/Contents/Info.plist")" = "$YNX_WALLETCONNECT_APP_GROUP"
           test "$(/usr/libexec/PlistBuddy -c 'Print :YNXWalletConnectProjectID' "$APP/Contents/Info.plist")" = "$YNX_WALLETCONNECT_PROJECT_ID"
+          jq -n \
+            '{schemaVersion:1,ownerNativeIdentityVerified:true,developerIdSignatureVerified:true,hardenedRuntimeVerified:true,applicationGroupPresent:true,projectIdPresent:true,protectedValuesRecorded:false,notarizationSubmitted:false,stapled:false,gatekeeperAccepted:false,applicationInstalled:false,applicationLaunched:false}' \
+            > "$PROOF/protected-signing-preflight.json"
           ditto -c -k --sequesterRsrc --keepParent "$APP" "$OUTPUT/app-submission.zip"
           xcrun notarytool submit "$OUTPUT/app-submission.zip" --key "$YNX_NOTARY_KEY_PATH" --key-id "$YNX_NOTARY_KEY_ID" --issuer "$YNX_NOTARY_ISSUER_ID" --wait --output-format json | tee "$PROOF/notarytool-app.json"
           jq -e '.status == "Accepted" and (.id | type == "string" and length > 0)' "$PROOF/notarytool-app.json" >/dev/null

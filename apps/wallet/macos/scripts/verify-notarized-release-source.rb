@@ -30,6 +30,11 @@ workflow_requirements = [
   "YNX_ORIGINAL_KEYCHAINS_PATH",
   "YNX_DEVELOPER_ID_P12_PATH",
   "security list-keychains -d user > \"$ORIGINAL_KEYCHAINS\"",
+  "security find-identity -v -p codesigning \"$KEYCHAIN\" | grep -Fq \"$YNX_DEVELOPER_ID_APPLICATION\"",
+  "CODESIGN_INSPECTION=\"$RUNNER_TEMP/ynx-macos-codesign-inspection.txt\"",
+  "ENTITLEMENTS_INSPECTION=\"$RUNNER_TEMP/ynx-macos-entitlements-inspection.plist\"",
+  "protected-signing-preflight.json",
+  "protectedValuesRecorded:false",
   "bash apps/wallet/macos/scripts/cleanup-signing-material.sh",
   "hdiutil create",
   "DMG-SHA256SUMS",
@@ -83,5 +88,8 @@ abort "missing notarized workflow semantics: #{missing_workflow.join(", ")}" unl
 abort "missing final DMG probe semantics: #{missing_probe.join(", ")}" unless missing_probe.empty?
 abort "missing signing cleanup semantics: #{missing_cleanup.join(", ")}" unless missing_cleanup.empty?
 abort "invalid final DMG probe shell fragments: #{invalid_probe_fragments.join(", ")}" unless invalid_probe_fragments.empty?
+abort "codesign identity inspection must not be persisted in proof artifacts" if workflow.include?('$PROOF/codesign-before-notarization.txt')
+abort "raw entitlement inspection must not be persisted in proof artifacts" if workflow.include?('$PROOF/entitlements.plist')
+abort "signing identity lookup must be quiet" if workflow.include?('find-identity -v -p codesigning "$KEYCHAIN" | grep -F "$YNX_DEVELOPER_ID_APPLICATION"')
 
 puts "wallet macOS notarized native DMG source contract verified"
