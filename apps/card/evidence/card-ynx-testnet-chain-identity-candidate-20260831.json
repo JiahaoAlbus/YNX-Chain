@@ -1,0 +1,119 @@
+{
+  "schema": "cardTestnetChainIdentityCandidate@1.0.0-p0.0",
+  "evidenceId": "P0-CARD-YNX-TESTNET-CHAIN-IDENTITY-CANDIDATE-20260831",
+  "owner": "card",
+  "source": {
+    "branch": "codex/p0-card-static-deploy-envelope-20260822",
+    "commit": "919baf2776c66772d44b1c0bb6256096a0557461",
+    "tree": "38e92af6e02bb95017abae4f4d5a24e419f68bd0"
+  },
+  "scope": {
+    "repositoryPaths": [
+      "apps/card/**"
+    ],
+    "chainDecimal": 6423,
+    "chainHex": "0x1917",
+    "deploymentAuthorized": false
+  },
+  "validation": {
+    "tests": "PASS_47_OF_47",
+    "typecheck": "PASS",
+    "webBuild": "PASS",
+    "nestedEnvelopeBuild": "PASS",
+    "nestedEnvelopeVerification": "PASS_12_STATIC_FILES",
+    "envelopeHashes": "PASS_14_OF_14",
+    "accountAccessRequested": false,
+    "signatureRequested": false,
+    "transactionRequested": false
+  },
+  "candidate": {
+    "deploymentRoot": "apps/card/deployment-envelope",
+    "fixedOutputDirectory": "dist-web",
+    "files": [
+      {
+        "path": "build-static.mjs",
+        "bytes": 71,
+        "sha256": "f608b78fb7478405278923e5b739988aa9a6fbc6575a08b84d0ee7e8d486e961"
+      },
+      {
+        "path": "dist-web/_expo/static/js/web/Crypto-18806bcac3c286e8ea55353192d1639a.js",
+        "bytes": 10118,
+        "sha256": "882258d8b8dec360da902cac6af9b85ef5ecddae27739742b26360f4946adfbb"
+      },
+      {
+        "path": "dist-web/_expo/static/js/web/index-d2e90c20a89a486c4e2f68eb0b9dc108.js",
+        "bytes": 2911147,
+        "sha256": "86055b548b6589f9d26d156b5db30cf48eb3fb3aec4e941585901fb44d830e2c"
+      },
+      {
+        "path": "dist-web/assets/assets/icon.ac64b115433cc62063b01bbab973bec7.png",
+        "bytes": 863227,
+        "sha256": "6252153a2fd0d12cb61a1223cea3277ceff863eb82b6073049419459b359f86f"
+      },
+      {
+        "path": "dist-web/assets/assets/metamask-fox.024a98855742a7b85946088532e2d4c1.png",
+        "bytes": 3682,
+        "sha256": "25f2f224f9d01c78ae3dc2d07a339053cc402961a59cf818f2753c12db9ec796"
+      },
+      {
+        "path": "dist-web/card-testnet-icon.png",
+        "bytes": 863227,
+        "sha256": "6252153a2fd0d12cb61a1223cea3277ceff863eb82b6073049419459b359f86f"
+      },
+      {
+        "path": "dist-web/favicon.ico",
+        "bytes": 14510,
+        "sha256": "1eda72df0357a4a4b6d396d79ca0ab775c230723473b47e8195d2e629972ceb3"
+      },
+      {
+        "path": "dist-web/index.html",
+        "bytes": 1717,
+        "sha256": "53e856c6db1b77bc0604154fe50bf2d5aa6ae45f31327a171d1938bb70afdd2e"
+      },
+      {
+        "path": "dist-web/manifest.webmanifest",
+        "bytes": 460,
+        "sha256": "f3e634129abe79c5b81b7fc8dac3950e5cb21f1d1263b1938fcd06a58e2c686f"
+      },
+      {
+        "path": "dist-web/metadata.json",
+        "bytes": 49,
+        "sha256": "aa5f19cc84d41c0f8c70ececb2bc82e863227ea1e121632aca879eb616056991"
+      },
+      {
+        "path": "dist-web/package.json",
+        "bytes": 74,
+        "sha256": "b4973b4a419ac0bcab4e76ffe0a0a02f55938986d162b853429e1115086bbe75"
+      },
+      {
+        "path": "dist-web/pwa-register.js",
+        "bytes": 201,
+        "sha256": "87671daaddfae6a98e473eedf34a8844d5fd82676f2111808057e98d9b4012a6"
+      },
+      {
+        "path": "dist-web/sw.js",
+        "bytes": 364,
+        "sha256": "1a9acfe442d2920040a1999f4fe4efe3f97d7a42a9debef047d469972889638f"
+      },
+      {
+        "path": "package.json",
+        "bytes": 83,
+        "sha256": "272f57205d44cf347719b013fda538dae2d93a359f291654b0bffcff5d3282a0"
+      }
+    ]
+  },
+  "currentPublicBaseline": {
+    "deploymentId": "dpl_DqMuEhno65bLFTNKBu9gs52soVri",
+    "canonicalUrl": "https://card.ynxweb4.com/",
+    "state": "ROLLBACK_BASELINE_ONLY"
+  },
+  "truth": {
+    "sourceBoundPublic": false,
+    "cleanBrowserValidated": false,
+    "walletApproved": false,
+    "chainSwitchVerified": false,
+    "registrationActive": false,
+    "ynxtTopUpVerified": false,
+    "transactionExecuted": false
+  }
+}
