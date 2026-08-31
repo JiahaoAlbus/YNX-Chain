@@ -49,6 +49,12 @@ workflow_requirements = [
   "method -string app-store-connect",
   "Add :provisioningProfiles:com.ynxweb4.wallet",
   "codesign --verify --deep --strict",
+  "ruby apps/wallet/ios/scripts/ios-device-candidate-preflight.rb",
+  "--app \"$APP\" --require-device-candidate",
+  "ios-physical-device-candidate-preflight.json",
+  "CODESIGN_INSPECTION=\"$RUNNER_TEMP/ynx-ios-codesign-inspection.txt\"",
+  "ENTITLEMENTS_INSPECTION=\"$RUNNER_TEMP/ynx-ios-entitlements-inspection.plist\"",
+  "PROFILE_INSPECTION=\"$RUNNER_TEMP/ynx-ios-profile-inspection.plist\"",
   "Signature=adhoc",
   "xcrun altool --upload-app",
   "appStoreConnectUploadSubmitted:false",
@@ -77,6 +83,9 @@ missing_workflow = workflow_requirements.reject { |value| workflow.include?(valu
 missing_cleanup = cleanup_requirements.reject { |value| cleanup.include?(value) }
 abort "missing iOS production workflow semantics: #{missing_workflow.join(", ")}" unless missing_workflow.empty?
 abort "missing iOS distribution cleanup semantics: #{missing_cleanup.join(", ")}" unless missing_cleanup.empty?
+abort "codesign identity inspection must not be persisted in proof artifacts" if workflow.include?('$PROOF/codesign.txt')
+abort "raw entitlement inspection must not be persisted in proof artifacts" if workflow.include?('$PROOF/entitlements.plist')
+abort "raw provisioning profile inspection must not be persisted in proof artifacts" if workflow.include?('$PROOF/embedded-profile.plist')
 abort "frozen iOS bundle identifier missing" unless project.include?('PRODUCT_BUNDLE_IDENTIFIER = "com.ynxweb4.wallet";')
 abort "frozen iOS deployment target missing" unless project.include?("IPHONEOS_DEPLOYMENT_TARGET = 16.4;")
 abort "ynxwallet callback scheme missing" unless info.include?("<string>ynxwallet</string>")
@@ -86,7 +95,9 @@ simulator_path_lines = simulator_workflow.lines.grep(/^\s+paths:/)
 abort "wallet-ios must define push and pull_request path filters" unless simulator_path_lines.length == 2
 release_only_exclusions = [
   '"!apps/wallet/ios/scripts/cleanup-distribution-material.sh"',
-  '"!apps/wallet/ios/scripts/verify-production-distribution-source.rb"'
+  '"!apps/wallet/ios/scripts/verify-production-distribution-source.rb"',
+  '"!apps/wallet/ios/scripts/ios-device-candidate-preflight.rb"',
+  '"!apps/wallet/ios/scripts/test-ios-device-candidate-preflight.sh"'
 ]
 simulator_path_lines.each do |line|
   release_only_exclusions.each do |exclusion|

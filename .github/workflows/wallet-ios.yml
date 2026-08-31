@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
   push:
     branches: [main, codex/ecosystem-wallet-auth, codex/final-wallet-auth, codex/wallet-ios-macos-20260813]
-    paths: ["apps/wallet/**", "packages/wallet-auth/**", ".github/workflows/wallet-ios.yml", "!apps/wallet/macos/**", "!apps/wallet/ios/scripts/cleanup-distribution-material.sh", "!apps/wallet/ios/scripts/verify-production-distribution-source.rb", "!apps/wallet/scripts/verify-apple-production-operator-inputs.rb"]
+    paths: ["apps/wallet/**", "packages/wallet-auth/**", ".github/workflows/wallet-ios.yml", "!apps/wallet/macos/**", "!apps/wallet/ios/scripts/cleanup-distribution-material.sh", "!apps/wallet/ios/scripts/verify-production-distribution-source.rb", "!apps/wallet/ios/scripts/ios-device-candidate-preflight.rb", "!apps/wallet/ios/scripts/test-ios-device-candidate-preflight.sh", "!apps/wallet/scripts/verify-apple-production-operator-inputs.rb"]
   pull_request:
-    paths: ["apps/wallet/**", "packages/wallet-auth/**", ".github/workflows/wallet-ios.yml", "!apps/wallet/macos/**", "!apps/wallet/ios/scripts/cleanup-distribution-material.sh", "!apps/wallet/ios/scripts/verify-production-distribution-source.rb", "!apps/wallet/scripts/verify-apple-production-operator-inputs.rb"]
+    paths: ["apps/wallet/**", "packages/wallet-auth/**", ".github/workflows/wallet-ios.yml", "!apps/wallet/macos/**", "!apps/wallet/ios/scripts/cleanup-distribution-material.sh", "!apps/wallet/ios/scripts/verify-production-distribution-source.rb", "!apps/wallet/ios/scripts/ios-device-candidate-preflight.rb", "!apps/wallet/ios/scripts/test-ios-device-candidate-preflight.sh", "!apps/wallet/scripts/verify-apple-production-operator-inputs.rb"]
 
 jobs:
   simulator-build:

@@ -275,26 +275,32 @@ jobs:
           ditto -x -k "$YNX_IOS_IPA" "$EXPANDED"
           APP="$(find "$EXPANDED/Payload" -maxdepth 1 -name '*.app' -print -quit)"
           test -d "$APP"
+          ruby apps/wallet/ios/scripts/ios-device-candidate-preflight.rb \
+            --app "$APP" --require-device-candidate \
+            > "$PROOF/ios-physical-device-candidate-preflight.json"
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$APP/Info.plist")" = com.ynxweb4.wallet
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$APP/Info.plist")" = "$YNX_IOS_APP_VERSION"
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP/Info.plist")" = "$YNX_IOS_BUILD_VERSION"
           test "$(/usr/libexec/PlistBuddy -c 'Print :MinimumOSVersion' "$APP/Info.plist")" = 16.4
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleURLTypes:0:CFBundleURLSchemes:0' "$APP/Info.plist")" = ynxwallet
           codesign --verify --deep --strict "$APP"
-          codesign -dv --verbose=4 "$APP" 2> "$PROOF/codesign.txt"
-          grep -F "Authority=Apple Distribution:" "$PROOF/codesign.txt"
-          grep -F "TeamIdentifier=$YNX_APPLE_TEAM_ID" "$PROOF/codesign.txt"
-          ! grep -Fq 'Signature=adhoc' "$PROOF/codesign.txt"
-          codesign -d --entitlements :- "$APP" > "$PROOF/entitlements.plist" 2> "$PROOF/entitlements-codesign.txt"
-          test "$(/usr/libexec/PlistBuddy -c 'Print :application-identifier' "$PROOF/entitlements.plist")" = "$YNX_APPLE_TEAM_ID.com.ynxweb4.wallet"
-          test "$(/usr/libexec/PlistBuddy -c 'Print :com.apple.developer.team-identifier' "$PROOF/entitlements.plist")" = "$YNX_APPLE_TEAM_ID"
-          test "$(/usr/libexec/PlistBuddy -c 'Print :keychain-access-groups:0' "$PROOF/entitlements.plist")" = "$YNX_APPLE_TEAM_ID.com.ynxweb4.wallet"
-          test "$(/usr/libexec/PlistBuddy -c 'Print :com.apple.security.application-groups:0' "$PROOF/entitlements.plist")" = "$YNX_WALLETCONNECT_APP_GROUP"
+          CODESIGN_INSPECTION="$RUNNER_TEMP/ynx-ios-codesign-inspection.txt"
+          ENTITLEMENTS_INSPECTION="$RUNNER_TEMP/ynx-ios-entitlements-inspection.plist"
+          PROFILE_INSPECTION="$RUNNER_TEMP/ynx-ios-profile-inspection.plist"
+          codesign -dv --verbose=4 "$APP" 2> "$CODESIGN_INSPECTION"
+          grep -Fq "Authority=Apple Distribution:" "$CODESIGN_INSPECTION"
+          grep -Fq "TeamIdentifier=$YNX_APPLE_TEAM_ID" "$CODESIGN_INSPECTION"
+          ! grep -Fq 'Signature=adhoc' "$CODESIGN_INSPECTION"
+          codesign -d --entitlements :- "$APP" > "$ENTITLEMENTS_INSPECTION" 2> /dev/null
+          test "$(/usr/libexec/PlistBuddy -c 'Print :application-identifier' "$ENTITLEMENTS_INSPECTION")" = "$YNX_APPLE_TEAM_ID.com.ynxweb4.wallet"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :com.apple.developer.team-identifier' "$ENTITLEMENTS_INSPECTION")" = "$YNX_APPLE_TEAM_ID"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :keychain-access-groups:0' "$ENTITLEMENTS_INSPECTION")" = "$YNX_APPLE_TEAM_ID.com.ynxweb4.wallet"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :com.apple.security.application-groups:0' "$ENTITLEMENTS_INSPECTION")" = "$YNX_WALLETCONNECT_APP_GROUP"
           test "$(/usr/libexec/PlistBuddy -c 'Print :YNXWalletConnectAppGroup' "$APP/Info.plist")" = "$YNX_WALLETCONNECT_APP_GROUP"
           test "$(/usr/libexec/PlistBuddy -c 'Print :YNXWalletConnectProjectID' "$APP/Info.plist")" = "$YNX_WALLETCONNECT_PROJECT_ID"
-          ! /usr/libexec/PlistBuddy -c 'Print :com.apple.developer.associated-domains' "$PROOF/entitlements.plist" >/dev/null 2>&1
-          security cms -D -i "$APP/embedded.mobileprovision" > "$PROOF/embedded-profile.plist"
-          test "$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$PROOF/embedded-profile.plist")" = "$YNX_IOS_PROFILE_UUID"
+          ! /usr/libexec/PlistBuddy -c 'Print :com.apple.developer.associated-domains' "$ENTITLEMENTS_INSPECTION" >/dev/null 2>&1
+          security cms -D -i "$APP/embedded.mobileprovision" > "$PROFILE_INSPECTION"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :UUID' "$PROFILE_INSPECTION")" = "$YNX_IOS_PROFILE_UUID"
           EXECUTABLE="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$APP/Info.plist")"
           file "$APP/$EXECUTABLE" | tee "$PROOF/executable-file.txt"
           grep -F arm64 "$PROOF/executable-file.txt"
