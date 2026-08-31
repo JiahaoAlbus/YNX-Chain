@@ -1,0 +1,63 @@
+{
+  "schemaVersion": "1.0.0",
+  "product": "YNX 6423 Portal",
+  "recordClass": "source-bound-local-candidate",
+  "asOf": "2026-08-31",
+  "network": {
+    "cosmosChainId": "ynx_6423-1",
+    "numericChainId": 6423,
+    "evmChainId": "0x1917",
+    "nativeSymbol": "YNXT"
+  },
+  "source": {
+    "branch": "codex/ynx-6423-portal-tronscan-inspired",
+    "portalCommit": "1a48d9d3505c01ea7f2730b75137c559758b8da4",
+    "portalTree": "31504d08db7b31e44d701d2c04616e0d56a55896",
+    "pushedToOrigin": true,
+    "files": [
+      {
+        "path": "internal/explorer/web.go",
+        "sha256": "05d20918dd53b090afe0ddf42fdb68f9a79b5069f521a285bd1dbcef85c322c0"
+      },
+      {
+        "path": "internal/explorer/explorer_test.go",
+        "sha256": "5fe8ec7aead814922790f7f396178ab7a07f238950258613e860c0415d1f7fb0"
+      },
+      {
+        "path": "scripts/verify/explorer-check.sh",
+        "sha256": "ed3a4e90e90cbb3e9f03d3f2bd5b0eb3f3827c6d84eca748c273d2ba74e368ad"
+      },
+      {
+        "path": "design-qa.md",
+        "sha256": "968cc72c3a8eb35b02075ec2a16c72ab100ee373b6f73f32d370e599ae508a8e"
+      }
+    ]
+  },
+  "localVerification": {
+    "healthIdentity": "Local Explorer health returned ok=true with 6423, 0x1917, and YNXT.",
+    "commands": [
+      "go test ./internal/explorer ./internal/indexer",
+      "node --check extracted internal/explorer/web.go script",
+      "make explorer-check with isolated local ports 127.0.0.1:6439 and 127.0.0.1:6440",
+      "In-app browser: routes, localized validator and account drawers, keyboard search, modal Escape, and no horizontal overflow"
+    ],
+    "scope": "Local 6423 node and local indexer only; no claim extends to a public endpoint."
+  },
+  "states": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "sourcePushed": true,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "publicWalletEndpoint": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "publicClaimPolicy": "Only the local source and verification facts in this record may be claimed. Ecosystem products, downloads, public RPC endpoints, public deployment, signing, and store release remain unavailable unless separately evidenced.",
+  "rollback": {
+    "sourceCommit": "292a0fd2306d4d50a6d9d2131146e987c900c6e1",
+    "scope": "Source rollback baseline only; it does not authorize a runtime, DNS, Caddy, Vercel, or alias mutation."
+  },
+  "deploymentBlocker": "A current, scope-bound deployment authorization naming the exact target, executor, portal source commit, rollback commit, and accepted public endpoint is required before any staging or public mutation."
+}

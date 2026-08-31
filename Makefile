@@ -2,6 +2,7 @@
 .PHONY: bft-evm-receipt-check bft-ide-contract-check native-wallet-check chat-api-check square-api-check app-gateway-check app-account-ownership-check browser-signer-check mobile-check mobile-product-split-check mobile-android-native-check mobile-android-release-check mobile-android-release-installed-check mobile-biometric-installed-check
 .PHONY: upgrade-source-release-audit upgrade-source-release-evidence-check governance-check governance-testnet-drill
 .PHONY: shop-release-package-test
+.PHONY: explorer-portal-candidate-check
 
 setup:
 	go mod tidy
@@ -389,6 +390,9 @@ indexer-check:
 
 explorer-check:
 	bash ./scripts/verify/explorer-check.sh
+
+explorer-portal-candidate-check:
+	node ./scripts/verify/explorer-portal-candidate-check.mjs
 
 faucet-check:
 	bash ./scripts/verify/faucet-check.sh
