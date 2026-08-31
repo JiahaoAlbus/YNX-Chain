@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "evidenceClass": "local-container-wallet-cli-artifact",
+  "sourceCommit": "68b68bbcbc7a301c113db82a2183537191976ff0",
+  "host": {
+    "os": "darwin",
+    "arch": "arm64",
+    "release": "27.0.0"
+  },
+  "container": {
+    "runtime": "docker",
+    "server": "27.4.0 linux aarch64",
+    "image": "ubuntu:24.04",
+    "imageID": "sha256:5b8c0c14690ed170da4e663fe0bae0d58efe59661e791296ffab28ed2113b650",
+    "networkMode": "none",
+    "readOnlyRoot": true,
+    "capDrop": "ALL",
+    "noNewPrivileges": true,
+    "kernel": "6.10.14-linuxkit"
+  },
+  "artifact": {
+    "artifactId": "ynx-wallet-cli-linux-arm64",
+    "path": "release/wallet-cli/artifacts/ynx-wallet-cli-linux-arm64.gz",
+    "format": "gzip-compressed ELF executable",
+    "target": {
+      "goos": "linux",
+      "goarch": "arm64"
+    },
+    "minimumOS": "Linux kernel 3.2",
+    "minimumOSReference": "https://go.dev/wiki/MinimumRequirements",
+    "minimumOSBasis": "Go 1.25 official linux minimum requirements",
+    "signingClass": "unsigned_local_testnet_cli_candidate",
+    "bytes": 4632209,
+    "sha256": "edf65972dfba52018d47321e5e91c409ec9d8a2aac45a4001511521a64d980a9",
+    "binaryBytes": 8601981,
+    "binarySha256": "d368b5d5cdc4580dd418f9e8b1a58bde94dc728abe3789e4cf8247eb92a6cf3e",
+    "runtimeTested": false,
+    "productionSigned": false,
+    "immutableDownloadURL": null,
+    "runtimeTestedByThisEvidence": true
+  },
+  "installation": {
+    "target": "linux/arm64",
+    "transientBindPrefix": true,
+    "installed": true,
+    "coldStart": true,
+    "secondStart": true,
+    "upgradeFromVersion": "preflight",
+    "upgradedToVersion": "68b68bbcbc7a301c113db82a2183537191976ff0",
+    "uninstallVerified": true,
+    "installBinEmptyAfterUninstall": true,
+    "temporaryRootRemoved": true
+  },
+  "testnet": {
+    "configValidated": true,
+    "nativeChainId": "ynx_6423-1",
+    "chainId": 6423,
+    "evmChainId": "0x1917",
+    "nativeCurrency": "YNXT",
+    "remoteProbeRun": false,
+    "connected": false,
+    "legacy9102Rejected": true,
+    "legacyExitCode": 78,
+    "legacyRemediation": "USE_YNX_TESTNET_6423"
+  },
+  "signing": {
+    "signingClass": "unsigned_local_testnet_cli_candidate",
+    "productionSigned": false
+  },
+  "releaseState": {
+    "installedLocalContainer": true,
+    "nativeHostInstalled": false,
+    "downloadHosted": false,
+    "deployedPublic": false,
+    "productionSigned": false
+  }
+}
