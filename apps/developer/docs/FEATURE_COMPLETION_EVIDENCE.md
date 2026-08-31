@@ -1,5 +1,11 @@
 # Developer requirement, evidence and gap matrix
 
+> **Current installer boundary (2026-08-31):** historical ZIP download records
+> below are retained for audit only. The current macOS artifact is a locally
+> verified DMG candidate and the current Windows artifact is a CI-installed MSIX
+> candidate; both remain non-public until immutable hosting, external byte/hash
+> readback, production-signing classification and rollback evidence exist.
+
 | Requirement | Direct current evidence | State | Remaining proof |
 | --- | --- | --- | --- |
 | Web IDE and isolated runtime | Candidate `bc8a37bc…`; protected transaction passed; nine-runtime/seven-LSP gate | deployed candidate | Independent external browser version capture |

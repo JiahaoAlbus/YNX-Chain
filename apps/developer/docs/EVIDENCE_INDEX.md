@@ -1,5 +1,15 @@
 # Evidence index
 
+## 2026-08-31 current desktop-install truth
+
+Historical ZIP records in this index remain preserved, but are not current
+installer evidence. `evidence/desktop/macos-current-ccab67b2.json` records a
+locally installed ARM64 DMG with `downloadHosted=false`;
+`evidence/desktop/windows-current-fa73d751.json` records a Windows CI MSIX
+installation lifecycle with `downloadHosted=false`. Neither has immutable
+official-domain hosting or external HTTPS byte/hash readback. Do not use any
+historical ZIP URL as a desktop installer CTA.
+
 ## 2026-08-20 current public candidate
 
 `evidence/public/current-public-candidate-bc8a37bc6f2b.json` binds the current

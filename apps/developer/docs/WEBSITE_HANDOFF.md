@@ -5,6 +5,16 @@ Product owner: `11-developer`
 Integration owner: `29-integration`  
 Website owner: `28-website`
 
+> **2026-08-31 supersession — do not publish from the historical ZIP sections below.**
+> Current Developer release truth is
+> `apps/developer/product-release.json`. The only current desktop candidates are
+> a local macOS ARM64 DMG (`ccab67b2…`) and a CI-installed Windows x64 MSIX
+> (`fa73d751…`); both have `downloadHosted=false`. The former ZIP records are
+> retained solely as history. Website must not restore ZIP download CTAs. A
+> future desktop publication requires immutable official hosting, external HTTPS
+> byte/SHA-256 readback, production-signing classification and a separate
+> rollback-bound release lease.
+
 ## Required public route
 
 - Official domain: `https://ynxweb4.com`
