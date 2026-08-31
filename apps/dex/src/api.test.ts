@@ -91,6 +91,14 @@ describe("DEX committed gateway boundary", () => {
       txHash: HASH,
     });
     expect(snapshot.events[0].txHash).toBe(HASH);
+    expect(snapshot.provenance).toMatchObject({
+      source: "authoritative chain-native YNX Testnet state",
+      classification: "testnet",
+      status: "live",
+      version: "native-dex-schema-v1",
+      coverage: "native-snapshot-assets-pools-events",
+      latestBlock: 20,
+    });
   });
 
   it("accepts only the exact authoritative account nonce", async () => {

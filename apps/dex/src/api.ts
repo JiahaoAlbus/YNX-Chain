@@ -5,6 +5,7 @@ import type {
   Pool,
   Position,
   SpotPrice,
+  SnapshotProvenance,
   Token,
   TWAP,
 } from "./types";
@@ -249,6 +250,15 @@ export async function loadDexSnapshot(signal?: AbortSignal) {
     ).length,
     latestBlock,
   };
+  const provenance: SnapshotProvenance = Object.freeze({
+    source: AUTHORITATIVE_SOURCE,
+    asOf: new Date(updatedAt).toISOString(),
+    version: AUTHORITATIVE_VERSION,
+    classification: "testnet",
+    status: "live",
+    coverage: "native-snapshot-assets-pools-events",
+    latestBlock,
+  });
   const prices: SpotPrice[] = pools
     .filter((item) => BigInt(item.reserve0) > 0n && BigInt(item.reserve1) > 0n)
     .map((item) => ({
@@ -266,6 +276,7 @@ export async function loadDexSnapshot(signal?: AbortSignal) {
     tokens,
     events,
     analytics,
+    provenance,
     prices,
     twap: [] as TWAP[],
     fees: [] as FeeSummary[],

@@ -138,6 +138,7 @@ describe("YNX DEX consensus product shell", () => {
       ),
     ).toBeInTheDocument();
     expect(screen.getByText(/confirmed chain swaps/)).toBeInTheDocument();
+    expect(screen.getByText(/coverage native-snapshot-assets-pools-events/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "1m" })).toHaveAttribute(
       "aria-pressed",
       "true",

@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { dexApi } from "./api";
-import type { Analytics, ChainEvent, FeeSummary, Loadable, Pool, SpotPrice, Token, TWAP } from "./types";
+import type { Analytics, ChainEvent, FeeSummary, Loadable, Pool, SnapshotProvenance, SpotPrice, Token, TWAP } from "./types";
 
-type DexData={pools:Pool[];tokens:Token[];events:ChainEvent[];analytics:Analytics;prices:SpotPrice[];twap:TWAP[];fees:FeeSummary[]};
+type DexData={pools:Pool[];tokens:Token[];events:ChainEvent[];analytics:Analytics;provenance:SnapshotProvenance;prices:SpotPrice[];twap:TWAP[];fees:FeeSummary[]};
 export function useDexData(){
  const [data,setData]=useState<Loadable<DexData>>({state:"loading"});
  const active=useRef<AbortController|null>(null);

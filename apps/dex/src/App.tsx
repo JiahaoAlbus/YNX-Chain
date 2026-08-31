@@ -1998,8 +1998,10 @@ function AnalyticsPage({
       )}
       <p className="source-line">
         <Icon name="info" />
-        {t.source}: {data.data.analytics.source}; confirmed cumulative-price
-        deltas and raw token amounts only.
+        {t.source}: {data.data.provenance.source}; {data.data.provenance.classification}
+        · {data.data.provenance.status} · schema {data.data.provenance.version}
+        · as of {data.data.provenance.asOf} · coverage {data.data.provenance.coverage}
+        · confirmed cumulative-price deltas and raw token amounts only.
       </p>
     </PageFrame>
   );
