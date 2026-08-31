@@ -218,7 +218,7 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 			t.Fatalf("explorer web is missing live interaction marker %q", marker)
 		}
 	}
-	for _, forbidden := range []string{"0x238e", "ynx_9102-1", "chain ID 9102"} {
+	for _, forbidden := range []string{"9102", "0x238e", "ynx_9102-1"} {
 		if strings.Contains(strings.ToLower(html), strings.ToLower(forbidden)) {
 			t.Fatalf("explorer web contains retired network identity %q", forbidden)
 		}
