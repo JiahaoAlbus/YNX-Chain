@@ -47,7 +47,7 @@ export class WalletConnectionCoordinator {
     return frozen({ ...(await this.beginYNX()), migration });
   }
   async retryYNX() { return this.#runYNXOperation(() => this.#client.retryDetected()); }
-  async handleReturn(url) { return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.SESSION_STATE, sessionState: await this.#client.handleReturn(url) }); }
+  async handleReturn(url) { return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.SESSION_STATE, sessionState: await this.#runYNXReturn(url) }); }
   setNetworkAvailable(available) { return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.SESSION_STATE, sessionState: this.#client.setNetworkAvailable(available) }); }
   enterGuest() { return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.SESSION_STATE, sessionState: this.#client.enterGuest() }); }
   async disconnect() { return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.SESSION_STATE, sessionState: await this.#client.disconnect() }); }
@@ -89,11 +89,27 @@ export class WalletConnectionCoordinator {
     }
   }
   async #runYNXOperation(start) {
-    if (this.#ynxOperation !== null) return this.#ynxOperation;
+    const active = this.#ynxOperation;
+    if (active !== null) {
+      if (active.kind === "start") return active.promise;
+      await active.promise;
+      if (this.#client.current.status === PRODUCT_SESSION_CLIENT_STATE.CONNECTED) return this.#openIfConnecting(this.#client.current);
+    }
     const operation = (async () => this.#openIfConnecting(await start()))();
-    this.#ynxOperation = operation;
+    this.#ynxOperation = Object.freeze({ kind: "start", promise: operation });
     try { return await operation; }
-    finally { if (this.#ynxOperation === operation) this.#ynxOperation = null; }
+    finally { if (this.#ynxOperation?.promise === operation) this.#ynxOperation = null; }
+  }
+  async #runYNXReturn(url) {
+    const active = this.#ynxOperation;
+    if (active !== null) {
+      if (active.kind === "return" && active.url === url) return active.promise;
+      await active.promise;
+    }
+    const operation = this.#client.handleReturn(url);
+    this.#ynxOperation = Object.freeze({ kind: "return", url, promise: operation });
+    try { return await operation; }
+    finally { if (this.#ynxOperation?.promise === operation) this.#ynxOperation = null; }
   }
 }
 

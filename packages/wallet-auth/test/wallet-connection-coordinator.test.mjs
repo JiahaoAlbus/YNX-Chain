@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { p256 } from "@noble/curves/nist.js";
 import {
-  PRODUCT_SESSION_CLIENT_STATE, RecoverableProductSessionClient, WALLET_CONNECTION_COORDINATOR_STATUS,
+  canonicalJSON, createProductSessionReturnURL, httpBodyDigest, PRODUCT_SESSION_CLIENT_STATE, ProductSessionAuthority, RecoverableProductSessionClient, signProductSessionApproval, verifyProductSessionProofV2, WALLET_CONNECTION_COORDINATOR_STATUS,
   WalletAuthError, WalletConnectionCoordinator,
 } from "../src/index.js";
 import * as coordinatorSubpath from "@ynx-chain/wallet-auth/wallet-connection-coordinator";
@@ -61,6 +61,52 @@ test("concurrent connection starts share one pending request and one Wallet open
   assert.equal(firstResult.sessionState.request.nonce,secondResult.sessionState.request.nonce);
   assert.equal(tokenCalls,2);
   assert.equal(opened.length,1);
+});
+
+test("a callback in flight fences a repeated Begin and cannot be replaced by a new pending request", async () => {
+  const authority = new ProductSessionAuthority(registry);
+  let releaseChallenge;
+  let markChallengeStarted;
+  const challengeStarted = new Promise((resolve) => { markChallengeStarted = resolve; });
+  const challengeGate = new Promise((resolve) => { releaseChallenge = resolve; });
+  let challengeIndex = 0;
+  const sessionGateway = gateway({
+    async challenge({ requestId, request, approval }) {
+      assert.match(requestId, /^req_ps_c_[A-Za-z0-9_-]{32,64}$/);
+      markChallengeStarted();
+      await challengeGate;
+      return authority.issueChallenge({ request, approval, challenge: token(`coordinator-callback-race-${challengeIndex++}`) }, NOW);
+    },
+    async complete({ requestId, ...input }) {
+      assert.match(requestId, /^req_ps_f_[A-Za-z0-9_-]{32,64}$/);
+      return authority.complete(input, NOW);
+    },
+    async introspect({ requestId, sessionBinding, requiredScopes, proof }) {
+      assert.match(requestId, /^req_ps_i_[A-Za-z0-9_-]{32,64}$/);
+      const session = authority.snapshot().sessions.find((item) => item.sessionBinding === sessionBinding);
+      if (!session) throw new WalletAuthError("SESSION_NOT_FOUND", "missing test session");
+      verifyProductSessionProofV2(proof, session, { method: "POST", path: "/v2/product-sessions/introspect", bodyDigest: httpBodyDigest(canonicalJSON({ requiredScopes })) }, NOW);
+      return authority.introspect(sessionBinding, { chainId: session.chainId, productId: session.productId, clientId: session.clientId, platform: session.platform, applicationId: session.applicationId, bundleId: session.bundleId, packageId: session.packageId, origin: session.origin, callback: session.callback, account: session.account, deviceId: session.deviceId, deviceKey: session.deviceKey, requiredScopes }, NOW);
+    },
+  });
+  const opened = [];
+  let tokenCalls = 0;
+  const sessionClient = client("social", sessionGateway, memory(), () => token(`coordinator-callback-token-${tokenCalls++}`));
+  const value = coordinator({ sessionClient, scope: { ethereum: ynxProvider() }, openWallet: async (input) => { opened.push(input); return { opened: true }; } });
+  const first = await value.beginYNX();
+  const approval = signProductSessionApproval(registry, first.sessionState.request, { accountSecret: "1".padStart(64, "0"), scopes: first.sessionState.request.scopes, expiresAt: "2026-08-14T01:03:00.000Z" }, NOW);
+  const callback = createProductSessionReturnURL(registry, first.sessionState.request, { result: "approved", approval }, NOW);
+  const returning = value.handleReturn(callback);
+  await challengeStarted;
+  const repeatedBegin = value.beginYNX();
+  releaseChallenge();
+  const [returned, repeated] = await Promise.all([returning, repeatedBegin]);
+  assert.equal(returned.sessionState.status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
+  assert.equal(repeated.status, WALLET_CONNECTION_COORDINATOR_STATUS.SESSION_STATE);
+  assert.equal(repeated.sessionState.status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
+  assert.equal(opened.length, 1);
+  assert.equal(tokenCalls, 3);
+  assert.equal(value.current.status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
 });
 
 test("second-launch controlled reconnect opens at most once before explicit Retry", async () => {
