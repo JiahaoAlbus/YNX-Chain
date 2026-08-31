@@ -182,6 +182,7 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 		"serviceTextUI",
 		"runtimeUI",
 		"detailUI",
+		"searchUI",
 		"function detailRows",
 		"dataFabric",
 		"infrastructure",
@@ -243,6 +244,11 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	for _, retiredDynamicCopy := range []string{" of ' + escapeHTML(number(page.total)) + ' verified indexed records"} {
 		if strings.Contains(html, retiredDynamicCopy) {
 			t.Fatalf("explorer web contains non-localized runtime copy %q", retiredDynamicCopy)
+		}
+	}
+	for _, localizedSearch := range []string{"searchText('heightSuggestion'", "searchText('addressSuggestion')", "searchText('indexSuggestion')"} {
+		if !strings.Contains(html, localizedSearch) {
+			t.Fatalf("explorer web does not route a search suggestion through localized copy %q", localizedSearch)
 		}
 	}
 	if !strings.Contains(html, "native-token-from-rpc-status' ? runtime('sourceNative')") {

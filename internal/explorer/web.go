@@ -823,6 +823,14 @@ const indexHTML = `<!doctype html>
       ko:{block:'블록',transaction:'트랜잭션',account:'계정',token:'토큰',validator:'검증인',height:'높이',hash:'해시',parentHash:'상위 해시',time:'시간',validatorLabel:'검증인',transactionCount:'트랜잭션 수',type:'유형',from:'보낸 주소',to:'받는 주소',amount:'수량',fee:'수수료',nonce:'논스',blockHash:'블록 해시',blockNumber:'블록 높이',timestamp:'타임스탬프',memo:'메모',sponsor:'스폰서',sponsorPool:'스폰서 풀',resourceType:'리소스 유형',resourceConsumed:'소비된 리소스',actionReference:'작업 참조',lotMovements:'로트 이동',eventLogs:'이벤트 로그',ynxAddress:'YNX 네이티브 주소',evmAddress:'EVM 호환 주소',balance:'잔액',staked:'스테이킹됨',resourceUsage:'리소스 사용량',bandwidthUsed:'사용된 대역폭',computeUsed:'사용된 컴퓨팅',aiCreditsUsed:'사용된 AI 크레딧',trustUsed:'사용된 Trust 크레딧',payCreditsUsed:'사용된 Pay 크레딧',lotsRecorded:'기록된 로트',traceRecords:'추적 기록',symbol:'심볼',name:'이름',assetType:'자산 유형',decimals:'소수 자릿수',chainName:'체인 이름',chainID:'체인 ID',nativeAsset:'네이티브 자산',usage:'용도',source:'소스',unavailable:'사용 불가',none:'없음',yes:'예',no:'아니요',items:'{count}개',nativeAssetType:'네이티브 Gas, 리소스, Pay, Trust 및 AI 토큰',gas:'Gas',staking:'스테이킹',resourceCollateral:'리소스 담보',resourceRental:'리소스 대여 정산',paySettlement:'Pay 정산',aiCredits:'AI 크레딧 기준',trustCredits:'Trust 크레딧 기준'}
     };
     const detailText = (key, values = {}) => (detailUI[language]?.[key] || detailUI.en[key] || detailUI.en.unavailable).replace(/\{(\w+)\}/g, (_, name) => values[name] ?? '');
+    const searchUI = {
+      en:{timeUnavailable:'Time unavailable',requestUnavailable:'The verified 6423 data is unavailable right now.',requestTimeout:'The verified 6423 service took too long to respond. Please retry.',block:'Block',transaction:'Transaction',token:'Token',validatorAddress:'Validator address',transactionAddress:'Transaction / address',search:'Search',blockSuggestion:'Block #{height}',nativeToken:'YNXT native token',heightSuggestion:'Search block height #{height}',addressSuggestion:'Search transaction or EVM-compatible address',indexSuggestion:'Search the current 6423 index'},
+      'zh-CN':{timeUnavailable:'时间暂不可用',requestUnavailable:'已验证的 6423 数据当前暂不可用。',requestTimeout:'已验证的 6423 服务响应超时，请重试。',block:'区块',transaction:'交易',token:'代币',validatorAddress:'验证者地址',transactionAddress:'交易 / 地址',search:'搜索',blockSuggestion:'区块 #{height}',nativeToken:'YNXT 原生代币',heightSuggestion:'搜索区块高度 #{height}',addressSuggestion:'搜索交易或 EVM 兼容地址',indexSuggestion:'搜索当前 6423 索引'},
+      'zh-TW':{timeUnavailable:'時間暫時不可用',requestUnavailable:'已驗證的 6423 資料目前暫時不可用。',requestTimeout:'已驗證的 6423 服務回應逾時，請重試。',block:'區塊',transaction:'交易',token:'代幣',validatorAddress:'驗證者位址',transactionAddress:'交易 / 位址',search:'搜尋',blockSuggestion:'區塊 #{height}',nativeToken:'YNXT 原生代幣',heightSuggestion:'搜尋區塊高度 #{height}',addressSuggestion:'搜尋交易或 EVM 相容位址',indexSuggestion:'搜尋目前的 6423 索引'},
+      ja:{timeUnavailable:'時刻を利用できません',requestUnavailable:'検証済みの 6423 データを現在利用できません。',requestTimeout:'検証済みの 6423 サービスが時間内に応答しませんでした。再試行してください。',block:'ブロック',transaction:'トランザクション',token:'トークン',validatorAddress:'バリデーターアドレス',transactionAddress:'トランザクション / アドレス',search:'検索',blockSuggestion:'ブロック #{height}',nativeToken:'YNXT ネイティブトークン',heightSuggestion:'ブロック高 #{height} を検索',addressSuggestion:'トランザクションまたは EVM 互換アドレスを検索',indexSuggestion:'現在の 6423 インデックスを検索'},
+      ko:{timeUnavailable:'시간을 사용할 수 없음',requestUnavailable:'검증된 6423 데이터를 현재 사용할 수 없습니다.',requestTimeout:'검증된 6423 서비스의 응답 시간이 초과되었습니다. 다시 시도하세요.',block:'블록',transaction:'트랜잭션',token:'토큰',validatorAddress:'검증인 주소',transactionAddress:'트랜잭션 / 주소',search:'검색',blockSuggestion:'블록 #{height}',nativeToken:'YNXT 네이티브 토큰',heightSuggestion:'블록 높이 #{height} 검색',addressSuggestion:'트랜잭션 또는 EVM 호환 주소 검색',indexSuggestion:'현재 6423 인덱스 검색'}
+    };
+    const searchText = (key, values = {}) => (searchUI[language]?.[key] || searchUI.en[key] || searchUI.en.requestUnavailable).replace(/\{(\w+)\}/g, (_, name) => values[name] ?? '');
     const walletUI = {
       en:{connected:'YNX Wallet connected',session:'EIP-6963 / EIP-1193 session — no signature or transaction was requested',account:'Account',provider:'Provider',providerValue:'YNX Wallet only · MetaMask remains separate',connectedChain:'Connected chain',requiredTestnet:'Required Testnet',onExpected:'Connected to YNX 6423 Testnet',wrongNetwork:'This provider is on a different network. Connection remains intact until you choose to switch.',switchNetwork:'Switch to 0x1917',switchHelp:'Requests a wallet network change',refreshAccount:'Refresh selected account',refreshHelp:'Reads the provider account list',disconnect:'Disconnect',disconnectHelp:'Clears this portal session only',configUnavailable:'No verified public 6423 network configuration is available for this wallet action.'},
       'zh-CN':{connected:'YNX 钱包已连接',session:'EIP-6963 / EIP-1193 会话——未请求签名或交易',account:'账户',provider:'提供者',providerValue:'仅使用 YNX 钱包；MetaMask 保持独立',connectedChain:'已连接网络',requiredTestnet:'所需测试网',onExpected:'已连接至 YNX 6423 测试网',wrongNetwork:'该提供者当前在其他网络；在你选择切换前，连接会保持不变。',switchNetwork:'切换至 0x1917',switchHelp:'将请求钱包网络切换',refreshAccount:'刷新所选账户',refreshHelp:'读取提供者账户列表',disconnect:'断开连接',disconnectHelp:'仅清除此门户会话',configUnavailable:'该钱包操作没有已验证的公开 6423 网络配置。'},
@@ -890,7 +898,7 @@ const indexHTML = `<!doctype html>
     const number = (value) => new Intl.NumberFormat(language === 'en' ? 'en-US' : language).format(Number(value || 0));
     const relativeTime = (value) => {
       const seconds = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 1000));
-      if (!Number.isFinite(seconds)) return 'Time unavailable';
+      if (!Number.isFinite(seconds)) return searchText('timeUnavailable');
       if (language === 'zh-CN') {
         if (seconds < 60) return seconds + ' 秒前';
         if (seconds < 3600) return Math.floor(seconds / 60) + ' 分钟前';
@@ -905,9 +913,9 @@ const indexHTML = `<!doctype html>
     };
     const exactTime = (value) => { const date = new Date(value); return Number.isNaN(date.getTime()) ? '--' : date.toLocaleString(language === 'en' ? 'en-US' : language, {dateStyle:'medium',timeStyle:'medium'}); };
     function serviceState(key) { return serviceRuntime.get(key) || {lastVerifiedAt:null,lastError:'Unknown service'}; }
-    function clientError(error, fallback = 'The requested verified 6423 data is unavailable right now.') {
-      if (error?.name === 'AbortError') return 'The verified 6423 service took too long to respond. Please retry.';
-      return fallback;
+    function clientError(error, fallback) {
+      if (error?.name === 'AbortError') return searchText('requestTimeout');
+      return fallback || searchText('requestUnavailable');
     }
     async function get(path, serviceKey = 'explorer') {
       const service = serviceDirectory[serviceKey] || serviceDirectory.explorer;
@@ -1405,14 +1413,14 @@ const indexHTML = `<!doctype html>
       const snapshot = lastDashboard || {};
       const suggestions = [];
       const add = (value,label,kind) => { if (value && !suggestions.some(item => item.value === value)) suggestions.push({value,label,kind}); };
-      (snapshot.blocks || []).filter(block => String(block.height).includes(lower) || String(block.hash || '').toLowerCase().includes(lower)).slice(0,3).forEach(block => add(String(block.height),'Block #' + number(block.height),'Block'));
-      (snapshot.transactions || []).filter(tx => [tx.hash,tx.from,tx.to].some(value => String(value || '').toLowerCase().includes(lower))).slice(0,3).forEach(tx => add(tx.hash,compact(tx.hash,14,9),'Transaction'));
-      if ('ynxt'.includes(lower) || lower.includes('ynxt')) add('YNXT','YNXT native token','Token');
+      (snapshot.blocks || []).filter(block => String(block.height).includes(lower) || String(block.hash || '').toLowerCase().includes(lower)).slice(0,3).forEach(block => add(String(block.height),searchText('blockSuggestion',{height:number(block.height)}),searchText('block')));
+      (snapshot.transactions || []).filter(tx => [tx.hash,tx.from,tx.to].some(value => String(value || '').toLowerCase().includes(lower))).slice(0,3).forEach(tx => add(tx.hash,compact(tx.hash,14,9),searchText('transaction')));
+      if ('ynxt'.includes(lower) || lower.includes('ynxt')) add('YNXT',searchText('nativeToken'),searchText('token'));
       const validators = Array.isArray(snapshot.validatorData) ? snapshot.validatorData : (snapshot.validatorData?.validators || []);
-      validators.filter(validator => [validator.moniker,validator.address].some(value => String(value || '').toLowerCase().includes(lower))).slice(0,2).forEach(validator => add(validator.address,validator.moniker || compact(validator.address,14,9),'Validator address'));
-      if (/^\d+$/.test(query)) add(query,'Search block height #' + query,'Block');
-      if (/^0x[0-9a-f]+$/i.test(query)) add(query,'Search transaction or EVM-compatible address','Transaction / address');
-      if (suggestions.length === 0) add(query,'Search current 6423 index','Search');
+      validators.filter(validator => [validator.moniker,validator.address].some(value => String(value || '').toLowerCase().includes(lower))).slice(0,2).forEach(validator => add(validator.address,validator.moniker || compact(validator.address,14,9),searchText('validatorAddress')));
+      if (/^\d+$/.test(query)) add(query,searchText('heightSuggestion',{height:query}),searchText('block'));
+      if (/^0x[0-9a-f]+$/i.test(query)) add(query,searchText('addressSuggestion'),searchText('transactionAddress'));
+      if (suggestions.length === 0) add(query,searchText('indexSuggestion'),searchText('search'));
       box.innerHTML = suggestions.slice(0,6).map(item => '<button type="button" role="option" data-suggestion="' + encodeURIComponent(item.value) + '"><span class="mono">' + escapeHTML(item.label) + '</span><small>' + escapeHTML(item.kind) + '</small></button>').join('');
       box.hidden = false;
     }

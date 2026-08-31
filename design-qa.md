@@ -105,3 +105,9 @@ These checks validate the local 6423 runtime only. They do not assert public dep
 - Chinese browser evidence: a verified transaction detail showed localized `数量`、`费用`、`区块高度`、`时间戳` and `批次流转`; the type rendered as `转账`. It did not expose `blockHash`, `resourceConsumed`, or `lotFlows` as interface labels.
 - Account evidence: the drawer showed native and EVM-compatible address fields, balances, stake, nonce, resource-use counters, and bounded lot/trace counts. It did not expose `addressFormats` or `resourceUsage` object keys.
 - Token evidence: YNXT displayed localized native-asset type, localized use cases, and `已验证 RPC 原生资产状态`. Block detail displayed height, hashes, time, validator, and real transaction count. All four drawers were visible in the same local portal tab.
+
+## 2026-08-31 localized search follow-up
+
+- Search suggestions now use the shared locale layer for type labels, generated descriptions, current-index fallback, timeout, and unavailable-time states. Suggestions still derive only from the current verified dashboard snapshot and validated 6423 query forms.
+- Browser evidence: Chinese input `6423` rendered `搜索区块高度 #6423 / 区块`; Japanese `0x1917` rendered the localized transaction-or-EVM-address suggestion; Korean `YNXT` rendered `YNXT 네이티브 토큰 / 토큰`.
+- Failure evidence: submitting an unmatched query with the real search button left the page in the same tab, opened the existing detail surface, and displayed `搜索结果 / 未找到 / 未找到匹配的已验证 6423 记录。`. No `about:blank` page or upstream error text was displayed.
