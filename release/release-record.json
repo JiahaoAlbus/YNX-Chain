@@ -5,7 +5,7 @@
   "release": "ynx-data-fabric-624ba818dcac",
   "channel": "testnet-preview",
   "sourceCommit": "624ba818dcacd56dbcd0a606513210a06991cfca",
-  "generatedAt": "2026-08-31T14:00:00Z",
+  "generatedAt": "2026-08-31T14:56:00Z",
   "phase": "INTEGRATE",
   "overallStatus": "ACTIVE",
   "states": {
@@ -92,16 +92,16 @@
       "postgresStreamingStandbyPromotion": "passed-exact-source-linux-ci-one-host-manual-promotion"
     },
     "remoteCI": {
-      "runId": null,
+      "runId": 33403437777,
       "workflow": "data-fabric",
       "sourceCommit": "624ba818dcacd56dbcd0a606513210a06991cfca",
-      "headCommit": null,
-      "status": "pending",
-      "conclusion": null,
-      "startedAt": null,
-      "duration": null,
+      "headCommit": "40b58c6c089828722a9f2096173be848611d2b55",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-08-31T14:34:36Z",
+      "duration": "6m1s",
       "artifactsPublished": false,
-      "url": null
+      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/33403437777"
     },
     "engineeringEvidenceRun": {
       "runId": 31797308684,

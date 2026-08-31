@@ -5,7 +5,7 @@
 - Workspace: exact configured YNX 26 Worktree verified
 - Branch: `codex/final-data-fabric`
 - Engineering Source Commit: `624ba818dcacd56dbcd0a606513210a06991cfca`
-- Remote Source Commit: pending for testnet identity rejection source `624ba818dcacd56dbcd0a606513210a06991cfca`. GitHub Actions run `33391974185` remains successful evidence only for previous source `6cb878d9de712d28244162b9c2bb5c3b8668deb1`. CI is not Central integration or public runtime proof.
+- Remote Source Commit: GitHub Actions run `33403437777` passed all six Data Fabric jobs for testnet identity rejection source `624ba818dcacd56dbcd0a606513210a06991cfca` at binding head `40b58c6c089828722a9f2096173be848611d2b55`. CI is not Central integration or public runtime proof.
 - Source evidence CI: Run `31811137802` passed both jobs at v26-bound head `58eff9dad4a0a3dc27105716928f2a9b7c4f6460`, including the three-replica JetStream TCP route-partition/heal gate. Its eleven-file artifact was downloaded and every SHA-256 value verified. Earlier leader-loss evidence remains preserved in Runs `31797308684` and `31799837096`.
 - Concurrent writer: no Git writer detected; an existing CodexPro server process was left untouched
 - Dirty state: candidate source, delivery documents and exact-source CI receipt are committed on the review branch; legacy recovery files remain preserved under `recovery/2026-07-23/`

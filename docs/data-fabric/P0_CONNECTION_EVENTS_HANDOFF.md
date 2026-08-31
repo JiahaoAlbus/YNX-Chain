@@ -63,7 +63,7 @@
 - Implementation commit: `624ba818dcacd56dbcd0a606513210a06991cfca`.
 - `scripts/data-fabric/testnet-deployment-check.sh` now verifies the deployment verifier rejects loopback BFT fixtures that report either legacy chain `9102`/`ynx_9102-1` or asset symbol `NYXT`. The canonical fixture remains `6423`/`ynx_6423-1`/`YNXT`.
 - The release-truth gate now treats every `scripts/data-fabric/**` file as frozen engineering source, so deployment-verifier behavior cannot drift after source binding.
-- Local validation passed: `node --check` for both Node scripts, `bash -n` for deployment scripts, and `bash scripts/data-fabric/testnet-deployment-check.sh`. No actual endpoint was called and P0-147 remains `WAITING_EXTERNAL_PUBLIC_ENDPOINT_UNBOUND`.
+- Local validation passed: `node --check` for both Node scripts, `bash -n` for deployment scripts, and `bash scripts/data-fabric/testnet-deployment-check.sh`. GitHub Actions run `33403437777` passed all six jobs at binding head `40b58c6c089828722a9f2096173be848611d2b55`. No actual endpoint was called and P0-147 remains `WAITING_EXTERNAL_PUBLIC_ENDPOINT_UNBOUND`.
 
 ## Truth boundary and requested Integration action
 
