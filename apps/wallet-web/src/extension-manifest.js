@@ -9,7 +9,14 @@ const sharedManifest = {
   homepage_url: extensionHomepage,
   permissions: ["activeTab", "scripting", "storage"],
   content_security_policy: {extension_pages: "script-src 'self'; object-src 'self'; connect-src https://evm.ynxweb4.com"},
-  host_permissions: ["https://evm.ynxweb4.com/*"],
+  // The provider must be present before an external DApp's own discovery
+  // listeners run. Limit persistent injection to HTTPS top-level documents;
+  // the extension page itself remains restricted to the frozen Testnet RPC.
+  host_permissions: ["https://*/*"],
+  content_scripts: [
+    {matches:["https://*/*"],js:["content-script.js"],run_at:"document_start",all_frames:false},
+    {matches:["https://*/*"],js:["page-provider.js"],run_at:"document_start",world:"MAIN",all_frames:false},
+  ],
   action: {default_popup: "index.html", default_title: "YNX Wallet"},
   options_ui: {page: "vault.html", open_in_tab: true},
   commands: {"_execute_action": {suggested_key: {default: "Ctrl+Shift+Y", mac: "MacCtrl+Shift+Y"}, description: "Open YNX Wallet for the active DApp"}},

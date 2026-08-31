@@ -1,7 +1,8 @@
-export const EXTENSION_MIGRATION_VERSION=2;
-export const EXTENSION_MIGRATION_KEY="ynx.extension.migration.v2";
+export const EXTENSION_MIGRATION_VERSION=3;
+export const EXTENSION_MIGRATION_KEY="ynx.extension.migration.v3";
 export const REQUIRED_RPC_ORIGIN="https://evm.ynxweb4.com/*";
-export const LEGACY_ORIGIN_GRANTS=Object.freeze(["https://*/*","http://localhost/*","http://127.0.0.1/*"]);
+export const REQUIRED_DAPP_ORIGIN="https://*/*";
+export const LEGACY_ORIGIN_GRANTS=Object.freeze(["http://*/*","http://localhost/*","http://127.0.0.1/*"]);
 
 function fail(code,message,cause){throw Object.assign(new Error(message),{code,cause})}
 async function requireCall(target,name,...args){if(typeof target?.[name]!=="function")fail("MIGRATION_API_UNAVAILABLE",`Extension migration API ${name} is unavailable.`);try{return await target[name](...args)}catch(error){fail("MIGRATION_CLEANUP_FAILED",`Extension migration ${name} failed.`,error)}}
@@ -23,9 +24,9 @@ export async function runExtensionMigration(api,options={}){
   }else if(alarmsDeclared)fail("MIGRATION_API_UNAVAILABLE","Declared alarms permission cannot be cleaned up.");
   const after=await requireCall(permissions,"getAll"),afterOrigins=Array.isArray(after?.origins)?after.origins:[];
   if(LEGACY_ORIGIN_GRANTS.some(origin=>afterOrigins.includes(origin)))fail("MIGRATION_ORIGIN_REMAINS","Legacy extension origin permission remained after cleanup.");
-  if(!afterOrigins.includes(REQUIRED_RPC_ORIGIN))fail("REQUIRED_RPC_PERMISSION_MISSING","Frozen RPC origin permission is missing after migration.");
+  if(!afterOrigins.includes(REQUIRED_DAPP_ORIGIN))fail("REQUIRED_DAPP_PERMISSION_MISSING","HTTPS DApp provider permission is missing after migration.");
   if((await requireCall(scripting,"getRegisteredContentScripts")).length)fail("MIGRATION_CONTENT_SCRIPT_REMAINS","Dynamic content scripts remained after cleanup.");
-  const report=Object.freeze({schemaVersion:1,migrationVersion:EXTENSION_MIGRATION_VERSION,legacyOriginsRemoved:Object.freeze([...legacyOrigins]),dynamicScriptIdsRemoved:Object.freeze([...scriptIds]),alarmNamesRemoved:Object.freeze([...alarmNames]),alarmCleanup,rpcOriginRetained:true,accountStateTouched:false,completedAt:new Date(options.now??Date.now()).toISOString()});
+  const report=Object.freeze({schemaVersion:1,migrationVersion:EXTENSION_MIGRATION_VERSION,legacyOriginsRemoved:Object.freeze([...legacyOrigins]),dynamicScriptIdsRemoved:Object.freeze([...scriptIds]),alarmNamesRemoved:Object.freeze([...alarmNames]),alarmCleanup,httpsDappOriginRetained:true,rpcOriginCoveredByHttpsDappPermission:afterOrigins.includes(REQUIRED_DAPP_ORIGIN),accountStateTouched:false,completedAt:new Date(options.now??Date.now()).toISOString()});
   try{await local.set({[EXTENSION_MIGRATION_KEY]:report})}catch(error){fail("MIGRATION_STATE_WRITE_FAILED","Extension migration report could not be saved.",error)}
   return report;
 }

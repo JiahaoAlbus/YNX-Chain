@@ -51,21 +51,23 @@ upgrade, and store-managed uninstall are not claimed. Firefox declares the
 stable development add-on ID `wallet-testnet@ynxweb4.com` and Firefox 128 as
 its minimum runtime, but remains unsigned and not store-released. Both bundles
 link only to the public project homepage; that link is not a hosted download.
-Neither bundle has persistent all-site content-script access or a web-accessible
-provider script. Opening the popup from an HTTP(S) DApp grants the temporary
-`activeTab` capability used to inject the isolated transport before the
-main-world provider. A missing user gesture, unsupported tab, lost grant, or
-injection error returns `ACTIVE_TAB_REQUIRED`. The sole persistent host grant
-is the frozen `https://evm.ynxweb4.com/*` RPC authority, and extension CSP allows
-network connection only to that origin.
+Each bundle declares two HTTPS-only, top-level `document_start` content scripts:
+the isolated transport and the main-world EIP-6963/EIP-1193 provider. This makes
+YNX discoverable to external HTTPS DApps without a top-level custom-scheme
+navigation, while the provider remains transport-only and is never web
+accessible as a standalone resource. The extension keeps `activeTab` solely as
+a constrained fallback for popup-originated actions. HTTP, file, browser
+internal, subframe, and unsupported-tab contexts are excluded; fallback
+injection failures return `ACTIVE_TAB_REQUIRED`. The persistent DApp permission
+is exactly `https://*/*`; extension CSP still allows network connections only to
+the frozen `https://evm.ynxweb4.com` RPC authority.
 The same action is keyboard-accessible through `Ctrl+Shift+Y` (macOS
 `MacCtrl+Shift+Y`). This command grants no durable site permission: closing the
 browser or navigating the tab requires a new explicit action before injection.
-On every extension service-worker start, migration v2 removes the historical
-all-site and localhost origin grants, unregisters every dynamic content script,
-and clears extension alarms when that API was historically available. It then
-rechecks that no legacy capability remains and that the frozen RPC origin still
-exists. The migration writes only its non-sensitive report in extension-local
+On every extension service-worker start, migration v3 removes historical HTTP
+and localhost origin grants, unregisters every old dynamic content script, and
+clears extension alarms when that API was historically available. It then
+rechecks that the exact HTTPS DApp permission remains. The migration writes only its non-sensitive report in extension-local
 storage; it never reads or deletes account/session state. Any cleanup or report
 failure blocks discovery and all wallet requests with `MIGRATION_INCOMPLETE`
 before provider injection or sensitive work.
