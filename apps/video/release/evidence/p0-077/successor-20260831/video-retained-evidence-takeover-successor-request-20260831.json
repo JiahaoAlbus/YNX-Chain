@@ -1,0 +1,153 @@
+{
+  "schemaVersion": "ynx-video-retained-evidence-takeover-successor-request/1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-VIDEO-RETAINED-EVIDENCE-TAKEOVER-SUCCESSOR-20260831",
+  "productId": "ynx-video",
+  "owner": "video",
+  "generatedAt": "2026-08-31T00:00:00Z",
+  "status": "REQUESTED_NOT_AUTHORIZED",
+  "source": {
+    "branch": "codex/video-wallet-runtime-successor-20260831",
+    "implementationCommit": "810d3e5635788128c7579dab64bf1439fb7a4acd",
+    "implementationTree": "b38c8cc5a4de6481ea8fc6d403a91158dff55a60",
+    "parent": "4fcef01aebdbc626dfe68b7e5053123d33a36511",
+    "runtimeSource": "560c467d61e74f7939b8ce527f14316c736b88a7",
+    "walletSemanticsAncestor": "b00229a6a86a3fb5afa374d8321cc0f48f1ff281"
+  },
+  "centralReadOnlyInventory": {
+    "commit": "d5d7eeee269e07f294641b6bfdac3242268aae48",
+    "tree": "91e28578dbcc53e3d146ba3840ea2d9bef2f745c",
+    "sshCount": 1,
+    "mutationCount": 0,
+    "inventoryPath": "apps/video/release/evidence/p0-077/successor-20260831/video-retained-evidence-inventory-p0311.json",
+    "inventoryBlob": "c57914b87015e67ffcd48187cb5c04bac3c235fd",
+    "inventoryBytes": 2370,
+    "inventorySha256": "22c23b3f026599867229684d42a49ba3d183fc8e0ce675823ba595a77589192b",
+    "parentTuple": "64770:4620872:0:0:755:2:4096:directory",
+    "identityTuple": "64770:35403:0:0:600:1:24:regular file",
+    "identitySha256": "6f75e36e9cba62f001fdfb0e659f88c88e24b98f341dc7d15511ef63e649bb8c",
+    "directChildCount": 5,
+    "directSubdirectoryCount": 0
+  },
+  "retainedEvidenceBoundary": {
+    "parent": "/var/lib/ynx-video-viewer-wallet-evidence",
+    "identity": "/var/lib/ynx-video-viewer-wallet-evidence.identity",
+    "access": "READ_ONLY_EXACT_INVENTORY",
+    "deleteAllowed": false,
+    "renameAllowed": false,
+    "archiveAllowed": false,
+    "replacementAllowed": false,
+    "requiredReadableBeforeTakeover": true,
+    "requiredReadableImmediatelyBeforeLegacyStop": true,
+    "requiredReadableAfterTakeover": true,
+    "requiredReadableAfterRollback": true
+  },
+  "newReceiptBoundary": {
+    "container": "/var/lib",
+    "parent": "/var/lib/ynx-video-viewer-wallet-evidence-560c467d",
+    "identity": "/var/lib/ynx-video-viewer-wallet-evidence-560c467d.identity",
+    "takeoverReceipt": "/var/lib/ynx-video-viewer-wallet-evidence-560c467d/video-viewer-wallet-controlled-takeover-810d3e56.receipt",
+    "bootstrapReceipt": "/var/lib/ynx-video-viewer-wallet-evidence-560c467d/video-viewer-wallet-bootstrap-560c467d.receipt",
+    "mustBeAbsentBeforeWrite": true,
+    "cleanupScope": "EXACT_ALLOWLISTED_DIRECT_FILES_ONLY",
+    "recursiveDeletionAllowed": false,
+    "retainedParentIsOutsideCleanupScope": true
+  },
+  "executionObjects": {
+    "controlledTakeover": {
+      "path": "apps/video/scripts/video-runtime-controlled-takeover.sh",
+      "blob": "4429018b3078c74ef0b8dff6a6a944dd98d236aa",
+      "bytes": 16126,
+      "sha256": "216c5c14fd25bf2b817f67c5b4ea73cc76821a31dac459841d2258e4f49f07c6"
+    },
+    "retainedEvidenceGuard": {
+      "path": "apps/video/scripts/video-retained-evidence-guard.mjs",
+      "blob": "adc509a21eb69d42dcff43d8351abc024178170b",
+      "bytes": 3127,
+      "sha256": "b451d2ccfd2be3ac7a1a1517516e51a43b86f352c7fe9717e94f22f4f2ef8298"
+    },
+    "testObjects": [
+      {
+        "path": "apps/video/controlled-takeover.test.mjs",
+        "blob": "e241e7301e894e96968a7ff714c84e26ac271fe6",
+        "bytes": 15321,
+        "sha256": "65296c6ff834d73ca9823803f0d40021b6db62bcaee58540e6a0e768bccaaec4"
+      },
+      {
+        "path": "apps/video/retained-evidence-guard.test.mjs",
+        "blob": "f31aab2ad88f6e8d01a2c237fdb23a5a469d610a",
+        "bytes": 4674,
+        "sha256": "b634399141f8e191de9f4d62741be28cd5de43420f1a03dc77e0ed92914eab00"
+      }
+    ]
+  },
+  "requiredEnvironment": {
+    "YNX_VIDEO_RECEIPT_PARENT": "/var/lib/ynx-video-viewer-wallet-evidence-560c467d",
+    "YNX_VIDEO_TAKEOVER_RECEIPT": "/var/lib/ynx-video-viewer-wallet-evidence-560c467d/video-viewer-wallet-controlled-takeover-810d3e56.receipt",
+    "YNX_VIDEO_BOOTSTRAP_RECEIPT": "/var/lib/ynx-video-viewer-wallet-evidence-560c467d/video-viewer-wallet-bootstrap-560c467d.receipt",
+    "YNX_VIDEO_RETAINED_EVIDENCE_PARENT": "/var/lib/ynx-video-viewer-wallet-evidence",
+    "YNX_VIDEO_RETAINED_EVIDENCE_IDENTITY": "/var/lib/ynx-video-viewer-wallet-evidence.identity",
+    "YNX_VIDEO_RETAINED_EVIDENCE_INVENTORY": "/var/tmp/video-retained-evidence-inventory-p0311.json",
+    "YNX_VIDEO_RETAINED_EVIDENCE_INVENTORY_SHA256": "22c23b3f026599867229684d42a49ba3d183fc8e0ce675823ba595a77589192b",
+    "YNX_VIDEO_RETAINED_EVIDENCE_GUARD": "/var/tmp/video-retained-evidence-guard-810d3e56.mjs",
+    "YNX_VIDEO_RETAINED_EVIDENCE_GUARD_SHA256": "b451d2ccfd2be3ac7a1a1517516e51a43b86f352c7fe9717e94f22f4f2ef8298"
+  },
+  "failClosedFixtures": {
+    "testCount": 39,
+    "retainedGuardPositive": true,
+    "foreignSiblingRejected": true,
+    "sameByteReplacementInodeRejected": true,
+    "symlinkReplacementRejected": true,
+    "hardlinkReplacementRejected": true,
+    "directoryOnlySiblingRejected": true,
+    "postValidationRaceRejected": true,
+    "rejectionsBeforeSystemdLifecycle": true,
+    "rejectionsBeforeReceiptParentCreation": true,
+    "rejectionsDeleteNoRetainedEntry": true,
+    "successfulTakeoverLeavesRetainedEvidenceReadable": true,
+    "exactLegacyRollbackLeavesRetainedEvidenceReadable": true,
+    "videoCheck": "PASS_39_OF_39",
+    "i18nAudit": "PASS_12_LOCALES_22_KEYS"
+  },
+  "leaseBoundary": {
+    "leaseType": "VIDEO_ONLY_SINGLE_USE_RETAINED_EVIDENCE_SAFE_TAKEOVER",
+    "freshReadRequired": true,
+    "retryAllowed": false,
+    "sshAllowedWithoutLease": false,
+    "allowedWrites": [
+      "/opt/ynx-video-viewer-wallet/**",
+      "/etc/systemd/system/ynx-video-viewer-wallet.service",
+      "/var/lib/ynx-video-viewer-wallet-evidence-560c467d/**",
+      "/var/lib/ynx-video-viewer-wallet-evidence-560c467d.identity",
+      "/var/tmp/video-retained-evidence-inventory-p0311.json",
+      "/var/tmp/video-retained-evidence-guard-810d3e56.mjs"
+    ],
+    "forbiddenWrites": [
+      "/var/lib/ynx-video-viewer-wallet-evidence",
+      "/var/lib/ynx-video-viewer-wallet-evidence/**",
+      "/var/lib/ynx-video-viewer-wallet-evidence.identity",
+      "/opt/ynx-video/current",
+      "/etc/systemd/system/ynx-video-viewer.service",
+      "/etc/caddy/Caddyfile",
+      "API 6493",
+      "Creator 6495"
+    ],
+    "accountRequestAllowed": false,
+    "signatureAllowed": false,
+    "transactionAllowed": false
+  },
+  "truth": {
+    "sourceComplete": true,
+    "inventoryDirectReadComplete": true,
+    "retainedEvidenceMutation": false,
+    "sshPerformedByOwner": false,
+    "productionDeployed": false,
+    "sourceBoundPublic": false,
+    "realProvider": false,
+    "accountApproved": false,
+    "signature": false,
+    "transaction": false,
+    "productComplete": false
+  },
+  "singleExecutableBlocker": "Central must independently verify this exact successor and issue one wholly-new Video-only single-use retained-evidence-safe takeover lease after fresh production readback; no deployment is authorized by this request."
+}
