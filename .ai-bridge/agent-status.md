@@ -4,7 +4,7 @@
 - Phase: `INTEGRATE`
 - Workspace: exact configured YNX 26 Worktree verified
 - Branch: `codex/final-data-fabric`
-- Engineering Source Commit: `10d50da8a3b763261bb559722478126bdc219aea`
+- Engineering Source Commit: `7edb2034027219eaa8d25a24d7dcdd5576fd1943`
 - Remote Source Commit: CI for the release metadata refresh is pending. The prior exact-source CI run remains historical evidence only and is not bound to this engineering source.
 - Source evidence CI: Run `31811137802` passed both jobs at v26-bound head `58eff9dad4a0a3dc27105716928f2a9b7c4f6460`, including the three-replica JetStream TCP route-partition/heal gate. Its eleven-file artifact was downloaded and every SHA-256 value verified. Earlier leader-loss evidence remains preserved in Runs `31797308684` and `31799837096`.
 - Concurrent writer: no Git writer detected; an existing CodexPro server process was left untouched
