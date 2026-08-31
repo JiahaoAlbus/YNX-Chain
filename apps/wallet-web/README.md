@@ -51,24 +51,26 @@ upgrade, and store-managed uninstall are not claimed. Firefox declares the
 stable development add-on ID `wallet-testnet@ynxweb4.com` and Firefox 128 as
 its minimum runtime, but remains unsigned and not store-released. Both bundles
 link only to the public project homepage; that link is not a hosted download.
-Neither bundle has persistent all-site content-script access or a web-accessible
-provider script. Opening the popup from an HTTP(S) DApp grants the temporary
-`activeTab` capability used to inject the isolated transport before the
-main-world provider. A missing user gesture, unsupported tab, lost grant, or
-injection error returns `ACTIVE_TAB_REQUIRED`. The sole persistent host grant
-is the frozen `https://evm.ynxweb4.com/*` RPC authority, and extension CSP allows
-network connection only to that origin.
+Both bundles declare one persistent HTTPS-only site scope so the isolated
+transport and distinct YNX EIP-6963 provider can load deterministically at
+`document_start` on standard external DApps. HTTP, file, extension, browser,
+and custom-scheme pages are excluded. The provider is not web-accessible and
+the extension CSP still allows network connection only to the frozen
+`https://evm.ynxweb4.com` RPC origin. The action keeps a bounded `activeTab`
+repair path; an unsupported tab, lost grant, or injection error returns
+`ACTIVE_TAB_REQUIRED`.
 The same action is keyboard-accessible through `Ctrl+Shift+Y` (macOS
 `MacCtrl+Shift+Y`). This command grants no durable site permission: closing the
 browser or navigating the tab requires a new explicit action before injection.
-On every extension service-worker start, migration v2 removes the historical
-all-site and localhost origin grants, unregisters every dynamic content script,
+On every extension service-worker start, migration v3 removes historical HTTP
+and localhost origin grants, retains the required HTTPS provider scope,
+unregisters every dynamic content script,
 and clears extension alarms when that API was historically available. It then
 rechecks that no legacy capability remains and that the frozen RPC origin still
 exists. The migration writes only its non-sensitive report in extension-local
 storage; it never reads or deletes account/session state. Any cleanup or report
 failure blocks discovery and all wallet requests with `MIGRATION_INCOMPLETE`
-before provider injection or sensitive work.
+before provider work or sensitive requests.
 
 Add-chain, switch-network, and transaction controls remain disabled until the
 current page has obtained a fresh, exact `eth_chainId = 0x1917` response from

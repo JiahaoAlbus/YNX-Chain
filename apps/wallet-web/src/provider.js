@@ -83,7 +83,7 @@ export async function discoverEip6963(scope = globalThis, waitMs = 160) {
   return Object.freeze([...found.values()]);
 }
 
-export async function discoverWallets(scope = globalThis) {
+export async function discoverWallets(scope = globalThis, diagnostics = {}) {
   const announced = await discoverEip6963(scope);
   const injected = discoverInjectedProviders(scope);
   const announcedYNX = announced.find(({info, provider}) =>
@@ -91,11 +91,14 @@ export async function discoverWallets(scope = globalThis) {
   const announcedMetaMask = announced.find(({info, provider}) =>
     ["io.metamask","io.metamask.flask"].includes(String(info.rdns || "").toLowerCase()) && provider.isMetaMask === true && !ynxProvider(provider));
   const ynx=announcedYNX?.provider||injected.ynx,metamask=announcedMetaMask?.provider||injected.metamask;
+  diagnostics=diagnostics&&typeof diagnostics==="object"?diagnostics:{};
+  const classification=ynx||metamask?"available":diagnostics.siteAccessDenied===true?"site-access-denied":diagnostics.extensionInstalled===true&&diagnostics.extensionLocked===true?"extension-locked":"no-provider";
   return Object.freeze({
     ynx,metamask,
-    status:ynx||metamask?"available":scope.ethereum?"unsupported-injected-provider":"provider-not-injected",
-    possibleCauses:ynx||metamask||scope.ethereum?Object.freeze([]):Object.freeze(["extension-locked","site-access-denied","extension-disabled","extension-not-installed"]),
-    exactExtensionStateObservable:false,
+    status:classification,
+    classification,
+    possibleCauses:classification==="available"?Object.freeze([]):classification==="extension-locked"?Object.freeze(["extension-locked"]):classification==="site-access-denied"?Object.freeze(["site-access-denied"]):Object.freeze(["extension-locked","site-access-denied","extension-disabled","extension-not-installed"]),
+    exactExtensionStateObservable:classification!=="no-provider",
   });
 }
 
@@ -109,8 +112,9 @@ export function walletDiscoveryPresentation(availability = {}) {
     showYNXDownload: !ynxPresent,
     showMetaMaskChoice: !ynxPresent,
     metaMaskChoice: metamaskPresent ? "connect" : "official-download",
-    status:availability.status||((ynxPresent||metamaskPresent)?"available":"provider-not-injected"),
-    exactExtensionStateObservable:false,
+    status:availability.status||((ynxPresent||metamaskPresent)?"available":"no-provider"),
+    errorKey:ynxPresent||metamaskPresent?null:availability.status==="extension-locked"?"walletLocked":availability.status==="site-access-denied"?"siteAccessDenied":"providerNotInjected",
+    exactExtensionStateObservable:availability.exactExtensionStateObservable===true,
   });
 }
 

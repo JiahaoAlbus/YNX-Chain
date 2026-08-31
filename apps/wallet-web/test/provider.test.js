@@ -70,10 +70,9 @@ test("provider identity does not trust an arbitrary rdns substring", () => {
 });
 
 test("discovery presentation directly prefers YNX and gives two non-empty fallbacks", () => {
-  const exactExtensionStateObservable=false;
-  assert.deepEqual(walletDiscoveryPresentation({ynx:provider(),metamask:provider()}),{ynxPresent:true,metamaskPresent:true,showYNXConnect:true,showYNXDownload:false,showMetaMaskChoice:false,metaMaskChoice:"connect",status:"available",exactExtensionStateObservable});
-  assert.deepEqual(walletDiscoveryPresentation({ynx:null,metamask:provider()}),{ynxPresent:false,metamaskPresent:true,showYNXConnect:false,showYNXDownload:true,showMetaMaskChoice:true,metaMaskChoice:"connect",status:"available",exactExtensionStateObservable});
-  assert.deepEqual(walletDiscoveryPresentation({}),{ynxPresent:false,metamaskPresent:false,showYNXConnect:false,showYNXDownload:true,showMetaMaskChoice:true,metaMaskChoice:"official-download",status:"provider-not-injected",exactExtensionStateObservable});
+  assert.deepEqual(walletDiscoveryPresentation({ynx:provider(),metamask:provider(),exactExtensionStateObservable:true}),{ynxPresent:true,metamaskPresent:true,showYNXConnect:true,showYNXDownload:false,showMetaMaskChoice:false,metaMaskChoice:"connect",status:"available",errorKey:null,exactExtensionStateObservable:true});
+  assert.deepEqual(walletDiscoveryPresentation({ynx:null,metamask:provider(),exactExtensionStateObservable:true}),{ynxPresent:false,metamaskPresent:true,showYNXConnect:false,showYNXDownload:true,showMetaMaskChoice:true,metaMaskChoice:"connect",status:"available",errorKey:null,exactExtensionStateObservable:true});
+  assert.deepEqual(walletDiscoveryPresentation({}),{ynxPresent:false,metamaskPresent:false,showYNXConnect:false,showYNXDownload:true,showMetaMaskChoice:true,metaMaskChoice:"official-download",status:"no-provider",errorKey:"providerNotInjected",exactExtensionStateObservable:false});
   assert.equal(new URL(YNX_DOWNLOAD_URL).hostname,"www.ynxweb4.com");
   assert.equal(METAMASK_DOWNLOAD_URL,"https://metamask.io/download");
 });
@@ -96,6 +95,32 @@ test("EIP-6963 discovers exact YNX and MetaMask announcements including late inj
   dispatches=0;
   const result=await discoverWallets(scope);
   assert.equal(result.ynx,ynx);assert.equal(result.metamask,metamask);assert.equal(result.status,"available");
+});
+
+test("repeated EIP-6963 requests deduplicate providers and retain YNX versus MetaMask identity",async()=>{
+  const listeners=new Map(),ynx=Object.assign(provider(),{isYNXWallet:true,isMetaMask:false,providerInfo:{rdns:"com.ynx.wallet"}}),metamask=Object.assign(provider(),{isMetaMask:true,isYNXWallet:false});
+  class TestEvent{constructor(type){this.type=type}}
+  const scope={Event:TestEvent,document:{readyState:"complete"},addEventListener(type,listener){listeners.set(type,listener)},removeEventListener(type){listeners.delete(type)},dispatchEvent(event){if(event.type!=="eip6963:requestProvider")return true;for(let repeat=0;repeat<2;repeat++){listeners.get("eip6963:announceProvider")?.({detail:{info:{uuid:"11111111-1111-4111-8111-111111111111",rdns:"com.ynx.wallet",name:"YNX Wallet"},provider:ynx}});listeners.get("eip6963:announceProvider")?.({detail:{info:{uuid:"22222222-2222-4222-8222-222222222222",rdns:"io.metamask",name:"MetaMask"},provider:metamask}})}return true}};
+  const announced=await discoverEip6963(scope,2);
+  assert.equal(announced.length,2);
+  const result=await discoverWallets(scope);
+  assert.equal(result.ynx,ynx);assert.equal(result.metamask,metamask);
+  assert.equal(result.ynx.isMetaMask,false);assert.equal(result.metamask.isYNXWallet,false);
+});
+
+test("ethereum.providers fallback observes delayed injection without inventing installation state",async()=>{
+  const ethereum={providers:[]},ynx=Object.assign(provider(),{isYNXWallet:true,isMetaMask:false,providerInfo:{rdns:"com.ynx.wallet"}});
+  const scope={ethereum,Event:class{constructor(type){this.type=type}},document:{readyState:"complete"},addEventListener(){},removeEventListener(){},dispatchEvent(){ethereum.providers.push(ynx);return true}};
+  const result=await discoverWallets(scope);
+  assert.equal(result.ynx,ynx);assert.equal(result.classification,"available");assert.equal(result.exactExtensionStateObservable,true);
+});
+
+test("no-provider locked and site-access-denied classifications require explicit diagnostics",async()=>{
+  const scope={Event:class{constructor(type){this.type=type}},document:{readyState:"complete"},addEventListener(){},removeEventListener(){},dispatchEvent(){return true}};
+  const absent=await discoverWallets(scope),locked=await discoverWallets(scope,{extensionInstalled:true,extensionLocked:true}),denied=await discoverWallets(scope,{extensionInstalled:true,siteAccessDenied:true});
+  assert.deepEqual({status:absent.status,observable:absent.exactExtensionStateObservable,error:walletDiscoveryPresentation(absent).errorKey},{status:"no-provider",observable:false,error:"providerNotInjected"});
+  assert.deepEqual({status:locked.status,observable:locked.exactExtensionStateObservable,error:walletDiscoveryPresentation(locked).errorKey},{status:"extension-locked",observable:true,error:"walletLocked"});
+  assert.deepEqual({status:denied.status,observable:denied.exactExtensionStateObservable,error:walletDiscoveryPresentation(denied).errorKey},{status:"site-access-denied",observable:true,error:"siteAccessDenied"});
 });
 
 test("mobile discovery separates unavailable canonical YNX auth from MetaMask dapp routing", () => {

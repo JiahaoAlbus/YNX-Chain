@@ -15,7 +15,7 @@
     else if(event.data.type===PAGE_EVENT&&EVENTS.has(event.data.event))emit(event.data.event,event.data.payload);
   });
   const provider=Object.freeze({
-    isYNXWallet:true,isYnxWallet:true,__ynxCompanion:true,
+    isYNXWallet:true,isYnxWallet:true,isMetaMask:false,__ynxCompanion:true,
     providerInfo:Object.freeze({uuid:"6f4e2a77-7878-4f29-9c0d-191700000001",name:"YNX Wallet",icon:"__YNX_PROVIDER_ICON_DATA_URI__",rdns:"com.ynx.wallet"}),
     request:bridgeRequest,disconnect:()=>bridgeRequest({method:"ynx_disconnect"}),
     on(event,listener){if(EVENTS.has(event)&&typeof listener==="function"){if(!listeners.has(event))listeners.set(event,new Set());listeners.get(event).add(listener)}return provider},
@@ -25,5 +25,8 @@
   const existing=window.ethereum;
   if(!existing)Object.defineProperty(window,"ethereum",{value:provider,configurable:false,enumerable:true,writable:false});
   else{const providers=Array.isArray(existing.providers)?existing.providers:[existing];if(!providers.includes(provider))providers.push(provider);if(!Array.isArray(existing.providers)){try{Object.defineProperty(existing,"providers",{value:providers,configurable:true})}catch{}}}
-  const announce=()=>window.dispatchEvent(new CustomEvent("eip6963:announceProvider",{detail:Object.freeze({info:provider.providerInfo,provider})}));window.addEventListener("eip6963:requestProvider",announce);queueMicrotask(announce);
+  const announcement=Object.freeze({info:provider.providerInfo,provider});
+  const announce=()=>window.dispatchEvent(new CustomEvent("eip6963:announceProvider",{detail:announcement}));
+  window.addEventListener("eip6963:requestProvider",announce);
+  queueMicrotask(announce);
 })();

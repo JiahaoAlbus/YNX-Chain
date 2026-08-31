@@ -181,7 +181,7 @@ function presentAvailability(availability) {
   document.querySelector("#metamask").classList.toggle("hidden", !presentation.showMetaMaskChoice);
   document.querySelector("#metamask").dataset.route = mobile.metaMaskRoute;
   document.querySelector("#metamask").href = mobile.metaMaskHref || METAMASK_DOWNLOAD_URL;
-  document.querySelector("#detected").textContent = presentation.ynxPresent ? text("detected") : presentation.metamaskPresent?text("metamaskDetected"):text("providerNotInjected");
+  document.querySelector("#detected").textContent = presentation.ynxPresent ? text("detected") : presentation.metamaskPresent?text("metamaskDetected"):text(presentation.errorKey);
 }
 
 async function detect({preserveConnection=false}={}) {
