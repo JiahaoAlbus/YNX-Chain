@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "owner": "wallet-desktop-cli-sdk",
+  "branch": "codex/wallet-sdk-error-taxonomy-20260831",
+  "implementationCommit": "b811812a69b920446186ec35e9336dc32fa542c0",
+  "implementationTree": "f5e57689caf47844ef6a026e3fa38c67b120982e",
+  "evidencePath": "docs/integration/wallet-sdk-pretransport-6423-gate-evidence-20260831.json",
+  "result": "ALL_OWNER_NETWORK_ENTRIES_PREFLIGHT_GATED_SOURCE_PACKAGE_PASS_RUNTIME_FALSE",
+  "claims": {
+    "allOwnerNetworkEntriesPreflightGated": true,
+    "exact6423AndYNXTOnly": true,
+    "legacy9102RequestCount": 0,
+    "legacy9102ExitCode": 78,
+    "legacy9102Result": "WRONG_CHAIN",
+    "cleanCurrentConsumer": true,
+    "legacyConsumerCompatible": true,
+    "remoteProbeRepeated": false,
+    "currentRemoteChainConnectionProved": false,
+    "accountRequested": false,
+    "signed": false,
+    "transactionCreated": false
+  }
+}

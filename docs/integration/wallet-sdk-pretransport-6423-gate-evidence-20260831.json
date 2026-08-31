@@ -1,0 +1,74 @@
+{
+  "schemaVersion": 1,
+  "scope": "wallet-desktop-cli-sdk",
+  "branch": "codex/wallet-sdk-error-taxonomy-20260831",
+  "implementationCommit": "b811812a69b920446186ec35e9336dc32fa542c0",
+  "implementationTree": "f5e57689caf47844ef6a026e3fa38c67b120982e",
+  "parentCommit": "9d0a3ff0661b00d948e61130b3e9da887e5320ea",
+  "requiredNetwork": {
+    "nativeChainId": "ynx_6423-1",
+    "chainIdDecimal": 6423,
+    "evmChainId": "0x1917",
+    "nativeCurrency": "YNXT"
+  },
+  "pretransportGates": [
+    {"entry": "TypeScript getYNXStatus", "wrongConfigResult": "WRONG_CHAIN", "requestCount": 0},
+    {"entry": "TypeScript callYNXEVM", "wrongConfigResult": "WRONG_CHAIN", "requestCount": 0},
+    {"entry": "TypeScript proveYNXTestnetRPC", "wrongConfigResult": "WRONG_CHAIN", "requestCount": 0},
+    {"entry": "TypeScript YNXClient constructor", "wrongConfigResult": "WRONG_CHAIN", "requestCount": 0},
+    {"entry": "Go ProbeYNXTestnetRPCWithConfig", "wrongConfigResult": "WRONG_CHAIN", "requestCount": 0},
+    {"entry": "Go SDK clean example", "wrongConfigResult": "WRONG_CHAIN", "requestCount": 0},
+    {"entry": "CLI chain-status", "wrongConfigResult": "WRONG_CHAIN", "exitCode": 78, "requestCount": 0}
+  ],
+  "negativeConfigs": [
+    {"nativeChainId": "ynx_9102-1"},
+    {"chainIdDecimal": 9102},
+    {"evmChainId": "0x238e"},
+    {"nativeCurrency": "OLD"}
+  ],
+  "remediation": "USE_YNX_TESTNET_6423",
+  "sharedVector": {
+    "path": "testdata/wallet-sdk-error-taxonomy-v1.json",
+    "sha256": "ac1dd2db974923709a5197c0fdab583e9be3b996db8426a3a7b691881beca137",
+    "typescript": "PASS",
+    "go": "PASS",
+    "cli": "PASS"
+  },
+  "cleanPackageConsumer": {
+    "runner": "release/integration/wallet-sdk-error-taxonomy/run-clean-consumer.mjs",
+    "runnerSha256": "a4fe9918480fc1f9c71c7da5c92af986ac38d6f55e9866c7c172a2bdcd5b2be6",
+    "package": "@ynx-chain/sdk@0.2.1",
+    "sourceCommit": "b811812a69b920446186ec35e9336dc32fa542c0",
+    "sourceTree": "f5e57689caf47844ef6a026e3fa38c67b120982e",
+    "sourceWorktreeDirty": false,
+    "tarballBytes": 8501,
+    "tarballSha256": "50b938478632af12a6a83257f8f28cd3ef6f1032168cdca3337190eab8903f48",
+    "packageLockSha256": "d6a95e054a9bcd4dc120802666fa7706864785c05cfd44cd1f104170d64e8296",
+    "installedFilesSha256": "bda087b18c03a6217998e40ff5d7678923ef2babe1e72a219cacc9bfde1a5582",
+    "consecutiveIdenticalRuns": 2,
+    "allNetworkEntriesPreflightGated": true,
+    "invalidConfigRequestCount": 0,
+    "legacyExportsCompatible": true,
+    "legacyReadOnlyFlowCompatible": true,
+    "temporaryConsumerRemoved": true
+  },
+  "tests": [
+    {"command": "node --test sdk/js/index.test.mjs sdk/js/wallet.test.mjs", "result": "PASS", "tests": 23},
+    {"command": "go test ./sdk/wallet/go ./cmd/ynx-wallet-cli ./examples/wallet-go-sdk", "result": "PASS", "packages": 3},
+    {"command": "go vet ./sdk/wallet/go ./cmd/ynx-wallet-cli ./examples/wallet-go-sdk", "result": "PASS"},
+    {"command": "node release/integration/wallet-sdk-error-taxonomy/run-clean-consumer.mjs", "result": "PASS", "consecutiveRuns": 2}
+  ],
+  "runtimeTruth": {
+    "remoteProbeRepeated": false,
+    "currentRemoteChainConnectionProved": false,
+    "chain9102Accessed": false,
+    "accountRequested": false,
+    "signed": false,
+    "transactionCreated": false,
+    "installedArtifactProvedByThisSlice": false,
+    "providerLifecycleProved": false,
+    "productionSigned": false,
+    "downloadHostedChanged": false,
+    "deployedPublicChanged": false
+  }
+}
