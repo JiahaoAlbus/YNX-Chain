@@ -1,0 +1,36 @@
+{
+  "schemaVersion": "ynx.quant.storage-truth.v1",
+  "createdAt": "2026-08-31",
+  "scope": "Quant source/test checkpoint only; no public or installed runtime claim",
+  "source": {
+    "commit": "1487390d75fdffc5e2bbcd8a6fe5e28cdc6205b1",
+    "tree": "05a3fbf40af4abba70ad85ad6155315e22ec28cb"
+  },
+  "storage": {
+    "backend": "filesystem_json_snapshot",
+    "restartPersistent": true,
+    "crossProcessSharedFilesystem": true,
+    "multiInstance": false,
+    "productionDatabaseRequired": true
+  },
+  "tests": {
+    "goTest": "pass",
+    "goBuild": "pass",
+    "quantNodeTests": "6/6 pass",
+    "walletBuild": "pass"
+  },
+  "localArtifact": {
+    "path": "/tmp/ynx-quant-storage-truth-test",
+    "sha256": "55d5fb1013a64845fc844b7fd61e7d137fb73ff368d1f17959a04e180e54c050",
+    "claim": "local build only"
+  },
+  "truth": {
+    "publicDeployment": false,
+    "installedRuntime": false,
+    "providerApproval": false,
+    "signature": false,
+    "testnetOrder": false,
+    "walletConnect": false,
+    "multiInstanceDatabase": false
+  }
+}
