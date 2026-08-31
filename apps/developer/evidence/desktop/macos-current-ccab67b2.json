@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-developer-v1",
+  "observedAt": "2026-08-31T07:54:58Z",
+  "artifact": {
+    "platform": "macos-arm64",
+    "minOS": "13.0",
+    "artifactClass": "unsigned-testnet-preview",
+    "filename": "ynx-developer-testnet-preview-macos-arm64-unsigned.dmg",
+    "sourceCommit": "ccab67b2ceaeeaeb962dd6e67696bb3f73835120",
+    "sourceTree": "38524871d45f8239377ed832fe04b51bceee476f",
+    "runtimeCheckpoint": "bc8a37bc6f2bcfcbe9415cb0e9da17a5294046a3",
+    "sha256": "71eb57a55521ea42949ed24d8f5b078a3b9cfa1032cabcd2ca2717c64e6fe775",
+    "bytes": 300467545,
+    "sbomSha256": "601e41366738c6e29882df45fc6061fa29938bbe59cca1fb4dd9a5fee629a679",
+    "sbomComponents": 269,
+    "signingClass": "adhoc-no-team-id",
+    "notarized": false,
+    "sourceDirty": false
+  },
+  "verification": {
+    "dmgMounted": true,
+    "isolatedInstallCopy": true,
+    "embeddedProvenance": true,
+    "adHocSignatureVerified": true,
+    "nativeSelfTest": true,
+    "nativeWalletAvailability": {
+      "ynxWalletInstalled": false,
+      "schemeRegistered": false
+    },
+    "coldLaunch": true,
+    "bundledJavaScriptToolchain": true,
+    "boundedCppCompile": true,
+    "cppDocumentSymbols": true,
+    "workspaceSecondLaunchPersistence": true,
+    "childCleanup": true
+  },
+  "publication": {
+    "downloadHosted": false,
+    "externalHttpsReadback": false,
+    "publicUrl": null,
+    "productionSigned": false,
+    "storeReleased": false,
+    "websiteReplacementReady": false
+  },
+  "boundaries": {
+    "runtimeCheckpointIsHistorical": true,
+    "publicRuntimeSourceBound": false,
+    "walletApprovalOrSigning": false,
+    "note": "This is a directly verified local install candidate. It cannot replace a public download until immutable hosting, external HTTPS byte/hash readback, and a source-bound release transaction are separately evidenced."
+  }
+}
