@@ -3534,6 +3534,32 @@
         "SSH attempts remained zero of four and no remote action occurred",
         "P0-317 is consumed and nonreusable; Heavy and all Chain locks are released"
       ]
+    },
+    {
+      "path": "{host:43.153.202.237:finance-nonregressive-phase3,control:/opt/ynx/leases/finance/finance-combined-4f7fba323a89-20260831t041500z.*,stage:/opt/ynx/stage/finance/finance-combined-4f7fba323a89-20260831t041500z-deploy/**,backup:/var/backups/ynx-finance/finance-combined-4f7fba323a89-20260831t041500z/**,release:/opt/ynx/releases/finance/finance-combined-4f7fba323a89-20260831t041500z/**,current:/opt/ynx/finance-current,env:/etc/ynx/finance.env,state:/var/lib/ynx/finance/state.json,lifecycle:ynx-finance.service,readonly:/etc/systemd/system/ynx-finance.service,readonly:/etc/caddy/conf.d/ynx-finance.caddy,verify:http://127.0.0.1:6483/**,verify:https://finance.ynxweb4.com/**}",
+      "owner": "finance-release-control-plane",
+      "branch": "codex/p0-finance-nonregressive-combined-candidate-20260831",
+      "worktree": "/private/tmp/ynx-finance-nonregressive-20260831",
+      "taskId": "P0-318",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_FINANCE_NONREGRESSIVE_NAMESPACED_PHASE3_SINGLE_USE_LEASE",
+      "acquiredAt": "2026-08-31T05:45:56Z",
+      "expiresAt": "2026-08-31T06:15:56Z",
+      "releasedAt": null,
+      "sourceCommit": "96d33a9a027a6a6a21154f9a33298aa70d590ab6",
+      "sourceTree": "a8d7da6415b3e140d213adb53b81bad2ebf4742c",
+      "evidenceCommit": "96d33a9a027a6a6a21154f9a33298aa70d590ab6",
+      "artifactSha256": "4f3bcb186750ad792588a660e7c60c7a6ab8e4045a43a23018fb3260e1392038",
+      "productionMutationAllowed": true,
+      "allowedExceptions": [
+        "exactly one serialized OpenSSH Finance deployment invocation and no retry",
+        "create only the exact signed control stage backup and release namespace",
+        "switch only Finance env and current and restart only ynx-finance.service",
+        "unit and Caddy stay immutable and are reverified",
+        "executor-owned automatic rollback on any candidate verification failure",
+        "manual rollback requires a separate wholly-new Central-signed exact-present lease",
+        "no non-Finance Wallet account signature typed-data transaction or secret output"
+      ]
     }
   ]
 }
