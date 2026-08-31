@@ -33,6 +33,7 @@ export const CLIENT_ID="ynx-card-v1";
 export const BUNDLE_ID="com.ynxweb4.card";
 export const CALLBACK="ynxcard://wallet-auth/callback";
 export const SCOPES=Object.freeze(["account:read","card:application:write","card:controls:write","card:dispute:write"] as const);
+export const YNX_TESTNET_CHAIN_DECIMAL=6423;
 export const YNX_TESTNET_CHAIN_ID="0x1917";
 export const YNX_TESTNET_CHAIN_NAME="YNX Testnet";
 
