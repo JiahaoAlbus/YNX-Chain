@@ -3,18 +3,22 @@
 ## Candidate source identity
 
 - Branch: `codex/ynx-6423-portal-tronscan-inspired`
-- Commit: `f34199c0481563d3bbe750c8638faef8dde8c1bd`
-- Scope: `internal/explorer`, `cmd/ynx-explorerd`, and the portal evidence in `design-qa.md`.
+- Candidate source commit: `f76c4ee33e59ec271bdc2789fcfd68599ea43bb9`
+- Candidate-record commit: `36848fad3c3afead1334eaacc4b076fc61f6dcd2`
+- Candidate source tree: `5dce788c7c9b4ed074fbadf738f0980637dc0534`
+- Scope: `internal/explorer`, `cmd/ynx-explorerd`, the portal evidence in `design-qa.md`, and `release/evidence/explorer-portal-source-candidate-2026-08-31.json`.
 - Required official logo: `internal/explorer/assets/ynx-logo.png`
 - Logo SHA-256: `38196080c2d56746fb37094abe68d1d89eabd8a2b29ab4f17bae48ac7e3effde`
 
 ## Verified local evidence
 
 - `go test ./internal/explorer ./internal/indexer` passes at the candidate source.
-- Front-end script extraction passes `node --check`.
+- `make static-check` passes, including Go vet, shell and browser-script syntax, five-locale i18n coverage, and in-portal link integrity.
+- `make explorer-check` passes against an isolated local 6423 node/indexer pair; it exercises the served API, identity, and portal shell without a public endpoint.
+- `make explorer-portal-candidate-check` verifies the candidate-record commit against the pushed candidate source, source tree, and tracked SHA-256 values.
 - The Explorer test rejects retired identity strings (`9102`, `0x238e`, and `ynx_9102-1`), loopback/private wallet publication URLs, blank/new-tab portal routes, and an incorrect logo byte stream.
-- Local browser QA in `design-qa.md` covers desktop, 1024 px tablet, 390 px mobile, same-tab Blockchain navigation, token search/details, locale persistence, and zero error-level console messages.
-- The local runtime was connected to the local 6423 node and indexer only; it returned `6423`, `0x1917`, and `YNXT`. The wallet publication fields stayed empty because no verified public HTTPS RPC/explorer pair was supplied.
+- Local browser QA in `design-qa.md` covers desktop, tablet, 390 px mobile, a 320 px narrow layout, same-tab Blockchain navigation, token search/details, locale persistence, and zero error-level console messages. The latest responsive sweep keeps visible text at 11 px or larger and does not produce horizontal overflow in the tested widths.
+- The local runtime is connected to the local 6423 node and indexer only; current health data identifies `6423`, `0x1917`, and `YNXT`. Wallet publication fields stay empty because no verified public HTTPS RPC/explorer pair has been supplied.
 - A fresh temporary Indexer database and Explorer cold start were also checked twice with synchronized advancing 6423 RPC/indexed heights; the preceding unavailable Indexer produced the expected fail-closed portal response.
 
 ## Non-claims and release gate
@@ -28,4 +32,4 @@ This source handoff is **not** a public deployment, a public RPC claim, a wallet
 
 ## Rollback
 
-No deployment action is authorized by this handoff. If a future authorized release fails identity, asset-hash, route, or fail-closed checks, restore the previously verified immutable deployment alias rather than mutating DNS or a live alias ad hoc; record the rollback source identity and browser/API evidence alongside that action.
+No deployment action is authorized by this handoff. The source rollback baseline recorded with this candidate is `c3510e208ad9e421c3a0b590bb3af7732ae8d6cb`; it is source evidence only and does not authorize a runtime, DNS, Caddy, Vercel, or alias mutation. If a future authorized release fails identity, asset-hash, route, or fail-closed checks, restore the previously verified immutable deployment alias rather than mutating DNS or a live alias ad hoc; record the rollback source identity and browser/API evidence alongside that action.
