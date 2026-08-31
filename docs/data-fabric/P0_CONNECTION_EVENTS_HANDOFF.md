@@ -49,7 +49,7 @@
 - Fixture: `schemas/data-fabric/wallet-connectivity-events-v1.accepted.conformance.vectors.json`; it retains the central acceptance commit and canonical Wallet error source as provenance, without copying Wallet behavior.
 - Both registered implementations of `connection-diagnostics-v1` are exercised: File Store and PostgreSQL. A `6423` producer input is normalized to persisted `0x1917`, commits only through the existing asynchronous Event/Outbox path, and reaches the Inbox-protected bounded aggregate effect.
 - `9102` and `0x238e` are rejected before either persistence implementation begins a write. Strict decode also rejects `rawError`, `developerMessage`, `accountId`, and `sessionId`; their values do not enter event, Outbox, Inbox, or diagnostic state.
-- Local validation passed: `jq empty schemas/data-fabric/wallet-connectivity-events-v1.accepted.conformance.vectors.json`, `go test ./internal/datafabric ./internal/datafabricpostgres -count=1`, and `go test -race ./internal/datafabric ./internal/datafabricpostgres -count=1`.
+- Local validation passed: `jq empty schemas/data-fabric/wallet-connectivity-events-v1.accepted.conformance.vectors.json`, `go test ./internal/datafabric ./internal/datafabricpostgres -count=1`, and `go test -race ./internal/datafabric ./internal/datafabricpostgres -count=1`. GitHub Actions run `33383486241` passed all six jobs at binding head `e4276f1c77863785e30fc96ee24edc257b89b565`.
 - This adds no producer invocation, Wallet/Gateway call, deployment, account request, signature, transaction, public endpoint, or public-completion claim. P0-147 remains `WAITING_EXTERNAL_PUBLIC_ENDPOINT_UNBOUND`.
 
 ## Truth boundary and requested Integration action

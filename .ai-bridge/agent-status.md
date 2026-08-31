@@ -5,7 +5,7 @@
 - Workspace: exact configured YNX 26 Worktree verified
 - Branch: `codex/final-data-fabric`
 - Engineering Source Commit: `c347eb46d6f496524a6ba4021bb9e4896df711ab`
-- Remote Source Commit: pending for the 6423-only Wallet connectivity producer/consumer conformance source commit. Earlier GitHub Actions run `33380635923` is successful evidence for prior source `6e2ddc50a6db83a526c81312d63d73d9fe3d6d60` only. CI is not Central integration or public runtime proof.
+- Remote Source Commit: GitHub Actions run `33383486241` passed all six Data Fabric jobs for source `c347eb46d6f496524a6ba4021bb9e4896df711ab` at binding head `e4276f1c77863785e30fc96ee24edc257b89b565`. CI is not Central integration or public runtime proof.
 - Source evidence CI: Run `31811137802` passed both jobs at v26-bound head `58eff9dad4a0a3dc27105716928f2a9b7c4f6460`, including the three-replica JetStream TCP route-partition/heal gate. Its eleven-file artifact was downloaded and every SHA-256 value verified. Earlier leader-loss evidence remains preserved in Runs `31797308684` and `31799837096`.
 - Concurrent writer: no Git writer detected; an existing CodexPro server process was left untouched
 - Dirty state: candidate source, delivery documents and exact-source CI receipt are committed on the review branch; legacy recovery files remain preserved under `recovery/2026-07-23/`
