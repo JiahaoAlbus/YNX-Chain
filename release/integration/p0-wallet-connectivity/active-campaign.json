@@ -429,7 +429,7 @@
   "heavy": {
     "owner": "creator-studio-deploy-owner",
     "taskId": "P0-305",
-    "status": "ACTIVE",
+    "status": "EMERGENCY_BLOCKED_CREATOR_3F97A13D_EXACT_ROLLBACK_REQUIRED_NO_FURTHER_ACTION",
     "acquiredAt": "2026-08-31T03:04:55Z",
     "expiresAt": "2026-08-31T03:34:55Z",
     "releasedAt": null,
@@ -439,13 +439,13 @@
     "currentRuntime": "CREATOR_0E1A53C5_SOURCE_BOUND_PUBLIC_EXACT",
     "candidateRuntime": "CREATOR_3F97A13D_NOT_YET_EXECUTED",
     "artifactSha256": "947d0055b4080f09870fb6c00c491339be72288fe3b4f94b65f167031b413850",
-    "productionMutationAllowed": true,
+    "productionMutationAllowed": false,
     "singleUse": true,
     "reusable": false,
     "previousOwner": "finance-release-control-plane-readonly-inspection",
     "previousTaskId": "P0-303",
-    "reviewDecision": "GO_CREATOR_P0305_SINGLE_USE_UPGRADE_LEASE_ISSUED",
-    "reason": "Fresh Creator control paths are absent; current 0e1a53c5 release, unit, API, Viewer, listeners and public hashes are exact; direct CommonJS transport, executor rollback and Creator checks pass. One forward attempt is authorized with conditional exact rollback only."
+    "reviewDecision": "EMERGENCY_BLOCKED_CREATOR_3F97A13D_EXACT_ROLLBACK_REQUIRED_NO_FURTHER_ACTION",
+    "reason": "The sole forward attempt reached switched state; terminal verification failed with Unexpected end of JSON input and the executor automatic rollback failed with the same error. No retry or external conditional rollback was invoked. Heavy and Creator locks remain held; only a wholly-new zero-write state freeze may run before any recovery decision."
   },
   "wave": {
     "id": "B-financial-apps-quant",
