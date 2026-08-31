@@ -1,0 +1,126 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "owner": "creator-studio-deploy-owner",
+  "requestType": "WHOLLY_NEW_CREATOR_P0315_CANDIDATE_RAW_FIRST_ZERO_WRITE_DIAGNOSTIC_SUCCESSOR",
+  "supersedes": {
+    "taskId": "P0-320",
+    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-creator-p0315-cleanup-prewrite-zero-write-20260831T061200Z",
+    "reason": "The one zero-write SSH returned CANDIDATE_BINDING_DRIFT before stdout because five candidate fields were checked in one compound assertion. P0-320 is nonreusable and no retry is requested."
+  },
+  "p0320Terminal": {
+    "centralLeaseCommit": "f8c99bd0eab382f93bc884e41e090eeebe2ddca0",
+    "centralLeaseTree": "2826dceb9cbb8a59d074b1f10dbbfe1947ed0190",
+    "leaseBlob": "46a0746109a3df4ffcb7627c4d55968d5b405c54",
+    "leaseSha256": "0b3a40f70e8e8eba69a7ece5ef8e394757c7a9936da813dc020f6680c06ff7b1",
+    "sshInvocations": 1,
+    "retryCount": 0,
+    "remoteExitStatus": 1,
+    "stderrClassification": "CANDIDATE_BINDING_DRIFT",
+    "stdoutBytes": 0,
+    "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "remoteTemporaryFiles": 0,
+    "remoteMutation": false,
+    "cleanupComplete": false,
+    "deploymentAuthorized": false
+  },
+  "implementation": {
+    "commit": "5158945894246b1191168eca47712db1078fe5cf",
+    "tree": "9c52664f77be2c7764c6838ea93e6d0795e338f6",
+    "path": "apps/creator-studio/release-terminal-zero-write-inspector-3f97a13d.mjs",
+    "blob": "6e8e705ee15c882bee460f04924657c01cff22d6",
+    "bytes": 15096,
+    "sha256": "cd08c2f1fdfc182ae9f579e07a18151a57068f7a8fd0ece92c4a5a1c34123644"
+  },
+  "rawFirstContract": {
+    "firstStdoutLine": "CREATOR_P0315_CANDIDATE_RAW_FIRST_ZERO_WRITE",
+    "firstLineUnconditionalBeforeComparison": true,
+    "candidateFields": [
+      "actual root tuple and object type",
+      "manifest tuple, type, nlink, raw bytes, raw base64 and SHA256",
+      "manifest parsed sourceCommit, sourceTree and fileCount when parseable",
+      "complete sorted per-object path, tuple, type, bytes and SHA256 identity",
+      "actual and manifest-derived expected inventory",
+      "safe inventory and payload hash booleans"
+    ],
+    "secondStdoutLine": "CREATOR_P0315_CANDIDATE_COMPARISON",
+    "comparisonFields": [
+      "rootTuple",
+      "manifestType",
+      "manifestSha256",
+      "sourceCommit",
+      "sourceTree",
+      "fileCount",
+      "completeSafeInventory",
+      "payloadHashes"
+    ],
+    "driftTerminal": "After both lines are emitted, any false comparison sets nonzero exit status and performs no additional inspection or mutation.",
+    "matchTerminal": "Only when every candidate comparison is true does the inspector continue to the full current, service, listener, unit, receipt, control, parent, absence and public zero-write evidence line."
+  },
+  "fixtureEvidence": {
+    "command": "node apps/creator-studio/release-terminal-zero-write-inspector-3f97a13d.mjs selftest",
+    "passed": true,
+    "readOnlyImports": true,
+    "mutationApisImported": false,
+    "rawOutputBeforeComparison": true,
+    "singleFieldDriftClassification": {
+      "rootTuple": true,
+      "manifestType": true,
+      "manifestSha256": true,
+      "sourceCommit": true,
+      "sourceTree": true,
+      "fileCount": true,
+      "completeSafeInventory": true,
+      "payloadHashes": true
+    }
+  },
+  "requestedExecution": {
+    "mode": "ZERO_WRITE_RAW_FIRST_DIAGNOSTIC",
+    "runtimeHost": "43.153.202.237",
+    "attemptLimit": 1,
+    "retryAllowed": false,
+    "sshInvocationLimit": 1,
+    "stdin": {
+      "path": "apps/creator-studio/release-terminal-zero-write-inspector-3f97a13d.mjs",
+      "bytes": 15096,
+      "sha256": "cd08c2f1fdfc182ae9f579e07a18151a57068f7a8fd0ece92c4a5a1c34123644"
+    },
+    "remoteArgv": [
+      "/usr/bin/sudo",
+      "-n",
+      "/usr/bin/node",
+      "--input-type=module",
+      "-"
+    ],
+    "sshContract": "Central freezes the full literal SSH argv and protected identity reference. Inspector bytes travel only on stdin. No shell interpolation, remote temporary file or second invocation.",
+    "localEvidencePath": "/tmp/p0-321-creator-studio-p0315-candidate-raw-first-zero-write.ndjson",
+    "localEvidencePathMustBeAbsent": true
+  },
+  "expectedReadOnlyOutcome": {
+    "minimumStdoutLines": 2,
+    "candidateRawEvidenceRequiredEvenOnDrift": true,
+    "comparisonEvidenceRequiredEvenOnDrift": true,
+    "remoteExitStatusMayBeNonzeroOnDrift": true,
+    "mutationCount": 0,
+    "cleanupAuthorized": false,
+    "deploymentAuthorized": false
+  },
+  "forbidden": [
+    "reuse or retry of P0-320",
+    "compound candidate assertion before raw output",
+    "cleanup deletion rename chmod chown link or remote temporary path",
+    "deploy current switch rollback or service lifecycle",
+    "unit Caddy API Viewer public or unrelated product mutation",
+    "Wallet account request signature typed data or transaction"
+  ],
+  "terminalRule": "Return the raw-first NDJSON and comparison classification, then release this diagnostic lease. Use the observed exact field drift to prepare a separately reviewed cleanup reconciliation; do not infer or execute cleanup from this request.",
+  "truthBoundary": {
+    "sourceOnly": true,
+    "sshExecuted": false,
+    "remoteMutation": false,
+    "cleanupAuthorized": false,
+    "cleanupComplete": false,
+    "deploymentAuthorized": false,
+    "creatorPromoted": false
+  }
+}
