@@ -61,6 +61,27 @@
     "monitor": "npm test: 55 application tests plus 10 script tests passing; npm run build: passing",
     "walletRefreshSafety": "Explorer source test verifies refresh restoration requires saved provider identity plus read-only eth_accounts and eth_chainId, and forbids eth_requestAccounts, wallet_switchEthereumChain and wallet_addEthereumChain in that path.",
     "artifactIntegrity": "All three artifacts were independently rebuilt with the same source epoch, linker identity and deterministic archive settings; cmp was byte-identical for every artifact. Both ELF binaries contain the full source commit. Archive listing contains neither node_modules nor .env.",
+    "monitorArtifactRuntime": {
+      "mode": "isolated extracted release tree with npm ci --ignore-scripts --omit=dev and local dummy secrets only",
+      "version": {
+        "httpStatus": 200,
+        "bytes": 264,
+        "sha256": "2806c2d8aef1fefd9039f17a07d7c93b73d48667b74b2165e2fa2d2a4cad7e41",
+        "commit": "0f23cedde15f04110219a2c8ce0c09d80f63d8cc",
+        "release": "ynx-explorer-monitor-0f23cedde15f"
+      },
+      "connectivity": {
+        "httpStatus": 200,
+        "contentType": "application/json; charset=utf-8",
+        "cacheControl": "no-store",
+        "bytes": 262,
+        "sha256": "066e7fb4d2b9802a1f8d14bfc2ae30910b2193a3983f57063300a091787baf68",
+        "availability": "available",
+        "status": "not_configured",
+        "htmlFallback": false,
+        "internalDetailLeak": false
+      }
+    },
     "linuxRuntime": "Not run on this macOS builder because the binaries target Linux amd64; static ELF format, embedded identity, source race tests and exact byte reproducibility were verified."
   },
   "requiredCentralGate": {
