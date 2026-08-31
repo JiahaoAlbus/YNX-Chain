@@ -88,6 +88,7 @@ import {
   openWalletAlternative,
   openWalletAuthorization,
 } from "./src/walletLauncher";
+import { SOCIAL_WALLET_CHOICES } from "./src/walletChoices";
 import {
   createDeviceRotation,
   createEnvelopeSet,
@@ -184,7 +185,8 @@ function SocialApp() {
     [session, setSession] = useState<Session | null>(null),
     [loading, setLoading] = useState(true),
     [error, setError] = useState<string | null>(null),
-    [walletUnavailable, setWalletUnavailable] = useState(false);
+    [walletUnavailable, setWalletUnavailable] = useState(false),
+    [walletChooserVisible, setWalletChooserVisible] = useState(false);
   const api = useMemo(() => {
     try {
       return new SocialAPI(process.env.EXPO_PUBLIC_YNX_SOCIAL_API_BASE ?? "");
@@ -472,13 +474,74 @@ function SocialApp() {
         ) : null}
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={t("Sign in with YNX Wallet")}
-          onPress={() => void signIn()}
+          accessibilityLabel={t("Choose a wallet")}
+          onPress={() => setWalletChooserVisible(true)}
           style={styles.primary}
         >
           <KeyRound color="#FFFFFF" size={19} />
-          <Text style={styles.primaryText}>{t("Sign in with YNX Wallet")}</Text>
+          <Text style={styles.primaryText}>{t("Choose a wallet")}</Text>
         </Pressable>
+        <Modal
+          visible={walletChooserVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setWalletChooserVisible(false)}
+        >
+          <View style={styles.walletModalBackdrop}>
+            <View style={styles.walletModal}>
+              <View style={styles.walletModalHeader}>
+                <View style={styles.flex}>
+                  <Text style={styles.walletModalTitle}>{t("Choose a wallet")}</Text>
+                  <Text style={styles.walletModalBody}>
+                    {t("Use an official wallet on YNX Testnet 6423 (0x1917).")}
+                  </Text>
+                </View>
+                <Pressable
+                  accessibilityLabel={t("Close wallet chooser")}
+                  onPress={() => setWalletChooserVisible(false)}
+                  style={styles.walletClose}
+                >
+                  <X color={MUTED} size={20} />
+                </Pressable>
+              </View>
+              {SOCIAL_WALLET_CHOICES.map((choice) => (
+                <Pressable
+                  key={choice.id}
+                  accessibilityLabel={t(choice.name)}
+                  onPress={() => {
+                    setWalletChooserVisible(false);
+                    if (choice.action === "sign-in") void signIn();
+                    else
+                      void openWalletAlternative(METAMASK_MOBILE_DAPP_URL).catch(
+                        (caught) => setError(message(caught)),
+                      );
+                  }}
+                  style={styles.walletChoice}
+                >
+                  <View
+                    style={[
+                      styles.walletChoiceIcon,
+                      choice.id === "metamask"
+                        ? styles.walletChoiceMetaMask
+                        : styles.walletChoiceYNX,
+                    ]}
+                  >
+                    {choice.id === "metamask" ? (
+                      <ShieldCheck color="#FFFFFF" size={21} />
+                    ) : (
+                      <KeyRound color="#FFFFFF" size={21} />
+                    )}
+                  </View>
+                  <View style={styles.flex}>
+                    <Text style={styles.walletChoiceTitle}>{t(choice.name)}</Text>
+                    <Text style={styles.walletChoiceBody}>{t(choice.description)}</Text>
+                  </View>
+                  <Text style={styles.walletChainBadge}>6423</Text>
+                </Pressable>
+              ))}
+            </View>
+          </View>
+        </Modal>
         {walletUnavailable ? (
           <View style={{ width: "100%", gap: 10, marginTop: 12 }}>
             <Pressable
@@ -3615,6 +3678,60 @@ const styles = StyleSheet.create({
     color: MUTED,
     textAlign: "center",
     marginTop: 14,
+  },
+  walletModalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(16, 24, 40, 0.42)",
+    justifyContent: "center",
+    padding: 22,
+  },
+  walletModal: {
+    width: "100%",
+    maxWidth: 440,
+    alignSelf: "center",
+    borderRadius: 22,
+    backgroundColor: "#FFFFFF",
+    padding: 20,
+    gap: 12,
+  },
+  walletModalHeader: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+    marginBottom: 4,
+  },
+  walletModalTitle: { fontSize: 20, fontWeight: "700", color: INK },
+  walletModalBody: { fontSize: 13, lineHeight: 19, color: MUTED, marginTop: 5 },
+  walletClose: { padding: 4 },
+  walletChoice: {
+    minHeight: 72,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: LINE,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 12,
+  },
+  walletChoiceIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 13,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  walletChoiceYNX: { backgroundColor: BLUE },
+  walletChoiceMetaMask: { backgroundColor: "#E2761B" },
+  walletChoiceTitle: { fontSize: 15, fontWeight: "700", color: INK },
+  walletChoiceBody: { fontSize: 12, lineHeight: 17, color: MUTED, marginTop: 3 },
+  walletChainBadge: {
+    color: BLUE,
+    fontSize: 11,
+    fontWeight: "700",
+    backgroundColor: "#EEF4FF",
+    borderRadius: 8,
+    paddingHorizontal: 7,
+    paddingVertical: 4,
   },
   error: {
     color: "#B42318",
