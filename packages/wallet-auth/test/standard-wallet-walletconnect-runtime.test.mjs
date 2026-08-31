@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import {
   createStandardWalletPermissionStorageAdapter,
+  preflightStandardWalletWalletConnectRuntime,
   createStandardWalletWalletConnectRuntime,
   createStandardWalletWalletConnectSessionStorageAdapter,
   parseStandardWalletWalletConnectSessionSnapshot,
@@ -67,7 +68,10 @@ test("WalletConnect explicit proposal rejection creates no account or session au
 
 test("installable WalletConnect runtime owns a topic-bound engine and requires start before relay requests", async () => {
   const records = new Map();
-  const runtime = createStandardWalletWalletConnectRuntime({ topic: TOPIC, walletAccounts: [ACCOUNT], approveAccounts: async () => [ACCOUNT], permissionStorage: permissionStorage(records), sessionStorage: sessionStorage(records) });
+  const runtime = createStandardWalletWalletConnectRuntime(runtimeConfig(records));
+  assert.equal(runtime.readiness.ready, true);
+  assert.equal(runtime.readiness.authorityCreated, false);
+  assert.equal(runtime.readiness.callbacksInvoked, false);
   await assert.rejects(runtime.approve(PROPOSAL), /not started/);
   assert.equal(await runtime.start(), false);
   const approved = await runtime.approve(PROPOSAL);
@@ -76,6 +80,60 @@ test("installable WalletConnect runtime owns a topic-bound engine and requires s
   assert.equal(await runtime.request({ topic: TOPIC, chainId: "eip155:6423", id: 1, request: { method: "eth_chainId" } }), "0x1917");
   await runtime.disconnect();
   runtime.close();
+});
+
+test("WalletConnect runtime capability preflight fails before authority or callback use and emits no sensitive values", () => {
+  const calls = [];
+  const incomplete = {
+    topic: TOPIC,
+    walletAccounts: [ACCOUNT],
+    approveAccounts: async () => { calls.push("approve"); return [ACCOUNT]; },
+    permissionStorage: permissionStorage(new Map()),
+    sessionStorage: sessionStorage(new Map()),
+  };
+  const receipt = preflightStandardWalletWalletConnectRuntime(incomplete);
+  assert.deepEqual(receipt, {
+    version: "standard-wallet-walletconnect-runtime-readiness-v1",
+    ready: false,
+    authorityCreated: false,
+    callbacksInvoked: false,
+    capabilities: {
+      permissionStorage: true,
+      sessionStorage: true,
+      relayEventSink: false,
+      rpcTransport: false,
+      accountApproval: true,
+      personalSignConfirmation: false,
+      typedDataConfirmation: false,
+      transactionConfirmation: false,
+    },
+  });
+  assert.equal(JSON.stringify(receipt).includes(ACCOUNT), false);
+  assert.equal(JSON.stringify(receipt).includes(TOPIC), false);
+  assert.throws(() => createStandardWalletWalletConnectRuntime(incomplete), /capability preflight failed/);
+  assert.deepEqual(calls, []);
+});
+
+test("WalletConnect runtime capability preflight accepts a complete host boundary without invoking it", () => {
+  const calls = [];
+  const config = runtimeConfig(new Map(), calls);
+  const receipt = preflightStandardWalletWalletConnectRuntime(config);
+  assert.equal(receipt.ready, true);
+  assert.equal(Object.isFrozen(receipt), true);
+  assert.equal(Object.isFrozen(receipt.capabilities), true);
+  assert.deepEqual(calls, []);
+});
+
+test("WalletConnect readiness handoff keeps relay credentials and Product Session outside Layer 1 authority", () => {
+  const contract = JSON.parse(readFileSync(new URL("../integration/standard-wallet-walletconnect-runtime-readiness-v1.json", import.meta.url), "utf8"));
+  assert.equal(contract.export, "preflightStandardWalletWalletConnectRuntime");
+  assert.equal(contract.receipt.containsAccountOrTopic, false);
+  assert.equal(contract.receipt.containsProjectIdOrRelayCredential, false);
+  assert.equal(contract.receipt.createsAuthority, false);
+  assert.equal(contract.factoryBehavior.projectIdOwnership, "platform-relay-owner");
+  assert.equal(contract.factoryBehavior.productSessionAuthority, false);
+  assert.equal(contract.truth.realRelayConnected, false);
+  assert.equal(contract.truth.publicRuntimeLoaded, false);
 });
 
 test("WalletConnect persistence failure rolls back provider permission instead of publishing a session", async () => {
@@ -125,5 +183,19 @@ function permissionStorage(records) {
 }
 function sessionStorage(records) {
   return createStandardWalletWalletConnectSessionStorageAdapter({ getItem: async (key) => records.get(key) ?? null, setItem: async (key, value) => records.set(key, value), removeItem: async (key) => records.delete(key) });
+}
+function runtimeConfig(records, calls = []) {
+  return {
+    topic: TOPIC,
+    walletAccounts: [ACCOUNT],
+    approveAccounts: async () => { calls.push("approve"); return [ACCOUNT]; },
+    permissionStorage: permissionStorage(records),
+    sessionStorage: sessionStorage(records),
+    emit: () => { calls.push("emit"); },
+    rpcTransport: async () => { calls.push("rpc"); return "0x0"; },
+    signMessage: async () => { calls.push("personal_sign"); return `0x${"12".repeat(65)}`; },
+    signTypedData: async () => { calls.push("typed_data"); return `0x${"12".repeat(65)}`; },
+    sendTransaction: async () => { calls.push("send"); return `0x${"34".repeat(32)}`; },
+  };
 }
 function rpcCode(expected) { return (error) => error instanceof StandardWalletProviderError && error.code === expected; }

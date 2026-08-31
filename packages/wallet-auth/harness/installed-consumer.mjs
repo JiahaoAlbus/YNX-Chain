@@ -6,7 +6,9 @@ import {
   StandardWalletProviderEngine,
 } from "@ynx-chain/wallet-auth/standard-wallet-runtime";
 import {
+  createStandardWalletWalletConnectRuntime,
   createStandardWalletWalletConnectSessionStorageAdapter,
+  preflightStandardWalletWalletConnectRuntime,
   StandardWalletWalletConnectSessionAdapter,
 } from "@ynx-chain/wallet-auth/standard-wallet-walletconnect";
 import { installStandardWalletWebRuntime } from "@ynx-chain/wallet-auth/standard-wallet-web";
@@ -84,6 +86,14 @@ for (const platform of ["android", "ios", "macos", "desktop"]) {
 const wcEngine = new StandardWalletProviderEngine({ origin: "walletconnect:installed_harness_123456", permissionStorage: storage(), ...callbacks });
 await wcEngine.restorePermissions();
 const wcSessions = createStandardWalletWalletConnectSessionStorageAdapter({ getItem: async (key) => records.get(key) ?? null, setItem: async (key, value) => records.set(key, value), removeItem: async (key) => records.delete(key) });
+const wcRuntimeConfig = { topic: "installed_runtime_preflight_123456", permissionStorage: storage(), sessionStorage: wcSessions, emit: () => {}, rpcTransport: async () => "0x0", ...callbacks };
+const wcRuntimeReadiness = preflightStandardWalletWalletConnectRuntime(wcRuntimeConfig);
+assert.equal(wcRuntimeReadiness.ready, true);
+assert.equal(wcRuntimeReadiness.authorityCreated, false);
+assert.equal(wcRuntimeReadiness.callbacksInvoked, false);
+const wcRuntime = createStandardWalletWalletConnectRuntime(wcRuntimeConfig);
+assert.equal(await wcRuntime.start(), false);
+wcRuntime.close();
 const wc = new StandardWalletWalletConnectSessionAdapter({ engine: wcEngine, topic: "installed_harness_topic_123456", sessionStorage: wcSessions });
 const session = await wc.approve({ requiredNamespaces: { eip155: { chains: ["eip155:6423"], methods: ["eth_accounts", "eth_requestAccounts", "eth_chainId", "personal_sign"], events: ["accountsChanged", "chainChanged"] } } });
 assert.deepEqual(session.namespaces.eip155.accounts, [`eip155:6423:${ACCOUNT}`]);
@@ -114,6 +124,7 @@ process.stdout.write(`${JSON.stringify({
   blankTopLevelOpenCalls: 0,
   native,
   walletConnectAdapter: true,
+  walletConnectRuntimePreflight: wcRuntimeReadiness.ready,
   walletConnectProtectedRestartRestore: true,
   walletConnectExplicitRevokeClearedAuthority: true,
   callbackEvidence: "deterministic-conformance-only-no-real-key-no-real-transaction",

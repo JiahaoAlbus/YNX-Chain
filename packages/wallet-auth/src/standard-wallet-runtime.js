@@ -7,7 +7,7 @@ export * from "./standard-wallet-json-rpc.js";
 export * from "./standard-wallet-provider-engine.js";
 export * from "./standard-wallet-walletconnect.js";
 export * from "./standard-wallet-walletconnect-storage.js";
-export { createStandardWalletWalletConnectRuntime } from "./standard-wallet-walletconnect-runtime.js";
+export * from "./standard-wallet-walletconnect-runtime.js";
 export * from "./standard-wallet-platform-runtime.js";
 export * from "./standard-wallet-web-runtime.js";
 export * from "./standard-wallet-native-bridge.js";

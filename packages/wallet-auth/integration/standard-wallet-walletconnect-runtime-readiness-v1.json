@@ -1,0 +1,38 @@
+{
+  "schema": "ynx.standard-wallet.walletconnect-runtime-readiness.v1",
+  "package": "@ynx-chain/wallet-auth",
+  "subpaths": [
+    "@ynx-chain/wallet-auth/standard-wallet-runtime",
+    "@ynx-chain/wallet-auth/standard-wallet-walletconnect"
+  ],
+  "export": "preflightStandardWalletWalletConnectRuntime",
+  "requiredCapabilities": [
+    "permissionStorage",
+    "sessionStorage",
+    "relayEventSink",
+    "rpcTransport",
+    "accountApproval",
+    "personalSignConfirmation",
+    "typedDataConfirmation",
+    "transactionConfirmation"
+  ],
+  "receipt": {
+    "version": "standard-wallet-walletconnect-runtime-readiness-v1",
+    "containsAccountOrTopic": false,
+    "containsProjectIdOrRelayCredential": false,
+    "createsAuthority": false,
+    "invokesCallbacks": false
+  },
+  "factoryBehavior": {
+    "incompleteHost": "fail-before-provider-or-session-adapter-construction",
+    "completeHost": "return-runtime-with-frozen-readiness-receipt",
+    "projectIdOwnership": "platform-relay-owner",
+    "productSessionAuthority": false
+  },
+  "truth": {
+    "realRelayConnected": false,
+    "realPairingApproved": false,
+    "realInstalledWallet": false,
+    "publicRuntimeLoaded": false
+  }
+}
