@@ -173,6 +173,15 @@ describe("Monitor authorization and approval boundaries", () => {
 	  assert.equal(overview.body.network.consensus.streamBFT.active,false);
 	  assert.equal(overview.body.alerts.every((alert:{evidenceUrl:string})=>alert.evidenceUrl==="/ops/overview"),true);
 	});
+	it("projects only dependency status when an upstream includes transport metadata",async()=>{
+	  const rpcServer=createServer((_request,response)=>response.writeHead(200,{"content-type":"application/json"}).end(JSON.stringify({ok:true,status:"available",height:10,dependencies:{chainRpc:{status:"operational",upstreamUrl:"http://127.0.0.1:6420/status",configPath:"/etc/ynx/private.env",authorization:"Bearer should-not-leak"}}})));
+	  rpcServer.listen(0,"127.0.0.1");servers.push(rpcServer);await new Promise<void>(resolve=>rpcServer.once("listening",resolve));
+	  const address=rpcServer.address();if(!address||typeof address==="string")throw new Error("probe fixture did not bind");
+	  const {base}=await fixture({rpcUrl:`http://127.0.0.1:${address.port}`});
+	  const viewer=await token(base,"view","view-pass");const overview=await call(base,"/ops/overview",{headers:sessionHeaders(viewer)});
+	  const text=JSON.stringify(overview.body);for(const secret of ["127.0.0.1","/etc/ynx","Bearer should-not-leak"])assert.equal(text.includes(secret),false,`overview leaked ${secret}`);
+	  const node=overview.body.probes.find((probe:{id:string})=>probe.id==="node");assert.deepEqual(node.data.dependencies,{chainRpc:{status:"operational"}});
+	});
 	it("reports finality unavailable unless both canonical and indexer probes are healthy",async()=>{
 	  const rpcServer=createServer((_request,response)=>response.writeHead(200,{"content-type":"application/json"}).end(JSON.stringify({height:10})));
 	  let indexerHealthy=false;
