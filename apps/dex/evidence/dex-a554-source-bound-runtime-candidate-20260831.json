@@ -1,0 +1,69 @@
+{
+  "schemaVersion": "dex-source-bound-runtime-candidate@1",
+  "classification": "local-unsigned-source-bound-runtime-candidate",
+  "status": "CANDIDATE_FROZEN_AWAITING_FRESH_DEX_ONLY_HOST_PREFLIGHT_AND_LEASE",
+  "product": "ynx-dex",
+  "source": {
+    "commit": "a55441fd43c61431228fdf71f93933640bedcf9d",
+    "tree": "d0e4fdfc3ec5d726e51083e89671b54010853a39",
+    "commitTime": "2026-08-31T18:00:18+08:00"
+  },
+  "candidate": {
+    "archive": {
+      "path": "apps/dex/evidence/release-candidates/ynx-dex-a55441fd43c6-runtime.tar.gz",
+      "bytes": 3126108,
+      "sha256": "01cc477b317235eca690ac0dae1311bd1269fa92a6fa22bec3fc84096a4a543f"
+    },
+    "binary": {
+      "relativePath": "ynx-dex-a55441fd43c6/ynx-dex-indexerd",
+      "bytes": 6942904,
+      "sha256": "4d2a41b6f9cb66bef550ae5b80130c2ffb521c643e8647b5807a26064e59b7c1",
+      "format": "ELF 64-bit x86-64 static",
+      "build": {
+        "goos": "linux",
+        "goarch": "amd64",
+        "cgoEnabled": false,
+        "trimpath": true,
+        "buildVCS": false,
+        "release": "ynx-dex-a55441fd43c6",
+        "buildTime": "2026-08-31T18:00:18+08:00"
+      }
+    },
+    "archiveVerification": {
+      "entries": 16,
+      "sha256Sums": "passed",
+      "manifestEntryCount": 14
+    }
+  },
+  "tests": {
+    "go": "passed: go test ./internal/dex ./cmd/ynx-dex-indexerd",
+    "web": "passed: npm test --prefix apps/dex (33 tests)",
+    "canonicalAuthorize": "passed: npm run verify:canonical-authorize --prefix apps/dex",
+    "legacyRouteQuarantine": "passed: npm run verify:legacy-route-quarantine --prefix apps/dex",
+    "linuxRuntime": "not-run: the candidate is Linux amd64 ELF and macOS rejected direct execution with exec format error"
+  },
+  "currentPublicReadback": {
+    "sourceCommit": "ac775de24176b293b5dbb5ab7114cf29428f8046",
+    "candidateBound": false,
+    "legacyExecutionAvailability": "untrusted legacy public response; not product-owned proof of swap, approval, liquidity, custody, or Strategy Vault execution"
+  },
+  "requiredBeforeAnyDeployment": [
+    "fresh DEX-only host, service, unit, environment, Caddy, state, active-release and rollback binding",
+    "fresh current public root, health, version and asset response status, bytes and SHA-256 receipts",
+    "a new DEX-only rollback-first executor with exact literal command bytes and unique stage, backup and release paths",
+    "a separate Central single-use deployment lease"
+  ],
+  "truth": {
+    "leaseIssued": false,
+    "sshExecuted": false,
+    "deployed": false,
+    "publicRuntimeSourceBound": false,
+    "linuxRuntimeExecuted": false,
+    "walletProviderApproved": false,
+    "swap": false,
+    "liquidity": false,
+    "transaction": false,
+    "computerControl": false
+  },
+  "singleExecutableBlocker": "A fresh DEX-only Central host preflight and a new rollback-first deployment lease are required; the existing c7-only executor and every historical deployment lease are intentionally non-reusable."
+}
