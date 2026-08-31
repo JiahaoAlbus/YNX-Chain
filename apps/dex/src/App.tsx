@@ -923,6 +923,14 @@ function SwapPage({
           }
         />
         <InspectorRow
+          label="Route state"
+          value={
+            quoteState.quote
+              ? `Blocks ${quoteState.quote.stateAnchor.earliestBlock}–${quoteState.quote.stateAnchor.latestBlock}`
+              : "—"
+          }
+        />
+        <InspectorRow
           label={t.fees}
           value={
             quoteState.quote
@@ -988,6 +996,17 @@ function SwapPage({
               <div>
                 <dt>Consensus route</dt>
                 <dd>{quoteState.quote.route.map((hop) => hop.pool).join(" → ")}</dd>
+              </div>
+              <div>
+                <dt>Route state anchors</dt>
+                <dd>
+                  {quoteState.quote.route
+                    .map(
+                      (hop) =>
+                        `${hop.pool}@${hop.state.blockHeight} · ${hop.state.auditHash}`,
+                    )
+                    .join(" · ")}
+                </dd>
               </div>
               <div>
                 <dt>Signed action</dt>

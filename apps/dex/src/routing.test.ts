@@ -34,8 +34,19 @@ describe("committed DEX routing", () => {
     expect(quote.route.map((hop) => hop.pool)).toEqual(["dex_ab", "dex_bc"]);
     expect(quote.amountOut).toBe(81n);
     expect(quote.execution).toBe("multi_hop_quote_only");
+    expect(quote.stateAnchor).toEqual({
+      earliestBlock: 1,
+      latestBlock: 1,
+      auditHashes: ["b".repeat(64), "b".repeat(64)],
+    });
     expect(quote.route[0]).toMatchObject({ tokenIn: "asset-a", tokenOut: "asset-b" });
     expect(quote.route[1]).toMatchObject({ tokenIn: "asset-b", tokenOut: "asset-c" });
+    expect(quote.route[0]?.state).toEqual({
+      blockHeight: 1,
+      updatedAt: "2026-08-31T00:00:00.000Z",
+      transactionHash: "a".repeat(64),
+      auditHash: "b".repeat(64),
+    });
   });
 
   it("calculates exact-output input bounds across the same committed path", () => {

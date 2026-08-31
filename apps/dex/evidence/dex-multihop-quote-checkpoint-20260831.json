@@ -2,13 +2,14 @@
   "schemaVersion": 1,
   "classification": "source-tested-not-deployed",
   "product": "dex",
-  "reviewedBaseCommit": "6844762c315731c6fe22d762932b150317c43c53",
+  "reviewedBaseCommit": "0ba2569e7f44170a5ce2e42c89d89932cdccc06a",
   "routing": {
     "maxHops": 3,
     "dataSource": "committed authoritative chain-native pool reserves",
     "math": "integer CPMM exact-input and exact-output calculations",
     "cyclePolicy": "repeated pools and repeated assets are rejected",
     "feeDisclosure": "effective route rate plus each pool fee",
+    "provenance": "every hop carries its committed block height, update time, transaction hash and audit hash; the quote exposes the full ordered audit-hash set plus its earliest/latest block anchor",
     "directExecution": "eligible for existing one-pool Wallet action contract",
     "multiHopExecution": "disabled until a Central-attested atomic routed action contract exists"
   },
@@ -18,7 +19,7 @@
     "legacy9102Rejected": true
   },
   "tests": {
-    "unitAndUi": "30 passed",
+    "unitAndUi": "30 passed, including route-provenance propagation",
     "canonicalAuthorizeVerifier": "passed",
     "productionWebBuild": "passed"
   },

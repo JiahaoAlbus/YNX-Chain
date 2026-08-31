@@ -7,6 +7,12 @@ export type RouteHop = {
   feeBps: number;
   amountIn: bigint;
   amountOut: bigint;
+  state: {
+    blockHeight: number;
+    updatedAt: string;
+    transactionHash: string;
+    auditHash: string;
+  };
 };
 
 export type NativeQuote = {
@@ -17,6 +23,11 @@ export type NativeQuote = {
   quotedAt: string;
   priceImpactBps: number;
   execution: "direct" | "multi_hop_quote_only";
+  stateAnchor: {
+    earliestBlock: number;
+    latestBlock: number;
+    auditHashes: string[];
+  };
 };
 
 const assetKey = (asset: string) => asset.toLowerCase();
@@ -103,6 +114,12 @@ const exactInput = (
       feeBps: item.pool.feeBps,
       amountIn: actual,
       amountOut: next,
+      state: {
+        blockHeight: item.pool.updatedBlock,
+        updatedAt: item.pool.updatedAt,
+        transactionHash: item.pool.txHash,
+        auditHash: item.pool.auditHash,
+      },
     });
     actual = next;
   }
@@ -132,6 +149,12 @@ const exactOutput = (
       feeBps: item.pool.feeBps,
       amountIn: input,
       amountOut: required,
+      state: {
+        blockHeight: item.pool.updatedBlock,
+        updatedAt: item.pool.updatedAt,
+        transactionHash: item.pool.txHash,
+        auditHash: item.pool.auditHash,
+      },
     });
     required = input;
   }
@@ -151,6 +174,11 @@ const quote = (
   quotedAt: new Date().toISOString(),
   priceImpactBps,
   execution: hops.length === 1 ? "direct" : "multi_hop_quote_only",
+  stateAnchor: {
+    earliestBlock: Math.min(...hops.map((hop) => hop.state.blockHeight)),
+    latestBlock: Math.max(...hops.map((hop) => hop.state.blockHeight)),
+    auditHashes: hops.map((hop) => hop.state.auditHash),
+  },
 });
 
 export const quoteNativeExactInput = (
