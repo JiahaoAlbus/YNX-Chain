@@ -34,9 +34,12 @@ git diff --check
 ```
 
 The PostgreSQL multi-instance test is intentionally gated on
-`YNX_EXCHANGE_POSTGRES_TEST_URL`; it opens two admissions against one
-operator-provided test database and proves a third request is rejected across
-instances. It was not run here because no test DSN was supplied.
+`YNX_EXCHANGE_POSTGRES_TEST_URL`; it opens two admissions against one test
+database and proves a third request is rejected across instances. It passed on
+2026-08-31 against a disposable local PostgreSQL 16 container. The container
+used a loopback-only randomly assigned port, was stopped after the test, and
+was not a shared, public, or production database. Its local DSN and ephemeral
+test password are deliberately not retained in this handoff.
 
 ## Frozen Linux candidate
 
