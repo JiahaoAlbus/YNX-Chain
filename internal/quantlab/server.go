@@ -114,10 +114,10 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 			pendingUnknown++
 		}
 	}
-	write(w, 200, map[string]any{"status": "ok", "ready": true, "productId": ProductID, "serviceRole": s.role, "version": Version, "commit": BuildCommit, "mode": "simulated_testnet_only", "liveFundsEnabled": false, "signals": map[string]any{"killSwitch": paper.KillSwitch, "reconciliationDelta": paper.ReconciliationDelta, "pendingUnknownExecutions": pendingUnknown}})
+	write(w, 200, map[string]any{"status": "ok", "ready": true, "productId": ProductID, "serviceRole": s.role, "version": Version, "commit": BuildCommit, "mode": "simulated_testnet_only", "liveFundsEnabled": false, "storage": s.service.StorageStatus(), "signals": map[string]any{"killSwitch": paper.KillSwitch, "reconciliationDelta": paper.ReconciliationDelta, "pendingUnknownExecutions": pendingUnknown}})
 }
 func (s *Server) version(w http.ResponseWriter, r *http.Request) {
-	write(w, 200, map[string]any{"productId": ProductID, "version": Version, "commit": BuildCommit})
+	write(w, 200, map[string]any{"productId": ProductID, "version": Version, "commit": BuildCommit, "storage": s.service.StorageStatus()})
 }
 func (s *Server) snapshot(w http.ResponseWriter, r *http.Request) {
 	write(w, 200, s.service.Snapshot())

@@ -38,6 +38,38 @@ func TestHTTPWriteBoundaryAndStrictSchema(t *testing.T) {
 	}
 }
 
+func TestHealthAndVersionDiscloseFilesystemSnapshotIsNotMultiInstance(t *testing.T) {
+	s, err := New(Config{StatePath: filepath.Join(t.TempDir(), "s.json")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := httptest.NewServer(NewServer(s))
+	defer server.Close()
+	for _, path := range []string{"/health", "/version"} {
+		response, err := server.Client().Get(server.URL + path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		var payload struct {
+			Storage struct {
+				Backend                      string `json:"backend"`
+				RestartPersistent            bool   `json:"restartPersistent"`
+				CrossProcessSharedFilesystem bool   `json:"crossProcessSharedFilesystem"`
+				MultiInstance                bool   `json:"multiInstance"`
+				ProductionDatabaseRequired   bool   `json:"productionDatabaseRequired"`
+			} `json:"storage"`
+		}
+		err = json.NewDecoder(response.Body).Decode(&payload)
+		_ = response.Body.Close()
+		if err != nil {
+			t.Fatal(err)
+		}
+		if response.StatusCode != http.StatusOK || payload.Storage.Backend != "filesystem_json_snapshot" || !payload.Storage.RestartPersistent || !payload.Storage.CrossProcessSharedFilesystem || payload.Storage.MultiInstance || !payload.Storage.ProductionDatabaseRequired {
+			t.Fatalf("path=%s status=%d storage=%+v", path, response.StatusCode, payload.Storage)
+		}
+	}
+}
+
 func TestWebSocketSnapshotCarriesAuthorityMetadata(t *testing.T) {
 	s, _ := New(Config{StatePath: filepath.Join(t.TempDir(), "s.json")})
 	server := httptest.NewServer(NewRoleServer(s, "research"))

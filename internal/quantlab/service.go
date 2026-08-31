@@ -290,6 +290,21 @@ type Service struct {
 	state state
 }
 
+// StorageStatus describes the persistence contract that this Service is
+// actually running. The file snapshot is durable across a process restart and
+// guarded against concurrent writers on one shared filesystem, but it is not
+// a distributed store: it must never be advertised as a multi-instance
+// production backend.
+func (s *Service) StorageStatus() map[string]any {
+	return map[string]any{
+		"backend":                      "filesystem_json_snapshot",
+		"restartPersistent":            true,
+		"crossProcessSharedFilesystem": true,
+		"multiInstance":                false,
+		"productionDatabaseRequired":   true,
+	}
+}
+
 func New(cfg Config) (*Service, error) {
 	if strings.TrimSpace(cfg.StatePath) == "" {
 		return nil, ErrInvalid
