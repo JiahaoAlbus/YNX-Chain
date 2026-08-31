@@ -1,0 +1,136 @@
+{
+  "schemaVersion": "financeP0318BuildIdentityRouteSuccessorRequest@1",
+  "status": "SOURCE_ARTIFACT_DIRECT_FIXTURE_READY_AWAITING_WHOLELY_NEW_FINANCE_ONLY_CARRIER_LEASE",
+  "owner": {
+    "branch": "codex/p0-finance-nonregressive-combined-candidate-20260831",
+    "routeFixCommit": "7d145955a05212921dc006abc2479dfc63bbcfa0",
+    "routeFixTree": "8c33481e1fe3020b6198a958b25e922a9026fbcb",
+    "artifactCommit": "a7a0031a62478ddc6de7338fdea09bd801f1ace7",
+    "artifactTree": "7b83d537579b396a6263ff401f136dc18791244f",
+    "executionObjectsCommit": "48d2ccdde1fc8e0d7b31e9f99563efcca1ba8671",
+    "executionObjectsTree": "fb645fb0d140749cf52a646d0e9450f8f5e63215"
+  },
+  "predecessorsNonreusable": ["P0-304", "P0-314", "P0-318", "96d33a9a027a6a6a21154f9a33298aa70d590ab6"],
+  "p0318TerminalAuthority": {
+    "centralCommit": "399d79b3bbe1b2cdff2435608c3167ab60092d5e",
+    "centralTree": "3861aa487c1cd5b42a431fa2e79e2205ee0ba5f5",
+    "evidencePath": "release/integration/p0-wallet-connectivity/execution/objects/p0-318-finance-nonregressive-phase3-terminal-fail-closed-20260831.json",
+    "evidenceBlob": "8a71bd46b7fc20ebadfe5ceeb1e1d2a9cb0741e9",
+    "evidenceBytes": 3665,
+    "evidenceSha256": "a09ef91ac7fbd319174ebacedf1299d0692a235f3cd658cf6d531cf55b16ea76",
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0318_CANDIDATE_VERIFY_AUTOMATIC_ROLLBACK_OLD_RUNTIME_RESTORED_CONTROLS_RETAINED",
+    "attemptCount": 1,
+    "retryCount": 0,
+    "terminalStdout": {"bytes": 83, "sha256": "49f2d5fb7f5d9a76cc6982001fdad3c256d8c95ac0a9e90f62d096cfc3e85116", "phase": "CANDIDATE_VERIFY", "failureClass": "POSTWRITE_CANDIDATE_VERIFY", "failureExitStatus": 1},
+    "automaticRollbackOldRuntimeRestored": true,
+    "allSixDeploymentPathsAbsent": true,
+    "retainedControlPairRequiresSeparateFutureCleanupReview": true
+  },
+  "rootCause": {
+    "classification": "BUILD_IDENTITY_FILE_PACKAGED_BUT_HTTP_ROUTE_UNREGISTERED",
+    "predecessorSource": "4f7fba323a89ffb83a81fe2e2f2b97d23947de87",
+    "predecessorServerBlob": "aaa890c4fecac2a1597d4bbb1eefb2cbfd9b4cf0",
+    "predecessorArchiveContainedBuildIdentity": true,
+    "predecessorServerRegisteredBuildIdentityRoute": false,
+    "signedP0318CandidateGateRequiredBuildIdentityHttp200": true,
+    "deterministicFailure": "After candidate cold start, health/version and the seven preserved Wallet frontend assets could be byte-exact, but GET /build-identity.json could only return 404 because neither the mux nor the web path map exposed the packaged file. This made CANDIDATE_VERIFY fail and arm automatic rollback.",
+    "fixedServerBlob": "623b44f4544909670c2f3d9338ee12e48509e50b",
+    "fixedTestBlob": "29110319026765c1cb82a876f9e9df45ee426c05",
+    "fix": "Register GET /build-identity.json on the Finance mux and map it byte-exactly to WebDir/build-identity.json.",
+    "unrelatedHealthVersionOrWalletAssetRegression": false
+  },
+  "candidate": {
+    "sourceCommit": "7d145955a05212921dc006abc2479dfc63bbcfa0",
+    "sourceTree": "8c33481e1fe3020b6198a958b25e922a9026fbcb",
+    "backendAuthorityCommit": "7824af677dd052d20321431381523ab302614d98",
+    "frontendAuthorityCommit": "75f0299aaf53263e4279acf93e9a06db9d055e38",
+    "release": "ynx-finance-7d145955a052",
+    "buildTime": "2026-08-31T06:00:48.000Z",
+    "archive": {
+      "path": "apps/finance/evidence/release-candidates/ynx-finance-7d145955a052-linux-amd64.tar.gz",
+      "blob": "ceff2663a813a567c30c89e15d5ea1fd9f96e7d3",
+      "bytes": 3938617,
+      "sha256": "f60f35037d1e8710b2b98979e42bcc0119a74b8cca1eea847310c9ac32412ef2"
+    },
+    "archiveManifest": {
+      "path": "apps/finance/evidence/release-candidates/ynx-finance-7d145955a052-linux-amd64.tar.gz.manifest.json",
+      "blob": "70b3e285be9cc3998776ddeef962a57458ba14b2",
+      "bytes": 455,
+      "sha256": "1b375aab3c102bbb0d1347f0bf1e87397f05ba2a5fcc157f14bb3de687949a20"
+    },
+    "binary": {"bytes": 8573076, "sha256": "ea4bcf75a330f173ce4a1dcee5cbf8193eac268e1f4eb73c0376a536a5b1650b"},
+    "buildIdentity": {"relativePath": "web/build-identity.json", "bytes": 219, "sha256": "e53ab41a3f804c05c550ce01068f4845f606f2a62e27c8a5747a199b49893ebd"},
+    "preservesSevenCurrentFrontendResourcesExactly": true,
+    "legacyWalletConnectJsAbsent": true
+  },
+  "directLocalColdStartEvidence": {
+    "kind": "EXTRACTED_EXACT_ARCHIVE_GO_SERVER_DIRECT_HTTP_FIXTURE",
+    "productionOrPublic": false,
+    "serverExitedAfterFixture": true,
+    "health": {"status": 200, "bytes": 461, "acceptanceHashRecorded": false, "note": "dummy non-secret local upstream configuration; deliberately excluded from acceptance because production exact expected body is separately frozen"},
+    "version": {"status": 200, "bytes": 130, "sha256": "2cfced6390a3848515306c723186d2980b1c59c3cd126d4dbb797a05bcd8b508"},
+    "frontend": [
+      ["/", 200, 11427, "c1fc45eecd7f88de6fc3e049d15161b8d4e9878e31f20c977fc52b383a18ed53"],
+      ["/app.js", 200, 17371, "a1ed94de08fc5b73f075cf35c1b17481e24b6046732ad92d82209959b694c6d6"],
+      ["/read-sources.js", 200, 10920, "e19b7b266c14b181a4d88b10c6e1975398bdafb77660272f37ba22b48fc18c70"],
+      ["/styles.css", 200, 13935, "bd01b920fee3693204a63aed364c27becf4c9c84f3ee1ed9dd3e2d35a39b5d9f"],
+      ["/manifest.webmanifest", 200, 241, "3f7bec35f54aad6a095151e9d4d553e7ea10cbbbcc9e16f0f3fe7abd242b6d05"],
+      ["/ynx-logo.png", 200, 104171, "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"],
+      ["/wallet-auth.js", 200, 66997, "be5c90e938e5d5b6e181199f2e1e3949b8f343c4e1af4d8aceab27b1ed41bf6d"]
+    ],
+    "buildIdentity": ["/build-identity.json", 200, 219, "e53ab41a3f804c05c550ce01068f4845f606f2a62e27c8a5747a199b49893ebd"],
+    "legacyWalletConnect": ["/wallet-connect.js", 404, 19, "b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793"]
+  },
+  "expectedProductionCandidateVerification": {
+    "health": {"loopbackAndPublicStatus": 200, "bytes": 485, "sha256": "2dce07ff461f5a6e690bcb9b0fc3ffff5c9394692b3d4c7f075c6d7cf06d230e"},
+    "version": {"loopbackAndPublicStatus": 200, "bytes": 130, "sha256": "2cfced6390a3848515306c723186d2980b1c59c3cd126d4dbb797a05bcd8b508"},
+    "frontendBuildIdentityAndLegacyAbsence": "exactly the directLocalColdStartEvidence resource tuples",
+    "allMustPassBeforeSuccessReceipt": true
+  },
+  "reviewedSuccessorObjects": {
+    "unsignedCarrierLease": {"path": "apps/finance/evidence/finance-p0318-build-identity-route-successor-unsigned-carrier-lease-20260831.json", "blob": "fc79b5b1c3691fbf9e628ae2f21365f6c83feaa7", "bytes": 1218, "sha256": "d40e4da04712d6286ba3110af859a4ee634ab0b2c7c974b5f2ac02b1e7b3d2c7"},
+    "twoPhaseContract": {"path": "apps/finance/evidence/finance-p0318-build-identity-route-successor-two-phase-contract-20260831.json", "blob": "8e03a7d3a06cbdf7a6e5233a71b7b5ca75439531", "bytes": 6332, "sha256": "db9da840128ab95d876ec49efd155e8c173eda0ee1616adc60b2b1b9619e0567"},
+    "successorFixture": {"path": "apps/finance/scripts/test-finance-p0318-build-identity-route-successor.mjs", "blob": "6e2a92cb1eb305d36b25525b6a69e32670b74b81", "bytes": 3560, "sha256": "eb1a110dffe951b51e64de7ac5f92de14425833eb8a0cfd2bf4dc34889ff4940"},
+    "carrierTransport": {"path": "apps/finance/scripts/finance-nonregressive-carrier-openssh.sh", "bytes": 2539, "sha256": "55a7a8a90af10a5d79b3df7cf7320fa7a46d45602cf03a581d238ca6e36ce58e"},
+    "carrierBootstrap": {"path": "apps/finance/scripts/finance-nonregressive-carrier-bootstrap.sh", "bytes": 5724, "sha256": "bbb4fcf01ee9627024e9c90488042bde64c9e93e2e1d09e524b4a408f06cf7b8"},
+    "phase3Transport": {"path": "apps/finance/scripts/finance-phase3-openssh-serialized-command.sh", "bytes": 3583, "sha256": "15acc3371baa6a8d6c46e6c30dc6d8c17f3681969ef2cb8680220f7eed6300a1"},
+    "phase3Bootstrap": {"path": "apps/finance/scripts/finance-phase3-stdin-deployment-bootstrap.sh", "bytes": 5526, "sha256": "9907022d848961983898274e510cd4f0373862b8028f31695d964f88b1c1d516"},
+    "executor": {"path": "apps/finance/scripts/finance-production-rollback-first.sh", "bytes": 27826, "sha256": "1899f8a57bcd4ad0477f0f4fc34bd867a79e96bc309f31fa8f1f7637dd42ad93"},
+    "executorBase64": {"path": "apps/finance/evidence/finance-nonregressive-phase3-executor.base64", "bytes": 37105, "sha256": "861d9542dc97707f0154070026f9bb603f60a0c02a8adcd0693a932b0a41d0b6"}
+  },
+  "freshCentralDecisionOrder": [
+    "Read P0-318 terminal control pair and decide a separate exact cleanup-only order; this request does not authorize cleanup or reuse.",
+    "Fresh-read Heavy, Finance path lock, root/stage/current/runtime/env/unit/Caddy/state/service and all relevant parent tuples without mutation.",
+    "Independently verify the new source, archive, direct fixture and successor execution objects.",
+    "Fill every null freshness field and issue a wholly-new Finance-only single-use carrier-preparation lease for finance-combined-7d145955a052-20260831t060048z.",
+    "Only after a direct successful new carrier receipt, fresh-read its archive/env tuples and all six deployment parents/absences, then issue a separate wholly-new Phase3 lease.",
+    "Require loopback and public health/version, all seven preserved Wallet resources, build identity HTTP 200 exact, and legacy wallet-connect HTTP 404 exact before terminal success."
+  ],
+  "validation": {
+    "goFinanceTests": "PASS",
+    "financePackageTests": "14/14 PASS",
+    "successorArchiveRouteFixture": "PASS",
+    "nonRegressionCandidateFixture": "PASS",
+    "carrierFixture": "PASS",
+    "carrierOpenSshFixture": "PASS",
+    "twoPhaseSuccessorContractFixture": "PASS",
+    "phase3SingleSshFixture": "PASS",
+    "phase3SerializedOpenSshFixture": "PASS",
+    "phase3DeploymentBootstrapFixture": "PASS",
+    "productionActualShellSuccessPrewriteCleanupAutomaticRollbackManualRollback": "PASS"
+  },
+  "truth": {
+    "centralSignedSuccessorCarrierLease": false,
+    "successorCarrierPlaced": false,
+    "centralSignedSuccessorPhase3Lease": false,
+    "sshExecutedForSuccessor": false,
+    "productionWriteForSuccessor": false,
+    "deployed": false,
+    "sourceBoundPublic": false,
+    "walletRuntimeApproved": false,
+    "accountRequested": false,
+    "signatureCreated": false,
+    "transactionSubmitted": false
+  },
+  "singleExecutableBlocker": "Central must independently review this exact remote successor, decide the separately authorized cleanup order for the retained nonreusable P0-318 control pair, and issue a wholly-new Finance-only single-use carrier-preparation lease. A Phase3 lease is intentionally impossible until that new carrier has a direct terminal receipt."
+}
