@@ -20,6 +20,10 @@ test("native branded CDP harness isolates profiles and never disables extensions
 });
 
 test("native branded CDP harness wakes MV3, proves two PIDs, and cleans its process group",()=>{
+  assert.match(source,/extensions manager entry list/u);
+  assert.match(source,/extensionEntry=launch\.managerEntries\.find/u);
+  assert.match(source,/const extensionId=extensionEntry\.id/u);
+  assert.match(source,/COMMAND_LINE_EXTENSION_NOT_LOADED/u);
   assert.match(source,/YNX_WALLET_DISCOVER/u);
   assert.match(source,/serviceworker/u);
   assert.match(source,/first\.pid!==second\.pid/u);

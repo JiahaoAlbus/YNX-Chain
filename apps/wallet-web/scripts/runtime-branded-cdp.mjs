@@ -43,7 +43,8 @@ async function devtoolsEndpoint(){
   throw Object.assign(new Error("DevToolsActivePort was not created within 10000ms"),{code:"CDP_ENDPOINT_TIMEOUT"});
 }
 async function inspectManager(page){
-  await bounded(page.goto(browserSpec.extensionsUrl,{waitUntil:"domcontentloaded",timeout:5000}),6000,"extensions manager");await delay(500);
+  await bounded(page.goto(browserSpec.extensionsUrl,{waitUntil:"domcontentloaded",timeout:5000}),6000,"extensions manager");
+  await bounded(page.waitForFunction(()=>{const manager=document.querySelector("extensions-manager"),list=manager?.shadowRoot?.querySelector("extensions-item-list");return Boolean(list?.shadowRoot)},null,{timeout:5000}),6000,"extensions manager entry list");
   return page.evaluate(()=>{const manager=document.querySelector("extensions-manager"),list=manager?.shadowRoot?.querySelector("extensions-item-list"),items=[...(list?.shadowRoot?.querySelectorAll("extensions-item")||[])];return items.map(item=>({id:item.id||item.getAttribute("id")||item.data?.id||null,name:item.data?.name||null,enabled:item.data?.state===1||item.data?.enabled===true,location:item.data?.location??null}))});
 }
 async function launchOnce(sequence){
@@ -59,6 +60,9 @@ async function launchOnce(sequence){
     const endpoint=await bounded(devtoolsEndpoint(),11000,"CDP endpoint");launch.cdpEndpoint=endpoint.replace(/\/devtools\/browser\/.+$/u,"/devtools/browser/<redacted>");browser=await bounded(chromium.connectOverCDP(endpoint,{timeout:5000}),6000,"CDP connect");launch.cdpConnected=true;launch.browserVersion=browser.version();result.browserVersion=launch.browserVersion;
     const context=browser.contexts()[0];if(!context)throw new Error("CDP browser exposed no persistent context");
     const manager=await context.newPage();launch.managerEntries=await bounded(inspectManager(manager),7000,"extension manager inspection");await manager.close();
+    const extensionEntry=launch.managerEntries.find((entry)=>entry.name==="YNX Wallet"&&typeof entry.id==="string"&&entry.id.length>0);
+    if(!extensionEntry)throw Object.assign(new Error("Chrome did not load the YNX Wallet command-line extension into this disposable profile."),{code:"COMMAND_LINE_EXTENSION_NOT_LOADED"});
+    const extensionId=extensionEntry.id;launch.extensionId=extensionId;result.extension.actualId=extensionId;
     const popup=await context.newPage();popup.on("console",message=>launch.console.push({source:"popup",type:message.type(),text:message.text()}));
     const popupUrl=`chrome-extension://${extensionId}/index.html`;await bounded(popup.goto(popupUrl,{waitUntil:"domcontentloaded",timeout:5000}),6000,"popup open");launch.popupOpened=popup.url()===popupUrl;
     let worker=context.serviceWorkers().find(item=>item.url().startsWith(`chrome-extension://${extensionId}/`));if(!worker){worker=await bounded(context.waitForEvent("serviceworker",{predicate:item=>item.url().startsWith(`chrome-extension://${extensionId}/`),timeout:5000}),6000,"service worker wake")}
