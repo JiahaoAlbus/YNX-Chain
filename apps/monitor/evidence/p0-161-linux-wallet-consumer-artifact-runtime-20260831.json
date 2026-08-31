@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "ynx.explorer-monitor.linux-artifact-runtime.v2",
+  "observedAt": "2026-08-31T09:02:36Z",
+  "owner": "explorer-monitor",
+  "candidate": {"sourceCommit": "a3292a2b6d30409caf7db66b81c47e8d09ad76f1", "release": "ynx-explorer-monitor-a3292a2b6d30", "artifactRecord": "apps/monitor/evidence/p0-160-wallet-consumer-release-preparation-20260831.json"},
+  "runner": {"kind": "isolated local Docker", "image": "ubuntu:22.04", "platform": "linux/amd64", "network": "loopback port mapping only", "production": false},
+  "verifiedArtifacts": {
+    "explorerd": {"artifactSha256": "550045af8e4f889dfef2a1da4ea3f74136673c16b590b6e1443a066133c8cb1e", "versionResponseSha256": "4ba51beb03d2238db81df243c9ca278bcb5d22e0c869618e1faede14cc74a9ae", "unavailableHealth": {"httpStatus": 502, "sha256": "ff12fa7d2a0cc528c9543927ad35a296500a20b93ad3434ffa132344b6693b5a", "classification": "UPSTREAM_UNAVAILABLE", "internalDetailLeaked": false}},
+    "indexerd": {"artifactSha256": "4074bc0033de23c02dd2ecb4f2833c128772185c0493d098759ca62389f10091", "versionResponseSha256": "0f671228e72fbf0edc352386605b2e66220cf71e839694f91ff0572f259f8a3c", "unavailableHealth": {"httpStatus": 503, "sha256": "bf6aff734764a4a28aa0928c32a50fc90091ed1eb5caae25333271838e79f3fb", "classification": "UPSTREAM_UNAVAILABLE", "publicLastError": "chain source temporarily unavailable", "internalDetailLeaked": false}},
+    "monitorReleaseTree": {"artifactSha256": "706e4aef26c8c7d0799242c26aa86e88717d4733d9d17322b764822ca9dcadca", "runtimeTested": false, "reason": "The frozen Monitor release tree needs a Node runtime plus signed public-status input; this runner validated only the two Linux Go service artifacts."}
+  },
+  "states": {"implementedLocal": true, "testedLocal": true, "integratedCentral": false, "deployedStaging": false, "deployedPublic": false, "downloadHosted": false, "productionSigned": false, "publicVerified": false, "computerControlVerified": false},
+  "nextGate": "Complete the exact Monitor release-tree Node runner, then obtain a Central production lease for official-domain source, connectivity JSON, transaction route, and direct user-approved provider evidence."
+}
