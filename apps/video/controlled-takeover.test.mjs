@@ -1,12 +1,20 @@
 import assert from "node:assert/strict";
 import {execFileSync} from "node:child_process";
-import {chmodSync, existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync} from "node:fs";
+import {chmodSync, existsSync, linkSync, lstatSync, mkdtempSync, mkdirSync, readFileSync, rmSync, statSync, symlinkSync, writeFileSync} from "node:fs";
 import {tmpdir} from "node:os";
 import {join, resolve} from "node:path";
 import test from "node:test";
 
 const videoRoot = resolve(import.meta.dirname);
 const takeover = join(videoRoot, "scripts/video-runtime-controlled-takeover.sh");
+const retainedGuard = join(videoRoot, "scripts/video-retained-evidence-guard.mjs");
+const retainedNames = [
+  "video-legacy-viewer-emergency-recovery.receipt",
+  "video-viewer-wallet-controlled-takeover-3b1a062b.receipt",
+  "video-viewer-wallet-controlled-takeover-3b1a062b.receipt.legacy.successor",
+  "video-viewer-wallet-controlled-takeover-3b1a062b.receipt.legacy.successor.expected",
+  "video-viewer-wallet-controlled-takeover-3b1a062b.receipt.legacy.successor.stable"
+];
 
 function executable(path, body) {
   writeFileSync(path, body);
@@ -20,6 +28,14 @@ function sha(body) {
 function statTuple(path) {
   const value = statSync(path);
   return `${value.dev}:${value.ino}:${value.uid}:${value.gid}:${(value.mode & 0o777).toString(8)}:${value.nlink}`;
+}
+
+function inventoryObject(path, includeSha = false) {
+  const value = lstatSync(path);
+  const kind = value.isDirectory() ? "directory" : value.isFile() ? "regular file" : value.isSymbolicLink() ? "symbolic link" : "unsupported";
+  const object = {path, tuple: `${value.dev}:${value.ino}:${value.uid}:${value.gid}:${(value.mode & 0o777).toString(8)}:${value.nlink}:${value.size}:${kind}`};
+  if (includeSha) object.sha256 = execFileSync("shasum", ["-a", "256", path], {encoding: "utf8"}).split(/\s+/)[0];
+  return object;
 }
 
 function fixture(failure = "none") {
@@ -109,9 +125,21 @@ cat '${join(control, "caddy")}'
 `);
   const bootstrap = join(dir, "bootstrap.sh");
   const receiptContainer = join(dir, "var-lib");
-  const receiptParent = join(receiptContainer, "ynx-video-viewer-wallet-evidence");
+  const retainedParent = join(receiptContainer, "ynx-video-viewer-wallet-evidence");
+  const retainedIdentity = `${retainedParent}.identity`;
+  const receiptParent = join(receiptContainer, "ynx-video-viewer-wallet-evidence-560c467d");
   mkdirSync(receiptContainer);
   writeFileSync(join(receiptContainer, "unrelated-sibling"), "preserve me\n");
+  mkdirSync(retainedParent);
+  writeFileSync(retainedIdentity, "retained-parent-identity\n");
+  retainedNames.forEach((name, index) => writeFileSync(join(retainedParent, name), `retained-${index}\n`));
+  const retainedInventory = join(dir, "retained-inventory.json");
+  writeFileSync(retainedInventory, `${JSON.stringify({
+    schemaVersion: "ynx-video-retained-evidence-inventory/1",
+    parent: inventoryObject(retainedParent),
+    identity: inventoryObject(retainedIdentity, true),
+    children: retainedNames.map((name) => ({name, ...inventoryObject(join(retainedParent, name), true)}))
+  }, null, 2)}\n`);
   const bootstrapReceipt = join(receiptParent, "bootstrap-receipt.txt");
   const dedicatedRoot = join(dir, "dedicated-root");
   const dedicatedUnitPath = join(dir, "dedicated-unit.service");
@@ -151,13 +179,25 @@ esac
     YNX_VIDEO_RECEIPT_UID: String(process.getuid()),
     YNX_VIDEO_RECEIPT_GID: String(process.getgid()),
     YNX_VIDEO_RECEIPT_MODE: "755",
+    YNX_VIDEO_RETAINED_EVIDENCE_PARENT: retainedParent,
+    YNX_VIDEO_RETAINED_EVIDENCE_IDENTITY: retainedIdentity,
+    YNX_VIDEO_RETAINED_EVIDENCE_INVENTORY: retainedInventory,
+    YNX_VIDEO_RETAINED_EVIDENCE_INVENTORY_SHA256: execFileSync("shasum", ["-a", "256", retainedInventory], {encoding: "utf8"}).split(/\s+/)[0],
+    YNX_VIDEO_RETAINED_EVIDENCE_GUARD: retainedGuard,
+    YNX_VIDEO_RETAINED_EVIDENCE_GUARD_SHA256: execFileSync("shasum", ["-a", "256", retainedGuard], {encoding: "utf8"}).split(/\s+/)[0],
     YNX_VIDEO_BOOTSTRAP_SCRIPT: bootstrap,
     YNX_VIDEO_BOOTSTRAP_RECEIPT: bootstrapReceipt,
     YNX_VIDEO_VIEWER_ROOT: dedicatedRoot,
     YNX_VIDEO_VIEWER_UNIT_PATH: dedicatedUnitPath,
     YNX_VIDEO_TAKEOVER_LOCK: join(dir, "takeover.lock")
   };
-  return {dir, control, baseline, receipt, receiptContainer, receiptParent, env};
+  return {dir, control, baseline, receipt, receiptContainer, receiptParent, retainedParent, retainedIdentity, retainedInventory, env};
+}
+
+function assertRetainedPresent(f) {
+  assert.equal(existsSync(f.retainedParent), true);
+  assert.equal(existsSync(f.retainedIdentity), true);
+  for (const name of retainedNames) assert.equal(existsSync(join(f.retainedParent, name)), true, `${name} must remain present`);
 }
 
 test("controlled takeover freezes predecessor, switches once, and restores a verified legacy successor", () => {
@@ -172,6 +212,7 @@ test("controlled takeover freezes predecessor, switches once, and restores a ver
   assert.equal(existsSync(join(f.control, "dedicated-active")), false);
   assert.equal(existsSync(f.receiptParent), false);
   assert.equal(existsSync(`${f.receiptParent}.identity`), false);
+  assertRetainedPresent(f);
   assert.equal(readFileSync(join(f.receiptContainer, "unrelated-sibling"), "utf8"), "preserve me\n");
   assert.match(readFileSync(join(f.control, "systemctl.log"), "utf8"), /stop ynx-video-viewer\.service/);
   assert.match(readFileSync(join(f.control, "systemctl.log"), "utf8"), /start ynx-video-viewer\.service/);
@@ -192,6 +233,7 @@ for (const stage of ["stop", "port", "bootstrap", "post"]) {
     assert.equal(existsSync(join(f.control, "dedicated-active")), false);
     assert.equal(existsSync(f.receiptParent), false);
     assert.equal(existsSync(`${f.receiptParent}.identity`), false);
+    assertRetainedPresent(f);
     assert.equal(readFileSync(join(f.receiptContainer, "unrelated-sibling"), "utf8"), "preserve me\n");
   });
 }
@@ -212,4 +254,44 @@ test("controlled takeover lock rejects a concurrent executor before service muta
   assert.equal(existsSync(join(f.control, "legacy-active")), true);
   assert.equal(existsSync(f.receiptParent), true);
   assert.equal(readFileSync(join(f.receiptContainer, "unrelated-sibling"), "utf8"), "preserve me\n");
+});
+
+const retainedMutations = {
+  "foreign sibling": (f) => writeFileSync(join(f.retainedParent, "foreign"), "foreign\n"),
+  "same-byte replacement": (f) => {
+    const target = join(f.retainedParent, retainedNames[1]);
+    const body = readFileSync(target);
+    rmSync(target); writeFileSync(target, body);
+  },
+  "symlink replacement": (f) => {
+    const target = join(f.retainedParent, retainedNames[2]);
+    rmSync(target); symlinkSync(join(f.retainedParent, retainedNames[0]), target);
+  },
+  "hardlink replacement": (f) => {
+    const target = join(f.retainedParent, retainedNames[3]);
+    rmSync(target); linkSync(join(f.retainedParent, retainedNames[0]), target);
+  },
+  "directory-only sibling": (f) => mkdirSync(join(f.retainedParent, "foreign-directory"))
+};
+
+for (const [label, mutate] of Object.entries(retainedMutations)) {
+  test(`controlled takeover rejects retained evidence ${label} before lifecycle or deletion`, () => {
+    const f = fixture();
+    mutate(f);
+    assert.throws(() => execFileSync("bash", [takeover, "takeover"], {env: f.env, stdio: "pipe"}));
+    assert.equal(existsSync(join(f.control, "systemctl.log")), false);
+    assert.equal(existsSync(f.receiptParent), false);
+    assertRetainedPresent(f);
+  });
+}
+
+test("controlled takeover rejects a post-validation retained evidence race before lifecycle or receipt creation", () => {
+  const f = fixture();
+  const hook = join(f.dir, "retained-race-hook.sh");
+  executable(hook, `#!/bin/sh\nprintf 'race\\n' > '${join(f.retainedParent, "post-validation-race")}'\n`);
+  const env = {...f.env, YNX_VIDEO_FIXTURE_POST_RETAINED_VALIDATION_HOOK: hook};
+  assert.throws(() => execFileSync("bash", [takeover, "takeover"], {env, stdio: "pipe"}));
+  assert.equal(existsSync(join(f.control, "systemctl.log")), false);
+  assert.equal(existsSync(f.receiptParent), false);
+  assertRetainedPresent(f);
 });
