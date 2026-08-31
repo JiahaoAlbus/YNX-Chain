@@ -67,6 +67,7 @@ test("chain add/switch is exact and unsupported methods fail closed", async () =
   assert.equal(await provider.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0x1917" }] }), null);
   assert.equal(await provider.request({ method: "wallet_addEthereumChain", params: [METAMASK_EVM_CHAIN] }), null);
   await assert.rejects(provider.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0x1" }] }), rpcCode(4902));
+  await assert.rejects(provider.request({ method: "wallet_switchEthereumChain", params: [{ chainId: "0x238e" }] }), rpcCode(4902));
   await assert.rejects(provider.request({ method: "wallet_addEthereumChain", params: [{ ...METAMASK_EVM_CHAIN, chainName: "Fake" }] }), rpcCode(-32602));
   await assert.rejects(provider.request({ method: "eth_sign", params: [ACCOUNT, "0x00"] }), rpcCode(4200));
 });

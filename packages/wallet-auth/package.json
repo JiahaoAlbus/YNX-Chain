@@ -84,8 +84,9 @@
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",
-    "check": "npm test && npm run verify:no-bare-authorize && npm run verify:standard-wallet-connect-consumer && npm run verify:standard-wallet-e2e-execution && npm run verify:installed-standard-wallet-runtime",
+    "check": "npm test && npm run verify:no-bare-authorize && npm run verify:no-legacy-9102 && npm run verify:standard-wallet-connect-consumer && npm run verify:standard-wallet-e2e-execution && npm run verify:installed-standard-wallet-runtime",
     "verify:no-bare-authorize": "node scripts/verify-no-bare-wallet-authorize.mjs",
+    "verify:no-legacy-9102": "node scripts/verify-no-legacy-chain-9102.mjs",
     "verify:standard-wallet-connect-consumer": "node scripts/verify-standard-wallet-connect-consumer.mjs",
     "verify:installed-standard-wallet-runtime": "node scripts/run-standard-wallet-installed-harness.mjs",
     "verify:standard-wallet-e2e-execution": "node scripts/verify-standard-wallet-e2e-execution-plan.mjs",
