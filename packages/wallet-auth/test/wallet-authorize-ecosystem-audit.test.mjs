@@ -65,13 +65,23 @@ test("v2 ecosystem audit consumes every exact owner source without promoting run
   }
 });
 
-test("v2 baseline scanner evidence matches the current repository exactly", async () => {
+test("v2 baseline scanner evidence matches the recovery branch without claiming owner-current source", async () => {
   const findings = await verifyWalletAuthorizeConsumers(root);
+  assert.equal(auditV2.scanner.baselineScope, "RECOVERY_BRANCH_SNAPSHOT_NOT_OWNER_CURRENT_STATE");
   assert.equal(findings.length, auditV2.scanner.findingCount);
   assert.deepEqual(Object.fromEntries([...new Set(findings.map(({ code }) => code))].sort().map((code) => [code, findings.filter((finding) => finding.code === code).length])), auditV2.scanner.findingCountsByCode);
   for (const finding of auditV2.scanner.registeredBaselineFindings) {
     assert.ok(findings.some(({ file, line, code }) => file === finding.file && line === finding.line && code === finding.code), `${finding.productId}:${finding.file}:${finding.code}`);
   }
+  assert.deepEqual(auditV2.scanner.verifiedOwnerSourceSupersessions, [{
+    owner: "explorer-monitor",
+    file: "apps/monitor/src/App.tsx",
+    baselineLine: 558,
+    baselineCode: "NONCANONICAL_WALLET_AUTHORIZE_URI",
+    ownerCommit: "70defaf9667b6513fa1e02530e69a172c6de97f5",
+    directSourceVerification: "No ynx-wallet://, ynxwallet://, location.href, or window.location match; baseline line is a password input.",
+    runtimeOrMigrationPromotion: false,
+  }]);
 });
 
 test("safe-launcher and MetaMask counts are derived from product rows", () => {

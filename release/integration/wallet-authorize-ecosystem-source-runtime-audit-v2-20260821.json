@@ -29,6 +29,7 @@
     "centralControlPlaneWritten": false
   },
   "scanner": {
+    "baselineScope": "RECOVERY_BRANCH_SNAPSHOT_NOT_OWNER_CURRENT_STATE",
     "sourceCommit": "dbddbd8bde399ad623eacbb9bfdf9bceb7b9e3a6",
     "commands": {
       "release": "npm run verify:no-bare-authorize --prefix packages/wallet-auth",
@@ -59,7 +60,18 @@
       {"productId":"video","file":"apps/video/wallet-auth.js","line":15,"code":"WEB_CUSTOM_SCHEME_AUTHORIZE_URI"},
       {"productId":"social","file":"apps/wallet/proof/social-harness/app/src/main/java/com/ynx/social/MainActivity.java","line":87,"code":"MANUAL_WALLET_AUTHORIZE_URI","proofHarnessOnly":true}
     ],
-    "rule": "The current branch scan records baseline drift; an exact newer owner commit may supersede a baseline finding only after direct source inspection. That never supplies public runtime, approval, callback or migration evidence."
+    "verifiedOwnerSourceSupersessions": [
+      {
+        "owner": "explorer-monitor",
+        "file": "apps/monitor/src/App.tsx",
+        "baselineLine": 558,
+        "baselineCode": "NONCANONICAL_WALLET_AUTHORIZE_URI",
+        "ownerCommit": "70defaf9667b6513fa1e02530e69a172c6de97f5",
+        "directSourceVerification": "No ynx-wallet://, ynxwallet://, location.href, or window.location match; baseline line is a password input.",
+        "runtimeOrMigrationPromotion": false
+      }
+    ],
+    "rule": "The recovery-branch scan records baseline drift, not owner-current source. An exact newer owner commit may supersede a baseline finding only after direct source inspection. That never supplies public runtime, approval, callback or migration evidence."
   },
   "ownerInputs": [
     {"productId":"calendar","sourceCommit":"828120e6d81efaf874a930793660e185a394ba4f","sourceTree":"cfa21a6b4ea69c3d8e872f8bc1f52cd2f4c2463a","evidenceCommit":"820fe3d3051aa1f5709fca179af811f1c6fb79b6","evidenceTree":"249293bd6e2df0c5f2e162a2099a71af34d1eecf"},
