@@ -68,7 +68,7 @@
         "YNX_DATA_FABRIC_TEST_SOURCE_COMMIT=4bb2ddfb6337e44060f57adafc7ee1cc08faedbe go test -race -run TestJetStreamThreeReplicaLeaderLossRetainsOutboxAndRecovers -count=1 ./internal/datafabricnats",
         "YNX_DATA_FABRIC_TEST_SOURCE_COMMIT=b218b62688ab311513b650db0659390130735cad go test -race -run TestJetStreamThreeReplicaRoutePartitionRetainsOutboxAndRecovers -count=2 ./internal/datafabricnats",
         "go test ./internal/datafabricnats -count=1 -timeout=180s",
-        "YNX_TEST_POSTGRES_DSN=postgres://...@127.0.0.1:55432/ynx_data_fabric_test?sslmode=disable YNX_TEST_POSTGRES_ALLOW_DESTRUCTIVE=1 go test ./internal/datafabricpostgres -run '^TestPostgresLiveTransactionsConstraintsAndRecovery$' -count=1 -v (ephemeral local PostgreSQL 17.10 container)",
+        "isolated ephemeral PostgreSQL 17.10 container: destructive live transaction, retention, erasure-authority and recovery test passed",
         "go vet ./internal/datafabricnats/...",
         "exact-source GitHub Actions run 31838660585: PostgreSQL 17 asynchronous streaming standby caught up, primary stopped, standby manually promoted, 1000 canonical events retained with RPO zero and integrity/replay invariants passed",
         "go test ./scripts/data-fabric/postgres-resilience ./internal/datafabricpostgres -count=1",
