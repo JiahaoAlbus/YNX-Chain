@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "owner": "wallet-desktop-cli-sdk",
+  "branch": "codex/wallet-sdk-error-taxonomy-20260831",
+  "implementationCommit": "c28b543522a87374fc0eba0c6e5f55e866e11beb",
+  "implementationTree": "c16aee5665b01ff62fb902da28c6bdd0842e755c",
+  "evidencePath": "docs/integration/wallet-cli-diagnostics-package-provenance-evidence-20260831.json",
+  "result": "SOURCE_PACKAGE_AND_CLI_GATES_PASS_REMOTE_CONNECTION_FALSE",
+  "claims": {
+    "typedCancellationExitCodes": true,
+    "redactedDiagnostics": true,
+    "consumerLockfileProvenance": true,
+    "packageSourceBound": true,
+    "malformedBatchRejected": true,
+    "malformedNotificationRejected": true,
+    "legacyConsumerCompatible": true,
+    "maximumAttempts": 1,
+    "chain9102Accessed": false,
+    "currentRemoteChainConnectionProved": false,
+    "accountRequested": false,
+    "signed": false,
+    "transactionCreated": false
+  }
+}

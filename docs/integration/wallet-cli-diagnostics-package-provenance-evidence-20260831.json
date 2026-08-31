@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "scope": "wallet-desktop-cli-sdk",
+  "branch": "codex/wallet-sdk-error-taxonomy-20260831",
+  "implementationCommit": "c28b543522a87374fc0eba0c6e5f55e866e11beb",
+  "implementationTree": "c16aee5665b01ff62fb902da28c6bdd0842e755c",
+  "parentCommit": "b0c79b0466f6e248906fa2c89c96afd963178010",
+  "cliExitCodes": {
+    "TRANSPORT_CANCELLED": 130,
+    "TRANSPORT_TIMEOUT": 124,
+    "MALFORMED_RESPONSE": 65,
+    "ACCOUNT_NOT_FOUND": 66,
+    "WRONG_CHAIN": 78,
+    "HTTP_ERROR": 69,
+    "JSON_RPC_ERROR": 69,
+    "RPC_UNAVAILABLE": 69,
+    "TRANSPORT_TLS": 69
+  },
+  "cancellation": {
+    "cliUsesSignalContext": true,
+    "signals": ["SIGINT", "SIGTERM"],
+    "preCancelledRequestCount": 0,
+    "diagnosticCode": "TRANSPORT_CANCELLED",
+    "exitCode": 130
+  },
+  "redactedDiagnostics": {
+    "goSDK": true,
+    "typescriptSDK": true,
+    "cliJSON": true,
+    "allowedFields": ["code", "httpStatus", "rpcCode"],
+    "causeIncluded": false,
+    "urlIncluded": false,
+    "responseBodyIncluded": false,
+    "freeFormMessageIncluded": false
+  },
+  "jsonRPCRejection": {
+    "batchRejected": true,
+    "notificationWithoutIdRejected": true,
+    "classification": "MALFORMED_RESPONSE",
+    "maximumAttempts": 1
+  },
+  "packageProvenance": {
+    "runner": "release/integration/wallet-sdk-error-taxonomy/run-clean-consumer.mjs",
+    "runnerSha256": "e6e195238aae4ec504d90c8e58bedb5cbaf263c41ef3be0a265b307e037bd9ba",
+    "package": "@ynx-chain/sdk@0.2.1",
+    "repository": "git+https://github.com/JiahaoAlbus/YNX-Chain.git",
+    "repositoryDirectory": "sdk/js",
+    "sourceCommit": "c28b543522a87374fc0eba0c6e5f55e866e11beb",
+    "sourceTree": "c16aee5665b01ff62fb902da28c6bdd0842e755c",
+    "sourceWorktreeDirty": false,
+    "tarball": "ynx-chain-sdk-0.2.1.tgz",
+    "tarballBytes": 7759,
+    "tarballSha256": "97429ea445774bfd2ab1666f90ca78e824df85913c50d22bdf43fece3349bab6",
+    "packageLockVersion": 3,
+    "packageLockSha256": "f9e278804f10200df87fff88cd22bbf7619a7eda96b9450eff48a84ac9f9e0c5",
+    "installedFilesSha256": "db3d3dfe86bc4f5a50e989595a03eb4a43101f3932c48098decab1fcbff04e33",
+    "consecutiveIdenticalRuns": 2,
+    "currentConsumer": "PASS",
+    "legacyExportsCompatible": true,
+    "legacyReadOnlyFlowCompatible": true,
+    "temporaryConsumerRemoved": true
+  },
+  "tests": [
+    {"command": "node --test sdk/js/index.test.mjs sdk/js/wallet.test.mjs", "result": "PASS", "tests": 21},
+    {"command": "go test ./sdk/wallet/go ./cmd/ynx-wallet-cli ./examples/wallet-go-sdk", "result": "PASS", "packages": 3},
+    {"command": "go vet ./sdk/wallet/go ./cmd/ynx-wallet-cli ./examples/wallet-go-sdk", "result": "PASS"},
+    {"command": "node release/integration/wallet-sdk-error-taxonomy/run-clean-consumer.mjs", "result": "PASS", "consecutiveRuns": 2}
+  ],
+  "networkBoundary": {
+    "nativeChainId": "ynx_6423-1",
+    "chainIdDecimal": 6423,
+    "evmChainId": "0x1917",
+    "chain9102Accessed": false,
+    "currentRemoteChainConnectionProved": false,
+    "currentRemoteTruthEvidenceCommit": "b0c79b0466f6e248906fa2c89c96afd963178010",
+    "currentRemoteTruth": "TRANSPORT_TIMEOUT"
+  },
+  "remainingFalse": {
+    "accountRequested": false,
+    "signed": false,
+    "transactionCreated": false,
+    "installedArtifactProvedByThisSlice": false,
+    "providerLifecycleProved": false,
+    "productionSigned": false,
+    "notarized": false,
+    "downloadHostedChanged": false,
+    "deployedPublicChanged": false
+  }
+}
