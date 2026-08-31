@@ -12,7 +12,7 @@ env_tuple=$9; env_sha=${10}; env_bytes=${11}
 executor_b64=${12}; executor_bytes=${13}; executor_sha=${14}; lease_bytes=${15}; lease_sha=${16}
 
 case "$id" in
-  p0[0-9][0-9][0-9]-finance-phase3-[0-9TtZz-]*) ;;
+  p0[0-9][0-9][0-9]-finance-phase3-[0-9TtZz-]*|finance-combined-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]-[0-9TtZz-]*) ;;
   *) exit 65 ;;
 esac
 case "$id" in *[!A-Za-z0-9-]*|*..*|*/*) exit 65;; esac

@@ -6,7 +6,7 @@ set -euo pipefail
 if [[ $# -ne 8 ]]; then exit 64; fi
 id=$1; finance_parent_tuple=$2; executor=$3; executor_tuple=$4
 executor_sha=$5; lease_bytes=$6; lease_sha=$7; target_mode=$8
-case "$id" in p0[0-9][0-9][0-9]-finance-phase3-[0-9TtZz-]*) ;; *) exit 65;; esac
+case "$id" in p0[0-9][0-9][0-9]-finance-phase3-[0-9TtZz-]*|finance-combined-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]-[0-9TtZz-]*) ;; *) exit 65;; esac
 case "$id" in *[!A-Za-z0-9-]*|*..*|*/*) exit 65;; esac
 test "$target_mode" = 600
 

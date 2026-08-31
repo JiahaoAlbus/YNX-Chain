@@ -8,7 +8,7 @@ import { spawnSync } from 'node:child_process';
 const repo=process.cwd(), commandSource=join(repo,'apps/finance/scripts/finance-phase3-openssh-serialized-command.sh');
 const sha=p=>createHash('sha256').update(readFileSync(p)).digest('hex');
 const n=p=>readFileSync(p).length;
-const id='p0999-finance-phase3-20260823T150000Z';
+const id='finance-combined-4f7fba323a89-20260831t041500z';
 function make({silent=false, malformed=false}={}){
   const root=mkdtempSync('/tmp/ynx-phase3-openssh-');
   const stdin=join(root,'lease.json'),stdout=join(root,'stdout'),stderr=join(root,'stderr'),receipt=join(root,'receipt'),bootstrap=join(root,'bootstrap.sh');writeFileSync(stdin,'{"lease":{"signed":true}}\n');

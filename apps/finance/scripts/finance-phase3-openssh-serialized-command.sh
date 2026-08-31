@@ -14,7 +14,7 @@ for path in "$stdin" "$stdout" "$stderr" "$receipt" "$receipt.pending"; do case 
 must test -f "$stdin"; must test ! -L "$stdin"
 must test -f "$bootstrap"; must test ! -L "$bootstrap"; must test "$(bytes "$bootstrap")" = "$bootstrap_bytes"; must test "$(sha "$bootstrap")" = "$bootstrap_sha"
 for path in "$stdout" "$stderr" "$receipt" "$receipt.pending"; do absent "$path" || exit 65; done
-case "$id" in p0[0-9][0-9][0-9]-finance-phase3-[0-9TtZz-]*) ;; *) exit 65;; esac
+case "$id" in p0[0-9][0-9][0-9]-finance-phase3-[0-9TtZz-]*|finance-combined-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]-[0-9TtZz-]*) ;; *) exit 65;; esac
 test "${#bootstrap_args[@]}" = 15
 bootstrap_b64=$(/usr/bin/base64 < "$bootstrap" | /usr/bin/tr -d '\n') || exit 65
 remote_launcher='bootstrap_source=$(printf "%s" "$1" | /usr/bin/base64 -d) || exit 65; shift; exec /bin/bash -c "$bootstrap_source" finance-phase3 "$@"'
