@@ -427,12 +427,12 @@
     }
   ],
   "heavy": {
-    "owner": "finance-release-control-plane-cleanup",
+    "owner": null,
     "taskId": "P0-322",
-    "status": "ACTIVE_FINANCE_P0318_RETAINED_CONTROL_PAIR_CLEANUP_ONLY",
+    "status": "CONSUMED_RELEASED_REMOTE_SUCCESS_FINANCE_P0322_P0318_RETAINED_CONTROL_PAIR_CLEANUP_PENDING_INDEPENDENT_READBACK",
     "acquiredAt": "2026-08-31T06:38:00Z",
     "expiresAt": "2026-08-31T07:08:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-31T06:44:27Z",
     "sourceCommit": "477ff5b0c643498959e88a70ac890c771815e7c4",
     "evidenceCommit": "477ff5b0c643498959e88a70ac890c771815e7c4",
     "runtimeHost": "43.153.202.237",
@@ -444,8 +444,8 @@
     "reusable": false,
     "previousOwner": null,
     "previousTaskId": "P0-321",
-    "reviewDecision": "P0322_WHOLELY_NEW_FINANCE_CLEANUP_ONLY_LEASE_ISSUED",
-    "reason": "Fresh production read binds the exact retained P0-318 pair, the six-child parent inventory, four preserved siblings, lease-specific quarantine absence, old runtime PID 2818779/NRestarts 0 and exact public/loopback fences. P0-322 authorizes one identity-bound cleanup invocation only; deployment, rollback, service lifecycle and the build-identity successor remain unauthorized pending a separate zero-write post-cleanup readback."
+    "reviewDecision": "P0322_REMOTE_CLEANUP_SUCCESS_RELEASED_PENDING_INDEPENDENT_READBACK",
+    "reason": "The sole cleanup invocation returned exit zero with an exact signed terminal receipt for removal of the retained P0-318 pair and the expected four-sibling inventory. P0-322 is consumed and nonreusable; cleanupComplete remains false until a wholly-new zero-write readback, and Heavy plus Finance cleanup locks are released."
   },
   "wave": {
     "id": "B-financial-apps-quant",

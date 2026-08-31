@@ -3,11 +3,12 @@
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "taskId": "P0-322",
   "leaseId": "p0322-finance-p0318-retained-control-cleanup-20260831t063800z",
-  "status": "ACTIVE",
+  "status": "CONSUMED_RELEASED_REMOTE_SUCCESS_FINANCE_P0322_P0318_RETAINED_CONTROL_PAIR_CLEANUP_PENDING_INDEPENDENT_READBACK",
   "singleUse": true,
   "reusable": false,
   "issuedAt": "2026-08-31T06:38:00Z",
   "expiresAt": "2026-08-31T07:08:00Z",
+  "releasedAt": "2026-08-31T06:44:27Z",
   "owner": "finance-release-control-plane-cleanup",
   "namedExecutor": "release-control-plane",
   "runtimeHost": "43.153.202.237",
@@ -94,6 +95,12 @@
     "releaseHeavyAndAllFinanceCleanupLocks": true,
     "mandatoryWhollyNewZeroWritePostCleanupReadback": true,
     "cleanupComplete": false,
-    "deploymentAuthorized": false
+    "deploymentAuthorized": false,
+    "attemptCount": 1,
+    "retryCount": 0,
+    "localExitStatus": 0,
+    "remoteExitStatus": 0,
+    "terminalReceiptValidated": true,
+    "terminalEvidencePath": "release/integration/p0-wallet-connectivity/execution/objects/p0-322-finance-p0318-retained-control-cleanup-terminal-evidence-20260831.json"
   }
 }

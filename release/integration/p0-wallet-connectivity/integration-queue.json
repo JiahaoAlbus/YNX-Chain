@@ -7610,7 +7610,7 @@
     {
       "taskId": "P0-322",
       "owner": "integration,finance-release-control-plane-cleanup",
-      "status": "ACTIVE_FINANCE_P0318_RETAINED_CONTROL_PAIR_CLEANUP_ONLY",
+      "status": "CONSUMED_RELEASED_REMOTE_SUCCESS_FINANCE_P0322_P0318_RETAINED_CONTROL_PAIR_CLEANUP_PENDING_INDEPENDENT_READBACK",
       "paths": [
         "release/integration/p0-wallet-connectivity/execution/p0-322-finance-p0318-retained-control-cleanup-only-single-use-lease-20260831.json",
         "release/integration/p0-wallet-connectivity/execution/objects/p0-322-finance-p0318-retained-control-cleanup-signed-lease.json",
@@ -7630,7 +7630,11 @@
       "deploymentAuthorized": false,
       "serviceLifecycleAuthorized": false,
       "mandatoryIndependentPostCleanupReadback": true,
-      "nextAction": "Named Finance cleanup executor may invoke the exact literal argv once before expiry. On any terminal result release P0-322; even on a signed cleanup receipt, cleanupComplete remains false until a wholly-new zero-write readback proves the pair and quarantine paths absent, four preserved siblings exact, parent identity/inventory exact and old runtime unchanged."
+      "attemptCount": 1,
+      "remoteExitStatus": 0,
+      "terminalReceiptValidated": true,
+      "cleanupComplete": false,
+      "nextAction": "P0-322 is consumed and nonreusable. Issue a wholly-new zero-write readback proving pair and quarantine absence, four preserved siblings exact, parent identity/inventory exact and old runtime unchanged before cleanupComplete can become true."
     }
   ]
 }
