@@ -41,6 +41,16 @@ used a loopback-only randomly assigned port, was stopped after the test, and
 was not a shared, public, or production database. Its local DSN and ephemeral
 test password are deliberately not retained in this handoff.
 
+## Local runtime visibility boundary
+
+The same disposable PostgreSQL setup started the Exchange server and returned
+`stateBackend=postgresql` with `multiInstance=true` from its loopback API
+health endpoint. The in-app browser runs in an isolated network namespace and
+could not reach the host's `127.0.0.1` listener. Consequently there is no
+browser/ComputerControl guest-page evidence from this local run. The exact
+server and database container were stopped after this check. This environment
+limitation does not count as a public, installed, or visual acceptance result.
+
 ## Frozen Linux candidate
 
 The locally verified (not deployed) package is
