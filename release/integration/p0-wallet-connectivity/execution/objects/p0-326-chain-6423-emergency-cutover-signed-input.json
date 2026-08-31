@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-326",
+  "operationId": "chain-6423-public-recovery-20260831T071700Z",
+  "ack": "P0-326:EXECUTE_CHAIN_6423_EMERGENCY_RECOVERY_ONCE",
+  "primary": {
+    "host": "43.153.202.237",
+    "user": "ubuntu",
+    "caddyConfigPath": "/etc/caddy/ynx-chain.caddy",
+    "caddyConfigTuple": "64770:1057091:0:0:644:1:3521:regular file",
+    "caddyConfigSha256": "7123e3fbf4ebbaa2053d28c2ddbed8393203e4745f3d84c9018aedb8e2827a53",
+    "caddyMainPid": 1432803,
+    "caddyNRestarts": 0,
+    "candidateBytes": 3789,
+    "candidateSha256": "15a722a950e4ec07583da1affb938c08522b5565c8da29adf27afaccb2335867",
+    "newServices": [
+      {"unit":"ynx-chaind.service","pid":446684,"nRestarts":0,"unitSha256":"29b3e4834bb2a81f252f8662b6547893893e3343372dab0ac00619bd63330a95"},
+      {"unit":"ynx-indexerd.service","pid":808433,"nRestarts":0,"unitSha256":"7d85accbbdcd1ff0dcc8c906bca5d9d5ea6559368d12eda488fcca5eaf79c216"},
+      {"unit":"ynx-explorerd.service","pid":808503,"nRestarts":0,"unitSha256":"2cae2de47e118f266d2cd38eda9056259d79b270c55c101ef9a025a60de01847"},
+      {"unit":"ynx-faucetd.service","pid":1106548,"nRestarts":0,"unitSha256":"fc276972687fb21dfbaa273f553f9cea366f95dfdba620165ac3dbf6aed9a833"},
+      {"unit":"ynx-ai-gatewayd.service","pid":1917387,"nRestarts":0,"unitSha256":"81be109503168607611bb66fb976929ac1189b3ff061c5331d676fc4cd9f8fcc"}
+    ],
+    "legacyServices": [
+      {"unit":"ynx-v2-node.service","pid":2846284,"unitSha256":"3e0286603bf410cc8a7a192baed438eee098c5da62737da1af592506b56ce330"},
+      {"unit":"ynx-v2-indexer.service","pid":2846291,"unitSha256":"c654576003dd941814a6ef12c7041bb3b90680597e620a3bfb7a1e8bf38df664"},
+      {"unit":"ynx-v2-explorer.service","pid":2846292,"unitSha256":"a754e0fc64df6e758958e6304381be3e7ead31739f6e10286a1bda3c112a9145"},
+      {"unit":"ynx-v2-faucet.service","pid":2846290,"unitSha256":"0779ba64c6d635ae612d6671e9b7450ba768cf10bed0fff452201139186bedf8"},
+      {"unit":"ynx-v2-ai-gateway.service","pid":2846287,"unitSha256":"5ee9f7e7af6ca17238de994e393099dc58372ac75ba32ab24414117596db0009"},
+      {"unit":"ynx-v2-bridge-service.service","pid":2846289,"unitSha256":"2e92470cce2067507877357fc2f443bf15e9b8d8437b32deb17a9464e70485c2"},
+      {"unit":"ynx-v2-web4-hub.service","pid":2850351,"unitSha256":"6e5174294f13ff3584f63cee8d4c059ba33e45110778ef83646bf025a1376058"}
+    ]
+  },
+  "peers": [
+    {"role":"singapore","host":"43.134.23.58","user":"root","legacyUnit":"ynx-v2-peer.service","pid":465310,"unitTuple":"65027:131437:0:0:644:1:468:regular file","unitSha256":"78f078e6f1b2e766db9f810dd78ac1886c7b0508ce834fbef1c708eb4e23be47","alsoMaskUnit":"ynx-v2-node.service","alsoMaskTuple":"65027:129921:0:0:644:1:515:regular file","alsoMaskSha256":"04f0ce2d669708181429f3758fa4437fccb679de1ac7bf4e794877bd8adf67b8"},
+    {"role":"silicon-valley","host":"43.162.100.54","user":"ubuntu","legacyUnit":"ynx-v2-peer.service","pid":1391001,"unitTuple":"64770:2699:1000:1001:664:1:496:regular file","unitSha256":"bffb284b2ff3e923b2e2bf44d7bf47e3bbe02e4ed5608f1d472bbfed942f85a4"},
+    {"role":"seoul","host":"43.164.132.81","user":"root","legacyUnit":"ynx-v2-peer.service","pid":772747,"unitTuple":"65025:150455:0:0:644:1:464:regular file","unitSha256":"d34f321aae404655d5d39901f4302849c144f3d49c5f807b8bba6919382bfa36"}
+  ],
+  "requiredPublic": {
+    "cosmosChainId": "ynx_6423-1",
+    "evmChainId": 6423,
+    "evmChainIdHex": "0x1917",
+    "newPorts": [6420,6426,6427,6428,6429],
+    "failClosedDomains": ["grpc.ynxweb4.com","evm-ws.ynxweb4.com"],
+    "safeRedirect": {"from":"https://web4.ynxweb4.com/","to":"https://www.ynxweb4.com/","status":302}
+  },
+  "forbiddenLegacy": {
+    "cosmosChainId": "ynx_9102-1",
+    "evmChainIdHex": "0x238e",
+    "ports": [36657,38545,38546,38080,38081,38082,38083,38084,38085,38086,38087,38088,38089,38090,38091,39090,31317]
+  }
+}

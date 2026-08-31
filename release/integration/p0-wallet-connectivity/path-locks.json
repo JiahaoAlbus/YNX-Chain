@@ -3716,6 +3716,29 @@
       "productionMutationAllowed":false,
       "allowedExceptions":["one read-only SSH and no retry","stdin-only inspector with no remote temp files","emit raw carrier child identities and canonical inventory bytes before comparison","no cleanup placement deployment lifecycle runtime HTTP account signature typed data or transaction action"]
     },
-    {"path":"{readonly:host:43.153.202.237:finance-p0318-complete-post-cleanup,readonly:/opt/ynx/leases/finance/**,readonly:/opt/ynx/stage/finance/**,readonly:/var/backups/ynx-finance/**,readonly:/opt/ynx/releases/finance/**,readonly:/opt/ynx/finance-current*,readonly:/etc/ynx/finance.env,readonly:/etc/systemd/system/ynx-finance.service,readonly:/etc/caddy/conf.d/ynx-finance.caddy,readonly:/var/lib/ynx/finance/state.json,readonly:ynx-finance.service,readonly:https://finance.ynxweb4.com/**}","owner":null,"branch":"codex/p0-wallet-connectivity-control-plane-20260820","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration","taskId":"P0-325","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"CONSUMED_RELEASED_SUCCESS_FINANCE_P0325_P0318_COMPLETE_POST_CLEANUP_ZERO_WRITE_VERIFIED","acquiredAt":"2026-08-31T07:02:00Z","expiresAt":"2026-08-31T07:17:00Z","releasedAt":"2026-08-31T07:03:30Z","sourceCommit":"71f3a97bb9eb3fcb4cb59b4ae55a07a21295aeaa","sourceTree":"1847ab41af24afd5f9fa73fcd7f2641fc87185e3","artifactSha256":"506ea1d4cd365a8435e3c51ceb8be709bc97ca6b083d3765963961e98fe62aa7","productionMutationAllowed":false,"allowedExceptions":["one read-only SSH no retry","stdin-only inspector with no remote temp","read exact cleanup carrier runtime service and HTTP metadata only","no cleanup deploy rollback lifecycle account signature typed data or transaction"]}
+    {"path":"{readonly:host:43.153.202.237:finance-p0318-complete-post-cleanup,readonly:/opt/ynx/leases/finance/**,readonly:/opt/ynx/stage/finance/**,readonly:/var/backups/ynx-finance/**,readonly:/opt/ynx/releases/finance/**,readonly:/opt/ynx/finance-current*,readonly:/etc/ynx/finance.env,readonly:/etc/systemd/system/ynx-finance.service,readonly:/etc/caddy/conf.d/ynx-finance.caddy,readonly:/var/lib/ynx/finance/state.json,readonly:ynx-finance.service,readonly:https://finance.ynxweb4.com/**}","owner":null,"branch":"codex/p0-wallet-connectivity-control-plane-20260820","worktree":"/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration","taskId":"P0-325","campaignId":"P0-WALLET-CONNECTIVITY-2026-08","status":"CONSUMED_RELEASED_SUCCESS_FINANCE_P0325_P0318_COMPLETE_POST_CLEANUP_ZERO_WRITE_VERIFIED","acquiredAt":"2026-08-31T07:02:00Z","expiresAt":"2026-08-31T07:17:00Z","releasedAt":"2026-08-31T07:03:30Z","sourceCommit":"71f3a97bb9eb3fcb4cb59b4ae55a07a21295aeaa","sourceTree":"1847ab41af24afd5f9fa73fcd7f2641fc87185e3","artifactSha256":"506ea1d4cd365a8435e3c51ceb8be709bc97ca6b083d3765963961e98fe62aa7","productionMutationAllowed":false,"allowedExceptions":["one read-only SSH no retry","stdin-only inspector with no remote temp","read exact cleanup carrier runtime service and HTTP metadata only","no cleanup deploy rollback lifecycle account signature typed data or transaction"]},
+    {
+      "path": "{chain-emergency-primary:host:43.153.202.237,/etc/caddy/ynx-chain.caddy,/var/lib/ynx-chain/emergency-recovery/p0-326-chain-6423/**,/etc/systemd/system/ynx-v2-{node,indexer,explorer,faucet,ai-gateway,bridge-service,web4-hub}.service,public:{rpc,evm,testnet,rest,api,ide,explorer,indexer,faucet,ai,bridge,grpc,evm-ws,web4}.ynxweb4.com}",
+      "owner": "chain-host-release-control-plane",
+      "branch": "codex/p0-wallet-connectivity-control-plane-20260820",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration",
+      "taskId": "P0-326",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_CHAIN_6423_EMERGENCY_PRIMARY_RECOVERY",
+      "acquiredAt": "2026-08-31T07:28:00Z",
+      "expiresAt": "2026-08-31T08:00:00Z",
+      "sourceCommit": "cac019d20a47736131fb7969715e9263920b3a68",
+      "sourceTree": "5b3746c2ef8508ade3d80343aa032879ad6b5ec8",
+      "artifactSha256": "15a722a950e4ec07583da1affb938c08522b5565c8da29adf27afaccb2335867",
+      "productionMutationAllowed": true,
+      "allowedExceptions": [
+        "one primary-host SSH and no retry",
+        "replace only the exact managed chain ingress after identity-bound backup and target-host Caddy validation",
+        "reload Caddy without restart and prove public ynx_6423-1 plus 0x1917",
+        "stop disable and mask only the seven exact primary-host ynx-v2 services after public 6423 verification",
+        "retain exact recovery material; never restore public 9102 routing after successful 6423 verification",
+        "no peer-host mutation, 6423 service lifecycle, broadcast, unjail, account, signature, typed-data or transaction action"
+      ]
+    }
   ]
 }

@@ -1,0 +1,110 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-326",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-chain-6423-emergency-primary-recovery-20260831T072800Z",
+  "status": "ACTIVE",
+  "singleUse": true,
+  "reusable": false,
+  "issuedAt": "2026-08-31T07:28:00Z",
+  "expiresAt": "2026-08-31T08:00:00Z",
+  "owner": "chain-host-release-control-plane",
+  "namedExecutor": "release-control-plane",
+  "runtimeHost": "43.153.202.237",
+  "scope": "CHAIN_6423_PUBLIC_INGRESS_RECOVERY_AND_PRIMARY_9102_SERVICE_RETIREMENT_ONLY",
+  "incident": {
+    "classification": "PUBLIC_CHAIN_REGRESSION_TO_RETIRED_9102_STACK",
+    "cause": "The managed Caddy ingress file still routes public chain domains and API subroutes to the retired v2 ports while the 6423 services remain healthy and advancing.",
+    "observedLegacy": {"cosmosChainId":"ynx_9102-1","evmChainIdHex":"0x238e"},
+    "required": {"cosmosChainId":"ynx_6423-1","evmChainId":6423,"evmChainIdHex":"0x1917"}
+  },
+  "reviewedObjects": {
+    "permanentSourceGate": {
+      "branch": "codex/p0-explorer-monitor-20260820",
+      "commit": "2c0677e37213bb6cada2da88e441548e679f3b54",
+      "tree": "645ad17ae2fed4a3c30d6f16404b436694bde2ac",
+      "generatorBlob": "726c43769801f427ab5d12e84aad9f1e7213b986",
+      "generatorSha256": "8841ae26a7cddb6a4e0c9bc9f3fb7b4d18c410f6f4947bc271b7e8d030a43d13",
+      "gateBlob": "05f961650a815eefa97471fc524ffbba7018ba90",
+      "gateSha256": "60ddf3ec6969ff929dce6cf4ac241d8044926a6e1c9ccd26c38296cc87db5802",
+      "remoteExactClean": true,
+      "dryRun": "PASS"
+    },
+    "signedInput": {
+      "path": "release/integration/p0-wallet-connectivity/execution/objects/p0-326-chain-6423-emergency-cutover-signed-input.json",
+      "bytes": 3911,
+      "sha256": "28b7544881d35a425310b950f8b6ba53552f1d2b00c78aec9451b99aee98feb3"
+    },
+    "candidateIngress": {
+      "path": "release/integration/p0-wallet-connectivity/execution/objects/p0-326-chain-6423-emergency-ingress.caddy",
+      "bytes": 3789,
+      "sha256": "15a722a950e4ec07583da1affb938c08522b5565c8da29adf27afaccb2335867",
+      "targetHostCaddyValidate": "PASS",
+      "legacyReferenceGate": "PASS"
+    },
+    "executor": {
+      "path": "release/integration/p0-wallet-connectivity/execution/objects/p0-326-chain-6423-emergency-recovery-executor.sh",
+      "bytes": 12773,
+      "sha256": "42c3d8d21787914db1ac2a3a035984e766da3d5284446c267b06b4618f0ef81a",
+      "bashSyntax": "PASS"
+    }
+  },
+  "freshPrewrite": {
+    "recordedAt": "2026-08-31T07:22:26Z",
+    "caddyConfigTuple": "64770:1057091:0:0:644:1:3521:regular file",
+    "caddyConfigSha256": "7123e3fbf4ebbaa2053d28c2ddbed8393203e4745f3d84c9018aedb8e2827a53",
+    "newPortsHealthy": [6420,6426,6427,6428,6429,6433],
+    "newChainStatus": {"chainId":6423,"evmChainIdHex":"0x1917","cosmosChainId":"ynx_6423-1","catchingUp":false},
+    "legacyPrimaryServicesActiveEnabled": 7,
+    "peerLegacyRetirement": "SEPARATE_DEPENDENT_STAGE_NOT_AUTHORIZED_BY_THIS_LEASE"
+  },
+  "protectedEnvironment": {
+    "required": ["YNX_PRIMARY_SSH_IDENTITY"],
+    "valuesRecorded": false,
+    "valuesMayBePrinted": false
+  },
+  "execution": {
+    "workingDirectory": "/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration",
+    "environment": "protected named executor environment containing only YNX_PRIMARY_SSH_IDENTITY",
+    "argv": [
+      "/bin/bash",
+      "/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration/release/integration/p0-wallet-connectivity/execution/objects/p0-326-chain-6423-emergency-recovery-executor.sh",
+      "/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration/release/integration/p0-wallet-connectivity/execution/objects/p0-326-chain-6423-emergency-cutover-signed-input.json",
+      "28b7544881d35a425310b950f8b6ba53552f1d2b00c78aec9451b99aee98feb3",
+      "/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration/release/integration/p0-wallet-connectivity/execution/objects/p0-326-chain-6423-emergency-ingress.caddy",
+      "15a722a950e4ec07583da1affb938c08522b5565c8da29adf27afaccb2335867",
+      "/tmp/p0-326-chain-6423-emergency.stdout",
+      "/tmp/p0-326-chain-6423-emergency.stderr",
+      "/tmp/p0-326-chain-6423-emergency.receipt",
+      "P0-326:EXECUTE_CHAIN_6423_EMERGENCY_RECOVERY_ONCE"
+    ],
+    "sshAttemptLimit": 1,
+    "primaryMutationInvocationLimit": 1,
+    "retryAllowed": false,
+    "outerOutputPrecreationForbidden": true
+  },
+  "orderedAuthority": [
+    "fresh exact prewrite and 6423 local health checks",
+    "identity-bound backup and atomic replacement of only /etc/caddy/ynx-chain.caddy",
+    "Caddy validation and reload without restart",
+    "public RPC EVM Explorer Indexer Faucet AI and Bridge-health 6423 verification",
+    "explicit 503 verification for gRPC EVM-WebSocket and Web4 root legacy fallbacks",
+    "stop disable and mask only the seven exact primary-host ynx-v2 services",
+    "prove primary legacy ports absent and preserve recovery material for separately signed rollback"
+  ],
+  "forbidden": [
+    "restart stop or reconfigure any 6423 service",
+    "broadcast unjail transaction account signature or typed-data action",
+    "restore any public route to ynx_9102-1 or 0x238e after 6423 public verification",
+    "modify peer hosts under this lease",
+    "modify non-chain product source deployment or data"
+  ],
+  "terminal": {
+    "successStatus": "CONSUMED_RELEASED_SUCCESS_CHAIN_P0326_6423_PUBLIC_RECOVERED_PRIMARY_9102_SERVICES_MASKED",
+    "failureBeforePublic": "CONSUMED_RELEASED_FAILED_CLOSED_CHAIN_P0326_PRE_PUBLIC_EXACT_CADDY_ROLLBACK",
+    "failureAfterPublic": "EMERGENCY_BLOCKED_CHAIN_P0326_RETAIN_SAFE_6423_PUBLIC_ROUTE_NO_9102_ROLLBACK",
+    "mandatoryFullServiceMatrixReadback": true,
+    "mandatoryPeerLegacyRetirementSuccessor": true,
+    "releaseHeavyOnCleanSuccessOrPrePublicRollbackOnly": true
+  }
+}

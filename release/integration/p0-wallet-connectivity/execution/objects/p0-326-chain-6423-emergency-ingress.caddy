@@ -1,0 +1,198 @@
+explorer.ynxweb4.com {
+	reverse_proxy 127.0.0.1:6427
+}
+
+faucet.ynxweb4.com {
+	reverse_proxy 127.0.0.1:6428
+}
+
+indexer.ynxweb4.com {
+	reverse_proxy 127.0.0.1:6426
+}
+
+ai.ynxweb4.com {
+	reverse_proxy 127.0.0.1:6429
+}
+
+pay.ynxweb4.com {
+	handle /build-identity.json {
+		header Cache-Control "no-store, max-age=0, must-revalidate"
+		root * /opt/ynx-pay-web/releases/pay-web-5f4ce98e-release1/dist
+		file_server
+	}
+	@pay_web path / /index.html /metadata.json /release-manifest.json /_expo/* /assets/* /invoices /invoices/* /split-payments /split-payments/* /quant-bills /quant-bills/*
+	handle @pay_web {
+		root * /opt/ynx-pay-web/releases/pay-web-5f4ce98e-release1/dist
+		try_files {path} /index.html
+		file_server
+	}
+	handle {
+		reverse_proxy 127.0.0.1:6430
+	}
+}
+
+trust.ynxweb4.com {
+	handle /health {
+		reverse_proxy 127.0.0.1:6431
+	}
+	handle /metrics {
+		reverse_proxy 127.0.0.1:6431
+	}
+	handle /trust/* {
+		reverse_proxy 127.0.0.1:6431
+	}
+	handle /governance/* {
+		reverse_proxy 127.0.0.1:6431
+	}
+	handle /api/* {
+		reverse_proxy 127.0.0.1:6498
+	}
+	redir /app / 308
+	redir /app/ / 308
+	handle {
+		reverse_proxy 127.0.0.1:6498
+	}
+}
+
+resource.ynxweb4.com {
+	handle_path /app/* {
+		reverse_proxy 127.0.0.1:6492
+	}
+	handle {
+		reverse_proxy 127.0.0.1:6432
+	}
+}
+
+testnet.ynxweb4.com {
+	reverse_proxy 127.0.0.1:6420
+}
+
+rpc.ynxweb4.com {
+	handle /bridge/health {
+		rewrite * /health
+		reverse_proxy 127.0.0.1:6433
+	}
+	handle /bridge/* {
+		respond "YNX Testnet 6423 bridge endpoint is not available" 503
+	}
+	handle {
+		reverse_proxy 127.0.0.1:6420
+	}
+}
+
+evm.ynxweb4.com {
+	@evm_probe {
+		method GET HEAD
+		path / /health
+	}
+	respond @evm_probe 200 {
+		body "{\"ok\":true,\"service\":\"evm-rpc\",\"chainId\":6423,\"chainIdHex\":\"0x1917\"}"
+	}
+	handle {
+		rewrite * /evm
+		reverse_proxy 127.0.0.1:6420
+	}
+}
+
+rest.ynxweb4.com {
+	reverse_proxy 127.0.0.1:6420
+}
+
+api.ynxweb4.com, ide.ynxweb4.com {
+	# BEGIN YNX PRODUCT SESSION V2
+	handle /v2/product-sessions/* {
+		reverse_proxy 127.0.0.1:6441
+	}
+	# END YNX PRODUCT SESSION V2
+	handle /v1/wallet/* {
+		reverse_proxy 127.0.0.1:6437
+	}
+	handle /wallet-gateway/health {
+		rewrite * /health
+		reverse_proxy 127.0.0.1:6439
+	}
+	handle /social/* {
+		reverse_proxy 127.0.0.1:6491
+	}
+	handle /app/* {
+		reverse_proxy 127.0.0.1:6437
+	}
+	handle_path /indexer/* {
+		reverse_proxy 127.0.0.1:6426
+	}
+	handle_path /explorer/* {
+		reverse_proxy 127.0.0.1:6427
+	}
+	reverse_proxy 127.0.0.1:6420
+}
+
+bridge.ynxweb4.com {
+	reverse_proxy 127.0.0.1:6433
+}
+
+web4.ynxweb4.com {
+	handle /trust-center* {
+		redir https://trust.ynxweb4.com/ 302
+	}
+	redir /search /search/ 308
+	handle_path /search/* {
+		reverse_proxy 127.0.0.1:6497
+	}
+	redir /docs-app /docs-app/ 308
+	handle /docs-app/api/health {
+		rewrite * /health
+		reverse_proxy 127.0.0.1:6496
+	}
+	handle /docs-app/api/* {
+		uri strip_prefix /docs-app
+		reverse_proxy 127.0.0.1:6496
+	}
+	handle /docs-app/* {
+		uri replace /docs-app /docs
+		reverse_proxy 127.0.0.1:6496
+	}
+	redir /cloud /cloud/ 308
+	handle /cloud/api/health {
+		rewrite * /health
+		reverse_proxy 127.0.0.1:6496
+	}
+	handle /cloud/api/* {
+		uri strip_prefix /cloud
+		reverse_proxy 127.0.0.1:6496
+	}
+	handle /cloud/* {
+		reverse_proxy 127.0.0.1:6496
+	}
+	handle_path /music/* {
+		reverse_proxy 127.0.0.1:6440
+	}
+	handle_path /video/studio/* {
+		reverse_proxy 127.0.0.1:6495
+	}
+	handle_path /video/api/* {
+		reverse_proxy 127.0.0.1:6493
+	}
+	handle_path /video/* {
+		reverse_proxy 127.0.0.1:6494
+	}
+	handle {
+		redir https://www.ynxweb4.com{uri} 302
+	}
+}
+
+grpc.ynxweb4.com {
+	respond "YNX Testnet 6423 gRPC endpoint is not available" 503
+}
+
+evm-ws.ynxweb4.com {
+	respond "YNX Testnet 6423 EVM WebSocket endpoint is not available" 503
+}
+
+shop.ynxweb4.com {
+	redir / /shop/ 302
+	reverse_proxy 127.0.0.1:18095
+}
+
+shop-api.ynxweb4.com {
+	reverse_proxy 127.0.0.1:18095
+}
