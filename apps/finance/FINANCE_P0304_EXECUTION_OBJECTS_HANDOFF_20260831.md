@@ -19,6 +19,8 @@ approval, signature, or transaction.
 - The successor corrects automatic rollback scope to the exact P0-304
   six-path namespace. It never inherits a prior deployment namespace's cleanup
   authority.
+- The successor cross-binds every argv-manifest reference to the rebuilt
+  manifest content SHA-256, so a stale duplicated digest fails the local gate.
 - `apps/finance/evidence/finance-p0304-execution-objects-request-20260831.json`
   binds all objects and the unique namespace.
 - `apps/finance/evidence/finance-p0304-unsigned-lease-stdin-candidate-20260831.json`

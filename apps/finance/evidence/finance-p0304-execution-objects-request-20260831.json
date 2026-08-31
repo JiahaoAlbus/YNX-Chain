@@ -1,7 +1,7 @@
 {
   "schemaVersion": "finance-p0304-execution-objects-request@1",
   "taskId": "P0-304",
-  "status": "SOURCE_ONLY_UNSIGNED_CENTRAL_SIGNATURE_READY_P0304_NAMESPACE_CORRECTED",
+  "status": "SOURCE_ONLY_UNSIGNED_CENTRAL_SIGNATURE_READY_P0304_REFERENCE_BINDINGS_CORRECTED",
   "owner": {
     "branch": "codex/p0-finance-p0304-execution-objects-20260831",
     "baseCommit": "1d50967685e249789d6fec752279c39277a60931",
@@ -63,16 +63,16 @@
     },
     "handoff": {
       "path": "apps/finance/FINANCE_P0304_EXECUTION_OBJECTS_HANDOFF_20260831.md",
-      "blob": "88f32dab146c6fa892ffd65e3d95d895ad7615f3",
-      "bytes": 2729,
-      "sha256": "e7178412e3b48a5a34d38909d8b951ad61735707b1f510433de1b65ec4b70d02"
+      "blob": "f1f95275ec84b4a1789f068b720374e34ccd9ed6",
+      "bytes": 2881,
+      "sha256": "06d9d25d6334fde5268c7fbb5efa79f25a393e96cc0c50961400e197ad3052fa"
     }
   },
   "verificationFixture": {
     "path": "apps/finance/scripts/test-finance-p0304-execution-objects.mjs",
-    "blob": "f1c17afe827f04f626a63e2cd1acb10647473bb0",
-    "bytes": 6996,
-    "sha256": "6aaffde5c56fbfcb5a750941cc059684833a586a6460d6ecdbf0a16636659b03"
+    "blob": "f54b1e6821215de25ff1cebd2514a59a37a2a8ab",
+    "bytes": 8310,
+    "sha256": "ccdfbc6aebdb1d36101283c70f68936d30ab2ab238e1337e28543b198d924a2a"
   },
   "uniqueSixPathNamespace": {
     "id": "p0304-finance-phase3-20260831t030400z",
@@ -95,7 +95,7 @@
   },
   "literalExecution": {
     "argvManifestPath": "apps/finance/evidence/finance-p0304-literal-argv-candidate-20260831.json",
-    "argvManifestSha256": "9a8383917cf6428e0a9f7e61baad33d5578f3a299f7797366d3f016e608bd354",
+    "argvManifestSha256": "cec298be9c9bce19ab0c812d41df27ade09923baf49395a4a5fb593330943e28",
     "argvLength": 25,
     "environment": {},
     "directLiteralInvocationOnly": true,
@@ -141,8 +141,8 @@
   },
   "singleExecutableBlocker": "Central must fresh-read, sign the exact candidate bytes and issue one nonexpired P0-304 Finance-only single-use lease.",
   "supersedes": {
-    "commit": "4ecd9dc3972442c635879b3c46282f67ba37ca54",
-    "tree": "b5c0f80dd2b06bade96dd8888253532ab5a5b81b",
-    "reason": "automaticRollback cleanup text corrected from a stale prior namespace to exact P0-304 ownership"
+    "commit": "c4c0f4a5bc2fe7e4210bfd56d3520b042f775d67",
+    "tree": "33ad339cf384e67db224fc4e3cc33117b98b79ef",
+    "reason": "all duplicated argv-manifest references are corrected against the frozen current argv candidate"
   }
 }

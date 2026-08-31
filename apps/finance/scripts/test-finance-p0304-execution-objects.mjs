@@ -42,8 +42,22 @@ function assertLiteralArgv(argv) {
   }
 }
 
+function assertReferenceBindings(document, manifest) {
+  const argvReference = document.candidateObjects.literalArgv;
+  assert.equal(document.literalExecution.argvManifestPath, argvReference.path);
+  assert.equal(document.literalExecution.argvManifestSha256, argvReference.sha256);
+  assert.equal(document.literalExecution.argvLength, manifest.argv.length);
+  assert.equal(document.exactOutputPaths.signedStdin, manifest.argv[2]);
+  assert.equal(document.exactOutputPaths.stdout, manifest.declaredOutputs.stdout);
+  assert.equal(document.exactOutputPaths.stderr, manifest.declaredOutputs.stderr);
+  assert.equal(document.exactOutputPaths.transportReceipt, manifest.declaredOutputs.transportReceipt);
+  assert.equal(document.exactOutputPaths.transportReceiptPending, manifest.declaredOutputs.transportReceiptPending);
+  assert.equal(document.exactOutputPaths.phaseReceipt, manifest.declaredOutputs.phaseReceipt);
+  assert.equal(document.exactOutputPaths.phaseReceiptPending, manifest.declaredOutputs.phaseReceiptPending);
+}
+
 assert.equal(request.taskId, 'P0-304');
-assert.equal(request.status, 'SOURCE_ONLY_UNSIGNED_CENTRAL_SIGNATURE_READY_P0304_NAMESPACE_CORRECTED');
+assert.equal(request.status, 'SOURCE_ONLY_UNSIGNED_CENTRAL_SIGNATURE_READY_P0304_REFERENCE_BINDINGS_CORRECTED');
 assert.deepEqual(request.truth, {
   centralSignaturePresent: false,
   leaseIssued: false,
@@ -87,6 +101,7 @@ assert.equal(argvManifest.unsignedStdinCandidate.sha256, sha(candidateRaw));
 assert.equal(argvManifest.unsignedStdinCandidate.executionPath, argvManifest.argv[2]);
 assert.equal(argvManifest.argv[23], String(candidateRaw.length));
 assert.equal(argvManifest.argv[24], sha(candidateRaw));
+assertReferenceBindings(request, argvManifest);
 
 const observer = json(observerPath);
 assert.deepEqual(observer.literalArgv, argvManifest.argv);
@@ -110,6 +125,10 @@ assert.equal(request.literalExecution.shellOrVariableReconstructionForbidden, tr
 assert.equal(request.literalExecution.oneSshAttempt, 1);
 assert.equal(request.literalExecution.oneDeployInvocation, 1);
 assert.equal(request.literalExecution.retryAllowed, false);
+
+const mismatchedReference = structuredClone(request);
+mismatchedReference.literalExecution.argvManifestSha256 = '0'.repeat(64);
+assert.throws(() => assertReferenceBindings(mismatchedReference, argvManifest), assert.AssertionError);
 
 const staleMarker = String.fromCharCode(80, 48, 50, 57, 56);
 for (const path of [requestPath, candidatePath, argvPath, observerPath, handoffPath, fileURLToPath(import.meta.url)]) {
