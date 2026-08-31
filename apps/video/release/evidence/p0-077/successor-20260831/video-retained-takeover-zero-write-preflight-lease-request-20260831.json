@@ -1,0 +1,155 @@
+{
+  "schemaVersion": "ynx-video-retained-takeover-zero-write-preflight-lease-request/1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-VIDEO-RETAINED-TAKEOVER-ZERO-WRITE-PREFLIGHT-20260831",
+  "owner": "video",
+  "status": "REQUESTED_NOT_AUTHORIZED",
+  "source": {
+    "branch": "codex/video-wallet-runtime-successor-20260831",
+    "commit": "6c0c8a4c942b082954479eccdfecaeec1ff98250",
+    "tree": "8043b3d768f7e59c9c93fc4bd9a248fee3bc3198",
+    "parent": "741bfd9e2a3c9a909b6c1cfd392e1add96efbb53"
+  },
+  "reason": "Central accepted the retained-evidence guard and 42 source fixtures but requires a fresh zero-write observation of every remote object and runtime identity before it can sign a literal takeover execution contract.",
+  "preflightInspector": {
+    "path": "apps/video/scripts/video-retained-takeover-preflight.sh",
+    "blob": "f247f65b5abaa2105029c2b6300ead419041bc90",
+    "bytes": 5052,
+    "sha256": "4d163707b4a1c2b141317b031817b938c81a623519a2ac95503c617b921e0ec0",
+    "stdinIsExactInspectorBytes": true,
+    "remoteArgv": [
+      "/usr/bin/sudo",
+      "-n",
+      "/usr/bin/env",
+      "YNX_VIDEO_EXECUTION_MODE=production",
+      "YNX_VIDEO_LEASE_AUTHORIZED=P0_VIDEO_RETAINED_TAKEOVER_PREFLIGHT_ZERO_WRITE",
+      "/bin/bash",
+      "-s",
+      "--",
+      "inspect"
+    ]
+  },
+  "localInvoker": {
+    "path": "apps/video/scripts/invoke-video-retained-takeover-preflight-after-lease.local.sh",
+    "blob": "1f3c1eaf8d3202d2ad5318f7b3d7f05ef6b3b2fd",
+    "bytes": 1103,
+    "sha256": "c782731ea8113b9fa0da5319bc6958c4fc4c3f91ecf059eadae1c65842236999",
+    "workingDirectory": "/private/tmp/ynx-video-wallet-runtime-successor-20260831",
+    "literalArgv": [
+      "/bin/bash",
+      "apps/video/scripts/invoke-video-retained-takeover-preflight-after-lease.local.sh"
+    ],
+    "requiredProtectedEnvironmentNames": [
+      "YNX_VIDEO_SSH_IDENTITY"
+    ],
+    "requiredNonSecretEnvironment": {
+      "YNX_CENTRAL_SINGLE_USE_LEASE_ID": "P0-VIDEO-RETAINED-TAKEOVER-PREFLIGHT-ZERO-WRITE-20260831",
+      "YNX_VIDEO_PREFLIGHT_INSPECTOR_SHA256": "4d163707b4a1c2b141317b031817b938c81a623519a2ac95503c617b921e0ec0"
+    },
+    "sshProcessContract": {
+      "binary": "/usr/bin/ssh",
+      "identityArgumentSource": "-i followed by the protected YNX_VIDEO_SSH_IDENTITY runtime environment value; the value is never printed or persisted",
+      "fixedOptions": ["BatchMode=yes", "IdentitiesOnly=yes", "ConnectTimeout=10", "StrictHostKeyChecking=yes"],
+      "fixedTarget": "ynx@43.153.202.237"
+    },
+    "secretValueRecorded": false
+  },
+  "requiredOutput": {
+    "schema": "ynx-video-retained-takeover-preflight/1",
+    "terminal": "VIDEO_RETAINED_TAKEOVER_PREFLIGHT_ZERO_WRITE_COMPLETE",
+    "mutationCount": 0,
+    "files": [
+      "/etc/systemd/system/ynx-video-viewer.service",
+      "/etc/systemd/system/ynx-video-viewer-wallet.service",
+      "/var/tmp/ynx-video-runtime-bootstrap-f1e8ed4c.sh",
+      "/var/tmp/video-legacy-viewer-controlled-takeover-baseline.txt",
+      "/var/tmp/ynx-video-predecessor-e5ce335-runtime.tar.gz",
+      "/var/tmp/ynx-video-viewer-wallet.service",
+      "/etc/caddy/Caddyfile",
+      "/var/lib/ynx-video-viewer-wallet-evidence",
+      "/var/lib/ynx-video-viewer-wallet-evidence.identity"
+    ],
+    "absentOrExactPaths": [
+      "/var/lib/ynx-video-viewer-wallet-evidence-560c467d",
+      "/var/lib/ynx-video-viewer-wallet-evidence-560c467d.identity",
+      "/opt/ynx-video-viewer-wallet",
+      "/opt/ynx-release-control-plane/video-viewer-wallet-560c467d"
+    ],
+    "retainedDirectChildren": 5,
+    "retainedDirectSubdirectories": 0,
+    "units": [
+      "ynx-video-viewer.service",
+      "ynx-video-viewer-wallet.service",
+      "ynx-video-api.service",
+      "ynx-creator-studio.service",
+      "caddy.service"
+    ],
+    "listeners": [6493, 6494, 6495],
+    "httpBodies": [
+      "viewer",
+      "api-root",
+      "api-health",
+      "api-version",
+      "creator-root",
+      "creator-manifest",
+      "creator-catalog"
+    ],
+    "sharedCurrent": "/opt/ynx-video/current"
+  },
+  "futureUnsignedTransportContract": {
+    "path": "apps/video/scripts/video-retained-takeover-transport.mjs",
+    "blob": "b660c27b562cb9d7ee1875abc504e79eafce675a",
+    "bytes": 8398,
+    "sha256": "579b50dbd29e5a135b1e92b45ca2d3fcee99181cc81583f2d48296560cbeae63",
+    "fixedRoot": "/opt/ynx-release-control-plane/video-viewer-wallet-560c467d",
+    "fixedObjectCount": 3,
+    "commands": ["place", "observe", "cleanup"],
+    "stdinCarrierCanonical": true,
+    "expectedParentIdentityRequiredFromFreshPreflight": true,
+    "lifecycleActionImplemented": false,
+    "reasonLifecycleActionNotImplemented": "The future takeover argv and environment cannot be frozen honestly until this requested read-only preflight returns exact current tuples and hashes.",
+    "canonicalUnsignedStdin": {
+      "path": "apps/video/release/evidence/p0-077/successor-20260831/ynx-video-retained-takeover-three-object-carrier.json",
+      "bytes": 29392,
+      "sha256": "bf708256b8d6ad792a7e344ff08739b890ab2628e5d202231dc1cec8558b31fc",
+      "repeatBuildByteExact": true,
+      "containsSecrets": false
+    }
+  },
+  "fixtures": {
+    "videoCheck": "PASS_42_OF_42",
+    "i18n": "PASS_12_LOCALES_22_KEYS",
+    "placementSuccessObserved": true,
+    "placementCleanupExact": true,
+    "placementFailureStageRemoved": true,
+    "prewriteFailureStageRemoved": true,
+    "controlParentSiblingPreserved": true,
+    "stoppedFailureRestoresLegacy": true,
+    "successfulTakeoverAndRollback": true,
+    "retainedEvidencePreservedAcrossEveryTerminal": true
+  },
+  "leaseBoundary": {
+    "leaseType": "VIDEO_ONLY_ZERO_WRITE_REMOTE_STATE_PREFLIGHT",
+    "singleUse": true,
+    "nonReusable": true,
+    "requestedExpiry": "PT15M",
+    "sshInvocationCount": 1,
+    "retryAllowed": false,
+    "remoteWritesAllowed": false,
+    "systemdLifecycleAllowed": false,
+    "caddyMutationAllowed": false,
+    "accountRequestAllowed": false,
+    "signatureAllowed": false,
+    "transactionAllowed": false
+  },
+  "truth": {
+    "sourceComplete": true,
+    "preflightExecuted": false,
+    "sshPerformed": false,
+    "remoteMutation": false,
+    "productionDeployed": false,
+    "sourceBoundPublic": false,
+    "productComplete": false
+  },
+  "singleExecutableBlocker": "Central must independently review and issue this one Video-only zero-write preflight lease; only its terminal output can authorize construction of a wholly-new signed deployment request."
+}
