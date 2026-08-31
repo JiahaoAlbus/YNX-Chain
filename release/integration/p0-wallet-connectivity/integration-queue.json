@@ -7531,6 +7531,25 @@
       "retainedControlsPresent": true,
       "deploymentSucceeded": false,
       "nextAction": "P0-318 is consumed and nonreusable. Preserve the exact retained executor and signed lease for a wholly-new identity-bound cleanup review, and require a corrected candidate whose local verification passes before any future deployment request."
+    },
+    {
+      "taskId": "P0-319",
+      "owner": "integration,chain-protected-runtime-operator",
+      "status": "ACTIVE_CHAIN_FOUR_NODE_ZERO_WRITE_INSPECTION_NODE_SUCCESSOR",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/execution/p0-319-chain-four-node-zero-write-inspection-node-successor-single-use-lease-20260831.json",
+        "/tmp/p0-319-chain-four-node-zero-write-evidence-20260831.json"
+      ],
+      "dependencies": ["P0-318"],
+      "requestCommit": "2392e4984aa7f504f4ed92592eeb8f4f066b83f4",
+      "requestBlob": "f2bd24492a8ccfbd64afecc67c00198a639d8fba",
+      "executionLeaseIssued": true,
+      "attemptLimitPerNode": 1,
+      "retryAllowed": false,
+      "remoteMutation": false,
+      "serviceLifecycleAuthorized": false,
+      "deploymentAuthorized": false,
+      "nextAction": "Named protected operator executes the exact corrected Node inspector once. Return the local byte-preserving evidence envelope and terminal attempt truth; release Heavy and all Chain locks on every terminal outcome."
     }
   ]
 }

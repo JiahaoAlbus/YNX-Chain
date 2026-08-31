@@ -3564,6 +3564,31 @@
         "exact executor and signed lease controls remain; pending and manual rollback controls are absent",
         "P0-318 is consumed and nonreusable; Heavy and all Finance mutation locks are released"
       ]
+    },
+    {
+      "path": "{chain-four-node-zero-write,readonly:ssh:ubuntu@43.153.202.237,readonly:ssh:root@43.134.23.58,readonly:ssh:ubuntu@43.162.100.54,readonly:ssh:root@43.164.132.81,readonly:systemd:ynx-chaind.service,readonly:/usr/local/bin/ynx-chaind,readonly:/opt/ynx-chain/**,readonly:loopback:{health,status,node/identity,validators/peer-sync}}",
+      "owner": "chain-protected-runtime-operator",
+      "branch": "codex/chain-four-node-readonly-inspector-20260831",
+      "worktree": "/private/tmp/ynx-chain-peer-readiness.fXjb67",
+      "taskId": "P0-319",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_CHAIN_FOUR_NODE_ZERO_WRITE_INSPECTION_NODE_SUCCESSOR",
+      "acquiredAt": "2026-08-31T06:03:00Z",
+      "expiresAt": "2026-08-31T06:23:00Z",
+      "releasedAt": null,
+      "sourceCommit": "2392e4984aa7f504f4ed92592eeb8f4f066b83f4",
+      "sourceTree": "7b943b8c5b8340341ad02c550fbc34a7323931fc",
+      "evidenceCommit": "2392e4984aa7f504f4ed92592eeb8f4f066b83f4",
+      "artifactSha256": "0ea6dbff7be60da2ceb647cb905635292c5fac422e0ccedc80147f7d9046a0b5",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "maximum one zero-write SSH inspection attempt per exact node and no retry",
+        "exact 2501-byte payload SHA48548c is stdin and creates no remote temporary files",
+        "read only service file and loopback node readiness facts",
+        "protected identity values paths and hashes must never be logged persisted or disclosed",
+        "exact local executable is /opt/homebrew/bin/node resolved to the frozen Node v26.7.0 regular-file identity",
+        "no service lifecycle deployment validator chain state firewall Caddy Creator Finance Wallet account signature typed-data or transaction action"
+      ]
     }
   ]
 }
