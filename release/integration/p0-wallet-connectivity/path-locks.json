@@ -3210,6 +3210,31 @@
         "direct evidence proved remote rc0 mutationCount0 and the old runtime exact",
         "P0-303 is consumed and nonreusable; Heavy and this read-only lock are released"
       ]
+    },
+    {
+      "path": "{host:43.153.202.237:creator-studio-3f97-upgrade,write:/opt/ynx-release-control-plane/creator-studio-3f97a13d/**,write:/opt/ynx-creator-studio-wallet/releases/creator-studio-3f97a13d*,write:/opt/ynx-creator-studio-wallet/receipts/upgrade-3f97a13d.json*,write:/opt/ynx-creator-studio-wallet/current*,lifecycle:ynx-creator-studio-wallet.service,readonly:/etc/systemd/system/ynx-creator-studio-wallet.service,readonly:service:ynx-videod.service,readonly:service:ynx-video-viewer.service,verify:https://web4.ynxweb4.com/video/studio/**}",
+      "owner": "creator-studio-deploy-owner",
+      "branch": "codex/p0-creator-studio-subpath-i18n-20260831",
+      "worktree": "/private/tmp/ynx-creator-subpath-i18n.PcnLN2",
+      "taskId": "P0-305",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE",
+      "acquiredAt": "2026-08-31T03:04:55Z",
+      "expiresAt": "2026-08-31T03:34:55Z",
+      "releasedAt": null,
+      "sourceCommit": "cce7e4016a6f1fd9413799d42c06578ed7707357",
+      "sourceTree": "72d839f9204f34e8370ad218185e8ac104401729",
+      "evidenceCommit": "cce7e4016a6f1fd9413799d42c06578ed7707357",
+      "artifactSha256": "947d0055b4080f09870fb6c00c491339be72288fe3b4f94b65f167031b413850",
+      "productionMutationAllowed": true,
+      "allowedExceptions": [
+        "one exact carrier placement plus one forward invocation and no retry",
+        "conditional rollback at most once only after forward success and external validation failure",
+        "write only exact Creator 3f97 control release current and receipt paths",
+        "lifecycle only ynx-creator-studio-wallet.service",
+        "preserve API6493 Viewer6494 Caddy and shared /opt/ynx-video/current",
+        "no Wallet account signature typed-data or transaction action"
+      ]
     }
   ]
 }
