@@ -427,16 +427,16 @@
     }
   ],
   "heavy": {
-    "owner": "creator-studio-readback-owner",
+    "owner": null,
     "taskId": "P0-321",
-    "status": "ACTIVE_CREATOR_P0315_CANDIDATE_RAW_FIRST_ZERO_WRITE_DIAGNOSTIC",
+    "status": "CONSUMED_RELEASED_SUCCESS_CREATOR_P0321_RAW_FIRST_DIAGNOSTIC_ROOT_TUPLE_SCHEMA_OMISSION_IDENTIFIED",
     "acquiredAt": "2026-08-31T06:24:00Z",
     "expiresAt": "2026-08-31T06:44:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-31T06:28:34Z",
     "sourceCommit": "9d01889b00d933dd217e917bfc5ed1d5a9062911",
     "evidenceCommit": "9d01889b00d933dd217e917bfc5ed1d5a9062911",
     "runtimeHost": "43.153.202.237",
-    "currentRuntime": "CREATOR_P0315_CANDIDATE_RAW_FIRST_DIAGNOSTIC_ONLY",
+    "currentRuntime": "CREATOR_P0315_FULL_STATE_NOT_YET_RECOLLECTED",
     "candidateRuntime": "CREATOR_3F97A13D_RESIDUE_INSPECTION_ONLY",
     "artifactSha256": "cd08c2f1fdfc182ae9f579e07a18151a57068f7a8fd0ece92c4a5a1c34123644",
     "productionMutationAllowed": false,
@@ -444,8 +444,8 @@
     "reusable": false,
     "previousOwner": null,
     "previousTaskId": "P0-320",
-    "reviewDecision": "GO_P0321_CREATOR_P0315_CANDIDATE_RAW_FIRST_ZERO_WRITE_DIAGNOSTIC_ONLY",
-    "reason": "The final successor request and inspector are remote exact and clean. Direct and stdin-mode self-tests pass all eight single-field classifications, raw candidate and comparison records precede drift exit, protected SSH identity and known-host are available, local evidence is absent and Heavy is idle. One read-only SSH is authorized with no cleanup, deployment, rollback, lifecycle or product write."
+    "reviewDecision": "P0321_TERMINAL_SUCCESS_ROOT_TUPLE_SCHEMA_OMISSION_IDENTIFIED_RELEASED",
+    "reason": "The sole zero-write SSH emitted both required raw and comparison records before its permitted nonzero drift exit. Candidate content, manifest source tree file count, complete inventory and all payload hashes are exact; only rootTuple failed because the prior expected tuple omitted the canonical size 4096 field. P0-321 is consumed and nonreusable, cleanup remains unauthorized, and Heavy is released."
   },
   "wave": {
     "id": "B-financial-apps-quant",

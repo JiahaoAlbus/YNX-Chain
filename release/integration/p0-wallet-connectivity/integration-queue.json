@@ -7583,10 +7583,11 @@
     {
       "taskId": "P0-321",
       "owner": "integration,creator-studio-readback-owner",
-      "status": "ACTIVE_CREATOR_P0315_CANDIDATE_RAW_FIRST_ZERO_WRITE_DIAGNOSTIC",
+      "status": "CONSUMED_RELEASED_SUCCESS_CREATOR_P0321_RAW_FIRST_DIAGNOSTIC_ROOT_TUPLE_SCHEMA_OMISSION_IDENTIFIED",
       "paths": [
         "release/integration/p0-wallet-connectivity/execution/p0-321-creator-studio-p0315-candidate-raw-first-zero-write-single-use-lease-20260831.json",
-        "/tmp/p0-321-creator-studio-p0315-candidate-raw-first-zero-write.ndjson"
+        "/tmp/p0-321-creator-studio-p0315-candidate-raw-first-zero-write.ndjson",
+        "release/integration/p0-wallet-connectivity/execution/objects/p0-321-creator-studio-p0315-candidate-raw-first-zero-write-terminal-evidence-20260831.json"
       ],
       "dependencies": ["P0-320"],
       "requestCommit": "9d01889b00d933dd217e917bfc5ed1d5a9062911",
@@ -7599,7 +7600,12 @@
       "deploymentAuthorized": false,
       "serviceLifecycleAuthorized": false,
       "rawAndComparisonEvidenceRequired": true,
-      "nextAction": "Release-control-plane executes the exact inspector once. Return the raw-first NDJSON and per-field comparison even on drift, then release Heavy and all Creator readback locks; cleanup remains unauthorized."
+      "attemptCount": 1,
+      "remoteExitStatus": 1,
+      "diagnosticSucceeded": true,
+      "contentDrift": false,
+      "correctedCanonicalCandidateTuple": "64770:1483917:995:986:755:4:4096:directory",
+      "nextAction": "P0-321 is consumed and nonreusable. Require a wholly-new full zero-write request using the corrected canonical candidate tuple to collect service control parent absence and public evidence; cleanup remains unauthorized."
     }
   ]
 }

@@ -3,12 +3,12 @@
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "taskId": "P0-321",
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-creator-p0315-candidate-raw-first-zero-write-20260831T062400Z",
-  "status": "ACTIVE_CREATOR_P0315_CANDIDATE_RAW_FIRST_ZERO_WRITE_DIAGNOSTIC",
+  "status": "CONSUMED_RELEASED_SUCCESS_CREATOR_P0321_RAW_FIRST_DIAGNOSTIC_ROOT_TUPLE_SCHEMA_OMISSION_IDENTIFIED",
   "singleUse": true,
   "reusable": false,
   "issuedAt": "2026-08-31T06:24:00Z",
   "expiresAt": "2026-08-31T06:44:00Z",
-  "releasedAt": null,
+  "releasedAt": "2026-08-31T06:28:34Z",
   "owner": "creator-studio-readback-owner",
   "namedExecutor": "release-control-plane",
   "runtimeHost": "43.153.202.237",
@@ -125,6 +125,17 @@
     "cleanupAuthorized": false,
     "cleanupComplete": false,
     "deploymentAuthorized": false,
-    "creatorPromoted": false
+    "creatorPromoted": false,
+    "attemptCount": 1,
+    "retryCount": 0,
+    "sshAttempts": 1,
+    "remoteExitStatus": 1,
+    "remoteExitPermittedAfterDriftEvidence": true,
+    "evidenceLines": 2,
+    "evidenceBytes": 8893,
+    "evidenceSha256": "54a5bce5270cb0c559d370f4fabc95495425559675de5cff1e92e3265503be14",
+    "diagnosis": "CANDIDATE_ROOT_TUPLE_SCHEMA_SIZE_FIELD_OMISSION",
+    "correctedCanonicalTuple": "64770:1483917:995:986:755:4:4096:directory",
+    "terminalEvidencePath": "release/integration/p0-wallet-connectivity/execution/objects/p0-321-creator-studio-p0315-candidate-raw-first-zero-write-terminal-evidence-20260831.json"
   }
 }

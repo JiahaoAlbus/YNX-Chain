@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "1.0.0",
+  "taskId": "P0-321",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-creator-p0315-candidate-raw-first-zero-write-20260831T062400Z",
+  "status": "CONSUMED_RELEASED_SUCCESS_CREATOR_P0321_RAW_FIRST_DIAGNOSTIC_ROOT_TUPLE_SCHEMA_OMISSION_IDENTIFIED",
+  "releasedAt": "2026-08-31T06:28:34Z",
+  "singleUse": true,
+  "reusable": false,
+  "execution": {
+    "attemptCount": 1,
+    "retryCount": 0,
+    "sshAttempts": 1,
+    "remoteExitStatus": 1,
+    "remoteExitPermittedAfterDriftEvidence": true,
+    "stderrBytes": 0,
+    "remoteTemporaryFiles": 0,
+    "mutations": 0
+  },
+  "evidence": {
+    "path": "/tmp/p0-321-creator-studio-p0315-candidate-raw-first-zero-write.ndjson",
+    "lines": 2,
+    "bytes": 8893,
+    "sha256": "54a5bce5270cb0c559d370f4fabc95495425559675de5cff1e92e3265503be14"
+  },
+  "candidate": {
+    "tuple": "64770:1483917:995:986:755:4:4096:directory",
+    "type": "directory",
+    "manifestTuple": "64770:1483922:995:986:644:1:2299:regular file",
+    "manifestBytes": 2299,
+    "manifestSha256": "fcd0f3346de18e51580af8f7c4f040b8694f7e2ef74bb92cc1ce942e03bea624",
+    "manifestRawBase64Chars": 3068,
+    "sourceCommit": "3f97a13d5ff6e0a43d434eb6b630785564e59e3e",
+    "sourceTree": "5ed64b144ec149e05f201ca9e406e460fa19f9f9",
+    "fileCount": 12,
+    "treeEntries": 15,
+    "actualInventoryEqualsExpected": true,
+    "safeInventory": true,
+    "payloadHashes": true
+  },
+  "comparison": {
+    "rootTuple": false,
+    "manifestType": true,
+    "manifestSha256": true,
+    "sourceCommit": true,
+    "sourceTree": true,
+    "fileCount": true,
+    "completeSafeInventory": true,
+    "payloadHashes": true
+  },
+  "diagnosis": {
+    "classification": "CANDIDATE_ROOT_TUPLE_SCHEMA_SIZE_FIELD_OMISSION",
+    "previousExpectedTuple": "64770:1483917:995:986:755:4:directory",
+    "correctedCanonicalTuple": "64770:1483917:995:986:755:4:4096:directory",
+    "contentDrift": false
+  },
+  "nextRequirement": "A wholly-new full zero-write request must use the corrected canonical candidate tuple and then collect service control parent absence and public evidence. Cleanup remains unauthorized.",
+  "cleanupAuthorized": false,
+  "cleanupComplete": false,
+  "deploymentAuthorized": false
+}
