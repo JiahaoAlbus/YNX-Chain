@@ -321,6 +321,24 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	}
 }
 
+func TestExplorerPortalRoutesStayInOne6423Document(t *testing.T) {
+	for _, route := range []string{"home", "blockchain", "tokens", "data", "governance", "ecosystem", "developers", "downloads", "documentation"} {
+		if !strings.Contains(indexHTML, `data-route="`+route+`"`) {
+			t.Fatalf("portal is missing required route %q", route)
+		}
+	}
+	for _, forbidden := range []string{"about:blank", `target="_blank"`, "9102", "0x238e", "ynx_9102-1"} {
+		if strings.Contains(strings.ToLower(indexHTML), strings.ToLower(forbidden)) {
+			t.Fatalf("portal contains forbidden route or retired identity %q", forbidden)
+		}
+	}
+	for _, behavior := range []string{"window.addEventListener('hashchange',renderLocation)", "setDetailLocation", "renderPortalRoute(route)"} {
+		if !strings.Contains(indexHTML, behavior) {
+			t.Fatalf("portal route behavior is missing %q", behavior)
+		}
+	}
+}
+
 func TestPublicWalletURLFailsClosedForNonPublicEndpoints(t *testing.T) {
 	tests := []struct {
 		name string
