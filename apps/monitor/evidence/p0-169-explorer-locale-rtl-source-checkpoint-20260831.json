@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "ynx.explorer-monitor.owner-source-checkpoint.v1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-169",
+  "observedAt": "2026-08-31T09:47:00Z",
+  "owner": "explorer-monitor",
+  "candidate": {
+    "branch": "codex/p0-explorer-monitor-20260820",
+    "sourceCommit": "0d9232bd68d80ecf56512b61d24c86f8cf158bb7",
+    "pullRequest": "https://github.com/JiahaoAlbus/YNX-Chain/pull/107"
+  },
+  "scope": {
+    "paths": ["internal/explorer/web.go", "internal/explorer/explorer_test.go"],
+    "included": [
+      "English default with twelve supported locale dictionaries",
+      "Arabic document RTL direction and responsive RTL layout rules",
+      "proportional uncropped logo styling with object-fit contain",
+      "compact empty-block rendering, shared dashboard snapshot, and live transaction filter",
+      "canonical transaction deep-link routing",
+      "EIP-6963 and EIP-1193 wallet discovery without a custom wallet scheme"
+    ],
+    "excluded": ["production deployment", "official-domain verification", "wallet approval/signing", "Computer Control approval"]
+  },
+  "verification": {
+    "explorer": "go test ./internal/explorer -count=1: passing",
+    "sponsorRegression": "bash scripts/verify/resource-sponsor-check.sh: passing",
+    "monitor": "cd apps/monitor && npm test: 55 app tests plus 10 script tests passing; npm run build: passing",
+    "assertions": [
+      "TestExplorerProvidesCompleteLocaleAndRTLScaffolding verifies all twelve selector values and dictionaries, English fallback, Arabic RTL, proportional logo and public asset path.",
+      "TestExplorerWalletCompatibilityUsesProviderDiscoveryWithoutCustomNavigation verifies provider discovery/lifecycle markers and rejects ynxwallet, ynx-wallet and location.href custom navigation."
+    ]
+  },
+  "states": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "publicVerified": false,
+    "computerControlVerified": false
+  },
+  "nextAction": "Rebuild all Explorer, Indexer and Monitor artifacts from this single source generation. Central must then bind the exact active and rollback topology and grant a new single-use production lease before any deployment."
+}

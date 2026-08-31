@@ -90,9 +90,9 @@
     {
       "id": "explorer.multilingual-rtl-responsive-a11y-logo",
       "requirement": "Explorer defaults to English and provides 12 languages, RTL, responsive/a11y behavior, and an uncropped proportional YNX logo.",
-      "evidence": ["internal/explorer/web.go"],
-      "states": {"implementedLocal": false, "testedLocal": false, "integratedCentral": false, "deployedStaging": false, "deployedPublic": false, "downloadHosted": false, "productionSigned": false, "publicVerified": false, "computerControlVerified": false},
-      "nextGate": "UI owner must provide locale, RTL, 390px, logo and accessibility test evidence." 
+      "evidence": ["internal/explorer/web.go", "internal/explorer/explorer_test.go", "apps/monitor/evidence/p0-169-explorer-locale-rtl-source-checkpoint-20260831.json"],
+      "states": {"implementedLocal": true, "testedLocal": true, "integratedCentral": false, "deployedStaging": false, "deployedPublic": false, "downloadHosted": false, "productionSigned": false, "publicVerified": false, "computerControlVerified": false},
+      "nextGate": "Freeze one exact artifact lineage, then run 390px responsive/a11y and official-domain visual tests against the approved deployment; source and local tests do not prove a public UI."
     },
     {
       "id": "indexer.fail-closed-no-internal-error",
