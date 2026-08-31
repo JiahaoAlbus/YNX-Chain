@@ -26,6 +26,15 @@
       "managerEntries": [],
       "result": "COMMAND_LINE_EXTENSION_NOT_LOADED"
     },
+    "edgeCrossCheck": {
+      "browser": "Microsoft Edge 152.0.4191.53",
+      "firstBrowserPid": 53971,
+      "secondBrowserPid": 54187,
+      "cdpConnectedBothLaunches": true,
+      "managerEntriesBothLaunches": [],
+      "result": "COMMAND_LINE_EXTENSION_NOT_LOADED",
+      "classification": "same disposable command-line loading blocker; not a Wallet provider, account, or chain failure"
+    },
     "cleanup": {
       "bothBrowserPidsExited": true,
       "userDailyProfileTouched": false
