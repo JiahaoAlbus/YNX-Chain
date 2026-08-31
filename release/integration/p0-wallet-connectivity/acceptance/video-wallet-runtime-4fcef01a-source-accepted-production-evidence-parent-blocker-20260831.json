@@ -1,0 +1,100 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "recordType": "VIDEO_WALLET_RUNTIME_SUCCESSOR_SOURCE_AND_LEASE_DECISION",
+  "recordedAt": "2026-08-31T04:08:00Z",
+  "source": {
+    "branch": "codex/video-wallet-runtime-successor-20260831",
+    "evidenceHead": "4fcef01aebdbc626dfe68b7e5053123d33a36511",
+    "evidenceTree": "3546b389aaed1bcd34eb634c4ec80f451e64cad5",
+    "runtimeCommit": "560c467d61e74f7939b8ce527f14316c736b88a7",
+    "runtimeTree": "82290b8d0c41615d9e48eff33e34d38695bbfc01",
+    "remoteExactAndClean": true
+  },
+  "objects": {
+    "request": {
+      "path": "apps/video/release/evidence/p0-077/successor-20260831/video-wallet-runtime-successor-request-20260831.json",
+      "blob": "13b1989d2f66de31e125d54ce32424eb84c7e802",
+      "bytes": 7585,
+      "sha256": "07016755605b984a6c747c4936cd2102dea1f5c8a454b9edcbfb28000a6bff9c"
+    },
+    "carrier": {
+      "path": "apps/video/release/evidence/p0-077/successor-20260831/ynx-video-560c467d-runtime.tar.gz",
+      "blob": "0685bf9eaba9d4ad022fe94cf1e40cda44756fde",
+      "bytes": 25780,
+      "sha256": "ebd197fd46eeef17ffeb9d9936c08997867dd3ff540ce332a73d06a8e8662a3f"
+    },
+    "browserVerifier": {
+      "path": "apps/video/scripts/verify-public-browser.mjs",
+      "bytes": 7403,
+      "sha256": "e8b2accc8ba5e66ee4356298d4a5ea22ecc0bc9b66a2379d292bfd9fe123c535"
+    }
+  },
+  "independentSourceVerification": {
+    "videoChecks": "PASS_26_OF_26",
+    "i18nAudit": "PASS_12_LOCALES_22_KEYS",
+    "carrierRebuildA": "25780:ebd197fd46eeef17ffeb9d9936c08997867dd3ff540ce332a73d06a8e8662a3f",
+    "carrierRebuildB": "25780:ebd197fd46eeef17ffeb9d9936c08997867dd3ff540ce332a73d06a8e8662a3f",
+    "committedCarrierByteExact": true,
+    "browserContractSourceBoundNonSensitive": true,
+    "syntheticProviderMethods": [],
+    "realInstalledProviderClaimed": false
+  },
+  "freshZeroWriteProductionReadback": {
+    "remoteExitStatus": 0,
+    "mutationCount": 0,
+    "protectedSshAndSudoAvailable": true,
+    "legacyViewer": {
+      "service": "loaded:active:running",
+      "pid": 2159536,
+      "nRestarts": 0,
+      "exe": "/usr/bin/node",
+      "cwd": "/",
+      "cmdlineSha256": "b4dd391073117e4585a51fb98bb58698843ccc65fbe43854f4c1a27e7aca370f",
+      "starttime": "1025426043",
+      "unitSha256": "c0518f813134f2879382cc3f7c999f8abf9b4660c513bc2651487a6fe9ed29c9",
+      "viewer": "200:3285:5c6aa1b9207680ff40f77df6d063571f67beff40719d727acf5d2fa0c05b591a"
+    },
+    "sharedCurrent": "64770:1324617:0:0:777:1:53:symbolic link",
+    "sharedCurrentTarget": "/opt/ynx-video/releases/p0205-creator-studio-0e1a53c5",
+    "caddy": "64770:1051746:0:0:644:1:928:regular file",
+    "caddySha256": "077fe80ea9aab24a32d64ba1fab3584e8aab10304e200e58d976d2c33edfb39f",
+    "apiPid": 3108210,
+    "creatorPid": 2747844,
+    "apiAndCreatorHashesExact": true,
+    "dedicatedRoot": "ABSENT",
+    "dedicatedUnit": "ABSENT",
+    "predecessorCarrier": "64770:35401:1000:1001:644:1:13323:regular file",
+    "predecessorCarrierSha256": "6771deb82ccc62a9c14d62ed40e7bda961806ffe3c14681b9cf53ec27afef2df"
+  },
+  "blockingProductionState": {
+    "evidenceParent": "64770:4620872:0:0:755:2:4096:directory",
+    "evidenceParentIdentity": "64770:35403:0:0:600:1:24:regular file",
+    "children": [
+      "video-legacy-viewer-emergency-recovery.receipt",
+      "video-viewer-wallet-controlled-takeover-3b1a062b.receipt",
+      "video-viewer-wallet-controlled-takeover-3b1a062b.receipt.legacy.successor",
+      "video-viewer-wallet-controlled-takeover-3b1a062b.receipt.legacy.successor.expected",
+      "video-viewer-wallet-controlled-takeover-3b1a062b.receipt.legacy.successor.stable"
+    ],
+    "legacyRecoveryReceiptSha256": "ea42c1bc49550b5a231b979747e20d188c0abb48a5ba621a44335a18f306ceda",
+    "executorConflict": "video-runtime-controlled-takeover.sh create_receipt_parent requires both the fixed evidence parent and its .identity sidecar absent; its cleanup whitelist also rejects these retained siblings"
+  },
+  "decision": {
+    "sourceStatus": "ACCEPTED_SOURCE_AND_DURABLE_CARRIER",
+    "leaseStatus": "NO_GO",
+    "leaseIssued": false,
+    "sshMutationExecuted": false,
+    "heavyOwner": null,
+    "productionMutation": false
+  },
+  "singleExecutableBlocker": "VIDEO_SUCCESSOR_FIXED_EVIDENCE_PARENT_CONFLICTS_WITH_RETAINED_P0239_EVIDENCE_AND_IDENTITY",
+  "requiredSuccessor": [
+    "use a wholly-new versioned receipt parent and identity sidecar that are absent at fresh prewrite, or provide a separately reviewed identity-bound evidence migration/cleanup lease",
+    "do not delete or reinterpret the retained P0-239 evidence as part of the deployment lease",
+    "freeze the exact new receipt paths, carrier/script transports, literal argv and failure cleanup contract",
+    "rerun controlled-takeover success and every rollback fixture with the retained P0-239 evidence present",
+    "request a wholly-new Video-only lease after another fresh zero-write prewrite"
+  ],
+  "forbidden": ["Video lease for 4fcef01a as currently requested", "P0-237 P0-238 or P0-239 reuse", "Creator API Caddy shared-current mutation", "Wallet account request signature typed data or transaction"]
+}
