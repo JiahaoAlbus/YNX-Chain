@@ -27,19 +27,13 @@ const POOL = {
   txHash: HASH,
   auditHash: "c".repeat(64),
 };
-const ENVELOPE = {
-  source: "ynx-consensus-abci",
-  version: "abci-state-v13",
-  failure: false,
-};
-
 async function consensusFixture(
   page: Page,
   options: { delayed?: boolean; failure?: boolean } = {},
 ) {
   await page.route("**/*", async (route: Route) => {
     const pathname = new URL(route.request().url()).pathname;
-    if (!pathname.startsWith("/dex/")) return route.continue();
+    if (pathname !== "/v1/native-snapshot") return route.continue();
     if (options.delayed)
       await new Promise((resolve) => setTimeout(resolve, 1_000));
     if (options.failure) {
@@ -49,18 +43,16 @@ async function consensusFixture(
         body: JSON.stringify({ failure: true, error: "fixture unavailable" }),
       });
     }
-    const body =
-      pathname === "/dex/assets"
-        ? { ...ENVELOPE, assets: [ASSET] }
-        : pathname === "/dex/pools"
-          ? { ...ENVELOPE, pools: [POOL] }
-          : pathname === "/dex/events"
-            ? { ...ENVELOPE, events: [] }
-            : { failure: true, error: "unknown fixture route" };
     return route.fulfill({
       status: 200,
       contentType: "application/json",
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        source: "authoritative chain-native YNX Testnet state",
+        updatedAt: new Date().toISOString(),
+        assets: [ASSET],
+        pools: [POOL],
+        events: [],
+      }),
     });
   });
 }
@@ -78,7 +70,7 @@ test("quotes committed v13 reserves and keeps transaction signing behind Wallet"
   await expect(page.getByLabel("You receive amount")).toHaveValue("17");
   await page.getByRole("button", { name: "Review swap" }).click();
   const review = page.getByRole("dialog", { name: "Review swap" });
-  await expect(review.getByText(POOL.id)).toBeVisible();
+  await expect(review.getByText(POOL.id, { exact: true })).toBeVisible();
   await expect(review.getByText("dex_swap_exact_input")).toBeVisible();
   await expect(
     review.getByRole("button", { name: "Connect Wallet to continue" }),
