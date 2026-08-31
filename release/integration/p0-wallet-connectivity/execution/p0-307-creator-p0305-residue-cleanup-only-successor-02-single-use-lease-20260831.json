@@ -1,0 +1,146 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-307",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-creator-p0305-residue-cleanup-only-s02-20260831T033346Z",
+  "owner": "creator-studio-deploy-owner",
+  "executor": "release-control-plane",
+  "status": "ACTIVE_CREATOR_P0305_IDENTITY_BOUND_RESIDUE_CLEANUP_ONLY_SUCCESSOR_02",
+  "issuedAt": "2026-08-31T03:33:46Z",
+  "expiresAt": "2026-08-31T03:53:46Z",
+  "singleUse": true,
+  "reusable": false,
+  "consumedAt": null,
+  "releasedAt": null,
+  "executionAuthorized": true,
+  "productionMutationAllowed": true,
+  "predecessor": {
+    "taskId": "P0-305",
+    "status": "EMERGENCY_BLOCKED_CREATOR_OLD_RUNTIME_ACTIVE_EXACT_P0305_RESIDUES_RETAINED_CLEANUP_ONLY_REQUIRED",
+    "inspectionTaskId": "P0-306",
+    "inspectionCentralCommit": "b93ff7da8250dd081575639465aaae03fc30cc2e",
+    "inspectionCentralTree": "b88128e00c0edeec79d1058963c9f018309510b8"
+  },
+  "ownerAuthority": {
+    "branch": "codex/p0-creator-studio-subpath-i18n-20260831",
+    "implementationCommit": "7bb65aaf000f83c9d1303b5ee83c637d356a0813",
+    "implementationTree": "558c9788b29cc388d1d97c60c1c5edbb9dc50a7b",
+    "requestCommit": "9666cea2260fd16c33f82b115b1c7278382b4d95",
+    "requestTree": "282b01a0495a458be932290a2f04a82dbf2d04d0",
+    "requestPath": "apps/creator-studio/evidence/creator-studio-p0305-residue-cleanup-only-successor-02-single-use-lease-request-20260831.json",
+    "requestBlob": "a338fbb83c8035c77a9d2f804fe0043a4734d3a0",
+    "requestSha256": "2e1959df4fd928602dcae97084edad3f53fbc20d5e00a3d7d43bd15038a4b54a",
+    "remoteExactAndClean": true
+  },
+  "executorObject": {
+    "gitPath": "apps/creator-studio/release-residue-cleanup-3f97a13d.mjs",
+    "gitBlob": "de85842c870133695df56a9f4fff8263092ab91c",
+    "bytes": 24814,
+    "sha256": "ba70803d98153e78fc374e102651960c4c2951dfefd6486410ab3d8a1798a75d",
+    "stdinExactBytes": true
+  },
+  "canonicalInput": {
+    "bytes": 547,
+    "sha256": "b3a0884811c3304996bde022408c4bd7474077cfef87c7f0c39be5f44d69078a",
+    "base64": "eyJzY2hlbWFWZXJzaW9uIjoiMS4wLjAiLCJhY3Rpb24iOiJDUkVBVE9SX1AwMzA1X1JFU0lEVUVfQ0xFQU5VUF9PTkxZIiwiY29udHJvbFR1cGxlIjoiNjQ3NzA6MTQ4MzgzMDowOjA6NzAwOjM6NDA5NjpkaXJlY3RvcnkiLCJjYW5kaWRhdGVUdXBsZSI6IjY0NzcwOjE0ODM5MTg6OTk1Ojk4Njo3NTU6NDo0MDk2OmRpcmVjdG9yeSIsImN1cnJlbnRUdXBsZSI6IjY0NzcwOjE0ODM5NTE6MDowOjc3NzoxOjYzOnN5bWJvbGljIGxpbmsiLCJvbGRSZWxlYXNlVHVwbGUiOiI2NDc3MDoxNDgzODc3Ojk5NTo5ODY6NzU1OjQ6NDA5NjpkaXJlY3RvcnkiLCJmb3J3YXJkUmVjZWlwdFR1cGxlIjoiNjQ3NzA6MTQ4MzkwOTowOjA6NjAwOjE6ODI1MDA6cmVndWxhciBmaWxlIiwiZm9yd2FyZFJlY2VpcHRTaGEyNTYiOiIwM2I0YjM4YWZiYmEzZDFlZjIyNjdjYTZlOWJhMmVjNzYxMmRjYTI1NTcxM2ZkNTE4Mzc2ZTAzMTNmMmY1ZGM1IiwiY3JlYXRvclBpZCI6Mjc0Nzg0NCwiY3JlYXRvck5SZXN0YXJ0cyI6MCwiYXBpUGlkIjozMTA4MjEwLCJ2aWV3ZXJQaWQiOjIxNTk1MzZ9Cg=="
+  },
+  "freshPrewrite": {
+    "observedAt": "2026-08-31T03:32:50Z",
+    "mutationCount": 0,
+    "controlRoot": "64770:1483830:0:0:700:3:4096:directory",
+    "controlStage": "ABSENT",
+    "oldRelease": "64770:1483877:995:986:755:4:4096:directory",
+    "candidateRelease": "64770:1483918:995:986:755:4:4096:directory",
+    "candidateStage": "ABSENT",
+    "current": "64770:1483951:0:0:777:1:63:symbolic link",
+    "currentTarget": "/opt/ynx-creator-studio-wallet/releases/creator-studio-0e1a53c5",
+    "currentNext": "ABSENT",
+    "forwardReceipt": "64770:1483909:0:0:600:1:82500:regular file",
+    "forwardReceiptSha256": "03b4b38afbba3d1ef2267ca6e9ba2ec7612dca255713fd518376e0313f2f5dc5",
+    "forwardReceiptStatus": "FORWARD_SWITCHED_AWAITING_TERMINAL",
+    "forwardReceiptNext": "ABSENT",
+    "oldManifestSha256": "5fd27ac55d9ea70b8e15aac0565324a9ce7b18706bd75cd5b430eaa4843de86f",
+    "candidateManifestSha256": "fcd0f3346de18e51580af8f7c4f040b8694f7e2ef74bb92cc1ce942e03bea624",
+    "unitSha256": "06a55f91bf5530952c347db146daa827510cc72f161d999943da7d5737b8c006",
+    "creatorService": "loaded:active:running:2747844:0",
+    "viewerService": "loaded:active:running:2159536:0",
+    "apiService": "loaded:active:running:3108210:0",
+    "listeners": {"6493": 3108210, "6494": 2159536, "6495": 2747844},
+    "public": {
+      "root": "200:14088:b37f78205f2c5443b2103ee42e98d6ecde65238c107733088e63893a3c1de697",
+      "appJs": "200:35660:77e7c42006e3be36c7af717e5e8b2a3cd847c3652dcadb1731c259aee5b01af5",
+      "manifest": "200:2299:5fd27ac55d9ea70b8e15aac0565324a9ce7b18706bd75cd5b430eaa4843de86f",
+      "i18nJs": "200:10755:451016ca4e3a16eeade02154397eabf9fabcc57a50fe948ec954b63e5ee12abe",
+      "catalog": "200:14237:4c86e3e1cdeac6d9c4570891d70bab4c3486c6a4429dd33fd1029f046ca9ecff"
+    }
+  },
+  "execution": {
+    "workdir": "/private/tmp/ynx-creator-subpath-i18n.PcnLN2",
+    "stdinSource": {
+      "gitCommit": "9666cea2260fd16c33f82b115b1c7278382b4d95",
+      "gitPath": "apps/creator-studio/release-residue-cleanup-3f97a13d.mjs",
+      "requiredBytes": 24814,
+      "requiredSha256": "ba70803d98153e78fc374e102651960c4c2951dfefd6486410ab3d8a1798a75d"
+    },
+    "literalLocalArgv": [
+      "/usr/bin/ssh",
+      "-i",
+      "/Users/huangjiahao/Downloads/Huang.pem",
+      "-o",
+      "IdentitiesOnly=yes",
+      "-o",
+      "BatchMode=yes",
+      "-o",
+      "StrictHostKeyChecking=yes",
+      "-o",
+      "UserKnownHostsFile=/Users/huangjiahao/.ssh/known_hosts",
+      "-o",
+      "ConnectTimeout=10",
+      "-o",
+      "ConnectionAttempts=1",
+      "ubuntu@43.153.202.237",
+      "/usr/bin/sudo",
+      "-n",
+      "/usr/bin/node",
+      "--input-type=module",
+      "-",
+      "cleanup",
+      "eyJzY2hlbWFWZXJzaW9uIjoiMS4wLjAiLCJhY3Rpb24iOiJDUkVBVE9SX1AwMzA1X1JFU0lEVUVfQ0xFQU5VUF9PTkxZIiwiY29udHJvbFR1cGxlIjoiNjQ3NzA6MTQ4MzgzMDowOjA6NzAwOjM6NDA5NjpkaXJlY3RvcnkiLCJjYW5kaWRhdGVUdXBsZSI6IjY0NzcwOjE0ODM5MTg6OTk1Ojk4Njo3NTU6NDo0MDk2OmRpcmVjdG9yeSIsImN1cnJlbnRUdXBsZSI6IjY0NzcwOjE0ODM5NTE6MDowOjc3NzoxOjYzOnN5bWJvbGljIGxpbmsiLCJvbGRSZWxlYXNlVHVwbGUiOiI2NDc3MDoxNDgzODc3Ojk5NTo5ODY6NzU1OjQ6NDA5NjpkaXJlY3RvcnkiLCJmb3J3YXJkUmVjZWlwdFR1cGxlIjoiNjQ3NzA6MTQ4MzkwOTowOjA6NjAwOjE6ODI1MDA6cmVndWxhciBmaWxlIiwiZm9yd2FyZFJlY2VpcHRTaGEyNTYiOiIwM2I0YjM4YWZiYmEzZDFlZjIyNjdjYTZlOWJhMmVjNzYxMmRjYTI1NTcxM2ZkNTE4Mzc2ZTAzMTNmMmY1ZGM1IiwiY3JlYXRvclBpZCI6Mjc0Nzg0NCwiY3JlYXRvck5SZXN0YXJ0cyI6MCwiYXBpUGlkIjozMTA4MjEwLCJ2aWV3ZXJQaWQiOjIxNTk1MzZ9Cg=="
+    ],
+    "attemptLimit": 1,
+    "retryAllowed": false,
+    "remoteTempFilesAllowed": false,
+    "outerRule": "Feed only the exact verified executor bytes to stdin; do not alter, wrap or retry the remote cleanup argv."
+  },
+  "allowedMutation": {
+    "orderedDeleteOnly": [
+      "/opt/ynx-creator-studio-wallet/receipts/upgrade-3f97a13d.json",
+      "/opt/ynx-creator-studio-wallet/releases/creator-studio-3f97a13d",
+      "/opt/ynx-release-control-plane/creator-studio-3f97a13d"
+    ],
+    "serviceLifecycleActions": 0,
+    "currentSymlinkMutations": 0
+  },
+  "terminalRule": "After the one cleanup attempt, retain Heavy and all Creator locks. A wholly-new zero-write readback must prove all three residues and all next/stage paths absent and the old runtime exact before release.",
+  "forbidden": [
+    "old rollback or forward argv",
+    "retry",
+    "blind or unbounded cleanup",
+    "service lifecycle",
+    "current or old release mutation",
+    "API Viewer unit Caddy shared-current or public mutation",
+    "remote temporary files",
+    "unrelated Heavy lease",
+    "Wallet account request",
+    "signature",
+    "typed data",
+    "transaction"
+  ],
+  "truthBoundary": {
+    "leaseIssued": true,
+    "executionStarted": false,
+    "cleanupComplete": false,
+    "publicRuntimeChanged": false,
+    "productComplete": false
+  }
+}

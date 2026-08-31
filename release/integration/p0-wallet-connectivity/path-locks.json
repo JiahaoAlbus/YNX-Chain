@@ -1,7 +1,7 @@
 {
   "schemaVersion": "1.0.0",
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-  "version": "1.39.0",
+  "version": "1.40.0",
   "locks": [
     {
       "path": "{host:43.153.202.237:finance-post-cleanup-readonly-verification,readonly:/opt/ynx/stage/finance/p0247-finance-phase3-20260823T073800Z,readonly:/var/backups/ynx-finance/p0247-finance-phase3-20260823T073800Z,readonly:/opt/ynx/leases/finance/p0247-finance-phase3-20260823T073800Z.{executor.sh,json},readonly:/opt/ynx/leases/finance/p0264-finance-p0247-cleanup-20260823T140755Z.{executor.sh,executor.sh.pending,json,json.pending},readonly:/opt/ynx/finance-current,readonly:/etc/ynx/finance.env,readonly:/etc/systemd/system/ynx-finance.service,readonly:/etc/caddy/conf.d/ynx-finance.caddy,readonly:/var/lib/ynx/finance/state.json,readonly:service:ynx-finance,readonly:http://127.0.0.1:6483/{health,version},readonly:https://finance.ynxweb4.com/{health,version}}",
@@ -3258,6 +3258,31 @@
         "direct inspection proved old runtime active exact and P0-305 residues retained",
         "P0-306 is consumed and nonreusable; retain P0-305 Heavy and emergency locks for cleanup-only recovery",
         "no cleanup rollback forward lifecycle unrelated Heavy Wallet account signature typed-data or transaction action"
+      ]
+    },
+    {
+      "path": "{host:43.153.202.237:creator-p0305-residue-cleanup-s02,delete-only:/opt/ynx-creator-studio-wallet/receipts/upgrade-3f97a13d.json,delete-only:/opt/ynx-creator-studio-wallet/releases/creator-studio-3f97a13d,delete-only:/opt/ynx-release-control-plane/creator-studio-3f97a13d,readonly:/opt/ynx-creator-studio-wallet/releases/creator-studio-0e1a53c5/**,readonly:/opt/ynx-creator-studio-wallet/current*,readonly:/etc/systemd/system/ynx-creator-studio-wallet.service,readonly:service:{ynx-creator-studio-wallet,ynx-video-viewer,ynx-videod}.service,readonly:https://web4.ynxweb4.com/video/studio/**}",
+      "owner": "creator-studio-deploy-owner",
+      "branch": "codex/p0-creator-studio-subpath-i18n-20260831",
+      "worktree": "/private/tmp/ynx-creator-subpath-i18n.PcnLN2",
+      "taskId": "P0-307",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_CREATOR_P0305_IDENTITY_BOUND_RESIDUE_CLEANUP_ONLY_SUCCESSOR_02",
+      "acquiredAt": "2026-08-31T03:33:46Z",
+      "expiresAt": "2026-08-31T03:53:46Z",
+      "releasedAt": null,
+      "sourceCommit": "9666cea2260fd16c33f82b115b1c7278382b4d95",
+      "sourceTree": "282b01a0495a458be932290a2f04a82dbf2d04d0",
+      "evidenceCommit": "9666cea2260fd16c33f82b115b1c7278382b4d95",
+      "artifactSha256": "ba70803d98153e78fc374e102651960c4c2951dfefd6486410ab3d8a1798a75d",
+      "productionMutationAllowed": true,
+      "allowedExceptions": [
+        "exactly one no-retry identity-bound cleanup-only SSH invocation",
+        "delete only the exact signed P0-305 receipt candidate release and control root in that order",
+        "revalidate delete-boundary identity inventory parents old runtime listeners unit and five public hashes",
+        "service lifecycle current old release API Viewer unit Caddy shared-current and public mutation remain forbidden",
+        "retain Heavy and all Creator locks after execution until a separate zero-write readback terminally verifies cleanup",
+        "no unrelated Heavy Wallet account signature typed-data or transaction action"
       ]
     }
   ]
