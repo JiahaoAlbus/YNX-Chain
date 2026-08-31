@@ -48,6 +48,10 @@ test("consumer audit rejects Web custom-scheme and native manual URI constructio
   assert.deepEqual(consumerAuthorizationFindings("apps/example/app/src/main/java/Launcher.java", `open("ynxwallet://authorize?request=" + payload)`), [
     { file: "apps/example/app/src/main/java/Launcher.java", line: 1, code: "MANUAL_WALLET_AUTHORIZE_URI" },
   ]);
+  assert.deepEqual(consumerAuthorizationFindings("wallet-auth.js", "location.assign(`ynxwallet://authorize?request=${payload}`)"), [
+    { file: "wallet-auth.js", line: 1, code: "WEB_TOP_LEVEL_WALLET_AUTHORIZATION_NAVIGATION" },
+    { file: "wallet-auth.js", line: 1, code: "WEB_CUSTOM_SCHEME_AUTHORIZE_URI" },
+  ]);
   assert.deepEqual(consumerAuthorizationFindings("internal/example/authority.go", `DeepLink: "ynxwallet://authorize?request=<base64url>"`), []);
 });
 

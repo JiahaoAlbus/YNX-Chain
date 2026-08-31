@@ -40,9 +40,12 @@ function lineAt(text, offset) { return text.slice(0, offset).split("\n").length;
 function isProtocolOwnerSource(relative) { return relative.startsWith(`packages${path.sep}wallet-auth${path.sep}`); }
 function isWebProductSource(relative) {
   const segments = relative.split(path.sep);
-  return segments[0] === "apps"
-    && WEB_SOURCE_EXTENSIONS.has(path.extname(relative))
-    && !segments.some((segment) => NATIVE_PATH_SEGMENTS.has(segment));
+  if (!WEB_SOURCE_EXTENSIONS.has(path.extname(relative)) || segments.some((segment) => NATIVE_PATH_SEGMENTS.has(segment))) return false;
+  // `--consumer-root apps/<product>` deliberately reports paths relative to
+  // that product. Treat a root-level Web source as a product source too, so a
+  // detached owner audit cannot weaken the same rule used by the full-repo
+  // release gate.
+  return segments[0] === "apps" || (segments[0] !== "internal" && segments[0] !== "packages");
 }
 
 function isDocumentationPlaceholder(text, offset) {
