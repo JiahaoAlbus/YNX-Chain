@@ -76,13 +76,18 @@ import {
   createWalletRequest,
   deviceProofPayload,
   encodeBase64URL,
-  parseWalletCallback,
+  parseWalletDecision,
   registrationIdempotencyKey,
   signGatewayChallenge,
   squareRegistrationPayload,
-  walletRequestURL,
   type WalletAuthorizationRequest,
 } from "./src/walletAuth";
+import {
+  METAMASK_MOBILE_DAPP_URL,
+  YNX_WALLET_DOWNLOAD_URL,
+  openWalletAlternative,
+  openWalletAuthorization,
+} from "./src/walletLauncher";
 import {
   createDeviceRotation,
   createEnvelopeSet,
@@ -178,7 +183,8 @@ function SocialApp() {
   const [tab, setTab] = useState<Tab>("messages"),
     [session, setSession] = useState<Session | null>(null),
     [loading, setLoading] = useState(true),
-    [error, setError] = useState<string | null>(null);
+    [error, setError] = useState<string | null>(null),
+    [walletUnavailable, setWalletUnavailable] = useState(false);
   const api = useMemo(() => {
     try {
       return new SocialAPI(process.env.EXPO_PUBLIC_YNX_SOCIAL_API_BASE ?? "");
@@ -239,13 +245,20 @@ function SocialApp() {
           keyRaw = await SecureStore.getItemAsync(DEVICE_KEY);
         if (!pendingRaw || !keyRaw)
           throw new Error("No Wallet sign-in request is pending");
-        const pending = JSON.parse(pendingRaw) as {
-          request: WalletAuthorizationRequest;
-          deviceId: string;
-          devicePublicKey: string;
-          encryptionPublicKey: string;
-        };
-        const approval = parseWalletCallback(value, pending.request);
+      const pending = JSON.parse(pendingRaw) as {
+        request: WalletAuthorizationRequest;
+        deviceId: string;
+        devicePublicKey: string;
+        encryptionPublicKey: string;
+      };
+        const decision = parseWalletDecision(value, pending.request);
+        if (decision.kind === "rejected") {
+          await SecureStore.deleteItemAsync(PENDING_KEY);
+          setWalletUnavailable(false);
+          setError("YNX Wallet authorization was rejected. No Social session was created.");
+          return;
+        }
+        const approval = decision.approval;
         const keys = JSON.parse(keyRaw) as {
           signingSeed: string;
           encryptionSeed: string;
@@ -310,6 +323,7 @@ function SocialApp() {
         await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(result));
         await SecureStore.deleteItemAsync(PENDING_KEY);
         setSession(result);
+        setWalletUnavailable(false);
         setError(null);
       } catch (caught) {
         setError(message(caught));
@@ -329,6 +343,7 @@ function SocialApp() {
   }, [handleURL]);
   const signIn = async () => {
     try {
+      setWalletUnavailable(false);
       const hex = (value: Uint8Array) =>
         Array.from(value, (byte) => byte.toString(16).padStart(2, "0")).join(
           "",
@@ -354,7 +369,7 @@ function SocialApp() {
         )
           stored = candidate;
       } catch {}
-      if (!stored) {
+        if (!stored) {
         const signingSeed = await getRandomBytesAsync(32),
           encryptionSeed = await getRandomBytesAsync(32),
           deviceRandom = await getRandomBytesAsync(18);
@@ -392,8 +407,18 @@ function SocialApp() {
           encryptionPublicKey,
         }),
       );
-      await Linking.openURL(walletRequestURL(request));
+      const opened = await openWalletAuthorization(request);
+      if (!opened.opened) {
+        await SecureStore.deleteItemAsync(PENDING_KEY);
+        setWalletUnavailable(true);
+        setError(
+          `${opened.code}: No exact YNX Wallet activity can handle this authorization. No Social session was created.`,
+        );
+        return;
+      }
+      setError(null);
     } catch (caught) {
+      await SecureStore.deleteItemAsync(PENDING_KEY).catch(() => undefined);
       setError(message(caught));
     }
   };
@@ -454,6 +479,37 @@ function SocialApp() {
           <KeyRound color="#FFFFFF" size={19} />
           <Text style={styles.primaryText}>{t("Sign in with YNX Wallet")}</Text>
         </Pressable>
+        {walletUnavailable ? (
+          <View style={{ width: "100%", gap: 10, marginTop: 12 }}>
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel={t("Download YNX Wallet")}
+              onPress={() =>
+                void openWalletAlternative(YNX_WALLET_DOWNLOAD_URL).catch(
+                  (caught) => setError(message(caught)),
+                )
+              }
+              style={styles.secondary}
+            >
+              <Text style={styles.secondaryText}>{t("YNX Wallet - Download")}</Text>
+            </Pressable>
+            <Pressable
+              accessibilityRole="link"
+              accessibilityLabel={t("Open MetaMask Mobile")}
+              onPress={() =>
+                void openWalletAlternative(METAMASK_MOBILE_DAPP_URL).catch(
+                  (caught) => setError(message(caught)),
+                )
+              }
+              style={styles.secondary}
+            >
+              <Text style={styles.secondaryText}>{t("MetaMask Mobile - Open")}</Text>
+            </Pressable>
+            <Text style={styles.securityNote}>
+              {t("These alternatives do not create or approve a Social session.")}
+            </Text>
+          </View>
+        ) : null}
         <Text style={styles.securityNote}>
           {t("Social never creates, imports, or receives your recovery key.")}
         </Text>

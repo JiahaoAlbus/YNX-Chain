@@ -1,0 +1,63 @@
+{
+  "schema": "ynx.social.single-use-release-request.v1",
+  "status": "FROZEN_NO_GO",
+  "target": "https://social.ynxweb4.com/",
+  "candidate": {
+    "sourceCommit": "ecffe336a3a380e8b13b6a7926720efb1bfe4ae2",
+    "sourceTree": "a7289a70cb7464b4debdb24163f93572194681eb",
+    "socialTree": "00bd532edf424903fba7643f07b5b601780c661d",
+    "evidenceCommit": "f0f1120000302a035b5f5f2dd6df5ff973457b36",
+    "artifactPath": "apps/social/evidence/release-candidates/ynx-social-ecffe336.tar.gz",
+    "artifactBytes": 921443,
+    "artifactSha256": "ff94c7ab3b93b6f953b2ec25af896a6408219809f9df9ea59933f53eebb1235e"
+  },
+  "lease": {
+    "requiredExecutor": "CENTRAL_RELEASE_EXECUTOR_TO_BE_NAMED",
+    "requestedSingleUseExpiry": "PT30M",
+    "deploymentAuthorized": false
+  },
+  "currentPublicIdentity": {
+    "url": "https://social.ynxweb4.com/",
+    "title": "YNX Social - Private by design",
+    "servedIdentity": {
+      "capturedAt": "2026-08-22",
+      "files": [
+        {
+          "url": "https://social.ynxweb4.com/",
+          "bytes": 5563,
+          "sha256": "ce6f038a1171d0597398f13895e714f62d5e00ab00c9748b337861c9f248abee"
+        },
+        {
+          "url": "https://social.ynxweb4.com/app.js",
+          "bytes": 3003,
+          "sha256": "8860c1cfa3f6746c8a9610bb744dc1fb2e353551df558a1472cd6b0135a88845"
+        },
+        {
+          "url": "https://social.ynxweb4.com/styles.css",
+          "bytes": 5950,
+          "sha256": "00d15e63efced9e0bb0284270e2ce9164795a06da40864e93f1b6d77e74e188f"
+        }
+      ]
+    },
+    "deployedArtifact": "CENTRAL_RELEASE_RECORD_REQUIRED"
+  },
+  "rollback": {
+    "artifact": "CENTRAL_RELEASE_RECORD_REQUIRED",
+    "executor": "CENTRAL_RELEASE_RECORD_REQUIRED",
+    "procedure": "CENTRAL_RELEASE_RECORD_REQUIRED"
+  },
+  "verificationBoundary": {
+    "allowed": [
+      "distinct official YNX and MetaMask identity and logo",
+      "late-provider and no-provider state",
+      "stable URL",
+      "single top-level tab and no blank page",
+      "zero browser console errors"
+    ],
+    "forbidden": [
+      "eth_requestAccounts",
+      "wallet signing",
+      "transaction submission"
+    ]
+  }
+}
