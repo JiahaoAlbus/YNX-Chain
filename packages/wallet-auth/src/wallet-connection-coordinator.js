@@ -1,7 +1,7 @@
 import { exactFields, WalletAuthError } from "./canonical.js";
 import { MetaMaskEvmConnectionAdapter } from "./metamask-evm-adapter.js";
 import { PRODUCT_SESSION_CLIENT_STATE, RecoverableProductSessionClient } from "./product-session-recovery.js";
-import { migrateLegacyCallback, parseProductSessionRegistry } from "./product-session-registry.js";
+import { migrateLegacyCallback, parseProductSessionRegistry, productPlatformBinding } from "./product-session-registry.js";
 import { discoverWalletProviders, walletAvailabilityFromDiscovery } from "./wallet-provider-discovery.js";
 
 export const WALLET_CONNECTION_COORDINATOR_STATUS = Object.freeze({
@@ -21,6 +21,8 @@ export class WalletConnectionCoordinator {
     this.#registry = parseProductSessionRegistry(config.registry);
     if (typeof config.productId !== "string" || !this.#registry.products.some((item) => item.productId === config.productId)) fail("UNKNOWN_PRODUCT", "Wallet connection product is not registered");
     if (!(config.sessionClient instanceof RecoverableProductSessionClient) || config.sessionClient.connectionBinding.productId !== config.productId) fail("CROSS_PRODUCT_REUSE", "Wallet connection coordinator requires the exact product session client");
+    const binding = productPlatformBinding(this.#registry, config.productId, config.sessionClient.connectionBinding.platform);
+    if (binding.platform !== "web" && !new URL(binding.callback).protocol.startsWith("ynx")) fail("INVALID_CALLBACK_SCHEME", "Wallet connection callbacks must use the registered YNX application scheme");
     if ((typeof config.scope !== "object" && typeof config.scope !== "function") || config.scope === null) fail("INVALID_WALLET_SCOPE", "Wallet provider discovery scope is invalid");
     if (!Number.isSafeInteger(config.discoveryWaitMs) || config.discoveryWaitMs < 0 || config.discoveryWaitMs > 2000) fail("INVALID_WALLET_SCOPE", "Wallet provider discovery wait is invalid");
     if (typeof config.openWallet !== "function") fail("INVALID_WALLET_OPENER", "Wallet connection coordinator requires a platform opener");

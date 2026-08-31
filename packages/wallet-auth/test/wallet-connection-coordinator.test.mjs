@@ -16,19 +16,28 @@ const key = Buffer.from(p256.getPublicKey(secret, true)).toString("base64url");
 function token(value) { return createHash("sha256").update(value).digest("base64url"); }
 function memory() { const values = new Map(); return { securityLevel:"os-protected", async get(k){return values.get(k)??null}, async set(k,v){values.set(k,v)}, async remove(k){values.delete(k)}, values }; }
 function gateway(overrides = {}) { return { async walletInstalled(){return true}, async schemeRegistered(){return true}, async challenge(){throw new Error("not used")}, async complete(){throw new Error("not used")}, async introspect(){throw new Error("not used")}, async revoke(){throw new Error("not used")}, ...overrides }; }
-function client(productId = "social", gatewayValue = gateway(), storage = memory(), tokenFactory = null) {
+function client(productId = "social", gatewayValue = gateway(), storage = memory(), tokenFactory = null, registryInput = registry, platform = "web") {
   let index = 0;
-  const product = registry.products.find((item) => item.productId === productId);
-  return new RecoverableProductSessionClient({ registry, productId, platform:"web", storage, gateway:gatewayValue, device:{id:`${productId}-device-001`,key,secret:secret.toString("base64url"),scopes:[...product.scopes],purpose:`Connect ${productId} through the canonical coordinator.`},tokenFactory:tokenFactory??(()=>token(`${productId}-${index++}`)),clock:()=>NOW });
+  const product = registryInput.products.find((item) => item.productId === productId);
+  return new RecoverableProductSessionClient({ registry:registryInput, productId, platform, storage, gateway:gatewayValue, device:{id:`${productId}-device-001`,key,secret:secret.toString("base64url"),scopes:[...product.scopes],purpose:`Connect ${productId} through the canonical coordinator.`},tokenFactory:tokenFactory??(()=>token(`${productId}-${index++}`)),clock:()=>NOW });
 }
 function ynxProvider() { return {isYNXWallet:true,providerInfo:{rdns:"com.ynx.wallet.companion"},async request(){throw new Error("YNX provider request is not used for Product Session deep links")}}; }
 function metaMaskProvider(calls = []) { return {isMetaMask:true,providerInfo:{rdns:"io.metamask"},async request(input){calls.push(input);if(input.method==="eth_chainId")return"0x1917";if(input.method==="eth_requestAccounts")return["0x1234567890abcdef1234567890abcdef12345678"];throw new Error("unexpected method")}}; }
-function coordinator({productId="social",sessionClient=client(productId),scope={},openWallet=async()=>({opened:true}),openTimeoutMs=1000}={}) { return new WalletConnectionCoordinator({registry,productId,sessionClient,scope,discoveryWaitMs:0,openWallet,openTimeoutMs}); }
+function coordinator({registry: registryInput=registry,productId="social",sessionClient=client(productId),scope={},openWallet=async()=>({opened:true}),openTimeoutMs=1000}={}) { return new WalletConnectionCoordinator({registry:registryInput,productId,sessionClient,scope,discoveryWaitMs:0,openWallet,openTimeoutMs}); }
 function noYNXClient(productId) { return client(productId,gateway({async walletInstalled(){return false},async schemeRegistered(){return false}})); }
 
 test("coordinator package subpath exposes only the shared coordinator surface", () => {
   assert.equal(coordinatorSubpath.WalletConnectionCoordinator, WalletConnectionCoordinator);
   assert.equal(Object.hasOwn(coordinatorSubpath,"ProductSessionGatewayKernel"),false);
+});
+
+test("coordinator rejects a non-YNX native callback before it can open Wallet", () => {
+  const altered = structuredClone(registry);
+  const social = altered.products.find((item) => item.productId === "social");
+  social.nativeCallback = "ftp://com.ynx.social/wallet-auth/callback";
+  social.legacyCallbacks = [social.nativeCallback];
+  const sessionClient = client("social", gateway(), memory(), null, altered, "android");
+  assert.throws(() => coordinator({ registry: altered, sessionClient }), code("INVALID_CALLBACK_SCHEME"));
 });
 
 test("begin uses detected YNX environment and opens only the canonical registered route", async () => {
