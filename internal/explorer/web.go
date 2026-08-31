@@ -254,30 +254,171 @@ const indexHTML = `<!doctype html>
       .detail-row { grid-template-columns:100px minmax(0,1fr) auto; }
     }
     @media (prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } * { animation:none!important; transition:none!important; } }
+
+    /* Public-portal presentation: dense explorer hierarchy, expressed in YNX's own brand. */
+    :root { --page:#f3f5f9; --surface:#fff; --surface-alt:#f8f9fc; --ink:#151820; --muted:#747b8a; --faint:#98a0ae; --line:#e6e9f0; --line-soft:#edf0f5; --blue:#002fa7; --blue-dark:#00227b; --blue-soft:#edf2ff; --shadow:0 1px 3px rgba(24,42,82,.04); }
+    body { background:var(--page); font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif; }
+    .shell { width:min(1430px,calc(100% - 48px)); }
+    .nav { position:relative; height:64px; background:rgba(255,255,255,.96); border-bottom:1px solid var(--line); backdrop-filter:none; }
+    .nav-inner { gap:28px; }
+    .brand { gap:9px; font-size:15px; font-weight:760; letter-spacing:-.2px; }
+    .brand-logo { width:30px; height:30px; max-width:30px; }
+    .nav-links { gap:0; margin-left:0; font-size:14px; color:#242833; }
+    .nav-links a,.nav-links button { display:inline-flex; align-items:center; height:64px; padding:0 16px; border:0; border-bottom:3px solid transparent; color:inherit; background:transparent; font:inherit; white-space:nowrap; }
+    .nav-links a:hover,.nav-links a:focus-visible,.nav-links button:hover,.nav-links button:focus-visible { color:var(--blue); border-bottom-color:var(--blue); outline:0; }
+    .nav-actions { display:flex; align-items:center; gap:14px; margin-left:auto; color:#555d69; font-size:13px; white-space:nowrap; }
+    .nav-actions a { color:inherit; }
+    .nav-actions a:hover { color:var(--blue); }
+    .wallet-connect { height:36px; padding:0 14px; border:0; border-radius:5px; color:#fff; background:#151820; font-size:13px; font-weight:700; }
+    .wallet-connect:hover { background:var(--blue); }
+    .network-pill { display:none; }
+    .language-select { height:32px; padding-left:8px; border-color:var(--line); background:#fff; }
+    .more-wrap { position:relative; }
+    .nav-menu { position:relative; display:inline-flex; }
+    .more-popover { position:absolute; top:53px; right:0; display:none; width:210px; padding:8px; border:1px solid var(--line); border-radius:8px; background:#fff; box-shadow:0 14px 32px rgba(18,34,64,.12); }
+    .more-wrap.open .more-popover { display:grid; }
+    .nav-menu .more-popover { left:0; right:auto; top:53px; width:248px; }
+    .nav-menu:hover .more-popover,.nav-menu:focus-within .more-popover { display:grid; }
+    .more-popover a { height:auto; padding:10px 11px; border:0; border-radius:5px; font-size:13px; }
+    .more-popover a:hover { background:var(--blue-soft); }
+    .announcement { min-height:38px; border-bottom:1px solid #e9edf4; background:#fafbfe; }
+    .announcement .shell { display:flex; align-items:center; justify-content:center; min-height:38px; gap:9px; color:#616978; font-size:13px; }
+    .announcement strong { color:#303846; font-weight:650; }
+    .announcement a { color:var(--blue); font-weight:650; }
+    .announcement-dot { width:6px; height:6px; border-radius:50%; background:var(--blue); }
+    .hero { padding:22px 0 16px; background:var(--page); border:0; }
+    .hero-grid { display:grid; grid-template-columns:minmax(0,1fr) 390px; gap:22px; align-items:stretch; }
+    .hero-copy,.eyebrow,.hero h1 { display:none; }
+    .search { max-width:none; min-height:58px; }
+    .search input { height:58px; padding:0 144px 0 48px; border:1px solid #e5e8ee; border-radius:7px; background:#fff; box-shadow:none; font-size:16px; }
+    .search::before { content:""; position:absolute; left:19px; width:14px; height:14px; border:2px solid #7b8492; border-radius:50%; }
+    .search::after { content:""; position:absolute; left:32px; top:35px; width:7px; height:2px; background:#7b8492; transform:rotate(45deg); }
+    .search button { right:6px; height:44px; padding:0 18px; border-radius:5px; background:var(--blue); }
+    .hero-meta { display:none; }
+    .trending { display:flex; flex-wrap:wrap; align-items:center; gap:8px 20px; margin-top:12px; color:#5f6876; font-size:13px; }
+    .trending-label { color:#4b5360; font-weight:650; }
+    .trending button { padding:0; border:0; color:#5f6876; background:transparent; font:inherit; }
+    .trending button:hover { color:var(--blue); text-decoration:underline; }
+    .portal-callout { display:flex; flex-direction:column; justify-content:space-between; min-height:112px; padding:18px 20px; border:1px solid #dce5ff; border-radius:7px; color:#fff; background:var(--blue); }
+    .portal-callout p { margin:0; color:#bfd0ff; font-size:12px; letter-spacing:.04em; text-transform:uppercase; }
+    .portal-callout h2 { max-width:280px; margin:7px 0 15px; font-size:19px; line-height:1.18; letter-spacing:-.3px; }
+    .portal-callout-links { display:flex; flex-wrap:wrap; gap:9px; }
+    .portal-callout-links a { padding:6px 9px; border:1px solid rgba(255,255,255,.34); border-radius:4px; color:#fff; font-size:12px; }
+    .portal-callout-links a:hover { background:#fff; color:var(--blue); }
+    main { padding:0 0 64px; }
+    .status-bar { min-height:30px; margin-bottom:10px; padding:0 2px; }
+    .status-bar .state { padding:5px 8px; border-radius:4px; font-size:12px; }
+    .network-summary { display:grid; grid-template-columns:minmax(0,2fr) minmax(300px,.95fr); gap:22px; margin:0 0 20px; }
+    .metrics { grid-template-columns:repeat(2,minmax(0,1fr)); gap:0; margin:0; border:1px solid var(--line); border-radius:7px; background:#fff; overflow:hidden; }
+    .metric { min-height:112px; padding:21px 22px; border:0; border-right:1px solid var(--line); border-bottom:1px solid var(--line); border-radius:0; box-shadow:none; }
+    .metric:nth-child(2n) { border-right:0; }
+    .metric:nth-child(n+5) { border-bottom:0; }
+    .metric:hover { background:#fafcff; }
+    .metric-label { color:#9299a5; font-size:14px; }
+    .metric-value { margin-top:7px; color:#1d2028; font-size:25px; font-weight:750; letter-spacing:-.45px; }
+    .metric-foot { margin-top:8px; font-size:12px; }
+    .asset-overview { display:grid; grid-template-rows:auto 1fr; min-height:248px; border:1px solid var(--line); border-radius:7px; background:#fff; overflow:hidden; }
+    .asset-overview-head { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:18px 20px; border-bottom:1px solid var(--line); }
+    .asset-token { display:flex; align-items:center; gap:10px; }
+    .asset-token img { width:34px; height:34px; object-fit:contain; }
+    .asset-token strong { display:block; color:#1d2028; font-size:16px; }
+    .asset-token small,.asset-overview-head small { display:block; margin-top:3px; color:var(--muted); font-size:11px; }
+    .asset-overview-body { display:grid; grid-template-columns:1fr auto; gap:16px; padding:20px; }
+    .asset-unavailable { display:flex; align-items:flex-end; min-height:118px; padding:13px; border:1px dashed #cbd4e2; border-radius:5px; color:#697585; background:linear-gradient(180deg,#fbfcff,#f4f7ff); font-size:12px; line-height:1.45; }
+    .asset-facts { display:grid; align-content:start; gap:15px; min-width:105px; text-align:right; }
+    .asset-facts span { color:#8b94a2; font-size:11px; }
+    .asset-facts strong { display:block; margin-top:4px; color:#303846; font-size:13px; }
+    .block-ribbon { display:block; min-height:0; margin:0 0 25px; border:0; border-radius:0; background:transparent; overflow:visible; }
+    .ribbon-label { display:flex; flex-direction:row; align-items:baseline; justify-content:space-between; padding:0 0 12px; border:0; color:#1d2028; font-size:21px; font-weight:750; }
+    .ribbon-label span { display:none; }
+    .ribbon-label strong { display:flex; width:100%; align-items:center; justify-content:space-between; color:#1d2028; font-size:0; }
+    .ribbon-label strong::before { content:"Blocks"; font-size:21px; }
+    .ribbon-label strong::after { content:"More"; color:#596271; font-size:13px; font-weight:500; }
+    .block-track { gap:16px; overflow:visible; }
+    .block-chip { flex:1 1 0; min-height:128px; padding:18px 19px; border:1px solid var(--line); border-radius:7px; background:#fff; box-shadow:none; }
+    .block-chip:hover { border-color:#b9c9fb; background:#fff; }
+    .block-chip strong { color:#1c2028; font-size:17px; }
+    .block-chip span { margin-top:9px; font-size:12px; }
+    .overview { grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr); gap:16px; margin:0 0 30px; }
+    .overview .network-facts-panel { display:none; }
+    .panel { border-color:var(--line); border-radius:7px; box-shadow:none; }
+    .overview .panel-head { min-height:66px; padding:17px 20px 13px; }
+    .overview .panel-head h2 { font-size:20px; }
+    .live-list { max-height:340px; overflow:auto; }
+    .live-row { min-height:60px; padding:8px 16px; }
+    .row-icon { width:34px; height:34px; border-radius:5px; }
+    .intelligence,.section { margin-top:34px; }
+    .wallet-band { border-radius:7px; background:#161b26; }
+    .ecosystem { margin-top:34px; }
+    .ecosystem-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
+    .ecosystem-card { min-height:154px; padding:18px; border:1px solid var(--line); border-radius:7px; background:#fff; }
+    .ecosystem-card,.portal-panel,.download-item,.block-chip { transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease; }
+    .ecosystem-card:hover,.portal-panel:hover,.download-item:hover { border-color:#b8c9ff; box-shadow:0 12px 28px rgba(0,47,167,.08); transform:translateY(-2px); }
+    .ecosystem-card h3 { margin:0; font-size:16px; }
+    .product-title { display:flex; align-items:center; gap:10px; }
+    .product-mark { width:28px; height:28px; object-fit:contain; }
+    .ecosystem-card p { min-height:36px; margin:8px 0 11px; color:var(--muted); font-size:12px; line-height:1.45; }
+    .ecosystem-card .product-state { display:inline-flex; padding:4px 7px; border-radius:4px; color:#50617a; background:#eef3ff; font-size:11px; font-weight:650; }
+    .ecosystem-card a { display:block; margin-top:12px; color:var(--blue); font-size:12px; font-weight:650; }
+    .product-meta { display:grid; gap:5px; margin-top:12px; color:#5d6775; font-size:11px; line-height:1.35; }
+    .product-meta strong { color:#303846; font-weight:700; }
+    .product-actions { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:5px; margin-top:13px; }
+    .product-actions button { min-height:28px; padding:3px 4px; border:1px solid var(--line); border-radius:4px; color:#667181; background:#fff; font-size:10px; font-weight:650; }
+    .product-actions button:not(:disabled):hover { border-color:#a8bcf9; color:var(--blue); }
+    .product-actions button:disabled { cursor:not-allowed; opacity:.62; }
+    .download-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+    .download-item { padding:16px 18px; border:1px solid var(--line); border-radius:7px; background:#fff; }
+    .download-item strong,.download-item span { display:block; }
+    .download-item span { margin-top:6px; color:var(--muted); font-size:12px; }
+    .download-item button { margin-top:12px; padding:0; border:0; color:var(--blue); background:transparent; font-size:12px; font-weight:650; }
+    .route-view { padding:30px 0 64px; }
+    .route-view[hidden], main[hidden] { display:none!important; }
+    .route-head { display:flex; align-items:flex-end; justify-content:space-between; gap:20px; margin-bottom:22px; }
+    .route-head h1 { display:block; max-width:none; font-size:30px; }
+    .route-head p { max-width:680px; margin:8px 0 0; color:var(--muted); font-size:14px; line-height:1.55; }
+    .route-back { padding:8px 0; border:0; color:var(--blue); background:transparent; font-size:13px; font-weight:650; }
+    .route-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; }
+    .route-grid.two { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    .portal-panel { padding:20px; border:1px solid var(--line); border-radius:7px; background:#fff; }
+    .portal-panel h2,.portal-panel h3 { margin:0; font-size:18px; }
+    .portal-panel h3 { font-size:15px; }
+    .portal-panel p { margin:8px 0 0; color:var(--muted); font-size:13px; line-height:1.5; }
+    .portal-panel dl { margin:14px 0 0; }
+    .portal-panel dt { margin-top:10px; color:var(--muted); font-size:11px; text-transform:uppercase; }
+    .portal-panel dd { margin:4px 0 0; color:var(--ink); font-size:13px; overflow-wrap:anywhere; }
+    .portal-panel .status-note { display:inline-flex; margin-top:14px; padding:5px 8px; border-radius:4px; color:#4c5e7c; background:#eef3ff; font-size:11px; font-weight:700; }
+    .portal-list { display:grid; gap:0; margin:14px 0 0; border-top:1px solid var(--line-soft); }
+    .portal-list button,.portal-list a { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:13px 0; border:0; border-bottom:1px solid var(--line-soft); color:var(--ink); background:transparent; text-align:left; font:inherit; }
+    .portal-list button:hover,.portal-list a:hover { color:var(--blue); }
+    .portal-list small { color:var(--muted); font-size:11px; }
+    .unavailable { padding:18px; border:1px dashed #c8d0dd; border-radius:6px; color:#5d6775; background:#fafbfc; font-size:13px; line-height:1.5; }
+    .route-table { width:100%; margin-top:0; }
+    .route-table td,.route-table th { padding:13px 14px; }
+    @media (max-width:760px) { .route-grid,.route-grid.two { grid-template-columns:1fr; } .route-head { align-items:flex-start; flex-direction:column; } }
+    @media (max-width:1050px) { .nav { height:auto; } .nav-inner { flex-wrap:wrap; min-height:58px; padding:9px 0; } .nav-links { order:3; width:100%; overflow-x:auto; } .nav-links a,.nav-links button { padding:0 9px; } .hero-grid,.network-summary { grid-template-columns:1fr; } .portal-callout { min-height:0; } .ecosystem-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+    @media (max-width:760px) { .shell { width:min(100% - 24px,1430px); } .nav { height:auto; } .nav-inner { flex-wrap:wrap; min-height:58px; gap:4px 12px; padding:9px 0; } .nav-links { order:3; width:100%; overflow:auto; } .nav-links a,.nav-links button { height:38px; padding:0 10px; font-size:12px; } .nav-actions { gap:8px; } .nav-actions a { display:none; } .metrics { grid-template-columns:1fr 1fr; } .metric:nth-child(2n) { border-right:0; } .metric:nth-child(n+5) { border-bottom:0; } .block-track { overflow:auto; padding-bottom:2px; } .block-chip { flex:0 0 220px; } .overview { grid-template-columns:1fr; } .download-grid { grid-template-columns:1fr; } .ecosystem-grid { grid-template-columns:1fr; } }
   </style>
 </head>
 <body>
   <nav class="nav" aria-label="Primary navigation">
     <div class="shell nav-inner">
-      <a class="brand" href="#top" aria-label="YNX Chain Explorer home"><img class="brand-logo" src="/assets/ynx-logo.png?v=df071f54b" width="46" height="24" alt=""><span data-i18n="brand">Chain Explorer</span></a>
+      <a class="brand" href="#top" aria-label="YNX Chain Explorer home"><img class="brand-logo" src="/assets/ynx-logo.png?v=df071f54b" width="30" height="30" alt=""><span>YNX Chain</span></a>
       <div class="nav-links">
-        <a href="#network" data-i18n="navOverview">Overview</a><a href="#blocks" data-i18n="navBlockchain">Blockchain</a><a href="#accounts" data-i18n="navAccounts">Accounts</a><a href="#intelligence" data-i18n="navValidators">Validators</a><a href="#resourcesPanel" data-i18n="navResources">Resources</a>
-        <select class="language-select" id="languageSelect" aria-label="Language"><option value="en">English</option><option value="zh">中文</option></select>
-        <span class="network-pill"><span class="pulse"></span><span id="networkName">Testnet</span></span>
+        <a href="#home" data-route="home">Home</a><span class="nav-menu"><a href="#blockchain" data-route="blockchain">Blockchain</a><span class="more-popover"><a href="#blockchain" data-route="blockchain">Blocks &amp; transactions</a><a href="#blockchain" data-route="blockchain">Addresses &amp; contracts</a><a href="#blockchain" data-route="blockchain">Validators &amp; network status</a></span></span><span class="nav-menu"><a href="#tokens" data-route="tokens">Tokens</a><span class="more-popover"><a href="#tokens" data-route="tokens">YNXT native asset</a><a href="#tokens" data-route="tokens">Verified token registry</a></span></span><span class="nav-menu"><a href="#data" data-route="data">Data</a><span class="more-popover"><a href="#data" data-route="data">Network activity</a><a href="#data" data-route="data">Data source status</a></span></span><a href="#governance" data-route="governance">Governance</a><span class="nav-menu"><a href="#ecosystem" data-route="ecosystem">YNX Ecosystem</a><span class="more-popover"><a href="#ecosystem" data-route="ecosystem">Wallet &amp; permissions</a><a href="#ecosystem" data-route="ecosystem">DeFi &amp; Payments</a><a href="#ecosystem" data-route="ecosystem">Developer &amp; Infrastructure</a><a href="#ecosystem" data-route="ecosystem">AI, Social, Data &amp; Media</a><a href="#ecosystem" data-route="ecosystem">Commerce</a></span></span><span class="nav-menu"><a href="#developers" data-route="developers">Developers</a><span class="more-popover"><a href="#developers" data-route="developers">Network configuration</a><a href="#developers" data-route="developers">SDK, CLI &amp; contracts</a><a href="#developers" data-route="developers">Faucet &amp; service status</a></span></span><span class="more-wrap"><button id="moreButton" type="button" aria-expanded="false" aria-controls="morePopover">More</button><span class="more-popover" id="morePopover"><a href="#blockchain" data-route="blockchain">Validators &amp; nodes</a><a href="#blockchain" data-route="blockchain">Accounts</a><a href="#downloads" data-route="downloads">Download center</a><a href="#documentation" data-route="documentation">Documentation</a></span></span>
       </div>
+      <div class="nav-actions"><span id="networkName" hidden>Testnet</span><a href="#documentation" data-route="documentation">Docs</a><select class="language-select" id="languageSelect" aria-label="Language"><option value="en">English</option><option value="zh-CN">简体中文</option><option value="zh-TW">繁體中文</option><option value="ja">日本語</option><option value="ko">한국어</option></select><button class="wallet-connect" id="walletConnectButton" type="button">Connect Wallet</button></div>
     </div>
   </nav>
 
+  <div class="announcement" role="status"><div class="shell"><span class="announcement-dot"></span><strong>YNX 6423 Testnet portal</strong><span>Live figures appear only when the RPC and indexer agree.</span><a href="#documentation">Read the data policy</a></div></div>
+
   <header class="hero" id="top">
     <div class="shell">
-      <p class="eyebrow">YNX Testnet</p>
-      <h1 data-i18n="heroTitle">YNX Chain network explorer</h1>
-      <p class="hero-copy" data-i18n="heroCopy">Live blocks, transactions, validators, accounts, fees, and native YNXT resource economics from the public testnet.</p>
-      <form class="search" id="searchForm">
-        <input id="searchInput" aria-label="Search the chain" data-i18n-placeholder="searchPlaceholder" placeholder="Search ynx1 address, transaction, block, or EVM compatibility address" autocomplete="off" spellcheck="false">
-        <button type="submit" data-i18n="search">Search</button>
-      </form>
-      <div class="hero-meta"><span><span class="pulse"></span>RPC + indexer verified</span><span id="lastUpdated">Connecting to the network</span><span id="heroHeight">Waiting for the latest block</span></div>
+      <div class="hero-grid"><div><p class="eyebrow">YNX Testnet</p><h1 data-i18n="heroTitle">YNX Chain network explorer</h1><p class="hero-copy" data-i18n="heroCopy">Live blocks, transactions, validators, accounts, fees, and native YNXT resource economics from the public testnet.</p>
+        <form class="search" id="searchForm"><input id="searchInput" aria-label="Search the chain" data-i18n-placeholder="searchPlaceholder" placeholder="Search token, account, contract, transaction, or block" autocomplete="off" spellcheck="false"><button type="submit" data-i18n="search">Search</button></form>
+        <div class="trending"><span class="trending-label">Quick search:</span><button type="button" data-search="latest">Latest block</button><button type="button" data-search="YNXT">YNXT token</button><button type="button" data-search="6423">Block 6423</button><button type="button" data-search="0x1917">EVM network</button></div>
+        <div class="hero-meta"><span><span class="pulse"></span>RPC + indexer verified</span><span id="lastUpdated">Connecting to the network</span><span id="heroHeight">Waiting for the latest block</span></div>
+      </div><aside class="portal-callout"><div><p>Developer entry point</p><h2>Build and inspect on YNX 6423.</h2></div><div class="portal-callout-links"><a href="#developers">Developer tools</a><a href="#documentation">Documentation</a><a href="#downloads">Downloads</a></div></aside></div>
       <section class="result-panel" id="resultPanel" aria-live="polite">
         <div class="panel-head"><div><h2 id="resultTitle">Search result</h2><p id="resultSubtitle"></p></div><button class="result-close" id="resultClose" type="button">Close</button></div>
         <div id="resultBody"></div>
@@ -285,22 +426,25 @@ const indexHTML = `<!doctype html>
     </div>
   </header>
 
-  <main>
+  <main id="homeContent">
     <div class="shell">
       <div class="status-bar" id="status"><span class="state"><span class="pulse"></span><span id="statusText">Connecting</span></span><span id="statusDetail">Reading RPC and indexer state</span><span class="stream-clock" id="streamClock"><span class="stream-dot"></span><span id="streamClockText">Opening live stream</span></span><button class="refresh" id="refreshButton" type="button">Refresh</button></div>
 
-      <section class="block-ribbon" aria-label="Live finalized block stream">
-        <div class="ribbon-label"><span>FINALITY</span><strong id="finalityState">Connecting</strong></div>
-        <div class="block-track" id="blockTrack"><div class="empty">Waiting for finalized blocks...</div></div>
-      </section>
-
-      <section class="metrics" aria-label="Network metrics">
+      <section class="network-summary" aria-label="Network summary">
+      <div class="metrics" aria-label="Network metrics">
         <article class="metric"><div class="metric-label" data-i18n="latestBlock">Latest block</div><div class="metric-value skeleton" id="rpcHeight">0000</div><div class="metric-foot" id="blockAge">Waiting for block data</div></article>
         <article class="metric"><div class="metric-label" data-i18n="networkTps">Network TPS</div><div class="metric-value skeleton" id="networkTps">0.00</div><div class="metric-foot" data-i18n="indexedWindow">Latest indexed window</div></article>
         <article class="metric"><div class="metric-label" data-i18n="blockTime">Block time</div><div class="metric-value skeleton" id="blockTime">0.0s</div><div class="metric-foot" data-i18n="observedAverage">Observed average</div></article>
         <article class="metric"><div class="metric-label" data-i18n="indexedTxs">Transactions indexed</div><div class="metric-value skeleton" id="txCount">0000</div><div class="metric-foot" data-i18n="verifiedIndexer">Verified by the indexer</div></article>
         <article class="metric"><div class="metric-label" data-i18n="validators">Validators</div><div class="metric-value skeleton" id="validatorCount">00</div><div class="metric-foot" data-i18n="reportedRpc">Reported by chain RPC</div></article>
         <article class="metric"><div class="metric-label" data-i18n="indexerSync">Indexer sync</div><div class="metric-value skeleton" id="syncValue">0 blocks</div><div class="metric-foot" id="syncState">Checking consistency</div></article>
+      </div>
+      <aside class="asset-overview" aria-label="YNXT asset summary"><div class="asset-overview-head"><div class="asset-token"><img src="/assets/ynx-icon.png?v=df071f54b" width="34" height="34" alt=""><div><strong>YNXT</strong><small>Native asset · 6423</small></div></div><div><strong>Unavailable</strong><small>Market source</small></div></div><div class="asset-overview-body"><div class="asset-unavailable">Historical supply, price, market capitalization, and staking data are intentionally unavailable until an authoritative 6423 source is connected.</div><div class="asset-facts"><div><span>Supply</span><strong>Unavailable</strong></div><div><span>Staked</span><strong>Unavailable</strong></div></div></div></aside>
+      </section>
+
+      <section class="block-ribbon" aria-label="Live finalized block stream">
+        <div class="ribbon-label"><span>FINALITY</span><strong id="finalityState">Connecting</strong></div>
+        <div class="block-track" id="blockTrack"><div class="empty">Waiting for finalized blocks...</div></div>
       </section>
 
       <section class="overview" id="network">
@@ -347,10 +491,27 @@ const indexHTML = `<!doctype html>
         <div><h2>YNX-native identity comes first.</h2><p>YNX applications use the checksummed ynx1 address by default. Standard MetaMask remains available through the isolated EVM compatibility adapter for the same account.</p></div>
         <button id="metamaskButton" class="wallet-button" type="button">Open MetaMask compatibility</button>
       </section>
+
+      <section class="ecosystem" id="ecosystem">
+        <div class="section-head"><div><h2>YNX Ecosystem</h2><p>Independent products on YNX 6423. A product is never shown as publicly downloadable without matching release proof.</p></div><a class="section-link" href="#ecosystem" data-route="ecosystem">View directory</a></div>
+        <div class="ecosystem-grid">
+          <article class="ecosystem-card"><h3>YNX Wallet</h3><p>Account custody and explicit application permissions.</p><span class="product-state">Testnet candidate</span><a href="#ecosystem" data-route="ecosystem">Availability details</a></article>
+          <article class="ecosystem-card"><h3>DeFi &amp; Payments</h3><p>YNXT-native financial and payment workflows with explicit settlement boundaries.</p><span class="product-state">Source available</span><a href="#ecosystem" data-route="ecosystem">Availability details</a></article>
+          <article class="ecosystem-card"><h3>Developer</h3><p>Explorer APIs, SDKs, contract tools, faucet, and Testnet configuration.</p><span class="product-state">Testnet tools</span><a href="#developers" data-route="developers">Open developer portal</a></article>
+          <article class="ecosystem-card"><h3>AI, Social &amp; Media</h3><p>Independent YNX products with availability shown per platform and release proof.</p><span class="product-state">Mixed availability</span><a href="#ecosystem" data-route="ecosystem">Availability details</a></article>
+        </div>
+      </section>
+
+      <section class="section" id="downloads">
+        <div class="section-head"><div><h2>Download center</h2><p>Only a public, identity-matched artifact can receive an active download link.</p></div><a class="section-link" href="#downloads" data-route="downloads">Open download center</a></div>
+        <div class="download-grid"><article class="download-item"><strong>YNX Wallet extension</strong><span>Public artifact verification is unavailable.</span><button type="button" data-download="wallet-extension">Why unavailable?</button></article><article class="download-item"><strong>Mobile &amp; desktop</strong><span>Store and signing proof are not attached to this portal.</span><button type="button" data-download="native-apps">Why unavailable?</button></article><article class="download-item"><strong>CLI &amp; SDK</strong><span>Use source-bound developer materials until a signed release is verified.</span><button type="button" data-route="developers">View developer materials</button></article></div>
+      </section>
     </div>
   </main>
 
-  <footer><div class="shell footer-inner"><span>YNX Chain Explorer</span><span>Live testnet data. Mainnet launch is not claimed.</span></div></footer>
+  <section class="route-view shell" id="routeView" hidden aria-live="polite"></section>
+
+  <footer><div class="shell footer-inner"><span>YNX Chain · 6423 Testnet portal</span><span><a href="#documentation" data-route="documentation">Documentation</a> · Live testnet data. Mainnet launch is not claimed.</span></div></footer>
 
   <div class="drawer-backdrop" id="detailBackdrop" aria-hidden="true">
     <aside class="drawer" id="detailDrawer" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
@@ -362,6 +523,7 @@ const indexHTML = `<!doctype html>
 
   <script>
     const api = '';
+    const expected6423 = Object.freeze({numericChainId:6423,evmChainId:'0x1917',cosmosChainId:'ynx_6423-1',nativeSymbol:'YNXT'});
     let walletConfig = null;
     let refreshTimer = null;
     let eventSource = null;
@@ -370,17 +532,25 @@ const indexHTML = `<!doctype html>
     let previousTxHash = '';
     let lastStreamAt = 0;
     let toastTimer = null;
+    let lastDashboard = null;
+    let connectedYNXWallet = null;
     const $ = (id) => document.getElementById(id);
     const messages = {
       en:{brand:'Chain Explorer',navOverview:'Overview',navBlockchain:'Blockchain',navAccounts:'Accounts',navValidators:'Validators',navResources:'Resources',heroTitle:'YNX Chain network explorer',heroCopy:'Live blocks, transactions, validators, accounts, fees, and native YNXT resource economics from the public testnet.',searchPlaceholder:'Search ynx1 address, transaction, block, or EVM compatibility address',search:'Search',latestBlock:'Latest block',networkTps:'Network TPS',indexedWindow:'Latest indexed window',blockTime:'Block time',observedAverage:'Observed average',indexedTxs:'Transactions indexed',verifiedIndexer:'Verified by the indexer',validators:'Validators',reportedRpc:'Reported by chain RPC',indexerSync:'Indexer sync',networkDetails:'Network details',networkDetailsCopy:'Current chain configuration',latestBlocks:'Real-time blocks',latestBlocksCopy:'Five newest finalized blocks, updated live',refresh:'Refresh',latestTransactions:'Real-time transactions',latestTransactionsCopy:'Five newest indexed transfers and actions',quickFindPlaceholder:'Find hash, address, amount…',accountLeaderboard:'YNXT account leaderboard',accountLeaderboardCopy:'Ranks full-ledger balances when available; otherwise shows a clearly labeled indexed-participant sample.',operational:'Network operational',degraded:'Upstream degraded',fullySynced:'Fully synchronized',catchingUp:'Indexer catching up',noMatching:'No matching transactions in the indexed transaction feed.',rpcResponding:'RPC and indexer are responding',live:'Live'},
-      zh:{brand:'链上浏览器',navOverview:'概览',navBlockchain:'区块链',navAccounts:'账户',navValidators:'验证者',navResources:'资源',heroTitle:'YNX Chain 区块链浏览器',heroCopy:'查看公共测试网的实时区块、交易、验证者、账户、手续费与原生 YNXT 资源经济数据。',searchPlaceholder:'搜索 ynx1 地址、交易哈希、区块高度或 EVM 兼容地址',search:'搜索',latestBlock:'最新区块',networkTps:'网络 TPS',indexedWindow:'最近索引窗口',blockTime:'平均出块时间',observedAverage:'实时观测平均值',indexedTxs:'已索引交易',verifiedIndexer:'由索引器验证',validators:'验证者',reportedRpc:'由链 RPC 报告',indexerSync:'索引同步',networkDetails:'网络详情',networkDetailsCopy:'当前链配置',latestBlocks:'实时出块',latestBlocksCopy:'最新 5 个最终区块，实时更新',refresh:'刷新',latestTransactions:'实时交易',latestTransactionsCopy:'最新 5 笔已索引转账与协议操作',quickFindPlaceholder:'快速查找哈希、地址、金额…',accountLeaderboard:'YNXT 账户富豪榜',accountLeaderboardCopy:'节点支持时展示全账本余额排名；否则明确标注为已索引交易参与地址样本。',operational:'网络运行正常',degraded:'上游服务降级',fullySynced:'已完全同步',catchingUp:'索引器正在追赶',noMatching:'已索引交易流中没有匹配结果。',rpcResponding:'RPC 与索引器正在正常响应',live:'实时'}
+      'zh-CN':{brand:'链上浏览器',navOverview:'概览',navBlockchain:'区块链',navAccounts:'账户',navValidators:'验证者',navResources:'资源',heroTitle:'YNX Chain 区块链浏览器',heroCopy:'查看公共测试网的实时区块、交易、验证者、账户、手续费与原生 YNXT 资源经济数据。',searchPlaceholder:'搜索 ynx1 地址、交易哈希、区块高度或 EVM 兼容地址',search:'搜索',latestBlock:'最新区块',networkTps:'网络 TPS',indexedWindow:'最近索引窗口',blockTime:'平均出块时间',observedAverage:'实时观测平均值',indexedTxs:'已索引交易',verifiedIndexer:'由索引器验证',validators:'验证者',reportedRpc:'由链 RPC 报告',indexerSync:'索引同步',networkDetails:'网络详情',networkDetailsCopy:'当前链配置',latestBlocks:'实时出块',latestBlocksCopy:'最新 5 个最终区块，实时更新',refresh:'刷新',latestTransactions:'实时交易',latestTransactionsCopy:'最新 5 笔已索引转账与协议操作',quickFindPlaceholder:'快速查找哈希、地址、金额…',accountLeaderboard:'YNXT 账户富豪榜',accountLeaderboardCopy:'节点支持时展示全账本余额排名；否则明确标注为已索引交易参与地址样本。',operational:'网络运行正常',degraded:'上游服务降级',fullySynced:'已完全同步',catchingUp:'索引器正在追赶',noMatching:'已索引交易流中没有匹配结果。',rpcResponding:'RPC 与索引器正在正常响应',live:'实时'},
+      'zh-TW':{brand:'鏈上瀏覽器',navOverview:'概覽',navBlockchain:'區塊鏈',navAccounts:'帳戶',navValidators:'驗證者',navResources:'資源',heroTitle:'YNX Chain 區塊鏈瀏覽器',heroCopy:'檢視公開測試網的即時區塊、交易、驗證者、帳戶、手續費與原生 YNXT 資源經濟資料。',searchPlaceholder:'搜尋 ynx1 位址、交易雜湊、區塊高度或 EVM 相容位址',search:'搜尋',latestBlock:'最新區塊',networkTps:'網路 TPS',indexedWindow:'最近索引視窗',blockTime:'平均出塊時間',observedAverage:'即時觀測平均值',indexedTxs:'已索引交易',verifiedIndexer:'由索引器驗證',validators:'驗證者',reportedRpc:'由鏈 RPC 回報',indexerSync:'索引同步',networkDetails:'網路詳情',networkDetailsCopy:'目前鏈設定',latestBlocks:'即時出塊',latestBlocksCopy:'最新 5 個最終區塊，即時更新',refresh:'重新整理',latestTransactions:'即時交易',latestTransactionsCopy:'最新 5 筆已索引轉帳與協議操作',quickFindPlaceholder:'快速尋找雜湊、位址、金額…',accountLeaderboard:'YNXT 帳戶排行榜',accountLeaderboardCopy:'節點支援時顯示全帳本餘額排名；否則明確標示為已索引交易參與位址樣本。',operational:'網路運作正常',degraded:'上游服務降級',fullySynced:'已完全同步',catchingUp:'索引器正在追趕',noMatching:'已索引交易流中沒有相符結果。',rpcResponding:'RPC 與索引器正在回應',live:'即時'},
+      ja:{brand:'チェーンエクスプローラー',navOverview:'概要',navBlockchain:'ブロックチェーン',navAccounts:'アカウント',navValidators:'バリデーター',navResources:'リソース',heroTitle:'YNX Chain ネットワークエクスプローラー',heroCopy:'公開テストネットのライブブロック、トランザクション、バリデーター、アカウント、手数料、YNXT リソース経済を確認します。',searchPlaceholder:'ynx1 アドレス、トランザクション、ブロック、EVM 互換アドレスを検索',search:'検索',latestBlock:'最新ブロック',networkTps:'ネットワーク TPS',indexedWindow:'最新のインデックス範囲',blockTime:'ブロック時間',observedAverage:'観測平均',indexedTxs:'インデックス済みトランザクション',verifiedIndexer:'インデクサーで検証済み',validators:'バリデーター',reportedRpc:'チェーン RPC の報告値',indexerSync:'インデクサー同期',networkDetails:'ネットワーク詳細',networkDetailsCopy:'現在のチェーン設定',latestBlocks:'ライブブロック',latestBlocksCopy:'最新の確定済み 5 ブロックをライブ更新',refresh:'更新',latestTransactions:'ライブトランザクション',latestTransactionsCopy:'最新のインデックス済み転送と操作',quickFindPlaceholder:'ハッシュ、アドレス、金額を検索…',accountLeaderboard:'YNXT アカウントランキング',accountLeaderboardCopy:'利用可能な場合は台帳残高を順位付けし、それ以外はインデックス済み参加者サンプルを表示します。',operational:'ネットワークは稼働中',degraded:'上流サービス低下',fullySynced:'完全に同期済み',catchingUp:'インデクサーが追随中',noMatching:'インデックス済みフィードに一致するトランザクションはありません。',rpcResponding:'RPC とインデクサーが応答中',live:'ライブ'},
+      ko:{brand:'체인 탐색기',navOverview:'개요',navBlockchain:'블록체인',navAccounts:'계정',navValidators:'검증인',navResources:'리소스',heroTitle:'YNX Chain 네트워크 탐색기',heroCopy:'공개 테스트넷의 실시간 블록, 거래, 검증인, 계정, 수수료 및 YNXT 리소스 경제를 확인합니다.',searchPlaceholder:'ynx1 주소, 거래, 블록 또는 EVM 호환 주소 검색',search:'검색',latestBlock:'최신 블록',networkTps:'네트워크 TPS',indexedWindow:'최신 인덱스 범위',blockTime:'블록 시간',observedAverage:'관측 평균',indexedTxs:'인덱싱된 거래',verifiedIndexer:'인덱서 검증',validators:'검증인',reportedRpc:'체인 RPC 보고',indexerSync:'인덱서 동기화',networkDetails:'네트워크 상세',networkDetailsCopy:'현재 체인 설정',latestBlocks:'실시간 블록',latestBlocksCopy:'최근 확정 블록 5개를 실시간 갱신',refresh:'새로 고침',latestTransactions:'실시간 거래',latestTransactionsCopy:'최근 인덱싱된 전송 및 작업',quickFindPlaceholder:'해시, 주소, 금액 찾기…',accountLeaderboard:'YNXT 계정 순위',accountLeaderboardCopy:'가능하면 전체 원장 잔액 순위를, 그 외에는 인덱싱된 참여자 표본을 표시합니다.',operational:'네트워크 정상',degraded:'업스트림 서비스 저하',fullySynced:'완전히 동기화됨',catchingUp:'인덱서 동기화 중',noMatching:'인덱싱된 거래 피드에서 일치 항목이 없습니다.',rpcResponding:'RPC와 인덱서가 응답 중',live:'실시간'}
     };
-    let language = localStorage.getItem('ynx-explorer-language') || (navigator.language.toLowerCase().startsWith('zh') ? 'zh' : 'en');
+    const supportedLanguages = ['en','zh-CN','zh-TW','ja','ko'];
+    const detectLanguage = () => { const preferred = navigator.language || 'en'; if (preferred.toLowerCase().startsWith('zh-tw') || preferred.toLowerCase().startsWith('zh-hk')) return 'zh-TW'; if (preferred.toLowerCase().startsWith('zh')) return 'zh-CN'; if (preferred.toLowerCase().startsWith('ja')) return 'ja'; if (preferred.toLowerCase().startsWith('ko')) return 'ko'; return 'en'; };
+    let language = supportedLanguages.includes(localStorage.getItem('ynx-explorer-language')) ? localStorage.getItem('ynx-explorer-language') : detectLanguage();
     const t = key => messages[language]?.[key] || messages.en[key] || key;
+    const isChinese = () => language.startsWith('zh');
     function applyLanguage(nextLanguage) {
       language = messages[nextLanguage] ? nextLanguage : 'en';
       localStorage.setItem('ynx-explorer-language',language);
-      document.documentElement.lang = language === 'zh' ? 'zh-CN' : 'en';
+      document.documentElement.lang = language;
       document.querySelectorAll('[data-i18n]').forEach(node => { node.textContent = t(node.dataset.i18n); });
       document.querySelectorAll('[data-i18n-placeholder]').forEach(node => { node.placeholder = t(node.dataset.i18nPlaceholder); });
       $('languageSelect').value = language;
@@ -388,30 +558,42 @@ const indexHTML = `<!doctype html>
     }
     const escapeHTML = (value) => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const compact = (value, start = 10, end = 7) => { const text = String(value ?? ''); return text.length > start + end + 3 ? text.slice(0,start) + '...' + text.slice(-end) : text || '--'; };
-    const number = (value) => new Intl.NumberFormat('en-US').format(Number(value || 0));
+    const number = (value) => new Intl.NumberFormat(language === 'en' ? 'en-US' : language).format(Number(value || 0));
     const relativeTime = (value) => {
       const seconds = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 1000));
       if (!Number.isFinite(seconds)) return 'Time unavailable';
-      if (language === 'zh') {
+      if (language === 'zh-CN') {
         if (seconds < 60) return seconds + ' 秒前';
         if (seconds < 3600) return Math.floor(seconds / 60) + ' 分钟前';
         return Math.floor(seconds / 3600) + ' 小时前';
       }
+      if (language === 'zh-TW') { if (seconds < 60) return seconds + ' 秒前'; if (seconds < 3600) return Math.floor(seconds / 60) + ' 分鐘前'; return Math.floor(seconds / 3600) + ' 小時前'; }
+      if (language === 'ja') { if (seconds < 60) return seconds + ' 秒前'; if (seconds < 3600) return Math.floor(seconds / 60) + ' 分前'; return Math.floor(seconds / 3600) + ' 時間前'; }
+      if (language === 'ko') { if (seconds < 60) return seconds + '초 전'; if (seconds < 3600) return Math.floor(seconds / 60) + '분 전'; return Math.floor(seconds / 3600) + '시간 전'; }
       if (seconds < 60) return seconds + ' seconds ago';
       if (seconds < 3600) return Math.floor(seconds / 60) + ' minutes ago';
       return Math.floor(seconds / 3600) + ' hours ago';
     };
-    const exactTime = (value) => { const date = new Date(value); return Number.isNaN(date.getTime()) ? '--' : date.toLocaleString([], {dateStyle:'medium',timeStyle:'medium'}); };
+    const exactTime = (value) => { const date = new Date(value); return Number.isNaN(date.getTime()) ? '--' : date.toLocaleString(language === 'en' ? 'en-US' : language, {dateStyle:'medium',timeStyle:'medium'}); };
     async function get(path) {
       const response = await fetch(api + path, {headers:{accept:'application/json'}});
       if (!response.ok) { let detail = ''; try { detail = (await response.json()).error || ''; } catch (_) {} throw new Error(detail || path + ' returned ' + response.status); }
       return response.json();
     }
+    function assert6423Snapshot(summary) {
+      const actualNumeric = Number(summary?.network?.chainId);
+      const actualEVM = String(summary?.wallet?.chainIdHex || '').toLowerCase();
+      const actualSymbol = String(summary?.nativeSymbol || summary?.wallet?.nativeSymbol || '').toUpperCase();
+      if (actualNumeric !== expected6423.numericChainId || actualEVM !== expected6423.evmChainId || actualSymbol !== expected6423.nativeSymbol) {
+        throw new Error('The data source did not prove the required 6423 network identity.');
+      }
+      return summary;
+    }
     function removeSkeletons() { document.querySelectorAll('.skeleton').forEach(node => node.classList.remove('skeleton')); }
     function blockRow(block,index = 0) {
       const txs = (block.transactions || []).length;
       const isNew = index === 0 && previousHeight && Number(block.height) > previousHeight;
-      return '<button class="live-row block-live-row' + (txs === 0 ? ' empty-block-row' : '') + (isNew ? ' new-row' : '') + '" type="button" data-query="' + escapeHTML(block.height) + '"><span class="row-icon">BK</span><span><span class="row-title"><span class="link mono">#' + escapeHTML(number(block.height)) + '</span><span class="type-tag">' + (txs === 0 ? (language === 'zh' ? '空区块' : 'Empty') : (language === 'zh' ? '已最终确定' : 'Finalized')) + '</span></span><span class="row-subtitle"><span class="mono hash" title="' + escapeHTML(block.hash) + '">' + escapeHTML(compact(block.hash,14,9)) + '</span></span></span><span class="row-side"><strong>' + txs + (language === 'zh' ? ' 笔交易' : (txs === 1 ? ' tx' : ' txs')) + '</strong><span title="' + escapeHTML(exactTime(block.time)) + '">' + escapeHTML(relativeTime(block.time)) + '</span></span></button>';
+      return '<button class="live-row block-live-row' + (txs === 0 ? ' empty-block-row' : '') + (isNew ? ' new-row' : '') + '" type="button" data-query="' + escapeHTML(block.height) + '"><span class="row-icon">BK</span><span><span class="row-title"><span class="link mono">#' + escapeHTML(number(block.height)) + '</span><span class="type-tag">' + (txs === 0 ? (isChinese() ? '空区块' : 'Empty') : (isChinese() ? '已最终确定' : 'Finalized')) + '</span></span><span class="row-subtitle"><span class="mono hash" title="' + escapeHTML(block.hash) + '">' + escapeHTML(compact(block.hash,14,9)) + '</span></span></span><span class="row-side"><strong>' + txs + (isChinese() ? ' 笔交易' : (txs === 1 ? ' tx' : ' txs')) + '</strong><span title="' + escapeHTML(exactTime(block.time)) + '">' + escapeHTML(relativeTime(block.time)) + '</span></span></button>';
     }
     function txRow(tx,index = 0) {
       const isNew = index === 0 && previousTxHash && tx.hash !== previousTxHash;
@@ -438,10 +620,10 @@ const indexHTML = `<!doctype html>
     }
     function renderBlockTrack(blocks,incomingHeight) {
       $('finalityState').textContent = blocks.length ? 'Block #' + number(blocks[0].height) : 'Waiting';
-      $('blockTrack').innerHTML = blocks.slice(0,8).map((block,index) => {
+      $('blockTrack').innerHTML = blocks.slice(0,4).map((block,index) => {
         const arrived = index === 0 && previousHeight && incomingHeight > previousHeight;
         const txs = (block.transactions || []).length;
-        return '<button class="block-chip' + (txs === 0 ? ' empty-block' : '') + (arrived ? ' new' : '') + '" type="button" data-query="' + escapeHTML(block.height) + '"><strong class="mono">#' + escapeHTML(number(block.height)) + '</strong><span>' + (txs === 0 ? (language === 'zh' ? '空区块' : 'empty') : txs + (language === 'zh' ? ' 笔' : (txs === 1 ? ' tx' : ' txs'))) + ' / ' + escapeHTML(relativeTime(block.time)) + '</span></button>';
+        return '<button class="block-chip' + (txs === 0 ? ' empty-block' : '') + (arrived ? ' new' : '') + '" type="button" data-query="' + escapeHTML(block.height) + '"><strong class="mono">#' + escapeHTML(number(block.height)) + '</strong><span>' + (txs === 0 ? (isChinese() ? '空区块' : 'empty') : txs + (isChinese() ? ' 笔' : (txs === 1 ? ' tx' : ' txs'))) + ' / ' + escapeHTML(relativeTime(block.time)) + '</span></button>';
       }).join('') || '<div class="empty">No finalized blocks yet.</div>';
     }
     function renderIntelligence(validatorData, resources) {
@@ -468,8 +650,8 @@ const indexHTML = `<!doctype html>
     function renderAccounts(leaderboard) {
       const accounts = leaderboard?.accounts || [];
       const observed = leaderboard?.truthfulStatus === 'observed-indexed-participant-account-ranking';
-      $('accountTotal').textContent = number(leaderboard?.total || accounts.length) + (observed ? (language === 'zh' ? ' 个已观测账户 / 展示前 ' : ' observed accounts / top ') : (language === 'zh' ? ' 个全账本账户 / 展示前 ' : ' public accounts / top ')) + number(accounts.length);
-      $('accountsBody').innerHTML = accounts.length ? accounts.map((account,index) => '<tr data-query="' + escapeHTML(account.address) + '"><td><strong>#' + (index + 1) + '</strong></td><td><span class="link mono hash" title="' + escapeHTML(account.address) + '">' + escapeHTML(account.address) + '</span></td><td class="amount">' + escapeHTML(number(account.balance)) + ' YNXT</td><td>' + escapeHTML(number(account.staked)) + ' YNXT</td><td class="mono">' + escapeHTML(number(account.nonce)) + '</td></tr>').join('') : '<tr><td colspan="5" class="empty">' + (language === 'zh' ? '暂未发现可验证的已索引账户余额。' : 'No verifiable indexed account balances are available yet.') + '</td></tr>';
+      $('accountTotal').textContent = number(leaderboard?.total || accounts.length) + (observed ? (isChinese() ? ' 个已观测账户 / 展示前 ' : ' observed accounts / top ') : (isChinese() ? ' 个全账本账户 / 展示前 ' : ' public accounts / top ')) + number(accounts.length);
+      $('accountsBody').innerHTML = accounts.length ? accounts.map((account,index) => '<tr data-query="' + escapeHTML(account.address) + '"><td><strong>#' + (index + 1) + '</strong></td><td><span class="link mono hash" title="' + escapeHTML(account.address) + '">' + escapeHTML(account.address) + '</span></td><td class="amount">' + escapeHTML(number(account.balance)) + ' YNXT</td><td>' + escapeHTML(number(account.staked)) + ' YNXT</td><td class="mono">' + escapeHTML(number(account.nonce)) + '</td></tr>').join('') : '<tr><td colspan="5" class="empty">' + (isChinese() ? '暂未发现可验证的已索引账户余额。' : 'No verifiable indexed account balances are available yet.') + '</td></tr>';
       bindQueries();
     }
     function bindQueries() {
@@ -477,6 +659,7 @@ const indexHTML = `<!doctype html>
       document.querySelectorAll('[data-account]').forEach(node => node.onclick = event => { event.preventDefault(); event.stopPropagation(); search(node.dataset.account); });
     }
     function renderDashboard(summary, blocks, transactions, validatorData, resources, source = 'Live stream') {
+      lastDashboard = {summary, blocks, transactions, validatorData, resources, source};
       const windowStats = calculateWindow(blocks);
       const incomingHeight = Number(summary.rpcHeight || 0);
       walletConfig = summary.wallet;
@@ -487,7 +670,7 @@ const indexHTML = `<!doctype html>
       $('blockTime').textContent = windowStats.blockTime.toFixed(1) + 's';
       $('txCount').textContent = number(summary.indexedTxCount);
       $('validatorCount').textContent = number(summary.validatorCount);
-      $('syncValue').textContent = number(summary.syncLagBlocks) + (language === 'zh' ? ' 个区块' : (summary.syncLagBlocks === 1 ? ' block' : ' blocks'));
+      $('syncValue').textContent = number(summary.syncLagBlocks) + (isChinese() ? ' 个区块' : (summary.syncLagBlocks === 1 ? ' block' : ' blocks'));
       $('syncState').textContent = summary.syncLagBlocks === 0 ? t('fullySynced') : t('catchingUp');
       $('syncState').className = 'metric-foot' + (summary.syncLagBlocks === 0 ? ' good' : '');
       $('blockAge').textContent = relativeTime(summary.latestBlockTime);
@@ -499,14 +682,14 @@ const indexHTML = `<!doctype html>
       $('truthState').textContent = summary.truthfulStatus === 'rpc-and-indexer-backed' ? 'RPC + Indexer' : summary.truthfulStatus;
       $('lastUpdated').textContent = 'Updated ' + new Date(summary.lastCheckedAt).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit',second:'2-digit'});
       $('heroHeight').textContent = 'Block #' + number(summary.rpcHeight) + ' / ' + number(summary.syncLagBlocks) + '-block index lag';
-      document.title = 'Block ' + number(summary.rpcHeight) + ' | YNX Chain Explorer';
+      if (!location.hash || location.hash === '#home') document.title = 'Block ' + number(summary.rpcHeight) + ' | YNX Chain Explorer';
       $('blocksBody').innerHTML = blocks.length ? blocks.slice(0,5).map(blockRow).join('') : '<div class="empty">No indexed blocks yet.</div>';
       renderTransactions();
       renderBlockTrack(blocks,incomingHeight);
       renderIntelligence(validatorData, resources);
       bindQueries();
       $('statusText').textContent = summary.ok ? t('operational') : t('degraded');
-      $('statusDetail').textContent = summary.ok ? source + ' / ' + t('rpcResponding') : (summary.indexerError || (language === 'zh' ? '一个或多个上游服务已降级' : 'One or more upstream services are degraded'));
+      $('statusDetail').textContent = summary.ok ? source + ' / ' + t('rpcResponding') : (summary.indexerError || (isChinese() ? '一个或多个上游服务已降级' : 'One or more upstream services are degraded'));
       $('status').className = 'status-bar' + (summary.ok ? '' : ' warn');
       if (incomingHeight > previousHeight) {
         const metric = $('rpcHeight').closest('.metric');
@@ -529,7 +712,7 @@ const indexHTML = `<!doctype html>
         get('/api/resource-market/analytics').catch(() => ({})),
         get('/api/accounts?limit=10').catch(() => ({accounts:[],total:0}))
       ]);
-      renderDashboard(summary, blockData.blocks, txData.transactions, validators, resources, 'Manual snapshot');
+      renderDashboard(assert6423Snapshot(summary), blockData.blocks, txData.transactions, validators, resources, 'Manual snapshot');
       renderAccounts(leaderboard);
     }
     function startFallbackPolling() {
@@ -552,7 +735,7 @@ const indexHTML = `<!doctype html>
         try {
           const snapshot = JSON.parse(event.data);
           lastStreamAt = Date.now();
-          renderDashboard(snapshot.summary, snapshot.blocks || [], snapshot.transactions || [], snapshot.validators, snapshot.resources, 'Live SSE');
+          renderDashboard(assert6423Snapshot(snapshot.summary), snapshot.blocks || [], snapshot.transactions || [], snapshot.validators, snapshot.resources, 'Live SSE');
           stopFallbackPolling();
         } catch (error) { showLoadError(error); }
       });
@@ -621,6 +804,64 @@ const indexHTML = `<!doctype html>
       window.clearTimeout(toastTimer);
       toastTimer = window.setTimeout(() => $('toast').classList.remove('visible'),1500);
     }
+    const portalPanel = (title,body,note = '') => '<article class="portal-panel"><h2>' + escapeHTML(title) + '</h2>' + body + (note ? '<span class="status-note">' + escapeHTML(note) + '</span>' : '') + '</article>';
+    const routeHead = (title,copy) => '<div class="route-head"><div><button class="route-back" type="button" data-route="home">← Back to portal</button><h1>' + escapeHTML(title) + '</h1><p>' + escapeHTML(copy) + '</p></div></div>';
+    const unavailable = message => '<div class="unavailable">' + escapeHTML(message) + '</div>';
+    const facts = rows => '<dl>' + rows.map(([key,value]) => '<dt>' + escapeHTML(key) + '</dt><dd class="mono">' + escapeHTML(value) + '</dd>').join('') + '</dl>';
+    function portalTable(items,columns) {
+      if (!items?.length) return unavailable('No live records are available from the current 6423 source.');
+      return '<div class="table-shell"><table class="route-table"><thead><tr>' + columns.map(column => '<th>' + escapeHTML(column.label) + '</th>').join('') + '</tr></thead><tbody>' + items.map(item => '<tr>' + columns.map(column => '<td class="mono">' + escapeHTML(String(column.value(item) ?? '—')) + '</td>').join('') + '</tr>').join('') + '</tbody></table></div>';
+    }
+    function showPortalNotice(message) { $('resultPanel').classList.add('visible'); $('resultTitle').textContent = 'Availability'; $('resultSubtitle').textContent = 'Evidence-gated portal control'; $('resultBody').innerHTML = '<div class="empty">' + escapeHTML(message) + '</div>'; }
+    function showWalletSession() {
+      if (!connectedYNXWallet) return;
+      $('resultPanel').classList.add('visible');
+      $('resultTitle').textContent = 'YNX Wallet connected';
+      $('resultSubtitle').textContent = 'EIP-6963 / EIP-1193 session — no signature or transaction was requested';
+      $('resultBody').innerHTML = '<dl class="detail-body"><div class="detail-row"><dt>Account</dt><dd class="mono">' + escapeHTML(connectedYNXWallet.account) + '</dd></div><div class="detail-row"><dt>Network</dt><dd class="mono">6423 / 0x1917 / ynx_6423-1</dd></div></dl><div class="portal-list"><button type="button" data-wallet-session="switch">Switch account <small>Requests the wallet chooser</small></button><button type="button" data-wallet-session="disconnect">Disconnect <small>Clears this portal session only</small></button></div>';
+    }
+    function renderPortalRoute(route) {
+      if (!route || route === 'home') { $('homeContent').hidden = false; $('routeView').hidden = true; document.title = 'YNX Chain | 6423 Testnet portal'; return; }
+      $('homeContent').hidden = true;
+      const view = $('routeView');
+      view.hidden = false;
+      const snapshot = lastDashboard;
+      const summary = snapshot?.summary;
+      const blocks = snapshot?.blocks || [];
+      const txs = snapshot?.transactions || [];
+      const set = (title,copy,body) => { view.innerHTML = routeHead(title,copy) + body; document.title = title + ' | YNX Chain'; };
+      const chainFacts = summary ? [['Cosmos chain ID','ynx_6423-1'],['Numeric chain ID',String(summary.network?.chainId || 6423)],['EVM chain ID',String(summary.wallet?.chainIdHex || '0x1917')],['Native asset',String(summary.nativeSymbol || 'YNXT')],['Data source',String(summary.truthfulStatus || 'unavailable')]] : [];
+      if (route === 'blockchain') { set('Blockchain','Live 6423 records come from the Explorer API. Search opens an in-place detail drawer and never creates a blank tab.','<div class="route-grid two">' + portalPanel('Network status',summary ? facts(chainFacts) : unavailable('The 6423 RPC and indexer have not returned a verified snapshot yet.'),summary?.ok ? 'RPC + indexer backed' : 'Degraded or unavailable') + portalPanel('Latest blocks',portalTable(blocks.slice(0,12),[{label:'Height',value:b => '#' + number(b.height)},{label:'Finalized at',value:b => exactTime(b.time)},{label:'Transactions',value:b => (b.transactions || []).length},{label:'Hash',value:b => compact(b.hash,12,8)}])) + '</div><section class="section">' + portalPanel('Latest transactions',portalTable(txs.slice(0,12),[{label:'Hash',value:t => compact(t.hash,12,8)},{label:'Type',value:t => t.type},{label:'From',value:t => compact(t.from,10,7)},{label:'To',value:t => compact(t.to,10,7)},{label:'Amount',value:t => number(t.amount) + ' YNXT'}])) + '</section>'); return; }
+      if (route === 'tokens') { const body = summary ? '<p>YNXT is the native 6423 asset. Price, market cap, holders, and liquidity remain unavailable until an authoritative source is connected.</p>' + facts([['Symbol','YNXT'],['Network','ynx_6423-1 / 6423 / 0x1917'],['Decimals',String(summary.wallet?.decimals ?? '—')],['Source','native-token-from-rpc-status']]) : unavailable('Token metadata requires a verified 6423 RPC snapshot.'); set('Tokens','Only verified token metadata from a current 6423 source is displayed. This portal does not invent market data.','<div class="route-grid two">' + portalPanel('YNXT',body,'Native token') + portalPanel('Verified token registry',unavailable('No verified public token-list endpoint is configured for this portal.'),'Unavailable') + '</div>'); return; }
+      if (route === 'data') { const rows = summary ? [['Latest block',number(summary.rpcHeight)],['Indexed transactions',number(summary.indexedTxCount)],['Validators',number(summary.validatorCount)],['Indexer lag',number(summary.syncLagBlocks) + ' blocks'],['Snapshot time',exactTime(summary.lastCheckedAt)]] : []; set('Data','Current snapshot metrics are available below. Historical charts remain empty until a time-series API is verified.','<div class="route-grid two">' + portalPanel('Current 6423 snapshot',facts(rows),'Live source') + portalPanel('Historical charts',unavailable('No authenticated historical time-series endpoint is available. Blocks, transactions, active addresses, gas, node health, and token-activity charts are fail-closed.')) + '</div>'); return; }
+      if (route === 'governance') { set('Governance','Proposals, votes, and parameters appear only after the portal can read a verified 6423 governance source.','<div class="route-grid two">' + portalPanel('Governance proposals',unavailable('A 6423 governance endpoint is not available from the current Explorer service.'),'Unavailable') + portalPanel('Voting & parameters',unavailable('No verified on-chain voting or parameter snapshot is available.'),'Unavailable') + '</div>'); return; }
+      if (route === 'ecosystem') {
+        const products = [
+          ['Wallet','Custody, DApp permissions, and account identity.','Testnet candidate','Browser extension and native packages: unavailable'],
+          ['DeFi','Financial applications with product-scoped availability.','Source evidence only','Public route and settlement proof: unavailable'],
+          ['Payments','YNXT payment and merchant workflows.','Source evidence only','Public payment release: unavailable'],
+          ['Developer','Explorer, SDK, contract tools, faucet, and Testnet setup.','Testnet tools','Use the verified 6423 configuration'],
+          ['AI','Permissioned AI product workflows.','Provider availability unverified','Public runtime proof: unavailable'],
+          ['Social','Independent social application.','Public release unverified','iOS, Android, web proof: unavailable'],
+          ['Data','Data Fabric and trustworthy data services.','Integration status required','Control-plane integration: unavailable'],
+          ['Media','Music and Video products.','Public release unverified','Installed-runtime proof: unavailable'],
+          ['Commerce','Shop and seller operations.','Settlement proof required','Public storefront proof: unavailable'],
+          ['Infrastructure','Validator, RPC, indexer, and monitor surfaces.','Live data varies by endpoint','Current Explorer data is shown separately']
+        ];
+        const cards = products.map(([name,copy,state,platform]) => '<article class="ecosystem-card"><div class="product-title"><img class="product-mark" src="/assets/ynx-icon.png?v=df071f54b" width="28" height="28" alt="YNX identity mark"><h3>' + escapeHTML(name) + '</h3></div><p>' + escapeHTML(copy) + '</p><span class="product-state">' + escapeHTML(state) + '</span><div class="product-meta"><span><strong>6423 support:</strong> ' + (name === 'Developer' || name === 'Infrastructure' ? 'Live endpoint dependent' : 'Not publicly verified') + '</span><span><strong>Platforms:</strong> ' + escapeHTML(platform) + '</span></div><div class="product-actions"><button type="button" disabled aria-disabled="true">Open</button><button type="button" disabled aria-disabled="true">Docs</button><button type="button" disabled aria-disabled="true">Download</button><button type="button" data-portal-note="' + encodeURIComponent(name + ': no verified public product link, documentation route, or download artifact is configured.') + '">Status</button></div></article>').join('');
+        set('YNX Ecosystem','Each product remains independent. The official YNX identity mark represents categories whose own public icon or release proof is not yet verified. Open, documentation, and download controls are disabled until that evidence exists.','<div class="ecosystem-grid">' + cards + '</div>'); return;
+      }
+      if (route === 'developers') { const rpc = summary?.wallet?.rpcUrls?.[0] || 'Unavailable'; const explorer = summary?.wallet?.blockExplorerUrls?.[0] || 'Unavailable'; set('Developers','Copy exact Testnet configuration only after the live source passes its 6423 identity check.','<div class="route-grid two">' + portalPanel('YNX 6423 configuration',facts([['Cosmos chain ID','ynx_6423-1'],['Numeric chain ID','6423'],['EVM chain ID','0x1917'],['Native asset','YNXT'],['RPC endpoint',rpc],['Explorer endpoint',explorer]]),'Testnet only') + portalPanel('Tools & documentation','<div class="portal-list"><button type="button" data-portal-note="Public API documentation URL is not verified for this portal.">API reference <small>Unavailable</small></button><button type="button" data-portal-note="SDK artifact identity is not verified for download.">SDK & CLI <small>Source-bound only</small></button><button type="button" data-portal-note="Faucet availability must be verified independently before opening.">Faucet <small>Check status first</small></button></div>') + '</div>'); return; }
+      if (route === 'downloads') {
+        const products = [
+          ['YNX Wallet browser extension','Browser extension','Unavailable'],['YNX Wallet desktop','macOS / Windows / Linux','Unavailable'],['YNX Wallet mobile','Android / iOS','Unavailable'],['Developer CLI and SDK','Developer tooling','Unavailable'],['YNX web applications','Web / PWA','Unavailable'],['Other ecosystem applications','Product-specific platforms','Unavailable']
+        ];
+        const items = products.map(([name,platform,status]) => '<article class="download-item"><strong>' + escapeHTML(name) + '</strong><span><strong>Platform:</strong> ' + escapeHTML(platform) + '</span><span><strong>Version:</strong> Unavailable</span><span><strong>Size:</strong> Unavailable</span><span><strong>SHA-256:</strong> Unavailable</span><span><strong>Signing:</strong> Unavailable</span><span><strong>Source / published:</strong> Unavailable</span><span><strong>Install:</strong> Public artifact verification is required before instructions are shown.</span><span class="product-state">' + escapeHTML(status) + '</span><button type="button" disabled aria-disabled="true">Download unavailable</button></article>').join('');
+        set('Download center','Every download needs one verified public URL, byte-for-byte artifact, full SHA-256, signing status, source identity, publication time, and install instructions. None is fabricated here.','<div class="download-grid">' + items + '</div>'); return;
+      }
+      if (route === 'documentation') { set('Documentation','This portal keeps routes and release claims conservative: source documentation is not presented as a public production endpoint.','<div class="route-grid two">' + portalPanel('Using this portal','<div class="portal-list"><a href="#blockchain" data-route="blockchain">Search and browse blocks, transactions, and accounts</a><a href="#developers" data-route="developers">Use verified Testnet identifiers</a><a href="#downloads" data-route="downloads">Review download evidence requirements</a></div>') + portalPanel('Status policy',unavailable('A product, download, or service with no verified public evidence is shown as unavailable instead of being linked to a placeholder.')) + '</div>'); return; }
+      renderPortalRoute('home');
+    }
     async function search(query) {
       const q = String(query || $('searchInput').value).trim();
       if (!q) return;
@@ -675,10 +916,45 @@ const indexHTML = `<!doctype html>
         $('resultPanel').classList.add('visible'); $('resultTitle').textContent = 'Compatibility request sent'; $('resultSubtitle').textContent = 'Confirm the YNX Testnet EVM adapter in MetaMask.'; $('resultBody').innerHTML = '<div class="empty">YNX-native applications continue to identify this account with its ynx1 address.</div>';
       } catch (error) { $('resultPanel').classList.add('visible'); $('resultTitle').textContent = 'Wallet request declined'; $('resultBody').innerHTML = '<div class="result-error">' + escapeHTML(error.message) + '</div>'; }
     };
-    function showLoadError(error) { $('statusText').textContent = 'Explorer unavailable'; $('statusDetail').textContent = error.message; $('status').className = 'status-bar warn'; $('refreshButton').disabled = false; removeSkeletons(); }
+    const walletProviders = [];
+    window.addEventListener('eip6963:announceProvider', event => {
+      const detail = event.detail;
+      if (detail?.provider && !walletProviders.some(item => item.provider === detail.provider)) walletProviders.push(detail);
+    });
+    window.dispatchEvent(new Event('eip6963:requestProvider'));
+    $('walletConnectButton').onclick = async () => {
+      if (connectedYNXWallet) { showWalletSession(); return; }
+      window.dispatchEvent(new Event('eip6963:requestProvider'));
+      const ynx = walletProviders.find(item => item.provider?.isYNXWallet === true && item.provider?.isMetaMask !== true) || (window.ethereum?.isYNXWallet === true && window.ethereum?.isMetaMask !== true ? {provider:window.ethereum} : null);
+      if (!ynx) { showPortalNotice('YNX Wallet provider is not detected. No account request, local session, or fallback to MetaMask was made.'); return; }
+      try {
+        const accounts = await ynx.provider.request({method:'eth_requestAccounts'});
+        const account = Array.isArray(accounts) && accounts[0] ? accounts[0] : 'No account returned';
+        connectedYNXWallet = {provider:ynx.provider,account};
+        $('walletConnectButton').textContent = compact(account,6,4);
+        showWalletSession();
+      } catch (error) { showPortalNotice('YNX Wallet connection was not approved: ' + (error?.message || 'request declined')); }
+    };
+    $('moreButton').onclick = () => { const wrap = $('moreButton').closest('.more-wrap'); const open = !wrap.classList.contains('open'); wrap.classList.toggle('open',open); $('moreButton').setAttribute('aria-expanded',String(open)); };
+    document.addEventListener('click',async event => {
+      const route = event.target.closest('[data-route]');
+      if (route) { event.preventDefault(); const next = route.dataset.route; if (location.hash.slice(1) !== next) location.hash = next; else renderPortalRoute(next); $('moreButton').closest('.more-wrap').classList.remove('open'); $('moreButton').setAttribute('aria-expanded','false'); return; }
+      const quick = event.target.closest('[data-search]');
+      if (quick) { const value = quick.dataset.search === 'latest' ? String(lastDashboard?.summary?.rpcHeight || '') : quick.dataset.search; search(value); return; }
+      const note = event.target.closest('[data-portal-note]');
+      if (note) { showPortalNotice(decodeURIComponent(note.dataset.portalNote)); return; }
+      const download = event.target.closest('[data-download]');
+      if (download) { showPortalNotice('No publicly verifiable download artifact is configured for ' + download.dataset.download + '.'); }
+      const walletAction = event.target.closest('[data-wallet-session]');
+      if (walletAction?.dataset.walletSession === 'disconnect') { connectedYNXWallet = null; $('walletConnectButton').textContent = 'Connect Wallet'; showPortalNotice('The YNX Wallet account was cleared from this portal. No wallet permission, signature, or transaction was changed.'); return; }
+      if (walletAction?.dataset.walletSession === 'switch') { if (!connectedYNXWallet?.provider) return; try { const accounts = await connectedYNXWallet.provider.request({method:'eth_requestAccounts'}); const account = Array.isArray(accounts) && accounts[0] ? accounts[0] : connectedYNXWallet.account; connectedYNXWallet.account = account; $('walletConnectButton').textContent = compact(account,6,4); showWalletSession(); } catch (error) { showPortalNotice('YNX Wallet account selection was not approved: ' + (error?.message || 'request declined')); } }
+    });
+    window.addEventListener('hashchange',() => renderPortalRoute(location.hash.slice(1) || 'home'));
+    function showLoadError() { $('statusText').textContent = 'Explorer unavailable'; $('statusDetail').textContent = 'The verified 6423 data source is unavailable. Refresh to retry.'; $('status').className = 'status-bar warn'; $('refreshButton').disabled = false; removeSkeletons(); }
     applyLanguage(language);
     load().catch(showLoadError);
     connectLiveStream();
+    renderPortalRoute(location.hash.slice(1) || 'home');
     window.setInterval(() => {
       if (!lastStreamAt) return;
       const age = Math.floor((Date.now() - lastStreamAt) / 1000);

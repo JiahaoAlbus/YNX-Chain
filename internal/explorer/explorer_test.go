@@ -155,9 +155,24 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 		"EVM compatibility address",
 		"tx.sponsor",
 		"sponsorPoolId",
+		"expected6423",
+		"zh-CN",
+		"zh-TW",
+		"option value=\"ja\"",
+		"option value=\"ko\"",
+		"YNX Ecosystem",
+		"product-actions",
+		"Download center",
+		"SHA-256",
+		"data-wallet-session",
 	} {
 		if !strings.Contains(html, marker) {
 			t.Fatalf("explorer web is missing live interaction marker %q", marker)
+		}
+	}
+	for _, forbidden := range []string{"0x238e", "ynx_9102-1", "chain ID 9102"} {
+		if strings.Contains(strings.ToLower(html), strings.ToLower(forbidden)) {
+			t.Fatalf("explorer web contains retired network identity %q", forbidden)
 		}
 	}
 	logoResponse, err := http.Get(server.URL + "/assets/ynx-logo.png")
