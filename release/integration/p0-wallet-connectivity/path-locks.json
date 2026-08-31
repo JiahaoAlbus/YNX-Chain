@@ -3621,6 +3621,31 @@
         "no remote temporary file cleanup deploy rollback lifecycle switch or product write occurred",
         "P0-320 is consumed and nonreusable; Heavy and Creator readback locks are released"
       ]
+    },
+    {
+      "path": "{readonly:host:43.153.202.237:creator-p0315-candidate-raw-first,readonly:/opt/ynx-creator-studio-wallet/releases/creator-studio-3f97a13d/**,readonly:/opt/ynx-creator-studio-wallet/current,readonly:/opt/ynx-creator-studio-wallet/receipts/upgrade-3f97a13d.json,readonly:/opt/ynx-release-control-plane/creator-studio-3f97a13d/**,readonly:/etc/systemd/system/ynx-creator-studio-wallet.service,readonly:ynx-creator-studio-wallet.service,readonly:ports:{6493,6494,6495},readonly:https://web4.ynxweb4.com/video/studio/**}",
+      "owner": "creator-studio-readback-owner",
+      "branch": "codex/p0-creator-studio-subpath-i18n-20260831",
+      "worktree": "/private/tmp/ynx-creator-subpath-i18n.PcnLN2",
+      "taskId": "P0-321",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_CREATOR_P0315_CANDIDATE_RAW_FIRST_ZERO_WRITE_DIAGNOSTIC",
+      "acquiredAt": "2026-08-31T06:24:00Z",
+      "expiresAt": "2026-08-31T06:44:00Z",
+      "releasedAt": null,
+      "sourceCommit": "9d01889b00d933dd217e917bfc5ed1d5a9062911",
+      "sourceTree": "5ffc7e7c8e2be14f4dbfdf5f922b31ce1f2f703d",
+      "evidenceCommit": "9d01889b00d933dd217e917bfc5ed1d5a9062911",
+      "artifactSha256": "cd08c2f1fdfc182ae9f579e07a18151a57068f7a8fd0ece92c4a5a1c34123644",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "exactly one read-only SSH invocation and no retry",
+        "exact 15096-byte inspector SHAcd08c2f1 is stdin and creates no remote temporary files",
+        "first output freezes actual candidate root manifest raw base64 digest parsed fields and complete tree identities",
+        "second output reports eight independent candidate comparisons before any nonzero drift exit",
+        "continued full read-only evidence is allowed only when every candidate comparison matches",
+        "no cleanup deletion deployment rollback lifecycle Caddy API Viewer Wallet account signature typed-data or transaction action"
+      ]
     }
   ]
 }

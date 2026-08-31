@@ -7579,6 +7579,27 @@
       "remoteExitStatus": 1,
       "canonicalOutputProduced": false,
       "nextAction": "P0-320 is consumed and nonreusable. Do not issue cleanup. Require a wholly-new raw-first zero-write diagnostic that emits actual candidate tuple, manifest raw bytes digest and parsed source tree file-count fields plus complete per-object identities before separate predicate checks."
+    },
+    {
+      "taskId": "P0-321",
+      "owner": "integration,creator-studio-readback-owner",
+      "status": "ACTIVE_CREATOR_P0315_CANDIDATE_RAW_FIRST_ZERO_WRITE_DIAGNOSTIC",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/execution/p0-321-creator-studio-p0315-candidate-raw-first-zero-write-single-use-lease-20260831.json",
+        "/tmp/p0-321-creator-studio-p0315-candidate-raw-first-zero-write.ndjson"
+      ],
+      "dependencies": ["P0-320"],
+      "requestCommit": "9d01889b00d933dd217e917bfc5ed1d5a9062911",
+      "requestBlob": "5d524de2e6f03dece9720c6f327c8c9b74b5496b",
+      "executionLeaseIssued": true,
+      "sshAttemptLimit": 1,
+      "retryAllowed": false,
+      "remoteMutation": false,
+      "cleanupAuthorized": false,
+      "deploymentAuthorized": false,
+      "serviceLifecycleAuthorized": false,
+      "rawAndComparisonEvidenceRequired": true,
+      "nextAction": "Release-control-plane executes the exact inspector once. Return the raw-first NDJSON and per-field comparison even on drift, then release Heavy and all Creator readback locks; cleanup remains unauthorized."
     }
   ]
 }
