@@ -4,7 +4,7 @@ const PROD_ROOT="/opt/ynx-release-control-plane/creator-studio-3f97a13d";
 const RUNTIME_RECEIPT="/opt/ynx-creator-studio-wallet/receipts/upgrade-3f97a13d.json";
 const ORDER=Object.freeze(["release-upgrade-executor-3f97a13d.mjs","release-candidates/candidate-3f97a13d/creator-studio.tar","release-candidates/candidate-0e1a53c5/creator-studio.tar"]);
 const EXPECTED=Object.freeze({
-  "release-upgrade-executor-3f97a13d.mjs":{bytes:29114,sha256:"69ae3a6e75310dfbb00a9b93c22476e07075c092dbe0ca54d81f29573337d1e2",mode:0o700},
+  "release-upgrade-executor-3f97a13d.mjs":{bytes:32653,sha256:"423f9f8b1d1f90eb883a55b67a9c6fe12759cc0c0d558afcdf6f111f68323ee7",mode:0o700},
   "release-candidates/candidate-3f97a13d/creator-studio.tar":{bytes:133120,sha256:"064acfe84c481941549d33473cb78f124e0ae5dfebda16d2f0cac1f4898c3046",mode:0o600},
   "release-candidates/candidate-0e1a53c5/creator-studio.tar":{bytes:159232,sha256:"3f56aa4c3f9d87d27f7cdf19eafc0dacf1da78d83d31def2080f0162d92bdf8a",mode:0o600}
 });
