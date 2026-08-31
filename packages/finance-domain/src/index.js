@@ -328,6 +328,7 @@ export function assertStrategyRiskAuthorization({ strategy, riskLimit, requested
   validateModel("RiskLimit", riskLimit);
   assert(strategy.ownerAccountId === riskLimit.ownerAccountId, ERROR_CODES.FORBIDDEN, "strategy and risk limit owners must match");
   assert(["paper", "testnet"].includes(strategy.lifecycle), ERROR_CODES.FORBIDDEN, "strategy lifecycle is not executable");
+  assert(strategy.source.status === "live", ERROR_CODES.SOURCE_STALE, "strategy source is not live");
   assert(riskLimit.source.status === "live", ERROR_CODES.SOURCE_STALE, "risk limit source is not live");
   assert(riskLimit.killSwitch === false, ERROR_CODES.RISK_REJECTED, "risk kill switch is enabled");
   assertTimestamp(evaluatedAt, "evaluatedAt");

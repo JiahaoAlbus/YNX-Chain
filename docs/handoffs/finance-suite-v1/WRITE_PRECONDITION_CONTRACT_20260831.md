@@ -64,6 +64,6 @@ Before a Quant, Exchange or DEX product service persists a strategy-owned
 action, it must call `assertStrategyRiskAuthorization` with the source-bound
 `Strategy`, `RiskLimit`, requested notional, requested slippage and evaluation
 time. The guard requires matching owners, a `paper` or `testnet` lifecycle, a
-live and unexpired risk source, `killSwitch=false`, and exact base-10 limits.
+live and unexpired Strategy/RiskLimit sources, `killSwitch=false`, and exact base-10 limits.
 It deliberately does not execute a strategy, connect a Wallet or access a
 credential.

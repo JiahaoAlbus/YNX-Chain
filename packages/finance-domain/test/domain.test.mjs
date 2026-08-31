@@ -143,6 +143,7 @@ test("risk authorization uses exact decimal limits and fails closed before a str
   assert.throws(() => assertStrategyRiskAuthorization({ strategy, riskLimit, requestedNotional: "2.000000000000000001", requestedSlippageBps: 100, evaluatedAt: "2026-08-13T12:00:00.000Z" }), (error) => error.code === ERROR_CODES.RISK_REJECTED);
   assert.throws(() => assertStrategyRiskAuthorization({ strategy, riskLimit: { ...riskLimit, killSwitch: true }, requestedNotional: "2", requestedSlippageBps: 100, evaluatedAt: "2026-08-13T12:00:00.000Z" }), (error) => error.code === ERROR_CODES.RISK_REJECTED);
   assert.throws(() => assertStrategyRiskAuthorization({ strategy: { ...strategy, ownerAccountId: "a:2" }, riskLimit, requestedNotional: "2", requestedSlippageBps: 100, evaluatedAt: "2026-08-13T12:00:00.000Z" }), (error) => error.code === ERROR_CODES.FORBIDDEN);
+  assert.throws(() => assertStrategyRiskAuthorization({ strategy: { ...strategy, source: { ...source, status: "stale" } }, riskLimit, requestedNotional: "2", requestedSlippageBps: 100, evaluatedAt: "2026-08-13T12:00:00.000Z" }), (error) => error.code === ERROR_CODES.SOURCE_STALE);
   assert.throws(() => assertStrategyRiskAuthorization({ strategy, riskLimit, requestedNotional: "2", requestedSlippageBps: 101, evaluatedAt: "2026-08-13T12:00:00.000Z" }), (error) => error.code === ERROR_CODES.RISK_REJECTED);
 });
 
