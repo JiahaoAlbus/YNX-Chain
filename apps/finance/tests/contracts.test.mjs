@@ -8,8 +8,7 @@ const js=await readFile(new URL('web/app.js',base),'utf8');
 const css=await readFile(new URL('web/styles.css',base),'utf8');
 const wallet=await readFile(new URL('mobile/src/wallet.ts',base),'utf8');
 const manifest=await readFile(new URL('mobile/contract/public-endpoint-manifest.json',base),'utf8');
-const webWallet=await readFile(new URL('web/wallet-connect-entry.js',base),'utf8');
-const webVerifier=await readFile(new URL('web/verify-wallet-connect.mjs',base),'utf8');
+const webWallet=await readFile(new URL('web/wallet-auth-entry.js',base),'utf8');
 const providerEvidence=JSON.parse(await readFile(new URL('evidence/p0-finance-provider-connect-state-20260821.json',base),'utf8'));
 const migrationEvidence=JSON.parse(await readFile(new URL('evidence/p0-finance-product-wallet-migration-evidence-20260821.json',base),'utf8'));
 const {createStandardWalletConnectState,reduceStandardWalletConnectState,STANDARD_WALLET_RPC_PROBE,STANDARD_WALLET_RPC_PROBE_TRANSPORT}=await import(new URL('../web/node_modules/@ynx-chain/wallet-auth/src/standard-wallet-connect-state.js',import.meta.url));
@@ -27,7 +26,6 @@ test('wallet preserves Standard Wallet and consumes the accepted Product Session
   for(const required of ['encodeRequestDeepLink','parseAuthorizationCallbackURL','CANONICAL_AUTHORIZATION_PENDING_KEY']) assert.ok(wallet.includes(required),required);
   for(const prohibited of ['createGatewayChallenge','signGatewayChallenge','createProductSessionProof','sessions/complete','gatewayEndpoint','deviceSecret']) assert.equal(wallet.includes(prohibited),false,prohibited);
   assert.equal(/Linking\.openURL\(\s*['"`]ynxwallet:\/\/authorize/.test(wallet),false);
-  assert.ok(js.includes('API_UNAVAILABLE'));
   assert.equal(js.includes('Bearer '),false,'legacy browser bearer session must be absent');
   assert.ok(manifest.includes('1.0.0-p0.2'));
   assert.ok(manifest.includes('"finance":{"status":"PENDING"'));
@@ -41,14 +39,13 @@ test('responsive and accessibility contracts exist',()=>{
   assert.ok(css.includes('#002FA7'));
 });
 
-test('Web Wallet connection consumes the v2 provider-only launcher without custom-scheme navigation',()=>{
-  for(const marker of ['launchWebAuthorization','@ynx-chain/wallet-auth/src/authorize-launcher.js','standard-wallet-connect-state.js','createStandardWalletConnectState','reduceStandardWalletConnectState','eth_accounts','eth_requestAccounts','eth_chainId','wallet_switchEthereumChain','wallet_addEthereumChain','YNX_CHAIN_HEX'])assert.ok(webWallet.includes(marker),marker);
-  for(const forbidden of ['ynxwallet:','iframe','window.open','location.assign','location.href='])assert.equal(webWallet.includes(forbidden),false,forbidden);
+test('Web Wallet preserves the current separate YNX Product Session and MetaMask compatibility controls',()=>{
+  for(const marker of ['encodeRequestDeepLink','parseCallbackURL','createProductSessionProof','eth_requestAccounts','eth_chainId','wallet_switchEthereumChain','wallet_addEthereumChain','0x1917'])assert.ok(webWallet.includes(marker),marker);
+  for(const forbidden of ['iframe','window.open'])assert.equal(webWallet.includes(forbidden),false,forbidden);
   assert.equal(/fetch\s*\(\s*[`'"]https:\/\/rpc\.ynxweb4\.com\/evm/.test(webWallet),false,'direct browser RPC probing cannot gate provider connection');
-  assert.ok(webVerifier.includes('EIP-6963/EIP-1193 provider-only'));
-  assert.ok(html.includes('wallet-options'));
+  assert.ok(html.includes('wallet-choice'));
   assert.ok(html.includes('Download YNX Wallet'));
-  assert.ok(html.includes('Use MetaMask'));
+  assert.ok(html.includes('Connect MetaMask'));
 });
 
 test('shared provider connection state keeps a selected approved 0x1917 Wallet connected when an accepted RPC probe degrades',()=>{

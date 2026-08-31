@@ -1,0 +1,129 @@
+{
+  "schemaVersion": "financeNonregressiveLiteralPlacementPhase3Request@1",
+  "status": "SOURCE_ONLY_READY_FOR_CENTRAL_TWO_PHASE_FINALIZATION",
+  "predecessorsNonreusable": [
+    "f18bbb1da3324e00e4ebd1c1e668d8373bed87d4",
+    "7267e074a00cd9242a65baf951e9a86b7f589af8",
+    "P0-304"
+  ],
+  "resolvedCentralBlocker": "FINANCE_NONREGRESSIVE_CANDIDATE_LITERAL_PLACEMENT_AND_PHASE3_COMMAND_OBJECTS_UNFROZEN",
+  "owner": {
+    "branch": "codex/p0-finance-nonregressive-combined-candidate-20260831",
+    "implementationCommit": "1338301623d63065d66c4f73b0a7e2f39c91dbc3",
+    "implementationTree": "b6303b288905708a1e471d527734ce066cd51013"
+  },
+  "candidate": {
+    "sourceCommit": "4f7fba323a89ffb83a81fe2e2f2b97d23947de87",
+    "sourceTree": "9fbf7a11fecf362ef79d331debd59938c14b1d60",
+    "backendAuthorityCommit": "7824af677dd052d20321431381523ab302614d98",
+    "frontendAuthorityCommit": "75f0299aaf53263e4279acf93e9a06db9d055e38",
+    "archive": {
+      "path": "apps/finance/evidence/release-candidates/ynx-finance-4f7fba323a89-linux-amd64.tar.gz",
+      "blob": "eeaa2a545704c72ba53975a51d281eeebe0a3b3c",
+      "bytes": 3938517,
+      "sha256": "55e8d98317eab27248644e6c1168e5ef9f72221a9708a8b80c0ee6502760147d"
+    },
+    "preservesSevenCurrentFrontendResourcesExactly": true,
+    "legacyWalletConnectJsAbsent": true,
+    "legacyEntryJsAbsent": true
+  },
+  "reviewedObjects": {
+    "unsignedCarrierLease": {
+      "path": "apps/finance/evidence/finance-nonregressive-carrier-unsigned-lease-candidate-20260831.json",
+      "blob": "4444b493d98889f4b735a222b7b9b63f5910ac86",
+      "bytes": 1196,
+      "sha256": "8a135d3a34acd14ddc361304f234cd54b9c19cc6e2818bd369f9b43d3a905dfe"
+    },
+    "twoPhaseCommandContract": {
+      "path": "apps/finance/evidence/finance-nonregressive-two-phase-command-contract-20260831.json",
+      "blob": "3dbd8915e0acafbe5103756cbc4db9a0a7d5fe7c",
+      "bytes": 3962,
+      "sha256": "84296374be15291f424a5f001d1a3bd19fe6a6c8c15e0198f6e55788e277452d"
+    },
+    "carrierBootstrap": {
+      "path": "apps/finance/scripts/finance-nonregressive-carrier-bootstrap.sh",
+      "blob": "a14ba457c12dc3dd7668b70b14c5853cc933745e",
+      "bytes": 5620,
+      "sha256": "6c22bcd0322485391ec5294ea4474653649084a68c5bad725009161cdb47bb6c"
+    },
+    "carrierTransport": {
+      "path": "apps/finance/scripts/finance-nonregressive-carrier-openssh.sh",
+      "blob": "34795bbb5bfee8d0cf552e842910fdc6aa4a0d0e",
+      "bytes": 2539,
+      "sha256": "55a7a8a90af10a5d79b3df7cf7320fa7a46d45602cf03a581d238ca6e36ce58e"
+    },
+    "phase3Bootstrap": {
+      "path": "apps/finance/scripts/finance-phase3-stdin-deployment-bootstrap.sh",
+      "blob": "f40dfc6d51135191efbe86eefc948ec547339f35",
+      "bytes": 5280,
+      "sha256": "caf5ff24608086231d9b81989bd29eaad0846d33fac4392655a771b467ed43f7"
+    },
+    "phase3Transport": {
+      "path": "apps/finance/scripts/finance-phase3-openssh-serialized-command.sh",
+      "blob": "22605b70b346a7cc0e61ea68e5e366b73718aef6",
+      "bytes": 2875,
+      "sha256": "a44e011b5826b091acc7ddebcd68dc180a46ded49d9489cf48d52cda894396b4"
+    },
+    "executor": {
+      "path": "apps/finance/scripts/finance-production-rollback-first.sh",
+      "blob": "d4836072c6e6d97f942d36d9eb69e9c066a35ac7",
+      "bytes": 26996,
+      "sha256": "1e1de01f6dc7e2c478c127c676de2ae003b7d84bd429fca5247189ef441205c9"
+    }
+  },
+  "centralRequestedOrderedDecision": {
+    "phase1": {
+      "freshReadOnlyPrewrite": true,
+      "signCarrierLeaseByFillingEveryNullFreshnessField": true,
+      "freezeSignedLeaseBytesAndShaInLiteralArgv": true,
+      "issueFinanceOnlySingleUseCarrierPreparationLease": true,
+      "oneSshAttempt": true
+    },
+    "phase2": {
+      "onlyAfterDirectCarrierReceipt": true,
+      "freshReadCarrierAndAllSixPathParents": true,
+      "bindCarrierArchiveEnvDeviceInodeOwnerModeNlinkBytesSha": true,
+      "signWhollyNewPhase3Lease": true,
+      "freezeExactLiteralArgvIncludingExecutorBase64": true,
+      "issueFinanceOnlySingleUseDeploymentLease": true,
+      "oneSshAndOneDeployAttempt": true
+    },
+    "neverInferReceiptFields": true,
+    "forbidsDexExchangeQuant": true
+  },
+  "validation": {
+    "carrierFixture": "PASS",
+    "carrierOpenSshFixture": "PASS",
+    "twoPhaseContractFixture": "PASS",
+    "phase3PlacementFixture": "PASS",
+    "productionCommandObjectFixture": "PASS",
+    "productionActualShellSuccessAndRollbackFixture": "PASS",
+    "financePackageTests": "14/14 PASS after installing the package-declared local Wallet Auth dependency",
+    "goFinanceTests": "PASS"
+  },
+  "adversarialCoverage": {
+    "archiveTruncated": "FAIL_CLOSED",
+    "archiveWrongHash": "FAIL_CLOSED",
+    "foreignCarrier": "PRESERVED_FAIL_CLOSED",
+    "carrierSymlink": "PRESERVED_FAIL_CLOSED",
+    "sameBytesPostMoveSubstitution": "PRESERVED_FAIL_CLOSED",
+    "partialPlacement": "IDENTITY_BOUND_CLEANUP",
+    "preSwitchFailure": "IDENTITY_BOUND_CLEANUP",
+    "postSwitchFailure": "AUTOMATIC_ROLLBACK",
+    "successfulDeployment": "RETAIN_SIGNED_CONTROL_PAIR"
+  },
+  "truth": {
+    "centralSignedCarrierLease": false,
+    "sshExecuted": false,
+    "carrierPlaced": false,
+    "centralSignedPhase3Lease": false,
+    "productionWrite": false,
+    "deployed": false,
+    "sourceBoundPublic": false,
+    "walletRuntimeApproved": false,
+    "accountRequested": false,
+    "signatureCreated": false,
+    "transactionSubmitted": false
+  },
+  "singleExecutableNextAction": "Central independently imports this exact remote branch, performs the Finance-only zero-write fresh read, atomically finalizes the signed carrier lease plus literal argv from the frozen layout, and either issues the single-use carrier-preparation lease or returns one exact field-level blocker."
+}

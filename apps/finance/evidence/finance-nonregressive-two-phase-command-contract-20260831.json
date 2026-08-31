@@ -1,0 +1,97 @@
+{
+  "schemaVersion": "financeNonregressiveTwoPhaseCommandContract@1",
+  "candidateSource": "4f7fba323a89ffb83a81fe2e2f2b97d23947de87",
+  "implementationSource": "1338301623d63065d66c4f73b0a7e2f39c91dbc3",
+  "environment": {},
+  "shell": false,
+  "carrierPreparation": {
+    "transport": {
+      "path": "apps/finance/scripts/finance-nonregressive-carrier-openssh.sh",
+      "bytes": 2539,
+      "sha256": "55a7a8a90af10a5d79b3df7cf7320fa7a46d45602cf03a581d238ca6e36ce58e"
+    },
+    "bootstrap": {
+      "path": "apps/finance/scripts/finance-nonregressive-carrier-bootstrap.sh",
+      "bytes": 5620,
+      "sha256": "6c22bcd0322485391ec5294ea4474653649084a68c5bad725009161cdb47bb6c"
+    },
+    "archive": {
+      "path": "apps/finance/evidence/release-candidates/ynx-finance-4f7fba323a89-linux-amd64.tar.gz",
+      "bytes": 3938517,
+      "sha256": "55e8d98317eab27248644e6c1168e5ef9f72221a9708a8b80c0ee6502760147d"
+    },
+    "literalArgvLayout": [
+      "/bin/bash",
+      "<ABSOLUTE_REVIEWED_WORKTREE>/apps/finance/scripts/finance-nonregressive-carrier-openssh.sh",
+      "<ABSOLUTE_REVIEWED_WORKTREE>/apps/finance/evidence/release-candidates/ynx-finance-4f7fba323a89-linux-amd64.tar.gz",
+      "/tmp/ynx-finance-nonregressive-carrier-signed.json",
+      "/tmp/ynx-finance-nonregressive-carrier.stdout",
+      "/tmp/ynx-finance-nonregressive-carrier.stderr",
+      "/tmp/ynx-finance-nonregressive-carrier.receipt",
+      "<ABSOLUTE_REVIEWED_WORKTREE>/apps/finance/scripts/finance-nonregressive-carrier-bootstrap.sh",
+      "5620",
+      "6c22bcd0322485391ec5294ea4474653649084a68c5bad725009161cdb47bb6c",
+      "3938517",
+      "55e8d98317eab27248644e6c1168e5ef9f72221a9708a8b80c0ee6502760147d",
+      "<CENTRAL_SIGNED_CARRIER_LEASE_BYTES>",
+      "<CENTRAL_SIGNED_CARRIER_LEASE_SHA256>"
+    ],
+    "centralFinalization": {
+      "requiredBeforeAuthorization": true,
+      "replaceExactlyIndexes": [1, 2, 3, 7, 12, 13],
+      "forbidAllOtherChanges": true,
+      "freshParentAndAbsenceRead": true,
+      "oneSshAttempt": true,
+      "retryAllowed": false,
+      "stdin": "exact candidate archive only",
+      "receiptMustBind": ["carrierTuple", "archiveTuple", "archiveBytes", "archiveSha256", "candidateEnvTuple", "candidateEnvBytes", "candidateEnvSha256"]
+    }
+  },
+  "phase3": {
+    "transport": {
+      "path": "apps/finance/scripts/finance-phase3-openssh-serialized-command.sh",
+      "bytes": 2875,
+      "sha256": "a44e011b5826b091acc7ddebcd68dc180a46ded49d9489cf48d52cda894396b4"
+    },
+    "bootstrap": {
+      "path": "apps/finance/scripts/finance-phase3-stdin-deployment-bootstrap.sh",
+      "bytes": 5280,
+      "sha256": "caf5ff24608086231d9b81989bd29eaad0846d33fac4392655a771b467ed43f7"
+    },
+    "executor": {
+      "path": "apps/finance/scripts/finance-production-rollback-first.sh",
+      "bytes": 26996,
+      "sha256": "1e1de01f6dc7e2c478c127c676de2ae003b7d84bd429fca5247189ef441205c9"
+    },
+    "orderedFinalization": {
+      "mustOccurAfterCarrierReceipt": true,
+      "signedLeaseMustBindFreshCarrierDeviceInodeOwnerModeNlinkBytesAndSha": true,
+      "signedLeaseMustBindFreshSixPathParentTuplesAndDirectChildInventories": true,
+      "literalArgvMustEmbedExactExecutorBase64AndAllReceiptTuples": true,
+      "placementRetainsExecutorAndLeaseForManualRollback": true,
+      "oneSshAttempt": true,
+      "oneDeployInvocation": true,
+      "retryAllowed": false
+    }
+  },
+  "failClosedFixtures": {
+    "archiveTruncation": true,
+    "archiveHashMismatch": true,
+    "foreignCarrier": true,
+    "carrierSymlink": true,
+    "postMoveSubstitution": true,
+    "partialPlacementCleanup": true,
+    "preSwitchFailureCleanup": true,
+    "successRetention": true,
+    "automaticRollback": true,
+    "manualRollbackRequiresSeparateSignedLease": true
+  },
+  "truth": {
+    "signedCarrierLease": false,
+    "carrierPlaced": false,
+    "signedPhase3Lease": false,
+    "sshExecuted": false,
+    "deployed": false,
+    "publicVerified": false
+  }
+}
