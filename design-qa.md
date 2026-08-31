@@ -120,3 +120,15 @@ These checks validate the local 6423 runtime only. They do not assert public dep
 - Regression gate: the Explorer unit test now requires the localized skip link, keyboard focus layer, drawer focus-restoration implementation, and Tab containment branch.
 
 This is local responsive and accessibility evidence against the 6423 node/indexer. It does not claim public deployment or enable unavailable product/download actions.
+
+## 2026-08-31 validator and account-detail follow-up
+
+- Blockchain now loads its validator table from the verified local `/api/validators` response instead of treating all validator information as a Home-only summary. A validator name opens the existing in-page validator detail flow; current status, voting power, observed height, and last-seen time remain sourced from the live response.
+- Browser evidence: the localized Blockchain view displayed `ynx-local-validator-0`, status `就绪`, voting power `1`, and observed height `6,143` with no document-width overflow. Activating the row opened `#blockchain?detail=validator%3Aynx_validator_0` in the same drawer.
+- Node directory remains an explicit unavailable state because no independently authenticated node directory endpoint exists. This avoids inventing nodes from the validator response.
+- Account evidence: Home account addresses are now keyboard-focusable buttons rather than inert text. A local account row opened `#blockchain?detail=account%3Aynx_faucet` in the same detail drawer with no horizontal overflow.
+
+## 2026-08-31 Explorer integration gate
+
+- `make explorer-check` passed against the active local 6423 node. The check built a fresh isolated index database, verified the 6423/`0x1917`/YNXT summary contract, exercised block, transaction, account, resource, token, validator, fee, and search endpoints, then checked the application shell and metrics.
+- The gate can now take explicit local test ports (`YNX_EXPLORER_CHECK_INDEXER_ADDR` and `YNX_EXPLORER_CHECK_HTTP_ADDR`) so it does not collide with an already-running local portal. This run used `127.0.0.1:6439` and `127.0.0.1:6440`; no public endpoint was involved.

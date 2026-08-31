@@ -18,8 +18,10 @@ trap cleanup EXIT
 
 work="${YNX_VERIFY_WORK:-$(mktemp -d)}"
 db="$work/explorer-indexer-db.json"
-indexer_url="http://127.0.0.1:6436"
-explorer_url="http://127.0.0.1:6437"
+indexer_addr="${YNX_EXPLORER_CHECK_INDEXER_ADDR:-127.0.0.1:6436}"
+explorer_addr="${YNX_EXPLORER_CHECK_HTTP_ADDR:-127.0.0.1:6437}"
+indexer_url="http://${indexer_addr}"
+explorer_url="http://${explorer_addr}"
 
 curl -fsS -X POST "$YNX_REST_URL/faucet" -H 'content-type: application/json' -d '{"address":"ynx_explorer_alice","amount":1000}' >/dev/null
 transfer="$(curl -fsS -X POST "$YNX_REST_URL/transfer" -H 'content-type: application/json' -d '{"from":"ynx_explorer_alice","to":"ynx_explorer_bob","amount":125}')"
@@ -27,9 +29,9 @@ tx_hash="$(printf '%s' "$transfer" | ynx_json_field '["hash"]')"
 sleep 2
 
 go run ./cmd/ynx-indexerd -rpc "$YNX_REST_URL" -db "$db" -once >/dev/null
-YNX_INDEXER_RPC_URL="$YNX_REST_URL" YNX_INDEXER_DB_PATH="$db" YNX_INDEXER_HTTP_ADDR=127.0.0.1:6436 go run ./cmd/ynx-indexerd >"$work/indexer.log" 2>&1 &
+YNX_INDEXER_RPC_URL="$YNX_REST_URL" YNX_INDEXER_DB_PATH="$db" YNX_INDEXER_HTTP_ADDR="$indexer_addr" go run ./cmd/ynx-indexerd >"$work/indexer.log" 2>&1 &
 indexer_pid=$!
-YNX_EXPLORER_RPC_URL="$YNX_REST_URL" YNX_EXPLORER_INDEXER_URL="$indexer_url" YNX_EXPLORER_HTTP_ADDR=127.0.0.1:6437 YNX_EXPLORER_PUBLIC_RPC_URL="$YNX_REST_URL" YNX_EXPLORER_PUBLIC_URL="$explorer_url" go run ./cmd/ynx-explorerd >"$work/explorer.log" 2>&1 &
+YNX_EXPLORER_RPC_URL="$YNX_REST_URL" YNX_EXPLORER_INDEXER_URL="$indexer_url" YNX_EXPLORER_HTTP_ADDR="$explorer_addr" YNX_EXPLORER_PUBLIC_RPC_URL="$YNX_REST_URL" YNX_EXPLORER_PUBLIC_URL="$explorer_url" go run ./cmd/ynx-explorerd >"$work/explorer.log" 2>&1 &
 explorer_pid=$!
 
 for _ in {1..80}; do
@@ -57,8 +59,9 @@ search="$(curl -fsS "$explorer_url/api/search?q=$tx_hash")"
 
 html="$(curl -fsS "$explorer_url/")"
 grep -Fq "Open MetaMask compatibility" <<<"$html"
-grep -Fq "YNX native address (default)" <<<"$html"
-grep -Fq "EVM compatibility address" <<<"$html"
+grep -Fq "ynxAddress" <<<"$html"
+grep -Fq "evmAddress" <<<"$html"
+grep -Fq "function detailRows" <<<"$html"
 grep -Fq "/api/summary" <<<"$html"
 metrics="$(curl -fsS "$explorer_url/metrics")"
 grep -Fq "ynx_explorer_rpc_height" <<<"$metrics"
