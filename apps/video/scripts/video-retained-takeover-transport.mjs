@@ -67,9 +67,11 @@ async function removeExact(path, expected) {
 }
 
 async function cleanStage(stage, created) {
+  const actualNames = (await readdir(stage)).sort(), expectedNames = created.map((entry) => entry.name).sort();
+  assert.deepEqual(actualNames, expectedNames, `FOREIGN_STAGE_CHILD:${actualNames.join(",")}`);
+  for (const entry of created) assert.deepEqual(await identity(join(stage, entry.name)), entry.identity, `IDENTITY_BOUND_CLEANUP_REFUSED:${entry.name}:SUBSTITUTED`);
   for (const entry of [...created].reverse()) await removeExact(join(stage, entry.name), entry.identity);
-  const remaining = await readdir(stage);
-  assert.deepEqual(remaining, [], `FOREIGN_STAGE_CHILD:${remaining.join(",")}`);
+  assert.deepEqual(await readdir(stage), []);
   await rmdir(stage);
 }
 
@@ -81,7 +83,7 @@ export function createCarrier(objects) {
   })}) + "\n");
 }
 
-export async function placeCarrier(raw, {root = PRODUCTION_ROOT, expectedParent, failAfterObject = -1, failBeforeReceipt = false} = {}) {
+export async function placeCarrier(raw, {root = PRODUCTION_ROOT, expectedParent, failAfterObject = -1, failBeforeReceipt = false, afterObject} = {}) {
   const carrier = decode(raw), parent = dirname(root), stage = `${root}.next`, created = [];
   assert.ok(expectedParent, "EXPECTED_PARENT_IDENTITY_REQUIRED");
   assert.deepEqual(directoryCore(await directoryIdentity(parent)), directoryCore(expectedParent), "CONTROL_PARENT_IDENTITY_MISMATCH");
@@ -95,6 +97,7 @@ export async function placeCarrier(raw, {root = PRODUCTION_ROOT, expectedParent,
       const placed = await identity(target);
       assert.deepEqual({mode: placed.mode, bytes: placed.bytes, sha256: placed.sha256}, EXPECTED[entry.name], `PLACED_OBJECT_MISMATCH:${entry.name}`);
       created.push({name: entry.name, identity: placed});
+      if (afterObject) await afterObject({index, target, stage});
       if (index === failAfterObject) throw new Error("FIXTURE_PLACEMENT_FAILURE");
     }
     if (failBeforeReceipt) throw new Error("FIXTURE_PREWRITE_FAILURE");

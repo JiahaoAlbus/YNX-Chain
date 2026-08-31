@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import {mkdtemp, mkdir, readFile, rm, writeFile} from "node:fs/promises";
+import {lstat, mkdtemp, mkdir, readFile, readdir, rm, writeFile} from "node:fs/promises";
 import {tmpdir} from "node:os";
 import {join} from "node:path";
 import test from "node:test";
@@ -41,3 +41,33 @@ for (const [label, option] of [["placement failure", {failAfterObject: 0}], ["pr
     await rm(f.base, {recursive: true});
   });
 }
+
+test("transport refuses cleanup before deleting owned bytes when a foreign stage child appears", async () => {
+  const f = await fixture();
+  await assert.rejects(placeCarrier(carrier, {...f, afterObject: async ({index, stage}) => {
+    if (index === 0) { await writeFile(join(stage, "foreign"), "foreign\n"); throw new Error("FORCED_FOREIGN_STAGE"); }
+  }}), /FOREIGN_STAGE_CHILD/);
+  const stage = `${f.root}.next`;
+  assert.deepEqual((await readdir(stage)).sort(), ["foreign", "video-runtime-controlled-takeover.sh"]);
+  assert.deepEqual(await readFile(join(stage, "video-runtime-controlled-takeover.sh")), objects["video-runtime-controlled-takeover.sh"]);
+  assert.equal(await readFile(join(f.parent, "preserve.sibling"), "utf8"), "preserve\n");
+  await rm(f.base, {recursive: true});
+});
+
+test("transport refuses cleanup before deleting anything after a same-byte inode replacement", async () => {
+  const f = await fixture();
+  let oldInode;
+  await assert.rejects(placeCarrier(carrier, {...f, afterObject: async ({index, target}) => {
+    if (index === 0) {
+      oldInode = (await lstat(target)).ino;
+      const body = await readFile(target);
+      await rm(target); await writeFile(target, body, {mode: 0o700});
+      throw new Error("FORCED_REPLACEMENT");
+    }
+  }}), /SUBSTITUTED/);
+  const target = join(`${f.root}.next`, "video-runtime-controlled-takeover.sh");
+  assert.notEqual((await lstat(target)).ino, oldInode);
+  assert.deepEqual(await readFile(target), objects["video-runtime-controlled-takeover.sh"]);
+  assert.equal(await readFile(join(f.parent, "preserve.sibling"), "utf8"), "preserve\n");
+  await rm(f.base, {recursive: true});
+});
