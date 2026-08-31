@@ -7559,10 +7559,11 @@
     {
       "taskId": "P0-320",
       "owner": "integration,creator-studio-readback-owner",
-      "status": "ACTIVE_CREATOR_P0315_CLEANUP_PREWRITE_ZERO_WRITE_INSPECTION",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_CREATOR_P0320_CANDIDATE_BINDING_DRIFT_BEFORE_OUTPUT",
       "paths": [
         "release/integration/p0-wallet-connectivity/execution/p0-320-creator-studio-p0315-cleanup-prewrite-zero-write-single-use-lease-20260831.json",
-        "/tmp/p0-320-creator-studio-p0315-cleanup-prewrite-zero-write.json"
+        "/tmp/p0-320-creator-studio-p0315-cleanup-prewrite-zero-write.json",
+        "release/integration/p0-wallet-connectivity/execution/objects/p0-320-creator-studio-p0315-cleanup-prewrite-zero-write-terminal-failure-20260831.json"
       ],
       "dependencies": ["P0-319"],
       "requestCommit": "f8434f5ca47ceaa26e28c916fba877dfb24d1280",
@@ -7574,7 +7575,10 @@
       "cleanupAuthorized": false,
       "deploymentAuthorized": false,
       "serviceLifecycleAuthorized": false,
-      "nextAction": "Release-control-plane executes the exact inspector once and returns the complete canonical JSON. Release Heavy and all Creator readback locks on every terminal outcome; cleanup remains a separate future review."
+      "attemptCount": 1,
+      "remoteExitStatus": 1,
+      "canonicalOutputProduced": false,
+      "nextAction": "P0-320 is consumed and nonreusable. Do not issue cleanup. Require a wholly-new raw-first zero-write diagnostic that emits actual candidate tuple, manifest raw bytes digest and parsed source tree file-count fields plus complete per-object identities before separate predicate checks."
     }
   ]
 }

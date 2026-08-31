@@ -427,16 +427,16 @@
     }
   ],
   "heavy": {
-    "owner": "creator-studio-readback-owner",
+    "owner": null,
     "taskId": "P0-320",
-    "status": "ACTIVE_CREATOR_P0315_CLEANUP_PREWRITE_ZERO_WRITE_INSPECTION",
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_CREATOR_P0320_CANDIDATE_BINDING_DRIFT_BEFORE_OUTPUT",
     "acquiredAt": "2026-08-31T06:12:00Z",
     "expiresAt": "2026-08-31T06:32:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-31T06:17:52Z",
     "sourceCommit": "f8434f5ca47ceaa26e28c916fba877dfb24d1280",
     "evidenceCommit": "f8434f5ca47ceaa26e28c916fba877dfb24d1280",
     "runtimeHost": "43.153.202.237",
-    "currentRuntime": "CREATOR_P0315_TERMINAL_STATE_FRESH_READ_ONLY",
+    "currentRuntime": "UNKNOWN_NO_CANONICAL_OUTPUT_CANDIDATE_BINDING_DRIFT",
     "candidateRuntime": "CREATOR_3F97A13D_RESIDUE_INSPECTION_ONLY",
     "artifactSha256": "20c7bb3a24824bd63ce3a4b4a1b00558faf1293c21fcf447f6fd54414e062319",
     "productionMutationAllowed": false,
@@ -444,8 +444,8 @@
     "reusable": false,
     "previousOwner": null,
     "previousTaskId": "P0-319",
-    "reviewDecision": "GO_P0320_CREATOR_P0315_CLEANUP_PREWRITE_ZERO_WRITE_INSPECTION_ONLY",
-    "reason": "The final request and inspector objects are remote exact and clean; the inspector imports only read APIs, exact stdin-mode self-test passes, P0-316 evidence is exact, protected SSH identity and known-host entries are available, and Heavy is idle. Exactly one read-only SSH is authorized with no remote temporary file, cleanup, deployment, rollback or service lifecycle action."
+    "reviewDecision": "P0320_TERMINAL_FAIL_CLOSED_CANDIDATE_BINDING_DRIFT_BEFORE_OUTPUT_RELEASED",
+    "reason": "The sole read-only SSH started the exact inspector and exited one at its compound candidate binding assertion before canonical output. The local evidence is exact empty SHA256 e3b0c442; no remote temporary file, cleanup, deployment, rollback, restart, switch or product write occurred. The specific candidate predicate remains unknown, P0-320 is consumed and nonreusable, and Heavy is released."
   },
   "wave": {
     "id": "B-financial-apps-quant",

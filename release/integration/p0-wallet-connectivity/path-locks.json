@@ -3596,15 +3596,15 @@
     },
     {
       "path": "{readonly:host:43.153.202.237:creator-p0315-cleanup-prewrite,readonly:/opt/ynx-creator-studio-wallet/current,readonly:/opt/ynx-creator-studio-wallet/receipts/upgrade-3f97a13d.json,readonly:/opt/ynx-creator-studio-wallet/releases/creator-studio-0e1a53c5/**,readonly:/opt/ynx-creator-studio-wallet/releases/creator-studio-3f97a13d/**,readonly:/opt/ynx-release-control-plane/creator-studio-3f97a13d/**,readonly:/etc/systemd/system/ynx-creator-studio-wallet.service,readonly:ynx-creator-studio-wallet.service,readonly:ports:{6493,6494,6495},readonly:https://web4.ynxweb4.com/video/studio/**}",
-      "owner": "creator-studio-readback-owner",
+      "owner": null,
       "branch": "codex/p0-creator-studio-subpath-i18n-20260831",
       "worktree": "/private/tmp/ynx-creator-subpath-i18n.PcnLN2",
       "taskId": "P0-320",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE_CREATOR_P0315_CLEANUP_PREWRITE_ZERO_WRITE_INSPECTION",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_CREATOR_P0320_CANDIDATE_BINDING_DRIFT_BEFORE_OUTPUT",
       "acquiredAt": "2026-08-31T06:12:00Z",
       "expiresAt": "2026-08-31T06:32:00Z",
-      "releasedAt": null,
+      "releasedAt": "2026-08-31T06:17:52Z",
       "sourceCommit": "f8434f5ca47ceaa26e28c916fba877dfb24d1280",
       "sourceTree": "15d97669b8af383a239f4135c26318b25a03cc89",
       "evidenceCommit": "f8434f5ca47ceaa26e28c916fba877dfb24d1280",
@@ -3615,7 +3615,11 @@
         "exact 10748-byte inspector SHA20c7bb3 is stdin and creates no remote temporary files",
         "read current old release service listeners unit receipts candidate control parents absences and five public resources",
         "complete canonical JSON and mutationCount zero are required",
-        "no cleanup deletion deployment rollback lifecycle Caddy API Viewer Wallet account signature typed-data or transaction action"
+        "no cleanup deletion deployment rollback lifecycle Caddy API Viewer Wallet account signature typed-data or transaction action",
+        "sole inspector invocation failed at compound CANDIDATE_BINDING_DRIFT before output and was not retried",
+        "local evidence is exact empty and the specific candidate predicate remains unknown",
+        "no remote temporary file cleanup deploy rollback lifecycle switch or product write occurred",
+        "P0-320 is consumed and nonreusable; Heavy and Creator readback locks are released"
       ]
     }
   ]

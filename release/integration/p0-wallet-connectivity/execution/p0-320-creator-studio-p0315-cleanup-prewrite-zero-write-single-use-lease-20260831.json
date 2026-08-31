@@ -3,12 +3,12 @@
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "taskId": "P0-320",
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-creator-p0315-cleanup-prewrite-zero-write-20260831T061200Z",
-  "status": "ACTIVE_CREATOR_P0315_CLEANUP_PREWRITE_ZERO_WRITE_INSPECTION",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_CREATOR_P0320_CANDIDATE_BINDING_DRIFT_BEFORE_OUTPUT",
   "singleUse": true,
   "reusable": false,
   "issuedAt": "2026-08-31T06:12:00Z",
   "expiresAt": "2026-08-31T06:32:00Z",
-  "releasedAt": null,
+  "releasedAt": "2026-08-31T06:17:52Z",
   "owner": "creator-studio-readback-owner",
   "namedExecutor": "release-control-plane",
   "runtimeHost": "43.153.202.237",
@@ -115,6 +115,15 @@
     "cleanupAuthorized": false,
     "cleanupComplete": false,
     "deploymentAuthorized": false,
-    "creatorPromoted": false
+    "creatorPromoted": false,
+    "attemptCount": 1,
+    "retryCount": 0,
+    "sshAttempts": 1,
+    "remoteExitStatus": 1,
+    "failure": "CANDIDATE_BINDING_DRIFT_BEFORE_OUTPUT",
+    "stdoutBytes": 0,
+    "stdoutSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "terminalEvidencePath": "release/integration/p0-wallet-connectivity/execution/objects/p0-320-creator-studio-p0315-cleanup-prewrite-zero-write-terminal-failure-20260831.json",
+    "nextLeaseMustBeRawFirstZeroWriteDiagnostic": true
   }
 }
