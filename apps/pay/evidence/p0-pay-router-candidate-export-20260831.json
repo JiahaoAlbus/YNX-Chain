@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "payRouterCandidateExport@1.0.0-p0.0",
+  "ownerScope": ["apps/pay/**"],
+  "candidate": {
+    "commit": "72cbff0d7ced85b67b6bcdfabc5d6e975925595f",
+    "tree": "d35c616de329a4b3bc6e45041910d9e91522923e",
+    "routerHandoff": "23c21054d8c86f245b77bffb2d03cecd2b3f80cf",
+    "buildCommand": "npm run bundle-check"
+  },
+  "canonicalNetwork": {"cosmosChainId":"ynx_6423-1","evmChainId":6423,"evmChainHex":"0x1917"},
+  "artifacts": {
+    "androidHermes": {"sha256":"ed96be67dce33362814148493130b3d15e4e20273ea12386628e7aa872229894","bytes":4179449},
+    "iosHermes": {"sha256":"98e08d6f2e779454ccb6b2e0f7cc3286742eedb16e4a390ed217c973032162f6","bytes":4174052},
+    "webMain": {"sha256":"ac10101c7c78094fafeff83c6b42ad569daff3a3602b2e483ac3f3a49d934ed5","bytes":2774976},
+    "webRuntime": {"sha256":"d0ee55ff0adefc7e013c4019ef70a9730a82e77f4e2b4083c460a5ae1131ac1e","bytes":45437}
+  },
+  "verification": {"payTests":{"passed":21,"failed":0},"typecheck":"passed","canonicalAuthorizeScan":"passed"},
+  "truth": {
+    "candidateExportedLocally": true,
+    "installableApk": false,
+    "installed": false,
+    "publiclyHosted": false,
+    "releaseExecutorBound": false,
+    "rollbackBound": false,
+    "ynxWalletLifecycle": false,
+    "signature": false,
+    "transaction": false
+  },
+  "boundary": "The export is a source-bound candidate material only; no device installation, public release, Wallet approval, callback, signing, or transaction was performed."
+}
