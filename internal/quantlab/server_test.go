@@ -199,10 +199,9 @@ func TestWebSocketSnapshotCarriesAuthorityMetadata(t *testing.T) {
 
 func TestWebSocketReconcilesDurableQuantStateChanges(t *testing.T) {
 	s, _ := New(Config{StatePath: filepath.Join(t.TempDir(), "s.json")})
-	previousPoll := quantStreamPollInterval
-	quantStreamPollInterval = 5 * time.Millisecond
-	defer func() { quantStreamPollInterval = previousPoll }()
-	server := httptest.NewServer(NewRoleServer(s, "all"))
+	quantServer := NewRoleServer(s, "all")
+	quantServer.streamPollInterval = 5 * time.Millisecond
+	server := httptest.NewServer(quantServer)
 	defer server.Close()
 	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/v1/stream"
 	connection, _, err := websocket.DefaultDialer.Dial(wsURL, nil)

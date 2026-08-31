@@ -15,16 +15,18 @@ import (
 )
 
 type Server struct {
-	service *Service
-	mux     *http.ServeMux
-	role    string
-	logger  *slog.Logger
-	metrics serverMetrics
+	service            *Service
+	mux                *http.ServeMux
+	role               string
+	logger             *slog.Logger
+	metrics            serverMetrics
+	streamPollInterval time.Duration
+	streamPingInterval time.Duration
 }
 
-var (
-	quantStreamPollInterval = 5 * time.Second
-	quantStreamPingInterval = 15 * time.Second
+const (
+	defaultQuantStreamPollInterval = 5 * time.Second
+	defaultQuantStreamPingInterval = 15 * time.Second
 )
 
 func NewServer(s *Service) *Server {
@@ -40,7 +42,14 @@ func NewObservedRoleServer(s *Service, role string, logWriter io.Writer) *Server
 	if !allowed[role] {
 		panic("invalid quant service role")
 	}
-	v := &Server{service: s, mux: http.NewServeMux(), role: role, logger: newJSONLogger(logWriter)}
+	v := &Server{
+		service:            s,
+		mux:                http.NewServeMux(),
+		role:               role,
+		logger:             newJSONLogger(logWriter),
+		streamPollInterval: defaultQuantStreamPollInterval,
+		streamPingInterval: defaultQuantStreamPingInterval,
+	}
 	v.mux.HandleFunc("GET /health", v.health)
 	v.mux.HandleFunc("GET /ready", v.ready)
 	v.mux.HandleFunc("GET /version", v.version)
@@ -182,9 +191,9 @@ func (s *Server) stream(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}()
-	poll := time.NewTicker(quantStreamPollInterval)
+	poll := time.NewTicker(s.streamPollInterval)
 	defer poll.Stop()
-	ping := time.NewTicker(quantStreamPingInterval)
+	ping := time.NewTicker(s.streamPingInterval)
 	defer ping.Stop()
 	for {
 		select {
