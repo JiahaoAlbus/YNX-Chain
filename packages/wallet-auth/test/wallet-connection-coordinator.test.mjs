@@ -183,6 +183,20 @@ test("chooser preserves Guest, download and an independently injected MetaMask w
   assert.equal(sessionClient.current.status, PRODUCT_SESSION_CLIENT_STATE.DISCONNECTED);
 });
 
+test("an injected YNX Wallet retains priority when the platform capability probe is unavailable", async () => {
+  const failedProbe = gateway({ async schemeRegistered() { throw new Error("private platform detail"); } });
+  const sessionClient = client("dex", failedProbe);
+  const value = coordinator({ productId: "dex", sessionClient, scope: { ethereum: ynxProvider() } });
+
+  const options = await value.options();
+  assert.equal(options.status, WALLET_CONNECTION_COORDINATOR_STATUS.OPTIONS_UNAVAILABLE);
+  assert.deepEqual(options.choices.map(({ id }) => id), ["ynx-wallet", "guest"]);
+
+  const selected = await value.connectMetaMask();
+  assert.equal(selected.status, WALLET_CONNECTION_COORDINATOR_STATUS.YNX_WALLET_PREFERRED);
+  assert.equal(selected.environment, null);
+});
+
 test("MetaMask connects through central discovery only when YNX is absent and product is EVM compatible", async () => {
   const calls=[];const metamask=metaMaskProvider(calls);const value=coordinator({productId:"dex",sessionClient:noYNXClient("dex"),scope:{ethereum:metamask}});
   const result=await value.connectMetaMask();
