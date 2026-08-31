@@ -324,7 +324,7 @@ const indexHTML = `<!doctype html>
     .portal-callout-stats { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:7px; margin:8px 0; }
     .portal-callout-stats span { display:block; padding:7px 8px; border:1px solid rgba(255,255,255,.18); border-radius:4px; background:rgba(0,25,100,.16); }
     .portal-callout-stats small,.portal-callout-stats strong { display:block; }
-    .portal-callout-stats small { color:#bfd0ff; font-size:9px; letter-spacing:.04em; text-transform:uppercase; }
+    .portal-callout-stats small { color:#bfd0ff; font-size:11px; letter-spacing:.025em; line-height:1.25; text-transform:uppercase; }
     .portal-callout-stats strong { margin-top:3px; color:#fff; font-size:12px; font-weight:750; }
     main { padding:0 0 64px; }
     .status-bar { min-height:30px; margin-bottom:10px; padding:0 2px; }
@@ -350,7 +350,7 @@ const indexHTML = `<!doctype html>
     .asset-fact:nth-child(n+3) { border-bottom:0; }
     .asset-fact span { display:block; color:#8b94a2; font-size:11px; }
     .asset-fact strong { display:block; margin-top:6px; color:#303846; font-size:14px; overflow-wrap:anywhere; }
-    .asset-fact small { display:block; margin-top:3px; color:#657184; font-size:10px; }
+    .asset-fact small { display:block; margin-top:3px; color:#657184; font-size:11px; line-height:1.3; }
     .block-ribbon { display:block; min-height:0; margin:0 0 25px; border:0; border-radius:0; background:transparent; overflow:visible; }
     .ribbon-label { display:flex; flex-direction:row; align-items:baseline; justify-content:space-between; padding:0 0 12px; border:0; color:#1d2028; font-size:21px; font-weight:750; }
     .ribbon-label > span:first-child,.ribbon-label strong { display:none; }
@@ -389,7 +389,7 @@ const indexHTML = `<!doctype html>
     .product-meta { display:grid; gap:5px; margin-top:12px; color:#5d6775; font-size:11px; line-height:1.35; }
     .product-meta strong { color:#303846; font-weight:700; }
     .product-actions { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:5px; margin-top:13px; }
-    .product-actions button { min-height:28px; padding:3px 4px; border:1px solid var(--line); border-radius:4px; color:#667181; background:#fff; font-size:10px; font-weight:650; }
+    .product-actions button { min-height:32px; padding:4px 5px; border:1px solid var(--line); border-radius:4px; color:#667181; background:#fff; font-size:11px; font-weight:650; line-height:1.2; }
     .product-actions button:not(:disabled):hover { border-color:#a8bcf9; color:var(--blue); }
     .product-actions button:disabled { cursor:not-allowed; opacity:.62; }
     .download-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }

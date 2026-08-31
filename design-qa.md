@@ -249,3 +249,21 @@ This is local responsive and accessibility evidence against the 6423 node/indexe
 - Wallet safety: the fresh browser reported no injected EIP-1193 provider. Connect Wallet stayed enabled but explained that no YNX provider was detected and that it had not requested accounts, created a session, or fallen back to MetaMask. The separate MetaMask compatibility action reported its own unavailable provider state. Neither action produced a console error or horizontal overflow.
 - Downloads: the full center rendered six catalog entries and zero enabled download controls. Every disabled action had its public-artifact verification reason. The first wallet-extension entry displayed the required platform, version, size, SHA-256, signing, source/published, and install fields without inventing values.
 - Governance: the Chinese route rendered four explicit unavailable panels for proposals, proposal detail, voting, and parameters. No synthetic proposal, vote count, or governance parameter appeared; the route had no horizontal overflow or console error.
+
+## 2026-08-31 responsive type-scale follow-up
+
+- Source visual truth: the supplied TronScan reference image at `/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/codex-clipboard-7f8db32a-ff49-4c6b-b7cb-1344ec71a17c.png`, used solely for its information density, desktop hierarchy, and compact control rhythm. No source brand, data, red palette, or assets were reused.
+- Implementation evidence: a fresh in-app-browser capture of local `http://127.0.0.1:6437/?qa=responsive-capture#home` at 1440 x 900 CSS px confirmed the YNX blue-and-white dense portal shell, local 6423 metrics, four-block ribbon, and live block/transaction surfaces. Browser captures are ephemeral in this environment, so no persistent screenshot file is available.
+- Responsive evidence: at 320 x 740 Home, 390 x 844 Ecosystem, 760 x 740 Developers, and 1440 x 900 Home, `scrollWidth` did not exceed the rendered document width, no non-monospace text was clipped, and visible text stayed within an 11 px or larger floor. The same checks verified active controls remained present rather than hidden by a narrow layout.
+- Typography fixes: portal-callout labels, asset verification copy, and ecosystem action labels now use at least 11 px; ecosystem action controls have a 32 px minimum height and a line-height that preserves readable wrapping. Bounded `clamp()` rules continue to govern headings, metrics, route titles, and the search control, while browser zoom remains under the user agent rather than being disabled.
+
+**Findings**
+
+- No actionable P0/P1/P2 layout, clipping, or type-scale defect remains in the tested width range. The deliberate compact 32 px ecosystem actions are disabled when public proof is absent and retain their localized reason; they are not used to trigger a wallet, download, signature, or transaction.
+
+**Implementation checklist**
+
+1. Keep the 11 px visible-text floor and bounded responsive type scales in future dense-card changes.
+2. Repeat this width sweep whenever a new primary route adds a dense table or action group.
+
+**Final result:** passed
