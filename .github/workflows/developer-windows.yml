@@ -57,12 +57,12 @@ jobs:
         with:
           name: ynx-developer-testnet-preview-windows-x64-unsigned
           path: |
-            apps/developer/.ynx-developer-windows/ynx-developer-testnet-preview-windows-x64-unsigned.zip
-            apps/developer/.ynx-developer-windows/ynx-developer-testnet-preview-windows-x64-test-signed.msix
-            apps/developer/.ynx-developer-windows/ynx-developer-testnet-preview-windows-x64-test-signed.cer
-            apps/developer/.ynx-developer-windows/windows-package.json
-            apps/developer/.ynx-developer-windows/windows-installer.json
-            apps/developer/.ynx-developer-windows/windows-native-self-test.json
-            apps/developer/.ynx-developer-windows/windows-install-evidence.json
+            apps/developer/.ynx-developer-windows-candidates/**/ynx-developer-testnet-preview-windows-x64-unsigned.zip
+            apps/developer/.ynx-developer-windows-candidates/**/ynx-developer-testnet-preview-windows-x64-test-signed.msix
+            apps/developer/.ynx-developer-windows-candidates/**/ynx-developer-testnet-preview-windows-x64-test-signed.cer
+            apps/developer/.ynx-developer-windows-candidates/**/windows-package.json
+            apps/developer/.ynx-developer-windows-candidates/**/windows-installer.json
+            apps/developer/.ynx-developer-windows-candidates/**/windows-native-self-test.json
+            apps/developer/.ynx-developer-windows-candidates/**/windows-install-evidence.json
           if-no-files-found: error
           retention-days: 14

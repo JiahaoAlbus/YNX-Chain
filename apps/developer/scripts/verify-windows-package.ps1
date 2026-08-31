@@ -12,7 +12,19 @@ if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($repoRoot)) {
   throw "Unable to resolve the repository root for Windows verification"
 }
 
-$outRoot = Join-Path $app ".ynx-developer-windows"
+$expectedSourceCommit = if ($env:YNX_DEVELOPER_EXPECTED_SOURCE_COMMIT) {
+  $env:YNX_DEVELOPER_EXPECTED_SOURCE_COMMIT
+} else {
+  (& git -C $repoRoot rev-parse HEAD).Trim()
+}
+if ([string]::IsNullOrWhiteSpace($expectedSourceCommit)) { throw "Unable to resolve exact Windows package source commit" }
+$candidateRoot = [System.IO.Path]::GetFullPath((Join-Path $app ".ynx-developer-windows-candidates"))
+$defaultOutput = Join-Path $candidateRoot $expectedSourceCommit.Substring(0, 12)
+$outRoot = [System.IO.Path]::GetFullPath($(if ($env:YNX_DEVELOPER_WINDOWS_OUTPUT_DIR) { $env:YNX_DEVELOPER_WINDOWS_OUTPUT_DIR } else { $defaultOutput }))
+$candidatePrefix = "$candidateRoot$([System.IO.Path]::DirectorySeparatorChar)"
+if (!$outRoot.StartsWith($candidatePrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+  throw "YNX_DEVELOPER_WINDOWS_OUTPUT_DIR must stay under $candidateRoot"
+}
 $zip = Join-Path $outRoot "ynx-developer-testnet-preview-windows-x64-unsigned.zip"
 $packageEvidence = Join-Path $outRoot "windows-package.json"
 $install = Join-Path $env:RUNNER_TEMP "ynx-developer-portable-install"
@@ -22,11 +34,6 @@ $evidence = Join-Path $outRoot "windows-install-evidence.json"
 if (!(Test-Path $zip)) { throw "Windows package is missing: $zip" }
 if (!(Test-Path $packageEvidence)) { throw "Windows package evidence is missing: $packageEvidence" }
 
-$expectedSourceCommit = if ($env:YNX_DEVELOPER_EXPECTED_SOURCE_COMMIT) {
-  $env:YNX_DEVELOPER_EXPECTED_SOURCE_COMMIT
-} else {
-  (& git -C $repoRoot rev-parse HEAD).Trim()
-}
 $expectedSourceTree = if ($env:YNX_DEVELOPER_EXPECTED_SOURCE_TREE) {
   $env:YNX_DEVELOPER_EXPECTED_SOURCE_TREE
 } else {
@@ -98,7 +105,7 @@ if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::NotSig
   throw "Expected Authenticode NotSigned, got $($signature.Status)"
 }
 
-Remove-Item $nativeEvidence -Force -ErrorAction SilentlyContinue
+if (Test-Path -LiteralPath $nativeEvidence) { throw "Refusing to overwrite existing Windows native self-test evidence: $nativeEvidence" }
 $selfTest = Start-Process $exe -ArgumentList @("--self-test", "`"$resources`"", "`"$nativeEvidence`"") -Wait -PassThru
 if ($selfTest.ExitCode -ne 0 -or !(Test-Path $nativeEvidence)) { throw "Packaged self-test failed with exit $($selfTest.ExitCode)" }
 $nativeRecord = Get-Content $nativeEvidence -Raw | ConvertFrom-Json

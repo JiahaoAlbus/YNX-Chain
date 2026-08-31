@@ -1,7 +1,15 @@
 $ErrorActionPreference = "Stop"
 
 $app = Split-Path -Parent $PSScriptRoot
-$outRoot = Join-Path $app ".ynx-developer-windows"
+$sourceCommit = (& git -C $app rev-parse HEAD).Trim()
+if ([string]::IsNullOrWhiteSpace($sourceCommit)) { throw "Unable to resolve exact Windows installer source commit" }
+$candidateRoot = [System.IO.Path]::GetFullPath((Join-Path $app ".ynx-developer-windows-candidates"))
+$defaultOutput = Join-Path $candidateRoot $sourceCommit.Substring(0, 12)
+$outRoot = [System.IO.Path]::GetFullPath($(if ($env:YNX_DEVELOPER_WINDOWS_OUTPUT_DIR) { $env:YNX_DEVELOPER_WINDOWS_OUTPUT_DIR } else { $defaultOutput }))
+$candidatePrefix = "$candidateRoot$([System.IO.Path]::DirectorySeparatorChar)"
+if (!$outRoot.StartsWith($candidatePrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+  throw "YNX_DEVELOPER_WINDOWS_OUTPUT_DIR must stay under $candidateRoot"
+}
 $msix = Join-Path $outRoot "ynx-developer-testnet-preview-windows-x64-test-signed.msix"
 $certificatePath = Join-Path $outRoot "ynx-developer-testnet-preview-windows-x64-test-signed.cer"
 $recordPath = Join-Path $outRoot "windows-installer.json"

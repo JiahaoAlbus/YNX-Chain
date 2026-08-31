@@ -26,15 +26,24 @@ if ([string]::IsNullOrWhiteSpace($runtimeCheckpoint) -or [string]::IsNullOrWhite
   throw "product-release.json does not expose one exact current public YNX Code runtime checkpoint"
 }
 
-$outRoot = Join-Path $app ".ynx-developer-windows"
+$candidateRoot = [System.IO.Path]::GetFullPath((Join-Path $app ".ynx-developer-windows-candidates"))
+$defaultOutput = Join-Path $candidateRoot $sourceCommit.Substring(0, 12)
+$outRoot = [System.IO.Path]::GetFullPath($(if ($env:YNX_DEVELOPER_WINDOWS_OUTPUT_DIR) { $env:YNX_DEVELOPER_WINDOWS_OUTPUT_DIR } else { $defaultOutput }))
+$candidatePrefix = "$candidateRoot$([System.IO.Path]::DirectorySeparatorChar)"
+if (!$outRoot.StartsWith($candidatePrefix, [System.StringComparison]::OrdinalIgnoreCase)) {
+  throw "YNX_DEVELOPER_WINDOWS_OUTPUT_DIR must stay under $candidateRoot"
+}
+if (Test-Path -LiteralPath $outRoot) {
+  throw "Refusing to overwrite existing Windows package candidate: $outRoot"
+}
 $publish = Join-Path $outRoot "publish"
 $stage = Join-Path $outRoot "YNX Developer Testnet Preview"
 $zip = Join-Path $outRoot "ynx-developer-testnet-preview-windows-x64-unsigned.zip"
 $msix = Join-Path $outRoot "ynx-developer-testnet-preview-windows-x64-test-signed.msix"
 $installerCertificate = Join-Path $outRoot "ynx-developer-testnet-preview-windows-x64-test-signed.cer"
 
-Remove-Item $outRoot -Recurse -Force -ErrorAction SilentlyContinue
-New-Item $publish -ItemType Directory -Force | Out-Null
+New-Item $outRoot -ItemType Directory | Out-Null
+New-Item $publish -ItemType Directory | Out-Null
 
 dotnet publish (Join-Path $app "desktop/windows/YNXDeveloper.TestnetPreview.csproj") `
   --configuration Release --runtime win-x64 --self-contained true `
