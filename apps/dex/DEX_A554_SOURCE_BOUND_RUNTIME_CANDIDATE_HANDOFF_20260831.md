@@ -27,6 +27,13 @@ candidate for Central to review.
 - `npm test --prefix apps/dex` passed: 33 tests.
 - Canonical authorize/provider-discovery verification and legacy-route
   quarantine verification both passed.
+- The current Playwright contract passed: 7 checks passed and 1 desktop-only
+  mobile-layout check was intentionally skipped. Its fixture was corrected in
+  source commit `310b8f05ee3bd241b62fd0767db4501f6671f00c` to supply the
+  current authoritative `/v1/native-snapshot` schema, rather than the retired
+  `/dex/*` collection endpoints. It covers truthful snapshot rendering,
+  fail-closed gateway errors, review-before-Wallet behavior, and mobile layout;
+  it does not connect an account or execute a transaction.
 - Direct macOS execution intentionally did **not** pass: macOS rejects the
   packaged Linux amd64 ELF with `exec format error`. This is an architecture
   boundary, not evidence of a running Testnet service. Linux runtime validation

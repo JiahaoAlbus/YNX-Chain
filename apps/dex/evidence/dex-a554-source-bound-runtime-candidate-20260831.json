@@ -40,6 +40,7 @@
     "web": "passed: npm test --prefix apps/dex (33 tests)",
     "canonicalAuthorize": "passed: npm run verify:canonical-authorize --prefix apps/dex",
     "legacyRouteQuarantine": "passed: npm run verify:legacy-route-quarantine --prefix apps/dex",
+    "e2e": "passed: npm run test:e2e (7 passed, 1 desktop-only mobile-layout check skipped) after test-only fixture correction 310b8f05ee3bd241b62fd0767db4501f6671f00c for /v1/native-snapshot",
     "linuxRuntime": "not-run: the candidate is Linux amd64 ELF and macOS rejected direct execution with exec format error"
   },
   "currentPublicReadback": {
