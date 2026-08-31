@@ -186,6 +186,7 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 		"portalMessages",
 		"routeMessages",
 		"routeHeadings",
+		"routeUI",
 		"walletListenerProviders",
 		"wallet_switchEthereumChain",
 		"isMetaMask === true && item.provider?.isYNXWallet !== true",
