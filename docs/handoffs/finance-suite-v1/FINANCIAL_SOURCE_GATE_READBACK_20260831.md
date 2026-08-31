@@ -16,3 +16,13 @@ This is a local, read-only test receipt. It is not public deployment, installed-
 3. Finance: preserve the independently completed P0-298 correction branch and do not use the local duplicate branch; public runtime work remains exclusively Central-lease controlled.
 
 All tests above ran without a Wallet account request, signing, typed-data confirmation, Testnet write, SSH, server mutation, or deployment.
+
+## Isolated build and browser follow-up
+
+The following commands ran from temporary directories exported with `git archive` from the exact commits above. They did not write a product worktree or publish an artifact.
+
+| Product | Command/result | Immutable local readback | Boundary retained |
+| --- | --- | --- | --- |
+| DEX | `npm run build`: pass; `npm run test:e2e`: 7 passed, 1 skipped | The built inventory contained 10 files; its sorted per-file SHA-256 manifest hashes to `b1d9aa906d1966a9dfbbc8abef14d9e811f792a821d3e626e185a0530595a8da`. | This is an isolated browser test, not a deployed PWA, Wallet approval, quote source, chain receipt, or liquidity proof. |
+| Exchange | `npm run test:browser`: 3/3 pass | Desktop structure/keyboard, mobile overflow boundary, and no-provider wallet-download boundary exercised locally. | It does not discover or approve a real installed provider and does not prove a public terminal/runtime. |
+| Quant | `npm run build:wallet`: pass | `web/wallet-auth.js`: 75,687 bytes, SHA-256 `ebba4bb70e270327159d7d8db3bcc50e0ebc05456025edb318054cab69c4041b`. | The rebuilt file remains a local source artifact; no hosted runtime, strategy execution, or Wallet lifecycle follows. |
