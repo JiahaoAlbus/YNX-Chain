@@ -427,12 +427,12 @@
     }
   ],
   "heavy": {
-    "owner": "finance-release-control-plane-readonly-diagnostic",
+    "owner": null,
     "taskId": "P0-324",
-    "status": "ACTIVE_FINANCE_P0318_CARRIER_RAW_FIRST_ZERO_WRITE_DIAGNOSTIC_ONLY",
+    "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0324_CARRIER_RAW_FIRST_ZERO_WRITE_DIAGNOSTIC",
     "acquiredAt": "2026-08-31T06:55:00Z",
     "expiresAt": "2026-08-31T07:10:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-31T06:57:20Z",
     "sourceCommit": "6825c6d44c54f5a8ed0283ffcfd469a12fe2f185",
     "evidenceCommit": "6825c6d44c54f5a8ed0283ffcfd469a12fe2f185",
     "runtimeHost": "43.153.202.237",
@@ -444,8 +444,8 @@
     "reusable": false,
     "previousOwner": null,
     "previousTaskId": "P0-323",
-    "reviewDecision": "P0324_WHOLELY_NEW_CARRIER_RAW_FIRST_ZERO_WRITE_LEASE_ISSUED",
-    "reason": "P0-323 failed at the aggregate carrier inventory predicate after cleanup-target and parent checks passed. P0-324 performs one raw-first zero-write read of the carrier root and actual child identities plus canonical inventory input before comparison; it does not read runtime or authorize cleanup or deployment."
+    "reviewDecision": "P0324_TERMINAL_SUCCESS_CORRECTED_CARRIER_CANONICAL_INVENTORY_IDENTIFIED_RELEASED",
+    "reason": "The sole raw-first zero-write SSH proved the carrier root and its two exact children unchanged and stable. The exact 310-byte canonical inventory input hashes to 1a921cd1, identifying P0-323's 7da2fd25 expectation as the mismatch. P0-324 is consumed and nonreusable; Heavy is released and cleanupComplete remains false pending a new full readback."
   },
   "wave": {
     "id": "B-financial-apps-quant",

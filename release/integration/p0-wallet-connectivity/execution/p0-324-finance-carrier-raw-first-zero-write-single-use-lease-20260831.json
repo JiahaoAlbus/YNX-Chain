@@ -3,11 +3,12 @@
   "campaignId":"P0-WALLET-CONNECTIVITY-2026-08",
   "taskId":"P0-324",
   "leaseId":"P0-WALLET-CONNECTIVITY-2026-08-finance-carrier-raw-first-zero-write-20260831T065500Z",
-  "status":"ACTIVE",
+  "status":"CONSUMED_RELEASED_SUCCESS_FINANCE_P0324_CARRIER_RAW_FIRST_ZERO_WRITE_DIAGNOSTIC",
   "singleUse":true,
   "reusable":false,
   "issuedAt":"2026-08-31T06:55:00Z",
   "expiresAt":"2026-08-31T07:10:00Z",
+  "releasedAt":"2026-08-31T06:57:20Z",
   "owner":"finance-release-control-plane-readonly-diagnostic",
   "namedExecutor":"release-control-plane",
   "runtimeHost":"43.153.202.237",
@@ -28,5 +29,5 @@
   },
   "requiredOutput":["carrier root full tuple and stable identity before child reads","all direct children in bytewise basename order with lstat full tuple and type","SHA256 only for regular-file children","directChildren count","exact canonical inventory input bytes, base64 and SHA256 used by the prior inspector","carrier root full tuple and stable identity after child reads","rootStableDuringRead=true and mutationCount=0"],
   "forbidden":["assert old carrier inventory before raw evidence","service HTTP environment content or secret inspection","remote write temporary file cleanup deletion upload chmod chown rename or link","carrier placement or mutation","deploy rollback restart reload or service lifecycle","build-identity successor or Phase3 authorization","Wallet account signature typed data or transaction","retry"],
-  "terminal":{"successStatus":"CONSUMED_RELEASED_SUCCESS_FINANCE_P0324_CARRIER_RAW_FIRST_ZERO_WRITE_DIAGNOSTIC","failureStatus":"CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0324_CARRIER_RAW_FIRST_ZERO_WRITE_DIAGNOSTIC","releaseHeavyAndAllLocks":true,"cleanupComplete":false,"deploymentAuthorized":false}
+  "terminal":{"successStatus":"CONSUMED_RELEASED_SUCCESS_FINANCE_P0324_CARRIER_RAW_FIRST_ZERO_WRITE_DIAGNOSTIC","failureStatus":"CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0324_CARRIER_RAW_FIRST_ZERO_WRITE_DIAGNOSTIC","releaseHeavyAndAllLocks":true,"cleanupComplete":false,"deploymentAuthorized":false,"attemptCount":1,"retryCount":0,"localExitStatus":0,"mutationCount":0,"terminalEvidencePath":"release/integration/p0-wallet-connectivity/execution/objects/p0-324-finance-carrier-raw-first-zero-write-terminal-evidence-20260831.json"}
 }
