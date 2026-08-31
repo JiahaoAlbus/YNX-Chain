@@ -92,6 +92,16 @@ test("studio exposes recovery, team, rights, revenue and bounded AI workflows", 
 
   assert.match(i18n, /locale==="ar"\?"rtl":"ltr"/);
   assert.match(i18n, /PluralRules/);
+  assert.match(i18n, /new URL\("\.\/i18n\/catalog\.json",import\.meta\.url\)/);
+  assert.doesNotMatch(i18n, /fetch\(["']\/i18n\/catalog\.json["']\)/);
+  assert.equal(
+    new URL("./i18n/catalog.json", "https://web4.ynxweb4.com/video/studio/i18n.js").href,
+    "https://web4.ynxweb4.com/video/studio/i18n/catalog.json",
+  );
+  assert.notEqual(
+    new URL("./i18n/catalog.json", "https://web4.ynxweb4.com/video/studio/i18n.js").pathname,
+    "/i18n/catalog.json",
+  );
   assert.match(html, /never enables monetization automatically/i);
   assert.match(js, /AI request cancelled and audited/);
 

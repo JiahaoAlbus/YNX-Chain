@@ -30,7 +30,8 @@ ru:{recordedViews:"Зафиксированные просмотры",watchTime:
 ar:{recordedViews:"المشاهدات المسجلة",watchTime:"وقت المشاهدة",subscribersMetric:"المشتركون",auditedRevenue:"الإيرادات المدققة",noProjections:"لا تُعرض التوقعات على أنها نتائج"},
 id:{recordedViews:"Tayangan tercatat",watchTime:"Waktu tonton",subscribersMetric:"Pelanggan",auditedRevenue:"Pendapatan teraudit",noProjections:"Proyeksi tidak ditampilkan sebagai hasil"}
 };
-export const ready=fetch("/i18n/catalog.json").then(r=>{if(!r.ok)throw new Error("i18n unavailable");return r.json()}).then(data=>{catalog=data;apply();return data});
+const catalogURL=new URL("./i18n/catalog.json",import.meta.url);
+export const ready=fetch(catalogURL).then(r=>{if(!r.ok)throw new Error("i18n unavailable");return r.json()}).then(data=>{catalog=data;apply();return data});
 export function t(key){return studio[locale]?.[key]||metrics[locale]?.[key]||catalog[locale]?.[key]||studio.en[key]||metrics.en[key]||catalog.en?.[key]||`[${key}]`}
 export const formatNumber=value=>new Intl.NumberFormat(locale).format(value);
 export const formatDate=value=>new Intl.DateTimeFormat(locale,{dateStyle:"medium",timeStyle:"short"}).format(new Date(value));
