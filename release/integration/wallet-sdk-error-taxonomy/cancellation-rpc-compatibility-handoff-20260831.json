@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "owner": "wallet-desktop-cli-sdk",
+  "branch": "codex/wallet-sdk-error-taxonomy-20260831",
+  "implementationCommit": "c07ed4b8b6fbde509081904bd91394fa5c913335",
+  "implementationTree": "534694dafd1c97485c5c472c37bfef29593f4c1c",
+  "evidencePath": "docs/integration/wallet-sdk-cancellation-rpc-compatibility-evidence-20260831.json",
+  "result": "SOURCE_AND_PACKAGE_GATES_PASS_REMOTE_CURRENTLY_TIMEOUT",
+  "claims": {
+    "browserNodeGoCancellationConsistent": true,
+    "jsonRPCAndHTTPErrorSeparated": true,
+    "malformedEnvelopeFailClosed": true,
+    "legacyConsumerCompatible": true,
+    "maximumAttempts": 1,
+    "chain9102Accessed": false,
+    "currentRemoteChainConnectionProved": false,
+    "accountRequested": false,
+    "signed": false,
+    "transactionCreated": false
+  },
+  "integrationBoundary": "The current source and package verifier pass. Current remote probes timed out and therefore do not prove a live chain connection. No install, signing, deployment, account, signature, or transaction gate is promoted."
+}

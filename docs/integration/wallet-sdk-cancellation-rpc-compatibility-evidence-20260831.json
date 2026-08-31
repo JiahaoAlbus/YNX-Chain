@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "scope": "wallet-desktop-cli-sdk",
+  "branch": "codex/wallet-sdk-error-taxonomy-20260831",
+  "implementationCommit": "c07ed4b8b6fbde509081904bd91394fa5c913335",
+  "implementationTree": "534694dafd1c97485c5c472c37bfef29593f4c1c",
+  "parentCommit": "cc0ce8ff8b2d11c6286265168cc1ab6a402c4c62",
+  "networkBoundary": {
+    "nativeChainId": "ynx_6423-1",
+    "chainIdDecimal": 6423,
+    "evmChainId": "0x1917",
+    "chain9102Allowed": false,
+    "chain9102Accessed": false,
+    "implicitRetries": false,
+    "maximumAttempts": 1
+  },
+  "crossRuntimeSemantics": {
+    "browserAndNodeAbortSignal": "TRANSPORT_CANCELLED",
+    "goContextCanceled": "TRANSPORT_CANCELLED",
+    "sdkDeadlineAndGoDeadlineExceeded": "TRANSPORT_TIMEOUT",
+    "validJSONRPCError": "JSON_RPC_ERROR with numeric rpcCode",
+    "httpFailure": "HTTP_ERROR or RPC_UNAVAILABLE according to HTTP status",
+    "malformedIdResultOrError": "MALFORMED_RESPONSE",
+    "preCancelledRequestCount": 0,
+    "failedRequestMaximumAttempts": 1
+  },
+  "sharedVector": {
+    "path": "testdata/wallet-sdk-error-taxonomy-v1.json",
+    "sha256": "c1ce5c371743d2a6a50a53ea153500b55de6aa3d9c35f63a5482d8f5029dfed7"
+  },
+  "tests": [
+    {"command": "node --test sdk/js/index.test.mjs sdk/js/wallet.test.mjs", "result": "PASS", "tests": 20},
+    {"command": "go test ./sdk/wallet/go ./cmd/ynx-wallet-cli ./examples/wallet-go-sdk", "result": "PASS", "packages": 3},
+    {"command": "go vet ./sdk/wallet/go ./cmd/ynx-wallet-cli ./examples/wallet-go-sdk", "result": "PASS"}
+  ],
+  "packageConsumer": {
+    "runner": "release/integration/wallet-sdk-error-taxonomy/run-clean-consumer.mjs",
+    "runnerSha256": "1fd2ffc66b047d40175f9fe8a7b5516fc30b304d3874f66ca77334a7f2dbea6e",
+    "package": "@ynx-chain/sdk@0.2.1",
+    "installedFromTarball": true,
+    "tarball": "ynx-chain-sdk-0.2.1.tgz",
+    "tarballBytes": 7428,
+    "tarballSha256": "d73fe5900b240a92434b5113fceb20c1c71c81a95077887dab6645353e3b2f27",
+    "currentConsumer": "PASS",
+    "legacyExportsCompatible": true,
+    "legacyReadOnlyFlowCompatible": true,
+    "abortSignalCancellation": true,
+    "malformedRPCSeparated": true,
+    "jsonRPCErrorSeparated": true,
+    "temporaryConsumerRemoved": true
+  },
+  "currentSourceRemoteReadOnly": {
+    "endpoint": "https://rpc.ynxweb4.com/evm",
+    "operation": "eth_chainId",
+    "nodeIndependentAttempts": [
+      {"attempt": 1, "result": "TRANSPORT_TIMEOUT", "connected": false},
+      {"attempt": 2, "result": "TRANSPORT_TIMEOUT", "connected": false}
+    ],
+    "goCLI": {"attempts": 1, "result": "TRANSPORT_TIMEOUT", "connected": false},
+    "accountRequested": false,
+    "signed": false,
+    "transactionCreated": false,
+    "noFakeChainResult": true
+  },
+  "remainingFalse": {
+    "currentRemoteChainConnectionProved": false,
+    "installedArtifactProvedByThisSlice": false,
+    "providerLifecycleProved": false,
+    "accountApprovalProved": false,
+    "personalSignProved": false,
+    "eip712SignProved": false,
+    "testnetTransactionProved": false,
+    "productionSigned": false,
+    "notarized": false,
+    "downloadHostedChanged": false,
+    "deployedPublicChanged": false
+  }
+}
