@@ -1,33 +1,37 @@
-const state={token:'',overview:null,aiJob:null,aiTimer:null,wallet:null};
+const state={connected:false,overview:null,aiJob:null,aiTimer:null};
+const READ_RETRY_DELAYS=[0,600,1600];
 const $=(s)=>document.querySelector(s),$$=(s)=>[...document.querySelectorAll(s)];
 const esc=(v)=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 const fmt=(v)=>new Intl.NumberFormat().format(Number(v||0));
 const short=(v)=>v?`${v.slice(0,8)}…${v.slice(-6)}`:'—';
 const date=(v)=>v?new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(new Date(v)):'Date unavailable';
 
-async function api(_path,_options={}){throw Object.assign(new Error('API_UNAVAILABLE: Finance product API is PENDING in the accepted endpoint manifest. No request was sent.'),{code:'API_UNAVAILABLE',nonRetryable:true})}
+const wait=(ms)=>new Promise(resolve=>setTimeout(resolve,ms));
+function sourceStatus(message,className='neutral'){$('#source-pill').textContent=message;$('#source-pill').className=`pill ${className}`}
+async function publicHealth(){for(let attempt=0;attempt<READ_RETRY_DELAYS.length;attempt++){if(attempt){sourceStatus(`Reconnecting ${attempt}/${READ_RETRY_DELAYS.length-1}`,'warning');await wait(READ_RETRY_DELAYS[attempt])}try{const response=await fetch('/health',{headers:{Accept:'application/json'},signal:AbortSignal.timeout(10_000)}),body=await response.json();if(!response.ok||body.ok!==true||body.chainId!=='ynx_6423-1'||body.portfolio!=='read-only')throw Object.assign(new Error(`Finance health check failed (${response.status})`),{status:response.status});sourceStatus(state.connected?'YNX Testnet connected':'YNX Testnet reachable · Wallet not connected','live');return body}catch(error){if(error?.status||attempt===READ_RETRY_DELAYS.length-1){sourceStatus('Connection unavailable','warning');throw error}}}throw new Error('Public connection retry exhausted.')}
+async function api(path,options={}){
+  const method=String(options.method||'GET').toUpperCase(),readOnly=method==='GET',attempts=readOnly?READ_RETRY_DELAYS.length:1;
+  for(let attempt=0;attempt<attempts;attempt++){
+    if(attempt){sourceStatus(`Reconnecting ${attempt}/${attempts-1}`,'warning');await wait(READ_RETRY_DELAYS[attempt])}
+    try{
+      const headers={'Content-Type':'application/json',...(options.headers||{})};try{headers['X-YNX-Product-Session-Proof']=await window.YNXFinanceWallet.requireProof(scope(path))}catch(error){error.nonRetryable=true;throw error}
+      const response=await fetch(path,{...options,method,headers,signal:AbortSignal.timeout(10_000)});if(response.status===204){sourceStatus('YNX Testnet connected','live');return null}const type=response.headers.get('content-type')||'',body=type.includes('json')?await response.json():await response.text();
+      if(!response.ok){const error=new Error(body.error||`Request failed (${response.status})`);error.code=body.code;error.status=response.status;if(!readOnly||![502,503,504].includes(response.status)||attempt===attempts-1)throw error;continue}
+      sourceStatus('YNX Testnet connected','live');return body
+    }catch(error){if(!readOnly||error?.status||error?.nonRetryable||attempt===attempts-1){if(!error?.nonRetryable&&(!error?.status||[502,503,504].includes(error.status)))sourceStatus('Connection unavailable','warning');throw error}}
+  }
+  throw new Error('Read connection retry exhausted.')
+}
+function scope(path){if(path.startsWith('/api/ai/'))return'finance.ai.draft';if(['/api/categories','/api/budgets','/api/reminders','/api/notes','/api/privacy','/api/account'].some(v=>path.startsWith(v))||path.includes('/category'))return'finance.profile.write';return'finance.portfolio.read'}
 function notify(message,error=false){const box=$('#notice');box.textContent=message;box.classList.toggle('error',error);box.classList.remove('hidden');clearTimeout(box.timer);box.timer=setTimeout(()=>box.classList.add('hidden'),6500)}
 
-function showWalletOptions(show){$('#wallet-options')?.classList.toggle('hidden',!show)}
-function renderStandardWallet(result){state.wallet=result;showWalletOptions(false);$('#source-pill').textContent=`Wallet connected · ${short(result.account)}`;$('#source-pill').className='pill warning';$('#signin').textContent='Wallet connected'}
-async function signIn(){
-  try{
-    const result=await window.YNXFinanceWebWallet.connect();
-    if(result.status!=='standard-connected'){
-      showWalletOptions(true);
-      notify('No compatible injected Wallet provider was found. Download YNX Wallet or use MetaMask; Finance remains on this page.',true);
-      return;
-    }
-    renderStandardWallet(result);
-    notify(`Standard ${result.providerKind} Wallet connected on YNX Testnet. Finance product data remains unavailable; no browser session was created.`);
-  }catch(error){notify(error.message||'Wallet connection failed closed.',true)}
-}
-async function restoreStandardWallet(){try{const result=await window.YNXFinanceWebWallet.restore();if(result.status==='standard-connected')renderStandardWallet(result)}catch{}}
+async function signIn(){try{await window.YNXFinanceWallet.connect()}catch(error){notify(error.message,true)}}
 async function consumeCallback(){if(location.search)history.replaceState({},'',location.pathname)}
-async function logout(){state.token='';state.overview=null;state.wallet=null;renderSignedOut()}
-function renderSignedOut(){document.body.classList.add('signed-out-state');$('#signed-out').classList.remove('hidden');$('#workspace').classList.add('hidden');$('#signin').classList.remove('hidden');$('#logout').classList.add('hidden');if(state.wallet){renderStandardWallet(state.wallet)}else{$('#signin').textContent='Connect YNX Wallet';$('#source-pill').textContent='Not connected';$('#source-pill').className='pill neutral'}$('#page-title').textContent='Your money, with its evidence attached.'}
+async function logout(){try{if(state.connected)await api('/api/auth/logout',{method:'POST'})}catch{}await window.YNXFinanceWallet.disconnect();state.connected=false;state.overview=null;renderSignedOut()}
+function renderSignedOut(){document.body.classList.add('signed-out-state');$('#signed-out').classList.remove('hidden');$('#workspace').classList.add('hidden');$('#signin').classList.add('hidden');$('#logout').classList.add('hidden');$('#source-pill').textContent='Not connected';$('#source-pill').className='pill neutral';$('#page-title').textContent='Your money, with its evidence attached.'}
 
-async function load(){if(!state.token){renderSignedOut();return}try{$('#source-pill').textContent='Checking sources';const data=await api('/api/overview');state.overview=data;render(data)}catch(error){if(error.status===401){logout();notify('Your Finance session expired. Reauthorize in YNX Wallet.',true)}else notify(error.message,true)}}
+async function load(){await window.YNXFinanceWallet.ready;state.connected=window.YNXFinanceWallet.connected();if(!state.connected){renderSignedOut();return}try{$('#source-pill').textContent='Checking sources';const data=await api('/api/overview');state.overview=data;render(data)}catch(error){if(error.status===401){await logout();notify('Your Finance session expired. Reauthorize in YNX Wallet.',true)}else notify(error.message,true)}}
+async function reconnect(){try{await publicHealth();if(state.connected)await load()}catch(error){notify(error.message,true)}}
 function render(data){document.body.classList.remove('signed-out-state');$('#signed-out').classList.add('hidden');$('#workspace').classList.remove('hidden');$('#signin').classList.add('hidden');$('#logout').classList.remove('hidden');const p=data.portfolio,profile=data.profile;$('#account').textContent=p.account;$('#balance').textContent=p.explorerStatus.available?`${fmt(p.balanceYnxt)} YNXT`:'Unavailable';$('#staked').textContent=p.explorerStatus.available?`${fmt(p.stakedYnxt)} YNXT`:'Unavailable';$('#balance-source').textContent=p.explorerStatus.available?`Explorer evidence · ${date(p.asOf)}`:p.explorerStatus.error;const both=p.explorerStatus.available&&p.payStatus.available;$('#source-pill').textContent=both?'Explorer + Pay live':p.explorerStatus.available?'Explorer live · Pay unavailable':'Sources unavailable';$('#source-pill').className=`pill ${both?'live':'warning'}`;renderAlerts(data.alerts);renderActivity(p.activity);renderReceipts(p.payReceipts,p.payStatus);renderPlanning(profile);renderPrivacy(profile.privacy);renderAIRecords(p.activity);renderSupport(data.support);route()}
 function renderAlerts(alerts){const el=$('#alerts');if(!alerts.length){el.innerHTML='<div class="alert info"><div><strong>No source or rule alerts</strong><small>Finance alerts are informational and never freeze assets.</small></div></div>';return}el.innerHTML=alerts.map(a=>`<div class="alert ${a.severity==='info'?'info':''}"><div><strong>${esc(a.title)}</strong><small>${esc(a.detail)}</small></div></div>`).join('')}
 function activityRow(a){const sign=a.direction==='outgoing'?'-':'+';return `<div class="row"><div class="row-main"><strong>${esc(a.type||'YNXT activity')}</strong><small>${esc(date(a.timestamp))} · ${esc(short(a.id))}</small></div><div class="row-value">${sign}${fmt(a.amountYnxt)} YNXT<small>fee ${fmt(a.feeYnxt)}</small></div></div>`}
@@ -45,7 +49,7 @@ $('#reminder-form').addEventListener('submit',e=>{e.preventDefault();const f=new
 $('#privacy-form').addEventListener('submit',async e=>{e.preventDefault();const f=e.currentTarget;try{await api('/api/privacy',{method:'PUT',body:JSON.stringify({includePayInStatements:f.includePayInStatements.checked,allowAiActivityContext:f.allowAiActivityContext.checked,alertsEnabled:f.alertsEnabled.checked})});notify('Privacy settings saved.');await load()}catch(error){notify(error.message,true)}});
 $('#statement-form').addEventListener('submit',async e=>{e.preventDefault();const f=new FormData(e.currentTarget);try{const from=new Date(`${f.get('from')}T00:00:00Z`).toISOString(),toDate=new Date(`${f.get('to')}T00:00:00Z`);toDate.setUTCDate(toDate.getUTCDate()+1);const s=await api(`/api/statements?from=${encodeURIComponent(from)}&to=${encodeURIComponent(toDate.toISOString())}`);$('#statement').innerHTML=`<p><strong>${esc(s.network)} · ${esc(s.symbol)}</strong><br>${esc(date(s.from))} through ${esc(date(new Date(new Date(s.toExclusive).getTime()-1)))}</p><div class="statement-grid"><div class="stat"><small>Incoming</small><strong>${fmt(s.totals.incomingYnxt)} YNXT</strong></div><div class="stat"><small>Outgoing</small><strong>${fmt(s.totals.outgoingYnxt)} YNXT</strong></div><div class="stat"><small>Fees</small><strong>${fmt(s.totals.feesYnxt)} YNXT</strong></div><div class="stat"><small>Records</small><strong>${s.activity.length}</strong></div></div><p><small>${esc(s.openingBalance)}. This is not a bank statement.</small></p>`}catch(error){notify(error.message,true)}});
 
-async function download(path,name){try{await api(path,{method:'GET'});throw new Error(`API_UNAVAILABLE: ${name} cannot be created until the Finance product API is accepted.`)}catch(error){notify(error.message,true)}}
+async function download(path,name){try{const response=await fetch(path,{headers:{'X-YNX-Product-Session-Proof':await window.YNXFinanceWallet.requireProof('finance.portfolio.read')}});if(!response.ok)throw new Error(`Export failed (${response.status})`);const blob=await response.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();URL.revokeObjectURL(url)}catch(error){notify(error.message,true)}}
 $('#export-json').addEventListener('click',()=>download('/api/export?format=json','ynx-finance-export.json'));$$('[data-auth-download]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();download(a.getAttribute('href'),'ynx-finance-activity.csv')}));
 
 async function startAI(){const recordIds=$$('#ai-records input:checked').map(x=>x.value);try{state.aiJob=await api('/api/ai/jobs',{method:'POST',body:JSON.stringify({kind:$('#ai-kind').value,recordIds,contextClasses:['owned_activity'],consent:$('#ai-consent').checked})});renderAIJob();pollAI()}catch(error){notify(error.message,true)}}
@@ -54,7 +58,7 @@ function pollAI(){clearInterval(state.aiTimer);state.aiTimer=setInterval(async()
 const deleteAIButton=document.createElement('button');deleteAIButton.dataset.ai='delete';deleteAIButton.className='danger hidden';deleteAIButton.textContent='Delete draft data';$('#ai-actions').append(deleteAIButton);
 $('#ai-start').addEventListener('click',startAI);$('#ai-actions').addEventListener('click',async e=>{const decision=e.target.dataset.ai;if(!decision||!state.aiJob)return;try{if(decision==='cancel'){await api(`/api/ai/jobs/${state.aiJob.id}/cancel`,{method:'POST'});state.aiJob.status='cancelled'}else if(decision==='delete'){if(!window.confirm('Delete this AI draft, streamed text and result? The minimal deletion audit event will remain.'))return;await api(`/api/ai/jobs/${state.aiJob.id}`,{method:'DELETE'});state.aiJob=null;$('#ai-status').textContent='Draft data deleted. A minimal deletion audit event remains.';$('#ai-actions').classList.add('hidden');return}else state.aiJob=await api(`/api/ai/jobs/${state.aiJob.id}/decision`,{method:'POST',body:JSON.stringify({decision})});renderAIJob();if(decision==='apply')await load()}catch(error){notify(error.message,true)}});
 
-function route(){const id=(location.hash||'#overview').slice(1);$$('.view').forEach(v=>v.classList.toggle('active-view',v.id===id));$$('#nav a').forEach(a=>a.classList.toggle('active',a.hash===`#${id}`));const heading=$(`#${id} h2`);if(state.token&&heading)$('#page-title').textContent=heading.textContent;else if(!state.token)$('#page-title').textContent='Your money, with its evidence attached.'}
-window.addEventListener('hashchange',route);$$('.connect').forEach(b=>b.addEventListener('click',signIn));$('#signin').addEventListener('click',signIn);$('#logout').addEventListener('click',logout);$('#refresh').addEventListener('click',load);
+function route(){const id=(location.hash||'#overview').slice(1);$$('.view').forEach(v=>v.classList.toggle('active-view',v.id===id));$$('#nav a').forEach(a=>a.classList.toggle('active',a.hash===`#${id}`));const heading=$(`#${id} h2`);if(state.connected&&heading)$('#page-title').textContent=heading.textContent;else if(!state.connected)$('#page-title').textContent='Your money, with its evidence attached.'}
+window.addEventListener('hashchange',route);window.addEventListener('online',reconnect);window.addEventListener('offline',()=>sourceStatus('Offline · reconnect when network returns','warning'));$$('.connect').forEach(b=>b.addEventListener('click',signIn));$('#signin').addEventListener('click',signIn);$('#logout').addEventListener('click',logout);$('#refresh').addEventListener('click',load);$('#network-retry').addEventListener('click',reconnect);
 const now=new Date(),monthAgo=new Date(Date.now()-30*864e5);$('#statement-form [name=from]').value=monthAgo.toISOString().slice(0,10);$('#statement-form [name=to]').value=now.toISOString().slice(0,10);
-route();consumeCallback().then(restoreStandardWallet).then(load);
+route();consumeCallback().then(load).then(()=>{if(!state.connected)return publicHealth()}).catch(error=>notify(error.message,true));

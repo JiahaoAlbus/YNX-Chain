@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#002FA7">
   <meta name="description" content="Read-only YNXT activity, private planning, statements, and evidence-linked Pay receipts.">
   <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="icon" href="/ynx-logo.png" type="image/png">
   <link rel="stylesheet" href="/styles.css">
   <title>YNX Finance</title>
 </head>
@@ -20,11 +21,11 @@
       <div class="boundary"><strong>Read-only by design</strong><p>No custody, bank account, brokerage, fiat balance, credit, insurance, yield, or automatic asset control.</p></div>
     </aside>
     <main id="main" tabindex="-1">
-      <header class="topbar"><div><span class="eyebrow">YNX Chain public testnet · YNXT</span><h1 id="page-title">Your money, with its evidence attached.</h1></div><div class="session"><span id="source-pill" class="pill neutral">Not connected</span><button id="signin" class="primary">Connect YNX Wallet</button><button id="logout" class="ghost hidden">Sign out</button></div></header>
+      <header class="topbar"><div><span class="eyebrow">YNX Chain public testnet · YNXT</span><h1 id="page-title">Your money, with its evidence attached.</h1></div><div class="session"><span id="source-pill" class="pill neutral">Not connected</span><button id="network-retry" class="ghost" type="button">Reconnect YNX Chain</button><button id="signin" class="primary">Sign in with YNX Wallet</button><button id="logout" class="ghost hidden">Sign out</button></div></header>
       <div id="notice" class="notice hidden" role="status" aria-live="polite"></div>
 
       <section id="signed-out" class="hero">
-        <div><span class="eyebrow">Personal finance without account control</span><h2>See owned YNXT activity.<br>Plan privately.</h2><p>YNX Finance will read evidence through Explorer and Pay only after the product API is accepted. It cannot see recovery material, sign transactions, move funds, or invent missing balances.</p><a class="primary" href="https://www.ynxweb4.com/ecosystem#finance">Open Finance in the YNX ecosystem</a><p id="wallet-options" class="hidden"><a id="download-ynx-wallet" href="https://www.ynxweb4.com/dapp/download" rel="noreferrer">Download YNX Wallet</a> · <a id="use-metamask" href="https://metamask.io/download/" rel="noreferrer">Use MetaMask</a></p><p><small>Finance is PENDING in the accepted endpoint manifest. A standard Wallet connection does not create a Finance browser session or fallback API request.</small></p></div>
+        <div><span class="eyebrow">Personal finance without account control</span><h2>See owned YNXT activity.<br>Plan privately.</h2><p>YNX Finance reads evidence through Explorer and Pay after Wallet authorization. It cannot see recovery material, sign transactions, move funds, or invent missing balances.</p><div class="wallet-choice"><button class="primary connect" type="button">Continue in YNX Wallet</button><a id="install-wallet" class="button ghost" href="https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk">Download YNX Wallet</a><button id="connect-metamask" class="ghost" type="button">Connect MetaMask</button><a class="button ghost" href="https://www.ynxweb4.com/dapp/wallet">Wallet version details</a></div><p id="wallet-state" role="status" aria-live="polite"><small>Continue with YNX Wallet for private evidence, download it if missing, or use MetaMask for EVM compatibility. Public product information remains available.</small></p></div>
         <div class="truth-card"><span class="status-dot"></span><div><strong>What appears here</strong><p>Only live indexed YNXT records, authorized Pay receipts, and planning data you create. Empty or unavailable sources stay visibly empty.</p></div></div>
       </section>
 
@@ -33,7 +34,7 @@
           <div class="balance-card"><div><span class="eyebrow light">READ-ONLY PORTFOLIO</span><p class="account" id="account">—</p></div><div class="balance-row"><div><span>Available evidence</span><strong id="balance">— YNXT</strong><small id="balance-source">Waiting for Explorer</small></div><div><span>Staked on-chain</span><strong id="staked">— YNXT</strong><small>No fiat conversion inferred</small></div></div></div>
           <div class="section-head"><div><span class="eyebrow">Current attention</span><h2>Evidence and alerts</h2></div><button class="ghost" id="refresh">Refresh sources</button></div>
           <div id="alerts" class="alert-list"></div>
-          <article class="panel"><div class="panel-head"><div><h3>Cross-product evidence</h3><small>Owner contracts remain unavailable until their exact read-only schemas are frozen and accepted.</small></div><span class="micro">FAIL CLOSED</span></div><div id="read-sources" class="rows"></div></article>
+          <article class="panel"><div class="panel-head"><div><h3>Cross-product evidence</h3><small>Accepted owner sources show live account-bound evidence. Missing contracts or endpoints remain visibly unavailable.</small></div><span class="micro">READ ONLY</span></div><div id="read-sources" class="rows"></div></article>
           <div class="grid two"><article class="panel"><div class="panel-head"><h3>Recent owned activity</h3><a href="#activity">View all</a></div><div id="recent-activity" class="rows"></div></article><article class="panel"><div class="panel-head"><h3>Pay receipts</h3><span class="micro">Pay API</span></div><div id="recent-receipts" class="rows"></div></article></div>
         </section>
 
@@ -51,7 +52,7 @@
       </div>
     </main>
   </div>
-  <script src="/wallet-connect.js" defer></script>
+  <script src="/wallet-auth.js" defer></script>
   <script src="/app.js" defer></script>
   <script src="/read-sources.js" defer></script>
 </body>
