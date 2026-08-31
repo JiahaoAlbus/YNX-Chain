@@ -4,8 +4,8 @@
   "sourceCommit": "3f97a13d5ff6e0a43d434eb6b630785564e59e3e",
   "sourceTree": "5ed64b144ec149e05f201ca9e406e460fa19f9f9",
   "carrier": "apps/creator-studio/release-candidates/candidate-3f97a13d/creator-studio.tar",
-  "bytes": 159232,
-  "sha256": "b99c791393bba7b9a0780fe13ac4c61104754a2766d12fb3990af15b447aec89",
+  "bytes": 133120,
+  "sha256": "064acfe84c481941549d33473cb78f124e0ae5dfebda16d2f0cac1f4898c3046",
   "manifest": {
     "path": "creator-studio.manifest.json",
     "bytes": 2299,

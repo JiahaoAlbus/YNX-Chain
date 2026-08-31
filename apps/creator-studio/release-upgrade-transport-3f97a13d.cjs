@@ -3,8 +3,8 @@ const fsp=require("node:fs/promises"),crypto=require("node:crypto"),path=require
 const PROD_ROOT="/opt/ynx-release-control-plane/creator-studio-3f97a13d";
 const ORDER=Object.freeze(["release-upgrade-executor-3f97a13d.mjs","release-candidates/candidate-3f97a13d/creator-studio.tar","release-candidates/candidate-0e1a53c5/creator-studio.tar"]);
 const EXPECTED=Object.freeze({
-  "release-upgrade-executor-3f97a13d.mjs":{bytes:16279,sha256:"05f5372e368f74512f7142d70d6160d28ca5e9a7dbab6f555076f1af2874e1b9",mode:0o700},
-  "release-candidates/candidate-3f97a13d/creator-studio.tar":{bytes:159232,sha256:"b99c791393bba7b9a0780fe13ac4c61104754a2766d12fb3990af15b447aec89",mode:0o600},
+  "release-upgrade-executor-3f97a13d.mjs":{bytes:17386,sha256:"afb65485b424d2c46f4c2185142b76ca9b5c5b532b611d1f52ce9a78a0962aca",mode:0o700},
+  "release-candidates/candidate-3f97a13d/creator-studio.tar":{bytes:133120,sha256:"064acfe84c481941549d33473cb78f124e0ae5dfebda16d2f0cac1f4898c3046",mode:0o600},
   "release-candidates/candidate-0e1a53c5/creator-studio.tar":{bytes:159232,sha256:"3f56aa4c3f9d87d27f7cdf19eafc0dacf1da78d83d31def2080f0162d92bdf8a",mode:0o600}
 });
 const sha=b=>crypto.createHash("sha256").update(b).digest("hex"),stable=v=>JSON.stringify(v),mode=s=>s.mode&0o7777;
