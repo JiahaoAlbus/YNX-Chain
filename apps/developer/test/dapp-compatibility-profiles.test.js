@@ -41,7 +41,8 @@ test("the visible lab and chooser keep YNX Wallet and MetaMask identities separa
   assert.match(lab, /MetaMask marker is an original neutral identifier/);
   assert.match(lab, /WalletIdentityMark/);
   assert.match(panel, /WalletIdentityMark kind=\{choice\.kind\}/);
-  assert.match(panel, /WalletIdentityMark kind=\{webWalletConnection\.providerKind\}/);
+  assert.match(panel, /WalletIdentityMark kind=\{webWalletConnectionDetails\.providerKind\}/);
+  assert.match(panel, /const webWalletConnectionDetails = webWalletConnection\?\.chooserOpen/);
   assert.match(identityMark, /YNX Wallet identity mark/);
   assert.match(identityMark, /MetaMask identity mark/);
   assert.match(identityMark, /not a copied third-party logo/);

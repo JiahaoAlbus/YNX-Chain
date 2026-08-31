@@ -174,6 +174,9 @@ test("launcher and Developer Web adapter contain no frame, popup, blank target o
   assert.match(panel, /Disconnect this app/);
   assert.match(panel, /Switch account/);
   assert.match(panel, /chooserMode === "connection-details"/);
+  assert.match(panel, /const webWalletConnectionDetails = webWalletConnection\?\.chooserOpen/);
+  assert.match(panel, /webWalletConnectionDetails && \(/);
+  assert.match(panel, /providerKind: webWalletConnection\.providerKind/);
   assert.match(panel, /Provider:/);
   assert.match(panel, /Network:/);
   assert.match(adapter, /switchDeveloperWebWalletAccount/);

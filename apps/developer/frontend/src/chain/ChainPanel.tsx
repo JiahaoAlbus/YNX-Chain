@@ -88,6 +88,14 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
         return null;
       }
     }, [files]);
+  // A connection-details view is meaningful only for an exact connected provider.
+  // Keep this derived UI state fail-closed instead of rendering a default identity
+  // when a provider event has cleared the selected wallet.
+  const webWalletConnectionDetails = webWalletConnection?.chooserOpen
+    && webWalletConnection.chooserMode === "connection-details"
+    && webWalletConnection.providerKind
+    ? { connection: webWalletConnection, providerKind: webWalletConnection.providerKind }
+    : null;
   const refresh = async () => {
     setBusy(true);
     setError("");
@@ -434,16 +442,16 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
               <Button variant="ghost" disabled={busy} onClick={refreshBrowserWalletDiscovery}>Retry browser Wallet discovery</Button>
               <p>{webWalletAccount ? `Standard Wallet account ${webWalletAccount} is connected on YNX Testnet 0x1917. Product Session remains optional and separate.` : webWalletDiscovery?.status === "ready" ? "Choose a listed Wallet before any account request is sent." : "No browser Wallet provider is available. The official download and MetaMask choices remain on this page."}</p>
               {webWalletConnection?.status === "connected" && <Button variant="ghost" disabled={busy} onClick={() => setWebWalletConnection(openDeveloperWebWalletConnectionDetails(webWalletConnection))}>Wallet connection details</Button>}
-              {webWalletConnection?.chooserOpen && webWalletConnection.chooserMode === "connection-details" && (
+              {webWalletConnectionDetails && (
                 <div className="chain-tool" aria-label="Wallet connection details">
                   <b>Wallet connection details</b>
-                  <p>Provider: <WalletIdentityMark kind={webWalletConnection.providerKind} /><b>{webWalletConnection.providerKind === "ynx-wallet" ? "YNX Wallet" : "MetaMask"}</b></p>
-                  <p>Account: <code>{webWalletConnection.account}</code></p>
-                  <p>Network: <b>YNX Testnet</b> · <code>{webWalletConnection.chainId}</code></p>
-                  <p>Product Session: {webWalletConnection.privateService === "degraded" ? "Optional service degraded; Standard Wallet remains connected." : "Optional and separate from this Standard Wallet connection."}</p>
+                  <p>Provider: <WalletIdentityMark kind={webWalletConnectionDetails.providerKind} /><b>{webWalletConnectionDetails.providerKind === "ynx-wallet" ? "YNX Wallet" : "MetaMask"}</b></p>
+                  <p>Account: <code>{webWalletConnectionDetails.connection.account}</code></p>
+                  <p>Network: <b>YNX Testnet</b> · <code>{webWalletConnectionDetails.connection.chainId}</code></p>
+                  <p>Product Session: {webWalletConnectionDetails.connection.privateService === "degraded" ? "Optional service degraded; Standard Wallet remains connected." : "Optional and separate from this Standard Wallet connection."}</p>
                   <Button variant="ghost" disabled={busy} onClick={disconnectWebWallet}>Disconnect this app</Button>
                   <Button variant="ghost" disabled={busy} onClick={switchWebWalletAccount}>Switch account</Button>
-                  <Button variant="ghost" disabled={busy} onClick={() => setWebWalletConnection(closeDeveloperWebWalletConnectionDetails(webWalletConnection))}>Close details</Button>
+                  <Button variant="ghost" disabled={busy} onClick={() => setWebWalletConnection(closeDeveloperWebWalletConnectionDetails(webWalletConnectionDetails.connection))}>Close details</Button>
                   <p>These controls are local to this page. They never request accounts, launch a custom URI, open a popup, or create a Product Session.</p>
                 </div>
               )}
