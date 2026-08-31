@@ -1,0 +1,45 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "recordType": "CHAIN_CORE_SOURCE_TEST_ONLY_ACCEPTANCE",
+  "recordedAt": "2026-08-31T02:43:43Z",
+  "source": {
+    "branch": "codex/chain-peer-readiness-sampled-20260831",
+    "commit": "064dcbee799fa986f808d8b2346aa38b64c11973",
+    "tree": "17a8f4cba7dd5f655b0f16d612bd48ef8fb07aee",
+    "parent": "0be8967deefb08ecf9f1e14efe6f11ea621f6c5c",
+    "remoteExact": true,
+    "authorizedFileCount": 7
+  },
+  "acceptedSemantics": [
+    "configured peer-sync topology cannot become ready from heartbeat evidence alone",
+    "missing, stale, future, height-lag-greater-than-one, duplicate, noncanonical, replaced sync id, or replaced peer identity evidence fails closed",
+    "/status and peer-sync readiness use one sampled UTC instant and expose bounded reasons"
+  ],
+  "independentVerification": {
+    "targetedRaceTests": "PASS",
+    "validatorPeerReadinessCheck": "PASS",
+    "publicProofEvidenceCheckSelfTest": "PASS",
+    "fullApiSuiteEnvironmentCaveat": "A detached worktree without generated artifacts/ynx-selector-metadata.json failed two unrelated Hardhat selector-metadata tests; no changed peer-readiness assertion failed."
+  },
+  "decision": {
+    "sourceAccepted": true,
+    "testsAcceptedForChangedScope": true,
+    "deploymentAuthorized": false,
+    "verificationLeaseIssued": false,
+    "singleExecutableBlocker": "CHAIN_DEPLOYMENT_CURRENT_PUBLIC_SOURCE_VALIDATOR_TARGETS_ROLLBACK_AND_LITERAL_EXECUTOR_NOT_FROZEN"
+  },
+  "requiredBeforeLease": [
+    "fresh exact current public source identity",
+    "exact validator targets and current peer identities",
+    "named executor and literal argv",
+    "identity-bound rollback",
+    "non-transactional read-only postchecks"
+  ],
+  "forbidden": [
+    "SSH",
+    "deployment",
+    "validator mutation",
+    "transaction"
+  ]
+}

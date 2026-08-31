@@ -1,0 +1,46 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "recordType": "CALENDAR_OFFICIAL_CURRENT_PUBLIC_READ_ONLY_RECONCILIATION",
+  "recordedAt": "2026-08-31T02:43:43Z",
+  "officialRuntime": {
+    "url": "https://calendar-testnet.43.153.202.237.sslip.io/",
+    "sourceCommit": "468cf018e9b69e9eebd9dd0a0613e2a8d00c3576",
+    "sourceTree": "c2aada9266b1913809077a674f264e35a2e6b71c",
+    "release": "ynx-calendar-0.4.6-testnet-preview",
+    "centralTerminalCommit": "09a2dd6df875023f94feb8922163dd39b6110c6b"
+  },
+  "freshPublicReadback": {
+    "root": "200:15834:f5268942d012a0960446b396de5cb1297187f18480decd5847bf8de1e851ab4b",
+    "version": "200:279:0400fa64e1bbdbfaaf3d9c5264a815000e5a5575787486986a2beda874710e7c",
+    "health": "200:215:1b766ec7064b7fa217fd3922fc3e995baf5e9a94c257cdece5f7e1f59579a246",
+    "versionSourceCommitExact": true,
+    "healthSourceCommitExact": true
+  },
+  "supersededSource": {
+    "commit": "7db160aa",
+    "forwardDeployAllowed": false,
+    "reason": "It is an ancestor of the exact current official runtime and would regress production."
+  },
+  "rollback": {
+    "source": "fe1ba512",
+    "pairedAndDurable": true
+  },
+  "decision": {
+    "classification": "CALENDAR_OFFICIAL_ALREADY_CURRENT_RECONCILIATION_NO_FORWARD_DEPLOY",
+    "reconciliationComplete": true,
+    "deploymentLeaseIssued": false,
+    "heavyLeaseRequired": false
+  },
+  "remainingBlocker": "IMMEDIATE_CONFIRMATION_REAL_INSTALLED_BROWSER_PROVIDER_LIFECYCLE_REQUIRED",
+  "truthBoundary": {
+    "hostedNonSensitiveFixture": true,
+    "installedProvider": false,
+    "accountApprovalAndExplicitReject4001": false,
+    "disconnectRevoke": false,
+    "switchAccountAccountsChanged": false,
+    "chain0x1917AddSwitchReadback": false,
+    "signature": false,
+    "transaction": false
+  }
+}

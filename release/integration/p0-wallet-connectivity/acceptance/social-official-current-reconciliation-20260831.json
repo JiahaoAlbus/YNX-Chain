@@ -1,0 +1,43 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "recordType": "SOCIAL_OFFICIAL_CURRENT_PUBLIC_READ_ONLY_RECONCILIATION",
+  "recordedAt": "2026-08-31T02:43:43Z",
+  "officialRuntime": {
+    "url": "https://social.ynxweb4.com/",
+    "sourceCommit": "e7756cb387233376c03043c54fb8b051c241e94e",
+    "sourceTree": "8607f57fdc9c1060a8749748ca0c87fa472692aa",
+    "socialTree": "68939fb426275213621cf5d06937d49024bc2c03",
+    "deploymentId": "dpl_34kzw3uk4B1wwjk1wQUq8y29mTxX",
+    "status": "READY_PRODUCTION"
+  },
+  "freshPublicReadback": {
+    "root": "200:6098:783f835245b9acbb4cbfe29cb56faa55243d593858c80692d39034e97e42a05b",
+    "appJs": "200:6928:966a47ae3d285a625ab666ddeca91defa156f04337b700fc07bd6c73e97ee51d",
+    "styles": "200:6327:1f80ec6b7ab8c2ff0d1d66edf083d301af89386c802483733fd670a5ada26c42"
+  },
+  "supersededCarrier": {
+    "sourceCommit": "ecffe336",
+    "carrier": "cf27c8ca",
+    "forwardDeployAllowed": false,
+    "reason": "The carrier is an ancestor of the exact official runtime and would regress production."
+  },
+  "rollback": {
+    "deploymentId": "dpl_2sei8CpmoN1Gi5YKnc6FdvNRyXGy",
+    "status": "READY",
+    "durableCarrierSha256": "8435b499d"
+  },
+  "decision": {
+    "classification": "SOCIAL_OFFICIAL_ALREADY_CURRENT_RECONCILIATION_RECEIPT_REQUIRED_NO_FORWARD_DEPLOY",
+    "reconciliationComplete": true,
+    "deploymentLeaseIssued": false,
+    "heavyLeaseRequired": false
+  },
+  "truthBoundary": {
+    "installedProvider": false,
+    "accountLifecycle": false,
+    "signature": false,
+    "transaction": false,
+    "productCompletion": false
+  }
+}
