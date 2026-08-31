@@ -1500,9 +1500,10 @@ const indexHTML = `<!doctype html>
         const resolved = await get('/api/search?q=' + encodeURIComponent(q));
         setDetailLocation(resolved.type,resolved.query || q);
       } catch (error) {
+        const unresolvedContract = /^0x[0-9a-f]{40}$/i.test(q);
         $('detailKicker').textContent = i('searchResult');
-        $('detailTitle').textContent = r('notFound');
-        $('detailContent').innerHTML = '<div class="result-error">' + escapeHTML(clientError(error,i('noMatch'))) + '</div>';
+        $('detailTitle').textContent = unresolvedContract ? r('unavailable') : r('notFound');
+        $('detailContent').innerHTML = '<div class="result-error">' + escapeHTML(unresolvedContract ? c('contractsUnavailable') : clientError(error,i('noMatch'))) + '</div>';
       }
     }
     $('searchForm').onsubmit = event => { event.preventDefault(); search(); };

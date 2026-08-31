@@ -399,6 +399,7 @@ func TestPortalLocalizesDynamicStatesAndKeepsProviderErrorsPrivate(t *testing.T)
 		"data-initial-i18n=\"readingState\"", "data-initial-i18n=\"waitingFinalizedBlocks\"", "initial('rpcIndexer')",
 		"showPortalNotice(wm('connectionNotApproved'))", "showPortalNotice(wm('networkNotApproved'))",
 		"showPortalNotice(wm('refreshFailed'))",
+		"const unresolvedContract = /^0x[0-9a-f]{40}$/i.test(q)", "unresolvedContract ? c('contractsUnavailable')",
 	} {
 		if !strings.Contains(indexHTML, required) {
 			t.Fatalf("portal localization/privacy behavior is missing %q", required)

@@ -81,6 +81,11 @@ This is a local browser regression against the active 6423 node/indexer. It conf
 - Browser evidence: the local Developers route exposed a real API-reference link, three evidence-gated disabled developer controls with zero missing reason titles, and no horizontal overflow. Following that link rendered the six endpoint rows in the same tab at `#documentation`; it did not create `about:blank` or claim a public endpoint.
 - Public wallet configuration, SDK publication, faucet release, and public HTTPS API remain explicitly unavailable until independently verified evidence exists.
 
+## 2026-08-31 contract-search fail-closed follow-up
+
+- A 40-hex-character EVM address that cannot be verified as an indexed transaction or account now receives the specific localized contract-index unavailable state rather than a misleading generic result. This preserves address/transaction resolution where evidence exists and does not infer contract status from an arbitrary address.
+- Browser evidence: searching `0x1111111111111111111111111111111111111111` opened the existing same-tab detail surface with the Korean unavailable title and contract-index explanation. The page retained its `#home` route, had no `about:blank`, and had no horizontal overflow.
+
 ## 2026-08-31 full-shell locale gate follow-up
 
 - The previously static first-render labels for connection state, live-stream opening, verified source state, block waiting, chain facts, and the EVM label now resolve through the same five-locale dictionary as the routed content.
