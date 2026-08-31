@@ -35,7 +35,11 @@ Each write loads the current revision and uses PostgreSQL compare-and-swap.
 Concurrent writes do not silently overwrite each other: the losing request
 returns `ErrConflict`, reloads durable state, and can be safely retried using
 the existing idempotency key. The service exposes backend truth through
-`/health`, `/version`, and `ynx_quant_storage_backend_info`.
+`/health`, `/version`, `/ready`, and `ynx_quant_storage_backend_info`.
+`/ready` is the deployment gate: a filesystem snapshot returns `503 not_ready`,
+while an active multi-instance PostgreSQL store returns `200 ready`. The root
+TenantServer permits this headerless read-only route without opening any tenant
+state.
 
 ## Verification performed
 
@@ -46,7 +50,7 @@ the existing idempotency key. The service exposes backend truth through
 
 The test suite exercises namespace validation, explicit durable-conflict
 rollback, file-backend disclosure, existing cross-process file-lock tests,
-tenant isolation, API, WebSocket and metrics behavior. The optional PostgreSQL
+tenant isolation, API, WebSocket, readiness and metrics behavior. The optional PostgreSQL
 integration test was run once against an ephemeral local PostgreSQL 16
 container bound to loopback only. It proved two independent service instances
 receive exactly one CAS winner and one conflict, restart recovery, the

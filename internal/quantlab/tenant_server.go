@@ -49,7 +49,7 @@ func NewTenantServer(config Config, role string) (*TenantServer, error) {
 }
 
 func (s *TenantServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if r.Method == http.MethodGet && (r.URL.Path == "/health" || r.URL.Path == "/version" || r.URL.Path == "/metrics") && r.Header.Get(TenantHeader) == "" {
+	if r.Method == http.MethodGet && (r.URL.Path == "/health" || r.URL.Path == "/ready" || r.URL.Path == "/version" || r.URL.Path == "/metrics") && r.Header.Get(TenantHeader) == "" {
 		s.base.ServeHTTP(w, r)
 		return
 	}

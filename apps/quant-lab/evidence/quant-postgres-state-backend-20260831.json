@@ -14,6 +14,10 @@
     "commit": "95ca0e94e1bf7fec9b0f0bc81593f6ed7af12ba0",
     "tree": "b2253320ee38f14706eaa088e504002530a08a89"
   },
+  "readinessTestBase": {
+    "commit": "76896250debc7ae10a0b54a77ea754cc68df7c4c",
+    "contract": "filesystem snapshot returns HTTP 503 not_ready; multi-instance PostgreSQL returns HTTP 200 ready; TenantServer readiness does not open tenant state"
+  },
   "migration": {
     "path": "apps/quant-lab/migrations/0001_quant_state_postgres.sql",
     "table": "ynx_quant_state",
@@ -26,6 +30,8 @@
     "databaseWithoutNamespaceFailsClosed": true,
     "fallbackBackend": "filesystem_json_snapshot",
     "fallbackMultiInstance": false,
+    "fallbackReadiness": "HTTP 503 not_ready",
+    "postgresReadiness": "HTTP 200 ready only when multiInstance=true",
     "postgresMultiInstanceCandidate": true
   },
   "tests": {
@@ -33,6 +39,7 @@
     "goVet": "pass",
     "quantNodeTests": "6/6 pass",
     "walletBuild": "pass",
+    "readinessTruth": "pass_file_snapshot_503_postgresql_200_tenant_headerless",
     "postgresIntegration": "pass_ephemeral_local_postgresql16_loopback_only",
     "postgresCoverage": [
       "two independent service instances",

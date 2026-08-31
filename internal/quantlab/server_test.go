@@ -70,6 +70,80 @@ func TestHealthAndVersionDiscloseFilesystemSnapshotIsNotMultiInstance(t *testing
 	}
 }
 
+func TestReadyRejectsFilesystemSnapshotForDeployableQuantService(t *testing.T) {
+	s, err := New(Config{StatePath: filepath.Join(t.TempDir(), "s.json")})
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := httptest.NewServer(NewServer(s))
+	defer server.Close()
+	response, err := server.Client().Get(server.URL + "/ready")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	var payload struct {
+		Status  string `json:"status"`
+		Storage struct {
+			Backend       string `json:"backend"`
+			MultiInstance bool   `json:"multiInstance"`
+		} `json:"storage"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
+		t.Fatal(err)
+	}
+	if response.StatusCode != http.StatusServiceUnavailable || payload.Status != "not_ready" || payload.Storage.Backend != "filesystem_json_snapshot" || payload.Storage.MultiInstance {
+		t.Fatalf("filesystem readiness overclaimed deployability: status=%d payload=%+v", response.StatusCode, payload)
+	}
+}
+
+func TestReadyAcceptsMultiInstancePostgresStore(t *testing.T) {
+	service := &Service{store: conflictQuantStateStore{}, state: newQuantState()}
+	server := httptest.NewServer(NewServer(service))
+	defer server.Close()
+	response, err := server.Client().Get(server.URL + "/ready")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	var payload struct {
+		Status  string `json:"status"`
+		Storage struct {
+			Backend       string `json:"backend"`
+			MultiInstance bool   `json:"multiInstance"`
+		} `json:"storage"`
+	}
+	if err := json.NewDecoder(response.Body).Decode(&payload); err != nil {
+		t.Fatal(err)
+	}
+	if response.StatusCode != http.StatusOK || payload.Status != "ready" || payload.Storage.Backend != "postgresql" || !payload.Storage.MultiInstance {
+		t.Fatalf("durable readiness was not reported: status=%d payload=%+v", response.StatusCode, payload)
+	}
+}
+
+func TestTenantServerExposesHeaderlessReadinessWithoutOpeningTenantState(t *testing.T) {
+	tenantServer, err := NewTenantServer(Config{StatePath: filepath.Join(t.TempDir(), "s.json")}, "all")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tenantServer.Close()
+	server := httptest.NewServer(tenantServer)
+	defer server.Close()
+	response, err := server.Client().Get(server.URL + "/ready")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusServiceUnavailable {
+		t.Fatalf("status=%d", response.StatusCode)
+	}
+	tenantServer.mu.Lock()
+	defer tenantServer.mu.Unlock()
+	if len(tenantServer.servers) != 0 {
+		t.Fatalf("readiness opened tenant state: %d", len(tenantServer.servers))
+	}
+}
+
 func TestWebSocketSnapshotCarriesAuthorityMetadata(t *testing.T) {
 	s, _ := New(Config{StatePath: filepath.Join(t.TempDir(), "s.json")})
 	server := httptest.NewServer(NewRoleServer(s, "research"))

@@ -37,6 +37,7 @@ func NewObservedRoleServer(s *Service, role string, logWriter io.Writer) *Server
 	}
 	v := &Server{service: s, mux: http.NewServeMux(), role: role, logger: newJSONLogger(logWriter)}
 	v.mux.HandleFunc("GET /health", v.health)
+	v.mux.HandleFunc("GET /ready", v.ready)
 	v.mux.HandleFunc("GET /version", v.version)
 	v.mux.HandleFunc("GET /v1/snapshot", v.snapshot)
 	v.mux.HandleFunc("GET /v1/stream", v.stream)
@@ -115,6 +116,22 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	write(w, 200, map[string]any{"status": "ok", "ready": true, "productId": ProductID, "serviceRole": s.role, "version": Version, "commit": BuildCommit, "mode": "simulated_testnet_only", "liveFundsEnabled": false, "storage": s.service.StorageStatus(), "signals": map[string]any{"killSwitch": paper.KillSwitch, "reconciliationDelta": paper.ReconciliationDelta, "pendingUnknownExecutions": pendingUnknown}})
+}
+func (s *Server) ready(w http.ResponseWriter, r *http.Request) {
+	storage := s.service.StorageStatus()
+	multiInstance, _ := storage["multiInstance"].(bool)
+	if !multiInstance {
+		write(w, http.StatusServiceUnavailable, map[string]any{
+			"status":  "not_ready",
+			"reason":  "multi-instance durable PostgreSQL state is required for a deployable Quant service",
+			"storage": storage,
+		})
+		return
+	}
+	write(w, http.StatusOK, map[string]any{
+		"status":  "ready",
+		"storage": storage,
+	})
 }
 func (s *Server) version(w http.ResponseWriter, r *http.Request) {
 	write(w, 200, map[string]any{"productId": ProductID, "version": Version, "commit": BuildCommit, "storage": s.service.StorageStatus()})
