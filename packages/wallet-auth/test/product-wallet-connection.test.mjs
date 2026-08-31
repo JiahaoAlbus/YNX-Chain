@@ -103,6 +103,15 @@ test("factory owns cryptographic nonce generation across 120 concurrent connecti
 test("factory migrates only the registered product legacy scheme before opening", async () => {
   const opened = [];
   const connection = createProductWalletConnection(config({ platform: "android", openWallet: async (input) => { opened.push(input); return { opened: true }; } }));
+  const unknown = await connection.beginLegacyYNX("ynx-unknown");
+  assert.deepEqual(unknown, {
+    status: WALLET_CONNECTION_COORDINATOR_STATUS.WALLET_OPEN_FAILED,
+    code: "SCHEME_NOT_REGISTERED",
+    message: "Wallet scheme is not registered",
+    actions: ["download", "retry", "return-to-product"],
+  });
+  assert.equal(opened.length, 0);
+  assert.equal(connection.current.status, PRODUCT_SESSION_CLIENT_STATE.DISCONNECTED);
   const result = await connection.beginLegacyYNX("ynx-social");
   assert.equal(result.status, WALLET_CONNECTION_COORDINATOR_STATUS.WALLET_OPENED);
   assert.deepEqual(result.migration, {
@@ -111,7 +120,8 @@ test("factory migrates only the registered product legacy scheme before opening"
   });
   assert.match(opened[0].url, /^ynxwallet:\/\/authorize\?request=/);
   assert.equal(opened[0].url.includes("ynx-social"), false);
-  await assert.rejects(() => connection.beginLegacyYNX("ynx-unknown"), code("UNKNOWN_LEGACY_SCHEME"));
+  assert.equal(opened.length, 1);
+  assert.equal(connection.current.status, PRODUCT_SESSION_CLIENT_STATE.CONNECTING);
 });
 
 test("factory rejects callback, origin, session and unknown configuration injection", () => {

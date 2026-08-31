@@ -45,7 +45,16 @@ export class WalletConnectionCoordinator {
   async restore(networkAvailable = true) { return this.#runYNXOperation(() => this.#client.restore(networkAvailable)); }
   async beginYNX() { return this.#runYNXOperation(() => this.#client.beginDetected(false)); }
   async beginLegacyYNX(legacyCallback) {
-    const migration = migrateLegacyCallback(this.#registry, legacyCallback, { productId: this.#productId, platform: this.#client.connectionBinding.platform });
+    let migration;
+    try {
+      migration = migrateLegacyCallback(this.#registry, legacyCallback, { productId: this.#productId, platform: this.#client.connectionBinding.platform });
+    } catch (error) {
+      if (error instanceof WalletAuthError && (error.code === "UNKNOWN_LEGACY_SCHEME" || error.code === "CALLBACK_MISMATCH")) {
+        const code = "SCHEME_NOT_REGISTERED";
+        return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.WALLET_OPEN_FAILED, code, message: coordinatorErrorMessage(code), actions: coordinatorActions(code) });
+      }
+      throw error;
+    }
     return frozen({ ...(await this.beginYNX()), migration });
   }
   async retryYNX() { return this.#runYNXOperation(() => this.#client.retryDetected()); }
