@@ -1,0 +1,10 @@
+{
+  "schemaVersion": "quant-source-bound-runtime-candidate@1",
+  "classification": "local-unsigned-source-bound-runtime-candidate",
+  "status": "CANDIDATE_FROZEN_AWAITING_QUANT_ONLY_HOST_MAPPING_AND_DEPLOYMENT_LEASE",
+  "source": {"commit":"5863ddc6a02c0069628fe4d6e8f831f260303271","tree":"253c34afb4273b426319eb7dd8d5a96ce58a6720"},
+  "sharedProviderAuthority": {"sourceCommit":"98c6d5d784d212df8981a53b17118a511e246ad2","tree":"51a60a362d4ad5dd748bcdefb101f71b1d9e0cee","evidence":"c3ab255c32bdeb9c8e056882c315f8ad43c29c7f","sourceConsumed":true,"publicLifecycleVerified":false},
+  "candidate": {"archive":{"path":"apps/quant-lab/evidence/release-candidates/ynx-quant-lab-5863ddc6a02c-linux-amd64-runtime.tar.gz","bytes":3355474,"sha256":"33e92fe50b9877025c61d354bfd0e93b0d03622bbee14da4d4550407542bdbc7"},"binary":{"relativePath":"ynx-quant-lab-5863ddc6a02c/ynx-quantd","bytes":7905464,"sha256":"8c2b137bd973ed0e9d22ff8c9e3e5c8cb83fb847d880a6f0f77ced25952ca620","format":"ELF 64-bit x86-64 static"},"layout":"Archive retains apps/quant-lab/web for the server's explicit relative static root.","payloadChecksumManifest":"SHA256SUMS excludes itself and verified all eight payload files."},
+  "truth": {"sshExecuted":false,"deployedPublic":false,"sourceBoundPublicRuntime":false,"providerApproval":false,"strategyExecution":false,"testnetOrder":false,"computerControl":false},
+  "singleExecutableBlocker":"Central must fresh-bind a Quant-only runtime target, service, static root, state policy, active release, rollback pointer and public response inventory before issuing a new rollback-first deployment lease."
+}
