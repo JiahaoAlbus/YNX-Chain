@@ -461,11 +461,11 @@ const indexHTML = `<!doctype html>
 
   <header class="hero" id="top">
     <div class="shell">
-      <div class="hero-grid"><div><p class="eyebrow">YNX Testnet</p><h1 data-i18n="heroTitle">YNX Chain network explorer</h1><p class="hero-copy" data-i18n="heroCopy">Live blocks, transactions, validators, accounts, fees, and native YNXT resource economics from the public testnet.</p>
+      <div class="hero-grid"><div><p class="eyebrow" data-home-i18n="testnet">YNX Testnet</p><h1 data-i18n="heroTitle">YNX Chain network explorer</h1><p class="hero-copy" data-i18n="heroCopy">Live blocks, transactions, validators, accounts, fees, and native YNXT resource economics from the public testnet.</p>
         <div class="search-wrap"><form class="search" id="searchForm"><input id="searchInput" aria-label="Search the chain" aria-autocomplete="list" aria-controls="searchSuggestions" data-i18n-placeholder="searchPlaceholder" placeholder="Search token, account, contract, transaction, or block" autocomplete="off" spellcheck="false"><button type="submit" data-i18n="search">Search</button></form><div class="search-suggestions" id="searchSuggestions" role="listbox" hidden></div></div>
-        <div class="trending"><span class="trending-label">Quick search:</span><button type="button" data-search="latest">Latest block</button><button type="button" data-search="YNXT">YNXT token</button><button type="button" data-search="6423">Block 6423</button><button type="button" data-search="0x1917">EVM network</button></div>
+        <div class="trending"><span class="trending-label" data-home-i18n="quickSearch">Quick search:</span><button type="button" data-search="latest" data-home-i18n="latestBlock">Latest block</button><button type="button" data-search="YNXT" data-home-i18n="ynxtToken">YNXT token</button><button type="button" data-search="6423" data-home-i18n="block6423">Block 6423</button><button type="button" data-search="0x1917" data-home-i18n="evmNetwork">EVM network</button></div>
         <div class="hero-meta"><span><span class="pulse"></span>RPC + indexer verified</span><span id="lastUpdated">Connecting to the network</span><span id="heroHeight">Waiting for the latest block</span></div>
-      </div><aside class="portal-callout"><div><p>Developer entry point</p><h2>Build and inspect on YNX 6423.</h2><div class="portal-callout-stats" aria-label="YNX network identity"><span><small>Chain</small><strong>6423</strong></span><span><small>EVM</small><strong>0x1917</strong></span><span><small>Native</small><strong>YNXT</strong></span></div></div><div class="portal-callout-links"><a href="#developers">Developer tools</a><a href="#documentation">Documentation</a><a href="#downloads">Downloads</a></div></aside></div>
+      </div><aside class="portal-callout"><div><p data-home-i18n="developerEntry">Developer entry point</p><h2 data-home-i18n="developerCallout">Build and inspect on YNX 6423.</h2><div class="portal-callout-stats" aria-label="YNX network identity"><span><small>Chain</small><strong>6423</strong></span><span><small>EVM</small><strong>0x1917</strong></span><span><small>Native</small><strong>YNXT</strong></span></div></div><div class="portal-callout-links"><a href="#developers" data-home-i18n="developerTools">Developer tools</a><a href="#documentation" data-i18n="documentation">Documentation</a><a href="#downloads" data-i18n="downloads">Downloads</a></div></aside></div>
       <section class="result-panel" id="resultPanel" aria-live="polite">
         <div class="panel-head"><div><h2 id="resultTitle">Search result</h2><p id="resultSubtitle"></p></div><button class="result-close" id="resultClose" type="button">Close</button></div>
         <div id="resultBody"></div>
@@ -490,7 +490,7 @@ const indexHTML = `<!doctype html>
       </section>
 
       <section class="block-ribbon" aria-label="Live finalized block stream">
-        <div class="ribbon-label"><span>FINALITY</span><strong id="finalityState">Connecting</strong></div>
+        <div class="ribbon-label"><span data-home-i18n="finality">FINALITY</span><strong id="finalityState">Connecting</strong></div>
         <div class="block-track" id="blockTrack"><div class="empty">Waiting for finalized blocks...</div></div>
       </section>
 
@@ -515,10 +515,10 @@ const indexHTML = `<!doctype html>
       </section>
 
       <section class="intelligence" id="intelligence">
-        <div class="section-head"><div><h2>Network intelligence</h2><p>Validator and resource-economy state from live chain APIs</p></div></div>
+        <div class="section-head"><div><h2 data-home-i18n="intelligence">Network intelligence</h2><p data-home-i18n="intelligenceCopy">Validator and resource-economy state from live chain APIs</p></div></div>
         <div class="segmented" role="tablist" aria-label="Network intelligence views">
           <button class="segment active" id="validatorsTab" type="button" role="tab" aria-selected="true" aria-controls="validatorsPanel">Validators</button>
-          <button class="segment" id="resourcesTab" type="button" role="tab" aria-selected="false" aria-controls="resourcesPanel">Resource economy</button>
+          <button class="segment" id="resourcesTab" type="button" role="tab" aria-selected="false" aria-controls="resourcesPanel" data-home-i18n="resourceEconomy">Resource economy</button>
         </div>
         <div class="intelligence-panel active" id="validatorsPanel" role="tabpanel" aria-labelledby="validatorsTab">
           <div class="table-shell"><table class="blocks-table"><thead><tr><th style="width:24%">Validator</th><th style="width:22%">Role</th><th style="width:18%">Status</th><th style="width:18%">Voting power</th><th style="width:18%">Observed height</th></tr></thead><tbody id="validatorsBody"><tr><td colspan="5" class="empty">Loading validators...</td></tr></tbody></table></div>
@@ -535,16 +535,16 @@ const indexHTML = `<!doctype html>
       </section>
 
       <section class="wallet-band">
-        <div><h2>YNX-native identity comes first.</h2><p>YNX applications use the checksummed ynx1 address by default. Standard MetaMask remains available through the isolated EVM compatibility adapter for the same account.</p></div>
-        <button id="metamaskButton" class="wallet-button" type="button">Open MetaMask compatibility</button>
+        <div><h2 data-home-i18n="walletTitle">YNX-native identity comes first.</h2><p data-home-i18n="walletCopy">YNX applications use the checksummed ynx1 address by default. Standard MetaMask remains available through the isolated EVM compatibility adapter for the same account.</p></div>
+        <button id="metamaskButton" class="wallet-button" type="button" data-home-i18n="metaMask">Open MetaMask compatibility</button>
       </section>
 
       <section class="ecosystem" id="ecosystem">
-        <div class="section-head"><div><h2>YNX Ecosystem</h2><p>Independent products on YNX 6423. A product is never shown as publicly downloadable without matching release proof.</p></div><a class="section-link" href="#ecosystem" data-route="ecosystem">View directory</a></div>
+        <div class="section-head"><div><h2 data-i18n="ecosystem">YNX Ecosystem</h2><p data-home-i18n="ecosystemCopy">Independent products on YNX 6423. A product is never shown as publicly downloadable without matching release proof.</p></div><a class="section-link" href="#ecosystem" data-route="ecosystem" data-home-i18n="viewDirectory">View directory</a></div>
         <div class="ecosystem-grid">
-          <article class="ecosystem-card"><h3>YNX Wallet</h3><p>Account custody and explicit application permissions.</p><span class="product-state">Testnet candidate</span><a href="#ecosystem" data-route="ecosystem">Availability details</a></article>
-          <article class="ecosystem-card"><h3>DeFi &amp; Payments</h3><p>YNXT-native financial and payment workflows with explicit settlement boundaries.</p><span class="product-state">Source available</span><a href="#ecosystem" data-route="ecosystem">Availability details</a></article>
-          <article class="ecosystem-card"><h3>Developer</h3><p>Explorer APIs, SDKs, contract tools, faucet, and Testnet configuration.</p><span class="product-state">Testnet tools</span><a href="#developers" data-route="developers">Open developer portal</a></article>
+          <article class="ecosystem-card"><h3>YNX Wallet</h3><p>Account custody and explicit application permissions.</p><span class="product-state">Testnet candidate</span><a href="#ecosystem" data-route="ecosystem" data-home-i18n="availability">Availability details</a></article>
+          <article class="ecosystem-card"><h3>DeFi &amp; Payments</h3><p>YNXT-native financial and payment workflows with explicit settlement boundaries.</p><span class="product-state">Source available</span><a href="#ecosystem" data-route="ecosystem" data-home-i18n="availability">Availability details</a></article>
+          <article class="ecosystem-card"><h3>Developer</h3><p>Explorer APIs, SDKs, contract tools, faucet, and Testnet configuration.</p><span class="product-state">Testnet tools</span><a href="#developers" data-route="developers" data-home-i18n="openDeveloper">Open developer portal</a></article>
           <article class="ecosystem-card"><h3>AI, Social &amp; Media</h3><p>Independent YNX products with availability shown per platform and release proof.</p><span class="product-state">Mixed availability</span><a href="#ecosystem" data-route="ecosystem">Availability details</a></article>
         </div>
       </section>
@@ -687,6 +687,13 @@ const indexHTML = `<!doctype html>
       ja:{using:'このポータルを使う',search:'ブロック、取引、アカウントを検索・参照',identifiers:'検証済みテストネットIDを使用',downloads:'ダウンロード証拠の要件を確認',policy:'状態方針',policyCopy:'検証済みの公開証拠がないプロダクト、ダウンロード、サービスはプレースホルダーへリンクせず利用不可として表示します。'},
       ko:{using:'이 포털 사용',search:'블록, 트랜잭션 및 계정 검색과 탐색',identifiers:'검증된 테스트넷 식별자 사용',downloads:'다운로드 증거 요건 검토',policy:'상태 정책',policyCopy:'검증된 공개 증거가 없는 제품, 다운로드 또는 서비스는 자리표시자에 연결하지 않고 사용 불가로 표시합니다.'}
     };
+    const homeUI = {
+      en:{testnet:'YNX Testnet',quickSearch:'Quick search:',latestBlock:'Latest block',ynxtToken:'YNXT token',block6423:'Block 6423',evmNetwork:'EVM network',developerEntry:'Developer entry point',developerCallout:'Build and inspect on YNX 6423.',developerTools:'Developer tools',finality:'FINALITY',intelligence:'Network intelligence',intelligenceCopy:'Validator and resource-economy state from live chain APIs',resourceEconomy:'Resource economy',walletTitle:'YNX-native identity comes first.',walletCopy:'YNX applications use the checksummed ynx1 address by default. Standard MetaMask remains available through the isolated EVM compatibility adapter for the same account.',metaMask:'Open MetaMask compatibility',ecosystemCopy:'Independent products on YNX 6423. A product is never shown as publicly downloadable without matching release proof.',viewDirectory:'View directory',availability:'Availability details',openDeveloper:'Open developer portal'},
+      'zh-CN':{testnet:'YNX 测试网',quickSearch:'快速搜索：',latestBlock:'最新区块',ynxtToken:'YNXT 代币',block6423:'区块 6423',evmNetwork:'EVM 网络',developerEntry:'开发者入口',developerCallout:'在 YNX 6423 上构建与检视。',developerTools:'开发者工具',finality:'终局性',intelligence:'网络洞察',intelligenceCopy:'来自实时链 API 的验证者和资源经济状态',resourceEconomy:'资源经济',walletTitle:'YNX 原生身份优先。',walletCopy:'YNX 应用默认使用校验和 ynx1 地址；同一账户仍可通过隔离的 EVM 兼容适配器使用标准 MetaMask。',metaMask:'打开 MetaMask 兼容模式',ecosystemCopy:'YNX 6423 上的独立产品。没有匹配的发布证据时，产品绝不会显示为可公开下载。',viewDirectory:'查看目录',availability:'可用性详情',openDeveloper:'打开开发者门户'},
+      'zh-TW':{testnet:'YNX 測試網',quickSearch:'快速搜尋：',latestBlock:'最新區塊',ynxtToken:'YNXT 代幣',block6423:'區塊 6423',evmNetwork:'EVM 網路',developerEntry:'開發者入口',developerCallout:'在 YNX 6423 上建置與檢視。',developerTools:'開發者工具',finality:'最終性',intelligence:'網路洞察',intelligenceCopy:'來自即時鏈 API 的驗證者和資源經濟狀態',resourceEconomy:'資源經濟',walletTitle:'YNX 原生身分優先。',walletCopy:'YNX 應用預設使用校驗和 ynx1 位址；同一帳戶仍可透過隔離的 EVM 相容介面使用標準 MetaMask。',metaMask:'開啟 MetaMask 相容模式',ecosystemCopy:'YNX 6423 上的獨立產品。沒有相符發布證據時，產品絕不會顯示為可公開下載。',viewDirectory:'查看目錄',availability:'可用性詳情',openDeveloper:'開啟開發者入口'},
+      ja:{testnet:'YNX テストネット',quickSearch:'クイック検索:',latestBlock:'最新ブロック',ynxtToken:'YNXT トークン',block6423:'ブロック 6423',evmNetwork:'EVM ネットワーク',developerEntry:'開発者向け入口',developerCallout:'YNX 6423 で構築・検証。',developerTools:'開発者ツール',finality:'ファイナリティ',intelligence:'ネットワーク分析',intelligenceCopy:'ライブチェーン API からのバリデーターとリソース経済の状態',resourceEconomy:'リソース経済',walletTitle:'YNX ネイティブIDを優先。',walletCopy:'YNX アプリケーションは既定でチェックサム付き ynx1 アドレスを使用します。同じアカウントで標準 MetaMask は分離された EVM 互換アダプターから利用できます。',metaMask:'MetaMask 互換を開く',ecosystemCopy:'YNX 6423 上の独立したプロダクトです。対応するリリース証拠なしに公開ダウンロード可能とは表示しません。',viewDirectory:'一覧を見る',availability:'利用可否の詳細',openDeveloper:'開発者ポータルを開く'},
+      ko:{testnet:'YNX 테스트넷',quickSearch:'빠른 검색:',latestBlock:'최신 블록',ynxtToken:'YNXT 토큰',block6423:'블록 6423',evmNetwork:'EVM 네트워크',developerEntry:'개발자 진입점',developerCallout:'YNX 6423에서 구축하고 확인하세요.',developerTools:'개발자 도구',finality:'최종성',intelligence:'네트워크 인사이트',intelligenceCopy:'실시간 체인 API의 검증인 및 리소스 경제 상태',resourceEconomy:'리소스 경제',walletTitle:'YNX 네이티브 ID를 우선합니다.',walletCopy:'YNX 애플리케이션은 기본적으로 체크섬 ynx1 주소를 사용합니다. 동일한 계정에서 표준 MetaMask는 분리된 EVM 호환 어댑터로 계속 사용할 수 있습니다.',metaMask:'MetaMask 호환 열기',ecosystemCopy:'YNX 6423의 독립 제품입니다. 일치하는 릴리스 증거가 없으면 공개 다운로드 가능으로 표시하지 않습니다.',viewDirectory:'디렉터리 보기',availability:'이용 가능 세부 정보',openDeveloper:'개발자 포털 열기'}
+    };
     const developerUI = {
       en:{configuration:'YNX 6423 configuration',testnetOnly:'Testnet only',tools:'Tools & documentation',copyNetwork:'Copy Add Network configuration',networkJSON:'6423 Testnet JSON',apiReference:'API reference',sdk:'SDK & CLI',faucet:'Faucet',unavailable:'Unavailable',sourceOnly:'Source-bound only',checkStatus:'Check status first',serviceDirectory:'6423 service directory',serviceCopy:'Verified Explorer and stream entries update in this browser session; unavailable services fail closed.',example:'Read-only Explorer API example',exampleCopy:'This example queries the currently served portal summary; it does not request wallet access, a signature, or a transaction.',copyExample:'Copy example',serviceSchema:'Service & schema',expectedIdentity:'Expected identity',officialEndpoint:'Official endpoint',timeoutCache:'Timeout & cache',verification:'Verification / degraded behavior',notVerified:'Not verified in this browser session',cache:'Cache',health:'Health'},
       'zh-CN':{configuration:'YNX 6423 配置',testnetOnly:'仅测试网',tools:'工具与文档',copyNetwork:'复制添加网络配置',networkJSON:'6423 测试网 JSON',apiReference:'API 参考',sdk:'SDK 与 CLI',faucet:'水龙头',unavailable:'暂不可用',sourceOnly:'仅限源代码',checkStatus:'请先检查状态',serviceDirectory:'6423 服务目录',serviceCopy:'已验证的 Explorer 和流服务会在此浏览器会话更新；不可用服务会 fail-closed。',example:'只读 Explorer API 示例',exampleCopy:'该示例查询当前门户提供的摘要；不会请求钱包访问、签名或交易。',copyExample:'复制示例',serviceSchema:'服务与 schema',expectedIdentity:'预期身份',officialEndpoint:'官方端点',timeoutCache:'超时与缓存',verification:'验证 / 降级行为',notVerified:'未在此浏览器会话验证',cache:'缓存',health:'健康检查'},
@@ -696,12 +703,14 @@ const indexHTML = `<!doctype html>
     };
     const v = key => developerUI[language]?.[key] || developerUI.en[key] || key;
     const doc = key => documentationUI[language]?.[key] || documentationUI.en[key] || key;
+    const home = key => homeUI[language]?.[key] || homeUI.en[key] || key;
     const isChinese = () => language.startsWith('zh');
     function applyLanguage(nextLanguage) {
       language = messages[nextLanguage] ? nextLanguage : 'en';
       localStorage.setItem('ynx-explorer-language',language);
       document.documentElement.lang = language;
       document.querySelectorAll('[data-i18n]').forEach(node => { node.textContent = t(node.dataset.i18n); });
+      document.querySelectorAll('[data-home-i18n]').forEach(node => { node.textContent = home(node.dataset.homeI18n); });
       document.querySelectorAll('[data-i18n-placeholder]').forEach(node => { node.placeholder = t(node.dataset.i18nPlaceholder); });
       $('languageSelect').value = language;
       renderTransactions();
