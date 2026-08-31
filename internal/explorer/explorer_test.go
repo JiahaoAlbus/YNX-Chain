@@ -392,6 +392,7 @@ func TestPortalLocalizesDynamicStatesAndKeepsProviderErrorsPrivate(t *testing.T)
 	for _, required := range []string{
 		"const initialUI =", "data-initial-i18n", "validatorText(ready ? 'ready' : 'notReady')",
 		"const resourceLabel =", "initial('range24h')", "initial(rangeKey)",
+		"data-initial-i18n=\"readingState\"", "data-initial-i18n=\"waitingFinalizedBlocks\"", "initial('rpcIndexer')",
 		"showPortalNotice(wm('connectionNotApproved'))", "showPortalNotice(wm('networkNotApproved'))",
 		"showPortalNotice(wm('refreshFailed'))",
 	} {

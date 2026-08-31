@@ -2,7 +2,7 @@
 .PHONY: bft-evm-receipt-check bft-ide-contract-check native-wallet-check chat-api-check square-api-check app-gateway-check app-account-ownership-check browser-signer-check mobile-check mobile-product-split-check mobile-android-native-check mobile-android-release-check mobile-android-release-installed-check mobile-biometric-installed-check
 .PHONY: upgrade-source-release-audit upgrade-source-release-evidence-check governance-check governance-testnet-drill
 .PHONY: shop-release-package-test
-.PHONY: explorer-portal-candidate-check
+.PHONY: explorer-portal-candidate-check explorer-i18n-check
 
 setup:
 	go mod tidy
@@ -31,6 +31,10 @@ static-check:
 	go vet ./cmd/... ./internal/...
 	find scripts -type f -name '*.sh' -print0 | xargs -0 -n1 bash -n
 	find scripts -type f -name '*.mjs' -print0 | xargs -0 -n1 node --check
+	node ./scripts/verify/explorer-i18n-check.mjs
+
+explorer-i18n-check:
+	node ./scripts/verify/explorer-i18n-check.mjs
 
 docs-compliance-check:
 	node ./scripts/verify/docs-compliance-check.mjs

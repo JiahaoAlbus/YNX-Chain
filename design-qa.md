@@ -66,6 +66,13 @@ The reference and implementation were captured together in the browser QA compar
 
 **Final result:** passed
 
+## 2026-08-31 full-shell locale gate follow-up
+
+- The previously static first-render labels for connection state, live-stream opening, verified source state, block waiting, chain facts, and the EVM label now resolve through the same five-locale dictionary as the routed content.
+- Browser evidence: refreshed local Home checks at 1280 CSS px confirmed English, Simplified Chinese, Traditional Chinese, Japanese, and Korean chain-fact labels plus the verified source state. Every state had `scrollWidth <= innerWidth`.
+- Regression gate: `scripts/verify/explorer-i18n-check.mjs` now verifies nine markup attribute families across all five locales. `make static-check` executes it, so incomplete HTML-bound translations fail before a source candidate can be advanced.
+- Scope: this is a local presentation and localization proof only. It does not turn unavailable public services, downloads, historical data, or ecosystem products into live services.
+
 ## 2026-08-31 live-runtime recheck
 
 - Runtime: local Chrome opened `http://127.0.0.1:6437/#home` with the portal connected to the local 6423 node and indexer. The verified snapshot returned chain ID `6423`, EVM `0x1917`, native token `YNXT`, an advancing RPC height, and indexed transaction data. Wallet-visible RPC and Explorer URL arrays remained empty because no verified public HTTPS endpoint was supplied.
