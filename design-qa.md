@@ -206,3 +206,10 @@ This is local responsive and accessibility evidence against the 6423 node/indexe
 2. Re-run visual comparison when a verified 6423 historical-series endpoint becomes available.
 
 **Final result:** passed
+
+## 2026-08-31 local resource-snapshot follow-up
+
+- The Data route now keeps its RPC/indexer summary separate from a new Resource market snapshot. The latter reads the current `/api/resource-market/analytics` counters (delegated YNXT, rental volume, provider income, and protocol fees) rather than inventing a history series.
+- Truth boundary: the current resource endpoint reports `truthfulStatus: local-devnet`. The portal therefore labels the panel in every supported locale as local-runtime-only and explicitly not public proof; it does not blend these counters into the general live-source card or imply a released market.
+- Browser evidence: after selecting the 100-block Activity control, the in-app browser showed exactly 100 interactive verified-block bars and its caption reported the actual 0-transaction count. At 390 x 844 CSS px and at the irregular 960 x 500 viewport, `scrollWidth` did not exceed `clientWidth`; Data panels became one column at mobile size and remained readable.
+- Chinese locale evidence: the route heading rendered `数据`, all four block-window controls rendered `24 / 48 / 72 / 100 个区块` and remained enabled, the resource boundary rendered `仅本地运行时——不构成公开证明`, and no raw `local-devnet` backend state was exposed to the visible UI.
