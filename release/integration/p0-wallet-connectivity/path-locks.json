@@ -3400,6 +3400,31 @@
         "sole SSH attempt exited 255 authentication denied before remote inspector start",
         "P0-312 is consumed and nonreusable; Heavy and all Video preflight locks are released"
       ]
+    },
+    {
+      "path": "{host:43.153.202.237:creator-studio-3f97-upgrade,write:/opt/ynx-release-control-plane/creator-studio-3f97a13d/**,write:/opt/ynx-creator-studio-wallet/releases/creator-studio-3f97a13d*,write:/opt/ynx-creator-studio-wallet/receipts/upgrade-3f97a13d.json*,write:/opt/ynx-creator-studio-wallet/current*,lifecycle:ynx-creator-studio-wallet.service,readonly:/etc/systemd/system/ynx-creator-studio-wallet.service,readonly:service:{ynx-videod,ynx-video-viewer}.service,verify:https://web4.ynxweb4.com/video/studio/**}",
+      "owner": "creator-studio-deploy-owner",
+      "branch": "codex/p0-creator-studio-subpath-i18n-20260831",
+      "worktree": "/private/tmp/ynx-creator-subpath-i18n.PcnLN2",
+      "taskId": "P0-313",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE",
+      "acquiredAt": "2026-08-31T04:48:12Z",
+      "expiresAt": "2026-08-31T05:18:12Z",
+      "releasedAt": null,
+      "sourceCommit": "3e24caff2beba38a0a3ab0f7e333590d2f00e568",
+      "sourceTree": "064405ad566b2084d385dfeffb96a7b4fde1597a",
+      "evidenceCommit": "3e24caff2beba38a0a3ab0f7e333590d2f00e568",
+      "artifactSha256": "e7325c867c13c97a99a8210b905be979d01eb49357a8a1c359ae7bcf59fee151",
+      "productionMutationAllowed": true,
+      "allowedExceptions": [
+        "exactly one no-retry Creator placement and forward invocation",
+        "at most one receipt-bound conditional rollback only after successful forward and external validation failure",
+        "recursive cleanup requires complete-tree and per-object identity, exclusive quarantine reservation, Linux no-clobber move and post-quarantine revalidation",
+        "foreign child or same-bytes new-inode substitution must fail closed and preserve forensic state",
+        "API6493 Viewer6494 Caddy shared-current Wallet account signature typed-data and transaction mutation remain forbidden",
+        "retain Heavy and all Creator locks until terminal evidence and a separate zero-write readback classify the outcome"
+      ]
     }
   ]
 }
