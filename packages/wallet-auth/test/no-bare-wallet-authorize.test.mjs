@@ -5,6 +5,7 @@ import { test } from "node:test";
 import {
   bareAuthorizationFindings,
   consumerAuthorizationFindings,
+  legacyCallbackShorthandFindings,
   verifyNoBareWalletAuthorize,
   webAuthorizationBehaviorFindings,
   webWalletCapabilityAudit,
@@ -52,6 +53,17 @@ test("consumer audit rejects Web custom-scheme and native manual URI constructio
 
 test("consumer audit does not mistake the protocol-owned canonical builder for a product consumer", () => {
   assert.deepEqual(consumerAuthorizationFindings("packages/wallet-auth/src/deep-link.js", "const route = `ynxwallet://authorize?request=${encoded}`"), []);
+});
+
+test("consumer audit rejects direct legacy callback shorthand while preserving protocol-owned migration", () => {
+  assert.deepEqual(legacyCallbackShorthandFindings("apps/example/android/MainActivity.java", `Uri.parse("ynx-social")`), [
+    { file: "apps/example/android/MainActivity.java", line: 1, code: "LEGACY_CALLBACK_SCHEME_SHORTHAND" },
+  ]);
+  assert.deepEqual(consumerAuthorizationFindings("apps/example/web/wallet.js", `const callback = "ynx-social";`), [
+    { file: "apps/example/web/wallet.js", line: 1, code: "LEGACY_CALLBACK_SCHEME_SHORTHAND" },
+  ]);
+  assert.deepEqual(consumerAuthorizationFindings("apps/example/web/wallet.js", `const productId = "ynx-social";`), []);
+  assert.deepEqual(consumerAuthorizationFindings("packages/wallet-auth/src/product-session-registry.js", `const legacyCallbacks = ["ynx-social"];`), []);
 });
 
 test("Web behavior audit rejects indirect top-level navigation and handwritten request encoding", () => {

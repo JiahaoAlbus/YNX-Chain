@@ -8,6 +8,8 @@ const EXCLUDED_SEGMENTS = new Set([".git", "build", "coverage", "dist", "docs", 
 const ROUTE = "ynxwallet://authorize";
 const WEB_SOURCE_EXTENSIONS = new Set([".html", ".js", ".jsx", ".mjs", ".ts", ".tsx"]);
 const NATIVE_PATH_SEGMENTS = new Set(["android", "desktop", "ios", "macos", "mobile", "native", "windows"]);
+const LEGACY_CALLBACK_PROPERTY = /\b(?:callback|callbackUrl|returnUrl|deepLink|targetUrl|uri|url|href|location)\b\s*(?::|=)\s*(["'`])(ynx(?:-[a-z0-9]+|[a-z0-9]+))\1/gi;
+const LEGACY_CALLBACK_OPENER = /\b(?:Uri\.parse|new\s+URL|openURL|window\.open|open|launch|navigate|startActivity)\s*\(\s*(["'`])(ynx(?:-[a-z0-9]+|[a-z0-9]+))\1\s*\)/gi;
 const ROUTE_BASE_ALLOWLIST = new Map([
   ["packages/wallet-auth/scripts/verify-no-bare-wallet-authorize.mjs", "release gate owns the route token it scans"],
   ["packages/wallet-auth/src/deep-link.js", "canonical builder owns the route base constant"],
@@ -106,8 +108,21 @@ export function bareAuthorizationFindings(relative, text) {
   return Object.freeze(findings);
 }
 
+export function legacyCallbackShorthandFindings(relative, text) {
+  if (isProtocolOwnerSource(relative)) return Object.freeze([]);
+  const findings = [];
+  for (const expression of [LEGACY_CALLBACK_PROPERTY, LEGACY_CALLBACK_OPENER]) {
+    expression.lastIndex = 0;
+    let match;
+    while ((match = expression.exec(text)) !== null) {
+      findings.push(Object.freeze({ file: relative, line: lineAt(text, match.index), code: "LEGACY_CALLBACK_SCHEME_SHORTHAND" }));
+    }
+  }
+  return Object.freeze(findings);
+}
+
 export function consumerAuthorizationFindings(relative, text) {
-  const findings = [...bareAuthorizationFindings(relative, text), ...webAuthorizationBehaviorFindings(relative, text)];
+  const findings = [...bareAuthorizationFindings(relative, text), ...webAuthorizationBehaviorFindings(relative, text), ...legacyCallbackShorthandFindings(relative, text)];
   if (isProtocolOwnerSource(relative)) return Object.freeze(findings);
   let offset = 0;
   while ((offset = text.indexOf(ROUTE, offset)) !== -1) {
