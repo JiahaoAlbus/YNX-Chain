@@ -7,7 +7,7 @@ assert.deepEqual(Object.keys(catalog),required,"locale order and set must remain
 const keys=Object.keys(catalog.en);
 assert(keys.length>=20,"catalog is too small for core native states");
 for(const locale of required){assert.deepEqual(Object.keys(catalog[locale]),keys,`${locale} keys differ`);for(const key of keys)assert.equal(typeof catalog[locale][key]==="string"&&catalog[locale][key].trim()!=="",true,`${locale}.${key} blank`)}
-for(const key of ["privacy","payment","walletPending","offline","unavailable","noMetrics"]){for(const locale of required.slice(1))assert.notEqual(catalog[locale][key],catalog.en[key],`${locale}.${key} silently fell back to English`)}
+for(const key of ["privacy","payment","walletPending","offline","unavailable","noMetrics","signIn"]){for(const locale of required.slice(1))assert.notEqual(catalog[locale][key],catalog.en[key],`${locale}.${key} silently fell back to English`)}
 assert(/[\u0600-\u06ff]/u.test(catalog.ar.privacy),"Arabic critical text is not Arabic");
 const android=await readFile(new URL("android/app/src/main/java/com/ynxweb4/video/MainActivity.java",root),"utf8"),manifest=await readFile(new URL("android/app/src/main/AndroidManifest.xml",root),"utf8"),swift=await readFile(new URL("ios/YNXVideo/ContentView.swift",root),"utf8"),plist=await readFile(new URL("ios/YNXVideo/Info.plist",root),"utf8"),web=await readFile(new URL("i18n.js",root),"utf8");
 for(const source of [android,swift])for(const binding of ["ynx_6423-1","ynx-video-mobile-v1","com.ynxweb4.video","p256-sha256","ynxvideo://wallet-auth/callback"])assert(source.includes(binding),`native contract missing ${binding}`);

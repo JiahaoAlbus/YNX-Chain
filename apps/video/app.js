@@ -53,7 +53,7 @@ function setConnectionMessage(message) {
 function resetWallet(message = "Wallet disconnected. Guest playback remains available.") {
   currentWallet = null;
   setConnectionMessage(message + " Private actions remain unavailable until Product Session v2 is accepted.");
-  $("#signin").textContent = "Connect Wallet";
+  $("#signin").textContent = t("signIn");
   $("#revoke").hidden = true;
   $("#wallet-status").classList.remove("wallet-connected");
   for (const unsub of unsubscribeEvents) {

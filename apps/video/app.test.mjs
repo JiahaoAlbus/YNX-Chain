@@ -10,7 +10,7 @@ const sha=value=>createHash("sha256").update(value).digest("hex");
 
 test("viewer exposes complete truthful interaction paths",async()=>{
   const html=await read("index.html"),js=await read("app.js");
-  for(const term of ["Connect Wallet","Subscriptions","Playlists","History","Comments","Guest playback"])assert.match(html,new RegExp(term,"i"));
+  for(const term of ["data-i18n=\"signIn\"","Subscriptions","Playlists","History","Comments","Guest playback"])assert.match(html,new RegExp(term,"i"));
   for(const path of ["/watch","/comments","/reports","/subscription","/playlists","/history"])assert.match(js,new RegExp(path));
   assert.match(js,/connectVideoWallet/);
   assert.match(js,/Product Session v2/);

@@ -1,7 +1,7 @@
 {
   "en": {
     "language": "Language",
-    "signIn": "Sign in with YNX Wallet",
+    "signIn": "Connect Wallet",
     "discover": "Discover",
     "subscriptions": "Subscriptions",
     "playlists": "Playlists",
@@ -25,7 +25,7 @@
   },
   "zh-CN": {
     "language": "语言",
-    "signIn": "使用 YNX Wallet 登录",
+    "signIn": "连接钱包",
     "discover": "发现",
     "subscriptions": "订阅",
     "playlists": "播放列表",
@@ -49,7 +49,7 @@
   },
   "zh-TW": {
     "language": "語言",
-    "signIn": "使用 YNX Wallet 登入",
+    "signIn": "連接錢包",
     "discover": "探索",
     "subscriptions": "訂閱",
     "playlists": "播放清單",
@@ -73,7 +73,7 @@
   },
   "ja": {
     "language": "言語",
-    "signIn": "YNX Walletでサインイン",
+    "signIn": "ウォレットを接続",
     "discover": "見つける",
     "subscriptions": "登録チャンネル",
     "playlists": "再生リスト",
@@ -97,7 +97,7 @@
   },
   "ko": {
     "language": "언어",
-    "signIn": "YNX Wallet으로 로그인",
+    "signIn": "지갑 연결",
     "discover": "탐색",
     "subscriptions": "구독",
     "playlists": "재생목록",
@@ -121,7 +121,7 @@
   },
   "es": {
     "language": "Idioma",
-    "signIn": "Iniciar sesión con YNX Wallet",
+    "signIn": "Conectar cartera",
     "discover": "Descubrir",
     "subscriptions": "Suscripciones",
     "playlists": "Listas",
@@ -145,7 +145,7 @@
   },
   "fr": {
     "language": "Langue",
-    "signIn": "Se connecter avec YNX Wallet",
+    "signIn": "Connecter un portefeuille",
     "discover": "Découvrir",
     "subscriptions": "Abonnements",
     "playlists": "Listes de lecture",
@@ -169,7 +169,7 @@
   },
   "de": {
     "language": "Sprache",
-    "signIn": "Mit YNX Wallet anmelden",
+    "signIn": "Wallet verbinden",
     "discover": "Entdecken",
     "subscriptions": "Abos",
     "playlists": "Playlists",
@@ -193,7 +193,7 @@
   },
   "pt": {
     "language": "Idioma",
-    "signIn": "Entrar com YNX Wallet",
+    "signIn": "Conectar carteira",
     "discover": "Descobrir",
     "subscriptions": "Inscrições",
     "playlists": "Listas de reprodução",
@@ -217,7 +217,7 @@
   },
   "ru": {
     "language": "Язык",
-    "signIn": "Войти через YNX Wallet",
+    "signIn": "Подключить кошелек",
     "discover": "Обзор",
     "subscriptions": "Подписки",
     "playlists": "Плейлисты",
@@ -241,7 +241,7 @@
   },
   "ar": {
     "language": "اللغة",
-    "signIn": "تسجيل الدخول باستخدام YNX Wallet",
+    "signIn": "ربط المحفظة",
     "discover": "استكشاف",
     "subscriptions": "الاشتراكات",
     "playlists": "قوائم التشغيل",
@@ -265,7 +265,7 @@
   },
   "id": {
     "language": "Bahasa",
-    "signIn": "Masuk dengan YNX Wallet",
+    "signIn": "Hubungkan dompet",
     "discover": "Jelajahi",
     "subscriptions": "Langganan",
     "playlists": "Daftar putar",
