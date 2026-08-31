@@ -1,0 +1,64 @@
+{
+  "schemaVersion": "payCurrentReleaseCarrierContract@1.0.0-p0.0",
+  "ownerScope": ["apps/pay/**"],
+  "currentSource": {
+    "ref": "codex/p0-pay-wallet-connectivity-20260821",
+    "commit": "e29611c9d2bab70dceafb22185c8dfbff3135f26",
+    "tree": "60f554e4e1f52856a91816da83bdd0be5bd708c6",
+    "remoteReadAt": "2026-08-31"
+  },
+  "sourceBoundPublicWebCarrier": {
+    "url": "https://pay.ynxweb4.com/",
+    "bundleUrl": "https://pay.ynxweb4.com/_expo/static/js/web/index-7b0e541eda1df37fa2c19e3d7df84d2f.js",
+    "sha256": "94c7d8da1d22464092658af66e8024d543db64ed60e304ab8d9c48588bfd0840",
+    "bytes": 2668358,
+    "sourceBindingEvidence": "apps/pay/evidence/p0-pay-source-bound-public-web-20260831.json",
+    "currentRootHttpStatus": 200
+  },
+  "nonSensitiveStarts": {
+    "firstVisualShell": true,
+    "secondStartVisible": true,
+    "secondStartBlankTopLevelPage": false,
+    "providerDiscovery": {
+      "metaMaskVisible": true,
+      "metaMaskIdentityAndFoxLogoVisible": true,
+      "ynxWalletVisible": false,
+      "accountRequestSent": false,
+      "signatureSent": false,
+      "transactionSent": false
+    }
+  },
+  "canonicalNetwork": {"cosmosChainId":"ynx_6423-1","evmChainId":6423,"evmChainHex":"0x1917"},
+  "nativeCarrier": {
+    "installableArtifact": false,
+    "installableArtifactUrl": null,
+    "deviceAssigned": false,
+    "reason": "The local execution environment cannot retain the Android Gradle process long enough to produce an APK."
+  },
+  "releaseAuthority": {
+    "executor": null,
+    "expiry": null,
+    "leaseId": null,
+    "rollbackTarget": null,
+    "rollbackProcedure": [
+      "Central binds the pre-deploy artifact and exact source/tree before any mutation.",
+      "The named executor deploys only the source-bound carrier before lease expiry.",
+      "On provenance, boot, or non-sensitive lifecycle failure, restore the bound target and read back its source/tree and artifact SHA-256."
+    ],
+    "readyForDeployment": false
+  },
+  "truth": {
+    "sourceBoundPublicWeb": true,
+    "publicProductBackend": false,
+    "nativeInstalled": false,
+    "releaseLeaseIssued": false,
+    "rollbackBound": false,
+    "ynxWalletLifecycle": false,
+    "metaMaskApproval": false,
+    "chainAddSwitchReadback": false,
+    "refreshEventsDisconnect": false,
+    "signature": false,
+    "transaction": false
+  },
+  "completionBoundary": "This contract preserves direct Web binding and non-sensitive startup evidence only. It is not an install, deployment, Wallet approval, 0x1917 switch, callback, signing, transaction, or product completion claim."
+}
