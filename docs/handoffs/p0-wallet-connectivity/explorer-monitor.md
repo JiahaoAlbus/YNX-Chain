@@ -2,16 +2,18 @@
 
 ## Superseding state (2026-08-31, current)
 
-- Current owner source checkpoint is `41d4886b59776de8127bd21e2a9826edc1b66305`
-  (tree `ac7d154067a7d930febc784dc6d44aee3e2733eb`), on
-  `codex/p0-explorer-monitor-20260820`, PR #107. The public-boundary fix
-  keeps raw RPC/Indexer errors, loopback hosts, credentials and paths out of
-  Explorer health, APIs, dashboard warnings and SSE payloads; its focused
-  negative test and Explorer/Indexer tests pass.
+- Current owner source checkpoint is `cd9baa29cc198ccfa624fea726efddd84c905953`
+  (tree `9e3eef3ac4e8ff2f5946649d30533e2854e473cc`), on
+  `codex/p0-explorer-monitor-20260820`, PR #107. Its source-bearing parent is
+  `a3292a2b6d30409caf7db66b81c47e8d09ad76f1`: both Explorer and Monitor now
+  use EIP-6963 provider discovery with EIP-1193 account approval, `0x1917`
+  add/switch/readback and lifecycle invalidation. They have no top-level
+  Wallet custom-scheme navigation or pasted-signature input. Guest Explorer
+  search/detail and public Monitor status remain unauthenticated reads.
 - The only current release candidate artifacts are frozen in
-  `apps/monitor/evidence/p0-157-indexer-safe-release-preparation-20260831.json`.
+  `apps/monitor/evidence/p0-160-wallet-consumer-release-preparation-20260831.json`.
   Its Explorer binary, Indexer binary and Monitor release-tree hashes all come
-  from `41d4886b…`; P0-155 and every earlier artifact generation are forbidden
+  from `a3292a2b…`; P0-157 and every earlier artifact generation are forbidden
   from deployment with this successor source.
 - Direct public evidence remains mixed: native RPC reports chain ID `6423` and
   EVM reports `0x1917`, while Explorer, Indexer and Monitor serve the older
