@@ -1,0 +1,31 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-311",
+  "recordType": "VIDEO_RETAINED_EVIDENCE_ZERO_WRITE_DIRECT_INVENTORY",
+  "status": "CONSUMED_RELEASED_SUCCESS_VIDEO_P0311_RETAINED_EVIDENCE_ZERO_WRITE_INVENTORY",
+  "recordedAt": "2026-08-31T04:10:43Z",
+  "execution": {"attempts": 1, "retryAttempts": 0, "remoteExitStatus": 0, "mutationCount": 0, "inspectionComplete": true, "remoteTempFiles": false},
+  "inventory": {
+    "parent": {"path": "/var/lib/ynx-video-viewer-wallet-evidence", "tuple": "64770:4620872:0:0:755:2:4096:directory"},
+    "identity": {"path": "/var/lib/ynx-video-viewer-wallet-evidence.identity", "tuple": "64770:35403:0:0:600:1:24:regular file", "sha256": "6f75e36e9cba62f001fdfb0e659f88c88e24b98f341dc7d15511ef63e649bb8c"},
+    "directChildren": [
+      {"name": "video-legacy-viewer-emergency-recovery.receipt", "tuple": "64770:4620878:0:0:644:1:484:regular file", "sha256": "ea42c1bc49550b5a231b979747e20d188c0abb48a5ba621a44335a18f306ceda"},
+      {"name": "video-viewer-wallet-controlled-takeover-3b1a062b.receipt", "tuple": "64770:4620874:0:0:600:1:932:regular file", "sha256": "f526e4c40ce4065bae09065db404c077ec9ad9cee6c5cf7e47bd9ef67c3d713d"},
+      {"name": "video-viewer-wallet-controlled-takeover-3b1a062b.receipt.legacy.successor", "tuple": "64770:4620875:0:0:644:1:635:regular file", "sha256": "e16f91bc11e43514024f452ad887d790614ba7bb4890f52c9ec3a910bf3aa3bd"},
+      {"name": "video-viewer-wallet-controlled-takeover-3b1a062b.receipt.legacy.successor.expected", "tuple": "64770:4620876:0:0:644:1:605:regular file", "sha256": "2db78ce71f6d81770377e0a8e91cacfccd597df3ce15a149837785f9d95e00fa"},
+      {"name": "video-viewer-wallet-controlled-takeover-3b1a062b.receipt.legacy.successor.stable", "tuple": "64770:4620877:0:0:644:1:591:regular file", "sha256": "3fa43efa696b837e75274bcdaf380bfcad0bffc5c7cf6f5b8dc05ded599b8460"}
+    ],
+    "directChildCount": 5,
+    "directSubdirectoryCount": 0,
+    "extraDirectChildren": false
+  },
+  "decision": {
+    "heavyReleased": true,
+    "leaseReusable": false,
+    "cleanupAuthorized": false,
+    "deploymentAuthorized": false,
+    "nextAction": "VIDEO_OWNER_MAY_BUILD_A_SOURCE_ONLY_VERSIONED_EVIDENCE_PARENT_SUCCESSOR_USING_THIS_EXACT_PRESERVED_INVENTORY"
+  },
+  "truthBoundary": {"runtimeChanged": false, "serviceLifecycle": false, "accountRequest": false, "signature": false, "transaction": false}
+}

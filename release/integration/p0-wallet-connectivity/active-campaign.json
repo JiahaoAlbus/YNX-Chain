@@ -427,12 +427,12 @@
     }
   ],
   "heavy": {
-    "owner": "video-emergency-readonly-inspector",
+    "owner": null,
     "taskId": "P0-311",
-    "status": "ACTIVE_SINGLE_USE_VIDEO_P0311_RETAINED_EVIDENCE_ZERO_WRITE_INVENTORY",
+    "status": "CONSUMED_RELEASED_SUCCESS_VIDEO_P0311_RETAINED_EVIDENCE_ZERO_WRITE_INVENTORY",
     "acquiredAt": "2026-08-31T04:09:06Z",
     "expiresAt": "2026-08-31T04:24:06Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-31T04:10:43Z",
     "sourceCommit": "4fcef01aebdbc626dfe68b7e5053123d33a36511",
     "evidenceCommit": "5a69d43931080061e4d356a79f7de50bc70293b9",
     "runtimeHost": "43.153.202.237",
@@ -444,8 +444,8 @@
     "reusable": false,
     "previousOwner": null,
     "previousTaskId": "P0-310",
-    "reviewDecision": "VIDEO_SOURCE_ACCEPTED_P0311_RETAINED_EVIDENCE_ZERO_WRITE_ONLY",
-    "reason": "The Video source and durable carrier are accepted, but four retained evidence files lack frozen tuple/type/SHA identities. P0-311 may read only the evidence parent, sidecar and direct children; no cleanup or deployment is authorized."
+    "reviewDecision": "P0311_ZERO_WRITE_RETAINED_EVIDENCE_INVENTORY_COMPLETE_HEAVY_RELEASED",
+    "reason": "P0-311 froze the exact parent, identity sidecar and five regular nlink-one direct children with tuples and SHA256, proved zero subdirectories and no extras, and performed zero mutations. Heavy is released; no cleanup or deployment authority follows."
   },
   "wave": {
     "id": "B-financial-apps-quant",

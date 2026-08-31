@@ -5,11 +5,13 @@
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-video-retained-evidence-zero-write-inventory-20260831T040906Z",
   "owner": "video-emergency-readonly-inspector",
   "executor": "release-control-plane",
-  "status": "ACTIVE_SINGLE_USE_VIDEO_P0311_RETAINED_EVIDENCE_ZERO_WRITE_INVENTORY",
+  "status": "CONSUMED_RELEASED_SUCCESS_VIDEO_P0311_RETAINED_EVIDENCE_ZERO_WRITE_INVENTORY",
   "issuedAt": "2026-08-31T04:09:06Z",
   "expiresAt": "2026-08-31T04:24:06Z",
   "singleUse": true,
   "reusable": false,
+  "consumedAt": "2026-08-31T04:10:15Z",
+  "releasedAt": "2026-08-31T04:10:43Z",
   "executionAuthorized": true,
   "productionMutationAllowed": false,
   "predecessorDecision": {
@@ -48,5 +50,6 @@
   ],
   "forbidden": ["write or remote temporary file", "cleanup", "deploy", "service lifecycle", "unit Caddy shared-current Creator API or public mutation", "Wallet account request signature typed data or transaction"],
   "terminalRule": "Consume and release this read-only lease on one terminal attempt. The result may support a later source successor but does not authorize cleanup or deployment.",
-  "truthBoundary": {"leaseIssued": true, "inspectionStarted": false, "mutationCount": 0, "deployment": false}
+  "terminalEvidence": {"attempts": 1, "retryAttempts": 0, "remoteExitStatus": 0, "mutationCount": 0, "inspectionComplete": true, "directChildCount": 5, "directSubdirectoryCount": 0, "everyChildRegularNlinkOne": true},
+  "truthBoundary": {"leaseIssued": true, "inspectionStarted": true, "mutationCount": 0, "deployment": false}
 }
