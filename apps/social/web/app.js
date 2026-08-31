@@ -1,4 +1,4 @@
-import { WALLET_LINKS, attachWalletLifecycle, connectWallet, restoreWallet, revokeWallet, switchWalletAccount } from "./wallet-provider.js";
+import { WALLET_LINKS, attachWalletLifecycle, connectWallet, discoverProviders, restoreWallet, revokeWallet, selectProvider, switchWalletAccount } from "./wallet-provider.js";
 
 const byId = (id) => document.getElementById(id);
 const state = { provider: null, account: null, chainId: null, wallet: null, detach: () => {} };
@@ -68,16 +68,57 @@ function notFound(wallet) {
   action.href = link;
   action.textContent = `Install ${label}`;
   action.hidden = false;
+  byId("retry-wallet-discovery").textContent = `Retry ${label} detection`;
+  byId("retry-wallet-discovery").hidden = false;
+  state.wallet = wallet;
+}
+
+function ambiguous(wallet) {
+  const label = wallet === "ynx" ? "YNX Wallet" : "MetaMask";
+  showStatus(`Multiple ${label} providers were detected. Keep one active, then retry detection. No account request was sent.`, "warning");
+  const action = byId("install-wallet");
+  action.href = WALLET_LINKS[wallet];
+  action.textContent = `Install or update ${label}`;
+  action.hidden = false;
+  byId("retry-wallet-discovery").textContent = `Retry ${label} detection`;
+  byId("retry-wallet-discovery").hidden = false;
+  state.wallet = wallet;
+}
+
+async function refreshWalletGuidance() {
+  const wallet = state.wallet;
+  if (wallet !== "ynx" && wallet !== "metamask") return;
+  const label = wallet === "ynx" ? "YNX Wallet" : "MetaMask";
+  const retry = byId("retry-wallet-discovery");
+  retry.disabled = true;
+  retry.setAttribute("aria-busy", "true");
+  try {
+    const selected = selectProvider(await discoverProviders(window), wallet);
+    if (selected.ok) {
+      showStatus(`${label} is now detected. Choose ${label} again only when you are ready to approve account access.`, "success");
+      byId("install-wallet").hidden = true;
+      retry.hidden = true;
+    } else if (selected.code === "AMBIGUOUS_WALLET_PROVIDER") {
+      ambiguous(wallet);
+    } else {
+      notFound(wallet);
+    }
+  } finally {
+    retry.disabled = false;
+    retry.removeAttribute("aria-busy");
+  }
 }
 
 async function connect(wallet, button) {
   button.disabled = true;
   button.setAttribute("aria-busy", "true");
   byId("install-wallet").hidden = true;
+  byId("retry-wallet-discovery").hidden = true;
   try {
     const result = await connectWallet(wallet);
     if (result.ok) setConnected(result);
     else if (result.code === "YNX_WALLET_NOT_FOUND" || result.code === "METAMASK_NOT_FOUND") notFound(wallet);
+    else if (result.code === "AMBIGUOUS_WALLET_PROVIDER") ambiguous(wallet);
     else showStatus(`${result.code}: Select one wallet provider and try again.`, "warning");
   } catch (error) {
     const rejected = Number(error?.code) === 4001;
@@ -101,6 +142,7 @@ byId("hero-connect-wallet").addEventListener("click", () => byId("wallet-dialog"
 byId("close-wallet-dialog").addEventListener("click", () => byId("wallet-dialog").close());
 byId("connect-ynx").addEventListener("click", (event) => void connect("ynx", event.currentTarget));
 byId("connect-metamask").addEventListener("click", (event) => void connect("metamask", event.currentTarget));
+byId("retry-wallet-discovery").addEventListener("click", () => void refreshWalletGuidance());
 byId("wallet-disconnect").addEventListener("click", () => disconnect("Wallet disconnected by user."));
 byId("wallet-revoke").addEventListener("click", async () => {
   if (!state.provider) return;

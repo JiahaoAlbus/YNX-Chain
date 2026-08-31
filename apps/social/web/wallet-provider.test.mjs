@@ -63,6 +63,16 @@ test("no provider returns an on-page result without navigation", async () => {
   assert.deepEqual(await connectWallet("ynx", target([])), { ok: false, code: "YNX_WALLET_NOT_FOUND" });
 });
 
+test("multiple same-brand providers fail closed before any account request", async () => {
+  const calls = [];
+  const provider = { isMetaMask: true, async request(input) { calls.push(input.method); return []; } };
+  const first = { info: { uuid: "mm-first", name: "MetaMask", rdns: "io.metamask" }, provider };
+  const second = { info: { uuid: "mm-second", name: "MetaMask", rdns: "io.metamask" }, provider: { ...provider } };
+  const result = await connectWallet("metamask", target([first, second]));
+  assert.deepEqual(result, { ok: false, code: "AMBIGUOUS_WALLET_PROVIDER" });
+  assert.deepEqual(calls, []);
+});
+
 test("connection progress never destroys the wallet option markup", async () => {
   const source = await readFile(new URL("./app.js", import.meta.url), "utf8");
   assert.doesNotMatch(source, /button\.textContent\s*=/);
@@ -169,6 +179,7 @@ test("web flow uses distinct logos and forbids custom-scheme or blank-tab launch
   assert.match(html, /wallet-switch-account/);
   assert.match(html, /wallet-revoke/);
   assert.match(html, /wallet-disconnect/);
+  assert.match(html, /retry-wallet-discovery/);
   assert.doesNotMatch(`${html}\n${app}\n${provider}`, /window\.open|ynxwallet:|target=["']_blank/i);
   assert.doesNotMatch(app, /fetch\(|api\.ynxweb4\.com\/social\/health/);
   assert.match(app, /PRIVATE_SERVICE_DEGRADED/);
@@ -183,4 +194,8 @@ test("web flow uses distinct logos and forbids custom-scheme or blank-tab launch
   );
   assert.match(chooser, /showModal\(\)/);
   assert.doesNotMatch(chooser, /connect\(|eth_requestAccounts|window\.open/);
+  assert.match(app, /refreshWalletGuidance/);
+  const refresh = app.slice(app.indexOf("async function refreshWalletGuidance"), app.indexOf("async function connect"));
+  assert.match(refresh, /discoverProviders\(window\)/);
+  assert.doesNotMatch(refresh, /eth_requestAccounts|eth_accounts|wallet_switchEthereumChain|wallet_addEthereumChain/);
 });
