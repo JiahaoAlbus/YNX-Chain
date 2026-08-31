@@ -26,6 +26,7 @@ import {
   connectMetaMask,
   consumeDexActionCallback,
   restoreWalletSession,
+  restoreStandardWallet,
   disconnectStandardWallet,
   observeStandardWallet,
   standardWalletDetails,
@@ -221,14 +222,30 @@ export default function App() {
       setWalletError(state.status === "connected" ? "" : "Standard Wallet disconnected. Read-only DEX remains available.");
     });
   };
+  useEffect(() => {
+    let active = true;
+    void (async () => {
+      const launch = await beginWalletAuthorization();
+      const provider = launch.providers.ynxWallet || launch.providers.metaMask;
+      const providerKind = launch.providers.ynxWallet ? "ynx-wallet" : launch.providers.metaMask ? "metamask" : undefined;
+      if (!provider || !providerKind) return;
+      const account = await restoreStandardWallet(provider, providerKind);
+      if (!active || !account) return;
+      bindStandardWallet(provider);
+      setWalletAccount(account);
+      if (providerKind === "metamask") setMetamaskAccount(account);
+    })().catch(() => undefined);
+    return () => { active = false; };
+  }, []);
   const connectWallet = async () => {
     setWalletBusy(true);
     setWalletError("");
     try {
       const launch = await beginWalletAuthorization();
-      if (launch.status === "provider-ready" && launch.provider) {
-        const account=await connectStandardWallet(launch.provider);
-        bindStandardWallet(launch.provider);
+      const provider=launch.providers.ynxWallet;
+      if (launch.status === "provider-ready" && provider) {
+        const account=await connectStandardWallet(provider,"ynx-wallet");
+        bindStandardWallet(provider);
         setWalletAccount(account);
         setWalletError("Standard Wallet connected on YNX Testnet. Product Session, approval, swap, liquidity and token approval remain separate.");
         setWallet(false);
@@ -246,9 +263,11 @@ export default function App() {
     setWalletBusy(true);
     setWalletError("");
     try {
-      const provider=(globalThis as typeof globalThis&{ethereum?:Parameters<typeof connectMetaMask>[0]}).ethereum;
+      const launch=await beginWalletAuthorization();
+      const provider=launch.providers.metaMask;
+      if(!provider)throw new Error("MetaMask is unavailable in this browser. Install or unlock MetaMask, then retry.");
       const account=await connectMetaMask(provider);
-      if(provider)bindStandardWallet(provider);
+      bindStandardWallet(provider);
       setMetamaskAccount(account);
       setWalletAccount(account);
       setWallet(false);
