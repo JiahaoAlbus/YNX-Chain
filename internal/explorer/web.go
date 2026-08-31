@@ -1566,6 +1566,7 @@ const indexHTML = `<!doctype html>
     $('searchInput').oninput = updateSearchSuggestions;
     $('searchInput').onfocus = updateSearchSuggestions;
     $('searchInput').onkeydown = event => {
+      if (event.key === 'Enter') { event.preventDefault(); search(); return; }
       if (event.key === 'Escape') { closeSearchSuggestions(); return; }
       if (event.key !== 'ArrowDown') return;
       const first = $('searchSuggestions').querySelector('[data-suggestion]');

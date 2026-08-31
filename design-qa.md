@@ -231,3 +231,9 @@ This is local responsive and accessibility evidence against the 6423 node/indexe
 - The YNXT asset overview now uses its four-cell hierarchy for the verified account count instead of a less useful pending-transaction value. This aligns the Home summary with the required real account coverage while preserving live height, TPS, indexed transaction, validator, and synchronization metrics.
 - Evidence: the active local `/api/accounts?limit=10` response declared `authoritative-public-ledger-account-ranking`, with `total: 4` and four returned records. Browser Home rendered `账户 / 4 / 由索引器验证` and the matching `4 个全账本账户 / 展示前 4` leaderboard label.
 - At 390 x 844 CSS px the account fact occupied a 175 px column in a 351 px asset overview, the value remained 14 px, and no document-width overflow or console error occurred.
+
+## 2026-08-31 route and keyboard-search audit follow-up
+
+- A fresh browser audit opened all nine primary routes in the same local document. Home, Blockchain, Tokens, Data, Governance, Ecosystem, Developers, Downloads, and Documentation all rendered their expected view without page-width overflow. Disabled product, download, and unavailable-service controls remained disabled rather than directing to placeholders.
+- The More control now has browser evidence: opening it set `aria-expanded=true`; its Documentation link navigated to `#documentation` in the same tab and closed the menu again.
+- Keyboard search has an explicit Enter path instead of relying solely on native form submission. Browser checks used Enter to resolve a verified block, transaction, YNXT, validator, and account into their respective `#blockchain?detail=…` drawer routes. A 40-hex address with no verified contract index stayed in the same tab and displayed the localized contract-unavailable boundary. Console errors were zero throughout.

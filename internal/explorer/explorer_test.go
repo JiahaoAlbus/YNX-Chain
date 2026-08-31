@@ -396,6 +396,9 @@ func TestExplorerPortalRoutesStayInOne6423Document(t *testing.T) {
 			t.Fatalf("portal route behavior is missing %q", behavior)
 		}
 	}
+	if !strings.Contains(indexHTML, "if (event.key === 'Enter') { event.preventDefault(); search(); return; }") {
+		t.Fatal("global search must submit from the keyboard without relying on native form behavior")
+	}
 	for _, required := range []string{"const observedWindow = calculateWindow(blocks)", "observedWindow.tps.toFixed(2)", "observedWindow.blockTime ? observedWindow.blockTime.toFixed(1) + 's'", "i('blockLag'", "id=\"assetAccountCount\"", "$('assetAccountCount').textContent"} {
 		if !strings.Contains(indexHTML, required) {
 			t.Fatalf("blockchain network status is missing verified runtime fact %q", required)
