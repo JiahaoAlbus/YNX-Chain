@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "classification": "source-tested-not-deployed",
+  "product": "dex",
+  "reviewedBaseCommit": "6844762c315731c6fe22d762932b150317c43c53",
+  "routing": {
+    "maxHops": 3,
+    "dataSource": "committed authoritative chain-native pool reserves",
+    "math": "integer CPMM exact-input and exact-output calculations",
+    "cyclePolicy": "repeated pools and repeated assets are rejected",
+    "feeDisclosure": "effective route rate plus each pool fee",
+    "directExecution": "eligible for existing one-pool Wallet action contract",
+    "multiHopExecution": "disabled until a Central-attested atomic routed action contract exists"
+  },
+  "chain": {
+    "nativeChainId": "ynx_6423-1",
+    "evmChainIdHex": "0x1917",
+    "legacy9102Rejected": true
+  },
+  "tests": {
+    "unitAndUi": "30 passed",
+    "canonicalAuthorizeVerifier": "passed",
+    "productionWebBuild": "passed"
+  },
+  "truth": {
+    "routerContractAttested": false,
+    "publicDeployed": false,
+    "sourceBoundPublicRuntime": false,
+    "walletApproval": false,
+    "multiHopSignature": false,
+    "swap": false,
+    "liquidity": false,
+    "transaction": false,
+    "computerControl": false
+  },
+  "singleExecutableBlocker": "Central/Chain Core must expose a single atomic multi-hop action and receipt contract before DEX can request a Wallet signature for any multi-hop route."
+}

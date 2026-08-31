@@ -257,4 +257,61 @@ describe("YNX DEX consensus product shell", () => {
     ).toBeInTheDocument();
     expect(within(dialog).getByText("12 YNXT")).toBeInTheDocument();
   });
+
+  it("renders a committed multi-hop quote but refuses to request a one-pool Wallet action", async () => {
+    const assetB = {
+      id: "asset-b",
+      symbol: "BTEST",
+      name: "YNX B Test",
+      decimals: 0,
+      blockHeight: 10,
+    };
+    const assetC = {
+      id: "asset-c",
+      symbol: "CTEST",
+      name: "YNX C Test",
+      decimals: 0,
+      blockHeight: 10,
+    };
+    const poolAB = {
+      id: "dex_ynxt_b",
+      kind: "ynx-cpmm-v1",
+      asset0: "YNXT",
+      asset1: "asset-b",
+      reserve0: 1_000,
+      reserve1: 1_000,
+      feeBps: 30,
+      totalShares: 1_000,
+      blockHeight: 11,
+      updatedAt: new Date().toISOString(),
+      auditHash: "a".repeat(64),
+    };
+    const poolBC = {
+      ...poolAB,
+      id: "dex_b_c",
+      asset0: "asset-b",
+      asset1: "asset-c",
+      auditHash: "b".repeat(64),
+    };
+    vi.stubGlobal("fetch", nativeFetch([assetB, assetC], [poolAB, poolBC], []));
+    render(<App />);
+    await waitFor(() =>
+      expect(screen.getByLabelText("You receive token")).toHaveValue("asset-b"),
+    );
+    fireEvent.change(screen.getByLabelText("You receive token"), {
+      target: { value: "asset-c" },
+    });
+    fireEvent.change(screen.getByLabelText("You pay amount"), {
+      target: { value: "10" },
+    });
+    await waitFor(() =>
+      expect(screen.getByText("2-hop chain-native quote")).toBeInTheDocument(),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Review swap" }));
+    const dialog = screen.getByRole("dialog", { name: "Review swap" });
+    expect(within(dialog).getByText(/multi-hop result is a read-only quote/)).toBeInTheDocument();
+    expect(
+      within(dialog).getByRole("button", { name: "Multi-hop execution unavailable" }),
+    ).toBeDisabled();
+  });
 });

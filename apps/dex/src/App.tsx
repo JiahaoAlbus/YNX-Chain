@@ -12,6 +12,11 @@ import type { AuditAction, RiskContext } from "./riskAssistant";
 import { useDexData } from "./useDexData";
 import { aggregateCandles, type Candle } from "./candles";
 import type { ChainEvent, Locale, Pool, Token } from "./types";
+import {
+  quoteNativeExactInput,
+  quoteNativeExactOutput,
+  type NativeQuote,
+} from "./routing";
 import { broadcastDexAction, loadAccountNonce } from "./api";
 import {
   beginDexAction,
@@ -60,14 +65,6 @@ const poolProtocol = (version: string) =>
   version === "ynx-consensus-cpmm-v13"
     ? "Chain-native constant product"
     : "Unsupported pool";
-const poolMatches = (pool: Pool, tokenIn: string, tokenOut: string) => {
-  const first = pool.token0.toLowerCase();
-  const second = pool.token1.toLowerCase();
-  return (
-    (first === tokenIn && second === tokenOut) ||
-    (first === tokenOut && second === tokenIn)
-  );
-};
 const parseUnits = (value: string, decimals: number) => {
   const [whole = "0", fraction = ""] = value.split(".");
   if (
@@ -86,95 +83,6 @@ const formatUnits = (value: bigint, decimals: number) => {
   return fraction ? `${whole}.${fraction}` : whole;
 };
 
-type NativeQuote = {
-  amountIn: bigint;
-  amountOut: bigint;
-  pool: string;
-  feeBps: number;
-  quotedAt: string;
-  priceImpactBps: number;
-};
-const quoteNativeExactInput = (
-  amountIn: bigint,
-  tokenIn: string,
-  tokenOut: string,
-  pools: Pool[],
-): NativeQuote => {
-  const candidates = pools.filter(
-    (pool) =>
-      poolMatches(pool, tokenIn, tokenOut) &&
-      BigInt(pool.reserve0) > 0n &&
-      BigInt(pool.reserve1) > 0n,
-  );
-  if (!candidates.length)
-    throw new Error("No executable chain-native pool route.");
-  let best: NativeQuote | null = null;
-  for (const pool of candidates) {
-    const forwards = pool.token0.toLowerCase() === tokenIn;
-    const reserveIn = BigInt(forwards ? pool.reserve0 : pool.reserve1);
-    const reserveOut = BigInt(forwards ? pool.reserve1 : pool.reserve0);
-    const amountAfterFee = (amountIn * BigInt(10_000 - pool.feeBps)) / 10_000n;
-    const amountOut =
-      (reserveOut * amountAfterFee) / (reserveIn + amountAfterFee);
-    if (amountOut <= 0n) continue;
-    const spotOut = (amountIn * reserveOut) / reserveIn;
-    const impact =
-      spotOut > 0n ? Number(((spotOut - amountOut) * 10_000n) / spotOut) : 0;
-    const candidate = {
-      amountIn,
-      amountOut,
-      pool: pool.address,
-      feeBps: pool.feeBps,
-      quotedAt: new Date().toISOString(),
-      priceImpactBps: Math.max(0, impact),
-    };
-    if (!best || candidate.amountOut > best.amountOut) best = candidate;
-  }
-  if (!best)
-    throw new Error("Trade amount is too small for current integer reserves.");
-  return best;
-};
-const quoteNativeExactOutput = (
-  amountOut: bigint,
-  tokenIn: string,
-  tokenOut: string,
-  pools: Pool[],
-): NativeQuote => {
-  const candidates = pools.filter(
-    (pool) =>
-      poolMatches(pool, tokenIn, tokenOut) &&
-      BigInt(pool.reserve0) > 0n &&
-      BigInt(pool.reserve1) > 0n,
-  );
-  if (!candidates.length)
-    throw new Error("No executable chain-native pool route.");
-  let best: NativeQuote | null = null;
-  for (const pool of candidates) {
-    const forwards = pool.token0.toLowerCase() === tokenIn;
-    const reserveIn = BigInt(forwards ? pool.reserve0 : pool.reserve1);
-    const reserveOut = BigInt(forwards ? pool.reserve1 : pool.reserve0);
-    if (amountOut >= reserveOut) continue;
-    const numerator = reserveIn * amountOut * 10_000n;
-    const denominator = (reserveOut - amountOut) * BigInt(10_000 - pool.feeBps);
-    const amountIn = (numerator + denominator - 1n) / denominator;
-    if (amountIn <= 0n) continue;
-    const spotIn = (amountOut * reserveIn + reserveOut - 1n) / reserveOut;
-    const impact =
-      spotIn > 0n ? Number(((amountIn - spotIn) * 10_000n) / spotIn) : 0;
-    const candidate = {
-      amountIn,
-      amountOut,
-      pool: pool.address,
-      feeBps: pool.feeBps,
-      quotedAt: new Date().toISOString(),
-      priceImpactBps: Math.max(0, impact),
-    };
-    if (!best || candidate.amountIn < best.amountIn) best = candidate;
-  }
-  if (!best)
-    throw new Error("Requested output exceeds committed pool liquidity.");
-  return best;
-};
 const minimumOutput = (amount: bigint, slippageBps: number) =>
   (amount * BigInt(10_000 - slippageBps)) / 10_000n;
 const maximumInput = (amount: bigint, slippageBps: number) =>
@@ -830,7 +738,11 @@ function SwapPage({
   }, [stale]);
   const continueInWallet = async () => {
     if (!quoteState.quote) return;
-    const pool = pools.find((item) => item.address === quoteState.quote?.pool),
+    if (quoteState.quote.execution !== "direct" || quoteState.quote.route.length !== 1)
+      throw new Error(
+        "This is a multi-hop quote only. Chain-native multi-hop execution is not yet attested, so no Wallet transaction can be requested.",
+      );
+    const pool = pools.find((item) => item.address === quoteState.quote?.route[0]?.pool),
       source = tokenMap.get(from);
     if (!pool || !source)
       throw new Error("Committed pool or token metadata is unavailable.");
@@ -957,19 +869,27 @@ function SwapPage({
                 <strong>
                   {stale
                     ? "Quote expired"
+                    : quoteState.quote?.execution === "multi_hop_quote_only"
+                      ? `${quoteState.quote.route.length}-hop chain-native quote`
                     : highImpact
                       ? t.highImpact
-                      : quoteState.quote
-                        ? "Direct chain-native pool route"
+                    : quoteState.quote
+                      ? quoteState.quote.execution === "direct"
+                          ? "Direct chain-native pool route"
+                          : "Chain-native route"
                         : t.noRoute}
                 </strong>
                 <span>
                   {stale
                     ? "Refresh the amount or token selection before review."
+                    : quoteState.quote?.execution === "multi_hop_quote_only"
+                      ? "Each hop is quoted from committed reserves. Execution stays disabled until the chain-native router is attested."
                     : highImpact
                       ? "Price impact is 5% or higher. Review size and route."
-                      : quoteState.quote
-                        ? "Deterministic quote from authoritative chain-native reserves."
+                    : quoteState.quote
+                      ? quoteState.quote.execution === "direct"
+                          ? "Deterministic quote from authoritative chain-native reserves."
+                          : "Deterministic quote from authoritative chain-native reserves."
                         : quoteState.error || t.routeHint}
                 </span>
               </div>
@@ -995,8 +915,12 @@ function SwapPage({
           }
         />
         <InspectorRow
-          label="Consensus pool"
-          value={quoteState.quote ? quoteState.quote.pool : "—"}
+          label="Consensus route"
+          value={
+            quoteState.quote
+              ? quoteState.quote.route.map((hop) => hop.pool).join(" → ")
+              : "—"
+          }
         />
         <InspectorRow
           label={t.fees}
@@ -1062,8 +986,8 @@ function SwapPage({
                 <dd>{to}</dd>
               </div>
               <div>
-                <dt>Consensus pool</dt>
-                <dd>{quoteState.quote.pool}</dd>
+                <dt>Consensus route</dt>
+                <dd>{quoteState.quote.route.map((hop) => hop.pool).join(" → ")}</dd>
               </div>
               <div>
                 <dt>Signed action</dt>
@@ -1076,6 +1000,14 @@ function SwapPage({
               <div>
                 <dt>{t.fees}</dt>
                 <dd>{(quoteState.quote.feeBps / 100).toFixed(2)}%</dd>
+              </div>
+              <div>
+                <dt>Route fee breakdown</dt>
+                <dd>
+                  {quoteState.quote.route
+                    .map((hop) => `${hop.pool}: ${(hop.feeBps / 100).toFixed(2)}%`)
+                    .join(" · ")}
+                </dd>
               </div>
               <div>
                 <dt>
@@ -1111,13 +1043,22 @@ function SwapPage({
                 before signing.
               </p>
             </div>
+            {quoteState.quote.execution !== "direct" && (
+              <p className="review-blocker">
+                This multi-hop result is a read-only quote from committed reserves.
+                DEX will not request a Wallet signature until a chain-native router
+                binds the complete route and minimum output.
+              </p>
+            )}
             <button
               className="primary"
-              disabled={actionBusy || stale}
+              disabled={actionBusy || stale || quoteState.quote.execution !== "direct"}
               onClick={() => void continueInWallet()}
             >
               {actionBusy
                 ? "Checking Product Session…"
+                : quoteState.quote.execution !== "direct"
+                  ? "Multi-hop execution unavailable"
                 : walletAccount
                   ? t.confirmWallet
                   : "Connect Wallet to continue"}
@@ -1136,7 +1077,7 @@ function SwapPage({
           context={{
             pair: `${tokenMap.get(from)?.symbol || short(from)} / ${tokenMap.get(to)?.symbol || short(to)}`,
             amount: `${input} ${tokenMap.get(from)?.symbol || "token"}`,
-            routePools: [quoteState.quote.pool],
+            routePools: quoteState.quote.route.map((hop) => hop.pool),
             minimumReceived:
               swapMode === "exact-input"
                 ? `${boundedAmount} ${tokenMap.get(to)?.symbol || "token"}`
