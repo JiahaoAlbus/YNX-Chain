@@ -3356,6 +3356,24 @@
       "artifactSha256": "94ee365a961a96908fcccf20f7f1528e739931625d3c06e21d5803f8a1f9e520",
       "productionMutationAllowed": false,
       "allowedExceptions": ["exactly one zero-write SSH inspection and no retry", "no remote temporary files", "read only P0-305 residues old current services listeners unit and five public resources", "release Creator Heavy only on exact terminal absence and unchanged old runtime", "no cleanup deploy lifecycle unrelated Heavy Wallet account signature typed-data or transaction action"]
+    },
+    {
+      "path": "{host:43.153.202.237:video-retained-evidence-zero-write,readonly:/var/lib/ynx-video-viewer-wallet-evidence,readonly:/var/lib/ynx-video-viewer-wallet-evidence.identity,readonly:/var/lib/ynx-video-viewer-wallet-evidence/*}",
+      "owner": "video-emergency-readonly-inspector",
+      "branch": "codex/p0-wallet-connectivity-control-plane-20260820",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration",
+      "taskId": "P0-311",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_SINGLE_USE_VIDEO_P0311_RETAINED_EVIDENCE_ZERO_WRITE_INVENTORY",
+      "acquiredAt": "2026-08-31T04:09:06Z",
+      "expiresAt": "2026-08-31T04:24:06Z",
+      "releasedAt": null,
+      "sourceCommit": "4fcef01aebdbc626dfe68b7e5053123d33a36511",
+      "sourceTree": "3546b389aaed1bcd34eb634c4ec80f451e64cad5",
+      "evidenceCommit": "5a69d43931080061e4d356a79f7de50bc70293b9",
+      "artifactSha256": "d31a683052493fcd44c33e01304dbf4bf1de7837d720bcb110dc73a20e90b19f",
+      "productionMutationAllowed": false,
+      "allowedExceptions": ["exactly one zero-write SSH inspection and no retry", "read only the retained evidence parent sidecar and direct children", "no remote temporary files cleanup deployment lifecycle or unrelated product action"]
     }
   ]
 }
