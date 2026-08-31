@@ -3676,6 +3676,27 @@
         "no deployment rollback account signature typed data or transaction",
         "cleanupComplete remains false until a separate wholly-new zero-write post-cleanup readback"
       ]
+    },
+    {
+      "path": "{readonly:host:43.153.202.237:finance-p0318-post-cleanup,readonly:/opt/ynx/leases/finance/**,readonly:/opt/ynx/stage/finance/finance-combined-4f7fba323a89-20260831t041500z/**,readonly:/opt/ynx/finance-current,readonly:/etc/ynx/finance.env,readonly:/etc/systemd/system/ynx-finance.service,readonly:/etc/caddy/conf.d/ynx-finance.caddy,readonly:/var/lib/ynx/finance/state.json,readonly:ynx-finance.service,readonly:https://finance.ynxweb4.com/**}",
+      "owner": "finance-release-control-plane-readonly-verification",
+      "branch": "codex/p0-wallet-connectivity-control-plane-20260820",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration",
+      "taskId": "P0-323",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_FINANCE_P0318_POST_CLEANUP_ZERO_WRITE_READBACK_ONLY",
+      "acquiredAt": "2026-08-31T06:48:00Z",
+      "expiresAt": "2026-08-31T07:08:00Z",
+      "sourceCommit": "3e415e193a354599ea9fe5e451351b3c46b32139",
+      "sourceTree": "f6d5cd21731e2743493a3d78420a938c7fbea746",
+      "artifactSha256": "1fa77fd80f37a8fde93ca02c2f4f4b85b5e0777506a5a29a3b166b3daf77a6d6",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "exactly one read-only SSH and no retry",
+        "inspector bytes are stdin and create no remote temporary files",
+        "read target quarantine sibling parent carrier runtime service and HTTP metadata only",
+        "no cleanup carrier mutation deploy rollback lifecycle account signature typed data or transaction"
+      ]
     }
   ]
 }
