@@ -51,24 +51,15 @@ file_fact() {
 probe() {
   label="$1"
   url="$2"
-  transport_rc=0
-  if response="$(curl --fail-with-body --silent --show-error --max-time 8 --max-filesize 1048576 --write-out $'\n%{http_code}' "$url")"; then
-    transport_rc=0
-  else
-    transport_rc="$?"
-  fi
-  if [[ "$response" == *$'\n'* ]]; then
-    code="\${response##*$'\n'}"
-    body="\${response%$'\n'*}"
-  else
-    code=000
-    body="$response"
-  fi
-  bytes="$(printf %s "$body" | wc -c | tr -d ' ')"
-  digest="$(printf %s "$body" | sha256sum | awk '{print $1}')"
-  encoded="$(printf %s "$body" | base64 | tr -d '\n')"
-  [[ -n "$encoded" ]] || encoded=-
-  printf 'PROBE\t%s\t%s\t%s\t%s\t%s\t%s\n' "$label" "$transport_rc" "$code" "$bytes" "$digest" "$encoded"
+  python3 -c 'import base64, hashlib, subprocess, sys
+label, url = sys.argv[1], sys.argv[2]
+result = subprocess.run(["curl", "--fail-with-body", "--silent", "--max-time", "8", "--max-filesize", "1048576", "--write-out", "%{stderr}%{http_code}", url], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+body = result.stdout
+code = result.stderr.decode("ascii", "strict")
+if len(code) != 3 or not code.isdigit():
+    code = "000"
+encoded = base64.b64encode(body).decode("ascii") or "-"
+print("PROBE\t%s\t%d\t%s\t%d\t%s\t%s" % (label, result.returncode, code, len(body), hashlib.sha256(body).hexdigest(), encoded))' "$label" "$url"
 }
 exec_start_encoded="$(systemctl show "$unit" --property=ExecStart --value | base64 | tr -d '\n')"
 [[ -n "$exec_start_encoded" ]] || exec_start_encoded=-
@@ -122,6 +113,8 @@ function assertChainInspectionPayloadSafe() {
   for (const required of ["ActiveState", "SubState", "MainPID", "NRestarts", "currentBinary", "currentManifest", "rollbackBinary", "rollbackManifest", "/node/identity", "/validators/peer-sync", "ZERO_WRITE_INSPECTION_COMPLETE"]) {
     if (!chainInspectionRemotePayload.includes(required)) throw new Error(`chain inspection payload is missing ${required}`);
   }
+  if ((chainInspectionRemotePayload.match(/\["curl"/g) || []).length !== 1) throw new Error("chain inspection payload must contain exactly one curl invocation site");
+  if (/response="\$\(/.test(chainInspectionRemotePayload)) throw new Error("chain inspection payload must not capture an HTTP body through shell command substitution");
 }
 
 function printChainInspectionPlan() {
@@ -233,6 +226,31 @@ function selfTestChainInspection() {
   ].join("\n");
   const parsed = parseChainInspectionOutput(chainInspectionTargets[0], synthetic);
   if (parsed.activeState !== "active" || parsed.probes.peerSync.httpStatus !== 200 || parsed.files.currentManifest.status !== "missing") throw new Error("chain inspection parser self-test failed");
+  const probeProgramMatch = chainInspectionRemotePayload.match(/python3 -c '([\s\S]*?)' "\$label" "\$url"/);
+  if (!probeProgramMatch) throw new Error("chain inspection probe program extraction failed");
+  const probeProgramBase64 = Buffer.from(probeProgramMatch[1]).toString("base64");
+  const directProbeWrapper = `import base64, subprocess, sys
+calls = []
+class Result:
+    stdout = b"x\\n\\n"
+    stderr = b"200"
+    returncode = 0
+def fake_run(argv, **kwargs):
+    if argv[0] != "curl":
+        raise RuntimeError("unexpected probe transport")
+    calls.append(argv)
+    return Result()
+subprocess.run = fake_run
+sys.argv = ["probe", "health", "http://127.0.0.1:6420/health"]
+exec(base64.b64decode("${probeProgramBase64}"))
+if len(calls) != 1:
+    raise RuntimeError("probe transport count mismatch")`;
+  const directProbeResult = spawnSync("/usr/bin/python3", ["-c", directProbeWrapper], { encoding: "utf8" });
+  if (directProbeResult.status !== 0 || directProbeResult.stderr) throw new Error(`chain inspection direct probe regression failed rc=${directProbeResult.status} signal=${directProbeResult.signal || "none"} error=${directProbeResult.error?.message || "none"}: ${directProbeResult.stderr}`);
+  const trailingNewlineProbe = directProbeResult.stdout.trimEnd();
+  const trailingNewlineEnvelope = synthetic.replace(/^PROBE\thealth.*$/m, trailingNewlineProbe);
+  const trailingNewlineParsed = parseChainInspectionOutput(chainInspectionTargets[0], trailingNewlineEnvelope);
+  if (!trailingNewlineProbe.endsWith("\teAoK") || trailingNewlineParsed.probes.health.bytes !== 3 || trailingNewlineParsed.probes.health.body !== "x\n\n" || trailingNewlineParsed.probes.health.sha256 !== "d1329c6d1284e888680db5b03619fc08bdf1ee0b172c946ca6d1f18f5ea40d61") throw new Error("chain inspection trailing-newline regression failed");
   console.log(`chain four-node zero-write inspector self-test passed: payloadSha256=${sha256Text(chainInspectionRemotePayload)}`);
 }
 const evidencePath = process.env.YNX_REMOTE_EVIDENCE_PATH || path.join(repoRoot, "tmp/remote-smoke-test/evidence.json");
