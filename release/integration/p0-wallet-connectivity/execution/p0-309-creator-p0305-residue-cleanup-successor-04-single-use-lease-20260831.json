@@ -1,0 +1,112 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-309",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-creator-p0305-residue-cleanup-only-s04-20260831T035313Z",
+  "owner": "creator-studio-deploy-owner",
+  "executor": "release-control-plane",
+  "status": "ACTIVE_SINGLE_USE_CREATOR_P0305_RESIDUE_CLEANUP_ONLY_SUCCESSOR_04",
+  "issuedAt": "2026-08-31T03:53:13Z",
+  "expiresAt": "2026-08-31T04:13:13Z",
+  "singleUse": true,
+  "reusable": false,
+  "attemptLimit": 1,
+  "retryAllowed": false,
+  "executionAuthorized": true,
+  "productionMutationAllowed": true,
+  "ownerAuthority": {
+    "branch": "codex/p0-creator-studio-subpath-i18n-20260831",
+    "implementationCommit": "b1e7ce6d02f09f6d5b67fb1f0e4ffdc929d3f69e",
+    "implementationTree": "345ad4c4df12e9f93511bd9f322f33f0b4f6e027",
+    "requestCommit": "5397d18f1f4fe51e614ac59405f39e606a15a438",
+    "requestTree": "d8155a82581381c5ef038b6fe51639873ba29115",
+    "requestPath": "apps/creator-studio/evidence/creator-studio-p0305-residue-cleanup-only-successor-04-single-use-lease-request-20260831.json",
+    "requestBlob": "0bf8cfabe55b38fb53ae31cfaba8adec635d2c9b",
+    "requestSha256": "2243f20ce73be7b882a847fc102095c84159d77759bfe853084d3b29659b6b1f",
+    "remoteExactAndClean": true
+  },
+  "executorObject": {
+    "gitPath": "apps/creator-studio/release-residue-cleanup-3f97a13d.mjs",
+    "gitBlob": "8404f45964ba5bd6e997238b72fb615e2c932eea",
+    "bytes": 28711,
+    "sha256": "9a79fb958f815fff5a47b0c84b0dc09847fd38aca6f345e7af9e72d455771dcf",
+    "stdinExactBytes": true
+  },
+  "canonicalInput": {
+    "bytes": 1625,
+    "sha256": "b8cfef3abdd568b44b04b463cbb56f0fdaca58248c04f28be10e300a87a2ea7c",
+    "sourceCommit": "03b7bae8430fa5549707f596ad6f770a1d411fe7",
+    "sourcePath": "apps/creator-studio/evidence/creator-studio-p0305-residue-cleanup-only-successor-03-single-use-lease-request-20260831.json",
+    "jsonPointer": "/canonicalInput/base64",
+    "base64": "eyJzY2hlbWFWZXJzaW9uIjoiMS4wLjAiLCJhY3Rpb24iOiJDUkVBVE9SX1AwMzA1X1JFU0lEVUVfQ0xFQU5VUF9PTkxZIiwiY29udHJvbFR1cGxlIjoiNjQ3NzA6MTQ4MzgzMDowOjA6NzAwOjM6NDA5NjpkaXJlY3RvcnkiLCJjYW5kaWRhdGVUdXBsZSI6IjY0NzcwOjE0ODM5MTg6OTk1Ojk4Njo3NTU6NDo0MDk2OmRpcmVjdG9yeSIsImN1cnJlbnRUdXBsZSI6IjY0NzcwOjE0ODM5NTE6MDowOjc3NzoxOjYzOnN5bWJvbGljIGxpbmsiLCJvbGRSZWxlYXNlVHVwbGUiOiI2NDc3MDoxNDgzODc3Ojk5NTo5ODY6NzU1OjQ6NDA5NjpkaXJlY3RvcnkiLCJmb3J3YXJkUmVjZWlwdFR1cGxlIjoiNjQ3NzA6MTQ4MzkwOTowOjA6NjAwOjE6ODI1MDA6cmVndWxhciBmaWxlIiwiZm9yd2FyZFJlY2VpcHRTaGEyNTYiOiIwM2I0YjM4YWZiYmEzZDFlZjIyNjdjYTZlOWJhMmVjNzYxMmRjYTI1NTcxM2ZkNTE4Mzc2ZTAzMTNmMmY1ZGM1IiwiY3JlYXRvclBpZCI6Mjc0Nzg0NCwiY3JlYXRvck5SZXN0YXJ0cyI6MCwiYXBpUGlkIjozMTA4MjEwLCJ2aWV3ZXJQaWQiOjIxNTk1MzYsImNhbmRpZGF0ZUFwcGxlRG91YmxlIjp7Ii5fLiI6IjY0NzcwOjE0ODM5MTk6OTk1Ojk4Njo3NTU6MToxNjM6cmVndWxhciBmaWxlIiwiLl9hcHAuanMiOiI2NDc3MDoxNDgzOTQyOjk5NTo5ODY6NjQ0OjE6MTYzOnJlZ3VsYXIgZmlsZSIsIi5fYXNzZXRzIjoiNjQ3NzA6MTQ4MzkzNjo5OTU6OTg2Ojc1NToxOjE2MzpyZWd1bGFyIGZpbGUiLCIuX2NyZWF0b3Itc3R1ZGlvLm1hbmlmZXN0Lmpzb24iOiI2NDc3MDoxNDgzOTI4Ojk5NTo5ODY6NjQ0OjE6MTYzOnJlZ3VsYXIgZmlsZSIsIi5fZW5oYW5jZW1lbnRzLmNzcyI6IjY0NzcwOjE0ODM5MjA6OTk1Ojk4Njo2NDQ6MToxNjM6cmVndWxhciBmaWxlIiwiLl9pMThuIjoiNjQ3NzA6MTQ4MzkzNDo5OTU6OTg2Ojc1NToxOjE2MzpyZWd1bGFyIGZpbGUiLCIuX2kxOG4uanMiOiI2NDc3MDoxNDgzOTQwOjk5NTo5ODY6NjQ0OjE6MTYzOnJlZ3VsYXIgZmlsZSIsIi5faW5kZXguaHRtbCI6IjY0NzcwOjE0ODM5MjQ6OTk1Ojk4Njo2NDQ6MToxNjM6cmVndWxhciBmaWxlIiwiLl9zZXJ2ZXIubWpzIjoiNjQ3NzA6MTQ4MzkzMjo5OTU6OTg2OjY0NDoxOjE2MzpyZWd1bGFyIGZpbGUiLCIuX3N0YW5kYXJkLXdhbGxldC1jb25uZWN0LXN0YXRlLmpzIjoiNjQ3NzA6MTQ4MzkzMDo5OTU6OTg2OjY0NDoxOjE2MzpyZWd1bGFyIGZpbGUiLCIuX3N0eWxlcy5jc3MiOiI2NDc3MDoxNDgzOTI2Ojk5NTo5ODY6NjQ0OjE6MTYzOnJlZ3VsYXIgZmlsZSIsIi5fd2FsbGV0LWF1dGguanMiOiI2NDc3MDoxNDgzOTM4Ojk5NTo5ODY6NjQ0OjE6MTYzOnJlZ3VsYXIgZmlsZSIsIi5fd2FsbGV0LWNhbGxiYWNrLmh0bWwiOiI2NDc3MDoxNDgzOTIyOjk5NTo5ODY6NjQ0OjE6MTYzOnJlZ3VsYXIgZmlsZSIsImFzc2V0cy8uX21ldGFtYXNrLnN2ZyI6IjY0NzcwOjE0ODM5NDQ6OTk1Ojk4Njo2NDQ6MToxNjM6cmVndWxhciBmaWxlIiwiYXNzZXRzLy5feW54LXdhbGxldC5zdmciOiI2NDc3MDoxNDgzOTQ2Ojk5NTo5ODY6NjQ0OjE6MTYzOnJlZ3VsYXIgZmlsZSIsImkxOG4vLl9jYXRhbG9nLmpzb24iOiI2NDc3MDoxNDgzOTQ4Ojk5NTo5ODY6NjQ0OjE6MTYzOnJlZ3VsYXIgZmlsZSJ9fQo="
+  },
+  "freshPrewrite": {
+    "observedAt": "2026-08-31T03:52:00Z",
+    "remoteExitStatus": 0,
+    "mutationCount": 0,
+    "controlRoot": "64770:1483830:0:0:700:3:4096:directory",
+    "controlStage": "ABSENT",
+    "oldRelease": "64770:1483877:995:986:755:4:4096:directory",
+    "candidateRelease": "64770:1483918:995:986:755:4:4096:directory",
+    "candidateStage": "ABSENT",
+    "current": "64770:1483951:0:0:777:1:63:symbolic link",
+    "currentTarget": "/opt/ynx-creator-studio-wallet/releases/creator-studio-0e1a53c5",
+    "currentNext": "ABSENT",
+    "forwardReceipt": "64770:1483909:0:0:600:1:82500:regular file",
+    "forwardReceiptSha256": "03b4b38afbba3d1ef2267ca6e9ba2ec7612dca255713fd518376e0313f2f5dc5",
+    "forwardReceiptStatus": "FORWARD_SWITCHED_AWAITING_TERMINAL",
+    "forwardReceiptNext": "ABSENT",
+    "oldManifestSha256": "5fd27ac55d9ea70b8e15aac0565324a9ce7b18706bd75cd5b430eaa4843de86f",
+    "candidateManifestSha256": "fcd0f3346de18e51580af8f7c4f040b8694f7e2ef74bb92cc1ce942e03bea624",
+    "unitSha256": "06a55f91bf5530952c347db146daa827510cc72f161d999943da7d5737b8c006",
+    "creatorService": "loaded:active:running:2747844:0",
+    "viewerService": "loaded:active:running:2159536:0",
+    "apiService": "loaded:active:running:3108210:0",
+    "listeners": {"6493": 3108210, "6494": 2159536, "6495": 2747844},
+    "public": {
+      "root": "200:14088:b37f78205f2c5443b2103ee42e98d6ecde65238c107733088e63893a3c1de697",
+      "appJs": "200:35660:77e7c42006e3be36c7af717e5e8b2a3cd847c3652dcadb1731c259aee5b01af5",
+      "manifest": "200:2299:5fd27ac55d9ea70b8e15aac0565324a9ce7b18706bd75cd5b430eaa4843de86f",
+      "i18nJs": "200:10755:451016ca4e3a16eeade02154397eabf9fabcc57a50fe948ec954b63e5ee12abe",
+      "catalog": "200:14237:4c86e3e1cdeac6d9c4570891d70bab4c3486c6a4429dd33fd1029f046ca9ecff"
+    }
+  },
+  "execution": {
+    "workdir": "/private/tmp/ynx-creator-subpath-i18n.PcnLN2",
+    "literalLocalArgv": [
+      "/usr/bin/ssh", "-i", "/Users/huangjiahao/Downloads/Huang.pem",
+      "-o", "IdentitiesOnly=yes", "-o", "BatchMode=yes", "-o", "StrictHostKeyChecking=yes",
+      "-o", "UserKnownHostsFile=/Users/huangjiahao/.ssh/known_hosts", "-o", "ConnectTimeout=10",
+      "-o", "ConnectionAttempts=1", "ubuntu@43.153.202.237", "/usr/bin/sudo", "-n",
+      "/usr/bin/node", "--input-type=module", "-", "cleanup",
+      "eyJzY2hlbWFWZXJzaW9uIjoiMS4wLjAiLCJhY3Rpb24iOiJDUkVBVE9SX1AwMzA1X1JFU0lEVUVfQ0xFQU5VUF9PTkxZIiwiY29udHJvbFR1cGxlIjoiNjQ3NzA6MTQ4MzgzMDowOjA6NzAwOjM6NDA5NjpkaXJlY3RvcnkiLCJjYW5kaWRhdGVUdXBsZSI6IjY0NzcwOjE0ODM5MTg6OTk1Ojk4Njo3NTU6NDo0MDk2OmRpcmVjdG9yeSIsImN1cnJlbnRUdXBsZSI6IjY0NzcwOjE0ODM5NTE6MDowOjc3NzoxOjYzOnN5bWJvbGljIGxpbmsiLCJvbGRSZWxlYXNlVHVwbGUiOiI2NDc3MDoxNDgzODc3Ojk5NTo5ODY6NzU1OjQ6NDA5NjpkaXJlY3RvcnkiLCJmb3J3YXJkUmVjZWlwdFR1cGxlIjoiNjQ3NzA6MTQ4MzkwOTowOjA6NjAwOjE6ODI1MDA6cmVndWxhciBmaWxlIiwiZm9yd2FyZFJlY2VpcHRTaGEyNTYiOiIwM2I0YjM4YWZiYmEzZDFlZjIyNjdjYTZlOWJhMmVjNzYxMmRjYTI1NTcxM2ZkNTE4Mzc2ZTAzMTNmMmY1ZGM1IiwiY3JlYXRvclBpZCI6Mjc0Nzg0NCwiY3JlYXRvck5SZXN0YXJ0cyI6MCwiYXBpUGlkIjozMTA4MjEwLCJ2aWV3ZXJQaWQiOjIxNTk1MzYsImNhbmRpZGF0ZUFwcGxlRG91YmxlIjp7Ii5fLiI6IjY0NzcwOjE0ODM5MTk6OTk1Ojk4Njo3NTU6MToxNjM6cmVndWxhciBmaWxlIiwiLl9hcHAuanMiOiI2NDc3MDoxNDgzOTQyOjk5NTo5ODY6NjQ0OjE6MTYzOnJlZ3VsYXIgZmlsZSIsIi5fYXNzZXRzIjoiNjQ3NzA6MTQ4MzkzNjo5OTU6OTg2Ojc1NToxOjE2MzpyZWd1bGFyIGZpbGUiLCIuX2NyZWF0b3Itc3R1ZGlvLm1hbmlmZXN0Lmpzb24iOiI2NDc3MDoxNDgzOTI4Ojk5NTo5ODY6NjQ0OjE6MTYzOnJlZ3VsYXIgZmlsZSIsIi5fZW5oYW5jZW1lbnRzLmNzcyI6IjY0NzcwOjE0ODM5MjA6OTk1Ojk4Njo2NDQ6MToxNjM6cmVndWxhciBmaWxlIiwiLl9pMThuIjoiNjQ3NzA6MTQ4MzkzNDo5OTU6OTg2Ojc1NToxOjE2MzpyZWd1bGFyIGZpbGUiLCIuX2kxOG4uanMiOiI2NDc3MDoxNDgzOTQwOjk5NTo5ODY6NjQ0OjE6MTYzOnJlZ3VsYXIgZmlsZSIsIi5faW5kZXguaHRtbCI6IjY0NzcwOjE0ODM5MjQ6OTk1Ojk4Njo2NDQ6MToxNjM6cmVndWxhciBmaWxlIiwiLl9zZXJ2ZXIubWpzIjoiNjQ3NzA6MTQ4MzkzMjo5OTU6OTg2OjY0NDoxOjE2MzpyZWd1bGFyIGZpbGUiLCIuX3N0YW5kYXJkLXdhbGxldC1jb25uZWN0LXN0YXRlLmpzIjoiNjQ3NzA6MTQ4MzkzMDo5OTU6OTg2OjY0NDoxOjE2MzpyZWd1bGFyIGZpbGUiLCIuX3N0eWxlcy5jc3MiOiI2NDc3MDoxNDgzOTI2Ojk5NTo5ODY6NjQ0OjE6MTYzOnJlZ3VsYXIgZmlsZSIsIi5fd2FsbGV0LWF1dGguanMiOiI2NDc3MDoxNDgzOTM4Ojk5NTo5ODY6NjQ0OjE6MTYzOnJlZ3VsYXIgZmlsZSIsIi5fd2FsbGV0LWNhbGxiYWNrLmh0bWwiOiI2NDc3MDoxNDgzOTIyOjk5NTo5ODY6NjQ0OjE6MTYzOnJlZ3VsYXIgZmlsZSIsImFzc2V0cy8uX21ldGFtYXNrLnN2ZyI6IjY0NzcwOjE0ODM5NDQ6OTk1Ojk4Njo2NDQ6MToxNjM6cmVndWxhciBmaWxlIiwiYXNzZXRzLy5feW54LXdhbGxldC5zdmciOiI2NDc3MDoxNDgzOTQ2Ojk5NTo5ODY6NjQ0OjE6MTYzOnJlZ3VsYXIgZmlsZSIsImkxOG4vLl9jYXRhbG9nLmpzb24iOiI2NDc3MDoxNDgzOTQ4Ojk5NTo5ODY6NjQ0OjE6MTYzOnJlZ3VsYXIgZmlsZSJ9fQo="
+    ],
+    "stdinSource": "exact executorObject bytes",
+    "remoteTempFilesAllowed": false
+  },
+  "allowedMutation": {
+    "orderedDeleteOnly": [
+      "/opt/ynx-creator-studio-wallet/receipts/upgrade-3f97a13d.json",
+      "/opt/ynx-creator-studio-wallet/releases/creator-studio-3f97a13d",
+      "/opt/ynx-release-control-plane/creator-studio-3f97a13d"
+    ],
+    "serviceLifecycleActions": 0,
+    "currentSymlinkMutations": 0
+  },
+  "terminalRule": "After the one cleanup attempt, retain Heavy and every Creator lock. A wholly-new zero-write readback must prove all three residues and all next/stage paths absent and the old runtime exact before release.",
+  "forbidden": [
+    "successor-03 or any old cleanup rollback or forward argv",
+    "retry or blind cleanup",
+    "service lifecycle",
+    "current old release API Viewer unit Caddy shared-current or public mutation",
+    "remote temporary files",
+    "unrelated Heavy lease",
+    "Wallet account request signature typed data or transaction"
+  ],
+  "truthBoundary": {
+    "leaseIssued": true,
+    "executionStarted": false,
+    "cleanupComplete": false,
+    "heavyReleased": false
+  }
+}

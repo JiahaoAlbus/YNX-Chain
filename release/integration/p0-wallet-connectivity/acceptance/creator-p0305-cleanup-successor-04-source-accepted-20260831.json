@@ -1,0 +1,61 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "recordType": "CREATOR_P0305_RESIDUE_CLEANUP_SUCCESSOR_04_SOURCE_ACCEPTANCE",
+  "recordedAt": "2026-08-31T03:53:13Z",
+  "source": {
+    "branch": "codex/p0-creator-studio-subpath-i18n-20260831",
+    "implementationCommit": "b1e7ce6d02f09f6d5b67fb1f0e4ffdc929d3f69e",
+    "implementationTree": "345ad4c4df12e9f93511bd9f322f33f0b4f6e027",
+    "requestCommit": "5397d18f1f4fe51e614ac59405f39e606a15a438",
+    "requestTree": "d8155a82581381c5ef038b6fe51639873ba29115",
+    "remoteExactAndClean": true
+  },
+  "objects": {
+    "requestBlob": "0bf8cfabe55b38fb53ae31cfaba8adec635d2c9b",
+    "requestSha256": "2243f20ce73be7b882a847fc102095c84159d77759bfe853084d3b29659b6b1f",
+    "executorBlob": "8404f45964ba5bd6e997238b72fb615e2c932eea",
+    "executorBytes": 28711,
+    "executorSha256": "9a79fb958f815fff5a47b0c84b0dc09847fd38aca6f345e7af9e72d455771dcf",
+    "canonicalInputBytes": 1625,
+    "canonicalInputSha256": "b8cfef3abdd568b44b04b463cbb56f0fdaca58248c04f28be10e300a87a2ea7c"
+  },
+  "independentVerification": {
+    "nodeSyntax": "PASS",
+    "fixture": "PASS",
+    "completeDirectoryAndFileInventoryCompared": true,
+    "expectedDirectories": ["d:assets", "d:i18n"],
+    "sixteenAppleDoublePathsAndTuplesBound": true,
+    "unexpectedFileRejected": true,
+    "unexpectedEmptyDirectoryRejected": true,
+    "unexpectedNestedDirectoryOnlySubtreeRejected": true,
+    "deleteBoundaryReplacementFencesRetained": true,
+    "positiveServiceLifecycleActions": 0
+  },
+  "freshZeroWritePrewrite": {
+    "observedAt": "2026-08-31T03:52:00Z",
+    "remoteExitStatus": 0,
+    "mutationCount": 0,
+    "p0305ResiduesExact": true,
+    "allNextAndStagePathsAbsent": true,
+    "oldCurrentAndPublicRuntimeExact": true,
+    "creatorPid": 2747844,
+    "creatorNRestarts": 0,
+    "apiPid": 3108210,
+    "viewerPid": 2159536
+  },
+  "decision": {
+    "status": "SOURCE_ACCEPTED_AND_SINGLE_USE_CLEANUP_LEASE_ISSUED",
+    "cleanupComplete": false,
+    "creatorEmergencyHeavyReleased": false,
+    "nextRequiredAction": "EXACTLY_ONE_P0309_CLEANUP_ATTEMPT_THEN_WHOLLY_NEW_ZERO_WRITE_READBACK"
+  },
+  "forbidden": [
+    "successor-03 execution",
+    "retry",
+    "service lifecycle",
+    "current old release API Viewer unit Caddy shared-current or public mutation",
+    "unrelated Heavy lease",
+    "Wallet account request signature typed data or transaction"
+  ]
+}

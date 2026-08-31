@@ -3313,6 +3313,31 @@
         "direct rc0 mutationCount0 inventory froze exactly sixteen explicit AppleDouble files outside the manifest",
         "P0-308 is consumed and nonreusable; release only this read-only lock while retaining the P0-305 Creator emergency Heavy and product locks"
       ]
+    },
+    {
+      "path": "{host:43.153.202.237:creator-p0305-residue-cleanup-s04,delete-only:/opt/ynx-creator-studio-wallet/receipts/upgrade-3f97a13d.json,delete-only:/opt/ynx-creator-studio-wallet/releases/creator-studio-3f97a13d,delete-only:/opt/ynx-release-control-plane/creator-studio-3f97a13d,readonly:/opt/ynx-creator-studio-wallet/releases/creator-studio-0e1a53c5/**,readonly:/opt/ynx-creator-studio-wallet/current*,readonly:/etc/systemd/system/ynx-creator-studio-wallet.service,readonly:service:{ynx-creator-studio-wallet,ynx-video-viewer,ynx-videod}.service,readonly:https://web4.ynxweb4.com/video/studio/**}",
+      "owner": "creator-studio-deploy-owner",
+      "branch": "codex/p0-creator-studio-subpath-i18n-20260831",
+      "worktree": "/private/tmp/ynx-creator-subpath-i18n.PcnLN2",
+      "taskId": "P0-309",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_SINGLE_USE_CREATOR_P0309_P0305_RESIDUE_CLEANUP_ONLY_SUCCESSOR_04",
+      "acquiredAt": "2026-08-31T03:53:13Z",
+      "expiresAt": "2026-08-31T04:13:13Z",
+      "releasedAt": null,
+      "sourceCommit": "5397d18f1f4fe51e614ac59405f39e606a15a438",
+      "sourceTree": "d8155a82581381c5ef038b6fe51639873ba29115",
+      "evidenceCommit": "5397d18f1f4fe51e614ac59405f39e606a15a438",
+      "artifactSha256": "9a79fb958f815fff5a47b0c84b0dc09847fd38aca6f345e7af9e72d455771dcf",
+      "productionMutationAllowed": true,
+      "allowedExceptions": [
+        "exactly one no-retry identity-bound cleanup-only SSH invocation",
+        "delete only the exact signed P0-305 receipt candidate release and control root in that order",
+        "complete d:/f: candidate tree including exact assets and i18n directories and sixteen AppleDouble tuples must match",
+        "service lifecycle current old release API Viewer unit Caddy shared-current and public mutation remain forbidden",
+        "retain Heavy and all Creator locks after execution until a separate zero-write readback terminally verifies cleanup",
+        "no unrelated Heavy Wallet account signature typed-data or transaction action"
+      ]
     }
   ]
 }
