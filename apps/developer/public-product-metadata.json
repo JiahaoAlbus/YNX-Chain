@@ -5,11 +5,11 @@
   "productName": "YNX Developer / YNX AI Build",
   "version": "0.2.0",
   "branch": "codex/ynx-code-platform-v1",
-  "sourceCommit": "bc8a37bc6f2bcfcbe9415cb0e9da17a5294046a3",
+  "sourceCommit": "d4052228a2261c5ced6a8e8cfcbf763edabf2103",
   "officialDomain": "https://ynxweb4.com",
   "canonicalPath": "/developer",
   "canonicalUrl": "https://ynxweb4.com/developer",
-  "routeStatus": "protected-public-candidate-live; independent-browser-proof-pending",
+  "routeStatus": "source-bound-public-candidate-receipted; independent-current-readback-pending",
   "deployedPublic": true,
   "publicRouteVerified": true,
   "releaseClass": "unsigned-testnet-preview",
@@ -22,7 +22,7 @@
     "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/developer-v0.2.0-testnet-preview.1",
     "prerelease": true
   },
-  "summary": "The Developer web candidate is deployed with a service-based React and Monaco workbench. Current unsigned macOS arm64 and Windows x64 artifacts have separate source-bound evidence and immutable official-domain downloads; Windows is a hosted-workspace client, not a local compiler sandbox.",
+  "summary": "The Developer web candidate is source-bound by receipt but still needs an independent current runtime readback. Current macOS arm64 DMG and Windows x64 MSIX have separate source-bound installation-candidate evidence; neither is an official download, and ZIP is not an installer.",
   "surfaces": [
     "web-ide",
     "api-studio",
@@ -54,28 +54,30 @@
       "downloadUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-76322af5-macos-arm64-unsigned.zip"
     },
     "currentLocalMacArtifact": {
-      "evidence": "apps/developer/evidence/desktop/macos-current-e01b9e4a.json",
-      "sourceCommit": "e01b9e4a8cc00be2e590e86e8f043fd746696adf",
-      "sha256": "af4c57b89ad5d7cca6c42af47f33d156d182a92870e4d43ed1d558f51de1b01f",
-      "bytes": 168157529,
-      "hosted": true,
-      "downloadUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-e01b9e4a-macos-arm64-unsigned.zip",
+      "evidence": "apps/developer/evidence/desktop/macos-current-ccab67b2.json",
+      "sourceCommit": "ccab67b2ceaeeaeb962dd6e67696bb3f73835120",
+      "sha256": "71eb57a55521ea42949ed24d8f5b078a3b9cfa1032cabcd2ca2717c64e6fe775",
+      "bytes": 300467545,
+      "hosted": false,
+      "downloadUrl": null,
+      "format": "dmg",
       "signingClass": "adhoc-no-team-id",
-      "verification": "embedded provenance, ad-hoc signature, Keychain write-read-cleanup, native absent-Wallet scheme discovery, cold launch, bounded C++ compile, persisted second launch and child cleanup passed"
+      "verification": "mounted DMG, isolated install copy, embedded provenance, ad-hoc signature, native absent-Wallet scheme discovery, cold launch, bounded C++ compile, persisted second launch and child cleanup passed"
     },
     "currentLocalWindowsArtifact": {
-      "evidence": "apps/developer/evidence/desktop/windows-current-6ac39fd1.json",
-      "sourceCommit": "6ac39fd140a54675526583c4c3ca6b07fc03af19",
+      "evidence": "apps/developer/evidence/desktop/windows-current-fa73d751.json",
+      "sourceCommit": "fa73d751ac72f8572fb2dcf364ebf2b649470f72",
       "runtimeCheckpoint": "bc8a37bc6f2bcfcbe9415cb0e9da17a5294046a3",
-      "sha256": "10b6914614a86f694d9e58b21e311148b1dd0dc4b21ff39612c4a2486c5e0627",
-      "bytes": 72538901,
-      "sbomSha256": "8223b35dd1abb7a0a948af4360070b369afe278059d8a9ee7f3ff6ce931bf403",
-      "signingClass": "unsigned-no-authenticode",
-      "hosted": true,
+      "sha256": "0abb87beeb603ff177e25bb9504d359684e796c3596879df3dcfb719440d6dde",
+      "bytes": 71572168,
+      "sbomSha256": "c816f62e70d215920b5a8fe4089ec94b9d443545bf7150f68c35ce067fa1dd93",
+      "signingClass": "test-self-signed-not-production",
+      "hosted": false,
       "deliveryMode": "hosted-workspace-client",
       "localCompilerSandbox": false,
-      "downloadUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-6ac39fd1-windows-x64-unsigned.zip",
-      "verification": "CI portable extraction, resource self-test, Authenticode NotSigned, public workspace connection, remote C++ compile and two WPF cold launches passed"
+      "downloadUrl": null,
+      "format": "msix",
+      "verification": "CI portable extraction, resource self-test, remote C++ compile, installed MSIX payload cold launch, second launch and uninstall passed"
     },
     "currentLinuxX64ServerArtifact": {
       "evidence": "apps/developer/evidence/platform/linux-server-current-bc8a37bc.json",
@@ -107,15 +109,8 @@
   "publicEvidence": {
     "staging": true,
     "production": false,
-    "downloadHosted": true,
-    "immutableArtifactUrls": [
-      "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-76322af5-macos-arm64-unsigned.zip",
-      "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-76322af5-windows-x64-unsigned.zip",
-      "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-SHA256SUMS.txt",
-      "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-PROVENANCE.json",
-      "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-76322af5-macos-arm64-sbom.cdx.json",
-      "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-76322af5-windows-x64-sbom.cdx.json"
-    ],
+    "downloadHosted": false,
+    "immutableArtifactUrls": [],
     "healthUrls": [
       "https://developer.ynxweb4.com/healthz",
       "https://developer.ynxweb4.com/runtime/health"
@@ -154,7 +149,7 @@
     "integratedCentral": false,
     "deployedStaging": true,
     "deployedPublic": true,
-    "downloadHosted": true,
+    "downloadHosted": false,
     "productionSigned": false,
     "storeReleased": false,
     "mainnetReleased": false

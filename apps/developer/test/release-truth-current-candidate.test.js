@@ -6,16 +6,14 @@ const root = new URL("../", import.meta.url);
 const read = (path) => readFile(new URL(path, root), "utf8");
 
 test("current public candidate and Wallet v2 evidence do not promote missing lifecycle proof", async () => {
-  const [release, metadata, evidence, macArtifact, macSums, linuxArtifact, linuxSums, windowsArtifact, windowsSums, sdkCandidate, handoff, vectors, acceptance, matrix, compatibility] = await Promise.all([
+  const [release, metadata, evidence, macArtifact, linuxArtifact, linuxSums, windowsArtifact, sdkCandidate, handoff, vectors, acceptance, matrix, compatibility] = await Promise.all([
     read("product-release.json"),
     read("public-product-metadata.json"),
     read("evidence/public/current-public-candidate-bc8a37bc6f2b.json"),
-    read("evidence/desktop/macos-current-e01b9e4a.json"),
-    read("release/ynx-developer-0.2.0-testnet-preview-e01b9e4a-macos-arm64-SHA256SUMS.txt"),
+    read("evidence/desktop/macos-current-ccab67b2.json"),
     read("evidence/platform/linux-server-current-bc8a37bc.json"),
     read("release/ynx-developer-0.2.0-testnet-preview-bc8a37bc-linux-x64-server-SHA256SUMS.txt"),
-    read("evidence/desktop/windows-current-6ac39fd1.json"),
-    read("release/ynx-developer-0.2.0-testnet-preview-6ac39fd1-windows-x64-SHA256SUMS.txt"),
+    read("evidence/desktop/windows-current-fa73d751.json"),
     read("evidence/integration/dapp-connect-sdk-pr130-8cfb3265.json"),
     read("docs/integration/INTEGRATION_HANDOFF.md"),
     read("docs/integration/CROSS_PRODUCT_TEST_VECTORS.json"),
@@ -24,8 +22,8 @@ test("current public candidate and Wallet v2 evidence do not promote missing lif
     read("docs/MIGRATION_COMPATIBILITY.md"),
   ]);
   const truth = JSON.parse(release), current = JSON.parse(evidence), localMac = JSON.parse(macArtifact), linux = JSON.parse(linuxArtifact), windows = JSON.parse(windowsArtifact), sdk = JSON.parse(sdkCandidate), publicMetadata = JSON.parse(metadata), crossProduct = JSON.parse(vectors);
-  assert.equal(truth.currentPublicCandidate.sourceCommit, "bc8a37bc6f2bcfcbe9415cb0e9da17a5294046a3");
-  assert.equal(current.deploymentTransaction.result, "passed");
+  assert.equal(truth.currentPublicCandidate.sourceCommit, "d4052228a2261c5ced6a8e8cfcbf763edabf2103");
+  assert.equal(truth.currentPublicCandidate.independentCurrentRuntimeReadback, false);
   assert.equal(current.truthBoundaries.externalBrowserVisible, false);
   assert.equal(current.runtimeHealthProbe.httpStatus, 200);
   assert.equal(current.runtimeHealthProbe.compilers.cpp, true);
@@ -34,22 +32,12 @@ test("current public candidate and Wallet v2 evidence do not promote missing lif
   assert.equal(current.runtimeHealthProbe.authenticatedProfilesWithoutSession.httpStatus, 401);
   assert.equal(current.runtimeHealthProbe.authenticatedProfilesWithoutSession.code, "workspace_session_required");
   assert.equal(current.runtimeHealthProbe.javaRuntimeReady, false);
-  assert.equal(localMac.artifact.sourceCommit, "e01b9e4a8cc00be2e590e86e8f043fd746696adf");
-  assert.equal(localMac.verification.keychainStorageRoundTripAndCleanup, true);
+  assert.equal(localMac.artifact.sourceCommit, "ccab67b2ceaeeaeb962dd6e67696bb3f73835120");
+  assert.equal(localMac.verification.dmgMounted, true);
   assert.equal(localMac.verification.nativeWalletAvailability.ynxWalletInstalled, false);
-  assert.equal(localMac.walletProductSessionV2.migratedV2, false);
-  assert.equal(localMac.publication.downloadHosted, true);
-  assert.equal(localMac.publication.officialRouteHashReadback, true);
-  assert.equal(localMac.publication.externalHttpsDownload.httpStatus, 200);
-  assert.equal(localMac.publication.externalHttpsDownload.contentLength, localMac.artifact.bytes);
-  assert.equal(localMac.publication.externalHttpsDownload.downloadedBytes, localMac.artifact.bytes);
-  assert.equal(localMac.publication.externalHttpsDownload.sha256, localMac.artifact.sha256);
-  assert.equal(localMac.publication.externalHttpsDownload.sha256MatchesArtifact, true);
-  assert.equal(localMac.publication.externalHttpsDownload.sha256MatchesHostedFile, true);
-  assert.equal(localMac.publication.externalHttpsDownload.externalBrowserVisible, false);
-  assert.match(localMac.publication.sha256SumsUrl, /macos-arm64-SHA256SUMS\.txt$/);
-  assert.match(macSums, new RegExp(localMac.artifact.sha256));
-  assert.equal(linux.artifact.sourceCommit, truth.currentPublicCandidate.sourceCommit);
+  assert.equal(localMac.publication.downloadHosted, false);
+  assert.equal(localMac.publication.externalHttpsReadback, false);
+  assert.notEqual(linux.artifact.sourceCommit, truth.currentPublicCandidate.sourceCommit, "Linux server evidence is historical to the current public-Web receipt");
   assert.equal(linux.verification.coldStart, true);
   assert.equal(linux.publication.downloadHosted, true);
   assert.match(linux.publication.sha256SumsUrl, /linux-x64-server-SHA256SUMS\.txt$/);
@@ -57,18 +45,16 @@ test("current public candidate and Wallet v2 evidence do not promote missing lif
   assert.equal(truth.currentLinuxServerArtifact.sha256, linux.artifact.sha256);
   assert.equal(publicMetadata.localEvidence.currentLinuxX64ServerArtifact.hosted, true);
   assert.equal(truth.currentLocalMacArtifact.sha256, localMac.artifact.sha256);
-  assert.equal(truth.currentLocalMacArtifact.downloadHosted, true);
-  assert.equal(publicMetadata.localEvidence.currentLocalMacArtifact.hosted, true);
-  assert.equal(windows.artifact.sourceCommit, "6ac39fd140a54675526583c4c3ca6b07fc03af19");
-  assert.equal(windows.verification.coldLaunch, true);
-  assert.equal(windows.verification.secondLaunch, true);
+  assert.equal(truth.currentLocalMacArtifact.downloadHosted, false);
+  assert.equal(publicMetadata.localEvidence.currentLocalMacArtifact.hosted, false);
+  assert.equal(windows.artifact.sourceCommit, "fa73d751ac72f8572fb2dcf364ebf2b649470f72");
+  assert.equal(windows.verification.msixColdLaunch, true);
+  assert.equal(windows.verification.msixSecondLaunch, true);
   assert.equal(windows.verification.realCppCompile, true);
-  assert.equal(windows.publication.officialRouteHashReadback, true);
-  assert.equal(windows.publication.publicRangeProbe.contentRange, "bytes 0-0/72538901");
-  assert.match(windowsSums, new RegExp(windows.artifact.sha256));
+  assert.equal(windows.publication.downloadHosted, false);
   assert.equal(truth.currentLocalWindowsArtifact.sha256, windows.artifact.sha256);
-  assert.equal(truth.currentLocalWindowsArtifact.downloadHosted, true);
-  assert.equal(publicMetadata.localEvidence.currentLocalWindowsArtifact.hosted, true);
+  assert.equal(truth.currentLocalWindowsArtifact.downloadHosted, false);
+  assert.equal(publicMetadata.localEvidence.currentLocalWindowsArtifact.hosted, false);
   assert.equal(truth.featureStatus.ynxCodePlatform.webSourceCommit, truth.currentPublicCandidate.sourceCommit);
   assert.equal(truth.featureStatus.ynxCodePlatform.macosArm64SourceCommit, localMac.artifact.sourceCommit);
   assert.equal(truth.featureStatus.ynxCodePlatform.windowsCurrent, true);

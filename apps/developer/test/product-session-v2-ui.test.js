@@ -32,8 +32,8 @@ test("Developer consumes the accepted Wallet v2 package through its root factory
   assert.match(panel, /A degraded optional Product Session never disconnects Standard Wallet/);
   assert.match(panel, /browser sessions are not relabeled as secure/);
   const truth = JSON.parse(release);
-  assert.equal(truth.currentPublicCandidate.result, "passed");
-  assert.equal(truth.currentPublicCandidate.sourceCommit, "bc8a37bc6f2bcfcbe9415cb0e9da17a5294046a3");
+  assert.equal(truth.currentPublicCandidate.result, "source-bound-central-receipt; independent-current-readback-pending");
+  assert.equal(truth.currentPublicCandidate.sourceCommit, "d4052228a2261c5ced6a8e8cfcbf763edabf2103");
   assert.equal(truth.walletProductSessionV2.migratedV2, false);
   assert.equal(truth.walletProductSessionV2.runtimeFactoryVerified, false);
   assert.equal(truth.walletProductSessionV2.publicV2RouteVerified, true);
