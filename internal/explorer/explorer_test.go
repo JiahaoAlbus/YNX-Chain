@@ -190,6 +190,7 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 		"ecosystemProducts",
 		"downloadProducts",
 		"dataChartCopy",
+		"governancePanels",
 		"walletListenerProviders",
 		"wallet_switchEthereumChain",
 		"isMetaMask === true && item.provider?.isYNXWallet !== true",
