@@ -91,7 +91,15 @@ export function parseProductSessionReturnURL(registryInput, pendingRequest, url,
     if (error instanceof WalletAuthError && error.code === "SESSION_EXPIRED") return routeState(WALLET_ROUTE_STATUS.SESSION_EXPIRED, "The Wallet approval request expired", ["retry", "return-to-product"]);
     throw error;
   }
-  const parsed = safeURL(url, "CALLBACK_MISMATCH", "Wallet callback is invalid");
+  let parsed;
+  try {
+    parsed = safeURL(url, "CALLBACK_MISMATCH", "Wallet callback is invalid");
+  } catch (error) {
+    if (error instanceof WalletAuthError && error.code === "CALLBACK_MISMATCH") {
+      return routeState(WALLET_ROUTE_STATUS.CALLBACK_MISMATCH, "Return to the product and start a new Wallet request", ["retry", "return-to-product"]);
+    }
+    throw error;
+  }
   const expected = new URL(request.callback);
   const result = parsed.searchParams.get("result");
   const allowed = result === "approved" ? ["approval", "nonce", "result", "state"] : ["nonce", "reason", "result", "state"];

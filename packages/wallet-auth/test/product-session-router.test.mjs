@@ -176,6 +176,11 @@ test("return router binds route, nonce and state and reports rejection without c
   assert.equal(parseProductSessionReturnURL(registry, pending, rejected, NOW).status, WALLET_ROUTE_STATUS.USER_REJECTED);
   assert.equal(parseProductSessionReturnURL(registry, pending, rejected.replace(pending.state, "state_attacker_abcdefghijklmnopqrstuvwxyz"), NOW).status, WALLET_ROUTE_STATUS.CALLBACK_MISMATCH);
   assert.equal(parseProductSessionReturnURL(registry, pending, rejected.replace("ynx-social://com.ynx.social", "ynxpay://wallet-auth/callback"), NOW).status, WALLET_ROUTE_STATUS.CALLBACK_MISMATCH);
+  assert.deepEqual(parseProductSessionReturnURL(registry, pending, "ynx-social", NOW), {
+    status: WALLET_ROUTE_STATUS.CALLBACK_MISMATCH,
+    message: "Return to the product and start a new Wallet request",
+    actions: ["retry", "return-to-product"],
+  });
 });
 
 function code(expected) { return (error) => error instanceof WalletAuthError && error.code === expected; }

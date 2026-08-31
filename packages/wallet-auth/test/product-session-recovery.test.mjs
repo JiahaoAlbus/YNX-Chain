@@ -514,6 +514,11 @@ test("expired Gateway challenge is rejected before device signing", async () => 
 
 test("dangling or malformed protected callbacks fail closed and are removed", async () => {
   const setup = harness();
+  await setup.client.begin({ walletInstalled: true, schemeRegistered: true });
+  const malformed = await setup.client.handleReturn("ynx-social");
+  assert.equal(malformed.status, PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED);
+  assert.equal(malformed.message, "Return to the product and start a new Wallet request");
+  assert.equal(await setup.storage.get(`${setup.client.storageKey}:return`), null);
   await setup.storage.set(`${setup.client.storageKey}:return`, "ynx-social://com.ynx.social?result=approved");
   assert.equal((await setup.client.restore(true)).status, PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED);
   assert.equal(await setup.storage.get(`${setup.client.storageKey}:return`), null);
