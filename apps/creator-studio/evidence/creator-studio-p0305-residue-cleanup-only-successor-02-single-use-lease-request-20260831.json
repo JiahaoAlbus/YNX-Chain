@@ -1,0 +1,92 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "owner": "creator-studio-deploy-owner",
+  "requestType": "WHOLLY_NEW_IDENTITY_BOUND_CREATOR_P0305_RESIDUE_CLEANUP_ONLY_SUCCESSOR_02",
+  "supersedes": {
+    "commit": "bd1715362aff9c66dc98d47010ce04cc9b982751",
+    "reason": "NO_GO_PREDELETE_OBJECT_REPLACEMENT_RACE_NOT_FENCED"
+  },
+  "implementation": {
+    "commit": "7bb65aaf000f83c9d1303b5ee83c637d356a0813",
+    "tree": "558c9788b29cc388d1d97c60c1c5edbb9dc50a7b",
+    "parent": "bd1715362aff9c66dc98d47010ce04cc9b982751",
+    "path": "apps/creator-studio/release-residue-cleanup-3f97a13d.mjs",
+    "bytes": 24814,
+    "sha256": "ba70803d98153e78fc374e102651960c4c2951dfefd6486410ab3d8a1798a75d"
+  },
+  "authoritativeInspection": {
+    "centralCommit": "b93ff7da8250dd081575639465aaae03fc30cc2e",
+    "centralTree": "b88128e00c0edeec79d1058963c9f018309510b8",
+    "taskId": "P0-306",
+    "status": "CONSUMED_RELEASED_SUCCESS_CREATOR_P0306_EMERGENCY_ZERO_WRITE_STATE_KNOWN_OLD_RUNTIME_ACTIVE_RESIDUES_RETAINED"
+  },
+  "canonicalInput": {
+    "bytes": 547,
+    "sha256": "b3a0884811c3304996bde022408c4bd7474077cfef87c7f0c39be5f44d69078a",
+    "base64": "eyJzY2hlbWFWZXJzaW9uIjoiMS4wLjAiLCJhY3Rpb24iOiJDUkVBVE9SX1AwMzA1X1JFU0lEVUVfQ0xFQU5VUF9PTkxZIiwiY29udHJvbFR1cGxlIjoiNjQ3NzA6MTQ4MzgzMDowOjA6NzAwOjM6NDA5NjpkaXJlY3RvcnkiLCJjYW5kaWRhdGVUdXBsZSI6IjY0NzcwOjE0ODM5MTg6OTk1Ojk4Njo3NTU6NDo0MDk2OmRpcmVjdG9yeSIsImN1cnJlbnRUdXBsZSI6IjY0NzcwOjE0ODM5NTE6MDowOjc3NzoxOjYzOnN5bWJvbGljIGxpbmsiLCJvbGRSZWxlYXNlVHVwbGUiOiI2NDc3MDoxNDgzODc3Ojk5NTo5ODY6NzU1OjQ6NDA5NjpkaXJlY3RvcnkiLCJmb3J3YXJkUmVjZWlwdFR1cGxlIjoiNjQ3NzA6MTQ4MzkwOTowOjA6NjAwOjE6ODI1MDA6cmVndWxhciBmaWxlIiwiZm9yd2FyZFJlY2VpcHRTaGEyNTYiOiIwM2I0YjM4YWZiYmEzZDFlZjIyNjdjYTZlOWJhMmVjNzYxMmRjYTI1NTcxM2ZkNTE4Mzc2ZTAzMTNmMmY1ZGM1IiwiY3JlYXRvclBpZCI6Mjc0Nzg0NCwiY3JlYXRvck5SZXN0YXJ0cyI6MCwiYXBpUGlkIjozMTA4MjEwLCJ2aWV3ZXJQaWQiOjIxNTk1MzZ9Cg=="
+  },
+  "requestedExecution": {
+    "executor": "release-control-plane",
+    "runtimeHost": "43.153.202.237",
+    "attemptLimit": 1,
+    "retryAllowed": false,
+    "sshStdin": {
+      "path": "apps/creator-studio/release-residue-cleanup-3f97a13d.mjs",
+      "bytes": 24814,
+      "sha256": "ba70803d98153e78fc374e102651960c4c2951dfefd6486410ab3d8a1798a75d"
+    },
+    "remoteArgv": [
+      "/usr/bin/sudo",
+      "-n",
+      "/usr/bin/node",
+      "--input-type=module",
+      "-",
+      "cleanup",
+      "eyJzY2hlbWFWZXJzaW9uIjoiMS4wLjAiLCJhY3Rpb24iOiJDUkVBVE9SX1AwMzA1X1JFU0lEVUVfQ0xFQU5VUF9PTkxZIiwiY29udHJvbFR1cGxlIjoiNjQ3NzA6MTQ4MzgzMDowOjA6NzAwOjM6NDA5NjpkaXJlY3RvcnkiLCJjYW5kaWRhdGVUdXBsZSI6IjY0NzcwOjE0ODM5MTg6OTk1Ojk4Njo3NTU6NDo0MDk2OmRpcmVjdG9yeSIsImN1cnJlbnRUdXBsZSI6IjY0NzcwOjE0ODM5NTE6MDowOjc3NzoxOjYzOnN5bWJvbGljIGxpbmsiLCJvbGRSZWxlYXNlVHVwbGUiOiI2NDc3MDoxNDgzODc3Ojk5NTo5ODY6NzU1OjQ6NDA5NjpkaXJlY3RvcnkiLCJmb3J3YXJkUmVjZWlwdFR1cGxlIjoiNjQ3NzA6MTQ4MzkwOTowOjA6NjAwOjE6ODI1MDA6cmVndWxhciBmaWxlIiwiZm9yd2FyZFJlY2VpcHRTaGEyNTYiOiIwM2I0YjM4YWZiYmEzZDFlZjIyNjdjYTZlOWJhMmVjNzYxMmRjYTI1NTcxM2ZkNTE4Mzc2ZTAzMTNmMmY1ZGM1IiwiY3JlYXRvclBpZCI6Mjc0Nzg0NCwiY3JlYXRvck5SZXN0YXJ0cyI6MCwiYXBpUGlkIjozMTA4MjEwLCJ2aWV3ZXJQaWQiOjIxNTk1MzZ9Cg=="
+    ],
+    "sshPolicy": "Central freezes the complete literal local SSH argv with protected existing identity reference; no identity value is recorded here."
+  },
+  "deletionProtocol": {
+    "order": [
+      "/opt/ynx-creator-studio-wallet/receipts/upgrade-3f97a13d.json",
+      "/opt/ynx-creator-studio-wallet/releases/creator-studio-3f97a13d",
+      "/opt/ynx-release-control-plane/creator-studio-3f97a13d"
+    ],
+    "fullPredeleteIdentityFence": true,
+    "immediateExactRevalidationBeforeEachDelete": true,
+    "remainingTargetsRevalidatedAfterEachDelete": true,
+    "parentDeviceInodeBoundAcrossExecution": true,
+    "parentMustBeRootOwnedAndNotGroupOrWorldWritable": true,
+    "symlinkMountSpecialAndHardlinkFailClosed": true,
+    "completeInventoryAndEveryFileHashBound": true,
+    "currentServicePortsUnitAndFivePublicHashesBoundBeforeAndAfter": true,
+    "serviceLifecycleActions": 0
+  },
+  "fixtureEvidence": {
+    "command": "node apps/creator-studio/release-residue-cleanup-3f97a13d.mjs fixture",
+    "passed": true,
+    "receiptReplacementRejectedBeforeAnyDeletion": true,
+    "candidateReplacementRejectedAndReplacementPreserved": true,
+    "controlReplacementRejectedAndReplacementPreserved": true,
+    "noUnrelatedDeletion": true,
+    "successTerminalAbsence": true
+  },
+  "terminalRule": "After the one cleanup attempt, retain Heavy and run a separate zero-write readback. Release only when all three residues and all next/stage paths are absent while old current/service/ports/unit/public hashes remain exact.",
+  "forbidden": [
+    "old rollback or forward argv",
+    "blind cleanup",
+    "retry",
+    "service lifecycle",
+    "current old release API Viewer unit Caddy shared-current or public mutation",
+    "remote temp files",
+    "Wallet account request signature typed data or transaction"
+  ],
+  "truthBoundary": {
+    "sourceOnly": true,
+    "sshExecuted": false,
+    "productionMutation": false,
+    "cleanupComplete": false,
+    "publicRuntimeChanged": false
+  }
+}
