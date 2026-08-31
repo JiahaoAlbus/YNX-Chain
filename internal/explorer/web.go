@@ -257,13 +257,16 @@ const indexHTML = `<!doctype html>
 
     /* Public-portal presentation: dense explorer hierarchy, expressed in YNX's own brand. */
     :root { --page:#f3f5f9; --surface:#fff; --surface-alt:#f8f9fc; --ink:#151820; --muted:#747b8a; --faint:#98a0ae; --line:#e6e9f0; --line-soft:#edf0f5; --blue:#002fa7; --blue-dark:#00227b; --blue-soft:#edf2ff; --shadow:0 1px 3px rgba(24,42,82,.04); }
-    body { background:var(--page); font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif; }
+    html { -webkit-text-size-adjust:100%; text-size-adjust:100%; }
+    body { background:var(--page); font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif; font-size:clamp(14px,0.18vw + 13px,16px); }
+    img,svg,canvas { max-width:100%; }
+    button,input,select,textarea { max-width:100%; min-width:0; }
     .shell { width:min(1430px,calc(100% - 48px)); }
     .nav { position:relative; height:64px; background:rgba(255,255,255,.96); border-bottom:1px solid var(--line); backdrop-filter:none; }
     .nav-inner { gap:28px; }
     .brand { gap:9px; font-size:15px; font-weight:760; letter-spacing:-.2px; }
     .brand-logo { width:30px; height:30px; max-width:30px; }
-    .nav-links { gap:0; margin-left:0; font-size:14px; color:#242833; }
+    .nav-links { gap:0; margin-left:0; font-size:clamp(12px,0.24vw + 11px,14px); color:#242833; }
     .nav-links a,.nav-links button { display:inline-flex; align-items:center; height:64px; padding:0 16px; border:0; border-bottom:3px solid transparent; color:inherit; background:transparent; font:inherit; white-space:nowrap; }
     .nav-links a:hover,.nav-links a:focus-visible,.nav-links button:hover,.nav-links button:focus-visible { color:var(--blue); border-bottom-color:var(--blue); outline:0; }
     .nav-actions { display:flex; align-items:center; gap:14px; margin-left:auto; color:#555d69; font-size:13px; white-space:nowrap; }
@@ -273,6 +276,13 @@ const indexHTML = `<!doctype html>
     .wallet-connect:hover { background:var(--blue); }
     .network-pill { display:none; }
     .language-select { height:32px; padding-left:8px; border-color:var(--line); background:#fff; }
+    .route-head h1 { font-size:clamp(23px,1.4vw + 17px,32px); line-height:1.15; overflow-wrap:anywhere; }
+    .route-head p { font-size:clamp(13px,0.24vw + 12px,15px); overflow-wrap:anywhere; }
+    .portal-panel h2,.panel-head h2,.section-head h2 { font-size:clamp(16px,0.55vw + 14px,20px); overflow-wrap:anywhere; }
+    .metric-label { font-size:clamp(12px,0.2vw + 11px,13px); }
+    .metric-value { font-size:clamp(19px,1.1vw + 14px,25px); line-height:1.08; }
+    .portal-panel,.download-item,.ecosystem-card { min-width:0; }
+    .route-table th,.route-table td { overflow-wrap:anywhere; }
     .more-wrap { position:relative; }
     .nav-menu { position:relative; display:inline-flex; }
     .more-popover { position:absolute; top:53px; right:0; display:none; width:210px; padding:8px; border:1px solid var(--line); border-radius:8px; background:#fff; box-shadow:0 14px 32px rgba(18,34,64,.12); }
@@ -430,6 +440,10 @@ const indexHTML = `<!doctype html>
     @media (max-width:1360px) { .nav { height:auto; } .nav-inner { height:auto; flex-wrap:wrap; min-height:58px; padding:9px 0; } .nav-links { order:3; width:100%; overflow-x:auto; } .nav-links a,.nav-links button { height:42px; padding:0 9px; } }
     @media (max-width:1050px) { .hero-grid,.network-summary { grid-template-columns:1fr; } .portal-callout { min-height:0; } .ecosystem-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
     @media (max-width:760px) { .shell { width:min(100% - 24px,1430px); } .nav { height:auto; } .nav-inner { flex-wrap:wrap; min-height:58px; gap:4px 12px; padding:9px 0; } .nav-links { order:3; width:100%; overflow:auto; } .nav-links a,.nav-links button { height:38px; padding:0 10px; font-size:12px; } .nav-actions { gap:8px; } .nav-actions a { display:none; } .metrics { grid-template-columns:1fr 1fr; } .metric:nth-child(2n) { border-right:0; } .metric:nth-child(n+5) { border-bottom:0; } .block-track { overflow:auto; padding-bottom:2px; } .block-chip { flex:0 0 220px; } .overview { grid-template-columns:1fr; } .download-grid { grid-template-columns:1fr; } .ecosystem-grid { grid-template-columns:1fr; } }
+    /* The final responsive layer wins over the dense desktop presentation above. */
+    .route-head h1 { font-size:clamp(23px,1.4vw + 17px,32px); line-height:1.15; }
+    .metric-value { font-size:clamp(19px,1.1vw + 14px,25px); line-height:1.08; }
+    @media (max-width:480px) { .route-head h1 { font-size:clamp(22px,6vw + 3px,27px); } .metric-value { font-size:clamp(18px,4vw + 4px,22px); } .portal-panel,.download-item { padding:16px; } .code-sample { padding:12px; font-size:11px; } }
   </style>
 </head>
 <body>
