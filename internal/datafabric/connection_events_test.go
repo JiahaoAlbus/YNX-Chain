@@ -136,8 +136,9 @@ func TestAcceptedWalletConnectivityConformanceFileStore(t *testing.T) {
 		case "reject-before-persistence":
 			if vector.ProducerChainID == "" {
 				for _, field := range vector.ForbiddenFields {
-					raw := connectionEventJSONWithUnknownField(field)
-					if _, err := DecodeConnectionEventStrict(bytes.NewReader(raw)); ErrorCodeOf(err) != CodeUnknownField {
+					const sensitiveValue = "privacy-sentinel-must-not-reach-errors-or-evidence"
+					raw := connectionEventJSONWithUnknownField(field, sensitiveValue)
+					if _, err := DecodeConnectionEventStrict(bytes.NewReader(raw)); ErrorCodeOf(err) != CodeUnknownField || strings.Contains(err.Error(), sensitiveValue) || strings.Contains(strings.Join(evidenceValues(ErrorEvidenceOf(err)), "\x00"), sensitiveValue) {
 						t.Fatalf("%s permitted forbidden field %q: %v", vector.ID, field, err)
 					}
 				}
@@ -188,7 +189,7 @@ func loadAcceptedWalletConnectivityConformanceFixture(t *testing.T) acceptedWall
 	return fixture
 }
 
-func connectionEventJSONWithUnknownField(field string) []byte {
+func connectionEventJSONWithUnknownField(field, value string) []byte {
 	event := connectionEventFixture("event.connection.privacy.0001", "wallet.connection.requested", 1)
 	payload, err := json.Marshal(event)
 	if err != nil {
@@ -198,12 +199,24 @@ func connectionEventJSONWithUnknownField(field string) []byte {
 	if err := json.Unmarshal(payload, &fields); err != nil {
 		panic(err)
 	}
-	fields[field] = json.RawMessage(`"redacted"`)
+	encodedValue, err := json.Marshal(value)
+	if err != nil {
+		panic(err)
+	}
+	fields[field] = encodedValue
 	payload, err = json.Marshal(fields)
 	if err != nil {
 		panic(err)
 	}
 	return payload
+}
+
+func evidenceValues(evidence map[string]string) []string {
+	values := make([]string, 0, len(evidence))
+	for _, value := range evidence {
+		values = append(values, value)
+	}
+	return values
 }
 
 func TestConnectionDiagnosticsAreFixedCardinalityAndReplayIdempotent(t *testing.T) {
