@@ -1,5 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 import { ERROR_CODES, FINANCE_DOMAIN_VERSION, FINANCE_READ_ENVELOPE_VERSION, FINANCE_STREAM_ENVELOPE_VERSION, MODEL_KINDS, createError, validateDecimal, validateModel, validateReadEnvelope, validateStreamEnvelope, validateWriteHeaders } from "../src/index.js";
 
 const source = Object.freeze({ owner: "oracle", system: "ynx-oracle", version: "v1", asOf: "2026-08-13T12:00:00.000Z", classification: "testnet", status: "live" });
@@ -77,6 +79,19 @@ test("stream envelopes are ordered source-bound reads without action semantics",
   assert.throws(() => validateStreamEnvelope({ ...envelope, event: "order_submitted" }), /event/);
   assert.throws(() => validateStreamEnvelope({ ...envelope, sequence: -1 }), /sequence/);
   assert.throws(() => validateStreamEnvelope({ ...envelope, sourceStatus: "stale" }), /sourceStatus/);
+});
+
+test("stream schema is version-locked to the runtime validator and rejects mutation fields", async () => {
+  const schemaPath = fileURLToPath(new URL("../../../release/integration/finance-source-stream-envelope-v1.schema.json", import.meta.url));
+  const schema = JSON.parse(await readFile(schemaPath, "utf8"));
+  assert.equal(schema.properties.schemaVersion.const, FINANCE_STREAM_ENVELOPE_VERSION);
+  assert.deepEqual(schema.properties.event.enum, ["snapshot", "upsert", "reconciled"]);
+  assert.equal(schema.properties.readOnly.const, true);
+  assert.equal(schema.additionalProperties, false);
+  assert.equal(schema.properties.sequence.maximum, Number.MAX_SAFE_INTEGER);
+  assert.deepEqual(schema.properties.kind.enum, MODEL_KINDS);
+  assert.match(schema["x-ynx-runtime-validator"], /validateStreamEnvelope/);
+  assert.match(schema["x-ynx-cross-field-validation"].join(" "), /no action or mutation capability/);
 });
 
 test("money uses strings and write requests require concurrency controls", () => {

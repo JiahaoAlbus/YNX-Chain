@@ -1,0 +1,66 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ynx:finance-suite:source-stream-envelope:v1",
+  "title": "YNX Finance suite source-bound stream envelope v1",
+  "description": "Versioned Finance-suite proposal for product-owned SSE/WebSocket reads. This envelope carries a validated financial model and does not authorize an order, signature, transfer, strategy lifecycle transition, or Wallet action.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "event",
+    "eventId",
+    "requestId",
+    "sequence",
+    "emittedAt",
+    "readOnly",
+    "kind",
+    "sourceStatus",
+    "data"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "ynx-finance-stream-envelope-v1" },
+    "event": { "enum": ["snapshot", "upsert", "reconciled"] },
+    "eventId": { "$ref": "#/$defs/identifier" },
+    "requestId": { "$ref": "#/$defs/identifier" },
+    "sequence": { "type": "integer", "minimum": 0, "maximum": 9007199254740991 },
+    "emittedAt": { "type": "string", "format": "date-time" },
+    "readOnly": { "const": true },
+    "kind": {
+      "enum": [
+        "Asset",
+        "Market",
+        "Quote",
+        "Candle",
+        "Order",
+        "Trade",
+        "Position",
+        "Portfolio",
+        "LiquidityPool",
+        "Strategy",
+        "RiskLimit"
+      ]
+    },
+    "sourceStatus": { "enum": ["live", "stale", "unavailable", "partial"] },
+    "cursor": { "$ref": "#/$defs/identifier" },
+    "data": {
+      "type": "object",
+      "description": "A non-null model validated by validateModel(kind, data); model-specific and provenance cross-field checks remain in the runtime validator."
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$"
+    }
+  },
+  "x-ynx-contract-status": "finance-suite-consumer-proposal",
+  "x-ynx-runtime-validator": "packages/finance-domain.validateStreamEnvelope",
+  "x-ynx-cross-field-validation": [
+    "data must validate as the declared kind using ynx-finance-domain-v1",
+    "data.source.status must equal sourceStatus",
+    "readOnly must remain true",
+    "the envelope grants no action or mutation capability",
+    "cursor is opaque and product-owned"
+  ],
+  "x-ynx-central-integration": false
+}
