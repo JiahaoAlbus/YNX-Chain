@@ -1,0 +1,122 @@
+{
+  "schema": "cardSourceBoundStaticDeploymentLeaseRequest@1.0.0-p0.0",
+  "requestId": "P0-CARD-SOURCE-BOUND-NESTED-STATIC-DEPLOYMENT-20260831",
+  "owner": "card",
+  "priority": "P0",
+  "requestedState": "CARD_ONLY_SINGLE_USE_PRODUCTION_DEPLOYMENT",
+  "requestedExecutor": "Central-issued single executor only",
+  "requestHead": {
+    "commit": "2c607361916c9cfd344fdd16d51095c1f6ccdc9c",
+    "tree": "6be66ad55720478507328ee0a41e590fb5b83152",
+    "branch": "codex/p0-card-static-deploy-envelope-20260822"
+  },
+  "scope": {
+    "repositoryPaths": [
+      "apps/card/**"
+    ],
+    "vercelProject": "jiahaoalbus-projects/ynx-card-testnet-simulation",
+    "vercelProjectId": "prj_DU37JeDK4Rx0MjxIV745veV5Qgxp",
+    "canonicalUrl": "https://card.ynxweb4.com/",
+    "deploymentRoot": "apps/card/deployment-envelope",
+    "forbidden": [
+      "Vercel project settings",
+      "DNS changes",
+      "other product source or routes",
+      "Wallet source",
+      "Gateway source",
+      "eth_requestAccounts",
+      "signature",
+      "transaction"
+    ]
+  },
+  "candidate": {
+    "productSourceCommit": "2183b8d7a18dec3c7e7773f3c777882deeac6f82",
+    "productSourceTree": "9a217df3da768afce32b29edbc5efa87947d5e22",
+    "baseSemanticSource": "45c4013a95008027cf55f2ac4d7bdded70640ae1",
+    "hostedImmutablePreflightCommit": "2c607361916c9cfd344fdd16d51095c1f6ccdc9c",
+    "hostedImmutablePreflightResult": "NOT_CLAIMED_AS_DEPLOYMENT_AUTHORITY",
+    "remoteBuildCommand": "npm run build:web",
+    "fixedOutputDirectory": "dist-web",
+    "envelopePurpose": "Root package and build-static.mjs keep Vercel's fixed dist-web output-directory setting while serving an exact nested static Card build without rebuilding Card source remotely.",
+    "candidateFiles": {
+      "envelopeFiles": 14,
+      "staticFiles": 12,
+      "indexHtml": {
+        "bytes": 1717,
+        "sha256": "f8b59f7bb084fa22573df186b2f47fa35d3f85d6e078f09f1d3b1b53c764c695"
+      },
+      "mainJavaScript": {
+        "path": "_expo/static/js/web/index-6a16f2a248e25355f9aa7ee9626133a0.js",
+        "bytes": 2911045,
+        "sha256": "f59fa3d43e4d855a91f224f239e8fc39bf4ffa73e83e42d5c0203aa70deae92e"
+      },
+      "manifest": {
+        "bytes": 460,
+        "sha256": "f3e634129abe79c5b81b7fc8dac3950e5cb21f1d1263b1938fcd06a58e2c686f"
+      },
+      "serviceWorker": {
+        "bytes": 364,
+        "sha256": "1a9acfe442d2920040a1999f4fe4efe3f97d7a42a9debef047d469972889638f"
+      }
+    }
+  },
+  "freshValidation": {
+    "date": "2026-08-31",
+    "tests": "PASS_46_OF_46",
+    "typecheck": "PASS",
+    "webBuild": "PASS",
+    "nestedEnvelopeBuild": "PASS",
+    "nestedEnvelopeVerification": "PASS_12_STATIC_FILES",
+    "envelopeHashVerification": "PASS_14_OF_14",
+    "accountAccessRequested": false,
+    "signatureRequested": false,
+    "transactionRequested": false
+  },
+  "rollbackBaseline": {
+    "deploymentId": "dpl_DqMuEhno65bLFTNKBu9gs52soVri",
+    "deploymentUrl": "https://ynx-card-testnet-simulation-bmeabqkk1-jiahaoalbus-projects.vercel.app",
+    "canonicalUrl": "https://card.ynxweb4.com/",
+    "readbackDate": "2026-08-31",
+    "status": "READY",
+    "html": {
+      "bytes": 1717,
+      "sha256": "56827ca95005951ae791245b6c3021691beace32683209936c7519324c28ed24"
+    },
+    "mainJavaScript": {
+      "path": "_expo/static/js/web/index-250c974606522c0feefa0bf082cc41a1.js",
+      "bytes": 2907885,
+      "sha256": "2103aba7f844d4a3c067eac0ecbf0acbc9ebf8fb8831c44fd248df90261a8568"
+    },
+    "manifestSha256": "f3e634129abe79c5b81b7fc8dac3950e5cb21f1d1263b1938fcd06a58e2c686f",
+    "serviceWorkerSha256": "1a9acfe442d2920040a1999f4fe4efe3f97d7a42a9debef047d469972889638f"
+  },
+  "requestedLease": {
+    "singleUse": true,
+    "requiresCentralActiveLease": true,
+    "forbidsDeploymentBeforeLease": true,
+    "requiredPrewrite": [
+      "Remote-read request head, product candidate commit, and trees",
+      "Fresh clean rebuild with all 14 envelope hashes and 12 static-file parity",
+      "Read Ready rollback deployment and canonical resource hashes",
+      "Bind only the fixed Card Vercel project and canonical Card domain"
+    ],
+    "postDeployment": [
+      "Freeze deployment ID and immutable URL",
+      "Read canonical root, candidate JavaScript, manifest, and service-worker bytes and SHA-256",
+      "Use one clean browser tab for English Guest, Testnet boundary, distinct YNX/MetaMask identities, no custom-scheme navigation, and zero console errors",
+      "Do not click provider-connect actions or request an account"
+    ],
+    "onPostDeploymentFailure": "Rollback exactly once to dpl_DqMuEhno65bLFTNKBu9gs52soVri and return terminal evidence."
+  },
+  "truth": {
+    "deploymentAuthorized": false,
+    "deploymentExecuted": false,
+    "sourceBoundPublic": false,
+    "cleanBrowserValidated": false,
+    "accountApproved": false,
+    "signatureExecuted": false,
+    "transactionExecuted": false,
+    "registrationActive": false,
+    "ynxtTopUpVerified": false
+  }
+}
