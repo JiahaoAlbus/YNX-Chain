@@ -10,6 +10,17 @@
     "implicitRetries": false,
     "maximumAttempts": 1
   },
+  "errorCodes": [
+    "ACCOUNT_NOT_FOUND",
+    "HTTP_ERROR",
+    "JSON_RPC_ERROR",
+    "MALFORMED_RESPONSE",
+    "RPC_UNAVAILABLE",
+    "TRANSPORT_CANCELLED",
+    "TRANSPORT_TIMEOUT",
+    "TRANSPORT_TLS",
+    "WRONG_CHAIN"
+  ],
   "httpCases": [
     {
       "name": "authoritative-account-absence",

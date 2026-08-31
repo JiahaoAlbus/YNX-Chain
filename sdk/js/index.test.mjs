@@ -44,7 +44,7 @@ test("reads status and a validated chain snapshot", async () => {
 });
 
 test("surfaces JSON-RPC errors and invalid quantities", async () => {
-  await assert.rejects(callYNXEVM(baseUrl, "eth_error"), (error) => error instanceof YNXSDKError && error.code === -32601);
+  await assert.rejects(callYNXEVM(baseUrl, "eth_error"), (error) => error instanceof YNXSDKError && error.code === ynxErrorCodes.jsonRPCError && error.rpcCode === -32601);
   assert.throws(
     () => assertYNXTestnetSnapshot({status: {chainId: 6423, nativeCurrencySymbol: "YNXT", publicNetwork: true, height: 100}, evmChainId: "0x1917", evmBlockNumber: 1}),
     /height difference/,
@@ -83,9 +83,41 @@ test("matches the shared TS/Go error taxonomy vector and 6423-only policy", asyn
   const vector = JSON.parse(await readFile(new URL("../../testdata/wallet-sdk-error-taxonomy-v1.json", import.meta.url), "utf8"));
   assert.deepEqual(vector.network, {nativeChainId: "ynx_6423-1", chainIdDecimal: 6423, evmChainId: "0x1917", forbiddenChainIds: [9102, "0x238e"]});
   assert.deepEqual(vector.requestPolicy, {implicitRetries: false, maximumAttempts: 1});
+  assert.deepEqual(vector.errorCodes, ["ACCOUNT_NOT_FOUND", "HTTP_ERROR", "JSON_RPC_ERROR", "MALFORMED_RESPONSE", "RPC_UNAVAILABLE", "TRANSPORT_CANCELLED", "TRANSPORT_TIMEOUT", "TRANSPORT_TLS", "WRONG_CHAIN"]);
   for (const item of vector.httpCases) {
     assert.equal(classifyYNXHTTPFailure(item.status, item.body, {accountLookup: item.accountLookup}), item.expected, item.name);
   }
+});
+
+test("distinguishes caller cancellation from timeout in browser and Node fetch", async () => {
+  let calls = 0;
+  const alreadyCancelled = new AbortController();
+  alreadyCancelled.abort();
+  await assert.rejects(getYNXStatus("https://rest.example.invalid", {signal: alreadyCancelled.signal, fetchImpl: async () => { calls += 1; }}), (error) => error.code === ynxErrorCodes.transportCancelled);
+  assert.equal(calls, 0);
+
+  const active = new AbortController();
+  const waitingFetch = async (_url, {signal}) => {
+    calls += 1;
+    return new Promise((_resolve, reject) => signal.addEventListener("abort", () => reject(Object.assign(new Error("cancelled"), {name: "AbortError"})), {once: true}));
+  };
+  const pending = getYNXStatus("https://rest.example.invalid", {signal: active.signal, timeoutMs: 1000, fetchImpl: waitingFetch});
+  active.abort();
+  await assert.rejects(pending, (error) => error.code === ynxErrorCodes.transportCancelled);
+  assert.equal(calls, 1);
+});
+
+test("separates malformed JSON-RPC envelopes and results from RPC errors", async () => {
+  const response = (body) => async () => new Response(JSON.stringify(body), {status: 200});
+  for (const body of [
+    {jsonrpc: "2.0", id: "1", result: "0x1917"},
+    {jsonrpc: "2.0", id: 1, result: null},
+    {jsonrpc: "2.0", id: 1, result: "0x1917", error: {code: -32000, message: "conflict"}},
+    {jsonrpc: "2.0", id: 1, error: {code: "-32000", message: "bad code"}},
+  ]) {
+    await assert.rejects(proveYNXTestnetRPC("https://rpc.example.invalid", {fetchImpl: response(body)}), (error) => error.code === ynxErrorCodes.malformedResponse);
+  }
+  await assert.rejects(proveYNXTestnetRPC("https://rpc.example.invalid", {fetchImpl: response({jsonrpc: "2.0", id: 1, error: {code: -32001, message: "method unavailable"}})}), (error) => error.code === ynxErrorCodes.jsonRPCError && error.rpcCode === -32001 && error.status === undefined);
 });
 
 test("uses one bounded request and performs no implicit retry", async () => {

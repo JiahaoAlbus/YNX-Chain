@@ -11,7 +11,7 @@ export interface YNXNetworkMetadata {
 }
 
 export interface EIP1193Provider { request(input: { method: string; params?: unknown[] }): Promise<unknown> }
-export interface FetchOptions { timeoutMs?: number; fetchImpl?: typeof fetch; id?: string | number }
+export interface FetchOptions { timeoutMs?: number; fetchImpl?: typeof fetch; id?: string | number; signal?: AbortSignal }
 export interface YNXStatus { chainId: number; nativeCurrencySymbol: string; publicNetwork: boolean; height: number; [key: string]: unknown }
 export interface YNXSnapshot { status: YNXStatus; evmChainId: string; evmBlockHex: string; evmBlockNumber: number }
 
@@ -29,12 +29,14 @@ export declare const ynxPublicEndpoints: Readonly<{
   allRequiredServicesCorsReady: false;
   integratedCentral: false;
 }>;
-export declare class YNXSDKError extends Error { readonly status?: number; readonly code?: number | string }
+export declare class YNXSDKError extends Error { readonly status?: number; readonly code?: string; readonly rpcCode?: number }
 export declare const ynxErrorCodes: Readonly<{
   accountNotFound: "ACCOUNT_NOT_FOUND";
   httpError: "HTTP_ERROR";
   malformedResponse: "MALFORMED_RESPONSE";
+  jsonRPCError: "JSON_RPC_ERROR";
   rpcUnavailable: "RPC_UNAVAILABLE";
+  transportCancelled: "TRANSPORT_CANCELLED";
   transportTLS: "TRANSPORT_TLS";
   transportTimeout: "TRANSPORT_TIMEOUT";
   wrongChain: "WRONG_CHAIN";

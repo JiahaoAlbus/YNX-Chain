@@ -23,11 +23,12 @@ export const ynxPublicEndpoints = Object.freeze({
 });
 
 export class YNXSDKError extends Error {
-  constructor(message, {cause, status, code} = {}) {
+  constructor(message, {cause, status, code, rpcCode} = {}) {
     super(message, {cause});
     this.name = "YNXSDKError";
     this.status = status;
     this.code = code;
+    this.rpcCode = rpcCode;
   }
 }
 
@@ -35,7 +36,9 @@ export const ynxErrorCodes = Object.freeze({
   accountNotFound: "ACCOUNT_NOT_FOUND",
   httpError: "HTTP_ERROR",
   malformedResponse: "MALFORMED_RESPONSE",
+  jsonRPCError: "JSON_RPC_ERROR",
   rpcUnavailable: "RPC_UNAVAILABLE",
+  transportCancelled: "TRANSPORT_CANCELLED",
   transportTLS: "TRANSPORT_TLS",
   transportTimeout: "TRANSPORT_TIMEOUT",
   wrongChain: "WRONG_CHAIN",
@@ -178,12 +181,25 @@ function endpoint(baseUrl, path = "") {
   return url;
 }
 
-async function requestJSON(url, {accountLookup = false, body, timeoutMs = DEFAULT_TIMEOUT_MS, fetchImpl = globalThis.fetch} = {}) {
+async function requestJSON(url, {accountLookup = false, body, timeoutMs = DEFAULT_TIMEOUT_MS, fetchImpl = globalThis.fetch, signal} = {}) {
   if (typeof fetchImpl !== "function") throw new YNXSDKError("fetch is not available");
   if (!Number.isInteger(timeoutMs) || timeoutMs <= 0) throw new YNXSDKError("timeoutMs must be a positive integer");
+  if (signal !== undefined && (typeof signal !== "object" || typeof signal.addEventListener !== "function" || typeof signal.removeEventListener !== "function" || typeof signal.aborted !== "boolean")) {
+    throw new YNXSDKError("signal must be an AbortSignal");
+  }
+  if (signal?.aborted) throw new YNXSDKError("YNX endpoint request was cancelled", {code: ynxErrorCodes.transportCancelled});
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  let abortCode = null;
+  const cancel = () => {
+    abortCode ??= ynxErrorCodes.transportCancelled;
+    controller.abort();
+  };
+  signal?.addEventListener("abort", cancel, {once: true});
+  const timeout = setTimeout(() => {
+    abortCode ??= ynxErrorCodes.transportTimeout;
+    controller.abort();
+  }, timeoutMs);
   try {
     const response = await fetchImpl(url, {
       method: body === undefined ? "GET" : "POST",
@@ -209,6 +225,12 @@ async function requestJSON(url, {accountLookup = false, body, timeoutMs = DEFAUL
     return data;
   } catch (cause) {
     if (cause instanceof YNXSDKError) throw cause;
+    if (abortCode === ynxErrorCodes.transportCancelled) {
+      throw new YNXSDKError("YNX endpoint request was cancelled", {cause, code: ynxErrorCodes.transportCancelled});
+    }
+    if (abortCode === ynxErrorCodes.transportTimeout) {
+      throw new YNXSDKError(`YNX endpoint timed out after ${timeoutMs}ms`, {cause, code: ynxErrorCodes.transportTimeout});
+    }
     if (timeoutFailure(cause)) {
       throw new YNXSDKError(`YNX endpoint timed out after ${timeoutMs}ms`, {cause, code: ynxErrorCodes.transportTimeout});
     }
@@ -216,6 +238,7 @@ async function requestJSON(url, {accountLookup = false, body, timeoutMs = DEFAUL
     throw new YNXSDKError(`YNX endpoint request failed: ${cause?.message || cause}`, {cause, code: ynxErrorCodes.rpcUnavailable});
   } finally {
     clearTimeout(timeout);
+    signal?.removeEventListener("abort", cancel);
   }
 }
 
@@ -231,13 +254,17 @@ export async function callYNXEVM(evmUrl, method, params = [], options = {}) {
     ...options,
     body: {jsonrpc: "2.0", id, method, params},
   });
-  if (response?.jsonrpc !== "2.0" || response?.id !== id) {
+  if (response === null || typeof response !== "object" || Array.isArray(response) || response.jsonrpc !== "2.0" || response.id !== id) {
     throw new YNXSDKError("YNX EVM returned a mismatched JSON-RPC response", {code: ynxErrorCodes.malformedResponse});
   }
-  if (response.error) {
-    throw new YNXSDKError(`YNX EVM error ${response.error.code}: ${response.error.message}`, {code: response.error.code});
+  const keys = Object.keys(response).sort().join("\n");
+  if ("error" in response) {
+    if (keys !== "error\nid\njsonrpc" || response.error === null || typeof response.error !== "object" || Array.isArray(response.error) || !Number.isInteger(response.error.code) || typeof response.error.message !== "string" || response.error.message.length === 0) {
+      throw new YNXSDKError("YNX EVM returned a malformed JSON-RPC error", {code: ynxErrorCodes.malformedResponse});
+    }
+    throw new YNXSDKError(`YNX EVM error ${response.error.code}: ${response.error.message}`, {code: ynxErrorCodes.jsonRPCError, rpcCode: response.error.code});
   }
-  if (!("result" in response)) throw new YNXSDKError("YNX EVM response is missing result", {code: ynxErrorCodes.malformedResponse});
+  if (keys !== "id\njsonrpc\nresult") throw new YNXSDKError("YNX EVM response is malformed", {code: ynxErrorCodes.malformedResponse});
   return response.result;
 }
 
@@ -252,6 +279,9 @@ export async function proveYNXTestnetRPC(evmUrl = ynxPublicEndpoints.rpcUrl, opt
     throw new YNXSDKError("YNX Testnet RPC must be an absolute HTTPS URL without userinfo", {code: "RPC_HTTPS_REQUIRED"});
   }
   const chainId = await callYNXEVM(url.href, "eth_chainId", [], options);
+  if (typeof chainId !== "string" || !/^0x(?:0|[1-9a-f][0-9a-f]*)$/.test(chainId)) {
+    throw new YNXSDKError("RPC returned a malformed eth_chainId result", {code: ynxErrorCodes.malformedResponse});
+  }
   if (chainId !== ynxTestnet.chainId) {
     throw new YNXSDKError(`RPC did not prove YNX Testnet chain ${ynxTestnet.chainId}`, {code: ynxErrorCodes.wrongChain});
   }

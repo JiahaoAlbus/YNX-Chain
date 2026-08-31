@@ -22,6 +22,7 @@ func TestStrictTransportAndHTTPErrorTaxonomy(t *testing.T) {
 		err  error
 		code ErrorCode
 	}{
+		{name: "cancelled", err: context.Canceled, code: ErrorTransportCancelled},
 		{name: "timeout", err: context.DeadlineExceeded, code: ErrorTransportTimeout},
 		{name: "tls", err: x509.UnknownAuthorityError{}, code: ErrorTransportTLS},
 		{name: "unavailable", err: errors.New("connection refused"), code: ErrorRPCUnavailable},
@@ -61,7 +62,8 @@ func TestSharedTypeScriptGoTaxonomyVectorAnd6423OnlyPolicy(t *testing.T) {
 			ImplicitRetries bool `json:"implicitRetries"`
 			MaximumAttempts int  `json:"maximumAttempts"`
 		} `json:"requestPolicy"`
-		HTTPCases []struct {
+		ErrorCodes []ErrorCode `json:"errorCodes"`
+		HTTPCases  []struct {
 			Name          string         `json:"name"`
 			Status        int            `json:"status"`
 			AccountLookup bool           `json:"accountLookup"`
@@ -77,6 +79,15 @@ func TestSharedTypeScriptGoTaxonomyVectorAnd6423OnlyPolicy(t *testing.T) {
 	}
 	if vector.RequestPolicy.ImplicitRetries || vector.RequestPolicy.MaximumAttempts != 1 {
 		t.Fatalf("unexpected request policy: %+v", vector.RequestPolicy)
+	}
+	wantCodes := []ErrorCode{ErrorAccountNotFound, ErrorHTTP, ErrorJSONRPC, ErrorMalformedResponse, ErrorRPCUnavailable, ErrorTransportCancelled, ErrorTransportTimeout, ErrorTransportTLS, ErrorWrongChain}
+	if len(vector.ErrorCodes) != len(wantCodes) {
+		t.Fatalf("unexpected error codes: %+v", vector.ErrorCodes)
+	}
+	for index := range wantCodes {
+		if vector.ErrorCodes[index] != wantCodes[index] {
+			t.Fatalf("error code %d: got %s want %s", index, vector.ErrorCodes[index], wantCodes[index])
+		}
 	}
 	if len(vector.Network.ForbiddenChainIDs) != 2 || vector.Network.ForbiddenChainIDs[0] != float64(9102) || vector.Network.ForbiddenChainIDs[1] != "0x238e" {
 		t.Fatalf("9102 rejection vector drifted: %+v", vector.Network.ForbiddenChainIDs)
@@ -111,6 +122,9 @@ func TestProbeYNXTestnetRPCTaxonomy(t *testing.T) {
 		code   ErrorCode
 	}{
 		{name: "malformed", client: testCase(200, `{"jsonrpc":"2.0","id":1}`, nil), code: ErrorMalformedResponse},
+		{name: "malformed-id", client: testCase(200, `{"jsonrpc":"2.0","id":"1","result":"0x1917"}`, nil), code: ErrorMalformedResponse},
+		{name: "malformed-result", client: testCase(200, `{"jsonrpc":"2.0","id":1,"result":null}`, nil), code: ErrorMalformedResponse},
+		{name: "json-rpc-error", client: testCase(200, `{"jsonrpc":"2.0","id":1,"error":{"code":-32001,"message":"method unavailable"}}`, nil), code: ErrorJSONRPC},
 		{name: "wrong-chain", client: testCase(200, `{"jsonrpc":"2.0","id":1,"result":"0x1"}`, nil), code: ErrorWrongChain},
 		{name: "unavailable", client: testCase(503, `{"error":"down"}`, nil), code: ErrorRPCUnavailable},
 		{name: "timeout", client: testCase(0, "", context.DeadlineExceeded), code: ErrorTransportTimeout},
@@ -122,6 +136,21 @@ func TestProbeYNXTestnetRPCTaxonomy(t *testing.T) {
 				t.Fatalf("got %v, want %s", err, item.code)
 			}
 		})
+	}
+}
+
+func TestCancelledContextDoesNotStartARequest(t *testing.T) {
+	calls := 0
+	client := &http.Client{Transport: transportFunc(func(*http.Request) (*http.Response, error) {
+		calls++
+		return nil, errors.New("must not execute")
+	})}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	_, err := ProbeYNXTestnetRPC(ctx, client, "https://rpc.example.invalid")
+	var classified *TransportError
+	if !errors.As(err, &classified) || classified.Code != ErrorTransportCancelled || calls != 0 {
+		t.Fatalf("got error=%v calls=%d", err, calls)
 	}
 }
 

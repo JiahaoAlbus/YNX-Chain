@@ -18,4 +18,10 @@ TLS validation, malformed responses, wrong-chain responses, unavailable RPC,
 and other HTTP failures remain distinct. SDK requests make one bounded attempt
 and do not retry implicitly.
 
+`FetchOptions.signal` accepts a browser or Node `AbortSignal`. Caller
+cancellation is `TRANSPORT_CANCELLED`, while the SDK deadline remains
+`TRANSPORT_TIMEOUT`. A valid JSON-RPC error is `JSON_RPC_ERROR` with its numeric
+`rpcCode`; malformed IDs, result envelopes, or error objects are
+`MALFORMED_RESPONSE`.
+
 Run `npm test`, then `node examples/real-testnet-read.mjs`. The example fails closed if the public endpoint is unavailable, returns invalid JSON-RPC, or identifies any chain other than `0x1917`.

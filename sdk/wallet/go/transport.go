@@ -16,13 +16,15 @@ import (
 type ErrorCode string
 
 const (
-	ErrorAccountNotFound   ErrorCode = "ACCOUNT_NOT_FOUND"
-	ErrorHTTP              ErrorCode = "HTTP_ERROR"
-	ErrorMalformedResponse ErrorCode = "MALFORMED_RESPONSE"
-	ErrorRPCUnavailable    ErrorCode = "RPC_UNAVAILABLE"
-	ErrorTransportTLS      ErrorCode = "TRANSPORT_TLS"
-	ErrorTransportTimeout  ErrorCode = "TRANSPORT_TIMEOUT"
-	ErrorWrongChain        ErrorCode = "WRONG_CHAIN"
+	ErrorAccountNotFound    ErrorCode = "ACCOUNT_NOT_FOUND"
+	ErrorHTTP               ErrorCode = "HTTP_ERROR"
+	ErrorJSONRPC            ErrorCode = "JSON_RPC_ERROR"
+	ErrorMalformedResponse  ErrorCode = "MALFORMED_RESPONSE"
+	ErrorRPCUnavailable     ErrorCode = "RPC_UNAVAILABLE"
+	ErrorTransportCancelled ErrorCode = "TRANSPORT_CANCELLED"
+	ErrorTransportTLS       ErrorCode = "TRANSPORT_TLS"
+	ErrorTransportTimeout   ErrorCode = "TRANSPORT_TIMEOUT"
+	ErrorWrongChain         ErrorCode = "WRONG_CHAIN"
 )
 
 const (
@@ -34,6 +36,7 @@ const (
 type TransportError struct {
 	Code       ErrorCode
 	HTTPStatus int
+	RPCCode    int
 	Cause      error
 	Detail     string
 }
@@ -52,6 +55,9 @@ func (e *TransportError) Unwrap() error { return e.Cause }
 func ClassifyTransportError(err error) *TransportError {
 	if err == nil {
 		return nil
+	}
+	if errors.Is(err, context.Canceled) {
+		return &TransportError{Code: ErrorTransportCancelled, Cause: err, Detail: "request was cancelled"}
 	}
 	if errors.Is(err, context.DeadlineExceeded) {
 		return &TransportError{Code: ErrorTransportTimeout, Cause: err, Detail: "request timed out"}
@@ -103,6 +109,9 @@ func ClassifyHTTPFailure(status int, body []byte, accountLookup bool) *Transport
 }
 
 func ProbeYNXTestnetRPC(ctx context.Context, client *http.Client, endpoint string) (string, error) {
+	if err := ctx.Err(); err != nil {
+		return "", ClassifyTransportError(err)
+	}
 	parsed, err := url.Parse(endpoint)
 	if err != nil || parsed.Scheme != "https" || parsed.Host == "" || parsed.User != nil {
 		return "", &TransportError{Code: ErrorHTTP, Cause: err, Detail: "RPC must be an absolute HTTPS URL without userinfo"}
@@ -132,13 +141,45 @@ func ProbeYNXTestnetRPC(ctx context.Context, client *http.Client, endpoint strin
 	if err := json.Unmarshal(body, &envelope); err != nil || len(envelope) != 3 {
 		return "", &TransportError{Code: ErrorMalformedResponse, HTTPStatus: response.StatusCode, Cause: err, Detail: "RPC JSON envelope is malformed"}
 	}
-	var version, chainID string
+	var version string
 	var id int
-	if json.Unmarshal(envelope["jsonrpc"], &version) != nil || json.Unmarshal(envelope["id"], &id) != nil || json.Unmarshal(envelope["result"], &chainID) != nil || version != "2.0" || id != 1 {
+	if json.Unmarshal(envelope["jsonrpc"], &version) != nil || json.Unmarshal(envelope["id"], &id) != nil || version != "2.0" || id != 1 {
 		return "", &TransportError{Code: ErrorMalformedResponse, HTTPStatus: response.StatusCode, Detail: "RPC JSON envelope is malformed"}
+	}
+	if rawError, ok := envelope["error"]; ok {
+		if _, hasResult := envelope["result"]; hasResult {
+			return "", &TransportError{Code: ErrorMalformedResponse, HTTPStatus: response.StatusCode, Detail: "RPC JSON envelope contains both result and error"}
+		}
+		var rpcError struct {
+			Code    int    `json:"code"`
+			Message string `json:"message"`
+		}
+		if json.Unmarshal(rawError, &rpcError) != nil || rpcError.Message == "" {
+			return "", &TransportError{Code: ErrorMalformedResponse, HTTPStatus: response.StatusCode, Detail: "RPC error object is malformed"}
+		}
+		return "", &TransportError{Code: ErrorJSONRPC, HTTPStatus: response.StatusCode, RPCCode: rpcError.Code, Detail: fmt.Sprintf("RPC returned error %d: %s", rpcError.Code, rpcError.Message)}
+	}
+	var chainID string
+	if _, ok := envelope["result"]; !ok || json.Unmarshal(envelope["result"], &chainID) != nil || !canonicalHexQuantity(chainID) {
+		return "", &TransportError{Code: ErrorMalformedResponse, HTTPStatus: response.StatusCode, Detail: "RPC result is malformed"}
 	}
 	if chainID != YNXEVMChainID {
 		return "", &TransportError{Code: ErrorWrongChain, HTTPStatus: response.StatusCode, Detail: fmt.Sprintf("RPC returned %q instead of %s", chainID, YNXEVMChainID)}
 	}
 	return chainID, nil
+}
+
+func canonicalHexQuantity(value string) bool {
+	if value == "0x0" {
+		return true
+	}
+	if len(value) < 3 || !strings.HasPrefix(value, "0x") || value[2] == '0' {
+		return false
+	}
+	for _, character := range value[2:] {
+		if (character < '0' || character > '9') && (character < 'a' || character > 'f') {
+			return false
+		}
+	}
+	return true
 }
