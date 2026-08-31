@@ -11,8 +11,8 @@
   },
   "source": {
     "branch": "codex/ynx-6423-portal-tronscan-inspired",
-    "portalCommit": "6720366ae5a67866382094b46bd5ba4cb5be8a9f",
-    "portalTree": "fc10b4661b03aa735f79c14ceb357647400a5c3d",
+    "portalCommit": "c3510e208ad9e421c3a0b590bb3af7732ae8d6cb",
+    "portalTree": "93d2b27c10fe9b5d1a0977c63969aa1fbf09aa9f",
     "pushedToOrigin": true,
     "files": [
       {
@@ -60,7 +60,7 @@
   },
   "publicClaimPolicy": "Only the local source and verification facts in this record may be claimed. Ecosystem products, downloads, public RPC endpoints, public deployment, signing, and store release remain unavailable unless separately evidenced.",
   "rollback": {
-    "sourceCommit": "757f2508c49dd9eba617bf9686962e8dd5bddf80",
+    "sourceCommit": "6720366ae5a67866382094b46bd5ba4cb5be8a9f",
     "scope": "Source rollback baseline only; it does not authorize a runtime, DNS, Caddy, Vercel, or alias mutation."
   },
   "deploymentBlocker": "A current, scope-bound deployment authorization naming the exact target, executor, portal source commit, rollback commit, and accepted public endpoint is required before any staging or public mutation."
