@@ -508,10 +508,13 @@ func TestPostgresAnalyticsRetentionSweepReplayIsIdempotentAndParameterBound(t *t
 	db, connection := openRecordingDB(t)
 	store, _ := NewStore(db)
 	now := time.Now().UTC()
+	executedAt := now.Truncate(time.Microsecond)
+	transientBefore := now.Add(-time.Hour).Truncate(time.Microsecond)
+	operationalBefore := now.Add(-2 * time.Hour).Truncate(time.Microsecond)
 	connection.retentionSweep = &AnalyticsRetentionSweep{
-		AuditID: "audit.retention.0003", ExecutedAt: now, TransientBefore: now.Add(-time.Hour), OperationalBefore: now.Add(-2 * time.Hour), TransientDeleted: 3, OperationalDeleted: 7,
+		AuditID: "audit.retention.0003", ExecutedAt: executedAt, TransientBefore: transientBefore, OperationalBefore: operationalBefore, TransientDeleted: 3, OperationalDeleted: 7,
 	}
-	result, err := store.SweepExpiredAnalytics(context.Background(), connection.retentionSweep.AuditID, now, connection.retentionSweep.TransientBefore, connection.retentionSweep.OperationalBefore)
+	result, err := store.SweepExpiredAnalytics(context.Background(), connection.retentionSweep.AuditID, now, transientBefore, operationalBefore)
 	if err != nil || result.TransientDeleted != 3 || result.OperationalDeleted != 7 {
 		t.Fatalf("retention sweep replay was not idempotent: result=%+v err=%v", result, err)
 	}
