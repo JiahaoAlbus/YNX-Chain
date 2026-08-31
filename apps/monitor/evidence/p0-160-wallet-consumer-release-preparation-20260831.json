@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "ynx.explorer-monitor.source-bound-release-preparation.v3",
+  "observedAt": "2026-08-31T08:57:53Z",
+  "owner": "explorer-monitor",
+  "authority": {
+    "productionMutationAllowed": false,
+    "publicVerified": false,
+    "computerControlVerified": false,
+    "statement": "Local artifact freeze only. Central must issue a single-use lease before any transfer, systemd, proxy, or official-domain action."
+  },
+  "candidate": {
+    "branch": "codex/p0-explorer-monitor-20260820",
+    "sourceCommit": "a3292a2b6d30409caf7db66b81c47e8d09ad76f1",
+    "sourceTree": "335f92a35091de440a23a83e96489ce4cc185d51",
+    "pullRequest": "https://github.com/JiahaoAlbus/YNX-Chain/pull/107",
+    "release": "ynx-explorer-monitor-a3292a2b6d30",
+    "build": {"goos": "linux", "goarch": "amd64", "cgoEnabled": false, "trimpath": true, "buildvcs": false, "buildTime": "2026-08-31T08:57:53Z"}
+  },
+  "supersession": {
+    "supersedesArtifactRecord": "apps/monitor/evidence/p0-157-indexer-safe-release-preparation-20260831.json",
+    "reason": "P0-157 is source commit 41d4886b and must not be mixed with the Router-compliant Explorer and Monitor consumer source at a3292a2b.",
+    "mixingForbidden": true
+  },
+  "artifacts": {
+    "explorerd": {"carrierPath": "/private/tmp/ynx-explorer-monitor-p0160.rMXAMv/bin/ynx-explorerd", "bytes": 8872084, "sha256": "550045af8e4f889dfef2a1da4ea3f74136673c16b590b6e1443a066133c8cb1e", "format": "linux amd64 static ELF"},
+    "indexerd": {"carrierPath": "/private/tmp/ynx-explorer-monitor-p0160.rMXAMv/bin/ynx-indexerd", "bytes": 7512212, "sha256": "4074bc0033de23c02dd2ecb4f2833c128772185c0493d098759ca62389f10091", "format": "linux amd64 static ELF"},
+    "monitorReleaseTree": {
+      "carrierPath": "/private/tmp/ynx-explorer-monitor-p0160.rMXAMv/monitor-release-tree.tar",
+      "bytes": 2222080,
+      "sha256": "706e4aef26c8c7d0799242c26aa86e88717d4733d9d17322b764822ca9dcadca",
+      "format": "deterministic GNU tar with built dist; excludes node_modules and .env",
+      "inputs": {"packageLockSha256": "3329447e950589f80129b59e1c6e99d5856d869da06672c0b525ed129e291694", "distIndexHtmlSha256": "05757d4014715aad9f4eba3aa60f5a21579a60aa9f9f6eb1beded523704eb490", "distJsSha256": "630f7d03478660f3a427f281316f59e1b75eeef64fb3223545d2e74d7b484af1", "distCssSha256": "512e460fd87a10dff58c1a76b2c9ad419c184a5574aed372603241dab4407239"}
+    }
+  },
+  "scope": {
+    "services": ["ynx-explorerd.service", "ynx-indexerd.service", "ynx-monitor.service"],
+    "monitorIngress": {"requiredMatcher": "@control path /health /version /status /connectivity /ops/*", "requiredConnectivity": "200 application/json with cache-control no-store; never static HTML"},
+    "rollbackFirst": ["capture current binary, release symlink, ingress, environment digests and version bodies", "restore all captured scoped targets on any failed post-deploy gate", "validate/reload only scoped proxy configuration and restart only three scoped services"]
+  },
+  "localVerification": {
+    "explorer": "go test ./internal/explorer: passing, including no custom wallet navigation source gate",
+    "monitor": "npm test: 52 passing; npm run build: passing",
+    "sdk": "node --test sdk/js/wallet.test.mjs: 7 passing",
+    "routerScanner": "Central detached exact-source scan reported no remaining Monitor App.tsx finding; source evidence only.",
+    "ci": "PR #107 checks were newly in progress at candidate readback; no green conclusion is inferred."
+  },
+  "states": {"implementedLocal": true, "testedLocal": true, "integratedCentral": false, "deployedStaging": false, "deployedPublic": false, "downloadHosted": false, "productionSigned": false, "publicVerified": false}
+}
