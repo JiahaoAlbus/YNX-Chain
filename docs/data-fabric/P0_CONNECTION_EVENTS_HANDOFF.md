@@ -59,6 +59,6 @@ Central must bind one authoritative HTTPS Data Fabric origin and the exact runti
 
 - Implementation commit: `025fd6a17a2686ad458ffed4c7936623bcb37eec`.
 - Migration `0008_erasure_deletion_receipts` appends a pseudonymous, audit-bound SHA-256 receipt after deleting derived analytics facts in the same serializable transaction.
-- Local test scope: `go test ./internal/datafabric ./internal/datafabricpostgres`; release-truth binding and remote CI are separate gates.
+- Local test scope: `go test ./internal/datafabric ./internal/datafabricpostgres`; GitHub Actions run `33371153886` passed all six Data Fabric jobs for binding head `413ced26ab65fe84c61d3a19a26c308ba9c454df`.
 - The receipt retains no raw account, event ID, payload, diagnostic message, key, or signature. An old PostgreSQL erasure request without a receipt fails closed during idempotent retry or integrity audit.
 - No public endpoint, database migration, service mutation, deployment, or 9102/6423 probe occurred. `P0-147` remains `WAITING_EXTERNAL_PUBLIC_ENDPOINT_UNBOUND`.

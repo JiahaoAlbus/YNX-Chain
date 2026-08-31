@@ -32,10 +32,10 @@ Release Candidate: `ynx-data-fabric-7edb20340272`
 
 ## Current slice
 
-1. Submit the unactivated Wallet Connectivity Event Contract candidate for Integration review. It is an asynchronous privacy-safe observer and is outside the standard wallet connection path.
-2. Await a Data Fabric light lease before activating any schema or implementing a runtime consumer. The central `connectionEvents` contract remains DRAFT.
+1. Preserve the accepted `connectionEvents@1.0.0-p0.0` asynchronous runtime adapter; it must never gate standard Wallet connection, approval, signing, or transaction flows.
+2. Wait for the P0-147 authoritative public endpoint plus runtime/service/rollback mapping before any deployment action; production mutation remains forbidden.
 3. Obtain the required independent approval and merge through protected-branch policy; do not bypass it with force or administrator merge.
-4. Execute sustained hotspot, repeated consumer/process crash, deployed network-partition and multi-host PostgreSQL failover/fencing drills on replicated infrastructure; repeat leader-loss beyond the bounded local proofs.
+4. Execute sustained hotspot, repeated consumer/process crash, deployed network-partition and multi-host PostgreSQL failover/fencing drills only under their own bounded infrastructure authority.
 
 ## Exact next action
 
