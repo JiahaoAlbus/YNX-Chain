@@ -3262,7 +3262,7 @@
     },
     {
       "path": "{host:43.153.202.237:creator-p0305-residue-cleanup-s02,delete-only:/opt/ynx-creator-studio-wallet/receipts/upgrade-3f97a13d.json,delete-only:/opt/ynx-creator-studio-wallet/releases/creator-studio-3f97a13d,delete-only:/opt/ynx-release-control-plane/creator-studio-3f97a13d,readonly:/opt/ynx-creator-studio-wallet/releases/creator-studio-0e1a53c5/**,readonly:/opt/ynx-creator-studio-wallet/current*,readonly:/etc/systemd/system/ynx-creator-studio-wallet.service,readonly:service:{ynx-creator-studio-wallet,ynx-video-viewer,ynx-videod}.service,readonly:https://web4.ynxweb4.com/video/studio/**}",
-      "owner": "creator-studio-deploy-owner",
+      "owner": null,
       "branch": "codex/p0-creator-studio-subpath-i18n-20260831",
       "worktree": "/private/tmp/ynx-creator-subpath-i18n.PcnLN2",
       "taskId": "P0-307",
@@ -3316,7 +3316,7 @@
     },
     {
       "path": "{host:43.153.202.237:creator-p0305-residue-cleanup-s04,delete-only:/opt/ynx-creator-studio-wallet/receipts/upgrade-3f97a13d.json,delete-only:/opt/ynx-creator-studio-wallet/releases/creator-studio-3f97a13d,delete-only:/opt/ynx-release-control-plane/creator-studio-3f97a13d,readonly:/opt/ynx-creator-studio-wallet/releases/creator-studio-0e1a53c5/**,readonly:/opt/ynx-creator-studio-wallet/current*,readonly:/etc/systemd/system/ynx-creator-studio-wallet.service,readonly:service:{ynx-creator-studio-wallet,ynx-video-viewer,ynx-videod}.service,readonly:https://web4.ynxweb4.com/video/studio/**}",
-      "owner": "creator-studio-deploy-owner",
+      "owner": null,
       "branch": "codex/p0-creator-studio-subpath-i18n-20260831",
       "worktree": "/private/tmp/ynx-creator-subpath-i18n.PcnLN2",
       "taskId": "P0-309",
@@ -3457,27 +3457,53 @@
     },
     {
       "path": "{host:43.153.202.237:creator-studio-3f97-upgrade,write:/opt/ynx-release-control-plane/creator-studio-3f97a13d/**,write:/opt/ynx-creator-studio-wallet/releases/creator-studio-3f97a13d*,write:/opt/ynx-creator-studio-wallet/receipts/upgrade-3f97a13d.json*,write:/opt/ynx-creator-studio-wallet/current*,lifecycle:ynx-creator-studio-wallet.service,readonly:/etc/systemd/system/ynx-creator-studio-wallet.service,readonly:service:{ynx-videod,ynx-video-viewer}.service,verify:https://web4.ynxweb4.com/video/studio/**}",
-      "owner": "creator-studio-deploy-owner",
+      "owner": null,
       "branch": "codex/p0-creator-studio-subpath-i18n-20260831",
       "worktree": "/private/tmp/ynx-creator-subpath-i18n.PcnLN2",
       "taskId": "P0-315",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE_CREATOR_STUDIO_3F97A13D_SHELL_SAFE_SINGLE_USE_UPGRADE",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_CREATOR_P0315_SWITCHED_AUTOMATIC_AND_CONDITIONAL_ROLLBACK_FAILED_STATE_UNKNOWN",
       "acquiredAt": "2026-08-31T05:17:00Z",
       "expiresAt": "2026-08-31T05:47:00Z",
-      "releasedAt": null,
+      "releasedAt": "2026-08-31T05:22:00Z",
       "sourceCommit": "4253f90700b8dd25b610aa3ac9df26a80c37dc71",
       "sourceTree": "75536d9b65716633c3863a365a52ea240e4d3614",
       "evidenceCommit": "4253f90700b8dd25b610aa3ac9df26a80c37dc71",
       "artifactSha256": "e7325c867c13c97a99a8210b905be979d01eb49357a8a1c359ae7bcf59fee151",
-      "productionMutationAllowed": true,
+      "productionMutationAllowed": false,
       "allowedExceptions": [
         "exactly one no-retry Creator carrier placement and forward invocation",
         "the final SSH argv element must be the exact 21243-byte shell-safe command string SHA8250fd4b; carrier bytes are stdin only",
         "at most one receipt-bound conditional rollback only after successful forward and external validation failure",
         "recursive cleanup requires complete-tree and per-object identity, exclusive quarantine reservation, Linux no-clobber move and post-quarantine revalidation",
         "foreign child or same-bytes new-inode substitution must fail closed and preserve forensic state",
-        "API6493 Viewer6494 unit Caddy shared-current Finance account signature typed-data and transaction mutation remain forbidden"
+        "API6493 Viewer6494 unit Caddy shared-current Finance account signature typed-data and transaction mutation remain forbidden",
+        "sole forward reached switch and failed root/app public binding",
+        "executor automatic rollback and sole conditional rollback both failed; state remains unknown",
+        "P0-315 is consumed and nonreusable; Heavy and Creator mutation locks are released"
+      ]
+    },
+    {
+      "path": "{host:43.153.202.237:creator-p0315-terminal-zero-write-readback,readonly:/opt/ynx-release-control-plane/creator-studio-3f97a13d*,readonly:/opt/ynx-creator-studio-wallet/releases/creator-studio-3f97a13d*,readonly:/opt/ynx-creator-studio-wallet/current*,readonly:/opt/ynx-creator-studio-wallet/receipts/upgrade-3f97a13d.json*,readonly:/etc/systemd/system/ynx-creator-studio-wallet.service,readonly:service:{ynx-creator-studio-wallet,ynx-video-viewer,ynx-videod}.service,readonly:https://web4.ynxweb4.com/video/studio/**}",
+      "owner": "creator-studio-readback-owner",
+      "branch": "codex/p0-wallet-connectivity-control-plane-20260820",
+      "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration",
+      "taskId": "P0-316",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_CREATOR_P0315_TERMINAL_ZERO_WRITE_READBACK",
+      "acquiredAt": "2026-08-31T05:22:00Z",
+      "expiresAt": "2026-08-31T05:37:00Z",
+      "releasedAt": null,
+      "sourceCommit": "4253f90700b8dd25b610aa3ac9df26a80c37dc71",
+      "sourceTree": "75536d9b65716633c3863a365a52ea240e4d3614",
+      "evidenceCommit": "c0ee2d0814b531bddaa7cd9b6a05d0dfd1a326c8",
+      "artifactSha256": "c1506068b387975ba305a26fef9d3fd4fa513009f369fa42ce622d903ea42538",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "exactly one zero-write SSH readback and no retry",
+        "exact inspector bytes are stdin to sudo bash -s",
+        "read only current current.next receipt candidate control stages quarantines Creator unit services listeners and five public bodies",
+        "no remote temporary files deployment switch restart cleanup rollback account signature typed-data or transaction action"
       ]
     }
   ]

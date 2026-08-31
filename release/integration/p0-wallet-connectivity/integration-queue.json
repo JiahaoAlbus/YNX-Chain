@@ -7444,7 +7444,7 @@
     {
       "taskId": "P0-315",
       "owner": "integration,creator-studio-deploy-owner",
-      "status": "ACTIVE_CREATOR_STUDIO_3F97A13D_SHELL_SAFE_SINGLE_USE_UPGRADE",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_CREATOR_P0315_SWITCHED_AUTOMATIC_AND_CONDITIONAL_ROLLBACK_FAILED_STATE_UNKNOWN",
       "paths": [
         "release/integration/p0-wallet-connectivity/execution/p0-315-creator-studio-3f97a13d-shell-safe-upgrade-single-use-lease-20260831.json",
         "/opt/ynx-release-control-plane/creator-studio-3f97a13d",
@@ -7460,7 +7460,22 @@
       "conditionalRollbackAttemptLimit": 1,
       "financeAuthorized": false,
       "accountSignTransactionAuthorized": false,
-      "nextAction": "Execute the exact carrier through the exact single shell-safe final SSH command argument once. Return direct terminal receipt and request a wholly-new independent zero-write readback before any product-completion promotion."
+      "nextAction": "P0-315 is consumed and nonreusable. P0-316 is the only authorized successor and is zero-write readback only."
+    },
+    {
+      "taskId": "P0-316",
+      "owner": "integration,creator-studio-readback-owner",
+      "status": "ACTIVE_CREATOR_P0315_TERMINAL_ZERO_WRITE_READBACK",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/execution/p0-316-creator-studio-p0315-terminal-zero-write-readback-single-use-lease-20260831.json",
+        "release/integration/p0-wallet-connectivity/execution/objects/p0-316-creator-studio-p0315-terminal-zero-write-readback.sh"
+      ],
+      "dependencies": ["P0-315"],
+      "executionLeaseIssued": true,
+      "sshAttemptLimit": 1,
+      "retryAllowed": false,
+      "productionMutation": false,
+      "nextAction": "Execute the exact inspector once by SSH stdin and return its direct stdout/stderr hashes and complete state receipt. No cleanup deployment restart switch or rollback follows without a separate wholly-new lease."
     }
   ]
 }

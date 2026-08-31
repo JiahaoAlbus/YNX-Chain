@@ -1,0 +1,75 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-316",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-creator-p0315-terminal-zero-write-readback-20260831T052200Z",
+  "status": "ACTIVE",
+  "singleUse": true,
+  "reusable": false,
+  "issuedAt": "2026-08-31T05:22:00Z",
+  "expiresAt": "2026-08-31T05:37:00Z",
+  "owner": "creator-studio-readback-owner",
+  "namedExecutor": "release-control-plane",
+  "runtimeHost": "43.153.202.237",
+  "predecessor": {
+    "taskId": "P0-315",
+    "leaseCommit": "c0ee2d0814b531bddaa7cd9b6a05d0dfd1a326c8",
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_CREATOR_P0315_SWITCHED_AUTOMATIC_AND_CONDITIONAL_ROLLBACK_FAILED_STATE_UNKNOWN",
+    "forwardAttempts": 1,
+    "conditionalRollbackAttempts": 1,
+    "retryAllowed": false,
+    "stateKnown": false
+  },
+  "inspector": {
+    "path": "release/integration/p0-wallet-connectivity/execution/objects/p0-316-creator-studio-p0315-terminal-zero-write-readback.sh",
+    "bytes": 4427,
+    "sha256": "c1506068b387975ba305a26fef9d3fd4fa513009f369fa42ce622d903ea42538",
+    "bashSyntax": "PASS"
+  },
+  "execution": {
+    "workingDirectory": "/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration",
+    "argv": [
+      "/usr/bin/ssh",
+      "-i",
+      "/Users/huangjiahao/Downloads/Huang.pem",
+      "-o",
+      "IdentitiesOnly=yes",
+      "-o",
+      "BatchMode=yes",
+      "-o",
+      "StrictHostKeyChecking=yes",
+      "-o",
+      "UserKnownHostsFile=/Users/huangjiahao/.ssh/known_hosts",
+      "-o",
+      "ConnectTimeout=10",
+      "-o",
+      "ConnectionAttempts=1",
+      "ubuntu@43.153.202.237",
+      "/usr/bin/sudo -n /bin/bash -s"
+    ],
+    "stdin": "exact inspector bytes",
+    "attemptLimit": 1,
+    "retryAllowed": false,
+    "remoteTemporaryFiles": false
+  },
+  "readScope": [
+    "current and current.next lstat tuples and symlink targets",
+    "Creator unit and Creator API Viewer service states PIDs NRestarts and listeners",
+    "root app.js manifest i18n.js and catalog whole-body status bytes SHA256 content-type and cache-control",
+    "receipt and receipt.next identities bytes SHA256 JSON parse state and raw base64",
+    "candidate control stage quarantine and cleanup paths with complete per-object tuples hashes and symlink targets"
+  ],
+  "requiredTerminal": {
+    "inspectionComplete": true,
+    "mutationCount": 0,
+    "stdoutAndStderrHashes": true,
+    "noStateInferenceFromP0315": true
+  },
+  "forbidden": [
+    "write create remove rename chmod chown link or remote temporary file",
+    "service restart reload stop start or daemon-reload",
+    "deployment current switch cleanup rollback or retry",
+    "Caddy API Viewer Finance or unrelated product mutation",
+    "Wallet account approval rejection signature typed-data transaction or WalletConnect action"
+  ]
+}
