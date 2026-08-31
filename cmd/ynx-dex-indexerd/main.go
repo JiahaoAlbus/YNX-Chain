@@ -60,9 +60,9 @@ func main() {
 		log.Fatalf("configure Finance read integration: %v", err)
 	}
 	server.SetRuntimeBoundary(factory != "" || nativeREST != "", nativeREST != "")
-	// Market reads are not custody evidence. Keep public execution closed until
-	// DEX records its own evidence for the pinned Chain Core v1.35 contract.
-	server.SetStrategyVaultExecutionEvidence(strings.EqualFold(strings.TrimSpace(os.Getenv("YNX_DEX_STRATEGY_VAULT_EVIDENCE")), "accepted-product-evidence-v1.35"))
+	// Market reads and environment configuration are not custody evidence. This
+	// binary cannot enable Strategy Vault execution before a future product-owned
+	// signed v1.35 verifier is released and independently accepted.
 	if factory != "" {
 		startBlock, err := envUint("DEX_INDEXER_START_BLOCK", 0)
 		if err != nil || startBlock == 0 {

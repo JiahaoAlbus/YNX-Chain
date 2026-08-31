@@ -22,7 +22,12 @@ This finance-suite handoff consumes, but does not modify, Chain Core authority:
 
 DEX, Exchange and Quant public execution are disabled by default. Their health/error protocol exposes the gate `chain_core_strategy_vault_v1_35_product_evidence` / `strategy_vault_custody_evidence_required`. Market reads, portfolio reads, research and paper behavior remain distinct and do not imply custody or execution.
 
-The exact deployment-only enable values are intentionally unusable until the product owner records a signed, source-bound acceptance package. A Chain Core local bundle, generic RPC success, Wallet availability, or a populated market is not acceptance evidence.
+DEX no longer accepts `YNX_DEX_STRATEGY_VAULT_EVIDENCE` (or any other process
+environment toggle) as an execution release condition. The current binary is
+compiled fail-closed. A future product release must add a signed,
+source-bound verifier that checks all evidence below; it cannot replace this
+boundary with a local bundle, generic RPC success, Wallet availability, a
+populated market, or a configuration string.
 
 ## Required future acceptance evidence
 

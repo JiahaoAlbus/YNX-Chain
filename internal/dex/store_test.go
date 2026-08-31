@@ -253,7 +253,7 @@ func TestServerEmptyTokenRegistryIsStableJSONArray(t *testing.T) {
 	}
 }
 
-func TestServerExecutionRequiresCustodyEvidence(t *testing.T) {
+func TestServerExecutionCannotBeOpenedByMarketReadiness(t *testing.T) {
 	store, err := OpenStore(filepath.Join(t.TempDir(), "state.json"), testSecret)
 	if err != nil {
 		t.Fatal(err)
@@ -270,12 +270,6 @@ func TestServerExecutionRequiresCustodyEvidence(t *testing.T) {
 	server.Handler().ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/health", nil))
 	if !strings.Contains(recorder.Body.String(), `"executionAvailable":false`) || !strings.Contains(recorder.Body.String(), `"executionGateSatisfied":false`) {
 		t.Fatalf("custody gate must fail closed: %s", recorder.Body.String())
-	}
-	server.SetStrategyVaultExecutionEvidence(true)
-	recorder = httptest.NewRecorder()
-	server.Handler().ServeHTTP(recorder, httptest.NewRequest(http.MethodGet, "/health", nil))
-	if !strings.Contains(recorder.Body.String(), `"executionAvailable":true`) {
-		t.Fatalf("accepted custody evidence not reflected: %s", recorder.Body.String())
 	}
 }
 

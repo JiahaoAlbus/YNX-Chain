@@ -107,12 +107,8 @@ type Server struct {
 	nativeProvider NativeSnapshotProvider
 	sourceReady    bool
 	actionReady    bool
-	// strategyVaultExecutionEvidence is deliberately separate from market
-	// availability.  A readable chain-native pool is not evidence that a route
-	// may custody or execute against a Strategy Vault.
-	strategyVaultExecutionEvidence bool
-	financeRead                    *readintegration.Verifier
-	financeSlots                   chan struct{}
+	financeRead    *readintegration.Verifier
+	financeSlots   chan struct{}
 }
 
 type TokenProvider interface{ Tokens() []Token }
@@ -136,14 +132,6 @@ func (server *Server) SetTokenProvider(provider TokenProvider) {
 func (server *Server) SetRuntimeBoundary(sourceReady, actionReady bool) {
 	server.sourceReady = sourceReady
 	server.actionReady = sourceReady && actionReady
-}
-
-// SetStrategyVaultExecutionEvidence is a product-owned release gate.  It must
-// remain false until this product has recorded evidence against the pinned
-// Chain Core Strategy Vault custody contract.  It is intentionally not
-// inferred from an RPC connection, a pool count, or Wallet availability.
-func (server *Server) SetStrategyVaultExecutionEvidence(accepted bool) {
-	server.strategyVaultExecutionEvidence = accepted
 }
 
 func NewServerWithSource(store *Store, info buildinfo.Info, ingestionKey string, authorizer SessionAuthorizer, source string, tokens ...Token) (*Server, error) {
@@ -226,9 +214,12 @@ func (server *Server) health(response http.ResponseWriter, _ *http.Request) {
 		"indexedPools":           analytics.Pools,
 		"marketSourceConfigured": server.sourceReady,
 		"marketAvailable":        marketAvailable,
-		"executionAvailable":     marketAvailable && server.actionReady && server.strategyVaultExecutionEvidence,
+		// v1.35 custody execution remains compiled closed.  Market availability,
+		// Wallet reachability, and deployment configuration cannot stand in for
+		// the owner/mandate and closed-vault YNXT evidence required by Chain Core.
+		"executionAvailable":     false,
 		"executionGate":          "chain_core_strategy_vault_v1_35_product_evidence",
-		"executionGateSatisfied": server.strategyVaultExecutionEvidence,
+		"executionGateSatisfied": false,
 	})
 }
 func (server *Server) version(response http.ResponseWriter, _ *http.Request) {
