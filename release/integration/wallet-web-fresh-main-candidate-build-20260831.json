@@ -5,7 +5,7 @@
   "candidate": {
     "baselineMainCommit": "babfc57cebf60eadaec51398202de11cda742901",
     "ownerSourceCommit": "0add9f817b79790cfe3d26a88c9a64f90fdaeebb",
-    "candidateRuntimeSourceCommit": "f346dba02e981748b5e2a884a516bdac71d54210",
+    "candidateRuntimeSourceCommit": "ead6a7fa8248155404f36a0dd8b6232d76ca37ec",
     "importedPaths": [
       "apps/wallet-web",
       "release/integration/wallet-web-pwa-site"
@@ -47,20 +47,20 @@
   "artifacts": [
     {
       "name": "ynx-wallet-web-pwa-0.1.0.zip",
-      "bytes": 287017,
-      "sha256": "80ebaeb10f350e04a39854a4abc061259a27a14e40b7cb8e453073fcb015fb60",
+      "bytes": 287018,
+      "sha256": "cb66b49abd4829dc582c8d89ebae55e6d74b6427f65daea8b5836dab42538ff2",
       "signingClass": "unsigned-web-bundle"
     },
     {
       "name": "ynx-wallet-chrome-edge-0.1.0.zip",
-      "bytes": 469942,
-      "sha256": "299b14faf5e031d61caed14c7ea93adf53a719de89725437632fc6f5350784a3",
+      "bytes": 469921,
+      "sha256": "486597794590c31fbf58c90ff5e865bb9910a9f463d0ce41727194e846a02139",
       "signingClass": "unsigned-unpacked-extension"
     },
     {
       "name": "ynx-wallet-firefox-0.1.0.zip",
-      "bytes": 469975,
-      "sha256": "9dfd176b629ce30575e9aa782c715de4f3b391ca0d8ba54b9f4bb95dd2065d7d",
+      "bytes": 469954,
+      "sha256": "0cc5807b2bd9fa0cc0ab5d9f4927b48c22851fa4cfdbb05db09aad1c9d329b7e",
       "signingClass": "unsigned-unpacked-extension"
     }
   ],
