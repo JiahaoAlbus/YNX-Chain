@@ -1,0 +1,59 @@
+{
+  "schema": "ynx.social.6423.release-candidate.v1",
+  "status": "CANDIDATE_NOT_DEPLOYED",
+  "target": "https://social.ynxweb4.com/",
+  "source": {
+    "repositoryCommit": "c963f16853f73abb44aa578213cb91b4aa11d8f3",
+    "parentCommit": "60e7426c1758fc3bae9e52923214abab6732806b",
+    "repositoryTree": "de5270d44954f7eb4c46f528eea55dc9feef23d0",
+    "socialTree": "90ed6c10ccd816e81f0aec76b094f26a240d98f8",
+    "remote": "origin/codex/social-p0-launcher-slice",
+    "remoteReadback": "c963f16853f73abb44aa578213cb91b4aa11d8f3"
+  },
+  "artifact": {
+    "path": "apps/social/evidence/release-candidates/ynx-social-c963f168.tar.gz",
+    "bytes": 1828925,
+    "sha256": "f0de92beb645875c3340f9eac6245c36547ea896ea75925d337725766bfe5b37",
+    "format": "git-archive-tar-gz",
+    "prefix": "ynx-social-c963f168/"
+  },
+  "network": {
+    "nativeChainId": "ynx_6423-1",
+    "evmChainId": 6423,
+    "evmChainQuantity": "0x1917",
+    "forbiddenChainIds": ["ynx_9102-1", "0x238e", 9102]
+  },
+  "plannedNonSensitiveChecks": {
+    "status": "PENDING_PUBLIC_DEPLOYMENT",
+    "checks": [
+      "distinct official YNX Wallet and MetaMask identity and logo",
+      "late-provider and no-provider state",
+      "stable URL",
+      "single top-level tab and no blank page",
+      "zero browser console errors"
+    ]
+  },
+  "deployment": {
+    "authorized": false,
+    "singleUseLease": "CENTRAL_LEASE_REQUIRED",
+    "executor": "CENTRAL_RELEASE_EXECUTOR_TO_BE_NAMED",
+    "expiry": "CENTRAL_LEASE_EXPIRY_TO_BE_NAMED"
+  },
+  "rollback": {
+    "artifact": "CENTRAL_RELEASE_RECORD_REQUIRED",
+    "deployment": "CENTRAL_RELEASE_RECORD_REQUIRED",
+    "procedure": "CENTRAL_RELEASE_RECORD_REQUIRED"
+  },
+  "sensitiveBoundary": {
+    "accountRequest": "FORBIDDEN",
+    "walletSigning": "FORBIDDEN",
+    "transactionSubmission": "FORBIDDEN"
+  },
+  "readiness": {
+    "sourceBound": true,
+    "artifactBound": true,
+    "publicRuntimeBound": false,
+    "releaseSignable": false,
+    "blocker": "EXACT_ROUTER_SDK_SOURCE_NOT_AVAILABLE_IN_CURRENT_OWNER_TREE"
+  }
+}
