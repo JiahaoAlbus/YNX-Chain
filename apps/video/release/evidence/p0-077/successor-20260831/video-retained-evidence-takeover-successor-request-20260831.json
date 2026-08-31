@@ -54,6 +54,18 @@
     "retainedParentIsOutsideCleanupScope": true
   },
   "executionObjects": {
+    "deterministicPackage": {
+      "path": "apps/video/release/evidence/p0-077/successor-20260831/ynx-video-retained-evidence-takeover-810d3e56.tar.gz",
+      "bytes": 6203,
+      "sha256": "49dd487f5ba2ba33bde69f8e0fb80ee3fcbe53d04a91383f91e9f77c05a5f45e",
+      "repeatBuildByteExact": true,
+      "sourceCommit": "810d3e5635788128c7579dab64bf1439fb7a4acd",
+      "requiredEntries": [
+        "apps/video/scripts/video-runtime-controlled-takeover.sh",
+        "apps/video/scripts/video-retained-evidence-guard.mjs",
+        "apps/video/release/evidence/p0-077/successor-20260831/video-retained-evidence-inventory-p0311.json"
+      ]
+    },
     "controlledTakeover": {
       "path": "apps/video/scripts/video-runtime-controlled-takeover.sh",
       "blob": "4429018b3078c74ef0b8dff6a6a944dd98d236aa",
