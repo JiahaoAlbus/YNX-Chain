@@ -1,0 +1,207 @@
+{
+  "schema": "cardSourceBoundStaticDeploymentLeaseRequest@1.0.0-p0.2",
+  "requestId": "P0-CARD-SOURCE-BOUND-NESTED-STATIC-DEPLOYMENT-20260831-ARTWORK",
+  "owner": "card",
+  "priority": "P0",
+  "requestedState": "CARD_ONLY_SINGLE_USE_PRODUCTION_DEPLOYMENT",
+  "requestedExecutor": "Central-issued single executor only",
+  "requestHead": {
+    "commit": "fbc5ce1bf26ad5611200fdcb0c7b84e36d54b4b4",
+    "tree": "50d1c3e863e2ecbc1091a31abbfce966246a23b7",
+    "branch": "codex/p0-card-static-deploy-envelope-20260822"
+  },
+  "scope": {
+    "repositoryPaths": [
+      "apps/card/**"
+    ],
+    "vercelProject": "jiahaoalbus-projects/ynx-card-testnet-simulation",
+    "vercelProjectId": "prj_DU37JeDK4Rx0MjxIV745veV5Qgxp",
+    "canonicalUrl": "https://card.ynxweb4.com/",
+    "deploymentRoot": "apps/card/deployment-envelope",
+    "fixedOutputDirectory": "dist-web",
+    "forbidden": [
+      "Vercel project settings",
+      "DNS changes",
+      "chain server configuration",
+      "Caddy",
+      "systemd",
+      "other product source or routes",
+      "Wallet source",
+      "Gateway source",
+      "eth_requestAccounts",
+      "signature",
+      "transaction"
+    ]
+  },
+  "candidate": {
+    "chainIdentity": {
+      "decimal": 6423,
+      "hex": "0x1917"
+    },
+    "simulatedRiskControls": {
+      "countryDenylist": "COUNTRY_BLOCKED"
+    },
+    "artworkManifest": {
+      "path": "apps/card/assets/card-artwork-manifest.json",
+      "sha256": "c189c765e715d0cfc792166adee13170754895787db753b24516df4e11c990ce",
+      "files": [
+        {
+          "path": "apps/card/assets/card-testnet-identity.svg",
+          "bytes": 2514,
+          "sha256": "4e689957655b9599b543b10a447dc723c94b2e1d78ec7cf51923836a26f1726a"
+        },
+        {
+          "path": "apps/card/assets/card-testnet-download-cover.svg",
+          "bytes": 2230,
+          "sha256": "30c7b7aa27bf70160d1c681cc90c22758d59c258d25567b652b6514fa3d12524"
+        }
+      ]
+    },
+    "staticEnvelope": {
+      "files": [
+        {
+          "path": "build-static.mjs",
+          "bytes": 71,
+          "sha256": "f608b78fb7478405278923e5b739988aa9a6fbc6575a08b84d0ee7e8d486e961"
+        },
+        {
+          "path": "dist-web/_expo/static/js/web/Crypto-18806bcac3c286e8ea55353192d1639a.js",
+          "bytes": 10118,
+          "sha256": "882258d8b8dec360da902cac6af9b85ef5ecddae27739742b26360f4946adfbb"
+        },
+        {
+          "path": "dist-web/_expo/static/js/web/index-d2e90c20a89a486c4e2f68eb0b9dc108.js",
+          "bytes": 2911147,
+          "sha256": "86055b548b6589f9d26d156b5db30cf48eb3fb3aec4e941585901fb44d830e2c"
+        },
+        {
+          "path": "dist-web/assets/assets/icon.ac64b115433cc62063b01bbab973bec7.png",
+          "bytes": 863227,
+          "sha256": "6252153a2fd0d12cb61a1223cea3277ceff863eb82b6073049419459b359f86f"
+        },
+        {
+          "path": "dist-web/assets/assets/metamask-fox.024a98855742a7b85946088532e2d4c1.png",
+          "bytes": 3682,
+          "sha256": "25f2f224f9d01c78ae3dc2d07a339053cc402961a59cf818f2753c12db9ec796"
+        },
+        {
+          "path": "dist-web/card-testnet-icon.png",
+          "bytes": 863227,
+          "sha256": "6252153a2fd0d12cb61a1223cea3277ceff863eb82b6073049419459b359f86f"
+        },
+        {
+          "path": "dist-web/favicon.ico",
+          "bytes": 14510,
+          "sha256": "1eda72df0357a4a4b6d396d79ca0ab775c230723473b47e8195d2e629972ceb3"
+        },
+        {
+          "path": "dist-web/index.html",
+          "bytes": 1717,
+          "sha256": "53e856c6db1b77bc0604154fe50bf2d5aa6ae45f31327a171d1938bb70afdd2e"
+        },
+        {
+          "path": "dist-web/manifest.webmanifest",
+          "bytes": 460,
+          "sha256": "f3e634129abe79c5b81b7fc8dac3950e5cb21f1d1263b1938fcd06a58e2c686f"
+        },
+        {
+          "path": "dist-web/metadata.json",
+          "bytes": 49,
+          "sha256": "aa5f19cc84d41c0f8c70ececb2bc82e863227ea1e121632aca879eb616056991"
+        },
+        {
+          "path": "dist-web/package.json",
+          "bytes": 74,
+          "sha256": "b4973b4a419ac0bcab4e76ffe0a0a02f55938986d162b853429e1115086bbe75"
+        },
+        {
+          "path": "dist-web/pwa-register.js",
+          "bytes": 201,
+          "sha256": "87671daaddfae6a98e473eedf34a8844d5fd82676f2111808057e98d9b4012a6"
+        },
+        {
+          "path": "dist-web/sw.js",
+          "bytes": 364,
+          "sha256": "1a9acfe442d2920040a1999f4fe4efe3f97d7a42a9debef047d469972889638f"
+        },
+        {
+          "path": "package.json",
+          "bytes": 83,
+          "sha256": "272f57205d44cf347719b013fda538dae2d93a359f291654b0bffcff5d3282a0"
+        }
+      ],
+      "immutableResources": {
+        "indexHtml": {
+          "path": "dist-web/index.html",
+          "bytes": 1717,
+          "sha256": "53e856c6db1b77bc0604154fe50bf2d5aa6ae45f31327a171d1938bb70afdd2e"
+        },
+        "mainJavaScript": {
+          "path": "dist-web/_expo/static/js/web/index-d2e90c20a89a486c4e2f68eb0b9dc108.js",
+          "bytes": 2911147,
+          "sha256": "86055b548b6589f9d26d156b5db30cf48eb3fb3aec4e941585901fb44d830e2c"
+        },
+        "manifest": {
+          "path": "dist-web/manifest.webmanifest",
+          "bytes": 460,
+          "sha256": "f3e634129abe79c5b81b7fc8dac3950e5cb21f1d1263b1938fcd06a58e2c686f"
+        },
+        "serviceWorker": {
+          "path": "dist-web/sw.js",
+          "bytes": 364,
+          "sha256": "1a9acfe442d2920040a1999f4fe4efe3f97d7a42a9debef047d469972889638f"
+        }
+      }
+    }
+  },
+  "validation": {
+    "date": "2026-08-31",
+    "tests": "PASS_47_OF_47_FROM_SOURCE_CHECKPOINT",
+    "typecheck": "PASS_FROM_SOURCE_CHECKPOINT",
+    "webBuild": "PASS",
+    "nestedEnvelopeBuild": "PASS",
+    "nestedEnvelopeVerification": "PASS_12_STATIC_FILES",
+    "envelopeHashes": "PASS_14_OF_14",
+    "accountAccessRequested": false,
+    "signatureRequested": false,
+    "transactionRequested": false
+  },
+  "rollbackBaseline": {
+    "deploymentId": "dpl_DqMuEhno65bLFTNKBu9gs52soVri",
+    "canonicalUrl": "https://card.ynxweb4.com/",
+    "status": "READY",
+    "htmlSha256": "56827ca95005951ae791245b6c3021691beace32683209936c7519324c28ed24",
+    "mainJavaScriptSha256": "2103aba7f844d4a3c067eac0ecbf0acbc9ebf8fb8831c44fd248df90261a8568",
+    "manifestSha256": "f3e634129abe79c5b81b7fc8dac3950e5cb21f1d1263b1938fcd06a58e2c686f",
+    "serviceWorkerSha256": "1a9acfe442d2920040a1999f4fe4efe3f97d7a42a9debef047d469972889638f"
+  },
+  "requestedLease": {
+    "singleUse": true,
+    "requiresCentralActiveLease": true,
+    "forbidsDeploymentBeforeLease": true,
+    "requiredPrewrite": [
+      "Remote-read request head and tree",
+      "Fresh clean envelope rebuild with exact hashes",
+      "Read Ready rollback deployment and canonical hashes",
+      "Bind only the fixed Card Vercel project and canonical Card domain"
+    ],
+    "postDeployment": [
+      "Freeze deployment ID and immutable URL",
+      "Verify canonical resource hashes",
+      "One clean browser tab verifies English Guest/Testnet boundaries, distinct wallet identities, no custom scheme and zero console errors",
+      "Do not request wallet accounts, signatures, or transactions"
+    ],
+    "onPostDeploymentFailure": "Rollback exactly once to dpl_DqMuEhno65bLFTNKBu9gs52soVri and return terminal evidence."
+  },
+  "truth": {
+    "deploymentAuthorized": false,
+    "deploymentExecuted": false,
+    "sourceBoundPublic": false,
+    "cleanBrowserValidated": false,
+    "walletApproved": false,
+    "chainSwitchVerified": false,
+    "registrationActive": false,
+    "ynxtTopUpVerified": false,
+    "transactionExecuted": false
+  }
+}
