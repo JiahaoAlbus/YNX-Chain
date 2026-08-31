@@ -26,10 +26,6 @@
       {
         "path": "scripts/verify/explorer-check.sh",
         "sha256": "ed3a4e90e90cbb3e9f03d3f2bd5b0eb3f3827c6d84eca748c273d2ba74e368ad"
-      },
-      {
-        "path": "design-qa.md",
-        "sha256": "c6d4ae37cc1e31536335327648862ec9c8fdd56936b79f7b4fff7aa2e4e7e052"
       }
     ]
   },

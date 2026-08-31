@@ -142,3 +142,8 @@ This is local responsive and accessibility evidence against the 6423 node/indexe
 
 - Every unavailable ecosystem Open, Docs, and Download control now carries the localized no-public-link explanation directly on its disabled control. The separate Status control remains operable and opens the same evidence-gated explanation.
 - Browser evidence: the Ecosystem route exposed ten Status controls and thirty disabled product-action controls; none of the disabled actions lacked a reason title and the route had no horizontal overflow.
+
+## 2026-08-31 local runtime recovery check
+
+- A final local health probe returned 502 after its local 6423 node had exited. Explorer preserved its fail-closed behavior and did not render the prior snapshot as current data.
+- A fresh temporary local 6423 node and indexer were then started on the existing preview ports. Explorer health recovered with `ok: true`, chain `6423`, EVM `0x1917`, native `YNXT`, and equal RPC/indexed height `8`. This recovery is local evidence only and makes no availability claim for a public endpoint.
