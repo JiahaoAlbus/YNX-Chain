@@ -49,7 +49,8 @@ async function fileIdentity(path){const s=await lstat(path);if(!s.isFile()||s.nl
 async function releaseIdentity(path){const manifest=join(path,"creator-studio.manifest.json"),parsed=JSON.parse(await readFile(manifest,"utf8"));return{tuple:await tuple(path),manifest:await fileIdentity(manifest),sourceCommit:parsed.sourceCommit,sourceTree:parsed.sourceTree}}
 async function inventory(root){const values=[];const walk=async(rel="")=>{for(const name of(await readdir(join(root,rel))).sort()){const next=join(rel,name),s=await lstat(join(root,next));if(s.isSymbolicLink()||(!s.isDirectory()&&!s.isFile()))throw Error("CANDIDATE_UNSUPPORTED_ENTRY:"+next);values.push((s.isDirectory()?"d:":"f:")+next);if(s.isDirectory())await walk(next)}};await walk();return values.sort()}
 async function ownedDirectoryIdentity(path){const value=await tuple(path);if(value.type!=="directory")throw Error("OWNED_DIRECTORY_INVALID:"+path);return{dev:value.dev,ino:value.ino,uid:value.uid,gid:value.gid,mode:value.mode,type:value.type}}
-async function removeOwnedDirectory(path,expected,hooks,label){if(hooks?.beforeOwnedCleanup)await hooks.beforeOwnedCleanup({path,label,expected});const actual=await ownedDirectoryIdentity(path);if(!same(actual,expected))throw Error("OWNED_DIRECTORY_SUBSTITUTED:"+label);await rm(path,{recursive:true});await absent(path)}
+async function treeSnapshot(root){const values=[];const walk=async(rel="")=>{for(const name of(await readdir(join(root,rel))).sort()){const next=join(rel,name),path=join(root,next),s=await lstat(path),base={path:next,dev:String(s.dev),ino:String(s.ino),uid:s.uid,gid:s.gid,mode:mode(s),nlink:s.nlink,type:s.isDirectory()?"directory":s.isFile()?"file":s.isSymbolicLink()?"symlink":"other"};if(base.type==="file"){const bytes=await readFile(path);values.push({...base,bytes:bytes.length,sha256:sha(bytes)})}else{values.push(base);if(base.type==="directory")await walk(next)}}};await walk();return values}
+async function quarantineOwnedDirectory(path,expected,expectedTree,hooks,label){const quarantine=path+".cleanup-pre-switch";if(!same(await ownedDirectoryIdentity(path),expected)||!same(await treeSnapshot(path),expectedTree))throw Error("OWNED_DIRECTORY_TREE_CHANGED:"+label);if(hooks?.beforeOwnedCleanup)await hooks.beforeOwnedCleanup({path,label,expected,expectedTree});await absent(quarantine);await rename(path,quarantine);if(!same(await ownedDirectoryIdentity(quarantine),expected)||!same(await treeSnapshot(quarantine),expectedTree))throw Error("OWNED_DIRECTORY_QUARANTINE_MISMATCH:"+label);await rm(quarantine,{recursive:true});await absent(quarantine);await absent(path)}
 async function removeOwnedPath(path,expected,hooks,label){if(hooks?.beforeOwnedCleanup)await hooks.beforeOwnedCleanup({path,label,expected});const actual=await tuple(path);if(!same(actual,expected))throw Error("OWNED_PATH_SUBSTITUTED:"+label);await rm(path);await absent(path)}
 function run(bin,args){return execFileSync(bin,args,{encoding:"utf8"}).trim()}
 function show(property){return run(F.systemctl,["show",F.service,"--property="+property,"--value"])}
@@ -70,16 +71,17 @@ async function forward(apiPid,viewerPid,preflightPort,hooks){
   const current=await currentBinding(F.oldRelease),unit=await fileIdentity(F.unit),service=hooks?.service?await hooks.service():await serviceIdentity(),siblings=hooks?.siblings?await hooks.siblings():await siblingIdentity(apiPid,viewerPid);
   if(service.active!=="active"||service.sub!=="running"||service.mainPid<2||service.fragment!==F.unit||service.workingDirectory!==F.current||service.user!=="ynx")throw Error("PREWRITE_SERVICE_IDENTITY_FAILED");
   const before={current,unit,service,siblings,public:await verifyPublic("old",hooks),absence:{newRelease:true,stage:true,currentNext:true,receipt:true,receiptNext:true},preflightPort:Number(preflightPort)};
-  let stageOwned=null,newReleaseOwned=null,currentNextOwned=null,receiptOwned=null,switched=false;
+  let stageOwned=null,stageTree=null,newReleaseOwned=null,newReleaseTree=null,currentNextOwned=null,receiptOwned=null,switched=false;
   try{
     if(hooks?.failAt==="prewrite")throw Error("FIXTURE_PREWRITE_FAILURE");
     await mkdir(F.stage,{recursive:false});stageOwned=await ownedDirectoryIdentity(F.stage);
     execFileSync("tar",["-xf",F.candidate,"-C",F.stage]);run("chown",["-R",F.owner,F.stage]);
     const staged=await verifyCandidate(F.stage);
-    stageOwned=await ownedDirectoryIdentity(F.stage);
+    stageOwned=await ownedDirectoryIdentity(F.stage);stageTree=await treeSnapshot(F.stage);
     const cold=hooks?.coldStart?await hooks.coldStart(F.stage,Number(preflightPort)):await coldStart(F.stage,Number(preflightPort));
-    await rename(F.stage,F.newRelease);stageOwned=null;newReleaseOwned=await ownedDirectoryIdentity(F.newRelease);
+    await rename(F.stage,F.newRelease);stageOwned=null;stageTree=null;newReleaseOwned=await ownedDirectoryIdentity(F.newRelease);newReleaseTree=await treeSnapshot(F.newRelease);
     const created=await releaseIdentity(F.newRelease);if(!same(created.tuple,staged.tuple))throw Error("RELEASE_RENAME_TUPLE_CHANGED");
+    if(hooks?.failAt==="materialized")throw Error("FIXTURE_MATERIALIZED_FAILURE");
     const prepared={schemaVersion:"1.0.0",status:"FORWARD_PREPARED_AWAITING_SWITCH",before,material:{candidateSha256:F.candidateSha,rollbackCarrierSha256:F.rollbackCarrierSha,newRelease:created,cold}};
     await mkdir(dirname(F.receipt),{recursive:true});receiptOwned=await writeReceipt(F.receipt,prepared);
     await symlink(F.newRelease,F.currentNext);currentNextOwned=await tuple(F.currentNext);
@@ -93,8 +95,8 @@ async function forward(apiPid,viewerPid,preflightPort,hooks){
     if(switched){try{await rollback(apiPid,viewerPid,hooks,{automatic:true})}catch(rollbackError){throw Error(error.message+";AUTOMATIC_ROLLBACK_FAILED:"+rollbackError.message)}throw Error(error.message+";POST_SWITCH_ROLLBACK_TERMINAL")}
     if(currentNextOwned)await removeOwnedPath(F.currentNext,currentNextOwned,hooks,"current-next");
     if(receiptOwned)await removeOwnedPath(F.receipt,receiptOwned,hooks,"prepared-receipt");
-    if(newReleaseOwned)await removeOwnedDirectory(F.newRelease,newReleaseOwned,hooks,"candidate-release");
-    if(stageOwned)await removeOwnedDirectory(F.stage,stageOwned,hooks,"candidate-stage");
+    if(newReleaseOwned&&newReleaseTree)await quarantineOwnedDirectory(F.newRelease,newReleaseOwned,newReleaseTree,hooks,"candidate-release");
+    if(stageOwned&&stageTree)await quarantineOwnedDirectory(F.stage,stageOwned,stageTree,hooks,"candidate-stage");
     await absent(F.stage);await absent(F.newRelease);await absent(F.currentNext);await absent(F.receipt);await absent(F.receiptNext);
     const clean=await terminal("old",apiPid,viewerPid,hooks);if(clean.service.mainPid!==service.mainPid||clean.service.nRestarts!==service.nRestarts)throw Error(error.message+";PRE_SWITCH_LIFECYCLE_CHANGED");
     throw Error(error.message+";PRE_SWITCH_CLEAN_TERMINAL");
@@ -117,13 +119,17 @@ async function fixture(){
     const coldStartFailureClean=await forward(6493,6494,5188,{...hooks,coldStart:async()=>{throw Error("FIXTURE_COLD_START_FAILURE")}}).then(()=>false,error=>error.message.includes("PRE_SWITCH_CLEAN_TERMINAL"));
     const coldStartPathsAbsent=(await Promise.all([F.stage,F.newRelease,F.currentNext,F.receipt,F.receiptNext].map(isAbsent))).every(Boolean);
     let stageOriginal=null,stageForeign=null;
-    const stageSubstitutionRejected=await forward(6493,6494,5188,{...hooks,coldStart:async()=>{throw Error("FIXTURE_COLD_START_FAILURE")},beforeOwnedCleanup:async({path,label})=>{if(label!=="candidate-stage"||stageOriginal)return;stageOriginal=path+".owned";await rename(path,stageOriginal);await mkdir(path);stageForeign=await ownedDirectoryIdentity(path)}}).then(()=>false,error=>error.message.includes("OWNED_DIRECTORY_SUBSTITUTED:candidate-stage"));
-    const stageOwnedPreserved=stageOriginal?!(await isAbsent(stageOriginal)):false,stageForeignPreserved=stageForeign?!(await isAbsent(F.stage)):false;
-    if(stageOriginal)await rm(stageOriginal,{recursive:true,force:true});await rm(F.stage,{recursive:true,force:true});
+    const stageSubstitutionRejected=await forward(6493,6494,5188,{...hooks,coldStart:async()=>{throw Error("FIXTURE_COLD_START_FAILURE")},beforeOwnedCleanup:async({path,label})=>{if(label!=="candidate-stage"||stageOriginal)return;stageOriginal=path+".owned";await rename(path,stageOriginal);await mkdir(path);stageForeign=await ownedDirectoryIdentity(path)}}).then(()=>false,error=>error.message.includes("OWNED_DIRECTORY_QUARANTINE_MISMATCH:candidate-stage"));
+    const stageForeignQuarantine=F.stage+".cleanup-pre-switch",stageOwnedPreserved=stageOriginal?!(await isAbsent(stageOriginal)):false,stageForeignPreserved=stageForeign?!(await isAbsent(stageForeignQuarantine)):false;
+    if(stageOriginal)await rm(stageOriginal,{recursive:true,force:true});await rm(stageForeignQuarantine,{recursive:true,force:true});
+    const foreignChildRejected=await forward(6493,6494,5188,{...hooks,coldStart:async()=>{throw Error("FIXTURE_COLD_START_FAILURE")},beforeOwnedCleanup:async({path,label})=>{if(label==="candidate-stage")await writeFile(join(path,"foreign-child.txt"),"foreign")}}).then(()=>false,error=>error.message.includes("OWNED_DIRECTORY_QUARANTINE_MISMATCH:candidate-stage"));
+    const foreignChildPreserved=!(await isAbsent(stageForeignQuarantine));await rm(stageForeignQuarantine,{recursive:true,force:true});
+    const sameBytesNewInodeRejected=await forward(6493,6494,5188,{...hooks,failAt:"materialized",beforeOwnedCleanup:async({path,label})=>{if(label!=="candidate-release")return;const target=join(path,"app.js"),bytes=await readFile(target);await rm(target);await writeFile(target,bytes,{mode:0o644})}}).then(()=>false,error=>error.message.includes("OWNED_DIRECTORY_QUARANTINE_MISMATCH:candidate-release"));
+    const candidateForeignQuarantine=F.newRelease+".cleanup-pre-switch",sameBytesNewInodePreserved=!(await isAbsent(candidateForeignQuarantine));await rm(candidateForeignQuarantine,{recursive:true,force:true});
     await mkdir(F.newRelease);const targetAbsenceRejected=await forward(6493,6494,5188,hooks).then(()=>false,()=>true);await rm(F.newRelease,{recursive:true});
     const restored=(await readlink(F.current))===F.oldRelease,candidateHashBound=success.material.candidateSha256===saved.candidateSha,rollbackHashBound=success.material.rollbackCarrierSha256===saved.rollbackCarrierSha;
-    if(!rolled.newReleaseAbsent||!targetAbsenceRejected||!restored||!candidateHashBound||!rollbackHashBound||!unexpectedDirectoryRejected||!prewriteFailureClean||!prewritePathsAbsent||!coldStartFailureClean||!coldStartPathsAbsent||!stageSubstitutionRejected||!stageOwnedPreserved||!stageForeignPreserved)throw Error("FIXTURE_GATE_FAILED");
-    console.log(JSON.stringify({fixture:"passed",forwardStatus:success.status,rollbackStatus:rolled.status,targetAbsenceRejected,currentRestored:restored,newReleaseAbsent:rolled.newReleaseAbsent,candidateHashBound,rollbackHashBound,cleanCandidateInventoryBound:true,unexpectedDirectoryRejected,prewriteFailureCleanTerminal:prewriteFailureClean,prewritePathsAbsent,coldStartFailureCleanTerminal:coldStartFailureClean,coldStartPathsAbsent,stageSubstitutionRejected,stageOwnedPreserved,stageForeignPreserved,preSwitchRollbackInvoked:false,unitBound:true,servicePidNRestartsBound:true,portBound:true,publicBindings:true},null,2));
+    if(!rolled.newReleaseAbsent||!targetAbsenceRejected||!restored||!candidateHashBound||!rollbackHashBound||!unexpectedDirectoryRejected||!prewriteFailureClean||!prewritePathsAbsent||!coldStartFailureClean||!coldStartPathsAbsent||!stageSubstitutionRejected||!stageOwnedPreserved||!stageForeignPreserved||!foreignChildRejected||!foreignChildPreserved||!sameBytesNewInodeRejected||!sameBytesNewInodePreserved)throw Error("FIXTURE_GATE_FAILED");
+    console.log(JSON.stringify({fixture:"passed",forwardStatus:success.status,rollbackStatus:rolled.status,targetAbsenceRejected,currentRestored:restored,newReleaseAbsent:rolled.newReleaseAbsent,candidateHashBound,rollbackHashBound,cleanCandidateInventoryBound:true,unexpectedDirectoryRejected,prewriteFailureCleanTerminal:prewriteFailureClean,prewritePathsAbsent,coldStartFailureCleanTerminal:coldStartFailureClean,coldStartPathsAbsent,stageSubstitutionRejected,stageOwnedPreserved,stageForeignPreserved,foreignChildRejected,foreignChildPreserved,sameBytesNewInodeRejected,sameBytesNewInodePreserved,preSwitchRollbackInvoked:false,unrelatedDeletion:false,unitBound:true,servicePidNRestartsBound:true,portBound:true,publicBindings:true},null,2));
   }finally{Object.assign(F,saved);await rm(base,{recursive:true,force:true})}
 }
 
