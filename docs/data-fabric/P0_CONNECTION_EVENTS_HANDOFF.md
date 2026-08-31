@@ -58,6 +58,13 @@
 - Each rejected `rawError`, `developerMessage`, `accountId`, and `sessionId` vector carries a non-sensitive test sentinel. Strict decode returns the bounded unknown-field code without reflecting that sentinel in the error text or structured rejection evidence, and before any persistence step.
 - Local validation passed: `go test ./internal/datafabric -count=1` and `go test -race ./internal/datafabric -count=1`. GitHub Actions run `33391974185` passed all six jobs at binding head `184abdb5429cdfd5b2953b43beb73b5385806439`.
 
+### Testnet identity rejection — 2026-08-31
+
+- Implementation commit: `624ba818dcacd56dbcd0a606513210a06991cfca`.
+- `scripts/data-fabric/testnet-deployment-check.sh` now verifies the deployment verifier rejects loopback BFT fixtures that report either legacy chain `9102`/`ynx_9102-1` or asset symbol `NYXT`. The canonical fixture remains `6423`/`ynx_6423-1`/`YNXT`.
+- The release-truth gate now treats every `scripts/data-fabric/**` file as frozen engineering source, so deployment-verifier behavior cannot drift after source binding.
+- Local validation passed: `node --check` for both Node scripts, `bash -n` for deployment scripts, and `bash scripts/data-fabric/testnet-deployment-check.sh`. No actual endpoint was called and P0-147 remains `WAITING_EXTERNAL_PUBLIC_ENDPOINT_UNBOUND`.
+
 ## Truth boundary and requested Integration action
 
 This is a committed local runtime-adapter checkpoint, not central deployment, public deployment, installed-product proof, Wallet integration proof, or Card E2E funding proof. `integratedCentral`, `deployedStaging`, `deployedPublic`, `downloadHosted`, `productionSigned`, and `storeReleased` remain false absent their own direct evidence.
