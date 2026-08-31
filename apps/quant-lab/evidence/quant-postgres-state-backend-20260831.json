@@ -6,6 +6,10 @@
     "commit": "818434e120c4518796fa5e71b94c8474423b9615",
     "tree": "b8eb2c18aae89e5c3e0bd568abe552b7acce6675"
   },
+  "integrationTestSource": {
+    "commit": "64f662e9e3d20d853b17d5e0c4d7f19e5577dcb7",
+    "tree": "00f0c4c3b445f9b57ec79377e623fed890e410d4"
+  },
   "migration": {
     "path": "apps/quant-lab/migrations/0001_quant_state_postgres.sql",
     "table": "ynx_quant_state",
@@ -25,7 +29,14 @@
     "goVet": "pass",
     "quantNodeTests": "6/6 pass",
     "walletBuild": "pass",
-    "postgresIntegration": "not_run_no_product_database_or_lease"
+    "postgresIntegration": "pass_ephemeral_local_postgresql16_loopback_only",
+    "postgresCoverage": [
+      "two independent service instances",
+      "revision CAS single winner and conflict",
+      "restart recovery",
+      "tenant namespace isolation",
+      "PostgreSQL health contract"
+    ]
   },
   "localArtifact": {
     "path": "/tmp/ynx-quant-postgres-state-candidate",

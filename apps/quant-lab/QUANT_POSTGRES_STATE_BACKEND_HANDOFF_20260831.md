@@ -4,6 +4,9 @@
 
 - Commit: `818434e120c4518796fa5e71b94c8474423b9615`
 - Tree: `b8eb2c18aae89e5c3e0bd568abe552b7acce6675`
+- PostgreSQL integration-test checkpoint:
+  `64f662e9e3d20d853b17d5e0c4d7f19e5577dcb7`
+- Integration-test tree: `00f0c4c3b445f9b57ec79377e623fed890e410d4`
 - Migration: `apps/quant-lab/migrations/0001_quant_state_postgres.sql`
 - Local Linux build candidate SHA-256:
   `92241fb096cffa78fd905435724592fbca4662e96bbd07f15841eaa2b255fe3d`
@@ -39,9 +42,13 @@ the existing idempotency key. The service exposes backend truth through
 
 The test suite exercises namespace validation, explicit durable-conflict
 rollback, file-backend disclosure, existing cross-process file-lock tests,
-tenant isolation, API, WebSocket and metrics behavior. A real PostgreSQL
-integration run has **not** been performed: no product-owned database URL or
-deployment lease was supplied.
+tenant isolation, API, WebSocket and metrics behavior. The optional PostgreSQL
+integration test was run once against an ephemeral local PostgreSQL 16
+container bound to loopback only. It proved two independent service instances
+receive exactly one CAS winner and one conflict, restart recovery, the
+PostgreSQL health contract, and namespace tenant isolation. The container was
+stopped and removed after the test. This is not a product database, public
+deployment, or production lease.
 
 ## Central integration prerequisites
 
