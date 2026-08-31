@@ -277,6 +277,11 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	if !strings.Contains(html, `disabled aria-disabled="true" title="' + escapeHTML(e('noProductLink'))`) {
 		t.Fatal("unverified ecosystem actions must explain why they are disabled")
 	}
+	for _, required := range []string{"localTestnet:'Verified in this local 6423 Testnet portal only'", "escapeHTML(localTestnet ? e('testnet') : e('notPublic'))", "escapeHTML(localTestnet ? e('localTestnet') : e('notPublic'))"} {
+		if !strings.Contains(html, required) {
+			t.Fatalf("ecosystem availability must use an evidence-bound state %q", required)
+		}
+	}
 	if !strings.Contains(html, `href="#documentation" data-route="documentation">' + escapeHTML(v('apiReference'))`) || !strings.Contains(html, `title="' + escapeHTML(doc('publicAPIUnavailable'))`) {
 		t.Fatal("developer tools must route local API documentation in-portal and explain missing public developer services")
 	}

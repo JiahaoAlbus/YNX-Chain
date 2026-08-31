@@ -719,11 +719,11 @@ const indexHTML = `<!doctype html>
     };
     const resourceAnalytics = key => resourceAnalyticsUI[language]?.[key] || resourceAnalyticsUI.en[key] || key;
     const ecosystemUI = {
-      en:{support:'6423 support',platforms:'Platforms',open:'Open',docs:'Docs',download:'Download',status:'Status',notPublic:'Not publicly verified',liveDependent:'Live endpoint dependent',noProductLink:'No verified public product link, documentation route, or download artifact is configured.'},
-      'zh-CN':{support:'6423 支持',platforms:'平台',open:'打开',docs:'文档',download:'下载',status:'状态',notPublic:'尚未公开验证',liveDependent:'取决于实时端点',noProductLink:'尚未配置已验证的公开产品链接、文档路由或下载制品。'},
-      'zh-TW':{support:'6423 支援',platforms:'平台',open:'開啟',docs:'文件',download:'下載',status:'狀態',notPublic:'尚未公開驗證',liveDependent:'取決於即時端點',noProductLink:'尚未設定已驗證的公開產品連結、文件路由或下載成品。'},
-      ja:{support:'6423 対応',platforms:'プラットフォーム',open:'開く',docs:'ドキュメント',download:'ダウンロード',status:'状態',notPublic:'公開検証なし',liveDependent:'ライブエンドポイントに依存',noProductLink:'検証済みの公開プロダクトリンク、ドキュメントルート、ダウンロード成果物は設定されていません。'},
-      ko:{support:'6423 지원',platforms:'플랫폼',open:'열기',docs:'문서',download:'다운로드',status:'상태',notPublic:'공개 검증되지 않음',liveDependent:'실시간 엔드포인트에 따름',noProductLink:'검증된 공개 제품 링크, 문서 경로 또는 다운로드 아티팩트가 구성되지 않았습니다.'}
+      en:{support:'6423 support',platforms:'Platforms',open:'Open',docs:'Docs',download:'Download',status:'Status',testnet:'Testnet',notPublic:'Unavailable',localTestnet:'Verified in this local 6423 Testnet portal only',noProductLink:'No verified public product link, documentation route, or download artifact is configured.'},
+      'zh-CN':{support:'6423 支持',platforms:'平台',open:'打开',docs:'文档',download:'下载',status:'状态',testnet:'测试网',notPublic:'暂不可用',localTestnet:'仅在此本地 6423 测试网门户中验证',noProductLink:'尚未配置已验证的公开产品链接、文档路由或下载制品。'},
+      'zh-TW':{support:'6423 支援',platforms:'平台',open:'開啟',docs:'文件',download:'下載',status:'狀態',testnet:'測試網',notPublic:'暫時不可用',localTestnet:'僅在此本機 6423 測試網入口中驗證',noProductLink:'尚未設定已驗證的公開產品連結、文件路由或下載成品。'},
+      ja:{support:'6423 対応',platforms:'プラットフォーム',open:'開く',docs:'ドキュメント',download:'ダウンロード',status:'状態',testnet:'テストネット',notPublic:'利用不可',localTestnet:'このローカル 6423 テストネットポータルでのみ検証済み',noProductLink:'検証済みの公開プロダクトリンク、ドキュメントルート、ダウンロード成果物は設定されていません。'},
+      ko:{support:'6423 지원',platforms:'플랫폼',open:'열기',docs:'문서',download:'다운로드',status:'상태',testnet:'테스트넷',notPublic:'사용 불가',localTestnet:'이 로컬 6423 테스트넷 포털에서만 검증됨',noProductLink:'검증된 공개 제품 링크, 문서 경로 또는 다운로드 아티팩트가 구성되지 않았습니다.'}
     };
     const e = key => ecosystemUI[language]?.[key] || ecosystemUI.en[key] || key;
     const ecosystemProducts = {
@@ -923,9 +923,9 @@ const indexHTML = `<!doctype html>
     function renderHomeDirectory() {
       const ecosystem = $('homeEcosystem');
       if (ecosystem) {
-        ecosystem.innerHTML = (ecosystemProducts[language] || ecosystemProducts.en).slice(0,4).map(([name,copy,state],index) => {
+        ecosystem.innerHTML = (ecosystemProducts[language] || ecosystemProducts.en).slice(0,4).map(([name,copy],index) => {
           const developer = index === 3;
-          return '<article class="ecosystem-card"><h3>' + escapeHTML(name) + '</h3><p>' + escapeHTML(copy) + '</p><span class="product-state">' + escapeHTML(state) + '</span><a href="#' + (developer ? 'developers' : 'ecosystem') + '" data-route="' + (developer ? 'developers' : 'ecosystem') + '">' + escapeHTML(developer ? home('openDeveloper') : home('availability')) + '</a></article>';
+          return '<article class="ecosystem-card"><h3>' + escapeHTML(name) + '</h3><p>' + escapeHTML(copy) + '</p><span class="product-state">' + escapeHTML(developer ? e('testnet') : e('notPublic')) + '</span><a href="#' + (developer ? 'developers' : 'ecosystem') + '" data-route="' + (developer ? 'developers' : 'ecosystem') + '">' + escapeHTML(developer ? home('openDeveloper') : home('availability')) + '</a></article>';
         }).join('');
       }
       const downloads = $('homeDownloads');
@@ -1501,7 +1501,7 @@ const indexHTML = `<!doctype html>
       }
       if (route === 'governance') { const panels = governancePanels[language] || governancePanels.en; set(...routeHeading('governance'),'<div class="route-grid two">' + panels.map(([title,copy]) => portalPanel(title,unavailable(copy),r('unavailable'))).join('') + '</div>'); return; }
       if (route === 'ecosystem') {
-        const cards = (ecosystemProducts[language] || ecosystemProducts.en).map(([name,copy,state,platform],index) => '<article class="ecosystem-card"><div class="product-title"><img class="product-mark" src="/assets/ynx-icon.png?v=df071f54b" width="28" height="28" alt=""><h3>' + escapeHTML(name) + '</h3></div><p>' + escapeHTML(copy) + '</p><span class="product-state">' + escapeHTML(state) + '</span><div class="product-meta"><span><strong>' + escapeHTML(e('support')) + ':</strong> ' + escapeHTML(index === 3 || index === 9 ? e('liveDependent') : e('notPublic')) + '</span><span><strong>' + escapeHTML(e('platforms')) + ':</strong> ' + escapeHTML(platform) + '</span></div><div class="product-actions"><button type="button" disabled aria-disabled="true" title="' + escapeHTML(e('noProductLink')) + '">' + escapeHTML(e('open')) + '</button><button type="button" disabled aria-disabled="true" title="' + escapeHTML(e('noProductLink')) + '">' + escapeHTML(e('docs')) + '</button><button type="button" disabled aria-disabled="true" title="' + escapeHTML(e('noProductLink')) + '">' + escapeHTML(e('download')) + '</button><button type="button" data-portal-note="' + encodeURIComponent(name + ': ' + e('noProductLink')) + '">' + escapeHTML(e('status')) + '</button></div></article>').join('');
+        const cards = (ecosystemProducts[language] || ecosystemProducts.en).map(([name,copy,,platform],index) => { const localTestnet = index === 3 || index === 9; return '<article class="ecosystem-card"><div class="product-title"><img class="product-mark" src="/assets/ynx-icon.png?v=df071f54b" width="28" height="28" alt=""><h3>' + escapeHTML(name) + '</h3></div><p>' + escapeHTML(copy) + '</p><span class="product-state">' + escapeHTML(localTestnet ? e('testnet') : e('notPublic')) + '</span><div class="product-meta"><span><strong>' + escapeHTML(e('support')) + ':</strong> ' + escapeHTML(localTestnet ? e('localTestnet') : e('notPublic')) + '</span><span><strong>' + escapeHTML(e('platforms')) + ':</strong> ' + escapeHTML(platform) + '</span></div><div class="product-actions"><button type="button" disabled aria-disabled="true" title="' + escapeHTML(e('noProductLink')) + '">' + escapeHTML(e('open')) + '</button><button type="button" disabled aria-disabled="true" title="' + escapeHTML(e('noProductLink')) + '">' + escapeHTML(e('docs')) + '</button><button type="button" disabled aria-disabled="true" title="' + escapeHTML(e('noProductLink')) + '">' + escapeHTML(e('download')) + '</button><button type="button" data-portal-note="' + encodeURIComponent(name + ': ' + e('noProductLink')) + '">' + escapeHTML(e('status')) + '</button></div></article>'; }).join('');
         set(...routeHeading('ecosystem'),'<div class="ecosystem-grid">' + cards + '</div>'); return;
       }
       if (route === 'developers') {
