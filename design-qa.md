@@ -147,3 +147,23 @@ This is local responsive and accessibility evidence against the 6423 node/indexe
 
 - A final local health probe returned 502 after its local 6423 node had exited. Explorer preserved its fail-closed behavior and did not render the prior snapshot as current data.
 - A fresh temporary local 6423 node and indexer were then started on the existing preview ports. Explorer health recovered with `ok: true`, chain `6423`, EVM `0x1917`, native `YNXT`, and equal RPC/indexed height `8`. This recovery is local evidence only and makes no availability claim for a public endpoint.
+
+## 2026-08-31 dynamic locale and privacy follow-up
+
+- Source visual truth: the supplied TronScan reference image at `/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/codex-clipboard-7f8db32a-ff49-4c6b-b7cb-1344ec71a17c.png`, used only for its spacious information hierarchy and compact control rhythm; no TRON branding, data, or visual assets were carried over.
+- Implementation evidence: refreshed in-app-browser captures of local `http://127.0.0.1:6437/?qa=localized-3#home` and `#data` at 1280 CSS px wide (browser capture is ephemeral, so no persistent file path is available). The focused comparison covered the live-list/filter region and the chart-range controls, which are the only regions changed in this iteration.
+- Typography and copy: all five locales rendered the dynamic validator state and the transaction filter’s first option as `Ready / 就绪 / 就緒 / 準備完了 / 준비됨` and `All / 全部 / 全部 / すべて / 전체`. The data-range controls rendered `24 小时、7 天、30 天、全部` in Chinese. The reference’s compact control sizing and clear list-to-panel hierarchy remain intact.
+- Layout and color: refreshed Home and Data checks at 1280 px had `scrollWidth` 1265 px for a 1280 px viewport (no horizontal overflow). The existing blue-and-white YNX token system, bordered panels, and official YNX asset remain unchanged.
+- Dynamic safety: Home now derives validator presentation only from the verified ready/not-ready boolean, never a raw upstream status enum. Live resource labels use localized resource names. Wallet interaction failures retain the existing localized safe notices and do not display provider error text.
+- Interaction: changing locale re-renders the visible controls; range selection remains operable and reports the localized fail-closed history state. The response makes no claim for unavailable history, public RPC, public deployment, product links, or downloads.
+
+**Findings**
+
+- No actionable P0/P1/P2 differences were introduced by the localized-state pass. The only comparison gap is that the reference contains market and historical charts whose inputs are not verified for 6423; the existing explicit unavailable state remains intentional and fail closed.
+
+**Implementation checklist**
+
+1. Keep the dynamic locale/privacy regression test with the Explorer test suite.
+2. Re-run visual comparison when a verified 6423 historical-series endpoint becomes available.
+
+**Final result:** passed

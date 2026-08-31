@@ -388,6 +388,26 @@ func TestExplorerPortalRoutesStayInOne6423Document(t *testing.T) {
 	}
 }
 
+func TestPortalLocalizesDynamicStatesAndKeepsProviderErrorsPrivate(t *testing.T) {
+	for _, required := range []string{
+		"const initialUI =", "data-initial-i18n", "validatorText(ready ? 'ready' : 'notReady')",
+		"const resourceLabel =", "initial('range24h')", "initial(rangeKey)",
+		"showPortalNotice(wm('connectionNotApproved'))", "showPortalNotice(wm('networkNotApproved'))",
+		"showPortalNotice(wm('refreshFailed'))",
+	} {
+		if !strings.Contains(indexHTML, required) {
+			t.Fatalf("portal localization/privacy behavior is missing %q", required)
+		}
+	}
+	for _, forbidden := range []string{
+		"error.message", "error?.message", "validator.peerStatus ||", "connectionNotApproved:'YNX Wallet connection was not approved: {error}",
+	} {
+		if strings.Contains(indexHTML, forbidden) {
+			t.Fatalf("portal exposes an unlocalized dynamic state or provider error %q", forbidden)
+		}
+	}
+}
+
 func TestPublicWalletURLFailsClosedForNonPublicEndpoints(t *testing.T) {
 	tests := []struct {
 		name string
