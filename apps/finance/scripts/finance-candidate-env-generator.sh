@@ -5,7 +5,10 @@ if [[ $# -ne 3 ]]; then echo 'usage: generator <existing-env> <absent-candidate-
 source_env=$1; candidate_env=$2; release_web_dir=$3
 case "$source_env" in /etc/ynx/finance.env) ;; *) exit 65;; esac
 case "$candidate_env" in /opt/ynx/stage/finance/*/finance.env) ;; *) exit 65;; esac
-case "$release_web_dir" in /opt/ynx/releases/finance/ynx-finance-*/web) ;; *) exit 65;; esac
+case "$release_web_dir" in
+  /opt/ynx/releases/finance/ynx-finance-*/web|/opt/ynx/releases/finance/finance-combined-*/ynx-finance-*/web) ;;
+  *) exit 65;;
+esac
 test -f "$source_env" && test ! -L "$source_env" && test -r "$source_env"
 test ! -e "$candidate_env" && test ! -L "$candidate_env"
 test "$(grep -c '^YNX_FINANCE_WEB_DIR=' "$source_env")" = 1

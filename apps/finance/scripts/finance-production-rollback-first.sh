@@ -56,10 +56,12 @@ assert_carrier_child(){
   test -f "$value" && test ! -L "$value"
 }
 assert_lease_child_path(){
-  local name=$1 value=$2 parent tuple base
-  parent=$(get ".paths.parents.$name.path"); if [[ "$mode" == deploy ]]; then tuple=$(get ".paths.parents.$name.tuple"); else tuple=$(get ".success.parents.$name.tuple"); fi; base=$(get ".paths.basenames.$name")
+  local name=$1 value=$2 parent tuple base namespace
+  parent=$(get ".paths.parents.$name.path"); if [[ "$mode" == deploy ]]; then tuple=$(get ".paths.parents.$name.tuple"); else tuple=$(get ".success.parents.$name.tuple"); fi; base=$(get ".paths.basenames.$name"); namespace=$(get ".paths.namespaces.$name")
   case "$base" in ''|*/*|.|..|*..*) exit 65;; esac
-  test "$value" = "$parent/$LEASE_ID/$base"
+  case "$namespace" in ''|*/*|.|..|*..*) exit 65;; esac
+  case "$namespace" in finance-combined-[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]-[0-9TtZz-]*) ;; *) exit 65;; esac
+  test "$value" = "$parent/$namespace/$base"
   test -d "$parent" && test ! -L "$parent" && test "$(realpath -e "$parent")" = "$parent"
   test "$(stat -Lc '%u:%g:%a:%h' "$parent")" = "$tuple"
 }
@@ -68,9 +70,13 @@ prewrite_phase=LEASE_PATH_ASSERTION
 assert_lease_child_path stage "$stage"; assert_lease_child_path backup "$backup"; assert_lease_child_path release "$release"
 stage_parent=$(get '.paths.parents.stage.path'); backup_parent=$(get '.paths.parents.backup.path')
 release_parent=$(get '.paths.parents.release.path')
-test "$stage_container" = "$stage_parent/$LEASE_ID"; test "$(dirname "$stage")" = "$stage_container"
-test "$backup_container" = "$backup_parent/$LEASE_ID"; test "$(dirname "$backup")" = "$backup_container"
-test "$release_container" = "$release_parent/$LEASE_ID"; test "$(dirname "$release")" = "$release_container"
+stage_namespace=$(get '.paths.namespaces.stage'); backup_namespace=$(get '.paths.namespaces.backup'); release_namespace=$(get '.paths.namespaces.release')
+test "$stage_namespace" = "$carrier_id-deploy"
+test "$backup_namespace" = "$carrier_id"; test "$release_namespace" = "$carrier_id"
+test "$stage_container" = "$stage_parent/$stage_namespace"; test "$(dirname "$stage")" = "$stage_container"
+test "$backup_container" = "$backup_parent/$backup_namespace"; test "$(dirname "$backup")" = "$backup_container"
+test "$release_container" = "$release_parent/$release_namespace"; test "$(dirname "$release")" = "$release_container"
+test "$stage_container" != "$carrier"
 case "$stage_container_uid:$stage_container_gid:$stage_container_mode" in *[!0-9:]*|*:*:*:*) exit 65;; esac
 case "$backup_container_uid:$backup_container_gid:$backup_container_mode" in *[!0-9:]*|*:*:*:*) exit 65;; esac
 case "$release_container_uid:$release_container_gid:$release_container_mode" in *[!0-9:]*|*:*:*:*) exit 65;; esac
