@@ -75,6 +75,12 @@ The reference and implementation were captured together in the browser QA compar
 
 This is a local browser regression against the active 6423 node/indexer. It confirms responsive rendering and in-portal behavior only; it does not claim a public deployment, public product link, wallet provider availability, or downloadable artifact.
 
+## 2026-08-31 developer-documentation boundary follow-up
+
+- Developers now routes its API Reference to an in-portal, read-only Local Explorer API reference instead of presenting a pretend external documentation action. The reference lists only currently served `GET` endpoints for summary, blocks, transactions, search, validators, and YNXT.
+- Browser evidence: the local Developers route exposed a real API-reference link, three evidence-gated disabled developer controls with zero missing reason titles, and no horizontal overflow. Following that link rendered the six endpoint rows in the same tab at `#documentation`; it did not create `about:blank` or claim a public endpoint.
+- Public wallet configuration, SDK publication, faucet release, and public HTTPS API remain explicitly unavailable until independently verified evidence exists.
+
 ## 2026-08-31 full-shell locale gate follow-up
 
 - The previously static first-render labels for connection state, live-stream opening, verified source state, block waiting, chain facts, and the EVM label now resolve through the same five-locale dictionary as the routed content.
