@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-310",
+  "recordType": "CREATOR_P0309_POST_CLEANUP_ZERO_WRITE_TERMINAL",
+  "status": "CONSUMED_RELEASED_SUCCESS_CREATOR_P0310_P0309_CLEANUP_ZERO_WRITE_VERIFIED",
+  "recordedAt": "2026-08-31T04:01:07Z",
+  "execution": {
+    "attempts": 1,
+    "retryAttempts": 0,
+    "remoteExitStatus": 0,
+    "mutationCount": 0,
+    "inspectionComplete": true,
+    "remoteTempFiles": false
+  },
+  "directState": {
+    "controlRoot": "ABSENT",
+    "controlStage": "ABSENT",
+    "candidateRelease": "ABSENT",
+    "candidateStage": "ABSENT",
+    "forwardReceipt": "ABSENT",
+    "forwardReceiptNext": "ABSENT",
+    "currentNext": "ABSENT",
+    "oldRelease": "64770:1483877:995:986:755:4:4096:directory",
+    "current": "64770:1483951:0:0:777:1:63:symbolic link",
+    "currentTarget": "/opt/ynx-creator-studio-wallet/releases/creator-studio-0e1a53c5",
+    "oldManifestSha256": "5fd27ac55d9ea70b8e15aac0565324a9ce7b18706bd75cd5b430eaa4843de86f",
+    "unitSha256": "06a55f91bf5530952c347db146daa827510cc72f161d999943da7d5737b8c006",
+    "creatorPid": 2747844,
+    "creatorNRestarts": 0,
+    "apiPid": 3108210,
+    "viewerPid": 2159536,
+    "listenersExact": true,
+    "fivePublicOldRuntimeHashesExact": true
+  },
+  "decision": {
+    "cleanupComplete": true,
+    "creatorEmergencyHeavyReleased": true,
+    "allCreatorCleanupLocksReleased": true,
+    "p0305P0307P0309Nonreusable": true,
+    "nextAction": "INDEPENDENTLY_REVIEW_QUEUED_VIDEO_4FCEF01A_SOURCE_AND_FRESH_PREWRITE_BEFORE_ANY_VIDEO_LEASE"
+  },
+  "truthBoundary": {"deployment": false, "serviceLifecycleActions": 0, "publicRuntimeChanged": false, "WalletAccountRequest": false, "signature": false, "transaction": false}
+}

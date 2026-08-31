@@ -5,11 +5,13 @@
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-creator-p0309-post-cleanup-zero-write-readback-20260831T035924Z",
   "owner": "creator-studio-emergency-readonly-inspector",
   "executor": "release-control-plane",
-  "status": "ACTIVE_SINGLE_USE_CREATOR_P0310_POST_CLEANUP_ZERO_WRITE_READBACK",
+  "status": "CONSUMED_RELEASED_SUCCESS_CREATOR_P0310_P0309_CLEANUP_ZERO_WRITE_VERIFIED",
   "issuedAt": "2026-08-31T03:59:24Z",
   "expiresAt": "2026-08-31T04:19:24Z",
   "singleUse": true,
   "reusable": false,
+  "consumedAt": "2026-08-31T04:00:30Z",
+  "releasedAt": "2026-08-31T04:01:07Z",
   "executionAuthorized": true,
   "productionMutationAllowed": false,
   "predecessor": {
@@ -52,5 +54,6 @@
   ],
   "forbidden": ["write or remote temporary file", "cleanup", "rollback or forward", "service lifecycle", "unit Caddy current release or public mutation", "unrelated Heavy lease", "Wallet account request signature typed data or transaction"],
   "terminalRule": "Release Creator Heavy and product locks only if the direct zero-write readback proves every required absence and unchanged old runtime. Otherwise retain emergency Heavy with one exact blocker.",
-  "truthBoundary": {"leaseIssued": true, "inspectionStarted": false, "mutationCount": 0, "cleanupComplete": false, "heavyReleased": false}
+  "terminalEvidence": {"attempts": 1, "retryAttempts": 0, "remoteExitStatus": 0, "mutationCount": 0, "inspectionComplete": true, "allResiduesAndNextPathsAbsent": true, "oldRuntimeExact": true, "creatorPid": 2747844, "creatorNRestarts": 0, "apiPid": 3108210, "viewerPid": 2159536, "fivePublicHashesExact": true},
+  "truthBoundary": {"leaseIssued": true, "inspectionStarted": true, "mutationCount": 0, "cleanupComplete": true, "heavyReleased": true}
 }
