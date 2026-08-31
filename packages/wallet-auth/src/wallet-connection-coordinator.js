@@ -15,7 +15,7 @@ export const WALLET_CONNECTION_COORDINATOR_STATUS = Object.freeze({
 });
 
 export class WalletConnectionCoordinator {
-  #registry; #productId; #client; #scope; #waitMs; #openWallet; #openTimeoutMs;
+  #registry; #productId; #client; #scope; #waitMs; #openWallet; #openTimeoutMs; #openOperation; #ynxOperation;
   constructor(config) {
     exactFields(config, ["registry", "productId", "sessionClient", "scope", "discoveryWaitMs", "openWallet", "openTimeoutMs"], "Wallet connection coordinator configuration");
     this.#registry = parseProductSessionRegistry(config.registry);
@@ -25,7 +25,7 @@ export class WalletConnectionCoordinator {
     if (!Number.isSafeInteger(config.discoveryWaitMs) || config.discoveryWaitMs < 0 || config.discoveryWaitMs > 2000) fail("INVALID_WALLET_SCOPE", "Wallet provider discovery wait is invalid");
     if (typeof config.openWallet !== "function") fail("INVALID_WALLET_OPENER", "Wallet connection coordinator requires a platform opener");
     if (!Number.isSafeInteger(config.openTimeoutMs) || config.openTimeoutMs < 10 || config.openTimeoutMs > 30000) fail("INVALID_WALLET_OPENER", "Wallet opener timeout is invalid");
-    this.#productId = config.productId; this.#client = config.sessionClient; this.#scope = config.scope; this.#waitMs = config.discoveryWaitMs; this.#openWallet = config.openWallet; this.#openTimeoutMs = config.openTimeoutMs;
+    this.#productId = config.productId; this.#client = config.sessionClient; this.#scope = config.scope; this.#waitMs = config.discoveryWaitMs; this.#openWallet = config.openWallet; this.#openTimeoutMs = config.openTimeoutMs; this.#openOperation = null; this.#ynxOperation = null;
   }
 
   get current() { return this.#client.current; }
@@ -40,13 +40,13 @@ export class WalletConnectionCoordinator {
     return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.OPTIONS_READY, discovery, environment, availability, choices });
   }
 
-  async restore(networkAvailable = true) { return this.#openIfConnecting(await this.#client.restore(networkAvailable)); }
-  async beginYNX() { return this.#openIfConnecting(await this.#client.beginDetected(false)); }
+  async restore(networkAvailable = true) { return this.#runYNXOperation(() => this.#client.restore(networkAvailable)); }
+  async beginYNX() { return this.#runYNXOperation(() => this.#client.beginDetected(false)); }
   async beginLegacyYNX(legacyCallback) {
     const migration = migrateLegacyCallback(this.#registry, legacyCallback, { productId: this.#productId, platform: this.#client.connectionBinding.platform });
     return frozen({ ...(await this.beginYNX()), migration });
   }
-  async retryYNX() { return this.#openIfConnecting(await this.#client.retryDetected()); }
+  async retryYNX() { return this.#runYNXOperation(() => this.#client.retryDetected()); }
   async handleReturn(url) { return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.SESSION_STATE, sessionState: await this.#client.handleReturn(url) }); }
   setNetworkAvailable(available) { return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.SESSION_STATE, sessionState: this.#client.setNetworkAvailable(available) }); }
   enterGuest() { return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.SESSION_STATE, sessionState: this.#client.enterGuest() }); }
@@ -70,6 +70,13 @@ export class WalletConnectionCoordinator {
 
   async #openIfConnecting(sessionState) {
     if (sessionState.status !== PRODUCT_SESSION_CLIENT_STATE.CONNECTING) return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.SESSION_STATE, sessionState });
+    if (this.#openOperation?.nonce === sessionState.request.nonce) return this.#openOperation.promise;
+    const operation = this.#open(sessionState);
+    this.#openOperation = Object.freeze({ nonce: sessionState.request.nonce, promise: operation });
+    try { return await operation; }
+    finally { if (this.#openOperation?.promise === operation) this.#openOperation = null; }
+  }
+  async #open(sessionState) {
     const route = sessionState.route, requestId = `req_ps_open_${sessionState.request.nonce}`;
     try {
       const result = await withTimeout(this.#openWallet(Object.freeze({ url: route.url, request: sessionState.request, requestId, automatic: sessionState.automatic === true, productId: this.#productId, platform: this.#client.connectionBinding.platform })), this.#openTimeoutMs);
@@ -80,6 +87,13 @@ export class WalletConnectionCoordinator {
       const code = error instanceof WalletAuthError ? error.code : "WALLET_OPEN_FAILED";
       return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.WALLET_OPEN_FAILED, requestId, code, message: coordinatorErrorMessage(code), actions: coordinatorActions(code), sessionState });
     }
+  }
+  async #runYNXOperation(start) {
+    if (this.#ynxOperation !== null) return this.#ynxOperation;
+    const operation = (async () => this.#openIfConnecting(await start()))();
+    this.#ynxOperation = operation;
+    try { return await operation; }
+    finally { if (this.#ynxOperation === operation) this.#ynxOperation = null; }
   }
 }
 

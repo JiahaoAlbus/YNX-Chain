@@ -16,10 +16,10 @@ const key = Buffer.from(p256.getPublicKey(secret, true)).toString("base64url");
 function token(value) { return createHash("sha256").update(value).digest("base64url"); }
 function memory() { const values = new Map(); return { securityLevel:"os-protected", async get(k){return values.get(k)??null}, async set(k,v){values.set(k,v)}, async remove(k){values.delete(k)}, values }; }
 function gateway(overrides = {}) { return { async walletInstalled(){return true}, async schemeRegistered(){return true}, async challenge(){throw new Error("not used")}, async complete(){throw new Error("not used")}, async introspect(){throw new Error("not used")}, async revoke(){throw new Error("not used")}, ...overrides }; }
-function client(productId = "social", gatewayValue = gateway(), storage = memory()) {
+function client(productId = "social", gatewayValue = gateway(), storage = memory(), tokenFactory = null) {
   let index = 0;
   const product = registry.products.find((item) => item.productId === productId);
-  return new RecoverableProductSessionClient({ registry, productId, platform:"web", storage, gateway:gatewayValue, device:{id:`${productId}-device-001`,key,secret:secret.toString("base64url"),scopes:[...product.scopes],purpose:`Connect ${productId} through the canonical coordinator.`},tokenFactory:()=>token(`${productId}-${index++}`),clock:()=>NOW });
+  return new RecoverableProductSessionClient({ registry, productId, platform:"web", storage, gateway:gatewayValue, device:{id:`${productId}-device-001`,key,secret:secret.toString("base64url"),scopes:[...product.scopes],purpose:`Connect ${productId} through the canonical coordinator.`},tokenFactory:tokenFactory??(()=>token(`${productId}-${index++}`)),clock:()=>NOW });
 }
 function ynxProvider() { return {isYNXWallet:true,providerInfo:{rdns:"com.ynx.wallet.companion"},async request(){throw new Error("YNX provider request is not used for Product Session deep links")}}; }
 function metaMaskProvider(calls = []) { return {isMetaMask:true,providerInfo:{rdns:"io.metamask"},async request(input){calls.push(input);if(input.method==="eth_chainId")return"0x1917";if(input.method==="eth_requestAccounts")return["0x1234567890abcdef1234567890abcdef12345678"];throw new Error("unexpected method")}}; }
@@ -40,6 +40,27 @@ test("begin uses detected YNX environment and opens only the canonical registere
   assert.match(result.requestId,/^req_ps_open_[A-Za-z0-9_-]{32,64}$/);
   assert.equal(opened.length,1);assert.equal(opened[0].url,result.url);assert.equal(opened[0].automatic,false);
   assert.equal(Object.isFrozen(opened[0]),true);
+});
+
+test("concurrent connection starts share one pending request and one Wallet opener", async () => {
+  const opened=[];
+  let tokenCalls=0;
+  let releaseOpen;
+  const opening = new Promise((resolve) => { releaseOpen = resolve; });
+  const sessionClient=client("social", gateway(), memory(), () => token(`coordinator-single-flight-${tokenCalls++}`));
+  const value=coordinator({sessionClient,scope:{ethereum:ynxProvider()},openWallet:async(input)=>{opened.push(input);await opening;return{opened:true}}});
+  const first=value.beginYNX();
+  const second=value.beginYNX();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(opened.length,1);
+  releaseOpen();
+  const [firstResult,secondResult]=await Promise.all([first,second]);
+  assert.equal(firstResult.status,WALLET_CONNECTION_COORDINATOR_STATUS.WALLET_OPENED);
+  assert.equal(secondResult.status,WALLET_CONNECTION_COORDINATOR_STATUS.WALLET_OPENED);
+  assert.equal(firstResult,secondResult);
+  assert.equal(firstResult.sessionState.request.nonce,secondResult.sessionState.request.nonce);
+  assert.equal(tokenCalls,2);
+  assert.equal(opened.length,1);
 });
 
 test("second-launch controlled reconnect opens at most once before explicit Retry", async () => {
