@@ -50,7 +50,12 @@ jobs:
         run: |
           set -euo pipefail
           test "$(uname -m)" = x86_64
-          test "$(stat -f %z "$ARCHIVE" 2>/dev/null || stat -c %s "$ARCHIVE")" = "$EXPECTED_BYTES"
+          if test "$TARGET" = darwin-amd64; then
+            actual_bytes="$(stat -f %z "$ARCHIVE")"
+          else
+            actual_bytes="$(stat -c %s "$ARCHIVE")"
+          fi
+          test "$actual_bytes" = "$EXPECTED_BYTES"
           test "$(shasum -a 256 "$ARCHIVE" 2>/dev/null | awk '{print $1}' || sha256sum "$ARCHIVE" | awk '{print $1}')" = "$EXPECTED_SHA"
       - name: Install, upgrade, cold start, second start, validate 6423 and uninstall
         env:
