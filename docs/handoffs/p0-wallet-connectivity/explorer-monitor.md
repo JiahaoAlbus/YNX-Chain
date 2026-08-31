@@ -3,8 +3,8 @@
 ## Superseding state (2026-08-31, current)
 
 - Current source-bearing Explorer/Monitor checkpoint is
-  `0f23cedde15f04110219a2c8ce0c09d80f63d8cc`
-  (tree `465794c7e507cfcfb7eb0ddf06f7ae49e2e9f5c6`) on
+  `1a5d23ee80b6f1f2cd149cf779ba79853fa09de4`
+  (tree `df8b55f5f7871fabb95d896909950d1279c50461`) on
   `codex/p0-explorer-monitor-20260820`, PR #107 Draft. It retains the real
   Indexer participant/activity, RPC balance, YNXT and chain-RPC contract work
   from the preceding source, and adds refresh-safe shell routes for factual
@@ -19,20 +19,25 @@
   restores only the Provider explicitly chosen in the same browser tab, only
   after read-only `eth_accounts` and `eth_chainId=0x1917` checks. Refresh never
   selects a Provider, requests an account, or adds/switches a network; revoke,
-  chain change and disconnect remove the remembered choice.
+  chain change and disconnect remove the remembered choice. The 12 locale
+  dictionaries no longer retain a second, stale "full ledger when available"
+  fallback: every locale gets leaderboard coverage wording from the one observed
+  Indexer-participant source of truth.
 - `apps/monitor/evidence/explorer-monitor-0f23cedde-artifact-freeze-20260831.json`
-  freezes all three current-source artifacts with byte-identical rebuild
-  evidence: `ynx-explorerd` SHA-256
+  is tied to predecessor source `0f23cedde15f04110219a2c8ce0c09d80f63d8cc`,
+  not this localization-truth successor. Its byte-identical artifacts—
+  `ynx-explorerd` SHA-256
   `3c72070ae7fbc9afeb8e6db486916401cf7424eb2d1f5c25a0742241c07c639b`,
   `ynx-indexerd` SHA-256
   `9a88e5767e5fa0df26e7b304673283f1a3b2a9e06e5aa2cae4b0291713d900b6`,
   and deterministic Monitor release tree SHA-256
   `70f8f54129bc03fc75d6f1e7547a2c60d2ec02c317dac23a64f068d438628d7b`.
-  The former 8df3 artifact freeze and every older artifact are forbidden from
-  deployment with `0f23…`. This record grants no deployment authority: Central
-  must first bind these exact hashes to a fresh production/rollback baseline,
-  remote CI readback and a new single-use lease.
-- Final local evidence for `0f23…`: `go test -race ./internal/indexer
+  —the former 8df3 artifact freeze, and every older artifact are forbidden from
+  deployment with `1a5d…`. A fresh coherent artifact freeze is required after
+  final current-source regression. No artifact record grants deployment
+  authority: Central must first bind exact successor hashes to a fresh
+  production/rollback baseline, remote CI readback and a new single-use lease.
+- Final local evidence for `1a5d…`: `go test -race ./internal/indexer
   ./internal/explorer -count=1` passes; Monitor `npm test` (55 application and
   10 script tests) and `npm run build` pass. `go test ./...` reaches
   unrelated pre-existing failures in `internal/bftgateway` and
