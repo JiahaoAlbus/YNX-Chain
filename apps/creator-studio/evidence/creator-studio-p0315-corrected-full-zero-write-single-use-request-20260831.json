@@ -1,0 +1,116 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "owner": "creator-studio-deploy-owner",
+  "requestType": "WHOLLY_NEW_CREATOR_P0315_CORRECTED_FULL_ZERO_WRITE_SINGLE_USE_REQUEST",
+  "purpose": "Collect the complete cleanup prewrite identities after correcting the sole candidate root tuple schema omission. This is not a cleanup or deployment lease.",
+  "supersedes": {
+    "taskId": "P0-321",
+    "status": "CONSUMED_RELEASED_SUCCESS_CREATOR_P0321_RAW_FIRST_DIAGNOSTIC_ROOT_TUPLE_SCHEMA_OMISSION_IDENTIFIED",
+    "centralCommit": "ba28fc160971d0b6735f57137f671e30d95c3b6f",
+    "centralTree": "6e8785c11c96a619d702667a52231b8a34973463",
+    "evidencePath": "release/integration/p0-wallet-connectivity/execution/objects/p0-321-creator-studio-p0315-candidate-raw-first-zero-write-terminal-evidence-20260831.json",
+    "evidenceBlob": "434ae0ab3c56f24fda8374090396a3175eb831a3",
+    "evidenceBytes": 2217,
+    "evidenceSha256": "00e6cacab99f85c43a771321d29f5a832bc7eff7b61e0ef4e46cd8d3e5292152",
+    "reusable": false
+  },
+  "p0321DirectEvidence": {
+    "localPath": "/tmp/p0-321-creator-studio-p0315-candidate-raw-first-zero-write.ndjson",
+    "lines": 2,
+    "bytes": 8893,
+    "sha256": "54a5bce5270cb0c559d370f4fabc95495425559675de5cff1e92e3265503be14",
+    "sshInvocations": 1,
+    "retryCount": 0,
+    "remoteExitStatus": 1,
+    "stderrBytes": 0,
+    "mutationCount": 0,
+    "actualCandidateTuple": "64770:1483917:995:986:755:4:4096:directory",
+    "priorTupleWithoutSize": "64770:1483917:995:986:755:4:directory",
+    "onlyFailedComparison": "rootTuple",
+    "manifestAndPayloadComparisonsAllMatched": true
+  },
+  "implementation": {
+    "commit": "2c141ff63548eaae2c9c9ebe72510e42dcdfb66e",
+    "tree": "69fc2b4aa2b7242bab3e370cef7f17fcd0b2a431",
+    "path": "apps/creator-studio/release-terminal-zero-write-inspector-3f97a13d.mjs",
+    "blob": "df91ac336e32010a67bd180d21fbd97037b28744",
+    "bytes": 16093,
+    "sha256": "1a7ee88866e12eb6e24a2135ed37ad8e371ff7c9a3551078effe36c8eef60a1d"
+  },
+  "correction": {
+    "expectedCandidateTuple": "64770:1483917:995:986:755:4:4096:directory",
+    "tupleSchema": "device:inode:uid:gid:mode:nlink:size:type",
+    "oldTupleMissingField": "size",
+    "candidateContentChanged": false,
+    "rawFirstPreserved": true,
+    "fullEvidenceContinuesAfterCandidateMatch": true
+  },
+  "fixtureEvidence": {
+    "command": "node apps/creator-studio/release-terminal-zero-write-inspector-3f97a13d.mjs selftest",
+    "passed": true,
+    "rawOutputBeforeComparison": true,
+    "omittedSizeTupleRejected": true,
+    "correctedCandidateTupleAccepted": true,
+    "singleFieldDriftClassifications": 8,
+    "readOnlyImports": true,
+    "mutationApisImported": false
+  },
+  "requestedExecution": {
+    "mode": "CORRECTED_FULL_ZERO_WRITE_INSPECTION",
+    "runtimeHost": "43.153.202.237",
+    "attemptLimit": 1,
+    "retryAllowed": false,
+    "sshInvocationLimit": 1,
+    "stdin": {
+      "path": "apps/creator-studio/release-terminal-zero-write-inspector-3f97a13d.mjs",
+      "bytes": 16093,
+      "sha256": "1a7ee88866e12eb6e24a2135ed37ad8e371ff7c9a3551078effe36c8eef60a1d"
+    },
+    "remoteArgv": [
+      "/usr/bin/sudo",
+      "-n",
+      "/usr/bin/node",
+      "--input-type=module",
+      "-"
+    ],
+    "sshContract": "Central freezes one exact literal SSH argv and the protected existing identity reference. Inspector bytes travel only on stdin. No shell interpolation, retry or remote temporary path.",
+    "localEvidencePath": "/tmp/p0-322-creator-studio-p0315-corrected-full-zero-write.ndjson",
+    "localEvidencePathMustBeAbsent": true
+  },
+  "requiredOutput": {
+    "line1": "candidate raw tuple, manifest raw base64 and complete per-object identities",
+    "line2": "candidate eight-field comparison with allMatch true",
+    "line3": "current, old release, service PID and NRestarts, listeners, unit, receipt, candidate, control and placement receipt complete tree identities, parent tuples, next/quarantine absence, five public resources and independent comparisons",
+    "controlTupleHandling": "Output the actual full tuple including size. Compare compatibility with the P0-316 tuple that omitted size, then use only the newly observed full tuple for a future canonical cleanup input.",
+    "mutationCount": 0
+  },
+  "terminalAcceptance": {
+    "minimumStdoutLines": 3,
+    "candidateComparisonAllMatch": true,
+    "fullComparisonAllMatch": true,
+    "completeCandidateAndControlPerObjectIdentities": true,
+    "serviceAndListenersCaptured": true,
+    "parentsAndAbsenceCaptured": true,
+    "fivePublicResourcesCaptured": true,
+    "remoteExitStatus": 0,
+    "stderrBytes": 0
+  },
+  "forbidden": [
+    "reuse or retry of P0-320 or P0-321",
+    "cleanup deletion creation rename chmod chown link or remote temporary path",
+    "deploy current switch rollback or service lifecycle",
+    "unit Caddy API Viewer public or unrelated product mutation",
+    "Wallet account request signature typed data or transaction"
+  ],
+  "terminalRule": "Return the complete three-line zero-write evidence and release this read-only lease. Only a separate Central review may transform the newly observed full tuples and PIDs into a future canonical cleanup-only input and lease.",
+  "truthBoundary": {
+    "sourceOnly": true,
+    "sshExecuted": false,
+    "remoteMutation": false,
+    "cleanupAuthorized": false,
+    "cleanupComplete": false,
+    "deploymentAuthorized": false,
+    "creatorPromoted": false
+  }
+}
