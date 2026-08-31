@@ -1,0 +1,38 @@
+{
+  "schemaVersion": "paySourceBoundPublicWeb@1.0.0-p0.0",
+  "observedAt": "2026-08-31",
+  "ownerScope": ["apps/pay/**"],
+  "source": {
+    "commit": "e29611c9d2bab70dceafb22185c8dfbff3135f26",
+    "tree": "60f554e4e1f52856a91816da83bdd0be5bd708c6",
+    "buildCommand": "npm ci && npx expo export --platform web --output-dir dist"
+  },
+  "publicBinding": {
+    "url": "https://pay.ynxweb4.com/",
+    "bundleUrl": "https://pay.ynxweb4.com/_expo/static/js/web/index-7b0e541eda1df37fa2c19e3d7df84d2f.js",
+    "publicBundleSha256": "94c7d8da1d22464092658af66e8024d543db64ed60e304ab8d9c48588bfd0840",
+    "publicBundleBytes": 2668358,
+    "rebuiltBundleSha256": "94c7d8da1d22464092658af66e8024d543db64ed60e304ab8d9c48588bfd0840",
+    "rebuiltBundleBytes": 2668358,
+    "matched": true,
+    "visibleFirstPartyShell": true,
+    "blankTopLevelPage": false
+  },
+  "network": {
+    "cosmosChainId": "ynx_6423-1",
+    "evmChainId": 6423,
+    "evmChainHex": "0x1917"
+  },
+  "boundaries": {
+    "publicBackendSourceBound": false,
+    "installedCandidate": false,
+    "providerApproval": false,
+    "providerRejection": false,
+    "chainAddSwitchReadback": false,
+    "refreshEventsDisconnect": false,
+    "signature": false,
+    "transaction": false,
+    "walletConnectRelay": false
+  },
+  "conclusion": "This is direct source-bound-public Web-shell evidence for the exact source only. It does not promote the pending Pay product endpoint, an installed client, or any Wallet lifecycle action to complete."
+}
