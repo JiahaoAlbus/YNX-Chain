@@ -65,3 +65,15 @@ The reference and implementation were captured together in the browser QA compar
 4. Final pass: desktop 1264 x 712 showed no document-width overflow, complete 6423 identity density, readable block metadata, and zero browser console errors. No actionable P0/P1/P2 visual findings remain.
 
 **Final result:** passed
+
+## 2026-08-31 live-runtime recheck
+
+- Runtime: local Chrome opened `http://127.0.0.1:6437/#home` with the portal connected to the local 6423 node and indexer. The verified snapshot returned chain ID `6423`, EVM `0x1917`, native token `YNXT`, an advancing RPC height, and indexed transaction data. Wallet-visible RPC and Explorer URL arrays remained empty because no verified public HTTPS endpoint was supplied.
+- Desktop: 1780 x 943 viewport showed six live metrics, four finalized-block cards, the search/control hierarchy, and no document-width overflow.
+- Tablet: 1024 x 900 viewport had `scrollWidth == clientWidth` (1009 px), visible search and wallet controls, and no clipped primary navigation.
+- Mobile: 390 x 844 viewport had `scrollWidth == clientWidth` (375 px), a 351 px search input, a visible wallet button, and horizontally scrollable navigation rather than hidden primary controls.
+- Interactions: the Blockchain route opened its two verified record tables and controls in the same tab; searching `YNXT` opened `#blockchain?detail=token%3AYNXT` in the in-page drawer; no `about:blank` link was present. Selecting Japanese persisted after reload (`document.documentElement.lang = "ja"`) and localized Home and the wallet button.
+- Console: Chrome captured zero error-level console messages after navigation, search, locale change, and reload.
+- Brand asset: `/assets/ynx-logo.png` returned SHA-256 `38196080c2d56746fb37094abe68d1d89eabd8a2b29ab4f17bae48ac7e3effde`, matching the official source required by the objective. The Explorer unit test now gates this exact asset identity.
+
+These checks validate the local 6423 runtime only. They do not assert public deployment, a public wallet RPC, a signed download, or a live external ecosystem product.
