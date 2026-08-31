@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -162,6 +163,27 @@ func TestOverviewPersistenceExportAndAIReview(t *testing.T) {
 	assetResponse.Body.Close()
 	if readErr != nil || assetResponse.StatusCode != http.StatusOK || !strings.Contains(string(assetRaw), "owner-contract-pending") {
 		t.Fatalf("Web read-source renderer is unavailable: status=%d readErr=%v", assetResponse.StatusCode, readErr)
+	}
+
+	identityRoot := t.TempDir()
+	identityBody := `{"sourceCommit":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","release":"ynx-finance-test","buildTime":"2026-08-11T09:00:00.000Z","frontendSourceCommit":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}`
+	if err := os.WriteFile(filepath.Join(identityRoot, "build-identity.json"), []byte(identityBody), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	identityServer, err := NewServer(service, auth, ServerConfig{AllowedOrigins: []string{"https://finance.example"}, CursorSigningKey: testCursorKey, OperationsKey: testOperationsKey, WebDir: identityRoot, Build: buildinfo.Info{Commit: strings.Repeat("a", 40), Release: "ynx-finance-test", BuildTime: "2026-08-11T09:00:00.000Z"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	identityHTTP := httptest.NewServer(identityServer.Handler())
+	defer identityHTTP.Close()
+	identityResponse, err := http.Get(identityHTTP.URL + "/build-identity.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	identityRaw, identityReadErr := io.ReadAll(identityResponse.Body)
+	identityResponse.Body.Close()
+	if identityReadErr != nil || identityResponse.StatusCode != http.StatusOK || string(identityRaw) != identityBody {
+		t.Fatalf("source-bound build identity is not served byte-exact: status=%d readErr=%v body=%q", identityResponse.StatusCode, identityReadErr, identityRaw)
 	}
 
 	var overview map[string]any
