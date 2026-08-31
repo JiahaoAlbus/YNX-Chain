@@ -52,6 +52,29 @@ test("fetch adapter recovers lost completion response idempotently without expos
   assert.equal((await restarted.restore(true)).status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
 });
 
+test("legacy canonical Wallet route miss preserves an approved callback solely for Retry", async () => {
+  const gateway = new ProductSessionGatewayFetchAdapter({
+    endpoint: "https://gateway.test",
+    fetch: async () => new Response(canonicalJSON({ error: { code: "ROUTE_NOT_FOUND", message: "Canonical Wallet Gateway route was not found" }, ok: false, schemaVersion: 1, stateDigest: "a".repeat(64) }), { status: 404, headers: { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", "x-request-id": "173e4567-e89b-42d3-a456-426614174000" } }),
+    walletInstalled: async () => true,
+    schemeRegistered: async () => true,
+    timeoutMs: 5_000,
+  });
+  const protectedStorage = storage();
+  const client = new RecoverableProductSessionClient({ registry, productId: "dex", platform: "web", storage: protectedStorage, gateway, device, tokenFactory: () => token("legacy-route-miss-client"), clock: () => NOW });
+  const connecting = await client.begin({ walletInstalled: true, schemeRegistered: true });
+  const approval = signProductSessionApproval(registry, connecting.request, { accountSecret: "2".padStart(64, "0"), scopes: connecting.request.scopes, expiresAt: "2026-08-14T01:03:00.000Z" }, NOW);
+  const callback = createProductSessionReturnURL(registry, connecting.request, { result: "approved", approval }, NOW);
+
+  const result = await client.handleReturn(callback);
+  assert.equal(result.status, PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED);
+  assert.deepEqual(result.actions, ["retry", "guest"]);
+  assert.equal(result.message.includes("not mounted"), true);
+  assert.equal([...protectedStorage.values.keys()].some((key) => key.endsWith(":pending")), true);
+  assert.equal([...protectedStorage.values.values()].includes(callback), true);
+  assert.equal([...protectedStorage.values.keys()].some((key) => !key.endsWith(":pending") && !key.endsWith(":return")), false);
+});
+
 test("fetch adapter rejects unsafe origins, malformed responses and network fallback", async () => {
   const capabilities = { walletInstalled: async () => false, schemeRegistered: async () => false, timeoutMs: 5_000 };
   assert.throws(() => new ProductSessionGatewayFetchAdapter({ endpoint: "http://gateway.test", fetch: async () => null, ...capabilities }), code("INVALID_GATEWAY"));
