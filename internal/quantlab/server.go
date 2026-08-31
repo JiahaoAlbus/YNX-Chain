@@ -144,7 +144,7 @@ func (s *Server) stream(w http.ResponseWriter, r *http.Request) {
 		"type":       "snapshot",
 		"requestId":  requestID(r),
 		"traceId":    traceID(r),
-		"source":     "ynx-quant-authoritative-local-state",
+		"source":     s.service.StorageSource(),
 		"asOf":       time.Now().UTC(),
 		"version":    Version,
 		"confidence": "authoritative",

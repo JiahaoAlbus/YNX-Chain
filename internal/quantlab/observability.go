@@ -207,7 +207,8 @@ func (s *Server) metricsHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	_, _ = fmt.Fprintf(w, "# TYPE ynx_quant_execution_pending_unknown gauge\nynx_quant_execution_pending_unknown %d\n# TYPE ynx_quant_build_info gauge\nynx_quant_build_info{product_id=\"%s\",version=\"%s\",service_role=\"%s\"} 1\n", pending, ProductID, Version, s.role)
+	storage := s.service.StorageStatus()
+	_, _ = fmt.Fprintf(w, "# TYPE ynx_quant_execution_pending_unknown gauge\nynx_quant_execution_pending_unknown %d\n# TYPE ynx_quant_storage_backend_info gauge\nynx_quant_storage_backend_info{backend=\"%s\",multi_instance=\"%t\"} 1\n# TYPE ynx_quant_build_info gauge\nynx_quant_build_info{product_id=\"%s\",version=\"%s\",service_role=\"%s\"} 1\n", pending, storage["backend"], storage["multiInstance"], ProductID, Version, s.role)
 }
 
 func newJSONLogger(writer io.Writer) *slog.Logger {

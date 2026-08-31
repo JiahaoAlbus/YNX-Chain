@@ -175,7 +175,7 @@ func TestInvalidCorrelationIDIsReplacedAndMetricsExposeAlertSignals(t *testing.T
 	metrics, _ := io.ReadAll(metricsResponse.Body)
 	_ = metricsResponse.Body.Close()
 	text := string(metrics)
-	for _, expected := range []string{"ynx_quant_http_requests_total 1", "ynx_quant_kill_switch_activations_total 1", "ynx_quant_kill_switch_active 1", "ynx_quant_reconciliation_delta 0", "ynx_quant_execution_pending_unknown 0", "ynx_quant_build_info"} {
+	for _, expected := range []string{"ynx_quant_http_requests_total 1", "ynx_quant_kill_switch_activations_total 1", "ynx_quant_kill_switch_active 1", "ynx_quant_reconciliation_delta 0", "ynx_quant_execution_pending_unknown 0", "ynx_quant_storage_backend_info{backend=\"filesystem_json_snapshot\",multi_instance=\"false\"} 1", "ynx_quant_build_info"} {
 		if !strings.Contains(text, expected) {
 			t.Fatalf("missing %q in %s", expected, text)
 		}

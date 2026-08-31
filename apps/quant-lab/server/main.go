@@ -12,6 +12,11 @@ import (
 func main() {
 	addr := env("YNX_QUANT_HTTP_ADDR", "127.0.0.1:6444")
 	state := env("YNX_QUANT_STATE_PATH", ".ynx/quant-lab/state.json")
+	databaseURL := strings.TrimSpace(os.Getenv("YNX_QUANT_DATABASE_URL"))
+	stateNamespace := strings.TrimSpace(os.Getenv("YNX_QUANT_STATE_NAMESPACE"))
+	if databaseURL != "" && stateNamespace == "" {
+		log.Fatal("YNX_QUANT_STATE_NAMESPACE is required when YNX_QUANT_DATABASE_URL is configured")
+	}
 	var marketData quantlab.MarketData
 	var mandateVerifier quantlab.MandateVerifier
 	var testnetBroker quantlab.TestnetBroker
@@ -23,10 +28,11 @@ func main() {
 		testnetBroker = adapter
 		sessionCompleter = adapter
 	}
-	s, e := quantlab.NewTenantServer(quantlab.Config{StatePath: state, MarketData: marketData, MandateVerifier: mandateVerifier, TestnetBroker: testnetBroker, SessionCompleter: sessionCompleter}, "all")
+	s, e := quantlab.NewTenantServer(quantlab.Config{StatePath: state, DatabaseURL: databaseURL, StateNamespace: stateNamespace, MarketData: marketData, MandateVerifier: mandateVerifier, TestnetBroker: testnetBroker, SessionCompleter: sessionCompleter}, "all")
 	if e != nil {
 		log.Fatal(e)
 	}
+	defer s.Close()
 	mux := http.NewServeMux()
 	mux.Handle("/api/", http.StripPrefix("/api", s))
 	mux.HandleFunc("/wallet-auth/callback", func(w http.ResponseWriter, r *http.Request) { http.ServeFile(w, r, "apps/quant-lab/web/index.html") })

@@ -3,6 +3,7 @@ package quantlab
 import (
 	"context"
 	"crypto/sha256"
+	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -46,6 +47,9 @@ var BuildCommit = "development"
 
 type Config struct {
 	StatePath        string
+	DatabaseURL      string
+	StateNamespace   string
+	sharedDatabase   *sql.DB
 	Now              func() time.Time
 	MandateVerifier  MandateVerifier
 	TestnetBroker    TestnetBroker
@@ -270,6 +274,7 @@ type ExecutionLedgerRecord struct {
 	CompletedAt  time.Time            `json:"completedAt,omitempty"`
 }
 type state struct {
+	Revision         int64                            `json:"-"`
 	Schema           int                              `json:"schema"`
 	Sequence         int64                            `json:"sequence"`
 	Experiments      map[string]Experiment            `json:"experiments"`
@@ -288,6 +293,7 @@ type Service struct {
 	mu    sync.Mutex
 	cfg   Config
 	state state
+	store stateStore
 }
 
 // StorageStatus describes the persistence contract that this Service is
@@ -296,51 +302,61 @@ type Service struct {
 // a distributed store: it must never be advertised as a multi-instance
 // production backend.
 func (s *Service) StorageStatus() map[string]any {
+	backend := "unavailable"
+	multiInstance := false
+	if s.store != nil {
+		backend = s.store.backend()
+		multiInstance = s.store.multiInstance()
+	}
 	return map[string]any{
-		"backend":                      "filesystem_json_snapshot",
+		"backend":                      backend,
 		"restartPersistent":            true,
-		"crossProcessSharedFilesystem": true,
-		"multiInstance":                false,
-		"productionDatabaseRequired":   true,
+		"crossProcessSharedFilesystem": backend == "filesystem_json_snapshot",
+		"multiInstance":                multiInstance,
+		"productionDatabaseRequired":   !multiInstance,
 	}
 }
 
+func (s *Service) StorageSource() string {
+	if s.store != nil && s.store.backend() == "postgresql" {
+		return "ynx-quant-authoritative-postgresql-state"
+	}
+	return "ynx-quant-authoritative-local-state"
+}
+
 func New(cfg Config) (*Service, error) {
+	cfg.DatabaseURL = strings.TrimSpace(cfg.DatabaseURL)
+	cfg.StateNamespace = strings.TrimSpace(cfg.StateNamespace)
 	if strings.TrimSpace(cfg.StatePath) == "" {
+		return nil, ErrInvalid
+	}
+	if strings.TrimSpace(cfg.DatabaseURL) != "" && !validStateNamespace(cfg.StateNamespace) {
 		return nil, ErrInvalid
 	}
 	if cfg.Now == nil {
 		cfg.Now = func() time.Time { return time.Now().UTC() }
 	}
-	s := state{Schema: StateSchema, Experiments: map[string]Experiment{}, Strategies: map[string]StrategySpec{}, Datasets: map[string]DatasetRecord{}, Mandates: map[string]Mandate{}, Paper: PaperState{Cash: 100_000_000_000}, ExecutionLedger: map[string]ExecutionLedgerRecord{}, AdapterSequences: map[string]int64{}}
-	s.TestnetOrders = map[string]TestnetOrder{}
-	s.Idempotency = map[string]string{}
-	b, err := os.ReadFile(cfg.StatePath)
-	if err == nil {
-		var loaded state
-		if json.Unmarshal(b, &loaded) != nil || !verifyIntegrity(loaded) {
-			return nil, fmt.Errorf("state integrity: %w", ErrForbidden)
-		}
-		s = loaded
-		if s.TestnetOrders == nil {
-			s.TestnetOrders = map[string]TestnetOrder{}
-		}
-		if s.Datasets == nil {
-			s.Datasets = map[string]DatasetRecord{}
-		}
-		if s.Idempotency == nil {
-			s.Idempotency = map[string]string{}
-		}
-		if s.ExecutionLedger == nil {
-			s.ExecutionLedger = map[string]ExecutionLedgerRecord{}
-		}
-		if s.AdapterSequences == nil {
-			s.AdapterSequences = map[string]int64{}
-		}
-	} else if !os.IsNotExist(err) {
+	store, err := openStateStore(cfg)
+	if err != nil {
 		return nil, err
 	}
-	return &Service{cfg: cfg, state: s}, nil
+	s, found, err := store.load()
+	if err != nil {
+		_ = store.close()
+		return nil, err
+	}
+	if !found {
+		s = newQuantState()
+	}
+	normalizeQuantState(&s)
+	return &Service{cfg: cfg, state: s, store: store}, nil
+}
+
+func (s *Service) Close() error {
+	if s.store == nil {
+		return nil
+	}
+	return s.store.close()
 }
 
 func (s *Service) RegisterDataset(record DatasetRecord) (DatasetRecord, error) {
@@ -1049,7 +1065,7 @@ func (s *Service) Snapshot() map[string]any {
 		"productId":        ProductID,
 		"mode":             "SIMULATED / YNX TESTNET ONLY",
 		"liveFundsEnabled": false,
-		"source":           "ynx-quant-authoritative-local-state",
+		"source":           s.StorageSource(),
 		"asOf":             s.cfg.Now(),
 		"version":          Version,
 		"coverage":         "local-research-paper-and-bounded-testnet-records",
@@ -1164,6 +1180,12 @@ func (s *Service) DeleteAllLocalData(confirmation string) (DeletionRecord, error
 }
 
 func (s *Service) lockAndReload() (func(), error) {
+	if s.store != nil && !s.store.requiresFilesystemLock() {
+		if err := s.reload(); err != nil {
+			return nil, err
+		}
+		return func() {}, nil
+	}
 	lockPath := s.cfg.StatePath + ".lock"
 	if err := os.MkdirAll(filepath.Dir(lockPath), 0700); err != nil {
 		return nil, err
@@ -1188,41 +1210,14 @@ func (s *Service) lockAndReload() (func(), error) {
 }
 
 func (s *Service) reload() error {
-	b, err := os.ReadFile(s.cfg.StatePath)
-	if os.IsNotExist(err) {
-		return nil
-	}
+	latest, found, err := s.store.load()
 	if err != nil {
 		return err
 	}
-	var latest state
-	if json.Unmarshal(b, &latest) != nil || !verifyIntegrity(latest) {
-		return fmt.Errorf("state integrity: %w", ErrForbidden)
+	if !found {
+		return nil
 	}
-	if latest.Experiments == nil {
-		latest.Experiments = map[string]Experiment{}
-	}
-	if latest.Strategies == nil {
-		latest.Strategies = map[string]StrategySpec{}
-	}
-	if latest.Datasets == nil {
-		latest.Datasets = map[string]DatasetRecord{}
-	}
-	if latest.Mandates == nil {
-		latest.Mandates = map[string]Mandate{}
-	}
-	if latest.TestnetOrders == nil {
-		latest.TestnetOrders = map[string]TestnetOrder{}
-	}
-	if latest.Idempotency == nil {
-		latest.Idempotency = map[string]string{}
-	}
-	if latest.ExecutionLedger == nil {
-		latest.ExecutionLedger = map[string]ExecutionLedgerRecord{}
-	}
-	if latest.AdapterSequences == nil {
-		latest.AdapterSequences = map[string]int64{}
-	}
+	normalizeQuantState(&latest)
 	s.state = latest
 	return nil
 }
@@ -1239,8 +1234,14 @@ func (s *Service) audit(action, id, d string) {
 func (s *Service) save() error {
 	s.state.Integrity = ""
 	s.state.Integrity = hash(s.state)
-	b, _ := json.MarshalIndent(s.state, "", "  ")
-	return writeAtomic(s.cfg.StatePath, b)
+	if err := s.store.save(&s.state); err != nil {
+		_ = s.reload()
+		if errors.Is(err, errStateConflict) {
+			return ErrConflict
+		}
+		return err
+	}
+	return nil
 }
 func writeAtomic(path string, b []byte) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {

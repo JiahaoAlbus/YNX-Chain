@@ -18,13 +18,14 @@ var tenantIDPattern = regexp.MustCompile(`^[0-9a-f]{64}$`)
 // and Wallet/Exchange adapters. Tenant IDs are 256-bit unguessable device
 // bindings; Wallet and order signatures remain independently mandatory.
 type TenantServer struct {
-	mu      sync.Mutex
-	config  Config
-	role    string
-	root    string
-	base    http.Handler
-	servers map[string]http.Handler
-	maxOpen int
+	mu          sync.Mutex
+	config      Config
+	role        string
+	root        string
+	base        http.Handler
+	baseService *Service
+	servers     map[string]*Server
+	maxOpen     int
 }
 
 func NewTenantServer(config Config, role string) (*TenantServer, error) {
@@ -32,14 +33,19 @@ func NewTenantServer(config Config, role string) (*TenantServer, error) {
 	if err != nil {
 		return nil, err
 	}
-	root := config.StatePath + ".tenants"
-	if err := os.MkdirAll(root, 0o700); err != nil {
-		return nil, err
+	root := ""
+	if config.DatabaseURL == "" {
+		root = config.StatePath + ".tenants"
+		if err := os.MkdirAll(root, 0o700); err != nil {
+			_ = base.Close()
+			return nil, err
+		}
+		if err := os.Chmod(root, 0o700); err != nil {
+			_ = base.Close()
+			return nil, err
+		}
 	}
-	if err := os.Chmod(root, 0o700); err != nil {
-		return nil, err
-	}
-	return &TenantServer{config: config, role: role, root: root, base: NewRoleServer(base, role), servers: map[string]http.Handler{}, maxOpen: 1024}, nil
+	return &TenantServer{config: config, role: role, root: root, base: NewRoleServer(base, role), baseService: base, servers: map[string]*Server{}, maxOpen: 1024}, nil
 }
 
 func (s *TenantServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -70,7 +76,14 @@ func (s *TenantServer) tenant(id string) (http.Handler, error) {
 		return nil, ErrUnavailable
 	}
 	config := s.config
-	config.StatePath = filepath.Join(s.root, id+".json")
+	if config.DatabaseURL == "" {
+		config.StatePath = filepath.Join(s.root, id+".json")
+	} else {
+		config.StateNamespace = config.StateNamespace + ":tenant:" + id
+		if baseStore, ok := s.baseService.store.(*postgresStateStore); ok {
+			config.sharedDatabase = baseStore.db
+		}
+	}
 	service, err := New(config)
 	if err != nil {
 		return nil, err
@@ -78,6 +91,21 @@ func (s *TenantServer) tenant(id string) (http.Handler, error) {
 	server := NewRoleServer(service, s.role)
 	s.servers[id] = server
 	return server, nil
+}
+
+func (s *TenantServer) Close() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	var first error
+	for _, server := range s.servers {
+		if err := server.service.Close(); err != nil && first == nil {
+			first = err
+		}
+	}
+	if err := s.baseService.Close(); err != nil && first == nil {
+		first = err
+	}
+	return first
 }
 
 func writeTenantError(w http.ResponseWriter, status int, code string) {
