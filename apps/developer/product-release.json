@@ -127,11 +127,14 @@
       "verification": "The current macOS arm64 DMG is a direct local installation candidate with provenance, a 269-component SBOM, ad-hoc classification, cold launch, bounded C++ compilation and persisted second launch. The current Windows x64 MSIX has source-bound CI portable and installed-payload cold/second-launch evidence plus a test-only self-signed package signature.",
       "publicBoundary": "The source-bound public Web candidate is d4052228 pending independent current readback. macOS DMG and Windows MSIX remain non-public installer candidates; no ZIP is a supported desktop installer.",
       "publicDeployment": {
-        "sourceCommit": "bc8a37bc6f2bcfcbe9415cb0e9da17a5294046a3",
+        "sourceCommit": "d4052228a2261c5ced6a8e8cfcbf763edabf2103",
+        "sourceTree": "89beb658b0971fb20d0d92a6bebc2010fdbb33e7",
+        "release": "0.2.0-testnet-preview-d4052228a226-candidate",
         "service": "ynx-code-candidate.service",
         "upstream": "127.0.0.1:18113",
         "rollbackService": "ynx-developer-web.service on 127.0.0.1:18111",
-        "verified": "Source-build gates cover the reviewed nine-language image. Direct current public runtime health confirms C/C++, JavaScript/TypeScript, Python, Go, Rust and Solidity compilers plus seven language servers; Java compilation is currently unavailable, while Java LSP reports ready. It also records 12 concurrent tenants, tenant isolation, hosted qwen3:4b Planner, disconnected-request cancellation and the fail-closed Wallet/BFT gate."
+        "currentRuntimeReadback": false,
+        "verified": "The source-bound d4052228 public-candidate receipt exists, but independent current public health, image fingerprint, rollback and runtime-capability readback remain unverified. The preceding bc8a37bc host-side record is historical only."
       }
     },
     "apiStudio": {
