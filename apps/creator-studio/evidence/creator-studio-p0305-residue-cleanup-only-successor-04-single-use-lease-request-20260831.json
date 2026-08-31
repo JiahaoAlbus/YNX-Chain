@@ -1,0 +1,112 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "owner": "creator-studio-deploy-owner",
+  "requestType": "WHOLLY_NEW_IDENTITY_BOUND_CREATOR_P0305_RESIDUE_CLEANUP_ONLY_SUCCESSOR_04",
+  "supersedes": {
+    "requestCommit": "03b7bae8430fa5549707f596ad6f770a1d411fe7",
+    "reason": "NO_GO_CANDIDATE_DIRECTORY_INVENTORY_NOT_COMPARED"
+  },
+  "implementation": {
+    "commit": "b1e7ce6d02f09f6d5b67fb1f0e4ffdc929d3f69e",
+    "tree": "345ad4c4df12e9f93511bd9f322f33f0b4f6e027",
+    "path": "apps/creator-studio/release-residue-cleanup-3f97a13d.mjs",
+    "bytes": 28711,
+    "sha256": "9a79fb958f815fff5a47b0c84b0dc09847fd38aca6f345e7af9e72d455771dcf"
+  },
+  "authoritativeZeroWriteInventory": {
+    "taskId": "P0-308",
+    "centralCommit": "46a630042e8f20797851a374d4f4b5f11ac25fec",
+    "centralTree": "6367218373818b236a39d0b768a72fa5bc159622",
+    "remoteExitStatus": 0,
+    "mutationCount": 0,
+    "oldRuntimeExact": true,
+    "residuesRetained": true
+  },
+  "canonicalInputSource": {
+    "commit": "03b7bae8430fa5549707f596ad6f770a1d411fe7",
+    "path": "apps/creator-studio/evidence/creator-studio-p0305-residue-cleanup-only-successor-03-single-use-lease-request-20260831.json",
+    "blob": "1f7298660ac8ec247c6f09b9f65af3a0d1f0d54f",
+    "jsonPointer": "/canonicalInput/base64",
+    "decodedBytes": 1625,
+    "decodedSha256": "b8cfef3abdd568b44b04b463cbb56f0fdaca58248c04f28be10e300a87a2ea7c",
+    "bindsExact16AppleDoubleTuples": true
+  },
+  "candidateInventoryContract": {
+    "exactDirectoryEntries": [
+      "d:assets",
+      "d:i18n"
+    ],
+    "manifestFile": "f:creator-studio.manifest.json",
+    "manifestPayloadFileCount": 12,
+    "appleDoubleFileCount": 16,
+    "appleDoubleBytesEach": 163,
+    "appleDoubleSha256Each": "b2b37d54e78052e7810fb65d04b2e7d916c6e85c69e04164c936f4fc8e7375d3",
+    "completeTreeComparedIncludingDirectoryAndFilePrefixes": true,
+    "wildcardsAllowed": false,
+    "unexpectedFileRejected": true,
+    "unexpectedEmptyDirectoryRejected": true,
+    "unexpectedNestedDirectoryOnlySubtreeRejected": true
+  },
+  "requestedExecution": {
+    "executor": "release-control-plane",
+    "runtimeHost": "43.153.202.237",
+    "attemptLimit": 1,
+    "retryAllowed": false,
+    "sshStdin": {
+      "path": "apps/creator-studio/release-residue-cleanup-3f97a13d.mjs",
+      "bytes": 28711,
+      "sha256": "9a79fb958f815fff5a47b0c84b0dc09847fd38aca6f345e7af9e72d455771dcf"
+    },
+    "remoteArgvSuffix": [
+      "/usr/bin/sudo",
+      "-n",
+      "/usr/bin/node",
+      "--input-type=module",
+      "-",
+      "cleanup",
+      "<exact canonicalInputSource decoded base64 literal>"
+    ],
+    "sshPolicy": "Central freezes the full literal SSH argv and protected existing identity reference; no variable interpolation, retry or remote temp file."
+  },
+  "deletionSafety": {
+    "order": [
+      "/opt/ynx-creator-studio-wallet/receipts/upgrade-3f97a13d.json",
+      "/opt/ynx-creator-studio-wallet/releases/creator-studio-3f97a13d",
+      "/opt/ynx-release-control-plane/creator-studio-3f97a13d"
+    ],
+    "fullPredeleteFence": true,
+    "immediateObjectRevalidationBeforeEachDelete": true,
+    "remainingTargetsRevalidatedAfterEachDelete": true,
+    "parentDeviceInodeBoundAndRootOwnedNonWritable": true,
+    "symlinkMountSpecialHardlinkRejected": true,
+    "serviceLifecycleActions": 0
+  },
+  "fixtureEvidence": {
+    "command": "node apps/creator-studio/release-residue-cleanup-3f97a13d.mjs fixture",
+    "passed": true,
+    "completeFileAndDirectoryInventoryBound": true,
+    "receiptCandidateControlReplacementRacesRejected": true,
+    "appleDoubleReplacementRejectedWithZeroDeletion": true,
+    "extraFileRejectedWithZeroDeletion": true,
+    "extraEmptyDirectoryRejectedWithZeroDeletion": true,
+    "nestedDirectoryOnlySubtreeRejectedWithZeroDeletion": true,
+    "positiveCleanupTerminalAbsence": true
+  },
+  "terminalRule": "Retain Creator Heavy after the one cleanup attempt. Release only after a wholly-new zero-write readback proves all residues absent and old current/service/ports/unit/public hashes exact.",
+  "forbidden": [
+    "successor-03 lease or execution",
+    "wildcard inventory acceptance",
+    "old rollback or forward argv",
+    "retry blind cleanup or service lifecycle",
+    "current old release API Viewer unit Caddy shared-current or public mutation",
+    "Wallet account request signature typed data or transaction"
+  ],
+  "truthBoundary": {
+    "sourceOnly": true,
+    "sshExecuted": false,
+    "productionMutation": false,
+    "cleanupComplete": false,
+    "publicRuntimeChanged": false
+  }
+}
