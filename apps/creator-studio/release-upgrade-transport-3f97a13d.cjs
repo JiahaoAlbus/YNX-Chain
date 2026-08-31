@@ -1,4 +1,4 @@
-/* CommonJS-compatible bytes executed by `node -e`; stdin is carrier-only. */
+/* CommonJS entrypoint and `node -e` transport bytes; stdin is carrier-only. */
 const fsp=require("node:fs/promises"),crypto=require("node:crypto"),path=require("node:path"),os=require("node:os"),{execFileSync}=require("node:child_process");
 const PROD_ROOT="/opt/ynx-release-control-plane/creator-studio-3f97a13d";
 const ORDER=Object.freeze(["release-upgrade-executor-3f97a13d.mjs","release-candidates/candidate-3f97a13d/creator-studio.tar","release-candidates/candidate-0e1a53c5/creator-studio.tar"]);
