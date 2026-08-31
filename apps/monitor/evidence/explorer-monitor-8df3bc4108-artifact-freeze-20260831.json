@@ -1,0 +1,91 @@
+{
+  "schemaVersion": "ynx.explorer-monitor.source-bound-release-preparation.v8",
+  "observedAt": "2026-08-31T11:13:00Z",
+  "owner": "explorer-monitor",
+  "authority": {
+    "productionMutationAllowed": false,
+    "publicVerified": false,
+    "computerControlVerified": false,
+    "statement": "A local, reproducible artifact freeze only. No production host, service, ingress, Caddy configuration, account, signature, transaction, Wallet state, or other-owner path was changed."
+  },
+  "candidate": {
+    "branch": "codex/p0-explorer-monitor-20260820",
+    "sourceCommit": "8df3bc4108d4dc65090972de9278eb7f7d76dc78",
+    "sourceTree": "faef9c5d3f4c76234696c7252645748d91b3daa7",
+    "monitorSourceTree": "328d39828100f3f38f454ef406a0ebd08461b691",
+    "documentationCommit": "fc240945ab55b7fb770e0a5e21ed67aefc6592d0",
+    "documentationTree": "cbdc0aae2ec53aab29433744221ffc52225d1a99",
+    "pullRequest": "https://github.com/JiahaoAlbus/YNX-Chain/pull/107",
+    "release": "ynx-explorer-monitor-8df3bc4108d4",
+    "build": {
+      "goos": "linux",
+      "goarch": "amd64",
+      "cgoEnabled": false,
+      "trimpath": true,
+      "buildvcs": false,
+      "sourceDateEpoch": 1788174298,
+      "buildTime": "2026-08-31T19:04:58+08:00",
+      "linkerIdentity": "main.buildCommit, main.buildRelease, main.buildTime"
+    },
+    "generationBoundary": "The documentation commit differs only in the Fable5 matrix under apps/monitor/evidence; git diff --name-status 8df3bc4108..fc240945 for explorer, indexer, commands and monitor code reports that matrix only. All packaged executable and monitor source inputs are therefore frozen from 8df3bc4108."
+  },
+  "supersession": {
+    "supersedes": ["apps/monitor/evidence/p0-175-explorer-contract-search-artifact-checkpoint-20260831.json"],
+    "reason": "P0-175 is tied to c4c1affea3ab10ade8336c9387eec72f18b9e385. Its artifacts and every earlier artifact are forbidden from deployment with source 8df3bc4108.",
+    "mixingForbidden": true
+  },
+  "artifacts": {
+    "explorerd": {
+      "carrierPath": "/private/tmp/ynx-explorer-monitor-8df3bc4108.a8jPNl/bin/ynx-explorerd",
+      "bytes": 9003156,
+      "sha256": "aae7a74c5bf595fb732b9cfd77a91e3d51eb97489b6ef40b3b283ce53589b228",
+      "format": "linux amd64 static ELF, stripped"
+    },
+    "indexerd": {
+      "carrierPath": "/private/tmp/ynx-explorer-monitor-8df3bc4108.a8jPNl/bin/ynx-indexerd",
+      "bytes": 7528596,
+      "sha256": "d1f9f1025bebc8308a2d38f0dd4a6bbdea0d06d9168918fbf81dfd2f57d04f6c",
+      "format": "linux amd64 static ELF, stripped"
+    },
+    "monitorReleaseTree": {
+      "carrierPath": "/private/tmp/ynx-explorer-monitor-8df3bc4108.a8jPNl/monitor-release-tree.tar",
+      "bytes": 1556480,
+      "sha256": "d3a0e8bbec57327772778c08d824376131dcc4e2b1bca5ef7b21ebf30d008a32",
+      "format": "deterministic GNU tar from the exact Monitor source tree with built dist; no node_modules or .env",
+      "inputs": {
+        "packageLockSha256": "3329447e950589f80129b59e1c6e99d5856d869da06672c0b525ed129e291694",
+        "distIndexHtmlSha256": "0f7d2e816a6cfdfaec8bd953c7be2562d3ff11e89b2a21fe372dd5bf169117d0"
+      }
+    }
+  },
+  "validation": {
+    "explorerIndexerRace": "go test -race ./internal/indexer ./internal/explorer -count=1: passing",
+    "monitor": "npm test: 55 application tests plus 10 script tests passing; npm run build: passing",
+    "artifactIntegrity": "All three artifacts were rebuilt independently with the same source epoch, linker identity and deterministic archive settings; cmp was byte-identical for each artifact. Both ELF binaries contain the full 8df3bc4108d4dc65090972de9278eb7f7d76dc78 source identity. Archive listing contains neither node_modules nor .env.",
+    "linuxRuntime": "Not run on this macOS builder because the binaries target Linux amd64. Static ELF format, embedded identity, source race tests and exact byte reproducibility were verified."
+  },
+  "requiredCentralGate": {
+    "beforeProductionMutation": [
+      "Fresh read-only capture of the authoritative host, service, environment, Caddy matcher, current release and rollback artifact digests.",
+      "A new single-use lease binding exactly the three hashes above, the production target and rollback receipt schema.",
+      "An authorized operator and expiry; this record alone grants no SSH, deployment or mutation authority."
+    ],
+    "afterProductionMutation": [
+      "Official Explorer, Indexer and Monitor /version source/release readback must equal 8df3bc4108d4dc65090972de9278eb7f7d76dc78.",
+      "Monitor /connectivity must be cache-free JSON with canonical Testnet identity, never the 641-byte HTML SPA fallback.",
+      "A fresh real Testnet transaction must resolve through full-hash search and its deep-link detail page before public verification.",
+      "Direct desktop and narrow-screen Computer Control evidence is required before publicVerified or computerControlVerified may be set true."
+    ]
+  },
+  "states": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "publicVerified": false,
+    "computerControlVerified": false
+  }
+}

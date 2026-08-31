@@ -16,22 +16,26 @@
   Indexer. The initial and all 12 localized leaderboard states now describe
   only the observed Indexer-participant sample and explicitly reject a
   full-ledger-census claim.
-- `apps/monitor/evidence/p0-175-explorer-contract-search-artifact-checkpoint-20260831.json`
-  is tied to source `c4c1affea3ab10ade8336c9387eec72f18b9e385`, not this
-  successor. It and every older artifact are forbidden from deployment with
-  `8df3…`; no current-source deployment artifact exists yet. Do not create a
-  release request until this PR head's CI is green and a single coherent
-  source/tree/artifact/rollback bundle is frozen.
-- Local evidence for `8df3…`: `go test -race ./internal/explorer -count=1`
-  passes. The preceding source baseline also passed `go test -race
-  ./internal/indexer ./internal/explorer -count=1`, Monitor `npm test` (55
-  application and 10 script tests), and Monitor `npm run build`; these must be
-  repeated for the final artifact source. `go test ./...` reaches
+- `apps/monitor/evidence/explorer-monitor-8df3bc4108-artifact-freeze-20260831.json`
+  freezes all three current-source artifacts with byte-identical rebuild
+  evidence: `ynx-explorerd` SHA-256
+  `aae7a74c5bf595fb732b9cfd77a91e3d51eb97489b6ef40b3b283ce53589b228`,
+  `ynx-indexerd` SHA-256
+  `d1f9f1025bebc8308a2d38f0dd4a6bbdea0d06d9168918fbf81dfd2f57d04f6c`,
+  and the deterministic Monitor release tree SHA-256
+  `d3a0e8bbec57327772778c08d824376131dcc4e2b1bca5ef7b21ebf30d008a32`.
+  The older P0-175 and every older artifact remain forbidden from deployment
+  with `8df3…`. This freeze grants no deployment authority: Central must first
+  bind these exact hashes to a fresh production/rollback baseline and a new
+  single-use lease.
+- Final local evidence for `8df3…`: `go test -race ./internal/indexer
+  ./internal/explorer -count=1` passes; Monitor `npm test` (55 application and
+  10 script tests) and `npm run build` pass. `go test ./...` reaches
   unrelated pre-existing failures in `internal/bftgateway` and
   `internal/consensus`: a missing
   `artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json`.
-  Explorer and Indexer pass in that run. The preceding P0-175 PR head had all
-  six Security/CodeQL checks green; `8df3…` CI is pending at this checkpoint.
+  Explorer and Indexer pass in that run. The final PR head must still have all
+  required Security/CodeQL checks green before a Central deployment lease.
 - Wallet boundary evidence is
   `apps/monitor/evidence/p0-159-wallet-consumer-router-source-gate-20260831.json`:
   Explorer search/detail and Monitor health/version/status/connectivity are

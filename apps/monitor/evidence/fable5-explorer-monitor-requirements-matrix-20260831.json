@@ -6,7 +6,7 @@
     "sourceCommit": "8df3bc4108d4dc65090972de9278eb7f7d76dc78",
     "sourceTree": "faef9c5d3f4c76234696c7252645748d91b3daa7",
     "pullRequest": "https://github.com/JiahaoAlbus/YNX-Chain/pull/107",
-    "artifactState": "unfrozen: P0-175 artifacts are tied to c4c1affea3ab10ade8336c9387eec72f18b9e385 and must not be deployed with this source"
+    "artifactState": "frozen locally in apps/monitor/evidence/explorer-monitor-8df3bc4108-artifact-freeze-20260831.json; Central integration/deployment/production signing/public verification remain false"
   },
   "stateDefinition": {
     "implementedLocal": "Owner source contains the behavior; this is not deployment evidence.",
