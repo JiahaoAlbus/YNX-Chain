@@ -3,8 +3,8 @@
 ## Superseding state (2026-08-31, current)
 
 - Current source-bearing Explorer/Monitor checkpoint is
-  `c1574d1d7ff51e959f7cbcf922c8beebca9d56bf`
-  (tree `780d3e613bb56a1f3950d5635abc2ad734d9debd`) on
+  `8df3bc4108d4dc65090972de9278eb7f7d76dc78`
+  (tree `faef9c5d3f4c76234696c7252645748d91b3daa7`) on
   `codex/p0-explorer-monitor-20260820`, PR #107 Draft. It retains the real
   Indexer participant/activity, RPC balance, YNXT and chain-RPC contract work
   from the preceding source, and adds refresh-safe shell routes for factual
@@ -13,21 +13,25 @@
   now distinguish a real upstream 404 from unavailable dependencies without
   exposing upstream text, addresses or credentials. Account activity and the
   observed-participant leaderboard refuse an unhealthy or identity-mismatched
-  Indexer.
+  Indexer. The initial and all 12 localized leaderboard states now describe
+  only the observed Indexer-participant sample and explicitly reject a
+  full-ledger-census claim.
 - `apps/monitor/evidence/p0-175-explorer-contract-search-artifact-checkpoint-20260831.json`
   is tied to source `c4c1affea3ab10ade8336c9387eec72f18b9e385`, not this
   successor. It and every older artifact are forbidden from deployment with
-  `c1574…`; no current-source deployment artifact exists yet. Do not create a
+  `8df3…`; no current-source deployment artifact exists yet. Do not create a
   release request until this PR head's CI is green and a single coherent
   source/tree/artifact/rollback bundle is frozen.
-- Local evidence for `c1574…`: `go test -race ./internal/indexer
-  ./internal/explorer -count=1`, Monitor `npm test` (55 application and 10
-  script tests), and Monitor `npm run build` pass. `go test ./...` reaches
+- Local evidence for `8df3…`: `go test -race ./internal/explorer -count=1`
+  passes. The preceding source baseline also passed `go test -race
+  ./internal/indexer ./internal/explorer -count=1`, Monitor `npm test` (55
+  application and 10 script tests), and Monitor `npm run build`; these must be
+  repeated for the final artifact source. `go test ./...` reaches
   unrelated pre-existing failures in `internal/bftgateway` and
   `internal/consensus`: a missing
   `artifacts/contracts/devtools/SampleEVMWriteCounter.sol/SampleEVMWriteCounter.json`.
   Explorer and Indexer pass in that run. The preceding P0-175 PR head had all
-  six Security/CodeQL checks green; `c1574…` CI is pending at this checkpoint.
+  six Security/CodeQL checks green; `8df3…` CI is pending at this checkpoint.
 - Wallet boundary evidence is
   `apps/monitor/evidence/p0-159-wallet-consumer-router-source-gate-20260831.json`:
   Explorer search/detail and Monitor health/version/status/connectivity are

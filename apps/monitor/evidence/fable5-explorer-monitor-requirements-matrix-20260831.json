@@ -3,8 +3,8 @@
   "asOf": "2026-08-31",
   "owner": "explorer-monitor",
   "candidate": {
-    "sourceCommit": "c1574d1d7ff51e959f7cbcf922c8beebca9d56bf",
-    "sourceTree": "780d3e613bb56a1f3950d5635abc2ad734d9debd",
+    "sourceCommit": "8df3bc4108d4dc65090972de9278eb7f7d76dc78",
+    "sourceTree": "faef9c5d3f4c76234696c7252645748d91b3daa7",
     "pullRequest": "https://github.com/JiahaoAlbus/YNX-Chain/pull/107",
     "artifactState": "unfrozen: P0-175 artifacts are tied to c4c1affea3ab10ade8336c9387eec72f18b9e385 and must not be deployed with this source"
   },
