@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "financeP0318RetainedControlCleanupLease@1",
+  "lease": {
+    "signed": false,
+    "kind": "FINANCE_P0318_RETAINED_CONTROL_CLEANUP_ONLY",
+    "id": null,
+    "taskId": null,
+    "issuedAt": null,
+    "expiresAt": null,
+    "singleUse": true,
+    "retryAllowed": false,
+    "centralSignature": null
+  },
+  "parent": {
+    "path": "/opt/ynx/leases/finance",
+    "parentFullTuple": null,
+    "parentStableIdentity": null,
+    "directChildren": null,
+    "inventorySha256": null
+  },
+  "targets": {
+    "executor": {
+      "path": "/opt/ynx/leases/finance/finance-combined-4f7fba323a89-20260831t041500z.executor.sh",
+      "tuple": null,
+      "bytes": 27826,
+      "sha256": "1899f8a57bcd4ad0477f0f4fc34bd867a79e96bc309f31fa8f1f7637dd42ad93"
+    },
+    "signedLease": {
+      "path": "/opt/ynx/leases/finance/finance-combined-4f7fba323a89-20260831t041500z.json",
+      "tuple": null,
+      "bytes": 9930,
+      "sha256": "4f3bcb186750ad792588a660e7c60c7a6ab8e4045a43a23018fb3260e1392038"
+    }
+  },
+  "postCleanup": {
+    "parentStableIdentity": null,
+    "directChildren": null,
+    "inventorySha256": null
+  },
+  "historicalP0318TerminalReadback": {
+    "parentFullTuple": "64770:4594822:0:0:750:2:4096:directory",
+    "parentDirectChildren": 4,
+    "parentInventorySha256": "bebb3f62aad8797060ed4fc2165166f457be1789b6032f9fe7c77defd1b9e46a",
+    "executorTuple": "64770:4594834:0:0:700:1:27826:regular file",
+    "signedLeaseTuple": "64770:4594835:0:0:600:1:9930:regular file",
+    "mustNotSubstituteForFreshRead": true
+  },
+  "executionCandidate": {
+    "executable": false,
+    "reason": "Central must fresh-read the exact parent, both exact target identities and the computed two-sibling post-cleanup inventory, then sign every null field and freeze the final bytes/SHA in a new cleanup-only lease"
+  }
+}
