@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "WALLET-ANDROID-API36-CURRENT-SOURCE-INSTALL-BLOCKER-20260831",
+  "owner": "02-wallet-auth-android",
+  "branch": "codex/wallet-android-metamask-l1-20260822",
+  "source": {
+    "commit": "bf478361f009c3ad086e240d7af2007d98f98eb8",
+    "tree": "a618897771a6cc44c75702e9d2ca5fe5c14d9ec4"
+  },
+  "authoritativeInputs": {
+    "p0155InteroperabilityMatrix": {
+      "commit": "f3e4a07247f198f2a2fdd558efd7e9706b4075cf",
+      "blob": "eb63d8121eb72fcc09775aa2aca2797eb4deeea8",
+      "sha256": "d277f31da23cc76031e9e2d98acbca8070a874ba99ffd13712ec49c0918ad379"
+    },
+    "sharedProvider": {
+      "commit": "98c6d5d784d212df8981a53b17118a511e246ad2"
+    }
+  },
+  "artifact": {
+    "classification": "localExactSourceArtifact",
+    "path": "/private/tmp/ynx-wallet-api36-current-build-retry.eGGYax-artifact/ynx-wallet-1.0.1-api36-disposable-qa.apk",
+    "package": "com.ynxweb4.wallet",
+    "versionName": "1.0.1",
+    "versionCode": 2,
+    "bytes": 39021248,
+    "sha256": "df5b70a3de63280fbc10cb46090b162b0dc532fdb2f74207880c29d77b3968e2",
+    "minimumOS": "Android API 24",
+    "compileSdk": 36,
+    "targetSdk": 36,
+    "abi": "arm64-v8a",
+    "signingClass": "disposable-qa-release-key",
+    "signerCertificateSha256": "668123dbf78ad535599f91324a6a9fbd2282019f013161b9166158f1952bcffe",
+    "apkSignatureSchemeV2": true,
+    "manifestAuthorizeRouteCount": 1,
+    "manifestWalletConnectRouteCount": 1,
+    "manifestInternetPermission": true,
+    "productionSigned": false,
+    "storeReleased": false,
+    "secretMaterialRecorded": false
+  },
+  "deviceAttempts": [
+    {
+      "avd": "YNX_WALLET_MM_L1_C4A0BC8A_API36",
+      "api": 36,
+      "abi": "arm64-v8a",
+      "existingWalletSigningContinuity": false,
+      "uninstalledOrCleared": false
+    },
+    {
+      "avd": "YNX_API_36",
+      "api": 36,
+      "abi": "arm64-v8a",
+      "existingWalletSigningContinuity": false,
+      "uninstalledOrCleared": false
+    },
+    {
+      "avd": "Medium_Phone_API_36.0",
+      "api": 36,
+      "abi": "arm64-v8a",
+      "existingWalletSigningContinuity": false,
+      "uninstalledOrCleared": false
+    }
+  ],
+  "runtimeTruth": {
+    "installedForThisArtifact": false,
+    "firstColdLaunch": false,
+    "secondColdLaunch": false,
+    "rpcChainIdReadback0x1917": false,
+    "privateServiceDegradedObserved": false,
+    "malformedCanonicalDeepLinkFailedClosed": false,
+    "accountRequested": false,
+    "signatureRequested": false,
+    "transactionRequested": false
+  },
+  "singleBlocker": {
+    "id": "EXISTING_API36_AVD_WALLET_SIGNING_CONTINUITY_CONFLICT",
+    "summary": "Every bounded eligible API 36 arm64 AVD candidate already contains a Wallet signed by a different disposable QA identity. Preserving installed application data prevents uninstall, clear-data or replacement, so the current exact-source APK cannot be installed without a fresh authorized target or explicit authority to erase one named AVD."
+  }
+}
