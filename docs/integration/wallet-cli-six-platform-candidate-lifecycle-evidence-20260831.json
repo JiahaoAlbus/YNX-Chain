@@ -14,11 +14,11 @@
   },
   "artifacts": [
     {"target":"darwin/arm64","path":"release/wallet-cli/artifacts/ynx-wallet-cli-darwin-arm64.gz","bytes":4874812,"sha256":"8deca300b859ebb87a1a0914df2297283941c9e0d67edcde60dea382758efff1","minimumOS":"macOS 12 Monterey","signingClass":"ad_hoc_linker_signed_local_testnet_cli_candidate","runtimeTested":true},
-    {"target":"darwin/amd64","path":"release/wallet-cli/artifacts/ynx-wallet-cli-darwin-amd64.gz","bytes":5199151,"sha256":"c2fe1f4aceab5e2628f8f56768834347e89a48f090227910c12e916764b6d6d1","minimumOS":"macOS 12 Monterey","signingClass":"unsigned_macos_cross_arch_candidate","runtimeTested":false,"blocker":"local Rosetta unavailable; hosted x64 lifecycle pending"},
+    {"target":"darwin/amd64","path":"release/wallet-cli/artifacts/ynx-wallet-cli-darwin-amd64.gz","bytes":5199151,"sha256":"c2fe1f4aceab5e2628f8f56768834347e89a48f090227910c12e916764b6d6d1","minimumOS":"macOS 12 Monterey","signingClass":"unsigned_macos_cross_arch_candidate","runtimeTested":true,"runtimeQualifier":"GitHub-hosted macos-15-intel native x86_64 runner; run 33384806411"},
     {"target":"linux/arm64","path":"release/wallet-cli/artifacts/ynx-wallet-cli-linux-arm64.gz","bytes":4632209,"sha256":"edf65972dfba52018d47321e5e91c409ec9d8a2aac45a4001511521a64d980a9","minimumOS":"Linux kernel 3.2","signingClass":"unsigned_local_testnet_cli_candidate","runtimeTested":true,"runtimeQualifier":"native aarch64 Ubuntu 24.04 Docker container, network none"},
-    {"target":"linux/amd64","path":"release/wallet-cli/artifacts/ynx-wallet-cli-linux-amd64.gz","bytes":5059944,"sha256":"05291586e1039df381df8095f50c45612f9644c881422d57e0fac693b5e7dd75","minimumOS":"Linux kernel 3.2","signingClass":"unsigned_local_testnet_cli_candidate","runtimeTested":false,"blocker":"available Linux daemon is aarch64 and no qemu executor is installed"},
-    {"target":"windows/arm64","path":"release/wallet-cli/artifacts/ynx-wallet-cli-windows-arm64.exe.gz","bytes":4603630,"sha256":"7cbf0fbddecc907292263d2f055b3e6def5b57b14588f6e8fe1f6324d3d64804","minimumOS":"Windows 10 or Windows Server 2016","signingClass":"unsigned_local_testnet_cli_candidate","runtimeTested":false,"blocker":"no Windows runner or Wine executor"},
-    {"target":"windows/amd64","path":"release/wallet-cli/artifacts/ynx-wallet-cli-windows-amd64.exe.gz","bytes":5059829,"sha256":"05b3deb66ca924b6b872f6fbbb3b524b649e6a677deaec1176459d9d4fb2c72d","minimumOS":"Windows 10 or Windows Server 2016","signingClass":"unsigned_local_testnet_cli_candidate","runtimeTested":false,"blocker":"no Windows runner or Wine executor"}
+    {"target":"linux/amd64","path":"release/wallet-cli/artifacts/ynx-wallet-cli-linux-amd64.gz","bytes":5059944,"sha256":"05291586e1039df381df8095f50c45612f9644c881422d57e0fac693b5e7dd75","minimumOS":"Linux kernel 3.2","signingClass":"unsigned_local_testnet_cli_candidate","runtimeTested":true,"runtimeQualifier":"GitHub-hosted ubuntu-24.04 native x86_64 runner; run 33384806411"},
+    {"target":"windows/arm64","path":"release/wallet-cli/artifacts/ynx-wallet-cli-windows-arm64.exe.gz","bytes":4603630,"sha256":"7cbf0fbddecc907292263d2f055b3e6def5b57b14588f6e8fe1f6324d3d64804","minimumOS":"Windows 10 or Windows Server 2016","signingClass":"unsigned_local_testnet_cli_candidate","runtimeTested":true,"runtimeQualifier":"GitHub-hosted windows-11-arm native ARM64 runner; run 33384806411"},
+    {"target":"windows/amd64","path":"release/wallet-cli/artifacts/ynx-wallet-cli-windows-amd64.exe.gz","bytes":5059829,"sha256":"05b3deb66ca924b6b872f6fbbb3b524b649e6a677deaec1176459d9d4fb2c72d","minimumOS":"Windows 10 or Windows Server 2016","signingClass":"unsigned_local_testnet_cli_candidate","runtimeTested":true,"runtimeQualifier":"GitHub-hosted windows-2025 native AMD64 runner; run 33384806411"}
   ],
   "macOSArm64Lifecycle": {
     "evidencePath": "release/wallet-cli/local-install-evidence.json",
@@ -45,6 +45,7 @@
     "residueAbsent": true,
     "nativeHostInstalled": false
   },
+  "hostedLifecycleEvidence": "docs/integration/wallet-cli-hosted-lifecycle-evidence-20260831.json",
   "testnetConfig": {"nativeChainId":"ynx_6423-1","chainId":6423,"evmChainId":"0x1917","currency":"YNXT","remoteProbeRun":false,"connected":false},
   "safety": {"accountRequested":false,"signingRequested":false,"transactionRequested":false,"deployed":false,"published":false},
   "releaseState": {"productionSigned":false,"notarized":false,"downloadHosted":false,"deployedPublic":false,"storeReleased":false}

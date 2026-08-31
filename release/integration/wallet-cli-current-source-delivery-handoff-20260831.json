@@ -8,10 +8,16 @@
   "manifest": "release/wallet-cli/artifacts/manifest.json",
   "verifiedRuntimeTargets": [
     "darwin/arm64 isolated transient user prefix",
-    "linux/arm64 isolated native-architecture container with network disabled"
+    "linux/arm64 isolated native-architecture container with network disabled",
+    "darwin/amd64 GitHub-hosted macos-15-intel native lifecycle",
+    "linux/amd64 GitHub-hosted ubuntu-24.04 native lifecycle",
+    "windows/arm64 GitHub-hosted windows-11-arm native lifecycle",
+    "windows/amd64 GitHub-hosted windows-2025 native lifecycle"
   ],
-  "unverifiedRuntimeTargets": ["darwin/amd64", "linux/amd64", "windows/arm64", "windows/amd64"],
-  "externalRunnerBlocker": "Native Windows x64/arm64 and Linux x64 lifecycle proof requires eligible external runners; macOS x64 requires Rosetta or an x64 macOS runner.",
+  "unverifiedRuntimeTargets": [],
+  "hostedLifecycleRun": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/33384806411",
+  "hostedLifecycleEvidence": "docs/integration/wallet-cli-hosted-lifecycle-evidence-20260831.json",
+  "externalRunnerBlocker": null,
   "noNetworkExecution": true,
   "noAccountRequest": true,
   "noSigningRequest": true,

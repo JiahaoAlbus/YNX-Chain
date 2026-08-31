@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "evidenceClass": "wallet-cli-hosted-native-runtime-lifecycle",
+  "workflowRunId": 33384806411,
+  "workflowRunURL": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/33384806411",
+  "workflowConclusion": "success",
+  "workflowSourceCommit": "d8b2c233d65362da30522a29fc19c8fd4839d86b",
+  "artifactSourceCommit": "68b68bbcbc7a301c113db82a2183537191976ff0",
+  "jobs": [
+    {
+      "target": "darwin/amd64",
+      "jobId": 99464934845,
+      "runner": "macos-15-intel",
+      "runnerMachine": "x86_64",
+      "artifactBytes": 5199151,
+      "artifactSha256": "c2fe1f4aceab5e2628f8f56768834347e89a48f090227910c12e916764b6d6d1",
+      "minimumOS": "macOS 12 Monterey",
+      "signingClass": "unsigned_macos_cross_arch_candidate",
+      "downloadedEvidenceSha256": "f1e6245c6d7801624ec48bb3fbadf2be332518b9a89ffa0eebf9115d7659b54b",
+      "unsignedInspectionSha256": "6cfe548f4524324122cf2a0513606ba51ba20e57052dfaff375dc1b2dcad8f5e"
+    },
+    {
+      "target": "linux/amd64",
+      "jobId": 99464935009,
+      "runner": "ubuntu-24.04",
+      "runnerMachine": "x86_64",
+      "artifactBytes": 5059944,
+      "artifactSha256": "05291586e1039df381df8095f50c45612f9644c881422d57e0fac693b5e7dd75",
+      "minimumOS": "Linux kernel 3.2",
+      "signingClass": "unsigned_local_testnet_cli_candidate",
+      "downloadedEvidenceSha256": "36842d56cc12fdb2e5150cac8de8001cb617000a99e1d422158c3a7499d52edc"
+    },
+    {
+      "target": "windows/amd64",
+      "jobId": 99464934936,
+      "runner": "windows-2025",
+      "runnerMachine": "AMD64",
+      "artifactBytes": 5059829,
+      "artifactSha256": "05b3deb66ca924b6b872f6fbbb3b524b649e6a677deaec1176459d9d4fb2c72d",
+      "minimumOS": "Windows 10 or Windows Server 2016",
+      "signingClass": "unsigned_local_testnet_cli_candidate",
+      "authenticodeStatus": "NotSigned",
+      "downloadedEvidenceSha256": "e765db5d13fa77299215db134333a20021dea37200b7b95a894c59b2133e5305"
+    },
+    {
+      "target": "windows/arm64",
+      "jobId": 99464934640,
+      "runner": "windows-11-arm",
+      "runnerMachine": "ARM64",
+      "artifactBytes": 4603630,
+      "artifactSha256": "7cbf0fbddecc907292263d2f055b3e6def5b57b14588f6e8fe1f6324d3d64804",
+      "minimumOS": "Windows 10 or Windows Server 2016",
+      "signingClass": "unsigned_local_testnet_cli_candidate",
+      "authenticodeStatus": "NotSigned",
+      "downloadedEvidenceSha256": "26fabc0442452766df6ab6ec879e50a955e8eb8c9be5fd582b7898a376f348a6"
+    }
+  ],
+  "commonLifecycle": {
+    "exactArtifactIntegrityVerified": true,
+    "nativeArchitectureRunnerVerified": true,
+    "installed": true,
+    "upgradeVerified": true,
+    "coldStart": true,
+    "secondStart": true,
+    "offline6423ConfigValidated": true,
+    "legacy9102RejectedWithExit78": true,
+    "uninstallVerified": true,
+    "residueAbsent": true
+  },
+  "safety": {
+    "remoteProbeRun": false,
+    "connected": false,
+    "accountRequested": false,
+    "signingRequested": false,
+    "transactionRequested": false,
+    "downloadHosted": false,
+    "deployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}
