@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "kind": "walletWebPublicBindingAudit",
+  "auditedAt": "2026-08-31T09:08:01Z",
+  "readOnlyAudit": true,
+  "scope": {
+    "product": "YNX Wallet Companion",
+    "publicEntries": [
+      "https://wallet.ynxweb4.com/",
+      "https://www.ynxweb4.com/dapp/wallet"
+    ],
+    "excluded": [
+      "Gateway mutation",
+      "Provider mutation",
+      "Vercel alias mutation",
+      "account request",
+      "signing",
+      "transaction"
+    ]
+  },
+  "observedPublicRegression": {
+    "identity": {
+      "bytes": 2196,
+      "sha256": "e69b3fb2f695584978dae7b5309584a760ccf7f534de649882ee41efaec78954",
+      "contentType": "text/html; charset=utf-8",
+      "server": "Vercel",
+      "serverDate": "Mon, 31 Aug 2026 09:08:01 GMT",
+      "vercelRequestId": "sin1::c6xhb-1788167281824-becf49733295"
+    },
+    "bothEntriesByteIdentical": true,
+    "htmlTitle": "YNX Web4 | AI-Native Sovereign Execution Layer",
+    "legacyIdentifierObserved": "EVM Chain 9102",
+    "mainModulePath": "/assets/index-BQ8z1G9v.js",
+    "isDedicatedWalletCompanion": false,
+    "isValid6423WalletRuntime": false
+  },
+  "recoveredSource": {
+    "repository": "JiahaoAlbus/YNX-Chain",
+    "ownerWorktree": "/Users/huangjiahao/.codex/worktrees/1274/YNX Chain",
+    "mergeBase": "9b4429bc312957443e03d23dc9d81f11f6402a6c",
+    "dedicatedCompanionShell": {
+      "commit": "9a51e89dee80185d16598cbb9c664b9f2bc4c557",
+      "purpose": "dedicated Wallet Companion Vercel shell",
+      "vercelConfigBlob": "085769b769696cf646ae61a267fc7e6a1bdb2009",
+      "buildCommand": "npm run build",
+      "outputDirectory": "dist/pwa",
+      "serviceWorkerHeader": "no-store, max-age=0, must-revalidate"
+    },
+    "providerAndUnknownChainFix": {
+      "commit": "3651ba0c4322e0564e29b4573f3def90828dba67",
+      "providerBlob": "af6029529801ec44db5bd14bd8053fa737ad558f",
+      "providerTestBlob": "d91116a2ba38adc116ed733130a66645cfda15a8",
+      "uiContractTestBlob": "e26ef86c1b7f98c731cded1c5f2639023ba1ce41",
+      "pwaArtifactEvidenceCommit": "01049d7ca789e91c4e1a7d30db4e2caf1501c142",
+      "pwaArtifact": {
+        "name": "ynx-wallet-web-pwa-0.1.0.zip",
+        "bytes": 284138,
+        "sha256": "38bd007893c976a41b3ac4caa33f00b0bd98cc358283a7b720e5955649fa58be",
+        "zipIntegrityVerified": true,
+        "buildIdentity": {
+          "product": "YNX Wallet Companion",
+          "sourceCommit": "3651ba0c4322e0564e29b4573f3def90828dba67",
+          "providerAuthorityCommit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+          "chainId": "0x1917"
+        },
+        "installedLocal": false,
+        "deployedPublic": false
+      }
+    },
+    "linearCandidateExists": false,
+    "reason": "The dedicated shell and Provider fix are sibling branches from the recorded merge base, so no existing SHA proves both requirements together."
+  },
+  "requiredWebsiteOwnerTransaction": {
+    "pathLockRequired": true,
+    "freshMainBasedWorktreeRequired": true,
+    "requiredSourceOperation": "Perform an explicit three-way merge of the exact dedicated shell and Provider-fix source commits; resolve and review conflicts before generating a new immutable build identity.",
+    "requiredValidation": [
+      "wallet-web focused and full tests",
+      "build and package",
+      "validate generated PWA build identity is 0x1917 and not 9102",
+      "deploy an immutable Preview before production alias mutation",
+      "verify Preview HTTP headers, bytes, SHA-256, English Wallet Companion title and service-worker no-store headers",
+      "capture the current production deployment identity and alias mapping immediately before production mutation",
+      "only then bind both wallet.ynxweb4.com and /dapp/wallet to the same verified Companion artifact",
+      "re-read both public URLs and require non-identical-to-legacy content plus the new build identity",
+      "perform a rollback drill restoring the captured pre-mutation deployment identity"
+    ],
+    "missingInputs": [
+      "Central-approved Website path lock",
+      "designated Website executor",
+      "production transaction lease",
+      "current immutable Vercel deployment identity for rollback"
+    ],
+    "routeMutationPerformed": false,
+    "rollbackPerformed": false
+  },
+  "truth": {
+    "walletCompanionPublic": false,
+    "providerLifecycleProven": false,
+    "accountApproved": false,
+    "signatureProven": false,
+    "transactionProven": false,
+    "productSessionProven": false,
+    "websiteRouteFixed": false
+  }
+}
