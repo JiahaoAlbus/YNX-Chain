@@ -183,6 +183,12 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 		"runtimeUI",
 		"detailUI",
 		"searchUI",
+		"accessibilityUI",
+		"id=\"skipLink\"",
+		"tabindex=\"-1\"",
+		"function openDrawer",
+		"drawerReturnFocus",
+		"focus-visible { outline:3px solid #2b63d9!important;",
 		"function detailRows",
 		"dataFabric",
 		"infrastructure",
@@ -256,6 +262,9 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	}
 	if strings.Contains(html, "function flatten(value") {
 		t.Fatal("explorer web must not flatten arbitrary detail payloads into the public drawer")
+	}
+	if !strings.Contains(html, "event.key !== 'Tab'") || !strings.Contains(html, "event.shiftKey && document.activeElement === first") {
+		t.Fatal("explorer web must retain keyboard focus inside an open detail drawer")
 	}
 	for _, forbidden := range []string{"9102", "0x238e", "ynx_9102-1"} {
 		if strings.Contains(strings.ToLower(html), strings.ToLower(forbidden)) {

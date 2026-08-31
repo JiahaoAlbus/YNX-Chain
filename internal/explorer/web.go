@@ -485,9 +485,16 @@ const indexHTML = `<!doctype html>
       .detail-row .copy-button { grid-column:2; grid-row:1; }
       .toast { width:min(calc(100% - 24px),460px); text-align:center; }
     }
+    /* Keep keyboard position unmistakable without changing the compact
+       information hierarchy.  This deliberately wins over component hover
+       treatments that remove the browser default outline. */
+    body :is(a,button,input,select,textarea,[tabindex]):focus-visible { outline:3px solid #2b63d9!important; outline-offset:3px; }
+    .skip-link { position:fixed; top:10px; left:12px; z-index:100; padding:10px 13px; border-radius:5px; color:#fff; background:#002fa7; box-shadow:0 8px 20px rgba(0,34,123,.24); transform:translateY(-160%); transition:transform .16s ease; }
+    .skip-link:focus { transform:translateY(0); }
   </style>
 </head>
 <body>
+  <a class="skip-link" id="skipLink" href="#homeContent" data-a11y-i18n="skipToContent">Skip to content</a>
   <nav class="nav" data-i18n-aria="primaryNavigation" aria-label="Primary navigation">
     <div class="shell nav-inner">
       <a class="brand" href="#top" data-i18n-aria="explorerHome" aria-label="YNX Chain Explorer home"><img class="brand-logo" src="/assets/ynx-logo.png?v=df071f54b" width="30" height="30" alt=""><span>YNX Chain</span></a>
@@ -515,7 +522,7 @@ const indexHTML = `<!doctype html>
     </div>
   </header>
 
-  <main id="homeContent">
+  <main id="homeContent" tabindex="-1">
     <div class="shell">
       <section class="network-summary" data-i18n-aria="networkSummary" aria-label="Network summary">
       <div class="metrics" data-i18n-aria="networkMetrics" aria-label="Network metrics">
@@ -591,7 +598,7 @@ const indexHTML = `<!doctype html>
     </div>
   </main>
 
-  <section class="route-view shell" id="routeView" hidden aria-live="polite"></section>
+  <section class="route-view shell" id="routeView" hidden aria-live="polite" tabindex="-1"></section>
 
   <footer><div class="shell footer-inner"><span data-footer-i18n="portal">YNX Chain · 6423 Testnet portal</span><span><a href="#documentation" data-route="documentation" data-i18n="documentation">Documentation</a> · <span data-footer-i18n="disclaimer">Live testnet data. Mainnet launch is not claimed.</span></span></div></footer>
 
@@ -831,6 +838,14 @@ const indexHTML = `<!doctype html>
       ko:{timeUnavailable:'시간을 사용할 수 없음',requestUnavailable:'검증된 6423 데이터를 현재 사용할 수 없습니다.',requestTimeout:'검증된 6423 서비스의 응답 시간이 초과되었습니다. 다시 시도하세요.',block:'블록',transaction:'트랜잭션',token:'토큰',validatorAddress:'검증인 주소',transactionAddress:'트랜잭션 / 주소',search:'검색',blockSuggestion:'블록 #{height}',nativeToken:'YNXT 네이티브 토큰',heightSuggestion:'블록 높이 #{height} 검색',addressSuggestion:'트랜잭션 또는 EVM 호환 주소 검색',indexSuggestion:'현재 6423 인덱스 검색'}
     };
     const searchText = (key, values = {}) => (searchUI[language]?.[key] || searchUI.en[key] || searchUI.en.requestUnavailable).replace(/\{(\w+)\}/g, (_, name) => values[name] ?? '');
+    const accessibilityUI = {
+      en:{skipToContent:'Skip to content'},
+      'zh-CN':{skipToContent:'跳到主要内容'},
+      'zh-TW':{skipToContent:'跳至主要內容'},
+      ja:{skipToContent:'本文へ移動'},
+      ko:{skipToContent:'본문으로 건너뛰기'}
+    };
+    const ax = key => accessibilityUI[language]?.[key] || accessibilityUI.en[key] || key;
     const walletUI = {
       en:{connected:'YNX Wallet connected',session:'EIP-6963 / EIP-1193 session — no signature or transaction was requested',account:'Account',provider:'Provider',providerValue:'YNX Wallet only · MetaMask remains separate',connectedChain:'Connected chain',requiredTestnet:'Required Testnet',onExpected:'Connected to YNX 6423 Testnet',wrongNetwork:'This provider is on a different network. Connection remains intact until you choose to switch.',switchNetwork:'Switch to 0x1917',switchHelp:'Requests a wallet network change',refreshAccount:'Refresh selected account',refreshHelp:'Reads the provider account list',disconnect:'Disconnect',disconnectHelp:'Clears this portal session only',configUnavailable:'No verified public 6423 network configuration is available for this wallet action.'},
       'zh-CN':{connected:'YNX 钱包已连接',session:'EIP-6963 / EIP-1193 会话——未请求签名或交易',account:'账户',provider:'提供者',providerValue:'仅使用 YNX 钱包；MetaMask 保持独立',connectedChain:'已连接网络',requiredTestnet:'所需测试网',onExpected:'已连接至 YNX 6423 测试网',wrongNetwork:'该提供者当前在其他网络；在你选择切换前，连接会保持不变。',switchNetwork:'切换至 0x1917',switchHelp:'将请求钱包网络切换',refreshAccount:'刷新所选账户',refreshHelp:'读取提供者账户列表',disconnect:'断开连接',disconnectHelp:'仅清除此门户会话',configUnavailable:'该钱包操作没有已验证的公开 6423 网络配置。'},
@@ -886,6 +901,7 @@ const indexHTML = `<!doctype html>
       document.querySelectorAll('[data-live-i18n]').forEach(node => { node.textContent = live(node.dataset.liveI18n); });
       document.querySelectorAll('[data-download-i18n]').forEach(node => { node.textContent = d(node.dataset.downloadI18n); });
       document.querySelectorAll('[data-footer-i18n]').forEach(node => { node.textContent = footer(node.dataset.footerI18n); });
+      document.querySelectorAll('[data-a11y-i18n]').forEach(node => { node.textContent = ax(node.dataset.a11yI18n); });
       document.querySelectorAll('[data-i18n-placeholder]').forEach(node => { node.placeholder = t(node.dataset.i18nPlaceholder); });
       document.querySelectorAll('[data-i18n-aria]').forEach(node => { node.setAttribute('aria-label',a(node.dataset.i18nAria)); });
       renderHomeDirectory();
@@ -1163,6 +1179,15 @@ const indexHTML = `<!doctype html>
       ];
       return [detailRow('validatorLabel',detail.moniker || detail.address || detailText('unavailable')),detailRow('hash',detail.address || detailText('unavailable'))];
     }
+    let drawerReturnFocus = null;
+    function focusDrawer() { window.requestAnimationFrame(() => $('detailClose').focus()); }
+    function openDrawer() {
+      if (!$('detailBackdrop').classList.contains('visible')) drawerReturnFocus = document.activeElement;
+      $('detailBackdrop').classList.add('visible');
+      $('detailBackdrop').setAttribute('aria-hidden','false');
+      document.body.style.overflow = 'hidden';
+      focusDrawer();
+    }
     function showDrawer(type,query,detail) {
       const title = detailText(type);
       $('detailKicker').textContent = i('liveDetail',{type:title});
@@ -1175,15 +1200,15 @@ const indexHTML = `<!doctype html>
         return '<div class="detail-row"><dt>' + escapeHTML(key) + '</dt><dd class="mono">' + escapeHTML(text) + '</dd>' + copy + '</div>';
       }).join('');
       $('detailContent').innerHTML = summary + '<dl class="detail-body">' + rows + '</dl>';
-      $('detailBackdrop').classList.add('visible');
-      $('detailBackdrop').setAttribute('aria-hidden','false');
-      document.body.style.overflow = 'hidden';
-      $('detailClose').focus();
+      openDrawer();
     }
     function dismissDrawer() {
+      const returnFocus = drawerReturnFocus;
+      drawerReturnFocus = null;
       $('detailBackdrop').classList.remove('visible');
       $('detailBackdrop').setAttribute('aria-hidden','true');
       document.body.style.overflow = '';
+      if (returnFocus instanceof HTMLElement && document.contains(returnFocus)) returnFocus.focus();
     }
     function closeDrawer() {
       dismissDrawer();
@@ -1216,8 +1241,7 @@ const indexHTML = `<!doctype html>
         $('detailKicker').textContent = r('availability');
         $('detailTitle').textContent = r('notFound');
         $('detailContent').innerHTML = '<div class="result-error">' + escapeHTML(i('noMatch')) + '</div>';
-        $('detailBackdrop').classList.add('visible');
-        $('detailBackdrop').setAttribute('aria-hidden','false');
+        openDrawer();
       }
     }
     function renderLocation() {
@@ -1346,10 +1370,11 @@ const indexHTML = `<!doctype html>
       showWalletSession();
     }
     function renderPortalRoute(route) {
-      if (!route || route === 'home') { $('homeContent').hidden = false; $('routeView').hidden = true; document.title = 'YNX Chain | 6423 Testnet portal'; return; }
+      if (!route || route === 'home') { $('homeContent').hidden = false; $('routeView').hidden = true; $('skipLink').setAttribute('href','#homeContent'); document.title = 'YNX Chain | 6423 Testnet portal'; return; }
       $('homeContent').hidden = true;
       const view = $('routeView');
       view.hidden = false;
+      $('skipLink').setAttribute('href','#routeView');
       const snapshot = lastDashboard;
       const summary = snapshot?.summary;
       const blocks = snapshot?.blocks || [];
@@ -1433,9 +1458,7 @@ const indexHTML = `<!doctype html>
       $('detailKicker').textContent = i('searching');
       $('detailTitle').textContent = compact(q,18,10);
       $('detailContent').innerHTML = '<div class="empty">' + escapeHTML(i('resolving')) + '</div>';
-      $('detailBackdrop').classList.add('visible');
-      $('detailBackdrop').setAttribute('aria-hidden','false');
-      document.body.style.overflow = 'hidden';
+      openDrawer();
       try {
         const resolved = await get('/api/search?q=' + encodeURIComponent(q));
         setDetailLocation(resolved.type,resolved.query || q);
@@ -1448,7 +1471,12 @@ const indexHTML = `<!doctype html>
     $('searchForm').onsubmit = event => { event.preventDefault(); search(); };
     $('searchInput').oninput = updateSearchSuggestions;
     $('searchInput').onfocus = updateSearchSuggestions;
-    $('searchInput').onkeydown = event => { if (event.key === 'Escape') closeSearchSuggestions(); };
+    $('searchInput').onkeydown = event => {
+      if (event.key === 'Escape') { closeSearchSuggestions(); return; }
+      if (event.key !== 'ArrowDown') return;
+      const first = $('searchSuggestions').querySelector('[data-suggestion]');
+      if (first) { event.preventDefault(); first.focus(); }
+    };
     $('resultClose').onclick = () => $('resultPanel').classList.remove('visible');
     $('detailClose').onclick = closeDrawer;
     $('detailBackdrop').onclick = event => { if (event.target === $('detailBackdrop')) closeDrawer(); };
@@ -1469,6 +1497,13 @@ const indexHTML = `<!doctype html>
     }
     $('validatorsTab').onclick = () => selectIntelligence('validators');
     $('resourcesTab').onclick = () => selectIntelligence('resources');
+    $('skipLink').onclick = event => {
+      event.preventDefault();
+      const target = document.querySelector($('skipLink').getAttribute('href'));
+      if (!target) return;
+      target.scrollIntoView({block:'start'});
+      target.focus();
+    };
     $('txFilter').onchange = renderTransactions;
     $('txQuickFind').oninput = renderTransactions;
     $('languageSelect').onchange = event => { applyLanguage(event.target.value); load().catch(showLoadError); };
@@ -1546,7 +1581,17 @@ const indexHTML = `<!doctype html>
       $('streamClock').className = 'stream-clock ' + (age < 8 ? 'live' : 'stale');
       $('streamClockText').textContent = age < 2 ? live('updatedNow') : (age < 8 ? live('updatedAgo',{seconds:age}) : live('noEvent',{seconds:age}));
     },1000);
-    document.addEventListener('keydown',event => { if (event.key === 'Escape') closeDrawer(); });
+    document.addEventListener('keydown',event => {
+      if (!$('detailBackdrop').classList.contains('visible')) return;
+      if (event.key === 'Escape') { event.preventDefault(); closeDrawer(); return; }
+      if (event.key !== 'Tab') return;
+      const focusable = Array.from($('detailDrawer').querySelectorAll('button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])'));
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    });
     document.addEventListener('visibilitychange',() => { if (!document.hidden) load().catch(showLoadError); });
   </script>
 </body>

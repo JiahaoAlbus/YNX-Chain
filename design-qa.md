@@ -111,3 +111,12 @@ These checks validate the local 6423 runtime only. They do not assert public dep
 - Search suggestions now use the shared locale layer for type labels, generated descriptions, current-index fallback, timeout, and unavailable-time states. Suggestions still derive only from the current verified dashboard snapshot and validated 6423 query forms.
 - Browser evidence: Chinese input `6423` rendered `搜索区块高度 #6423 / 区块`; Japanese `0x1917` rendered the localized transaction-or-EVM-address suggestion; Korean `YNXT` rendered `YNXT 네이티브 토큰 / 토큰`.
 - Failure evidence: submitting an unmatched query with the real search button left the page in the same tab, opened the existing detail surface, and displayed `搜索结果 / 未找到 / 未找到匹配的已验证 6423 记录。`. No `about:blank` page or upstream error text was displayed.
+
+## 2026-08-31 responsive keyboard follow-up
+
+- Readability and containment: the final presentation layer keeps body copy under browser zoom control (`text-size-adjust: 100%`) and uses bounded `clamp()` scales for network metrics, headings, search controls, and mobile supporting text. The local portal had `scrollWidth == clientWidth` on the Home and Blockchain views during this recheck.
+- Keyboard: the portal now provides a localized Skip to content link whose target follows the active Home or routed primary view. Detail drawers capture focus on their close control, retain Tab/Shift+Tab inside the modal, close with Escape, and return focus to the activating control when it remains in the document.
+- Browser evidence: a local search for `YNXT` opened the same-tab detail drawer with `detailClose` as the active element; Escape closed it with no page-width overflow. From the search input, ArrowDown placed keyboard focus on the visible `YNXT` suggestion button (`data-suggestion="YNXT"`), again without overflow.
+- Regression gate: the Explorer unit test now requires the localized skip link, keyboard focus layer, drawer focus-restoration implementation, and Tab containment branch.
+
+This is local responsive and accessibility evidence against the 6423 node/indexer. It does not claim public deployment or enable unavailable product/download actions.
