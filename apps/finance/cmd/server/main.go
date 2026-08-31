@@ -16,7 +16,12 @@ var buildRelease = "local"
 var buildTime = "unknown"
 
 func main() {
-	store, err := finance.OpenStoreWithDatabase(required("YNX_FINANCE_STATE_PATH"), os.Getenv("YNX_FINANCE_DATABASE_URL"))
+	requireMultiInstance := envBool("YNX_FINANCE_REQUIRE_MULTI_INSTANCE", true)
+	databaseURL := os.Getenv("YNX_FINANCE_DATABASE_URL")
+	if requireMultiInstance && strings.TrimSpace(databaseURL) == "" {
+		log.Fatal("YNX_FINANCE_DATABASE_URL is required when YNX_FINANCE_REQUIRE_MULTI_INSTANCE is enabled")
+	}
+	store, err := finance.OpenStoreWithDatabase(required("YNX_FINANCE_STATE_PATH"), databaseURL)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -51,7 +56,7 @@ func main() {
 	if webDir == "" {
 		webDir = "apps/finance/web"
 	}
-	server, err := finance.NewServer(service, auth, finance.ServerConfig{AllowedOrigins: split(os.Getenv("YNX_FINANCE_ALLOWED_ORIGINS")), WebDir: webDir, CursorSigningKey: required("YNX_FINANCE_CURSOR_SIGNING_KEY"), OperationsKey: required("YNX_FINANCE_OPERATIONS_KEY"), WalletGatewayURL: required("YNX_FINANCE_WALLET_GATEWAY_URL"), LogWriter: os.Stdout, Build: buildinfo.Info{Commit: buildCommit, Release: buildRelease, BuildTime: buildTime}})
+	server, err := finance.NewServer(service, auth, finance.ServerConfig{AllowedOrigins: split(os.Getenv("YNX_FINANCE_ALLOWED_ORIGINS")), WebDir: webDir, CursorSigningKey: required("YNX_FINANCE_CURSOR_SIGNING_KEY"), OperationsKey: required("YNX_FINANCE_OPERATIONS_KEY"), WalletGatewayURL: required("YNX_FINANCE_WALLET_GATEWAY_URL"), LogWriter: os.Stdout, Build: buildinfo.Info{Commit: buildCommit, Release: buildRelease, BuildTime: buildTime}, RequireMultiInstance: requireMultiInstance})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -72,6 +77,21 @@ func envDefault(key, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+func envBool(key string, fallback bool) bool {
+	value := strings.TrimSpace(strings.ToLower(os.Getenv(key)))
+	switch value {
+	case "":
+		return fallback
+	case "1", "true", "yes":
+		return true
+	case "0", "false", "no":
+		return false
+	default:
+		log.Fatalf("%s must be a boolean", key)
+		return fallback
+	}
 }
 func split(value string) []string {
 	out := []string{}

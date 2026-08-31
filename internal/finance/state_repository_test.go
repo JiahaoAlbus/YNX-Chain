@@ -87,6 +87,34 @@ func TestFinancePostgresMigrationProvidesSingletonCASState(t *testing.T) {
 			t.Fatalf("migration missing %q", clause)
 		}
 	}
+	for _, clause := range []string{"rate_key VARCHAR(256) PRIMARY KEY", "tokens DOUBLE PRECISION NOT NULL", "updated_at TIMESTAMPTZ NOT NULL"} {
+		if !strings.Contains(financeRateLimitMigration, clause) {
+			t.Fatalf("rate limit migration missing %q", clause)
+		}
+	}
+}
+
+func TestFinanceLocalRateLimitUsesSlidingWindow(t *testing.T) {
+	store, err := OpenStore("")
+	if err != nil {
+		t.Fatal(err)
+	}
+	now := time.Date(2026, 8, 31, 12, 0, 0, 0, time.UTC)
+	for range 2 {
+		allowed, err := store.AllowRate("GET:hashed-session", 2, time.Minute, now)
+		if err != nil || !allowed {
+			t.Fatalf("initial local rate allowance allowed=%v err=%v", allowed, err)
+		}
+	}
+	if allowed, err := store.AllowRate("GET:hashed-session", 2, time.Minute, now.Add(time.Second)); err != nil || allowed {
+		t.Fatalf("expected local rate rejection allowed=%v err=%v", allowed, err)
+	}
+	if allowed, err := store.AllowRate("GET:hashed-session", 2, time.Minute, now.Add(time.Minute+time.Nanosecond)); err != nil || !allowed {
+		t.Fatalf("expected expired local rate allowance allowed=%v err=%v", allowed, err)
+	}
+	if mode := store.RateLimitMode(); mode != "memory-sliding-window-single-process" || store.MultiInstanceReady() {
+		t.Fatalf("unexpected local rate mode=%q multiInstance=%v", mode, store.MultiInstanceReady())
+	}
 }
 
 func TestFinancePostgresRepositoryBootstrapAndCAS(t *testing.T) {
@@ -109,6 +137,9 @@ func TestFinancePostgresRepositoryBootstrapAndCAS(t *testing.T) {
 	if _, err := repository.db.Exec(`DELETE FROM ynx_finance_state`); err != nil {
 		t.Fatal(err)
 	}
+	if _, err := repository.db.Exec(`DELETE FROM ynx_finance_rate_limits`); err != nil {
+		t.Fatal(err)
+	}
 	loaded, initialHash, exists, err := repository.Load()
 	if err != nil || !exists || loaded.Accounts["ynx1test"].Categories[0].Name != "Initial" {
 		t.Fatalf("bootstrap state=%+v exists=%v err=%v", loaded, exists, err)
@@ -127,5 +158,18 @@ func TestFinancePostgresRepositoryBootstrapAndCAS(t *testing.T) {
 	authoritative, authoritativeHash, exists, err := repository.Load()
 	if err != nil || !exists || authoritativeHash != leftHash || authoritative.Accounts["ynx1test"].Categories[0].Name != "Left" {
 		t.Fatalf("postgres authority=%+v hash=%q exists=%v err=%v", authoritative, authoritativeHash, exists, err)
+	}
+	now := time.Date(2026, 8, 31, 12, 0, 0, 0, time.UTC)
+	for range 2 {
+		allowed, rateErr := repository.AllowRate("GET:postgres-rate-test", 2, time.Minute, now)
+		if rateErr != nil || !allowed {
+			t.Fatalf("postgres initial rate allowance allowed=%v err=%v", allowed, rateErr)
+		}
+	}
+	if allowed, rateErr := repository.AllowRate("GET:postgres-rate-test", 2, time.Minute, now); rateErr != nil || allowed {
+		t.Fatalf("postgres rate rejection allowed=%v err=%v", allowed, rateErr)
+	}
+	if allowed, rateErr := repository.AllowRate("GET:postgres-rate-test", 2, time.Minute, now.Add(time.Minute)); rateErr != nil || !allowed {
+		t.Fatalf("postgres rate refill allowed=%v err=%v", allowed, rateErr)
 	}
 }

@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/csv"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"io"
@@ -15,7 +16,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
@@ -24,15 +24,16 @@ import (
 const maxBodyBytes = 64 << 10
 
 type ServerConfig struct {
-	AllowedOrigins      []string
-	WebDir              string
-	CursorSigningKey    string
-	OperationsKey       string
-	WalletGatewayURL    string
-	WalletGatewayClient *http.Client
-	LogWriter           io.Writer
-	Now                 func() time.Time
-	Build               buildinfo.Info
+	AllowedOrigins       []string
+	WebDir               string
+	CursorSigningKey     string
+	OperationsKey        string
+	WalletGatewayURL     string
+	WalletGatewayClient  *http.Client
+	LogWriter            io.Writer
+	Now                  func() time.Time
+	Build                buildinfo.Info
+	RequireMultiInstance bool
 }
 
 type Server struct {
@@ -40,8 +41,6 @@ type Server struct {
 	auth      *Authenticator
 	cfg       ServerConfig
 	mux       *http.ServeMux
-	rateMu    sync.Mutex
-	rate      map[string][]time.Time
 	cursorKey []byte
 	metrics   *financeMetrics
 	logger    *log.Logger
@@ -62,6 +61,9 @@ func NewServer(service *Service, auth *Authenticator, cfg ServerConfig) (*Server
 	if len(cfg.OperationsKey) < 32 {
 		return nil, errors.New("finance operations key must contain at least 32 characters")
 	}
+	if cfg.RequireMultiInstance && !service.Store.MultiInstanceReady() {
+		return nil, errors.New("finance production requires PostgreSQL multi-instance state and rate limiting")
+	}
 	if cfg.WalletGatewayURL != "" {
 		parsed, err := url.Parse(strings.TrimRight(cfg.WalletGatewayURL, "/"))
 		loopbackHTTP := parsed.Scheme == "http" && (parsed.Hostname() == "127.0.0.1" || parsed.Hostname() == "localhost" || parsed.Hostname() == "::1")
@@ -73,7 +75,7 @@ func NewServer(service *Service, auth *Authenticator, cfg ServerConfig) (*Server
 	if now == nil {
 		now = time.Now
 	}
-	s := &Server{service: service, auth: auth, cfg: cfg, mux: http.NewServeMux(), rate: map[string][]time.Time{}, cursorKey: []byte(cfg.CursorSigningKey), logger: newJSONLogger(cfg.LogWriter), now: now, build: buildinfo.Normalize(cfg.Build)}
+	s := &Server{service: service, auth: auth, cfg: cfg, mux: http.NewServeMux(), cursorKey: []byte(cfg.CursorSigningKey), logger: newJSONLogger(cfg.LogWriter), now: now, build: buildinfo.Normalize(cfg.Build)}
 	s.metrics = newFinanceMetrics(s.now())
 	s.routes()
 	return s, nil
@@ -202,16 +204,16 @@ func (s *Server) classifyActivity(w http.ResponseWriter, r *http.Request, sessio
 
 func (s *Server) health(w http.ResponseWriter, _ *http.Request) {
 	stateStore := s.service.Store.StateStoreMode()
-	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "service": "ynx-finance", "version": "1.2.0", "build": s.build, "observabilityVersion": observabilityVersion, "chainId": ChainID, "nativeSymbol": "YNXT", "custody": "none", "portfolio": "read-only", "configuredReadSources": s.service.Upstreams.ConfiguredReadSources(), "stateStore": stateStore, "multiInstanceState": stateStore == "postgres-cas-multi-instance", "truthfulStatus": "runtime-upstream-backed"})
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "service": "ynx-finance", "version": "1.2.0", "build": s.build, "observabilityVersion": observabilityVersion, "chainId": ChainID, "nativeSymbol": "YNXT", "custody": "none", "portfolio": "read-only", "configuredReadSources": s.service.Upstreams.ConfiguredReadSources(), "stateStore": stateStore, "rateLimitStore": s.service.Store.RateLimitMode(), "multiInstanceState": s.service.Store.MultiInstanceReady(), "truthfulStatus": "runtime-upstream-backed"})
 }
 
 func (s *Server) ready(w http.ResponseWriter, _ *http.Request) {
 	stateStore := s.service.Store.StateStoreMode()
 	if err := s.service.Store.StateStoreReady(); err != nil {
-		writeJSON(w, http.StatusServiceUnavailable, map[string]any{"ok": false, "service": "ynx-finance", "stateStore": stateStore, "multiInstanceState": stateStore == "postgres-cas-multi-instance", "error": "authoritative state store unavailable"})
+		writeJSON(w, http.StatusServiceUnavailable, map[string]any{"ok": false, "service": "ynx-finance", "stateStore": stateStore, "rateLimitStore": s.service.Store.RateLimitMode(), "multiInstanceState": s.service.Store.MultiInstanceReady(), "error": "authoritative state store unavailable"})
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "service": "ynx-finance", "stateStore": stateStore, "multiInstanceState": stateStore == "postgres-cas-multi-instance"})
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "service": "ynx-finance", "stateStore": stateStore, "rateLimitStore": s.service.Store.RateLimitMode(), "multiInstanceState": s.service.Store.MultiInstanceReady()})
 }
 
 func (s *Server) version(w http.ResponseWriter, _ *http.Request) {
@@ -231,7 +233,12 @@ func (s *Server) protected(scope string, next handler) http.HandlerFunc {
 			writeError(w, http.StatusUnauthorized, "session_rejected", err.Error())
 			return
 		}
-		if !s.allow(session.Token, r.Method) {
+		allowed, rateErr := s.allow(session.Token, r.Method)
+		if rateErr != nil {
+			writeError(w, http.StatusServiceUnavailable, "rate_limiter_unavailable", "Finance rate limiter is unavailable")
+			return
+		}
+		if !allowed {
 			w.Header().Set("Retry-After", "60")
 			writeError(w, http.StatusTooManyRequests, "rate_limited", "Finance request rate limit exceeded")
 			return
@@ -240,29 +247,13 @@ func (s *Server) protected(scope string, next handler) http.HandlerFunc {
 	}
 }
 
-func (s *Server) allow(token, method string) bool {
-	now := time.Now().UTC()
-	cutoff := now.Add(-time.Minute)
+func (s *Server) allow(token, method string) (bool, error) {
 	limit := 240
 	if method != http.MethodGet {
 		limit = 30
 	}
-	key := method + ":" + token
-	s.rateMu.Lock()
-	defer s.rateMu.Unlock()
-	entries := s.rate[key]
-	kept := entries[:0]
-	for _, at := range entries {
-		if at.After(cutoff) {
-			kept = append(kept, at)
-		}
-	}
-	if len(kept) >= limit {
-		s.rate[key] = kept
-		return false
-	}
-	s.rate[key] = append(kept, now)
-	return true
+	digest := sha256.Sum256([]byte(token))
+	return s.service.Store.AllowRate(method+":"+hex.EncodeToString(digest[:]), limit, time.Minute, s.now())
 }
 
 func (s *Server) logout(w http.ResponseWriter, r *http.Request, _ Session) {

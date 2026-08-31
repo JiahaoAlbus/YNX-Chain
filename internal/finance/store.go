@@ -12,6 +12,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 )
@@ -31,6 +32,8 @@ type Store struct {
 	state      persistedState
 	stateHash  string
 	repository financeStateRepository
+	rateMu     sync.Mutex
+	rate       map[string][]time.Time
 }
 
 type BackupManifest struct {
@@ -79,7 +82,7 @@ func OpenStoreWithDatabase(path, databaseURL string) (*Store, error) {
 	if err != nil {
 		return nil, err
 	}
-	store := &Store{path: path, state: state, repository: repository}
+	store := &Store{path: path, state: state, repository: repository, rate: map[string][]time.Time{}}
 	if repository == nil {
 		return store, nil
 	}
@@ -355,6 +358,42 @@ func (s *Store) StateStoreReady() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.refreshLocked()
+}
+
+func (s *Store) RateLimitMode() string {
+	if repository, ok := s.repository.(financeRateLimitRepository); ok {
+		return repository.RateLimitMode()
+	}
+	return "memory-sliding-window-single-process"
+}
+
+func (s *Store) MultiInstanceReady() bool {
+	return s.StateStoreMode() == "postgres-cas-multi-instance" && s.RateLimitMode() == "postgres-token-bucket-multi-instance"
+}
+
+func (s *Store) AllowRate(key string, limit int, window time.Duration, now time.Time) (bool, error) {
+	if strings.TrimSpace(key) == "" || len(key) > 256 || limit <= 0 || window <= 0 {
+		return false, errors.New("finance rate limit input is invalid")
+	}
+	if repository, ok := s.repository.(financeRateLimitRepository); ok {
+		return repository.AllowRate(key, limit, window, now)
+	}
+	cutoff := now.UTC().Add(-window)
+	s.rateMu.Lock()
+	defer s.rateMu.Unlock()
+	entries := s.rate[key]
+	kept := entries[:0]
+	for _, at := range entries {
+		if at.After(cutoff) {
+			kept = append(kept, at)
+		}
+	}
+	if len(kept) >= limit {
+		s.rate[key] = kept
+		return false, nil
+	}
+	s.rate[key] = append(kept, now.UTC())
+	return true, nil
 }
 
 func manifestForState(raw []byte, state persistedState, createdAt time.Time) BackupManifest {

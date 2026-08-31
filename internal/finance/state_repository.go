@@ -25,6 +25,11 @@ type financeStateRepository interface {
 	Mode() string
 }
 
+type financeRateLimitRepository interface {
+	AllowRate(key string, limit int, window time.Duration, now time.Time) (bool, error)
+	RateLimitMode() string
+}
+
 func decodeFinanceState(raw []byte) (persistedState, string, error) {
 	var state persistedState
 	if err := decodeStrictJSON(raw, &state); err != nil {
@@ -118,6 +123,13 @@ CREATE TABLE IF NOT EXISTS ynx_finance_state (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 )`
 
+const financeRateLimitMigration = `
+CREATE TABLE IF NOT EXISTS ynx_finance_rate_limits (
+  rate_key VARCHAR(256) PRIMARY KEY,
+  tokens DOUBLE PRECISION NOT NULL CHECK (tokens >= 0),
+  updated_at TIMESTAMPTZ NOT NULL
+)`
+
 func openFinanceStateRepository(path, databaseURL string) (financeStateRepository, error) {
 	databaseURL = strings.TrimSpace(databaseURL)
 	if databaseURL == "" {
@@ -142,6 +154,10 @@ func openFinanceStateRepository(path, databaseURL string) (financeStateRepositor
 	if _, err := db.ExecContext(ctx, financeStateMigration); err != nil {
 		db.Close()
 		return nil, fmt.Errorf("migrate finance database: %w", err)
+	}
+	if _, err := db.ExecContext(ctx, financeRateLimitMigration); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("migrate finance rate limit database: %w", err)
 	}
 	return &financePostgresRepository{db: db, bootstrapPath: path}, nil
 }
@@ -200,4 +216,32 @@ func (repository *financePostgresRepository) Save(expectedHash string, state per
 		return "", fmt.Errorf("%w: database state changed by another instance", errFinanceStateConflict)
 	}
 	return hash, nil
+}
+
+func (*financePostgresRepository) RateLimitMode() string {
+	return "postgres-token-bucket-multi-instance"
+}
+
+func (repository *financePostgresRepository) AllowRate(key string, limit int, window time.Duration, now time.Time) (bool, error) {
+	if strings.TrimSpace(key) == "" || len(key) > 256 || limit <= 0 || window <= 0 {
+		return false, errors.New("finance rate limit input is invalid")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	var tokens float64
+	err := repository.db.QueryRowContext(ctx, `
+INSERT INTO ynx_finance_rate_limits (rate_key, tokens, updated_at)
+VALUES ($1, $2 - 1, $3)
+ON CONFLICT (rate_key) DO UPDATE
+SET tokens = LEAST($2, ynx_finance_rate_limits.tokens + GREATEST(0, EXTRACT(EPOCH FROM ($3 - ynx_finance_rate_limits.updated_at)) * $4)) - 1,
+    updated_at = $3
+WHERE LEAST($2, ynx_finance_rate_limits.tokens + GREATEST(0, EXTRACT(EPOCH FROM ($3 - ynx_finance_rate_limits.updated_at)) * $4)) >= 1
+RETURNING tokens`, key, float64(limit), now.UTC(), float64(limit)/window.Seconds()).Scan(&tokens)
+	if errors.Is(err, sql.ErrNoRows) {
+		return false, nil
+	}
+	if err != nil {
+		return false, fmt.Errorf("apply finance distributed rate limit: %w", err)
+	}
+	return true, nil
 }
