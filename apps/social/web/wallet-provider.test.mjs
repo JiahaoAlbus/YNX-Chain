@@ -1,7 +1,16 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { attachWalletLifecycle, connectWallet, restoreWallet, selectProvider } from "./wallet-provider.js";
+import {
+  YNX_CHAIN,
+  attachWalletLifecycle,
+  connectWallet,
+  discoverProviders,
+  restoreWallet,
+  revokeWallet,
+  selectProvider,
+  switchWalletAccount,
+} from "./wallet-provider.js";
 
 function target(details) {
   const listeners = new Map();
@@ -73,6 +82,27 @@ test("discovers late EIP-6963 providers and legacy provider arrays", async () =>
   assert.equal(restored.wallet, "ynx");
 });
 
+test("discovers a provider announced after the first EIP-6963 request", async () => {
+  const listeners = new Map();
+  const lateProvider = {
+    info: { uuid: "late-mm", name: "MetaMask", rdns: "io.metamask" },
+    provider: { isMetaMask: true, request() {} },
+  };
+  let requests = 0;
+  const late = {
+    addEventListener(type, callback) { listeners.set(type, callback); },
+    removeEventListener(type) { listeners.delete(type); },
+    dispatchEvent(event) { if (event.type === "eip6963:requestProvider") requests += 1; },
+    setTimeout(callback) {
+      if (requests === 1) listeners.get("eip6963:announceProvider")?.({ detail: lateProvider });
+      callback();
+    },
+  };
+  const providers = await discoverProviders(late, 250);
+  assert.equal(selectProvider(providers, "metamask").detail, lateProvider);
+  assert.ok(requests >= 2);
+});
+
 test("refresh restore uses eth_accounts and eth_chainId without requesting authority", async () => {
   const calls = [];
   const provider = { isMetaMask: true, async request({ method }) { calls.push(method); return method === "eth_accounts" ? ["0x3333333333333333333333333333333333333333"] : "0x1917"; } };
@@ -98,6 +128,35 @@ test("provider events preserve connection until empty accounts or disconnect", (
   assert.equal(listeners.size, 0);
 });
 
+test("account switching keeps the existing provider and reconfirms only 0x1917", async () => {
+  const calls = [];
+  const provider = {
+    async request({ method }) {
+      calls.push(method);
+      if (method === "wallet_requestPermissions") return [{ parentCapability: "eth_accounts" }];
+      if (method === "eth_accounts") return ["0x5555555555555555555555555555555555555555"];
+      if (method === "eth_chainId") return YNX_CHAIN.chainId;
+      throw new Error(method);
+    },
+  };
+  assert.deepEqual(await switchWalletAccount(provider), {
+    account: "0x5555555555555555555555555555555555555555",
+    chainId: "0x1917",
+  });
+  assert.deepEqual(calls, ["wallet_requestPermissions", "eth_accounts", "eth_chainId"]);
+});
+
+test("permission revocation is explicit and provider capability fallbacks are harmless", async () => {
+  const calls = [];
+  await revokeWallet({
+    async request({ method, params }) {
+      calls.push([method, params]);
+      throw Object.assign(new Error("unsupported"), { code: 4200 });
+    },
+  });
+  assert.deepEqual(calls, [["wallet_revokePermissions", [{ eth_accounts: {} }]]]);
+});
+
 test("web flow uses distinct logos and forbids custom-scheme or blank-tab launch", async () => {
   const [html, app, provider] = await Promise.all([
     readFile(new URL("./index.html", import.meta.url), "utf8"),
@@ -116,4 +175,12 @@ test("web flow uses distinct logos and forbids custom-scheme or blank-tab launch
   assert.match(app, /Private Social service degraded\. Standard wallet connection remains active/);
   assert.match(app, /if \(state\.provider\)/);
   assert.match(provider, /https:\/\/rpc\.ynxweb4\.com\/evm/);
+  assert.match(provider, /chainId: "0x1917"/);
+  assert.doesNotMatch(`${html}\n${app}\n${provider}`, /ynx_9102-1|0x238e|\b9102\b/i);
+  const chooser = app.slice(
+    app.indexOf('byId("connect-wallet").addEventListener'),
+    app.indexOf('byId("connect-ynx").addEventListener'),
+  );
+  assert.match(chooser, /showModal\(\)/);
+  assert.doesNotMatch(chooser, /connect\(|eth_requestAccounts|window\.open/);
 });
