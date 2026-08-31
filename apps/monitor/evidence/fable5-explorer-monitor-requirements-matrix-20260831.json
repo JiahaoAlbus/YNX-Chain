@@ -3,9 +3,10 @@
   "asOf": "2026-08-31",
   "owner": "explorer-monitor",
   "candidate": {
-    "sourceCommit": "c4c1affea3ab10ade8336c9387eec72f18b9e385",
-    "sourceTree": "455c0411eeefc9848e81a66618bcea1112da2e06",
-    "pullRequest": "https://github.com/JiahaoAlbus/YNX-Chain/pull/107"
+    "sourceCommit": "c1574d1d7ff51e959f7cbcf922c8beebca9d56bf",
+    "sourceTree": "780d3e613bb56a1f3950d5635abc2ad734d9debd",
+    "pullRequest": "https://github.com/JiahaoAlbus/YNX-Chain/pull/107",
+    "artifactState": "unfrozen: P0-175 artifacts are tied to c4c1affea3ab10ade8336c9387eec72f18b9e385 and must not be deployed with this source"
   },
   "stateDefinition": {
     "implementedLocal": "Owner source contains the behavior; this is not deployment evidence.",
@@ -69,7 +70,7 @@
     {
       "id": "explorer.blocks-transactions-accounts-search-deeplinks",
       "requirement": "Explorer provides blocks, transactions, accounts, search, copy-safe deep links, and transaction detail backed by Indexer data.",
-      "evidence": ["internal/explorer/explorer.go#Search", "internal/explorer/explorer.go#Contract", "internal/explorer/server.go#handleContract", "internal/explorer/explorer_test.go#TestExplorerServesRPCAndIndexerBackedData", "scripts/verify/explorer-check.sh"],
+      "evidence": ["internal/explorer/explorer.go#Search", "internal/explorer/explorer.go#Contract", "internal/explorer/server.go#handleBlockWeb", "internal/explorer/server.go#handleTransactionWeb", "internal/explorer/server.go#handleAddressWeb", "internal/explorer/server.go#handleTokenWeb", "internal/explorer/server.go#handleContractWeb", "internal/explorer/explorer_test.go#TestExplorerServesRPCAndIndexerBackedData", "scripts/verify/explorer-check.sh"],
       "states": {"implementedLocal": true, "testedLocal": true, "integratedCentral": false, "deployedStaging": false, "deployedPublic": false, "downloadHosted": false, "productionSigned": false, "publicVerified": false, "computerControlVerified": false},
       "nextGate": "Official-domain transaction hash search and detail readback against fresh Testnet transactions." 
     },
@@ -97,7 +98,7 @@
     {
       "id": "indexer.fail-closed-no-internal-error",
       "requirement": "Indexer failure is fail-closed and public browsers do not receive loopback URLs or raw upstream errors.",
-      "evidence": ["internal/indexer/server.go#publicIndexerErrorPayload", "internal/indexer/indexer_test.go#TestIndexerDoesNotExposePrivateSyncErrorsToPublicClients", "internal/explorer/explorer_test.go#TestExplorerDoesNotExposeUpstreamErrorsToPublicClients"],
+      "evidence": ["internal/indexer/server.go#publicIndexerErrorPayload", "internal/indexer/indexer_test.go#TestIndexerDoesNotExposePrivateSyncErrorsToPublicClients", "internal/explorer/explorer.go#upstreamHTTPError", "internal/explorer/server.go#writeLookupError", "internal/explorer/explorer_test.go#TestExplorerDoesNotExposeUpstreamErrorsToPublicClients", "internal/explorer/explorer_test.go#TestExplorerLookupPreservesOnlyARealNotFoundClassification"],
       "states": {"implementedLocal": true, "testedLocal": true, "integratedCentral": false, "deployedStaging": false, "deployedPublic": false, "downloadHosted": false, "productionSigned": false, "publicVerified": false, "computerControlVerified": false},
       "nextGate": "Public Indexer and Explorer responses must be re-read after deployment; local redaction tests cannot prove the older official runtime is remediated."
     },
