@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-31T16:27:45.323Z",
+  "ownerBranch": "codex/wallet-web-companion-fresh-main-prep-20260831",
+  "extensionSourceCommit": "5cee7e28b81fc1d27c977cb0613ba6a1dd2439e1",
+  "artifact": {
+    "name": "ynx-wallet-firefox-0.1.0.zip",
+    "bytes": 470217,
+    "sha256": "1382eb25e0aabaa75749d9c76a365b31bfbafb4a2c706ea605dced0889f1bc3c",
+    "signingClass": "unsigned-unpacked-extension"
+  },
+  "runtime": {
+    "browser": "Playwright patched Firefox 153.0",
+    "brandedMozillaFirefox": false,
+    "profileClass": "temporary-addon-isolated-profile",
+    "loader": "web-ext 10.6.0",
+    "addonId": "wallet-testnet@ynxweb4.com",
+    "manifestValidated": true,
+    "debuggerConnected": true,
+    "temporaryAddonLoaded": true,
+    "timedOut": false,
+    "controlledExit": {"code": 130, "signal": null}
+  },
+  "truth": {
+    "firefoxCompatibleTemporaryRuntime": true,
+    "firefoxBrandedRuntime": false,
+    "installedLocal": false,
+    "dappMainWorldInjectionTested": false,
+    "providerInjected": false,
+    "accountAuthorized": false,
+    "chain0x1917Readback": false,
+    "approvalReject": false,
+    "refreshRestore": false,
+    "disconnect": false,
+    "sign": false,
+    "send": false,
+    "downloadHosted": false,
+    "deployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}
