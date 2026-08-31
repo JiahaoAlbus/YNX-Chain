@@ -329,7 +329,7 @@ func TestExplorerPortalRoutesStayInOne6423Document(t *testing.T) {
 			t.Fatalf("portal is missing required route %q", route)
 		}
 	}
-	for _, forbidden := range []string{"about:blank", `target="_blank"`, "9102", "0x238e", "ynx_9102-1"} {
+	for _, forbidden := range []string{"about:blank", `target="_blank"`, "9102", "0x238e", "ynx_9102-1", "26657", ":8080", "tronscan.org"} {
 		if strings.Contains(strings.ToLower(indexHTML), strings.ToLower(forbidden)) {
 			t.Fatalf("portal contains forbidden route or retired identity %q", forbidden)
 		}
