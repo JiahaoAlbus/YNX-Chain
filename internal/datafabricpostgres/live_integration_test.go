@@ -48,7 +48,7 @@ func TestPostgresLiveTransactionsConstraintsAndRecovery(t *testing.T) {
 	})
 	applied, err := Migrate(ctx, db)
 	migrationFiles, migrationErr := MigrationFiles()
-	if err != nil || migrationErr != nil || len(applied) != len(migrationFiles) || applied[len(applied)-1].Version != 8 {
+	if err != nil || migrationErr != nil || len(applied) != len(migrationFiles) || applied[len(applied)-1].Version != 9 {
 		t.Fatalf("live migration failed: applied=%+v err=%v", applied, err)
 	}
 	if err := VerifySchema(ctx, db); err != nil {
@@ -217,8 +217,46 @@ func TestPostgresLiveTransactionsConstraintsAndRecovery(t *testing.T) {
 	if err != nil || !projection.Applied || projection.Suppressed {
 		t.Fatalf("privacy-safe analytics projection failed: %+v %v", projection, err)
 	}
+	for _, fixture := range []struct {
+		id, aggregate, correlation, retention string
+	}{
+		{"event.pay.live.transient.0001", "aggregate.retention.transient.0001", "correlation.retention.transient.0001", "transient"},
+		{"event.pay.live.operational.0001", "aggregate.retention.operational.0001", "correlation.retention.operational.0001", "operational"},
+		{"event.pay.live.hold.0001", "aggregate.retention.hold.0001", "correlation.retention.hold.0001", "legal-hold"},
+	} {
+		retentionEvent := liveEvent(t, fixture.id, fixture.aggregate, fixture.correlation, 1, now.Add(-100*24*time.Hour))
+		retentionEvent.Actor.AccountID = ""
+		retentionEvent.RetentionClass = fixture.retention
+		if err := retentionEvent.Sign("key.datafabric.0001", postgresTestKey); err != nil {
+			t.Fatal(err)
+		}
+		if err := store.Append(ctx, retentionEvent, postgresTestKey); err != nil {
+			t.Fatalf("append %s retention fixture: %v", fixture.retention, err)
+		}
+		projection, err := store.ApplyAnalyticsEvent(ctx, retentionEvent.EventID, postgresTestKey, now)
+		if err != nil || !projection.Applied || projection.Suppressed {
+			t.Fatalf("project %s retention fixture: %+v %v", fixture.retention, projection, err)
+		}
+	}
+	sweep, err := store.SweepExpiredAnalytics(ctx, "audit.retention.live.0001", now, now.Add(-30*24*time.Hour), now.Add(-90*24*time.Hour))
+	if err != nil || sweep.TransientDeleted != 1 || sweep.OperationalDeleted != 1 {
+		t.Fatalf("live analytics retention sweep failed: %+v %v", sweep, err)
+	}
+	replayedSweep, err := store.SweepExpiredAnalytics(ctx, sweep.AuditID, sweep.ExecutedAt, sweep.TransientBefore, sweep.OperationalBefore)
+	if err != nil || replayedSweep != sweep {
+		t.Fatalf("live analytics retention replay was not idempotent: %+v %v", replayedSweep, err)
+	}
 	facts, err := store.AnalyticsEventFacts(ctx)
-	if err != nil || len(facts) != 1 || facts[0].AccountPseudonym == "" || facts[0].AccountPseudonym == first.Actor.AccountID {
+	var firstFact, heldFact *AnalyticsEventFact
+	for index := range facts {
+		if facts[index].EventID == first.EventID {
+			firstFact = &facts[index]
+		}
+		if facts[index].RetentionClass == "legal-hold" {
+			heldFact = &facts[index]
+		}
+	}
+	if err != nil || len(facts) != 2 || firstFact == nil || heldFact == nil || firstFact.AccountPseudonym == "" || firstFact.AccountPseudonym == first.Actor.AccountID {
 		t.Fatalf("analytics projection is missing or not pseudonymous: %+v %v", facts, err)
 	}
 	record, err := store.RecordErasure(ctx, first.Actor.AccountID, "audit.erase.live.0001", postgresTestKey, now)
@@ -226,22 +264,22 @@ func TestPostgresLiveTransactionsConstraintsAndRecovery(t *testing.T) {
 		t.Fatalf("live erasure retention record failed: %+v %v", record, err)
 	}
 	facts, err = store.AnalyticsEventFacts(ctx)
-	if err != nil || len(facts) != 0 {
-		t.Fatalf("erasure retained derived analytics facts: %+v %v", facts, err)
+	if err != nil || len(facts) != 1 || facts[0].RetentionClass != "legal-hold" {
+		t.Fatalf("erasure did not preserve legal-hold analytics fact: %+v %v", facts, err)
 	}
 	projection, err = store.ApplyAnalyticsEvent(ctx, second.EventID, postgresTestKey, second.Timestamp.Add(time.Second))
 	if err != nil || !projection.Applied || !projection.Suppressed {
 		t.Fatalf("erased subject was rematerialized: %+v %v", projection, err)
 	}
 	facts, err = store.AnalyticsEventFacts(ctx)
-	if err != nil || len(facts) != 0 {
-		t.Fatalf("suppressed subject produced analytics facts: %+v %v", facts, err)
+	if err != nil || len(facts) != 1 || facts[0].RetentionClass != "legal-hold" {
+		t.Fatalf("suppressed subject changed legal-hold analytics fact: %+v %v", facts, err)
 	}
 	if err := store.AuditIntegrity(ctx, map[string][]byte{"key.datafabric.0001": postgresTestKey}); err != nil {
 		t.Fatalf("live repository integrity audit failed: %v", err)
 	}
 	stats, err := store.Stats(ctx)
-	if err != nil || stats.Events != 4 || stats.JournalEntries != 3 || stats.BillingRatePlans != 1 || stats.BillingSettlements != 1 || stats.Reconciliations != 1 || stats.ErasureRequests != 1 {
+	if err != nil || stats.Events != 7 || stats.JournalEntries != 3 || stats.BillingRatePlans != 1 || stats.BillingSettlements != 1 || stats.Reconciliations != 1 || stats.ErasureRequests != 1 {
 		t.Fatalf("live repository statistics are wrong: %+v %v", stats, err)
 	}
 	var concurrent sync.WaitGroup

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
@@ -12,6 +13,8 @@ import (
 )
 
 const AnalyticsEventConsumer = "ynx-analytics-event-facts-v1"
+
+var analyticsRetentionAuditID = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$`)
 
 type AnalyticsProjectionResult struct {
 	Applied    bool
@@ -37,6 +40,96 @@ type AnalyticsEventFact struct {
 	SourceCommit          string
 	SourceRelease         string
 	DerivedAt             time.Time
+}
+
+// AnalyticsRetentionSweep is the immutable, bounded audit result of deleting
+// expired derived analytics facts. It deliberately contains no event IDs,
+// account pseudonyms, payloads, or authoritative-record counts.
+type AnalyticsRetentionSweep struct {
+	AuditID            string
+	ExecutedAt         time.Time
+	TransientBefore    time.Time
+	OperationalBefore  time.Time
+	TransientDeleted   uint64
+	OperationalDeleted uint64
+}
+
+// SweepExpiredAnalytics deletes only payload-free derived analytics facts in
+// the transient and operational retention classes. Callers must supply the
+// approved UTC cutoffs explicitly; this repository does not invent a timer,
+// policy duration, or a deletion schedule. Authoritative events, Outbox,
+// Inbox, Ledger, audit, financial, audit-7y, and legal-hold records are never
+// selected by this operation.
+func (s *Store) SweepExpiredAnalytics(ctx context.Context, auditID string, now, transientBefore, operationalBefore time.Time) (AnalyticsRetentionSweep, error) {
+	if !analyticsRetentionAuditID.MatchString(auditID) || now.IsZero() || now.Location() != time.UTC || transientBefore.IsZero() || transientBefore.Location() != time.UTC || operationalBefore.IsZero() || operationalBefore.Location() != time.UTC || transientBefore.After(now) || operationalBefore.After(now) {
+		return AnalyticsRetentionSweep{}, errors.New("analytics retention sweep requires an audit ID, UTC execution time, and non-future UTC cutoffs")
+	}
+	// PostgreSQL timestamptz preserves microseconds. Canonicalize the caller's
+	// audit tuple before both the insert and an idempotent replay comparison.
+	now = now.UTC().Truncate(time.Microsecond)
+	transientBefore = transientBefore.UTC().Truncate(time.Microsecond)
+	operationalBefore = operationalBefore.UTC().Truncate(time.Microsecond)
+	tx, err := s.db.BeginTx(ctx, &sql.TxOptions{Isolation: sql.LevelSerializable})
+	if err != nil {
+		return AnalyticsRetentionSweep{}, fmt.Errorf("begin analytics retention sweep: %w", err)
+	}
+	defer tx.Rollback() //nolint:errcheck
+
+	result := AnalyticsRetentionSweep{AuditID: auditID, ExecutedAt: now, TransientBefore: transientBefore, OperationalBefore: operationalBefore}
+	existing, exists, err := analyticsRetentionSweep(ctx, tx, auditID)
+	if err != nil {
+		return AnalyticsRetentionSweep{}, fmt.Errorf("read analytics retention sweep audit: %w", err)
+	}
+	if exists {
+		if !existing.ExecutedAt.Equal(now) || !existing.TransientBefore.Equal(transientBefore) || !existing.OperationalBefore.Equal(operationalBefore) {
+			return AnalyticsRetentionSweep{}, errors.New("analytics retention sweep audit ID conflicts with prior parameters")
+		}
+		if err := tx.Commit(); err != nil {
+			return AnalyticsRetentionSweep{}, fmt.Errorf("commit replayed analytics retention sweep: %w", err)
+		}
+		return existing, nil
+	}
+	err = tx.QueryRowContext(ctx, `
+WITH deleted AS (
+    DELETE FROM ynx_analytics.event_facts
+    WHERE (retention_class='transient' AND occurred_at < $1)
+       OR (retention_class='operational' AND occurred_at < $2)
+    RETURNING retention_class
+), recorded AS (
+    INSERT INTO ynx_analytics.retention_sweeps(
+        audit_id,executed_at,transient_before,operational_before,transient_deleted,operational_deleted
+    )
+    SELECT $3,$4,$1,$2,
+        count(*) FILTER (WHERE retention_class='transient'),
+        count(*) FILTER (WHERE retention_class='operational')
+    FROM deleted
+    RETURNING transient_deleted,operational_deleted
+)
+SELECT transient_deleted,operational_deleted FROM recorded`, transientBefore, operationalBefore, auditID, now).Scan(&result.TransientDeleted, &result.OperationalDeleted)
+	if err != nil {
+		return AnalyticsRetentionSweep{}, fmt.Errorf("delete expired derived analytics facts and record audit: %w", err)
+	}
+	if err := tx.Commit(); err != nil {
+		return AnalyticsRetentionSweep{}, fmt.Errorf("commit analytics retention sweep: %w", err)
+	}
+	return result, nil
+}
+
+func analyticsRetentionSweep(ctx context.Context, queryer sqlQueryer, auditID string) (AnalyticsRetentionSweep, bool, error) {
+	var result AnalyticsRetentionSweep
+	err := queryer.QueryRowContext(ctx, `SELECT audit_id,executed_at,transient_before,operational_before,transient_deleted,operational_deleted FROM ynx_analytics.retention_sweeps WHERE audit_id=$1 FOR KEY SHARE`, auditID).Scan(
+		&result.AuditID, &result.ExecutedAt, &result.TransientBefore, &result.OperationalBefore, &result.TransientDeleted, &result.OperationalDeleted,
+	)
+	if errors.Is(err, sql.ErrNoRows) {
+		return AnalyticsRetentionSweep{}, false, nil
+	}
+	if err != nil {
+		return AnalyticsRetentionSweep{}, false, err
+	}
+	result.ExecutedAt = result.ExecutedAt.UTC()
+	result.TransientBefore = result.TransientBefore.UTC()
+	result.OperationalBefore = result.OperationalBefore.UTC()
+	return result, true, nil
 }
 
 // ApplyAnalyticsEvent projects one payload-free event fact and its Inbox
