@@ -188,6 +188,8 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 		"routeHeadings",
 		"routeUI",
 		"routeContent",
+		"interactionUI",
+		"hasPublicWalletNetworkConfig",
 		"renderPortalRoute(activeRoute)",
 		"ecosystemProducts",
 		"downloadProducts",
@@ -239,6 +241,9 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	}
 	if summary.NativeSymbol != "YNXT" || summary.IndexedTxCount != 7 || summary.Wallet.ChainIDHex != "0x1917" {
 		t.Fatalf("unexpected summary: %+v", summary)
+	}
+	if len(summary.Wallet.RPCURLs) != 0 || len(summary.Wallet.BlockExplorerURLs) != 0 {
+		t.Fatalf("wallet configuration leaked local upstream URLs: %+v", summary.Wallet)
 	}
 	fallbackHandler := api.NewServerWithConfig(devnet, api.ServerConfig{ResourceGatewayUpstreamKey: resourceUpstreamKey})
 	fallbackRPC := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -301,6 +306,29 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	_ = streamResp.Body.Close()
 	if streamData == "" || !strings.Contains(streamData, `"indexedTxCount":7`) || !strings.Contains(streamData, `"resource_sponsored_action"`) || !strings.Contains(streamData, `"sponsorPoolId"`) || !strings.Contains(streamData, `"blocks"`) || !strings.Contains(streamData, `"validators"`) || !strings.Contains(streamData, `"resources"`) {
 		t.Fatalf("stream did not return a live dashboard snapshot: %s", streamData)
+	}
+}
+
+func TestPublicWalletURLFailsClosedForNonPublicEndpoints(t *testing.T) {
+	tests := []struct {
+		name string
+		raw  string
+		want string
+	}{
+		{name: "verified https endpoint", raw: "https://rpc.ynx.example/v1", want: "https://rpc.ynx.example/v1"},
+		{name: "loopback IPv4", raw: "http://127.0.0.1:6420", want: ""},
+		{name: "loopback IPv6", raw: "https://[::1]:6420", want: ""},
+		{name: "localhost", raw: "https://localhost:6420", want: ""},
+		{name: "private range", raw: "https://10.0.0.4:6420", want: ""},
+		{name: "insecure scheme", raw: "http://rpc.ynx.example", want: ""},
+		{name: "malformed", raw: "://not-a-url", want: ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := publicWalletURL(tt.raw); got != tt.want {
+				t.Fatalf("publicWalletURL(%q) = %q, want %q", tt.raw, got, tt.want)
+			}
+		})
 	}
 }
 

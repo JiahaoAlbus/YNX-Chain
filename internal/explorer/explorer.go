@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/netip"
 	"net/url"
 	"sort"
 	"strconv"
@@ -44,13 +45,33 @@ func New(cfg Config) (*Service, error) {
 	if strings.TrimSpace(cfg.IndexerURL) == "" {
 		return nil, fmt.Errorf("explorer indexer URL is required")
 	}
-	if cfg.PublicRPCURL == "" {
-		cfg.PublicRPCURL = cfg.RPCURL
-	}
-	if cfg.PublicExplorerURL == "" {
-		cfg.PublicExplorerURL = "http://127.0.0.1:6427"
-	}
+	// Wallet-visible endpoints are a publication claim, not a convenient
+	// reflection of the Explorer's private upstream.  A loopback, private, or
+	// malformed URL must never be serialised into wallet_addEthereumChain or
+	// the Developer page.  Missing evidence remains an explicit unavailable
+	// state in the web client.
+	cfg.PublicRPCURL = publicWalletURL(cfg.PublicRPCURL)
+	cfg.PublicExplorerURL = publicWalletURL(cfg.PublicExplorerURL)
 	return &Service{cfg: cfg, rpcClient: newClient(cfg.RPCURL), indexerClient: newClient(cfg.IndexerURL)}, nil
+}
+
+func publicWalletURL(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" {
+		return ""
+	}
+	parsed, err := url.Parse(raw)
+	if err != nil || parsed.Scheme != "https" || parsed.Host == "" || parsed.User != nil {
+		return ""
+	}
+	host := strings.TrimSuffix(strings.ToLower(parsed.Hostname()), ".")
+	if host == "" || host == "localhost" || strings.HasSuffix(host, ".localhost") {
+		return ""
+	}
+	if addr, err := netip.ParseAddr(host); err == nil && (addr.IsLoopback() || addr.IsPrivate() || addr.IsLinkLocalUnicast() || addr.IsUnspecified()) {
+		return ""
+	}
+	return parsed.String()
 }
 
 type client struct {
@@ -182,6 +203,17 @@ func (s *Service) Summary(ctx context.Context) (Summary, error) {
 		IsPublicNet:          status.PublicNetwork,
 		ChainIDConflictCheck: status.ChainIDConflictCheck,
 	}
+	wallet := WalletConfig{
+		ChainIDHex:         fmt.Sprintf("0x%x", status.ChainID),
+		ChainName:          status.Network,
+		NativeCurrencyName: status.NativeCoinName,
+		NativeSymbol:       status.NativeCurrencySymbol,
+		Decimals:           status.Decimals,
+	}
+	if s.cfg.PublicRPCURL != "" && s.cfg.PublicExplorerURL != "" {
+		wallet.RPCURLs = []string{s.cfg.PublicRPCURL}
+		wallet.BlockExplorerURLs = []string{s.cfg.PublicExplorerURL}
+	}
 	return Summary{
 		OK:                health.OK && health.LastError == "",
 		Service:           "ynx-explorerd",
@@ -198,19 +230,11 @@ func (s *Service) Summary(ctx context.Context) (Summary, error) {
 		NativeSymbol:      status.NativeCurrencySymbol,
 		IndexerOK:         health.OK,
 		IndexerError:      health.LastError,
-		Wallet: WalletConfig{
-			ChainIDHex:         fmt.Sprintf("0x%x", status.ChainID),
-			ChainName:          status.Network,
-			NativeCurrencyName: status.NativeCoinName,
-			NativeSymbol:       status.NativeCurrencySymbol,
-			Decimals:           status.Decimals,
-			RPCURLs:            []string{s.cfg.PublicRPCURL},
-			BlockExplorerURLs:  []string{s.cfg.PublicExplorerURL},
-		},
-		ResourceStatus: "available-through-resource-endpoints",
-		FeeStatus:      "available-per-transaction",
-		TruthfulStatus: "rpc-and-indexer-backed",
-		LastCheckedAt:  time.Now().UTC(),
+		Wallet:            wallet,
+		ResourceStatus:    "available-through-resource-endpoints",
+		FeeStatus:         "available-per-transaction",
+		TruthfulStatus:    "rpc-and-indexer-backed",
+		LastCheckedAt:     time.Now().UTC(),
 	}, nil
 }
 

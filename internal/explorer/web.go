@@ -633,6 +633,15 @@ const indexHTML = `<!doctype html>
     const walletListenerProviders = new WeakSet();
     const blockchainPages = {blocks:{items:[],total:0,limit:10,offset:0,hasMore:false},transactions:{items:[],total:0,limit:10,offset:0,hasMore:false}};
     const $ = (id) => document.getElementById(id);
+    const hasPublicWalletNetworkConfig = config => {
+      const rpc = config?.rpcUrls?.[0];
+      const explorer = config?.blockExplorerUrls?.[0];
+      try {
+        const rpcURL = new URL(rpc);
+        const explorerURL = new URL(explorer);
+        return rpcURL.protocol === 'https:' && explorerURL.protocol === 'https:' && rpcURL.hostname !== 'localhost' && explorerURL.hostname !== 'localhost';
+      } catch (_) { return false; }
+    };
     const messages = {
       en:{brand:'Chain Explorer',navOverview:'Overview',navBlockchain:'Blockchain',navAccounts:'Accounts',navValidators:'Validators',navResources:'Resources',heroTitle:'YNX Chain network explorer',heroCopy:'Live blocks, transactions, validators, accounts, fees, and native YNXT resource economics from the public testnet.',searchPlaceholder:'Search ynx1 address, transaction, block, or EVM compatibility address',search:'Search',latestBlock:'Latest block',networkTps:'Network TPS',indexedWindow:'Latest indexed window',blockTime:'Block time',observedAverage:'Observed average',indexedTxs:'Transactions indexed',verifiedIndexer:'Verified by the indexer',validators:'Validators',reportedRpc:'Reported by chain RPC',indexerSync:'Indexer sync',networkDetails:'Network details',networkDetailsCopy:'Current chain configuration',latestBlocks:'Real-time blocks',latestBlocksCopy:'Five newest finalized blocks, updated live',refresh:'Refresh',latestTransactions:'Real-time transactions',latestTransactionsCopy:'Five newest indexed transfers and actions',quickFindPlaceholder:'Find hash, address, amount…',accountLeaderboard:'YNXT account leaderboard',accountLeaderboardCopy:'Ranks full-ledger balances when available; otherwise shows a clearly labeled indexed-participant sample.',operational:'Network operational',degraded:'Upstream degraded',fullySynced:'Fully synchronized',catchingUp:'Indexer catching up',noMatching:'No matching transactions in the indexed transaction feed.',rpcResponding:'RPC and indexer are responding',live:'Live'},
       'zh-CN':{brand:'链上浏览器',navOverview:'概览',navBlockchain:'区块链',navAccounts:'账户',navValidators:'验证者',navResources:'资源',heroTitle:'YNX Chain 区块链浏览器',heroCopy:'查看公共测试网的实时区块、交易、验证者、账户、手续费与原生 YNXT 资源经济数据。',searchPlaceholder:'搜索 ynx1 地址、交易哈希、区块高度或 EVM 兼容地址',search:'搜索',latestBlock:'最新区块',networkTps:'网络 TPS',indexedWindow:'最近索引窗口',blockTime:'平均出块时间',observedAverage:'实时观测平均值',indexedTxs:'已索引交易',verifiedIndexer:'由索引器验证',validators:'验证者',reportedRpc:'由链 RPC 报告',indexerSync:'索引同步',networkDetails:'网络详情',networkDetailsCopy:'当前链配置',latestBlocks:'实时出块',latestBlocksCopy:'最新 5 个最终区块，实时更新',refresh:'刷新',latestTransactions:'实时交易',latestTransactionsCopy:'最新 5 笔已索引转账与协议操作',quickFindPlaceholder:'快速查找哈希、地址、金额…',accountLeaderboard:'YNXT 账户富豪榜',accountLeaderboardCopy:'节点支持时展示全账本余额排名；否则明确标注为已索引交易参与地址样本。',operational:'网络运行正常',degraded:'上游服务降级',fullySynced:'已完全同步',catchingUp:'索引器正在追赶',noMatching:'已索引交易流中没有匹配结果。',rpcResponding:'RPC 与索引器正在正常响应',live:'实时'},
@@ -760,6 +769,17 @@ const indexHTML = `<!doctype html>
     const doc = key => documentationUI[language]?.[key] || documentationUI.en[key] || key;
     const home = key => homeUI[language]?.[key] || homeUI.en[key] || key;
     const live = (key, values = {}) => (liveUI[language]?.[key] || liveUI.en[key] || key).replace(/\{(\w+)\}/g, (_, name) => values[name] ?? '');
+    // Runtime strings use the same locale selection and fallback path as the
+    // route copy.  These messages cover rows, drawers, and transient states
+    // that are created after the initial document has loaded.
+    const interactionUI = {
+      en:{empty:'Empty',finalized:'Finalized',transaction:'{count} transaction',transactions:'{count} transactions',block:'Block #{height}',slot:'{seconds}s slot',finalityObserved:'Finality observed',noFinalizedBlocks:'No finalized blocks yet.',resourceUnavailable:'Resource analytics temporarily unavailable',delegated:'Delegated YNXT',rental:'Rental volume',providerIncome:'Provider income',protocolFees:'Protocol fees',policy:'Policy',activeDelegations:'Active delegations',rentals:'Rentals',evidence:'Evidence',blockLag:'Block #{height} / {lag}-block index lag',liveDetail:'Live {type} detail',copy:'Copy',copyValue:'Copy value',noMatch:'No matching verified 6423 record was found.',searching:'Searching live chain data',resolving:'Resolving RPC and indexer records…',searchResult:'Search result',copied:'Copied to clipboard',clipboardUnavailable:'Clipboard unavailable',routeCopied:'Route copied'},
+      'zh-CN':{empty:'空区块',finalized:'已最终确定',transaction:'{count} 笔交易',transactions:'{count} 笔交易',block:'区块 #{height}',slot:'{seconds} 秒出块',finalityObserved:'已观测到终局性',noFinalizedBlocks:'暂无最终确定区块。',resourceUnavailable:'资源分析暂不可用',delegated:'已委托 YNXT',rental:'租赁量',providerIncome:'提供者收入',protocolFees:'协议费用',policy:'政策',activeDelegations:'活跃委托',rentals:'租赁',evidence:'证据',blockLag:'区块 #{height} / 索引延迟 {lag} 个区块',liveDetail:'实时{type}详情',copy:'复制',copyValue:'复制值',noMatch:'未找到匹配的已验证 6423 记录。',searching:'正在搜索实时链数据',resolving:'正在解析 RPC 和索引器记录…',searchResult:'搜索结果',copied:'已复制到剪贴板',clipboardUnavailable:'剪贴板不可用',routeCopied:'路由已复制'},
+      'zh-TW':{empty:'空區塊',finalized:'已最終確定',transaction:'{count} 筆交易',transactions:'{count} 筆交易',block:'區塊 #{height}',slot:'{seconds} 秒出塊',finalityObserved:'已觀測到最終性',noFinalizedBlocks:'尚無最終確定區塊。',resourceUnavailable:'資源分析暫時不可用',delegated:'已委託 YNXT',rental:'租賃量',providerIncome:'提供者收入',protocolFees:'協議費用',policy:'政策',activeDelegations:'有效委託',rentals:'租賃',evidence:'證據',blockLag:'區塊 #{height} / 索引延遲 {lag} 個區塊',liveDetail:'即時{type}詳情',copy:'複製',copyValue:'複製值',noMatch:'找不到相符的已驗證 6423 記錄。',searching:'正在搜尋即時鏈資料',resolving:'正在解析 RPC 與索引器記錄…',searchResult:'搜尋結果',copied:'已複製到剪貼簿',clipboardUnavailable:'剪貼簿暫時不可用',routeCopied:'路由已複製'},
+      ja:{empty:'空ブロック',finalized:'確定',transaction:'{count} 件のトランザクション',transactions:'{count} 件のトランザクション',block:'ブロック #{height}',slot:'{seconds} 秒スロット',finalityObserved:'ファイナリティを確認',noFinalizedBlocks:'確定済みブロックはまだありません。',resourceUnavailable:'リソース分析は一時的に利用できません',delegated:'委任済み YNXT',rental:'レンタル量',providerIncome:'プロバイダー収益',protocolFees:'プロトコル手数料',policy:'ポリシー',activeDelegations:'アクティブな委任',rentals:'レンタル',evidence:'証拠',blockLag:'ブロック #{height} / インデックス遅延 {lag} ブロック',liveDetail:'ライブ{type}詳細',copy:'コピー',copyValue:'値をコピー',noMatch:'一致する検証済み 6423 レコードはありません。',searching:'ライブチェーンデータを検索中',resolving:'RPC とインデクサーのレコードを解決中…',searchResult:'検索結果',copied:'クリップボードにコピーしました',clipboardUnavailable:'クリップボードを利用できません',routeCopied:'ルートをコピーしました'},
+      ko:{empty:'빈 블록',finalized:'확정됨',transaction:'트랜잭션 {count}건',transactions:'트랜잭션 {count}건',block:'블록 #{height}',slot:'{seconds}초 슬롯',finalityObserved:'최종성 확인됨',noFinalizedBlocks:'확정된 블록이 아직 없습니다.',resourceUnavailable:'리소스 분석을 일시적으로 사용할 수 없습니다',delegated:'위임된 YNXT',rental:'대여량',providerIncome:'제공자 수익',protocolFees:'프로토콜 수수료',policy:'정책',activeDelegations:'활성 위임',rentals:'대여',evidence:'증거',blockLag:'블록 #{height} / 인덱서 지연 {lag}개 블록',liveDetail:'실시간 {type} 상세',copy:'복사',copyValue:'값 복사',noMatch:'일치하는 검증된 6423 레코드가 없습니다.',searching:'실시간 체인 데이터를 검색 중',resolving:'RPC 및 인덱서 레코드를 확인하는 중…',searchResult:'검색 결과',copied:'클립보드에 복사됨',clipboardUnavailable:'클립보드를 사용할 수 없음',routeCopied:'경로가 복사됨'}
+    };
+    const i = (key, values = {}) => (interactionUI[language]?.[key] || interactionUI.en[key] || key).replace(/\{(\w+)\}/g, (_, name) => values[name] ?? '');
     const isChinese = () => language.startsWith('zh');
     function applyLanguage(nextLanguage) {
       language = messages[nextLanguage] ? nextLanguage : 'en';
@@ -829,7 +849,7 @@ const indexHTML = `<!doctype html>
     function blockRow(block,index = 0) {
       const txs = (block.transactions || []).length;
       const isNew = index === 0 && previousHeight && Number(block.height) > previousHeight;
-      return '<button class="live-row block-live-row' + (txs === 0 ? ' empty-block-row' : '') + (isNew ? ' new-row' : '') + '" type="button" data-query="' + escapeHTML(block.height) + '"><span class="row-icon">BK</span><span><span class="row-title"><span class="link mono">#' + escapeHTML(number(block.height)) + '</span><span class="type-tag">' + (txs === 0 ? (isChinese() ? '空区块' : 'Empty') : (isChinese() ? '已最终确定' : 'Finalized')) + '</span></span><span class="row-subtitle"><span class="mono hash" title="' + escapeHTML(block.hash) + '">' + escapeHTML(compact(block.hash,14,9)) + '</span></span></span><span class="row-side"><strong>' + txs + (isChinese() ? ' 笔交易' : (txs === 1 ? ' tx' : ' txs')) + '</strong><span title="' + escapeHTML(exactTime(block.time)) + '">' + escapeHTML(relativeTime(block.time)) + '</span></span></button>';
+      return '<button class="live-row block-live-row' + (txs === 0 ? ' empty-block-row' : '') + (isNew ? ' new-row' : '') + '" type="button" data-query="' + escapeHTML(block.height) + '"><span class="row-icon">BK</span><span><span class="row-title"><span class="link mono">#' + escapeHTML(number(block.height)) + '</span><span class="type-tag">' + escapeHTML(txs === 0 ? i('empty') : i('finalized')) + '</span></span><span class="row-subtitle"><span class="mono hash" title="' + escapeHTML(block.hash) + '">' + escapeHTML(compact(block.hash,14,9)) + '</span></span></span><span class="row-side"><strong>' + escapeHTML(i(txs === 1 ? 'transaction' : 'transactions',{count:txs})) + '</strong><span title="' + escapeHTML(exactTime(block.time)) + '">' + escapeHTML(relativeTime(block.time)) + '</span></span></button>';
     }
     function txRow(tx,index = 0) {
       const isNew = index === 0 && previousTxHash && tx.hash !== previousTxHash;
@@ -855,15 +875,15 @@ const indexHTML = `<!doctype html>
       bindQueries();
     }
     function renderBlockTrack(blocks,incomingHeight) {
-      $('finalityState').textContent = blocks.length ? 'Block #' + number(blocks[0].height) : 'Waiting';
+      $('finalityState').textContent = blocks.length ? i('block',{height:number(blocks[0].height)}) : live('awaitingBlock');
       const slot = calculateWindow(blocks).blockTime;
       $('blockTrack').innerHTML = blocks.slice(0,4).map((block,index) => {
         const arrived = index === 0 && previousHeight && incomingHeight > previousHeight;
         const txs = (block.transactions || []).length;
-        const state = txs === 0 ? (isChinese() ? '空区块' : 'Empty') : (isChinese() ? '已最终确定' : 'Finalized');
-        const slotLabel = slot > 0 ? slot.toFixed(1) + 's slot' : 'Finality observed';
-        return '<button class="block-chip' + (txs === 0 ? ' empty-block' : '') + (arrived ? ' new' : '') + '" type="button" data-query="' + escapeHTML(block.height) + '"><strong class="mono">#' + escapeHTML(number(block.height)) + '</strong><span>' + escapeHTML(state) + ' · ' + txs + (isChinese() ? ' 笔交易' : (txs === 1 ? ' transaction' : ' transactions')) + '</span><span class="block-chip-meta"><b>' + escapeHTML(slotLabel) + '</b><em title="' + escapeHTML(exactTime(block.time)) + '">' + escapeHTML(relativeTime(block.time)) + '</em></span></button>';
-      }).join('') || '<div class="empty">No finalized blocks yet.</div>';
+        const state = txs === 0 ? i('empty') : i('finalized');
+        const slotLabel = slot > 0 ? i('slot',{seconds:slot.toFixed(1)}) : i('finalityObserved');
+        return '<button class="block-chip' + (txs === 0 ? ' empty-block' : '') + (arrived ? ' new' : '') + '" type="button" data-query="' + escapeHTML(block.height) + '"><strong class="mono">#' + escapeHTML(number(block.height)) + '</strong><span>' + escapeHTML(state) + ' · ' + escapeHTML(i(txs === 1 ? 'transaction' : 'transactions',{count:txs})) + '</span><span class="block-chip-meta"><b>' + escapeHTML(slotLabel) + '</b><em title="' + escapeHTML(exactTime(block.time)) + '">' + escapeHTML(relativeTime(block.time)) + '</em></span></button>';
+      }).join('') || '<div class="empty">' + escapeHTML(i('noFinalizedBlocks')) + '</div>';
     }
     function renderIntelligence(validatorData, resources) {
       const validators = Array.isArray(validatorData) ? validatorData : (validatorData?.validators || []);
@@ -873,18 +893,18 @@ const indexHTML = `<!doctype html>
         return '<tr><td><strong>' + escapeHTML(validator.moniker || compact(validator.address)) + '</strong><span class="mono hash muted" title="' + escapeHTML(validator.address) + '">' + escapeHTML(compact(validator.address,12,7)) + '</span></td><td>' + escapeHTML(validator.role || 'validator') + '</td><td><span class="validator-state' + (ready ? '' : ' offline') + '">' + escapeHTML(status) + '</span></td><td class="mono">' + escapeHTML(number(validator.votingPower)) + '</td><td class="mono">' + escapeHTML(number(validator.latestHeight)) + '</td></tr>';
       }).join('') : '<tr><td colspan="5" class="empty">No validator records available.</td></tr>';
       if (!resources || typeof resources !== 'object' || !Object.keys(resources).length) {
-        $('resourceMetrics').innerHTML = '<article class="resource-item"><small>Resource analytics temporarily unavailable</small></article>';
+        $('resourceMetrics').innerHTML = '<article class="resource-item"><small>' + escapeHTML(i('resourceUnavailable')) + '</small></article>';
         $('resourcePolicy').innerHTML = '';
         return;
       }
       const resourceItems = [
-        ['Delegated YNXT',resources.delegatedYnxt],
-        ['Rental volume',resources.rentalVolumeYnxt],
-        ['Provider income',resources.providerIncomeYnxt],
-        ['Protocol fees',resources.protocolFeeYnxt]
+        [i('delegated'),resources.delegatedYnxt],
+        [i('rental'),resources.rentalVolumeYnxt],
+        [i('providerIncome'),resources.providerIncomeYnxt],
+        [i('protocolFees'),resources.protocolFeeYnxt]
       ];
       $('resourceMetrics').innerHTML = resourceItems.map(([label,value]) => '<article class="resource-item"><small>' + escapeHTML(label) + '</small><strong>' + escapeHTML(number(value)) + '</strong><small>YNXT</small></article>').join('');
-      $('resourcePolicy').innerHTML = '<span>Policy <strong>' + escapeHTML(resources.policyVersion || '--') + '</strong></span><span>Active delegations <strong>' + escapeHTML(number(resources.activeDelegationCount)) + '</strong></span><span>Rentals <strong>' + escapeHTML(number(resources.resourceRentalCount)) + '</strong></span><span>Evidence <strong class="mono">' + escapeHTML(compact(resources.policyHash,10,7)) + '</strong></span>';
+      $('resourcePolicy').innerHTML = '<span>' + escapeHTML(i('policy')) + ' <strong>' + escapeHTML(resources.policyVersion || '--') + '</strong></span><span>' + escapeHTML(i('activeDelegations')) + ' <strong>' + escapeHTML(number(resources.activeDelegationCount)) + '</strong></span><span>' + escapeHTML(i('rentals')) + ' <strong>' + escapeHTML(number(resources.resourceRentalCount)) + '</strong></span><span>' + escapeHTML(i('evidence')) + ' <strong class="mono">' + escapeHTML(compact(resources.policyHash,10,7)) + '</strong></span>';
     }
     function renderAccounts(leaderboard) {
       const accounts = leaderboard?.accounts || [];
@@ -914,7 +934,7 @@ const indexHTML = `<!doctype html>
       $('assetPendingCount').textContent = number(summary.pendingTxCount);
       $('assetTruthState').textContent = summary.ok ? 'RPC + Indexer' : t('degraded');
       $('assetVerifiedAt').textContent = exactTime(summary.lastCheckedAt);
-      $('assetHeight').textContent = 'Block #' + number(summary.rpcHeight) + ' · ' + number(summary.syncLagBlocks) + (language === 'en' ? '-block lag' : ' ' + t('indexerSync'));
+      $('assetHeight').textContent = i('blockLag',{height:number(summary.rpcHeight),lag:number(summary.syncLagBlocks)});
       $('syncState').textContent = summary.syncLagBlocks === 0 ? t('fullySynced') : t('catchingUp');
       $('syncState').className = 'metric-foot' + (summary.syncLagBlocks === 0 ? ' good' : '');
       $('blockAge').textContent = relativeTime(summary.latestBlockTime);
@@ -925,7 +945,7 @@ const indexHTML = `<!doctype html>
       $('latestHash').title = summary.latestBlockHash || '';
       $('truthState').textContent = summary.truthfulStatus === 'rpc-and-indexer-backed' ? 'RPC + Indexer' : summary.truthfulStatus;
       $('lastUpdated').textContent = live('lastVerified') + ' ' + new Date(summary.lastCheckedAt).toLocaleTimeString(language === 'en' ? 'en-US' : language, {hour:'2-digit',minute:'2-digit',second:'2-digit'});
-      $('heroHeight').textContent = 'Block #' + number(summary.rpcHeight) + ' / ' + number(summary.syncLagBlocks) + '-block index lag';
+      $('heroHeight').textContent = i('blockLag',{height:number(summary.rpcHeight),lag:number(summary.syncLagBlocks)});
       // Dashboard refreshes continue after route navigation. Keep the document
       // identity on the portal rather than replacing it with a transient block
       // title whenever live summary data arrives.
@@ -1030,13 +1050,13 @@ const indexHTML = `<!doctype html>
     }
     function showDrawer(type,query,detail) {
       const title = type.charAt(0).toUpperCase() + type.slice(1);
-      $('detailKicker').textContent = 'Live ' + type + ' detail';
+      $('detailKicker').textContent = i('liveDetail',{type});
       $('detailTitle').textContent = type === 'account' ? compact(detail.addressFormats?.ynxAddress || query,18,12) : title;
       const stats = detailStats(type,detail);
       const summary = stats.length ? '<div class="detail-summary">' + stats.map(([label,value]) => '<div class="detail-stat"><span>' + escapeHTML(label) + '</span><strong class="mono">' + escapeHTML(value) + '</strong></div>').join('') + '</div>' : '';
       const rows = detailRows(type,detail).map(([key,value]) => {
         const text = String(value ?? '');
-        const copy = text.length > 10 ? '<button class="copy-button" type="button" data-copy="' + encodeURIComponent(text) + '" aria-label="Copy value">Copy</button>' : '';
+        const copy = text.length > 10 ? '<button class="copy-button" type="button" data-copy="' + encodeURIComponent(text) + '" aria-label="' + escapeHTML(i('copyValue')) + '">' + escapeHTML(i('copy')) + '</button>' : '';
         return '<div class="detail-row"><dt>' + escapeHTML(key) + '</dt><dd class="mono">' + escapeHTML(text) + '</dd>' + copy + '</div>';
       }).join('');
       $('detailContent').innerHTML = summary + '<dl class="detail-body">' + rows + '</dl>';
@@ -1080,7 +1100,7 @@ const indexHTML = `<!doctype html>
       } catch (error) {
         $('detailKicker').textContent = r('availability');
         $('detailTitle').textContent = r('notFound');
-        $('detailContent').innerHTML = '<div class="result-error">No matching verified 6423 record was found.</div>';
+        $('detailContent').innerHTML = '<div class="result-error">' + escapeHTML(i('noMatch')) + '</div>';
         $('detailBackdrop').classList.add('visible');
         $('detailBackdrop').setAttribute('aria-hidden','false');
       }
@@ -1191,6 +1211,7 @@ const indexHTML = `<!doctype html>
     }
     async function switchYNXWalletNetwork() {
       if (!connectedYNXWallet?.provider || !walletConfig) return;
+      if (!hasPublicWalletNetworkConfig(walletConfig)) { showPortalNotice(v('unavailable') + ': ' + v('checkStatus')); return; }
       const provider = connectedYNXWallet.provider;
       try {
         await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:expected6423.evmChainId}]});
@@ -1244,12 +1265,14 @@ const indexHTML = `<!doctype html>
         set(...routeHeading('ecosystem'),'<div class="ecosystem-grid">' + cards + '</div>'); return;
       }
       if (route === 'developers') {
-        const rpc = summary?.wallet?.rpcUrls?.[0] || v('unavailable');
-        const explorer = summary?.wallet?.blockExplorerUrls?.[0] || v('unavailable');
+        const publicWalletConfig = hasPublicWalletNetworkConfig(summary?.wallet);
+        const rpc = publicWalletConfig ? summary.wallet.rpcUrls[0] : v('unavailable');
+        const explorer = publicWalletConfig ? summary.wallet.blockExplorerUrls[0] : v('unavailable');
         const config = facts([[c('cosmos'),'ynx_6423-1'],[c('numeric'),'6423'],[c('evm'),'0x1917'],[c('nativeAsset'),'YNXT'],[c('rpcEndpoint'),rpc],[c('explorerEndpoint'),explorer]]);
-        const addNetwork = JSON.stringify({chainId:'0x1917',chainName:summary?.wallet?.chainName || 'YNX 6423 Testnet',nativeCurrency:{name:summary?.wallet?.nativeCurrencyName || 'YNXT',symbol:'YNXT',decimals:summary?.wallet?.decimals ?? 18},rpcUrls:summary?.wallet?.rpcUrls || [],blockExplorerUrls:summary?.wallet?.blockExplorerUrls || []},null,2);
+        const addNetwork = publicWalletConfig ? JSON.stringify({chainId:'0x1917',chainName:summary?.wallet?.chainName || 'YNX 6423 Testnet',nativeCurrency:{name:summary?.wallet?.nativeCurrencyName || 'YNXT',symbol:'YNXT',decimals:summary?.wallet?.decimals ?? 18},rpcUrls:summary.wallet.rpcUrls,blockExplorerUrls:summary.wallet.blockExplorerUrls},null,2) : '';
         const example = "const response = await fetch('/api/summary', { cache: 'no-store' });\nconst summary = await response.json();\nconsole.log(summary.network.chainId); // 6423";
-        const tools = '<div class="portal-list"><button type="button" data-copy="' + encodeURIComponent(addNetwork) + '">' + escapeHTML(v('copyNetwork')) + '<small>' + escapeHTML(v('networkJSON')) + '</small></button><button type="button" data-portal-note="' + encodeURIComponent(v('apiReference') + ': ' + v('unavailable')) + '">' + escapeHTML(v('apiReference')) + '<small>' + escapeHTML(v('unavailable')) + '</small></button><button type="button" data-portal-note="' + encodeURIComponent(v('sdk') + ': ' + v('sourceOnly')) + '">' + escapeHTML(v('sdk')) + '<small>' + escapeHTML(v('sourceOnly')) + '</small></button><button type="button" data-portal-note="' + encodeURIComponent(v('faucet') + ': ' + v('checkStatus')) + '">' + escapeHTML(v('faucet')) + '<small>' + escapeHTML(v('checkStatus')) + '</small></button></div>';
+        const networkControl = publicWalletConfig ? '<button type="button" data-copy="' + encodeURIComponent(addNetwork) + '">' + escapeHTML(v('copyNetwork')) + '<small>' + escapeHTML(v('networkJSON')) + '</small></button>' : '<button type="button" disabled aria-disabled="true">' + escapeHTML(v('copyNetwork')) + '<small>' + escapeHTML(v('unavailable')) + '</small></button>';
+        const tools = '<div class="portal-list">' + networkControl + '<button type="button" data-portal-note="' + encodeURIComponent(v('apiReference') + ': ' + v('unavailable')) + '">' + escapeHTML(v('apiReference')) + '<small>' + escapeHTML(v('unavailable')) + '</small></button><button type="button" data-portal-note="' + encodeURIComponent(v('sdk') + ': ' + v('sourceOnly')) + '">' + escapeHTML(v('sdk')) + '<small>' + escapeHTML(v('sourceOnly')) + '</small></button><button type="button" data-portal-note="' + encodeURIComponent(v('faucet') + ': ' + v('checkStatus')) + '">' + escapeHTML(v('faucet')) + '<small>' + escapeHTML(v('checkStatus')) + '</small></button></div>';
         const exampleCard = '<p>' + escapeHTML(v('exampleCopy')) + '</p><pre class="code-sample"><code>' + escapeHTML(example) + '</code></pre><div class="record-actions"><button type="button" data-copy="' + encodeURIComponent(example) + '">' + escapeHTML(v('copyExample')) + '</button></div>';
         set(...routeHeading('developers'),'<div class="route-grid two">' + portalPanel(v('configuration'),config,v('testnetOnly')) + portalPanel(v('tools'),tools) + '</div><section class="section"><div class="route-grid two">' + portalPanel(v('example'),exampleCard,v('testnetOnly')) + portalPanel(v('serviceDirectory'),serviceDirectoryTable(),v('serviceCopy')) + '</div></section>'); return;
       }
@@ -1285,9 +1308,9 @@ const indexHTML = `<!doctype html>
       if (!q) return;
       closeSearchSuggestions();
       $('searchInput').value = q;
-      $('detailKicker').textContent = 'Searching live chain data';
+      $('detailKicker').textContent = i('searching');
       $('detailTitle').textContent = compact(q,18,10);
-      $('detailContent').innerHTML = '<div class="empty">Resolving RPC and indexer records...</div>';
+      $('detailContent').innerHTML = '<div class="empty">' + escapeHTML(i('resolving')) + '</div>';
       $('detailBackdrop').classList.add('visible');
       $('detailBackdrop').setAttribute('aria-hidden','false');
       document.body.style.overflow = 'hidden';
@@ -1295,9 +1318,9 @@ const indexHTML = `<!doctype html>
         const resolved = await get('/api/search?q=' + encodeURIComponent(q));
         setDetailLocation(resolved.type,resolved.query || q);
       } catch (error) {
-        $('detailKicker').textContent = 'Search result';
-        $('detailTitle').textContent = 'Not found';
-        $('detailContent').innerHTML = '<div class="result-error">' + escapeHTML(clientError(error,'No matching verified 6423 record was found.')) + '</div>';
+        $('detailKicker').textContent = i('searchResult');
+        $('detailTitle').textContent = r('notFound');
+        $('detailContent').innerHTML = '<div class="result-error">' + escapeHTML(clientError(error,i('noMatch'))) + '</div>';
       }
     }
     $('searchForm').onsubmit = event => { event.preventDefault(); search(); };
@@ -1310,8 +1333,8 @@ const indexHTML = `<!doctype html>
     $('detailContent').onclick = async event => {
       const button = event.target.closest('[data-copy]');
       if (!button) return;
-      try { await navigator.clipboard.writeText(decodeURIComponent(button.dataset.copy)); showToast('Copied to clipboard'); }
-      catch (_) { showToast('Clipboard unavailable'); }
+      try { await navigator.clipboard.writeText(decodeURIComponent(button.dataset.copy)); showToast(i('copied')); }
+      catch (_) { showToast(i('clipboardUnavailable')); }
     };
     function selectIntelligence(view) {
       const validatorsSelected = view === 'validators';
@@ -1334,6 +1357,7 @@ const indexHTML = `<!doctype html>
       const metamask = walletProviders.find(item => item.provider?.isMetaMask === true && item.provider?.isYNXWallet !== true) || (window.ethereum?.isMetaMask === true && window.ethereum?.isYNXWallet !== true ? {provider:window.ethereum} : null);
       if (!metamask) { $('resultPanel').classList.add('visible'); $('resultTitle').textContent = 'MetaMask not detected'; $('resultSubtitle').textContent = 'YNX Wallet is intentionally not used as a MetaMask fallback.'; $('resultBody').innerHTML = '<div class="result-error">Open MetaMask or install an EIP-1193 MetaMask provider to use the compatibility adapter.</div>'; return; }
       if (!walletConfig) await load();
+      if (!hasPublicWalletNetworkConfig(walletConfig)) { showPortalNotice(v('unavailable') + ': ' + v('checkStatus')); return; }
       try {
         await metamask.provider.request({method:'wallet_addEthereumChain',params:[{chainId:walletConfig.chainIdHex,chainName:walletConfig.chainName,nativeCurrency:{name:walletConfig.nativeCurrencyName,symbol:walletConfig.nativeSymbol,decimals:walletConfig.decimals},rpcUrls:walletConfig.rpcUrls,blockExplorerUrls:walletConfig.blockExplorerUrls}]});
         await metamask.provider.request({method:'wallet_switchEthereumChain',params:[{chainId:expected6423.evmChainId}]});
@@ -1370,9 +1394,9 @@ const indexHTML = `<!doctype html>
       const page = event.target.closest('[data-page-kind]');
       if (page && !page.disabled) { loadBlockchainPage(page.dataset.pageKind,Number(page.dataset.pageOffset || 0)); return; }
       const share = event.target.closest('[data-share-route]');
-      if (share) { try { await navigator.clipboard.writeText(location.origin + '/#' + share.dataset.shareRoute); showToast('Route copied'); } catch (_) { showToast('Clipboard unavailable'); } return; }
+      if (share) { try { await navigator.clipboard.writeText(location.origin + '/#' + share.dataset.shareRoute); showToast(i('routeCopied')); } catch (_) { showToast(i('clipboardUnavailable')); } return; }
       const copy = event.target.closest('[data-copy]');
-      if (copy) { try { await navigator.clipboard.writeText(decodeURIComponent(copy.dataset.copy)); showToast('Copied to clipboard'); } catch (_) { showToast('Clipboard unavailable'); } return; }
+      if (copy) { try { await navigator.clipboard.writeText(decodeURIComponent(copy.dataset.copy)); showToast(i('copied')); } catch (_) { showToast(i('clipboardUnavailable')); } return; }
       const range = event.target.closest('[data-chart-range]');
       if (range) { const id = range.dataset.chartId || 'activity'; const historySource = serviceDirectory.history.officialURL === 'Unavailable' ? r('unavailable') : serviceDirectory.history.officialURL; document.querySelectorAll('[data-chart-id="' + id + '"][data-chart-range]').forEach(button => button.classList.toggle('active',button === range)); const chart = $('historyChart-' + id); if (chart) chart.innerHTML = escapeHTML(chartText('range')) + ': <strong>' + escapeHTML(range.dataset.chartRange) + '</strong>. ' + escapeHTML(chartText('historyUnavailable')) + '<br><small>' + escapeHTML(chartText('source')) + ': ' + escapeHTML(historySource) + ' · ' + escapeHTML(chartText('lastVerified')) + ': ' + escapeHTML(r('unavailable')) + '</small>'; return; }
       const route = event.target.closest('[data-route]');
