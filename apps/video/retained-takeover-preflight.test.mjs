@@ -18,3 +18,14 @@ test("preflight captures one byte-preserving HTTP response for bytes, SHA and ba
   assert.match(output, /^fixture\.sha256=d1329c6d1284e888680db5b03619fc08bdf1ee0b172c946ca6d1f18f5ea40d61$/m);
   assert.match(output, /VIDEO_RETAINED_TAKEOVER_PREFLIGHT_HTTP_FIXTURE_COMPLETE/);
 });
+
+test("preflight canonical base64 preserves an embedded NUL byte", () => {
+  const root = mkdtempSync(join(tmpdir(), "ynx-video-preflight-nul-")), client = join(root, "curl-fixture"), count = join(root, "count");
+  writeFileSync(client, `#!/bin/sh\nprintf '1' > '${count}'\nprintf 'x\\000y\\n'\n`);
+  chmodSync(client, 0o755);
+  const output = execFileSync("bash", [inspector, "fixture-http", "http://fixture.invalid/nul"], {encoding: "utf8", env: {...process.env, YNX_VIDEO_EXECUTION_MODE: "fixture", YNX_VIDEO_PREFLIGHT_HTTP_CLIENT: client}});
+  assert.equal(readFileSync(count, "utf8"), "1");
+  assert.match(output, /^fixture\.bytes=4$/m);
+  assert.match(output, /^fixture\.base64=eAB5Cg==$/m);
+  assert.match(output, /^fixture\.sha256=59ffbeed7935bf5deb30480afbee626fddea85d5235eedb5cdb5e598b5eba077$/m);
+});

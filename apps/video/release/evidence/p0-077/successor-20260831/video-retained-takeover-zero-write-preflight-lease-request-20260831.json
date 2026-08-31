@@ -6,16 +6,16 @@
   "status": "REQUESTED_NOT_AUTHORIZED",
   "source": {
     "branch": "codex/video-wallet-runtime-successor-20260831",
-    "commit": "8b88fb8f8ce3f9636012a08c03f5804caa092364",
-    "tree": "01cff6a18c7adb0779f6094196490ce47719d254",
-    "parent": "3e710258e9f7b39c2c3df3fb5205cfd7d4c0567c"
+    "commit": "1e35ee8a42977830992fd0cbe02258072ffd5895",
+    "tree": "f97b063b1a9e67efce01138f65eaf57ab1d9cf0d",
+    "parent": "42516471bf7dc7cf2114c8afe86edfe1b815c2f7"
   },
-  "reason": "Central accepted the retained-evidence guard and 42 source fixtures but requires a fresh zero-write observation of every remote object and runtime identity before it can sign a literal takeover execution contract.",
+  "reason": "Central accepted the retained-evidence guard and 45 source fixtures but requires a fresh zero-write observation of every remote object and runtime identity before it can sign a literal takeover execution contract.",
   "preflightInspector": {
     "path": "apps/video/scripts/video-retained-takeover-preflight.sh",
-    "blob": "f247f65b5abaa2105029c2b6300ead419041bc90",
-    "bytes": 5052,
-    "sha256": "4d163707b4a1c2b141317b031817b938c81a623519a2ac95503c617b921e0ec0",
+    "blob": "4d5a807d75503b920b7108b1abe46474fc08a4f8",
+    "bytes": 6009,
+    "sha256": "319580fd4805e2dd87c154c6dc0d6b3d952ab761faa5b1f8564d04e5d1e2ab34",
     "stdinIsExactInspectorBytes": true,
     "remoteArgv": [
       "/usr/bin/sudo",
@@ -44,7 +44,7 @@
     ],
     "requiredNonSecretEnvironment": {
       "YNX_CENTRAL_SINGLE_USE_LEASE_ID": "P0-VIDEO-RETAINED-TAKEOVER-PREFLIGHT-ZERO-WRITE-20260831",
-      "YNX_VIDEO_PREFLIGHT_INSPECTOR_SHA256": "4d163707b4a1c2b141317b031817b938c81a623519a2ac95503c617b921e0ec0"
+      "YNX_VIDEO_PREFLIGHT_INSPECTOR_SHA256": "319580fd4805e2dd87c154c6dc0d6b3d952ab761faa5b1f8564d04e5d1e2ab34"
     },
     "sshProcessContract": {
       "binary": "/usr/bin/ssh",
@@ -117,7 +117,7 @@
     }
   },
   "fixtures": {
-    "videoCheck": "PASS_44_OF_44",
+    "videoCheck": "PASS_46_OF_46",
     "i18n": "PASS_12_LOCALES_22_KEYS",
     "placementSuccessObserved": true,
     "placementCleanupExact": true,
@@ -125,6 +125,9 @@
     "prewriteFailureStageRemoved": true,
     "foreignStageChildRejectsBeforeOwnedDeletion": true,
     "sameByteReplacementRejectsBeforeAnyDeletion": true,
+    "eachHttpUrlFetchedExactlyOnce": true,
+    "httpBodyTrailingNewlinesAndNulByteSafeViaCanonicalBase64": true,
+    "httpFixture": "x\\n\\n is 3 bytes, base64 eAoK, SHA256 d1329c6d1284e888680db5b03619fc08bdf1ee0b172c946ca6d1f18f5ea40d61; a different second response is never requested",
     "controlParentSiblingPreserved": true,
     "stoppedFailureRestoresLegacy": true,
     "successfulTakeoverAndRollback": true,
