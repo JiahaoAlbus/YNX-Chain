@@ -1078,6 +1078,18 @@ func (s *Service) Kill(reason string) (PaperState, error) {
 	return s.state.Paper, s.save()
 }
 func (s *Service) Snapshot() map[string]any {
+	snapshot, _ := s.snapshotWithFingerprint()
+	return snapshot
+}
+
+// streamSnapshot pairs a public snapshot with a durable-state fingerprint.
+// The fingerprint is used only to decide whether a subscriber needs a fresh
+// reconciliation; it is not an execution or Wallet capability.
+func (s *Service) streamSnapshot() (map[string]any, string) {
+	return s.snapshotWithFingerprint()
+}
+
+func (s *Service) snapshotWithFingerprint() (map[string]any, string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	release, refreshErr := s.lockAndReload()
@@ -1097,7 +1109,7 @@ func (s *Service) Snapshot() map[string]any {
 		order.WalletSignature = ""
 		publicOrders[id] = order
 	}
-	return map[string]any{
+	snapshot := map[string]any{
 		"productId":        ProductID,
 		"mode":             "SIMULATED / YNX TESTNET ONLY",
 		"liveFundsEnabled": false,
@@ -1116,6 +1128,7 @@ func (s *Service) Snapshot() map[string]any {
 		"adapterSequences": s.state.AdapterSequences,
 		"audit":            s.state.Audit,
 	}
+	return snapshot, fmt.Sprintf("%d:%s", s.state.Revision, s.state.Integrity)
 }
 
 func (s *Service) Backup(destination string) (BackupRecord, error) {

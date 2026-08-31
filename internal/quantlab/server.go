@@ -22,6 +22,11 @@ type Server struct {
 	metrics serverMetrics
 }
 
+var (
+	quantStreamPollInterval = 5 * time.Second
+	quantStreamPingInterval = 15 * time.Second
+)
+
 func NewServer(s *Service) *Server {
 	return NewRoleServer(s, "all")
 }
@@ -156,10 +161,61 @@ func (s *Server) stream(w http.ResponseWriter, r *http.Request) {
 	defer connection.Close()
 	s.metrics.activeWebSockets.Add(1)
 	defer s.metrics.activeWebSockets.Add(^uint64(0))
-	snapshot := s.service.Snapshot()
+	snapshot, fingerprint := s.service.streamSnapshot()
+	if !s.writeStreamEnvelope(connection, r, "snapshot", snapshot, fingerprint) {
+		return
+	}
+	// Read until the client closes. Reads run separately from the sole writer so
+	// the durable reconciliation ticker never races concurrent WebSocket writes.
+	connection.SetReadLimit(1024)
+	connection.SetReadDeadline(time.Now().Add(35 * time.Second))
+	connection.SetPongHandler(func(string) error {
+		connection.SetReadDeadline(time.Now().Add(35 * time.Second))
+		return nil
+	})
+	closed := make(chan struct{})
+	go func() {
+		defer close(closed)
+		for {
+			if _, _, err := connection.ReadMessage(); err != nil {
+				return
+			}
+		}
+	}()
+	poll := time.NewTicker(quantStreamPollInterval)
+	defer poll.Stop()
+	ping := time.NewTicker(quantStreamPingInterval)
+	defer ping.Stop()
+	for {
+		select {
+		case <-closed:
+			return
+		case <-poll.C:
+			snapshot, nextFingerprint := s.service.streamSnapshot()
+			if snapshot["failure"] != nil {
+				connection.SetWriteDeadline(time.Now().Add(5 * time.Second))
+				_ = connection.WriteJSON(map[string]any{"type": "source-unavailable", "code": "FIN_SOURCE_UNAVAILABLE", "retryable": true})
+				return
+			}
+			if nextFingerprint != fingerprint {
+				if !s.writeStreamEnvelope(connection, r, "reconciled", snapshot, nextFingerprint) {
+					return
+				}
+				fingerprint = nextFingerprint
+			}
+		case <-ping.C:
+			if err := connection.WriteControl(websocket.PingMessage, nil, time.Now().Add(5*time.Second)); err != nil {
+				return
+			}
+		}
+	}
+}
+
+func (s *Server) writeStreamEnvelope(connection *websocket.Conn, r *http.Request, eventType string, snapshot map[string]any, fingerprint string) bool {
 	connection.SetWriteDeadline(time.Now().Add(5 * time.Second))
-	if err := connection.WriteJSON(map[string]any{
-		"type":           "snapshot",
+	return connection.WriteJSON(map[string]any{
+		"type":           eventType,
+		"eventId":        "state-" + fingerprint,
 		"requestId":      requestID(r),
 		"traceId":        traceID(r),
 		"source":         snapshot["source"],
@@ -168,22 +224,7 @@ func (s *Server) stream(w http.ResponseWriter, r *http.Request) {
 		"confidence":     "authoritative",
 		"sourceMetadata": snapshot["sourceMetadata"],
 		"data":           snapshot,
-	}); err != nil {
-		return
-	}
-	// Read until the client closes. This prevents a write-only connection from
-	// being retained forever and gives intermediaries a normal close path.
-	connection.SetReadLimit(1024)
-	connection.SetReadDeadline(time.Now().Add(35 * time.Second))
-	connection.SetPongHandler(func(string) error {
-		connection.SetReadDeadline(time.Now().Add(35 * time.Second))
-		return nil
-	})
-	for {
-		if _, _, err := connection.ReadMessage(); err != nil {
-			return
-		}
-	}
+	}) == nil
 }
 func (s *Server) notFound(w http.ResponseWriter, r *http.Request) {
 	writeProblem(w, r, http.StatusNotFound, "route_not_found")

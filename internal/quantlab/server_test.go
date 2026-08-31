@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -193,6 +194,52 @@ func TestWebSocketSnapshotCarriesAuthorityMetadata(t *testing.T) {
 	}
 	if envelope["type"] != "snapshot" || envelope["source"] != "ynx-quant-authoritative-local-state" || envelope["confidence"] != "authoritative" || envelope["version"] != Version || envelope["requestId"] != "websocket-request-1" || envelope["traceId"] != "4bf92f3577b34da6a3ce929d0e0e4736" || envelope["asOf"] == nil || envelope["data"] == nil {
 		t.Fatalf("bad envelope: %#v", envelope)
+	}
+}
+
+func TestWebSocketReconcilesDurableQuantStateChanges(t *testing.T) {
+	s, _ := New(Config{StatePath: filepath.Join(t.TempDir(), "s.json")})
+	previousPoll := quantStreamPollInterval
+	quantStreamPollInterval = 5 * time.Millisecond
+	defer func() { quantStreamPollInterval = previousPoll }()
+	server := httptest.NewServer(NewRoleServer(s, "all"))
+	defer server.Close()
+	wsURL := "ws" + strings.TrimPrefix(server.URL, "http") + "/v1/stream"
+	connection, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer connection.Close()
+	_, firstPayload, err := connection.ReadMessage()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var first map[string]any
+	if err := json.Unmarshal(firstPayload, &first); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.Kill("stream reconciliation test"); err != nil {
+		t.Fatal(err)
+	}
+	connection.SetReadDeadline(time.Now().Add(time.Second))
+	_, secondPayload, err := connection.ReadMessage()
+	if err != nil {
+		t.Fatal(err)
+	}
+	var second map[string]any
+	if err := json.Unmarshal(secondPayload, &second); err != nil {
+		t.Fatal(err)
+	}
+	if second["type"] != "reconciled" || second["eventId"] == first["eventId"] {
+		t.Fatalf("missing durable reconciliation: first=%#v second=%#v", first, second)
+	}
+	data, ok := second["data"].(map[string]any)
+	if !ok {
+		t.Fatalf("reconciled snapshot data missing: %#v", second)
+	}
+	paper, ok := data["paper"].(map[string]any)
+	if !ok || paper["KillSwitch"] != true {
+		t.Fatalf("reconciled state did not include durable kill switch: %#v", data)
 	}
 }
 
