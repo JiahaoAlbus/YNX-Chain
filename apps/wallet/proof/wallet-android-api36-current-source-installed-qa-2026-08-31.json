@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "WALLET-ANDROID-API36-CURRENT-SOURCE-INSTALLED-QA-20260831",
+  "owner": "02-wallet-auth-android",
+  "branch": "codex/wallet-android-metamask-l1-20260822",
+  "source": {
+    "commit": "bf478361f009c3ad086e240d7af2007d98f98eb8",
+    "tree": "a618897771a6cc44c75702e9d2ca5fe5c14d9ec4"
+  },
+  "artifact": {
+    "classification": "localExactSourceArtifact",
+    "package": "com.ynxweb4.wallet",
+    "versionName": "1.0.1",
+    "versionCode": 2,
+    "bytes": 39021248,
+    "sha256": "df5b70a3de63280fbc10cb46090b162b0dc532fdb2f74207880c29d77b3968e2",
+    "minimumOS": "Android API 24",
+    "targetSdk": 36,
+    "abi": "arm64-v8a",
+    "signingClass": "disposable-qa-release-key",
+    "signerCertificateSha256": "668123dbf78ad535599f91324a6a9fbd2282019f013161b9166158f1952bcffe",
+    "apkSignatureSchemeV2": true,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "environment": {
+    "avd": "YNX_WALLET_101_DISPOSABLE_P0_176_20260831",
+    "apiLevel": 36,
+    "abi": "arm64-v8a",
+    "freshInstall": true,
+    "disposableTargetDeletedAfterEvidence": true,
+    "preExistingAvdsOrWalletInstallsModified": false
+  },
+  "directDeviceVerification": {
+    "firstColdLaunch": {
+      "passed": true,
+      "launchState": "COLD",
+      "totalTimeMs": 1510
+    },
+    "visibleIdentity": {
+      "walletName": "YNX Wallet",
+      "nativeChainId": "ynx_6423-1",
+      "evmChainIdHex": "0x1917",
+      "emptySelfCustodyOnboarding": true
+    },
+    "malformedAuthorizeFailedClosed": {
+      "passed": true,
+      "message": "Security check failed: Wallet deep link route or fields are invalid"
+    },
+    "retiredChain9102FailedClosed": {
+      "passed": true,
+      "rejectedBeforeApprovalUi": true,
+      "message": "Security check failed: Wallet authorization requires ynx_6423-1"
+    },
+    "walletConnectWithoutAccount": {
+      "canonicalV2UriDelivered": true,
+      "onboardingRemainedVisible": true,
+      "relayOrSessionProven": false
+    },
+    "offlineSecondColdLaunch": {
+      "passed": true,
+      "airplaneModeReadback": 1,
+      "launchState": "COLD",
+      "totalTimeMs": 469,
+      "nativeChainIdStillVisible": "ynx_6423-1",
+      "airplaneModeRestoredReadback": 0
+    },
+    "fatalExceptionObserved": false,
+    "screenshotsBlackByFlagSecure": true,
+    "uiXmlAndLogsUsedForRenderEvidence": true,
+    "accountCreatedOrImported": false,
+    "recoveryMaterialHandled": false,
+    "signingRequested": false,
+    "transactionRequested": false
+  },
+  "cleanup": {
+    "packageForceStopped": true,
+    "packageUninstalled": true,
+    "packageAbsentAfterUninstall": true,
+    "onlyDisposableAvdDeleted": true,
+    "existingAvdsUntouched": true
+  },
+  "rawEvidence": {
+    "root": "/private/tmp/ynx-wallet-android-api36-installed-qa-20260831.KR7VIm",
+    "files": [
+      {"name": "apksigner.txt", "bytes": 1000, "sha256": "688363bb8cbc4bc77b8cf21d934402e168b9bc33fe4d40f573c0bcab58bfeab2"},
+      {"name": "package.txt", "bytes": 206, "sha256": "eba2642e85977c90611412966481203eba6455f2f8053e384e735fbe8db23dd3"},
+      {"name": "cold-start.txt", "bytes": 170, "sha256": "03f758a98a8d8a8e36dce42f1c9a2cfc6b40ee842b6bb1fe885fff1def9b0100"},
+      {"name": "cold-ui.xml", "bytes": 16999, "sha256": "98a4b274f6a45f8dffa326694c31d5fed43f007f27b875b788b2680f5c273247"},
+      {"name": "invalid-authorize-visible.txt", "bytes": 709, "sha256": "30c297a1a238642821272773c752684e620ec0169c41bf0f3642db7291427f2a"},
+      {"name": "retired-9102-visible.txt", "bytes": 705, "sha256": "a380f282697304edd5411b1dbc9b32d4ee4f97d3f91dbb55d8c1da20092af3e0"},
+      {"name": "wc-no-project-visible.txt", "bytes": 589, "sha256": "5afd444a2588cbed39f67fefd98e85159e24efee1f2b2c6ccacee8fb5a7ecad2"},
+      {"name": "airplane-state.txt", "bytes": 2, "sha256": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"},
+      {"name": "second-offline-start.txt", "bytes": 168, "sha256": "2bfca765b198d76609360a15b5aeea9b7cdcef19bf6684634f2201d6f44cfac3"},
+      {"name": "second-offline-ui.xml", "bytes": 16999, "sha256": "98a4b274f6a45f8dffa326694c31d5fed43f007f27b875b788b2680f5c273247"},
+      {"name": "airplane-restored-state.txt", "bytes": 2, "sha256": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"},
+      {"name": "cold-log.txt", "bytes": 15036, "sha256": "e753b57dbd30a3e4f6a4e843c0d7dba2c2eea867b19f64fb9d8aadd7e38f9e21"},
+      {"name": "second-offline-log.txt", "bytes": 15965, "sha256": "bb83462d36c5355d2062831120a8aff9d3e6e248d7647de7c886e89f6fd4c902"}
+    ]
+  },
+  "releaseTruth": {
+    "installedDisposableQa": true,
+    "eligibleProductionSignedAndroidTarget": false,
+    "deployedPublic": false,
+    "storeReleased": false,
+    "accountLifecyclePassed": false,
+    "personalSignPassed": false,
+    "eip712Passed": false,
+    "testnetTransactionPassed": false,
+    "walletConnectProjectRelayPairingPassed": false,
+    "walletConnectRestorePassed": false,
+    "walletConnectDisconnectPassed": false,
+    "firstPartyAndExternalDappParityPassed": false
+  },
+  "secretMaterialRecorded": false,
+  "verifiedAt": "2026-08-31"
+}

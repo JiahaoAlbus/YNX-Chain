@@ -1,5 +1,6 @@
 # Wallet evidence index
 
+- `proof/wallet-android-api36-current-source-installed-qa-2026-08-31.json` binds the exact 39,021,248-byte disposable-QA APK (`df5b70a3de63280fbc10cb46090b162b0dc532fdb2f74207880c29d77b3968e2`) to a clean disposable API 36 arm64 install, first and offline second cold launches, visible `YNX Wallet` / `ynx_6423-1` identity, malformed authorize rejection, retired `ynx_9102-1` rejection before approval UI, and package/AVD cleanup. It explicitly does not prove production signing, public/store distribution, an account lifecycle, signing, transaction execution, a WalletConnect relay/session, or first-party/external-DApp parity.
 - `proof/wallet-android-metamask-l1-api36-2026-08-22.json` binds the MetaMask-grade Layer-1 Android slice to a fresh Pixel 9 profile-equivalent API 36 arm64 install: exact APK identity, first/second cold launches, isolated account creation, strong-biometric unlock, 0 YNXT/nonce 0 Testnet read, canonical and malformed WalletConnect payload cold launches, first-party DApp Browser load, and external-origin TLS/network fail-closed evidence. WalletConnect relay/session, external approval, signing, broadcast, universal-link domain verification, public hosting and production signing remain explicitly false.
 
 ## Runtime images
