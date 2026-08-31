@@ -1,0 +1,44 @@
+{
+  "schemaVersion": "ynx.quant.postgres-state-backend.v1",
+  "createdAt": "2026-08-31",
+  "scope": "Quant source/build candidate only",
+  "source": {
+    "commit": "818434e120c4518796fa5e71b94c8474423b9615",
+    "tree": "b8eb2c18aae89e5c3e0bd568abe552b7acce6675"
+  },
+  "migration": {
+    "path": "apps/quant-lab/migrations/0001_quant_state_postgres.sql",
+    "table": "ynx_quant_state",
+    "concurrency": "optimistic revision compare-and-swap",
+    "tenantKey": "<namespace>:tenant:<64-hex-tenant-id>"
+  },
+  "runtimeContract": {
+    "databaseURLEnvironment": "YNX_QUANT_DATABASE_URL",
+    "stateNamespaceEnvironment": "YNX_QUANT_STATE_NAMESPACE",
+    "databaseWithoutNamespaceFailsClosed": true,
+    "fallbackBackend": "filesystem_json_snapshot",
+    "fallbackMultiInstance": false,
+    "postgresMultiInstanceCandidate": true
+  },
+  "tests": {
+    "goTest": "pass",
+    "goVet": "pass",
+    "quantNodeTests": "6/6 pass",
+    "walletBuild": "pass",
+    "postgresIntegration": "not_run_no_product_database_or_lease"
+  },
+  "localArtifact": {
+    "path": "/tmp/ynx-quant-postgres-state-candidate",
+    "sha256": "92241fb096cffa78fd905435724592fbca4662e96bbd07f15841eaa2b255fe3d",
+    "claim": "local build candidate only"
+  },
+  "truth": {
+    "databaseProvisioned": false,
+    "publicDeployment": false,
+    "installedRuntime": false,
+    "providerApproval": false,
+    "signature": false,
+    "testnetOrder": false,
+    "walletConnect": false
+  }
+}
