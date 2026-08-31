@@ -2,11 +2,11 @@
   "schemaVersion": 2,
   "productId": "ynx-data-fabric",
   "productName": "YNX Data Fabric & Billing Ledger",
-  "release": "ynx-data-fabric-c347eb46d6f4",
+  "release": "ynx-data-fabric-6cb878d9de71",
   "channel": "testnet-preview",
-  "sourceCommit": "c347eb46d6f496524a6ba4021bb9e4896df711ab",
-  "sourceRelease": "ynx-data-fabric-c347eb46d6f4",
-  "generatedAt": "2026-08-31T10:56:00Z",
+  "sourceCommit": "6cb878d9de712d28244162b9c2bb5c3b8668deb1",
+  "sourceRelease": "ynx-data-fabric-6cb878d9de71",
+  "generatedAt": "2026-08-31T12:18:00Z",
   "states": {
     "implementedLocal": true,
     "testedLocal": true,
@@ -47,7 +47,7 @@
   "artifacts": [],
   "evidence": {
     "localVerification": {
-      "sourceCommit": "c347eb46d6f496524a6ba4021bb9e4896df711ab",
+      "sourceCommit": "6cb878d9de712d28244162b9c2bb5c3b8668deb1",
       "status": "passed",
       "environment": "macOS development environment with standard umask for cross-repository permission vectors",
       "commands": [
@@ -78,16 +78,16 @@
       ]
     },
     "remoteCI": {
-      "runId": 33383486241,
+      "runId": null,
       "workflow": "data-fabric",
-      "sourceCommit": "c347eb46d6f496524a6ba4021bb9e4896df711ab",
-      "headCommit": "e4276f1c77863785e30fc96ee24edc257b89b565",
-      "status": "completed",
-      "conclusion": "success",
-      "startedAt": "2026-08-31T10:40:38Z",
-      "duration": "5m37s",
+      "sourceCommit": "6cb878d9de712d28244162b9c2bb5c3b8668deb1",
+      "headCommit": null,
+      "status": "pending",
+      "conclusion": null,
+      "startedAt": null,
+      "duration": null,
       "artifactsPublished": false,
-      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/33383486241"
+      "url": null
     },
     "engineeringEvidenceRun": {
       "runId": 31797308684,

@@ -52,6 +52,12 @@
 - Local validation passed: `jq empty schemas/data-fabric/wallet-connectivity-events-v1.accepted.conformance.vectors.json`, `go test ./internal/datafabric ./internal/datafabricpostgres -count=1`, and `go test -race ./internal/datafabric ./internal/datafabricpostgres -count=1`. GitHub Actions run `33383486241` passed all six jobs at binding head `e4276f1c77863785e30fc96ee24edc257b89b565`.
 - This adds no producer invocation, Wallet/Gateway call, deployment, account request, signature, transaction, public endpoint, or public-completion claim. P0-147 remains `WAITING_EXTERNAL_PUBLIC_ENDPOINT_UNBOUND`.
 
+### Privacy-redaction regression — 2026-08-31
+
+- Implementation commit: `6cb878d9de712d28244162b9c2bb5c3b8668deb1`.
+- Each rejected `rawError`, `developerMessage`, `accountId`, and `sessionId` vector carries a non-sensitive test sentinel. Strict decode returns the bounded unknown-field code without reflecting that sentinel in the error text or structured rejection evidence, and before any persistence step.
+- Local validation passed: `go test ./internal/datafabric -count=1` and `go test -race ./internal/datafabric -count=1`. Remote CI is pending for this source.
+
 ## Truth boundary and requested Integration action
 
 This is a committed local runtime-adapter checkpoint, not central deployment, public deployment, installed-product proof, Wallet integration proof, or Card E2E funding proof. `integratedCentral`, `deployedStaging`, `deployedPublic`, `downloadHosted`, `productionSigned`, and `storeReleased` remain false absent their own direct evidence.
