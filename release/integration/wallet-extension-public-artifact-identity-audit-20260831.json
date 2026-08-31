@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-08-31T07:06:59.135Z",
+  "scope": "non-sensitive candidate and public download identity audit",
+  "candidate": {
+    "commit": "4134c6a32a75e3e577bfb024d9e1c17da07598ba",
+    "tree": "09340a4f12562cc1fb5ecc8bf39ca37de73f98e2",
+    "frozenSourceCommit": "7df37ca32a643a403bd23a7f555354261f789441",
+    "artifactManifestSha256": "4a54ab6fd33c0faae319a19f818a8f1cc28b2eef891366f83f87fd3d04a93f0e"
+  },
+  "candidateArtifacts": [
+    {
+      "name": "ynx-wallet-web-pwa-0.1.0.zip",
+      "bytes": 286356,
+      "sha256": "4e460a1b158d6664b930b9794fdeffc5918b83ad58a27095c47e05323bea713d",
+      "signingClass": "unsigned-web-bundle"
+    },
+    {
+      "name": "ynx-wallet-chrome-edge-0.1.0.zip",
+      "bytes": 469149,
+      "sha256": "5eb083449c2cc8e9c02db0345d5f078f9d8c12e9bdc13d029ce2ff76c5ead26e",
+      "signingClass": "unsigned-unpacked-extension"
+    },
+    {
+      "name": "ynx-wallet-firefox-0.1.0.zip",
+      "bytes": 469188,
+      "sha256": "2ee0e60ecf69e93a74b7283689c3b112495f84ee2f4581b2208e0452218554d1",
+      "signingClass": "unsigned-unpacked-extension"
+    }
+  ],
+  "publicLegacyDownloadAudit": {
+    "origin": "https://www.ynxweb4.com",
+    "routeResult": "all three legacy paths returned HTTP 200 text/html instead of application/zip",
+    "candidateBytesOrShaMatched": false,
+    "downloadHosted": false,
+    "deployedPublic": false,
+    "storeReleased": false,
+    "productionSigned": false
+  },
+  "validation": {
+    "sourceTests": "117/117",
+    "packageRebuiltWithFrozenSource": true,
+    "packageVerification": "3/3",
+    "isolatedChromePreparation": {
+      "chromeBinaryPresent": true,
+      "chromeVersion": "151.0.7922.175",
+      "artifactManifestVersion": 3,
+      "artifactPermissions": ["activeTab", "scripting", "storage"],
+      "artifactHostPermissions": ["https://evm.ynxweb4.com/*"],
+      "artifactUpdateUrl": null,
+      "extensionLaunchOrInstallAttempted": false
+    },
+    "isolatedChromeExtensionInstalled": false,
+    "accountRequestAttempted": false,
+    "signatureAttempted": false,
+    "transactionAttempted": false
+  },
+  "nextActionBoundary": "An explicit Central publication lease must bind these exact artifact bytes to immutable public URLs. After that, obtain immediate user confirmation before loading the exact unsigned Chromium extension into an isolated Chrome profile."
+}
