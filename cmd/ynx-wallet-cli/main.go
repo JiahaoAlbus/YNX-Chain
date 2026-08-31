@@ -9,6 +9,8 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	wallet "github.com/JiahaoAlbus/YNX-Chain/sdk/wallet/go"
@@ -19,14 +21,61 @@ var version = "dev"
 // Central endpoint matrix d0f89797 freezes this as the canonical public EVM RPC.
 const defaultRPC = "https://rpc.ynxweb4.com/evm"
 
+const (
+	exitOK          = 0
+	exitGeneral     = 1
+	exitUsage       = 64
+	exitData        = 65
+	exitNoInput     = 66
+	exitUnavailable = 69
+	exitConfig      = 78
+	exitTimeout     = 124
+	exitCancelled   = 130
+)
+
 func main() {
-	if err := run(os.Args[1:], os.Stdout, &http.Client{}); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+	os.Exit(execute(ctx, os.Args[1:], os.Stdout, os.Stderr, &http.Client{}))
 }
 
 func run(args []string, out io.Writer, client *http.Client) error {
+	return runContext(context.Background(), args, out, client)
+}
+
+func execute(ctx context.Context, args []string, out, errOut io.Writer, client *http.Client) int {
+	err := runContext(ctx, args, out, client)
+	if err == nil {
+		return exitOK
+	}
+	_ = json.NewEncoder(errOut).Encode(map[string]any{"ok": false, "error": wallet.RedactedDiagnostic(err)})
+	return exitCode(err)
+}
+
+func exitCode(err error) int {
+	var classified *wallet.TransportError
+	if !errors.As(err, &classified) {
+		return exitUsage
+	}
+	switch classified.Code {
+	case wallet.ErrorTransportCancelled:
+		return exitCancelled
+	case wallet.ErrorTransportTimeout:
+		return exitTimeout
+	case wallet.ErrorMalformedResponse:
+		return exitData
+	case wallet.ErrorAccountNotFound:
+		return exitNoInput
+	case wallet.ErrorWrongChain:
+		return exitConfig
+	case wallet.ErrorHTTP, wallet.ErrorJSONRPC, wallet.ErrorRPCUnavailable, wallet.ErrorTransportTLS:
+		return exitUnavailable
+	default:
+		return exitGeneral
+	}
+}
+
+func runContext(parent context.Context, args []string, out io.Writer, client *http.Client) error {
 	if len(args) == 0 {
 		return errors.New("command required: version, verify-vector, sign-self-test, or chain-status")
 	}
@@ -81,7 +130,7 @@ func run(args []string, out io.Writer, client *http.Client) error {
 		if len(*rpc) < 8 || (*rpc)[:8] != "https://" {
 			return errors.New("RPC must use HTTPS")
 		}
-		ctx, cancel := context.WithTimeout(context.Background(), *timeout)
+		ctx, cancel := context.WithTimeout(parent, *timeout)
 		defer cancel()
 		client.Timeout = *timeout
 		chainID, err := wallet.ProbeYNXTestnetRPC(ctx, client, *rpc)

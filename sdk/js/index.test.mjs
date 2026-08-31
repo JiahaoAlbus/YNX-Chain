@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import {after, before, test} from "node:test";
 import http from "node:http";
 import {readFile} from "node:fs/promises";
-import {YNXClient, YNXSDKError, assertYNXTestnetSnapshot, callYNXEVM, classifyYNXHTTPFailure, getYNXStatus, normalizeYNXAddress, proveYNXTestnetRPC, toEVMAddress, toYNXAddress, ynxErrorCodes, ynxPublicEndpoints} from "./index.js";
+import {YNXClient, YNXSDKError, assertYNXTestnetSnapshot, callYNXEVM, classifyYNXHTTPFailure, getYNXStatus, normalizeYNXAddress, proveYNXTestnetRPC, redactYNXSDKError, toEVMAddress, toYNXAddress, ynxErrorCodes, ynxPublicEndpoints} from "./index.js";
 
 let baseUrl;
 let server;
@@ -110,6 +110,8 @@ test("distinguishes caller cancellation from timeout in browser and Node fetch",
 test("separates malformed JSON-RPC envelopes and results from RPC errors", async () => {
   const response = (body) => async () => new Response(JSON.stringify(body), {status: 200});
   for (const body of [
+    [{jsonrpc: "2.0", id: 1, result: "0x1917"}],
+    {jsonrpc: "2.0", result: "0x1917"},
     {jsonrpc: "2.0", id: "1", result: "0x1917"},
     {jsonrpc: "2.0", id: 1, result: null},
     {jsonrpc: "2.0", id: 1, result: "0x1917", error: {code: -32000, message: "conflict"}},
@@ -118,6 +120,16 @@ test("separates malformed JSON-RPC envelopes and results from RPC errors", async
     await assert.rejects(proveYNXTestnetRPC("https://rpc.example.invalid", {fetchImpl: response(body)}), (error) => error.code === ynxErrorCodes.malformedResponse);
   }
   await assert.rejects(proveYNXTestnetRPC("https://rpc.example.invalid", {fetchImpl: response({jsonrpc: "2.0", id: 1, error: {code: -32001, message: "method unavailable"}})}), (error) => error.code === ynxErrorCodes.jsonRPCError && error.rpcCode === -32001 && error.status === undefined);
+});
+
+test("redacts causes, URLs, response bodies and messages from diagnostics", () => {
+  const secret = "secret-response-body-and-url";
+  const error = new YNXSDKError(`failed at https://user:${secret}@example.invalid: ${secret}`, {
+    cause: new Error(secret), code: ynxErrorCodes.jsonRPCError, rpcCode: -32001, status: 200,
+  });
+  const diagnostic = redactYNXSDKError(error);
+  assert.deepEqual(diagnostic, {name: "YNXSDKError", code: "JSON_RPC_ERROR", status: 200, rpcCode: -32001});
+  assert.equal(JSON.stringify(diagnostic).includes(secret), false);
 });
 
 test("uses one bounded request and performs no implicit retry", async () => {

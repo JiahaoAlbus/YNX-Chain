@@ -44,6 +44,14 @@ export const ynxErrorCodes = Object.freeze({
   wrongChain: "WRONG_CHAIN",
 });
 
+export function redactYNXSDKError(error) {
+  if (!(error instanceof YNXSDKError)) return Object.freeze({name: "YNXSDKError", code: "INTERNAL_ERROR"});
+  const diagnostic = {name: error.name, code: typeof error.code === "string" ? error.code : "INTERNAL_ERROR"};
+  if (Number.isInteger(error.status)) diagnostic.status = error.status;
+  if (Number.isInteger(error.rpcCode)) diagnostic.rpcCode = error.rpcCode;
+  return Object.freeze(diagnostic);
+}
+
 export function classifyYNXHTTPFailure(status, data, {accountLookup = false} = {}) {
   if (!Number.isInteger(status) || status < 400 || status > 599) throw new YNXSDKError("HTTP failure status must be between 400 and 599");
   if (!accountLookup || status !== 404 || data === null || typeof data !== "object" || Array.isArray(data)) {

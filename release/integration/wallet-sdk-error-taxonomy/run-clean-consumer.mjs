@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import assert from "node:assert/strict";
 import {createHash} from "node:crypto";
-import {mkdtemp, readFile, rm, writeFile} from "node:fs/promises";
+import {mkdtemp, readFile, readdir, rm, stat, writeFile} from "node:fs/promises";
 import {tmpdir} from "node:os";
 import {dirname, resolve} from "node:path";
 import {fileURLToPath} from "node:url";
@@ -19,11 +19,24 @@ try {
   const bytes = await readFile(tarball);
   const sha256 = createHash("sha256").update(bytes).digest("hex");
 
-  await writeFile(resolve(temporary, "package.json"), `${JSON.stringify({private: true, type: "module"})}\n`);
-  command("npm", ["install", "--ignore-scripts", "--no-audit", "--no-fund", tarball], temporary);
+  await writeFile(resolve(temporary, "package.json"), `${JSON.stringify({name: "ynx-sdk-taxonomy-clean-consumer", version: "0.0.0", private: true, type: "module"})}\n`);
+  command("npm", ["install", "--ignore-scripts", "--no-audit", "--no-fund", `./${filename}`], temporary);
+  const lockBytes = await readFile(resolve(temporary, "package-lock.json"));
+  const lock = JSON.parse(lockBytes);
+  assert.equal(lock.lockfileVersion, 3);
+  assert.equal(lock.packages["node_modules/@ynx-chain/sdk"].version, "0.2.1");
+  assert.match(lock.packages["node_modules/@ynx-chain/sdk"].resolved, /^file:ynx-chain-sdk-0\.2\.1\.tgz$/);
+  assert.match(lock.packages["node_modules/@ynx-chain/sdk"].integrity, /^sha512-/);
+  const installedManifest = JSON.parse(await readFile(resolve(temporary, "node_modules/@ynx-chain/sdk/package.json"), "utf8"));
+  assert.deepEqual(installedManifest.repository, {type: "git", url: "git+https://github.com/JiahaoAlbus/YNX-Chain.git", directory: "sdk/js"});
+  const installedFiles = await fileManifest(resolve(temporary, "node_modules/@ynx-chain/sdk"));
+  const installedFilesSha256 = createHash("sha256").update(JSON.stringify(installedFiles)).digest("hex");
+  const sourceCommit = command("git", ["rev-parse", "HEAD"], root).trim();
+  const sourceTree = command("git", ["rev-parse", "HEAD^{tree}"], root).trim();
+  const sourceWorktreeDirty = command("git", ["status", "--short"], root).trim() !== "";
   await writeFile(resolve(temporary, "consumer.mjs"), `
 import assert from "node:assert/strict";
-import {classifyYNXHTTPFailure, proveYNXTestnetRPC, ynxErrorCodes, ynxPublicEndpoints, ynxTestnet} from "@ynx-chain/sdk";
+import {YNXSDKError, classifyYNXHTTPFailure, proveYNXTestnetRPC, redactYNXSDKError, ynxErrorCodes, ynxPublicEndpoints, ynxTestnet} from "@ynx-chain/sdk";
 
 assert.equal(ynxTestnet.chainId, "0x1917");
 assert.equal(ynxTestnet.chainIdDecimal, 6423);
@@ -69,7 +82,20 @@ await assert.rejects(proveYNXTestnetRPC(undefined, {fetchImpl: async () =>
   new Response(JSON.stringify({jsonrpc: "2.0", id: 1, error: {code: -32001, message: "method unavailable"}}), {status: 200})
 }), (error) => error.code === ynxErrorCodes.jsonRPCError && error.rpcCode === -32001);
 
-console.log(JSON.stringify({cleanConsumer: true, installedFromTarball: true, exactChainId: valid.chainId, chain9102Rejected: true, implicitRetries: false, abortSignalCancellation: true, malformedRPCSeparated: true, jsonRPCErrorSeparated: true}));
+for (const malformed of [
+  [{jsonrpc: "2.0", id: 1, result: "0x1917"}],
+  {jsonrpc: "2.0", result: "0x1917"}
+]) {
+  await assert.rejects(proveYNXTestnetRPC(undefined, {fetchImpl: async () =>
+    new Response(JSON.stringify(malformed), {status: 200})
+  }), (error) => error.code === ynxErrorCodes.malformedResponse);
+}
+
+const diagnostic = redactYNXSDKError(new YNXSDKError("secret-url-and-body", {cause: new Error("secret-url-and-body"), code: ynxErrorCodes.jsonRPCError, rpcCode: -32001, status: 200}));
+assert.deepEqual(diagnostic, {name: "YNXSDKError", code: "JSON_RPC_ERROR", status: 200, rpcCode: -32001});
+assert.equal(JSON.stringify(diagnostic).includes("secret-url-and-body"), false);
+
+console.log(JSON.stringify({cleanConsumer: true, installedFromTarball: true, exactChainId: valid.chainId, chain9102Rejected: true, implicitRetries: false, abortSignalCancellation: true, malformedRPCSeparated: true, malformedBatchNotificationRejected: true, jsonRPCErrorSeparated: true, redactedDiagnostics: true}));
 `);
   const consumer = command(process.execPath, [resolve(temporary, "consumer.mjs")], temporary);
   const result = JSON.parse(consumer.trim());
@@ -95,10 +121,30 @@ console.log(JSON.stringify({legacyExportsCompatible: true, legacyReadOnlyFlowCom
     tarball: filename,
     tarballBytes: bytes.length,
     tarballSha256: sha256,
+    packageLockSha256: createHash("sha256").update(lockBytes).digest("hex"),
+    installedFilesSha256,
+    sourceCommit,
+    sourceTree,
+    sourceWorktreeDirty,
     temporaryConsumerRemoved: true
   }));
 } finally {
   await rm(temporary, {recursive: true, force: true});
+}
+
+async function fileManifest(directory, prefix = "") {
+  const result = [];
+  for (const name of (await readdir(directory)).sort()) {
+    const path = resolve(directory, name);
+    const relative = prefix ? `${prefix}/${name}` : name;
+    const metadata = await stat(path);
+    if (metadata.isDirectory()) result.push(...await fileManifest(path, relative));
+    else if (metadata.isFile()) {
+      const value = await readFile(path);
+      result.push({path: relative, bytes: value.length, sha256: createHash("sha256").update(value).digest("hex")});
+    }
+  }
+  return result;
 }
 
 function command(executable, args, cwd) {

@@ -41,6 +41,22 @@ type TransportError struct {
 	Detail     string
 }
 
+type Diagnostic struct {
+	Code       string `json:"code"`
+	HTTPStatus int    `json:"httpStatus,omitempty"`
+	RPCCode    int    `json:"rpcCode,omitempty"`
+}
+
+// RedactedDiagnostic intentionally excludes causes, response bodies, URLs and
+// free-form messages so CLI output cannot disclose transport or server data.
+func RedactedDiagnostic(err error) Diagnostic {
+	var classified *TransportError
+	if errors.As(err, &classified) {
+		return Diagnostic{Code: string(classified.Code), HTTPStatus: classified.HTTPStatus, RPCCode: classified.RPCCode}
+	}
+	return Diagnostic{Code: "INTERNAL_ERROR"}
+}
+
 func (e *TransportError) Error() string {
 	if e.HTTPStatus != 0 {
 		return fmt.Sprintf("%s (HTTP %d): %s", e.Code, e.HTTPStatus, e.Detail)

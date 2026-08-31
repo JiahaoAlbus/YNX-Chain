@@ -24,4 +24,9 @@ cancellation is `TRANSPORT_CANCELLED`, while the SDK deadline remains
 `rpcCode`; malformed IDs, result envelopes, or error objects are
 `MALFORMED_RESPONSE`.
 
+`redactYNXSDKError` returns only the stable code and numeric HTTP/JSON-RPC
+fields. It deliberately excludes causes, URLs, server response bodies, and
+free-form messages. JSON-RPC batch arrays and notifications without the exact
+request ID are rejected as `MALFORMED_RESPONSE`.
+
 Run `npm test`, then `node examples/real-testnet-read.mjs`. The example fails closed if the public endpoint is unavailable, returns invalid JSON-RPC, or identifies any chain other than `0x1917`.

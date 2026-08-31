@@ -122,6 +122,8 @@ func TestProbeYNXTestnetRPCTaxonomy(t *testing.T) {
 		code   ErrorCode
 	}{
 		{name: "malformed", client: testCase(200, `{"jsonrpc":"2.0","id":1}`, nil), code: ErrorMalformedResponse},
+		{name: "batch", client: testCase(200, `[{"jsonrpc":"2.0","id":1,"result":"0x1917"}]`, nil), code: ErrorMalformedResponse},
+		{name: "notification", client: testCase(200, `{"jsonrpc":"2.0","result":"0x1917"}`, nil), code: ErrorMalformedResponse},
 		{name: "malformed-id", client: testCase(200, `{"jsonrpc":"2.0","id":"1","result":"0x1917"}`, nil), code: ErrorMalformedResponse},
 		{name: "malformed-result", client: testCase(200, `{"jsonrpc":"2.0","id":1,"result":null}`, nil), code: ErrorMalformedResponse},
 		{name: "json-rpc-error", client: testCase(200, `{"jsonrpc":"2.0","id":1,"error":{"code":-32001,"message":"method unavailable"}}`, nil), code: ErrorJSONRPC},
@@ -136,6 +138,18 @@ func TestProbeYNXTestnetRPCTaxonomy(t *testing.T) {
 				t.Fatalf("got %v, want %s", err, item.code)
 			}
 		})
+	}
+}
+
+func TestRedactedDiagnosticExcludesCauseDetailAndEndpoint(t *testing.T) {
+	secret := "secret-response-body-and-url"
+	err := &TransportError{Code: ErrorJSONRPC, HTTPStatus: 200, RPCCode: -32001, Detail: "https://user:" + secret + "@example.invalid/" + secret, Cause: errors.New(secret)}
+	encoded, marshalErr := json.Marshal(RedactedDiagnostic(err))
+	if marshalErr != nil {
+		t.Fatal(marshalErr)
+	}
+	if strings.Contains(string(encoded), secret) || string(encoded) != `{"code":"JSON_RPC_ERROR","httpStatus":200,"rpcCode":-32001}` {
+		t.Fatalf("unsafe diagnostic: %s", encoded)
 	}
 }
 
