@@ -1,0 +1,96 @@
+{
+  "schemaVersion": "ynx.explorer-monitor.source-bound-release-preparation.v4",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-168",
+  "observedAt": "2026-08-31T09:31:11Z",
+  "owner": "explorer-monitor",
+  "authority": {
+    "productionMutationAllowed": false,
+    "publicVerified": false,
+    "computerControlVerified": false,
+    "statement": "This is a local source-bound artifact and runtime checkpoint. No production host, proxy, service, or official domain was changed."
+  },
+  "candidate": {
+    "branch": "codex/p0-explorer-monitor-20260820",
+    "artifactSourceCommit": "0acf62a4047f060ac8b63ce302d986f8cab21e53",
+    "artifactSourceTree": "ac4c8f3f6b2d79ad6af903e8e98c7c8cf4bc2a6f",
+    "pullRequest": "https://github.com/JiahaoAlbus/YNX-Chain/pull/107",
+    "release": "ynx-explorer-monitor-0acf62a4047f",
+    "build": {
+      "goos": "linux",
+      "goarch": "amd64",
+      "cgoEnabled": false,
+      "trimpath": true,
+      "buildvcs": false,
+      "buildTime": "2026-08-31T09:30:48Z"
+    }
+  },
+  "supersession": {
+    "supersedes": [
+      "apps/monitor/evidence/p0-165-redacted-projection-release-preparation-20260831.json",
+      "apps/monitor/evidence/p0-167-redacted-projection-runtime-lease-request-20260831.json"
+    ],
+    "reason": "P0-168 is the first artifact generation containing the public-Monitor English-default fix together with the previously committed safe projections. P0-165/P0-167 bind c0f49a35 and must not be deployed as this successor.",
+    "mixingForbidden": true
+  },
+  "artifacts": {
+    "explorerd": {
+      "carrierPath": "/private/tmp/ynx-explorer-monitor-p0168.d870HI/bin/ynx-explorerd",
+      "bytes": 8872084,
+      "sha256": "b249a825cb150451935704c269fc791ad494596465e82aed13177605ec958943",
+      "format": "linux amd64 static ELF"
+    },
+    "indexerd": {
+      "carrierPath": "/private/tmp/ynx-explorer-monitor-p0168.d870HI/bin/ynx-indexerd",
+      "bytes": 7512212,
+      "sha256": "6a683ffed6863469862cc7c44421f728e7f18a6d086563bd2df1b7f71f15949f",
+      "format": "linux amd64 static ELF"
+    },
+    "monitorReleaseTree": {
+      "carrierPath": "/private/tmp/ynx-explorer-monitor-p0168.d870HI/monitor-release-tree.tar",
+      "bytes": 2252800,
+      "sha256": "4c8664a3a4f7ab146ea27ca056a307143096ee03bdc647fc07c4e78e94043422",
+      "format": "deterministic GNU tar with built dist; excludes node_modules and .env",
+      "inputs": {
+        "packageLockSha256": "3329447e950589f80129b59e1c6e99d5856d869da06672c0b525ed129e291694",
+        "distIndexHtmlSha256": "0f7d2e816a6cfdfaec8bd953c7be2562d3ff11e89b2a21fe372dd5bf169117d0"
+      }
+    }
+  },
+  "localRuntime": {
+    "monitorReleaseTreeRun": "/private/tmp/ynx-monitor-p0168-run.Ua3FGH/apps/monitor",
+    "version": {
+      "httpStatus": 200,
+      "bytes": 264,
+      "sha256": "5509116e8150c2d850874fcc0ba0a2c1b4cfd713c4ae28a4bebe336ddc73e5fc",
+      "commit": "0acf62a4047f060ac8b63ce302d986f8cab21e53",
+      "release": "ynx-explorer-monitor-0acf62a4047f"
+    },
+    "connectivity": {
+      "httpStatus": 200,
+      "contentType": "application/json; charset=utf-8",
+      "cacheControl": "no-store",
+      "bytes": 262,
+      "sha256": "1c4f8877c687a9b44ac72afca4f35815daf6ff39b7fa81d9e618ed9a33753801",
+      "status": "not_configured",
+      "statement": "No configured probe is an explicit non-offline state; this is not a public deployment assertion."
+    }
+  },
+  "verification": {
+    "explorer": "go test ./internal/explorer -count=1: passing",
+    "monitor": "npm test: 55 app tests + 10 script tests passing; npm run build: passing",
+    "monitorTestLogSha256": "e1d6374e389333a6834b81fb48ad50406263ee2dd324419eda0518e2aa40d5ed",
+    "defaultLanguage": "No saved locale resolves to English; an explicit supported saved locale remains selected."
+  },
+  "states": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "integratedCentral": false,
+    "deployedStaging": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "publicVerified": false
+  },
+  "nextAction": "Central must review the source/tree/artifact digests, bind an exact active/rollback production mapping, and issue a fresh single-use deployment lease before any production mutation."
+}
