@@ -91,3 +91,23 @@ func TestSubjectExportAndPseudonymousErasureRetention(t *testing.T) {
 		t.Fatalf("privacy state failed restore audit: %v", err)
 	}
 }
+
+func TestErasureDeletionReceiptCanonicalizesPostgresTimestampPrecision(t *testing.T) {
+	now := time.Date(2026, 8, 31, 8, 5, 0, 123456789, time.UTC)
+	record, err := BuildErasureRecord("account.user.0001", "audit.erase.precision.0001", privacyTestKey, now, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	record, err = BindErasureDeletionReceipt(record, 7)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if record.RequestedAt.Nanosecond() != 123456000 {
+		t.Fatalf("receipt timestamp was not canonicalized to PostgreSQL precision: %s", record.RequestedAt)
+	}
+	postgresReadback := record
+	postgresReadback.RequestedAt = now.Truncate(time.Microsecond)
+	if err := ValidateErasureRecord(postgresReadback); err != nil {
+		t.Fatalf("PostgreSQL timestamp readback invalidated deletion receipt: %v", err)
+	}
+}

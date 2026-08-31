@@ -136,11 +136,15 @@ func BindErasureDeletionReceipt(record ErasureRecord, deleted uint64) (ErasureRe
 	if err != nil || len(decoded) != sha256.Size || !idPattern.MatchString(record.AuditID) || record.RequestedAt.IsZero() || record.RequestedAt.Location() != time.UTC || record.Status != "analytics-suppressed-authoritative-retention-applied" {
 		return ErasureRecord{}, errors.New("erasure record cannot bind a deletion receipt")
 	}
+	// PostgreSQL timestamptz is persisted at microsecond precision. Canonicalize
+	// before hashing so a readback cannot appear tampered merely due to storage
+	// precision loss, while retaining one portable receipt format for all stores.
+	record.RequestedAt = record.RequestedAt.UTC().Truncate(time.Microsecond)
 	record.DerivedAnalyticsDeleted = deleted
 	hash := sha256.New()
 	_, _ = hash.Write([]byte("ynx-data-fabric-erasure-deletion-v1\x00"))
 	_, _ = hash.Write([]byte(record.AccountPseudonym))
-	_, _ = hash.Write([]byte("\x00" + record.AuditID + "\x00" + record.RequestedAt.UTC().Format(time.RFC3339Nano) + "\x00"))
+	_, _ = hash.Write([]byte("\x00" + record.AuditID + "\x00" + record.RequestedAt.Format(time.RFC3339Nano) + "\x00"))
 	_, _ = hash.Write([]byte(fmt.Sprintf("%d", deleted)))
 	record.DeletionReceipt = hex.EncodeToString(hash.Sum(nil))
 	return record, nil
