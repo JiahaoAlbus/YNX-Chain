@@ -4,19 +4,19 @@
   "status": "CANDIDATE_FROZEN_AWAITING_FRESH_EXCHANGE_ONLY_HOST_MAPPING_AND_DEPLOYMENT_LEASE",
   "product": "ynx-exchange",
   "source": {
-    "commit": "2f1b0f8bc08e2abedcf27bf9c2af902e49da4618",
-    "tree": "86a7b8ac89e0665ddc696b554ab408af0249cae0"
+    "commit": "c74d6524fc40ef57d5e571ba31586a975af2b08f",
+    "tree": "f31f6eb7637c3650f2e080ae17d59ceeeab163b3"
   },
   "candidate": {
     "archive": {
-      "path": "apps/exchange/evidence/release-candidates/ynx-exchange-2f1b0f8bc08e-runtime.tar.gz",
-      "bytes": 3503813,
-      "sha256": "34b2ed6464ac031391aedeb062261a931aa94c318c88285ab3a720b6bf641359"
+      "path": "apps/exchange/evidence/release-candidates/ynx-exchange-c74d6524fc40-runtime.tar.gz",
+      "bytes": 3503861,
+      "sha256": "9e16fc1c6964aed365a74a24ceb6abe6cef45c7d875e78701991d7e571a97ce2"
     },
     "binary": {
-      "relativePath": "ynx-exchange-2f1b0f8bc08e/ynx-exchanged",
+      "relativePath": "ynx-exchange-c74d6524fc40/ynx-exchanged",
       "bytes": 7947794,
-      "sha256": "41e1acbbf8bcf518661a4a73ac36c81c0905e7e62eee86590d91a7be59c53c13",
+      "sha256": "1d0207526e2bb6c9611e608eb9170d07e33109d501d32de57d9e82848f897619",
       "format": "ELF 64-bit x86-64 static",
       "build": {"goos":"linux","goarch":"amd64","cgoEnabled":false,"trimpath":true,"buildVCS":false}
     },
@@ -25,14 +25,15 @@
   },
   "localRuntime": {
     "classification": "native-development-host-only; not Linux candidate execution",
-    "health": {"bytes":266,"sha256":"ec83a3383f7dfbe09f8ebffde22f14893bf207f59ce52fce4d8e931392697f1c","commit":"2f1b0f8bc08e2abedcf27bf9c2af902e49da4618"},
-    "version": {"bytes":160,"sha256":"4a37ce396155ed08b6262907272edc5afad7e71d79fac8920c6ad0634b0e06d6","commit":"2f1b0f8bc08e2abedcf27bf9c2af902e49da4618"},
+    "health": {"bytes":237,"sha256":"47afdf2e0b44c85c4200140e0e393e093561fdd9388aea5044b65dfd9d4b26f8","commit":"c74d6524fc40ef57d5e571ba31586a975af2b08f"},
+    "version": {"bytes":131,"sha256":"3c3f15c8e13be9313c4818e6cce55f0108fe97affb6dc26f277381f44a2a9763","commit":"c74d6524fc40ef57d5e571ba31586a975af2b08f"},
     "englishGuestIndex": {"bytes":11368,"sha256":"7e397fa8ba5e0ae6dad4f54dd7a794189bfa46ead8ba1e596af0e4bbfe63bc7b"}
   },
   "tests": {
     "archiveIntegrity": "passed: SHA256SUMS for all payload files plus BUNDLE_MANIFEST",
     "runtimeLayout": "passed: native test server served /api/health, /api/version and root from extracted archive layout",
-    "linuxCandidateRuntime": "not-run: macOS cannot execute the Linux amd64 candidate"
+    "linuxCandidateRuntime": "not-run: macOS cannot execute the Linux amd64 candidate",
+    "browserNoProviderFallback": "passed: 3/3 local browser checks; no account request, signature or transaction"
   },
   "currentPublicReadback": {
     "rootHealthVersion": "all return the same 18603-byte HTML fallback with SHA-256 64c5b7862099eb06a316fbc6d1c665e81355f427fa27b26584bbf586ac4eacde",

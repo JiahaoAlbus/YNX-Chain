@@ -1,17 +1,17 @@
-# Exchange 2f1 source-bound runtime candidate
+# Exchange c74 source-bound runtime candidate
 
 This is an unsigned local Linux amd64 candidate for Exchange source
-`2f1b0f8bc08e2abedcf27bf9c2af902e49da4618` (tree
-`86a7b8ac89e0665ddc696b554ab408af0249cae0`). It does not supersede a public
+`c74d6524fc40ef57d5e571ba31586a975af2b08f` (tree
+`f31f6eb7637c3650f2e080ae17d59ceeeab163b3`). It does not supersede a public
 runtime or authorize a deployment.
 
 ## Exact candidate
 
-- Archive: `apps/exchange/evidence/release-candidates/ynx-exchange-2f1b0f8bc08e-runtime.tar.gz`
-  — 3,503,813 bytes, SHA-256
-  `34b2ed6464ac031391aedeb062261a931aa94c318c88285ab3a720b6bf641359`.
+- Archive: `apps/exchange/evidence/release-candidates/ynx-exchange-c74d6524fc40-runtime.tar.gz`
+  — 3,503,861 bytes, SHA-256
+  `9e16fc1c6964aed365a74a24ceb6abe6cef45c7d875e78701991d7e571a97ce2`.
 - Binary: 7,947,794-byte static Linux amd64 `ynx-exchanged`, SHA-256
-  `41e1acbbf8bcf518661a4a73ac36c81c0905e7e62eee86590d91a7be59c53c13`.
+  `1d0207526e2bb6c9611e608eb9170d07e33109d501d32de57d9e82848f897619`.
 - The archive keeps `apps/exchange/web` under the release root. That matches the
   server's explicit `apps/exchange/web` working-directory-relative static root;
   unlike the older a9 envelope, its static files are not relocated to an
@@ -27,15 +27,22 @@ runtime or authorize a deployment.
 The in-archive checksum list passed. A native development-host build with the
 same source commit successfully served the extracted layout:
 
-- `/api/health`: 266 bytes, SHA-256
-  `ec83a3383f7dfbe09f8ebffde22f14893bf207f59ce52fce4d8e931392697f1c`.
-- `/api/version`: 160 bytes, SHA-256
-  `4a37ce396155ed08b6262907272edc5afad7e71d79fac8920c6ad0634b0e06d6`.
+- `/api/health`: 237 bytes, SHA-256
+  `47afdf2e0b44c85c4200140e0e393e093561fdd9388aea5044b65dfd9d4b26f8`.
+- `/api/version`: 131 bytes, SHA-256
+  `3c3f15c8e13be9313c4818e6cce55f0108fe97affb6dc26f277381f44a2a9763`.
 - English guest index: 11,368 bytes, SHA-256
   `7e397fa8ba5e0ae6dad4f54dd7a794189bfa46ead8ba1e596af0e4bbfe63bc7b`.
 
 The Linux candidate was not executed on this macOS host; an ELF candidate is
 not installation or public-runtime evidence.
+
+The local browser gate now passes all three non-sensitive checks: desktop,
+mobile, and an absent-provider flow. Selecting the top-level **Connect YNX
+Wallet** control performs YNX provider discovery; with no injected provider it
+keeps the page URL stable and exposes the truthful YNX Wallet download and
+MetaMask routes. This did not request an account or perform a signature,
+transaction, order, or Product Session operation.
 
 ## Public and execution boundary
 
