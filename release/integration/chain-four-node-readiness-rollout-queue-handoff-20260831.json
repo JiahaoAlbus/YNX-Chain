@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "ynx-chain-four-node-readiness-rollout-queue-handoff/v1",
+  "recordedAt": "2026-08-31T00:00:00Z",
+  "owner": "chain-core",
+  "priority": "P0-after-current-heavy-holder",
+  "candidate": {
+    "commit": "064dcbee799fa986f808d8b2346aa38b64c11973",
+    "tree": "17a8f4cba7dd5f655b0f16d612bd48ef8fb07aee"
+  },
+  "acceptedInspector": {
+    "commit": "de393ce295ae50f77967cbd3ad15e8bf0988684e",
+    "tree": "e45e6bc10060315a32186dfa748e5e6aacf2e63a",
+    "sha256": "0ea6dbff7be60da2ceb647cb905635292c5fac422e0ccedc80147f7d9046a0b5"
+  },
+  "offlineContract": {
+    "path": "release/integration/chain-four-node-readiness-global-rollback-contract-20260831.json",
+    "bytes": 6326,
+    "sha256": "5c3f23e80c0ce9d5a7b31baa96d6f7bd3070fce04b126e4d870b90dc3bf62aaf"
+  },
+  "offlineVerifier": {
+    "path": "scripts/verify/chain-four-node-readiness-rollout-contract-check.mjs",
+    "bytes": 5066,
+    "sha256": "5af1729cfc61df464723f6bc9af45fdf337d07e16a19fdeb0f57b11d0615c91a",
+    "result": "PASS"
+  },
+  "centralQueueRequest": {
+    "issueDuplicateLeaseNow": false,
+    "retainCurrentHeavyOwner": true,
+    "afterHeavyTerminalRelease": [
+      "fresh-read this branch and verify contract plus verifier identities",
+      "issue one wholly-new four-node zero-write inspection lease for the accepted de393ce inspector",
+      "consume the direct inspection only as per-node current and rollback facts",
+      "freeze a source-bound Linux amd64 candidate artifact and manifest",
+      "freeze and fixture-test a new literal global forward plus inverse rollback executor",
+      "only then decide a separate single-use Chain deployment lease"
+    ]
+  },
+  "currentTruth": {
+    "remoteConnections": 0,
+    "sshAttempts": 0,
+    "nodeMutations": 0,
+    "validatorMutations": 0,
+    "transactions": 0,
+    "deploymentLeaseIssued": false,
+    "deploymentComplete": false
+  },
+  "singleExecutableBlocker": "CHAIN_FOUR_NODE_ZERO_WRITE_INSPECTION_AND_PER_NODE_CURRENT_ROLLBACK_TUPLES_REQUIRED_BEFORE_LITERAL_EXECUTOR_FREEZE"
+}

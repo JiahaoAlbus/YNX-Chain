@@ -1,0 +1,125 @@
+{
+  "schemaVersion": "ynx-chain-four-node-readiness-global-rollback-contract/v1",
+  "recordedAt": "2026-08-31T00:00:00Z",
+  "scope": "chain-only",
+  "candidate": {
+    "commit": "064dcbee799fa986f808d8b2346aa38b64c11973",
+    "tree": "17a8f4cba7dd5f655b0f16d612bd48ef8fb07aee",
+    "releaseName": "ynx-chain-064dcbee799f",
+    "artifactFrozen": false
+  },
+  "acceptedZeroWriteInspector": {
+    "commit": "de393ce295ae50f77967cbd3ad15e8bf0988684e",
+    "tree": "e45e6bc10060315a32186dfa748e5e6aacf2e63a",
+    "blob": "8a4e1c62f4072c984cd5ca1621e3a6fd2eb9ee23",
+    "bytes": 82263,
+    "sha256": "0ea6dbff7be60da2ceb647cb905635292c5fac422e0ccedc80147f7d9046a0b5",
+    "remotePayloadBytes": 2501,
+    "remotePayloadSha256": "48548c8039b09d72e1a6dc30ebfbae7cd35b3451860676286a133890d0d74573",
+    "trailingByteRegression": {
+      "bodyUtf8Escaped": "x\n\n",
+      "bytes": 3,
+      "base64": "eAoK",
+      "sha256": "d1329c6d1284e888680db5b03619fc08bdf1ee0b172c946ca6d1f18f5ea40d61"
+    }
+  },
+  "targets": [
+    {"role": "singapore", "host": "43.134.23.58", "user": "root", "identityReference": "SG_NODE_SSH_KEY"},
+    {"role": "silicon-valley", "host": "43.162.100.54", "user": "ubuntu", "identityReference": "SILICON_VALLEY_NODE_SSH_KEY"},
+    {"role": "seoul", "host": "43.164.132.81", "user": "root", "identityReference": "SEOUL_NODE_SSH_KEY"},
+    {"role": "primary", "host": "43.153.202.237", "user": "ubuntu", "identityReference": "PRIMARY_NODE_SSH_KEY"}
+  ],
+  "initialStatePolicy": {
+    "crossNodeEqualityRequiredBeforeWrite": false,
+    "perNodeExactBindingRequired": true,
+    "requiredServiceFields": ["activeState", "subState", "mainPID", "nRestarts", "serviceUser", "serviceGroup", "fragmentPath", "execStartBase64"],
+    "requiredFileFacts": ["currentBinary", "currentManifest", "rollbackBinary", "rollbackManifest"],
+    "requiredFileTuple": ["path", "sha256", "device", "inode", "uid", "gid", "mode", "nlink", "bytes"],
+    "requiredLoopbackProbes": ["health", "status", "nodeIdentity", "peerSync"],
+    "allowCurrentStateMismatchAcrossNodes": true,
+    "mismatchHandling": "bind every node independently; never substitute another node's current or rollback tuple"
+  },
+  "existingExecutorAudit": {
+    "path": "scripts/ops/deploy-bounded-replication-recovery.sh",
+    "blob": "e53cfbbab00b858dc5afcd54aa6036e2f9d60285",
+    "bytes": 13857,
+    "sha256": "af47b4ec449aab176b827e94ecb4e8292d43edf3710ed7b60771d2d6438f64d1",
+    "eligibleForCandidateDeployment": false,
+    "failClosedFindings": [
+      "preflight does not bind each node's current binary and manifest device, inode, owner, mode, nlink, bytes and SHA",
+      "fresh rollback captures the binary but not the node's current manifest as one prewrite pair",
+      "a later-node failure does not roll back previously promoted nodes in reverse order",
+      "post-restart verification checks only status availability and binary SHA, not sampled status, node identity and peer readiness semantics",
+      "the executor cannot prove global completion false after a partially promoted four-node attempt"
+    ],
+    "reuseAllowed": false
+  },
+  "rollout": {
+    "order": ["singapore", "silicon-valley", "seoul", "primary"],
+    "parallelNodeMutation": false,
+    "attemptLimitPerNode": 1,
+    "freshBackupSuffix": "pre-064dcbee799f-<lease-id>",
+    "forwardPhases": [
+      "re-read exact service, current binary and current manifest tuples",
+      "fail before write on any tuple drift, missing file, future inode substitution or unexpected nlink",
+      "create no-clobber root-owned fresh binary and manifest backups from that node's current bytes",
+      "read back fresh backup tuples and require byte-for-byte SHA and size equality",
+      "create no-clobber candidate stage and verify bundle, binary and manifest identities",
+      "atomically install candidate binary and manifest without changing unit, environment, validator identity or chain state",
+      "restart ynx-chaind once and perform one sampled-time health, status, nodeIdentity and peerSync readback",
+      "require candidate build identity and fail-closed ready-validator semantics before advancing"
+    ],
+    "nodeFailure": {
+      "completionAllowed": false,
+      "rollbackFailedNode": true,
+      "rollbackPreviouslyPromotedNodesInReverseOrder": true,
+      "continueForwardAfterFailure": false
+    },
+    "globalSuccess": {
+      "requiresAllFourNodes": true,
+      "requiresSameCandidateBinaryAndManifest": true,
+      "requiresAllServicesActive": true,
+      "requiresExactBuildReadback": true,
+      "requiresReadyValidatorCount": 4,
+      "requiresUniqueCurrentPeerSyncPerExpectedValidator": true,
+      "requiresNoMissingStaleFutureLagExcessDuplicateOrReplacedPeerSync": true,
+      "partialPromotionCountsAsCompletion": false
+    }
+  },
+  "rollback": {
+    "source": "fresh per-node prewrite backups only",
+    "historicalBackupMayReplaceFreshBackup": false,
+    "order": "reverse successful forward order",
+    "phases": [
+      "re-read live candidate tuple and fresh backup tuple at rollback boundary",
+      "fail closed rather than delete or overwrite if either tuple drifted",
+      "atomically restore that node's exact prewrite manifest then binary",
+      "restart ynx-chaind once",
+      "read back service and all four loopback endpoints at one sampled time",
+      "require exact prewrite build identity and preserve backup plus terminal evidence"
+    ],
+    "cleanupDuringRollback": false,
+    "completionAfterRollback": false
+  },
+  "forbiddenMutations": [
+    "validator identity or key changes",
+    "chain state changes",
+    "transactions",
+    "environment or systemd unit changes",
+    "parallel node restarts",
+    "use of one node's rollback tuple on another node",
+    "deletion of backup, stage or terminal evidence during the execution lease"
+  ],
+  "truth": {
+    "sourceContractPrepared": true,
+    "zeroWriteInspectorAccepted": true,
+    "fourNodeInspectionExecuted": false,
+    "candidateArtifactFrozen": false,
+    "literalExecutorFrozen": false,
+    "deploymentLeaseIssued": false,
+    "deploymentExecuted": false,
+    "allFourNodesPromoted": false,
+    "globalReadinessProved": false
+  },
+  "singleExecutableBlocker": "CHAIN_FOUR_NODE_ZERO_WRITE_INSPECTION_AND_PER_NODE_CURRENT_ROLLBACK_TUPLES_REQUIRED_BEFORE_LITERAL_EXECUTOR_FREEZE"
+}
