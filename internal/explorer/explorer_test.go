@@ -300,6 +300,57 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	}
 }
 
+func TestSummaryFailsClosedOnRetiredChainIdentity(t *testing.T) {
+	tests := []struct {
+		name           string
+		rpcChainID     int64
+		indexerChainID int64
+	}{
+		{name: "rpc identity mismatch", rpcChainID: 9102, indexerChainID: 6423},
+		{name: "indexer identity mismatch", rpcChainID: 6423, indexerChainID: 9102},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rpc := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path != "/status" {
+					t.Fatalf("unexpected RPC path %s", r.URL.Path)
+				}
+				w.Header().Set("Content-Type", "application/json")
+				_ = json.NewEncoder(w).Encode(map[string]any{
+					"network":              "YNX Testnet",
+					"slug":                 "ynx-testnet",
+					"chainId":              tt.rpcChainID,
+					"nativeCoinName":       "YNXT",
+					"nativeCurrencySymbol": "YNXT",
+				})
+			}))
+			defer rpc.Close()
+			indexerHTTP := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path != "/health" {
+					t.Fatalf("unexpected indexer path %s", r.URL.Path)
+				}
+				w.Header().Set("Content-Type", "application/json")
+				_ = json.NewEncoder(w).Encode(map[string]any{
+					"ok":           true,
+					"service":      "ynx-indexerd",
+					"network":      "YNX Testnet",
+					"chainId":      tt.indexerChainID,
+					"nativeSymbol": "YNXT",
+				})
+			}))
+			defer indexerHTTP.Close()
+
+			svc, err := New(Config{RPCURL: rpc.URL, IndexerURL: indexerHTTP.URL})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := svc.Summary(context.Background()); err == nil || !strings.Contains(err.Error(), "6423 identity mismatch") {
+				t.Fatalf("Summary() error = %v, want 6423 identity mismatch", err)
+			}
+		})
+	}
+}
+
 func TestFeeDetailUsesRealSponsorTransactionEvidence(t *testing.T) {
 	tx := chain.Transaction{Hash: "0x" + strings.Repeat("a", 64), Type: "resource_sponsored_action", From: "0x1111111111111111111111111111111111111111", Fee: 0, Sponsor: "0x2222222222222222222222222222222222222222", SponsorPoolID: "rsp_test", ResourceSource: "merchant-resource-pool", ResourceType: "bandwidth", ResourceConsumed: 7, ActionReference: "pay:invoice-1"}
 	detail := FeeDetailFromTx(tx)
