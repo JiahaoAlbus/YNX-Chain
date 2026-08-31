@@ -1,0 +1,170 @@
+{
+  "schemaVersion": "financeNonregressiveNamespacedPhase3DeploymentRequest@1",
+  "status": "SOURCE_ONLY_READY_FOR_FRESH_CENTRAL_FINANCE_ONLY_PHASE3_LEASE",
+  "owner": {
+    "branch": "codex/p0-finance-nonregressive-combined-candidate-20260831",
+    "implementationCommit": "e832151b84aac86555eb2432d00d2f4747cff5bb",
+    "implementationTree": "fe3f8689d07a7e8476ec29168e2d80e8c62e2f4c"
+  },
+  "predecessorsNonreusable": ["P0-304", "P0-314", "7267e074a00cd9242a65baf951e9a86b7f589af8"],
+  "resolvedBlockers": [
+    "FINANCE_NONREGRESSIVE_CANDIDATE_LITERAL_PLACEMENT_AND_PHASE3_COMMAND_OBJECTS_UNFROZEN",
+    "FINANCE_PLACED_CARRIER_AND_PHASE3_STAGE_CONTAINER_NAMESPACE_COLLISION",
+    "FINANCE_PHASE3_EXECUTOR_BASE64_LITERAL_ARG_UNFROZEN"
+  ],
+  "p0314TerminalAuthority": {
+    "centralCommit": "b737b5a0c346b9933dfc82057a7bd16c2561ba49",
+    "centralTree": "5c9a6fcb11b8cf7d0bc0dd9c9a5c0a4d0f98dab3",
+    "evidencePath": "release/integration/p0-wallet-connectivity/execution/objects/p0-314-finance-nonregressive-carrier-terminal-evidence-20260831.json",
+    "evidenceBlob": "ad569bdf287ce5ffd1b85c71b2910458255e2625",
+    "evidenceBytes": 3336,
+    "evidenceSha256": "cf36948d117de13d87af5642742f426026dccdd6d50628263dd589c2df690d5f",
+    "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_NONREGRESSIVE_CARRIER_PREPARED"
+  },
+  "candidate": {
+    "sourceCommit": "4f7fba323a89ffb83a81fe2e2f2b97d23947de87",
+    "sourceTree": "9fbf7a11fecf362ef79d331debd59938c14b1d60",
+    "backendAuthorityCommit": "7824af677dd052d20321431381523ab302614d98",
+    "frontendAuthorityCommit": "75f0299aaf53263e4279acf93e9a06db9d055e38",
+    "carrier": {
+      "id": "finance-combined-4f7fba323a89-20260831t041500z",
+      "path": "/opt/ynx/stage/finance/finance-combined-4f7fba323a89-20260831t041500z",
+      "tuple": "64770:4594824:0:0:700:2:4096:directory",
+      "directChildren": 2
+    },
+    "archive": {
+      "path": "/opt/ynx/stage/finance/finance-combined-4f7fba323a89-20260831t041500z/candidate.tgz",
+      "tuple": "64770:4594825:0:0:600:1:3938517:regular file",
+      "bytes": 3938517,
+      "sha256": "55e8d98317eab27248644e6c1168e5ef9f72221a9708a8b80c0ee6502760147d"
+    },
+    "environment": {
+      "path": "/opt/ynx/stage/finance/finance-combined-4f7fba323a89-20260831t041500z/finance.env",
+      "tuple": "64770:4594832:0:986:640:1:1592:regular file",
+      "bytes": 1592,
+      "sha256": "06d54c7c930c1d9af7dad9cc4322bf23b9755b521101e18e3574be4ae83aaed7",
+      "requiredKeyCount": 1,
+      "releaseWebDir": "/opt/ynx/releases/finance/finance-combined-4f7fba323a89-20260831t041500z/ynx-finance-4f7fba323a89/web",
+      "valuesRecorded": false
+    },
+    "binary": {"bytes": 8573076, "sha256": "1a32d3f9a7f6de43fd5c44580c8a72b1068fab65bdacaa080130efa210bb8050"},
+    "buildIdentity": {"relativePath": "web/build-identity.json", "bytes": 219, "sha256": "e4bcdb3a983642bd05dae884794f0856142546212479ed4406767dcb4a17adf5"}
+  },
+  "signedNamespaceContract": {
+    "carrierNamespace": "finance-combined-4f7fba323a89-20260831t041500z",
+    "stageNamespace": "finance-combined-4f7fba323a89-20260831t041500z-deploy",
+    "backupNamespace": "finance-combined-4f7fba323a89-20260831t041500z",
+    "releaseNamespace": "finance-combined-4f7fba323a89-20260831t041500z",
+    "stageContainer": "/opt/ynx/stage/finance/finance-combined-4f7fba323a89-20260831t041500z-deploy",
+    "stage": "/opt/ynx/stage/finance/finance-combined-4f7fba323a89-20260831t041500z-deploy/stage",
+    "backupContainer": "/var/backups/ynx-finance/finance-combined-4f7fba323a89-20260831t041500z",
+    "backup": "/var/backups/ynx-finance/finance-combined-4f7fba323a89-20260831t041500z/backup",
+    "releaseContainer": "/opt/ynx/releases/finance/finance-combined-4f7fba323a89-20260831t041500z",
+    "release": "/opt/ynx/releases/finance/finance-combined-4f7fba323a89-20260831t041500z/ynx-finance-4f7fba323a89",
+    "stageCarrierCollisionForbidden": true,
+    "allSixDeploymentPathsMustBeFreshlyAbsent": true
+  },
+  "reviewedObjects": {
+    "transport": {"path": "apps/finance/scripts/finance-phase3-openssh-serialized-command.sh", "blob": "5dbd17d6fbd482c515a868d644083b2b39b6e116", "bytes": 3583, "sha256": "15acc3371baa6a8d6c46e6c30dc6d8c17f3681969ef2cb8680220f7eed6300a1"},
+    "bootstrap": {"path": "apps/finance/scripts/finance-phase3-stdin-deployment-bootstrap.sh", "blob": "958519c38c0d72fe05b16584b3ea9415cbc3ce86", "bytes": 5526, "sha256": "9907022d848961983898274e510cd4f0373862b8028f31695d964f88b1c1d516"},
+    "manualRollbackBootstrap": {"path": "apps/finance/scripts/finance-phase3-stdin-manual-rollback-bootstrap.sh", "blob": "102669812997e1eda6baf713b29d220a27c9f723", "bytes": 3093, "sha256": "dd36d7a1c087b5db6892b9e09c47ed625c4f25e79b038b326e59546f95890f47"},
+    "executor": {"path": "apps/finance/scripts/finance-production-rollback-first.sh", "blob": "666a1525af8e39555756a5bf1ad44c313a325664", "bytes": 27826, "sha256": "1899f8a57bcd4ad0477f0f4fc34bd867a79e96bc309f31fa8f1f7637dd42ad93"},
+    "executorBase64": {"path": "apps/finance/evidence/finance-nonregressive-phase3-executor.base64", "blob": "4cfcc4ef4a56fd28d40eb5f295a01de685519281", "bytes": 37105, "sha256": "861d9542dc97707f0154070026f9bb603f60a0c02a8adcd0693a932b0a41d0b6"},
+    "environmentGenerator": {"path": "apps/finance/scripts/finance-candidate-env-generator.sh", "blob": "2afd5f9f7d2c53bb80ed698f7d5050ee31273e69", "bytes": 1765, "sha256": "1c6947fa0e27af3a87755c70ec43b1db20f3d46b50d482c86f0e1809fa5e0b99"}
+  },
+  "literalLocalArgvContract": {
+    "workdir": "/private/tmp/ynx-finance-nonregressive-20260831",
+    "argv": [
+      "/bin/bash",
+      "/private/tmp/ynx-finance-nonregressive-20260831/apps/finance/scripts/finance-phase3-openssh-serialized-command.sh",
+      "<CENTRAL_EXACT_SIGNED_PHASE3_STDIN_PATH>",
+      "/tmp/ynx-finance-nonregressive-phase3.stdout",
+      "/tmp/ynx-finance-nonregressive-phase3.stderr",
+      "/tmp/ynx-finance-nonregressive-phase3.receipt",
+      "/private/tmp/ynx-finance-nonregressive-20260831/apps/finance/scripts/finance-phase3-stdin-deployment-bootstrap.sh",
+      "5526",
+      "9907022d848961983898274e510cd4f0373862b8028f31695d964f88b1c1d516",
+      "/private/tmp/ynx-finance-nonregressive-20260831/apps/finance/evidence/finance-nonregressive-phase3-executor.base64",
+      "37105",
+      "861d9542dc97707f0154070026f9bb603f60a0c02a8adcd0693a932b0a41d0b6",
+      "finance-combined-4f7fba323a89-20260831t041500z",
+      "/opt/ynx/stage/finance/finance-combined-4f7fba323a89-20260831t041500z",
+      "64770:1312502:0:0:755:49:4096:directory",
+      "<FRESH_DEPLOY_PARENT_FULL_TUPLE>",
+      "64770:4594824:0:0:700:2:4096:directory",
+      "64770:4594825:0:0:600:1:3938517:regular file",
+      "55e8d98317eab27248644e6c1168e5ef9f72221a9708a8b80c0ee6502760147d",
+      "3938517",
+      "64770:4594832:0:986:640:1:1592:regular file",
+      "06d54c7c930c1d9af7dad9cc4322bf23b9755b521101e18e3574be4ae83aaed7",
+      "1592",
+      "27826",
+      "1899f8a57bcd4ad0477f0f4fc34bd867a79e96bc309f31fa8f1f7637dd42ad93",
+      "<CENTRAL_EXACT_SIGNED_PHASE3_STDIN_BYTES>",
+      "<CENTRAL_EXACT_SIGNED_PHASE3_STDIN_SHA256>"
+    ],
+    "centralMayReplaceOnlyIndexes": [2, 15, 25, 26],
+    "environment": {},
+    "stdin": "the exact Central-signed Phase3 lease file named at argv[2]",
+    "oneAttempt": true,
+    "retryAllowed": false
+  },
+  "freshPrewriteRequired": {
+    "centralHeavyAndFinancePathLock": true,
+    "leaseUnexpiredAndSingleUse": true,
+    "carrierArchiveEnvironmentExactReadback": true,
+    "rootAndRetainedLeaseParentFullTuples": true,
+    "stageBackupReleaseParentTupleAndInventory": true,
+    "allSixDeploymentPathsAbsentAndNonSymlink": true,
+    "currentActiveReleaseBinaryEnvironmentUnitCaddyStateService": true,
+    "loopbackAndPublicOldHealthVersionRawBodies": true,
+    "serviceUserTraversal": true,
+    "protectedSshIdentityAvailableWithoutValueDisclosure": true
+  },
+  "candidatePublicVerification": {
+    "health": {"urls": ["http://127.0.0.1:6483/health", "https://finance.ynxweb4.com/health"], "status": 200, "bytes": 485, "sha256": "d2d7cdd48a98c19939ac6ae1782eb55949352d48729e9e2736a604df4c365d5d"},
+    "version": {"urls": ["http://127.0.0.1:6483/version", "https://finance.ynxweb4.com/version"], "status": 200, "bytes": 130, "sha256": "d8d2a34c807d6505aed7879073936668112cf2cc9ae55ea70a2a39bf92eaf030"},
+    "frontend": [
+      ["/", 11427, "c1fc45eecd7f88de6fc3e049d15161b8d4e9878e31f20c977fc52b383a18ed53"],
+      ["/app.js", 17371, "a1ed94de08fc5b73f075cf35c1b17481e24b6046732ad92d82209959b694c6d6"],
+      ["/read-sources.js", 10920, "e19b7b266c14b181a4d88b10c6e1975398bdafb77660272f37ba22b48fc18c70"],
+      ["/styles.css", 13935, "bd01b920fee3693204a63aed364c27becf4c9c84f3ee1ed9dd3e2d35a39b5d9f"],
+      ["/manifest.webmanifest", 241, "3f7bec35f54aad6a095151e9d4d553e7ea10cbbbcc9e16f0f3fe7abd242b6d05"],
+      ["/ynx-logo.png", 104171, "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d"],
+      ["/wallet-auth.js", 66997, "be5c90e938e5d5b6e181199f2e1e3949b8f343c4e1af4d8aceab27b1ed41bf6d"]
+    ],
+    "buildIdentity": ["/build-identity.json", 219, "e4bcdb3a983642bd05dae884794f0856142546212479ed4406767dcb4a17adf5"],
+    "retiredWalletConnect": ["/wallet-connect.js", 404, 19, "b16e15764b8bc06c5c3f9f19bc8b99fa48e7894aa5a6ccdad65da49bbf564793"],
+    "allMustPassBeforeSuccessReceipt": true
+  },
+  "rollbackContract": {
+    "automaticOnAnyCandidateVerificationFailure": true,
+    "oldCurrentEnvironmentStateAndServiceMustBeRestored": true,
+    "manualAfterSuccessRequiresWhollyNewCentralSignedRollbackLease": true,
+    "literalRetainedRemoteArgvFromSuccessReceipt": ["<EXACT_INSTALLED_EXECUTOR>", "rollback", "<EXACT_INSTALLED_SIGNED_LEASE>"],
+    "manualBootstrap": "apps/finance/scripts/finance-phase3-stdin-manual-rollback-bootstrap.sh",
+    "manualRollbackNotAuthorizedByThisRequest": true
+  },
+  "validation": {
+    "phase3OpenSshTransport": "PASS",
+    "phase3DeploymentBootstrap": "PASS",
+    "productionCommandObject": "PASS",
+    "productionActualShellSuccessPrewriteCleanupAutomaticRollbackManualRollback": "PASS",
+    "wrongNamespaceBeforeSshAndAtRuntime": "PASS_FAIL_CLOSED",
+    "stageCarrierCollision": "PASS_FAIL_CLOSED_BY_DISTINCT_SIGNED_NAMESPACE",
+    "executorCarrierMismatch": "PASS_FAIL_CLOSED_BEFORE_SSH",
+    "financePackageTests": "14/14 PASS",
+    "goFinanceTests": "PASS"
+  },
+  "truth": {
+    "centralSignedPhase3Lease": false,
+    "sshExecuted": false,
+    "productionWrite": false,
+    "deployed": false,
+    "sourceBoundPublic": false,
+    "accountRequested": false,
+    "signatureCreated": false,
+    "transactionSubmitted": false
+  },
+  "singleExecutableNextAction": "Central independently re-reviews this exact remote request, performs the required fresh zero-write reads, fills only the four declared argv fields, freezes the complete signed lease bytes and literal argv, and either issues one new Finance-only Phase3 deployment lease or returns one exact field-level blocker."
+}
