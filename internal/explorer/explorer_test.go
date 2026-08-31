@@ -445,3 +445,25 @@ func TestExplorerWalletCompatibilityUsesProviderDiscoveryWithoutCustomNavigation
 		}
 	}
 }
+
+func TestExplorerProvidesCompleteLocaleAndRTLScaffolding(t *testing.T) {
+	for _, marker := range []string{
+		"localStorage.getItem('ynx-explorer-language') || 'en'",
+		"html[dir=\"rtl\"] body",
+		"document.documentElement.dir = language === 'ar' ? 'rtl' : 'ltr'",
+		"object-fit:contain",
+		"/assets/ynx-logo.png",
+	} {
+		if !strings.Contains(indexHTML, marker) {
+			t.Fatalf("Explorer locale, RTL, or logo scaffold missing %q", marker)
+		}
+	}
+	for _, locale := range []string{"en", "zh-CN", "zh-TW", "ja", "ko", "es", "fr", "de", "pt", "ru", "ar", "id"} {
+		if !strings.Contains(indexHTML, `<option value="`+locale+`">`) {
+			t.Fatalf("Explorer language selector missing locale %q", locale)
+		}
+		if !strings.Contains(indexHTML, `"`+locale+`":{`) && !strings.Contains(indexHTML, `'`+locale+`':{`) && !strings.Contains(indexHTML, locale+`:{`) {
+			t.Fatalf("Explorer locale dictionary missing locale %q", locale)
+		}
+	}
+}
