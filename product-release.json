@@ -2,11 +2,11 @@
   "schemaVersion": 2,
   "productId": "ynx-data-fabric",
   "productName": "YNX Data Fabric & Billing Ledger",
-  "release": "ynx-data-fabric-2a5233ee9560",
+  "release": "ynx-data-fabric-025fd6a17a26",
   "channel": "testnet-preview",
-  "sourceCommit": "2a5233ee9560e8855271d9681c1f7f41142cf117",
-  "sourceRelease": "ynx-data-fabric-2a5233ee9560",
-  "generatedAt": "2026-08-14T11:46:16Z",
+  "sourceCommit": "025fd6a17a2686ad458ffed4c7936623bcb37eec",
+  "sourceRelease": "ynx-data-fabric-025fd6a17a26",
+  "generatedAt": "2026-08-31T07:47:35Z",
   "states": {
     "implementedLocal": true,
     "testedLocal": true,
@@ -27,7 +27,7 @@
     "schemaRegistry": "2.0",
     "fileStoreSchema": 1,
     "backupManifestSchema": 1,
-    "postgresMigration": 7,
+    "postgresMigration": 8,
     "minimumOS": "Linux x86_64 for packaged runtime; source builds remain platform-dependent"
   },
   "delivery": {
@@ -47,7 +47,7 @@
   "artifacts": [],
   "evidence": {
     "localVerification": {
-      "sourceCommit": "2a5233ee9560e8855271d9681c1f7f41142cf117",
+      "sourceCommit": "025fd6a17a2686ad458ffed4c7936623bcb37eec",
       "status": "passed",
       "environment": "macOS development environment with standard umask for cross-repository permission vectors",
       "commands": [
@@ -79,7 +79,7 @@
     "remoteCI": {
       "runId": null,
       "workflow": "data-fabric",
-      "sourceCommit": "2a5233ee9560e8855271d9681c1f7f41142cf117",
+      "sourceCommit": "025fd6a17a2686ad458ffed4c7936623bcb37eec",
       "headCommit": null,
       "status": "pending",
       "conclusion": null,

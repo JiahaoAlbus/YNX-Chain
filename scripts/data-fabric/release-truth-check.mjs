@@ -238,7 +238,7 @@ export function verifyReleaseTruth({ root, expectedSourceCommit, repositoryRoot 
   assert(productRelease.compatibility?.eventEnvelope === "2.0", "current event envelope must be 2.0");
   assert(sameJSON(productRelease.compatibility?.acceptedEventEnvelopes, ["1.0", "2.0"]), "accepted event envelope versions are invalid");
   assert(productRelease.compatibility?.schemaRegistry === "2.0", "schema registry version must be 2.0");
-  assert(productRelease.compatibility?.postgresMigration === 7, "PostgreSQL migration level must be 7");
+  assert(productRelease.compatibility?.postgresMigration === 8, "PostgreSQL migration level must be 8");
   assert(eventContracts.schemaVersion === 2, "product event contract schemaVersion must be 2");
   assert(eventContracts.canonicalEnvelope === "schemas/data-fabric/event-envelope-v2.schema.json", "canonical envelope pointer is stale");
   assert(eventContracts.schemaRegistry === "schemas/data-fabric/schema-registry-v2.json", "schema registry pointer is stale");

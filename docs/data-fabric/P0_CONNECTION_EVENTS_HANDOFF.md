@@ -54,3 +54,11 @@ Integration may record this checkpoint and release the `wallet-canonical-error-t
 `P0_147_PUBLIC_RUNTIME_LEASE_REQUEST.json` freezes a Data-Fabric-only request for the missing public topology, protected-reference presence booleans, service identity, and current/rollback mapping. It is deliberately `REQUESTED_NOT_AUTHORIZED`: every endpoint and secret-manager reference is unset, `productionMutationAllowed` is false, and it cannot be used as a production configuration.
 
 Central must bind one authoritative HTTPS Data Fabric origin and the exact runtime/service/rollback tuple before issuing a single-use writable lease. The subsequent verification is `/health`, `/version`, `/metrics`, and one already-authoritative producer outcome through Event, Outbox, Inbox, and Ledger effect. No Wallet account request, signature, transaction, Provider/Gateway change, or synchronous Wallet dependency is in this scope.
+
+## Privacy-safe derived analytics erasure receipt — 2026-08-31
+
+- Implementation commit: `025fd6a17a2686ad458ffed4c7936623bcb37eec`.
+- Migration `0008_erasure_deletion_receipts` appends a pseudonymous, audit-bound SHA-256 receipt after deleting derived analytics facts in the same serializable transaction.
+- Local test scope: `go test ./internal/datafabric ./internal/datafabricpostgres`; release-truth binding and remote CI are separate gates.
+- The receipt retains no raw account, event ID, payload, diagnostic message, key, or signature. An old PostgreSQL erasure request without a receipt fails closed during idempotent retry or integrity audit.
+- No public endpoint, database migration, service mutation, deployment, or 9102/6423 probe occurred. `P0-147` remains `WAITING_EXTERNAL_PUBLIC_ENDPOINT_UNBOUND`.
