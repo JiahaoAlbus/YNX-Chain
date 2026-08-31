@@ -128,7 +128,7 @@ test("order transitions preserve terminal states and require authoritative recon
   assert.throws(() => assertOrderTransition("open", "rejected"), (error) => error.code === ERROR_CODES.CONCURRENT_MODIFICATION);
 });
 
-test("risk authorization uses exact decimal limits and fails closed before a strategy action", () => {
+test("risk authorization uses exact decimal limits, authoritative freshness, and fails closed before a strategy action", () => {
   const strategy = { schemaVersion: FINANCE_DOMAIN_VERSION, source, ...examples.Strategy };
   const riskLimit = { schemaVersion: FINANCE_DOMAIN_VERSION, source, ...examples.RiskLimit };
   assert.equal(compareDecimal("1.10", "1.1"), 0);
@@ -139,23 +139,30 @@ test("risk authorization uses exact decimal limits and fails closed before a str
     requestedNotional: "2",
     requestedSlippageBps: 100,
     evaluatedAt: "2026-08-13T12:00:00.000Z",
+    maxRiskSourceAgeMs: 60_000,
   }), { ownerAccountId: "a:1", strategyId: "s:1", riskLimitId: "r:1", evaluatedAt: "2026-08-13T12:00:00.000Z" });
-  assert.throws(() => assertStrategyRiskAuthorization({ strategy, riskLimit, requestedNotional: "2.000000000000000001", requestedSlippageBps: 100, evaluatedAt: "2026-08-13T12:00:00.000Z" }), (error) => error.code === ERROR_CODES.RISK_REJECTED);
-  assert.throws(() => assertStrategyRiskAuthorization({ strategy, riskLimit: { ...riskLimit, killSwitch: true }, requestedNotional: "2", requestedSlippageBps: 100, evaluatedAt: "2026-08-13T12:00:00.000Z" }), (error) => error.code === ERROR_CODES.RISK_REJECTED);
-  assert.throws(() => assertStrategyRiskAuthorization({ strategy: { ...strategy, ownerAccountId: "a:2" }, riskLimit, requestedNotional: "2", requestedSlippageBps: 100, evaluatedAt: "2026-08-13T12:00:00.000Z" }), (error) => error.code === ERROR_CODES.FORBIDDEN);
-  assert.throws(() => assertStrategyRiskAuthorization({ strategy: { ...strategy, source: { ...source, status: "stale" } }, riskLimit, requestedNotional: "2", requestedSlippageBps: 100, evaluatedAt: "2026-08-13T12:00:00.000Z" }), (error) => error.code === ERROR_CODES.SOURCE_STALE);
-  assert.throws(() => assertStrategyRiskAuthorization({ strategy, riskLimit, requestedNotional: "2", requestedSlippageBps: 101, evaluatedAt: "2026-08-13T12:00:00.000Z" }), (error) => error.code === ERROR_CODES.RISK_REJECTED);
+  const base = { strategy, riskLimit, requestedNotional: "2", requestedSlippageBps: 100, evaluatedAt: "2026-08-13T12:00:00.000Z", maxRiskSourceAgeMs: 60_000 };
+  assert.throws(() => assertStrategyRiskAuthorization({ ...base, requestedNotional: "2.000000000000000001" }), (error) => error.code === ERROR_CODES.RISK_REJECTED);
+  assert.throws(() => assertStrategyRiskAuthorization({ ...base, riskLimit: { ...riskLimit, killSwitch: true } }), (error) => error.code === ERROR_CODES.RISK_REJECTED);
+  assert.throws(() => assertStrategyRiskAuthorization({ ...base, strategy: { ...strategy, ownerAccountId: "a:2" } }), (error) => error.code === ERROR_CODES.FORBIDDEN);
+  assert.throws(() => assertStrategyRiskAuthorization({ ...base, strategy: { ...strategy, source: { ...source, status: "stale" } } }), (error) => error.code === ERROR_CODES.SOURCE_STALE);
+  assert.throws(() => assertStrategyRiskAuthorization({ ...base, strategy: { ...strategy, source: { ...source, classification: "reference" } } }), (error) => error.code === ERROR_CODES.SOURCE_STALE);
+  assert.throws(() => assertStrategyRiskAuthorization({ ...base, evaluatedAt: "2026-08-13T12:01:00.001Z" }), (error) => error.code === ERROR_CODES.SOURCE_STALE);
+  assert.throws(() => assertStrategyRiskAuthorization({ ...base, evaluatedAt: "2026-08-13T11:59:59.999Z" }), (error) => error.code === ERROR_CODES.SOURCE_STALE);
+  assert.throws(() => assertStrategyRiskAuthorization({ ...base, maxRiskSourceAgeMs: 0 }), /maxRiskSourceAgeMs/);
+  assert.throws(() => assertStrategyRiskAuthorization({ ...base, requestedSlippageBps: 101 }), (error) => error.code === ERROR_CODES.RISK_REJECTED);
 });
 
 test("integration contract version-locks the durable write precondition boundary", async () => {
   const contractPath = fileURLToPath(new URL("../../../release/integration/finance-suite-domain-contract-v1.json", import.meta.url));
   const contract = JSON.parse(await readFile(contractPath, "utf8"));
-  assert.equal(contract.schemaVersion, "1.0.0-candidate.3");
+  assert.equal(contract.schemaVersion, "1.0.0-candidate.4");
   assert.match(contract.writeProtocol.requiredRequestDigest, /RFC 8785 JCS/);
   assert.match(contract.writeProtocol.idempotency, /atomically/);
   assert.match(contract.writeProtocol.concurrency, /expectedVersion/);
   assert.match(contract.writeProtocol.orderStateMachine, /execution_unknown/);
   assert.match(contract.writeProtocol.strategyRiskGuard, /killSwitch=false/);
+  assert.match(contract.writeProtocol.strategyRiskGuard, /freshness policy/);
 });
 
 test("error envelopes use stable codes and request correlation", () => {

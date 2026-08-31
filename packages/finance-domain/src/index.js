@@ -323,15 +323,22 @@ export function assertOrderTransition(fromStatus, toStatus) {
 // A product must invoke this before it persists or submits a Quant/Exchange/DEX
 // strategy action. It is an authorization guard only: it cannot start a
 // strategy, sign, transfer, or submit an order.
-export function assertStrategyRiskAuthorization({ strategy, riskLimit, requestedNotional, requestedSlippageBps, evaluatedAt }) {
+export function assertStrategyRiskAuthorization({ strategy, riskLimit, requestedNotional, requestedSlippageBps, evaluatedAt, maxRiskSourceAgeMs }) {
   validateModel("Strategy", strategy);
   validateModel("RiskLimit", riskLimit);
   assert(strategy.ownerAccountId === riskLimit.ownerAccountId, ERROR_CODES.FORBIDDEN, "strategy and risk limit owners must match");
   assert(["paper", "testnet"].includes(strategy.lifecycle), ERROR_CODES.FORBIDDEN, "strategy lifecycle is not executable");
   assert(strategy.source.status === "live", ERROR_CODES.SOURCE_STALE, "strategy source is not live");
   assert(riskLimit.source.status === "live", ERROR_CODES.SOURCE_STALE, "risk limit source is not live");
+  assert(["authoritative", "verified-index", "testnet"].includes(strategy.source.classification), ERROR_CODES.SOURCE_STALE, "strategy source is not execution-authoritative");
+  assert(["authoritative", "verified-index", "testnet"].includes(riskLimit.source.classification), ERROR_CODES.SOURCE_STALE, "risk limit source is not execution-authoritative");
   assert(riskLimit.killSwitch === false, ERROR_CODES.RISK_REJECTED, "risk kill switch is enabled");
   assertTimestamp(evaluatedAt, "evaluatedAt");
+  assertInteger(maxRiskSourceAgeMs, "maxRiskSourceAgeMs", 1, 86_400_000);
+  const evaluatedAtMs = Date.parse(evaluatedAt);
+  const newestRiskInputMs = Math.max(Date.parse(strategy.source.asOf), Date.parse(riskLimit.source.asOf));
+  assert(newestRiskInputMs <= evaluatedAtMs, ERROR_CODES.SOURCE_STALE, "risk input source time is ahead of evaluation time");
+  assert(evaluatedAtMs - newestRiskInputMs <= maxRiskSourceAgeMs, ERROR_CODES.SOURCE_STALE, "risk input source exceeds the configured freshness window");
   assert(Date.parse(evaluatedAt) < Date.parse(riskLimit.expiresAt), ERROR_CODES.RISK_REJECTED, "risk limit has expired");
   assertDecimal(requestedNotional, "requestedNotional", true);
   assertInteger(requestedSlippageBps, "requestedSlippageBps", 0, 10_000);

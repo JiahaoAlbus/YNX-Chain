@@ -64,4 +64,6 @@ export function assertStrategyRiskAuthorization(input: {
   requestedNotional: string;
   requestedSlippageBps: number;
   evaluatedAt: string;
+  /** Product-owned freshness policy for Strategy and RiskLimit provenance; maximum 24h. */
+  maxRiskSourceAgeMs: number;
 }): Readonly<{ ownerAccountId: string; strategyId: string; riskLimitId: string; evaluatedAt: string }>;

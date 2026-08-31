@@ -5,7 +5,7 @@ liquidity, strategy, Wallet approval, signature, or Testnet execution result.
 
 ## Purpose
 
-`@ynx/finance-domain@1.0.0-candidate.3` makes the shared write boundary
+`@ynx/finance-domain@1.0.0-candidate.4` makes the shared write boundary
 executable before any product-owned effect can be attempted. It is deliberately
 pure: it has no database, no Wallet access, no network access, and cannot
 create a financial action.
@@ -62,8 +62,11 @@ those steps.
 
 Before a Quant, Exchange or DEX product service persists a strategy-owned
 action, it must call `assertStrategyRiskAuthorization` with the source-bound
-`Strategy`, `RiskLimit`, requested notional, requested slippage and evaluation
-time. The guard requires matching owners, a `paper` or `testnet` lifecycle, a
-live and unexpired Strategy/RiskLimit sources, `killSwitch=false`, and exact base-10 limits.
+`Strategy`, `RiskLimit`, requested notional, requested slippage, evaluation
+time, and an explicit product-owned `maxRiskSourceAgeMs` policy (1 ms through
+24 hours). The guard requires matching owners, a `paper` or `testnet`
+lifecycle, live non-reference Strategy/RiskLimit provenance, an `asOf` no
+later than the evaluation and within that freshness window, an unexpired
+limit, `killSwitch=false`, and exact base-10 limits.
 It deliberately does not execute a strategy, connect a Wallet or access a
 credential.
