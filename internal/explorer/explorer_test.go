@@ -179,6 +179,7 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 		"expected6423",
 		"serviceDirectory",
 		"serviceNameUI",
+		"serviceTextUI",
 		"dataFabric",
 		"infrastructure",
 		"YNX DeFi services",
@@ -232,6 +233,9 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 		if !strings.Contains(html, marker) {
 			t.Fatalf("explorer web is missing live interaction marker %q", marker)
 		}
+	}
+	if strings.Contains(html, "runtime.lastError || service.degraded") {
+		t.Fatal("explorer web response may expose raw runtime service errors in the public directory")
 	}
 	for _, forbidden := range []string{"9102", "0x238e", "ynx_9102-1"} {
 		if strings.Contains(strings.ToLower(html), strings.ToLower(forbidden)) {

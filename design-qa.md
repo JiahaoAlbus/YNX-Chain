@@ -83,3 +83,11 @@ These checks validate the local 6423 runtime only. They do not assert public dep
 - The previously inherited local Indexer endpoint became unavailable; the portal returned its normal 502 fail-closed response rather than retaining a stale “live” status.
 - A new temporary index database was built from the active local 6423 node, then a fresh Indexer and Explorer were started against it. The first health snapshot returned `6423`, `0x1917`, YNXT, `ok: true`, and equal RPC/indexed heights (`4805`).
 - A second health snapshot three seconds later returned `ok: true` with both heights advanced together (`4806`). This is a local cold-start and second-read check only; it is not public uptime evidence.
+
+## 2026-08-31 responsive and locale follow-up
+
+- Live local health recheck: the Explorer reported `ok: true`, chain `6423`, EVM `0x1917`, native asset `YNXT`, one-block index lag, and no wallet-visible public RPC or Explorer URL. The latter remains deliberately empty without verified public HTTPS endpoints.
+- Type and containment: at 1780 x 943, 1024 x 900, 620 x 950, and 390 x 844 CSS px, the document had no horizontal overflow. Computed body text scaled from 16 px on desktop to 14 px on mobile; route headings remained between 26 px and 32 px, preserving a clear hierarchy without oversized mobile copy.
+- Mobile controls: at 390 px, the search field was 351 px by 52 px, language selection and Connect Wallet were visible, and no primary control was clipped. The horizontally scrollable primary route strip keeps `More` sticky on the right (measured from x=319 to x=363), while its remaining routes remain reachable by horizontal scrolling and keyboard focus.
+- Functional path: a real browser fill-and-Enter search for `YNXT` opened the in-page token drawer at `#blockchain?detail=token%3AYNXT`; it neither opened a second tab nor produced `about:blank` and did not add page-width overflow.
+- Locale and safe status copy: the Chinese Developers service directory now localizes its service schema, health/cache labels, expected wallet identity, and degraded text. Any raw runtime error is replaced with the localized unavailable state so transport details are not surfaced in the public UI.
