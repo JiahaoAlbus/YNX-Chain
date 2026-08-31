@@ -39,6 +39,7 @@ export declare const ynxErrorCodes: Readonly<{
   transportTimeout: "TRANSPORT_TIMEOUT";
   wrongChain: "WRONG_CHAIN";
 }>;
+export declare function classifyYNXHTTPFailure(status: number, data: unknown, options?: {accountLookup?: boolean}): "ACCOUNT_NOT_FOUND" | "HTTP_ERROR" | "RPC_UNAVAILABLE";
 export declare class YNXWalletError extends Error { readonly code?: number | string; readonly method?: string }
 export declare function toYNXAddress(value: string): string;
 export declare function toEVMAddress(value: string): string;

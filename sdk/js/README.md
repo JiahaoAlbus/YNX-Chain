@@ -11,4 +11,11 @@ const result = await proveYNXTestnetRPC(ynxPublicEndpoints.rpcUrl);
 console.log(result);
 ```
 
+Transport consumers can use `ynxErrorCodes` and `classifyYNXHTTPFailure`. An
+HTTP 404 is `ACCOUNT_NOT_FOUND` only when the caller marks the operation as an
+account lookup and the body carries exact account-absence semantics. Timeouts,
+TLS validation, malformed responses, wrong-chain responses, unavailable RPC,
+and other HTTP failures remain distinct. SDK requests make one bounded attempt
+and do not retry implicitly.
+
 Run `npm test`, then `node examples/real-testnet-read.mjs`. The example fails closed if the public endpoint is unavailable, returns invalid JSON-RPC, or identifies any chain other than `0x1917`.

@@ -1,0 +1,43 @@
+{
+  "version": 1,
+  "network": {
+    "nativeChainId": "ynx_6423-1",
+    "chainIdDecimal": 6423,
+    "evmChainId": "0x1917",
+    "forbiddenChainIds": [9102, "0x238e"]
+  },
+  "requestPolicy": {
+    "implicitRetries": false,
+    "maximumAttempts": 1
+  },
+  "httpCases": [
+    {
+      "name": "authoritative-account-absence",
+      "status": 404,
+      "accountLookup": true,
+      "body": {"code": "ACCOUNT_NOT_FOUND", "message": "account not found"},
+      "expected": "ACCOUNT_NOT_FOUND"
+    },
+    {
+      "name": "account-semantic-outside-account-lookup",
+      "status": 404,
+      "accountLookup": false,
+      "body": {"code": "ACCOUNT_NOT_FOUND", "message": "account not found"},
+      "expected": "HTTP_ERROR"
+    },
+    {
+      "name": "unrelated-route-absence",
+      "status": 404,
+      "accountLookup": true,
+      "body": {"error": "route not found"},
+      "expected": "HTTP_ERROR"
+    },
+    {
+      "name": "service-unavailable",
+      "status": 503,
+      "accountLookup": false,
+      "body": {"error": "temporarily unavailable"},
+      "expected": "RPC_UNAVAILABLE"
+    }
+  ]
+}

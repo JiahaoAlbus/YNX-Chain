@@ -3,9 +3,11 @@ package wallet
 import (
 	"context"
 	"crypto/x509"
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
+	"os"
 	"strings"
 	"testing"
 )
@@ -42,6 +44,54 @@ func TestStrictTransportAndHTTPErrorTaxonomy(t *testing.T) {
 	}
 }
 
+func TestSharedTypeScriptGoTaxonomyVectorAnd6423OnlyPolicy(t *testing.T) {
+	data, err := os.ReadFile("../../../testdata/wallet-sdk-error-taxonomy-v1.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var vector struct {
+		Version int `json:"version"`
+		Network struct {
+			NativeChainID     string `json:"nativeChainId"`
+			ChainIDDecimal    int    `json:"chainIdDecimal"`
+			EVMChainID        string `json:"evmChainId"`
+			ForbiddenChainIDs []any  `json:"forbiddenChainIds"`
+		} `json:"network"`
+		RequestPolicy struct {
+			ImplicitRetries bool `json:"implicitRetries"`
+			MaximumAttempts int  `json:"maximumAttempts"`
+		} `json:"requestPolicy"`
+		HTTPCases []struct {
+			Name          string         `json:"name"`
+			Status        int            `json:"status"`
+			AccountLookup bool           `json:"accountLookup"`
+			Body          map[string]any `json:"body"`
+			Expected      ErrorCode      `json:"expected"`
+		} `json:"httpCases"`
+	}
+	if err := json.Unmarshal(data, &vector); err != nil {
+		t.Fatal(err)
+	}
+	if vector.Version != 1 || vector.Network.NativeChainID != YNXNativeChainID || vector.Network.ChainIDDecimal != YNXChainID || vector.Network.EVMChainID != YNXEVMChainID {
+		t.Fatalf("unexpected frozen network: %+v", vector.Network)
+	}
+	if vector.RequestPolicy.ImplicitRetries || vector.RequestPolicy.MaximumAttempts != 1 {
+		t.Fatalf("unexpected request policy: %+v", vector.RequestPolicy)
+	}
+	if len(vector.Network.ForbiddenChainIDs) != 2 || vector.Network.ForbiddenChainIDs[0] != float64(9102) || vector.Network.ForbiddenChainIDs[1] != "0x238e" {
+		t.Fatalf("9102 rejection vector drifted: %+v", vector.Network.ForbiddenChainIDs)
+	}
+	for _, item := range vector.HTTPCases {
+		body, err := json.Marshal(item.Body)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if actual := ClassifyHTTPFailure(item.Status, body, item.AccountLookup); actual.Code != item.Expected {
+			t.Fatalf("%s: got %s, want %s", item.Name, actual.Code, item.Expected)
+		}
+	}
+}
+
 func TestProbeYNXTestnetRPCTaxonomy(t *testing.T) {
 	testCase := func(status int, body string, transportError error) *http.Client {
 		return &http.Client{Transport: transportFunc(func(*http.Request) (*http.Response, error) {
@@ -72,5 +122,18 @@ func TestProbeYNXTestnetRPCTaxonomy(t *testing.T) {
 				t.Fatalf("got %v, want %s", err, item.code)
 			}
 		})
+	}
+}
+
+func TestProbeUsesOneBoundedAttemptWithoutImplicitRetry(t *testing.T) {
+	calls := 0
+	client := &http.Client{Transport: transportFunc(func(*http.Request) (*http.Response, error) {
+		calls++
+		return &http.Response{StatusCode: http.StatusServiceUnavailable, Header: make(http.Header), Body: io.NopCloser(strings.NewReader(`{"error":"down"}`))}, nil
+	})}
+	_, err := ProbeYNXTestnetRPC(context.Background(), client, "https://rpc.example.invalid")
+	var classified *TransportError
+	if !errors.As(err, &classified) || classified.Code != ErrorRPCUnavailable || calls != 1 {
+		t.Fatalf("got error=%v calls=%d", err, calls)
 	}
 }

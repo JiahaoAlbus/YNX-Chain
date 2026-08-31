@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import {after, before, test} from "node:test";
 import http from "node:http";
 import {readFile} from "node:fs/promises";
-import {YNXClient, YNXSDKError, assertYNXTestnetSnapshot, callYNXEVM, getYNXStatus, normalizeYNXAddress, proveYNXTestnetRPC, toEVMAddress, toYNXAddress, ynxErrorCodes, ynxPublicEndpoints} from "./index.js";
+import {YNXClient, YNXSDKError, assertYNXTestnetSnapshot, callYNXEVM, classifyYNXHTTPFailure, getYNXStatus, normalizeYNXAddress, proveYNXTestnetRPC, toEVMAddress, toYNXAddress, ynxErrorCodes, ynxPublicEndpoints} from "./index.js";
 
 let baseUrl;
 let server;
@@ -69,14 +69,41 @@ test("proves YNX Testnet only over HTTPS and fails closed on the wrong chain", a
 });
 
 test("keeps authoritative account absence distinct from transport and HTTP failures", async () => {
-  const accountMissing = async () => new Response(JSON.stringify({code: "ACCOUNT_NOT_FOUND", message: "account not found"}), {status: 404});
-  await assert.rejects(getYNXStatus("https://rest.example.invalid", {fetchImpl: accountMissing}), (error) => error instanceof YNXSDKError && error.status === 404 && error.code === ynxErrorCodes.accountNotFound);
+  assert.equal(classifyYNXHTTPFailure(404, {code: "ACCOUNT_NOT_FOUND", message: "account not found"}, {accountLookup: true}), ynxErrorCodes.accountNotFound);
+  assert.equal(classifyYNXHTTPFailure(404, {code: "ACCOUNT_NOT_FOUND", message: "account not found"}), ynxErrorCodes.httpError);
 
   const unrelated404 = async () => new Response(JSON.stringify({error: "route not found"}), {status: 404});
   await assert.rejects(getYNXStatus("https://rest.example.invalid", {fetchImpl: unrelated404}), (error) => error instanceof YNXSDKError && error.status === 404 && error.code === ynxErrorCodes.httpError);
 
   const unavailable = async () => new Response(JSON.stringify({error: "temporarily unavailable"}), {status: 503});
   await assert.rejects(getYNXStatus("https://rest.example.invalid", {fetchImpl: unavailable}), (error) => error instanceof YNXSDKError && error.code === ynxErrorCodes.rpcUnavailable);
+});
+
+test("matches the shared TS/Go error taxonomy vector and 6423-only policy", async () => {
+  const vector = JSON.parse(await readFile(new URL("../../testdata/wallet-sdk-error-taxonomy-v1.json", import.meta.url), "utf8"));
+  assert.deepEqual(vector.network, {nativeChainId: "ynx_6423-1", chainIdDecimal: 6423, evmChainId: "0x1917", forbiddenChainIds: [9102, "0x238e"]});
+  assert.deepEqual(vector.requestPolicy, {implicitRetries: false, maximumAttempts: 1});
+  for (const item of vector.httpCases) {
+    assert.equal(classifyYNXHTTPFailure(item.status, item.body, {accountLookup: item.accountLookup}), item.expected, item.name);
+  }
+});
+
+test("uses one bounded request and performs no implicit retry", async () => {
+  let calls = 0;
+  const timeoutFetch = async (_url, {signal}) => {
+    calls += 1;
+    return new Promise((_resolve, reject) => signal.addEventListener("abort", () => reject(Object.assign(new Error("deadline"), {name: "AbortError"})), {once: true}));
+  };
+  await assert.rejects(getYNXStatus("https://rest.example.invalid", {fetchImpl: timeoutFetch, timeoutMs: 5}), (error) => error.code === ynxErrorCodes.transportTimeout);
+  assert.equal(calls, 1);
+
+  calls = 0;
+  const unavailableFetch = async () => {
+    calls += 1;
+    return new Response(JSON.stringify({error: "down"}), {status: 503});
+  };
+  await assert.rejects(getYNXStatus("https://rest.example.invalid", {fetchImpl: unavailableFetch}), (error) => error.code === ynxErrorCodes.rpcUnavailable);
+  assert.equal(calls, 1);
 });
 
 test("classifies timeout, TLS and malformed responses without inventing network state", async () => {

@@ -41,11 +41,15 @@ export const ynxErrorCodes = Object.freeze({
   wrongChain: "WRONG_CHAIN",
 });
 
-function authoritativeAccountAbsence(status, data) {
-  if (status !== 404 || data === null || typeof data !== "object" || Array.isArray(data)) return false;
+export function classifyYNXHTTPFailure(status, data, {accountLookup = false} = {}) {
+  if (!Number.isInteger(status) || status < 400 || status > 599) throw new YNXSDKError("HTTP failure status must be between 400 and 599");
+  if (!accountLookup || status !== 404 || data === null || typeof data !== "object" || Array.isArray(data)) {
+    return [502, 503, 504].includes(status) ? ynxErrorCodes.rpcUnavailable : ynxErrorCodes.httpError;
+  }
   const code = data.code ?? data.error?.code;
   const message = data.message ?? data.error?.message ?? data.error;
-  return code === ynxErrorCodes.accountNotFound || (typeof message === "string" && /^account not found$/i.test(message.trim()));
+  if (code === ynxErrorCodes.accountNotFound || (typeof message === "string" && /^account not found$/i.test(message.trim()))) return ynxErrorCodes.accountNotFound;
+  return ynxErrorCodes.httpError;
 }
 
 function causeChain(cause) {
@@ -174,7 +178,7 @@ function endpoint(baseUrl, path = "") {
   return url;
 }
 
-async function requestJSON(url, {body, timeoutMs = DEFAULT_TIMEOUT_MS, fetchImpl = globalThis.fetch} = {}) {
+async function requestJSON(url, {accountLookup = false, body, timeoutMs = DEFAULT_TIMEOUT_MS, fetchImpl = globalThis.fetch} = {}) {
   if (typeof fetchImpl !== "function") throw new YNXSDKError("fetch is not available");
   if (!Number.isInteger(timeoutMs) || timeoutMs <= 0) throw new YNXSDKError("timeoutMs must be a positive integer");
 
@@ -196,10 +200,10 @@ async function requestJSON(url, {body, timeoutMs = DEFAULT_TIMEOUT_MS, fetchImpl
     }
     if (!response.ok) {
       const detail = data?.error?.message || data?.error || data?.message || response.statusText;
-      if (authoritativeAccountAbsence(response.status, data)) {
+      const code = classifyYNXHTTPFailure(response.status, data, {accountLookup});
+      if (code === ynxErrorCodes.accountNotFound) {
         throw new YNXSDKError(`YNX account does not exist (${response.status})`, {status: response.status, code: ynxErrorCodes.accountNotFound});
       }
-      const code = [502, 503, 504].includes(response.status) ? ynxErrorCodes.rpcUnavailable : ynxErrorCodes.httpError;
       throw new YNXSDKError(`YNX endpoint failed (${response.status}): ${detail}`, {status: response.status, code});
     }
     return data;
