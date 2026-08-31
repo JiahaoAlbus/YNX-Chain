@@ -1,0 +1,66 @@
+{
+  "schemaVersion": "ynx-video-post-p0239-recovery-baseline/1",
+  "centralRecovery": {
+    "commit": "d257e91941542ed83a67d253cdb85fec8711a001",
+    "tree": "47aca95e3fbcd051cf30f4b0095c3eb3197da5df",
+    "status": "CONSUMED_RELEASED_SUCCESS_VIDEO_LEGACY_VIEWER_TUPLE_SAFE_EMERGENCY_RECOVERY",
+    "nonReusable": true
+  },
+  "legacyViewer": {
+    "sourceCommit": "e5ce33550bbd8a4be09a55a6bb3dd73cd3cb8833",
+    "carrier": "/var/tmp/ynx-video-predecessor-e5ce335-runtime.tar.gz",
+    "carrierSha256": "6771deb82ccc62a9c14d62ed40e7bda961806ffe3c14681b9cf53ec27afef2df",
+    "rootResponse": {
+      "status": 200,
+      "bytes": 3285,
+      "sha256": "5c6aa1b9207680ff40f77df6d063571f67beff40719d727acf5d2fa0c05b591a"
+    },
+    "serviceUnit": "ynx-video-viewer.service",
+    "servicePort": 6494,
+    "sharedCurrent": "/opt/ynx-video/current",
+    "sharedCurrentTuple": "64770:1324617:0:0:777:1:53:symbolic link",
+    "sharedCurrentTarget": "/opt/ynx-video/releases/p0205-creator-studio-0e1a53c5",
+    "legacyUnitSha256": "c0518f813134f2879382cc3f7c999f8abf9b4660c513bc2651487a6fe9ed29c9",
+    "caddyPath": "/etc/caddy/Caddyfile",
+    "caddySha256": "077fe80ea9aab24a32d64ba1fab3584e8aab10304e200e58d976d2c33edfb39f"
+  },
+  "isolatedSuccessor": {
+    "root": "/opt/ynx-video-viewer-wallet",
+    "current": "/opt/ynx-video-viewer-wallet/current",
+    "serviceUnit": "ynx-video-viewer-wallet.service",
+    "viewerPort": 6494,
+    "candidatePreflightPort": 16494,
+    "apiPortPreserved": 6493,
+    "creatorPortPreserved": 6495,
+    "sharedCurrentMutationAllowed": false,
+    "caddyMutationAllowed": false
+  },
+  "legacyRecoveryRemoteArgv": [
+    "/usr/bin/sudo",
+    "-n",
+    "/usr/bin/env",
+    "YNX_VIDEO_EXECUTION_MODE=production",
+    "YNX_VIDEO_LEASE_AUTHORIZED=P0_VIDEO_LEGACY_SUBTREE_RECOVERY_SINGLE_USE",
+    "YNX_VIDEO_SHARED_CURRENT=/opt/ynx-video/current",
+    "YNX_VIDEO_SHARED_TARGET=/opt/ynx-video/releases/p0205-creator-studio-0e1a53c5",
+    "YNX_VIDEO_SHARED_LINK_TUPLE_B64=NjQ3NzA6MTMyNDYxNzowOjA6Nzc3OjE6NTM6c3ltYm9saWMgbGluaw==",
+    "YNX_VIDEO_PREDECESSOR_CARRIER=/var/tmp/ynx-video-predecessor-e5ce335-runtime.tar.gz",
+    "YNX_VIDEO_PREDECESSOR_CARRIER_SHA256=6771deb82ccc62a9c14d62ed40e7bda961806ffe3c14681b9cf53ec27afef2df",
+    "YNX_VIDEO_LEGACY_UNIT=ynx-video-viewer.service",
+    "YNX_VIDEO_LEGACY_UNIT_PATH=/etc/systemd/system/ynx-video-viewer.service",
+    "YNX_VIDEO_LEGACY_UNIT_SHA256=c0518f813134f2879382cc3f7c999f8abf9b4660c513bc2651487a6fe9ed29c9",
+    "YNX_VIDEO_CADDY_PATH=/etc/caddy/Caddyfile",
+    "YNX_VIDEO_CADDY_SHA256=077fe80ea9aab24a32d64ba1fab3584e8aab10304e200e58d976d2c33edfb39f",
+    "YNX_VIDEO_RECOVERY_RECEIPT=/var/lib/ynx-video-viewer-wallet-evidence/video-legacy-viewer-emergency-recovery.receipt",
+    "/var/tmp/ynx-video-legacy-viewer-emergency-recovery.sh",
+    "recover"
+  ],
+  "truthBoundary": {
+    "sourceArtifactFixtureOnly": true,
+    "sshAllowed": false,
+    "deploymentAllowed": false,
+    "accountRequestAllowed": false,
+    "signatureAllowed": false,
+    "transactionAllowed": false
+  }
+}

@@ -39,6 +39,7 @@ files=(
   index.html
   package.json
   responsive.css
+  runtime/post-p0239-recovery-baseline.json
   runtime/topology.json
   server.mjs
   styles.css

@@ -21,6 +21,23 @@ test("runtime topology isolates Viewer 6494 from API 6493 and Creator 6495", () 
   assert.ok(topology.forbiddenPaths.includes("/opt/ynx-video/current"));
 });
 
+test("post-P0-239 recovery baseline freezes exact legacy rollback and isolated successor topology", () => {
+  const baseline = JSON.parse(readFileSync(join(videoRoot, "runtime/post-p0239-recovery-baseline.json"), "utf8"));
+  assert.equal(baseline.centralRecovery.commit, "d257e91941542ed83a67d253cdb85fec8711a001");
+  assert.equal(baseline.centralRecovery.nonReusable, true);
+  assert.equal(baseline.legacyViewer.sourceCommit, "e5ce33550bbd8a4be09a55a6bb3dd73cd3cb8833");
+  assert.equal(baseline.legacyViewer.carrierSha256, "6771deb82ccc62a9c14d62ed40e7bda961806ffe3c14681b9cf53ec27afef2df");
+  assert.equal(baseline.legacyViewer.sharedCurrentTarget, "/opt/ynx-video/releases/p0205-creator-studio-0e1a53c5");
+  assert.equal(baseline.isolatedSuccessor.root, "/opt/ynx-video-viewer-wallet");
+  assert.equal(baseline.isolatedSuccessor.viewerPort, 6494);
+  assert.equal(baseline.isolatedSuccessor.apiPortPreserved, 6493);
+  assert.equal(baseline.isolatedSuccessor.creatorPortPreserved, 6495);
+  assert.equal(baseline.isolatedSuccessor.sharedCurrentMutationAllowed, false);
+  assert.equal(baseline.isolatedSuccessor.caddyMutationAllowed, false);
+  assert.deepEqual(baseline.legacyRecoveryRemoteArgv.slice(-2), ["/var/tmp/ynx-video-legacy-viewer-emergency-recovery.sh", "recover"]);
+  assert.equal(baseline.truthBoundary.sourceArtifactFixtureOnly, true);
+});
+
 test("self-contained server serves the public /video path without a shared release symlink", async () => {
   const port = 16000 + Math.floor(Math.random() * 1000);
   const child = spawn(process.execPath, [join(videoRoot, "server.mjs")], {
@@ -63,6 +80,17 @@ test("runtime carrier rebuild is byte-identical and normalized", () => {
   assert.deepEqual(names, secondNames);
   assert.ok(names.includes("runtime/server.mjs"));
   assert.ok(names.includes("runtime/runtime-manifest.json"));
+  assert.ok(names.includes("runtime/runtime/post-p0239-recovery-baseline.json"));
+
+  const walletSource = execFileSync("gtar", ["-xOzf", first, "runtime/wallet-connection.js"], {encoding: "utf8"});
+  const appSource = execFileSync("gtar", ["-xOzf", first, "runtime/app.js"], {encoding: "utf8"});
+  assert.match(walletSource, /com\.ynx\.wallet/);
+  assert.match(walletSource, /io\.metamask/);
+  assert.match(walletSource, /\[250, 750, 1500\]/);
+  assert.match(appSource, /accountsChanged/);
+  assert.match(appSource, /chainChanged/);
+  assert.match(appSource, /disconnect/);
+  assert.match(appSource, /user-requested/);
 });
 
 test("actual shell deploy and rollback touch only isolated Viewer binding", () => {
@@ -115,6 +143,51 @@ test("actual shell deploy and rollback touch only isolated Viewer binding", () =
   assert.equal(readlinkSync(join(root, "current")), join(releases, "old-release"));
   assert.deepEqual(readFileSync(join(fixture, "api-state")), apiBefore);
   assert.deepEqual(readFileSync(join(fixture, "creator-state")), creatorBefore);
+  assert.equal(readFileSync(join(fixture, "restart-log"), "utf8"), "restart-viewer-only\nrestart-viewer-only\n");
+});
+
+test("post-switch Viewer failure automatically restores the exact predecessor and preserves API and Creator", () => {
+  const source = execFileSync("git", ["rev-parse", "HEAD"], {cwd: repoRoot, encoding: "utf8"}).trim();
+  const temp = mkdtempSync(join(tmpdir(), "ynx-video-auto-rollback-"));
+  const root = join(temp, "viewer-root");
+  const fixture = join(root, "fixture");
+  const releases = join(root, "releases");
+  const predecessor = join(releases, "p0239-e5ce-predecessor");
+  mkdirSync(fixture, {recursive: true});
+  mkdirSync(predecessor, {recursive: true});
+  writeFileSync(join(predecessor, "index.html"), "p0239 legacy viewer\n");
+  symlinkSync(predecessor, join(root, "current"));
+  writeFileSync(join(fixture, "api-state"), "api-6493-stable\n");
+  writeFileSync(join(fixture, "creator-state"), "creator-6495-stable\n");
+  writeExecutable(join(fixture, "probe-api"), `#!/bin/sh\ncat '${join(fixture, "api-state")}'\n`);
+  writeExecutable(join(fixture, "probe-creator"), `#!/bin/sh\ncat '${join(fixture, "creator-state")}'\n`);
+  writeExecutable(join(fixture, "probe-viewer"), `#!/bin/sh\ncase "$(readlink '${join(root, "current")}')" in *ynx-video-${source}) exit 1;; esac\ncat '${join(root, "current", "index.html")}'\n`);
+  writeExecutable(join(fixture, "restart-viewer"), `#!/bin/sh\nprintf 'restart-viewer-only\\n' >> '${join(fixture, "restart-log")}'\n`);
+
+  const carrier = join(temp, "candidate.tar.gz");
+  execFileSync("bash", [join(videoRoot, "scripts/build-runtime.sh"), source, carrier], {cwd: repoRoot});
+  const carrierSha = execFileSync("shasum", ["-a", "256", carrier], {encoding: "utf8"}).split(/\s+/)[0];
+  const receipt = join(temp, "receipt.txt");
+  const env = {
+    ...process.env,
+    YNX_VIDEO_EXECUTION_MODE: "fixture",
+    YNX_VIDEO_VIEWER_ROOT: root,
+    YNX_VIDEO_RELEASE_ID: `ynx-video-${source}`,
+    YNX_VIDEO_CARRIER: carrier,
+    YNX_VIDEO_CARRIER_SHA256: carrierSha,
+    YNX_VIDEO_SOURCE_COMMIT: source,
+    YNX_VIDEO_RECEIPT: receipt,
+    YNX_VIDEO_FIXTURE_CONTROL: fixture,
+    YNX_VIDEO_VIEWER_PORT: "6494",
+    YNX_VIDEO_API_PORT: "6493",
+    YNX_VIDEO_CREATOR_PORT: "6495"
+  };
+  assert.throws(() => execFileSync("bash", [join(videoRoot, "scripts/video-runtime-executor.sh"), "deploy"], {env, stdio: "pipe"}));
+  assert.equal(readlinkSync(join(root, "current")), predecessor);
+  assert.equal(readFileSync(join(root, "current", "index.html"), "utf8"), "p0239 legacy viewer\n");
+  assert.equal(readFileSync(join(fixture, "api-state"), "utf8"), "api-6493-stable\n");
+  assert.equal(readFileSync(join(fixture, "creator-state"), "utf8"), "creator-6495-stable\n");
+  assert.equal(existsSync(receipt), false);
   assert.equal(readFileSync(join(fixture, "restart-log"), "utf8"), "restart-viewer-only\nrestart-viewer-only\n");
 });
 
