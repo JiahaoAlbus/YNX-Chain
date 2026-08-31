@@ -386,9 +386,14 @@ func TestExplorerPortalRoutesStayInOne6423Document(t *testing.T) {
 			t.Fatalf("portal contains forbidden route or retired identity %q", forbidden)
 		}
 	}
-	for _, behavior := range []string{"window.addEventListener('hashchange',renderLocation)", "setDetailLocation", "renderPortalRoute(route)"} {
+	for _, behavior := range []string{"window.addEventListener('hashchange',renderLocation)", "setDetailLocation", "renderPortalRoute(route)", "['blockchain','tokens','data','developers'].includes(activeRoute)"} {
 		if !strings.Contains(indexHTML, behavior) {
 			t.Fatalf("portal route behavior is missing %q", behavior)
+		}
+	}
+	for _, required := range []string{"const observedWindow = calculateWindow(blocks)", "observedWindow.tps.toFixed(2)", "observedWindow.blockTime ? observedWindow.blockTime.toFixed(1) + 's'", "i('blockLag'"} {
+		if !strings.Contains(indexHTML, required) {
+			t.Fatalf("blockchain network status is missing verified runtime fact %q", required)
 		}
 	}
 }
