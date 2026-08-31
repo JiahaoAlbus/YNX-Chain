@@ -82,7 +82,7 @@ jobs:
           config="$("$prefix/bin/ynx-wallet-cli" validate-config)"
           printf '%s' "$config" | python3 -c 'import json,sys;e=json.load(sys.stdin);assert e=={"chainId":6423,"evmChainId":"0x1917","nativeChainId":"ynx_6423-1","nativeCurrency":"YNXT","valid":True}'
           set +e
-          "$prefix/bin/ynx-wallet-cli" chain-status --chain-id 9102 > "$evidence/legacy.json"
+          "$prefix/bin/ynx-wallet-cli" chain-status --chain-id 9102 > "$evidence/legacy.json" 2>&1
           legacy_rc=$?
           set -e
           test "$legacy_rc" = 78
