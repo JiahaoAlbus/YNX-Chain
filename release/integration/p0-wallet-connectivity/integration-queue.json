@@ -7743,14 +7743,19 @@
     {
       "taskId": "P0-328",
       "owner": "integration,chain-peer-release-control-plane-readonly-preparation",
-      "status": "QUEUED_CHAIN_PEER_6423_DEPLOYMENT_PREPARATION_READONLY",
+      "status": "COMPLETED_READONLY_BLOCKED_PEER_6423_CONFIG_AND_IDENTITY_UNBOUND",
       "dependencies": ["P0-327"],
       "executionLeaseIssued": false,
       "remoteMutation": false,
       "deploymentAuthorized": false,
+      "attemptCount": 1,
+      "sshAttemptCount": 3,
+      "mutationCount": 0,
+      "terminalEvidence": "release/integration/p0-wallet-connectivity/execution/objects/p0-328-chain-peer-6423-readonly-preparation-terminal-evidence-20260831.json",
+      "terminalEvidenceSha256": "f0820db1bbc1d63e6bbb7582c6df54e9ecaf0585307ad62e1ca9f04bbc52cfd1",
       "scope": "Read only: bind per-peer 6423 artifact, unit, config, identity, listener, data-dir and rollback baselines needed for a later distinct deployment lease.",
       "forbidden": ["peer start", "peer restart", "new chain deployment", "Caddy operation", "broadcast", "unjail", "validator operation", "account", "signature", "typed-data", "transaction"],
-      "nextAction": "A fresh one-SSH-per-peer read-only lease may be reviewed only after source-side artifact and rollback candidates are frozen. Full four-node BFT redundancy remains unproven."
+      "nextAction": "Unique blocker: PEER_6423_DEPLOYMENT_ARTIFACT_CONFIG_IDENTITY_AND_ROLLBACK_UNBOUND. Freeze one exact per-peer artifact/config/data-dir/genesis/node-identity/seed-peer/listener/rollback package and literal no-retry argv; only then may a new deployment lease be reviewed. Full four-node BFT redundancy remains unproven."
     }
   ]
 }

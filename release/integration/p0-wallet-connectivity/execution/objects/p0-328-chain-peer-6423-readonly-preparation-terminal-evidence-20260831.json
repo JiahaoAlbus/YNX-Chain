@@ -1,0 +1,43 @@
+{
+  "schemaVersion": "1.0.0",
+  "taskId": "P0-328",
+  "status": "COMPLETED_READONLY_BLOCKED_PEER_6423_CONFIG_AND_IDENTITY_UNBOUND",
+  "attemptCount": 1,
+  "sshAttemptCount": 3,
+  "retryAllowed": false,
+  "mutationCount": 0,
+  "stdout": {"path": "/tmp/p0-328-chain-peer-6423-readonly-preparation.stdout", "bytes": 2784, "sha256": "cda83ed17b4bb28051372c0165d22c76782ad5a194ef764e2701e885c9b03726"},
+  "sharedFindings": {
+    "unit": "ynx-chaind.service is loaded but inactive:dead with MainPID=0 and NRestarts=0",
+    "listener6420": "absent",
+    "health6420": "HTTP transport 000",
+    "status6420": "HTTP transport 000",
+    "standardConfigHomes": ["/opt/ynx-chain/config", "/var/lib/ynx-chain/config", "/root/.ynx/config", "/home/ubuntu/.ynx/config"],
+    "standardConfigHomesPresent": false,
+    "envPath": "/etc/ynx-chain/ynx-chaind.env",
+    "envPresent": false
+  },
+  "perPeer": {
+    "singapore": {
+      "host": "43.134.23.58",
+      "binary": "65027:440654:0:0:755:1:20160696:regular file:1432eb9c00e03aa65167d08b382e618f72c32daff775fc3c51e2ff90fabb02ec",
+      "unit": "65027:131439:0:0:644:1:431:regular file:29b3e4834bb2a81f252f8662b6547893893e3343372dab0ac00619bd63330a95",
+      "legacyPeer": "masked:failed:failed:0:0"
+    },
+    "siliconValley": {
+      "host": "43.162.100.54",
+      "binary": "64770:6691:0:0:755:1:20418744:regular file:eb96a2d09859f041221917489589100f5a94ef0bbf4f5ad4f6fcf5c753846fd4",
+      "unit": "64770:132527:0:0:644:1:431:regular file:29b3e4834bb2a81f252f8662b6547893893e3343372dab0ac00619bd63330a95",
+      "legacyPeer": "masked:inactive:dead:0:0"
+    },
+    "seoul": {
+      "host": "43.164.132.81",
+      "binary": "65025:150484:0:0:755:1:20418744:regular file:eb96a2d09859f041221917489589100f5a94ef0bbf4f5ad4f6fcf5c753846fd4",
+      "unit": "65025:147480:0:0:644:1:431:regular file:29b3e4834bb2a81f252f8662b6547893893e3343372dab0ac00619bd63330a95",
+      "legacyPeer": "masked:inactive:dead:0:0"
+    }
+  },
+  "blocker": "PEER_6423_DEPLOYMENT_ARTIFACT_CONFIG_IDENTITY_AND_ROLLBACK_UNBOUND",
+  "reason": "There is no frozen per-peer config home, genesis, node identity, seed/persistent-peer binding, 6420 listener contract, or rollback object. Singapore's binary differs from the matching Silicon Valley and Seoul binary. The primary reports stale_peer_sync, so no four-node BFT redundancy claim is available.",
+  "nextAction": "A source owner must freeze exactly one artifact/config/data-dir/genesis/node-identity/seed-peer/rollback package per peer and a literal no-retry deploy argv. Only then may Central review a wholly-new deployment lease."
+}
