@@ -7481,6 +7481,25 @@
       "cleanupComplete": false,
       "creatorPromoted": false,
       "nextAction": "P0-316 is consumed and nonreusable. A wholly-new identity-bound cleanup-only lease or repaired deployment successor requires separate review; no further action is authorized under P0-316."
+    },
+    {
+      "taskId": "P0-317",
+      "owner": "integration,chain-protected-runtime-operator",
+      "status": "ACTIVE_CHAIN_FOUR_NODE_ZERO_WRITE_INSPECTION",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/execution/p0-317-chain-four-node-zero-write-inspection-single-use-lease-20260831.json",
+        "/tmp/p0-317-chain-four-node-zero-write-evidence-20260831.json"
+      ],
+      "dependencies": ["P0-316"],
+      "requestCommit": "536a25472d0ee728979663f6f7fe87458e471a2c",
+      "requestBlob": "117082d9070ae702262545f365e02697ce6e21bb",
+      "executionLeaseIssued": true,
+      "attemptLimitPerNode": 1,
+      "retryAllowed": false,
+      "remoteMutation": false,
+      "serviceLifecycleAuthorized": false,
+      "deploymentAuthorized": false,
+      "nextAction": "Named protected operator executes the exact inspector once. Return the local byte-preserving evidence envelope and terminal attempt truth; release Heavy and all Chain locks on every terminal outcome."
     }
   ]
 }

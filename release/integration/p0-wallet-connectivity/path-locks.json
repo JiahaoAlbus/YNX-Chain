@@ -3507,6 +3507,30 @@
         "sole zero-write SSH exited zero and proved old current restored with exact receipt candidate and control residues retained",
         "P0-316 is consumed and nonreusable; Heavy and all Creator readback locks are released"
       ]
+    },
+    {
+      "path": "{chain-four-node-zero-write,readonly:ssh:ubuntu@43.153.202.237,readonly:ssh:root@43.134.23.58,readonly:ssh:ubuntu@43.162.100.54,readonly:ssh:root@43.164.132.81,readonly:systemd:ynx-chaind.service,readonly:/usr/local/bin/ynx-chaind,readonly:/opt/ynx-chain/**,readonly:loopback:{health,status,node/identity,validators/peer-sync}}",
+      "owner": "chain-protected-runtime-operator",
+      "branch": "codex/chain-four-node-readonly-inspector-20260831",
+      "worktree": "/private/tmp/ynx-chain-peer-readiness.fXjb67",
+      "taskId": "P0-317",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_CHAIN_FOUR_NODE_ZERO_WRITE_INSPECTION",
+      "acquiredAt": "2026-08-31T05:31:00Z",
+      "expiresAt": "2026-08-31T05:51:00Z",
+      "releasedAt": null,
+      "sourceCommit": "8af069d2554736939e81bf03a4f5d6c590d712f3",
+      "sourceTree": "320c4310c5552c59da8c3c9e8269b5c49558bdf7",
+      "evidenceCommit": "8af069d2554736939e81bf03a4f5d6c590d712f3",
+      "artifactSha256": "0ea6dbff7be60da2ceb647cb905635292c5fac422e0ccedc80147f7d9046a0b5",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "maximum one zero-write SSH inspection attempt per exact node and no retry",
+        "exact 2501-byte payload SHA48548c is stdin and creates no remote temporary files",
+        "read only service file and loopback node readiness facts",
+        "protected identity values paths and hashes must never be logged persisted or disclosed",
+        "no service lifecycle deployment validator chain state firewall Caddy Creator Finance Wallet account signature typed-data or transaction action"
+      ]
     }
   ]
 }

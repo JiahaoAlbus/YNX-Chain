@@ -1,0 +1,105 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-317",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-chain-four-node-zero-write-inspection-20260831T053100Z",
+  "status": "ACTIVE",
+  "singleUse": true,
+  "reusable": false,
+  "issuedAt": "2026-08-31T05:31:00Z",
+  "expiresAt": "2026-08-31T05:51:00Z",
+  "owner": "chain-protected-runtime-operator",
+  "namedExecutor": "chain-protected-runtime-operator",
+  "scope": "CHAIN_FOUR_NODE_ZERO_WRITE_INSPECTION_ONLY",
+  "source": {
+    "branch": "codex/chain-four-node-readonly-inspector-20260831",
+    "head": "8af069d2554736939e81bf03a4f5d6c590d712f3",
+    "tree": "320c4310c5552c59da8c3c9e8269b5c49558bdf7",
+    "remoteExact": true,
+    "clean": true
+  },
+  "request": {
+    "commit": "536a25472d0ee728979663f6f7fe87458e471a2c",
+    "tree": "f68caf6ba18316e962d2b4fadd30f3eea9b345c9",
+    "path": "release/integration/chain-four-node-zero-write-inspection-lease-request-20260831.json",
+    "blob": "117082d9070ae702262545f365e02697ce6e21bb",
+    "bytes": 3994,
+    "sha256": "9dcf7fa642f4aef27e522b4c7d7bd422a7dd768979ac4270f48c6743fb31c9cb"
+  },
+  "objectReceiptCorrection": {
+    "path": "release/integration/chain-four-node-zero-write-lease-request-object-receipt-correction-20260831.json",
+    "blob": "6e3f800a830293ed1158944727dda96caacfcde3",
+    "bytes": 3355,
+    "sha256": "03dfb1e8d1ca5bc00b7baeed983c261ed4f4dc6ffcc17e0eb2cfa7a2e3b6a1fa"
+  },
+  "protectedReadiness": {
+    "commit": "852d0a16c95222f8a917991c22546a2bf72824cf",
+    "tree": "a213bca70b5a75e5b90c32369c76ea985078f407",
+    "path": "release/integration/chain-four-node-protected-operator-readiness-20260831.json",
+    "blob": "a5e2857ca2a216e4a2eb99bf783be2aa2ad0dd0c",
+    "bytes": 1623,
+    "sha256": "8448e0b6bd389e187efc540afc8d5d1a387c7a2591c493ff973b5ceff1b7112c",
+    "allFiveBooleansTrue": true,
+    "secretOrIdentityValuesRecorded": false
+  },
+  "inspector": {
+    "commit": "de393ce295ae50f77967cbd3ad15e8bf0988684e",
+    "tree": "e45e6bc10060315a32186dfa748e5e6aacf2e63a",
+    "path": "scripts/verify/remote-smoke-test.mjs",
+    "blob": "8a4e1c62f4072c984cd5ca1621e3a6fd2eb9ee23",
+    "bytes": 82263,
+    "sha256": "0ea6dbff7be60da2ceb647cb905635292c5fac422e0ccedc80147f7d9046a0b5",
+    "remotePayloadBytes": 2501,
+    "remotePayloadSha256": "48548c8039b09d72e1a6dc30ebfbae7cd35b3451860676286a133890d0d74573",
+    "printedPlanBytes": 6074,
+    "printedPlanSha256": "f06b2a2a138130fc634d4fe8ce788bd1b78c0193aee7d5b19f240cc19eaafbb5",
+    "selfTest": "PASS",
+    "globalRollbackContractVerifier": "PASS"
+  },
+  "targets": [
+    {"role":"primary","host":"43.153.202.237","user":"ubuntu","identityReference":"PRIMARY_NODE_SSH_KEY"},
+    {"role":"singapore","host":"43.134.23.58","user":"root","identityReference":"SG_NODE_SSH_KEY"},
+    {"role":"silicon-valley","host":"43.162.100.54","user":"ubuntu","identityReference":"SILICON_VALLEY_NODE_SSH_KEY"},
+    {"role":"seoul","host":"43.164.132.81","user":"root","identityReference":"SEOUL_NODE_SSH_KEY"}
+  ],
+  "execution": {
+    "workingDirectory": "/private/tmp/ynx-chain-peer-readiness.fXjb67",
+    "environment": {
+      "YNX_CHAIN_FOUR_NODE_READONLY_INSPECTION_ACK": "P0-CHAIN-FOUR-NODE-ZERO-WRITE-INSPECTION-20260831:EXECUTE",
+      "YNX_CHAIN_FOUR_NODE_READONLY_INSPECTION_EVIDENCE": "/tmp/p0-317-chain-four-node-zero-write-evidence-20260831.json",
+      "PRIMARY_NODE_SSH_KEY": "<protected runtime reference; never disclose>",
+      "SG_NODE_SSH_KEY": "<protected runtime reference; never disclose>",
+      "SILICON_VALLEY_NODE_SSH_KEY": "<protected runtime reference; never disclose>",
+      "SEOUL_NODE_SSH_KEY": "<protected runtime reference; never disclose>"
+    },
+    "argv": [
+      "/usr/bin/node",
+      "scripts/verify/remote-smoke-test.mjs",
+      "--chain-four-node-readonly-inspection"
+    ],
+    "localEvidencePathMustBeAbsent": true,
+    "attemptLimitPerNode": 1,
+    "retryAllowed": false,
+    "maximumDurationMinutes": 20,
+    "remoteTemporaryFiles": false
+  },
+  "allowed": [
+    "read-only systemd unit and service metadata",
+    "read-only current and rollback binary and manifest identities",
+    "read-only loopback health status node identity and peer sync bodies",
+    "one local byte-preserving JSON evidence envelope"
+  ],
+  "forbidden": [
+    "remote file creation modification or deletion",
+    "service start stop restart reload or daemon-reload",
+    "deployment validator chain-state configuration firewall or Caddy mutation",
+    "parallel node mutation or any rollback execution",
+    "identity value path hash logging persistence or disclosure",
+    "Creator Finance Wallet account signature typed-data or transaction action"
+  ],
+  "terminal": {
+    "releaseHeavyAndAllChainLocks": true,
+    "partialInspectionIsNotCompletion": true,
+    "noRuntimePromotion": true
+  }
+}
