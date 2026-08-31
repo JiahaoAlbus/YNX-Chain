@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -100,6 +101,109 @@ func TestConnectionEventRejectsLegacy9102AndUnnormalized6423(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestAcceptedWalletConnectivityConformanceFileStore(t *testing.T) {
+	fixture := loadAcceptedWalletConnectivityConformanceFixture(t)
+	if fixture.ContractStatus != "ACCEPTED" || fixture.Contract != "connectionEvents@1.0.0-p0.0" || fixture.SynchronousDependency != "prohibited" {
+		t.Fatalf("accepted conformance fixture has unsafe contract state: %+v", fixture)
+	}
+	if len(fixture.RegisteredConsumers) != 2 || fixture.RegisteredConsumers[0].Name != ConnectionDiagnosticsConsumer || fixture.RegisteredConsumers[0].Adapter != "file-store" || fixture.RegisteredConsumers[1].Name != ConnectionDiagnosticsConsumer || fixture.RegisteredConsumers[1].Adapter != "postgres" {
+		t.Fatalf("fixture does not enumerate the registered diagnostics consumers: %+v", fixture.RegisteredConsumers)
+	}
+
+	for _, vector := range fixture.Vectors {
+		switch vector.Outcome {
+		case "accepted-asynchronous":
+			aggregate, err := AggregateWalletConnectivity(vector.ProducerChainID, "GATEWAY_UNAVAILABLE")
+			if err != nil || aggregate.ChainID != vector.PersistedChainID || aggregate.ErrorClass != "gateway-unavailable" || !aggregate.Retryable {
+				t.Fatalf("%s did not normalize the accepted producer input: aggregate=%+v err=%v", vector.ID, aggregate, err)
+			}
+			store, err := OpenStore(filepath.Join(t.TempDir(), vector.ID+".json"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			input := connectionEventFixture("event.connection.conformance."+strings.ToLower(strings.ReplaceAll(vector.ID, "-", "")), "wallet.connection.recovered", 1)
+			input.ChainID, input.ErrorClass, input.Retryable = aggregate.ChainID, aggregate.ErrorClass, aggregate.Retryable
+			event, err := store.EmitConnectionEvent(input, "key.connection.0001", testKey)
+			if err != nil || len(store.PendingOutbox(time.Now().UTC().Add(time.Hour), 10)) != 1 {
+				t.Fatalf("%s did not commit the non-blocking Outbox observation: event=%+v err=%v", vector.ID, event, err)
+			}
+			applied, err := store.ConsumeConnectionDiagnostics(event.EventID)
+			if err != nil || !applied {
+				t.Fatalf("%s did not apply the Inbox-protected aggregate: applied=%t err=%v", vector.ID, applied, err)
+			}
+		case "reject-before-persistence":
+			if vector.ProducerChainID == "" {
+				for _, field := range vector.ForbiddenFields {
+					raw := connectionEventJSONWithUnknownField(field)
+					if _, err := DecodeConnectionEventStrict(bytes.NewReader(raw)); ErrorCodeOf(err) != CodeUnknownField {
+						t.Fatalf("%s permitted forbidden field %q: %v", vector.ID, field, err)
+					}
+				}
+				continue
+			}
+			store, err := OpenStore(filepath.Join(t.TempDir(), vector.ID+".json"))
+			if err != nil {
+				t.Fatal(err)
+			}
+			input := connectionEventFixture("event.connection.conformance."+strings.ToLower(strings.ReplaceAll(vector.ID, "-", "")), "wallet.connection.requested", 1)
+			input.ChainID = vector.ProducerChainID
+			if _, err := store.EmitConnectionEvent(input, "key.connection.0001", testKey); ErrorCodeOf(err) != CodeSchemaCompatibilityViolation || len(store.PendingOutbox(time.Now().UTC().Add(time.Hour), 10)) != 0 {
+				t.Fatalf("%s reached persistence for legacy chain %q: %v", vector.ID, vector.ProducerChainID, err)
+			}
+		default:
+			t.Fatalf("unknown conformance outcome %q", vector.Outcome)
+		}
+	}
+}
+
+type acceptedWalletConnectivityConformanceFixture struct {
+	ContractStatus        string `json:"contractStatus"`
+	Contract              string `json:"contract"`
+	SynchronousDependency string `json:"synchronousDependency"`
+	RegisteredConsumers   []struct {
+		Name    string `json:"name"`
+		Adapter string `json:"adapter"`
+	} `json:"registeredConsumers"`
+	Vectors []struct {
+		ID               string   `json:"id"`
+		ProducerChainID  string   `json:"producerChainId"`
+		PersistedChainID string   `json:"persistedChainId"`
+		ForbiddenFields  []string `json:"forbiddenFields"`
+		Outcome          string   `json:"outcome"`
+	} `json:"vectors"`
+}
+
+func loadAcceptedWalletConnectivityConformanceFixture(t *testing.T) acceptedWalletConnectivityConformanceFixture {
+	t.Helper()
+	bytes, err := os.ReadFile(filepath.Join("..", "..", "schemas", "data-fabric", "wallet-connectivity-events-v1.accepted.conformance.vectors.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	var fixture acceptedWalletConnectivityConformanceFixture
+	if err := json.Unmarshal(bytes, &fixture); err != nil {
+		t.Fatal(err)
+	}
+	return fixture
+}
+
+func connectionEventJSONWithUnknownField(field string) []byte {
+	event := connectionEventFixture("event.connection.privacy.0001", "wallet.connection.requested", 1)
+	payload, err := json.Marshal(event)
+	if err != nil {
+		panic(err)
+	}
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(payload, &fields); err != nil {
+		panic(err)
+	}
+	fields[field] = json.RawMessage(`"redacted"`)
+	payload, err = json.Marshal(fields)
+	if err != nil {
+		panic(err)
+	}
+	return payload
 }
 
 func TestConnectionDiagnosticsAreFixedCardinalityAndReplayIdempotent(t *testing.T) {
