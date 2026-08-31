@@ -7676,6 +7676,7 @@
       "canonicalInventorySha256":"1a921cd16c549d3aa78d8b7a22c1f984597278e7a84cdb6946cba0bb73826f95",
       "mutationCount":0,
       "nextAction":"P0-324 is consumed and nonreusable. A wholly-new full post-cleanup zero-write readback may use the corrected carrier canonical inventory digest; cleanupComplete remains false and the build-identity successor remains unauthorized."
-    }
+    },
+    {"taskId":"P0-325","owner":"integration,finance-release-control-plane-readonly-verification","status":"ACTIVE_FINANCE_P0318_COMPLETE_POST_CLEANUP_ZERO_WRITE_READBACK_ONLY","paths":["release/integration/p0-wallet-connectivity/execution/p0-325-finance-p0318-complete-post-cleanup-zero-write-single-use-lease-20260831.json","release/integration/p0-wallet-connectivity/execution/objects/p0-325-finance-p0318-complete-post-cleanup-zero-write-inspector.py","/tmp/p0-325-finance-p0318-complete-post-cleanup-zero-write.json","/tmp/p0-325-finance-p0318-complete-post-cleanup-zero-write.stderr"],"dependencies":["P0-324"],"executionLeaseIssued":true,"sshAttemptLimit":1,"retryAllowed":false,"remoteMutation":false,"cleanupAuthorized":false,"deploymentAuthorized":false,"nextAction":"Execute one complete zero-write readback; only direct full success sets cleanupComplete true and unlocks independent review of the unchanged build-identity successor."}
   ]
 }
