@@ -86,6 +86,12 @@ This is a local browser regression against the active 6423 node/indexer. It conf
 - A 40-hex-character EVM address that cannot be verified as an indexed transaction or account now receives the specific localized contract-index unavailable state rather than a misleading generic result. This preserves address/transaction resolution where evidence exists and does not infer contract status from an arbitrary address.
 - Browser evidence: searching `0x1111111111111111111111111111111111111111` opened the existing same-tab detail surface with the Korean unavailable title and contract-index explanation. The page retained its `#home` route, had no `about:blank`, and had no horizontal overflow.
 
+## 2026-08-31 verified indexed-window chart follow-up
+
+- Data now uses the existing verified local block-index endpoint for the Blocks & transactions view rather than presenting that source as an empty historical chart. The selectable windows are explicitly `24`, `48`, `72`, and `100` indexed blocks—not invented time periods—and every bar opens the corresponding verified block detail.
+- Browser evidence: at 390 px wide, the initial activity chart rendered 24 interactive bars and a localized caption reporting `24` verified blocks and the actual current count of `0` transactions. Selecting the 100-block control rendered 100 bars with no document-width overflow; activating a bar opened `#blockchain?detail=block%3A1519` in the existing same tab.
+- Active-address, aggregate gas, node-health, and token-activity charts remain explicitly unavailable because no authenticated timestamped source for those series has been configured.
+
 ## 2026-08-31 full-shell locale gate follow-up
 
 - The previously static first-render labels for connection state, live-stream opening, verified source state, block waiting, chain facts, and the EVM label now resolve through the same five-locale dictionary as the routed content.

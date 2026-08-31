@@ -435,6 +435,11 @@ const indexHTML = `<!doctype html>
     .chart-toolbar button { padding:7px 10px; border:1px solid var(--line); border-radius:4px; color:#536072; background:#fff; font-size:12px; font-weight:650; }
     .chart-toolbar button.active { border-color:var(--blue); color:#fff; background:var(--blue); }
     .chart-empty { display:grid; min-height:210px; place-items:center; padding:24px; border:1px dashed #c6cfde; border-radius:6px; color:#5d6878; background:linear-gradient(180deg,#fcfdff,#f7f9ff); text-align:center; font-size:13px; line-height:1.55; }
+    .chart-window { display:grid; grid-template-columns:repeat(auto-fit,minmax(16px,1fr)); align-items:end; gap:5px; min-height:210px; padding:20px 16px 28px; border:1px solid #dce4f4; border-radius:6px; background:linear-gradient(180deg,#fcfdff,#f7f9ff); }
+    .chart-window button { display:grid; align-items:end; min-width:0; height:158px; padding:0; border:0; border-radius:4px 4px 2px 2px; background:transparent; cursor:pointer; }
+    .chart-window button:hover .chart-bar,.chart-window button:focus-visible .chart-bar { background:#0d4bc7; outline:0; }
+    .chart-bar { display:block; width:100%; min-height:4px; border-radius:4px 4px 1px 1px; background:#2b63d9; transition:background .16s ease; }
+    .chart-window-caption { grid-column:1 / -1; margin:8px 0 -12px; color:var(--muted); font-size:11px; line-height:1.4; }
     .code-sample { margin:0; padding:16px; overflow:auto; border:1px solid #dce4f4; border-radius:6px; color:#173a82; background:#f7f9ff; font:12px/1.6 var(--mono); white-space:pre; }
     @media (max-width:760px) { .route-grid,.route-grid.two { grid-template-columns:1fr; } .route-head { align-items:flex-start; flex-direction:column; } }
     @media (max-width:1360px) { .nav { height:auto; } .nav-inner { height:auto; flex-wrap:wrap; min-height:58px; padding:9px 0; } .nav-links { order:3; width:100%; overflow-x:auto; } .nav-links a,.nav-links button { height:42px; padding:0 9px; } }
@@ -452,6 +457,8 @@ const indexHTML = `<!doctype html>
       .metric-value { font-size:clamp(18px,4vw + 4px,22px); }
       .portal-panel,.download-item { padding:16px; }
       .code-sample { padding:12px; font-size:11px; }
+      .chart-window { gap:4px; padding:16px 10px 24px; }
+      .chart-window button { height:132px; }
       .announcement .shell { align-items:flex-start; padding:9px 0; font-size:clamp(11px,2.9vw,13px); line-height:1.4; }
       .announcement a { flex:none; }
       .nav-actions { width:100%; justify-content:space-between; margin-left:0; }
@@ -740,7 +747,17 @@ const indexHTML = `<!doctype html>
       ja:{activity:['ブロックとトランザクション','現在の検証済み索引数を上に表示しています。ソースを認証できるまで時系列は意図的に空です。'],addresses:['アクティブアドレス','Explorer は個別の検証済みアカウントを表示できますが、時刻付きアクティブアドレス系列は未設定です。'],gas:['Gas と手数料','現在の取引手数料は取引ごとに検証できますが、集約した履歴 Gas データは検証できません。'],nodes:['ノードとネットワーク健全性','バリデーターと同期状態はライブですが、履歴ノード健全性系列はありません。'],tokens:['トークン活動','YNXT はネイティブ資産として検証できます。履歴送金活動には専用の認証済み系列が必要です。'],empty:'この指標の認証済み 6423 履歴系列はありません。',source:'ソース',lastVerified:'最終検証',range:'範囲',historyUnavailable:'この期間に検証済みの 6423 履歴レコードはないため、チャートは意図的に空です。'},
       ko:{activity:['블록 및 트랜잭션','검증된 현재 색인 수가 위에 표시됩니다. 소스가 인증될 때까지 시계열은 의도적으로 비어 있습니다.'],addresses:['활성 주소','Explorer는 개별 검증 계정을 표시할 수 있지만 타임스탬프가 있는 활성 주소 계열은 구성되지 않았습니다.'],gas:['Gas 및 수수료','현재 트랜잭션 수수료는 거래별로 검증할 수 있지만 집계된 이력 Gas 데이터는 검증할 수 없습니다.'],nodes:['노드 및 네트워크 상태','검증인과 동기화 상태는 실시간이지만 이력 노드 상태 계열은 없습니다.'],tokens:['토큰 활동','YNXT는 네이티브 자산으로 검증할 수 있습니다. 이력 전송 활동에는 전용 인증 계열이 필요합니다.'],empty:'이 지표에 대한 인증된 6423 이력 계열이 없습니다.',source:'소스',lastVerified:'마지막 검증',range:'범위',historyUnavailable:'이 기간에 검증된 6423 이력 레코드가 없으므로 차트는 의도적으로 비어 있습니다.'}
     };
-    const chartText = key => dataChartCopy[language]?.[key] || dataChartCopy.en[key] || key;
+    Object.assign(dataChartCopy.en,{loading:'Loading verified indexed blocks…',window24:'24 blocks',window48:'48 blocks',window72:'72 blocks',window100:'100 blocks',windowCaption:'{blocks} verified indexed blocks · {transactions} transactions',blockPoint:'Block #{height}: {count} transactions',windowUnavailable:'The current verified indexed block window is unavailable. Retry from the network status panel.'});
+    Object.assign(dataChartCopy['zh-CN'],{loading:'正在加载已验证的索引区块…',window24:'24 个区块',window48:'48 个区块',window72:'72 个区块',window100:'100 个区块',windowCaption:'{blocks} 个已验证索引区块 · {transactions} 笔交易',blockPoint:'区块 #{height}：{count} 笔交易',windowUnavailable:'当前已验证索引区块窗口暂不可用，请从网络状态面板重试。'});
+    Object.assign(dataChartCopy['zh-TW'],{loading:'正在載入已驗證的索引區塊…',window24:'24 個區塊',window48:'48 個區塊',window72:'72 個區塊',window100:'100 個區塊',windowCaption:'{blocks} 個已驗證索引區塊 · {transactions} 筆交易',blockPoint:'區塊 #{height}：{count} 筆交易',windowUnavailable:'目前已驗證索引區塊視窗暫時不可用，請從網路狀態面板重試。'});
+    Object.assign(dataChartCopy.ja,{loading:'検証済みの索引ブロックを読み込み中…',window24:'24 ブロック',window48:'48 ブロック',window72:'72 ブロック',window100:'100 ブロック',windowCaption:'検証済み索引ブロック {blocks} 件 · トランザクション {transactions} 件',blockPoint:'ブロック #{height}: トランザクション {count} 件',windowUnavailable:'現在の検証済み索引ブロックウィンドウを利用できません。ネットワーク状態パネルから再試行してください。'});
+    Object.assign(dataChartCopy.ko,{loading:'검증된 색인 블록을 불러오는 중…',window24:'24개 블록',window48:'48개 블록',window72:'72개 블록',window100:'100개 블록',windowCaption:'검증된 색인 블록 {blocks}개 · 트랜잭션 {transactions}건',blockPoint:'블록 #{height}: 트랜잭션 {count}건',windowUnavailable:'현재 검증된 색인 블록 창을 사용할 수 없습니다. 네트워크 상태 패널에서 다시 시도하세요.'});
+    dataChartCopy.en.activity[1] = 'The current verified indexed block window is interactive below. Longer historical series remain unavailable until their source can be authenticated.';
+    dataChartCopy['zh-CN'].activity[1] = '下方为可交互的当前已验证索引区块窗口；在数据源通过认证前，长期历史序列仍明确暂不可用。';
+    dataChartCopy['zh-TW'].activity[1] = '下方為可互動的目前已驗證索引區塊視窗；在資料來源通過驗證前，長期歷史系列仍明確暫時不可用。';
+    dataChartCopy.ja.activity[1] = '下に現在の検証済み索引ブロックウィンドウを表示します。長期履歴系列はソースを認証できるまで利用不可です。';
+    dataChartCopy.ko.activity[1] = '아래에서 현재 검증된 색인 블록 창을 상호작용으로 확인할 수 있습니다. 장기 이력 계열은 소스를 인증할 때까지 사용할 수 없습니다.';
+    const chartText = (key, values = {}) => { const value = dataChartCopy[language]?.[key] || dataChartCopy.en[key] || key; return typeof value === 'string' ? value.replace(/\{(\w+)\}/g, (_, name) => values[name] ?? '') : value; };
     const governancePanels = {
       en:[['Governance proposals','A 6423 governance proposal endpoint is not available from the current Explorer service.'],['Proposal detail','No proposal detail can be shown until a verified proposal ID and 6423 governance source are available.'],['Voting information','No verified vote tally, voter eligibility, or voting window is available.'],['Governance parameters','No verified 6423 parameter snapshot is available.']],
       'zh-CN':[['治理提案','当前 Explorer 服务未提供 6423 治理提案端点。'],['提案详情','在已验证的提案 ID 和 6423 治理来源可用前，不会展示提案详情。'],['投票信息','尚无已验证的票数、投票资格或投票窗口。'],['治理参数','尚无已验证的 6423 参数快照。']],
@@ -1404,6 +1421,32 @@ const indexHTML = `<!doctype html>
       connectedYNXWallet.chainId = await readWalletChain(provider);
       showWalletSession();
     }
+    async function loadActivityWindow(limit = 24) {
+      const target = $('historyChart-activity');
+      if (!target) return;
+      target.className = 'chart-empty';
+      target.textContent = chartText('loading');
+      try {
+        const page = await get('/api/blocks/latest?limit=' + Math.max(1,Math.min(100,Number(limit) || 24)));
+        const blocks = Array.isArray(page.blocks) ? page.blocks.slice().reverse() : [];
+        if (!blocks.length) { target.textContent = chartText('windowUnavailable'); return; }
+        const counts = blocks.map(block => Array.isArray(block.transactions) ? block.transactions.length : 0);
+        const maximum = Math.max(1,...counts);
+        const transactions = counts.reduce((total,count) => total + count,0);
+        target.className = 'chart-window';
+        target.setAttribute('role','group');
+        target.setAttribute('aria-label',chartText('windowCaption',{blocks:blocks.length,transactions}));
+        target.innerHTML = blocks.map((block,index) => {
+          const count = counts[index];
+          const height = count === 0 ? 4 : Math.max(12,Math.round((count / maximum) * 100));
+          const label = chartText('blockPoint',{height:number(block.height),count:number(count)});
+          return '<button type="button" data-search="' + escapeHTML(String(block.height)) + '" title="' + escapeHTML(label) + '" aria-label="' + escapeHTML(label) + '"><span class="chart-bar" style="height:' + height + '%"></span></button>';
+        }).join('') + '<p class="chart-window-caption">' + escapeHTML(chartText('windowCaption',{blocks:blocks.length,transactions})) + '</p>';
+      } catch (_) {
+        target.className = 'chart-empty';
+        target.textContent = chartText('windowUnavailable');
+      }
+    }
     function renderPortalRoute(route) {
       if (!route || route === 'home') { $('homeContent').hidden = false; $('routeView').hidden = true; $('skipLink').setAttribute('href','#homeContent'); document.title = 'YNX Chain | 6423 Testnet portal'; return; }
       $('homeContent').hidden = true;
@@ -1439,9 +1482,9 @@ const indexHTML = `<!doctype html>
       if (route === 'data') {
         const rows = summary ? [[c('latestBlock'),number(summary.rpcHeight)],[c('indexedTransactions'),number(summary.indexedTxCount)],[t('validators'),number(summary.validatorCount)],[c('indexerLag'),number(summary.syncLagBlocks) + ' ' + t('indexerSync')],[c('snapshotTime'),exactTime(summary.lastCheckedAt)]] : [];
         const historySource = serviceDirectory.history.officialURL === 'Unavailable' ? r('unavailable') : serviceDirectory.history.officialURL;
-        const chartCard = id => { const [title,copy] = chartText(id); const tip = chartText('empty') + ' ' + chartText('source') + ': ' + historySource + '. ' + chartText('lastVerified') + ': ' + r('unavailable'); return '<article class="portal-panel"><h2>' + escapeHTML(title) + '</h2><p>' + escapeHTML(copy) + '</p><div class="chart-toolbar" role="toolbar" aria-label="' + escapeHTML(title) + ' ' + escapeHTML(chartText('range')) + '"><button type="button" class="active" data-chart-id="' + id + '" data-chart-range="24h">' + escapeHTML(initial('range24h')) + '</button><button type="button" data-chart-id="' + id + '" data-chart-range="7d">' + escapeHTML(initial('range7d')) + '</button><button type="button" data-chart-id="' + id + '" data-chart-range="30d">' + escapeHTML(initial('range30d')) + '</button><button type="button" data-chart-id="' + id + '" data-chart-range="all">' + escapeHTML(initial('all')) + '</button></div><div class="chart-empty" id="historyChart-' + id + '" role="status" tabindex="0" title="' + escapeHTML(tip) + '">' + escapeHTML(chartText('empty')) + '<br><small>' + escapeHTML(chartText('source')) + ': ' + escapeHTML(historySource) + ' · ' + escapeHTML(chartText('lastVerified')) + ': ' + escapeHTML(r('unavailable')) + '</small></div></article>'; };
+        const chartCard = id => { const [title,copy] = chartText(id); const live = id === 'activity'; const tip = live ? chartText('loading') : chartText('empty') + ' ' + chartText('source') + ': ' + historySource + '. ' + chartText('lastVerified') + ': ' + r('unavailable'); const rangeLabel = key => live ? chartText(({ '24h':'window24','7d':'window48','30d':'window72',all:'window100' })[key]) : initial(({ '24h':'range24h','7d':'range7d','30d':'range30d',all:'all' })[key]); return '<article class="portal-panel"><h2>' + escapeHTML(title) + '</h2><p>' + escapeHTML(copy) + '</p><div class="chart-toolbar" role="toolbar" aria-label="' + escapeHTML(title) + ' ' + escapeHTML(chartText('range')) + '"><button type="button" class="active" data-chart-id="' + id + '" data-chart-range="24h">' + escapeHTML(rangeLabel('24h')) + '</button><button type="button" data-chart-id="' + id + '" data-chart-range="7d">' + escapeHTML(rangeLabel('7d')) + '</button><button type="button" data-chart-id="' + id + '" data-chart-range="30d">' + escapeHTML(rangeLabel('30d')) + '</button><button type="button" data-chart-id="' + id + '" data-chart-range="all">' + escapeHTML(rangeLabel('all')) + '</button></div><div class="chart-empty" id="historyChart-' + id + '" role="status" tabindex="0" title="' + escapeHTML(tip) + '">' + escapeHTML(live ? chartText('loading') : chartText('empty')) + (live ? '' : '<br><small>' + escapeHTML(chartText('source')) + ': ' + escapeHTML(historySource) + ' · ' + escapeHTML(chartText('lastVerified')) + ': ' + escapeHTML(r('unavailable')) + '</small>') + '</div></article>'; };
         const charts = chartCard('activity') + chartCard('addresses') + chartCard('gas') + chartCard('nodes') + chartCard('tokens');
-        set(...routeHeading('data'),'<div class="route-grid two">' + portalPanel(r('currentSnapshot'),facts(rows),c('liveSource')) + portalPanel(r('dataPolicy'),'<p>' + escapeHTML(c('dataPolicyCopy')) + '</p>' + facts([[c('service'),serviceDirectory.history.name],[c('expectedIdentity'),serviceDirectory.history.expectedChainID],[c('healthEndpoint'),serviceDirectory.history.healthEndpoint],[c('degradedBehavior'),serviceDirectory.history.degraded]]),c('failClosed')) + '</div><section class="section"><div class="route-grid two">' + charts + '</div></section>'); return;
+        set(...routeHeading('data'),'<div class="route-grid two">' + portalPanel(r('currentSnapshot'),facts(rows),c('liveSource')) + portalPanel(r('dataPolicy'),'<p>' + escapeHTML(c('dataPolicyCopy')) + '</p>' + facts([[c('service'),serviceDirectory.history.name],[c('expectedIdentity'),serviceDirectory.history.expectedChainID],[c('healthEndpoint'),serviceDirectory.history.healthEndpoint],[c('degradedBehavior'),serviceDirectory.history.degraded]]),c('failClosed')) + '</div><section class="section"><div class="route-grid two">' + charts + '</div></section>'); loadActivityWindow(); return;
       }
       if (route === 'governance') { const panels = governancePanels[language] || governancePanels.en; set(...routeHeading('governance'),'<div class="route-grid two">' + panels.map(([title,copy]) => portalPanel(title,unavailable(copy),r('unavailable'))).join('') + '</div>'); return; }
       if (route === 'ecosystem') {
@@ -1593,7 +1636,7 @@ const indexHTML = `<!doctype html>
       const copy = event.target.closest('[data-copy]');
       if (copy) { try { await navigator.clipboard.writeText(decodeURIComponent(copy.dataset.copy)); showToast(i('copied')); } catch (_) { showToast(i('clipboardUnavailable')); } return; }
       const range = event.target.closest('[data-chart-range]');
-      if (range) { const id = range.dataset.chartId || 'activity'; const historySource = serviceDirectory.history.officialURL === 'Unavailable' ? r('unavailable') : serviceDirectory.history.officialURL; const rangeKey = ({'24h':'range24h','7d':'range7d','30d':'range30d',all:'all'})[range.dataset.chartRange] || 'all'; document.querySelectorAll('[data-chart-id="' + id + '"][data-chart-range]').forEach(button => button.classList.toggle('active',button === range)); const chart = $('historyChart-' + id); if (chart) chart.innerHTML = escapeHTML(chartText('range')) + ': <strong>' + escapeHTML(initial(rangeKey)) + '</strong>. ' + escapeHTML(chartText('historyUnavailable')) + '<br><small>' + escapeHTML(chartText('source')) + ': ' + escapeHTML(historySource) + ' · ' + escapeHTML(chartText('lastVerified')) + ': ' + escapeHTML(r('unavailable')) + '</small>'; return; }
+      if (range) { const id = range.dataset.chartId || 'activity'; const historySource = serviceDirectory.history.officialURL === 'Unavailable' ? r('unavailable') : serviceDirectory.history.officialURL; const rangeKey = ({'24h':'range24h','7d':'range7d','30d':'range30d',all:'all'})[range.dataset.chartRange] || 'all'; document.querySelectorAll('[data-chart-id="' + id + '"][data-chart-range]').forEach(button => button.classList.toggle('active',button === range)); if (id === 'activity') { loadActivityWindow(({ '24h':24,'7d':48,'30d':72,all:100 })[range.dataset.chartRange] || 24); return; } const chart = $('historyChart-' + id); if (chart) chart.innerHTML = escapeHTML(chartText('range')) + ': <strong>' + escapeHTML(initial(rangeKey)) + '</strong>. ' + escapeHTML(chartText('historyUnavailable')) + '<br><small>' + escapeHTML(chartText('source')) + ': ' + escapeHTML(historySource) + ' · ' + escapeHTML(chartText('lastVerified')) + ': ' + escapeHTML(r('unavailable')) + '</small>'; return; }
       const route = event.target.closest('[data-route]');
       if (route) { event.preventDefault(); const next = route.dataset.route; if (location.hash.slice(1) !== next) location.hash = next; else renderPortalRoute(next); $('moreButton').closest('.more-wrap').classList.remove('open'); $('moreButton').setAttribute('aria-expanded','false'); return; }
       const quick = event.target.closest('[data-search]');

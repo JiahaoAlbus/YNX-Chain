@@ -199,6 +199,7 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 		"block-chip-meta",
 		"portal-callout-stats",
 		"data-chart-range=\"24h\"",
+		"async function loadActivityWindow", "chart-window", "windowCaption", "loadActivityWindow();",
 		"loadBlockchainPage",
 		"loadBlockchainValidators",
 		"id=\"blockchainValidatorsBody\"",
@@ -395,7 +396,7 @@ func TestExplorerPortalRoutesStayInOne6423Document(t *testing.T) {
 func TestPortalLocalizesDynamicStatesAndKeepsProviderErrorsPrivate(t *testing.T) {
 	for _, required := range []string{
 		"const initialUI =", "data-initial-i18n", "validatorText(ready ? 'ready' : 'notReady')",
-		"const resourceLabel =", "initial('range24h')", "initial(rangeKey)",
+		"const resourceLabel =", "window24", "initial(rangeKey)",
 		"data-initial-i18n=\"readingState\"", "data-initial-i18n=\"waitingFinalizedBlocks\"", "initial('rpcIndexer')",
 		"showPortalNotice(wm('connectionNotApproved'))", "showPortalNotice(wm('networkNotApproved'))",
 		"showPortalNotice(wm('refreshFailed'))",
