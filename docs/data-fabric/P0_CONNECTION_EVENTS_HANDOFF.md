@@ -56,7 +56,7 @@
 
 - Implementation commit: `6cb878d9de712d28244162b9c2bb5c3b8668deb1`.
 - Each rejected `rawError`, `developerMessage`, `accountId`, and `sessionId` vector carries a non-sensitive test sentinel. Strict decode returns the bounded unknown-field code without reflecting that sentinel in the error text or structured rejection evidence, and before any persistence step.
-- Local validation passed: `go test ./internal/datafabric -count=1` and `go test -race ./internal/datafabric -count=1`. Remote CI is pending for this source.
+- Local validation passed: `go test ./internal/datafabric -count=1` and `go test -race ./internal/datafabric -count=1`. GitHub Actions run `33391974185` passed all six jobs at binding head `184abdb5429cdfd5b2953b43beb73b5385806439`.
 
 ## Truth boundary and requested Integration action
 

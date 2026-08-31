@@ -5,7 +5,7 @@
 - Workspace: exact configured YNX 26 Worktree verified
 - Branch: `codex/final-data-fabric`
 - Engineering Source Commit: `6cb878d9de712d28244162b9c2bb5c3b8668deb1`
-- Remote Source Commit: pending for privacy-redaction regression source `6cb878d9de712d28244162b9c2bb5c3b8668deb1`. GitHub Actions run `33383486241` remains successful evidence only for previous source `c347eb46d6f496524a6ba4021bb9e4896df711ab`. CI is not Central integration or public runtime proof.
+- Remote Source Commit: GitHub Actions run `33391974185` passed all six Data Fabric jobs for privacy-redaction regression source `6cb878d9de712d28244162b9c2bb5c3b8668deb1` at binding head `184abdb5429cdfd5b2953b43beb73b5385806439`. CI is not Central integration or public runtime proof.
 - Source evidence CI: Run `31811137802` passed both jobs at v26-bound head `58eff9dad4a0a3dc27105716928f2a9b7c4f6460`, including the three-replica JetStream TCP route-partition/heal gate. Its eleven-file artifact was downloaded and every SHA-256 value verified. Earlier leader-loss evidence remains preserved in Runs `31797308684` and `31799837096`.
 - Concurrent writer: no Git writer detected; an existing CodexPro server process was left untouched
 - Dirty state: candidate source, delivery documents and exact-source CI receipt are committed on the review branch; legacy recovery files remain preserved under `recovery/2026-07-23/`
