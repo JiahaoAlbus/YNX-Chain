@@ -2,8 +2,8 @@
 
 Status: `ACTIVE`
 Phase: `INTEGRATE`
-Engineering Source Commit: `7edb2034027219eaa8d25a24d7dcdd5576fd1943`
-Release Candidate: `ynx-data-fabric-7edb20340272`
+Engineering Source Commit: `459d112f6ea9592b9a4c9a49f83e8c1ce77c8282`
+Release Candidate: `ynx-data-fabric-459d112f6ea9`
 
 ## Completed and protected
 
@@ -28,6 +28,7 @@ Release Candidate: `ynx-data-fabric-7edb20340272`
 - Go and TypeScript SDKs now share an exact producer-delivery signature vector. The TypeScript SDK verifies event integrity, requires HTTPS outside loopback, binds canonical Product Session credentials, bounds responses and rejects response-shape drift.
 - Optional Envelope v2 `chainCommitmentId` consumes frozen Chain Core contract v1.31.0 / implementation `3af591a2fe110b953da6b109580738bf894a4852` / contract `ee45c0700179addadfe1b9c845d2b1b475eea12a` from the SHA-256-verified v31 bundle as a read-only external reference and fails closed before storage. Public semantics are unchanged; v31 adds an external monotonic validator SafetyRollbackAnchor with CAS-before-local-replace, exact readback and crash/snapshot-replay recovery. Production anchor authority, remote recovery drill and signer custody remain false/unprovided. The contract has 106 vectors and does not establish central integration or deployment.
 - The published source-only prerelease predates this engineering commit and truthfully records `currentSourceIncluded=false`; it is recovery evidence, not a download for the current release candidate.
+- PostgreSQL migration `0009_analytics_retention_sweeps` deletes only explicitly expired, payload-free `transient` and `operational` Analytics facts in one serializable transaction and appends bounded deletion counts under an idempotent audit ID. It never selects canonical events, Outbox, Inbox, Ledger, financial, audit-7y, or legal-hold records; cutoffs must be supplied by an approved caller and no scheduler or runtime deployment is claimed.
 - Central integration, shared Testnet, staging, public deployment, hosted download and production signing remain false without direct receipts.
 
 ## Current slice

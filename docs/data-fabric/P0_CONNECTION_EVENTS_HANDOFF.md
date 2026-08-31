@@ -62,3 +62,11 @@ Central must bind one authoritative HTTPS Data Fabric origin and the exact runti
 - Local test scope: `go test ./internal/datafabric ./internal/datafabricpostgres`; GitHub Actions run `33371153886` passed all six Data Fabric jobs for binding head `413ced26ab65fe84c61d3a19a26c308ba9c454df`.
 - The receipt retains no raw account, event ID, payload, diagnostic message, key, or signature. An old PostgreSQL erasure request without a receipt fails closed during idempotent retry or integrity audit.
 - No public endpoint, database migration, service mutation, deployment, or 9102/6423 probe occurred. `P0-147` remains `WAITING_EXTERNAL_PUBLIC_ENDPOINT_UNBOUND`.
+
+## Privacy-safe derived Analytics retention sweep — 2026-08-31
+
+- Implementation commit: `459d112f6ea9592b9a4c9a49f83e8c1ce77c8282`.
+- Migration `0009_analytics_retention_sweeps` adds an append-only audit record for serializable deletion of only expired `transient` and `operational` payload-free Analytics facts. Canonical events, Outbox, Inbox, Ledger, audit and legal-hold classes are not in its deletion predicate.
+- Replays use the same audit ID and exact microsecond-canonicalized UTC tuple; a changed cutoff fails closed and cannot create a second deletion effect.
+- Local validation passed: `go test ./internal/datafabric ./internal/datafabricpostgres`, `go test -race ./internal/datafabric ./internal/datafabricpostgres`, and `go vet ./internal/datafabric ./internal/datafabricpostgres`.
+- No retention policy duration, scheduler, production database migration, service mutation, deployment, or public endpoint is claimed. `P0-147` remains `WAITING_EXTERNAL_PUBLIC_ENDPOINT_UNBOUND`.

@@ -4,15 +4,15 @@
 - Phase: `INTEGRATE`
 - Workspace: exact configured YNX 26 Worktree verified
 - Branch: `codex/final-data-fabric`
-- Engineering Source Commit: `7edb2034027219eaa8d25a24d7dcdd5576fd1943`
-- Remote Source Commit: GitHub Actions run `33371153886` completed successfully for binding head `413ced26ab65fe84c61d3a19a26c308ba9c454df`, a descendant of the current engineering source. It is CI evidence only, not Central integration or public runtime proof.
+- Engineering Source Commit: `459d112f6ea9592b9a4c9a49f83e8c1ce77c8282`
+- Remote Source Commit: exact-source CI is pending for this engineering commit. Prior run `33371153886` remains successful evidence for the preceding receipt implementation only; it is not Central integration or public runtime proof.
 - Source evidence CI: Run `31811137802` passed both jobs at v26-bound head `58eff9dad4a0a3dc27105716928f2a9b7c4f6460`, including the three-replica JetStream TCP route-partition/heal gate. Its eleven-file artifact was downloaded and every SHA-256 value verified. Earlier leader-loss evidence remains preserved in Runs `31797308684` and `31799837096`.
 - Concurrent writer: no Git writer detected; an existing CodexPro server process was left untouched
 - Dirty state: candidate source, delivery documents and exact-source CI receipt are committed on the review branch; legacy recovery files remain preserved under `recovery/2026-07-23/`
 
 ## Verified capabilities
 
-Canonical Envelope v2 and v1 migration compatibility, fail-closed external Chain Core Bulk Data Commitment references, Schema Registry v2, transactional Outbox and Inbox, idempotent consumers, retry, DLQ, replay, Saga recovery, immutable double-entry corrections, atomic usage billing, privacy-safe derived analytics erasure receipts, same-product account isolation, bounded producer ingress, API, Go and TypeScript SDKs, CLI, PostgreSQL migrations through 0008, backup and restore, operator console, package installation and cold-start gates.
+Canonical Envelope v2 and v1 migration compatibility, fail-closed external Chain Core Bulk Data Commitment references, Schema Registry v2, transactional Outbox and Inbox, idempotent consumers, retry, DLQ, replay, Saga recovery, immutable double-entry corrections, atomic usage billing, privacy-safe derived analytics erasure receipts and explicit audited transient/operational analytics retention sweeps, same-product account isolation, bounded producer ingress, API, Go and TypeScript SDKs, CLI, PostgreSQL migrations through 0009, backup and restore, operator console, package installation and cold-start gates.
 
 The accepted `connectionEvents@1.0.0-p0.0` runtime adapter remains asynchronous, privacy-bounded, and outside the standard Wallet connection path. It is not evidence of a public runtime or Central product integration.
 

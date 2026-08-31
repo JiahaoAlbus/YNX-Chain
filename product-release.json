@@ -2,11 +2,11 @@
   "schemaVersion": 2,
   "productId": "ynx-data-fabric",
   "productName": "YNX Data Fabric & Billing Ledger",
-  "release": "ynx-data-fabric-7edb20340272",
+  "release": "ynx-data-fabric-459d112f6ea9",
   "channel": "testnet-preview",
-  "sourceCommit": "7edb2034027219eaa8d25a24d7dcdd5576fd1943",
-  "sourceRelease": "ynx-data-fabric-7edb20340272",
-  "generatedAt": "2026-08-31T08:07:00Z",
+  "sourceCommit": "459d112f6ea9592b9a4c9a49f83e8c1ce77c8282",
+  "sourceRelease": "ynx-data-fabric-459d112f6ea9",
+  "generatedAt": "2026-08-31T08:31:48Z",
   "states": {
     "implementedLocal": true,
     "testedLocal": true,
@@ -27,7 +27,7 @@
     "schemaRegistry": "2.0",
     "fileStoreSchema": 1,
     "backupManifestSchema": 1,
-    "postgresMigration": 8,
+    "postgresMigration": 9,
     "minimumOS": "Linux x86_64 for packaged runtime; source builds remain platform-dependent"
   },
   "delivery": {
@@ -47,7 +47,7 @@
   "artifacts": [],
   "evidence": {
     "localVerification": {
-      "sourceCommit": "7edb2034027219eaa8d25a24d7dcdd5576fd1943",
+      "sourceCommit": "459d112f6ea9592b9a4c9a49f83e8c1ce77c8282",
       "status": "passed",
       "environment": "macOS development environment with standard umask for cross-repository permission vectors",
       "commands": [
@@ -77,16 +77,16 @@
       ]
     },
     "remoteCI": {
-      "runId": 33371153886,
+      "runId": null,
       "workflow": "data-fabric",
-      "sourceCommit": "7edb2034027219eaa8d25a24d7dcdd5576fd1943",
-      "headCommit": "413ced26ab65fe84c61d3a19a26c308ba9c454df",
-      "status": "completed",
-      "conclusion": "success",
-      "startedAt": "2026-08-31T08:04:09Z",
-      "duration": "5m47s",
+      "sourceCommit": "459d112f6ea9592b9a4c9a49f83e8c1ce77c8282",
+      "headCommit": null,
+      "status": "pending",
+      "conclusion": null,
+      "startedAt": null,
+      "duration": null,
       "artifactsPublished": false,
-      "url": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/33371153886"
+      "url": null
     },
     "engineeringEvidenceRun": {
       "runId": 31797308684,
