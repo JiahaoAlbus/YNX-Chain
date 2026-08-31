@@ -3,10 +3,10 @@
   "asOf": "2026-08-31",
   "owner": "explorer-monitor",
   "candidate": {
-    "sourceCommit": "c6aabec55bb7a5b4f8589e71ca5c69370baa9a56",
-    "sourceTree": "8adab4f7ced22ddfc3674aee37b6e44c3da2d556",
+    "sourceCommit": "0f23cedde15f04110219a2c8ce0c09d80f63d8cc",
+    "sourceTree": "465794c7e507cfcfb7eb0ddf06f7ae49e2e9f5c6",
     "pullRequest": "https://github.com/JiahaoAlbus/YNX-Chain/pull/107",
-    "artifactState": "unfrozen: the 8df3bc4108 artifacts predate the refresh-safe EIP-1193 restoration change in c6aabec55 and must not be deployed with this source; Central integration/deployment/production signing/public verification remain false"
+    "artifactState": "frozen locally in apps/monitor/evidence/explorer-monitor-0f23cedde-artifact-freeze-20260831.json; Central integration/deployment/production signing/public verification remain false"
   },
   "stateDefinition": {
     "implementedLocal": "Owner source contains the behavior; this is not deployment evidence.",

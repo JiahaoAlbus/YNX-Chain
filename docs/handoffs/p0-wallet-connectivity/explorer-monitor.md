@@ -3,8 +3,8 @@
 ## Superseding state (2026-08-31, current)
 
 - Current source-bearing Explorer/Monitor checkpoint is
-  `c6aabec55bb7a5b4f8589e71ca5c69370baa9a56`
-  (tree `8adab4f7ced22ddfc3674aee37b6e44c3da2d556`) on
+  `0f23cedde15f04110219a2c8ce0c09d80f63d8cc`
+  (tree `465794c7e507cfcfb7eb0ddf06f7ae49e2e9f5c6`) on
   `codex/p0-explorer-monitor-20260820`, PR #107 Draft. It retains the real
   Indexer participant/activity, RPC balance, YNXT and chain-RPC contract work
   from the preceding source, and adds refresh-safe shell routes for factual
@@ -20,21 +20,19 @@
   after read-only `eth_accounts` and `eth_chainId=0x1917` checks. Refresh never
   selects a Provider, requests an account, or adds/switches a network; revoke,
   chain change and disconnect remove the remembered choice.
-- `apps/monitor/evidence/explorer-monitor-8df3bc4108-artifact-freeze-20260831.json`
-  is tied to predecessor source `8df3bc4108d4dc65090972de9278eb7f7d76dc78`,
-  not this refresh-safe successor. Its byte-identical artifacts—`ynx-explorerd`
-  SHA-256
-  `aae7a74c5bf595fb732b9cfd77a91e3d51eb97489b6ef40b3b283ce53589b228`,
+- `apps/monitor/evidence/explorer-monitor-0f23cedde-artifact-freeze-20260831.json`
+  freezes all three current-source artifacts with byte-identical rebuild
+  evidence: `ynx-explorerd` SHA-256
+  `3c72070ae7fbc9afeb8e6db486916401cf7424eb2d1f5c25a0742241c07c639b`,
   `ynx-indexerd` SHA-256
-  `d1f9f1025bebc8308a2d38f0dd4a6bbdea0d06d9168918fbf81dfd2f57d04f6c`,
-  and the deterministic Monitor release tree SHA-256
-  `d3a0e8bbec57327772778c08d824376131dcc4e2b1bca5ef7b21ebf30d008a32`.
-  —and all older artifacts are forbidden from deployment with `c6aab…`. A new
-  coherent artifact freeze is required after the final current-source tests.
-  No artifact record grants deployment authority: Central must first bind exact
-  successor hashes to a fresh production/rollback baseline and a new single-use
-  lease.
-- Final local evidence for `c6aab…`: `go test -race ./internal/indexer
+  `9a88e5767e5fa0df26e7b304673283f1a3b2a9e06e5aa2cae4b0291713d900b6`,
+  and deterministic Monitor release tree SHA-256
+  `70f8f54129bc03fc75d6f1e7547a2c60d2ec02c317dac23a64f068d438628d7b`.
+  The former 8df3 artifact freeze and every older artifact are forbidden from
+  deployment with `0f23…`. This record grants no deployment authority: Central
+  must first bind these exact hashes to a fresh production/rollback baseline,
+  remote CI readback and a new single-use lease.
+- Final local evidence for `0f23…`: `go test -race ./internal/indexer
   ./internal/explorer -count=1` passes; Monitor `npm test` (55 application and
   10 script tests) and `npm run build` pass. `go test ./...` reaches
   unrelated pre-existing failures in `internal/bftgateway` and
