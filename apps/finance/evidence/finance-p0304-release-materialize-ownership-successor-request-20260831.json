@@ -1,0 +1,28 @@
+{
+  "schemaVersion": "finance-release-materialize-correction-request@1",
+  "taskId": "P0-304",
+  "kind": "FINANCE_RELEASE_MATERIALIZE_OWNERSHIP_IDENTITY_FENCE_SUCCESSOR",
+  "status": "SOURCE_ONLY_AWAITING_IMMUTABLE_ARCHIVE_REHYDRATION_AND_CENTRAL_REVIEW",
+  "owner": {"branch": "codex/p0-finance-p0304-release-materialize-ownership-20260831", "implementationCommit": "1b61a71235655350082d60913f9e4f5b250fff24", "implementationTree": "d63fa3a975888a7fe51bfed323d19eca3cf6daca", "parent": "9742166ce7cea2b62743b3e6aa5a5ef46a106409"},
+  "p0303AcceptedBaseline": {
+    "centralCommit": "8a15916604e8115c1bc13ebb21a5391a771bd505",
+    "centralTree": "c0989b450183c51b530ad8e73bb2698e3b1266bf",
+    "ownerEvidence": {"path": "apps/finance/evidence/p0-303-finance-p0302-zero-write-terminal-evidence-20260831.json", "blob": "0b5cee4363fb4b81378557917f2acbc845bb57f1", "bytes": 1199, "sha256": "bff04545a26ec345b2a1aab490a986a88cd0fd99b875b337360ba737aedc45e6"},
+    "truth": ["P0302 executor and signed lease remain exact but are nonreusable", "P0302 stage/backup/release residues are absent", "current resolves to old 3b2383f5 release", "service is active/running PID 2241003 NRestarts 0", "loopback/public root health version are exact old 200 responses", "P0303 mutationCount=0"]
+  },
+  "rootCauseAndCorrection": {
+    "defect": "RELEASE_MATERIALIZE captured a pre-chown dev:inode:uid:gid:mode identity and then compared uid/gid after deliberate signed chown. A valid root:root to root:ynx group transition therefore failed even when the same directory inode remained owned by the lease.",
+    "correction": "The release container now captures and rechecks only immutable device:inode across chown; it separately verifies the exact signed uid:gid:mode after chown. Non-directory, symlink, non-canonical path, nonempty path and foreign/substituted object fences remain fail-closed.",
+    "regression": "The actual-shell fixture performs a real supplementary-group transition for the release container, then proves candidate selection succeeds only after the physical identity and signed post-chown ownership checks pass."
+  },
+  "reviewedObjects": {
+    "executor": {"path": "apps/finance/scripts/finance-production-rollback-first.sh", "blob": "c90d57cb9b0e3d264a9334fbce34547bfc8c53f4", "bytes": 25873, "sha256": "91644d61492fee881b6ed73990d442b5abbbcbb62164c75cc1a91082c3f44a45"},
+    "fixture": {"path": "apps/finance/scripts/test-finance-production-fixture.mjs", "blob": "ea6d77280310a6504bfc9da9c6dac40f2cece3a8", "bytes": 48230, "sha256": "48cb9240c92dd7cc080c322516723eb4e6fa9f23853b5c918242fd17eeafad73"},
+    "testResults": {"path": "apps/finance/evidence/finance-p0304-release-materialize-ownership-test-results-20260831.json", "blob": "de41de9ec605b3652eb52f73f2f2610d23eb0804", "bytes": 1073, "sha256": "d1c45053be3d515e78b55fed5ec56ad17317127d7290cd74885001827ffe3070"}
+  },
+  "futureLeaseMustFreshlyBind": ["new unique stage/backup/release/control/stdout/stderr/receipt paths all absent/non-symlink", "release container pre-chown device:inode, post-chown uid:gid:mode and no-symlink/nonempty receipts", "current old release/binary/env/unit/Caddy/state/service and six HTTP gates", "root-to-ynx traversal plus candidate binary/assets access", "candidate archive/binary/env exact bytes and SHA-256", "literal single-use SSH argv, stdin bytes/SHA and one-attempt no-retry contract"],
+  "preservedSemantics": {"postCleanupFailureReceipt": ["STAGING_BACKUP", "ARCHIVE_EXTRACT", "CANDIDATE_VERIFY", "RELEASE_MATERIALIZE", "SERVICE_USER_ACCESS", "PRE_SWITCH"], "safeReceiptFields": ["phase", "failureClass", "failureExitStatus"], "automaticRollback": "after env/current/service mutation restore old env/state/current/service and old runtime receipts before phase output", "manualRollback": "separately signed only"},
+  "tests": {"shellSyntax": "PASS", "nodeSyntax": "PASS", "productionActualShell": "PASS", "opensshTransport": "PASS", "stdinBootstrap": "PASS", "substitutionForeignStateFences": "PASS", "gnuTarMetadata": "BLOCKED_MISSING_IMMUTABLE_ARCHIVE", "json": "PASS", "diff": "PASS"},
+  "truth": {"sshExecuted": false, "deploymentExecuted": false, "productionMutation": false, "leaseRequested": false},
+  "singleExecutableBlocker": "Rehydrate the exact immutable candidate archive /tmp/ynx-finance-7824af677dd0-linux-amd64-p0146.tar.gz with SHA-256 d8dcd45174dd50c93ef45af7d10d36dc078d6f4982da08dc92b9470e8290a59d, then rerun the GNU-tar metadata fixture before Central considers any new deployment lease."
+}
