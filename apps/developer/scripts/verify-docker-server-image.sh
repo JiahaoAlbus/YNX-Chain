@@ -38,7 +38,10 @@ for _ in {1..100}; do
 done
 [[ -n "$health" && "${health_status:-}" == "200" ]] || { printf 'Docker runtime health failed: HTTP %s; body=%s\n' "${health_status:-unavailable}" "${health_response:0:2048}" >&2; exit 1; }
 node -e 'const value=JSON.parse(process.argv[1]);if(value.ok!==true||value.service!=="ynx-code-workspace-agent"||value.sandboxReady!==true)throw new Error(`invalid Docker runtime health: ${JSON.stringify(value)}`)' "$health"
-compile=$(docker exec --user 10001:10001 "$name" curl --fail --silent --show-error --cookie "$cookie_jar" -X POST "http://127.0.0.1:4190/runtime/tasks" -H 'content-type: application/json' --data '{"protocolVersion":"ynx-code/v1","task":"build-run-active","approval":"execute-once","activePath":"hello.cpp","projectId":"docker-image-cpp","files":{"hello.cpp":"#include <iostream>\nint main(){std::cout << \"YNX-DOCKER-CPP\";return 0;}}}')
+compile_response=$(docker exec --user 10001:10001 "$name" curl --silent --show-error --cookie "$cookie_jar" --write-out $'\n%{http_code}' -X POST "http://127.0.0.1:4190/runtime/tasks" -H 'content-type: application/json' --data '{"protocolVersion":"ynx-code/v1","task":"build-run-active","approval":"execute-once","activePath":"hello.cpp","projectId":"docker-image-cpp","files":{"hello.cpp":"#include <iostream>\nint main(){std::cout << \"YNX-DOCKER-CPP\";return 0;}}}')
+compile_status=${compile_response##*$'\n'}
+compile=${compile_response%$'\n'*}
+[[ "$compile_status" == "200" ]] || { printf 'Docker C++ task failed: HTTP %s; body=%s\n' "$compile_status" "${compile_response:0:2048}" >&2; exit 1; }
 node -e 'const value=JSON.parse(process.argv[1]);if(!value.ok||value.language!=="cpp"||value.sandbox?.network!==false||!String(value.output||"").includes("YNX-DOCKER-CPP"))throw new Error(`Docker C++ compile failed: ${JSON.stringify(value)}`)' "$compile"
 image_id=$(docker image inspect "$image" --format '{{.Id}}')
 node -e '
