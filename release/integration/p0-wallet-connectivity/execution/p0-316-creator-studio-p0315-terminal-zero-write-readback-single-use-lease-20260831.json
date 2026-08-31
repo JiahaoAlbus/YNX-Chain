@@ -3,11 +3,12 @@
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "taskId": "P0-316",
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-creator-p0315-terminal-zero-write-readback-20260831T052200Z",
-  "status": "ACTIVE",
+  "status": "CONSUMED_RELEASED_SUCCESS_CREATOR_P0316_P0315_TERMINAL_ZERO_WRITE_READBACK_RESIDUES_RETAINED",
   "singleUse": true,
   "reusable": false,
   "issuedAt": "2026-08-31T05:22:00Z",
   "expiresAt": "2026-08-31T05:37:00Z",
+  "releasedAt": "2026-08-31T05:25:21Z",
   "owner": "creator-studio-readback-owner",
   "namedExecutor": "release-control-plane",
   "runtimeHost": "43.153.202.237",
@@ -63,7 +64,9 @@
     "inspectionComplete": true,
     "mutationCount": 0,
     "stdoutAndStderrHashes": true,
-    "noStateInferenceFromP0315": true
+    "noStateInferenceFromP0315": true,
+    "satisfied": true,
+    "cleanupComplete": false
   },
   "forbidden": [
     "write create remove rename chmod chown link or remote temporary file",

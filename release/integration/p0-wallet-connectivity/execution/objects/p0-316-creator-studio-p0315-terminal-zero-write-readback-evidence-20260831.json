@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "1.0.0",
+  "taskId": "P0-316",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-creator-p0315-terminal-zero-write-readback-20260831T052200Z",
+  "status": "CONSUMED_RELEASED_SUCCESS_CREATOR_P0316_P0315_TERMINAL_ZERO_WRITE_READBACK_RESIDUES_RETAINED",
+  "terminalAt": "2026-08-31T05:25:21Z",
+  "sshAttempts": 1,
+  "retryCount": 0,
+  "exitStatus": 0,
+  "stderrBytes": 0,
+  "mutationCount": 0,
+  "current": {
+    "tuple": "64770:1483933:0:0:777:1:63:symbolic link",
+    "target": "/opt/ynx-creator-studio-wallet/releases/creator-studio-0e1a53c5",
+    "currentNext": "absent"
+  },
+  "runtimeReceipt": {
+    "present": true,
+    "validJson": true,
+    "bytes": 85393,
+    "sha256": "37c0866d535f25ce59d27e66143410a7ec1c2130a1dbe91da6aecb799eba7d0d",
+    "status": "FORWARD_SWITCHED_AWAITING_TERMINAL",
+    "receiptNext": "absent"
+  },
+  "candidate": {
+    "present": true,
+    "tuple": "64770:1483917:995:986:755:4:directory",
+    "exactInventory": true,
+    "rootSha256": "b37f78205f2c5443b2103ee42e98d6ecde65238c107733088e63893a3c1de697",
+    "appSha256": "77e7c42006e3be36c7af717e5e8b2a3cd847c3652dcadb1731c259aee5b01af5",
+    "manifestSha256": "fcd0f3346de18e51580af8f7c4f040b8694f7e2ef74bb92cc1ce942e03bea624",
+    "i18nSha256": "077ffd891f876de3ec37838d923854f401172213bc671527059c78f4875de80f",
+    "catalogSha256": "4c86e3e1cdeac6d9c4570891d70bab4c3486c6a4429dd33fd1029f046ca9ecff",
+    "stage": "absent",
+    "preSwitchQuarantine": "absent",
+    "postSwitchQuarantine": "absent"
+  },
+  "control": {
+    "present": true,
+    "tuple": "64770:1483830:0:0:700:3:directory",
+    "placementReceiptBytes": 951,
+    "placementReceiptSha256Prefix": "6af1175d",
+    "forwardRollbackCarriersAndExecutorExact": true,
+    "stage": "absent",
+    "quarantine": "absent"
+  },
+  "unit": {
+    "tuple": "64770:131976:0:0:644:1:540:regular file",
+    "sha256": "06a55f91bf5530952c347db146daa827510cc72f161d999943da7d5737b8c006"
+  },
+  "cleanupComplete": false,
+  "creatorPromoted": false,
+  "nextBoundary": "A wholly-new identity-bound cleanup-only lease or repaired deployment successor requires separate review. P0-316 grants no further action."
+}

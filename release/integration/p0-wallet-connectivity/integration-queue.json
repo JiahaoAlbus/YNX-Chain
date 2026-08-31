@@ -7465,7 +7465,7 @@
     {
       "taskId": "P0-316",
       "owner": "integration,creator-studio-readback-owner",
-      "status": "ACTIVE_CREATOR_P0315_TERMINAL_ZERO_WRITE_READBACK",
+      "status": "CONSUMED_RELEASED_SUCCESS_CREATOR_P0316_P0315_TERMINAL_ZERO_WRITE_READBACK_RESIDUES_RETAINED",
       "paths": [
         "release/integration/p0-wallet-connectivity/execution/p0-316-creator-studio-p0315-terminal-zero-write-readback-single-use-lease-20260831.json",
         "release/integration/p0-wallet-connectivity/execution/objects/p0-316-creator-studio-p0315-terminal-zero-write-readback.sh"
@@ -7475,7 +7475,12 @@
       "sshAttemptLimit": 1,
       "retryAllowed": false,
       "productionMutation": false,
-      "nextAction": "Execute the exact inspector once by SSH stdin and return its direct stdout/stderr hashes and complete state receipt. No cleanup deployment restart switch or rollback follows without a separate wholly-new lease."
+      "inspectionExecuted": true,
+      "oldCurrentRestored": true,
+      "candidateReceiptControlResiduesRetained": true,
+      "cleanupComplete": false,
+      "creatorPromoted": false,
+      "nextAction": "P0-316 is consumed and nonreusable. A wholly-new identity-bound cleanup-only lease or repaired deployment successor requires separate review; no further action is authorized under P0-316."
     }
   ]
 }

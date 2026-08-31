@@ -427,25 +427,25 @@
     }
   ],
   "heavy": {
-    "owner": "creator-studio-readback-owner",
+    "owner": null,
     "taskId": "P0-316",
-    "status": "ACTIVE_CREATOR_P0315_TERMINAL_ZERO_WRITE_READBACK",
+    "status": "CONSUMED_RELEASED_SUCCESS_CREATOR_P0316_P0315_TERMINAL_ZERO_WRITE_READBACK_RESIDUES_RETAINED",
     "acquiredAt": "2026-08-31T05:22:00Z",
     "expiresAt": "2026-08-31T05:37:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-31T05:25:21Z",
     "sourceCommit": "4253f90700b8dd25b610aa3ac9df26a80c37dc71",
     "evidenceCommit": "4253f90700b8dd25b610aa3ac9df26a80c37dc71",
     "runtimeHost": "43.153.202.237",
-    "currentRuntime": "UNKNOWN_AFTER_SWITCH_AND_TWO_ROLLBACK_FAILURES",
-    "candidateRuntime": "UNKNOWN_REQUIRES_ZERO_WRITE_READBACK",
+    "currentRuntime": "CREATOR_0E1A53C5_CURRENT_RESTORED_DIRECT_ZERO_WRITE_READBACK",
+    "candidateRuntime": "CREATOR_3F97A13D_EXACT_RESIDUE_RETAINED_NOT_PROMOTED",
     "artifactSha256": "e7325c867c13c97a99a8210b905be979d01eb49357a8a1c359ae7bcf59fee151",
     "productionMutationAllowed": false,
     "singleUse": true,
     "reusable": false,
     "previousOwner": "creator-studio-deploy-owner",
     "previousTaskId": "P0-315",
-    "reviewDecision": "GO_P0316_CREATOR_P0315_TERMINAL_ZERO_WRITE_READBACK_ONLY",
-    "reason": "P0-315 is consumed and released after both rollback paths failed. P0-316 permits exactly one zero-write SSH readback of current service adjacent PIDs five public resources receipt candidate control stage and quarantine state; no mutation or lifecycle action is authorized."
+    "reviewDecision": "P0316_TERMINAL_ZERO_WRITE_SUCCESS_OLD_CURRENT_RESTORED_RESIDUES_RETAINED_RELEASED",
+    "reason": "The sole read-only SSH exited zero with mutationCount zero. Old current is restored; current.next, receipt.next, candidate stage and quarantines are absent. Exact forward receipt, candidate release and control root remain. P0-316 is consumed, released and nonreusable; cleanupComplete and Creator promotion remain false."
   },
   "wave": {
     "id": "B-financial-apps-quant",
