@@ -26,6 +26,17 @@ test("models fail closed without provenance or required fields", () => {
   assert.throws(() => validateModel("Order", { schemaVersion: FINANCE_DOMAIN_VERSION, source, ...examples.Order, orderId: undefined }), /required|invalid/);
 });
 
+test("models reject invalid finance semantics instead of accepting field-shaped records", () => {
+  assert.throws(() => validateModel("Asset", { schemaVersion: FINANCE_DOMAIN_VERSION, source, ...examples.Asset, decimals: -1 }), /Asset.decimals/);
+  assert.throws(() => validateModel("Quote", { schemaVersion: FINANCE_DOMAIN_VERSION, source, ...examples.Quote, quantity: "0.0" }), /positive/);
+  assert.throws(() => validateModel("Candle", { schemaVersion: FINANCE_DOMAIN_VERSION, source, ...examples.Candle, interval: "13m" }), /Candle.interval/);
+  assert.throws(() => validateModel("Candle", { schemaVersion: FINANCE_DOMAIN_VERSION, source, ...examples.Candle, closeTime: source.asOf }), /closeTime must follow/);
+  assert.throws(() => validateModel("Order", { schemaVersion: FINANCE_DOMAIN_VERSION, source, ...examples.Order, orderType: "arbitrary" }), /Order.orderType/);
+  assert.throws(() => validateModel("LiquidityPool", { schemaVersion: FINANCE_DOMAIN_VERSION, source, ...examples.LiquidityPool, reserves: ["10"] }), /LiquidityPool.reserves/);
+  assert.throws(() => validateModel("Strategy", { schemaVersion: FINANCE_DOMAIN_VERSION, source, ...examples.Strategy, lifecycle: "live" }), /Strategy.lifecycle/);
+  assert.throws(() => validateModel("RiskLimit", { schemaVersion: FINANCE_DOMAIN_VERSION, source, ...examples.RiskLimit, maxSlippageBps: 10001 }), /RiskLimit.maxSlippageBps/);
+});
+
 test("money uses strings and write requests require concurrency controls", () => {
   assert.equal(validateDecimal("1000000"), "1000000");
   assert.throws(() => validateDecimal(1.1), /base-10 string/);
