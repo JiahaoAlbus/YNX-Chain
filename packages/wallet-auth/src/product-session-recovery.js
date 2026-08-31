@@ -41,8 +41,16 @@ export class RecoverableProductSessionClient {
     if (typeof walletInstalled !== "boolean" || typeof schemeRegistered !== "boolean") fail("INVALID_GATEWAY_RESPONSE", "Wallet availability detection returned invalid values");
     return Object.freeze({ walletInstalled, schemeRegistered });
   }
-  async beginDetected(automatic = false) { return this.begin(await this.detectWalletEnvironment(), automatic); }
-  async retryDetected() { return this.retry(await this.detectWalletEnvironment()); }
+  async beginDetected(automatic = false) {
+    try { return await this.begin(await this.detectWalletEnvironment(), automatic); }
+    catch (error) { return this.#environmentUnavailable(error, automatic); }
+  }
+  async retryDetected() {
+    return this.#recover(async () => {
+      try { return await this.#retry(await this.detectWalletEnvironment()); }
+      catch (error) { return this.#environmentUnavailable(error, false); }
+    });
+  }
 
   async restore(networkAvailable = true) { return this.#recover(() => this.#restore(networkAvailable)); }
   async #restore(networkAvailable) {
@@ -248,6 +256,19 @@ export class RecoverableProductSessionClient {
     }
   }
   async #clearPending() { await this.#storage.remove(`${this.storageKey}:pending`); await this.#storage.remove(`${this.storageKey}:return`); }
+  async #environmentUnavailable(error, automatic) {
+    // Capability probes cross the platform boundary.  They must never turn a
+    // second-launch reconnect into an uncaught system error or leave the prior
+    // callback-capable request valid after Wallet availability is unknown.
+    await this.#clearPending();
+    if (error instanceof WalletAuthError && error.code === "NETWORK_UNAVAILABLE") {
+      return this.#offline("Network unavailable while detecting Wallet availability; explicit Retry is required");
+    }
+    this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, "Wallet availability could not be verified; explicit Retry or Guest mode is required", {
+      code: "WALLET_UNAVAILABLE", automatic, actions: ["retry", "guest"],
+    });
+    return this.#state;
+  }
   #offline(message = "Network unavailable; cached Product Session is not treated as authoritative") { this.#state = state(PRODUCT_SESSION_CLIENT_STATE.NETWORK_UNAVAILABLE, message, { actions: ["retry", "guest"] }); return this.#state; }
   #routeUnavailable(message) { this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, message, { actions: ["retry", "guest"] }); return this.#state; }
   #networkTransition(message) { if (!this.#networkAvailable) return this.#offline(message); this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, message, { actions: ["retry", "guest"] }); return this.#state; }

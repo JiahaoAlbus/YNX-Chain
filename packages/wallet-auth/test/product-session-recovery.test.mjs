@@ -92,6 +92,34 @@ test("unopenable Begin retains no callback-capable request and explicit Retry cr
   assert.notEqual(await setup.storage.get(`${setup.client.storageKey}:pending`), null);
 });
 
+test("second-launch Wallet availability probe failure clears stale pending authority and exposes explicit Retry", async () => {
+  const first = harness();
+  await first.client.begin({ walletInstalled: true, schemeRegistered: true });
+  let available = false;
+  const gateway = {
+    ...first.gateway,
+    async walletInstalled() {
+      if (!available) throw new Error("platform probe detail must not escape");
+      return true;
+    },
+  };
+  const second = new RecoverableProductSessionClient({ registry, productId: "social", platform: "android", storage: first.storage, gateway, device, tokenFactory: (() => { let i = 0; return () => token(`availability-retry-${i++}`); })(), clock: () => NOW });
+
+  const failed = await second.restore(true);
+  assert.equal(failed.status, PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED);
+  assert.equal(failed.code, "WALLET_UNAVAILABLE");
+  assert.deepEqual(failed.actions, ["retry", "guest"]);
+  assert.equal(failed.message.includes("platform probe detail"), false);
+  assert.equal(await first.storage.get(`${second.storageKey}:pending`), null);
+  assert.equal(await first.storage.get(`${second.storageKey}:return`), null);
+
+  available = true;
+  const retry = await second.retryDetected();
+  assert.equal(retry.status, PRODUCT_SESSION_CLIENT_STATE.CONNECTING);
+  assert.equal(retry.automatic, false);
+  assert.notEqual(await first.storage.get(`${second.storageKey}:pending`), null);
+});
+
 test("network loss, rejection and Guest mode never synthesize identity, balance, transaction or Chain state", async () => {
   const setup = harness();
   assert.equal(setup.client.setNetworkAvailable(false).status, PRODUCT_SESSION_CLIENT_STATE.NETWORK_UNAVAILABLE);

@@ -152,6 +152,17 @@ test("detected environment rejects malformed or failed platform probes", async (
   await assert.rejects(()=>failed.detectWalletEnvironment(),code("WALLET_UNAVAILABLE"));
 });
 
+test("coordinator converts a Wallet availability probe failure into an actionable fail-closed state", async () => {
+  const sessionClient = client("social", gateway({ async schemeRegistered() { throw new Error("private platform detail"); } }));
+  const result = await coordinator({ sessionClient }).beginYNX();
+  assert.equal(result.status, WALLET_CONNECTION_COORDINATOR_STATUS.SESSION_STATE);
+  assert.equal(result.sessionState.status, PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED);
+  assert.equal(result.sessionState.code, "WALLET_UNAVAILABLE");
+  assert.deepEqual(result.sessionState.actions, ["retry", "guest"]);
+  assert.equal(result.sessionState.message.includes("private platform detail"), false);
+  assert.equal(sessionClient.current.status, PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED);
+});
+
 test("MetaMask connects through central discovery only when YNX is absent and product is EVM compatible", async () => {
   const calls=[];const metamask=metaMaskProvider(calls);const value=coordinator({productId:"dex",sessionClient:noYNXClient("dex"),scope:{ethereum:metamask}});
   const result=await value.connectMetaMask();
