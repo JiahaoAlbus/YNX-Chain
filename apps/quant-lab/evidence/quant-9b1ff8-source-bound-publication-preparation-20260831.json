@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "productId": "ynx-quant-lab",
+  "preparedAt": "2026-08-31T07:24:34Z",
+  "scope": "apps/quant-lab/** only",
+  "source": {
+    "commit": "9b1ff8b264a50210d44d600916bf02d42f570871",
+    "tree": "f963d8deee2224e4e43bfae73bc9d5047e3cee51"
+  },
+  "network": {
+    "decimalChainId": 6423,
+    "hexChainId": "0x1917",
+    "label": "YNX Testnet"
+  },
+  "sharedProviderAuthority": {
+    "sourceCommit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+    "tree": "51a60a362d4ad5dd748bcdefb101f71b1d9e0cee",
+    "evidence": "c3ab255c32bdeb9c8e056882c315f8ad43c29c7f",
+    "consumptionEvidence": "apps/quant-lab/evidence/p0-quant-provider-authority-consumption-20260822.json",
+    "sourceConsumed": true,
+    "publicLifecycleVerified": false
+  },
+  "candidate": {
+    "path": "apps/quant-lab/evidence/release-candidates/ynx-quant-lab-9b1ff8b264a5-linux-amd64-runtime.tar.gz",
+    "bytes": 3007376,
+    "sha256": "d07caa1e3a6c6ac6df8c499c3992d6c385812938f18fc90599959ad9476a916a",
+    "binary": {
+      "path": "ynx-quantd",
+      "bytes": 7028920,
+      "sha256": "cbd5a1d7b5e9f2a725c2b5475350b38cb4e5a08b59ea2e950d9f2c7d25e81dff",
+      "format": "ELF 64-bit x86-64 static executable"
+    },
+    "webAssetManifest": "SHA256SUMS",
+    "webAssets": 7,
+    "archiveEntries": 10
+  },
+  "tests": {
+    "walletBuild": "passed",
+    "walletFocused": "5/5 passed",
+    "goQuantLab": "passed",
+    "goQuantDaemon": "passed",
+    "goQuantWeb": "passed",
+    "candidateManifestSelfHashExcluded": true
+  },
+  "observedPublicRuntime": {
+    "observedAt": "2026-08-31T07:24:34Z",
+    "baseUrl": "https://quant.ynxweb4.com/",
+    "apiHealth": {
+      "status": 200,
+      "bytes": 296,
+      "sha256": "3ddf5e35912c65a9e0565b35a6fa5d4b295602a2054d6d9cea9fefff17f414c1",
+      "commit": "443286487e057d78cb6b1a686d14bb37be8b3c23"
+    },
+    "apiVersion": {
+      "status": 200,
+      "bytes": 108,
+      "sha256": "6451c911ec4ef12cf7c47f5611f7c5fcce1f319c81a69427941c65b78b563556",
+      "commit": "443286487e057d78cb6b1a686d14bb37be8b3c23"
+    },
+    "sourceBoundToCandidate": false,
+    "deploymentClaim": false
+  },
+  "deploymentPrerequisite": {
+    "required": "A new Quant-only Central lease must freshly bind the runtime target, service process, environment, active release, rollback pointer, state policy, immutable stage/backup/release paths, and public API response inventory.",
+    "forbiddenWithoutLease": [
+      "SSH",
+      "server configuration",
+      "Caddy",
+      "systemd",
+      "production route changes",
+      "account approval",
+      "signing",
+      "testnet strategy execution"
+    ]
+  },
+  "truth": {
+    "deployedPublic": false,
+    "installedRuntime": false,
+    "sourceBoundPublicRuntime": false,
+    "providerApproval": false,
+    "providerReject": false,
+    "walletCallback": false,
+    "productSessionLifecycle": false,
+    "strategyExecution": false,
+    "testnetOrder": false
+  }
+}
