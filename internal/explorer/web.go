@@ -581,17 +581,12 @@ const indexHTML = `<!doctype html>
 
       <section class="ecosystem" id="ecosystem">
         <div class="section-head"><div><h2 data-i18n="ecosystem">YNX Ecosystem</h2><p data-home-i18n="ecosystemCopy">Independent products on YNX 6423. A product is never shown as publicly downloadable without matching release proof.</p></div><a class="section-link" href="#ecosystem" data-route="ecosystem" data-home-i18n="viewDirectory">View directory</a></div>
-        <div class="ecosystem-grid">
-          <article class="ecosystem-card"><h3>YNX Wallet</h3><p>Account custody and explicit application permissions.</p><span class="product-state">Testnet candidate</span><a href="#ecosystem" data-route="ecosystem" data-home-i18n="availability">Availability details</a></article>
-          <article class="ecosystem-card"><h3>DeFi &amp; Payments</h3><p>YNXT-native financial and payment workflows with explicit settlement boundaries.</p><span class="product-state">Source available</span><a href="#ecosystem" data-route="ecosystem" data-home-i18n="availability">Availability details</a></article>
-          <article class="ecosystem-card"><h3>Developer</h3><p>Explorer APIs, SDKs, contract tools, faucet, and Testnet configuration.</p><span class="product-state">Testnet tools</span><a href="#developers" data-route="developers" data-home-i18n="openDeveloper">Open developer portal</a></article>
-          <article class="ecosystem-card"><h3>AI, Social &amp; Media</h3><p>Independent YNX products with availability shown per platform and release proof.</p><span class="product-state">Mixed availability</span><a href="#ecosystem" data-route="ecosystem">Availability details</a></article>
-        </div>
+        <div class="ecosystem-grid" id="homeEcosystem"></div>
       </section>
 
       <section class="section" id="downloads">
-        <div class="section-head"><div><h2>Download center</h2><p>Only a public, identity-matched artifact can receive an active download link.</p></div><a class="section-link" href="#downloads" data-route="downloads">Open download center</a></div>
-        <div class="download-grid"><article class="download-item"><strong>YNX Wallet extension</strong><span>Public artifact verification is unavailable.</span><button type="button" data-download="wallet-extension">Why unavailable?</button></article><article class="download-item"><strong>Mobile &amp; desktop</strong><span>Store and signing proof are not attached to this portal.</span><button type="button" data-download="native-apps">Why unavailable?</button></article><article class="download-item"><strong>CLI &amp; SDK</strong><span>Use source-bound developer materials until a signed release is verified.</span><button type="button" data-route="developers">View developer materials</button></article></div>
+        <div class="section-head"><div><h2 data-i18n="downloads">Downloads</h2><p data-download-i18n="installProof">Public artifact verification is required before instructions are shown.</p></div><a class="section-link" href="#downloads" data-route="downloads" data-i18n="downloads">Downloads</a></div>
+        <div class="download-grid" id="homeDownloads"></div>
       </section>
     </div>
   </main>
@@ -789,6 +784,19 @@ const indexHTML = `<!doctype html>
     };
     const w = key => walletUI[language]?.[key] || walletUI.en[key] || key;
     const isChinese = () => language.startsWith('zh');
+    function renderHomeDirectory() {
+      const ecosystem = $('homeEcosystem');
+      if (ecosystem) {
+        ecosystem.innerHTML = (ecosystemProducts[language] || ecosystemProducts.en).slice(0,4).map(([name,copy,state],index) => {
+          const developer = index === 3;
+          return '<article class="ecosystem-card"><h3>' + escapeHTML(name) + '</h3><p>' + escapeHTML(copy) + '</p><span class="product-state">' + escapeHTML(state) + '</span><a href="#' + (developer ? 'developers' : 'ecosystem') + '" data-route="' + (developer ? 'developers' : 'ecosystem') + '">' + escapeHTML(developer ? home('openDeveloper') : home('availability')) + '</a></article>';
+        }).join('');
+      }
+      const downloads = $('homeDownloads');
+      if (downloads) {
+        downloads.innerHTML = (downloadProducts[language] || downloadProducts.en).slice(0,3).map(([name,platform],index) => '<article class="download-item"><strong>' + escapeHTML(name) + '</strong><span>' + escapeHTML(platform) + '</span><span>' + escapeHTML(d('installProof')) + '</span><button type="button" data-download="home-' + index + '">' + escapeHTML(d('downloadUnavailable')) + '</button></article>').join('');
+      }
+    }
     function applyLanguage(nextLanguage) {
       language = messages[nextLanguage] ? nextLanguage : 'en';
       localStorage.setItem('ynx-explorer-language',language);
@@ -796,7 +804,9 @@ const indexHTML = `<!doctype html>
       document.querySelectorAll('[data-i18n]').forEach(node => { node.textContent = t(node.dataset.i18n); });
       document.querySelectorAll('[data-home-i18n]').forEach(node => { node.textContent = home(node.dataset.homeI18n); });
       document.querySelectorAll('[data-live-i18n]').forEach(node => { node.textContent = live(node.dataset.liveI18n); });
+      document.querySelectorAll('[data-download-i18n]').forEach(node => { node.textContent = d(node.dataset.downloadI18n); });
       document.querySelectorAll('[data-i18n-placeholder]').forEach(node => { node.placeholder = t(node.dataset.i18nPlaceholder); });
+      renderHomeDirectory();
       $('languageSelect').value = language;
       renderTransactions();
       if (typeof renderLocation === 'function') renderLocation();
@@ -1414,7 +1424,7 @@ const indexHTML = `<!doctype html>
       const note = event.target.closest('[data-portal-note]');
       if (note) { showPortalNotice(decodeURIComponent(note.dataset.portalNote)); return; }
       const download = event.target.closest('[data-download]');
-      if (download) { showPortalNotice('No publicly verifiable download artifact is configured for ' + download.dataset.download + '.'); }
+      if (download) { showPortalNotice(d('installProof')); }
       const walletAction = event.target.closest('[data-wallet-session]');
       if (walletAction?.dataset.walletSession === 'disconnect') { clearWalletSession(); showPortalNotice('The YNX Wallet account was cleared from this portal. No wallet permission, signature, or transaction was changed.'); return; }
       if (walletAction?.dataset.walletSession === 'network') { try { await switchYNXWalletNetwork(); } catch (error) { showPortalNotice('YNX Wallet network change was not approved: ' + (error?.message || 'request declined')); } return; }
