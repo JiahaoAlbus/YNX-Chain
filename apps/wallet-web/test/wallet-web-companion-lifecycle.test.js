@@ -26,12 +26,14 @@ test("public Web lifecycle remains fail closed while the 6441 Gateway registry i
   assert.equal(lifecycle.publicAuthAvailable,false);
 });
 
-test("begin delegates only to Core beginDetected and opens its canonical route",async()=>{
+test("Web begin delegates to Core but never top-level navigates to a native authorization route",async()=>{
   const runtime=client(),opened=[];
   const lifecycle=createWalletWebCompanionLifecycle({binding:binding(true),client:runtime,open:async(url)=>opened.push(url)});
   const result=await lifecycle.begin();
   assert.equal(result.status,"connecting");assert.equal(result.authoritative,false);
-  assert.deepEqual(runtime.calls,[["beginDetected",false]]);assert.deepEqual(opened,["ynxwallet://authorize?request=canonical"]);
+  assert.equal(result.code,"WEB_NATIVE_ROUTE_UNSUPPORTED");assert.equal(result.route,null);
+  assert.match(result.message,/will not navigate/i);
+  assert.deepEqual(runtime.calls,[["beginDetected",false]]);assert.deepEqual(opened,[]);
 });
 
 test("return binds the exact HTTPS callback and never exposes account/sign/send authority",async()=>{

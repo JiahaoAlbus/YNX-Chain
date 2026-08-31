@@ -23,11 +23,15 @@ function assertClient(client) {
 
 function sanitize(result) {
   if (!result || typeof result.status !== "string") throw Object.assign(new Error("Core runtime returned an invalid state."), {code: "INVALID_CORE_RUNTIME_STATE"});
+  const nativeRouteSuppressed = result.route?.status === "ready" && typeof result.route.url === "string";
   return Object.freeze({
     status: result.status,
-    message: String(result.message || ""),
+    code: nativeRouteSuppressed ? "WEB_NATIVE_ROUTE_UNSUPPORTED" : undefined,
+    message: nativeRouteSuppressed
+      ? "This Web companion will not navigate the current tab to a native Wallet authorization route. Use an installed EIP-1193 provider instead."
+      : String(result.message || ""),
     authoritative: result.status === WEB_COMPANION_STATE.CONNECTED,
-    route: result.status === WEB_COMPANION_STATE.CONNECTING && result.route?.status === "ready" ? result.route.url : null,
+    route: null,
     rejected: result.status === WEB_COMPANION_STATE.DISCONNECTED && /rejected/i.test(String(result.message || "")),
     account: false,
     sign: false,
@@ -36,7 +40,7 @@ function sanitize(result) {
 }
 
 /** Thin Web-owner adapter over Core's frozen RecoverableProductSessionClient. */
-export function createWalletWebCompanionLifecycle({binding, client = null, open = null}) {
+export function createWalletWebCompanionLifecycle({binding, client = null} = {}) {
   const ready = binding?.publicGatewayRegistryReady === true && binding?.trustedRuntimeAvailable === true;
   const fail = () => unavailable("The public Gateway registry or trusted Core runtime is not ready; no Product Session was created.");
   const requireReady = () => { if (!ready) return false; assertClient(client); return true; };
@@ -46,7 +50,6 @@ export function createWalletWebCompanionLifecycle({binding, client = null, open 
     async begin() {
       if (!requireReady()) return fail();
       const state = sanitize(await client.beginDetected(false));
-      if (state.route && typeof open === "function") await open(state.route);
       return state;
     },
     async handleReturn(url) {
