@@ -18,6 +18,14 @@ that check is never a browser RPC prerequisite. A failed private-service or
 health check preserves the Standard Wallet connection and offers the existing
 reconnect control. Sign-out remains a local adapter disconnect.
 
+The adapter restores a previously approved connection only with provider
+`eth_accounts` plus `eth_chainId == 0x1917`; it never reopens an authorization
+prompt during refresh. It listens to standard EIP-1193 `accountsChanged`,
+`chainChanged`, and `disconnect` events. An empty account, provider loss, or
+wrong-chain event clears the standard connection; an approved account change
+refreshes the displayed account after chain verification. These events do not
+create a Product Session or make the pending Finance API available.
+
 ## Owner source paths
 
 - `apps/finance/web/index.html`

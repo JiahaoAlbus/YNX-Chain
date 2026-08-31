@@ -54,6 +54,27 @@ test('web SDK distribution and Finance entry define the fail-closed wallet bridg
   assert.equal(window.YNXFinanceWallet.connected(),false);
   assert.throws(()=>window.YNXFinanceWallet.requireProof(),/PRODUCT_SESSION_UNAVAILABLE/);
 });
+test('web restores an approved provider and clears only the standard connection on provider lifecycle events',async()=>{
+  const first='0x1111111111111111111111111111111111111111',second='0x2222222222222222222222222222222222222222';
+  const state={accounts:[first],chainId:'0x1917'},listeners=new Map();
+  const provider={
+    request:async({method})=>method==='eth_accounts'?state.accounts:method==='eth_chainId'?state.chainId:Promise.reject(new Error(`unexpected ${method}`)),
+    on:(event,listener)=>listeners.set(event,listener),removeListener:(event,listener)=>{if(listeners.get(event)===listener)listeners.delete(event)},
+  };
+  const window={ethereum:provider,dispatchEvent:()=>{}};
+  const context=vm.createContext({window,document:{querySelector:()=>null},Promise,Error,Object,Date,CustomEvent:class CustomEvent{},Array,String,RegExp});
+  vm.runInContext(webWalletDistribution,context,{filename:'wallet-auth.js'});
+  vm.runInContext(webWallet,context,{filename:'wallet-auth-entry.js'});
+  await window.YNXFinanceWallet.ready;
+  assert.equal(window.YNXFinanceWallet.connection()?.account,first);
+  assert.equal(window.YNXFinanceWallet.connection()?.chainId,'0x1917');
+  state.accounts=[second];listeners.get('accountsChanged')(state.accounts);await new Promise(resolve=>setTimeout(resolve,0));
+  assert.equal(window.YNXFinanceWallet.connection()?.account,second);
+  assert.equal(window.YNXFinanceWallet.connection()?.chainId,'0x1917');
+  listeners.get('chainChanged')('0x1');
+  assert.equal(window.YNXFinanceWallet.connected(),false,'wrong-chain event must clear only the standard connection');
+  assert.equal(window.YNXFinanceWallet.session(),null,'Product Session remains unavailable rather than fabricated');
+});
 test('public and private read reconnect are bounded and mutations are never automatically replayed',()=>{
   for(const marker of ['id="network-retry"','Reconnect YNX Chain']) assert.ok(html.includes(marker),marker);
   for(const marker of ['READ_RETRY_DELAYS=[0,600,1600]','fetch(\'/health\'','AbortSignal.timeout(10_000)',"window.addEventListener('online'",'FINANCE_SERVICE_UNAVAILABLE','Finance service reachable · Wallet not connected']) assert.ok(js.includes(marker),marker);
