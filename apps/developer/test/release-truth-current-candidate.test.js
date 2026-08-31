@@ -23,7 +23,7 @@ test("current public candidate and Wallet v2 evidence do not promote missing lif
   ]);
   const truth = JSON.parse(release), current = JSON.parse(evidence), localMac = JSON.parse(macArtifact), linux = JSON.parse(linuxArtifact), windows = JSON.parse(windowsArtifact), sdk = JSON.parse(sdkCandidate), publicMetadata = JSON.parse(metadata), crossProduct = JSON.parse(vectors);
   assert.equal(truth.currentPublicCandidate.sourceCommit, "d4052228a2261c5ced6a8e8cfcbf763edabf2103");
-  assert.equal(truth.currentPublicCandidate.independentCurrentRuntimeReadback, false);
+  assert.equal(truth.currentPublicCandidate.independentCurrentRuntimeReadback, true);
   assert.equal(current.truthBoundaries.externalBrowserVisible, false);
   assert.equal(current.runtimeHealthProbe.httpStatus, 200);
   assert.equal(current.runtimeHealthProbe.compilers.cpp, true);

@@ -10,9 +10,10 @@
     "sourceTree": "89beb658b0971fb20d0d92a6bebc2010fdbb33e7",
     "release": "0.2.0-testnet-preview-d4052228a226-candidate",
     "publicHealth": "https://developer.ynxweb4.com/healthz",
-    "result": "source-bound-central-receipt; independent-current-readback-pending",
-    "independentCurrentRuntimeReadback": false,
-    "note": "The preceding bc8a37bc protected deployment record remains historical and cannot establish this candidate's current runtime identity."
+    "result": "source-bound-current-runtime-readback; browser-visible-proof-pending",
+    "independentCurrentRuntimeReadback": true,
+    "publicRuntimeEvidence": "apps/developer/evidence/public/current-public-source-bound-d4052228-20260831.json",
+    "note": "The preceding bc8a37bc protected deployment record remains historical. Current health and runtime-health release versions now match the d4052228 receipt; browser-visible evidence remains separate."
   },
   "currentLocalMacArtifact": {
     "evidence": "apps/developer/evidence/desktop/macos-current-ccab67b2.json",
@@ -133,8 +134,8 @@
         "service": "ynx-code-candidate.service",
         "upstream": "127.0.0.1:18113",
         "rollbackService": "ynx-developer-web.service on 127.0.0.1:18111",
-        "currentRuntimeReadback": false,
-        "verified": "The source-bound d4052228 public-candidate receipt exists, but independent current public health, image fingerprint, rollback and runtime-capability readback remain unverified. The preceding bc8a37bc host-side record is historical only."
+        "currentRuntimeReadback": true,
+        "verified": "Direct public health and runtime-health readback returns release d4052228a226. The source tree remains bound by the accepted receipt; image fingerprint, rollback, rendered-browser evidence and Wallet lifecycle remain unverified. The preceding bc8a37bc host-side record is historical only."
       }
     },
     "apiStudio": {

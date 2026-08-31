@@ -108,7 +108,7 @@ test("release manifests, provenance and website metadata agree on current unsign
   assert.equal(metadata.release.targetCommit, "fc7e9b5146d514aaae02bb01e4e20c62ff32867a");
   assert.equal(metadata.localEvidence.macosArm64.hosted, true);
   assert.equal(metadata.localEvidence.windowsX64.hosted, true);
-  assert.equal(metadata.routeStatus, "source-bound-public-candidate-receipted; independent-current-readback-pending");
+  assert.equal(metadata.routeStatus, "source-bound-public-runtime-readback; browser-visible-proof-pending");
   assert.equal(metadata.fullPlatformPublicEvidence.nineRuntimes, true);
   assert.equal(metadata.fullPlatformPublicEvidence.sevenLanguageServers, true);
   assert.equal(metadata.fullPlatformPublicEvidence.independentBrowserVisible, false);

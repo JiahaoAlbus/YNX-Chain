@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "classification": "source-bound-public-runtime-api-readback-not-browser-lifecycle-proof",
+  "observedAt": "2026-08-31T08:48:20Z",
+  "source": {
+    "commit": "d4052228a2261c5ced6a8e8cfcbf763edabf2103",
+    "tree": "89beb658b0971fb20d0d92a6bebc2010fdbb33e7",
+    "release": "0.2.0-testnet-preview-d4052228a226-candidate"
+  },
+  "publicRuntime": {
+    "healthUrl": "https://developer.ynxweb4.com/healthz",
+    "runtimeHealthUrl": "https://developer.ynxweb4.com/runtime/health",
+    "health": {
+      "httpStatus": 200,
+      "ok": true,
+      "service": "ynx-code-gateway",
+      "version": "0.2.0-testnet-preview-d4052228a226-candidate",
+      "sandbox": "linux-bubblewrap-prlimit",
+      "sandboxReady": true
+    },
+    "runtimeHealth": {
+      "httpStatus": 200,
+      "ok": true,
+      "service": "ynx-code-workspace-agent",
+      "protocolVersion": "ynx-code/v1",
+      "release": "0.2.0-testnet-preview-d4052228a226-candidate",
+      "sandboxReady": true,
+      "compilers": {
+        "c": true,
+        "cpp": true,
+        "javascript": true,
+        "typescript": true,
+        "python": true,
+        "go": true,
+        "rust": true,
+        "java": false,
+        "solidity": true
+      },
+      "languageServers": {
+        "cpp": true,
+        "typescript": true,
+        "python": true,
+        "go": true,
+        "rust": true,
+        "solidity": true,
+        "java": true
+      },
+      "sessionClass": "ephemeral-guest",
+      "workspacePersistence": "sqlite-wal"
+    }
+  },
+  "binding": {
+    "releaseVersionMatchesSourceCommitPrefix": true,
+    "sourceTreeBoundByCentralReceipt": true,
+    "sourceTreeExposedByPublicHealth": false,
+    "htmlAssetReadback": false,
+    "browserVisible": false,
+    "walletProviderLifecycle": false
+  },
+  "boundaries": {
+    "javaCompile": false,
+    "productionObjectStoreMigration": false,
+    "note": "This direct public API readback binds the exact release version to the accepted source receipt. It does not prove rendered browser UI, installed Wallet provider lifecycle, account approval, callback, signature, transaction, official desktop hosting or production signing."
+  }
+}

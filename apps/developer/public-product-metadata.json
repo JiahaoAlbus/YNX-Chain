@@ -9,7 +9,7 @@
   "officialDomain": "https://ynxweb4.com",
   "canonicalPath": "/developer",
   "canonicalUrl": "https://ynxweb4.com/developer",
-  "routeStatus": "source-bound-public-candidate-receipted; independent-current-readback-pending",
+  "routeStatus": "source-bound-public-runtime-readback; browser-visible-proof-pending",
   "deployedPublic": true,
   "publicRouteVerified": true,
   "releaseClass": "unsigned-testnet-preview",
