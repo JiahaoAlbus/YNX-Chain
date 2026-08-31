@@ -62,6 +62,7 @@ jobs:
             apps/developer/.ynx-developer-windows-candidates/**/ynx-developer-testnet-preview-windows-x64-test-signed.cer
             apps/developer/.ynx-developer-windows-candidates/**/windows-package.json
             apps/developer/.ynx-developer-windows-candidates/**/windows-installer.json
+            apps/developer/.ynx-developer-windows-candidates/**/windows-msix-install-evidence.json
             apps/developer/.ynx-developer-windows-candidates/**/windows-native-self-test.json
             apps/developer/.ynx-developer-windows-candidates/**/windows-install-evidence.json
           if-no-files-found: error

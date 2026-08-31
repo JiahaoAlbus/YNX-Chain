@@ -13,7 +13,9 @@ if (!$outRoot.StartsWith($candidatePrefix, [System.StringComparison]::OrdinalIgn
 $msix = Join-Path $outRoot "ynx-developer-testnet-preview-windows-x64-test-signed.msix"
 $certificatePath = Join-Path $outRoot "ynx-developer-testnet-preview-windows-x64-test-signed.cer"
 $recordPath = Join-Path $outRoot "windows-installer.json"
+$evidencePath = Join-Path $outRoot "windows-msix-install-evidence.json"
 if (!(Test-Path $msix) -or !(Test-Path $certificatePath) -or !(Test-Path $recordPath)) { throw "Windows MSIX installer evidence is missing" }
+if (Test-Path -LiteralPath $evidencePath) { throw "Refusing to overwrite existing Windows MSIX installation evidence: $evidencePath" }
 
 $record = Get-Content $recordPath -Raw | ConvertFrom-Json
 $hash = (Get-FileHash $msix -Algorithm SHA256).Hash.ToLowerInvariant()
@@ -56,4 +58,29 @@ Test-Launch "cold launch"
 Test-Launch "second launch"
 Remove-AppxPackage -Package $package.PackageFullName
 Get-ChildItem $trustedPeopleStore | Where-Object { $_.Thumbprint -eq $record.signerThumbprint } | Remove-Item -Force
+$utf8NoBom = [System.Text.UTF8Encoding]::new($false)
+$evidence = [ordered]@{
+  schemaVersion = 1
+  productId = "ynx-developer-v1"
+  surface = "windows-x64-testnet-preview-msix"
+  sourceCommit = $record.sourceCommit
+  sourceTree = $record.sourceTree
+  runtimeCheckpoint = $record.runtimeCheckpoint
+  artifact = $record.artifact
+  artifactSha256 = $hash
+  artifactBytes = (Get-Item $msix).Length
+  installClass = $record.installClass
+  signingClass = $record.signingClass
+  signerThumbprint = $record.signerThumbprint
+  certificateImported = $true
+  packageSignatureValidatedByAddAppxPackage = $true
+  installedPayloadVerified = $true
+  coldLaunch = $true
+  secondLaunch = $true
+  uninstall = $true
+  hosted = $false
+  productionSigned = $false
+  generatedAt = [DateTimeOffset]::UtcNow
+}
+[System.IO.File]::WriteAllText($evidencePath, (($evidence | ConvertTo-Json -Depth 8) + [Environment]::NewLine), $utf8NoBom)
 Write-Host "Windows MSIX installed, cold-launched and second-launched from installed payload with verified test-only signature: $hash"
