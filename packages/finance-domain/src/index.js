@@ -1,5 +1,6 @@
 export const FINANCE_DOMAIN_VERSION = "ynx-finance-domain-v1";
 export const FINANCE_READ_ENVELOPE_VERSION = "ynx-finance-read-envelope-v1";
+export const FINANCE_STREAM_ENVELOPE_VERSION = "ynx-finance-stream-envelope-v1";
 
 export const MODEL_KINDS = Object.freeze([
   "Asset",
@@ -214,6 +215,24 @@ export function validateReadEnvelope(value) {
   validateModel(value.kind, value.data);
   assert(value.sourceStatus === value.data.source.status, ERROR_CODES.INVALID_REQUEST, "read envelope sourceStatus must match model provenance");
   if (value.cursor !== undefined) assertID(value.cursor, "read envelope cursor");
+  return value;
+}
+
+// WebSocket/SSE messages carry only a source-bound read model. They never
+// authorize an order, signature, strategy lifecycle transition, or transfer.
+export function validateStreamEnvelope(value) {
+  assert(isRecord(value), ERROR_CODES.INVALID_REQUEST, "stream envelope must be an object");
+  assert(value.schemaVersion === FINANCE_STREAM_ENVELOPE_VERSION, ERROR_CODES.INVALID_REQUEST, "stream envelope schemaVersion is invalid");
+  assert(["snapshot", "upsert", "reconciled"].includes(value.event), ERROR_CODES.INVALID_REQUEST, "stream envelope event is invalid");
+  assertID(value.eventId, "stream envelope eventId");
+  assertID(value.requestId, "stream envelope requestId");
+  assertInteger(value.sequence, "stream envelope sequence", 0, Number.MAX_SAFE_INTEGER);
+  assertTimestamp(value.emittedAt, "stream envelope emittedAt");
+  assert(value.readOnly === true, ERROR_CODES.FORBIDDEN, "stream envelope must be read-only");
+  assert(MODEL_KINDS.includes(value.kind), ERROR_CODES.INVALID_REQUEST, "stream envelope kind is invalid");
+  validateModel(value.kind, value.data);
+  assert(value.sourceStatus === value.data.source.status, ERROR_CODES.INVALID_REQUEST, "stream envelope sourceStatus must match model provenance");
+  if (value.cursor !== undefined) assertID(value.cursor, "stream envelope cursor");
   return value;
 }
 

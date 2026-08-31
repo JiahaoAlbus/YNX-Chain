@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { ERROR_CODES, FINANCE_DOMAIN_VERSION, FINANCE_READ_ENVELOPE_VERSION, MODEL_KINDS, createError, validateDecimal, validateModel, validateReadEnvelope, validateWriteHeaders } from "../src/index.js";
+import { ERROR_CODES, FINANCE_DOMAIN_VERSION, FINANCE_READ_ENVELOPE_VERSION, FINANCE_STREAM_ENVELOPE_VERSION, MODEL_KINDS, createError, validateDecimal, validateModel, validateReadEnvelope, validateStreamEnvelope, validateWriteHeaders } from "../src/index.js";
 
 const source = Object.freeze({ owner: "oracle", system: "ynx-oracle", version: "v1", asOf: "2026-08-13T12:00:00.000Z", classification: "testnet", status: "live" });
 const examples = {
@@ -55,6 +55,28 @@ test("read envelopes preserve source truth and never carry a mutation capability
   assert.throws(() => validateReadEnvelope({ ...envelope, capabilities: ["write"] }), /capabilities/);
   assert.throws(() => validateReadEnvelope({ ...envelope, sourceStatus: "stale" }), /sourceStatus/);
   assert.throws(() => validateReadEnvelope({ ...envelope, cursor: "bad cursor" }), /cursor/);
+});
+
+test("stream envelopes are ordered source-bound reads without action semantics", () => {
+  const data = { schemaVersion: FINANCE_DOMAIN_VERSION, source, ...examples.Market };
+  const envelope = {
+    schemaVersion: FINANCE_STREAM_ENVELOPE_VERSION,
+    event: "upsert",
+    eventId: "event:1",
+    requestId: "stream:1",
+    sequence: 7,
+    emittedAt: source.asOf,
+    readOnly: true,
+    kind: "Market",
+    sourceStatus: "live",
+    cursor: "cursor:7",
+    data,
+  };
+  assert.equal(validateStreamEnvelope(envelope), envelope);
+  assert.throws(() => validateStreamEnvelope({ ...envelope, readOnly: false }), /read-only/);
+  assert.throws(() => validateStreamEnvelope({ ...envelope, event: "order_submitted" }), /event/);
+  assert.throws(() => validateStreamEnvelope({ ...envelope, sequence: -1 }), /sequence/);
+  assert.throws(() => validateStreamEnvelope({ ...envelope, sourceStatus: "stale" }), /sourceStatus/);
 });
 
 test("money uses strings and write requests require concurrency controls", () => {

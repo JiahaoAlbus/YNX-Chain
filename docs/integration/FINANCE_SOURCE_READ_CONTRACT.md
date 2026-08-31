@@ -21,6 +21,18 @@ The common envelope binds an immutable owner payload to:
 
 The envelope does not interpret the owner payload. Exchange owns subaccounts, positions, fills and venue fees. DEX owns vault, LP, swap and exit records. Quant Lab owns strategy, mandate, capital, PnL, risk and fee analytics. Tokenomics owns supply, issuance, burn, reward-source, treasury and reserve evidence.
 
+## Stream boundary
+
+`ynx-finance-stream-envelope-v1` is the product-adapter WebSocket/SSE read
+shape. Every message is a source-bound `snapshot`, `upsert`, or `reconciled`
+model record with an event ID, request ID, monotonic per-stream sequence,
+emission time, and matching source status. `readOnly` is always `true`.
+
+It is deliberately not a Data Fabric canonical event, Wallet callback, order
+intent, signer request, or execution receipt. A reconnect must start with a
+new snapshot and cursor from the owning source; clients must not infer a missed
+write or a successful execution from sequence gaps.
+
 ## Owner credentials
 
 Finance never forwards a Wallet Product Session proof after consuming it. Instead it signs an exact `GET /v1/integrations/finance/account` owner request using `YNX_READ_INTEGRATION_V1` HMAC-SHA-256. The credential binds consumer, owner, method, escaped path, normalized account, timestamp and a 128-bit random nonce. Each owner permits 30 seconds of skew and consumes each nonce once. Query strings, wrong paths, wrong accounts, tampering, expiry and replay fail closed.
