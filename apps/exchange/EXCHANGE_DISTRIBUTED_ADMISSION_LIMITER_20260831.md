@@ -38,6 +38,26 @@ The PostgreSQL multi-instance test is intentionally gated on
 operator-provided test database and proves a third request is rejected across
 instances. It was not run here because no test DSN was supplied.
 
+## Frozen Linux candidate
+
+The locally verified (not deployed) package is
+`/tmp/ynx-exchange-ba69ba9-linux-amd64-candidate-final.tar.gz`:
+
+```text
+source commit: ba69ba9ca9e8b7a507f0b772c219919179dd4503
+archive bytes: 3715483
+archive SHA-256: 2c08844116fd7d0be9f753df39bf5dca8278e3035833a33e939c8a53b385d000
+binary bytes: 8290488
+binary SHA-256: fba489012e09054166ceb694a7bc3034d8717853a2972bc77d773606244d330b
+payload SHA256SUMS bytes: 512
+payload SHA256SUMS SHA-256: eeac2804c62a7d2517a118ed7fc524e8caa116d2898bdadb4ca4d33b35a874d4
+payload: Linux amd64 binary plus five served Web assets
+```
+
+The manifest excludes itself and was checked after extracting the archive.
+It is an offline artifact, not a public URL, signed release, or installed
+application.
+
 ## Truthful remaining gates
 
 This is source and local-test evidence only. It does not prove a public
