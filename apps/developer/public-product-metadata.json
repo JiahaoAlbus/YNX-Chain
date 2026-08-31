@@ -65,12 +65,12 @@
       "verification": "mounted DMG, isolated install copy, embedded provenance, ad-hoc signature, native absent-Wallet scheme discovery, cold launch, bounded C++ compile, persisted second launch and child cleanup passed"
     },
     "currentLocalWindowsArtifact": {
-      "evidence": "apps/developer/evidence/desktop/windows-current-fa73d751.json",
-      "sourceCommit": "fa73d751ac72f8572fb2dcf364ebf2b649470f72",
-      "runtimeCheckpoint": "bc8a37bc6f2bcfcbe9415cb0e9da17a5294046a3",
-      "sha256": "0abb87beeb603ff177e25bb9504d359684e796c3596879df3dcfb719440d6dde",
-      "bytes": 71572168,
-      "sbomSha256": "c816f62e70d215920b5a8fe4089ec94b9d443545bf7150f68c35ce067fa1dd93",
+      "evidence": "apps/developer/evidence/desktop/windows-current-591437c6.json",
+      "sourceCommit": "591437c64eb53adf987ebea779104d4c5962c6e9",
+      "runtimeCheckpoint": "d4052228a2261c5ced6a8e8cfcbf763edabf2103",
+      "sha256": "7459cc31a86d45516d0180d8426cc00a55a206e95f79abb6ae644f1e3ad57e86",
+      "bytes": 71572190,
+      "sbomSha256": "4da45f155a57a72cae656007b9e626683c5b4249b8549e68395be5fc48312a07",
       "signingClass": "test-self-signed-not-production",
       "hosted": false,
       "deliveryMode": "hosted-workspace-client",

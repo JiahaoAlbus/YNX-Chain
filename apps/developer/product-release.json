@@ -26,12 +26,12 @@
     "productionSigned": false
   },
   "currentLocalWindowsArtifact": {
-    "evidence": "apps/developer/evidence/desktop/windows-current-fa73d751.json",
-    "sourceCommit": "fa73d751ac72f8572fb2dcf364ebf2b649470f72",
-    "sourceTree": "254134eb87c34faa7e1b53ebce32f102f638199b",
-    "runtimeCheckpoint": "bc8a37bc6f2bcfcbe9415cb0e9da17a5294046a3",
-    "sha256": "0abb87beeb603ff177e25bb9504d359684e796c3596879df3dcfb719440d6dde",
-    "bytes": 71572168,
+    "evidence": "apps/developer/evidence/desktop/windows-current-591437c6.json",
+    "sourceCommit": "591437c64eb53adf987ebea779104d4c5962c6e9",
+    "sourceTree": "9914ca23f013eb731c030e13625c816179cb0cf1",
+    "runtimeCheckpoint": "d4052228a2261c5ced6a8e8cfcbf763edabf2103",
+    "sha256": "7459cc31a86d45516d0180d8426cc00a55a206e95f79abb6ae644f1e3ad57e86",
+    "bytes": 71572190,
     "downloadHosted": false,
     "downloadUrl": null,
     "format": "msix",
@@ -116,7 +116,7 @@
       "linuxX64ServerCurrent": true,
       "webSourceCommit": "d4052228a2261c5ced6a8e8cfcbf763edabf2103",
       "macosArm64SourceCommit": "ccab67b2ceaeeaeb962dd6e67696bb3f73835120",
-      "windowsX64SourceCommit": "fa73d751ac72f8572fb2dcf364ebf2b649470f72",
+      "windowsX64SourceCommit": "591437c64eb53adf987ebea779104d4c5962c6e9",
       "windowsX64HistoricalSourceCommit": "76322af5e8c26a64fb6425c51d96c67d2b3df65f",
       "capabilities": [
         "React, TypeScript and Monaco multi-file workbench with tabs, split and diff views, search, replace, command palette, shortcuts and themes",

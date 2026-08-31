@@ -13,7 +13,7 @@ test("current public candidate and Wallet v2 evidence do not promote missing lif
     read("evidence/desktop/macos-current-ccab67b2.json"),
     read("evidence/platform/linux-server-current-bc8a37bc.json"),
     read("release/ynx-developer-0.2.0-testnet-preview-bc8a37bc-linux-x64-server-SHA256SUMS.txt"),
-    read("evidence/desktop/windows-current-fa73d751.json"),
+    read("evidence/desktop/windows-current-591437c6.json"),
     read("evidence/integration/dapp-connect-sdk-pr130-8cfb3265.json"),
     read("docs/integration/INTEGRATION_HANDOFF.md"),
     read("docs/integration/CROSS_PRODUCT_TEST_VECTORS.json"),
@@ -47,7 +47,7 @@ test("current public candidate and Wallet v2 evidence do not promote missing lif
   assert.equal(truth.currentLocalMacArtifact.sha256, localMac.artifact.sha256);
   assert.equal(truth.currentLocalMacArtifact.downloadHosted, false);
   assert.equal(publicMetadata.localEvidence.currentLocalMacArtifact.hosted, false);
-  assert.equal(windows.artifact.sourceCommit, "fa73d751ac72f8572fb2dcf364ebf2b649470f72");
+  assert.equal(windows.artifact.sourceCommit, "591437c64eb53adf987ebea779104d4c5962c6e9");
   assert.equal(windows.verification.msixColdLaunch, true);
   assert.equal(windows.verification.msixSecondLaunch, true);
   assert.equal(windows.verification.realCppCompile, true);
