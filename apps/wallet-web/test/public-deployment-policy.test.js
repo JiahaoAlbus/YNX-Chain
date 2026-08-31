@@ -15,6 +15,6 @@ test("old, abbreviated, missing, duplicate and wrong-route records fail closed",
     {...registry,products:[{...registry.products[0],commit:expected.slice(0,8)}]},
     {schemaVersion:1,products:[]},
     {...registry,products:[...registry.products,...registry.products]},
-    {...registry,products:[{...registry.products[0],publicWeb:"https://example.com/wallet"}]},
+    {...registry,products:[{...registry.products[0],publicWeb:"https://wallet.invalid/wallet"}]},
   ])assert.throws(()=>validateWalletPublicRegistry(candidate,expected));
 });
