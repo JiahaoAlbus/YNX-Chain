@@ -5,7 +5,7 @@ import { probeProductSessionV2PublicMount, verifyProductSessionV2PublicMountResp
 
 const requestId = "req_public_probe_fixture_001";
 const validBody = canonicalJSON({ error: { code: "UNKNOWN_OR_MISSING_FIELD", message: "Product Session Gateway challenge body fields do not match the protocol schema" }, ok: false, requestId, schemaVersion: 2 });
-const valid = (override = {}) => ({ body: validBody, cacheControl: "no-store", contentType: "application/json; charset=utf-8", requestId, status: 400, ...override });
+const valid = (override = {}) => ({ body: validBody, cacheControl: "no-store", contentType: "application/json; charset=utf-8", requestId, responseRequestId: requestId, status: 400, ...override });
 
 test("public mount verifier accepts only the exact state-free Product Session v2 rejection", () => {
   assert.deepEqual(verifyProductSessionV2PublicMountResponse(valid()), {
@@ -26,6 +26,7 @@ test("public mount verifier rejects the observed Chain JSON-RPC fallthrough", ()
 
 test("public mount verifier rejects wrong request binding, schema, cache and noncanonical bodies", () => {
   assert.throws(() => verifyProductSessionV2PublicMountResponse(valid({ requestId: "req_other_probe_fixture_001" })), { code: "INVALID_RESPONSE_BINDING" });
+  assert.throws(() => verifyProductSessionV2PublicMountResponse(valid({ responseRequestId: "req_other_probe_fixture_001" })), { code: "INVALID_RESPONSE_BINDING" });
   assert.throws(() => verifyProductSessionV2PublicMountResponse(valid({ body: canonicalJSON({ error: { code: "BAD_REQUEST", message: "Rejected" }, ok: false, requestId, schemaVersion: 1 }) })), { code: "INVALID_RESPONSE_BINDING" });
   assert.throws(() => verifyProductSessionV2PublicMountResponse(valid({ cacheControl: "public, max-age=60" })), { code: "CACHE_POLICY_MISSING" });
   assert.throws(() => verifyProductSessionV2PublicMountResponse(valid({ body: `${validBody}\n` })), { code: "NON_CANONICAL_RESPONSE" });
@@ -39,7 +40,7 @@ test("public mount probe sends only canonical empty JSON and validates the mount
     timeoutMs: 1_000,
     fetchImplementation: async (url, init) => {
       observed = { body: init.body, contentType: init.headers["content-type"], method: init.method, requestId: init.headers["x-request-id"], url: String(url) };
-      return new Response(validBody, { status: 400, headers: { "cache-control": "no-store", "content-type": "application/json; charset=utf-8" } });
+      return new Response(validBody, { status: 400, headers: { "cache-control": "no-store", "content-type": "application/json; charset=utf-8", "x-request-id": requestId } });
     },
   });
   assert.equal(result.mounted, true);
@@ -65,7 +66,7 @@ test("public mount probe retries bounded transport failures with the same state-
       attempts += 1;
       observedIds.push(init.headers["x-request-id"]);
       if (attempts < 3) throw new TypeError("synthetic transport failure");
-      return new Response(validBody, { status: 400, headers: { "cache-control": "no-store", "content-type": "application/json; charset=utf-8" } });
+      return new Response(validBody, { status: 400, headers: { "cache-control": "no-store", "content-type": "application/json; charset=utf-8", "x-request-id": requestId } });
     },
   });
   assert.equal(result.attemptsUsed, 3);
@@ -78,7 +79,7 @@ test("public mount probe allows HTTP only for explicitly enabled loopback prefli
     endpoint: "http://127.0.0.1:17441",
     requestId,
     timeoutMs: 1_000,
-    fetchImplementation: async () => new Response(validBody, { status: 400, headers: { "cache-control": "no-store", "content-type": "application/json; charset=utf-8" } }),
+    fetchImplementation: async () => new Response(validBody, { status: 400, headers: { "cache-control": "no-store", "content-type": "application/json; charset=utf-8", "x-request-id": requestId } }),
   });
   assert.equal(result.mounted, true);
 });

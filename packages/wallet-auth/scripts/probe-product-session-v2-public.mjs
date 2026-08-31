@@ -6,11 +6,12 @@ export const PRODUCT_SESSION_V2_PUBLIC_PROBE_PATH = "/v2/product-sessions/challe
 export const PRODUCT_SESSION_V2_PUBLIC_PROBE_MAX_RESPONSE_BYTES = 65_536;
 
 export function verifyProductSessionV2PublicMountResponse(input) {
-  const { body, cacheControl, contentType, requestId, status } = input ?? {};
+  const { body, cacheControl, contentType, requestId, responseRequestId, status } = input ?? {};
   if (status !== 400) fail("UNEXPECTED_HTTP_STATUS", `Product Session v2 mount probe expected HTTP 400, received ${String(status)}`);
   if (typeof contentType !== "string" || !/^application\/json(?:; charset=utf-8)?$/.test(contentType.toLowerCase())) fail("UNEXPECTED_CONTENT_TYPE", "Product Session v2 mount probe requires canonical JSON content type");
   if (typeof cacheControl !== "string" || !cacheControl.toLowerCase().split(",").map((item) => item.trim()).includes("no-store")) fail("CACHE_POLICY_MISSING", "Product Session v2 mount probe requires Cache-Control: no-store");
   if (typeof requestId !== "string" || !/^req_[A-Za-z0-9_-]{12,80}$/.test(requestId)) fail("INVALID_REQUEST_ID", "Product Session v2 mount probe request ID is invalid");
+  if (responseRequestId !== requestId) fail("INVALID_RESPONSE_BINDING", "Product Session v2 mount probe response request ID is not bound to the exact request");
   if (typeof body !== "string" || Buffer.byteLength(body, "utf8") > PRODUCT_SESSION_V2_PUBLIC_PROBE_MAX_RESPONSE_BYTES) fail("INVALID_RESPONSE_BODY", "Product Session v2 mount probe response body is invalid or oversized");
   let payload;
   try { payload = JSON.parse(body); } catch { fail("INVALID_RESPONSE_JSON", "Product Session v2 mount probe response is not JSON"); }
@@ -54,6 +55,7 @@ export async function probeProductSessionV2PublicMount(options = {}) {
         cacheControl: response.headers.get("cache-control"),
         contentType: response.headers.get("content-type"),
         requestId,
+        responseRequestId: response.headers.get("x-request-id"),
         status: response.status,
       }), attemptsUsed: attempt });
     } catch (error) {
