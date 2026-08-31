@@ -72,12 +72,21 @@ export class RecoverableProductSessionClient {
     }, now);
     await this.#clearPending();
     if (networkEpoch !== this.#networkEpoch) return this.#networkTransition("Network changed while preparing the Wallet request; explicit Retry is required");
-    await this.#storage.set(`${this.storageKey}:pending`, JSON.stringify(request));
-    if (networkEpoch !== this.#networkEpoch) return this.#networkTransition("Network changed while protecting the Wallet request; explicit Retry is required");
     const route = prepareWalletOpen(this.#registry, request, { networkAvailable: true, walletInstalled: environment.walletInstalled, schemeRegistered: environment.schemeRegistered }, now);
-    this.#state = route.status === WALLET_ROUTE_STATUS.READY
-      ? state(PRODUCT_SESSION_CLIENT_STATE.CONNECTING, automatic ? "Controlled reconnect requires Wallet approval" : "Wallet approval is pending", { request, route, automatic })
-      : state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, route.message, { request, route, automatic, actions: route.actions });
+    if (route.status !== WALLET_ROUTE_STATUS.READY) {
+      // A request becomes pending authority only after its exact registered route
+      // is ready to open.  In particular, a missing Wallet or scheme must not
+      // leave a callback-capable request in secure storage for a later launch.
+      // Explicit Retry creates a fresh nonce/state after the environment changes.
+      this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, route.message, { route, automatic, actions: route.actions });
+      return this.#state;
+    }
+    await this.#storage.set(`${this.storageKey}:pending`, JSON.stringify(request));
+    if (networkEpoch !== this.#networkEpoch) {
+      await this.#clearPending();
+      return this.#networkTransition("Network changed while protecting the Wallet request; explicit Retry is required");
+    }
+    this.#state = state(PRODUCT_SESSION_CLIENT_STATE.CONNECTING, automatic ? "Controlled reconnect requires Wallet approval" : "Wallet approval is pending", { request, route, automatic });
     return this.#state;
   }
 

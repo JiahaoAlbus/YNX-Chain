@@ -76,6 +76,22 @@ test("revoked stored session fails closed and starts only one controlled reconne
   assert.equal((await second.retry({ walletInstalled: true, schemeRegistered: true })).automatic, false);
 });
 
+test("unopenable Begin retains no callback-capable request and explicit Retry creates a fresh route", async () => {
+  const setup = harness();
+  const unavailable = await setup.client.begin({ walletInstalled: false, schemeRegistered: true });
+  assert.equal(unavailable.status, PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED);
+  assert.equal(unavailable.route.status, "wallet-not-installed");
+  assert.equal("request" in unavailable, false);
+  assert.equal(await setup.storage.get(`${setup.client.storageKey}:pending`), null);
+  assert.equal(await setup.storage.get(`${setup.client.storageKey}:return`), null);
+
+  const retry = await setup.client.retry({ walletInstalled: true, schemeRegistered: true });
+  assert.equal(retry.status, PRODUCT_SESSION_CLIENT_STATE.CONNECTING);
+  assert.equal(retry.automatic, false);
+  assert.match(retry.request.nonce, /^[A-Za-z0-9_-]{43}$/);
+  assert.notEqual(await setup.storage.get(`${setup.client.storageKey}:pending`), null);
+});
+
 test("network loss, rejection and Guest mode never synthesize identity, balance, transaction or Chain state", async () => {
   const setup = harness();
   assert.equal(setup.client.setNetworkAvailable(false).status, PRODUCT_SESSION_CLIENT_STATE.NETWORK_UNAVAILABLE);
