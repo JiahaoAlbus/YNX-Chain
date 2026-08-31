@@ -134,7 +134,7 @@ jobs:
           test "$LAUNCH_STATUS" -eq 0
           COLD_PID="$(awk '{print $NF}' proof/ci-ios/cold-launch.txt | tail -n 1)"
           test -n "$COLD_PID"
-          NETWORK_READY=false
+          LAYER1_READY=false
           for _ in $(seq 1 60); do
             xcrun simctl spawn "$DEVICE" log show \
               --style compact \
@@ -144,17 +144,20 @@ jobs:
             if grep -Fq "YNX_WALLET_ENDPOINT_MATRIX_LOADED pid=$COLD_PID matrixId=ynx-wallet-auth-public-endpoint-service-discovery-v1 rpcHost=rpc.ynxweb4.com rpcPath=/evm integratedCentral=false" \
                  proof/ci-ios/cold-launch-network-native.log && \
                grep -Fq "YNX_WALLET_RPC_CHAIN_ID_VERIFIED pid=$COLD_PID chainId=0x1917" \
-                 proof/ci-ios/cold-launch-network-native.log && \
-               grep -Fq "YNX_WALLET_REST_APP_GATEWAY_REACHABLE pid=$COLD_PID status=200" \
-                 proof/ci-ios/cold-launch-network-native.log && \
-               grep -Fq "YNX_WALLET_GATEWAY_FAIL_CLOSED pid=$COLD_PID walletComplete=UNKNOWN_OR_MISSING_FIELD walletIntrospect=PROOF_REQUIRED productIntrospect=UNKNOWN_OR_MISSING_FIELD stateUnchanged=true authorizationSuccess=false account=false signing=false send=false transaction=false" \
                  proof/ci-ios/cold-launch-network-native.log; then
-              NETWORK_READY=true
+              LAYER1_READY=true
               break
             fi
             sleep 1
           done
-          test "$NETWORK_READY" = true
+          test "$LAYER1_READY" = true
+          COLD_PRIVATE_SERVICE_NEGATIVE_VERIFIED=false
+          if grep -Fq "YNX_WALLET_REST_APP_GATEWAY_REACHABLE pid=$COLD_PID status=200" \
+               proof/ci-ios/cold-launch-network-native.log && \
+             grep -Fq "YNX_WALLET_GATEWAY_FAIL_CLOSED pid=$COLD_PID walletComplete=UNKNOWN_OR_MISSING_FIELD walletIntrospect=PROOF_REQUIRED productIntrospect=UNKNOWN_OR_MISSING_FIELD stateUnchanged=true authorizationSuccess=false account=false signing=false send=false transaction=false" \
+               proof/ci-ios/cold-launch-network-native.log; then
+            COLD_PRIVATE_SERVICE_NEGATIVE_VERIFIED=true
+          fi
           xcrun simctl spawn "$DEVICE" log show \
             --style compact \
             --last 5m \
@@ -167,7 +170,7 @@ jobs:
           xcrun simctl launch "$DEVICE" com.ynxweb4.wallet | tee proof/ci-ios/second-launch.txt
           SECOND_PID="$(awk '{print $NF}' proof/ci-ios/second-launch.txt | tail -n 1)"
           test -n "$SECOND_PID"
-          SECOND_NETWORK_READY=false
+          SECOND_LAYER1_READY=false
           for _ in $(seq 1 60); do
             xcrun simctl spawn "$DEVICE" log show \
               --style compact \
@@ -177,17 +180,20 @@ jobs:
             if grep -Fq "YNX_WALLET_ENDPOINT_MATRIX_LOADED pid=$SECOND_PID matrixId=ynx-wallet-auth-public-endpoint-service-discovery-v1 rpcHost=rpc.ynxweb4.com rpcPath=/evm integratedCentral=false" \
                  proof/ci-ios/second-launch-network-native.log && \
                grep -Fq "YNX_WALLET_RPC_CHAIN_ID_VERIFIED pid=$SECOND_PID chainId=0x1917" \
-                 proof/ci-ios/second-launch-network-native.log && \
-               grep -Fq "YNX_WALLET_REST_APP_GATEWAY_REACHABLE pid=$SECOND_PID status=200" \
-                 proof/ci-ios/second-launch-network-native.log && \
-               grep -Fq "YNX_WALLET_GATEWAY_FAIL_CLOSED pid=$SECOND_PID walletComplete=UNKNOWN_OR_MISSING_FIELD walletIntrospect=PROOF_REQUIRED productIntrospect=UNKNOWN_OR_MISSING_FIELD stateUnchanged=true authorizationSuccess=false account=false signing=false send=false transaction=false" \
                  proof/ci-ios/second-launch-network-native.log; then
-              SECOND_NETWORK_READY=true
+              SECOND_LAYER1_READY=true
               break
             fi
             sleep 1
           done
-          test "$SECOND_NETWORK_READY" = true
+          test "$SECOND_LAYER1_READY" = true
+          SECOND_PRIVATE_SERVICE_NEGATIVE_VERIFIED=false
+          if grep -Fq "YNX_WALLET_REST_APP_GATEWAY_REACHABLE pid=$SECOND_PID status=200" \
+               proof/ci-ios/second-launch-network-native.log && \
+             grep -Fq "YNX_WALLET_GATEWAY_FAIL_CLOSED pid=$SECOND_PID walletComplete=UNKNOWN_OR_MISSING_FIELD walletIntrospect=PROOF_REQUIRED productIntrospect=UNKNOWN_OR_MISSING_FIELD stateUnchanged=true authorizationSuccess=false account=false signing=false send=false transaction=false" \
+               proof/ci-ios/second-launch-network-native.log; then
+            SECOND_PRIVATE_SERVICE_NEGATIVE_VERIFIED=true
+          fi
           {
             printf 'coldPid=%s\n' "$COLD_PID"
             printf 'secondPid=%s\n' "$SECOND_PID"
@@ -195,6 +201,14 @@ jobs:
             printf 'walletIntrospectionError=PROOF_REQUIRED\n'
             printf 'productSessionIntrospectionError=UNKNOWN_OR_MISSING_FIELD\n'
             printf 'stateUnchanged=true\n'
+            printf 'layer1ChainId=0x1917\n'
+            printf 'coldPrivateServiceNegativeVerified=%s\n' "$COLD_PRIVATE_SERVICE_NEGATIVE_VERIFIED"
+            printf 'secondPrivateServiceNegativeVerified=%s\n' "$SECOND_PRIVATE_SERVICE_NEGATIVE_VERIFIED"
+            if test "$COLD_PRIVATE_SERVICE_NEGATIVE_VERIFIED" = true && test "$SECOND_PRIVATE_SERVICE_NEGATIVE_VERIFIED" = true; then
+              printf 'privateServiceDegraded=false\n'
+            else
+              printf 'privateServiceDegraded=true\n'
+            fi
             printf 'authorizationSuccess=false\naccount=false\nsigning=false\nsend=false\ntransaction=false\n'
           } | tee proof/ci-ios/gateway-testnet-fail-closed.txt
           xcrun simctl io "$DEVICE" screenshot proof/ci-ios/wallet-second-launch.png
