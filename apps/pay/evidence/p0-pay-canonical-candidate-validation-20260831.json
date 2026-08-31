@@ -1,0 +1,37 @@
+{
+  "schemaVersion": "payCanonicalCandidateValidation@1.0.0-p0.0",
+  "candidateSource": {
+    "commit": "dbdd3491e63186cc02541ca7e8a20d8f098b31b9",
+    "tree": "3a454e44f4830cf20be0caf57e28d2db3c6f304d"
+  },
+  "ownerScope": ["apps/pay/**"],
+  "canonicalNetwork": {
+    "cosmosChainId": "ynx_6423-1",
+    "evmChainId": 6423,
+    "evmChainHex": "0x1917"
+  },
+  "localValidation": {
+    "command": "npm test && npm run typecheck",
+    "unit": {"passed": 17, "failed": 0},
+    "typecheck": "passed",
+    "providerBoundary": "source retains distinct YNX Wallet and MetaMask presentation, resolver-first native authorization, prompt-free restoration, and private-service degradation separation"
+  },
+  "boundCarrier": {
+    "commit": "2be0b2441",
+    "path": "apps/pay/evidence/artifacts/ynx-pay-dbdd3491-expo-export-20260831.tgz",
+    "sha256": "f67a97354f5b5fc7b536280f7d028623fe59f49a68d6d0713874e2b4f41cc613",
+    "bytes": 3413552
+  },
+  "truth": {
+    "sourceCandidateValidatedLocally": true,
+    "publicDeploymentVerified": false,
+    "installedCandidateVerified": false,
+    "providerApprovalVerified": false,
+    "providerRejectionVerified": false,
+    "chainSwitchVerified": false,
+    "lifecycleVerified": false,
+    "signatureVerified": false,
+    "transactionVerified": false
+  },
+  "boundary": "No chain server, Caddy, systemd, production route, deployment, installation, account request, signature, or transaction was touched."
+}
