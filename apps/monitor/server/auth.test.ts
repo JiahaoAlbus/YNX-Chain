@@ -182,6 +182,13 @@ describe("Monitor authorization and approval boundaries", () => {
 	  const text=JSON.stringify(overview.body);for(const secret of ["127.0.0.1","/etc/ynx","Bearer should-not-leak"])assert.equal(text.includes(secret),false,`overview leaked ${secret}`);
 	  const node=overview.body.probes.find((probe:{id:string})=>probe.id==="node");assert.deepEqual(node.data.dependencies,{chainRpc:{status:"operational"}});
 	});
+	it("redacts internal-looking operation record fields from the browser overview",async()=>{
+	  const {base}=await fixture();const op=await token(base,"op","op-pass");const headers=sessionHeaders(op);
+	  const backup=await call(base,"/ops/backups",{method:"POST",headers,body:JSON.stringify({kind:"configuration",service:"monitor",artifactRef:"/private/ynx/backup.tar",digest:"a".repeat(64),sizeBytes:1,createdAt:"2026-08-31T00:00:00.000Z",retentionClass:"test",retentionUntil:"2026-09-01T00:00:00.000Z",storageLocation:"s3://token:Bearer should-not-leak@backup.example/private",encryption:"encrypted",rpoTargetSeconds:1,rtoTargetSeconds:1,evidence:["/etc/ynx/secret.env"]})});
+	  assert.equal(backup.status,201);const overview=await call(base,"/ops/overview",{headers});const text=JSON.stringify(overview.body);
+	  for(const secret of ["/private/ynx","Bearer should-not-leak","/etc/ynx"])assert.equal(text.includes(secret),false,`overview leaked ${secret}`);
+	  assert.equal(overview.body.backupRecords[0].artifactRef,"redacted-internal-evidence");
+	});
 	it("reports finality unavailable unless both canonical and indexer probes are healthy",async()=>{
 	  const rpcServer=createServer((_request,response)=>response.writeHead(200,{"content-type":"application/json"}).end(JSON.stringify({height:10})));
 	  let indexerHealthy=false;
