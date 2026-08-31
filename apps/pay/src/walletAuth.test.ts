@@ -33,9 +33,10 @@ test('Pay renders distinct YNX Wallet and MetaMask connection details without br
   const app=readFileSync(new URL('../App.tsx',import.meta.url),'utf8');
   assert.match(app,/MetaMask fox logo/);
   assert.match(app,/YNX Wallet logo/);
-  assert.match(app,/Connection details/);
-  assert.match(app,/Switch account/);
-  assert.match(app,/Disconnect wallet/);
+  assert.match(app,/walletUICopy\[locale\]/);
+  assert.match(app,/walletText\.detailsTitle/);
+  assert.match(app,/walletText\.switchAccount/);
+  assert.match(app,/walletText\.disconnect/);
   assert.doesNotMatch(app,/window\.open|ynxwallet:\/\/authorize/);
 });
 
