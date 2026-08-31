@@ -20,4 +20,5 @@ test("Windows packaging uses a fresh source-scoped candidate and protects prior 
   assert.doesNotMatch(pack, /Remove-Item \$outRoot -Recurse/);
   assert.match(verify, /Refusing to overwrite existing Windows native self-test evidence/);
   assert.match(workflow, /\.ynx-developer-windows-candidates\/\*\*\/ynx-developer-testnet-preview-windows-x64-test-signed\.msix/);
+  assert.match(workflow, /include-hidden-files: true/);
 });
