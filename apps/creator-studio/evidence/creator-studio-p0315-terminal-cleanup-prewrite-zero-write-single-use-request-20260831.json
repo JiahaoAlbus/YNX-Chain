@@ -1,0 +1,122 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "owner": "creator-studio-deploy-owner",
+  "requestType": "WHOLLY_NEW_CREATOR_P0315_TERMINAL_CLEANUP_PREWRITE_ZERO_WRITE_SINGLE_USE_REQUEST",
+  "purpose": "Freeze the complete current production identities needed to decide a later cleanup-only lease. This request is not a cleanup or deployment lease.",
+  "sourceRequest": {
+    "commit": "fc7850898e31df3d85b88c960c14129f7f9be3dd",
+    "tree": "db657580eb179339e21e6c39446397a42ea1edcf",
+    "path": "apps/creator-studio/evidence/creator-studio-p0315-terminal-reconciliation-cleanup-successor-single-use-lease-request-20260831.json",
+    "blob": "ea94527917fa1a67593517062c603bfcd554dfb9",
+    "bytes": 9680,
+    "sha256": "ffd5dc0fde8ccd2a4757524a3796a0cb054228864c2a996fd93eaa150031768d"
+  },
+  "inspector": {
+    "commit": "16d5aaced72b2eb099b45c270c3ed8a38810c247",
+    "tree": "b69cd8deff7976c0f34e073e9bf8a24bb4643885",
+    "path": "apps/creator-studio/release-terminal-zero-write-inspector-3f97a13d.mjs",
+    "blob": "8426803150d558248599ae64998b38c25df84434",
+    "bytes": 10748,
+    "sha256": "20c7bb3a24824bd63ce3a4b4a1b00558faf1293c21fcf447f6fd54414e062319",
+    "selftest": {
+      "command": "node apps/creator-studio/release-terminal-zero-write-inspector-3f97a13d.mjs selftest",
+      "passed": true,
+      "readOnlyImports": true,
+      "mutationApisImported": false,
+      "expectedCandidateFileCount": 12,
+      "expectedControlEntries": 7,
+      "publicResourceCount": 5
+    }
+  },
+  "priorAuthority": {
+    "taskId": "P0-316",
+    "centralCommit": "5093fe8489e438b4edf2ee703399aea6d2e1a880",
+    "centralTree": "ce8c813eec19f9bdf43872c382629d44b9a5dcb3",
+    "evidencePath": "release/integration/p0-wallet-connectivity/execution/objects/p0-316-creator-studio-p0315-terminal-zero-write-readback-evidence-20260831.json",
+    "evidenceBlob": "bf27f2e98d6bcc866a89414d4e1464821150e1f8",
+    "evidenceBytes": 2151,
+    "evidenceSha256": "a6298945c5d493c6d9ad9867be5dea85fdb56eaa1ede632bd8b37aca1919e6a1",
+    "status": "CONSUMED_RELEASED_SUCCESS_CREATOR_P0316_P0315_TERMINAL_ZERO_WRITE_READBACK_RESIDUES_RETAINED",
+    "heavyReleased": true,
+    "nonreusable": true
+  },
+  "requestedExecution": {
+    "mode": "ZERO_WRITE_READ_ONLY_INSPECTION",
+    "runtimeHost": "43.153.202.237",
+    "attemptLimit": 1,
+    "retryAllowed": false,
+    "sshInvocationLimit": 1,
+    "stdin": {
+      "path": "apps/creator-studio/release-terminal-zero-write-inspector-3f97a13d.mjs",
+      "bytes": 10748,
+      "sha256": "20c7bb3a24824bd63ce3a4b4a1b00558faf1293c21fcf447f6fd54414e062319"
+    },
+    "remoteArgv": [
+      "/usr/bin/sudo",
+      "-n",
+      "/usr/bin/node",
+      "--input-type=module",
+      "-"
+    ],
+    "sshContract": "Central must freeze the exact protected existing identity reference, host-key policy, target host and full literal SSH argv. Inspector bytes are sent only on stdin. No shell interpolation and no remote temporary path.",
+    "expectedTerminal": {
+      "remoteExitStatus": 0,
+      "stderrBytes": 0,
+      "stdout": "one canonical JSON line",
+      "inspection": "CREATOR_P0315_TERMINAL_CLEANUP_PREWRITE_ZERO_WRITE",
+      "mutationCount": 0
+    }
+  },
+  "requiredOutput": {
+    "current": "exact symlink tuple, target and dereferenced old-release tuple",
+    "oldManifest": "exact tuple, bytes and SHA256",
+    "service": "LoadState, ActiveState, SubState, MainPID, NRestarts, FragmentPath, WorkingDirectory and User",
+    "listeners": "unique PIDs for 6493 API, 6494 Viewer and 6495 Creator",
+    "unit": "exact tuple, bytes and SHA256",
+    "receipt": "exact tuple, bytes, SHA256, status, candidate SHA and before-current target",
+    "candidate": "exact root tuple, complete sorted directory and file inventory, and every child dev/inode/uid/gid/mode/nlink/type/bytes/SHA256 tuple",
+    "candidateManifest": "tuple, bytes, SHA256, source commit/tree and exactly 12 payload files",
+    "control": "exact root tuple, complete sorted directory and file inventory, and every child dev/inode/uid/gid/mode/nlink/type/bytes/SHA256 tuple",
+    "placementReceipt": "exact tuple, bytes, SHA256, status and exact root",
+    "parents": "exact parent tuples for receipt, candidate and control",
+    "absence": "current.next, receipt.next, candidate.next, control.next and every pre/post-switch quarantine",
+    "public": "status, bytes, SHA256, content-type and cache-control for root, app.js, manifest, i18n.js and catalog"
+  },
+  "sourceBoundChecks": {
+    "oldCurrentTarget": "/opt/ynx-creator-studio-wallet/releases/creator-studio-0e1a53c5",
+    "forwardReceiptSha256": "37c0866d535f25ce59d27e66143410a7ec1c2130a1dbe91da6aecb799eba7d0d",
+    "candidateTuple": "64770:1483917:995:986:755:4:directory",
+    "candidateCommit": "3f97a13d5ff6e0a43d434eb6b630785564e59e3e",
+    "candidateTree": "5ed64b144ec149e05f201ca9e406e460fa19f9f9",
+    "candidateManifestSha256": "fcd0f3346de18e51580af8f7c4f040b8694f7e2ef74bb92cc1ce942e03bea624",
+    "candidateCarrierSha256": "064acfe84c481941549d33473cb78f124e0ae5dfebda16d2f0cac1f4898c3046",
+    "controlTuple": "64770:1483830:0:0:700:3:directory",
+    "unitSha256": "06a55f91bf5530952c347db146daa827510cc72f161d999943da7d5737b8c006",
+    "oldPublicSha256": {
+      "root": "b37f78205f2c5443b2103ee42e98d6ecde65238c107733088e63893a3c1de697",
+      "app.js": "77e7c42006e3be36c7af717e5e8b2a3cd847c3652dcadb1731c259aee5b01af5",
+      "creator-studio.manifest.json": "5fd27ac55d9ea70b8e15aac0565324a9ce7b18706bd75cd5b430eaa4843de86f",
+      "i18n.js": "451016ca4e3a16eeade02154397eabf9fabcc57a50fe948ec954b63e5ee12abe",
+      "i18n/catalog.json": "4c86e3e1cdeac6d9c4570891d70bab4c3486c6a4429dd33fd1029f046ca9ecff"
+    }
+  },
+  "forbidden": [
+    "cleanup or deletion",
+    "remote temporary file or directory",
+    "deploy, current switch, rollback or service restart",
+    "unit, Caddy, API, Viewer or public mutation",
+    "reuse of P0-315 or P0-316",
+    "Wallet account request, signature, typed data or transaction"
+  ],
+  "terminalRule": "Return the complete canonical inspector JSON or one read-only blocker, then atomically release this read-only lease. A separate Central review is required before any cleanup-only lease may be issued.",
+  "truthBoundary": {
+    "sourceOnly": true,
+    "sshExecuted": false,
+    "remoteMutation": false,
+    "cleanupAuthorized": false,
+    "cleanupComplete": false,
+    "deploymentAuthorized": false,
+    "creatorPromoted": false
+  }
+}
