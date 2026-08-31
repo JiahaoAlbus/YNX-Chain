@@ -1,0 +1,54 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-307",
+  "recordType": "CREATOR_P0305_RESIDUE_CLEANUP_TERMINAL",
+  "status": "CONSUMED_FAILED_CLOSED_CREATOR_P0307_CANDIDATE_INVENTORY_DRIFT_PREDELETE_REMOTE_STATE_READBACK_REQUIRED",
+  "recordedAt": "2026-08-31T03:38:29Z",
+  "lease": {
+    "centralCommit": "2108c15129887e6d94f9266a95328f7c1a6004e2",
+    "centralTree": "017c7e31fcd68bb67bc23c603ca207302a7813bf",
+    "blob": "818c3ee5702ff55665e87ee2608188f611f6df00",
+    "sha256": "ed503aa05b41cbb4806e0eae323e3ad570b1fed517ca1bcf3c84bac7ca4641c2",
+    "singleUse": true,
+    "reusable": false
+  },
+  "execution": {
+    "attempts": 1,
+    "retryAttempts": 0,
+    "remoteExitStatus": 1,
+    "nodeVersion": "v22.23.1",
+    "failureClass": "CANDIDATE_INVENTORY_DRIFT",
+    "failureLocation": "release-residue-cleanup-3f97a13d.mjs:41 validateCandidate called by initial snapshot in cleanupV2",
+    "failureBeforeAnyDeleteCallBySourceControlFlow": true,
+    "successOutputPresent": false,
+    "remoteMutationCount": "UNPROVEN",
+    "cleanupComplete": false
+  },
+  "ownerAttestation": {
+    "exactLiteralArgvAndExecutorStdinUsed": true,
+    "executedBeforeExpiry": true,
+    "retry": false,
+    "extraInspection": false,
+    "rollback": false,
+    "serviceLifecycle": false,
+    "currentOrPublicMutation": false,
+    "accountRequest": false,
+    "signature": false,
+    "transaction": false
+  },
+  "decision": {
+    "heavyReleased": false,
+    "locksReleased": false,
+    "nextAllowedAction": "WHOLLY_NEW_CREATOR_P0307_TERMINAL_ZERO_WRITE_INVENTORY_INSPECTION",
+    "cleanupRetryAuthorized": false
+  },
+  "requiredReadback": [
+    "exact classification and tuple for receipt candidate and control residues",
+    "all next and stage paths",
+    "complete candidate and control inventories including file tuples and SHA256",
+    "old current release and manifest",
+    "Creator API Viewer services listeners and unit",
+    "five official Creator public resources"
+  ]
+}

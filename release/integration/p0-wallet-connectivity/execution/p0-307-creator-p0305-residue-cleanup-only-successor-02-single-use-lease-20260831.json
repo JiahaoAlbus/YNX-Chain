@@ -5,15 +5,15 @@
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-creator-p0305-residue-cleanup-only-s02-20260831T033346Z",
   "owner": "creator-studio-deploy-owner",
   "executor": "release-control-plane",
-  "status": "ACTIVE_CREATOR_P0305_IDENTITY_BOUND_RESIDUE_CLEANUP_ONLY_SUCCESSOR_02",
+  "status": "CONSUMED_FAILED_CLOSED_CREATOR_P0307_CANDIDATE_INVENTORY_DRIFT_PREDELETE_REMOTE_STATE_READBACK_REQUIRED",
   "issuedAt": "2026-08-31T03:33:46Z",
   "expiresAt": "2026-08-31T03:53:46Z",
   "singleUse": true,
   "reusable": false,
-  "consumedAt": null,
+  "consumedAt": "2026-08-31T03:37:30Z",
   "releasedAt": null,
-  "executionAuthorized": true,
-  "productionMutationAllowed": true,
+  "executionAuthorized": false,
+  "productionMutationAllowed": false,
   "predecessor": {
     "taskId": "P0-305",
     "status": "EMERGENCY_BLOCKED_CREATOR_OLD_RUNTIME_ACTIVE_EXACT_P0305_RESIDUES_RETAINED_CLEANUP_ONLY_REQUIRED",
@@ -122,6 +122,18 @@
     "currentSymlinkMutations": 0
   },
   "terminalRule": "After the one cleanup attempt, retain Heavy and all Creator locks. A wholly-new zero-write readback must prove all three residues and all next/stage paths absent and the old runtime exact before release.",
+  "terminalEvidence": {
+    "attempts": 1,
+    "retryAttempts": 0,
+    "remoteExitStatus": 1,
+    "nodeVersion": "v22.23.1",
+    "failureClass": "CANDIDATE_INVENTORY_DRIFT",
+    "failureBoundary": "INITIAL_SNAPSHOT_VALIDATE_CANDIDATE_BEFORE_ANY_DELETE_CALL",
+    "successOutputPresent": false,
+    "remoteMutationCount": "UNPROVEN_PENDING_ZERO_WRITE_READBACK",
+    "cleanupComplete": false,
+    "furtherCleanupAuthorized": false
+  },
   "forbidden": [
     "old rollback or forward argv",
     "retry",
@@ -138,7 +150,7 @@
   ],
   "truthBoundary": {
     "leaseIssued": true,
-    "executionStarted": false,
+    "executionStarted": true,
     "cleanupComplete": false,
     "publicRuntimeChanged": false,
     "productComplete": false

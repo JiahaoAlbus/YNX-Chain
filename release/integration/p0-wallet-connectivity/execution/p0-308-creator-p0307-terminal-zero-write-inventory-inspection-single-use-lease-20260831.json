@@ -1,0 +1,93 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-308",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-creator-p0307-terminal-zero-write-inventory-20260831T033829Z",
+  "owner": "creator-studio-emergency-readonly-inspector",
+  "executor": "release-control-plane",
+  "status": "ACTIVE_CREATOR_P0307_TERMINAL_ZERO_WRITE_INVENTORY_INSPECTION",
+  "issuedAt": "2026-08-31T03:38:29Z",
+  "expiresAt": "2026-08-31T03:58:29Z",
+  "singleUse": true,
+  "reusable": false,
+  "consumedAt": null,
+  "releasedAt": null,
+  "executionAuthorized": true,
+  "productionMutationAllowed": false,
+  "predecessor": {
+    "taskId": "P0-307",
+    "status": "CONSUMED_FAILED_CLOSED_CREATOR_P0307_CANDIDATE_INVENTORY_DRIFT_PREDELETE_REMOTE_STATE_READBACK_REQUIRED",
+    "attempts": 1,
+    "remoteExitStatus": 1,
+    "failureClass": "CANDIDATE_INVENTORY_DRIFT",
+    "cleanupComplete": false
+  },
+  "inspector": {
+    "path": "release/integration/p0-wallet-connectivity/execution/p0-308-creator-p0307-terminal-zero-write-inventory-inspection.sh",
+    "bytes": 4930,
+    "sha256": "94ee365a961a96908fcccf20f7f1528e739931625d3c06e21d5803f8a1f9e520",
+    "mode": "0755",
+    "bashSyntax": "PASS",
+    "staticMutationAudit": "PASS"
+  },
+  "execution": {
+    "workdir": "/Users/huangjiahao/Desktop/YNX Final Worktrees/29-integration",
+    "literalArgv": [
+      "/usr/bin/ssh",
+      "-i",
+      "/Users/huangjiahao/Downloads/Huang.pem",
+      "-o",
+      "IdentitiesOnly=yes",
+      "-o",
+      "BatchMode=yes",
+      "-o",
+      "StrictHostKeyChecking=yes",
+      "-o",
+      "UserKnownHostsFile=/Users/huangjiahao/.ssh/known_hosts",
+      "-o",
+      "ConnectTimeout=10",
+      "-o",
+      "ConnectionAttempts=1",
+      "ubuntu@43.153.202.237",
+      "/usr/bin/sudo",
+      "-n",
+      "/bin/bash",
+      "-s"
+    ],
+    "stdinPath": "release/integration/p0-wallet-connectivity/execution/p0-308-creator-p0307-terminal-zero-write-inventory-inspection.sh",
+    "stdinBytes": 4930,
+    "stdinSha256": "94ee365a961a96908fcccf20f7f1528e739931625d3c06e21d5803f8a1f9e520",
+    "attemptLimit": 1,
+    "retryAllowed": false,
+    "remoteTempFilesAllowed": false
+  },
+  "readScope": [
+    "exact tuple and classification for P0-305 receipt candidate release and control root",
+    "all P0-305 next and stage paths",
+    "complete NUL-safe candidate and control inventories with base64 path tuple type and regular-file SHA256",
+    "three target parent tuples",
+    "old current target release and old and candidate manifests",
+    "Creator API Viewer unit services PIDs NRestarts and listeners",
+    "five official Creator public resource status bytes content-type and SHA256"
+  ],
+  "forbidden": [
+    "write or remote temporary file",
+    "cleanup",
+    "rollback or forward retry",
+    "service lifecycle",
+    "unit Caddy current release or public mutation",
+    "unrelated Heavy lease",
+    "Wallet account request",
+    "signature",
+    "typed data",
+    "transaction"
+  ],
+  "terminalRule": "Retain Creator Heavy and all locks after inspection. Central must decide a wholly-new corrected cleanup-only successor from direct inventory evidence; P0-307 is nonreusable.",
+  "truthBoundary": {
+    "leaseIssued": true,
+    "inspectionStarted": false,
+    "mutationCount": 0,
+    "cleanupComplete": false,
+    "heavyReleased": false
+  }
+}
