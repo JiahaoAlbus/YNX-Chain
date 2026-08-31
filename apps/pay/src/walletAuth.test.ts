@@ -37,6 +37,7 @@ test('Pay renders distinct YNX Wallet and MetaMask connection details without br
   assert.match(app,/walletText\.detailsTitle/);
   assert.match(app,/walletText\.switchAccount/);
   assert.match(app,/walletText\.disconnect/);
+  assert.match(app,/walletTextRef\.current\.disconnected/);
   assert.doesNotMatch(app,/window\.open|ynxwallet:\/\/authorize/);
 });
 
