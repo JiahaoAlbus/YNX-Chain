@@ -7,6 +7,9 @@ export type ModelKind = typeof MODEL_KINDS[number];
 export type OrderStatus = typeof ORDER_STATUSES[number];
 export const ERROR_CODES: Readonly<Record<string, string>>;
 
+export type SafeErrorDetailValue = string | number | boolean | null | readonly SafeErrorDetailValue[] | Readonly<Record<string, SafeErrorDetailValue>>;
+export type FinanceErrorDetails = Readonly<Record<string, SafeErrorDetailValue>>;
+
 export type SourceClassification = "authoritative" | "verified-index" | "reference" | "testnet";
 export type SourceStatus = "live" | "stale" | "unavailable" | "partial";
 export interface SourceMetadata {
@@ -49,7 +52,7 @@ export function compareDecimal(left: string, right: string): -1 | 0 | 1;
 export function validateModel(kind: ModelKind, value: DomainRecord): DomainRecord;
 export function validateReadEnvelope(value: FinanceReadEnvelope): FinanceReadEnvelope;
 export function validateStreamEnvelope(value: FinanceStreamEnvelope): FinanceStreamEnvelope;
-export function createError(input: { code: string; message: string; requestId: string; retryable?: boolean; details?: unknown }): Readonly<object>;
+export function createError(input: { code: string; message: string; requestId: string; retryable?: boolean; details?: FinanceErrorDetails }): Readonly<object>;
 export function validateWriteHeaders(headers: { requestId: string; idempotencyKey: string; expectedVersion: string }): object;
 export function evaluateWritePrecondition(input: {
   headers: { requestId: string; idempotencyKey: string; expectedVersion: string };

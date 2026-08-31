@@ -166,8 +166,15 @@ test("integration contract version-locks the durable write precondition boundary
 });
 
 test("error envelopes use stable codes and request correlation", () => {
-  const value = createError({ code: ERROR_CODES.SOURCE_STALE, message: "Authoritative market data is stale.", requestId: "req:2", retryable: true });
+  const value = createError({ code: ERROR_CODES.SOURCE_STALE, message: "Authoritative market data is stale.", requestId: "req:2", retryable: true, details: { retryAfterMs: 500, source: { status: "stale" } } });
   assert.equal(value.error.code, "FIN_SOURCE_STALE");
   assert.equal(value.error.retryable, true);
+  assert.equal(Object.isFrozen(value.error.details), true);
+  assert.equal(Object.isFrozen(value.error.details.source), true);
   assert.throws(() => createError({ code: "UNKNOWN", message: "x", requestId: "req:3" }), /unknown finance error code/);
+  assert.throws(() => createError({ code: ERROR_CODES.INTERNAL, message: "x", requestId: "req:3", details: { privateKey: "not-accepted" } }), (error) => error.code === ERROR_CODES.FORBIDDEN);
+  assert.throws(() => createError({ code: ERROR_CODES.INTERNAL, message: "x", requestId: "req:3", details: { nested: { mnemonic: "not-accepted" } } }), (error) => error.code === ERROR_CODES.FORBIDDEN);
+  assert.throws(() => createError({ code: ERROR_CODES.INTERNAL, message: "x", requestId: "req:3", details: { evidence: () => "not-json" } }), /JSON-compatible/);
+  const cyclic = {}; cyclic.loop = cyclic;
+  assert.throws(() => createError({ code: ERROR_CODES.INTERNAL, message: "x", requestId: "req:3", details: cyclic }), /cyclic/);
 });

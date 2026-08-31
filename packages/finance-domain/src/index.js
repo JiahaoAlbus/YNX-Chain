@@ -60,6 +60,23 @@ const decimalPattern = /^(0|[1-9][0-9]*)(\.[0-9]+)?$/;
 const idPattern = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
 const zeroDecimalPattern = /^0(?:\.0+)?$/;
 const sha256Pattern = /^[a-f0-9]{64}$/;
+const errorDetailKeyPattern = /^[A-Za-z][A-Za-z0-9._-]{0,63}$/;
+const forbiddenErrorDetailKeys = new Set([
+  "privatekey",
+  "seed",
+  "seedphrase",
+  "mnemonic",
+  "passphrase",
+  "password",
+  "secret",
+  "accesstoken",
+  "refreshtoken",
+  "sessiontoken",
+  "authtoken",
+  "authorization",
+  "cookie",
+  "apikey",
+]);
 const orderTransitions = Object.freeze({
   pending: Object.freeze(["open", "cancelled", "rejected", "execution_unknown"]),
   open: Object.freeze(["partially_filled", "filled", "cancelled", "expired", "execution_unknown"]),
@@ -107,6 +124,41 @@ function assertDecimal(value, field, positive = false) {
 function assertStringArray(value, field, minimum = 1) {
   assert(Array.isArray(value) && value.length >= minimum && value.every((item) => typeof item === "string" && item.length > 0), ERROR_CODES.INVALID_REQUEST, `${field} is invalid`);
   return value;
+}
+
+function sanitizeErrorDetails(value, depth = 0, seen = new WeakSet()) {
+  assert(depth <= 4, ERROR_CODES.INVALID_REQUEST, "error details are nested too deeply");
+  if (value === null || typeof value === "boolean") return value;
+  if (typeof value === "string") {
+    assert(value.length <= 500, ERROR_CODES.INVALID_REQUEST, "error detail string is too long");
+    return value;
+  }
+  if (typeof value === "number") {
+    assert(Number.isFinite(value), ERROR_CODES.INVALID_REQUEST, "error detail number is invalid");
+    return value;
+  }
+  if (Array.isArray(value)) {
+    assert(value.length <= 20, ERROR_CODES.INVALID_REQUEST, "error detail array is too large");
+    assert(!seen.has(value), ERROR_CODES.INVALID_REQUEST, "error details must not be cyclic");
+    seen.add(value);
+    return Object.freeze(value.map((entry) => sanitizeErrorDetails(entry, depth + 1, seen)));
+  }
+  assert(isRecord(value), ERROR_CODES.INVALID_REQUEST, "error details must be JSON-compatible");
+  assert(Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null, ERROR_CODES.INVALID_REQUEST, "error details must be plain objects");
+  assert(!seen.has(value), ERROR_CODES.INVALID_REQUEST, "error details must not be cyclic");
+  seen.add(value);
+  const keys = Object.keys(value);
+  assert(keys.length <= 20, ERROR_CODES.INVALID_REQUEST, "error detail object is too large");
+  const sanitized = {};
+  for (const key of keys) {
+    const normalizedKey = key.replace(/[^A-Za-z0-9]/g, "").toLowerCase();
+    assert(errorDetailKeyPattern.test(key), ERROR_CODES.INVALID_REQUEST, "error detail key is invalid");
+    assert(!forbiddenErrorDetailKeys.has(normalizedKey), ERROR_CODES.FORBIDDEN, "error details must not include credentials");
+    const descriptor = Object.getOwnPropertyDescriptor(value, key);
+    assert(descriptor && Object.hasOwn(descriptor, "value"), ERROR_CODES.INVALID_REQUEST, "error detail accessors are not allowed");
+    sanitized[key] = sanitizeErrorDetails(descriptor.value, depth + 1, seen);
+  }
+  return Object.freeze(sanitized);
 }
 
 export function validateSource(source) {
@@ -276,9 +328,10 @@ export function createError({ code, message, requestId, retryable = false, detai
   assert(Object.values(ERROR_CODES).includes(code), ERROR_CODES.INVALID_REQUEST, "unknown finance error code");
   assert(typeof message === "string" && message.length > 0 && message.length <= 500, ERROR_CODES.INVALID_REQUEST, "error message is invalid");
   assert(typeof requestId === "string" && idPattern.test(requestId), ERROR_CODES.INVALID_REQUEST, "requestId is invalid");
+  const safeDetails = details === undefined ? undefined : sanitizeErrorDetails(details);
   return Object.freeze({
     schemaVersion: FINANCE_DOMAIN_VERSION,
-    error: Object.freeze({ code, message, requestId, retryable: Boolean(retryable), ...(details === undefined ? {} : { details }) }),
+    error: Object.freeze({ code, message, requestId, retryable: Boolean(retryable), ...(safeDetails === undefined ? {} : { details: safeDetails }) }),
   });
 }
 
