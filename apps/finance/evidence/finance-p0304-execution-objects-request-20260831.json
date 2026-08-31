@@ -1,0 +1,137 @@
+{
+  "schemaVersion": "finance-p0304-execution-objects-request@1",
+  "taskId": "P0-304",
+  "status": "SOURCE_ONLY_UNSIGNED_CENTRAL_SIGNATURE_READY",
+  "owner": {
+    "branch": "codex/p0-finance-p0304-execution-objects-20260831",
+    "baseCommit": "1d50967685e249789d6fec752279c39277a60931",
+    "baseTree": "9c6a1a559ed53a7b755603ac2ccb7e790abc03e2",
+    "executorCommit": "448851ba7d33399385b89eb3356bc9ce4f345721",
+    "executorTree": "d407c85c98e616e001c2cf4260dbfee918c47557"
+  },
+  "predecessor": {
+    "p0303CentralCommit": "8a15916604e8115c1bc13ebb21a5391a771bd505",
+    "p0303CentralTree": "c0989b450183c51b530ad8e73bb2698e3b1266bf",
+    "p0303TerminalEvidence": {
+      "path": "release/integration/p0-wallet-connectivity/execution/objects/p0-303-finance-p0302-remote-state-zero-write-terminal-evidence-20260831.json",
+      "blob": "d94148544d0ee3d12560199361563fab48aa7929",
+      "bytes": 2667,
+      "sha256": "c87a5580124c69767e2998c48a9831e6d40a947f4d13bbcdca542892523503d2",
+      "status": "CONSUMED_RELEASED_SUCCESS_FINANCE_P0303_P0302_REMOTE_STATE_ZERO_WRITE_INSPECTION"
+    },
+    "nonreusable": [
+      "P0-302",
+      "P0-303"
+    ]
+  },
+  "reviewedExecutor": {
+    "path": "apps/finance/scripts/finance-production-rollback-first.sh",
+    "blob": "69f69b46d1290e95e9c99b5ee03f459799e80cd7",
+    "bytes": 25880,
+    "sha256": "d3b604223a6f1e93279481a8b0db06ddb6acfb20dff316d22329337498d2bcdb"
+  },
+  "reviewedTransport": {
+    "path": "apps/finance/scripts/finance-phase3-openssh-serialized-command.sh",
+    "blob": "22605b70b346a7cc0e61ea68e5e366b73718aef6",
+    "bytes": 2875,
+    "sha256": "a44e011b5826b091acc7ddebcd68dc180a46ded49d9489cf48d52cda894396b4"
+  },
+  "reviewedBootstrap": {
+    "path": "apps/finance/scripts/finance-phase3-stdin-deployment-bootstrap.sh",
+    "blob": "42148d1cf69a0fc60dafa302808c9ff0149c9309",
+    "bytes": 5001,
+    "sha256": "1a57420a0f0c932aa5234166c7aaa81d3743f384016b9a0f26360e7657db570d"
+  },
+  "candidateObjects": {
+    "unsignedLeaseStdin": {
+      "path": "apps/finance/evidence/finance-p0304-unsigned-lease-stdin-candidate-20260831.json",
+      "blob": "9038191d99c8eda1eb786c32d6f55a5e702e1075",
+      "bytes": 11565,
+      "sha256": "6cbc25e28dfb8e14e4686baef69eeef7ecf017f224edcfb65ceaf82dcc05c80b"
+    },
+    "literalArgv": {
+      "path": "apps/finance/evidence/finance-p0304-literal-argv-candidate-20260831.json",
+      "blob": "4ccf284c304a41a6b42eff12eb32a306737724c8",
+      "bytes": 37368,
+      "sha256": "9a8383917cf6428e0a9f7e61baad33d5578f3a299f7797366d3f016e608bd354"
+    },
+    "parentPreservingObserverContract": {
+      "path": "apps/finance/evidence/finance-p0304-parent-preserving-observer-contract-20260831.json",
+      "blob": "8e2d2d156a51661b5fdc55b258e74655e1853662",
+      "bytes": 37095,
+      "sha256": "af12a8b38622a5b0d9e161b609b2c24c3e16ce34673081378d395be99b7af590"
+    }
+  },
+  "verificationFixture": {
+    "path": "apps/finance/scripts/test-finance-p0304-execution-objects.mjs",
+    "blob": "54d9c159d8f6a95b5736c408106c04704ab82b0f",
+    "bytes": 6579,
+    "sha256": "83acb2c6524b5a0f0de7abd8b739e5d8c3207692e70e10c3ae68717c48386318"
+  },
+  "uniqueSixPathNamespace": {
+    "id": "p0304-finance-phase3-20260831t030400z",
+    "stageContainer": "/opt/ynx/stage/finance/p0304-finance-phase3-20260831t030400z",
+    "stage": "/opt/ynx/stage/finance/p0304-finance-phase3-20260831t030400z/stage",
+    "backupContainer": "/var/backups/ynx-finance/p0304-finance-phase3-20260831t030400z",
+    "backup": "/var/backups/ynx-finance/p0304-finance-phase3-20260831t030400z/backup",
+    "releaseContainer": "/opt/ynx/releases/finance/p0304-finance-phase3-20260831t030400z",
+    "release": "/opt/ynx/releases/finance/p0304-finance-phase3-20260831t030400z/ynx-finance-7824af677dd0"
+  },
+  "exactOutputPaths": {
+    "signedStdin": "/tmp/ynx-finance-p0304-finance-phase3-20260831t030400z-unsigned.json",
+    "stdout": "/tmp/ynx-finance-p0304-finance-phase3-20260831t030400z.stdout",
+    "stderr": "/tmp/ynx-finance-p0304-finance-phase3-20260831t030400z.stderr",
+    "transportReceipt": "/tmp/ynx-finance-p0304-finance-phase3-20260831t030400z.receipt",
+    "transportReceiptPending": "/tmp/ynx-finance-p0304-finance-phase3-20260831t030400z.receipt.pending",
+    "phaseReceipt": "/tmp/ynx-finance-p0304-finance-phase3-20260831t030400z.stdout",
+    "phaseReceiptPending": "/tmp/ynx-finance-p0304-finance-phase3-20260831t030400z.receipt.pending",
+    "phaseReceiptSemantics": "The executor emits safe phase/failure fields only on stdout; the transport receipt pending file is the sole atomic pending path."
+  },
+  "literalExecution": {
+    "argvManifestPath": "apps/finance/evidence/finance-p0304-literal-argv-candidate-20260831.json",
+    "argvManifestSha256": "9a8383917cf6428e0a9f7e61baad33d5578f3a299f7797366d3f016e608bd354",
+    "argvLength": 25,
+    "environment": {},
+    "directLiteralInvocationOnly": true,
+    "shellOrVariableReconstructionForbidden": true,
+    "outerObserverMayObserveOnlyChildStatusSignalError": true,
+    "oneSshAttempt": 1,
+    "oneDeployInvocation": 1,
+    "retryAllowed": false
+  },
+  "centralMustFreshlyReadAndBind": [
+    "all retained parent identity/permissions/inventories",
+    "all six namespace absences",
+    "carrier/archive/env identities and bytes",
+    "old current/env/unit/Caddy/state/service and loopback/public receipts",
+    "candidate service gid and traversal"
+  ],
+  "centralMustSign": [
+    "the complete stdin candidate bytes",
+    "the literal 25-element argv bytes",
+    "a nonexpired single-use Finance-only lease"
+  ],
+  "forbidden": [
+    "SSH",
+    "production read/write",
+    "deploy",
+    "rollback",
+    "cleanup",
+    "restart",
+    "current/env/unit/Caddy mutation",
+    "account",
+    "signature",
+    "transaction"
+  ],
+  "truth": {
+    "centralSignaturePresent": false,
+    "leaseIssued": false,
+    "sshExecuted": false,
+    "deployed": false,
+    "publicVerified": false,
+    "accountApproved": false,
+    "signatureCreated": false,
+    "transactionSubmitted": false
+  },
+  "singleExecutableBlocker": "Central must fresh-read, sign the exact candidate bytes and issue one nonexpired P0-304 Finance-only single-use lease."
+}

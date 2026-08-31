@@ -4,8 +4,9 @@ import { createHash } from 'node:crypto';
 import { chmodSync, lstatSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 
-const root = new URL('..', import.meta.url).pathname;
+const root = fileURLToPath(new URL('..', import.meta.url));
 const observer = join(root, 'scripts', 'finance-parent-preserving-observer.mjs');
 const launcher = join(root, 'scripts', 'finance-phase3-openssh-serialized-command.sh');
 const request = join(root, 'evidence', 'finance-p0300-parent-preserving-observer-request-20260824.json');
