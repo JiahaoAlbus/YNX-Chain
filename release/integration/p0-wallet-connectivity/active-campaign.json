@@ -433,7 +433,7 @@
     "acquiredAt": "2026-08-31T03:43:00Z",
     "expiresAt": null,
     "releasedAt": null,
-    "sourceCommit": "9666cea2260fd16c33f82b115b1c7278382b4d95",
+    "sourceCommit": "03b7bae8430fa5549707f596ad6f770a1d411fe7",
     "evidenceCommit": "c8e99bfa1cfe4ac0e6cca9f86bc169c452090a62",
     "runtimeHost": "43.153.202.237",
     "currentRuntime": "CREATOR_0E1A53C5_SOURCE_BOUND_PUBLIC_EXACT_PID2747844",
@@ -444,8 +444,8 @@
     "reusable": false,
     "previousOwner": "creator-studio-emergency-readonly-inspector",
     "previousTaskId": "P0-308",
-    "reviewDecision": "P0308_ZERO_WRITE_FROZE_SIXTEEN_EXPLICIT_APPLEDOUBLE_METADATA_FILES_OUTSIDE_MANIFEST",
-    "reason": "P0-308 executed once read-only with rc0 and mutationCount0. The P0-305 receipt candidate and control residues remain exact, next and stage paths are absent, and the old runtime is unchanged. Candidate payload and manifest are exact; inventory drift is exactly sixteen explicit 163-byte AppleDouble files. Retain Heavy for a source-only successor that binds every path and identity with no wildcard."
+    "reviewDecision": "NO_GO_P0305_SUCCESSOR03_IGNORES_CANDIDATE_DIRECTORY_INVENTORY",
+    "reason": "P0-308 froze the exact sixteen AppleDouble files and old runtime. Successor-03 binds those file identities but validateCandidate compares only f: entries and ignores every d: entry, so an unexpected empty directory could pass and be recursively deleted. No cleanup lease is issued; retain Heavy for a wholly-new complete-directory-inventory successor."
   },
   "wave": {
     "id": "B-financial-apps-quant",

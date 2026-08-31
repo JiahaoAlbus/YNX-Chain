@@ -1,0 +1,72 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "recordType": "CREATOR_P0305_RESIDUE_CLEANUP_SUCCESSOR_03_LEASE_DECISION",
+  "recordedAt": "2026-08-31T03:48:06Z",
+  "source": {
+    "branch": "codex/p0-creator-studio-subpath-i18n-20260831",
+    "implementationCommit": "54b8bb36d439092ebd5a7df03cea44f1786d1453",
+    "implementationTree": "f15832042585414905620812dd6dba69cc6cf213",
+    "requestCommit": "03b7bae8430fa5549707f596ad6f770a1d411fe7",
+    "requestTree": "1580f3b9512b8ced188e5906a88654a80eeaf99a",
+    "remoteExactAndClean": true
+  },
+  "objects": {
+    "request": {
+      "path": "apps/creator-studio/evidence/creator-studio-p0305-residue-cleanup-only-successor-03-single-use-lease-request-20260831.json",
+      "blob": "1f7298660ac8ec247c6f09b9f65af3a0d1f0d54f",
+      "sha256": "e59040b4e81dd3674f5cb059c197a17979ccb5b5348a09f5844b9aa37ff8a3c2"
+    },
+    "executor": {
+      "path": "apps/creator-studio/release-residue-cleanup-3f97a13d.mjs",
+      "blob": "359c3915bcc60c8bda9cc4ef036b0107c702afaf",
+      "bytes": 27531,
+      "sha256": "bf79b77db47cc0141d5fe3a80aa16240d8325f557bba15259c5086b33b535092"
+    },
+    "canonicalInput": {
+      "bytes": 1625,
+      "sha256": "b8cfef3abdd568b44b04b463cbb56f0fdaca58248c04f28be10e300a87a2ea7c"
+    }
+  },
+  "independentVerification": {
+    "nodeSyntax": "PASS",
+    "ownerFixture": "PASS",
+    "exactSixteenAppleDoublePathsAndTuplesBound": true,
+    "appleDoubleReplacementFixture": "PASS",
+    "unexpectedFileFixture": "PASS",
+    "unexpectedDirectoryFixture": "ABSENT",
+    "completeDirectoryInventoryBinding": "FAIL"
+  },
+  "decision": {
+    "status": "NO_GO",
+    "leaseIssued": false,
+    "sshExecuted": false,
+    "productionMutation": false,
+    "creatorEmergencyHeavyReleased": false,
+    "reason": "The executor claims every unexpected file or directory is rejected, but validateCandidate compares only the regular-file subset and ignores all directory entries collected by tree()."
+  },
+  "singleExecutableBlocker": "CREATOR_P0305_SUCCESSOR03_CANDIDATE_DIRECTORY_INVENTORY_NOT_BOUND_EXTRA_DIRECTORY_WOULD_BE_RECURSIVELY_DELETED",
+  "defect": {
+    "path": "apps/creator-studio/release-residue-cleanup-3f97a13d.mjs",
+    "surface": "validateCandidate()",
+    "actual": "tree(P.candidate) returns both d: and f: entries, but actualFiles filters only entries beginning with f: and the comparison covers only manifest payload files plus the sixteen AppleDouble files.",
+    "impact": "An unexpected empty directory or directory-only foreign subtree can pass the advertised inventory gate and then be removed by rm(candidate,{recursive:true}). This violates the no-other-file-or-directory and foreign-substitution fail-close contract.",
+    "testGap": "The adversarial fixture adds an unexpected regular file. It does not add an unexpected empty directory or a directory-only subtree after initial validation."
+  },
+  "requiredSuccessor": [
+    "bind and compare the complete candidate inventory including every expected directory entry, not only regular files",
+    "reject any unexpected empty directory and any directory-only foreign subtree before the first deletion",
+    "add post-initial-validation unexpected-empty-directory and nested-directory-only fixtures proving zero deletion and substitute preservation",
+    "retain the exact sixteen AppleDouble path tuple bytes SHA and no-wildcard bindings",
+    "retain receipt candidate control delete-boundary identity fences and old-runtime gates",
+    "force-false push a wholly-new request and request a wholly-new cleanup-only lease"
+  ],
+  "truthBoundary": {
+    "sourceOnlyReview": true,
+    "cleanupComplete": false,
+    "oldRuntimeKnownExactFromP0308": true,
+    "accountRequest": false,
+    "signature": false,
+    "transaction": false
+  }
+}
