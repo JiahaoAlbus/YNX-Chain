@@ -1,0 +1,72 @@
+{
+  "schemaVersion": "ynx-chain-four-node-zero-write-lease-request-object-receipt-correction/v1",
+  "recordedAt": "2026-08-31T05:29:00Z",
+  "scope": "chain-only-evidence-object-receipt-correction",
+  "branch": "codex/chain-four-node-readonly-inspector-20260831",
+  "remoteHeadBeforeCorrection": {
+    "commit": "852d0a16c95222f8a917991c22546a2bf72824cf",
+    "tree": "a213bca70b5a75e5b90c32369c76ea985078f407",
+    "remoteExact": true,
+    "worktreeClean": true
+  },
+  "correctedObjects": {
+    "leaseRequest": {
+      "commit": "536a25472d0ee728979663f6f7fe87458e471a2c",
+      "tree": "f68caf6ba18316e962d2b4fadd30f3eea9b345c9",
+      "path": "release/integration/chain-four-node-zero-write-inspection-lease-request-20260831.json",
+      "blob": "117082d9070ae702262545f365e02697ce6e21bb",
+      "bytes": 3994,
+      "sha256": "9dcf7fa642f4aef27e522b4c7d7bd422a7dd768979ac4270f48c6743fb31c9cb"
+    },
+    "protectedOperatorReadiness": {
+      "commit": "852d0a16c95222f8a917991c22546a2bf72824cf",
+      "tree": "a213bca70b5a75e5b90c32369c76ea985078f407",
+      "path": "release/integration/chain-four-node-protected-operator-readiness-20260831.json",
+      "blob": "a5e2857ca2a216e4a2eb99bf783be2aa2ad0dd0c",
+      "bytes": 1623,
+      "sha256": "8448e0b6bd389e187efc540afc8d5d1a387c7a2591c493ff973b5ceff1b7112c"
+    }
+  },
+  "supersededClaims": {
+    "leaseRequestBlob": "970e2eec0a8c7d7df9c5f377440a903af81f46d5",
+    "leaseRequestBytes": 4867,
+    "protectedOperatorReadinessBlob": "5de770a45b38a8820293c9758118862145203898",
+    "protectedOperatorReadinessBytes": 1829,
+    "reason": "Those four transcribed object-receipt fields were incorrect. The Git objects and content bytes were never changed."
+  },
+  "unchangedAuthority": {
+    "acceptedInspectorCommit": "de393ce295ae50f77967cbd3ad15e8bf0988684e",
+    "acceptedInspectorTree": "e45e6bc10060315a32186dfa748e5e6aacf2e63a",
+    "acceptedInspectorBlob": "8a4e1c62f4072c984cd5ca1621e3a6fd2eb9ee23",
+    "acceptedInspectorSha256": "0ea6dbff7be60da2ceb647cb905635292c5fac422e0ccedc80147f7d9046a0b5",
+    "remotePayloadSha256": "48548c8039b09d72e1a6dc30ebfbae7cd35b3451860676286a133890d0d74573",
+    "printedPlanSha256": "f06b2a2a138130fc634d4fe8ce788bd1b78c0193aee7d5b19f240cc19eaafbb5",
+    "globalRollbackCommit": "e728be2bb2fa52ae03fafac635c841f1eb0e1221",
+    "ack": "P0-CHAIN-FOUR-NODE-ZERO-WRITE-INSPECTION-20260831:EXECUTE",
+    "maximumDurationMinutes": 20,
+    "attemptLimitPerNode": 1,
+    "remoteTemporaryFiles": false,
+    "mutationAllowed": false,
+    "serviceLifecycleAllowed": false,
+    "deploymentAllowed": false,
+    "stopForwardOnAnyNodeFailure": true,
+    "reverseRollbackPreviouslyPromotedNodes": true,
+    "partialPromotionCountsAsCompletion": false,
+    "allFiveProtectedOperatorBooleansTrue": true,
+    "secretOrIdentityValuesRecorded": false
+  },
+  "executionTruth": {
+    "leaseIssued": false,
+    "sshAttempts": 0,
+    "remoteConnections": 0,
+    "remoteTemporaryFiles": 0,
+    "mutations": 0,
+    "serviceLifecycleActions": 0,
+    "deploymentActions": 0
+  },
+  "decision": {
+    "priorNoGoResolved": "NO_GO_CHAIN_FOUR_REQUEST_OBJECT_RECEIPT_MISMATCH",
+    "requestFreshCentralReview": true,
+    "nextAction": "Central independently reads the two corrected Git objects and this correction object, then decides a wholly-new Chain-only zero-write inspection lease."
+  }
+}
