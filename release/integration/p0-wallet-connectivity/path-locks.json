@@ -3593,6 +3593,30 @@
         "declarative protected-readiness booleans are superseded by direct runtime truth",
         "P0-319 is consumed and nonreusable; Heavy and all Chain locks are released"
       ]
+    },
+    {
+      "path": "{readonly:host:43.153.202.237:creator-p0315-cleanup-prewrite,readonly:/opt/ynx-creator-studio-wallet/current,readonly:/opt/ynx-creator-studio-wallet/receipts/upgrade-3f97a13d.json,readonly:/opt/ynx-creator-studio-wallet/releases/creator-studio-0e1a53c5/**,readonly:/opt/ynx-creator-studio-wallet/releases/creator-studio-3f97a13d/**,readonly:/opt/ynx-release-control-plane/creator-studio-3f97a13d/**,readonly:/etc/systemd/system/ynx-creator-studio-wallet.service,readonly:ynx-creator-studio-wallet.service,readonly:ports:{6493,6494,6495},readonly:https://web4.ynxweb4.com/video/studio/**}",
+      "owner": "creator-studio-readback-owner",
+      "branch": "codex/p0-creator-studio-subpath-i18n-20260831",
+      "worktree": "/private/tmp/ynx-creator-subpath-i18n.PcnLN2",
+      "taskId": "P0-320",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_CREATOR_P0315_CLEANUP_PREWRITE_ZERO_WRITE_INSPECTION",
+      "acquiredAt": "2026-08-31T06:12:00Z",
+      "expiresAt": "2026-08-31T06:32:00Z",
+      "releasedAt": null,
+      "sourceCommit": "f8434f5ca47ceaa26e28c916fba877dfb24d1280",
+      "sourceTree": "15d97669b8af383a239f4135c26318b25a03cc89",
+      "evidenceCommit": "f8434f5ca47ceaa26e28c916fba877dfb24d1280",
+      "artifactSha256": "20c7bb3a24824bd63ce3a4b4a1b00558faf1293c21fcf447f6fd54414e062319",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "exactly one read-only SSH invocation and no retry",
+        "exact 10748-byte inspector SHA20c7bb3 is stdin and creates no remote temporary files",
+        "read current old release service listeners unit receipts candidate control parents absences and five public resources",
+        "complete canonical JSON and mutationCount zero are required",
+        "no cleanup deletion deployment rollback lifecycle Caddy API Viewer Wallet account signature typed-data or transaction action"
+      ]
     }
   ]
 }

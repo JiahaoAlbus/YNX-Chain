@@ -7555,6 +7555,26 @@
       "localExitStatus": 1,
       "protectedIdentityInjectionConfirmed": false,
       "nextAction": "P0-319 is consumed and nonreusable. Do not issue another lease from declarative booleans alone; require the named secret owner to inject all four identity references into the exact execution process and return a non-disclosing same-process pre-execution availability receipt."
+    },
+    {
+      "taskId": "P0-320",
+      "owner": "integration,creator-studio-readback-owner",
+      "status": "ACTIVE_CREATOR_P0315_CLEANUP_PREWRITE_ZERO_WRITE_INSPECTION",
+      "paths": [
+        "release/integration/p0-wallet-connectivity/execution/p0-320-creator-studio-p0315-cleanup-prewrite-zero-write-single-use-lease-20260831.json",
+        "/tmp/p0-320-creator-studio-p0315-cleanup-prewrite-zero-write.json"
+      ],
+      "dependencies": ["P0-319"],
+      "requestCommit": "f8434f5ca47ceaa26e28c916fba877dfb24d1280",
+      "requestBlob": "f04787db41c5aed957aed9de2c8e5889c1977871",
+      "executionLeaseIssued": true,
+      "sshAttemptLimit": 1,
+      "retryAllowed": false,
+      "remoteMutation": false,
+      "cleanupAuthorized": false,
+      "deploymentAuthorized": false,
+      "serviceLifecycleAuthorized": false,
+      "nextAction": "Release-control-plane executes the exact inspector once and returns the complete canonical JSON. Release Heavy and all Creator readback locks on every terminal outcome; cleanup remains a separate future review."
     }
   ]
 }
