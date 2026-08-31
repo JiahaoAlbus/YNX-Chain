@@ -1,0 +1,47 @@
+{
+  "schemaVersion": "ynx.explorer-monitor.production-baseline-request.v1",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-171",
+  "observedAt": "2026-08-31T10:00:00Z",
+  "owner": "explorer-monitor",
+  "prGate": {
+    "pullRequest": "https://github.com/JiahaoAlbus/YNX-Chain/pull/107",
+    "head": "2b4345b22175e7f1b00f6935a19a30aa03585165",
+    "workflow": "https://github.com/JiahaoAlbus/YNX-Chain/actions/runs/33379953044",
+    "conclusion": "success",
+    "checks": ["go-static-analysis", "dependency-review", "source-analysis (go)", "dependency-and-build-script-audit", "source-analysis (javascript-typescript)"]
+  },
+  "candidateInputs": {
+    "artifactSourceCommit": "e5238926cc4b255eae6bae1767dd25c2c386130a",
+    "artifactSourceTree": "3908b77a9c2d7492fe92903959ed05a37bbc36c9",
+    "release": "ynx-explorer-monitor-e5238926cc4b",
+    "explorerd": {"bytes": 8945812, "sha256": "7f11378371e783a54a337c7ec4527a0d85c274de3ea6c2adb83fdeba26aa71d5", "target": "/usr/local/bin/ynx-explorerd"},
+    "indexerd": {"bytes": 7512212, "sha256": "75086835f78fa0532b1f41654ec234593bcff703da8c00c2ccda2a209da19cca", "target": "/usr/local/bin/ynx-indexerd"},
+    "monitorReleaseTree": {"bytes": 2263040, "sha256": "95b2bc67b09c04ea4390d943fc5a5418dae1def672644c40f110cefc70c448b8", "target": "/opt/ynx-monitor/releases/ynx-explorer-monitor-e5238926cc4b"}
+  },
+  "freshPublicReadback": {
+    "explorerVersion": {"commit": "8bf7716ee671a5a9b64517280743c5a281899712", "release": "ynx-explorer-monitor-8bf7716ee671", "httpStatus": 200, "sha256": "ab6b2427b64f39755ab2f3d1ee381312673567f08fdb97b6a443877df91e3d9e"},
+    "monitorVersion": {"commit": "8bf7716ee671a5a9b64517280743c5a281899712", "release": "ynx-explorer-monitor-8bf7716ee671", "httpStatus": 200, "sha256": "d0cb952655a41dad6a353f463c5b9f623f509b31303d35404e242a8a334b70ce"},
+    "monitorConnectivity": "Static HTML was observed and is not accepted as connectivity proof."
+  },
+  "requiredCentralReadOnlyBaseline": {
+    "scope": ["ynx-explorerd.service", "ynx-indexerd.service", "ynx-monitor.service"],
+    "mustCollect": [
+      "service state, unit ExecStart, user/group, environment-file pathname and restart count",
+      "sha256 and mode/bytes for current Explorer and Indexer executable rollback targets",
+      "sha256 only for the scoped environment files; never record their contents",
+      "resolved Monitor current-release symlink and deterministic release-tree digest",
+      "sha256 only for scoped Caddy ingress files and successful Caddy validation",
+      "official-domain /health, /version and JSON /connectivity readback before mutation"
+    ],
+    "mustReturn": ["baseline receipt digest", "named authorized operator", "rollback release target", "single-use lease id and expiry"],
+    "doesNotAuthorize": ["SSH write", "artifact transfer", "service restart", "proxy reload", "wallet approval/signing", "public verification promotion"]
+  },
+  "ownerReadOnlyAttempt": {
+    "result": "blocked_before_host_read",
+    "reason": "The historical Huang.pem path is absent; available local read-only keys were rejected by the production host. No production command ran after authentication failed.",
+    "requiredResolution": "Central must supply or execute an authorized read-only production baseline; no credential material should be copied into evidence."
+  },
+  "states": {"implementedLocal": true, "testedLocal": true, "integratedCentral": false, "deployedStaging": false, "deployedPublic": false, "downloadHosted": false, "productionSigned": false, "publicVerified": false, "computerControlVerified": false},
+  "nextAction": "After Central returns the complete baseline and grants a new scoped single-use lease, perform only the receipt-bound deployment and post-deploy official-domain verification."
+}
