@@ -1,0 +1,115 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-312",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-video-retained-takeover-preflight-zero-write-20260831T043804Z",
+  "owner": "video-readonly-inspector",
+  "executor": "release-control-plane",
+  "status": "ACTIVE_SINGLE_USE",
+  "issuedAt": "2026-08-31T04:38:04Z",
+  "expiresAt": "2026-08-31T04:53:04Z",
+  "singleUse": true,
+  "reusable": false,
+  "executionAuthorized": true,
+  "productionMutationAllowed": false,
+  "source": {
+    "branch": "codex/video-wallet-runtime-successor-20260831",
+    "requestCommit": "20e6005288de561a7bc7b223d7fa0ba684e887ab",
+    "requestTree": "3534b978ac0c380e94d7be498c53cbd97f22828e",
+    "implementationCommit": "1e35ee8a42977830992fd0cbe02258072ffd5895",
+    "implementationTree": "f97b063b1a9e67efce01138f65eaf57ab1d9cf0d",
+    "requestPath": "apps/video/release/evidence/p0-077/successor-20260831/video-retained-takeover-zero-write-preflight-lease-request-20260831.json",
+    "requestBlob": "76dc14459e1639b06eb89bcf814bf5ff8afcbd3d",
+    "requestBytes": 6872,
+    "requestSha256": "b16449b2dafa6685781465e923833332afb6762769105d98cbec6b83812824b5"
+  },
+  "inspector": {
+    "path": "apps/video/scripts/video-retained-takeover-preflight.sh",
+    "blob": "4d5a807d75503b920b7108b1abe46474fc08a4f8",
+    "bytes": 6009,
+    "sha256": "319580fd4805e2dd87c154c6dc0d6b3d952ab761faa5b1f8564d04e5d1e2ab34",
+    "stdinIsExactInspectorBytes": true,
+    "eachHttpUrlFetchedExactlyOnce": true,
+    "httpReceiptFieldsDerivedFromSameCanonicalBase64Body": ["bytes", "sha256", "base64"],
+    "remoteTemporaryFiles": false
+  },
+  "invoker": {
+    "path": "apps/video/scripts/invoke-video-retained-takeover-preflight-after-lease.local.sh",
+    "blob": "1f3c1eaf8d3202d2ad5318f7b3d7f05ef6b3b2fd",
+    "bytes": 1103,
+    "sha256": "c782731ea8113b9fa0da5319bc6958c4fc4c3f91ecf059eadae1c65842236999",
+    "workingDirectory": "/private/tmp/ynx-video-wallet-runtime-successor-20260831",
+    "literalArgv": [
+      "/bin/bash",
+      "apps/video/scripts/invoke-video-retained-takeover-preflight-after-lease.local.sh"
+    ],
+    "requiredProtectedEnvironmentNames": ["YNX_VIDEO_SSH_IDENTITY"],
+    "requiredNonSecretEnvironment": {
+      "YNX_CENTRAL_SINGLE_USE_LEASE_ID": "P0-VIDEO-RETAINED-TAKEOVER-PREFLIGHT-ZERO-WRITE-20260831",
+      "YNX_VIDEO_PREFLIGHT_INSPECTOR_SHA256": "319580fd4805e2dd87c154c6dc0d6b3d952ab761faa5b1f8564d04e5d1e2ab34"
+    },
+    "sshInvocationLimit": 1,
+    "retryAllowed": false,
+    "protectedIdentityValueMustNotBePrintedPersistedOrReturned": true
+  },
+  "remoteCommand": {
+    "binary": "/usr/bin/ssh",
+    "fixedOptions": ["BatchMode=yes", "IdentitiesOnly=yes", "ConnectTimeout=10", "StrictHostKeyChecking=yes"],
+    "fixedTarget": "ynx@43.153.202.237",
+    "remoteArgv": [
+      "/usr/bin/sudo",
+      "-n",
+      "/usr/bin/env",
+      "YNX_VIDEO_EXECUTION_MODE=production",
+      "YNX_VIDEO_LEASE_AUTHORIZED=P0_VIDEO_RETAINED_TAKEOVER_PREFLIGHT_ZERO_WRITE",
+      "/bin/bash",
+      "-s",
+      "--",
+      "inspect"
+    ]
+  },
+  "readScope": {
+    "files": [
+      "/etc/systemd/system/ynx-video-viewer.service",
+      "/etc/systemd/system/ynx-video-viewer-wallet.service",
+      "/var/tmp/ynx-video-runtime-bootstrap-f1e8ed4c.sh",
+      "/var/tmp/video-legacy-viewer-controlled-takeover-baseline.txt",
+      "/var/tmp/ynx-video-predecessor-e5ce335-runtime.tar.gz",
+      "/var/tmp/ynx-video-viewer-wallet.service",
+      "/etc/caddy/Caddyfile",
+      "/var/lib/ynx-video-viewer-wallet-evidence",
+      "/var/lib/ynx-video-viewer-wallet-evidence.identity"
+    ],
+    "absenceOrExactPaths": [
+      "/var/lib/ynx-video-viewer-wallet-evidence-560c467d",
+      "/var/lib/ynx-video-viewer-wallet-evidence-560c467d.identity",
+      "/opt/ynx-video-viewer-wallet",
+      "/opt/ynx-release-control-plane/video-viewer-wallet-560c467d"
+    ],
+    "retainedEvidence": "exact five regular nlink-one direct children, zero direct subdirectories and no extras",
+    "sharedCurrent": "/opt/ynx-video/current",
+    "units": ["ynx-video-viewer.service", "ynx-video-viewer-wallet.service", "ynx-video-api.service", "ynx-creator-studio.service", "caddy.service"],
+    "listeners": [6493, 6494, 6495],
+    "singleFetchHttpBodies": ["viewer", "api-root", "api-health", "api-version", "creator-root", "creator-manifest", "creator-catalog"]
+  },
+  "requiredTerminalOutput": {
+    "schema": "ynx-video-retained-takeover-preflight/1",
+    "terminal": "VIDEO_RETAINED_TAKEOVER_PREFLIGHT_ZERO_WRITE_COMPLETE",
+    "mutationCount": 0
+  },
+  "forbidden": [
+    "remote write or temporary file",
+    "placement cleanup takeover deploy or rollback",
+    "systemd lifecycle",
+    "unit Caddy shared-current API Creator or public mutation",
+    "Wallet account request signature typed data or transaction"
+  ],
+  "terminalRule": "Consume and release this lease after its sole terminal attempt. Its output may support a wholly-new takeover request but does not authorize placement, takeover, deployment, rollback, cleanup, or product completion.",
+  "truthBoundary": {
+    "leaseIssued": true,
+    "inspectionStarted": false,
+    "remoteMutation": false,
+    "deployment": false,
+    "productComplete": false
+  }
+}

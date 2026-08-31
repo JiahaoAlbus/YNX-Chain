@@ -3374,6 +3374,30 @@
       "artifactSha256": "d31a683052493fcd44c33e01304dbf4bf1de7837d720bcb110dc73a20e90b19f",
       "productionMutationAllowed": false,
       "allowedExceptions": ["exactly one zero-write SSH inspection and no retry", "read only the retained evidence parent sidecar and direct children", "no remote temporary files cleanup deployment lifecycle or unrelated product action"]
+    },
+    {
+      "path": "{host:43.153.202.237:video-retained-takeover-zero-write-preflight,readonly:/etc/systemd/system/ynx-video-viewer.service,readonly:/etc/systemd/system/ynx-video-viewer-wallet.service,readonly:/var/tmp/ynx-video-runtime-bootstrap-f1e8ed4c.sh,readonly:/var/tmp/video-legacy-viewer-controlled-takeover-baseline.txt,readonly:/var/tmp/ynx-video-predecessor-e5ce335-runtime.tar.gz,readonly:/var/tmp/ynx-video-viewer-wallet.service,readonly:/etc/caddy/Caddyfile,readonly:/var/lib/ynx-video-viewer-wallet-evidence*,readonly:/opt/ynx-video-viewer-wallet,readonly:/opt/ynx-release-control-plane/video-viewer-wallet-560c467d,readonly:/opt/ynx-video/current,readonly:service:{ynx-video-viewer,ynx-video-viewer-wallet,ynx-video-api,ynx-creator-studio,caddy}.service,readonly:port:{6493,6494,6495}}",
+      "owner": "video-readonly-inspector",
+      "branch": "codex/video-wallet-runtime-successor-20260831",
+      "worktree": "/private/tmp/ynx-video-wallet-runtime-successor-20260831",
+      "taskId": "P0-312",
+      "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+      "status": "ACTIVE_SINGLE_USE_VIDEO_RETAINED_TAKEOVER_ZERO_WRITE_PREFLIGHT",
+      "acquiredAt": "2026-08-31T04:38:04Z",
+      "expiresAt": "2026-08-31T04:53:04Z",
+      "releasedAt": null,
+      "sourceCommit": "20e6005288de561a7bc7b223d7fa0ba684e887ab",
+      "sourceTree": "3534b978ac0c380e94d7be498c53cbd97f22828e",
+      "evidenceCommit": "20e6005288de561a7bc7b223d7fa0ba684e887ab",
+      "artifactSha256": "319580fd4805e2dd87c154c6dc0d6b3d952ab761faa5b1f8564d04e5d1e2ab34",
+      "productionMutationAllowed": false,
+      "allowedExceptions": [
+        "exactly one zero-write SSH inspection and no retry",
+        "exact inspector bytes are stdin to the fixed sudo env bash inspect argv",
+        "read only frozen Video units artifacts retained evidence shared-current services listeners and seven localhost bodies",
+        "each localhost body is fetched exactly once and bytes SHA256 and base64 derive from that same byte stream",
+        "no remote temporary files placement cleanup takeover deployment lifecycle unrelated Heavy Wallet account signature typed-data or transaction action"
+      ]
     }
   ]
 }
