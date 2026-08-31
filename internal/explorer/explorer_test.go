@@ -272,6 +272,9 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	if strings.Contains(html, `data-download="home-`) || !strings.Contains(html, `disabled aria-disabled="true" title="' + escapeHTML(d('installProof'))`) {
 		t.Fatal("home download cards must remain disabled until a verified public artifact exists")
 	}
+	if !strings.Contains(html, `disabled aria-disabled="true" title="' + escapeHTML(e('noProductLink'))`) {
+		t.Fatal("unverified ecosystem actions must explain why they are disabled")
+	}
 	for _, forbidden := range []string{"9102", "0x238e", "ynx_9102-1"} {
 		if strings.Contains(strings.ToLower(html), strings.ToLower(forbidden)) {
 			t.Fatalf("explorer web contains retired network identity %q", forbidden)

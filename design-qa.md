@@ -137,3 +137,8 @@ This is local responsive and accessibility evidence against the 6423 node/indexe
 
 - Home download cards now use real disabled controls when a public artifact has not been verified; they no longer provide an enabled button that merely opens a notice. The disabled control exposes the localized artifact-verification reason as its title.
 - Browser evidence: Chinese Home showed three disabled `下载暂不可用` controls with `aria-disabled="true"` and the public-artifact verification explanation. The full Downloads route rendered nine items, zero enabled download buttons, and no horizontal overflow.
+
+## 2026-08-31 ecosystem disabled-action follow-up
+
+- Every unavailable ecosystem Open, Docs, and Download control now carries the localized no-public-link explanation directly on its disabled control. The separate Status control remains operable and opens the same evidence-gated explanation.
+- Browser evidence: the Ecosystem route exposed ten Status controls and thirty disabled product-action controls; none of the disabled actions lacked a reason title and the route had no horizontal overflow.
