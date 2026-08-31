@@ -39,6 +39,22 @@ test("native surfaces do not handwrite or navigate Wallet authorization requests
   assert.match(ios,/requestWalletThroughSharedTransport/);
 });
 
+test("all owned Wallet runtime paths reject deprecated chain 9102",async()=>{
+  const files=[
+    "wallet-connection.js",
+    "ynx-dapp-connect-sdk/constants.js",
+    "android/app/src/main/java/com/ynxweb4/video/MainActivity.java",
+    "ios/YNXVideo/ContentView.swift",
+  ];
+  const sources=await Promise.all(files.map(read));
+  for(const source of sources)assert.doesNotMatch(source,/9102|0x238e/i);
+  assert.match(sources[0],/chainId:\s*"0x1917"/);
+  assert.match(sources[1],/evmChainId:\s*6423/);
+  assert.match(sources[1],/evmChainHex:\s*"0x1917"/);
+  assert.match(sources[2],/SHARED_WALLET_CHAIN\s*=\s*"ynx_6423-1"/);
+  assert.match(sources[3],/sharedWalletChainId\s*=\s*"ynx_6423-1"/);
+});
+
 test("accepted browser-safe SDK modules remain byte exact",async()=>{
   const manifest=JSON.parse(await read("ynx-dapp-connect-sdk/manifest.json"));
   for(const [file,expected] of Object.entries(manifest.files))assert.equal(sha(await read("ynx-dapp-connect-sdk/"+file)),expected,file);
