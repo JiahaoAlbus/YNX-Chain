@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "productId": "finance",
+  "observedAt": "2026-08-31T07:24:34Z",
+  "scope": "apps/finance/web/** and Finance-owned tests only",
+  "source": {
+    "branch": "codex/p0-finance-nonregressive-combined-candidate-20260831",
+    "commit": "477ff5b0c643498959e88a70ac890c771815e7c4"
+  },
+  "network": {
+    "decimalChainId": 6423,
+    "hexChainId": "0x1917",
+    "legacyChainReferencesInExecutableSource": false
+  },
+  "conflict": {
+    "id": "FINANCE_WEB_WALLET_PROTOCOL_SOURCE_DRIFT",
+    "severity": "blocking-for-public-wallet-migration",
+    "activeHtmlScript": "web/index.html -> /wallet-auth.js",
+    "activeSource": "web/wallet-auth-entry.js",
+    "verifierInput": "web/verify-wallet-connect.mjs -> wallet-connect-entry.js",
+    "verifierInputExists": false,
+    "legacyWebOperations": [
+      "top-level encodeRequestDeepLink navigation",
+      "gateway session completion request",
+      "browser-held Product Session proof creation"
+    ],
+    "whyNotPatchedLocally": "Replacing these operations requires the accepted Wallet/Auth product factory and central Product Session contract. Finance must consume that authority instead of creating a second protocol."
+  },
+  "requiredSharedAuthority": {
+    "providerConnectStateSource": "98c6d5d784d212df8981a53b17118a511e246ad2",
+    "providerConnectStateTree": "51a60a362d4ad5dd748bcdefb101f71b1d9e0cee",
+    "requiredInputs": [
+      "accepted Finance web root factory and import path",
+      "accepted Product Session degradation contract",
+      "accepted callback/approval lifecycle contract",
+      "Central path lease for apps/finance/web/**"
+    ]
+  },
+  "requiredMigrationAcceptance": [
+    "Web uses only EIP-6963/EIP-1193 provider discovery; no custom-scheme navigation or browser iframe/window launcher",
+    "selected provider, approved account, and eth_chainId 0x1917 are required for Standard Wallet connected state",
+    "switch -> 4902 add -> re-switch -> eth_chainId sequence is tested",
+    "Product Session failure is DEGRADED and never clears Standard Wallet connection",
+    "approval, reject, callback, refresh, account/chain change, disconnect, and revoke have direct source-bound public or installed evidence"
+  ],
+  "truth": {
+    "standardWalletMigrationComplete": false,
+    "publicRuntimeSourceBound": false,
+    "providerApproval": false,
+    "callback": false,
+    "productSessionLifecycle": false,
+    "signing": false,
+    "transaction": false,
+    "deployment": false
+  }
+}
