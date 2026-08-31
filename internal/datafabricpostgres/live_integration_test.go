@@ -48,7 +48,7 @@ func TestPostgresLiveTransactionsConstraintsAndRecovery(t *testing.T) {
 	})
 	applied, err := Migrate(ctx, db)
 	migrationFiles, migrationErr := MigrationFiles()
-	if err != nil || migrationErr != nil || len(applied) != len(migrationFiles) || applied[len(applied)-1].Version != 7 {
+	if err != nil || migrationErr != nil || len(applied) != len(migrationFiles) || applied[len(applied)-1].Version != 8 {
 		t.Fatalf("live migration failed: applied=%+v err=%v", applied, err)
 	}
 	if err := VerifySchema(ctx, db); err != nil {
@@ -222,7 +222,7 @@ func TestPostgresLiveTransactionsConstraintsAndRecovery(t *testing.T) {
 		t.Fatalf("analytics projection is missing or not pseudonymous: %+v %v", facts, err)
 	}
 	record, err := store.RecordErasure(ctx, first.Actor.AccountID, "audit.erase.live.0001", postgresTestKey, now)
-	if err != nil || record.Financial != 3 {
+	if err != nil || record.Financial != 3 || record.DerivedAnalyticsDeleted != 1 || len(record.DeletionReceipt) != 64 {
 		t.Fatalf("live erasure retention record failed: %+v %v", record, err)
 	}
 	facts, err = store.AnalyticsEventFacts(ctx)
