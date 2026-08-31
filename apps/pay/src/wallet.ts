@@ -25,7 +25,6 @@ const CANONICAL_AUTHORIZATION_PENDING_KEY='ynx.pay.wallet-authorize.v1.pending';
 /** Pay consumes the public Router coordinator surface; callback and opener serialization remain Wallet/Auth-owned. */
 export const PAY_WALLET_ROUTER_HANDOFF=Object.freeze({sourceCommit:'23c21054d8c86f245b77bffb2d03cecd2b3f80cf',sourceTree:'d478c3050bd62ba072e97de63c060abc882e87c1',coordinator:WalletConnectionCoordinator.name,statuses:WALLET_CONNECTION_COORDINATOR_STATUS});
 let standardWalletState=createStandardWalletConnectState();
-const discoveredProviders=new Map<EIP1193Provider,PayWalletProvider>();
 
 function runtimeProvider(){return (globalThis as unknown as {ethereum?:EIP1193Provider}).ethereum}
 function providerKind(provider:EIP1193Provider,rdns=''):PayWalletProviderKind|null{
@@ -33,28 +32,29 @@ function providerKind(provider:EIP1193Provider,rdns=''):PayWalletProviderKind|nu
   if(provider.isYNXWallet===true||rdns==='com.ynx.wallet')return 'ynx-wallet';
   return null;
 }
-function rememberProvider(provider:EIP1193Provider|undefined,rdns='',name=''){
+function rememberProvider(providers:Map<EIP1193Provider,PayWalletProvider>,provider:EIP1193Provider|undefined,rdns='',name=''){
   if(!provider)return null;const kind=providerKind(provider,rdns);if(!kind)return null;
   const descriptor:PayWalletProvider={kind,name:kind==='metamask'?'MetaMask':'YNX Wallet',rdns:rdns||(kind==='metamask'?'io.metamask':'com.ynx.wallet'),provider};
-  discoveredProviders.set(provider,descriptor);return descriptor;
+  providers.set(provider,descriptor);return descriptor;
 }
-function readInjectedProviders(scope:unknown){
+function readInjectedProviders(scope:unknown,providers:Map<EIP1193Provider,PayWalletProvider>){
   const root=(scope as {ethereum?:EIP1193Provider}).ethereum;
-  for(const provider of root?.providers??[])rememberProvider(provider);
-  rememberProvider(root);
+  for(const provider of root?.providers??[])rememberProvider(providers,provider);
+  rememberProvider(providers,root);
 }
 function delay(ms:number){return new Promise(resolve=>setTimeout(resolve,ms))}
 
 /** Repeated EIP-6963 discovery covers late injection without navigating or opening a tab. */
 export async function discoverPayWalletProviders(scope:unknown=globalThis,milestones=[0,250,750,1500]):Promise<PayWalletProvider[]>{
   const target=scope as {addEventListener?:Function;removeEventListener?:Function;dispatchEvent?:Function;ethereum?:EIP1193Provider};
-  const announce=(event:unknown)=>{const detail=(event as {detail?:{info?:{rdns?:string;name?:string};provider?:EIP1193Provider}}).detail;if(detail?.provider)rememberProvider(detail.provider,detail.info?.rdns,detail.info?.name)};
-  const initialized=()=>readInjectedProviders(target);
+  const providers=new Map<EIP1193Provider,PayWalletProvider>();
+  const announce=(event:unknown)=>{const detail=(event as {detail?:{info?:{rdns?:string;name?:string};provider?:EIP1193Provider}}).detail;if(detail?.provider)rememberProvider(providers,detail.provider,detail.info?.rdns,detail.info?.name)};
+  const initialized=()=>readInjectedProviders(target,providers);
   target.addEventListener?.('eip6963:announceProvider',announce);target.addEventListener?.('ethereum#initialized',initialized);
   try{
     let previous=0;
-    for(const point of milestones){await delay(Math.max(0,point-previous));previous=point;readInjectedProviders(target);try{target.dispatchEvent?.(typeof Event==='function'?new Event('eip6963:requestProvider'):{type:'eip6963:requestProvider'})}catch{} }
-    readInjectedProviders(target);return [...discoveredProviders.values()];
+    for(const point of milestones){await delay(Math.max(0,point-previous));previous=point;readInjectedProviders(target,providers);try{target.dispatchEvent?.(typeof Event==='function'?new Event('eip6963:requestProvider'):{type:'eip6963:requestProvider'})}catch{} }
+    readInjectedProviders(target,providers);return [...providers.values()];
   }finally{target.removeEventListener?.('eip6963:announceProvider',announce);target.removeEventListener?.('ethereum#initialized',initialized)}
 }
 function mappedCode(code:string){

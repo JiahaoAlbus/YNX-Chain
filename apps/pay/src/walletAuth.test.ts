@@ -83,3 +83,11 @@ test('Pay consumes the public Router coordinator handoff without copying callbac
   assert.match(wallet,/23c21054d8c86f245b77bffb2d03cecd2b3f80cf/);
   assert.doesNotMatch(wallet,/wallet-connection-coordinator\.js/);
 });
+
+test('Pay provider discovery keeps each cold or second start free of stale providers',()=>{
+  const wallet=readFileSync(new URL('./wallet.ts',import.meta.url),'utf8');
+  assert.doesNotMatch(wallet,/const discoveredProviders=/);
+  assert.match(wallet,/const providers=new Map<EIP1193Provider,PayWalletProvider>\(\);/);
+  assert.match(wallet,/rememberProvider\(providers,detail\.provider/);
+  assert.match(wallet,/return \[\.\.\.providers\.values\(\)\]/);
+});
