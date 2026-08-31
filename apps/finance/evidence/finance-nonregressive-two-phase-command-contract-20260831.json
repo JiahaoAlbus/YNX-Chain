@@ -1,7 +1,7 @@
 {
   "schemaVersion": "financeNonregressiveTwoPhaseCommandContract@1",
   "candidateSource": "4f7fba323a89ffb83a81fe2e2f2b97d23947de87",
-  "implementationSource": "1338301623d63065d66c4f73b0a7e2f39c91dbc3",
+  "implementationSource": "95048bf58c3b60eac6f3bd7dc5c875f010a6ce79",
   "environment": {},
   "shell": false,
   "carrierPreparation": {
@@ -12,8 +12,8 @@
     },
     "bootstrap": {
       "path": "apps/finance/scripts/finance-nonregressive-carrier-bootstrap.sh",
-      "bytes": 5620,
-      "sha256": "6c22bcd0322485391ec5294ea4474653649084a68c5bad725009161cdb47bb6c"
+      "bytes": 5724,
+      "sha256": "bbb4fcf01ee9627024e9c90488042bde64c9e93e2e1d09e524b4a408f06cf7b8"
     },
     "archive": {
       "path": "apps/finance/evidence/release-candidates/ynx-finance-4f7fba323a89-linux-amd64.tar.gz",
@@ -29,8 +29,8 @@
       "/tmp/ynx-finance-nonregressive-carrier.stderr",
       "/tmp/ynx-finance-nonregressive-carrier.receipt",
       "<ABSOLUTE_REVIEWED_WORKTREE>/apps/finance/scripts/finance-nonregressive-carrier-bootstrap.sh",
-      "5620",
-      "6c22bcd0322485391ec5294ea4474653649084a68c5bad725009161cdb47bb6c",
+      "5724",
+      "bbb4fcf01ee9627024e9c90488042bde64c9e93e2e1d09e524b4a408f06cf7b8",
       "3938517",
       "55e8d98317eab27248644e6c1168e5ef9f72221a9708a8b80c0ee6502760147d",
       "<CENTRAL_SIGNED_CARRIER_LEASE_BYTES>",
@@ -55,8 +55,8 @@
     },
     "bootstrap": {
       "path": "apps/finance/scripts/finance-phase3-stdin-deployment-bootstrap.sh",
-      "bytes": 5280,
-      "sha256": "caf5ff24608086231d9b81989bd29eaad0846d33fac4392655a771b467ed43f7"
+      "bytes": 5400,
+      "sha256": "66617d80aaba962488d8ab706bd0457ef37fea0f7963154ccfe8828a11ed3533"
     },
     "executor": {
       "path": "apps/finance/scripts/finance-production-rollback-first.sh",
