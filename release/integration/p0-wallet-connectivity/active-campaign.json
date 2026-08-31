@@ -427,16 +427,16 @@
     }
   ],
   "heavy": {
-    "owner": "chain-protected-runtime-operator",
+    "owner": null,
     "taskId": "P0-317",
-    "status": "ACTIVE_CHAIN_FOUR_NODE_ZERO_WRITE_INSPECTION",
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_CHAIN_P0317_LOCAL_NODE_EXECUTABLE_ABSENT_PRE_INSPECTOR",
     "acquiredAt": "2026-08-31T05:31:00Z",
     "expiresAt": "2026-08-31T05:51:00Z",
-    "releasedAt": null,
+    "releasedAt": "2026-08-31T05:34:48Z",
     "sourceCommit": "8af069d2554736939e81bf03a4f5d6c590d712f3",
     "evidenceCommit": "8af069d2554736939e81bf03a4f5d6c590d712f3",
     "runtimeHost": "CHAIN_FOUR_NODE_TARGET_SET",
-    "currentRuntime": "UNINSPECTED_ZERO_WRITE_ONLY",
+    "currentRuntime": "UNKNOWN_INSPECTOR_NEVER_STARTED_SSH_ZERO_OF_FOUR",
     "candidateRuntime": "NO_DEPLOYMENT_AUTHORIZED",
     "artifactSha256": "0ea6dbff7be60da2ceb647cb905635292c5fac422e0ccedc80147f7d9046a0b5",
     "productionMutationAllowed": false,
@@ -444,8 +444,8 @@
     "reusable": false,
     "previousOwner": null,
     "previousTaskId": "P0-316",
-    "reviewDecision": "GO_P0317_CHAIN_FOUR_NODE_ZERO_WRITE_INSPECTION_ONLY",
-    "reason": "Corrected request and readiness object receipts, exact inspector payload and printed plan hashes, boolean-only protected readiness, self-test and global rollback contract all pass. Exactly one read-only SSH attempt per node is authorized with no remote temporary files mutation lifecycle or deployment."
+    "reviewDecision": "P0317_TERMINAL_FAIL_CLOSED_LOCAL_NODE_EXECUTABLE_ABSENT_RELEASED",
+    "reason": "The exact invocation was attempted once and exited 127 because /usr/bin/node is absent. Inspector startup and all four SSH attempts remained zero; evidence stayed absent and no remote action occurred. P0-317 is consumed, released and nonreusable."
   },
   "wave": {
     "id": "B-financial-apps-quant",

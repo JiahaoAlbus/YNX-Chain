@@ -7485,7 +7485,7 @@
     {
       "taskId": "P0-317",
       "owner": "integration,chain-protected-runtime-operator",
-      "status": "ACTIVE_CHAIN_FOUR_NODE_ZERO_WRITE_INSPECTION",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_CHAIN_P0317_LOCAL_NODE_EXECUTABLE_ABSENT_PRE_INSPECTOR",
       "paths": [
         "release/integration/p0-wallet-connectivity/execution/p0-317-chain-four-node-zero-write-inspection-single-use-lease-20260831.json",
         "/tmp/p0-317-chain-four-node-zero-write-evidence-20260831.json"
@@ -7497,9 +7497,12 @@
       "attemptLimitPerNode": 1,
       "retryAllowed": false,
       "remoteMutation": false,
+      "inspectorStarted": false,
+      "sshAttempts": 0,
+      "localExitStatus": 127,
       "serviceLifecycleAuthorized": false,
       "deploymentAuthorized": false,
-      "nextAction": "Named protected operator executes the exact inspector once. Return the local byte-preserving evidence envelope and terminal attempt truth; release Heavy and all Chain locks on every terminal outcome."
+      "nextAction": "P0-317 is consumed and nonreusable. A wholly-new request must bind an actually present Node executable path and read-only receipt before another lease; no node inspection was performed."
     }
   ]
 }

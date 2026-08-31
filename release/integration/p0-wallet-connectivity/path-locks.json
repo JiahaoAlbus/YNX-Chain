@@ -3510,15 +3510,15 @@
     },
     {
       "path": "{chain-four-node-zero-write,readonly:ssh:ubuntu@43.153.202.237,readonly:ssh:root@43.134.23.58,readonly:ssh:ubuntu@43.162.100.54,readonly:ssh:root@43.164.132.81,readonly:systemd:ynx-chaind.service,readonly:/usr/local/bin/ynx-chaind,readonly:/opt/ynx-chain/**,readonly:loopback:{health,status,node/identity,validators/peer-sync}}",
-      "owner": "chain-protected-runtime-operator",
+      "owner": null,
       "branch": "codex/chain-four-node-readonly-inspector-20260831",
       "worktree": "/private/tmp/ynx-chain-peer-readiness.fXjb67",
       "taskId": "P0-317",
       "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
-      "status": "ACTIVE_CHAIN_FOUR_NODE_ZERO_WRITE_INSPECTION",
+      "status": "CONSUMED_RELEASED_FAILED_CLOSED_CHAIN_P0317_LOCAL_NODE_EXECUTABLE_ABSENT_PRE_INSPECTOR",
       "acquiredAt": "2026-08-31T05:31:00Z",
       "expiresAt": "2026-08-31T05:51:00Z",
-      "releasedAt": null,
+      "releasedAt": "2026-08-31T05:34:48Z",
       "sourceCommit": "8af069d2554736939e81bf03a4f5d6c590d712f3",
       "sourceTree": "320c4310c5552c59da8c3c9e8269b5c49558bdf7",
       "evidenceCommit": "8af069d2554736939e81bf03a4f5d6c590d712f3",
@@ -3529,7 +3529,10 @@
         "exact 2501-byte payload SHA48548c is stdin and creates no remote temporary files",
         "read only service file and loopback node readiness facts",
         "protected identity values paths and hashes must never be logged persisted or disclosed",
-        "no service lifecycle deployment validator chain state firewall Caddy Creator Finance Wallet account signature typed-data or transaction action"
+        "no service lifecycle deployment validator chain state firewall Caddy Creator Finance Wallet account signature typed-data or transaction action",
+        "sole invocation exited 127 before inspector startup because /usr/bin/node was absent",
+        "SSH attempts remained zero of four and no remote action occurred",
+        "P0-317 is consumed and nonreusable; Heavy and all Chain locks are released"
       ]
     }
   ]

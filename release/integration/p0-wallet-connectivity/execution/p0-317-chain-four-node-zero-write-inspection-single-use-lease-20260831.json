@@ -3,11 +3,12 @@
   "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
   "taskId": "P0-317",
   "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-chain-four-node-zero-write-inspection-20260831T053100Z",
-  "status": "ACTIVE",
+  "status": "CONSUMED_RELEASED_FAILED_CLOSED_CHAIN_P0317_LOCAL_NODE_EXECUTABLE_ABSENT_PRE_INSPECTOR",
   "singleUse": true,
   "reusable": false,
   "issuedAt": "2026-08-31T05:31:00Z",
   "expiresAt": "2026-08-31T05:51:00Z",
+  "releasedAt": "2026-08-31T05:34:48Z",
   "owner": "chain-protected-runtime-operator",
   "namedExecutor": "chain-protected-runtime-operator",
   "scope": "CHAIN_FOUR_NODE_ZERO_WRITE_INSPECTION_ONLY",
@@ -100,6 +101,9 @@
   "terminal": {
     "releaseHeavyAndAllChainLocks": true,
     "partialInspectionIsNotCompletion": true,
-    "noRuntimePromotion": true
+    "noRuntimePromotion": true,
+    "inspectorStarted": false,
+    "sshAttempts": 0,
+    "localExitStatus": 127
   }
 }
