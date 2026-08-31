@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet Web/PWA/Extensions",
+  "observedAt": "2026-08-21T20:30:00+08:00",
+  "sourceCommit": "3651ba0c4322e0564e29b4573f3def90828dba67",
+  "previousEvidenceCommit": "01049d7ca789e91c4e1a7d30db4e2caf1501c142",
+  "centralMatrixCheckpoint": "a36011f8cf474955f4ef7faa338670e0c8d9d42c",
+  "publication": {
+    "project": "ynx-wallet-web",
+    "deploymentId": "dpl_6GRARbJYU5JyPeJP7Un3E6KqmBN2",
+    "deploymentUrl": "https://ynx-wallet-exf0pxa7y-jiahaoalbus-projects.vercel.app",
+    "publicUrl": "https://wallet.ynxweb4.com/",
+    "sourceBound": true,
+    "driftObservedBeforeRepair": {
+      "walletCompanion": false,
+      "bytes": 1018,
+      "sha256": "c3f2bd52357970151a4189101919a930ec4bc66a0fc12144c0aeac2045dc0809",
+      "title": "YNX Chain — Web4 Layer-1 Ecosystem",
+      "cleanBrowserResult": "PWA shell integrity verification failed"
+    },
+    "verifiedAfterRepair": [
+      {"path": "/", "status": 200, "bytes": 821, "sha256": "2df10866a35b074a6fb366439197646dd4e979bc83bdae3aba0ba6db3802986c", "contentType": "text/html; charset=utf-8"},
+      {"path": "/build-identity.json", "status": 200, "bytes": 267, "sha256": "760971f2b83bae7e8f05483006267d76f756a6daf651c0250482c79a2bf5b7b1", "contentType": "application/json; charset=utf-8"},
+      {"path": "/app.js", "status": 200, "bytes": 16803, "sha256": "65fb87b5eec304366a8603d5e33c203120f1b28659a18af96d417a4ca70d57a7", "contentType": "application/javascript; charset=utf-8"},
+      {"path": "/provider.js", "status": 200, "bytes": 18553, "sha256": "82cb2532ce59dd930619df4045b9e4836aa3f3fd7540962204a2ae87a499b4e6", "contentType": "application/javascript; charset=utf-8"},
+      {"path": "/i18n.js", "status": 200, "bytes": 20792, "sha256": "e44e84b45f114d032f1f0cd027e1dc696211acfb1948e244e3e90696415ca559", "contentType": "application/javascript; charset=utf-8"},
+      {"path": "/sw.js", "status": 200, "bytes": 2711, "sha256": "a52ff146365c4f916302ae38d279eb8039c9b9e72773bf76a0eda0b4d8b88f68", "contentType": "application/javascript; charset=utf-8"},
+      {"path": "/asset-integrity.js", "status": 200, "bytes": 1824, "sha256": "b4f29799838ee7641d1ec8ed9680ad72b47f6d1063efc21b822b224686e309c9", "contentType": "application/javascript; charset=utf-8"},
+      {"path": "/manifest.webmanifest", "status": 200, "bytes": 632, "sha256": "d2d131267483327ece949c5b8402c2dd80352bb15e791ea5571c879682ceba92", "contentType": "application/manifest+json; charset=utf-8"}
+    ]
+  },
+  "cleanInAppBrowser": {
+    "providerInjected": false,
+    "visibleError": "Wallet provider not injected. Unlock or enable the extension, grant this site access, and retry.",
+    "ynxWalletAction": {"label": "Android · Download YNX Wallet", "href": "https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk"},
+    "metaMaskAction": {"label": "Use MetaMask", "href": "https://metamask.io/download"},
+    "chooserToggle": {"expandedToCollapsed": true, "collapsedToExpanded": true},
+    "urlStable": true,
+    "newTabOpened": false,
+    "reloadRemainedFailClosed": true,
+    "sensitiveActionsDisabled": true
+  },
+  "realChrome": {
+    "browser": "Google Chrome",
+    "version": "151.0.7922.170",
+    "installedMetaMaskDetected": true,
+    "detectionText": "MetaMask provider detected",
+    "accountRequestTriggered": false,
+    "chooserToggle": {"expandedToCollapsed": true, "collapsedToExpanded": true, "focusStayedOnTrigger": true},
+    "urlStable": true,
+    "newTabOpened": false,
+    "reload": {"metaMaskRediscovered": true, "status": "Status: Not connected", "fakeSessionRestored": false},
+    "responsive": {"requestedViewport": "390x844", "innerViewport": "390x844", "contentWidth": 375, "horizontalOverflow": false},
+    "localization": {"englishDefault": true, "arabicLang": "ar", "arabicDir": "rtl", "englishRestored": true, "dynamicStatusRelocalized": true},
+    "theme": {"lightVisible": true, "darkVisible": true}
+  },
+  "regression": {"sourceTests": "97/97", "artifactPackagesVerified": "3/3", "artifactPackageAssertions": "79/79"},
+  "artifacts": [
+    {"name": "ynx-wallet-web-pwa-0.1.0.zip", "bytes": 284138, "sha256": "38bd007893c976a41b3ac4caa33f00b0bd98cc358283a7b720e5955649fa58be", "signingClass": "unsigned-web-bundle"},
+    {"name": "ynx-wallet-chrome-edge-0.1.0.zip", "bytes": 198658, "sha256": "ec394e64641728bda883581536b7af56b493b7c124bf53d8c9620f432242ed6f", "signingClass": "unsigned-unpacked-extension"},
+    {"name": "ynx-wallet-firefox-0.1.0.zip", "bytes": 198695, "sha256": "05232e4389d2bec35fcfb21d53fa2352bf9ad84e6724f8e1ceaf544a960f8847", "signingClass": "unsigned-unpacked-extension"}
+  ],
+  "proved": ["sourceBoundPublicWalletCompanion", "cleanNoProviderFallback", "officialYNXDownloadAction", "officialMetaMaskInstallAction", "noBlankCustomSchemeTab", "MetaMaskEip6963Detection", "preapprovalChooserToggle", "preapprovalReloadFailClosed", "EnglishDefault", "ArabicRTL", "LightDark", "390pxNoHorizontalOverflow"],
+  "requiresActionTimeUserApproval": ["Click Use MetaMask and approve eth_requestAccounts; if MetaMask reports unknown chain 4902, approve the frozen wallet_addEthereumChain and wallet_switchEthereumChain request for 0x1917."],
+  "falseGates": ["accountApproved", "providerChainId1917", "chooserClosedAfterApproval", "refreshRestoreConnectedSession", "disconnect", "switchAccount", "ynxProviderDetected", "walletCallback", "productSessionV2", "messageSigned", "transactionSubmitted"]
+}

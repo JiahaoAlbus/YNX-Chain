@@ -1,0 +1,136 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "89f429f80cc476f369b05d52e1de706432bd4a1c",
+  "generatedAt": "2026-08-14T10:19:57.148Z",
+  "browserId": "chrome",
+  "browserName": "Google Chrome",
+  "executablePath": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+  "browserVersion": "151.0.7922.138",
+  "loadMode": "temporary-unpacked-isolated-profile",
+  "launchMode": "open-new",
+  "profileClass": "disposable-isolated-profile-reused-only-for-second-launch",
+  "runtimePresentation": "headed branded binary automation; not installedLocal evidence",
+  "extension": {
+    "path": "/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/dist/chromium",
+    "derivedId": "jgijcegbgeobldllfniaejejofobcngk",
+    "actualId": null
+  },
+  "artifact": {
+    "name": "ynx-wallet-chrome-edge-0.1.0.zip",
+    "bytes": 188846,
+    "sha256": "c733093dea47c6612c8a9d5ecea40be2227f62402f4b4966955c9e1accf4e2aa",
+    "signingClass": "unsigned-unpacked-extension"
+  },
+  "launchArgs": {
+    "removedDisableExtensions": true,
+    "headlessNew": false,
+    "gpuDisabled": true,
+    "remoteAllowOrigins": true,
+    "remoteDebuggingPort": "ephemeral",
+    "dailyProfileTouched": false
+  },
+  "launches": [
+    {
+      "sequence": 1,
+      "startedAt": "2026-08-14T10:19:57.160Z",
+      "pid": 97281,
+      "pidAliveAtStart": true,
+      "launcherExit": {
+        "code": 0,
+        "signal": null
+      },
+      "childExit": null,
+      "cdpConnected": false,
+      "managerEntries": [],
+      "popupOpened": false,
+      "serviceWorkerStarted": false,
+      "backgroundTargets": [],
+      "console": [],
+      "runtimeWake": null,
+      "endedPidAlive": false,
+      "cleanup": {
+        "initial": [
+          97281,
+          97293,
+          97294,
+          97295,
+          97312,
+          97314,
+          97317,
+          97318,
+          97323
+        ],
+        "remainingAfterTerm": [
+          97281
+        ],
+        "aliveAfterCleanup": []
+      },
+      "cdpEndpoint": "ws://127.0.0.1:61948/devtools/browser/<redacted>",
+      "error": {
+        "name": "TimeoutError",
+        "code": null,
+        "message": "browserType.connectOverCDP: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - <ws connecting> ws://127.0.0.1:61948/devtools/browser/bc381e6c-2e08-4e82-bd5f-6edd77a6a6ce\u001b[22m\n\u001b[2m  - <ws connected> ws://127.0.0.1:61948/devtools/browser/bc381e6c-2e08-4e82-bd5f-6edd77a6a6ce\u001b[22m\n"
+      },
+      "endedAt": "2026-08-14T10:20:12.043Z"
+    },
+    {
+      "sequence": 2,
+      "startedAt": "2026-08-14T10:20:12.187Z",
+      "pid": 97344,
+      "pidAliveAtStart": true,
+      "launcherExit": {
+        "code": 0,
+        "signal": null
+      },
+      "childExit": null,
+      "cdpConnected": true,
+      "managerEntries": [],
+      "popupOpened": false,
+      "serviceWorkerStarted": false,
+      "backgroundTargets": [],
+      "console": [],
+      "runtimeWake": null,
+      "endedPidAlive": false,
+      "cleanup": {
+        "initial": [
+          97344,
+          97362,
+          97363,
+          97364,
+          97386,
+          97395,
+          97408,
+          97409
+        ],
+        "remainingAfterTerm": [
+          97344
+        ],
+        "aliveAfterCleanup": []
+      },
+      "cdpEndpoint": "ws://127.0.0.1:62010/devtools/browser/<redacted>",
+      "browserVersion": "151.0.7922.138",
+      "error": {
+        "name": "Error",
+        "code": null,
+        "message": "page.goto: net::ERR_BLOCKED_BY_CLIENT at chrome-extension://jgijcegbgeobldllfniaejejofobcngk/index.html\nCall log:\n\u001b[2m  - navigating to \"chrome-extension://jgijcegbgeobldllfniaejejofobcngk/index.html\", waiting until \"domcontentloaded\"\u001b[22m\n"
+      },
+      "endedAt": "2026-08-14T10:20:26.445Z"
+    }
+  ],
+  "passed": false,
+  "temporaryUnpackedRuntimeProved": false,
+  "firstOpenProved": false,
+  "secondOpenProved": false,
+  "serviceWorkerRestartProved": false,
+  "visibleBrowserAcceptance": false,
+  "installedLocal": false,
+  "providerSuccessClaimed": false,
+  "accountAuthorized": false,
+  "messageSigned": false,
+  "transactionSubmitted": false,
+  "downloadHosted": false,
+  "deployedPublic": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "stderr": ""
+}

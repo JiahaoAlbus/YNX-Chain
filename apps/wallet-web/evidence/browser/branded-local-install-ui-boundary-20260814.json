@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "671e629f182f3bb47d4f7c000e9d64168052a7f3",
+  "generatedAt": "2026-08-14T19:35:00+08:00",
+  "artifact": {
+    "officialUrl": "https://www.ynxweb4.com/downloads/wallet-web/sha256-c733093dea47c6612c8a9d5ecea40be2227f62402f4b4966955c9e1accf4e2aa/ynx-wallet-chrome-edge-0.1.0.zip",
+    "bytes": 188846,
+    "sha256": "c733093dea47c6612c8a9d5ecea40be2227f62402f4b4966955c9e1accf4e2aa",
+    "fullOfficialDownloadVerified": true,
+    "unpackedIntoDisposableDirectory": true
+  },
+  "chrome": {
+    "version": "151.0.7922.138",
+    "isolatedProfileClass": "disposable-task-profile",
+    "isolatedMainPid": 45938,
+    "profileAccountCount": 0,
+    "profileExtensionSettingIds": [],
+    "profileWebAppIds": [],
+    "computerUseResolvedIsolatedWindow": false,
+    "observedWrongProfileSignals": [
+      "pre-existing ChatGPT extension",
+      "pre-existing MetaMask extension",
+      "pre-existing user tabs and account UI"
+    ],
+    "developerModeChanged": false,
+    "loadUnpackedClicked": false,
+    "pwaInstallClicked": false,
+    "exactProfileProcessesAfterCleanup": 0,
+    "extensionInstalledInIsolatedProfile": false,
+    "pwaInstalledInIsolatedProfile": false,
+    "installedLocal": false
+  },
+  "edge": {
+    "version": "151.0.4129.78",
+    "isolatedProfileClass": "disposable-task-profile",
+    "isolatedMainPid": 53706,
+    "profileAccountCount": 0,
+    "profileExtensionSettingIds": [],
+    "computerUseResolvedIsolatedWindow": false,
+    "observedWrongProfileSignals": [
+      "pre-existing MetaMask extension",
+      "pre-existing translation extension",
+      "pre-existing bookmarks and new-tab personalization"
+    ],
+    "developerModeChanged": false,
+    "loadUnpackedClicked": false,
+    "exactProfileProcessesAfterCleanup": 0,
+    "dailyMainPidPreserved": 6399,
+    "extensionInstalledInIsolatedProfile": false,
+    "installedLocal": false
+  },
+  "pwa": {
+    "officialPublicationPage": "https://www.ynxweb4.com/dapp/wallet",
+    "isolatedChromeInstallSurfaceSafelyAddressable": false,
+    "installedLocal": false,
+    "coldLaunchProved": false,
+    "secondLaunchProved": false,
+    "testnetConnectionProved": false
+  },
+  "safety": {
+    "dailyExtensionStateModified": false,
+    "dailyBrowserConfigurationModified": false,
+    "dailyChromeGateTabCreatedThenClosed": true,
+    "exactTaskProfileProcessesCleaned": true,
+    "blocker": "macOS Computer Use exposes Chrome/Edge by bundle identifier and resolved the existing daily-profile UI instead of the separately launched task-profile process. UI mutation stopped before Developer Mode or Load unpacked."
+  },
+  "providerInjected": false,
+  "addChainProved": false,
+  "connectionRequestProved": false,
+  "accountAuthorized": false,
+  "messageSigned": false,
+  "transactionSubmitted": false,
+  "productionSigned": false,
+  "storeReleased": false
+}

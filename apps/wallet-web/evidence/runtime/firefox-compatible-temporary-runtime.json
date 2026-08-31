@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "713061dd5476137df7f3632257612880fe6b4978",
+  "generatedAt": "2026-08-14T01:01:23.293Z",
+  "runtime": {
+    "name": "Playwright patched Firefox",
+    "version": "153.0",
+    "brandedMozillaFirefox": false,
+    "executablePath": "/Users/huangjiahao/Library/Caches/ms-playwright/firefox-1538/firefox/Nightly.app/Contents/MacOS/firefox"
+  },
+  "loader": {
+    "name": "web-ext",
+    "version": "10.6.0",
+    "loadMode": "temporary-addon-isolated-profile",
+    "addonId": "wallet-testnet@ynxweb4.com",
+    "temporaryAddonLoaded": true,
+    "timedOut": false,
+    "exit": {
+      "code": 130,
+      "signal": null
+    }
+  },
+  "coverage": {
+    "manifestValidated": true,
+    "debuggerConnected": true,
+    "backgroundStarted": false,
+    "dappMainWorldInjectionTested": false,
+    "rpcFailClosedTested": false,
+    "secondLaunchPersisted": false
+  },
+  "artifact": {
+    "name": "ynx-wallet-firefox-0.1.0.zip",
+    "bytes": 171277,
+    "sha256": "8b93d02b60eb4f4a723bec2a075f3ddf960dd4ccf7ee143586006f5553cb0e31",
+    "signingClass": "unsigned-unpacked-extension"
+  },
+  "releaseStates": {
+    "firefoxCompatibleTemporaryRuntime": true,
+    "firefoxBrandedRuntime": false,
+    "installedLocal": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

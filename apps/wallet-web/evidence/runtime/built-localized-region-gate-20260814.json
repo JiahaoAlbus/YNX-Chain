@@ -1,0 +1,272 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "uncommitted-source-tree",
+  "generatedAt": "2026-08-31T11:23:02.437Z",
+  "gateClass": "exact built ZIP locale module and rendered-template source inspection; not visible browser runtime",
+  "artifacts": [
+    {
+      "name": "ynx-wallet-web-pwa-0.1.0.zip",
+      "bytes": 287016,
+      "sha256": "48cda06f09a69850a61c4694bc11015af8195f85f02b1d77e59b8d40f68346e2",
+      "localeChecks": [
+        {
+          "locale": "en",
+          "walletConnection": "Wallet connection",
+          "walletActions": "Wallet actions",
+          "untranslated": []
+        },
+        {
+          "locale": "zh-CN",
+          "walletConnection": "钱包连接",
+          "walletActions": "钱包操作",
+          "untranslated": []
+        },
+        {
+          "locale": "zh-TW",
+          "walletConnection": "錢包連線",
+          "walletActions": "錢包操作",
+          "untranslated": []
+        },
+        {
+          "locale": "ja",
+          "walletConnection": "ウォレット接続",
+          "walletActions": "ウォレット操作",
+          "untranslated": []
+        },
+        {
+          "locale": "ko",
+          "walletConnection": "지갑 연결",
+          "walletActions": "지갑 작업",
+          "untranslated": []
+        },
+        {
+          "locale": "es",
+          "walletConnection": "Conexión de cartera",
+          "walletActions": "Acciones de cartera",
+          "untranslated": []
+        },
+        {
+          "locale": "fr",
+          "walletConnection": "Connexion du portefeuille",
+          "walletActions": "Actions du portefeuille",
+          "untranslated": []
+        },
+        {
+          "locale": "de",
+          "walletConnection": "Wallet-Verbindung",
+          "walletActions": "Wallet-Aktionen",
+          "untranslated": []
+        },
+        {
+          "locale": "pt",
+          "walletConnection": "Conexão da carteira",
+          "walletActions": "Ações da carteira",
+          "untranslated": []
+        },
+        {
+          "locale": "ru",
+          "walletConnection": "Подключение кошелька",
+          "walletActions": "Действия кошелька",
+          "untranslated": []
+        },
+        {
+          "locale": "ar",
+          "walletConnection": "اتصال المحفظة",
+          "walletActions": "إجراءات المحفظة",
+          "untranslated": []
+        },
+        {
+          "locale": "id",
+          "walletConnection": "Koneksi dompet",
+          "walletActions": "Tindakan dompet",
+          "untranslated": []
+        }
+      ],
+      "checks": {
+        "allLocalesDirect": true,
+        "arabicExact": true,
+        "templateLocalized": true,
+        "noHardcodedEnglish": true
+      },
+      "passed": true
+    },
+    {
+      "name": "ynx-wallet-chrome-edge-0.1.0.zip",
+      "bytes": 469940,
+      "sha256": "72bde3f0cf2cf22af271d88b0d63a0de78e96d98a60bcfc7d0b8f78082ccd442",
+      "localeChecks": [
+        {
+          "locale": "en",
+          "walletConnection": "Wallet connection",
+          "walletActions": "Wallet actions",
+          "untranslated": []
+        },
+        {
+          "locale": "zh-CN",
+          "walletConnection": "钱包连接",
+          "walletActions": "钱包操作",
+          "untranslated": []
+        },
+        {
+          "locale": "zh-TW",
+          "walletConnection": "錢包連線",
+          "walletActions": "錢包操作",
+          "untranslated": []
+        },
+        {
+          "locale": "ja",
+          "walletConnection": "ウォレット接続",
+          "walletActions": "ウォレット操作",
+          "untranslated": []
+        },
+        {
+          "locale": "ko",
+          "walletConnection": "지갑 연결",
+          "walletActions": "지갑 작업",
+          "untranslated": []
+        },
+        {
+          "locale": "es",
+          "walletConnection": "Conexión de cartera",
+          "walletActions": "Acciones de cartera",
+          "untranslated": []
+        },
+        {
+          "locale": "fr",
+          "walletConnection": "Connexion du portefeuille",
+          "walletActions": "Actions du portefeuille",
+          "untranslated": []
+        },
+        {
+          "locale": "de",
+          "walletConnection": "Wallet-Verbindung",
+          "walletActions": "Wallet-Aktionen",
+          "untranslated": []
+        },
+        {
+          "locale": "pt",
+          "walletConnection": "Conexão da carteira",
+          "walletActions": "Ações da carteira",
+          "untranslated": []
+        },
+        {
+          "locale": "ru",
+          "walletConnection": "Подключение кошелька",
+          "walletActions": "Действия кошелька",
+          "untranslated": []
+        },
+        {
+          "locale": "ar",
+          "walletConnection": "اتصال المحفظة",
+          "walletActions": "إجراءات المحفظة",
+          "untranslated": []
+        },
+        {
+          "locale": "id",
+          "walletConnection": "Koneksi dompet",
+          "walletActions": "Tindakan dompet",
+          "untranslated": []
+        }
+      ],
+      "checks": {
+        "allLocalesDirect": true,
+        "arabicExact": true,
+        "templateLocalized": true,
+        "noHardcodedEnglish": true
+      },
+      "passed": true
+    },
+    {
+      "name": "ynx-wallet-firefox-0.1.0.zip",
+      "bytes": 469973,
+      "sha256": "027ef2810ea1bfddb2cba6a82b4fc84a2ef7693ed2d981107fd8e8f408e084e9",
+      "localeChecks": [
+        {
+          "locale": "en",
+          "walletConnection": "Wallet connection",
+          "walletActions": "Wallet actions",
+          "untranslated": []
+        },
+        {
+          "locale": "zh-CN",
+          "walletConnection": "钱包连接",
+          "walletActions": "钱包操作",
+          "untranslated": []
+        },
+        {
+          "locale": "zh-TW",
+          "walletConnection": "錢包連線",
+          "walletActions": "錢包操作",
+          "untranslated": []
+        },
+        {
+          "locale": "ja",
+          "walletConnection": "ウォレット接続",
+          "walletActions": "ウォレット操作",
+          "untranslated": []
+        },
+        {
+          "locale": "ko",
+          "walletConnection": "지갑 연결",
+          "walletActions": "지갑 작업",
+          "untranslated": []
+        },
+        {
+          "locale": "es",
+          "walletConnection": "Conexión de cartera",
+          "walletActions": "Acciones de cartera",
+          "untranslated": []
+        },
+        {
+          "locale": "fr",
+          "walletConnection": "Connexion du portefeuille",
+          "walletActions": "Actions du portefeuille",
+          "untranslated": []
+        },
+        {
+          "locale": "de",
+          "walletConnection": "Wallet-Verbindung",
+          "walletActions": "Wallet-Aktionen",
+          "untranslated": []
+        },
+        {
+          "locale": "pt",
+          "walletConnection": "Conexão da carteira",
+          "walletActions": "Ações da carteira",
+          "untranslated": []
+        },
+        {
+          "locale": "ru",
+          "walletConnection": "Подключение кошелька",
+          "walletActions": "Действия кошелька",
+          "untranslated": []
+        },
+        {
+          "locale": "ar",
+          "walletConnection": "اتصال المحفظة",
+          "walletActions": "إجراءات المحفظة",
+          "untranslated": []
+        },
+        {
+          "locale": "id",
+          "walletConnection": "Koneksi dompet",
+          "walletActions": "Tindakan dompet",
+          "untranslated": []
+        }
+      ],
+      "checks": {
+        "allLocalesDirect": true,
+        "arabicExact": true,
+        "templateLocalized": true,
+        "noHardcodedEnglish": true
+      },
+      "passed": true
+    }
+  ],
+  "browserVisibleRecheck": false,
+  "installedLocal": false,
+  "deployedPublic": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "passed": true
+}

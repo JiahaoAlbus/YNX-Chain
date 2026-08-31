@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-08-15T02:34:40.000Z",
+  "owner": "Wallet Web/PWA/Extensions",
+  "sourceCommit": "f6906e991901e4cea64ec84c03bb78fe4bfc3fac",
+  "immutableAuthorities": {
+    "centralCaller": {
+      "commit": "38c9c0ce1400ad6ba8dc5e0c1aa1d657a6c9748d",
+      "path": "release/integration/wallet-auth-android-launcher-contract.json",
+      "blob": "0e0d702f9245fae42daec7d0a3a3fd5fe83f9a42",
+      "sha256": "27449c80300acd463574d5d7bb016e2273cfd7d24f6669c9da00505559393a58"
+    },
+    "coreWebCompanion": {
+      "commit": "39c80021b87730a20569b61f6ccd3f80092523c4",
+      "path": "release/integration/wallet-auth-web-companion-registry-contract.json",
+      "blob": "a1db56d51f3afe795faace17e4e7bb51cae66ff7",
+      "sha256": "6584e439783d6c83e8aef712af95488e75cfa034c259d63356cb7bdc731f684f"
+    },
+    "identity": {
+      "productId": "wallet-web-companion",
+      "productClientId": "ynx-wallet-web-companion-v1",
+      "bundleId": "web.ynx.wallet.companion",
+      "webOrigin": "https://www.ynxweb4.com",
+      "callback": "https://www.ynxweb4.com/dapp/wallet/wallet-auth/callback"
+    }
+  },
+  "localValidation": {
+    "walletWebSource": {"command": "npm test", "passed": 88, "failed": 0},
+    "builtArtifactGate": {"command": "npm run package", "passed": 74, "failed": 0},
+    "packageIntegrity": {"command": "npm run verify:package", "artifactsPassed": 3, "failed": 0},
+    "exactCoreRuntime": {
+      "source": "git archive 39c80021b87730a20569b61f6ccd3f80092523c4",
+      "command": "node --test packages/wallet-auth/test/wallet-web-companion-runtime.test.mjs",
+      "passed": 11,
+      "failed": 0,
+      "proved": ["begin", "approved return", "rejected return", "disconnect/revoke", "restart/restore", "callback-disconnect no resurrection", "substitution fail-closed"]
+    }
+  },
+  "publicGatewayPreflight": {
+    "endpoint": "https://rest.ynxweb4.com/v2/product-sessions/challenge",
+    "method": "OPTIONS",
+    "socialOrigin": {"origin": "https://social.ynxweb4.com", "status": 204, "allowOrigin": "https://social.ynxweb4.com"},
+    "walletWebOrigin": {"origin": "https://www.ynxweb4.com", "status": 403, "allowOrigin": null, "requestId": "req_invalid_request_000"},
+    "conclusion": "The public 6441 Gateway registry is not yet authoritative for wallet-web-companion. Public Auth remains fail closed."
+  },
+  "artifacts": [
+    {"name": "ynx-wallet-web-pwa-0.1.0.zip", "bytes": 277824, "sha256": "4e3154aab6fda0f4cc910ccf262c7c2996d2f1283e07328ed9b5fcc4385c3382", "minimumOS": "modern browser with Service Worker and Web Crypto support", "signingClass": "unsigned-web-bundle"},
+    {"name": "ynx-wallet-chrome-edge-0.1.0.zip", "bytes": 192452, "sha256": "1d86c9190ef4d71a7c3ecc344c0617b93bbedf44bba7fda45bdc1b520e6b4a0a", "minimumOS": "Chrome 120 / Edge 120", "signingClass": "unsigned-unpacked-extension"},
+    {"name": "ynx-wallet-firefox-0.1.0.zip", "bytes": 192489, "sha256": "01ee1fa4e6a63b4b92d13a972fb9b072ae2d53d0c3ecf411237ffb151e13cdf8", "minimumOS": "Firefox 128", "signingClass": "unsigned-unpacked-extension"}
+  ],
+  "truthBoundary": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "frozenCoreApisConsumed": true,
+    "publicGatewayRegistryReady": false,
+    "trustedWebRuntimeAvailable": false,
+    "publicAuth": false,
+    "account": false,
+    "sign": false,
+    "sendTransaction": false,
+    "installedLocal": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "sourceBaseline": "4e354148177376226153a0a6c8ead3df8d891d3e",
+  "observedAt": "2026-08-14T14:18:00+08:00",
+  "browser": {
+    "surface": "Codex in-app browser",
+    "isolated": true,
+    "extensionInstalled": false,
+    "userProfileModified": false
+  },
+  "requestedTarget": {
+    "url": "https://evm.ynxweb4.com/dapp/wallet",
+    "loaded": false,
+    "error": "net::ERR_BLOCKED_BY_CLIENT",
+    "passed": false
+  },
+  "declaredPublicWalletRoute": {
+    "url": "https://www.ynxweb4.com/dapp/wallet",
+    "firstLoadVisible": true,
+    "refreshSecondLoadVisible": true,
+    "documentStatus": 200,
+    "documentMimeType": "text/html",
+    "publishedSourceLabel": "bb751ce3",
+    "currentBranchSourcePublished": false,
+    "deployedPublic": false
+  },
+  "visibleChecks": {
+    "defaultEnglish": false,
+    "observedDefaultLanguage": "zh-CN",
+    "englishSwitch": true,
+    "arabicAvailable": false,
+    "arabicRtl": false,
+    "lightMode": true,
+    "darkMode": true,
+    "viewport390": true,
+    "viewport390DocumentHorizontalOverflow": false,
+    "logoAssetLoaded": true,
+    "logoNaturalDimensions": "798x420",
+    "logoRenderedDimensions": "52x28",
+    "logoAspectRatioPreserved": false,
+    "ynxProviderDetectionUi": false,
+    "metaMaskFallbackUi": false,
+    "windowEthereumObserved": false,
+    "androidDownloadRoutePresent": true,
+    "androidDownloadRoute": "https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk",
+    "androidFullShaVisible": false,
+    "unavailablePlatformDisabledControls": false,
+    "disabledControlCount": 0,
+    "offlineNetworkFailureObserved": true,
+    "offlineNetworkError": "net::ERR_INTERNET_DISCONNECTED",
+    "offlineVisibleError": false,
+    "consoleErrorCount": 0
+  },
+  "network": {
+    "secondLoadResponses": [
+      {"url": "https://www.ynxweb4.com/dapp/wallet", "status": 200, "mimeType": "text/html"},
+      {"url": "https://www.ynxweb4.com/assets/index-CtQV8UH3.css", "status": 200, "mimeType": "text/css"},
+      {"url": "https://www.ynxweb4.com/assets/index-DpjE5Sg5.js", "status": 200, "mimeType": "application/javascript"},
+      {"url": "https://www.ynxweb4.com/ynx-logo.png", "status": 200, "mimeType": "image/png"},
+      {"url": "https://www.ynxweb4.com/ynx-favicon-48.png", "status": 200, "mimeType": "image/png"}
+    ]
+  },
+  "screenshots": [
+    {"path": "evidence/browser/public-wallet-default-20260814.png", "bytes": 233893, "sha256": "d8b14a0d3a5c12a98abaee5a46e77fa5da299fb36c864cb13b5382a1c2aca822"},
+    {"path": "evidence/browser/public-wallet-390-second-load-20260814.png", "bytes": 133372, "sha256": "8d2a44d6ccac2027cf1190d19daf7f7fe499909ca8a90f00ce12e5f3d34def24"},
+    {"path": "evidence/browser/public-wallet-390-english-light-20260814.png", "bytes": 45504, "sha256": "ddc07b62b7e2d46c39b7083cc425afd18f773ce3a39e27d01fcacebcc0cfb63f"},
+    {"path": "evidence/browser/public-wallet-390-english-dark-20260814.png", "bytes": 42518, "sha256": "d156d283f7fa4a564a427fc61172ee5453d245c001fa955b79e9c0dcaac59a1e"},
+    {"path": "evidence/browser/public-wallet-390-offline-20260814.png", "bytes": 41781, "sha256": "3c823fdde471f77dd9d6465559ff0f3e7255c22debba434fdef0407b2edeeb6a"}
+  ],
+  "rawEvidence": {
+    "domFirst": "evidence/browser/public-wallet-dom-first-20260814.txt",
+    "domRecoveredEnglish": "evidence/browser/public-wallet-dom-recovered-english-20260814.txt",
+    "console": "evidence/browser/public-wallet-console-20260814.json",
+    "network": "evidence/browser/public-wallet-network-20260814.json"
+  },
+  "releaseGates": {
+    "pwaInstalled": false,
+    "providerConnected": false,
+    "accountAuthorized": false,
+    "messageSigned": false,
+    "transactionSubmitted": false,
+    "deployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

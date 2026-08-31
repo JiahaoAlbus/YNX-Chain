@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "kind": "walletWebFreshMainCandidateBuild",
+  "builtAt": "2026-08-31T11:23:02Z",
+  "candidate": {
+    "baselineMainCommit": "babfc57cebf60eadaec51398202de11cda742901",
+    "ownerSourceCommit": "0add9f817b79790cfe3d26a88c9a64f90fdaeebb",
+    "importedPaths": [
+      "apps/wallet-web",
+      "release/integration/wallet-web-pwa-site"
+    ],
+    "pathScopedImport": true,
+    "ordinaryMergeUsed": false,
+    "allowUnrelatedHistoriesUsed": false,
+    "websiteAliasMutation": false,
+    "deploymentPerformed": false
+  },
+  "dependencyResolution": {
+    "missingFromBaseline": "release/integration/wallet-web-pwa-site/wallet-manifest-binding.mjs",
+    "resolvedFromOwnerSource": true,
+    "resolvedDirectory": "release/integration/wallet-web-pwa-site",
+    "files": {
+      "walletManifestBinding": "69437aa8fbecbb86fb92b1477cbb033df0df8e9e",
+      "frozenManifest": "c2b9184f0315c599ab2f6356518fbcd1dd8c2cb8",
+      "siteBindingVerifier": "ea0cdf087b22372b16cd6369683859a2a8b10b3e"
+    }
+  },
+  "validation": {
+    "npmCi": true,
+    "walletWebTests": {
+      "passed": 121,
+      "failed": 0
+    },
+    "package": true,
+    "verifyPackage": true,
+    "artifactPermissionGate": true,
+    "artifactMigrationGate": true,
+    "artifactLocalizedErrorsGate": true,
+    "artifactLocalizedRegionsGate": true,
+    "buildIdentity": {
+      "sourceCommit": "0add9f817b79790cfe3d26a88c9a64f90fdaeebb",
+      "providerAuthorityCommit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+      "chainId": "0x1917"
+    }
+  },
+  "artifacts": [
+    {
+      "name": "ynx-wallet-web-pwa-0.1.0.zip",
+      "bytes": 287016,
+      "sha256": "48cda06f09a69850a61c4694bc11015af8195f85f02b1d77e59b8d40f68346e2",
+      "signingClass": "unsigned-web-bundle"
+    },
+    {
+      "name": "ynx-wallet-chrome-edge-0.1.0.zip",
+      "bytes": 469940,
+      "sha256": "72bde3f0cf2cf22af271d88b0d63a0de78e96d98a60bcfc7d0b8f78082ccd442",
+      "signingClass": "unsigned-unpacked-extension"
+    },
+    {
+      "name": "ynx-wallet-firefox-0.1.0.zip",
+      "bytes": 469973,
+      "sha256": "027ef2810ea1bfddb2cba6a82b4fc84a2ef7693ed2d981107fd8e8f408e084e9",
+      "signingClass": "unsigned-unpacked-extension"
+    }
+  ],
+  "truth": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "candidateBuilt": true,
+    "installedLocal": false,
+    "integratedCentral": false,
+    "deployedPublic": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "providerApproved": false,
+    "signatureProven": false,
+    "transactionProven": false
+  }
+}

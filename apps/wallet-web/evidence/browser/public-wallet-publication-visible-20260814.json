@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-08-14T18:56:00+08:00",
+  "browser": "Codex In-app Browser",
+  "url": "https://www.ynxweb4.com/dapp/wallet",
+  "scope": "official publication page visible acceptance; not a PWA install or extension runtime",
+  "viewport": {"width": 390, "height": 844},
+  "firstLoad": {
+    "httpVisible": true,
+    "language": "en",
+    "direction": "ltr",
+    "theme": "dark",
+    "documentClientWidth": 390,
+    "documentScrollWidth": 390,
+    "walletWebDownloadLinksVisible": 3,
+    "sourceCommitVisible": "a1c680982b63"
+  },
+  "themeGate": {
+    "lightModeVisible": true,
+    "darkModeRestored": true
+  },
+  "officialButtons": [
+    {
+      "platformLabel": "PWA package",
+      "buttonText": "Open",
+      "target": "https://www.ynxweb4.com/downloads/wallet-web/sha256-63d83cd20925f2d52c0f21f548fa7a857a4d056e03e5fa16244f173164a7d287/ynx-wallet-web-pwa-0.1.0.zip",
+      "visible": true,
+      "downloadTriggered": false
+    },
+    {
+      "platformLabel": "Chrome / Edge extension",
+      "buttonText": "Open",
+      "target": "https://www.ynxweb4.com/downloads/wallet-web/sha256-c733093dea47c6612c8a9d5ecea40be2227f62402f4b4966955c9e1accf4e2aa/ynx-wallet-chrome-edge-0.1.0.zip",
+      "visible": true,
+      "downloadTriggered": false
+    },
+    {
+      "platformLabel": "Firefox extension",
+      "buttonText": "Open",
+      "target": "https://www.ynxweb4.com/downloads/wallet-web/sha256-417d9b9e5babf05fdfdf8161504389eb99c636be75f94444bf4ff91a9b4536b3/ynx-wallet-firefox-0.1.0.zip",
+      "visible": true,
+      "downloadTriggered": false
+    }
+  ],
+  "visibleFailureStates": {
+    "candidateBadgeVisible": true,
+    "publicProductSurfaceProvedByPage": false,
+    "productionSigningClaimed": false,
+    "storeReleaseClaimed": false,
+    "windowsPackageReady": false,
+    "linuxPackageReady": false,
+    "note": "The publication page truthfully separates hosted unsigned artifacts from a proved product runtime, production signing, store release, and unavailable platforms."
+  },
+  "secondLoad": {
+    "reloadSucceeded": true,
+    "language": "en",
+    "direction": "ltr",
+    "theme": "dark",
+    "documentClientWidth": 390,
+    "documentScrollWidth": 390,
+    "walletWebDownloadLinksVisible": 3,
+    "sourceCommitVisible": true
+  },
+  "logo": {
+    "url": "https://www.ynxweb4.com/ynx-logo.png",
+    "naturalWidth": 798,
+    "naturalHeight": 420,
+    "renderedWidth": 52,
+    "renderedHeight": 28,
+    "proportionPreservedWithinPixelRounding": true
+  },
+  "websitePublicationVisibleAcceptance": true,
+  "walletPwaInstalledLocal": false,
+  "extensionInstalledLocal": false,
+  "providerAccountSignTransactionProved": false,
+  "arabicRtlOnPublicationPageProved": false,
+  "note": "The official publication page exposes English/Chinese navigation only. This evidence does not replace the built Wallet PWA twelve-locale and RTL gates."
+}

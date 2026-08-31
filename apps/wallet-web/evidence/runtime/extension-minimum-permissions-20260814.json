@@ -1,0 +1,135 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "uncommitted-source-tree",
+  "generatedAt": "2026-08-31T11:23:01.785Z",
+  "gateClass": "exact built-artifact manifest and external URL inspection; not a browser installation",
+  "externalUrlClasses": {
+    "rpcAuthority": "https://evm.ynxweb4.com",
+    "explorerDisplay": "https://explorer.ynxweb4.com",
+    "officialWalletAndCallback": "https://www.ynxweb4.com",
+    "metaMaskFallback": [
+      "https://metamask.io/download",
+      "https://metamask.app.link"
+    ]
+  },
+  "passed": true,
+  "artifacts": [
+    {
+      "name": "ynx-wallet-chrome-edge-0.1.0.zip",
+      "bytes": 469940,
+      "sha256": "72bde3f0cf2cf22af271d88b0d63a0de78e96d98a60bcfc7d0b8f78082ccd442",
+      "permissions": [
+        "activeTab",
+        "scripting",
+        "storage"
+      ],
+      "hostPermissions": [
+        "https://*/*"
+      ],
+      "csp": "script-src 'self'; object-src 'self'; connect-src https://evm.ynxweb4.com",
+      "persistentContentScripts": true,
+      "contentScripts": [
+        {
+          "matches": [
+            "https://*/*"
+          ],
+          "js": [
+            "content-script.js"
+          ],
+          "run_at": "document_start",
+          "all_frames": false,
+          "match_about_blank": false
+        },
+        {
+          "matches": [
+            "https://*/*"
+          ],
+          "js": [
+            "page-provider.js"
+          ],
+          "run_at": "document_start",
+          "all_frames": false,
+          "match_about_blank": false,
+          "world": "MAIN"
+        }
+      ],
+      "webAccessibleProvider": false,
+      "externalUrls": [
+        "https://evm.ynxweb4.com",
+        "https://explorer.ynxweb4.com",
+        "https://metamask.app.link",
+        "https://metamask.io/download",
+        "https://www.ynxweb4.com",
+        "https://www.ynxweb4.com/",
+        "https://www.ynxweb4.com/dapp/wallet",
+        "https://www.ynxweb4.com/dapp/wallet/wallet-auth/callback",
+        "https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk"
+      ],
+      "unexpectedExternalUrls": [],
+      "passed": true
+    },
+    {
+      "name": "ynx-wallet-firefox-0.1.0.zip",
+      "bytes": 469973,
+      "sha256": "027ef2810ea1bfddb2cba6a82b4fc84a2ef7693ed2d981107fd8e8f408e084e9",
+      "permissions": [
+        "activeTab",
+        "scripting",
+        "storage"
+      ],
+      "hostPermissions": [
+        "https://*/*"
+      ],
+      "csp": "script-src 'self'; object-src 'self'; connect-src https://evm.ynxweb4.com",
+      "persistentContentScripts": true,
+      "contentScripts": [
+        {
+          "matches": [
+            "https://*/*"
+          ],
+          "js": [
+            "content-script.js"
+          ],
+          "run_at": "document_start",
+          "all_frames": false,
+          "match_about_blank": false
+        },
+        {
+          "matches": [
+            "https://*/*"
+          ],
+          "js": [
+            "page-provider.js"
+          ],
+          "run_at": "document_start",
+          "all_frames": false,
+          "match_about_blank": false,
+          "world": "MAIN"
+        }
+      ],
+      "webAccessibleProvider": false,
+      "externalUrls": [
+        "https://evm.ynxweb4.com",
+        "https://explorer.ynxweb4.com",
+        "https://metamask.app.link",
+        "https://metamask.io/download",
+        "https://www.ynxweb4.com",
+        "https://www.ynxweb4.com/",
+        "https://www.ynxweb4.com/dapp/wallet",
+        "https://www.ynxweb4.com/dapp/wallet/wallet-auth/callback",
+        "https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk"
+      ],
+      "unexpectedExternalUrls": [],
+      "passed": true
+    }
+  ],
+  "installedLocal": false,
+  "deployedPublic": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "providerConnected": false,
+  "accountAuthorized": false,
+  "messageSigned": false,
+  "transactionSubmitted": false
+}

@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "7631c8ca666060684693af20f079f63b97385e30",
+  "generatedAt": "2026-08-14T05:32:03.823Z",
+  "runtimeClass": "Playwright bundled Chrome for Testing extension runtime with a disposable unpacked ZIP and isolated persistent profile; not branded Chrome/Edge and not installedLocal",
+  "fixtureAuthority": "empty local HTTP DApp fixture with no wallet backend, account, signature or transaction capability",
+  "browserAttempt": {
+    "count": 1,
+    "mode": "bundled Chrome for Testing headed",
+    "outerTimeoutMs": 45000
+  },
+  "browserExecutable": "/Users/huangjiahao/Library/Caches/ms-playwright/chromium-1234/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing",
+  "artifact": {
+    "name": "ynx-wallet-chrome-edge-0.1.0.zip",
+    "bytes": 185831,
+    "sha256": "d0498d3009a3414252fd0ba0e0038531e5a6c8b4ec6c9dd052a8f4040aa206aa",
+    "signingClass": "unsigned-unpacked-extension"
+  },
+  "logs": [],
+  "screenshots": [],
+  "passed": false,
+  "chromiumCompatibleExtensionRuntimeProved": false,
+  "actionInjectionProved": false,
+  "migrationGateProved": false,
+  "rpcExactChainProved": false,
+  "rpcFailClosedProved": false,
+  "secondLaunchNoAutomaticInjectionProved": false,
+  "providerConnected": false,
+  "accountAuthorized": false,
+  "messageSigned": false,
+  "transactionSubmitted": false,
+  "installedLocal": false,
+  "deployedPublic": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "browserFailure": {
+    "name": "TimeoutError",
+    "code": null,
+    "message": "browserType.launchPersistentContext: Timeout 15000ms exceeded.\nCall log:\n\u001b[2m  - <launching> /Users/huangjiahao/Library/Caches/ms-playwright/chromium-1234/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,BoundaryEventDispatchTracksNodeRemoval,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,BlockOriginHeaderModificationOnRedirect,Translate,AutoDeElevate,OptimizationHints,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --disable-updater-scheduler --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --no-sandbox --disable-extensions-except=/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-browser-runtime-hrndL0/extension --load-extension=/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-browser-runtime-hrndL0/extension --no-first-run --no-default-browser-check --user-data-dir=/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-browser-runtime-hrndL0/profile --remote-debugging-pipe about:blank\u001b[22m\n\u001b[2m  - <launched> pid=86399\u001b[22m\n"
+  }
+}

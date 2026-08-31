@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-21T16:31:00Z",
+  "sourceCommit": "0e023871c692c9f07c12ae3ac609035a12db57c0",
+  "providerAuthorityCommit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+  "publicOrigin": "https://wallet.ynxweb4.com",
+  "deployment": {
+    "id": "dpl_2nahcRyV2VRC4NefBBXfh9QYd5s7",
+    "url": "https://ynx-wallet-lsnjlse6j-jiahaoalbus-projects.vercel.app",
+    "aliasBound": true,
+    "sourceIdentityReadBack": true,
+    "rollbackDeployment": "dpl_CJnQgrFNiVy2zZ1vwD2BAdZQDYR1"
+  },
+  "productionDriftIncident": {
+    "detected": true,
+    "unexpectedDeployment": "dpl_CMdFesyc1nW5vYcFMgJ69hinEDnL",
+    "unexpectedProject": "ynx-web4-website-new",
+    "observedRootBytes": 1018,
+    "observedRootSha256": "226638306d9fbb3441cbeab04b00e0b550dec5fe0f209b839c00e22caf1ef554",
+    "failure": "wallet.ynxweb4.com served the general Website shell and SPA-fallback HTML for Wallet module assets",
+    "reboundToWalletProject": true
+  },
+  "publicAssets": {
+    "/": {"status": 200, "bytes": 873, "sha256": "4d05ab70e2c201f811681811c0fa9e19c9e132d69f339144fdb1c0bd45703266", "contentType": "text/html; charset=utf-8"},
+    "/build-identity.json": {"status": 200, "bytes": 267, "sha256": "24608739c14676123186da4768d63427e1dea5ea67acf6cb346857837652958b", "contentType": "application/json; charset=utf-8"},
+    "/app.js": {"status": 200, "bytes": 17108, "sha256": "85646062e11aa88e74d736e93ffa100754f1d9afb1bba3a9b064a2c1eae9f040", "contentType": "application/javascript; charset=utf-8"},
+    "/sw.js": {"status": 200, "bytes": 4337, "sha256": "c65fbb724cba79fc06178fc1fa0543f69e821c0a732e7ceaa5b65e3694edd953", "contentType": "application/javascript; charset=utf-8"},
+    "/service-worker-policy.js": {"status": 200, "bytes": 3604, "sha256": "7afe8d75709ae3d5cf95de94645e818e662d58698ef3c1490c4a11022519ce8d", "contentType": "application/javascript; charset=utf-8"},
+    "/asset-integrity.js": {"status": 200, "bytes": 1824, "sha256": "62d5a807442ddd58039589be5b29ce66b2edc8781a8257e9c1ce56bb85637f18", "contentType": "application/javascript; charset=utf-8"},
+    "/provider.js": {"status": 200, "bytes": 18553, "sha256": "82cb2532ce59dd930619df4045b9e4836aa3f3fd7540962204a2ae87a499b4e6", "contentType": "application/javascript; charset=utf-8"},
+    "/i18n.js": {"status": 200, "bytes": 20792, "sha256": "e44e84b45f114d032f1f0cd027e1dc696211acfb1948e244e3e90696415ca559", "contentType": "application/javascript; charset=utf-8"}
+  },
+  "realChrome": {
+    "browserFamily": "Chrome",
+    "userProfileModified": false,
+    "oldWebsiteShellObserved": true,
+    "walletCompanionRecoveredVisible": true,
+    "englishDefaultVisible": true,
+    "integrityErrorVisible": false,
+    "metamaskEip6963DetectedVisible": true,
+    "metamaskExtensionId": "nkbihfbeogaeaoehlefnkodbefgpgknn",
+    "metamaskApprovalNotificationObserved": true,
+    "pageErrorConsoleCount": 0,
+    "screenshot": {
+      "path": "apps/wallet-web/evidence/browser/pwa-v9-public-wallet-visible-20260822.png",
+      "bytes": 71098,
+      "sha256": "8748e71362eec00ae6907be365cdab30178828b39b94a4e6b0ef7e0fc5a0ae6b"
+    },
+    "urlStayedOnWalletOrigin": true,
+    "recoveryMarkerRemoved": true,
+    "v9SecondLoadVisibleProved": true,
+    "finalVisibleUrl": "https://wallet.ynxweb4.com/"
+  },
+  "tests": {
+    "source": "99/99",
+    "package": "81/81",
+    "packageIntegrity": "3/3",
+    "pwaInstallability": true,
+    "cacheTamperRollbackRecovery": true,
+    "cacheVersion": "ynx-wallet-web-v9"
+  },
+  "gates": {
+    "deployedPublic": true,
+    "publicSourceBound": true,
+    "metamaskProviderDetected": true,
+    "metamaskApprovalPromptOpened": true,
+    "accountAuthorized": false,
+    "providerChainId1917": false,
+    "chooserClosedAfterApproval": false,
+    "connectedRefreshRestore": false,
+    "disconnectProved": false,
+    "switchAccountProved": false,
+    "ynxProviderDetected": false,
+    "ynxNativeCallback": false,
+    "productSessionV2": false,
+    "messageSigned": false,
+    "transactionSubmitted": false,
+    "installedLocal": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

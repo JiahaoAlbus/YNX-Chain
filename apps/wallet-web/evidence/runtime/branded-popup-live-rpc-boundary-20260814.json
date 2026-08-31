@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "sourceBaseline": "725269c46c29681f5fe56480053b9da8891ab493",
+  "observedAt": "2026-08-14T03:42:00Z",
+  "rpc": {
+    "method": "eth_chainId",
+    "response": {"jsonrpc": "2.0", "id": 1, "result": "0x1917"},
+    "exactYNXTestnetProved": true,
+    "blockNumberQuerySucceeded": false,
+    "blockNumberFailure": "Timed out without a response inside the 10 second gate."
+  },
+  "browserBoundary": {
+    "edgePopupFirstVisible": true,
+    "edgePopupSecondVisible": true,
+    "activeDappProviderCount": 0,
+    "walletConnected": false,
+    "addChainSucceeded": false,
+    "switchChainSucceeded": false,
+    "disconnectReconnectSucceeded": false,
+    "wrongChainFailClosedVisible": false,
+    "reason": "A live chainId response does not prove an injected wallet or authorize a wallet mutation."
+  },
+  "releaseStates": {
+    "edgeExtensionInstalledLocal": false,
+    "chromeExtensionInstalledLocal": false,
+    "firefoxExtensionInstalledLocal": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}
