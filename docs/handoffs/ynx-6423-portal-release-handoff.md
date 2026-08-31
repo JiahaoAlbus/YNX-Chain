@@ -3,9 +3,9 @@
 ## Candidate source identity
 
 - Branch: `codex/ynx-6423-portal-tronscan-inspired`
-- Candidate source commit: `f76c4ee33e59ec271bdc2789fcfd68599ea43bb9`
-- Candidate-record commit: `36848fad3c3afead1334eaacc4b076fc61f6dcd2`
-- Candidate source tree: `5dce788c7c9b4ed074fbadf738f0980637dc0534`
+- Candidate source commit: `6d9af9c42127930d89b07d037bfc66ed6628b7c8`
+- Candidate-record commit: `6ede450c997e53c0fe06e3c24d1c114e8ba06c7c`
+- Candidate source tree: `0b7f4052dbbdb4a943355644faa45b6a59b3b560`
 - Scope: `internal/explorer`, `cmd/ynx-explorerd`, the portal evidence in `design-qa.md`, and `release/evidence/explorer-portal-source-candidate-2026-08-31.json`.
 - Required official logo: `internal/explorer/assets/ynx-logo.png`
 - Logo SHA-256: `38196080c2d56746fb37094abe68d1d89eabd8a2b29ab4f17bae48ac7e3effde`
@@ -17,7 +17,7 @@
 - `make explorer-check` passes against an isolated local 6423 node/indexer pair; it exercises the served API, identity, and portal shell without a public endpoint.
 - `make explorer-portal-candidate-check` verifies the candidate-record commit against the pushed candidate source, source tree, and tracked SHA-256 values.
 - The Explorer test rejects retired identity strings (`9102`, `0x238e`, and `ynx_9102-1`), loopback/private wallet publication URLs, blank/new-tab portal routes, and an incorrect logo byte stream.
-- Local browser QA in `design-qa.md` covers desktop, tablet, 390 px mobile, a 320 px narrow layout, same-tab Blockchain navigation, token search/details, locale persistence, and zero error-level console messages. The latest responsive sweep keeps visible text at 11 px or larger and does not produce horizontal overflow in the tested widths.
+- Local browser QA in `design-qa.md` covers desktop, tablet, 390 px mobile, a 320 px narrow layout, same-tab Blockchain navigation, token search/details, locale persistence, and zero error-level console messages. The current candidate also rejects the former 320 px body-width floor in its Explorer test, so narrow windows are not artificially widened before the next browser sweep. The latest responsive sweep keeps visible text at 11 px or larger and does not produce horizontal overflow in the tested widths.
 - The local runtime is connected to the local 6423 node and indexer only; current health data identifies `6423`, `0x1917`, and `YNXT`. Wallet publication fields stay empty because no verified public HTTPS RPC/explorer pair has been supplied.
 - A fresh temporary Indexer database and Explorer cold start were also checked twice with synchronized advancing 6423 RPC/indexed heights; the preceding unavailable Indexer produced the expected fail-closed portal response.
 
