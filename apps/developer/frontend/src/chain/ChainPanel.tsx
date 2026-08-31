@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "../components/ui/button";
-import { broadcastDeveloperDeployment, chainRpc, completeDeveloperWalletSession, debugChainBlock, debugChainTransaction, introspectDeveloperWalletSession, loadChainCompiler, loadChainStatus, loadWalletReadiness, type ChainStatus, type WalletReadiness } from "../runtime/client";
+import { broadcastDeveloperDeployment, chainRpc, completeDeveloperWalletSession, debugChainBlock, debugChainTransaction, introspectDeveloperWalletSession, loadChainCompiler, loadChainStatus, loadRuntimeBuildIdentity, loadWalletReadiness, type ChainStatus, type RuntimeBuildIdentity, type WalletReadiness } from "../runtime/client";
 import { canonicalJSON, consumeDeveloperDeploymentRequest, consumeDeveloperWalletRequest, createDeveloperSessionIntrospection, createDeveloperWalletCompletion, desktopWalletBridge, openDeveloperDeploymentReview, openDeveloperWalletReview, parseDeveloperDeploymentCallback, saveDeveloperWalletSession, subscribeDeveloperDeploymentCallbacks, subscribeDeveloperWalletCallbacks, ynxAccountToEVM } from "../wallet/transport";
 import { enterDeveloperWalletV2Guest, inspectDeveloperWalletV2Runtime } from "../wallet/product-session-v2";
 import { closeDeveloperWebWalletConnectionDetails, connectDeveloperWebWallet, disconnectDeveloperWebWallet, discoverDeveloperWebWalletChoices, openDeveloperWebWalletConnectionDetails, restoreDeveloperWebWallet, subscribeDeveloperWebWalletEvents, switchDeveloperWebWalletAccount } from "../wallet/safe-authorize-launcher";
@@ -61,6 +61,7 @@ const PLATFORM_STARTERS = [
 export function ChainPanel({ files, onAddFile }: { files: Record<string, string>; onAddFile: (path: string, content: string) => void }) {
   const [status, setStatus] = useState<ChainStatus>(),
     [compiler, setCompiler] = useState<any>(),
+    [runtimeBuildIdentity, setRuntimeBuildIdentity] = useState<RuntimeBuildIdentity>(),
     [walletReadiness, setWalletReadiness] = useState<WalletReadiness>(),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
@@ -90,10 +91,11 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
     setBusy(true);
     setError("");
     try {
-      const [live, toolchain, walletGate] = await Promise.all([loadChainStatus(), loadChainCompiler(), loadWalletReadiness().catch(() => undefined)]);
+      const [live, toolchain, walletGate, identity] = await Promise.all([loadChainStatus(), loadChainCompiler(), loadWalletReadiness().catch(() => undefined), loadRuntimeBuildIdentity()]);
       setStatus(live);
       setCompiler(toolchain);
       setWalletReadiness(walletGate);
+      setRuntimeBuildIdentity(identity);
     } catch (value) {
       setError(value instanceof Error ? value.message : "YNX Testnet is unavailable.");
     } finally {
@@ -329,6 +331,13 @@ export function ChainPanel({ files, onAddFile }: { files: Record<string, string>
           </div>
         </dl>
         <small>{status?.latestBlockHash ? `${status.latestBlockHash.slice(0, 12)}… · ${status.catchingUp ? "catching up" : "synced"}` : "Live identity must verify before use."}</small>
+        <small aria-label="Developer runtime source identity">
+          {runtimeBuildIdentity?.status === "source-bound"
+            ? <>Runtime source-bound · {runtimeBuildIdentity.version}<br /><code>{runtimeBuildIdentity.sourceCommit}</code> · <code>{runtimeBuildIdentity.sourceTree}</code></>
+            : runtimeBuildIdentity?.status === "unbound"
+              ? <>Runtime identity is not source-bound · {runtimeBuildIdentity.detail}. Public-release verification remains unavailable.</>
+              : <>Runtime identity unavailable · {runtimeBuildIdentity?.detail || "checking"}. No public-release claim is made.</>}
+        </small>
       </div>
       <details open>
         <summary>TRANSACTION DEBUGGER</summary>

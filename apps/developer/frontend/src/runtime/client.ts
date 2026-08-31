@@ -179,6 +179,46 @@ export async function runtimeHealth() {
   if (!response.ok) throw new Error("Workspace runtime unavailable");
   return response.json();
 }
+
+export type RuntimeBuildIdentity = Readonly<{
+  status: "source-bound" | "unbound" | "unavailable";
+  detail: string;
+  version: string | null;
+  sourceCommit: string | null;
+  sourceTree: string | null;
+}>;
+
+const EXACT_GIT_OBJECT = /^[0-9a-f]{40}$/;
+
+/**
+ * Treat the public gateway identity as untrusted input. A displayed version is
+ * source-bound only when the same response supplies both exact Git objects and
+ * the version contains the corresponding commit marker. This is deliberately a
+ * read-only diagnostic; it never establishes a Wallet or workspace session.
+ */
+export function parseRuntimeBuildIdentity(value: unknown): RuntimeBuildIdentity {
+  if (!value || typeof value !== "object") return Object.freeze({ status: "unavailable", detail: "RUNTIME_HEALTH_MALFORMED", version: null, sourceCommit: null, sourceTree: null });
+  const health = value as { version?: unknown; sourceCommit?: unknown; sourceTree?: unknown };
+  const version = typeof health.version === "string" && health.version.length <= 160 ? health.version : null;
+  const sourceCommit = typeof health.sourceCommit === "string" && EXACT_GIT_OBJECT.test(health.sourceCommit) ? health.sourceCommit : null;
+  const sourceTree = typeof health.sourceTree === "string" && EXACT_GIT_OBJECT.test(health.sourceTree) ? health.sourceTree : null;
+  if (!version) return Object.freeze({ status: "unavailable", detail: "RUNTIME_VERSION_MISSING", version: null, sourceCommit, sourceTree });
+  if (!sourceCommit && !sourceTree) return Object.freeze({ status: "unbound", detail: "RUNTIME_SOURCE_IDENTITY_MISSING", version, sourceCommit: null, sourceTree: null });
+  if (!sourceCommit || !sourceTree) return Object.freeze({ status: "unbound", detail: "RUNTIME_SOURCE_IDENTITY_INCOMPLETE", version, sourceCommit, sourceTree });
+  if (!version.includes(sourceCommit.slice(0, 12))) return Object.freeze({ status: "unbound", detail: "RUNTIME_VERSION_SOURCE_MISMATCH", version, sourceCommit, sourceTree });
+  return Object.freeze({ status: "source-bound", detail: "RUNTIME_SOURCE_IDENTITY_VERIFIED", version, sourceCommit, sourceTree });
+}
+
+/** Fetches the public, same-origin release identity without creating a session. */
+export async function loadRuntimeBuildIdentity(): Promise<RuntimeBuildIdentity> {
+  try {
+    const response = await boundedReadFetch("/healthz", { cache: "no-store" });
+    if (!response.ok) return Object.freeze({ status: "unavailable", detail: `RUNTIME_HEALTH_HTTP_${response.status}`, version: null, sourceCommit: null, sourceTree: null });
+    return parseRuntimeBuildIdentity(await response.json().catch(() => null));
+  } catch {
+    return Object.freeze({ status: "unavailable", detail: "RUNTIME_HEALTH_UNAVAILABLE", version: null, sourceCommit: null, sourceTree: null });
+  }
+}
 export type RuntimeProfiles = {
   protocolVersion: string;
   container: {
