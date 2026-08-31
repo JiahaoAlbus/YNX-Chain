@@ -6,10 +6,11 @@ const root = new URL("../", import.meta.url);
 const read = (path) => readFile(new URL(path, root), "utf8");
 
 test("current public candidate and Wallet v2 evidence do not promote missing lifecycle proof", async () => {
-  const [release, metadata, evidence, macArtifact, linuxArtifact, linuxSums, windowsArtifact, sdkCandidate, handoff, vectors, acceptance, matrix, compatibility] = await Promise.all([
+  const [release, metadata, evidence, publicRuntime, macArtifact, linuxArtifact, linuxSums, windowsArtifact, sdkCandidate, handoff, vectors, acceptance, matrix, compatibility] = await Promise.all([
     read("product-release.json"),
     read("public-product-metadata.json"),
     read("evidence/public/current-public-candidate-bc8a37bc6f2b.json"),
+    read("evidence/public/current-public-source-bound-d4052228-20260831.json"),
     read("evidence/desktop/macos-current-ccab67b2.json"),
     read("evidence/platform/linux-server-current-bc8a37bc.json"),
     read("release/ynx-developer-0.2.0-testnet-preview-bc8a37bc-linux-x64-server-SHA256SUMS.txt"),
@@ -21,9 +22,14 @@ test("current public candidate and Wallet v2 evidence do not promote missing lif
     read("docs/FEATURE_COMPLETION_EVIDENCE.md"),
     read("docs/MIGRATION_COMPATIBILITY.md"),
   ]);
-  const truth = JSON.parse(release), current = JSON.parse(evidence), localMac = JSON.parse(macArtifact), linux = JSON.parse(linuxArtifact), windows = JSON.parse(windowsArtifact), sdk = JSON.parse(sdkCandidate), publicMetadata = JSON.parse(metadata), crossProduct = JSON.parse(vectors);
+  const truth = JSON.parse(release), current = JSON.parse(evidence), runtime = JSON.parse(publicRuntime), localMac = JSON.parse(macArtifact), linux = JSON.parse(linuxArtifact), windows = JSON.parse(windowsArtifact), sdk = JSON.parse(sdkCandidate), publicMetadata = JSON.parse(metadata), crossProduct = JSON.parse(vectors);
   assert.equal(truth.currentPublicCandidate.sourceCommit, "d4052228a2261c5ced6a8e8cfcbf763edabf2103");
   assert.equal(truth.currentPublicCandidate.independentCurrentRuntimeReadback, true);
+  assert.equal(runtime.publicRuntime.health.version, "0.2.0-testnet-preview-d4052228a226-candidate");
+  assert.equal(runtime.publicRuntime.runtimeHealth.release, "0.2.0-testnet-preview-d4052228a226-candidate");
+  assert.equal(runtime.binding.htmlAssetReadback, true);
+  assert.equal(runtime.binding.browserVisible, false);
+  assert.equal(runtime.binding.walletProviderLifecycle, false);
   assert.equal(current.truthBoundaries.externalBrowserVisible, false);
   assert.equal(current.runtimeHealthProbe.httpStatus, 200);
   assert.equal(current.runtimeHealthProbe.compilers.cpp, true);
