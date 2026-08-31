@@ -20,6 +20,7 @@ For a horizontally scaled Testnet deployment, the operator must provide `YNX_EXC
 | Route | Added fields | Meaning |
 | --- | --- | --- |
 | `GET /api/health` | `stateBackend`, `multiInstance` | Live process truth about the selected persistence backend. |
+| `GET /api/ready` | `status`, `stateBackend`, `multiInstance`, optional `reason` | Returns `503 not_ready` for the file snapshot backend; only a live multi-instance PostgreSQL backend can return `200 ready`. |
 | `GET /api/version` | `stateBackend`, `multiInstance` | Same persistence truth bound to version reads. |
 
 The PostgreSQL schema is created idempotently by the server:
@@ -40,7 +41,7 @@ CREATE TABLE IF NOT EXISTS ynx_exchange_state (
 - `npm --prefix apps/exchange run verify:wallet-connect`
 - `npm --prefix apps/exchange test`
 
-The focused Go tests cover durable-refresh at the API boundary, conflict fail-closed behavior, and explicit file-backend non-multi-instance health disclosure. PostgreSQL integration test source checkpoint `ba9abc14706dd922f6e20c241e10d12b2bb1bd1b` (tree `ecc7429b1b9fbb1fff995c7ea4e22950fcf0f0b5`) was run once against an ephemeral local PostgreSQL 16 container bound to loopback only. It proved two independent Exchange services have exactly one CAS winner and one conflict, restart recovery, backend health metadata, and durable quote-balance readback. The container was stopped and removed after the test.
+The focused Go tests cover durable-refresh at the API boundary, conflict fail-closed behavior, explicit file-backend non-multi-instance health disclosure, and the readiness split: file snapshots receive `503 not_ready`, while a multi-instance store receives `200 ready`. PostgreSQL integration test source checkpoint `ba9abc14706dd922f6e20c241e10d12b2bb1bd1b` (tree `ecc7429b1b9fbb1fff995c7ea4e22950fcf0f0b5`) was run once against an ephemeral local PostgreSQL 16 container bound to loopback only. It proved two independent Exchange services have exactly one CAS winner and one conflict, restart recovery, backend health metadata, and durable quote-balance readback. The container was stopped and removed after the test.
 
 This does not provision a product database or prove a public Testnet release.
 

@@ -24,6 +24,7 @@ type Server struct {
 func NewServer(service *Service) *Server {
 	s := &Server{service: service, mux: http.NewServeMux()}
 	s.mux.HandleFunc("GET /health", s.health)
+	s.mux.HandleFunc("GET /ready", s.ready)
 	s.mux.HandleFunc("GET /version", s.version)
 	s.mux.HandleFunc("GET /v1/config", s.config)
 	s.mux.HandleFunc("GET /v1/markets", s.markets)
@@ -54,6 +55,23 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 	backend, multiInstance := s.service.StorageStatus()
 	writeJSON(w, 200, map[string]any{"status": "ok", "productId": ProductID, "version": Version, "commit": BuildCommit, "venue": "owned deterministic testnet only", "chainId": ChainID, "productionCustody": false, "stateBackend": backend, "multiInstance": multiInstance})
+}
+func (s *Server) ready(w http.ResponseWriter, r *http.Request) {
+	backend, multiInstance := s.service.StorageStatus()
+	if !multiInstance {
+		writeJSON(w, http.StatusServiceUnavailable, map[string]any{
+			"status":        "not_ready",
+			"reason":        "multi-instance durable PostgreSQL state is required for a deployable Exchange venue",
+			"stateBackend":  backend,
+			"multiInstance": false,
+		})
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"status":        "ready",
+		"stateBackend":  backend,
+		"multiInstance": true,
+	})
 }
 func (s *Server) version(w http.ResponseWriter, r *http.Request) {
 	backend, multiInstance := s.service.StorageStatus()

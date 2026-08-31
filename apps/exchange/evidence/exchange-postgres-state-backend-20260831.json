@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "classification": "source-tested-not-deployed",
   "product": "exchange",
-  "reviewedBaseCommit": "11d5bd06880c9fe95a08e814d4d8ea01a3d17bdf",
+  "reviewedBaseCommit": "bc3f21299a23061bde385a5c4476142d006374ab",
   "postgresIntegrationTestSource": {
     "commit": "ba9abc14706dd922f6e20c241e10d12b2bb1bd1b",
     "tree": "ecc7429b1b9fbb1fff995c7ea4e22950fcf0f0b5"
@@ -15,12 +15,14 @@
     "fileSnapshot": {
       "stateBackend": "file_snapshot",
       "multiInstance": false,
-      "allowedUse": "local development and isolated fixtures only"
+      "allowedUse": "local development and isolated fixtures only",
+      "readiness": "GET /api/ready returns HTTP 503 not_ready"
     },
     "postgresql": {
       "environmentVariable": "YNX_EXCHANGE_DATABASE_URL",
       "table": "ynx_exchange_state",
       "concurrency": "revision compare-and-swap; concurrent writes fail with conflict",
+      "readiness": "GET /api/ready returns HTTP 200 ready only when multiInstance is true",
       "localIntegration": "passed_ephemeral_local_postgresql16_loopback_only",
       "migrationExecuted": false,
       "publicRuntimeVerified": false
@@ -34,6 +36,7 @@
   "tests": {
     "goExchangeProduct": "passed",
     "goExchangeServer": "passed",
+    "readinessTruth": "passed_file_snapshot_503_and_multi_instance_200",
     "postgresMultiInstance": "passed_ephemeral_local_postgresql16_loopback_only",
     "goSeedCommand": "passed",
     "webWalletVerifier": "passed",
