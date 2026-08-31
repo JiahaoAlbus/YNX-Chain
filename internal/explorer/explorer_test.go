@@ -578,7 +578,7 @@ func TestExplorerLookupPreservesOnlyARealNotFoundClassification(t *testing.T) {
 }
 
 func TestExplorerWalletCompatibilityUsesProviderDiscoveryWithoutCustomNavigation(t *testing.T) {
-	for _, marker := range []string{"eip6963:requestProvider", "eth_requestAccounts", "wallet_switchEthereumChain", "eth_chainId", "accountsChanged", "chainChanged", "disconnect"} {
+	for _, marker := range []string{"eip6963:requestProvider", "eth_requestAccounts", "wallet_switchEthereumChain", "eth_chainId", "accountsChanged", "chainChanged", "disconnect", "sessionStorage", "restoreWallet"} {
 		if !strings.Contains(indexHTML, marker) {
 			t.Fatalf("Explorer wallet compatibility missing %q", marker)
 		}
@@ -586,6 +586,22 @@ func TestExplorerWalletCompatibilityUsesProviderDiscoveryWithoutCustomNavigation
 	for _, forbidden := range []string{"ynxwallet://", "ynx-wallet://", "location.href ="} {
 		if strings.Contains(indexHTML, forbidden) {
 			t.Fatalf("Explorer web wallet path must not contain %q", forbidden)
+		}
+	}
+	restoreStart := strings.Index(indexHTML, "async function restoreWallet")
+	restoreEnd := strings.Index(indexHTML, "async function connectWallet")
+	if restoreStart < 0 || restoreEnd <= restoreStart {
+		t.Fatal("Explorer wallet refresh restoration boundary is missing")
+	}
+	restoreBody := indexHTML[restoreStart:restoreEnd]
+	for _, marker := range []string{"eth_accounts", "eth_chainId", "savedWalletProvider() !== id"} {
+		if !strings.Contains(restoreBody, marker) {
+			t.Fatalf("Explorer refresh restoration missing safe read %q", marker)
+		}
+	}
+	for _, forbidden := range []string{"eth_requestAccounts", "wallet_switchEthereumChain", "wallet_addEthereumChain"} {
+		if strings.Contains(restoreBody, forbidden) {
+			t.Fatalf("Explorer refresh restoration must not perform privileged action %q", forbidden)
 		}
 	}
 }

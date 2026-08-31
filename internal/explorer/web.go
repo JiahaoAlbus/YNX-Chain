@@ -560,11 +560,21 @@ const indexHTML = `<!doctype html>
       if (typeof value !== 'string' || value.length > 16384) return '';
       try { const url = new URL(value, location.origin); return url.protocol === 'https:' || url.protocol === 'data:' ? url.href : ''; } catch (_) { return ''; }
     }
+    // A refresh may only restore the Provider the visitor explicitly chose in
+    // this browser tab. Never use this marker to choose a provider, request an
+    // account, or switch/add a network without a fresh user gesture.
+    const walletProviderStorageKey = 'ynx-explorer-wallet-provider';
+    function savedWalletProvider() { try { return sessionStorage.getItem(walletProviderStorageKey) || ''; } catch (_) { return ''; } }
+    function rememberWalletProvider(id) { try { sessionStorage.setItem(walletProviderStorageKey,id); } catch (_) {} }
+    function forgetWalletProvider(id) { try { if (!id || savedWalletProvider() === id) sessionStorage.removeItem(walletProviderStorageKey); } catch (_) {} }
     function addWalletProvider(provider, info, source) {
       if (!provider || typeof provider.request !== 'function') return;
       const id = source + ':' + (typeof info?.uuid === 'string' && info.uuid ? info.uuid : (typeof info?.rdns === 'string' ? info.rdns : walletName(provider,info)));
-      for (const [existingId, existing] of walletProviders) { if (existing.provider === provider) { if (existing.source === 'legacy-eip1193' && source === 'eip6963') walletProviders.delete(existingId); else return; } }
+      let replacedSavedProvider = false;
+      for (const [existingId, existing] of walletProviders) { if (existing.provider === provider) { if (existing.source === 'legacy-eip1193' && source === 'eip6963') { replacedSavedProvider = savedWalletProvider() === existingId; walletProviders.delete(existingId); } else return; } }
       walletProviders.set(id,{id,name:walletName(provider,info),icon:walletIcon(info?.icon),provider,source});
+      if (replacedSavedProvider) rememberWalletProvider(id);
+      if (savedWalletProvider() === id) void restoreWallet(id);
     }
     window.addEventListener('eip6963:announceProvider', event => addWalletProvider(event.detail?.provider,event.detail?.info,'eip6963'));
     window.dispatchEvent(new Event('eip6963:requestProvider'));
@@ -580,16 +590,30 @@ const indexHTML = `<!doctype html>
 	  if (await provider.request({method:'eth_chainId'}) !== expected) throw new Error(walletText('network'));
     }
     function attachWalletLifecycle(wallet, account) {
-      const clear = message => { connectedWallet = null; showWalletResult(t('unavailable'),t('identityTitle'),message,false); };
+      const clear = message => { if (connectedWallet?.id === wallet.id) { connectedWallet = null; forgetWalletProvider(wallet.id); } showWalletResult(t('unavailable'),t('identityTitle'),message,false); };
       wallet.provider.on?.('accountsChanged', accounts => { if (!Array.isArray(accounts) || !accounts.some(value => typeof value === 'string' && value.toLowerCase() === account.toLowerCase())) clear(t('unavailable')); });
       wallet.provider.on?.('chainChanged', chainId => { if (chainId !== (walletConfig?.chainIdHex || '0x1917')) clear(t('unavailable')); });
       wallet.provider.on?.('disconnect', () => clear(t('unavailable')));
+    }
+    async function restoreWallet(id) {
+      const wallet = walletProviders.get(id);
+      if (!wallet || connectedWallet || savedWalletProvider() !== id) return;
+      try {
+        const accounts = await wallet.provider.request({method:'eth_accounts'});
+        const account = Array.isArray(accounts) && typeof accounts[0] === 'string' && /^0x[0-9a-f]{40}$/i.test(accounts[0]) ? accounts[0] : '';
+        if (!account) { forgetWalletProvider(id); return; }
+        const expected = walletConfig?.chainIdHex || '0x1917';
+        if (await wallet.provider.request({method:'eth_chainId'}) !== expected) return;
+        connectedWallet = {id:wallet.id,account};
+        attachWalletLifecycle(wallet,account);
+        showWalletResult(walletText('connected'),wallet.name + ' · 0x1917',compact(account,10,8),false);
+      } catch (_) { /* a rejected or unavailable read must not create a connection */ }
     }
     async function connectWallet(id) {
       const wallet = walletProviders.get(id);
 	  if (!wallet) return showWalletResult(t('unavailable'),walletText('title'),walletText('notFound'),true);
 	  if (!walletConfig) await load();
-	  try { const accounts = await wallet.provider.request({method:'eth_requestAccounts'}); const account = Array.isArray(accounts) && typeof accounts[0] === 'string' && /^0x[0-9a-f]{40}$/i.test(accounts[0]) ? accounts[0] : ''; if (!account) throw new Error(walletText('noAccount')); await ensureYNXTestnet(wallet.provider); connectedWallet = {id:wallet.id,account}; attachWalletLifecycle(wallet,account); showWalletResult(walletText('connected'),wallet.name + ' · 0x1917',compact(account,10,8),false); }
+	  try { const accounts = await wallet.provider.request({method:'eth_requestAccounts'}); const account = Array.isArray(accounts) && typeof accounts[0] === 'string' && /^0x[0-9a-f]{40}$/i.test(accounts[0]) ? accounts[0] : ''; if (!account) throw new Error(walletText('noAccount')); await ensureYNXTestnet(wallet.provider); connectedWallet = {id:wallet.id,account}; rememberWalletProvider(wallet.id); attachWalletLifecycle(wallet,account); showWalletResult(walletText('connected'),wallet.name + ' · 0x1917',compact(account,10,8),false); }
 	  catch (error) { showWalletResult(t('unavailable'),walletText('title'),error?.code === 4001 ? walletText('rejected') : walletText('failed'),true); }
 	}
 	function chooseWallet() {
