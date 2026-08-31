@@ -7786,6 +7786,27 @@
       "terminalEvidenceSha256": "ef3e1226d5e7551791541804a15ce5b0a61ab9b2b1368b1fa7eed9d772062917",
       "blocker": "PEER_6423_START_AND_ROLLBACK_CANDIDATE_UNFROZEN",
       "nextAction": "Freeze exact per-peer artifact/config/state migration or reuse plan, post-start node identity/peer-sync predicates, rollback object and literal one-attempt argv. Only then may a new peer deployment lease be reviewed."
+    },
+    {
+      "taskId": "SOURCE-EXPLORER-PR107-20260831",
+      "owner": "explorer",
+      "status": "SOURCE_ONLY_SECURITY_CHECKPOINT_PUBLIC_RUNTIME_UNVERIFIED",
+      "sourceCommit": "29382a5325d540d8231e2616b140855b50cea62f",
+      "sourceTree": "b43156cb9f96fab3ef3c97c4bdf21430588675eb",
+      "parent": "8abe0a7f95c495bf593798ef25e9facd1d09b62f",
+      "pullRequest": 107,
+      "remoteClean": true,
+      "scope": "Explorer public-boundary upstream-error redaction only.",
+      "verifiedSourceFacts": [
+        "Diff is limited to internal/explorer/server.go and internal/explorer/explorer_test.go.",
+        "Public classification constants are NOT_FOUND and UPSTREAM_UNAVAILABLE; raw err.Error serialization is removed from the inspected server public boundary."
+      ],
+      "ownerReportedChecks": ["go test ./internal/explorer", "go test ./internal/indexer"],
+      "executionLeaseIssued": false,
+      "remoteMutation": false,
+      "deploymentAuthorized": false,
+      "publicRuntimeVerified": false,
+      "nextAction": "A separate Explorer source-bound deployment lease must bind the candidate, rollback and fresh public /connectivity readback. Do not combine with Website redesign or claim a public/runtime promotion."
     }
   ]
 }
