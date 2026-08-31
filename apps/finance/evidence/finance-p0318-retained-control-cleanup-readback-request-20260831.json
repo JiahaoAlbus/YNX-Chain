@@ -1,0 +1,140 @@
+{
+  "schemaVersion": "financeP0318RetainedControlCleanupReadbackRequest@1",
+  "status": "SOURCE_ONLY_READY_FOR_WHOLELY_NEW_CENTRAL_FINANCE_ONLY_CLEANUP_LEASE",
+  "owner": {
+    "branch": "codex/p0-finance-nonregressive-combined-candidate-20260831",
+    "implementationCommit": "00775c272a2e3a14acc33033f5ff9ab72ed06591",
+    "implementationTree": "2ed14de89e595dec540fad72f3af405338b796f9",
+    "leaseCandidateCommit": "e1216fee09624505180d406931e6301723d2a1e5",
+    "leaseCandidateTree": "07efdaf549cbc236f93d5d581bb730c9f94dd7e0"
+  },
+  "p0318TerminalAuthority": {
+    "centralCommit": "399d79b3bbe1b2cdff2435608c3167ab60092d5e",
+    "centralTree": "3861aa487c1cd5b42a431fa2e79e2205ee0ba5f5",
+    "evidencePath": "release/integration/p0-wallet-connectivity/execution/objects/p0-318-finance-nonregressive-phase3-terminal-fail-closed-20260831.json",
+    "evidenceBlob": "8a71bd46b7fc20ebadfe5ceeb1e1d2a9cb0741e9",
+    "evidenceBytes": 3665,
+    "evidenceSha256": "a09ef91ac7fbd319174ebacedf1299d0692a235f3cd658cf6d531cf55b16ea76",
+    "status": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0318_CANDIDATE_VERIFY_AUTOMATIC_ROLLBACK_OLD_RUNTIME_RESTORED_CONTROLS_RETAINED",
+    "automaticRollbackOldRuntimeRestored": true,
+    "retainedControlsPresent": true,
+    "p0318Reusable": false
+  },
+  "scope": {
+    "allowedRemoteMutation": "Remove only the exact retained P0-318 executor and exact retained P0-318 signed lease after fresh parent, inventory, inode, tuple, bytes and SHA checks; no replacement and no retry.",
+    "exactTargetsOnly": [
+      "/opt/ynx/leases/finance/finance-combined-4f7fba323a89-20260831t041500z.executor.sh",
+      "/opt/ynx/leases/finance/finance-combined-4f7fba323a89-20260831t041500z.json"
+    ],
+    "forbidden": ["carrier", "archive", "candidate environment", "stage", "backup", "release", "current", "production environment", "state", "service lifecycle", "unit", "Caddy", "public route", "deployment", "rollback", "account", "signature", "typed data", "transaction"],
+    "sshAttemptLimit": 1,
+    "cleanupInvocationLimit": 1,
+    "retryAllowed": false
+  },
+  "historicalTargetsToFreshlyRebind": {
+    "parent": {"path": "/opt/ynx/leases/finance", "fullTuple": "64770:4594822:0:0:750:2:4096:directory", "directChildren": 4, "inventorySha256": "bebb3f62aad8797060ed4fc2165166f457be1789b6032f9fe7c77defd1b9e46a"},
+    "executor": {"path": "/opt/ynx/leases/finance/finance-combined-4f7fba323a89-20260831t041500z.executor.sh", "tuple": "64770:4594834:0:0:700:1:27826:regular file", "bytes": 27826, "sha256": "1899f8a57bcd4ad0477f0f4fc34bd867a79e96bc309f31fa8f1f7637dd42ad93"},
+    "signedLease": {"path": "/opt/ynx/leases/finance/finance-combined-4f7fba323a89-20260831t041500z.json", "tuple": "64770:4594835:0:0:600:1:9930:regular file", "bytes": 9930, "sha256": "4f3bcb186750ad792588a660e7c60c7a6ab8e4045a43a23018fb3260e1392038"},
+    "historicalValuesAreEvidenceNotExecutionAuthority": true
+  },
+  "reviewedObjects": {
+    "cleanupExecutor": {"path": "apps/finance/scripts/finance-p0318-retained-control-cleanup.py", "blob": "af46602acca0554134f78659d743757816840414", "bytes": 8883, "sha256": "2c3f90b23d1aa332054c6915186fb2a01227093e61c42ab30dd932d09e9ccfc4"},
+    "openSshTransport": {"path": "apps/finance/scripts/finance-p0318-retained-control-cleanup-openssh.sh", "blob": "333a9452f073b6567e916ffce0e3662936deb877", "bytes": 2658, "sha256": "40ae66f1e39097ebb65de2975087984d94fd831b33b139a5c0791a834efdbb9b"},
+    "cleanupFixture": {"path": "apps/finance/scripts/test-finance-p0318-retained-control-cleanup-fixture.mjs", "blob": "b5887ebc0ea66ce1a53df4b32be8e694b14b436e", "bytes": 5477, "sha256": "e905a6a4fa1698fbe844b4dcf39519615ebba837eb914a01677db76b53e3c4f9"},
+    "transportFixture": {"path": "apps/finance/scripts/test-finance-p0318-retained-control-cleanup-openssh-fixture.mjs", "blob": "7d1390fdae21a7e4b90241e6cfb6a3ab7930f2be", "bytes": 6218, "sha256": "036d713cb63d638c204ac7f60a9bce255ff17880e488b4adf88eb7de32f56679"},
+    "unsignedLeaseCandidate": {"path": "apps/finance/evidence/finance-p0318-retained-control-cleanup-unsigned-lease-candidate-20260831.json", "blob": "4d498229a7626e0ecbc0e47f9354813701236de4", "bytes": 1829, "sha256": "20d981920351d3ef8dead4415266af8b063c3d4ffd993045a6cf7ecf3c4d3a1f"}
+  },
+  "identityAndToctouContract": {
+    "freshParentFullTupleStableIdentityDirectChildrenAndInventoryRequired": true,
+    "freshBothTargetFullTuplesBytesShaAndLinkCountRequired": true,
+    "targetsOpenedNoFollowAndBoundByDeviceInodeBeforeMutation": true,
+    "parentAndBothTargetsRecheckedTwiceBeforeMove": true,
+    "renameAt2NoReplaceRequiredInProduction": true,
+    "leaseSpecificQuarantineNamesMustBeAbsent": true,
+    "movedObjectsMustMatchOpenedDeviceInodeTupleAndSha": true,
+    "failureRestoresMovedExactObjectsWithNoReplace": true,
+    "preUnlinkIdentityRecheckRequired": true,
+    "postCleanupExactAbsenceStableParentChildCountAndRemainingInventoryRequired": true,
+    "foreignSiblingOrSubstitutionPreservedFailClosed": true
+  },
+  "literalLocalArgvContract": {
+    "workdir": "/private/tmp/ynx-finance-nonregressive-20260831",
+    "argv": [
+      "/bin/bash",
+      "/private/tmp/ynx-finance-nonregressive-20260831/apps/finance/scripts/finance-p0318-retained-control-cleanup-openssh.sh",
+      "/private/tmp/ynx-finance-nonregressive-20260831/apps/finance/scripts/finance-p0318-retained-control-cleanup.py",
+      "<CENTRAL_EXACT_SIGNED_P0318_CLEANUP_LEASE_PATH>",
+      "/tmp/ynx-finance-p0318-retained-control-cleanup.stdout",
+      "/tmp/ynx-finance-p0318-retained-control-cleanup.stderr",
+      "/tmp/ynx-finance-p0318-retained-control-cleanup.receipt",
+      "8883",
+      "2c3f90b23d1aa332054c6915186fb2a01227093e61c42ab30dd932d09e9ccfc4",
+      "<CENTRAL_EXACT_SIGNED_P0318_CLEANUP_LEASE_BYTES>",
+      "<CENTRAL_EXACT_SIGNED_P0318_CLEANUP_LEASE_SHA256>",
+      "P0318_RETAINED_CONTROL_PAIR_REMOVED"
+    ],
+    "centralMayReplaceOnlyIndexes": [3, 9, 10],
+    "environment": {},
+    "oneAttempt": true,
+    "retryAllowed": false
+  },
+  "freshPrewriteRequired": {
+    "centralHeavyAndFinanceCleanupPathLock": true,
+    "leaseUnexpiredAndSingleUse": true,
+    "parentAndCompleteDirectChildInventory": true,
+    "bothTargetsMatchHistoricalPathBytesShaAndFreshIdentity": true,
+    "postCleanupInventoryComputedFromFreshPreservedSiblings": true,
+    "allLeaseSpecificQuarantinePathsAbsentAndNonSymlink": true,
+    "protectedSshIdentityAvailableWithoutValueDisclosure": true,
+    "declaredLocalOutputPathsAbsentAndNonSymlink": true,
+    "oldRuntimeCurrentEnvironmentStateUnitCaddyServiceAndPublicReceipts": true
+  },
+  "mandatoryIndependentPostCleanupReadback": {
+    "mutationCount": "exactly two target unlinks only",
+    "executorAndSignedLease": "absent and non-symlink",
+    "allLeaseSpecificQuarantinePaths": "absent and non-symlink",
+    "parent": "same stable identity, exact signed remaining direct-child count and inventory",
+    "preservedSiblings": "byte and identity exact",
+    "current": "same old target and tuple as fresh prewrite",
+    "environmentUnitCaddyState": "same fresh prewrite hashes/tuples and state absence",
+    "service": "loaded active running, same PID and NRestarts as fresh prewrite",
+    "loopbackAndPublic": "old /health and /version raw bodies exact",
+    "walletFrontend": "seven previously accepted Standard Wallet assets exact",
+    "oldRuntimeIdentityAndLegacy": "/build-identity.json remains 404/19/SHA b16e1576... and /wallet-connect.js remains 404/19/SHA b16e1576...",
+    "cleanupSuccessIsNotDeploymentOrProductCompletion": true
+  },
+  "validation": {
+    "pythonSyntax": "PASS",
+    "shellSyntax": "PASS",
+    "positiveExactTwoObjectCleanup": "PASS",
+    "sameBytesNewInodeSubstitution": "PASS_FAIL_CLOSED",
+    "symlinkSubstitution": "PASS_FAIL_CLOSED",
+    "foreignSiblingInventoryDrift": "PASS_FAIL_CLOSED",
+    "preexistingQuarantine": "PASS_FAIL_CLOSED",
+    "silentSshZeroExit": "PASS_FAIL_CLOSED",
+    "localLeaseShaMismatchBeforeSsh": "PASS_FAIL_CLOSED",
+    "oldRuntimeSentinelsUnchanged": "PASS"
+  },
+  "successorCandidatePreservation": {
+    "requestCommit": "7bc11b5621a47d5f5dcea4c2133e81835a878e1b",
+    "requestTree": "441be549b54b37ee0d735d229388fef4d3ad6860",
+    "requestPath": "apps/finance/evidence/finance-p0318-build-identity-route-successor-request-20260831.json",
+    "requestBlob": "4e1f6edada423b95d1bb0da9ec17e8f8b6caeca9",
+    "requestSha256": "7d25469cb4942b4229a68d6b8abf484869f414e2463038c724897f94afbd8968",
+    "modifiedByThisCleanupRequest": false,
+    "newCarrierOrPhase3Authorized": false
+  },
+  "truth": {
+    "centralSignedCleanupLease": false,
+    "sshExecuted": false,
+    "cleanupExecuted": false,
+    "targetsRemoved": false,
+    "oldRuntimeTouched": false,
+    "deployment": false,
+    "sourceBoundPublicSuccessor": false,
+    "accountRequested": false,
+    "signatureCreated": false,
+    "transactionSubmitted": false
+  },
+  "singleExecutableBlocker": "Central must independently fresh-read the retained parent, all four current siblings, both exact P0-318 target identities, preserved-sibling post-cleanup inventory and old-runtime fences; fill and sign every null cleanup lease field; freeze the final bytes/SHA and literal argv; then issue one wholly-new Finance-only cleanup/readback lease or return one exact field-level blocker."
+}
