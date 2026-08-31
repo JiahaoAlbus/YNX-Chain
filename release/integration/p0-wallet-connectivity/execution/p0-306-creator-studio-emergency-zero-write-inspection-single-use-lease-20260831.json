@@ -1,0 +1,87 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-306",
+  "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-creator-p0305-emergency-zero-write-inspection-20260831T031254Z",
+  "owner": "creator-studio-emergency-readonly-inspector",
+  "executor": "release-control-plane",
+  "status": "ACTIVE",
+  "issuedAt": "2026-08-31T03:12:54Z",
+  "expiresAt": "2026-08-31T03:32:54Z",
+  "singleUse": true,
+  "reusable": false,
+  "executionAuthorized": true,
+  "productionMutationAllowed": false,
+  "predecessor": {
+    "taskId": "P0-305",
+    "status": "EMERGENCY_BLOCKED_CREATOR_3F97A13D_EXACT_ROLLBACK_REQUIRED_NO_FURTHER_ACTION",
+    "centralCommit": "c2f8e3177fd27ea3fb364e9cdf33af414c5e0a47",
+    "centralTree": "c4d879f527c3bdc3708f28c65f7e4b7f7da40516"
+  },
+  "inspector": {
+    "path": "release/integration/p0-wallet-connectivity/execution/p0-306-creator-studio-emergency-zero-write-inspection.sh",
+    "blob": "0a8498b92122b37f6d3f409079641539d3c07b6d",
+    "bytes": 3619,
+    "sha256": "d43bf3ca8639c6e1ee285e60327df9221c13dad1b0a5028b6734d7cab608a21f",
+    "mode": "0755"
+  },
+  "execution": {
+    "literalArgv": [
+      "/usr/bin/ssh",
+      "-i",
+      "/Users/huangjiahao/Downloads/Huang.pem",
+      "-o",
+      "IdentitiesOnly=yes",
+      "-o",
+      "BatchMode=yes",
+      "-o",
+      "StrictHostKeyChecking=yes",
+      "-o",
+      "UserKnownHostsFile=/Users/huangjiahao/.ssh/known_hosts",
+      "-o",
+      "ConnectTimeout=10",
+      "-o",
+      "ConnectionAttempts=1",
+      "ubuntu@43.153.202.237",
+      "/usr/bin/sudo",
+      "-n",
+      "/bin/bash",
+      "-s"
+    ],
+    "stdinExactInspectorBytes": true,
+    "attemptLimit": 1,
+    "retryAllowed": false,
+    "remoteTempFilesAllowed": false
+  },
+  "readScope": [
+    "P0-305 control root and stage",
+    "old and candidate Creator releases and manifests",
+    "current and current-next symlink state",
+    "forward receipt and receipt-next classification without body output",
+    "Creator unit and service PID NRestarts",
+    "API6493 Viewer6494 Creator6495 listeners",
+    "official Creator root app manifest i18n and catalog metadata and SHA256"
+  ],
+  "forbidden": [
+    "write",
+    "remote temp file",
+    "cleanup",
+    "rollback",
+    "forward retry",
+    "service lifecycle",
+    "unit or Caddy mutation",
+    "current or release mutation",
+    "unrelated Heavy lease",
+    "Wallet account request",
+    "signature",
+    "typed data",
+    "transaction"
+  ],
+  "terminalRule": "Retain Creator Heavy and all locks after inspection; Central must decide a wholly-new exact recovery lease from direct state.",
+  "truthBoundary": {
+    "inspectionStarted": false,
+    "mutationCount": 0,
+    "recoveryAuthorized": false,
+    "heavyReleased": false
+  }
+}

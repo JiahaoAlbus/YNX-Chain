@@ -427,11 +427,11 @@
     }
   ],
   "heavy": {
-    "owner": "creator-studio-deploy-owner",
-    "taskId": "P0-305",
-    "status": "EMERGENCY_BLOCKED_CREATOR_3F97A13D_EXACT_ROLLBACK_REQUIRED_NO_FURTHER_ACTION",
-    "acquiredAt": "2026-08-31T03:04:55Z",
-    "expiresAt": "2026-08-31T03:34:55Z",
+    "owner": "creator-studio-emergency-readonly-inspector",
+    "taskId": "P0-306",
+    "status": "ACTIVE_EMERGENCY_ZERO_WRITE_STATE_FREEZE",
+    "acquiredAt": "2026-08-31T03:12:54Z",
+    "expiresAt": "2026-08-31T03:32:54Z",
     "releasedAt": null,
     "sourceCommit": "cce7e4016a6f1fd9413799d42c06578ed7707357",
     "evidenceCommit": "cce7e4016a6f1fd9413799d42c06578ed7707357",
@@ -444,8 +444,8 @@
     "reusable": false,
     "previousOwner": "finance-release-control-plane-readonly-inspection",
     "previousTaskId": "P0-303",
-    "reviewDecision": "EMERGENCY_BLOCKED_CREATOR_3F97A13D_EXACT_ROLLBACK_REQUIRED_NO_FURTHER_ACTION",
-    "reason": "The sole forward attempt reached switched state; terminal verification failed with Unexpected end of JSON input and the executor automatic rollback failed with the same error. No retry or external conditional rollback was invoked. Heavy and Creator locks remain held; only a wholly-new zero-write state freeze may run before any recovery decision."
+    "reviewDecision": "GO_CREATOR_P0306_EMERGENCY_ZERO_WRITE_STATE_FREEZE_ONLY",
+    "reason": "P0-305 remains emergency-blocked after failed automatic rollback. Exactly one no-temp, zero-write state inspection is authorized to classify control, release, current, receipt, service, listener and public state before any recovery decision."
   },
   "wave": {
     "id": "B-financial-apps-quant",
