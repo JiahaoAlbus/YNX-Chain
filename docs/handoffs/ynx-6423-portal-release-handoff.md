@@ -3,7 +3,7 @@
 ## Candidate source identity
 
 - Branch: `codex/ynx-6423-portal-tronscan-inspired`
-- Commit: `64dfcfdadbf5f4a643afc978a70b720d7885680f`
+- Commit: `f34199c0481563d3bbe750c8638faef8dde8c1bd`
 - Scope: `internal/explorer`, `cmd/ynx-explorerd`, and the portal evidence in `design-qa.md`.
 - Required official logo: `internal/explorer/assets/ynx-logo.png`
 - Logo SHA-256: `38196080c2d56746fb37094abe68d1d89eabd8a2b29ab4f17bae48ac7e3effde`
@@ -15,6 +15,7 @@
 - The Explorer test rejects retired identity strings (`9102`, `0x238e`, and `ynx_9102-1`), loopback/private wallet publication URLs, blank/new-tab portal routes, and an incorrect logo byte stream.
 - Local browser QA in `design-qa.md` covers desktop, 1024 px tablet, 390 px mobile, same-tab Blockchain navigation, token search/details, locale persistence, and zero error-level console messages.
 - The local runtime was connected to the local 6423 node and indexer only; it returned `6423`, `0x1917`, and `YNXT`. The wallet publication fields stayed empty because no verified public HTTPS RPC/explorer pair was supplied.
+- A fresh temporary Indexer database and Explorer cold start were also checked twice with synchronized advancing 6423 RPC/indexed heights; the preceding unavailable Indexer produced the expected fail-closed portal response.
 
 ## Non-claims and release gate
 

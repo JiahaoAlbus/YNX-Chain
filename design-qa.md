@@ -77,3 +77,9 @@ The reference and implementation were captured together in the browser QA compar
 - Brand asset: `/assets/ynx-logo.png` returned SHA-256 `38196080c2d56746fb37094abe68d1d89eabd8a2b29ab4f17bae48ac7e3effde`, matching the official source required by the objective. The Explorer unit test now gates this exact asset identity.
 
 These checks validate the local 6423 runtime only. They do not assert public deployment, a public wallet RPC, a signed download, or a live external ecosystem product.
+
+## 2026-08-31 cold-start evidence
+
+- The previously inherited local Indexer endpoint became unavailable; the portal returned its normal 502 fail-closed response rather than retaining a stale “live” status.
+- A new temporary index database was built from the active local 6423 node, then a fresh Indexer and Explorer were started against it. The first health snapshot returned `6423`, `0x1917`, YNXT, `ok: true`, and equal RPC/indexed heights (`4805`).
+- A second health snapshot three seconds later returned `ok: true` with both heights advanced together (`4806`). This is a local cold-start and second-read check only; it is not public uptime evidence.
