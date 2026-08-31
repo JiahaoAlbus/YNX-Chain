@@ -1,0 +1,81 @@
+{
+  "schemaVersion": "1.0.0",
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-304",
+  "recordType": "FINANCE_EXECUTION_OBJECTS_SUCCESSOR_LEASE_DECISION",
+  "recordedAt": "2026-08-31T02:57:49Z",
+  "source": {
+    "branch": "codex/p0-finance-p0304-execution-objects-20260831",
+    "commit": "c4c0f4a5bc2fe7e4210bfd56d3520b042f775d67",
+    "tree": "33ad339cf384e67db224fc4e3cc33117b98b79ef",
+    "parent": "4ecd9dc3972442c635879b3c46282f67ba37ca54",
+    "remoteExact": true
+  },
+  "objects": {
+    "request": {
+      "blob": "ba3b3508798ee16da5fa08b4bdafa0e8eb0fdc01",
+      "bytes": 6712,
+      "sha256": "510855604641eb2c93f8657dc699e1b6a79d6dd3d6fb1b3872df38b1778c4d1f"
+    },
+    "unsignedStdin": {
+      "blob": "eb19938359aa6793dc04b2b7c6e7c2758702059c",
+      "bytes": 11677,
+      "sha256": "964f6983d26d27cd2f4d43d6b29aee246022cac9e0c2a39a453545da1fe0a0f0"
+    },
+    "literalArgv": {
+      "blob": "dc8c9c31eaa8ba6e823226a9d4f50b6422e05a32",
+      "bytes": 37355,
+      "sha256": "cec298be9c9bce19ab0c812d41df27ade09923baf49395a4a5fb593330943e28",
+      "length": 25,
+      "argvJsonSha256": "674d275ff1043dd834f539ea33473e6f65fe3a64e76a6e4665b67d991b01251b"
+    },
+    "observer": {
+      "blob": "46bad825545a47bff90036dea840a1b01981cdd8",
+      "bytes": 37095,
+      "sha256": "737517ee408bd376c5f5343448bb09855ec8fb840bd6f6ad466f87883c62eb44"
+    },
+    "handoff": {
+      "sha256": "e7178412e3b48a5a34d38909d8b951ad61735707b1f510433de1b65ec4b70d02"
+    }
+  },
+  "independentVerification": {
+    "staleP0298NamespaceAbsent": true,
+    "executionObjectFixture": "PASS",
+    "parentPreservingObserverFixture": "PASS",
+    "objectHashesExact": true,
+    "crossObjectManifestHashConsistent": false
+  },
+  "decision": {
+    "status": "NO_GO",
+    "leaseIssued": false,
+    "centralSignatureCreated": false,
+    "heavyLeaseAcquired": false,
+    "remotePrewriteSkipped": true,
+    "remotePrewriteSkipReason": "The immutable request points literalExecution.argvManifestSha256 at the superseded argv object, so fresh production state cannot make this object set signable."
+  },
+  "singleExecutableBlocker": "P0304_REQUEST_LITERAL_EXECUTION_ARGV_MANIFEST_SHA256_STALE_AFTER_NAMESPACE_SUCCESSOR",
+  "defect": {
+    "path": "apps/finance/evidence/finance-p0304-execution-objects-request-20260831.json",
+    "jsonPointer": "/literalExecution/argvManifestSha256",
+    "actual": "9a8383917cf6428e0a9f7e61baad33d5578f3a299f7797366d3f016e608bd354",
+    "required": "cec298be9c9bce19ab0c812d41df27ade09923baf49395a4a5fb593330943e28",
+    "safetyReason": "The request must bind the exact literal argv manifest it asks Central to execute; the current value identifies the superseded pre-correction file."
+  },
+  "requiredSuccessor": [
+    "replace only literalExecution.argvManifestSha256 with the exact current literal argv manifest file SHA256",
+    "add a fixture assertion that every request candidateObjects SHA matches its corresponding cross-reference",
+    "recompute the request blob, bytes and SHA256 and any handoff that binds it",
+    "rerun the execution-object, observer, transport, stdin and production shell fixtures",
+    "force-false push a new exact source-only successor",
+    "then perform a fresh remote prewrite before Central signing and expiry assignment"
+  ],
+  "truthBoundary": {
+    "ssh": false,
+    "deployment": false,
+    "rollback": false,
+    "cleanup": false,
+    "account": false,
+    "signature": false,
+    "transaction": false
+  }
+}
