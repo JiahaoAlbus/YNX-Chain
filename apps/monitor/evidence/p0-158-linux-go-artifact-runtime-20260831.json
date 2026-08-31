@@ -1,0 +1,14 @@
+{
+  "schemaVersion": "ynx.explorer-monitor.linux-artifact-runtime.v1",
+  "observedAt": "2026-08-31T08:39:57Z",
+  "owner": "explorer-monitor",
+  "candidate": {"sourceCommit": "41d4886b59776de8127bd21e2a9826edc1b66305", "release": "ynx-explorer-monitor-41d4886b5977", "artifactRecord": "apps/monitor/evidence/p0-157-indexer-safe-release-preparation-20260831.json"},
+  "runner": {"kind": "isolated local Docker", "image": "ubuntu:22.04", "platform": "linux/amd64", "network": "loopback port mapping only", "production": false},
+  "verifiedArtifacts": {
+    "explorerd": {"sha256": "5e62b9b3fb75910be15959a99e6777fa74fd26b06a1cf1d81cea9dc9268e57ce", "versionResponseSha256": "f08b2b4b314bfd261b7cc7eb4c49a81cf4efbd239b5362c21a43390322e30161", "versionIdentity": {"commit": "41d4886b59776de8127bd21e2a9826edc1b66305", "release": "ynx-explorer-monitor-41d4886b5977"}, "unavailableHealth": {"httpStatus": 502, "sha256": "ff12fa7d2a0cc528c9543927ad35a296500a20b93ad3434ffa132344b6693b5a", "classification": "UPSTREAM_UNAVAILABLE", "internalDetailLeaked": false}},
+    "indexerd": {"sha256": "bcac35a370da11385fe83d23c3bee146d1f12c20e9d658f3b42cdd1136278dfc", "versionResponseSha256": "bdf5d6a19343330c318f59af93d4874f6d5b3f5e5c9b61bdbec1ca92fd6a9cf5", "versionIdentity": {"commit": "41d4886b59776de8127bd21e2a9826edc1b66305", "release": "ynx-explorer-monitor-41d4886b5977"}, "unavailableHealth": {"httpStatus": 503, "sha256": "869d17fb02a895e1731f0a039554d52b5baad38a7af40bc89a72a1f4c249b1f8", "classification": "UPSTREAM_UNAVAILABLE", "publicLastError": "chain source temporarily unavailable", "internalDetailLeaked": false}},
+    "monitorReleaseTree": {"sha256": "90be13c7a40621531db7329bca8f3fe571910c7921a3e0783b1a90e70c883edd", "integrityVerified": true, "runtimeTested": false, "reason": "The isolated local Linux amd64 image has no Node runtime and external image pull timed out; no Monitor runtime conclusion is made."}
+  },
+  "states": {"implementedLocal": true, "testedLocal": true, "integratedCentral": false, "deployedStaging": false, "deployedPublic": false, "downloadHosted": false, "productionSigned": false, "publicVerified": false, "computerControlVerified": false},
+  "nextGates": ["Run the exact Monitor release tree in an isolated Linux Node runner and require /health, /version, /status and /connectivity JSON through the API matcher.", "Resolve Monitor top-level custom-scheme wallet navigation through the accepted EIP-6963/EIP-1193 consumer flow before treating privileged Wallet actions as ready.", "Obtain a Central single-use production lease before any official-domain deployment."]
+}
