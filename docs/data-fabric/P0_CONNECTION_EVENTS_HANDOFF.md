@@ -88,3 +88,9 @@ Central must bind one authoritative HTTPS Data Fabric origin and the exact runti
 - GitHub Actions run `33375432866` failed its live PostgreSQL test at source `60d92d33db3c69080bb72a2cd1ccf6149f43de2b`: `erasure_deletion_receipt_authority` correctly rejected an authority timestamp with nanoseconds when its deferred receipt used PostgreSQL microseconds.
 - Source commit `cc62be999b619ca4dfab635a3bd640792204decd` canonicalizes the PostgreSQL `RecordErasure` timestamp before inserting the immutable authority, and extends the adapter test to assert equality with the receipt timestamp. An isolated local PostgreSQL 17.10 container passed the exact live test; remote CI is pending for this source.
 - This is a local persistence correctness repair only. No public endpoint, deployment, user identity, raw private data, or P0-147 state changed.
+
+### CI release-evidence redaction correction — 2026-08-31
+
+- GitHub Actions run `33376148624` passed PostgreSQL live, PostgreSQL failover and reproducible-build jobs for the erasure precision repair, but `data-fabric-verify` correctly rejected an ellipsis placeholder in a local-test evidence string.
+- Commit `5dee482b702132284cb7f32138f516d9d078f4a5` replaces that string with a concrete, non-sensitive description that contains neither endpoint nor credential. Local quality gates and release-truth verification pass; the next exact-source CI run is pending.
+- This is release-evidence hygiene only. No deployment, hosted download, public URL, or P0-147 state changed.
