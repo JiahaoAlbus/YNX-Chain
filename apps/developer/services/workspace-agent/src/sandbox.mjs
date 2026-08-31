@@ -143,7 +143,7 @@ export function sandboxLaunch({
         guest,
       ]),
       namespaceFlags = sandbox.outerNetworkIsolated
-        ? ["--unshare-user", "--unshare-ipc", "--unshare-pid", "--unshare-uts", "--unshare-cgroup"]
+        ? ["--unshare-all", "--share-net"]
         : ["--unshare-all"],
       bubblewrap = [
         "bwrap",

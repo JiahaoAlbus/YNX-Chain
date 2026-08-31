@@ -16,7 +16,7 @@ test("Docker server image is source-bound and requires an unprivileged real comp
   for (const value of ["--read-only", "--network=none", "--cap-drop=ALL", "no-new-privileges", "seccomp=unconfined", "apparmor=unconfined", "uid=10001,gid=10001,mode=0700", "YNX_CODE_OUTER_NETWORK_ISOLATED=1", "YNX_CODE_WORKSPACE_SESSION_KEY", "docker exec --user 10001:10001", "/runtime/health", "--cookie-jar", "sandboxReady", "YNX-DOCKER-CPP", "realCppCompile", "outerContainerNetwork", "ciHealthTransport", "outerContainerSeccomp", "outerContainerAppArmor", "registryPublished:false"]) assert.match(verifier, new RegExp(value));
   assert.doesNotMatch(verifier, /--privileged/);
   assert.match(sandbox, /outerNetworkIsolated/);
-  assert.match(sandbox, /"--unshare-user", "--unshare-ipc", "--unshare-pid"/);
+  assert.match(sandbox, /"--unshare-all", "--share-net"/);
   for (const value of ["docker build", "runtime_checkpoint=", "verify-docker-server-image.sh", "docker save", "upload-artifact@v4"]) assert.match(workflow, new RegExp(value));
   assert.doesNotMatch(workflow, /node -p \\\"require/);
 });
