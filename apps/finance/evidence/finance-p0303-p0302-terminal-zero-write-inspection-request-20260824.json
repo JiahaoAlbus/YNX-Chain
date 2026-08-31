@@ -3,10 +3,10 @@
   "taskId": "P0-303",
   "status": "SOURCE_REQUEST_ONLY_AWAITING_CENTRAL_READONLY_LEASE",
   "owner": {
-    "branch": "codex/p0-finance-p0303-p0302-zero-write-inspection-20260824",
-    "implementationCommit": "f255b82915c3ce839b567a452548f16d93b0ff7b",
-    "implementationTree": "67b42fff64a03107594abbe5bf0bb140e7d4b9e6",
-    "parent": "e85dba3cb0b5036469a9bbca26489adf8511b73e"
+    "branch": "codex/p0-finance-p0303-streaming-zero-write-20260831",
+    "implementationCommit": "795ca2e1ef47046f6d1fbecdca3099bb951289a0",
+    "implementationTree": "766ace252518e7602d6c224ca8061456aea0e2ca",
+    "parent": "8cc058cd0515f088fb75c66ae1bf05a6e87d9489"
   },
   "p0302TerminalBoundary": {
     "centralCommit": "6aae8661b",
@@ -56,18 +56,31 @@
     "status": "CONSUMED_RELEASED_FAILED_CLOSED_FINANCE_P0302_POSTWRITE_RELEASE_MATERIALIZE_REMOTE_STATE_UNKNOWN",
     "heavy": "IDLE"
   },
+  "supersededP0303Reviews": [
+    {
+      "centralCommit": "82acd227c00ee00c2c53abb22a30aac9bf95622a",
+      "status": "NO_GO_P0303_HTTP_WHOLE_BODY_RECEIPT_TRAILING_NEWLINE_STRIPPED"
+    },
+    {
+      "centralCommit": "8197c881a9d1034feb2d8272716b53c919ccc184",
+      "centralTree": "491c327f7aacb304a87de587c89f2857770d0a42",
+      "receiptBlob": "76f6e87de64b906b83635b088220a62b77a7d1bd",
+      "receiptSha256": "6d9a1349e16d04425494978bdbce58f02809e0fa78ee91a8032f28320ae9fed2",
+      "status": "NO_GO_P0303_ZERO_WRITE_CONTRACT_CONTRADICTS_REMOTE_TEMP_BODY_FILES"
+    }
+  ],
   "reviewedReadOnlyObjects": [
     {
       "path": "apps/finance/scripts/finance-p0303-p0302-remote-state-readonly-inspection.sh",
-      "blob": "49a30ff3ae014db903dc7992f752787a224c61f1",
-      "bytes": 5207,
-      "sha256": "ce896327ef1ab67c351099077f4c04b9627b064c6dd69269bede4b74ab877b62"
+      "blob": "10bf010de768850eadf92ec65f89ca02904de440",
+      "bytes": 5769,
+      "sha256": "d5a10112f869c6e61c3b5e90779d139d63240efa41277d7e8d3e9324425ea8fc"
     },
     {
       "path": "apps/finance/scripts/test-finance-p0303-p0302-remote-state-readonly-inspection.mjs",
-      "blob": "81929b76ad302ddacca6da2c4ff966525da35868",
-      "bytes": 3863,
-      "sha256": "3313e7c6277919381968399fad90ba0a6c2b4b6d14bf4fda1c37ef276579575f"
+      "blob": "8e3a1edf378047833de3d881740aa30870a9bd55",
+      "bytes": 4698,
+      "sha256": "915fb0e2dc8027872f57a9a6be7b91c8dcabbe910243523d1d84dbd4744a83f5"
     }
   ],
   "requestedLease": {
@@ -77,12 +90,13 @@
     "retryAllowed": false,
     "remoteWrites": 0,
     "productionWrites": 0,
-    "ephemeralHttpTempFiles": "One independent mktemp file per HTTP body, removed immediately and by EXIT trap; never located under a production path",
+    "ephemeralHttpTempFiles": 0,
+    "httpReceiptTransport": "Each body stays on anonymous pipes only. curl emits the final status marker from the same request through %{stderr}; tee streams the complete body to wc -c and sha256sum. Only status, byte-count and digest markers enter shell variables.",
     "requiredOrder": [
       "re-read P0-302 as consumed, released and nonreusable",
       "independently verify the exact inspection object bytes and SHA-256",
       "freeze one literal protected-host SSH argv and the exact inspection object as stdin",
-      "execute once and capture stdout, stderr and remote exit status; each raw HTTP body uses a distinct owned temporary file and is removed on every terminal path",
+      "execute once and capture stdout, stderr and remote exit status; each raw HTTP body remains on anonymous pipes and no response byte is written to a remote file",
       "validate every required path, service and HTTP field before claiming the remote state known",
       "atomically release P0-303"
     ]
@@ -125,7 +139,7 @@
     "eachExactPath": "ABSENT, or kind plus non-symlink device:inode:uid:gid:mode:nlink:bytes:type tuple; files add whole-file SHA-256; directories add direct-child count and canonical inventory SHA-256; symlinks add target and are never followed for cleanup because cleanup is forbidden",
     "current": "link tuple, target and canonical resolved release plus current.next and current.rollback state",
     "service": ["LoadState", "ActiveState", "SubState", "MainPID", "NRestarts", "ExecStart metadata hash", "WorkingDirectory", "User", "Group"],
-    "http": "loopback and public root, health and version URL, status, bytes and whole-body SHA-256 computed directly from separate raw-body files; body data must never enter shell variables or command substitution so trailing 0x0a bytes remain exact",
+    "http": "loopback and public root, health and version URL, final status, bytes and whole-body SHA-256 from the same request; raw body data stays on anonymous pipes and never enters a shell variable, command substitution or file, so trailing 0x0a bytes remain exact",
     "secretSafety": "environment, unit, Caddy and state content must never be output; only tuple, bytes and SHA-256 metadata",
     "terminal": "inspectionComplete=true and mutationCount=0 only after every exact read succeeds"
   },
@@ -145,9 +159,9 @@
     "raw environment output, secret output, private key, account request, signature or transaction"
   ],
   "httpBodyRegression": {
-    "positive": "The exact helper was executed with raw bytes 0x78 0x0a 0x0a and emitted bytes=3 plus the whole-file SHA-256.",
-    "negative": "Static gates reject response=$(curl), body extraction from a command-substitution result, and printf of a shell body variable; the vector proves the stripped and raw hashes differ.",
-    "cleanup": "The fixture proves no owned HTTP temp remains after success."
+    "positive": "The exact helper was executed with one curl invocation returning status 200 and raw bytes 0x78 0x0a 0x0a; it emitted bytes=3 plus the exact streamed SHA-256.",
+    "negative": "Static gates reject response=$(curl), body extraction from command substitution, body temp files, mktemp, cleanup traps and rm. A transport-failure fixture exits nonzero and emits no valid receipt.",
+    "cleanup": "There is no remote HTTP temp file or cleanup path; only anonymous pipes are used."
   },
   "truth": {
     "inspectionExecuted": false,
@@ -156,5 +170,5 @@
     "manualRollbackAuthorized": false,
     "deploymentSuccessorPrepared": false
   },
-  "singleExecutableBlocker": "Central must issue and execute one new P0-303 read-only single-use lease for the exact reviewed inspection object."
+  "singleExecutableBlocker": "Central must independently re-review the pure-streaming zero-write object and issue one wholly-new P0-303 read-only single-use lease."
 }
