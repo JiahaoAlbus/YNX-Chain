@@ -1,13 +1,14 @@
 {
   "schemaVersion": 1,
   "sourceCommit": "51c9c8f796e0c1db1e3f27c0f6ad93ef22a5147b",
-  "generatedAt": "2026-09-01T17:17:50.303Z",
+  "generatedAt": "2026-09-01T18:17:44.311Z",
   "gateClass": "exact built-artifact download metadata and UI-source inspection; an Android SPA fallback is explicitly unhosted and not an installation, platform package publication, or signing proof",
   "artifacts": [
     {
       "name": "ynx-wallet-web-pwa-0.1.0.zip",
       "bytes": 287229,
       "sha256": "1046ee7be48cc9449bb44cef03c590fc858ba483d162a83ad7a192331808a99f",
+      "sourceCommit": "51c9c8f796e0c1db1e3f27c0f6ad93ef22a5147b",
       "matrix": {
         "android": {
           "label": "Android API 24+",
@@ -74,6 +75,7 @@
         "inaccessibleLinksPrevented": true,
         "androidMetadataTruthful": true,
         "staleAndroidClaimAbsent": true,
+        "exactSourceIdentity": true,
         "disabledStatePreserved": true,
         "fallbackVisibilityBound": true,
         "narrowLayout": true
@@ -84,6 +86,7 @@
       "name": "ynx-wallet-chrome-edge-0.1.0.zip",
       "bytes": 470282,
       "sha256": "6a839886c3800a8a6ae9449e4d4cc9fb5065c13f6b51dae310edd1c268e8deeb",
+      "sourceCommit": "51c9c8f796e0c1db1e3f27c0f6ad93ef22a5147b",
       "matrix": {
         "android": {
           "label": "Android API 24+",
@@ -150,6 +153,7 @@
         "inaccessibleLinksPrevented": true,
         "androidMetadataTruthful": true,
         "staleAndroidClaimAbsent": true,
+        "exactSourceIdentity": true,
         "disabledStatePreserved": true,
         "fallbackVisibilityBound": true,
         "narrowLayout": true
@@ -160,6 +164,7 @@
       "name": "ynx-wallet-firefox-0.1.0.zip",
       "bytes": 470315,
       "sha256": "6536d2718bfb37aa9b5318bed0728f28b268275c178fee02f19ebb729b3c9947",
+      "sourceCommit": "51c9c8f796e0c1db1e3f27c0f6ad93ef22a5147b",
       "matrix": {
         "android": {
           "label": "Android API 24+",
@@ -226,6 +231,7 @@
         "inaccessibleLinksPrevented": true,
         "androidMetadataTruthful": true,
         "staleAndroidClaimAbsent": true,
+        "exactSourceIdentity": true,
         "disabledStatePreserved": true,
         "fallbackVisibilityBound": true,
         "narrowLayout": true
