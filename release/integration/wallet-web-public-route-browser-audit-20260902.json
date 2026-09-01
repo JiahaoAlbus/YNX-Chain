@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-09-01T18:38:51Z",
+  "owner": "wallet-web-companion",
+  "url": "https://wallet.ynxweb4.com/",
+  "directHttp": {
+    "status": 200,
+    "contentType": "text/html; charset=utf-8",
+    "bytes": 1018,
+    "sha256": "cce08d91065f56aa6418c70e92627bd7ef44d9afd5714a64d793e5ad05d8a171",
+    "title": "YNX Chain — Web4 Layer-1 Ecosystem"
+  },
+  "connectedChromeReadOnlyAudit": {
+    "title": "YNX Chain — Web4 Layer-1 Ecosystem",
+    "documentLanguage": "en",
+    "walletCompanionControlsFound": false,
+    "injectedProviderObservedInAuditTab": false,
+    "metaMaskObservedInAuditTab": false,
+    "ynxProviderObservedInAuditTab": false,
+    "providerCountObservedInAuditTab": 0,
+    "scope": "fresh read-only audit tab only; does not infer the user's other browser tabs or extension installation state"
+  },
+  "classification": "WALLET_SUBDOMAIN_SERVES_MAIN_SITE_SHELL",
+  "requiredControlledRelease": {
+    "sourceBranch": "codex/wallet-web-companion-fresh-main-prep-20260831",
+    "sourceCommit": "90c818034252538051190ac461b1a7923516b97a",
+    "pullRequest": "https://github.com/JiahaoAlbus/YNX-Chain/pull/134",
+    "requires": [
+      "Central-controlled Wallet Companion route import",
+      "source-bound preview and production alias verification",
+      "rollback input preserving the current main-site shell"
+    ]
+  },
+  "boundaries": {
+    "walletCompanionDeployedPublic": false,
+    "ynxProviderInstalled": false,
+    "metaMaskApproval": false,
+    "chainSwitchReadback": false,
+    "accountApproval": false,
+    "signature": false,
+    "transaction": false
+  }
+}
