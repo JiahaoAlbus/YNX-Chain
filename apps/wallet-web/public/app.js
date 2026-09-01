@@ -8,7 +8,7 @@ import {createWalletWebCompanionLifecycle} from "./wallet-web-companion-lifecycl
 import {createStandardWalletConnectState,reduceStandardWalletConnectState,STANDARD_WALLET_CONNECT_STATUS} from "./standard-wallet-connect-state.js";
 import {PWA_CACHE,cleanPwaNavigationUrl,obsoletePwaCaches,upgradeNavigationUrl} from "./service-worker-policy.js";
 import {
-  METAMASK_DOWNLOAD_URL, WALLET_DOWNLOAD_MATRIX, YNX_DOWNLOAD_URL, addYNXChain, connectStandardWallet, createExtensionProvider, discoverWallets,
+  METAMASK_DOWNLOAD_URL, WALLET_DOWNLOAD_MATRIX, addYNXChain, connectStandardWallet, createExtensionProvider, discoverWallets,
   extensionWalletAvailability, forgetSession, rememberSession, restoreTestnetSession, sendTransaction,
   invalidatesConnectedSession, resolveRememberedWallet, signMessage, subscribeProviderLifecycle,
   switchToYNXChain, walletActionGates, walletDiscoveryPresentation,
@@ -39,6 +39,8 @@ function text(key) { return catalog(state.locale)[key] || key; }
 function options() { return LOCALES.map(([value, label]) => `<option value="${value}" ${value === state.locale ? "selected" : ""}>${label}</option>`).join(""); }
 function escape(value) { const node = document.createElement("span"); node.textContent = String(value); return node.innerHTML; }
 function unavailablePlatforms(){return Object.values(WALLET_DOWNLOAD_MATRIX).filter(item=>item.hosted!==true).map(item=>`<button type="button" disabled aria-disabled="true" data-permanent-disabled="true">${escape(item.label)} · ${text("unavailable")}</button>`).join("")}
+function androidDownloadControl(){const item=WALLET_DOWNLOAD_MATRIX.android;return item.hosted===true&&typeof item.url==="string"?`<a id="download" href="${escape(item.url)}" class="secondary" rel="noreferrer" aria-describedby="download-meta">Android · ${text("download")}</a>`:`<button id="download" type="button" class="secondary" disabled aria-disabled="true" data-permanent-disabled="true" aria-describedby="download-meta">Android · ${text("unavailable")}</button>`}
+function androidDownloadMeta(){const item=WALLET_DOWNLOAD_MATRIX.android;return item.hosted===true&&typeof item.bytes==="number"&&typeof item.sha256==="string"?`${escape(item.label)} · ${item.bytes.toLocaleString("en-US")} Bytes · SHA-256 ${escape(item.sha256)} · ${escape(item.signingClass)} · productionSigned=${String(item.productionSigned)}`:`${escape(item.label)} · ${text("unavailable")} · PUBLIC_ARTIFACT_UNAVAILABLE`}
 function statusContent(){if(state.errorCode)return`${escape(state.errorCode)}: ${text("requestFailed")}`;return state.account?`${text("connected")} · <span class="mono">${escape(state.account)}</span>`:text("disconnected")}
 
 function render() {
@@ -54,9 +56,9 @@ function render() {
     <section aria-labelledby="title"><h1 id="title">${text("title")}</h1><p class="intro">${text("intro")}</p></section>
     <section class="card" aria-label="${text("walletConnection")}"><div id="detected" class="eyebrow">${text("unavailable")}</div>
       <button id="wallet-connect-trigger" type="button" aria-expanded="${state.connectState.chooserOpen}">${state.account?text("connected"):text("walletConnection")}</button>
-      <div id="wallet-chooser" class="wallets ${providerChooserVisible?"":"hidden"}" data-mode="${state.connectState.chooserMode}" data-pending-intent="${state.connectState.pendingIntent?"true":"false"}"><button id="ynx" class="primary hidden" type="button">${text("connectYNX")}</button><a id="download" href="${YNX_DOWNLOAD_URL}" class="secondary" rel="noreferrer" aria-describedby="download-meta">Android · ${text("download")}</a><a id="metamask" href="${METAMASK_DOWNLOAD_URL}" class="secondary" rel="noreferrer">${text("metamask")}</a></div>
+      <div id="wallet-chooser" class="wallets ${providerChooserVisible?"":"hidden"}" data-mode="${state.connectState.chooserMode}" data-pending-intent="${state.connectState.pendingIntent?"true":"false"}"><button id="ynx" class="primary hidden" type="button">${text("connectYNX")}</button>${androidDownloadControl()}<a id="metamask" href="${METAMASK_DOWNLOAD_URL}" class="secondary" rel="noreferrer">${text("metamask")}</a></div>
       <div id="connection-controls" class="actions ${connectionDetails?"":"hidden"}" data-mode="${state.connectState.chooserMode}"><button id="switch-account" type="button">${text("switchAccount")}</button><button id="disconnect" type="button">${text("disconnect")}</button></div>
-      <p id="download-meta" class="download-meta mono">${escape(WALLET_DOWNLOAD_MATRIX.android.label)} · ${WALLET_DOWNLOAD_MATRIX.android.bytes.toLocaleString("en-US")} Bytes · SHA-256 ${escape(WALLET_DOWNLOAD_MATRIX.android.sha256)} · ${escape(WALLET_DOWNLOAD_MATRIX.android.signingClass)} · productionSigned=false</p>
+      <p id="download-meta" class="download-meta mono">${androidDownloadMeta()}</p>
       <details id="platforms" class="platforms"><summary>${text("download")}</summary><div class="platform-grid">${unavailablePlatforms()}</div></details>
       <div class="status" id="status" role="status" aria-live="polite"><strong>${text("status")}:</strong> ${statusContent()}</div>
       <p class="risk">${text("rpcCheck")} ${text("testnet")}</p>

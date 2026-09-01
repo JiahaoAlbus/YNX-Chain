@@ -2,9 +2,13 @@ import assert from "node:assert/strict";
 import {readFile} from "node:fs/promises";
 import test from "node:test";
 
-test("fallback contract always offers YNX download and MetaMask when YNX is absent", async () => {
+test("fallback contract never offers an Android download unless an APK is verified and always offers MetaMask", async () => {
   const source = await readFile(new URL("../public/app.js", import.meta.url), "utf8");
-  assert.match(source, /id="download" href="\$\{YNX_DOWNLOAD_URL\}"/);
+  assert.match(source, /function androidDownloadControl\(\)/);
+  assert.match(source, /item\.hosted===true&&typeof item\.url==="string"/);
+  assert.match(source, /id="download" type="button" class="secondary" disabled aria-disabled="true" data-permanent-disabled="true"/);
+  assert.match(source, /PUBLIC_ARTIFACT_UNAVAILABLE/);
+  assert.doesNotMatch(source, /href="\$\{YNX_DOWNLOAD_URL\}"/);
   assert.match(source, /id="metamask" href="\$\{METAMASK_DOWNLOAD_URL\}"/);
   assert.match(source, /if \(state\.providers\?\.metamask\) \{ event\.preventDefault\(\); return connect\("metamask"\); \}/);
   assert.match(source, /companionLifecycle\.begin\(\)/);
@@ -17,7 +21,7 @@ test("fallback contract always offers YNX download and MetaMask when YNX is abse
   assert.doesNotMatch(source, /error\?\.message \|\| "Wallet detection failed closed\."/);
   assert.match(source, /disabled aria-disabled="true" data-permanent-disabled="true"/);
   assert.match(source, /aria-describedby="download-meta"/);
-  assert.match(source, /productionSigned=false/);
+  assert.match(source, /productionSigned=\$\{String\(item\.productionSigned\)\}/);
   assert.match(source, /button\.disabled = button\.dataset\.permanentDisabled === "true"/);
   assert.match(source, /document\.querySelector\("#platforms"\)\.classList\.toggle\("hidden", !presentation\.showYNXDownload\)/);
   assert.match(source, /if\(!preserveConnection&&!state\.account\)\{state\.provider=null;state\.wallet=null;state\.chainId=null\}/);

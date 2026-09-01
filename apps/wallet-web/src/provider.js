@@ -7,7 +7,10 @@ export const YNX_CHAIN = Object.freeze({
 });
 
 export const WALLET_DOWNLOAD_MATRIX = Object.freeze({
-  android: Object.freeze({label:"Android API 24+",url:"https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk",hosted:true,bytes:78392878,sha256:"fd924ef853cf17d42ca2d36504528ef879c73fcb4b01ea72b1bfe7ae85085fef",contentType:"application/vnd.android.package-archive",signingClass:"persistent-testnet-release-key",productionSigned:false}),
+  // The previous Android URL resolves to the website SPA shell, not an APK. Keep
+  // the platform present, but fail closed until a source-bound APK is publicly
+  // verified rather than offering a false installation link or stale hashes.
+  android: Object.freeze({label:"Android API 24+",url:null,hosted:false,bytes:null,sha256:null,contentType:null,signingClass:"unpublished",productionSigned:false,publicStatusUrl:"https://www.ynxweb4.com/dapp/download"}),
   windowsX64: Object.freeze({label:"Windows x64",url:null,hosted:false}),
   windowsArm64: Object.freeze({label:"Windows arm64",url:null,hosted:false}),
   macosX64: Object.freeze({label:"macOS x64",url:null,hosted:false}),

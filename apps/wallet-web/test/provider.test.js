@@ -73,7 +73,7 @@ test("discovery presentation directly prefers YNX and gives two non-empty fallba
   assert.deepEqual(walletDiscoveryPresentation({ynx:provider(),metamask:provider(),exactExtensionStateObservable:true}),{ynxPresent:true,metamaskPresent:true,showYNXConnect:true,showYNXDownload:false,showMetaMaskChoice:false,metaMaskChoice:"connect",status:"available",errorKey:null,exactExtensionStateObservable:true});
   assert.deepEqual(walletDiscoveryPresentation({ynx:null,metamask:provider(),exactExtensionStateObservable:true}),{ynxPresent:false,metamaskPresent:true,showYNXConnect:false,showYNXDownload:true,showMetaMaskChoice:true,metaMaskChoice:"connect",status:"available",errorKey:null,exactExtensionStateObservable:true});
   assert.deepEqual(walletDiscoveryPresentation({}),{ynxPresent:false,metamaskPresent:false,showYNXConnect:false,showYNXDownload:true,showMetaMaskChoice:true,metaMaskChoice:"official-download",status:"no-provider",errorKey:"providerNotInjected",exactExtensionStateObservable:false});
-  assert.equal(new URL(YNX_DOWNLOAD_URL).hostname,"www.ynxweb4.com");
+  assert.equal(YNX_DOWNLOAD_URL,null);
   assert.equal(METAMASK_DOWNLOAD_URL,"https://metamask.io/download");
 });
 
@@ -158,15 +158,16 @@ test("canonical YNX mobile authorization stays closed until Core freezes the exa
   assert.deepEqual(canonicalYNXAuthorizationState(frozen,"https://www.ynxweb4.com/wallet-auth/callback"),{route:"canonical-auth",available:true,callback:"https://www.ynxweb4.com/wallet-auth/callback",error:null});
 });
 
-test("official platform matrix exposes only the verified Android route", () => {
-  assert.equal(WALLET_DOWNLOAD_MATRIX.android.hosted,true);
+test("official platform matrix never advertises an unverified Android artifact", () => {
+  assert.equal(WALLET_DOWNLOAD_MATRIX.android.hosted,false);
   assert.equal(WALLET_DOWNLOAD_MATRIX.android.url,YNX_DOWNLOAD_URL);
-  assert.equal(WALLET_DOWNLOAD_MATRIX.android.bytes,78392878);
-  assert.equal(WALLET_DOWNLOAD_MATRIX.android.sha256,"fd924ef853cf17d42ca2d36504528ef879c73fcb4b01ea72b1bfe7ae85085fef");
-  assert.equal(WALLET_DOWNLOAD_MATRIX.android.contentType,"application/vnd.android.package-archive");
+  assert.equal(WALLET_DOWNLOAD_MATRIX.android.bytes,null);
+  assert.equal(WALLET_DOWNLOAD_MATRIX.android.sha256,null);
+  assert.equal(WALLET_DOWNLOAD_MATRIX.android.contentType,null);
+  assert.equal(WALLET_DOWNLOAD_MATRIX.android.signingClass,"unpublished");
   assert.equal(WALLET_DOWNLOAD_MATRIX.android.productionSigned,false);
-  assert.equal(new URL(YNX_DOWNLOAD_URL).hostname,"www.ynxweb4.com");
-  for(const [platform,item] of Object.entries(WALLET_DOWNLOAD_MATRIX))if(platform!=="android")assert.deepEqual({url:item.url,hosted:item.hosted},{url:null,hosted:false});
+  assert.equal(WALLET_DOWNLOAD_MATRIX.android.publicStatusUrl,"https://www.ynxweb4.com/dapp/download");
+  for(const item of Object.values(WALLET_DOWNLOAD_MATRIX))assert.notEqual(item.hosted,true);
   assert.equal(WALLET_DOWNLOAD_MATRIX.pwaPackage.publicStatusUrl,"https://www.ynxweb4.com/dapp/wallet");
 });
 
