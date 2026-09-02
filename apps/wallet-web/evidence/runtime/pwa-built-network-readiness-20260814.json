@@ -1,0 +1,101 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "c6870072fade9aa0868446033f1dbf9ab1f5ca97",
+  "generatedAt": "2026-08-14T06:45:13.868Z",
+  "gateClass": "executable provider module and UI-source contract imported from the exact built PWA ZIP; not browser runtime evidence",
+  "artifact": {
+    "name": "ynx-wallet-web-pwa-0.1.0.zip",
+    "bytes": 272501,
+    "sha256": "38499d18d889a3d5f8c709bf9b2b2dda553c49b4b1f8c7e84fed1f23ca2638ed",
+    "signingClass": "unsigned-web-bundle"
+  },
+  "failures": {
+    "offline": {
+      "failedClosed": true,
+      "code": "RPC_UNAVAILABLE",
+      "walletCalls": 0
+    },
+    "wrongChain": {
+      "failedClosed": true,
+      "code": "WRONG_NETWORK",
+      "walletCalls": 0
+    },
+    "wrongId": {
+      "failedClosed": true,
+      "code": "INVALID_RPC_RESPONSE",
+      "walletCalls": 0
+    },
+    "rpcError": {
+      "failedClosed": true,
+      "code": "INVALID_RPC_RESPONSE",
+      "walletCalls": 0
+    }
+  },
+  "exact": {
+    "switched": "0x1917",
+    "added": "0x1917",
+    "switchCalls": [
+      {
+        "method": "wallet_switchEthereumChain",
+        "params": [
+          {
+            "chainId": "0x1917"
+          }
+        ]
+      },
+      {
+        "method": "eth_chainId"
+      }
+    ],
+    "addCalls": [
+      {
+        "method": "wallet_addEthereumChain",
+        "params": [
+          {
+            "chainId": "0x1917",
+            "chainName": "YNX Testnet",
+            "nativeCurrency": {
+              "name": "YNX Testnet",
+              "symbol": "YNXT",
+              "decimals": 18
+            },
+            "rpcUrls": [
+              "https://evm.ynxweb4.com"
+            ],
+            "blockExplorerUrls": [
+              "https://explorer.ynxweb4.com"
+            ]
+          }
+        ]
+      },
+      {
+        "method": "wallet_switchEthereumChain",
+        "params": [
+          {
+            "chainId": "0x1917"
+          }
+        ]
+      },
+      {
+        "method": "eth_chainId"
+      }
+    ]
+  },
+  "ui": {
+    "tracksRpcVerified": true,
+    "gatesUseRpcVerified": true,
+    "revokesOnFailure": true
+  },
+  "passed": true,
+  "chromiumCompatibleExtensionRuntimeProved": false,
+  "actionInjectionProved": false,
+  "installedLocal": false,
+  "providerConnected": false,
+  "accountAuthorized": false,
+  "messageSigned": false,
+  "transactionSubmitted": false,
+  "deployedPublic": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false
+}

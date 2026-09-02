@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "kind": "walletWebExternalProviderDiscoveryBrowserEvidence",
+  "observedAt": "2026-08-31T13:47:34Z",
+  "candidate": {
+    "branch": "codex/wallet-web-companion-fresh-main-prep-20260831",
+    "sourceCommit": "5a1f6e176b6ece953b22d8d62d94d401d69668bd",
+    "sourceTree": "504d2ef8ba3bc3f5592f153885ce77c22dd4ae01",
+    "deployedPublic": false,
+    "installedYNXExtension": false
+  },
+  "method": {
+    "browser": "Chrome",
+    "providerDiscovery": [
+      "EIP-6963 requestProvider/announceProvider",
+      "window.ethereum and ethereum.providers fallback"
+    ],
+    "accountRequestIssued": false,
+    "ethChainIdReadIssued": true,
+    "chainRequestIssued": false,
+    "addOrSwitchRequested": false,
+    "signRequested": false,
+    "transactionRequested": false,
+    "connectButtonClicked": false,
+    "customSchemeNavigationIssued": false
+  },
+  "observations": [
+    {
+      "requestedUrl": "https://wallet.ynxweb4.com/",
+      "observedUrl": "https://wallet.ynxweb4.com/",
+      "title": "YNX Chain — Web4 Layer-1 Ecosystem",
+      "metaMask": {
+        "eip6963": true,
+        "injected": true,
+        "rdns": "io.metamask",
+        "ethChainId": "0x238e"
+      },
+      "ynxWallet": {
+        "eip6963": false,
+        "injected": false
+      },
+      "blankTab": false,
+      "customSchemeTab": false
+    },
+    {
+      "requestedUrl": "https://app.uniswap.org/",
+      "observedUrl": "https://app.uniswap.org/",
+      "title": "Uniswap | Trade Crypto on DeFi’s Leading Exchange",
+      "metaMask": {
+        "eip6963": true,
+        "injected": true,
+        "rdns": "io.metamask"
+      },
+      "ynxWallet": {
+        "eip6963": false,
+        "injected": false
+      },
+      "blankTab": false,
+      "customSchemeTab": false
+    },
+    {
+      "requestedUrl": "https://opensea.io/",
+      "observedUrl": "https://opensea.io/",
+      "title": "OpenSea, exchange everything — token trading and NFT marketplace",
+      "metaMask": {
+        "eip6963": true,
+        "injected": true,
+        "rdns": "io.metamask"
+      },
+      "ynxWallet": {
+        "eip6963": false,
+        "injected": false
+      },
+      "blankTab": false,
+      "customSchemeTab": false
+    },
+    {
+      "requestedUrl": "https://app.safe.global/",
+      "observedUrl": "https://app.safe.global/welcome/spaces",
+      "title": "Safe{Wallet} – Workspaces",
+      "metaMask": {
+        "eip6963": true,
+        "injected": true,
+        "rdns": "io.metamask"
+      },
+      "ynxWallet": {
+        "eip6963": false,
+        "injected": false
+      },
+      "blankTab": false,
+      "customSchemeTab": false
+    }
+  ],
+  "truth": {
+    "metaMaskDiscoveryDirectlyObserved": true,
+    "ynxProviderDiscoveryDirectlyObserved": false,
+    "sameTabHttpNavigationObserved": true,
+    "blankOrCustomSchemeTabObserved": false,
+    "accountApprovalObserved": false,
+    "rejectObserved": false,
+    "chain0x1917Observed": false,
+    "wrongProviderChainDirectlyObserved": true,
+    "connectedAccountObserved": false,
+    "refreshRestoreObserved": false,
+    "disconnectObserved": false,
+    "signatureObserved": false,
+    "transactionObserved": false,
+    "walletConnectObserved": false,
+    "sourceBoundYNXProviderRuntime": false,
+    "publicWalletCompanionRuntime": false
+  }
+}

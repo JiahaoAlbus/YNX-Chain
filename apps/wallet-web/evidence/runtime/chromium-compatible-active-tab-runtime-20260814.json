@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "7522b8162b2581c7fed216d0e4e9fef44ff4fef7",
+  "generatedAt": "2026-08-14T05:04:56.641Z",
+  "runtimeClass": "Playwright bundled Chromium-compatible extension runtime attempt with temporary unpacked ZIP and isolated persistent profile; not branded Chrome/Edge and not installedLocal",
+  "fixtureAuthority": "empty local HTTP fixture with no provider, account, signature or transaction backend",
+  "artifact": {
+    "name": "ynx-wallet-chrome-edge-0.1.0.zip",
+    "bytes": 184221,
+    "sha256": "b3a2c34a6a3c8f997dec5ee24f49cf8c724916a799853b2a515897a83fb92bf2",
+    "signingClass": "unsigned-unpacked-extension"
+  },
+  "actionCommand": {
+    "suggested_key": {
+      "default": "Ctrl+Shift+Y",
+      "mac": "MacCtrl+Shift+Y"
+    },
+    "description": "Open YNX Wallet for the active DApp"
+  },
+  "browserAttempts": [
+    {
+      "mode": "bundled headless shell",
+      "timeoutMs": 10000,
+      "outcome": "persistent context timeout before service worker"
+    },
+    {
+      "mode": "full bundled Chromium headless",
+      "timeoutMs": 15000,
+      "outcome": "persistent context timeout before service worker"
+    },
+    {
+      "mode": "full bundled Chromium headed",
+      "timeoutMs": 15000,
+      "outcome": "persistent context timeout before service worker"
+    }
+  ],
+  "passed": true,
+  "fallbackGatePassed": true,
+  "chromiumCompatibleExtensionRuntimeProved": false,
+  "actionInjectionProved": false,
+  "sensitiveCanonicalFailureProved": true,
+  "providerSuccessClaimed": false,
+  "accountAuthorized": false,
+  "messageSigned": false,
+  "transactionSubmitted": false,
+  "installedLocal": false,
+  "deployedPublic": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "browserLimitation": {
+    "name": "Error",
+    "code": "PLAYWRIGHT_EXTENSION_CONTEXT_UNAVAILABLE",
+    "message": "Chromium-compatible persistent extension context was unavailable in three bounded Playwright attempts (headless shell, full bundled headless, full bundled headed); browser launch is frozen false for this slice."
+  },
+  "serviceWorkerMessageFallback": {
+    "runtimeClass": "direct production service-worker module message harness in Node; not a browser extension runtime",
+    "passed": true,
+    "startupCalls": 0,
+    "secondStartupCalls": 0,
+    "discovery": {
+      "ynx": false,
+      "metamask": false
+    },
+    "injectionCalls": [
+      {
+        "files": [
+          "content-script.js"
+        ],
+        "world": null,
+        "hasFunction": false
+      },
+      {
+        "files": [
+          "page-provider.js"
+        ],
+        "world": "MAIN",
+        "hasFunction": false
+      },
+      {
+        "files": null,
+        "world": "MAIN",
+        "hasFunction": true
+      }
+    ],
+    "injectionOrder": true,
+    "sensitive": {
+      "ok": false,
+      "error": {
+        "code": "CANONICAL_AUTH_UNAVAILABLE",
+        "message": "Canonical Wallet authorization is unavailable for this Web companion."
+      }
+    },
+    "sensitiveScriptingCalls": 0,
+    "noTab": {
+      "ok": false,
+      "error": {
+        "code": "INVALID_BRIDGE_REQUEST",
+        "message": "Rejected invalid DApp bridge request."
+      }
+    },
+    "policyFailures": {
+      "noTab": {
+        "failedClosed": true,
+        "code": "ACTIVE_TAB_REQUIRED"
+      },
+      "chromeUrl": {
+        "failedClosed": true,
+        "code": "ACTIVE_TAB_REQUIRED"
+      }
+    }
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "e1d0931d4f14126819bc2a5606aaaeeba7a8047b",
+  "generatedAt": "2026-08-14T11:16:35.247Z",
+  "runtime": {
+    "name": "Mozilla Firefox Stable",
+    "version": "153.0.4",
+    "executablePath": "/tmp/ynx-firefox-install.TSEqxC/Firefox.app/Contents/MacOS/firefox",
+    "profileClass": "disposable-isolated-profile"
+  },
+  "addonId": "wallet-testnet@ynxweb4.com",
+  "temporaryLoad": {
+    "webExtPid": 20888,
+    "firefoxPidsAtLoad": [
+      20901
+    ],
+    "loaded": true,
+    "debuggerConnected": true,
+    "timedOut": false,
+    "exit": {
+      "code": 130,
+      "signal": null
+    },
+    "persistedAfterShutdown": {
+      "present": true,
+      "recordCount": 0,
+      "persistedActive": false
+    },
+    "cleanup": {
+      "initial": [],
+      "afterTerm": [],
+      "alive": []
+    },
+    "outputTail": "[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Connecting to Firefox on port 53748\n[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Retrying Firefox (10); connection error: Error: connect ECONNREFUSED 127.0.0.1:53748\n[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Connecting to Firefox on port 53748\n[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Retrying Firefox (11); connection error: Error: connect ECONNREFUSED 127.0.0.1:53748\n[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Connecting to Firefox on port 53748\n[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Retrying Firefox (12); connection error: Error: connect ECONNREFUSED 127.0.0.1:53748\n[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Connecting to Firefox on port 53748\n[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/index.js][debug] Firefox stderr: *** You are running in headless mode.\n[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Retrying Firefox (13); connection error: Error: connect ECONNREFUSED 127.0.0.1:53748\n[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Connecting to Firefox on port 53748\n[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Retrying Firefox (14); connection error: Error: connect ECONNREFUSED 127.0.0.1:53748\n[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Connecting to Firefox on port 53748\n[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Retrying Firefox (15); connection error: Error: connect ECONNREFUSED 127.0.0.1:53748\n[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Connecting to Firefox on port 53748\n[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Retrying Firefox (16); connection error: Error: connect ECONNREFUSED 127.0.0.1:53748\n[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Connecting to Firefox on port 53748\n[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Retrying Firefox (17); connection error: Error: connect ECONNREFUSED 127.0.0.1:53748\n[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Connecting to Firefox on port 53748\n[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Retrying Firefox (18); connection error: Error: connect ECONNREFUSED 127.0.0.1:53748\n[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Connecting to Firefox on port 53748\n[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Retrying Firefox (19); connection error: Error: connect ECONNREFUSED 127.0.0.1:53748\n[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Connecting to Firefox on port 53748\n[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Retrying Firefox (20); connection error: Error: connect ECONNREFUSED 127.0.0.1:53748\n[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Connecting to Firefox on port 53748\n[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Retrying Firefox (21); connection error: Error: connect ECONNREFUSED 127.0.0.1:53748\n[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Connecting to Firefox on port 53748\n[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Retrying Firefox (22); connection error: Error: connect ECONNREFUSED 127.0.0.1:53748\n[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Connecting to Firefox on port 53748\n[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Retrying Firefox (23); connection error: Error: connect ECONNREFUSED 127.0.0.1:53748\n[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Connecting to Firefox on port 53748\n[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/index.js][debug] Firefox stdout: Started devtools server on 53748\n[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Retrying Firefox (24); connection error: Error: connect ECONNREFUSED 127.0.0.1:53748\n[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Connecting to Firefox on port 53748\n[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Connected to the remote Firefox debugger on port 53748\n[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/index.js][debug] Firefox stderr: [WARN  rkv::backend::impl_safe::environment] `load_ratio()` is irrelevant for this storage backend.\n[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/index.js][debug] Firefox stdout: [GFX1-]: RenderCompositorSWGL failed mapping default framebuffer, no dt\n[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] installTemporaryAddon: {\"addon\":{\"id\":\"wallet-testnet@ynxweb4.com\",\"actor\":false},\"from\":\"server1.conn0.addonsActor2\"}\n[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][info] Installed /Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/dist/firefox as a temporary add-on\n[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/cmd/run.js][info] Automatic extension reloading has been disabled\n"
+  },
+  "directRestart": {
+    "pid": 20973,
+    "port": 53868,
+    "debuggerConnected": true,
+    "addonAbsent": true,
+    "cleanup": {
+      "initial": [
+        20973
+      ],
+      "afterTerm": [],
+      "alive": []
+    },
+    "error": null
+  },
+  "passed": true,
+  "temporaryAddonNonPersistenceProved": true,
+  "installedLocal": false,
+  "popupDomObserved": false,
+  "backgroundStarted": false,
+  "providerSuccessClaimed": false,
+  "accountAuthorized": false,
+  "messageSigned": false,
+  "transactionSubmitted": false
+}

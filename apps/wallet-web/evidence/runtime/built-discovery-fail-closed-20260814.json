@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "c6870072fade9aa0868446033f1dbf9ab1f5ca97",
+  "generatedAt": "2026-08-14T06:45:10.431Z",
+  "gateClass": "exact built-artifact provider module and UI-source discovery contract; not browser runtime or an injected wallet",
+  "artifacts": [
+    {
+      "name": "ynx-wallet-web-pwa-0.1.0.zip",
+      "bytes": 272501,
+      "sha256": "38499d18d889a3d5f8c709bf9b2b2dda553c49b4b1f8c7e84fed1f23ca2638ed",
+      "failures": {
+        "migration": {
+          "failedClosed": true,
+          "code": "MIGRATION_INCOMPLETE"
+        },
+        "malformed": {
+          "failedClosed": true,
+          "code": "INVALID_DISCOVERY_RESPONSE"
+        }
+      },
+      "detected": {
+        "ynxPresent": true,
+        "metamaskPresent": true,
+        "showYNXConnect": true,
+        "showYNXDownload": false,
+        "showMetaMaskChoice": false,
+        "metaMaskChoice": "connect"
+      },
+      "absent": {
+        "ynxPresent": false,
+        "metamaskPresent": false,
+        "showYNXConnect": false,
+        "showYNXDownload": true,
+        "showMetaMaskChoice": true,
+        "metaMaskChoice": "official-download"
+      },
+      "routes": {
+        "ynx": "https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk",
+        "metamask": "https://metamask.io/download"
+      },
+      "uiResetsBeforeDiscovery": true,
+      "sessionDeletedOnlyOnFailure": true,
+      "passed": true
+    },
+    {
+      "name": "ynx-wallet-chrome-edge-0.1.0.zip",
+      "bytes": 188641,
+      "sha256": "4b8d54c2d7d6397f9423110e8b9dc18833b47ec73efaa2ecdcf31cffd32bf694",
+      "failures": {
+        "migration": {
+          "failedClosed": true,
+          "code": "MIGRATION_INCOMPLETE"
+        },
+        "malformed": {
+          "failedClosed": true,
+          "code": "INVALID_DISCOVERY_RESPONSE"
+        }
+      },
+      "detected": {
+        "ynxPresent": true,
+        "metamaskPresent": true,
+        "showYNXConnect": true,
+        "showYNXDownload": false,
+        "showMetaMaskChoice": false,
+        "metaMaskChoice": "connect"
+      },
+      "absent": {
+        "ynxPresent": false,
+        "metamaskPresent": false,
+        "showYNXConnect": false,
+        "showYNXDownload": true,
+        "showMetaMaskChoice": true,
+        "metaMaskChoice": "official-download"
+      },
+      "routes": {
+        "ynx": "https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk",
+        "metamask": "https://metamask.io/download"
+      },
+      "uiResetsBeforeDiscovery": true,
+      "sessionDeletedOnlyOnFailure": true,
+      "passed": true
+    },
+    {
+      "name": "ynx-wallet-firefox-0.1.0.zip",
+      "bytes": 188678,
+      "sha256": "0bd51179ec21ba523c6ecfab1f4aa61bd9aa15d8341aa0a3beb89e6765e2bf42",
+      "failures": {
+        "migration": {
+          "failedClosed": true,
+          "code": "MIGRATION_INCOMPLETE"
+        },
+        "malformed": {
+          "failedClosed": true,
+          "code": "INVALID_DISCOVERY_RESPONSE"
+        }
+      },
+      "detected": {
+        "ynxPresent": true,
+        "metamaskPresent": true,
+        "showYNXConnect": true,
+        "showYNXDownload": false,
+        "showMetaMaskChoice": false,
+        "metaMaskChoice": "connect"
+      },
+      "absent": {
+        "ynxPresent": false,
+        "metamaskPresent": false,
+        "showYNXConnect": false,
+        "showYNXDownload": true,
+        "showMetaMaskChoice": true,
+        "metaMaskChoice": "official-download"
+      },
+      "routes": {
+        "ynx": "https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk",
+        "metamask": "https://metamask.io/download"
+      },
+      "uiResetsBeforeDiscovery": true,
+      "sessionDeletedOnlyOnFailure": true,
+      "passed": true
+    }
+  ],
+  "ynxFallbackRouteHosted": true,
+  "webArtifactDownloadHosted": false,
+  "installedLocal": false,
+  "providerConnected": false,
+  "accountAuthorized": false,
+  "messageSigned": false,
+  "transactionSubmitted": false,
+  "deployedPublic": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "passed": true
+}

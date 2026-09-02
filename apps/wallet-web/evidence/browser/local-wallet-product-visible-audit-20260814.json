@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "sourceBaseline": "4b631f83f7cc468dbde3a1bb9c9383f98060c347",
+  "surface": "isolated Codex in-app browser against current built PWA on 127.0.0.1",
+  "sourceBlobProtection": {
+    "app": true,
+    "styles": true,
+    "serviceWorker": true,
+    "provider": true,
+    "i18nBeforeChange": true,
+    "manifest": true
+  },
+  "preFixFinding": {
+    "localeCount": 12,
+    "nonEnglishLocalesUsingEnglishFallback": 11,
+    "missingRawKeysPerLocale": ["eyebrow", "light", "dark", "txHash", "signature", "preferencesRejected"],
+    "arabicObservedEyebrow": "Wallet companion",
+    "arabicObservedThemeButton": "Dark"
+  },
+  "postFixVisibleChecks": {
+    "defaultEnglish": true,
+    "localeCount": 12,
+    "rawLocaleKeyCoverageComplete": true,
+    "arabicLang": "ar",
+    "arabicDirection": "rtl",
+    "arabicEyebrow": "مرافق المحفظة",
+    "arabicDarkLabel": "داكن",
+    "arabicLightLabelAfterDark": "فاتح",
+    "lightDark": true,
+    "viewportWidth": 390,
+    "documentScrollWidth": 390,
+    "overflowingVisibleElements": 0,
+    "logoAsset": "ynx-logo.png",
+    "logoNaturalDimensions": "798x420",
+    "logoObjectFit": "contain",
+    "logoContentAspectRatioPreserved": true,
+    "ynxProviderPresent": false,
+    "ynxProviderDetectionUi": true,
+    "ynxConnectVisible": false,
+    "androidFallbackVisible": true,
+    "androidFallbackOfficialRoute": true,
+    "metaMaskFallbackVisible": true,
+    "metaMaskFallbackOfficialRoute": true,
+    "unavailablePlatformDisabledControlCount": 9,
+    "unavailablePlatformControlsAriaDisabled": true,
+    "offlineShellVisible": true,
+    "offlineErrorVisible": true,
+    "offlineErrorCode": "RPC_UNAVAILABLE",
+    "offlineNetworkEvent": "net::ERR_FAILED",
+    "offlineActionsDisabled": ["add", "switch", "sign", "send"]
+  },
+  "screenshots": [
+    {"path": "evidence/browser/local-wallet-390-english-fail-closed-20260814.png", "bytes": 107839, "sha256": "2b55fa1f31154c1d236a2ecb33b0c6d9719a7cd833f848dac3143fa9a7c190e7"},
+    {"path": "evidence/browser/local-wallet-390-arabic-dark-fixed-20260814.png", "bytes": 39743, "sha256": "cc059a9fea0496ce29119b4e93feb87a4417ab361be21c5501a463ea892e55f3"},
+    {"path": "evidence/browser/local-wallet-390-arabic-offline-fail-closed-20260814.png", "bytes": 44740, "sha256": "9dc3b5144444c8fd59964c1de70bba711c17e431ec1bc2da1e1a25a64680aa19"}
+  ],
+  "truthBoundary": {
+    "pwaInstalled": false,
+    "providerConnected": false,
+    "accountAuthorized": false,
+    "messageSigned": false,
+    "transactionSubmitted": false,
+    "deployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

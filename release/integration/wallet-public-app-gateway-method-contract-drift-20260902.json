@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-09-02T03:57:16Z",
+  "owner": "wallet-web-companion",
+  "probe": {
+    "url": "https://rest.ynxweb4.com/app/health",
+    "method": "GET",
+    "httpStatus": 405,
+    "allow": "POST",
+    "contentType": "text/plain; charset=utf-8",
+    "bytes": 19,
+    "body": "Method Not Allowed"
+  },
+  "frozenContract": {
+    "matrixCommit": "d0f89797d13c7667cc187b0c64d5c9e1cb1d8f59",
+    "endpointId": "app-gateway-v1",
+    "url": "https://rest.ynxweb4.com/app/health",
+    "expectedHealthMethod": "GET",
+    "expectedStatus": 200
+  },
+  "classification": "PUBLIC_APP_GATEWAY_METHOD_CONTRACT_DRIFT",
+  "safeBoundary": {
+    "postProbeNotSent": true,
+    "reason": "The accepted client contract is GET; this owner does not substitute an unreviewed POST health semantics."
+  },
+  "requiredFix": "Restore accepted GET health semantics, or issue a new immutable endpoint matrix and update every platform consumer atomically under a Central-controlled release."
+}

@@ -1,0 +1,18 @@
+{
+  "name": "YNX Wallet Testnet Companion",
+  "short_name": "YNX Wallet",
+  "id": "/wallet/companion",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "description": "Fail-closed YNX Testnet wallet companion for chain 6423.",
+  "background_color": "#f6f7fa",
+  "theme_color": "#002fa7",
+  "lang": "en",
+  "dir": "auto",
+  "icons": [
+    {"src":"./ynx-icon-192.png","sizes":"192x192","type":"image/png","purpose":"any"},
+    {"src":"./ynx-icon-512.png","sizes":"512x512","type":"image/png","purpose":"any"},
+    {"src":"./ynx-icon-maskable-512.png","sizes":"512x512","type":"image/png","purpose":"maskable"}
+  ]
+}

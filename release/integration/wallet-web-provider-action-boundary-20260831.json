@@ -1,0 +1,144 @@
+{
+  "schemaVersion": 1,
+  "kind": "walletWebProviderActionBoundary",
+  "candidate": {
+    "branch": "codex/wallet-web-companion-fresh-main-prep-20260831",
+    "sourceCommit": "5a1f6e176b6ece953b22d8d62d94d401d69668bd",
+    "artifactCommit": "4593f6295ced010972c54cb033db0b1d8b9845d1",
+    "publicRuntimeDeployed": false
+  },
+  "metamaskNetworkChange": {
+    "userConfirmationRequired": true,
+    "operation": "switch-or-add-ynx-testnet",
+    "targetOrigins": [
+      "https://wallet.ynxweb4.com",
+      "https://app.uniswap.org",
+      "https://opensea.io",
+      "https://app.safe.global"
+    ],
+    "chain": {
+      "cosmosChainId": "ynx_6423-1",
+      "evmChainId": 6423,
+      "evmChainHex": "0x1917",
+      "chainName": "YNX Testnet",
+      "nativeCurrency": {
+        "name": "YNX Testnet",
+        "symbol": "YNXT",
+        "decimals": 18
+      },
+      "rpcUrls": [
+        "https://evm.ynxweb4.com"
+      ],
+      "blockExplorerUrls": [
+        "https://explorer.ynxweb4.com"
+      ]
+    },
+    "steps": [
+      {
+        "method": "wallet_switchEthereumChain",
+        "params": [
+          {
+            "chainId": "0x1917"
+          }
+        ]
+      },
+      {
+        "onlyIfErrorCode": 4902,
+        "method": "wallet_addEthereumChain",
+        "params": [
+          {
+            "chainId": "0x1917",
+            "chainName": "YNX Testnet",
+            "nativeCurrency": {
+              "name": "YNX Testnet",
+              "symbol": "YNXT",
+              "decimals": 18
+            },
+            "rpcUrls": [
+              "https://evm.ynxweb4.com"
+            ],
+            "blockExplorerUrls": [
+              "https://explorer.ynxweb4.com"
+            ]
+          }
+        ]
+      },
+      {
+        "onlyIfPreviousStepWasAdded": true,
+        "method": "wallet_switchEthereumChain",
+        "params": [
+          {
+            "chainId": "0x1917"
+          }
+        ]
+      },
+      {
+        "method": "eth_chainId",
+        "params": [],
+        "expectedResult": "0x1917"
+      }
+    ],
+    "forbiddenMethods": [
+      "eth_requestAccounts",
+      "eth_accounts",
+      "personal_sign",
+      "eth_signTypedData_v4",
+      "eth_sendTransaction"
+    ],
+    "noAutomaticRollback": true,
+    "rollbackBoundary": "The user controls any later network selection; this package never switches away from the requested YNX Testnet automatically.",
+    "successDoesNotProve": [
+      "accountApproval",
+      "signature",
+      "transaction",
+      "ynxProviderInstalled",
+      "publicWalletCompanionDeployment"
+    ]
+  },
+  "ynxExtensionCandidate": {
+    "userConfirmationRequired": true,
+    "installationPerformed": false,
+    "artifact": {
+      "name": "ynx-wallet-chrome-edge-0.1.0.zip",
+      "bytes": 470036,
+      "sha256": "393ca91b07f1cbc431c792ff9c26b07e59fe8ba68702c61de2d2495a6a2d7b2a",
+      "minimumRuntime": "Chrome 120 / Edge 120",
+      "signingClass": "unsigned-unpacked-extension"
+    },
+    "providerIdentity": {
+      "name": "YNX Wallet",
+      "rdns": "com.ynx.wallet",
+      "isYNXWallet": true,
+      "isMetaMask": false,
+      "eip6963": true,
+      "eip1193": true
+    },
+    "injectionScope": "https-only top-level DApp pages",
+    "eligibleOrigins": [
+      "https://wallet.ynxweb4.com",
+      "https://app.uniswap.org",
+      "https://opensea.io",
+      "https://app.safe.global"
+    ],
+    "forbiddenActionsBeforeConfirmation": [
+      "extensionInstallation",
+      "eth_requestAccounts",
+      "wallet_switchEthereumChain",
+      "wallet_addEthereumChain",
+      "personal_sign",
+      "eth_signTypedData_v4",
+      "eth_sendTransaction"
+    ]
+  },
+  "truth": {
+    "providerDiscoveryDirectEvidence": true,
+    "metamaskCurrentChainWasNotTarget": true,
+    "metamaskNetworkChangePerformed": false,
+    "ynxExtensionInstalled": false,
+    "ynxProviderDirectlyObserved": false,
+    "accountApprovalObserved": false,
+    "chain0x1917Observed": false,
+    "signatureObserved": false,
+    "transactionObserved": false
+  }
+}

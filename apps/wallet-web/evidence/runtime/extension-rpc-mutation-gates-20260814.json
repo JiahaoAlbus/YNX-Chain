@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "sourceBaseline": "0b3ffa8faabad2caa49b1c00db493261e2d98bca",
+  "observedAt": "2026-08-14T04:21:30Z",
+  "endpoint": "https://evm.ynxweb4.com",
+  "request": {"jsonrpc":"2.0","id":6423,"method":"eth_chainId","params":[]},
+  "budgetsMs": {"rpc":12000,"pageBridge":18000,"runtimeGate":20000},
+  "transportDiagnostics": {
+    "resolvedAddress": "198.18.0.104",
+    "curlHttp1Tls": "timeout",
+    "curlHttp2": {"httpStatus":200,"result":"0x1917"},
+    "nodeFetch": {"httpStatus":200,"result":"0x1917"},
+    "edgeMv3Bridge": {"provedExact0x1917":false,"errorCode":"BRIDGE_TIMEOUT"}
+  },
+  "manifest": {
+    "rpcHostPermission": true,
+    "extensionPageConnectSrc": "https://evm.ynxweb4.com"
+  },
+  "edgeTemporaryRuntime": {
+    "version": "151.0.4129.78",
+    "extensionId": "jgijcegbgeobldllfniaejejofobcngk",
+    "providerInjected": true,
+    "rpcProved": false,
+    "addChainSucceeded": false,
+    "addChainWalletCalls": [],
+    "switchChainSucceeded": false,
+    "switchChainWalletCalls": [],
+    "tamperedParamsRejected": true,
+    "tamperErrorCode": "INVALID_CHAIN_PARAMS",
+    "tamperWalletCalls": [],
+    "wrongChainRetestReachedAssertion": false,
+    "wrongChainRetestFailure": "Edge control connection timed out during both bounded launch attempts"
+  },
+  "lateMutationProtection": {
+    "runtimeAbsoluteDeadline": true,
+    "deadlineRecheckedAfterRpcBeforeWalletCall": true
+  },
+  "releaseStates": {
+    "installedLocal": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "connectedAccount": false,
+    "signedMessage": false,
+    "submittedTransaction": false
+  }
+}

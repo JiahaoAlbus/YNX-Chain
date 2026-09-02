@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-21T17:11:22Z",
+  "product": "YNX Wallet Companion Web/PWA",
+  "sourceCommit": "7032948364c507f898a2b0cdba2a62d4039388fc",
+  "providerAuthorityCommit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+  "providerEvidenceCommit": "d3831c300560507f64a50e73117bab7b85926d9a",
+  "deployment": {
+    "id": "dpl_98S2czECu4YvPWnbpHUctKtJxDQD",
+    "immutableUrl": "https://ynx-wallet-fumz9cg1j-jiahaoalbus-projects.vercel.app",
+    "publicUrl": "https://wallet.ynxweb4.com/",
+    "ready": true,
+    "sourceBound": true,
+    "buildIdentityBytes": 267,
+    "buildIdentitySha256": "5d72796f5430daa82427ecd0621d0ae6952c1263b7228a85d5affa18cff5224e",
+    "indexBytes": 874,
+    "indexSha256": "9ccd409b6b14f3b41d97c765065d20747c286e697fafdc571551b838d7fbab15",
+    "appBytes": 17382,
+    "appSha256": "c752e4117a1d591859f9bf2be96d22d59ee2b1da7c224e71422cdeb083333c3f",
+    "serviceWorkerBytes": 4337,
+    "serviceWorkerSha256": "c65fbb724cba79fc06178fc1fa0543f69e821c0a732e7ceaa5b65e3694edd953"
+  },
+  "tests": {
+    "source": "101/101 passed",
+    "packageIntegrity": "3/3 passed",
+    "builtPwaInstallability": true,
+    "cacheIntegrityLifecycle": true
+  },
+  "realChromeVisible": {
+    "publicUrlStable": true,
+    "titleExact": true,
+    "shellVersion": "pwa-v10",
+    "defaultEnglish": true,
+    "noTranslate": true,
+    "metaMaskEip6963Detected": true,
+    "ynxProviderDetected": false,
+    "notConnectedVisible": true,
+    "chooserOpenCloseInOriginalTab": true,
+    "connectionControlsHiddenWhileDisconnected": true,
+    "arabicRtlVisible": true,
+    "dynamicDisconnectedTextLocalized": true,
+    "darkThemeVisible": true,
+    "secondLoadVisible": true,
+    "secondLoadPreferenceRestore": true,
+    "consoleErrors": 0,
+    "blankCustomSchemeTabOpened": false,
+    "screenshot": {
+      "path": "apps/wallet-web/evidence/browser/wallet-web-v10-public-nonsensitive-20260822.png",
+      "bytes": 95353,
+      "sha256": "2cda1360fc378089bc17f9d7b8036e99f42c5c14bbe702be038dea539afda7c1"
+    }
+  },
+  "callbackFailClosed": {
+    "url": "https://www.ynxweb4.com/dapp/wallet/wallet-auth/callback",
+    "httpStatus": 200,
+    "contentType": "text/html; charset=utf-8",
+    "bytes": 1018,
+    "probeBodySha256": "3cc384404c5ee932a3803fe2fbc29071fbde803803935d1f937e8a2528e2d6a8",
+    "visibleCode": "CALLBACK_MISMATCH",
+    "authorityGranted": false,
+    "screenshot": {
+      "path": "apps/wallet-web/evidence/browser/wallet-web-v10-callback-failclosed-20260822.png",
+      "bytes": 41265,
+      "sha256": "f479fe7ef5bd95a2a57bfff192303c01a746beccb70f1d6d4d1d4a3d93f9f151"
+    }
+  },
+  "sourceOnlyGates": {
+    "connectedChooserClosesAndPendingIntentClears": true,
+    "connectedDetailsIsolatedFromProviderChooser": true,
+    "exactProviderRefreshRestore": true,
+    "disconnectInvalidation": true,
+    "accountAndChainChangeInvalidation": true
+  },
+  "waitingExternal": {
+    "status": "WAITING_EXTERNAL",
+    "boundary": "MetaMask eth_requestAccounts approval would disclose a real test account address to https://wallet.ynxweb4.com",
+    "button": "Use MetaMask"
+  },
+  "directEvidenceGates": {
+    "accountApproved": false,
+    "providerChainId1917": false,
+    "chooserClosedAfterApproval": false,
+    "connectedRefreshRestored": false,
+    "connectedDisconnectVerified": false,
+    "connectedSwitchAccountVerified": false,
+    "ynxProviderVerified": false,
+    "productSessionVerified": false,
+    "messageSigned": false,
+    "transactionSubmitted": false,
+    "installedLocal": false,
+    "currentArtifactsDownloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

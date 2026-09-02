@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-09-01T22:57:46Z",
+  "owner": "wallet-web-companion",
+  "method": "direct anonymous read-only HTTPS probes; no account, authorization, signing, transaction, or Faucet request",
+  "observations": {
+    "rpc": {
+      "url": "https://rpc.ynxweb4.com/evm",
+      "request": "eth_chainId",
+      "httpStatus": 200,
+      "contentType": "application/json",
+      "bytes": 43,
+      "result": "0x1917",
+      "chainReachable": true
+    },
+    "appGatewayV1": {
+      "url": "https://rest.ynxweb4.com/app/health",
+      "request": "GET",
+      "frozenMatrixCommit": "d0f89797d13c7667cc187b0c64d5c9e1cb1d8f59",
+      "frozenMatrixExpectedStatus": 200,
+      "httpStatus": 405,
+      "contentType": "text/plain; charset=utf-8",
+      "bytes": 19,
+      "body": "Method Not Allowed",
+      "matchesFrozenAvailability": false,
+      "classification": "APP_GATEWAY_HEALTH_ROUTE_RUNTIME_DRIFT"
+    },
+    "walletGateway": {
+      "url": "https://wallet-auth.ynxweb4.com/health",
+      "request": "GET",
+      "httpStatus": 200,
+      "contentType": "application/json; charset=utf-8",
+      "bytes": 197,
+      "remoteDeployed": true,
+      "service": "ynx-wallet-gatewayd",
+      "truthfulStatus": "remote-canonical-wallet-gateway"
+    },
+    "faucet": {
+      "url": "https://faucet.ynxweb4.com/health",
+      "request": "GET",
+      "httpStatus": 200,
+      "contentType": "application/json",
+      "bytes": 383,
+      "chainId": 6423,
+      "upstreamOk": true,
+      "truthfulStatus": "rpc-backed-faucet",
+      "buildCommit": "64efa498fa99"
+    }
+  },
+  "conclusions": {
+    "rpcTransportReachable": true,
+    "faucetHealthReachable": true,
+    "walletGatewayHealthReachable": true,
+    "appGatewayFrozenHealthRouteReachable": false,
+    "aggregateWalletConnectivityHealthy": false,
+    "webProviderConnectionProved": false,
+    "installedWalletConnectionProved": false,
+    "authorizationApproved": false,
+    "faucetRequestProved": false
+  },
+  "requiredOwnerAction": "App Gateway owner must reconcile the frozen GET /app/health contract with the public route before Wallet clients can treat the matrix availability as authoritative."
+}

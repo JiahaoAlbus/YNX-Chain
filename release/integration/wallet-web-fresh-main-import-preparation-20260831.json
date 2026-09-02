@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "kind": "walletWebFreshMainImportPreparation",
+  "preparedAt": "2026-08-31T10:19:00Z",
+  "readOnlyPreparation": true,
+  "targetRepository": {
+    "allowedRemote": "https://github.com/JiahaoAlbus/YNX-Chain.git",
+    "rejectedRepository": "JiahaoAlbus/ynx-web4-website-new",
+    "requiredCleanGit": true,
+    "baselineMainCommit": "babfc57cebf60eadaec51398202de11cda742901",
+    "baselineMainTree": "ae2b629c8b08029cda1ec664d9252f83dad06200",
+    "walletWebPathOnBaseline": false
+  },
+  "ownerSource": {
+    "commit": "0add9f817b79790cfe3d26a88c9a64f90fdaeebb",
+    "tree": "74e0b9be4ffc445b18dc4d042df6732f55be98cb",
+    "parent": "90132a04168d2f5a65cef4eaaba81109fdc8788c",
+    "path": "apps/wallet-web",
+    "containsDedicatedCompanionConfiguration": "apps/wallet-web/public/vercel.json",
+    "mergeBaseWithBaseline": null,
+    "ordinaryMergeAllowed": false,
+    "requiredOperation": "Perform a reviewed path-scoped tree import of apps/wallet-web into a fresh, clean allowed-repository worktree. Do not use --allow-unrelated-histories."
+  },
+  "historicalSourceConflict": {
+    "dedicatedShellCommit": "9a51e89dee80185d16598cbb9c664b9f2bc4c557",
+    "providerFixCommit": "3651ba0c4322e0564e29b4573f3def90828dba67",
+    "mergeBase": "9b4429bc312957443e03d23dc9d81f11f6402a6c",
+    "conflictingPaths": [
+      "apps/wallet-web/artifact-manifest.json",
+      "apps/wallet-web/artifacts/*",
+      "apps/wallet-web/public/app.js",
+      "apps/wallet-web/public/index.html",
+      "apps/wallet-web/scripts/build.mjs",
+      "apps/wallet-web/src/i18n.js",
+      "apps/wallet-web/src/provider.js",
+      "apps/wallet-web/src/service-worker-policy.js",
+      "apps/wallet-web/test/provider.test.js",
+      "apps/wallet-web/test/service-worker-policy.test.js",
+      "apps/wallet-web/test/ui-contract.test.js"
+    ],
+    "binaryArtifactReuseForbidden": true
+  },
+  "requiredCandidateGates": {
+    "sourceImportIsPathScoped": true,
+    "freshBuildRequired": true,
+    "freshArtifactsAndManifestRequired": true,
+    "expectedEvmChainId": "0x1917",
+    "legacy9102Forbidden": true,
+    "walletCompanionEnglishDefaultRequired": true,
+    "serviceWorkerNoStoreRequired": true,
+    "previewReadbackRequiredBeforeAliasMutation": true,
+    "threeDomainWebsiteLockRequired": true,
+    "rollbackIdentityCapturedRequired": true,
+    "accountRequestExcluded": true,
+    "signingExcluded": true,
+    "transactionExcluded": true
+  },
+  "truth": {
+    "sourceImportPrepared": true,
+    "candidateBuilt": false,
+    "previewVerified": false,
+    "aliasesMutated": false,
+    "walletCompanionPublic": false
+  }
+}

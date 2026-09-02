@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-31T15:31:07.453Z",
+  "ownerBranch": "codex/wallet-web-companion-fresh-main-prep-20260831",
+  "harnessCommit": "d93c5026055d139ef2fb22ebbf7acf3cb28c50ab",
+  "extensionSourceCommit": "5cee7e28b81fc1d27c977cb0613ba6a1dd2439e1",
+  "artifact": {
+    "name": "ynx-wallet-chrome-edge-0.1.0.zip",
+    "bytes": 470184,
+    "sha256": "d79fb3c5624f60554b19dfac5a6118b7f93850cb95807293f8c14f7a823ec2b3",
+    "signingClass": "unsigned-unpacked-extension"
+  },
+  "runtime": {
+    "browser": "Google Chrome 151.0.7922.175",
+    "profileClass": "disposable-isolated-profile",
+    "loadMode": "command-line temporary unpacked extension",
+    "firstLaunch": {
+      "browserPid": 25094,
+      "cdpConnected": true,
+      "managerEntries": [],
+      "result": "COMMAND_LINE_EXTENSION_NOT_LOADED"
+    },
+    "secondLaunch": {
+      "browserPid": 25137,
+      "cdpConnected": true,
+      "managerEntries": [],
+      "result": "COMMAND_LINE_EXTENSION_NOT_LOADED"
+    },
+    "edgeCrossCheck": {
+      "browser": "Microsoft Edge 152.0.4191.53",
+      "firstBrowserPid": 53971,
+      "secondBrowserPid": 54187,
+      "cdpConnectedBothLaunches": true,
+      "managerEntriesBothLaunches": [],
+      "result": "COMMAND_LINE_EXTENSION_NOT_LOADED",
+      "classification": "same disposable command-line loading blocker; not a Wallet provider, account, or chain failure"
+    },
+    "cleanup": {
+      "bothBrowserPidsExited": true,
+      "userDailyProfileTouched": false
+    }
+  },
+  "remediation": {
+    "harnessNowDiscoversTheActualChromeExtensionIdFromTheExtensionsManager": true,
+    "commandLineLoadFailureIsDistinctFromAProviderOrAccountFailure": true,
+    "requiredNextAction": "Install the exact unsigned unpacked extension through Chrome's user-visible extension-management flow in a dedicated profile, with user confirmation; then validate EIP-6963 injection before requesting account approval."
+  },
+  "truth": {
+    "temporaryUnpackedRuntimeProved": false,
+    "installedLocal": false,
+    "providerInjected": false,
+    "accountAuthorized": false,
+    "chain0x1917Readback": false,
+    "messageSigned": false,
+    "transactionSubmitted": false,
+    "downloadHosted": false,
+    "deployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

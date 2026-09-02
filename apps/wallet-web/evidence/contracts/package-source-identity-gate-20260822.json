@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet Web/PWA/Extensions",
+  "recordedAt": "2026-08-22",
+  "scope": "release-package-source-identity-fail-closed",
+  "source": {
+    "commit": "2357ae576abb14a25db261f94f63b3d4c71add83",
+    "tree": "d1bfecaa5d71c11f2b566c0aadf661a9e7c33e68",
+    "parent": "6fcf1a9cbc7900e5f0a5136d9d6bdc52c181a75c",
+    "branch": "codex/wallet-web-pwa-extensions-20260813"
+  },
+  "centralAcceptance": {
+    "commit": "fb3debe762960b34b9dd6478a3ff21aca3cc880a",
+    "tree": "09dd5691f0646cc1d3de1d994ea62bfb587a617a",
+    "path": "release/integration/p0-wallet-connectivity/acceptance/wallet-web-vault-signer-p0154-20260822.json",
+    "blob": "eed80100140c1c9b6df518d5d43c024fccfd4d78",
+    "sha256": "6934964f5ad6f568967acde1b923a8136f71bfe78e84008d8d25a6546f913331",
+    "decision": "VAULT_SIGNER_SOURCE_AND_BUILT_ARTIFACT_ACCEPTED_INSTALLED_BROWSER_E2E_FALSE",
+    "executionLeaseIssued": false,
+    "deploymentLeaseIssued": false
+  },
+  "implementedGate": {
+    "fullLowercaseCommitRequired": true,
+    "sourceCommitMustExistInRepository": true,
+    "allTargetBuildIdentitiesMustMatch": true,
+    "uncommittedSourceTreeFallbackRemoved": true,
+    "allSourceTestsRunInsidePackaging": true
+  },
+  "tests": {
+    "source": "112/112 pass",
+    "packageInternal": "112/112 pass",
+    "packageVerification": "3/3 pass",
+    "missingIdentity": {
+      "exitCode": 1,
+      "errorCode": "PACKAGE_SOURCE_COMMIT_REQUIRED",
+      "buildIdentityBeforeSha256": "bbdf854bff422c3be3f604d9b9ffd494ba36bf5c1387e34650ee0588212ab22b",
+      "buildIdentityAfterSha256": "bbdf854bff422c3be3f604d9b9ffd494ba36bf5c1387e34650ee0588212ab22b",
+      "artifactMutationProved": false
+    }
+  },
+  "artifacts": [
+    {
+      "name": "ynx-wallet-web-pwa-0.1.0.zip",
+      "bytes": 285232,
+      "sha256": "e484160ffdb6d554248b40a722d15c3b9262c84185412d10eff9989aaf917936",
+      "minimumOS": "modern browser with Service Worker and Web Crypto support",
+      "signingClass": "unsigned-web-bundle"
+    },
+    {
+      "name": "ynx-wallet-chrome-edge-0.1.0.zip",
+      "bytes": 468403,
+      "sha256": "447f76d1352b6e09e1e60093eaebb49e0ff97c787113d899f8c061b1bfe1f490",
+      "minimumOS": "Chrome 120 / Edge 120",
+      "signingClass": "unsigned-unpacked-extension"
+    },
+    {
+      "name": "ynx-wallet-firefox-0.1.0.zip",
+      "bytes": 468442,
+      "sha256": "c28406f437a1079f12f4208fb57144f914d6a8dd7621f63b6e01ebc11d3eda61",
+      "minimumOS": "Firefox 128",
+      "signingClass": "unsigned-unpacked-extension"
+    }
+  ],
+  "publicIdentityBlocker": {
+    "currentSourceBoundPublic": false,
+    "observedSourceCommit": "uncommitted-source-tree",
+    "releaseBlocked": true,
+    "deploymentLeaseIssued": false
+  },
+  "falseUntilDirectEvidence": {
+    "installedProviderVerified": false,
+    "accountApproved": false,
+    "providerChainId1917Verified": false,
+    "signVerified": false,
+    "typedDataVerified": false,
+    "transactionSubmitted": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "deployedPublic": false,
+    "parityComplete": false
+  }
+}

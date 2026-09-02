@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "kind": "walletWebPublicRouteImportAndReleaseRequest",
+  "preparedAt": "2026-09-01T00:39:00+08:00",
+  "ownerBranch": "codex/wallet-web-companion-fresh-main-prep-20260831",
+  "target": {
+    "repository": "JiahaoAlbus/YNX-Chain",
+    "baselineMainCommit": "babfc57cebf60eadaec51398202de11cda742901",
+    "sourceCommit": "8ce7406b4c254a29687a3a8361192c90bd925ee1",
+    "sourceTree": "2a66aedb3f42fed450236d8a59dd5c4a2e1f30e1",
+    "walletWebTree": "e0a3b051a579ebee054b046df0923eaa17d664c3",
+    "pwaBindingTree": "02e1e0e6466b9665a404bb329ca618895efe27e0",
+    "pathScopedImportOnly": [
+      "apps/wallet-web",
+      "release/integration/wallet-web-pwa-site"
+    ],
+    "ordinaryMergeAllowed": false,
+    "allowUnrelatedHistoriesAllowed": false
+  },
+  "publicPreflight": {
+    "observedAt": "2026-09-01T00:38:00+08:00",
+    "url": "https://wallet.ynxweb4.com/",
+    "status": 200,
+    "contentType": "text/html; charset=utf-8",
+    "bytes": 1018,
+    "sha256": "cce08d91065f56aa6418c70e92627bd7ef44d9afd5714a64d793e5ad05d8a171",
+    "title": "YNX Chain — Web4 Layer-1 Ecosystem",
+    "manifestHref": "/manifest.webmanifest",
+    "classification": "wrong main-site shell; not the dedicated Wallet Companion"
+  },
+  "requiredReleaseTransaction": {
+    "authority": "Central Website/Integration owner with current Vercel alias lock",
+    "forbiddenWithoutLease": [
+      "Vercel production deployment",
+      "wallet.ynxweb4.com alias mutation",
+      "www.ynxweb4.com alias mutation",
+      "apex alias mutation"
+    ],
+    "steps": [
+      "Create a fresh clean worktree from the recorded main baseline or its reviewed successor.",
+      "Import only the frozen wallet paths and preserve every unrelated main path.",
+      "Run npm ci, Wallet Web test, build, package, verify-package, and the immutable PWA binding self-test on the resulting integrated main commit.",
+      "Package again with YNX_WALLET_WEB_SOURCE_COMMIT equal to that exact integrated main commit; do not reuse owner-branch binary artifacts.",
+      "Deploy a preview from the dedicated apps/wallet-web/public Vercel root and read back build-identity.json, sw.js, asset-integrity.js, PWA manifest, and exact bytes before any alias move.",
+      "Move only wallet.ynxweb4.com to the verified dedicated Companion deployment under the existing three-domain website lock.",
+      "Read back wallet.ynxweb4.com title, build identity, English default UI, no-store worker identities, and artifact hashes; retain the current 1018-byte shell identity for rollback.",
+      "Run the public PWA verifier against the actual alias and capture immutable deployment identity plus rollback receipt."
+    ],
+    "rollback": {
+      "required": true,
+      "restoreAliasTarget": "the exact preflight shell identified by sha256 cce08d91065f56aa6418c70e92627bd7ef44d9afd5714a64d793e5ad05d8a171",
+      "doNotReuse": "owner branch artifacts or any stale service-worker cache identity"
+    }
+  },
+  "acceptance": {
+    "expectedChain": {
+      "native": "ynx_6423-1",
+      "evmDecimal": 6423,
+      "evmHex": "0x1917",
+      "legacy9102Forbidden": true
+    },
+    "dedicatedCompanionRequired": true,
+    "englishDefaultRequired": true,
+    "noTopLevelCustomSchemeNavigation": true,
+    "standardProviderConnectionIndependentOfProductSession": true,
+    "providerSelectionRequiresRealEip1193Provider": true,
+    "accountRequestExcludedFromThisReleaseTransaction": true,
+    "signingExcludedFromThisReleaseTransaction": true,
+    "transactionExcludedFromThisReleaseTransaction": true
+  },
+  "truth": {
+    "requestPrepared": true,
+    "integratedCentral": false,
+    "previewDeployed": false,
+    "walletAliasMutated": false,
+    "publicCompanionVerified": false,
+    "ynxProviderInstalled": false,
+    "accountApproved": false,
+    "chain0x1917Observed": false,
+    "signatureObserved": false,
+    "transactionObserved": false
+  }
+}

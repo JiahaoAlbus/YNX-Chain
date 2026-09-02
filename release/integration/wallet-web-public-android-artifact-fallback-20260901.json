@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-09-01T15:29:42Z",
+  "owner": "wallet-web-companion",
+  "sourceCommit": "51c9c8f796e0c1db1e3f27c0f6ad93ef22a5147b",
+  "artifactRefreshCommit": "598504b28f6742ac30d7cc8d76b7db4a23267a40",
+  "publicProbe": {
+    "url": "https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk",
+    "httpStatus": 200,
+    "contentType": "text/html; charset=utf-8",
+    "bytes": 1018,
+    "sha256": "cce08d91065f56aa6418c70e92627bd7ef44d9afd5714a64d793e5ad05d8a171",
+    "pageTitle": "YNX Chain — Web4 Layer-1 Ecosystem",
+    "isAndroidPackage": false,
+    "classification": "SPA_FALLBACK_NOT_APK"
+  },
+  "walletWebBehavior": {
+    "androidDownloadUrl": null,
+    "androidDownloadHosted": false,
+    "androidDownloadControl": "disabled",
+    "androidDownloadStatus": "PUBLIC_ARTIFACT_UNAVAILABLE",
+    "metaMaskOfficialFallbackAvailable": true
+  },
+  "boundaries": {
+    "androidApkHosted": false,
+    "androidApkInstalled": false,
+    "androidApkProductionSigned": false,
+    "walletProviderInstalled": false,
+    "accountApproval": false,
+    "chainSwitchReadback": false,
+    "transactionSent": false,
+    "publicCompanionDeployed": false
+  },
+  "requiredNextAction": "Publish a source-bound APK with direct application/vnd.android.package-archive headers, exact bytes and SHA-256, then update the matrix through a controlled website release."
+}

@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en" class="notranslate" translate="no">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="google" content="notranslate">
+    <link rel="stylesheet" href="vault.css">
+    <title>YNX Wallet — Account vault</title>
+  </head>
+  <body><main>
+    <header><img src="ynx-logo.png" alt="YNX"><span>YNX WALLET</span></header>
+    <p class="eyebrow">TESTNET ACCOUNT VAULT</p><h1>Own your YNX account</h1>
+    <p class="intro">The encrypted recovery key stays in this browser profile. Sites receive only the approved 0x account. Product Session is separate.</p>
+    <section id="current" class="card" aria-label="Current account"><strong>Current account</strong><p id="account" class="mono">Loading…</p></section>
+    <section class="card" aria-labelledby="setup-title"><h2 id="setup-title">Create or import</h2>
+      <label for="password">Vault password · 12 characters minimum</label><input id="password" type="password" minlength="12" maxlength="256" autocomplete="new-password">
+      <label for="secret">Recovery key · leave empty to create</label><textarea id="secret" maxlength="64" spellcheck="false" autocomplete="off"></textarea>
+      <button id="prepare" type="button" class="primary">Prepare account</button>
+      <div id="backup" class="hidden"><p>Write this recovery key offline. It is shown once and is never sent to a site.</p><output id="recovery" class="mono"></output><label class="confirm"><input id="confirmed" type="checkbox"> I stored this recovery key offline.</label><button id="save" type="button" class="primary" disabled>Encrypt and save</button></div>
+    </section>
+    <p id="status" role="status" aria-live="polite">No account action started.</p><button id="remove" type="button" class="danger hidden">Remove account and site permissions</button>
+  </main><script type="module" src="vault.js"></script></body>
+</html>
