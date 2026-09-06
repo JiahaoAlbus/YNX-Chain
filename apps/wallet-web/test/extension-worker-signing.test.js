@@ -19,12 +19,12 @@ const vaultPromise=createEncryptedVault({password:PASSWORD,secretHex:SECRET},web
 const source=await readFile(new URL("../extension/service-worker.js",import.meta.url),"utf8"),bindings={};
 for(const match of source.matchAll(/^import \{([^}]+)\} from "\.\/([^"]+)";$/gm)){const module=await import(new URL(`../src/${match[2]}`,import.meta.url));for(const name of match[1].split(","))bindings[name]=module[name]}
 const executable=source.replace(/^import .*;\n/gm,"");
-async function fixture(t,{permitted=true,existingLocal=null}={}){
+async function fixture(t,{permitted=true,existingLocal=null,firefox=false,browserContext="firefox-container-1"}={}){
   const vault=await vaultPromise,account={version:1,source:"ynx-wallet-vault",account:ACCOUNT},localState=existingLocal??{[EXTENSION_VAULT_KEY]:vault,[PROVIDER_ACCOUNT_KEY]:account,[PROVIDER_PERMISSIONS_KEY]:permitted?grantPermission({},ORIGIN,account):{}};
-  const state={url:`${ORIGIN}/request`,nonce:"0x1",chain:"0x1917",calls:[],signCalls:0,broadcasts:0,unlocks:0,opened:[],closed:[],events:[]};
+  const state={tabId:1,incognito:false,cookieStoreId:firefox?browserContext:undefined,contextByTab:{},url:`${ORIGIN}/request`,nonce:"0x1",chain:"0x1917",calls:[],signCalls:0,broadcasts:0,unlocks:0,opened:[],closed:[],events:[]};
   const storage=data=>({async get(keys){const list=Array.isArray(keys)?keys:[keys],result=structuredClone(Object.fromEntries(list.filter(key=>Object.hasOwn(data,key)).map(key=>[key,data[key]])));if(state.afterGet)await state.afterGet(keys);return result},async set(values){Object.assign(data,structuredClone(values));if(state.afterSet)await state.afterSet(values)},async remove(keys){for(const key of Array.isArray(keys)?keys:[keys])delete data[key]}});
   const waiting=[],timers=new Set();let listener;
-  const api={runtime:{id:"fixture",getURL:page=>`chrome-extension://fixture/${page}`,onMessage:{addListener:callback=>{listener=callback}}},storage:{local:storage(localState),session:storage({})},tabs:{onUpdated:{addListener:fn=>state.tabUpdated=fn},onRemoved:{addListener:fn=>state.tabRemoved=fn},async query(){if(state.beforeTabQuery)await state.beforeTabQuery();return[{id:1,url:state.url}]},async get(id){if(id===2&&state.vaultClosed)throw new Error("Vault tab closed");return{id,url:id===2?"chrome-extension://fixture/vault.html?requestId=unused":state.url}},async sendMessage(_id,message){state.events.push(message)}},scripting:{async executeScript(){if(state.beforeInjection)await state.beforeInjection();return[]}},windows:{async create(options){const created={id:state.opened.length+1,...options};state.opened.push(created);waiting.shift()?.(created);return created},async remove(id){state.closed.push(id)}}};
+  const api={runtime:{id:"fixture",getURL:page=>`${firefox?"moz":"chrome"}-extension://fixture/${page}`,onMessage:{addListener:callback=>{listener=callback}}},storage:{local:storage(localState),session:storage({})},tabs:{onUpdated:{addListener:fn=>state.tabUpdated=fn},onRemoved:{addListener:fn=>state.tabRemoved=fn},async query(){if(state.beforeTabQuery)await state.beforeTabQuery();return[{id:state.tabId,url:state.url,incognito:state.incognito,cookieStoreId:state.cookieStoreId}]},async get(id){if(id===2&&state.vaultClosed)throw new Error("Vault tab closed");return{id,incognito:state.incognito,cookieStoreId:Object.hasOwn(state.contextByTab,id)?state.contextByTab[id]:state.cookieStoreId,url:id===2?api.runtime.getURL("vault.html?requestId=unused"):state.url}},async sendMessage(_id,message){state.events.push(message)}},scripting:{async executeScript(){if(state.beforeInjection)await state.beforeInjection();return[]}},windows:{async create(options){const created={id:state.opened.length+1,...options};state.opened.push(created);waiting.shift()?.(created);return created},async remove(id){state.closed.push(id)}}};
   const actualSign=bindings.signExtensionRequest,actualUnlock=bindings.unlockEncryptedVault;
   const fetcher=async(_url,options)=>{const{method,params}=JSON.parse(options.body);state.calls.push({method,params});if(state.beforeRpc)await state.beforeRpc(method);if(state.unavailable===method)throw new Error("RPC fixture unavailable");if(state.rpcErrors?.[method])return{ok:true,redirected:false,url:"https://evm.ynxweb4.com/",json:async()=>({jsonrpc:"2.0",id:6423,error:state.rpcErrors[method]})};let result;
     if(method==="eth_sendRawTransaction"){state.broadcasts++;state.transaction=Transaction.from(params[0]);if(state.broadcastHook)await state.broadcastHook();if(state.transportFailure)throw new Error("ACK lost");if(state.broadcastError)return{ok:state.broadcastHttpSuccess!==false,redirected:false,url:"https://evm.ynxweb4.com/",json:async()=>({jsonrpc:"2.0",id:6423,error:state.broadcastError})};result=state.ackHash??state.transaction.hash}
@@ -39,7 +39,7 @@ async function fixture(t,{permitted=true,existingLocal=null}={}){
   t.after(()=>{vm.runInContext('invalidateWaiters("FIXTURE_CLOSED","Fixture closed.")',context);for(const timer of timers)clearTimeout(timer)});
   const send=(message,sender)=>new Promise(resolve=>{const accepted=listener(message,sender,resolve);if(accepted===false)resolve({ok:false,error:{code:"UNHANDLED"}})});
   let count=0,windowCursor=0;
-  const request=(method,params,deadlineAt=Date.now()+5000)=>{const requestId=`ynx-${(++count).toString(16).padStart(8,"0")}-1111-4111-8111-111111111111`,message={type:RUNTIME_REQUEST,version:BRIDGE_VERSION,requestId,origin:ORIGIN,deadlineAt,method,params};return{requestId,result:send(message,{tab:{id:1,url:state.url},frameId:0,url:state.url})}};
+  const request=(method,params,deadlineAt=Date.now()+5000,extra={})=>{const requestId=`ynx-${(++count).toString(16).padStart(8,"0")}-1111-4111-8111-111111111111`,message={type:RUNTIME_REQUEST,version:BRIDGE_VERSION,requestId,origin:ORIGIN,deadlineAt,method,params,...extra};return{requestId,result:send(message,{tab:{id:state.tabId,url:state.url,incognito:state.incognito,cookieStoreId:state.cookieStoreId},frameId:0,url:state.url})}};
   const page=(page,requestId)=>({id:"fixture",url:api.runtime.getURL(`${page}?requestId=${requestId}`)});
   return{state,localState,request,pageRequest:(preference,input,providers)=>{context.ethereum={providers};return context.__YNX_INTERNAL_PAGE_WALLET_REQUEST__(preference,input)},popupRequest:(method,params,preference="ynx")=>send({type:"YNX_WALLET_REQUEST",preference,input:{method,params}},page("popup.html","unused")),nextWindow:()=>windowCursor<state.opened.length?Promise.resolve(state.opened[windowCursor++]):new Promise(resolve=>waiting.push(value=>{windowCursor++;resolve(value)})),
     review:requestId=>send({type:"YNX_SIGNER_GET_V1",requestId},page("signer.html",requestId)),
@@ -314,4 +314,68 @@ test("missing durability blocks before review or decrypt; loss during approval d
  const params=[{from:ACCOUNT,to:TO,value:toQuantity(2n*10n**18n)}],missing=await fixture(t);missing.state.durabilityModel={};const result=await missing.request("eth_sendTransaction",params).result;
  assert.equal(result.error.code,"DURABILITY_UNCONFIRMED");assert.equal(missing.state.opened.length,0);assert.equal(missing.state.unlocks,0);assert.equal(missing.state.signCalls,0);assert.equal(missing.state.broadcasts,0);assert.equal(missing.state.calls.some(c=>c.method==="eth_getTransactionCount"),false);
  const changed=await fixture(t),request=changed.request("eth_sendTransaction",params);await changed.nextWindow();changed.state.durabilityModel={};await changed.decide(request.requestId);assert.equal((await request.result).error.code,"DURABILITY_UNCONFIRMED");assert.equal(changed.state.unlocks,0);assert.equal(changed.state.signCalls,0);assert.equal(changed.state.broadcasts,0);
+});
+
+async function connectFirefox(f){const request=f.request("eth_requestAccounts",[]);await f.nextWindow();await f.connectDecision(request.requestId);assert.equal((await request.result).ok,true)}
+
+test("same-origin Firefox containers and default context require separate connection approval",async t=>{
+  const f=await fixture(t,{firefox:true,permitted:false});await connectFirefox(f);
+  for(const context of["firefox-container-2","firefox-default"]){f.state.tabId+=2;f.state.cookieStoreId=context;
+    assert.deepEqual(Array.from((await f.request("eth_accounts",[]).result).result),[]);assert.equal((await f.request("wallet_getPermissions",[]).result).result.length,0);
+    for(const method of["personal_sign","eth_sendTransaction"]){const params=method==="personal_sign"?["0x01",ACCOUNT]:[{from:ACCOUNT,to:TO,value:toQuantity(10n**18n)}];assert.equal((await f.request(method,params).result).error.code,4100)}
+  }
+  assert.equal(f.state.opened.length,1);assert.equal(f.state.unlocks,0);assert.equal(f.state.signCalls,0);assert.equal(f.state.broadcasts,0);
+  await connectFirefox(f);assert.equal((await f.request("wallet_getPermissions",[]).result).result.length,1);
+});
+
+test("Firefox container permission persists across worker restart while legacy permission has no inferred container",async t=>{
+  const legacy=await fixture(t,{firefox:true});for(const context of["firefox-default","firefox-container-1"]){legacy.state.cookieStoreId=context;assert.deepEqual(Array.from((await legacy.request("eth_accounts",[]).result).result),[])}
+  const f=await fixture(t,{firefox:true,permitted:false});await connectFirefox(f);
+  const restarted=await fixture(t,{firefox:true,existingLocal:f.localState});assert.deepEqual(Array.from((await restarted.request("eth_accounts",[]).result).result),[ACCOUNT]);
+  restarted.state.cookieStoreId="firefox-container-2";assert.deepEqual(Array.from((await restarted.request("eth_accounts",[]).result).result),[]);
+  const chromium=await fixture(t);assert.deepEqual(Array.from((await chromium.request("eth_accounts",[]).result).result),[ACCOUNT]);
+});
+
+test("revoke from another Firefox container cannot remove permission or cancel an approved-container signer",async t=>{
+  const f=await fixture(t,{firefox:true,permitted:false});await connectFirefox(f);f.state.contextByTab[1]="firefox-container-1";
+  const request=f.request("personal_sign",["0x01",ACCOUNT]);await f.nextWindow();f.state.tabId=3;f.state.cookieStoreId="firefox-container-2";
+  assert.equal((await f.request("wallet_revokePermissions",[{eth_accounts:{}}]).result).ok,true);assert.equal((await f.decide(request.requestId)).ok,true);assert.equal((await request.result).ok,true);assert.equal(f.state.signCalls,1);
+  f.state.tabId=1;f.state.cookieStoreId="firefox-container-1";assert.deepEqual(Array.from((await f.request("eth_accounts",[]).result).result),[ACCOUNT]);
+  const pending=f.request("personal_sign",["0x02",ACCOUNT]);await f.nextWindow();f.state.tabId=4;await f.request("wallet_revokePermissions",[{eth_accounts:{}}]).result;assert.equal((await pending.result).error.code,"PERMISSION_REVOKED");assert.equal(f.state.signCalls,1);
+});
+
+test("Firefox private or missing browser context rejects requests before account reads, replay, review or RPC",async t=>{
+  for(const scenario of["missing","private","private-id","malformed"]){const f=await fixture(t,{firefox:true});let writes=0;f.state.afterSet=()=>writes++;
+    if(scenario==="missing")f.state.cookieStoreId=undefined;if(scenario==="private")f.state.incognito=true;if(scenario==="private-id")f.state.cookieStoreId="firefox-private";if(scenario==="malformed")f.state.cookieStoreId=["firefox-container-1"];
+    for(const method of["eth_accounts","eth_requestAccounts","eth_getBalance","personal_sign"]){const result=await f.request(method,method==="personal_sign"?["0x01",ACCOUNT]:[]).result;assert.equal(result.ok,false)}
+    assert.equal(writes,0);assert.equal(f.state.opened.length,0);assert.equal(f.state.unlocks,0);assert.equal(f.state.calls.length,0);
+  }
+});
+
+test("DApp payload cannot override Firefox browser-owned context",async t=>{
+  const f=await fixture(t,{firefox:true,permitted:false});await connectFirefox(f);f.state.cookieStoreId="firefox-container-2";
+  for(const forged of[{browserContext:"firefox-container-1"},{cookieStoreId:"firefox-container-1"}])assert.equal((await f.request("eth_accounts",[],Date.now()+5000,forged).result).error.code,"INVALID_BRIDGE_REQUEST");
+  assert.deepEqual(Array.from((await f.request("eth_accounts",[]).result).result),[]);
+});
+
+test("popup uses actual Firefox container and signer review discloses the bound context",async t=>{
+  const f=await fixture(t,{firefox:true,permitted:false});await connectFirefox(f);assert.deepEqual(Array.from((await f.popupRequest("eth_accounts",[])).result),[ACCOUNT]);
+  const request=f.request("personal_sign",["0x01",ACCOUNT]);await f.nextWindow();assert.equal((await f.review(request.requestId)).request.browserContext,"firefox-container-1");await f.decide(request.requestId,"reject");assert.equal((await request.result).error.code,4001);
+  f.state.cookieStoreId="firefox-container-2";assert.deepEqual(Array.from((await f.popupRequest("eth_accounts",[])).result),[]);
+});
+
+test("Firefox context changes during account reads, decrypt or final journal readback cannot release identity or broadcast",async t=>{
+  for(const stage of["account-read","decrypt","journal-readback"]){const f=await fixture(t,{firefox:true,permitted:false});await connectFirefox(f);
+    const changed=()=>{f.state.cookieStoreId="firefox-container-2"};
+    if(stage==="account-read"){f.state.afterGet=async keys=>{if(Array.isArray(keys)&&keys.includes(PROVIDER_PERMISSIONS_KEY))changed()};assert.equal((await f.request("eth_accounts",[]).result).error.code,"BROWSER_CONTEXT_CHANGED");continue}
+    const request=f.request("eth_sendTransaction",[{from:ACCOUNT,to:TO,value:toQuantity(10n**18n)}]);await f.nextWindow();
+    if(stage==="decrypt")f.state.beforeUnlock=changed;else f.state.afterGet=async keys=>{const key=BROADCAST_JOURNAL_PREFIX+ACCOUNT;if(Array.isArray(keys)&&keys.includes(key)&&f.localState[key]?.status==="broadcasting")changed()};
+    await f.decide(request.requestId);assert.equal((await request.result).error.code,"BROWSER_CONTEXT_CHANGED");assert.equal(f.state.broadcasts,0);assert.equal(f.state.signCalls,stage==="decrypt"?0:1);
+  }
+});
+
+test("context change after POST retains original raw and ACK while refusing the stale reply",async t=>{
+  const f=await fixture(t,{firefox:true,permitted:false});await connectFirefox(f);const request=f.request("eth_sendTransaction",[{from:ACCOUNT,to:TO,value:toQuantity(10n**18n)}]);await f.nextWindow();
+  f.state.broadcastHook=()=>{f.state.cookieStoreId="firefox-container-2"};await f.decide(request.requestId);assert.equal((await request.result).error.code,"BROWSER_CONTEXT_CHANGED");
+  const record=f.localState[BROADCAST_JOURNAL_PREFIX+ACCOUNT];assert.equal(f.state.broadcasts,1);assert.equal(record.status,"acknowledged");assert.equal(record.unknownHistory,true);assert.equal(record.rawTransaction,f.state.transaction.serialized);
 });

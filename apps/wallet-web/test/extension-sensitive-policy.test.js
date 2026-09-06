@@ -39,7 +39,7 @@ test("concurrent duplicate sensitive requests cannot race the replay write",asyn
 });
 
 test("authorization guard rejects revoke-and-regrant, account replacement, origin change and deadline drift",async()=>{
-  const origin="https://dapp.example",state={now:1,tab:{id:1,url:`${origin}/path`},account:{account:ACCOUNT},permission:{origin,account:ACCOUNT,chainId:"0x1917",grantedAt:1}},guard=new SensitiveAuthorizationGuard({getTab:async()=>state.tab,getAccount:async()=>state.account,getPermission:async()=>state.permission,now:()=>state.now});
+  const origin="https://dapp.example",state={now:1,tab:{id:1,incognito:false,url:`${origin}/path`},account:{account:ACCOUNT},permission:{origin,account:ACCOUNT,chainId:"0x1917",grantedAt:1}},guard=new SensitiveAuthorizationGuard({getTab:async()=>state.tab,getAccount:async()=>state.account,getPermission:async()=>state.permission,now:()=>state.now});
   const capture=()=>guard.capture({origin,tabId:1,account:ACCOUNT,grantedAt:1,deadlineAt:100});
   const lease=capture();await guard.assert(lease);guard.invalidateOrigin(origin);await assert.rejects(guard.assert(lease),error=>error.code==="PERMISSION_REVOKED");
   const second=capture();guard.invalidateAll();await assert.rejects(guard.assert(second),error=>error.code==="PROVIDER_ACCOUNT_CHANGED");
@@ -55,7 +55,7 @@ test("sensitive results never accept fabricated accounts, signatures or transact
 });
 
 test("document epochs survive origin return, tab reuse and a pending active-tab lookup",async()=>{
-  const origin="https://dapp.example",guard=new SensitiveAuthorizationGuard({getTab:async id=>({id,url:origin}),getAccount:async()=>({account:ACCOUNT}),getPermission:async()=>({origin,account:ACCOUNT,chainId:"0x1917",grantedAt:1}),now:()=>1}),context={origin,tabId:1,deadlineAt:100};
+  const origin="https://dapp.example",guard=new SensitiveAuthorizationGuard({getTab:async id=>({id,incognito:false,url:origin}),getAccount:async()=>({account:ACCOUNT}),getPermission:async()=>({origin,account:ACCOUNT,chainId:"0x1917",grantedAt:1}),now:()=>1}),context={origin,tabId:1,deadlineAt:100};
   const pending=guard.capturePending(),old=guard.capture(context);guard.invalidateTab(1);
   assert.throws(()=>guard.bind(old,{account:ACCOUNT,grantedAt:1}),error=>error.code==="DOCUMENT_CHANGED");
   await assert.rejects(guard.assertDocument(pending(context)),error=>error.code==="DOCUMENT_CHANGED");

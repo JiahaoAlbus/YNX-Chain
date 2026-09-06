@@ -27,3 +27,18 @@ test("approval decision binds request, origin, tab, account and deadline",()=>{
   assert.throws(()=>parseApprovalDecision({requestId:REQUEST,decision:"approve"},pending,2000),error=>error.code==="INVALID_APPROVAL_DECISION");
   assert.throws(()=>createPendingApproval({requestId:REQUEST,origin:"https://evil.example/path",tabId:7,account:ACCOUNT,deadlineAt:2000},1000));
 });
+
+test("Firefox context permissions coexist but never inherit unscoped legacy or another context",()=>{
+  const legacy=grantPermission({},ORIGIN,ACCOUNT,1),a="firefox-container-1",b="firefox-container-2";
+  for(const context of["firefox-default",a,b])assert.equal(permissionForOrigin(legacy,ORIGIN,ACCOUNT,context),null);
+  const all=grantPermission(grantPermission(legacy,ORIGIN,ACCOUNT,2,a),ORIGIN,ACCOUNT,3,b);
+  assert.equal(permissionForOrigin(all,ORIGIN,ACCOUNT).grantedAt,1);assert.equal(permissionForOrigin(all,ORIGIN,ACCOUNT,a).grantedAt,2);assert.equal(permissionForOrigin(all,ORIGIN,ACCOUNT,b).grantedAt,3);
+  const removed=revokePermission(all,ORIGIN,b);assert.equal(permissionForOrigin(removed,ORIGIN,ACCOUNT,b),null);assert.equal(permissionForOrigin(removed,ORIGIN,ACCOUNT,a).grantedAt,2);assert.equal(permissionForOrigin(removed,ORIGIN,ACCOUNT).grantedAt,1);
+  const restarted=JSON.parse(JSON.stringify(removed));assert.equal(permissionForOrigin(restarted,ORIGIN,ACCOUNT,a).browserContext,a);
+});
+
+test("scoped permission storage rejects key, context and version tampering",()=>{
+  const context="firefox-container-1",store=grantPermission({},ORIGIN,ACCOUNT,1,context),key=Object.keys(store)[0];
+  for(const item of[{...store[key],browserContext:"firefox-container-2"},{...store[key],browserContext:"firefox-private"},{...store[key],browserContext:[context]},{...store[key],version:1},{...store[key],extra:true}])assert.throws(()=>parsePermissionStore({[key]:item}));
+  assert.throws(()=>parsePermissionStore({[ORIGIN]:store[key]}));
+});

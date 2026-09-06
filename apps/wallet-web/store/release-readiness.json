@@ -16,6 +16,7 @@
   "firefoxLint": {"errors":0,"warnings":5,"missingDataDeclarationWarning":false,"iconDimensionWarning":false,"androidMinimumWarningOnDesktopOnlyManifest":true},
   "manifestIconGeneratedFromApprovedLogo": true,
   "storeSubmissionReady": false,
+  "firefoxContainerPermissions": {"sourceScoped":true,"scope":"browser-owned cookieStoreId + exact origin + selected account","legacyFirefoxGrantsInferred":false,"privateBrowsingSupported":false,"separateContainerVaults":false,"installedVerified":false},
   "manifest": {
     "version": "0.1.0",
     "chromeEdgeMinimum": "120",
@@ -41,7 +42,7 @@
     "self-contained reviewer source archive with historical Git inputs and clean extracted rebuild",
     "review of four existing innerHTML lint warnings",
     "actual Firefox built-in installation consent and normal/private-window verification",
-    "Firefox container permission/identity isolation decision and verification",
+    "actual Firefox container permission separation and review-context verification",
     "real latest Chrome/Edge installed delta and current screenshots",
     "actual store pre-install data disclosure and consent review",
     "known queued-old-document request ordering boundary remains unproven"
