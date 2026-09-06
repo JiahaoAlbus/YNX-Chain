@@ -180,7 +180,9 @@ export function Workbench() {
     [extensions],
   );
   useEffect(() => {
-    saveProject(project);
+    void saveProject(project).catch(() => setRuntime("Workspace recovery could not be saved"));
+    if (window.ynxDesktopWorkspace) window.__ynxFlushWorkspace = () => saveProject(project);
+    return () => { delete window.__ynxFlushWorkspace; };
   }, [project]);
   useEffect(() => {
     const key = `ynx-code-runtime:${project.id}`;
@@ -240,6 +242,18 @@ export function Workbench() {
         const remote = await loadWorkspace(project.id);
         if (cancelled) return;
         if (remote) {
+          const remoteKey = JSON.stringify({ name: remote.name, folders: remote.folders, files: remote.files, open: remote.open, active: remote.active });
+          // A native snapshot may contain edits saved while the runtime was
+          // offline. Retain them; the existing revision check protects the
+          // server copy if another writer has advanced it in the meantime.
+          if (window.ynxDesktopWorkspace?.initialProject && remoteKey !== workspaceKey) {
+            lastSynced.current = remoteKey;
+            setDirty(new Set(Object.keys(project.files)));
+            setRuntime(remote.revision === project.remoteRevision ? "Recovered local changes" : "save conflict");
+            setConnectionBusy(false);
+            setHydrated(true);
+            return;
+          }
           const value = {
             ...project,
             name: remote.name,
@@ -361,8 +375,10 @@ export function Workbench() {
     }));
     setDirty((current) => new Set(current).add(project.active));
   };
-  const save = () => {
-    saveProject(project);
+  const save = async () => {
+    try { await saveProject(project); }
+    catch { setRuntime("Workspace recovery could not be saved"); return; }
+    if (workspaceKeyRef.current !== workspaceKey) return;
     const clearActiveDirty = () =>
       setDirty((current) => {
         const next = new Set(current);
@@ -463,11 +479,16 @@ export function Workbench() {
     return applyImportedProject({ name: root, files });
   };
   const exportProject = () => {
+    const filename = `${project.name.replace(/[^A-Za-z0-9._-]+/g, "-") || "ynx-project"}.ynx-code.json`;
+    if (window.ynxDesktopWorkspace) {
+      void window.ynxDesktopWorkspace.exportProject(filename, projectExportJSON(project.name, project.files)).catch(() => setRuntime("Project export could not be saved"));
+      return;
+    }
     const blob = new Blob([projectExportJSON(project.name, project.files)], { type: "application/json" }),
       href = URL.createObjectURL(blob),
       anchor = document.createElement("a");
     anchor.href = href;
-    anchor.download = `${project.name.replace(/[^A-Za-z0-9._-]+/g, "-") || "ynx-project"}.ynx-code.json`;
+    anchor.download = filename;
     anchor.click();
     URL.revokeObjectURL(href);
   };
@@ -729,6 +750,26 @@ export function Workbench() {
     }));
     setDirty((current) => new Set([...current, ...changed]));
   };
+  useEffect(() => {
+    const nativeCommand = (event: Event) => {
+      if (!window.ynxDesktopWorkspace) return;
+      const detail = (event as CustomEvent).detail;
+      if (detail?.command === "save") void save();
+      else if (detail?.command === "export-project") exportProject();
+      else if (detail?.command === "new-file") {
+        if (collaborationReadOnly) { window.alert("Your collaboration role is read-only."); return; }
+        const path = window.prompt("New workspace-relative file path", "");
+        if (!path) return;
+        const error = create(path, "file");
+        if (error) window.alert(error);
+        else setView("files");
+      } else if (detail?.command === "import-project" && typeof detail.content === "string" && typeof detail.filename === "string") {
+        void importProject(new File([detail.content], detail.filename, { type: "application/json" })).then((error) => { if (error) window.alert(error); });
+      }
+    };
+    addEventListener("ynx-desktop-command", nativeCommand);
+    return () => removeEventListener("ynx-desktop-command", nativeCommand);
+  });
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === "p") {

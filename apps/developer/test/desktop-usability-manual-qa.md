@@ -1,0 +1,15 @@
+# Developer macOS recovery and menu acceptance
+
+Status: pending a visible, unlocked macOS session. Automated storage/process tests and compilation do not satisfy these steps. This slice does not authorize Wallet account requests, signing, transactions or publication.
+
+Use the candidate built from the exact checked-out commit and a new persistent QA profile supplied through `YNX_CODE_DESKTOP_SUPPORT_DIR`. Keep that same profile for every launch below. Preserve existing installations, candidate outputs and historical workspace directories. Record source commit/tree, artifact SHA-256, package size and install location before starting. Do not reuse the legacy hosted ZIP's install evidence.
+
+1. Install the candidate into an isolated Applications directory and launch it. Record the actual application path and bundled process identity. Confirm a real Workbench renders.
+2. From the macOS File menu, choose New File, cancel once, then create `restart-proof.txt`. Enter a unique QA-only text marker using the editor. Test native Select All, Copy, Paste and Undo/Redo. Save from the macOS menu; confirm it does not report a recovery failure.
+3. Record the project's identifier from the QA profile's `workspace-ui/project-v1.json` without collecting credentials or unrelated user files. Quit through the application menu, launch the same installation with the same profile, and verify the file and exact marker reappear without entering a project identifier. Read back the project identifier and confirm equality. Record that the runtime uses a fresh loopback origin. The same-origin reload test is a separate automated case.
+4. With automatic service save disabled, edit the marker, save locally and quit. Relaunch and verify the local revision survives. Also exercise a runtime-unavailable save/restart: the recovered local snapshot must not be overwritten by an older service copy. If the service revision advanced independently, the UI should retain the local version and show the existing save-conflict state.
+5. Choose File → Export Project and cancel. Repeat and save to a new QA JSON file. Verify the exported text map matches the UI, without replacing an existing user file.
+6. Choose File → Open Project, cancel, then select the exported QA JSON. Verify that the native panel returns to the current Workbench import flow and that its explicit replace/cancel confirmation works. Test the Explorer's Import Project JSON and Import Folder controls as separate entry points.
+7. Type one final marker and quit immediately. Verify the app awaits the recovery acknowledgment and that a relaunch restores the latest state. An actual recovery-write failure must not be reported as a successful save or silently discard the original file.
+
+Save the real visible-window evidence and exact candidate identity before changing `installedLocal` or any release registry. This implementation preserves existing server workspaces; it does not select or migrate an ambiguous orphaned project from historical random-port browser stores. Wallet lifecycle, operating-system signing, notarization and public hosting remain separate gates.
