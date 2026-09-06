@@ -16,15 +16,20 @@
     "note": "The preceding bc8a37bc protected deployment record remains historical. Current health and runtime-health release versions now match the d4052228 receipt; browser-visible evidence remains separate."
   },
   "currentLocalMacArtifact": {
-    "evidence": "apps/developer/evidence/desktop/macos-current-ccab67b2.json",
-    "sourceCommit": "ccab67b2ceaeeaeb962dd6e67696bb3f73835120",
-    "sourceTree": "38524871d45f8239377ed832fe04b51bceee476f",
-    "sha256": "71eb57a55521ea42949ed24d8f5b078a3b9cfa1032cabcd2ca2717c64e6fe775",
-    "bytes": 300467545,
+    "evidence": "apps/developer/evidence/desktop/macos-current-5ad71039.json",
+    "sourceCommit": "5ad710395a76270dd09ea5fd07d25c6a7097ced3",
+    "sourceTree": "4227b9bccea7baf58dbe729a1007a7b07ff34050",
+    "sha256": "c619f1e5a48e2dc024d9cdaf3280780745a71cdf98072ec8e5f3f29a55f64eda",
+    "bytes": 295501837,
     "downloadHosted": false,
     "downloadUrl": null,
     "format": "dmg",
-    "productionSigned": false
+    "minimumOS": "13.5",
+    "signingClass": "adhoc-no-team-id",
+    "productionSigned": false,
+    "installedCurrentCandidate": false,
+    "originalDesktopProfileUpgradeVerified": false,
+    "macOS13_5RuntimeVerified": false
   },
   "currentLocalWindowsArtifact": {
     "evidence": "apps/developer/evidence/desktop/windows-current-591437c6.json",
@@ -116,7 +121,7 @@
       "windowsCurrent": true,
       "linuxX64ServerCurrent": true,
       "webSourceCommit": "d4052228a2261c5ced6a8e8cfcbf763edabf2103",
-      "macosArm64SourceCommit": "ccab67b2ceaeeaeb962dd6e67696bb3f73835120",
+      "macosArm64SourceCommit": "5ad710395a76270dd09ea5fd07d25c6a7097ced3",
       "windowsX64SourceCommit": "591437c64eb53adf987ebea779104d4c5962c6e9",
       "windowsX64HistoricalSourceCommit": "76322af5e8c26a64fb6425c51d96c67d2b3df65f",
       "capabilities": [
@@ -125,7 +130,7 @@
         "PTY terminal, Git, extensions, debugging, project memory, model routing, permissioned engineering agents and collaboration services",
         "YNX Chain inspection, Wallet-authenticated deployment review, contract templates and receipt-bound transaction debugging"
       ],
-      "verification": "The current macOS arm64 DMG is a direct local installation candidate with provenance, a 269-component SBOM, ad-hoc classification, cold launch, bounded C++ compilation and persisted second launch. The current Windows x64 MSIX has source-bound CI portable and installed-payload cold/second-launch evidence plus a test-only self-signed package signature.",
+      "verification": "Current macOS candidate 5ad71039 passed exact-source build, 30 native tests, 2 package contract tests, DMG checksum, deep ad-hoc signature and replay of all 13 Mach-O compatibility records. Installed upgrade, native clipboard/split/diff and macOS 13.5 runtime proof remain pending. Existing Windows evidence remains separately scoped.",
       "publicBoundary": "The source-bound public Web candidate is d4052228 pending independent current readback. macOS DMG and Windows MSIX remain non-public installer candidates; no ZIP is a supported desktop installer.",
       "publicDeployment": {
         "sourceCommit": "d4052228a2261c5ced6a8e8cfcbf763edabf2103",
@@ -232,7 +237,7 @@
     "windows": "unsigned-no-authenticode"
   },
   "minOS": {
-    "macos": "13.0 arm64",
+    "macos": "13.5 arm64; native binary target verified, macOS 13.5 runtime QA pending",
     "windows": "x64 WPF host with WebView2 Runtime",
     "web": "current standards browser with IndexedDB"
   },
@@ -288,5 +293,5 @@
     "The optional official Grok Build source was audited and pinned but not built locally because Rust 1.92, Cargo and DotSlash were absent; no upstream binary is bundled.",
     "The Web IDE now executes pinned solc 0.8.24 in isolated workers and returns real ABI and EVM bytecode. Compilation does not imply that arbitrary EVM deployment is supported by YNX Testnet; deployment requires Wallet authorization and an authoritative receipt."
   ],
-  "generatedAt": "2026-08-12T01:00:00+08:00"
+  "generatedAt": "2026-09-06T09:02:58.033Z"
 }

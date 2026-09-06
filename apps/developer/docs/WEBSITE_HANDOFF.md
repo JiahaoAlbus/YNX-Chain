@@ -1,5 +1,14 @@
 # YNX Developer Website Handoff
 
+> **2026-09-06 macOS supersession:** The current macOS ARM64 DMG candidate is
+> source `5ad710395a76270dd09ea5fd07d25c6a7097ced3`, SHA-256
+> `c619f1e5a48e2dc024d9cdaf3280780745a71cdf98072ec8e5f3f29a55f64eda`.
+> Its exact package, native recovery/origin tests and all 13 Mach-O deployment
+> targets are verified; this exact candidate still awaits installed upgrade and
+> complete visible workflow acceptance. It is not yet an official download.
+> See `integration/DEVELOPER_MACOS_NATIVE_RECOVERY_CANDIDATE_20260906.md` and
+> `../evidence/desktop/macos-current-5ad71039.json`. Older ZIP sections are history.
+
 Handoff date: 2026-07-29  
 Product owner: `11-developer`  
 Integration owner: `29-integration`  

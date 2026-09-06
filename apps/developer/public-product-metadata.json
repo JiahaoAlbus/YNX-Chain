@@ -22,7 +22,7 @@
     "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/developer-v0.2.0-testnet-preview.1",
     "prerelease": true
   },
-  "summary": "The Developer web candidate is source-bound by receipt but still needs an independent current runtime readback. Current macOS arm64 DMG and Windows x64 MSIX have separate source-bound installation-candidate evidence; neither is an official download, and ZIP is not an installer.",
+  "summary": "Current macOS arm64 DMG 5ad71039 has source-bound build and native fixture evidence but still awaits installed upgrade and complete visible workflow acceptance. Windows x64 MSIX evidence is separately scoped. Neither current desktop candidate is an official download; ZIP is not an installer.",
   "surfaces": [
     "web-ide",
     "api-studio",
@@ -50,19 +50,27 @@
       "sbomComponents": 267,
       "signingClass": "adhoc-no-team-id",
       "hosted": true,
-      "currentFullPlatform": true,
-      "downloadUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-76322af5-macos-arm64-unsigned.zip"
+      "currentFullPlatform": false,
+      "downloadUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-76322af5-macos-arm64-unsigned.zip",
+      "historical": true
     },
     "currentLocalMacArtifact": {
-      "evidence": "apps/developer/evidence/desktop/macos-current-ccab67b2.json",
-      "sourceCommit": "ccab67b2ceaeeaeb962dd6e67696bb3f73835120",
-      "sha256": "71eb57a55521ea42949ed24d8f5b078a3b9cfa1032cabcd2ca2717c64e6fe775",
-      "bytes": 300467545,
-      "hosted": false,
+      "evidence": "apps/developer/evidence/desktop/macos-current-5ad71039.json",
+      "sourceCommit": "5ad710395a76270dd09ea5fd07d25c6a7097ced3",
+      "sourceTree": "4227b9bccea7baf58dbe729a1007a7b07ff34050",
+      "sha256": "c619f1e5a48e2dc024d9cdaf3280780745a71cdf98072ec8e5f3f29a55f64eda",
+      "bytes": 295501837,
+      "downloadHosted": false,
       "downloadUrl": null,
       "format": "dmg",
+      "minimumOS": "13.5",
       "signingClass": "adhoc-no-team-id",
-      "verification": "mounted DMG, isolated install copy, embedded provenance, ad-hoc signature, native absent-Wallet scheme discovery, cold launch, bounded C++ compile, persisted second launch and child cleanup passed"
+      "productionSigned": false,
+      "installedCurrentCandidate": false,
+      "originalDesktopProfileUpgradeVerified": false,
+      "macOS13_5RuntimeVerified": false,
+      "hosted": false,
+      "verification": "Package and native rejection/recovery fixtures passed; this exact candidate still awaits installed upgrade and visible workflow acceptance."
     },
     "currentLocalWindowsArtifact": {
       "evidence": "apps/developer/evidence/desktop/windows-current-591437c6.json",
