@@ -244,7 +244,8 @@ export type BrowserProductSessionCapabilities=Readonly<{securityLevel:"webcrypto
 export type BrowserProductSessionAdapter=Readonly<{client:RecoverableProductSessionClient;device:BrowserProductSessionDevice;storage:BrowserProductSessionStorage;capabilities:BrowserProductSessionCapabilities;createIntrospectionProof(requiredScopes:readonly string[]):Promise<Readonly<{proof:Readonly<Record<string,unknown>>;proofHeader:string;requestId:string;body:string}>>;close():void}>;
 export declare function createBrowserProductSessionClient(config:Readonly<{registry:unknown;productId:string;scopes:readonly string[];purpose:string;gateway:Pick<ProductSessionGatewayFetchAdapter,"walletInstalled"|"schemeRegistered"|"challenge"|"complete"|"introspect"|"revoke"> & Partial<Pick<ProductSessionGatewayFetchAdapter,"currentTime">>;environment?:Readonly<{isSecureContext:boolean;location:Readonly<{origin:string}>;crypto:unknown;indexedDB:unknown}>;clock?:()=>Date}>):Promise<BrowserProductSessionAdapter>;
 
-export type WalletSessionControlPath="/v2/product-sessions/wallet/sessions"|"/v2/product-sessions/wallet/sessions/revoke";
+export type WalletSessionControlIntentPath="/v2/product-sessions/wallet/sessions/revoke-all"|"/v2/product-sessions/wallet/devices/revoke";
+export type WalletSessionControlPath="/v2/product-sessions/wallet/sessions"|"/v2/product-sessions/wallet/sessions/revoke"|WalletSessionControlIntentPath;
 export type WalletSessionControlProof=Readonly<{version:"2";chainId:"ynx_6423-1";audience:"https://wallet-auth.ynxweb4.com";account:string;accountPublicKey:string;method:"POST";path:WalletSessionControlPath;bodyDigest:string;nonce:string;issuedAt:string;expiresAt:string;signature:string}>;
 export type WalletControlledSession=Readonly<{sessionBinding:string;productId:string;clientId:string;displayName:string;platform:string;applicationId:string;origin:string;callback:string;deviceId:string;deviceBinding:string;scopes:readonly string[];issuedAt:string;expiresAt:string;active:boolean;inactiveReasons:readonly string[]}>;
 export type WalletSessionControlInventory=Readonly<{account:string;asOf:string;sessions:readonly WalletControlledSession[]}>;
@@ -252,6 +253,7 @@ export type WalletSessionControlRevocation=Readonly<{account:string;sessionBindi
 export declare const WALLET_SESSION_CONTROL_PROOF_HEADER:"x-ynx-wallet-control-proof-v2";
 export declare const WALLET_SESSION_CONTROL_AUDIENCE:"https://wallet-auth.ynxweb4.com";
 export declare const WALLET_SESSION_CONTROL_PATHS:readonly WalletSessionControlPath[];
+export declare const WALLET_SESSION_CONTROL_INTENT_PATHS:readonly WalletSessionControlIntentPath[];
 export declare function createWalletSessionControlProof(input:Readonly<{accountSecret:string;method:"POST";path:WalletSessionControlPath;bodyDigest:string;nonce:string;issuedAt:string;expiresAt:string}>):WalletSessionControlProof;
 export declare function parseWalletSessionControlProof(input:unknown):WalletSessionControlProof;
 export declare function verifyWalletSessionControlProof(proof:unknown,expected:Readonly<{method:"POST";path:WalletSessionControlPath;bodyDigest:string}>,at?:Date):WalletSessionControlProof;
