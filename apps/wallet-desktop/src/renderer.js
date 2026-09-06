@@ -1,6 +1,13 @@
 import { ApprovalReviewQueue } from "./approval-review-queue.mjs";
 import { formatApprovalReview } from "./approval-review-display.mjs";
 import { createPasswordVaultUI } from "./password-vault-ui.mjs";
+import { createReceiveCodeUI } from "./receive-code-ui.mjs";
+
+const receiveCodeUI = createReceiveCodeUI({
+  canvas: document.querySelector("#receive-qr"),
+  status: document.querySelector("#receive-qr-status"),
+  requestCode: account => window.ynxWallet.receiveCode(account),
+});
 
 let keyState = { locked: true, unlockAvailable: false, authenticating: false };
 let accountState = null, passwordUI;
@@ -146,7 +153,14 @@ const createAccount = document.querySelector("#create-account");
 const addAccount = document.querySelector("#add-account");
 const accountList = document.querySelector("#account-list");
 function renderAccount(payload) {
-  if (payload?.ok === false) { accountState = null; passwordUI?.render(); renderKeyDetail(); accountDetail.textContent = `${payload.error.code}: ${payload.error.message}`; return; }
+  if (payload?.ok === false) {
+    accountState = null;
+    receiveCodeUI.clear();
+    document.querySelector("#receive-address").value = "";
+    document.querySelector("#receive-evm-address").value = "";
+    document.querySelector("#copy-address").disabled = true;
+    passwordUI?.render(); renderKeyDetail(); accountDetail.textContent = `${payload.error.code}: ${payload.error.message}`; return;
+  }
   const status = payload?.ok === true ? payload.value : payload;
   accountState = status;
   passwordUI?.render(); renderKeyDetail();
@@ -163,6 +177,9 @@ function renderAccount(payload) {
   document.querySelector("#receive-evm-address").value = activeAccount ?? "";
   document.querySelector("#receive-compatibility").open = false;
   document.querySelector("#receive-status").textContent = "";
+  document.querySelector("#copy-address").disabled = !status?.ynxAccount;
+  receiveCodeUI.clear();
+  if (document.querySelector("#receive-sheet").open) void receiveCodeUI.refresh(status?.ynxAccount);
   transferReview = null;
   document.querySelector("#transfer-review").hidden = true;
   document.querySelector("#transfer-review").close();
@@ -510,7 +527,12 @@ for (const button of document.querySelectorAll("[data-view]")) button.addEventLi
 for (const button of document.querySelectorAll("[data-close]")) button.addEventListener("click", () => document.getElementById(button.dataset.close).close());
 for (const dialog of document.querySelectorAll("dialog")) dialog.addEventListener("close", () => queueMicrotask(presentApproval));
 document.querySelector("#open-send").addEventListener("click", () => { document.querySelector("#send-sheet").showModal(); document.querySelector("#transfer-to").focus(); });
-document.querySelector("#open-receive").addEventListener("click", () => { document.querySelector("#receive-sheet").showModal(); document.querySelector("#copy-address").focus(); });
+document.querySelector("#open-receive").addEventListener("click", () => {
+  document.querySelector("#receive-sheet").showModal();
+  document.querySelector("#copy-address").focus();
+  void receiveCodeUI.refresh(accountState?.ynxAccount);
+});
+document.querySelector("#receive-sheet").addEventListener("close", () => receiveCodeUI.clear());
 document.querySelector("#transfer-review").addEventListener("cancel", event => { event.preventDefault(); void actOnTransfer("reject"); });
 authorization.addEventListener("cancel", event => { event.preventDefault(); void act("reject"); });
 proposalPanel.addEventListener("cancel", event => { event.preventDefault(); void proposalAction("reject"); });

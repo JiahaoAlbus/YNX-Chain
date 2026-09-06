@@ -15,6 +15,7 @@ contextBridge.exposeInMainWorld("ynxWallet", {
   onAuthorizationError: callback => ipcRenderer.on("wallet:authorization-error", (_event, value) => callback(value)),
   authorizationAction: action => ipcRenderer.invoke("wallet:authorization-action", action),
   accountStatus: () => ipcRenderer.invoke("wallet:account-status"),
+  receiveCode: account => ipcRenderer.invoke("wallet:receive-code", account),
   createAccount: () => ipcRenderer.invoke("wallet:create-account"),
   importAccount: input => ipcRenderer.invoke("wallet:import-account", input),
   balance: () => ipcRenderer.invoke("wallet:balance"),

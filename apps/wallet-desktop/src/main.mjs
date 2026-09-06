@@ -16,6 +16,7 @@ import { FileTransactionIntentStore } from "./transaction-intent-store.mjs";
 import { CanonicalAccountNetwork, NativeWalletService } from "./native-wallet-service.mjs";
 import { WalletConnectTransport } from "./walletconnect-transport.mjs";
 import { decodeWalletConnectQR } from "./walletconnect-qr-decoder.mjs";
+import { createReceiveCode } from "./receive-code.mjs";
 import { canonicalizeWindowsYNXWalletProtocolUrl, extractYNXWalletProtocolUrl } from "./protocol-activation.mjs";
 
 const directory = path.dirname(fileURLToPath(import.meta.url));
@@ -181,6 +182,7 @@ handleWalletIPC("wallet:create-account", () => safeIPC(async () => {
   return result;
 }));
 handleWalletIPC("wallet:add-account", () => safeIPC(() => changeActiveAccount(() => walletAuthority.addAccountAndSelect())));
+handleWalletIPC("wallet:receive-code", (_event, expectedAccount) => safeIPC(() => createReceiveCode(expectedAccount, () => walletAuthority.accountStatus())));
 handleWalletIPC("wallet:select-account", (_event, account) => safeIPC(() => changeActiveAccount(() => walletAuthority.selectAccount(account))));
 handleWalletIPC("wallet:permissions", (_event, origin) => safeIPC(() => walletAuthority.request({ origin, method: "wallet_getPermissions" })));
 handleWalletIPC("wallet:walletconnect-status", () => safeIPC(() => walletConnect.status()));

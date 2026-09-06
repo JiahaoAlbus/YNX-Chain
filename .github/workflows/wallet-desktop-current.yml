@@ -117,6 +117,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Installed source verification failed' }
           $env:YNX_WALLET_PROFILE_PATH = Join-Path $env:RUNNER_TEMP 'wallet-current-qa-profile'
           $env:YNX_WALLET_EVIDENCE_PATH = Join-Path $env:GITHUB_WORKSPACE 'apps\wallet-desktop\dist\installed-smoke.json'
+          $expectedVersion = (Get-Content 'apps/wallet-desktop/package.json' -Raw | ConvertFrom-Json).version
           for ($phase = 1; $phase -le 2; $phase++) {
             $app = Start-Process $exe -PassThru
             $ready = $false
@@ -127,7 +128,7 @@ jobs:
                 if ($e.launches -eq $phase) { $ready = $true; break }
               }
             }
-            if (-not $ready -or -not $e.visibleShellReady -or -not $e.window.visible -or -not $e.keySecurity.locked -or $e.signingEnabled -or $e.providerAuthority.accountCreated -ne $false -or $e.appVersion -ne '0.6.4') { throw 'Locked cold-start check failed' }
+            if (-not $ready -or -not $e.visibleShellReady -or -not $e.window.visible -or -not $e.keySecurity.locked -or $e.signingEnabled -or $e.providerAuthority.accountCreated -ne $false -or $e.appVersion -ne $expectedVersion) { throw 'Locked cold-start check failed' }
             $app.Refresh()
             if ($app.HasExited -or -not $app.CloseMainWindow() -or -not $app.WaitForExit(15000)) { throw 'Native application lifecycle failed' }
           }
@@ -144,6 +145,7 @@ jobs:
           node apps/wallet-desktop/scripts/release-provenance.mjs "/opt/YNX Wallet/resources" apps/wallet-desktop/dist
           export YNX_WALLET_PROFILE_PATH="$RUNNER_TEMP/wallet-current-qa-profile"
           export YNX_WALLET_EVIDENCE_PATH="$GITHUB_WORKSPACE/apps/wallet-desktop/dist/installed-smoke.json"
+          export YNX_WALLET_EXPECTED_VERSION="$(node -p 'require("./apps/wallet-desktop/package.json").version')"
           for phase in 1 2; do
             xvfb-run -a bash -c '
               set -euo pipefail
@@ -152,7 +154,7 @@ jobs:
               trap "kill $app_pid 2>/dev/null || true" EXIT
               ready=false
               for attempt in {1..45}; do
-                if node -e '\''const fs=require("fs");let e;try{e=JSON.parse(fs.readFileSync(process.env.YNX_WALLET_EVIDENCE_PATH,"utf8"))}catch{process.exit(1)}if(e.launches!==Number(process.argv[1])||!e.visibleShellReady||!e.window.visible||!e.keySecurity.locked||e.signingEnabled||e.providerAuthority.accountCreated!==false||e.appVersion!=="0.6.4")process.exit(1)'\'' "$1"; then ready=true; break; fi
+                if node -e '\''const fs=require("fs");let e;try{e=JSON.parse(fs.readFileSync(process.env.YNX_WALLET_EVIDENCE_PATH,"utf8"))}catch{process.exit(1)}if(e.launches!==Number(process.argv[1])||!e.visibleShellReady||!e.window.visible||!e.keySecurity.locked||e.signingEnabled||e.providerAuthority.accountCreated!==false||e.appVersion!==process.env.YNX_WALLET_EXPECTED_VERSION)process.exit(1)'\'' "$1"; then ready=true; break; fi
                 sleep 1
               done
               test "$ready" = true

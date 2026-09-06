@@ -1,6 +1,6 @@
 {
   "name": "@ynx-chain/wallet-desktop",
-  "version": "0.6.4",
+  "version": "0.6.5",
   "description": "YNX Testnet Wallet for desktop",
   "homepage": "https://www.ynxweb4.com/wallet",
   "author": {
@@ -28,7 +28,8 @@
     "@walletconnect/utils": "2.23.10",
     "@ynx-chain/wallet-auth": "file:../../packages/wallet-auth",
     "ethers": "6.17.0",
-    "jsqr": "1.4.0"
+    "jsqr": "1.4.0",
+    "qrcode": "1.5.4"
   },
   "devDependencies": {
     "electron": "42.8.0",
