@@ -1,64 +1,46 @@
 # Reviewer source and reproducible build instructions
 
-Draft for the next root-approved immutable commit. Do not label a dirty working-tree build with `882d04712414e7cb27aa3b81ee9aa8726cfc2b87`; that is the preceding frozen artifact. Store signing/submission is not part of these commands.
+This build supports two explicit authority modes. Ordinary development/release builds retain the historical Git checks. A reviewer source archive uses a read-only authority file exported by a normal immutable Git build. Every record is matched to the builder's fixed commit/path mapping and checked using both the original Git blob SHA-1 (including its blob header) and SHA-256. Missing, changed, duplicate, extra or noncanonical records fail. There is no automatic fallback when Git fails.
 
-## Required input package
+Mozilla requires readable bundled/minified source and reproducible output; source, locked dependencies and build instructions must accompany the version. [Mozilla source submission](https://extensionworkshop.com/documentation/publish/source-code-submission/)
 
-The build uses esbuild to bundle/minify the vault, signer, journal and address helper. Submit readable source and matching lockfiles with every candidate. Mozilla requires the reviewer rebuild to match the submitted extension files. [Mozilla source submission](https://extensionworkshop.com/documentation/publish/source-code-submission/)
+## Materialize an immutable reviewer archive
 
-Include `apps/wallet-web` source/public/extension/scripts/test/store, its `package.json` and `package-lock.json`, and the exact `packages/wallet-auth` source plus package/lockfiles that resolve the relative SDK imports. Include the original logo/icon assets. Exclude `node_modules`, mutable `dist`, old artifacts, audit output, browser profiles, credentials, signing keys and unrelated product data. Do not upload a developer's whole working directory.
-
-**A plain `git archive` of those two paths is not currently a self-contained build input.** `scripts/build.mjs` verifies earlier contract commits with `git rev-parse` and `git show`. The release source package must also provide the necessary local Git objects/history, or a separately reviewed standalone authority-input build mechanism. Do not remove those checks or replace the historical SHA values to make a reviewer build succeed. The local full-repository build path below is available; an extracted, self-contained AMO source archive still needs to be materialized and verified after the final commit. `sourceArchiveReady` remains false until that proof exists.
-
-Historical authority commits referenced by the current builder:
-
-```
-d0f89797d13c7667cc187b0c64d5c9e1cb1d8f59
-38c9c0ce1400ad6ba8dc5e0c1aa1d657a6c9748d
-39c80021b87730a20569b61f6ccd3f80092523c4
-98c6d5d784d212df8981a53b17118a511e246ad2
-0c9846e6856f53e6d0ec1bc7dd7b389fefb03441
-c3ab255c32bdeb9c8e056882c315f8ad43c29c7f
-d3831c300560507f64a50e73117bab7b85926d9a
-9ab9cd8c8deac8563acff9ffd7e277553e20383e
-```
-
-Each required path, Git blob and SHA-256 is embedded in `scripts/build.mjs`. Its relative Wallet/Auth crypto imports must also come from the chosen release tree, not whichever branch happens to be open. Attach the final commit, source archive hash, per-file extension hashes, tool versions and literal build command transcript. ZIP-container metadata can vary across zip tools; compare every extracted file, and record the official upload ZIP's own full SHA-256 separately.
-
-## Environment and commands
-
-Observed candidate verification environment: macOS/Darwin arm64; Node `24.19.0`; npm available as `11.19.0`; esbuild `0.25.10`; web-ext `10.6.0`; dependencies pinned in lockfiles. Use official [Node distributions](https://nodejs.org/en/download) and npm registry installs. Linux clean-install/extracted-source reproducibility has not been run in this slice. Record OS, CPU, Node/npm versions for the final reviewer package; do not claim Mozilla's default environment was tested.
-
-Run only in a new disposable checkout with the required Git objects. Choose the final root-approved full SHA and a new directory yourself; do not use an installed extension directory or an existing profile.
+Run from a new checkout of the final root-approved commit, with its own dependencies or a previously verified dependency runtime. Never run in an installed extension directory, user profile or mutable download directory. The exporter rejects changed tracked source, symlinks, an uncommitted exporter, an explicit standalone authority override and an existing output directory.
 
 ```sh
-# RELEASE_COMMIT: the final 40-hex commit from the approved source manifest.
-# REVIEW_DIR: a new, nonexistent directory; never a user profile.
-git cat-file -e "$RELEASE_COMMIT^{commit}"
-git worktree add --detach "$REVIEW_DIR" "$RELEASE_COMMIT"
-cd "$REVIEW_DIR"
-test "$(git rev-parse HEAD)" = "$RELEASE_COMMIT"
-test -z "$(git status --porcelain --untracked-files=no)"
-node --version
-npm --version
+# Run inside the exact immutable repository checkout.
 npm ci --prefix packages/wallet-auth --no-audit --no-fund
 npm ci --prefix apps/wallet-web --no-audit --no-fund
-cd apps/wallet-web
-export YNX_WALLET_WEB_SOURCE_COMMIT="$RELEASE_COMMIT"
-npm run package
-node node_modules/web-ext/bin/web-ext.js lint --no-config-discovery --source-dir dist/firefox --output json
+node apps/wallet-web/store/export-reviewer-source.mjs /absolute/new/output-directory
 ```
 
-`npm run package` runs the source tests, builds all three targets, normalizes file timestamps, creates ZIPs and invokes `verify-package.mjs`. It writes this checkout's `artifact-manifest.json`; never run it in the shared working tree where another owner has a dirty manifest. The compiler still targets Firefox 128 JavaScript syntax, which is a compatible subset for the manifest's new Firefox 140 minimum; that syntax target is not an installation-support claim.
+The exporter selects only committed Web source/assets/tests/store material and package locks, the exact Wallet/Auth SDK source and package locks, and two PWA test contract files. It copies bytes from Git objects after comparing the checkout. It does not include `.git`, `node_modules`, existing artifacts, audit evidence, credentials or profiles. Default Git authority validation remains active while producing the reference build and `build-authorities.json`. The archive contains `source-package.json`, per-file source hashes and expected output hashes, and `REBUILD.md`; its outer ZIP SHA-256 is recorded separately.
 
-Run the package command again in the same clean-source checkout and compare extracted files, then repeat from the extracted reviewer source archive without access to the original repository or dependency symlinks. This second environment is the source-submission gate, not a step already completed by this document. Inspect that browser manifests, workers, all static JS imports, HTML entry scripts, CSP, built identity and PWA integrity entries resolve from the output alone. Preserve nonzero lint warnings with explanations; do not disable a warning to manufacture a clean result.
+The historical inputs remain those embedded in `scripts/build.mjs`: commits `d0f89797`, `38c9c0ce`, `39c80021`, `98c6d5d7`, `0c9846e6`, `c3ab255c`, `d3831c30` and `9ab9cd8c`. These are input authorities, not the current packaged SDK source. The SDK runtime files are copied from the final release commit. No historical checks are deleted or replaced with a successful mock response.
 
-## Local reviewer usage without shared credentials
+## Rebuild the extracted archive without the repository
 
-1. Install in a new normal browser profile. For Firefox, verify the built-in installation data choices and the declared desktop minimum. Confirm private-window use is unavailable. Temporary developer loading is not AMO signing or proof of the store installation consent screen.
-2. Open the extension's account-vault options page. Generate a new Testnet-only account and choose a new local password. Keep its recovery key offline in that isolated environment. No publisher login, shared password or existing user account is needed.
-3. Open a reviewer-controlled HTTPS DApp and request discovery, connection, `personal_sign` and chain-6423 EIP-712 signatures using visibly synthetic review text. Approve/reject through the real extension UI and verify successful signatures independently. Never use an existing user's account or request access to it.
-4. Verify revoke, restart and navigation cancellation, YNX-only provider selection and default `ynx` display/copy. Record the exact source/build identity loaded. Check Firefox containers separately; no isolation claim is made.
-5. Public transfer capability may be unavailable. Do not bypass fee/durability gates, fund an account, call a faucet POST or broadcast a transaction as part of this preparation. Source/fake-RPC transaction fixtures are labelled separately from a live transfer.
+Extract into a new directory. Source entries are ordinary files, with no dependency links to a developer checkout. Do not copy an existing `node_modules`. From the archive root:
 
-Reviewer notes: all runtime JS is packaged locally; fixed HTTPS RPC responses are data, not downloaded code. The privacy drafts identify RPC operations before account connection and local raw-transaction history. Four current app template `innerHTML` lint warnings have source explanations in `permissions-data-map.md`. The existing declared-icon-size warning remains an actual pre-submission asset correction. No store signing credentials are included or requested.
+```sh
+npm ci --prefix packages/wallet-auth --no-audit --no-fund
+npm ci --prefix apps/wallet-web --no-audit --no-fund
+node apps/wallet-web/store/rebuild-reviewer-source.mjs
+```
+
+The rebuild verifies source hashes and the authority file, checks that dependencies are installed within the extraction tree (including nested symlink destinations), sets the exact packaged source identity, and runs the same builder with the explicit authority input. It compares every generated file and the complete output inventory against the normal Git build. Internal npm `.bin` links may be present; links outside the extracted tree are rejected. Successful evidence is `rebuild-result.json` with `allBytesMatch: true`, bound to the source commit. No Git command is needed in this path. Preserve the result and the archive's full SHA-256; do not claim a match from a successful build exit alone.
+
+Build environment used for this candidate: macOS/Darwin arm64, Node 24.19.0, npm 11.19.0, esbuild 0.25.10, sharp 0.33.5 and web-ext 10.6.0. Install Node from its [official distribution](https://nodejs.org/en/download). Dependencies are fetched with npm and verified against the included integrity locks; the Web lock currently contains `registry.npmmirror.com` resolved URLs and the SDK lock uses `registry.npmjs.org`. Record the actual installation transcript and tool versions. Do not imply that npm ran only against npmjs.org, or that a Linux clean rebuild was tested when only macOS was used.
+
+This candidate's final immutable archive/extracted-rebuild receipt belongs in the release audit after the root commits the source. A dirty candidate, prior `882` archive or an archive using an older source identity is not a substitute. Normal `npm run package` remains a Git-checkout release command, because it validates a Git commit before packaging; the standalone rebuild intentionally uses the dedicated command above instead of weakening that guard.
+
+## Icon provenance
+
+Both browser manifests use `ynx-icon-128.png`, generated during the build from the approved `public/ynx-logo.png` with SHA-256 `38196080c2d56746fb37094abe68d1d89eabd8a2b29ab4f17bae48ac7e3effde`. The original square composition, color and alpha are retained, resized with sharp's Lanczos3 kernel to 128 × 128 and encoded with fixed PNG options. No new logo or brand redesign is introduced. Built dimensions and exact bytes across both extension targets are checked; the old full-size image is retained where already used in the UI/provider announcement. The browser package does not need invented extra icon sizes to satisfy the declared 128 px entry.
+
+## Functional review remains separate
+
+Install the immutable output in a new normal browser profile. For Firefox verify the built-in data-consent installation screen and excluded private-window behavior; developer temporary loading does not prove AMO signing or store consent. Create an isolated Testnet-only account and a new local password in the product. Do not use shared/user credentials. On a reviewer-controlled HTTPS DApp, use visible synthetic text to test discovery, connection, approve/reject, `personal_sign`, chain-6423 EIP-712, revocation, restart and navigation cancellation. Independently verify returned signatures. Preserve exact loaded build identity. Firefox container isolation and queued old-document delivery remain separate review boundaries.
+
+Do not bypass fee/durability gates, fund a public account, use a faucet POST or broadcast while preparing store materials. Public transfers may be unavailable. Source/fake-RPC fixtures are distinct from live transactions. All runtime JS is packaged locally; RPC returns data, not remote code. Preserve the current linter output and explain warnings instead of suppressing them. Publisher information, an approved hosted privacy policy, current actual screenshots and store authorization are still required before submission.

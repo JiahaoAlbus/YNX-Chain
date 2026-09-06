@@ -13,7 +13,8 @@
   "privacyPolicyPublished": false,
   "sourceArchiveReady": false,
   "screenshotAssetsReady": false,
-  "firefoxLint": {"errors":0,"warnings":6,"missingDataDeclarationWarning":false,"androidMinimumWarningOnDesktopOnlyManifest":true},
+  "firefoxLint": {"errors":0,"warnings":5,"missingDataDeclarationWarning":false,"iconDimensionWarning":false,"androidMinimumWarningOnDesktopOnlyManifest":true},
+  "manifestIconGeneratedFromApprovedLogo": true,
   "storeSubmissionReady": false,
   "manifest": {
     "version": "0.1.0",
@@ -38,7 +39,7 @@
   "technicalGates": [
     "final immutable source commit and three new artifact hashes",
     "self-contained reviewer source archive with historical Git inputs and clean extracted rebuild",
-    "manifest icon dimension correction and review of four existing innerHTML lint warnings",
+    "review of four existing innerHTML lint warnings",
     "actual Firefox built-in installation consent and normal/private-window verification",
     "Firefox container permission/identity isolation decision and verification",
     "real latest Chrome/Edge installed delta and current screenshots",

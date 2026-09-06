@@ -34,6 +34,9 @@ for (const artifact of manifest.artifacts) {
 
   const extension = JSON.parse(execFileSync("unzip", ["-p", archive, "manifest.json"], {encoding: "utf8"}));
   if (extension.incognito !== "not_allowed") throw new Error(`Unsupported private-browsing storage scope: ${artifact.name}`);
+  if (JSON.stringify(extension.icons) !== JSON.stringify({"128":"ynx-icon-128.png"}) || !entries.includes("ynx-icon-128.png")) throw new Error(`Invalid extension manifest icon: ${artifact.name}`);
+  const icon = execFileSync("unzip", ["-p", archive, "ynx-icon-128.png"]);
+  if (icon.subarray(0,8).toString("hex") !== "89504e470d0a1a0a" || icon.toString("ascii",12,16) !== "IHDR" || icon.readUInt32BE(16) !== 128 || icon.readUInt32BE(20) !== 128) throw new Error(`Invalid extension icon dimensions: ${artifact.name}`);
   for (const required of ["preferences.js", "mobile-wallet-routing.js", "wallet-web-companion-lifecycle.js", "standard-wallet-connect-state.js", "build-identity.json", "content-script.js", "page-provider.js", "active-tab-policy.js", "extension-migration.js", "extension-bridge.js", "extension-rpc.js", "extension-provider-permissions.js", "extension-vault.js", "extension-signer.js", "extension-broadcast-journal.js", "approval.html", "approval.css", "approval.js", "vault.html", "vault.css", "vault.js", "signer.html", "signer.css", "signer.js", "core-auth-consumer.js", "core-auth-binding.js", "extension-sensitive-policy.js", "service-worker.js"]) if (!entries.includes(required)) throw new Error(`Missing ${required}: ${artifact.name}`);
   if (extension.manifest_version !== 3 || extension.action?.default_popup !== "index.html" || JSON.stringify(extension.options_ui)!==JSON.stringify({page:"vault.html",open_in_tab:true})) throw new Error(`Invalid MV3 entrypoint: ${artifact.name}`);
   const vaultBundle=execFileSync("unzip",["-p",archive,"extension-vault.js"],{encoding:"utf8"});

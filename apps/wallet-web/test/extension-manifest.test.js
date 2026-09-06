@@ -10,6 +10,7 @@ test("extension packages expose truthful install metadata without hosted-update 
     assert.equal(manifest.version, extensionVersion);
     assert.equal(manifest.homepage_url, extensionHomepage);
     assert.equal(manifest.incognito, "not_allowed");
+    assert.deepEqual(manifest.icons, {"128":"ynx-icon-128.png"});
     assert.deepEqual(manifest.permissions, ["activeTab", "scripting", "storage"]);
     assert.equal(manifest.permissions.includes("alarms"),false);
     assert.equal(manifest.action.default_popup, "index.html");

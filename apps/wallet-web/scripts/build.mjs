@@ -1,9 +1,10 @@
 import {createHash} from "node:crypto";
-import {execFileSync} from "node:child_process";
 import {cp, mkdir, readFile, readdir, realpath, rm, stat, writeFile} from "node:fs/promises";
 import {dirname, join, resolve, sep} from "node:path";
 import {fileURLToPath} from "node:url";
 import {build as bundle} from "esbuild";
+import sharp from "sharp";
+import {createAuthorityReader} from "./build-authority.mjs";
 import {chromiumManifest, firefoxManifest} from "../src/extension-manifest.js";
 import {deriveWalletWebCompanionBinding} from "../src/core-auth-consumer.js";
 
@@ -57,19 +58,18 @@ export async function validateExtensionModuleGraph(directory) {
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await buildAll();
-export async function buildAll({dist: outputDirectory} = {}) {
+export async function buildAll({dist: outputDirectory, authorityFile = process.env.YNX_WALLET_WEB_AUTHORITY_FILE, authorityOutput} = {}) {
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const dist = outputDirectory === undefined ? join(root, "dist") : resolve(outputDirectory);
 const repository=resolve(root,"..","..");
+const authorityReader=createAuthorityReader({repository,archiveFile:authorityFile});
 const centralMobileCommit="d0f89797d13c7667cc187b0c64d5c9e1cb1d8f59";
 const centralMobileContracts=[
   {path:"release/integration/wallet-auth-public-endpoint-service-discovery-matrix.json",blob:"d402fcdc844aa39bd5ee351a99d93acb4852dc37",sha256:"d344c607c2bbbf7bb0d9d3662b424976d0d6c4ff20428025dd1e2fb92bf31392"},
   {path:"release/integration/wallet-auth-android-launcher-contract.json",blob:"83c9f91779701288861cff5e4dc6c487ffcdc26c",sha256:"d296732141a4029b1811b655f0001cc7d81a1d45019a4bd87d21b2b4b256d1a6"},
 ];
 for(const contract of centralMobileContracts){
-  const object=execFileSync("git",["rev-parse",`${centralMobileCommit}:${contract.path}`],{cwd:repository,encoding:"utf8"}).trim();
-  const bytes=execFileSync("git",["show",`${centralMobileCommit}:${contract.path}`],{cwd:repository});
-  if(object!==contract.blob||createHash("sha256").update(bytes).digest("hex")!==contract.sha256)throw new Error(`Central mobile Wallet contract mismatch: ${contract.path}`);
+  immutableObject(centralMobileCommit,contract);
 }
 const centralCallerCommit="38c9c0ce1400ad6ba8dc5e0c1aa1d657a6c9748d";
 const centralCallerContract={path:"release/integration/wallet-auth-android-launcher-contract.json",blob:"0e0d702f9245fae42daec7d0a3a3fd5fe83f9a42",sha256:"27449c80300acd463574d5d7bb016e2273cfd7d24f6669c9da00505559393a58"};
@@ -94,10 +94,7 @@ const providerEvidenceAuthorities=[
 const routerInteropCommit="9ab9cd8c8deac8563acff9ffd7e277553e20383e";
 const routerInteropContract={path:"release/integration/wallet-standard-connection-conformance-contract-p0-20260822.json",blob:"173cb99a6fa6b942f43c6dc8ee3a3b851e876525",sha256:"c59cc18de86a304be8de6ef7056e3e260e62156fe36fb0b76e021e38e096a2fe"};
 function immutableObject(commit,contract){
-  const object=execFileSync("git",["rev-parse",`${commit}:${contract.path}`],{cwd:repository,encoding:"utf8"}).trim();
-  const bytes=execFileSync("git",["show",`${commit}:${contract.path}`],{cwd:repository});
-  if(object!==contract.blob||createHash("sha256").update(bytes).digest("hex")!==contract.sha256)throw new Error(`Immutable authority mismatch: ${contract.path}`);
-  return bytes;
+  return authorityReader.read(commit,contract);
 }
 const centralCaller=JSON.parse(immutableObject(centralCallerCommit,centralCallerContract));
 if(centralCaller?.authority?.walletPackage!=="com.ynxweb4.wallet"||centralCaller?.authority?.uriTemplate!=="ynxwallet://authorize?request=<base64url-canonical-authorization-request>"||centralCaller?.sharedCallerRequirements?.singleBuilder!=="@ynx-chain/wallet-auth encodeRequestDeepLink")throw new Error("Central caller authority mismatch");
@@ -111,6 +108,8 @@ const coreAuthBinding=deriveWalletWebCompanionBinding(JSON.parse(coreContractByt
   coreCommit,coreContractBlob:coreContracts[0].blob,centralCallerCommit,centralCallerBlob:centralCallerContract.blob,
   publicGatewayRegistryReady:false,trustedRuntimeAvailable:false,
 });
+const verifiedAuthorities=authorityReader.finish();
+if(authorityOutput!==undefined)await writeFile(authorityOutput,`${JSON.stringify(verifiedAuthorities,null,2)}\n`);
 const pwaOnly = process.argv.includes("--pwa-only");
 await rm(pwaOnly ? join(dist,"pwa") : dist, {recursive: true, force: true});
 await mkdir(join(dist, "pwa"), {recursive: true});
@@ -134,6 +133,9 @@ const variants = [
   ["chromium", chromiumManifest],
   ["firefox", firefoxManifest],
 ];
+const logoBytes=await readFile(join(root,"public","ynx-logo.png"));
+if(createHash("sha256").update(logoBytes).digest("hex")!=="38196080c2d56746fb37094abe68d1d89eabd8a2b29ab4f17bae48ac7e3effde")throw new Error("Approved YNX logo source changed");
+const manifestIcon=await sharp(logoBytes).resize(128,128,{fit:"contain",kernel:"lanczos3",background:{r:0,g:0,b:0,alpha:0}}).png({compressionLevel:9,adaptiveFiltering:false,palette:false}).toBuffer();
 for (const [name, manifest] of variants) {
   const target = join(dist, name); await mkdir(target, {recursive: true});
   for (const file of ["index.html", "styles.css", "accessibility.css", "app.js"]) await cp(join(root, "public", file), join(target, file));
@@ -155,6 +157,7 @@ for (const [name, manifest] of variants) {
   await writeFile(join(target,"core-auth-binding.js"),`export const CORE_WALLET_AUTH_BINDING=Object.freeze(${JSON.stringify(coreAuthBinding)});\n`);
   await writeFile(join(target,"build-identity.json"),`${JSON.stringify(buildIdentity)}\n`);
   await cp(join(root, "public", "ynx-logo.png"), join(target, "ynx-logo.png"));
+  await writeFile(join(target,"ynx-icon-128.png"),manifestIcon);
   const providerSource=await readFile(join(target,"page-provider.js"),"utf8"),providerIcon=`data:image/png;base64,${(await readFile(join(root,"public","ynx-logo.png"))).toString("base64")}`;
   if(!providerSource.includes("__YNX_PROVIDER_ICON_DATA_URI__"))throw new Error("YNX Provider icon placeholder missing");
   await writeFile(join(target,"page-provider.js"),providerSource.replace("__YNX_PROVIDER_ICON_DATA_URI__",providerIcon));

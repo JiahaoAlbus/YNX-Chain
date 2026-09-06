@@ -19,7 +19,7 @@ const sharedManifest = {
   action: {default_popup: "index.html", default_title: "YNX Wallet"},
   options_ui: {page: "vault.html", open_in_tab: true},
   commands: {"_execute_action": {suggested_key: {default: "Ctrl+Shift+Y", mac: "MacCtrl+Shift+Y"}, description: "Open YNX Wallet for the active DApp"}},
-  icons: {"128": "ynx-logo.png"},
+  icons: {"128": "ynx-icon-128.png"},
 };
 
 export const chromiumManifest = {
