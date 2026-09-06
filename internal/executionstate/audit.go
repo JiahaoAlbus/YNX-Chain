@@ -36,6 +36,7 @@ type Module struct {
 	Treatment string `json:"treatment"`
 }
 type Verification struct {
+	InputReadComplete           bool  `json:"inputReadComplete"`
 	SchemaVerified              bool  `json:"schemaVerified"`
 	FullModuleInventoryVerified bool  `json:"fullModuleInventoryVerified"`
 	DigestMatchesDeclaration    bool  `json:"digestMatchesDeclaration"`
@@ -58,25 +59,29 @@ type AssetReconciliation struct {
 	Balanced            bool   `json:"balanced"`
 }
 type Report struct {
-	Schema               string                `json:"schema"`
-	Status               string                `json:"status"`
-	CompatibilityScope   string                `json:"compatibilityScope"`
-	MigrationSafe        bool                  `json:"migrationSafe"`
-	Declared             Options               `json:"declared"`
-	Verified             Verification          `json:"verified"`
-	CatalogCommit        string                `json:"catalogCommit,omitempty"`
-	InputSHA256          string                `json:"inputSha256"`
-	InputBytes           int64                 `json:"inputBytes"`
-	CanonicalSHA256      string                `json:"canonicalSha256,omitempty"`
-	AccountStateSHA256   string                `json:"accountStateSha256,omitempty"`
-	ObservedHeight       string                `json:"observedHeight,omitempty"`
-	Amounts              map[string]string     `json:"amounts"`
-	AssetReconciliations []AssetReconciliation `json:"assetReconciliations"`
-	Modules              []Module              `json:"modules"`
-	MissingTargetModules []string              `json:"missingTargetModules"`
-	UnverifiedModules    []string              `json:"unverifiedModules,omitempty"`
-	Issues               []Issue               `json:"issues"`
-	Limitations          []string              `json:"limitations"`
+	Schema                string                `json:"schema"`
+	Status                string                `json:"status"`
+	CompatibilityScope    string                `json:"compatibilityScope"`
+	MigrationSafe         bool                  `json:"migrationSafe"`
+	Declared              Options               `json:"declared"`
+	Verified              Verification          `json:"verified"`
+	CatalogCommit         string                `json:"catalogCommit,omitempty"`
+	InputSHA256           string                `json:"inputSha256"`
+	InputBytes            int64                 `json:"inputBytes"`
+	CanonicalSHA256       string                `json:"canonicalSha256,omitempty"`
+	ContentTreeSHA256     string                `json:"contentTreeSha256,omitempty"`
+	ModuleDigestAlgorithm string                `json:"moduleDigestAlgorithm,omitempty"`
+	Streaming             *StreamEvidence       `json:"streaming,omitempty"`
+	AccountStateSHA256    string                `json:"accountStateSha256,omitempty"`
+	ObservedHeight        string                `json:"observedHeight,omitempty"`
+	Amounts               map[string]string     `json:"amounts"`
+	AssetReconciliations  []AssetReconciliation `json:"assetReconciliations"`
+	Modules               []Module              `json:"modules"`
+	MissingTargetModules  []string              `json:"missingTargetModules"`
+	UnverifiedModules     []string              `json:"unverifiedModules,omitempty"`
+	Issues                []Issue               `json:"issues"`
+	Limitations           []string              `json:"limitations"`
+	issueKeys             map[string]struct{}
 }
 
 func digest(b []byte) string   { s := sha256.Sum256(b); return hex.EncodeToString(s[:]) }
@@ -110,7 +115,20 @@ func records(v any) int {
 	}
 	return 1
 }
-func (r *Report) issue(code, module string) { r.Issues = append(r.Issues, Issue{code, module}) }
+func (r *Report) issue(code, module string) {
+	if r.issueKeys == nil {
+		r.issueKeys = map[string]struct{}{}
+		for _, v := range r.Issues {
+			r.issueKeys[v.Code+"\x00"+v.Module] = struct{}{}
+		}
+	}
+	key := code + "\x00" + module
+	if _, exists := r.issueKeys[key]; exists {
+		return
+	}
+	r.issueKeys[key] = struct{}{}
+	r.Issues = append(r.Issues, Issue{code, module})
+}
 
 // Audit checks supplied bytes against an immutable source-family schema and the
 // explicitly implemented invariants. A compatible result is not a migration
@@ -129,6 +147,8 @@ func Audit(data []byte, o Options) Report {
 		"Business modules without dedicated invariant checkers are inventoried by complete content hash and block semantic acceptance when populated.",
 		"No canonical vNext execution schema exists in this candidate; selecting vnext always blocks.",
 	}}
+	r.Verified.InputReadComplete = true
+	r.ModuleDigestAlgorithm = "canonical-json-sha256-v1"
 	cs := catalogs()
 	c, ok := cs[o.SourceFamily]
 	if !ok {
@@ -299,6 +319,7 @@ func AuditDigestOnly(sha string, bytes, parseBudget int64, o Options) Report {
 		"Full parsing budget in bytes: " + strconv.FormatInt(parseBudget, 10),
 		"Source identity, height/hash and durability remain unproven declarations. migrationSafe is always false; this report cannot satisfy a release gate.",
 	}}
+	r.Verified.InputReadComplete = true
 	if o.TargetFamily == "" {
 		r.Declared.TargetFamily = "vnext"
 	}

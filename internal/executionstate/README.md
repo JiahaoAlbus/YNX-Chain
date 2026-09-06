@@ -174,16 +174,66 @@ parsing budget used 6,520,832 bytes maximum resident memory (`/usr/bin/time -l`)
 returned its independently matched complete digest, and left all 40 native
 modules unverified. This measures the digest-only path, not full JSON parsing.
 
-## Next bounded implementation
+## Strict bounded streaming mode
 
-A future streaming validator should keep one native block/transaction in memory,
-strictly check duplicate keys/types before discarding it, and accumulate block,
-nonce and module digests. It must reproduce the exact frozen typed hash stream
-(including root order, omitted values, canonical map ordering and time encoding),
-without materializing the full snapshot twice. Maps require a size budget or a
-temporary sorted index in a separately authorized scratch area; arbitrary JSON
-member order must not force silent reordering/loss. Account/DEX modules can then
-be reconciled with exact per-asset accumulators and a bounded key index. Full
-input/module/hash equivalence must match this implementation on small fixtures
-before performance tests on large synthetic histories and captured read-only
-snapshots. Until then, the low-memory fallback remains explicitly hash-only.
+Add `-stream-native` and select the exact `native-baseline-v2` family / be9 source
+commit to validate a large captured native baseline without materializing its
+whole history. This is an explicit mode; the default oversized-input path above
+continues to return a digest-only report. Other families and a `-reference` input
+are not implemented in streaming mode and cannot silently use this validator.
+
+`AuditNativeStream(io.Reader, Options, StreamLimits)` checks the entire frozen
+schema, duplicate keys, required/optional fields, types and integer bounds. It
+keeps at most one block with its transactions, then releases it; all other arrays
+are reduced incrementally. It retains only config/accounts/lots/DEX/validators/
+policy data needed for selected reconciliation. It checks native block height,
+parent/genesis/header preimage and transaction block bindings, but does not prove
+execution or nonce replay. Account and per-asset DEX arithmetic uses the same
+checker as full mode. Missing business validators still block.
+
+The encoded token scanner enforces **1 MiB while reading**, before string decoding
+or numeric conversion. It rejects invalid UTF-8 and unpaired surrogate escapes
+instead of silently substituting text. Each object's key/digest index is budgeted
+at 8 MiB; live nested indexes total at most 24 MiB. Retained semantic data plus the
+current block has a conservative 32 MiB capture budget. The CLI sets a 128 MiB
+Go soft memory limit; sampled heap and process peak RSS guards stop on 128 MiB /
+256 MiB breaches. Darwin and Linux expose RSS measurements; unavailable RSS
+measurement blocks. Exceeding any limit produces an explicit incomplete report,
+not a truncated success. These budgets do not promise a hard OS memory cap;
+resource measurements must still accompany any release evidence.
+
+`moduleDigestAlgorithm` is **`ynx-json-tree-sha256-v1`**, distinct from full mode's
+`canonical-json-sha256-v1`. Every node hashes the UTF-8 prefix
+`ynx-json-tree-sha256-v1`, NUL, its kind (`null`, `bool`, `string`, `number`, `array`,
+or `object`), NUL, then its body. Scalar bodies are decoded string bytes, exact
+JSON numeric text, `true`/`false`, or no bytes for null. Arrays concatenate the
+32-byte child digests in array order, followed by their uint64 big-endian count.
+Objects sort decoded keys by bytes, then concatenate each uint64 big-endian key
+byte length, key bytes and child digest, followed by the entry count. This permits
+incremental arrays while retaining exact content distinctions. Object key order
+and whitespace do not change the digest; array order and same-count value edits
+do. These tree hashes must never be compared as if they were canonical JSON or
+the native snapshot's embedded seal.
+
+`inputReadComplete`, whole-file SHA, `schemaVerified` and
+`fullModuleInventoryVerified` become true only after the parser reaches EOF with
+the complete schema. On an early failure, `inputSha256` is empty and `inputBytes`
+is the observed prefix byte count, potentially including a bounded read-ahead;
+unfinished modules are listed in `unverifiedModules`. Completed module digests
+remain a partial inventory. A matching last block only establishes
+`anchorMatchesDeclaration`, not a committed-state binding. The original marker
+is checked only for exact anti-downgrade bytes.
+
+**Streaming mode always returns blocked/exit 2.** Embedded seal reconstruction,
+execution/nonce replay, cross-family/vNext mapping, source/durability/consensus
+proof and `migrationSafe` remain false. A complete strict parse and balanced DEX
+supply do not authorize a release or historical repair. Future work must extend
+the frozen typed seal computation and business invariants with independently
+verified equivalence; it must preserve this distinction.
+
+Block preimage mismatch diagnostics count all mismatches and retain only the
+first three plus last public header sample. Validators are hashed, and transaction
+payloads are omitted. A mismatch against the be9 formula is a blocker requiring
+historical algorithm lineage review; it is not automatically evidence that an
+old block was corrupted. The original header/hash is never rewritten or silently
+accepted under a guessed legacy formula.

@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime/debug"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/executionstate"
 )
@@ -77,11 +78,13 @@ func run(args []string, out io.Writer) int {
 	var o executionstate.Options
 	var input, marker, reference string
 	var maxParseMiB int64
+	var streamNative bool
 	f.StringVar(&input, "input", "", "snapshot JSON (read only)")
 	f.StringVar(&marker, "marker", "", "native integrity marker file (read only)")
 	f.StringVar(&reference, "reference", "", "optional same-family reference snapshot for full-content comparison")
 	f.StringVar(&o.SourceFamily, "source-family", "", "native-baseline-v2, native-a-v1, native-a-v2, abci-a-v14, or abci-c-v13")
 	f.Int64Var(&maxParseMiB, "max-parse-mib", maxInputBytes>>20, "full JSON parsing budget (1..1024 MiB); larger files receive a streamed whole-file digest and a blocked report")
+	f.BoolVar(&streamNative, "stream-native", false, "strict bounded streaming audit for native-baseline-v2; embedded integrity and migration remain unverified")
 	f.StringVar(&o.SourceCommit, "source-commit", "", "declared source commit; must match frozen schema catalog")
 	f.StringVar(&o.TargetFamily, "target-family", "vnext", "vnext always blocks until an actual target schema exists")
 	f.StringVar(&o.ExpectedSHA256, "sha256", "", "independently recorded input byte SHA-256")
@@ -91,6 +94,38 @@ func run(args []string, out io.Writer) int {
 	if e := f.Parse(args); e != nil || input == "" || f.NArg() != 0 || maxParseMiB < 1 || maxParseMiB > 1024 {
 		fmt.Fprintln(out, `{"error":"INVALID_ARGUMENTS","migrationSafe":false}`)
 		return 1
+	}
+	if streamNative {
+		if reference != "" {
+			fmt.Fprintln(out, `{"error":"STREAM_REFERENCE_COMPARISON_NOT_IMPLEMENTED","migrationSafe":false}`)
+			return 2
+		}
+		if marker != "" {
+			var e error
+			o.Marker, e = readInput(marker, 16)
+			if e != nil {
+				fmt.Fprintln(out, `{"error":"MARKER_READ_FAILED","migrationSafe":false}`)
+				return 1
+			}
+		}
+		inputFile, e := os.Open(input)
+		if e != nil {
+			fmt.Fprintln(out, `{"error":"INPUT_READ_FAILED","migrationSafe":false}`)
+			return 1
+		}
+		defer inputFile.Close()
+		st, e := inputFile.Stat()
+		if e != nil || !st.Mode().IsRegular() {
+			fmt.Fprintln(out, `{"error":"INPUT_NOT_REGULAR_FILE","migrationSafe":false}`)
+			return 1
+		}
+		previousLimit := debug.SetMemoryLimit(128 << 20)
+		defer debug.SetMemoryLimit(previousLimit)
+		r := executionstate.AuditNativeStream(inputFile, o, executionstate.DefaultStreamLimits())
+		if json.NewEncoder(out).Encode(r) != nil {
+			return 1
+		}
+		return 2
 	}
 	inputState, e := readSnapshot(input, maxParseMiB<<20)
 	if e != nil {

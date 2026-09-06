@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/executionstate"
 )
 
@@ -68,5 +69,42 @@ func TestRejectDirectoryAndMissingInput(t *testing.T) {
 		if run(args, &out) != 1 {
 			t.Fatal(out.String())
 		}
+	}
+}
+
+func TestStreamingCLIReadsRealSourceFixtureWithoutMutatingInputs(t *testing.T) {
+	dir := t.TempDir()
+	statePath := filepath.Join(dir, "state.json")
+	markerPath := filepath.Join(dir, "marker")
+	d := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	data, e := d.ReplicationSnapshotJSON()
+	if e != nil {
+		t.Fatal(e)
+	}
+	if e = os.WriteFile(statePath, data, 0400); e != nil {
+		t.Fatal(e)
+	}
+	if e = os.WriteFile(markerPath, []byte("2\n"), 0400); e != nil {
+		t.Fatal(e)
+	}
+	before, _ := os.Stat(statePath)
+	sum := sha256.Sum256(data)
+	var out bytes.Buffer
+	code := run([]string{"-input", statePath, "-marker", markerPath, "-stream-native", "-source-family", "native-baseline-v2", "-source-commit", "be9f03833ac3a7579bd96f22f6bf49f3d8dccc7b", "-sha256", hex.EncodeToString(sum[:])}, &out)
+	var r executionstate.Report
+	if e = json.Unmarshal(out.Bytes(), &r); e != nil {
+		t.Fatal(e)
+	}
+	if code != 2 || !r.Verified.SchemaVerified || !r.Verified.InputReadComplete || !r.Verified.DigestMatchesDeclaration || r.Verified.EmbeddedIntegrityVerified || r.MigrationSafe {
+		t.Fatal(r.Issues)
+	}
+	after, _ := os.Stat(statePath)
+	actual, _ := os.ReadFile(statePath)
+	marker, _ := os.ReadFile(markerPath)
+	if !bytes.Equal(data, actual) || !before.ModTime().Equal(after.ModTime()) || after.Mode() != before.Mode() || string(marker) != "2\n" {
+		t.Fatal("stream CLI modified input")
+	}
+	if bytes.Contains(out.Bytes(), []byte(chain.FaucetAddress)) || bytes.Contains(out.Bytes(), []byte(statePath)) {
+		t.Fatal("stream report leaked input data")
 	}
 }

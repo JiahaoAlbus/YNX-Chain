@@ -204,6 +204,9 @@ func TestRealInMemoryPendingAlreadyChangesBalanceAtOldHeight(t *testing.T) {
 	if r.ObservedHeight != "1" || !r.Verified.EmbeddedIntegrityVerified || !r.Verified.AnchorMatchesDeclaration || !has(r, "PENDING_STATE_ALREADY_MAY_AFFECT_BALANCES") || r.Status != "blocked" || r.MigrationSafe {
 		t.Fatal(r.Issues)
 	}
+	if has(r, "BLOCK_HASH_PREIMAGE_MISMATCH") {
+		t.Fatal("source producer preimage was not reproduced")
+	}
 }
 
 func TestFailClosedBoundaryMatrix(t *testing.T) {
