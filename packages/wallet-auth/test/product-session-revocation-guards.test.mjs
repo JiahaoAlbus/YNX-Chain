@@ -236,3 +236,63 @@ test("SDK lost-completion Retry after owner revoke never reconnects and only rep
   assert.equal(values.size, 0);
   assert.equal(handler.snapshot().authority.sessions.length, 1);
 });
+
+const MIXED_TOKENS = ["Z", "a", "_", "-", "0", "A", "z"].map((character) => character.repeat(43));
+function mixedPending(label, mixedToken) {
+  const input = pending(label);
+  const request = { ...input.request, nonce: `N${mixedToken}`, state: `S${mixedToken}` };
+  const approval = signProductSessionApproval(registry, request, { accountSecret: OWNER, scopes: request.scopes, expiresAt: request.expiresAt }, at());
+  return { request, approval };
+}
+
+test("mixed base64url pending challenges and consumed states use parser ordering across authority restart", () => {
+  let authority = new ProductSessionAuthority(registry);
+  const issued = [];
+  for (const [index, mixedToken] of MIXED_TOKENS.entries()) {
+    const input = mixedPending(`authority-mixed-${index}`, mixedToken);
+    const challenge = authority.issueChallenge({ ...input, challenge: mixedToken }, at());
+    issued.push({ input, challenge });
+    const snapshot = authority.snapshot();
+    assert.deepEqual(snapshot.issuedChallenges.map((item) => item.challenge), issued.map((item) => item.challenge.challenge).sort());
+    authority = new ProductSessionAuthority(registry, snapshot);
+    assert.deepEqual(authority.snapshot(), snapshot);
+  }
+  const reversed = { ...authority.snapshot(), issuedChallenges: [...authority.snapshot().issuedChallenges].reverse() };
+  assert.throws(() => new ProductSessionAuthority(registry, reversed), { code: "INVALID_SESSION_STORE" });
+  for (const { input, challenge } of [...issued].reverse()) {
+    authority.complete(completion(input, challenge), at(10));
+    const snapshot = authority.snapshot();
+    for (const field of ["consumedNonces", "consumedStates", "consumedRequests", "consumedChallenges"]) assert.deepEqual(snapshot[field], [...snapshot[field]].sort());
+    assert.deepEqual(snapshot.sessions.map((session) => session.sessionBinding), snapshot.sessions.map((session) => session.sessionBinding).sort());
+    authority = new ProductSessionAuthority(registry, snapshot);
+    assert.deepEqual(authority.snapshot(), snapshot);
+  }
+  assert.equal(authority.snapshot().sessions.length, MIXED_TOKENS.length);
+  assert.equal(authority.snapshot().issuedChallenges.length, 0);
+});
+
+test("gateway keeps multiple mixed-case challenges through restart and exact completion replay after sixty seconds", () => {
+  let sequence = 0;
+  const gateway = new ProductSessionGatewayKernel(registry, () => MIXED_TOKENS[sequence++]);
+  const entries = MIXED_TOKENS.map((mixedToken, index) => {
+    const input = mixedPending(`gateway-mixed-${index}`, mixedToken), challengeId = `req_guard_mixed_${index}_challenge`, completeId = `req_guard_mixed_${index}_complete`;
+    const response = dispatch(gateway, challengeId, CHALLENGE, input);
+    assert.equal(response.status, 200, response.body);
+    const body = completion(input, JSON.parse(response.body).result);
+    return { input, body, challengeId, completeId, challengeResponse: response };
+  });
+  const pendingSnapshot = gateway.snapshot(), restarted = kernel(pendingSnapshot);
+  assert.deepEqual(restarted.snapshot(), pendingSnapshot);
+  for (const entry of [...entries].reverse()) {
+    entry.completeResponse = dispatch(restarted, entry.completeId, COMPLETE, entry.body, 10);
+    assert.equal(entry.completeResponse.status, 200, entry.completeResponse.body);
+  }
+  const completedSnapshot = restarted.snapshot(), recovered = kernel(completedSnapshot);
+  assert.deepEqual(recovered.snapshot(), completedSnapshot);
+  for (const entry of entries) {
+    assert.equal(dispatch(recovered, entry.challengeId, CHALLENGE, entry.input, 61_000).body, entry.challengeResponse.body);
+    assert.equal(dispatch(recovered, entry.completeId, COMPLETE, entry.body, 61_000).body, entry.completeResponse.body);
+  }
+  assert.equal(recovered.snapshot().authority.sessions.length, MIXED_TOKENS.length);
+  assert.equal(recovered.snapshot().authority.issuedChallenges.length, 0);
+});
