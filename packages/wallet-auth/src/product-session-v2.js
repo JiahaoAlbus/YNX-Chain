@@ -243,6 +243,8 @@ export class ProductSessionAuthority {
     exactFields(input, ["request", "approval", "challenge"], "Product Session challenge issuance");
     const request = parseProductSessionRequest(this.#registry, input.request, at);
     const approval = parseProductSessionApproval(this.#registry, request, input.approval, at);
+    this.#assertApprovalNotRevoked(request, approval);
+    if (this.#state.consumedRequests.includes(approval.requestDigest)) fail("REPLAY", "Product Session request already completed; recover its original completion or obtain a new Wallet approval");
     const challenge = createProductSessionChallenge(this.#registry, request, approval, { challenge: input.challenge }, at);
     if (this.#state.issuedChallenges.some((item) => item.challenge === challenge.challenge) || this.#state.consumedChallenges.includes(challenge.challenge)) fail("REPLAY", "Product Session challenge already exists");
     const next = clone(this.#state); next.issuedChallenges.push(challenge); sortSnapshot(next); this.#state = parseSnapshot(next); return challenge;
@@ -252,6 +254,7 @@ export class ProductSessionAuthority {
     exactFields(input, ["request", "approval", "completion"], "Product Session completion");
     const request = parseProductSessionRequest(this.#registry, input.request, at);
     const approval = parseProductSessionApproval(this.#registry, request, input.approval, at);
+    this.#assertApprovalNotRevoked(request, approval);
     exactFields(input.completion, COMPLETION_FIELDS, "Product Session device completion");
     const challenge = parseChallenge(input.completion.challenge);
     const expected = createProductSessionChallenge(this.#registry, request, approval, { challenge: challenge.challenge }, new Date(challenge.issuedAt));
@@ -298,8 +301,18 @@ export class ProductSessionAuthority {
 
   revokeSession(sessionBindingInput) { const value = digest(sessionBindingInput, "sessionBinding"); if (!this.#state.sessions.some((item) => item.sessionBinding === value)) fail("SESSION_NOT_FOUND", "Product Session was not found"); this.#revoke("revokedSessions", value); return value; }
   revokeDevice(deviceBindingInput) { const value = digest(deviceBindingInput, "deviceBinding"); this.#revoke("revokedDevices", value); return value; }
-  revokeAccount(account, at = new Date()) { const record = { account: pattern(account, "account", /^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/), before: validDate(at).toISOString() }; const next = clone(this.#state); next.revokedAccounts = next.revokedAccounts.filter((item) => item.account !== record.account); next.revokedAccounts.push(record); sortSnapshot(next); this.#state = parseSnapshot(next); return Object.freeze(record); }
+  revokeAccount(account, at = new Date()) {
+    const record = { account: pattern(account, "account", /^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/), before: validDate(at).toISOString() };
+    const previous = this.#state.revokedAccounts.find((item) => item.account === record.account);
+    if (previous && previous.before >= record.before) return Object.freeze({ ...previous });
+    const next = clone(this.#state); next.revokedAccounts = next.revokedAccounts.filter((item) => item.account !== record.account); next.revokedAccounts.push(record); sortSnapshot(next); this.#state = parseSnapshot(next); return Object.freeze(record);
+  }
   snapshot() { return freezeSnapshot(clone(this.#state)); }
+  #assertApprovalNotRevoked(request, approval) {
+    // A new challenge must not refresh the authority of an old Wallet approval.
+    // The inclusive boundary requires a fresh approval after an account cutoff.
+    if (this.#state.revokedDevices.includes(deviceBinding(request, approval.account)) || this.#state.revokedAccounts.some((item) => item.account === approval.account && approval.issuedAt <= item.before)) fail("SESSION_REVOKED", "Wallet approval or its product device binding was revoked");
+  }
   #revoke(field, value) { if (this.#state[field].includes(value)) fail("ALREADY_REVOKED", "Product Session revocation already exists"); const next = clone(this.#state); next[field].push(value); sortSnapshot(next); this.#state = parseSnapshot(next); }
 }
 

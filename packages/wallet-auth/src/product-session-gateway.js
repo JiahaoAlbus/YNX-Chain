@@ -1,7 +1,7 @@
-import { canonicalJSON, exactFields, WalletAuthError } from "./canonical.js";
+import { canonicalJSON, digestHex, exactFields, WalletAuthError } from "./canonical.js";
 import { httpBodyDigest } from "./session-proof.js";
 import { parseProductSessionRegistry } from "./product-session-registry.js";
-import { parseProductSession, parseProductSessionChallenge, ProductSessionAuthority, parseProductSessionAuthoritySnapshot } from "./product-session-v2.js";
+import { deviceBinding, parseProductSession, parseProductSessionApproval, parseProductSessionChallenge, ProductSessionAuthority, parseProductSessionAuthoritySnapshot } from "./product-session-v2.js";
 import { productSessionProofV2Digest, verifyProductSessionProofV2 } from "./product-session-proof-v2.js";
 import { verifyWalletSessionControlProof, walletSessionControlReplayKey, walletSessionControlReplayExpiry, walletSessionControlClockAnchor, walletSessionControlClockAnchorTime, walletSessionControlClockFloor, WALLET_SESSION_CONTROL_PATHS } from "./wallet-session-control.js";
 
@@ -34,7 +34,18 @@ export class ProductSessionGatewayKernel {
     const anchorAtCapacity = requiresAnchor && withoutAnchors.length >= 20_000;
     if (requiresAnchor && !anchorAtCapacity) this.#proofs = [...withoutAnchors, walletSessionControlClockAnchor(auditTime)].sort();
     if (!clockRegressed && !anchorAtCapacity) {
-      this.#idempotency = this.#idempotency.filter((item) => item.expiresAt > instant.toISOString());
+      const sessions = new Map(this.#authority.snapshot().sessions.map(session => [session.sessionBinding,session]));
+      this.#idempotency = this.#idempotency.filter((item) => {
+        if (item.expiresAt > instant.toISOString()) return true;
+        if (item.path !== "/v2/product-sessions/challenge") return false;
+        // A lost completion response may outlive the short challenge window.
+        // Keep its exact original challenge while the corresponding session can
+        // still be recovered. Retain revoked entries too so retries are rejected
+        // by current authority instead of creating a different challenge.
+        const challenge = JSON.parse(item.responseBody).result;
+        const session = sessions.get(digestHex("YNX_PRODUCT_SESSION_BINDING_V2",challenge));
+        return session !== undefined && session.expiresAt > instant.toISOString();
+      });
       this.#proofs = this.#proofs.filter(value => { const expires = walletSessionControlReplayExpiry(value); return expires === null || expires > instant.getTime(); });
     }
     let requestId = "req_invalid_request_000";
@@ -53,6 +64,7 @@ export class ProductSessionGatewayKernel {
       const cached = this.#idempotency.find((item) => item.requestId === request.requestId);
       if (cached) {
         if (cached.path !== request.path || cached.bodyDigest !== bodyDigest) fail("IDEMPOTENCY_CONFLICT", "Product Session request ID was reused with a different route or body");
+        this.#assertCachedResponseUsable(cached, request, instant);
         this.#record(requestId, request.path, "idempotent", null, cached.subject, instant);
         return cachedResponse(cached.responseBody, requestId);
       }
@@ -77,6 +89,33 @@ export class ProductSessionGatewayKernel {
   }
 
   snapshot() { return Object.freeze({ schemaVersion: PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION, authority: this.#authority.snapshot(), consumedProofs: Object.freeze([...this.#proofs]), idempotency: Object.freeze([...this.#idempotency]), audit: Object.freeze([...this.#audit]) }); }
+
+  #assertCachedResponseUsable(cached, request, at) {
+    const approval = parseProductSessionApproval(this.#registry, request.body.request, request.body.approval, at);
+    const snapshot = this.#authority.snapshot();
+    if (snapshot.revokedDevices.includes(deviceBinding(approval, approval.account)) || snapshot.revokedAccounts.some((item) => item.account === approval.account && approval.issuedAt <= item.before)) fail("SESSION_REVOKED", "Wallet approval or its product device binding was revoked");
+    const result = JSON.parse(cached.responseBody).result;
+    let session;
+    if (cached.path === "/v2/product-sessions/complete") {
+      session = parseProductSession(result);
+    } else {
+      const challenge = parseProductSessionChallenge(result);
+      const issued = snapshot.issuedChallenges.find((item) => item.challenge === challenge.challenge);
+      if (issued && canonicalJSON(issued) === canonicalJSON(challenge)) return;
+      // SDK recovery retries challenge before complete after a lost response.
+      // A consumed challenge remains recoverable only through its live session.
+      session = snapshot.sessions.find((item) => item.sessionBinding === digestHex("YNX_PRODUCT_SESSION_BINDING_V2", challenge));
+      if (!session) fail("CHALLENGE_NOT_ISSUED", "Cached Product Session challenge is no longer available");
+    }
+    // Keep the immutable historical completion receipt, but never expose its
+    // success as current authority after revocation. Active retries stay exact.
+    this.#authority.introspect(session.sessionBinding, {
+      chainId: session.chainId, productId: session.productId, clientId: session.clientId, platform: session.platform,
+      applicationId: session.applicationId, bundleId: session.bundleId, packageId: session.packageId,
+      origin: session.origin, callback: session.callback, account: session.account, deviceId: session.deviceId,
+      deviceKey: session.deviceKey, requiredScopes: [],
+    }, at);
+  }
 
   #route(request, at) {
     if (WALLET_SESSION_CONTROL_PATHS.includes(request.path)) return this.#walletControl(request, at);
