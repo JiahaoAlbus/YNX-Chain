@@ -54,6 +54,7 @@ jobs:
         working-directory: apps/developer
         run: ./scripts/verify-windows-installer.ps1
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: ynx-developer-testnet-preview-windows-x64-unsigned
           path: |
@@ -65,6 +66,7 @@ jobs:
             apps/developer/.ynx-developer-windows-candidates/**/windows-msix-install-evidence.json
             apps/developer/.ynx-developer-windows-candidates/**/windows-native-self-test.json
             apps/developer/.ynx-developer-windows-candidates/**/windows-install-evidence.json
+            apps/developer/.ynx-developer-windows-candidates/**/*-ui-*.json
           if-no-files-found: error
           retention-days: 14
           include-hidden-files: true
