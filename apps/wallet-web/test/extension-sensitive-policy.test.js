@@ -54,6 +54,15 @@ test("sensitive results never accept fabricated accounts, signatures or transact
   assert.throws(()=>validateSensitiveResult("eth_sendTransaction","0x1234"),error=>error.code==="INVALID_TRANSACTION_HASH");
 });
 
+test("document epochs survive origin return, tab reuse and a pending active-tab lookup",async()=>{
+  const origin="https://dapp.example",guard=new SensitiveAuthorizationGuard({getTab:async id=>({id,url:origin}),getAccount:async()=>({account:ACCOUNT}),getPermission:async()=>({origin,account:ACCOUNT,chainId:"0x1917",grantedAt:1}),now:()=>1}),context={origin,tabId:1,deadlineAt:100};
+  const pending=guard.capturePending(),old=guard.capture(context);guard.invalidateTab(1);
+  assert.throws(()=>guard.bind(old,{account:ACCOUNT,grantedAt:1}),error=>error.code==="DOCUMENT_CHANGED");
+  await assert.rejects(guard.assertDocument(pending(context)),error=>error.code==="DOCUMENT_CHANGED");
+  const fresh=guard.bind(guard.capture(context),{account:ACCOUNT,grantedAt:1});guard.invalidateTab(2);await guard.assert(fresh);
+  guard.invalidateTab(1);await assert.rejects(guard.assert(fresh),error=>error.code==="DOCUMENT_CHANGED");
+});
+
 test("standard provider consumes replay state without coupling to Core Product Session",async()=>{
   const worker=await readFile(new URL("../extension/service-worker.js",import.meta.url),"utf8"),guard=worker.indexOf("consumeSensitiveRequest"),provider=worker.indexOf("handleProviderMethod({tabId,origin");
   assert.ok(guard>0&&provider>guard);assert.doesNotMatch(worker,/requireCanonicalAuthorizationContext|CORE_WALLET_AUTH_BINDING/);assert.match(worker,/requestSignerReview/);assert.match(worker,/broadcastExtensionTransaction/);

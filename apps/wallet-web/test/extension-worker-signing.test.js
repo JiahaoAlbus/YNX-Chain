@@ -22,9 +22,9 @@ const executable=source.replace(/^import .*;\n/gm,"");
 async function fixture(t,{permitted=true,existingLocal=null}={}){
   const vault=await vaultPromise,account={version:1,source:"ynx-wallet-vault",account:ACCOUNT},localState=existingLocal??{[EXTENSION_VAULT_KEY]:vault,[PROVIDER_ACCOUNT_KEY]:account,[PROVIDER_PERMISSIONS_KEY]:permitted?grantPermission({},ORIGIN,account):{}};
   const state={url:`${ORIGIN}/request`,nonce:"0x1",chain:"0x1917",calls:[],signCalls:0,broadcasts:0,unlocks:0,opened:[],closed:[],events:[]};
-  const storage=data=>({async get(keys){const list=Array.isArray(keys)?keys:[keys];return structuredClone(Object.fromEntries(list.filter(key=>Object.hasOwn(data,key)).map(key=>[key,data[key]])))},async set(values){Object.assign(data,structuredClone(values));if(state.afterSet)await state.afterSet(values)},async remove(keys){for(const key of Array.isArray(keys)?keys:[keys])delete data[key]}});
+  const storage=data=>({async get(keys){const list=Array.isArray(keys)?keys:[keys],result=structuredClone(Object.fromEntries(list.filter(key=>Object.hasOwn(data,key)).map(key=>[key,data[key]])));if(state.afterGet)await state.afterGet(keys);return result},async set(values){Object.assign(data,structuredClone(values));if(state.afterSet)await state.afterSet(values)},async remove(keys){for(const key of Array.isArray(keys)?keys:[keys])delete data[key]}});
   const waiting=[],timers=new Set();let listener;
-  const api={runtime:{id:"fixture",getURL:page=>`chrome-extension://fixture/${page}`,onMessage:{addListener:callback=>{listener=callback}}},storage:{local:storage(localState),session:storage({})},tabs:{onUpdated:{addListener:fn=>state.tabUpdated=fn},onRemoved:{addListener:fn=>state.tabRemoved=fn},async get(id){if(id===2&&state.vaultClosed)throw new Error("Vault tab closed");return{id,url:id===2?"chrome-extension://fixture/vault.html?requestId=unused":state.url}},async sendMessage(_id,message){state.events.push(message)}},windows:{async create(options){const created={id:state.opened.length+1,...options};state.opened.push(created);waiting.shift()?.(created);return created},async remove(id){state.closed.push(id)}}};
+  const api={runtime:{id:"fixture",getURL:page=>`chrome-extension://fixture/${page}`,onMessage:{addListener:callback=>{listener=callback}}},storage:{local:storage(localState),session:storage({})},tabs:{onUpdated:{addListener:fn=>state.tabUpdated=fn},onRemoved:{addListener:fn=>state.tabRemoved=fn},async query(){if(state.beforeTabQuery)await state.beforeTabQuery();return[{id:1,url:state.url}]},async get(id){if(id===2&&state.vaultClosed)throw new Error("Vault tab closed");return{id,url:id===2?"chrome-extension://fixture/vault.html?requestId=unused":state.url}},async sendMessage(_id,message){state.events.push(message)}},scripting:{async executeScript(){if(state.beforeInjection)await state.beforeInjection();return[]}},windows:{async create(options){const created={id:state.opened.length+1,...options};state.opened.push(created);waiting.shift()?.(created);return created},async remove(id){state.closed.push(id)}}};
   const actualSign=bindings.signExtensionRequest,actualUnlock=bindings.unlockEncryptedVault;
   const fetcher=async(_url,options)=>{const{method,params}=JSON.parse(options.body);state.calls.push({method,params});if(state.beforeRpc)await state.beforeRpc(method);if(state.unavailable===method)throw new Error("RPC fixture unavailable");if(state.rpcErrors?.[method])return{ok:true,redirected:false,url:"https://evm.ynxweb4.com/",json:async()=>({jsonrpc:"2.0",id:6423,error:state.rpcErrors[method]})};let result;
     if(method==="eth_sendRawTransaction"){state.broadcasts++;state.transaction=Transaction.from(params[0]);if(state.broadcastHook)await state.broadcastHook();if(state.transportFailure)throw new Error("ACK lost");if(state.broadcastError)return{ok:state.broadcastHttpSuccess!==false,redirected:false,url:"https://evm.ynxweb4.com/",json:async()=>({jsonrpc:"2.0",id:6423,error:state.broadcastError})};result=state.ackHash??state.transaction.hash}
@@ -33,7 +33,7 @@ async function fixture(t,{permitted=true,existingLocal=null}={}){
   const context=vm.createContext({...bindings,chrome:api,URL,Date,crypto:webcrypto,setTimeout:(fn,ms)=>{const timer=setTimeout(fn,ms);timers.add(timer);return timer},clearTimeout:timer=>{clearTimeout(timer);timers.delete(timer)},runExtensionMigration:async()=>({fixture:true}),
     forwardExtensionRpc:(method,params)=>bindings.forwardExtensionRpc(method,params,fetcher),
     unlockEncryptedVault:async(...args)=>{state.unlocks++;if(state.beforeUnlock)await state.beforeUnlock();return actualUnlock(...args)},
-    signExtensionRequest:async args=>{state.signCalls++;return actualSign(args)},
+    signExtensionRequest:async args=>{state.signCalls++;const result=await actualSign(args);if(state.afterSign)await state.afterSign();return result},
     broadcastExtensionTransaction:raw=>bindings.broadcastExtensionTransaction(raw,fetcher)
   });vm.runInContext(executable,context);
   t.after(()=>{vm.runInContext('invalidateWaiters("FIXTURE_CLOSED","Fixture closed.")',context);for(const timer of timers)clearTimeout(timer)});
@@ -41,7 +41,7 @@ async function fixture(t,{permitted=true,existingLocal=null}={}){
   let count=0,windowCursor=0;
   const request=(method,params,deadlineAt=Date.now()+5000)=>{const requestId=`ynx-${(++count).toString(16).padStart(8,"0")}-1111-4111-8111-111111111111`,message={type:RUNTIME_REQUEST,version:BRIDGE_VERSION,requestId,origin:ORIGIN,deadlineAt,method,params};return{requestId,result:send(message,{tab:{id:1,url:state.url},frameId:0,url:state.url})}};
   const page=(page,requestId)=>({id:"fixture",url:api.runtime.getURL(`${page}?requestId=${requestId}`)});
-  return{state,localState,request,nextWindow:()=>windowCursor<state.opened.length?Promise.resolve(state.opened[windowCursor++]):new Promise(resolve=>waiting.push(value=>{windowCursor++;resolve(value)})),
+  return{state,localState,request,popupRequest:(method,params)=>send({type:"YNX_WALLET_REQUEST",preference:"ynx",input:{method,params}},page("popup.html","unused")),nextWindow:()=>windowCursor<state.opened.length?Promise.resolve(state.opened[windowCursor++]):new Promise(resolve=>waiting.push(value=>{windowCursor++;resolve(value)})),
     review:requestId=>send({type:"YNX_SIGNER_GET_V1",requestId},page("signer.html",requestId)),
     decide:(requestId,decision="approve")=>send({type:"YNX_SIGNER_DECIDE_V1",requestId,decision,password:PASSWORD},page("signer.html",requestId)),
     connectDecision:requestId=>send({type:"YNX_PROVIDER_APPROVAL_DECIDE_V1",requestId,decision:"approve"},page("approval.html",requestId)),
@@ -53,6 +53,72 @@ test("worker shows the complete public review before unlocking and signs its exa
   const review=await f.review(request.requestId);assert.equal(review.ok,true);assert.equal(review.request.review.messageHex,hex);assert.match(review.request.summary,/\\u202eTAIL/);assert.equal(f.state.unlocks,0);
   assert.equal((await f.decide(request.requestId)).ok,true);const result=await request.result;assert.equal(result.ok,true);assert.equal(verifyMessage(Buffer.from(hex.slice(2),"hex"),result.result).toLowerCase(),ACCOUNT);
   assert.equal((await f.decide(request.requestId)).ok,false);assert.equal(f.state.signCalls,1);
+});
+
+test("document lease starts before migration, replay, account reads and transaction prefill",async t=>{
+  for(const stage of["migration","replay","account","prefill"])await t.test(stage,async t=>{
+    const f=await fixture(t),navigate=()=>f.state.tabUpdated(1,{status:"loading"});
+    if(stage==="replay")f.state.afterSet=async values=>{if(Object.keys(values).includes("ynx.extension.sensitive.replay.v1"))navigate()};
+    if(stage==="account")f.state.afterGet=async keys=>{if(Array.isArray(keys)&&keys.includes(PROVIDER_ACCOUNT_KEY))navigate()};
+    if(stage==="prefill")f.state.beforeRpc=async method=>{if(method==="eth_getTransactionCount")navigate()};
+    const request=f.request("eth_sendTransaction",[{from:ACCOUNT,to:TO,value:toQuantity(10n**18n)}]);
+    if(stage==="migration")navigate();
+    assert.equal((await request.result).error.code,"DOCUMENT_CHANGED");assert.equal(f.state.opened.length,0);assert.equal(f.state.unlocks,0);assert.equal(f.state.signCalls,0);assert.equal(f.state.broadcasts,0);
+  });
+});
+
+test("popup requests retain the document epoch across active-tab lookup and injection",async t=>{
+  for(const stage of["query","injection"])await t.test(stage,async t=>{
+    const f=await fixture(t),navigate=()=>f.state.tabUpdated(1,{status:"loading"});if(stage==="query")f.state.beforeTabQuery=navigate;else f.state.beforeInjection=navigate;
+    const result=await f.popupRequest("personal_sign",["0x01",ACCOUNT]);assert.equal(result.error.code,"DOCUMENT_CHANGED");assert.equal(f.state.opened.length,0);assert.equal(f.state.signCalls,0);
+  });
+});
+
+test("navigation after decrypt or signing cannot release a result or dispatch a transaction",async t=>{
+  for(const stage of["decrypt","signed","journal-readback"])await t.test(stage,async t=>{
+    const f=await fixture(t),request=f.request("eth_sendTransaction",[{from:ACCOUNT,to:TO,value:toQuantity(10n**18n)}]);await f.nextWindow();
+    const navigate=()=>f.state.tabUpdated(1,{status:"loading"});
+    if(stage==="decrypt")f.state.beforeUnlock=navigate;
+    if(stage==="signed")f.state.afterSign=navigate;
+    if(stage==="journal-readback")f.state.afterGet=async keys=>{const key=BROADCAST_JOURNAL_PREFIX+ACCOUNT;if(Array.isArray(keys)&&keys.includes(key)&&f.localState[key]?.status==="broadcasting")navigate()};
+    await f.decide(request.requestId);assert.equal((await request.result).error.code,"DOCUMENT_CHANGED");assert.equal(f.state.broadcasts,0);assert.equal(f.state.signCalls,stage==="decrypt"?0:1);
+    if(stage==="journal-readback"){const record=f.localState[BROADCAST_JOURNAL_PREFIX+ACCOUNT];assert.equal(record.status,"cancelled");assert.ok(record.rawTransaction);}
+  });
+});
+
+test("navigation after POST keeps its durable journal facts and rejects the old reply",async t=>{
+  const f=await fixture(t),request=f.request("eth_sendTransaction",[{from:ACCOUNT,to:TO,value:toQuantity(10n**18n)}]);await f.nextWindow();
+  f.state.broadcastHook=()=>f.state.tabUpdated(1,{status:"loading"});await f.decide(request.requestId);
+  assert.equal((await request.result).error.code,"DOCUMENT_CHANGED");assert.equal(f.state.broadcasts,1);assert.equal(f.state.signCalls,1);
+  const record=f.localState[BROADCAST_JOURNAL_PREFIX+ACCOUNT];assert.equal(record.status,"acknowledged");assert.equal(record.unknownHistory,true);assert.equal(record.rawTransaction,f.state.transaction.serialized);
+  const restarted=await fixture(t,{existingLocal:f.localState});assert.equal((await restarted.request("eth_sendTransaction",[{from:ACCOUNT,to:TO,value:toQuantity(10n**18n)}]).result).error.code,-32002);assert.equal(restarted.state.signCalls,0);
+});
+
+test("new-document requests work while unrelated tab events and popup focus preserve approval",async t=>{
+  const f=await fixture(t),old=f.request("personal_sign",["0x01",ACCOUNT]);await f.nextWindow();f.state.tabRemoved(1);assert.equal((await old.result).error.code,"DOCUMENT_CHANGED");
+  const fresh=f.request("personal_sign",["0x02",ACCOUNT]);await f.nextWindow();f.state.tabUpdated(99,{status:"loading"});f.state.tabRemoved(99);f.state.tabUpdated(1,{status:"complete"});
+  await f.decide(fresh.requestId);assert.equal((await fresh.result).ok,true);assert.equal(f.state.signCalls,1);
+});
+
+test("connection navigation cannot persist permission or send account events",async t=>{
+  for(const stage of["review","permission-write"])await t.test(stage,async t=>{
+    const f=await fixture(t,{permitted:false}),request=f.request("eth_requestAccounts",[]);await f.nextWindow();
+    if(stage==="review")f.state.tabUpdated(1,{status:"loading"});
+    else f.state.afterSet=async values=>{if(values[PROVIDER_PERMISSIONS_KEY]?.[ORIGIN])f.state.tabUpdated(1,{status:"loading"})};
+    await f.connectDecision(request.requestId);assert.equal((await request.result).error.code,"DOCUMENT_CHANGED");assert.equal(f.localState[PROVIDER_PERMISSIONS_KEY][ORIGIN],undefined);assert.equal(f.state.events.length,0);
+  });
+});
+
+for(const method of["personal_sign","eth_sendTransaction"])test(`DApp document navigation cancels the old ${method} approval`,async t=>{
+  for(const navigation of["reload","away-and-back","removed-and-reused"])await t.test(navigation,async t=>{
+    const f=await fixture(t),params=method==="personal_sign"?["0x01",ACCOUNT]:[{from:ACCOUNT,to:TO,value:toQuantity(10n**18n)}],request=f.request(method,params);await f.nextWindow();
+    if(navigation==="reload")f.state.tabUpdated(1,{status:"loading"});
+    if(navigation==="away-and-back"){f.state.url="https://elsewhere.example";f.state.tabUpdated(1,{url:f.state.url});f.state.url=`${ORIGIN}/request`;f.state.tabUpdated(1,{url:f.state.url});}
+    if(navigation==="removed-and-reused")f.state.tabRemoved(1);
+    await f.decide(request.requestId);const result=await request.result;
+    assert.equal(result.ok,false,JSON.stringify({navigation,signCalls:f.state.signCalls,broadcasts:f.state.broadcasts}));
+    assert.equal(f.state.unlocks,0);assert.equal(f.state.signCalls,0);assert.equal(f.state.broadcasts,0);
+  });
 });
 
 test("revoke, account replacement and vault removal immediately invalidate pending signatures",async t=>{
