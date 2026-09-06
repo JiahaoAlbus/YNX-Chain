@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { chmodSync, linkSync, mkdtempSync, readFileSync, renameSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, linkSync, mkdtempSync, readFileSync, renameSync, rmSync, statSync, symlinkSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -18,6 +18,98 @@ const NOW = new Date("2026-08-14T01:00:00.000Z");
 const token = (label) => createHash("sha256").update(label).digest("base64url");
 const deviceSecret = Buffer.alloc(32, 29);
 const deviceKey = Buffer.from(p256.getPublicKey(deviceSecret, true)).toString("base64url");
+
+test("authoritative time is request-bound, uncached and read-only across restart", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "ynx-product-session-v2-time-")); chmodSync(directory, 0o700);
+  const statePath = join(directory, "state.json");
+  let now = new Date("2026-09-06T06:15:20.542Z"), tokenCalls = 0;
+  const createHost = () => new ProductSessionGatewayNodeHost(registry, { statePath, now: () => now, tokenFactory: () => { tokenCalls++; return token("unused-time-token"); } });
+  try {
+    const first = createHost();
+    const beforeFile = readFileSync(statePath, "utf8"), beforeStat = statSync(statePath, { bigint: true }), beforeSnapshot = canonicalJSON(first.snapshot());
+    for (let restart = 0; restart < 2; restart++) {
+      const host = restart === 0 ? first : createHost();
+      await serve(host, async endpoint => {
+        const headers = { origin: "https://creator.ynxweb4.com", "x-request-id": "req_server_time_exact_0001" };
+        for (let index = 0; index < 2; index++) {
+          const response = await fetch(`${endpoint}/v2/product-sessions/time`, { headers });
+          assert.equal(response.status, 200);
+          assert.equal(response.headers.get("cache-control"), "no-store");
+          assert.equal(response.headers.get("x-request-id"), headers["x-request-id"]);
+          assert.equal(response.headers.get("access-control-allow-origin"), headers.origin);
+          assert.equal(response.headers.get("access-control-expose-headers"), "x-request-id");
+          assert.equal(response.headers.get("access-control-allow-credentials"), null);
+          const body = await response.text();
+          assert.equal(body, canonicalJSON({ ok: true, requestId: headers["x-request-id"], result: { serverTime: now.toISOString() }, schemaVersion: 2 }));
+          now = new Date(now.getTime() + 137);
+        }
+      });
+      assert.equal(canonicalJSON(host.snapshot()), beforeSnapshot);
+      assert.equal(readFileSync(statePath, "utf8"), beforeFile);
+      const afterStat = statSync(statePath, { bigint: true });
+      for (const field of ["ino", "size", "mtimeNs", "ctimeNs"]) assert.equal(afterStat[field], beforeStat[field], field);
+    }
+    assert.equal(tokenCalls, 0);
+  } finally { rmSync(directory, { recursive: true, force: true }); }
+});
+
+test("time GET and CORS reject invalid method, query, request ID and origin without authority mutation", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "ynx-product-session-v2-time-boundary-")); chmodSync(directory, 0o700);
+  const statePath = join(directory, "state.json");
+  try {
+    const host = new ProductSessionGatewayNodeHost(registry, { statePath, now: () => NOW, tokenFactory: () => token("unused-time-boundary-token") });
+    const beforeFile = readFileSync(statePath, "utf8"), beforeSnapshot = canonicalJSON(host.snapshot());
+    await serve(host, async endpoint => {
+      const path = "/v2/product-sessions/time", headers = { origin: "https://creator.ynxweb4.com", "x-request-id": "req_server_time_boundary_001" };
+      const preflightHeaders = { origin: headers.origin, "access-control-request-method": "GET", "access-control-request-headers": "x-request-id" };
+      const preflight = await fetch(`${endpoint}${path}`, { method: "OPTIONS", headers: preflightHeaders });
+      assert.equal(preflight.status, 204);
+      assert.equal(preflight.headers.get("access-control-allow-methods"), "GET");
+      assert.equal(preflight.headers.get("access-control-allow-origin"), headers.origin);
+      assert.equal(preflight.headers.get("cache-control"), "no-store");
+      for (const [suffix, method, requestHeaders, status, code] of [
+        [path, "POST", headers, 405, "METHOD_NOT_ALLOWED"],
+        [path, "PUT", headers, 405, "METHOD_NOT_ALLOWED"],
+        [`${path}?requestId=other`, "GET", headers, 400, "INVALID_PATH"],
+        [path, "GET", { origin: headers.origin }, 400, "INVALID_REQUEST_ID"],
+        [path, "GET", { ...headers, "x-request-id": "bad" }, 400, "INVALID_REQUEST_ID"],
+        [path, "GET", { ...headers, origin: "https://attacker.example" }, 403, "ORIGIN_NOT_ALLOWED"],
+        [path, "OPTIONS", { ...preflightHeaders, "access-control-request-method": "POST" }, 405, "METHOD_NOT_ALLOWED"],
+        [path, "OPTIONS", { ...preflightHeaders, "access-control-request-headers": "x-unsafe-header" }, 400, "INVALID_CORS_REQUEST"],
+        [path, "OPTIONS", { ...preflightHeaders, origin: "https://attacker.example" }, 403, "ORIGIN_NOT_ALLOWED"],
+        ["/v2/product-sessions/introspect", "GET", headers, 405, "METHOD_NOT_ALLOWED"],
+        ["/v2/product-sessions/introspect", "OPTIONS", preflightHeaders, 405, "METHOD_NOT_ALLOWED"],
+      ]) {
+        const response = await fetch(`${endpoint}${suffix}`, { method, headers: requestHeaders });
+        assert.equal(response.status, status, `${method} ${suffix}`);
+        assert.equal((await response.json()).error.code, code);
+      }
+      const native = await fetch(`${endpoint}${path}`, { headers: { "x-request-id": headers["x-request-id"] } });
+      assert.equal(native.status, 200);
+      assert.equal(native.headers.get("access-control-allow-origin"), null);
+    });
+    assert.equal(canonicalJSON(host.snapshot()), beforeSnapshot);
+    assert.equal(readFileSync(statePath, "utf8"), beforeFile);
+  } finally { rmSync(directory, { recursive: true, force: true }); }
+});
+
+test("time fails closed when the authoritative clock is invalid", async () => {
+  const directory = mkdtempSync(join(tmpdir(), "ynx-product-session-v2-time-invalid-")); chmodSync(directory, 0o700);
+  const statePath = join(directory, "state.json");
+  try {
+    for (const now of [() => new Date(NaN), () => NOW.toISOString()]) {
+      const host = new ProductSessionGatewayNodeHost(registry, { statePath, now, tokenFactory: () => token("unused-invalid-time-token") });
+      const beforeFile = readFileSync(statePath, "utf8"), beforeSnapshot = canonicalJSON(host.snapshot());
+      await serve(host, async endpoint => {
+        const response = await fetch(`${endpoint}/v2/product-sessions/time`, { headers: { "x-request-id": "req_invalid_server_time_0001" } });
+        assert.equal(response.status, 400);
+        assert.equal((await response.json()).error.code, "INVALID_TIME");
+      });
+      assert.equal(canonicalJSON(host.snapshot()), beforeSnapshot);
+      assert.equal(readFileSync(statePath, "utf8"), beforeFile);
+    }
+  } finally { rmSync(directory, { recursive: true, force: true }); }
+});
 
 test("production Node host mounts v2 with registered-origin CORS and restart-idempotent durable state", async () => {
   const directory = mkdtempSync(join(tmpdir(), "ynx-product-session-v2-host-")); chmodSync(directory, 0o700);

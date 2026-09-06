@@ -12,7 +12,9 @@ import { parseProductSessionRegistry } from "./product-session-registry.js";
 
 export const PRODUCT_SESSION_GATEWAY_NODE_STATE_SCHEMA_VERSION = 1;
 const STATE_FIELDS = ["schemaVersion", "snapshotDigest", "snapshot"];
+const TIME_ROUTE = "/v2/product-sessions/time";
 const ROUTES = new Set([
+  TIME_ROUTE,
   "/v2/product-sessions/challenge",
   "/v2/product-sessions/complete",
   "/v2/product-sessions/introspect",
@@ -46,12 +48,22 @@ export class ProductSessionGatewayNodeHost {
         this.#assertStateIdentity();
         corsHeaders = this.#corsHeaders(request.headers.origin);
         if (request.method === "OPTIONS") {
-          this.#preflight(request, corsHeaders);
-          response.writeHead(204, { ...corsHeaders, "access-control-allow-headers": CORS_ALLOWED_HEADERS, "access-control-allow-methods": "POST", "access-control-max-age": "300", "cache-control": "no-store" });
+          const method = this.#preflight(request, corsHeaders);
+          response.writeHead(204, { ...corsHeaders, "access-control-allow-headers": CORS_ALLOWED_HEADERS, "access-control-allow-methods": method, "access-control-max-age": "300", "cache-control": "no-store" });
           response.end(); return;
         }
         const route = pathname(request.url);
         if (!ROUTES.has(route)) fail("ROUTE_NOT_FOUND", "Product Session Gateway route is not registered");
+        if (route === TIME_ROUTE) {
+          if (request.method !== "GET") fail("METHOD_NOT_ALLOWED", "Product Session Gateway time accepts GET only");
+          if (!validRequestId(request.headers["x-request-id"])) fail("INVALID_REQUEST_ID", "Product Session Gateway time requires a valid request ID");
+          const now = this.#now();
+          if (!(now instanceof Date) || !Number.isFinite(now.getTime())) fail("INVALID_TIME", "Product Session Gateway time is unavailable");
+          // Clock reads never enter the authority kernel or alter its durable audit/state.
+          response.writeHead(200, { "cache-control": "no-store", "content-type": "application/json; charset=utf-8", "x-request-id": requestId, ...corsHeaders });
+          response.end(canonicalJSON({ ok: true, requestId, result: { serverTime: now.toISOString() }, schemaVersion: PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION }));
+          return;
+        }
         if (request.method !== "POST") fail("METHOD_NOT_ALLOWED", "Product Session Gateway accepts POST only");
         const body = await boundedBody(request);
         this.#assertStateIdentity();
@@ -95,12 +107,15 @@ export class ProductSessionGatewayNodeHost {
 
   #preflight(request, corsHeaders) {
     if (Object.keys(corsHeaders).length === 0) fail("ORIGIN_NOT_ALLOWED", "Product Session Gateway preflight requires a registered origin");
-    if (!ROUTES.has(pathname(request.url))) fail("ROUTE_NOT_FOUND", "Product Session Gateway route is not registered");
-    if (request.headers["access-control-request-method"] !== "POST") fail("METHOD_NOT_ALLOWED", "Product Session Gateway preflight requires POST");
+    const route = pathname(request.url);
+    if (!ROUTES.has(route)) fail("ROUTE_NOT_FOUND", "Product Session Gateway route is not registered");
+    const method = route === TIME_ROUTE ? "GET" : "POST";
+    if (request.headers["access-control-request-method"] !== method) fail("METHOD_NOT_ALLOWED", `Product Session Gateway preflight requires ${method}`);
     const supplied = singleHeader(request.headers["access-control-request-headers"]);
     const headers = supplied.split(",").map((item) => item.trim().toLowerCase());
     const allowed = new Set(CORS_ALLOWED_HEADERS.split(", "));
     if (headers.length === 0 || new Set(headers).size !== headers.length || headers.some((item) => !allowed.has(item))) fail("INVALID_CORS_REQUEST", "Product Session Gateway requested headers are not allowed");
+    return method;
   }
 
   #assertStateIdentity() {
