@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "a83c481ab2d1aca5997f8fa40e905f7a635e54e5",
+  "observedAt": "2026-08-14T19:51:02+08:00",
+  "officialPage": {
+    "url": "https://www.ynxweb4.com/dapp/wallet",
+    "manifestLink": "/manifest.webmanifest"
+  },
+  "officialManifest": {
+    "url": "https://www.ynxweb4.com/manifest.webmanifest",
+    "status": 200,
+    "contentType": "application/manifest+json; charset=utf-8",
+    "contentLength": 559,
+    "name": "YNX Chain",
+    "shortName": "YNX",
+    "startUrl": "/",
+    "scope": "/",
+    "display": "standalone"
+  },
+  "exactWalletArtifactManifest": {
+    "artifact": "ynx-wallet-web-pwa-0.1.0.zip",
+    "bytes": 272706,
+    "sha256": "63d83cd20925f2d52c0f21f548fa7a857a4d056e03e5fa16244f173164a7d287",
+    "name": "YNX Wallet Testnet Companion",
+    "shortName": "YNX Wallet",
+    "id": "/wallet/companion",
+    "startUrl": "./",
+    "scope": "./",
+    "language": "en",
+    "direction": "auto"
+  },
+  "visibleChromeInstallLabelObserved": "安装“YNX Chain”",
+  "walletPwaIdentityExact": false,
+  "walletPwaInstallAttempted": false,
+  "walletPwaInstalledLocal": false,
+  "walletPwaColdLaunchProved": false,
+  "walletPwaSecondLaunchProved": false,
+  "walletPwaTestnetConnectionProved": false,
+  "failClosed": true,
+  "followupScriptInspection": {
+    "passed": false,
+    "error": "curl transport timeout after 20004ms",
+    "semanticRetryPerformed": false
+  },
+  "blocker": "The public route currently exposes the website-wide YNX Chain install identity, not the exact Wallet PWA manifest and scope. Installing it would not prove installation of the Wallet artifact."
+}

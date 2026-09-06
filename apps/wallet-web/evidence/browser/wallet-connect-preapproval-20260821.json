@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "capturedAt": "2026-08-21T20:07:00+08:00",
+  "sourceCommit": "3651ba0c4322e0564e29b4573f3def90828dba67",
+  "deploymentId": "dpl_2VFy2gauryFgCGvchv2EddXv1zec",
+  "publicUrl": "https://wallet.ynxweb4.com/?lang=en&source=3651ba0c",
+  "publicAssets": {
+    "root": {"status": 200, "bytes": 821, "sha256": "2df10866a35b074a6fb366439197646dd4e979bc83bdae3aba0ba6db3802986c", "localEqual": true},
+    "buildIdentity": {"status": 200, "bytes": 267, "sha256": "760971f2b83bae7e8f05483006267d76f756a6daf651c0250482c79a2bf5b7b1", "localEqual": true},
+    "app": {"status": 200, "bytes": 16803, "sha256": "65fb87b5eec304366a8603d5e33c203120f1b28659a18af96d417a4ca70d57a7", "localEqual": true},
+    "provider": {"status": 200, "bytes": 18553, "sha256": "82cb2532ce59dd930619df4045b9e4836aa3f3fd7540962204a2ae87a499b4e6", "localEqual": true},
+    "i18n": {"status": 200, "bytes": 20792, "sha256": "e44e84b45f114d032f1f0cd027e1dc696211acfb1948e244e3e90696415ca559", "localEqual": true},
+    "assetIntegrity": {"status": 200, "bytes": 1824, "sha256": "b4f29799838ee7641d1ec8ed9680ad72b47f6d1063efc21b822b224686e309c9", "localEqual": true}
+  },
+  "browser": {
+    "name": "Google Chrome",
+    "version": "151.0.7922.170",
+    "pid": 662,
+    "visible": true,
+    "englishDefault": true,
+    "metaMaskEip6963Detected": true,
+    "detectedText": "MetaMask provider detected",
+    "originalPageStable": true,
+    "blankTabCreated": false,
+    "loadedSourceCommit": "3651ba0c4322e0564e29b4573f3def90828dba67",
+    "switchOrAddLogicLoaded": true,
+    "frozenAddChainLogicLoaded": true,
+    "directRpcConnectionPrerequisitePresent": false
+  },
+  "connectContract": {
+    "requestOrder": ["eth_requestAccounts", "eth_chainId", "wallet_switchEthereumChain", "wallet_addEthereumChain only on 4902", "wallet_switchEthereumChain", "eth_chainId exact readback"],
+    "chainId": "0x1917",
+    "addChainParametersFrozen": true,
+    "non4902AddsChain": false,
+    "chooserClosesOnlyAfterSuccess": true,
+    "pendingClearsOnlyAfterSuccess": true,
+    "focusRestoresOnlyAfterSuccess": true
+  },
+  "approvalBoundary": {
+    "actionTimeApprovalRequired": true,
+    "data": "real EVM account address",
+    "destination": "https://wallet.ynxweb4.com",
+    "purpose": "MetaMask eth_requestAccounts and YNX Testnet connection acceptance",
+    "requested": false
+  },
+  "truth": {
+    "accountApproved": false,
+    "providerChainId1917": false,
+    "chooserClosedAfterApproval": false,
+    "refreshRestore": false,
+    "disconnect": false,
+    "switchAccount": false,
+    "ynxProviderDetected": false,
+    "sign": false,
+    "transaction": false
+  }
+}

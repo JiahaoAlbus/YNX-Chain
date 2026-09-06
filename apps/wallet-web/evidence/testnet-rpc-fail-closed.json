@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "00cdbccf",
+  "requestedAt": "2026-08-13T12:10:41.149Z",
+  "endpoint": "https://evm.ynxweb4.com",
+  "method": "eth_chainId",
+  "timeoutMs": 6000,
+  "elapsedMs": 6052,
+  "result": "AbortError",
+  "chainIdVerified": false,
+  "addChainEnabled": false,
+  "switchChainEnabled": false,
+  "transactionEnabled": false,
+  "runtimeBoundary": "verifyTestnetRpc rejects with RPC_UNAVAILABLE before invoking any chain-changing provider request"
+}

@@ -1,0 +1,14 @@
+{
+  "result": "PASS",
+  "verifiedAssets": 20,
+  "workerShellDigest": "659018fab72104a12705463ccde940523192dc5aeba7c5835535b98384e45a76",
+  "moduleCopies": {
+    "pwa": "5aa4c954b9cee81c098d31b1381f900e265a6cc5b8dbc805267b2926133c72ec",
+    "chromium": "5aa4c954b9cee81c098d31b1381f900e265a6cc5b8dbc805267b2926133c72ec",
+    "firefox": "5aa4c954b9cee81c098d31b1381f900e265a6cc5b8dbc805267b2926133c72ec"
+  },
+  "errors": [],
+  "accountAuthorized": false,
+  "messageSigned": false,
+  "transactionSubmitted": false
+}

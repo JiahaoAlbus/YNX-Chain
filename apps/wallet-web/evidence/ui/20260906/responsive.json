@@ -1,0 +1,98 @@
+{
+  "surface": "local-built-PWA",
+  "personalAuthorization": false,
+  "signing": false,
+  "transactions": false,
+  "matrix": [
+    {
+      "availability": "MetaMask is available",
+      "direction": "ltr",
+      "discovery": "ready",
+      "language": "en",
+      "overflow": [],
+      "scrollWidth": 390,
+      "width": 390,
+      "file": "en-390.png"
+    },
+    {
+      "availability": "MetaMask is available",
+      "direction": "ltr",
+      "discovery": "ready",
+      "language": "en",
+      "overflow": [],
+      "scrollWidth": 768,
+      "width": 768,
+      "file": "en-768.png"
+    },
+    {
+      "availability": "MetaMask is available",
+      "direction": "ltr",
+      "discovery": "ready",
+      "language": "en",
+      "overflow": [],
+      "scrollWidth": 1280,
+      "width": 1280,
+      "file": "en-1280.png"
+    },
+    {
+      "availability": "MetaMask 已就绪",
+      "direction": "ltr",
+      "discovery": "ready",
+      "language": "zh-CN",
+      "overflow": [],
+      "scrollWidth": 390,
+      "width": 390,
+      "file": "zh-CN-390.png"
+    },
+    {
+      "availability": "MetaMask 已就绪",
+      "direction": "ltr",
+      "discovery": "ready",
+      "language": "zh-CN",
+      "overflow": [],
+      "scrollWidth": 768,
+      "width": 768,
+      "file": "zh-CN-768.png"
+    },
+    {
+      "availability": "MetaMask 已就绪",
+      "direction": "ltr",
+      "discovery": "ready",
+      "language": "zh-CN",
+      "overflow": [],
+      "scrollWidth": 1280,
+      "width": 1280,
+      "file": "zh-CN-1280.png"
+    },
+    {
+      "availability": "محفظة MetaMask متاحة",
+      "direction": "rtl",
+      "discovery": "ready",
+      "language": "ar",
+      "overflow": [],
+      "scrollWidth": 390,
+      "width": 390,
+      "file": "ar-390.png"
+    },
+    {
+      "availability": "محفظة MetaMask متاحة",
+      "direction": "rtl",
+      "discovery": "ready",
+      "language": "ar",
+      "overflow": [],
+      "scrollWidth": 768,
+      "width": 768,
+      "file": "ar-768.png"
+    },
+    {
+      "availability": "محفظة MetaMask متاحة",
+      "direction": "rtl",
+      "discovery": "ready",
+      "language": "ar",
+      "overflow": [],
+      "scrollWidth": 1280,
+      "width": 1280,
+      "file": "ar-1280.png"
+    }
+  ]
+}

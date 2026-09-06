@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "abe18043259374ee58f90580af582100ab0649cd",
+  "generatedAt": "2026-08-22T09:35:23.894Z",
+  "runtimeClass": "Playwright bundled Chromium-compatible persistent PWA profile; not branded Chrome/Edge and not an installed PWA",
+  "passed": true,
+  "liveRpcProved": false,
+  "secondLaunchLiveRpcProved": false,
+  "rpcRecoveryProved": false,
+  "providerConnected": false,
+  "accountAuthorized": false,
+  "messageSigned": false,
+  "transactionSubmitted": false,
+  "installedLocal": false,
+  "deployedPublic": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "liveRpc": {
+    "proved": false,
+    "error": {
+      "code": "UNSAFE_BROWSER_RPC_PROBE",
+      "message": "Direct browser RPC fetch is not a Standard Wallet connection authority."
+    }
+  },
+  "initial": {
+    "controlled": true,
+    "cacheNames": [
+      "ynx-wallet-web-v11"
+    ],
+    "statusText": "Status: Not connected",
+    "session": null,
+    "signDisabled": true,
+    "sendDisabled": true
+  },
+  "tamper": {
+    "status": 503,
+    "body": "Offline asset unavailable",
+    "tamperedExecuted": false,
+    "session": null,
+    "signDisabled": true,
+    "sendDisabled": true
+  },
+  "rollback": {
+    "status": 503,
+    "body": "Offline asset unavailable",
+    "legacyPresent": false,
+    "session": null
+  },
+  "recovery": {
+    "appStatus": 200,
+    "indexStatus": 200,
+    "appSha256": "c752e4117a1d591859f9bf2be96d22d59ee2b1da7c224e71422cdeb083333c3f",
+    "indexContainsFake": false,
+    "cacheNames": [
+      "ynx-wallet-web-v11"
+    ],
+    "session": null
+  },
+  "artifact": {
+    "name": "ynx-wallet-web-pwa-0.1.0.zip",
+    "bytes": 285569,
+    "sha256": "fb6525430ba7432bc088a0a4b4b662c447419dc102f70fdb943f085cc3fd8b29",
+    "minimumOS": "modern browser with Service Worker and Web Crypto support",
+    "signingClass": "unsigned-web-bundle"
+  }
+}

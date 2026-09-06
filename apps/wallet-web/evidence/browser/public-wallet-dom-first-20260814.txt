@@ -1,0 +1,148 @@
+- link "跳到正文":
+  - /url: "#main-content"
+- banner:
+  - link "YNX Chain 首页":
+    - /url: /
+    - generic: CHAIN
+  - navigation "主导航":
+    - link "产品":
+      - /url: /#ecosystem
+    - link "DApp":
+      - /url: /dapp
+    - link "生态":
+      - /url: /dapp
+    - link "社区":
+      - /url: /community
+    - link "使用手册":
+      - /url: /manual
+    - link "文档":
+      - /url: /docs
+    - link "状态":
+      - /url: /status
+    - link "浏览器":
+      - /url: https://explorer.ynxweb4.com
+      - text: 浏览器
+  - button "搜索并打开命令面板":
+    - generic: 搜索
+    - generic: ⌘K
+  - button "Switch to English":
+    - generic: EN
+  - button "切换到浅色模式":
+- main:
+  - paragraph: Independent YNX product
+  - heading "YNX Wallet" [level=1]
+  - paragraph: Canonical Wallet/Auth is live on Testnet with proof-bound product sessions, immutable product registry selection, replay protection and bounded admission. The hosted Android build is test-signed, not production-signed or store-released.
+  - generic: public web
+  - paragraph: Current evidence
+  - heading "What this status proves" [level=2]
+  - list:
+    - strong: Candidate code
+    - generic: "Audited source commit: bb751ce3"
+    - strong: Central acceptance
+    - generic: Commit-bound wallet-v1.0.1-testnet-preview.1 product-release.json is published by this website.
+    - strong: Public product surface
+    - generic: A public web surface was remotely reachable during this audit.
+    - strong: Hosted installer
+    - generic: Immutable hosted artifact evidence is registered.
+    - strong: Production signing / store release
+    - generic: No owner production signature or app-store acceptance is claimed.
+  - paragraph: Platforms
+  - heading "Install and access" [level=2]
+  - list:
+    - strong: Web
+    - generic: Public canonical Wallet/Auth gateway health; product use remains proof-bound.
+    - link "Open":
+      - /url: https://wallet-auth.ynxweb4.com/health
+      - text: Open
+    - strong: Android
+    - generic: Android 1.0.1 Testnet Preview · source bb751ce3 · release evidence dc31c9a8 · SHA-256 fd924ef8…5fef · 78,392,878 bytes · persistent Testnet signing line. Back up recovery material and uninstall the incompatible 1.0.0 preview before installing. Never import production keys.
+    - link "Open":
+      - /url: /downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk
+      - text: Open
+    - strong: iOS
+    - generic: iOS project exists; simulator/launch evidence not completed on this host.
+    - emphasis: Incomplete
+    - strong: macOS
+    - generic: No macOS package is published for Wallet in this candidate.
+    - emphasis: Not ready
+    - strong: Windows
+    - generic: No Windows package is published for Wallet in this candidate.
+    - emphasis: Not ready
+  - complementary:
+    - generic: Source commit
+    - code: bb751ce3
+    - paragraph: "Release wallet-v1.0.1-testnet-preview.1: the Android Testnet Preview is hosted for direct download. The exact APK passed a fresh install, first cold launch, product-independent ynxwallet://open launch, force-stop, second cold launch and warm deep-link delivery on Android 16/API 36 with no fatal crash. Important: the old 1.0.0 preview used a different temporary test certificate, so back up recovery material, uninstall 1.0.0 and then install 1.0.1. From 1.0.1 onward the preview uses a persistent Testnet release key. Canonical Wallet/Auth remains publicly reachable through the proof-bound gateway. This is Testnet software, not production-signed or app-store released."
+    - link "Read product docs":
+      - /url: /docs#wallet
+      - text: Read product docs
+    - link "Open release evidence":
+      - /url: /releases/ecosystem-release-registry.json
+      - text: Open release evidence
+    - link "Wallet status and downloads":
+      - /url: /dapp/wallet
+      - text: Wallet status and downloads
+    - link "Download center":
+      - /url: /dapp/download
+      - text: Download center
+  - complementary:
+    - strong: Status is narrower than ambition.
+    - paragraph: Candidate code, local packages, public APIs, hosted installers, production signing, and store acceptance are separate states.
+  - region "Purpose, workflow and hard rules":
+    - paragraph: How this product works
+    - heading "Purpose, workflow and hard rules" [level=2]
+    - paragraph: Create and protect the identity that approves actions across YNX products.
+    - heading "User workflow" [level=3]
+    - list:
+      - listitem: Create or restore an account locally.
+      - listitem: Review the exact product, device, scopes, expiry and callback.
+      - listitem: Approve with the Wallet-held key.
+      - listitem: The product receives a revocable scoped session, never the recovery secret.
+    - heading "Rules and boundaries" [level=3]
+    - list:
+      - generic: ynx1 is the first-party address; 0x is an EVM compatibility representation.
+      - generic: Recovery material never leaves Wallet.
+      - generic: Wrong product, device, scope, expiry, replay or revocation fails closed.
+- contentinfo:
+  - strong: YNX Chain
+  - paragraph: 围绕 YNXT 构建的 Web4 L1 生态系统。
+  - link "社区":
+    - /url: /community
+  - link "Discord":
+    - /url: https://discord.gg/t8KpAF2KE
+  - link "Reddit":
+    - /url: https://www.reddit.com/r/YNX_Chain/
+  - link "YouTube":
+    - /url: https://www.youtube.com/@YNX-Chain
+  - link "X":
+    - /url: https://x.com/YNXChain
+  - link "生态":
+    - /url: /dapp
+  - link "用户手册":
+    - /url: /manual
+  - link "开发者文档":
+    - /url: /docs
+  - link "API":
+    - /url: /api
+  - link "常见问题":
+    - /url: /faq
+  - link "DApp":
+    - /url: /dapp
+  - link "状态":
+    - /url: /status
+  - link "安全":
+    - /url: /security
+  - link "支持":
+    - /url: /support
+  - link "广场":
+    - /url: /dapp/square
+  - link "浏览器":
+    - /url: https://explorer.ynxweb4.com
+  - link "就绪度":
+    - /url: /readiness
+  - link "风险":
+    - /url: /risk
+  - link "隐私":
+    - /url: /privacy
+  - link "条款":
+    - /url: /terms
+  - paragraph: 公开测试网项目。未宣称主网上线、交易所上币、稳定币发行方支持、钱包默认支持或第三方合作关系。

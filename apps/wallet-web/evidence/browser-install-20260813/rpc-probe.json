@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "584acdb12e7c0946e70896687994a64bf37e2ccb",
+  "requestedAt": "2026-08-13T12:39:48.394Z",
+  "endpoint": "https://evm.ynxweb4.com",
+  "method": "eth_chainId",
+  "timeoutMs": 6000,
+  "elapsedMs": 6050,
+  "result": "AbortError",
+  "chainIdVerified": false,
+  "addChainVerified": false,
+  "switchChainVerified": false,
+  "transactionVerified": false
+}

@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-08-14T07:34:51Z",
+  "walletSourceCommit": "dbf17086803d2bc2aeba7f8ed0d52d91b069449c",
+  "walletBranch": "codex/wallet-web-pwa-extensions-20260813",
+  "websiteRepository": "JiahaoAlbus/YNX-Chain-website",
+  "websiteMain": {
+    "commit": "e66d7155c7700dc27bc4ffe7f3793dabbc911f83",
+    "committedAt": "2026-08-04T04:26:54Z",
+    "ciRun": "https://github.com/JiahaoAlbus/YNX-Chain-website/actions/runs/30877719545",
+    "ciConclusion": "success"
+  },
+  "deploymentCapability": {
+    "workflow": ".github/workflows/ci.yml",
+    "workflowDispatch": false,
+    "deployJob": false,
+    "walletArtifactIngest": false,
+    "actionsSecretCount": 0,
+    "actionsVariableCount": 0,
+    "manualScript": "deploy/vercel-deploy.sh",
+    "manualScriptRequiresExternalVercelAuthority": true,
+    "safeCurrentOwnerDeploymentAuthorityProved": false,
+    "deploymentAttempted": false
+  },
+  "publicHttp": {
+    "walletPage": {"url":"https://www.ynxweb4.com/dapp/wallet","status":200,"contentType":"text/html; charset=utf-8","contentLength":1018,"sha256":"fa9ffc6521978f0be61b5efb5fc26fbd864abcca9b1de3415c56c23a909c91bd"},
+    "registry": {"url":"https://www.ynxweb4.com/releases/ecosystem-release-registry.json","status":200,"contentType":"application/json; charset=utf-8","contentLength":12885,"bodyReadbackPassed":false,"bodyReadbackBlocker":"bounded GET timed out; no current registry content claim made"},
+    "android": {"url":"https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk","status":200,"contentType":"application/vnd.android.package-archive","contentDisposition":"attachment; filename=ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk","contentLength":78392878,"sha256":"fd924ef853cf17d42ca2d36504528ef879c73fcb4b01ea72b1bfe7ae85085fef","sha256Evidence":"apps/wallet-web/evidence/runtime/official-wallet-platform-download-audit-20260814.json","hosted":true,"productionSigned":false},
+    "walletPackages": [
+      {"platform":"pwa","candidateUrl":"https://www.ynxweb4.com/downloads/ynx-wallet-web-pwa-0.1.0.zip","status":200,"contentType":"text/html; charset=utf-8","contentDisposition":"inline","contentLength":1018,"hosted":false},
+      {"platform":"chrome-edge","candidateUrl":"https://www.ynxweb4.com/downloads/ynx-wallet-chrome-edge-0.1.0.zip","status":200,"contentType":"text/html; charset=utf-8","contentDisposition":"inline","contentLength":1018,"hosted":false},
+      {"platform":"firefox","candidateUrl":"https://www.ynxweb4.com/downloads/ynx-wallet-firefox-0.1.0.zip","status":200,"contentType":"text/html; charset=utf-8","contentDisposition":"inline","contentLength":1018,"hosted":false}
+    ]
+  },
+  "browserVisibleAcceptance": {
+    "passed": false,
+    "blocker": "Browser and web URL safety policies rejected the official domain; no bypass was attempted."
+  },
+  "gates": {
+    "deployedPublic": false,
+    "pwaPackageHosted": false,
+    "chromeEdgeExtensionHosted": false,
+    "firefoxExtensionHosted": false,
+    "installedLocal": false,
+    "providerConnected": false,
+    "accountAuthorized": false,
+    "messageSigned": false,
+    "transactionSubmitted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

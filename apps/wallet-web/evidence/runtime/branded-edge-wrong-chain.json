@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "0b3ffa8faabad2caa49b1c00db493261e2d98bca",
+  "generatedAt": "2026-08-14T04:20:57.023Z",
+  "browserId": "edge",
+  "browserName": "Microsoft Edge",
+  "gate": "wrong-chain",
+  "fixtureUrl": "http://127.0.0.1:62077/",
+  "loadMode": "temporary-unpacked-isolated-profile",
+  "passed": false,
+  "installedLocal": false,
+  "downloadHosted": false,
+  "productionSigned": false,
+  "storeReleased": false,
+  "error": {
+    "name": "TimeoutError",
+    "code": null,
+    "message": "browserType.launchPersistentContext: Timeout 10000ms exceeded.\nCall log:\n\u001b[2m  - <launching> /Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,BoundaryEventDispatchTracksNodeRemoval,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,BlockOriginHeaderModificationOnRedirect,Translate,AutoDeElevate,OptimizationHints,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --disable-updater-scheduler --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --disable-extensions-except=/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/dist/chromium --load-extension=/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/dist/chromium --user-data-dir=/var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/ynx-edge-wrong-chain-qTZFKz --remote-debugging-pipe about:blank\u001b[22m\n\u001b[2m  - <launched> pid=21528\u001b[22m\n"
+  },
+  "artifact": {
+    "bytes": 177873,
+    "sha256": "0bd773c7614443c17f53aa88c77460ebf139e8f744e5346b2d8d74e9fc216022"
+  }
+}

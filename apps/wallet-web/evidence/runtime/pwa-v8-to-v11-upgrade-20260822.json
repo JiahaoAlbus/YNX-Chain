@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "abe18043259374ee58f90580af582100ab0649cd",
+  "generatedAt": "2026-08-22T09:35:14.332Z",
+  "runtimeClass": "Playwright bundled Chromium-compatible persistent profile reproducing the deployed v8 navigation-integrity worker; not a branded browser or installed PWA",
+  "legacyIndexSha": "2df10866a35b074a6fb366439197646dd4e979bc83bdae3aba0ba6db3802986c",
+  "passed": true,
+  "installedLocal": false,
+  "deployedPublic": false,
+  "providerConnected": false,
+  "accountAuthorized": false,
+  "messageSigned": false,
+  "transactionSubmitted": false,
+  "builtIndex": {
+    "bytes": 821,
+    "sha256": "2df10866a35b074a6fb366439197646dd4e979bc83bdae3aba0ba6db3802986c",
+    "legacyCompatible": true
+  },
+  "beforeUpgrade": {
+    "url": "http://127.0.0.1:51764/",
+    "title": "YNX Wallet — Testnet companion",
+    "text": "WALLET COMPANION\n\nEnglish\n简体中文\n繁體中文\n日本語\n한국어\nEspañol\nFrançais\nDeutsch\nPortuguês\nРусский\nالعربية\nBahasa Indonesia\nDark\nConnect to YNX Testnet\n\nUse an installed wallet. This app never receives your recovery phrase or private key.\n\nWALLET PROVIDER NOT INJECTED. UNLOCK OR ENABLE THE EXTENSION, GRANT THIS SITE ACCESS, AND RETRY.\nWallet connection\nAndroid · Download YNX Wallet\nUse MetaMask\n\nAndroid API 24+ · 78,392,878 Bytes · SHA-256 fd924ef853cf17d42ca2d36504528ef879c73fcb4b01ea72b1bfe7ae85085fef · persistent-testnet-release-key · productionSigned=false\n\nDownload YNX Wallet\nStatus: Not connected\n\nThe selected wallet confirms the active network. Browser RPC probes are diagnostic only. Testnet assets have no represented monetary value.\n\nAdd YNX Testnet\nSwitch network\nMessage\nSign message\nRecipient\nValue (hex wei)\nData (hex)\n Send transaction\nYNX Testnet · Chain 6423 · 0x1917",
+    "controller": true,
+    "cacheNames": [
+      "ynx-wallet-web-v8"
+    ],
+    "recoveryMarker": false
+  },
+  "controlledVersion": "ynx-wallet-web-v11",
+  "afterUpgrade": {
+    "url": "http://127.0.0.1:51764/",
+    "title": "YNX Wallet — Testnet companion",
+    "text": "WALLET COMPANION\n\nEnglish\n简体中文\n繁體中文\n日本語\n한국어\nEspañol\nFrançais\nDeutsch\nPortuguês\nРусский\nالعربية\nBahasa Indonesia\nDark\nConnect to YNX Testnet\n\nUse an installed wallet. This app never receives your recovery phrase or private key.\n\nWALLET PROVIDER NOT INJECTED. UNLOCK OR ENABLE THE EXTENSION, GRANT THIS SITE ACCESS, AND RETRY.\nWallet connection\nAndroid · Download YNX Wallet\nUse MetaMask\n\nAndroid API 24+ · 78,392,878 Bytes · SHA-256 fd924ef853cf17d42ca2d36504528ef879c73fcb4b01ea72b1bfe7ae85085fef · persistent-testnet-release-key · productionSigned=false\n\nDownload YNX Wallet\nStatus: Not connected\n\nThe selected wallet confirms the active network. Browser RPC probes are diagnostic only. Testnet assets have no represented monetary value.\n\nAdd YNX Testnet\nSwitch network\nMessage\nSign message\nRecipient\nValue (hex wei)\nData (hex)\n Send transaction\nYNX Testnet · Chain 6423 · 0x1917",
+    "controller": true,
+    "cacheNames": [
+      "ynx-wallet-web-v8",
+      "ynx-wallet-web-v11"
+    ],
+    "recoveryMarker": false
+  },
+  "secondLaunch": {
+    "url": "http://127.0.0.1:51764/",
+    "title": "YNX Wallet — Testnet companion",
+    "text": "WALLET COMPANION\n\nEnglish\n简体中文\n繁體中文\n日本語\n한국어\nEspañol\nFrançais\nDeutsch\nPortuguês\nРусский\nالعربية\nBahasa Indonesia\nDark\nConnect to YNX Testnet\n\nUse an installed wallet. This app never receives your recovery phrase or private key.\n\nWALLET PROVIDER NOT INJECTED. UNLOCK OR ENABLE THE EXTENSION, GRANT THIS SITE ACCESS, AND RETRY.\nWallet connection\nAndroid · Download YNX Wallet\nUse MetaMask\n\nAndroid API 24+ · 78,392,878 Bytes · SHA-256 fd924ef853cf17d42ca2d36504528ef879c73fcb4b01ea72b1bfe7ae85085fef · persistent-testnet-release-key · productionSigned=false\n\nDownload YNX Wallet\nStatus: Not connected\n\nThe selected wallet confirms the active network. Browser RPC probes are diagnostic only. Testnet assets have no represented monetary value.\n\nAdd YNX Testnet\nSwitch network\nMessage\nSign message\nRecipient\nValue (hex wei)\nData (hex)\n Send transaction\nYNX Testnet · Chain 6423 · 0x1917",
+    "controller": true,
+    "cacheNames": [
+      "ynx-wallet-web-v11"
+    ],
+    "recoveryMarker": false
+  }
+}
