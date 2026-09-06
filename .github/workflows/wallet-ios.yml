@@ -19,7 +19,6 @@ jobs:
     timeout-minutes: 60
     env:
       YNX_IOS_EXPECTED_SOURCE_COMMIT: ${{ inputs.source_commit || github.sha }}
-      YNX_IOS_QA_DIR: ${{ runner.temp }}/ynx-wallet-ios-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -38,7 +37,11 @@ jobs:
       - name: Verify immutable GitHub Actions pins
         run: node scripts/verify/github-actions-pins-check.mjs
       - name: Bind iOS build to immutable source and toolchain
-        run: node apps/wallet/scripts/ios-simulator-qa.mjs prepare
+        env:
+          YNX_IOS_QA_DIR: ${{ runner.temp }}/ynx-wallet-ios-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          printf 'YNX_IOS_QA_DIR=%s\n' "$YNX_IOS_QA_DIR" >> "$GITHUB_ENV"
+          node apps/wallet/scripts/ios-simulator-qa.mjs prepare
       - name: Use the release-locked npm
         run: npm install --global npm@11.5.1
       - run: npm ci
