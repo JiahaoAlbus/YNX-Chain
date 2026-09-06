@@ -1,3 +1,5 @@
+import { createFairQueue } from "./fair-queue.mjs";
+
 const PROTOCOL = "ynx-code-model-router/v1";
 const MODEL_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:/-]{0,119}$/;
 const PROVIDERS = Object.freeze({
@@ -34,6 +36,10 @@ export function createModelRouter({
   hostedModel = process.env.YNX_CODE_HOSTED_AI_MODEL || "qwen3:4b",
   maxConcurrent = Number(process.env.YNX_CODE_AI_CONCURRENCY || 4),
   maxQueued = Number(process.env.YNX_CODE_AI_QUEUE || 64),
+  maxPerOwner = Number(process.env.YNX_CODE_AI_OWNER_CONCURRENCY || 1),
+  maxQueuedPerOwner = Number(process.env.YNX_CODE_AI_OWNER_QUEUE || 8),
+  maxHostedConcurrent = Number(process.env.YNX_CODE_HOSTED_AI_CONCURRENCY || Math.min(2, maxConcurrent)),
+  queueTimeoutMs = Number(process.env.YNX_CODE_AI_QUEUE_TIMEOUT_MS || 60_000),
   timeoutMs = Number(process.env.YNX_CODE_AI_TIMEOUT_MS || 180_000),
   ownerForRequest,
 } = {}) {
@@ -44,8 +50,16 @@ export function createModelRouter({
     throw new Error("AI concurrency must be between 1 and 64.");
   if (!Number.isInteger(maxQueued) || maxQueued < 0 || maxQueued > 10_000)
     throw new Error("AI queue must be between 0 and 10000.");
-  const queue = [];
-  let active = 0;
+  for (const [name, value, maximum] of [
+    ["Owner concurrency", maxPerOwner, maxConcurrent],
+    ["Owner queue", maxQueuedPerOwner, 10_000],
+    ["Hosted concurrency", maxHostedConcurrent, maxConcurrent],
+    ["Queue timeout", queueTimeoutMs, 600_000],
+    ["Model timeout", timeoutMs, 600_000],
+  ]) if (!Number.isInteger(value) || value < 1 || value > maximum)
+    throw new Error(`${name} must be between 1 and ${maximum}.`);
+  const queue = createFairQueue({ maxConcurrent, maxQueued, maxPerOwner,
+    maxQueuedPerOwner, maxHostedConcurrent, queueTimeoutMs, run });
 
   function catalog() {
     return {
@@ -65,10 +79,9 @@ export function createModelRouter({
         credentialMode: value.keyMode,
       })),
       localFamilies: ["Qwen", "Llama", "DeepSeek"],
-      active,
-      queued: queue.length,
-      maxConcurrent,
-      maxQueued,
+      ...queue.state(),
+      scheduling: "round-robin-by-authenticated-owner",
+      capacityScope: "single-router-process",
     };
   }
 
@@ -99,48 +112,13 @@ export function createModelRouter({
 
   function generate(request) {
     const input = validateRequest(request);
-    if (input.signal?.aborted)
-      return Promise.reject(abortedFault());
-    if (active >= maxConcurrent && queue.length >= maxQueued)
-      return Promise.reject(
-        fault("AI capacity is full. Retry shortly.", "model_queue_full", 503),
-      );
-    return new Promise((resolve, reject) => {
-      const task = { input, resolve, reject, onAbort: null };
-      if (input.signal) {
-        task.onAbort = () => {
-          const index = queue.indexOf(task);
-          if (index < 0) return;
-          queue.splice(index, 1);
-          reject(abortedFault());
-        };
-        input.signal.addEventListener("abort", task.onAbort, { once: true });
-      }
-      queue.push(task);
-      pump();
-    });
-  }
-
-  function pump() {
-    while (active < maxConcurrent && queue.length) {
-      const task = queue.shift();
-      if (task.onAbort)
-        task.input.signal.removeEventListener("abort", task.onAbort);
-      if (task.input.signal?.aborted) {
-        task.reject(abortedFault());
-        continue;
-      }
-      active += 1;
-      run(task.input)
-        .then(task.resolve, task.reject)
-        .finally(() => {
-          active -= 1;
-          pump();
-        });
-    }
+    if (ownerForRequest && !input.ownerId)
+      throw fault("An authenticated AI owner is required.", "model_owner_required", 401);
+    return queue.schedule({ ...input, ownerId: input.ownerId || "internal" });
   }
 
   async function run(input) {
+    if (input.signal?.aborted) throw abortedFault();
     const started = performance.now();
     const result =
       input.provider === "ynx-hosted"
@@ -248,6 +226,8 @@ function validateRequest(value) {
     throw fault("Model identifier is invalid.", "invalid_model", 400);
   return {
     provider,
+    ownerId: typeof value.ownerId === "string" && value.ownerId.length > 0 && value.ownerId.length <= 256
+      ? value.ownerId : undefined,
     model: requestedModel || (provider === "ynx-hosted" ? "qwen3:4b" : PROVIDERS[provider].defaultModel),
     apiKey,
     prompt,

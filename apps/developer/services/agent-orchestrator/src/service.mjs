@@ -111,6 +111,11 @@ export function createAgentOrchestrator({
         }),
         true
       );
+    // Bind capacity to the signed session owner. Browser body fields cannot
+    // select another tenant's quota, including Coder/Reviewer retry requests.
+    const ownerModelRouter = {
+      generate: (input) => modelRouter.generate({ ...input, ownerId: owner }),
+    };
     const clientController = new AbortController(),
       abortClient = () => clientController.abort();
     request.once("aborted", abortClient);
@@ -171,7 +176,7 @@ export function createAgentOrchestrator({
           getApproval,
           insertApproval,
         );
-        const model = await modelRouter.generate(
+        const model = await ownerModelRouter.generate(
             modelInput(
               body,
               "Planner",
@@ -278,7 +283,7 @@ export function createAgentOrchestrator({
               ? memory.results.map((result) => result.content).join("\n")
               : "",
           generated = await generateValidatedProposal(
-            modelRouter,
+            ownerModelRouter,
             body,
             `Implement the approved plan. Return JSON only as {\"summary\":string,\"edits\":[{\"path\":string,\"expectedDigest\":string,\"replacements\":[{\"find\":string,\"replace\":string}]}],\"creates\":[{\"path\":string,\"content\":string}],\"deletes\":[{\"path\":string,\"expectedDigest\":string}]}. Use exact non-empty find text that occurs once. Only create or delete explicitly approved paths. Deletes are recoverable from server-side trash. Keep the response compact; never return unchanged files.\nPlan: ${stable(current.plan)}\nApproved semantic memory:\n${memoryContext}\nApproved context:\n${context}`,
             workspace.files,
@@ -289,7 +294,7 @@ export function createAgentOrchestrator({
           coder = generated.coder,
           proposal = generated.proposal,
           reviewed = await generateValidatedReview(
-            modelRouter,
+            ownerModelRouter,
             body,
             `Review this proposed patch for correctness, security, and missing tests. Return JSON only as {\"approved\":boolean,\"summary\":string,\"findings\":[string]}.\nIntent: ${current.intent}\nProposal: ${stable(proposal)}`,
           ),
@@ -339,7 +344,7 @@ export function createAgentOrchestrator({
             )
             .join("\n"),
           generated = await generateValidatedProposal(
-            modelRouter,
+            ownerModelRouter,
             body,
             `Revise the rejected patch to satisfy the user intent and every Reviewer finding. Preserve all unrelated imports, declarations, and behavior. Prefer the smallest exact replacement. Return JSON only as {"summary":string,"edits":[{"path":string,"expectedDigest":string,"replacements":[{"find":string,"replace":string}]}],"creates":[{"path":string,"content":string}],"deletes":[{"path":string,"expectedDigest":string}]}.\nIntent: ${current.intent}\nRejected proposal: ${stable(current.proposal)}\nReviewer: ${stable(current.review)}\nApproved context:\n${context}`,
             workspace.files,
@@ -350,7 +355,7 @@ export function createAgentOrchestrator({
           coder = generated.coder,
           proposal = generated.proposal,
           reviewed = await generateValidatedReview(
-            modelRouter,
+            ownerModelRouter,
             body,
             `Review this revised patch against the exact user intent and approved source. Approve a minimal behavior-preserving edit when it satisfies the request. Return JSON only as {"approved":boolean,"summary":string,"findings":[string]}.\nIntent: ${current.intent}\nApproved source:\n${context}\nRevised proposal: ${stable(proposal)}`,
           ),
@@ -600,7 +605,7 @@ export function createAgentOrchestrator({
             )
             .join("\n"),
           generated = await generateValidatedProposal(
-            modelRouter,
+            ownerModelRouter,
             body,
             `Fix the exact Tester failure. Return JSON only as {\"summary\":string,\"edits\":[{\"path\":string,\"expectedDigest\":string,\"replacements\":[{\"find\":string,\"replace\":string}]}]}. Use exact non-empty find text that occurs once and ensure the materialized file changes.\nTester evidence:\n${failure.output}\nApproved current context:\n${context}`,
             latest.files,
@@ -611,7 +616,7 @@ export function createAgentOrchestrator({
           coder = generated.coder,
           proposal = generated.proposal,
           reviewed = await generateValidatedReview(
-            modelRouter,
+            ownerModelRouter,
             body,
             `Review whether this fix addresses the exact Tester evidence without unrelated changes. Return JSON only as {\"approved\":boolean,\"summary\":string,\"findings\":[string]}.\nFailure: ${failure.output}\nFix: ${stable(proposal)}`,
           ),
