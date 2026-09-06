@@ -2,7 +2,11 @@ const { contextBridge, ipcRenderer } = require("electron");
 
 contextBridge.exposeInMainWorld("ynxWallet", {
   securityStatus: () => ipcRenderer.invoke("wallet:security-status"),
-  unlock: () => ipcRenderer.invoke("wallet:unlock"),
+  unlock: input => ipcRenderer.invoke("wallet:unlock", input),
+  setupPassword: input => ipcRenderer.invoke("wallet:password-setup", input),
+  recoveryHistory: () => ipcRenderer.invoke("wallet:recovery-history"),
+  prepareRecovery: input => ipcRenderer.invoke("wallet:recovery-preview", input),
+  commitRecovery: previewId => ipcRenderer.invoke("wallet:recovery-commit", previewId),
   lock: () => ipcRenderer.invoke("wallet:lock"),
   onSecurityState: callback => ipcRenderer.on("wallet:security-state", (_event, value) => callback(value)),
   status: () => ipcRenderer.invoke("wallet:status"),

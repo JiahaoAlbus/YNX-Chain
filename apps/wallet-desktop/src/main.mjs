@@ -1,5 +1,5 @@
-import { DesktopKeyLifecycle, nativeDesktopAuthorizer } from "./key-lifecycle.mjs";
-import { app, BrowserWindow, dialog, ipcMain, nativeImage, net, powerMonitor, safeStorage, shell, systemPreferences } from "electron";
+import { DesktopKeyLifecycle } from "./key-lifecycle.mjs";
+import { app, BrowserWindow, dialog, ipcMain, nativeImage, net, powerMonitor, safeStorage, shell } from "electron";
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -7,7 +7,8 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { CANONICAL_RPC_URL, probeYNXTestnetRPC } from "./rpc.mjs";
 import { YNX_TESTNET_CHAIN_QUANTITY, WALLET_AUTH_PROTOCOL_SOURCE } from "./wallet-auth-contract.mjs";
 import { DesktopAuthorizationController, parseWalletConnectActivation } from "./callback-policy.mjs";
-import { DesktopWalletVault } from "./desktop-wallet-vault.mjs";
+import { PasswordWalletVault } from "./password-wallet-vault.mjs";
+import { assertWalletIPC } from "./wallet-ipc-policy.mjs";
 import { DesktopWalletAuthority } from "./desktop-wallet-authority.mjs";
 import { FilePermissionStore } from "./desktop-permission-store.mjs";
 import { CanonicalTransactionSender } from "./canonical-transaction-sender.mjs";
@@ -18,6 +19,13 @@ import { decodeWalletConnectQR } from "./walletconnect-qr-decoder.mjs";
 import { canonicalizeWindowsYNXWalletProtocolUrl, extractYNXWalletProtocolUrl } from "./protocol-activation.mjs";
 
 const directory = path.dirname(fileURLToPath(import.meta.url));
+function handleWalletIPC(channel, handler) {
+  ipcMain.handle(channel, async (event, ...args) => {
+    try { assertWalletIPC(event, mainWindow?.webContents, pathToFileURL(path.join(directory, "index.html")).href); }
+    catch (error) { return safeIPC(() => { throw error; }); }
+    return handler(event, ...args);
+  });
+}
 const isolatedProfile = process.env.YNX_WALLET_PROFILE_PATH;
 if (isolatedProfile) {
   if (!path.isAbsolute(isolatedProfile)) throw new Error("YNX_WALLET_PROFILE_PATH must be an absolute path");
@@ -33,7 +41,7 @@ let lastCallback = null;
 let walletAuthority;
 let nativeWallet;
 let walletConnect;
-const keyAccess = new DesktopKeyLifecycle({ authorizer: nativeDesktopAuthorizer({ systemPreferences }), focused: () => mainWindow?.isFocused() === true });
+const keyAccess = new DesktopKeyLifecycle({ focused: () => mainWindow?.isFocused() === true });
 keyAccess.subscribe(state => {
   if (state.locked && !state.authenticating) {
     authorizationController?.cancel(); walletAuthority?.cancelAll(); nativeWallet?.clear();
@@ -63,7 +71,8 @@ async function recordEvidence(status, window, { launch = false } = {}) {
   if (!evidencePath) return;
   let prior = { launches: 0 };
   try { prior = JSON.parse(await readFile(evidencePath, "utf8")); } catch {}
-  const authority = walletAuthority ? await walletAuthority.accountStatus() : { initialized: false, account: null, custody: "not-created" };
+  const accountRead = walletAuthority ? await safeIPC(() => walletAuthority.accountStatus()) : null;
+  const authority = accountRead?.ok ? accountRead.value : { initialized: null, account: null, custody: "unavailable", accountReadFailed: true };
   const evidence = {
     schemaVersion: 1,
     appVersion: app.getVersion(),
@@ -86,7 +95,7 @@ async function recordEvidence(status, window, { launch = false } = {}) {
     accountCreated: false,
     balanceClaimed: false,
     transactionCreated: false,
-    signingEnabled: authority.initialized && !keyAccess.status().locked,
+    signingEnabled: authority.initialized === true && !authority.recoveryRequired && !keyAccess.status().locked,
     keySecurity: keyAccess.status(),
     callback: lastCallback ?? prior.callback ?? {
       received: false,
@@ -100,11 +109,21 @@ async function recordEvidence(status, window, { launch = false } = {}) {
   await writeFile(evidencePath, `${JSON.stringify(evidence, null, 2)}\n`);
 }
 
-ipcMain.handle("wallet:status", rpcStatus);
-ipcMain.handle("wallet:security-status", () => keyAccess.status());
-ipcMain.handle("wallet:unlock", () => safeIPC(() => keyAccess.unlock()));
-ipcMain.handle("wallet:lock", () => { keyAccess.lock(); return keyAccess.status(); });
-ipcMain.handle("wallet:authorization-action", async (_event, input) => {
+handleWalletIPC("wallet:status", rpcStatus);
+handleWalletIPC("wallet:security-status", () => keyAccess.status());
+handleWalletIPC("wallet:unlock", (_event, input) => safeIPC(() => {
+  if (accountChangeInProgress) throw Object.assign(new Error("Finish the current account action first"), { code: "ACCOUNT_CHANGE_IN_PROGRESS" });
+  return keyAccess.unlock(input);
+}));
+handleWalletIPC("wallet:lock", () => { keyAccess.lock(); return keyAccess.status(); });
+handleWalletIPC("wallet:password-setup", (_event, input) => safeIPC(() => custodyChange((guard, beforePublish) => walletAuthority.vault.setup(input, guard, { beforePublish }))));
+handleWalletIPC("wallet:recovery-history", () => safeIPC(() => walletAuthority.vault.recoveryHistory()));
+handleWalletIPC("wallet:recovery-preview", (_event, input) => safeIPC(() => {
+  if (accountChangeInProgress) throw Object.assign(new Error("Finish the current account action first"), { code: "ACCOUNT_CHANGE_IN_PROGRESS" });
+  return keyAccess.custody(guard => walletAuthority.vault.prepareRecovery(input, guard));
+}));
+handleWalletIPC("wallet:recovery-commit", (_event, previewId) => safeIPC(() => custodyChange((guard, beforePublish) => walletAuthority.vault.commitRecovery(previewId, guard, { beforePublish }))));
+handleWalletIPC("wallet:authorization-action", async (_event, input) => {
   const action = typeof input === "string" ? input : input?.action;
   try {
     if (accountChangeInProgress) throw Object.assign(new Error("The selected account is changing"), { code: "ACCOUNT_CHANGED" });
@@ -129,19 +148,19 @@ async function authorizationFailure(stageCode, action, error) {
   return result;
 }
 
-ipcMain.handle("wallet:account-status", () => safeIPC(() => walletAuthority.accountStatus()));
-ipcMain.handle("wallet:import-account", (_event, input) => safeIPC(() => changeActiveAccount(() => walletAuthority.importAccount(input))));
-ipcMain.handle("wallet:balance", () => safeIPC(() => nativeWallet.balance()));
-ipcMain.handle("wallet:pending-transactions", () => safeIPC(async () => walletAuthority.transactionSender.submissions.list((await walletAuthority.accountStatus()).account)));
-ipcMain.handle("wallet:transaction-status", (_event, hash) => safeIPC(async () => walletAuthority.transactionSender.submissions.check(hash, (await walletAuthority.accountStatus()).account)));
-ipcMain.handle("wallet:retry-transaction", (_event, hash) => sensitiveIPC(async () => {
+handleWalletIPC("wallet:account-status", () => safeIPC(() => walletAuthority.accountStatus()));
+handleWalletIPC("wallet:import-account", (_event, input) => safeIPC(() => changeActiveAccount(() => walletAuthority.importAccount(input))));
+handleWalletIPC("wallet:balance", () => safeIPC(() => nativeWallet.balance()));
+handleWalletIPC("wallet:pending-transactions", () => safeIPC(async () => walletAuthority.transactionSender.submissions.list((await walletAuthority.accountStatus()).account)));
+handleWalletIPC("wallet:transaction-status", (_event, hash) => safeIPC(async () => walletAuthority.transactionSender.submissions.check(hash, (await walletAuthority.accountStatus()).account)));
+handleWalletIPC("wallet:retry-transaction", (_event, hash) => sensitiveIPC(async () => {
   const lease = keyAccess.current(), status = await walletAuthority.accountStatus();
   lease.assert();
   return walletAuthority.transactionSender.submissions.retry(hash, status.account, lease);
 }));
-ipcMain.handle("wallet:prepare-transfer", (_event, input) => sensitiveIPC(() => nativeWallet.prepareTransfer(input)));
-ipcMain.handle("wallet:transfer-action", (_event, id, action) => sensitiveIPC(() => nativeWallet.transferAction(id, action)));
-ipcMain.handle("wallet:save-backup", (_event, password) => sensitiveIPC(async () => {
+handleWalletIPC("wallet:prepare-transfer", (_event, input) => sensitiveIPC(() => nativeWallet.prepareTransfer(input)));
+handleWalletIPC("wallet:transfer-action", (_event, id, action) => sensitiveIPC(() => nativeWallet.transferAction(id, action)));
+handleWalletIPC("wallet:save-backup", (_event, password) => sensitiveIPC(async () => {
   const status = await walletAuthority.accountStatus();
   if (!status.initialized) throw new Error("Create or import an account first");
   const encrypted = await walletAuthority.vault.encryptedBackup(password);
@@ -150,7 +169,7 @@ ipcMain.handle("wallet:save-backup", (_event, password) => sensitiveIPC(async ()
   await keyAccess.current().step(() => writeFile(selected.filePath, encrypted, { mode: 0o600, flag: "wx" }));
   return { saved: true, account: status.account };
 }));
-ipcMain.handle("wallet:create-account", () => safeIPC(async () => {
+handleWalletIPC("wallet:create-account", () => safeIPC(async () => {
   if (authorizationController.inFlight) throw Object.assign(new Error("Finish the current authorization first"), { code: "AUTHORIZATION_ACTION_IN_PROGRESS" });
   const result = await keyAccess.run(() => walletAuthority.createAccount());
   keyAccess.setAccount(result.account);
@@ -161,25 +180,25 @@ ipcMain.handle("wallet:create-account", () => safeIPC(async () => {
   if (mainWindow && !mainWindow.isDestroyed()) await recordEvidence(await rpcStatus(), mainWindow);
   return result;
 }));
-ipcMain.handle("wallet:add-account", () => safeIPC(() => changeActiveAccount(() => walletAuthority.addAccountAndSelect())));
-ipcMain.handle("wallet:select-account", (_event, account) => safeIPC(() => changeActiveAccount(() => walletAuthority.selectAccount(account))));
-ipcMain.handle("wallet:permissions", (_event, origin) => safeIPC(() => walletAuthority.request({ origin, method: "wallet_getPermissions" })));
-ipcMain.handle("wallet:walletconnect-status", () => safeIPC(() => walletConnect.status()));
-ipcMain.handle("wallet:walletconnect-sessions", () => safeIPC(() => walletConnect.sessions()));
-ipcMain.handle("wallet:walletconnect-pair", (_event, uri) => safeIPC(() => walletConnect.pair(uri)));
-ipcMain.handle("wallet:walletconnect-decode-qr", (_event, input) => safeIPC(() => decodeWalletConnectQR({
+handleWalletIPC("wallet:add-account", () => safeIPC(() => changeActiveAccount(() => walletAuthority.addAccountAndSelect())));
+handleWalletIPC("wallet:select-account", (_event, account) => safeIPC(() => changeActiveAccount(() => walletAuthority.selectAccount(account))));
+handleWalletIPC("wallet:permissions", (_event, origin) => safeIPC(() => walletAuthority.request({ origin, method: "wallet_getPermissions" })));
+handleWalletIPC("wallet:walletconnect-status", () => safeIPC(() => walletConnect.status()));
+handleWalletIPC("wallet:walletconnect-sessions", () => safeIPC(() => walletConnect.sessions()));
+handleWalletIPC("wallet:walletconnect-pair", (_event, uri) => safeIPC(() => walletConnect.pair(uri)));
+handleWalletIPC("wallet:walletconnect-decode-qr", (_event, input) => safeIPC(() => decodeWalletConnectQR({
   bytes: Buffer.from(input?.bytes ?? []),
   mimeType: input?.mimeType,
   createImage: bytes => nativeImage.createFromBuffer(bytes)
 })));
-ipcMain.handle("wallet:walletconnect-disconnect", (_event, topic) => safeIPC(async () => {
+handleWalletIPC("wallet:walletconnect-disconnect", (_event, topic) => safeIPC(async () => {
   const origin = walletConnect.sessionOrigin(topic);
   await walletAuthority.revokeOrigin(origin);
   const result = await walletConnect.disconnectSession(topic);
   mainWindow?.webContents.send("wallet:walletconnect-session-changed", { type: "disconnected", topic, origin });
   return { ...result, localPermissionRevoked: true };
 }));
-ipcMain.handle("wallet:walletconnect-proposal-action", (_event, id, action, expectedAccount) => sensitiveIPC(async () => {
+handleWalletIPC("wallet:walletconnect-proposal-action", (_event, id, action, expectedAccount) => sensitiveIPC(async () => {
   const key = String(id);
   if (!["approve", "reject"].includes(action)) throw Object.assign(new Error("Invalid proposal action"), { code: "INVALID_PROPOSAL_ACTION" });
   if (accountChangeInProgress || !walletConnectProposalAccounts.has(key)) throw Object.assign(new Error("The proposal account changed. Connect again from the app."), { code: "ACCOUNT_CHANGED" });
@@ -204,7 +223,7 @@ ipcMain.handle("wallet:walletconnect-proposal-action", (_event, id, action, expe
   } finally { walletConnectProposalActions.delete(key); }
 }));
 
-ipcMain.handle("wallet:provider-action", (_event, id, action) => sensitiveIPC(async () => {
+handleWalletIPC("wallet:provider-action", (_event, id, action) => sensitiveIPC(async () => {
   const lease = keyAccess.current();
   const transport = walletConnectRequests.get(id);
   let response;
@@ -290,6 +309,27 @@ async function changeActiveAccount(change) {
   } finally { accountChangeInProgress = false; }
 }
 
+async function custodyChange(change) {
+  if (accountChangeInProgress || walletConnectProposalActions.size) throw Object.assign(new Error("Finish the current account action first"), { code: "ACCOUNT_CHANGE_IN_PROGRESS" });
+  accountChangeInProgress = true;
+  try {
+    const status = await keyAccess.custody(async guard => {
+      // The repository first validates the exact review, file identity and staged
+      // readback. Revoke only that live commit, still before publishing new keys.
+      return change(guard, () => guard.step(() => walletAuthority.permissions.revokeAll()));
+    });
+    keyAccess.setAccount(status.account); keyAccess.lock();
+    mainWindow?.webContents.send("wallet:account-status-result", status);
+    const remoteDisconnectFailures = [];
+    for (const session of walletConnect?.sessions?.() ?? []) {
+      try { await walletConnect.disconnectSession(session.topic); }
+      catch (error) { remoteDisconnectFailures.push({ topic: session.topic, code: safeCode(error) }); }
+    }
+    mainWindow?.webContents.send("wallet:walletconnect-session-changed", { type: "custody-changed", remoteDisconnectFailures });
+    return { ...status, remoteDisconnectFailures };
+  } finally { accountChangeInProgress = false; }
+}
+
 app.on("open-url", (event, url) => {
   event.preventDefault();
   if (!protocolReady) queueStartupProtocolUrl(url);
@@ -315,8 +355,10 @@ if (singleInstanceLock) app.whenReady().then(async () => {
   }
   const userData = app.getPath("userData");
   const accountNetwork = new CanonicalAccountNetwork({ fetchImpl: net.fetch.bind(net) });
+  const passwordVault = new PasswordWalletVault({ filePath: path.join(userData, "wallet-vault-v3.json"), legacyFilePaths: [path.join(userData, "wallet-vault-v2.json"), path.join(userData, "wallet-vault-v1.json")], safeStorage, authorization: keyAccess });
+  keyAccess.authorizer = passwordVault.authorizer();
   walletAuthority = new DesktopWalletAuthority({
-    vault: new DesktopWalletVault({ filePath: path.join(userData, "wallet-vault-v2.json"), legacyFilePath: path.join(userData, "wallet-vault-v1.json"), safeStorage, authorization: keyAccess }),
+    vault: passwordVault,
     permissions: new FilePermissionStore(path.join(userData, "wallet-permissions-v1.json")),
     transactionSender: new CanonicalTransactionSender({ network: accountNetwork, fetchImpl: net.fetch.bind(net), intentStore: new FileTransactionIntentStore({ filePath: path.join(userData, "transaction-intents-v1.json") }) })
   });
@@ -347,7 +389,8 @@ if (singleInstanceLock) app.whenReady().then(async () => {
   window.on("minimize", () => keyAccess.lock());
   window.on("close", () => keyAccess.lock());
   for (const event of ["suspend", "lock-screen"]) powerMonitor.on(event, () => keyAccess.lock());
-  keyAccess.setAccount((await walletAuthority.accountStatus()).account);
+  const initialAccount = await safeIPC(() => walletAuthority.accountStatus());
+  if (initialAccount.ok) keyAccess.setAccount(initialAccount.value.account);
   window.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
   window.webContents.on("will-navigate", (event, url) => {
     if (url !== pathToFileURL(path.join(directory, "index.html")).href) event.preventDefault();
@@ -357,7 +400,7 @@ if (singleInstanceLock) app.whenReady().then(async () => {
   const status = await rpcStatus();
   await recordEvidence(status, window, { launch: true });
   window.webContents.send("wallet:status-result", status);
-  window.webContents.send("wallet:account-status-result", await walletAuthority.accountStatus());
+  window.webContents.send("wallet:account-status-result", await safeIPC(() => walletAuthority.accountStatus()));
   window.webContents.send("wallet:walletconnect-status-result", walletConnect.status());
   if (walletConnect.status().configured) {
     try {

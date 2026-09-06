@@ -1,7 +1,9 @@
 import { ApprovalReviewQueue } from "./approval-review-queue.mjs";
 import { formatApprovalReview } from "./approval-review-display.mjs";
+import { createPasswordVaultUI } from "./password-vault-ui.mjs";
 
 let keyState = { locked: true, unlockAvailable: false, authenticating: false };
+let accountState = null, passwordUI;
 const network = document.querySelector("#network");
 const detail = document.querySelector("#detail");
 const chain = document.querySelector("#chain");
@@ -142,8 +144,10 @@ const createAccount = document.querySelector("#create-account");
 const addAccount = document.querySelector("#add-account");
 const accountList = document.querySelector("#account-list");
 function renderAccount(payload) {
-  if (payload?.ok === false) { accountDetail.textContent = `${payload.error.code}: ${payload.error.message}`; return; }
+  if (payload?.ok === false) { accountState = null; passwordUI?.render(); renderKeyDetail(); accountDetail.textContent = `${payload.error.code}: ${payload.error.message}`; return; }
   const status = payload?.ok === true ? payload.value : payload;
+  accountState = status;
+  passwordUI?.render(); renderKeyDetail();
   const previousAccount = activeAccount;
   activeAccount = status?.account ?? null;
   if (previousAccount !== activeAccount) document.querySelector("#transaction-resolution-result").textContent = "";
@@ -165,6 +169,7 @@ function renderAccount(payload) {
     createAccount.hidden = false;
     addAccount.hidden = true;
     accountList.replaceChildren();
+    accountDetail.textContent = status?.passwordConfigured ? "Unlock with your local password, then create or import an account." : "Set a local password to encrypt your Wallet before creating or importing an account.";
     return;
   }
   accountTitle.textContent = "Your account";
@@ -178,7 +183,7 @@ function renderAccount(payload) {
     const button = document.createElement("button");
     button.type = "button";
     button.dataset.account = item.account;
-    button.textContent = item.account === status.account ? `${item.account} · active` : `Switch to ${item.account}`;
+    button.textContent = `${item.account === status.account ? `${item.account} · active` : `Switch to ${item.account}`}${item.state === "recovery-required" ? " · restore from backup" : ""}`;
     button.disabled = keyState.locked || item.account === status.account;
     button.addEventListener("click", async () => {
       button.disabled = true;
@@ -510,31 +515,33 @@ document.addEventListener("keydown", event => {
   }
 });
 
+function renderKeyDetail() {
+  const detail = document.querySelector("#key-security-detail"), state = keyState;
+  detail.textContent = !accountState ? "Checking local Wallet protection…" : !accountState.passwordConfigured ? accountState.initialized ? "Existing accounts use OS protection. Set a local password to explicitly migrate all accounts." : "Set a local password to encrypt your Wallet before creating or importing accounts." : accountState.recoveryRequired ? "This account needs its offline backup. Public accounts remain visible; their previous keys are not silently replaced." : state.locked ? "Your local password encrypts this Wallet. Leaving the app, locking the screen or switching accounts cancels pending key operations." : "Review each request before approving. Wallet locks after two minutes or when it loses focus.";
+}
 function renderKeyState(state) {
   const invalidated = state.locked && (!keyState.locked || state.revision !== keyState.revision);
   keyState = state;
   const title = document.querySelector("#key-security-title"), detail = document.querySelector("#key-security-detail"), unlock = document.querySelector("#unlock-wallet");
   title.textContent = state.locked ? "Wallet locked" : "Wallet unlocked";
-  detail.textContent = !state.unlockAvailable ? "Secure system unlock is unavailable here. Keys stay locked; your public accounts remain visible." : state.locked ? "Use system Touch ID to unlock. Leaving Wallet, locking the screen or switching accounts cancels pending key operations." : "Review each request before approving. Wallet locks when it loses focus.";
+  renderKeyDetail();
   unlock.hidden = !state.locked;
   unlock.disabled = !state.unlockAvailable || state.authenticating;
-  unlock.textContent = state.authenticating ? "Confirm system Touch ID…" : "Unlock with system Touch ID";
   document.querySelector("#lock-wallet").disabled = state.locked && !state.authenticating;
   signingShort.textContent = state.locked ? "Locked" : "Approval required";
   for (const element of document.querySelectorAll("#create-account,#add-account,#open-send,#prepare-transfer,#confirm-transfer,#account-list button,#import-form input,#import-form select,#import-form button,#backup-form input,#backup-form button")) element.disabled = state.locked || element.dataset.account === activeAccount;
   for (const button of document.querySelectorAll("[data-retry-transaction]")) button.disabled = state.locked;
   if (state.locked) {
-    if (invalidated) { approvalQueue.clear(); authorizationChoices.clear(); transferReview = null; }
-    for (const field of document.querySelectorAll('input[type="password"],input[type="file"]')) field.value = "";
-    for (const dialog of document.querySelectorAll("dialog[open]")) dialog.close();
+    if (invalidated) {
+      approvalQueue.clear(); authorizationChoices.clear(); transferReview = null; passwordUI?.cancel();
+      for (const field of document.querySelectorAll('input[type="password"],input[type="file"]')) field.value = "";
+      for (const dialog of document.querySelectorAll("dialog[open]")) dialog.close();
+    }
   } else presentApproval();
+  passwordUI?.render();
 }
+passwordUI = createPasswordVaultUI({ api: window.ynxWallet, getKeyState: () => keyState, getAccountStatus: () => accountState, renderAccount });
 window.ynxWallet.onSecurityState?.(renderKeyState);
 if (window.ynxWallet.securityStatus) window.ynxWallet.securityStatus().then(renderKeyState);
 else renderKeyState(keyState);
-document.querySelector("#unlock-wallet").addEventListener("click", async () => {
-  const output = document.querySelector("#unlock-result"); output.textContent = "";
-  try { const result = await window.ynxWallet.unlock(); if (!result.ok) output.textContent = errorText(result); }
-  catch { output.textContent = "System unlock did not complete. Wallet remains locked."; }
-});
 document.querySelector("#lock-wallet").addEventListener("click", () => window.ynxWallet.lock());
