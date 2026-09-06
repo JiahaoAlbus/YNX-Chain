@@ -82,7 +82,37 @@ test("MetaMask connects through central discovery only when YNX is absent and pr
   assert.equal(result.status,WALLET_CONNECTION_COORDINATOR_STATUS.EVM_CONNECTED);
   assert.equal(result.connection.ynxProductSession,false);
   assert.equal(result.connection.authority,"eip-1193-provider-only");
-  assert.deepEqual(calls.map(({method})=>method),["eth_chainId","eth_requestAccounts"]);
+  assert.deepEqual(calls.map(({method})=>method),["eth_chainId","eth_requestAccounts","eth_chainId"]);
+});
+
+test("coordinator does not restore MetaMask success after disconnect or Guest while approval is pending", async () => {
+  for (const cancel of [value => value.disconnect(), value => value.enterGuest()]) {
+    const approval = Promise.withResolvers(), approvalRequested = Promise.withResolvers();
+    const wallet = { isMetaMask: true, providerInfo: { rdns: "io.metamask" }, async request({ method }) {
+      if (method === "eth_chainId") return "0x1917";
+      if (method === "eth_requestAccounts") { approvalRequested.resolve(); return approval.promise; }
+      throw new Error("unexpected method");
+    } };
+    const value = coordinator({ productId: "dex", sessionClient: noYNXClient("dex"), scope: { ethereum: wallet } });
+    const connecting = value.connectMetaMask();
+    await approvalRequested.promise;
+    await cancel(value);
+    approval.resolve(["0x1234567890abcdef1234567890abcdef12345678"]);
+    const result = await connecting;
+    assert.equal(result.status, WALLET_CONNECTION_COORDINATOR_STATUS.EVM_UNAVAILABLE);
+    assert.equal(result.code, "WALLET_CONNECTION_CANCELLED");
+    assert.equal("connection" in result, false);
+  }
+});
+
+test("coordinator cancellation during provider discovery avoids requesting account approval", async () => {
+  const detected = Promise.withResolvers(), probing = Promise.withResolvers(), calls = [];
+  const sessionClient = client("dex", gateway({ async walletInstalled() { probing.resolve(); return detected.promise; }, async schemeRegistered() { return false; } }));
+  const value = coordinator({ productId: "dex", sessionClient, scope: { ethereum: metaMaskProvider(calls) } });
+  const connecting = value.connectMetaMask();
+  await probing.promise; value.enterGuest(); detected.resolve(false);
+  assert.equal((await connecting).code, "WALLET_CONNECTION_CANCELLED");
+  assert.deepEqual(calls, []);
 });
 
 test("native platform detection is merged with injected discovery and preserves YNX priority", async () => {

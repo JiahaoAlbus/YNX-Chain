@@ -26,6 +26,8 @@ export class Eip1193ProviderError extends Error {
  */
 export class StandardWalletConnection {
   #provider; #origin; #metadata; #listeners = new Set(); #session = null;
+  #generation = 0; #accountsVersion = 0; #chainVersion = 0; #lastAccounts; #lastChain;
+  #providerHandlers = new Map(); #active = true;
 
   constructor(config) {
     exactFields(config, ["provider", "origin", "metadata"], "Standard Wallet connection configuration");
@@ -39,12 +41,20 @@ export class StandardWalletConnection {
   get current() { return this.#session; }
 
   async connect() {
+    const generation = ++this.#generation, accountsVersion = this.#accountsVersion;
+    this.#active = true;
+    this.#bindProviderEvents();
     const accounts = await this.request({ method: "eth_requestAccounts" });
-    const chainId = await this.request({ method: "eth_chainId" });
-    const account = firstAccount(accounts);
+    this.#assertCurrentAttempt(generation);
+    const chainVersion = this.#chainVersion;
+    const chainResponse = await this.request({ method: "eth_chainId" });
+    this.#assertCurrentAttempt(generation);
+    const account = firstAccount(this.#accountsVersion === accountsVersion ? accounts : this.#lastAccounts);
+    const chainId = this.#chainVersion === chainVersion ? chainResponse : this.#lastChain;
+    if (!canonicalChain(chainId)) throw providerError(EIP1193_PROVIDER_CODE.CHAIN_DISCONNECTED, "Wallet returned an invalid chain ID");
     this.#session = Object.freeze({
       version: "1.0.0", transport: "eip1193", origin: this.#origin, dappMetadata: this.#metadata,
-      selectedAccount: account, selectedChain: chainId, approvedMethods: Object.freeze([...STANDARD_WALLET_METHODS]),
+      selectedAccount: account, selectedChain: chainId.toLowerCase(), approvedMethods: Object.freeze([...STANDARD_WALLET_METHODS]),
       approvedEvents: Object.freeze(["accountsChanged", "chainChanged", "connect", "disconnect", "message"]),
       connected: true,
     });
@@ -63,7 +73,10 @@ export class StandardWalletConnection {
   }
 
   disconnect() {
+    this.#generation += 1;
     this.#session = null;
+    this.#active = false;
+    this.#unbindProviderEvents();
     this.#emit("disconnect", Object.freeze({ code: EIP1193_PROVIDER_CODE.PROVIDER_DISCONNECTED, message: "Wallet connection was disconnected" }));
   }
 
@@ -75,16 +88,44 @@ export class StandardWalletConnection {
   #bindProviderEvents() {
     if (typeof this.#provider.on !== "function") return;
     for (const event of ["accountsChanged", "chainChanged", "connect", "disconnect", "message"]) {
-      this.#provider.on(event, (value) => {
-        if (event === "accountsChanged" && this.#session !== null) {
-          try { this.#session = Object.freeze({ ...this.#session, selectedAccount: firstAccount(value) }); }
-          catch { this.disconnect(); return; }
+      if (this.#providerHandlers.has(event)) continue;
+      const handler = (value) => {
+        if (!this.#active) return;
+        if (event === "accountsChanged") {
+          this.#accountsVersion += 1;
+          this.#lastAccounts = Array.isArray(value) ? [...value] : value;
+          try {
+            const selectedAccount = firstAccount(value);
+            if (this.#session !== null) this.#session = Object.freeze({ ...this.#session, selectedAccount });
+          } catch {
+            // An empty account list revokes account access, not RPC connectivity.
+            this.#generation += 1;
+            this.#session = null;
+          }
         }
-        if (event === "chainChanged" && this.#session !== null && canonicalChain(value)) this.#session = Object.freeze({ ...this.#session, selectedChain: value.toLowerCase() });
-        if (event === "disconnect") this.#session = null;
+        if (event === "chainChanged") {
+          this.#chainVersion += 1;
+          this.#lastChain = value;
+          if (canonicalChain(value)) {
+            if (this.#session !== null) this.#session = Object.freeze({ ...this.#session, selectedChain: value.toLowerCase() });
+          } else { this.#generation += 1; this.#session = null; }
+        }
+        if (event === "disconnect") {
+          this.#generation += 1; this.#session = null;
+        }
         this.#emit(event, value);
-      });
+      };
+      this.#provider.on(event, handler);
+      this.#providerHandlers.set(event, handler);
     }
+  }
+  #unbindProviderEvents() {
+    if (typeof this.#provider.removeListener !== "function") return;
+    for (const [event, handler] of this.#providerHandlers) this.#provider.removeListener(event, handler);
+    this.#providerHandlers.clear();
+  }
+  #assertCurrentAttempt(generation) {
+    if (generation !== this.#generation) throw providerError(EIP1193_PROVIDER_CODE.UNAUTHORIZED, "Wallet connection attempt was cancelled or account access changed");
   }
   #emit(event, value) { for (const listener of this.#listeners) { try { listener(Object.freeze({ event, value })); } catch {} } }
 }
@@ -92,7 +133,7 @@ export class StandardWalletConnection {
 function validProvider(value) { try { return typeof value === "object" && value !== null && typeof value.request === "function"; } catch { return false; } }
 function canonicalHttpsOrigin(value) { try { const url = new URL(value); return url.protocol === "https:" && url.origin === value && !url.username && !url.password; } catch { return false; } }
 function metadata(value) { return typeof value === "object" && value !== null && !Array.isArray(value) && Object.keys(value).sort().join("\n") === ["name", "url"].join("\n") && typeof value.name === "string" && value.name.trim() === value.name && value.name.length >= 1 && value.name.length <= 128 && canonicalHttpsOrigin(value.url); }
-function canonicalChain(value) { return typeof value === "string" && /^0x(?:0|[1-9a-f][0-9a-f]*)$/.test(value); }
+function canonicalChain(value) { return typeof value === "string" && /^0x(?:0|[1-9a-fA-F][0-9a-fA-F]*)$/.test(value); }
 function firstAccount(value) { if (!Array.isArray(value) || value.length < 1 || value.length > 1024 || typeof value[0] !== "string" || !/^0x[0-9a-fA-F]{40}$/.test(value[0])) throw providerError(EIP1193_PROVIDER_CODE.UNAUTHORIZED, "Wallet did not approve a valid EVM account"); return value[0].toLowerCase(); }
 function providerError(code, message) { return new Eip1193ProviderError(code, message); }
 function normalizeProviderError(error) {

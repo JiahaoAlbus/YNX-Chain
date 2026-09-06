@@ -30,7 +30,7 @@ test("legacy discovery prefers one exact YNX candidate and keeps MetaMask explic
   assert.equal(result.authority, WALLET_PROVIDER_DISCOVERY_AUTHORITY);
 });
 
-test("EIP-6963 discovery validates exact identity metadata and removes its listener", async () => {
+test("EIP-6963 discovery validates identity and shares one page-lifetime listener", async () => {
   const wallet = provider({ isMetaMask: true });
   const scope = announced(wallet, info("33333333-3333-4333-8333-333333333333", "io.metamask", "MetaMask"));
   let active = 0;
@@ -40,7 +40,29 @@ test("EIP-6963 discovery validates exact identity metadata and removes its liste
   const result = await discoverEip6963WalletProviders(scope, 0);
   assert.equal(result.metamask.provider, wallet);
   assert.equal(result.metamask.uuid, "33333333-3333-4333-8333-333333333333");
-  assert.equal(active, 0);
+  assert.equal(active, 1);
+  assert.equal((await discoverEip6963WalletProviders(scope, 0)).metamask.provider, wallet);
+  assert.equal(active, 1);
+});
+
+test("late EIP-6963 announcements remain available to later discovery calls", async () => {
+  const scope = new EventTarget(); scope.Event = Event;
+  assert.equal((await discoverEip6963WalletProviders(scope, 0)).metamask, null);
+  const wallet = provider({ isMetaMask: true });
+  scope.dispatchEvent(new CustomEvent("eip6963:announceProvider", { detail: { provider: wallet, info: info("77777777-7777-4777-8777-777777777777", "io.metamask", "MetaMask") } }));
+  assert.equal((await discoverEip6963WalletProviders(scope, 0)).metamask.provider, wallet);
+});
+
+test("another wallet's isMetaMask compatibility flag cannot override its announced identity", async () => {
+  const wallet = provider({ isMetaMask: true, providerInfo: { rdns: "io.rabby" } });
+  assert.equal(discoverInjectedWalletProviders({ ethereum: wallet }).metamask, null);
+  const scope = announced(wallet, info("88888888-8888-4888-8888-888888888888", "io.rabby", "Rabby"));
+  scope.ethereum = wallet;
+  assert.equal((await discoverWalletProviders(scope, 0)).metamask, null);
+  const legacyCompatibilityProvider = provider({ isMetaMask: true });
+  const announcementOnly = announced(legacyCompatibilityProvider, info("99999999-9999-4999-8999-999999999999", "io.rabby", "Rabby"));
+  announcementOnly.ethereum = legacyCompatibilityProvider;
+  assert.equal((await discoverWalletProviders(announcementOnly, 0)).metamask, null);
 });
 
 test("combined discovery de-duplicates the same provider announced and injected", async () => {
@@ -82,6 +104,7 @@ test("spoofed, conflicting, malformed and hostile providers are never selected",
     provider({ isMetaMask: true, providerInfo: { rdns: "com.ynx.wallet" } }),
     provider({ isYNXWallet: true, providerInfo: { rdns: "io.metamask" } }),
     provider({ isMetaMask: false, providerInfo: { rdns: "wallet.metamask.attacker" } }),
+    provider({ isMetaMask: true, providerInfo: { rdns: "IO.RABBY" } }),
     provider({ isYNXWallet: true, providerInfo: { rdns: "COM.YNX.WALLET" } }),
     hostile,
     null,
@@ -95,13 +118,17 @@ test("spoofed, conflicting, malformed and hostile providers are never selected",
 test("duplicate EIP-6963 UUID with different providers is rejected as conflicted", async () => {
   const scope = new EventTarget(); scope.Event = Event;
   const id = "55555555-5555-4555-8555-555555555555";
+  const injected = provider({ isMetaMask: true }); scope.ethereum = injected;
   scope.addEventListener("eip6963:requestProvider", () => {
-    scope.dispatchEvent(new CustomEvent("eip6963:announceProvider", { detail: { provider: provider({ isMetaMask: true }), info: info(id, "io.metamask") } }));
+    scope.dispatchEvent(new CustomEvent("eip6963:announceProvider", { detail: { provider: injected, info: info(id, "io.metamask") } }));
     scope.dispatchEvent(new CustomEvent("eip6963:announceProvider", { detail: { provider: provider({ isMetaMask: true }), info: info(id, "io.metamask") } }));
   });
   const result = await discoverEip6963WalletProviders(scope, 0);
   assert.equal(result.metamask, null);
   assert.equal(result.conflictedAnnouncements, 1);
+  const combined = await discoverWalletProviders(scope, 0);
+  assert.equal(combined.metamask, null);
+  assert.equal(combined.conflictedAnnouncements, 1);
 });
 
 test("invalid discovery configuration and forged results fail closed", async () => {

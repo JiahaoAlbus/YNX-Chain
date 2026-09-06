@@ -66,6 +66,9 @@ export class MetaMaskEvmConnectionAdapter {
     if (chainId !== METAMASK_EVM_CHAIN_ID) fail("WRONG_NETWORK", "MetaMask did not switch to YNX EVM chain 6423");
 
     const address = firstAccount(await providerRequest(provider, "eth_requestAccounts"));
+    // Account approval can stay open while the user changes the selected network.
+    chainId = parseChainQuantity(await providerRequest(provider, "eth_chainId"));
+    if (chainId !== METAMASK_EVM_CHAIN_ID) fail("WRONG_NETWORK", "MetaMask changed networks during account approval");
     return Object.freeze({
       status: METAMASK_EVM_CONNECTION_STATUS.CONNECTED,
       wallet: "metamask",
@@ -97,7 +100,11 @@ async function providerRequest(provider, method, params, switching = false) {
 
 function isExplicitMetaMaskProvider(provider) {
   if (typeof provider !== "object" || provider === null) return false;
-  try { return typeof provider.request === "function" && provider.isMetaMask === true; } catch { return false; }
+  try {
+    const rdns = provider.providerInfo?.rdns ?? provider.rdns;
+    return typeof provider.request === "function" && provider.isMetaMask === true && provider.isYNXWallet !== true && provider.isYnxWallet !== true
+      && (rdns === undefined || rdns === "io.metamask" || rdns === "io.metamask.flask");
+  } catch { return false; }
 }
 
 function providerErrorCode(error) {

@@ -16,6 +16,7 @@ export const WALLET_CONNECTION_COORDINATOR_STATUS = Object.freeze({
 
 export class WalletConnectionCoordinator {
   #registry; #productId; #client; #scope; #waitMs; #openWallet; #openTimeoutMs;
+  #evmGeneration = 0;
   constructor(config) {
     exactFields(config, ["registry", "productId", "sessionClient", "scope", "discoveryWaitMs", "openWallet", "openTimeoutMs"], "Wallet connection coordinator configuration");
     this.#registry = parseProductSessionRegistry(config.registry);
@@ -41,15 +42,17 @@ export class WalletConnectionCoordinator {
   }
 
   async restore(networkAvailable = true) { return this.#openIfConnecting(await this.#client.restore(networkAvailable)); }
-  async beginYNX() { return this.#openIfConnecting(await this.#client.beginDetected(false)); }
-  async retryYNX() { return this.#openIfConnecting(await this.#client.retryDetected()); }
+  async beginYNX() { this.#evmGeneration += 1; return this.#openIfConnecting(await this.#client.beginDetected(false)); }
+  async retryYNX() { this.#evmGeneration += 1; return this.#openIfConnecting(await this.#client.retryDetected()); }
   async handleReturn(url) { return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.SESSION_STATE, sessionState: await this.#client.handleReturn(url) }); }
   setNetworkAvailable(available) { return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.SESSION_STATE, sessionState: this.#client.setNetworkAvailable(available) }); }
-  enterGuest() { return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.SESSION_STATE, sessionState: this.#client.enterGuest() }); }
-  async disconnect() { return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.SESSION_STATE, sessionState: await this.#client.disconnect() }); }
+  enterGuest() { this.#evmGeneration += 1; return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.SESSION_STATE, sessionState: this.#client.enterGuest() }); }
+  async disconnect() { this.#evmGeneration += 1; return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.SESSION_STATE, sessionState: await this.#client.disconnect() }); }
 
   async connectMetaMask() {
+    const generation = ++this.#evmGeneration;
     const optionState = await this.options(), { discovery, environment, choices } = optionState;
+    if (generation !== this.#evmGeneration) return cancelledEvmConnection();
     if (environment.walletInstalled || discovery.ynx !== null) return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.YNX_WALLET_PREFERRED, code: "YNX_WALLET_PREFERRED", message: "YNX Wallet is available and remains the preferred Wallet", actions: ["open-ynx-wallet", "guest", "return-to-product"], discovery, environment, choices });
     if (discovery.metamask === null) {
       const ambiguous = discovery.ambiguities.includes("metamask"), download = choices.find((item) => item.id === "metamask" && item.action === "download-evm-wallet");
@@ -57,8 +60,10 @@ export class WalletConnectionCoordinator {
     }
     try {
       const connection = await new MetaMaskEvmConnectionAdapter({ registry: this.#registry, productId: this.#productId, provider: discovery.metamask.provider }).connect();
+      if (generation !== this.#evmGeneration) return cancelledEvmConnection();
       return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.EVM_CONNECTED, connection, discovery, environment, choices });
     } catch (error) {
+      if (generation !== this.#evmGeneration) return cancelledEvmConnection();
       const code = error instanceof WalletAuthError ? error.code : "WALLET_UNAVAILABLE";
       return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.EVM_UNAVAILABLE, code, message: coordinatorErrorMessage(code), actions: coordinatorActions(code), discovery, environment, choices });
     }
@@ -78,6 +83,8 @@ export class WalletConnectionCoordinator {
     }
   }
 }
+
+function cancelledEvmConnection() { return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.EVM_UNAVAILABLE, code: "WALLET_CONNECTION_CANCELLED", message: "Wallet connection was cancelled", actions: ["retry", "return-to-product"] }); }
 
 function openerCode(value) { return ["WALLET_NOT_INSTALLED", "SCHEME_NOT_REGISTERED", "NETWORK_UNAVAILABLE", "USER_REJECTED"].includes(value) ? value : "WALLET_OPEN_FAILED"; }
 function coordinatorActions(code) { if (code === "WALLET_NOT_INSTALLED" || code === "METAMASK_NOT_INSTALLED") return ["download", "guest", "return-to-product"]; if (code === "SCHEME_NOT_REGISTERED") return ["download", "retry", "return-to-product"]; if (code === "USER_REJECTED") return ["guest", "retry", "return-to-product"]; return ["retry", "return-to-product"]; }

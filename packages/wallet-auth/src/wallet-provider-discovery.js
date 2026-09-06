@@ -4,6 +4,7 @@ export const WALLET_PROVIDER_KIND = Object.freeze({ YNX: "ynx-wallet", METAMASK:
 const YNX_RDNS = new Set(["com.ynx.wallet", "com.ynx.wallet.companion"]);
 const METAMASK_RDNS = new Set(["io.metamask", "io.metamask.flask"]);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const discoveryStates = new WeakMap();
 
 export function discoverInjectedWalletProviders(scope = globalThis) {
   const ethereum = safely(() => scope?.ethereum);
@@ -14,40 +15,45 @@ export function discoverInjectedWalletProviders(scope = globalThis) {
 
 export async function discoverEip6963WalletProviders(scope = globalThis, waitMs = 160) {
   validWait(waitMs);
-  const add = safely(() => scope?.addEventListener), remove = safely(() => scope?.removeEventListener), dispatch = safely(() => scope?.dispatchEvent);
-  if (typeof add !== "function" || typeof remove !== "function" || typeof dispatch !== "function") return selectWalletProviderCandidates([]);
-  const byUuid = new Map(), conflicted = new Set();
-  const listener = (event) => {
-    const detail = safely(() => event?.detail), info = safely(() => detail?.info), provider = safely(() => detail?.provider);
-    const item = candidate(provider, info, "eip6963");
-    const uuid = canonicalUuid(safely(() => info?.uuid));
-    if (!item || uuid === null || conflicted.has(uuid)) return;
-    const previous = byUuid.get(uuid);
-    if (previous && previous.provider !== provider) { byUuid.delete(uuid); conflicted.add(uuid); return; }
-    byUuid.set(uuid, item);
-  };
-  let registered = false;
+  const add = safely(() => scope?.addEventListener), dispatch = safely(() => scope?.dispatchEvent);
+  if (typeof add !== "function" || typeof dispatch !== "function") return selectWalletProviderCandidates([]);
+  let state = discoveryStates.get(scope);
   try {
-    add.call(scope, "eip6963:announceProvider", listener);
-    registered = true;
+    if (!state) {
+      state = { byUuid: new Map(), conflicted: new Set(), announcedProviders: new WeakSet() };
+      const { byUuid, conflicted, announcedProviders } = state;
+      const listener = (event) => {
+        const detail = safely(() => event?.detail), info = safely(() => detail?.info), provider = safely(() => detail?.provider);
+        if (validProvider(provider)) announcedProviders.add(provider);
+        const item = candidate(provider, info, "eip6963");
+        const uuid = canonicalUuid(safely(() => info?.uuid));
+        if (!item || uuid === null || conflicted.has(uuid)) return;
+        const previous = byUuid.get(uuid);
+        if (previous && previous.provider !== provider) { byUuid.delete(uuid); conflicted.add(uuid); return; }
+        byUuid.set(uuid, item);
+      };
+      // EIP-6963 requires listening for announcements for the lifetime of the page.
+      // Share that listener across callers so late injection survives the first snapshot.
+      add.call(scope, "eip6963:announceProvider", listener);
+      discoveryStates.set(scope, state);
+    }
     const EventConstructor = safely(() => scope?.Event) ?? globalThis.Event;
     if (typeof EventConstructor !== "function") return selectWalletProviderCandidates([]);
     dispatch.call(scope, new EventConstructor("eip6963:requestProvider"));
     await new Promise((resolve) => setTimeout(resolve, waitMs));
   } catch {
     return selectWalletProviderCandidates([]);
-  } finally {
-    if (registered) try { remove.call(scope, "eip6963:announceProvider", listener); } catch {}
   }
-  return selectWalletProviderCandidates([...byUuid.values()], conflicted.size);
+  return selectWalletProviderCandidates([...state.byUuid.values()], state.conflicted.size);
 }
 
 export async function discoverWalletProviders(scope = globalThis, waitMs = 160) {
   const announced = await discoverEip6963WalletProviders(scope, waitMs);
   const injected = discoverInjectedWalletProviders(scope);
+  const announcedProviders = discoveryStates.get(scope)?.announcedProviders;
   return selectWalletProviderCandidates(uniqueProviders([
     announced.ynx, announced.metamask, ...announced.candidates,
-    injected.ynx, injected.metamask, ...injected.candidates,
+    ...injected.candidates.filter((item) => !announcedProviders?.has(item.provider)),
   ].filter(Boolean)), announced.conflictedAnnouncements + injected.conflictedAnnouncements);
 }
 
@@ -78,14 +84,16 @@ function candidate(provider, info, source) {
   if (!validProvider(provider) || (source !== "eip6963" && source !== "legacy-injected")) return null;
   const providerInfo = object(info) ? info : null;
   const announcedRdns = canonicalRdns(safely(() => providerInfo?.rdns));
-  const embeddedRdns = canonicalRdns(safely(() => provider?.providerInfo?.rdns) ?? safely(() => provider?.rdns));
+  const embeddedRdnsValue = safely(() => provider?.providerInfo?.rdns) ?? safely(() => provider?.rdns);
+  const embeddedRdns = canonicalRdns(embeddedRdnsValue);
+  if (embeddedRdnsValue !== undefined && embeddedRdnsValue !== null && embeddedRdns === null) return null;
   if (source === "eip6963" && announcedRdns !== null && embeddedRdns !== null && announcedRdns !== embeddedRdns) return null;
   const rdns = source === "eip6963" ? announcedRdns : embeddedRdns;
   const ynxFlag = safely(() => provider?.isYNXWallet) === true || safely(() => provider?.isYnxWallet) === true;
   const metaMaskFlag = safely(() => provider?.isMetaMask) === true;
   if ((rdns !== null && YNX_RDNS.has(rdns) && !ynxFlag) || (rdns !== null && METAMASK_RDNS.has(rdns) && ynxFlag)) return null;
   const ynx = rdns !== null && YNX_RDNS.has(rdns) && ynxFlag;
-  const metamask = !ynx && !ynxFlag && ((rdns !== null && METAMASK_RDNS.has(rdns)) || metaMaskFlag);
+  const metamask = !ynx && !ynxFlag && ((rdns !== null && METAMASK_RDNS.has(rdns)) || (source === "legacy-injected" && rdns === null && metaMaskFlag));
   if (!ynx && !metamask) return null;
   if (ynxFlag && metaMaskFlag) return null;
   const uuid = source === "eip6963" ? canonicalUuid(safely(() => providerInfo?.uuid)) : null;

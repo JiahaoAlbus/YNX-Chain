@@ -32,6 +32,7 @@ test("MetaMask adapter performs a real EIP-1193 chain switch and account approva
     { method: "wallet_switchEthereumChain", params: [{ chainId: "0x1917" }] },
     { method: "eth_chainId" },
     { method: "eth_requestAccounts" },
+    { method: "eth_chainId" },
   ]);
   assert.deepEqual(connection, {
     status: "connected-evm", wallet: "metamask", connectionMode: "evm-only",
@@ -55,7 +56,7 @@ test("MetaMask adapter does not switch when the provider is already on canonical
     throw new Error("unexpected method");
   }) });
   await adapter.connect();
-  assert.deepEqual(methods, ["eth_chainId", "eth_requestAccounts"]);
+  assert.deepEqual(methods, ["eth_chainId", "eth_requestAccounts", "eth_chainId"]);
 });
 
 test("MetaMask adapter adds the fixed canonical YNX chain after MetaMask reports 4902, then switches and connects", async () => {
@@ -80,6 +81,7 @@ test("MetaMask adapter adds the fixed canonical YNX chain after MetaMask reports
     { method: "wallet_switchEthereumChain", params: [{ chainId: "0x1917" }] },
     { method: "eth_chainId" },
     { method: "eth_requestAccounts" },
+    { method: "eth_chainId" },
   ]);
   assert.deepEqual(METAMASK_EVM_CHAIN, {
     chainId: "0x1917", chainName: "YNX Testnet",
@@ -97,6 +99,25 @@ test("MetaMask adapter rejects unavailable, generic, and non-EVM providers befor
   await assert.rejects(hostile.connect(), code("INVALID_METAMASK_PROVIDER"));
   assert.throws(() => new MetaMaskEvmConnectionAdapter({ registry, productId: "social", provider: null }), code("EVM_NOT_SUPPORTED"));
   assert.throws(() => new MetaMaskEvmConnectionAdapter({ registry, productId: "missing", provider: null }), code("UNKNOWN_PRODUCT"));
+});
+
+test("MetaMask adapter rejects another wallet's compatibility flag before requesting accounts", async () => {
+  let requests = 0;
+  for (const identity of [{ providerInfo: { rdns: "io.rabby" } }, { isYNXWallet: true }, { isYnxWallet: true }]) {
+    const wallet = { isMetaMask: true, ...identity, async request() { requests += 1; return "0x1917"; } };
+    await assert.rejects(new MetaMaskEvmConnectionAdapter({ registry, productId: "dex", provider: wallet }).connect(), code("INVALID_METAMASK_PROVIDER"));
+  }
+  assert.equal(requests, 0);
+});
+
+test("MetaMask adapter rejects network drift while account approval is open", async () => {
+  let chain = "0x1917";
+  const wallet = provider(async ({ method }) => {
+    if (method === "eth_chainId") return chain;
+    if (method === "eth_requestAccounts") { chain = "0x1"; return [ADDRESS]; }
+    throw new Error("Network drift must require a fresh connection choice");
+  });
+  await assert.rejects(new MetaMaskEvmConnectionAdapter({ registry, productId: "dex", provider: wallet }).connect(), code("WRONG_NETWORK"));
 });
 
 test("MetaMask adapter maps rejection, missing chain and disconnected provider errors without fallback", async () => {

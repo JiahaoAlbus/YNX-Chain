@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
+import { EventEmitter } from "node:events";
 import { test } from "node:test";
 import { EIP1193_PROVIDER_CODE, Eip1193ProviderError, StandardWalletConnection } from "../src/index.js";
 import * as standardSubpath from "@ynx-chain/wallet-auth/standard-wallet-connection";
 
 const ACCOUNT = "0x1234567890abcdef1234567890abcdef12345678";
-function provider(handler) { const listeners = new Map(); return { request: handler, on(event, listener) { listeners.set(event, listener); }, emit(event, value) { listeners.get(event)?.(value); } }; }
+function provider(handler) { return Object.assign(new EventEmitter(), { request: handler }); }
 function connection(wallet) { return new StandardWalletConnection({ provider: wallet, origin: "https://external.example", metadata: { name: "External EVM DApp", url: "https://external.example" } }); }
 
 test("standard EIP-1193 connection needs no Gateway, registry, Product Session, device proof or YNX callback", async () => {
@@ -47,6 +48,85 @@ test("malformed origins, metadata and account results fail closed", async () => 
   assert.throws(() => new StandardWalletConnection({ provider: wallet, origin: "http://external.example", metadata: { name: "DApp", url: "https://external.example" } }), providerCode(4100));
   assert.throws(() => new StandardWalletConnection({ provider: wallet, origin: "https://external.example", metadata: { name: "DApp", url: "http://other.example" } }), providerCode(4100));
   await assert.rejects(connection(wallet).connect(), providerCode(4100));
+});
+
+test("disconnect or account revocation cannot be overwritten by an outstanding connect", async () => {
+  for (const cancel of [client => client.disconnect(), (_client, wallet) => wallet.emit("disconnect", { code: 4900 }), (_client, wallet) => wallet.emit("accountsChanged", [])]) {
+    const chain = Promise.withResolvers(), queryingChain = Promise.withResolvers();
+    const wallet = provider(async ({ method }) => {
+      if (method === "eth_requestAccounts") return [ACCOUNT];
+      queryingChain.resolve(); return chain.promise;
+    });
+    const client = connection(wallet), connecting = client.connect();
+    const rejected = assert.rejects(connecting, providerCode(4100));
+    await queryingChain.promise;
+    cancel(client, wallet); chain.resolve("0x1917");
+    await rejected;
+    assert.equal(client.current, null);
+  }
+});
+
+test("connect reconciles account and chain changes received while its RPC reads are pending", async () => {
+  const chain = Promise.withResolvers(), queryingChain = Promise.withResolvers();
+  const wallet = provider(async ({ method }) => {
+    if (method === "eth_requestAccounts") return [ACCOUNT];
+    queryingChain.resolve(); return chain.promise;
+  });
+  const client = connection(wallet), connecting = client.connect();
+  await queryingChain.promise;
+  const nextAccount = "0xabcdefabcdefabcdefabcdefabcdefabcdefabcd";
+  wallet.emit("accountsChanged", [nextAccount]);
+  wallet.emit("chainChanged", "0xA");
+  chain.resolve("0x1917");
+  const session = await connecting;
+  assert.equal(session.selectedAccount, nextAccount);
+  assert.equal(session.selectedChain, "0xa");
+});
+
+test("account revocation preserves accountsChanged without inventing an RPC disconnect", async () => {
+  const wallet = provider(async ({ method }) => method === "eth_requestAccounts" ? [ACCOUNT] : "0x1917");
+  const client = connection(wallet), events = [];
+  client.subscribe(event => events.push(event));
+  await client.connect(); wallet.emit("accountsChanged", []);
+  assert.equal(client.current, null);
+  assert.deepEqual(events, [{ event: "accountsChanged", value: [] }]);
+  assert.equal(await client.request({ method: "eth_chainId" }), "0x1917");
+});
+
+test("local disconnect removes only its listeners and reconnect attaches them once", async () => {
+  const wallet = provider(async ({ method }) => method === "eth_requestAccounts" ? [ACCOUNT] : "0x1917");
+  const otherListener = () => {};
+  wallet.on("accountsChanged", otherListener);
+  const client = connection(wallet), events = [];
+  client.subscribe(event => events.push(event));
+  await client.connect(); client.disconnect();
+  assert.deepEqual(wallet.listeners("accountsChanged"), [otherListener]);
+  wallet.emit("chainChanged", "0x1");
+  assert.deepEqual(events.map(({ event }) => event), ["disconnect"]);
+  await client.connect();
+  assert.equal(wallet.listenerCount("accountsChanged"), 2);
+  wallet.emit("accountsChanged", [ACCOUNT]);
+  assert.deepEqual(events.map(({ event }) => event), ["disconnect", "accountsChanged"]);
+});
+
+test("provider reconnection remains observable after a transport disconnect", async () => {
+  const wallet = provider(async ({ method }) => method === "eth_requestAccounts" ? [ACCOUNT] : "0x1917");
+  const client = connection(wallet), events = [];
+  client.subscribe(event => events.push(event));
+  await client.connect();
+  wallet.emit("disconnect", { code: 4900 });
+  wallet.emit("connect", { chainId: "0x1917" });
+  assert.equal(client.current, null);
+  assert.deepEqual(events.map(({ event }) => event), ["disconnect", "connect"]);
+  assert.equal((await client.connect()).selectedAccount, ACCOUNT);
+});
+
+test("connect rejects malformed chain results before creating a session", async () => {
+  for (const chain of [6423, "6423", "0x01917", null]) {
+    const client = connection(provider(async ({ method }) => method === "eth_requestAccounts" ? [ACCOUNT] : chain));
+    await assert.rejects(client.connect(), providerCode(4901));
+    assert.equal(client.current, null);
+  }
 });
 
 function providerCode(expected) { return (error) => error instanceof Eip1193ProviderError && error.code === expected; }
