@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 )
 
@@ -51,6 +52,11 @@ func (s *Server) Handler() http.Handler {
 }
 
 func (s *Server) routes() {
+	s.mux.HandleFunc("GET /address", accountaddress.ConverterHandler)
+	s.mux.HandleFunc("GET /favicon.ico", accountaddress.FaviconHandler)
+	s.mux.HandleFunc("GET /api/address", accountaddress.ResolveHandler)
+	s.mux.HandleFunc("GET /assets/ynx-address.js", accountaddress.BrowserHandler)
+	s.mux.HandleFunc("GET /assets/ynx-address-converter.js", accountaddress.ConverterScriptHandler)
 	s.mux.HandleFunc("GET /health", s.handleHealth)
 	s.mux.HandleFunc("GET /metrics", s.handleMetrics)
 	s.mux.HandleFunc("POST /faucet", s.handleRequest)

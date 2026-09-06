@@ -11,6 +11,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/economics"
@@ -76,6 +77,11 @@ func (s *Server) Handler() http.Handler {
 
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /", s.handleWeb)
+	s.mux.HandleFunc("GET /address", accountaddress.ConverterHandler)
+	s.mux.HandleFunc("GET /favicon.ico", accountaddress.FaviconHandler)
+	s.mux.HandleFunc("GET /api/address", accountaddress.ResolveHandler)
+	s.mux.HandleFunc("GET /assets/ynx-address.js", accountaddress.BrowserHandler)
+	s.mux.HandleFunc("GET /assets/ynx-address-converter.js", accountaddress.ConverterScriptHandler)
 	s.mux.HandleFunc("GET /ynxt", s.handleYNXTWeb)
 	s.mux.HandleFunc("GET /economics", s.handleEconomicsWeb)
 	s.mux.HandleFunc("GET /assets/ynx-logo.png", s.handleLogo)

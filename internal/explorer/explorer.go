@@ -537,7 +537,9 @@ func (s *Service) Search(ctx context.Context, query string) (SearchResult, error
 		}
 		return SearchResult{Query: query, Type: "block", Path: "/api/blocks/" + query, TruthfulStatus: "resolved-from-indexer"}, nil
 	}
-	if strings.HasPrefix(query, "0x") {
+	// Only a 32-byte hash needs an indexer transaction lookup. A 20-byte account
+	// query must not wait for an unrelated indexer failure before reaching RPC.
+	if len(query) == 66 && strings.HasPrefix(query, "0x") {
 		if _, err := s.Transaction(ctx, query); err == nil {
 			return SearchResult{Query: query, Type: "transaction", Path: "/api/txs/" + query, TruthfulStatus: "resolved-from-indexer"}, nil
 		}

@@ -32,7 +32,6 @@ const (
 
 var (
 	ynxAddressPattern = regexp.MustCompile(`^ynx_[a-zA-Z0-9_]{3,80}$`)
-	evmAddressPattern = regexp.MustCompile(`^0x[0-9a-fA-F]{40}$`)
 )
 
 type Config struct {
@@ -179,12 +178,13 @@ type Request struct {
 }
 
 type Response struct {
-	Transaction    chain.Transaction `json:"transaction"`
-	Address        string            `json:"address"`
-	Amount         int64             `json:"amount"`
-	NativeSymbol   string            `json:"nativeSymbol"`
-	RequestID      string            `json:"requestId"`
-	TruthfulStatus string            `json:"truthfulStatus"`
+	Transaction    chain.Transaction       `json:"transaction"`
+	Address        string                  `json:"address"`
+	AddressFormats *accountaddress.Formats `json:"addressFormats,omitempty"`
+	Amount         int64                   `json:"amount"`
+	NativeSymbol   string                  `json:"nativeSymbol"`
+	RequestID      string                  `json:"requestId"`
+	TruthfulStatus string                  `json:"truthfulStatus"`
 }
 
 type LogEntry struct {
@@ -249,7 +249,11 @@ func (s *Service) Request(ctx context.Context, req Request, remoteAddr string) (
 	s.lastHash = tx.Hash
 	s.lastError = ""
 	s.mu.Unlock()
-	return Response{Transaction: tx, Address: recipient, Amount: amount, NativeSymbol: "YNXT", RequestID: requestID, TruthfulStatus: s.truthfulStatus()}, http.StatusCreated, nil
+	response := Response{Transaction: tx, Address: recipient, Amount: amount, NativeSymbol: "YNXT", RequestID: requestID, TruthfulStatus: s.truthfulStatus()}
+	if formats, err := accountaddress.Resolve(recipient); err == nil {
+		response.AddressFormats = &formats
+	}
+	return response, http.StatusCreated, nil
 }
 
 func (s *Service) normalizeRecipient(address string) (string, error) {
@@ -282,7 +286,8 @@ func (s *Service) truthfulStatus() string {
 
 func ValidAddress(address string) bool {
 	address = strings.TrimSpace(address)
-	return ynxAddressPattern.MatchString(address) || evmAddressPattern.MatchString(address)
+	_, err := accountaddress.Normalize(address)
+	return err == nil || ynxAddressPattern.MatchString(address)
 }
 
 func (s *Service) allow(ip, address string, now time.Time) bool {

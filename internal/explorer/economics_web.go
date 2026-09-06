@@ -202,7 +202,7 @@ const economicsPageHTML = `<!doctype html>
   <meta name="twitter:description" content="{{DESCRIPTION}}">
   <meta name="twitter:image" content="{{OG_IMAGE}}">
   <link rel="canonical" href="{{CANONICAL}}">
-  <link rel="icon" href="/assets/ynx-logo.png" type="image/png">
+  <link rel="icon" href="/assets/ynx-icon.png?v=brand-20260906" type="image/png">
   <title>{{TITLE}}</title>
   <style>
     :root{color-scheme:light;--blue:#002fa7;--blue2:#001f70;--ink:#101318;--muted:#5f6672;--line:#dfe3ea;--soft:#f5f7fa;--surface:#fff;--positive:#166534;--warning:#8a4b00;--danger:#a61b1b;--shadow:0 18px 50px rgba(16,19,24,.08)}
