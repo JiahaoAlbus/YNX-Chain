@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import { canonicalJSON } from "../src/canonical.js";
 import { CanonicalWalletGatewayNodeHost } from "../src/gateway-node-host.js";
 import { ProductSessionGatewayNodeHost } from "../src/product-session-gateway-node-host.js";
+import { ProductSessionControlNodeHost } from "../src/product-session-control-node-host.js";
 
 const address=process.env.YNX_WALLET_GATEWAY_HTTP_ADDR??"127.0.0.1";
 const port=integer(process.env.YNX_WALLET_GATEWAY_HTTP_PORT??"6439","YNX_WALLET_GATEWAY_HTTP_PORT",1,65535);
@@ -16,6 +17,9 @@ const remoteDeployed=boolean(process.env.YNX_WALLET_GATEWAY_REMOTE_DEPLOYED??"fa
 const build=buildIdentity(process.env);
 const registryPath=process.env.YNX_WALLET_GATEWAY_REGISTRY_PATH?resolve(process.env.YNX_WALLET_GATEWAY_REGISTRY_PATH):fileURLToPath(new URL("../central-registry.json",import.meta.url));
 const productSessionRegistryPath=process.env.YNX_PRODUCT_SESSION_GATEWAY_REGISTRY_PATH?resolve(process.env.YNX_PRODUCT_SESSION_GATEWAY_REGISTRY_PATH):fileURLToPath(new URL("../product-session-registry.json",import.meta.url));
+const productSessionStateVersion=process.env.YNX_PRODUCT_SESSION_GATEWAY_STATE_VERSION??"2";
+if(!["2","3"].includes(productSessionStateVersion))throw new Error("YNX_PRODUCT_SESSION_GATEWAY_STATE_VERSION must be 2 or 3");
+if(productSessionStateVersion==="3"&&!process.env.YNX_PRODUCT_SESSION_GATEWAY_STATE_PATH)throw new Error("version-three Product Session startup requires an explicit migrated state path");
 const productSessionStatePath=process.env.YNX_PRODUCT_SESSION_GATEWAY_STATE_PATH?resolve(process.env.YNX_PRODUCT_SESSION_GATEWAY_STATE_PATH):`${statePath}.product-session-v2`;
 if(address!=="127.0.0.1"&&address!=="::1"&&address!=="localhost"&&!(isIP(address)&&address.startsWith("127.")))throw new Error("YNX_WALLET_GATEWAY_HTTP_ADDR must be loopback");
 if(!statePath)throw new Error("YNX_WALLET_GATEWAY_STATE_PATH is required");
@@ -26,10 +30,11 @@ const productSessionRegistry=JSON.parse(readFileSync(productSessionRegistryPath,
 const emitEvent=event=>process.stdout.write(`${canonicalJSON(event)}\n`);
 const deployment=build?{build,remoteDeployed}:{remoteDeployed};
 const host=new CanonicalWalletGatewayNodeHost(registry,{emitEvent,statePath,now:()=>new Date()},deployment);
-const productSessionHost=new ProductSessionGatewayNodeHost(productSessionRegistry,{statePath:productSessionStatePath,now:()=>new Date(),tokenFactory:()=>randomBytes(32).toString("base64url")});
+const ProductHost=productSessionStateVersion==="3"?ProductSessionControlNodeHost:ProductSessionGatewayNodeHost;
+const productSessionHost=new ProductHost(productSessionRegistry,{statePath:productSessionStatePath,now:()=>new Date(),tokenFactory:()=>randomBytes(32).toString("base64url")});
 const legacyHandler=host.handler(),productSessionHandler=productSessionHost.handler();
 const server=createServer((request,response)=>request.url?.startsWith("/v2/product-sessions/")?productSessionHandler(request,response):legacyHandler(request,response));
-server.listen(port,address,()=>emitEvent({at:new Date().toISOString(),build:build??{buildTime:null,release:"local-unbound",sourceCommit:null},event:"listening",level:"info",remoteDeployed,service:"ynx-wallet-gatewayd",url:`http://${address}:${port}`}));
+server.listen(port,address,()=>emitEvent({at:new Date().toISOString(),build:build??{buildTime:null,release:"local-unbound",sourceCommit:null},event:"listening",level:"info",remoteDeployed,service:"ynx-wallet-gatewayd",productSessionStateVersion:Number(productSessionStateVersion),url:`http://${address}:${port}`}));
 for(const signal of ["SIGINT","SIGTERM"])process.on(signal,()=>server.close(()=>{emitEvent({at:new Date().toISOString(),event:"shutdown",level:"info",service:"ynx-wallet-gatewayd",signal});process.exit(0)}));
 
 function integer(value,label,min,max){if(!/^[0-9]+$/.test(value))throw new Error(`${label} must be an integer`);const parsed=Number(value);if(!Number.isSafeInteger(parsed)||parsed<min||parsed>max)throw new Error(`${label} is outside policy`);return parsed}

@@ -45,13 +45,19 @@
       "types": "./src/product-session-gateway-node-host.d.ts",
       "import": "./src/product-session-gateway-node-host.js",
       "default": "./src/product-session-gateway-node-host.js"
+    },
+    "./product-session-control-node-host": {
+      "types": "./src/product-session-control-node-host.d.ts",
+      "import": "./src/product-session-control-node-host.js",
+      "default": "./src/product-session-control-node-host.js"
     }
   },
   "types": "./src/index.d.ts",
   "files": ["src", "scripts", "testdata", "integration", "proposals", "central-registry.json", "product-session-registry.json", "registry-conflict-evidence.json", "CENTRAL_INTEGRATION.md"],
   "bin": {
     "ynx-wallet-gatewayd": "scripts/ynx-wallet-gatewayd.mjs",
-    "ynx-wallet-gateway-backup": "scripts/ynx-wallet-gateway-backup.mjs"
+    "ynx-wallet-gateway-backup": "scripts/ynx-wallet-gateway-backup.mjs",
+    "ynx-wallet-control-migrate-v3": "scripts/ynx-wallet-control-migrate-v3.mjs"
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",

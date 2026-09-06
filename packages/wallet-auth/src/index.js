@@ -32,4 +32,4 @@ export * from "./product-session-proof-v2.js";
 export * from "./product-session-gateway.js";
 export * from "./product-session-gateway-client.js";
 export * from "./product-session-gateway-http.js";
-export { createWalletSessionControlProof, parseWalletSessionControlProof, verifyWalletSessionControlProof, encodeWalletSessionControlProofHeader, decodeWalletSessionControlProofHeader, walletSessionControlReplayKey, walletSessionControlReplayExpiry, WALLET_SESSION_CONTROL_PROOF_HEADER, WALLET_SESSION_CONTROL_AUDIENCE, WALLET_SESSION_CONTROL_PATHS, WALLET_SESSION_CONTROL_REPLAY_PREFIX } from "./wallet-session-control.js";
+export { createWalletSessionControlProof, parseWalletSessionControlProof, verifyWalletSessionControlProof, encodeWalletSessionControlProofHeader, decodeWalletSessionControlProofHeader, walletSessionControlReplayKey, walletSessionControlReplayExpiry, WALLET_SESSION_CONTROL_PROOF_HEADER, WALLET_SESSION_CONTROL_AUDIENCE, WALLET_SESSION_CONTROL_PATHS, WALLET_SESSION_CONTROL_INTENT_PATHS, WALLET_SESSION_CONTROL_REPLAY_PREFIX } from "./wallet-session-control.js";

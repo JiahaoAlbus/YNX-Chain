@@ -8,6 +8,7 @@ import { walletIdentity, walletIdentityFromPublicKey } from "./crypto.js";
 export const WALLET_SESSION_CONTROL_PROOF_HEADER = "x-ynx-wallet-control-proof-v2";
 export const WALLET_SESSION_CONTROL_AUDIENCE = "https://wallet-auth.ynxweb4.com";
 export const WALLET_SESSION_CONTROL_PATHS = Object.freeze(["/v2/product-sessions/wallet/sessions", "/v2/product-sessions/wallet/sessions/revoke"]);
+export const WALLET_SESSION_CONTROL_INTENT_PATHS = Object.freeze(["/v2/product-sessions/wallet/sessions/revoke-all", "/v2/product-sessions/wallet/devices/revoke"]);
 export const WALLET_SESSION_CONTROL_REPLAY_PREFIX = "f9c24e16a803b572";
 const CLOCK_ANCHOR_PREFIX = "e4ab6187c05d932f";
 const CLOCK_ANCHOR_PATTERN = new RegExp(`^${CLOCK_ANCHOR_PREFIX}[0-9a-f]{12}0{36}$`);
@@ -89,7 +90,7 @@ export function decodeWalletSessionControlProofHeader(value) {
 
 function parseUnsigned(input) {
   exactFields(input, FIELDS, "Unsigned Wallet session control proof");
-  if (input.version !== "2" || input.chainId !== "ynx_6423-1" || input.audience !== WALLET_SESSION_CONTROL_AUDIENCE || input.method !== "POST" || !WALLET_SESSION_CONTROL_PATHS.includes(input.path)) fail("INVALID_CONTROL_BINDING", "Wallet session control chain, audience or route is invalid");
+  if (input.version !== "2" || input.chainId !== "ynx_6423-1" || input.audience !== WALLET_SESSION_CONTROL_AUDIENCE || input.method !== "POST" || ![...WALLET_SESSION_CONTROL_PATHS, ...WALLET_SESSION_CONTROL_INTENT_PATHS].includes(input.path)) fail("INVALID_CONTROL_BINDING", "Wallet session control chain, audience or route is invalid");
   const proof = {
     version: "2", chainId: input.chainId, audience: input.audience,
     account: pattern(input.account, "account", /^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/),
