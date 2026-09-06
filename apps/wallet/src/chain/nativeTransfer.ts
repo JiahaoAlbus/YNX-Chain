@@ -4,17 +4,31 @@ export const DEFAULT_CHAIN_API="https://rpc.ynxweb4.com";
 export type ChainAccount=Readonly<{address:string;balance:number;nonce:number}>;
 export type ChainActivity=Readonly<{hash:string;type:string;from:string;to:string;amount:number;fee:number;nonce:number;timestamp?:string}>;
 export type BroadcastResult=Readonly<{hash:string;replayed:boolean;truthfulStatus:"signature-verified-authoritative-native-transfer"}>;
+export type NativeChainState=Readonly<{phase:"loading"|"ready"|"unrecorded"|"failed";account?:ChainAccount;error?:string;activityPhase:"loading"|"ready"|"failed";activity:readonly ChainActivity[];activityError?:string}>;
 type FetchLike=(input:string,init?:RequestInit)=>Promise<Response>;
+
+export class AccountNotRecordedError extends Error{
+  readonly account:string;
+  constructor(account:string){super("This address has no on-chain account record yet. Receive testnet YNXT to get started.");this.name="AccountNotRecordedError";this.account=account}
+}
+
+export async function loadNativeChainState(client:NativeChainClient,selectedAccount:string):Promise<NativeChainState>{
+  const [account,activity]=await Promise.allSettled([client.account(selectedAccount),client.activity(selectedAccount)]);
+  const accountState=account.status==="fulfilled"?{phase:"ready" as const,account:account.value}:account.reason instanceof AccountNotRecordedError&&account.reason.account===selectedAccount?{phase:"unrecorded" as const}:{phase:"failed" as const,error:failureMessage(account.reason)};
+  const activityState=activity.status==="fulfilled"?{activityPhase:"ready" as const,activity:activity.value}:{activityPhase:"failed" as const,activity:Object.freeze([]),activityError:failureMessage(activity.reason)};
+  return Object.freeze({...accountState,...activityState});
+}
 
 export class NativeChainClient{
   readonly #baseURL:string;readonly #fetch:FetchLike;
   constructor(baseURL=DEFAULT_CHAIN_API,fetcher:FetchLike=fetch){this.#baseURL=base(baseURL);this.#fetch=fetcher}
 
   async account(account:string):Promise<ChainAccount>{
-    const value=await this.#json(`/accounts/${encodeURIComponent(account)}`,{method:"GET"});
+    const address=evmAddressFromYNX(account);
+    const value=await this.#json(`/accounts/${encodeURIComponent(account)}`,{method:"GET"},account);
     const record=object(value)&&object(value.account)?value.account:null;
     if(!record||typeof record.address!=="string"||!/^0x[0-9a-f]{40}$/.test(record.address)||!Number.isSafeInteger(record.balance)||record.balance<0||!Number.isSafeInteger(record.nonce)||record.nonce<0)throw new Error("Authoritative account response is invalid");
-    if(record.address!==evmAddressFromYNX(account))throw new Error("Authoritative account identity does not match the selected ynx1 account");
+    if(record.address!==address)throw new Error("Authoritative account identity does not match the selected ynx1 account");
     return Object.freeze({address:record.address,balance:record.balance,nonce:record.nonce});
   }
 
@@ -33,9 +47,17 @@ export class NativeChainClient{
     return Object.freeze({hash:expectedHash,replayed:value.replayed,truthfulStatus:value.truthfulStatus});
   }
 
-  async #json(path:string,init:RequestInit):Promise<unknown>{
+  async #json(path:string,init:RequestInit,requestedAccount?:string):Promise<unknown>{
     const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),15_000);
-    try{const response=await this.#fetch(`${this.#baseURL}${path}`,{...init,signal:controller.signal,headers:{Accept:"application/json",...(init.headers??{})}});const text=await response.text();let value:unknown;try{value=JSON.parse(text)}catch{throw new Error(`YNX chain returned non-JSON (${response.status})`)}if(!response.ok)throw new Error(`YNX chain rejected the request (${response.status}): ${errorMessage(value)}`);return value}finally{clearTimeout(timeout)}
+    try{
+      const response=await this.#fetch(`${this.#baseURL}${path}`,{...init,signal:controller.signal,headers:{Accept:"application/json",...(init.headers??{})}});
+      const text=await response.text();let value:unknown;try{value=JSON.parse(text)}catch{throw new Error(`YNX chain returned non-JSON (${response.status})`)}
+      if(!response.ok){
+        if(requestedAccount!==undefined&&init.method==="GET"&&path===`/accounts/${encodeURIComponent(requestedAccount)}`&&response.status===404&&object(value)&&Object.keys(value).length===1&&value.error==="account not found")throw new AccountNotRecordedError(requestedAccount);
+        throw new Error(`YNX chain rejected the request (${response.status}): ${errorMessage(value)}`);
+      }
+      return value;
+    }finally{clearTimeout(timeout)}
   }
 }
 
@@ -43,3 +65,4 @@ function parseActivity(value:unknown):ChainActivity{if(!object(value)||typeof va
 function base(value:string){if(typeof value!=="string")throw new Error("YNX chain API URL is invalid");const parsed=new URL(value);if(parsed.username||parsed.password||parsed.search||parsed.hash||parsed.pathname!=="/"&&parsed.pathname!=="")throw new Error("YNX chain API URL must be an origin");if(parsed.protocol!=="https:"&&!(parsed.protocol==="http:"&&["127.0.0.1","localhost","10.0.2.2"].includes(parsed.hostname)))throw new Error("YNX chain API requires HTTPS except local development");return parsed.origin}
 function object(value:unknown):value is Record<string,any>{return typeof value==="object"&&value!==null&&!Array.isArray(value)}
 function errorMessage(value:unknown){return object(value)&&typeof value.error==="string"?value.error:"unknown error"}
+function failureMessage(value:unknown){return value instanceof Error?value.message:String(value)}
