@@ -64,6 +64,7 @@ if (phase === "prepare") {
   // CocoaPods may add generated build integration to the Xcode project. Capture
   // that exact diff and lockfile; all other committed application/SDK bytes stay fixed.
   const changed = command("git", ["diff", "--name-only", "--", "apps/wallet", "packages/wallet-auth"]).split("\n").filter(Boolean);
+  save("generated-source.diff", command("git", ["diff", "--", "apps/wallet", "packages/wallet-auth"]));
   assert(changed.every(path => path === "apps/wallet/ios/YNXWallet.xcodeproj/project.pbxproj"), `Unexpected source mutation before packaging: ${changed.join(", ")}`);
   save("pods-project.diff", command("git", ["diff", "--", "apps/wallet/ios/YNXWallet.xcodeproj/project.pbxproj"]));
   save("Podfile.lock", readFileSync(join(root, "apps/wallet/ios/Podfile.lock"), "utf8"));
