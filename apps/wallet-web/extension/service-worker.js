@@ -1,11 +1,12 @@
 import {BRIDGE_VERSION,PROVIDER_EVENTS,REQUEST_METHODS,RUNTIME_EVENT,RUNTIME_REQUEST,publicBridgeError,validateRuntimeRequest} from "./extension-bridge.js";
-import {READ_ONLY_RPC_METHODS,YNX_CHAIN_ID,broadcastExtensionTransaction,forwardExtensionRpc} from "./extension-rpc.js";
+import {READ_ONLY_RPC_METHODS,YNX_CHAIN_ID,YNX_RPC_URL,broadcastExtensionTransaction,forwardExtensionRpc} from "./extension-rpc.js";
 import {SensitiveAuthorizationGuard,consumeSensitiveRequest,parseSensitiveRequest,validateSensitiveResult} from "./extension-sensitive-policy.js";
 import {activeTabInjectionPlans,requireActiveDappTab} from "./active-tab-policy.js";
 import {runExtensionMigration} from "./extension-migration.js";
 import {PROVIDER_ACCOUNT_KEY,PROVIDER_PENDING_PREFIX,PROVIDER_PERMISSIONS_KEY,createPendingApproval,eip2255Permissions,grantPermission,loadProviderState,parseApprovalDecision,parsePermissionStore,parseProviderAccount,revokePermission} from "./extension-provider-permissions.js";
 import {EXTENSION_VAULT_KEY,parseEncryptedVault,providerAccountFromVault,unlockEncryptedVault} from "./extension-vault.js";
 import {ExtensionBroadcastJournal} from "./extension-broadcast-journal.js";
+import {readNativeTransferCapability} from "./extension-fee-model.js";
 import {extensionReviewText,prepareExtensionRequest,signExtensionRequest} from "./extension-signer.js";
 
 const extensionApi=globalThis.browser||globalThis.chrome,CHAIN_ID=YNX_CHAIN_ID;
@@ -13,7 +14,13 @@ const approvalWaiters=new Map();
 const signerWaiters=new Map();
 const broadcastJournal=new ExtensionBroadcastJournal(extensionApi.storage.local);
 const authorizationGuard=new SensitiveAuthorizationGuard({getTab:id=>extensionApi.tabs.get(id),getAccount:()=>configuredAccount(),getPermission:async origin=>(await approvedState(origin))?.permission});
-let authorityMutation=Promise.resolve();
+let authorityMutation=Promise.resolve(),vaultRevision=0;
+const vaultRecoveries=new Map();
+function cancelVaultTab(tabId){for(const lease of vaultRecoveries.values())if(lease.tabId===tabId)lease.cancelled=true}
+// Same-URL reloads must revoke an in-flight password authorization even if the
+// departing page's best-effort Cancel message is lost.
+extensionApi.tabs.onUpdated?.addListener((tabId,change)=>{if(change.status==="loading"||typeof change.url==="string")cancelVaultTab(tabId)});
+extensionApi.tabs.onRemoved?.addListener(tabId=>cancelVaultTab(tabId));
 function mutateAuthority(action){const operation=authorityMutation.then(action);authorityMutation=operation.catch(()=>{});return operation}
 function invalidateWaiters(code,message,origin=null){for(const collection of[approvalWaiters,signerWaiters])for(const[id,waiter]of collection)if(origin===null||waiter.pending.origin===origin){waiter.reject(Object.assign(new Error(message),{code}));collection.delete(id)}}
 const migrationPromise=runExtensionMigration(extensionApi,{alarmsDeclared:false}).then(report=>({ok:true,report}),error=>({ok:false,error}));
@@ -62,8 +69,31 @@ function requireExtensionPage(sender,page){let actual,expected;try{actual=new UR
 function requireVaultPage(sender){requireExtensionPage(sender,"vault.html")}
 function requireReviewPage(sender,page,requestId){requireExtensionPage(sender,page);if(new URL(sender.url).searchParams.get("requestId")!==requestId)throw Object.assign(new Error("Review window does not match this request."),{code:"EXTENSION_CALLER_REJECTED"})}
 async function vaultStatus(){const stored=await extensionApi.storage.local.get(EXTENSION_VAULT_KEY);if(stored?.[EXTENSION_VAULT_KEY]===undefined)return{configured:false};const vault=parseEncryptedVault(stored[EXTENSION_VAULT_KEY]);return{configured:true,account:vault.account,createdAt:vault.createdAt,transaction:await broadcastJournal.status(vault.account)}}
-async function storeVault(vaultValue){const vault=parseEncryptedVault(vaultValue),account=providerAccountFromVault(vault);authorizationGuard.invalidateAll();invalidateWaiters("PROVIDER_ACCOUNT_CHANGED","Wallet account changed during approval.");await mutateAuthority(()=>extensionApi.storage.local.set({[EXTENSION_VAULT_KEY]:vault,[PROVIDER_ACCOUNT_KEY]:account,[PROVIDER_PERMISSIONS_KEY]:{}}));return account}
-async function removeVault(){authorizationGuard.invalidateAll();invalidateWaiters("PROVIDER_ACCOUNT_CHANGED","Wallet was removed during approval.");await mutateAuthority(()=>extensionApi.storage.local.remove([EXTENSION_VAULT_KEY,PROVIDER_ACCOUNT_KEY,PROVIDER_PERMISSIONS_KEY]));return true}
+async function storeVault(vaultValue){const vault=parseEncryptedVault(vaultValue),account=providerAccountFromVault(vault);vaultRevision++;authorizationGuard.invalidateAll();invalidateWaiters("PROVIDER_ACCOUNT_CHANGED","Wallet account changed during approval.");await mutateAuthority(()=>extensionApi.storage.local.set({[EXTENSION_VAULT_KEY]:vault,[PROVIDER_ACCOUNT_KEY]:account,[PROVIDER_PERMISSIONS_KEY]:{}}));return account}
+async function removeVault(){vaultRevision++;authorizationGuard.invalidateAll();invalidateWaiters("PROVIDER_ACCOUNT_CHANGED","Wallet was removed during approval.");await mutateAuthority(()=>extensionApi.storage.local.remove([EXTENSION_VAULT_KEY,PROVIDER_ACCOUNT_KEY,PROVIDER_PERMISSIONS_KEY]));return true}
+function recoveryFailure(){return Object.assign(new Error("Recovery authorization ended. A submission already in progress may still complete; check the original transaction."),{code:"RECOVERY_CANCELLED"})}
+function validateRecoveryTarget(message){
+  if(typeof message.account!=="string"||!/^0x[0-9a-f]{40}$/u.test(message.account)||typeof message.transactionHash!=="string"||!/^0x[0-9a-f]{64}$/u.test(message.transactionHash)||message.selectedRpcOrigin!==undefined&&message.selectedRpcOrigin!==YNX_RPC_URL)throw Object.assign(new Error("Review the exact account, original transaction hash and configured RPC."),{code:"INVALID_RECOVERY_REQUEST"});
+}
+async function retryVaultTransaction(message,sender){
+  validateRecoveryTarget(message);
+  if(typeof message.requestId!=="string"||!/^recovery-[0-9a-f-]{36}$/u.test(message.requestId)||!Number.isSafeInteger(message.deadlineAt)||message.deadlineAt>Date.now()+120000||typeof message.password!=="string"||message.password.length<12||message.password.length>256||message.reviewed!==true||!Number.isInteger(sender?.tab?.id))throw Object.assign(new Error("Explicit review and vault password are required to retry the original signed transaction."),{code:"INVALID_RECOVERY_REQUEST"});
+  requireLiveDeadline(message.deadlineAt);
+  for(const[id,item]of vaultRecoveries)if(item.deadlineAt<=Date.now())vaultRecoveries.delete(id);
+  if(vaultRecoveries.has(message.requestId))throw Object.assign(new Error("This recovery authorization was cancelled or already used."),{code:"REQUEST_REPLAYED"});
+  if(vaultRecoveries.size>=256)throw Object.assign(new Error("Close older recovery requests before retrying."),{code:"REPLAY_CAPACITY"});
+  const lease={revision:vaultRevision,account:message.account,tabId:sender.tab.id,url:sender.url,deadlineAt:message.deadlineAt,cancelled:false};vaultRecoveries.set(message.requestId,lease);
+  const live=()=>{requireLiveDeadline(lease.deadlineAt);if(lease.cancelled||lease.revision!==vaultRevision)throw recoveryFailure()};
+  const assertAuthorized=async()=>{
+    live();const[account,tab]=await Promise.all([configuredAccount(),extensionApi.tabs.get(lease.tabId)]);live();
+    if(account.account!==lease.account||tab?.id!==lease.tabId||tab.url!==lease.url)throw recoveryFailure();
+  };
+  await consumeSensitiveRequest(extensionApi.storage.session,message);await assertAuthorized();
+  const transaction=await broadcastJournal.retry(lease.account,{transactionHash:message.transactionHash,selectedRpcOrigin:message.selectedRpcOrigin,rpc:forwardExtensionRpc,broadcast:broadcastExtensionTransaction,assertAuthorized,
+    authorize:async()=>{await assertAuthorized();const stored=await extensionApi.storage.local.get(EXTENSION_VAULT_KEY);await assertAuthorized();const unlocked=await unlockEncryptedVault(stored?.[EXTENSION_VAULT_KEY],message.password);await assertAuthorized();if(unlocked.account!==lease.account)throw recoveryFailure()}});
+  // The journal records any late network outcome before a stale UI is rejected.
+  await assertAuthorized();return{transaction};
+}
 async function approvedState(origin){
   try{return await loadProviderState(extensionApi.storage.local,origin)}catch(error){if(error?.code==="PROVIDER_ACCOUNT_UNAVAILABLE")return null;throw error}
 }
@@ -118,10 +148,12 @@ async function handleProviderMethod({tabId,origin,requestId,deadlineAt,method,pa
     const perform=async()=>{
     await assertAuthorized();const prepared=await prepareExtensionRequest({expectedAccount:lease.account,method,params,rpc});await assertAuthorized();
     const password=await requestSignerReview(tabId,origin,requestId,deadlineAt,prepared,lease);await assertAuthorized();
-    const stored=await extensionApi.storage.local.get(EXTENSION_VAULT_KEY),unlocked=await unlockEncryptedVault(stored?.[EXTENSION_VAULT_KEY],password);await assertAuthorized();
+    const stored=await extensionApi.storage.local.get(EXTENSION_VAULT_KEY);
+    if(method==="eth_sendTransaction")await readNativeTransferCapability(rpc);await assertAuthorized();
+    const unlocked=await unlockEncryptedVault(stored?.[EXTENSION_VAULT_KEY],password);await assertAuthorized();
     const result=await signExtensionRequest({secretHex:unlocked.secretHex,expectedAccount:lease.account,prepared,rpc,assertAuthorized});await assertAuthorized();
     if(method!=="eth_sendTransaction")return result;
-    return broadcastJournal.broadcast({account:lease.account,origin,signed:result,broadcast:broadcastExtensionTransaction,assertAuthorized});
+    return broadcastJournal.broadcast({account:lease.account,origin,signed:result,broadcast:broadcastExtensionTransaction,assertAuthorized,rpc});
     };
     return method==="eth_sendTransaction"?broadcastJournal.run(lease.account,perform):perform();
   }
@@ -145,9 +177,20 @@ async function activeProviderRequest(preference,input){
 }
 
 extensionApi.runtime.onMessage.addListener((message,sender,sendResponse)=>{
-  if(message?.type==="YNX_VAULT_STATUS_V1"||message?.type==="YNX_VAULT_STORE_V1"||message?.type==="YNX_VAULT_REMOVE_V1"||message?.type==="YNX_VAULT_TRANSACTION_CHECK_V1"){
+  if(message?.type==="YNX_VAULT_STATUS_V1"||message?.type==="YNX_VAULT_STORE_V1"||message?.type==="YNX_VAULT_REMOVE_V1"||message?.type==="YNX_VAULT_TRANSACTION_CHECK_V1"||message?.type==="YNX_VAULT_TRANSACTION_CHECK_V2"||message?.type==="YNX_VAULT_TRANSACTION_RETRY_V2"||message?.type==="YNX_VAULT_TRANSACTION_CANCEL_V2"){
     Promise.resolve().then(()=>requireVaultPage(sender)).then(async()=>{
       if(message.type==="YNX_VAULT_STATUS_V1")return vaultStatus();
+      if(message.type==="YNX_VAULT_TRANSACTION_CANCEL_V2"){
+        const lease=vaultRecoveries.get(message.requestId);if(lease&&lease.url===sender.url&&lease.tabId===sender.tab?.id)lease.cancelled=true;
+        return{cancelled:Boolean(lease?.cancelled)};
+      }
+      if(message.type==="YNX_VAULT_TRANSACTION_RETRY_V2")return retryVaultTransaction(message,sender);
+      if(message.type==="YNX_VAULT_TRANSACTION_CHECK_V2"){
+        validateRecoveryTarget(message);const revision=vaultRevision,account=await configuredAccount();
+        if(account.account!==message.account)throw recoveryFailure();
+        const transaction=await broadcastJournal.status(account.account,{rpc:forwardExtensionRpc,refresh:true,transactionHash:message.transactionHash,selectedRpcOrigin:message.selectedRpcOrigin});
+        if(revision!==vaultRevision||(await configuredAccount()).account!==message.account)throw recoveryFailure();return{transaction};
+      }
       if(message.type==="YNX_VAULT_TRANSACTION_CHECK_V1"){const account=await configuredAccount();return{transaction:await broadcastJournal.status(account.account,{rpc:forwardExtensionRpc,refresh:true})}}
       if(message.type==="YNX_VAULT_STORE_V1")return{account:(await storeVault(message.vault)).account};
       await removeVault();return{removed:true};

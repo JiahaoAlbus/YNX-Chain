@@ -3,7 +3,7 @@ import test from "node:test";
 import {NATIVE_FEE_MODEL} from "../src/extension-fee-model.js";
 import {READ_ONLY_RPC_METHODS,RPC_REQUEST_ID,RPC_TIMEOUT_MS,YNX_CHAIN_ID,YNX_RPC_URL,broadcastExtensionTransaction,forwardExtensionRpc,verifyExtensionRpc} from "../src/extension-rpc.js";
 
-const response = (body, options={}) => ({ok:options.ok??true,status:options.status??200,json:async()=>body});
+const response = (body, options={}) => ({ok:options.ok??true,redirected:false,url:"https://evm.ynxweb4.com/",status:options.status??200,json:async()=>body});
 
 test("extension RPC sends the exact bounded eth_chainId request and validates 0x1917",async()=>{
   let observed;
@@ -50,7 +50,18 @@ test("legacy balance exposes whole-YNXT explicitly and cannot masquerade as stan
 
 test("RPC deadline includes a response body that never completes",async t=>{
   t.mock.timers.enable({apis:["setTimeout"]});
-  const pending=broadcastExtensionTransaction("0x01",async()=>({ok:true,text:async()=>new Promise(()=>{})}));
+  const pending=broadcastExtensionTransaction("0x01",async()=>({ok:true,redirected:false,url:"https://evm.ynxweb4.com/",text:async()=>new Promise(()=>{})}));
   const rejected=assert.rejects(pending,{code:"RPC_TIMEOUT"});
   await Promise.resolve();t.mock.timers.tick(RPC_TIMEOUT_MS);await rejected;
+});
+
+test("result and error are mutually exclusive even when error is null or false",async()=>{
+  for(const error of[null,false,undefined,{code:-32003,message:"no"}]){
+    const body={jsonrpc:"2.0",id:6423,result:"0x1917",error};await assert.rejects(verifyExtensionRpc(async()=>response(body)),{code:"INVALID_RPC_RESPONSE"});
+  }
+});
+
+test("redirects, missing response identity and foreign final URLs cannot authorize a rejection",async()=>{
+  const body={jsonrpc:"2.0",id:6423,error:{code:-32003,message:"foreign rejection"}};
+  for(const patch of[{redirected:true},{redirected:undefined},{url:undefined},{url:"https://foreign.example/"},{url:YNX_RPC_URL+"/?redirect=1"}])await assert.rejects(broadcastExtensionTransaction("0x01",async(_url,options)=>{assert.equal(options.redirect,"error");return{...response(body),...patch}}),{code:"INVALID_RPC_RESPONSE"});
 });

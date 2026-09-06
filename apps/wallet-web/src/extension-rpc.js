@@ -1,10 +1,11 @@
 import {readNativeBalance,readFeeModel} from "./extension-fee-model.js";
+import {parseDurabilityModel,parseTransactionDurability} from "./extension-durability.js";
 export const YNX_RPC_URL = "https://evm.ynxweb4.com";
 export const YNX_CHAIN_ID = "0x1917";
 export const RPC_TIMEOUT_MS = 12000;
 export const RPC_REQUEST_ID = 6423;
 export const READ_ONLY_RPC_METHODS=Object.freeze([
-  "ynx_getFeeModel","ynx_getBalanceDetails","eth_blockNumber","eth_call","eth_estimateGas","eth_gasPrice","eth_getBalance","eth_getBlockByHash","eth_getBlockByNumber","eth_getCode","eth_getLogs","eth_getStorageAt","eth_getTransactionByHash","eth_getTransactionCount","eth_getTransactionReceipt","eth_maxPriorityFeePerGas","net_version","web3_clientVersion",
+  "ynx_getDurabilityModel","ynx_getTransactionDurability","ynx_getFeeModel","ynx_getBalanceDetails","eth_blockNumber","eth_call","eth_estimateGas","eth_gasPrice","eth_getBalance","eth_getBlockByHash","eth_getBlockByNumber","eth_getCode","eth_getLogs","eth_getStorageAt","eth_getTransactionByHash","eth_getTransactionCount","eth_getTransactionReceipt","eth_maxPriorityFeePerGas","net_version","web3_clientVersion",
 ]);
 const RPC_BODY_LIMIT=2*1024*1024,PARAMS_LIMIT=64*1024;
 
@@ -20,6 +21,14 @@ export async function verifyExtensionRpc(fetcher = globalThis.fetch, url = YNX_R
 
 export async function forwardExtensionRpc(method,params=[],fetcher=globalThis.fetch,url=YNX_RPC_URL){
   if(typeof method!=="string"||!(method==="eth_chainId"||READ_ONLY_RPC_METHODS.includes(method)))rpcFailure(4200,"Unsupported YNX Wallet RPC method.");
+  if(method==="ynx_getDurabilityModel"){
+    if(!Array.isArray(params)||params.length!==0)rpcFailure(-32602,"Durability model requires empty parameters.");
+    return parseDurabilityModel(await exactRpcRequest(method,params,fetcher,url));
+  }
+  if(method==="ynx_getTransactionDurability"){
+    if(!Array.isArray(params)||params.length!==1||typeof params[0]!=="string"||!/^0x[0-9a-f]{64}$/u.test(params[0]))rpcFailure(-32602,"Durability status requires the exact original lowercase transaction hash.");
+    return parseTransactionDurability(await exactRpcRequest(method,params,fetcher,url),params[0]);
+  }
   if(method==="ynx_getFeeModel")return readFeeModel((name,args)=>exactRpcRequest(name,args,fetcher,url));
   if(method==="ynx_getBalanceDetails"||method==="eth_getBalance"){
     const details=await readNativeBalance((name,args)=>exactRpcRequest(name,args,fetcher,url),params);
@@ -43,8 +52,9 @@ async function exactRpcRequest(method,params=[],fetcher=globalThis.fetch,url=YNX
   let timer;
   try{
     const request=(async()=>{
-      const response=await fetcher(url,{method:"POST",headers:{"content-type":"application/json",accept:"application/json"},body:JSON.stringify({jsonrpc:"2.0",id:RPC_REQUEST_ID,method,params}),signal:controller.signal,cache:"no-store",credentials:"omit"});
+      const response=await fetcher(url,{method:"POST",headers:{"content-type":"application/json",accept:"application/json"},body:JSON.stringify({jsonrpc:"2.0",id:RPC_REQUEST_ID,method,params}),signal:controller.signal,cache:"no-store",credentials:"omit",redirect:"error"});
       if(!response)rpcFailure("RPC_UNAVAILABLE","YNX Testnet RPC returned no response.");
+      if(response.redirected!==false||typeof response.url!=="string"||response.url.length>2048||new URL(response.url).href!==new URL(YNX_RPC_URL).href)rpcFailure("INVALID_RPC_RESPONSE","RPC response did not come directly from the configured YNX Testnet endpoint.");
       let body;
       if(typeof response.text==="function"){
         const text=await response.text();if(typeof text!=="string"||text.length>RPC_BODY_LIMIT)rpcFailure("INVALID_RPC_RESPONSE","RPC returned an invalid JSON-RPC envelope.");

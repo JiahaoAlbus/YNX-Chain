@@ -1,3 +1,4 @@
+import {DURABILITY_MODEL,parseTransactionDurability} from "./extension-durability.js";
 export const BRIDGE_VERSION = 1;
 export const PAGE_REQUEST = "YNX_PAGE_REQUEST_V1";
 export const PAGE_RESPONSE = "YNX_PAGE_RESPONSE_V1";
@@ -10,7 +11,7 @@ export const REQUEST_METHODS = Object.freeze([
   "eth_chainId", "eth_accounts", "eth_requestAccounts", "wallet_getPermissions", "wallet_requestPermissions",
   "wallet_addEthereumChain", "wallet_switchEthereumChain", "wallet_revokePermissions", "personal_sign",
   "eth_signTypedData_v4", "eth_sendTransaction", "ynx_disconnect",
-  "ynx_getFeeModel","ynx_getBalanceDetails","eth_blockNumber","eth_call","eth_estimateGas","eth_gasPrice","eth_getBalance","eth_getBlockByHash","eth_getBlockByNumber","eth_getCode","eth_getLogs","eth_getStorageAt","eth_getTransactionByHash","eth_getTransactionCount","eth_getTransactionReceipt","eth_maxPriorityFeePerGas","net_version","web3_clientVersion",
+  "ynx_getDurabilityModel","ynx_getTransactionDurability","ynx_getFeeModel","ynx_getBalanceDetails","eth_blockNumber","eth_call","eth_estimateGas","eth_gasPrice","eth_getBalance","eth_getBlockByHash","eth_getBlockByNumber","eth_getCode","eth_getLogs","eth_getStorageAt","eth_getTransactionByHash","eth_getTransactionCount","eth_getTransactionReceipt","eth_maxPriorityFeePerGas","net_version","web3_clientVersion",
 ]);
 export const PROVIDER_EVENTS = Object.freeze(["connect","accountsChanged", "chainChanged", "disconnect"]);
 
@@ -41,6 +42,9 @@ export function publicBridgeError(error) {
   const data=error?.data,publicData={};
   if(typeof data?.status==="string"&&/^[a-z_]{1,64}$/u.test(data.status))publicData.status=data.status;
   if(typeof data?.transactionHash==="string"&&/^0x[0-9a-fA-F]{64}$/u.test(data.transactionHash))publicData.transactionHash=data.transactionHash.toLowerCase();
+  if(data?.durabilityVersion===DURABILITY_MODEL.version&&((code===-32002&&data.status==="transaction_durability_uncertain")||(code===-32004&&data.status==="transaction_durability_unavailable"))){
+    try{const proof=parseTransactionDurability(data.ynxDurability,data.transactionHash);if(proof.status===(code===-32002?"uncertain":"memory_only")){publicData.durabilityVersion=DURABILITY_MODEL.version;publicData.ynxDurability=proof}}catch{/* Keep public hash/status; malformed inner evidence grants no authority. */}
+  }
   if(code===-32004&&data?.status==="native_block_projection_unsupported"){
     for(const key of["blockNumber","feeEquivalentGas","projectionGasLimit"])if(typeof data[key]==="string"&&/^0x(?:0|[1-9a-fA-F][0-9a-fA-F]{0,63})$/u.test(data[key]))publicData[key]=data[key];
     if(typeof data.blockHash==="string"&&/^0x[0-9a-fA-F]{64}$/u.test(data.blockHash))publicData.blockHash=data.blockHash;

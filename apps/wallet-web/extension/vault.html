@@ -12,7 +12,21 @@
     <p class="eyebrow">TESTNET ACCOUNT VAULT</p><h1>Own your YNX account</h1>
     <p class="intro">The encrypted recovery key stays in this browser profile. Sites receive only the approved 0x account. Product Session is separate.</p>
     <section id="current" class="card" aria-label="Current account"><strong>Current account</strong><p id="account" class="mono">Loading…</p></section>
-    <section id="transaction" class="card hidden" aria-label="Transaction recovery"><h2>Transaction status</h2><p id="transaction-status"></p><p id="transaction-hash" class="mono"></p><button id="transaction-check" type="button">Check original transaction</button><p>Checking only reads the original hash. It never signs or resends. A missing receipt keeps new sends blocked.</p></section>
+    <section id="transaction" class="card hidden" aria-label="Transaction recovery">
+      <h2>Original transaction</h2><p id="transaction-status"></p><p id="transaction-hash" class="mono"></p>
+      <p id="transaction-legacy" class="hidden">This older record has no verifiable completion evidence. Its original signed transaction is preserved. Its original RPC source is unverified.</p>
+      <pre id="transaction-review" class="mono"></pre>
+      <label id="transaction-rpc-choice" class="confirm hidden"><input id="transaction-rpc-confirm" type="checkbox"> I select https://evm.ynxweb4.com to check or retry this older transaction. This does not verify its original RPC source.</label>
+      <button id="transaction-check" type="button">Check status · read only</button>
+      <p>Checking reads the original hash. It never unlocks, signs or resends. A missing receipt or an unverified durability proof keeps new sends blocked.</p>
+      <div id="transaction-retry-panel">
+        <label class="confirm"><input id="transaction-retry-confirm" type="checkbox"> I reviewed the recipient, amount, nonce, fee and hash above and authorize sending this exact original signed transaction again.</label>
+        <label for="transaction-password">Vault password</label><input id="transaction-password" type="password" minlength="12" maxlength="256" autocomplete="current-password">
+        <button id="transaction-retry" type="button" class="primary" disabled>Retry original transaction</button>
+        <button id="transaction-cancel" type="button" class="danger hidden">Cancel retry authorization</button>
+        <p>Retry keeps the same transaction and nonce. A submission already sent may still finish after cancellation. Success here acknowledges receipt; use Check status for local durability evidence.</p>
+      </div>
+    </section>
     <section class="card" aria-labelledby="setup-title"><h2 id="setup-title">Create or import</h2>
       <label for="password">Vault password · 12 characters minimum</label><input id="password" type="password" minlength="12" maxlength="256" autocomplete="new-password">
       <label for="secret">Recovery key · leave empty to create</label><textarea id="secret" maxlength="64" spellcheck="false" autocomplete="off"></textarea>

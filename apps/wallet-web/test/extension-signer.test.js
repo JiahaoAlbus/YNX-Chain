@@ -1,12 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {verifyMessage,verifyTypedData,Transaction,toQuantity} from "ethers";
+import {DURABILITY_MODEL} from "../src/extension-durability.js";
 import {NATIVE_FEE_MODEL} from "../src/extension-fee-model.js";
 import {extensionIdentity} from "../src/extension-vault.js";
 import {extensionReviewText,prepareExtensionRequest,signExtensionRequest} from "../src/extension-signer.js";
 
 const SECRET=`${"00".repeat(31)}01`,ACCOUNT=extensionIdentity(SECRET).account,TO=`0x${"2".repeat(40)}`;
-const rpc=async(method)=>({eth_chainId:"0x1917",ynx_getFeeModel:{...NATIVE_FEE_MODEL,enabled:true},eth_getTransactionCount:"0x1",eth_estimateGas:"0x61a8",eth_gasPrice:NATIVE_FEE_MODEL.gasPrice,eth_getBalance:toQuantity(3n*10n**18n)})[method];
+const rpc=async(method)=>({eth_chainId:"0x1917",ynx_getFeeModel:{...NATIVE_FEE_MODEL,enabled:true},ynx_getDurabilityModel:DURABILITY_MODEL,eth_getTransactionCount:"0x1",eth_estimateGas:"0x61a8",eth_gasPrice:NATIVE_FEE_MODEL.gasPrice,eth_getBalance:toQuantity(3n*10n**18n)})[method];
 const prepare=(method,params,network=rpc)=>prepareExtensionRequest({expectedAccount:ACCOUNT,method,params,rpc:network});
 const sign=(prepared,options={})=>signExtensionRequest({secretHex:SECRET,expectedAccount:ACCOUNT,prepared,rpc,assertAuthorized:async()=>{},...options});
 
@@ -39,7 +40,7 @@ test("preparation preserves supplied gas and exact maximum budget; signing only 
   assert.equal(prepared.params[0].gasLimit,"0x7530");assert.equal("gas" in prepared.params[0],false);assert.equal(prepared.review.maximumFee,"1.2");assert.equal(prepared.review.networkFee,"1.0");
   transaction.value="0x0";assert.throws(()=>prepared.params[0].nonce="0x2");
   const calls=[],result=await sign(prepared,{rpc:async(method,params)=>{calls.push(method);return rpc(method,params)}}),signed=Transaction.from(result.rawTransaction);
-  assert.deepEqual(calls,["eth_chainId","ynx_getFeeModel","eth_getTransactionCount"]);assert.equal(signed.unsignedSerialized,Transaction.from({...prepared.params[0],from:undefined,nonce:1}).unsignedSerialized);
+  assert.equal(calls.filter(method=>method==="eth_getTransactionCount").length,1);assert.equal(calls.at(-1),"eth_chainId");assert.equal(signed.unsignedSerialized,Transaction.from({...prepared.params[0],from:undefined,nonce:1}).unsignedSerialized);
   await assert.rejects(sign(prepared),error=>error.code==="UNREVIEWED_REQUEST");
 });
 
@@ -62,3 +63,19 @@ test("missing fees, funds, changed nonce and revoked authorization fail without 
 });
 
 function getBytes(value){return Uint8Array.from(Buffer.from(value.slice(2),"hex"))}
+
+test("transaction preparation requires exact durability before nonce prefill; message signing stays independent",async()=>{
+ const calls=[];await assert.rejects(prepare("eth_sendTransaction",[{from:ACCOUNT,to:TO,value:toQuantity(10n**18n)}],async method=>{calls.push(method);return method==="ynx_getDurabilityModel"?undefined:rpc(method)}),{code:"DURABILITY_UNCONFIRMED"});assert.equal(calls.includes("eth_getTransactionCount"),false);
+ const message=await prepare("personal_sign",["0x01",ACCOUNT],async()=>{throw new Error("RPC must not be used")});assert.match(await sign(message,{rpc:async()=>{throw new Error("RPC must not be used")}}),/^0x[0-9a-f]{130}$/u);
+});
+test("final nonce await and last durability query drift cannot reach the cryptographic transaction signer",async t=>{
+ const {Wallet}=await import("ethers"),original=Wallet.prototype.signTransaction;let signatures=0;t.mock.method(Wallet.prototype,"signTransaction",function(...args){signatures++;return original.apply(this,args)});
+ for(const mode of["nonce-model","nonce-chain","last-model-chain"]){const prepared=await prepare("eth_sendTransaction",[{from:ACCOUNT,to:TO,value:toQuantity(10n**18n)}]);let changed=false,models=0;
+  await assert.rejects(sign(prepared,{rpc:async method=>{if(method==="eth_getTransactionCount"&&mode!=="last-model-chain")changed=true;if(method==="ynx_getDurabilityModel"&&++models===2&&mode==="last-model-chain")changed=true;if(changed&&method==="eth_chainId"&&mode!=="nonce-model")return"0x1";if(changed&&method==="ynx_getDurabilityModel"&&mode==="nonce-model")return{...DURABILITY_MODEL,extra:true};return rpc(method)}}));
+ }
+ assert.equal(signatures,0);
+});
+
+test("native int64 overflow is refused during preparation even if RPC claims an enormous balance",async()=>{
+ const calls=[];await assert.rejects(prepare("eth_sendTransaction",[{from:ACCOUNT,to:TO,value:toQuantity(9223372036854775808n*10n**18n)}],async method=>{calls.push(method);return method==="eth_getBalance"?toQuantity((1n<<255n)-1n):rpc(method)}),{code:"UNSUPPORTED_NATIVE_TRANSFER"});assert.equal(calls.includes("eth_getTransactionCount"),false);
+});
