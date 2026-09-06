@@ -1,9 +1,17 @@
-import { evmAddressFromYNX, type SignedNativeTransfer } from "@ynx-chain/wallet-auth";
+import { evmAddressFromYNX, nativeTransferHash, parseSignedNativeTransfer, type SignedNativeTransfer } from "@ynx-chain/wallet-auth";
 
 export const DEFAULT_CHAIN_API="https://rpc.ynxweb4.com";
 export type ChainAccount=Readonly<{address:string;balance:number;nonce:number}>;
 export type ChainActivity=Readonly<{hash:string;type:string;from:string;to:string;amount:number;fee:number;nonce:number;timestamp?:string}>;
-export type BroadcastResult=Readonly<{hash:string;replayed:boolean;truthfulStatus:"signature-verified-authoritative-native-transfer"}>;
+export type BroadcastResult=Readonly<{hash:string;replayed:boolean;truthfulStatus:"signature-verified-authoritative-native-transfer";durabilityConfirmed:boolean;durabilityEvidence:Readonly<Record<string,unknown>>|null}>;
+export type NativeDurabilityVerifier=(response:Readonly<Record<string,unknown>>,expected:SignedNativeTransfer,hash:string)=>boolean;
+// The existing public Core does not supply a verifiable durable checkpoint.
+// Replace this only with the reviewed, versioned Core contract once available.
+export const verifyNativeDurability:NativeDurabilityVerifier=()=>false;
+export class NativeBroadcastUnknown extends Error {
+  readonly code="NATIVE_BROADCAST_UNKNOWN";
+  constructor(readonly hash:string,message="Transfer confirmation is unavailable. Keep the original transaction and retry only that transaction.",readonly httpStatus?:number,readonly reportedHash?:string){super(message)}
+}
 export type NativeChainState=Readonly<{phase:"loading"|"ready"|"unrecorded"|"failed";account?:ChainAccount;error?:string;activityPhase:"loading"|"ready"|"failed";activity:readonly ChainActivity[];activityError?:string}>;
 type FetchLike=(input:string,init?:RequestInit)=>Promise<Response>;
 
@@ -21,7 +29,8 @@ export async function loadNativeChainState(client:NativeChainClient,selectedAcco
 
 export class NativeChainClient{
   readonly #baseURL:string;readonly #fetch:FetchLike;
-  constructor(baseURL=DEFAULT_CHAIN_API,fetcher:FetchLike=fetch){this.#baseURL=base(baseURL);this.#fetch=fetcher}
+  constructor(baseURL=DEFAULT_CHAIN_API,fetcher:FetchLike=fetch,private readonly verifyDurability:NativeDurabilityVerifier=verifyNativeDurability){this.#baseURL=base(baseURL);this.#fetch=fetcher}
+  get origin():string{return this.#baseURL}
 
   async account(account:string):Promise<ChainAccount>{
     const address=evmAddressFromYNX(account);
@@ -40,23 +49,36 @@ export class NativeChainClient{
   }
 
   async broadcast(payload:string,expected:SignedNativeTransfer,expectedHash:string):Promise<BroadcastResult>{
-    const value=await this.#json("/transactions/broadcast",{method:"POST",headers:{"Content-Type":"application/json"},body:payload});
-    if(!object(value)||!object(value.transaction)||typeof value.replayed!=="boolean"||value.truthfulStatus!=="signature-verified-authoritative-native-transfer")throw new Error("Authoritative broadcast response is invalid");
+    const parsed=parseSignedNativeTransfer(payload);
+    if(JSON.stringify(parsed)!==JSON.stringify(expected)||nativeTransferHash(payload)!==expectedHash||!Number.isSafeInteger(parsed.amount+parsed.fee))throw new Error("The signed native transfer does not match its reviewed identity and safe whole-YNXT total");
+    let value:unknown;
+    try{value=await this.#json("/transactions/broadcast",{method:"POST",headers:{"Content-Type":"application/json"},body:payload},undefined,expectedHash)}catch(error){if(error instanceof NativeBroadcastUnknown)throw error;throw new NativeBroadcastUnknown(expectedHash)}
+    if(!object(value)||!object(value.transaction)||typeof value.replayed!=="boolean"||value.truthfulStatus!=="signature-verified-authoritative-native-transfer")throw new NativeBroadcastUnknown(expectedHash,"Authoritative broadcast response is invalid");
     const tx=value.transaction;
-    if(tx.hash!==expectedHash||tx.from!==expected.from||tx.to!==expected.to||tx.amount!==expected.amount||tx.fee!==expected.fee||tx.nonce!==expected.nonce)throw new Error("Authoritative broadcast response does not match the signed transfer");
-    return Object.freeze({hash:expectedHash,replayed:value.replayed,truthfulStatus:value.truthfulStatus});
+    if(tx.hash!==expectedHash||tx.from!==expected.from||tx.to!==expected.to||tx.amount!==expected.amount||tx.fee!==expected.fee||tx.nonce!==expected.nonce)throw new NativeBroadcastUnknown(expectedHash,"Authoritative broadcast response does not match the signed transfer");
+    // A legacy success (and GET /txs/hash) can reflect only in-memory state.
+    // A compiled, exact Core checkpoint verifier is required to release the outbox.
+    let durabilityConfirmed=false;try{durabilityConfirmed=this.verifyDurability(value,expected,expectedHash)===true}catch{}
+    return Object.freeze({hash:expectedHash,replayed:value.replayed,truthfulStatus:value.truthfulStatus,durabilityConfirmed,durabilityEvidence:durabilityConfirmed?JSON.parse(JSON.stringify(value)):null});
   }
 
-  async #json(path:string,init:RequestInit,requestedAccount?:string):Promise<unknown>{
-    const controller=new AbortController();const timeout=setTimeout(()=>controller.abort(),15_000);
+  async #json(path:string,init:RequestInit,requestedAccount?:string,broadcastHash?:string):Promise<unknown>{
+    const controller=new AbortController();let timeout:ReturnType<typeof setTimeout>|undefined;
     try{
-      const response=await this.#fetch(`${this.#baseURL}${path}`,{...init,signal:controller.signal,headers:{Accept:"application/json",...(init.headers??{})}});
-      const text=await response.text();let value:unknown;try{value=JSON.parse(text)}catch{throw new Error(`YNX chain returned non-JSON (${response.status})`)}
+      return await Promise.race([(async()=>{
+      const url=`${this.#baseURL}${path}`;
+      const response=await this.#fetch(url,{...init,redirect:"error",signal:controller.signal,headers:{Accept:"application/json",...(init.headers??{})}});
+      if(response.redirected||response.url&&response.url!==url)throw new Error("YNX chain response origin changed");
+      const text=await response.text();if(text.length>262144)throw new Error("YNX chain response exceeds the supported size");let value:unknown;try{value=JSON.parse(text)}catch{throw new Error(`YNX chain returned non-JSON (${response.status})`)}
       if(!response.ok){
+        // Native HTTP errors currently have no versioned, request-bound rejection
+        // proof. Even a 400/403 must not release an already signed transaction.
+        if(broadcastHash)throw new NativeBroadcastUnknown(broadcastHash,`YNX chain has not confirmed the transfer (${response.status}).`,response.status,object(value)&&typeof value.transactionHash==="string"&&/^0x[0-9a-f]{64}$/.test(value.transactionHash)?value.transactionHash:undefined);
         if(requestedAccount!==undefined&&init.method==="GET"&&path===`/accounts/${encodeURIComponent(requestedAccount)}`&&response.status===404&&object(value)&&Object.keys(value).length===1&&value.error==="account not found")throw new AccountNotRecordedError(requestedAccount);
         throw new Error(`YNX chain rejected the request (${response.status}): ${errorMessage(value)}`);
       }
       return value;
+      })(),new Promise<never>((_,reject)=>{timeout=setTimeout(()=>{controller.abort();reject(new Error("YNX chain request timed out"))},15_000)})]);
     }finally{clearTimeout(timeout)}
   }
 }
