@@ -96,3 +96,19 @@ nav button.active{background:#1e2b4d;color:#a9c2ff}
 .state{background:#202b43;color:#b8cbff}
 input,textarea,select{border-color:#555c68}
 }
+/* Keep the publishing workspace usable with long accounts and small screens. */
+body{grid-template-rows:auto minmax(0,1fr)}
+header{flex-wrap:wrap;gap:12px 20px;align-content:center}
+header .wallet-status,header .wallet-summary{min-width:0;max-width:none;overflow-wrap:anywhere;font-weight:400}
+header .wallet-summary{display:none}
+.product-session{padding:0 0 24px;margin:0 0 24px;border-bottom:1px solid var(--line)}
+.product-session p{line-height:1.5;overflow-wrap:anywhere}
+.product-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
+.product-actions a{color:var(--blue);font-size:.85rem}
+.primary-link{background:var(--blue);color:white!important;padding:10px 14px;border-radius:6px;text-decoration:none}
+.wallet-tools{margin-top:40px;border-top:1px solid var(--line);padding-top:18px}
+.wallet-tools summary{cursor:pointer;color:var(--muted);font-size:.85rem}
+[hidden]{display:none!important}
+@media(max-width:1000px){body{grid-template-columns:180px minmax(0,1fr)}aside{padding-inline:8px}header{padding:16px 22px}.locale-controls{flex-wrap:wrap}.metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.metrics article:nth-child(2){border-inline-end:0}.row{grid-template-columns:minmax(0,1fr) auto}.row-actions{grid-column:1/-1}}
+@media(max-width:640px){html{min-width:320px}body{display:flex;flex-direction:column}aside{padding:14px 16px;border:0;border-bottom:1px solid var(--line)}.brand{padding:0}.boundary{display:none}nav{display:flex;overflow-x:auto;margin-top:14px;padding-bottom:4px;gap:4px}nav button{white-space:nowrap;flex:0 0 auto;font-size:.82rem;padding:8px}header{padding:18px 16px;gap:14px}header>div:first-child{flex-basis:100%}.locale-controls{flex:1}.locale-controls label{flex:1}.locale-controls select{min-width:80px}.wallet-status{flex-basis:100%}main{padding:24px 16px 48px}.product-actions{align-items:stretch}.product-actions button,.product-actions .primary-link{flex:1;text-align:center}.metrics article{padding:16px}.metrics b{font-size:1.25rem}.callout,form,.table{padding:16px}.bar{align-items:flex-start}.row{grid-template-columns:minmax(0,1fr);gap:9px}.row-actions{grid-column:auto}.wallet-details dl div{grid-template-columns:minmax(0,1fr)}.wallet-choice{width:100%}pre{font-size:.78rem}}
+#signin{background:transparent;color:var(--blue);border-color:var(--line)}

@@ -112,6 +112,7 @@ func TestHealthFailsClosedWhenMediaDependenciesAreMissing(t *testing.T) {
 func TestPublicDiscoveryDoesNotRequireWalletButPrivateRoutesDo(t *testing.T) {
 	s, channel := fixture(t, nil)
 	video := upload(t, s, channel, "Public discovery")
+	approveTestPublication(t, s, channel.Owner, video.ID)
 	if err := s.Publish(channel.Owner, video.ID, VisibilityPublic); err != nil {
 		t.Fatal(err)
 	}
@@ -165,6 +166,7 @@ func TestWalletSessionCompletionUsesCanonicalGatewayWithoutOperatorCredential(t 
 func TestCommentRepliesStayBoundToPublishedVideo(t *testing.T) {
 	s, channel := fixture(t, nil)
 	video := upload(t, s, channel, "Reply thread")
+	approveTestPublication(t, s, channel.Owner, video.ID)
 	if err := s.Publish(channel.Owner, video.ID, VisibilityPublic); err != nil {
 		t.Fatal(err)
 	}
@@ -198,6 +200,7 @@ func TestPublishedMediaIsPublicButPrivateMediaIsNot(t *testing.T) {
 	if w := request(); w.Code != http.StatusForbidden {
 		t.Fatalf("private media leaked: %d", w.Code)
 	}
+	approveTestPublication(t, s, c.Owner, v.ID)
 	if err := s.Publish(c.Owner, v.ID, VisibilityPublic); err != nil {
 		t.Fatal(err)
 	}
@@ -227,6 +230,7 @@ func TestAIStreamEndpointEmitsReviewState(t *testing.T) {
 func TestWriteIdempotencyReplaysAfterRestartAndRejectsMutation(t *testing.T) {
 	s, channel := fixture(t, nil)
 	video := upload(t, s, channel, "Idempotency")
+	approveTestPublication(t, s, channel.Owner, video.ID)
 	if err := s.Publish(channel.Owner, video.ID, VisibilityPublic); err != nil {
 		t.Fatal(err)
 	}
@@ -328,6 +332,13 @@ func TestCreatorTeamAndRightsHTTPBoundaries(t *testing.T) {
 	}
 	if response := request(http.MethodPost, "/v1/rights/"+declaration.ID+"/review", "moderator-session", `{"accepted":true,"reason":"evidence verified"}`); response.Code != http.StatusOK {
 		t.Fatalf("moderator rights review failed: %d %s", response.Code, response.Body.String())
+	}
+	acceptRole(t, s, channel.Owner, channel.ID, testModeratorAccount, CreatorRoleModerator)
+	if response := request(http.MethodPost, "/v1/videos/"+video.ID+"/submit-review", "editor-session", ""); response.Code != http.StatusOK {
+		t.Fatalf("editor publication submission failed: %d %s", response.Code, response.Body.String())
+	}
+	if response := request(http.MethodPost, "/v1/videos/"+video.ID+"/review-publication", "moderator-session", `{"approved":true,"reason":"independent publication review"}`); response.Code != http.StatusOK {
+		t.Fatalf("moderator publication review failed: %d %s", response.Code, response.Body.String())
 	}
 	if response := request(http.MethodPost, "/v1/videos/"+video.ID+"/publish", "editor-session", `{"visibility":"public"}`); response.Code != http.StatusOK {
 		t.Fatalf("editor publish route failed: %d %s", response.Code, response.Body.String())

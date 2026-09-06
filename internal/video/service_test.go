@@ -160,6 +160,38 @@ func upload(t *testing.T, s *Service, c *Channel, title string) *Video {
 	return fresh
 }
 
+func approveTestPublication(t *testing.T, s *Service, actor, videoID string) {
+	t.Helper()
+	video, err := s.Video(actor, videoID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if video.WorkflowState == WorkflowApproved || video.WorkflowState == WorkflowPublished {
+		return
+	}
+	team, err := s.Team(video.Owner, video.ChannelID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hasModerator := false
+	for _, member := range team.Members {
+		if member.Account == testModeratorAccount && member.State == "active" && member.Role == CreatorRoleModerator {
+			hasModerator = true
+		}
+	}
+	if !hasModerator {
+		acceptRole(t, s, video.Owner, video.ChannelID, testModeratorAccount, CreatorRoleModerator)
+	}
+	if video.WorkflowState != WorkflowInReview {
+		if _, err := s.SubmitForReview(actor, videoID); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := s.ReviewPublication(testModeratorAccount, videoID, true, "independent test publication review"); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestUploadPublishMetricsAndRestart(t *testing.T) {
 	s, c := fixture(t, nil)
 	v := upload(t, s, c, "Test clip")
@@ -172,6 +204,7 @@ func TestUploadPublishMetricsAndRestart(t *testing.T) {
 	if v.Variants[1].Lineage != "original" || v.Variants[1].Bytes != v.Bytes || v.Variants[1].SHA256 != v.SHA256 || v.Variants[1].SourceObjectKey != "" || v.Variants[1].SourceSHA256 != "" {
 		t.Fatalf("original lineage metadata missing: %+v", v.Variants[1])
 	}
+	approveTestPublication(t, s, c.Owner, v.ID)
 	if err := s.Publish(c.Owner, v.ID, VisibilityPublic); err != nil {
 		t.Fatal(err)
 	}
@@ -234,6 +267,7 @@ func TestLegacyMediaVariantIntegrityBackfillsOnRestart(t *testing.T) {
 func TestMissingLegacyDerivativeFailsClosedOnRestart(t *testing.T) {
 	s, c := fixture(t, nil)
 	v := upload(t, s, c, "Missing derivative")
+	approveTestPublication(t, s, c.Owner, v.ID)
 	if err := s.Publish(c.Owner, v.ID, VisibilityPublic); err != nil {
 		t.Fatal(err)
 	}
@@ -341,6 +375,7 @@ func TestLegacyStateWithoutRightsPreservesIntegrityAndFailsClosed(t *testing.T) 
 func TestViewerPrivacyDeletionKeepsMinimalAudit(t *testing.T) {
 	s, c := fixture(t, nil)
 	v := upload(t, s, c, "Privacy")
+	approveTestPublication(t, s, c.Owner, v.ID)
 	if err := s.Publish(c.Owner, v.ID, VisibilityPublic); err != nil {
 		t.Fatal(err)
 	}
@@ -475,6 +510,7 @@ func TestAIStreamingPersistsBoundedPartialThenRequiresReview(t *testing.T) {
 func TestModerationAppealAIAndRevenueRequireHumanBoundaries(t *testing.T) {
 	s, c := fixture(t, nil)
 	v := upload(t, s, c, "Workflow")
+	approveTestPublication(t, s, c.Owner, v.ID)
 	if err := s.Publish(c.Owner, v.ID, VisibilityPublic); err != nil {
 		t.Fatal(err)
 	}
@@ -505,6 +541,7 @@ func TestModerationAppealAIAndRevenueRequireHumanBoundaries(t *testing.T) {
 	if err = s.ReviewAppeal("moderator", appeal.ID, true, "evidence accepted"); err != nil {
 		t.Fatal(err)
 	}
+	approveTestPublication(t, s, c.Owner, v.ID)
 	if err = s.Publish(c.Owner, v.ID, VisibilityPublic); err != nil {
 		t.Fatal(err)
 	}

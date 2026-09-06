@@ -426,6 +426,11 @@ func (s *Service) UpdateMetadata(actor, videoID, title, description string) erro
 		normalizeWorkflowState(v)
 		previous := v.WorkflowState
 		switch v.WorkflowState {
+		case WorkflowPublished:
+			v.Status = "ready"
+			v.Visibility = VisibilityPrivate
+			v.WorkflowState = WorkflowDraft
+			resetReview(v)
 		case WorkflowInReview, WorkflowApproved, WorkflowRejected, WorkflowScheduled, WorkflowUnpublished:
 			v.WorkflowState = WorkflowDraft
 			resetReview(v)
@@ -1429,6 +1434,20 @@ func (s *Service) Publish(actor, videoID string, visibility Visibility) error {
 			return errors.New("video is taken down")
 		}
 		now := s.cfg.Now().UTC()
+		previous := v.WorkflowState
+		if visibility == VisibilityPrivate {
+			v.Visibility = VisibilityPrivate
+			v.Status = "ready"
+			if previous == WorkflowPublished {
+				v.WorkflowState = WorkflowUnpublished
+			}
+			v.ScheduledAt = nil
+			v.ScheduledVisibility = ""
+			v.UpdatedAt = now
+			recordVideoVersion(v, actor, "visibility.private", previous, v.WorkflowState, now)
+			s.audit(st, actor, "video.visibility.private", "video", videoID, string(visibility))
+			return nil
+		}
 		if visibility != VisibilityPrivate {
 			if err := rightsAllowPublication(v.Rights, now); err != nil {
 				return err
@@ -1437,7 +1456,11 @@ func (s *Service) Publish(actor, videoID string, visibility Visibility) error {
 				return err
 			}
 		}
-		previous := v.WorkflowState
+		alreadyPublished := v.Status == "published" && v.WorkflowState == WorkflowPublished
+		if !alreadyPublished && (v.WorkflowState != WorkflowApproved || v.SubmittedBy == "" || v.ReviewedBy == "" ||
+			v.SubmittedBy == v.ReviewedBy || v.SubmittedAt == nil || v.ReviewedAt == nil || v.ReviewedAt.Before(*v.SubmittedAt)) {
+			return errors.New("independent publication approval is required before public or unlisted publication")
+		}
 		v.Visibility = visibility
 		v.Status = "published"
 		v.WorkflowState = WorkflowPublished
@@ -1447,8 +1470,13 @@ func (s *Service) Publish(actor, videoID string, visibility Visibility) error {
 		if visibility == VisibilityPublic && v.PublishedAt == nil {
 			v.PublishedAt = &now
 		}
-		recordVideoVersion(v, actor, "workflow.publish_immediate", previous, v.WorkflowState, now)
-		s.audit(st, actor, "video.publish.reviewed", "video", videoID, string(visibility))
+		if alreadyPublished {
+			recordVideoVersion(v, actor, "visibility.update", previous, v.WorkflowState, now)
+			s.audit(st, actor, "video.visibility.update", "video", videoID, string(visibility))
+		} else {
+			recordVideoVersion(v, actor, "workflow.publish_immediate", previous, v.WorkflowState, now)
+			s.audit(st, actor, "video.publish.reviewed", "video", videoID, string(visibility))
+		}
 		return nil
 	})
 }

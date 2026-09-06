@@ -1,0 +1,46 @@
+Sun Sep  6 04:15:19 UTC 2026
+077fe80ea9aab24a32d64ba1fab3584e8aab10304e200e58d976d2c33edfb39f  /etc/caddy/Caddyfile
+15a722a950e4ec07583da1affb938c08522b5565c8da29adf27afaccb2335867  /etc/caddy/ynx-chain.caddy
+MainPID=2109198
+ExecMainStartTimestamp=Sun 2026-09-06 11:38:04 CST
+Id=ynx-videod.service
+ActiveState=active
+
+MainPID=2106183
+ExecMainStartTimestamp=Sun 2026-09-06 11:32:50 CST
+Id=ynx-video-viewer.service
+ActiveState=active
+
+MainPID=2803386
+ExecMainStartTimestamp=Mon 2026-08-31 13:20:02 CST
+Id=ynx-creator-studio-wallet.service
+ActiveState=active
+{"level":"info","ts":1788668119.790975,"msg":"using provided configuration","config_file":"/etc/caddy/Caddyfile","config_adapter":"caddyfile"}
+{"level":"warn","ts":1788668119.8000116,"msg":"Caddyfile input is not formatted; run the 'caddy fmt' command to fix inconsistencies","adapter":"caddyfile","file":"/etc/caddy/Caddyfile","line":30}
+{"level":"info","ts":1788668119.8024855,"logger":"tls.cache.maintenance","msg":"started background certificate maintenance","cache":"0xc000256a10"}
+{"level":"info","ts":1788668119.802513,"logger":"http","msg":"server is listening only on the HTTPS port but has no TLS connection policies; adding one to enable TLS","server_name":"srv0","https_port":443}
+{"level":"info","ts":1788668119.8025632,"logger":"http","msg":"enabling automatic HTTP->HTTPS redirects","server_name":"srv0"}
+{"level":"warn","ts":1788668119.8025763,"logger":"http","msg":"server is listening only on the HTTP port, so no automatic HTTPS will be applied to this server","server_name":"srv1","http_port":80}
+Valid configuration
+{"level":"info","ts":1788668119.8078616,"logger":"tls.cache.maintenance","msg":"stopped background certificate maintenance","cache":"0xc000256a10"}
+active
+Sun Sep  6 04:15:19 UTC 2026
+077fe80ea9aab24a32d64ba1fab3584e8aab10304e200e58d976d2c33edfb39f  /etc/caddy/Caddyfile
+15a722a950e4ec07583da1affb938c08522b5565c8da29adf27afaccb2335867  /etc/caddy/ynx-chain.caddy
+MainPID=2109198
+ExecMainStartTimestamp=Sun 2026-09-06 11:38:04 CST
+Id=ynx-videod.service
+ActiveState=active
+
+MainPID=2106183
+ExecMainStartTimestamp=Sun 2026-09-06 11:32:50 CST
+Id=ynx-video-viewer.service
+ActiveState=active
+
+MainPID=2803386
+ExecMainStartTimestamp=Mon 2026-08-31 13:20:02 CST
+Id=ynx-creator-studio-wallet.service
+ActiveState=active
+9f38811c6b027f8713613d94607e8225da034578d35d897c2533215c7472f3fa  /etc/caddy/conf.d/ynx-video-products-20260906.caddy
+644 root root /etc/caddy/conf.d/ynx-video-products-20260906.caddy
+PRODUCT_DOMAIN_ROUTES_INSTALLED=true

@@ -59,6 +59,7 @@ func TestCreatorTeamRBACAndImmediateRevocation(t *testing.T) {
 	if err != nil || declaration.DeclaredBy != testEditorAccount {
 		t.Fatalf("editor rights declaration failed: %+v %v", declaration, err)
 	}
+	approveTestPublication(t, s, testEditorAccount, video.ID)
 	if err = s.Publish(testEditorAccount, video.ID, VisibilityPublic); err != nil {
 		t.Fatalf("editor publish failed: %v", err)
 	}
@@ -155,6 +156,7 @@ func TestCreatorRightsFailClosedAndCommercialVerification(t *testing.T) {
 		t.Fatal("incomplete license or contributor split accepted")
 	}
 	declaration := declareTestRights(t, s, channel.Owner, video)
+	approveTestPublication(t, s, channel.Owner, video.ID)
 	if err := s.Publish(channel.Owner, video.ID, VisibilityPublic); err != nil {
 		t.Fatal(err)
 	}
@@ -224,6 +226,7 @@ func TestRightsExpiryAndRejectedReviewRemoveAudienceAccess(t *testing.T) {
 	if _, err = s.ReviewRights(channel.Owner, declaration.ID, true, "self review"); err == nil || !strings.Contains(err.Error(), "independent") {
 		t.Fatalf("creator self-verified rights: %v", err)
 	}
+	approveTestPublication(t, s, channel.Owner, video.ID)
 	if err = s.Publish(channel.Owner, video.ID, VisibilityPublic); err != nil {
 		t.Fatal(err)
 	}
@@ -246,6 +249,7 @@ func TestRightsExpiryAndRejectedReviewRemoveAudienceAccess(t *testing.T) {
 	}
 
 	replacement := declareTestRights(t, s, channel.Owner, video)
+	approveTestPublication(t, s, channel.Owner, video.ID)
 	if err = s.Publish(channel.Owner, video.ID, VisibilityPublic); err != nil {
 		t.Fatal(err)
 	}

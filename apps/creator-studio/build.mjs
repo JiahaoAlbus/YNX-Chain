@@ -14,6 +14,12 @@ const upstreamCatalog = Object.freeze({
 });
 const runtimeFiles = Object.freeze([
   "app.js",
+  "product-session.js",
+  "product-session-sdk.js",
+  "product-session-registry.json",
+  "product-session-sdk-source.json",
+  "wallet-callback.js",
+  "callback.css",
   "enhancements.css",
   "i18n.js",
   "index.html",

@@ -140,3 +140,109 @@ func TestPublicationReviewRejectRequiresReasonAndCanResubmit(t *testing.T) {
 		t.Fatalf("rejected content could not be resubmitted: %v", err)
 	}
 }
+
+func TestImmediatePublicationRequiresApprovedIndependentReview(t *testing.T) {
+	for _, visibility := range []Visibility{VisibilityPublic, VisibilityUnlisted} {
+		for _, state := range []string{"draft", "rejected", "edited-approved"} {
+			t.Run(string(visibility)+"/"+state, func(t *testing.T) {
+				s, channel := fixture(t, nil)
+				video := upload(t, s, channel, "Review required")
+				acceptRole(t, s, channel.Owner, channel.ID, testModeratorAccount, CreatorRoleModerator)
+				if state == "rejected" {
+					if _, err := s.SubmitForReview(channel.Owner, video.ID); err != nil {
+						t.Fatal(err)
+					}
+					if _, err := s.ReviewPublication(testModeratorAccount, video.ID, false, "correction required"); err != nil {
+						t.Fatal(err)
+					}
+				}
+				if state == "edited-approved" {
+					approveTestPublication(t, s, channel.Owner, video.ID)
+					if err := s.UpdateMetadata(channel.Owner, video.ID, "Changed after review", "new description"); err != nil {
+						t.Fatal(err)
+					}
+				}
+				if err := s.Publish(channel.Owner, video.ID, visibility); err == nil || !strings.Contains(err.Error(), "independent publication approval") {
+					t.Fatalf("%s bypassed review: %v", state, err)
+				}
+				if _, err := s.Video("", video.ID); !errors.Is(err, ErrForbidden) {
+					t.Fatalf("unreviewed video became anonymously visible: %v", err)
+				}
+				approveTestPublication(t, s, channel.Owner, video.ID)
+				if err := s.Publish(channel.Owner, video.ID, visibility); err != nil {
+					t.Fatalf("valid independent review did not permit publication: %v", err)
+				}
+			})
+		}
+	}
+}
+
+func TestPublishedVisibilityChangeAndMetadataReviewInvalidation(t *testing.T) {
+	s, channel := fixture(t, nil)
+	video := upload(t, s, channel, "Initially reviewed")
+	approveTestPublication(t, s, channel.Owner, video.ID)
+	if err := s.Publish(channel.Owner, video.ID, VisibilityPublic); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Publish(channel.Owner, video.ID, VisibilityUnlisted); err != nil {
+		t.Fatalf("reviewed publication visibility change failed: %v", err)
+	}
+	current, err := s.Video(channel.Owner, video.ID)
+	if err != nil || current.Versions[len(current.Versions)-1].Kind != "visibility.update" {
+		t.Fatalf("visibility update claimed another review: %+v %v", current, err)
+	}
+	if err := s.UpdateMetadata(channel.Owner, video.ID, "Unreviewed new title", "changed public content"); err != nil {
+		t.Fatal(err)
+	}
+	current, err = s.Video(channel.Owner, video.ID)
+	if err != nil || current.WorkflowState != WorkflowDraft || current.Status != "ready" || current.Visibility != VisibilityPrivate || current.ReviewedBy != "" {
+		t.Fatalf("published metadata edit retained old authority: %+v %v", current, err)
+	}
+	if _, err := s.Video("", video.ID); !errors.Is(err, ErrForbidden) {
+		t.Fatalf("unreviewed edited metadata remained public: %v", err)
+	}
+	if err := s.Publish(channel.Owner, video.ID, VisibilityPublic); err == nil {
+		t.Fatal("edited published video reused stale approval")
+	}
+	approveTestPublication(t, s, channel.Owner, video.ID)
+	if err := s.Publish(channel.Owner, video.ID, VisibilityPublic); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func TestPrivateVisibilityDoesNotForgePublicationApproval(t *testing.T) {
+	s, channel := fixture(t, nil)
+	video := upload(t, s, channel, "Private draft")
+	if err := s.Publish(channel.Owner, video.ID, VisibilityPrivate); err != nil {
+		t.Fatal(err)
+	}
+	current, err := s.Video(channel.Owner, video.ID)
+	if err != nil || current.WorkflowState != WorkflowDraft || current.Status != "ready" || current.PublishedAt != nil || current.ReviewedBy != "" ||
+		current.Versions[len(current.Versions)-1].Kind != "visibility.private" {
+		t.Fatalf("private draft forged publication: %+v %v", current, err)
+	}
+	if err := s.store.read(func(st State) error {
+		for _, event := range st.Audit {
+			if event.ObjectID == video.ID && event.Action == "video.publish.reviewed" {
+				t.Fatal("private visibility emitted a reviewed-publication audit event")
+			}
+		}
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	approveTestPublication(t, s, channel.Owner, video.ID)
+	if err := s.Publish(channel.Owner, video.ID, VisibilityPublic); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Publish(channel.Owner, video.ID, VisibilityPrivate); err != nil {
+		t.Fatal(err)
+	}
+	current, err = s.Video(channel.Owner, video.ID)
+	if err != nil || current.WorkflowState != WorkflowUnpublished || current.Status != "ready" {
+		t.Fatalf("private visibility did not unpublish prior content: %+v %v", current, err)
+	}
+	if err := s.Publish(channel.Owner, video.ID, VisibilityPublic); err == nil {
+		t.Fatal("private content was republished without renewed review")
+	}
+}
