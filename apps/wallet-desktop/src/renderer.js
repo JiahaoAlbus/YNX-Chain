@@ -146,6 +146,8 @@ function renderAccount(payload) {
   const status = payload?.ok === true ? payload.value : payload;
   const previousAccount = activeAccount;
   activeAccount = status?.account ?? null;
+  if (previousAccount !== activeAccount) document.querySelector("#transaction-resolution-result").textContent = "";
+  void refreshTransactions();
   document.querySelector("#assets").hidden = !status?.initialized;
   document.querySelector("#backup-section").hidden = !status?.initialized;
   if (!status?.initialized) setView("accounts");
@@ -319,7 +321,7 @@ async function providerAction(action) {
     const result = await window.ynxWallet.providerAction(item.review.id, action);
     walletConnectDetail.textContent = result.ok ? (result.value?.responseDelivered === false ? "Wallet locked before the response could be delivered. Check the app and any submitted transaction before trying again." : result.value?.status === "success" ? "Your response was delivered to the app." : result.value?.message ?? "Request declined.") : errorText(result);
   } catch { walletConnectDetail.textContent = "The response was interrupted. Check the app before requesting another signature."; }
-  finally { approvalQueue.finish(item.key); }
+  finally { approvalQueue.finish(item.key); void refreshTransactions(); }
 }
 document.querySelector("#reject-provider").addEventListener("click", () => providerAction("reject"));
 document.querySelector("#approve-provider").addEventListener("click", () => providerAction("approve"));
@@ -329,6 +331,41 @@ let transferReview = null;
 let transferInFlight = false;
 let balanceRevision = 0;
 const errorText = result => result?.error?.outcomeUnknown ? `${result.error.message}${result.error.transactionHash ? ` Transaction hash: ${result.error.transactionHash}.` : ""}` : result?.error?.message ?? "The wallet is unavailable. Try again shortly.";
+let transactionRevision = 0;
+async function refreshTransactions() {
+  if (!window.ynxWallet.pendingTransactions) return;
+  const revision = ++transactionRevision, account = activeAccount;
+  const panel = document.querySelector("#transaction-resolution"), list = document.querySelector("#pending-transactions");
+  try {
+    const result = await window.ynxWallet.pendingTransactions();
+    if (revision !== transactionRevision || account !== activeAccount) return;
+    list.replaceChildren(); panel.hidden = result.ok && result.value.length === 0 && !document.querySelector("#transaction-resolution-result").textContent;
+    if (!result.ok) { document.querySelector("#transaction-resolution-result").textContent = errorText(result); return; }
+    for (const record of result.value) {
+      const row = document.createElement("div"), description = document.createElement("p");
+      description.textContent = `${record.amount} YNXT to ${record.to} · ${record.hash}`; row.append(description);
+      for (const retry of [false, ...(record.canRetryExact ? [true] : [])]) {
+        const button = document.createElement("button"); button.type = "button";
+        button.textContent = retry ? "Retry identical signed transaction" : "Check receipt";
+        button.disabled = retry && keyState.locked;
+        if (retry) button.dataset.retryTransaction = "true";
+        button.addEventListener("click", async () => {
+          button.disabled = true;
+          try {
+            const response = await (retry ? window.ynxWallet.retryTransaction(record.hash) : window.ynxWallet.transactionStatus(record.hash));
+            if (account !== activeAccount) return;
+            document.querySelector("#transaction-resolution-result").textContent = !response.ok ? errorText(response) : response.value.confirmed ? `Transaction ${response.value.successful ? "confirmed" : "failed on chain"}. Actual fee: ${response.value.actualFee} YNXT.` : "No confirmed receipt yet. This account remains blocked from creating a new transfer.";
+            if (response.ok && response.value.confirmed) void refreshAssets();
+          } catch { if (account === activeAccount) document.querySelector("#transaction-resolution-result").textContent = "The transaction outcome could not be checked. Keep its hash and try checking again."; }
+          finally { void refreshTransactions(); }
+        });
+        row.append(button);
+      }
+      if (!record.canRetryExact) { const note = document.createElement("p"); note.textContent = "The original signed bytes are not available in this session. Check the saved hash; do not recreate the transaction."; row.append(note); }
+      list.append(row);
+    }
+  } catch { if (revision === transactionRevision) { panel.hidden = false; document.querySelector("#transaction-resolution-result").textContent = "The local transaction journal is unavailable. New transfers remain blocked."; } }
+}
 async function refreshAssets() {
   const revision = ++balanceRevision;
   document.querySelector("#balance-value").textContent = "—";
@@ -341,7 +378,7 @@ async function refreshAssets() {
     if (result.value.account !== activeAccount) return;
     document.querySelector("#balance-value").textContent = result.value.formatted;
     document.querySelector("#asset-balance").textContent = `${result.value.formatted} YNXT`;
-    document.querySelector("#balance-status").textContent = `YNX Testnet · Updated ${new Date(result.value.checkedAt).toLocaleTimeString()}`;
+    document.querySelector("#balance-status").textContent = result.value.transferEnabled === false ? "Legacy whole-YNXT balance verified. Ethereum transfers are not enabled on this network." : `YNX Testnet · Updated ${new Date(result.value.checkedAt).toLocaleTimeString()}`;
   } catch { if (revision === balanceRevision) document.querySelector("#balance-status").textContent = "Balance unavailable. Try refreshing."; }
 }
 document.querySelector("#refresh-balance").addEventListener("click", refreshAssets);
@@ -408,7 +445,7 @@ document.querySelector("#transfer-form").addEventListener("submit", async event 
     if (result.value.account !== activeAccount) { output.textContent = "Account changed. Review again."; return; }
     transferReview = result.value;
     const summary = document.querySelector("#transfer-summary"); summary.replaceChildren();
-    for (const [label, value] of [["From", transferReview.account], ["To", transferReview.to], ["Amount", `${transferReview.amount} YNXT`], ["Maximum fee", `${transferReview.maximumFee} YNXT`], ["Maximum total", `${transferReview.total} YNXT`], ["Network", "YNX Testnet · 6423"]]) {
+    for (const [label, value] of [["From", transferReview.account], ["To", transferReview.to], ["Amount", `${transferReview.amount} YNXT`], ...(transferReview.actualFee ? [["Native transfer fee", `${transferReview.actualFee} YNXT`]] : []), ["Maximum fee budget", `${transferReview.maximumFee} YNXT`], ["Maximum total budget", `${transferReview.total} YNXT`], ...(transferReview.feeExplanation ? [["Fee and budget", transferReview.feeExplanation]] : []), ["Network", "YNX Testnet · 6423"]]) {
       const term = document.createElement("dt"), description = document.createElement("dd"); term.textContent = label; description.textContent = value; summary.append(term, description);
     }
     document.querySelector("#transfer-transaction").textContent = formatApprovalReview(transferReview.transaction ?? {});
@@ -435,6 +472,7 @@ async function actOnTransfer(action) {
   } catch { output.textContent = "The response was interrupted. Check the network before trying another transfer."; }
   finally {
     transferInFlight = false;
+    void refreshTransactions();
     if (keyState.revision === revision) {
       document.querySelector("#transfer-review").close(); document.querySelector("#transfer-review").hidden = true;
       document.querySelector("#confirm-transfer").disabled = keyState.locked;
@@ -484,6 +522,7 @@ function renderKeyState(state) {
   document.querySelector("#lock-wallet").disabled = state.locked && !state.authenticating;
   signingShort.textContent = state.locked ? "Locked" : "Approval required";
   for (const element of document.querySelectorAll("#create-account,#add-account,#open-send,#prepare-transfer,#confirm-transfer,#account-list button,#import-form input,#import-form select,#import-form button,#backup-form input,#backup-form button")) element.disabled = state.locked || element.dataset.account === activeAccount;
+  for (const button of document.querySelectorAll("[data-retry-transaction]")) button.disabled = state.locked;
   if (state.locked) {
     if (invalidated) { approvalQueue.clear(); authorizationChoices.clear(); transferReview = null; }
     for (const field of document.querySelectorAll('input[type="password"],input[type="file"]')) field.value = "";

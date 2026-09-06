@@ -1,3 +1,5 @@
+import { FixtureIntentStore } from "./fixture-intent-store.mjs";
+import { fixtureEVMCapabilities } from "./fixture-evm-capabilities.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
@@ -113,7 +115,7 @@ test("permission grant interrupted by lock is not kept as a newly approved origi
 for (const point of ["before-sign", "before-broadcast"]) test(`transaction ${point} cancellation uses the same key lease and sends nothing`, async () => {
   const life = policy(); await life.unlock();
   const wallet = new Wallet(`0x${SECRET}`), entered = deferred(), gate = deferred(), calls = [];
-  const sender = new CanonicalTransactionSender({ network: { verifyChain: async () => {} } });
+  const sender = new CanonicalTransactionSender({ intentStore: new FixtureIntentStore(), network: { verifyChain: async () => {}, capabilities: async () => fixtureEVMCapabilities } });
   sender.provider.send = async method => { calls.push(method); return { eth_getTransactionCount: "0x0", eth_gasPrice: "0x1", eth_estimateGas: "0x5208", eth_getBalance: "0xffffffffffffffff" }[method]; };
   const transaction = await sender.prepare(wallet.address.toLowerCase(), { from: wallet.address.toLowerCase(), to: `0x${"22".repeat(20)}`, value: "0x1" });
   let signs = 0;
@@ -150,7 +152,7 @@ test("a signer finishing after cancellation cannot initiate final delivery", asy
 
 test("broadcast ACK after lock retains the real hash and blocks any subsequent DApp delivery", async () => {
   const life = policy(); await life.unlock(); const wallet = new Wallet(`0x${SECRET}`), calls = [];
-  const sender = new CanonicalTransactionSender({ network: { verifyChain: async () => {} } });
+  const sender = new CanonicalTransactionSender({ intentStore: new FixtureIntentStore(), network: { verifyChain: async () => {}, capabilities: async () => fixtureEVMCapabilities } });
   sender.provider.send = async (method, params) => {
     calls.push(method);
     if (method === "eth_sendRawTransaction") { life.lock(); return (await import("ethers")).Transaction.from(params[0]).hash; }
@@ -169,7 +171,7 @@ test("broadcast ACK after lock retains the real hash and blocks any subsequent D
 
 test("broadcast lost ACK is explicitly uncertain and retains the independently computable transaction hash", async () => {
   const life = policy(); await life.unlock(); const wallet = new Wallet(`0x${SECRET}`);
-  const sender = new CanonicalTransactionSender({ network: { verifyChain: async () => {} } });
+  const sender = new CanonicalTransactionSender({ intentStore: new FixtureIntentStore(), network: { verifyChain: async () => {}, capabilities: async () => fixtureEVMCapabilities } });
   sender.provider.send = async method => {
     if (method === "eth_sendRawTransaction") throw new Error("fixture lost ACK");
     return { eth_getTransactionCount: "0x0", eth_gasPrice: "0x1", eth_estimateGas: "0x5208", eth_getBalance: "0xffffffffffffffff" }[method];

@@ -86,7 +86,8 @@ export class DesktopWalletAuthority {
       if (!(await this.permissions.hasAccount(origin, status.account))) throw providerError(4100, "ACCOUNT_PERMISSION_REVOKED", "The DApp account permission was revoked while preparing the transaction");
       const maximumFee = BigInt(snapshot.gasLimit) * BigInt(snapshot.gasPrice ?? snapshot.maxFeePerGas);
       normalized.params = [snapshot];
-      normalized.review = { title: "Send transaction", account: status.account, ...snapshot, amount: formatEther(snapshot.value), maximumFee: formatEther(maximumFee), total: formatEther(BigInt(snapshot.value) + maximumFee), symbol: "YNXT", warning: "This exact transaction will be signed and broadcast. Contract calls may transfer assets or grant permissions beyond the displayed native amount." };
+      const fees = this.transactionSender.reviewDetails?.(snapshot);
+      normalized.review = { title: "Send transaction", account: status.account, ...snapshot, amount: formatEther(snapshot.value), ...fees, maximumFee: formatEther(maximumFee), total: formatEther(BigInt(snapshot.value) + maximumFee), symbol: "YNXT", warning: fees?.fullEVM === false ? "This network currently supports whole-YNXT plain transfers only. It does not execute general Ethereum contracts." : "This exact transaction will be signed and broadcast. Contract calls may transfer assets or grant permissions beyond the displayed native amount." };
     }
     this.#pruneExpired();
     if (this.pending.size >= MAX_PENDING_REQUESTS || [...this.pending.values()].filter(item => item.origin === origin).length >= MAX_PENDING_REQUESTS_PER_ORIGIN) {

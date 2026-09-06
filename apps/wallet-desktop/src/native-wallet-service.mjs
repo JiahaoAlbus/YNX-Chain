@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto";
 import { Wallet, formatEther, getAddress, parseEther, toQuantity } from "ethers";
 import { CANONICAL_RPC_URL } from "./rpc.mjs";
 import { providerError } from "./desktop-wallet-vault.mjs";
+import { assertSameCapabilities, capabilityError, parseFeeModel, requireTransactionCapabilities } from "./rpc-capabilities.mjs";
+import { rpcResponseError } from "./rpc-errors.mjs";
 
 const CHAIN_ID = "0x1917";
 const REVIEW_TTL = 120_000;
@@ -14,13 +16,13 @@ export class CanonicalAccountNetwork {
       const response = await this.fetchImpl(CANONICAL_RPC_URL, {
         method: "POST", headers: { "content-type": "application/json" },
         body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
-        signal: AbortSignal.timeout(10_000)
+        redirect: "error", signal: AbortSignal.timeout(10_000)
       });
-      if (!response.ok) throw providerError(4900, "RPC_UNAVAILABLE", "YNX Testnet is unavailable. Try again shortly.");
       const payload = await response.json();
       if (payload?.jsonrpc !== "2.0" || payload.id !== 1) throw providerError(4900, "RPC_INVALID_RESPONSE", "YNX Testnet returned an invalid response");
-      if (payload.error?.code === -32601 && ["eth_gasPrice", "eth_estimateGas"].includes(method)) throw providerError(4900, "RPC_FEE_UNAVAILABLE", "YNX Testnet cannot provide a network fee right now. Your funds have not moved.");
-      if (payload.error || !("result" in payload)) throw providerError(4900, "RPC_INVALID_RESPONSE", "YNX Testnet returned an invalid response");
+      if (payload.error) throw rpcResponseError(payload.error);
+      if (!response.ok) throw providerError(4900, "RPC_UNAVAILABLE", "YNX Testnet is unavailable. Try again shortly.");
+      if (!("result" in payload)) throw providerError(4900, "RPC_INVALID_RESPONSE", "YNX Testnet returned an invalid response");
       return payload.result;
     } catch (error) {
       if (error?.data?.code) throw error;
@@ -32,15 +34,35 @@ export class CanonicalAccountNetwork {
     if (await this.request("eth_chainId") !== CHAIN_ID) throw providerError(4901, "RPC_CHAIN_MISMATCH", "The network is not YNX Testnet. No transaction was signed.");
   }
   async balance(account) {
+    const snapshot = await this.balanceSnapshot(account);
+    requireTransactionCapabilities(snapshot.capabilities);
+    return snapshot.raw;
+  }
+  async capabilities() {
+    try { return parseFeeModel(await this.request("ynx_getFeeModel")); }
+    catch (error) {
+      if (error?.data?.rpcCode === -32601) throw capabilityError("RPC_CAPABILITIES_UNKNOWN", "The network does not expose its amount units. Balance conversion and Ethereum transactions are unavailable until its capabilities can be verified.");
+      throw error;
+    }
+  }
+  async balanceSnapshot(account) {
     await this.verifyChain();
+    const capabilities = await this.capabilities();
     const value = await this.request("eth_getBalance", [getAddress(account).toLowerCase(), "latest"]);
     if (!quantity(value)) throw providerError(4900, "RPC_INVALID_BALANCE", "The network returned an invalid balance");
-    return value;
+    assertSameCapabilities(capabilities, await this.capabilities());
+    return { raw: value, unit: capabilities.unit, formatted: capabilities.unit === "wei" ? formatEther(value) : BigInt(value).toString(), capabilities };
   }
   async estimate(transaction) {
     await this.verifyChain();
-    const [gas, gasPrice] = await Promise.all([this.request("eth_estimateGas", [transaction]), this.request("eth_gasPrice")]);
+    const capabilities = await this.capabilities();
+    requireTransactionCapabilities(capabilities);
+    let gas, gasPrice;
+    try { [gas, gasPrice] = await Promise.all([this.request("eth_estimateGas", [transaction]), this.request("eth_gasPrice")]); }
+    catch (error) { if (error?.data?.rpcCode === -32601) throw capabilityError("RPC_FEE_UNAVAILABLE", "The network fee methods are unavailable. Nothing was signed."); throw error; }
     if (!quantity(gas) || !quantity(gasPrice) || BigInt(gas) < 21_000n || BigInt(gasPrice) <= 0n) throw providerError(4900, "RPC_INVALID_FEE", "The network could not estimate a valid transaction fee");
+    assertSameCapabilities(capabilities, await this.capabilities());
+    if (!capabilities.fullEVM && (gas !== capabilities.gas || gasPrice !== capabilities.gasPrice)) throw capabilityError("RPC_FIXED_FEE_MISMATCH", "The network fee differs from its verified native-transfer model.");
     return { gasLimit: toQuantity((BigInt(gas) * 120n + 99n) / 100n), gasPrice };
   }
 }
@@ -54,8 +76,8 @@ export class NativeWalletService {
   async balance() {
     const status = await this.vault.status();
     if (!status.initialized) throw providerError(4100, "ACCOUNT_NOT_CREATED", "Create or import an account first");
-    const wei = await this.network.balance(status.account);
-    return { account: status.account, wei, formatted: formatEther(wei), symbol: "YNXT", chainId: CHAIN_ID, checkedAt: new Date(this.clock()).toISOString() };
+    const snapshot = await this.network.balanceSnapshot(status.account);
+    return { account: status.account, raw: snapshot.raw, wei: snapshot.unit === "wei" ? snapshot.raw : null, unit: snapshot.unit, formatted: snapshot.formatted, transferEnabled: snapshot.capabilities.enabled, capabilityVersion: snapshot.capabilities.version, symbol: "YNXT", chainId: CHAIN_ID, checkedAt: new Date(this.clock()).toISOString() };
   }
   async prepareTransfer({ to, amount } = {}) {
     this.pending.clear();
@@ -69,6 +91,12 @@ export class NativeWalletService {
     const status = await this.vault.status();
     if (!status.initialized) throw providerError(4100, "ACCOUNT_NOT_CREATED", "Create or import an account first");
     const tx = { from: status.account, to: recipient, value: toQuantity(value), chainId: CHAIN_ID };
+    const capabilities = await this.network.capabilities();
+    requireTransactionCapabilities(capabilities);
+    // This UI creates a fresh plain transfer. A verified fixed-fee adapter
+    // needs its exact gas quote, not execution-estimation headroom. Existing
+    // caller-supplied transaction snapshots and budgets are never rewritten.
+    if (!capabilities.fullEVM) tx.gas = capabilities.gas;
     const balance = BigInt(await this.network.balance(status.account));
     if (balance < value) throw providerError(-32000, "INSUFFICIENT_FUNDS", "Insufficient YNXT for this amount. Add Testnet funds before sending.");
     if (typeof this.sender?.prepare !== "function") throw providerError(4200, "TRANSACTION_TRANSPORT_UNAVAILABLE", "Canonical transaction preparation is unavailable");
@@ -81,7 +109,7 @@ export class NativeWalletService {
     const record = Object.freeze({ id, account: status.account, transaction: snapshot, createdAt });
     this.pending.clear();
     this.pending.set(id, record);
-    return { id, account: status.account, to: recipient, amount: formatEther(value), maximumFee: formatEther(maximumFee), total: formatEther(value + maximumFee), symbol: "YNXT", chainId: CHAIN_ID, transaction: snapshot, expiresAt: new Date(createdAt + REVIEW_TTL).toISOString() };
+    return { id, account: status.account, to: recipient, amount: formatEther(value), ...this.sender.reviewDetails?.(snapshot), maximumFee: formatEther(maximumFee), total: formatEther(value + maximumFee), symbol: "YNXT", chainId: CHAIN_ID, transaction: snapshot, expiresAt: new Date(createdAt + REVIEW_TTL).toISOString() };
   }
   async transferAction(id, action) {
     if (!["approve", "reject"].includes(action)) throw providerError(-32602, "INVALID_TRANSFER_ACTION", "Choose approve or reject");

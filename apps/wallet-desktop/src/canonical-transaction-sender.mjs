@@ -1,18 +1,26 @@
 import { JsonRpcProvider, Transaction, accessListify, getAddress, toQuantity } from "ethers";
 import { CANONICAL_RPC_URL } from "./rpc.mjs";
 import { CanonicalAccountNetwork } from "./native-wallet-service.mjs";
+import { assertSameCapabilities, capabilityError, feeReview, validateTransactionCapabilities } from "./rpc-capabilities.mjs";
+import { rpcResponseError } from "./rpc-errors.mjs";
+import { TransactionSubmissions } from "./transaction-submissions.mjs";
 
 export class CanonicalTransactionSender {
   #prepared = new WeakSet();
-  constructor({ rpcUrl = CANONICAL_RPC_URL, network, fetchImpl = globalThis.fetch } = {}) {
+  #quotes = new WeakMap();
+  constructor({ rpcUrl = CANONICAL_RPC_URL, network, fetchImpl = globalThis.fetch, intentStore } = {}) {
     if (rpcUrl !== CANONICAL_RPC_URL) throw Object.assign(new Error("Only the frozen canonical RPC is accepted"), { code: "RPC_ENDPOINT_REJECTED" });
     this.provider = new CanonicalJsonRpcProvider(fetchImpl);
     this.network = network ?? new CanonicalAccountNetwork({ fetchImpl });
+    this.submissions = new TransactionSubmissions({ provider: this.provider, capabilities: () => this.#capabilities(), verifyChain: () => this.network.verifyChain(), intentStore });
   }
   async prepare(account, input) {
     try {
       const transaction = normalizeTransaction(account, input);
+      await this.submissions.assertResolved(transaction.from);
       await this.network.verifyChain();
+      const capabilities = await this.#capabilities();
+      validateTransactionCapabilities(transaction, capabilities);
       const nonce = rpcQuantity(await this.provider.send("eth_getTransactionCount", [transaction.from, "pending"]), "nonce");
       if (transaction.nonce !== undefined && transaction.nonce !== nonce) fail("TRANSACTION_NONCE_CHANGED", "The requested nonce differs from the account's pending nonce. Request a new review.");
       transaction.nonce = nonce;
@@ -33,14 +41,27 @@ export class CanonicalTransactionSender {
       if (estimate < 21_000n) fail("INVALID_TRANSACTION_GAS", "The network returned an invalid gas estimate");
       if (transaction.gasLimit !== undefined && BigInt(transaction.gasLimit) < estimate) fail("INVALID_TRANSACTION_GAS", "The requested gas limit is below the network estimate");
       transaction.gasLimit ??= toQuantity((estimate * 120n + 99n) / 100n);
+      validateTransactionCapabilities(transaction, capabilities);
+      if (!capabilities.fullEVM && estimate !== BigInt(capabilities.gas)) fail("RPC_FIXED_FEE_MISMATCH", "The network estimate differs from the verified fixed native-transfer fee model.");
       const balance = BigInt(rpcQuantity(await this.provider.send("eth_getBalance", [transaction.from, "pending"]), "balance"));
       if (balance < BigInt(transaction.value) + BigInt(transaction.gasLimit) * BigInt(transaction.gasPrice ?? transaction.maxFeePerGas)) fail("INSUFFICIENT_FUNDS", "Insufficient YNXT to cover this transaction and its maximum network fee");
       // Validate serialization before showing approval; no key is needed for this check.
       Transaction.from(signingFields(transaction)).unsignedSerialized;
+      assertSameCapabilities(capabilities, await this.#capabilities());
       const snapshot = deepFreeze(transaction);
       this.#prepared.add(snapshot);
+      this.#quotes.set(snapshot, capabilities);
       return snapshot;
     } catch (error) { throw normalizeFailure(error, "TRANSACTION_PREPARATION_FAILED", "The network could not prepare a complete transaction for review. Nothing was signed."); }
+  }
+  async #capabilities() {
+    if (typeof this.network.capabilities !== "function") throw capabilityError("RPC_CAPABILITIES_UNKNOWN", "No verified amount-unit and transaction capability provider is available.");
+    return this.network.capabilities();
+  }
+  reviewDetails(transaction) {
+    const capabilities = this.#quotes.get(transaction);
+    if (!capabilities) throw capabilityError("UNREVIEWED_TRANSACTION", "The transaction has no verified fee review.");
+    return feeReview(capabilities, transaction);
   }
   async send(wallet, transaction, guard) {
     try {
@@ -48,9 +69,15 @@ export class CanonicalTransactionSender {
       if (!transaction || !this.#prepared.has(transaction)) fail("UNREVIEWED_TRANSACTION", "Prepare and review a complete transaction before signing");
       this.#prepared.delete(transaction);
       if (wallet.address?.toLowerCase() !== transaction.from) fail("ACCOUNT_CHANGED", "The selected account changed. Review the transaction again.");
+      await this.submissions.assertResolved(transaction.from);
+      guard?.assert();
       await this.network.verifyChain();
       guard?.assert();
+      assertSameCapabilities(this.#quotes.get(transaction), await this.#capabilities());
+      guard?.assert();
       const nonce = rpcQuantity(await this.provider.send("eth_getTransactionCount", [transaction.from, "pending"]), "nonce");
+      guard?.assert();
+      assertSameCapabilities(this.#quotes.get(transaction), await this.#capabilities());
       guard?.assert();
       if (nonce !== transaction.nonce) fail("TRANSACTION_NONCE_CHANGED", "The account nonce changed after review. Prepare the transaction again.");
       const fields = signingFields(transaction), expectedUnsigned = Transaction.from(fields).unsignedSerialized;
@@ -58,19 +85,12 @@ export class CanonicalTransactionSender {
       guard?.assert();
       const signed = await wallet.signTransaction(fields);
       guard?.assert();
+      assertSameCapabilities(this.#quotes.get(transaction), await this.#capabilities());
+      guard?.assert();
       const decoded = Transaction.from(signed);
       if (decoded.unsignedSerialized !== expectedUnsigned || decoded.from?.toLowerCase() !== transaction.from) fail("TRANSACTION_SNAPSHOT_MISMATCH", "Signed transaction does not match the approved snapshot");
       guard?.assert();
-      const broadcast = async () => {
-        const hash = await this.provider.send("eth_sendRawTransaction", [signed]);
-        if (typeof hash !== "string" || !/^0x[0-9a-f]{64}$/i.test(hash) || hash.toLowerCase() !== decoded.hash) fail("TRANSACTION_HASH_MISMATCH", "The network returned a hash that does not match the signed transaction");
-        return hash.toLowerCase();
-      };
-      try { return guard?.submit ? await guard.submit(broadcast) : await broadcast(); }
-      catch (error) {
-        if (error?.data?.outcomeUnknown) error.data = { ...error.data, transactionHash: decoded.hash };
-        throw error;
-      }
+      return await this.submissions.submit(signed, transaction, this.#quotes.get(transaction), guard);
     } catch (error) {
       throw normalizeFailure(error, "TRANSACTION_SUBMISSION_FAILED", "Canonical YNX Testnet transaction submission failed closed");
     }
@@ -109,7 +129,7 @@ function normalizeFailure(error, code, message) { if (typeof error?.data?.code =
 async function readFeeField(provider, method, params) {
   try { return await provider.send(method, params); }
   catch (error) {
-    if (error?.error?.code === -32601 || error?.info?.error?.code === -32601) fail("RPC_FEE_UNAVAILABLE", "YNX Testnet cannot provide a complete network fee right now. Nothing was signed.");
+    if (error?.data?.rpcCode === -32601 || error?.error?.code === -32601 || error?.info?.error?.code === -32601) fail("RPC_FEE_UNAVAILABLE", "YNX Testnet cannot provide a complete network fee right now. Nothing was signed.");
     throw error;
   }
 }
@@ -117,14 +137,19 @@ async function readFeeField(provider, method, params) {
 // The canonical gateway accepts individual JSON-RPC requests. Use the host's
 // network stack and disable batching so nonce/fee requests are not combined.
 export class CanonicalJsonRpcProvider extends JsonRpcProvider {
+  #httpSuccess = new WeakSet();
   constructor(fetchImpl = globalThis.fetch) {
     super(CANONICAL_RPC_URL, { chainId: 6423, name: "ynx-testnet" }, { staticNetwork: true, batchMaxCount: 1 });
     this.fetchImpl = fetchImpl;
   }
+  getRpcError(payload, response) { return rpcResponseError(response.error, { method: payload.method, id: payload.id, origin: CANONICAL_RPC_URL, httpSuccess: this.#httpSuccess.has(response) }); }
   async _send(payload) {
     if (Array.isArray(payload)) throw new Error("Canonical RPC batching is not supported");
-    const response = await this.fetchImpl(CANONICAL_RPC_URL, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload), signal: AbortSignal.timeout(15_000) });
-    if (!response.ok) throw new Error("Canonical RPC is unavailable");
-    return [await response.json()];
+    const response = await this.fetchImpl(CANONICAL_RPC_URL, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload), redirect: "error", signal: AbortSignal.timeout(15_000) });
+    const result = await response.json();
+    if (result?.jsonrpc !== "2.0" || result.id !== payload.id || (Object.hasOwn(result, "result") === Object.hasOwn(result, "error"))) throw capabilityError("RPC_INVALID_RESPONSE", "The network returned an invalid RPC response.");
+    if (!response.ok && !result.error) throw new Error("Canonical RPC is unavailable");
+    if (response.ok) this.#httpSuccess.add(result);
+    return [result];
   }
 }

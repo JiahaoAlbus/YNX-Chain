@@ -60,7 +60,10 @@ export class DesktopKeyLifecycle {
       // No key step may begin after an outward effect starts. Its ACK may arrive
       // after blur/lock; that does not undo the already-started effect.
       try { return await action(); }
-      catch {
+      catch (error) {
+        // A matching JSON-RPC response can explicitly reject the request or
+        // declare durability uncertainty. Preserve that structured distinction.
+        if (error?.data?.rpcResponse === true) throw error;
         throw Object.assign(new Error("External delivery started but its outcome is unconfirmed. Check the destination before trying again."), { code: 4900, data: { code: "EXTERNAL_OUTCOME_UNKNOWN", effect: kind, outcomeUnknown: true } });
       }
     };

@@ -1,8 +1,10 @@
+import { FixtureIntentStore } from "./fixture-intent-store.mjs";
+import { fixtureEVMCapabilities } from "./fixture-evm-capabilities.mjs";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { Transaction, Wallet, toQuantity } from "ethers";
 import { CanonicalTransactionSender } from "../src/canonical-transaction-sender.mjs";
-import { NativeWalletService } from "../src/native-wallet-service.mjs";
+import { CanonicalAccountNetwork, NativeWalletService } from "../src/native-wallet-service.mjs";
 
 // Public scalar-one fixture. All RPC calls are simulated; no network or real funds.
 const wallet = new Wallet(`0x${"1".padStart(64, "0")}`);
@@ -11,13 +13,16 @@ const recipient = `0x${"22".repeat(20)}`;
 const input = () => ({ from: account, to: recipient, value: "0x1", data: "0x1234" });
 function fixture(t, overrides = {}) {
   const state = { chain: "0x1917", nonce: "0x0", balance: toQuantity(10n ** 18n), gasPrice: "0x3b9aca00", estimate: "0x5208", calls: [], signs: 0, broadcasts: 0, ...overrides };
-  const sender = new CanonicalTransactionSender({ fetchImpl: async (_url, options) => {
+  const fetchImpl = async (_url, options) => {
     const request = JSON.parse(options.body); state.calls.push(request);
     const results = { eth_chainId: state.chain, eth_getTransactionCount: state.nonce, eth_getBalance: state.balance, eth_gasPrice: state.gasPrice, eth_estimateGas: state.estimate, eth_getBlockByNumber: { baseFeePerGas: "0x3b9aca00" }, eth_maxPriorityFeePerGas: "0x5f5e100" };
     if (request.method === "eth_sendRawTransaction") { state.broadcasts++; state.signed = Transaction.from(request.params[0]); results.eth_sendRawTransaction = state.signed.hash; }
     const payload = request.method === state.unavailable ? { error: { code: -32601, message: "method unavailable" } } : { result: results[request.method] };
     return new Response(JSON.stringify({ jsonrpc: "2.0", id: request.id, ...payload }));
-  } });
+  };
+  const network = new CanonicalAccountNetwork({ fetchImpl });
+  network.capabilities = async () => fixtureEVMCapabilities;
+  const sender = new CanonicalTransactionSender({ intentStore: new FixtureIntentStore(), fetchImpl, network });
   const signer = { address: wallet.address, async signTransaction(fields) { state.signs++; return wallet.signTransaction(fields); }, connect() { throw new Error("must never connect and populate after review"); }, sendTransaction() { throw new Error("must never populate after review"); } };
   t.after(() => sender.provider.destroy());
   return { sender, signer, state };
@@ -38,7 +43,7 @@ test("real signing broadcasts only the complete immutable transaction approved b
   assert.equal(hash, state.signed.hash);
   assert.equal(state.signed.unsignedSerialized, reviewedUnsigned);
   assert.equal(state.signed.from.toLowerCase(), account);
-  assert.deepEqual(state.calls.map(call => call.method), ["eth_chainId", "eth_getTransactionCount", "eth_sendRawTransaction"]);
+  assert.deepEqual(state.calls.map(call => call.method), ["eth_chainId", "eth_getTransactionCount", "eth_chainId", "eth_sendRawTransaction"]);
   assert.equal(state.signs, 1);
   await assert.rejects(sender.send(signer, snapshot), error => error.data.code === "UNREVIEWED_TRANSACTION");
   assert.equal(state.signs, 1);

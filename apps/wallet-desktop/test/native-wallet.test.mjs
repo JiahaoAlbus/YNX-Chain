@@ -1,3 +1,5 @@
+import { FixtureIntentStore } from "./fixture-intent-store.mjs";
+import { fixtureEVMCapabilities } from "./fixture-evm-capabilities.mjs";
 import { fixtureKeyAuthorization } from "./fixture-key-authorization.mjs";
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, writeFile } from "node:fs/promises";
@@ -22,6 +24,7 @@ async function serviceFixture() {
   const { vault } = await vaultFixture(); await vault.createAccount();
   const state = { sends: 0, now: 100_000, wrongChain: false };
   const network = {
+    async capabilities() { return fixtureEVMCapabilities; },
     async verifyChain() { if (state.wrongChain) throw new Error("wrong chain"); },
     async balance() { return "0xde0b6b3a7640000"; },
     async estimate() { return { gasLimit: "0x6270", gasPrice: "0x3b9aca00" }; }
@@ -111,7 +114,7 @@ test("network rejects wrong-chain balances and transaction sender checks chain b
   await assert.rejects(network.balance(recipient), error => error.data.code === "RPC_CHAIN_MISMATCH");
   assert.deepEqual(observed, ["eth_chainId"]);
   let connected = false;
-  const sender = new CanonicalTransactionSender({ network });
+  const sender = new CanonicalTransactionSender({ intentStore: new FixtureIntentStore(), network });
   await assert.rejects(sender.send({ connect() { connected = true; } }, {}));
   assert.equal(connected, false); sender.provider.destroy();
 });
@@ -122,6 +125,7 @@ test("balance requests validate checksum input and send the canonical lowercase 
     const request = JSON.parse(options.body); requests.push(request);
     return new Response(JSON.stringify({ jsonrpc: "2.0", id: 1, result: request.method === "eth_chainId" ? "0x1917" : "0x0" }));
   } });
+  network.capabilities = async () => fixtureEVMCapabilities;
   assert.equal(await network.balance(recipient), "0x0");
   assert.deepEqual(requests[1].params, [recipient.toLowerCase(), "latest"]);
 });
@@ -158,6 +162,7 @@ test("an unimplemented fee method stops review without inventing a network fee",
     const payload = method === "eth_gasPrice" ? { error: { code: -32601, message: "method unavailable" } } : { result: method === "eth_chainId" ? "0x1917" : method === "eth_getBalance" ? "0xde0b6b3a7640000" : "0x5208" };
     return new Response(JSON.stringify({ jsonrpc: "2.0", id: 1, ...payload }));
   } });
+  service.network.capabilities = async () => fixtureEVMCapabilities;
   await assert.rejects(service.prepareTransfer({ to: recipient, amount: "0.1" }), error => error.data.code === "RPC_FEE_UNAVAILABLE");
   assert.equal(state.sends, 0); assert.equal(service.pending.size, 0);
 });

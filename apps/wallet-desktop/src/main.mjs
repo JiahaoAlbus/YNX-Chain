@@ -11,6 +11,7 @@ import { DesktopWalletVault } from "./desktop-wallet-vault.mjs";
 import { DesktopWalletAuthority } from "./desktop-wallet-authority.mjs";
 import { FilePermissionStore } from "./desktop-permission-store.mjs";
 import { CanonicalTransactionSender } from "./canonical-transaction-sender.mjs";
+import { FileTransactionIntentStore } from "./transaction-intent-store.mjs";
 import { CanonicalAccountNetwork, NativeWalletService } from "./native-wallet-service.mjs";
 import { WalletConnectTransport } from "./walletconnect-transport.mjs";
 import { decodeWalletConnectQR } from "./walletconnect-qr-decoder.mjs";
@@ -131,6 +132,13 @@ async function authorizationFailure(stageCode, action, error) {
 ipcMain.handle("wallet:account-status", () => safeIPC(() => walletAuthority.accountStatus()));
 ipcMain.handle("wallet:import-account", (_event, input) => safeIPC(() => changeActiveAccount(() => walletAuthority.importAccount(input))));
 ipcMain.handle("wallet:balance", () => safeIPC(() => nativeWallet.balance()));
+ipcMain.handle("wallet:pending-transactions", () => safeIPC(async () => walletAuthority.transactionSender.submissions.list((await walletAuthority.accountStatus()).account)));
+ipcMain.handle("wallet:transaction-status", (_event, hash) => safeIPC(async () => walletAuthority.transactionSender.submissions.check(hash, (await walletAuthority.accountStatus()).account)));
+ipcMain.handle("wallet:retry-transaction", (_event, hash) => sensitiveIPC(async () => {
+  const lease = keyAccess.current(), status = await walletAuthority.accountStatus();
+  lease.assert();
+  return walletAuthority.transactionSender.submissions.retry(hash, status.account, lease);
+}));
 ipcMain.handle("wallet:prepare-transfer", (_event, input) => sensitiveIPC(() => nativeWallet.prepareTransfer(input)));
 ipcMain.handle("wallet:transfer-action", (_event, id, action) => sensitiveIPC(() => nativeWallet.transferAction(id, action)));
 ipcMain.handle("wallet:save-backup", (_event, password) => sensitiveIPC(async () => {
@@ -310,7 +318,7 @@ if (singleInstanceLock) app.whenReady().then(async () => {
   walletAuthority = new DesktopWalletAuthority({
     vault: new DesktopWalletVault({ filePath: path.join(userData, "wallet-vault-v2.json"), legacyFilePath: path.join(userData, "wallet-vault-v1.json"), safeStorage, authorization: keyAccess }),
     permissions: new FilePermissionStore(path.join(userData, "wallet-permissions-v1.json")),
-    transactionSender: new CanonicalTransactionSender({ network: accountNetwork, fetchImpl: net.fetch.bind(net) })
+    transactionSender: new CanonicalTransactionSender({ network: accountNetwork, fetchImpl: net.fetch.bind(net), intentStore: new FileTransactionIntentStore({ filePath: path.join(userData, "transaction-intents-v1.json") }) })
   });
   authorizationController = new DesktopAuthorizationController({ authority: walletAuthority, openExternal: url => keyAccess.current().deliver(() => shell.openExternal(url)) });
   nativeWallet = new NativeWalletService({ vault: walletAuthority.vault, sender: walletAuthority.transactionSender, network: accountNetwork });

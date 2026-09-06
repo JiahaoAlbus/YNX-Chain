@@ -5,6 +5,7 @@ const labels = Object.freeze({
   gas: "Gas limit", gasLimit: "Gas limit", gasPrice: "Gas price (wei)",
   maxFeePerGas: "Maximum gas price (wei)", maxPriorityFeePerGas: "Priority fee per gas (wei)",
   maximumFee: "Maximum network fee (YNXT)", total: "Maximum total (YNXT)",
+  actualFee: "Native transfer fee (YNXT)", feeExplanation: "Fee and budget", modelVersion: "Network fee model", fullEVM: "General EVM execution available",
   amount: "Amount (YNXT)", nonce: "Transaction nonce", type: "Transaction type",
   permissions: "Permissions", accessList: "Access list", warning: "Please review",
 });
