@@ -53,7 +53,7 @@
     "Analytics and revenue require authoritative persisted events; no organic activity or revenue is fabricated",
     "New UI copy is not fully localized; editing, rights appeals, revenue and native platform packages remain incomplete"
   ],
-  "generatedAt": "2026-09-06T08:35:00.142341+00:00",
+  "generatedAt": "2026-09-06T09:05:55.431058+00:00",
   "publicRuntime": {
     "sourceCommit": "b6af671d04a4230bb7a4052cee1ff21d2f5c9c51",
     "sdkSourceCommit": "ff68d6d1c81708bd0144016750002a87d50bb5f9",
@@ -78,7 +78,20 @@
       "newVersionRejectVerified": false,
       "otherPlatformsVerified": false,
       "source": "Wallet owner report and UI evidence files 95-108; not repeated by coordinator",
-      "evidenceDirectory": "/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/wallet-android-v2-qa"
-    }
+      "evidenceDirectory": "/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/wallet-android-v2-qa",
+      "nativeOwnerSessionRevocation": {
+        "walletSource": "e673674c58ade7dfc8b5fd3e6d141566e9a278be",
+        "authSource": "f14e495ac9cb07f50199ad92096e6bd427669d44",
+        "durablyRevoked": true,
+        "browserReintrospectionCode": "SESSION_REVOKED",
+        "rejectionPrecededOriginalExpiry": true,
+        "browserFinalStateDisconnected": true,
+        "browserAXTemporarilyUnavailableAfterReload": true,
+        "allDeviceLogout": false,
+        "walletConnectRelay": false,
+        "source": "Wallet owner 134-e673-creator-b6af-w4-w8-acceptance.json and UI109-133; read by coordinator, not repeated"
+      }
+    },
+    "nativeOwnerSessionRevocationVerified": true
   }
 }
