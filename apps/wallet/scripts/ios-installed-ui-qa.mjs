@@ -49,7 +49,8 @@ if (phase === "prepare") {
   assert.equal(run.head_sha, appSource); assert.equal(run.path, ".github/workflows/wallet-ios.yml"); assert.equal(run.status, "completed");
   assert.equal(run.repository?.full_name, "JiahaoAlbus/YNX-Chain");
   const jobs = JSON.parse(command("gh", ["api", `repos/JiahaoAlbus/YNX-Chain/actions/runs/${artifactRun}/jobs?per_page=100`]));
-  assert(jobs.jobs.some(job => ["Build unsigned iOS Simulator app", "Freeze the actual Simulator app and installable ZIP"].every(name => job.steps.some(step => step.name === name && step.conclusion === "success"))));
+  const buildNames = ["Build unsigned iOS Simulator app", "Build locally signed iOS Simulator app"];
+  assert(jobs.jobs.some(job => job.steps.some(step => buildNames.includes(step.name) && step.conclusion === "success") && job.steps.some(step => step.name === "Freeze the actual Simulator app and installable ZIP" && step.conclusion === "success")));
   // A build with failed launch QA is deliberately eligible for further diagnosis.
   // Require its source-bound packaging step to have succeeded; never promote the
   // previous launch result or call the whole prior run successful.

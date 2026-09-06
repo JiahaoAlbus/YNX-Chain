@@ -54,7 +54,7 @@ jobs:
         working-directory: apps/wallet
       - run: npx pod-install ios
         working-directory: apps/wallet
-      - name: Build unsigned iOS Simulator app
+      - name: Build locally signed iOS Simulator app
         working-directory: apps/wallet
         run: |
           set -euo pipefail
@@ -62,7 +62,8 @@ jobs:
             -configuration Release -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \
             -derivedDataPath "$YNX_IOS_QA_DIR/DerivedData" \
-            CODE_SIGNING_ALLOWED=NO clean build 2>&1 | tee "$YNX_IOS_QA_DIR/proof/xcodebuild.log"
+            CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- ENTITLEMENTS_REQUIRED=YES \
+            clean build 2>&1 | tee "$YNX_IOS_QA_DIR/proof/xcodebuild.log"
       - name: Freeze the actual Simulator app and installable ZIP
         run: node apps/wallet/scripts/ios-simulator-qa.mjs artifact
       - name: Install and exercise an isolated iPhone Simulator

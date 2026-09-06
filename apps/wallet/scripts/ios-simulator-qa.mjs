@@ -43,6 +43,52 @@ function files(directory) {
 }
 function sourceCommit() { assert.equal(command("git", ["rev-parse", "HEAD"]), expected, "Checkout differs from the requested immutable source"); }
 function assertOwnedDirectory() { assert.equal(realpathSync(qa), qa); assert(!lstatSync(qa).isSymbolicLink()); assert(existsSync(join(proof, "source.json"))); sourceCommit(); }
+// The Simulator consumes its identity from the actual Mach-O entitlement
+// section. A generated .xcent beside the app or linker-only signature is not
+// proof that the installed executable carries that identity.
+function simulatorEntitlementSection(executable, architecture) {
+  const bytes = readFileSync(executable), cpu = { arm64: 0x100000c, x86_64: 0x1000007 }[architecture];
+  assert(cpu && bytes.length >= 32);
+  let macho = bytes;
+  const magic = bytes.readUInt32BE(0);
+  if (magic === 0xcafebabe || magic === 0xcafebabf) {
+    const wide = magic === 0xcafebabf, count = bytes.readUInt32BE(4), stride = wide ? 32 : 20;
+    assert(count > 0 && count <= 8 && 8 + count * stride <= bytes.length);
+    const matches = [];
+    for (let index = 0; index < count; index++) {
+      const at = 8 + index * stride;
+      if (bytes.readUInt32BE(at) !== cpu) continue;
+      const offset = wide ? Number(bytes.readBigUInt64BE(at + 8)) : bytes.readUInt32BE(at + 8);
+      const size = wide ? Number(bytes.readBigUInt64BE(at + 16)) : bytes.readUInt32BE(at + 12);
+      assert(Number.isSafeInteger(offset) && Number.isSafeInteger(size) && offset >= 8 + count * stride && size >= 32 && offset + size <= bytes.length);
+      matches.push(bytes.subarray(offset, offset + size));
+    }
+    assert.equal(matches.length, 1, "Require exactly one requested Simulator architecture"); macho = matches[0];
+  }
+  assert.equal(macho.readUInt32LE(0), 0xfeedfacf); assert.equal(macho.readUInt32LE(4), cpu);
+  const count = macho.readUInt32LE(16), end = 32 + macho.readUInt32LE(20), sections = [];
+  assert(count > 0 && count <= 1024 && end <= macho.length);
+  const name = (at) => macho.subarray(at, at + 16).toString("ascii").replace(/\0.*$/s, "");
+  let at = 32;
+  for (let index = 0; index < count; index++) {
+    assert(at + 8 <= end); const cmd = macho.readUInt32LE(at), size = macho.readUInt32LE(at + 4);
+    assert(size >= 8 && at + size <= end);
+    if (cmd === 0x19) {
+      assert(size >= 72); const nsects = macho.readUInt32LE(at + 64); assert(72 + nsects * 80 <= size);
+      for (let i = 0; i < nsects; i++) {
+        const section = at + 72 + i * 80;
+        if (name(section) !== "__entitlements" || name(section + 16) !== "__TEXT") continue;
+        const length = Number(macho.readBigUInt64LE(section + 40)), offset = macho.readUInt32LE(section + 48);
+        assert(Number.isSafeInteger(length) && length > 0 && length <= 65536 && offset >= end && offset + length <= macho.length);
+        sections.push(macho.subarray(offset, offset + length));
+      }
+    }
+    at += size;
+  }
+  assert.equal(at, end); assert.equal(sections.length, 1, `Missing or duplicate embedded Simulator identity for ${architecture}`);
+  const xml = sections[0].toString("utf8").replace(/\0+$/, ""); assert(xml.startsWith("<?xml") || xml.startsWith("<plist"));
+  return xml;
+}
 
 if (phase === "prepare") {
   mkdirSync(qa, { mode: 0o700 }); mkdirSync(proof, { mode: 0o700 }); sourceCommit();
@@ -61,6 +107,17 @@ if (phase === "prepare") {
   assert.deepEqual(info.CFBundleSupportedPlatforms, ["iPhoneSimulator"]); assert.equal(info.DTPlatformName, "iphonesimulator");
   assert.equal(info.UIUserInterfaceStyle, "Light"); assert(info.NSFaceIDUsageDescription?.length > 0);
   assert(info.CFBundleURLTypes?.some(value => value.CFBundleURLSchemes?.includes("ynxwallet")));
+  const executable = join(app, info.CFBundleExecutable), architectures = command("/usr/bin/lipo", ["-archs", executable]).split(/\s+/);
+  assert.deepEqual([...architectures].sort(), ["arm64", "x86_64"]);
+  command("/usr/bin/codesign", ["--verify", "--deep", "--strict", app]);
+  const simulatorIdentity = [];
+  for (const architecture of architectures) {
+    const xml = simulatorEntitlementSection(executable, architecture), path = join(proof, `simulator-entitlements-${architecture}.plist`);
+    writeFileSync(path, xml); const entitlements = plist(path);
+    assert.equal(entitlements["application-identifier"], bundle, "Simulator requires its own exact application identity");
+    if (entitlements["keychain-access-groups"] !== undefined) assert.deepEqual(entitlements["keychain-access-groups"], [bundle]);
+    simulatorIdentity.push({ architecture, applicationIdentifier: bundle, entitlementsSha256: sha(xml) });
+  }
   // CocoaPods may add generated build integration to the Xcode project. Capture
   // that exact diff and lockfile; all other committed application/SDK bytes stay fixed.
   const changed = command("git", ["diff", "--name-only", "--", "apps/wallet", "packages/wallet-auth"]).split("\n").filter(Boolean);
@@ -71,7 +128,7 @@ if (phase === "prepare") {
   const artifactFiles = files(app), zip = join(qa, `YNXWallet-iOS-Simulator-${expected.slice(0, 12)}.zip`);
   command("/usr/bin/ditto", ["-c", "-k", "--sequesterRsrc", "--keepParent", app, zip]);
   const bytes = readFileSync(zip);
-  save("artifact.json", { sourceCommit: expected, filename: relative(qa, zip), sha256: sha(bytes), bytes: bytes.length, bundleIdentifier: bundle, version: info.CFBundleShortVersionString, build: info.CFBundleVersion, architectures: command("/usr/bin/lipo", ["-archs", join(app, info.CFBundleExecutable)]), files: artifactFiles, simulatorOnly: true, iphoneInstallable: false, distributionSigned: false, testFlight: false, appStore: false });
+  save("artifact.json", { sourceCommit: expected, filename: relative(qa, zip), sha256: sha(bytes), bytes: bytes.length, bundleIdentifier: bundle, version: info.CFBundleShortVersionString, build: info.CFBundleVersion, architectures: architectures.join(" "), files: artifactFiles, simulatorIdentity, localSignatureVerified: true, simulatorOnly: true, iphoneInstallable: false, distributionSigned: false, testFlight: false, appStore: false });
 } else {
   assertOwnedDirectory();
   const artifact = JSON.parse(readFileSync(join(proof, "artifact.json")));
@@ -100,6 +157,7 @@ if (phase === "prepare") {
   }
   try {
     command("xcrun", ["simctl", "boot", device]); command("xcrun", ["simctl", "bootstatus", device, "-b"], 300_000);
+    command("/usr/bin/open", ["-a", "Simulator", "--args", "-CurrentDeviceUDID", device]);
     command("xcrun", ["simctl", "ui", device, "appearance", "light"]);
     command("xcrun", ["simctl", "install", device, app]);
     const installed = command("xcrun", ["simctl", "get_app_container", device, bundle, "app"]);
