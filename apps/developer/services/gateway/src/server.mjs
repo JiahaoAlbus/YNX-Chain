@@ -150,6 +150,7 @@ server.listen(port, host, () => console.log(`YNX Code Gateway http://${host}:${p
 activity.observe("compile", () => ({ active: runtime.status().active, queued: runtime.status().queued }));
 activity.observe("ai", () => ({ active: modelRouter.catalog().active, queued: modelRouter.catalog().queued }));
 activity.observe("git", () => ({ active: gitService.status().activeRepositories }));
+activity.observe("runtimeCommands", () => runtimeProfileService.commandStatus());
 activity.observe("remoteRecovery", () => ({ recoveryRequired: runtimeProfileService.recoveryCount() }));
 for (const [name, service] of [["terminal", terminalService], ["debug", debugService], ["collaboration", collaborationService]]) {
   activity.observe(name, () => {
