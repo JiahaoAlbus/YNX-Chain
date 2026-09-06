@@ -225,7 +225,8 @@ func (d *Devnet) SubmitNativeDexAction(input NativeDexSignedActionInput) (result
 	if existing, ok := d.transactionLocked(input.Hash); ok {
 		for _, event := range d.dexEvents {
 			if event.TxHash == input.Hash {
-				if _, uncertain := d.uncertainTransactions[input.Hash]; uncertain {
+				_, uncertain := d.uncertainTransactions[input.Hash]
+				if uncertain || (d.dataDir != "" && !d.transactionCheckpointCovers(existing)) {
 					if err := d.confirmTransactionPersistenceLocked(); err != nil {
 						return existing, NativeDexMutation{Event: event}, false, err
 					}

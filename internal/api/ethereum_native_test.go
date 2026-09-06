@@ -35,7 +35,10 @@ func loadRPCVectors(t *testing.T) []rpcEthereumFixture {
 func TestEthereumNativeRPCFeeLifecycle(t *testing.T) {
 	vectors := loadRPCVectors(t)
 	v := vectors[0]
-	d := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	d, createErr := chain.NewPersistentDevnet(chain.DefaultNetworkConfig("testnet"), t.TempDir())
+	if createErr != nil {
+		t.Fatal(createErr)
+	}
 	_, _ = d.Faucet(v.Sender, 100)
 	d.ProduceBlock()
 	s := newServerWithConfig(d, ServerConfig{})

@@ -661,7 +661,8 @@ func (d *Devnet) resourcePoolReplayLocked(signer, key, action, requestHash strin
 		pool = *record.PoolSnapshot
 	}
 	tx, _ := d.transactionLocked(record.TransactionHash)
-	if _, uncertain := d.uncertainTransactions[record.TransactionHash]; uncertain {
+	_, uncertain := d.uncertainTransactions[record.TransactionHash]
+	if uncertain || (d.dataDir != "" && !d.transactionCheckpointCovers(tx)) {
 		if err := d.confirmTransactionPersistenceLocked(); err != nil {
 			return cloneResourcePool(pool), tx, true, err
 		}
@@ -682,7 +683,8 @@ func (d *Devnet) resourceSponsorshipReplayLocked(signer, key, requestHash string
 		return ResourceSponsorship{}, Transaction{}, true, errors.New("resource sponsor idempotency record references a missing sponsorship")
 	}
 	tx, _ := d.transactionLocked(record.TransactionHash)
-	if _, uncertain := d.uncertainTransactions[record.TransactionHash]; uncertain {
+	_, uncertain := d.uncertainTransactions[record.TransactionHash]
+	if uncertain || (d.dataDir != "" && !d.transactionCheckpointCovers(tx)) {
 		if err := d.confirmTransactionPersistenceLocked(); err != nil {
 			return value, tx, true, err
 		}

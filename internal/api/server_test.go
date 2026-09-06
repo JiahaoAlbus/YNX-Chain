@@ -569,7 +569,10 @@ func TestGovernanceRequestAndAppealAPIFlow(t *testing.T) {
 }
 
 func TestEVMRPCSubset(t *testing.T) {
-	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	devnet, createErr := chain.NewPersistentDevnet(chain.DefaultNetworkConfig("testnet"), t.TempDir())
+	if createErr != nil {
+		t.Fatal(createErr)
+	}
 	server := httptest.NewServer(NewServer(devnet))
 	defer server.Close()
 	var out map[string]any
@@ -734,7 +737,10 @@ func TestPrometheusFollowerReplicationFailureMetrics(t *testing.T) {
 }
 
 func TestPayResourceAndIDEFlow(t *testing.T) {
-	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("devnet"))
+	devnet, createErr := chain.NewPersistentDevnet(chain.DefaultNetworkConfig("devnet"), t.TempDir())
+	if createErr != nil {
+		t.Fatal(createErr)
+	}
 	server := httptest.NewServer(NewServer(devnet))
 	defer server.Close()
 
@@ -1125,7 +1131,10 @@ func TestIDEExecuteSupportsGenericPinnedWriteCallSubset(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("devnet"))
+	devnet, createErr := chain.NewPersistentDevnet(chain.DefaultNetworkConfig("devnet"), t.TempDir())
+	if createErr != nil {
+		t.Fatal(createErr)
+	}
 	server := httptest.NewServer(NewServer(devnet))
 	defer server.Close()
 

@@ -1797,23 +1797,15 @@ func (s *Server) legacyEVMResult(method string, params []any) (any, error) {
 			return nil, nil
 		}
 		return evmTx(tx), nil
+	case "ynx_getDurabilityModel":
+		if len(params) != 0 {
+			return nil, rpcInvalidParams("ynx_getDurabilityModel accepts no parameters")
+		}
+		return durabilityModel(), nil
+	case "ynx_getTransactionDurability":
+		return s.transactionDurabilityResult(params)
 	case "eth_getTransactionReceipt":
-		if len(params) != 1 || !isCanonicalData(fmt.Sprint(params[0]), 32) {
-			return nil, rpcInvalidParams("eth_getTransactionReceipt requires one 32-byte transaction hash")
-		}
-		tx, ok := s.devnet.Transaction(fmt.Sprint(params[0]))
-		if !ok || tx.BlockNum == 0 || tx.BlockHash == "" {
-			return nil, nil
-		}
-		index := transactionIndex(s.devnet, tx)
-		gasUsed := uint64(21_000)
-		return map[string]any{
-			"transactionHash": tx.Hash, "transactionIndex": hexQuantity(index), "status": "0x1",
-			"blockHash": evmHash(tx.BlockHash), "blockNumber": hexQuantity(tx.BlockNum),
-			"from": tx.From, "to": tx.To, "contractAddress": nil,
-			"gasUsed": hexQuantity(gasUsed), "cumulativeGasUsed": hexQuantity((index + 1) * gasUsed),
-			"logs": evmLogs(tx.Logs),
-		}, nil
+		return s.transactionReceiptResult(params, false)
 	case "eth_sendRawTransaction":
 		if len(params) != 1 {
 			return nil, rpcInvalidParams("eth_sendRawTransaction requires one signed transaction data value")
@@ -1970,8 +1962,9 @@ func writeUncertainMutation(w http.ResponseWriter, tx chain.Transaction, err err
 	}
 	w.Header().Set("Cache-Control", "no-store")
 	writeJSON(w, http.StatusServiceUnavailable, map[string]any{
-		"error":  "transaction durability needs confirmation; query its hash or retry the identical signed request",
-		"status": "transaction_durability_uncertain", "transactionHash": tx.Hash,
+		"error":  "transaction durability needs confirmation; retry the identical signed request and require a durable mined receipt",
+		"status": "transaction_durability_uncertain", "transactionHash": tx.Hash, "durabilityVersion": chain.TransactionDurabilityVersion,
+		"ynxDurability": transactionDurabilityRPC(tx.Hash, tx, chain.TransactionDurability{Status: "uncertain"}),
 	})
 	return true
 }
@@ -1980,8 +1973,8 @@ func rpcBroadcastFailure(tx chain.Transaction, err error) error {
 	if errors.Is(err, chain.ErrSnapshotDurabilityUncertain) {
 		return &rpcMethodError{
 			code:    -32002,
-			message: "transaction durability needs confirmation; query its hash or retry the identical signed transaction",
-			data:    map[string]any{"status": "transaction_durability_uncertain", "transactionHash": tx.Hash},
+			message: "transaction durability needs confirmation; retry the identical signed transaction and require a durable mined receipt",
+			data:    map[string]any{"status": "transaction_durability_uncertain", "transactionHash": tx.Hash, "durabilityVersion": chain.TransactionDurabilityVersion, "ynxDurability": transactionDurabilityRPC(tx.Hash, tx, chain.TransactionDurability{Status: "uncertain"})},
 		}
 	}
 	return rpcTransactionRejected(err.Error())

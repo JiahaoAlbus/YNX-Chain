@@ -32,6 +32,8 @@ The original signed RLP is persisted as hex with the versioned prefix `YNX_ETHER
 
 An old be9f binary has been tested loading the same new synthetic snapshot and retaining the raw memo, transaction hash, native balance and nonce. A rollback disables Ethereum admission and restores the previous binary **using current durable state**. Restoring a pre-cutover snapshot would lose subsequent legitimate transactions and is not the rollback procedure.
 
+Mined receipt confirmation additionally requires the independent [local transaction durability v1 contract](transaction-durability-v1.md). In-memory inclusion, an old status-1 receipt and a successful same-raw replay hash do not establish durable mined inclusion.
+
 ## RPC and release boundaries
 
 Blocks intentionally omit `baseFeePerGas`. `eth_feeHistory` and `eth_maxPriorityFeePerGas` explicitly return `-32004` because EIP-1559 is unsupported. `eth_sendTransaction` cannot use node-held keys and is rejected; wallets sign locally and call `eth_sendRawTransaction`. Non-contract addresses return `0x` for `eth_getCode`; existing native contract artifacts without a bytecode API return an explicit unsupported error.

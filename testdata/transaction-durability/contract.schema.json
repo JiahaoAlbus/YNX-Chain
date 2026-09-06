@@ -1,0 +1,268 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "YNX local transaction durability v1 proof; semantic bindings required",
+  "$defs": {
+    "hash": {
+      "type": "string",
+      "pattern": "^0x[0-9a-f]{64}$"
+    },
+    "quantity": {
+      "type": "string",
+      "pattern": "^0x(0|[1-9a-f][0-9a-f]*)$",
+      "maxLength": 18
+    },
+    "nonzeroQuantity": {
+      "type": "string",
+      "pattern": "^0x[1-9a-f][0-9a-f]*$",
+      "maxLength": 18
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "const": "ynx-local-durability-v1"
+        },
+        "scope": {
+          "const": "local-snapshot"
+        },
+        "receiptField": {
+          "const": "ynxDurability"
+        },
+        "transactionStatusMethod": {
+          "const": "ynx_getTransactionDurability"
+        },
+        "nativeTransactionField": {
+          "const": "ynxNativeTransaction"
+        },
+        "minedStatus": {
+          "const": "durable"
+        },
+        "pendingStatus": {
+          "const": "pending_durable"
+        },
+        "consensusFinality": {
+          "const": false
+        }
+      },
+      "required": [
+        "version",
+        "scope",
+        "receiptField",
+        "transactionStatusMethod",
+        "nativeTransactionField",
+        "minedStatus",
+        "pendingStatus",
+        "consensusFinality"
+      ]
+    },
+    "nativeTransaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "amountYNXT": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*|-[1-9][0-9]*)$"
+        },
+        "feeYNXT": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*|-[1-9][0-9]*)$"
+        },
+        "nonce": {
+          "$ref": "#/$defs/quantity"
+        }
+      },
+      "required": [
+        "type",
+        "amountYNXT",
+        "feeYNXT",
+        "nonce"
+      ]
+    }
+  },
+  "oneOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "const": "ynx-local-durability-v1"
+        },
+        "scope": {
+          "const": "local-snapshot"
+        },
+        "status": {
+          "const": "durable"
+        },
+        "transactionHash": {
+          "$ref": "#/$defs/hash"
+        },
+        "checkpointBlockNumber": {
+          "$ref": "#/$defs/quantity"
+        },
+        "checkpointBlockHash": {
+          "$ref": "#/$defs/hash"
+        },
+        "snapshotIntegrity": {
+          "$ref": "#/$defs/hash"
+        },
+        "blockNumber": {
+          "$ref": "#/$defs/nonzeroQuantity"
+        },
+        "blockHash": {
+          "$ref": "#/$defs/hash"
+        }
+      },
+      "required": [
+        "version",
+        "scope",
+        "status",
+        "transactionHash",
+        "checkpointBlockNumber",
+        "checkpointBlockHash",
+        "snapshotIntegrity",
+        "blockNumber",
+        "blockHash"
+      ]
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "const": "ynx-local-durability-v1"
+        },
+        "scope": {
+          "const": "local-snapshot"
+        },
+        "status": {
+          "const": "pending_durable"
+        },
+        "transactionHash": {
+          "$ref": "#/$defs/hash"
+        },
+        "checkpointBlockNumber": {
+          "$ref": "#/$defs/quantity"
+        },
+        "checkpointBlockHash": {
+          "$ref": "#/$defs/hash"
+        },
+        "snapshotIntegrity": {
+          "$ref": "#/$defs/hash"
+        }
+      },
+      "required": [
+        "version",
+        "scope",
+        "status",
+        "transactionHash",
+        "checkpointBlockNumber",
+        "checkpointBlockHash",
+        "snapshotIntegrity"
+      ]
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "const": "ynx-local-durability-v1"
+        },
+        "scope": {
+          "const": "local-snapshot"
+        },
+        "status": {
+          "const": "uncertain"
+        },
+        "transactionHash": {
+          "$ref": "#/$defs/hash"
+        },
+        "blockNumber": {
+          "$ref": "#/$defs/nonzeroQuantity"
+        },
+        "blockHash": {
+          "$ref": "#/$defs/hash"
+        }
+      },
+      "required": [
+        "version",
+        "scope",
+        "status",
+        "transactionHash"
+      ],
+      "dependentRequired": {
+        "blockNumber": [
+          "blockHash"
+        ],
+        "blockHash": [
+          "blockNumber"
+        ]
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "const": "ynx-local-durability-v1"
+        },
+        "scope": {
+          "const": "local-snapshot"
+        },
+        "status": {
+          "const": "memory_only"
+        },
+        "transactionHash": {
+          "$ref": "#/$defs/hash"
+        },
+        "blockNumber": {
+          "$ref": "#/$defs/nonzeroQuantity"
+        },
+        "blockHash": {
+          "$ref": "#/$defs/hash"
+        }
+      },
+      "required": [
+        "version",
+        "scope",
+        "status",
+        "transactionHash"
+      ],
+      "dependentRequired": {
+        "blockNumber": [
+          "blockHash"
+        ],
+        "blockHash": [
+          "blockNumber"
+        ]
+      }
+    },
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "const": "ynx-local-durability-v1"
+        },
+        "scope": {
+          "const": "local-snapshot"
+        },
+        "status": {
+          "const": "not_found"
+        },
+        "transactionHash": {
+          "$ref": "#/$defs/hash"
+        }
+      },
+      "required": [
+        "version",
+        "scope",
+        "status",
+        "transactionHash"
+      ]
+    }
+  ]
+}

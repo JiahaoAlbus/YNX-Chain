@@ -18,6 +18,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
@@ -33,10 +34,11 @@ const (
 
 var transactionHashPattern = regexp.MustCompile(`^0x[0-9a-fA-F]{64}$`)
 
-// ErrSnapshotDurabilityUncertain means the snapshot was replaced, but a later
-// durability step failed. The transaction may survive a restart; callers must
-// reconcile its hash rather than assume it was rolled back or submit a new one.
-var ErrSnapshotDurabilityUncertain = errors.New("snapshot replaced but durability was not fully confirmed")
+// ErrSnapshotDurabilityUncertain means an admitted transaction or its current
+// block inclusion lacks a completed durability checkpoint. It also covers a
+// replacement followed by a failed durability step. Callers must reconcile the
+// identical signed request and durable receipt, never assume a rollback.
+var ErrSnapshotDurabilityUncertain = errors.New("snapshot durability was not fully confirmed")
 
 var requestValidityRules = []RequestValidityRule{
 	{ID: "protect-private-secrets", Name: "Protect private secrets", Classification: RequestIllegalOrAbusive, Description: "Requests for private keys, seed phrases, or mnemonics are illegal or abusive under YNX Chain Law.", RequiresUserNotice: true, Keywords: []string{"private key", "seed phrase", "mnemonic"}},
@@ -63,6 +65,8 @@ var requestValidityRules = []RequestValidityRule{
 
 type Devnet struct {
 	mu                       sync.RWMutex
+	persistenceMu            sync.Mutex
+	durableCheckpoint        atomic.Pointer[transactionCheckpoint]
 	ethereumNativeTransfers  bool
 	cfg                      NetworkConfig
 	blocks                   []Block
@@ -1022,7 +1026,8 @@ func (d *Devnet) SubmitSignedTransfer(input SignedTransferInput) (Transaction, b
 		if existing.Type != "transfer" || existing.From != input.From || existing.To != input.To || existing.Amount != input.Amount || existing.Fee != input.Fee || existing.Nonce != input.Nonce {
 			return Transaction{}, false, errors.New("signed transaction hash conflicts with existing transaction")
 		}
-		if _, uncertain := d.uncertainTransactions[input.Hash]; uncertain {
+		_, uncertain := d.uncertainTransactions[input.Hash]
+		if uncertain || (d.dataDir != "" && !d.transactionCheckpointCovers(existing)) {
 			if err := d.confirmTransactionPersistenceLocked(); err != nil {
 				return existing, false, err
 			}
@@ -1207,7 +1212,8 @@ func (d *Devnet) persistMutationLocked(tx Transaction, rollback func()) (Transac
 func (d *Devnet) confirmTransactionPersistenceLocked() error {
 	err := d.persistSnapshotLocked()
 	if err != nil {
-		// Even a pre-rename retry failure cannot undo the earlier replacement.
+		// Retry failure cannot undo a prior admission or prove its current
+		// in-memory block inclusion was durably recorded.
 		err = fmt.Errorf("%w: retry checkpoint: %w", ErrSnapshotDurabilityUncertain, err)
 	} else {
 		d.uncertainTransactions = nil
@@ -3419,20 +3425,11 @@ func (d *Devnet) persistSnapshotLocked() error {
 	if path == "" {
 		return nil
 	}
-	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
-		return fmt.Errorf("create devnet data dir: %w", err)
-	}
 	snapshot, err := sealDevnetSnapshot(d.snapshotLocked())
 	if err != nil {
 		return fmt.Errorf("seal devnet snapshot: %w", err)
 	}
-	if err := writeDurableSnapshotJSON(path, snapshot); err != nil {
-		return err
-	}
-	if err := writeDurableSnapshot(d.snapshotIntegrityMarkerPath(), []byte("2\n")); err != nil {
-		return fmt.Errorf("%w: persist devnet snapshot integrity marker: %w", ErrSnapshotDurabilityUncertain, err)
-	}
-	return nil
+	return d.persistPreparedSnapshot(snapshot)
 }
 
 func writeDurableSnapshotJSON(path string, value any) error {

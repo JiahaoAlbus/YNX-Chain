@@ -523,6 +523,18 @@ func (d *Devnet) persistPreparedSnapshot(snapshot devnetSnapshot) error {
 	if path == "" {
 		return nil
 	}
+	checkpoint, err := checkpointForSnapshot(snapshot)
+	if err != nil {
+		return err
+	}
+	// Normal checkpoints hold d.mu for reading; replication persists an
+	// immutable prepared state outside it. Serialize their shared temp paths.
+	// No code holding persistenceMu acquires d.mu, avoiding lock inversion.
+	d.persistenceMu.Lock()
+	defer d.persistenceMu.Unlock()
+	// Replacements/rebases can remove an earlier transaction. Conservatively
+	// withdraw all old evidence before disk I/O, including failed attempts.
+	d.durableCheckpoint.Store(nil)
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return fmt.Errorf("create devnet data dir: %w", err)
 	}
@@ -530,8 +542,9 @@ func (d *Devnet) persistPreparedSnapshot(snapshot devnetSnapshot) error {
 		return err
 	}
 	if err := writeDurableSnapshot(d.snapshotIntegrityMarkerPath(), []byte("2\n")); err != nil {
-		return fmt.Errorf("persist devnet snapshot integrity marker: %w", err)
+		return fmt.Errorf("%w: persist devnet snapshot integrity marker: %w", ErrSnapshotDurabilityUncertain, err)
 	}
+	d.durableCheckpoint.Store(checkpoint)
 	return nil
 }
 

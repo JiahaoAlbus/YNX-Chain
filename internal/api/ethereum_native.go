@@ -30,7 +30,7 @@ func (s *Server) ethereumNativeResult(method string, params []any) (any, bool, e
 		if len(params) != 0 {
 			return respond(nil, rpcInvalidParams("ynx_getFeeModel accepts no parameters"))
 		}
-		return respond(map[string]any{"version": "ynx-ethereum-native-v1", "enabled": s.devnet.EthereumNativeTransfersEnabled(), "chainId": hexQuantity(uint64(s.networkConfig.ChainID)), "transactionType": "0x0", "feeYNXT": "1", "feeWei": ethnative.Quantity(ethnative.Wei(1)), "gas": hexQuantity(ethnative.TransferGas), "gasPrice": ethnative.Quantity(big.NewInt(ethnative.GasPriceWei)), "decimals": 18, "amountQuantumWei": ethnative.Quantity(ethnative.Wei(1)), "scope": "whole-YNXT plain native transfers", "fullEVM": false, "eip1559": false}, nil)
+		return respond(map[string]any{"version": "ynx-ethereum-native-v1", "enabled": s.devnet.EthereumNativeTransfersEnabled(), "chainId": hexQuantity(uint64(s.networkConfig.ChainID)), "transactionType": "0x0", "feeYNXT": "1", "feeWei": ethnative.Quantity(ethnative.Wei(1)), "gas": hexQuantity(ethnative.TransferGas), "gasPrice": ethnative.Quantity(big.NewInt(ethnative.GasPriceWei)), "decimals": 18, "amountQuantumWei": ethnative.Quantity(ethnative.Wei(1)), "scope": "whole-YNXT plain native transfers", "fullEVM": false, "eip1559": false, "durability": durabilityModel()}, nil)
 	case "eth_getBalance", "eth_getTransactionCount", "eth_getCode":
 		if len(params) < 1 || len(params) > 2 {
 			return respond(nil, rpcInvalidParams(method+" requires address and optional latest/pending tag"))
@@ -91,35 +91,17 @@ func (s *Server) ethereumNativeResult(method string, params []any) (any, bool, e
 			return respond(nil, rpcBroadcastFailure(tx, err))
 		}
 		return respond(tx.Hash, nil)
-	case "eth_getTransactionByHash", "eth_getTransactionReceipt":
+	case "eth_getTransactionReceipt":
+		result, err := s.transactionReceiptResult(params, true)
+		return respond(result, err)
+	case "eth_getTransactionByHash":
 		original, err := s.legacyEVMResult(method, params)
 		if err != nil || original == nil {
 			return respond(original, err)
 		}
 		tx, _ := s.devnet.Transaction(params[0].(string))
-		if method == "eth_getTransactionByHash" {
-			result, err := s.ethereumTransaction(tx)
-			return respond(result, err)
-		}
-		result := original.(map[string]any)
-		gas := nativeFeeGas(tx.Fee)
-		cumulative := new(big.Int)
-		block, _ := s.devnet.BlockByHeight(tx.BlockNum)
-		for _, previous := range block.Transactions {
-			cumulative.Add(cumulative, nativeFeeGas(previous.Fee))
-			if previous.Hash == tx.Hash {
-				break
-			}
-		}
-		result["gasUsed"], result["cumulativeGasUsed"] = ethnative.Quantity(gas), ethnative.Quantity(cumulative)
-		bloom, err := nativeLogsBloom(tx.Logs)
-		if err != nil {
-			return respond(nil, err)
-		}
-		result["effectiveGasPrice"], result["type"], result["logsBloom"] = ethnative.Quantity(big.NewInt(ethnative.GasPriceWei)), "0x0", bloom
-		result["ynxLogSemantics"] = "native provenance events; no EVM execution"
-		result["ynxFeeWei"] = ethnative.Quantity(ethnative.Wei(tx.Fee))
-		return respond(result, nil)
+		result, err := s.ethereumTransaction(tx)
+		return respond(result, err)
 	case "eth_getBlockByNumber", "eth_getBlockByHash":
 		var block chain.Block
 		var full, found bool

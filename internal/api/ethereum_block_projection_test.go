@@ -39,6 +39,24 @@ func TestEthereumNativeBlockProjectionBoundary(t *testing.T) {
 				}
 			}
 			d.ProduceBlock()
+			// Materialize the large synthetic batch once before querying durable
+			// receipts; per-transfer persistence is unrelated to gas boundaries.
+			payload, err := d.ReplicationSnapshotJSON()
+			if err != nil {
+				t.Fatal(err)
+			}
+			persistent, err := chain.NewPersistentDevnet(chain.DefaultNetworkConfig("testnet"), t.TempDir())
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err = persistent.ApplyReplicationSnapshotJSON(payload, true); err != nil {
+				t.Fatal(err)
+			}
+			d = persistent
+			if err = d.SetEthereumNativeTransfers(true); err != nil {
+				t.Fatal(err)
+			}
+			s = newServerWithConfig(d, ServerConfig{})
 			block := d.LatestBlock()
 			before, _ := d.Account(from)
 			wantGas := hexQuantity(uint64(count) * ethnative.TransferGas)
