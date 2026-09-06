@@ -6,6 +6,8 @@ import { RecoverableProductSessionClient } from "./product-session-recovery.js";
 import { createProductSessionProofV2With } from "./product-session-proof-v2.js";
 import { encodeProductSessionGatewayProofHeaderV2 } from "./product-session-gateway-client.js";
 import { httpBodyDigest } from "./session-proof.js";
+import { createRevocationIntent, parseRevocationIntent, revocationSessionMatches } from "./product-session-revocation-intent.js";
+import { parseCompletionRecord } from "./product-session-completion-record.js";
 
 export const BROWSER_PRODUCT_SESSION_SECURITY_LEVEL = "webcrypto-nonextractable";
 const DATABASE = "ynx-product-session-web-v2";
@@ -24,10 +26,11 @@ export async function createBrowserProductSessionClient(config) {
   const approvedScopes = Object.freeze([...scopes]);
   const namespace = canonicalJSON({ chainId: binding.chainId, productId, clientId: binding.clientId, applicationId: binding.applicationId, origin: binding.origin, callback: binding.callback, scopes: approvedScopes });
   const storageKey = `ynx.product-session.v2:${productId}:web:${binding.applicationId}`;
-  const allowedKeys = new Set([storageKey, `${storageKey}:pending`, `${storageKey}:return`]);
+  const revocationKey = `${storageKey}:revoke`;
+  const allowedKeys = new Set([storageKey, `${storageKey}:pending`, `${storageKey}:return`, `${storageKey}:completion`, revocationKey]);
   const randomToken = () => encodeBase64url(crypto.getRandomValues(new Uint8Array(32)));
   const db = await openDatabase(environment.indexedDB);
-  let closed = false;
+  let closed = false, revocationAttempted = false;
   const close = () => { closed = true; db.close(); };
   db.onversionchange = close;
   try {
@@ -56,8 +59,44 @@ export async function createBrowserProductSessionClient(config) {
     const storage = Object.freeze({
       securityLevel: BROWSER_PRODUCT_SESSION_SECURITY_LEVEL,
       async get(key) { assertStorageKey(key); return stateOperation("readonly", ({ state }) => { const value = state.values[key] ?? null; if (value !== null) assertStoredValue(key, value); return value; }); },
-      async set(key, value) { assertStorageKey(key); assertStoredValue(key, value); return stateOperation("readwrite", ({ state, states }) => { state.values[key] = value; states.put(state, namespace); }); },
+      async set(key, value) { assertStorageKey(key); assertStoredValue(key, value); return stateOperation("readwrite", ({ state, states }) => {
+        const pending = readIntent(state);
+        if (pending && key !== revocationKey) {
+          if (key !== storageKey) fail("REVOCATION_PENDING", "Sign-out blocks new connection requests");
+          const session = parseProductSession(JSON.parse(value));
+          if (pending.session !== null && !revocationSessionMatches(value, pending.session)) fail("REVOCATION_PENDING", "Sign-out target cannot be replaced by another session");
+          if (pending.session === null) state.values[revocationKey] = canonicalJSON(createRevocationIntent(binding, device, pending.intentId, session));
+        }
+        state.values[key] = value; states.put(state, namespace);
+      }); },
       async remove(key) { assertStorageKey(key); return stateOperation("readwrite", ({ state, states }) => { delete state.values[key]; states.put(state, namespace); }); },
+      async saveRevocationIntent(key, raw) {
+        if (key !== revocationKey) fail("CROSS_PRODUCT_SESSION", "Sign-out intent key is invalid");
+        revocationAttempted = true;
+        const candidate = parseRevocationIntent(raw, binding, device);
+        return stateOperation("readwrite", ({ state, states }) => {
+          let intent = readIntent(state);
+          if (intent === null) intent = candidate;
+          else if (intent.intentId === candidate.intentId && intent.session === null && candidate.session !== null) intent = candidate;
+          if (intent.session === null && state.values[storageKey]) intent = createRevocationIntent(binding, device, intent.intentId, parseProductSession(JSON.parse(state.values[storageKey])));
+          const value = canonicalJSON(intent); state.values[revocationKey] = value; states.put(state, namespace); return value;
+        });
+      },
+      async finishRevocationIntent(key, raw) {
+        if (key !== revocationKey) fail("CROSS_PRODUCT_SESSION", "Sign-out intent key is invalid");
+        const intent = parseRevocationIntent(raw, binding, device);
+        await stateOperation("readwrite", ({ state, states }) => {
+          if (state.values[revocationKey] !== raw) fail("REVOCATION_CHANGED", "Sign-out target changed before secure cleanup");
+          const current = state.values[storageKey] ?? null;
+          if (revocationSessionMatches(current, intent.session)) delete state.values[storageKey];
+          // A late receipt for A must never delete a newer session B or its request.
+          if (current === null || revocationSessionMatches(current, intent.session)) {
+            delete state.values[`${storageKey}:pending`]; delete state.values[`${storageKey}:return`]; delete state.values[`${storageKey}:completion`];
+          }
+          delete state.values[revocationKey]; states.put(state, namespace);
+        });
+        revocationAttempted = false;
+      },
     });
     const client = new RecoverableProductSessionClient({ registry, productId, platform: "web", storage, gateway, device, tokenFactory: randomToken, clock });
     const capabilities = Object.freeze({ securityLevel: BROWSER_PRODUCT_SESSION_SECURITY_LEVEL, privateKeyExtractable: false, persistedCryptoKey: true, osProtected: false, hardwareBacked: false, origin: binding.origin, productId, scopes: approvedScopes });
@@ -67,12 +106,15 @@ export async function createBrowserProductSessionClient(config) {
     function assertStoredValue(key, value) {
       if (typeof value !== "string" || value.length > 16_384) fail("INSECURE_STORAGE", "Browser Product Session storage value is invalid");
       if (key === `${storageKey}:return`) return;
+      if (key === revocationKey) { parseRevocationIntent(value, binding, device); return; }
       let input; try { input = JSON.parse(value); } catch { fail("INVALID_SESSION_STORE", "Browser Product Session storage is invalid JSON"); }
+      if (key === `${storageKey}:completion`) input = parseCompletionRecord(registry, value, new Date(input.completion?.challenge?.issuedAt)).request;
       if (key === storageKey) input = parseProductSession(input);
       for (const field of ["chainId", "productId", "clientId", "applicationId", "origin", "callback"]) if (input?.[field] !== binding[field]) fail("CROSS_PRODUCT_SESSION", "Stored browser session crosses its registered product binding");
       if (input.platform !== "web" || input.bundleId !== null || input.packageId !== null || input.deviceId !== record.deviceId || input.deviceKey !== record.deviceKey) fail("DEVICE_CHANGED", "Stored browser session does not match this device key");
       if (canonicalJSON(input.scopes) !== canonicalJSON(approvedScopes)) fail("SCOPE_WIDENING", "Stored browser session does not match this scope binding");
     }
+    function readIntent(state) { const raw = state.values[revocationKey] ?? null; return raw === null ? null : parseRevocationIntent(raw, binding, device); }
     function stateOperation(mode, callback) {
       if (closed || environment.location?.origin !== binding.origin) fail("INSECURE_STORAGE", "Browser Product Session storage is no longer available at this origin");
       return transact(db, mode, namespace, context => {
@@ -93,27 +135,49 @@ export async function createBrowserProductSessionClient(config) {
       for (const field of ["productId", "clientId", "applicationId", "origin", "callback"]) if (subject[field] !== binding[field]) fail("CROSS_PRODUCT_SESSION", "Browser signer cannot sign for another product binding");
       if (subject.deviceId !== record.deviceId || subject.deviceKey !== record.deviceKey || subject.bundleId !== null || subject.packageId !== null) fail("DEVICE_CHANGED", "Browser signing payload does not match this device");
       if (input.purpose === "challenge" && (subject.platform !== "web" || canonicalJSON(subject.scopes) !== canonicalJSON(approvedScopes))) fail("SCOPE_WIDENING", "Browser challenge crosses the configured scope binding");
-      const active = await currentRecord();
+      const active = await signingRecord(subject, input.purpose);
       let signature;
       try {
         signature = new Uint8Array(await crypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, active.privateKey, payload));
         if (!await crypto.subtle.verify({ name: "ECDSA", hash: "SHA-256" }, active.publicKey, signature, payload)) fail("DEVICE_CHANGED", "Browser device key pair no longer matches");
       } catch (error) { if (error instanceof WalletAuthError) throw error; fail("DEVICE_SIGNING_FAILED", "Browser device signing failed"); }
-      await currentRecord(); // Reject a concurrent key deletion/replacement before exposing the proof.
+      await signingRecord(subject, input.purpose); // Recheck persisted sign-out and target after signing.
       return encodeBase64url(p1363ToDER(signature));
+    }
+    function signingRecord(subject, purpose) {
+      return stateOperation("readonly", ({ device: current, state }) => {
+        const pending = readIntent(state);
+        if (pending || revocationAttempted) {
+          const target = pending?.session;
+          if (purpose !== "http-proof" || subject.path !== "/v2/product-sessions/revoke" || subject.method !== "POST" || subject.bodyDigest !== httpBodyDigest("{}") || !target || subject.sessionBinding !== target.sessionBinding || subject.account !== target.account) fail("REVOCATION_PENDING", "Pending sign-out permits only the exact target revocation proof");
+        } else if (purpose === "http-proof") {
+          const raw = state.values[storageKey], session = raw ? parseProductSession(JSON.parse(raw)) : null;
+          if (!session || subject.sessionBinding !== session.sessionBinding || subject.account !== session.account) fail("SESSION_INACTIVE", "Stored Product Session changed before signing");
+        }
+        return current;
+      });
+    }
+    async function assertAPIActive(expected) {
+      if (client.current !== expected) fail("SESSION_INACTIVE", "Product Session changed during API authorization");
+      await stateOperation("readonly", ({ state }) => {
+        if (readIntent(state) !== null || revocationAttempted || !revocationSessionMatches(state.values[storageKey] ?? null, expected.session)) fail("SESSION_INACTIVE", "Pending sign-out or a changed stored session blocks API authorization");
+      });
     }
     async function createIntrospectionProof(requiredScopes) {
       validateScopes(requiredScopes, approvedScopes);
       const state = client.current;
       if (state.status !== "connected" || !state.session) fail("SESSION_INACTIVE", "Connect and verify a Product Session before signing an API proof");
+      await assertAPIActive(state);
       const session = state.session;
       const now = typeof gateway.currentTime === "function"
         ? await gateway.currentTime({ requestId: `req_web_t_${randomToken()}` }) : clock();
       if (client.current !== state) fail("SESSION_INACTIVE", "Product Session changed while reading authority time");
+      await assertAPIActive(state);
       if (!(now instanceof Date) || !Number.isFinite(now.getTime()) || Date.parse(session.expiresAt) <= now.getTime()) fail("SESSION_EXPIRED", "Product Session expired before API authorization");
       const body = canonicalJSON({ requiredScopes: [...requiredScopes] });
       const proof = await createProductSessionProofV2With(session, { method: "POST", path: "/v2/product-sessions/introspect", bodyDigest: httpBodyDigest(body), nonce: randomToken(), issuedAt: now.toISOString(), expiresAt: new Date(Math.min(now.getTime() + 30_000, Date.parse(session.expiresAt))).toISOString() }, sign);
       if (client.current !== state) fail("SESSION_INACTIVE", "Product Session changed during API proof signing");
+      await assertAPIActive(state);
       return Object.freeze({ proof, proofHeader: encodeProductSessionGatewayProofHeaderV2(proof), requestId: `req_web_${randomToken()}`, body });
     }
   } catch (error) { close(); throw error; }

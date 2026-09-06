@@ -5,7 +5,8 @@ import { test } from "node:test";
 import {
   canonicalJSON, createBrowserProductSessionClient, createProductSessionReturnURL,
   ProductSessionGatewayFetchAdapter, ProductSessionGatewayHttpHandler,
-  RecoverableProductSessionClient, signProductSessionApproval,
+  RecoverableProductSessionClient, signProductSessionApproval, WalletAuthError,
+  createProductSessionRequest, signProductSessionChallengeWith,
 } from "../src/index.js";
 
 const registry = JSON.parse(readFileSync(new URL("../product-session-registry.json", import.meta.url), "utf8"));
@@ -102,11 +103,11 @@ test("time outages preserve the session for Retry and never permit local-clock A
   assert.equal(s.handler.snapshot().authority.revokedSessions.length, 0);
   first.close();
   const restarted = await createBrowserProductSessionClient(s.config);
-  assert.equal((await restarted.client.restore()).status, "network-unavailable");
+  assert.equal((await restarted.client.restore()).status, "retry-required");
   assert.equal(await restarted.storage.get(restarted.client.storageKey), stored);
   s.authority.unavailable = false;
-  assert.equal((await restarted.client.retry({ walletInstalled: true, schemeRegistered: true })).status, "connected");
-  assert.equal((await restarted.client.disconnect()).status, "disconnected");
+  const result = await restarted.client.retry({ walletInstalled: true, schemeRegistered: true });
+  assert.equal(result.status, "disconnected"); assert.equal(result.revocationConfirmed, true);
   restarted.close();
 });
 
@@ -221,7 +222,8 @@ test("authority time bounds near-expiry proofs and rejects expired sessions even
   assert.equal(nearExpiry.proof.expiresAt, expiresAt);
   s.authority.now = new Date(expiresAt);
   await assert.rejects(browser.createIntrospectionProof(["creator:account"]), { code: "SESSION_EXPIRED" });
-  assert.equal((await browser.client.disconnect()).status, "disconnected");
+  const expired = await browser.client.disconnect();
+  assert.equal(expired.status, "expired"); assert.equal(expired.revocationConfirmed, false);
   assert.equal(s.handler.snapshot().authority.revokedSessions.length, 0); // Already expired at Auth; no fabricated revoke.
   browser.close();
 });
@@ -274,7 +276,7 @@ test("device deletion during an open session prevents later proof generation", a
   const s = setup(), adapter = await createBrowserProductSessionClient(s.config);
   await connect(adapter, s.config);
   s.indexedDB.records("devices").clear();
-  await assert.rejects(adapter.createIntrospectionProof(["creator:publish"]), { code: "DEVICE_SIGNING_FAILED" });
+  await assert.rejects(adapter.createIntrospectionProof(["creator:publish"]), { code: "DEVICE_CHANGED" });
   assert.equal(s.handler.snapshot().consumedProofs.length, 1); // Only the initial login introspection.
   adapter.close();
 });
@@ -296,6 +298,225 @@ test("IndexedDB failure has no in-memory or plaintext fallback", async () => {
   await assert.rejects(createBrowserProductSessionClient(s.config), { code: "INSECURE_STORAGE" });
   assert.equal(s.indexedDB.records("devices").size, 0);
   assert.equal(s.indexedDB.records("state").size, 0);
+});
+
+test("pending sign-out survives reload, blocks login and proofs, and requires explicit authority Retry", async () => {
+  const s = setup(), first = await createBrowserProductSessionClient(s.config);
+  await connect(first, s.config);
+  const target = first.client.current.session, key = `${first.client.storageKey}:revoke`;
+  s.authority.unavailable = true;
+  const pendingLogout = await first.client.disconnect();
+  assert.equal(pendingLogout.status, "network-unavailable"); assert.deepEqual(pendingLogout.actions, ["retry"]);
+  assert.equal(pendingLogout.revocationPending, true);
+  const intent = await first.storage.get(key);
+  assert.deepEqual(JSON.parse(intent).session, target);
+  first.close();
+  const restarted = await createBrowserProductSessionClient(s.config), requestCount = s.seen.length;
+  assert.equal((await restarted.client.restore()).revocationPending, true);
+  assert.equal((await restarted.client.begin({ walletInstalled: true, schemeRegistered: true })).revocationPending, true);
+  assert.equal((await restarted.client.handleReturn("https://creator.ynxweb4.com/?irrelevant=callback")).revocationPending, true);
+  await assert.rejects(restarted.createIntrospectionProof(["creator:account"]), { code: "SESSION_INACTIVE" });
+  assert.equal(s.seen.length, requestCount, "restore and begin never auto-contact Auth for a saved logout");
+  assert.equal(await restarted.storage.get(key), intent);
+  s.authority.now = new Date(target.expiresAt);
+  assert.equal((await restarted.client.retry({ walletInstalled: true, schemeRegistered: true })).status, "network-unavailable");
+  assert.equal(await restarted.storage.get(key), intent, "offline clock cannot resolve target expiry");
+  s.authority.unavailable = false;
+  const expired = await restarted.client.retry({ walletInstalled: true, schemeRegistered: true });
+  assert.equal(expired.status, "expired"); assert.equal(expired.revocationConfirmed, false);
+  assert.equal(expired.sessionBinding, target.sessionBinding);
+  assert.equal(await restarted.storage.get(key), null);
+  assert.equal(await restarted.storage.get(restarted.client.storageKey), null);
+  assert.equal(s.handler.snapshot().authority.revokedSessions.length, 0);
+  restarted.close();
+});
+
+test("failed intent persistence blocks revocation I/O and business proofs until the same target is saved", async () => {
+  const s = setup(), browser = await createBrowserProductSessionClient(s.config);
+  await connect(browser, s.config);
+  const target = browser.client.current.session, requestCount = s.seen.length;
+  s.indexedDB.failWrites = true;
+  assert.equal((await browser.client.disconnect()).revocationPending, true);
+  assert.equal(s.seen.length, requestCount, "no clock or revoke call before durable intent");
+  await assert.rejects(browser.createIntrospectionProof(["creator:account"]), { code: "SESSION_INACTIVE" });
+  assert.equal((await browser.client.begin({ walletInstalled: true, schemeRegistered: true })).revocationPending, true);
+  assert.equal(s.seen.length, requestCount);
+  s.indexedDB.failWrites = false;
+  const result = await browser.client.retry({ walletInstalled: true, schemeRegistered: true });
+  assert.equal(result.status, "disconnected"); assert.equal(result.revocationConfirmed, true);
+  assert.equal(result.sessionBinding, target.sessionBinding);
+  assert.deepEqual(s.handler.snapshot().authority.revokedSessions, [target.sessionBinding]);
+  browser.close();
+});
+
+test("a browser clock cannot resolve pending logout expiry without authenticated authority time", async () => {
+  const s = setup({ localOffsetMs: 600_000 }), browser = await createBrowserProductSessionClient(s.config);
+  await connect(browser, s.config);
+  const target = browser.client.current.session;
+  s.gateway.currentTime = undefined;
+  const result = await browser.client.disconnect();
+  assert.equal(result.status, "retry-required"); assert.notEqual(result.revocationConfirmed, true);
+  assert.deepEqual(JSON.parse(await browser.storage.get(`${browser.client.storageKey}:revoke`)).session, target);
+  assert.deepEqual(JSON.parse(await browser.storage.get(browser.client.storageKey)), target);
+  assert.equal(s.handler.snapshot().authority.revokedSessions.length, 0);
+  browser.close();
+});
+
+test("lost revoke receipt retains exact target through reload and fresh Retry confirms its revocation", async () => {
+  const s = setup(), first = await createBrowserProductSessionClient(s.config);
+  await connect(first, s.config);
+  const target = first.client.current.session, original = s.gateway.revoke.bind(s.gateway);
+  s.gateway.revoke = async input => { await original(input); throw new WalletAuthError("NETWORK_UNAVAILABLE", "receipt lost after revoke commit"); };
+  assert.equal((await first.client.disconnect()).status, "network-unavailable");
+  const intent = await first.storage.get(`${first.client.storageKey}:revoke`);
+  assert.deepEqual(s.handler.snapshot().authority.revokedSessions, [target.sessionBinding]);
+  first.close(); s.gateway.revoke = original;
+  const restarted = await createBrowserProductSessionClient(s.config), before = s.seen.length;
+  assert.equal((await restarted.client.restore()).revocationPending, true);
+  assert.equal(s.seen.length, before);
+  assert.equal(await restarted.storage.get(`${restarted.client.storageKey}:revoke`), intent);
+  const result = await restarted.client.retry({ walletInstalled: true, schemeRegistered: true });
+  assert.equal(result.status, "disconnected"); assert.equal(result.revocationConfirmed, true);
+  assert.equal(result.sessionBinding, target.sessionBinding);
+  const revokes = s.seen.filter(item => new URL(item.url).pathname.endsWith("/revoke"));
+  assert.equal(revokes.length, 2);
+  assert.notEqual(revokes[0].headers["x-ynx-product-session-proof-v2"], revokes[1].headers["x-ynx-product-session-proof-v2"]);
+  assert.equal(await restarted.storage.get(`${restarted.client.storageKey}:revoke`), null);
+  restarted.close();
+});
+
+test("wrong revocation receipt and another tab cannot bypass the persisted sign-out target", async () => {
+  const s = setup(), first = await createBrowserProductSessionClient(s.config);
+  await connect(first, s.config);
+  const second = await createBrowserProductSessionClient(s.config); await second.client.restore();
+  const target = first.client.current.session, original = s.gateway.revoke.bind(s.gateway);
+  s.gateway.revoke = async () => ({ revoked: "0".repeat(64) });
+  assert.equal((await first.client.disconnect()).status, "retry-required");
+  const intent = await first.storage.get(`${first.client.storageKey}:revoke`);
+  assert.deepEqual(JSON.parse(intent).session, target);
+  assert.equal(second.client.current.status, "connected", "the other tab still has an old in-memory view");
+  await assert.rejects(second.createIntrospectionProof(["creator:account"]), { code: "SESSION_INACTIVE" });
+  assert.equal(s.handler.snapshot().authority.revokedSessions.length, 0);
+  s.gateway.revoke = original;
+  assert.equal((await first.client.retry({ walletInstalled: true, schemeRegistered: true })).revocationConfirmed, true);
+  await assert.rejects(second.createIntrospectionProof(["creator:account"]), { code: "SESSION_INACTIVE" });
+  first.close(); second.close();
+});
+
+test("a late exact-target logout receipt never deletes a newer stored session", async () => {
+  const s = setup(), browser = await createBrowserProductSessionClient(s.config); await connect(browser, s.config);
+  const target = browser.client.current.session;
+  const request = createProductSessionRequest(registry, { productId: "creator-studio", platform: "web", deviceId: browser.device.id, deviceKey: browser.device.key, scopes, purpose: "Independent newer-account fixture.", nonce: token("newer-account-nonce"), state: token("newer-account-state") }, NOW);
+  const approval = signProductSessionApproval(registry, request, { accountSecret: "2".padStart(64, "0"), scopes, expiresAt: request.expiresAt }, NOW);
+  const challenge = await s.gateway.challenge({ requestId: "req_newer_fixture_challenge", request, approval });
+  const completion = await signProductSessionChallengeWith(challenge, browser.device.sign);
+  const newer = await s.gateway.complete({ requestId: "req_newer_fixture_complete", request, approval, completion });
+  const original = s.gateway.revoke.bind(s.gateway);
+  let entered, release; const started = new Promise(resolve => { entered = resolve; }), blocked = new Promise(resolve => { release = resolve; });
+  s.gateway.revoke = async input => { const result = await original(input); entered(); await blocked; return result; };
+  const logout = browser.client.disconnect(); await started;
+  // Simulate a pre-upgrade tab that writes B while A's response is in flight.
+  const storedState = [...s.indexedDB.records("state").values()][0];
+  storedState.values[browser.client.storageKey] = JSON.stringify(newer);
+  release(); const result = await logout;
+  assert.equal(result.sessionBinding, target.sessionBinding); assert.equal(result.revocationConfirmed, true);
+  assert.deepEqual(JSON.parse(await browser.storage.get(browser.client.storageKey)), newer);
+  assert.equal(s.handler.snapshot().authority.revokedSessions.includes(newer.sessionBinding), false);
+  browser.close();
+});
+
+for (const delay of [59_999, 60_000, 61_000]) test(`real WebCrypto reload retries the exact lost completion body after ${delay} ms`, async () => {
+  const s = setup(), first = await createBrowserProductSessionClient(s.config), original = s.gateway.complete.bind(s.gateway);
+  let lose = true;
+  s.gateway.complete = async input => { const result = await original(input); if (lose) { lose = false; throw new WalletAuthError("NETWORK_UNAVAILABLE", "completion response lost"); } return result; };
+  assert.equal((await connect(first, s.config)).status, "network-unavailable");
+  const stored = await first.storage.get(`${first.client.storageKey}:completion`);
+  assert.ok(stored); const originalSignature = JSON.parse(stored).completion.deviceSignature;
+  first.close(); s.authority.now = new Date(NOW.getTime() + delay);
+  const restarted = await createBrowserProductSessionClient(s.config);
+  assert.equal((await restarted.client.retry({ walletInstalled: true, schemeRegistered: true })).status, "connected");
+  const completions = s.seen.filter(item => new URL(item.url).pathname.endsWith("/complete"));
+  assert.equal(completions.length, 2); assert.equal(completions[0].body, completions[1].body);
+  assert.equal(JSON.parse(completions[1].body).completion.deviceSignature, originalSignature);
+  assert.equal(s.seen.filter(item => new URL(item.url).pathname.endsWith("/challenge")).length, 1);
+  assert.equal(s.handler.snapshot().authority.sessions.length, 1);
+  restarted.close();
+});
+
+for (const failure of ["uncompleted", "revoked", "session-expired"]) test(`protected completion Retry rejects ${failure} without a new challenge or signature`, async () => {
+  const s = setup(), first = await createBrowserProductSessionClient(s.config), original = s.gateway.complete.bind(s.gateway);
+  let lose = true;
+  s.gateway.complete = async input => {
+    if (lose && failure === "uncompleted") { lose = false; throw new WalletAuthError("NETWORK_UNAVAILABLE", "request never reached Auth"); }
+    const result = await original(input);
+    if (lose) { lose = false; throw new WalletAuthError("NETWORK_UNAVAILABLE", "completion response lost"); }
+    return result;
+  };
+  assert.equal((await connect(first, s.config)).status, "network-unavailable");
+  const record = JSON.parse(await first.storage.get(`${first.client.storageKey}:completion`));
+  if (failure === "revoked") {
+    const active = await createBrowserProductSessionClient(s.config); await active.client.restore();
+    assert.equal((await active.client.disconnect()).status, "disconnected"); active.close();
+    // Restore only the lost-response retry envelope to test server rejection.
+    await first.storage.set(`${first.client.storageKey}:pending`, JSON.stringify(record.request));
+    await first.storage.set(`${first.client.storageKey}:return`, createProductSessionReturnURL(registry, record.request, { result: "approved", approval: record.approval }, NOW));
+    await first.storage.set(`${first.client.storageKey}:completion`, canonicalJSON(record));
+  }
+  first.close();
+  s.authority.now = failure === "session-expired" ? new Date(record.completion.challenge.sessionExpiresAt) : new Date(NOW.getTime() + 61_000);
+  const restarted = await createBrowserProductSessionClient(s.config);
+  const result = await restarted.client.retry({ walletInstalled: true, schemeRegistered: true });
+  assert.equal(result.status, "retry-required"); assert.equal(result.session, undefined);
+  assert.equal(s.seen.filter(item => new URL(item.url).pathname.endsWith("/challenge")).length, 1);
+  assert.equal(s.handler.snapshot().authority.sessions.length, failure === "uncompleted" ? 0 : 1);
+  restarted.close();
+});
+
+test("logout after a lost first completion fixes the actual target and revokes after reload without replaying complete", async () => {
+  const s = setup(), first = await createBrowserProductSessionClient(s.config), original = s.gateway.complete.bind(s.gateway);
+  s.gateway.complete = async input => { await original(input); throw new WalletAuthError("NETWORK_UNAVAILABLE", "first completion receipt lost"); };
+  assert.equal((await connect(first, s.config)).status, "network-unavailable");
+  assert.equal(await first.storage.get(first.client.storageKey), null);
+  const actual = s.handler.snapshot().authority.sessions[0];
+  s.authority.unavailable = true;
+  assert.equal((await first.client.disconnect()).status, "network-unavailable");
+  const intent = await first.storage.get(`${first.client.storageKey}:revoke`);
+  assert.deepEqual(JSON.parse(intent).session, actual, "derived target must equal every field of the actual authority result");
+  first.close(); const restarted = await createBrowserProductSessionClient(s.config);
+  assert.equal((await restarted.client.restore()).revocationPending, true);
+  s.authority.unavailable = false;
+  const result = await restarted.client.retryDetected();
+  assert.equal(result.status, "disconnected"); assert.equal(result.revocationConfirmed, true);
+  assert.equal(result.sessionBinding, actual.sessionBinding);
+  assert.deepEqual(s.handler.snapshot().authority.revokedSessions, [actual.sessionBinding]);
+  assert.equal(s.seen.filter(item => new URL(item.url).pathname.endsWith("/complete")).length, 1);
+  assert.equal(s.seen.filter(item => new URL(item.url).pathname.endsWith("/challenge")).length, 1);
+  assert.equal(restarted.client.current.session, undefined);
+  restarted.close();
+});
+
+test("uncommitted completion logout stays unconfirmed on 404 and ends only at verified target expiry", async () => {
+  const s = setup(), first = await createBrowserProductSessionClient(s.config);
+  s.gateway.complete = async () => { throw new WalletAuthError("NETWORK_UNAVAILABLE", "completion never reached Auth"); };
+  assert.equal((await connect(first, s.config)).status, "network-unavailable");
+  const result = await first.client.disconnect();
+  assert.equal(result.status, "retry-required"); assert.notEqual(result.revocationConfirmed, true);
+  const intent = await first.storage.get(`${first.client.storageKey}:revoke`), target = JSON.parse(intent).session;
+  assert.ok(target.sessionBinding); assert.equal(s.handler.snapshot().authority.sessions.length, 0);
+  first.close(); const restarted = await createBrowserProductSessionClient(s.config);
+  assert.equal((await restarted.client.restore()).revocationPending, true);
+  s.authority.now = new Date(NOW.getTime() + 61_000);
+  assert.equal((await restarted.client.retryDetected()).status, "retry-required");
+  assert.equal(await restarted.storage.get(`${restarted.client.storageKey}:revoke`), intent);
+  s.authority.now = new Date(target.expiresAt);
+  const expired = await restarted.client.retryDetected();
+  assert.equal(expired.status, "expired"); assert.equal(expired.revocationConfirmed, false);
+  assert.equal(expired.sessionBinding, target.sessionBinding);
+  assert.equal(await restarted.storage.get(`${restarted.client.storageKey}:revoke`), null);
+  assert.equal(s.handler.snapshot().authority.sessions.length, 0);
+  assert.equal(s.handler.snapshot().authority.revokedSessions.length, 0);
+  assert.equal(s.seen.filter(item => new URL(item.url).pathname.endsWith("/complete")).length, 0);
+  restarted.close();
 });
 
 // A narrow IndexedDB transaction fake: request callbacks, structured-cloned values,

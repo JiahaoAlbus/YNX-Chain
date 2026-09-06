@@ -4,9 +4,11 @@ import { createProductSessionProofV2, createProductSessionProofV2With } from "./
 import { createProductSessionChallenge, createProductSessionRequest, parseProductSession, parseProductSessionChallenge, parseProductSessionRequest, signProductSessionChallenge, signProductSessionChallengeWith } from "./product-session-v2.js";
 import { parseProductSessionRegistry, productPlatformBinding } from "./product-session-registry.js";
 import { parseProductSessionReturnURL, prepareWalletOpen, walletConnectionChoices, WALLET_ROUTE_STATUS } from "./product-session-router.js";
+import { createRevocationIntent, parseRevocationIntent, revocationSessionMatches } from "./product-session-revocation-intent.js";
+import { deriveCompletionTarget, parseCompletionRecord } from "./product-session-completion-record.js";
 
 export const PRODUCT_SESSION_CLIENT_STATE = Object.freeze({
-  DISCONNECTED: "disconnected", CONNECTING: "connecting", CONNECTED: "connected", GUEST: "guest",
+  DISCONNECTED: "disconnected", CONNECTING: "connecting", CONNECTED: "connected", GUEST: "guest", EXPIRED: "expired",
   NETWORK_UNAVAILABLE: "network-unavailable", RETRY_REQUIRED: "retry-required",
 });
 
@@ -14,6 +16,7 @@ const REVOCATION_PENDING = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, "P
 
 export class RecoverableProductSessionClient {
   #registry; #binding; #storage; #gateway; #device; #tokens; #clock; #state; #autoReconnectAttempted; #networkAvailable; #networkEpoch; #disconnectPromise; #returnOperation; #recoveryPromise;
+  #revocationRequested = false; #revocationIntent = null;
   constructor(config) {
     exactFields(config, ["registry", "productId", "platform", "storage", "gateway", "device", "tokenFactory", "clock"], "Recoverable Product Session client configuration");
     this.#registry = parseProductSessionRegistry(config.registry);
@@ -34,7 +37,7 @@ export class RecoverableProductSessionClient {
 
   // Suspend outward authority as soon as disconnect starts, including while its
   // clock lookup or a prior recovery is pending. Keep protected state for Retry.
-  get current() { return this.#disconnectPromise === null ? this.#state : REVOCATION_PENDING; }
+  get current() { return this.#disconnectPromise !== null || this.#revocationRequested && [PRODUCT_SESSION_CLIENT_STATE.CONNECTED, PRODUCT_SESSION_CLIENT_STATE.CONNECTING, PRODUCT_SESSION_CLIENT_STATE.GUEST].includes(this.#state.status) ? REVOCATION_PENDING : this.#state; }
   get storageKey() { return `ynx.product-session.v2:${this.#binding.productId}:${this.#binding.platform}:${this.#binding.applicationId}`; }
   get connectionBinding() { return Object.freeze({ productId: this.#binding.productId, platform: this.#binding.platform, applicationId: this.#binding.applicationId }); }
 
@@ -46,7 +49,10 @@ export class RecoverableProductSessionClient {
     return Object.freeze({ walletInstalled, schemeRegistered });
   }
   async beginDetected(automatic = false) { return this.begin(await this.detectWalletEnvironment(), automatic); }
-  async retryDetected() { return this.retry(await this.detectWalletEnvironment()); }
+  async retryDetected() {
+    if (await this.#loadRevocationIntent()) { this.#networkAvailable = true; return this.disconnect(); }
+    return this.retry(await this.detectWalletEnvironment());
+  }
 
   async restore(networkAvailable = true) {
     await this.#recover(() => this.#restore(networkAvailable));
@@ -54,6 +60,7 @@ export class RecoverableProductSessionClient {
   }
   async #restore(networkAvailable) {
     this.#networkAvailable = Boolean(networkAvailable);
+    if (await this.#loadRevocationIntent()) return this.#pendingRevocation();
     if (!this.#networkAvailable) return this.#offline();
     const restored = await this.#restoreStoredSession();
     if (restored !== null) return restored;
@@ -69,12 +76,14 @@ export class RecoverableProductSessionClient {
 
   async begin(environment, automatic = false) {
     exactFields(environment, ["walletInstalled", "schemeRegistered"], "Product Session connection environment");
+    if (await this.#loadRevocationIntent()) return this.#pendingRevocation();
     if (!this.#networkAvailable) return this.#offline();
     const networkEpoch = this.#networkEpoch;
     let now;
     try { now = await this.#now(); }
     catch (error) { if (isNetworkUnavailable(error)) return this.#offline("Authority time is unavailable; Retry before opening Wallet"); throw error; }
     if (networkEpoch !== this.#networkEpoch || !this.#networkAvailable) return this.#networkTransition("Network changed while reading authority time; explicit Retry is required");
+    if (await this.#loadRevocationIntent()) return this.#pendingRevocation();
     const request = createProductSessionRequest(this.#registry, {
       productId: this.#binding.productId, platform: this.#binding.platform,
       deviceId: this.#device.id, deviceKey: this.#device.key, scopes: this.#device.scopes,
@@ -103,7 +112,11 @@ export class RecoverableProductSessionClient {
     finally { if (this.#returnOperation?.promise === operation) this.#returnOperation = null; }
   }
   async #handleReturn(url) {
-    if (!this.#networkAvailable) return this.#offline();
+    if (await this.#loadRevocationIntent()) return this.#pendingRevocation();
+    if (!this.#networkAvailable) {
+      if (typeof url === "string" && url.length <= 16_384 && await this.#storage.get(`${this.storageKey}:pending`) !== null) await this.#storage.set(`${this.storageKey}:return`, url);
+      return this.#offline();
+    }
     const networkEpoch = this.#networkEpoch;
     const raw = await this.#storage.get(`${this.storageKey}:pending`);
     if (raw === null) { await this.#storage.remove(`${this.storageKey}:return`); this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, "No pending Wallet request matches this callback", { actions: ["retry", "guest"] }); return this.#state; }
@@ -129,16 +142,30 @@ export class RecoverableProductSessionClient {
     if (returned.status !== WALLET_ROUTE_STATUS.READY) { await this.#storage.remove(`${this.storageKey}:return`); this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, returned.message, { actions: returned.actions }); return this.#state; }
     await this.#storage.set(`${this.storageKey}:return`, url);
     try {
-      const challenge = parseProductSessionChallenge(await this.#gateway.challenge({ requestId: gatewayRequestId("c", request.nonce), request, approval: returned.approval }));
-      if (networkEpoch !== this.#networkEpoch) return this.#networkTransition("Network changed while receiving the Gateway challenge; protected callback was retained for Retry");
-      const expectedChallenge = createProductSessionChallenge(this.#registry, request, returned.approval, { challenge: challenge.challenge }, new Date(challenge.issuedAt));
-      if (canonicalJSON(challenge) !== canonicalJSON(expectedChallenge)) fail("SESSION_BINDING_MISMATCH", "Gateway challenge did not match the exact product request and Wallet approval");
-      if (challenge.expiresAt <= (await this.#now()).toISOString()) fail("SESSION_EXPIRED", "Gateway challenge expired before product device signing");
-      if (networkEpoch !== this.#networkEpoch || !this.#networkAvailable) return this.#networkTransition("Network changed while reading challenge time; protected callback was retained for Retry");
-      const completion = this.#device.sign
-        ? await signProductSessionChallengeWith(challenge, this.#device.sign)
-        : signProductSessionChallenge(challenge, this.#device.secret);
+      const storedCompletion = await this.#storage.get(`${this.storageKey}:completion`);
+      let completion;
+      if (storedCompletion !== null) {
+        const record = parseCompletionRecord(this.#registry, storedCompletion, now);
+        if (canonicalJSON(record.request) !== canonicalJSON(request) || canonicalJSON(record.approval) !== canonicalJSON(returned.approval) || record.completion.challenge.deviceId !== this.#device.id || record.completion.challenge.deviceKey !== this.#device.key) fail("SESSION_BINDING_MISMATCH", "Protected completion belongs to another exact Wallet approval");
+        if (record.completion.challenge.sessionExpiresAt <= now.toISOString()) fail("SESSION_EXPIRED", "Previously completed Product Session has expired");
+        // Reuse the original signed body. Never sign a now-expired challenge,
+        // or change a WebCrypto signature under the same completion request ID.
+        completion = record.completion;
+      } else {
+        const challenge = parseProductSessionChallenge(await this.#gateway.challenge({ requestId: gatewayRequestId("c", request.nonce), request, approval: returned.approval }));
+        if (networkEpoch !== this.#networkEpoch) return this.#networkTransition("Network changed while receiving the Gateway challenge; protected callback was retained for Retry");
+        const expectedChallenge = createProductSessionChallenge(this.#registry, request, returned.approval, { challenge: challenge.challenge }, new Date(challenge.issuedAt));
+        if (canonicalJSON(challenge) !== canonicalJSON(expectedChallenge)) fail("SESSION_BINDING_MISMATCH", "Gateway challenge did not match the exact product request and Wallet approval");
+        if (challenge.expiresAt <= (await this.#now()).toISOString()) fail("SESSION_EXPIRED", "Gateway challenge expired before product device signing");
+        if (networkEpoch !== this.#networkEpoch || !this.#networkAvailable) return this.#networkTransition("Network changed while reading challenge time; protected callback was retained for Retry");
+        if (await this.#loadRevocationIntent()) return this.#pendingRevocation();
+        completion = this.#device.sign
+          ? await signProductSessionChallengeWith(challenge, this.#device.sign)
+          : signProductSessionChallenge(challenge, this.#device.secret);
+        await this.#storage.set(`${this.storageKey}:completion`, canonicalJSON({ request, approval: returned.approval, completion }));
+      }
       if (networkEpoch !== this.#networkEpoch) return this.#networkTransition("Network changed during platform challenge signing; protected callback was retained for Retry");
+      if (await this.#loadRevocationIntent()) return this.#pendingRevocation();
       const session = parseProductSession(await this.#gateway.complete({ requestId: gatewayRequestId("f", request.state), request, approval: returned.approval, completion }));
       await this.#storage.set(this.storageKey, JSON.stringify(session));
       if (networkEpoch !== this.#networkEpoch) return this.#networkTransition("Network changed while protecting the issued Product Session; authoritative Retry is required");
@@ -153,6 +180,7 @@ export class RecoverableProductSessionClient {
       this.#state = state(PRODUCT_SESSION_CLIENT_STATE.CONNECTED, "Authoritative Product Session connected", { session });
       return this.#state;
     } catch (error) {
+      if (this.#revocationRequested || error?.code === "REVOCATION_PENDING") return this.#pendingRevocation();
       if (isNetworkUnavailable(error)) return this.#offline("Network unavailable while completing Wallet approval; the protected callback was retained for Retry");
       await this.#storage.remove(this.storageKey); await this.#clearPending();
       this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, "Gateway did not issue or confirm a valid Product Session", { actions: ["retry", "guest"] });
@@ -161,6 +189,7 @@ export class RecoverableProductSessionClient {
   }
 
   async retry(environment) {
+    if (await this.#loadRevocationIntent()) { this.#networkAvailable = true; return this.disconnect(); }
     await this.#recover(() => this.#retry(environment));
     return this.current;
   }
@@ -175,15 +204,20 @@ export class RecoverableProductSessionClient {
   }
   connectionChoices(availability) { return walletConnectionChoices(this.#registry, this.#binding.productId, availability); }
   setNetworkAvailable(available) { this.#networkEpoch += 1; this.#networkAvailable = Boolean(available); if (!this.#networkAvailable) return this.#offline(); this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, "Network restored; authoritative re-introspection is required", { actions: ["retry"] }); return this.#state; }
-  enterGuest() { this.#state = state(PRODUCT_SESSION_CLIENT_STATE.GUEST, "Guest / Try mode: not signed in; balances, transactions and Chain authority are unavailable", { limitations: ["not-signed-in", "no-wallet-balance", "no-transactions", "no-chain-authority"] }); return this.#state; }
+  enterGuest() { if (this.#revocationRequested) return this.#pendingRevocation(); this.#state = state(PRODUCT_SESSION_CLIENT_STATE.GUEST, "Guest / Try mode: not signed in; balances, transactions and Chain authority are unavailable", { limitations: ["not-signed-in", "no-wallet-balance", "no-transactions", "no-chain-authority"] }); return this.#state; }
   async disconnect() {
     if (this.#disconnectPromise !== null) return this.#disconnectPromise;
+    this.#revocationRequested = true;
     const operation = this.#disconnect();
     this.#disconnectPromise = operation;
     try { return await operation; }
     finally { if (this.#disconnectPromise === operation) this.#disconnectPromise = null; }
   }
   async #disconnect() {
+    // Persist the fixed target before clock lookup, signing, network I/O, or
+    // waiting for earlier recovery. A reload must retain the user's sign-out.
+    try { await this.#prepareRevocationIntent(); }
+    catch { return this.#pendingRevocation("Sign-out could not be saved securely; authorization remains suspended. Retry to save the same target."); }
     const pendingRecovery = this.#recoveryPromise;
     if (pendingRecovery !== null) {
       try { await pendingRecovery; } catch { /* Disconnect still clears a failed recovery transaction. */ }
@@ -192,11 +226,13 @@ export class RecoverableProductSessionClient {
     if (pendingReturn !== null) {
       try { await pendingReturn; } catch { /* Disconnect still clears a rejected or invalid pending callback. */ }
     }
-    let session = this.#state.status === PRODUCT_SESSION_CLIENT_STATE.CONNECTED ? this.#state.session : null;
+    await this.#loadRevocationIntent();
+    let session = this.#revocationIntent.session;
     if (session === null) {
       const raw = await this.#storage.get(this.storageKey);
       if (raw !== null) {
-        try { session = parseProductSession(JSON.parse(raw)); } catch { /* Invalid protected state grants no revocation authority. */ }
+        try { session = parseProductSession(JSON.parse(raw)); } catch { return this.#pendingRevocation("The pending sign-out target is unavailable; secure storage requires repair."); }
+        await this.#saveRevocationIntent(createRevocationIntent(this.#binding, this.#device, this.#revocationIntent.intentId, session));
       }
     }
     let sessionExpired = false;
@@ -206,7 +242,9 @@ export class RecoverableProductSessionClient {
         if (!this.#networkAvailable) fail("NETWORK_UNAVAILABLE", "Network unavailable before Product Session revocation");
         const now = await this.#now();
         if (networkEpoch !== this.#networkEpoch || !this.#networkAvailable) fail("NETWORK_UNAVAILABLE", "Network changed while reading revocation authority time");
-        sessionExpired = session.expiresAt <= now.toISOString();
+        // Only the authenticated authority-time adapter can establish expiry;
+        // a custom/local clock must never resolve a pending logout by itself.
+        sessionExpired = typeof this.#gateway.currentTime === "function" && session.expiresAt <= now.toISOString();
         if (!sessionExpired) {
           const body = {};
           const proof = await this.#proof(session, "/v2/product-sessions/revoke", body, now);
@@ -222,22 +260,28 @@ export class RecoverableProductSessionClient {
         }
       }
     }
-    await this.#storage.remove(this.storageKey); await this.#clearPending();
-    this.#state = state(PRODUCT_SESSION_CLIENT_STATE.DISCONNECTED, session === null ? "Product Session removed from secure storage" : sessionExpired ? "Authoritative Product Session expired and was removed from secure storage" : "Authoritative Product Session revoked and removed from secure storage");
+    if (session === null && await this.#storage.get(`${this.storageKey}:return`) !== null) return this.#pendingRevocation("A prior completion has not yielded its exact target; sign-out confirmation is still pending.");
+    try { await this.#finishRevocationIntent(); }
+    catch { return this.#pendingRevocation("The authority result was received but secure cleanup is pending; Retry the same sign-out target."); }
+    this.#revocationRequested = false; this.#revocationIntent = null;
+    this.#state = state(sessionExpired ? PRODUCT_SESSION_CLIENT_STATE.EXPIRED : PRODUCT_SESSION_CLIENT_STATE.DISCONNECTED, session === null ? "No authoritative Product Session was present; local connection request was removed" : sessionExpired ? "Auth confirmed that the exact Product Session expired; no revocation receipt was claimed" : "Auth confirmed revocation of the exact Product Session", { revocationConfirmed: session !== null && !sessionExpired, ...(session ? { sessionBinding: session.sessionBinding } : {}) });
     return this.#state;
   }
 
   async #introspect(session) {
+    if (await this.#loadRevocationIntent()) fail("REVOCATION_PENDING", "Pending sign-out blocks Product Session authorization");
     const networkEpoch = this.#networkEpoch;
     if (!this.#networkAvailable) fail("NETWORK_UNAVAILABLE", "Network unavailable before Product Session introspection");
     const body = { requiredScopes: session.scopes };
     const proof = await this.#proof(session, "/v2/product-sessions/introspect", body);
     if (networkEpoch !== this.#networkEpoch || !this.#networkAvailable) fail("NETWORK_UNAVAILABLE", "Network changed during Product Session introspection signing");
     const result = await this.#gateway.introspect({ requestId: gatewayRequestId("i", proof.nonce), sessionBinding: session.sessionBinding, requiredScopes: session.scopes, proof });
+    if (await this.#loadRevocationIntent()) fail("REVOCATION_PENDING", "Sign-out started during Product Session authorization");
     if (result?.active !== true || canonicalJSON(parseProductSession(result.session)) !== canonicalJSON(session)) fail("SESSION_INACTIVE", "Gateway did not confirm the exact Product Session");
     return result;
   }
   async #proof(session, path, body, authorityTime) {
+    if (path !== "/v2/product-sessions/revoke" && await this.#loadRevocationIntent()) fail("REVOCATION_PENDING", "Pending sign-out blocks Product Session authorization");
     const networkEpoch = this.#networkEpoch;
     const now = authorityTime ?? await this.#now();
     if (networkEpoch !== this.#networkEpoch || !this.#networkAvailable) fail("NETWORK_UNAVAILABLE", "Network changed while reading proof authority time");
@@ -259,6 +303,7 @@ export class RecoverableProductSessionClient {
     return value;
   }
   async #restoreStoredSession() {
+    if (await this.#loadRevocationIntent()) return this.#pendingRevocation();
     const raw = await this.#storage.get(this.storageKey);
     if (raw === null) return null;
     const networkEpoch = this.#networkEpoch;
@@ -271,12 +316,60 @@ export class RecoverableProductSessionClient {
       this.#state = state(PRODUCT_SESSION_CLIENT_STATE.CONNECTED, "Authoritative Product Session restored", { session });
       return this.#state;
     } catch (error) {
+      if (this.#revocationRequested || error?.code === "REVOCATION_PENDING") return this.#pendingRevocation();
       if (isNetworkUnavailable(error)) return this.#offline("Network unavailable during Product Session re-introspection; protected state was retained but is not authoritative");
       await this.#storage.remove(this.storageKey);
       return null;
     }
   }
-  async #clearPending() { await this.#storage.remove(`${this.storageKey}:pending`); await this.#storage.remove(`${this.storageKey}:return`); }
+  async #clearPending() { await this.#storage.remove(`${this.storageKey}:pending`); await this.#storage.remove(`${this.storageKey}:return`); await this.#storage.remove(`${this.storageKey}:completion`); }
+  async #loadRevocationIntent() {
+    const raw = await this.#storage.get(`${this.storageKey}:revoke`);
+    if (raw !== null) { this.#revocationRequested = true; this.#revocationIntent = parseRevocationIntent(raw, this.#binding, this.#device); }
+    return this.#revocationRequested;
+  }
+  async #prepareRevocationIntent() {
+    await this.#loadRevocationIntent();
+    if (this.#revocationIntent !== null) {
+      let intent = this.#revocationIntent;
+      if (intent.session === null) {
+        const completion = await this.#storage.get(`${this.storageKey}:completion`);
+        if (completion !== null) intent = createRevocationIntent(this.#binding, this.#device, intent.intentId, deriveCompletionTarget(this.#registry, completion));
+      }
+      await this.#saveRevocationIntent(intent); return;
+    }
+    let session = this.#state.session ?? null;
+    if (session === null) { const raw = await this.#storage.get(this.storageKey); if (raw !== null) session = parseProductSession(JSON.parse(raw)); }
+    if (session === null) {
+      const raw = await this.#storage.get(`${this.storageKey}:completion`);
+      if (raw !== null) session = deriveCompletionTarget(this.#registry, raw);
+    }
+    const intent = createRevocationIntent(this.#binding, this.#device, this.#tokens(), session);
+    // Retain the exact chosen target in memory even when the durable write fails.
+    this.#revocationIntent = intent;
+    await this.#saveRevocationIntent(intent);
+  }
+  async #saveRevocationIntent(intent) {
+    const raw = canonicalJSON(intent), key = `${this.storageKey}:revoke`;
+    if (typeof this.#storage.saveRevocationIntent === "function") {
+      this.#revocationIntent = parseRevocationIntent(await this.#storage.saveRevocationIntent(key, raw), this.#binding, this.#device);
+    } else {
+      await this.#storage.set(key, raw);
+      if (await this.#storage.get(key) !== raw) fail("INSECURE_STORAGE", "Pending sign-out intent did not read back exactly");
+      this.#revocationIntent = intent;
+    }
+  }
+  async #finishRevocationIntent() {
+    const intent = this.#revocationIntent, key = `${this.storageKey}:revoke`, raw = canonicalJSON(intent);
+    if (typeof this.#storage.finishRevocationIntent === "function") return this.#storage.finishRevocationIntent(key, raw);
+    if (await this.#storage.get(key) !== raw) fail("REVOCATION_CHANGED", "Pending sign-out target changed during confirmation");
+    if (revocationSessionMatches(await this.#storage.get(this.storageKey), intent.session)) await this.#storage.remove(this.storageKey);
+    await this.#clearPending(); await this.#storage.remove(key);
+  }
+  #pendingRevocation(message = "Sign-out confirmation is pending; only explicit Retry may contact Auth. Product authorization is suspended.") {
+    this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, message, { actions: ["retry"], revocationPending: true });
+    return this.#state;
+  }
   async #recover(operation) {
     if (this.#recoveryPromise !== null) return this.#recoveryPromise;
     const pending = operation();
@@ -284,7 +377,10 @@ export class RecoverableProductSessionClient {
     try { return await pending; }
     finally { if (this.#recoveryPromise === pending) this.#recoveryPromise = null; }
   }
-  #offline(message = "Network unavailable; cached Product Session is not treated as authoritative") { this.#state = state(PRODUCT_SESSION_CLIENT_STATE.NETWORK_UNAVAILABLE, message, { actions: ["retry", "guest"] }); return this.#state; }
+  #offline(message = "Network unavailable; cached Product Session is not treated as authoritative") {
+    this.#state = state(PRODUCT_SESSION_CLIENT_STATE.NETWORK_UNAVAILABLE, message, { actions: this.#revocationRequested ? ["retry"] : ["retry", "guest"], ...(this.#revocationRequested ? { revocationPending: true } : {}) });
+    return this.#state;
+  }
   #networkTransition(message) { if (!this.#networkAvailable) return this.#offline(message); this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, message, { actions: ["retry", "guest"] }); return this.#state; }
 }
 

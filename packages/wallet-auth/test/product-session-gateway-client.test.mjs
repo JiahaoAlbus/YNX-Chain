@@ -46,7 +46,9 @@ test("fetch adapter recovers lost completion response idempotently without expos
   assert.equal(connected.status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
   assert.equal(handler.snapshot().authority.sessions.length, 1);
   assert.equal(handler.snapshot().idempotency.length, 2);
-  assert.ok(handler.snapshot().audit.filter((item) => item.outcome === "idempotent").length >= 2);
+  assert.equal(handler.snapshot().audit.filter((item) => item.outcome === "idempotent").length, 1);
+  const completions = captured.filter((item) => new URL(item.url).pathname.endsWith("/complete"));
+  assert.equal(completions.length, 2); assert.deepEqual(completions[1], completions[0]);
   assert.equal(JSON.stringify(captured).includes(device.secret), false);
   assert.equal(captured.every((item) => item.headers["content-type"] === "application/json" && item.headers["x-request-id"].startsWith("req_ps_")), true);
 
