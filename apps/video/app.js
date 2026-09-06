@@ -312,6 +312,7 @@ async function loadVideos(query = "") {
   const epoch = ++libraryEpoch;
   currentView = "discover";
   currentPlaylist = null;
+  $("#page-title").setAttribute("data-i18n", "discover");
   $("#page-title").textContent = t("discover");
   $("#content").setAttribute("aria-busy", "true");
   try {
@@ -504,16 +505,20 @@ async function showChannel(channelID) {
   const epoch = ++libraryEpoch;
   currentView = "channel";
   activate(null);
+  $("#content").setAttribute("aria-busy", "true");
   try {
     const view = await api(`/v1/channels/${channelID}`);
     if (epoch !== libraryEpoch) return;
     const channel = view.channel;
+    $("#page-title").removeAttribute("data-i18n");
     $("#page-title").textContent = channel.Name || channel.name;
     renderVideos(view.videos || [], `@${channel.Handle || channel.handle} has no published videos`);
     notice(`${channel.Name || channel.name} · ${view.subscribers} persisted subscriber(s)`);
     if ($("#player").open) {$("#video").pause(); $("#player").close();}
   } catch (error) {
-    notice(error.message, true);
+    if (epoch === libraryEpoch) notice(error.message, true);
+  } finally {
+    if (epoch === libraryEpoch) $("#content").setAttribute("aria-busy", "false");
   }
 }
 
@@ -746,10 +751,11 @@ renderProductState({status:"guest"});
 resetWallet("EVM wallet not connected.");
 // Guest catalog and playback start independently of translation, Auth, or provider recovery.
 void i18nReady.catch(() => null);
+const catalogReady = loadVideos();
 const linkedVideo = new URLSearchParams(location.search).get("video");
 if (linkedVideo) {
-  api('/v1/videos/'+encodeURIComponent(linkedVideo)).then(openVideo).catch(error=>{notice(error.message,true);loadVideos();});
-} else {void loadVideos();}
+  api('/v1/videos/'+encodeURIComponent(linkedVideo)).then(openVideo).catch(async error=>{await catalogReady;notice(error.message,true);});
+}
 void restoreVideoAccount();
 void restoreWalletFromSession().catch(()=>resetWallet("EVM wallet not connected."));
 window.addEventListener("online",()=>void restoreVideoAccount());
