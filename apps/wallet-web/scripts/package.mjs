@@ -33,7 +33,7 @@ async function normalizeMtime(path) {
 const entries = [
   ["ynx-wallet-web-pwa-0.1.0.zip", "pwa", "modern browser with Service Worker and Web Crypto support", "unsigned-web-bundle", ["PWA"]],
   ["ynx-wallet-chrome-edge-0.1.0.zip", "chromium", "Chrome 120 / Edge 120", "unsigned-unpacked-extension", ["Chrome", "Edge"]],
-  ["ynx-wallet-firefox-0.1.0.zip", "firefox", "Firefox 128", "unsigned-unpacked-extension", ["Firefox"]],
+  ["ynx-wallet-firefox-0.1.0.zip", "firefox", "Firefox 140 (desktop)", "unsigned-unpacked-extension", ["Firefox"]],
 ];
 const records = [];
 for (const [name, folder, minimumOS, signingClass, browsers] of entries) {

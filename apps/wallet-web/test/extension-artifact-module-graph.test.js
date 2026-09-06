@@ -11,6 +11,13 @@ test("actual extension artifacts have complete browser module and manifest graph
   await buildAll({dist});
   for (const variant of ["chromium", "firefox"]) {
     const target = join(dist, variant);
+    const shippedManifest = JSON.parse(await readFile(join(target, "manifest.json"), "utf8"));
+    assert.equal(shippedManifest.incognito, "not_allowed");
+    if (variant === "firefox") {
+      assert.equal(shippedManifest.browser_specific_settings.gecko.strict_min_version, "140.0");
+      assert.deepEqual(shippedManifest.browser_specific_settings.gecko.data_collection_permissions,
+        {required: ["authenticationInfo", "financialAndPaymentInfo", "websiteContent"]});
+    } else assert.equal("browser_specific_settings" in shippedManifest, false);
     await t.test(`${variant}: all shipped JS, HTML and manifest references resolve`, async () => {
       const result = await validateExtensionModuleGraph(target);
       assert.ok(result.entryPoints > 20); assert.ok(result.modules >= result.entryPoints); assert.ok(result.references > 5);

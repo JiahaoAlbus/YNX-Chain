@@ -9,6 +9,7 @@ test("extension packages expose truthful install metadata without hosted-update 
     assert.equal(manifest.manifest_version, 3);
     assert.equal(manifest.version, extensionVersion);
     assert.equal(manifest.homepage_url, extensionHomepage);
+    assert.equal(manifest.incognito, "not_allowed");
     assert.deepEqual(manifest.permissions, ["activeTab", "scripting", "storage"]);
     assert.equal(manifest.permissions.includes("alarms"),false);
     assert.equal(manifest.action.default_popup, "index.html");
@@ -49,6 +50,10 @@ test("unsigned Chromium package stays honest about identity and minimum runtime"
 
 test("Firefox package has a stable declared add-on id but remains unsigned", () => {
   assert.equal(firefoxManifest.browser_specific_settings.gecko.id, "wallet-testnet@ynxweb4.com");
-  assert.equal(firefoxManifest.browser_specific_settings.gecko.strict_min_version, "128.0");
+  assert.equal(firefoxManifest.browser_specific_settings.gecko.strict_min_version, "140.0");
+  assert.deepEqual(firefoxManifest.browser_specific_settings.gecko.data_collection_permissions, {
+    required: ["authenticationInfo", "financialAndPaymentInfo", "websiteContent"],
+  });
+  assert.equal("gecko_android" in firefoxManifest.browser_specific_settings, false);
   assert.equal("key" in firefoxManifest, false);
 });

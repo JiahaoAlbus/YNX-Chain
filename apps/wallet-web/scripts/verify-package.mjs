@@ -6,7 +6,7 @@ import {fileURLToPath} from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const manifest = JSON.parse(await readFile(join(root, "artifact-manifest.json"), "utf8"));
-const requiredFiles = new Set(["index.html", "app.js", "provider.js", "extension-fee-model.js", "extension-durability.js", "transaction-input.js", "i18n.js", "styles.css", "accessibility.css", "ynx-logo.png"]);
+const requiredFiles = new Set(["index.html", "app.js", "provider.js", "wallet-address.js", "extension-fee-model.js", "extension-durability.js", "transaction-input.js", "i18n.js", "styles.css", "accessibility.css", "ynx-logo.png"]);
 
 for (const artifact of manifest.artifacts) {
   const archive = join(root, artifact.path);
@@ -26,13 +26,14 @@ for (const artifact of manifest.artifacts) {
     if(JSON.stringify(deploymentPolicy.headers?.map(({source})=>source))!==JSON.stringify(expectedNoStore)||deploymentPolicy.headers.some(({headers})=>JSON.stringify(headers)!==JSON.stringify([{key:"Cache-Control",value:"no-store"}])))throw new Error(`Invalid PWA deployment cache policy: ${artifact.name}`);
     const integritySource=execFileSync("unzip",["-p",archive,"asset-integrity.js"],{encoding:"utf8"}),match=integritySource.match(/^export const ASSET_INTEGRITY=Object\.freeze\((\{.*\})\);\n$/u);
     if(!match)throw new Error(`Invalid PWA asset integrity module: ${artifact.name}`);
-    const integrity=JSON.parse(match[1]),expected=["./","./index.html","./styles.css","./accessibility.css","./app.js","./provider.js","./extension-fee-model.js","./extension-durability.js","./transaction-input.js","./i18n.js","./preferences.js","./mobile-wallet-routing.js","./core-auth-consumer.js","./wallet-web-companion-lifecycle.js","./standard-wallet-connect-state.js","./core-auth-binding.js","./service-worker-policy.js","./build-identity.json","./ynx-logo.png","./ynx-icon-192.png","./ynx-icon-512.png","./ynx-icon-maskable-512.png","./manifest.webmanifest"];
+    const integrity=JSON.parse(match[1]),expected=["./","./index.html","./styles.css","./accessibility.css","./app.js","./provider.js","./wallet-address.js","./extension-fee-model.js","./extension-durability.js","./transaction-input.js","./i18n.js","./preferences.js","./mobile-wallet-routing.js","./core-auth-consumer.js","./wallet-web-companion-lifecycle.js","./standard-wallet-connect-state.js","./core-auth-binding.js","./service-worker-policy.js","./build-identity.json","./ynx-logo.png","./ynx-icon-192.png","./ynx-icon-512.png","./ynx-icon-maskable-512.png","./manifest.webmanifest"];
     if(JSON.stringify(Object.keys(integrity).sort())!==JSON.stringify(expected.sort()))throw new Error(`Invalid PWA asset integrity set: ${artifact.name}`);
     for(const [key,digest] of Object.entries(integrity)){const file=key==="./"?"index.html":key.slice(2),content=execFileSync("unzip",["-p",archive,file]);if(createHash("sha256").update(content).digest("hex")!==digest)throw new Error(`PWA asset integrity mismatch for ${key}: ${artifact.name}`)}
     continue;
   }
 
   const extension = JSON.parse(execFileSync("unzip", ["-p", archive, "manifest.json"], {encoding: "utf8"}));
+  if (extension.incognito !== "not_allowed") throw new Error(`Unsupported private-browsing storage scope: ${artifact.name}`);
   for (const required of ["preferences.js", "mobile-wallet-routing.js", "wallet-web-companion-lifecycle.js", "standard-wallet-connect-state.js", "build-identity.json", "content-script.js", "page-provider.js", "active-tab-policy.js", "extension-migration.js", "extension-bridge.js", "extension-rpc.js", "extension-provider-permissions.js", "extension-vault.js", "extension-signer.js", "extension-broadcast-journal.js", "approval.html", "approval.css", "approval.js", "vault.html", "vault.css", "vault.js", "signer.html", "signer.css", "signer.js", "core-auth-consumer.js", "core-auth-binding.js", "extension-sensitive-policy.js", "service-worker.js"]) if (!entries.includes(required)) throw new Error(`Missing ${required}: ${artifact.name}`);
   if (extension.manifest_version !== 3 || extension.action?.default_popup !== "index.html" || JSON.stringify(extension.options_ui)!==JSON.stringify({page:"vault.html",open_in_tab:true})) throw new Error(`Invalid MV3 entrypoint: ${artifact.name}`);
   const vaultBundle=execFileSync("unzip",["-p",archive,"extension-vault.js"],{encoding:"utf8"});
@@ -50,7 +51,8 @@ for (const artifact of manifest.artifacts) {
   if(!pageProvider.includes('rdns:"com.ynx.wallet"')||!pageProvider.includes('isYNXWallet:true')||!pageProvider.includes('isMetaMask:false')||!pageProvider.includes('eip6963:requestProvider')||!pageProvider.includes('eip6963:announceProvider')||!pageProvider.includes('queueMicrotask(announce)'))throw new Error(`Invalid YNX EIP-6963 provider identity: ${artifact.name}`);
   for(const sourceName of ["app.js","page-provider.js","content-script.js","service-worker.js"]){const source=execFileSync("unzip",["-p",archive,sourceName],{encoding:"utf8"});if(/window\.open\s*\(/u.test(source)||/(?:window\.)?location(?:\.href)?\s*=\s*[`'"]ynxwallet:\/\//u.test(source))throw new Error(`Forbidden top-level YNX custom-scheme navigation in ${sourceName}: ${artifact.name}`)}
   if (artifact.browsers.includes("Firefox")) {
-    if (extension.browser_specific_settings?.gecko?.id !== "wallet-testnet@ynxweb4.com" || extension.browser_specific_settings?.gecko?.strict_min_version !== "128.0") throw new Error(`Invalid Firefox identity metadata: ${artifact.name}`);
+    if (extension.browser_specific_settings?.gecko?.id !== "wallet-testnet@ynxweb4.com" || extension.browser_specific_settings?.gecko?.strict_min_version !== "140.0") throw new Error(`Invalid Firefox identity metadata: ${artifact.name}`);
+    if (JSON.stringify(extension.browser_specific_settings.gecko.data_collection_permissions) !== JSON.stringify({required:["authenticationInfo","financialAndPaymentInfo","websiteContent"]})) throw new Error(`Invalid Firefox data disclosure: ${artifact.name}`);
   } else if (extension.minimum_chrome_version !== "120") {
     throw new Error(`Invalid Chromium minimum version: ${artifact.name}`);
   }

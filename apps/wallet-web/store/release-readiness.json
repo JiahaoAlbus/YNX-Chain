@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "product": "YNX Wallet browser extension",
+  "reviewDate": "2026-09-06",
+  "baseWebCommit": "882d04712414e7cb27aa3b81ee9aa8726cfc2b87",
+  "candidateCommit": null,
+  "state": "draft-source-and-materials-awaiting-root-review",
+  "submitted": false,
+  "storeReleased": false,
+  "productionSigned": false,
+  "installedCandidateVerified": false,
+  "publisherVerified": false,
+  "privacyPolicyPublished": false,
+  "sourceArchiveReady": false,
+  "screenshotAssetsReady": false,
+  "firefoxLint": {"errors":0,"warnings":6,"missingDataDeclarationWarning":false,"androidMinimumWarningOnDesktopOnlyManifest":true},
+  "storeSubmissionReady": false,
+  "manifest": {
+    "version": "0.1.0",
+    "chromeEdgeMinimum": "120",
+    "firefoxDesktopMinimum": "140.0",
+    "firefoxAndroidDeclared": false,
+    "firefoxId": "wallet-testnet@ynxweb4.com",
+    "firefoxIdOwnershipConfirmed": false,
+    "requiredFirefoxData": ["authenticationInfo", "financialAndPaymentInfo", "websiteContent"],
+    "optionalFirefoxData": [],
+    "incognito": "not_allowed"
+  },
+  "publisherInputsRequired": [
+    "legal publisher and authorized store account owner",
+    "verified support and privacy contacts",
+    "domain control and approved HTTPS privacy policy URL",
+    "RPC, website and explorer legal operators and processors",
+    "hosting regions, request/IP log retention, access and deletion procedures",
+    "intended markets and applicable publisher/trader declarations",
+    "store inventory, version availability and signing identity ownership"
+  ],
+  "technicalGates": [
+    "final immutable source commit and three new artifact hashes",
+    "self-contained reviewer source archive with historical Git inputs and clean extracted rebuild",
+    "manifest icon dimension correction and review of four existing innerHTML lint warnings",
+    "actual Firefox built-in installation consent and normal/private-window verification",
+    "Firefox container permission/identity isolation decision and verification",
+    "real latest Chrome/Edge installed delta and current screenshots",
+    "actual store pre-install data disclosure and consent review",
+    "known queued-old-document request ordering boundary remains unproven"
+  ],
+  "officialSources": [
+    {"url":"https://extensionworkshop.com/documentation/develop/firefox-builtin-data-consent/","role":"Firefox taxonomy, new-extension requirement, desktop consent minimum"},
+    {"url":"https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/browser_specific_settings","role":"manifest data declaration and desktop-only support semantics"},
+    {"url":"https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/incognito","role":"exclude private windows without pretending storage isolation"},
+    {"url":"https://extensionworkshop.com/documentation/publish/add-on-policies/","role":"consent, privacy, permissions and readable source"},
+    {"url":"https://extensionworkshop.com/documentation/publish/source-code-submission/","role":"matching source, dependencies and reproducible reviewer build"},
+    {"url":"https://developer.chrome.com/docs/webstore/program-policies/disclosure-requirements","role":"pre-install data disclosure and affirmative consent"},
+    {"url":"https://developer.chrome.com/docs/webstore/program-policies/privacy","role":"accurate public privacy policy and recipients"},
+    {"url":"https://developer.chrome.com/docs/webstore/program-policies/limited-use","role":"single-purpose use and publisher certifications"},
+    {"url":"https://developer.chrome.com/docs/webstore/cws-dashboard-privacy","role":"dashboard permissions and data practices"},
+    {"url":"https://developer.chrome.com/docs/webstore/cws-dashboard-listing","role":"listing and locale requirements"},
+    {"url":"https://developer.chrome.com/docs/webstore/images","role":"store graphics"},
+    {"url":"https://learn.microsoft.com/en-us/microsoft-edge/extensions/publish/publish-extension","role":"Edge privacy, listing and assets"},
+    {"url":"https://learn.microsoft.com/en-us/legal/microsoft-edge/extensions/developer-policies","role":"Edge data handling obligations"}
+  ]
+}

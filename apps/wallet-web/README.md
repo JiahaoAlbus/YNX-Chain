@@ -1,21 +1,26 @@
 # YNX Wallet Web and browser companions
 
-This product-owned surface exercises a real EIP-1193 wallet without storing keys,
-seed material, bearer tokens, balances, users, or transactions. It consumes the
-frozen YNX Testnet identity (`6423`, `0x1917`) and does not define a Wallet/Auth
-protocol.
+The PWA connects to an installed YNX Wallet. The browser extension provides its
+own local password-encrypted account, approved EIP-1193 connections, message and
+typed-data signing, and capability-gated Testnet transfers. These are different
+custody surfaces: the PWA does not hold keys; the extension stores an encrypted
+private key and a durable signed-transaction recovery journal in browser-local
+storage. Both use YNX Testnet (`6423`, `0x1917`). See [store/README.md](store/README.md)
+for current store disclosures and the remaining publication gates.
 
 Locale and theme are the only preferences restored across launches. They are
 stored in one versioned, expiring, non-sensitive record with a monotonic
 revision. Invalid JSON, unknown fields, expired records, and stale cross-window
-updates fail closed to English and the system theme, remove the rejected record,
+updates fail closed to English, remove the rejected record,
 and surface a visible error. Accounts, provider authority, signatures, and
-transactions are never included in this preference record.
+transactions are never included in this preference record. The rendered UI uses
+blue and white even if an older stored preference requests a dark theme.
 
 The PWA detects an injected YNX Wallet first. When one is present, the primary
 action connects it directly. Otherwise the UI offers the official YNX Wallet
-download and an explicit MetaMask path. The Chrome/Edge and Firefox companion
-extensions run the same actions against the active tab's injected provider.
+download. Wallet itself never logs in through MetaMask or another provider;
+old saved MetaMask sessions and runtime preferences are rejected. The extension
+exposes its own distinct YNX provider to compatible DApps.
 
 All add-chain, network-switch, and transaction operations first require a live
 `eth_chainId` response from the configured authoritative RPC. An unavailable or
@@ -28,7 +33,7 @@ canonical account, and exact `0x1917` chain are present. Standard EIP-1193
 public session metadata and return those actions to the fail-closed state.
 On a second launch, malformed, extra-field, wrong-chain, missing-provider,
 replaced-account, and provider-error session records are deleted. Switching
-between YNX Wallet and MetaMask also invalidates the previous wallet session;
+or replacing the active YNX account invalidates the previous wallet session;
 the user must explicitly connect again.
 Every sign and transaction attempt independently rechecks both the exact chain
 and the currently authorized provider accounts before invoking `personal_sign`
@@ -39,17 +44,19 @@ standard provider disconnect, the UI deletes the remembered session and keeps
 sign/transaction controls disabled until an explicit reconnect.
 
 Discovery renders one unambiguous path: a detected YNX provider gets the direct
-Open YNX Wallet action; without YNX, the UI shows both the current YNX website
-download URL and MetaMask. An injected MetaMask connects through EIP-1193, while
-an absent MetaMask routes to its verified official download page. These external
-routes do not change this package's `downloadHosted=false` release state.
+Open YNX Wallet action; without YNX, the UI shows the official YNX download route.
+That external route does not prove a new package has been hosted or installed.
+Display and copy use the checksum-validated `ynx` address by default; protocol
+`eth_accounts` still returns the corresponding standard `0x` address.
 
 Extension package identity is deliberately fail-closed. The unsigned Chromium
 bundle declares Chrome/Edge 120 as its minimum runtime, but has no manifest
 `key` or `update_url`; consequently a stable Chrome/Edge extension ID, hosted
 upgrade, and store-managed uninstall are not claimed. Firefox declares the
-stable development add-on ID `wallet-testnet@ynxweb4.com` and Firefox 128 as
-its minimum runtime, but remains unsigned and not store-released. Both bundles
+stable development add-on ID `wallet-testnet@ynxweb4.com` and Firefox 140 desktop as
+its minimum runtime, with required built-in data consent for authentication,
+financial/payment and website request/response content. It remains unsigned and
+not store-released; Firefox Android is not declared. Both bundles
 link only to the public project homepage; that link is not a hosted download.
 Both bundles declare one persistent HTTPS-only site scope so the isolated
 transport and distinct YNX EIP-6963 provider can load deterministically at

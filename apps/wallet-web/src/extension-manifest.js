@@ -7,6 +7,8 @@ const sharedManifest = {
   version: extensionVersion,
   description: "Independent YNX Testnet wallet provider for approved DApp connections and transactions.",
   homepage_url: extensionHomepage,
+  // Persistent account/permission/journal storage is not a private-browsing store.
+  incognito: "not_allowed",
   permissions: ["activeTab", "scripting", "storage"],
   content_security_policy: {extension_pages: "script-src 'self'; object-src 'self'; connect-src https://evm.ynxweb4.com"},
   host_permissions: ["https://*/*"],
@@ -30,6 +32,15 @@ export const firefoxManifest = {
   ...sharedManifest,
   background: {scripts: ["service-worker.js"], type: "module"},
   browser_specific_settings: {
-    gecko: {id: "wallet-testnet@ynxweb4.com", strict_min_version: "128.0"},
+    gecko: {
+      id: "wallet-testnet@ynxweb4.com",
+      // New AMO submissions use Firefox's install-time consent (desktop 140+).
+      // Local passwords/keys stay in the browser; approved authentication signatures,
+      // financial transactions and DApp request/response content leave it. See store/.
+      strict_min_version: "140.0",
+      data_collection_permissions: {
+        required: ["authenticationInfo", "financialAndPaymentInfo", "websiteContent"],
+      },
+    },
   },
 };
