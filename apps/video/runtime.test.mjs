@@ -53,6 +53,11 @@ test("self-contained server serves the public /video path without a shared relea
     const response = await fetch(`http://127.0.0.1:${port}/video/`);
     assert.equal(response.status, 200);
     assert.match(await response.text(), /YNX Video/);
+    const canonical = await fetch(`http://127.0.0.1:${port}/video?lang=ar`, {redirect: "manual"});
+    assert.equal(canonical.status, 308);
+    assert.equal(canonical.headers.get("location"), "/video/?lang=ar");
+    const malformed = await fetch(`http://127.0.0.1:${port}/video/%zz`);
+    assert.equal(malformed.status, 400);
     const catalog = await fetch(`http://127.0.0.1:${port}/video/i18n/catalog.json`);
     assert.equal(catalog.status, 200);
     assert.match(catalog.headers.get("content-type"), /application\/json/);

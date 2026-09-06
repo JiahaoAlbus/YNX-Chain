@@ -1,3 +1,47 @@
-import {createServer} from "node:http";import{readFile}from"node:fs/promises";import{extname,join}from"node:path";import{fileURLToPath}from"node:url";
-const root=fileURLToPath(new URL(".",import.meta.url)),types={".html":"text/html; charset=utf-8",".css":"text/css; charset=utf-8",".js":"text/javascript; charset=utf-8",".json":"application/json; charset=utf-8",".svg":"image/svg+xml"};
-createServer(async(req,res)=>{const requested=decodeURIComponent(new URL(req.url,"http://127.0.0.1").pathname),pathname=requested==="/video"||requested==="/video/"?"/":requested.startsWith("/video/")?requested.slice(6):requested,path=pathname==="/"?"index.html":pathname.slice(1);if(path.includes("..")){res.writeHead(400).end();return}try{const data=await readFile(join(root,path));res.writeHead(200,{"Content-Type":types[extname(path)]||"application/octet-stream","X-Content-Type-Options":"nosniff","Content-Security-Policy":"default-src 'self'; connect-src 'self' http://127.0.0.1:8423; media-src 'self' blob: http://127.0.0.1:8423; img-src 'self' data: http://127.0.0.1:8423; style-src 'self'; script-src 'self'"});res.end(data)}catch{res.writeHead(404).end("Not found")}}).listen(Number(process.env.PORT||4173),"127.0.0.1",()=>console.log("YNX Video http://127.0.0.1:"+(process.env.PORT||4173)));
+import {createServer} from "node:http";
+import {readFile} from "node:fs/promises";
+import {extname, join} from "node:path";
+import {fileURLToPath} from "node:url";
+
+const root = fileURLToPath(new URL(".", import.meta.url));
+const types = {
+  ".html": "text/html; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".svg": "image/svg+xml",
+};
+const csp = "default-src 'self'; connect-src 'self' http://127.0.0.1:8423; media-src 'self' blob: http://127.0.0.1:8423; img-src 'self' data: http://127.0.0.1:8423; style-src 'self'; script-src 'self'";
+
+createServer(async (req, res) => {
+  let url, requested;
+  try {
+    url = new URL(req.url, "http://127.0.0.1");
+    requested = decodeURIComponent(url.pathname);
+  } catch {
+    res.writeHead(400).end("Invalid request path");
+    return;
+  }
+  // Relative modules and assets must remain beneath /video/ at the public router.
+  if (requested === "/video") {
+    res.writeHead(308, {Location: `/video/${url.search}`}).end();
+    return;
+  }
+  const pathname = requested.startsWith("/video/") ? requested.slice(6) : requested;
+  const path = pathname === "/" ? "index.html" : pathname.slice(1);
+  if (path.includes("..")) {
+    res.writeHead(400).end();
+    return;
+  }
+  try {
+    const data = await readFile(join(root, path));
+    res.writeHead(200, {
+      "Content-Type": types[extname(path)] || "application/octet-stream",
+      "X-Content-Type-Options": "nosniff",
+      "Content-Security-Policy": csp,
+    });
+    res.end(data);
+  } catch {
+    res.writeHead(404).end("Not found");
+  }
+}).listen(Number(process.env.PORT || 4173), "127.0.0.1", () => console.log(`YNX Video http://127.0.0.1:${process.env.PORT || 4173}`));
