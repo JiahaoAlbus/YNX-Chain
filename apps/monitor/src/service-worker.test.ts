@@ -34,17 +34,17 @@ function harness() {
 test('SW upgrade removes old status evidence and preserves unrelated caches', async () => {
   const h=harness();
   await (await h.caches.open('ynx-monitor-shell-v1')).put('/status',Response.json({availability:'available',status:'operational'}));
-  await (await h.caches.open('ynx-monitor-shell-v2')).put('/connectivity',Response.json({status:'operational'}));
+  await (await h.caches.open('ynx-monitor-shell-v3')).put('/connectivity',Response.json({status:'operational'}));
   await (await h.caches.open('unrelated-app')).put('/asset',new Response('preserve'));
   await h.run('activate');
-  assert.deepEqual(await h.caches.keys(),['ynx-monitor-shell-v2','unrelated-app']);
-  assert.equal(await (await h.caches.open('ynx-monitor-shell-v2')).match('/connectivity'),undefined);
+  assert.deepEqual(await h.caches.keys(),['ynx-monitor-shell-v3','unrelated-app']);
+  assert.equal(await (await h.caches.open('ynx-monitor-shell-v3')).match('/connectivity'),undefined);
 });
 
 test('offline status and connectivity return unavailable even with cached green evidence', async () => {
-  const h=harness(), cache=await h.caches.open('ynx-monitor-shell-v2');
+  const h=harness(), cache=await h.caches.open('ynx-monitor-shell-v3');
   await cache.put('/',new Response('cached HTML shell'));
-  for(const path of ['/status','/connectivity']){
+  for(const path of ['/status','/STATUS?probe=1','/connectivity','/CONNECTIVITY?probe=1']){
     await cache.put(path,Response.json({availability:'available',status:'operational'}));
     const response=await h.run('fetch',new Request(h.origin+path));
     assert.equal(response!.status,503);
@@ -57,5 +57,21 @@ test('offline status and connectivity return unavailable even with cached green 
 test('no-store responses remain uncached while offline asset behavior is preserved',async()=>{
   const h=harness();h.setOnline(new Response('fresh private response',{headers:{'Cache-Control':'private, no-store'}}));
   assert.equal(await (await h.run('fetch',new Request(h.origin+'/uncached')))!.text(),'fresh private response');
-  assert.equal(await (await h.caches.open('ynx-monitor-shell-v2')).match('/uncached'),undefined);
+  assert.equal(await (await h.caches.open('ynx-monitor-shell-v3')).match('/uncached'),undefined);
+});
+
+
+test('case variants and bearer requests never read or write an offline response',async()=>{
+  const h=harness(), cache=await h.caches.open('ynx-monitor-shell-v3');
+  const paths=['/ops/me','/OPS/me','/OpS/me?account=B','/ops/%6De','/private/custom'];
+  for(const path of paths){
+    await cache.put(path,Response.json({account:'synthetic-account-A'}));
+    const request=new Request(h.origin+path,{headers:{Authorization:'Bearer synthetic-account-B'}});
+    await assert.rejects(h.run('fetch',request),/offline/);
+  }
+  for(const path of ['/OPS/me','/OpS/me?account=B'])await assert.rejects(h.run('fetch',new Request(h.origin+path)),/offline/);
+  h.setOnline(Response.json({account:'synthetic-account-B'}));
+  const request=new Request(h.origin+'/authenticated-new',{headers:{Authorization:'Bearer synthetic-account-B'}});
+  assert.equal((await (await h.run('fetch',request))!.json()).account,'synthetic-account-B');
+  assert.equal(await cache.match('/authenticated-new'),undefined);
 });
