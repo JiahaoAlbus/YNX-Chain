@@ -143,7 +143,7 @@ export class WalletRepository {
     });
   }
 
-  async accountSecret(account: string, assertCurrent?: OperationGuard, authorization?: Readonly<{allowLegacyMigration: true}>): Promise<string> {
+  async accountSecret(account: string, assertCurrent?: OperationGuard, authorization?: Readonly<{allowLegacyMigration: true; authorizeLegacyMigration?: () => Promise<void>}>): Promise<string> {
     assertCurrent?.();
     const expected = (await this.readManifest()).accounts.find((item) => item.account === account);
     assertCurrent?.();
@@ -168,6 +168,14 @@ export class WalletRepository {
     if (protection && protection.state !== "pending") throw new WalletSecretRecoveryRequired();
     if (!authorization?.allowLegacyMigration) throw new WalletSecretMigrationRequired();
     await this.assertStoredAccount(expected, assertCurrent);
+    // Product sign-in relies on the cipher-bound OS prompt for protected v3 keys.
+    // A legacy v2 record has no such protection until migration, so obtain its
+    // separate explicit authorization before reading any legacy key material.
+    await authorization.authorizeLegacyMigration?.();
+    assertCurrent?.();
+    await this.assertStoredAccount(expected, assertCurrent);
+    const afterAuthorization = await this.readProtection(expected, assertCurrent);
+    if (afterAuthorization && afterAuthorization.state !== "pending") throw new Error("Wallet key protection changed during legacy authorization. Review and authorize again.");
     const legacy = await this.storage.getItem(secretKey(account));
     assertCurrent?.();
     if (legacy === null) throw new WalletSecretRecoveryRequired();

@@ -20,8 +20,7 @@ type Dependencies = {
   platform: "android" | "ios";
   storage: SecureStorageAdapter;
   selectedAccount: () => WalletAccount | null;
-  authorize: () => Promise<void>;
-  accountSecret: (account: string) => Promise<string>;
+  withAccountSecret: <T>(account: string, assertCurrent: () => void, use: (secret: string, assertKeyCurrent: () => void) => T | Promise<T>) => Promise<T>;
   openURL: (url: string) => Promise<unknown>;
   audit?: (review: ProductSessionReview, action: AuditAction, at: Date) => Promise<unknown>;
   now?: () => Date;
@@ -73,17 +72,21 @@ export class ProductSessionController {
       if (pending.returnURL) throw new Error("This decision is already signed; retry returning the existing result");
       this.check(pending, generation);
       if (!pending.review.account.backupConfirmed) throw new Error("Confirm the selected account backup before authorizing products");
-      await this.dependencies.authorize();
+      // Reject known replay/storage failures before asking the OS for this key.
+      const records = await this.readConsumed(this.now());
       this.check(pending, generation);
-      await this.dependencies.audit?.(pending.review, "intent-approved", this.now());
-      this.check(pending, generation);
-      await this.consume(pending, generation);
-      this.check(pending, generation);
-      let secret = await this.dependencies.accountSecret(pending.review.account.account);
-      try {
-        this.check(pending, generation);
+      this.assertUnused(records, this.binding(pending.review.request, pending.review.id));
+      await this.dependencies.withAccountSecret(pending.review.account.account, () => this.check(pending, generation), async (secret, assertKeyCurrent) => {
+        assertKeyCurrent(); this.check(pending, generation);
         const identity = walletIdentity(secret);
         if (identity.account !== pending.review.account.account || identity.accountPublicKey !== pending.review.account.accountPublicKey) throw new Error("Stored signing account does not match the reviewed account");
+        // Cancelling the actual OS decryption above leaves the original request
+        // available for another explicit approval. Consumption still precedes
+        // signing and survives any later lock, storage error or callback failure.
+        await this.dependencies.audit?.(pending.review, "intent-approved", this.now());
+        assertKeyCurrent(); this.check(pending, generation);
+        await this.consume(pending, generation, assertKeyCurrent);
+        assertKeyCurrent(); this.check(pending, generation);
         const at = this.now();
         const approval = signProductSessionApproval(PRODUCT_SESSION_REGISTRY, pending.review.request, {
           accountSecret: secret, scopes: pending.review.request.scopes, expiresAt: pending.review.request.expiresAt,
@@ -91,7 +94,7 @@ export class ProductSessionController {
         if (approval.account !== pending.review.account.account) throw new Error("Approval account does not match the reviewed account");
         pending.returnURL = createProductSessionReturnURL(PRODUCT_SESSION_REGISTRY, pending.review.request, { result: "approved", approval }, at);
         pending.decision = "approved";
-      } finally { secret = ""; }
+      });
       await this.deliver(pending, generation);
     });
   }
@@ -156,14 +159,19 @@ export class ProductSessionController {
   private assertUnused(records: Consumed[], binding: Consumed): void {
     if (records.some((record) => record.digest === binding.digest || record.nonce === binding.nonce || record.state === binding.state)) throw new Error("Wallet request was already consumed; start a new product connection request");
   }
-  private async consume(pending: Pending, generation: number): Promise<void> {
+  private async consume(pending: Pending, generation: number, assertKeyCurrent: () => void = () => {}): Promise<void> {
+    assertKeyCurrent();
     const records = await this.readConsumed(this.now());
-    this.check(pending, generation);
+    assertKeyCurrent(); this.check(pending, generation);
     const binding = this.binding(pending.review.request, pending.review.id);
     this.assertUnused(records, binding);
     if (records.length >= 256) throw new Error("Wallet request capacity reached; wait for outstanding requests to expire");
-    // Durable consumption precedes access to signing material and callback dispatch.
-    await this.dependencies.storage.setItem(PRODUCT_SESSION_REPLAY_KEY, JSON.stringify({ schemaVersion: 2, consumed: [...records, binding] }));
+    const serialized = JSON.stringify({ schemaVersion: 2, consumed: [...records, binding] });
+    await this.dependencies.storage.setItem(PRODUCT_SESSION_REPLAY_KEY, serialized);
+    assertKeyCurrent(); this.check(pending, generation);
+    const readback = await this.dependencies.storage.getItem(PRODUCT_SESSION_REPLAY_KEY);
+    assertKeyCurrent(); this.check(pending, generation);
+    if (readback !== serialized) throw new Error("Wallet replay consumption could not be verified. This request may already be consumed; do not automatically replace or approve it again.");
   }
   private async readConsumed(at: Date): Promise<Consumed[]> {
     const raw = await this.dependencies.storage.getItem(PRODUCT_SESSION_REPLAY_KEY);

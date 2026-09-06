@@ -14,11 +14,19 @@ const prompts: Record<AuthorizationPurpose, string> = {
   "wallet-session-revoke": "Revoke this reviewed app session",
 };
 
-export async function authorizeLocalKeyUse(purpose: AuthorizationPurpose): Promise<void> {
-  if (!await LocalAuthentication.hasHardwareAsync()) throw new Error("System biometric hardware is unavailable");
-  if (!await LocalAuthentication.isEnrolledAsync()) throw new Error("Enroll Face ID or a strong fingerprint before using Wallet keys");
+export async function assertStrongBiometrics(assertCurrent: () => void = () => {}): Promise<void> {
+  assertCurrent();
+  const hardware = await LocalAuthentication.hasHardwareAsync(); assertCurrent();
+  if (!hardware) throw new Error("System biometric hardware is unavailable");
+  const enrolled = await LocalAuthentication.isEnrolledAsync(); assertCurrent();
+  if (!enrolled) throw new Error("Enroll Face ID or a strong fingerprint before using Wallet keys");
   const level = await LocalAuthentication.getEnrolledLevelAsync();
+  assertCurrent();
   if (level !== LocalAuthentication.SecurityLevel.BIOMETRIC_STRONG) throw new Error("Strong system biometrics are required");
+}
+
+export async function authorizeLocalKeyUse(purpose: AuthorizationPurpose): Promise<void> {
+  await assertStrongBiometrics();
   const result = await LocalAuthentication.authenticateAsync({
     promptMessage: prompts[purpose],
     cancelLabel: "Cancel",

@@ -32,8 +32,12 @@ function fixture(platform: "android" | "ios" = "android", storage = memoryStorag
   const audit = new AuthorizationAuditStore(storage);
   const controller = new ProductSessionController({
     platform, storage, selectedAccount: () => state.selected, now: () => state.now,
-    authorize: async () => { state.authorizations++; await state.authorizeGate?.promise; },
-    accountSecret: async (account) => { assert.equal(account, accountA.account); state.reads++; await state.readGate?.promise; return state.secret; },
+    withAccountSecret: async (account, guard, use) => {
+      state.authorizations++; await state.authorizeGate?.promise; guard();
+      assert.equal(account, accountA.account); state.reads++; await state.readGate?.promise; guard();
+      let secret = state.secret;
+      try { return await use(secret, guard); } finally { secret = ""; }
+    },
     openURL: async (url) => { state.opens.push(url); if (state.failOpen) throw new Error("Target app unavailable"); },
     audit: (review, action, at) => audit.appendProductSession(review, { action, account: review.account.account, at: at.toISOString() }),
   });
@@ -113,7 +117,8 @@ test("a key read resolving after an account change cannot sign or return for the
   while (!f.state.reads) await new Promise((resolve) => setImmediate(resolve));
   f.state.selected = accountB; f.state.readGate.resolve();
   await assert.rejects(approving, /changed/); assert.equal(f.state.opens.length, 0);
-  await assert.rejects(fixture("android", f.storage).controller.receive(unsafeURL(request())), /consumed/);
+  assert.equal(f.storage.values.has(PRODUCT_SESSION_REPLAY_KEY), false);
+  await fixture("android", f.storage).controller.receive(unsafeURL(request()));
 });
 
 test("a storage adapter returning a different signing key is rejected", async () => {
@@ -154,7 +159,7 @@ for (const decision of ["approve", "reject"] as const) test(`${decision} callbac
 test("unavailable or malformed durable replay storage fails before signing", async () => {
   const f = fixture(); const review = await f.controller.receive(unsafeURL(request()));
   f.storage.setItem = async (key, value) => { if (key === PRODUCT_SESSION_REPLAY_KEY) throw new Error("Secure storage unavailable"); f.storage.values.set(key, value); };
-  await assert.rejects(f.controller.approve(review.id), /Secure storage unavailable/); assert.equal(f.state.reads, 0);
+  await assert.rejects(f.controller.approve(review.id), /Secure storage unavailable/); assert.equal(f.state.reads, 1); assert.equal(f.state.opens.length, 0);
   for (const value of ["not-json", "{}", JSON.stringify({ schemaVersion: 2, consumed: [{ digest: "bad" }] })]) {
     const broken = fixture(); broken.storage.values.set(PRODUCT_SESSION_REPLAY_KEY, value);
     await assert.rejects(broken.controller.receive(unsafeURL(request())), /storage/); assert.equal(broken.state.reads, 0);
@@ -172,7 +177,7 @@ test("no account and an unconfirmed backup cannot authorize a product", async ()
   assert.equal(new URL(f.state.opens[0]!).searchParams.get("result"), "rejected");
 });
 
-test("cancellation during durable consumption prevents subsequent key access", async () => {
+test("cancellation during durable consumption prevents signing and preserves consumption", async () => {
   const f = fixture(), writing = deferred(), written = deferred();
   const original = f.storage.setItem;
   f.storage.setItem = async (key, value) => {
@@ -181,7 +186,7 @@ test("cancellation during durable consumption prevents subsequent key access", a
   };
   const review = await f.controller.receive(unsafeURL(request())); const approving = f.controller.approve(review.id);
   await writing.promise; f.controller.cancel(); written.resolve(); await assert.rejects(approving, /cancelled/);
-  assert.equal(f.state.reads, 0); assert.equal(f.state.opens.length, 0);
+  assert.equal(f.state.reads, 1); assert.equal(f.state.opens.length, 0);
   await assert.rejects(fixture("android", f.storage).controller.receive(unsafeURL(request())), /consumed/);
 });
 
