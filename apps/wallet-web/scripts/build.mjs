@@ -73,6 +73,15 @@ await cp(join(root, "src", "service-worker-policy.js"), join(dist, "pwa", "servi
 for(const icon of ["ynx-logo.png","ynx-icon-192.png","ynx-icon-512.png","ynx-icon-maskable-512.png"])await cp(join(root,"public",icon),join(dist,"pwa",icon));
 const pwaIntegrityFiles=["index.html","styles.css","accessibility.css","app.js","provider.js","transaction-input.js","i18n.js","preferences.js","mobile-wallet-routing.js","core-auth-consumer.js","wallet-web-companion-lifecycle.js","standard-wallet-connect-state.js","core-auth-binding.js","service-worker-policy.js","build-identity.json","ynx-logo.png","ynx-icon-192.png","ynx-icon-512.png","ynx-icon-maskable-512.png","manifest.webmanifest"],assetIntegrity={};
 for(const file of pwaIntegrityFiles)assetIntegrity[`./${file}`]=createHash("sha256").update(await readFile(join(dist,"pwa",file))).digest("hex");
+// Older installed workers validate the navigation document before serving their
+// cached modules. Stamp that document with its shell version so an asset-only
+// release activates the existing verified recovery path on the next navigation.
+const navigationShellDigest=createHash("sha256").update(JSON.stringify(assetIntegrity)).digest("hex");
+const navigationTemplate=await readFile(join(dist,"pwa","index.html"),"utf8");
+if(!navigationTemplate.includes("</head>"))throw new Error("PWA navigation document is missing its head");
+const versionedNavigation=navigationTemplate.replace("</head>",`<meta name="ynx-wallet-shell" content="${navigationShellDigest}">\n</head>`);
+await writeFile(join(dist,"pwa","index.html"),versionedNavigation);
+assetIntegrity["./index.html"]=createHash("sha256").update(versionedNavigation).digest("hex");
 assetIntegrity["./"]=assetIntegrity["./index.html"];
 await writeFile(join(dist,"pwa","asset-integrity.js"),`export const ASSET_INTEGRITY=Object.freeze(${JSON.stringify(assetIntegrity)});\n`);
 // The worker entry must change when its verified shell changes, even when the
