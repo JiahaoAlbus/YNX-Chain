@@ -105,7 +105,10 @@ test("release manifests, provenance and website metadata agree on current unsign
   assert.equal(release.downloadHosted, false);
   assert.equal(metadata.publicEvidence.downloadHosted, false);
   assert.equal(metadata.release.prerelease, true);
-  assert.equal(metadata.release.targetCommit, "fc7e9b5146d514aaae02bb01e4e20c62ff32867a");
+  assert.equal(metadata.release.targetCommit, release.currentPublicCandidate.sourceCommit);
+  assert.equal(metadata.release.publicationKind, "public-web-testnet-preview");
+  assert.equal(metadata.historicalGitHubRelease.targetCommit, "fc7e9b5146d514aaae02bb01e4e20c62ff32867a");
+  assert.equal(release.historicalGitHubRelease.releaseTargetCommit, metadata.historicalGitHubRelease.targetCommit);
   assert.equal(metadata.localEvidence.macosArm64.hosted, true);
   assert.equal(metadata.localEvidence.windowsX64.hosted, true);
   assert.equal(metadata.routeStatus, "source-bound-public-runtime-readback; browser-visible-proof-pending");

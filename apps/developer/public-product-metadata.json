@@ -213,7 +213,7 @@
     "sourceTree": "4b64c14a8b9b4af189fcc912066e918910da1df7",
     "release": "0.2.0-testnet-preview-595084945e63-candidate",
     "publicHealth": "https://developer.ynxweb4.com/healthz",
-    "result": "source-bound-current-runtime-and-203-assets-verified; browser-visible-proof-pending",
+    "result": "source-bound-current-runtime-readback; browser-visible-proof-pending",
     "independentCurrentRuntimeReadback": true,
     "publicRuntimeEvidence": "apps/developer/evidence/public/current-public-source-bound-59508494-20260906.json",
     "actualUIAcceptance": false,

@@ -1,0 +1,2 @@
+# Preserve hashed HTTP evidence bytes on Windows and Unix checkouts.
+*-public-assets-*.json text eol=lf

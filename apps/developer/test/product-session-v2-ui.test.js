@@ -34,7 +34,9 @@ test("Developer consumes the accepted Wallet v2 package through its root factory
   const truth = JSON.parse(release);
   assert.equal(truth.currentPublicCandidate.result, "source-bound-current-runtime-readback; browser-visible-proof-pending");
   assert.equal(truth.currentPublicCandidate.independentCurrentRuntimeReadback, true);
-  assert.equal(truth.currentPublicCandidate.sourceCommit, "d4052228a2261c5ced6a8e8cfcbf763edabf2103");
+  assert.equal(truth.currentPublicCandidate.sourceCommit, truth.commit);
+  assert.equal(truth.currentPublicCandidate.sourceCommit, truth.featureStatus.ynxCodePlatform.webSourceCommit);
+  assert.equal(truth.currentPublicCandidate.walletLifecycleVerified, false);
   assert.equal(truth.walletProductSessionV2.migratedV2, false);
   assert.equal(truth.walletProductSessionV2.runtimeFactoryVerified, false);
   assert.equal(truth.walletProductSessionV2.publicV2RouteVerified, true);
