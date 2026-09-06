@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
 
@@ -23,7 +24,31 @@ test("current public candidate and Wallet v2 evidence do not promote missing lif
     read("docs/MIGRATION_COMPATIBILITY.md"),
   ]);
   const truth = JSON.parse(release), current = JSON.parse(evidence), runtime = JSON.parse(publicRuntime), localMac = JSON.parse(macArtifact), linux = JSON.parse(linuxArtifact), windows = JSON.parse(windowsArtifact), sdk = JSON.parse(sdkCandidate), publicMetadata = JSON.parse(metadata), crossProduct = JSON.parse(vectors);
-  assert.equal(truth.currentPublicCandidate.sourceCommit, "d4052228a2261c5ced6a8e8cfcbf763edabf2103");
+  const evidenceRelative = (path) => {
+    assert.match(path, /^apps\/developer\/evidence\//);
+    assert.ok(!path.split("/").includes(".."));
+    return path.slice("apps/developer/".length);
+  };
+  const activeRuntime = JSON.parse(await read(evidenceRelative(truth.currentPublicCandidate.publicRuntimeEvidence)));
+  const activeMac = JSON.parse(await read(evidenceRelative(truth.currentLocalMacArtifact.evidence)));
+  const assetsText = await read(evidenceRelative(activeRuntime.publicRuntime.uiAssets.evidence));
+  const assets = JSON.parse(assetsText);
+  assert.equal(truth.currentPublicCandidate.sourceCommit, activeRuntime.sourceCommit);
+  assert.equal(truth.currentPublicCandidate.sourceTree, activeRuntime.sourceTree);
+  assert.equal(activeRuntime.publicRuntime.health.sourceCommit, activeRuntime.sourceCommit);
+  assert.equal(activeRuntime.publicRuntime.health.sourceTree, activeRuntime.sourceTree);
+  assert.equal(assets.sourceCommit, activeRuntime.sourceCommit);
+  assert.equal(assets.filesVerified, activeRuntime.publicRuntime.uiAssets.filesVerified);
+  assert.equal(assets.files.length, assets.filesVerified);
+  assert.equal(truth.currentLinuxGatewayRuntime.sha256, activeRuntime.artifact.sha256);
+  assert.equal(createHash("sha256").update(assetsText).digest("hex"), activeRuntime.publicRuntime.uiAssets.sha256);
+  assert.equal(activeRuntime.binding.browserVisible, false);
+  assert.equal(activeRuntime.binding.walletProviderLifecycle, false);
+  assert.equal(truth.currentPublicCandidate.actualUIAcceptance, false);
+  assert.equal(truth.fullProductAccepted, false);
+  assert.equal(activeRuntime.rollback.preserveLatestState, true);
+  assert.equal(truth.featureStatus.ynxCodePlatform.publicDeployment.rollbackService, "ynx-code-candidate.service on 127.0.0.1:18113");
+  assert.equal(publicMetadata.sourceCommit, activeRuntime.sourceCommit);
   assert.equal(truth.currentPublicCandidate.independentCurrentRuntimeReadback, true);
   assert.equal(runtime.publicRuntime.health.version, "0.2.0-testnet-preview-d4052228a226-candidate");
   assert.equal(runtime.publicRuntime.runtimeHealth.release, "0.2.0-testnet-preview-d4052228a226-candidate");
@@ -50,7 +75,9 @@ test("current public candidate and Wallet v2 evidence do not promote missing lif
   assert.match(linuxSums, new RegExp(linux.artifact.sha256));
   assert.equal(truth.currentLinuxServerArtifact.sha256, linux.artifact.sha256);
   assert.equal(publicMetadata.localEvidence.currentLinuxX64ServerArtifact.hosted, true);
-  assert.equal(truth.currentLocalMacArtifact.sha256, localMac.artifact.sha256);
+  assert.equal(truth.currentLocalMacArtifact.sha256, activeMac.artifact.sha256);
+  assert.equal(truth.currentLocalMacArtifact.sourceCommit, activeMac.artifact.sourceCommit);
+  assert.equal(activeMac.verification.installedCurrentCandidate, false);
   assert.equal(truth.currentLocalMacArtifact.downloadHosted, false);
   assert.equal(publicMetadata.localEvidence.currentLocalMacArtifact.hosted, false);
   assert.equal(windows.artifact.sourceCommit, "591437c64eb53adf987ebea779104d4c5962c6e9");
@@ -62,7 +89,7 @@ test("current public candidate and Wallet v2 evidence do not promote missing lif
   assert.equal(truth.currentLocalWindowsArtifact.downloadHosted, false);
   assert.equal(publicMetadata.localEvidence.currentLocalWindowsArtifact.hosted, false);
   assert.equal(truth.featureStatus.ynxCodePlatform.webSourceCommit, truth.currentPublicCandidate.sourceCommit);
-  assert.equal(truth.featureStatus.ynxCodePlatform.macosArm64SourceCommit, localMac.artifact.sourceCommit);
+  assert.equal(truth.featureStatus.ynxCodePlatform.macosArm64SourceCommit, activeMac.artifact.sourceCommit);
   assert.equal(truth.featureStatus.ynxCodePlatform.windowsCurrent, true);
   assert.equal(truth.featureStatus.ynxCodePlatform.windowsX64SourceCommit, windows.artifact.sourceCommit);
   assert.equal(publicMetadata.fullPlatformPublicEvidence.nineRuntimes, true);

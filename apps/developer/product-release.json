@@ -1,19 +1,21 @@
 {
   "productId": "ynx-developer-v1",
   "name": "YNX Developer / YNX AI Build",
-  "branch": "codex/ynx-code-platform-v1",
-  "commit": "d4052228a2261c5ced6a8e8cfcbf763edabf2103",
+  "branch": "codex/20260906-developer-usability",
+  "commit": "595084945e635daf0efdfbc5a43e984629fc87e4",
   "version": "0.2.0",
-  "sourceCheckpoint": "ynx-code-wallet-product-session-v2-root-factory-2026-08-20",
+  "sourceCheckpoint": "developer-workspace-recovery-59508494-20260906",
   "currentPublicCandidate": {
-    "sourceCommit": "d4052228a2261c5ced6a8e8cfcbf763edabf2103",
-    "sourceTree": "89beb658b0971fb20d0d92a6bebc2010fdbb33e7",
-    "release": "0.2.0-testnet-preview-d4052228a226-candidate",
+    "sourceCommit": "595084945e635daf0efdfbc5a43e984629fc87e4",
+    "sourceTree": "4b64c14a8b9b4af189fcc912066e918910da1df7",
+    "release": "0.2.0-testnet-preview-595084945e63-candidate",
     "publicHealth": "https://developer.ynxweb4.com/healthz",
-    "result": "source-bound-current-runtime-readback; browser-visible-proof-pending",
+    "result": "source-bound-current-runtime-and-203-assets-verified; browser-visible-proof-pending",
     "independentCurrentRuntimeReadback": true,
-    "publicRuntimeEvidence": "apps/developer/evidence/public/current-public-source-bound-d4052228-20260831.json",
-    "note": "The preceding bc8a37bc protected deployment record remains historical. Current health and runtime-health release versions now match the d4052228 receipt; browser-visible evidence remains separate."
+    "publicRuntimeEvidence": "apps/developer/evidence/public/current-public-source-bound-59508494-20260906.json",
+    "actualUIAcceptance": false,
+    "walletLifecycleVerified": false,
+    "note": "Public Gateway 18113 now serves 595. Prior d405 evidence remains historical. The separate 18111 service is the retained AI upstream; normal rollback uses this same Gateway and retains latest user state."
   },
   "currentLocalMacArtifact": {
     "evidence": "apps/developer/evidence/desktop/macos-current-59508494.json",
@@ -51,7 +53,8 @@
     "bytes": 138538840,
     "downloadHosted": true,
     "downloadUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-bc8a37bc-linux-x64-server.tar.gz",
-    "productionSigned": false
+    "productionSigned": false,
+    "historicalToCurrentWeb": true
   },
   "walletProductSessionV2": {
     "acceptedSourceCommit": "203be5e108be468350591615a64d5d36ab87a8f1",
@@ -101,10 +104,10 @@
   "productionSigned": false,
   "storeReleased": false,
   "releasePublished": true,
-  "releaseTag": "developer-v0.2.0-testnet-preview.1",
-  "releaseUrl": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/developer-v0.2.0-testnet-preview.1",
-  "releaseTargetCommit": "fc7e9b5146d514aaae02bb01e4e20c62ff32867a",
-  "releasePublishedAt": "2026-07-29T03:22:13Z",
+  "releaseTag": null,
+  "releaseUrl": "https://developer.ynxweb4.com/",
+  "releaseTargetCommit": "595084945e635daf0efdfbc5a43e984629fc87e4",
+  "releasePublishedAt": "2026-09-06T09:39:20.391173+00:00",
   "publicUrls": [
     "https://developer.ynxweb4.com/",
     "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/developer-v0.2.0-testnet-preview.1"
@@ -120,7 +123,7 @@
       "webCurrent": true,
       "windowsCurrent": true,
       "linuxX64ServerCurrent": true,
-      "webSourceCommit": "d4052228a2261c5ced6a8e8cfcbf763edabf2103",
+      "webSourceCommit": "595084945e635daf0efdfbc5a43e984629fc87e4",
       "macosArm64SourceCommit": "595084945e635daf0efdfbc5a43e984629fc87e4",
       "windowsX64SourceCommit": "591437c64eb53adf987ebea779104d4c5962c6e9",
       "windowsX64HistoricalSourceCommit": "76322af5e8c26a64fb6425c51d96c67d2b3df65f",
@@ -131,16 +134,19 @@
         "YNX Chain inspection, Wallet-authenticated deployment review, contract templates and receipt-bound transaction debugging"
       ],
       "verification": "Current macOS candidate 59508494 passed exact-source build, 14 browser/native recovery tests, DMG checksum, deep ad-hoc signature and all 13 Mach-O compatibility records. Its unchanged native bridge retains the 5ad source fixture evidence. Installed upgrade, native clipboard/split/diff and macOS 13.5 runtime proof remain pending. Existing Windows evidence remains separately scoped.",
-      "publicBoundary": "The source-bound public Web candidate is d4052228 pending independent current readback. macOS DMG and Windows MSIX remain non-public installer candidates; no ZIP is a supported desktop installer.",
+      "publicBoundary": "Public Web Gateway 595 has exact-source and all 203 HTTP asset evidence. Its browser-visible and Wallet lifecycle acceptance remain pending. Current macOS DMG and Windows MSIX are not official downloads; older Linux server downloads are historical to this Web runtime.",
       "publicDeployment": {
-        "sourceCommit": "d4052228a2261c5ced6a8e8cfcbf763edabf2103",
-        "sourceTree": "89beb658b0971fb20d0d92a6bebc2010fdbb33e7",
-        "release": "0.2.0-testnet-preview-d4052228a226-candidate",
+        "sourceCommit": "595084945e635daf0efdfbc5a43e984629fc87e4",
+        "sourceTree": "4b64c14a8b9b4af189fcc912066e918910da1df7",
+        "release": "0.2.0-testnet-preview-595084945e63-candidate",
         "service": "ynx-code-candidate.service",
         "upstream": "127.0.0.1:18113",
-        "rollbackService": "ynx-developer-web.service on 127.0.0.1:18111",
+        "rollbackService": "ynx-code-candidate.service on 127.0.0.1:18113",
+        "rollbackSourceCommit": "d4052228a2261c5ced6a8e8cfcbf763edabf2103",
+        "retainedAiUpstream": "ynx-developer-web.service on 127.0.0.1:18111",
         "currentRuntimeReadback": true,
-        "verified": "Direct public health and runtime-health readback returns release d4052228a226. The source tree remains bound by the accepted receipt; image fingerprint, rollback, rendered-browser evidence and Wallet lifecycle remain unverified. The preceding bc8a37bc host-side record is historical only."
+        "evidence": "apps/developer/evidence/public/current-public-source-bound-59508494-20260906.json",
+        "verified": "Full package manifest and exact source/tree, local and public 203-file checks, fresh public health and process cwd, stopped-state backup hash and protected peers. Actual browser workflow, current Mac installation and Wallet lifecycle remain unverified."
       }
     },
     "apiStudio": {
@@ -293,5 +299,39 @@
     "The optional official Grok Build source was audited and pinned but not built locally because Rust 1.92, Cargo and DotSlash were absent; no upstream binary is bundled.",
     "The Web IDE now executes pinned solc 0.8.24 in isolated workers and returns real ABI and EVM bytecode. Compilation does not imply that arbitrary EVM deployment is supported by YNX Testnet; deployment requires Wallet authorization and an authoritative receipt."
   ],
-  "generatedAt": "2026-09-06T09:02:58.033Z"
+  "generatedAt": "2026-09-06T09:39:46.784964+00:00",
+  "historicalPublicCandidates": [
+    {
+      "sourceCommit": "d4052228a2261c5ced6a8e8cfcbf763edabf2103",
+      "sourceTree": "89beb658b0971fb20d0d92a6bebc2010fdbb33e7",
+      "release": "0.2.0-testnet-preview-d4052228a226-candidate",
+      "publicHealth": "https://developer.ynxweb4.com/healthz",
+      "result": "source-bound-current-runtime-readback; browser-visible-proof-pending",
+      "independentCurrentRuntimeReadback": true,
+      "publicRuntimeEvidence": "apps/developer/evidence/public/current-public-source-bound-d4052228-20260831.json",
+      "note": "The preceding bc8a37bc protected deployment record remains historical. Current health and runtime-health release versions now match the d4052228 receipt; browser-visible evidence remains separate."
+    }
+  ],
+  "currentLinuxGatewayRuntime": {
+    "kind": "linux-x64-gateway-runtime",
+    "bytes": 137676746,
+    "sha256": "c229b056dbc9b2641b5b18b9081b888d328d645e0221eda5b12fadf540434973",
+    "fullFileManifestSha256": "82c44ae675061ba6f8f16766ed0c07ac899f577455e4894c032e694fdae763b1",
+    "trackedSourceFilesVerified": 400,
+    "packageFiles": 21574,
+    "sourceCommit": "595084945e635daf0efdfbc5a43e984629fc87e4",
+    "sourceTree": "4b64c14a8b9b4af189fcc912066e918910da1df7",
+    "deployedPublic": true,
+    "downloadHosted": false,
+    "evidence": "apps/developer/evidence/public/current-public-source-bound-59508494-20260906.json"
+  },
+  "historicalGitHubRelease": {
+    "releaseTag": "developer-v0.2.0-testnet-preview.1",
+    "releaseUrl": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/developer-v0.2.0-testnet-preview.1",
+    "releaseTargetCommit": "fc7e9b5146d514aaae02bb01e4e20c62ff32867a",
+    "releasePublishedAt": "2026-07-29T03:22:13Z"
+  },
+  "releasePublicationKind": "public-web-testnet-preview",
+  "installedCurrentSource": false,
+  "fullProductAccepted": false
 }

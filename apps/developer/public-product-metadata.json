@@ -4,8 +4,8 @@
   "productId": "ynx-developer-v1",
   "productName": "YNX Developer / YNX AI Build",
   "version": "0.2.0",
-  "branch": "codex/ynx-code-platform-v1",
-  "sourceCommit": "d4052228a2261c5ced6a8e8cfcbf763edabf2103",
+  "branch": "codex/20260906-developer-usability",
+  "sourceCommit": "595084945e635daf0efdfbc5a43e984629fc87e4",
   "officialDomain": "https://ynxweb4.com",
   "canonicalPath": "/developer",
   "canonicalUrl": "https://ynxweb4.com/developer",
@@ -15,14 +15,15 @@
   "releaseClass": "unsigned-testnet-preview",
   "release": {
     "published": true,
-    "tag": "developer-v0.2.0-testnet-preview.1",
-    "name": "YNX Developer 0.2.0 Testnet Preview 1",
-    "targetCommit": "fc7e9b5146d514aaae02bb01e4e20c62ff32867a",
-    "publishedAt": "2026-07-29T03:22:13Z",
-    "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/developer-v0.2.0-testnet-preview.1",
-    "prerelease": true
+    "tag": null,
+    "name": "0.2.0-testnet-preview-595084945e63-candidate",
+    "targetCommit": "595084945e635daf0efdfbc5a43e984629fc87e4",
+    "publishedAt": "2026-09-06T09:39:20.391173+00:00",
+    "url": "https://developer.ynxweb4.com/",
+    "prerelease": true,
+    "publicationKind": "public-web-testnet-preview"
   },
-  "summary": "Current macOS arm64 DMG 59508494 protects legacy recovery data and has source-bound build evidence, but awaits installed upgrade and complete visible workflow acceptance. Windows MSIX evidence is separately scoped. No current desktop candidate is an official download; ZIP is not an installer.",
+  "summary": "Public Web 595 preserves incompatible legacy recovery data and has exact-source/203-file runtime evidence. Current browser workflow and macOS DMG installed upgrade remain unverified. Windows evidence is separately scoped; current desktop installers are not official downloads.",
   "surfaces": [
     "web-ide",
     "api-studio",
@@ -96,7 +97,8 @@
       "downloadUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-bc8a37bc-linux-x64-server.tar.gz",
       "signingClass": "unsigned-server-archive",
       "minimumRuntime": "Linux x86_64 with Node.js 22 or newer",
-      "verification": "protected evidence binding, extracted archive cold start and health check passed; workspace state and operator environment are excluded"
+      "verification": "protected evidence binding, extracted archive cold start and health check passed; workspace state and operator environment are excluded",
+      "historicalToCurrentWeb": true
     },
     "windowsX64": {
       "sourceCommit": "76322af5e8c26a64fb6425c51d96c67d2b3df65f",
@@ -112,6 +114,19 @@
       "deliveryMode": "hosted-workspace-client",
       "localCompilerSandbox": false,
       "downloadUrl": "https://developer.ynxweb4.com/downloads/ynx-developer-0.2.0-testnet-preview-76322af5-windows-x64-unsigned.zip"
+    },
+    "currentLinuxGatewayRuntime": {
+      "kind": "linux-x64-gateway-runtime",
+      "bytes": 137676746,
+      "sha256": "c229b056dbc9b2641b5b18b9081b888d328d645e0221eda5b12fadf540434973",
+      "fullFileManifestSha256": "82c44ae675061ba6f8f16766ed0c07ac899f577455e4894c032e694fdae763b1",
+      "trackedSourceFilesVerified": 400,
+      "packageFiles": 21574,
+      "sourceCommit": "595084945e635daf0efdfbc5a43e984629fc87e4",
+      "sourceTree": "4b64c14a8b9b4af189fcc912066e918910da1df7",
+      "deployedPublic": true,
+      "downloadHosted": false,
+      "evidence": "apps/developer/evidence/public/current-public-source-bound-59508494-20260906.json"
     }
   },
   "publicEvidence": {
@@ -126,7 +141,9 @@
     "verifiedUrls": [
       "https://developer.ynxweb4.com/",
       "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/developer-v0.2.0-testnet-preview.1"
-    ]
+    ],
+    "currentWebRuntime": "apps/developer/evidence/public/current-public-source-bound-59508494-20260906.json",
+    "currentBrowserVisible": false
   },
   "websiteHandoff": {
     "targetOwner": "28-website",
@@ -160,7 +177,9 @@
     "downloadHosted": false,
     "productionSigned": false,
     "storeReleased": false,
-    "mainnetReleased": false
+    "mainnetReleased": false,
+    "fullProductAccepted": false,
+    "installedCurrentSource": false
   },
   "fullPlatformPublicEvidence": {
     "sourceCommit": "bc8a37bc6f2bcfcbe9415cb0e9da17a5294046a3",
@@ -176,7 +195,29 @@
     "rollbackUpstream": "prior immutable candidate a29ca148fc3d6815e6257cbb9e9fc2045b5c9692",
     "imageFingerprint": "e0a8aba3b87cb995a8e5e039f0d489dda9fb0dc79c44006df030dbca28a994b8",
     "evidenceManifestSha256": "ae67d74070ebabee7001a1212a65bf27b549f9be195244e1f91ae7e94ce3e82b",
-    "independentBrowserVisible": false
+    "independentBrowserVisible": false,
+    "historicalToCurrentSource": true
   },
-  "generatedAt": "2026-08-12T01:00:00+08:00"
+  "generatedAt": "2026-09-06T09:39:46.784964+00:00",
+  "historicalGitHubRelease": {
+    "published": true,
+    "tag": "developer-v0.2.0-testnet-preview.1",
+    "name": "YNX Developer 0.2.0 Testnet Preview 1",
+    "targetCommit": "fc7e9b5146d514aaae02bb01e4e20c62ff32867a",
+    "publishedAt": "2026-07-29T03:22:13Z",
+    "url": "https://github.com/JiahaoAlbus/YNX-Chain/releases/tag/developer-v0.2.0-testnet-preview.1",
+    "prerelease": true
+  },
+  "currentPublicCandidate": {
+    "sourceCommit": "595084945e635daf0efdfbc5a43e984629fc87e4",
+    "sourceTree": "4b64c14a8b9b4af189fcc912066e918910da1df7",
+    "release": "0.2.0-testnet-preview-595084945e63-candidate",
+    "publicHealth": "https://developer.ynxweb4.com/healthz",
+    "result": "source-bound-current-runtime-and-203-assets-verified; browser-visible-proof-pending",
+    "independentCurrentRuntimeReadback": true,
+    "publicRuntimeEvidence": "apps/developer/evidence/public/current-public-source-bound-59508494-20260906.json",
+    "actualUIAcceptance": false,
+    "walletLifecycleVerified": false,
+    "note": "Public Gateway 18113 now serves 595. Prior d405 evidence remains historical. The separate 18111 service is the retained AI upstream; normal rollback uses this same Gateway and retains latest user state."
+  }
 }
