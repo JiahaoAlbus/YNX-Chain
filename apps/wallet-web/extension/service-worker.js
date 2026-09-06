@@ -1,6 +1,6 @@
 import {BRIDGE_VERSION,PROVIDER_EVENTS,REQUEST_METHODS,RUNTIME_EVENT,RUNTIME_REQUEST,publicBridgeError,validateRuntimeRequest} from "./extension-bridge.js";
 import {READ_ONLY_RPC_METHODS,YNX_CHAIN_ID,YNX_RPC_URL,broadcastExtensionTransaction,forwardExtensionRpc} from "./extension-rpc.js";
-import {SensitiveAuthorizationGuard,consumeSensitiveRequest,parseSensitiveRequest,validateSensitiveResult} from "./extension-sensitive-policy.js";
+import {SensitiveAuthorizationGuard,consumeSensitiveRequest,deriveScopedSensitiveRequestId,parseSensitiveRequest,validateSensitiveResult} from "./extension-sensitive-policy.js";
 import {activeTabInjectionPlans,requireActiveDappTab} from "./active-tab-policy.js";
 import {runExtensionMigration} from "./extension-migration.js";
 import {PROVIDER_ACCOUNT_KEY,PROVIDER_PENDING_PREFIX,PROVIDER_PERMISSIONS_KEY,createPendingApproval,eip2255Permissions,grantPermission,loadProviderState,parseApprovalDecision,parsePermissionStore,parseProviderAccount,providerContextForTab,providerPermissionKey,revokePermission} from "./extension-provider-permissions.js";
@@ -169,8 +169,9 @@ async function handleDappRequest(message,sender){
   const tabId=sender.tab.id,origin=message.origin,documentLease=authorizationGuard.capture({tabId,origin,deadlineAt:message.deadlineAt,documentId:sender.documentId,browserContext:browserContextForTab(sender.tab)});
   const sensitive=parseSensitiveRequest(message);
   await requireMigrationReady();await authorizationGuard.assertDocument(documentLease);
-  if(sensitive)await consumeSensitiveRequest(extensionApi.storage?.session,message);
-  const result=await handleProviderMethod({tabId,origin,requestId:message.requestId,deadlineAt:message.deadlineAt,method:message.method,params:message.params,documentLease});
+  let internalRequestId=message.requestId;
+  if(sensitive){internalRequestId=await deriveScopedSensitiveRequestId({...documentLease,requestId:message.requestId});await authorizationGuard.assertDocument(documentLease);await consumeSensitiveRequest(extensionApi.storage?.session,{...message,requestId:internalRequestId},Date.now(),{scopeBound:true})}
+  const result=await handleProviderMethod({tabId,origin,requestId:internalRequestId,deadlineAt:message.deadlineAt,method:message.method,params:message.params,documentLease});
   await authorizationGuard.assertDocument(documentLease);if(sensitive)authorizationGuard.assertCurrent(documentLease);
   return sensitive?validateSensitiveResult(message.method,result):result;
 }
@@ -180,7 +181,7 @@ async function activeProviderRequest(preference,input){
   const capture=authorizationGuard.capturePending(),deadlineAt=Date.now()+120000;
   await requireMigrationReady();const context=await ensureActiveTabBridge(capture,deadlineAt);
   const requestId=`ynx-${crypto.randomUUID()}`,message={requestId,deadlineAt,method:input.method,params:input.params},sensitive=parseSensitiveRequest(message);
-  if(sensitive)await consumeSensitiveRequest(extensionApi.storage?.session,message);const result=await handleProviderMethod({...context,...message});await authorizationGuard.assertDocument(context.documentLease);if(sensitive)authorizationGuard.assertCurrent(context.documentLease);return result;
+  if(sensitive){message.requestId=await deriveScopedSensitiveRequestId({...context,requestId:message.requestId});await authorizationGuard.assertDocument(context.documentLease);await consumeSensitiveRequest(extensionApi.storage?.session,message,Date.now(),{scopeBound:true})}const result=await handleProviderMethod({...context,...message});await authorizationGuard.assertDocument(context.documentLease);if(sensitive)authorizationGuard.assertCurrent(context.documentLease);return result;
 }
 
 extensionApi.runtime.onMessage.addListener((message,sender,sendResponse)=>{

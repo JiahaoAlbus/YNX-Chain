@@ -5,9 +5,10 @@ export const PROVIDER_PERMISSION_VERSION=1;
 export const PROVIDER_CHAIN_ID="0x1917";
 
 const ADDRESS=/^0x[0-9a-fA-F]{40}$/u;
-const REQUEST_ID=/^ynx-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u;
+const REQUEST_ID=/^ynx-scope-v2-[0-9a-f]{64}$/u;
 function fail(code,message){throw Object.assign(new Error(message),{code})}
 function record(value){return typeof value==="object"&&value!==null&&!Array.isArray(value)}
+export function isProviderInternalRequestId(value){return typeof value==="string"&&REQUEST_ID.test(value)}
 
 export function canonicalProviderContext(value="chromium-default"){
   if(typeof value!=="string"||value!=="chromium-default"&&value!=="firefox-default"&&!/^firefox-container-[1-9][0-9]{0,15}$/u.test(value))fail("BROWSER_CONTEXT_UNAVAILABLE","The browser context cannot be verified.");
@@ -70,13 +71,13 @@ export function revokePermission(storeValue,origin,context="chromium-default"){
 }
 
 export function createPendingApproval(input,now=Date.now()){
-  if(!record(input)||!REQUEST_ID.test(input.requestId||"")||!Number.isInteger(input.tabId)||input.tabId<0||!Number.isSafeInteger(input.deadlineAt)||input.deadlineAt<=now||input.deadlineAt>now+120000)fail("INVALID_APPROVAL_REQUEST","Wallet approval request is invalid.");
+  if(!record(input)||!isProviderInternalRequestId(input.requestId)||!Number.isInteger(input.tabId)||input.tabId<0||!Number.isSafeInteger(input.deadlineAt)||input.deadlineAt<=now||input.deadlineAt>now+120000)fail("INVALID_APPROVAL_REQUEST","Wallet approval request is invalid.");
   const account=parseProviderAccount(input.account),origin=canonicalProviderOrigin(input.origin);
   return Object.freeze({version:1,requestId:input.requestId,origin,tabId:input.tabId,browserContext:canonicalProviderContext(input.browserContext),account:account.account,chainId:PROVIDER_CHAIN_ID,createdAt:now,deadlineAt:input.deadlineAt});
 }
 
 export function parseApprovalDecision(input,pending,now=Date.now()){
-  if(!record(input)||!record(pending)||input.requestId!==pending.requestId||!REQUEST_ID.test(input.requestId||"")||!Number.isSafeInteger(pending.deadlineAt)||pending.deadlineAt<=now||!["approve","reject"].includes(input.decision)||Object.keys(input).sort().join(",")!=="decision,requestId")fail("INVALID_APPROVAL_DECISION","Wallet approval decision is invalid or expired.");
+  if(!record(input)||!record(pending)||input.requestId!==pending.requestId||!isProviderInternalRequestId(input.requestId)||!Number.isSafeInteger(pending.deadlineAt)||pending.deadlineAt<=now||!["approve","reject"].includes(input.decision)||Object.keys(input).sort().join(",")!=="decision,requestId")fail("INVALID_APPROVAL_DECISION","Wallet approval decision is invalid or expired.");
   return Object.freeze({requestId:input.requestId,approved:input.decision==="approve"});
 }
 

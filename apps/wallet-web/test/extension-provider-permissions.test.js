@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {PROVIDER_ACCOUNT_KEY,PROVIDER_CHAIN_ID,PROVIDER_PERMISSIONS_KEY,canonicalProviderOrigin,createPendingApproval,eip2255Permissions,grantPermission,loadProviderState,parseApprovalDecision,parsePermissionStore,permissionForOrigin,revokePermission} from "../src/extension-provider-permissions.js";
 
-const ACCOUNT={version:1,source:"ynx-wallet-vault",account:"0x1111111111111111111111111111111111111111"},ORIGIN="https://dapp.example",REQUEST="ynx-11111111-1111-4111-8111-111111111111";
+const ACCOUNT={version:1,source:"ynx-wallet-vault",account:"0x1111111111111111111111111111111111111111"},ORIGIN="https://dapp.example",REQUEST=`ynx-scope-v2-${"1".repeat(64)}`;
 
 test("provider permission is exact-origin, exact-account and persistent until revoke",async()=>{
   const granted=grantPermission(undefined,ORIGIN,ACCOUNT,1000);

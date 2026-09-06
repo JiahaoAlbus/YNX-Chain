@@ -1,10 +1,19 @@
-import {canonicalProviderContext,providerContextForTab,providerPermissionKey} from "./extension-provider-permissions.js";
+import {canonicalProviderContext,canonicalProviderOrigin,isProviderInternalRequestId,providerContextForTab,providerPermissionKey} from "./extension-provider-permissions.js";
+import {validRequestId} from "./extension-bridge.js";
 export const SENSITIVE_REPLAY_KEY="ynx.extension.sensitive.replay.v1";
 export const SENSITIVE_REPLAY_LIMIT=2048;
 export const SENSITIVE_METHODS=Object.freeze(["eth_requestAccounts","wallet_requestPermissions","personal_sign","eth_signTypedData_v4","eth_sendTransaction"]);
 const replayWrites=new WeakMap();
 const ADDRESS=/^0x[0-9a-fA-F]{40}$/u,SIGNATURE=/^0x[0-9a-fA-F]{130}$/u,HASH=/^0x[0-9a-fA-F]{64}$/u,HEX=/^0x(?:[0-9a-fA-F]{2})*$/u,QUANTITY=/^0x(?:0|[1-9a-fA-F][0-9a-fA-F]*)$/u;
 function reject(code,message){throw Object.assign(new Error(message),{code})}
+
+// Full SHA-256 is an internal locator, not a UUID or a replacement wire ID.
+export async function deriveScopedSensitiveRequestId({browserContext,origin,requestId},cryptoImpl=globalThis.crypto){
+  if(!validRequestId(requestId))reject("INVALID_BRIDGE_REQUEST","The external wallet request ID is invalid.");
+  const encoded=new TextEncoder().encode(JSON.stringify(["ynx-extension-sensitive-request-v2",canonicalProviderContext(browserContext??null),canonicalProviderOrigin(origin),requestId]));
+  const digest=await cryptoImpl.subtle.digest("SHA-256",encoded);
+  return `ynx-scope-v2-${Array.from(new Uint8Array(digest),value=>value.toString(16).padStart(2,"0")).join("")}`;
+}
 
 export function parseSensitiveRequest(message,now=Date.now()){
   if(!SENSITIVE_METHODS.includes(message?.method))return null;
@@ -61,12 +70,16 @@ export class SensitiveAuthorizationGuard{
   }
 }
 
-export async function consumeSensitiveRequest(storage,message,now=Date.now()){
+export async function consumeSensitiveRequest(storage,message,now=Date.now(),{scopeBound=false}={}){
   if(!storage||typeof storage.get!=="function"||typeof storage.set!=="function")reject("REPLAY_STORE_UNAVAILABLE","Sensitive request replay storage is unavailable.");
-  const operation=(replayWrites.get(storage)??Promise.resolve()).then(()=>writeSensitiveReplay(storage,message,now));replayWrites.set(storage,operation.catch(()=>{}));return operation;
+  if(scopeBound&&!isProviderInternalRequestId(message.requestId))reject("INVALID_REPLAY_SCOPE","The internal wallet request scope is invalid.");
+  const operation=(replayWrites.get(storage)??Promise.resolve()).then(()=>writeSensitiveReplay(storage,message,now,scopeBound));replayWrites.set(storage,operation.catch(()=>{}));return operation;
 }
-async function writeSensitiveReplay(storage,message,now){
+async function writeSensitiveReplay(storage,message,now,scopeBound){
   const stored=await storage.get(SENSITIVE_REPLAY_KEY),raw=stored?.[SENSITIVE_REPLAY_KEY],live=Array.isArray(raw)?raw.filter((item)=>item&&typeof item.requestId==="string"&&Number.isSafeInteger(item.deadlineAt)&&item.deadlineAt>now):[];
+  // Legacy UUID entries cannot be assigned to a container. Uniformly pause new
+  // DApp sensitive requests until they expire: no keyed oracle and no replay.
+  if(scopeBound&&live.some(item=>validRequestId(item.requestId)))reject("REPLAY_SCOPE_MIGRATION_PENDING","Earlier unscoped wallet requests are still active. Wait for them to expire, then start a new request.");
   if(live.some((item)=>item.requestId===message.requestId))reject("REQUEST_REPLAYED","Sensitive wallet request was already consumed.");
   if(live.length>=SENSITIVE_REPLAY_LIMIT)reject("REPLAY_CAPACITY","Sensitive request replay storage reached capacity.");
   const next=[...live,{requestId:message.requestId,deadlineAt:message.deadlineAt}].sort((a,b)=>a.requestId.localeCompare(b.requestId));
