@@ -221,23 +221,15 @@ func (d *Devnet) SubmitNativeDexAction(input NativeDexSignedActionInput) (result
 		return Transaction{}, NativeDexMutation{}, false, errors.New("DEX action requires a canonical signer, positive nonce, and 1 YNXT fee")
 	}
 	d.mu.Lock()
-	shouldPersist := false
-	defer func() {
-		d.mu.Unlock()
-		if !shouldPersist {
-			return
-		}
-		persistErr := d.persistSnapshot()
-		d.mu.Lock()
-		d.recordPersistenceErrorLocked(persistErr)
-		d.mu.Unlock()
-		if err == nil {
-			err = persistErr
-		}
-	}()
+	defer d.mu.Unlock()
 	if existing, ok := d.transactionLocked(input.Hash); ok {
 		for _, event := range d.dexEvents {
 			if event.TxHash == input.Hash {
+				if _, uncertain := d.uncertainTransactions[input.Hash]; uncertain {
+					if err := d.confirmTransactionPersistenceLocked(); err != nil {
+						return existing, NativeDexMutation{Event: event}, false, err
+					}
+				}
 				return existing, NativeDexMutation{Event: event}, true, nil
 			}
 		}
@@ -253,24 +245,32 @@ func (d *Devnet) SubmitNativeDexAction(input NativeDexSignedActionInput) (result
 	if signer.Balance < input.Fee || signer.ResourceUsage.BandwidthUsed == math.MaxInt64 {
 		return Transaction{}, NativeDexMutation{}, false, errors.New("insufficient YNXT or bandwidth for DEX action fee")
 	}
-	traceable := int64(0)
+	traceable := false
 	for _, amount := range signer.Lots {
 		if amount > 0 {
-			traceable += amount
+			traceable = true // The fixed fee is exactly one native unit.
+			break
 		}
 	}
-	if traceable < input.Fee {
+	if !traceable {
 		return Transaction{}, NativeDexMutation{}, false, errors.New("insufficient traceable YNXT lots for DEX action fee")
 	}
+	feeAddress := d.nextValidatorAddressLocked()
+	if feeAddress != input.Signer && d.accountReadOnly(feeAddress).Balance > math.MaxInt64-input.Fee {
+		return Transaction{}, NativeDexMutation{}, false, errors.New("DEX fee recipient balance would overflow")
+	}
+	rollback := d.nativeDexUndoLocked(input.Signer, feeAddress)
 	now := time.Now().UTC()
 	event := NativeDexEvent{SchemaVersion: NativeDexSchemaVersion, ID: hashParts("native-dex-event", input.Hash)[:24], Type: input.Action, Signer: input.Signer, OccurredAt: now, TxHash: input.Hash}
 	mutation, err := d.applyNativeDexActionLocked(input, event, now)
 	if err != nil {
+		rollback()
 		return Transaction{}, NativeDexMutation{}, false, err
 	}
-	feeRecipient := d.account(d.nextValidatorAddressLocked())
+	feeRecipient := d.account(feeAddress)
 	flows, err := d.moveLotsLocked(signer, feeRecipient, input.Fee)
 	if err != nil {
+		rollback()
 		return Transaction{}, NativeDexMutation{}, false, err
 	}
 	signer.Balance -= input.Fee
@@ -285,8 +285,11 @@ func (d *Devnet) SubmitNativeDexAction(input NativeDexSignedActionInput) (result
 	}
 	tx := Transaction{Hash: input.Hash, Type: input.Action, From: input.Signer, To: to, Fee: input.Fee, Nonce: input.Nonce, Timestamp: now, LotFlows: flows, Memo: "signed chain-native DEX action"}
 	d.pending = append(d.pending, tx)
-	shouldPersist = true
-	return tx, mutation, false, nil
+	tx, err = d.persistMutationLocked(tx, rollback)
+	if err != nil && tx.Hash == "" {
+		return Transaction{}, NativeDexMutation{}, false, err
+	}
+	return tx, mutation, false, err
 }
 
 func (d *Devnet) applyNativeDexActionLocked(input NativeDexSignedActionInput, event NativeDexEvent, now time.Time) (NativeDexMutation, error) {

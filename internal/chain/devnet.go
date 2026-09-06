@@ -104,7 +104,7 @@ type Devnet struct {
 	dexEvents                []NativeDexEvent
 	dataDir                  string
 	lastPersistenceError     string
-	uncertainTransfers       map[string]struct{}
+	uncertainTransactions    map[string]struct{}
 	replicationDurableHeight uint64
 }
 
@@ -1022,8 +1022,8 @@ func (d *Devnet) SubmitSignedTransfer(input SignedTransferInput) (Transaction, b
 		if existing.Type != "transfer" || existing.From != input.From || existing.To != input.To || existing.Amount != input.Amount || existing.Fee != input.Fee || existing.Nonce != input.Nonce {
 			return Transaction{}, false, errors.New("signed transaction hash conflicts with existing transaction")
 		}
-		if _, uncertain := d.uncertainTransfers[input.Hash]; uncertain {
-			if err := d.confirmTransferPersistenceLocked(); err != nil {
+		if _, uncertain := d.uncertainTransactions[input.Hash]; uncertain {
+			if err := d.confirmTransactionPersistenceLocked(); err != nil {
 				return existing, false, err
 			}
 		}
@@ -1179,32 +1179,38 @@ func (d *Devnet) rollbackTransferLocked(undo transferUndo) {
 }
 
 func (d *Devnet) persistTransferLocked(tx Transaction, undo transferUndo) (Transaction, error) {
+	return d.persistMutationLocked(tx, func() { d.rollbackTransferLocked(undo) })
+}
+
+// All covered mutations hold the write lock until the snapshot outcome is known.
+// A completed checkpoint confirms every uncertain transaction in that snapshot.
+func (d *Devnet) persistMutationLocked(tx Transaction, rollback func()) (Transaction, error) {
 	err := d.persistSnapshotLocked()
 	d.recordPersistenceErrorLocked(err)
 	if err != nil {
 		if errors.Is(err, ErrSnapshotDurabilityUncertain) {
 			// Rename has exposed this state to readers and restart. Rolling back
 			// only memory would disagree with the snapshot now on disk.
-			if d.uncertainTransfers == nil {
-				d.uncertainTransfers = map[string]struct{}{}
+			if d.uncertainTransactions == nil {
+				d.uncertainTransactions = map[string]struct{}{}
 			}
-			d.uncertainTransfers[tx.Hash] = struct{}{}
+			d.uncertainTransactions[tx.Hash] = struct{}{}
 			return tx, err
 		}
-		d.rollbackTransferLocked(undo)
+		rollback()
 		return Transaction{}, err
 	}
-	d.uncertainTransfers = nil
+	d.uncertainTransactions = nil
 	return tx, nil
 }
 
-func (d *Devnet) confirmTransferPersistenceLocked() error {
+func (d *Devnet) confirmTransactionPersistenceLocked() error {
 	err := d.persistSnapshotLocked()
 	if err != nil {
 		// Even a pre-rename retry failure cannot undo the earlier replacement.
 		err = fmt.Errorf("%w: retry checkpoint: %w", ErrSnapshotDurabilityUncertain, err)
 	} else {
-		d.uncertainTransfers = nil
+		d.uncertainTransactions = nil
 	}
 	d.recordPersistenceErrorLocked(err)
 	return err

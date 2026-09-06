@@ -609,12 +609,7 @@ func (s *Server) handleSignedTransactionBroadcast(w http.ResponseWriter, r *http
 	}
 	tx, replayed, err := s.submitSignedTransaction(payload)
 	if err != nil {
-		if errors.Is(err, chain.ErrSnapshotDurabilityUncertain) {
-			w.Header().Set("Cache-Control", "no-store")
-			writeJSON(w, http.StatusServiceUnavailable, map[string]any{
-				"error":  "transaction durability needs confirmation; query its hash or retry the identical signed transaction",
-				"status": "transaction_durability_uncertain", "transactionHash": tx.Hash,
-			})
+		if writeUncertainMutation(w, tx, err) {
 			return
 		}
 		writeError(w, signedTransactionHTTPStatus(err), err.Error())
@@ -1077,6 +1072,9 @@ func (s *Server) handleResourcePoolCreate(w http.ResponseWriter, r *http.Request
 	}
 	pool, tx, err := s.devnet.CreateResourcePool(input)
 	if err != nil {
+		if writeUncertainMutation(w, tx, err) {
+			return
+		}
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -1112,6 +1110,9 @@ func (s *Server) handleResourcePoolFund(w http.ResponseWriter, r *http.Request) 
 	}
 	pool, tx, err := s.devnet.FundResourcePool(input)
 	if err != nil {
+		if writeUncertainMutation(w, tx, err) {
+			return
+		}
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -1125,6 +1126,9 @@ func (s *Server) handleResourcePoolPolicy(w http.ResponseWriter, r *http.Request
 	}
 	pool, tx, err := s.devnet.UpdateResourcePoolPolicy(input)
 	if err != nil {
+		if writeUncertainMutation(w, tx, err) {
+			return
+		}
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -1138,6 +1142,9 @@ func (s *Server) handleResourcePoolStatus(w http.ResponseWriter, r *http.Request
 	}
 	pool, tx, err := s.devnet.UpdateResourcePoolStatus(input)
 	if err != nil {
+		if writeUncertainMutation(w, tx, err) {
+			return
+		}
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -1151,6 +1158,9 @@ func (s *Server) handleResourceSponsorshipCreate(w http.ResponseWriter, r *http.
 	}
 	sponsorship, tx, err := s.devnet.SponsorResource(input)
 	if err != nil {
+		if writeUncertainMutation(w, tx, err) {
+			return
+		}
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
@@ -1226,6 +1236,9 @@ func (s *Server) handleNativeDexMutation(w http.ResponseWriter, r *http.Request)
 		Nonce: action.Nonce, Fee: action.Fee, Payload: action.Payload,
 	})
 	if err != nil {
+		if writeUncertainMutation(w, tx, err) {
+			return
+		}
 		writeError(w, signedTransactionHTTPStatus(err), err.Error())
 		return
 	}
@@ -1949,6 +1962,18 @@ func rpcInvalidParams(message string) error  { return &rpcMethodError{code: -326
 func rpcMethodNotFound(message string) error { return &rpcMethodError{code: -32601, message: message} }
 func rpcTransactionRejected(message string) error {
 	return &rpcMethodError{code: -32003, message: message}
+}
+
+func writeUncertainMutation(w http.ResponseWriter, tx chain.Transaction, err error) bool {
+	if !errors.Is(err, chain.ErrSnapshotDurabilityUncertain) {
+		return false
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	writeJSON(w, http.StatusServiceUnavailable, map[string]any{
+		"error":  "transaction durability needs confirmation; query its hash or retry the identical signed request",
+		"status": "transaction_durability_uncertain", "transactionHash": tx.Hash,
+	})
+	return true
 }
 
 func rpcBroadcastFailure(tx chain.Transaction, err error) error {

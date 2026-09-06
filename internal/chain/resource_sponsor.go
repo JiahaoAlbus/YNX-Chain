@@ -158,10 +158,7 @@ func (d *Devnet) CreateResourcePool(input ResourcePoolCreateInput) (ResourcePool
 	if err := canReserveResourceUnits(resourceBalance(owner, d.resourcePolicy), normalized.CumulativeAllowance); err != nil {
 		return ResourcePool{}, Transaction{}, err
 	}
-	rollback, err := cloneDevnetSnapshot(d.snapshotLocked())
-	if err != nil {
-		return ResourcePool{}, Transaction{}, err
-	}
+	rollback := d.resourceSponsorUndoLocked(auth.Signer)
 	now := time.Now().UTC()
 	pool := ResourcePool{ID: "rsp_" + requestHash[:24], PoolType: normalized.PoolType, Name: normalized.Name, Owner: auth.Signer, Public: normalized.Public, AllowedBeneficiaries: normalized.AllowedBeneficiaries, AllowedScopes: normalized.AllowedScopes, AllowedResourceTypes: normalized.AllowedResourceTypes, PerActionLimit: normalized.PerActionLimit, CumulativeAllowance: normalized.CumulativeAllowance, ExpiresAt: normalized.ExpiresAt, Status: "active", CreatedAt: now, UpdatedAt: now}
 	pool.PolicyHash = resourcePoolPolicyHash(pool)
@@ -173,10 +170,11 @@ func (d *Devnet) CreateResourcePool(input ResourcePoolCreateInput) (ResourcePool
 	d.resourcePools[pool.ID] = pool
 	d.recordResourceSponsorIdempotencyLocked(auth.Signer, normalized.IdempotencyKey, ResourcePoolCreateAction, requestHash, "pool", pool.ID, tx.Hash, &pool)
 	d.appendResourceSponsorAuditLocked(ResourcePoolCreateAction, auth.Signer, pool.ID, pool.ID, requestHash, now)
-	if err := d.commitResourceSponsorMutationLocked(rollback); err != nil {
+	persistedTx, err := d.persistMutationLocked(tx, rollback)
+	if err != nil && persistedTx.Hash == "" {
 		return ResourcePool{}, Transaction{}, err
 	}
-	return pool, tx, nil
+	return pool, persistedTx, err
 }
 
 func (d *Devnet) FundResourcePool(input ResourcePoolFundInput) (ResourcePool, Transaction, error) {
@@ -214,10 +212,7 @@ func (d *Devnet) FundResourcePool(input ResourcePoolFundInput) (ResourcePool, Tr
 	if err != nil {
 		return ResourcePool{}, Transaction{}, err
 	}
-	rollback, err := cloneDevnetSnapshot(d.snapshotLocked())
-	if err != nil {
-		return ResourcePool{}, Transaction{}, err
-	}
+	rollback := d.resourceSponsorUndoLocked(auth.Signer)
 	now := time.Now().UTC()
 	pool.CumulativeAllowance, pool.UpdatedAt = next, now
 	pool.PolicyHash = resourcePoolPolicyHash(pool)
@@ -229,10 +224,11 @@ func (d *Devnet) FundResourcePool(input ResourcePoolFundInput) (ResourcePool, Tr
 	d.resourcePools[pool.ID] = pool
 	d.recordResourceSponsorIdempotencyLocked(auth.Signer, input.IdempotencyKey, ResourcePoolFundAction, requestHash, "pool", pool.ID, tx.Hash, &pool)
 	d.appendResourceSponsorAuditLocked(ResourcePoolFundAction, auth.Signer, pool.ID, pool.ID, requestHash, now)
-	if err := d.commitResourceSponsorMutationLocked(rollback); err != nil {
+	persistedTx, err := d.persistMutationLocked(tx, rollback)
+	if err != nil && persistedTx.Hash == "" {
 		return ResourcePool{}, Transaction{}, err
 	}
-	return pool, tx, nil
+	return pool, persistedTx, err
 }
 
 func (d *Devnet) UpdateResourcePoolPolicy(input ResourcePoolPolicyInput) (ResourcePool, Transaction, error) {
@@ -268,10 +264,7 @@ func (d *Devnet) UpdateResourcePoolPolicy(input ResourcePoolPolicyInput) (Resour
 	if err := requireNextResourceNonce(owner, auth.Nonce); err != nil {
 		return ResourcePool{}, Transaction{}, err
 	}
-	rollback, err := cloneDevnetSnapshot(d.snapshotLocked())
-	if err != nil {
-		return ResourcePool{}, Transaction{}, err
-	}
+	rollback := d.resourceSponsorUndoLocked(auth.Signer)
 	now := time.Now().UTC()
 	pool.Public, pool.AllowedBeneficiaries = normalized.Public, normalized.AllowedBeneficiaries
 	pool.AllowedScopes, pool.AllowedResourceTypes = normalized.AllowedScopes, normalized.AllowedResourceTypes
@@ -284,10 +277,11 @@ func (d *Devnet) UpdateResourcePoolPolicy(input ResourcePoolPolicyInput) (Resour
 	d.resourcePools[pool.ID] = pool
 	d.recordResourceSponsorIdempotencyLocked(auth.Signer, normalized.IdempotencyKey, ResourcePoolPolicyAction, requestHash, "pool", pool.ID, tx.Hash, &pool)
 	d.appendResourceSponsorAuditLocked(ResourcePoolPolicyAction, auth.Signer, pool.ID, pool.ID, requestHash, now)
-	if err := d.commitResourceSponsorMutationLocked(rollback); err != nil {
+	persistedTx, err := d.persistMutationLocked(tx, rollback)
+	if err != nil && persistedTx.Hash == "" {
 		return ResourcePool{}, Transaction{}, err
 	}
-	return pool, tx, nil
+	return pool, persistedTx, err
 }
 
 func (d *Devnet) UpdateResourcePoolStatus(input ResourcePoolStatusInput) (ResourcePool, Transaction, error) {
@@ -318,10 +312,7 @@ func (d *Devnet) UpdateResourcePoolStatus(input ResourcePoolStatusInput) (Resour
 	if err := requireNextResourceNonce(owner, auth.Nonce); err != nil {
 		return ResourcePool{}, Transaction{}, err
 	}
-	rollback, err := cloneDevnetSnapshot(d.snapshotLocked())
-	if err != nil {
-		return ResourcePool{}, Transaction{}, err
-	}
+	rollback := d.resourceSponsorUndoLocked(auth.Signer)
 	now := time.Now().UTC()
 	if input.Status == "revoked" {
 		remaining, _ := subtractResourceUnits(pool.CumulativeAllowance, pool.Consumed)
@@ -335,10 +326,11 @@ func (d *Devnet) UpdateResourcePoolStatus(input ResourcePoolStatusInput) (Resour
 	d.resourcePools[pool.ID] = pool
 	d.recordResourceSponsorIdempotencyLocked(auth.Signer, input.IdempotencyKey, ResourcePoolStatusAction, requestHash, "pool", pool.ID, tx.Hash, &pool)
 	d.appendResourceSponsorAuditLocked(ResourcePoolStatusAction+":"+input.Status, auth.Signer, pool.ID, pool.ID, requestHash, now)
-	if err := d.commitResourceSponsorMutationLocked(rollback); err != nil {
+	persistedTx, err := d.persistMutationLocked(tx, rollback)
+	if err != nil && persistedTx.Hash == "" {
 		return ResourcePool{}, Transaction{}, err
 	}
-	return pool, tx, nil
+	return pool, persistedTx, err
 }
 
 func (d *Devnet) SponsorResource(input ResourceSponsorshipInput) (ResourceSponsorship, Transaction, error) {
@@ -374,14 +366,11 @@ func (d *Devnet) SponsorResource(input ResourceSponsorshipInput) (ResourceSponso
 	if err != nil {
 		return ResourceSponsorship{}, Transaction{}, err
 	}
-	rollback, err := cloneDevnetSnapshot(d.snapshotLocked())
-	if err != nil {
-		return ResourceSponsorship{}, Transaction{}, err
-	}
+	rollback := d.resourceSponsorUndoLocked(auth.Signer)
 	now := time.Now().UTC()
 	pool.Consumed, err = consumeResourceType(pool.Consumed, normalized.ResourceType, normalized.Amount)
 	if err != nil {
-		d.applySnapshotLocked(rollback)
+		rollback()
 		return ResourceSponsorship{}, Transaction{}, err
 	}
 	pool.UpdatedAt = now
@@ -395,10 +384,11 @@ func (d *Devnet) SponsorResource(input ResourceSponsorshipInput) (ResourceSponso
 	d.resourceActionRefs[normalized.ActionReference] = sponsorship.ID
 	d.recordResourceSponsorIdempotencyLocked(auth.Signer, normalized.IdempotencyKey, ResourceSponsorAction, requestHash, "sponsorship", sponsorship.ID, tx.Hash, nil)
 	d.appendResourceSponsorAuditLocked(ResourceSponsorAction, auth.Signer, pool.ID, sponsorship.ID, requestHash, now)
-	if err := d.commitResourceSponsorMutationLocked(rollback); err != nil {
+	persistedTx, err := d.persistMutationLocked(tx, rollback)
+	if err != nil && persistedTx.Hash == "" {
 		return ResourceSponsorship{}, Transaction{}, err
 	}
-	return sponsorship, tx, nil
+	return sponsorship, persistedTx, err
 }
 
 func (d *Devnet) ResourcePool(id string) (ResourcePool, bool) {
@@ -671,6 +661,11 @@ func (d *Devnet) resourcePoolReplayLocked(signer, key, action, requestHash strin
 		pool = *record.PoolSnapshot
 	}
 	tx, _ := d.transactionLocked(record.TransactionHash)
+	if _, uncertain := d.uncertainTransactions[record.TransactionHash]; uncertain {
+		if err := d.confirmTransactionPersistenceLocked(); err != nil {
+			return cloneResourcePool(pool), tx, true, err
+		}
+	}
 	return cloneResourcePool(pool), tx, true, nil
 }
 
@@ -687,6 +682,11 @@ func (d *Devnet) resourceSponsorshipReplayLocked(signer, key, requestHash string
 		return ResourceSponsorship{}, Transaction{}, true, errors.New("resource sponsor idempotency record references a missing sponsorship")
 	}
 	tx, _ := d.transactionLocked(record.TransactionHash)
+	if _, uncertain := d.uncertainTransactions[record.TransactionHash]; uncertain {
+		if err := d.confirmTransactionPersistenceLocked(); err != nil {
+			return value, tx, true, err
+		}
+	}
 	return value, tx, true, nil
 }
 
@@ -728,28 +728,6 @@ func (d *Devnet) appendResourceSponsorAuditLocked(action, signer, poolID, object
 func resourceSponsorAuditHash(event ResourceSponsorAuditEvent) string {
 	event.AuditHash = ""
 	return resourceSponsorRequestHash("resource_sponsor_audit_v1", event)
-}
-
-func (d *Devnet) commitResourceSponsorMutationLocked(rollback devnetSnapshot) error {
-	if err := d.persistSnapshotLocked(); err != nil {
-		d.applySnapshotLocked(rollback)
-		d.recordPersistenceErrorLocked(err)
-		return err
-	}
-	d.recordPersistenceErrorLocked(nil)
-	return nil
-}
-
-func cloneDevnetSnapshot(snapshot devnetSnapshot) (devnetSnapshot, error) {
-	payload, err := json.Marshal(snapshot)
-	if err != nil {
-		return devnetSnapshot{}, err
-	}
-	var clone devnetSnapshot
-	if err := json.Unmarshal(payload, &clone); err != nil {
-		return devnetSnapshot{}, err
-	}
-	return clone, nil
 }
 
 func resourceSponsorSnapshotIntegrity(snapshot devnetSnapshot) string {
