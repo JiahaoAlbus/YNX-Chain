@@ -5,6 +5,8 @@ import test from "node:test";
 test("fallback contract always offers YNX download and MetaMask when YNX is absent", async () => {
   const source = await readFile(new URL("../public/app.js", import.meta.url), "utf8");
   assert.match(source, /id="download" href="\$\{YNX_DOWNLOAD_URL\}"/);
+  assert.doesNotMatch(source, /id="download"[^>]*>Android/);
+  assert.match(source, /id="android-download" href="\$\{WALLET_DOWNLOAD_MATRIX.android.url\}"/);
   assert.match(source, /id="metamask" href="\$\{METAMASK_DOWNLOAD_URL\}"/);
   assert.match(source, /if \(state\.providers\?\.metamask\) \{ event\.preventDefault\(\); return connect\("metamask"\); \}/);
   assert.match(source, /companionLifecycle\.begin\(\)/);

@@ -7,7 +7,7 @@ export const YNX_CHAIN = Object.freeze({
 });
 
 export const WALLET_DOWNLOAD_MATRIX = Object.freeze({
-  android: Object.freeze({label:"Android API 24+",url:"https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk",hosted:true,bytes:78392878,sha256:"fd924ef853cf17d42ca2d36504528ef879c73fcb4b01ea72b1bfe7ae85085fef",contentType:"application/vnd.android.package-archive",signingClass:"persistent-testnet-release-key",productionSigned:false}),
+  android: Object.freeze({label:"Android API 24+",url:"https://www.ynxweb4.com/downloads/wallet/sha256-afd686851ef07fbb07823295d07179b79e1a4a078d1b528bc149bd619c8689e0/ynx-wallet-1.0.3-testnet-preview-3ab8c24c-local-test-signed.apk",hosted:true,bytes:78233954,sha256:"afd686851ef07fbb07823295d07179b79e1a4a078d1b528bc149bd619c8689e0",contentType:"application/vnd.android.package-archive",signingClass:"local-test-signed",productionSigned:false}),
   windowsX64: Object.freeze({label:"Windows x64",url:null,hosted:false}),
   windowsArm64: Object.freeze({label:"Windows arm64",url:null,hosted:false}),
   macosX64: Object.freeze({label:"macOS x64",url:null,hosted:false}),
@@ -18,7 +18,7 @@ export const WALLET_DOWNLOAD_MATRIX = Object.freeze({
   firefoxExtension: Object.freeze({label:"Firefox extension",url:null,hosted:false}),
   pwaPackage: Object.freeze({label:"PWA install package",url:null,hosted:false,publicStatusUrl:"https://www.ynxweb4.com/dapp/wallet"}),
 });
-export const YNX_DOWNLOAD_URL = WALLET_DOWNLOAD_MATRIX.android.url;
+export const YNX_DOWNLOAD_URL = "https://www.ynxweb4.com/dapp/wallet/open-download";
 export const METAMASK_DOWNLOAD_URL = "https://metamask.io/download";
 export const SESSION_KEY = "ynx.wallet.web.session.v1";
 
