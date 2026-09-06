@@ -2,6 +2,9 @@ name: Wallet Windows immutable installer QA
 
 on:
   workflow_dispatch:
+  push:
+    branches: [codex/wallet-dedicated-auth-v2-20260906]
+    paths: [.github/workflows/wallet-windows-installed-qa.yml]
 
 permissions:
   contents: read
