@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" role="img" aria-labelledby="title">
+  <title id="title">MetaMask</title>
+  <path fill="#e2761b" d="M5 5l15 11-3 7L7 18zm38 0L28 16l3 7 10-5z"/>
+  <path fill="#f6851b" d="M7 18l10 5-1 10-8 3zm34 0l-10 5 1 10 8 3z"/>
+  <path fill="#763d16" d="M17 23l7 5 7-5-2 12H19z"/>
+  <path fill="#c0ad9e" d="M8 36l8-3 3 3-5 5zm32 0l-8-3-3 3 5 5z"/>
+  <path fill="#161616" d="M14 41l5-5h10l5 5-10 3z"/>
+</svg>

@@ -1,0 +1,19 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Creator Studio Wallet Callback</title></head><body>
+<p>Wallet callback captured. Returning to Creator Studio...</p>
+<script>
+(function () {
+  const params = new URLSearchParams(location.search);
+  const session = params.get('gateway_session') || params.get('session') || '';
+  const requested = params.get('redirect_to') || params.get('next') || '/video/studio/';
+  let redirectTo = '/video/studio/';
+  try {
+    const candidate = new URL(requested, location.origin);
+    if (candidate.origin === location.origin) redirectTo = `${candidate.pathname}${candidate.search}${candidate.hash}`;
+  } catch {}
+  if (session) {
+    sessionStorage.setItem('ynx.video.session', session);
+  }
+  location.replace(redirectTo);
+})();
+</script>
+</body></html>
