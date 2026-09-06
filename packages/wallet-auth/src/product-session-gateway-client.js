@@ -19,65 +19,83 @@ export class ProductSessionGatewayFetchAdapter {
   async walletInstalled() { return capability(await this.#walletInstalled(), "Wallet installation detection"); }
   async schemeRegistered() { return capability(await this.#schemeRegistered(), "Wallet scheme detection"); }
 
+  // Use a fresh HTTPS authority sample, without extrapolating the device clock or
+  // adding half the network RTT. This instant has already passed at the authority.
+  async currentTime(input) {
+    exactFields(input, ["requestId"], "Product Session Gateway time request");
+    try {
+      const result = await this.#request(input.requestId, "/v2/product-sessions/time", null, null, "GET");
+      exactFields(result, ["serverTime"], "Product Session Gateway time response");
+      const now = new Date(result.serverTime);
+      if (typeof result.serverTime !== "string" || !Number.isFinite(now.getTime()) || now.toISOString() !== result.serverTime) fail("INVALID_GATEWAY_RESPONSE", "Product Session Gateway time is invalid");
+      return now;
+    } catch (error) {
+      if (error instanceof WalletAuthError && error.code === "NETWORK_UNAVAILABLE") throw error;
+      fail("CLOCK_UNAVAILABLE", "Product Session authority time could not be verified; Retry when Auth is available");
+    }
+  }
+
   async challenge(input) {
     exactFields(input, ["requestId", "request", "approval"], "Product Session Gateway challenge request");
-    return this.#post(input.requestId, "/v2/product-sessions/challenge", { request: input.request, approval: input.approval }, null);
+    return this.#request(input.requestId, "/v2/product-sessions/challenge", { request: input.request, approval: input.approval }, null);
   }
 
   async complete(input) {
     exactFields(input, ["requestId", "request", "approval", "completion"], "Product Session Gateway completion request");
-    return this.#post(input.requestId, "/v2/product-sessions/complete", { request: input.request, approval: input.approval, completion: input.completion }, null);
+    return this.#request(input.requestId, "/v2/product-sessions/complete", { request: input.request, approval: input.approval, completion: input.completion }, null);
   }
 
   async introspect(input) {
     exactFields(input, ["requestId", "sessionBinding", "requiredScopes", "proof"], "Product Session Gateway introspection request");
     const proof = parseProductSessionProofV2(input.proof);
     if (proof.sessionBinding !== input.sessionBinding) fail("CROSS_PRODUCT_SESSION", "Product Session proof does not match the requested session binding");
-    return this.#post(input.requestId, "/v2/product-sessions/introspect", { requiredScopes: input.requiredScopes }, proof);
+    return this.#request(input.requestId, "/v2/product-sessions/introspect", { requiredScopes: input.requiredScopes }, proof);
   }
 
   async revoke(input) {
     exactFields(input, ["requestId", "sessionBinding", "proof"], "Product Session Gateway revoke request");
     const proof = parseProductSessionProofV2(input.proof);
     if (proof.sessionBinding !== input.sessionBinding) fail("CROSS_PRODUCT_SESSION", "Product Session proof does not match the requested session binding");
-    return this.#post(input.requestId, "/v2/product-sessions/revoke", {}, proof);
+    return this.#request(input.requestId, "/v2/product-sessions/revoke", {}, proof);
   }
 
-  async #post(requestId, path, body, proof) {
+  async #request(requestId, path, body, proof, method = "POST") {
     if (typeof requestId !== "string" || !/^req_[A-Za-z0-9_-]{12,80}$/.test(requestId)) fail("INVALID_REQUEST_ID", "Product Session Gateway request ID is invalid");
-    const encodedBody = canonicalJSON(body);
-    const headers = { "accept": "application/json", "content-type": "application/json", "x-request-id": requestId };
+    const encodedBody = method === "GET" ? undefined : canonicalJSON(body);
+    const headers = { "accept": "application/json", "x-request-id": requestId };
+    if (method === "POST") headers["content-type"] = "application/json";
     if (proof !== null) headers[PRODUCT_SESSION_GATEWAY_PROOF_HEADER_V2] = encodeProductSessionGatewayProofHeaderV2(proof);
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), this.#timeoutMs);
     let response;
     try {
-      response = await this.#fetch(`${this.#endpoint}${path}`, { method: "POST", headers, body: encodedBody, cache: "no-store", credentials: "omit", redirect: "error", signal: controller.signal });
+      response = await this.#fetch(`${this.#endpoint}${path}`, { method, headers, body: encodedBody, cache: "no-store", credentials: "omit", redirect: "error", signal: controller.signal });
     } catch {
-      fail("NETWORK_UNAVAILABLE", "Product Session Gateway is unavailable; no local response was substituted");
-    } finally {
       clearTimeout(timeout);
+      fail("NETWORK_UNAVAILABLE", "Product Session Gateway is unavailable; no local response was substituted");
     }
-    if (!response || typeof response.status !== "number" || !response.headers || typeof response.headers.get !== "function" || typeof response.text !== "function") fail("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response is invalid");
-    const contentType = response.headers.get("content-type") ?? "";
-    const responseRequestId = response.headers.get("x-request-id");
-    const cacheControl = response.headers.get("cache-control") ?? "";
-    const contentLength = response.headers.get("content-length");
-    if (!/^application\/json(?:;\s*charset=utf-8)?$/i.test(contentType) || responseRequestId !== requestId || !/(^|,)\s*no-store\s*(,|$)/i.test(cacheControl)) fail("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response headers are invalid");
-    if (contentLength !== null && (!/^\d+$/.test(contentLength) || Number(contentLength) > MAX_RESPONSE_BYTES)) fail("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response exceeds policy");
-    let text; try { text = await response.text(); } catch { fail("NETWORK_UNAVAILABLE", "Product Session Gateway response stream was interrupted; no local response was substituted"); }
-    if (new TextEncoder().encode(text).length > MAX_RESPONSE_BYTES) fail("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response exceeds policy");
-    let payload; try { payload = JSON.parse(text); } catch { fail("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response is not JSON"); }
-    if (canonicalJSON(payload) !== text) fail("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response is not canonical JSON");
-    if (response.status >= 200 && response.status < 300) {
-      exactFields(payload, ["ok", "requestId", "result", "schemaVersion"], "Product Session Gateway success response");
-      if (payload.ok !== true || payload.requestId !== requestId || payload.schemaVersion !== PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION) fail("INVALID_GATEWAY_RESPONSE", "Product Session Gateway success response binding is invalid");
-      return payload.result;
-    }
-    exactFields(payload, ["error", "ok", "requestId", "schemaVersion"], "Product Session Gateway error response");
-    exactFields(payload.error, ["code", "message"], "Product Session Gateway public error");
-    if (payload.ok !== false || payload.requestId !== requestId || payload.schemaVersion !== PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION || typeof payload.error.code !== "string" || !/^[A-Z][A-Z0-9_]{2,63}$/.test(payload.error.code) || typeof payload.error.message !== "string" || payload.error.message.length > 300) fail("INVALID_GATEWAY_RESPONSE", "Product Session Gateway error response binding is invalid");
-    throw new WalletAuthError(payload.error.code, payload.error.message);
+    try {
+      if (!response || typeof response.status !== "number" || !response.headers || typeof response.headers.get !== "function" || typeof response.text !== "function") fail("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response is invalid");
+      const contentType = response.headers.get("content-type") ?? "";
+      const responseRequestId = response.headers.get("x-request-id");
+      const cacheControl = response.headers.get("cache-control") ?? "";
+      const contentLength = response.headers.get("content-length");
+      if (!/^application\/json(?:;\s*charset=utf-8)?$/i.test(contentType) || responseRequestId !== requestId || !/(^|,)\s*no-store\s*(,|$)/i.test(cacheControl)) fail("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response headers are invalid");
+      if (contentLength !== null && (!/^\d+$/.test(contentLength) || Number(contentLength) > MAX_RESPONSE_BYTES)) fail("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response exceeds policy");
+      let text; try { text = await response.text(); } catch { fail("NETWORK_UNAVAILABLE", "Product Session Gateway response stream was interrupted; no local response was substituted"); }
+      if (new TextEncoder().encode(text).length > MAX_RESPONSE_BYTES) fail("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response exceeds policy");
+      let payload; try { payload = JSON.parse(text); } catch { fail("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response is not JSON"); }
+      if (canonicalJSON(payload) !== text) fail("INVALID_GATEWAY_RESPONSE", "Product Session Gateway response is not canonical JSON");
+      if (response.status >= 200 && response.status < 300) {
+        exactFields(payload, ["ok", "requestId", "result", "schemaVersion"], "Product Session Gateway success response");
+        if (payload.ok !== true || payload.requestId !== requestId || payload.schemaVersion !== PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION) fail("INVALID_GATEWAY_RESPONSE", "Product Session Gateway success response binding is invalid");
+        return payload.result;
+      }
+      exactFields(payload, ["error", "ok", "requestId", "schemaVersion"], "Product Session Gateway error response");
+      exactFields(payload.error, ["code", "message"], "Product Session Gateway public error");
+      if (payload.ok !== false || payload.requestId !== requestId || payload.schemaVersion !== PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION || typeof payload.error.code !== "string" || !/^[A-Z][A-Z0-9_]{2,63}$/.test(payload.error.code) || typeof payload.error.message !== "string" || payload.error.message.length > 300) fail("INVALID_GATEWAY_RESPONSE", "Product Session Gateway error response binding is invalid");
+      throw new WalletAuthError(payload.error.code, payload.error.message);
+    } finally { clearTimeout(timeout); }
   }
 }
 

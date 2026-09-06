@@ -106,7 +106,10 @@ export async function createBrowserProductSessionClient(config) {
       validateScopes(requiredScopes, approvedScopes);
       const state = client.current;
       if (state.status !== "connected" || !state.session) fail("SESSION_INACTIVE", "Connect and verify a Product Session before signing an API proof");
-      const session = state.session, now = clock();
+      const session = state.session;
+      const now = typeof gateway.currentTime === "function"
+        ? await gateway.currentTime({ requestId: `req_web_t_${randomToken()}` }) : clock();
+      if (client.current !== state) fail("SESSION_INACTIVE", "Product Session changed while reading authority time");
       if (!(now instanceof Date) || !Number.isFinite(now.getTime()) || Date.parse(session.expiresAt) <= now.getTime()) fail("SESSION_EXPIRED", "Product Session expired before API authorization");
       const body = canonicalJSON({ requiredScopes: [...requiredScopes] });
       const proof = await createProductSessionProofV2With(session, { method: "POST", path: "/v2/product-sessions/introspect", bodyDigest: httpBodyDigest(body), nonce: randomToken(), issuedAt: now.toISOString(), expiresAt: new Date(Math.min(now.getTime() + 30_000, Date.parse(session.expiresAt))).toISOString() }, sign);

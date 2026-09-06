@@ -64,6 +64,35 @@ test("approved session is stored in protected storage and restored on the second
   assert.equal((await second.restore(true)).status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
 });
 
+test("an expired revocation proof retains the unexpired session for Retry instead of claiming revocation", async () => {
+  const s = harness();
+  s.gateway.currentTime = async () => NOW;
+  const pending = await s.client.begin({ walletInstalled: true, schemeRegistered: true });
+  const approval = signProductSessionApproval(registry, pending.request, { accountSecret, scopes: pending.request.scopes, expiresAt: "2026-08-14T01:03:00.000Z" }, NOW);
+  const connected = await s.client.handleReturn(createProductSessionReturnURL(registry, pending.request, { result: "approved", approval }, NOW));
+  assert.equal(connected.status, PRODUCT_SESSION_CLIENT_STATE.CONNECTED);
+  const session = connected.session, stored = await s.storage.get(s.client.storageKey);
+  const receivedAt = new Date(NOW.getTime() + 31_000);
+  assert.ok(Date.parse(session.expiresAt) > receivedAt.getTime());
+  let proofExpired = false;
+  s.gateway.revoke = async ({ proof }) => {
+    try {
+      verifyProductSessionProofV2(proof, session, { method: "POST", path: "/v2/product-sessions/revoke", bodyDigest: httpBodyDigest("{}") }, receivedAt);
+    } catch (error) {
+      assert.equal(error.code, "SESSION_EXPIRED");
+      proofExpired = true;
+      throw error;
+    }
+    throw new Error("The expired proof must not reach the revocation authority");
+  };
+  const result = await s.client.disconnect();
+  assert.equal(proofExpired, true);
+  assert.equal(result.status, PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED);
+  assert.deepEqual(result.actions, ["retry"]);
+  assert.equal(await s.storage.get(s.client.storageKey), stored);
+  assert.equal(s.authority.snapshot().revokedSessions.length, 0);
+});
+
 test("revoked stored session fails closed and starts only one controlled reconnect before explicit Retry", async () => {
   const first = harness(); const connecting = await first.client.begin({ walletInstalled: true, schemeRegistered: true });
   const approval = signProductSessionApproval(registry, connecting.request, { accountSecret, scopes: connecting.request.scopes, expiresAt: "2026-08-14T01:03:00.000Z" }, NOW);

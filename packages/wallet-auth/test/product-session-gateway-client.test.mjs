@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { p256 } from "@noble/curves/nist.js";
 import {
-  createProductSessionReturnURL,
+  canonicalJSON, createProductSessionReturnURL,
   ProductSessionGatewayFetchAdapter, ProductSessionGatewayHttpHandler, RecoverableProductSessionClient,
   signProductSessionApproval, PRODUCT_SESSION_CLIENT_STATE, PRODUCT_SESSION_GATEWAY_PROOF_HEADER_V2, WalletAuthError,
 } from "../src/index.js";
@@ -27,7 +27,9 @@ test("fetch adapter recovers lost completion response idempotently without expos
   const handler = new ProductSessionGatewayHttpHandler(registry, () => token(`fetch-gateway-${challengeIndex++}`));
   const captured = [];
   const fakeFetch = async (url, init) => {
-    const parsed = new URL(url); const headers = init.headers; const body = JSON.parse(init.body);
+    const parsed = new URL(url); const headers = init.headers;
+    if (parsed.pathname === "/v2/product-sessions/time") return new Response(canonicalJSON({ ok: true, requestId: headers["x-request-id"], result: { serverTime: NOW.toISOString() }, schemaVersion: 2 }), { headers: { "content-type": "application/json", "cache-control": "no-store", "x-request-id": headers["x-request-id"] } });
+    const body = JSON.parse(init.body);
     captured.push({ url, headers: { ...headers }, body });
     const response = handler.handle({ requestId: headers["x-request-id"], method: init.method, path: parsed.pathname, contentType: headers["content-type"], body: init.body, proofHeader: headers[PRODUCT_SESSION_GATEWAY_PROOF_HEADER_V2] ?? null, networkAvailable: true }, NOW);
     if (parsed.pathname === "/v2/product-sessions/complete" && loseCompletionResponse) { loseCompletionResponse = false; throw new TypeError("response lost after commit"); }
@@ -64,3 +66,29 @@ test("fetch adapter rejects unsafe origins, malformed responses and network fall
 });
 
 function code(expected) { return (error) => error instanceof WalletAuthError && error.code === expected; }
+
+for (const [label, modify] of [
+  ["missing time route", response => ({ ...response, status: 404 })],
+  ["stale response request ID", response => ({ ...response, headers: { ...response.headers, "x-request-id": "req_time_from_another_request" } })],
+  ["noncanonical time", response => ({ ...response, result: { serverTime: "Sun, 06 Sep 2026 06:23:20 GMT" } })],
+  ["missing cache policy", response => ({ ...response, headers: { ...response.headers, "cache-control": "public,max-age=300" } })],
+]) test(`authority time fails closed on ${label}`, async () => {
+  const requestId = "req_authority_time_response_0001";
+  const adapter = new ProductSessionGatewayFetchAdapter({ endpoint: "https://gateway.test", walletInstalled: () => false, schemeRegistered: () => false, timeoutMs: 1000,
+    fetch: async () => {
+      const value = modify({ status: 200, result: { serverTime: NOW.toISOString() }, headers: { "content-type": "application/json", "cache-control": "no-store", "x-request-id": requestId } });
+      return new Response(canonicalJSON({ ok: true, requestId, result: value.result, schemaVersion: 2 }), { status: value.status, headers: value.headers });
+    },
+  });
+  await assert.rejects(adapter.currentTime({ requestId }), code("CLOCK_UNAVAILABLE"));
+});
+
+test("authority time timeout covers a stalled body after response headers", async () => {
+  const requestId = "req_authority_time_stalled_body_1";
+  const adapter = new ProductSessionGatewayFetchAdapter({ endpoint: "https://gateway.test", walletInstalled: () => false, schemeRegistered: () => false, timeoutMs: 1000,
+    fetch: async (_url, init) => ({ status: 200, headers: new Headers({ "content-type": "application/json", "cache-control": "no-store", "x-request-id": requestId }),
+      text: () => new Promise((_resolve, reject) => { init.signal.addEventListener("abort", () => reject(new Error("body timed out")), { once: true }); }),
+    }),
+  });
+  await assert.rejects(adapter.currentTime({ requestId }), code("NETWORK_UNAVAILABLE"));
+});
