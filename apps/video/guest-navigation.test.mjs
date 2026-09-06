@@ -142,3 +142,63 @@ test('a sign-in racing initial restore still exposes SDK pending logout retry',a
  assert.equal(c.node('#product-launch').hidden,true);
  assert.equal(c.node('#comment textarea').disabled,true);
 });
+
+const unavailableNativeDetection = route => ({status:'retry-required',request:{nonce:'protected-unsigned-request'},
+ route:{status:route},message:'Install YNX Wallet or return to Guest / Try mode'});
+
+test('a browser launch route is an unsigned guest request, not proof that the native Wallet is absent',async()=>{
+ for(const route of ['wallet-not-installed','scheme-not-registered']){
+  const c=await controller({product:{atRegisteredOrigin:()=>true,restore:async()=>unavailableNativeDetection(route)}});
+  assert.match(c.node('#product-status').textContent,/Watch as a guest/);
+  assert.doesNotMatch(c.node('#product-status').textContent,/Install|reinstall/);
+  assert.equal(c.node('#product-connect').disabled,false);
+  assert.equal(c.node('#product-retry').hidden,true);
+  assert.equal(c.node('#product-disconnect').hidden,true);
+  assert.equal(c.node('#product-launch').hidden,true);
+  assert.equal(c.node('#comment textarea').disabled,true);
+ }
+});
+
+test('a confirmed sign-out and subsequent browser restore keep retry and sign-out controls hidden',async()=>{
+ let signedOut=false;
+ const c=await controller({product:{atRegisteredOrigin:()=>true,
+  restore:async()=>signedOut?unavailableNativeDetection('wallet-not-installed'):connected,
+  disconnect:async()=>{signedOut=true;return {status:'disconnected',message:'Auth confirmed revocation of the exact Product Session'};}}});
+ await c.signOutVideoAccount();
+ assert.equal(c.node('#product-retry').hidden,true);
+ assert.equal(c.node('#product-disconnect').hidden,true);
+ await c.restoreVideoAccount();
+ assert.equal(c.node('#product-retry').hidden,true);
+ assert.equal(c.node('#product-disconnect').hidden,true);
+ assert.equal(c.node('#product-connect').disabled,false);
+ assert.equal(c.node('#comment textarea').disabled,true);
+});
+
+test('actual network failures and revocation intents retain explicit retry even beside a native detection route',async()=>{
+ const c=await controller();
+ for(const state of [{status:'network-unavailable',message:'Authority time unavailable'},
+  {status:'retry-required',message:'Stored session requires repair'},
+  {status:'retry-required',route:{status:'wallet-not-installed'},message:'No usable request'}]){
+  c.renderProductState(state);
+  assert.equal(c.node('#product-retry').hidden,false);
+  assert.equal(c.node('#product-disconnect').hidden,false);
+ }
+ c.renderProductState({...unavailableNativeDetection('wallet-not-installed'),revocationPending:true});
+ assert.equal(c.node('#product-connect').disabled,true);
+ assert.equal(c.node('#product-retry').hidden,true);
+ assert.equal(c.node('#product-disconnect').hidden,false);
+ assert.equal(c.node('#product-disconnect').textContent,'Retry sign out');
+});
+
+test('preparing a fresh explicit Wallet request removes controls from a previous recoverable error',async()=>{
+ const c=await controller({product:{atRegisteredOrigin:()=>true,
+  restore:async()=>({status:'network-unavailable',message:'Authority time unavailable'}),
+  prepare:async()=>({url:'ynxwallet://authorize?request=fixture',expiresAt:new Date(Date.now()+60000).toISOString()})}});
+ assert.equal(c.node('#product-retry').hidden,false);
+ await c.node('#product-connect').onclick();
+ assert.equal(c.node('#product-retry').hidden,true);
+ assert.equal(c.node('#product-disconnect').hidden,true);
+ assert.equal(c.node('#product-launch').hidden,false);
+ assert.equal(c.node('#product-launch').href,'ynxwallet://authorize?request=fixture');
+ assert.equal(c.node('#comment textarea').disabled,true);
+});

@@ -1,0 +1,34 @@
+{
+  "classification": "historical-source-bound-installed-wallet-acceptance",
+  "observedAt": "2026-09-06T11:51:41.344616+00:00",
+  "viewerSource": "489bf23ac56fb11c5b2ed869fb2a93c2465d2b24",
+  "walletSource": "b0c631843295f396449500b1bdc03a796cb3d836",
+  "sdkSource": "529471f3822d2bac43ea47a1ab8004fa2ae79885",
+  "authSource": "8dad0bab8f6f711e6ca6037201eec5725f9a6a02",
+  "platform": "Android emulator, original installed b0 APK and original Chrome storage; not a Pixel or physical device",
+  "sourceEvidence": {
+    "file": "238-viewer489-b0-sdk529-deliberate-lostack-acceptance.json",
+    "sha256": "10c992dbbde4758048540dca1ffa22256745d2bca64eb3576718069c89176392"
+  },
+  "currentForNewViewerCandidate": false,
+  "serverRevokeAt": "2026-09-06T11:48:40.318Z",
+  "droppedSuccessResponseAt": "2026-09-06T11:48:40.378Z",
+  "responseStatus": 200,
+  "uiImmediatelySuspendedAuthorization": true,
+  "ordinaryReloadPreservedPendingAndDisabledLogin": true,
+  "explicitOriginalSessionRetryAt": "2026-09-06T11:49:31.786Z",
+  "retryConfirmedExactAlreadyRevokedSession": "SESSION_REVOKED",
+  "retryBeforeSessionExpiry": true,
+  "finalOrdinaryReloadStaysDisconnected": true,
+  "noBrowserStorageClear": true,
+  "privateHeadersOrBodiesRecorded": false,
+  "sessionIdentifierIncluded": false,
+  "publicTransactionsBroadcast": false,
+  "scope": "Viewer489 deliberate lost-success-response revocation only. No new Viewer source installed proof; no Creator owner-revoke or Creator182 deliberate lost-ACK proof.",
+  "observedProductIssues": [
+    "Final unsigned guest request was mislabeled as an installation requirement.",
+    "Final reload and new sign-in preparation showed unnecessary Retry sign-in and Sign out controls."
+  ],
+  "wholeWalletComplete": false,
+  "wholeVideoProductComplete": false
+}

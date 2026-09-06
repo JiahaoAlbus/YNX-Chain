@@ -163,15 +163,22 @@ function renderProductState(state) {
   productState = state;
   clearTimeout(productExpiryTimer);
   const connected = productConnected();
+  // Browser capability callbacks intentionally return false: they cannot tell
+  // whether the separate native Wallet is installed. This SDK launch route is
+  // an unsigned request, not a failed sign-in or an account needing sign-out.
+  const walletLaunchRequired = !productSignOutPending && state.status === "retry-required" && state.request &&
+    ["wallet-not-installed", "scheme-not-registered"].includes(state.route?.status);
+  const retryRequired = !walletLaunchRequired && ["network-unavailable", "retry-required"].includes(state.status);
   $("#product-status").textContent = connected
     ? `Signed in as ${maskAccount(state.session.account)}. Your playlists, subscriptions and history are available.`
+    : walletLaunchRequired ? "Watch as a guest, or select Sign in with YNX Wallet to open an approval request."
     : state.message || "Sign in with YNX Wallet to save playlists, subscriptions and watch history.";
   $("#product-signin").textContent = connected ? "Video account" : "Sign in";
   $("#product-connect").textContent = connected ? "Switch Video account" : "Sign in with YNX Wallet";
   $("#product-connect").disabled = productSignOutPending;
   $("#product-disconnect").textContent = productSignOutPending ? "Retry sign out" : "Sign out";
-  $("#product-disconnect").hidden = !connected && !productSignOutPending && !["network-unavailable", "retry-required"].includes(state.status);
-  $("#product-retry").hidden = productSignOutPending || !["network-unavailable", "retry-required"].includes(state.status);
+  $("#product-disconnect").hidden = !connected && !productSignOutPending && !retryRequired;
+  $("#product-retry").hidden = productSignOutPending || !retryRequired;
   $("#product-launch").hidden = true;
   $("#comment button").disabled = !connected;
   $("#comment textarea").disabled = !connected;
@@ -265,13 +272,14 @@ async function prepareVideoSignIn() {
   try {
     const request = await videoProductSession.prepare();
     if (revision !== productRevision || productSignOutPending) return;
+    renderProductState({status: "connecting", message: "Your request is ready. Select Open YNX Wallet, approve the Video request there, and return here. If Wallet does not open, use Get YNX Wallet or continue watching as a guest."});
+    const requestRevision = productRevision;
     $("#product-launch").href = request.url;
     $("#product-launch").hidden = false;
     $("#product-launch").focus();
-    $("#product-status").textContent = "Your request is ready. Select Open YNX Wallet, approve the Video request there, and return here. If Wallet does not open, install it or continue as a guest.";
     clearTimeout(productExpiryTimer);
     productExpiryTimer = setTimeout(() => {
-      if (revision !== productRevision) return;
+      if (requestRevision !== productRevision) return;
       $("#product-launch").hidden = true;
       $("#product-status").textContent = "This sign-in request expired. Select Sign in with YNX Wallet to start again.";
     }, Math.max(0, Date.parse(request.expiresAt) - Date.now()));
