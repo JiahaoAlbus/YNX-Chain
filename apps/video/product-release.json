@@ -1,10 +1,14 @@
 {
   "productId": "ynx-video",
   "name": "YNX Video",
-  "branch": "codex/final-video",
-  "sourceCommit": "e5ce33550bbd8a4be09a55a6bb3dd73cd3cb8833",
+  "branch": "codex/audit-video-usability-20260906",
+  "sourceCommit": "b6af671d04a4230bb7a4052cee1ff21d2f5c9c51",
   "version": "0.3.0-standard-wallet-candidate.1",
-  "surfaces": ["web", "android", "ios-source"],
+  "surfaces": [
+    "web",
+    "android",
+    "ios-source"
+  ],
   "implementedLocal": true,
   "testedLocal": true,
   "installedLocal": false,
@@ -14,13 +18,18 @@
   "integratedCentral": false,
   "testnetVerified": false,
   "deployedStaging": false,
-  "deployedPublic": false,
+  "deployedPublic": true,
   "releasePublished": false,
   "downloadHosted": false,
   "productionSigned": false,
   "storeReleased": false,
-  "publicUrls": ["https://web4.ynxweb4.com/video/"],
-  "healthUrls": ["https://web4.ynxweb4.com/video/api/health"],
+  "publicUrls": [
+    "https://video.ynxweb4.com/",
+    "https://web4.ynxweb4.com/video/"
+  ],
+  "healthUrls": [
+    "https://video.ynxweb4.com/video/api/health"
+  ],
   "artifactUrls": [],
   "standardWallet": {
     "implementedLocal": true,
@@ -37,23 +46,55 @@
     "computerControlVerified": false
   },
   "productSession": {
-    "version": "v2-required",
-    "implementedLocal": false,
-    "deployedPublic": false,
-    "state": "PRIVATE_SERVICE_DEGRADED",
+    "version": "v2",
+    "implementedLocal": true,
+    "deployedPublic": true,
+    "state": "PUBLIC_RUNTIME_AWAITING_INSTALLED_WALLET_ACCEPTANCE",
     "legacyV1Accepted": false,
-    "fabricatedFallback": false
+    "fabricatedFallback": false,
+    "testedLocal": true,
+    "sdkSourceCommit": "ff68d6d1c81708bd0144016750002a87d50bb5f9",
+    "sdkSHA256": "dbbd61d824646c989e875eda8b620400b46ed4fdf36e98e8f3a507578ed31329",
+    "installedWalletApprovalVerified": false,
+    "browserPrivateLibraryVerified": false
   },
   "currentPublicRuntime": {
-    "url": "https://web4.ynxweb4.com/video/",
-    "sourceForThisCandidateVerified": false,
-    "standardWalletCandidateDeployed": false
+    "url": "https://video.ynxweb4.com/",
+    "sourceCommit": "b6af671d04a4230bb7a4052cee1ff21d2f5c9c51",
+    "sourceForThisCandidateVerified": true,
+    "standardWalletCandidateDeployed": true,
+    "sdkSourceCommit": "ff68d6d1c81708bd0144016750002a87d50bb5f9",
+    "sdkSHA256": "dbbd61d824646c989e875eda8b620400b46ed4fdf36e98e8f3a507578ed31329",
+    "pid": 2230343,
+    "NRestarts": 0,
+    "deployedAt": "2026-09-06T08:13:49Z",
+    "artifactSHA256": "131229cc7dd9ea1cbabc0b0842d21f438d3689c13d0b4cc460e28d3416f68356",
+    "artifactBytes": 69851,
+    "publicFilesMatched": 22,
+    "internalFiles404": 4,
+    "callbackSHA256": "c8bb7b9593fc4ff3436a324bd41911b42261229750f7063b5776a683d33f9283",
+    "noStoreVerified": true,
+    "guestPlaybackVerified": false,
+    "installedWalletApprovalVerified": false,
+    "browserPrivateLibraryVerified": false,
+    "releaseReceipt": "audit/viewer-b6af-deployment-receipt.txt",
+    "publicReadback": "audit/video-b6af-public-readback.json"
   },
   "sourceIntegrity": {
     "stateSchemaVersion": 2,
     "mediaVariantIntegrity": true,
-    "coveredAssets": ["hls-playlist", "hls-segment", "original-fallback"],
-    "fields": ["bytes", "sha256", "lineage", "source_object_key", "source_sha256"]
+    "coveredAssets": [
+      "hls-playlist",
+      "hls-segment",
+      "original-fallback"
+    ],
+    "fields": [
+      "bytes",
+      "sha256",
+      "lineage",
+      "source_object_key",
+      "source_sha256"
+    ]
   },
   "historicalArtifacts": {
     "sourceCommit": "b29745c884a1271bf5b01a0cde47b07653fb7371",
@@ -75,7 +116,10 @@
       "boundary": "Historical Android API 36 emulator and iOS Simulator evidence only; no current-source install, physical device or production signing"
     }
   },
-  "minOS": {"androidApi": 26, "ios": "17.0"},
+  "minOS": {
+    "androidApi": 26,
+    "ios": "17.0"
+  },
   "localVerification": {
     "verificationCommit": "e5ce33550bbd8a4be09a55a6bb3dd73cd3cb8833",
     "verifiedAt": "2026-08-20T18:52:00Z",
@@ -90,7 +134,9 @@
     "walletUnitTests": "4/4",
     "browserVisible": true,
     "browserVisibleScope": "Deterministic local EIP-6963 approve/reject provider only; not a real installed Wallet or public runtime",
-    "computerControl": false
+    "computerControl": false,
+    "historical": true,
+    "currentForRuntime": false
   },
   "p0WalletConnectivity": {
     "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
@@ -106,7 +152,9 @@
     "deployedPublicCurrentSource": false,
     "publicVerifiedCurrentSource": false,
     "computerControl": false,
-    "integratedCentral": false
+    "integratedCentral": false,
+    "historical": true,
+    "currentForRuntime": false
   },
   "recoveryEvidence": {
     "path": "docs/handoffs/video-evidence/backup-restore-20260729.txt",
@@ -124,13 +172,25 @@
     "gatewayManifest": "internal/video/integration/appgateway-video-manifest.json"
   },
   "knownLimitations": [
-    "No current-source Android or iOS artifact/install evidence",
-    "Standard Wallet source is implemented and tested, but no actual provider approval or installed-client lifecycle has been visibly verified",
-    "Product Session v2 is not public, so authenticated viewer and creator actions fail closed while guest playback remains available",
+    "No b6af-source Android or iOS artifact/install evidence",
+    "Standard Wallet source and public runtime exist, but actual installed provider approval and lifecycle remain unverified on this version",
+    "Product Session v2 and authority-timed SDK ff68 are public; authenticated browser library and installed Wallet acceptance still require direct verification",
+    "Current-version visible playback, audio, completion and browser errors remain pending coordinator evidence",
     "Public service is a single-host Testnet preview, not a production worker fleet or HA streaming deployment",
     "No production durable object store or worker fleet evidence",
     "No production signing, physical-device, TestFlight, Play or store release",
-    "No live provider AI, Trust delegated appeal, Pay settlement or revenue"
+    "No live provider AI, Trust delegated appeal, Pay settlement or revenue",
+    "Creator editing, rights appeals, revenue and complete new UI translation remain incomplete"
   ],
-  "generatedAt": "2026-08-04T01:32:00Z"
+  "generatedAt": "2026-09-06T08:14:53.830Z",
+  "currentSourceBoundPublic": true,
+  "currentConsumerVerification": {
+    "sourceCommit": "b6af671d04a4230bb7a4052cee1ff21d2f5c9c51",
+    "sdkAndGatewayRecoveryTests": 46,
+    "videoChecks": 63,
+    "creatorChecks": 16,
+    "localesAudited": 12,
+    "browserUIVerified": false,
+    "installedWalletApprovalVerified": false
+  }
 }

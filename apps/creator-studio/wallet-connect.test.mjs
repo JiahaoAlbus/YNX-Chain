@@ -80,5 +80,11 @@ test("wallet UI uses distinct image assets and same-tab provider flow", async ()
   assert.doesNotMatch(`${app}\n${auth}\n${html}`, /window\.open|ynxwallet:|target=["']_blank/i);
   assert.match(callback, /src="..\/wallet-callback\.js"/);
   assert.doesNotMatch(callback, /gateway_session|redirect_to|<script>/);
-  assert.equal(JSON.parse(release).currentSourceBoundPublic, false);
+  const releaseState = JSON.parse(release);
+  if (releaseState.currentSourceBoundPublic) {
+    assert.match(releaseState.sourceCommit, /^[0-9a-f]{40}$/);
+    assert.equal(releaseState.publicRuntime.sourceCommit, releaseState.sourceCommit);
+    assert.equal(releaseState.deployedPublic, true);
+  }
+  assert.equal(releaseState.publicRuntime?.installedWalletApprovalVerified ?? false, false);
 });

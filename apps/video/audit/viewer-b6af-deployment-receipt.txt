@@ -1,0 +1,60 @@
+MODE=viewer
+ACTION=deploy
+SOURCE=b6af671d04a4230bb7a4052cee1ff21d2f5c9c51
+ARTIFACT_SHA256=131229cc7dd9ea1cbabc0b0842d21f438d3689c13d0b4cc460e28d3416f68356
+NEIGHBORS_BEFORE
+MainPID=2156258
+ExecMainStartTimestampMonotonic=11466259321229
+Id=ynx-videod.service
+ActiveState=active
+
+MainPID=2229608
+ExecMainStartTimestampMonotonic=11476599265083
+Id=ynx-creator-studio-wallet.service
+ActiveState=active
+
+MainPID=2217073
+ExecMainStartTimestampMonotonic=11474882365149
+Id=ynx-wallet-gateway.service
+ActiveState=active
+077fe80ea9aab24a32d64ba1fab3584e8aab10304e200e58d976d2c33edfb39f  /etc/caddy/Caddyfile
+15a722a950e4ec07583da1affb938c08522b5565c8da29adf27afaccb2335867  /etc/caddy/ynx-chain.caddy
+9f38811c6b027f8713613d94607e8225da034578d35d897c2533215c7472f3fa  /etc/caddy/conf.d/ynx-video-products-20260906.caddy
+/opt/ynx-video/releases/p0205-creator-studio-0e1a53c5
+5d930113f24c427d3e7651d69494d36405447d5b95a8b58481c96343b834d2d0  -
+791424511aa9fc1bc68dd923eb5ba270fe963f9c8620c3f23a5bf65b7f5c575f  -
+AUTHORITY_TIME_ENDPOINT_CONFIRMED=true
+MANIFEST_FILES_VERIFIED=26
+/etc/systemd/system/tat_agent.service:7: PIDFile= references a path below legacy directory /var/run/, updating /var/run/tat_agent.pid → /run/tat_agent.pid; please update the unit file accordingly.
+
+NEIGHBORS_AFTER
+MainPID=2156258
+ExecMainStartTimestampMonotonic=11466259321229
+Id=ynx-videod.service
+ActiveState=active
+
+MainPID=2229608
+ExecMainStartTimestampMonotonic=11476599265083
+Id=ynx-creator-studio-wallet.service
+ActiveState=active
+
+MainPID=2217073
+ExecMainStartTimestampMonotonic=11474882365149
+Id=ynx-wallet-gateway.service
+ActiveState=active
+077fe80ea9aab24a32d64ba1fab3584e8aab10304e200e58d976d2c33edfb39f  /etc/caddy/Caddyfile
+15a722a950e4ec07583da1affb938c08522b5565c8da29adf27afaccb2335867  /etc/caddy/ynx-chain.caddy
+9f38811c6b027f8713613d94607e8225da034578d35d897c2533215c7472f3fa  /etc/caddy/conf.d/ynx-video-products-20260906.caddy
+/opt/ynx-video/releases/p0205-creator-studio-0e1a53c5
+5d930113f24c427d3e7651d69494d36405447d5b95a8b58481c96343b834d2d0  -
+791424511aa9fc1bc68dd923eb5ba270fe963f9c8620c3f23a5bf65b7f5c575f  -
+MainPID=2230343
+NRestarts=0
+ExecStart={ path=/usr/bin/node ; argv[]=/usr/bin/node /opt/ynx-video-viewer-wallet/releases/ynx-video-b6af671d04a4230bb7a4052cee1ff21d2f5c9c51/server.mjs ; ignore_errors=no ; start_time=[Sun 2026-09-06 16:13:49 CST] ; stop_time=[n/a] ; pid=2230343 ; code=(null) ; status=0/0 }
+WorkingDirectory=/opt/ynx-video-viewer-wallet/releases/ynx-video-b6af671d04a4230bb7a4052cee1ff21d2f5c9c51
+Id=ynx-video-viewer.service
+ActiveState=active
+DropInPaths=/etc/systemd/system/ynx-video-viewer.service.d/20260906-audit.conf /etc/systemd/system/ynx-video-viewer.service.d/20260906-library-v2.conf /etc/systemd/system/ynx-video-viewer.service.d/20260906-wallet-time-ff68.conf
+174d92913a10baeeaf6fbff59058fb06f9edcc939feeb6c4d9d1b1f354b8f55c  /etc/systemd/system/ynx-video-viewer.service.d/20260906-wallet-time-ff68.conf
+COMPLETED_AT=2026-09-06T08:13:49Z
+SELECTED_FRONTEND_AUTHORITY_TIME_DEPLOYED=true

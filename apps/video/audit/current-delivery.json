@@ -1,35 +1,45 @@
 {
-  "observedAt": "2026-09-06T05:23:51.948Z",
+  "observedAt": "2026-09-06T08:14:53.830Z",
   "worktree": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video",
   "branch": "codex/audit-video-usability-20260906",
-  "runtimeSource": "48fe3824cc6a38ba944427776e48d076f27f54f5",
+  "runtimeSource": "b6af671d04a4230bb7a4052cee1ff21d2f5c9c51",
   "artifact": {
-    "path": "apps/video/audit/artifacts/ynx-video-48fe3824c-runtime.tar.gz",
-    "bytes": 69045,
-    "sha256": "78d504099bc1fbdbe54f3c04fb3f3d523b96857d8a513817db1600a829c36b2c",
+    "path": "apps/video/audit/artifacts/ynx-video-b6af671d0-runtime.tar.gz",
+    "bytes": 69851,
+    "sha256": "131229cc7dd9ea1cbabc0b0842d21f438d3689c13d0b4cc460e28d3416f68356",
     "verifiedManifestFiles": 26,
     "nativeInstaller": false,
     "backendIncluded": false,
-    "sourceCommit": "48fe3824cc6a38ba944427776e48d076f27f54f5"
+    "sourceCommit": "b6af671d04a4230bb7a4052cee1ff21d2f5c9c51"
   },
   "viewer": {
     "url": "https://web4.ynxweb4.com/video/",
     "port": 6494,
     "unit": "ynx-video-viewer.service",
-    "pid": 2156623,
-    "release": "/opt/ynx-video-viewer-wallet/releases/ynx-video-48fe3824cc6a38ba944427776e48d076f27f54f5",
-    "override": "/etc/systemd/system/ynx-video-viewer.service.d/20260906-library-v2.conf",
+    "pid": 2230343,
+    "release": "/opt/ynx-video-viewer-wallet/releases/ynx-video-b6af671d04a4230bb7a4052cee1ff21d2f5c9c51",
+    "override": "/etc/systemd/system/ynx-video-viewer.service.d/20260906-wallet-time-ff68.conf",
     "publicSourceReadbackMatched": true,
-    "cuaPublicTab": "694444700",
-    "cuaLocalRealApiTab": "694444699",
     "sameOriginRealApiVerified": true,
     "canonicalURL": "https://video.ynxweb4.com/",
-    "overrideSHA256": "893afdbdd137c4e38f19d04c505584fd5f1559b829972306487994a0909662a4",
-    "source": "48fe3824cc6a38ba944427776e48d076f27f54f5",
+    "overrideSHA256": "174d92913a10baeeaf6fbff59058fb06f9edcc939feeb6c4d9d1b1f354b8f55c",
+    "source": "b6af671d04a4230bb7a4052cee1ff21d2f5c9c51",
     "publicFilesMatched": 22,
     "privateFilesRejected": 4,
     "callbackAndResources200": true,
-    "rollbackSource": "d75ad97040041b6febbf4e9ebdb338fdb4c1eff5"
+    "rollbackSource": "48fe3824cc6a38ba944427776e48d076f27f54f5",
+    "historicalBrowserTabReferences": {
+      "source": "48fe3824cc6a38ba944427776e48d076f27f54f5",
+      "public": "694444700",
+      "local": "694444699"
+    },
+    "NRestarts": 0,
+    "callbackSHA256": "c8bb7b9593fc4ff3436a324bd41911b42261229750f7063b5776a683d33f9283",
+    "noStoreVerified": true,
+    "browserSDKSource": "ff68d6d1c81708bd0144016750002a87d50bb5f9",
+    "browserSDKSHA256": "dbbd61d824646c989e875eda8b620400b46ed4fdf36e98e8f3a507578ed31329",
+    "installedWalletApprovalVerified": false,
+    "browserUIVerified": false
   },
   "api": {
     "port": 6493,
@@ -55,16 +65,28 @@
   "creator": {
     "port": 6495,
     "unit": "ynx-creator-studio-wallet.service",
-    "source": "29896f10c5e59fc17590dd3697d6e7af3d34a809",
+    "source": "b6af671d04a4230bb7a4052cee1ff21d2f5c9c51",
     "url": "https://creator.ynxweb4.com/",
-    "pid": 2141531,
-    "artifactSha256": "e8ec4bf7584a3811015980a5b71912a9e2a0bbc755f09731590fc8975b883481",
+    "pid": 2229608,
+    "artifactSha256": "bc40e71702aef2282135a03df650a24e2447751242c257a1ecf3bd414189d349",
     "callbackAndResources200": true,
-    "browserSDKSource": "b3e4b5269d665ee5c8e2542454191cfc6ff53ecb",
+    "browserSDKSource": "ff68d6d1c81708bd0144016750002a87d50bb5f9",
     "installedWalletApprovalVerified": false,
-    "rollbackSource": "052e95e7027f6eb1352eab5fa15adae157a22b34",
-    "publicAppSHA256": "89431beb2c8a32c94e32be2465be74db38cb82d8bcd833afe6c82f78225de1d2",
-    "publicFilesMatched": 18
+    "rollbackSource": "29896f10c5e59fc17590dd3697d6e7af3d34a809",
+    "publicAppSHA256": "d0f1415ff9da63d95698352f1930df3f7c62e6123246348f388a6c424e99b59d",
+    "publicFilesMatched": 18,
+    "NRestarts": 0,
+    "release": "/opt/ynx-creator-studio-wallet/releases/audit-wallet-time-b6af671d04a4230bb7a4052cee1ff21d2f5c9c51",
+    "artifactBytes": 73108,
+    "browserSDKSHA256": "dbbd61d824646c989e875eda8b620400b46ed4fdf36e98e8f3a507578ed31329",
+    "publicSourceReadbackMatched": true,
+    "callbackSHA256": "aa808a77e703333feba726dd1a51c839331e1bb557b6878f602a4113b78d8fb2",
+    "noStoreVerified": true,
+    "refreshBusinessVerified": false,
+    "signOutBusinessVerified": false,
+    "browserUIVerified": false,
+    "override": "/etc/systemd/system/ynx-creator-studio-wallet.service.d/20260906-wallet-time-ff68.conf",
+    "overrideSHA256": "34f9f01c989c73c5d73416306eaa793fefc111f97191951d815f0d4d82e4c8f6"
   },
   "verification": {
     "testsPassed": 63,
@@ -94,7 +116,7 @@
     "privateLibraryBrowser": false,
     "videoV2ConsumerPublished": true
   },
-  "nextGate": "Mac locked: real CUA guest playback and installed Wallet approval/rejection/callback have not been accepted. Viewer private-library UI is deployed, but public browser library flow remains unverified. New UI copy is not fully localized. Editing/rights appeals/revenue/native platform installers remain unaccepted.",
+  "nextGate": "Creator and Viewer b6af/Wallet SDK ff68 are both deployed and public file identity/callback/cache policy are verified. Installed Wallet approval/rejection/callback, Creator refresh business authorization and sign-out remain pending direct Wallet-owner evidence. Guest playback and private-library browser acceptance remain unverified here. Full editing/rights appeals/revenue/native-platform requirements stay open.",
   "evidence": [
     "video-delivery.md",
     "viewer-deployment-receipt.txt",
@@ -114,7 +136,11 @@
     "qa-library-videolibraryqa-20260906052136173-a503d508.json",
     "api-library-hls-tests.log",
     "viewer-v2-check.log",
-    "library-upload-hashes.txt"
+    "library-upload-hashes.txt",
+    "../../creator-studio/audit/creator-b6af-deployment-receipt.txt",
+    "../../creator-studio/audit/creator-b6af-public-readback.json",
+    "viewer-b6af-deployment-receipt.txt",
+    "video-b6af-public-readback.json"
   ],
   "priorAPIRepair": {
     "port": 6493,
