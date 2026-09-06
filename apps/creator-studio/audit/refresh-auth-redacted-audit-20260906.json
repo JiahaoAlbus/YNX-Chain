@@ -1,0 +1,76 @@
+{
+  "observedAt": "2026-09-06T06:21:06.036Z",
+  "pid": "2123346",
+  "audit": [
+    {
+      "at": "2026-09-06T06:15:18.209Z",
+      "path": "/v2/product-sessions/challenge",
+      "outcome": "ok",
+      "code": null,
+      "requestId": "req_ps_c_bedrP9tFH886tpbW2gaH2yrqaMqP5siB2Z-vrz-nTf8"
+    },
+    {
+      "at": "2026-09-06T06:15:18.419Z",
+      "path": "/v2/product-sessions/complete",
+      "outcome": "ok",
+      "code": null,
+      "requestId": "req_ps_f_ruFrRLt-KMiXT28a5251Wha3qXLEE1FdE0YjhvqD0_A"
+    },
+    {
+      "at": "2026-09-06T06:15:18.596Z",
+      "path": "/v2/product-sessions/introspect",
+      "outcome": "ok",
+      "code": null,
+      "requestId": "req_ps_i_ebLo3K9SNLBMlOo-S04wqi6q6gnj2aYUd8BIRFmLgCg"
+    },
+    {
+      "at": "2026-09-06T06:15:19.380Z",
+      "path": "/v2/product-sessions/introspect",
+      "outcome": "ok",
+      "code": null,
+      "requestId": "req_ps_i_dZAZFSMxAxybUHEsE0LjKazliP4Cz_RQdE-vQJ4jKqA"
+    },
+    {
+      "at": "2026-09-06T06:15:20.114Z",
+      "path": "/v2/product-sessions/introspect",
+      "outcome": "ok",
+      "code": null,
+      "requestId": "req_video_3a5a9013901438ccc1d78f2ec7b58952"
+    },
+    {
+      "at": "2026-09-06T06:15:20.542Z",
+      "path": "/v2/product-sessions/introspect",
+      "outcome": "rejected",
+      "code": "ISSUED_IN_FUTURE",
+      "requestId": "req_video_d44814321e55e48fa4e7efd791392ca1"
+    },
+    {
+      "at": "2026-09-06T06:15:47.728Z",
+      "path": "/v2/product-sessions/introspect",
+      "outcome": "ok",
+      "code": null,
+      "requestId": "req_ps_i_9TW9hA6fbc0-6thyd2zxy4IT7peywCAilfMOqZZn3Tw"
+    },
+    {
+      "at": "2026-09-06T06:15:47.860Z",
+      "path": "/v2/product-sessions/introspect",
+      "outcome": "rejected",
+      "code": "ISSUED_IN_FUTURE",
+      "requestId": "req_video_97c7010baa08818197c8d9246f2d5440"
+    },
+    {
+      "at": "2026-09-06T06:15:47.963Z",
+      "path": "/v2/product-sessions/introspect",
+      "outcome": "rejected",
+      "code": "ISSUED_IN_FUTURE",
+      "requestId": "req_video_2a463206816e872e5d5956c375c4e064"
+    },
+    {
+      "at": "2026-09-06T06:16:29.640Z",
+      "path": "/v2/product-sessions/revoke",
+      "outcome": "ok",
+      "code": null,
+      "requestId": "req_ps_r_Kqld7qOVvaVAElyr6gjcL2ujyzFRyWsj6ZJUyQc73lU"
+    }
+  ]
+}

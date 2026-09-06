@@ -20,6 +20,9 @@ import{ready as i18nReady,t}from"./i18n.js";
 const CREATOR_RUNTIME_BINDING="ynx-creator-studio-web-v1",CREATOR_BUNDLE_ID="com.ynxweb4.creator-studio.web";
 const API=localStorage.getItem("ynx.video.api")||`${location.origin}/video/api`,$=s=>document.querySelector(s);
 let snapshot=null,currentAI=null,walletConnecting=false;
+let creatorSessionRevision=0,creatorAccount=null;
+function currentCreatorSession(revision){return creatorAccount!==null&&revision===creatorSessionRevision}
+function assertCreatorSession(revision){if(!currentCreatorSession(revision))throw new Error("Creator account changed. Sign in and retry.")}
 const walletProof=$("#wallet-proof");
 const walletSummary=$("#wallet-summary");
 const walletChooser=$("#wallet-chooser");
@@ -41,15 +44,19 @@ const walletTypedData=$("#wallet-eip712-sign");
 const walletSendTx=$("#wallet-send-tx");
 let walletState=createStandardWalletConnectState(),walletSession={provider:null,account:null,chainId:null,kind:null,discovery:null},walletLifecycleDetach=()=>{},walletProviders=null,walletLastTrigger=null;
 async function api(path,opt={}){
+  const revision=creatorSessionRevision;
+  assertCreatorSession(revision);
   const method=(opt.method||"GET").toUpperCase(), baseHeaders={...(opt.headers||{})};
   if(!["GET","HEAD"].includes(method))baseHeaders["Idempotency-Key"]||=crypto.randomUUID();
   let response;
   for(let attempt=0;attempt<2;attempt++){
     const headers={...baseHeaders,...await productAuthorization(path,method)};
+    assertCreatorSession(revision);
     try{response=await fetch(API+path,{...opt,headers});break}
-    catch(error){if(attempt===1){reduceWallet({type:"PRIVATE_SESSION_DEGRADED"});throw error}}
+    catch(error){assertCreatorSession(revision);if(attempt===1){reduceWallet({type:"PRIVATE_SESSION_DEGRADED"});throw error}}
   }
   const data=await response.json().catch(()=>({error:"Invalid service response"}));
+  assertCreatorSession(revision);
   if(!response.ok){if(response.status>=500)reduceWallet({type:"PRIVATE_SESSION_DEGRADED"});throw new Error(data.error||`HTTP ${response.status}`)}
   reduceWallet({type:"PRIVATE_SESSION_READY"});return data;
 }
@@ -255,8 +262,26 @@ walletSendTx.addEventListener("click",async()=>{
   }
 });
 const productStatus=$("#product-status"),productConnect=$("#product-signin"),productOpen=$("#product-open"),productDisconnect=$("#product-disconnect");
+function clearCreatorSession(){
+  creatorSessionRevision++;
+  creatorAccount=null;
+  snapshot=null;
+  currentAI=null;
+  renderContent();renderTeam();renderRights();renderAudit();
+  for(const id of ["views","watch","subs","revenue"])$("#"+id).textContent="—";
+  $("#channel-result").textContent="No channel loaded.";
+  $("#ai-provider").textContent="Sign in to check AI availability.";
+  $("#ai-result").textContent="No AI request prepared.";
+  for(const id of ["#ai-run","#ai-cancel","#ai-accept","#ai-reject","#ai-delete"])$(id).disabled=true;
+  document.querySelectorAll(".panel form").forEach(form=>form.reset());
+  productOpen.hidden=true;
+  productOpen.removeAttribute("href");
+}
 function renderProductState(state){
   const connected=state.status==="connected";
+  const account=connected?state.session.account:null;
+  if(!connected||account!==creatorAccount)clearCreatorSession();
+  creatorAccount=account;
   productStatus.textContent=connected?`Signed in · ${state.session.account}`:state.status==="disconnected"?"Sign in to manage your channel.":state.message;
   productDisconnect.hidden=!connected;
   productConnect.textContent=connected?"Switch Creator account":"Sign in with YNX Wallet";
@@ -265,27 +290,48 @@ function renderProductState(state){
 productConnect.addEventListener("click",async()=>{
   if(!atRegisteredOrigin()){location.assign("https://creator.ynxweb4.com/");return;}
   productConnect.disabled=true;
-  try{const prepared=await prepareProductSignIn();productOpen.href=prepared.url;productOpen.hidden=false;productStatus.textContent="Open YNX Wallet and review this Creator sign-in. If it is not installed, use the Wallet download link.";}
-  catch(error){productStatus.textContent=error.message;}
+  clearCreatorSession();
+  productDisconnect.hidden=true;
+  productStatus.textContent="Preparing Creator sign-in…";
+  productConnect.textContent="Sign in with YNX Wallet";
+  const revision=creatorSessionRevision;
+  try{const prepared=await prepareProductSignIn();if(revision!==creatorSessionRevision)return;productOpen.href=prepared.url;productOpen.hidden=false;productStatus.textContent="Open YNX Wallet and review this Creator sign-in. If it is not installed, use the Wallet download link.";}
+  catch(error){if(revision===creatorSessionRevision)productStatus.textContent=error.message;}
   finally{productConnect.disabled=false;}
 });
 productDisconnect.addEventListener("click",async()=>{
   productDisconnect.disabled=true;
-  try{const state=await disconnectProductSession();renderProductState(state);if(state.status==="disconnected"){snapshot=null;renderContent();renderTeam();renderRights();renderAudit();for(const id of ["views","watch","subs","revenue"])$("#"+id).textContent="—";status("Creator account disconnected.");}}
-  catch(error){productStatus.textContent=error.message;}
-  finally{productDisconnect.disabled=false;}
+  productConnect.disabled=true;
+  clearCreatorSession();
+  productStatus.textContent="Signing out…";
+  const revision=creatorSessionRevision;
+  try{const state=await disconnectProductSession();if(revision!==creatorSessionRevision)return;renderProductState(state);if(state.status==="disconnected")status("Creator account disconnected.");}
+  catch(error){if(revision===creatorSessionRevision)productStatus.textContent=error.message;}
+  finally{productDisconnect.disabled=false;productConnect.disabled=false;}
 });
 async function restoreCreator(){
   if(!atRegisteredOrigin()){productStatus.textContent="Open creator.ynxweb4.com to sign in and manage your channel.";return;}
-  try{const state=await restoreProductSession();renderProductState(state);if(state.status==="connected"){await refresh();await providerStatus();}else productStatus.textContent=state.status==="retry-required"?"Sign in to manage your channel. Your Wallet will ask for approval.":state.message;}
-  catch(error){productStatus.textContent=error.message;}
+  const revision=creatorSessionRevision;
+  try{const state=await restoreProductSession();if(revision!==creatorSessionRevision)return;renderProductState(state);if(state.status==="connected"){if(await refresh())await providerStatus();}else productStatus.textContent=state.status==="retry-required"?"Sign in to manage your channel. Your Wallet will ask for approval.":state.message;}
+  catch(error){if(revision===creatorSessionRevision)productStatus.textContent=error.message;}
 }
 void restoreCreator();
 resetWalletFlow();
 void restoreWalletConnection();
 document.querySelectorAll("nav button").forEach(button=>button.onclick=()=>{document.querySelectorAll("nav button").forEach(x=>x.classList.toggle("active",x===button));document.querySelectorAll(".panel").forEach(x=>x.classList.toggle("active",x.id===button.dataset.panel));$("#heading").textContent=button.textContent});
 
-async function refresh(){try{snapshot=await api("/v1/studio");const a=snapshot.analytics;$("#views").textContent=a.views;$("#watch").textContent=`${a.watch_seconds}s`;$("#subs").textContent=a.subscribers;$("#revenue").textContent=`${a.revenue_ynxt} YNXT`;renderContent();renderTeam();renderRights();renderAudit();status("Studio state loaded from persistent records.")}catch(error){status(error.message||t("unavailable"),true)}}
+async function refresh(){
+  const revision=creatorSessionRevision;
+  if(!currentCreatorSession(revision))return false;
+  try{
+    const nextSnapshot=await api("/v1/studio");
+    if(!currentCreatorSession(revision))return false;
+    snapshot=nextSnapshot;
+    const a=snapshot?.analytics||{};
+    $("#views").textContent=a.views??"—";$("#watch").textContent=a.watch_seconds==null?"—":`${a.watch_seconds}s`;$("#subs").textContent=a.subscribers??"—";$("#revenue").textContent=a.revenue_ynxt==null?"—":`${a.revenue_ynxt} YNXT`;
+    renderContent();renderTeam();renderRights();renderAudit();status("Studio state loaded from persistent records.");return true;
+  }catch(error){if(currentCreatorSession(revision))status(error.message||t("unavailable"),true);return false}
+}
 function rightsFor(videoID){return(snapshot?.rights||[]).find(item=>get(item,"video_id","VideoID")===videoID)}
 function openRights(video){const form=$("#rights-form");form.video_id.value=video.id;form.source_sha256.value=video.sha256||"";document.querySelector('nav button[data-panel="rights"]').click();status("Rights form prefilled with the persisted media source hash.")}
 function renderContent(){const box=$("#videos"),videos=snapshot?.videos||[];box.replaceChildren();if(!videos.length){box.innerHTML='<p class="meta">No videos yet. Create a channel, then upload your first video.</p>';return}for(const video of videos){const row=document.createElement("div"),rights=rightsFor(video.id),rightsState=rights?get(rights,"state","State"):"missing",source=video.sha256?`${video.sha256.slice(0,16)}…`:"unavailable",workflow=get(video,"workflow_state","WorkflowState")||"draft",versions=get(video,"versions","Versions")||[];row.className="row lifecycle-row";const takedown=video.takedown?` · takedown ${video.takedown.state}`:"",scheduled=get(video,"scheduled_at","ScheduledAt"),history=versions.slice(-5).reverse().map(version=>`<li><b>v${esc(get(version,"sequence","Sequence"))}</b> ${esc(get(version,"kind","Kind"))} · ${esc(get(version,"recorded_at","RecordedAt"))}</li>`).join("");row.innerHTML=`<div><b>${esc(video.title)}</b><small>${esc(video.id)} · source ${esc(source)}</small><small>Workflow ${esc(workflow)} · version ${esc(get(video,"version","Version")||0)}${scheduled?` · scheduled ${esc(scheduled)}`:""}</small></div><span class="state">${esc(video.status)}${esc(takedown)}</span><span>${esc(video.visibility)} · rights ${esc(rightsState)}</span><div class="row-actions"><button data-action="edit">Edit</button><button data-action="rights">Rights</button>${["draft","rejected","unpublished"].includes(workflow)&&video.status==="ready"?'<button data-action="submit">Submit review</button>':""}${workflow==="in_review"?'<button data-action="review">Review</button>':""}${workflow==="approved"?'<button data-action="visibility">Publish now</button><button data-action="schedule">Schedule</button>':""}${workflow==="scheduled"?'<button data-action="due">Publish due</button>':""}${workflow==="published"?'<button data-action="unpublish" class="danger">Unpublish</button>':""}${video.status==="failed"?'<button data-action="retry">Retry</button>':""}</div><details><summary>Version history (${versions.length})</summary><ol>${history||"<li>No version evidence.</li>"}</ol></details>`;row.querySelector('[data-action="edit"]').onclick=()=>editVideo(video);row.querySelector('[data-action="rights"]').onclick=()=>openRights(video);row.querySelector('[data-action="submit"]')?.addEventListener("click",()=>submitReview(video));row.querySelector('[data-action="review"]')?.addEventListener("click",()=>reviewPublication(video));row.querySelector('[data-action="visibility"]')?.addEventListener("click",()=>publishVideo(video));row.querySelector('[data-action="schedule"]')?.addEventListener("click",()=>schedulePublication(video));row.querySelector('[data-action="due"]')?.addEventListener("click",()=>publishDue(video));row.querySelector('[data-action="unpublish"]')?.addEventListener("click",()=>unpublish(video));row.querySelector('[data-action="retry"]')?.addEventListener("click",()=>retryVideo(video));box.append(row)}}
@@ -299,7 +345,7 @@ async function unpublish(video){if(!confirm("Unpublish this video and return it 
 async function retryVideo(video){try{status("Retrying malware scan and media processing…");await api(`/v1/videos/${video.id}/retry-processing`,{method:"POST"});await refresh()}catch(error){status(error.message,true)}}
 function renderTeam(){const items=[];for(const team of snapshot?.team||[]){const channelID=get(team,"channel_id","ChannelID"),version=get(team,"auth_version","AuthVersion");items.push({kind:"channel",channelID,version});for(const member of get(team,"members","Members")||[])items.push({kind:"member",channelID,member});for(const invite of get(team,"invites","Invites")||[])items.push({kind:"invite",channelID,invite})}rows("#team-list",items,item=>{if(item.kind==="channel")return`<div class="row"><div><b>Channel ${esc(item.channelID)}</b><small>Authorization version ${esc(item.version)}</small></div><span class="state">team boundary</span></div>`;if(item.kind==="member"){const member=item.member;return`<div class="row"><div><b>${esc(get(member,"account","Account"))}</b><small>${esc(item.channelID)}</small></div><span>${esc(get(member,"role","Role"))}</span><span class="state">${esc(get(member,"state","State"))}</span></div>`}const invite=item.invite;return`<div class="row"><div><b>${esc(get(invite,"account","Account"))}</b><small>invite ${esc(get(invite,"id","ID"))}</small></div><span>${esc(get(invite,"role","Role"))}</span><span class="state">${esc(get(invite,"state","State"))}</span><span>${esc(get(invite,"expires_at","ExpiresAt"))}</span></div>`},"No channel team records available for this Wallet session.")}
 function renderRights(){rows("#rights-list",snapshot?.rights||[],rights=>{const territories=get(rights,"territories","Territories")||[],evidence=String(get(rights,"evidence_sha256","EvidenceSHA256")||"");return`<div class="row"><div><b>${esc(get(rights,"video_id","VideoID"))}</b><small>evidence ${esc(evidence?`${evidence.slice(0,16)}…`:"unavailable")}</small></div><span>${esc(get(rights,"basis","Basis"))} · ${esc(territories.join(", "))}</span><span class="state">${esc(get(rights,"state","State"))}</span></div>`},"No rights declarations. Public or unlisted publication will fail closed.")}
-function renderAudit(){rows("#revenue-list",snapshot.revenue||[],r=>`<div class="row"><b>${esc(get(r,"id","ID"))}</b><span>${get(r,"amount_ynxt","AmountYNXT")} YNXT</span><span>${esc(get(r,"pay_receipt_id","PayReceiptID"))}</span></div>`,"No verified revenue records.");rows("#payout-list",snapshot.payout_intents||[],p=>`<div class="row"><b>${esc(get(p,"id","ID"))}</b><span>${get(p,"amount_ynxt","AmountYNXT")} YNXT</span><span class="state">${esc(get(p,"state","State"))}</span></div>`,"No payout intents.");rows("#report-list",snapshot.reports||[],r=>`<div class="row"><b>${esc(get(r,"id","ID"))}</b><span>${esc(get(r,"reason","Reason"))}</span><span class="state">${esc(get(r,"state","State"))}</span></div>`,"No reports on owned videos.");rows("#appeal-list",snapshot.appeals||[],a=>`<div class="row"><b>${esc(get(a,"id","ID"))}</b><span>${esc(get(a,"reason","Reason"))}</span><span class="state">${esc(get(a,"state","State"))}</span></div>`,"No appeals.");rows("#dispute-list",snapshot.disputes||[],d=>`<div class="row"><b>${esc(get(d,"id","ID"))}</b><span>${esc(get(d,"reason","Reason"))}</span><span class="state">${esc(get(d,"state","State"))}</span></div>`,"No revenue disputes.")}
+function renderAudit(){rows("#revenue-list",snapshot?.revenue||[],r=>`<div class="row"><b>${esc(get(r,"id","ID"))}</b><span>${get(r,"amount_ynxt","AmountYNXT")} YNXT</span><span>${esc(get(r,"pay_receipt_id","PayReceiptID"))}</span></div>`,"No verified revenue records.");rows("#payout-list",snapshot?.payout_intents||[],p=>`<div class="row"><b>${esc(get(p,"id","ID"))}</b><span>${get(p,"amount_ynxt","AmountYNXT")} YNXT</span><span class="state">${esc(get(p,"state","State"))}</span></div>`,"No payout intents.");rows("#report-list",snapshot?.reports||[],r=>`<div class="row"><b>${esc(get(r,"id","ID"))}</b><span>${esc(get(r,"reason","Reason"))}</span><span class="state">${esc(get(r,"state","State"))}</span></div>`,"No reports on owned videos.");rows("#appeal-list",snapshot?.appeals||[],a=>`<div class="row"><b>${esc(get(a,"id","ID"))}</b><span>${esc(get(a,"reason","Reason"))}</span><span class="state">${esc(get(a,"state","State"))}</span></div>`,"No appeals.");rows("#dispute-list",snapshot?.disputes||[],d=>`<div class="row"><b>${esc(get(d,"id","ID"))}</b><span>${esc(get(d,"reason","Reason"))}</span><span class="state">${esc(get(d,"state","State"))}</span></div>`,"No revenue disputes.")}
 
 $("#refresh").onclick=refresh;$("#channel-form").onsubmit=async event=>{event.preventDefault();try{const channel=await api("/v1/channels",json({handle:event.target.handle.value,name:event.target.name.value}));const channelID=get(channel,"id","ID");$("#channel-result").textContent=`${get(channel,"name","Name")} · ${channelID}`;for(const id of ["upload-form","team-invite-form","team-role-form","team-revoke-form"])document.getElementById(id).elements.channel_id.value=channelID;await refresh();status("Channel created. You can upload a video or invite a reviewer.")}catch(error){status(error.message,true)}};
 $("#team-invite-form").onsubmit=async event=>{event.preventDefault();const form=event.target;try{const expires=form.expires_at.value?new Date(form.expires_at.value).toISOString():undefined;await api(`/v1/channels/${encodeURIComponent(form.channel_id.value)}/team/invites`,json({account:form.account.value,role:form.role.value,expires_at:expires}));status("Bounded team invite persisted. The named Wallet account must accept it before access exists.");form.reset();await refresh()}catch(error){status(error.message,true)}};
@@ -307,7 +353,7 @@ $("#team-accept-form").onsubmit=async event=>{event.preventDefault();try{await a
 $("#team-role-form").onsubmit=async event=>{event.preventDefault();const form=event.target;try{await api(`/v1/channels/${encodeURIComponent(form.channel_id.value)}/team/${encodeURIComponent(form.account.value)}/role`,json({role:form.role.value}));status("Role changed and channel authorization version advanced.");await refresh()}catch(error){status(error.message,true)}};
 $("#team-revoke-form").onsubmit=async event=>{event.preventDefault();const form=event.target,account=form.account.value,channelID=form.channel_id.value;if(!confirm(`Revoke ${account} from ${channelID}? Their next request will fail closed.`))return;try{await api(`/v1/channels/${encodeURIComponent(channelID)}/team/${encodeURIComponent(account)}`,{method:"DELETE"});status("Team access revoked and session authority invalidated.");form.reset();await refresh()}catch(error){status(error.message,true)}};
 $("#rights-form").onsubmit=async event=>{event.preventDefault();const form=event.target;try{let splits=[];if(form.splits.value.trim()){splits=JSON.parse(form.splits.value);if(!Array.isArray(splits))throw new Error("Contributor splits must be a JSON array.")}const body={basis:form.basis.value,license_reference:form.license_reference.value,territories:form.territories.value.split(",").map(value=>value.trim()).filter(Boolean),starts_at:form.starts_at.value?new Date(form.starts_at.value).toISOString():undefined,ends_at:form.ends_at.value?new Date(form.ends_at.value).toISOString():undefined,exclusive:form.exclusive.checked,contributor_splits:splits,evidence_sha256:form.evidence_sha256.value.toLowerCase(),source_sha256:form.source_sha256.value.toLowerCase()};const declaration=await api(`/v1/videos/${encodeURIComponent(form.video_id.value)}/rights`,json(body));status(`Rights declaration ${get(declaration,"id","ID")} persisted as ${get(declaration,"state","State")}. Commercial use still requires independent review.`);await refresh()}catch(error){status(error.message,true)}};
-$("#upload-form").onsubmit=async event=>{event.preventDefault();const file=event.target.media.files[0];if(!["video/mp4","video/webm"].includes(file?.type)){status("Select an MP4 or WebM file.",true);return}try{status("Computing SHA-256 and validating rights metadata…");const checksum=await sha256Hex(file),expiry=event.target.rights_expires_at.value?new Date(event.target.rights_expires_at.value).toISOString():"",data=new FormData();for(const [key,value] of [["channel_id",event.target.channel_id.value],["media",file],["size",String(file.size)],["sha256",checksum],["title",event.target.title.value],["description",event.target.description.value],["rights_basis",event.target.rights_basis.value],["rights_source",event.target.rights_source.value],["rights_license",event.target.rights_license.value],["rights_territories",event.target.rights_territories.value],["rights_expires_at",expiry],["rights_evidence_sha256",event.target.rights_evidence_sha256.value],["owned_content_declaration",String(event.target.owned.checked)]])data.set(key,value);status("Uploading for malware scan and adaptive processing…");const video=await api("/v1/uploads",{method:"POST",body:data});await refresh();if(video.status==="ready"){openRights(video);status("Upload processed. Complete the rights declaration, then submit the video for review from Content.")}else status(`Processing state: ${video.status}. Your upload is not ready to publish.`)}catch(error){status(error.message,true)}};
+$("#upload-form").onsubmit=async event=>{event.preventDefault();const file=event.target.media.files[0];if(!["video/mp4","video/webm"].includes(file?.type)){status("Select an MP4 or WebM file.",true);return}try{const revision=creatorSessionRevision;assertCreatorSession(revision);status("Computing SHA-256 and validating rights metadata…");const checksum=await sha256Hex(file);assertCreatorSession(revision);const expiry=event.target.rights_expires_at.value?new Date(event.target.rights_expires_at.value).toISOString():"",data=new FormData();for(const [key,value] of [["channel_id",event.target.channel_id.value],["media",file],["size",String(file.size)],["sha256",checksum],["title",event.target.title.value],["description",event.target.description.value],["rights_basis",event.target.rights_basis.value],["rights_source",event.target.rights_source.value],["rights_license",event.target.rights_license.value],["rights_territories",event.target.rights_territories.value],["rights_expires_at",expiry],["rights_evidence_sha256",event.target.rights_evidence_sha256.value],["owned_content_declaration",String(event.target.owned.checked)]])data.set(key,value);status("Uploading for malware scan and adaptive processing…");const video=await api("/v1/uploads",{method:"POST",body:data});await refresh();if(!currentCreatorSession(revision))return;if(video.status==="ready"){openRights(video);status("Upload processed. Complete the rights declaration, then submit the video for review from Content.")}else status(`Processing state: ${video.status}. Your upload is not ready to publish.`)}catch(error){status(error.message,true)}};
 $("#thumbnail-form").onsubmit=async event=>{event.preventDefault();const file=event.target.thumbnail.files[0],data=new FormData();data.set("thumbnail",file);data.set("size",String(file.size));try{await api(`/v1/videos/${event.target.video_id.value}/thumbnail`,{method:"POST",body:data});status("Thumbnail stored.");await refresh()}catch(error){status(error.message,true)}};
 $("#caption-form").onsubmit=async event=>{event.preventDefault();const file=event.target.captions.files[0],data=new FormData();data.set("captions",file);data.set("size",String(file.size));data.set("language",event.target.language.value);data.set("label",event.target.label.value);data.set("ai_proposed","false");try{await api(`/v1/videos/${event.target.video_id.value}/captions`,{method:"POST",body:data});status("Human-approved caption track stored.");await refresh()}catch(error){status(error.message,true)}};
 $("#monetization").onsubmit=async event=>{event.preventDefault();try{const result=await api(`/v1/videos/${event.target.video_id.value}/monetization`,{method:"POST"});status(`${get(result,"state","State")}: ${get(result,"reason","Reason")}`);await refresh()}catch(error){status(error.message,true)}};
@@ -315,13 +361,34 @@ $("#payout").onsubmit=async event=>{event.preventDefault();try{const intent=awai
 $("#appeal").onsubmit=async event=>{event.preventDefault();try{await api(`/v1/reports/${event.target.report_id.value}/appeals`,json({reason:event.target.reason.value}));status("Appeal submitted for human review.");await refresh()}catch(error){status(error.message,true)}};
 $("#dispute").onsubmit=async event=>{event.preventDefault();try{await api(`/v1/revenue/${event.target.record_id.value}/disputes`,json({reason:event.target.reason.value}));status("Revenue dispute persisted.");await refresh()}catch(error){status(error.message,true)}};
 
-async function providerStatus(){try{const p=await api("/v1/ai/status");$("#ai-provider").textContent=p.configured?"AI Gateway configured. Provider/model are recorded with each result.":"AI Gateway unavailable. Requests will fail honestly until configured."}catch(error){$("#ai-provider").textContent="AI Gateway status unavailable."}}
-function showAI(job){currentAI=job;$("#ai-result").textContent=JSON.stringify(job,null,2);const state=get(job,"state","State");$("#ai-run").disabled=!['awaiting_permission','failed'].includes(state);$("#ai-cancel").disabled=!['awaiting_permission','running'].includes(state);$("#ai-accept").disabled=state!=="review_required";$("#ai-reject").disabled=state!=="review_required";$("#ai-delete").disabled=state==="running"}
+async function providerStatus(){const revision=creatorSessionRevision;try{const p=await api("/v1/ai/status");if(!currentCreatorSession(revision))return;$("#ai-provider").textContent=p.configured?"AI Gateway configured. Provider/model are recorded with each result.":"AI Gateway unavailable. Requests will fail honestly until configured."}catch(error){if(currentCreatorSession(revision))$("#ai-provider").textContent="AI Gateway status unavailable."}}
+function showAI(job){if(creatorAccount===null||!job)return;currentAI=job;$("#ai-result").textContent=JSON.stringify(job,null,2);const state=get(job,"state","State");$("#ai-run").disabled=!['awaiting_permission','failed'].includes(state);$("#ai-cancel").disabled=!['awaiting_permission','running'].includes(state);$("#ai-accept").disabled=state!=="review_required";$("#ai-reject").disabled=state!=="review_required";$("#ai-delete").disabled=state==="running"}
 $("#ai-form").onsubmit=async event=>{event.preventDefault();try{const job=await api("/v1/ai/jobs",json({video_id:event.target.video_id.value,kind:event.target.kind.value,context_classes:event.target.metadata.checked?["metadata"]:[],output_language:localStorage.getItem("ynx.creator.ai-locale")||localStorage.getItem("ynx.creator.locale")||"en"}));showAI(job);status("Review context preview, output language and estimated units, then explicitly approve or reject.")}catch(error){status(error.message,true)}};
-$("#ai-run").onclick=async()=>{if(!currentAI)return;const id=get(currentAI,"id","ID");showAI({...currentAI,State:"running",state:"running"});status("Provider stream running. Cancel remains available.");let streamed="",buffer="";
-try{const response=await fetch(`${API}/v1/ai/jobs/${id}/stream`,{method:"POST",headers:{...await productAuthorization(`/v1/ai/jobs/${id}/stream`,"POST"),"Idempotency-Key":crypto.randomUUID(),Accept:"application/x-ndjson"}});
-if(!response.ok)throw new Error(`HTTP ${response.status}`);const reader=response.body.getReader(),decoder=new TextDecoder();for(;;){const {value,done}=await reader.read();buffer+=decoder.decode(value||new Uint8Array(),{stream:!done});const lines=buffer.split("\n");buffer=lines.pop()||"";for(const line of lines){if(!line)continue;const event=JSON.parse(line);if(event.error)throw new Error(event.error);if(event.delta){streamed+=event.delta;$("#ai-result").textContent=`Streaming provider output — review required\n\n${streamed}`};if(event.job)showAI(event.job)}if(done)break}if(!['review_required','cancelled'].includes(get(currentAI,"state","State")))showAI(await api(`/v1/ai/jobs/${id}`));status(get(currentAI,"state","State")==="review_required"?"AI stream finished; human review is required.":"AI stream ended without applying an action.")}catch(error){status(error.message,true);try{showAI(await api(`/v1/ai/jobs/${id}`))}catch{}}};
+$("#ai-run").onclick=async()=>{
+  if(!currentAI||creatorAccount===null)return;
+  const id=get(currentAI,"id","ID"),revision=creatorSessionRevision;
+  showAI({...currentAI,State:"running",state:"running"});status("Provider stream running. Cancel remains available.");let streamed="",buffer="",reader;
+  try{
+    const headers={...await productAuthorization(`/v1/ai/jobs/${id}/stream`,"POST"),"Idempotency-Key":crypto.randomUUID(),Accept:"application/x-ndjson"};
+    assertCreatorSession(revision);
+    const response=await fetch(`${API}/v1/ai/jobs/${id}/stream`,{method:"POST",headers});
+    if(!currentCreatorSession(revision)){await response.body?.cancel();return}
+    if(!response.ok)throw new Error(`HTTP ${response.status}`);
+    reader=response.body.getReader();const decoder=new TextDecoder();
+    for(;;){
+      const {value,done}=await reader.read();
+      if(!currentCreatorSession(revision)){await reader.cancel();return}
+      buffer+=decoder.decode(value||new Uint8Array(),{stream:!done});const lines=buffer.split("\n");buffer=lines.pop()||"";
+      for(const line of lines){if(!line)continue;const event=JSON.parse(line);if(event.error)throw new Error(event.error);if(event.delta){streamed+=event.delta;$("#ai-result").textContent=`Streaming provider output — review required\n\n${streamed}`};if(event.job)showAI(event.job)}
+      if(done)break;
+    }
+    if(!['review_required','cancelled'].includes(get(currentAI,"state","State")))showAI(await api(`/v1/ai/jobs/${id}`));
+    if(!currentCreatorSession(revision))return;
+    status(get(currentAI,"state","State")==="review_required"?"AI stream finished; human review is required.":"AI stream ended without applying an action.");
+  }catch(error){if(!currentCreatorSession(revision))return;status(error.message,true);try{showAI(await api(`/v1/ai/jobs/${id}`))}catch{}}
+  finally{reader?.releaseLock()}
+};
 $("#ai-cancel").onclick=async()=>{if(!currentAI)return;try{showAI(await api(`/v1/ai/jobs/${get(currentAI,"id","ID")}/cancel`,{method:"POST"}));status("AI request cancelled and audited.")}catch(error){status(error.message,true)}};
-async function reviewAI(apply){try{showAI(await api(`/v1/ai/jobs/${get(currentAI,"id","ID")}/review`,json({apply})));status(apply?"Suggestion accepted; publication still requires a separate human action.":"Suggestion rejected and audited.")}catch(error){status(error.message,true)}}$("#ai-accept").onclick=()=>reviewAI(true);$("#ai-reject").onclick=()=>reviewAI(false);
+async function reviewAI(apply){if(!currentAI)return;try{showAI(await api(`/v1/ai/jobs/${get(currentAI,"id","ID")}/review`,json({apply})));status(apply?"Suggestion accepted; publication still requires a separate human action.":"Suggestion rejected and audited.")}catch(error){status(error.message,true)}}$("#ai-accept").onclick=()=>reviewAI(true);$("#ai-reject").onclick=()=>reviewAI(false);
 $("#ai-delete").onclick=async()=>{if(!currentAI||!confirm("Delete this AI context and result? The minimal deletion audit remains."))return;try{await api(`/v1/ai/jobs/${get(currentAI,"id","ID")}`,{method:"DELETE"});currentAI=null;$("#ai-result").textContent="AI context and result deleted.";for(const id of ["#ai-run","#ai-cancel","#ai-accept","#ai-reject","#ai-delete"])$(id).disabled=true;status("AI data deleted within the service retention boundary.");await refresh()}catch(error){status(error.message,true)}};
 await i18nReady.catch(()=>null);
