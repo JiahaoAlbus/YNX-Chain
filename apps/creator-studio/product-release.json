@@ -2,7 +2,7 @@
   "productId": "ynx-creator-studio",
   "name": "YNX Creator Studio",
   "branch": "codex/audit-video-usability-20260906",
-  "sourceCommit": "b6af671d04a4230bb7a4052cee1ff21d2f5c9c51",
+  "sourceCommit": "489bf23ac56fb11c5b2ed869fb2a93c2465d2b24",
   "historicalPublicSourceCommit": "3353bdfada4435f2acdbe09d82d2603a7af796ac",
   "version": "0.3.0-testnet-preview.1",
   "surfaces": [
@@ -34,10 +34,9 @@
     "browser": "current evergreen browser"
   },
   "installEvidence": {
-    "web": "b6af public runtime:18 source-bound HTTPS files/callback verified. Wallet owner Android e673 UI95-108 verifies approve/return, two refreshes with business reads, signout and disconnected refresh.",
-    "boundary": "Single product/platform success path only. Current-version rejection, account switching, cross-device and exception recovery remain pending.",
-    "deployment": "audit/creator-b6af-deployment-receipt.txt",
-    "publicReadback": "audit/creator-b6af-public-readback.json"
+    "web": "489bf23ac SDK529 runtime deployed; 17 source-bound HTTPS files plus manifest/callback match.",
+    "boundary": "Current-source installed Wallet success and exception paths are still being collected. b6af/e673 acceptance remains historical.",
+    "publicReadback": "audit/creator-sdk529-489bf23ac-public-readback.json"
   },
   "centralIntegration": {
     "status": "integration-request-only",
@@ -45,54 +44,47 @@
     "gatewayManifest": "internal/video/integration/appgateway-video-manifest.json"
   },
   "knownLimitations": [
-    "Current-version rejection, account-switch, other platforms/products and complete exception recovery remain pending on b6af; Android e673 success/refresh/signout path passed",
-    "Failed revocation has an explicit same-page retry; preservation of revocation intent across browser reload remains unverified",
-    "Android Open Wallet link is reachable in owner UI95-108; full touch/reader/keyboard coverage remains incomplete",
+    "489bf23ac uses complete SDK529 with persisted completion/revocation intents; exact public identity is verified, current installed-client and browser business acceptance is separate and pending.",
     "Public service is a single-host Testnet preview, not an HA production deployment",
     "No live provider AI, Trust delegated appeal or Pay settlement",
     "Analytics and revenue require authoritative persisted events; no organic activity or revenue is fabricated",
     "New UI copy is not fully localized; editing, rights appeals, revenue and native platform packages remain incomplete"
   ],
-  "generatedAt": "2026-09-06T09:05:55.431058+00:00",
+  "generatedAt": "2026-09-06T10:54:28.593589+00:00",
   "publicRuntime": {
-    "sourceCommit": "b6af671d04a4230bb7a4052cee1ff21d2f5c9c51",
-    "sdkSourceCommit": "ff68d6d1c81708bd0144016750002a87d50bb5f9",
-    "sdkSHA256": "dbbd61d824646c989e875eda8b620400b46ed4fdf36e98e8f3a507578ed31329",
-    "artifactSHA256": "bc40e71702aef2282135a03df650a24e2447751242c257a1ecf3bd414189d349",
-    "artifactBytes": 73108,
-    "pid": 2229608,
-    "NRestarts": 0,
-    "deployedAt": "2026-09-06T08:12:52Z",
-    "publicFilesMatched": 18,
+    "sourceCommit": "489bf23ac56fb11c5b2ed869fb2a93c2465d2b24",
+    "sdkSourceCommit": "529471f3822d2bac43ea47a1ab8004fa2ae79885",
+    "sdkSHA256": "723a2740aca03411580d1cb394d1d99fde8e3a021bae1135ee1890751f2aae5f",
+    "artifactSHA256": "fb73102c29e50a7542d5a09197603c15594b0969aa26f91019c2c9208e269a44",
+    "manifestSHA256": "9c0b0d6477c67a544d1607f8a35f371e96c2554875bf03cd9f9ea7c867f5f041",
+    "publicFilesMatched": 17,
     "callbackSHA256": "aa808a77e703333feba726dd1a51c839331e1bb557b6878f602a4113b78d8fb2",
     "noStoreVerified": true,
-    "installedWalletApprovalVerified": true,
-    "refreshBusinessVerified": true,
-    "signOutBusinessVerified": true,
-    "browserUIVerified": true,
-    "verificationScope": {
-      "platform": "Android emulator-5580 with Chrome",
-      "walletSource": "e673674c58ade7dfc8b5fd3e6d141566e9a278be",
-      "creatorSource": "b6af671d04a4230bb7a4052cee1ff21d2f5c9c51",
-      "approvedReturnRefreshTwiceSignoutRefreshDisconnected": true,
-      "newVersionRejectVerified": false,
-      "otherPlatformsVerified": false,
-      "source": "Wallet owner report and UI evidence files 95-108; not repeated by coordinator",
-      "evidenceDirectory": "/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/wallet-android-v2-qa",
-      "nativeOwnerSessionRevocation": {
-        "walletSource": "e673674c58ade7dfc8b5fd3e6d141566e9a278be",
-        "authSource": "f14e495ac9cb07f50199ad92096e6bd427669d44",
-        "durablyRevoked": true,
-        "browserReintrospectionCode": "SESSION_REVOKED",
-        "rejectionPrecededOriginalExpiry": true,
-        "browserFinalStateDisconnected": true,
-        "browserAXTemporarilyUnavailableAfterReload": true,
-        "allDeviceLogout": false,
-        "walletConnectRelay": false,
-        "source": "Wallet owner 134-e673-creator-b6af-w4-w8-acceptance.json and UI109-133; read by coordinator, not repeated"
-      }
+    "url": "https://creator.ynxweb4.com/",
+    "sourceTree": "bc4295590683727d2538b54255ff2ac71ce5c9c9",
+    "sourceForThisCandidateVerified": true,
+    "artifactBytes": 77138,
+    "pid": 2286540,
+    "deployedAt": "2026-09-06T09:53:42Z",
+    "deployedPublic": true,
+    "installedWalletApprovalVerified": false,
+    "browserUIVerified": false,
+    "privateBusinessVerified": false,
+    "publicReadback": "audit/creator-sdk529-489bf23ac-public-readback.json",
+    "publicReadbackSHA256": "f930a33583912d4e39da2dff5d85506660463be4f93ad141c07fe55c63192c77",
+    "compatibleRecoveryArtifact": {
+      "archive": "ynx-creator-489bf23ac-recovery.tar.gz",
+      "sha256": "22bebcfa2470c03e54e093b6c692e4522926e242abaaab0379f2b33a1b436f50",
+      "bytes": 41644,
+      "directory": "/opt/ynx-creator-studio-wallet/releases/sdk529-489bf23ac56fb11c5b2ed869fb2a93c2465d2b24-recovery",
+      "manifest": "runtime-manifest.json",
+      "manifestSHA256": "97a24ccd1624527ae74bdeef88b96de461add2da9c06f7e0213b7e380149306e",
+      "stripRuntime": true
     },
-    "nativeOwnerSessionRevocationVerified": true
+    "recoveryBoundary": "Use the compatible SDK529 recovery or normal runtime; do not downgrade to ff68 or clear pending intent storage.",
+    "refreshBusinessVerified": false,
+    "signOutBusinessVerified": false,
+    "nativeOwnerSessionRevocationVerified": false
   },
   "candidate": {
     "sourceCommit": "489bf23ac56fb11c5b2ed869fb2a93c2465d2b24",
@@ -111,10 +103,84 @@
       "stripRuntime": true
     },
     "stageAndFileVerified": true,
-    "deployedPublic": false,
+    "deployedPublic": true,
     "installedWalletApprovalVerified": false,
     "browserUIVerified": false,
     "privateBusinessVerified": false,
-    "handoff": "apps/video/audit/sdk529-handoff.md"
+    "handoff": "apps/video/audit/sdk529-handoff.md",
+    "publicReadback": "audit/creator-sdk529-489bf23ac-public-readback.json"
+  },
+  "historicalSourceBoundReleases": [
+    {
+      "sourceCommit": "b6af671d04a4230bb7a4052cee1ff21d2f5c9c51",
+      "publicRuntime": {
+        "sourceCommit": "b6af671d04a4230bb7a4052cee1ff21d2f5c9c51",
+        "sdkSourceCommit": "ff68d6d1c81708bd0144016750002a87d50bb5f9",
+        "sdkSHA256": "dbbd61d824646c989e875eda8b620400b46ed4fdf36e98e8f3a507578ed31329",
+        "artifactSHA256": "bc40e71702aef2282135a03df650a24e2447751242c257a1ecf3bd414189d349",
+        "artifactBytes": 73108,
+        "pid": 2229608,
+        "NRestarts": 0,
+        "deployedAt": "2026-09-06T08:12:52Z",
+        "publicFilesMatched": 18,
+        "callbackSHA256": "aa808a77e703333feba726dd1a51c839331e1bb557b6878f602a4113b78d8fb2",
+        "noStoreVerified": true,
+        "installedWalletApprovalVerified": true,
+        "refreshBusinessVerified": true,
+        "signOutBusinessVerified": true,
+        "browserUIVerified": true,
+        "verificationScope": {
+          "platform": "Android emulator-5580 with Chrome",
+          "walletSource": "e673674c58ade7dfc8b5fd3e6d141566e9a278be",
+          "creatorSource": "b6af671d04a4230bb7a4052cee1ff21d2f5c9c51",
+          "approvedReturnRefreshTwiceSignoutRefreshDisconnected": true,
+          "newVersionRejectVerified": false,
+          "otherPlatformsVerified": false,
+          "source": "Wallet owner report and UI evidence files 95-108; not repeated by coordinator",
+          "evidenceDirectory": "/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/wallet-android-v2-qa",
+          "nativeOwnerSessionRevocation": {
+            "walletSource": "e673674c58ade7dfc8b5fd3e6d141566e9a278be",
+            "authSource": "f14e495ac9cb07f50199ad92096e6bd427669d44",
+            "durablyRevoked": true,
+            "browserReintrospectionCode": "SESSION_REVOKED",
+            "rejectionPrecededOriginalExpiry": true,
+            "browserFinalStateDisconnected": true,
+            "browserAXTemporarilyUnavailableAfterReload": true,
+            "allDeviceLogout": false,
+            "walletConnectRelay": false,
+            "source": "Wallet owner 134-e673-creator-b6af-w4-w8-acceptance.json and UI109-133; read by coordinator, not repeated"
+          }
+        },
+        "nativeOwnerSessionRevocationVerified": true
+      },
+      "installEvidence": {
+        "web": "b6af public runtime:18 source-bound HTTPS files/callback verified. Wallet owner Android e673 UI95-108 verifies approve/return, two refreshes with business reads, signout and disconnected refresh.",
+        "boundary": "Single product/platform success path only. Current-version rejection, account switching, cross-device and exception recovery remain pending.",
+        "deployment": "audit/creator-b6af-deployment-receipt.txt",
+        "publicReadback": "audit/creator-b6af-public-readback.json"
+      },
+      "knownLimitations": [
+        "Current-version rejection, account-switch, other platforms/products and complete exception recovery remain pending on b6af; Android e673 success/refresh/signout path passed",
+        "Failed revocation has an explicit same-page retry; preservation of revocation intent across browser reload remains unverified",
+        "Android Open Wallet link is reachable in owner UI95-108; full touch/reader/keyboard coverage remains incomplete",
+        "Public service is a single-host Testnet preview, not an HA production deployment",
+        "No live provider AI, Trust delegated appeal or Pay settlement",
+        "Analytics and revenue require authoritative persisted events; no organic activity or revenue is fabricated",
+        "New UI copy is not fully localized; editing, rights appeals, revenue and native platform packages remain incomplete"
+      ],
+      "currentForRuntime": false
+    }
+  ],
+  "currentConsumerVerification": {
+    "sourceCommit": "489bf23ac56fb11c5b2ed869fb2a93c2465d2b24",
+    "sdkSourceCommit": "529471f3822d2bac43ea47a1ab8004fa2ae79885",
+    "localSdkTests": 321,
+    "shippedBundleTests": 62,
+    "videoChecks": 85,
+    "creatorChecks": 18,
+    "browserUIVerified": false,
+    "installedWalletApprovalVerified": false,
+    "privateBusinessVerified": false,
+    "scope": "Source tests and exact public release identity; current-version installed Wallet flow evidence is collected separately."
   }
 }
