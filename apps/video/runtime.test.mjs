@@ -68,6 +68,16 @@ test("self-contained server serves the public /video path without a shared relea
     assert.equal(logo.headers.get("content-type"), "image/svg+xml");
     assert.match(await logo.text(), /<svg/);
     assert.match(response.headers.get("content-security-policy"), /img-src 'self' data:/);
+    assert.match(response.headers.get("content-security-policy"), /connect-src 'self' https:\/\/wallet-auth\.ynxweb4\.com/);
+    const callback = await fetch(`http://127.0.0.1:${port}/wallet-auth/callback?result=rejected`);
+    assert.equal(callback.status, 200);
+    assert.equal(callback.headers.get("referrer-policy"), "no-referrer");
+    assert.equal(callback.headers.get("cache-control"), "no-store");
+    assert.match(await callback.text(), /src="\.\.\/wallet-callback\.js"/);
+    const productRegistry = await fetch(`http://127.0.0.1:${port}/product-session-registry.json`);
+    assert.equal((await productRegistry.json()).products[0].productId, "video");
+    assert.equal((await fetch(`http://127.0.0.1:${port}/package.json`)).status, 404);
+    assert.equal((await fetch(`http://127.0.0.1:${port}/.qa-private/creator-video-testnet-qa.json`)).status, 404);
     const i18nSource = readFileSync(join(videoRoot, "i18n.js"), "utf8");
     assert.match(i18nSource, /new URL\("\.\/i18n\/catalog\.json",import\.meta\.url\)/);
     assert.doesNotMatch(i18nSource, /fetch\("\/i18n\/catalog\.json"\)/);

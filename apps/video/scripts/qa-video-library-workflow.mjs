@@ -292,6 +292,7 @@ async function business(actor, step, method, path, body, expectedStatus = 200) {
   return jsonBody(response);
 }
 async function revokeSessions() {
+  let confirmed = true;
   for (const actor of actors) {
     for (const session of actor.issuedSessions) {
       if (Date.parse(session.expiresAt) <= Date.now()) continue;
@@ -300,13 +301,14 @@ async function revokeSessions() {
         const result = await adapter().revoke({ requestId: requestId(), sessionBinding: session.sessionBinding, proof });
         ensure(result.revoked === session.sessionBinding, "REVOKE_NOT_CONFIRMED");
         await event("session-revocation", { actor: actor.role, result: "confirmed" });
-      } catch (error) { await event("session-revocation", { actor: actor.role, result: "unconfirmed", code: safeCode(error), expiresAt: session.expiresAt }); }
+      } catch (error) { confirmed = false; await event("session-revocation", { actor: actor.role, result: "unconfirmed", code: safeCode(error), expiresAt: session.expiresAt }); }
     }
     actor.secret.fill(0);
     actor.deviceSecret.fill(0);
     actor.session = null;
     actor.issuedSessions.length = 0;
   }
+  return confirmed;
 }
 async function execute() {
   receipt.networkWrites = true;
@@ -323,11 +325,16 @@ async function execute() {
   receipt.qaAccounts = {owner:owner.account, other:reviewer.account};
   const initial = await business(owner,'initial-subscriptions','GET','/v1/subscriptions');
   const originallySubscribed = initial.some(item => (item.ID ?? item.id) === channelId);
+  const playlistName = 'Testnet QA library check '+runId;
+  receipt.qaPlaylistName = playlistName;
+  receipt.initiallySubscribed = originallySubscribed;
+  receipt.playlistCleanupVerified = false;
+  receipt.subscriptionCleanupVerified = false;
   let playlistId = null;
   try {
-    const list = await business(owner,'create-qa-playlist','POST','/v1/playlists',{Name:'Testnet QA library check '+runId});
+    const list = await business(owner,'create-qa-playlist','POST','/v1/playlists',{Name:playlistName});
+    ensure((list.Owner ?? list.owner) === owner.account && (list.Name ?? list.name) === playlistName,'QA_PLAYLIST_OWNER_MISMATCH');
     playlistId = objectId(list.ID ?? list.id); receipt.playlistId = playlistId;
-    ensure((list.Owner ?? list.owner) === owner.account,'QA_PLAYLIST_OWNER_MISMATCH');
     await business(owner,'save-qa-video','POST','/v1/playlists/'+playlistId+'/videos',{video_id:videoId});
     const lists = await business(owner,'read-saved-playlist','GET','/v1/playlists');
     ensure(lists.find(item=>(item.ID??item.id)===playlistId)?.VideoIDs?.includes(videoId),'QA_SAVE_NOT_PERSISTED');
@@ -348,16 +355,41 @@ async function execute() {
     await business(owner,'read-private-history','GET','/v1/history');
     const original = await boundedFetch(viewerOrigin+'/video/api/v1/videos/'+videoId);
     ensure(original.status===200 && jsonBody(original).sha256===expectedMediaHash,'QA_LIBRARY_DELETED_SOURCE');
-    receipt.complete = true;
-    await event('video-library-workflow-confirmed',{videoId,channelId,sourceUnaffected:true,crossAccountRejected:true,browserVerified:false,installedWalletVerified:false});
+    receipt.businessChecksPassed = true;
+    receipt.videoId = videoId; receipt.channelId = channelId;
+    await event('video-library-business-checks-passed',{videoId,channelId,sourceUnaffected:true,crossAccountRejected:true,cleanupPending:true,browserVerified:false,installedWalletVerified:false});
   } finally {
-    if(playlistId) try {await business(owner,'cleanup-own-qa-playlist','DELETE','/v1/playlists/'+playlistId);}catch(error){await event('qa-playlist-cleanup-unconfirmed',{playlistId,code:safeCode(error)});}
+    // A create response may be lost after persistence. Recover only the unique
+    // full run-name owned by this QA account; never delete unrelated playlists.
+    try {
+      const currentLists = await business(owner,'cleanup-find-own-qa-playlist','GET','/v1/playlists');
+      ensure(Array.isArray(currentLists),'QA_CLEANUP_INVALID_PLAYLIST_RESPONSE');
+      const matching = currentLists.filter(item => (item.Owner ?? item.owner) === owner.account && (item.Name ?? item.name) === playlistName);
+      ensure(matching.length <= 1,'QA_CLEANUP_AMBIGUOUS_PLAYLIST');
+      if(matching.length === 1) {
+        const foundId = objectId(matching[0].ID ?? matching[0].id);
+        ensure(!playlistId || playlistId === foundId,'QA_CLEANUP_PLAYLIST_BINDING_MISMATCH');
+        receipt.playlistId = foundId;
+        await business(owner,'cleanup-own-qa-playlist','DELETE','/v1/playlists/'+foundId);
+      }
+      const remainingLists = await business(owner,'cleanup-readback-playlists','GET','/v1/playlists');
+      ensure(Array.isArray(remainingLists) && !remainingLists.some(item =>
+        (item.Owner ?? item.owner) === owner.account && (item.Name ?? item.name) === playlistName), 'QA_PLAYLIST_CLEANUP_NOT_CONFIRMED');
+      receipt.playlistCleanupVerified = true;
+      await event('qa-playlist-cleanup-confirmed',{result:'no-matching-run-playlist'});
+    }catch(error){await event('qa-playlist-cleanup-unconfirmed',{playlistId,code:safeCode(error)});}
     try {
       const remaining = await business(owner,'cleanup-read-subscriptions','GET','/v1/subscriptions');
       const isSubscribed = remaining.some(item=>(item.ID??item.id)===channelId);
       if(isSubscribed!==originallySubscribed) await business(owner,'restore-initial-qa-subscription',originallySubscribed?'POST':'DELETE','/v1/channels/'+channelId+'/subscription');
+      const restored = await business(owner,'cleanup-readback-subscriptions','GET','/v1/subscriptions');
+      ensure(Array.isArray(restored) && restored.some(item=>(item.ID??item.id)===channelId) === originallySubscribed,'QA_SUBSCRIPTION_CLEANUP_NOT_CONFIRMED');
+      receipt.subscriptionCleanupVerified = true;
+      await event('qa-subscription-cleanup-confirmed',{originallySubscribed,restored:true});
     }catch(error){await event('qa-subscription-cleanup-unconfirmed',{code:safeCode(error)});}
+    receipt.cleanupConfirmed = receipt.playlistCleanupVerified && receipt.subscriptionCleanupVerified;
   }
+  ensure(receipt.cleanupConfirmed,'QA_CLEANUP_INCOMPLETE');
 }
 try {
   const media = await loadInputs();
@@ -373,7 +405,15 @@ try {
   process.exitCode = 1;
   await event("failed", receipt.failure);
 } finally {
-  if (options.execute && actors.length) await revokeSessions();
+  if (options.execute && actors.length) {
+    receipt.sessionRevocationConfirmed = await revokeSessions();
+    if (!receipt.sessionRevocationConfirmed) {
+      process.exitCode = 1;
+      receipt.failure ??= {step:'session-revocation',code:'QA_SESSION_REVOCATION_UNCONFIRMED',action:'Inspect revocation failures and their recorded expiry before closing this QA run.'};
+    }
+    receipt.complete = Boolean(receipt.businessChecksPassed && receipt.cleanupConfirmed && receipt.sessionRevocationConfirmed && !receipt.failure);
+    if(receipt.complete) await event('video-library-workflow-confirmed',{videoId:receipt.videoId,channelId:receipt.channelId,cleanupConfirmed:true,sessionRevocationConfirmed:true,browserVerified:false,installedWalletVerified:false});
+  }
   receipt.finishedAt = new Date().toISOString();
   if (receiptPath) {
     await writeFile(receiptPath, `${JSON.stringify(receipt, null, 2)}\n`, { mode: 0o600 });

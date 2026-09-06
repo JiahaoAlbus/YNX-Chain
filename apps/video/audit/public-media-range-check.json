@@ -1,0 +1,37 @@
+{
+  "observedAt": "2026-09-06T05:04:51.502Z",
+  "videoId": "vid_037cc8f97abd9a6dff7a4e74",
+  "probe": {
+    "container": "mov,mp4,m4a,3gp,3g2,mj2",
+    "video_codec": "h264",
+    "audio_codec": "aac",
+    "duration_seconds": 1,
+    "width": 320,
+    "height": 180,
+    "frame_rate": 25
+  },
+  "variants": [
+    {
+      "name": "adaptive-hls",
+      "mime": "application/vnd.apple.mpegurl",
+      "sha256": "509e61af6d3835682e69483a53f612357985e1b14daf637b9da065c2344441a6"
+    },
+    {
+      "name": "hls-segment-0000",
+      "mime": "video/mp2t",
+      "sha256": "7983e4e68b4d8a38a7f4d22ad1d97f6e2a3998ec068a8a317a110c3855f1b3ce"
+    },
+    {
+      "name": "original-fallback",
+      "mime": "video/mp4",
+      "sha256": "be414db1d01558b11c7592b7d4dc69d0fee8da158997dc477e2fdaf6b9e3ee39"
+    }
+  ],
+  "range": {
+    "status": 206,
+    "contentType": "video/mp4",
+    "contentRange": "bytes 0-31/12525",
+    "bytes": 32
+  },
+  "browserPlaybackVerified": false
+}

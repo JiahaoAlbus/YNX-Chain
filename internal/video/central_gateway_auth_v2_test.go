@@ -110,3 +110,72 @@ func TestVideoV2CannotAuthorizeCreatorWrites(t *testing.T) {
 		t.Fatal("payout scope incorrect")
 	}
 }
+
+func TestVideoV2ViewerRoutesHaveExactScopes(t *testing.T) {
+	cases := []struct{ method, path, scope string }{
+		{"GET", "/v1/videos", "video:playback"}, {"GET", "/v1/videos/vid_one", "video:playback"},
+		{"GET", "/v1/videos/vid_one/comments", "video:playback"}, {"GET", "/v1/channels/chn_one", "video:playback"},
+		{"HEAD", "/media/vid_one/original", "video:playback"}, {"GET", "/v1/history", "video:library"},
+		{"GET", "/v1/playlists", "video:library"}, {"GET", "/v1/subscriptions", "video:library"},
+		{"POST", "/v1/playlists", "video:library"}, {"POST", "/v1/playlists/pl_one/videos", "video:library"},
+		{"DELETE", "/v1/playlists/pl_one", "video:library"}, {"DELETE", "/v1/playlists/pl_one/videos/vid_one", "video:library"},
+		{"POST", "/v1/videos/vid_one/watch", "video:library"}, {"POST", "/v1/channels/chn_one/subscription", "video:library"},
+		{"DELETE", "/v1/channels/chn_one/subscription", "video:library"},
+		{"POST", "/v1/videos/vid_one/comments", "video:account"}, {"POST", "/v1/videos/vid_one/reports", "video:account"},
+		{"POST", "/v1/reports/report_one/appeals", "video:account"}, {"DELETE", "/v1/privacy/account-data", "video:account"},
+	}
+	for _, item := range cases {
+		t.Run(item.method+item.path, func(t *testing.T) {
+			if scope := videoProductScopeV2("video", item.method, item.path); scope != item.scope {
+				t.Fatalf("scope=%q, want %q", scope, item.scope)
+			}
+			claimed := creatorV2Fixture()
+			claimed.ProductID, claimed.ClientID, claimed.ApplicationID = "video", "ynx-video-mobile-v1", "com.ynxweb4.video.web"
+			claimed.Origin, claimed.Callback = "https://video.ynxweb4.com", "https://video.ynxweb4.com/wallet-auth/callback"
+			claimed.Scopes = []string{item.scope}
+			gateway := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				body, _ := io.ReadAll(r.Body)
+				if string(body) != `{"requiredScopes":["`+item.scope+`"]}` {
+					t.Error("signed introspection scope changed")
+				}
+				requestID := r.Header.Get("X-Request-ID")
+				w.Header().Set("X-Request-ID", requestID)
+				_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "schemaVersion": 2, "requestId": requestID,
+					"result": map[string]any{"active": true, "session": claimed}})
+			}))
+			defer gateway.Close()
+			request := httptest.NewRequest(item.method, item.path, nil)
+			request.Header.Set(productSessionProofV2Header, encodedV2Fixture(claimed))
+			request.Header.Set("Origin", claimed.Origin)
+			if account, err := (CentralProductSessionAuth{GatewayURL: gateway.URL}).Account(request); err != nil || account != gatewayTestAccount {
+				t.Fatalf("valid viewer route rejected: %v", err)
+			}
+		})
+	}
+}
+
+func TestVideoV2RejectsCreatorAndUnsupportedRoutesBeforeGateway(t *testing.T) {
+	claimed := creatorV2Fixture()
+	claimed.ProductID, claimed.ClientID, claimed.ApplicationID = "video", "ynx-video-mobile-v1", "com.ynxweb4.video.web"
+	claimed.Origin, claimed.Callback = "https://video.ynxweb4.com", "https://video.ynxweb4.com/wallet-auth/callback"
+	claimed.Scopes = []string{"video:account", "video:library", "video:playback"}
+	for _, item := range []struct{ method, path string }{
+		{"GET", "/v1/studio"}, {"GET", "/v1/studio/analytics"}, {"GET", "/v1/channels/chn_one/team"},
+		{"GET", "/v1/videos/vid_one/rights"}, {"GET", "/v1/ai/providers"}, {"GET", "/v1/studio/revenue"},
+		{"POST", "/v1/uploads"}, {"POST", "/v1/channels"}, {"POST", "/v1/videos/vid_one/publish"},
+		{"POST", "/v1/videos/vid_one/review-publication"}, {"POST", "/v1/reports/report_one/moderate"},
+		{"DELETE", "/v1/channels/chn_one/team/account"}, {"DELETE", "/v1/videos/vid_one"},
+		{"GET", "/v1/studio/history"}, {"POST", "/v1/playlists/../../uploads"}, {"POST", "/v1/wallet/revoke"},
+	} {
+		t.Run(item.method+item.path, func(t *testing.T) {
+			gateway := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { t.Error("unsupported Video authority reached Gateway") }))
+			defer gateway.Close()
+			request := httptest.NewRequest(item.method, item.path, nil)
+			request.Header.Set(productSessionProofV2Header, encodedV2Fixture(claimed))
+			request.Header.Set("Origin", claimed.Origin)
+			if _, err := (CentralProductSessionAuth{GatewayURL: gateway.URL}).Account(request); err == nil {
+				t.Fatal("Video session accessed a Creator or unsupported route")
+			}
+		})
+	}
+}

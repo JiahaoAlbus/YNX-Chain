@@ -13,7 +13,7 @@
   <header class="topbar">
     <a class="brand" href="./" aria-label="YNX Video home"><span class="brand-mark" aria-hidden="true"><img src="assets/ynx-logo.svg" alt=""></span><strong>YNX</strong><span>Video</span></a>
     <form id="search" role="search"><label class="sr-only" for="query">Search published videos</label><input id="query" type="search" maxlength="140" placeholder="Search videos, channels, or topics" data-i18n-placeholder="search"><button type="submit" data-i18n="search">Search videos</button></form>
-    <div class="header-actions"><label><span class="sr-only" data-i18n="language">Language</span><select id="locale" aria-label="Language"></select></label><button id="signin" class="outline" data-i18n="signIn">Connect Wallet</button></div>
+    <div class="header-actions"><label><span class="sr-only" data-i18n="language">Language</span><select id="locale" aria-label="Language"></select></label><button id="product-signin">Sign in</button></div>
   </header>
     <div class="shell">
     <nav aria-label="Library">
@@ -25,8 +25,13 @@
     </nav>
     <main id="main">
       <section class="page-heading" aria-labelledby="page-title">
-        <div><p class="eyebrow">YNX VIDEO</p><h1 id="page-title" data-i18n="discover">Discover</h1><p class="lede" data-i18n="noMetrics">No synthetic views, revenue, subscribers, copyright, or recommendations.</p></div>
-      <div><div id="session" class="session">Guest playback is available. Connect a standard EVM Wallet for YNX Testnet; private actions require a separate Product Session.</div><div class="wallet-controls"><button id="revoke" class="outline" hidden>Revoke Wallet Authority</button></div><div id="wallet-install" class="wallet-install" hidden></div></div>
+        <div><p class="eyebrow">YNX VIDEO</p><h1 id="page-title" data-i18n="discover">Discover</h1><p class="lede">Watch published videos, follow channels and keep a library of your own.</p></div>
+        <a class="creator-link" href="https://creator.ynxweb4.com">Open Creator Studio</a>
+      </section>
+      <section id="video-account" class="account-panel" aria-label="Video account">
+        <p id="product-status" role="status">Guest playback is available. Sign in to save your library.</p>
+        <div class="account-actions"><button id="product-connect">Sign in with YNX Wallet</button><a id="product-launch" class="button-link" hidden>Open YNX Wallet</a><button id="product-retry" class="outline" hidden>Retry sign-in</button><button id="product-disconnect" class="outline" hidden>Sign out</button><a href="https://www.ynxweb4.com/dapp/download">Get YNX Wallet</a><a id="canonical-signin" href="https://video.ynxweb4.com" hidden>Open Video sign-in</a></div>
+        <details class="evm-section"><summary>Optional EVM wallet connection</summary><p>Connect YNX Wallet or MetaMask as an EVM wallet. Your Video account sign-in is managed separately.</p><div class="account-actions"><button id="signin" class="outline">Connect EVM wallet</button><button id="revoke" class="outline" hidden>Disconnect EVM wallet</button></div><p id="session" class="session">EVM wallet not connected.</p><div id="wallet-install" class="wallet-install" hidden></div></details>
       </section>
       <div id="notice" role="status" aria-live="polite"></div>
       <section id="content" class="grid" aria-busy="true" aria-label="Published videos"><div class="skeleton" aria-hidden="true"></div><div class="skeleton" aria-hidden="true"></div><div class="skeleton" aria-hidden="true"></div></section>
@@ -36,9 +41,10 @@
     <div class="dialog-bar"><p>Now playing</p><button id="close" class="outline" aria-label="Close player">Close</button></div>
     <video id="video" controls playsinline preload="metadata"></video>
     <h2 id="player-title"></h2><p id="player-state" class="meta"></p>
-    <div class="actions"><button id="channel">View channel</button><button id="subscribe">Subscribe</button><button id="playlist">Add to playlist</button><button id="report" class="danger">Report</button></div>
-    <section aria-label="Comments" class="comments"><h3>Comments</h3><div id="comments"></div><form id="comment"><label>Comment<textarea maxlength="2000" required></textarea></label><button>Post comment</button></form></section>
+    <div class="actions"><button id="channel">View channel</button><button id="subscribe">Subscribe</button><button id="playlist">Save to playlist</button><button id="report" class="danger">Report</button></div>
+    <section aria-label="Comments" class="comments"><h3>Comments</h3><div id="comments"></div><p id="comment-account-hint" class="meta">Sign in with YNX Wallet to comment.</p><form id="comment"><label>Comment<textarea maxlength="2000" required disabled></textarea></label><button disabled>Post comment</button></form></section>
   </dialog>
+  <dialog id="playlist-picker" aria-labelledby="playlist-picker-title"><div class="dialog-bar"><h2 id="playlist-picker-title">Save to playlist</h2><button id="playlist-picker-close" class="outline" type="button">Cancel</button></div><form id="playlist-save-form"><label for="playlist-choice">Choose a playlist</label><select id="playlist-choice"></select><label for="playlist-name">Or create a new playlist</label><input id="playlist-name" maxlength="80" placeholder="New playlist name"><p id="playlist-picker-status" role="status"></p><button id="playlist-save">Save video</button></form></dialog>
   <div id="wallet-status" class="wallet-status" aria-live="polite" hidden></div>
   <dialog id="wallet-chooser" aria-labelledby="wallet-chooser-title">
     <h3 id="wallet-chooser-title">Select a wallet</h3>

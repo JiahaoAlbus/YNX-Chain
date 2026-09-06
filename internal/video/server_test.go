@@ -182,7 +182,14 @@ func TestCommentRepliesStayBoundToPublishedVideo(t *testing.T) {
 		t.Fatal("orphan reply accepted")
 	}
 	comments, err := s.Comments("", video.ID)
-	if err != nil || len(comments) != 2 || comments[1].ParentID != parent.ID {
+	replyBound := false
+	for _, comment := range comments {
+		if comment.ID == reply.ID && comment.ParentID == parent.ID {
+			replyBound = true
+		}
+	}
+	// The fixture clock is fixed, so equal timestamps do not define reply order.
+	if err != nil || len(comments) != 2 || !replyBound {
 		t.Fatalf("public threaded comments incomplete: %+v %v", comments, err)
 	}
 }

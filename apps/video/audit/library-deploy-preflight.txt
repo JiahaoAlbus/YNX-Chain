@@ -1,0 +1,21 @@
+MainPID=2137939
+EnvironmentFiles=/etc/ynx/ynx-videod.env (ignore_errors=no)
+WorkingDirectory=
+User=ynx
+Id=ynx-videod.service
+DropInPaths=/etc/systemd/system/ynx-videod.service.d/20260906-executable.conf /etc/systemd/system/ynx-videod.service.d/20260906-v2-consumer.conf
+
+MainPID=2106183
+WorkingDirectory=/opt/ynx-video-viewer-wallet/releases/ynx-video-d75ad97040041b6febbf4e9ebdb338fdb4c1eff5
+User=ynx
+Id=ynx-video-viewer.service
+DropInPaths=/etc/systemd/system/ynx-video-viewer.service.d/20260906-audit.conf
+
+MainPID=2141531
+WorkingDirectory=/opt/ynx-creator-studio-wallet/releases/audit-v2-29896f10c5e59fc17590dd3697d6e7af3d34a809
+User=ynx
+Id=ynx-creator-studio-wallet.service
+DropInPaths=/etc/systemd/system/ynx-creator-studio-wallet.service.d/20260906-v2-consumer.conf /etc/systemd/system/ynx-creator-studio-wallet.service.d/20260906-v3-channel-id.conf
+6aa732ad280b9e637eb4cee5a0bc662e3d1ccbd15391ab2ef7f4861370ff911a  /etc/systemd/system/ynx-videod.service.d/20260906-v2-consumer.conf
+197e6d7ada5dc4a38d2df7e61ff597ea644b1aa47bf4e38c1d390961c9a0dbac  /etc/systemd/system/ynx-video-viewer.service.d/20260906-audit.conf
+34d6fe89ec14b9941ea567072f992b5f903b90222a390f57244a3022d9ed57e2  /etc/systemd/system/ynx-creator-studio-wallet.service.d/20260906-v3-channel-id.conf

@@ -136,12 +136,66 @@ func videoProductScopeV2(product, method, path string) string {
 		return "creator:publish"
 	}
 	if product == "video" {
-		if strings.Contains(path, "/history") || strings.Contains(path, "/playlists") || strings.Contains(path, "/subscriptions") || strings.Contains(path, "/subscription") || strings.Contains(path, "/watch") {
-			return "video:library"
+		if !strings.HasPrefix(path, "/") || strings.Contains(path, "..") || strings.Contains(path, "//") {
+			return ""
 		}
-		if method == http.MethodGet || method == http.MethodHead {
+		parts := strings.Split(strings.TrimPrefix(path, "/"), "/")
+		read := method == http.MethodGet || method == http.MethodHead
+		if parts[0] == "media" && len(parts) > 1 && read && parts[len(parts)-1] != "" {
 			return "video:playback"
+		}
+		if len(parts) < 2 || parts[0] != "v1" {
+			return ""
+		}
+		if len(parts) == 2 {
+			if read && (parts[1] == "history" || parts[1] == "playlists" || parts[1] == "subscriptions") || method == http.MethodPost && parts[1] == "playlists" {
+				return "video:library"
+			}
+			if read && parts[1] == "videos" {
+				return "video:playback"
+			}
+		}
+		if len(parts) == 3 && parts[1] == "privacy" && parts[2] == "account-data" && method == http.MethodDelete {
+			return "video:account"
+		}
+		if len(parts) < 3 || !videoRouteIDV2(parts[2]) {
+			return ""
+		}
+		if len(parts) == 3 {
+			if read && (parts[1] == "videos" || parts[1] == "channels") {
+				return "video:playback"
+			}
+			if method == http.MethodDelete && parts[1] == "playlists" {
+				return "video:library"
+			}
+		}
+		if len(parts) == 4 {
+			if parts[1] == "channels" && parts[3] == "subscription" && (method == http.MethodPost || method == http.MethodDelete) ||
+				method == http.MethodPost && (parts[1] == "playlists" && parts[3] == "videos" || parts[1] == "videos" && parts[3] == "watch") {
+				return "video:library"
+			}
+			if read && parts[1] == "videos" && parts[3] == "comments" {
+				return "video:playback"
+			}
+			if method == http.MethodPost && (parts[1] == "videos" && (parts[3] == "comments" || parts[3] == "reports") || parts[1] == "reports" && parts[3] == "appeals") {
+				return "video:account"
+			}
+		}
+		if len(parts) == 5 && method == http.MethodDelete && parts[1] == "playlists" && parts[3] == "videos" && videoRouteIDV2(parts[4]) {
+			return "video:library"
 		}
 	}
 	return ""
+}
+
+func videoRouteIDV2(value string) bool {
+	if value == "" {
+		return false
+	}
+	for _, c := range value {
+		if !(c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || c >= '0' && c <= '9' || c == '_' || c == '-') {
+			return false
+		}
+	}
+	return true
 }

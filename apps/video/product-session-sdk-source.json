@@ -1,0 +1,22 @@
+{
+  "sdkSourceCommit": "b3e4b5269d665ee5c8e2542454191cfc6ff53ecb",
+  "authPublicSourceCommit": "f2939095023391a39b3ab0ee1528288110d01059",
+  "registrySubset": "video",
+  "bundlerVersion": "0.28.1",
+  "files": [
+    {
+      "path": "product-session-sdk.js",
+      "bytes": 99179,
+      "sha256": "9479bcd04497395d8aa5ac2ec8b72d05243f5d19662c53f547077199bd1a8a39"
+    },
+    {
+      "path": "product-session-registry.json",
+      "bytes": 792,
+      "sha256": "702221e3f54320e0a51284a9bdeab03e5f12877cf1e67265d32df063895f3415"
+    }
+  ],
+  "securityLevel": "webcrypto-nonextractable",
+  "osProtected": false,
+  "hardwareBacked": false,
+  "installedWalletApprovalVerified": false
+}

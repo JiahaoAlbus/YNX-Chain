@@ -11,7 +11,13 @@ const types = {
   ".json": "application/json; charset=utf-8",
   ".svg": "image/svg+xml",
 };
-const csp = "default-src 'self'; connect-src 'self' http://127.0.0.1:8423; media-src 'self' blob: http://127.0.0.1:8423; img-src 'self' data: http://127.0.0.1:8423; style-src 'self'; script-src 'self'";
+const csp = "default-src 'self'; connect-src 'self' https://wallet-auth.ynxweb4.com; media-src 'self' blob:; img-src 'self' data:; style-src 'self'; script-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'";
+const publicFiles = new Set([
+  "index.html", "app.js", "video-api.js", "watch-progress.js", "styles.css", "responsive.css", "i18n.js", "i18n/catalog.json", "assets/ynx-logo.svg",
+  "wallet-connection.js", "product-session.js", "product-session-sdk.js", "product-session-registry.json", "product-session-sdk-source.json",
+  "wallet-callback.html", "wallet-callback.js", "callback.css", "runtime-manifest.json",
+  "ynx-dapp-connect-sdk/constants.js", "ynx-dapp-connect-sdk/discovery.js", "ynx-dapp-connect-sdk/errors.js", "ynx-dapp-connect-sdk/manifest.json", "ynx-dapp-connect-sdk/provider.js",
+]);
 // Local development can use an SSH tunnel to the real API. Production Caddy
 // handles this route first; direct Viewer access can explicitly target 6493.
 const apiOrigin = new URL(process.env.YNX_VIDEO_API_ORIGIN || "http://127.0.0.1:8423");
@@ -63,9 +69,13 @@ createServer(async (req, res) => {
     return;
   }
   const pathname = requested.startsWith("/video/") ? requested.slice(6) : requested;
-  const path = pathname === "/" ? "index.html" : pathname.slice(1);
+  const path = pathname === "/" ? "index.html" : pathname === "/wallet-auth/callback" ? "wallet-callback.html" : pathname.slice(1);
   if (path.includes("..")) {
     res.writeHead(400).end();
+    return;
+  }
+  if (!publicFiles.has(path) || !["GET", "HEAD"].includes(req.method)) {
+    res.writeHead(404).end("Not found");
     return;
   }
   try {
@@ -74,8 +84,10 @@ createServer(async (req, res) => {
       "Content-Type": types[extname(path)] || "application/octet-stream",
       "X-Content-Type-Options": "nosniff",
       "Content-Security-Policy": csp,
+      "Referrer-Policy": "no-referrer",
+      "Cache-Control": "no-store",
     });
-    res.end(data);
+    res.end(req.method === "HEAD" ? undefined : data);
   } catch {
     res.writeHead(404).end("Not found");
   }

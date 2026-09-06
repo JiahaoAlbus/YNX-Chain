@@ -1,0 +1,24 @@
+{
+  "observedAt": "2026-09-06T05:06:12.725Z",
+  "videoId": "vid_037cc8f97abd9a6dff7a4e74",
+  "files": [
+    {
+      "url": "https://video.ynxweb4.com/video/api/media/vid_037cc8f97abd9a6dff7a4e74/stream.m3u8",
+      "status": 200,
+      "bytes": 147,
+      "sha256": "509e61af6d3835682e69483a53f612357985e1b14daf637b9da065c2344441a6",
+      "contentType": "audio/x-mpegurl",
+      "segmentURLs": [
+        "https://video.ynxweb4.com/video/api/media/vid_037cc8f97abd9a6dff7a4e74/segment-0000.ts"
+      ]
+    },
+    {
+      "url": "https://video.ynxweb4.com/video/api/media/vid_037cc8f97abd9a6dff7a4e74/segment-0000.ts",
+      "status": 200,
+      "bytes": 22560,
+      "sha256": "7983e4e68b4d8a38a7f4d22ad1d97f6e2a3998ec068a8a317a110c3855f1b3ce",
+      "contentType": "text/vnd.trolltech.linguist; charset=utf-8"
+    }
+  ],
+  "browserPlaybackVerified": false
+}

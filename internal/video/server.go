@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -118,7 +119,16 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		w.Header().Del("Content-Type")
-		w.Header().Set("Cache-Control", "public, max-age=300")
+		// The host MIME database can map .ts to Qt translation text. Use the
+		// protocol media types explicitly so browsers can play our HLS assets.
+		switch strings.ToLower(filepath.Ext(path)) {
+		case ".m3u8":
+			w.Header().Set("Content-Type", "application/vnd.apple.mpegurl")
+		case ".ts":
+			w.Header().Set("Content-Type", "video/mp2t")
+		}
+		// Media authorization and publication rights may change between reads.
+		// Keep the default no-store policy, including authenticated private media.
 		http.ServeFile(w, r, path)
 		return
 	}

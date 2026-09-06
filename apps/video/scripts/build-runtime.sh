@@ -52,6 +52,13 @@ files=(
   ynx-dapp-connect-sdk/provider.js
 )
 
+# Preserve historical source builds; every v2 source must contain the complete
+# callback/client bundle. No file is silently sourced from the working tree.
+if git cat-file -e "${source_commit}:apps/video/product-session.js" 2>/dev/null; then
+  files+=(product-session.js product-session-sdk.js product-session-registry.json product-session-sdk-source.json
+    video-api.js watch-progress.js wallet-callback.js wallet-callback.html callback.css)
+fi
+
 for file in "${files[@]}"; do
   git show "${source_commit}:apps/video/${file}" > "$stage/runtime/$file"
 done
