@@ -1,4 +1,4 @@
-import {createServer} from "node:http";
+import {createServer, request} from "node:http";
 import {readFile} from "node:fs/promises";
 import {extname, join} from "node:path";
 import {fileURLToPath} from "node:url";
@@ -12,6 +12,37 @@ const types = {
   ".svg": "image/svg+xml",
 };
 const csp = "default-src 'self'; connect-src 'self' http://127.0.0.1:8423; media-src 'self' blob: http://127.0.0.1:8423; img-src 'self' data: http://127.0.0.1:8423; style-src 'self'; script-src 'self'";
+// Local development can use an SSH tunnel to the real API. Production Caddy
+// handles this route first; direct Viewer access can explicitly target 6493.
+const apiOrigin = new URL(process.env.YNX_VIDEO_API_ORIGIN || "http://127.0.0.1:8423");
+if (apiOrigin.protocol !== "http:" || !["127.0.0.1", "localhost", "[::1]"].includes(apiOrigin.hostname) ||
+    apiOrigin.username || apiOrigin.password || apiOrigin.pathname !== "/" || apiOrigin.search || apiOrigin.hash) {
+  throw new Error("YNX_VIDEO_API_ORIGIN must be a loopback HTTP origin");
+}
+function endToEndHeaders(headers) {
+  const omitted = new Set(["connection", "keep-alive", "proxy-authenticate", "proxy-authorization", "te", "trailer", "transfer-encoding", "upgrade", "host"]);
+  for (const field of String(headers.connection || "").split(",")) omitted.add(field.trim().toLowerCase());
+  return Object.fromEntries(Object.entries(headers).filter(([key]) => !omitted.has(key.toLowerCase())));
+}
+function proxyAPI(req, res, url) {
+  const upstream = new URL(apiOrigin);
+  upstream.pathname = url.pathname.slice("/video/api".length);
+  upstream.search = url.search;
+  const outgoing = request(upstream, {method: req.method, headers: endToEndHeaders(req.headers)}, incoming => {
+    res.writeHead(incoming.statusCode, endToEndHeaders(incoming.headers));
+    incoming.on("error", () => res.destroy());
+    incoming.pipe(res);
+  });
+  outgoing.setTimeout(15000, () => outgoing.destroy(new Error("API timeout")));
+  outgoing.on("error", () => {
+    if (res.headersSent) return res.destroy();
+    res.writeHead(503, {"Content-Type": "application/json", "Cache-Control": "no-store"});
+    res.end(JSON.stringify({error: "VIDEO_API_UNAVAILABLE"}));
+  });
+  req.on("aborted", () => outgoing.destroy());
+  res.on("close", () => { if (!res.writableEnded) outgoing.destroy(); });
+  req.pipe(outgoing);
+}
 
 createServer(async (req, res) => {
   let url, requested;
@@ -20,6 +51,10 @@ createServer(async (req, res) => {
     requested = decodeURIComponent(url.pathname);
   } catch {
     res.writeHead(400).end("Invalid request path");
+    return;
+  }
+  if (url.pathname.startsWith("/video/api/")) {
+    proxyAPI(req, res, url);
     return;
   }
   // Relative modules and assets must remain beneath /video/ at the public router.

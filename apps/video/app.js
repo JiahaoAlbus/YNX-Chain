@@ -2,8 +2,7 @@ import {connectVideoWallet, restoreVideoWallet, WALLET_INSTALLATION_OPTIONS, dis
 import {ready as i18nReady, t} from "./i18n.js";
 import {YNX_TESTNET} from "./ynx-dapp-connect-sdk/constants.js";
 
-const publicAPI = `${location.origin}/video/api`, localAPI = "http://127.0.0.1:8423";
-const API = localStorage.getItem("ynx.video.api") || ((location.hostname === "127.0.0.1" || location.hostname === "localhost") ? localAPI : publicAPI);
+const API = localStorage.getItem("ynx.video.api") || `${location.origin}/video/api`;
 const $ = selector => document.querySelector(selector);
 const savedWalletStateKey = "ynx.video.walletState";
 

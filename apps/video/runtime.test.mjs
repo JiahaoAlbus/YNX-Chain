@@ -6,6 +6,7 @@ import {join, resolve} from "node:path";
 import test from "node:test";
 import {once} from "node:events";
 import {spawn} from "node:child_process";
+import {createServer} from "node:http";
 
 const videoRoot = resolve(import.meta.dirname);
 const repoRoot = resolve(videoRoot, "../..");
@@ -74,6 +75,58 @@ test("self-contained server serves the public /video path without a shared relea
     child.kill("SIGTERM");
     await once(child, "exit");
   }
+});
+
+test("same-origin API proxy preserves queries, media ranges and unavailable state", async () => {
+  const requests = [];
+  const api = createServer((req, res) => {
+    requests.push({url: req.url, range: req.headers.range, method: req.method});
+    if (req.url.startsWith("/media/")) {
+      res.writeHead(206, {"Content-Type": "video/mp4", "Content-Range": "bytes 2-5/10", "Accept-Ranges": "bytes"});
+      res.end("2345");
+    } else {
+      res.writeHead(200, {"Content-Type": "application/json"});
+      res.end("[]");
+    }
+  });
+  api.listen(0, "127.0.0.1");
+  await once(api, "listening");
+  const apiPort = api.address().port;
+  const port = 17000 + Math.floor(Math.random() * 1000);
+  const child = spawn(process.execPath, [join(videoRoot, "server.mjs")], {
+    env: {...process.env, PORT: String(port), YNX_VIDEO_API_ORIGIN: `http://127.0.0.1:${apiPort}`},
+    stdio: ["ignore", "pipe", "pipe"]
+  });
+  try {
+    await once(child.stdout, "data");
+    const catalog = await fetch(`http://127.0.0.1:${port}/video/api/v1/videos?q=hello%20world`);
+    assert.equal(catalog.status, 200);
+    assert.equal(await catalog.text(), "[]");
+    assert.equal(requests[0].url, "/v1/videos?q=hello%20world");
+    const media = await fetch(`http://127.0.0.1:${port}/video/api/media/owned.mp4`, {headers: {Range: "bytes=2-5"}});
+    assert.equal(media.status, 206);
+    assert.equal(media.headers.get("content-range"), "bytes 2-5/10");
+    assert.equal(media.headers.get("content-type"), "video/mp4");
+    assert.equal(await media.text(), "2345");
+    assert.equal(requests[1].range, "bytes=2-5");
+    await new Promise(resolve => api.close(resolve));
+    const unavailable = await fetch(`http://127.0.0.1:${port}/video/api/v1/videos`);
+    assert.equal(unavailable.status, 503);
+    assert.deepEqual(await unavailable.json(), {error: "VIDEO_API_UNAVAILABLE"});
+    assert.match(readFileSync(join(videoRoot, "app.js"), "utf8"), /location\.origin\}\/video\/api/);
+    assert.doesNotMatch(readFileSync(join(videoRoot, "app.js"), "utf8"), /localAPI/);
+  } finally {
+    api.closeAllConnections();
+    api.close();
+    child.kill("SIGTERM");
+    await once(child, "exit");
+  }
+});
+
+test("API proxy refuses a non-loopback upstream", () => {
+  assert.throws(() => execFileSync(process.execPath, [join(videoRoot, "server.mjs")], {
+    env: {...process.env, YNX_VIDEO_API_ORIGIN: "http://example.com"}, stdio: "pipe"
+  }), /YNX_VIDEO_API_ORIGIN must be a loopback HTTP origin/);
 });
 
 test("runtime carrier rebuild is byte-identical and normalized", () => {
