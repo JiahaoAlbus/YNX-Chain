@@ -50,6 +50,36 @@ export function plural(locale:WalletLocale,count:number,forms:{one:string;other:
 export function allMessages():Readonly<Record<WalletLocale,Readonly<Record<MessageKey,string>>>>{return Object.fromEntries(SUPPORTED_LOCALES.map((locale)=>[locale,{...MESSAGES[locale],...UI_MESSAGES[locale]}])) as Record<WalletLocale,Record<MessageKey,string>>}
 export function localizeError(locale:WalletLocale,value:unknown):string{const detail=value instanceof Error?value.message:String(value);return `${translate(locale,"errorPrefix")}: ${detail}`}
 
+const PRODUCT_AUTH_CANCELLED:Readonly<Record<WalletLocale,string>>={
+  en:"Authentication cancelled. Review this request and tap Approve to try again.",
+  "zh-Hans":"已取消身份验证。检查此请求后，点击“批准”重试。",
+  "zh-Hant":"已取消身分驗證。檢查此要求後，點選「核准」重試。",
+  ja:"認証をキャンセルしました。このリクエストを確認し、「承認」で再試行してください。",
+  ko:"인증이 취소되었습니다. 이 요청을 확인한 뒤 승인을 눌러 다시 시도하세요.",
+  es:"Autenticación cancelada. Revisa esta solicitud y toca Aprobar para intentarlo de nuevo.",
+  fr:"Authentification annulée. Vérifiez cette demande et appuyez sur Approuver pour réessayer.",
+  de:"Authentifizierung abgebrochen. Prüfe diese Anfrage und tippe auf Genehmigen, um es erneut zu versuchen.",
+  pt:"Autenticação cancelada. Revise esta solicitação e toque em Aprovar para tentar novamente.",
+  ru:"Проверка личности отменена. Проверьте этот запрос и нажмите «Разрешить», чтобы повторить попытку.",
+  ar:"تم إلغاء التحقق من الهوية. راجع هذا الطلب واضغط على «موافقة» للمحاولة مجددًا.",
+  id:"Autentikasi dibatalkan. Tinjau permintaan ini lalu ketuk Setujui untuk mencoba lagi.",
+};
+
+/** Presentation only: the controller remains authoritative for replay and retry.
+ * Match the pinned native cancellation reasons, not generic cancelled/expired
+ * errors that may occur after a request was consumed or its return was signed. */
+export function localizeProductSessionError(locale:WalletLocale,value:unknown,action:"approve"|"reject"|"retryReturn",hasSignedReturn:boolean):string {
+  if(action!=="approve"||hasSignedReturn||!(value instanceof Error))return localizeError(locale,value);
+  const detail=value.message;
+  const legacyCancelled=detail==="Biometric authorization was cancelled";
+  const nativeReason=detail
+    .replace(/^Call to function 'ExpoSecureStore\.(?:getValueWithKeyAsync|setValueWithKeyAsync)' has been rejected\.\s*→ Caused by: /,"")
+    .replace(/^Calling the '(?:getValueWithKeyAsync|setValueWithKeyAsync)' function has failed\s*→ Caused by: /,"");
+  const nativeCancelled=/^Could not Authenticate the user: User canceled the authentication(?:\.|$)/.test(nativeReason)||
+    (nativeReason==="User canceled the operation."&&nativeReason!==detail);
+  return legacyCancelled||nativeCancelled?PRODUCT_AUTH_CANCELLED[locale]:localizeError(locale,value);
+}
+
 // Expanded account/session UI coverage is currently translated for these two
 // locales. Other locales retain their existing English fallback explicitly.
 const DETAIL_MESSAGES={
