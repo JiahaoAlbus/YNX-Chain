@@ -1,0 +1,18 @@
+{
+  "source": "91bad5347d4fa8ef17ca7ce962ad7d0d1d6cb810",
+  "observedAt": "2026-09-06T08:32:50.970Z",
+  "channel": {
+    "cards": 1,
+    "catalogBusy": "false",
+    "title": "YNX Testnet QA 2026-09-06",
+    "translationKey": null
+  },
+  "discover": {
+    "cards": 1,
+    "catalogBusy": "false",
+    "title": "استكشاف",
+    "translationKey": "discover"
+  },
+  "logs": [],
+  "lateTranslationRaceBrowserInjected": false
+}

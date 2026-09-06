@@ -1,0 +1,18 @@
+{
+  "source": "91bad5347d4fa8ef17ca7ce962ad7d0d1d6cb810",
+  "observedAt": "2026-09-06T08:32:19.032Z",
+  "english": {
+    "dir": "ltr",
+    "lang": "en",
+    "selected": "en",
+    "title": "Discover",
+    "url": "https://video.ynxweb4.com/?lang=en"
+  },
+  "arabic": {
+    "dir": "rtl",
+    "lang": "ar",
+    "selected": "ar",
+    "title": "استكشاف",
+    "url": "https://video.ynxweb4.com/?lang=ar"
+  }
+}

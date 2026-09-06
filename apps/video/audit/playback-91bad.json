@@ -1,0 +1,24 @@
+{
+  "source": "91bad5347d4fa8ef17ca7ce962ad7d0d1d6cb810",
+  "observedAt": "2026-09-06T08:34:17.191Z",
+  "before": {
+    "duration": 1.021674,
+    "height": 180,
+    "paused": true,
+    "readyState": 4,
+    "time": 0,
+    "width": 320
+  },
+  "after": {
+    "duration": 1.021674,
+    "ended": true,
+    "error": null,
+    "height": 180,
+    "paused": true,
+    "readyState": 4,
+    "time": 1.021674,
+    "width": 320
+  },
+  "audibleOutputVerified": false,
+  "logs": []
+}

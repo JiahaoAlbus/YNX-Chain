@@ -2,7 +2,7 @@
   "productId": "ynx-video",
   "name": "YNX Video",
   "branch": "codex/audit-video-usability-20260906",
-  "sourceCommit": "b6af671d04a4230bb7a4052cee1ff21d2f5c9c51",
+  "sourceCommit": "91bad5347d4fa8ef17ca7ce962ad7d0d1d6cb810",
   "version": "0.3.0-standard-wallet-candidate.1",
   "surfaces": [
     "web",
@@ -60,25 +60,27 @@
   },
   "currentPublicRuntime": {
     "url": "https://video.ynxweb4.com/",
-    "sourceCommit": "b6af671d04a4230bb7a4052cee1ff21d2f5c9c51",
+    "sourceCommit": "91bad5347d4fa8ef17ca7ce962ad7d0d1d6cb810",
     "sourceForThisCandidateVerified": true,
     "standardWalletCandidateDeployed": true,
     "sdkSourceCommit": "ff68d6d1c81708bd0144016750002a87d50bb5f9",
     "sdkSHA256": "dbbd61d824646c989e875eda8b620400b46ed4fdf36e98e8f3a507578ed31329",
-    "pid": 2230343,
+    "pid": 2237571,
     "NRestarts": 0,
-    "deployedAt": "2026-09-06T08:13:49Z",
-    "artifactSHA256": "131229cc7dd9ea1cbabc0b0842d21f438d3689c13d0b4cc460e28d3416f68356",
-    "artifactBytes": 69851,
+    "deployedAt": "2026-09-06T08:30:20Z",
+    "artifactSHA256": "843cd1df9a1dd625c93ed1e9a4a617ba362e14723e9c5d4c0124f87f24db1c31",
+    "artifactBytes": 69908,
     "publicFilesMatched": 22,
     "internalFiles404": 4,
     "callbackSHA256": "c8bb7b9593fc4ff3436a324bd41911b42261229750f7063b5776a683d33f9283",
     "noStoreVerified": true,
-    "guestPlaybackVerified": false,
+    "guestPlaybackVerified": true,
     "installedWalletApprovalVerified": false,
     "browserPrivateLibraryVerified": false,
-    "releaseReceipt": "audit/viewer-b6af-deployment-receipt.txt",
-    "publicReadback": "audit/video-b6af-public-readback.json"
+    "releaseReceipt": "audit/viewer-91bad-deployment-receipt.txt",
+    "publicReadback": "audit/video-91bad-public-readback.json",
+    "guestPlaybackScope": "Owned 1.021674-second 320x180 test media played to ended=true via visible native browser controls; audible output not verified.",
+    "browserGuestNavigationVerified": true
   },
   "sourceIntegrity": {
     "stateSchemaVersion": 2,
@@ -172,25 +174,26 @@
     "gatewayManifest": "internal/video/integration/appgateway-video-manifest.json"
   },
   "knownLimitations": [
-    "No b6af-source Android or iOS artifact/install evidence",
+    "No 91bad-source Android or iOS artifact/install evidence",
     "Standard Wallet source and public runtime exist, but actual installed provider approval and lifecycle remain unverified on this version",
     "Product Session v2 and authority-timed SDK ff68 are public; authenticated browser library and installed Wallet acceptance still require direct verification",
-    "Current-version visible playback, audio, completion and browser errors remain pending coordinator evidence",
+    "Current-version owned guest media playback reaches completion with no observed console warnings/errors; audible output remains unverified",
     "Public service is a single-host Testnet preview, not a production worker fleet or HA streaming deployment",
     "No production durable object store or worker fleet evidence",
     "No production signing, physical-device, TestFlight, Play or store release",
     "No live provider AI, Trust delegated appeal, Pay settlement or revenue",
     "Creator editing, rights appeals, revenue and complete new UI translation remain incomplete"
   ],
-  "generatedAt": "2026-09-06T08:14:53.830Z",
+  "generatedAt": "2026-09-06T08:35:00.142341+00:00",
   "currentSourceBoundPublic": true,
   "currentConsumerVerification": {
-    "sourceCommit": "b6af671d04a4230bb7a4052cee1ff21d2f5c9c51",
+    "sourceCommit": "91bad5347d4fa8ef17ca7ce962ad7d0d1d6cb810",
     "sdkAndGatewayRecoveryTests": 46,
-    "videoChecks": 63,
+    "videoChecks": 80,
     "creatorChecks": 16,
     "localesAudited": 12,
-    "browserUIVerified": false,
-    "installedWalletApprovalVerified": false
+    "browserUIVerified": true,
+    "installedWalletApprovalVerified": false,
+    "browserUIScope": "Public guest shared video open/close/catalog; zh-CN to en to ar URL selection; channel/Discover; 390x844 RTL layout; native-control playback. Private library and installed Wallet remain unverified for Viewer."
   }
 }

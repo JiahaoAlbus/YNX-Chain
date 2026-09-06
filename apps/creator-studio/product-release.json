@@ -34,8 +34,8 @@
     "browser": "current evergreen browser"
   },
   "installEvidence": {
-    "web": "Current b6af runtime is publicly deployed; 18 source-bound files and callback matched through normal HTTPS. This does not establish installed Wallet or browser business-flow acceptance.",
-    "boundary": "Installed Wallet approve/reject/callback, refresh business authorization and sign-out must be directly revalidated on this exact runtime.",
+    "web": "b6af public runtime:18 source-bound HTTPS files/callback verified. Wallet owner Android e673 UI95-108 verifies approve/return, two refreshes with business reads, signout and disconnected refresh.",
+    "boundary": "Single product/platform success path only. Current-version rejection, account switching, cross-device and exception recovery remain pending.",
     "deployment": "audit/creator-b6af-deployment-receipt.txt",
     "publicReadback": "audit/creator-b6af-public-readback.json"
   },
@@ -45,15 +45,15 @@
     "gatewayManifest": "internal/video/integration/appgateway-video-manifest.json"
   },
   "knownLimitations": [
-    "Installed Wallet approve/reject, callback, refresh business authorization, sign-out and account-switch acceptance remain pending on b6af",
+    "Current-version rejection, account-switch, other platforms/products and complete exception recovery remain pending on b6af; Android e673 success/refresh/signout path passed",
     "Failed revocation has an explicit same-page retry; preservation of revocation intent across browser reload remains unverified",
-    "Android touch and accessibility require direct device checks; source changes alone are not acceptance",
+    "Android Open Wallet link is reachable in owner UI95-108; full touch/reader/keyboard coverage remains incomplete",
     "Public service is a single-host Testnet preview, not an HA production deployment",
     "No live provider AI, Trust delegated appeal or Pay settlement",
     "Analytics and revenue require authoritative persisted events; no organic activity or revenue is fabricated",
     "New UI copy is not fully localized; editing, rights appeals, revenue and native platform packages remain incomplete"
   ],
-  "generatedAt": "2026-09-06T08:13:45.703Z",
+  "generatedAt": "2026-09-06T08:35:00.142341+00:00",
   "publicRuntime": {
     "sourceCommit": "b6af671d04a4230bb7a4052cee1ff21d2f5c9c51",
     "sdkSourceCommit": "ff68d6d1c81708bd0144016750002a87d50bb5f9",
@@ -66,9 +66,19 @@
     "publicFilesMatched": 18,
     "callbackSHA256": "aa808a77e703333feba726dd1a51c839331e1bb557b6878f602a4113b78d8fb2",
     "noStoreVerified": true,
-    "installedWalletApprovalVerified": false,
-    "refreshBusinessVerified": false,
-    "signOutBusinessVerified": false,
-    "browserUIVerified": false
+    "installedWalletApprovalVerified": true,
+    "refreshBusinessVerified": true,
+    "signOutBusinessVerified": true,
+    "browserUIVerified": true,
+    "verificationScope": {
+      "platform": "Android emulator-5580 with Chrome",
+      "walletSource": "e673674c58ade7dfc8b5fd3e6d141566e9a278be",
+      "creatorSource": "b6af671d04a4230bb7a4052cee1ff21d2f5c9c51",
+      "approvedReturnRefreshTwiceSignoutRefreshDisconnected": true,
+      "newVersionRejectVerified": false,
+      "otherPlatformsVerified": false,
+      "source": "Wallet owner report and UI evidence files 95-108; not repeated by coordinator",
+      "evidenceDirectory": "/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/wallet-android-v2-qa"
+    }
   }
 }

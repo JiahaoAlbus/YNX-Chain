@@ -1,33 +1,33 @@
 {
-  "observedAt": "2026-09-06T08:14:53.830Z",
+  "observedAt": "2026-09-06T08:35:00.142341+00:00",
   "worktree": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video",
   "branch": "codex/audit-video-usability-20260906",
-  "runtimeSource": "b6af671d04a4230bb7a4052cee1ff21d2f5c9c51",
+  "runtimeSource": "91bad5347d4fa8ef17ca7ce962ad7d0d1d6cb810",
   "artifact": {
-    "path": "apps/video/audit/artifacts/ynx-video-b6af671d0-runtime.tar.gz",
-    "bytes": 69851,
-    "sha256": "131229cc7dd9ea1cbabc0b0842d21f438d3689c13d0b4cc460e28d3416f68356",
+    "path": "/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/continuation-01a075bd/ynx-video-91bad5347-runtime.tar.gz",
+    "bytes": 69908,
+    "sha256": "843cd1df9a1dd625c93ed1e9a4a617ba362e14723e9c5d4c0124f87f24db1c31",
     "verifiedManifestFiles": 26,
     "nativeInstaller": false,
     "backendIncluded": false,
-    "sourceCommit": "b6af671d04a4230bb7a4052cee1ff21d2f5c9c51"
+    "sourceCommit": "91bad5347d4fa8ef17ca7ce962ad7d0d1d6cb810"
   },
   "viewer": {
     "url": "https://web4.ynxweb4.com/video/",
     "port": 6494,
     "unit": "ynx-video-viewer.service",
-    "pid": 2230343,
-    "release": "/opt/ynx-video-viewer-wallet/releases/ynx-video-b6af671d04a4230bb7a4052cee1ff21d2f5c9c51",
-    "override": "/etc/systemd/system/ynx-video-viewer.service.d/20260906-wallet-time-ff68.conf",
+    "pid": 2237571,
+    "release": "/opt/ynx-video-viewer-wallet/releases/ynx-video-91bad5347d4fa8ef17ca7ce962ad7d0d1d6cb810",
+    "override": "/etc/systemd/system/ynx-video-viewer.service.d/20260906-z-guest-navigation-91bad.conf",
     "publicSourceReadbackMatched": true,
     "sameOriginRealApiVerified": true,
     "canonicalURL": "https://video.ynxweb4.com/",
-    "overrideSHA256": "174d92913a10baeeaf6fbff59058fb06f9edcc939feeb6c4d9d1b1f354b8f55c",
-    "source": "b6af671d04a4230bb7a4052cee1ff21d2f5c9c51",
+    "overrideSHA256": "4805c19dd0ec41e4683f7ab1228de3e7e8cc7bdfef8d958208f353dae3a7c513",
+    "source": "91bad5347d4fa8ef17ca7ce962ad7d0d1d6cb810",
     "publicFilesMatched": 22,
     "privateFilesRejected": 4,
     "callbackAndResources200": true,
-    "rollbackSource": "48fe3824cc6a38ba944427776e48d076f27f54f5",
+    "rollbackSource": "b6af671d04a4230bb7a4052cee1ff21d2f5c9c51",
     "historicalBrowserTabReferences": {
       "source": "48fe3824cc6a38ba944427776e48d076f27f54f5",
       "public": "694444700",
@@ -39,7 +39,8 @@
     "browserSDKSource": "ff68d6d1c81708bd0144016750002a87d50bb5f9",
     "browserSDKSHA256": "dbbd61d824646c989e875eda8b620400b46ed4fdf36e98e8f3a507578ed31329",
     "installedWalletApprovalVerified": false,
-    "browserUIVerified": false
+    "browserUIVerified": true,
+    "browserUIScope": "Owned 1.021674-second 320x180 test media played to ended=true via visible native browser controls; audible output not verified."
   },
   "api": {
     "port": 6493,
@@ -71,7 +72,7 @@
     "artifactSha256": "bc40e71702aef2282135a03df650a24e2447751242c257a1ecf3bd414189d349",
     "callbackAndResources200": true,
     "browserSDKSource": "ff68d6d1c81708bd0144016750002a87d50bb5f9",
-    "installedWalletApprovalVerified": false,
+    "installedWalletApprovalVerified": true,
     "rollbackSource": "29896f10c5e59fc17590dd3697d6e7af3d34a809",
     "publicAppSHA256": "d0f1415ff9da63d95698352f1930df3f7c62e6123246348f388a6c424e99b59d",
     "publicFilesMatched": 18,
@@ -82,28 +83,38 @@
     "publicSourceReadbackMatched": true,
     "callbackSHA256": "aa808a77e703333feba726dd1a51c839331e1bb557b6878f602a4113b78d8fb2",
     "noStoreVerified": true,
-    "refreshBusinessVerified": false,
-    "signOutBusinessVerified": false,
-    "browserUIVerified": false,
+    "refreshBusinessVerified": true,
+    "signOutBusinessVerified": true,
+    "browserUIVerified": true,
     "override": "/etc/systemd/system/ynx-creator-studio-wallet.service.d/20260906-wallet-time-ff68.conf",
-    "overrideSHA256": "34f9f01c989c73c5d73416306eaa793fefc111f97191951d815f0d4d82e4c8f6"
+    "overrideSHA256": "34f9f01c989c73c5d73416306eaa793fefc111f97191951d815f0d4d82e4c8f6",
+    "verificationScope": {
+      "platform": "Android emulator-5580 with Chrome",
+      "walletSource": "e673674c58ade7dfc8b5fd3e6d141566e9a278be",
+      "creatorSource": "b6af671d04a4230bb7a4052cee1ff21d2f5c9c51",
+      "approvedReturnRefreshTwiceSignoutRefreshDisconnected": true,
+      "newVersionRejectVerified": false,
+      "otherPlatformsVerified": false,
+      "source": "Wallet owner report and UI evidence files 95-108; not repeated by coordinator",
+      "evidenceDirectory": "/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/wallet-android-v2-qa"
+    }
   },
   "verification": {
-    "testsPassed": 63,
+    "testsPassed": 80,
     "testsFailed": 0,
     "localesAudited": 12,
     "videoOriginErrorsObserved": 0,
-    "thirdPartyExtensionWarningsObserved": true,
+    "thirdPartyExtensionWarningsObserved": false,
     "goVideoPackagePassed": true,
     "goVideoPackageSeconds": 3.123,
     "newUILocalizationComplete": false,
     "priorCUAErrorsObserved": 0,
-    "currentCandidateCUAErrorsVerified": false
+    "currentCandidateCUAErrorsVerified": true
   },
   "acceptance": {
     "viewerRecovery": true,
     "realEmptyCatalogLoad": true,
-    "guestMediaPlayback": false,
+    "guestMediaPlayback": true,
     "authenticatedUploadPublish": true,
     "privateActions": false,
     "editing": false,
@@ -116,7 +127,7 @@
     "privateLibraryBrowser": false,
     "videoV2ConsumerPublished": true
   },
-  "nextGate": "Creator and Viewer b6af/Wallet SDK ff68 are both deployed and public file identity/callback/cache policy are verified. Installed Wallet approval/rejection/callback, Creator refresh business authorization and sign-out remain pending direct Wallet-owner evidence. Guest playback and private-library browser acceptance remain unverified here. Full editing/rights appeals/revenue/native-platform requirements stay open.",
+  "nextGate": "Viewer91bad guest navigation and owned playback passed direct public browser checks; Creator b6af / Android e673 approval, return, two refreshes, signout and disconnected refresh reported with exact UI95-108 by Wallet owner. Viewer installed Wallet/private-library acceptance, newest Wallet exception/revoke recovery, full translation, editing/rights/revenue/native platforms remain open.",
   "evidence": [
     "video-delivery.md",
     "viewer-deployment-receipt.txt",
@@ -140,7 +151,13 @@
     "../../creator-studio/audit/creator-b6af-deployment-receipt.txt",
     "../../creator-studio/audit/creator-b6af-public-readback.json",
     "viewer-b6af-deployment-receipt.txt",
-    "video-b6af-public-readback.json"
+    "video-b6af-public-readback.json",
+    "viewer-91bad-deployment-receipt.txt",
+    "video-91bad-public-readback.json",
+    "share-recovery-91bad.json",
+    "locale-recovery-91bad.json",
+    "channel-recovery-91bad.json",
+    "playback-91bad.json"
   ],
   "priorAPIRepair": {
     "port": 6493,
