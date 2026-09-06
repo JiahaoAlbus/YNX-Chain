@@ -1,4 +1,4 @@
-import {connectVideoWallet, WALLET_INSTALLATION_OPTIONS, discoverWalletCandidates, walletChoiceNeedsResolution, walletCandidatesFromError} from "./wallet-connection.js";
+import {connectVideoWallet, restoreVideoWallet, WALLET_INSTALLATION_OPTIONS, discoverWalletCandidates, walletChoiceNeedsResolution, walletCandidatesFromError} from "./wallet-connection.js";
 import {ready as i18nReady, t} from "./i18n.js";
 import {YNX_TESTNET} from "./ynx-dapp-connect-sdk/constants.js";
 
@@ -261,36 +261,12 @@ async function connectVideoWalletInteractive(walletId = null) {
 
 async function restoreWalletFromSession() {
   const state = storageState.read();
-  if (!state?.walletId || !state?.account) return;
-  const candidates = await discoverWalletCandidates(window, {timeoutMs: 1500});
-  const selected = candidates.find(candidate => candidate.info.uuid === state.walletId || candidate.label === state.walletName || candidate.info.rdns === state.providerKey);
-  if (!selected) return;
-  const provider = selected.provider;
-  const request = provider.request;
-  if (typeof request !== "function") return;
-  try {
-    const accounts = await request({method: "eth_accounts"});
-    const chainId = await request({method: "eth_chainId"});
-    if (!Array.isArray(accounts) || accounts[0]?.toLowerCase() !== state.account.toLowerCase()) return;
-    if (String(chainId).toLowerCase() !== YNX_TESTNET.evmChainHex) return;
-    currentWallet = {
-      account: accounts[0],
-      chainId: String(chainId).toLowerCase(),
-      walletId: selected.info.uuid,
-      walletName: state.walletName || selected.label,
-      walletLabel: state.walletName || selected.label,
-      walletBrand: selected.isYNXWallet ? "YNX Wallet" : selected.isMetaMask ? "MetaMask" : selected.label,
-      walletKind: selected.isYNXWallet ? "ynx" : selected.isMetaMask ? "metamask" : "eip1193",
-      providerKey: selected.info.uuid,
-      provider,
-      connection: {provider},
-    };
-    renderWalletState(currentWallet);
-    bindWalletEvents(currentWallet);
-    notice("Wallet connection restored from last session.");
-  } catch {
-    resetWallet("Refresh found no approved session. Choose a provider to continue.");
-  }
+  const restored = await restoreVideoWallet(state, window);
+  if (!restored) return;
+  currentWallet = restored;
+  renderWalletState(currentWallet);
+  bindWalletEvents(currentWallet);
+  notice("Wallet connection restored from last session.");
 }
 
 async function revokeWallet(reason = "user") {

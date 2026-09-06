@@ -30,10 +30,11 @@ fi
 
 stage=$(mktemp -d "${TMPDIR:-/tmp}/ynx-video-runtime.XXXXXX")
 trap 'rm -rf "$stage"' EXIT
-mkdir -p "$stage/runtime/i18n" "$stage/runtime/ynx-dapp-connect-sdk" "$stage/runtime/runtime"
+mkdir -p "$stage/runtime/i18n" "$stage/runtime/ynx-dapp-connect-sdk" "$stage/runtime/runtime" "$stage/runtime/assets"
 
 files=(
   app.js
+  assets/ynx-logo.svg
   i18n.js
   i18n/catalog.json
   index.html

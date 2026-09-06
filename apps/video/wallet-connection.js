@@ -147,6 +147,41 @@ export async function discoverWalletCandidates(windowLike = window, {timeoutMs =
   return withInjected;
 }
 
+// Restore is optional: an absent, locked or stalled provider must never prevent
+// guest catalog loading. Reads use the selected provider as their receiver and
+// never open account, network-switch, signature or transaction prompts.
+export async function restoreVideoWallet(savedState, windowLike = window, {timeoutMs = 1500, requestTimeoutMs = 1500} = {}) {
+  if (typeof savedState?.walletId !== "string" || typeof savedState?.account !== "string") return null;
+  try {
+    const candidates = await discoverWalletCandidates(windowLike, {timeoutMs});
+    const matches = candidates.filter(candidate => candidate.info.uuid === savedState.walletId);
+    if (matches.length !== 1) return null;
+    const selected = matches[0];
+    const provider = selected.provider;
+    const read = async method => {
+      let timer;
+      try {
+        return await Promise.race([
+          Promise.resolve().then(() => provider.request({method})),
+          new Promise((_, reject) => { timer = setTimeout(() => reject(new Error("Wallet restore timed out")), requestTimeoutMs); }),
+        ]);
+      } finally { clearTimeout(timer); }
+    };
+    const accounts = await read("eth_accounts");
+    if (!Array.isArray(accounts) || typeof accounts[0] !== "string" || accounts[0].toLowerCase() !== savedState.account.toLowerCase()) return null;
+    const chainId = String(await read("eth_chainId")).toLowerCase();
+    if (chainId !== YNX_TESTNET.evmChainHex) return null;
+    return {
+      account: accounts[0], chainId, walletId: selected.info.uuid,
+      walletName: selected.label, walletLabel: selected.label,
+      walletBrand: selected.isYNXWallet ? "YNX Wallet" : selected.isMetaMask ? "MetaMask" : selected.label,
+      walletKind: selected.isYNXWallet ? "ynx" : selected.isMetaMask ? "metamask" : "eip1193",
+      providerKey: selected.info.uuid, provider, connection: {provider},
+      productSession: "PRIVATE_SERVICE_DEGRADED", standardConnection: "CONNECTED",
+    };
+  } catch { return null; }
+}
+
 function findMatching(candidateList, {walletId}) {
   if (walletId) {
     const found = candidateList.find((entry) => entry.info.uuid === walletId || `${entry.info.uuid}` === `${walletId}` || entry.label === walletId);

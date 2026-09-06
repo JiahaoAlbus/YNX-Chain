@@ -55,7 +55,13 @@ test("self-contained server serves the public /video path without a shared relea
     assert.match(await response.text(), /YNX Video/);
     const catalog = await fetch(`http://127.0.0.1:${port}/video/i18n/catalog.json`);
     assert.equal(catalog.status, 200);
+    assert.match(catalog.headers.get("content-type"), /application\/json/);
     assert.match(await catalog.text(), /"zh-CN"/);
+    const logo = await fetch(`http://127.0.0.1:${port}/video/assets/ynx-logo.svg`);
+    assert.equal(logo.status, 200);
+    assert.equal(logo.headers.get("content-type"), "image/svg+xml");
+    assert.match(await logo.text(), /<svg/);
+    assert.match(response.headers.get("content-security-policy"), /img-src 'self' data:/);
     const i18nSource = readFileSync(join(videoRoot, "i18n.js"), "utf8");
     assert.match(i18nSource, /new URL\("\.\/i18n\/catalog\.json",import\.meta\.url\)/);
     assert.doesNotMatch(i18nSource, /fetch\("\/i18n\/catalog\.json"\)/);
@@ -85,6 +91,7 @@ test("runtime carrier rebuild is byte-identical and normalized", () => {
   const secondNames = execFileSync("gtar", ["-tzf", second], {encoding: "utf8"}).trim().split("\n");
   assert.deepEqual(names, secondNames);
   assert.ok(names.includes("runtime/server.mjs"));
+  assert.ok(names.includes("runtime/assets/ynx-logo.svg"));
   assert.ok(names.includes("runtime/runtime-manifest.json"));
   assert.ok(names.includes("runtime/runtime/post-p0239-recovery-baseline.json"));
 

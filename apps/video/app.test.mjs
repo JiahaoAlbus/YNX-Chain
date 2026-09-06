@@ -2,11 +2,55 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {createHash} from "node:crypto";
 import {readFile} from "node:fs/promises";
-import {connectVideoWallet,discoverWalletCandidates,WALLET_INSTALLATION_OPTIONS} from "./wallet-connection.js";
+import {connectVideoWallet,restoreVideoWallet,discoverWalletCandidates,WALLET_INSTALLATION_OPTIONS} from "./wallet-connection.js";
 import {YNX_TESTNET} from "./ynx-dapp-connect-sdk/constants.js";
 
 const read=name=>readFile(new URL(name,import.meta.url),"utf8");
 const sha=value=>createHash("sha256").update(value).digest("hex");
+
+const restoreAccount="0x1111111111111111111111111111111111111111";
+const savedRestore={walletId:"restore-ynx",account:restoreAccount,walletName:"YNX Wallet"};
+function restoreBrowser(provider,uuid="restore-ynx") {
+  const browser=new EventTarget();
+  browser.addEventListener("eip6963:requestProvider",()=>browser.dispatchEvent(new CustomEvent("eip6963:announceProvider",{detail:{info:{uuid,name:"YNX Wallet",rdns:"com.ynx.wallet"},provider}})));
+  return browser;
+}
+
+test("removed or absent Wallet cannot reject guest startup",async()=>{
+  assert.equal(await restoreVideoWallet(savedRestore,new EventTarget(),{timeoutMs:1}),null);
+  assert.equal(await restoreVideoWallet(null,new EventTarget(),{timeoutMs:1}),null);
+  assert.equal(await restoreVideoWallet({...savedRestore,account:42},new EventTarget(),{timeoutMs:1}),null);
+});
+
+test("restore binds provider method receiver and performs read-only calls",async()=>{
+  const methods=[];
+  const provider={request:async function({method}){assert.equal(this,provider);methods.push(method);return method==="eth_accounts"?[restoreAccount]:"0x1917"}};
+  const state=await restoreVideoWallet(savedRestore,restoreBrowser(provider),{timeoutMs:1});
+  assert.equal(state?.account,restoreAccount);
+  assert.equal(state?.chainId,"0x1917");
+  assert.equal(state?.productSession,"PRIVATE_SERVICE_DEGRADED");
+  assert.deepEqual(methods,["eth_accounts","eth_chainId"]);
+});
+
+test("same-label replacement provider is not silently restored",async()=>{
+  let calls=0;
+  const provider={request:async()=>{calls++;return [restoreAccount]}};
+  assert.equal(await restoreVideoWallet(savedRestore,restoreBrowser(provider,"replacement-uuid"),{timeoutMs:1}),null);
+  assert.equal(calls,0);
+});
+
+test("locked, switched-account and wrong-chain providers leave restore disconnected",async()=>{
+  for(const [accounts,chain] of [[[],"0x1917"],[["0x2222222222222222222222222222222222222222"],"0x1917"],[[restoreAccount],"0x1"]]){
+    const provider={request:async({method})=>method==="eth_accounts"?accounts:chain};
+    assert.equal(await restoreVideoWallet(savedRestore,restoreBrowser(provider),{timeoutMs:1}),null);
+  }
+});
+
+test("stalled and rejected provider reads cannot indefinitely block guest startup",async()=>{
+  for(const request of [()=>new Promise(()=>{}),async()=>{throw new Error("Provider locked")}]){
+    assert.equal(await restoreVideoWallet(savedRestore,restoreBrowser({request}),{timeoutMs:1,requestTimeoutMs:5}),null);
+  }
+});
 
 test("viewer exposes complete truthful interaction paths",async()=>{
   const html=await read("index.html"),js=await read("app.js");
