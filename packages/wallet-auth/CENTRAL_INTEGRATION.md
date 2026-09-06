@@ -1,31 +1,52 @@
-# Central Gateway integration contract
+# Central Wallet Auth integration contract
 
-This document defines the exact interface implemented by `@ynx-chain/wallet-auth`. It is an integration request, not evidence that central Gateway or registry deployment has occurred.
+The executable integration boundary is `src/gateway-http.js`, backed by `src/gateway-adapter.js`; `src/gateway-node-host.js` adds fail-closed local persistence and bounded observability. The merge manifest, versioned state schema and central patch instructions are in `integration/`. `testdata/product-session-http-proof-v1.json` is the deterministic P-256 sender-constrained HTTP proof vector. These artifacts supersede any assumption that possession of a session binding or legacy opaque token is sufficient for canonical introspection. Release evidence must record the exact checked-out source commit; this document deliberately does not carry a mutable source pointer.
 
-## Registry schema v2
+This is the merge-ready central protocol candidate implemented and tested by `@ynx-chain/wallet-auth`. It is **not** evidence of central review, central integration, staging deployment, or public deployment. The candidate registry therefore keeps every product disabled.
 
-The registry entry is exact JSON; unknown or missing fields fail closed:
+## Canonical registry
+
+`central-registry.json` is the only 26-product candidate inventory. Its checked-in legacy shape is exact: `registryVersion`, `chainId`, `products`. Registry v2 requires chain `ynx_6423-1`, exactly 26 alphabetically sorted products, and globally unique client IDs, bundle IDs, and callbacks. Registry v1 migrates only through the exact deterministic migration that adds disabled, pending-review Quant.
+
+Accepted registry v3 adds the exact top-level `retiredClients` array. It permits an active product registration and a retired client record to carry different product client IDs, bundle/package IDs and callbacks without weakening uniqueness. Every active/retired client ID, bundle ID and callback remains globally unique. A v2 registry becomes v3 only in the exact-digest client-retirement transaction; callers cannot inject a retired tuple or infer one from a product name.
+
+The checked-in v2 candidate contains legacy schema v3 product registrations:
 
 ```json
 {
-  "schemaVersion": 2,
+  "schemaVersion": 3,
+  "productId": "social",
+  "displayName": "YNX Social",
+  "reviewState": "pending-review",
+  "enabled": false,
   "productClientId": "ynx-social-v1",
   "requestingProduct": "social",
-  "bundleId": "com.ynxweb4.social",
-  "callbacks": ["ynxsocial://wallet-auth/callback"],
+  "bundleId": "com.ynx.social",
+  "callbacks": ["ynx-social://com.ynx.social"],
   "scopes": ["account:read", "profile:link"],
   "maxScopes": 2,
-  "productDeviceAlgorithms": ["p256-sha256"]
+  "productDeviceAlgorithms": ["p256-sha256"],
+  "sessionDurationSeconds": 240,
+  "revocationPolicy": {"session":true,"approval":true,"device":true,"accountAllDevices":true}
 }
 ```
 
-Arrays must be non-empty where required, unique, sorted, and canonical. The only version 1 product-device algorithm is `p256-sha256`; its key is a canonical unpadded base64url 33-byte compressed SEC1 P-256 point. Central registry is responsible for publishing this entry atomically with the product bundle/package and callback allow-list.
+The parser normalizes these to schema v5, which adds `webOrigins` and exact `clientLifecycle`. `reviewState` is `approved`, `pending-review`, `disabled`, or `retired`; `enabled` must be true exactly when approved and active. `centralRegistrationByProduct` and `centralProtocolEntry` reject disabled or retired entries by default. Callers may pass `{requireEnabled:false}` only for review tooling and tests, never for session issuance. No wildcard origin, scope, callback, client, or bundle is allowed.
 
-Legacy schema v1 has exact fields `schemaVersion`, `productClientId`, `requestingProduct`, `bundleId`, `callback`, `scopes`, and `maxScopes`. Call `migrateCentralRegistryEntry(v1)` once; it converts the single callback to `callbacks` and binds `productDeviceAlgorithms` to `p256-sha256`. It rejects extra fields and is idempotent for v2.
+Schema v2 remains the exact protocol projection consumed by the verifier: `schemaVersion`, `productClientId`, `requestingProduct`, `bundleId`, `callbacks`, `scopes`, `maxScopes`, and `productDeviceAlgorithms`. `migrateCentralRegistryEntry` converts the exact legacy single-callback v1 shape to v2 and rejects extra fields.
 
-## Verifier transaction
+`registry-conflict-evidence.json` records known identity and central implementation conflicts. It must be reviewed with the owning product worktrees before any product is marked approved.
 
-The Gateway must call one entry point after receiving the product's device-signed completion:
+## Canonical envelope and verifier
+
+Authorization transport is `ynxwallet://authorize?request=<base64url(canonical JSON)>`. The response callback has exactly one `response` query field. The canonical request and approval bind:
+
+- `ynx_6423-1`, requesting product, client ID, bundle/package, callback;
+- compressed P-256 product device public key and algorithm;
+- native `ynx1` account and secp256k1 account public key;
+- exact ordered scopes, nonce, human-readable purpose, request digest, issue time, and expiry.
+
+After Wallet approval, Gateway issues the exact short-lived challenge. The product device signs `YNX_PRODUCT_SESSION_CHALLENGE_V1\n<canonical challenge JSON>` with ECDSA P-256/SHA-256 and canonical DER encoding. Gateway then calls:
 
 ```ts
 const session = verifyCentralWalletSession({
@@ -36,31 +57,49 @@ const session = verifyCentralWalletSession({
 }, now);
 ```
 
-The input object and every nested protocol object use exact schemas. The call performs, in order:
+The returned session additionally binds `sessionBinding`, `approvalDigest`, and `deviceBinding`. It can be accepted only by the exact client, bundle, product device key, and granted scopes.
 
-1. Parse the v2 registry and authorization request against the exact product, bundle, callback, algorithm, scope allow-list, issue time, expiry, and `ynx_6423-1` network.
-2. Recompute the request digest and verify the Wallet compact secp256k1 approval, native `ynx1` account derivation, bindings, scopes, and lifetime.
-3. Verify the Android-compatible SHA-256/ECDSA P-256 DER product-device proof over `YNX_PRODUCT_SESSION_CHALLENGE_V1\n<canonical challenge JSON>`.
-4. Require exact request digest, client, bundle, algorithm/key, account, ordered scopes, and an expiry no later than the Wallet approval.
-5. Return product-limited session claims. No Wallet secret or recovery material is accepted by this interface.
+## Transactional lifecycle
 
-Before every session use, call:
+`CentralWalletSessionStore` is the executable reference lifecycle. `complete` verifies the whole envelope, then consumes nonce, request digest, and Gateway challenge and writes the session as one state transition. Any error restores the prior snapshot. A restart revalidates exact snapshot fields, consumed-record coverage, session schemas, and the hash-chained audit log.
+
+Gateway should implement the same transaction in its durable database, not use this in-memory reference as production storage:
+
+1. Lock/read the reviewed enabled registration and revocation state.
+2. Verify Wallet approval and product-device proof.
+3. Reject an already consumed nonce, request digest, challenge, or session binding.
+4. Persist all three consumption tombstones, the session, and audit event atomically.
+5. Commit; never emit a session before commit.
+
+Before each use, either call `store.introspect(sessionBinding, exactContext, now)` or:
 
 ```ts
 assertCentralWalletSessionActive(session, {
   revokedSessionBindings,
-  revokedRequestDigests,
+  revokedApprovalDigests,
+  revokedDeviceBindings,
+  accountLogoutRecords,
 }, now);
 ```
 
-`revokedSessionBindings` revokes one product session. `revokedRequestDigests` revokes the Wallet approval and every session derived from it. Both arrays are exact, sorted 64-character lowercase hex digests. Expired and revoked sessions fail closed.
+The four controls revoke one session, every session from one approval, every session on one product device, or every session for an account issued at/before an all-devices logout. Lists and records are exact, sorted, unique, and bounded. Expiry, future issuance, cross-App reuse, missing scopes, and every revocation fail closed.
 
-The registry read, challenge consume, replay consume, session write, and revocation read must occur in one central transactional boundary. A callback must not create a session before both the Wallet approval and device proof have passed this shared verifier. Do not fork the canonical JSON implementation or signing domains.
+## Executable HTTP boundary
 
-## Migration and rollout
+`CanonicalWalletGatewayHttpKernel` accepts one strict host-normalized request object: `method`, `path`, exact `contentType`, raw canonical JSON `body`, and a separately decoded `proof` header object. Completion requires `proof: null`; authenticated routes require the exact P-256 Product Session proof outside the body. This avoids a self-referential body digest while still binding the signature to method, path and SHA-256 of the exact business payload.
 
-1. Load v1 entries through `migrateCentralRegistryEntry`; compare the v2 output with the reviewed product inventory.
-2. Dual-read v1/v2 registry storage but emit v2 only. Do not accept Ed25519 or SPKI hashes under `p256-sha256`.
-3. Run `packages/wallet-auth/test/integration.test.mjs`, signer vectors, replay, tamper, scope, expiry, callback interception, and cross-App tests in Gateway CI.
-4. Deploy the shared package and v2 registry atomically; reject unknown verifier versions.
-5. After all clients are v2, remove the v1 storage reader. Keep the migration test and published vectors permanently.
+The kernel freezes the parsed registry at construction, rejects alternate JSON encodings and unknown fields, enforces a 1 MiB body bound, restores the pre-request snapshot on every failure, and returns canonical JSON plus a deterministic state digest. The supplied Node host adds loopback health/readiness/version/metrics, generated request/trace/error IDs, exact remote build identity, atomic local file persistence and redacted canonical JSON events with event-sink failure isolation. Central deployment remains responsible for TLS/ingress, durable compare-and-swap storage, distributed tracing, accepted audit/event publication, rate limits and process supervision. It must persist `snapshot()` only after a successful state transition and must never convert the kernel into bearer-token compatibility.
+
+## Required central rollout
+
+1. Resolve `registry-conflict-evidence.json` with each product owner; approve exact tuples individually.
+2. Import this package without forking canonical JSON, digest domains, schemas, vectors or proof transport.
+3. Mount all twelve routes in `integration/gateway-integration.manifest.json`, including session, approval and product-device self-revoke plus canonical Wallet-only account logout-all.
+4. Persist Gateway snapshot v2 atomically with Product Sessions, proof replay state, every revocation cutoff, StrategyMandates, action nonces and terminal controls; publish the canonical events only after the same durable commit succeeds.
+5. Run all package tests and vectors in central Gateway CI, including canonical-body rejection, immutable registry authority, request rollback, replay, restart, audit tamper, callback interception, scope mutation, cross-App reuse, mandate limits, all revocations, exact build identity, ID headers, bounded metrics, event redaction and sink-failure isolation.
+6. Deploy registry, kernel host and durable state migration atomically to staging; record registry hash, source commit, release, canonical build time, deployment ID and restore evidence, then run real Wallet↔product flows.
+7. Have Monitor accept the bounded metric/event contract, prove dashboard and alert behavior, and correlate request/error IDs to authoritative audit IDs without logging custody or proof material.
+
+`integration/product-migration-matrix-v2.json` is the machine-verifiable downstream migration ledger. A product may be `MIGRATED` only with exact product and shared-SDK source commits plus visible, request-bound evidence for Wallet absent, Wallet present, approval, rejection, timeout, revocation, second open and temporary Chain disconnect/Retry on every declared platform. Web evidence is mandatory. `PROTOCOL_ONLY` means protocol tests exist but no product migration is claimed; `NO_EVIDENCE` means no product evidence exists. The parser rejects status inflation and incomplete evidence.
+
+Verification counts are release evidence, not documentation constants. Until central merge and direct Testnet/public evidence exist, truthful status remains `implemented-local` and `tested-local`, not `integrated-central`, `deployed-staging`, or `deployed-public`.

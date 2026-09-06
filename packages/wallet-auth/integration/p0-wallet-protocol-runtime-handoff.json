@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "handoffId": "P0-WALLET-CONNECTIVITY-2026-08-wallet-protocol-runtime-v1",
+  "owner": "wallet-protocol",
+  "status": "RUNTIME_CANDIDATE_READY",
+  "acceptedContract": {
+    "version": "p0-wallet-connection-v1",
+    "sourceCommit": "66003e76e804da16d472255efde50cb879055b96",
+    "pullRequest": "https://github.com/JiahaoAlbus/YNX-Chain/pull/104",
+    "acceptanceBoundary": "Shared behavior only; it is not a public deployment, installed-client, SDK, or Wallet UI acceptance."
+  },
+  "runtimeSourceCommit": "b28609abab6df3ed88bb58cf04472308068eaa0c",
+  "runtime": {
+    "gatewayRoutes": [
+      "/health",
+      "/ready",
+      "/version",
+      "/v1/wallet/sessions/complete",
+      "/v1/wallet/sessions/introspect",
+      "/v1/wallet/sessions/revoke",
+      "/v1/wallet/approvals/revoke",
+      "/v1/wallet/devices/revoke"
+    ],
+    "sourceIdentity": "GET /version emits the exact operator-provided build sourceCommit, release, and schema versions. GET /health and GET /ready expose only truthful runtime/deployment booleans.",
+    "cors": {
+      "registrySchema": 4,
+      "field": "webOrigins",
+      "migration": "Registry v3 normalizes to webOrigins: [] and is denied browser CORS. A deployment must explicitly submit a reviewed v4 registry entry with an enabled product and exact canonical HTTPS origin.",
+      "preflight": "Only registered enabled origins may preflight listed Product Session POST routes. Allowed request headers are content-type and x-ynx-product-session-proof; unknown origins, routes, methods, and headers fail closed before body processing.",
+      "nonInference": "No origin is derived from productId, bundleId, callback, or URL scheme."
+    },
+    "productSession": "Completion, introspection, expiry, session/approval/device revoke, replay protection and disk restart persistence remain kernel-bound; an origin rejection does not execute or mutate a Product Session route.",
+    "deviceProof": "P-256 SHA-256 canonical request proofs bind product client, bundle, device public key, method, canonical path, body digest, nonce, issuedAt, and expiresAt. The runtime does not create local or canned sessions."
+  },
+  "recipientHandoffs": {
+    "walletPlatform": {
+      "providerBehavior": "Use EIP-1193 standard connection independently of Product Session. A private Gateway failure degrades only the private feature, never the established standard provider.",
+      "callbackRules": "Persist one pending record before launch; accept exactly one registered callback response field; reject unknown, expired, replayed, substituted, or non-canonical callback data.",
+      "deviceProof": "Keep the platform key in secure storage and send canonical P-256 proof material only through the shared package. Do not duplicate cryptography or construct deep links by string concatenation.",
+      "uiBoundary": "This handoff supplies no Wallet UI implementation."
+    },
+    "developerSdk": {
+      "publicSchemas": "Expose the standard EIP-1193 path first. Treat Product Session upgrade as an optional first-party private API operation.",
+      "errorMapping": "Preserve EIP-1193 4001/4100/4200/4900/4901 separately from Product Session protocol, expiry, device-proof, callback, and gateway codes. Preserve correlation IDs.",
+      "migration": "Use registered canonical origin, callback, request body, and proof APIs only; no direct Gateway calls and no duplicated cryptography."
+    },
+    "financialApps": {
+      "ordering": "Establish Standard Connection before optionally upgrading to Product Session.",
+      "boundary": "Public/read-only data remains available when Product Session is degraded; private capabilities must surface typed errors and retry action.",
+      "migration": "Do not add per-product CORS, callback, or Gateway routes. Consume the SDK after its owner publishes an accepted implementation."
+    },
+    "explorerMonitor": {
+      "safeProbe": "GET /health, /ready, and /version may be probed without a user key; report source identity and deployment booleans exactly as returned.",
+      "redaction": "Never collect Product Session proofs, callback responses, device public/private key material, raw authorization bodies, or session records.",
+      "statusClasses": "Distinguish no route, origin rejected, protocol rejected, expiry, replay, revoke, and gateway unreachable; do not present them as chain offline."
+    },
+    "dataFabric": {
+      "events": "Consume only redacted asynchronous lifecycle events keyed by correlation ID and typed status. No synchronous dependency may block a standard wallet connection.",
+      "privacy": "Do not ingest raw proof, callback, session, account secret, or device key material."
+    }
+  },
+  "verification": {
+    "localTests": "npm test --prefix packages/wallet-auth: 112/112 passed before this handoff commit",
+    "coverage": ["P-256 proof", "completion", "introspection", "expiry", "session/approval/device revoke", "replay", "restart persistence", "100+ local concurrency/soak vectors", "origin CORS preflight", "unknown-origin zero mutation", "registry v3 fail-closed migration"],
+    "notVerified": ["public route mount", "public CORS", "installed Wallet approval/callback", "wallet UI", "developer SDK", "product migrations", "central deployment"]
+  },
+  "releaseTruth": {
+    "deployedPublic": false,
+    "gatewayLoadedPublic": false,
+    "integratedCentral": false,
+    "installedClientVerified": false
+  }
+}

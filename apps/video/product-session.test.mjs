@@ -11,7 +11,7 @@ const ok = body => ({ok: true, status: 200, json: async () => body});
 
 test('Video uses the frozen browser SDK with exact Video registration and honest browser storage', async () => {
   const source = JSON.parse(await readFile(new URL('./product-session-sdk-source.json', import.meta.url)));
-  assert.equal(source.sdkSourceCommit, 'ff68d6d1c81708bd0144016750002a87d50bb5f9');
+  assert.equal(source.sdkSourceCommit, '529471f3822d2bac43ea47a1ab8004fa2ae79885');
   assert.equal(source.securityLevel, 'webcrypto-nonextractable');
   assert.equal(source.osProtected, false);
   assert.equal(source.hardwareBacked, false);

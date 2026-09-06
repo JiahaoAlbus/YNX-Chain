@@ -240,3 +240,17 @@ test("prepared Wallet link becomes visible and focused after its exact URL is se
   assert.equal(controller.element("#product-open").focused, true);
   assert.equal(controller.element("#product-signin").disabled, false);
 });
+
+test('a stored pending logout stays explicit after page restore and blocks new Creator approval', async () => {
+  let preparations=0,restores=0;
+  const controller=await app({restoreProductSession:async()=>{restores++;return {status:'retry-required',revocationPending:true,message:'Sign-out is pending. Explicitly retry.'};},prepareProductSignIn:async()=>{preparations++;}});
+  await turn();
+  assert.equal(controller.element('#product-signin').disabled,true);
+  assert.equal(controller.element('#product-disconnect').hidden,false);
+  assert.equal(controller.element('#product-disconnect').textContent,'Retry sign out');
+  assert.equal(controller.element('#product-status').textContent,'Sign-out is pending. Explicitly retry.');
+  await controller.click('product-signin');await controller.restoreCreator();
+  assert.equal(preparations,0);assert.equal(restores,1);
+  await controller.click('product-disconnect');
+  assert.equal(controller.element('#product-signin').disabled,false);
+});

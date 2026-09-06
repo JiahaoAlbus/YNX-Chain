@@ -1,22 +1,22 @@
 {
-  "sdkSourceCommit": "ff68d6d1c81708bd0144016750002a87d50bb5f9",
-  "sdkPackageTree": "b9b535840d5226270ddbd2abc14d9802699e92b7",
+  "sdkSourceCommit": "529471f3822d2bac43ea47a1ab8004fa2ae79885",
+  "sdkPackageTree": "726f45aa1a66709cfd9711012c6166780a0399be",
   "sourceArchive": {
-    "bytes": 1556480,
-    "sha256": "078567826efa0eaf44caacf5193ca2824a4686bc66037dff6f8c6d7787583551"
+    "bytes": 1679360,
+    "sha256": "68a4d192c2a7d82d1ea3f69fe6fe6e7d9c670ce7e4ca29b06fea0341ca4e0e18"
   },
   "packageLock": {
     "bytes": 1470,
     "sha256": "c32e52b9c87743ee5870ec146590f203f0084926dfbf9a66b7edb5a9224ce606"
   },
-  "authPublicSourceCommit": "f14e495ac9cb07f50199ad92096e6bd427669d44",
+  "authPublicSourceCommit": "8dad0bab8f6f711e6ca6037201eec5725f9a6a02",
   "registrySubset": "video",
   "bundlerVersion": "0.28.1",
   "files": [
     {
       "path": "product-session-sdk.js",
-      "bytes": 101657,
-      "sha256": "dbbd61d824646c989e875eda8b620400b46ed4fdf36e98e8f3a507578ed31329"
+      "bytes": 119091,
+      "sha256": "723a2740aca03411580d1cb394d1d99fde8e3a021bae1135ee1890751f2aae5f"
     },
     {
       "path": "product-session-registry.json",

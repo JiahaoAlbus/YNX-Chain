@@ -20,7 +20,7 @@ test("Social -> Wallet -> callback -> Gateway yields only a Social-device-bound 
   const completion = signGatewayChallenge(challenge, PRODUCT_DEVICE_SECRET);
   const session = verifyGatewayCompletion(completion, verified, NOW);
   assert.equal(session.productClientId, "ynx-social-v1");
-  assert.equal(session.bundleId, "com.ynxweb4.social");
+  assert.equal(session.bundleId, "com.ynx.social");
   assert.deepEqual(session.scopes, ["account:read", "profile:link"]);
   assert.throws(() => nonces.consume(parsed, NOW), (error) => error instanceof WalletAuthError && error.code === "REPLAY");
 });
@@ -31,7 +31,7 @@ test("callback interception cannot complete the product-device challenge", () =>
   const challenge = createGatewayChallenge(approval, { challenge: "gateway_challenge_abcdefghijklmnop", expiresAt: "2026-07-15T12:03:00.000Z" }, NOW);
   const attackerSecret = Buffer.alloc(32, 0x24).toString("base64url");
   assert.throws(() => signGatewayChallenge(challenge, attackerSecret), (error) => error instanceof WalletAuthError && error.code === "DEVICE_MISMATCH");
-  assert.throws(() => parseCallbackURL(createCallbackURL(approval).replace("ynxsocial:", "attacker:"), parsed.callback), /substituted/);
+  assert.throws(() => parseCallbackURL(createCallbackURL(approval).replace("ynx-social:", "attacker:"), parsed.callback), /substituted/);
   assert.throws(() => parseCallbackURL(`${createCallbackURL(approval)}&state=attacker`, parsed.callback), /substituted/);
   assert.throws(() => parseCallbackURL(`${createCallbackURL(approval)}#attacker`, parsed.callback), /substituted/);
 });
@@ -75,8 +75,8 @@ test("Gateway challenge and completion schemas fail closed on malformed or unkno
   assert.throws(() => verifyGatewayCompletion({ challenge: { ...challenge, productDeviceAlgorithm: "ed25519" }, deviceSignature: completion.deviceSignature }, approval, NOW), WalletAuthError);
 });
 
-test("published P-256 Gateway vector uses the canonical Android-compatible signing domain", async () => {
-  const vector = JSON.parse(await readFile(new URL("../testdata/gateway-p256-v1.json", import.meta.url), "utf8"));
+test("published origin-bound P-256 Gateway vector uses the canonical Android-compatible signing domain", async () => {
+  const vector = JSON.parse(await readFile(new URL("../testdata/gateway-p256-v2.json", import.meta.url), "utf8"));
   assert.equal(gatewayChallengeSignBytes(vector.challenge), vector.signBytes);
   const parsed = parseAuthorizationRequest(request(), { now: NOW, registry: REGISTRY });
   const approval = signAuthorization(parsed, { accountSecret: ACCOUNT_SECRET, issuedAt: NOW.toISOString() });

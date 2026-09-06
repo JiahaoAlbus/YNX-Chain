@@ -1,0 +1,22 @@
+
+import {createRecoveryController} from RECOVERY_CONTROLLER_MODULE;
+for(const lostCompletion of [false,true]) test('independent recovery preserves original protected bytes, never auto-reconnects, and only retries explicit logout; lostCompletion='+lostCompletion,async()=>{
+ const s=setup(),first=await createBrowserProductSessionClient(s.config);
+ if(lostCompletion){const complete=s.gateway.complete.bind(s.gateway);s.gateway.complete=async input=>{await complete(input);throw new WalletAuthError('NETWORK_UNAVAILABLE','lost first receipt');};}
+ await connect(first,s.config);s.authority.unavailable=true;
+ await first.client.disconnect();
+ const originalValues=JSON.stringify([...s.indexedDB.records('state').entries()]);
+ const originalDevice=[...s.indexedDB.records('devices').values()][0];
+ const before=s.seen.length;first.close();let opened=0,recoveryBrowser,latest;
+ const controller=createRecoveryController({openClient:async()=>{opened++;return recoveryBrowser=await createBrowserProductSessionClient(s.config);},render:state=>{latest=state;}});
+ await Promise.resolve();assert.equal(opened,0);assert.equal(s.seen.length,before);
+ assert.equal(JSON.stringify([...s.indexedDB.records('state').entries()]),originalValues);
+ await controller.retrySignOut();assert.equal(opened,1);assert.equal(latest.confirmed,false);
+ assert.equal(JSON.stringify([...s.indexedDB.records('state').entries()]),originalValues,'offline retry retains exact pending, completion, return and session strings');
+ assert.equal([...s.indexedDB.records('devices').values()][0].deviceId,originalDevice.deviceId);assert.equal(s.generated.length,1);
+ assert.equal(s.seen.slice(before).every(x=>new URL(x.url).pathname==='/v2/product-sessions/time'),true);
+ s.authority.unavailable=false;await controller.retrySignOut();assert.equal(latest.confirmed,true);
+ assert.equal(s.seen.slice(before).some(x=>/\/(challenge|complete|introspect)$/.test(new URL(x.url).pathname)),false);
+ assert.equal([...s.indexedDB.records('devices').values()][0].deviceKey,originalDevice.deviceKey);
+ assert.equal(s.generated.length,1);recoveryBrowser.close();
+});

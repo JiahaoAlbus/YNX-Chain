@@ -22,21 +22,21 @@ class Element {
  scrollIntoView(){}
  focus(){this.focused=true;}
 }
-async function controller({search='',request=async path=>path.startsWith('/v1/videos?')?[video]:path.endsWith('/comments')?[]:video}={}){
+async function controller({search='',product={atRegisteredOrigin:()=>false},request=async path=>path.startsWith('/v1/videos?')?[video]:path.endsWith('/comments')?[]:video}={}){
  const nodes=new Map(),node=selector=>{if(!nodes.has(selector))nodes.set(selector,new Element());return nodes.get(selector);};
  const nav=['discover','subscriptions','playlists','history','settings'].map(view=>{const e=node(`[data-view="${view}"]`);e.dataset.view=view;return e;});
  node('#page-title').setAttribute('data-i18n','discover');node('#content').setAttribute('aria-busy','true');
  const document={querySelector:node,querySelectorAll:selector=>selector==='nav button'?nav:[],createElement:()=>new Element()};
  const calls=[];
  const dependencies={document,location:{origin:'https://video.ynxweb4.com',pathname:'/',search,hash:''},window:{addEventListener(){}},navigator:{onLine:true},URLSearchParams,
-  history:{replaceState(){}},sessionStorage:{getItem:()=>null,setItem(){},removeItem(){}},setTimeout,clearTimeout,
+  history:{replaceState(){}},sessionStorage:{getItem:()=>null,setItem(){},removeItem(){}},setTimeout:(fn,ms)=>{const timer=setTimeout(fn,ms);timer.unref();return timer;},clearTimeout,
   t:key=>({discover:'Discover',empty:'No published videos yet'})[key]??key,i18nReady:Promise.resolve(),
   WALLET_INSTALLATION_OPTIONS:{ynxWallet:'https://www.ynxweb4.com/dapp/download',metaMask:'https://metamask.io/download/'},
-  videoProductSession:{atRegisteredOrigin:()=>false},restoreVideoWallet:async()=>null,
+  videoProductSession:product,restoreVideoWallet:async()=>null,
   createVideoAPI:()=>async path=>{calls.push(path);return request(path);},
   createWatchProgress:()=>({flush:async()=>{},discard(){},resetSample(){}}),
  };
- const app=await new AsyncFunction(...Object.keys(dependencies),code+'\nreturn {openVideo,showChannel,loadVideos};')(...Object.values(dependencies));
+ const app=await new AsyncFunction(...Object.keys(dependencies),code+'\nreturn {openVideo,showChannel,loadVideos,restoreVideoAccount,signOutVideoAccount,renderProductState,showPlaylists};')(...Object.values(dependencies));
  await turn();await turn();
  return {...app,node,calls};
 }
@@ -96,4 +96,38 @@ test('a failed channel request clears loading without letting a late error repla
  assert.equal(c.node('#content').getAttribute('aria-busy'),'false');
  assert.equal(c.node('#page-title').textContent,'Discover');
  assert.equal(c.node('#notice').textContent,'');
+});
+
+const connected={status:'connected',session:{account:'0x1111111111111111111111111111111111111111',expiresAt:new Date(Date.now()+60000).toISOString()}};
+const deferred=()=>{let resolve;const promise=new Promise(r=>{resolve=r;});return {promise,resolve};};
+test('sign-out immediately hides private library while revoke is pending, and a late restore cannot reconnect',async()=>{
+ const revoke=deferred(),late=deferred();let restores=0;
+ const c=await controller({product:{atRegisteredOrigin:()=>true,restore:()=>++restores===1?Promise.resolve(connected):late.promise,disconnect:()=>revoke.promise},request:async path=>path==='/v1/playlists'?[{ID:'private-one',Name:'Secret list'}]:[]});
+ await c.showPlaylists(c.node('[data-view="playlists"]'));
+ assert.ok(c.node('#content').children.some(child=>/Secret list/.test(child.innerHTML)));
+ const restoring=c.restoreVideoAccount(),signingOut=c.signOutVideoAccount();
+ assert.doesNotMatch(c.node('#content').innerHTML,/Secret list/);
+ assert.equal(c.node('#product-connect').disabled,true);
+ late.resolve(connected);await restoring;
+ assert.equal(c.node('#comment textarea').disabled,true);
+ revoke.resolve({status:'network-unavailable',revocationPending:true,message:'Retry logout'});await signingOut;
+ assert.equal(c.node('#product-disconnect').textContent,'Retry sign out');
+ assert.equal(c.node('#product-connect').disabled,true);
+ assert.equal(c.node('#product-retry').hidden,true);
+});
+test('a late private playlist response cannot reopen its picker after sign-out',async()=>{
+ const lists=deferred();
+ const c=await controller({product:{atRegisteredOrigin:()=>true,restore:async()=>connected,disconnect:async()=>({status:'disconnected'})},request:path=>path==='/v1/playlists'?lists.promise:path.endsWith('/comments')?[]:video});
+ await c.openVideo(video);const opening=c.node('#playlist').onclick();
+ await c.signOutVideoAccount();lists.resolve([{ID:'secret',Name:'Private name'}]);await opening;
+ assert.equal(c.node('#playlist-picker').open,false);
+ assert.equal(c.node('#playlist-choice').children.length,0);
+});
+test('restored pending logout has only explicit retry and never starts new approval',async()=>{
+ let prepares=0,restores=0;
+ const c=await controller({product:{atRegisteredOrigin:()=>true,restore:async()=>{restores++;return {status:'retry-required',revocationPending:true,message:'Sign-out pending'};},prepare:async()=>{prepares++;}}});
+ assert.equal(c.node('#product-connect').disabled,true);
+ assert.equal(c.node('#product-disconnect').hidden,false);
+ await c.node('#product-connect').onclick();await c.restoreVideoAccount();
+ assert.equal(prepares,0);assert.equal(restores,1);
 });

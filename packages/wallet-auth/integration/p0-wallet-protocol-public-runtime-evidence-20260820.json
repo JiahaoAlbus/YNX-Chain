@@ -1,0 +1,137 @@
+{
+  "schemaVersion": 1,
+  "evidenceId": "P0-WALLET-CONNECTIVITY-2026-08-public-runtime-20260820",
+  "owner": "wallet-protocol",
+  "status": "PUBLIC_RUNTIME_VERIFIED",
+  "authority": {
+    "controlPlaneCommit": "6769efec8667c9b4b1d0eec3a86e5adb6767d74a",
+    "leaseId": "P0-WALLET-CONNECTIVITY-2026-08-runtime-lease-20260820T095840Z",
+    "runtimeSourceCommit": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
+    "runtimeVerifierCommit": "30ba2a0c41d7b070dec56f37e39653e21a780ead",
+    "deploymentRegistryBlob": "f11f73bb10943e6ae4e3ecd9f4e5bcedfb7b4701",
+    "deploymentRegistrySha256": "ae156b317b9a97bfd42397cca634021deefe10ffb009102899e24276d8721e31"
+  },
+  "target": {
+    "publicBaseUrl": "https://wallet-auth.ynxweb4.com",
+    "service": "ynx-wallet-gateway.service",
+    "loopback": "127.0.0.1:18445",
+    "release": "p0-origin-binding-49e30d99",
+    "runtimePath": "/opt/ynx/wallet-auth-49e30d99",
+    "statePath": "/var/lib/ynx-wallet-gateway/state.json"
+  },
+  "preflight": {
+    "priorSourceCommit": "6ed04310383ed924065d23affc71f3e4d4c29d49",
+    "priorRelease": "wallet-quant-web-6ed04310",
+    "priorStateFileSha256": "e05306a69b71e5b625f32c6713c4a72deb0a61726c812e74b0aff4ff457c4eee",
+    "candidateArchiveSha256": "8f609b643cd837ff2ed52875da2086f7ed2d1724a74b082074cd3a5005143ea8",
+    "candidateArchiveBytes": 634880,
+    "tls": {
+      "commonName": "wallet-auth.ynxweb4.com",
+      "issuer": "Let's Encrypt YE1",
+      "notBefore": "2026-08-03T16:20:39Z",
+      "notAfter": "2026-11-01T16:20:38Z",
+      "certificateSha256": "7D:73:AC:D3:37:7E:9B:5B:E5:A1:5D:13:49:77:64:6E:C5:F0:85:A9:7B:72:AA:63:0F:93:0D:AD:10:DB:73:F6"
+    },
+    "productionStateCompatibility": {
+      "actualStateCopyBootedOnLoopback": true,
+      "actualStateContainedLegacyAccountPublicKeyShape": true,
+      "legacyWithoutAccountPublicKeyCoveredByExactTest": true,
+      "legacyWithAccountPublicKeyCoveredByExactTest": true,
+      "legacyAuthorityResult": "SESSION_RETIRED",
+      "authorityUpgradeOrOriginInference": false
+    }
+  },
+  "backup": {
+    "root": "/var/backups/ynx-wallet-protocol/20260820T094213Z-6ed04310-to-5231e750",
+    "artifact": "/var/backups/ynx-wallet-protocol/20260820T094213Z-6ed04310-to-5231e750.tar.gz",
+    "artifactSha256": "8991f531e50e4f31426ffb36d35a5fc5136960925b1a1d3dbacf129f9a7f6eb8",
+    "artifactBytes": 796806,
+    "includes": ["runtime source", "state", "environment", "systemd unit and drop-in", "Caddy route", "symlink target"]
+  },
+  "rollbackDrill": {
+    "passed": true,
+    "candidateSourceObservedBeforeRollback": "49e30d999e9a9cbdd2c565021009f2cab0dc125c",
+    "candidatePublicLifecyclePassedBeforeRollback": true,
+    "restoredSourceCommit": "6ed04310383ed924065d23affc71f3e4d4c29d49",
+    "restoredStateFileSha256": "e05306a69b71e5b625f32c6713c4a72deb0a61726c812e74b0aff4ff457c4eee",
+    "restoredRuntimePath": "/opt/ynx/wallet-auth-6ed04310",
+    "unrelatedServicesRemainedActive": true
+  },
+  "publicRuntime": {
+    "health": {
+      "httpStatus": 200,
+      "bytes": 197,
+      "sha256": "735bd784d083318f41a3fa9d06d5fa4919ec8994266b1da2d2b3292b6d6fe542"
+    },
+    "ready": {
+      "httpStatus": 200,
+      "bytes": 195,
+      "sha256": "7217ab0b2a0357a8820b37fae59a0cf75da2086ce5cae30d2a32d64377ad60d2"
+    },
+    "version": {
+      "httpStatus": 200,
+      "bytes": 298,
+      "sha256": "20e9602e0be838b982e8ab1c2ef71933e698a71b9588638d0a3eee60f6538a05",
+      "sourceCommit": "49e30d999e9a9cbdd2c565021009f2cab0dc125c"
+    },
+    "registeredOriginPreflight": {
+      "origin": "https://social.ynxweb4.com",
+      "httpStatus": 204,
+      "allowOriginExact": true,
+      "allowCredentialsAbsent": true,
+      "requestId": "9142a752-abc5-4108-a6e9-4e07c601432e"
+    },
+    "negativeZeroMutationStateDigest": "99bd83a06502a26bbc888f1fc86a6aa2678137375cffdf26ab69e2f3b4995613",
+    "negativeChecks": [
+      {"name": "unregistered-origin", "httpStatus": 403, "code": "ORIGIN_NOT_ALLOWED", "requestId": "5a600df1-ed90-4770-b088-bc7b51832e3f"},
+      {"name": "wrong-cors-header", "httpStatus": 400, "code": "INVALID_CORS_REQUEST", "requestId": "872ac57e-ed3e-4178-8660-dd33fe28cbba"},
+      {"name": "wrong-method", "httpStatus": 405, "code": "METHOD_NOT_ALLOWED", "requestId": "77e7510d-9e52-41b7-8301-cfff9049d02f"},
+      {"name": "wrong-route", "httpStatus": 404, "code": "ROUTE_NOT_FOUND", "requestId": "84ca455f-5983-498d-a7b6-a0ee3d94d69d"}
+    ],
+    "lifecycle": [
+      {"name": "complete", "httpStatus": 200, "requestId": "51bc1074-d03a-4d6d-b0fc-d10f6026bb16"},
+      {"name": "introspect-before-restart", "httpStatus": 200, "requestId": "cc74391a-1a71-4b59-8999-cbe20c242c8e"},
+      {"name": "introspect-after-restart", "httpStatus": 200, "requestId": "6e3431ab-e10c-48a8-a853-e6daa755c5ca"},
+      {"name": "replay", "httpStatus": 409, "code": "REPLAY", "requestId": "f51d18ed-bba2-4461-8b64-32764e0efc4e"},
+      {"name": "revoke", "httpStatus": 200, "requestId": "c5ee5766-f0c7-4d62-ba15-2ba6fb198ea6"},
+      {"name": "post-revoke", "httpStatus": 403, "code": "REVOKED", "requestId": "bd9fc128-813d-4048-b227-f970fd551f57"}
+    ],
+    "restartStateFileSha256": "50a4cd29588742a5b746a9600604d91da1e2d54f66d6ba1428e22152981ade26",
+    "finalStateFile": {
+      "sha256": "f39cfda6a6fa9c0c577dcf16f214514c7be0ef4f1ac22826262b748643bd0da6",
+      "owner": "ubuntu:ubuntu",
+      "mode": "0600",
+      "hardlinkCount": 1
+    }
+  },
+  "isolation": {
+    "caddyRouteSha256BeforeAndAfter": "389c90f391e0b0eca48c8ccb03369e7e6f34962b8db2184e9ccc43c52704dbf2",
+    "port6437HealthStatus": 200,
+    "port6439SourceCommit": "c6ac582c8d490ef980a8cadfd9172f133d1b1a49",
+    "port6441SourceCommit": "577f81202a85ff7314dd862f60aa337b0f2fd1f1",
+    "caddyReloaded": false,
+    "unrelatedServiceRestarted": false
+  },
+  "verification": {
+    "walletAuthTests": "119/119 passed",
+    "focusedLegacyCompatibilityTests": "4/4 passed",
+    "exactProductionStateStaging": "passed",
+    "publicCorsAndLifecycle": "passed",
+    "controlledRestart": "passed",
+    "rollbackDrill": "passed"
+  },
+  "releaseTruth": {
+    "deployedPublic": true,
+    "gatewayLoadedPublic": true,
+    "corsPublicVerified": true,
+    "publicLifecycleVerified": true,
+    "rollbackVerified": true,
+    "installedClientVerified": false,
+    "standardWalletConnectionClientVerified": false,
+    "integratedCentral": false,
+    "aggregatePublicReady": false,
+    "websitePublished": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

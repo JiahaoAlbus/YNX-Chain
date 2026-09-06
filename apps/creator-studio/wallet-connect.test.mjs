@@ -86,5 +86,9 @@ test("wallet UI uses distinct image assets and same-tab provider flow", async ()
     assert.equal(releaseState.publicRuntime.sourceCommit, releaseState.sourceCommit);
     assert.equal(releaseState.deployedPublic, true);
   }
-  assert.equal(releaseState.publicRuntime?.installedWalletApprovalVerified ?? false, false);
+  if (releaseState.publicRuntime?.installedWalletApprovalVerified) {
+    assert.equal(releaseState.publicRuntime.verificationScope.creatorSource, releaseState.publicRuntime.sourceCommit);
+    assert.match(releaseState.publicRuntime.verificationScope.source, /Wallet owner/);
+  }
+  assert.equal(releaseState.candidate?.installedWalletApprovalVerified ?? false, false);
 });

@@ -14,6 +14,8 @@ let currentVideo = null;
 let watchProgress = null;
 let productState = {status: "guest"};
 let productExpiryTimer;
+let productRevision = 0;
+let productSignOutPending = false;
 let currentView = "discover";
 let currentPlaylist = null;
 let playlistTarget = null;
@@ -134,7 +136,13 @@ export const api = createVideoAPI({baseURL: API,
   authorize: (path, method) => videoProductSession.authorization(path, method),
   onUnauthorized: () => renderProductState({status: "retry-required", message: "Your sign-in needs to be checked. Retry or sign in again."}),
 });
-const privateAPI = (path, options = {}) => api(path, {...options, private: true});
+const privateAPI = async (path, options = {}) => {
+  const revision = productRevision;
+  if (!productConnected() || productSignOutPending) throw new Error("Sign in to use your Video library.");
+  const result = await api(path, {...options, private: true});
+  if (revision !== productRevision || !productConnected() || productSignOutPending) throw new Error("Video account changed. This response was discarded.");
+  return result;
+};
 
 const json = body => ({method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)});
 
@@ -150,6 +158,8 @@ function productConnected() {
 
 function renderProductState(state) {
   const previousAccount = productState.session?.account;
+  if (state.revocationPending) productSignOutPending = true;
+  if (["disconnected", "expired"].includes(state.status)) productSignOutPending = false;
   productState = state;
   clearTimeout(productExpiryTimer);
   const connected = productConnected();
@@ -158,13 +168,22 @@ function renderProductState(state) {
     : state.message || "Sign in with YNX Wallet to save playlists, subscriptions and watch history.";
   $("#product-signin").textContent = connected ? "Video account" : "Sign in";
   $("#product-connect").textContent = connected ? "Switch Video account" : "Sign in with YNX Wallet";
-  $("#product-disconnect").hidden = !connected && !["network-unavailable", "retry-required"].includes(state.status);
-  $("#product-retry").hidden = !["network-unavailable", "retry-required"].includes(state.status);
+  $("#product-connect").disabled = productSignOutPending;
+  $("#product-disconnect").textContent = productSignOutPending ? "Retry sign out" : "Sign out";
+  $("#product-disconnect").hidden = !connected && !productSignOutPending && !["network-unavailable", "retry-required"].includes(state.status);
+  $("#product-retry").hidden = productSignOutPending || !["network-unavailable", "retry-required"].includes(state.status);
   $("#product-launch").hidden = true;
   $("#comment button").disabled = !connected;
   $("#comment textarea").disabled = !connected;
   $("#comment-account-hint").hidden = connected;
   if (!connected || previousAccount && previousAccount !== state.session?.account) {
+    productRevision++;
+    currentPlaylist = null;
+    playlistTarget = null;
+    $("#playlist-choice").replaceChildren();
+    $("#playlist-name").value = "";
+    $("#comment textarea").value = "";
+    $("#product-launch").removeAttribute("href");
     watchProgress?.discard();
     if (["subscriptions", "playlists", "history", "settings"].includes(currentView)) {
       libraryEpoch++;
@@ -198,6 +217,8 @@ function renderAccountRequired() {
 }
 
 async function restoreVideoAccount() {
+  if (productSignOutPending) return;
+  const revision = productRevision;
   if (!videoProductSession.atRegisteredOrigin()) {
     renderProductState({status: "guest", message: "Guest playback is available here. Open video.ynxweb4.com to sign in."});
     $("#canonical-signin").hidden = false;
@@ -206,34 +227,56 @@ async function restoreVideoAccount() {
   $("#product-status").textContent = "Checking your saved sign-in. Guest playback is available.";
   try {
     const state = await videoProductSession.restore();
+    if (revision !== productRevision || productSignOutPending) return;
     renderProductState(state);
     if (productConnected()) void refreshLibraryView();
   } catch {
+    if (revision !== productRevision || productSignOutPending) return;
     renderProductState({status: "retry-required", message: "Video sign-in is unavailable. Retry when your connection is restored; guest playback remains available."});
   }
 }
 
+async function signOutVideoAccount() {
+  if ($("#product-disconnect").disabled) return;
+  productSignOutPending = true;
+  renderProductState({status: "retry-required", revocationPending: true, message: "Signing out…"});
+  const revision = productRevision;
+  $("#product-disconnect").disabled = true;
+  try {
+    const state = await videoProductSession.disconnect();
+    if (revision !== productRevision) return;
+    renderProductState(state);
+    if (!productSignOutPending) notice("Your Video account is signed out.");
+  } catch {
+    if (revision === productRevision) renderProductState({status: "retry-required", revocationPending: true, message: "Sign-out could not be confirmed. Select Retry sign out when connected."});
+  } finally {$("#product-disconnect").disabled = false;}
+}
+
 async function prepareVideoSignIn() {
+  if (productSignOutPending) return;
   const button = $("#product-connect");
   button.disabled = true;
   $("#product-launch").hidden = true;
+  if (productConnected()) {
+    await signOutVideoAccount();
+    if (productSignOutPending) return;
+  }
+  const revision = ++productRevision;
   try {
-    if (productConnected()) {
-      const disconnected = await videoProductSession.disconnect();
-      renderProductState(disconnected);
-      if (disconnected.status !== "disconnected") return;
-    }
     const request = await videoProductSession.prepare();
+    if (revision !== productRevision || productSignOutPending) return;
     $("#product-launch").href = request.url;
     $("#product-launch").hidden = false;
+    $("#product-launch").focus();
     $("#product-status").textContent = "Your request is ready. Select Open YNX Wallet, approve the Video request there, and return here. If Wallet does not open, install it or continue as a guest.";
     clearTimeout(productExpiryTimer);
     productExpiryTimer = setTimeout(() => {
+      if (revision !== productRevision) return;
       $("#product-launch").hidden = true;
       $("#product-status").textContent = "This sign-in request expired. Select Sign in with YNX Wallet to start again.";
     }, Math.max(0, Date.parse(request.expiresAt) - Date.now()));
-  } catch (error) {$("#product-status").textContent = error.message || "Sign-in could not start. Please retry.";}
-  finally {button.disabled = false;}
+  } catch (error) {if (revision === productRevision) $("#product-status").textContent = error.message || "Sign-in could not start. Please retry.";}
+  finally {button.disabled = productSignOutPending;}
 }
 
 async function refreshLibraryView() {
@@ -661,12 +704,7 @@ $("#revoke").onclick = () => revokeWallet("user-requested");
 $("#product-signin").onclick = focusSignIn;
 $("#product-connect").onclick = prepareVideoSignIn;
 $("#product-retry").onclick = restoreVideoAccount;
-$("#product-disconnect").onclick = async event => {
-  const button=event.currentTarget;button.disabled=true;
-  try {const state=await videoProductSession.disconnect();renderProductState(state);if(state.status==="disconnected")notice("Your Video account is signed out.");}
-  catch {notice("Sign-out could not be confirmed. Retry when connected.",true);}
-  finally {button.disabled=false;}
-};
+$("#product-disconnect").onclick = signOutVideoAccount;
 $("#search").onsubmit = event => {event.preventDefault();currentView="discover";currentPlaylist=null;activate(document.querySelector('[data-view="discover"]'));loadVideos($("#query").value);};
 $("#close").onclick = () => {$("#video").pause();$("#player").close();void flushWatch(false);};
 $("#player").addEventListener("cancel",()=>{$("#video").pause();void flushWatch(false);});

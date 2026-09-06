@@ -279,6 +279,9 @@ function clearCreatorSession(){
   productOpen.removeAttribute("href");
 }
 function renderProductState(state){
+  if(state.revocationPending)creatorSignOutPending=true;
+  if(["disconnected","expired"].includes(state.status))creatorSignOutPending=false;
+  productConnect.disabled=creatorSignOutPending;
   const connected=state.status==="connected";
   const account=connected?state.session.account:null;
   if(!connected||account!==creatorAccount)clearCreatorSession();
@@ -290,6 +293,7 @@ function renderProductState(state){
   if(connected)productOpen.hidden=true;
 }
 productConnect.addEventListener("click",async()=>{
+  if(creatorSignOutPending)return;
   if(!atRegisteredOrigin()){location.assign("https://creator.ynxweb4.com/");return;}
   productConnect.disabled=true;
   clearCreatorSession();
@@ -299,7 +303,7 @@ productConnect.addEventListener("click",async()=>{
   const revision=creatorSessionRevision;
   try{const prepared=await prepareProductSignIn();if(revision!==creatorSessionRevision)return;productOpen.href=prepared.url;productOpen.hidden=false;productStatus.textContent="Open YNX Wallet and review this Creator sign-in. If it is not installed, use the Wallet download link.";productOpen.focus();}
   catch(error){if(revision===creatorSessionRevision)productStatus.textContent=error.message;}
-  finally{productConnect.disabled=false;}
+  finally{productConnect.disabled=creatorSignOutPending;}
 });
 productDisconnect.addEventListener("click",async()=>{
   creatorSignOutPending=true;
@@ -313,9 +317,10 @@ productDisconnect.addEventListener("click",async()=>{
   finally{productDisconnect.disabled=false;productConnect.disabled=creatorSignOutPending;}
 });
 async function restoreCreator(){
+  if(creatorSignOutPending)return;
   if(!atRegisteredOrigin()){productStatus.textContent="Open creator.ynxweb4.com to sign in and manage your channel.";return;}
   const revision=creatorSessionRevision;
-  try{const state=await restoreProductSession();if(revision!==creatorSessionRevision)return;renderProductState(state);if(state.status==="connected"){if(await refresh())await providerStatus();}else productStatus.textContent=state.status==="retry-required"?"Sign in to manage your channel. Your Wallet will ask for approval.":state.message;}
+  try{const state=await restoreProductSession();if(revision!==creatorSessionRevision)return;renderProductState(state);if(state.status==="connected"){if(await refresh())await providerStatus();}else productStatus.textContent=state.message||"Sign in to manage your channel. Your Wallet will ask for approval.";}
   catch(error){if(revision===creatorSessionRevision)productStatus.textContent=error.message;}
 }
 void restoreCreator();

@@ -1,0 +1,66 @@
+# Browser Product Session v2
+
+`createBrowserProductSessionClient` creates a recoverable Web v2 client using a non-extractable WebCrypto P-256 signing key persisted by IndexedDB structured clone. It exports through the package root and `@ynx-chain/wallet-auth/product-session-browser`. The default environment is the current browser; `environment` and `clock` can be injected by tests.
+
+```js
+import {
+  createBrowserProductSessionClient,
+  ProductSessionGatewayFetchAdapter,
+} from "@ynx-chain/wallet-auth";
+
+const gateway = new ProductSessionGatewayFetchAdapter({
+  endpoint: "https://wallet-auth.ynxweb4.com",
+  fetch: globalThis.fetch.bind(globalThis),
+  walletInstalled: detectYNXWalletInstalled,
+  schemeRegistered: detectYNXWalletScheme,
+  timeoutMs: 10000,
+});
+const adapter = await createBrowserProductSessionClient({
+  registry,
+  productId: "creator-studio",
+  scopes: ["creator:account", "creator:publish", "creator:revenue"],
+  purpose: "Sign in to Creator Studio with this account.",
+  gateway,
+});
+const { client } = adapter;
+
+// On initial load, re-introspect any saved session. A returned connecting state
+// still requires the app's explicit Wallet-open UX and real user approval.
+const restored = await client.restore();
+
+// On an explicit Connect action, persist the pending request before opening
+// the route through the product's Wallet coordinator / installed Wallet handoff.
+const pending = await client.beginDetected();
+if (pending.route?.status === "ready") openYNXWallet(pending.route.url);
+
+// On /wallet-auth/callback, pass the complete URL; do not extract a session token.
+const returned = await client.handleReturn(location.href);
+if (returned.status === "connected") renderAccount(returned.session.account);
+
+// Before each publishing operation, mint a fresh introspection proof. The API
+// independently derives creator:publish from its own route and verifies v2.
+const authorization = await adapter.createIntrospectionProof(["creator:publish"]);
+await fetch("/api/publish", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "X-YNX-Product-Session-Proof-V2": authorization.proofHeader,
+  },
+  body: JSON.stringify(publishInput),
+});
+
+// Revoke remotely before presenting a successful disconnect. Offline failures
+// retain the binding so Retry can reconcile revocation.
+await client.disconnect();
+adapter.close(); // Closes this tab's IndexedDB handle; does not delete/revoke.
+```
+
+Treat these snippets as lifecycle entry points, not a sequence to run on every page load. Installation/scheme detection and `openYNXWallet` remain product responsibilities; the adapter does not invent their availability or trigger an approval automatically. `device.sign` can also be supplied to the existing protocol proof helpers. `createIntrospectionProof` returns `{proof, proofHeader, requestId, body}`; `body` is the canonical Auth introspection body, not the product business request body. A successfully consumed proof cannot be reused after a network retry. The product API must bind Origin and exact product identity, choose required scopes, enforce business permissions, and use the official v2 introspection contract.
+
+The adapter runs only in a secure context whose exact `location.origin` matches the product registry's Web origin. Its fixed IndexedDB database contains separate device/state records keyed by chain, origin, product, client, application, callback and the exact sorted scope subset. Different scopes use different keys and session records; adding scopes requires a new explicit Wallet approval. Storage access only accepts this client's session, pending-request and callback keys.
+
+The private key is generated with `extractable: false`; it is never exported as raw bytes or JWK. Only the public key is exported to produce the protocol's compressed P-256 identity. Initialization reads the structured-cloned key back, checks attributes, and verifies a fresh signature with the stored public key. Signing rechecks the persisted identity. Concurrent tabs atomically reuse the first committed identity. A missing key with surviving state, mismatched key pair, extractable replacement, wrong product binding or unusable IndexedDB fails closed; there is no plaintext or in-memory fallback. Clearing all site storage removes both keys and sessions and requires a new login. IndexedDB quota eviction/private-browsing policies may also remove data.
+
+Capabilities are deliberately `securityLevel: "webcrypto-nonextractable"`, `osProtected: false`, and `hardwareBacked: false`. IndexedDB state is not claimed to be encrypted or protected from scripts executing in the same origin. Non-extractability blocks private-key export through WebCrypto; it does not prevent an XSS or compromised same-origin script from invoking the signer. The product must maintain its normal script/CSP and origin isolation protections. Browser profile/OS compromise is outside this assurance. Native platforms continue to require `hardware-backed` or `os-protected` storage; the browser level is accepted only with `platform: "web"`, a `device.sign` function, and no `device.secret` property.
+
+Automated tests use real Node WebCrypto for key generation, structured cloning, signature verification, protocol completion, fresh API proofs, restart and revocation. The IndexedDB implementation in those tests is a narrow fake for transaction and error semantics. Real Chromium/WebKit/Firefox IndexedDB persistence, installed Wallet approval, correct product return and API binding remain separate browser acceptance gates.

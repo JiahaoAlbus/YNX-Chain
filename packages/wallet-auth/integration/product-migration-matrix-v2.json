@@ -1,0 +1,222 @@
+{
+  "schemaVersion": 1,
+  "protocol": "wallet-auth-v2",
+  "products": [
+    {
+      "product": "Social",
+      "status": "PROTOCOL_ONLY",
+      "sourceCommit": null,
+      "sdkSourceCommit": null,
+      "supportedPlatforms": [],
+      "evidence": [],
+      "unverifiedScenarios": [
+        "approved",
+        "chain-temporary-disconnect-retry",
+        "rejected",
+        "revoked",
+        "second-open",
+        "timeout",
+        "wallet-installed",
+        "wallet-not-installed"
+      ]
+    },
+    {
+      "product": "Pay",
+      "status": "PROTOCOL_ONLY",
+      "sourceCommit": null,
+      "sdkSourceCommit": null,
+      "supportedPlatforms": [],
+      "evidence": [],
+      "unverifiedScenarios": [
+        "approved",
+        "chain-temporary-disconnect-retry",
+        "rejected",
+        "revoked",
+        "second-open",
+        "timeout",
+        "wallet-installed",
+        "wallet-not-installed"
+      ]
+    },
+    {
+      "product": "Shop",
+      "status": "NO_EVIDENCE",
+      "sourceCommit": null,
+      "sdkSourceCommit": null,
+      "supportedPlatforms": [],
+      "evidence": [],
+      "unverifiedScenarios": [
+        "approved",
+        "chain-temporary-disconnect-retry",
+        "rejected",
+        "revoked",
+        "second-open",
+        "timeout",
+        "wallet-installed",
+        "wallet-not-installed"
+      ]
+    },
+    {
+      "product": "Exchange",
+      "status": "NO_EVIDENCE",
+      "sourceCommit": null,
+      "sdkSourceCommit": null,
+      "supportedPlatforms": [],
+      "evidence": [],
+      "unverifiedScenarios": [
+        "approved",
+        "chain-temporary-disconnect-retry",
+        "rejected",
+        "revoked",
+        "second-open",
+        "timeout",
+        "wallet-installed",
+        "wallet-not-installed"
+      ]
+    },
+    {
+      "product": "Quant",
+      "status": "PROTOCOL_ONLY",
+      "sourceCommit": null,
+      "sdkSourceCommit": null,
+      "supportedPlatforms": [],
+      "evidence": [],
+      "unverifiedScenarios": [
+        "approved",
+        "chain-temporary-disconnect-retry",
+        "rejected",
+        "revoked",
+        "second-open",
+        "timeout",
+        "wallet-installed",
+        "wallet-not-installed"
+      ]
+    },
+    {
+      "product": "Developer",
+      "status": "NO_EVIDENCE",
+      "sourceCommit": null,
+      "sdkSourceCommit": null,
+      "supportedPlatforms": [],
+      "evidence": [],
+      "unverifiedScenarios": [
+        "approved",
+        "chain-temporary-disconnect-retry",
+        "rejected",
+        "revoked",
+        "second-open",
+        "timeout",
+        "wallet-installed",
+        "wallet-not-installed"
+      ]
+    },
+    {
+      "product": "Video",
+      "status": "NO_EVIDENCE",
+      "sourceCommit": null,
+      "sdkSourceCommit": null,
+      "supportedPlatforms": [],
+      "evidence": [],
+      "unverifiedScenarios": [
+        "approved",
+        "chain-temporary-disconnect-retry",
+        "rejected",
+        "revoked",
+        "second-open",
+        "timeout",
+        "wallet-installed",
+        "wallet-not-installed"
+      ]
+    },
+    {
+      "product": "Creator Studio",
+      "status": "NO_EVIDENCE",
+      "sourceCommit": null,
+      "sdkSourceCommit": null,
+      "supportedPlatforms": [],
+      "evidence": [],
+      "unverifiedScenarios": [
+        "approved",
+        "chain-temporary-disconnect-retry",
+        "rejected",
+        "revoked",
+        "second-open",
+        "timeout",
+        "wallet-installed",
+        "wallet-not-installed"
+      ]
+    },
+    {
+      "product": "Calendar",
+      "status": "NO_EVIDENCE",
+      "sourceCommit": null,
+      "sdkSourceCommit": null,
+      "supportedPlatforms": [],
+      "evidence": [],
+      "unverifiedScenarios": [
+        "approved",
+        "chain-temporary-disconnect-retry",
+        "rejected",
+        "revoked",
+        "second-open",
+        "timeout",
+        "wallet-installed",
+        "wallet-not-installed"
+      ]
+    },
+    {
+      "product": "Finance",
+      "status": "NO_EVIDENCE",
+      "sourceCommit": null,
+      "sdkSourceCommit": null,
+      "supportedPlatforms": [],
+      "evidence": [],
+      "unverifiedScenarios": [
+        "approved",
+        "chain-temporary-disconnect-retry",
+        "rejected",
+        "revoked",
+        "second-open",
+        "timeout",
+        "wallet-installed",
+        "wallet-not-installed"
+      ]
+    },
+    {
+      "product": "DEX",
+      "status": "NO_EVIDENCE",
+      "sourceCommit": null,
+      "sdkSourceCommit": null,
+      "supportedPlatforms": [],
+      "evidence": [],
+      "unverifiedScenarios": [
+        "approved",
+        "chain-temporary-disconnect-retry",
+        "rejected",
+        "revoked",
+        "second-open",
+        "timeout",
+        "wallet-installed",
+        "wallet-not-installed"
+      ]
+    },
+    {
+      "product": "Card",
+      "status": "PROTOCOL_ONLY",
+      "sourceCommit": null,
+      "sdkSourceCommit": null,
+      "supportedPlatforms": [],
+      "evidence": [],
+      "unverifiedScenarios": [
+        "approved",
+        "chain-temporary-disconnect-retry",
+        "rejected",
+        "revoked",
+        "second-open",
+        "timeout",
+        "wallet-installed",
+        "wallet-not-installed"
+      ]
+    }
+  ]
+}
