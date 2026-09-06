@@ -1,0 +1,67 @@
+  ynx-product-session-gatewayd.service           loaded    active   running YNX Product Session v2 gateway
+  ynx-wallet-gateway-developer-candidate.service loaded    active   running YNX canonical Wallet Gateway Developer candidate
+● ynx-wallet-gateway-quant-candidate.service     loaded    failed   failed  /usr/bin/node packages/wallet-auth/scripts/ynx-wallet-gatewayd.mjs
+  ynx-wallet-gateway.service                     loaded    active   running YNX canonical Wallet/Auth gateway
+  ynx-wallet-gatewayd.service                    loaded    active   running YNX canonical Wallet and Product Session gateway
+MainPID=436597
+ExecStart={ path=/usr/bin/env ; argv[]=/usr/bin/env node /opt/ynx-chain/wallet-releases/ynx-wallet-gateway-c6ac582c8d49/wallet-auth/scripts/ynx-wallet-gatewayd.mjs ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }
+EnvironmentFiles=/etc/ynx/ynx-wallet-gatewayd.env (ignore_errors=no)
+WorkingDirectory=
+User=ynx
+Group=ynx
+Id=ynx-wallet-gatewayd.service
+FragmentPath=/etc/systemd/system/ynx-wallet-gatewayd.service
+
+MainPID=568001
+ExecStart={ path=/usr/bin/env ; argv[]=/usr/bin/env node /opt/ynx-chain/product-session-releases/ynx-product-session-v2-577f81202a85/wallet-auth/scripts/ynx-product-session-gatewayd.mjs ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }
+EnvironmentFiles=/etc/ynx/ynx-product-session-gatewayd.env (ignore_errors=no)
+WorkingDirectory=
+User=ynx
+Group=ynx
+Id=ynx-product-session-gatewayd.service
+FragmentPath=/etc/systemd/system/ynx-product-session-gatewayd.service
+ynx-wallet-gatewayd.service cwd /
+ynx-wallet-gatewayd.service YNX_WALLET_GATEWAY_REGISTRY_PATH /opt/ynx-chain/wallet-releases/ynx-wallet-gateway-c6ac582c8d49/wallet-auth/central-registry.json
+ynx-product-session-gatewayd.service cwd /
+ynx-product-session-gatewayd.service YNX_PRODUCT_SESSION_GATEWAY_REGISTRY_PATH /opt/ynx-chain/product-session-releases/ynx-product-session-v2-577f81202a85/wallet-auth/product-session-registry.json
+/etc/caddy/ynx-chain.caddy:103
+	# BEGIN YNX PRODUCT SESSION V2
+	handle /v2/product-sessions/* {
+		reverse_proxy 127.0.0.1:6441
+	}
+	# END YNX PRODUCT SESSION V2
+	handle /v1/wallet/* {
+/etc/caddy/ynx-chain.caddy:104
+	handle /v2/product-sessions/* {
+		reverse_proxy 127.0.0.1:6441
+	}
+	# END YNX PRODUCT SESSION V2
+	handle /v1/wallet/* {
+		reverse_proxy 127.0.0.1:6437
+/etc/caddy/conf.d/ynx-wallet.caddy:1
+wallet-auth.ynxweb4.com, wallet-auth-testnet.43.153.202.237.sslip.io {
+  encode zstd gzip
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    X-Content-Type-Options "nosniff"
+wallet-auth.ynxweb4.com, wallet-auth-testnet.43.153.202.237.sslip.io {
+  encode zstd gzip
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    X-Content-Type-Options "nosniff"
+    Referrer-Policy "no-referrer"
+  }
+  reverse_proxy 127.0.0.1:18445
+}
+MainPID=516460
+ExecStart={ path=/usr/bin/node ; argv[]=/usr/bin/node packages/wallet-auth/scripts/ynx-wallet-gatewayd.mjs ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }
+EnvironmentFiles=/etc/ynx/wallet-gateway.env (ignore_errors=no)
+EnvironmentFiles=/etc/ynx/wallet/wallet-gateway-candidate-6cf3ef84.env (ignore_errors=no)
+WorkingDirectory=/opt/ynx/wallet-auth
+User=ubuntu
+Group=ubuntu
+Id=ynx-wallet-gateway.service
+FragmentPath=/etc/systemd/system/ynx-wallet-gateway.service
+ynx-wallet-gateway.service cwd /opt/ynx/wallet-auth-6cf3ef84
+ynx-wallet-gateway.service YNX_WALLET_GATEWAY_REGISTRY_PATH /opt/ynx/wallet-auth-6cf3ef84/runtime-config/v1-central-registry.json
+ynx-wallet-gateway.service YNX_PRODUCT_SESSION_GATEWAY_REGISTRY_PATH /opt/ynx/wallet-auth-6cf3ef84/packages/wallet-auth/product-session-registry.json

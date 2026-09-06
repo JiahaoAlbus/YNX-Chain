@@ -1,0 +1,12 @@
+077fe80ea9aab24a32d64ba1fab3584e8aab10304e200e58d976d2c33edfb39f  /etc/caddy/Caddyfile
+15a722a950e4ec07583da1affb938c08522b5565c8da29adf27afaccb2335867  /etc/caddy/ynx-chain.caddy
+9f38811c6b027f8713613d94607e8225da034578d35d897c2533215c7472f3fa  /var/tmp/ynx-video-products-20260906.caddy
+{"level":"info","ts":1788667279.4395926,"msg":"using provided configuration","config_file":"/var/tmp/ynx-video-products-validation-20260906.Caddyfile","config_adapter":"caddyfile"}
+{"level":"warn","ts":1788667279.4488313,"msg":"Caddyfile input is not formatted; run the 'caddy fmt' command to fix inconsistencies","adapter":"caddyfile","file":"/var/tmp/ynx-video-products-validation-20260906.Caddyfile","line":30}
+{"level":"info","ts":1788667279.453326,"logger":"tls.cache.maintenance","msg":"started background certificate maintenance","cache":"0xc0002169a0"}
+{"level":"info","ts":1788667279.4534147,"logger":"http","msg":"server is listening only on the HTTPS port but has no TLS connection policies; adding one to enable TLS","server_name":"srv0","https_port":443}
+{"level":"info","ts":1788667279.4534864,"logger":"http","msg":"enabling automatic HTTP->HTTPS redirects","server_name":"srv0"}
+{"level":"warn","ts":1788667279.4535084,"logger":"http","msg":"server is listening only on the HTTP port, so no automatic HTTPS will be applied to this server","server_name":"srv1","http_port":80}
+Valid configuration
+{"level":"info","ts":1788667279.4606004,"logger":"tls.cache.maintenance","msg":"stopped background certificate maintenance","cache":"0xc0002169a0"}
+VALIDATED_ONLY_NO_INSTALL_OR_RELOAD=true

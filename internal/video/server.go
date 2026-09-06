@@ -104,8 +104,13 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 	}
 	if strings.HasPrefix(r.URL.Path, "/media/") {
 		actor := ""
-		if r.Header.Get("Authorization") != "" || r.Header.Get("X-YNX-Gateway-Signature") != "" {
-			actor, _ = s.auth.Account(r)
+		if hasVideoCredentials(r) {
+			var err error
+			actor, err = s.auth.Account(r)
+			if err != nil {
+				problem(w, http.StatusUnauthorized, err)
+				return
+			}
 		}
 		path, err := s.service.MediaPath(actor, strings.TrimPrefix(r.URL.Path, "/media/"))
 		if err != nil {
@@ -119,7 +124,7 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 	}
 	path := strings.Trim(strings.TrimPrefix(r.URL.Path, "/v1/"), "/")
 	parts := strings.Split(path, "/")
-	if r.Method == http.MethodGet && s.publicRead(w, r, path, parts) {
+	if r.Method == http.MethodGet && !hasVideoCredentials(r) && s.publicRead(w, r, path, parts) {
 		return
 	}
 	actor, err := s.auth.Account(r)
@@ -582,6 +587,11 @@ func (s *Server) completeIdempotency(actor, key string, response *captureRespons
 		s.service.audit(state, actor, "idempotency."+record.State, "request", key, record.RequestHash)
 		return nil
 	})
+}
+
+func hasVideoCredentials(r *http.Request) bool {
+	return r.Header.Get("Authorization") != "" || r.Header.Get("X-YNX-Gateway-Signature") != "" ||
+		r.Header.Get("X-YNX-Product-Session-Proof") != "" || r.Header.Get(productSessionProofV2Header) != ""
 }
 
 func (s *Server) publicRead(w http.ResponseWriter, r *http.Request, path string, parts []string) bool {

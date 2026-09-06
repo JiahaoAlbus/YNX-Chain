@@ -1,0 +1,32 @@
+
+DOMAIN=creator.ynxweb4.com
+64.29.17.1
+64.29.17.65
+HTTP/2 404 
+cache-control: public, max-age=0, must-revalidate
+content-type: text/plain; charset=utf-8
+date: Sun, 06 Sep 2026 03:56:22 GMT
+server: Vercel
+strict-transport-security: max-age=63072000
+x-vercel-error: DEPLOYMENT_NOT_FOUND
+x-vercel-id: sin1::x6tqx-1788666982103-90aebec86ad4
+content-length: 107
+
+
+DOMAIN=video.ynxweb4.com
+64.29.17.65
+64.29.17.1
+HTTP/2 404 
+cache-control: public, max-age=0, must-revalidate
+content-type: text/plain; charset=utf-8
+date: Sun, 06 Sep 2026 03:56:22 GMT
+server: Vercel
+strict-transport-security: max-age=63072000
+x-vercel-error: DEPLOYMENT_NOT_FOUND
+x-vercel-id: sin1::x2949-1788666982234-d6dc8e73f1ec
+content-length: 107
+
+
+AUTHORITATIVE_NAMESERVERS
+ns2.vercel-dns.com.
+ns1.vercel-dns.com.

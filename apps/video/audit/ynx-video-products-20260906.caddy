@@ -1,0 +1,31 @@
+# Product Session v2 uses distinct registered HTTPS origins.
+# Existing web4.ynxweb4.com routes stay in their current configuration.
+creator.ynxweb4.com {
+  encode zstd gzip
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    X-Content-Type-Options "nosniff"
+    Referrer-Policy "no-referrer"
+  }
+  handle_path /video/api/* {
+    reverse_proxy 127.0.0.1:6493
+  }
+  handle {
+    reverse_proxy 127.0.0.1:6495
+  }
+}
+
+video.ynxweb4.com {
+  encode zstd gzip
+  header {
+    Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    X-Content-Type-Options "nosniff"
+    Referrer-Policy "no-referrer"
+  }
+  handle_path /video/api/* {
+    reverse_proxy 127.0.0.1:6493
+  }
+  handle {
+    reverse_proxy 127.0.0.1:6494
+  }
+}

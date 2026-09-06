@@ -30,6 +30,9 @@ type centralSessionBinding struct {
 func (a CentralProductSessionAuth) IsModerator(account string) bool { return a.Moderators[account] }
 
 func (a CentralProductSessionAuth) Account(r *http.Request) (string, error) {
+	if r.Header.Get(productSessionProofV2Header) != "" {
+		return a.accountV2(r)
+	}
 	proof := strings.TrimSpace(r.Header.Get("X-YNX-Product-Session-Proof"))
 	if proof == "" || len(proof) > 16<<10 {
 		return "", fmt.Errorf("%w: canonical Product Session proof required", ErrUnauthorized)
