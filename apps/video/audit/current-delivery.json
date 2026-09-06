@@ -1,5 +1,5 @@
 {
-  "observedAt": "2026-09-06T04:46:32.212Z",
+  "observedAt": "2026-09-06T04:58:44.134Z",
   "worktree": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video",
   "branch": "codex/audit-video-usability-20260906",
   "runtimeSource": "d75ad97040041b6febbf4e9ebdb338fdb4c1eff5",
@@ -42,13 +42,16 @@
   "creator": {
     "port": 6495,
     "unit": "ynx-creator-studio-wallet.service",
-    "source": "052e95e7027f6eb1352eab5fa15adae157a22b34",
+    "source": "29896f10c5e59fc17590dd3697d6e7af3d34a809",
     "url": "https://creator.ynxweb4.com/",
-    "pid": 2138230,
-    "artifactSha256": "e8db9cdeee8aa6074bfd61018aa607e27b1ae4bba202e4b7547f54b959546f98",
+    "pid": 2141531,
+    "artifactSha256": "e8ec4bf7584a3811015980a5b71912a9e2a0bbc755f09731590fc8975b883481",
     "callbackAndResources200": true,
     "browserSDKSource": "b3e4b5269d665ee5c8e2542454191cfc6ff53ecb",
-    "installedWalletApprovalVerified": false
+    "installedWalletApprovalVerified": false,
+    "rollbackSource": "052e95e7027f6eb1352eab5fa15adae157a22b34",
+    "publicAppSHA256": "89431beb2c8a32c94e32be2465be74db38cb82d8bcd833afe6c82f78225de1d2",
+    "publicFilesMatched": 18
   },
   "verification": {
     "testsPassed": 54,
@@ -80,7 +83,10 @@
     "api-v2-deployment-receipt.txt",
     "creator-v2-deployment-receipt.txt",
     "product-domain-public-readback.txt",
-    "qa-workflow-videoqa-20260906044429124-a290607f.json"
+    "qa-workflow-videoqa-20260906044429124-a290607f.json",
+    "creator-channel-id-deployment-receipt.txt",
+    "creator-298-public-file-hashes.json",
+    "qa-custody-location.txt"
   ],
   "priorAPIRepair": {
     "port": 6493,
@@ -100,6 +106,6 @@
     "videoId": "vid_037cc8f97abd9a6dff7a4e74",
     "viewerURL": "https://video.ynxweb4.com/?video=vid_037cc8f97abd9a6dff7a4e74",
     "sessionsRevoked": true,
-    "identityCustody": "Dedicated remote 0700 QA directory, explicit 0600 identity file; never logged or committed."
+    "identityCustody": "Remote /home/ubuntu/.local/share/ynx-video-qa/20260906-052e95e70 (0700), .qa-private/testnet-owned-demo-20260906.json (0600). No keys committed or logged."
   }
 }

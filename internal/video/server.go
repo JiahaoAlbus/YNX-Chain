@@ -319,6 +319,12 @@ func (s *Server) serve(w http.ResponseWriter, r *http.Request) {
 		respond(w, map[string]bool{"ok": true}, s.service.ReviewAppeal(actor, parts[1], in.Accepted, in.Explanation))
 	case len(parts) == 3 && parts[0] == "channels" && parts[2] == "subscription" && r.Method == "POST":
 		respond(w, map[string]bool{"ok": true}, s.service.Subscribe(actor, parts[1]))
+	case len(parts) == 3 && parts[0] == "channels" && parts[2] == "subscription" && r.Method == "DELETE":
+		respond(w, map[string]bool{"ok": true}, s.service.Unsubscribe(actor, parts[1]))
+	case len(parts) == 2 && parts[0] == "playlists" && r.Method == "DELETE":
+		respond(w, map[string]bool{"ok": true}, s.service.DeletePlaylist(actor, parts[1]))
+	case len(parts) == 4 && parts[0] == "playlists" && parts[2] == "videos" && r.Method == "DELETE":
+		respond(w, map[string]bool{"ok": true}, s.service.RemoveFromPlaylist(actor, parts[1], parts[3]))
 	case r.Method == "POST" && path == "playlists":
 		var in struct{ Name string }
 		if decode(r, &in, w) {

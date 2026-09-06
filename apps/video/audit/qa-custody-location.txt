@@ -1,0 +1,3 @@
+700 ubuntu ubuntu /home/ubuntu/.local/share/ynx-video-qa
+700 ubuntu ubuntu /home/ubuntu/.local/share/ynx-video-qa/20260906-052e95e70
+600 ubuntu ubuntu /home/ubuntu/.local/share/ynx-video-qa/20260906-052e95e70/apps/video/.qa-private/testnet-owned-demo-20260906.json

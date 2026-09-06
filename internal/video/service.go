@@ -1614,6 +1614,9 @@ func (s *Service) CreatePlaylist(actor, name string) (*Playlist, error) {
 	return p, err
 }
 func (s *Service) AddToPlaylist(actor, pid, vid string) error {
+	if actor == "" {
+		return ErrUnauthorized
+	}
 	return s.store.update(func(st *State) error {
 		p := st.Playlists[pid]
 		if p == nil {
@@ -1622,7 +1625,8 @@ func (s *Service) AddToPlaylist(actor, pid, vid string) error {
 		if p.Owner != actor {
 			return ErrForbidden
 		}
-		if st.Videos[vid] == nil {
+		video := st.Videos[vid]
+		if video == nil || (!videoAuthorized(*st, vid, actor) && !audienceAvailable(*st, video, s.cfg.Now().UTC())) {
 			return ErrNotFound
 		}
 		for _, x := range p.VideoIDs {
@@ -1636,6 +1640,66 @@ func (s *Service) AddToPlaylist(actor, pid, vid string) error {
 		return nil
 	})
 }
+
+// Unsubscribe explicitly removes only the requesting account's subscription.
+// POST Subscribe retains its legacy toggle contract for existing clients.
+func (s *Service) Unsubscribe(actor, channelID string) error {
+	if actor == "" {
+		return ErrUnauthorized
+	}
+	return s.store.update(func(st *State) error {
+		if st.Channels[channelID] == nil {
+			return ErrNotFound
+		}
+		key := actor + ":" + channelID
+		if _, exists := st.Subscriptions[key]; exists {
+			delete(st.Subscriptions, key)
+			s.audit(st, actor, "subscription.remove", "channel", channelID, "")
+		}
+		return nil
+	})
+}
+func (s *Service) DeletePlaylist(actor, playlistID string) error {
+	if actor == "" {
+		return ErrUnauthorized
+	}
+	return s.store.update(func(st *State) error {
+		playlist := st.Playlists[playlistID]
+		if playlist == nil {
+			return ErrNotFound
+		}
+		if playlist.Owner != actor {
+			return ErrForbidden
+		}
+		delete(st.Playlists, playlistID)
+		s.audit(st, actor, "playlist.delete", "playlist", playlistID, "")
+		return nil
+	})
+}
+func (s *Service) RemoveFromPlaylist(actor, playlistID, videoID string) error {
+	if actor == "" {
+		return ErrUnauthorized
+	}
+	return s.store.update(func(st *State) error {
+		playlist := st.Playlists[playlistID]
+		if playlist == nil {
+			return ErrNotFound
+		}
+		if playlist.Owner != actor {
+			return ErrForbidden
+		}
+		for index, saved := range playlist.VideoIDs {
+			if saved == videoID {
+				playlist.VideoIDs = append(playlist.VideoIDs[:index], playlist.VideoIDs[index+1:]...)
+				playlist.UpdatedAt = s.cfg.Now().UTC()
+				s.audit(st, actor, "playlist.remove", "playlist", playlistID, videoID)
+				return nil
+			}
+		}
+		return ErrNotFound
+	})
+}
+
 func (s *Service) Report(actor, vid, reason, details string) (*Report, error) {
 	if actor == "" {
 		return nil, ErrUnauthorized
