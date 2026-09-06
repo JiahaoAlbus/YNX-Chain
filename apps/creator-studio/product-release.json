@@ -93,5 +93,28 @@
       }
     },
     "nativeOwnerSessionRevocationVerified": true
+  },
+  "candidate": {
+    "sourceCommit": "489bf23ac56fb11c5b2ed869fb2a93c2465d2b24",
+    "sourceTree": "bc4295590683727d2538b54255ff2ac71ce5c9c9",
+    "sdkSourceCommit": "529471f3822d2bac43ea47a1ab8004fa2ae79885",
+    "sdkSHA256": "723a2740aca03411580d1cb394d1d99fde8e3a021bae1135ee1890751f2aae5f",
+    "artifactSHA256": "fb73102c29e50a7542d5a09197603c15594b0969aa26f91019c2c9208e269a44",
+    "artifactBytes": 77138,
+    "compatibleRecoveryArtifact": {
+      "archive": "ynx-creator-489bf23ac-recovery.tar.gz",
+      "sha256": "22bebcfa2470c03e54e093b6c692e4522926e242abaaab0379f2b33a1b436f50",
+      "bytes": 41644,
+      "directory": "/opt/ynx-creator-studio-wallet/releases/sdk529-489bf23ac56fb11c5b2ed869fb2a93c2465d2b24-recovery",
+      "manifest": "runtime-manifest.json",
+      "manifestSHA256": "97a24ccd1624527ae74bdeef88b96de461add2da9c06f7e0213b7e380149306e",
+      "stripRuntime": true
+    },
+    "stageAndFileVerified": true,
+    "deployedPublic": false,
+    "installedWalletApprovalVerified": false,
+    "browserUIVerified": false,
+    "privateBusinessVerified": false,
+    "handoff": "apps/video/audit/sdk529-handoff.md"
   }
 }

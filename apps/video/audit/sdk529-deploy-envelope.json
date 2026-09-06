@@ -1,0 +1,76 @@
+{
+  "products": {
+    "creator": {
+      "unit": "ynx-creator-studio-wallet.service",
+      "port": 6495,
+      "oldDirectory": "/opt/ynx-creator-studio-wallet/releases/audit-wallet-time-b6af671d04a4230bb7a4052cee1ff21d2f5c9c51",
+      "oldManifest": "creator-studio.manifest.json",
+      "oldManifestSHA256": "791424511aa9fc1bc68dd923eb5ba270fe963f9c8620c3f23a5bf65b7f5c575f",
+      "oldDropIns": {
+        "/etc/systemd/system/ynx-creator-studio-wallet.service.d/20260906-v2-consumer.conf": "07a65496a21a81a367d65e9e18e9db4d1703b794c3f1608e0f2de92c66b75ccd",
+        "/etc/systemd/system/ynx-creator-studio-wallet.service.d/20260906-v3-channel-id.conf": "34d6fe89ec14b9941ea567072f992b5f903b90222a390f57244a3022d9ed57e2",
+        "/etc/systemd/system/ynx-creator-studio-wallet.service.d/20260906-wallet-time-ff68.conf": "34f9f01c989c73c5d73416306eaa793fefc111f97191951d815f0d4d82e4c8f6"
+      },
+      "observedPID": 2229608,
+      "normal": {
+        "archive": "ynx-creator-489bf23ac-normal.tar.gz",
+        "sha256": "fb73102c29e50a7542d5a09197603c15594b0969aa26f91019c2c9208e269a44",
+        "bytes": 77138,
+        "directory": "/opt/ynx-creator-studio-wallet/releases/sdk529-489bf23ac56fb11c5b2ed869fb2a93c2465d2b24-normal",
+        "manifest": "creator-studio.manifest.json",
+        "manifestSHA256": "9c0b0d6477c67a544d1607f8a35f371e96c2554875bf03cd9f9ea7c867f5f041",
+        "stripRuntime": false
+      },
+      "recovery": {
+        "archive": "ynx-creator-489bf23ac-recovery.tar.gz",
+        "sha256": "22bebcfa2470c03e54e093b6c692e4522926e242abaaab0379f2b33a1b436f50",
+        "bytes": 41644,
+        "directory": "/opt/ynx-creator-studio-wallet/releases/sdk529-489bf23ac56fb11c5b2ed869fb2a93c2465d2b24-recovery",
+        "manifest": "runtime-manifest.json",
+        "manifestSHA256": "97a24ccd1624527ae74bdeef88b96de461add2da9c06f7e0213b7e380149306e",
+        "stripRuntime": true
+      }
+    },
+    "viewer": {
+      "unit": "ynx-video-viewer.service",
+      "port": 6494,
+      "oldDirectory": "/opt/ynx-video-viewer-wallet/releases/ynx-video-91bad5347d4fa8ef17ca7ce962ad7d0d1d6cb810",
+      "oldManifest": "runtime-manifest.json",
+      "oldManifestSHA256": "b8c3e3a520ff5cf67226cacdeb078b1a58ca9227ff45f9b9f10ba8714584be32",
+      "oldDropIns": {
+        "/etc/systemd/system/ynx-video-viewer.service.d/20260906-audit.conf": "197e6d7ada5dc4a38d2df7e61ff597ea644b1aa47bf4e38c1d390961c9a0dbac",
+        "/etc/systemd/system/ynx-video-viewer.service.d/20260906-library-v2.conf": "893afdbdd137c4e38f19d04c505584fd5f1559b829972306487994a0909662a4",
+        "/etc/systemd/system/ynx-video-viewer.service.d/20260906-wallet-time-ff68.conf": "174d92913a10baeeaf6fbff59058fb06f9edcc939feeb6c4d9d1b1f354b8f55c",
+        "/etc/systemd/system/ynx-video-viewer.service.d/20260906-z-guest-navigation-91bad.conf": "4805c19dd0ec41e4683f7ab1228de3e7e8cc7bdfef8d958208f353dae3a7c513"
+      },
+      "observedPID": 2237571,
+      "normal": {
+        "archive": "ynx-viewer-489bf23ac-normal.tar.gz",
+        "sha256": "1df1e8019e537de3692f7d815fff34f8e275285121d7a76fed766d105ec51929",
+        "bytes": 74404,
+        "directory": "/opt/ynx-video-viewer-wallet/releases/sdk529-489bf23ac56fb11c5b2ed869fb2a93c2465d2b24-normal",
+        "manifest": "runtime-manifest.json",
+        "manifestSHA256": "c17d7493e7612d496d41accbd0d9810dd0107a4df5738c1914318e482c3c7470",
+        "stripRuntime": true
+      },
+      "recovery": {
+        "archive": "ynx-viewer-489bf23ac-recovery.tar.gz",
+        "sha256": "bf999364c413bb94b7ee71d894079954f3a2536919d97da9e864d2d084e02820",
+        "bytes": 41622,
+        "directory": "/opt/ynx-video-viewer-wallet/releases/sdk529-489bf23ac56fb11c5b2ed869fb2a93c2465d2b24-recovery",
+        "manifest": "runtime-manifest.json",
+        "manifestSHA256": "30fb4abe14e5c15a0183e59f96375b1dbde45cb4a2d31226dd7d162e65681dd6",
+        "stripRuntime": true
+      }
+    }
+  },
+  "authDirectory": "/opt/ynx/wallet-auth",
+  "schemaVersion": "ynx-video-creator-sdk529-release/1",
+  "sourceCommit": "489bf23ac56fb11c5b2ed869fb2a93c2465d2b24",
+  "sdkSourceCommit": "529471f3822d2bac43ea47a1ab8004fa2ae79885",
+  "preservedFiles": [
+    "/etc/caddy/Caddyfile",
+    "/etc/caddy/ynx-chain.caddy",
+    "/etc/caddy/conf.d/ynx-video-products-20260906.caddy"
+  ]
+}

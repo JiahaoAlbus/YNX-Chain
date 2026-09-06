@@ -195,5 +195,28 @@
     "browserUIVerified": true,
     "installedWalletApprovalVerified": false,
     "browserUIScope": "Public guest shared video open/close/catalog; zh-CN to en to ar URL selection; channel/Discover; 390x844 RTL layout; native-control playback. Private library and installed Wallet remain unverified for Viewer."
+  },
+  "candidate": {
+    "sourceCommit": "489bf23ac56fb11c5b2ed869fb2a93c2465d2b24",
+    "sourceTree": "bc4295590683727d2538b54255ff2ac71ce5c9c9",
+    "sdkSourceCommit": "529471f3822d2bac43ea47a1ab8004fa2ae79885",
+    "sdkSHA256": "723a2740aca03411580d1cb394d1d99fde8e3a021bae1135ee1890751f2aae5f",
+    "artifactSHA256": "1df1e8019e537de3692f7d815fff34f8e275285121d7a76fed766d105ec51929",
+    "artifactBytes": 74404,
+    "compatibleRecoveryArtifact": {
+      "archive": "ynx-viewer-489bf23ac-recovery.tar.gz",
+      "sha256": "bf999364c413bb94b7ee71d894079954f3a2536919d97da9e864d2d084e02820",
+      "bytes": 41622,
+      "directory": "/opt/ynx-video-viewer-wallet/releases/sdk529-489bf23ac56fb11c5b2ed869fb2a93c2465d2b24-recovery",
+      "manifest": "runtime-manifest.json",
+      "manifestSHA256": "30fb4abe14e5c15a0183e59f96375b1dbde45cb4a2d31226dd7d162e65681dd6",
+      "stripRuntime": true
+    },
+    "stageAndFileVerified": true,
+    "deployedPublic": false,
+    "installedWalletApprovalVerified": false,
+    "browserUIVerified": false,
+    "privateBusinessVerified": false,
+    "handoff": "apps/video/audit/sdk529-handoff.md"
   }
 }
