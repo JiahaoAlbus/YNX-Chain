@@ -41,6 +41,11 @@
       "import": "./src/wallet-connection-coordinator.js",
       "default": "./src/wallet-connection-coordinator.js"
     },
+    "./product-session-browser": {
+      "types": "./src/index.d.ts",
+      "import": "./src/product-session-browser.js",
+      "default": "./src/product-session-browser.js"
+    },
     "./product-session-gateway-node-host": {
       "types": "./src/product-session-gateway-node-host.d.ts",
       "import": "./src/product-session-gateway-node-host.js",

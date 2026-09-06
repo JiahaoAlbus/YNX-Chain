@@ -16,7 +16,7 @@ export class RecoverableProductSessionClient {
     exactFields(config, ["registry", "productId", "platform", "storage", "gateway", "device", "tokenFactory", "clock"], "Recoverable Product Session client configuration");
     this.#registry = parseProductSessionRegistry(config.registry);
     this.#binding = productPlatformBinding(this.#registry, config.productId, config.platform);
-    this.#storage = secureStorage(config.storage);
+    this.#storage = secureStorage(config.storage, config.platform, config.device);
     this.#gateway = gateway(config.gateway);
     this.#device = device(config.device);
     this.#tokens = tokenFactory(config.tokenFactory);
@@ -248,7 +248,12 @@ export class RecoverableProductSessionClient {
 }
 
 function state(status, message, extra = {}) { return Object.freeze({ status, message, ...extra, ...(extra.actions ? { actions: Object.freeze(extra.actions) } : {}), ...(extra.limitations ? { limitations: Object.freeze(extra.limitations) } : {}) }); }
-function secureStorage(value) { if (!value || !["hardware-backed", "os-protected"].includes(value.securityLevel) || ["get", "set", "remove"].some((name) => typeof value[name] !== "function")) fail("INSECURE_STORAGE", "Product Sessions require injected OS-protected or hardware-backed storage"); return value; }
+function secureStorage(value, platform, device) {
+  const nativeProtected = value && ["hardware-backed", "os-protected"].includes(value.securityLevel);
+  const browserProtected = value?.securityLevel === "webcrypto-nonextractable" && platform === "web" && typeof device?.sign === "function" && !("secret" in device);
+  if ((!nativeProtected && !browserProtected) || ["get", "set", "remove"].some((name) => typeof value[name] !== "function")) fail("INSECURE_STORAGE", "Product Sessions require OS/hardware protection or a Web-only non-extractable device signer");
+  return value;
+}
 function gateway(value) { if (!value || ["challenge", "complete", "introspect", "revoke", "walletInstalled", "schemeRegistered"].some((name) => typeof value[name] !== "function")) fail("INVALID_GATEWAY", "Product Session client requires a real Gateway adapter"); return value; }
 function device(value) {
   const fields = Object.keys(value ?? {}).sort().join("\n");
