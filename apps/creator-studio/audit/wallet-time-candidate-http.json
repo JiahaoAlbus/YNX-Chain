@@ -1,0 +1,248 @@
+{
+  "observedAt": "2026-09-06T08:10:10.071Z",
+  "kind": "local-candidate-artifact-http",
+  "installedWalletApprovalVerified": false,
+  "browserUIVerified": false,
+  "results": [
+    {
+      "product": "creator",
+      "source": "b6af671d04a4230bb7a4052cee1ff21d2f5c9c51",
+      "artifactFiles": 18,
+      "publicFiles": 18,
+      "internal404": 0,
+      "callbackSHA": "aa808a77e703333feba726dd1a51c839331e1bb557b6878f602a4113b78d8fb2",
+      "reads": [
+        {
+          "path": "app.js",
+          "status": 200,
+          "matched": true
+        },
+        {
+          "path": "assets/metamask.svg",
+          "status": 200,
+          "matched": true
+        },
+        {
+          "path": "assets/ynx-wallet.svg",
+          "status": 200,
+          "matched": true
+        },
+        {
+          "path": "callback.css",
+          "status": 200,
+          "matched": true
+        },
+        {
+          "path": "enhancements.css",
+          "status": 200,
+          "matched": true
+        },
+        {
+          "path": "i18n.js",
+          "status": 200,
+          "matched": true
+        },
+        {
+          "path": "i18n/catalog.json",
+          "status": 200,
+          "matched": true
+        },
+        {
+          "path": "index.html",
+          "status": 200,
+          "matched": true
+        },
+        {
+          "path": "product-session-registry.json",
+          "status": 200,
+          "matched": true
+        },
+        {
+          "path": "product-session-sdk-source.json",
+          "status": 200,
+          "matched": true
+        },
+        {
+          "path": "product-session-sdk.js",
+          "status": 200,
+          "matched": true
+        },
+        {
+          "path": "product-session.js",
+          "status": 200,
+          "matched": true
+        },
+        {
+          "path": "server.mjs",
+          "status": 200,
+          "matched": true
+        },
+        {
+          "path": "standard-wallet-connect-state.js",
+          "status": 200,
+          "matched": true
+        },
+        {
+          "path": "styles.css",
+          "status": 200,
+          "matched": true
+        },
+        {
+          "path": "wallet-auth.js",
+          "status": 200,
+          "matched": true
+        },
+        {
+          "path": "wallet-callback.html",
+          "status": 200,
+          "matched": true
+        },
+        {
+          "path": "wallet-callback.js",
+          "status": 200,
+          "matched": true
+        }
+      ]
+    },
+    {
+      "product": "viewer",
+      "source": "b6af671d04a4230bb7a4052cee1ff21d2f5c9c51",
+      "artifactFiles": 26,
+      "publicFiles": 22,
+      "internal404": 4,
+      "callbackSHA": "c8bb7b9593fc4ff3436a324bd41911b42261229750f7063b5776a683d33f9283",
+      "reads": [
+        {
+          "path": "app.js",
+          "status": 200,
+          "matched": true
+        },
+        {
+          "path": "assets/ynx-logo.svg",
+          "status": 200,
+          "matched": true
+        },
+        {
+          "path": "callback.css",
+          "status": 200,
+          "matched": true
+        },
+        {
+          "path": "i18n/catalog.json",
+          "status": 200,
+          "matched": true
+        },
+        {
+          "path": "i18n.js",
+          "status": 200,
+          "matched": true
+        },
+        {
+          "path": "index.html",
+          "status": 200,
+          "matched": true
+        },
+        {
+          "path": "package.json",
+          "status": 404,
+          "matched": false
+        },
+        {
+          "path": "product-session-registry.json",
+          "status": 200,
+          "matched": true
+        },
+        {
+          "path": "product-session-sdk-source.json",
+          "status": 200,
+          "matched": true
+        },
+        {
+          "path": "product-session-sdk.js",
+          "status": 200,
+          "matched": true
+        },
+        {
+          "path": "product-session.js",
+          "status": 200,
+          "matched": true
+        },
+        {
+          "path": "responsive.css",
+          "status": 200,
+          "matched": true
+        },
+        {
+          "path": "runtime/post-p0239-recovery-baseline.json",
+          "status": 404,
+          "matched": false
+        },
+        {
+          "path": "runtime/topology.json",
+          "status": 404,
+          "matched": false
+        },
+        {
+          "path": "server.mjs",
+          "status": 404,
+          "matched": false
+        },
+        {
+          "path": "styles.css",
+          "status": 200,
+          "matched": true
+        },
+        {
+          "path": "video-api.js",
+          "status": 200,
+          "matched": true
+        },
+        {
+          "path": "wallet-callback.html",
+          "status": 200,
+          "matched": true
+        },
+        {
+          "path": "wallet-callback.js",
+          "status": 200,
+          "matched": true
+        },
+        {
+          "path": "wallet-connection.js",
+          "status": 200,
+          "matched": true
+        },
+        {
+          "path": "watch-progress.js",
+          "status": 200,
+          "matched": true
+        },
+        {
+          "path": "ynx-dapp-connect-sdk/constants.js",
+          "status": 200,
+          "matched": true
+        },
+        {
+          "path": "ynx-dapp-connect-sdk/discovery.js",
+          "status": 200,
+          "matched": true
+        },
+        {
+          "path": "ynx-dapp-connect-sdk/errors.js",
+          "status": 200,
+          "matched": true
+        },
+        {
+          "path": "ynx-dapp-connect-sdk/manifest.json",
+          "status": 200,
+          "matched": true
+        },
+        {
+          "path": "ynx-dapp-connect-sdk/provider.js",
+          "status": 200,
+          "matched": true
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "observedAt": "2026-09-06T08:10:40.766Z",
+  "owner": "/root/creator_wallet_closure",
+  "source": "b6af671d04a4230bb7a4052cee1ff21d2f5c9c51",
+  "sourceTree": "c84dd42c89d9b5b327c00ee23c9f3df8e0cb6bec",
+  "branch": "codex/audit-video-usability-20260906",
+  "sdkSource": "ff68d6d1c81708bd0144016750002a87d50bb5f9",
+  "sdkSHA": "dbbd61d824646c989e875eda8b620400b46ed4fdf36e98e8f3a507578ed31329",
+  "artifacts": [
+    {
+      "product": "creator",
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/creator-studio/audit/artifacts/ynx-creator-b6af671d0-runtime.tar.gz",
+      "bytes": 73108,
+      "sha256": "bc40e71702aef2282135a03df650a24e2447751242c257a1ecf3bd414189d349"
+    },
+    {
+      "product": "viewer",
+      "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/video/audit/artifacts/ynx-video-b6af671d0-runtime.tar.gz",
+      "bytes": 69851,
+      "sha256": "131229cc7dd9ea1cbabc0b0842d21f438d3689c13d0b4cc460e28d3416f68356"
+    }
+  ],
+  "scripts": {
+    "path": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video/apps/creator-studio/scripts/deploy-wallet-time-20260906.sh",
+    "bytes": 7713,
+    "sha256": "c119885b5958df6986c7cbd5fa109094c3c5d7e080e4e5865328ec8e73ee1d9b"
+  },
+  "checks": {
+    "sdkAndGatewayRecovery": 46,
+    "creator": 16,
+    "video": 63,
+    "localArtifactHTTP": {
+      "creatorFiles": 18,
+      "viewerPublicFiles": 22,
+      "viewerInternal404": 4
+    },
+    "repeatBuildByteIdentical": true,
+    "shellSyntax": true
+  },
+  "publicDeployment": false,
+  "installedWalletApprovalVerified": false,
+  "browserUIVerified": false
+}
