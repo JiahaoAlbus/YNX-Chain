@@ -922,28 +922,58 @@ func (d *Devnet) RecordValidatorPeerSync(input ValidatorPeerSyncInput) (Validato
 }
 
 func (d *Devnet) Faucet(address string, amount int64) (Transaction, error) {
+	tx, _, err := d.faucet(address, amount, "")
+	return tx, err
+}
+
+func (d *Devnet) faucet(address string, amount int64, requestHash string) (Transaction, bool, error) {
 	if amount <= 0 {
-		return Transaction{}, errors.New("amount must be positive")
+		return Transaction{}, false, errors.New("amount must be positive")
 	}
-	if address == "" {
-		return Transaction{}, errors.New("address is required")
+	if address == "" || address == FaucetAddress {
+		return Transaction{}, false, errors.New("a recipient different from the faucet is required")
 	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	account, faucet := d.account(address), d.account(FaucetAddress)
+	if requestHash != "" {
+		if existing, ok := d.transactionLocked(requestHash); ok {
+			if existing.Type != "faucet" || existing.From != FaucetAddress || existing.To != address || existing.Amount != amount || existing.Fee != 0 {
+				return Transaction{}, false, ErrFaucetRequestConflict
+			}
+			_, uncertain := d.uncertainTransactions[requestHash]
+			if uncertain || (d.dataDir != "" && !d.transactionCheckpointCovers(existing)) {
+				if err := d.confirmTransactionPersistenceLocked(); err != nil {
+					return existing, true, err
+				}
+			}
+			return existing, true, nil
+		}
+	}
+	account, faucet := d.accountReadOnly(address), d.accountReadOnly(FaucetAddress)
 	if faucet.Balance < amount {
-		return Transaction{}, errors.New("faucet balance exhausted")
+		return Transaction{}, false, errors.New("faucet balance exhausted")
+	}
+	if account.Balance > math.MaxInt64-amount {
+		return Transaction{}, false, errors.New("recipient balance would overflow")
 	}
 	lotID := hashParts("lot", address, fmt.Sprint(time.Now().UnixNano()), fmt.Sprint(amount))
+	if requestHash != "" {
+		lotID = hashParts("faucet-request-lot-v1", requestHash)
+	}
+	flows := []LotFlow{{LotID: lotID, Amount: amount, From: FaucetAddress, To: address}}
+	undo := d.transferUndoLocked(FaucetAddress, address, FaucetAddress, flows)
+	account, faucet = d.account(address), d.account(FaucetAddress)
 	faucet.Balance -= amount
 	account.Balance += amount
 	account.Lots[lotID] += amount
 	d.lots[lotID] = TrustTraceLot{LotID: lotID, Amount: amount, Origin: "devnet faucet mint", RiskWeight: 0}
-	tx := d.newTxLocked("faucet", FaucetAddress, address, amount, 0, []LotFlow{{LotID: lotID, Amount: amount, From: FaucetAddress, To: address}}, "devnet faucet mint")
+	tx := d.newTxLocked("faucet", FaucetAddress, address, amount, 0, flows, "devnet faucet mint")
+	if requestHash != "" {
+		tx.Hash = requestHash
+	}
 	d.pending = append(d.pending, tx)
-	err := d.persistSnapshotLocked()
-	d.recordPersistenceErrorLocked(err)
-	return tx, err
+	tx, err := d.persistTransferLocked(tx, undo)
+	return tx, false, err
 }
 
 func (d *Devnet) Transfer(from, to string, amount int64) (Transaction, error) {

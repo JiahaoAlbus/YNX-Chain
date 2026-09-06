@@ -552,9 +552,11 @@ func (s *Server) handleExplorerSummary(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, s.devnet.ExplorerSummary())
 }
 func (s *Server) handleFaucet(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-store")
 	var req struct {
-		Address string `json:"address"`
-		Amount  int64  `json:"amount"`
+		Address   string `json:"address"`
+		Amount    int64  `json:"amount"`
+		RequestID string `json:"requestId,omitempty"`
 	}
 	if !decodeJSON(w, r, &req) {
 		return
@@ -564,12 +566,36 @@ func (s *Server) handleFaucet(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	tx, err := s.devnet.Faucet(address, req.Amount)
+	var tx chain.Transaction
+	var replayed bool
+	if req.RequestID != "" {
+		tx, replayed, err = s.devnet.FaucetWithRequest(address, req.Amount, req.RequestID)
+		w.Header().Set("X-YNX-Faucet-Idempotency", chain.FaucetRequestVersion)
+	} else {
+		tx, err = s.devnet.Faucet(address, req.Amount)
+	}
 	if err != nil {
+		if errors.Is(err, chain.ErrSnapshotDurabilityUncertain) {
+			writeJSON(w, http.StatusServiceUnavailable, map[string]any{
+				"error":  "faucet result needs confirmation; retain this request ID and query its transaction hash",
+				"status": "transaction_durability_uncertain", "requestId": req.RequestID,
+				"transactionHash": tx.Hash, "durabilityVersion": chain.TransactionDurabilityVersion,
+				"ynxDurability": transactionDurabilityRPC(tx.Hash, tx, chain.TransactionDurability{Status: "uncertain"}),
+			})
+			return
+		}
+		if errors.Is(err, chain.ErrFaucetRequestConflict) {
+			writeError(w, http.StatusConflict, err.Error())
+			return
+		}
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	writeJSON(w, http.StatusCreated, tx)
+	status := http.StatusCreated
+	if replayed {
+		status = http.StatusOK
+	}
+	writeJSON(w, status, tx)
 }
 func (s *Server) handleTransfer(w http.ResponseWriter, r *http.Request) {
 	var req struct {
@@ -1797,6 +1823,17 @@ func (s *Server) legacyEVMResult(method string, params []any) (any, error) {
 			return nil, nil
 		}
 		return evmTx(tx), nil
+	case "ynx_getFaucetModel":
+		if len(params) != 0 {
+			return nil, rpcInvalidParams("ynx_getFaucetModel accepts no parameters")
+		}
+		return map[string]any{
+			"version": chain.FaucetRequestVersion, "chainId": hexQuantity(uint64(s.networkConfig.ChainID)),
+			"requestIdPattern":      "^[A-Za-z0-9_-]{32,128}$",
+			"transactionHashScheme": "sha256-nul-domain-decimal-chain-id-request-id",
+			"idempotencyScope":      "retained-chain-transaction-history", "legacyRequestSafeRetry": false,
+			"consensusFinality": false, "durability": durabilityModel(),
+		}, nil
 	case "ynx_getDurabilityModel":
 		if len(params) != 0 {
 			return nil, rpcInvalidParams("ynx_getDurabilityModel accepts no parameters")

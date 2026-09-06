@@ -17,7 +17,7 @@ var readOnlyEVMMethods = map[string]struct{}{
 	"eth_getTransactionByHash": {}, "eth_getTransactionReceipt": {},
 	"eth_estimateGas": {}, "eth_call": {}, "eth_getLogs": {},
 	"eth_gasPrice": {}, "eth_maxPriorityFeePerGas": {}, "eth_feeHistory": {}, "eth_getCode": {}, "ynx_getFeeModel": {},
-	"ynx_getDurabilityModel": {}, "ynx_getTransactionDurability": {},
+	"ynx_getDurabilityModel": {}, "ynx_getTransactionDurability": {}, "ynx_getFaucetModel": {},
 }
 
 // FromEnv adds a runtime mutation freeze when YNX_MUTATION_FREEZE_FILE is set.
