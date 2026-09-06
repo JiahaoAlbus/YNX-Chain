@@ -1,3 +1,5 @@
+> Superseded on 2026-09-06: 59508494 fixes a reproduced legacy browser recovery data-loss issue. Use [the 59508494 release record](DEVELOPER_RELEASE_59508494_20260906.md) and macos-current-59508494.json. The 5ad bytes below remain historical candidates and must not be published as final.
+
 # Developer macOS native recovery candidate — 2026-09-06
 
 The current ARM64 DMG fixes native Edit operations that previously changed WebKit's DOM selection without changing Monaco's model. It also prevents slow or permission-blocked workspace recovery from freezing startup, binds native OS bridges and delayed replies to the owning local page, and rejects malformed messages before native effects.

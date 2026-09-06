@@ -1,3 +1,5 @@
+> Superseded on 2026-09-06: 59508494 fixes a reproduced legacy browser recovery data-loss issue. Use [the 59508494 release record](integration/DEVELOPER_RELEASE_59508494_20260906.md) and macos-current-59508494.json. The 5ad bytes below remain historical candidates and must not be published as final.
+
 # YNX Developer Website Handoff
 
 > **2026-09-06 macOS supersession:** The current macOS ARM64 DMG candidate is
