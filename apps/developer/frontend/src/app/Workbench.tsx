@@ -16,6 +16,7 @@ import { AgentPanel } from "../chat/AgentPanel";
 import { WorkspaceHistoryPanel } from "../history/WorkspaceHistoryPanel";
 import { buildLiteralReplacement } from "../search/literalReplace";
 import type { EditorProblem } from "../editor/CodeEditor";
+import { installDesktopEditBridge } from "../editor/native-edit";
 import { OutlinePanel } from "../outline/OutlinePanel";
 
 const CodeEditor = lazy(() => import("../editor/CodeEditor"));
@@ -101,6 +102,7 @@ async function verifiedBuildArtifacts(
 }
 
 export function Workbench() {
+  useEffect(() => installDesktopEditBridge(window, document), []);
   const [project, setProject] = useState<ProjectState>(() => loadProject()),
     [view, setView] = useState<View>("files"),
     [dirty, setDirty] = useState<Set<string>>(new Set()),

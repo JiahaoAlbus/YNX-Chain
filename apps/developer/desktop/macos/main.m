@@ -9,6 +9,19 @@ static NSString *YNXJSON(id value) {
     return [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
 }
 
+static SEL YNXEditSelector(NSString *command) {
+    if([command isEqualToString:@"selectAll"])return @selector(selectAll:);
+    if([command isEqualToString:@"undo"])return @selector(undo:);
+    if([command isEqualToString:@"redo"])return @selector(redo:);
+    if([command isEqualToString:@"cut"])return @selector(cut:);
+    if([command isEqualToString:@"copy"])return @selector(copy:);
+    if([command isEqualToString:@"paste"])return @selector(paste:);
+    return NULL;
+}
+static BOOL YNXShouldForwardNativeEdit(id route, NSError *error, BOOL sameWindow, BOOL sameResponder) {
+    return !error && [route isEqual:@"native"] && sameWindow && sameResponder;
+}
+
 static NSString *const YNXWalletStorageService = @"com.ynxweb4.developer.product-session-v2";
 static BOOL YNXWalletStorageKey(NSString *key) {
     return key.length > 24 && key.length <= 256 && [key hasPrefix:@"ynx.product-session.v2:developer:macos:com.ynxweb4.developer.testnetpreview"];
@@ -210,6 +223,7 @@ static BOOL YNXWriteWorkspaceSnapshot(NSURL *url, id value, NSError **error) {
 @interface YNXAppDelegate : NSObject <NSApplicationDelegate, WKUIDelegate>
 @property(nonatomic,strong) NSWindow *window; @property(nonatomic,strong) WKWebView *webView; @property(nonatomic,strong) YNXCommandBridge *bridge; @property(nonatomic,strong) NSTask *server; @property(nonatomic,strong) NSFileHandle *serverLog; @property(nonatomic) NSInteger port;
 @property(nonatomic,strong) YNXWorkspaceBridge *workspaceBridge;
+@property(nonatomic) BOOL nativeEditPending;
 @end
 
 @implementation YNXAppDelegate
@@ -238,8 +252,43 @@ static BOOL YNXWriteWorkspaceSnapshot(NSURL *url, id value, NSError **error) {
 - (void)showFailure:(NSString *)message { NSString *html=[NSString stringWithFormat:@"<meta charset=utf-8><style>body{font:16px -apple-system;padding:48px;color:#111827}h1{color:#002FA7}button{padding:10px}</style><h1>YNX Developer Testnet Preview</h1><p>%@</p><p>No project, Wallet key, or deployment was changed.</p>",message]; [_webView loadHTMLString:html baseURL:nil]; }
 - (void)application:(NSApplication *)application openURLs:(NSArray<NSURL *> *)urls { for(NSURL *url in urls){NSURLComponents *parts=[NSURLComponents componentsWithURL:url resolvingAgainstBaseURL:NO];NSArray<NSURLQueryItem *> *items=parts.queryItems;BOOL walletAuth=[parts.host isEqualToString:@"wallet-auth"]&&[parts.path isEqualToString:@"/callback"],deployment=[parts.host isEqualToString:@"deployment"]&&[parts.path isEqualToString:@"/callback"];BOOL exact=[parts.scheme isEqualToString:@"ynxdeveloper"]&&(walletAuth||deployment)&&!parts.fragment.length&&items.count==1&&[items.firstObject.name isEqualToString:@"response"]&&items.firstObject.value.length>32;if(!exact)continue;NSString *encoded=YNXJSON(url.absoluteString),*event=deployment?@"ynx-deployment-callback":@"ynx-wallet-callback";[_webView evaluateJavaScript:[NSString stringWithFormat:@"window.dispatchEvent(new CustomEvent('%@',{detail:%@}))",event,encoded?:@"null"] completionHandler:nil];} }
 - (void)click:(NSString *)selector { [_webView evaluateJavaScript:[NSString stringWithFormat:@"document.querySelector('%@')?.click()",selector] completionHandler:nil]; }
-- (void)installMenus { NSMenu *main=[NSMenu new]; NSApp.mainMenu=main; NSMenuItem *appItem=[NSMenuItem new];[main addItem:appItem];NSMenu *app=[NSMenu new];appItem.submenu=app;[app addItemWithTitle:@"About YNX Developer Testnet Preview" action:@selector(showAbout:) keyEquivalent:@""];[app addItem:[NSMenuItem separatorItem]];[app addItemWithTitle:@"Check for Updates…" action:@selector(checkUpdates:) keyEquivalent:@""];[app addItem:[NSMenuItem separatorItem]];[app addItemWithTitle:@"Quit YNX Developer" action:@selector(terminate:) keyEquivalent:@"q"]; NSMenuItem *fileItem=[NSMenuItem new];[main addItem:fileItem];NSMenu *file=[[NSMenu alloc]initWithTitle:@"File"];fileItem.submenu=file;[file addItemWithTitle:@"New File…" action:@selector(newProject:) keyEquivalent:@"n"];[file addItemWithTitle:@"Open Project…" action:@selector(openProject:) keyEquivalent:@"o"];[file addItemWithTitle:@"Save" action:@selector(save:) keyEquivalent:@"s"];NSMenuItem *export=[file addItemWithTitle:@"Export Project…" action:@selector(exportProject:) keyEquivalent:@"s"];export.keyEquivalentModifierMask=NSEventModifierFlagCommand|NSEventModifierFlagShift; NSMenuItem *editItem=[NSMenuItem new];[main addItem:editItem];NSMenu *edit=[[NSMenu alloc]initWithTitle:@"Edit"];editItem.submenu=edit;[edit addItemWithTitle:@"Undo" action:@selector(undo:) keyEquivalent:@"z"];NSMenuItem *redo=[edit addItemWithTitle:@"Redo" action:@selector(redo:) keyEquivalent:@"z"];redo.keyEquivalentModifierMask=NSEventModifierFlagCommand|NSEventModifierFlagShift;[edit addItem:[NSMenuItem separatorItem]];[edit addItemWithTitle:@"Cut" action:@selector(cut:) keyEquivalent:@"x"];[edit addItemWithTitle:@"Copy" action:@selector(copy:) keyEquivalent:@"c"];[edit addItemWithTitle:@"Paste" action:@selector(paste:) keyEquivalent:@"v"];[edit addItemWithTitle:@"Select All" action:@selector(selectAll:) keyEquivalent:@"a"]; NSMenuItem *windowItem=[NSMenuItem new];[main addItem:windowItem];NSMenu *windows=[[NSMenu alloc]initWithTitle:@"Window"];windowItem.submenu=windows;[windows addItemWithTitle:@"Minimize" action:@selector(performMiniaturize:) keyEquivalent:@"m"];[windows addItemWithTitle:@"Bring All to Front" action:@selector(arrangeInFront:) keyEquivalent:@""]; }
+- (NSMenuItem *)editItem:(NSMenu *)menu title:(NSString *)title command:(NSString *)command key:(NSString *)key {
+    NSMenuItem *item=[menu addItemWithTitle:title action:@selector(desktopEdit:) keyEquivalent:key];
+    item.target=self; item.representedObject=command; return item;
+}
+- (void)installMenus { NSMenu *main=[NSMenu new]; NSApp.mainMenu=main; NSMenuItem *appItem=[NSMenuItem new];[main addItem:appItem];NSMenu *app=[NSMenu new];appItem.submenu=app;[app addItemWithTitle:@"About YNX Developer Testnet Preview" action:@selector(showAbout:) keyEquivalent:@""];[app addItem:[NSMenuItem separatorItem]];[app addItemWithTitle:@"Check for Updates…" action:@selector(checkUpdates:) keyEquivalent:@""];[app addItem:[NSMenuItem separatorItem]];[app addItemWithTitle:@"Quit YNX Developer" action:@selector(terminate:) keyEquivalent:@"q"]; NSMenuItem *fileItem=[NSMenuItem new];[main addItem:fileItem];NSMenu *file=[[NSMenu alloc]initWithTitle:@"File"];fileItem.submenu=file;[file addItemWithTitle:@"New File…" action:@selector(newProject:) keyEquivalent:@"n"];[file addItemWithTitle:@"Open Project…" action:@selector(openProject:) keyEquivalent:@"o"];[file addItemWithTitle:@"Save" action:@selector(save:) keyEquivalent:@"s"];NSMenuItem *export=[file addItemWithTitle:@"Export Project…" action:@selector(exportProject:) keyEquivalent:@"s"];export.keyEquivalentModifierMask=NSEventModifierFlagCommand|NSEventModifierFlagShift; NSMenuItem *editItem=[NSMenuItem new];[main addItem:editItem];NSMenu *edit=[[NSMenu alloc]initWithTitle:@"Edit"];editItem.submenu=edit;[self editItem:edit title:@"Undo" command:@"undo" key:@"z"];NSMenuItem *redo=[self editItem:edit title:@"Redo" command:@"redo" key:@"z"];redo.keyEquivalentModifierMask=NSEventModifierFlagCommand|NSEventModifierFlagShift;[edit addItem:[NSMenuItem separatorItem]];[self editItem:edit title:@"Cut" command:@"cut" key:@"x"];[self editItem:edit title:@"Copy" command:@"copy" key:@"c"];[self editItem:edit title:@"Paste" command:@"paste" key:@"v"];[self editItem:edit title:@"Select All" command:@"selectAll" key:@"a"]; NSMenuItem *windowItem=[NSMenuItem new];[main addItem:windowItem];NSMenu *windows=[[NSMenu alloc]initWithTitle:@"Window"];windowItem.submenu=windows;[windows addItemWithTitle:@"Minimize" action:@selector(performMiniaturize:) keyEquivalent:@"m"];[windows addItemWithTitle:@"Bring All to Front" action:@selector(arrangeInFront:) keyEquivalent:@""]; }
 - (void)dispatchWorkbenchCommand:(NSDictionary *)detail { [_webView evaluateJavaScript:[NSString stringWithFormat:@"window.dispatchEvent(new CustomEvent('ynx-desktop-command',{detail:%@}))",YNXJSON(detail)] completionHandler:nil]; }
+- (BOOL)validateMenuItem:(NSMenuItem *)item {
+    if(item.action==@selector(desktopEdit:))return !_nativeEditPending && NSApp.keyWindow.firstResponder!=nil;
+    return YES;
+}
+- (void)desktopEdit:(NSMenuItem *)sender {
+    NSString *command=sender.representedObject;
+    SEL selector=YNXEditSelector(command);
+    NSWindow *window=NSApp.keyWindow;
+    NSResponder *responder=window.firstResponder;
+    if(!selector || !responder || _nativeEditPending)return;
+    BOOL webResponder=window==_window && [responder isKindOfClass:NSView.class] && [(NSView *)responder isDescendantOf:_webView];
+    if(!webResponder){
+        // Native text fields in sheets retain their own responder/undo system.
+        [NSApp sendAction:selector to:responder from:sender];
+        return;
+    }
+    NSURL *url=_webView.URL;
+    if(![url.scheme isEqualToString:@"http"] || ![url.host isEqualToString:@"127.0.0.1"] || url.port.integerValue!=_port)return;
+    _nativeEditPending=YES;
+    NSString *origin=[NSString stringWithFormat:@"http://127.0.0.1:%ld",(long)_port];
+    [_webView callAsyncJavaScript:@"if(location.origin!==origin || typeof window.__ynxDesktopEdit!=='function')return 'blocked';return window.__ynxDesktopEdit(command);"
+        arguments:@{@"command":command,@"origin":origin} inFrame:nil inContentWorld:WKContentWorld.pageWorld completionHandler:^(id route, NSError *error){
+        self.nativeEditPending=NO;
+        // No fallback after a handled, blocked or failed JS command. Never apply
+        // an old menu operation to a different window or native responder.
+        if(!YNXShouldForwardNativeEdit(route,error,NSApp.keyWindow==window,window.firstResponder==responder))return;
+        // Exactly one genuine WebKit action produces Monaco's clipboard event,
+        // or edits the ordinary input that the page router confirmed is focused.
+        [NSApp sendAction:selector to:responder from:sender];
+    }];
+}
 - (void)newProject:(id)sender { [self dispatchWorkbenchCommand:@{@"command":@"new-file"}]; }
 - (void)openProject:(id)sender {
     NSOpenPanel *panel=[NSOpenPanel openPanel]; panel.canChooseFiles=YES; panel.canChooseDirectories=NO; panel.allowsMultipleSelection=NO; panel.allowedFileTypes=@[@"json"];

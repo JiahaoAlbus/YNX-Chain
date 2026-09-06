@@ -13,6 +13,7 @@ import TsWorker from "../workers/typescript.worker?worker";
 import { useEffect, useRef } from "react";
 import { languageRequest } from "../runtime/client";
 import type { InstalledExtension } from "../runtime/client";
+import { registerDesktopEditor } from "./native-edit";
 
 self.MonacoEnvironment = {
   getWorker(_: string, label: string) {
@@ -109,12 +110,16 @@ export default function CodeEditor({
     activePathRef = useRef(activePath),
     cursorCallbackRef = useRef(onCursorChange),
     diagnosticsCallbackRef = useRef(onDiagnostics),
+    changeCallbackRef = useRef(onChange),
+    contentRef = useRef(activeContent),
     decorations = useRef<monaco.editor.IEditorDecorationsCollection | null>(
       null,
     );
   activePathRef.current = activePath;
   cursorCallbackRef.current = onCursorChange;
   diagnosticsCallbackRef.current = onDiagnostics;
+  changeCallbackRef.current = onChange;
+  contentRef.current = activeContent;
   useEffect(() => {
     const disposables: monaco.IDisposable[] = [], context={projectId,runtimeId};
     for(const editorLanguage of ["cpp","typescript","javascript","python","go","rust","java","solidity"]){
@@ -292,6 +297,16 @@ export default function CodeEditor({
         language={language}
         theme={editorTheme}
         options={{ automaticLayout: true, readOnly }}
+        onMount={(diff) => {
+          const original = diff.getOriginalEditor(), modified = diff.getModifiedEditor();
+          registerDesktopEditor(original, () => original.getOption(monaco.editor.EditorOption.readOnly));
+          registerDesktopEditor(modified, () => modified.getOption(monaco.editor.EditorOption.readOnly));
+          editorRef.current = modified;
+          modified.onDidChangeModelContent(() => {
+            const value = modified.getModel()?.getValue();
+            if (value !== undefined && value !== contentRef.current) changeCallbackRef.current(value);
+          });
+        }}
       />
     );
   return (
@@ -303,6 +318,7 @@ export default function CodeEditor({
         theme={editorTheme}
         onChange={onChange}
         onMount={(editor) => {
+          registerDesktopEditor(editor, () => editor.getOption(monaco.editor.EditorOption.readOnly));
           editorRef.current = editor;
           decorations.current = editor.createDecorationsCollection();
           editor.onMouseDown((event) => {
@@ -349,6 +365,7 @@ export default function CodeEditor({
           language={splitLanguage}
           theme={editorTheme}
           onChange={onSplitChange}
+          onMount={(editor) => registerDesktopEditor(editor, () => editor.getOption(monaco.editor.EditorOption.readOnly))}
           options={{
             automaticLayout: true,
             readOnly,
