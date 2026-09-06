@@ -34,8 +34,8 @@
     "browser": "current evergreen browser"
   },
   "installEvidence": {
-    "web": "489bf23ac SDK529 runtime deployed; 17 source-bound HTTPS files plus manifest/callback match.",
-    "boundary": "Current-source installed Wallet success and exception paths are still being collected. b6af/e673 acceptance remains historical.",
+    "web": "489 SDK529 public runtime: exact 17 HTTPS files plus manifest/callback; Android b0 approval/return/refresh/business and failed-signout pending/reload/explicit retry/disconnected refresh verified.",
+    "boundary": "Android emulator only; Viewer, other platforms, current-source native-owner revoke and deliberate lost-ACK remain unverified.",
     "publicReadback": "audit/creator-sdk529-489bf23ac-public-readback.json"
   },
   "centralIntegration": {
@@ -44,13 +44,13 @@
     "gatewayManifest": "internal/video/integration/appgateway-video-manifest.json"
   },
   "knownLimitations": [
-    "489bf23ac uses complete SDK529 with persisted completion/revocation intents; exact public identity is verified, current installed-client and browser business acceptance is separate and pending.",
+    "489 SDK529 approval/return/refresh and actual signout network-failure recovery are verified on Android emulator-5580 b0; Viewer, other platforms, native-owner revoke and deliberate lost-ACK remain outside this evidence.",
     "Public service is a single-host Testnet preview, not an HA production deployment",
     "No live provider AI, Trust delegated appeal or Pay settlement",
     "Analytics and revenue require authoritative persisted events; no organic activity or revenue is fabricated",
     "New UI copy is not fully localized; editing, rights appeals, revenue and native platform packages remain incomplete"
   ],
-  "generatedAt": "2026-09-06T10:54:28.593589+00:00",
+  "generatedAt": "2026-09-06T10:58:57.422798+00:00",
   "publicRuntime": {
     "sourceCommit": "489bf23ac56fb11c5b2ed869fb2a93c2465d2b24",
     "sdkSourceCommit": "529471f3822d2bac43ea47a1ab8004fa2ae79885",
@@ -67,9 +67,9 @@
     "pid": 2286540,
     "deployedAt": "2026-09-06T09:53:42Z",
     "deployedPublic": true,
-    "installedWalletApprovalVerified": false,
-    "browserUIVerified": false,
-    "privateBusinessVerified": false,
+    "installedWalletApprovalVerified": true,
+    "browserUIVerified": true,
+    "privateBusinessVerified": true,
     "publicReadback": "audit/creator-sdk529-489bf23ac-public-readback.json",
     "publicReadbackSHA256": "f930a33583912d4e39da2dff5d85506660463be4f93ad141c07fe55c63192c77",
     "compatibleRecoveryArtifact": {
@@ -82,9 +82,23 @@
       "stripRuntime": true
     },
     "recoveryBoundary": "Use the compatible SDK529 recovery or normal runtime; do not downgrade to ff68 or clear pending intent storage.",
-    "refreshBusinessVerified": false,
-    "signOutBusinessVerified": false,
-    "nativeOwnerSessionRevocationVerified": false
+    "refreshBusinessVerified": true,
+    "signOutBusinessVerified": true,
+    "nativeOwnerSessionRevocationVerified": false,
+    "verificationScope": {
+      "platform": "Android emulator-5580, existing QA Wallet and Chrome data",
+      "walletSource": "b0c631843295f396449500b1bdc03a796cb3d836",
+      "authSource": "8dad0bab8f6f711e6ca6037201eec5725f9a6a02",
+      "wholeSDKSource": "529471f3822d2bac43ea47a1ab8004fa2ae79885",
+      "approvalReturnRefreshSignoutRefresh": true,
+      "networkFailurePendingReloadExplicitRetry": true,
+      "deliberateLostAck": false,
+      "allPlatforms": false,
+      "nativeOwnerRevoke": false,
+      "evidence": "audit/creator-489-sdk529-android-w4-acceptance.json",
+      "evidenceSHA256": "99066ae834251445fe5e03d81f75df48dc1be6f1e4ea3f486786a4c80b73bb95",
+      "authority": "Wallet owner direct Android UI/network capture; coordinator read the source-bound acceptance record, did not repeat the browser actions."
+    }
   },
   "candidate": {
     "sourceCommit": "489bf23ac56fb11c5b2ed869fb2a93c2465d2b24",
@@ -104,11 +118,13 @@
     },
     "stageAndFileVerified": true,
     "deployedPublic": true,
-    "installedWalletApprovalVerified": false,
-    "browserUIVerified": false,
-    "privateBusinessVerified": false,
+    "installedWalletApprovalVerified": true,
+    "browserUIVerified": true,
+    "privateBusinessVerified": true,
     "handoff": "apps/video/audit/sdk529-handoff.md",
-    "publicReadback": "audit/creator-sdk529-489bf23ac-public-readback.json"
+    "publicReadback": "audit/creator-sdk529-489bf23ac-public-readback.json",
+    "verificationScope": "Android emulator-5580 b0 Wallet/Chrome; successful approval/return/refresh and actual network-failure signout retry only",
+    "acceptance": "audit/creator-489-sdk529-android-w4-acceptance.json"
   },
   "historicalSourceBoundReleases": [
     {
@@ -178,9 +194,11 @@
     "shippedBundleTests": 62,
     "videoChecks": 85,
     "creatorChecks": 18,
-    "browserUIVerified": false,
-    "installedWalletApprovalVerified": false,
-    "privateBusinessVerified": false,
-    "scope": "Source tests and exact public release identity; current-version installed Wallet flow evidence is collected separately."
+    "browserUIVerified": true,
+    "installedWalletApprovalVerified": true,
+    "privateBusinessVerified": true,
+    "scope": "Source tests and exact public release identity; current-version installed Wallet flow evidence is collected separately.",
+    "verificationScope": "Android emulator-5580 b0 Wallet/Chrome; successful approval/return/refresh and actual network-failure signout retry only",
+    "acceptance": "audit/creator-489-sdk529-android-w4-acceptance.json"
   }
 }

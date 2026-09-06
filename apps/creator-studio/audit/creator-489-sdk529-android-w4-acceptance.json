@@ -1,0 +1,39 @@
+{
+  "observedAt": "2026-09-06T10:56:17.307295+00:00",
+  "platform": "Android emulator-5580, existing QA Wallet and Chrome data",
+  "walletSource": "b0c631843295f396449500b1bdc03a796cb3d836",
+  "installedAPKSHA256": "2339bf7191e24288306dd8279f7eb650e71776c8a7075c61958857e16d259dc0",
+  "creatorSource": "489bf23ac56fb11c5b2ed869fb2a93c2465d2b24",
+  "authSource": "8dad0bab8f6f711e6ca6037201eec5725f9a6a02",
+  "wholeSDKSource": "529471f3822d2bac43ea47a1ab8004fa2ae79885",
+  "loadedSDKBytes": 119091,
+  "loadedSDKSHA256": "723a2740aca03411580d1cb394d1d99fde8e3a021bae1135ee1890751f2aae5f",
+  "notProven": {
+    "deliberateLostAck": true,
+    "nativeOwnerRevokeAgainstThisNewCreator": true,
+    "ViewerAcceptance": true,
+    "allPlatformsOrWalletConnect": true,
+    "PixelHardware": true,
+    "wholeWalletComplete": true
+  },
+  "faultNote": "A one-shot CDP response-drop was armed but never observed target HTTP200; no fault was applied, so this is actual network-failure recovery evidence, not deliberate lost-ACK proof.",
+  "publicChainBroadcasts": 0,
+  "flow": {
+    "evidence": "171-190 XML/JSON",
+    "nativeExactReview": true,
+    "JSBiometricAndSeparateOSKeyDecrypt": true,
+    "callbackReturnedToProduct": true,
+    "ordinaryRefreshRetainsSignedInAccountAndLoadsPersistentBusinessRecords": true,
+    "businessRecords": "0 views / 0s / 0 subscribers / 0 YNXT, real empty records",
+    "signoutClearsPrivateDataImmediately": true,
+    "actualNetworkFailureRetainsPendingAndDisablesSignIn": true,
+    "ordinaryReloadPreservesPendingAndRequiresExplicitRetry": true,
+    "explicitRetryConfirmedRevokeAt": "2026-09-06T10:52:05.846Z",
+    "sessionExpiresAt": "2026-09-06T10:52:50.985Z",
+    "revokePrecedesExpiry": true,
+    "signoutThenOrdinaryRefreshDisconnected": true
+  },
+  "evidenceAuthority": "Wallet owner direct Android UI/network capture; coordinator read the source-bound acceptance record, did not repeat the browser actions.",
+  "sourceRecord": "wallet-android-v2-qa/192-b0-creator489-sdk529-acceptance.json",
+  "sourceRecordSHA256": "da1c5aafdfc22887d2de4f5cbc8a715bcb1bb89e3ec551ea1a2170d4f71e525b"
+}
