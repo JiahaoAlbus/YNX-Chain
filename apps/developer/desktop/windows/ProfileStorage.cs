@@ -52,7 +52,7 @@ internal static class ProfileStorage
     }
     static string[] Inventory(string root)
     {
-        var files = new List<string>(); var pending = new Stack<string>(); pending.Push(root);
+        var files = new List<string>(); var pending = new Stack<string>(); pending.Push(root); var entries = 0;
         while (pending.Count > 0)
         {
             var dir = pending.Pop();
@@ -62,7 +62,7 @@ internal static class ProfileStorage
                 var flags = File.GetAttributes(entry);
                 if ((flags & FileAttributes.ReparsePoint) != 0) throw new IOException("Profile links are not migrated.");
                 if ((flags & FileAttributes.Directory) != 0) pending.Push(entry); else files.Add(entry);
-                if (files.Count + pending.Count > 20000) throw new IOException("Profile migration exceeds 20,000 entries.");
+                if (++entries > 20000) throw new IOException("Profile migration exceeds 20,000 entries.");
             }
         }
         return files.OrderBy(path => path, StringComparer.Ordinal).ToArray();

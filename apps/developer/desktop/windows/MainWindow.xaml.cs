@@ -54,7 +54,7 @@ public partial class MainWindow : Window
             if (profilePath == "") { closed = true; Close(); return; }
             var lockId = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(Encoding.UTF8.GetBytes(Path.GetFullPath(profilePath).ToUpperInvariant())));
             profileLock = new Mutex(true, "Local\\YNXDeveloper-" + lockId, out var created);
-            if (!created) throw new IOException("This workspace profile is already open. Close that YNX Developer window before reopening it.");
+            if (!created) { profileLock.Dispose(); profileLock = null; throw new IOException("This workspace profile is already open. Close that YNX Developer window before reopening it."); }
             geometryPath = Path.Combine(acceptance == null ? ProfileStorage.Root : profilePath, "window.json");
             var geometry = await ProfileStorage.ReadGeometry(geometryPath, SystemParameters.WorkArea);
             if (geometry != null) { Left = geometry.Left; Top = geometry.Top; Width = geometry.Width; Height = geometry.Height; }
@@ -240,7 +240,7 @@ public partial class MainWindow : Window
             var bounds = WindowState == WindowState.Normal ? new Rect(Left, Top, Width, Height) : RestoreBounds;
             if (geometryPath != "") try { await ProfileStorage.WriteAtomic(geometryPath, JsonSerializer.Serialize(new ProfileStorage.Geometry(bounds.Left, bounds.Top, bounds.Width, bounds.Height))); } catch (Exception error) { Status.Text = "Window position was not saved: " + error.Message; }
             if (acceptance != null) { acceptance.Result["normalCloseSaveAcknowledged"] = true; await acceptance.Finish(null); }
-            closed = true; Browser.Dispose(); profileLock?.Dispose(); Close();
+            closed = true; Browser.Dispose(); ReleaseProfile(); Close();
         }
         catch (Exception error) { closing = false; Status.Text = "Close paused because save was not acknowledged: " + error.Message; }
     }
@@ -248,8 +248,13 @@ public partial class MainWindow : Window
     {
         if (acceptance == null || closed) return;
         if (error == null) { Close(); return; } // Exercise the ordinary Closing/save path on successful QA.
-        await acceptance.Finish(error); ready = false; closed = true; Browser.Dispose(); profileLock?.Dispose();
+        await acceptance.Finish(error); ready = false; closed = true; Browser.Dispose(); ReleaseProfile();
         Application.Current.Shutdown(7);
+    }
+    void ReleaseProfile()
+    {
+        if (profileLock == null) return;
+        profileLock.ReleaseMutex(); profileLock.Dispose(); profileLock = null;
     }
     internal async Task InsertText(string text)
     {
