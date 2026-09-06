@@ -5,7 +5,7 @@
     "version": "1.0.5",
     "orientation": "portrait",
     "scheme": "ynxwallet",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,

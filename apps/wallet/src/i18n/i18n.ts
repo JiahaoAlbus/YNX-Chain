@@ -145,6 +145,7 @@ const DETAIL_MESSAGES={
   "standard motion":["标准动态效果","حركة قياسية"],
   "dark appearance":["深色外观","مظهر داكن"],
   "light appearance":["浅色外观","مظهر فاتح"],
+  "Klein blue and white appearance":["克莱因蓝与白色外观","مظهر أزرق كلاين وأبيض"],
   "Accessibility state":["辅助功能状态","حالة إمكانية الوصول"],
   "Biometric authorization was cancelled":["已取消生物识别授权","أُلغي التفويض بالمقاييس الحيوية"],
   "Biometric authorization failed":["生物识别授权失败","فشل التفويض بالمقاييس الحيوية"],
