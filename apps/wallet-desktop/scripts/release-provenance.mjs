@@ -37,16 +37,24 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
   if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error("Embedded build identity does not match the checkout");
   const root = git(cwd, "rev-parse", "--show-toplevel");
   const names = git(root, "ls-tree", "-r", "--name-only", expected.sourceCommit, "apps/wallet-desktop/src", "packages/wallet-auth/src", "packages/wallet-auth/package.json").split("\n");
+  // electron-builder excludes TypeScript declarations from an executable package.
+  // Keep that exclusion explicit; every JavaScript/JSON/runtime source still binds
+  // byte-for-byte to the selected checkout.
+  const excludedTypeDeclarations = names.filter(name => name.endsWith(".d.ts"));
   const verified = [];
   for (const name of names) {
+    if (name.endsWith(".d.ts")) continue;
     const packedName = name.startsWith("apps/wallet-desktop/") ? name.slice("apps/wallet-desktop/".length)
       : `node_modules/@ynx-chain/wallet-auth/${name.slice("packages/wallet-auth/".length)}`;
     const source = execFileSync("git", ["show", `${expected.sourceCommit}:${name}`], { cwd: root, maxBuffer: 16 * 1024 * 1024 });
-    const packed = asar.extractFile(archive, packedName);
+    // @electron/asar traverses its header with the host path separator.
+    const packed = asar.extractFile(archive, path.normalize(packedName));
     if (!source.equals(packed)) throw new Error(`Packaged source differs: ${name}`);
     verified.push({ path: packedName, bytes: packed.length, sha256: digest(packed) });
   }
-  return { ...expected, packagedSourceVerified: true, asarSHA256: digest(readFileSync(archive)), files: verified };
+  return { ...expected, packagedSourceVerified: true, sourceVerificationScope: "every runtime Wallet and SDK source", excludedTypeDeclarations,
+    typeDeclarationExclusionReason: "TypeScript declarations are compile-time files excluded by electron-builder; they are not claimed to be packaged runtime bytes.",
+    asarSHA256: digest(readFileSync(archive)), files: verified };
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
