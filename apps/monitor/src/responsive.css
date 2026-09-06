@@ -17,6 +17,14 @@
 .wallet-login button { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 48px; border-color: var(--blue); font-size: 16px; }
 .wallet-login textarea { min-height: 64px; border: 1px solid var(--line); color: var(--ink); background: #fff; }
 .wallet-login input { width: 100%; }
+.wallet-downloads { display: grid; gap: 12px; margin-top: 8px; }
+.wallet-downloads h3 { margin: 0; color: var(--blue); font-size: 16px; line-height: 1.5; }
+.wallet-downloads article { display: grid; gap: 10px; padding-block: 12px; border-top: 1px solid var(--line); }
+.wallet-downloads p { font-size: 13px; overflow-wrap: anywhere; }
+.wallet-download-link { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding: 10px 12px; border: 1px solid var(--blue); border-radius: 8px; font-size: 16px; line-height: 1.5; text-decoration: none; }
+.wallet-download-link span { min-width: 0; overflow-wrap: anywhere; }
+.wallet-download-link svg { flex: none; }
+.wallet-download-link:hover { background: var(--panel2); }
 .monitor-brand > img { display: block; width: 44px; height: 44px; flex: none; object-fit: contain; }
 .public-status-panel { margin-top: 28px; border: 1px solid var(--line); border-radius: 12px; background: #fff; padding: 20px; }
 .public-status-heading, .public-service-row > summary { display: flex; align-items: center; justify-content: space-between; gap: 16px; }

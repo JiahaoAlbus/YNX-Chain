@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "product": "YNX Wallet",
+  "releaseId": "wallet-static-20260906-r4c-browser",
+  "status": "published-files-verified",
+  "distribution": "testnet-preview",
+  "hosting": "static-artifact-files-only",
+  "artifacts": [
+    {
+      "id": "web-chromium-f90ad90",
+      "sourceCommit": "f90ad909fe30f11ad425adc4871131a82ebc2075",
+      "sha256": "061a25cb9b44e6a0e26667b4a46aacffd434780d5c705bea14d4fd7368eab0c5",
+      "bytes": 539744,
+      "platform": "web-extension",
+      "architecture": "any",
+      "browser": "chromium",
+      "installation": "extension-unpacked",
+      "mimeType": "application/zip",
+      "labelZh": "Chrome / Edge · 测试预览（手动安装）",
+      "labelEn": "Chrome / Edge · Test preview (manual installation)",
+      "limitations": [
+        "Current f90ad90 installed UI, permission-upgrade flow and public-sender E2E remain unverified; earlier installed extension evidence is not reused.",
+        "No browser store release. This is a manual-install test preview, not a store installation.",
+        "新版安装界面、权限升级与公开发送全流程尚未验证；旧版本实装证据不能替代。当前为手动安装测试预览，尚未上架。"
+      ],
+      "filename": "ynx-wallet-chrome-edge-f90ad90-local-qa.zip",
+      "relativePath": "wallet/sha256-061a25cb9b44e6a0e26667b4a46aacffd434780d5c705bea14d4fd7368eab0c5/ynx-wallet-chrome-edge-f90ad90-local-qa.zip",
+      "published": true,
+      "publicDownloadVerified": true,
+      "storeReleased": false,
+      "productionSigned": false,
+      "fullInstalledE2E": false,
+      "pwaDeployed": false,
+      "launchURL": null,
+      "changes": [
+        "Includes the first-journal canonical equality fix, supported by source regression and isolated byte-rebuild evidence. This does not establish an installed first-transfer or public-broadcast E2E result.",
+        "已包含首次记录读取的规范结构比较修复；依据为源码回归与隔离字节重建，不能据此认定实装首笔转账或公网广播全流程通过。"
+      ],
+      "url": "https://downloads.ynxweb4.com/wallet/sha256-061a25cb9b44e6a0e26667b4a46aacffd434780d5c705bea14d4fd7368eab0c5/ynx-wallet-chrome-edge-f90ad90-local-qa.zip"
+    },
+    {
+      "id": "web-pwa-f90ad90",
+      "sourceCommit": "f90ad909fe30f11ad425adc4871131a82ebc2075",
+      "sha256": "1a5277f178ca205f8e14fdf1eb6ceb6ab2770764ff5e7bac8b33fbbb501d1b2b",
+      "bytes": 310065,
+      "platform": "pwa-archive",
+      "architecture": "any",
+      "browser": null,
+      "installation": "zip-archive",
+      "mimeType": "application/zip",
+      "labelZh": "PWA · 测试预览（静态 ZIP，尚未部署 PWA）",
+      "labelEn": "PWA · Test preview (static ZIP; PWA not deployed)",
+      "limitations": [
+        "Current f90ad90 installed UI, permission-upgrade flow and public-sender E2E remain unverified; earlier installed extension evidence is not reused.",
+        "No browser store release. This is a manual-install test preview, not a store installation.",
+        "新版安装界面、权限升级与公开发送全流程尚未验证；旧版本实装证据不能替代。当前为手动安装测试预览，尚未上架。",
+        "PWA is a static ZIP only; it has no deployed origin, launch URL, installed PWA or Auth callback proof.",
+        "PWA 仅提供静态 ZIP；尚未部署可安装入口，也没有已安装 PWA 或 Auth 回调验证。"
+      ],
+      "filename": "ynx-wallet-pwa-f90ad90-local-qa.zip",
+      "relativePath": "wallet/sha256-1a5277f178ca205f8e14fdf1eb6ceb6ab2770764ff5e7bac8b33fbbb501d1b2b/ynx-wallet-pwa-f90ad90-local-qa.zip",
+      "published": true,
+      "publicDownloadVerified": true,
+      "storeReleased": false,
+      "productionSigned": false,
+      "fullInstalledE2E": false,
+      "pwaDeployed": false,
+      "launchURL": null,
+      "url": "https://downloads.ynxweb4.com/wallet/sha256-1a5277f178ca205f8e14fdf1eb6ceb6ab2770764ff5e7bac8b33fbbb501d1b2b/ynx-wallet-pwa-f90ad90-local-qa.zip"
+    }
+  ],
+  "accessContract": {
+    "sha256": "49e0ceb7a72e769b3fd6e30e6fa93fa597e8cdaf886f47abc72767d59575b0ab",
+    "defaultWallet": "YNX Wallet",
+    "thirdPartyWallets": "Only explicit service-approved basic capabilities; never promoted to full YNX account access.",
+    "fullAccountAccess": "Auth V3 ProductSessionV2 with device-bound HTTP proof plus live revocation/control-intent and server-required scopes. Provider flags and personal_sign do not establish service authorization.",
+    "integratedAllProducts": false
+  },
+  "notes": [
+    "Independent f90ad909fe30f11ad425adc4871131a82ebc2075 Chrome/Edge and PWA ZIP preview batch. No other browser or native-installer upload dependency.",
+    "The Chrome/Edge extension includes the first-journal persistence comparison fix. Source regressions and rebuilt bytes do not establish installed permissions, real transfers or browser-store acceptance.",
+    "PWA remains ZIP-only and is excluded from SDK schema1, which has no PWA format.",
+    "Firefox is not included or recommended in this batch. Only these explicitly listed artifacts may be enabled from this manifest.",
+    "Older preparations remain unchanged. No Caddy/service/account changes are required."
+  ]
+}
