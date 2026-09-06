@@ -41,7 +41,7 @@ async function fixture(t,{permitted=true,existingLocal=null}={}){
   let count=0,windowCursor=0;
   const request=(method,params,deadlineAt=Date.now()+5000)=>{const requestId=`ynx-${(++count).toString(16).padStart(8,"0")}-1111-4111-8111-111111111111`,message={type:RUNTIME_REQUEST,version:BRIDGE_VERSION,requestId,origin:ORIGIN,deadlineAt,method,params};return{requestId,result:send(message,{tab:{id:1,url:state.url},frameId:0,url:state.url})}};
   const page=(page,requestId)=>({id:"fixture",url:api.runtime.getURL(`${page}?requestId=${requestId}`)});
-  return{state,localState,request,popupRequest:(method,params)=>send({type:"YNX_WALLET_REQUEST",preference:"ynx",input:{method,params}},page("popup.html","unused")),nextWindow:()=>windowCursor<state.opened.length?Promise.resolve(state.opened[windowCursor++]):new Promise(resolve=>waiting.push(value=>{windowCursor++;resolve(value)})),
+  return{state,localState,request,pageRequest:(preference,input,providers)=>{context.ethereum={providers};return context.__YNX_INTERNAL_PAGE_WALLET_REQUEST__(preference,input)},popupRequest:(method,params,preference="ynx")=>send({type:"YNX_WALLET_REQUEST",preference,input:{method,params}},page("popup.html","unused")),nextWindow:()=>windowCursor<state.opened.length?Promise.resolve(state.opened[windowCursor++]):new Promise(resolve=>waiting.push(value=>{windowCursor++;resolve(value)})),
     review:requestId=>send({type:"YNX_SIGNER_GET_V1",requestId},page("signer.html",requestId)),
     decide:(requestId,decision="approve")=>send({type:"YNX_SIGNER_DECIDE_V1",requestId,decision,password:PASSWORD},page("signer.html",requestId)),
     connectDecision:requestId=>send({type:"YNX_PROVIDER_APPROVAL_DECIDE_V1",requestId,decision:"approve"},page("approval.html",requestId)),
@@ -53,6 +53,16 @@ test("worker shows the complete public review before unlocking and signs its exa
   const review=await f.review(request.requestId);assert.equal(review.ok,true);assert.equal(review.request.review.messageHex,hex);assert.match(review.request.summary,/\\u202eTAIL/);assert.equal(f.state.unlocks,0);
   assert.equal((await f.decide(request.requestId)).ok,true);const result=await request.result;assert.equal(result.ok,true);assert.equal(verifyMessage(Buffer.from(hex.slice(2),"hex"),result.result).toLowerCase(),ACCOUNT);
   assert.equal((await f.decide(request.requestId)).ok,false);assert.equal(f.state.signCalls,1);
+});
+
+test("actual worker rejects another-wallet preference before tab access and never falls back to MetaMask",async t=>{
+  const f=await fixture(t);let tabReads=0,ynxCalls=0,metaMaskCalls=0;f.state.beforeTabQuery=()=>{tabReads++};
+  for(const preference of["metamask","any","",null])for(const method of["eth_requestAccounts","personal_sign","eth_sendTransaction"]){const result=await f.popupRequest(method,[],preference);assert.equal(result.error.code,"WALLET_PROVIDER_UNSUPPORTED");}
+  assert.equal(tabReads,0);assert.equal(f.state.opened.length,0);assert.equal(f.state.unlocks,0);assert.equal(f.state.signCalls,0);assert.equal(f.state.broadcasts,0);
+  const mm={isMetaMask:true,request:()=>{metaMaskCalls++;return[ACCOUNT]}},ynx={isYNXWallet:true,providerInfo:{rdns:"com.ynx.wallet"},request:()=>{ynxCalls++;return[ACCOUNT]}};
+  assert.throws(()=>f.pageRequest("ynx",{method:"eth_requestAccounts"},[mm]),{code:"WALLET_BACKEND_NOT_FOUND"});
+  assert.throws(()=>f.pageRequest("metamask",{method:"eth_requestAccounts"},[mm,ynx]),{code:"WALLET_PROVIDER_UNSUPPORTED"});
+  assert.deepEqual(f.pageRequest("ynx",{method:"eth_requestAccounts"},[mm,ynx]),[ACCOUNT]);assert.equal(metaMaskCalls,0);assert.equal(ynxCalls,1);
 });
 
 test("document lease starts before migration, replay, account reads and transaction prefill",async t=>{

@@ -10,7 +10,7 @@ const ACCOUNT=`0x${"1".repeat(40)}`;
 function connected(){
   let state=createStandardWalletConnectState();
   state=reduceStandardWalletConnectState(state,{type:"BEGIN",pendingIntent:"connect_1234567890abcdef"});
-  state=reduceStandardWalletConnectState(state,{type:"PROVIDER_SELECTED",providerKind:"metamask"});
+  state=reduceStandardWalletConnectState(state,{type:"PROVIDER_SELECTED",providerKind:"ynx-wallet"});
   state=reduceStandardWalletConnectState(state,{type:"ACCOUNT_APPROVED",account:ACCOUNT});
   return reduceStandardWalletConnectState(state,{type:"CHAIN_CONFIRMED",chainId:"0x1917"});
 }
@@ -18,6 +18,12 @@ function connected(){
 test("approved account and provider chain close chooser and clear pending intent",()=>{
   const state=connected();
   assert.deepEqual({status:state.status,chooserOpen:state.chooserOpen,pendingIntent:state.pendingIntent,focus:state.focusRestoreTarget},{status:"connected",chooserOpen:false,pendingIntent:null,focus:"wallet-connect-trigger"});
+});
+
+test("Wallet state rejects MetaMask selection and historical MetaMask restore",()=>{
+  const initial=createStandardWalletConnectState(),pending=reduceStandardWalletConnectState(initial,{type:"BEGIN",pendingIntent:"connect_1234567890abcdef"});
+  assert.throws(()=>reduceStandardWalletConnectState(pending,{type:"PROVIDER_SELECTED",providerKind:"metamask"}),{code:"INVALID_STANDARD_WALLET_PROVIDER"});
+  assert.throws(()=>reduceStandardWalletConnectState(initial,{type:"RESTORE",providerKind:"metamask",accounts:[ACCOUNT],chainId:"0x1917"}),{code:"INVALID_STANDARD_WALLET_PROVIDER"});
 });
 
 test("connected details open independently and close back to the trigger",()=>{
@@ -28,7 +34,7 @@ test("connected details open independently and close back to the trigger",()=>{
 });
 
 test("refresh restore, account change and disconnect remain provider-authoritative",()=>{
-  const restored=reduceStandardWalletConnectState(createStandardWalletConnectState(),{type:"RESTORE",providerKind:"metamask",accounts:[ACCOUNT],chainId:"0x1917"});
+  const restored=reduceStandardWalletConnectState(createStandardWalletConnectState(),{type:"RESTORE",providerKind:"ynx-wallet",accounts:[ACCOUNT],chainId:"0x1917"});
   assert.equal(restored.status,"connected");assert.equal(restored.chooserOpen,false);
   const replacement=`0x${"2".repeat(40)}`;
   const switched=reduceStandardWalletConnectState(restored,{type:"ACCOUNTS_CHANGED",accounts:[replacement]});

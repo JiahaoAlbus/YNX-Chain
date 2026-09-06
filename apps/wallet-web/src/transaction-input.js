@@ -1,3 +1,4 @@
+import {toEVMAddress} from "./wallet-address.js";
 const DECIMALS = 18n;
 const UNIT = 10n ** DECIMALS;
 const MAX_WEI = (1n << 256n) - 1n;
@@ -24,8 +25,7 @@ export function weiHexToYNXT(input) {
 
 export function prepareTransaction({from, to, amount, value, data = "0x", useHex = false}) {
   if (!ADDRESS.test(from || "")) fail("INVALID_ACCOUNT", "recipient");
-  const recipient = typeof to === "string" ? to.trim() : "";
-  if (!ADDRESS.test(recipient)) fail("INVALID_RECIPIENT", "recipient");
+  let recipient;try{recipient=toEVMAddress(typeof to==="string"?to.trim():"")}catch{fail("INVALID_RECIPIENT","recipient")}
   const wei = useHex ? String(value || "").trim() : decimalYNXTToWei(amount);
   const displayAmount = weiHexToYNXT(wei);
   const callData = typeof data === "string" ? data.trim() : "";

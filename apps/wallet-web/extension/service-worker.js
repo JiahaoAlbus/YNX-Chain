@@ -29,12 +29,12 @@ async function requireMigrationReady(){const state=await migrationPromise;if(!st
 const YNX_CHAIN=Object.freeze({chainId:CHAIN_ID,chainName:"YNX Testnet",nativeCurrency:Object.freeze({name:"YNX Testnet",symbol:"YNXT",decimals:18}),rpcUrls:Object.freeze(["https://evm.ynxweb4.com"]),blockExplorerUrls:Object.freeze(["https://explorer.ynxweb4.com"])});
 
 function pageWalletRequest(preference,input){
+  if(preference!=="ynx")throw Object.assign(new Error("YNX Wallet does not connect through another wallet provider."),{code:"WALLET_PROVIDER_UNSUPPORTED"});
   const ethereum=globalThis.ethereum;
   const providers=(Array.isArray(ethereum?.providers)?ethereum.providers:ethereum?[ethereum]:[]).filter((provider)=>provider?.__ynxCompanion!==true);
-  const isYNX=(provider)=>{const rdns=String(provider?.providerInfo?.rdns||provider?.rdns||"").toLowerCase();return provider?.isYNXWallet===true||provider?.isYnxWallet===true||rdns==="com.ynx.wallet"||rdns.endsWith(".ynxweb4.com")};
-  const ynx=providers.find(isYNX),metamask=providers.find((provider)=>provider?.isMetaMask===true&&!isYNX(provider));
-  if(input?.method==="ynx_walletDetected")return{ynx:Boolean(ynx),metamask:Boolean(metamask)};
-  const provider=preference==="ynx"?ynx:preference==="metamask"?metamask:ynx||metamask||providers[0];
+  const isYNX=(provider)=>{const rdns=String(provider?.providerInfo?.rdns||provider?.rdns||"").toLowerCase();return provider?.isMetaMask!==true&&(provider?.isYNXWallet===true||provider?.isYnxWallet===true)&&["com.ynx.wallet","com.ynx.wallet.companion"].includes(rdns)};
+  const provider=providers.find(isYNX);
+  if(input?.method==="ynx_walletDetected")return{ynx:Boolean(provider),metamask:false};
   if(!provider||typeof provider.request!=="function")throw Object.assign(new Error("No real wallet backend is injected into the DApp."),{code:"WALLET_BACKEND_NOT_FOUND"});
   return provider.request(input);
 }
@@ -174,9 +174,9 @@ async function handleDappRequest(message,sender){
 }
 
 async function activeProviderRequest(preference,input){
+  if(preference!=="ynx")throw Object.assign(new Error("Only YNX Wallet can open this Wallet session."),{code:"WALLET_PROVIDER_UNSUPPORTED"});
   const capture=authorizationGuard.capturePending(),deadlineAt=Date.now()+120000;
   await requireMigrationReady();const context=await ensureActiveTabBridge(capture,deadlineAt);
-  if(preference==="metamask")return executeInTab(context.tabId,context.origin,"metamask",input);
   const requestId=`ynx-${crypto.randomUUID()}`,message={requestId,deadlineAt,method:input.method,params:input.params},sensitive=parseSensitiveRequest(message);
   if(sensitive)await consumeSensitiveRequest(extensionApi.storage?.session,message);const result=await handleProviderMethod({...context,...message});await authorizationGuard.assertDocument(context.documentLease);if(sensitive)authorizationGuard.assertCurrent(context.documentLease);return result;
 }
@@ -217,7 +217,7 @@ extensionApi.runtime.onMessage.addListener((message,sender,sendResponse)=>{
   if(message?.type==="YNX_PROVIDER_APPROVAL_DECIDE_V1"){
     Promise.resolve().then(()=>requireReviewPage(sender,"approval.html",message.requestId)).then(async()=>{const waiter=approvalWaiters.get(message.requestId);if(!waiter||waiter.decided)throw Object.assign(new Error("Approval request no longer has an active DApp caller."),{code:"APPROVAL_REQUEST_ORPHANED"});const decision=parseApprovalDecision({requestId:message.requestId,decision:message.decision},waiter.pending);waiter.decided=true;try{if(decision.approved)await authorizationGuard.assert(waiter.lease,{permissionRequired:false});waiter.resolve(decision.approved)}catch(error){waiter.reject(error);throw error}sendResponse({ok:true})}).catch((error)=>sendResponse({ok:false,error:publicBridgeError(error)}));return true
   }
-  if(message?.type==="YNX_WALLET_DISCOVER"){requireMigrationReady().then(()=>executeActive("any",{method:"ynx_walletDetected"})).then((result)=>sendResponse({ynx:true,metamask:Boolean(result?.metamask)})).catch((error)=>sendResponse({ynx:true,metamask:false,error:publicBridgeError(error)}));return true}
+  if(message?.type==="YNX_WALLET_DISCOVER"){requireMigrationReady().then(()=>executeActive("ynx",{method:"ynx_walletDetected"})).then(()=>sendResponse({ynx:true,metamask:false})).catch((error)=>sendResponse({ynx:true,metamask:false,error:publicBridgeError(error)}));return true}
   if(message?.type==="YNX_WALLET_REQUEST"){
     if(!REQUEST_METHODS.includes(message.input?.method)){sendResponse({ok:false,error:{code:4200,message:"Unsupported wallet method."}});return false}
     activeProviderRequest(message.preference,message.input).then((result)=>sendResponse({ok:true,result})).catch((error)=>sendResponse({ok:false,error:publicBridgeError(error)}));return true;

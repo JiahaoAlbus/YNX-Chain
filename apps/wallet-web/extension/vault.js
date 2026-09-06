@@ -1,3 +1,4 @@
+import {toYNXAddress} from "./wallet-address.js";
 import {createEncryptedVault,generateExtensionSecret} from "./extension-vault.js";
 
 const api=globalThis.browser||globalThis.chrome,password=document.querySelector("#password"),secret=document.querySelector("#secret"),backup=document.querySelector("#backup"),recovery=document.querySelector("#recovery"),confirmed=document.querySelector("#confirmed"),save=document.querySelector("#save"),remove=document.querySelector("#remove"),status=document.querySelector("#status"),account=document.querySelector("#account");
@@ -5,10 +6,10 @@ let prepared=null,transactionRecord=null,recoveryGeneration=0,recoveryRequest=nu
 function message(value,kind="info"){status.textContent=value;status.dataset.kind=kind}
 function sensitiveClear(){password.value="";secret.value="";recovery.textContent="";prepared=null;confirmed.checked=false;save.disabled=true;backup.classList.add("hidden")}
 async function runtime(input){const result=await api.runtime.sendMessage(input);if(result?.ok!==true)throw Object.assign(new Error(result?.error?.message||"Wallet vault request failed."),{code:result?.error?.code||"VAULT_RUNTIME_UNAVAILABLE"});return result}
-async function refresh(){const generation=recoveryGeneration;try{const result=await runtime({type:"YNX_VAULT_STATUS_V1"});if(generation!==recoveryGeneration)return;account.textContent=result.configured?result.account:"No YNX extension account configured";remove.classList.toggle("hidden",!result.configured);showTransaction(result.transaction)}catch(error){account.textContent="Unavailable";message(`${error.code}: ${error.message}`,"error")}}
+async function refresh(){const generation=recoveryGeneration;try{const result=await runtime({type:"YNX_VAULT_STATUS_V1"});if(generation!==recoveryGeneration)return;account.textContent=result.configured?toYNXAddress(result.account):"No YNX extension account configured";document.querySelector("#evm-account").textContent=result.configured?result.account:"Unavailable";document.querySelector("#copy-address").disabled=!result.configured;remove.classList.toggle("hidden",!result.configured);showTransaction(result.transaction)}catch(error){account.textContent="Unavailable";message(`${error.code}: ${error.message}`,"error")}}
 document.querySelector("#prepare").addEventListener("click",async()=>{try{const value=secret.value.trim().toLowerCase(),generated=value==="";if(password.value.length<12)throw Object.assign(new Error("Use at least 12 password characters."),{code:"VAULT_PASSWORD_INVALID"});prepared=generated?generateExtensionSecret():value;await createEncryptedVault({password:password.value,secretHex:prepared});recovery.textContent=prepared;backup.classList.remove("hidden");confirmed.checked=!generated;save.disabled=generated;message(generated?"Store the recovery key offline, then confirm.":"Import is ready. Save it into the encrypted browser vault.")}catch(error){sensitiveClear();message(`${error.code||"VAULT_PREPARE_FAILED"}: ${error.message}`,"error")}});
 confirmed.addEventListener("change",()=>{save.disabled=!confirmed.checked||!prepared});
-save.addEventListener("click",async()=>{try{cancelRecovery();save.disabled=true;const vault=await createEncryptedVault({password:password.value,secretHex:prepared});const result=await runtime({type:"YNX_VAULT_STORE_V1",vault});sensitiveClear();message(`Saved ${result.account}. Existing site permissions were revoked.`);await refresh()}catch(error){message(`${error.code||"VAULT_SAVE_FAILED"}: ${error.message}`,"error");save.disabled=false}});
+save.addEventListener("click",async()=>{try{cancelRecovery();save.disabled=true;const vault=await createEncryptedVault({password:password.value,secretHex:prepared});const result=await runtime({type:"YNX_VAULT_STORE_V1",vault});sensitiveClear();message(`Saved ${toYNXAddress(result.account)}. Existing site permissions were revoked.`);await refresh()}catch(error){message(`${error.code||"VAULT_SAVE_FAILED"}: ${error.message}`,"error");save.disabled=false}});
 remove.addEventListener("click",async()=>{if(!confirm("Remove this encrypted account and all site permissions from this browser profile?"))return;try{cancelRecovery();await runtime({type:"YNX_VAULT_REMOVE_V1"});sensitiveClear();message("Account and site permissions removed.");await refresh()}catch(error){message(`${error.code||"VAULT_REMOVE_FAILED"}: ${error.message}`,"error")}});
 addEventListener("pagehide",()=>{cancelRecovery();sensitiveClear()});void refresh();
 
@@ -23,7 +24,7 @@ function showTransaction(transaction){
   document.querySelector("#transaction-rpc-choice").classList.toggle("hidden",!transaction?.rpcConfirmationRequired);
   document.querySelector("#transaction-retry-panel").classList.toggle("hidden",!transaction?.blocksNewSend);
   const review=transaction?.review;document.querySelector("#transaction-review").textContent=review?[
-    "From: "+review.from,"To: "+(review.to||"No recipient"),"Amount: "+ynxt(review.valueWei)+" YNXT","Ethereum nonce: "+review.nonce,
+    "From: "+toYNXAddress(review.from),"To: "+(review.to?toYNXAddress(review.to):"No recipient"),"Amount: "+ynxt(review.valueWei)+" YNXT","Ethereum nonce: "+review.nonce,
     "Maximum fee: "+(review.maximumFeeWei===null?"unavailable":ynxt(review.maximumFeeWei)+" YNXT"),"Network: YNX Testnet (6423)",
     "RPC: "+(transaction.rpcOrigin||"Original source unverified"),"Source site: "+(transaction.sourceOrigin||"Unverified older source")].join("\n"):"";
   updateRecoveryActions();
@@ -41,3 +42,5 @@ retryButton.addEventListener("click",async()=>{
   finally{if(generation===recoveryGeneration){recoveryRequest=null;recoveryBusy=false;retryPassword.value="";retryConfirm.checked=false;updateRecoveryActions()}}
 });
 cancelButton.addEventListener("click",()=>{cancelRecovery();message("Retry authorization cancelled. A submission already sent may still finish; check the original transaction.")});
+
+document.querySelector("#copy-address").addEventListener("click",()=>{void navigator.clipboard.writeText(toYNXAddress(account.textContent)).then(()=>message("YNX address copied.")).catch(()=>message("Unable to copy the address.","error"))});

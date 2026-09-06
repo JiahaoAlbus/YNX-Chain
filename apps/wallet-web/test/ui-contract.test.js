@@ -3,14 +3,15 @@ import {readFile} from "node:fs/promises";
 import test from "node:test";
 import {runInNewContext} from "node:vm";
 import {loadPreferences, savePreferences} from "../src/preferences.js";
+import {subscribeProviderLifecycle} from "../src/provider.js";
+import {catalog,LOCALES} from "../src/i18n.js";
 
-test("fallback contract always offers YNX download and MetaMask when YNX is absent", async () => {
+test("Wallet offers its YNX download and has no other-provider login route", async () => {
   const source = await readFile(new URL("../public/app.js", import.meta.url), "utf8");
   assert.match(source, /id="download" href="\$\{YNX_DOWNLOAD_URL\}"/);
   assert.doesNotMatch(source, /id="download"[^>]*>Android/);
   assert.match(source, /id="android-download" href="\$\{WALLET_DOWNLOAD_MATRIX.android.url\}"/);
-  assert.match(source, /id="metamask" href="\$\{METAMASK_DOWNLOAD_URL\}"/);
-  assert.match(source, /if \(state\.providers\?\.metamask\) \{ event\.preventDefault\(\); return connect\("metamask"\); \}/);
+  assert.doesNotMatch(source, /metamask|MetaMask/);
   assert.match(source, /companionLifecycle\.begin\(\)/);
   assert.match(source, /mobileWalletPresentation\(availability, mobileBrowser, CORE_WALLET_AUTH_BINDING,companionLifecycle\.publicAuthAvailable\?companionLifecycle\.callback:null\)/);
   assert.match(source, /companionLifecycle\.handleReturn\(location\.href\)/);
@@ -25,7 +26,7 @@ test("fallback contract always offers YNX download and MetaMask when YNX is abse
   assert.match(source, /button\.disabled = button\.dataset\.permanentDisabled === "true"/);
   assert.match(source, /document\.querySelector\("#platforms"\)\.classList\.toggle\("hidden", !presentation\.showYNXDownload\)/);
   assert.match(source, /if\(!preserveConnection&&!state\.account\)\{state\.provider=null;state\.wallet=null;state\.chainId=null\}/);
-  assert.match(source, /catch \(error\) \{ if\(!state\.account\)forgetSession\(\);throw error; \}/);
+  assert.match(source, /if\(!state\.account\)forgetSession\(\);throw error/);
   assert.match(source, /const discoveryError=\(error\)=>localizedError\(error\)/);
   assert.doesNotMatch(source, /state\.provider\s*=\s*\{.*request/s);
 });
@@ -69,7 +70,7 @@ test("legacy dark preference retains locale and custody records while the actual
   const document = {documentElement:{dataset:{}}}, app = {innerHTML:""};
   const environment = {document,app,state:{locale:loaded.record.locale,theme:loaded.record.theme,epoch:0,connectState:{chooserOpen:true},form:{},providers:{}},
     requestedText:"large",isRTL:locale=>locale==="ar",text:key=>key,options:()=>"",escape:value=>String(value??""),unavailablePlatforms:()=>"",statusContent:()=>"",
-    YNX_DOWNLOAD_URL:"https://wallet.example",METAMASK_DOWNLOAD_URL:"https://metamask.io/download",WALLET_DOWNLOAD_MATRIX:{android:{url:"https://wallet.example/qa.apk",bytes:1}},
+    YNX_DOWNLOAD_URL:"https://wallet.example",WALLET_DOWNLOAD_MATRIX:{android:{url:"https://wallet.example/qa.apk",bytes:1}},
     bind(){},applyActionGates(){},presentAvailability(){}};
   runInNewContext(render+"\nrender();",environment);
   assert.equal(document.documentElement.lang,"ar");assert.equal(document.documentElement.dir,"rtl");
@@ -100,12 +101,11 @@ test("PWA manifest declares exact standalone identity and real-logo icon sizes",
 
 test("provider approval stays in-place and success restores exact chooser focus lifecycle",async()=>{
   const source=await readFile(new URL("../public/app.js",import.meta.url),"utf8");
-  assert.match(source,/if \(state\.providers\?\.metamask\) \{ event\.preventDefault\(\); return connect\("metamask"\); \}/);
   assert.match(source,/state\.connectState=result\.connectState;state\.account=result\.session\.account;state\.chainId=result\.session\.chainId/);
   assert.match(source,/queueMicrotask\(\(\)=>document\.querySelector\("#wallet-connect-trigger"\)\?\.focus\(\)\)/);
   assert.match(source,/data-pending-intent="\$\{state\.connectState\.pendingIntent\?"true":"false"\}"/);
   assert.match(source,/resolveRememberedWallet\(availability\)/);
-  assert.match(source,/restoreTestnetSession\(provider\)/);
+  assert.match(source,/restoreTestnetSession\(provider,localStorage,\{assertCurrent\}\)/);
   assert.match(source,/accountsChanged\(accounts\)/);
   assert.match(source,/chainChanged\(chainId\)/);
   assert.match(source,/id="disconnect"/);
@@ -115,4 +115,16 @@ test("provider approval stays in-place and success restores exact chooser focus 
   assert.match(source,/id="connection-controls" class="actions \$\{connectionDetails\?"":"hidden"\}"/);
   assert.doesNotMatch(source,/window\.open\s*\(/);
   assert.doesNotMatch(source,/(?:window\.)?location(?:\.href)?\s*=\s*[`'"]ynxwallet:\/\//);
+});
+
+test("active locale catalogs never suggest another-wallet login",()=>{
+  for(const[locale]of LOCALES){const copy=catalog(locale);assert.doesNotMatch(JSON.stringify(copy),/metamask/iu);assert.ok(copy.copyAddress);assert.ok(copy.evmCompatibility);assert.match(copy.noWalletHelp,/YNX Wallet/);}
+});
+
+test("actual renderer lifecycle discards callbacks queued by a replaced provider",async()=>{
+  const source=await readFile(new URL("../public/app.js",import.meta.url),"utf8"),code=source.slice(source.indexOf("function bindProviderLifecycle(provider)"),source.indexOf("\nfunction selectProvider"));
+  const queued={},provider={isYNXWallet:true,providerInfo:{rdns:"com.ynx.wallet"},request(){},on:(event,listener)=>{queued[event]=listener},removeListener(){}},state={wallet:"ynx",provider,providerRevision:1,account:"old"};let calls=0;
+  runInNewContext(code+"\nbindProviderLifecycle(provider)",{provider,state,subscribeProviderLifecycle,clearConnectedSession:()=>{calls++},reduceStandardWalletConnectState:()=>{calls++},rememberSession:()=>{calls++},render:()=>{calls++},STANDARD_WALLET_CONNECT_STATUS:{CONNECTED:"connected"}});
+  state.providerRevision++;state.provider={};state.account="new-ynx-account";queued.accountsChanged(["0x"+"1".repeat(40)]);queued.chainChanged("0x1");queued.disconnect();
+  assert.equal(calls,0);assert.equal(state.account,"new-ynx-account");
 });

@@ -1,14 +1,14 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  METAMASK_DOWNLOAD_URL, SESSION_KEY, WALLET_DOWNLOAD_MATRIX, WalletWebError, YNX_CHAIN, YNX_DOWNLOAD_URL,
+  SESSION_KEY, WALLET_DOWNLOAD_MATRIX, WalletWebError, YNX_CHAIN, YNX_DOWNLOAD_URL,
   addYNXChain, connectStandardWallet, connectWallet, createExtensionProvider, discoverEip6963, discoverInjectedProviders, discoverWallets, extensionWalletAvailability,
   forgetSession, readRememberedSession, rememberSession, resolveRememberedWallet,
   invalidatesConnectedSession, restoreTestnetSession, sendTransaction, signMessage, subscribeProviderLifecycle,
   switchToYNXChain, verifyTestnetRpc, walletActionGates, walletDiscoveryPresentation,
 } from "../src/provider.js";
 import {
-  canonicalYNXAuthorizationState, isMobileWalletBrowser, metaMaskMobileDappUrl, mobileWalletPresentation,
+  canonicalYNXAuthorizationState, isMobileWalletBrowser, mobileWalletPresentation,
 } from "../src/mobile-wallet-routing.js";
 
 const ACCOUNT = `0x${"1".repeat(40)}`;
@@ -20,7 +20,7 @@ const rpc = async () => ({ok:true,status:200,json:async()=>({jsonrpc:"2.0",id:1,
 function provider(responses = {}) {
   const calls = [];
   return {
-    calls,
+    calls,isYNXWallet:true,providerInfo:{rdns:"com.ynx.wallet"},
     async request(input) {
       calls.push(input);
       if (Object.hasOwn(responses, input.method)) {
@@ -55,26 +55,55 @@ test("frozen chain metadata is exact and complete", () => {
   assert.deepEqual(YNX_CHAIN, {chainId:"0x1917",chainName:"YNX Testnet",nativeCurrency:{name:"YNX Testnet",symbol:"YNXT",decimals:18},rpcUrls:["https://evm.ynxweb4.com"],blockExplorerUrls:["https://explorer.ynxweb4.com"]});
 });
 
-test("injected discovery prefers YNX and keeps MetaMask explicit", () => {
+test("MetaMask-only and unknown providers cannot become a Wallet session or a fallback",async()=>{
+  for(const wallet of[Object.assign(provider(),{isMetaMask:true}),{calls:[],async request(input){this.calls.push(input);return[ACCOUNT]}}]){
+    const scope={ethereum:wallet};assert.equal(discoverInjectedProviders(scope).any,undefined);assert.equal((await discoverWallets(scope)).status,"no-provider");
+    await assert.rejects(connectStandardWallet(wallet,"ynx"),{code:"WALLET_PROVIDER_UNSUPPORTED"});
+    await assert.rejects(signMessage(wallet,ACCOUNT,"local QA"),{code:"WALLET_PROVIDER_UNSUPPORTED"});
+    const memory=storage();rememberSession({account:ACCOUNT,chainId:"0x1917"},"ynx",memory);assert.equal(await restoreTestnetSession(wallet,memory),null);assert.equal(memory.getItem(SESSION_KEY),null);assert.equal(wallet.calls.length,0);
+  }
+  const runtime=extensionRuntime();for(const preference of["metamask","any",undefined])assert.throws(()=>createExtensionProvider(preference,runtime),{code:"WALLET_PROVIDER_UNSUPPORTED"});assert.equal(runtime.messages.length,0);
+  const wallet=provider();await assert.rejects(connectWallet(wallet,{wallet:"metamask"}),{code:"WALLET_PROVIDER_UNSUPPORTED"});assert.equal(wallet.calls.length,0);
+});
+
+test("an old saved MetaMask session is discarded without probing or changing other storage",async()=>{
+  const memory=storage(),wallet=provider();memory.setItem(SESSION_KEY,JSON.stringify({wallet:"metamask",account:ACCOUNT,chainId:"0x1917"}));memory.setItem("preferences","locale=ar");memory.setItem("vault","fixture-cipher");
+  assert.equal(await restoreTestnetSession(wallet,memory),null);assert.equal(wallet.calls.length,0);assert.equal(memory.getItem(SESSION_KEY),null);assert.equal(memory.getItem("preferences"),"locale=ar");assert.equal(memory.getItem("vault"),"fixture-cipher");
+  assert.throws(()=>rememberSession({account:ACCOUNT,chainId:"0x1917"},"metamask",memory),{code:"WALLET_PROVIDER_UNSUPPORTED"});
+});
+
+test("provider identity changing during approval cannot return a YNX session",async()=>{
+  const wallet=provider({eth_requestAccounts:()=>{wallet.isMetaMask=true;return[ACCOUNT]},eth_chainId:"0x1917"});
+  await assert.rejects(connectWallet(wallet),{code:"WALLET_PROVIDER_UNSUPPORTED"});assert.deepEqual(wallet.calls.map(call=>call.method),["eth_requestAccounts"]);
+});
+
+test("a stale connect cannot switch chains and a stale restore cannot erase a newer session",async()=>{
+  let active=true;const assertCurrent=()=>{if(!active)throw Object.assign(new Error("cancelled"),{code:"ACCOUNT_CHANGED"})};
+  const wallet=provider({eth_requestAccounts:()=>{active=false;return[ACCOUNT]},eth_chainId:"0x1"});
+  await assert.rejects(connectWallet(wallet,{assertCurrent}),{code:"ACCOUNT_CHANGED"});assert.deepEqual(wallet.calls.map(call=>call.method),["eth_requestAccounts"]);
+  const memory=storage();rememberSession({account:ACCOUNT,chainId:"0x1917"},"ynx",memory);active=true;
+  const restore=provider({eth_chainId:()=>{rememberSession({account:TO,chainId:"0x1917"},"ynx",memory);active=false;return"0x1"},eth_accounts:[ACCOUNT]});
+  await assert.rejects(restoreTestnetSession(restore,memory,{assertCurrent}),{code:"ACCOUNT_CHANGED"});assert.equal(readRememberedSession(memory).account,TO);
+});
+
+test("injected discovery selects only YNX in a mixed-provider page", () => {
   const ynx = Object.assign(provider(), {isYNXWallet:true,providerInfo:{rdns:"com.ynx.wallet"}});
   const metamask = Object.assign(provider(), {isMetaMask:true});
   const result = discoverInjectedProviders({ethereum:{providers:[metamask,ynx]}});
-  assert.equal(result.ynx, ynx); assert.equal(result.metamask, metamask); assert.equal(result.any, ynx);
+  assert.equal(result.ynx, ynx); assert.equal(result.metamask, undefined); assert.equal(result.any, ynx);
 });
 
 test("provider identity does not trust an arbitrary rdns substring", () => {
   const spoofed = Object.assign(provider(),{isMetaMask:true,providerInfo:{rdns:"com.ynx.fixture.metamask"}});
   const ynx = Object.assign(provider(),{isYNXWallet:true,providerInfo:{rdns:"com.ynx.wallet"}});
   const result = discoverInjectedProviders({ethereum:{providers:[spoofed,ynx]}});
-  assert.equal(result.ynx,ynx);assert.equal(result.metamask,spoofed);
+  assert.equal(result.ynx,ynx);assert.equal(result.metamask,undefined);
 });
 
-test("discovery presentation directly prefers YNX and gives two non-empty fallbacks", () => {
-  assert.deepEqual(walletDiscoveryPresentation({ynx:provider(),metamask:provider(),exactExtensionStateObservable:true}),{ynxPresent:true,metamaskPresent:true,showYNXConnect:true,showYNXDownload:false,showMetaMaskChoice:false,metaMaskChoice:"connect",status:"available",errorKey:null,exactExtensionStateObservable:true});
-  assert.deepEqual(walletDiscoveryPresentation({ynx:null,metamask:provider(),exactExtensionStateObservable:true}),{ynxPresent:false,metamaskPresent:true,showYNXConnect:false,showYNXDownload:true,showMetaMaskChoice:true,metaMaskChoice:"connect",status:"available",errorKey:null,exactExtensionStateObservable:true});
-  assert.deepEqual(walletDiscoveryPresentation({}),{ynxPresent:false,metamaskPresent:false,showYNXConnect:false,showYNXDownload:true,showMetaMaskChoice:true,metaMaskChoice:"official-download",status:"no-provider",errorKey:"providerNotInjected",exactExtensionStateObservable:false});
+test("discovery presentation offers only YNX and its download",()=>{
+  assert.deepEqual(walletDiscoveryPresentation({ynx:provider(),metamask:provider(),exactExtensionStateObservable:true}),{ynxPresent:true,showYNXConnect:true,showYNXDownload:false,status:"available",errorKey:null,exactExtensionStateObservable:true});
+  for(const availability of [{},{ynx:null,metamask:provider(),status:"available"}])assert.deepEqual(walletDiscoveryPresentation(availability),{ynxPresent:false,showYNXConnect:false,showYNXDownload:true,status:"no-provider",errorKey:"providerNotInjected",exactExtensionStateObservable:false});
   assert.equal(new URL(YNX_DOWNLOAD_URL).hostname,"www.ynxweb4.com");
-  assert.equal(METAMASK_DOWNLOAD_URL,"https://metamask.io/download");
 });
 
 test("EIP-6963 discovers exact YNX and MetaMask announcements including late injection", async () => {
@@ -94,7 +123,7 @@ test("EIP-6963 discovers exact YNX and MetaMask announcements including late inj
   assert.deepEqual(announced.map(({info})=>info.rdns),["com.ynx.wallet","io.metamask"]);
   dispatches=0;
   const result=await discoverWallets(scope);
-  assert.equal(result.ynx,ynx);assert.equal(result.metamask,metamask);assert.equal(result.status,"available");
+  assert.equal(result.ynx,ynx);assert.equal(result.metamask,undefined);assert.equal(result.status,"available");
 });
 
 test("repeated EIP-6963 requests deduplicate providers and retain YNX versus MetaMask identity",async()=>{
@@ -104,8 +133,8 @@ test("repeated EIP-6963 requests deduplicate providers and retain YNX versus Met
   const announced=await discoverEip6963(scope,2);
   assert.equal(announced.length,2);
   const result=await discoverWallets(scope);
-  assert.equal(result.ynx,ynx);assert.equal(result.metamask,metamask);
-  assert.equal(result.ynx.isMetaMask,false);assert.equal(result.metamask.isYNXWallet,false);
+  assert.equal(result.ynx,ynx);assert.equal(result.metamask,undefined);
+  assert.equal(result.ynx.isMetaMask,false);assert.equal(metamask.isYNXWallet,false);
 });
 
 test("ethereum.providers fallback observes delayed injection without inventing installation state",async()=>{
@@ -123,22 +152,10 @@ test("no-provider locked and site-access-denied classifications require explicit
   assert.deepEqual({status:denied.status,observable:denied.exactExtensionStateObservable,error:walletDiscoveryPresentation(denied).errorKey},{status:"site-access-denied",observable:true,error:"siteAccessDenied"});
 });
 
-test("mobile discovery separates unavailable canonical YNX auth from MetaMask dapp routing", () => {
-  assert.equal(metaMaskMobileDappUrl(),"https://metamask.app.link/dapp/www.ynxweb4.com/dapp/wallet");
-  assert.deepEqual(mobileWalletPresentation({},true),{
-    ynxRoute:"canonical-auth-unavailable",metaMaskRoute:"mobile-dapp",
-    metaMaskHref:"https://metamask.app.link/dapp/www.ynxweb4.com/dapp/wallet",
-    canonicalYNXAuthAvailable:false,
-  });
-  assert.deepEqual(mobileWalletPresentation({},false),{
-    ynxRoute:"hidden",metaMaskRoute:"official-download",metaMaskHref:"https://metamask.io/download",canonicalYNXAuthAvailable:false,
-  });
-});
-
-test("real injected providers remain the only connect routes on mobile", () => {
-  assert.deepEqual(mobileWalletPresentation({ynx:provider(),metamask:provider()},true),{
-    ynxRoute:"injected-provider",metaMaskRoute:"injected-provider",metaMaskHref:null,canonicalYNXAuthAvailable:false,
-  });
+test("mobile cannot route Wallet login into MetaMask",()=>{
+  assert.deepEqual(mobileWalletPresentation({metamask:provider()},true),{ynxRoute:"canonical-auth-unavailable",canonicalYNXAuthAvailable:false});
+  assert.deepEqual(mobileWalletPresentation({},false),{ynxRoute:"hidden",canonicalYNXAuthAvailable:false});
+  assert.deepEqual(mobileWalletPresentation({ynx:provider(),metamask:provider()},true),{ynxRoute:"injected-provider",canonicalYNXAuthAvailable:false});
 });
 
 test("mobile browser detection covers phone and iPad desktop UA without affecting desktop", () => {
@@ -173,8 +190,8 @@ test("default download opens platform selection and Android uses the current imm
 
 test("extension discovery propagates runtime failure and rejects malformed responses", async () => {
   await assert.rejects(() => extensionWalletAvailability({sendMessage:async()=>({ynx:false,metamask:false,error:{code:"MIGRATION_INCOMPLETE",message:"cleanup failed"}})}), (error) => error.code === "MIGRATION_INCOMPLETE");
-  for (const response of [null,{}, {ynx:true}, {ynx:1,metamask:false}]) await assert.rejects(() => extensionWalletAvailability({sendMessage:async()=>response}), (error) => error.code === "INVALID_DISCOVERY_RESPONSE");
-  assert.deepEqual(await extensionWalletAvailability({sendMessage:async()=>({ynx:true,metamask:false})}),{ynx:true,metamask:false});
+  for (const response of [null,{}, {ynx:1,metamask:false}]) await assert.rejects(() => extensionWalletAvailability({sendMessage:async()=>response}), (error) => error.code === "INVALID_DISCOVERY_RESPONSE");
+  assert.deepEqual(await extensionWalletAvailability({sendMessage:async()=>({ynx:true,metamask:false})}),{ynx:true});
 });
 
 test("optional CORS-safe RPC probe accepts only exact YNX Testnet and is not connection authority", async () => {
@@ -215,7 +232,7 @@ test("connect success is bound to approval then provider chain confirmation", as
   assert.equal(result.connectState.status,"connected");assert.equal(result.connectState.chooserOpen,false);assert.equal(result.connectState.pendingIntent,null);assert.equal(result.connectState.focusRestoreTarget,"wallet-connect-trigger");
 });
 
-test("first MetaMask connect adds frozen YNX chain only after exact unknown-chain failure", async () => {
+test("first YNX provider connect adds frozen YNX chain only after exact unknown-chain failure", async () => {
   let chainId="0x1",switches=0;
   const wallet=provider({
     eth_requestAccounts:[ACCOUNT],
@@ -223,14 +240,14 @@ test("first MetaMask connect adds frozen YNX chain only after exact unknown-chai
     wallet_switchEthereumChain:()=>{switches+=1;if(switches===1)throw Object.assign(new Error("Unrecognized chain ID"),{code:4902});chainId="0x1917";return null},
     wallet_addEthereumChain:(input)=>{assert.deepEqual(input.params,[YNX_CHAIN]);return null},
   });
-  const result=await connectStandardWallet(wallet,"metamask",{pendingIntent:"connect_1234567890abcdef"});
+  const result=await connectStandardWallet(wallet,"ynx",{pendingIntent:"connect_1234567890abcdef"});
   assert.equal(result.connectState.status,"connected");
   assert.deepEqual(wallet.calls.map(({method})=>method),["eth_requestAccounts","eth_chainId","wallet_switchEthereumChain","wallet_addEthereumChain","wallet_switchEthereumChain","eth_chainId"]);
 });
 
 test("non-4902 switch rejection never adds a chain or fabricates connection", async () => {
   const wallet=provider({eth_requestAccounts:[ACCOUNT],eth_chainId:"0x1",wallet_switchEthereumChain:()=>{throw Object.assign(new Error("User rejected"),{code:4001})},wallet_addEthereumChain:null});
-  await assert.rejects(()=>connectStandardWallet(wallet,"metamask",{pendingIntent:"connect_1234567890abcdef"}),(error)=>error.code===4001);
+  await assert.rejects(()=>connectStandardWallet(wallet,"ynx",{pendingIntent:"connect_1234567890abcdef"}),(error)=>error.code===4001);
   assert.deepEqual(wallet.calls.map(({method})=>method),["eth_requestAccounts","eth_chainId","wallet_switchEthereumChain"]);
 });
 
@@ -265,7 +282,7 @@ test("extension provider add-chain switches and proves exact 0x1917 through runt
 
 test("extension provider switch rejects a wrong-chain result", async () => {
   const runtime = extensionRuntime({wallet_switchEthereumChain:{ok:true,result:null},eth_chainId:{ok:true,result:"0x1"}});
-  await assert.rejects(() => switchToYNXChain(createExtensionProvider("metamask",runtime),{fetcher:rpc}), (error) => error.code === "WRONG_NETWORK");
+  await assert.rejects(() => switchToYNXChain(createExtensionProvider("ynx",runtime),{fetcher:rpc}), (error) => error.code === "WRONG_NETWORK");
   assert.deepEqual(runtime.messages.map(({input})=>input.method),["wallet_switchEthereumChain","eth_chainId"]);
 });
 
@@ -359,6 +376,7 @@ test("second launch removes non-canonical and unavailable remembered sessions", 
   for (const saved of [
     {account:ACCOUNT,chainId:"0x1",wallet:"ynx"},
     {account:ACCOUNT,chainId:"0x1917",wallet:"unknown"},
+    {account:ACCOUNT,chainId:"0x1917",wallet:"metamask"},
     {account:ACCOUNT,chainId:"0x1917",wallet:"ynx",extra:true},
   ]) {
     memory.setItem(SESSION_KEY,JSON.stringify(saved));
@@ -404,7 +422,7 @@ test("only authoritative provider identity failures invalidate the connected UI 
 
 test("provider lifecycle callbacks normalize accounts and unsubscribe exactly", () => {
   const listeners = new Map(); const removed = [];
-  const wallet = {on:(event,listener)=>listeners.set(event,listener),removeListener:(event,listener)=>removed.push([event,listener])};
+  const wallet = {...provider(),on:(event,listener)=>listeners.set(event,listener),removeListener:(event,listener)=>removed.push([event,listener])};
   const observed = [];
   const unsubscribe = subscribeProviderLifecycle(wallet,{
     accountsChanged:(accounts)=>observed.push(["accounts",accounts]),

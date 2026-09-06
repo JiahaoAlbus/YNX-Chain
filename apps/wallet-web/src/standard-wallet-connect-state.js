@@ -39,7 +39,7 @@ function parseState(value){if(!value||value.authority!=="standard-wallet-eip1193
 function requirePending(value){if(value.status!==STANDARD_WALLET_CONNECT_STATUS.DISCOVERING||value.pendingIntent===null)fail("INVALID_STANDARD_WALLET_TRANSITION")}
 function requireConnected(value){if(value.status!==STANDARD_WALLET_CONNECT_STATUS.CONNECTED||value.providerKind===null||value.account===null||value.chainId!==STANDARD_WALLET_CHAIN_ID)fail("INVALID_STANDARD_WALLET_TRANSITION")}
 function requireProbe(event){if(event.probeTransport!==STANDARD_WALLET_RPC_PROBE_TRANSPORT)fail("UNSAFE_BROWSER_RPC_PROBE")}
-function providerKind(value){if(!["metamask","ynx-wallet"].includes(value))fail("INVALID_STANDARD_WALLET_PROVIDER");return value}
+function providerKind(value){if(value!=="ynx-wallet")fail("INVALID_STANDARD_WALLET_PROVIDER");return value}
 function account(value){if(typeof value!=="string"||!/^0x[0-9a-fA-F]{40}$/.test(value))fail("INVALID_STANDARD_WALLET_ACCOUNT");return value.toLowerCase()}
 function accountList(value){if(!Array.isArray(value)||value.length>1024)fail("INVALID_STANDARD_WALLET_ACCOUNT");return value.map(account)}
 function chain(value){if(typeof value!=="string"||!/^0x(?:0|[1-9a-fA-F][0-9a-fA-F]*)$/.test(value))fail("INVALID_STANDARD_WALLET_CHAIN");return value.toLowerCase()}
