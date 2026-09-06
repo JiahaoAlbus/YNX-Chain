@@ -1,0 +1,20 @@
+{
+  "source": "e6a5c98ff9a60c4e76cb6879e72f5801c556a9d1",
+  "sourceTree": "c06bf9e16ae269326a6c2485b36bf6798ef1ea5a",
+  "path": "apps/creator-studio/audit/artifacts/ynx-creator-e6a5c98ff-runtime.tar.gz",
+  "bytes": 72081,
+  "sha256": "3db22bb88c1ad166ec526ab193bbcb69e0d462997d0fd5d8322bde1a85132ab9",
+  "files": 18,
+  "app": {
+    "path": "app.js",
+    "bytes": 40643,
+    "sha256": "41bffdffd8ee55477fda48cb8332461d5abaf55eff6dac7e68666c9c53f89ea1"
+  },
+  "sdk": {
+    "path": "product-session-sdk.js",
+    "bytes": 99179,
+    "sha256": "9479bcd04497395d8aa5ac2ec8b72d05243f5d19662c53f547077199bd1a8a39"
+  },
+  "testsPassed": 14,
+  "publicDeployment": false
+}
