@@ -56,7 +56,8 @@ test("real WebCrypto signs callback, API proofs, restart restoration and revoke 
   const persisted = [...s.indexedDB.records("devices").values()][0];
   assert.notEqual(persisted.privateKey, s.generated[0].privateKey); // Structured clone, not a shared in-memory key handle.
   assert.equal(persisted.privateKey.extractable, false);
-  await assert.rejects(webcrypto.subtle.exportKey("jwk", persisted.privateKey), { name: "InvalidAccessError" });
+  await assert.rejects(webcrypto.subtle.exportKey("jwk", persisted.privateKey), error =>
+    error instanceof DOMException && ["InvalidAccessError", "InvalidAccessException"].includes(error.name));
   await assert.rejects(first.createIntrospectionProof(["creator:publish"]), { code: "SESSION_INACTIVE" });
   assert.equal((await connect(first, s.config)).status, "connected");
   const api = await first.createIntrospectionProof(["creator:publish"]);
