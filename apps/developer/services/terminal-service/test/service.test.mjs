@@ -132,7 +132,7 @@ test("selected cloud runtime opens through its broker and synchronizes its remot
               writableRoot: "workspace",
             },
           },
-          collect: async () => ({
+          assertStopped: async () => {}, collect: async () => ({
             folders: ["src"],
             files: {
               "src/main.cpp": "int main(){}\n",
@@ -217,7 +217,7 @@ test("Remote SSH runtime identifiers pass only through the authenticated broker"
               writableRoot: "remote-workspace",
             },
           },
-          collect: async () => ({
+          assertStopped: async () => {}, collect: async () => ({
             folders: [],
             files: { "remote.txt": "SSH_OK\n" },
           }),

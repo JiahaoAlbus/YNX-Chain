@@ -528,6 +528,25 @@ test("queued tasks are owner visible and can be cancelled before execution", asy
   assert.equal((await (await running).json()).code, 130);
 });
 
+test("maintenance cancels a running real process and queued HTTP/agent work without starting queued code", async (t) => {
+  const { url, runtime } = await fixture(t, { concurrency: 1 });
+  const cookie = await session(url); let started = false, queuedStarted = false;
+  const running = runtime.runTaskForOwner("maintenance-owner", languageTask("running.js", "console.log('RUNNING');setInterval(()=>{},1000)"), event => {
+    if (event.type === "output" && event.data?.includes("RUNNING")) started = true;
+  });
+  for (let i = 0; !started && i < 200; i++) await new Promise(resolve => setTimeout(resolve, 10));
+  assert.equal(started, true, "the real Node program started before cancellation");
+  const queuedAgent = runtime.runTaskForOwner("queued-owner", languageTask("queued.js", "console.log('never-start')"), () => { queuedStarted = true; });
+  const agentResult = Promise.allSettled([queuedAgent]);
+  const queuedHttp = fetch(`${url}/runtime/tasks`, { method: "POST", headers: { cookie, "content-type": "application/json" }, body: JSON.stringify(languageTask("http.js", "console.log('never-start')")) });
+  for (let i = 0; runtime.status().queued !== 2 && i < 100; i++) await new Promise(resolve => setTimeout(resolve, 10));
+  assert.equal(runtime.status().queued, 2); runtime.cancelAll();
+  assert.equal((await running).code, 130);
+  const result = (await agentResult)[0]; assert.equal(result.status, "rejected"); assert.equal(result.reason.code, "service_maintenance");
+  const response = await queuedHttp; assert.equal(response.status, 503); assert.equal((await response.json()).code, "service_maintenance");
+  assert.equal(queuedStarted, false); assert.equal(runtime.status().active, 0); assert.equal(runtime.status().queued, 0);
+});
+
 test("parallel users receive bounded independent workspaces", async (t) => {
   const { url, runtime } = await fixture(t),
     cookies = await Promise.all(Array.from({ length: 8 }, () => session(url))),

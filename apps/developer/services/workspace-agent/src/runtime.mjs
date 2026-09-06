@@ -401,8 +401,22 @@ export function createWorkspaceRuntime(options = {}) {
   function finishActivity(taskId) {
     activities.delete(taskId);
   }
+  function cancelAll() {
+    const error = Object.assign(new Error("Compilation cancelled for maintenance. Saved source is retained; run it again after service returns."),
+      { status: 503, code: "service_maintenance", retryable: true });
+    for (const item of queue.splice(0)) {
+      finishActivity(item.taskId);
+      if (item.internal) item.reject(error);
+      else {
+        if (!item.response.destroyed && !item.response.writableEnded) json(item.response, error.status, { error: error.message, code: error.code, retryable: true });
+        item.resolve();
+      }
+    }
+    for (const item of activities.values()) { item.status = "stopping"; item.controller?.abort(error); }
+  }
   return {
     handler,
+    cancelAll,
     runTaskForOwner,
     ownerForRequest(request) {
       const session = readSession(request, sessionKey);
@@ -480,6 +494,7 @@ async function readBody(request, limit) {
   return Buffer.concat(chunks);
 }
 function json(response, status, value, headers = {}) {
+  if (response.destroyed || response.writableEnded) return;
   response.writeHead(status, {
     "content-type": "application/json; charset=utf-8",
     "cache-control": "no-store",

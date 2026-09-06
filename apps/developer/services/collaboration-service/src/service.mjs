@@ -1,3 +1,4 @@
+import { createSessionLifecycle, closeWebSockets } from "../../workspace-agent/src/session-lifecycle.mjs";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { DatabaseSync } from "node:sqlite";
 import { WebSocketServer } from "ws";
@@ -32,6 +33,8 @@ export function createCollaborationService(options) {
     document: db.prepare("SELECT revision,paths_json,state FROM collaboration_documents WHERE room_id=?"),
     saveDocument: db.prepare("INSERT INTO collaboration_documents(room_id,revision,paths_json,state,updated_at) VALUES(?,?,?,?,?) ON CONFLICT(room_id) DO UPDATE SET revision=excluded.revision,paths_json=excluded.paths_json,state=excluded.state,updated_at=excluded.updated_at"),
   };
+  const lifecycle = createSessionLifecycle();
+  let dbClosed = false;
   const rooms = new Map();
   const wss = new WebSocketServer({ noServer: true, maxPayload: 256 * 1024 });
 
@@ -115,12 +118,12 @@ export function createCollaborationService(options) {
     let resource;
     try { resource = subject && sameOrigin(request) && request.headers["sec-websocket-protocol"] === PROTOCOL ? requireAccess(roomId, subject) : null; } catch {}
     const roomConnections = resource ? [...wss.clients].filter(client => client.roomId === resource.room_id).length : maxRoomConnections;
-    if (!resource || wss.clients.size >= maxConnections || roomConnections >= maxRoomConnections) { reject(socket); return true; }
+    if (!lifecycle.accepting() || !resource || wss.clients.size >= maxConnections || roomConnections >= maxRoomConnections) { reject(socket); return true; }
     wss.handleUpgrade(request, socket, head, websocket => wss.emit("connection", websocket, request, { subject, resource }));
     return true;
   }
 
-  wss.on("connection", (websocket, _request, identity) => connect(websocket, identity).catch(error => { send(websocket, { type: "error", code: error.code || "collaboration_start_failed", message: error.message || "Collaboration could not start." }); websocket.close(1011, "Collaboration start failed"); }));
+  wss.on("connection", (websocket, _request, identity) => lifecycle.start(() => connect(websocket, identity)).catch(error => { send(websocket, { type: "error", code: error.code || "collaboration_start_failed", message: error.message || "Collaboration could not start." }); websocket.close(1011, "Collaboration start failed"); }));
 
   async function connect(websocket, { subject, resource }) {
     const room = await loadRoom(resource), clientId = randomUUID(), role = resource.role;
@@ -128,7 +131,7 @@ export function createCollaborationService(options) {
     room.clients.set(clientId, { websocket, subject, role, presence: null });
     send(websocket, { type: "ready", protocolVersion: PROTOCOL, roomId: room.roomId, clientId, role, revision: room.revision, paths: [...room.paths], participants: [...room.clients.entries()].map(([id, client]) => ({ clientId: id, role: client.role, ...(client.presence?.name ? { name: client.presence.name } : {}) })), update: Buffer.from(Y.encodeStateAsUpdate(room.document)).toString("base64") });
     broadcast(room, { type: "presence", action: "join", clientId, role }, clientId);
-    websocket.on("message", raw => message(room, websocket, raw).catch(error => send(websocket, { type: "error", code: error.code || "collaboration_message_failed", message: error.message || "Collaboration message failed." })));
+    websocket.on("message", raw => lifecycle.start(() => message(room, websocket, raw)).catch(error => send(websocket, { type: "error", code: error.code || "collaboration_message_failed", message: error.message || "Collaboration message failed." })));
     websocket.on("close", () => leave(room, clientId));
     websocket.on("error", () => leave(room, clientId));
   }
@@ -200,8 +203,10 @@ export function createCollaborationService(options) {
   function persistRoom(room) { statements.saveDocument.run(room.roomId, room.revision, JSON.stringify([...room.paths]), Buffer.from(Y.encodeStateAsUpdate(room.document)), new Date().toISOString()); }
   function leave(room, clientId) { if (!room.clients.delete(clientId)) return; broadcast(room, { type: "presence", action: "leave", clientId }); }
   function broadcast(room, value, except) { for (const [clientId, client] of room.clients) if (clientId !== except) send(client.websocket, value); }
-  async function close() { for (const room of rooms.values()) for (const client of room.clients.values()) try { client.websocket.close(1001, "Service shutdown"); } catch {} wss.close(); db.close(); }
-  return { handler, handleUpgrade, close, status: () => ({ rooms: rooms.size, connections: wss.clients.size, maxConnections, maxRoomConnections }) };
+  function drain() { return lifecycle.drain(() => closeWebSockets(wss)); }
+  async function close() { await drain(); if (!dbClosed) { dbClosed = true; db.close(); } }
+  return { handler, handleUpgrade, drain, close, status: () => ({ rooms: rooms.size, connections: wss.clients.size, ...lifecycle.status(), maxConnections, maxRoomConnections }) };
+
 }
 
 function materializeRootTypes(document) { document.getMap("paths"); for (const name of document.share.keys()) if (name.startsWith("file:") && safePath(name.slice(5))) document.getText(name); }

@@ -1,3 +1,4 @@
+import { createActivityRegistry, guardRequests, createMaintenance, writeMaintenanceReceipt } from "./activity.mjs";
 import { createServer } from "node:http";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
@@ -31,10 +32,12 @@ const port = Number(process.env.PORT || 4190),
   staticRoot = process.env.YNX_CODE_STATIC_ROOT || fileURLToPath(new URL("../../../frontend/dist", import.meta.url)),
   stateDir = process.env.YNX_CODE_STATE_DIR || join(process.cwd(), ".ynx-code");
 mkdirSync(stateDir, { recursive: true, mode: 0o700 });
+const activity = createActivityRegistry();
 let runtimeProfileService, runtime;
-const routedLanguageRequest = (runner) => (request, context) =>
+const routedLanguageRequest = (runner) => (request, context) => activity.operation("language", signal =>
   request.runtimeId
     ? runner(request, {
+        signal,
         processFactory: (value) =>
           runtimeProfileService.openContainerLanguageProcess({
             owner: context.owner,
@@ -44,7 +47,7 @@ const routedLanguageRequest = (runner) => (request, context) =>
             config: value.config,
           }),
       })
-    : runner(request);
+    : runner(request, { signal }));
 const workspaceStore = createWorkspaceStore({ filename: join(stateDir, "workspaces.sqlite") });
 const environmentService = createEnvironmentService({
   filename: join(stateDir, "environments.sqlite"),
@@ -73,6 +76,7 @@ const extensionRegistry = createExtensionRegistry({
   ownerForRequest: (request) => runtime.ownerForRequest(request),
 });
 const modelRouter = createModelRouter({
+  activity,
   ownerForRequest: (request) => runtime.ownerForRequest(request),
 });
 const projectMemory = createProjectMemory({
@@ -106,17 +110,19 @@ const walletReadinessService = createWalletReadinessService({
   ownerForRequest: (request) => runtime.ownerForRequest(request),
 });
 const terminalService = createTerminalService({
+  root: join(stateDir, "terminal-workspaces"),
   workspaceStore,
   ownerForRequest: (request) => runtime.ownerForRequest(request),
   containerTerminalBroker: runtimeProfileService,
   environmentService,
 });
 const server = createServer(
-  createGateway({
+  guardRequests(activity, createGateway({
+    activity,
     staticRoot,
     runtime,
     handlers: [collaborationService.handler, runtimeProfileService.handler, environmentService.handler, terminalService.handler, chainService.handler, walletReadinessService.handler, gitService.handler, extensionRegistry.handler, modelRouter.handler, agentOrchestrator.handler, projectMemory.handler],
-  }),
+  })),
 );
 const debugService = createDebugService({
   workspaceStore,
@@ -124,28 +130,63 @@ const debugService = createDebugService({
   containerDebugBroker: runtimeProfileService,
 });
 server.on("upgrade", (request, socket, head) => {
-  if (collaborationService.handleUpgrade(request, socket, head) || terminalService.handleUpgrade(request, socket, head) || debugService.handleUpgrade(request, socket, head)) return;
+  if (!activity.accepting()) {
+    socket.end("HTTP/1.1 503 Service Unavailable\r\nConnection: close\r\nRetry-After: 30\r\nContent-Length: 0\r\n\r\n");
+    return;
+  }
+  try {
+    if (collaborationService.handleUpgrade(request, socket, head) || terminalService.handleUpgrade(request, socket, head) || debugService.handleUpgrade(request, socket, head)) return;
+  } catch {
+    socket.end("HTTP/1.1 400 Bad Request\r\nConnection: close\r\nContent-Length: 0\r\n\r\n");
+    return;
+  }
   socket.write("HTTP/1.1 404 Not Found\r\nConnection: close\r\nContent-Length: 0\r\n\r\n");
   socket.destroy();
 });
 server.listen(port, host, () => console.log(`YNX Code Gateway http://${host}:${port}`));
-let shuttingDown = false;
-async function shutdown() {
-  if (shuttingDown) return;
-  shuttingDown = true;
-  const deadline = setTimeout(() => process.exit(1), 4_000);
-  deadline.unref();
-  server.close();
-  server.closeIdleConnections?.();
-  await Promise.allSettled([terminalService.close(), debugService.close(), collaborationService.close()]);
-  server.closeAllConnections?.();
-  runtimeProfileService.close();
-  environmentService.close();
-  extensionRegistry.close();
-  agentOrchestrator.close();
-  projectMemory.close();
-  workspaceStore.close();
-  clearTimeout(deadline);
-  process.exit(0);
+// Requests remain registered through handler settlement, including work that
+// survives a disconnected response. Interactive startup and final persistence
+// have independent counters and are closed before SQLite stores.
+activity.observe("compile", () => ({ active: runtime.status().active, queued: runtime.status().queued }));
+activity.observe("ai", () => ({ active: modelRouter.catalog().active, queued: modelRouter.catalog().queued }));
+activity.observe("git", () => ({ active: gitService.status().activeRepositories }));
+activity.observe("remoteRecovery", () => ({ recoveryRequired: runtimeProfileService.recoveryCount() }));
+for (const [name, service] of [["terminal", terminalService], ["debug", debugService], ["collaboration", collaborationService]]) {
+  activity.observe(name, () => {
+    const value = service.status();
+    return { active: value.active ?? value.connections, starting: value.starting, finishing: value.finishing, cleanupFailures: value.cleanupFailures, recoveryRequired: value.recoveryRequired || 0 };
+  });
 }
-for (const signal of ["SIGINT", "SIGTERM"]) process.once(signal, () => void shutdown());
+const maintain = createMaintenance({
+  activity,
+  stopInteractive: async () => {
+    const results = await Promise.allSettled([terminalService.close(), debugService.close(), collaborationService.drain()]);
+    if (results.some(value => value.status === "rejected")) throw new Error("Interactive cleanup failed after all session cleanups settled.");
+  },
+  cancelWork: () => runtime.cancelAll(),
+  closeStores: async () => {
+    await collaborationService.close();
+    runtimeProfileService.close(); environmentService.close(); extensionRegistry.close();
+    agentOrchestrator.close(); projectMemory.close(); workspaceStore.close();
+  },
+  checkpoint: value => writeMaintenanceReceipt(join(stateDir, "maintenance.json"), { ...value, at: new Date().toISOString(), sourceCommit: process.env.YNX_CODE_SOURCE_COMMIT || null }),
+  drainTimeoutMs: maintenanceDuration("YNX_CODE_DRAIN_TIMEOUT_MS", 30_000),
+  cancelTimeoutMs: maintenanceDuration("YNX_CODE_CANCEL_TIMEOUT_MS", 10_000),
+});
+function maintenanceDuration(name, fallback) {
+  const value = Number(process.env[name] || fallback);
+  if (!Number.isInteger(value) || value < 10 || value > 120_000) throw new Error(`${name} must be between 10 and 120000 ms.`);
+  return value;
+}
+let exiting = false;
+async function shutdown(signal) {
+  if (exiting) return;
+  exiting = true;
+  const result = await maintain(signal);
+  server.close(); server.closeIdleConnections?.(); server.closeAllConnections?.();
+  process.exit(result.exitCode);
+}
+// Explicit, one-way operator maintenance. No unauthenticated public mutation
+// endpoint exists. Read-only health/readiness stay available until restart.
+process.on("SIGUSR2", () => void maintain("operator_maintenance"));
+for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => void shutdown(signal));

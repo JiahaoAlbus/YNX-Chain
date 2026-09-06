@@ -31,7 +31,10 @@ Environment=YNX_CODE_AI_QUEUE=64
 ExecStart=/usr/bin/node services/gateway/src/server.mjs
 Restart=on-failure
 RestartSec=2
-TimeoutStopSec=15
+TimeoutStopSec=75
+# Must exceed configured drain + cancellation windows.
+Environment=YNX_CODE_DRAIN_TIMEOUT_MS=30000
+Environment=YNX_CODE_CANCEL_TIMEOUT_MS=10000
 LimitNOFILE=65536
 TasksMax=512
 MemoryMax=4G

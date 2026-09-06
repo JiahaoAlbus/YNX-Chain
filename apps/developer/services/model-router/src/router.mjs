@@ -42,6 +42,7 @@ export function createModelRouter({
   queueTimeoutMs = Number(process.env.YNX_CODE_AI_QUEUE_TIMEOUT_MS || 60_000),
   timeoutMs = Number(process.env.YNX_CODE_AI_TIMEOUT_MS || 180_000),
   ownerForRequest,
+  activity,
 } = {}) {
   if (typeof fetchImpl !== "function") throw new TypeError("fetchImpl is required");
   if (!/^http:\/\/127\.0\.0\.1(?::\d+)?(?:\/|$)/.test(hostedBaseURL))
@@ -114,7 +115,9 @@ export function createModelRouter({
     const input = validateRequest(request);
     if (ownerForRequest && !input.ownerId)
       throw fault("An authenticated AI owner is required.", "model_owner_required", 401);
-    return queue.schedule({ ...input, ownerId: input.ownerId || "internal" });
+    const schedule = (signal) => queue.schedule({ ...input, ownerId: input.ownerId || "internal",
+      signal: signal ? (input.signal ? AbortSignal.any([signal, input.signal]) : signal) : input.signal });
+    return activity ? activity.operation("ai", schedule) : schedule();
   }
 
   async function run(input) {

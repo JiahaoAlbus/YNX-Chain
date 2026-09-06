@@ -1,3 +1,4 @@
+import { createSessionLifecycle, closeWebSockets, waitForExit } from "../../workspace-agent/src/session-lifecycle.mjs";
 import { randomUUID } from "node:crypto";
 import { access, mkdir, mkdtemp, realpath, rm } from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
@@ -52,6 +53,7 @@ export function createDebugService(options) {
     maxOwnerSessions = bounded(options.maxOwnerSessions, 2, 1, 8),
     wss = new WebSocketServer({ noServer: true, maxPayload: MAX_MESSAGE }),
     sessions = new Map();
+  const lifecycle = createSessionLifecycle();
   function handleUpgrade(request, socket, head) {
     const url = new URL(
       request.url,
@@ -64,6 +66,7 @@ export function createDebugService(options) {
       runtimeId = url.searchParams.get("runtimeId"),
       language = debugLanguage(activePath);
     if (
+      !lifecycle.accepting() ||
       !owner ||
       !validId(projectId) ||
       !safePath(activePath) ||
@@ -93,7 +96,7 @@ export function createDebugService(options) {
     return true;
   }
   wss.on("connection", (websocket, _request, identity) =>
-    start(websocket, identity).catch((error) => {
+    lifecycle.start(() => start(websocket, identity)).catch((error) => {
       send(websocket, {
         type: "error",
         code: error.code || "debug_start_failed",
@@ -256,9 +259,9 @@ export function createDebugService(options) {
         data: String(chunk).slice(0, 32_000),
       }),
     );
-    state.child.on("close", (code) =>
-      finish(state, { code: code ?? 0, reason: "adapter_exit" }),
-    );
+    state.exited = new Promise(resolve => state.child.on("close", code => {
+      resolve(); finish(state, { code: code ?? 0, reason: "adapter_exit" });
+    }));
     state.child.on("error", () =>
       finish(state, { code: 1, reason: "adapter_error" }),
     );
@@ -275,6 +278,7 @@ export function createDebugService(options) {
     }, 30_000);
   }
   function receive(state, raw) {
+    if (!lifecycle.accepting() || state.closed) return;
     state.lastActivity = Date.now();
     let envelope;
     try {
@@ -389,36 +393,46 @@ export function createDebugService(options) {
       }
     }
   }
-  async function finish(state, result) {
-    if (state.closed) return;
-    state.closed = true;
+  function finish(state, result) {
+    return lifecycle.finish(state, () => performFinish(state, result));
+  }
+  async function performFinish(state, result) {
     clearInterval(state.timer);
-    sessions.delete(state.sessionId);
-    try {
-      if (state.child.pid && process.platform !== "win32")
-        process.kill(-state.child.pid, "SIGKILL");
-      else state.child.kill("SIGKILL");
-    } catch {}
+    await waitForExit(state.exited, signal => {
+      try {
+        if (state.child.pid && process.platform !== "win32") process.kill(-state.child.pid, signal);
+      } catch {}
+      // Container/SSH brokers may return a child that is not a process-group
+      // leader. Reap that client as well before releasing its runtime lease.
+      try { state.child.kill(signal); } catch {}
+    });
+    try { await state.cleanup?.(); }
+    catch (error) {
+      send(state.websocket, { type: "error", code: "debug_recovery_required", message: "Debug cleanup could not be verified. The runtime remains protected; recover it before starting new work." });
+      try { state.websocket.close(1011, "Debug recovery required"); } catch {}
+      throw error;
+    }
     send(state.websocket, { type: "exit", ...result });
     try {
       state.websocket.close(1000, "Debug session ended");
     } catch {}
-    try {
-      await state.cleanup?.();
-    } catch {}
     if (state.workspace)
       await rm(state.workspace, { recursive: true, force: true });
+    sessions.delete(state.sessionId);
   }
-  async function close() {
-    for (const state of [...sessions.values()])
-      await finish(state, { code: 130, reason: "service_shutdown" });
-    wss.close();
+  function close() {
+    return lifecycle.drain(async () => {
+      await Promise.all([...sessions.values()].map(state => finish(state, { code: 130, reason: "service_maintenance" })));
+      await closeWebSockets(wss);
+    });
   }
   return {
     handleUpgrade,
     close,
     status: () => ({
-      active: sessions.size,
+      active: [...sessions.values()].filter(state => !state.closed).length,
+      recoveryRequired: [...sessions.values()].filter(state => state.closed).length,
+      ...lifecycle.status(),
       maxSessions,
       maxOwnerSessions,
       sandbox: sandbox.kind,

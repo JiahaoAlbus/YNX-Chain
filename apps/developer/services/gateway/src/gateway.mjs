@@ -35,11 +35,24 @@ export function createGateway({
   version = process.env.YNX_CODE_RELEASE || "development",
   sourceCommit = process.env.YNX_CODE_SOURCE_COMMIT || null,
   sourceTree = process.env.YNX_CODE_SOURCE_TREE || null,
+  activity,
 }) {
   const root = resolve(staticRoot);
   const buildIdentity = exactBuildIdentity({ sourceCommit, sourceTree });
   return async function handler(request, response) {
     try {
+      const pathname = new URL(request.url, "http://localhost").pathname;
+      // Health stays readable after maintenance closes stores. It must not walk
+      // handlers that can touch those stores or admit fresh language/runtime work.
+      if (pathname === "/healthz" || pathname === "/readyz") {
+        const ready = activity ? activity.accepting() : true;
+        return sendJson(response, pathname === "/readyz" && !ready ? 503 : 200, {
+          ok: true, ready, service: "ynx-code-gateway", version,
+          ...buildIdentity, ...runtime.status(),
+          activityScope: "active/queued describe workspace compilation and tests only",
+          ...(activity ? { activity: activity.snapshot() } : {}),
+        });
+      }
       if (await runtime.handler(request, response)) return;
       for (const service of handlers)
         if (await service(request, response)) return;

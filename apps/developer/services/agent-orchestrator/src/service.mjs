@@ -117,8 +117,9 @@ export function createAgentOrchestrator({
       generate: (input) => modelRouter.generate({ ...input, ownerId: owner }),
     };
     const clientController = new AbortController(),
-      abortClient = () => clientController.abort();
+      abortClient = () => clientController.abort(request.maintenanceSignal?.reason);
     request.once("aborted", abortClient);
+    request.maintenanceSignal?.addEventListener("abort", abortClient, { once: true });
     response.once("close", () => {
       if (!response.writableEnded) abortClient();
     });
@@ -886,12 +887,20 @@ export function createAgentOrchestrator({
         if (!granted) throw fault(message, code, 403);
       }
     } catch (error) {
+      if (request.maintenanceSignal?.aborted) {
+        const runId = url.pathname.split("/")[4];
+        if (runId && getRun.get(owner, runId)) append(owner, runId, "operation.maintenance_interrupted", {
+          reason: "service_maintenance", outcome: "inspect-latest-state", retry: "Reload the saved run and explicitly approve the next operation.",
+        });
+      }
       if (response.destroyed || response.writableEnded) return true;
       json(response, error.status || 400, {
         error: error.message || "Agent operation failed.",
         code: error.code || "agent_operation_failed",
       });
       return true;
+    } finally {
+      request.maintenanceSignal?.removeEventListener("abort", abortClient);
     }
   }
   return { handler, read, close: () => db.close() };

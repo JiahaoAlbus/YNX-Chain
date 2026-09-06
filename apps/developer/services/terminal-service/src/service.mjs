@@ -1,5 +1,6 @@
+import { createSessionLifecycle, closeWebSockets, waitForExit } from "../../workspace-agent/src/session-lifecycle.mjs";
 import { randomUUID } from "node:crypto";
-import { chmod, mkdir, mkdtemp, realpath, rm } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, realpath, rm, open } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { createRequire } from "node:module";
@@ -58,7 +59,11 @@ export function createTerminalService(options) {
           error: "Terminal session was not found.",
           code: "terminal_session_not_found",
         });
-      await finish(state, { exitCode: 130, signal: 15, reason: "api_stop" });
+      const result = await finish(state, { exitCode: 130, signal: 15, reason: "api_stop" });
+      if (!result.ok) return json(response, 503, {
+        code: result.error.code || "terminal_cleanup_failed", stopped: false,
+        error: "Terminal shutdown or workspace synchronization was not completed. Recovery data is retained; inspect it before restarting this runtime.",
+      });
       return json(response, 200, {
         protocolVersion: PROTOCOL,
         stopped: stopMatch[1],
@@ -69,6 +74,7 @@ export function createTerminalService(options) {
       code: "method_not_allowed",
     });
   }
+  const lifecycle = createSessionLifecycle();
   function handleUpgrade(request, socket, head) {
     const url = new URL(request.url, `http://${request.headers.host || "127.0.0.1"}`);
     if (url.pathname !== "/runtime/terminals") return false;
@@ -78,7 +84,7 @@ export function createTerminalService(options) {
       sessionId = url.searchParams.get("sessionId"),
       existing = sessionId ? sessions.get(sessionId) : undefined,
       reconnecting = Boolean(existing && existing.owner === owner && existing.projectId === projectId && existing.runtimeId === runtimeId);
-    if (!owner || !/^[A-Za-z0-9_-]{1,160}$/.test(projectId || "") || (runtimeId !== null && !/^(?:ssh-)?[a-f0-9]{24}$/.test(runtimeId)) || (sessionId !== null && !/^[0-9a-f-]{36}$/.test(sessionId)) || (sessionId !== null && !reconnecting) || !sameOrigin(request) || request.headers["sec-websocket-protocol"] !== PROTOCOL || (!reconnecting && runtimeId ? !containerTerminalBroker : !reconnecting && !sandbox.ready) || (!reconnecting && sessions.size >= maxSessions) || (!reconnecting && [...sessions.values()].filter((value) => value.owner === owner).length >= maxOwnerSessions)) {
+    if (!lifecycle.accepting() || !owner || !/^[A-Za-z0-9_-]{1,160}$/.test(projectId || "") || (runtimeId !== null && !/^(?:ssh-)?[a-f0-9]{24}$/.test(runtimeId)) || (sessionId !== null && !/^[0-9a-f-]{36}$/.test(sessionId)) || (sessionId !== null && !reconnecting) || !sameOrigin(request) || request.headers["sec-websocket-protocol"] !== PROTOCOL || (!reconnecting && runtimeId ? !containerTerminalBroker : !reconnecting && !sandbox.ready) || (!reconnecting && sessions.size >= maxSessions) || (!reconnecting && [...sessions.values()].filter((value) => value.owner === owner).length >= maxOwnerSessions)) {
       reject(socket);
       return true;
     }
@@ -93,7 +99,7 @@ export function createTerminalService(options) {
     return true;
   }
   wss.on("connection", (websocket, _request, identity) =>
-    start(websocket, identity).catch((error) => {
+    lifecycle.start(() => start(websocket, identity)).catch((error) => {
       send(websocket, {
         type: "error",
         code: error.code || "terminal_start_failed",
@@ -186,7 +192,9 @@ export function createTerminalService(options) {
           data,
         });
       });
-      terminal.onExit(({ exitCode, signal }) => finish(state, { exitCode, signal }));
+      state.exited = new Promise(resolve => terminal.onExit(({ exitCode, signal }) => {
+        resolve(); finish(state, { exitCode, signal });
+      }));
       state.idle = clock.setInterval(
         () => {
           if (clock.now() - state.lastInput > idleMs)
@@ -208,7 +216,8 @@ export function createTerminalService(options) {
         hardMs,
       );
     } catch (error) {
-      remote?.release();
+      try { await remote?.release(); }
+      catch (cleanupError) { throw Object.assign(cleanupError, { code: "interactive_cleanup_failed" }); }
       await rm(workspace, { recursive: true, force: true });
       throw error;
     }
@@ -245,7 +254,7 @@ export function createTerminalService(options) {
     }
   }
   function message(state, websocket, raw) {
-    if (state.closed || state.websocket !== websocket) return;
+    if (!lifecycle.accepting() || state.closed || state.websocket !== websocket) return;
     state.lastInput = clock.now();
     let value;
     try {
@@ -267,16 +276,21 @@ export function createTerminalService(options) {
         message: "Unsupported terminal operation.",
       });
   }
-  async function finish(state, result) {
-    if (state.closed) return;
-    state.closed = true;
+  function finish(state, result) {
+    return lifecycle.finish(state, () => performFinish(state, result));
+  }
+  async function performFinish(state, result) {
     clock.clearInterval(state.idle);
     clock.clearTimeout(state.hard);
-    sessions.delete(state.sessionId);
+    await waitForExit(state.exited, signal => { try { state.terminal.kill(signal); } catch {} });
+    let recoveryPayload, syncError;
     try {
-      state.terminal.kill();
-    } catch {}
-    try {
+      // A reaped SSH/LXD client is not evidence that detached remote writers
+      // have stopped. Do not acknowledge or overwrite a partial snapshot.
+      if (state.remote) {
+        if (!state.remote.assertStopped) throw fault("Remote terminal writers need verified recovery.", "remote_terminal_recovery_required");
+        await state.remote.assertStopped();
+      }
       const { revision: _revision, updatedAt: _updatedAt, replayed: _replayed, ...baseSnapshot } = state.snapshot,
         remotePayload = state.remote ? await state.remote.collect() : null,
         files = remotePayload?.files,
@@ -289,25 +303,41 @@ export function createTerminalService(options) {
               active: Object.hasOwn(files, state.snapshot.active) ? state.snapshot.active : open[0] || Object.keys(files)[0] || "",
             }
           : await readTextSnapshot(state.workspace, baseSnapshot);
+      recoveryPayload = payload;
       const saved = workspaceStore.put(state.owner, state.projectId, {
         expectedRevision: state.snapshot.revision,
         idempotencyKey: `terminal-${state.sessionId}`,
         payload,
       });
+      await state.remote?.acknowledgeSnapshot?.();
       send(state.websocket, {
         type: "workspace-synced",
         revision: saved.revision,
       });
     } catch (error) {
+      syncError = error;
+      state.remote?.markRecovery?.();
+      // Keep service-written records outside the user-writable mount. A file
+      // or link created by the terminal must never choose our recovery target.
+      const recoveryRoot = join(root, ".recovery");
+      await mkdir(recoveryRoot, { recursive: true, mode: 0o700 });
+      const recovery = await open(join(recoveryRoot, `${state.sessionId}.json`), "wx", 0o600);
+      try { await recovery.writeFile(JSON.stringify({ owner: state.owner, projectId: state.projectId, runtimeId: state.runtimeId, expectedRevision: state.snapshot.revision, sessionId: state.sessionId, payload: recoveryPayload || null, reason: error.code || "workspace_sync_failed" })); await recovery.sync(); }
+      finally { await recovery.close(); }
+      const directory = await open(recoveryRoot, "r");
+      try { await directory.sync(); } finally { await directory.close(); }
+      const parent = await open(root, "r");
+      try { await parent.sync(); } finally { await parent.close(); }
+      // A null payload is not a backup of remote edits. Keep its durable guard.
+      if (recoveryPayload) await state.remote?.acknowledgeSnapshot?.();
       send(state.websocket, {
         type: "workspace-sync-conflict",
         code: error.code || "workspace_sync_failed",
-        message: error.message || "Terminal changes could not be synchronized.",
+        message: "Terminal changes could not be synchronized. Recovery data is retained; inspect it before restarting this runtime.",
       });
     }
-    try {
-      await state.remote?.release();
-    } catch {}
+    if (state.remote && !recoveryPayload) throw syncError;
+    await state.remote?.release();
     send(state.websocket, {
       type: "exit",
       code: result.exitCode,
@@ -317,7 +347,9 @@ export function createTerminalService(options) {
     try {
       state.websocket?.close(1000, "Terminal exited");
     } catch {}
+    if (syncError) throw syncError; // Retain private workspace and recovery payload.
     await rm(state.workspace, { recursive: true, force: true });
+    sessions.delete(state.sessionId);
   }
   function remember(state, data) {
     let value = data,
@@ -336,21 +368,20 @@ export function createTerminalService(options) {
     state.replayBytes += bytes;
     while (state.replayBytes > MAX_REPLAY && state.replay.length > 1) state.replayBytes -= Buffer.byteLength(state.replay.shift());
   }
-  async function close() {
-    for (const state of sessions.values())
-      await finish(state, {
-        exitCode: 130,
-        signal: 15,
-        reason: "service_shutdown",
-      });
-    wss.close();
+  function close() {
+    return lifecycle.drain(async () => {
+      await Promise.all([...sessions.values()].map(state => finish(state, { exitCode: 130, signal: 15, reason: "service_maintenance" })));
+      await closeWebSockets(wss);
+    });
   }
   return {
     handler,
     handleUpgrade,
     close,
     status: () => ({
-      active: sessions.size,
+      active: [...sessions.values()].filter(state => !state.closed).length,
+      recoveryRequired: [...sessions.values()].filter(state => state.closed).length,
+      ...lifecycle.status(),
       maxSessions,
       sandbox: sandbox.kind,
       sandboxReady: sandbox.ready,
