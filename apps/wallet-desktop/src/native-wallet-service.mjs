@@ -11,15 +11,17 @@ export class CanonicalAccountNetwork {
   constructor({ fetchImpl = globalThis.fetch } = {}) { this.fetchImpl = fetchImpl; }
   async request(method, params = []) {
     try {
-    const response = await this.fetchImpl(CANONICAL_RPC_URL, {
-      method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
-      signal: AbortSignal.timeout(10_000)
-    });
-    if (!response.ok) throw providerError(4900, "RPC_UNAVAILABLE", "YNX Testnet is unavailable. Try again shortly.");
-    const payload = await response.json();
-    if (payload?.jsonrpc !== "2.0" || payload.id !== 1 || payload.error || !("result" in payload)) throw providerError(4900, "RPC_INVALID_RESPONSE", "YNX Testnet returned an invalid response");
-    return payload.result;
+      const response = await this.fetchImpl(CANONICAL_RPC_URL, {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+        signal: AbortSignal.timeout(10_000)
+      });
+      if (!response.ok) throw providerError(4900, "RPC_UNAVAILABLE", "YNX Testnet is unavailable. Try again shortly.");
+      const payload = await response.json();
+      if (payload?.jsonrpc !== "2.0" || payload.id !== 1) throw providerError(4900, "RPC_INVALID_RESPONSE", "YNX Testnet returned an invalid response");
+      if (payload.error?.code === -32601 && ["eth_gasPrice", "eth_estimateGas"].includes(method)) throw providerError(4900, "RPC_FEE_UNAVAILABLE", "YNX Testnet cannot provide a network fee right now. Your funds have not moved.");
+      if (payload.error || !("result" in payload)) throw providerError(4900, "RPC_INVALID_RESPONSE", "YNX Testnet returned an invalid response");
+      return payload.result;
     } catch (error) {
       if (error?.data?.code) throw error;
       const timedOut = ["AbortError", "TimeoutError"].includes(error?.name);
@@ -66,8 +68,9 @@ export class NativeWalletService {
     const status = await this.vault.status();
     if (!status.initialized) throw providerError(4100, "ACCOUNT_NOT_CREATED", "Create or import an account first");
     const tx = { from: status.account, to: recipient, value: toQuantity(value), chainId: CHAIN_ID };
-    const fee = await this.network.estimate(tx);
     const balance = BigInt(await this.network.balance(status.account));
+    if (balance < value) throw providerError(-32000, "INSUFFICIENT_FUNDS", "Insufficient YNXT for this amount. Add Testnet funds before sending.");
+    const fee = await this.network.estimate(tx);
     const maximumFee = BigInt(fee.gasLimit) * BigInt(fee.gasPrice);
     if (balance < value + maximumFee) throw providerError(-32000, "INSUFFICIENT_FUNDS", "Insufficient YNXT to cover the amount and network fee");
     const id = this.requestId(), createdAt = this.clock();

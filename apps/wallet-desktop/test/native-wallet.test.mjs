@@ -134,3 +134,22 @@ test("timeout errors remain understandable without leaking platform error number
   const network = new CanonicalAccountNetwork({ fetchImpl: async () => { throw new DOMException("driver message", "TimeoutError"); } });
   await assert.rejects(network.verifyChain(), error => error.data.code === "RPC_TIMEOUT" && error.message === "The network check timed out. Please try again.");
 });
+
+test("insufficient balance is reported before requesting a fee or opening a review", async () => {
+  const { service, state } = await serviceFixture();
+  service.network.balance = async () => "0x0";
+  service.network.estimate = async () => { throw new Error("fee must not be requested"); };
+  await assert.rejects(service.prepareTransfer({ to: recipient, amount: "0.1" }), error => error.data.code === "INSUFFICIENT_FUNDS");
+  assert.equal(state.sends, 0); assert.equal(service.pending.size, 0);
+});
+
+test("an unimplemented fee method stops review without inventing a network fee", async () => {
+  const { service, state } = await serviceFixture();
+  service.network = new CanonicalAccountNetwork({ fetchImpl: async (_url, options) => {
+    const { method } = JSON.parse(options.body);
+    const payload = method === "eth_gasPrice" ? { error: { code: -32601, message: "method unavailable" } } : { result: method === "eth_chainId" ? "0x1917" : method === "eth_getBalance" ? "0xde0b6b3a7640000" : "0x5208" };
+    return new Response(JSON.stringify({ jsonrpc: "2.0", id: 1, ...payload }));
+  } });
+  await assert.rejects(service.prepareTransfer({ to: recipient, amount: "0.1" }), error => error.data.code === "RPC_FEE_UNAVAILABLE");
+  assert.equal(state.sends, 0); assert.equal(service.pending.size, 0);
+});
