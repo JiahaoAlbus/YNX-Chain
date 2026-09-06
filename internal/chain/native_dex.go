@@ -555,6 +555,12 @@ func (d *Devnet) moveNativeDexBalance(asset, from, to string, amount int64) erro
 	if a < amount {
 		return errors.New("insufficient DEX asset balance")
 	}
+	// A self-transfer has no net asset credit. The enclosing signed action still
+	// consumes its nonce and native fee once; writing this same balance key twice
+	// would otherwise replace the debit with a credit and mint unrecorded supply.
+	if from == to {
+		return nil
+	}
 	if b > math.MaxInt64-amount {
 		return errors.New("DEX asset balance overflow")
 	}
