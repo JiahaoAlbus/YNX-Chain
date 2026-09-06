@@ -1,0 +1,217 @@
+name: Wallet Windows immutable installer QA
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  arm64-original-installer:
+    runs-on: windows-11-arm
+    timeout-minutes: 20
+    env:
+      SOURCE_COMMIT: 1cab8a7198f9481901c642a3682983366a50374c
+      ORIGINAL_RUN: '34040008469'
+      ARTIFACT_ID: '9991558604'
+      ARTIFACT_BYTES: '113835491'
+      ARTIFACT_SHA256: 65d8565b5e35b11f92af4784c0b6e64ac0acb05c3d65159fd15560676c3c4803
+      INSTALLER_BYTES: '113823742'
+      INSTALLER_SHA256: 2b58178fb3fea4d9ff9042abbe72c33f7bc3b86de3b413e37c20b179e20648bb
+    steps:
+      - name: Preserve exact committed source bytes
+        shell: bash
+        run: git config --global core.autocrlf false
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          ref: 1cab8a7198f9481901c642a3682983366a50374c
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24.18.0
+      - name: Download and hash the original immutable artifact
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import path from 'node:path';
+          import { createHash } from 'node:crypto';
+          import { Readable, Transform } from 'node:stream';
+          import { pipeline } from 'node:stream/promises';
+          import { execFileSync } from 'node:child_process';
+          const check = (ok, message) => { if (!ok) throw new Error(message); };
+          try {
+            check(process.platform === 'win32' && process.arch === 'arm64', 'Native Windows arm64 is required.');
+            check(execFileSync('git', ['rev-parse', 'HEAD'], {encoding:'utf8'}).trim() === process.env.SOURCE_COMMIT, 'Source commit mismatch.');
+            const directory = path.join(process.env.GITHUB_WORKSPACE, 'installed-qa-evidence');
+            fs.mkdirSync(directory, {recursive:true});
+            const endpoint = `https://api.github.com/repos/JiahaoAlbus/YNX-Chain/actions/artifacts/${process.env.ARTIFACT_ID}`;
+            const headers = {Authorization:`Bearer ${process.env.GH_TOKEN}`, Accept:'application/vnd.github+json'};
+            const metaResponse = await fetch(endpoint, {headers, redirect:'error'});
+            check(metaResponse.status === 200, 'Artifact metadata unavailable.');
+            const metadata = await metaResponse.json();
+            check(metadata.id === Number(process.env.ARTIFACT_ID) && metadata.workflow_run?.id === Number(process.env.ORIGINAL_RUN) && metadata.workflow_run?.head_sha === process.env.SOURCE_COMMIT && !metadata.expired && metadata.name === `wallet-current-windows-arm64-${process.env.SOURCE_COMMIT}` && metadata.size_in_bytes === Number(process.env.ARTIFACT_BYTES) && metadata.digest === `sha256:${process.env.ARTIFACT_SHA256}`, 'Artifact metadata binding mismatch.');
+            fs.writeFileSync(path.join(directory, 'github-artifact-metadata.json'), JSON.stringify(metadata,null,2));
+            const redirect = await fetch(`${endpoint}/zip`, {headers, redirect:'manual'});
+            check(redirect.status === 302, 'Expected authenticated artifact redirect.');
+            const url = new URL(redirect.headers.get('location'));
+            check(url.protocol === 'https:' && !url.username && !url.password, 'Invalid artifact delivery URL.');
+            const download = await fetch(url, {redirect:'error', signal:AbortSignal.timeout(300000)});
+            check(download.status === 200 && download.body, 'Artifact delivery failed.');
+            const hash = createHash('sha256'); let bytes=0;
+            const meter = new Transform({transform(chunk,encoding,callback) {
+              bytes+=chunk.length;
+              if (bytes>Number(process.env.ARTIFACT_BYTES)) return callback(new Error('Artifact size exceeded.'));
+              hash.update(chunk); callback(null,chunk);
+            }});
+            await pipeline(Readable.fromWeb(download.body),meter,fs.createWriteStream(path.join(process.env.RUNNER_TEMP,'wallet-original-arm64.zip'),{flags:'wx'}));
+            const sha256=hash.digest('hex');
+            check(bytes===Number(process.env.ARTIFACT_BYTES) && sha256===process.env.ARTIFACT_SHA256,'Complete artifact hash mismatch.');
+            fs.writeFileSync(path.join(directory,'artifact-download.json'),JSON.stringify({sourceCommit:process.env.SOURCE_COMMIT,artifactId:metadata.id,bytes,sha256,completeArtifactHashVerified:true},null,2));
+          } catch { console.error('Immutable artifact download or binding verification failed.'); process.exitCode=1; }
+          NODE
+      - name: Extract only the exact installer and manifest
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $out = Join-Path $env:GITHUB_WORKSPACE 'installed-qa-evidence'
+          $zip = [IO.Compression.ZipFile]::OpenRead((Join-Path $env:RUNNER_TEMP 'wallet-original-arm64.zip'))
+          try {
+            foreach ($name in @('ynx-wallet-desktop-0.6.4-arm64.exe', 'release-manifest.json')) {
+              $entries = @($zip.Entries | Where-Object Name -eq $name)
+              if ($entries.Count -ne 1) { throw 'Ambiguous or missing original artifact entry' }
+              $target = Join-Path $out $name
+              [IO.Compression.ZipFileExtensions]::ExtractToFile($entries[0], $target, $false)
+            }
+          } finally { $zip.Dispose() }
+          $installer = Get-Item (Join-Path $out 'ynx-wallet-desktop-0.6.4-arm64.exe')
+          $hash = (Get-FileHash $installer.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($installer.Length -ne [long]$env:INSTALLER_BYTES -or $hash -ne $env:INSTALLER_SHA256) { throw 'Original installer bytes do not match' }
+          $signature = Get-AuthenticodeSignature $installer.FullName
+          [ordered]@{ filename=$installer.Name; bytes=$installer.Length; sha256=$hash; authenticodeStatus=[string]$signature.Status; productionSigned=$false } | ConvertTo-Json | Set-Content (Join-Path $out 'installer-identity.json')
+          if ($signature.Status -ne 'NotSigned') { throw 'Unexpected original installer signing status' }
+      - name: Verify exact runtime source manifest and install only pinned verifier dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import { createHash } from 'node:crypto';
+          import { execFileSync } from 'node:child_process';
+          const manifest = JSON.parse(fs.readFileSync('installed-qa-evidence/release-manifest.json','utf8'));
+          const git = (...args) => execFileSync('git',args);
+          const commit = process.env.SOURCE_COMMIT;
+          if (manifest.sourceCommit!==commit || manifest.version!=='0.6.4' || manifest.buildArchitecture!=='arm64' || manifest.buildPlatform!=='win32' || manifest.walletTree!==git('rev-parse',`${commit}:apps/wallet-desktop`).toString().trim() || manifest.walletAuthTree!==git('rev-parse',`${commit}:packages/wallet-auth`).toString().trim()) throw new Error('Source tree binding mismatch.');
+          const expected = [
+            ...git('ls-tree','-r','--name-only',commit,'apps/wallet-desktop/src').toString().trim().split('\n'),
+            'packages/wallet-auth/package.json',
+            ...git('ls-tree','-r','--name-only',commit,'packages/wallet-auth/src').toString().trim().split('\n').filter(p=>!p.endsWith('.d.ts')),
+          ].sort();
+          const mapped = manifest.files.map(file => ({...file,source:file.path.startsWith('src/') ? 'apps/wallet-desktop/'+file.path : file.path.replace(/^node_modules\/@ynx-chain\/wallet-auth\//,'packages/wallet-auth/')}));
+          if (JSON.stringify(mapped.map(f=>f.source).sort())!==JSON.stringify(expected)) throw new Error('Incomplete or duplicate runtime source coverage.');
+          for (const file of mapped) {
+            const bytes=git('show',`${commit}:${file.source}`);
+            if (bytes.length!==file.bytes || createHash('sha256').update(bytes).digest('hex')!==file.sha256) throw new Error('Runtime git blob mismatch.');
+          }
+          fs.writeFileSync('installed-qa-evidence/source-verification.json',JSON.stringify({sourceCommit:commit,runtimeFiles:expected.length,allGitBlobsMatched:true,excludedTypeDeclarations:manifest.excludedTypeDeclarations},null,2));
+          NODE
+          npm ci --ignore-scripts --prefix packages/wallet-auth
+          npm ci --ignore-scripts --prefix apps/wallet-desktop
+      - name: Install original native package once and retain all outcomes
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $out = Join-Path $env:GITHUB_WORKSPACE 'installed-qa-evidence'
+          $installer = Join-Path $out 'ynx-wallet-desktop-0.6.4-arm64.exe'
+          $started = Get-Date
+          $result = [ordered]@{ sourceCommit=$env:SOURCE_COMMIT; workflowCommit=$env:GITHUB_SHA; originalRun=$env:ORIGINAL_RUN; startedAt=$started.ToUniversalTime().ToString('o'); osArchitecture=[string][Runtime.InteropServices.RuntimeInformation]::OSArchitecture; processArchitecture=[string][Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture; installerPath=$installer; arguments=@('/S'); installAttemptCount=1; exitCode=$null; exitCodeType=$null; exited=$false; installAccepted=$false; twoColdStarts=$false; failure=$null }
+          $app = $null
+          try {
+            if ($result.osArchitecture -ne 'Arm64') { throw 'A native ARM64 runner is required' }
+            $os = Get-CimInstance Win32_OperatingSystem | Select-Object Caption,Version,BuildNumber,OSArchitecture
+            $os | ConvertTo-Json | Set-Content (Join-Path $out 'windows-os.json')
+            # One /S invocation. No /NCRC, elevation, architecture override, or automatic retry.
+            $install = [Diagnostics.Process]::new()
+            $install.StartInfo.FileName = $installer
+            $install.StartInfo.ArgumentList.Add('/S')
+            $install.StartInfo.UseShellExecute = $false
+            if (-not $install.Start()) { throw 'Installer process did not start' }
+            $result.exitCodeCapture = 'System.Diagnostics.Process retained native handle'
+            $result.installerPid = $install.Id
+            $result.exited = $install.WaitForExit(180000)
+            $install.Refresh()
+            if ($result.exited) {
+              $result.exitCode = $install.ExitCode
+              if ($null -ne $result.exitCode) { $result.exitCodeType = $result.exitCode.GetType().FullName }
+            }
+            if (-not $result.exited -or $null -eq $result.exitCode -or $result.exitCode -ne 0) { throw 'Original installer did not return a verified successful exit code' }
+            $result.installAccepted = $true
+            $matches = @(Get-ChildItem (Join-Path $env:LOCALAPPDATA 'Programs') -Filter 'YNX Wallet.exe' -File -Recurse -ErrorAction SilentlyContinue)
+            if ($matches.Count -ne 1) { throw 'Installed executable is ambiguous or missing' }
+            $exe = $matches[0].FullName
+            $result.installedExe = $exe
+            $result.installedVersion = (Get-Item $exe).VersionInfo.ProductVersion
+            $pe = [IO.File]::ReadAllBytes($exe)
+            $peOffset = [BitConverter]::ToInt32($pe, 0x3c)
+            if ($peOffset -lt 0 -or $peOffset + 6 -gt $pe.Length -or [BitConverter]::ToUInt32($pe,$peOffset) -ne 0x00004550) { throw 'Invalid installed PE file' }
+            $result.installedPEMachine = [BitConverter]::ToUInt16($pe,$peOffset+4)
+            if ($result.installedPEMachine -ne 0xaa64) { throw 'Installed application is not native ARM64' }
+            # Only the verifier child receives the original release SHA. The QA workflow
+            # commit remains separately recorded and never describes package source.
+            node --input-type=module -e 'import {execFileSync} from "node:child_process"; execFileSync(process.execPath,["apps/wallet-desktop/scripts/release-provenance.mjs",...process.argv.slice(1)],{stdio:"inherit",env:{...process.env,GITHUB_SHA:process.env.SOURCE_COMMIT}})' (Join-Path (Split-Path $exe) 'resources') $out
+            if ($LASTEXITCODE -ne 0) { throw 'Installed runtime source verification failed' }
+            $env:YNX_WALLET_PROFILE_PATH = Join-Path $env:RUNNER_TEMP 'wallet-original-arm64-qa-profile'
+            $env:YNX_WALLET_EVIDENCE_PATH = Join-Path $out 'installed-smoke.json'
+            if (Test-Path $env:YNX_WALLET_PROFILE_PATH) { throw 'Expected a fresh dedicated QA profile' }
+            for ($phase = 1; $phase -le 2; $phase++) {
+              $app = Start-Process -FilePath $exe -PassThru
+              $ready = $false
+              for ($attempt = 0; $attempt -lt 45; $attempt++) {
+                Start-Sleep -Seconds 1
+                if (Test-Path $env:YNX_WALLET_EVIDENCE_PATH) {
+                  $e = Get-Content $env:YNX_WALLET_EVIDENCE_PATH -Raw | ConvertFrom-Json
+                  if ($e.launches -eq $phase) { $ready = $true; break }
+                }
+              }
+              if (-not $ready -or -not $e.visibleShellReady -or -not $e.window.visible -or -not $e.keySecurity.locked -or $e.signingEnabled -or $e.providerAuthority.accountCreated -ne $false -or $e.appVersion -ne '0.6.4') { throw 'Locked cold-start verification failed' }
+              $app.Refresh()
+              if ($app.HasExited -or -not $app.CloseMainWindow() -or -not $app.WaitForExit(15000)) { throw 'Native application lifecycle failed' }
+              $app = $null
+              Copy-Item $env:YNX_WALLET_EVIDENCE_PATH (Join-Path $out "installed-smoke-launch-$phase.json")
+            }
+            $result.twoColdStarts = $true
+          } catch {
+            $result.failure = $_.Exception.Message
+            throw
+          } finally {
+            $result.completedAt = (Get-Date).ToUniversalTime().ToString('o')
+            $result | ConvertTo-Json -Depth 8 | Set-Content (Join-Path $out 'installer-result.json')
+            # Diagnostics are restricted to this fresh CI runner and this product.
+            $registry = @('HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*','HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall\*','HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\*')
+            $registryEvidence = @(Get-ItemProperty $registry -ErrorAction SilentlyContinue | Where-Object DisplayName -eq 'YNX Wallet' | Select-Object DisplayName,DisplayVersion,InstallLocation,UninstallString,PSPath)
+            ConvertTo-Json -InputObject $registryEvidence -Depth 5 | Set-Content (Join-Path $out 'installer-registry.json')
+            $candidates = @(Get-ChildItem (Join-Path $env:LOCALAPPDATA 'Programs') -Filter '*YNX*' -Recurse -ErrorAction SilentlyContinue | Select-Object FullName,Length,LastWriteTimeUtc)
+            ConvertTo-Json -InputObject $candidates -Depth 5 | Set-Content (Join-Path $out 'installed-paths.json')
+            $logs = @(Get-ChildItem $env:TEMP -Filter '*.log' -File -Recurse -ErrorAction SilentlyContinue | Where-Object { $_.LastWriteTime -ge $started -and $_.Length -le 2097152 -and ($_.Name -match 'nsis|install|ynx' -or $_.DirectoryName -match '\\ns[^\\]+\.tmp$') })
+            $logEvidence = @(); $n = 0
+            foreach ($log in $logs) {
+              $n++; $dest = Join-Path $out "nsis-existing-log-$n.txt"
+              try { Copy-Item -LiteralPath $log.FullName $dest; $logEvidence += @{ originalPath=$log.FullName; savedAs=$dest; bytes=$log.Length } } catch { }
+            }
+            ConvertTo-Json -InputObject $logEvidence -Depth 5 | Set-Content (Join-Path $out 'nsis-log-inventory.json')
+            try { Get-WinEvent -FilterHashtable @{LogName='Application'; StartTime=$started} -ErrorAction Stop | Where-Object { $_.Message -match 'YNX Wallet|ynx-wallet-desktop|nsis' } | Select-Object TimeCreated,Id,ProviderName,LevelDisplayName,Message | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $out 'installer-application-events.json') } catch { }
+            if ($null -ne $app) { try { $app.CloseMainWindow() | Out-Null; $app.WaitForExit(15000) | Out-Null } catch { } }
+          }
+      - name: Upload exact bounded diagnostics even on failure
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: wallet-windows-arm64-original-installed-qa-${{ github.run_id }}
+          if-no-files-found: warn
+          path: |
+            installed-qa-evidence/*.json
+            installed-qa-evidence/*.txt
