@@ -3,7 +3,7 @@ import {execFileSync} from "node:child_process";
 import {readFile} from "node:fs/promises";
 import test from "node:test";
 import {deriveWalletWebCompanionBinding,requireCanonicalAuthorizationContext} from "../src/core-auth-consumer.js";
-import {SENSITIVE_REPLAY_KEY,consumeSensitiveRequest,parseSensitiveRequest,validateSensitiveResult} from "../src/extension-sensitive-policy.js";
+import {SensitiveAuthorizationGuard,SENSITIVE_REPLAY_KEY,consumeSensitiveRequest,parseSensitiveRequest,validateSensitiveResult} from "../src/extension-sensitive-policy.js";
 
 const ID="ynx-11111111-1111-4111-8111-111111111111",ACCOUNT="0x1111111111111111111111111111111111111111",deadline=Date.now()+18000;
 const message=(method,params)=>({requestId:ID,deadlineAt:deadline,method,params});
@@ -31,6 +31,19 @@ test("sensitive request IDs are consumed once in bounded session storage",async(
   const storage=memoryStorage(),request=message("personal_sign",["0x00",ACCOUNT]);
   await consumeSensitiveRequest(storage,request);assert.equal(storage.state[SENSITIVE_REPLAY_KEY].length,1);
   await assert.rejects(()=>consumeSensitiveRequest(storage,request),error=>error.code==="REQUEST_REPLAYED");
+});
+
+test("concurrent duplicate sensitive requests cannot race the replay write",async()=>{
+  const storage=memoryStorage(),request=message("personal_sign",["0x00",ACCOUNT]),results=await Promise.allSettled([consumeSensitiveRequest(storage,request),consumeSensitiveRequest(storage,request)]);
+  assert.equal(results.filter(result=>result.status==="fulfilled").length,1);assert.equal(results.find(result=>result.status==="rejected").reason.code,"REQUEST_REPLAYED");assert.equal(storage.state[SENSITIVE_REPLAY_KEY].length,1);
+});
+
+test("authorization guard rejects revoke-and-regrant, account replacement, origin change and deadline drift",async()=>{
+  const origin="https://dapp.example",state={now:1,tab:{id:1,url:`${origin}/path`},account:{account:ACCOUNT},permission:{origin,account:ACCOUNT,chainId:"0x1917",grantedAt:1}},guard=new SensitiveAuthorizationGuard({getTab:async()=>state.tab,getAccount:async()=>state.account,getPermission:async()=>state.permission,now:()=>state.now});
+  const capture=()=>guard.capture({origin,tabId:1,account:ACCOUNT,grantedAt:1,deadlineAt:100});
+  const lease=capture();await guard.assert(lease);guard.invalidateOrigin(origin);await assert.rejects(guard.assert(lease),error=>error.code==="PERMISSION_REVOKED");
+  const second=capture();guard.invalidateAll();await assert.rejects(guard.assert(second),error=>error.code==="PROVIDER_ACCOUNT_CHANGED");
+  const third=capture();state.tab.url="https://other.example";await assert.rejects(guard.assert(third),error=>error.code==="ORIGIN_CHANGED");state.tab.url=origin;state.now=100;await assert.rejects(guard.assert(third),error=>error.code==="BRIDGE_EXPIRED");
 });
 
 test("sensitive results never accept fabricated accounts, signatures or transaction hashes",()=>{
