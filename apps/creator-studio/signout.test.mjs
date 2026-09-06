@@ -254,3 +254,14 @@ test('a stored pending logout stays explicit after page restore and blocks new C
   await controller.click('product-disconnect');
   assert.equal(controller.element('#product-signin').disabled,false);
 });
+
+test('a Creator sign-in racing initial restore retains explicit SDK pending logout controls',async()=>{
+ const initial=deferred(),state={status:'retry-required',revocationPending:true,message:'Pending sign-out'};
+ const c=await app({restoreProductSession:()=>initial.promise,prepareProductSignIn:async()=>{throw Object.assign(new Error(state.message),{productSessionState:state});}});
+ await c.click('product-signin');initial.resolve(connected('old'));await turn();
+ assert.equal(c.element('#product-signin').disabled,true);
+ assert.equal(c.element('#product-disconnect').hidden,false);
+ assert.equal(c.element('#product-disconnect').textContent,'Retry sign out');
+ assert.equal(c.element('#product-open').hidden,true);
+ assert.equal(c.readState().creatorAccount,null);
+});

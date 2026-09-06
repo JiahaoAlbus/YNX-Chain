@@ -131,3 +131,14 @@ test('restored pending logout has only explicit retry and never starts new appro
  await c.node('#product-connect').onclick();await c.restoreVideoAccount();
  assert.equal(prepares,0);assert.equal(restores,1);
 });
+
+test('a sign-in racing initial restore still exposes SDK pending logout retry',async()=>{
+ const initial=deferred(),state={status:'retry-required',revocationPending:true,message:'Pending sign-out'};
+ const c=await controller({product:{atRegisteredOrigin:()=>true,restore:()=>initial.promise,prepare:async()=>{throw Object.assign(new Error(state.message),{productSessionState:state});}}});
+ await c.node('#product-connect').onclick();initial.resolve(connected);await turn();
+ assert.equal(c.node('#product-disconnect').hidden,false);
+ assert.equal(c.node('#product-disconnect').textContent,'Retry sign out');
+ assert.equal(c.node('#product-connect').disabled,true);
+ assert.equal(c.node('#product-launch').hidden,true);
+ assert.equal(c.node('#comment textarea').disabled,true);
+});

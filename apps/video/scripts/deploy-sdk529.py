@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Coordinator-only frontend switch. Never restores an incompatible predecessor."""
-import argparse, hashlib, json, os, pathlib, re, subprocess, sys, tarfile, time, urllib.request, urllib.error, tempfile
+import argparse, hashlib, json, os, pathlib, re, signal, subprocess, sys, tarfile, time, urllib.request, urllib.error, tempfile
+class ReleaseInterrupted(BaseException): pass
 SDK='529471f3822d2bac43ea47a1ab8004fa2ae79885'
 AUTH='8dad0bab8f6f711e6ca6037201eec5725f9a6a02'
 def digest(data): return hashlib.sha256(data).hexdigest()
@@ -118,16 +119,20 @@ def main():
     for mode in ['recovery','normal']:materialize(p[mode],source,args.archive_root)
     # Authority may not be weakened to an earlier implementation.
     require(prop('ynx-wallet-gateway.service','WorkingDirectory')==envelope['authDirectory'],'Auth compatible baseline changed')
+    code,_,version=http(18445,'/version');require(code==200 and json.loads(version).get('build',{}).get('sourceCommit')==AUTH,'Auth live source does not match compatible baseline')
     code,_,body=http(18445,'/v2/product-sessions/time');require(code==200 and json.loads(body).get('ok') is True,'Authority time unavailable')
     require(preserved()==before,'Neighbor/config changed during preparation')
     require(unit_identity(unit,p['port'])==live,'Selected frontend changed during preparation')
-    if args.action=='preflight':print(json.dumps({'preflight':True,'sourceCommit':source,'product':args.product,'selected':live,'installedWalletApprovalVerified':False}));return
+    if args.action=='preflight':print(json.dumps({'stagedAndVerified':True,'sourceCommit':source,'product':args.product,'selected':live,'installedWalletApprovalVerified':False}));return
     receipt_dir=pathlib.Path('/var/lib/ynx-product-frontend-releases')/(source+'-'+args.product);receipt_dir.mkdir(parents=True,exist_ok=True);receipt_dir.chmod(0o700)
     stamp=str(time.time_ns());(receipt_dir/(stamp+'-before.json')).write_text(json.dumps({'source':source,'product':args.product,'action':args.action,'selected':live,'preserved':before,'environmentSHA256':original_env},indent=2));os.chmod(receipt_dir/(stamp+'-before.json'),0o600)
+    mutation_attempted=False
     def switch(mode):
+        nonlocal mutation_attempted
         info=p[mode];validate_payload(info['directory'],info,source)
         require(preserved()==before,'Neighbor/config drift: refusing switch')
         require(digest((prop(unit,'Environment')+'\n'+prop(unit,'EnvironmentFiles')).encode())==original_env,'Environment changed')
+        mutation_attempted=True
         run('systemctl','stop',unit)
         require(prop(unit,'MainPID')=='0','Selected frontend did not stop')
         tmp=dropin.with_suffix('.tmp');tmp.write_bytes(config_bytes(info));tmp.chmod(0o644);tmp.replace(dropin)
@@ -156,9 +161,15 @@ def main():
         require(prop(unit,'DropInPaths').split()==sorted(list(p['oldDropIns'])+[str(dropin)]),'Unexpected merged drop-ins')
         return identity
     target='recovery' if args.action=='recover' else 'normal'
+    watched=(signal.SIGTERM,signal.SIGHUP,signal.SIGINT)
+    previous_handlers={sig:signal.getsignal(sig) for sig in watched}
+    def interrupted(sig,frame):raise ReleaseInterrupted('Release interrupted by signal '+str(sig))
+    for sig in watched:signal.signal(sig,interrupted)
     try:
         result=switch(target)
     except BaseException as error:
+        if not mutation_attempted:raise
+        for sig in watched:signal.signal(sig,signal.SIG_IGN)
         print(json.dumps({'deploymentFailed':str(error),'compatibleRecoveryAttempted':True}),flush=True)
         try:
             recovery=switch('recovery');print(json.dumps({'compatibleRecoveryRunning':recovery,'sourceCommit':source}),flush=True)
@@ -169,6 +180,8 @@ def main():
             dropin.write_bytes(config_bytes(p['recovery']));dropin.chmod(0o644);run('systemctl','daemon-reload')
             print(json.dumps({'selectedFrontendStopped':True,'reason':str(recovery_error),'dataPreserved':True}),flush=True)
         raise
+    finally:
+        for sig,handler in previous_handlers.items():signal.signal(sig,handler)
     receipt={'sourceCommit':source,'product':args.product,'mode':target,'selected':result,'preserved':preserved(),'environmentSHA256':original_env,'installedWalletApprovalVerified':False,'completedAt':time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())}
     path=receipt_dir/(stamp+'-after.json');path.write_text(json.dumps(receipt,indent=2));path.chmod(0o600);print(json.dumps(receipt,indent=2))
 if __name__=='__main__':main()

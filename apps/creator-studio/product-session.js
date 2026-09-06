@@ -27,7 +27,7 @@ export async function productSession() {
 export async function prepareProductSignIn() {
   const browser = await productSession();
   const state = await browser.client.begin({walletInstalled:false,schemeRegistered:false});
-  if (!state.request) throw new Error(state.message);
+  if (!state.request) throw Object.assign(new Error(state.message), {productSessionState: state});
   // This is an explicit user-selected launch attempt, never installation detection.
   // begin minted this fresh request using Auth time. Do not revalidate it against
   // a skewed local clock while serializing; Wallet validates expiry at approval.

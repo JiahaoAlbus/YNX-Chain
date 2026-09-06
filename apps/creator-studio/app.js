@@ -302,7 +302,7 @@ productConnect.addEventListener("click",async()=>{
   productConnect.textContent="Sign in with YNX Wallet";
   const revision=creatorSessionRevision;
   try{const prepared=await prepareProductSignIn();if(revision!==creatorSessionRevision)return;productOpen.href=prepared.url;productOpen.hidden=false;productStatus.textContent="Open YNX Wallet and review this Creator sign-in. If it is not installed, use the Wallet download link.";productOpen.focus();}
-  catch(error){if(revision===creatorSessionRevision)productStatus.textContent=error.message;}
+  catch(error){if(revision===creatorSessionRevision){if(error.productSessionState?.revocationPending)renderProductState(error.productSessionState);else productStatus.textContent=error.message;}}
   finally{productConnect.disabled=creatorSignOutPending;}
 });
 productDisconnect.addEventListener("click",async()=>{

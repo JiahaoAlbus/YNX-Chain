@@ -51,7 +51,7 @@ export function createVideoProductSession({environment = globalThis,
       // A pending request is protected before offering an explicit launch link.
       // Web cannot detect installation; no automatic navigation or fake capability.
       const state = await browser.client.begin({walletInstalled: false, schemeRegistered: false});
-      if (!state.request) throw new Error(state.message);
+      if (!state.request) throw Object.assign(new Error(state.message), {productSessionState: state});
       // Serialize at the authority time just used by begin; Wallet checks expiry
       // on arrival. A skewed product device clock must not block the launch link.
       return {url: encodeWalletURL(browser.registry, state.request, new Date(state.request.issuedAt)), expiresAt: state.request.expiresAt};

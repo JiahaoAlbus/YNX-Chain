@@ -135,3 +135,9 @@ test('watch progress excludes guest playback and seeking; failed persistence ret
   await watch.flush();assert.equal(writes.length,2);
   watch.discard();now=4000;sample(100);now=5000;sample(101);await watch.flush();assert.equal(writes.length,2);
 });
+
+test('preparation retains the SDK pending logout state so the UI can expose explicit retry',async()=>{
+ const state={status:'retry-required',revocationPending:true,message:'Sign-out pending'};
+ const product=createVideoProductSession({environment:{location:{origin:VIDEO_ORIGIN},fetch:async()=>ok(registry)},GatewayAdapter:class{},createBrowserClient:async()=>({client:{begin:async()=>state}})});
+ await assert.rejects(product.prepare(),error=>error.productSessionState===state);
+});

@@ -275,7 +275,7 @@ async function prepareVideoSignIn() {
       $("#product-launch").hidden = true;
       $("#product-status").textContent = "This sign-in request expired. Select Sign in with YNX Wallet to start again.";
     }, Math.max(0, Date.parse(request.expiresAt) - Date.now()));
-  } catch (error) {if (revision === productRevision) $("#product-status").textContent = error.message || "Sign-in could not start. Please retry.";}
+  } catch (error) {if (revision === productRevision) {if (error.productSessionState?.revocationPending) renderProductState(error.productSessionState); else $("#product-status").textContent = error.message || "Sign-in could not start. Please retry.";}}
   finally {button.disabled = productSignOutPending;}
 }
 
