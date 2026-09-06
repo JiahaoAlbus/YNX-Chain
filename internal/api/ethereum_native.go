@@ -132,12 +132,31 @@ func (s *Server) ethereumNativeResult(method string, params []any) (any, bool, e
 		if err != nil || !found {
 			return respond(nil, err)
 		}
-		result := evmBlock(block, false)
+		// Native block production has no EVM gas scheduler. Preserve its history
+		// and reject blocks outside this adapter's fee-equivalent projection
+		// instead of returning gasUsed above gasLimit or inventing a higher cap.
 		gas := new(big.Int)
+		for _, tx := range block.Transactions {
+			gas.Add(gas, nativeFeeGas(tx.Fee))
+		}
+		if gas.Cmp(new(big.Int).SetUint64(ethnative.MaxGasLimit)) > 0 {
+			return respond(nil, &rpcMethodError{
+				code:    -32004,
+				message: "native block exceeds the Ethereum adapter's fee-equivalent gas projection; use the native block endpoint",
+				data: map[string]any{
+					"status":      "native_block_projection_unsupported",
+					"blockNumber": hexQuantity(block.Height), "blockHash": evmHash(block.Hash),
+					"feeEquivalentGas": ethnative.Quantity(gas), "projectionGasLimit": hexQuantity(ethnative.MaxGasLimit),
+					"gasSemantics":    "native fixed-fee accounting; no EVM block gas scheduling",
+					"nativeBlockPath": fmt.Sprintf("/blocks/%d", block.Height),
+				},
+			})
+		}
+		result := evmBlock(block, false)
+		result["gasLimit"] = hexQuantity(ethnative.MaxGasLimit)
 		logs := []chain.EVMLog{}
 		txs := make([]any, 0, len(block.Transactions))
 		for _, tx := range block.Transactions {
-			gas.Add(gas, nativeFeeGas(tx.Fee))
 			logs = append(logs, tx.Logs...)
 			if full {
 				item, err := s.ethereumTransaction(tx)

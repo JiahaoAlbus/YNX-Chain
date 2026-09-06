@@ -16,6 +16,8 @@ The adapter therefore publishes a **native fixed-fee gas accounting convention**
 - `eth_getBalance`, transaction values, receipt effective gas price and fee reporting use arbitrary-precision conversion, never floating-point arithmetic or a change in ledger storage.
 - Existing native transaction fees are displayed using the same native fee-to-gas accounting convention. Original transaction hashes, native amounts and provenance events remain in the ledger. Ethereum RPC log blooms are computed from those real native provenance events; they are not evidence of EVM execution.
 
+Native block production does not enforce an EVM block gas scheduler. The adapter projects blocks only while their total fixed-fee equivalent is at most 30,000,000 gas (1,200 transfers charging 1 YNXT each). Beyond that boundary, `eth_getBlockByNumber` and `eth_getBlockByHash` return `-32004` with `native_block_projection_unsupported`, the public block identity, exact fee-equivalent gas and native `/blocks/{height}` path. They do not increase the declared limit, truncate fees or rewrite native history. Receipts retain their exact cumulative fee accounting. Standard wallets or Ethereum-only explorers may therefore be unable to load such a block; native block queries remain complete. This is a bounded compatibility response, not complete Ethereum block compatibility or general EVM execution.
+
 Only positive whole-YNXT amounts up to `MaxInt64 - 1` are supported. Fractional values, zero-value transfers, self-transfers, contract creation, calldata, transfers to known contracts, access-list/typed transactions and nonmatching prices are rejected before state mutation. Raising gas price does not silently change or bypass the native charge.
 
 ## Signature and nonce domain
