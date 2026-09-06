@@ -1,11 +1,12 @@
 import {execFileSync} from 'node:child_process';
+import {createHash} from 'node:crypto';
 import {mkdtempSync,readFileSync,writeFileSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join,resolve} from 'node:path';
 import {fileURLToPath} from 'node:url';
 const root=fileURLToPath(new URL('../',import.meta.url));
 const repository=execFileSync('git',['rev-parse','--show-toplevel'],{cwd:root,encoding:'utf8'}).trim();
-const source='b3e4b5269d665ee5c8e2542454191cfc6ff53ecb';
+const source='ff68d6d1c81708bd0144016750002a87d50bb5f9';
 const bundler=process.argv[2];
 if(!bundler)throw new Error('Pass the path to the recorded esbuild version. The SDK comes from its frozen Git object.');
 const version=execFileSync(resolve(bundler),['--version'],{encoding:'utf8'}).trim();
@@ -13,13 +14,34 @@ const recorded=JSON.parse(readFileSync(join(root,'product-session-sdk-source.jso
 if(version!==recorded.bundlerVersion)throw new Error(`Use esbuild ${recorded.bundlerVersion}`);
 const temporary=mkdtempSync(join(tmpdir(),'ynx-creator-sdk-'));
 try{
- const archive=execFileSync('git',['archive',source,'packages/wallet-auth/src','packages/wallet-auth/package.json','packages/wallet-auth/package-lock.json','packages/wallet-auth/product-session-registry.json'],{cwd:repository,maxBuffer:8*1024*1024});
+ const archive=execFileSync('git',['archive',source,'packages/wallet-auth'],{cwd:repository,maxBuffer:32*1024*1024});
  execFileSync('tar',['-x','-C',temporary,'--strip-components=2'],{input:archive});
  execFileSync('npm',['ci','--omit=dev','--ignore-scripts','--no-audit','--no-fund'],{cwd:temporary,stdio:'inherit'});
  const entry=join(temporary,'entry.js');
  writeFileSync(entry,`export {createBrowserProductSessionClient} from './src/product-session-browser.js';\nexport {ProductSessionGatewayFetchAdapter} from './src/product-session-gateway-client.js';\nexport {encodeProductSessionWalletURL} from './src/product-session-router.js';\n`);
  execFileSync(resolve(bundler),[entry,'--bundle','--format=esm','--platform=browser','--target=es2022','--minify',`--banner:js=// YNX Wallet/Auth browser SDK: ${source}`,`--outfile=${join(root,'product-session-sdk.js')}`,'--log-level=warning']);
- const registry=JSON.parse(readFileSync(join(temporary,'product-session-registry.json'),'utf8'));registry.products=registry.products.filter(item=>item.productId==='creator-studio');
- writeFileSync(join(root,'product-session-registry.json'),JSON.stringify(registry,null,2)+'\n');
- console.log(`Creator browser SDK rebuilt from ${source}`);
+ const bundle=readFileSync(join(root,'product-session-sdk.js'));
+ const fullRegistry=JSON.parse(readFileSync(join(temporary,'product-session-registry.json'),'utf8'));
+ const digest=bytes=>({bytes:bytes.length,sha256:createHash('sha256').update(bytes).digest('hex')});
+ for(const [directory,productId] of [[root,'creator-studio'],[resolve(root,'../video'),'video']]){
+  writeFileSync(join(directory,'product-session-sdk.js'),bundle);
+  const registry={...fullRegistry,products:fullRegistry.products.filter(item=>item.productId===productId)};
+  writeFileSync(join(directory,'product-session-registry.json'),JSON.stringify(registry,null,2)+'\n');
+  const metadata={sdkSourceCommit:source,sdkPackageTree:execFileSync('git',['rev-parse',`${source}:packages/wallet-auth`],{cwd:repository,encoding:'utf8'}).trim(),
+   sourceArchive:digest(archive),packageLock:digest(readFileSync(join(temporary,'package-lock.json'))),
+   authPublicSourceCommit:'f14e495ac9cb07f50199ad92096e6bd427669d44',registrySubset:productId,bundlerVersion:version,
+   files:['product-session-sdk.js','product-session-registry.json'].map(path=>({path,...digest(readFileSync(join(directory,path)))})),
+   securityLevel:'webcrypto-nonextractable',osProtected:false,hardwareBacked:false,installedWalletApprovalVerified:false};
+  writeFileSync(join(directory,'product-session-sdk-source.json'),JSON.stringify(metadata,null,2)+'\n');
+ }
+ // Run the upstream behavior suite against the exact delivered browser exports.
+ // Authority/signature fixtures stay inside the temporary frozen package only.
+ const upstream=readFileSync(join(temporary,'test/product-session-browser.test.mjs'),'utf8');
+ const consumer=upstream.replace('canonicalJSON, createBrowserProductSessionClient, createProductSessionReturnURL,','canonicalJSON, createProductSessionReturnURL,')
+  .replace('ProductSessionGatewayFetchAdapter, ProductSessionGatewayHttpHandler,','ProductSessionGatewayHttpHandler,')
+  .replace('const registry =',`import {createBrowserProductSessionClient,ProductSessionGatewayFetchAdapter,encodeProductSessionWalletURL} from ${JSON.stringify(join(root,'product-session-sdk.js'))};\nconst registry =`);
+ const launchTest=`\nfor (const localOffsetMs of [-600000, 400, 600000]) test('explicit Wallet launch serializes the fresh authority-timed request with local skew ' + localOffsetMs, async () => {\n const s=setup({localOffsetMs}),browser=await createBrowserProductSessionClient(s.config);\n const pending=await browser.client.begin({walletInstalled:false,schemeRegistered:false});\n const target=new URL(encodeProductSessionWalletURL(s.config.registry,pending.request,new Date(pending.request.issuedAt)));\n const registered=new URL(s.config.registry.wallet.authorizeCallback);\n assert.equal(target.origin,registered.origin);assert.equal(target.protocol,registered.protocol);assert.equal(target.pathname,registered.pathname);\n assert.deepEqual(JSON.parse(Buffer.from(target.searchParams.get('request'),'base64url')),pending.request);\n assert.equal(pending.request.issuedAt,NOW.toISOString());browser.close();\n});\n`;
+ writeFileSync(join(temporary,'test/creator-shipped-bundle.test.mjs'),consumer+launchTest);
+ execFileSync('node',['--test','test/creator-shipped-bundle.test.mjs','test/product-session-gateway-client.test.mjs','test/product-session-recovery.test.mjs'],{cwd:temporary,stdio:'inherit'});
+ console.log(`Creator and Video browser SDKs rebuilt and tested from complete package ${source}`);
 }finally{rmSync(temporary,{recursive:true,force:true});}

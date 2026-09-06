@@ -1,13 +1,22 @@
 {
-  "sdkSourceCommit": "b3e4b5269d665ee5c8e2542454191cfc6ff53ecb",
-  "authPublicSourceCommit": "f2939095023391a39b3ab0ee1528288110d01059",
+  "sdkSourceCommit": "ff68d6d1c81708bd0144016750002a87d50bb5f9",
+  "sdkPackageTree": "b9b535840d5226270ddbd2abc14d9802699e92b7",
+  "sourceArchive": {
+    "bytes": 1556480,
+    "sha256": "078567826efa0eaf44caacf5193ca2824a4686bc66037dff6f8c6d7787583551"
+  },
+  "packageLock": {
+    "bytes": 1470,
+    "sha256": "c32e52b9c87743ee5870ec146590f203f0084926dfbf9a66b7edb5a9224ce606"
+  },
+  "authPublicSourceCommit": "f14e495ac9cb07f50199ad92096e6bd427669d44",
   "registrySubset": "creator-studio",
   "bundlerVersion": "0.28.1",
   "files": [
     {
       "path": "product-session-sdk.js",
-      "bytes": 99179,
-      "sha256": "9479bcd04497395d8aa5ac2ec8b72d05243f5d19662c53f547077199bd1a8a39"
+      "bytes": 101657,
+      "sha256": "dbbd61d824646c989e875eda8b620400b46ed4fdf36e98e8f3a507578ed31329"
     },
     {
       "path": "product-session-registry.json",

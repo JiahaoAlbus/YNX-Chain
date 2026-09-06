@@ -11,7 +11,7 @@ const ok = body => ({ok: true, status: 200, json: async () => body});
 
 test('Video uses the frozen browser SDK with exact Video registration and honest browser storage', async () => {
   const source = JSON.parse(await readFile(new URL('./product-session-sdk-source.json', import.meta.url)));
-  assert.equal(source.sdkSourceCommit, 'b3e4b5269d665ee5c8e2542454191cfc6ff53ecb');
+  assert.equal(source.sdkSourceCommit, 'ff68d6d1c81708bd0144016750002a87d50bb5f9');
   assert.equal(source.securityLevel, 'webcrypto-nonextractable');
   assert.equal(source.osProtected, false);
   assert.equal(source.hardwareBacked, false);
@@ -31,7 +31,7 @@ test('Video uses the frozen browser SDK with exact Video registration and honest
 
 test('product preparation protects pending request before explicit link and never asserts installation', async () => {
   const calls = [];
-  const pending = {nonce: 'pending', expiresAt: '2026-09-06T23:59:00.000Z'};
+  const pending = {nonce: 'pending', issuedAt: '2026-09-06T23:54:00.000Z', expiresAt: '2026-09-06T23:59:00.000Z'};
   let config;
   const product = createVideoProductSession({environment: {location: {origin: VIDEO_ORIGIN}, navigator: {onLine: true}, fetch: async () => ok(registry)},
     GatewayAdapter: class {constructor(input) {config = input;}},
@@ -39,7 +39,7 @@ test('product preparation protects pending request before explicit link and neve
       assert.equal(input.productId, 'video'); assert.deepEqual(input.scopes, VIDEO_SCOPES);
       return {client: {begin: async environment => {calls.push(['persist-pending', environment]); return {request: pending};}}};
     },
-    encodeWalletURL: (actualRegistry, request) => {calls.push(['encode-link', request]); assert.equal(actualRegistry, registry); return 'ynxwallet://authorize?request=fixture';},
+    encodeWalletURL: (actualRegistry, request, at) => {calls.push(['encode-link', request]); assert.equal(actualRegistry, registry); assert.equal(at.toISOString(), pending.issuedAt); return 'ynxwallet://authorize?request=fixture';},
   });
   const prepared = await product.prepare();
   assert.equal(await config.walletInstalled(), false);

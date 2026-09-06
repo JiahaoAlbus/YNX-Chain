@@ -106,6 +106,8 @@ header .wallet-summary{display:none}
 .product-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
 .product-actions a{color:var(--blue);font-size:.85rem}
 .primary-link{background:var(--blue);color:white!important;padding:10px 14px;border-radius:6px;text-decoration:none}
+.product-actions button,.product-actions .primary-link{min-height:44px}
+.product-actions .primary-link{display:inline-flex;align-items:center;justify-content:center;font-weight:650}
 .wallet-tools{margin-top:40px;border-top:1px solid var(--line);padding-top:18px}
 .wallet-tools summary{cursor:pointer;color:var(--muted);font-size:.85rem}
 [hidden]{display:none!important}

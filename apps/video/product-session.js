@@ -52,7 +52,9 @@ export function createVideoProductSession({environment = globalThis,
       // Web cannot detect installation; no automatic navigation or fake capability.
       const state = await browser.client.begin({walletInstalled: false, schemeRegistered: false});
       if (!state.request) throw new Error(state.message);
-      return {url: encodeWalletURL(browser.registry, state.request), expiresAt: state.request.expiresAt};
+      // Serialize at the authority time just used by begin; Wallet checks expiry
+      // on arrival. A skewed product device clock must not block the launch link.
+      return {url: encodeWalletURL(browser.registry, state.request, new Date(state.request.issuedAt)), expiresAt: state.request.expiresAt};
     },
     async restore() {return (await productSession()).client.restore(environment.navigator?.onLine !== false);},
     async authorization(path, method = 'GET') {

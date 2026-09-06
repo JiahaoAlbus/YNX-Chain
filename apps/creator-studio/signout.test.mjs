@@ -34,7 +34,7 @@ class Element {
   append(child) { this.children.push(child); }
   querySelector() { return new Element(); }
   reset() { for (const field of Object.values(this.elements)) field.value = ""; }
-  focus() {}
+  focus() { this.focused = true; }
 }
 
 async function app(overrides = {}) {
@@ -205,4 +205,38 @@ test("missing analytics and nullable audit lists render empty values without thr
   for (const id of ["views", "watch", "subs", "revenue"]) assert.equal(controller.element(`#${id}`).textContent, "—");
   await controller.click("product-disconnect");
   assertCleared(controller, "private-owner-a");
+});
+
+test("failed revocation keeps private views empty and offers an explicit sign-out retry", async () => {
+  let attempts = 0;
+  const controller = await app({ disconnectProductSession: async () => ++attempts === 1
+    ? { status: "network-unavailable", message: "Revocation not confirmed; retry when Auth is available." }
+    : { status: "disconnected" } });
+  controller.renderProductState(connected("owner-a"));
+  await controller.click("product-disconnect");
+  assertCleared(controller, "private-owner-a");
+  assert.equal(controller.element("#product-disconnect").hidden, false);
+  assert.equal(controller.element("#product-disconnect").textContent, "Retry sign out");
+  assert.equal(controller.element("#product-signin").disabled, true);
+  assert.doesNotMatch(controller.element("#status").textContent, /disconnected/);
+  await controller.click("product-disconnect");
+  assert.equal(attempts, 2);
+  assert.equal(controller.element("#product-disconnect").hidden, true);
+  assert.equal(controller.element("#product-signin").disabled, false);
+  assert.equal(controller.element("#status").textContent, "Creator account disconnected.");
+});
+
+test("prepared Wallet link becomes visible and focused after its exact URL is set", async () => {
+  const prepared = deferred();
+  const controller = await app({ prepareProductSignIn: () => prepared.promise });
+  await turn();
+  const preparation = controller.click("product-signin");
+  assert.equal(controller.element("#product-open").hidden, true);
+  assert.equal(controller.element("#product-open").href, undefined);
+  prepared.resolve({ url: "ynxwallet://product-session/v2?request=test-fixture" });
+  await preparation;
+  assert.equal(controller.element("#product-open").href, "ynxwallet://product-session/v2?request=test-fixture");
+  assert.equal(controller.element("#product-open").hidden, false);
+  assert.equal(controller.element("#product-open").focused, true);
+  assert.equal(controller.element("#product-signin").disabled, false);
 });
