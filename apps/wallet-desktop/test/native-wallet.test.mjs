@@ -6,7 +6,7 @@ import test from "node:test";
 import { Wallet } from "ethers";
 import { DesktopWalletVault } from "../src/desktop-wallet-vault.mjs";
 import { CanonicalAccountNetwork, NativeWalletService } from "../src/native-wallet-service.mjs";
-import { CanonicalTransactionSender } from "../src/canonical-transaction-sender.mjs";
+import { CanonicalJsonRpcProvider, CanonicalTransactionSender } from "../src/canonical-transaction-sender.mjs";
 
 const secret = "1".padStart(64, "0");
 const secondSecret = "2".padStart(64, "0");
@@ -116,4 +116,21 @@ test("balance requests validate checksum input and send the canonical lowercase 
   } });
   assert.equal(await network.balance(recipient), "0x0");
   assert.deepEqual(requests[1].params, [recipient.toLowerCase(), "latest"]);
+});
+
+test("parallel ethers reads remain individual requests through the selected host network", async () => {
+  const requests = [];
+  const provider = new CanonicalJsonRpcProvider(async (_url, options) => {
+    const request = JSON.parse(options.body); requests.push(request);
+    assert.equal(Array.isArray(request), false);
+    return new Response(JSON.stringify({ jsonrpc: "2.0", id: request.id, result: "0x0" }));
+  });
+  try { assert.deepEqual(await Promise.all([provider.getBalance(recipient), provider.getTransactionCount(recipient)]), [0n, 0]); }
+  finally { provider.destroy(); }
+  assert.equal(requests.length, 2);
+});
+
+test("timeout errors remain understandable without leaking platform error numbers", async () => {
+  const network = new CanonicalAccountNetwork({ fetchImpl: async () => { throw new DOMException("driver message", "TimeoutError"); } });
+  await assert.rejects(network.verifyChain(), error => error.data.code === "RPC_TIMEOUT" && error.message === "The network check timed out. Please try again.");
 });

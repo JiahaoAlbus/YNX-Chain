@@ -20,6 +20,7 @@ const authorization = document.querySelector("#authorization");
 const authResult = document.querySelector("#auth-result");
 window.ynxWallet.onAuthorizationRequest(review => {
   authorization.hidden = false;
+  if (!authorization.open) authorization.showModal();
   document.querySelector("#auth-product").textContent = `Authorization request from ${review.displayName}`;
   document.querySelector("#auth-purpose").textContent = review.request.purpose;
   document.querySelector("#auth-scopes").textContent = review.request.scopes.join(", ");
@@ -27,6 +28,7 @@ window.ynxWallet.onAuthorizationRequest(review => {
 });
 window.ynxWallet.onAuthorizationError(result => {
   authorization.hidden = false;
+  if (!authorization.open) authorization.showModal();
   document.querySelector("#auth-product").textContent = "Authorization request rejected";
   document.querySelector("#auth-purpose").textContent = "The link did not contain a valid frozen Wallet Auth request.";
   document.querySelector("#auth-scopes").textContent = "None";
@@ -37,6 +39,7 @@ async function act(action) {
   const result = await window.ynxWallet.authorizationAction(action);
   const diagnostic = result.underlyingCode ? `; underlyingCode=${result.underlyingCode}; failureClass=${result.failureClass ?? "Error"}; failureCategory=${result.failureCategory ?? "UNCLASSIFIED"}` : "";
   authResult.textContent = `${result.code}: callbackEmitted=${result.callbackEmitted}; callbackReceivedProved=${result.callbackReceivedProved ?? false}; authorityGranted=${result.authorityGranted}; productSessionCreated=${result.productSessionCreated ?? false}${diagnostic}`;
+  if (action === "reject" || result.callbackEmitted) { authorization.close(); authorization.hidden = true; }
 }
 
 document.querySelector("#reject-auth").addEventListener("click", () => act("reject"));
@@ -52,11 +55,17 @@ const accountList = document.querySelector("#account-list");
 function renderAccount(payload) {
   if (payload?.ok === false) { accountDetail.textContent = `${payload.error.code}: ${payload.error.message}`; return; }
   const status = payload?.ok === true ? payload.value : payload;
+  const previousAccount = activeAccount;
   activeAccount = status?.account ?? null;
   document.querySelector("#assets").hidden = !status?.initialized;
+  document.querySelector("#backup-section").hidden = !status?.initialized;
+  if (!status?.initialized) setView("accounts");
+  else if (!previousAccount) setView("overview");
+  document.querySelector("#toolbar-account").textContent = activeAccount ? `${activeAccount.slice(0, 6)}…${activeAccount.slice(-4)}` : "My accounts";
   document.querySelector("#receive-address").value = activeAccount ?? "";
   transferReview = null;
   document.querySelector("#transfer-review").hidden = true;
+  document.querySelector("#transfer-review").close();
   if (status?.initialized) void refreshAssets();
   if (!status?.initialized) {
     accountTitle.textContent = "No account created";
@@ -184,6 +193,7 @@ const proposalPanel = document.querySelector("#walletconnect-proposal");
 window.ynxWallet.onWalletConnectProposal(proposal => {
   activeProposal = proposal;
   proposalPanel.hidden = false;
+  if (!proposalPanel.open) proposalPanel.showModal();
   document.querySelector("#proposal-name").textContent = `${proposal.name} requests a connection`;
   document.querySelector("#proposal-origin").textContent = proposal.url ?? "The DApp did not provide an origin.";
 });
@@ -191,7 +201,7 @@ async function proposalAction(action) {
   if (!activeProposal) return;
   const result = await window.ynxWallet.walletConnectProposalAction(activeProposal.id, action);
   walletConnectDetail.textContent = result.ok ? (action === "approve" ? "Session approved for the selected account." : "Session rejected.") : `${result.error.code}: ${result.error.message}`;
-  if (result.ok) { activeProposal = null; proposalPanel.hidden = true; await refreshWalletConnectSessions(); }
+  if (result.ok) { activeProposal = null; proposalPanel.close(); proposalPanel.hidden = true; await refreshWalletConnectSessions(); }
 }
 document.querySelector("#reject-proposal").addEventListener("click", () => proposalAction("reject"));
 document.querySelector("#approve-proposal").addEventListener("click", () => proposalAction("approve"));
@@ -201,6 +211,7 @@ const providerPanel = document.querySelector("#provider-request");
 window.ynxWallet.onProviderRequest(request => {
   activeProviderRequest = request;
   providerPanel.hidden = false;
+  if (!providerPanel.open) providerPanel.showModal();
   document.querySelector("#provider-title").textContent = request.review.title;
   document.querySelector("#provider-origin").textContent = request.origin;
   document.querySelector("#provider-detail").textContent = JSON.stringify(request.review, null, 2);
@@ -209,6 +220,7 @@ window.ynxWallet.onProviderRequestExpired(event => {
   if (activeProviderRequest?.id !== event.id) return;
   activeProviderRequest = null;
   providerPanel.hidden = true;
+  providerPanel.close();
   walletConnectDetail.textContent = `${event.code}: the DApp request expired without approval or signing.`;
 });
 async function providerAction(action) {
@@ -217,6 +229,7 @@ async function providerAction(action) {
   walletConnectDetail.textContent = result.ok ? (result.value?.status === "success" ? "Request response delivered." : "Request rejected.") : `${result.error.code}: ${result.error.message}`;
   activeProviderRequest = null;
   providerPanel.hidden = true;
+  providerPanel.close();
 }
 document.querySelector("#reject-provider").addEventListener("click", () => providerAction("reject"));
 document.querySelector("#approve-provider").addEventListener("click", () => providerAction("approve"));
@@ -224,10 +237,11 @@ document.querySelector("#approve-provider").addEventListener("click", () => prov
 let activeAccount = null;
 let transferReview = null;
 let balanceRevision = 0;
-const errorText = result => `${result?.error?.code ?? "WALLET_UNAVAILABLE"}: ${result?.error?.message ?? "Try again shortly."}`;
+const errorText = result => result?.error?.message ?? "The wallet is unavailable. Try again shortly.";
 async function refreshAssets() {
   const revision = ++balanceRevision;
   document.querySelector("#balance-value").textContent = "—";
+  document.querySelector("#asset-balance").textContent = "—";
   document.querySelector("#balance-status").textContent = "Checking YNX Testnet…";
   try {
     const result = await window.ynxWallet.balance();
@@ -235,6 +249,7 @@ async function refreshAssets() {
     if (!result.ok) { document.querySelector("#balance-status").textContent = errorText(result); return; }
     if (result.value.account !== activeAccount) return;
     document.querySelector("#balance-value").textContent = result.value.formatted;
+    document.querySelector("#asset-balance").textContent = `${result.value.formatted} YNXT`;
     document.querySelector("#balance-status").textContent = `YNX Testnet · Updated ${new Date(result.value.checkedAt).toLocaleTimeString()}`;
   } catch { if (revision === balanceRevision) document.querySelector("#balance-status").textContent = "Balance unavailable. Try refreshing."; }
 }
@@ -302,6 +317,8 @@ document.querySelector("#transfer-form").addEventListener("submit", async event 
       const term = document.createElement("dt"), description = document.createElement("dd"); term.textContent = label; description.textContent = value; summary.append(term, description);
     }
     document.querySelector("#transfer-review").hidden = false;
+    document.querySelector("#send-sheet").close();
+    document.querySelector("#transfer-review").showModal();
     output.textContent = "Review the details below. Nothing has been signed or sent.";
   } catch { output.textContent = "Unable to prepare the transfer. Check the network and try again."; }
   finally { button.disabled = false; }
@@ -317,7 +334,33 @@ async function actOnTransfer(action) {
     output.textContent = result.ok ? (result.value.rejected ? "Transfer cancelled. Nothing was signed or sent." : `Submitted: ${result.value.hash}. Network confirmation is pending.`) : errorText(result);
     if (result.ok && !result.value.rejected) void refreshAssets();
   } catch { output.textContent = "The response was interrupted. Check the network before trying another transfer."; }
-  finally { document.querySelector("#transfer-review").hidden = true; document.querySelector("#confirm-transfer").disabled = false; }
+  finally { document.querySelector("#transfer-review").close(); document.querySelector("#transfer-review").hidden = true; document.querySelector("#confirm-transfer").disabled = false; document.querySelector("#send-sheet").showModal(); }
 }
 document.querySelector("#cancel-transfer").addEventListener("click", () => actOnTransfer("reject"));
 document.querySelector("#confirm-transfer").addEventListener("click", () => actOnTransfer("approve"));
+
+function setView(name) {
+  if (!["overview", "connections", "accounts"].includes(name)) return;
+  if (name === "overview" && !activeAccount) name = "accounts";
+  for (const panel of document.querySelectorAll("[data-panel]")) panel.hidden = panel.dataset.panel !== name;
+  for (const button of document.querySelectorAll("nav [data-view]")) {
+    const active = button.dataset.view === name;
+    button.classList.toggle("active", active);
+    if (active) button.setAttribute("aria-current", "page"); else button.removeAttribute("aria-current");
+  }
+  document.querySelector("#page-title").textContent = { overview: "Overview", connections: "Connections", accounts: "Accounts & backup" }[name];
+  window.scrollTo({ top: 0 });
+}
+for (const button of document.querySelectorAll("[data-view]")) button.addEventListener("click", () => setView(button.dataset.view));
+for (const button of document.querySelectorAll("[data-close]")) button.addEventListener("click", () => document.getElementById(button.dataset.close).close());
+document.querySelector("#open-send").addEventListener("click", () => { document.querySelector("#send-sheet").showModal(); document.querySelector("#transfer-to").focus(); });
+document.querySelector("#open-receive").addEventListener("click", () => { document.querySelector("#receive-sheet").showModal(); document.querySelector("#copy-address").focus(); });
+document.querySelector("#transfer-review").addEventListener("cancel", event => { event.preventDefault(); void actOnTransfer("reject"); });
+authorization.addEventListener("cancel", event => { event.preventDefault(); void act("reject"); });
+proposalPanel.addEventListener("cancel", event => { event.preventDefault(); void proposalAction("reject"); });
+providerPanel.addEventListener("cancel", event => { event.preventDefault(); void providerAction("reject"); });
+document.addEventListener("keydown", event => {
+  if ((event.metaKey || event.ctrlKey) && ["1", "2", "3"].includes(event.key) && !document.querySelector("dialog[open]")) {
+    event.preventDefault(); setView(["overview", "connections", "accounts"][Number(event.key) - 1]);
+  }
+});

@@ -35,6 +35,9 @@ async function evaluate(expression) {
 async function readState() {
   return JSON.parse(await evaluate(`JSON.stringify({
     title: document.title,
+    accountVisible: Boolean(document.querySelector("#account-title")?.getClientRects().length),
+    connectionVisible: Boolean(document.querySelector("#walletconnect-title")?.getClientRects().length),
+    signingVisible: Boolean(document.querySelector("#signing-short")?.getClientRects().length),
     accountTitle: document.querySelector("#account-title")?.textContent,
     accountDetail: document.querySelector("#account-detail")?.textContent,
     accountButtonHidden: document.querySelector("#create-account")?.hidden,
@@ -50,15 +53,20 @@ async function readState() {
 }
 
 let before;
+await evaluate(`document.querySelector('nav [data-view="connections"]')?.click(); true`);
 for (let attempt = 0; attempt < 30; attempt += 1) {
   before = await readState();
   if (before.walletConnectTitle === "WalletConnect not configured") break;
   await new Promise(resolve => setTimeout(resolve, 500));
 }
 if (before.title !== "YNX Wallet") throw new Error(`unexpected window title: ${JSON.stringify(before)}`);
-if (before.walletConnectTitle !== "WalletConnect not configured" || !before.pairDisabled || !before.walletConnectDetail.includes("WALLETCONNECT_PROJECT_ID_UNAVAILABLE")) {
+if (!before.connectionVisible || before.walletConnectTitle !== "WalletConnect not configured" || !before.pairDisabled || !before.walletConnectDetail.includes("WALLETCONNECT_PROJECT_ID_UNAVAILABLE")) {
   throw new Error(`WalletConnect missing-project state did not fail closed visibly: ${JSON.stringify(before)}`);
 }
+const connectionBefore = before;
+await evaluate(`document.querySelector('nav [data-view="accounts"]')?.click(); true`);
+before = await readState();
+if (!before.accountVisible) throw new Error("Account management panel is not visible");
 
 if (action === "create") {
   if (before.accountTitle !== "No account created" || before.accountButtonHidden) throw new Error(`fresh account boundary mismatch: ${JSON.stringify(before)}`);
@@ -72,7 +80,9 @@ for (let attempt = 0; attempt < 60; attempt += 1) {
   await new Promise(resolve => setTimeout(resolve, 500));
 }
 const account = after.accountDetail?.match(/0x[0-9a-fA-F]{40}/)?.[0]?.toLowerCase();
-if (!account || after.accountTitle !== "Secure Testnet account ready" || !after.accountButtonHidden || after.signing !== "Approval required" || !after.accountDetail.includes("OS-encrypted local custody")) {
+await evaluate(`document.querySelector('nav [data-view="accounts"]')?.click(); true`);
+after = await readState();
+if (!after.accountVisible || !account || after.accountTitle !== "Secure Testnet account ready" || !after.accountButtonHidden || after.signing !== "Approval required" || !after.accountDetail.includes("OS-encrypted local custody")) {
   throw new Error(`secure account UI did not become ready: ${JSON.stringify(after)}`);
 }
 if (action === "restore" && (!expectedAccount || account !== expectedAccount.toLowerCase())) {
@@ -108,6 +118,10 @@ if (action === "switch") {
   switched = { addedAccount, restoredAccount, visibleAccountCount: restored.accountCount };
 }
 
+await evaluate(`document.querySelector('nav [data-view="connections"]')?.click(); true`);
+const connectionAfter = await readState();
+if (!connectionAfter.signingVisible || connectionAfter.signing !== "Approval required") throw new Error("Signing approval requirement is not visible");
+await evaluate(`document.querySelector('nav [data-view="accounts"]')?.click(); true`);
 socket.close();
 console.log(JSON.stringify({
   action,
@@ -119,5 +133,7 @@ console.log(JSON.stringify({
   walletConnectFailClosedVisible: true,
   switched,
   before,
-  after
+  after,
+  connectionBefore,
+  connectionAfter
 }, null, 2));

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, nativeImage, safeStorage, shell } from "electron";
+import { app, BrowserWindow, dialog, ipcMain, nativeImage, net, safeStorage, shell } from "electron";
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -10,7 +10,7 @@ import { DesktopWalletVault } from "./desktop-wallet-vault.mjs";
 import { DesktopWalletAuthority } from "./desktop-wallet-authority.mjs";
 import { FilePermissionStore } from "./desktop-permission-store.mjs";
 import { CanonicalTransactionSender } from "./canonical-transaction-sender.mjs";
-import { NativeWalletService } from "./native-wallet-service.mjs";
+import { CanonicalAccountNetwork, NativeWalletService } from "./native-wallet-service.mjs";
 import { WalletConnectTransport } from "./walletconnect-transport.mjs";
 import { decodeWalletConnectQR } from "./walletconnect-qr-decoder.mjs";
 import { canonicalizeWindowsYNXWalletProtocolUrl, extractYNXWalletProtocolUrl } from "./protocol-activation.mjs";
@@ -41,7 +41,7 @@ function queueStartupProtocolUrl(url) {
 }
 
 async function rpcStatus() {
-  return probeYNXTestnetRPC({ rpcUrl, expectedChainId: YNX_TESTNET_CHAIN_QUANTITY });
+  return probeYNXTestnetRPC({ rpcUrl, expectedChainId: YNX_TESTNET_CHAIN_QUANTITY, fetchImpl: net.fetch.bind(net) });
 }
 
 async function recordEvidence(status, window, { launch = false } = {}) {
@@ -268,23 +268,25 @@ if (singleInstanceLock) app.whenReady().then(async () => {
     protocolRegistration = { platform: process.platform, attempted: true, registered: accepted && app.isDefaultProtocolClient("ynxwallet") };
   }
   const userData = app.getPath("userData");
+  const accountNetwork = new CanonicalAccountNetwork({ fetchImpl: net.fetch.bind(net) });
   walletAuthority = new DesktopWalletAuthority({
     vault: new DesktopWalletVault({ filePath: path.join(userData, "wallet-vault-v2.json"), legacyFilePath: path.join(userData, "wallet-vault-v1.json"), safeStorage }),
     permissions: new FilePermissionStore(path.join(userData, "wallet-permissions-v1.json")),
-    transactionSender: new CanonicalTransactionSender()
+    transactionSender: new CanonicalTransactionSender({ network: accountNetwork, fetchImpl: net.fetch.bind(net) })
   });
-  nativeWallet = new NativeWalletService({ vault: walletAuthority.vault, sender: walletAuthority.transactionSender });
+  nativeWallet = new NativeWalletService({ vault: walletAuthority.vault, sender: walletAuthority.transactionSender, network: accountNetwork });
   walletConnect = new WalletConnectTransport({
     projectId: process.env.YNX_WALLETCONNECT_PROJECT_ID,
     metadata: { name: "YNX Wallet", description: "YNX Testnet self-custody Wallet", url: "https://wallet.ynxweb4.com", icons: ["https://www.ynxweb4.com/ynx-icon-512.png"], redirect: { native: "ynxwallet://wc" } }
   });
   const window = new BrowserWindow({
-    width: 1040,
-    height: 720,
+    width: 1080,
+    height: 780,
     minWidth: 760,
     minHeight: 560,
     title: "YNX Wallet",
-    backgroundColor: "#071016",
+    backgroundColor: "#ffffff",
+    ...(process.platform === "darwin" ? { titleBarStyle: "hiddenInset", trafficLightPosition: { x: 20, y: 18 } } : {}),
     webPreferences: {
       preload: path.join(directory, "preload.cjs"),
       contextIsolation: true,

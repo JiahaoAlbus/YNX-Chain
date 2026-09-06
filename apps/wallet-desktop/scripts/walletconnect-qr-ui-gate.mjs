@@ -37,6 +37,7 @@ async function evaluate(expression) {
   return result.result.value;
 }
 
+await evaluate(`(() => { document.querySelector('nav [data-view="connections"]')?.click(); const details = document.querySelector("#walletconnect-qr")?.closest("details"); if (details) details.open = true; document.querySelector("#walletconnect-qr")?.scrollIntoView({ block: "center" }); return true; })()`);
 await send("DOM.enable");
 const document = await send("DOM.getDocument", { depth: -1, pierce: true });
 const input = await send("DOM.querySelector", { nodeId: document.root.nodeId, selector: "#walletconnect-qr" });

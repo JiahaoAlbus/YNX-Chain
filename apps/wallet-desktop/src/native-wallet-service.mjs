@@ -10,6 +10,7 @@ const quantity = value => typeof value === "string" && /^0x(?:0|[1-9a-f][0-9a-f]
 export class CanonicalAccountNetwork {
   constructor({ fetchImpl = globalThis.fetch } = {}) { this.fetchImpl = fetchImpl; }
   async request(method, params = []) {
+    try {
     const response = await this.fetchImpl(CANONICAL_RPC_URL, {
       method: "POST", headers: { "content-type": "application/json" },
       body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
@@ -19,6 +20,11 @@ export class CanonicalAccountNetwork {
     const payload = await response.json();
     if (payload?.jsonrpc !== "2.0" || payload.id !== 1 || payload.error || !("result" in payload)) throw providerError(4900, "RPC_INVALID_RESPONSE", "YNX Testnet returned an invalid response");
     return payload.result;
+    } catch (error) {
+      if (error?.data?.code) throw error;
+      const timedOut = ["AbortError", "TimeoutError"].includes(error?.name);
+      throw providerError(4900, timedOut ? "RPC_TIMEOUT" : "RPC_UNAVAILABLE", timedOut ? "The network check timed out. Please try again." : "Unable to reach YNX Testnet. Check your connection and try again.");
+    }
   }
   async verifyChain() {
     if (await this.request("eth_chainId") !== CHAIN_ID) throw providerError(4901, "RPC_CHAIN_MISMATCH", "The network is not YNX Testnet. No transaction was signed.");
