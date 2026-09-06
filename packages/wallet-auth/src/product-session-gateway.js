@@ -3,6 +3,7 @@ import { httpBodyDigest } from "./session-proof.js";
 import { parseProductSessionRegistry } from "./product-session-registry.js";
 import { parseProductSession, parseProductSessionChallenge, ProductSessionAuthority, parseProductSessionAuthoritySnapshot } from "./product-session-v2.js";
 import { productSessionProofV2Digest, verifyProductSessionProofV2 } from "./product-session-proof-v2.js";
+import { verifyWalletSessionControlProof, walletSessionControlReplayKey, walletSessionControlReplayExpiry, walletSessionControlClockAnchor, walletSessionControlClockAnchorTime, walletSessionControlClockFloor, WALLET_SESSION_CONTROL_PATHS } from "./wallet-session-control.js";
 
 export const PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION = 2;
 const INPUT_FIELDS = ["requestId", "method", "path", "body", "proof", "networkAvailable"];
@@ -26,14 +27,27 @@ export class ProductSessionGatewayKernel {
 
   dispatch(input, at = new Date()) {
     const instant = validDate(at);
-    this.#idempotency = this.#idempotency.filter((item) => item.expiresAt > instant.toISOString());
+    const lastSeen = walletSessionControlClockFloor({ consumedProofs: this.#proofs, audit: this.#audit });
+    const clockRegressed = instant.getTime() < lastSeen, auditTime = new Date(Math.max(instant.getTime(), lastSeen));
+    const requiresAnchor = this.#proofs.some(value => walletSessionControlReplayExpiry(value) !== null || walletSessionControlClockAnchorTime(value) !== null);
+    const withoutAnchors = this.#proofs.filter(value => walletSessionControlClockAnchorTime(value) === null);
+    const anchorAtCapacity = requiresAnchor && withoutAnchors.length >= 20_000;
+    if (requiresAnchor && !anchorAtCapacity) this.#proofs = [...withoutAnchors, walletSessionControlClockAnchor(auditTime)].sort();
+    if (!clockRegressed && !anchorAtCapacity) {
+      this.#idempotency = this.#idempotency.filter((item) => item.expiresAt > instant.toISOString());
+      this.#proofs = this.#proofs.filter(value => { const expires = walletSessionControlReplayExpiry(value); return expires === null || expires > instant.getTime(); });
+    }
     let requestId = "req_invalid_request_000";
     const beforeAuthority = this.#authority.snapshot();
     const beforeProofs = [...this.#proofs];
     const beforeIdempotency = [...this.#idempotency];
     try {
       const request = parseInput(input); requestId = request.requestId;
+      if (anchorAtCapacity) fail("CAPACITY", "Wallet session control cannot preserve its durable clock at the current replay capacity");
+      if (clockRegressed) fail("CLOCK_UNAVAILABLE", "Product Session authority clock moved behind its durable history");
       if (!request.networkAvailable) fail("NETWORK_UNAVAILABLE", "Product Session Gateway network dependency is unavailable");
+      const walletControl = WALLET_SESSION_CONTROL_PATHS.includes(request.path);
+      if (walletControl ? request.proof !== null : request.walletControlProof != null) fail("UNEXPECTED_PROOF", "Wallet owner and product device proofs cannot be interchanged");
       if (IDEMPOTENT_PATHS.has(request.path) && request.proof !== null) fail("UNEXPECTED_PROOF", "Challenge and completion do not accept a Product Session proof");
       const bodyDigest = httpBodyDigest(canonicalJSON(request.body));
       const cached = this.#idempotency.find((item) => item.requestId === request.requestId);
@@ -57,7 +71,7 @@ export class ProductSessionGatewayKernel {
       this.#proofs = beforeProofs;
       this.#idempotency = beforeIdempotency;
       const publicError = normalizeError(error);
-      this.#record(requestId, auditPath(input?.path), "rejected", publicError.code, "none", instant);
+      this.#record(requestId, auditPath(input?.path), "rejected", publicError.code, "none", auditTime);
       return response(publicError.status, requestId, { ok: false, error: { code: publicError.code, message: publicError.message } });
     }
   }
@@ -65,6 +79,7 @@ export class ProductSessionGatewayKernel {
   snapshot() { return Object.freeze({ schemaVersion: PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION, authority: this.#authority.snapshot(), consumedProofs: Object.freeze([...this.#proofs]), idempotency: Object.freeze([...this.#idempotency]), audit: Object.freeze([...this.#audit]) }); }
 
   #route(request, at) {
+    if (WALLET_SESSION_CONTROL_PATHS.includes(request.path)) return this.#walletControl(request, at);
     if (request.path === "/v2/product-sessions/challenge") {
       if (request.proof !== null) fail("UNEXPECTED_PROOF", "Challenge issuance does not accept a Product Session proof");
       exactFields(request.body, ["request", "approval"], "Product Session Gateway challenge body");
@@ -88,6 +103,44 @@ export class ProductSessionGatewayKernel {
       const authorized = this.#authorize(request, [], at); this.#authority.revokeDevice(authorized.session.deviceBinding); return Object.freeze({ revoked: authorized.session.deviceBinding });
     }
     fail("ROUTE_NOT_FOUND", "Product Session Gateway route is not registered");
+  }
+
+  #walletControl(request, at) {
+    const revoke = request.path.endsWith("/revoke");
+    exactFields(request.body, revoke ? ["sessionBinding"] : [], "Wallet session control body");
+    if (revoke && (typeof request.body.sessionBinding !== "string" || !/^[0-9a-f]{64}$/.test(request.body.sessionBinding))) fail("INVALID_FIELD", "Wallet session control target binding is invalid");
+    if (request.walletControlProof == null) fail("PROOF_REQUIRED", "Wallet account owner proof is required");
+    const proof = verifyWalletSessionControlProof(request.walletControlProof, { method: request.method, path: request.path, bodyDigest: httpBodyDigest(canonicalJSON(request.body)) }, at);
+    const replayKey = walletSessionControlReplayKey(proof);
+    const controlRecords = this.#proofs.filter(value => walletSessionControlReplayExpiry(value) !== null);
+    if (controlRecords.some(value => value.slice(28) === replayKey.slice(28))) fail("REPLAY", "Wallet session control nonce was already consumed");
+    const needsAnchor = !this.#proofs.some(value => walletSessionControlClockAnchorTime(value) !== null);
+    if (controlRecords.length >= 512 || this.#proofs.length + Number(needsAnchor) >= 18_000) fail("CAPACITY", "Wallet session control replay budget is unavailable");
+    const snapshot = this.#authority.snapshot(), asOf = at.toISOString();
+    let result;
+    if (revoke) {
+      const session = snapshot.sessions.find(item => item.sessionBinding === request.body.sessionBinding && item.account === proof.account);
+      if (!session) fail("SESSION_NOT_FOUND", "Wallet-owned Product Session was not found");
+      const alreadyRevoked = snapshot.revokedSessions.includes(session.sessionBinding);
+      if (!alreadyRevoked) this.#authority.revokeSession(session.sessionBinding);
+      result = Object.freeze({ account: proof.account, sessionBinding: session.sessionBinding, revoked: true, alreadyRevoked, asOf });
+    } else {
+      const sessions = snapshot.sessions.filter(session => session.account === proof.account).map(session => {
+        const registration = this.#registry.products.find(product => product.productId === session.productId && product.clientId === session.clientId);
+        if (!registration) fail("UNKNOWN_PRODUCT", "Stored Product Session registration is unavailable");
+        const inactiveReasons = [];
+        if (snapshot.revokedSessions.includes(session.sessionBinding)) inactiveReasons.push("session-revoked");
+        if (snapshot.revokedDevices.includes(session.deviceBinding)) inactiveReasons.push("device-revoked");
+        if (snapshot.revokedAccounts.some(item => item.account === proof.account && session.issuedAt <= item.before)) inactiveReasons.push("account-revoked");
+        if (session.expiresAt <= asOf) inactiveReasons.push("expired");
+        if (session.issuedAt > asOf) inactiveReasons.push("issued-in-future");
+        return Object.freeze({ sessionBinding: session.sessionBinding, productId: session.productId, clientId: session.clientId, displayName: registration.displayName, platform: session.platform, applicationId: session.applicationId, origin: session.origin, callback: session.callback, deviceId: session.deviceId, deviceBinding: session.deviceBinding, scopes: session.scopes, issuedAt: session.issuedAt, expiresAt: session.expiresAt, active: inactiveReasons.length === 0, inactiveReasons: Object.freeze(inactiveReasons) });
+      });
+      result = Object.freeze({ account: proof.account, asOf, sessions: Object.freeze(sessions) });
+    }
+    if (needsAnchor) this.#proofs.push(walletSessionControlClockAnchor(at));
+    this.#proofs.push(replayKey); this.#proofs.sort();
+    return result;
   }
 
   #authorize(request, requiredScopes, at) {
@@ -128,9 +181,9 @@ export function migrateProductSessionGatewaySnapshotV1(input) {
   return parseProductSessionGatewaySnapshot({ ...input, schemaVersion: PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION, idempotency: [] });
 }
 
-function parseInput(input) { exactFields(input, INPUT_FIELDS, "Product Session Gateway input"); if (typeof input.requestId !== "string" || !/^req_[A-Za-z0-9_-]{12,80}$/.test(input.requestId)) fail("INVALID_REQUEST_ID", "Product Session Gateway request ID is invalid"); if (input.method !== "POST") fail("METHOD_NOT_ALLOWED", "Product Session Gateway accepts POST only"); if (typeof input.path !== "string" || !/^\/[A-Za-z0-9/_-]{1,255}$/.test(input.path) || input.path.includes("//") || input.path.endsWith("/")) fail("INVALID_PATH", "Product Session Gateway path is invalid"); if (!input.body || typeof input.body !== "object" || Array.isArray(input.body)) fail("INVALID_BODY", "Product Session Gateway body must be an object"); if (input.proof !== null && (!input.proof || typeof input.proof !== "object" || Array.isArray(input.proof))) fail("INVALID_PROOF", "Product Session Gateway proof is invalid"); if (typeof input.networkAvailable !== "boolean") fail("INVALID_NETWORK_STATE", "Product Session Gateway network state is invalid"); return Object.freeze(input); }
+function parseInput(input) { exactFields(input, input && Object.hasOwn(input, "walletControlProof") ? [...INPUT_FIELDS, "walletControlProof"] : INPUT_FIELDS, "Product Session Gateway input"); if (typeof input.requestId !== "string" || !/^req_[A-Za-z0-9_-]{12,80}$/.test(input.requestId)) fail("INVALID_REQUEST_ID", "Product Session Gateway request ID is invalid"); if (input.method !== "POST") fail("METHOD_NOT_ALLOWED", "Product Session Gateway accepts POST only"); if (typeof input.path !== "string" || !/^\/[A-Za-z0-9/_-]{1,255}$/.test(input.path) || input.path.includes("//") || input.path.endsWith("/")) fail("INVALID_PATH", "Product Session Gateway path is invalid"); if (!input.body || typeof input.body !== "object" || Array.isArray(input.body)) fail("INVALID_BODY", "Product Session Gateway body must be an object"); if (input.proof !== null && (!input.proof || typeof input.proof !== "object" || Array.isArray(input.proof))) fail("INVALID_PROOF", "Product Session Gateway proof is invalid"); if (input.walletControlProof != null && (typeof input.walletControlProof !== "object" || Array.isArray(input.walletControlProof))) fail("INVALID_PROOF", "Wallet account owner proof is invalid"); if (typeof input.networkAvailable !== "boolean") fail("INVALID_NETWORK_STATE", "Product Session Gateway network state is invalid"); return Object.freeze(input); }
 function response(status, requestId, payload) { return Object.freeze({ status, headers: Object.freeze({ "cache-control": "no-store", "content-type": "application/json; charset=utf-8", "x-request-id": requestId }), body: canonicalJSON({ ...payload, requestId, schemaVersion: PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION }) }); }
-function normalizeError(error) { if (!(error instanceof WalletAuthError)) return { status: 500, code: "INTERNAL", message: "Product Session Gateway failed closed" }; const forbidden = ["CROSS_PRODUCT_SESSION", "INVALID_DEVICE_PROOF", "SESSION_REVOKED", "SESSION_EXPIRED", "SCOPE_WIDENING", "PROOF_REQUIRED"]; const conflict = ["REPLAY", "ALREADY_REVOKED", "IDEMPOTENCY_CONFLICT"]; const status = error.code === "NETWORK_UNAVAILABLE" ? 503 : error.code === "METHOD_NOT_ALLOWED" ? 405 : error.code === "ROUTE_NOT_FOUND" || error.code === "SESSION_NOT_FOUND" ? 404 : conflict.includes(error.code) ? 409 : forbidden.includes(error.code) ? 403 : 400; return { status, code: error.code, message: error.message.length <= 300 ? error.message : "Product Session Gateway rejected the request" }; }
+function normalizeError(error) { if (!(error instanceof WalletAuthError)) return { status: 500, code: "INTERNAL", message: "Product Session Gateway failed closed" }; const forbidden = ["CROSS_PRODUCT_SESSION", "INVALID_DEVICE_PROOF", "INVALID_SIGNATURE", "SESSION_REVOKED", "SESSION_EXPIRED", "SCOPE_WIDENING", "PROOF_REQUIRED"]; const conflict = ["REPLAY", "ALREADY_REVOKED", "IDEMPOTENCY_CONFLICT"]; const status = ["NETWORK_UNAVAILABLE", "CLOCK_UNAVAILABLE"].includes(error.code) ? 503 : error.code === "METHOD_NOT_ALLOWED" ? 405 : error.code === "ROUTE_NOT_FOUND" || error.code === "SESSION_NOT_FOUND" ? 404 : conflict.includes(error.code) ? 409 : forbidden.includes(error.code) ? 403 : 400; return { status, code: error.code, message: error.message.length <= 300 ? error.message : "Product Session Gateway rejected the request" }; }
 function auditPath(value) { return typeof value === "string" && /^\/[A-Za-z0-9/_-]{1,255}$/.test(value) && !value.includes("//") && !value.endsWith("/") ? value : "/invalid"; }
 function stringSet(value, regex, label) { if (!Array.isArray(value) || value.length > 20_000 || value.some((item) => typeof item !== "string" || !regex.test(item)) || new Set(value).size !== value.length || [...value].sort().join("\n") !== value.join("\n")) fail("INVALID_GATEWAY_STORE", `${label} must be unique and sorted`); return [...value]; }
 function parseIdempotency(value) {
