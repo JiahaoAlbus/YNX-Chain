@@ -25,3 +25,13 @@ test("validates accounts and classifies rejected-wallet errors", () => {
   assert.throws(() => selectedAccount([]), /did not return/);
   assert.equal(providerErrorCode(Object.assign(new Error("declined"), { code: 4001 })), "wallet_rejected");
 });
+
+test("a synchronous EIP-6963 announcement and legacy injection of the same provider yield one identity", () => {
+  const originalWindow=globalThis.window,listeners=new Map<string,(event:Event)=>void>();
+  const provider={request:async()=>[],isMetaMask:true};
+  Object.defineProperty(globalThis,"window",{configurable:true,value:{location:{origin:"https://monitor.example"},ethereum:provider,
+    addEventListener:(name:string,listener:(event:Event)=>void)=>listeners.set(name,listener),removeEventListener:(name:string)=>listeners.delete(name),
+    dispatchEvent:()=>{listeners.get("eip6963:announceProvider")?.({detail:{info:{uuid:"metamask",name:"MetaMask",rdns:"io.metamask"},provider}} as unknown as Event);return true;}}});
+  try{let providers:Array<{name:string}>=[];const stop=discoverWalletProviders(next=>providers=next);assert.deepEqual(providers.map(p=>p.name),["MetaMask"]);stop();}
+  finally{Object.defineProperty(globalThis,"window",{configurable:true,value:originalWindow});}
+});

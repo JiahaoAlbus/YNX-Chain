@@ -1,3 +1,4 @@
+import { copy, formatDate, currentLocale } from "./copy";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { can, login, request, type Session } from "./api";
 import { discoverWalletProviders, providerErrorCode, selectedAccount, type EIP1193Provider, type WalletProvider } from "./eip1193";
@@ -110,7 +111,7 @@ function storedSession() {
   }
 }
 function short(value?: string, size = 12) {
-  return value ? `${value.slice(0, size)}…` : "Unavailable";
+  return value ? `${value.slice(0, size)}…` : copy("Unavailable");
 }
 function roleLabel(role: string) {
   return role
@@ -237,12 +238,12 @@ export function App() {
     <div className="monitor-app">
       <aside className="rail">
         <div className="monitor-brand">
-          <span>Y</span>
+          <img src={ynxLogo} alt="" />
           <div>
             YNX<strong>MONITOR</strong>
           </div>
         </div>
-        <nav aria-label="Monitor views">
+        <nav aria-label={copy("Monitor views")}>
           {views.map((item) => (
             <button
               key={item}
@@ -262,20 +263,20 @@ export function App() {
         </nav>
         <div className="rail-foot">
           <span>{session.principal.username}</span>
-          <strong>{roleLabel(role)}</strong>
+          <strong>{copy(roleLabel(role))}</strong>
           <button onClick={logout}>{t("signOut")}</button>
         </div>
       </aside>
       <main className="workspace">
         <header className="commandbar">
           <div>
-            <p>OPERATIONS / {view.toUpperCase()}</p>
-            <h1>{view}</h1>
+            <p>{copy("OPERATIONS /")} {copy(view)}</p>
+            <h1>{copy(view)}</h1>
           </div>
           <div className="command-actions">
-            <span className={`role ${role}`}>{role}</span>
+            <span className={`role ${role}`}>{copy(role)}</span>
             <button onClick={refresh} disabled={loading}>
-              {loading ? "Probing…" : "Refresh evidence"}
+              {copy(loading ? "Probing…" : "Refresh evidence")}
             </button>
           </div>
         </header>
@@ -324,25 +325,22 @@ export function App() {
         )}
         {error && (
           <div className="banner error" role="alert">
-            <strong>Control plane unavailable</strong>
-            <span>{error}</span>
+            <strong>{copy("Control plane unavailable")}</strong>
+            <span>{copy(error)}</span>
             <button onClick={refresh}>{t("retry")}</button>
           </div>
         )}
         {!overview && !error && (
           <div
             className="loading-grid"
-            aria-label="Loading operational evidence"
-          >
-            Probing authenticated upstreams…
-          </div>
+            aria-label={copy("Loading operational evidence")}
+          > {copy("Probing authenticated upstreams…")} </div>
         )}
         {overview && (
           <>
             <div className="evidence-clock">
-              <span className="live-dot" />
-              Bounded probe completed <time>{date(overview.checkedAt)}</time>
-              <span>No historical uptime inferred</span>
+              <span className="live-dot" /> {copy("Bounded probe completed")} <time>{date(overview.checkedAt)}</time>
+              <span>{copy("No historical uptime inferred")}</span>
             </div>
             {view === "Overview" && (
               <OverviewView
@@ -354,7 +352,7 @@ export function App() {
             )}
             {view === "Nodes" && (
               <ProbeView
-                title="Node surfaces"
+                title={copy("Node surfaces")}
                 probes={probes.filter((x) =>
 				  ["node", "explorer", "indexer", "faucet", "gateway"].includes(x.id),
                 )}
@@ -362,21 +360,21 @@ export function App() {
             )}
             {view === "Validators" && (
               <DataTable
-                title="Validator evidence"
-                empty="No validator records returned"
+                title={copy("Validator evidence")}
+                empty={copy("No validator records returned")}
                 rows={validators}
               />
             )}
             {view === "Peers" && (
               <>
                 <DataTable
-                  title="Peer discovery"
-                  empty="No peer records returned"
+                  title={copy("Peer discovery")}
+                  empty={copy("No peer records returned")}
                   rows={peers}
                 />
                 <DataTable
-                  title="Peer sync"
-                  empty="No peer-sync records returned"
+                  title={copy("Peer sync")}
+                  empty={copy("No peer-sync records returned")}
                   rows={sync}
                 />
               </>
@@ -459,14 +457,28 @@ function Login({
   const [publicStatusError, setPublicStatusError] = useState("");
   useEffect(() => {
     let active = true;
-    fetch("/status", { headers: { accept: "application/json" } })
-      .then(async (response) => {
+    let controller: AbortController | undefined;
+    let inFlight = false;
+    const refreshStatus = async () => {
+      if (!active || inFlight) return;
+      inFlight = true;
+      controller = new AbortController();
+      const timeout = setTimeout(() => controller?.abort(), 10_000);
+      try {
+        const response = await fetch("/status", { headers: { accept: "application/json" }, signal: controller.signal, cache: "no-store" });
         const body = await response.json();
         if (!response.ok || body.availability !== "available") throw new Error(body.error || `HTTP ${response.status}`);
-        if (active) setPublicStatus(body as PublicStatus);
-      })
-      .catch((reason) => active && setPublicStatusError(reason instanceof Error ? reason.message : "public_status_unavailable"));
-    return () => { active = false; };
+        if (active) { setPublicStatus(body as PublicStatus); setPublicStatusError(""); }
+      } catch (reason) {
+        if (active) {
+          setPublicStatus(undefined);
+          setPublicStatusError(controller.signal.aborted ? "public_status_unavailable" : reason instanceof Error ? reason.message : "public_status_unavailable");
+        }
+      } finally { clearTimeout(timeout); inFlight = false; }
+    };
+    void refreshStatus();
+    const timer = setInterval(() => void refreshStatus(), 30_000);
+    return () => { active = false; clearInterval(timer); controller?.abort(); };
   }, []);
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -491,35 +503,32 @@ function Login({
         </div>
         <p className="kicker">{t("restricted")}</p>
         <h1>{t("evidenceBefore")}</h1>
-        <p>
-          Authenticate to inspect nodes, validators, alerts, incidents, release
-          identity and audit. Operator actions require an explicit approval
-          phrase.
-        </p>
+        <p> {copy("Authenticate to inspect nodes, validators, alerts, incidents, release identity and audit. Operator actions require an explicit approval phrase.")} </p>
         <ul>
-          <li>Viewer: inspect current evidence</li>
-          <li>Operator: record and approve bounded workflow state</li>
-          <li>Infrastructure execution remains outside this product</li>
+          <li>{copy("Viewer: inspect current evidence")}</li>
+          <li>{copy("Operator: record and approve bounded workflow state")}</li>
+          <li>{copy("Infrastructure execution remains outside this product")}</li>
         </ul>
         <section className="public-status-panel" aria-live="polite">
-          <div><span>PUBLIC TESTNET STATUS</span><strong>{publicStatus?.status || (publicStatusError ? "unavailable" : "checking")}</strong></div>
+          <div className="public-status-heading"><span>{copy("PUBLIC TESTNET STATUS")}</span><strong className={`public-service ${publicStatus?.status || "unknown"}`}>{copy(publicStatus?.status || (publicStatusError ? "unavailable" : "checking"))}</strong></div>
           {publicStatus ? (
             <>
-              <p>{publicStatus.message || "Current approved public probe projection."}</p>
-              <div className="public-service-list">
-				{publicStatus.services.map((service) => <article key={service.id} className="public-service-row"><div><span>{service.name}</span><strong className={`public-service ${service.status}`}>{service.status.replaceAll("_", " ")}</strong></div><dl><div><dt>Source</dt><dd>{service.sourceCommit ? short(service.sourceCommit,12) : "Unavailable"}</dd></div><div><dt>Release</dt><dd>{service.release || "Unavailable"}</dd></div><div><dt>Started</dt><dd>{service.startedAt ? new Date(service.startedAt).toLocaleString(locale) : "Unavailable"}</dd></div><div><dt>Checked</dt><dd>{new Date(service.checkedAt).toLocaleString(locale)}</dd></div><div><dt>Dependencies</dt><dd>{service.dependencies.length ? service.dependencies.map((dependency) => `${dependency.id}: ${dependency.status.replaceAll("_"," ")}`).join(" · ") : "None declared"}</dd></div></dl></article>)}
+              <p>{copy(publicStatus.message || "Current approved public probe projection.")}</p>
+              <details className="public-details"><summary>{copy("Service details")} <span>({publicStatus.services.length})</span></summary><div className="public-service-list">
+				{publicStatus.services.map((service) => <details key={service.id} className="public-service-row"><summary><span>{copy(service.name)}</span><strong className={`public-service ${service.status}`}>{copy(service.status)}</strong></summary><dl><div><dt>{copy("Source")}</dt><dd>{service.sourceCommit ? short(service.sourceCommit,12) : copy("Unavailable")}</dd></div><div><dt>{copy("Release")}</dt><dd>{service.release || copy("Unavailable")}</dd></div><div><dt>{copy("Started")}</dt><dd>{service.startedAt ? formatDate(service.startedAt) : copy("Unavailable")}</dd></div><div><dt>{copy("Checked")}</dt><dd>{formatDate(service.checkedAt)}</dd></div><div><dt>{copy("Dependencies")}</dt><dd>{service.dependencies.length ? service.dependencies.map((dependency) => `${copy(dependency.id)}: ${copy(dependency.status)}`).join(" · ") : copy("None declared")}</dd></div></dl></details>)}
               </div>
-			  <div className="public-trend" aria-label="Process-scoped service trend">{publicStatus.history.map((sample,index)=><span key={`${sample.asOf}-${index}`} className={sample.status} title={`${new Date(sample.asOf).toLocaleString(locale)} · ${sample.status} · ${sample.transition}`} style={{height:`${Math.max(8,12+(sample.outage+sample.degraded)*6)}px`}} />)}</div>
-              <small>As of {new Date(publicStatus.asOf).toLocaleString()} · process health and owner facts remain separate.</small>
-			  <small>Trend retention: {publicStatus.historyPersistence}; failure and recovery transitions use accepted signed snapshots only.</small>
+			  <div className="public-trend" aria-label={copy("Process-scoped service trend")}>{publicStatus.history.map((sample,index)=><span key={`${sample.asOf}-${index}`} className={sample.status} title={`${new Date(sample.asOf).toLocaleString(currentLocale())} · ${copy(sample.status)} · ${copy(sample.transition)}`} style={{height:`${Math.max(8,12+(sample.outage+sample.degraded)*6)}px`}} />)}</div>
+              <small>{copy("As of")} {formatDate(publicStatus.asOf)} {copy("· process health and owner facts remain separate.")}</small>
+			  <small>{copy("Trend retention:")} {copy(publicStatus.historyPersistence)}{copy("; failure and recovery transitions use accepted signed snapshots only.")}</small></details>
             </>
-          ) : <p>{publicStatusError || "Loading signed, approved public evidence…"}</p>}
+          ) : <p>{copy(publicStatusError || "Loading signed, approved public evidence…")}</p>}
         </section>
-		<p className="boundary">Consensus status: StreamBFT is a shadow/candidate and is not reported as active consensus.</p>
+		<p className="boundary">{copy("Consensus status: StreamBFT is a shadow/candidate and is not reported as active consensus.")}</p>
       </section>
       <form className="login-card" onSubmit={submit}>
+        <div className="login-mobile-brand monitor-brand"><img src={ynxLogo} alt="" /><div>YNX<strong>MONITOR</strong></div></div>
         <div className="login-locales">
-          <select
+          <label>{t("language")}<select
             aria-label={t("language")}
             value={locale}
             onChange={(e) => setLocale(e.target.value as Locale)}
@@ -529,8 +538,8 @@ function Login({
                 {localeNames[x]}
               </option>
             ))}
-          </select>
-          <select
+          </select></label>
+          <label>{t("aiLanguage")}<select
             aria-label={t("aiLanguage")}
             value={aiLanguage}
             onChange={(e) => setAILanguage(e.target.value as Locale)}
@@ -540,10 +549,10 @@ function Login({
                 {localeNames[x]}
               </option>
             ))}
-          </select>
+          </select></label>
         </div>
         <p className="kicker">{t("signIn")}</p>
-        <h2>Operator identity</h2>
+        <h2>{copy("Operator identity")}</h2>
         <label>
           {t("username")}
           <input
@@ -565,11 +574,11 @@ function Login({
         </label>
         {error && (
           <p className="form-error" role="alert">
-            {error}
+            {copy(error)}
           </p>
         )}
-        <button disabled={busy}>{busy ? "Authenticating…" : t("enter")}</button>
-        <WalletLogin onLogin={onLogin} label={t("walletSignIn")} walletProviders={walletProviders} t={t} />
+        <button disabled={busy}>{busy ? copy("Authenticating…") : t("enter")}</button>
+        <WalletLogin onLogin={onLogin} label={t("signIn")} walletProviders={walletProviders} t={t} />
         <small>{t("privacy")}</small>
       </form>
     </main>
@@ -617,14 +626,14 @@ function WalletLogin({
     <div className="wallet-login">
       <p>{t("walletGuidance")}</p>
       {walletProviders.length ? walletProviders.map((wallet) => (
-        <button type="button" key={wallet.id} disabled={busy} onClick={() => void begin(wallet)} aria-label={`${label} using ${wallet.name}`}>
+        <button type="button" key={wallet.id} disabled={busy} onClick={() => void begin(wallet)} aria-label={`${label} · ${wallet.name}`}>
           {wallet.icon ? <img src={wallet.icon} alt="" width="20" height="20" referrerPolicy="no-referrer" /> : null}
-          {busy ? t("walletConnecting") : `${label}: ${wallet.name}`}
+          {`${busy ? t("walletConnecting") : label} · ${wallet.name}`}
         </button>
       )) : <p role="status">{t("walletNotFound")}</p>}
       {error && (
         <p className="form-error" role="alert">
-          {error}
+          {copy(error)}
         </p>
       )}
     </div>
@@ -647,45 +656,45 @@ function OverviewView({
     <>
       <section className="ops-kpis">
         <article>
-          <span>Current probes</span>
+          <span>{copy("Current probes")}</span>
           <strong>
             {overview.slo.passing}/{overview.slo.total}
           </strong>
-          <small>Passing now</small>
+          <small>{copy("Passing now")}</small>
         </article>
         <article>
-          <span>Firing alerts</span>
+          <span>{copy("Firing alerts")}</span>
           <strong className={firing ? "danger" : ""}>{firing}</strong>
-          <small>Observed failures only</small>
+          <small>{copy("Observed failures only")}</small>
         </article>
         <article>
-          <span>Open incidents</span>
+          <span>{copy("Open incidents")}</span>
           <strong>
-            {overview.incidents.filter((i) => i.status !== "resolved").length}
+            {overview.incidents.filter((i) => !["resolved", "postmortem_complete"].includes(i.status)).length}
           </strong>
-          <small>Persisted operator records</small>
+          <small>{copy("Persisted operator records")}</small>
         </article>
         <article>
-          <span>Source height</span>
+          <span>{copy("Source height")}</span>
           <strong>
             {node?.data?.height ?? node?.data?.latestHeight ?? "—"}
           </strong>
-          <small>From /status</small>
+          <small>{copy("From /status")}</small>
         </article>
       </section>
       <section className="ops-grid">
         <div className="ops-panel span2">
           <PanelTitle
-            eyebrow="Current service evidence"
-            title="Probe matrix"
+            eyebrow={copy("Current service evidence")}
+            title={copy("Probe matrix")}
             action={
-              <button onClick={() => setView("Nodes")}>Inspect nodes →</button>
+              <button onClick={() => setView("Nodes")}>{copy("Inspect nodes →")}</button>
             }
           />
           <ProbeRows probes={overview.probes} />
         </div>
         <div className="ops-panel">
-          <PanelTitle eyebrow="Release control" title="Identity" />
+          <PanelTitle eyebrow={copy("Release control")} title={copy("Identity")} />
           <KeyValue
             data={{
 			  release: identity?.data?.release,
@@ -695,20 +704,20 @@ function OverviewView({
           />
         </div>
 		<div className="ops-panel">
-		  <PanelTitle eyebrow="Canonical network evidence" title="Finality & throughput" />
+		  <PanelTitle eyebrow={copy("Canonical network evidence")} title={copy("Finality & throughput")} />
 		  <KeyValue data={{canonicalHeight:overview.network.canonicalHeight,indexedHeight:overview.network.indexedHeight,indexLag:overview.network.indexLag,finality:overview.network.finality.status,finalityHeight:overview.network.finality.height,blockIntervalSeconds:overview.network.blockIntervalSeconds,tps:overview.network.tps,peerCount:overview.network.peerCount,validators:`${overview.network.observedValidatorCount}/${overview.network.expectedValidatorCount}`}} />
-		  <p className="boundary">{overview.network.consensus.streamBFT.statement}</p>
+		  <p className="boundary">{copy(overview.network.consensus.streamBFT.statement)}</p>
 		</div>
         <div className="ops-panel">
-          <PanelTitle eyebrow="Attention queue" title="Incidents & alerts" />
+          <PanelTitle eyebrow={copy("Attention queue")} title={copy("Incidents & alerts")} />
           <div className="attention">
             <button onClick={() => setView("Alerts")}>
               <strong>{firing}</strong>
-              <span>Firing alerts</span>
+              <span>{copy("Firing alerts")}</span>
             </button>
             <button onClick={() => setView("Incidents")}>
               <strong>{overview.incidents.length}</strong>
-              <span>Total incidents</span>
+              <span>{copy("Total incidents")}</span>
             </button>
           </div>
         </div>
@@ -721,11 +730,11 @@ function ProbeRows({ probes }: { probes: Probe[] }) {
     <div className="probe-rows">
       {probes.map((p) => (
         <div key={p.id}>
-          <span className={`health ${p.status}`}>{p.status}</span>
-          <strong>{p.label}</strong>
-		  <code>Bounded configured endpoint</code>
+          <span className={`health ${p.status}`}>{copy(p.status)}</span>
+          <strong>{copy(p.label)}</strong>
+		  <code>{copy("Bounded configured endpoint")}</code>
           <span>{p.latencyMs === undefined ? "—" : `${p.latencyMs} ms`}</span>
-          <time>{new Date(p.checkedAt).toLocaleTimeString()}</time>
+          <time>{formatDate(p.checkedAt, true)}</time>
         </div>
       ))}
     </div>
@@ -734,7 +743,7 @@ function ProbeRows({ probes }: { probes: Probe[] }) {
 function ProbeView({ title, probes }: { title: string; probes: Probe[] }) {
   return (
     <section className="ops-panel">
-      <PanelTitle eyebrow="Authenticated live probes" title={title} />
+      <PanelTitle eyebrow={copy("Authenticated live probes")} title={copy(title)} />
       <ProbeRows probes={probes} />
     </section>
   );
@@ -754,11 +763,11 @@ function DataTable({
   );
   return (
     <section className="ops-panel data-panel">
-      <PanelTitle eyebrow="Upstream response" title={title} />
+      <PanelTitle eyebrow={copy("Upstream response")} title={copy(title)} />
       {!rows.length ? (
         <Unavailable
           title={empty}
-          detail="The current authenticated upstream returned an empty collection."
+          detail={copy("The current authenticated upstream returned an empty collection.")}
         />
       ) : (
         <div className="table-wrap">
@@ -766,7 +775,7 @@ function DataTable({
             <thead>
               <tr>
                 {keys.map((k) => (
-                  <th key={k}>{k}</th>
+                  <th key={k}>{copy(k)}</th>
                 ))}
               </tr>
             </thead>
@@ -793,8 +802,8 @@ function ReleaseView({ identity }: { identity?: Probe }) {
   return (
     <section className="ops-panel">
       <PanelTitle
-        eyebrow="Non-secret binary identity"
-        title="Release evidence"
+        eyebrow={copy("Non-secret binary identity")}
+        title={copy("Release evidence")}
       />
       <KeyValue
         data={{
@@ -806,10 +815,7 @@ function ReleaseView({ identity }: { identity?: Probe }) {
 		  startedAt: identity?.data?.startedAt,
         }}
       />
-      <p className="boundary">
-        This view reports upstream identity. It does not infer that a release
-        was independently audited or deployed everywhere.
-      </p>
+      <p className="boundary"> {copy("This view reports upstream identity. It does not infer that a release was independently audited or deployed everywhere.")} </p>
     </section>
   );
 }
@@ -817,16 +823,16 @@ function SloView({ overview }: { overview: Overview }) {
   return (
     <section className="ops-panel">
       <PanelTitle
-        eyebrow="Truthful service-level evidence"
-        title="Current SLO checks"
+        eyebrow={copy("Truthful service-level evidence")}
+        title={copy("Current SLO checks")}
       />
       <div className="slo-score">
         <strong>
           {overview.slo.passing}/{overview.slo.total}
         </strong>
-        <span>bounded probes passing at the recorded check time</span>
+        <span>{copy("bounded probes passing at the recorded check time")}</span>
       </div>
-      <p className="boundary">{overview.slo.definition}</p>
+      <p className="boundary">{copy(overview.slo.definition)}</p>
       <ProbeRows probes={overview.probes} />
     </section>
   );
@@ -848,11 +854,11 @@ function IncidentView({
   return (
     <section className="ops-panel">
       <PanelTitle
-        eyebrow="Operator-owned case log"
-        title="Incidents"
+        eyebrow={copy("Operator-owned case log")}
+        title={copy("Incidents")}
         action={
           can(session, "incident:create") ? (
-            <button onClick={() => setOpen(true)}>Record incident</button>
+            <button onClick={() => setOpen(true)}>{copy("Record incident")}</button>
           ) : undefined
         }
       />
@@ -867,23 +873,23 @@ function IncidentView({
       )}
       {!incidents.length ? (
         <Unavailable
-          title="No incidents recorded"
-          detail="No incident is created from a template or synthetic alert. Operators may record one with exact source evidence."
+          title={copy("No incidents recorded")}
+          detail={copy("No incident is created from a template or synthetic alert. Operators may record one with exact source evidence.")}
         />
       ) : (
         <div className="incident-list">
           {incidents.map((i) => (
             <article key={i.id}>
-              <span className={`severity ${i.severity}`}>{i.severity}</span>
+              <span className={`severity ${i.severity}`}>{copy(i.severity)}</span>
               <div>
                 <h3>{i.title}</h3>
                 <p>
-                  {i.source} · {new Date(i.openedAt).toLocaleString()}
-                  {i.owner ? ` · Owner: ${i.owner}` : " · Unassigned"}
+                  {i.source} · {formatDate(i.openedAt)}
+                  {i.owner ? ` · ${copy("Owner")}: ${i.owner}` : ` · ${copy("Unassigned")}`}
                 </p>
               </div>
-              <span>{i.status}</span>
-              <button onClick={() => onSelect(i)}>AI evidence summary</button>
+              <span>{copy(i.status)}</span>
+              <button onClick={() => onSelect(i)}>{copy("AI evidence summary")}</button>
               <IncidentLifecycleControls
                 incident={i}
                 session={session}
@@ -1030,87 +1036,71 @@ function IncidentLifecycleControls({
   return (
     <div className="incident-lifecycle">
       <div className="incident-meta">
-        <span>Schema v{incident.schemaVersion}</span>
-        <span>{incident.timeline?.length || 0} timeline entries</span>
-        <button type="button" onClick={exportEvidence} disabled={busy}>
-          Export evidence
-        </button>
+        <span>{copy("Schema v")}{incident.schemaVersion}</span>
+        <span>{incident.timeline?.length || 0} {copy("timeline entries")}</span>
+        <button type="button" onClick={exportEvidence} disabled={busy}> {copy("Export evidence")} </button>
       </div>
       {can(session, "incident:manage") && (
         <form className="incident-action" onSubmit={assign}>
-          <label>
-            Owner
-            <input
+          <label> {copy("Owner")} <input
               value={owner}
               onChange={(event) => setOwner(event.target.value)}
-              placeholder="On-call owner"
+              placeholder={copy("On-call owner")}
               required
             />
           </label>
-          <button disabled={busy || owner === incident.owner}>Assign</button>
+          <button disabled={busy || owner === incident.owner}>{copy("Assign")}</button>
         </form>
       )}
       {mayTransition && next && (
         <form className="incident-action" onSubmit={transition}>
-          <label>
-            Transition summary
-            <input
+          <label> {copy("Transition summary")} <input
               value={summary}
               onChange={(event) => setSummary(event.target.value)}
               required
-              placeholder="What changed and why"
+              placeholder={copy("What changed and why")}
             />
           </label>
-          <label>
-            Evidence
-            <input
+          <label> {copy("Evidence")} <input
               value={evidence}
               onChange={(event) => setEvidence(event.target.value)}
               required={next.action === "verify_recovery"}
-              placeholder="URL, hash or audit reference"
+              placeholder={copy("URL, hash or audit reference")}
             />
           </label>
-          <button disabled={busy}>{next.label}</button>
+          <button disabled={busy}>{copy(next.label)}</button>
         </form>
       )}
       {incident.status === "resolved" && can(session, "incident:postmortem") && (
         <form className="incident-postmortem" onSubmit={completePostmortem}>
-          <label>
-            Postmortem summary
-            <textarea
+          <label> {copy("Postmortem summary")} <textarea
               value={postmortemSummary}
               onChange={(event) => setPostmortemSummary(event.target.value)}
               required
             />
           </label>
-          <label>
-            Root cause
-            <textarea
+          <label> {copy("Root cause")} <textarea
               value={rootCause}
               onChange={(event) => setRootCause(event.target.value)}
               required
             />
           </label>
-          <label>
-            Corrective action
-            <input
+          <label> {copy("Corrective action")} <input
               value={correctiveAction}
               onChange={(event) => setCorrectiveAction(event.target.value)}
               required
             />
           </label>
-          <label>
-            Evidence
-            <input
+          <label> {copy("Evidence")} <input
               value={postmortemEvidence}
               onChange={(event) => setPostmortemEvidence(event.target.value)}
               required
             />
           </label>
-          <button disabled={busy}>Complete postmortem</button>
+          <button disabled={busy}>{copy("Complete postmortem")}</button>
         </form>
       )}
-      {error && <span className="form-error" role="alert">{error}</span>}
+      {error && <span className="form-error" role="alert">{copy(error)}</span>}
     </div>
   );
 }
@@ -1140,34 +1130,28 @@ function IncidentForm({
   }
   return (
     <form className="inline-form" onSubmit={submit}>
-      <label>
-        Title
-        <input
+      <label> {copy("Title")} <input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           required
         />
       </label>
-      <label>
-        Severity
-        <select value={severity} onChange={(e) => setSeverity(e.target.value)}>
-          <option>low</option>
-          <option>medium</option>
-          <option>high</option>
-          <option>critical</option>
+      <label> {copy("Severity")} <select value={severity} onChange={(e) => setSeverity(e.target.value)}>
+          <option value="low">{copy("low")}</option>
+          <option value="medium">{copy("medium")}</option>
+          <option value="high">{copy("high")}</option>
+          <option value="critical">{copy("critical")}</option>
         </select>
       </label>
-      <label>
-        Evidence source
-        <input
+      <label> {copy("Evidence source")} <input
           value={source}
           onChange={(e) => setSource(e.target.value)}
           required
-          placeholder="URL or audit reference"
+          placeholder={copy("URL or audit reference")}
         />
       </label>
-      {error && <span role="alert">{error}</span>}
-      <button>Record with audit</button>
+      {error && <span role="alert">{copy(error)}</span>}
+      <button>{copy("Record with audit")}</button>
     </form>
   );
 }
@@ -1183,7 +1167,11 @@ function AlertView({
   onRefresh: () => void;
 }) {
   const [confirm, setConfirm] = useState("");
+  const [actionError, setActionError] = useState("");
+  const [actionBusy, setActionBusy] = useState(false);
   async function ack(id: string) {
+    setActionBusy(true); setActionError("");
+    try {
     await request(
       `/ops/alerts/${encodeURIComponent(id)}/acknowledge`,
       session,
@@ -1191,14 +1179,16 @@ function AlertView({
     );
     setConfirm("");
     onRefresh();
+    } catch (cause) { setActionError(cause instanceof Error ? cause.message : "Unavailable"); }
+    finally { setActionBusy(false); }
   }
   return (
     <section className="ops-panel">
-      <PanelTitle eyebrow="Probe-derived attention" title="Alerts" />
+      <PanelTitle eyebrow={copy("Probe-derived attention")} title={copy("Alerts")} />
       {!alerts.length ? (
         <Unavailable
-          title="No alerts observed"
-          detail="Alerts appear only after a real upstream probe fails. Empty is a healthy, honest state."
+          title={copy("No alerts observed")}
+          detail={copy("Alerts appear only after a real upstream probe fails. Empty is a healthy, honest state.")}
         />
       ) : (
         <div className="alert-list">
@@ -1207,34 +1197,33 @@ function AlertView({
               <span
                 className={`health ${a.state === "firing" ? "unavailable" : "healthy"}`}
               >
-                {a.state}
+                {copy(a.state)}
               </span>
               <div>
                 <h3>{a.source}</h3>
-                <p>{a.reason}</p>
+                <p>{copy(a.reason)}</p>
                 <a href={a.evidenceUrl}>{a.evidenceUrl}</a>
               </div>
-              <time>{new Date(a.lastObservedAt).toLocaleString()}</time>
+              <time>{formatDate(a.lastObservedAt)}</time>
               {can(session, "alert:acknowledge") && a.state === "firing" && (
                 <div className="approval">
                   <input
-                    aria-label={`Approval phrase for ${a.source}`}
-                    placeholder="Type ACKNOWLEDGE"
+                    aria-label={`${copy("Approval phrase for")} ${a.source}`}
+                    placeholder={copy("Type ACKNOWLEDGE")}
                     value={confirm}
                     onChange={(e) => setConfirm(e.target.value)}
                   />
                   <button
-                    disabled={confirm !== "ACKNOWLEDGE"}
+                    disabled={actionBusy || confirm !== "ACKNOWLEDGE"}
                     onClick={() => ack(a.id)}
-                  >
-                    Acknowledge
-                  </button>
+                  > {copy("Acknowledge")} </button>
                 </div>
               )}
             </article>
           ))}
         </div>
       )}
+      {actionError && <p className="form-error boundary" role="alert">{copy(actionError)}</p>}
     </section>
   );
 }
@@ -1249,35 +1238,18 @@ function BackupView({
   session: Session;
   onRefresh: () => void;
 }) {
-  const [evidence, setEvidence] = useState("");
-  async function record() {
-    await request("/ops/backup-records", session, {
-      method: "POST",
-      body: JSON.stringify({ evidence }),
-    });
-    setEvidence("");
-    onRefresh();
-  }
   return (
     <section className="ops-panel">
-      <PanelTitle eyebrow="Evidence register" title="Backups" />
-      <p className="boundary">
-        Monitor records verified backup evidence; it does not claim or execute a
-        backup.
-      </p>
+      <PanelTitle eyebrow={copy("Evidence register")} title={copy("Backups")} />
+      <p className="boundary"> {copy("Monitor records verified backup evidence; it does not claim or execute a backup.")} </p>
       {can(session, "backup:record") && (
-        <div className="approval">
-          <input
-            value={evidence}
-            onChange={(e) => setEvidence(e.target.value)}
-            placeholder="Backup artifact hash or verified location"
-          />
-          <button disabled={!evidence} onClick={record}>
-            Record evidence
-          </button>
+        <div className="backup-required">
+          <h3>{copy("Backup details required")}</h3>
+          <p>{copy("Record creation is unavailable until the artifact, digest, size, retention, encryption, recovery targets and evidence are supplied.")}</p>
+          <button disabled aria-disabled="true">{copy("Record evidence")}</button>
         </div>
       )}
-      <RawRecords records={records} empty="No backup evidence recorded" />
+      <RawRecords records={records} empty={copy("No backup evidence recorded")} />
     </section>
   );
 }
@@ -1296,7 +1268,11 @@ function RollbackView({
 }) {
   const [reason, setReason] = useState("");
   const [phrase, setPhrase] = useState("");
+  const [actionError, setActionError] = useState("");
+  const [actionBusy, setActionBusy] = useState(false);
   async function propose() {
+    setActionBusy(true); setActionError("");
+    try {
     await request("/ops/rollback-proposals", session, {
       method: "POST",
       body: JSON.stringify({
@@ -1308,66 +1284,60 @@ function RollbackView({
     setReason("");
     setPhrase("");
     onRefresh();
+    } catch (cause) { setActionError(cause instanceof Error ? cause.message : "Unavailable"); }
+    finally { setActionBusy(false); }
   }
   return (
     <section className="ops-panel rollback">
       <PanelTitle
-        eyebrow="Human approval boundary"
-        title="Rollback proposals"
+        eyebrow={copy("Human approval boundary")}
+        title={copy("Rollback proposals")}
       />
-      <div className="boundary strong">
-        A proposal never executes rollback. Central infrastructure ownership
-        remains required after explicit operator approval.
-      </div>
+      <div className="boundary strong"> {copy("A proposal never executes rollback. Central infrastructure ownership remains required after explicit operator approval.")} </div>
       {can(session, "rollback:propose") && (
         <div className="approval-stack">
-          <label>
-            Reason
-            <textarea
+          <label> {copy("Reason")} <textarea
               value={reason}
               onChange={(e) => setReason(e.target.value)}
             />
           </label>
-          <label>
-            Explicit phrase
-            <input
+          <label> {copy("Explicit phrase")} <input
               value={phrase}
               onChange={(e) => setPhrase(e.target.value)}
               placeholder="APPROVE ROLLBACK PROPOSAL"
             />
           </label>
           <button
-            disabled={!reason || phrase !== "APPROVE ROLLBACK PROPOSAL"}
+            disabled={actionBusy || !reason || phrase !== "APPROVE ROLLBACK PROPOSAL"}
             onClick={propose}
-          >
-            Approve proposal only
-          </button>
+          > {copy("Approve proposal only")} </button>
         </div>
       )}
-      <RawRecords records={proposals} empty="No rollback proposal recorded" />
+      <RawRecords records={proposals} empty={copy("No rollback proposal recorded")} />
+      {actionError && <p className="form-error boundary" role="alert">{copy(actionError)}</p>}
     </section>
   );
 }
 function AuditView({ rows }: { rows: Audit[] }) {
   return (
     <section className="ops-panel">
-      <PanelTitle eyebrow="Append-first operator evidence" title="Audit" />
+      <PanelTitle eyebrow={copy("Append-first operator evidence")} title={copy("Audit")} />
       {!rows.length ? (
         <Unavailable
-          title="No audit events"
-          detail="Authenticated activity will appear here."
+          title={copy("No audit events")}
+          detail={copy("Authenticated activity will appear here.")}
         />
       ) : (
         <div className="audit-list">
           {rows.map((row) => (
             <div key={row.id}>
-              <time>{new Date(row.at).toLocaleString()}</time>
-              <strong>{row.action}</strong>
+              <time>{formatDate(row.at)}</time>
+              <strong>{copy(row.action)}</strong>
               <code>{row.target}</code>
               <span>
-                {row.actor} · {row.role}
+                {row.actor} · {copy(row.role)}
               </span>
-              <b>{row.outcome}</b>
+              <b className={`audit-outcome ${row.outcome}`}>{copy(row.outcome)}</b>
             </div>
           ))}
         </div>
@@ -1402,10 +1372,10 @@ function LogsView({ session }: { session: Session }) {
   }, []);
   return (
     <section className="ops-panel">
-      <PanelTitle eyebrow="Bounded and redacted" title="Service logs" />
+      <PanelTitle eyebrow={copy("Bounded and redacted")} title={copy("Service logs")} />
       {error && (
         <div className="banner error" role="alert">
-          {error}
+          {copy(error)}
         </div>
       )}
       {data?.sources.length ? (
@@ -1421,15 +1391,15 @@ function LogsView({ session }: { session: Session }) {
             <pre className="log-output">{data.lines.join("\n")}</pre>
           ) : (
             <Unavailable
-              title="Select a configured log source"
-              detail="Only server-side allowlisted sources can be read."
+              title={copy("Select a configured log source")}
+              detail={copy("Only server-side allowlisted sources can be read.")}
             />
           )}
         </>
       ) : (
         <Unavailable
-          title="No log sources configured"
-          detail="Set the server-side YNX_MONITOR_LOG_SOURCES allowlist. No browser-side placeholder logs are generated."
+          title={copy("No log sources configured")}
+          detail={copy("Set the server-side YNX_MONITOR_LOG_SOURCES allowlist. No browser-side placeholder logs are generated.")}
         />
       )}
     </section>
@@ -1493,14 +1463,14 @@ function IncidentAI({
       <button
         className="close"
         onClick={onClose}
-        aria-label="Close AI incident summary"
+        aria-label={copy("Close AI incident summary")}
       >
         ×
       </button>
-      <p className="kicker">YNX AI · advisory only</p>
+      <p className="kicker">{copy("YNX AI · advisory only")}</p>
       <h2>{incident.title}</h2>
       <section className="context-preview">
-        <h3>Selected context</h3>
+        <h3>{copy("Selected context")}</h3>
         <code>{incident.id}</code>
         <p>{incident.source}</p>
         {incident.evidence.map((e) => (
@@ -1510,32 +1480,25 @@ function IncidentAI({
         ))}
       </section>
       <dl>
-        <dt>Provider</dt>
-        <dd>Permissioned YNX AI Gateway</dd>
-        <dt>Estimated cost</dt>
-        <dd>One bounded incident summary</dd>
-        <dt>Authority</dt>
-        <dd>
-          No acknowledge, restart, key rotation, rollback or state mutation
-        </dd>
+        <dt>{copy("Provider")}</dt>
+        <dd>{copy("Permissioned YNX AI Gateway")}</dd>
+        <dt>{copy("Estimated cost")}</dt>
+        <dd>{copy("One bounded incident summary")}</dd>
+        <dt>{copy("Authority")}</dt>
+        <dd> {copy("No acknowledge, restart, key rotation, rollback or state mutation")} </dd>
       </dl>
       {state === "preview" && (
-        <button className="primary" onClick={run}>
-          Allow context once & stream
-        </button>
+        <button className="primary" onClick={run}> {copy("Allow context once & stream")} </button>
       )}
       {state === "streaming" && (
-        <div className="banner">Streaming evidence-grounded proposal…</div>
+        <div className="banner">{copy("Streaming evidence-grounded proposal…")}</div>
       )}
       {state === "review" && (
         <>
           <pre>{output}</pre>
-          <p className="boundary">
-            Proposed runbook steps require independent operator review and the
-            existing approval boundary. Nothing was executed.
-          </p>
-          <button onClick={() => setState("preview")}>Retry</button>
-          <button onClick={onClose}>Reject result</button>
+          <p className="boundary"> {copy("Proposed runbook steps require independent operator review and the existing approval boundary. Nothing was executed.")} </p>
+          <button onClick={() => setState("preview")}>{copy("Retry")}</button>
+          <button onClick={onClose}>{copy("Reject result")}</button>
         </>
       )}
     </aside>
@@ -1553,8 +1516,8 @@ function PanelTitle({
   return (
     <header className="panel-title">
       <div>
-        <p>{eyebrow}</p>
-        <h2>{title}</h2>
+        <p>{copy(eyebrow)}</p>
+        <h2>{copy(title)}</h2>
       </div>
       {action}
     </header>
@@ -1565,8 +1528,8 @@ function KeyValue({ data }: { data: Record<string, unknown> }) {
     <dl className="key-value">
       {Object.entries(data).map(([k, v]) => (
         <div key={k}>
-          <dt>{k}</dt>
-          <dd>{String(v ?? "Unavailable")}</dd>
+          <dt>{copy(k)}</dt>
+          <dd>{v == null ? copy("Unavailable") : ["status", "finality", "validatorSetStatus"].includes(k) ? copy(String(v)) : k.endsWith("At") && typeof v === "string" ? formatDate(v) : String(v)}</dd>
         </div>
       ))}
     </dl>
@@ -1576,8 +1539,8 @@ function Unavailable({ title, detail }: { title: string; detail: string }) {
   return (
     <div className="unavailable">
       <span>∅</span>
-      <strong>{title}</strong>
-      <p>{detail}</p>
+      <strong>{copy(title)}</strong>
+      <p>{copy(detail)}</p>
     </div>
   );
 }
@@ -1597,7 +1560,7 @@ function RawRecords({
   ) : (
     <Unavailable
       title={empty}
-      detail="No record is fabricated for presentation."
+      detail={copy("No record is fabricated for presentation.")}
     />
   );
 }

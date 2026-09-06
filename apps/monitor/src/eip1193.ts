@@ -72,7 +72,7 @@ export function discoverWalletProviders(onChange: (providers: WalletProvider[]) 
   window.addEventListener("eip6963:announceProvider", announce);
   window.dispatchEvent(new Event("eip6963:requestProvider"));
   const legacy = window.ethereum;
-  if (legacy && typeof legacy.request === "function") {
+  if (legacy && typeof legacy.request === "function" && ![...found.values()].some((item) => item.provider === legacy)) {
     found.set("legacy-eip1193", { id: "legacy-eip1193", name: inferredName(legacy), provider: legacy, source: "legacy-eip1193" });
     publish();
   }
