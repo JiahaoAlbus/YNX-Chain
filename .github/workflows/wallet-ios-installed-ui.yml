@@ -1,0 +1,72 @@
+name: wallet-ios-installed-ui
+
+on:
+  workflow_dispatch:
+    inputs:
+      qa_source_commit:
+        description: Exact 40-character committed QA harness source
+        required: true
+        type: string
+      app_source_commit:
+        description: Exact original Simulator app source
+        required: true
+        default: "42496ecc8a3469696cfc29cac8a858885a2254e5"
+        type: string
+      artifact_run_id:
+        description: Completed wallet-ios run with successfully frozen original app
+        required: true
+        default: "34039128878"
+        type: string
+  push:
+    branches: [codex/wallet-dedicated-auth-v2-20260906]
+    paths:
+      - "apps/wallet/qa/ios/**"
+      - "apps/wallet/scripts/ios-installed-ui-qa.mjs"
+      - ".github/workflows/wallet-ios-installed-ui.yml"
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  installed-ui:
+    runs-on: macos-15
+    timeout-minutes: 35
+    env:
+      YNX_IOS_QA_SOURCE_COMMIT: ${{ inputs.qa_source_commit || github.sha }}
+      YNX_IOS_APP_SOURCE_COMMIT: ${{ inputs.app_source_commit || '42496ecc8a3469696cfc29cac8a858885a2254e5' }}
+      YNX_IOS_ARTIFACT_RUN: ${{ inputs.artifact_run_id || '34039128878' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.qa_source_commit || github.sha }}
+          persist-credentials: false
+      - uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
+        with:
+          xcode-version: "26.3"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: "22"
+      - name: Verify immutable GitHub Actions pins
+        run: node scripts/verify/github-actions-pins-check.mjs
+      - name: Bind independent QA source and original app artifact
+        env:
+          GH_TOKEN: ${{ github.token }}
+          YNX_IOS_UI_QA_DIR: ${{ runner.temp }}/ynx-wallet-ios-ui-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          printf 'YNX_IOS_UI_QA_DIR=%s\n' "$YNX_IOS_UI_QA_DIR" >> "$GITHUB_ENV"
+          node apps/wallet/scripts/ios-installed-ui-qa.mjs prepare
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ynx-wallet-ios-simulator-${{ env.YNX_IOS_APP_SOURCE_COMMIT }}
+          run-id: ${{ env.YNX_IOS_ARTIFACT_RUN }}
+          github-token: ${{ github.token }}
+          path: ${{ env.YNX_IOS_UI_QA_DIR }}/incoming
+      - name: Exercise the original installed Release app with XCTest
+        run: node apps/wallet/scripts/ios-installed-ui-qa.mjs run
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
+        with:
+          name: ynx-wallet-ios-installed-ui-${{ env.YNX_IOS_QA_SOURCE_COMMIT }}
+          path: ${{ env.YNX_IOS_UI_QA_DIR }}/proof
+          if-no-files-found: error
