@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
+import { runInNewContext } from "node:vm";
 import test from "node:test";
 import { StandardWalletConnection, YNX_TESTNET_CHAIN_QUANTITY } from "@ynx-chain/wallet-auth";
 import { CANONICAL_RPC_URL, probeYNXTestnetRPC } from "../src/rpc.mjs";
@@ -114,6 +115,29 @@ test("shell is explicit and fail closed", async () => {
   assert.match(await readFile(new URL("../src/renderer.js", import.meta.url), "utf8"), /underlyingCode/);
   assert.match(main, /window\.isVisible\(\)/);
   assert.match(main, /window\.getTitle\(\)/);
+});
+
+test("security invalidation clears old unlock success while an unchanged locked refresh preserves current feedback", async () => {
+  const renderer = await readFile(new URL("../src/renderer.js", import.meta.url), "utf8");
+  const start = renderer.indexOf("function renderKeyState(state) {");
+  const end = renderer.indexOf("\npasswordUI = createPasswordVaultUI", start);
+  assert.ok(start >= 0 && end > start);
+  for (const fixture of [
+    { before: { locked: false, revision: 4 }, after: { locked: true, revision: 5 }, message: "Wallet unlocked. Review each request before approving.", expected: "" },
+    { before: { locked: true, revision: 5 }, after: { locked: true, revision: 6 }, message: "Wallet unlocked. Review each request before approving.", expected: "" },
+    { before: { locked: true, revision: 5 }, after: { locked: true, revision: 5 }, message: "The password is incorrect or the encrypted Wallet was changed.", expected: "The password is incorrect or the encrypted Wallet was changed." }
+  ]) {
+    const elements = new Map();
+    const document = { querySelector(selector) { if (!elements.has(selector)) elements.set(selector, { textContent: "", hidden: false, disabled: false }); return elements.get(selector); }, querySelectorAll: () => [] };
+    document.querySelector("#unlock-result").textContent = fixture.message;
+    runInNewContext(`${renderer.slice(start, end)}\nrenderKeyState(nextState);`, {
+      document, keyState: fixture.before, nextState: fixture.after, signingShort: {}, activeAccount: "qa-public-account",
+      approvalQueue: { clear() {} }, authorizationChoices: new Map(), transferReview: null,
+      passwordUI: { cancel() {}, render() {} }, renderKeyDetail() {}, presentApproval() {}
+    });
+    assert.equal(document.querySelector("#key-security-title").textContent, "Wallet locked");
+    assert.equal(document.querySelector("#unlock-result").textContent, fixture.expected);
+  }
 });
 
 test("private Product Session methods cannot alter the independent standard Provider connection", async () => {
