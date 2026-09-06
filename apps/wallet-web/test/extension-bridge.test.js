@@ -13,7 +13,7 @@ test("page bridge accepts only exact HTTP(S) origin, request id, method and para
 });
 
 test("runtime bridge binds the content-script request to the sender origin",()=>{
-  const runtime={...valid,type:RUNTIME_REQUEST,deadlineAt:Date.now()+REQUEST_TIMEOUT_MS};
+  const runtime={...valid,documentNonce:"a".repeat(64),type:RUNTIME_REQUEST,deadlineAt:Date.now()+REQUEST_TIMEOUT_MS};
   assert.equal(validateRuntimeRequest(runtime,"https://dapp.example/path"),true);
   assert.equal(validateRuntimeRequest(runtime,"https://evil.example/path"),false);
   assert.equal(validateRuntimeRequest(runtime,"chrome-extension://id/page"),false);

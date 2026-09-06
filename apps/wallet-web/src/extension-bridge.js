@@ -5,6 +5,7 @@ export const PAGE_RESPONSE = "YNX_PAGE_RESPONSE_V1";
 export const PAGE_EVENT = "YNX_PAGE_EVENT_V1";
 export const RUNTIME_REQUEST = "YNX_DAPP_REQUEST_V1";
 export const RUNTIME_EVENT = "YNX_DAPP_EVENT_V1";
+export const RUNTIME_DOCUMENT_PROBE = "YNX_DAPP_DOCUMENT_PROBE_V1";
 export const REQUEST_TIMEOUT_MS = 120000;
 
 export const REQUEST_METHODS = Object.freeze([
@@ -22,6 +23,21 @@ export function validHttpOrigin(origin) {
   catch { return false; }
 }
 export function validRequestId(requestId) { return typeof requestId === "string" && REQUEST_ID.test(requestId); }
+export function validDocumentNonce(value) { return typeof value === "string" && /^[0-9a-f]{64}$/u.test(value); }
+export function validBrowserDocumentId(value) { return typeof value === "string" && /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/u.test(value); }
+export function documentMessageTarget(lease) { return {frameId:0,...(validBrowserDocumentId(lease.documentId)?{documentId:lease.documentId}:{})}; }
+export async function readCurrentDappDocument(api,lease,{cryptoImpl=globalThis.crypto,timeoutMs=2000}={}) {
+  const fail=()=>Object.assign(new Error("The requesting page is no longer active. Reload the DApp and start a new request."),{code:"DOCUMENT_CHANGED"});
+  if(!Number.isInteger(lease.tabId)||lease.tabId<0||!validHttpOrigin(lease.origin))throw fail();
+  const challenge=Array.from(cryptoImpl.getRandomValues(new Uint8Array(32)),value=>value.toString(16).padStart(2,"0")).join("");
+  let timer;
+  try {
+    const result=await Promise.race([api.tabs.sendMessage(lease.tabId,{type:RUNTIME_DOCUMENT_PROBE,version:BRIDGE_VERSION,origin:lease.origin,challenge},documentMessageTarget(lease)),new Promise((_,reject)=>{timer=setTimeout(()=>reject(fail()),timeoutMs)})]);
+    if(!result||typeof result!=="object"||Array.isArray(result)||Object.keys(result).sort().join(",")!=="challenge,documentNonce,origin,version"||result.version!==BRIDGE_VERSION||result.origin!==lease.origin||result.challenge!==challenge||!validDocumentNonce(result.documentNonce))throw fail();
+    return result.documentNonce;
+  } catch { throw fail(); }
+  finally { clearTimeout(timer); }
+}
 export function validatePageRequest(data, eventOrigin) {
   if (!data || typeof data !== "object" || Array.isArray(data)) return false;
   if (!Object.keys(data).every((key) => ["type", "version", "requestId", "origin", "method", "params"].includes(key))) return false;
@@ -31,7 +47,7 @@ export function validatePageRequest(data, eventOrigin) {
 }
 export function validateRuntimeRequest(message, senderUrl) {
   let senderOrigin; try { senderOrigin = new URL(senderUrl).origin; } catch { return false; }
-  if (!message || !Object.keys(message).every((key) => ["type", "version", "requestId", "origin", "method", "params", "deadlineAt"].includes(key))) return false;
+  if (!message || !Object.keys(message).every((key) => ["type", "version", "requestId", "origin", "method", "params", "deadlineAt", "documentNonce"].includes(key))||!validDocumentNonce(message.documentNonce)) return false;
   const pageRequest={type:PAGE_REQUEST,version:message.version,requestId:message.requestId,origin:message.origin,method:message.method,params:message.params};
   return message.type === RUNTIME_REQUEST && validatePageRequest(pageRequest, senderOrigin) && Number.isSafeInteger(message.deadlineAt) && message.deadlineAt > Date.now() && message.deadlineAt <= Date.now()+REQUEST_TIMEOUT_MS+1000;
 }

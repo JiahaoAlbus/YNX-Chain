@@ -1,5 +1,5 @@
 import {canonicalProviderContext,canonicalProviderOrigin,isProviderInternalRequestId,providerContextForTab,providerPermissionKey} from "./extension-provider-permissions.js";
-import {validRequestId} from "./extension-bridge.js";
+import {validDocumentNonce,validRequestId} from "./extension-bridge.js";
 export const SENSITIVE_REPLAY_KEY="ynx.extension.sensitive.replay.v1";
 export const SENSITIVE_REPLAY_LIMIT=2048;
 export const SENSITIVE_METHODS=Object.freeze(["eth_requestAccounts","wallet_requestPermissions","personal_sign","eth_signTypedData_v4","eth_sendTransaction"]);
@@ -46,12 +46,13 @@ export function parseSensitiveRequest(message,now=Date.now()){
 // Revisions invalidate work already awaiting RPC, UI, password decryption or signing.
 export class SensitiveAuthorizationGuard{
   #accountRevision=0;#origins=new Map();#tabs=new Map();
-  constructor({getTab,getAccount,getPermission,now=()=>Date.now()}){this.getTab=getTab;this.getAccount=getAccount;this.getPermission=getPermission;this.now=now}
+  constructor({getTab,getAccount,getPermission,getDocument,now=()=>Date.now()}){if(typeof getDocument!=="function")throw new TypeError("A current content-document verifier is required");this.getTab=getTab;this.getAccount=getAccount;this.getPermission=getPermission;this.getDocument=getDocument;this.now=now}
   // Capture before an asynchronous active-tab lookup as well as before replay or
   // migration reads. Binding an account later must retain these exact revisions.
   capturePending(){const accountRevision=this.#accountRevision,origins=new Map(this.#origins),tabs=new Map(this.#tabs);return context=>{const browserContext=canonicalProviderContext(context.browserContext);return Object.freeze({...context,browserContext,accountRevision,originRevision:origins.get(providerPermissionKey(context.origin,browserContext))??0,tabRevision:tabs.get(context.tabId)??0})}}
   capture(context){return this.capturePending()(context)}
   bind(lease,{account,grantedAt}){this.assertCurrent(lease);return Object.freeze({...lease,account,grantedAt})}
+  bindDocument(lease,documentNonce){this.#live(lease);this.#nonce(documentNonce);return Object.freeze({...lease,documentNonce})}
   invalidateAll(){this.#accountRevision++}
   invalidateOrigin(origin,context="chromium-default"){const key=providerPermissionKey(origin,context);this.#origins.set(key,(this.#origins.get(key)??0)+1)}
   // Keep the tombstone on removal: a reused tab ID cannot revive its old lease.
@@ -59,14 +60,16 @@ export class SensitiveAuthorizationGuard{
   #documentLive(lease){if(!Number.isSafeInteger(lease.deadlineAt)||this.now()>=lease.deadlineAt)reject("BRIDGE_EXPIRED","Wallet request expired.");if(lease.tabRevision!==(this.#tabs.get(lease.tabId)??0))reject("DOCUMENT_CHANGED","The requesting DApp document changed. Start a new request.")}
   #live(lease){this.#documentLive(lease);if(lease.accountRevision!==this.#accountRevision)reject("PROVIDER_ACCOUNT_CHANGED","Wallet account changed during approval.");if(lease.originRevision!==(this.#origins.get(providerPermissionKey(lease.origin,lease.browserContext))??0))reject("PERMISSION_REVOKED","Wallet permission was revoked during approval.")}
   assertCurrent(lease){this.#live(lease)}
-  async assertDocument(lease){this.#documentLive(lease);const tab=await this.getTab(lease.tabId);this.#documentLive(lease);this.#tab(lease,tab)}
+  async assertContext(lease){this.#documentLive(lease);const tab=await this.getTab(lease.tabId);this.#documentLive(lease);this.#tab(lease,tab)}
+  #nonce(value){if(!validDocumentNonce(value))reject("DOCUMENT_CHANGED","The requesting page identity is unavailable. Reload the DApp and start a new request.")}
+  async assertDocument(lease){this.#nonce(lease.documentNonce);await this.assertContext(lease);const nonce=await this.getDocument(lease);this.#documentLive(lease);if(nonce!==lease.documentNonce)reject("DOCUMENT_CHANGED","The requesting DApp document changed. Start a new request.")}
   #tab(lease,tab){let origin;try{origin=new URL(tab?.url).origin}catch{}if(tab?.id!==lease.tabId||origin!==lease.origin)reject("ORIGIN_CHANGED","The requesting DApp origin changed.");if(providerContextForTab(tab,{firefox:lease.browserContext.startsWith("firefox-")})!==lease.browserContext)reject("BROWSER_CONTEXT_CHANGED","The requesting browser context changed. Start a new request.")}
   async assert(lease,{permissionRequired=true}={}){
-    this.#live(lease);
+    this.#live(lease);this.#nonce(lease.documentNonce);
     const[tab,account,permission]=await Promise.all([this.getTab(lease.tabId),this.getAccount(),permissionRequired?this.getPermission(lease.origin,lease.browserContext):null]);this.#live(lease);
     this.#tab(lease,tab);
     if(account?.account!==lease.account)reject("PROVIDER_ACCOUNT_CHANGED","Wallet account changed during approval.");
-    if(permissionRequired&&(!permission||permission.account!==lease.account||permission.origin!==lease.origin||permission.chainId!=="0x1917"||permission.grantedAt!==lease.grantedAt||(permission.browserContext??"chromium-default")!==lease.browserContext))reject("PERMISSION_REVOKED","Wallet permission changed during approval.");return account;
+    if(permissionRequired&&(!permission||permission.account!==lease.account||permission.origin!==lease.origin||permission.chainId!=="0x1917"||permission.grantedAt!==lease.grantedAt||(permission.browserContext??"chromium-default")!==lease.browserContext))reject("PERMISSION_REVOKED","Wallet permission changed during approval.");await this.assertDocument(lease);this.#live(lease);return account;
   }
 }
 

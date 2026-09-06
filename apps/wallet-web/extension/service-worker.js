@@ -1,4 +1,4 @@
-import {BRIDGE_VERSION,PROVIDER_EVENTS,REQUEST_METHODS,RUNTIME_EVENT,RUNTIME_REQUEST,publicBridgeError,validateRuntimeRequest} from "./extension-bridge.js";
+import {BRIDGE_VERSION,PROVIDER_EVENTS,REQUEST_METHODS,RUNTIME_EVENT,RUNTIME_REQUEST,documentMessageTarget,publicBridgeError,readCurrentDappDocument,validBrowserDocumentId,validDocumentNonce,validateRuntimeRequest} from "./extension-bridge.js";
 import {READ_ONLY_RPC_METHODS,YNX_CHAIN_ID,YNX_RPC_URL,broadcastExtensionTransaction,forwardExtensionRpc} from "./extension-rpc.js";
 import {SensitiveAuthorizationGuard,consumeSensitiveRequest,deriveScopedSensitiveRequestId,parseSensitiveRequest,validateSensitiveResult} from "./extension-sensitive-policy.js";
 import {activeTabInjectionPlans,requireActiveDappTab} from "./active-tab-policy.js";
@@ -15,7 +15,7 @@ const browserContextForTab=tab=>providerContextForTab(tab,{firefox:firefoxContex
 const approvalWaiters=new Map();
 const signerWaiters=new Map();
 const broadcastJournal=new ExtensionBroadcastJournal(extensionApi.storage.local);
-const authorizationGuard=new SensitiveAuthorizationGuard({getTab:id=>extensionApi.tabs.get(id),getAccount:()=>configuredAccount(),getPermission:async (origin,context)=>(await approvedState(origin,context))?.permission});
+const authorizationGuard=new SensitiveAuthorizationGuard({getTab:id=>extensionApi.tabs.get(id),getAccount:()=>configuredAccount(),getPermission:async (origin,context)=>(await approvedState(origin,context))?.permission,getDocument:lease=>readCurrentDappDocument(extensionApi,lease)});
 let authorityMutation=Promise.resolve(),vaultRevision=0;
 const vaultRecoveries=new Map();
 function cancelVaultTab(tabId){for(const lease of vaultRecoveries.values())if(lease.tabId===tabId)lease.cancelled=true}
@@ -54,17 +54,18 @@ async function executeInTab(tabId,origin,preference,input){
 }
 async function ensureActiveTabBridge(capture=authorizationGuard.capturePending(),deadlineAt=Date.now()+120000){
   const[tab]=await extensionApi.tabs.query({active:true,currentWindow:true});
-  const context={...requireActiveDappTab(tab),browserContext:browserContextForTab(tab)},documentLease=capture({...context,deadlineAt});await authorizationGuard.assertDocument(documentLease);
+  const context={...requireActiveDappTab(tab),browserContext:browserContextForTab(tab)};let documentLease=capture({...context,deadlineAt});await authorizationGuard.assertContext(documentLease);
   try{
-    for(const plan of activeTabInjectionPlans(context.tabId)){await extensionApi.scripting.executeScript(plan);await authorizationGuard.assertDocument(documentLease)}
+    for(const plan of activeTabInjectionPlans(context.tabId)){const results=await extensionApi.scripting.executeScript(plan);await authorizationGuard.assertContext(documentLease);const documentId=results?.find(item=>item.frameId===0)?.documentId;if(documentId!==undefined){if(!validBrowserDocumentId(documentId)||documentLease.documentId&&documentLease.documentId!==documentId)throw Object.assign(new Error("The requesting DApp document changed."),{code:"DOCUMENT_CHANGED"});documentLease=Object.freeze({...documentLease,documentId})}}
   }catch(error){if(error?.code==="DOCUMENT_CHANGED"||error?.code==="ORIGIN_CHANGED")throw error;throw Object.assign(new Error("The DApp bridge requires a current user-granted activeTab permission."),{code:"ACTIVE_TAB_REQUIRED",cause:error})}
+  documentLease=authorizationGuard.bindDocument(documentLease,await readCurrentDappDocument(extensionApi,documentLease));await authorizationGuard.assertDocument(documentLease);
   return{...context,documentLease};
 }
 async function executeActive(preference,input){
   const{tabId,origin}=await ensureActiveTabBridge();
   return executeInTab(tabId,origin,preference,input);
 }
-async function emitToTab(tabId,origin,event,payload,documentLease){if(documentLease)await authorizationGuard.assertDocument(documentLease);if(PROVIDER_EVENTS.includes(event))await extensionApi.tabs.sendMessage(tabId,{type:RUNTIME_EVENT,version:BRIDGE_VERSION,origin,event,payload}).catch(()=>{})}
+async function emitToTab(tabId,origin,event,payload,documentLease){await authorizationGuard.assertDocument(documentLease);if(PROVIDER_EVENTS.includes(event))await extensionApi.tabs.sendMessage(tabId,{type:RUNTIME_EVENT,version:BRIDGE_VERSION,origin,event,payload,documentNonce:documentLease.documentNonce},documentMessageTarget(documentLease)).catch(()=>{})}
 function exactAccounts(value){if(!Array.isArray(value)||value.some((account)=>!/^0x[0-9a-fA-F]{40}$/u.test(account)))throw Object.assign(new Error("Wallet backend returned invalid accounts."),{code:"INVALID_ACCOUNT"});return value.map((account)=>account.toLowerCase())}
 
 async function configuredAccount(){const stored=await extensionApi.storage.local.get([PROVIDER_ACCOUNT_KEY,EXTENSION_VAULT_KEY]),account=parseProviderAccount(stored?.[PROVIDER_ACCOUNT_KEY]),vaultAccount=providerAccountFromVault(stored?.[EXTENSION_VAULT_KEY]);if(account.account!==vaultAccount.account)throw Object.assign(new Error("Provider account does not match the encrypted Wallet vault."),{code:"PROVIDER_ACCOUNT_UNAVAILABLE"});return account}
@@ -165,8 +166,10 @@ async function handleProviderMethod({tabId,origin,requestId,deadlineAt,method,pa
 }
 async function handleDappRequest(message,sender){
   const senderUrl=sender?.url||sender?.tab?.url;
+  if(!validDocumentNonce(message?.documentNonce))throw Object.assign(new Error("Reload the DApp to activate the current Wallet bridge, then start a new request."),{code:"DOCUMENT_BRIDGE_RELOAD_REQUIRED"});
   if(!Number.isInteger(sender?.tab?.id)||sender?.frameId!==0||!validateRuntimeRequest(message,senderUrl))throw Object.assign(new Error("Rejected invalid DApp bridge request."),{code:"INVALID_BRIDGE_REQUEST"});
-  const tabId=sender.tab.id,origin=message.origin,documentLease=authorizationGuard.capture({tabId,origin,deadlineAt:message.deadlineAt,documentId:sender.documentId,browserContext:browserContextForTab(sender.tab)});
+  if(sender.documentLifecycle!==undefined&&sender.documentLifecycle!=="active"||sender.documentId!==undefined&&!validBrowserDocumentId(sender.documentId)||!firefoxContext&&!validBrowserDocumentId(sender.documentId))throw Object.assign(new Error("The requesting DApp document is not active. Start a new request."),{code:"DOCUMENT_CHANGED"});
+  const tabId=sender.tab.id,origin=message.origin,documentLease=authorizationGuard.capture({tabId,origin,deadlineAt:message.deadlineAt,documentId:sender.documentId,documentNonce:message.documentNonce,browserContext:browserContextForTab(sender.tab)});
   const sensitive=parseSensitiveRequest(message);
   await requireMigrationReady();await authorizationGuard.assertDocument(documentLease);
   let internalRequestId=message.requestId;
