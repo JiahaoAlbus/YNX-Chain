@@ -138,7 +138,7 @@ export declare class StandardWalletConnection { constructor(config:Readonly<{pro
 export declare function decodeProductSessionGatewayProofHeaderV2(value:unknown):Readonly<Record<string,unknown>>;
 export declare function encodeProductSessionGatewayProofHeaderV2(value:unknown):string;
 export declare const PRODUCT_SESSION_GATEWAY_HTTP_MAX_BODY_BYTES:1048576;
-export type ProductSessionPlatform="android"|"ios"|"macos"|"web"|"windows";
+export type ProductSessionPlatform="android"|"ios"|"linux"|"macos"|"web"|"windows";
 export type ProductSessionV2=Readonly<{version:"2";sessionBinding:string;chainId:"ynx_6423-1";productId:string;clientId:string;platform:ProductSessionPlatform;applicationId:string;bundleId:string|null;packageId:string|null;origin:string;callback:string;account:string;deviceId:string;deviceAlgorithm:"p256-sha256";deviceKey:string;deviceBinding:string;nonce:string;state:string;scopes:readonly string[];requestDigest:string;approvalDigest:string;issuedAt:string;expiresAt:string}>;
 export declare const PRODUCT_SESSION_REGISTRY_VERSION:2;
 export declare const PRODUCT_SESSION_PROTOCOL_VERSION:"2";

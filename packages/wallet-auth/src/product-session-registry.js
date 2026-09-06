@@ -1,7 +1,7 @@
 import { exactFields, WalletAuthError } from "./canonical.js";
 
 export const PRODUCT_SESSION_REGISTRY_VERSION = 2;
-export const PRODUCT_SESSION_PLATFORMS = Object.freeze(["android", "ios", "macos", "web", "windows"]);
+export const PRODUCT_SESSION_PLATFORMS = Object.freeze(["android", "ios", "linux", "macos", "web", "windows"]);
 
 const DOCUMENT_FIELDS = ["schemaVersion", "chainId", "wallet", "products"];
 const WALLET_FIELDS = ["authorizeCallback", "downloadUrl", "metaMaskDownloadUrl"];
@@ -73,7 +73,7 @@ export function productPlatformBinding(registryInput, productId, platform) {
     platform,
     applicationId: web ? `${product.applicationId}.web` : product.applicationId,
     bundleId: ["ios", "macos"].includes(platform) ? product.applicationId : null,
-    packageId: ["android", "windows"].includes(platform) ? product.applicationId : null,
+    packageId: ["android", "linux", "windows"].includes(platform) ? product.applicationId : null,
     origin: web ? product.webOrigin : `app://${platform}/${product.applicationId}`,
     callback: web ? `${product.webOrigin}/wallet-auth/callback` : product.nativeCallback,
     scopes: product.scopes,
