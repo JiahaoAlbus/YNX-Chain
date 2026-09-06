@@ -13,6 +13,10 @@ source_commit=$(/usr/bin/git -C "$repo_root" rev-parse HEAD)
 source_tree=$(/usr/bin/git -C "$repo_root" rev-parse 'HEAD^{tree}')
 source_date=$(/usr/bin/git -C "$repo_root" show -s --format=%cI HEAD)
 runtime_checkpoint=$(node -e 'const fs=require("fs"); process.stdout.write(JSON.parse(fs.readFileSync("product-release.json","utf8")).commit)')
+# One deployment target for the native shell, bundle declaration and all bundled
+# Mach-O dependencies. The portable Node runtime establishes the 13.5 floor.
+macos_min_version=$(/usr/libexec/PlistBuddy -c 'Print LSMinimumSystemVersion' desktop/macos/Info.plist)
+[[ "$macos_min_version" =~ ^[0-9]+\.[0-9]+(\.[0-9]+)?$ ]] || { echo "Invalid macOS deployment target" >&2; exit 1; }
 machine_arch=$(/usr/bin/uname -m)
 case "$machine_arch" in
   arm64|x86_64) platform="macos-$([[ "$machine_arch" == arm64 ]] && printf arm64 || printf x64)" ;;
@@ -30,7 +34,7 @@ esac
 npm run code:build
 app="$root/YNX Developer Testnet Preview.app"
 mkdir -p "$root" "$app/Contents/MacOS" "$app/Contents/Resources/runtime" "$app/Contents/Resources/code/apps/developer/frontend"
-/usr/bin/clang -fobjc-arc -fmodules-cache-path="$root/module-cache" desktop/macos/main.m -o "$app/Contents/MacOS/YNXDeveloper" -framework Cocoa -framework Security -framework WebKit
+/usr/bin/clang -fobjc-arc -mmacosx-version-min="$macos_min_version" -Werror=unguarded-availability -Werror=unguarded-availability-new -fmodules-cache-path="$root/module-cache" desktop/macos/main.m -o "$app/Contents/MacOS/YNXDeveloper" -framework Cocoa -framework Security -framework WebKit
 cp desktop/macos/Info.plist "$app/Contents/Info.plist"
 cp desktop/code-server.mjs "$app/Contents/Resources/server.mjs"
 cp -R frontend/dist "$app/Contents/Resources/code/apps/developer/frontend/dist"
@@ -60,11 +64,13 @@ if [[ ! -f "$npm_root/npm/bin/npm-cli.js" ]]; then
 fi
 mkdir -p "$app/Contents/Resources/runtime/npm/node_modules"
 COPYFILE_DISABLE=1 cp -XR "$npm_root/npm" "$app/Contents/Resources/runtime/npm/node_modules/npm"
+node scripts/verify-macos-compatibility.mjs "$app" "$macos_min_version" "$machine_arch" "$app/Contents/Resources/macos-compatibility.json"
+compatibility_sha=$(/usr/bin/shasum -a 256 "$app/Contents/Resources/macos-compatibility.json" | awk '{print $1}')
 node scripts/generate-code-sbom.mjs "$app/Contents/Resources/sbom.cdx.json" "$node_binary" "$npm_root/npm/package.json" "$source_commit"
 sbom_sha=$(/usr/bin/shasum -a 256 "$app/Contents/Resources/sbom.cdx.json" | awk '{print $1}')
 node -e '
 const fs = require("fs");
-const [output, sourceCommit, sourceTree, sourceDate, runtimeCheckpoint, sbomSha256, platform] = process.argv.slice(1);
+const [output, sourceCommit, sourceTree, sourceDate, runtimeCheckpoint, sbomSha256, platform, minimumOS, macosCompatibilitySha256] = process.argv.slice(1);
 const record = {
   schemaVersion: 1,
   productId: "ynx-developer-v1",
@@ -78,11 +84,14 @@ const record = {
   sourceCommitDate: sourceDate,
   runtimeCheckpoint,
   sourceDirty: false,
+  minimumOS,
+  macosCompatibilityPath: "Contents/Resources/macos-compatibility.json",
+  macosCompatibilitySha256,
   sbomPath: "Contents/Resources/sbom.cdx.json",
   sbomSha256
 };
 fs.writeFileSync(output, `${JSON.stringify(record, null, 2)}\n`);
-' "$app/Contents/Resources/build-provenance.json" "$source_commit" "$source_tree" "$source_date" "$runtime_checkpoint" "$sbom_sha" "$platform"
+' "$app/Contents/Resources/build-provenance.json" "$source_commit" "$source_tree" "$source_date" "$runtime_checkpoint" "$sbom_sha" "$platform" "$macos_min_version" "$compatibility_sha"
 /usr/bin/xattr -cr "$app"
 # The reviewed portable Node binary may retain its distributor signature while
 # native npm modules are locally ad-hoc signed. macOS library validation rejects

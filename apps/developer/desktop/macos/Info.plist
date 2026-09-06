@@ -15,7 +15,7 @@
     <key>CFBundleURLName</key><string>com.ynxweb4.developer.testnetpreview.wallet-auth</string>
     <key>CFBundleURLSchemes</key><array><string>ynxdeveloper</string></array>
   </dict></array>
-  <key>LSMinimumSystemVersion</key><string>13.0</string>
+  <key>LSMinimumSystemVersion</key><string>13.5</string>
   <key>NSHighResolutionCapable</key><true/>
   <key>NSPrincipalClass</key><string>NSApplication</string>
   <key>LSUIElement</key><false/>

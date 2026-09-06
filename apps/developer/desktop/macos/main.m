@@ -107,15 +107,50 @@ static BOOL YNXWriteWorkspaceSnapshot(NSURL *url, id value, NSError **error) {
     return data && [data writeToURL:url options:NSDataWritingAtomic error:error] && [fm setAttributes:@{NSFilePosixPermissions:@0600} ofItemAtPath:url.path error:error];
 }
 
+typedef NSDictionary *(^YNXSnapshotReader)(NSError **error);
 @interface YNXWorkspaceBridge : NSObject <WKScriptMessageHandler>
 @property(nonatomic,weak) WKWebView *webView;
 @property(nonatomic,weak) NSWindow *window;
 @property(nonatomic) NSInteger port;
 @property(nonatomic,strong) NSDictionary *initialProject;
 @property(nonatomic,strong) NSError *readError;
+@property(nonatomic,strong) dispatch_queue_t ioQueue;
+@property(nonatomic) BOOL restoring;
+@property(nonatomic) BOOL restoreComplete;
+- (void)restoreWithCompletion:(void (^)(NSError *))completion;
+- (void)restoreUsingReader:(YNXSnapshotReader)reader completion:(void (^)(NSError *))completion;
+- (void)saveProject:(id)value completion:(void (^)(NSError *))completion;
 @end
 @implementation YNXWorkspaceBridge
-- (instancetype)init { if((self=[super init])) { NSError *error=nil; _initialProject=YNXReadWorkspaceSnapshot(YNXWorkspaceSnapshotURL(),&error); _readError=error; } return self; }
+- (instancetype)init { if((self=[super init])) _ioQueue=dispatch_queue_create("com.ynxweb4.developer.workspace-io",DISPATCH_QUEUE_SERIAL); return self; }
+- (void)restoreWithCompletion:(void (^)(NSError *))completion {
+    NSURL *url=YNXWorkspaceSnapshotURL();
+    [self restoreUsingReader:^NSDictionary *(NSError **error){return YNXReadWorkspaceSnapshot(url,error);} completion:completion];
+}
+- (void)restoreUsingReader:(YNXSnapshotReader)reader completion:(void (^)(NSError *))completion {
+    if(_restoring){completion([NSError errorWithDomain:@"YNXWorkspace" code:6 userInfo:nil]);return;}
+    _restoring=YES; _restoreComplete=NO;
+    dispatch_async(_ioQueue, ^{
+        NSError *error=nil; NSDictionary *project=reader(&error);
+        dispatch_async(dispatch_get_main_queue(), ^{
+            self.restoring=NO; self.readError=error; self.restoreComplete=error==nil;
+            if(!error)self.initialProject=project;
+            completion(error);
+        });
+    });
+}
+- (void)saveProject:(id)value completion:(void (^)(NSError *))completion {
+    // No default/empty project can replace a snapshot that has not been read.
+    if(!_restoreComplete || _restoring || _readError){completion(_readError?:[NSError errorWithDomain:@"YNXWorkspace" code:7 userInfo:nil]);return;}
+    NSDictionary *project=YNXWorkspaceProject(value);
+    if(!project){completion([NSError errorWithDomain:@"YNXWorkspace" code:3 userInfo:nil]);return;}
+    NSURL *url=YNXWorkspaceSnapshotURL();
+    dispatch_async(_ioQueue, ^{
+        NSError *error=nil; BOOL saved=YNXWriteWorkspaceSnapshot(url,project,&error);
+        if(!saved && !error)error=[NSError errorWithDomain:@"YNXWorkspace" code:4 userInfo:nil];
+        dispatch_async(dispatch_get_main_queue(), ^{if(saved)self.initialProject=project;completion(error);});
+    });
+}
 - (void)reply:(NSString *)job error:(NSError *)error {
     NSDictionary *event=error ? @{@"id":job,@"error":@"Workspace recovery or export could not be saved. Check available disk space and file permissions."} : @{@"id":job};
     [_webView evaluateJavaScript:[NSString stringWithFormat:@"window.__ynxWorkspaceResult(%@)",YNXJSON(event)] completionHandler:nil];
@@ -127,10 +162,7 @@ static BOOL YNXWriteWorkspaceSnapshot(NSURL *url, id value, NSError **error) {
     NSString *job=body[@"id"], *action=body[@"action"];
     if(![job isKindOfClass:NSString.class] || job.length>80 || ![action isKindOfClass:NSString.class])return;
     if([action isEqualToString:@"save-project"]) {
-        NSError *error=_readError; BOOL saved=!error && YNXWriteWorkspaceSnapshot(YNXWorkspaceSnapshotURL(),body[@"project"],&error);
-        if(saved) _initialProject=YNXWorkspaceProject(body[@"project"]);
-        if(!saved && !error)error=[NSError errorWithDomain:@"YNXWorkspace" code:4 userInfo:nil];
-        [self reply:job error:error]; return;
+        [self saveProject:body[@"project"] completion:^(NSError *error){[self reply:job error:error];}]; return;
     }
     if([action isEqualToString:@"export-project"]) {
         NSString *content=body[@"content"], *filename=body[@"filename"];
@@ -224,6 +256,8 @@ static BOOL YNXWriteWorkspaceSnapshot(NSURL *url, id value, NSError **error) {
 @property(nonatomic,strong) NSWindow *window; @property(nonatomic,strong) WKWebView *webView; @property(nonatomic,strong) YNXCommandBridge *bridge; @property(nonatomic,strong) NSTask *server; @property(nonatomic,strong) NSFileHandle *serverLog; @property(nonatomic) NSInteger port;
 @property(nonatomic,strong) YNXWorkspaceBridge *workspaceBridge;
 @property(nonatomic) BOOL nativeEditPending;
+@property(nonatomic) NSUInteger workspaceRestoreAttempt;
+@property(nonatomic,strong) NSAlert *workspaceRestoreAlert;
 @end
 
 @implementation YNXAppDelegate
@@ -236,11 +270,43 @@ static BOOL YNXWriteWorkspaceSnapshot(NSURL *url, id value, NSError **error) {
     NSString *availabilityScript=@"(()=>{const jobs=new Map();window.__ynxWalletAvailabilityResult=e=>{const j=jobs.get(e.id);if(!j)return;jobs.delete(e.id);e.ok?j.resolve({walletInstalled:e.installed===true,schemeRegistered:e.schemeRegistered===true}):j.reject(new Error('Wallet availability check failed.'));};globalThis.ynxDesktopWallet.walletAvailability=()=>new Promise((resolve,reject)=>{const id=crypto.randomUUID();jobs.set(id,{resolve,reject});window.webkit.messageHandlers.wallet.postMessage({action:'wallet-availability',id});});})();";
     [controller addUserScript:[[WKUserScript alloc]initWithSource:script injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
     [controller addUserScript:[[WKUserScript alloc]initWithSource:availabilityScript injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
-    NSString *workspaceScript=[NSString stringWithFormat:@"(()=>{if(location.origin!=='http://127.0.0.1:%ld')return;const jobs=new Map();window.__ynxWorkspaceResult=e=>{const job=jobs.get(e.id);if(!job)return;jobs.delete(e.id);e.error?job.reject(new Error(e.error)):job.resolve();};const request=(action,payload)=>new Promise((resolve,reject)=>{const id=crypto.randomUUID();jobs.set(id,{resolve,reject});window.webkit.messageHandlers.workspace.postMessage({id,action,...payload});});window.ynxDesktopWorkspace={initialProject:%@,saveProject:project=>request('save-project',{project}),exportProject:(filename,content)=>request('export-project',{filename,content})};})();",(long)_port,YNXJSON(_workspaceBridge.initialProject?:[NSNull null])];
-    [controller addUserScript:[[WKUserScript alloc]initWithSource:workspaceScript injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
     configuration.userContentController=controller; _webView=[[WKWebView alloc]initWithFrame:NSZeroRect configuration:configuration]; _bridge=[[YNXCommandBridge alloc]initWithWebView:_webView nodeURL:self.nodeURL]; [controller addScriptMessageHandler:_bridge name:@"command"]; [controller addScriptMessageHandler:_bridge name:@"wallet"];
     _window=[[NSWindow alloc]initWithContentRect:NSMakeRect(0,0,1440,900) styleMask:NSWindowStyleMaskTitled|NSWindowStyleMaskClosable|NSWindowStyleMaskMiniaturizable|NSWindowStyleMaskResizable backing:NSBackingStoreBuffered defer:NO]; _window.title=@"YNX Developer — Testnet Preview (unsigned)"; _window.contentView=_webView; if(![_window setFrameUsingName:@"YNXDeveloperTestnetPreviewMainWindow"])[_window center]; [_window setFrameAutosaveName:@"YNXDeveloperTestnetPreviewMainWindow"]; _window.restorable=YES; [_window makeKeyAndOrderFront:nil];
     _webView.UIDelegate=self; _workspaceBridge.webView=_webView; _workspaceBridge.window=_window; [controller addScriptMessageHandler:_workspaceBridge name:@"workspace"];
+    [self beginWorkspaceRestore];
+}
+- (void)beginWorkspaceRestore {
+    if(_workspaceBridge.restoring)return;
+    NSUInteger attempt=++_workspaceRestoreAttempt;
+    [_webView loadHTMLString:@"<meta charset=utf-8><style>body{font:16px -apple-system;padding:48px;color:#111827}h1{color:#002FA7}</style><h1>Opening your saved workspace…</h1><p>If macOS asks for access to your workspace folder, allow access to continue.</p><p>Your saved project is being preserved.</p>" baseURL:nil];
+    [_workspaceBridge restoreWithCompletion:^(NSError *error){
+        if(attempt!=self.workspaceRestoreAttempt)return;
+        if(self.workspaceRestoreAlert){[NSApp endSheet:self.workspaceRestoreAlert.window returnCode:NSModalResponseCancel];self.workspaceRestoreAlert=nil;}
+        if(error){[self showWorkspaceRestoreIssue:NO];return;}
+        [self finishWorkspaceRestore];
+    }];
+    dispatch_after(dispatch_time(DISPATCH_TIME_NOW,10*NSEC_PER_SEC),dispatch_get_main_queue(),^{
+        if(attempt==self.workspaceRestoreAttempt && self.workspaceBridge.restoring)[self showWorkspaceRestoreIssue:YES];
+    });
+}
+- (void)showWorkspaceRestoreIssue:(BOOL)pending {
+    if(_workspaceRestoreAlert)return;
+    NSAlert *alert=[NSAlert new]; _workspaceRestoreAlert=alert;
+    alert.messageText=pending?@"Still opening your saved workspace":@"Your saved workspace could not be opened";
+    alert.informativeText=pending?@"macOS may be waiting for folder access, or storage may be slow. You can keep waiting or quit. Your saved project has not been replaced.":@"Check access to your workspace folder and try again. Your saved project has not been replaced.";
+    [alert addButtonWithTitle:pending?@"Keep Waiting":@"Try Again"]; [alert addButtonWithTitle:@"Quit"];
+    [alert beginSheetModalForWindow:_window completionHandler:^(NSModalResponse result){
+        if(self.workspaceRestoreAlert==alert)self.workspaceRestoreAlert=nil;
+        if(result==NSAlertSecondButtonReturn)[NSApp terminate:nil];
+        else if(result==NSAlertFirstButtonReturn && !pending)[self beginWorkspaceRestore];
+    }];
+}
+- (void)finishWorkspaceRestore {
+    if(!_workspaceBridge.restoreComplete)return;
+    // Only a completed read (including a confirmed absent file) may initialize
+    // Workbench. It never mounts and auto-saves a starter while recovery waits.
+    NSString *workspaceScript=[NSString stringWithFormat:@"(()=>{if(location.origin!=='http://127.0.0.1:%ld')return;const jobs=new Map();window.__ynxWorkspaceResult=e=>{const job=jobs.get(e.id);if(!job)return;jobs.delete(e.id);e.error?job.reject(new Error(e.error)):job.resolve();};const request=(action,payload)=>new Promise((resolve,reject)=>{const id=crypto.randomUUID();jobs.set(id,{resolve,reject});window.webkit.messageHandlers.workspace.postMessage({id,action,...payload});});window.ynxDesktopWorkspace={initialProject:%@,saveProject:project=>request('save-project',{project}),exportProject:(filename,content)=>request('export-project',{filename,content})};})();",(long)_port,YNXJSON(_workspaceBridge.initialProject?:[NSNull null])];
+    [_webView.configuration.userContentController addUserScript:[[WKUserScript alloc]initWithSource:workspaceScript injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
     if([self launchServer]) [self loadWhenReady:0]; else [self showFailure:@"The bundled local runtime could not start."];
 }
 - (BOOL)launchServer {
@@ -260,6 +326,7 @@ static BOOL YNXWriteWorkspaceSnapshot(NSURL *url, id value, NSError **error) {
 - (void)dispatchWorkbenchCommand:(NSDictionary *)detail { [_webView evaluateJavaScript:[NSString stringWithFormat:@"window.dispatchEvent(new CustomEvent('ynx-desktop-command',{detail:%@}))",YNXJSON(detail)] completionHandler:nil]; }
 - (BOOL)validateMenuItem:(NSMenuItem *)item {
     if(item.action==@selector(desktopEdit:))return !_nativeEditPending && NSApp.keyWindow.firstResponder!=nil;
+    if(item.action==@selector(newProject:) || item.action==@selector(openProject:) || item.action==@selector(save:) || item.action==@selector(exportProject:))return _workspaceBridge.restoreComplete;
     return YES;
 }
 - (void)desktopEdit:(NSMenuItem *)sender {
@@ -326,7 +393,7 @@ static BOOL YNXWriteWorkspaceSnapshot(NSURL *url, id value, NSError **error) {
 }
 - (void)showAbout:(id)sender{NSAlert *a=[NSAlert new];a.messageText=@"YNX Developer Testnet Preview";a.informativeText=@"Unsigned ad-hoc local build for YNX public testnet engineering. It is not a production-signed desktop release.";[a runModal];} - (void)checkUpdates:(id)sender{NSAlert *a=[NSAlert new];a.messageText=@"Updates require signed release metadata";a.informativeText=@"This unsigned Testnet Preview never downloads or installs updates automatically.";[a runModal];}
 - (NSApplicationTerminateReply)applicationShouldTerminate:(NSApplication *)sender {
-    if(!_webView || !_workspaceBridge)return NSTerminateNow;
+    if(!_webView || !_workspaceBridge || !_workspaceBridge.restoreComplete)return NSTerminateNow;
     // Wait for the real Workbench's current snapshot and native disk ACK. A
     // random-port relaunch must not race the final edited character at quit.
     [_webView callAsyncJavaScript:@"if (typeof window.__ynxFlushWorkspace === 'function') await window.__ynxFlushWorkspace();" arguments:@{} inFrame:nil inContentWorld:WKContentWorld.pageWorld completionHandler:^(id result, NSError *error){

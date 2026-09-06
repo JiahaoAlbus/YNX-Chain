@@ -45,13 +45,16 @@ mkdir -p "$install_root"
 app="$installed_app"
 [[ -x "$app/Contents/MacOS/YNXDeveloper" ]] || { echo "DMG app did not survive installation copy." >&2; exit 1; }
 echo "Installed mounted DMG application to isolated Applications root: $app"
+macos_min_version=$(/usr/libexec/PlistBuddy -c 'Print LSMinimumSystemVersion' desktop/macos/Info.plist)
+node scripts/verify-macos-compatibility.mjs "$app" "$macos_min_version" "$machine_arch" "$work/macos-compatibility.json"
+cmp "$app/Contents/Resources/macos-compatibility.json" "$work/macos-compatibility.json"
 expected_source_commit="${YNX_DEVELOPER_EXPECTED_SOURCE_COMMIT:-$(/usr/bin/git rev-parse HEAD)}"
 expected_source_tree="${YNX_DEVELOPER_EXPECTED_SOURCE_TREE:-$(/usr/bin/git rev-parse "$expected_source_commit^{tree}")}"
 expected_runtime_checkpoint=$(node -e 'const fs=require("fs"); process.stdout.write(JSON.parse(fs.readFileSync("product-release.json","utf8")).commit)')
 node -e '
 const crypto = require("crypto");
 const fs = require("fs");
-const [provenancePath, sbomPath, expectedCommit, expectedTree, expectedRuntime, expectedPlatform] = process.argv.slice(1);
+const [provenancePath, sbomPath, expectedCommit, expectedTree, expectedRuntime, expectedPlatform, minimumOS, compatibilityPath] = process.argv.slice(1);
 const provenance = JSON.parse(fs.readFileSync(provenancePath, "utf8"));
 const sbom = fs.readFileSync(sbomPath);
 const sbomSha256 = crypto.createHash("sha256").update(sbom).digest("hex");
@@ -65,6 +68,9 @@ const expected = {
   sourceTree: expectedTree,
   runtimeCheckpoint: expectedRuntime,
   sourceDirty: false,
+  minimumOS,
+  macosCompatibilityPath: "Contents/Resources/macos-compatibility.json",
+  macosCompatibilitySha256: crypto.createHash("sha256").update(fs.readFileSync(compatibilityPath)).digest("hex"),
   sbomPath: "Contents/Resources/sbom.cdx.json",
   sbomSha256
 };
@@ -75,7 +81,7 @@ const parsedSbom = JSON.parse(sbom.toString("utf8"));
 if (parsedSbom.bomFormat !== "CycloneDX" || parsedSbom.specVersion !== "1.5" || !Array.isArray(parsedSbom.components) || parsedSbom.components.length < 100) throw new Error("full YNX Code CycloneDX component inventory is missing");
 for (const required of ["Node.js", "npm", "node-pty", "monaco-editor", "react", "yjs"]) if (!parsedSbom.components.some(component => component.name === required)) throw new Error(`SBOM component ${required} is missing`);
 console.log(`Embedded provenance verified for source ${provenance.sourceCommit} and SBOM ${sbomSha256}.`);
-' "$app/Contents/Resources/build-provenance.json" "$app/Contents/Resources/sbom.cdx.json" "$expected_source_commit" "$expected_source_tree" "$expected_runtime_checkpoint" "$platform"
+' "$app/Contents/Resources/build-provenance.json" "$app/Contents/Resources/sbom.cdx.json" "$expected_source_commit" "$expected_source_tree" "$expected_runtime_checkpoint" "$platform" "$macos_min_version" "$work/macos-compatibility.json"
 if /usr/bin/xattr -p com.apple.quarantine "$app" >/dev/null 2>&1; then echo "DMG unexpectedly restored quarantine metadata." >&2; exit 1; fi
 /usr/bin/codesign --verify --deep --strict --verbose=2 "$app"
 signature=$(/usr/bin/codesign -dv --verbose=4 "$app" 2>&1 || true)
