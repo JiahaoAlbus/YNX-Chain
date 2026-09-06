@@ -1,0 +1,15 @@
+html[data-text="large"] { font-size: 125%; }
+.wallets a {
+  align-items: center;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  display: flex;
+  justify-content: center;
+  line-height: 1.25;
+  min-height: 44px;
+  overflow-wrap: anywhere;
+  padding: 10px 13px;
+  text-align: center;
+  text-decoration: none;
+}

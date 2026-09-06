@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "8650053233c060c77c978e29e6a8584fe275b430",
+  "artifact": {
+    "name": "ynx-wallet-chrome-edge-0.1.0.zip",
+    "bytes": 188846,
+    "sha256": "c733093dea47c6612c8a9d5ecea40be2227f62402f4b4966955c9e1accf4e2aa",
+    "signingClass": "unsigned-unpacked-extension"
+  },
+  "profileBoundary": "Each attempted launch used a newly created disposable isolated profile. No daily browser profile was read or modified.",
+  "chrome": {
+    "name": "Google Chrome",
+    "version": "151.0.7922.138",
+    "observedAt": "2026-08-14T09:21:07.859Z",
+    "commandExitCode": 1,
+    "commandWallSeconds": 21.269680958,
+    "launchObserved": true,
+    "serviceWorkerStarted": false,
+    "firstOpenProved": false,
+    "secondOpenProved": false,
+    "failureStage": "service-worker",
+    "failure": "browserContext.waitForEvent timed out after 3000ms",
+    "temporaryUnpackedRuntimeProved": false,
+    "installedLocal": false
+  },
+  "edge": {
+    "name": "Microsoft Edge",
+    "version": "151.0.4129.78",
+    "observedAt": "2026-08-14T09:21:33.502Z",
+    "commandExitCode": 1,
+    "commandWallSeconds": 14.056565,
+    "launchObserved": true,
+    "launchedPid": 13719,
+    "launchedPidAliveAfterCommand": false,
+    "serviceWorkerStarted": false,
+    "firstOpenProved": false,
+    "secondOpenProved": false,
+    "failureStage": "persistent-context",
+    "failure": "browserType.launchPersistentContext timed out after 12000ms",
+    "temporaryUnpackedRuntimeProved": false,
+    "installedLocal": false
+  },
+  "firefox": {
+    "name": "Mozilla Firefox",
+    "binaryPathChecked": "/Applications/Firefox.app/Contents/MacOS/firefox",
+    "brandedBinaryPresent": false,
+    "runtimeAttempted": false,
+    "firstOpenProved": false,
+    "secondOpenProved": false,
+    "installedLocal": false
+  },
+  "claims": {
+    "providerSuccessClaimed": false,
+    "accountAuthorized": false,
+    "messageSigned": false,
+    "transactionSubmitted": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

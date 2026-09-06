@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "sourceBaseline": "6ef83f3c72cae932076c346c8c5f19b7294a9184",
+  "gate": "scripts/verify-package.mjs",
+  "verifiedArtifacts": 3,
+  "checks": {
+    "manifestBytesMatch": true,
+    "manifestSha256Match": true,
+    "zipPathsSafeAndUnique": true,
+    "requiredRuntimeFilesPresent": true,
+    "mv3PopupEntrypointPresent": true,
+    "chromiumMinimumVersionExact": true,
+    "firefoxDeclaredAddonIdExact": true,
+    "firefoxMinimumVersionExact": true,
+    "hostPermissionsAbsent": true,
+    "hostedUpdateUrlAbsent": true,
+    "embeddedChromiumKeyAbsent": true
+  },
+  "releaseStates": {
+    "installedLocal": false,
+    "upgradeVerifiedRealProfile": false,
+    "uninstallVerifiedRealProfile": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

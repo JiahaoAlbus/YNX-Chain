@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "40cbf6f2b6874a2f08580626ee77ab4c1dd00ae0",
+  "observedAt": "2026-08-14T03:17:50Z",
+  "cache": {
+    "name": "ynx-wallet-web-v3",
+    "previousName": "ynx-wallet-web-v2",
+    "sameOriginShellOnly": true,
+    "navigationStrategy": "network-first-with-cached-index-fallback",
+    "assetStrategy": "cache-first-then-network-then-503",
+    "missingAssetReturnsIndexHtml": false,
+    "externalDownloadCached": false,
+    "rpcPostCached": false
+  },
+  "rpcRecovery": {
+    "offlineVerificationError": "RPC_UNAVAILABLE",
+    "cachedChainAuthorityAccepted": false,
+    "freshLiveResponseRequired": true,
+    "recoveredChainId": "0x1917",
+    "fakeRpcSuccess": false
+  },
+  "verification": {
+    "testsPassed": 24,
+    "pwaBuildPassed": true,
+    "chromiumExtensionBuildPassed": true,
+    "firefoxExtensionBuildPassed": true,
+    "visibleOfflineBrowserSmokePassed": false
+  },
+  "releaseStates": {
+    "downloadHosted": false,
+    "deployedPublic": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

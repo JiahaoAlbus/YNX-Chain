@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en" class="notranslate" translate="no">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="google" content="notranslate">
+    <link rel="stylesheet" href="approval.css">
+    <title>YNX Wallet — Connection request</title>
+  </head>
+  <body>
+    <main>
+      <header><img src="ynx-logo.png" alt="YNX"><span>YNX WALLET</span></header>
+      <p class="eyebrow">CONNECTION REQUEST</p>
+      <h1>Connect this site?</h1>
+      <p class="intro">Only the account shown below will be shared. The site will not receive your private key or recovery material.</p>
+      <dl>
+        <div><dt>Site</dt><dd id="origin">Unavailable</dd></div>
+        <div><dt>Account</dt><dd id="account">Unavailable</dd></div>
+        <div><dt>Network</dt><dd>YNX Testnet · 0x1917</dd></div>
+      </dl>
+      <p id="status" role="status" aria-live="polite">Loading request…</p>
+      <div class="actions"><button id="reject" type="button" disabled>Reject</button><button id="approve" class="primary" type="button" disabled>Connect</button></div>
+    </main>
+    <script src="approval.js" type="module"></script>
+  </body>
+</html>

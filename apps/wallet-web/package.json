@@ -1,0 +1,49 @@
+{
+  "name": "@ynx-chain/wallet-web",
+  "version": "0.1.0-testnet-preview.1",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.js",
+    "build": "node scripts/build.mjs",
+    "package": "node scripts/package.mjs",
+    "verify:package": "node scripts/verify-package.mjs",
+    "test:runtime:branded": "npm run build && node scripts/runtime-branded.mjs",
+    "test:runtime:branded:cdp": "npm run build && node scripts/runtime-branded-cdp.mjs",
+    "test:runtime:bridge": "npm run build && node scripts/runtime-bridge-gate.mjs",
+    "test:runtime:preferences": "npm run build && node scripts/runtime-preferences-gate.mjs",
+    "test:runtime:cache-integrity": "npm run build && node scripts/runtime-cache-integrity-gate.mjs",
+    "test:runtime:v8-upgrade": "npm run build && node scripts/runtime-v8-upgrade-gate.mjs",
+    "test:artifact:permissions": "node scripts/artifact-extension-permission-gate.mjs",
+    "test:artifact:migration": "node scripts/artifact-extension-migration-gate.mjs",
+    "test:artifact:network-readiness": "node scripts/artifact-network-readiness-gate.mjs",
+    "test:artifact:pwa-installability": "node scripts/artifact-pwa-installability-gate.mjs",
+    "test:artifact:discovery": "node scripts/artifact-discovery-fail-closed-gate.mjs",
+    "test:artifact:platform-downloads": "node scripts/artifact-platform-download-gate.mjs",
+    "test:artifact:localized-errors": "node scripts/artifact-localized-error-gate.mjs",
+    "test:artifact:localized-regions": "node scripts/artifact-localized-region-gate.mjs",
+    "test:artifact:mobile-wallet-routing": "node scripts/artifact-mobile-wallet-routing-gate.mjs",
+    "audit:public-deployment": "node scripts/public-deployment-gate.mjs",
+    "audit:public-artifacts": "node scripts/public-artifact-hosting-gate.mjs --expect-unhosted",
+    "test:public-artifacts": "node scripts/public-artifact-hosting-gate.mjs",
+    "test:runtime:active-tab": "node scripts/runtime-active-tab-gate.mjs",
+    "test:runtime:active-tab:browser": "node scripts/runtime-active-tab-browser-gate.mjs",
+    "test:runtime:firefox-compatible": "npm run build && node scripts/runtime-firefox-compatible.mjs",
+    "test:runtime:firefox-branded": "npm run build && node scripts/runtime-firefox-branded.mjs",
+    "test:runtime:firefox-temporary-boundary": "node scripts/runtime-firefox-temporary-boundary.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.10",
+    "playwright": "1.62.1",
+    "sharp": "0.33.5",
+    "web-ext": "10.6.0"
+  },
+  "dependencies": {
+    "@noble/curves": "2.2.0",
+    "@noble/hashes": "2.2.0",
+    "ethers": "6.17.0"
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "85af602dc96ae476c723f8646de55a081b89ed46",
+  "observedAt": "2026-08-14T03:15:18Z",
+  "discoveryContract": {
+    "ynxDetected": {
+      "directOpenYNXWallet": true,
+      "showYNXDownload": false,
+      "showMetaMaskChoice": false
+    },
+    "ynxAbsentMetaMaskDetected": {
+      "showYNXDownload": true,
+      "showMetaMaskChoice": true,
+      "metaMaskRoute": "EIP-1193 connect"
+    },
+    "bothAbsent": {
+      "showYNXDownload": true,
+      "showMetaMaskChoice": true,
+      "metaMaskRoute": "https://metamask.io/download"
+    },
+    "ynxDownloadRoute": "https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk",
+    "metaMaskOfficialRouteVerifiedFrom": "https://metamask.io/download",
+    "emptyFallbackRoute": false
+  },
+  "buildGates": {
+    "englishDefault": true,
+    "arabicRtlContract": true,
+    "darkThemeContract": true,
+    "largeText125PercentContract": true,
+    "responsive390pxCoveredByMaxWidth520": true,
+    "fallbackTouchTargetMinimumPx": 44,
+    "pwaCacheVersion": "ynx-wallet-web-v2"
+  },
+  "visibleBrowserSmoke": {
+    "attempted": true,
+    "passed": false,
+    "screenshotCaptured": false,
+    "viewportRequested": "390x844",
+    "directErrors": [
+      "net::ERR_BLOCKED_BY_CLIENT for http://127.0.0.1:8088",
+      "net::ERR_BLOCKED_BY_CLIENT for http://localhost:8088",
+      "net::ERR_EMPTY_RESPONSE for http://host.docker.internal:8088"
+    ],
+    "reason": "The in-app browser could not reach the local build. Build-level assertions are not promoted to visible-browser proof."
+  },
+  "releaseStates": {
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

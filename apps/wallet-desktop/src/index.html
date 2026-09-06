@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self'; style-src 'self'; script-src 'self'">
+  <title>YNX Wallet</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main>
+    <header><strong>YNX CHAIN</strong><span>DESKTOP TESTNET PREVIEW</span></header>
+    <section class="hero">
+      <p class="eyebrow">YOUR ACCOUNT. YOUR ASSETS.</p>
+      <h1>YNX Wallet</h1>
+      <p class="lead">Create or import your account, receive YNXT and send on YNX Testnet. Review every connection and transaction.</p>
+    </section>
+    <section id="account-authority" class="authorization" aria-live="polite">
+      <p class="eyebrow">WALLET AUTHORITY</p>
+      <h2 id="account-title">No account created</h2>
+      <p id="account-detail">Create a Testnet account protected by the operating system. The private key never leaves the Wallet process.</p>
+      <button id="create-account" type="button">Create secure Testnet account</button>
+      <button id="add-account" type="button" hidden>Create and switch to another account</button>
+      <div id="account-list"></div>
+      <details class="wallet-details">
+        <summary>Import an existing account</summary>
+        <form id="import-form">
+          <label for="import-kind">Import format</label>
+          <select id="import-kind"><option value="private-key">Private key</option><option value="recovery-phrase">Recovery phrase (first Ethereum account)</option><option value="encrypted-json">Encrypted JSON backup</option></select>
+          <label for="import-value">Private key or recovery phrase</label>
+          <input id="import-value" type="password" autocomplete="off" spellcheck="false" placeholder="Entered locally on this device">
+          <div id="import-file-group" hidden><label for="import-file">Encrypted backup file</label><input id="import-file" type="file" accept=".json,application/json"></div>
+          <div id="import-password-group" hidden><label for="import-password">Backup password</label><input id="import-password" type="password" autocomplete="off"></div>
+          <button type="submit">Import and select account</button>
+          <p id="import-result" role="status">Use an account intended for Testnet. Importing clears existing DApp connections.</p>
+        </form>
+      </details>
+    </section>
+    <section id="assets" class="wallet-card" hidden aria-live="polite">
+      <div class="section-heading"><div><p class="eyebrow">AVAILABLE BALANCE</p><h2><span id="balance-value">—</span> <small>YNXT</small></h2></div><button id="refresh-balance" type="button">Refresh balance</button></div>
+      <p id="balance-status">Balance has not been checked.</p>
+      <div class="wallet-columns">
+        <section><h3>Receive YNXT</h3><p>Send only YNX Testnet assets to this address.</p><label for="receive-address">Your EVM address</label><input id="receive-address" readonly><button id="copy-address" type="button">Copy address</button><p id="receive-status" role="status"></p></section>
+        <section><h3>Send YNXT</h3><form id="transfer-form"><label for="transfer-to">Recipient address</label><input id="transfer-to" placeholder="0x…" autocomplete="off" spellcheck="false" required><label for="transfer-amount">Amount (YNXT)</label><input id="transfer-amount" inputmode="decimal" placeholder="0.00" autocomplete="off" required><button id="prepare-transfer" type="submit">Review transfer</button></form><p id="transfer-result" role="status"></p></section>
+      </div>
+      <section id="transfer-review" class="authorization" hidden><h3>Review your transfer</h3><dl id="transfer-summary"></dl><p>Confirming signs and submits this exact transfer to YNX Testnet.</p><div class="actions"><button id="cancel-transfer" type="button">Cancel</button><button id="confirm-transfer" type="button">Confirm and send YNXT</button></div></section>
+      <details class="wallet-details"><summary>Save an encrypted backup</summary><p>Keep the backup file and password safe. You need both to restore this account on another device.</p><form id="backup-form"><label for="backup-password">Backup password (at least 12 characters)</label><input id="backup-password" type="password" minlength="12" autocomplete="new-password" required><label for="backup-confirm">Confirm backup password</label><input id="backup-confirm" type="password" minlength="12" autocomplete="new-password" required><button id="save-backup" type="submit">Save encrypted backup</button></form><p id="backup-result" role="status"></p></details>
+    </section>
+    <section id="walletconnect" class="authorization" aria-live="polite">
+      <p class="eyebrow">WALLETCONNECT</p>
+      <h2 id="walletconnect-title">Transport unavailable</h2>
+      <p id="walletconnect-detail">A real WalletConnect project binding is required. Missing relay configuration fails closed.</p>
+      <label for="walletconnect-uri">Pairing URI</label>
+      <input id="walletconnect-uri" type="text" autocomplete="off" spellcheck="false" placeholder="wc:…@2?…">
+      <button id="walletconnect-pair" type="button">Pair DApp</button>
+      <label for="walletconnect-qr">Or choose a WalletConnect QR image</label>
+      <input id="walletconnect-qr" type="file" accept="image/png,image/jpeg,image/webp" aria-describedby="walletconnect-qr-status">
+      <p id="walletconnect-qr-status">QR images are decoded locally and are never uploaded.</p>
+      <div id="walletconnect-sessions"><p>No active WalletConnect sessions.</p></div>
+    </section>
+    <section id="walletconnect-proposal" class="authorization" hidden aria-live="assertive">
+      <p class="eyebrow">DAPP CONNECTION REQUEST</p>
+      <h2 id="proposal-name">DApp requests a connection</h2>
+      <p id="proposal-origin"></p>
+      <p>Only chain <strong>eip155:6423</strong> and the selected 0x account can be exposed.</p>
+      <div class="actions"><button id="reject-proposal" type="button">Reject connection</button><button id="approve-proposal" type="button">Approve connection</button></div>
+    </section>
+    <section id="provider-request" class="authorization" hidden aria-live="assertive">
+      <p class="eyebrow">PROVIDER REQUEST</p>
+      <h2 id="provider-title">Review request</h2>
+      <p id="provider-origin"></p>
+      <pre id="provider-detail"></pre>
+      <div class="actions"><button id="reject-provider" type="button">Reject request</button><button id="approve-provider" type="button">Approve request</button></div>
+    </section>
+    <section id="authorization" class="authorization" hidden aria-live="assertive">
+      <p class="eyebrow">WALLET AUTH REQUEST</p>
+      <h2 id="auth-product">Authorization request</h2>
+      <p id="auth-purpose"></p>
+      <p><strong>Scopes:</strong> <span id="auth-scopes"></span></p>
+      <p id="auth-result">Review only. No account, signing authority, or callback has been granted.</p>
+      <div class="actions">
+        <button id="reject-auth" type="button">Reject request</button>
+        <button id="approve-auth" type="button">Approve request</button>
+      </div>
+    </section>
+    <section class="status" aria-live="polite">
+      <div><span id="indicator" class="indicator pending"></span><strong id="network">Checking YNX Testnet…</strong></div>
+      <p id="detail">No account, balance, transaction or signing success is inferred while the network check is pending.</p>
+      <button id="retry" type="button">Retry network check</button>
+    </section>
+    <section class="grid">
+      <article><p class="label">NETWORK</p><h2 id="chain">Unavailable</h2><p>Required EVM chain ID: 0x1917</p></article>
+      <article><p class="label">ACCOUNT</p><h2 id="account-short">Not created</h2><p>External DApps see an address only after explicit origin approval.</p></article>
+      <article><p class="label">SIGNING</p><h2 id="signing-short">Locked</h2><p>Every message, typed-data and transaction request requires visible approval.</p></article>
+    </section>
+    <footer>Consumes @ynx-chain/wallet-auth · Testnet assets have no real-world value</footer>
+  </main>
+  <script src="renderer.js"></script>
+</body>
+</html>

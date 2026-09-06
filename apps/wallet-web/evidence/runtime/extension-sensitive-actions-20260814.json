@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "sourceCommit": "cd52568ba4041800528dd08fcd48b9e2ec4159c4",
+  "observedAt": "2026-08-14T03:21:16Z",
+  "signSequence": ["eth_chainId", "eth_accounts", "personal_sign"],
+  "transactionSequence": ["eth_chainId", "eth_accounts", "eth_sendTransaction"],
+  "acceptedChainId": "0x1917",
+  "accountReplacement": {
+    "error": "ACCOUNT_CHANGED",
+    "personalSignCalled": false,
+    "ethSendTransactionCalled": false
+  },
+  "userRejection": {
+    "providerCode": 4001,
+    "signatureReturned": false,
+    "transactionHashReturned": false,
+    "fabricatedDisconnect": false
+  },
+  "verification": {
+    "testsPassed": 29,
+    "pwaBuildPassed": true,
+    "chromiumExtensionBuildPassed": true,
+    "firefoxExtensionBuildPassed": true,
+    "realBrowserInstalledRuntimeTested": false
+  },
+  "releaseStates": {
+    "edgeExtensionInstalledLocal": false,
+    "chromeExtensionInstalledLocal": false,
+    "firefoxExtensionInstalledLocal": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false
+  }
+}

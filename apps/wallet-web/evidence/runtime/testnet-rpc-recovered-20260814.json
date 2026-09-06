@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "startedAt": "2026-08-14T01:42:25Z",
+  "endedAt": "2026-08-14T01:42:26Z",
+  "request": {
+    "url": "https://evm.ynxweb4.com",
+    "method": "eth_chainId",
+    "params": [],
+    "expectedChainId": "0x1917"
+  },
+  "response": {
+    "httpStatus": 200,
+    "jsonrpc": "2.0",
+    "id": 1,
+    "result": "0x1917"
+  },
+  "rpcVerified": true,
+  "chainMutationSucceeded": false,
+  "note": "RPC availability alone does not authorize or prove a wallet chain mutation. The installed PWA remained fail-closed because no compatible wallet provider was detected."
+}

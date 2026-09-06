@@ -1,0 +1,74 @@
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/program.js][info] Version:
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/program.js][debug] Discovering config files. Set --no-config-discovery to disable
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/config.js][debug] Discovered config "/Users/huangjiahao/.web-ext-config.mjs" does not exist or is not readable
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/config.js][debug] Discovered config "/Users/huangjiahao/.web-ext-config.cjs" does not exist or is not readable
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/config.js][debug] Discovered config "/Users/huangjiahao/.web-ext-config.js" does not exist or is not readable
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/config.js][debug] Discovered config "/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/web-ext-config.mjs" does not exist or is not readable
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/config.js][debug] Discovered config "/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/web-ext-config.cjs" does not exist or is not readable
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/config.js][debug] Discovered config "/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/.web-ext-config.mjs" does not exist or is not readable
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/config.js][debug] Discovered config "/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/web-ext-config.js" does not exist or is not readable
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/config.js][debug] Discovered config "/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/.web-ext-config.js" does not exist or is not readable
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/config.js][debug] Discovered config "/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/.web-ext-config.cjs" does not exist or is not readable
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/program.js][debug] Applying config file: ./package.json
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/config.js][debug] Loading JS config file: "/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/package.json" (resolved to "/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/package.json")
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/config.js][debug] Looking for webExt key inside package.json file
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/config.js][debug] Config file /Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/package.json did not define any options. Did you set module.exports = {...}?
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/cmd/run.js][info] Running web extension from /Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/dist/firefox
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/util/manifest.js][debug] Validating manifest at /Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/dist/firefox/manifest.json
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/extension-runners/firefox-desktop.js][debug] Creating new Firefox profile
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/index.js][debug] Running Firefox with profile at /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/firefox-profileEekgz1/
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/index.js][debug] Executing Firefox binary: /Users/huangjiahao/Library/Caches/ms-playwright/firefox-1538/firefox/Nightly.app/Contents/MacOS/firefox
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/index.js][debug] Firefox args: -start-debugger-server 54912 -foreground -no-remote -profile /var/folders/nd/ks11whcs64b4nsy5xpjvj7540000gn/T/firefox-profileEekgz1/ -headless
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/index.js][info] Use --verbose or --devtools to see logging
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Connecting to the remote Firefox debugger
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Connecting to Firefox on port 54912
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Retrying Firefox (0); connection error: Error: connect ECONNREFUSED 127.0.0.1:54912
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Connecting to Firefox on port 54912
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Retrying Firefox (1); connection error: Error: connect ECONNREFUSED 127.0.0.1:54912
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Connecting to Firefox on port 54912
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Retrying Firefox (2); connection error: Error: connect ECONNREFUSED 127.0.0.1:54912
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Connecting to Firefox on port 54912
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Retrying Firefox (3); connection error: Error: connect ECONNREFUSED 127.0.0.1:54912
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Connecting to Firefox on port 54912
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Retrying Firefox (4); connection error: Error: connect ECONNREFUSED 127.0.0.1:54912
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Connecting to Firefox on port 54912
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Retrying Firefox (5); connection error: Error: connect ECONNREFUSED 127.0.0.1:54912
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Connecting to Firefox on port 54912
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Retrying Firefox (6); connection error: Error: connect ECONNREFUSED 127.0.0.1:54912
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Connecting to Firefox on port 54912
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Retrying Firefox (7); connection error: Error: connect ECONNREFUSED 127.0.0.1:54912
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Connecting to Firefox on port 54912
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/index.js][debug] Firefox stderr: *** You are running in headless mode.
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Retrying Firefox (8); connection error: Error: connect ECONNREFUSED 127.0.0.1:54912
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Connecting to Firefox on port 54912
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Retrying Firefox (9); connection error: Error: connect ECONNREFUSED 127.0.0.1:54912
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Connecting to Firefox on port 54912
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Retrying Firefox (10); connection error: Error: connect ECONNREFUSED 127.0.0.1:54912
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Connecting to Firefox on port 54912
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Retrying Firefox (11); connection error: Error: connect ECONNREFUSED 127.0.0.1:54912
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Connecting to Firefox on port 54912
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Retrying Firefox (12); connection error: Error: connect ECONNREFUSED 127.0.0.1:54912
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Connecting to Firefox on port 54912
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/index.js][debug] Firefox stderr: JavaScript warning: resource://services-settings/Utils.sys.mjs, line 119: unreachable code after return statement
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Retrying Firefox (13); connection error: Error: connect ECONNREFUSED 127.0.0.1:54912
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Connecting to Firefox on port 54912
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Retrying Firefox (14); connection error: Error: connect ECONNREFUSED 127.0.0.1:54912
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Connecting to Firefox on port 54912
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Retrying Firefox (15); connection error: Error: connect ECONNREFUSED 127.0.0.1:54912
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Connecting to Firefox on port 54912
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Retrying Firefox (16); connection error: Error: connect ECONNREFUSED 127.0.0.1:54912
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Connecting to Firefox on port 54912
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/index.js][debug] Firefox stdout: Started devtools server on 54912
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Retrying Firefox (17); connection error: Error: connect ECONNREFUSED 127.0.0.1:54912
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Connecting to Firefox on port 54912
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] Connected to the remote Firefox debugger on port 54912
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/index.js][debug] Firefox stderr: [WARN  rkv::backend::impl_safe::environment] `load_ratio()` is irrelevant for this storage backend.
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][debug] installTemporaryAddon: {"addon":{"id":"wallet-testnet@ynxweb4.com","actor":false},"from":"server1.conn0.addonsActor2"}
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/remote.js][info] Installed /Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/dist/firefox as a temporary add-on
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/cmd/run.js][info] Automatic extension reloading has been disabled
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/index.js][debug] Firefox stdout: console.error: "Error fetching remote settings base url from CDN. Falling back to https://firefox-settings-attachments.cdn.mozilla.net/" (new SyntaxError("XMLHttpRequest.open: '/' is not a valid URL.", (void 0), 126))
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/index.js][debug] Firefox stdout: console.error: services.settings:
+[/Users/huangjiahao/.codex/worktrees/1274/YNX Chain/apps/wallet-web/node_modules/web-ext/lib/firefox/index.js][debug] Firefox stdout: Message: EmptyDatabaseError: "main/nimbus-desktop-experiments" has not been synced yet
+  Stack:
+    EmptyDatabaseError@resource://services-settings/Database.sys.mjs:19:5
+list@resource://services-settings/Database.sys.mjs:96:13

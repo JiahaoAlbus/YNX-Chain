@@ -22,3 +22,4 @@ export * from "./exchange-action.js";
 export * from "./developer-deployment.js";
 export * from "./dex-action.js";
 export * from "./quant-action.js";
+export * from "./standard-wallet-connect-state.js";
