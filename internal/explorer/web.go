@@ -150,12 +150,13 @@ const indexHTML = `<!doctype html>
 
     .drawer-backdrop { position:fixed; inset:0; z-index:40; visibility:hidden; background:rgba(0,0,0,.2); opacity:0; transition:opacity .25s,visibility .25s; }
     .drawer-backdrop.visible { visibility:visible; opacity:1; }
-    .drawer { position:absolute; top:0; right:0; width:min(620px,100%); height:100%; overflow:auto; background:rgba(255,255,255,.96); box-shadow:-24px 0 60px rgba(0,0,0,.16); backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px); transform:translateX(100%); transition:transform .32s cubic-bezier(.2,.8,.2,1); }
+    .drawer { position:absolute; top:0; right:0; width:min(620px,100%); height:100%; overflow:auto; background:#fff; box-shadow:-24px 0 60px rgba(0,0,0,.16); transform:translateX(100%); transition:transform .32s cubic-bezier(.2,.8,.2,1); }
     .drawer-backdrop.visible .drawer { transform:translateX(0); }
-    .drawer-head { position:sticky; top:0; z-index:2; display:flex; align-items:flex-start; justify-content:space-between; gap:20px; padding:24px; border-bottom:1px solid var(--line-soft); background:rgba(255,255,255,.9); backdrop-filter:blur(18px); }
-    .drawer-head h2 { margin:3px 0 0; font-size:24px; }
+    .drawer-head { position:sticky; top:0; z-index:2; display:flex; align-items:flex-start; justify-content:space-between; gap:20px; padding:24px; border-bottom:1px solid var(--line-soft); background:#fff; }
+    .drawer-head > div { flex:1; min-width:0; overflow-wrap:anywhere; }
+    .drawer-head h2 { margin:3px 0 0; font-size:24px; overflow-wrap:anywhere; }
     .drawer-kicker { color:var(--blue); font-size:12px; font-weight:650; text-transform:uppercase; }
-    .icon-button { display:grid; place-items:center; width:36px; height:36px; flex:none; border:1px solid var(--line-soft); border-radius:50%; color:var(--ink); background:#f3f3f5; font-size:20px; line-height:1; }
+    .icon-button { display:grid; place-items:center; width:44px; height:44px; flex:0 0 44px; border:1px solid var(--line-soft); border-radius:50%; color:var(--ink); background:#f3f3f5; font-size:20px; line-height:1; }
     .detail-summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1px; background:var(--line-soft); border-bottom:1px solid var(--line-soft); }
     .detail-stat { min-height:94px; padding:18px; background:var(--surface); }
     .detail-stat span { display:block; color:var(--muted); font-size:11px; text-transform:uppercase; }
