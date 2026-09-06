@@ -1,43 +1,56 @@
 {
-  "observedAt": "2026-09-06T04:58:44.134Z",
+  "observedAt": "2026-09-06T05:23:51.948Z",
   "worktree": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video",
   "branch": "codex/audit-video-usability-20260906",
-  "runtimeSource": "d75ad97040041b6febbf4e9ebdb338fdb4c1eff5",
+  "runtimeSource": "48fe3824cc6a38ba944427776e48d076f27f54f5",
   "artifact": {
-    "path": "apps/video/audit/artifacts/ynx-video-d75ad9704-runtime.tar.gz",
-    "bytes": 27622,
-    "sha256": "25748a1764e985a8abcd64cac53e25ecbefb7fbc20027142da555ac38fa314f5",
-    "verifiedManifestFiles": 17,
+    "path": "apps/video/audit/artifacts/ynx-video-48fe3824c-runtime.tar.gz",
+    "bytes": 69045,
+    "sha256": "78d504099bc1fbdbe54f3c04fb3f3d523b96857d8a513817db1600a829c36b2c",
+    "verifiedManifestFiles": 26,
     "nativeInstaller": false,
-    "backendIncluded": false
+    "backendIncluded": false,
+    "sourceCommit": "48fe3824cc6a38ba944427776e48d076f27f54f5"
   },
   "viewer": {
     "url": "https://web4.ynxweb4.com/video/",
     "port": 6494,
     "unit": "ynx-video-viewer.service",
-    "pid": 2106183,
-    "release": "/opt/ynx-video-viewer-wallet/releases/ynx-video-d75ad97040041b6febbf4e9ebdb338fdb4c1eff5",
-    "override": "/etc/systemd/system/ynx-video-viewer.service.d/20260906-audit.conf",
+    "pid": 2156623,
+    "release": "/opt/ynx-video-viewer-wallet/releases/ynx-video-48fe3824cc6a38ba944427776e48d076f27f54f5",
+    "override": "/etc/systemd/system/ynx-video-viewer.service.d/20260906-library-v2.conf",
     "publicSourceReadbackMatched": true,
     "cuaPublicTab": "694444700",
     "cuaLocalRealApiTab": "694444699",
     "sameOriginRealApiVerified": true,
-    "canonicalURL": "https://video.ynxweb4.com/"
+    "canonicalURL": "https://video.ynxweb4.com/",
+    "overrideSHA256": "893afdbdd137c4e38f19d04c505584fd5f1559b829972306487994a0909662a4",
+    "source": "48fe3824cc6a38ba944427776e48d076f27f54f5",
+    "publicFilesMatched": 22,
+    "privateFilesRejected": 4,
+    "callbackAndResources200": true,
+    "rollbackSource": "d75ad97040041b6febbf4e9ebdb338fdb4c1eff5"
   },
   "api": {
     "port": 6493,
     "unit": "ynx-videod.service",
-    "source": "052e95e7027f6eb1352eab5fa15adae157a22b34",
-    "binary": "/opt/ynx-video/releases/audit-v2-052e95e7027f6eb1352eab5fa15adae157a22b34/ynx-videod",
-    "binarySha256": "e642c8dc8586c87dc1ad29520d0fda768623c54f46d551577f8fb115289a0dc8",
-    "pid": 2137939,
+    "source": "48fe3824cc6a38ba944427776e48d076f27f54f5",
+    "binary": "/opt/ynx-video/releases/audit-library-48fe3824cc6a38ba944427776e48d076f27f54f5/ynx-videod",
+    "binarySha256": "d9eb2016902351f5144054cb2996a3e75dbfb0af66a1286f67ab5b4303b02174",
+    "pid": 2156258,
     "healthVersionVerified": true,
     "missingInvalidProofsRejected": true,
     "environmentFilePreserved": true,
     "publicVideos": 1,
     "publicTestnetQAVideos": 1,
     "organicUserVideosVerified": 0,
-    "rollbackBinary": "/opt/ynx-video/releases/1883d406f77f94cb81171b79fe9518882ede0b16/ynx-videod"
+    "rollbackBinary": "/opt/ynx-video/releases/audit-v2-052e95e7027f6eb1352eab5fa15adae157a22b34/ynx-videod",
+    "binaryBytes": 7110840,
+    "override": "/etc/systemd/system/ynx-videod.service.d/20260906-v4-library.conf",
+    "overrideSHA256": "2d424bb6db1e129aa6a60fa4863a2914ea7e3be777e5ab2458f3a7350199cc78",
+    "hlsMIMECorrect": true,
+    "mediaNoStore": true,
+    "mediaRangeTested": true
   },
   "creator": {
     "port": 6495,
@@ -54,11 +67,16 @@
     "publicFilesMatched": 18
   },
   "verification": {
-    "testsPassed": 54,
+    "testsPassed": 63,
     "testsFailed": 0,
     "localesAudited": 12,
     "videoOriginErrorsObserved": 0,
-    "thirdPartyExtensionWarningsObserved": true
+    "thirdPartyExtensionWarningsObserved": true,
+    "goVideoPackagePassed": true,
+    "goVideoPackageSeconds": 3.123,
+    "newUILocalizationComplete": false,
+    "priorCUAErrorsObserved": 0,
+    "currentCandidateCUAErrorsVerified": false
   },
   "acceptance": {
     "viewerRecovery": true,
@@ -71,9 +89,12 @@
     "completeProduct": false,
     "authenticatedUploadPublishEvidence": "Actual public API chain using two explicitly labeled independent Testnet QA accounts and automated review; not installed Wallet approval or human visual review.",
     "independentReviewEnforced": true,
-    "guestCatalogAndOriginalMediaHash": true
+    "guestCatalogAndOriginalMediaHash": true,
+    "apiPrivateLibrary": true,
+    "privateLibraryBrowser": false,
+    "videoV2ConsumerPublished": true
   },
-  "nextGate": "Mac is locked: user must unlock before CUA playback and Wallet native approval/callback can be verified. Video private-library v2 UI remains unfinished.",
+  "nextGate": "Mac locked: real CUA guest playback and installed Wallet approval/rejection/callback have not been accepted. Viewer private-library UI is deployed, but public browser library flow remains unverified. New UI copy is not fully localized. Editing/rights appeals/revenue/native platform installers remain unaccepted.",
   "evidence": [
     "video-delivery.md",
     "viewer-deployment-receipt.txt",
@@ -86,7 +107,14 @@
     "qa-workflow-videoqa-20260906044429124-a290607f.json",
     "creator-channel-id-deployment-receipt.txt",
     "creator-298-public-file-hashes.json",
-    "qa-custody-location.txt"
+    "qa-custody-location.txt",
+    "api-library-deployment-receipt.txt",
+    "viewer-library-deployment-receipt.txt",
+    "video-48fe-public-file-hashes.json",
+    "qa-library-videolibraryqa-20260906052136173-a503d508.json",
+    "api-library-hls-tests.log",
+    "viewer-v2-check.log",
+    "library-upload-hashes.txt"
   ],
   "priorAPIRepair": {
     "port": 6493,
@@ -107,5 +135,15 @@
     "viewerURL": "https://video.ynxweb4.com/?video=vid_037cc8f97abd9a6dff7a4e74",
     "sessionsRevoked": true,
     "identityCustody": "Remote /home/ubuntu/.local/share/ynx-video-qa/20260906-052e95e70 (0700), .qa-private/testnet-owned-demo-20260906.json (0600). No keys committed or logged."
+  },
+  "libraryQA": {
+    "receipt": "qa-library-videolibraryqa-20260906052136173-a503d508.json",
+    "businessChecksPassed": true,
+    "crossAccountRejected": true,
+    "cleanupConfirmed": true,
+    "sessionRevocationConfirmed": true,
+    "browserVerified": false,
+    "installedWalletVerified": false,
+    "organicHistoryFabricated": false
   }
 }

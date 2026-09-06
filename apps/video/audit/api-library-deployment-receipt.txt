@@ -1,0 +1,63 @@
+MODE=api
+SOURCE=48fe3824cc6a38ba944427776e48d076f27f54f5
+ARTIFACT_SHA256=d9eb2016902351f5144054cb2996a3e75dbfb0af66a1286f67ab5b4303b02174
+OLD_PID=2137939
+NEIGHBORS_BEFORE
+MainPID=2106183
+ExecMainStartTimestampMonotonic=11459797616092
+Id=ynx-video-viewer.service
+ActiveState=active
+
+MainPID=2141531
+ExecMainStartTimestampMonotonic=11464308437095
+Id=ynx-creator-studio-wallet.service
+ActiveState=active
+
+MainPID=2123346
+ExecMainStartTimestampMonotonic=11461934586120
+Id=ynx-wallet-gateway.service
+ActiveState=active
+077fe80ea9aab24a32d64ba1fab3584e8aab10304e200e58d976d2c33edfb39f  /etc/caddy/Caddyfile
+15a722a950e4ec07583da1affb938c08522b5565c8da29adf27afaccb2335867  /etc/caddy/ynx-chain.caddy
+9f38811c6b027f8713613d94607e8225da034578d35d897c2533215c7472f3fa  /etc/caddy/conf.d/ynx-video-products-20260906.caddy
+34d6fe89ec14b9941ea567072f992b5f903b90222a390f57244a3022d9ed57e2  /etc/systemd/system/ynx-creator-studio-wallet.service.d/20260906-v3-channel-id.conf
+/opt/ynx-video/releases/p0205-creator-studio-0e1a53c5
+12567d904519aaf70ae79cba6d6a5d61f7450125b57aae52bcbc6c68fff65c3d  -
+/etc/systemd/system/tat_agent.service:7: PIDFile= references a path below legacy directory /var/run/, updating /var/run/tat_agent.pid → /run/tat_agent.pid; please update the unit file accordingly.
+{"build":{"commit":"48fe3824cc6a38ba944427776e48d076f27f54f5","release":"audit-library-v2-20260906","buildTime":"2026-09-06T05:17:06Z"},"service":"ynx-video"}
+{"build":{"commit":"48fe3824cc6a38ba944427776e48d076f27f54f5","release":"audit-library-v2-20260906","buildTime":"2026-09-06T05:17:06Z"},"centralContractIntegrated":true,"centralDeploymentVerified":false,"dependencies":[],"ok":true,"service":"ynx-video","truth":"no synthetic metrics"}
+[{"id":"vid_037cc8f97abd9a6dff7a4e74","owner":"ynx1san7e87pwfrrct5uqzxd85vwgg9mhtllqcqys4","channel_id":"chn_ed97005f197d918ffd712e60","title":"YNX Testnet QA — owned processing demo 2026-09-06","description":"Repository-owned synthetic blue video and 642 Hz tone. Testnet QA only; not user content or a business adoption metric. QA identity videoqa-identity-96ecf6d8a5fcc95c16492860. QA run videoqa-20260906044429124-a290607f.","owned_content_declaration":true,"visibility":"public","status":"published","workflow_state":"published","version":0,"original_name":"ynx-owned-test.mp4","content_type":"video/mp4","bytes":12525,"sha256":"be414db1d01558b11c7592b7d4dc69d0fee8da158997dc477e2fdaf6b9e3ee39","rights":{"basis":"owned","source":"YNX-Chain internal/video/testdata/ynx-owned-test.mp4; generated solid blue and synthetic 642 Hz tone","license":"Repository-owned YNX Video processing Testnet QA; project owner authorized public QA demonstration","territories":["WORLDWIDE"],"evidence_sha256":"a6cb264d33765ad4b8b0770d58801fac291b42102c50646bd5da823fa897fef2"},"probe":{"container":"mov,mp4,m4a,3gp,3g2,mj2","video_codec":"h264","audio_codec":"aac","duration_seconds":1,"width":320,"height":180,"frame_rate":25},"object_key":"vid_037cc8f97abd9a6dff7a4e74/original","variants":[{"name":"adaptive-hls","object_key":"vid_037cc8f97abd9a6dff7a4e74/stream.m3u8","mime":"application/vnd.apple.mpegurl","bytes":147,"sha256":"509e61af6d3835682e69483a53f612357985e1b14daf637b9da065c2344441a6","lineage":"derivative","source_object_key":"vid_037cc8f97abd9a6dff7a4e74/original","source_sha256":"be414db1d01558b11c7592b7d4dc69d0fee8da158997dc477e2fdaf6b9e3ee39"},{"name":"hls-segment-0000","object_key":"vid_037cc8f97abd9a6dff7a4e74/segment-0000.ts","mime":"video/mp2t","bytes":22560,"sha256":"7983e4e68b4d8a38a7f4d22ad1d97f6e2a3998ec068a8a317a110c3855f1b3ce","lineage":"derivative","source_object_key":"vid_037cc8f97abd9a6dff7a4e74/original","source_sha256":"be414db1d01558b11c7592b7d4dc69d0fee8da158997dc477e2fdaf6b9e3ee39"},{"name":"original-fallback","object_key":"vid_037cc8f97abd9a6dff7a4e74/original","mime":"video/mp4","bytes":12525,"sha256":"be414db1d01558b11c7592b7d4dc69d0fee8da158997dc477e2fdaf6b9e3ee39","lineage":"original"}],"created_at":"2026-09-06T04:44:29.921637385Z","updated_at":"2026-09-06T04:44:40.353494658Z","published_at":"2026-09-06T04:44:40.353494658Z"}]
+MISSING_AND_INVALID_PROOFS_REJECTED=true
+
+NEIGHBORS_AFTER
+MainPID=2106183
+ExecMainStartTimestampMonotonic=11459797616092
+Id=ynx-video-viewer.service
+ActiveState=active
+
+MainPID=2141531
+ExecMainStartTimestampMonotonic=11464308437095
+Id=ynx-creator-studio-wallet.service
+ActiveState=active
+
+MainPID=2123346
+ExecMainStartTimestampMonotonic=11461934586120
+Id=ynx-wallet-gateway.service
+ActiveState=active
+077fe80ea9aab24a32d64ba1fab3584e8aab10304e200e58d976d2c33edfb39f  /etc/caddy/Caddyfile
+15a722a950e4ec07583da1affb938c08522b5565c8da29adf27afaccb2335867  /etc/caddy/ynx-chain.caddy
+9f38811c6b027f8713613d94607e8225da034578d35d897c2533215c7472f3fa  /etc/caddy/conf.d/ynx-video-products-20260906.caddy
+34d6fe89ec14b9941ea567072f992b5f903b90222a390f57244a3022d9ed57e2  /etc/systemd/system/ynx-creator-studio-wallet.service.d/20260906-v3-channel-id.conf
+/opt/ynx-video/releases/p0205-creator-studio-0e1a53c5
+12567d904519aaf70ae79cba6d6a5d61f7450125b57aae52bcbc6c68fff65c3d  -
+MainPID=2156258
+NRestarts=0
+ExecStart={ path=/opt/ynx-video/releases/audit-library-48fe3824cc6a38ba944427776e48d076f27f54f5/ynx-videod ; argv[]=/opt/ynx-video/releases/audit-library-48fe3824cc6a38ba944427776e48d076f27f54f5/ynx-videod ; ignore_errors=no ; start_time=[Sun 2026-09-06 13:20:32 CST] ; stop_time=[n/a] ; pid=2156258 ; code=(null) ; status=0/0 }
+EnvironmentFiles=/etc/ynx/ynx-videod.env (ignore_errors=no)
+WorkingDirectory=
+Id=ynx-videod.service
+ActiveState=active
+DropInPaths=/etc/systemd/system/ynx-videod.service.d/20260906-executable.conf /etc/systemd/system/ynx-videod.service.d/20260906-v2-consumer.conf /etc/systemd/system/ynx-videod.service.d/20260906-v4-library.conf
+2d424bb6db1e129aa6a60fa4863a2914ea7e3be777e5ab2458f3a7350199cc78  /etc/systemd/system/ynx-videod.service.d/20260906-v4-library.conf
+COMPLETED_AT=2026-09-06T05:20:32Z
+LIBRARY_V2_DEPLOYED=true

@@ -1,0 +1,496 @@
+{
+  "schemaVersion": 1,
+  "runId": "videolibraryqa-20260906052136173-a503d508",
+  "mode": "execute",
+  "startedAt": "2026-09-06T05:21:36.173Z",
+  "authOrigin": "https://wallet-auth.ynxweb4.com",
+  "productOrigin": "https://video.ynxweb4.com",
+  "apiOrigin": "https://video.ynxweb4.com/video/api",
+  "viewerOrigin": "https://video.ynxweb4.com",
+  "chainId": "ynx_6423-1",
+  "installedWalletVerified": false,
+  "browserCallbackVerified": false,
+  "browserPlaybackVerified": false,
+  "qaIdentitySecretsPersisted": true,
+  "sessionOrProofPersisted": false,
+  "networkWrites": true,
+  "complete": true,
+  "events": [
+    {
+      "at": "2026-09-06T05:21:36.210Z",
+      "step": "plan",
+      "mode": "execute",
+      "applicationId": "com.ynxweb4.video.web",
+      "scopes": [
+        "video:account",
+        "video:library",
+        "video:playback"
+      ],
+      "registrySHA256": "1dd3c6fdf8cfaab8d1ec4cf635223eac0f6da918e5973cd87217c2274bbd4847",
+      "mediaSHA256": "be414db1d01558b11c7592b7d4dc69d0fee8da158997dc477e2fdaf6b9e3ee39",
+      "operations": [
+        "public health/version/catalog GET",
+        "two real Video v2 sessions",
+        "create/read/save QA playlist",
+        "cross-account deletion rejected",
+        "remove saved video",
+        "delete QA playlist",
+        "subscribe/unsubscribe and preserve initial subscription state",
+        "private history GET",
+        "revoke QA sessions"
+      ],
+      "caveat": "QA signing is not installed Wallet, browser callback, or playback verification. Execute requires a 0600 QA identity file; sessions/proofs remain memory-only. Failed mutations are not automatically retried."
+    },
+    {
+      "at": "2026-09-06T05:21:36.331Z",
+      "step": "offline-sdk-check",
+      "result": "passed",
+      "networkRequests": 0,
+      "checks": [
+        "secp256k1 approval",
+        "exact request and callback roundtrip",
+        "P-256 challenge signing",
+        "wrong callback state rejected"
+      ]
+    },
+    {
+      "at": "2026-09-06T05:21:36.433Z",
+      "step": "auth-version",
+      "url": "https://wallet-auth.ynxweb4.com/version",
+      "status": 200,
+      "bytes": 307,
+      "sha256": "1a720a9a18d29b35ae43ad016dce45086dc5ce692ec773991c5b8ce67805e194"
+    },
+    {
+      "at": "2026-09-06T05:21:36.496Z",
+      "step": "video-health",
+      "url": "https://video.ynxweb4.com/video/api/health",
+      "status": 200,
+      "bytes": 285,
+      "sha256": "d7714d94b175f24c5dcb8f69459cc854d7201038b82f1a18e66dabfb3d9e06d0"
+    },
+    {
+      "at": "2026-09-06T05:21:36.545Z",
+      "step": "video-version",
+      "url": "https://video.ynxweb4.com/video/api/version",
+      "status": 200,
+      "bytes": 159,
+      "sha256": "5d930113f24c427d3e7651d69494d36405447d5b95a8b58481c96343b834d2d0"
+    },
+    {
+      "at": "2026-09-06T05:21:36.552Z",
+      "step": "anonymous-catalog-before",
+      "url": "https://video.ynxweb4.com/video/api/v1/videos",
+      "status": 200,
+      "bytes": 2373,
+      "sha256": "41094bed839e2e4c1596779a0aaf1242c4608e90a03a0d63fc70bae29474b536"
+    },
+    {
+      "at": "2026-09-06T05:21:36.608Z",
+      "step": "qa-identity-custody",
+      "result": "reused-0600",
+      "publicId": "videoqa-identity-96ecf6d8a5fcc95c16492860",
+      "sessionOrProofPersisted": false
+    },
+    {
+      "at": "2026-09-06T05:21:37.334Z",
+      "step": "owner-session-issuance",
+      "account": "ynx1san7e87pwfrrct5uqzxd85vwgg9mhtllqcqys4",
+      "result": "real-gateway-confirmed",
+      "expiresAt": "2026-09-06T05:26:36.726Z"
+    },
+    {
+      "at": "2026-09-06T05:21:37.432Z",
+      "step": "reviewer-session-issuance",
+      "account": "ynx15nzmk7nhz6kxlpf3t34ymz9f34z729qdcwperk",
+      "result": "real-gateway-confirmed",
+      "expiresAt": "2026-09-06T05:26:37.335Z"
+    },
+    {
+      "at": "2026-09-06T05:21:37.435Z",
+      "step": "read-owned-qa-public-video-request",
+      "actor": "owner",
+      "method": "GET",
+      "path": "/v1/videos/vid_037cc8f97abd9a6dff7a4e74",
+      "requiredScope": "video:playback"
+    },
+    {
+      "at": "2026-09-06T05:21:37.480Z",
+      "step": "read-owned-qa-public-video-response",
+      "status": 200,
+      "bytes": 5625,
+      "sha256": "d28f4378613faab94374a017de4642571e18f576b310f7758d888d7d31d03e9b"
+    },
+    {
+      "at": "2026-09-06T05:21:37.482Z",
+      "step": "initial-subscriptions-request",
+      "actor": "owner",
+      "method": "GET",
+      "path": "/v1/subscriptions",
+      "requiredScope": "video:library"
+    },
+    {
+      "at": "2026-09-06T05:21:37.506Z",
+      "step": "initial-subscriptions-response",
+      "status": 200,
+      "bytes": 3,
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    {
+      "at": "2026-09-06T05:21:37.508Z",
+      "step": "create-qa-playlist-request",
+      "actor": "owner",
+      "method": "POST",
+      "path": "/v1/playlists",
+      "requiredScope": "video:library",
+      "idempotencyKey": "videolibraryqa-20260906052136173-a503d508:create-qa-playlist"
+    },
+    {
+      "at": "2026-09-06T05:21:37.539Z",
+      "step": "create-qa-playlist-response",
+      "status": 200,
+      "bytes": 272,
+      "sha256": "863a022b6a09f099c384ac0a1cb8bc3986a869a6693c69852355422ba2aa71a6"
+    },
+    {
+      "at": "2026-09-06T05:21:37.542Z",
+      "step": "save-qa-video-request",
+      "actor": "owner",
+      "method": "POST",
+      "path": "/v1/playlists/pl_a60eea989623d80aadf6fc79/videos",
+      "requiredScope": "video:library",
+      "idempotencyKey": "videolibraryqa-20260906052136173-a503d508:save-qa-video"
+    },
+    {
+      "at": "2026-09-06T05:21:37.574Z",
+      "step": "save-qa-video-response",
+      "status": 200,
+      "bytes": 12,
+      "sha256": "e5f1eb4d806641698a35efe20e098efd20d7d57a9b90ee69079d5bb650920726"
+    },
+    {
+      "at": "2026-09-06T05:21:37.576Z",
+      "step": "read-saved-playlist-request",
+      "actor": "owner",
+      "method": "GET",
+      "path": "/v1/playlists",
+      "requiredScope": "video:library"
+    },
+    {
+      "at": "2026-09-06T05:21:37.599Z",
+      "step": "read-saved-playlist-response",
+      "status": 200,
+      "bytes": 302,
+      "sha256": "bb6f7ac6d0e081faeb6230ca401d88249a09adddd40c3cf98a7075c15fa8070d"
+    },
+    {
+      "at": "2026-09-06T05:21:37.601Z",
+      "step": "reject-other-account-delete-request",
+      "actor": "reviewer",
+      "method": "DELETE",
+      "path": "/v1/playlists/pl_a60eea989623d80aadf6fc79",
+      "requiredScope": "video:library",
+      "idempotencyKey": "videolibraryqa-20260906052136173-a503d508:reject-other-account-delete"
+    },
+    {
+      "at": "2026-09-06T05:21:37.630Z",
+      "step": "reject-other-account-delete-response",
+      "status": 403,
+      "bytes": 22,
+      "sha256": "b0d2df3ed9997f16da66684351204f2801753b44c7c9da45bc404c7674f16243"
+    },
+    {
+      "at": "2026-09-06T05:21:37.632Z",
+      "step": "reject-other-account-remove-request",
+      "actor": "reviewer",
+      "method": "DELETE",
+      "path": "/v1/playlists/pl_a60eea989623d80aadf6fc79/videos/vid_037cc8f97abd9a6dff7a4e74",
+      "requiredScope": "video:library",
+      "idempotencyKey": "videolibraryqa-20260906052136173-a503d508:reject-other-account-remove"
+    },
+    {
+      "at": "2026-09-06T05:21:37.659Z",
+      "step": "reject-other-account-remove-response",
+      "status": 403,
+      "bytes": 22,
+      "sha256": "b0d2df3ed9997f16da66684351204f2801753b44c7c9da45bc404c7674f16243"
+    },
+    {
+      "at": "2026-09-06T05:21:37.661Z",
+      "step": "remove-saved-video-request",
+      "actor": "owner",
+      "method": "DELETE",
+      "path": "/v1/playlists/pl_a60eea989623d80aadf6fc79/videos/vid_037cc8f97abd9a6dff7a4e74",
+      "requiredScope": "video:library",
+      "idempotencyKey": "videolibraryqa-20260906052136173-a503d508:remove-saved-video"
+    },
+    {
+      "at": "2026-09-06T05:21:37.694Z",
+      "step": "remove-saved-video-response",
+      "status": 200,
+      "bytes": 12,
+      "sha256": "e5f1eb4d806641698a35efe20e098efd20d7d57a9b90ee69079d5bb650920726"
+    },
+    {
+      "at": "2026-09-06T05:21:37.696Z",
+      "step": "read-removed-video-request",
+      "actor": "owner",
+      "method": "GET",
+      "path": "/v1/playlists",
+      "requiredScope": "video:library"
+    },
+    {
+      "at": "2026-09-06T05:21:37.718Z",
+      "step": "read-removed-video-response",
+      "status": 200,
+      "bytes": 272,
+      "sha256": "3c7ad9cfc47a496dee757d09e0f6e6aac519b6bcfa2543472c178e6271b4809c"
+    },
+    {
+      "at": "2026-09-06T05:21:37.720Z",
+      "step": "delete-qa-playlist-request",
+      "actor": "owner",
+      "method": "DELETE",
+      "path": "/v1/playlists/pl_a60eea989623d80aadf6fc79",
+      "requiredScope": "video:library",
+      "idempotencyKey": "videolibraryqa-20260906052136173-a503d508:delete-qa-playlist"
+    },
+    {
+      "at": "2026-09-06T05:21:37.751Z",
+      "step": "delete-qa-playlist-response",
+      "status": 200,
+      "bytes": 12,
+      "sha256": "e5f1eb4d806641698a35efe20e098efd20d7d57a9b90ee69079d5bb650920726"
+    },
+    {
+      "at": "2026-09-06T05:21:37.754Z",
+      "step": "read-deleted-playlist-request",
+      "actor": "owner",
+      "method": "GET",
+      "path": "/v1/playlists",
+      "requiredScope": "video:library"
+    },
+    {
+      "at": "2026-09-06T05:21:37.777Z",
+      "step": "read-deleted-playlist-response",
+      "status": 200,
+      "bytes": 3,
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    {
+      "at": "2026-09-06T05:21:37.779Z",
+      "step": "subscribe-qa-channel-request",
+      "actor": "owner",
+      "method": "POST",
+      "path": "/v1/channels/chn_ed97005f197d918ffd712e60/subscription",
+      "requiredScope": "video:library",
+      "idempotencyKey": "videolibraryqa-20260906052136173-a503d508:subscribe-qa-channel"
+    },
+    {
+      "at": "2026-09-06T05:21:37.816Z",
+      "step": "subscribe-qa-channel-response",
+      "status": 200,
+      "bytes": 12,
+      "sha256": "e5f1eb4d806641698a35efe20e098efd20d7d57a9b90ee69079d5bb650920726"
+    },
+    {
+      "at": "2026-09-06T05:21:37.818Z",
+      "step": "read-subscribed-request",
+      "actor": "owner",
+      "method": "GET",
+      "path": "/v1/subscriptions",
+      "requiredScope": "video:library"
+    },
+    {
+      "at": "2026-09-06T05:21:37.844Z",
+      "step": "read-subscribed-response",
+      "status": 200,
+      "bytes": 242,
+      "sha256": "e4862e35897c41e2a32240b0beaebad9d2c058dc830f7aaea2bb702477d5433a"
+    },
+    {
+      "at": "2026-09-06T05:21:37.846Z",
+      "step": "unsubscribe-qa-channel-request",
+      "actor": "owner",
+      "method": "DELETE",
+      "path": "/v1/channels/chn_ed97005f197d918ffd712e60/subscription",
+      "requiredScope": "video:library",
+      "idempotencyKey": "videolibraryqa-20260906052136173-a503d508:unsubscribe-qa-channel"
+    },
+    {
+      "at": "2026-09-06T05:21:37.876Z",
+      "step": "unsubscribe-qa-channel-response",
+      "status": 200,
+      "bytes": 12,
+      "sha256": "e5f1eb4d806641698a35efe20e098efd20d7d57a9b90ee69079d5bb650920726"
+    },
+    {
+      "at": "2026-09-06T05:21:37.878Z",
+      "step": "read-unsubscribed-request",
+      "actor": "owner",
+      "method": "GET",
+      "path": "/v1/subscriptions",
+      "requiredScope": "video:library"
+    },
+    {
+      "at": "2026-09-06T05:21:37.901Z",
+      "step": "read-unsubscribed-response",
+      "status": 200,
+      "bytes": 3,
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    {
+      "at": "2026-09-06T05:21:37.903Z",
+      "step": "read-private-history-request",
+      "actor": "owner",
+      "method": "GET",
+      "path": "/v1/history",
+      "requiredScope": "video:library"
+    },
+    {
+      "at": "2026-09-06T05:21:37.926Z",
+      "step": "read-private-history-response",
+      "status": 200,
+      "bytes": 3,
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    {
+      "at": "2026-09-06T05:21:37.931Z",
+      "step": "video-library-business-checks-passed",
+      "videoId": "vid_037cc8f97abd9a6dff7a4e74",
+      "channelId": "chn_ed97005f197d918ffd712e60",
+      "sourceUnaffected": true,
+      "crossAccountRejected": true,
+      "cleanupPending": true,
+      "browserVerified": false,
+      "installedWalletVerified": false
+    },
+    {
+      "at": "2026-09-06T05:21:37.933Z",
+      "step": "cleanup-find-own-qa-playlist-request",
+      "actor": "owner",
+      "method": "GET",
+      "path": "/v1/playlists",
+      "requiredScope": "video:library"
+    },
+    {
+      "at": "2026-09-06T05:21:37.956Z",
+      "step": "cleanup-find-own-qa-playlist-response",
+      "status": 200,
+      "bytes": 3,
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    {
+      "at": "2026-09-06T05:21:37.958Z",
+      "step": "cleanup-readback-playlists-request",
+      "actor": "owner",
+      "method": "GET",
+      "path": "/v1/playlists",
+      "requiredScope": "video:library"
+    },
+    {
+      "at": "2026-09-06T05:21:37.980Z",
+      "step": "cleanup-readback-playlists-response",
+      "status": 200,
+      "bytes": 3,
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    {
+      "at": "2026-09-06T05:21:37.981Z",
+      "step": "qa-playlist-cleanup-confirmed",
+      "result": "no-matching-run-playlist"
+    },
+    {
+      "at": "2026-09-06T05:21:37.983Z",
+      "step": "cleanup-read-subscriptions-request",
+      "actor": "owner",
+      "method": "GET",
+      "path": "/v1/subscriptions",
+      "requiredScope": "video:library"
+    },
+    {
+      "at": "2026-09-06T05:21:38.005Z",
+      "step": "cleanup-read-subscriptions-response",
+      "status": 200,
+      "bytes": 3,
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    {
+      "at": "2026-09-06T05:21:38.008Z",
+      "step": "cleanup-readback-subscriptions-request",
+      "actor": "owner",
+      "method": "GET",
+      "path": "/v1/subscriptions",
+      "requiredScope": "video:library"
+    },
+    {
+      "at": "2026-09-06T05:21:38.030Z",
+      "step": "cleanup-readback-subscriptions-response",
+      "status": 200,
+      "bytes": 3,
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+    },
+    {
+      "at": "2026-09-06T05:21:38.031Z",
+      "step": "qa-subscription-cleanup-confirmed",
+      "originallySubscribed": false,
+      "restored": true
+    },
+    {
+      "at": "2026-09-06T05:21:38.055Z",
+      "step": "session-revocation",
+      "actor": "owner",
+      "result": "confirmed"
+    },
+    {
+      "at": "2026-09-06T05:21:38.082Z",
+      "step": "session-revocation",
+      "actor": "reviewer",
+      "result": "confirmed"
+    },
+    {
+      "at": "2026-09-06T05:21:38.083Z",
+      "step": "video-library-workflow-confirmed",
+      "videoId": "vid_037cc8f97abd9a6dff7a4e74",
+      "channelId": "chn_ed97005f197d918ffd712e60",
+      "cleanupConfirmed": true,
+      "sessionRevocationConfirmed": true,
+      "browserVerified": false,
+      "installedWalletVerified": false
+    }
+  ],
+  "registrySHA256": "1dd3c6fdf8cfaab8d1ec4cf635223eac0f6da918e5973cd87217c2274bbd4847",
+  "sdkSourcesSHA256": {
+    "canonical": "9f7ccc58b8bd1fadbb2dffa88a7512a8e3be0f4a9f2983800654ee5fe5d10119",
+    "crypto": "a62f070025755718bff126c07bc43827db42e89234d6a20f5cd1488bced60560",
+    "product-session-registry": "9e5291f39679823e0474e361ea5cfacfecdb1e8ff6d736c1400a1d5a45e1a7a6",
+    "product-session-v2": "71f787fafc9544b28c4113d6704190e73ee99666bef6ff805219ee3725bd205e",
+    "product-session-router": "26a711f5320f22b700f8afc4cc3771546c67559ce0a15cc03b7fec0bd488cd75",
+    "product-session-proof-v2": "a9eea429f4dc69bbf84053f1a6fa24d48c3bf39b6c23dad3bd9abe82336e8818",
+    "product-session-gateway-client": "671f85b00b1f3a6e40d0c43e6a631d3e15edbe99cb242056be289b91f11a8ca0",
+    "session-proof": "42f8b475fb55be115c515ff04b4344678b10320dcbbdc820feb03324d95f9c6d"
+  },
+  "media": {
+    "path": "internal/video/testdata/ynx-owned-test.mp4",
+    "bytes": 12525,
+    "sha256": "be414db1d01558b11c7592b7d4dc69d0fee8da158997dc477e2fdaf6b9e3ee39"
+  },
+  "rightsEvidenceSHA256": "a6cb264d33765ad4b8b0770d58801fac291b42102c50646bd5da823fa897fef2",
+  "qaIdentityPublicId": "videoqa-identity-96ecf6d8a5fcc95c16492860",
+  "qaIdentityFile": "/home/ubuntu/.local/share/ynx-video-qa/20260906-052e95e70/apps/video/.qa-private/testnet-owned-demo-20260906.json",
+  "qaAccounts": {
+    "owner": "ynx1san7e87pwfrrct5uqzxd85vwgg9mhtllqcqys4",
+    "other": "ynx15nzmk7nhz6kxlpf3t34ymz9f34z729qdcwperk"
+  },
+  "qaPlaylistName": "Testnet QA library check videolibraryqa-20260906052136173-a503d508",
+  "initiallySubscribed": false,
+  "playlistCleanupVerified": true,
+  "subscriptionCleanupVerified": true,
+  "playlistId": "pl_a60eea989623d80aadf6fc79",
+  "businessChecksPassed": true,
+  "videoId": "vid_037cc8f97abd9a6dff7a4e74",
+  "channelId": "chn_ed97005f197d918ffd712e60",
+  "cleanupConfirmed": true,
+  "sessionRevocationConfirmed": true,
+  "finishedAt": "2026-09-06T05:21:38.083Z"
+}

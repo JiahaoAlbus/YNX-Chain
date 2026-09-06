@@ -1,0 +1,60 @@
+MODE=viewer
+SOURCE=48fe3824cc6a38ba944427776e48d076f27f54f5
+ARTIFACT_SHA256=78d504099bc1fbdbe54f3c04fb3f3d523b96857d8a513817db1600a829c36b2c
+OLD_PID=2106183
+NEIGHBORS_BEFORE
+MainPID=2156258
+ExecMainStartTimestampMonotonic=11466259321229
+Id=ynx-videod.service
+ActiveState=active
+
+MainPID=2141531
+ExecMainStartTimestampMonotonic=11464308437095
+Id=ynx-creator-studio-wallet.service
+ActiveState=active
+
+MainPID=2123346
+ExecMainStartTimestampMonotonic=11461934586120
+Id=ynx-wallet-gateway.service
+ActiveState=active
+077fe80ea9aab24a32d64ba1fab3584e8aab10304e200e58d976d2c33edfb39f  /etc/caddy/Caddyfile
+15a722a950e4ec07583da1affb938c08522b5565c8da29adf27afaccb2335867  /etc/caddy/ynx-chain.caddy
+9f38811c6b027f8713613d94607e8225da034578d35d897c2533215c7472f3fa  /etc/caddy/conf.d/ynx-video-products-20260906.caddy
+34d6fe89ec14b9941ea567072f992b5f903b90222a390f57244a3022d9ed57e2  /etc/systemd/system/ynx-creator-studio-wallet.service.d/20260906-v3-channel-id.conf
+/opt/ynx-video/releases/p0205-creator-studio-0e1a53c5
+12567d904519aaf70ae79cba6d6a5d61f7450125b57aae52bcbc6c68fff65c3d  -
+VIEWER_MANIFEST_FILES_VERIFIED=26
+/etc/systemd/system/tat_agent.service:7: PIDFile= references a path below legacy directory /var/run/, updating /var/run/tat_agent.pid → /run/tat_agent.pid; please update the unit file accordingly.
+VIEWER_RUNTIME_SOURCE=48fe3824cc6a38ba944427776e48d076f27f54f5
+
+NEIGHBORS_AFTER
+MainPID=2156258
+ExecMainStartTimestampMonotonic=11466259321229
+Id=ynx-videod.service
+ActiveState=active
+
+MainPID=2141531
+ExecMainStartTimestampMonotonic=11464308437095
+Id=ynx-creator-studio-wallet.service
+ActiveState=active
+
+MainPID=2123346
+ExecMainStartTimestampMonotonic=11461934586120
+Id=ynx-wallet-gateway.service
+ActiveState=active
+077fe80ea9aab24a32d64ba1fab3584e8aab10304e200e58d976d2c33edfb39f  /etc/caddy/Caddyfile
+15a722a950e4ec07583da1affb938c08522b5565c8da29adf27afaccb2335867  /etc/caddy/ynx-chain.caddy
+9f38811c6b027f8713613d94607e8225da034578d35d897c2533215c7472f3fa  /etc/caddy/conf.d/ynx-video-products-20260906.caddy
+34d6fe89ec14b9941ea567072f992b5f903b90222a390f57244a3022d9ed57e2  /etc/systemd/system/ynx-creator-studio-wallet.service.d/20260906-v3-channel-id.conf
+/opt/ynx-video/releases/p0205-creator-studio-0e1a53c5
+12567d904519aaf70ae79cba6d6a5d61f7450125b57aae52bcbc6c68fff65c3d  -
+MainPID=2156623
+NRestarts=0
+ExecStart={ path=/usr/bin/node ; argv[]=/usr/bin/node /opt/ynx-video-viewer-wallet/releases/ynx-video-48fe3824cc6a38ba944427776e48d076f27f54f5/server.mjs ; ignore_errors=no ; start_time=[Sun 2026-09-06 13:20:49 CST] ; stop_time=[n/a] ; pid=2156623 ; code=(null) ; status=0/0 }
+WorkingDirectory=/opt/ynx-video-viewer-wallet/releases/ynx-video-48fe3824cc6a38ba944427776e48d076f27f54f5
+Id=ynx-video-viewer.service
+ActiveState=active
+DropInPaths=/etc/systemd/system/ynx-video-viewer.service.d/20260906-audit.conf /etc/systemd/system/ynx-video-viewer.service.d/20260906-library-v2.conf
+893afdbdd137c4e38f19d04c505584fd5f1559b829972306487994a0909662a4  /etc/systemd/system/ynx-video-viewer.service.d/20260906-library-v2.conf
+COMPLETED_AT=2026-09-06T05:20:50Z
+LIBRARY_V2_DEPLOYED=true

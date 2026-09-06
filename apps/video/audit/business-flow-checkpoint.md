@@ -54,3 +54,13 @@ Mac remains locked. Do not claim browser playback or installed Wallet approval u
 ## 2026-09-06T05:15:34.349Z library/HLS candidate checkpoint
 
 Viewer v2 consumer/library sources ready; full Node check 63/63 (new UI strings mainly English; existing 12-locale/22-key audit does not prove full new-UI translation). API library CRUD, Video-only precise scope allowlists, HLS .ts video/mp2t and .m3u8 application/vnd.apple.mpegurl, no-store media after visibility changes: full Go package passed 3.123s. Fixed existing fixed-clock comment test's unsupported equal-time order assumption. Public HLS bytes had matched integrity but .ts was incorrectly served as Qt translation text. No browser playback claim. QA library cleanup is being hardened before source freeze. Remote remains API052/Viewer d75/Creator298; no new deploy yet. Mac locked; no CUA bypass.
+
+## 2026-09-06T05:23:51.948Z Video library / HLS actual delivery
+
+API and Viewer source 48fe3824cc6a38ba944427776e48d076f27f54f5 are public. API PID 2156258, Viewer PID 2156623; Creator 29896f10c5e59fc17590dd3697d6e7af3d34a809 and Auth remained unchanged. All prior releases, ENV, data, Caddy and shared current remain intact. Rollback removes only each new drop-in: API returns to valid052 binary; Viewer returns to d75.
+
+Viewer artifact 69045B / SHA256 78d504099bc1fbdbe54f3c04fb3f3d523b96857d8a513817db1600a829c36b2c; all26 disk manifest files verified,22 public files match full hashes,4 internal files404. API ELF amd647110840B / SHA256 d9eb2016902351f5144054cb2996a3e75dbfb0af66a1286f67ab5b4303b02174. Callback is publicly available and source-bound. HLS manifest/segment/original bytes all match source integrity; MIME application/vnd.apple.mpegurl, video/mp2t,video/mp4 and no-store are verified. Both old web4 paths retain exact current app.js bytes.
+
+Actual public v2 QA confirmed playlist create/save/read/remove/delete, other-account403 boundaries, subscribe/unsubscribe and history read. It did not fabricate watch events. Run qa-library-videolibraryqa-20260906052136173-a503d508.json completed05:21:38Z after readback proved no QA playlist remained, initial subscription state was restored, and both sessions were revoked. Earlier actual independently reviewed upload/publish QA remains available as clearly labeled Testnet demonstration video. This is API business proof, not a human browser or installed Wallet proof.
+
+Remaining: Mac locked; no current candidate CUA playback or library UI acceptance; installed Wallet approve/reject/return unverified. New UI text not fully localized; video editing and wider Creator business/native installers not accepted. Full Node63/63 and Go package3.123s passed.
