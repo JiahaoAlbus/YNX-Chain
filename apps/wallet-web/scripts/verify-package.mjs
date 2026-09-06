@@ -6,7 +6,7 @@ import {fileURLToPath} from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const manifest = JSON.parse(await readFile(join(root, "artifact-manifest.json"), "utf8"));
-const requiredFiles = new Set(["index.html", "app.js", "provider.js", "i18n.js", "styles.css", "accessibility.css", "ynx-logo.png"]);
+const requiredFiles = new Set(["index.html", "app.js", "provider.js", "transaction-input.js", "i18n.js", "styles.css", "accessibility.css", "ynx-logo.png"]);
 
 for (const artifact of manifest.artifacts) {
   const archive = join(root, artifact.path);
@@ -26,7 +26,7 @@ for (const artifact of manifest.artifacts) {
     if(JSON.stringify(deploymentPolicy.headers?.map(({source})=>source))!==JSON.stringify(expectedNoStore)||deploymentPolicy.headers.some(({headers})=>JSON.stringify(headers)!==JSON.stringify([{key:"Cache-Control",value:"no-store"}])))throw new Error(`Invalid PWA deployment cache policy: ${artifact.name}`);
     const integritySource=execFileSync("unzip",["-p",archive,"asset-integrity.js"],{encoding:"utf8"}),match=integritySource.match(/^export const ASSET_INTEGRITY=Object\.freeze\((\{.*\})\);\n$/u);
     if(!match)throw new Error(`Invalid PWA asset integrity module: ${artifact.name}`);
-    const integrity=JSON.parse(match[1]),expected=["./","./index.html","./styles.css","./accessibility.css","./app.js","./provider.js","./i18n.js","./preferences.js","./mobile-wallet-routing.js","./core-auth-consumer.js","./wallet-web-companion-lifecycle.js","./standard-wallet-connect-state.js","./core-auth-binding.js","./service-worker-policy.js","./build-identity.json","./ynx-logo.png","./ynx-icon-192.png","./ynx-icon-512.png","./ynx-icon-maskable-512.png","./manifest.webmanifest"];
+    const integrity=JSON.parse(match[1]),expected=["./","./index.html","./styles.css","./accessibility.css","./app.js","./provider.js","./transaction-input.js","./i18n.js","./preferences.js","./mobile-wallet-routing.js","./core-auth-consumer.js","./wallet-web-companion-lifecycle.js","./standard-wallet-connect-state.js","./core-auth-binding.js","./service-worker-policy.js","./build-identity.json","./ynx-logo.png","./ynx-icon-192.png","./ynx-icon-512.png","./ynx-icon-maskable-512.png","./manifest.webmanifest"];
     if(JSON.stringify(Object.keys(integrity).sort())!==JSON.stringify(expected.sort()))throw new Error(`Invalid PWA asset integrity set: ${artifact.name}`);
     for(const [key,digest] of Object.entries(integrity)){const file=key==="./"?"index.html":key.slice(2),content=execFileSync("unzip",["-p",archive,file]);if(createHash("sha256").update(content).digest("hex")!==digest)throw new Error(`PWA asset integrity mismatch for ${key}: ${artifact.name}`)}
     continue;
