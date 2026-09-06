@@ -40,6 +40,7 @@ func main() {
 	replicationKey := flag.String("replication-key", envOrDefault("YNX_REPLICATION_KEY", ""), "shared key for authenticated replication snapshots")
 	replicationInterval := flag.Duration("replication-interval", envDurationOrDefault("YNX_REPLICATION_INTERVAL", 2*time.Second), "authoritative replication polling interval")
 	checkConfig := flag.Bool("check-config", envBoolOrDefault("YNX_CHECK_CONFIG", false), "validate node config and exit without starting services")
+	ethereumNative := flag.Bool("ethereum-native-transfers", envBoolOrDefault("YNX_ETHEREUM_NATIVE_TRANSFERS_ENABLED", false), "enable bounded Ethereum legacy native transfer adapter on testnet/devnet")
 	exportConsensusState := flag.String("export-consensus-state", envOrDefault("YNX_EXPORT_CONSENSUS_STATE", ""), "export deterministic BFT migration state to a file and exit")
 	flag.Parse()
 
@@ -57,6 +58,7 @@ func main() {
 		ReplicationKey:           strings.TrimSpace(*replicationKey),
 		ReplicationInterval:      *replicationInterval,
 		CheckConfig:              *checkConfig,
+		EthereumNativeTransfers:  *ethereumNative,
 		ExportConsensusState:     strings.TrimSpace(*exportConsensusState),
 	}
 	if err := runNode(cfg, os.Stdout); err != nil {
@@ -65,6 +67,7 @@ func main() {
 }
 
 type nodeRuntimeConfig struct {
+	EthereumNativeTransfers  bool
 	HTTPAddr                 string
 	Network                  string
 	BlockInterval            time.Duration
@@ -90,6 +93,9 @@ type nodeStartupInputs struct {
 
 func loadNodeStartupInputs(cfg nodeRuntimeConfig) (nodeStartupInputs, error) {
 	networkConfig := chain.DefaultNetworkConfig(cfg.Network)
+	if cfg.EthereumNativeTransfers && networkConfig.Slug == "mainnet" {
+		return nodeStartupInputs{}, errors.New("Ethereum native adapter is not enabled for mainnet")
+	}
 	validators, err := chain.ParseValidatorSet(os.Getenv("YNX_VALIDATOR_SET"))
 	if err != nil {
 		return nodeStartupInputs{}, fmt.Errorf("invalid YNX_VALIDATOR_SET: %w", err)
@@ -140,6 +146,9 @@ func runNode(cfg nodeRuntimeConfig, out io.Writer) error {
 	}
 	devnet, err := chain.NewPersistentDevnetWithValidatorsAndPeers(inputs.NetworkConfig, cfg.DataDir, inputs.Validators, inputs.Peers)
 	if err != nil {
+		return err
+	}
+	if err := devnet.SetEthereumNativeTransfers(cfg.EthereumNativeTransfers); err != nil {
 		return err
 	}
 	if cfg.ExportConsensusState != "" {

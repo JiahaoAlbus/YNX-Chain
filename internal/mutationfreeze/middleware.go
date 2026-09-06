@@ -16,6 +16,7 @@ var readOnlyEVMMethods = map[string]struct{}{
 	"eth_getBalance": {}, "eth_getTransactionCount": {}, "eth_getBlockByNumber": {}, "eth_getBlockByHash": {},
 	"eth_getTransactionByHash": {}, "eth_getTransactionReceipt": {},
 	"eth_estimateGas": {}, "eth_call": {}, "eth_getLogs": {},
+	"eth_gasPrice": {}, "eth_maxPriorityFeePerGas": {}, "eth_feeHistory": {}, "eth_getCode": {}, "ynx_getFeeModel": {},
 }
 
 // FromEnv adds a runtime mutation freeze when YNX_MUTATION_FREEZE_FILE is set.
@@ -77,6 +78,10 @@ func isMutation(r *http.Request) bool {
 	return true
 }
 
+// IsReadOnlyRequest also serves the follower API guard. JSON-RPC reads use POST;
+// the body is restored after bounded inspection, including all-read batches.
+func IsReadOnlyRequest(r *http.Request) bool { return !isMutation(r) }
+
 func isReadOnlyEVMRequest(r *http.Request) bool {
 	const maxBody = 64 << 10
 	body, err := io.ReadAll(io.LimitReader(r.Body, maxBody+1))
@@ -87,9 +92,22 @@ func isReadOnlyEVMRequest(r *http.Request) bool {
 	if len(body) > maxBody {
 		return false
 	}
-	var request struct {
+	type rpcMethod struct {
 		Method string `json:"method"`
 	}
+	if trimmed := bytes.TrimSpace(body); len(trimmed) > 0 && trimmed[0] == '[' {
+		var requests []rpcMethod
+		if json.Unmarshal(trimmed, &requests) != nil || len(requests) == 0 || len(requests) > 100 {
+			return false
+		}
+		for _, request := range requests {
+			if _, ok := readOnlyEVMMethods[request.Method]; !ok {
+				return false
+			}
+		}
+		return true
+	}
+	var request rpcMethod
 	if err := json.Unmarshal(body, &request); err != nil {
 		return false
 	}

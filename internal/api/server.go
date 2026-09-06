@@ -21,6 +21,7 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/consensus"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/mutationfreeze"
 )
 
 type Server struct {
@@ -282,7 +283,7 @@ func (s *Server) withHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-YNX-Network", s.networkConfig.Slug)
 		w.Header().Set("X-YNX-Truthful-Status", s.truthfulStatus)
-		if s.readOnlyReplica && r.Method != http.MethodGet && r.Method != http.MethodHead {
+		if s.readOnlyReplica && !mutationfreeze.IsReadOnlyRequest(r) {
 			writeError(w, http.StatusConflict, "replicated follower is read-only; submit mutations to the authoritative producer")
 			return
 		}
@@ -1685,6 +1686,15 @@ func (s *Server) rpcResponse(req rpcRequest) rpcResponse {
 }
 
 func (s *Server) evmResult(method string, params []any) (any, error) {
+	if method == "ynx_getFeeModel" || s.devnet.EthereumNativeTransfersEnabled() {
+		if result, handled, err := s.ethereumNativeResult(method, params); handled {
+			return result, err
+		}
+	}
+	return s.legacyEVMResult(method, params)
+}
+
+func (s *Server) legacyEVMResult(method string, params []any) (any, error) {
 	cfg, latest := s.devnet.Config(), s.devnet.LatestBlock()
 	switch method {
 	case "eth_chainId":

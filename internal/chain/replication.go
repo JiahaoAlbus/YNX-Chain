@@ -555,8 +555,14 @@ func validateReplicationSnapshot(snapshot devnetSnapshot, cfg NetworkConfig) err
 }
 
 func validateReplicationBlockHistory(snapshot devnetSnapshot, cfg NetworkConfig) error {
+	if err := validateEthereumPending(snapshot.Pending, cfg.ChainID); err != nil {
+		return err
+	}
 	expectedGenesis := hashParts("genesis", cfg.Slug, fmt.Sprint(cfg.ChainID))
 	for i, block := range snapshot.Blocks {
+		if err := validateEthereumPending(block.Transactions, cfg.ChainID); err != nil {
+			return err
+		}
 		expectedHeight := uint64(i)
 		if block.Height != expectedHeight {
 			return fmt.Errorf("replication block index %d has height %d", i, block.Height)

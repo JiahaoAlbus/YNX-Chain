@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/ethnative"
 )
 
 const (
@@ -57,6 +58,7 @@ var requestValidityRules = []RequestValidityRule{
 
 type Devnet struct {
 	mu                       sync.RWMutex
+	ethereumNativeTransfers  bool
 	cfg                      NetworkConfig
 	blocks                   []Block
 	pending                  []Transaction
@@ -965,6 +967,19 @@ func (d *Devnet) Transfer(from, to string, amount int64) (Transaction, error) {
 }
 
 func (d *Devnet) SubmitSignedTransfer(input SignedTransferInput) (Transaction, bool, error) {
+	var ethereumTransfer *ethnative.Transfer
+	// Ethereum signatures are a separate domain, never a native JSON signature.
+	// Reverify here at state admission, including every normalized field.
+	if len(input.EthereumRaw) > 0 {
+		eth, err := ethnative.Verify(input.EthereumRaw, d.cfg.ChainID)
+		if err != nil {
+			return Transaction{}, false, err
+		}
+		if !ethnative.Matches(eth, input.Hash, input.From, input.To, input.Amount, input.Fee, input.Nonce) {
+			return Transaction{}, false, errors.New("Ethereum envelope does not match native transfer fields")
+		}
+		ethereumTransfer = &eth
+	}
 	if !transactionHashPattern.MatchString(input.Hash) || input.Hash != strings.ToLower(input.Hash) {
 		return Transaction{}, false, errors.New("signed transaction hash must be canonical lowercase 32-byte hex")
 	}
@@ -986,6 +1001,9 @@ func (d *Devnet) SubmitSignedTransfer(input SignedTransferInput) (Transaction, b
 
 	d.mu.Lock()
 	defer d.mu.Unlock()
+	if len(input.EthereumRaw) > 0 && !d.ethereumNativeTransfers {
+		return Transaction{}, false, errors.New("Ethereum native transfer adapter is disabled")
+	}
 	if existing, ok := d.transactionLocked(input.Hash); ok {
 		if existing.Type != "transfer" || existing.From != input.From || existing.To != input.To || existing.Amount != input.Amount || existing.Fee != input.Fee || existing.Nonce != input.Nonce {
 			return Transaction{}, false, errors.New("signed transaction hash conflicts with existing transaction")
@@ -1005,6 +1023,26 @@ func (d *Devnet) SubmitSignedTransfer(input SignedTransferInput) (Transaction, b
 	if input.Amount > math.MaxInt64-input.Fee || sender.Balance < input.Amount+input.Fee {
 		return Transaction{}, false, errors.New("insufficient YNXT balance for amount and fee")
 	}
+	if ethereumTransfer != nil {
+		if _, exists := d.contracts[input.To]; exists {
+			return Transaction{}, false, errors.New("native Ethereum adapter does not execute contracts")
+		}
+		budget := new(big.Int).Add(ethereumTransfer.Value, new(big.Int).Mul(new(big.Int).SetUint64(ethereumTransfer.Gas), ethereumTransfer.GasPrice))
+		if ethnative.Wei(sender.Balance).Cmp(budget) < 0 {
+			return Transaction{}, false, errors.New("insufficient funds for value plus gas budget")
+		}
+		credits := map[string]int64{input.To: input.Amount}
+		validator := d.nextValidatorAddressLocked()
+		if credits[validator] > math.MaxInt64-input.Fee {
+			return Transaction{}, false, errors.New("native credit exceeds ledger range")
+		}
+		credits[validator] += input.Fee
+		for address, credit := range credits {
+			if account, exists := d.accounts[address]; exists && account.Balance > math.MaxInt64-credit {
+				return Transaction{}, false, errors.New("native recipient balance would overflow")
+			}
+		}
+	}
 	if sender.ResourceUsage.BandwidthUsed == math.MaxInt64 {
 		return Transaction{}, false, errors.New("sender bandwidth usage is exhausted")
 	}
@@ -1022,6 +1060,9 @@ func (d *Devnet) SubmitSignedTransfer(input SignedTransferInput) (Transaction, b
 		Hash: input.Hash, Type: "transfer", From: input.From, To: input.To,
 		Amount: input.Amount, Fee: input.Fee, Nonce: input.Nonce,
 		Timestamp: time.Now().UTC(), LotFlows: flows, Memo: "signed native YNXT transfer",
+	}
+	if len(input.EthereumRaw) > 0 {
+		tx.Memo = ethnative.MemoPrefix + hex.EncodeToString(input.EthereumRaw)
 	}
 	d.pending = append(d.pending, tx)
 	err = d.persistSnapshotLocked()

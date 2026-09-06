@@ -162,6 +162,9 @@ type SignedTransferInput struct {
 	Amount int64
 	Fee    int64
 	Nonce  uint64
+	// EthereumRaw is independently verified at state admission. It is preserved
+	// in the existing authenticated Memo field, not mislabeled as a native signature.
+	EthereumRaw []byte
 }
 
 type EVMLog struct {
