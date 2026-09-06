@@ -6170,8 +6170,8 @@
       "type": "library",
       "name": "wallet-auth",
       "group": "@ynx-chain",
-      "version": "1.0.0",
-      "bom-ref": "@ynx-chain/wallet-app@1.0.0|@ynx-chain/wallet-auth@1.0.0",
+      "version": "1.1.0",
+      "bom-ref": "@ynx-chain/wallet-app@1.0.0|@ynx-chain/wallet-auth@1.1.0",
       "description": "Strict Sign in with YNX Wallet request, approval, and product-session binding protocol",
       "licenses": [
         {
@@ -6181,7 +6181,7 @@
           }
         }
       ],
-      "purl": "pkg:npm/%40ynx-chain/wallet-auth@1.0.0",
+      "purl": "pkg:npm/%40ynx-chain/wallet-auth@1.1.0",
       "properties": [
         {
           "name": "cdx:npm:package:path",
@@ -22708,7 +22708,7 @@
       "dependsOn": [
         "@ynx-chain/wallet-app@1.0.0|@noble/curves@2.2.0",
         "@ynx-chain/wallet-app@1.0.0|@noble/hashes@2.2.0",
-        "@ynx-chain/wallet-app@1.0.0|@ynx-chain/wallet-auth@1.0.0",
+        "@ynx-chain/wallet-app@1.0.0|@ynx-chain/wallet-auth@1.1.0",
         "@ynx-chain/wallet-app@1.0.0|expo-clipboard@57.0.0",
         "@ynx-chain/wallet-app@1.0.0|expo-crypto@57.0.0",
         "@ynx-chain/wallet-app@1.0.0|expo-local-authentication@57.0.0",
@@ -23683,7 +23683,7 @@
       "ref": "@ynx-chain/wallet-app@1.0.0|@xmldom/xmldom@0.8.13"
     },
     {
-      "ref": "@ynx-chain/wallet-app@1.0.0|@ynx-chain/wallet-auth@1.0.0",
+      "ref": "@ynx-chain/wallet-app@1.0.0|@ynx-chain/wallet-auth@1.1.0",
       "dependsOn": [
         "@noble/curves@2.2.0",
         "@noble/hashes@2.2.0"

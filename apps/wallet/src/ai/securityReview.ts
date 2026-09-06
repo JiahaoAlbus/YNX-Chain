@@ -1,11 +1,11 @@
-import type { AuthorizationRequest } from "@ynx-chain/wallet-auth";
+type SecurityReviewRequest = Readonly<{nonce:string;chainId:string;requestingProduct:string;productClientId:string;bundleId:string;scopes:readonly string[];purpose:string;expiresAt:string}>;
 
 export type ProviderState = Readonly<{ available:boolean; provider:string|null; model:string|null; detail:string }>;
 export type ReviewEstimate = Readonly<{ resourceUnits:number; maximumMonetaryCostYNXT:number; contextClasses:readonly string[] }>;
 export type ReviewAudit = Readonly<{ id:string; at:string; action:string; provider:string|null; model:string|null; requestNonce:string; contextClasses:readonly string[]; resourceUnits:number; result:string }>;
 export type ReviewSnapshot = Readonly<{
   phase:"selected"|"preview"|"permission"|"streaming"|"review"|"applied"|"rejected"|"cancelled"|"unavailable"|"failed";
-  request:AuthorizationRequest;
+  request:SecurityReviewRequest;
   provider:ProviderState|null;
   estimate:ReviewEstimate;
   allowed:boolean;
@@ -22,7 +22,7 @@ export type SecurityReviewProvider = {
 export class SecurityReviewController {
   private value: ReviewSnapshot;
   private aborter: AbortController | null = null;
-  constructor(request: AuthorizationRequest, private readonly now:()=>Date=()=>new Date(), private readonly outputLanguage="English") {
+  constructor(request: SecurityReviewRequest, private readonly now:()=>Date=()=>new Date(), private readonly outputLanguage="English") {
     this.value = freeze({ phase:"selected", request, provider:null, estimate:estimate(request), allowed:false, output:"", error:null, audits:[] });
   }
   snapshot():ReviewSnapshot { return this.value; }
@@ -82,7 +82,7 @@ export class GatewaySecurityReviewProvider implements SecurityReviewProvider {
   }
 }
 
-function estimate(request:AuthorizationRequest):ReviewEstimate { return Object.freeze({resourceUnits:Math.max(1,request.scopes.length),maximumMonetaryCostYNXT:0,contextClasses:Object.freeze(["requesting-app-identity","requested-scopes","purpose","expiry","network"]) }); }
-function safeContext(request:AuthorizationRequest,outputLanguage:string):Readonly<Record<string,unknown>> { return Object.freeze({requestingProduct:request.requestingProduct,productClientId:request.productClientId,bundleId:request.bundleId,chainId:request.chainId,scopes:request.scopes,purpose:request.purpose,expiresAt:request.expiresAt,outputLanguage}); }
-function promptFor(_request:AuthorizationRequest,outputLanguage:string):string { return `Respond in ${outputLanguage}. Explain the selected Sign in with YNX Wallet scopes, material risks, and least-privilege implications. Do not approve, sign, change scopes, request secrets, or recommend bypassing biometrics.`; }
+function estimate(request:SecurityReviewRequest):ReviewEstimate { return Object.freeze({resourceUnits:Math.max(1,request.scopes.length),maximumMonetaryCostYNXT:0,contextClasses:Object.freeze(["requesting-app-identity","requested-scopes","purpose","expiry","network"]) }); }
+function safeContext(request:SecurityReviewRequest,outputLanguage:string):Readonly<Record<string,unknown>> { return Object.freeze({requestingProduct:request.requestingProduct,productClientId:request.productClientId,bundleId:request.bundleId,chainId:request.chainId,scopes:request.scopes,purpose:request.purpose,expiresAt:request.expiresAt,outputLanguage}); }
+function promptFor(_request:SecurityReviewRequest,outputLanguage:string):string { return `Respond in ${outputLanguage}. Explain the selected Sign in with YNX Wallet scopes, material risks, and least-privilege implications. Do not approve, sign, change scopes, request secrets, or recommend bypassing biometrics.`; }
 function freeze(value:any):ReviewSnapshot { return Object.freeze({...value,estimate:Object.freeze(value.estimate),audits:Object.freeze([...value.audits])}); }

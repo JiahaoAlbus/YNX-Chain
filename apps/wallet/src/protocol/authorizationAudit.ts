@@ -1,5 +1,6 @@
-import { digestHex, requestDigest, type AuthorizationRequest } from "@ynx-chain/wallet-auth";
+import { digestHex } from "@ynx-chain/wallet-auth";
 import type { SecureStorageAdapter } from "../storage/walletRepository";
+import type { ProductSessionReview } from "./productSessionController";
 
 export const AUTHORIZATION_AUDIT_KEY = "ynx.wallet.authorization-audit.v1";
 const ACTIONS = new Set(["intent-approved", "approval-returned", "request-rejected", "approval-revoked"]);
@@ -14,14 +15,19 @@ export type AuthorizationAuditRecord = Readonly<{
 export class AuthorizationAuditStore {
   constructor(private readonly storage:SecureStorageAdapter) {}
 
-  async append(request:AuthorizationRequest, input:{action:AuthorizationAuditAction;account:string;at:string}):Promise<AuthorizationAuditRecord> {
+  async appendProductSession(review:ProductSessionReview, input:{action:AuthorizationAuditAction;account:string;at:string}):Promise<AuthorizationAuditRecord> {
+    const request=review.request;
+    return this.appendRecord({requestDigest:review.id,productClientId:request.clientId,bundleId:request.applicationId,scopes:request.scopes,expiresAt:request.expiresAt},input);
+  }
+
+  private async appendRecord(request:{requestDigest:string;productClientId:string;bundleId:string;scopes:readonly string[];expiresAt:string}, input:{action:AuthorizationAuditAction;account:string;at:string}):Promise<AuthorizationAuditRecord> {
     const records=await this.load();
     const unsigned={
       schemaVersion:1 as const,
       sequence:records.length+1,
       at:strictTime(input.at,"audit time"),
       action:strictAction(input.action),
-      requestDigest:requestDigest(request),
+      requestDigest:request.requestDigest,
       productClientId:request.productClientId,
       bundleId:request.bundleId,
       account:strictAccount(input.account),
