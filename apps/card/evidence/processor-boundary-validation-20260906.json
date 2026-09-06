@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "ynx.card.local-processor-validation.v1",
+  "baseSourceCommit": "bbe527dcf3d4566a985172bbe76fc99cb3b61c06",
+  "scope": "apps/card/**",
+  "testMode": "local synthetic inputs, no HTTP server, no wallet",
+  "baselineBoundaryTests": {"total": 12, "passed": 2, "failed": 10},
+  "finalRelatedTests": {"total": 19, "passed": 19, "failed": 0},
+  "settlementConservationScenarios": 50,
+  "strictTypecheck": "passed for processor, Data Fabric mapper, and their tests",
+  "checks": [
+    "owner-bound processor with immutable owner and false capability flags",
+    "owner/chain/hash claim shared across cards and retry keys",
+    "full request and operation idempotency, including declined requests",
+    "original immutable retry result without overwriting newer state",
+    "safe integer input and aggregate available/pending/posted capacity",
+    "deeply copied/frozen control lists and validation on creation/update",
+    "automatic expiry at the exact boundary with a single recovery event",
+    "terminal close, pending-close rejection, and refunds after close",
+    "canonical monotonic UTC clock",
+    "cross-card event references cannot settle another card",
+    "partial capture/reversal/refund conservation and over-refund rejection"
+  ],
+  "publicFunding": false,
+  "persistentBackendConnected": false,
+  "signatures": false,
+  "broadcast": false,
+  "walletSDK529Migration": false,
+  "core0468DurableProofConsumed": false,
+  "publicCandidateVerified": false,
+  "pageUsesLocalProcessor": false,
+  "backendContract": "card-sandbox-backend-contract-20260906.md"
+}
