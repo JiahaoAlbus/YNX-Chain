@@ -21,6 +21,7 @@ function command(binary, args, timeout = 120_000, allowFailure = false) {
   const result = spawnSync(binary, args, { cwd: root, encoding: "utf8", timeout, maxBuffer: 32 * 1024 * 1024 });
   commands.push({ binary, args, status: result.status, signal: result.signal, stdout: result.stdout, stderr: result.stderr, error: result.error?.message ?? null });
   if (existsSync(proof)) save(`${phase}-commands.json`, commands);
+  if (binary === "xcodebuild" && result.status !== 0) console.error(result.stdout?.slice(-16_000) ?? "");
   if (!allowFailure && (result.error || result.status !== 0)) throw new Error(`${binary} ${args.join(" ")} failed: ${result.error?.message ?? result.stderr}`);
   return result.stdout?.trim() ?? "";
 }
@@ -111,7 +112,11 @@ if (phase === "prepare") {
     result.uiTestsPassed = true;
     command("xcrun", ["simctl", "io", device, "screenshot", join(proof, "installed-ui-final.png")]);
     assert.deepEqual(fileGraph(app), artifact.files, "UI QA must not rebuild or modify the original package");
-  } catch (error) { result.error = error.message; throw error; }
+  } catch (error) {
+    result.error = error.message;
+    command("xcrun", ["simctl", "io", device, "screenshot", join(proof, "installed-ui-failure.png")], 30_000, true);
+    throw error;
+  }
   finally {
     try {
       // Only an empty Wallet on this newly created Simulator is exercised. Limit

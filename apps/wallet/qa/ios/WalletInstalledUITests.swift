@@ -28,7 +28,14 @@ final class WalletInstalledUITests: XCTestCase {
     app.launchArguments = ["-AppleLanguages", "(en)", "-AppleLocale", "en_US"]
     app.launch()
     XCTAssertTrue(app.wait(for: .runningForeground, timeout: 60))
-    XCTAssertTrue(button(app, "Create a new Wallet").waitForExistence(timeout: 45))
+    if !button(app, "Create a new Wallet").waitForExistence(timeout: 45) {
+      // The runner has not created/imported anything on this new Simulator.
+      // Preserve its public startup error instead of probing or resetting storage.
+      let labels = app.staticTexts.allElementsBoundByIndex.prefix(12).map { $0.label }
+      evidence(app, "00-initial-empty-wallet-failure")
+      XCTFail("Initial empty-wallet screen: \(labels.joined(separator: " | "))")
+      return
+    }
     XCTAssertTrue(button(app, "Import recovery key").isHittable)
     evidence(app, "01-installed-onboarding")
 
