@@ -21,8 +21,8 @@ import (
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 )
 
-func TestRESTAcceptsYNXAliasesAndPersistsCanonicalAccounts(t *testing.T) {
-	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+func TestDevnetRESTAcceptsYNXAliasesAndPersistsCanonicalAccounts(t *testing.T) {
+	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("devnet"))
 	server := httptest.NewServer(NewServer(devnet))
 	defer server.Close()
 

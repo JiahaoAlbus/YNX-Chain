@@ -122,8 +122,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /transactions/broadcast", s.handleSignedTransactionBroadcast)
 	s.mux.HandleFunc("GET /explorer/summary", s.handleExplorerSummary)
 	s.mux.HandleFunc("POST /faucet", s.handleFaucet)
-	s.mux.HandleFunc("POST /transfer", s.handleTransfer)
-	s.mux.HandleFunc("POST /staking/stake", s.handleStake)
+	s.unsignedDevnetRoute("POST /transfer", s.handleTransfer)
+	s.unsignedDevnetRoute("POST /staking/stake", s.handleStake)
 	s.mux.HandleFunc("GET /resources/{address}", s.handleResources)
 	s.trustRoute("GET /trust/trace/{address}", s.handleTrustTrace)
 	s.trustRoute("POST /trust/labels", s.handleTrustLabel)
@@ -195,14 +195,26 @@ func (s *Server) routes() {
 	s.aiRoute("POST /ai/actions/{id}/reject", s.handleAIActionReject)
 	s.mux.HandleFunc("GET /ide/compiler", s.handleIDECompiler)
 	s.mux.HandleFunc("POST /ide/compile", s.handleIDECompile)
-	s.mux.HandleFunc("POST /ide/deploy", s.handleIDEDeploy)
+	s.unsignedDevnetRoute("POST /ide/deploy", s.handleIDEDeploy)
 	s.mux.HandleFunc("POST /ide/call", s.handleIDECall)
-	s.mux.HandleFunc("POST /ide/execute", s.handleIDEExecute)
+	s.unsignedDevnetRoute("POST /ide/execute", s.handleIDEExecute)
 	s.mux.HandleFunc("POST /ide/verify", s.handleIDEVerify)
 	s.mux.HandleFunc("GET /ide/verifier/{address}", s.handleIDEVerifier)
 	s.mux.HandleFunc("GET /contracts/{address}", s.handleContractLookup)
 	s.mux.HandleFunc("GET /monitoring/health", s.handleMonitoring)
 	s.mux.HandleFunc("GET /metrics", s.handleMetrics)
+}
+
+// Local devnet helpers have no account-ownership proof. A public node must not
+// treat an address supplied in JSON as authorization to change its state.
+func (s *Server) unsignedDevnetRoute(pattern string, handler http.HandlerFunc) {
+	s.mux.HandleFunc(pattern, func(w http.ResponseWriter, r *http.Request) {
+		if s.networkConfig.IsPublicNet {
+			writeError(w, http.StatusForbidden, "unsigned account mutations are disabled on public networks; native transfers require /transactions/broadcast or eth_sendRawTransaction")
+			return
+		}
+		handler(w, r)
+	})
 }
 
 func (s *Server) handleAccounts(w http.ResponseWriter, r *http.Request) {
@@ -597,6 +609,14 @@ func (s *Server) handleSignedTransactionBroadcast(w http.ResponseWriter, r *http
 	}
 	tx, replayed, err := s.submitSignedTransaction(payload)
 	if err != nil {
+		if errors.Is(err, chain.ErrSnapshotDurabilityUncertain) {
+			w.Header().Set("Cache-Control", "no-store")
+			writeJSON(w, http.StatusServiceUnavailable, map[string]any{
+				"error":  "transaction durability needs confirmation; query its hash or retry the identical signed transaction",
+				"status": "transaction_durability_uncertain", "transactionHash": tx.Hash,
+			})
+			return
+		}
 		writeError(w, signedTransactionHTTPStatus(err), err.Error())
 		return
 	}
@@ -1675,10 +1695,16 @@ func (s *Server) rpcResponse(req rpcRequest) rpcResponse {
 	resp := rpcResponse{JSONRPC: "2.0", ID: req.ID}
 	if err != nil {
 		code := -32603
+		var data any
 		if rpcErr, ok := err.(*rpcMethodError); ok {
 			code = rpcErr.code
+			data = rpcErr.data
 		}
-		resp.Error = map[string]any{"code": code, "message": err.Error()}
+		rpcError := map[string]any{"code": code, "message": err.Error()}
+		if data != nil {
+			rpcError["data"] = data
+		}
+		resp.Error = rpcError
 	} else {
 		resp.Result = result
 	}
@@ -1785,10 +1811,13 @@ func (s *Server) legacyEVMResult(method string, params []any) (any, error) {
 		}
 		tx, _, err := s.submitSignedTransaction(payload)
 		if err != nil {
-			return nil, rpcTransactionRejected(err.Error())
+			return nil, rpcBroadcastFailure(tx, err)
 		}
 		return tx.Hash, nil
 	case "eth_sendTransaction":
+		if s.networkConfig.IsPublicNet {
+			return nil, rpcMethodNotFound("node does not hold signing keys; use eth_sendRawTransaction with a supported signed transaction")
+		}
 		if len(params) == 0 {
 			return nil, rpcInvalidParams("transaction object is required")
 		}
@@ -1911,6 +1940,7 @@ func evmTx(tx chain.Transaction) map[string]any {
 type rpcMethodError struct {
 	code    int
 	message string
+	data    any
 }
 
 func (e *rpcMethodError) Error() string { return e.message }
@@ -1919,6 +1949,17 @@ func rpcInvalidParams(message string) error  { return &rpcMethodError{code: -326
 func rpcMethodNotFound(message string) error { return &rpcMethodError{code: -32601, message: message} }
 func rpcTransactionRejected(message string) error {
 	return &rpcMethodError{code: -32003, message: message}
+}
+
+func rpcBroadcastFailure(tx chain.Transaction, err error) error {
+	if errors.Is(err, chain.ErrSnapshotDurabilityUncertain) {
+		return &rpcMethodError{
+			code:    -32002,
+			message: "transaction durability needs confirmation; query its hash or retry the identical signed transaction",
+			data:    map[string]any{"status": "transaction_durability_uncertain", "transactionHash": tx.Hash},
+		}
+	}
+	return rpcTransactionRejected(err.Error())
 }
 
 func parseCanonicalQuantity(value string) (uint64, error) {

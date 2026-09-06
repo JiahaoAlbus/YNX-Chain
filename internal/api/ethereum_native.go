@@ -88,7 +88,7 @@ func (s *Server) ethereumNativeResult(method string, params []any) (any, bool, e
 		}
 		tx, _, err := s.devnet.SubmitSignedTransfer(chain.SignedTransferInput{Hash: eth.Hash, From: eth.From, To: eth.To, Amount: eth.Amount, Fee: 1, Nonce: eth.Nonce + 1, EthereumRaw: raw})
 		if err != nil {
-			return respond(nil, rpcTransactionRejected(err.Error()))
+			return respond(nil, rpcBroadcastFailure(tx, err))
 		}
 		return respond(tx.Hash, nil)
 	case "eth_getTransactionByHash", "eth_getTransactionReceipt":
