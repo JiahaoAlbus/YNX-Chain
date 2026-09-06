@@ -169,7 +169,7 @@ export declare const METAMASK_EVM_CHAIN_ID:6423;
 export declare const METAMASK_EVM_CHAIN_QUANTITY:"0x1917";
 export declare const METAMASK_EVM_CHAIN:Readonly<{chainId:"0x1917";chainName:"YNX Testnet";nativeCurrency:Readonly<{name:"YNX Testnet";symbol:"YNXT";decimals:18}>;rpcUrls:readonly ["https://evm.ynxweb4.com"];blockExplorerUrls:readonly ["https://explorer.ynxweb4.com"]}>;
 export type MetaMaskEvmConnection=Readonly<{status:"connected-evm";wallet:"metamask";connectionMode:"evm-only";authority:"eip-1193-provider-only";productId:string;chainId:6423;chainQuantity:"0x1917";address:string;ynxProductSession:false;productSession:null;limitations:readonly string[]}>;
-export declare class MetaMaskEvmConnectionAdapter{constructor(config:Readonly<{registry:unknown;productId:string;provider:unknown}>);connect():Promise<MetaMaskEvmConnection>};
+export declare class MetaMaskEvmConnectionAdapter{constructor(config:Readonly<{registry:unknown;productId:string;provider:unknown}>);connect():Promise<MetaMaskEvmConnection>}
 export declare const WALLET_PROVIDER_DISCOVERY_AUTHORITY:"unverified-injected-candidate";
 export declare const WALLET_PROVIDER_KIND:Readonly<{YNX:"ynx-wallet";METAMASK:"metamask"}>;
 export type WalletProviderCandidate=Readonly<{kind:"ynx-wallet"|"metamask";provider:Readonly<{request:(input:Readonly<Record<string,unknown>>)=>Promise<unknown>}>;source:"eip6963"|"legacy-injected";uuid:string|null;rdns:string|null;name:string|null;authority:"unverified-injected-candidate"}>;
@@ -202,7 +202,6 @@ export declare const PRODUCT_SESSION_GATEWAY_PROOF_HEADER_V2:"x-ynx-product-sess
 export declare class ProductSessionGatewayFetchAdapter{constructor(config:Readonly<{endpoint:string;fetch:(url:string,init:Readonly<Record<string,unknown>>)=>Promise<unknown>;walletInstalled:()=>boolean|Promise<boolean>;schemeRegistered:()=>boolean|Promise<boolean>;timeoutMs:number}>);currentTime(input:Readonly<{requestId:string}>):Promise<Date>;walletInstalled():Promise<boolean>;schemeRegistered():Promise<boolean>;challenge(input:Readonly<Record<string,unknown>>):Promise<Readonly<Record<string,unknown>>>;complete(input:Readonly<Record<string,unknown>>):Promise<Readonly<Record<string,unknown>>>;introspect(input:Readonly<Record<string,unknown>>):Promise<Readonly<Record<string,unknown>>>;revoke(input:Readonly<Record<string,unknown>>):Promise<Readonly<Record<string,unknown>>>;}
 export declare function decodeProductSessionGatewayProofHeaderV2(value:unknown):Readonly<Record<string,unknown>>;
 export declare function encodeProductSessionGatewayProofHeaderV2(value:unknown):string;
-export declare const PRODUCT_SESSION_GATEWAY_HTTP_MAX_BODY_BYTES:1048576;
 export declare class ProductSessionGatewayHttpHandler{constructor(registry:unknown,tokenFactory:()=>string,snapshot?:unknown);handle(input:Readonly<{requestId:string;method:string;path:string;contentType:string;body:string;proofHeader:string|null;walletControlProofHeader?:string|null;networkAvailable:boolean}>,at?:Date):Readonly<{status:number;headers:Readonly<Record<string,string>>;body:string}>;snapshot():Readonly<Record<string,unknown>>;}
 export declare function createSignedIntent(input:Readonly<Record<string,unknown>&{accountSecret:string}>):Readonly<Record<string,unknown>>;
 export declare function parseSignedIntent(input:unknown):Readonly<Record<string,unknown>>;
@@ -262,3 +261,26 @@ export declare function encodeWalletSessionControlProofHeader(proof:unknown):str
 export declare function decodeWalletSessionControlProofHeader(value:unknown):WalletSessionControlProof;
 export declare const WALLET_SESSION_CONTROL_REPLAY_PREFIX:"f9c24e16a803b572";
 export declare function walletSessionControlReplayExpiry(value:unknown):number|null;
+
+export type WalletDownloadPlatform = "android" | "ios" | "linux" | "macos" | "web-extension" | "windows";
+/** universal asserts both arm64 and x64 are included (Android/macOS); any is for extensions. */
+export type WalletDownloadArchitecture = "any" | "arm64" | "universal" | "x64";
+export type WalletDownloadBrowser = "chromium" | "firefox";
+export type WalletDownloadInstallation = "apk" | "ios-ad-hoc" | "dmg" | "exe" | "deb" | "rpm" | "appimage" | "extension-unpacked" | "extension-temporary";
+export type WalletDownloadArtifact = Readonly<{
+  id:string; sourceCommit:string; sha256:string; bytes:number; filename:string; mimeType:string;
+  platform:WalletDownloadPlatform; architecture:WalletDownloadArchitecture;
+  browser:WalletDownloadBrowser|null; installation:WalletDownloadInstallation;
+  storeStatus:"not-a-store-release";
+}> & (Readonly<{status:"published";url:string}> | Readonly<{status:"local-only"|"local-failed";url:null}>);
+export type WalletDownloadManifest = Readonly<{schemaVersion:1;product:"ynx-wallet";artifacts:readonly WalletDownloadArtifact[]}>;
+/** Explicit selector. Unknown supported-looking targets return unavailable; no UA/network guessing. */
+export type WalletDownloadSelector = Readonly<{platform?:WalletDownloadPlatform|string|null;architecture?:WalletDownloadArchitecture|string|null;browser?:WalletDownloadBrowser|"safari"|string|null;installation?:WalletDownloadInstallation|string|null}>;
+export type WalletDownloadSelection =
+  | Readonly<{status:"download";url:string;artifact:WalletDownloadArtifact & Readonly<{status:"published";url:string}>}>
+  | Readonly<{status:"selection-required";field:"platform"|"architecture"|"browser"|"installation";choices:readonly string[];target:WalletDownloadSelector}>
+  | Readonly<{status:"unavailable";reason:"unsupported-target"|"incompatible-target"|"not-published"|"no-artifact";target:WalletDownloadSelector;candidateStates:readonly ("local-only"|"local-failed")[]}>;
+export declare const WALLET_DOWNLOAD_MANIFEST_SCHEMA_VERSION:1;
+/** Structural validation of a trusted publisher manifest; not network/installation attestation. */
+export declare function parseWalletDownloadManifest(input:unknown):WalletDownloadManifest;
+export declare function selectWalletDownload(manifest:unknown,selector?:WalletDownloadSelector):WalletDownloadSelection;
