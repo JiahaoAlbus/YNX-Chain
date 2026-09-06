@@ -2,6 +2,7 @@ import { canonicalJSON, digestHex, exactFields, WalletAuthError } from "./canoni
 import { parseProductSessionGatewaySnapshot } from "./product-session-gateway-snapshot-v2.js";
 import { deviceBinding, parseProductSessionApproval } from "./product-session-v2.js";
 import { WALLET_SESSION_CONTROL_AUDIENCE, walletSessionControlClockFloor } from "./wallet-session-control.js";
+import { assertProductSessionControlOwnerIntentCapacity, PRODUCT_SESSION_CONTROL_MAX_INTENTS } from "./product-session-control-capacity.js";
 
 // Pure state model used by the explicit v3 server candidate. This module cannot
 // authenticate HTTP owners or attest I/O durability; its callers must do both.
@@ -9,7 +10,7 @@ const PATHS = Object.freeze({
   "account-logout": "/v2/product-sessions/wallet/sessions/revoke-all",
   "device-logout": "/v2/product-sessions/wallet/devices/revoke",
 });
-const MAX_INTENTS = 10_000;
+const MAX_INTENTS = PRODUCT_SESSION_CONTROL_MAX_INTENTS;
 const ACCOUNT = /^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/;
 const HASH = /^[0-9a-f]{64}$/;
 const TOKEN = /^[A-Za-z0-9_-]{32,64}$/;
@@ -95,7 +96,7 @@ export function projectProductSessionControlSnapshotV2(input) {
 }
 
 /** Prepare is NOT a commit: preparedReceipt is never revocation confirmation. */
-export function prepareProductSessionControlIntent(input, intentInput, at, capacity = MAX_INTENTS) {
+export function prepareProductSessionControlIntent(input, intentInput, at, capacity = MAX_INTENTS, capacityPolicy) {
   const state = parseProductSessionControlSnapshot(input), intent = parseProductSessionControlIntent(intentInput);
   const instant = checkedInstant(state, at);
   const previous = matchingRecord(state, intent); // Conflicts precede expiry checks.
@@ -104,6 +105,7 @@ export function prepareProductSessionControlIntent(input, intentInput, at, capac
   if (intent.body.intentExpiresAt <= instant) fail("INTENT_EXPIRED", "An uncommitted expired control intent cannot be applied");
   if (!Number.isInteger(capacity) || capacity < 1 || capacity > MAX_INTENTS) fail("INVALID_CONTROL_CAPACITY", "Control intent capacity is invalid");
   if (state.controlIntents.length >= capacity) fail("CONTROL_INTENT_CAPACITY", "Control intent storage is full; no revocation was prepared");
+  assertProductSessionControlOwnerIntentCapacity(state, intent.account, capacityPolicy);
   if (intent.operation === "device-logout" && !ownsDevice(state, intent)) fail("DEVICE_NOT_FOUND", "Owned product device scope was not found");
   const sessionBindings = state.authority.sessions.filter((session) => matchesScope(session, intent) && session.issuedAt <= instant && session.expiresAt > instant && !recordRevoked(state, session)).map((session) => session.sessionBinding).sort();
   const challengeIds = state.authority.issuedChallenges.filter((challenge) => matchesScope(challenge, intent) && challenge.issuedAt <= instant && challenge.expiresAt > instant && !recordRevoked(state, challenge)).map((challenge) => challenge.challenge).sort();
@@ -133,7 +135,7 @@ export function prepareProductSessionControlIntent(input, intentInput, at, capac
 }
 
 /** Call inside the writer's serialization boundary, before composing/persisting. */
-export function assertProductSessionControlPlanBase(prepared, latestInput) {
+export function assertProductSessionControlPlanBase(prepared, latestInput, capacityPolicy) {
   exactFields(prepared, ["status", "revocationConfirmed", "baseStateDigest", "candidateStateDigest", "mutationRequired", "preparedReceipt", "candidate"], "Prepared control plan");
   if (prepared.status !== "prepared" || prepared.revocationConfirmed !== false || typeof prepared.mutationRequired !== "boolean") fail("INVALID_CONTROL_PLAN", "Prepared control plan cannot assert confirmation");
   const latest = parseProductSessionControlSnapshot(latestInput), candidate = parseProductSessionControlSnapshot(prepared.candidate);
@@ -143,7 +145,7 @@ export function assertProductSessionControlPlanBase(prepared, latestInput) {
   // A digest is a comparison token, not authorization to replace unrelated
   // history. Recompute the exact transition before the writer composes its
   // proof, clock anchor and audit into the same transaction.
-  const expected = prepareProductSessionControlIntent(latest, record.intent, new Date(Math.max(productSessionControlClockFloor(latest), Date.parse(record.receipt.appliedAt))));
+  const expected = prepareProductSessionControlIntent(latest, record.intent, new Date(Math.max(productSessionControlClockFloor(latest), Date.parse(record.receipt.appliedAt))), MAX_INTENTS, capacityPolicy);
   if (expected.candidateStateDigest !== prepared.candidateStateDigest || expected.mutationRequired !== prepared.mutationRequired) fail("INVALID_CONTROL_PLAN", "Control plan changes state outside its fixed intent transition");
   return candidate;
 }

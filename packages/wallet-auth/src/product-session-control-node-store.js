@@ -4,6 +4,7 @@ import { dirname, isAbsolute, resolve } from "node:path";
 import { canonicalJSON, exactFields, WalletAuthError } from "./canonical.js";
 import { parseProductSessionGatewaySnapshot } from "./product-session-gateway-snapshot-v2.js";
 import { migrateProductSessionControlSnapshotV2, parseProductSessionControlSnapshot } from "./product-session-control-intent.js";
+import { inspectProductSessionControlCapacity, parseProductSessionControlCapacityPolicy, productSessionControlPublicCapacityPolicy } from "./product-session-control-capacity.js";
 
 export const PRODUCT_SESSION_CONTROL_NODE_SCHEMA_VERSION = 2;
 const MAX_BYTES = 32 * 1024 * 1024;
@@ -14,6 +15,20 @@ export function parseProductSessionControlPersistedState(raw) {
     const envelope = parseEnvelope(raw, PRODUCT_SESSION_CONTROL_NODE_SCHEMA_VERSION);
     return Object.freeze({ ...envelope, snapshot: parseProductSessionControlSnapshot(envelope.snapshot) });
   } catch { fail("STATE_TAMPERED", "Version-three persisted state failed complete schema and digest validation"); }
+}
+
+/** Read-only preflight: safe on current V2 bytes while its atomic writer runs. */
+export function inspectProductSessionControlStateFile({ statePath, capacityPolicy }, io = filesystem) {
+  const path = absolute(statePath), policy = parseProductSessionControlCapacityPolicy(capacityPolicy);
+  safeDirectory(path, io, false);
+  const loaded = readOwned(path, io);
+  if (!loaded) fail("STATE_NOT_FOUND", "Capacity preflight requires an existing state file");
+  let version; try { version = JSON.parse(loaded.raw).schemaVersion; } catch { fail("STATE_TAMPERED", "Capacity preflight state is invalid JSON"); }
+  const snapshot = version === 1
+    ? migrateProductSessionControlSnapshotV2(parseProductSessionGatewaySnapshot(parseEnvelope(loaded.raw, 1).snapshot))
+    : parseProductSessionControlPersistedState(loaded.raw).snapshot;
+  const capacity = inspectProductSessionControlCapacity(snapshot, policy);
+  return Object.freeze({ readOnly: true, sourceSHA256: digest(loaded.raw), sourceBytes: loaded.identity.size, sourceEnvelopeVersion: version, snapshotSchemaVersion: version === 1 ? 2 : 3, admittedOwners: capacity.admittedOwners, storedIntents: snapshot.controlIntents.length, reservedIntents: capacity.reservedIntents, overReserved: capacity.overReserved, sessions: snapshot.authority.sessions.length, issuedChallenges: snapshot.authority.issuedChallenges.length, policy: productSessionControlPublicCapacityPolicy(policy) });
 }
 
 /** One synchronous writer transaction owns decision, persistence and readback. */

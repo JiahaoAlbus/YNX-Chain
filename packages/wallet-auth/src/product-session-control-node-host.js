@@ -5,16 +5,19 @@ import { parseProductSessionRegistry } from "./product-session-registry.js";
 import { decodeWalletSessionControlProofHeader, WALLET_SESSION_CONTROL_INTENT_PATHS, WALLET_SESSION_CONTROL_PATHS, WALLET_SESSION_CONTROL_PROOF_HEADER } from "./wallet-session-control.js";
 import { observeDurableProductSessionControlIntent, parseProductSessionControlIntent, productSessionControlClockFloor } from "./product-session-control-intent.js";
 import { ProductSessionControlNodeStore } from "./product-session-control-node-store.js";
+import { parseProductSessionControlCapacityPolicy, productSessionControlPublicCapacityPolicy } from "./product-session-control-capacity.js";
 
-const TIME = "/v2/product-sessions/time", WALLET = "https://wallet.ynxweb4.com";
+const TIME = "/v2/product-sessions/time", CAPABILITIES = "/v2/product-sessions/capabilities", WALLET = "https://wallet.ynxweb4.com";
+const READ_ROUTES = new Set([TIME, CAPABILITIES]);
 const OWNER_ROUTES = new Set([...WALLET_SESSION_CONTROL_PATHS, ...WALLET_SESSION_CONTROL_INTENT_PATHS]);
-const ROUTES = new Set([TIME, ...OWNER_ROUTES, "/v2/product-sessions/challenge", "/v2/product-sessions/complete", "/v2/product-sessions/introspect", "/v2/product-sessions/revoke", "/v2/product-sessions/devices/revoke"]);
+const ROUTES = new Set([...READ_ROUTES, ...OWNER_ROUTES, "/v2/product-sessions/challenge", "/v2/product-sessions/complete", "/v2/product-sessions/introspect", "/v2/product-sessions/revoke", "/v2/product-sessions/devices/revoke"]);
 
 /** Explicit v3 host; it never initializes or migrates a serving state file. */
 export class ProductSessionControlNodeHost {
-  #registry; #origins; #store; #now; #tokens;
+  #registry; #origins; #store; #now; #tokens; #capacityPolicy;
   constructor(registry, options) {
-    exactFields(options, ["now", "statePath", "tokenFactory", ...(Object.hasOwn(options, "io") ? ["io"] : [])], "Product Session control Node host options");
+    exactFields(options, ["now", "statePath", "tokenFactory", ...(Object.hasOwn(options, "io") ? ["io"] : []), ...(Object.hasOwn(options, "capacityPolicy") ? ["capacityPolicy"] : [])], "Product Session control Node host options");
+    this.#capacityPolicy = parseProductSessionControlCapacityPolicy(options.capacityPolicy);
     if (typeof options.now !== "function" || typeof options.tokenFactory !== "function") fail("INVALID_HOST", "Control host dependencies are invalid");
     this.#registry = parseProductSessionRegistry(registry);
     this.#origins = new Set(this.#registry.products.map(product => product.webOrigin));
@@ -32,12 +35,17 @@ export class ProductSessionControlNodeHost {
         if (!ROUTES.has(route)) fail("ROUTE_NOT_FOUND", "Product Session control route is not registered");
         if (request.method === "OPTIONS") {
           if (!Object.keys(cors).length) fail("ORIGIN_NOT_ALLOWED", "Preflight requires an allowed origin");
-          const method = route === TIME ? "GET" : "POST";
+          const method = READ_ROUTES.has(route) ? "GET" : "POST";
           if (request.headers["access-control-request-method"] !== method) fail("METHOD_NOT_ALLOWED", "Preflight method does not match this route");
           const requested = single(request.headers["access-control-request-headers"]).split(",").map(value => value.trim().toLowerCase());
           const allowed = headersFor(route).split(", ");
           if (!requested.length || new Set(requested).size !== requested.length || requested.some(header => !allowed.includes(header))) fail("INVALID_CORS_REQUEST", "Preflight headers are not allowed");
           response.writeHead(204, { ...cors, "cache-control": "no-store", "access-control-allow-methods": method, "access-control-allow-headers": headersFor(route), "access-control-max-age": "300" }); response.end(); return;
+        }
+        if (route === CAPABILITIES) {
+          if (request.method !== "GET") fail("METHOD_NOT_ALLOWED", "Control capabilities accepts GET only");
+          if (!validRequestId(request.headers["x-request-id"])) fail("INVALID_REQUEST_ID", "Control capabilities requires a valid request ID");
+          send(response, 200, requestId, { ok: true, result: { productSessionStateVersion: 3, controlIntentCapacity: productSessionControlPublicCapacityPolicy(this.#capacityPolicy) } }, cors); return;
         }
         if (route === TIME) {
           if (request.method !== "GET") fail("METHOD_NOT_ALLOWED", "Authority time accepts GET only");
@@ -52,7 +60,7 @@ export class ProductSessionControlNodeHost {
         let decisionAt;
         const committed = this.#store.transact(snapshot => {
           decisionAt = this.#instant();
-          const candidate = new ProductSessionGatewayHttpHandler(this.#registry, this.#tokens, snapshot);
+          const candidate = new ProductSessionGatewayHttpHandler(this.#registry, this.#tokens, snapshot, this.#capacityPolicy);
           const value = candidate.handle({ requestId, method: request.method, path: route, contentType: single(request.headers["content-type"]), body, proofHeader, walletControlProofHeader, networkAvailable: true }, decisionAt);
           return { snapshot: candidate.snapshot(), value };
         });
@@ -81,7 +89,7 @@ export class ProductSessionControlNodeHost {
     if (typeof value !== "string") fail("ORIGIN_NOT_ALLOWED", "Origin is invalid");
     let parsed; try { parsed = new URL(value); } catch { fail("ORIGIN_NOT_ALLOWED", "Origin is invalid"); }
     if (parsed.protocol !== "https:" || parsed.origin !== value) fail("ORIGIN_NOT_ALLOWED", "Origin must be a canonical HTTPS origin");
-    const allowed = OWNER_ROUTES.has(route) ? value === WALLET : this.#origins.has(value) || route === TIME && value === WALLET;
+    const allowed = OWNER_ROUTES.has(route) ? value === WALLET : this.#origins.has(value) || READ_ROUTES.has(route) && value === WALLET;
     if (!allowed) fail("ORIGIN_NOT_ALLOWED", "Origin is not allowed for this route");
     return { "access-control-allow-origin": value, "access-control-expose-headers": "x-request-id", vary: "origin" };
   }
