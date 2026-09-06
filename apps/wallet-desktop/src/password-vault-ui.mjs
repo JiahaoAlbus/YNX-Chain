@@ -77,7 +77,7 @@ export function createPasswordVaultUI({ api, getKeyState, getAccountStatus, rend
     if (!response.ok) { $("#unlock-result").textContent = message(response); return; }
     renderAccount(response);
     $("#recovery-account").replaceChildren();
-    for (const item of response.value.accounts) { const option = doc.createElement("option"); option.value = item.account; option.textContent = `${item.account}${item.state === "recovery-required" ? " · recovery required" : ""}`; option.selected = item.account === response.value.account; $("#recovery-account").append(option); }
+    for (const item of response.value.accounts) { const option = doc.createElement("option"); option.value = item.account; option.textContent = `${item.ynxAccount}${item.state === "recovery-required" ? " · recovery required" : ""}`; option.selected = item.account === response.value.account; $("#recovery-account").append(option); }
     const history = await api.recoveryHistory(); if (token !== generation) return;
     $("#recovery-history").replaceChildren();
     if (history.ok) for (const item of history.value) { const option = doc.createElement("option"); option.value = item.id; option.textContent = `Saved Wallet revision ${item.revision} · ${item.id.slice(0, 12)}`; $("#recovery-history").append(option); }
@@ -100,7 +100,7 @@ export function createPasswordVaultUI({ api, getKeyState, getAccountStatus, rend
       if (token !== generation || revision !== getKeyState().revision) return;
       if (!result.ok) { $("#recovery-result").textContent = message(result); return; }
       previewId = result.value.previewId; $("#recovery-form").hidden = true; $("#recovery-review").hidden = false;
-      $("#recovery-summary").textContent = `Restore ${result.value.account}. ${result.value.resetPassword ? `A new local password will be set. ${result.value.recoveryRequiredAccounts.length} other account(s) will remain visible and need their own recovery. The old encrypted Wallet is retained.` : "The current password and other protected accounts will be retained."} Existing app permissions will be revoked. Pending transactions remain recorded.`;
+      $("#recovery-summary").textContent = `Restore ${getAccountStatus()?.accounts?.find(item => item.account === result.value.account)?.ynxAccount ?? result.value.account}. ${result.value.resetPassword ? `A new local password will be set. ${result.value.recoveryRequiredAccounts.length} other account(s) will remain visible and need their own recovery. The old encrypted Wallet is retained.` : "The current password and other protected accounts will be retained."} Existing app permissions will be revoked. Pending transactions remain recorded.`;
       $("#recovery-result").textContent = "The backup matches this exact account. Confirm within one minute.";
     } catch (error) { if (token === generation) $("#recovery-result").textContent = error.message ?? "Recovery did not finish."; }
     finally { input = null; if (token === generation) setBusy(false); }

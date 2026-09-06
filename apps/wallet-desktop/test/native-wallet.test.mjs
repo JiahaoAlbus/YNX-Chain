@@ -95,6 +95,23 @@ test("transfer review never sends, cancellation consumes it, and confirmation is
   assert.equal(state.sends, 1);
 });
 
+test("native and EVM forms review the same recipient, while a bad native checksum never prepares a transfer", async () => {
+  const { service, state } = await serviceFixture();
+  const native = "ynx19dddt3retspx298cx9785g27yxxue4k0zst9fl";
+  const first = await service.prepareTransfer({ to: native, amount: "0.1" });
+  const second = await service.prepareTransfer({ to: recipient, amount: "0.1" });
+  assert.deepEqual(first.transaction, second.transaction);
+  assert.equal(first.to, recipient.toLowerCase());
+  assert.equal(first.ynxTo, native);
+  assert.equal(first.ynxFrom, "ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80");
+  state.prepared = null;
+  for (const to of [native.slice(0, -1) + "q", native.toUpperCase(), "ynx1" + recipient.slice(2)]) {
+    await assert.rejects(service.prepareTransfer({ to, amount: "0.1" }), error => error.data.code === "INVALID_TRANSFER");
+    assert.equal(state.prepared, null);
+  }
+  assert.equal(state.sends, 0);
+});
+
 test("invalid amounts, insufficient funds, expiry, account switch and chain change never submit", async () => {
   for (const amount of ["0", "-1", "1e-3", "0.0000000000000000001", "2"]) {
     const { service, state } = await serviceFixture();

@@ -4,6 +4,8 @@ import { createPasswordVaultUI } from "./password-vault-ui.mjs";
 
 let keyState = { locked: true, unlockAvailable: false, authenticating: false };
 let accountState = null, passwordUI;
+// Public metadata was identity-checked by the main-process vault. Protocol keys remain EVM addresses.
+const nativeAccountLabel = account => accountState?.accounts?.find(item => item.account === account)?.ynxAccount ?? account;
 const network = document.querySelector("#network");
 const detail = document.querySelector("#detail");
 const chain = document.querySelector("#chain");
@@ -103,7 +105,7 @@ function presentApproval() {
   } else if (type === "proposal") {
     document.querySelector("#proposal-name").textContent = `Connect to ${review.name}`;
     document.querySelector("#proposal-origin").textContent = review.url ?? "No verified app address was provided.";
-    document.querySelector("#proposal-account").textContent = review.account ?? activeAccount ?? "Create an account first";
+    document.querySelector("#proposal-account").textContent = nativeAccountLabel(review.account ?? activeAccount) ?? "Create an account first";
     document.querySelector("#proposal-permissions").textContent = (review.methods ?? review.permissions?.methods ?? []).map(methodLabel).join(" · ") || "Share your account on YNX Testnet";
     for (const button of panel.querySelectorAll("button")) button.disabled = approvalQueue.busy && button.id !== "reject-proposal";
     document.querySelector("#reject-proposal").textContent = approvalQueue.busy ? "Cancel and lock Wallet" : "Reject connection";
@@ -156,8 +158,11 @@ function renderAccount(payload) {
   document.querySelector("#backup-section").hidden = !status?.initialized;
   if (!status?.initialized) setView("accounts");
   else if (!previousAccount) setView("overview");
-  document.querySelector("#toolbar-account").textContent = activeAccount ? `${activeAccount.slice(0, 6)}…${activeAccount.slice(-4)}` : "My accounts";
-  document.querySelector("#receive-address").value = activeAccount ?? "";
+  document.querySelector("#toolbar-account").textContent = activeAccount ? `${nativeAccountLabel(activeAccount).slice(0, 8)}…${nativeAccountLabel(activeAccount).slice(-6)}` : "My accounts";
+  document.querySelector("#receive-address").value = status?.ynxAccount ?? "";
+  document.querySelector("#receive-evm-address").value = activeAccount ?? "";
+  document.querySelector("#receive-compatibility").open = false;
+  document.querySelector("#receive-status").textContent = "";
   transferReview = null;
   document.querySelector("#transfer-review").hidden = true;
   document.querySelector("#transfer-review").close();
@@ -173,8 +178,8 @@ function renderAccount(payload) {
     return;
   }
   accountTitle.textContent = "Your account";
-  accountDetail.textContent = `${status.account} · ${status.ynxAccount}`;
-  accountShort.textContent = `${status.account.slice(0, 8)}…${status.account.slice(-6)}`;
+  accountDetail.textContent = status.ynxAccount;
+  accountShort.textContent = `${status.ynxAccount.slice(0, 8)}…${status.ynxAccount.slice(-6)}`;
   signingShort.textContent = keyState.locked ? "Locked" : "Approval required";
   createAccount.hidden = true;
   addAccount.hidden = false;
@@ -183,7 +188,7 @@ function renderAccount(payload) {
     const button = document.createElement("button");
     button.type = "button";
     button.dataset.account = item.account;
-    button.textContent = `${item.account === status.account ? `${item.account} · active` : `Switch to ${item.account}`}${item.state === "recovery-required" ? " · restore from backup" : ""}`;
+    button.textContent = `${item.account === status.account ? `${item.ynxAccount} · active` : `Switch to ${item.ynxAccount}`}${item.state === "recovery-required" ? " · restore from backup" : ""}`;
     button.disabled = keyState.locked || item.account === status.account;
     button.addEventListener("click", async () => {
       button.disabled = true;
@@ -388,8 +393,9 @@ async function refreshAssets() {
 }
 document.querySelector("#refresh-balance").addEventListener("click", refreshAssets);
 document.querySelector("#copy-address").addEventListener("click", async () => {
-  if (!activeAccount) return;
-  try { await navigator.clipboard.writeText(activeAccount); document.querySelector("#receive-status").textContent = "Address copied."; }
+  const address = accountState?.ynxAccount, selected = activeAccount;
+  if (!address || !selected) return;
+  try { await navigator.clipboard.writeText(address); if (selected === activeAccount) document.querySelector("#receive-status").textContent = "YNX address copied."; }
   catch { document.querySelector("#receive-address").select(); document.querySelector("#receive-status").textContent = "Select and copy the address above."; }
 });
 document.querySelector("#import-kind").addEventListener("change", event => {
@@ -450,7 +456,7 @@ document.querySelector("#transfer-form").addEventListener("submit", async event 
     if (result.value.account !== activeAccount) { output.textContent = "Account changed. Review again."; return; }
     transferReview = result.value;
     const summary = document.querySelector("#transfer-summary"); summary.replaceChildren();
-    for (const [label, value] of [["From", transferReview.account], ["To", transferReview.to], ["Amount", `${transferReview.amount} YNXT`], ...(transferReview.actualFee ? [["Native transfer fee", `${transferReview.actualFee} YNXT`]] : []), ["Maximum fee budget", `${transferReview.maximumFee} YNXT`], ["Maximum total budget", `${transferReview.total} YNXT`], ...(transferReview.feeExplanation ? [["Fee and budget", transferReview.feeExplanation]] : []), ["Network", "YNX Testnet · 6423"]]) {
+    for (const [label, value] of [["From", transferReview.ynxFrom], ["To", transferReview.ynxTo], ["Amount", `${transferReview.amount} YNXT`], ...(transferReview.actualFee ? [["Native transfer fee", `${transferReview.actualFee} YNXT`]] : []), ["Maximum fee budget", `${transferReview.maximumFee} YNXT`], ["Maximum total budget", `${transferReview.total} YNXT`], ...(transferReview.feeExplanation ? [["Fee and budget", transferReview.feeExplanation]] : []), ["Network", "YNX Testnet · 6423"]]) {
       const term = document.createElement("dt"), description = document.createElement("dd"); term.textContent = label; description.textContent = value; summary.append(term, description);
     }
     document.querySelector("#transfer-transaction").textContent = formatApprovalReview(transferReview.transaction ?? {});

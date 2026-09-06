@@ -1,3 +1,4 @@
+import { evmAddressFromYNX, ynxAddressFromEVM } from "@ynx-chain/wallet-auth";
 import { randomUUID } from "node:crypto";
 import { Wallet, formatEther, getAddress, parseEther, toQuantity } from "ethers";
 import { CANONICAL_RPC_URL } from "./rpc.mjs";
@@ -99,7 +100,7 @@ export class NativeWalletService {
     this.pending.clear();
     let recipient, value;
     try {
-      recipient = getAddress(to).toLowerCase();
+      recipient = typeof to === "string" && to.startsWith("ynx1") ? evmAddressFromYNX(to) : getAddress(to).toLowerCase();
       if (recipient === "0x0000000000000000000000000000000000000000" || typeof amount !== "string" || !/^(?:0|[1-9][0-9]*)(?:\.[0-9]{1,18})?$/.test(amount) || amount.length > 80) throw new Error();
       value = parseEther(amount);
       if (value <= 0n) throw new Error();
@@ -125,7 +126,7 @@ export class NativeWalletService {
     const record = Object.freeze({ id, account: status.account, transaction: snapshot, createdAt });
     this.pending.clear();
     this.pending.set(id, record);
-    return { id, account: status.account, to: recipient, amount: formatEther(value), ...this.sender.reviewDetails?.(snapshot), maximumFee: formatEther(maximumFee), total: formatEther(value + maximumFee), symbol: "YNXT", chainId: CHAIN_ID, transaction: snapshot, expiresAt: new Date(createdAt + REVIEW_TTL).toISOString() };
+    return { id, account: status.account, to: recipient, ynxFrom: ynxAddressFromEVM(status.account), ynxTo: ynxAddressFromEVM(recipient), amount: formatEther(value), ...this.sender.reviewDetails?.(snapshot), maximumFee: formatEther(maximumFee), total: formatEther(value + maximumFee), symbol: "YNXT", chainId: CHAIN_ID, transaction: snapshot, expiresAt: new Date(createdAt + REVIEW_TTL).toISOString() };
   }
   async transferAction(id, action) {
     if (!["approve", "reject"].includes(action)) throw providerError(-32602, "INVALID_TRANSFER_ACTION", "Choose approve or reject");
