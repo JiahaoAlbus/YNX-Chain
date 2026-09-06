@@ -27,6 +27,8 @@ func main() {
 	rpcURL := flag.String("rpc", envOrDefault("YNX_FAUCET_RPC_URL", "http://127.0.0.1:6420"), "YNX Chain RPC URL")
 	upstreamMode := flag.String("upstream-mode", envOrDefault("YNX_FAUCET_UPSTREAM_MODE", faucet.UpstreamAuthoritative), "faucet upstream mode: authoritative or bft")
 	requestLog := flag.String("request-log", envOrDefault("YNX_FAUCET_REQUEST_LOG", "tmp/faucet/requests.jsonl"), "JSONL request log path")
+	admissionPath := flag.String("admission-db", os.Getenv("YNX_FAUCET_ADMISSION_DB"), "durable admission database (default: request-log + .admissions.db)")
+	maxAdmissions := flag.Int("max-admissions", envIntOrDefault("YNX_FAUCET_MAX_ADMISSIONS", 100000), "retained admission capacity; existing IDs remain retryable at capacity")
 	defaultAmount := flag.Int64("default-amount", envInt64OrDefault("YNX_FAUCET_DEFAULT_AMOUNT", 100), "default faucet amount")
 	maxAmount := flag.Int64("max-amount", envInt64OrDefault("YNX_FAUCET_MAX_AMOUNT", 100), "max faucet amount")
 	window := flag.Duration("rate-window", envDurationOrDefault("YNX_FAUCET_RATE_LIMIT_WINDOW", time.Hour), "rate limit window")
@@ -46,10 +48,14 @@ func main() {
 		Window:        *window,
 		MaxRequests:   *maxRequests,
 		RequestLog:    *requestLog,
+		AdmissionPath: *admissionPath,
+		MaxAdmissions: *maxAdmissions,
 	})
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	defer service.Close()
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()

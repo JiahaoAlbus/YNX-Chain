@@ -122,6 +122,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /transactions/broadcast", s.handleSignedTransactionBroadcast)
 	s.mux.HandleFunc("GET /explorer/summary", s.handleExplorerSummary)
 	s.mux.HandleFunc("POST /faucet", s.handleFaucet)
+	s.mux.HandleFunc("POST /faucet/requests", s.handleFaucet)
 	s.unsignedDevnetRoute("POST /transfer", s.handleTransfer)
 	s.unsignedDevnetRoute("POST /staking/stake", s.handleStake)
 	s.mux.HandleFunc("GET /resources/{address}", s.handleResources)
@@ -559,6 +560,10 @@ func (s *Server) handleFaucet(w http.ResponseWriter, r *http.Request) {
 		RequestID string `json:"requestId,omitempty"`
 	}
 	if !decodeJSON(w, r, &req) {
+		return
+	}
+	if r.URL.Path == "/faucet/requests" && req.RequestID == "" {
+		writeError(w, http.StatusBadRequest, "requestId is required by the durable faucet endpoint")
 		return
 	}
 	address, err := normalizeAccountInput(req.Address)

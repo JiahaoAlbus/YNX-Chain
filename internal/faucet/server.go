@@ -73,6 +73,7 @@ func (s *Server) handleMetrics(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleRequest(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Cache-Control", "no-store")
 	r.Body = http.MaxBytesReader(w, r.Body, MaxRequestBodyBytes)
 	var req Request
 	decoder := json.NewDecoder(r.Body)
@@ -87,7 +88,7 @@ func (s *Server) handleRequest(w http.ResponseWriter, r *http.Request) {
 	}
 	resp, status, err := s.service.Request(r.Context(), req, requestClientIdentity(r))
 	if err != nil {
-		writeJSON(w, status, map[string]any{"error": err.Error()})
+		writeJSON(w, status, map[string]any{"error": err.Error(), "requestId": resp.RequestID, "transactionHash": resp.TransactionHash, "status": resp.Status, "retrySameRequest": resp.RetrySameRequest})
 		return
 	}
 	writeJSON(w, status, resp)
