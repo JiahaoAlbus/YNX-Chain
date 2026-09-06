@@ -1,5 +1,5 @@
 import { createContext, useContext, useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
-import { AccessibilityInfo, ActivityIndicator, Alert, AppState, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useColorScheme, View } from "react-native";
+import { AccessibilityInfo, ActivityIndicator, Alert, AppState, Keyboard, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useColorScheme, View } from "react-native";
 import * as Clipboard from "expo-clipboard";
 import { getRandomBytesAsync } from "expo-crypto";
 import { allowScreenCaptureAsync, preventScreenCaptureAsync } from "expo-screen-capture";
@@ -20,7 +20,7 @@ import { formatDateTime, formatYNXT, isRTL, loadLocale, localizeError, saveLocal
 import { AuthorizationAuditStore, type AuthorizationAuditRecord } from "./src/protocol/authorizationAudit";
 import { ProductSessionController, type ProductSessionReview, type MobileProductSessionRequest } from "./src/protocol/productSessionController";
 import { SCOPE_EXPLANATIONS } from "./src/protocol/registry";
-import { WalletSessionInventoryClient, type WalletGatewayBridge, type WalletSessionInventory } from "./src/protocol/sessionInventory";
+import { WalletSessionInventoryClient, WalletSessionRevocationUnknown, type SessionInventoryItem, type WalletSessionInventory } from "./src/protocol/sessionInventory";
 import { authorizeLocalKeyUse } from "./src/security/localAuthorization";
 import { RECOVERY_DISPLAY_MS, WalletOperationLifecycle, type WalletOperationLease } from "./src/security/operationLifecycle";
 import { copyPublicValueWithExpiry } from "./src/security/clipboardPrivacy";
@@ -41,7 +41,7 @@ const repository=new WalletRepository(platformSecureStorage);
 const authorizationAudit=new AuthorizationAuditStore(platformSecureStorage);
 function chainClient(){const runtime=(globalThis as any).__YNX_WALLET_CHAIN_RUNTIME__ as {baseURL?:string;evmRpcURL?:string}|undefined;return new NativeChainClient(runtime?.baseURL)}
 function evmSimulationClient(){const runtime=(globalThis as any).__YNX_WALLET_CHAIN_RUNTIME__ as {baseURL?:string;evmRpcURL?:string}|undefined;return new EvmSimulationClient(runtime?.evmRpcURL??runtime?.baseURL)}
-function walletSessionInventoryClient(){const runtime=(globalThis as any).__YNX_WALLET_GATEWAY_RUNTIME__ as {request?:WalletGatewayBridge}|undefined;return runtime?.request?new WalletSessionInventoryClient(runtime.request):null}
+function walletSessionInventoryClient(){return new WalletSessionInventoryClient({fetch:(input,init)=>fetch(input,init),randomBytes:getRandomBytesAsync,authorize:authorizeLocalKeyUse,accountSecret:(account,assertCurrent)=>repository.accountSecret(account,assertCurrent)})}
 
 export default function App(){return <SafeAreaProvider><WalletApp/></SafeAreaProvider>}
 
@@ -148,7 +148,6 @@ function Dashboard({locale,manifest,selected,select,add,create,lock,onManifest,o
   useEffect(()=>{chainMounted.current=true;void refreshChain();return()=>{chainMounted.current=false;chainRefreshGeneration.current++}},[refreshChain]);
   const copy=async()=>{cancelClipboardClear.current?.();cancelClipboardClear.current=await copyPublicValueWithExpiry(Clipboard,selected.account);setCopied(true);setTimeout(()=>setCopied(false),1500)};
   const openAudit=async()=>{setAuditError(null);try{setRecords(await authorizationAudit.load());setAuditOpen(true)}catch(caught){setAuditError(localizeError(locale,caught));setAuditOpen(true)}};
-  const revoke=async(record:AuthorizationAuditRecord)=>{try{await authorizeLocalKeyUse("wallet-authorization");await authorizationAudit.revoke(record.requestDigest,new Date().toISOString());setRecords(await authorizationAudit.load())}catch(caught){setAuditError(localizeError(locale,caught))}};
   return <ScrollView contentContainerStyle={styles.dashboard}>
     <Text style={styles.eyebrow}>{translate(locale,"nativeAccount")}</Text>
     <Pressable accessibilityLabel="Switch Wallet account" accessibilityState={{expanded:accountsOpen}} onPress={()=>setAccountsOpen(!accountsOpen)} style={styles.accountPicker}><View><Text style={styles.accountLabel}>{selected.label}</Text><Text style={styles.address}>{short(selected.account)}</Text></View><ChevronDown color={ACTIVE_COLORS.ink}/></Pressable>
@@ -171,7 +170,7 @@ function Dashboard({locale,manifest,selected,select,add,create,lock,onManifest,o
     <WalletCenter visible={center} account={selected} chainState={chainState} close={()=>setCenter(false)} openAudit={()=>void openAudit()} retry={()=>void refreshChain()}/>
     <WalletControlCenter visible={controls} locale={locale} close={()=>setControls(false)}/>
     <RecoveryExportModal visible={recovery} account={selected} close={()=>setRecovery(false)}/>
-    <Modal visible={auditOpen} transparent animationType={MODAL_ANIMATION} onRequestClose={()=>setAuditOpen(false)}><Sheet title={translate(locale,"audit")} close={()=>setAuditOpen(false)}>{auditError?<Text style={styles.error}>{auditError}</Text>:null}{records.length===0?<Text style={styles.sheetText}>No authorization decisions are stored on this device.</Text>:records.slice().reverse().map((record)=><View key={record.hash} style={styles.auditRow}><Text style={styles.infoTitle}>{record.action} · {record.productClientId}</Text><Text style={styles.infoBody}>{formatDateTime(locale,record.at)} · {short(record.account)}{"\n"}{record.scopes.join(", ")}</Text>{record.action==="approval-returned"&&!records.some((item)=>item.action==="approval-revoked"&&item.requestDigest===record.requestDigest)?<SecondaryButton label={translate(locale,"revoke")} onPress={()=>void revoke(record)}/>:null}</View>)}</Sheet></Modal>
+    <Modal visible={auditOpen} transparent animationType={MODAL_ANIMATION} onRequestClose={()=>setAuditOpen(false)}><Sheet title={translate(locale,"audit")} close={()=>setAuditOpen(false)}><InfoCard title="History on this device" body="These records show local approval decisions. They do not confirm whether an app session is still connected. View and revoke live sessions in Connected Apps."/>{auditError?<Text style={styles.error}>{auditError}</Text>:null}{records.length===0?<Text style={styles.sheetText}>No authorization decisions are stored on this device.</Text>:records.slice().reverse().map((record)=><View key={record.hash} style={styles.auditRow}><Text style={styles.infoTitle}>{record.action==="approval-revoked"?"Local approval record disabled":record.action} · {record.productClientId}</Text><Text style={styles.infoBody}>{formatDateTime(locale,record.at)} · {short(record.account)}{"\n"}{record.scopes.join(", ")}</Text></View>)}</Sheet></Modal>
     <DeleteModal visible={remove} account={selected} close={()=>setRemove(false)} deleted={(next)=>{setRemove(false);onManifest(next)}} failed={onMutationError}/>
     <RenameModal visible={rename} account={selected} close={()=>setRename(false)} renamed={(next)=>{setRename(false);onManifest(next)}}/>
   </ScrollView>
@@ -203,11 +202,75 @@ function SendModal({visible,account,close,onSent}:{visible:boolean;account:Walle
 function EvmCompatibilityModal({visible,account,close}:{visible:boolean;account:WalletAccount;close:()=>void}){const from=evmAddressFromYNX(account.account);const[to,setTo]=useState(""),[data,setData]=useState("0x"),[valueWei,setValueWei]=useState("0"),[busy,setBusy]=useState(false),[copied,setCopied]=useState(false),[result,setResult]=useState<EvmSimulationResult|null>(null),[error,setError]=useState<string|null>(null);useEffect(()=>{if(!visible){setTo("");setData("0x");setValueWei("0");setBusy(false);setCopied(false);setResult(null);setError(null)}},[visible]);const valid=/^0x[0-9a-f]{40}$/.test(to)&&to!==from&&/^0x(?:[0-9a-f]{2})*$/.test(data)&&/^(0|[1-9][0-9]{0,77})$/.test(valueWei);const copy=async()=>{await copyPublicValueWithExpiry(Clipboard,from);setCopied(true);setTimeout(()=>setCopied(false),1500)};const simulate=async()=>{setBusy(true);setError(null);setResult(null);try{setResult(await evmSimulationClient().simulate({from,to,data,valueWei}))}catch(caught){setError(message(caught))}finally{setBusy(false)}};return <Modal visible={visible} transparent animationType={MODAL_ANIMATION} onRequestClose={close}><Sheet title="0x EVM compatibility" close={close}><ReviewRow label="Default Wallet identity" value={account.account}/><ReviewRow label="Derived 0x address" value={from}/><SecondaryButton label={copied?"0x address copied for 30 seconds":"Copy 0x address for 30 seconds"} onPress={()=>void copy()}/><InfoCard title="Read-only simulation boundary" body="Wallet verifies chain ID 6423, deployed contract code, eth_call and eth_estimateGas. This view never signs or broadcasts an EVM transaction."/><Field label="Contract address (lowercase 0x)" value={to} onChangeText={(value)=>{setTo(value.trim());setResult(null)}}/><Field label="Calldata (lowercase even-length hex)" value={data} onChangeText={(value)=>{setData(value.trim());setResult(null)}} multiline/><Field label="Native value in wei" value={valueWei} onChangeText={(value)=>{setValueWei(value.trim());setResult(null)}}/>{error?<Text style={styles.error}>{error}</Text>:null}{result?<><Text style={[styles.eyebrow,styles.sectionLabel]}>PRECISE SIMULATION REVIEW</Text><ReviewRow label="Status" value={result.truthfulStatus}/><ReviewRow label="Chain / block" value={`${result.chainId} / ${result.blockNumber}`}/><ReviewRow label="From" value={result.from}/><ReviewRow label="Contract" value={result.to}/><ReviewRow label="Method selector" value={result.methodSelector}/><ReviewRow label="Value" value={`${result.valueWei} wei`}/><ReviewRow label="Gas estimate" value={result.gasEstimate}/><ReviewRow label="Code" value={`${result.contractCodeBytes} bytes\n${result.contractCodeHash}`}/><ReviewRow label="Return data" value={result.returnData}/><ReviewRow label="Source / as of" value={`${result.source}\n${result.asOf}`}/><InfoCard title="Simulation is not execution" body="State, gas, code and return values can change before a separately reviewed transaction is signed. No success, settlement or receipt is claimed here."/></>:null}<Button label={busy?"Verifying RPC and simulating…":"Run read-only contract simulation"} disabled={busy||!valid} onPress={()=>void simulate()}/></Sheet></Modal>}
 
 function WalletCenter({visible,account,chainState,close,openAudit,retry}:{visible:boolean;account:WalletAccount;chainState:NativeChainState;close:()=>void;openAudit:()=>void;retry:()=>void}){
-  const [inventory,setInventory]=useState<{phase:"idle"|"loading"|"ready"|"failed";value?:WalletSessionInventory;error?:string}>({phase:"idle"});
-  const refreshInventory=useCallback(async()=>{const client=walletSessionInventoryClient();if(!client){setInventory({phase:"failed",error:"Canonical Gateway Wallet-control proof bridge is not connected."});return}setInventory({phase:"loading"});try{setInventory({phase:"ready",value:await client.load(account.account)})}catch(caught){setInventory({phase:"failed",error:message(caught)})}},[account.account]);
-  useEffect(()=>{if(visible)void refreshInventory();else setInventory({phase:"idle"})},[visible,refreshInventory]);
-  return <Modal visible={visible} transparent animationType={MODAL_ANIMATION} onRequestClose={close}><Sheet title="Wallet Center" close={close}><Text style={styles.eyebrow}>ASSETS / ACTIVITY</Text><InfoCard title={chainState.account?`${chainState.account.balance} YNXT`:chainState.phase==="loading"?"YNXT · loading":chainState.phase==="unrecorded"?"YNXT · no account record":"YNXT · unavailable"} body={chainState.phase==="loading"?"Loading balance and nonce…":chainState.phase==="unrecorded"?"This address has no on-chain account record yet. Receive testnet YNXT to get started. Balance and nonce are not available yet.":chainState.phase==="failed"?chainState.error??"Balance unavailable":`Authoritative nonce ${chainState.account?.nonce} on ynx_6423-1.`}/>{chainState.activityPhase==="loading"?<InfoCard title="Activity · loading" body="Loading recent chain transactions…"/>:chainState.activityPhase==="failed"?<InfoCard title="Activity · unavailable" body={chainState.activityError??"Recent transactions could not be loaded."}/>:chainState.activity.length===0?<InfoCard title="Activity · empty" body="No matching account activity appears in the latest 25 chain transactions."/>:chainState.activity.map((item)=><View key={item.hash} style={styles.auditRow}><Text style={styles.infoTitle}>{item.to===evmAddressFromYNX(account.account)?"Received":"Sent"} · {item.amount} YNXT</Text><Text style={styles.infoBody}>{short(item.hash)} · fee {item.fee} · nonce {item.nonce}</Text></View>)}{chainState.phase==="failed"||chainState.phase==="unrecorded"||chainState.activityPhase==="failed"?<SecondaryButton label="Refresh balance and activity" onPress={retry}/>:null}<Text style={[styles.eyebrow,styles.sectionLabel]}>CONNECTED APPS / SESSIONS / DEVICES</Text>{inventory.phase==="loading"?<InfoCard title="Connected Apps · loading" body="Requesting a fresh account-bound inventory through the canonical Wallet Product Session proof bridge."/>:inventory.phase==="failed"?<><InfoCard title="Connected Apps · unavailable" body={inventory.error??"Canonical Gateway inventory failed closed."}/><SecondaryButton label="Retry Connected Apps inventory" onPress={()=>void refreshInventory()}/></>:inventory.value&&inventory.value.connectedApps.length?<><ReviewRow label="Gateway evidence" value={`${inventory.value.asOf}\n${inventory.value.sessions.length} sessions · ${inventory.value.devices.length} devices · ${inventory.value.approvalCount} approvals`}/>{inventory.value.connectedApps.map((item)=><View key={`${item.productClientId}:${item.bundleId}`} style={styles.auditRow}><Text style={styles.infoTitle}>{item.requestingProduct} · {item.active?"ACTIVE":"INACTIVE"}</Text><Text style={styles.infoBody}>{item.productClientId}{"\n"}{item.activeSessionBindings.length}/{item.sessionBindings.length} active sessions · {item.deviceBindings.length} devices</Text></View>)}</>:<InfoCard title="Connected Apps · empty" body="The fresh canonical Gateway inventory contains no Product Sessions for this account."/>}<InfoCard title="Device security boundary" body={`Native account ${short(account.account)} remains protected by device-only secure storage and system biometrics. Gateway status never grants asset authority.`}/><SecondaryButton label="Open Authorization Audit" onPress={openAudit}/><Text style={[styles.eyebrow,styles.sectionLabel]}>RECOVERY / SECURITY / AUDIT / NETWORK</Text><InfoCard title="Recovery" body="The offline recovery key restores the native account only. Product devices and sessions are deliberately excluded."/><InfoCard title="Security" body="Wallet locks on background and requires biometrics for private-key use. Recovery display blocks screen capture."/><InfoCard title="Network" body="YNX testnet · ynx_6423-1 · native YNXT · rpc.ynxweb4.com. EVM chain ID 6423 is an advanced compatibility view only."/></Sheet></Modal>
+  const cancelSessions=useRef<()=>void>(()=>{});
+  const dismiss=()=>{cancelSessions.current();close()};
+  return <Modal visible={visible} transparent animationType={MODAL_ANIMATION} onRequestClose={dismiss}><Sheet title="Wallet Center" close={dismiss}><Text style={styles.eyebrow}>ASSETS / ACTIVITY</Text><InfoCard title={chainState.account?`${chainState.account.balance} YNXT`:chainState.phase==="loading"?"YNXT · loading":chainState.phase==="unrecorded"?"YNXT · no account record":"YNXT · unavailable"} body={chainState.phase==="loading"?"Loading balance and nonce…":chainState.phase==="unrecorded"?"This address has no on-chain account record yet. Receive testnet YNXT to get started. Balance and nonce are not available yet.":chainState.phase==="failed"?chainState.error??"Balance unavailable":`Authoritative nonce ${chainState.account?.nonce} on ynx_6423-1.`}/>{chainState.activityPhase==="loading"?<InfoCard title="Activity · loading" body="Loading recent chain transactions…"/>:chainState.activityPhase==="failed"?<InfoCard title="Activity · unavailable" body={chainState.activityError??"Recent transactions could not be loaded."}/>:chainState.activity.length===0?<InfoCard title="Activity · empty" body="No matching account activity appears in the latest 25 chain transactions."/>:chainState.activity.map((item)=><View key={item.hash} style={styles.auditRow}><Text style={styles.infoTitle}>{item.to===evmAddressFromYNX(account.account)?"Received":"Sent"} · {item.amount} YNXT</Text><Text style={styles.infoBody}>{short(item.hash)} · fee {item.fee} · nonce {item.nonce}</Text></View>)}{chainState.phase==="failed"||chainState.phase==="unrecorded"||chainState.activityPhase==="failed"?<SecondaryButton label="Refresh balance and activity" onPress={retry}/>:null}
+    <ConnectedApps visible={visible} account={account} cancelRef={cancelSessions}/>
+    <SecondaryButton label="Open Authorization Audit" onPress={openAudit}/>
+    <Text style={[styles.eyebrow,styles.sectionLabel]}>RECOVERY / SECURITY / NETWORK</Text>
+    <InfoCard title="Recovery" body="Your offline key restores this account. Each app still needs its own sign-in approval. You can review existing app sessions above."/>
+    <InfoCard title="Security" body="Wallet locks in the background. Viewing app sessions, revoking a session and using a private key each require system biometrics."/>
+    <InfoCard title="Network" body="YNX testnet · ynx_6423-1 · native YNXT · rpc.ynxweb4.com. EVM chain ID 6423 is available in the compatibility view."/>
+  </Sheet></Modal>
 }
+
+function ConnectedApps({visible,account,cancelRef}:{visible:boolean;account:WalletAccount;cancelRef:{current:()=>void}}){
+  const operations=useWalletOperations(),scope=useOperationScope(visible,account.account),client=useMemo(()=>walletSessionInventoryClient(),[]);
+  const [inventory,setInventory]=useState<{phase:"idle"|"loading"|"ready"|"failed";value?:WalletSessionInventory;error?:string}>({phase:"idle"});
+  const [review,setReview]=useState<SessionInventoryItem|null>(null),[busy,setBusy]=useState(false),[revokeError,setRevokeError]=useState<string|null>(null),[unknown,setUnknown]=useState(false),[receipt,setReceipt]=useState<{asOf:string;alreadyRevoked:boolean}|null>(null);
+  const busyRef=useRef(false);
+  const reset=useCallback(()=>{scope.cancel();busyRef.current=false;setInventory({phase:"idle"});setReview(null);setBusy(false);setRevokeError(null);setUnknown(false);setReceipt(null)},[scope]);
+  cancelRef.current=reset;
+  useEffect(()=>{reset();return()=>scope.cancel()},[visible,account.account,reset,scope]);
+  useEffect(()=>operations.subscribe(reset),[operations,reset]);
+  const refresh=async()=>{
+    if(!visible||busyRef.current)return;busyRef.current=true;setBusy(true);setInventory({phase:"loading"});setReview(null);setReceipt(null);let lease:WalletOperationLease|undefined;
+    try{lease=scope.begin({account:account.account});const value=await client.load(account,lease);lease.assert();setInventory({phase:"ready",value})}
+    catch(caught){if(!lease||lease.ownsScope())setInventory({phase:"failed",error:message(caught)})}
+    finally{if(!lease||lease.ownsScope()){busyRef.current=false;setBusy(false)}lease?.finish()}
+  };
+  const revoke=async()=>{
+    if(!visible||busyRef.current||!review)return;const target=review;busyRef.current=true;setBusy(true);setRevokeError(null);let lease:WalletOperationLease|undefined;
+    try{lease=scope.begin({account:account.account});const result=await client.revoke(account,target.sessionBinding,lease);lease.assert();setReceipt({asOf:result.asOf,alreadyRevoked:result.alreadyRevoked});setUnknown(false);
+      // This receipt confirms this target only; other session statuses still need
+      // a separately authorized refresh before a new inventory can be claimed.
+      setInventory({phase:"idle"});
+    }catch(caught){if(!lease||lease.ownsScope()){setUnknown(previous=>previous||caught instanceof WalletSessionRevocationUnknown);setRevokeError(message(caught))}}
+    finally{if(!lease||lease.ownsScope()){busyRef.current=false;setBusy(false)}lease?.finish()}
+  };
+  const openReview=(item:SessionInventoryItem)=>{if(busyRef.current)return;setReview(item);setReceipt(null);setRevokeError(null);setUnknown(false)};
+  return <View>
+    <Text style={[styles.eyebrow,styles.sectionLabel]}>CONNECTED APPS / SESSIONS / DEVICES</Text>
+    <ReviewRow label="Wallet account" value={`${account.label}\n${account.account}`}/>
+    {review?<>
+      <Text style={styles.infoTitle}>{receipt?"Session revoked":"Review session revocation"}</Text>
+      <ReviewRow label="App" value={`${review.displayName}\n${review.productId} · ${review.clientId}`}/>
+      <ReviewRow label="App identity" value={`${review.applicationId}\n${review.platform} · ${review.origin}`}/>
+      <ReviewRow label="Device" value={`${review.deviceId}\n${review.deviceBinding}`}/>
+      <ReviewRow label="Session" value={review.sessionBinding}/>
+      <ReviewRow label="Permissions" value={review.scopes.join("\n")}/>
+      <ReviewRow label="Issued / expires" value={`${review.issuedAt}\n${review.expiresAt}`}/>
+      {receipt?<InfoCard title={receipt.alreadyRevoked?"Auth confirmed this session was already revoked":"Auth confirmed revocation"} body={`Confirmed at ${receipt.asOf}. This session can no longer authorize app requests. Other sessions keep their own status.`}/>:<>
+        <InfoCard title="Revoke this app session" body="After your biometric confirmation, Wallet will sign a request to revoke only the session shown above. Other app sessions and your assets are unaffected."/>
+        {unknown?<Text style={styles.sheetText}>Revocation is not confirmed. Retry this same session to check the outcome.</Text>:null}
+        {revokeError?<Text accessibilityRole="alert" style={styles.error}>{revokeError}</Text>:null}
+        <DangerButton label={busy?"Confirming with Auth…":unknown?"Retry this session revocation":"Confirm session revocation"} disabled={busy} onPress={()=>void revoke()}/>
+      </>}
+      <SecondaryButton label="Back to Connected Apps" disabled={busy} onPress={()=>{setReview(null);setRevokeError(null);setUnknown(false);setReceipt(null)}}/>
+    </>:<>
+      {inventory.phase==="idle"?<InfoCard title="View your connected apps" body="Use your fingerprint or Face ID to let Wallet sign a request for this account's app sessions. This does not grant any app permission to use your assets."/>:inventory.phase==="loading"?<InfoCard title="Connected Apps · loading" body="Confirm system biometrics, then wait for Auth to return this account's sessions."/>:inventory.phase==="failed"?<InfoCard title="Connected Apps · unavailable" body={inventory.error??"Auth could not confirm your sessions. Try again."}/>:inventory.value?<>
+        <ReviewRow label="Last checked with Auth" value={`${inventory.value.asOf}\n${inventory.value.sessions.length} sessions · ${new Set(inventory.value.sessions.map(item=>item.deviceBinding)).size} app devices`}/>
+        {inventory.value.sessions.length===0?<InfoCard title="No connected app sessions" body="Auth returned no app sessions for this account at the time shown above."/>:inventory.value.sessions.map(item=><View key={item.sessionBinding} style={styles.auditRow}>
+          <Text style={styles.infoTitle}>{item.displayName} · {item.active?"Active at last check":"Inactive at last check"}</Text>
+          <Text style={styles.infoBody}>{item.origin}{"\n"}{item.platform} · {item.deviceId}{"\n"}{item.scopes.join(", ")}{"\n"}Expires {item.expiresAt}{item.inactiveReasons.length?`\n${item.inactiveReasons.map(sessionReason).join(" · ")}`:""}</Text>
+          <SecondaryButton label={`Review ${item.displayName} session`} disabled={busy} onPress={()=>openReview(item)}/>
+        </View>)}
+      </>:null}
+      <SecondaryButton label={busy?"Loading Connected Apps…":inventory.phase==="failed"?"Retry Connected Apps":inventory.phase==="ready"?"Refresh Connected Apps":"Show Connected Apps"} disabled={busy} onPress={()=>void refresh()}/>
+    </>}
+  </View>
+}
+function sessionReason(reason:string){return ({"session-revoked":"Session revoked","device-revoked":"Device revoked","account-revoked":"Account access revoked",expired:"Expired","issued-in-future":"Not yet active"} as Record<string,string>)[reason]??reason}
 
 function WalletControlCenter({visible,locale,close}:{visible:boolean;locale:WalletLocale;close:()=>void}){
   const runtime=(globalThis as any).__YNX_WALLET_CONTROL_RUNTIME__ as {snapshot?:unknown}|undefined;
@@ -272,7 +335,24 @@ function AIReviewModal({visible,locale,request,close}:{visible:boolean;locale:Wa
 function LocaleSettings({visible,locale,close,select}:{visible:boolean;locale:WalletLocale;close:()=>void;select:(locale:WalletLocale)=>void}){return <Modal visible={visible} transparent animationType={MODAL_ANIMATION} onRequestClose={close}><Sheet title={translate(locale,"settingsTitle")} close={close}><Text accessibilityLabel={`Accessibility state: ${ACCESSIBILITY_SUMMARY}`} style={styles.sheetText}>System language is detected on first launch. A manual choice is stored locally and survives restart.{"\n"}{ACCESSIBILITY_SUMMARY}. Text follows the device font scale.</Text>{SUPPORTED_LOCALES.map((item)=><Pressable accessibilityRole="radio" accessibilityState={{checked:item===locale}} accessibilityLabel={translate(item,"languageName")} key={item} onPress={()=>select(item)} style={styles.localeRow}><Text style={styles.infoTitle}>{translate(item,"languageName")}</Text>{item===locale?<Check color={ACTIVE_COLORS.blue}/>:null}</Pressable>)}</Sheet></Modal>}
 
 function Screen({children}:{children:React.ReactNode}){return <View style={styles.screen}>{children}</View>}
-function Sheet({title,close,children}:{title:string;close:()=>void;children:React.ReactNode}){return <View style={styles.backdrop}><ScrollView style={styles.sheetViewport} contentContainerStyle={styles.sheet}><View style={styles.sheetHeader}><Text style={styles.sheetTitle}>{title}</Text><Pressable accessibilityLabel={`Close ${title}`} onPress={close} style={styles.iconButton}><X color={ACTIVE_COLORS.ink}/></Pressable></View>{children}</ScrollView></View>}
+function Sheet({title,close,children}:{title:string;close:()=>void;children:React.ReactNode}){
+  const scroll=useRef<ScrollView>(null),focused=useRef<number|null>(null);
+  const revealFocused=useCallback(()=>{
+    if(Keyboard.isVisible()&&focused.current!==null)scroll.current?.scrollResponderScrollNativeHandleToKeyboard(focused.current,16,true);
+  },[]);
+  useEffect(()=>{
+    // Focus can arrive before the keyboard or the resized Modal viewport. Recheck
+    // the same focused field on the actual keyboard/layout events, without timers.
+    const shown=Keyboard.addListener("keyboardDidShow",revealFocused);
+    return()=>{shown.remove();focused.current=null};
+  },[revealFocused]);
+  return <KeyboardAvoidingView style={styles.backdrop} behavior={Platform.OS==="ios"?"padding":"height"} onLayout={revealFocused}>
+    <ScrollView ref={scroll} style={styles.sheetViewport} contentContainerStyle={styles.sheet} keyboardShouldPersistTaps="handled" keyboardDismissMode={Platform.OS==="ios"?"interactive":"on-drag"}
+      onFocus={event=>{focused.current=event.nativeEvent.target;revealFocused()}} onBlur={event=>{if(focused.current===event.nativeEvent.target)focused.current=null}}>
+      <View style={styles.sheetHeader}><Text style={styles.sheetTitle}>{title}</Text><Pressable accessibilityLabel={`Close ${title}`} onPress={close} style={styles.iconButton}><X color={ACTIVE_COLORS.ink}/></Pressable></View>{children}
+    </ScrollView>
+  </KeyboardAvoidingView>
+}
 function Button({label,onPress,disabled=false,icon}:{label:string;onPress:()=>void;disabled?:boolean;icon?:React.ReactNode}){return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{disabled}} disabled={disabled} onPress={onPress} style={({pressed})=>[styles.button,pressed&&styles.pressed,disabled&&styles.disabled]}>{icon}<Text style={styles.buttonText}>{label}</Text></Pressable>}
 function SecondaryButton({label,onPress,disabled=false,icon}:{label:string;onPress:()=>void;disabled?:boolean;icon?:React.ReactNode}){return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{disabled}} disabled={disabled} onPress={onPress} style={({pressed})=>[styles.secondaryButton,pressed&&styles.pressed,disabled&&styles.disabled]}>{icon}<Text style={styles.secondaryText}>{label}</Text></Pressable>}
 function DangerButton({label,onPress,disabled=false}:{label:string;onPress:()=>void;disabled?:boolean}){return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{disabled}} disabled={disabled} onPress={onPress} style={[styles.dangerButton,disabled&&styles.disabled]}><Trash2 color={ACTIVE_COLORS.danger} size={18}/><Text style={styles.dangerText}>{label}</Text></Pressable>}

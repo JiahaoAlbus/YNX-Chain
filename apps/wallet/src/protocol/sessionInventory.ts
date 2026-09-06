@@ -1,127 +1,171 @@
-export type ConnectedAppInventoryItem=Readonly<{
-  requestingProduct:string;
-  productClientId:string;
-  bundleId:string;
-  sessionBindings:readonly string[];
-  activeSessionBindings:readonly string[];
-  approvalDigests:readonly string[];
-  deviceBindings:readonly string[];
-  active:boolean;
+import {
+  canonicalJSON, createWalletSessionControlProof, encodeWalletSessionControlProofHeader, httpBodyDigest, walletIdentity,
+  WALLET_SESSION_CONTROL_AUDIENCE, WALLET_SESSION_CONTROL_PROOF_HEADER,
+  type WalletControlledSession, type WalletSessionControlInventory, type WalletSessionControlPath,
+  type WalletSessionControlProof, type WalletSessionControlRevocation,
+} from "@ynx-chain/wallet-auth";
+import type { WalletOperationLease } from "../security/operationLifecycle";
+import type { WalletAccount } from "../storage/walletRepository";
+
+export type WalletSessionInventory = WalletSessionControlInventory;
+export type SessionInventoryItem = WalletControlledSession;
+export type WalletSessionAuthorization = "wallet-sessions-view" | "wallet-session-revoke";
+export type WalletSessionControlDependencies = Readonly<{
+  fetch: typeof fetch;
+  randomBytes: (length: number) => Promise<Uint8Array>;
+  authorize: (purpose: WalletSessionAuthorization) => Promise<void>;
+  accountSecret: (account: string, assertCurrent: () => void) => Promise<string>;
+  timeoutMs?: number;
 }>;
 
-export type SessionInventoryItem=Readonly<{
-  sessionBinding:string;
-  requestingProduct:string;
-  productClientId:string;
-  bundleId:string;
-  deviceBinding:string;
-  approvalDigest:string;
-  scopes:readonly string[];
-  purpose:string;
-  issuedAt:string;
-  expiresAt:string;
-  active:boolean;
-  inactiveReasons:readonly string[];
-}>;
+const INVENTORY_PATH = "/v2/product-sessions/wallet/sessions";
+const REVOKE_PATH = "/v2/product-sessions/wallet/sessions/revoke";
+const MAX_RESPONSE_BYTES = 1_048_576;
+const INACTIVE_REASONS = new Set(["session-revoked", "device-revoked", "account-revoked", "expired", "issued-in-future"]);
 
-export type DeviceInventoryItem=Readonly<{
-  deviceBinding:string;
-  requestingProduct:string;
-  productClientId:string;
-  bundleId:string;
-  sessionBindings:readonly string[];
-  activeSessionBindings:readonly string[];
-  revoked:boolean;
-}>;
-
-export type WalletSessionInventory=Readonly<{
-  schemaVersion:1;
-  account:string;
-  asOf:string;
-  connectedApps:readonly ConnectedAppInventoryItem[];
-  devices:readonly DeviceInventoryItem[];
-  sessions:readonly SessionInventoryItem[];
-  approvalCount:number;
-}>;
-
-export type WalletGatewayBridgeRequest=Readonly<{
-  method:"POST";
-  path:"/v1/wallet/sessions";
-  contentType:"application/json";
-  body:"{}";
-}>;
-
-export type WalletGatewayBridgeResponse=Readonly<{
-  status:number;
-  body:string;
-}>;
-
-export type WalletGatewayBridge=(request:WalletGatewayBridgeRequest)=>Promise<WalletGatewayBridgeResponse>;
-
-export class WalletSessionInventoryClient{
-  readonly #bridge:WalletGatewayBridge;
-  constructor(bridge:WalletGatewayBridge){if(typeof bridge!=="function")throw new Error("Canonical Wallet Gateway bridge is unavailable");this.#bridge=bridge}
-
-  async load(account:string,now=new Date()):Promise<WalletSessionInventory>{
-    if(!/^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/.test(account))throw new Error("Selected Wallet account is invalid");
-    if(!(now instanceof Date)||!Number.isFinite(now.getTime()))throw new Error("Wallet inventory clock is invalid");
-    const response=await this.#bridge({method:"POST",path:"/v1/wallet/sessions",contentType:"application/json",body:"{}"});
-    if(!Number.isSafeInteger(response?.status)||typeof response?.body!=="string"||response.body.length<2||response.body.length>1_048_576)throw new Error("Canonical Wallet Gateway response is invalid");
-    let value:unknown;try{value=JSON.parse(response.body)}catch{throw new Error("Canonical Wallet Gateway returned non-JSON")};
-    if(response.status!==200)throw new Error(`Canonical Wallet Gateway rejected session inventory (${response.status}): ${gatewayError(value)}`);
-    const payload=exactObject(value,["ok","result","schemaVersion","stateDigest"],"Gateway inventory envelope");
-    if(payload.ok!==true||payload.schemaVersion!==1||!digest(payload.stateDigest))throw new Error("Canonical Wallet Gateway inventory envelope is invalid");
-    const result=parseInventory(payload.result);
-    if(result.account!==account)throw new Error("Canonical Wallet Gateway inventory account does not match the selected Wallet");
-    const asOf=Date.parse(result.asOf);
-    if(asOf>now.getTime()+60_000||now.getTime()-asOf>5*60_000)throw new Error("Canonical Wallet Gateway inventory is stale or issued in the future");
-    return result;
+export class WalletSessionRevocationUnknown extends Error {
+  readonly code = "REVOCATION_UNKNOWN";
+  constructor(readonly sessionBinding: string) {
+    super("Auth has not confirmed the outcome. This session may still be connected. Retry this same session to confirm its revocation.");
   }
 }
 
-function parseInventory(value:unknown):WalletSessionInventory{
-  const input=exactObject(value,["schemaVersion","account","asOf","connectedApps","approvals","devices","sessions"],"Wallet session inventory");
-  if(input.schemaVersion!==1||typeof input.account!=="string"||typeof input.asOf!=="string"||new Date(input.asOf).toISOString()!==input.asOf)throw new Error("Wallet session inventory identity is invalid");
-  const connectedApps=array(input.connectedApps,"connectedApps").map(parseConnectedApp);
-  const approvals=array(input.approvals,"approvals").map(parseApproval);
-  const devices=array(input.devices,"devices").map(parseDevice);
-  const sessions=array(input.sessions,"sessions").map(parseSession);
-  unique(connectedApps.map(item=>`${item.productClientId}\n${item.bundleId}`),"connected App");
-  unique(devices.map(item=>item.deviceBinding),"device");
-  unique(sessions.map(item=>item.sessionBinding),"session");
-  return Object.freeze({schemaVersion:1,account:input.account,asOf:input.asOf,connectedApps:Object.freeze(connectedApps),devices:Object.freeze(devices),sessions:Object.freeze(sessions),approvalCount:approvals.length});
+/** Called only after the user reviews the displayed account and, for revoke, exact session. */
+export class WalletSessionInventoryClient {
+  readonly #dependencies: WalletSessionControlDependencies;
+  readonly #timeoutMs: number;
+  constructor(dependencies: WalletSessionControlDependencies) {
+    for (const field of ["fetch", "randomBytes", "authorize", "accountSecret"] as const) if (typeof dependencies?.[field] !== "function") throw new Error("Wallet session control dependencies are unavailable");
+    this.#timeoutMs = dependencies.timeoutMs ?? 15_000;
+    if (!Number.isInteger(this.#timeoutMs) || this.#timeoutMs < 1_000 || this.#timeoutMs > 30_000) throw new Error("Wallet session control timeout is invalid");
+    this.#dependencies = dependencies;
+  }
+
+  async load(account: WalletAccount, lease: WalletOperationLease): Promise<WalletSessionInventory> {
+    const request = await this.#prepare(account, INVENTORY_PATH, {}, "wallet-sessions-view", lease);
+    const result = await lease.step(() => this.#request(request.requestId, INVENTORY_PATH, request.body, request.proof));
+    return parseInventory(result, account.account, request.proof);
+  }
+
+  async revoke(account: WalletAccount, sessionBinding: string, lease: WalletOperationLease): Promise<WalletSessionControlRevocation> {
+    if (!digest(sessionBinding)) throw new Error("The reviewed session binding is invalid");
+    const request = await this.#prepare(account, REVOKE_PATH, { sessionBinding }, "wallet-session-revoke", lease);
+    // After submission, only an exact, fresh receipt can establish success. A new
+    // biometric action and nonce can safely retry the same target after a lost reply.
+    lease.assert();
+    try {
+      const result = await lease.step(() => this.#request(request.requestId, REVOKE_PATH, request.body, request.proof));
+      return parseRevocation(result, account.account, sessionBinding, request.proof);
+    } catch {
+      lease.assert();
+      throw new WalletSessionRevocationUnknown(sessionBinding);
+    }
+  }
+
+  async #prepare(account: WalletAccount, path: WalletSessionControlPath, value: Readonly<Record<string, unknown>>, purpose: WalletSessionAuthorization, lease: WalletOperationLease) {
+    if (lease.account !== account.account || !accountAddress(account.account)) throw new Error("The reviewed Wallet account does not match this operation");
+    const reviewed = Object.freeze({ account: account.account, accountPublicKey: account.accountPublicKey });
+    const body = canonicalJSON(value);
+    await lease.step(() => this.#dependencies.authorize(purpose));
+    const timeId = `req_${await lease.step(() => this.#randomToken())}`;
+    const timeResult = exactObject(await lease.step(() => this.#request(timeId, "/v2/product-sessions/time", null, null)), ["serverTime"], "Auth time");
+    const issuedAt = canonicalTime(timeResult.serverTime, "Auth time");
+    const nonce = await lease.step(() => this.#randomToken());
+    const proof = await lease.withSecret(() => this.#dependencies.accountSecret(reviewed.account, lease.assert), (secret) => {
+      lease.assert();
+      const identity = walletIdentity(secret);
+      if (identity.account !== reviewed.account || identity.accountPublicKey !== reviewed.accountPublicKey) throw new Error("The signing account changed after review");
+      return createWalletSessionControlProof({ accountSecret: secret, method: "POST", path, bodyDigest: httpBodyDigest(body), nonce, issuedAt, expiresAt: new Date(Date.parse(issuedAt) + 30_000).toISOString() });
+    });
+    return { body, proof, requestId: `req_${nonce}` };
+  }
+
+  async #randomToken(): Promise<string> {
+    const bytes = await this.#dependencies.randomBytes(32);
+    try {
+      if (!(bytes instanceof Uint8Array) || bytes.length !== 32) throw new Error("Secure Wallet randomness is unavailable");
+      return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+    } finally { bytes?.fill(0); }
+  }
+
+  async #request(requestId: string, path: string, body: string | null, proof: WalletSessionControlProof | null): Promise<unknown> {
+    const url = `${WALLET_SESSION_CONTROL_AUDIENCE}${path}`;
+    const headers: Record<string, string> = { accept: "application/json", "x-request-id": requestId };
+    if (body !== null) headers["content-type"] = "application/json";
+    if (proof !== null) headers[WALLET_SESSION_CONTROL_PROOF_HEADER] = encodeWalletSessionControlProofHeader(proof);
+    const controller = new AbortController();
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const timeout = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => { controller.abort(); reject(new Error("Auth timed out. Review and retry when it is available.")); }, this.#timeoutMs);
+    });
+    const read = async () => {
+      let response: Response;
+      try {
+        response = await this.#dependencies.fetch(url, { method: body === null ? "GET" : "POST", headers, body: body ?? undefined, cache: "no-store", credentials: "omit", redirect: "error", signal: controller.signal });
+      } catch { throw new Error("Auth is unavailable. Check your connection and retry."); }
+      if (!response || !Number.isInteger(response.status) || !response.headers || typeof response.headers.get !== "function" || typeof response.text !== "function" || response.redirected || response.url && response.url !== url) throw new Error("Auth returned an invalid response");
+      const contentLength = response.headers.get("content-length");
+      if (!/^application\/json(?:;\s*charset=utf-8)?$/i.test(response.headers.get("content-type") ?? "") || response.headers.get("x-request-id") !== requestId || !/(^|,)\s*no-store\s*(,|$)/i.test(response.headers.get("cache-control") ?? "") || contentLength !== null && (!/^\d+$/.test(contentLength) || Number(contentLength) > MAX_RESPONSE_BYTES)) throw new Error("Auth response verification failed");
+      let text: string;
+      try { text = await response.text(); } catch { throw new Error("The Auth response was interrupted. Retry to obtain a confirmed result."); }
+      if (new TextEncoder().encode(text).length > MAX_RESPONSE_BYTES) throw new Error("Auth response is too large");
+      let payload: unknown;
+      try { payload = JSON.parse(text); } catch { throw new Error("Auth returned an unreadable response"); }
+      if (canonicalJSON(payload) !== text) throw new Error("Auth response is not canonical");
+      if (response.status === 200) {
+        const envelope = exactObject(payload, ["ok", "requestId", "result", "schemaVersion"], "Auth response");
+        if (envelope.ok !== true || envelope.schemaVersion !== 2 || envelope.requestId !== requestId) throw new Error("Auth response binding is invalid");
+        return envelope.result;
+      }
+      const envelope = exactObject(payload, ["error", "ok", "requestId", "schemaVersion"], "Auth rejection");
+      const error = exactObject(envelope.error, ["code", "message"], "Auth rejection");
+      if (envelope.ok !== false || envelope.schemaVersion !== 2 || envelope.requestId !== requestId || typeof error.code !== "string" || !/^[A-Z][A-Z0-9_]{2,63}$/.test(error.code) || typeof error.message !== "string" || error.message.length > 300) throw new Error("Auth rejection binding is invalid");
+      throw new Error(`Auth could not complete the request (${error.code}). Review and retry.`);
+    };
+    try { return await Promise.race([read(), timeout]); }
+    finally { if (timer) clearTimeout(timer); }
+  }
 }
 
-function parseApproval(value:unknown){
-  const item=exactObject(value,["approvalDigest","requestingProduct","productClientId","bundleId","sessionBindings","activeSessionBindings","revoked"],"approval");
-  strings(item,["requestingProduct","productClientId","bundleId"]);if(!digest(item.approvalDigest)||typeof item.revoked!=="boolean")throw new Error("Connected approval entry is invalid");
-  return Object.freeze({approvalDigest:item.approvalDigest,sessionBindings:digests(item.sessionBindings,"sessionBindings"),activeSessionBindings:digests(item.activeSessionBindings,"activeSessionBindings"),revoked:item.revoked});
+function parseInventory(value: unknown, account: string, proof: WalletSessionControlProof): WalletSessionInventory {
+  const result = exactObject(value, ["account", "asOf", "sessions"], "Wallet sessions");
+  if (result.account !== account) throw new Error("Auth inventory account does not match the selected Wallet");
+  const asOf = responseTime(result.asOf, proof);
+  const sessions = array(result.sessions, "Wallet sessions", 10_000).map((item) => parseSession(item, asOf));
+  unique(sessions.map((item) => item.sessionBinding), "sessions");
+  return Object.freeze({ account, asOf, sessions: Object.freeze(sessions) });
 }
 
-function parseConnectedApp(value:unknown):ConnectedAppInventoryItem{
-  const item=exactObject(value,["requestingProduct","productClientId","bundleId","sessionBindings","activeSessionBindings","approvalDigests","deviceBindings","active"],"connected App");
-  strings(item,["requestingProduct","productClientId","bundleId"]);if(typeof item.active!=="boolean")throw new Error("Connected App active state is invalid");
-  return Object.freeze({...item,requestingProduct:item.requestingProduct as string,productClientId:item.productClientId as string,bundleId:item.bundleId as string,sessionBindings:digests(item.sessionBindings,"sessionBindings"),activeSessionBindings:digests(item.activeSessionBindings,"activeSessionBindings"),approvalDigests:digests(item.approvalDigests,"approvalDigests"),deviceBindings:digests(item.deviceBindings,"deviceBindings"),active:item.active});
+function parseSession(value: unknown, asOf: string): SessionInventoryItem {
+  const item = exactObject(value, ["sessionBinding", "productId", "clientId", "displayName", "platform", "applicationId", "origin", "callback", "deviceId", "deviceBinding", "scopes", "issuedAt", "expiresAt", "active", "inactiveReasons"], "Wallet session");
+  if (!digest(item.sessionBinding) || !digest(item.deviceBinding) || typeof item.active !== "boolean") throw new Error("Wallet session identity is invalid");
+  const issuedAt = canonicalTime(item.issuedAt, "Session issue time"), expiresAt = canonicalTime(item.expiresAt, "Session expiry");
+  if (expiresAt <= issuedAt) throw new Error("Wallet session expiry is invalid");
+  const inactiveReasons = textArray(item.inactiveReasons, "Inactive reasons");
+  if (inactiveReasons.some((reason) => !INACTIVE_REASONS.has(reason)) || item.active !== (inactiveReasons.length === 0) || inactiveReasons.includes("expired") !== (expiresAt <= asOf) || inactiveReasons.includes("issued-in-future") !== (issuedAt > asOf)) throw new Error("Wallet session status is inconsistent");
+  const scopes = textArray(item.scopes, "Session permissions");
+  if (scopes.length === 0) throw new Error("Wallet session permissions are missing");
+  return Object.freeze({ sessionBinding: item.sessionBinding, deviceBinding: item.deviceBinding, active: item.active, issuedAt, expiresAt, inactiveReasons, scopes,
+    productId: text(item.productId), clientId: text(item.clientId), displayName: text(item.displayName), platform: text(item.platform), applicationId: text(item.applicationId), origin: text(item.origin, 512), callback: text(item.callback, 512), deviceId: text(item.deviceId) });
 }
 
-function parseDevice(value:unknown):DeviceInventoryItem{
-  const item=exactObject(value,["deviceBinding","requestingProduct","productClientId","bundleId","productDeviceAlgorithm","productDeviceKey","sessionBindings","activeSessionBindings","revoked"],"device");
-  strings(item,["requestingProduct","productClientId","bundleId"]);if(!digest(item.deviceBinding)||item.productDeviceAlgorithm!=="p256-sha256"||typeof item.productDeviceKey!=="string"||typeof item.revoked!=="boolean")throw new Error("Connected device entry is invalid");
-  return Object.freeze({deviceBinding:item.deviceBinding,requestingProduct:item.requestingProduct as string,productClientId:item.productClientId as string,bundleId:item.bundleId as string,sessionBindings:digests(item.sessionBindings,"sessionBindings"),activeSessionBindings:digests(item.activeSessionBindings,"activeSessionBindings"),revoked:item.revoked});
+function parseRevocation(value: unknown, account: string, sessionBinding: string, proof: WalletSessionControlProof): WalletSessionControlRevocation {
+  const result = exactObject(value, ["account", "sessionBinding", "revoked", "alreadyRevoked", "asOf"], "Session revocation receipt");
+  if (result.account !== account || result.sessionBinding !== sessionBinding || result.revoked !== true || typeof result.alreadyRevoked !== "boolean") throw new Error("The revocation receipt does not match the reviewed account and session");
+  return Object.freeze({ account, sessionBinding, revoked: true, alreadyRevoked: result.alreadyRevoked, asOf: responseTime(result.asOf, proof) });
 }
 
-function parseSession(value:unknown):SessionInventoryItem{
-  const item=exactObject(value,["sessionBinding","requestingProduct","productClientId","bundleId","callback","productDeviceAlgorithm","productDeviceKey","deviceBinding","approvalDigest","scopes","purpose","issuedAt","expiresAt","active","inactiveReasons"],"session");
-  strings(item,["requestingProduct","productClientId","bundleId","purpose","issuedAt","expiresAt"]);if(!digest(item.sessionBinding)||!digest(item.deviceBinding)||!digest(item.approvalDigest)||typeof item.active!=="boolean")throw new Error("Connected session entry is invalid");
-  return Object.freeze({sessionBinding:item.sessionBinding,requestingProduct:item.requestingProduct as string,productClientId:item.productClientId as string,bundleId:item.bundleId as string,deviceBinding:item.deviceBinding,approvalDigest:item.approvalDigest,scopes:texts(item.scopes,"scopes"),purpose:item.purpose as string,issuedAt:item.issuedAt as string,expiresAt:item.expiresAt as string,active:item.active,inactiveReasons:texts(item.inactiveReasons,"inactiveReasons")});
+function responseTime(value: unknown, proof: WalletSessionControlProof): string {
+  const at = canonicalTime(value, "Auth response time");
+  // Compare authority instants only. Device time cannot substitute for Auth time.
+  if (at < proof.issuedAt || at >= proof.expiresAt) throw new Error("Auth response is stale or outside this proof's validity");
+  return at;
 }
-
-function exactObject(value:unknown,fields:readonly string[],label:string):Record<string,unknown>{if(!object(value)||Object.keys(value).sort().join("\n")!==[...fields].sort().join("\n"))throw new Error(`${label} fields are invalid`);return value}
-function object(value:unknown):value is Record<string,unknown>{return typeof value==="object"&&value!==null&&!Array.isArray(value)}
-function array(value:unknown,label:string):unknown[]{if(!Array.isArray(value)||value.length>250)throw new Error(`${label} is invalid`);return value}
-function texts(value:unknown,label:string):readonly string[]{const items=array(value,label);if(items.some(item=>typeof item!=="string"||item.length<1||item.length>500))throw new Error(`${label} is invalid`);return Object.freeze(items as string[])}
-function digests(value:unknown,label:string):readonly string[]{const items=texts(value,label);if(items.some(item=>!digest(item)))throw new Error(`${label} is invalid`);unique(items,label);return items}
-function digest(value:unknown):value is string{return typeof value==="string"&&/^[0-9a-f]{64}$/.test(value)}
-function strings(value:Record<string,unknown>,fields:readonly string[]){if(fields.some(field=>typeof value[field]!=="string"||(value[field] as string).length<1||(value[field] as string).length>500))throw new Error("Wallet session inventory text field is invalid")}
-function unique(values:readonly string[],label:string){if(new Set(values).size!==values.length)throw new Error(`Wallet session inventory contains duplicate ${label} entries`)}
-function gatewayError(value:unknown){if(!object(value)||!object(value.error)||typeof value.error.code!=="string")return"unknown error";return value.error.code}
+function canonicalTime(value: unknown, label: string): string { if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value) || !Number.isFinite(Date.parse(value)) || new Date(value).toISOString() !== value) throw new Error(`${label} is invalid`); return value; }
+function exactObject(value: unknown, fields: readonly string[], label: string): Record<string, unknown> { if (typeof value !== "object" || value === null || Array.isArray(value) || Object.keys(value).sort().join("\n") !== [...fields].sort().join("\n")) throw new Error(`${label} fields are invalid`); return value as Record<string, unknown>; }
+function array(value: unknown, label: string, limit = 100): unknown[] { if (!Array.isArray(value) || value.length > limit) throw new Error(`${label} is invalid`); return value; }
+function text(value: unknown, limit = 500): string { if (typeof value !== "string" || value.length === 0 || value.length > limit || /[\u0000-\u001f\u007f]/.test(value)) throw new Error("Wallet session text is invalid"); return value; }
+function textArray(value: unknown, label: string): readonly string[] { const values = array(value, label).map((item) => text(item)); unique(values, label); return Object.freeze(values); }
+function digest(value: unknown): value is string { return typeof value === "string" && /^[0-9a-f]{64}$/.test(value); }
+function accountAddress(value: unknown): value is string { return typeof value === "string" && /^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/.test(value); }
+function unique(values: readonly string[], label: string): void { if (new Set(values).size !== values.length) throw new Error(`Auth returned duplicate ${label}`); }
