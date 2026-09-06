@@ -110,13 +110,16 @@ if (phase === "prepare") {
   const executable = join(app, info.CFBundleExecutable), architectures = command("/usr/bin/lipo", ["-archs", executable]).split(/\s+/);
   assert.deepEqual([...architectures].sort(), ["arm64", "x86_64"]);
   command("/usr/bin/codesign", ["--verify", "--deep", "--strict", app]);
+  // Pinned Xcode 26.3 supplies this local-only Simulator prefix without an
+  // Apple development team. It is not a device provisioning identity.
+  const simulatorApplicationIdentifier = `FAKETEAMID.${bundle}`;
   const simulatorIdentity = [];
   for (const architecture of architectures) {
     const xml = simulatorEntitlementSection(executable, architecture), path = join(proof, `simulator-entitlements-${architecture}.plist`);
     writeFileSync(path, xml); const entitlements = plist(path);
-    assert.equal(entitlements["application-identifier"], bundle, "Simulator requires its own exact application identity");
-    if (entitlements["keychain-access-groups"] !== undefined) assert.deepEqual(entitlements["keychain-access-groups"], [bundle]);
-    simulatorIdentity.push({ architecture, applicationIdentifier: bundle, entitlementsSha256: sha(xml) });
+    assert.equal(entitlements["application-identifier"], simulatorApplicationIdentifier, "Simulator requires its own exact application identity");
+    if (entitlements["keychain-access-groups"] !== undefined) assert.deepEqual(entitlements["keychain-access-groups"], [simulatorApplicationIdentifier]);
+    simulatorIdentity.push({ architecture, applicationIdentifier: simulatorApplicationIdentifier, entitlementsSha256: sha(xml) });
   }
   // CocoaPods may add generated build integration to the Xcode project. Capture
   // that exact diff and lockfile; all other committed application/SDK bytes stay fixed.
