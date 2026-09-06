@@ -16,7 +16,8 @@ function base64UrlToBytes(value,label){if(typeof value!=="string"||value.length<
 function passwordBytes(password){if(typeof password!=="string"||password.length<12||password.length>256)fail("VAULT_PASSWORD_INVALID","Vault password must contain 12 to 256 characters.");return encoder.encode(password)}
 function validSecret(secretHex){if(typeof secretHex!=="string"||!HEX_SECRET.test(secretHex))fail("VAULT_SECRET_INVALID","Recovery key must be exact lowercase 32-byte hex.");const bytes=hexToBytes(secretHex);if(!secp256k1.utils.isValidSecretKey(bytes))fail("VAULT_SECRET_INVALID","Recovery key is outside the secp256k1 range.");return bytes}
 function iso(value){if(typeof value!=="string"||!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u.test(value)||new Date(value).toISOString()!==value)fail("VAULT_TAMPERED","Vault creation time is invalid.");return value}
-function header(record){return encoder.encode(JSON.stringify({version:record.version,source:record.source,account:record.account,publicKey:record.publicKey,kdf:record.kdf,createdAt:record.createdAt}))}
+// Version 1 AAD uses the original writer's field order, independent of browser storage serialization.
+function header(record){return encoder.encode(JSON.stringify({version:record.version,source:record.source,account:record.account,publicKey:record.publicKey,kdf:{name:record.kdf.name,hash:record.kdf.hash,iterations:record.kdf.iterations,salt:record.kdf.salt},createdAt:record.createdAt}))}
 async function keyFor(password,salt,iterations,cryptoProvider){const base=await cryptoProvider.subtle.importKey("raw",passwordBytes(password),"PBKDF2",false,["deriveKey"]);return cryptoProvider.subtle.deriveKey({name:"PBKDF2",hash:"SHA-256",salt,iterations},base,{name:"AES-GCM",length:256},false,["encrypt","decrypt"])}
 
 export function extensionIdentity(secretHex){
