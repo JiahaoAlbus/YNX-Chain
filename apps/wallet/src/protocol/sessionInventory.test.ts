@@ -37,11 +37,11 @@ type FixtureOptions = {
 };
 function fixture(options: FixtureOptions = {}) {
   const calls: string[] = [], proofs: WalletSessionControlProof[] = [], requests: { url: string; init?: RequestInit }[] = [];
-  let randomCount = 0, revoked = false;
+  let randomCount = 0, timeCount = 0, revoked = false, authorityTime = NOW;
   const stage = async (name: string) => { calls.push(name); await options.stage?.(name); };
   const client = new WalletSessionInventoryClient({
     authorize: async (purpose) => { await stage(purpose); },
-    randomBytes: async (length) => { await stage(++randomCount % 2 ? "time-request-id" : "nonce"); return Uint8Array.from(randomBytes(length)); },
+    randomBytes: async (length) => { await stage(["time-request-id", "nonce", "fresh-time-request-id"][randomCount++ % 3]!); return Uint8Array.from(randomBytes(length)); },
     accountSecret: async (account, assertCurrent) => { assert.equal(account, ACCOUNT.account); assertCurrent(); await stage("secret"); assertCurrent(); return options.secret ?? SECRET; },
     fetch: async (input, init) => {
       const url = String(input); requests.push({ url, init });
@@ -53,19 +53,19 @@ function fixture(options: FixtureOptions = {}) {
       const path = new URL(url).pathname;
       if (path.endsWith("/time")) {
         assert.equal(init?.method, "GET"); assert.equal(init.body, undefined); assert.equal(headers.get("x-ynx-wallet-control-proof-v2"), null);
-        await stage("time"); return response({ serverTime: options.clock ?? NOW }, requestId);
+        await stage(++timeCount % 2 ? "time" : "fresh-time"); const clock = typeof options.clock === "function" ? options.clock() : options.clock ?? NOW; authorityTime = clock as string; return response({ serverTime: clock }, requestId);
       }
       assert.equal(init?.method, "POST"); assert.equal(headers.get("content-type"), "application/json");
       const proof = decodeWalletSessionControlProofHeader(headers.get("x-ynx-wallet-control-proof-v2"));
-      verifyWalletSessionControlProof(proof, { method: "POST", path: path as typeof INVENTORY, bodyDigest: httpBodyDigest(init!.body as string) }, new Date(NOW));
+      verifyWalletSessionControlProof(proof, { method: "POST", path: path as typeof INVENTORY, bodyDigest: httpBodyDigest(init!.body as string) }, new Date(authorityTime));
       assert.equal(proof.account, ACCOUNT.account); assert.equal(proof.accountPublicKey, ACCOUNT.accountPublicKey);
       assert.equal(Date.parse(proof.expiresAt) - Date.parse(proof.issuedAt), 30_000);
       proofs.push(proof); await stage("post");
       if (options.result) return options.result(path, requestId, proof);
-      if (path === INVENTORY) { assert.equal(init?.body, "{}"); return response(inventory(), requestId); }
+      if (path === INVENTORY) { assert.equal(init?.body, "{}"); return response({ ...inventory(), asOf: authorityTime }, requestId); }
       assert.equal(path, REVOKE); assert.equal(init?.body, canonicalJSON({ sessionBinding: SESSION }));
       const alreadyRevoked = revoked; revoked = true;
-      return response({ account: ACCOUNT.account, sessionBinding: SESSION, revoked: true, alreadyRevoked, asOf: NOW }, requestId);
+      return response({ account: ACCOUNT.account, sessionBinding: SESSION, revoked: true, alreadyRevoked, asOf: authorityTime }, requestId);
     },
   });
   return { client, calls, proofs, requests };
@@ -79,9 +79,9 @@ test("Connected Apps requires an explicit authorized call and signs only the sel
   const result = await useLease(scope, (lease) => f.client.load(ACCOUNT, lease));
   assert.equal(result.account, ACCOUNT.account); assert.equal(result.sessions[0]?.displayName, "YNX Creator Studio");
   assert.equal(result.sessions[0]?.active, true); assert.equal(Object.isFrozen(result.sessions[0]), true); assert.equal(Object.isFrozen(result.sessions), true);
-  assert.deepEqual(f.calls, ["wallet-sessions-view", "time-request-id", "time", "nonce", "secret", "post"]);
+  assert.deepEqual(f.calls, ["wallet-sessions-view", "time-request-id", "time", "nonce", "fresh-time-request-id", "secret", "fresh-time", "post"]);
   assert.equal(f.proofs[0]?.issuedAt, NOW); // Deliberately unrelated to the actual device date.
-  assert.equal(f.requests.length, 2);
+  assert.equal(f.requests.length, 3);
 });
 
 test("legal native app origins and scheme callbacks remain visible alongside Web sessions", async () => {
@@ -156,7 +156,7 @@ test("revocation uses its own visible authorization and exact target, without au
   const { scope } = unlocked(), f = fixture();
   const result = await useLease(scope, (lease) => f.client.revoke(ACCOUNT, SESSION, lease));
   assert.deepEqual(result, { account: ACCOUNT.account, sessionBinding: SESSION, revoked: true, alreadyRevoked: false, asOf: NOW });
-  assert.deepEqual(f.calls, ["wallet-session-revoke", "time-request-id", "time", "nonce", "secret", "post"]);
+  assert.deepEqual(f.calls, ["wallet-session-revoke", "time-request-id", "time", "nonce", "fresh-time-request-id", "secret", "fresh-time", "post"]);
   assert.equal(f.proofs.length, 1); assert.equal(f.proofs[0]?.path, REVOKE);
   const second = await useLease(scope, (lease) => f.client.revoke(ACCOUNT, SESSION, lease));
   assert.equal(second.alreadyRevoked, true); assert.notEqual(f.proofs[0]?.nonce, f.proofs[1]?.nonce);
@@ -192,7 +192,7 @@ test("a rejected biometric or unavailable clock before submission does not repor
 });
 
 test("close, background and account switch at every awaited stage prevent late signing, POST or UI success", async () => {
-  for (const action of ["load", "revoke"] as const) for (const cancelAt of [action === "load" ? "wallet-sessions-view" : "wallet-session-revoke", "time", "nonce", "secret", "post"]) for (const cancellation of ["close", "background", "switch"]) {
+  for (const action of ["load", "revoke"] as const) for (const cancelAt of [action === "load" ? "wallet-sessions-view" : "wallet-session-revoke", "time", "nonce", "fresh-time-request-id", "secret", "fresh-time", "post"]) for (const cancellation of ["close", "background", "switch"]) {
     const reached = deferred<void>(), release = deferred<void>(), { operations, scope } = unlocked();
     const f = fixture({ stage: async (name) => { if (name === cancelAt) { reached.resolve(); await release.promise; } } });
     const operation = useLease<unknown>(scope, (lease) => action === "load" ? f.client.load(ACCOUNT, lease) : f.client.revoke(ACCOUNT, SESSION, lease));
@@ -213,4 +213,26 @@ test("the request timeout also covers an interrupted body stream", async () => {
     const result = response(inventory(), id); Object.defineProperty(result, "text", { value: () => new Promise<string>(() => {}) }); return result;
   }, randomBytes: async (length) => Uint8Array.from(randomBytes(length)), authorize: async () => {}, accountSecret: async () => SECRET, timeoutMs: 1_000 });
   await assert.rejects(useLease(scope, (lease) => client.load(ACCOUNT, lease)), /timed out/);
+});
+
+test("OS key decryption taking over 30 seconds still signs with the newly fetched authority time", async () => {
+  let authorityTime = NOW;
+  const { scope } = unlocked();
+  const f = fixture({ clock: () => authorityTime, stage: async (name) => {
+    if (name === "secret") authorityTime = "2026-07-26T08:00:45.000Z";
+  } });
+  const result = await useLease(scope, lease => f.client.load(ACCOUNT, lease));
+  assert.equal(result.asOf, authorityTime);
+  assert.equal(f.proofs[0]?.issuedAt, authorityTime);
+  assert.equal(f.proofs[0]?.expiresAt, "2026-07-26T08:01:15.000Z");
+  assert.equal(f.requests.filter(request => request.init?.method === "GET").length, 2);
+});
+
+test("unavailable or cancelled post-decryption clock does not sign or POST a control request", async () => {
+  const unavailable = fixture({ stage: async name => { if (name === "fresh-time") throw new Error("offline after OS decryption"); } });
+  const { scope } = unlocked();
+  await assert.rejects(useLease(scope, lease => unavailable.client.revoke(ACCOUNT, SESSION, lease)), error => error instanceof Error && !(error instanceof WalletSessionRevocationUnknown));
+  assert.equal(unavailable.calls.includes("secret"), true);
+  assert.equal(unavailable.proofs.length, 0);
+  assert.equal(unavailable.requests.some(request => request.init?.method === "POST"), false);
 });

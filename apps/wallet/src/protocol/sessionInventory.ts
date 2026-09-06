@@ -68,16 +68,25 @@ export class WalletSessionInventoryClient {
     const body = canonicalJSON(value);
     await lease.step(() => this.#dependencies.authorize(purpose));
     const timeId = `req_${await lease.step(() => this.#randomToken())}`;
-    const timeResult = exactObject(await lease.step(() => this.#request(timeId, "/v2/product-sessions/time", null, null)), ["serverTime"], "Auth time");
-    const issuedAt = canonicalTime(timeResult.serverTime, "Auth time");
+    // Fail before unlocking key storage when Auth is unavailable. This clock is
+    // only a preflight: OS decryption/migration prompts may take over 30 seconds.
+    await this.#authoritativeTime(timeId, lease);
     const nonce = await lease.step(() => this.#randomToken());
-    const proof = await lease.withSecret(() => this.#dependencies.accountSecret(reviewed.account, lease.assert), (secret) => {
+    const freshTimeId = `req_${await lease.step(() => this.#randomToken())}`;
+    const proof = await lease.withSecret(() => this.#dependencies.accountSecret(reviewed.account, lease.assert), async (secret) => {
       lease.assert();
       const identity = walletIdentity(secret);
       if (identity.account !== reviewed.account || identity.accountPublicKey !== reviewed.accountPublicKey) throw new Error("The signing account changed after review");
+      const issuedAt = await this.#authoritativeTime(freshTimeId, lease);
+      lease.assert();
       return createWalletSessionControlProof({ accountSecret: secret, method: "POST", path, bodyDigest: httpBodyDigest(body), nonce, issuedAt, expiresAt: new Date(Date.parse(issuedAt) + 30_000).toISOString() });
     });
     return { body, proof, requestId: `req_${nonce}` };
+  }
+
+  async #authoritativeTime(requestId: string, lease: WalletOperationLease): Promise<string> {
+    const result = exactObject(await lease.step(() => this.#request(requestId, "/v2/product-sessions/time", null, null)), ["serverTime"], "Auth time");
+    return canonicalTime(result.serverTime, "Auth time");
   }
 
   async #randomToken(): Promise<string> {

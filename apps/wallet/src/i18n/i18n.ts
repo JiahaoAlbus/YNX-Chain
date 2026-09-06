@@ -49,3 +49,125 @@ export function formatYNXT(locale:WalletLocale,value:number):string{return `${fo
 export function plural(locale:WalletLocale,count:number,forms:{one:string;other:string}):string{return new Intl.PluralRules(locale).select(count)==="one"?forms.one:forms.other}
 export function allMessages():Readonly<Record<WalletLocale,Readonly<Record<MessageKey,string>>>>{return Object.fromEntries(SUPPORTED_LOCALES.map((locale)=>[locale,{...MESSAGES[locale],...UI_MESSAGES[locale]}])) as Record<WalletLocale,Record<MessageKey,string>>}
 export function localizeError(locale:WalletLocale,value:unknown):string{const detail=value instanceof Error?value.message:String(value);return `${translate(locale,"errorPrefix")}: ${detail}`}
+
+// Expanded account/session UI coverage is currently translated for these two
+// locales. Other locales retain their existing English fallback explicitly.
+const DETAIL_MESSAGES={
+  "This account is already stored in Wallet":["此账户已保存在钱包中","هذا الحساب محفوظ في المحفظة بالفعل"],
+  "Confirm below to restore key protection for this exact existing account. Its label, account list and app sessions will not be replaced.":["请在下方确认，为此已有账户恢复密钥保护。其名称、账户列表和应用会话不会被替换。","أكد أدناه لاستعادة حماية المفتاح لهذا الحساب الموجود تحديدًا. لن يُستبدل اسمه أو قائمة الحسابات أو جلسات التطبيقات."],
+  "Ordinary import cannot replace this account's protected key. Open account recovery and enter the offline key again to review an explicit restoration.":["普通导入不能替换此账户的受保护密钥。请打开账户恢复，重新输入离线密钥，检查并确认恢复操作。","لا يمكن للاستيراد العادي استبدال المفتاح المحمي لهذا الحساب. افتح استرداد الحساب وأدخل المفتاح المحفوظ دون اتصال مجددًا لمراجعة الاسترداد وتأكيده."],
+  "Restore key protection for this existing account":["恢复此已有账户的密钥保护","استعادة حماية المفتاح لهذا الحساب الموجود"],
+  "Open account recovery":["打开账户恢复","فتح استرداد الحساب"],
+  "Key protection needs recovery":["需要恢复密钥保护","يجب استرداد حماية المفتاح"],
+  "Your public account is still stored. Restore its protected key with the matching offline recovery key. App sessions are not restored or revoked by this action.":["你的公开账户仍保存在钱包中。请使用匹配的离线恢复密钥，恢复受保护的密钥。此操作不会恢复或撤销应用会话。","لا يزال حسابك العام محفوظًا. استعد مفتاحه المحمي باستخدام مفتاح الاسترداد المطابق المحفوظ دون اتصال. لا يستعيد هذا الإجراء جلسات التطبيقات ولا يلغيها."],
+  "This account's protected key is unavailable or biometric enrollment changed. Restore it with its offline recovery key; the public account has been retained.":["此账户的受保护密钥不可用，或生物识别登记已更改。请使用其离线恢复密钥恢复；公开账户已保留。","المفتاح المحمي لهذا الحساب غير متاح أو تغيّر تسجيل المقاييس الحيوية. استعده بمفتاح الاسترداد المحفوظ دون اتصال؛ لقد تم الاحتفاظ بالحساب العام."],
+  "Recover Wallet":["恢复钱包","استرداد المحفظة"],
+  "Import account":["导入账户","استيراد حساب"],
+  "Imported account":["导入的账户","الحساب المستورد"],
+  "Replacement-device recovery restores only the native account. Connected Apps, sessions, device approvals and audit history must be re-created.":["在替换设备上恢复时，仅恢复原生账户。应用连接、会话、设备授权和审计历史需要重新建立。","يستعيد الاسترداد على جهاز بديل الحساب الأصلي فقط. يجب إنشاء اتصالات التطبيقات والجلسات وموافقات الأجهزة وسجل التدقيق من جديد."],
+  "Enter a 64-character YNX recovery key. Import requires system biometrics and does not restore product device sessions.":["输入 64 个字符的 YNX 恢复密钥。导入需要系统生物识别，不会恢复产品的设备会话。","أدخل مفتاح استرداد YNX المكوّن من 64 حرفًا. يتطلب الاستيراد المقاييس الحيوية للنظام ولا يستعيد جلسات أجهزة المنتجات."],
+  "Account label":["账户名称","اسم الحساب"],
+  "Recovery key":["恢复密钥","مفتاح الاسترداد"],
+  "Recover into secure storage":["恢复到安全存储","الاسترداد إلى التخزين الآمن"],
+  "Import into secure storage":["导入到安全存储","الاستيراد إلى التخزين الآمن"],
+  "Wallet Center":["钱包中心","مركز المحفظة"],
+  "ASSETS / ACTIVITY":["资产 / 活动","الأصول / النشاط"],
+  "YNXT · loading":["YNXT · 加载中","YNXT · جارٍ التحميل"],
+  "YNXT · no account record":["YNXT · 暂无账户记录","YNXT · لا يوجد سجل للحساب"],
+  "YNXT · unavailable":["YNXT · 暂不可用","YNXT · غير متاح"],
+  "Loading balance and nonce…":["正在加载余额和交易序号…","جارٍ تحميل الرصيد ورقم المعاملة…"],
+  "This address has no on-chain account record yet. Receive testnet YNXT to get started. Balance and nonce are not available yet.":["此地址尚无链上账户记录。接收测试网 YNXT 后即可开始使用。目前无法确认余额和交易序号。","لا يوجد سجل على السلسلة لهذا العنوان بعد. استلم YNXT على شبكة الاختبار للبدء. الرصيد ورقم المعاملة غير متاحين بعد."],
+  "Balance unavailable":["余额暂不可用","الرصيد غير متاح"],
+  "Authoritative nonce {nonce} on ynx_6423-1.":["ynx_6423-1 已确认的交易序号：{nonce}。","رقم المعاملة المؤكد على ynx_6423-1: {nonce}."],
+  "Activity · loading":["活动 · 加载中","النشاط · جارٍ التحميل"],
+  "Loading recent chain transactions…":["正在加载最近的链上交易…","جارٍ تحميل المعاملات الأخيرة على السلسلة…"],
+  "Activity · unavailable":["活动 · 暂不可用","النشاط · غير متاح"],
+  "Recent transactions could not be loaded.":["无法加载最近的交易。","تعذر تحميل المعاملات الأخيرة."],
+  "Activity · empty":["活动 · 暂无记录","النشاط · لا توجد سجلات"],
+  "No matching account activity appears in the latest 25 chain transactions.":["最近 25 笔链上交易中没有此账户的活动记录。","لا يظهر نشاط لهذا الحساب ضمن آخر 25 معاملة على السلسلة."],
+  "Received":["已接收","مستلم"],
+  "Sent":["已发送","مرسل"],
+  "fee {fee} · nonce {nonce}":["费用 {fee} · 交易序号 {nonce}","الرسوم {fee} · رقم المعاملة {nonce}"],
+  "Refresh balance and activity":["刷新余额和活动","تحديث الرصيد والنشاط"],
+  "Open Authorization Audit":["打开授权审计","فتح سجل التفويض"],
+  "RECOVERY / SECURITY / NETWORK":["恢复 / 安全 / 网络","الاسترداد / الأمان / الشبكة"],
+  "Recovery":["账户恢复","الاسترداد"],
+  "Your offline key restores this account. Each app still needs its own sign-in approval. You can review existing app sessions above.":["离线密钥可恢复此账户。每个应用仍需单独批准登录。你可以在上方查看现有应用会话。","يستعيد مفتاحك المحفوظ دون اتصال هذا الحساب. لا يزال كل تطبيق بحاجة إلى موافقة تسجيل دخول مستقلة. يمكنك مراجعة جلسات التطبيقات الحالية أعلاه."],
+  "Security":["安全","الأمان"],
+  "Wallet locks in the background. Viewing app sessions, revoking a session and using a private key each require system biometrics.":["钱包进入后台时会锁定。查看应用会话、撤销会话和使用私钥均需要系统生物识别。","تُقفل المحفظة في الخلفية. يتطلب عرض جلسات التطبيقات وإلغاء جلسة واستخدام مفتاح خاص المقاييس الحيوية للنظام في كل مرة."],
+  "YNX testnet · ynx_6423-1 · native YNXT · rpc.ynxweb4.com. EVM chain ID 6423 is available in the compatibility view.":["YNX 测试网 · ynx_6423-1 · 原生 YNXT · rpc.ynxweb4.com。EVM 兼容视图使用链 ID 6423。","شبكة اختبار YNX · ynx_6423-1 · YNXT الأصلي · rpc.ynxweb4.com. يتوفر معرّف سلسلة EVM رقم 6423 في عرض التوافق."],
+  "CONNECTED APPS / SESSIONS / DEVICES":["已连接应用 / 会话 / 设备","التطبيقات المتصلة / الجلسات / الأجهزة"],
+  "Connected Apps, Sessions and Devices":["已连接应用、会话和设备","التطبيقات المتصلة والجلسات والأجهزة"],
+  "Wallet account":["钱包账户","حساب المحفظة"],
+  "Session revoked":["会话已撤销","تم إلغاء الجلسة"],
+  "Review session revocation":["确认要撤销的会话","مراجعة إلغاء الجلسة"],
+  "App":["应用","التطبيق"],
+  "Device":["设备","الجهاز"],
+  "Session":["会话","الجلسة"],
+  "Issued / expires":["创建 / 到期时间","تاريخ الإنشاء / الانتهاء"],
+  "Auth confirmed this session was already revoked":["Auth 已确认此会话此前已撤销","أكد Auth أن هذه الجلسة أُلغيت سابقًا"],
+  "Auth confirmed revocation":["Auth 已确认撤销","أكد Auth الإلغاء"],
+  "Confirmed at {asOf}. This session can no longer authorize app requests. Other sessions keep their own status.":["确认时间：{asOf}。此会话无法再授权应用请求。其他会话的状态保持独立。","تم التأكيد في {asOf}. لم يعد بإمكان هذه الجلسة تفويض طلبات التطبيق. تحتفظ الجلسات الأخرى بحالتها المستقلة."],
+  "Revoke this app session":["撤销此应用会话","إلغاء جلسة هذا التطبيق"],
+  "After your biometric confirmation, Wallet will sign a request to revoke only the session shown above. Other app sessions and your assets are unaffected.":["通过生物识别确认后，钱包将签署请求，仅撤销上方显示的会话。其他应用会话和你的资产不受影响。","بعد التأكيد بالمقاييس الحيوية، ستوقّع المحفظة طلبًا لإلغاء الجلسة المعروضة أعلاه فقط. لن تتأثر جلسات التطبيقات الأخرى أو أصولك."],
+  "Revocation is not confirmed. Retry this same session to check the outcome.":["撤销尚未确认。请对同一会话重试，以确认结果。","لم يتم تأكيد الإلغاء. أعد المحاولة للجلسة نفسها للتحقق من النتيجة."],
+  "Confirming with Auth…":["正在等待 Auth 确认…","جارٍ التأكيد مع Auth…"],
+  "Retry this session revocation":["重试撤销此会话","إعادة محاولة إلغاء هذه الجلسة"],
+  "Confirm session revocation":["确认撤销会话","تأكيد إلغاء الجلسة"],
+  "Back to Connected Apps":["返回已连接应用","العودة إلى التطبيقات المتصلة"],
+  "View your connected apps":["查看已连接的应用","عرض تطبيقاتك المتصلة"],
+  "Use your fingerprint or Face ID to let Wallet sign a request for this account's app sessions. This does not grant any app permission to use your assets.":["使用指纹或面容 ID，让钱包签署此账户的应用会话查询请求。这不会授予任何应用使用你资产的权限。","استخدم بصمتك أو Face ID للسماح للمحفظة بتوقيع طلب لعرض جلسات تطبيقات هذا الحساب. لا يمنح ذلك أي تطبيق إذنًا لاستخدام أصولك."],
+  "Connected Apps · loading":["已连接应用 · 加载中","التطبيقات المتصلة · جارٍ التحميل"],
+  "Confirm system biometrics, then wait for Auth to return this account's sessions.":["完成系统生物识别后，请等待 Auth 返回此账户的会话。","أكد المقاييس الحيوية للنظام، ثم انتظر أن يعيد Auth جلسات هذا الحساب."],
+  "Connected Apps · unavailable":["已连接应用 · 暂不可用","التطبيقات المتصلة · غير متاحة"],
+  "Auth could not confirm your sessions. Try again.":["Auth 无法确认你的会话，请重试。","تعذر على Auth تأكيد جلساتك. أعد المحاولة."],
+  "Last checked with Auth":["上次经 Auth 确认","آخر تحقق مع Auth"],
+  "{count} sessions · {devices} app devices":["会话：{count} · 应用设备：{devices}","الجلسات: {count} · أجهزة التطبيقات: {devices}"],
+  "No connected app sessions":["暂无已连接的应用会话","لا توجد جلسات تطبيقات متصلة"],
+  "Auth returned no app sessions for this account at the time shown above.":["在上方所示时间，Auth 返回此账户没有应用会话。","لم يُرجع Auth أي جلسات تطبيقات لهذا الحساب في الوقت الموضح أعلاه."],
+  "Active at last check":["上次确认时有效","نشطة عند آخر تحقق"],
+  "Inactive at last check":["上次确认时无效","غير نشطة عند آخر تحقق"],
+  "Expires {expiresAt}":["到期时间：{expiresAt}","تنتهي في {expiresAt}"],
+  "Review {name} session":["查看 {name} 的会话","مراجعة جلسة {name}"],
+  "Loading Connected Apps…":["正在加载已连接应用…","جارٍ تحميل التطبيقات المتصلة…"],
+  "Retry Connected Apps":["重试加载已连接应用","إعادة محاولة تحميل التطبيقات المتصلة"],
+  "Refresh Connected Apps":["刷新已连接应用","تحديث التطبيقات المتصلة"],
+  "Show Connected Apps":["查看已连接应用","إظهار التطبيقات المتصلة"],
+  "Device revoked":["设备已撤销","تم إلغاء الجهاز"],
+  "Account access revoked":["账户访问已撤销","تم إلغاء الوصول إلى الحساب"],
+  "Expired":["已到期","منتهية الصلاحية"],
+  "Not yet active":["尚未生效","لم تصبح نشطة بعد"],
+  "System language is detected on first launch. A manual choice is stored locally and survives restart.":["首次启动时会检测系统语言。手动选择会保存在此设备上，重启后仍然有效。","تُكتشف لغة النظام عند التشغيل لأول مرة. يُحفظ الاختيار اليدوي محليًا ويبقى بعد إعادة التشغيل."],
+  "Text follows the device font scale.":["文字大小跟随设备字体设置。","يتبع حجم النص إعداد حجم الخط في الجهاز."],
+  "High contrast":["高对比度","تباين مرتفع"],
+  "System contrast":["系统对比度","تباين النظام"],
+  "reduced motion":["减少动态效果","حركة مخفضة"],
+  "standard motion":["标准动态效果","حركة قياسية"],
+  "dark appearance":["深色外观","مظهر داكن"],
+  "light appearance":["浅色外观","مظهر فاتح"],
+  "Accessibility state":["辅助功能状态","حالة إمكانية الوصول"],
+  "Biometric authorization was cancelled":["已取消生物识别授权","أُلغي التفويض بالمقاييس الحيوية"],
+  "Biometric authorization failed":["生物识别授权失败","فشل التفويض بالمقاييس الحيوية"],
+  "Auth timed out. Review and retry when it is available.":["Auth 请求超时。请在服务可用时检查并重试。","انتهت مهلة طلب Auth. راجع الطلب وأعد المحاولة عندما تتاح الخدمة."],
+  "Auth is unavailable. Check your connection and retry.":["Auth 暂不可用。请检查网络连接后重试。","Auth غير متاح. تحقق من اتصالك وأعد المحاولة."],
+  "The Auth response was interrupted. Retry to obtain a confirmed result.":["Auth 响应中断。请重试以获取已确认的结果。","انقطعت استجابة Auth. أعد المحاولة للحصول على نتيجة مؤكدة."],
+  "Auth has not confirmed the outcome. This session may still be connected. Retry this same session to confirm its revocation.":["Auth 尚未确认结果，此会话可能仍处于连接状态。请对同一会话重试，以确认撤销结果。","لم يؤكد Auth النتيجة بعد. قد تظل هذه الجلسة متصلة. أعد المحاولة للجلسة نفسها لتأكيد إلغائها."],
+  "Auth could not complete the request ({code}). Review and retry.":["Auth 无法完成请求（{code}）。请检查后重试。","تعذر على Auth إكمال الطلب ({code}). راجع الطلب وأعد المحاولة."],
+  "The result could not be verified. Review and retry.":["无法验证结果。请检查后重试。","تعذر التحقق من النتيجة. راجع الطلب وأعد المحاولة."],
+} as const;
+export type WalletDetailMessage=keyof typeof DETAIL_MESSAGES;
+export function walletCopy(locale:WalletLocale,text:WalletDetailMessage,values:Readonly<Record<string,string|number>>={}):string{
+  const template=locale==="zh-Hans"?DETAIL_MESSAGES[text][0]:locale==="ar"?DETAIL_MESSAGES[text][1]:text;
+  return template.replace(/\{([a-zA-Z]+)\}/g,(token,key:string)=>Object.prototype.hasOwnProperty.call(values,key)?String(values[key]):token);
+}
+export function walletDetailError(locale:WalletLocale,error:string):string{
+  if(error in DETAIL_MESSAGES)return walletCopy(locale,error as WalletDetailMessage);
+  const rejected=/^Auth could not complete the request \(([A-Z][A-Z0-9_]{2,63})\)\. Review and retry\.$/.exec(error);
+  if(rejected)return walletCopy(locale,"Auth could not complete the request ({code}). Review and retry.",{code:rejected[1]!});
+  // Keep the original diagnostic available without treating an unverified result
+  // as an empty inventory or a completed revocation.
+  return `${walletCopy(locale,"The result could not be verified. Review and retry.")}\n${error}`;
+}
+export function walletAccessibilitySummary(locale:WalletLocale,summary:string):string{
+  return summary.split(" · ").map(part=>part in DETAIL_MESSAGES?walletCopy(locale,part as WalletDetailMessage):part).join(" · ");
+}

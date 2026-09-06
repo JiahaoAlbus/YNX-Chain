@@ -4,14 +4,34 @@ export const MANIFEST_KEY = "ynx.wallet.manifest.v2";
 export const LEGACY_IDENTITY_KEY = "ynx.mobile.identity.v1";
 export const DELETION_JOURNAL_KEY = "ynx.wallet.deletions.v1";
 const SECRET_PREFIX = "ynx.wallet.account.v2.";
+const AUTHENTICATED_SECRET_PREFIX = "ynx.wallet.account.auth.v3.";
+const PROTECTION_PREFIX = "ynx.wallet.protection.v1.";
 const mutationQueues = new WeakMap<SecureStorageAdapter, Promise<unknown>>();
 type OperationGuard = () => void;
 type PendingDeletion = Readonly<{ account: string; accountPublicKey: string }>;
+type SecretProtection = Readonly<{schemaVersion:1;account:string;accountPublicKey:string;source:"created"|"legacy-v2"|"legacy-v1";state:"pending"|"recovery-pending"|"protected"|"complete"}>;
+
+export type AuthenticatedSecretStorageAdapter = {
+  getItem(key: string): Promise<string | null>;
+  setItem(key: string, value: string): Promise<void>;
+  deleteItem(key: string): Promise<void>;
+};
+
+export class WalletSecretRecoveryRequired extends Error {
+  readonly code = "WALLET_SECRET_RECOVERY_REQUIRED";
+  constructor() { super("This account's protected key is unavailable or biometric enrollment changed. Restore it with its offline recovery key; the public account has been retained."); }
+}
+
+export class WalletSecretMigrationRequired extends Error {
+  readonly code = "WALLET_SECRET_MIGRATION_REQUIRED";
+  constructor() { super("Confirm this Wallet operation with system biometrics to upgrade this account's key protection."); }
+}
 
 export type SecureStorageAdapter = {
   getItem(key: string): Promise<string | null>;
   setItem(key: string, value: string): Promise<void>;
   deleteItem(key: string): Promise<void>;
+  authenticatedSecrets?: AuthenticatedSecretStorageAdapter;
 };
 
 export type WalletAccount = Readonly<{
@@ -56,7 +76,8 @@ export class WalletRepository {
       const pending = await this.readDeletionJournal();
       assertCurrent?.();
       if (pending.some((item) => item.account === identity.account)) throw new Error("Complete the pending account removal before importing this account again");
-      await this.storage.setItem(secretKey(identity.account), encodeSecret(identity.account, input.secretHex));
+      await this.writeProtectedSecret(account, input.secretHex, "created", assertCurrent);
+      assertCurrent?.();
       const manifest = freezeManifest({
         schemaVersion: 2,
         selectedAccountId: identity.account,
@@ -106,36 +127,55 @@ export class WalletRepository {
       if (!stored && !existing) throw new Error("Account is not stored in Wallet");
       if (stored && existing && stored.accountPublicKey !== existing.accountPublicKey) throw new Error("Pending account removal failed public identity verification");
       const journal = existing ? pending : [...pending, { account: stored!.account, accountPublicKey: stored!.accountPublicKey }];
-      // Record intent first, commit public removal second, delete material last. Once writing
-      // starts, finish this sequence despite a UI cancellation; failures remain retryable.
+      // Record public intent first. Cancellation stops further deletion; the journal lets a
+      // later explicitly authorized retry complete an interrupted removal without secrets.
       await this.saveDeletionJournal(journal);
+      assertCurrent?.();
       const accounts = current.accounts.filter((item) => item.account !== account);
       const selectedAccountId = current.selectedAccountId === account ? accounts[0]?.account ?? null : current.selectedAccountId;
       const next = freezeManifest({ ...current, selectedAccountId, accounts });
       if (stored) await this.saveManifest(next);
-      await this.storage.deleteItem(secretKey(account));
+      assertCurrent?.();
+      await this.deleteAccountMaterial(account, assertCurrent, (stored ?? existing)!.accountPublicKey);
+      assertCurrent?.();
       await this.saveDeletionJournal(journal.filter((item) => item.account !== account));
       return next;
     });
   }
 
-  async accountSecret(account: string, assertCurrent?: OperationGuard): Promise<string> {
+  async accountSecret(account: string, assertCurrent?: OperationGuard, authorization?: Readonly<{allowLegacyMigration: true}>): Promise<string> {
     assertCurrent?.();
     const expected = (await this.readManifest()).accounts.find((item) => item.account === account);
     assertCurrent?.();
     if (!expected) throw new Error("Account is missing from the public Wallet manifest");
-    const serialized = await this.storage.getItem(secretKey(account));
+    const protection = await this.readProtection(expected, assertCurrent);
+    const serialized = await this.secrets().getItem(authenticatedSecretKey(account));
     assertCurrent?.();
-    if (serialized === null) throw new Error("Secure account material is missing; restore from the offline recovery key");
-    const value = parseObject(serialized, "Secure Wallet account record");
-    exactKeys(value, ["schemaVersion", "account", "secretHex"], "Secure Wallet account record");
-    if (value.schemaVersion !== 2 || value.account !== account || typeof value.secretHex !== "string") throw new Error("Secure Wallet account record is invalid");
-    const identity = walletIdentity(value.secretHex);
-    if (identity.account !== account || identity.accountPublicKey !== expected.accountPublicKey) throw new Error("Secure Wallet account record failed account verification");
-    const current = (await this.readManifest()).accounts.find((item) => item.account === account);
+    if (serialized !== null) {
+      const secret = decodeSecret(serialized, expected, 3);
+      await this.assertStoredAccount(expected, assertCurrent);
+      if (!protection) throw new Error("Protected Wallet key has no verified protection record; explicit offline recovery is required");
+      if (protection?.state === "pending") {
+        if (!authorization?.allowLegacyMigration) throw new WalletSecretMigrationRequired();
+        await this.saveProtection({...protection,state:"protected"}, assertCurrent);
+      }
+      if (protection.state !== "complete" && authorization?.allowLegacyMigration) {
+        await this.cleanupLegacySecret({...protection,state:"protected"}, assertCurrent);
+      }
+      return secret;
+    }
+    // Never downgrade an already verified protected account after key invalidation.
+    if (protection && protection.state !== "pending") throw new WalletSecretRecoveryRequired();
+    if (!authorization?.allowLegacyMigration) throw new WalletSecretMigrationRequired();
+    await this.assertStoredAccount(expected, assertCurrent);
+    const legacy = await this.storage.getItem(secretKey(account));
     assertCurrent?.();
-    if (!current || current.accountPublicKey !== expected.accountPublicKey) throw new Error("Wallet account changed while reading its secure material");
-    return value.secretHex;
+    if (legacy === null) throw new WalletSecretRecoveryRequired();
+    const secret = decodeSecret(legacy, expected, 2);
+    await this.assertStoredAccount(expected, assertCurrent);
+    await this.writeProtectedSecret(expected, secret, "legacy-v2", assertCurrent, true);
+    await this.cleanupLegacySecret({schemaVersion:1,...publicIdentity(expected),source:"legacy-v2",state:"protected"}, assertCurrent);
+    return secret;
   }
 
   async retryPendingDeletions(assertCurrent?: OperationGuard): Promise<WalletManifest> {
@@ -148,7 +188,9 @@ export class WalletRepository {
       let remaining = pending;
       for (const item of pending) {
         // An entry still in the manifest never committed removal: leave its key intact.
-        if (!current.accounts.some((account) => account.account === item.account)) await this.storage.deleteItem(secretKey(item.account));
+        assertCurrent?.();
+        if (!current.accounts.some((account) => account.account === item.account)) await this.deleteAccountMaterial(item.account, assertCurrent, item.accountPublicKey);
+        assertCurrent?.();
         remaining = remaining.filter((record) => record.account !== item.account);
         await this.saveDeletionJournal(remaining);
       }
@@ -156,15 +198,20 @@ export class WalletRepository {
     });
   }
 
-  async resetCorruptStorage(): Promise<void> {
+  async resetCorruptStorage(assertCurrent?: OperationGuard): Promise<void> {
+    assertCurrent?.();
     const raw = await this.storage.getItem(MANIFEST_KEY);
+    assertCurrent?.();
     if (raw) {
+      let parsed: {accounts?: Array<{account?:string}>} | undefined;
       try {
-        const parsed = JSON.parse(raw) as { accounts?: Array<{ account?: string }> };
-        for (const item of parsed.accounts ?? []) if (typeof item.account === "string") await this.storage.deleteItem(secretKey(item.account));
+        parsed = JSON.parse(raw);
       } catch { /* unreadable manifest has no trusted account identifiers */ }
+      for (const item of parsed?.accounts ?? []) if (typeof item.account === "string" && /^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/.test(item.account)) await this.deleteAccountMaterial(item.account, assertCurrent);
     }
+    assertCurrent?.();
     await this.storage.deleteItem(MANIFEST_KEY);
+    assertCurrent?.();
     await this.storage.deleteItem(LEGACY_IDENTITY_KEY);
   }
 
@@ -173,7 +220,18 @@ export class WalletRepository {
       assertCurrent?.();
       const current = await this.readManifest();
       assertCurrent?.();
-      if (current.accounts.length) throw new Error("Existing Wallet accounts cannot be overwritten by legacy restore; import the offline recovery key to add an account");
+      if (current.accounts.length) {
+        const account = current.accounts.length === 1 ? current.accounts[0]! : null;
+        const protection = account ? await this.readProtection(account, assertCurrent) : null;
+        if (!account || protection?.source !== "legacy-v1" || protection.state === "complete") throw new Error("Existing Wallet accounts cannot be overwritten by legacy restore; import the offline recovery key to add an account");
+        const serialized = await this.secrets().getItem(authenticatedSecretKey(account.account));
+        assertCurrent?.();
+        if (serialized === null) throw new WalletSecretRecoveryRequired();
+        decodeSecret(serialized, account, 3);
+        await this.assertStoredAccount(account, assertCurrent);
+        await this.cleanupLegacySecret({...protection,state:"protected"}, assertCurrent);
+        return {manifest:current,migrated:true};
+      }
       const serialized = await this.storage.getItem(LEGACY_IDENTITY_KEY);
       assertCurrent?.();
       if (serialized === null) return { manifest: current, migrated: false };
@@ -186,12 +244,113 @@ export class WalletRepository {
       const pending = await this.readDeletionJournal();
       assertCurrent?.();
       if (pending.some((item) => item.account === identity.account)) throw new Error("Complete the pending account removal before restoring this identity");
-      await this.storage.setItem(secretKey(identity.account), encodeSecret(identity.account, value.accountSecret));
+      await this.writeProtectedSecret(account, value.accountSecret, "legacy-v1", assertCurrent);
+      assertCurrent?.();
       const manifest = freezeManifest({ schemaVersion: 2, selectedAccountId: identity.account, accounts: [account] });
       await this.saveManifest(manifest);
-      await this.storage.deleteItem(LEGACY_IDENTITY_KEY);
+      assertCurrent?.();
+      await this.cleanupLegacySecret({schemaVersion:1,...publicIdentity(account),source:"legacy-v1",state:"protected"}, assertCurrent);
       return { manifest, migrated: true };
     });
+  }
+
+  /** Only an explicit offline-key import may replace an unavailable protected key.
+   * This never removes the public account or silently falls back to legacy material. */
+  async restoreAccountSecret(account: string, secretHex: string, assertCurrent?: OperationGuard): Promise<WalletManifest> {
+    return this.mutate(async()=>{
+      assertCurrent?.();
+      const current = await this.readManifest();
+      assertCurrent?.();
+      const expected = current.accounts.find(item=>item.account===account);
+      if (!expected) throw new Error("Account is missing from the public Wallet manifest");
+      decodeSecret(encodeSecret(account,secretHex,3),expected,3);
+      const previousProtection = await this.readProtection(expected,assertCurrent);
+      // A failed v1 cleanup may still hold the original recovery record. Retain
+      // its verified source through restore so that copy is removed after the
+      // replacement protected key has been authenticated and read back.
+      const source = previousProtection?.source === "legacy-v1" ? "legacy-v1" : "legacy-v2";
+      const pending = await this.readDeletionJournal();
+      assertCurrent?.();
+      if (pending.some(item=>item.account===account)) throw new Error("Complete the pending account removal before restoring this account");
+      // The explicit supplied recovery key is authoritative for this exact public identity.
+      await this.writeProtectedSecret(expected,secretHex,source,assertCurrent,true,true);
+      await this.cleanupLegacySecret({schemaVersion:1,...publicIdentity(expected),source,state:"protected"},assertCurrent);
+      return current;
+    });
+  }
+
+  private secrets(): AuthenticatedSecretStorageAdapter {
+    if (!this.storage.authenticatedSecrets) throw new Error("OS-authenticated Wallet secret storage is unavailable");
+    return this.storage.authenticatedSecrets;
+  }
+
+  private async assertStoredAccount(expected: Pick<WalletAccount,"account"|"accountPublicKey">, assertCurrent?: OperationGuard): Promise<void> {
+    assertCurrent?.();
+    const current = (await this.readManifest()).accounts.find((item) => item.account === expected.account);
+    assertCurrent?.();
+    if (!current || current.accountPublicKey !== expected.accountPublicKey) throw new Error("Wallet account changed while reading its secure material");
+  }
+
+  private async readProtection(expected: Pick<WalletAccount,"account"|"accountPublicKey">, assertCurrent?: OperationGuard): Promise<SecretProtection|null> {
+    assertCurrent?.();
+    const raw = await this.storage.getItem(protectionKey(expected.account));
+    assertCurrent?.();
+    if (raw === null) return null;
+    const value = parseObject(raw,"Wallet key protection record");
+    exactKeys(value,["schemaVersion","account","accountPublicKey","source","state"],"Wallet key protection record");
+    if (value.schemaVersion !== 1 || value.account !== expected.account || value.accountPublicKey !== expected.accountPublicKey || !["created","legacy-v2","legacy-v1"].includes(value.source as string) || !["pending","recovery-pending","protected","complete"].includes(value.state as string)) throw new Error("Wallet key protection record failed account verification");
+    return value as SecretProtection;
+  }
+
+  private async saveProtection(value: SecretProtection, assertCurrent?: OperationGuard): Promise<void> {
+    assertCurrent?.();
+    await this.storage.setItem(protectionKey(value.account),JSON.stringify(value));
+    assertCurrent?.();
+  }
+
+  private async writeProtectedSecret(expected: Pick<WalletAccount,"account"|"accountPublicKey">, secret: string, source: SecretProtection["source"], assertCurrent?: OperationGuard, requireStored = false, recovering = false): Promise<void> {
+    // A failed explicit recovery must not downgrade an account back into the
+    // ordinary legacy migration path when its protected key is unavailable.
+    const protection: SecretProtection = {schemaVersion:1,...publicIdentity(expected),source,state:recovering ? "recovery-pending" : "pending"};
+    this.secrets();
+    assertCurrent?.();
+    decodeSecret(encodeSecret(expected.account,secret,3),expected,3);
+    await this.saveProtection(protection,assertCurrent);
+    if (requireStored) await this.assertStoredAccount(expected,assertCurrent);
+    await this.secrets().setItem(authenticatedSecretKey(expected.account),encodeSecret(expected.account,secret,3));
+    assertCurrent?.();
+    const readback = await this.secrets().getItem(authenticatedSecretKey(expected.account));
+    assertCurrent?.();
+    if (readback === null) throw new WalletSecretRecoveryRequired();
+    if (decodeSecret(readback,expected,3) !== secret) throw new Error("Protected Wallet key readback did not match the reviewed account");
+    if (requireStored) await this.assertStoredAccount(expected,assertCurrent);
+    await this.saveProtection({...protection,state:source === "created" ? "complete" : "protected"},assertCurrent);
+  }
+
+  private async cleanupLegacySecret(protection: SecretProtection, assertCurrent?: OperationGuard): Promise<void> {
+    await this.assertStoredAccount(protection,assertCurrent);
+    if (protection.source !== "created") {
+      await this.storage.deleteItem(protection.source === "legacy-v1" ? LEGACY_IDENTITY_KEY : secretKey(protection.account));
+      assertCurrent?.();
+    }
+    await this.saveProtection({...protection,state:"complete"},assertCurrent);
+  }
+
+  private async deleteAccountMaterial(account: string, assertCurrent?: OperationGuard, accountPublicKey?:string): Promise<void> {
+    assertCurrent?.();
+    const protection = accountPublicKey ? await this.readProtection({account,accountPublicKey},assertCurrent) : null;
+    await this.secrets().deleteItem(authenticatedSecretKey(account));
+    assertCurrent?.();
+    await this.storage.deleteItem(secretKey(account));
+    assertCurrent?.();
+    if (protection?.source === "legacy-v1") {
+      // This public marker was identity-verified by explicit v1 migration. Do not leave
+      // its old unprotected copy behind after the user removes the migrated account.
+      await this.storage.deleteItem(LEGACY_IDENTITY_KEY);
+      assertCurrent?.();
+    }
+    await this.storage.deleteItem(protectionKey(account));
+    assertCurrent?.();
   }
 
   private async readManifest(): Promise<WalletManifest> {
@@ -253,7 +412,18 @@ export class WalletRepository {
 
 export function emptyManifest(): WalletManifest { return freezeManifest({ schemaVersion: 2, selectedAccountId: null, accounts: [] }); }
 function secretKey(account: string) { return `${SECRET_PREFIX}${account}`; }
-function encodeSecret(account: string, secretHex: string) { walletIdentity(secretHex); return JSON.stringify({ schemaVersion: 2, account, secretHex }); }
+function authenticatedSecretKey(account: string) { return `${AUTHENTICATED_SECRET_PREFIX}${account}`; }
+function protectionKey(account: string) { return `${PROTECTION_PREFIX}${account}`; }
+function publicIdentity(value: Pick<WalletAccount,"account"|"accountPublicKey">) { return {account:value.account,accountPublicKey:value.accountPublicKey}; }
+function encodeSecret(account: string, secretHex: string, schemaVersion: 2|3) { walletIdentity(secretHex); return JSON.stringify({ schemaVersion, account, secretHex }); }
+function decodeSecret(serialized: string, expected: Pick<WalletAccount,"account"|"accountPublicKey">, schemaVersion: 2|3): string {
+  const value = parseObject(serialized,"Secure Wallet account record");
+  exactKeys(value,["schemaVersion","account","secretHex"],"Secure Wallet account record");
+  if (value.schemaVersion !== schemaVersion || value.account !== expected.account || typeof value.secretHex !== "string") throw new Error("Secure Wallet account record is invalid");
+  const identity = walletIdentity(value.secretHex);
+  if (identity.account !== expected.account || identity.accountPublicKey !== expected.accountPublicKey) throw new Error("Secure Wallet account record failed account verification");
+  return value.secretHex;
+}
 function freezeManifest(value: {schemaVersion:2;selectedAccountId:string|null;accounts:readonly WalletAccount[]}): WalletManifest {
   const accounts = Object.freeze(sortAccounts(value.accounts).map((item) => Object.freeze({ ...item })));
   return Object.freeze({ schemaVersion: 2, selectedAccountId: value.selectedAccountId, accounts });

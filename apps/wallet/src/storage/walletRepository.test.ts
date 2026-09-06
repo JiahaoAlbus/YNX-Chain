@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { walletIdentity } from "@ynx-chain/wallet-auth";
-import { DELETION_JOURNAL_KEY, LEGACY_IDENTITY_KEY, MANIFEST_KEY, type SecureStorageAdapter, WalletRepository } from "./walletRepository";
+import { DELETION_JOURNAL_KEY, LEGACY_IDENTITY_KEY, MANIFEST_KEY, type SecureStorageAdapter, WalletRepository, WalletSecretRecoveryRequired, WalletSecretMigrationRequired } from "./walletRepository";
+import { WalletOperationLifecycle } from "../security/operationLifecycle";
 
 const SECRET_ONE = `${"00".repeat(31)}01`;
 const SECRET_TWO = `${"00".repeat(31)}02`;
@@ -15,14 +16,15 @@ class MemorySecureStorage implements SecureStorageAdapter {
   beforeSet?: (key: string) => void;
   afterSet?: (key: string) => void;
   beforeDelete?: (key: string) => void;
+  readonly authenticatedSecrets = {getItem:(key:string)=>this.getItem(key),setItem:(key:string,value:string)=>this.setItem(key,value),deleteItem:(key:string)=>this.deleteItem(key)};
   async getItem(key:string){this.reads.push(key);await this.beforeGet?.(key);return this.values.get(key)??null;}
   async setItem(key:string,value:string){this.beforeSet?.(key);this.writes.push(key);this.values.set(key,value);this.afterSet?.(key);}
   async deleteItem(key:string){this.beforeDelete?.(key);this.deletions.push(key);this.values.delete(key);}
 }
 const accountOne = walletIdentity(SECRET_ONE).account;
 const accountTwo = walletIdentity(SECRET_TWO).account;
-const secretKey = (account: string) => `ynx.wallet.account.v2.${account}`;
-const privateReads = (storage: MemorySecureStorage) => storage.reads.filter((key) => key.startsWith("ynx.wallet.account.v2.") || key === LEGACY_IDENTITY_KEY);
+const secretKey = (account: string) => `ynx.wallet.account.auth.v3.${account}`;
+const privateReads = (storage: MemorySecureStorage) => storage.reads.filter((key) => key.startsWith("ynx.wallet.account.") || key === LEGACY_IDENTITY_KEY);
 async function twoAccounts() {
   const storage = new MemorySecureStorage(), repository = new WalletRepository(storage);
   await repository.addAccount({secretHex:SECRET_ONE,label:"Main",createdAt:"2026-07-15T12:00:00.000Z",backupConfirmed:false});
@@ -92,7 +94,7 @@ for (const fault of ["missing","malformed","different-account"] as const) test(`
   const {storage,repository}=await twoAccounts();
   if(fault==="missing")storage.values.delete(secretKey(accountOne));
   if(fault==="malformed")storage.values.set(secretKey(accountOne),"not-json");
-  if(fault==="different-account")storage.values.set(secretKey(accountOne),JSON.stringify({schemaVersion:2,account:accountOne,secretHex:SECRET_TWO}));
+  if(fault==="different-account")storage.values.set(secretKey(accountOne),JSON.stringify({schemaVersion:3,account:accountOne,secretHex:SECRET_TWO}));
   assert.equal((await repository.load()).manifest.accounts.length,2);
   assert.deepEqual(privateReads(storage),[]);
   assert.equal(await repository.accountSecret(accountTwo),SECRET_TWO);
@@ -192,14 +194,17 @@ test("operation guards prevent private reads or initial writes after cancellatio
   }
 });
 
-test("a started deletion finishes consistently even if the UI cancels after its first write", async () => {
+test("cancellation after deletion intent stops secret deletion until an explicit retry", async () => {
   const {storage,repository}=await twoAccounts();let active=true;
   const guard=()=>{if(!active)throw new Error("Operation cancelled")};
   storage.afterSet=(key)=>{if(key===DELETION_JOURNAL_KEY)active=false};
-  await repository.deleteAccount(accountOne,guard);
+  await assert.rejects(repository.deleteAccount(accountOne,guard),/cancelled/);
+  assert.equal(storage.values.has(secretKey(accountOne)),true);
+  assert.equal(storage.values.has(DELETION_JOURNAL_KEY),true);
+  assert.equal((await repository.load()).manifest.accounts.length,2);
+  storage.afterSet=undefined;
+  await repository.deleteAccount(accountOne);
   assert.equal(storage.values.has(secretKey(accountOne)),false);
-  assert.equal(storage.values.has(DELETION_JOURNAL_KEY),false);
-  assert.equal((await repository.load()).manifest.accounts.length,1);
 });
 
 test("cancellation at the last pre-write await leaves every account record unchanged", async () => {
@@ -317,4 +322,195 @@ test("offline recovery reconstructs only the native account and never restores p
   assert.equal(replacementDevice.values.has("ynx.wallet.auth-nonces.v1"),false);
   assert.equal(replacementDevice.values.has("ynx.wallet.authorization-audit.v1"),false);
   assert.equal([...replacementDevice.values.keys()].some((key)=>key.includes("session")),false);
+});
+
+const legacySecretKey = (account:string) => `ynx.wallet.account.v2.${account}`;
+const protectionKey = (account:string) => `ynx.wallet.protection.v1.${account}`;
+const migrationAuthorization = {allowLegacyMigration:true} as const;
+async function legacyV2Account() {
+  const {storage,repository}=await twoAccounts();
+  storage.values.delete(secretKey(accountOne));storage.values.delete(protectionKey(accountOne));
+  storage.values.set(legacySecretKey(accountOne),JSON.stringify({schemaVersion:2,account:accountOne,secretHex:SECRET_ONE}));
+  storage.reads.length=0;storage.writes.length=0;storage.deletions.length=0;
+  return {storage,repository};
+}
+
+test("an old account is retained on startup and cannot be silently migrated by a secret read",async()=>{
+  const {storage,repository}=await legacyV2Account();
+  assert.equal((await repository.load()).manifest.accounts.length,2);
+  assert.deepEqual(privateReads(storage),[]);
+  await assert.rejects(repository.accountSecret(accountOne),WalletSecretMigrationRequired);
+  assert.equal(storage.reads.includes(legacySecretKey(accountOne)),false);
+  assert.equal(storage.values.has(legacySecretKey(accountOne)),true);
+  assert.equal(storage.writes.length,0);
+});
+
+test("authorized v2 migration verifies the OS-protected readback before deleting its old record",async()=>{
+  const {storage,repository}=await legacyV2Account();
+  let protectedReadback=false;
+  storage.beforeGet=async(key)=>{if(key===secretKey(accountOne)&&storage.values.has(key))protectedReadback=true};
+  storage.beforeDelete=(key)=>{if(key===legacySecretKey(accountOne))assert.equal(protectedReadback,true)};
+  assert.equal(await repository.accountSecret(accountOne,undefined,migrationAuthorization),SECRET_ONE);
+  assert.equal(storage.values.has(legacySecretKey(accountOne)),false);
+  assert.equal(JSON.parse(storage.values.get(secretKey(accountOne))!).schemaVersion,3);
+  assert.equal(JSON.parse(storage.values.get(protectionKey(accountOne))!).state,"complete");
+  for(const [key,value] of storage.values) if(!key.startsWith("ynx.wallet.account.")) assert.equal(value.includes(SECRET_ONE),false);
+});
+
+test("a protected write failure preserves the old record and resumes after restart",async()=>{
+  const {storage,repository}=await legacyV2Account();
+  const legacy=storage.values.get(legacySecretKey(accountOne));
+  storage.beforeSet=(key)=>{if(key===secretKey(accountOne))throw new Error("OS authenticated write denied")};
+  await assert.rejects(repository.accountSecret(accountOne,undefined,migrationAuthorization),/denied/);
+  assert.equal(storage.values.get(legacySecretKey(accountOne)),legacy);
+  assert.equal(storage.values.has(secretKey(accountOne)),false);
+  storage.beforeSet=undefined;
+  assert.equal(await new WalletRepository(storage).accountSecret(accountOne,undefined,migrationAuthorization),SECRET_ONE);
+  assert.equal(storage.values.has(legacySecretKey(accountOne)),false);
+});
+
+test("a mismatching protected readback preserves the old key and never returns the mismatching material",async()=>{
+  const {storage,repository}=await legacyV2Account();
+  storage.afterSet=(key)=>{if(key===secretKey(accountOne))storage.values.set(key,JSON.stringify({schemaVersion:3,account:accountOne,secretHex:SECRET_TWO}))};
+  await assert.rejects(repository.accountSecret(accountOne,undefined,migrationAuthorization),/verification/);
+  assert.equal(storage.values.has(legacySecretKey(accountOne)),true);
+  assert.equal(storage.deletions.includes(legacySecretKey(accountOne)),false);
+  assert.equal(JSON.parse(storage.values.get(protectionKey(accountOne))!).state,"pending");
+  storage.afterSet=undefined;
+  // Explicit offline import can repair a partial or corrupted protected record.
+  await repository.restoreAccountSecret(accountOne,SECRET_ONE);
+  assert.equal(await repository.accountSecret(accountOne),SECRET_ONE);
+});
+
+for(const phase of ["protected-write","readback","verified-marker"] as const) test(`cancellation after ${phase} preserves the legacy key and never starts cleanup`,async()=>{
+  const {storage,repository}=await legacyV2Account();let active=true;
+  const guard=()=>{if(!active)throw new Error("Operation cancelled")};
+  storage.afterSet=(key)=>{
+    if(phase==="protected-write"&&key===secretKey(accountOne))active=false;
+    if(phase==="verified-marker"&&key===protectionKey(accountOne)&&JSON.parse(storage.values.get(key)!).state==="protected")active=false;
+  };
+  storage.beforeGet=async(key)=>{if(phase==="readback"&&key===secretKey(accountOne)&&storage.values.has(key))active=false};
+  await assert.rejects(repository.accountSecret(accountOne,guard,migrationAuthorization),/cancelled/);
+  assert.equal(storage.values.has(legacySecretKey(accountOne)),true);
+  assert.equal(storage.deletions.includes(legacySecretKey(accountOne)),false);
+  storage.afterSet=undefined;storage.beforeGet=undefined;
+  assert.equal(await new WalletRepository(storage).accountSecret(accountOne,undefined,migrationAuthorization),SECRET_ONE);
+  assert.equal(storage.values.has(legacySecretKey(accountOne)),false);
+});
+
+test("an enrollment-invalidated protected key never downgrades to a retained old copy",async()=>{
+  const {storage,repository}=await legacyV2Account();
+  storage.beforeDelete=(key)=>{if(key===legacySecretKey(accountOne))throw new Error("cleanup interrupted")};
+  await assert.rejects(repository.accountSecret(accountOne,undefined,migrationAuthorization),/interrupted/);
+  storage.beforeDelete=undefined;storage.values.delete(secretKey(accountOne));storage.reads.length=0;
+  await assert.rejects(new WalletRepository(storage).accountSecret(accountOne,undefined,migrationAuthorization),WalletSecretRecoveryRequired);
+  assert.equal(storage.reads.includes(legacySecretKey(accountOne)),false);
+  assert.equal((await repository.load()).manifest.accounts.length,2);
+  await assert.rejects(repository.restoreAccountSecret(accountOne,SECRET_TWO),/verification/);
+  storage.beforeSet=(key)=>{if(key===secretKey(accountOne))throw new Error("recovery write denied")};
+  await assert.rejects(repository.restoreAccountSecret(accountOne,SECRET_ONE),/denied/);
+  assert.equal(JSON.parse(storage.values.get(protectionKey(accountOne))!).state,"recovery-pending");
+  storage.reads.length=0;
+  await assert.rejects(repository.accountSecret(accountOne,undefined,migrationAuthorization),WalletSecretRecoveryRequired);
+  assert.equal(storage.reads.includes(legacySecretKey(accountOne)),false);
+  assert.equal(storage.values.has(legacySecretKey(accountOne)),true);
+  storage.beforeSet=undefined;
+  await repository.restoreAccountSecret(accountOne,SECRET_ONE);
+  assert.equal(await repository.accountSecret(accountOne),SECRET_ONE);
+});
+
+test("native authentication cancellation does not trigger an old-key fallback",async()=>{
+  const {storage,repository}=await legacyV2Account();
+  storage.beforeGet=async(key)=>{if(key===secretKey(accountOne))throw new Error("Native biometric cancelled")};
+  await assert.rejects(repository.accountSecret(accountOne,undefined,migrationAuthorization),/cancelled/);
+  assert.equal(storage.reads.includes(legacySecretKey(accountOne)),false);
+  assert.equal(storage.values.has(legacySecretKey(accountOne)),true);
+});
+
+for(const transition of ["background","switch","lock"] as const) test(`real operation lifecycle ${transition} during migration stops late private reads and cleanup`,async()=>{
+  const {storage,repository}=await legacyV2Account();
+  const operations=new WalletOperationLifecycle();operations.setAppState("active");operations.setAccount(accountOne);
+  const scope=operations.scope(),lease=scope.begin({account:accountOne,requireUnlocked:false});
+  storage.afterSet=(key)=>{if(key===secretKey(accountOne)){
+    if(transition==="background")operations.setAppState("background");
+    if(transition==="switch")operations.setAccount(accountTwo);
+    if(transition==="lock")operations.lock();
+  }};
+  await assert.rejects(repository.accountSecret(accountOne,lease.assert,migrationAuthorization),/cancelled|expired|changed/i);
+  assert.equal(storage.values.has(legacySecretKey(accountOne)),true);
+  assert.equal(privateReads(storage).filter(key=>key===secretKey(accountOne)).length,1);
+  assert.equal(storage.deletions.length,0);
+  lease.finish();
+});
+
+test("restarting an interrupted v1 cleanup verifies protected material then removes the retained legacy record",async()=>{
+  const storage=new MemorySecureStorage();
+  storage.values.set(LEGACY_IDENTITY_KEY,JSON.stringify({schemaVersion:1,account:accountOne,accountSecret:SECRET_ONE,deviceSecret:"41".repeat(32)}));
+  storage.beforeDelete=(key)=>{if(key===LEGACY_IDENTITY_KEY)throw new Error("cleanup interrupted")};
+  await assert.rejects(new WalletRepository(storage).migrateLegacyIdentity(),/interrupted/);
+  storage.beforeDelete=undefined;storage.reads.length=0;
+  const result=await new WalletRepository(storage).migrateLegacyIdentity();
+  assert.equal(result.manifest.accounts[0]?.account,accountOne);
+  assert.equal(storage.values.has(LEGACY_IDENTITY_KEY),false);
+  assert.equal(storage.reads.includes(LEGACY_IDENTITY_KEY),false);
+});
+
+test("an adapter without authenticated secret support fails closed before creating an account",async()=>{
+  const memory=new MemorySecureStorage();
+  const storage:SecureStorageAdapter={getItem:key=>memory.getItem(key),setItem:(key,value)=>memory.setItem(key,value),deleteItem:key=>memory.deleteItem(key)};
+  const repository=new WalletRepository(storage);
+  assert.equal((await repository.load()).manifest.accounts.length,0);
+  await assert.rejects(repository.addAccount({secretHex:SECRET_ONE,label:"Main",createdAt:"2026-07-15T12:00:00.000Z",backupConfirmed:true}),/OS-authenticated/);
+  assert.equal(memory.values.size,0);
+});
+
+test("deleting an interrupted v1 migration removes both protected and retained legacy copies",async()=>{
+  const storage=new MemorySecureStorage();
+  storage.values.set(LEGACY_IDENTITY_KEY,JSON.stringify({schemaVersion:1,account:accountOne,accountSecret:SECRET_ONE,deviceSecret:"41".repeat(32)}));
+  storage.beforeDelete=(key)=>{if(key===LEGACY_IDENTITY_KEY)throw new Error("cleanup interrupted")};
+  const repository=new WalletRepository(storage);
+  await assert.rejects(repository.migrateLegacyIdentity(),/interrupted/);
+  storage.beforeDelete=undefined;storage.reads.length=0;
+  await repository.deleteAccount(accountOne);
+  assert.equal(storage.values.has(LEGACY_IDENTITY_KEY),false);
+  assert.equal(storage.values.has(secretKey(accountOne)),false);
+  assert.equal(storage.values.has(protectionKey(accountOne)),false);
+  assert.deepEqual(privateReads(storage),[]);
+});
+
+test("cancellation after public removal retains the deletion journal and both secret copies for explicit retry",async()=>{
+  const {storage,repository}=await legacyV2Account();let active=true;
+  const guard=()=>{if(!active)throw new Error("Operation cancelled")};
+  storage.afterSet=(key)=>{if(key===MANIFEST_KEY)active=false};
+  await assert.rejects(repository.deleteAccount(accountOne,guard),/cancelled/);
+  assert.equal(storage.values.has(legacySecretKey(accountOne)),true);
+  assert.equal(storage.values.has(DELETION_JOURNAL_KEY),true);
+  assert.equal(storage.deletions.length,0);
+  storage.afterSet=undefined;
+  await new WalletRepository(storage).retryPendingDeletions();
+  assert.equal(storage.values.has(legacySecretKey(accountOne)),false);
+  assert.equal(storage.values.has(DELETION_JOURNAL_KEY),false);
+});
+
+test("offline restore after v1 cleanup failure and enrollment invalidation retains then removes the original v1 copy",async()=>{
+  const storage=new MemorySecureStorage(),repository=new WalletRepository(storage);
+  const legacy=JSON.stringify({schemaVersion:1,account:accountOne,accountSecret:SECRET_ONE,deviceSecret:"41".repeat(32)});
+  storage.values.set(LEGACY_IDENTITY_KEY,legacy);
+  storage.beforeDelete=(key)=>{if(key===LEGACY_IDENTITY_KEY)throw new Error("v1 cleanup interrupted")};
+  await assert.rejects(repository.migrateLegacyIdentity(),/interrupted/);
+  const manifest=(await repository.load()).manifest;
+  storage.beforeDelete=undefined;storage.values.delete(secretKey(accountOne));storage.reads.length=0;
+  await assert.rejects(repository.accountSecret(accountOne,undefined,migrationAuthorization),WalletSecretRecoveryRequired);
+  assert.equal(storage.reads.includes(LEGACY_IDENTITY_KEY),false);
+  storage.beforeSet=(key)=>{if(key===secretKey(accountOne))throw new Error("replacement protected write denied")};
+  await assert.rejects(repository.restoreAccountSecret(accountOne,SECRET_ONE),/denied/);
+  assert.equal(storage.values.get(LEGACY_IDENTITY_KEY),legacy);
+  assert.equal(JSON.parse(storage.values.get(protectionKey(accountOne))!).source,"legacy-v1");
+  storage.beforeSet=undefined;
+  assert.deepEqual(await new WalletRepository(storage).restoreAccountSecret(accountOne,SECRET_ONE),manifest);
+  assert.equal(storage.values.has(LEGACY_IDENTITY_KEY),false);
+  assert.equal(storage.values.has(legacySecretKey(accountOne)),false);
+  assert.equal(JSON.parse(storage.values.get(protectionKey(accountOne))!).source,"legacy-v1");
+  assert.equal(JSON.parse(storage.values.get(protectionKey(accountOne))!).state,"complete");
+  assert.equal(await repository.accountSecret(accountOne),SECRET_ONE);
 });
