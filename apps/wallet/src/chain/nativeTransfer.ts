@@ -1,13 +1,11 @@
 import { evmAddressFromYNX, nativeTransferHash, parseSignedNativeTransfer, type SignedNativeTransfer } from "@ynx-chain/wallet-auth";
+import { createNativeDurabilityEvidence, NativeDurabilityInvalid, parseNativeDurabilityModel, parseNativeDurabilityState, type NativeDurabilityCheck } from "./nativeDurability";
 
 export const DEFAULT_CHAIN_API="https://rpc.ynxweb4.com";
 export type ChainAccount=Readonly<{address:string;balance:number;nonce:number}>;
 export type ChainActivity=Readonly<{hash:string;type:string;from:string;to:string;amount:number;fee:number;nonce:number;timestamp?:string}>;
 export type BroadcastResult=Readonly<{hash:string;replayed:boolean;truthfulStatus:"signature-verified-authoritative-native-transfer";durabilityConfirmed:boolean;durabilityEvidence:Readonly<Record<string,unknown>>|null}>;
-export type NativeDurabilityVerifier=(response:Readonly<Record<string,unknown>>,expected:SignedNativeTransfer,hash:string)=>boolean;
-// The existing public Core does not supply a verifiable durable checkpoint.
-// Replace this only with the reviewed, versioned Core contract once available.
-export const verifyNativeDurability:NativeDurabilityVerifier=()=>false;
+class NativeDurabilityRPCError extends Error {constructor(readonly code:number,readonly data:unknown){super("The node has not supplied a verified local durability receipt.")}}
 export class NativeBroadcastUnknown extends Error {
   readonly code="NATIVE_BROADCAST_UNKNOWN";
   constructor(readonly hash:string,message="Transfer confirmation is unavailable. Keep the original transaction and retry only that transaction.",readonly httpStatus?:number,readonly reportedHash?:string){super(message)}
@@ -29,8 +27,16 @@ export async function loadNativeChainState(client:NativeChainClient,selectedAcco
 
 export class NativeChainClient{
   readonly #baseURL:string;readonly #fetch:FetchLike;
-  constructor(baseURL=DEFAULT_CHAIN_API,fetcher:FetchLike=fetch,private readonly verifyDurability:NativeDurabilityVerifier=verifyNativeDurability){this.#baseURL=base(baseURL);this.#fetch=fetcher}
+  private rpcSequence=0;
+  constructor(baseURL=DEFAULT_CHAIN_API,fetcher:FetchLike=fetch){this.#baseURL=base(baseURL);this.#fetch=fetcher}
   get origin():string{return this.#baseURL}
+
+  async requireDurabilityCapability():Promise<void>{
+    if(await this.#rpc("eth_chainId",[])!=="0x1917")throw new NativeDurabilityInvalid();
+    parseNativeDurabilityModel(await this.#rpc("ynx_getDurabilityModel",[]));
+    // A model request can itself span a node replacement.
+    if(await this.#rpc("eth_chainId",[])!=="0x1917")throw new NativeDurabilityInvalid();
+  }
 
   async account(account:string):Promise<ChainAccount>{
     const address=evmAddressFromYNX(account);
@@ -56,10 +62,42 @@ export class NativeChainClient{
     if(!object(value)||!object(value.transaction)||typeof value.replayed!=="boolean"||value.truthfulStatus!=="signature-verified-authoritative-native-transfer")throw new NativeBroadcastUnknown(expectedHash,"Authoritative broadcast response is invalid");
     const tx=value.transaction;
     if(tx.hash!==expectedHash||tx.from!==expected.from||tx.to!==expected.to||tx.amount!==expected.amount||tx.fee!==expected.fee||tx.nonce!==expected.nonce)throw new NativeBroadcastUnknown(expectedHash,"Authoritative broadcast response does not match the signed transfer");
-    // A legacy success (and GET /txs/hash) can reflect only in-memory state.
-    // A compiled, exact Core checkpoint verifier is required to release the outbox.
-    let durabilityConfirmed=false;try{durabilityConfirmed=this.verifyDurability(value,expected,expectedHash)===true}catch{}
-    return Object.freeze({hash:expectedHash,replayed:value.replayed,truthfulStatus:value.truthfulStatus,durabilityConfirmed,durabilityEvidence:durabilityConfirmed?JSON.parse(JSON.stringify(value)):null});
+    // An ACK, including replay, can describe only pending admission. Only a
+    // separate exact durable mined receipt can complete the local outbox.
+    return Object.freeze({hash:expectedHash,replayed:value.replayed,truthfulStatus:value.truthfulStatus,durabilityConfirmed:false,durabilityEvidence:null});
+  }
+
+  async checkTransferDurability(expected:SignedNativeTransfer,expectedHash:string):Promise<NativeDurabilityCheck>{
+    if(await this.#rpc("eth_chainId",[])!=="0x1917")throw new NativeDurabilityInvalid();
+    let model:unknown;
+    try{model=await this.#rpc("ynx_getDurabilityModel",[])}catch(error){if(error instanceof NativeDurabilityRPCError&&error.code===-32601)return Object.freeze({status:"unsupported",evidence:null});throw error}
+    parseNativeDurabilityModel(model);
+    const state=parseNativeDurabilityState(await this.#rpc("ynx_getTransactionDurability",[expectedHash]),expectedHash);
+    if(state.status!=="durable")return Object.freeze({status:state.status,evidence:null});
+    let receipt:unknown;
+    try{receipt=await this.#rpc("eth_getTransactionReceipt",[expectedHash])}catch(error){
+      if(error instanceof NativeDurabilityRPCError&&object(error.data)&&error.data.transactionHash===expectedHash&&error.data.durabilityVersion==="ynx-local-durability-v1"){
+        const fallback=parseNativeDurabilityState(error.data.ynxDurability,expectedHash);
+        if(error.code===-32002&&error.data.status==="transaction_durability_uncertain"&&fallback.status==="uncertain"||error.code===-32004&&error.data.status==="transaction_durability_unavailable"&&fallback.status==="memory_only")return Object.freeze({status:fallback.status,evidence:null});
+      }
+      throw error;
+    }
+    if(receipt===null)return Object.freeze({status:"uncertain",evidence:null});
+    const evidence=createNativeDurabilityEvidence(this.origin,model,receipt,expected,expectedHash);
+    const proof=(evidence.receipt as any).ynxDurability;
+    if(proof.blockNumber!==state.blockNumber||proof.blockHash!==state.blockHash)throw new NativeDurabilityInvalid();
+    // Receipt I/O may span a node replacement. The original capability and
+    // actual chain must still be present before this proof can release an intent.
+    await this.requireDurabilityCapability();
+    return Object.freeze({status:"durable",evidence});
+  }
+
+  async #rpc(method:string,params:readonly unknown[]):Promise<unknown>{
+    const id=++this.rpcSequence;
+    const response=await this.#json("/evm",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({jsonrpc:"2.0",id,method,params})});
+    if(!object(response)||response.jsonrpc!=="2.0"||response.id!==id||Object.hasOwn(response,"result")===Object.hasOwn(response,"error"))throw new NativeDurabilityInvalid();
+    if(Object.hasOwn(response,"error")){if(!object(response.error)||!Number.isSafeInteger(response.error.code)||typeof response.error.message!=="string")throw new NativeDurabilityInvalid();throw new NativeDurabilityRPCError(response.error.code,response.error.data)}
+    return response.result;
   }
 
   async #json(path:string,init:RequestInit,requestedAccount?:string,broadcastHash?:string):Promise<unknown>{

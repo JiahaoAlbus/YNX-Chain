@@ -1,0 +1,70 @@
+{
+  "capability": {
+    "consensusFinality": false,
+    "minedStatus": "durable",
+    "nativeTransactionField": "ynxNativeTransaction",
+    "pendingStatus": "pending_durable",
+    "receiptField": "ynxDurability",
+    "scope": "local-snapshot",
+    "transactionStatusMethod": "ynx_getTransactionDurability",
+    "version": "ynx-local-durability-v1"
+  },
+  "coldProof": {
+    "blockHash": "0x00daeda5e60c195893be69079dd42acd01bdf90fca7d6a4aaa8f200e4f745e5f",
+    "blockNumber": "0x2",
+    "checkpointBlockHash": "0x00daeda5e60c195893be69079dd42acd01bdf90fca7d6a4aaa8f200e4f745e5f",
+    "checkpointBlockNumber": "0x2",
+    "scope": "local-snapshot",
+    "snapshotIntegrity": "0xfa48157a74f07bad4f37c19dcf09908583a259f358deef5c8f11bd6d71f20c18",
+    "status": "durable",
+    "transactionHash": "0xc8952539d07d46b5a40776f9c3b188370cc4d8bfae77b39aecfd9c5f2a6d6bf9",
+    "version": "ynx-local-durability-v1"
+  },
+  "durableReceipt": {
+    "blockHash": "0x00daeda5e60c195893be69079dd42acd01bdf90fca7d6a4aaa8f200e4f745e5f",
+    "blockNumber": "0x2",
+    "contractAddress": null,
+    "cumulativeGasUsed": "0x5208",
+    "from": "0x6350872d7465864689def650443026f2f73a08da",
+    "gasUsed": "0x5208",
+    "logs": [
+      {
+        "address": "0x3535353535353535353535353535353535353535",
+        "blockHash": "0x00daeda5e60c195893be69079dd42acd01bdf90fca7d6a4aaa8f200e4f745e5f",
+        "blockNumber": "0x2",
+        "data": "0x0000000000000000000000000000000000000000000000000000000000000002",
+        "logIndex": "0x0",
+        "removed": false,
+        "topics": [
+          "0xc033c4e32955d645ceb56c016534f96606e19cfc3af5087ece0f21c797b37c6e",
+          "0x8d98ad0fd915a3882c8e5e9f1f5396a0b16df7f6082f8e8991924e370872bd25",
+          "0xf11a49101a627886358ffe8af3754188afcbf45cc01eb6aaf0af3a0aa6adcbd4"
+        ],
+        "transactionHash": "0xc8952539d07d46b5a40776f9c3b188370cc4d8bfae77b39aecfd9c5f2a6d6bf9",
+        "transactionIndex": "0x0"
+      }
+    ],
+    "status": "0x1",
+    "to": "0x3535353535353535353535353535353535353535",
+    "transactionHash": "0xc8952539d07d46b5a40776f9c3b188370cc4d8bfae77b39aecfd9c5f2a6d6bf9",
+    "transactionIndex": "0x0",
+    "ynxDurability": {
+      "blockHash": "0x00daeda5e60c195893be69079dd42acd01bdf90fca7d6a4aaa8f200e4f745e5f",
+      "blockNumber": "0x2",
+      "checkpointBlockHash": "0x00daeda5e60c195893be69079dd42acd01bdf90fca7d6a4aaa8f200e4f745e5f",
+      "checkpointBlockNumber": "0x2",
+      "scope": "local-snapshot",
+      "snapshotIntegrity": "0xb5bcedf4b8ff56f505cf67c4c63d5c134a130d0cb66574c84164ecbef4f8f214",
+      "status": "durable",
+      "transactionHash": "0xc8952539d07d46b5a40776f9c3b188370cc4d8bfae77b39aecfd9c5f2a6d6bf9",
+      "version": "ynx-local-durability-v1"
+    },
+    "ynxNativeTransaction": {
+      "amountYNXT": "2",
+      "feeYNXT": "1",
+      "nonce": "0x1",
+      "type": "transfer"
+    }
+  },
+  "nativeJSONTransactionHash": "0xc8952539d07d46b5a40776f9c3b188370cc4d8bfae77b39aecfd9c5f2a6d6bf9"
+}
