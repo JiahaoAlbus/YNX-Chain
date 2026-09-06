@@ -35,7 +35,7 @@
       "productId": "creator-studio",
       "clientId": "ynx-creator-studio-web-v1",
       "displayName": "YNX Creator Studio",
-      "applicationId": "com.ynxweb4.creator-studio.web",
+      "applicationId": "com.ynxweb4.creator-studio",
       "webOrigin": "https://creator.ynxweb4.com",
       "nativeCallback": "ynxcreator://wallet-auth/callback",
       "legacyCallbacks": ["ynxcreator", "ynxcreator://wallet-auth/callback"],

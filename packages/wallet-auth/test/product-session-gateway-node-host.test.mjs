@@ -72,6 +72,62 @@ test("production Node host mounts v2 with registered-origin CORS and restart-ide
   } finally { rmSync(directory, { recursive: true, force: true }); }
 });
 
+for (const platform of ["web", "ios"]) test(`${platform} sessions bind every browser request to its own origin before durable state changes`, async () => {
+  const directory = mkdtempSync(join(tmpdir(), "ynx-product-session-origin-")); chmodSync(directory, 0o700);
+  const statePath = join(directory, "state.json");
+  const host = new ProductSessionGatewayNodeHost(registry, { statePath, now: () => NOW, tokenFactory: () => token(`origin-challenge-${platform}`) });
+  const allowedOrigin = platform === "web" ? "https://finance.ynxweb4.com" : undefined;
+  try {
+    await serve(host, async (endpoint) => {
+      const send = (route, body, requestId, origin, proofHeader) => fetch(`${endpoint}${route}`, {
+        method: "POST", headers: { "content-type": "application/json", "x-request-id": requestId,
+          ...(origin === undefined ? {} : { origin }), ...(proofHeader ? { "x-ynx-product-session-proof-v2": proofHeader } : {}) }, body,
+      });
+      const rejectOtherOrigin = async (route, body, requestId, proofHeader) => {
+        const before = canonicalJSON(host.snapshot()), persisted = readFileSync(statePath, "utf8");
+        // This origin is registered for a different product, so a global CORS allowlist is insufficient.
+        const response = await send(route, body, requestId, "https://social.ynxweb4.com", proofHeader);
+        assert.equal(response.status, 403, `${platform} ${route}`);
+        assert.equal((await response.json()).error.code, "ORIGIN_NOT_ALLOWED");
+        assert.equal(canonicalJSON(host.snapshot()), before);
+        assert.equal(readFileSync(statePath, "utf8"), persisted);
+      };
+      const pending = createProductSessionRequest(registry, { productId: "finance", platform, deviceId: `origin-device-${platform}`, deviceKey, scopes: ["finance.pay.read"], purpose: "Verify exact browser origin binding.", nonce: token(`origin-nonce-${platform}`), state: token(`origin-state-${platform}`) }, NOW);
+      const approval = signProductSessionApproval(registry, pending, { accountSecret: "1".padStart(64, "0"), scopes: pending.scopes, expiresAt: "2026-08-14T01:03:00.000Z" }, NOW);
+      const challengeBody = canonicalJSON({ request: pending, approval }), challengeRoute = "/v2/product-sessions/challenge", challengeId = `req_origin_challenge_${platform}`;
+      await rejectOtherOrigin(challengeRoute, challengeBody, challengeId);
+      const challengeResponse = await send(challengeRoute, challengeBody, challengeId, allowedOrigin);
+      assert.equal(challengeResponse.status, 200);
+      const challenge = (await challengeResponse.json()).result;
+      await rejectOtherOrigin(challengeRoute, challengeBody, challengeId); // Cached replies must enforce origin too.
+      const completion = signProductSessionChallenge(challenge, deviceSecret.toString("base64url"));
+      const completeBody = canonicalJSON({ request: pending, approval, completion }), completeRoute = "/v2/product-sessions/complete", completeId = `req_origin_complete_${platform}`;
+      await rejectOtherOrigin(completeRoute, completeBody, completeId);
+      const completed = await send(completeRoute, completeBody, completeId, allowedOrigin);
+      assert.equal(completed.status, 200);
+      const session = (await completed.json()).result;
+      await rejectOtherOrigin(completeRoute, completeBody, completeId);
+      for (const suffix of ["introspect", "revoke", "devices/revoke"]) {
+        const route = `/v2/product-sessions/${suffix}`, body = suffix === "introspect" ? canonicalJSON({ requiredScopes: pending.scopes }) : "{}";
+        const requestId = `req_origin_proof_${platform}_${suffix.replace("/", "_")}`;
+        const proofHeader = proof(session, route, body, requestId);
+        await rejectOtherOrigin(route, body, requestId, proofHeader);
+        if (suffix === "introspect") {
+          const result = await send(route, body, requestId, allowedOrigin, proofHeader);
+          assert.equal(result.status, 200); assert.equal((await result.json()).result.active, true);
+          const serverId = `req_origin_server_${platform}`;
+          const serverResult = await send(route, body, serverId, undefined, proof(session, route, body, serverId));
+          assert.equal(serverResult.status, 200); // Server/native calls without Origin remain supported.
+        }
+      }
+      const revokeRoute = "/v2/product-sessions/revoke", revokeId = `req_origin_final_revoke_${platform}`;
+      const revoked = await send(revokeRoute, "{}", revokeId, allowedOrigin, proof(session, revokeRoute, "{}", revokeId));
+      assert.equal(revoked.status, 200);
+      assert.equal((await revoked.json()).result.revoked, session.sessionBinding);
+    });
+  } finally { rmSync(directory, { recursive: true, force: true }); }
+});
+
 for (const [name, expectedCode, mutate] of [
   ["mode-0644", "STATE_PERMISSIONS", ({ statePath }) => chmodSync(statePath, 0o644)],
   ["hardlink", "STATE_PERMISSIONS", ({ directory, statePath }) => linkSync(statePath, join(directory, "state-hardlink.json"))],

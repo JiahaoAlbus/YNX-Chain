@@ -5,7 +5,7 @@ import {
 } from "node:fs";
 import { dirname, isAbsolute } from "node:path";
 import { canonicalJSON, exactFields, WalletAuthError } from "./canonical.js";
-import { PRODUCT_SESSION_GATEWAY_PROOF_HEADER_V2 } from "./product-session-gateway-client.js";
+import { decodeProductSessionGatewayProofHeaderV2, PRODUCT_SESSION_GATEWAY_PROOF_HEADER_V2 } from "./product-session-gateway-client.js";
 import { ProductSessionGatewayHttpHandler } from "./product-session-gateway-http.js";
 import { PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION } from "./product-session-gateway.js";
 import { parseProductSessionRegistry } from "./product-session-registry.js";
@@ -55,8 +55,10 @@ export class ProductSessionGatewayNodeHost {
         if (request.method !== "POST") fail("METHOD_NOT_ALLOWED", "Product Session Gateway accepts POST only");
         const body = await boundedBody(request);
         this.#assertStateIdentity();
+        const proofHeader = nullableHeader(request.headers[PRODUCT_SESSION_GATEWAY_PROOF_HEADER_V2]);
+        this.#assertOriginBinding(request.headers.origin, route, body, proofHeader);
         const candidate = new ProductSessionGatewayHttpHandler(this.#registry, this.#tokens, this.#handler.snapshot());
-        const result = candidate.handle({ requestId, method: request.method, path: route, contentType: singleHeader(request.headers["content-type"]), body, proofHeader: nullableHeader(request.headers[PRODUCT_SESSION_GATEWAY_PROOF_HEADER_V2]), networkAvailable: true }, this.#now());
+        const result = candidate.handle({ requestId, method: request.method, path: route, contentType: singleHeader(request.headers["content-type"]), body, proofHeader, networkAvailable: true }, this.#now());
         const before = snapshotDigest(this.#handler.snapshot()), after = snapshotDigest(candidate.snapshot());
         if (after !== before) this.#persist(candidate.snapshot());
         this.#handler = candidate;
@@ -76,6 +78,19 @@ export class ProductSessionGatewayNodeHost {
     const origin = canonicalOrigin(value);
     if (!this.#origins.has(origin)) fail("ORIGIN_NOT_ALLOWED", "Product Session Gateway origin is not registered");
     return { "access-control-allow-origin": origin, "access-control-expose-headers": "x-request-id", vary: "origin" };
+  }
+
+  #assertOriginBinding(origin, route, body, proofHeader) {
+    if (origin === undefined) return; // Native clients and server proxies do not send a browser Origin.
+    let boundOrigin;
+    if (route === "/v2/product-sessions/challenge" || route === "/v2/product-sessions/complete") {
+      let input; try { input = JSON.parse(body); } catch { fail("INVALID_BODY", "Product Session Gateway body is not JSON"); }
+      boundOrigin = input?.request?.origin;
+    } else {
+      if (proofHeader === null) return; // The protocol handler reports PROOF_REQUIRED.
+      boundOrigin = decodeProductSessionGatewayProofHeaderV2(proofHeader).origin;
+    }
+    if (boundOrigin !== origin) fail("ORIGIN_NOT_ALLOWED", "Product Session Gateway browser origin does not match the session binding");
   }
 
   #preflight(request, corsHeaders) {
