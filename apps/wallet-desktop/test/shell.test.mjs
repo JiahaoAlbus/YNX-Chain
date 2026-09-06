@@ -30,7 +30,7 @@ test("desktop packaging exposes real platform installer formats", async () => {
   assert.equal(packageJson.build.win.executableName, "YNX Wallet");
   assert.equal(packageJson.build.afterPack, "scripts/after-pack.mjs");
   assert.doesNotMatch(packageJson.scripts["dist:mac"], /zip/);
-  assert.equal(packageJson.version, "0.6.5");
+  assert.equal(packageJson.version, "0.6.6");
   assert.equal(packageJson.build.appId, "com.ynxweb4.wallet.macos");
   assert.equal(packageJson.build.mac.minimumSystemVersion, "13.0");
   assert.deepEqual(packageJson.build.protocols[0].schemes, ["ynxwallet"]);
@@ -130,13 +130,15 @@ test("security invalidation clears old unlock success while an unchanged locked 
     const elements = new Map();
     const document = { querySelector(selector) { if (!elements.has(selector)) elements.set(selector, { textContent: "", hidden: false, disabled: false }); return elements.get(selector); }, querySelectorAll: () => [] };
     document.querySelector("#unlock-result").textContent = fixture.message;
+    let invalidatedInputs = 0;
     runInNewContext(`${renderer.slice(start, end)}\nrenderKeyState(nextState);`, {
       document, keyState: fixture.before, nextState: fixture.after, signingShort: {}, activeAccount: "qa-public-account",
       approvalQueue: { clear() {} }, authorizationChoices: new Map(), transferReview: null,
-      passwordUI: { cancel() {}, render() {} }, renderKeyDetail() {}, presentApproval() {}
+      passwordUI: { cancel() {}, render() {} }, renderKeyDetail() {}, presentApproval() {}, invalidatePaymentInput() { invalidatedInputs++; }
     });
     assert.equal(document.querySelector("#key-security-title").textContent, "Wallet locked");
     assert.equal(document.querySelector("#unlock-result").textContent, fixture.expected);
+    assert.equal(invalidatedInputs, fixture.before.revision !== fixture.after.revision || fixture.before.locked !== fixture.after.locked ? 1 : 0);
   }
 });
 

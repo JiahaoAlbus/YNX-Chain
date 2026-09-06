@@ -2,6 +2,7 @@ import { ApprovalReviewQueue } from "./approval-review-queue.mjs";
 import { formatApprovalReview } from "./approval-review-display.mjs";
 import { createPasswordVaultUI } from "./password-vault-ui.mjs";
 import { createReceiveCodeUI } from "./receive-code-ui.mjs";
+import { createPaymentRecipientUI } from "./payment-recipient-ui.mjs";
 
 const receiveCodeUI = createReceiveCodeUI({
   canvas: document.querySelector("#receive-qr"),
@@ -11,6 +12,22 @@ const receiveCodeUI = createReceiveCodeUI({
 
 let keyState = { locked: true, unlockAvailable: false, authenticating: false };
 let accountState = null, passwordUI;
+let paymentDraftRevision = 0;
+const paymentRecipientUI = createPaymentRecipientUI({
+  getContext: () => ({ open: document.querySelector("#send-sheet").open, account: accountState?.account, locked: keyState.locked, keyRevision: keyState.revision }),
+  parse: input => window.ynxWallet.paymentRecipient(input),
+  decode: input => window.ynxWallet.paymentQR(input),
+  onStart: () => { paymentDraftRevision++; },
+  apply: address => {
+    paymentDraftRevision++;
+    document.querySelector("#transfer-to").value = address;
+    document.querySelector("#transfer-amount").value = "";
+    transferReview = null;
+    document.querySelector("#transfer-amount").focus();
+  },
+  report: message => { document.querySelector("#recipient-status").textContent = message; },
+});
+function invalidatePaymentInput() { paymentDraftRevision++; paymentRecipientUI.invalidate(); }
 // Public metadata was identity-checked by the main-process vault. Protocol keys remain EVM addresses.
 const nativeAccountLabel = account => accountState?.accounts?.find(item => item.account === account)?.ynxAccount ?? account;
 const network = document.querySelector("#network");
@@ -153,6 +170,7 @@ const createAccount = document.querySelector("#create-account");
 const addAccount = document.querySelector("#add-account");
 const accountList = document.querySelector("#account-list");
 function renderAccount(payload) {
+  invalidatePaymentInput();
   if (payload?.ok === false) {
     accountState = null;
     receiveCodeUI.clear();
@@ -166,6 +184,11 @@ function renderAccount(payload) {
   passwordUI?.render(); renderKeyDetail();
   const previousAccount = activeAccount;
   activeAccount = status?.account ?? null;
+  if (previousAccount !== activeAccount) {
+    document.querySelector("#transfer-to").value = "";
+    document.querySelector("#transfer-amount").value = "";
+    document.querySelector("#recipient-status").textContent = "";
+  }
   if (previousAccount !== activeAccount) document.querySelector("#transaction-resolution-result").textContent = "";
   void refreshTransactions();
   document.querySelector("#assets").hidden = !status?.initialized;
@@ -462,13 +485,16 @@ document.querySelector("#backup-form").addEventListener("submit", async event =>
 });
 document.querySelector("#transfer-form").addEventListener("submit", async event => {
   event.preventDefault();
+  invalidatePaymentInput();
   const button = document.querySelector("#prepare-transfer"), output = document.querySelector("#transfer-result");
   const revision = keyState.revision;
+  const draftRevision = paymentDraftRevision, to = document.querySelector("#transfer-to").value.trim(), amount = document.querySelector("#transfer-amount").value.trim();
+  const draftIsCurrent = () => draftRevision === paymentDraftRevision && document.querySelector("#send-sheet").open && to === document.querySelector("#transfer-to").value.trim() && amount === document.querySelector("#transfer-amount").value.trim();
   button.disabled = true; transferReview = null; document.querySelector("#transfer-review").hidden = true;
   output.textContent = "Checking recipient, balance and network fee…";
   try {
-    const result = await window.ynxWallet.prepareTransfer({ to: document.querySelector("#transfer-to").value.trim(), amount: document.querySelector("#transfer-amount").value.trim() });
-    if (keyState.locked || keyState.revision !== revision) return;
+    const result = await window.ynxWallet.prepareTransfer({ to, amount });
+    if (keyState.locked || keyState.revision !== revision || !draftIsCurrent()) return;
     if (!result.ok) { output.textContent = errorText(result); return; }
     if (result.value.account !== activeAccount) { output.textContent = "Account changed. Review again."; return; }
     transferReview = result.value;
@@ -481,7 +507,7 @@ document.querySelector("#transfer-form").addEventListener("submit", async event 
     document.querySelector("#send-sheet").close();
     document.querySelector("#transfer-review").showModal();
     output.textContent = "Review the details below. Nothing has been signed or sent.";
-  } catch { output.textContent = "Unable to prepare the transfer. Check the network and try again."; }
+  } catch { if (draftIsCurrent()) output.textContent = "Unable to prepare the transfer. Check the network and try again."; }
   finally { button.disabled = keyState.locked; }
 });
 async function actOnTransfer(action) {
@@ -527,6 +553,20 @@ for (const button of document.querySelectorAll("[data-view]")) button.addEventLi
 for (const button of document.querySelectorAll("[data-close]")) button.addEventListener("click", () => document.getElementById(button.dataset.close).close());
 for (const dialog of document.querySelectorAll("dialog")) dialog.addEventListener("close", () => queueMicrotask(presentApproval));
 document.querySelector("#open-send").addEventListener("click", () => { document.querySelector("#send-sheet").showModal(); document.querySelector("#transfer-to").focus(); });
+document.querySelector("#send-sheet").addEventListener("close", invalidatePaymentInput);
+document.querySelector("#send-sheet").addEventListener("cancel", invalidatePaymentInput);
+for (const id of ["transfer-to", "transfer-amount"]) document.getElementById(id).addEventListener("input", () => {
+  invalidatePaymentInput();
+  document.querySelector("#recipient-status").textContent = "";
+});
+document.querySelector("#paste-recipient").addEventListener("click", () => void paymentRecipientUI.text(() => navigator.clipboard.readText()));
+document.querySelector("#transfer-to").addEventListener("paste", event => {
+  const items = Array.from(event.clipboardData?.items ?? []), file = items.find(item => item.kind === "file")?.getAsFile();
+  const text = event.clipboardData?.getData("text/plain");
+  if (!file && !text) return;
+  event.preventDefault();
+  if (file) void paymentRecipientUI.image(file); else void paymentRecipientUI.text(text);
+});
 document.querySelector("#open-receive").addEventListener("click", () => {
   document.querySelector("#receive-sheet").showModal();
   document.querySelector("#copy-address").focus();
@@ -548,6 +588,7 @@ function renderKeyDetail() {
   detail.textContent = !accountState ? "Checking local Wallet protection…" : !accountState.passwordConfigured ? accountState.initialized ? "Existing accounts use OS protection. Set a local password to explicitly migrate all accounts." : "Set a local password to encrypt your Wallet before creating or importing accounts." : accountState.recoveryRequired ? "This account needs its offline backup. Public accounts remain visible; their previous keys are not silently replaced." : state.locked ? "Your local password encrypts this Wallet. Leaving the app, locking the screen or switching accounts cancels pending key operations." : "Review each request before approving. Wallet locks after two minutes or when it loses focus.";
 }
 function renderKeyState(state) {
+  if (state.revision !== keyState.revision || state.locked !== keyState.locked) invalidatePaymentInput();
   const invalidated = state.locked && (!keyState.locked || state.revision !== keyState.revision);
   keyState = state;
   const title = document.querySelector("#key-security-title"), detail = document.querySelector("#key-security-detail"), unlock = document.querySelector("#unlock-wallet");
@@ -557,7 +598,7 @@ function renderKeyState(state) {
   unlock.disabled = !state.unlockAvailable || state.authenticating;
   document.querySelector("#lock-wallet").disabled = state.locked && !state.authenticating;
   signingShort.textContent = state.locked ? "Locked" : "Approval required";
-  for (const element of document.querySelectorAll("#create-account,#add-account,#open-send,#prepare-transfer,#confirm-transfer,#account-list button,#import-form input,#import-form select,#import-form button,#backup-form input,#backup-form button")) element.disabled = state.locked || element.dataset.account === activeAccount;
+  for (const element of document.querySelectorAll("#create-account,#add-account,#open-send,#prepare-transfer,#paste-recipient,#confirm-transfer,#account-list button,#import-form input,#import-form select,#import-form button,#backup-form input,#backup-form button")) element.disabled = state.locked || element.dataset.account === activeAccount;
   for (const button of document.querySelectorAll("[data-retry-transaction]")) button.disabled = state.locked;
   if (state.locked) {
     if (invalidated) {

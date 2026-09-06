@@ -17,6 +17,7 @@ import { CanonicalAccountNetwork, NativeWalletService } from "./native-wallet-se
 import { WalletConnectTransport } from "./walletconnect-transport.mjs";
 import { decodeWalletConnectQR } from "./walletconnect-qr-decoder.mjs";
 import { createReceiveCode } from "./receive-code.mjs";
+import { parsePaymentRecipient, decodePaymentRecipientQR } from "./payment-recipient.mjs";
 import { canonicalizeWindowsYNXWalletProtocolUrl, extractYNXWalletProtocolUrl } from "./protocol-activation.mjs";
 
 const directory = path.dirname(fileURLToPath(import.meta.url));
@@ -183,6 +184,11 @@ handleWalletIPC("wallet:create-account", () => safeIPC(async () => {
 }));
 handleWalletIPC("wallet:add-account", () => safeIPC(() => changeActiveAccount(() => walletAuthority.addAccountAndSelect())));
 handleWalletIPC("wallet:receive-code", (_event, expectedAccount) => safeIPC(() => createReceiveCode(expectedAccount, () => walletAuthority.accountStatus())));
+handleWalletIPC("wallet:payment-recipient", (_event, input) => safeIPC(() => parsePaymentRecipient(input)));
+handleWalletIPC("wallet:payment-qr", (_event, input) => safeIPC(() => {
+  if (!(input?.bytes instanceof ArrayBuffer) || input.bytes.byteLength > 10 * 1024 * 1024) throw new Error("Invalid QR image");
+  return decodePaymentRecipientQR({ bytes: Buffer.from(input.bytes), mimeType: input.mimeType, createImage: bytes => nativeImage.createFromBuffer(bytes) });
+}));
 handleWalletIPC("wallet:select-account", (_event, account) => safeIPC(() => changeActiveAccount(() => walletAuthority.selectAccount(account))));
 handleWalletIPC("wallet:permissions", (_event, origin) => safeIPC(() => walletAuthority.request({ origin, method: "wallet_getPermissions" })));
 handleWalletIPC("wallet:walletconnect-status", () => safeIPC(() => walletConnect.status()));
