@@ -8,6 +8,17 @@ import {publicBridgeError} from "./extension-bridge.js";
 export const BROADCAST_JOURNAL_PREFIX="ynx.wallet.broadcast.v1.";
 const HASH=/^0x[0-9a-f]{64}$/u,PENDING=new Set(["broadcasting","uncertain","acknowledged","unresolved"]),STATUSES=new Set([...PENDING,"confirmed","rejected","cancelled"]);
 function failure(code,message,data){return Object.assign(new Error(message),{code,...(data?{data}:{})})}
+function canonicalStoredValue(value){
+  if(value===null||typeof value==="string"||typeof value==="boolean"||typeof value==="number"&&Number.isFinite(value))return JSON.stringify(value);
+  if(Array.isArray(value)){
+    const keys=Object.keys(value);
+    if(keys.length!==value.length||!keys.every((key,index)=>key===String(index)))throw new Error("Invalid stored array");
+    return "["+value.map(canonicalStoredValue).join(",")+"]";
+  }
+  if(typeof value!=="object"||value===null||Object.getPrototypeOf(value)!==Object.prototype)throw new Error("Invalid stored value");
+  if(Reflect.ownKeys(value).length!==Object.keys(value).length)throw new Error("Invalid stored object keys");
+  return "{"+Object.keys(value).sort().map(key=>JSON.stringify(key)+":"+canonicalStoredValue(value[key])).join(",")+"}";
+}
 function uncertain(record,cause){
   if(cause?.data?.transactionHash===record.transactionHash&&(cause.code===-32002&&cause.data.status==="transaction_durability_uncertain"||cause.code===-32004&&cause.data.status==="transaction_durability_unavailable")){const error=publicBridgeError(cause);return failure(error.code,error.message,error.data)}
   return failure(-32002,"The original signed transaction needs confirmation. Open the account vault to check or explicitly retry the same transaction.",{status:record.status==="acknowledged"?"transaction_confirmation_pending":"transaction_durability_uncertain",transactionHash:record.transactionHash})
@@ -55,10 +66,13 @@ export class ExtensionBroadcastJournal{
   async read(account){const key=BROADCAST_JOURNAL_PREFIX+account;return parseRecord((await this.#storage.get(key))?.[key],account)}
   async #persist(record){
     const key=BROADCAST_JOURNAL_PREFIX+record.account,historyKey=BROADCAST_JOURNAL_PREFIX+"hash."+record.transactionHash;
+    let expected;try{expected=canonicalStoredValue(record)}catch{throw failure("BROADCAST_RECORD_UNAVAILABLE","Signed transaction recovery storage could not be verified.")}
     await this.#storage.set({[key]:record,[historyKey]:record});
-    // Compare actual storage bytes, before legacy/uncertain state normalization.
+    // Browsers may reorder object keys. Compare every original field and type
+    // before legacy/uncertain normalization; do not reduce this to a hash check.
     const stored=await this.#storage.get([key,historyKey]);
-    if(JSON.stringify(stored?.[key])!==JSON.stringify(record)||JSON.stringify(stored?.[historyKey])!==JSON.stringify(record))throw failure("BROADCAST_RECORD_UNAVAILABLE","Signed transaction recovery storage could not be verified.");
+    let matches=false;try{matches=canonicalStoredValue(stored?.[key])===expected&&canonicalStoredValue(stored?.[historyKey])===expected}catch{}
+    if(!matches)throw failure("BROADCAST_RECORD_UNAVAILABLE","Signed transaction recovery storage could not be verified.");
   }
   async #exclusive(account,action){
     if(this.#active.has(account))throw failure("TRANSACTION_IN_PROGRESS","A transaction for this account is already being reviewed, checked or submitted.");
