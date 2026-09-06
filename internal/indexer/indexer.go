@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -207,35 +208,43 @@ func (s *Store) RollbackTo(height uint64) (Database, int, int, error) {
 	if !ok || ancestor.Hash == "" {
 		return Database{}, 0, 0, fmt.Errorf("stored common ancestor at height %d is unavailable; indexer rebuild required", height)
 	}
+	candidate := s.db
+	candidate.Blocks = make(map[string]chain.Block, len(s.db.Blocks))
+	for rawHeight, block := range s.db.Blocks {
+		candidate.Blocks[rawHeight] = block
+	}
 	removedBlocks := 0
-	for rawHeight := range s.db.Blocks {
+	for rawHeight := range candidate.Blocks {
 		blockHeight, err := strconv.ParseUint(rawHeight, 10, 64)
 		if err != nil {
 			return Database{}, 0, 0, fmt.Errorf("stored block height %q is invalid; indexer rebuild required", rawHeight)
 		}
 		if blockHeight > height {
-			delete(s.db.Blocks, rawHeight)
+			delete(candidate.Blocks, rawHeight)
 			removedBlocks++
 		}
 	}
 	previousTxCount := len(s.db.Transactions)
-	s.db.Transactions = make(map[string]chain.Transaction)
-	for _, block := range s.db.Blocks {
+	candidate.Transactions = make(map[string]chain.Transaction)
+	for _, block := range candidate.Blocks {
 		for _, tx := range block.Transactions {
-			s.db.Transactions[tx.Hash] = tx
+			candidate.Transactions[tx.Hash] = tx
 		}
 	}
-	removedTransactions := previousTxCount - len(s.db.Transactions)
+	removedTransactions := previousTxCount - len(candidate.Transactions)
 	if removedTransactions < 0 {
 		removedTransactions = 0
 	}
-	s.db.LastIndexedHeight = height
-	s.db.LastBlockHash = ancestor.Hash
-	s.db.LastSyncAt = time.Now().UTC()
-	s.db.JournalSequence++
-	if err := s.saveSnapshotLocked(s.db); err != nil {
+	candidate.LastIndexedHeight = height
+	candidate.LastBlockHash = ancestor.Hash
+	candidate.LastSyncAt = time.Now().UTC()
+	candidate.JournalSequence++
+	if err := s.saveSnapshotLocked(candidate); err != nil {
 		return Database{}, 0, 0, err
 	}
+	// The canonical candidate is now durable. Publish it before journal cleanup so
+	// memory and the restart snapshot cannot diverge if cleanup itself fails.
+	s.db = candidate
 	if err := s.resetJournalLocked(); err != nil {
 		return Database{}, 0, 0, err
 	}
@@ -266,6 +275,7 @@ func applySourceStatus(db *Database, sourceURL string, status Status) {
 
 const (
 	storeJournalVersion       = 1
+	storeJournalRecordBytes   = 8 << 20
 	storeJournalCompactBytes  = 64 << 20
 	storeJournalCompactEvents = 100_000
 )
@@ -359,6 +369,9 @@ func (s *Store) appendJournalLocked(record storeJournalRecord) error {
 		return err
 	}
 	payload = append(payload, '\n')
+	if len(payload) > storeJournalRecordBytes {
+		return fmt.Errorf("index journal record exceeds the %d byte replay limit", storeJournalRecordBytes)
+	}
 	journal, err := os.OpenFile(s.journalPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
 	if err != nil {
 		return err
@@ -382,7 +395,7 @@ func (s *Store) appendJournalLocked(record storeJournalRecord) error {
 }
 
 func (s *Store) replayJournalLocked(db *Database) (uint64, error) {
-	journal, err := os.Open(s.journalPath)
+	journal, err := os.OpenFile(s.journalPath, os.O_RDWR, 0o600)
 	if os.IsNotExist(err) {
 		return 0, nil
 	}
@@ -390,11 +403,42 @@ func (s *Store) replayJournalLocked(db *Database) (uint64, error) {
 		return 0, err
 	}
 	defer journal.Close()
-	scanner := bufio.NewScanner(journal)
-	scanner.Buffer(make([]byte, 64*1024), 8<<20)
+	reader := bufio.NewReaderSize(journal, 64*1024)
 	var records uint64
-	for scanner.Scan() {
-		line := scanner.Bytes()
+	var completeBytes int64
+	for {
+		line := make([]byte, 0, 64*1024)
+		var readErr error
+		for {
+			fragment, fragmentErr := reader.ReadSlice('\n')
+			if len(line)+len(fragment) > storeJournalRecordBytes {
+				return records, fmt.Errorf("index journal record %d exceeds size limit", records+1)
+			}
+			line = append(line, fragment...)
+			if fragmentErr == bufio.ErrBufferFull {
+				continue
+			}
+			readErr = fragmentErr
+			break
+		}
+		if readErr == io.EOF {
+			if len(line) > 0 {
+				// appendJournalLocked always terminates and fsyncs complete frames.
+				// An unterminated EOF fragment is therefore a torn final write, not
+				// a record that is safe to replay.
+				if err := journal.Truncate(completeBytes); err != nil {
+					return records, fmt.Errorf("truncate incomplete index journal tail: %w", err)
+				}
+				if err := journal.Sync(); err != nil {
+					return records, fmt.Errorf("sync repaired index journal: %w", err)
+				}
+			}
+			break
+		}
+		if readErr != nil {
+			return records, readErr
+		}
+		completeBytes += int64(len(line))
 		if len(strings.TrimSpace(string(line))) == 0 {
 			continue
 		}
@@ -421,9 +465,6 @@ func (s *Store) replayJournalLocked(db *Database) (uint64, error) {
 		default:
 			return records, fmt.Errorf("unsupported index journal operation %q", record.Operation)
 		}
-	}
-	if err := scanner.Err(); err != nil {
-		return records, err
 	}
 	return records, nil
 }
