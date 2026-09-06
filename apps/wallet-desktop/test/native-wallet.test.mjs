@@ -107,3 +107,13 @@ test("network rejects wrong-chain balances and transaction sender checks chain b
   await assert.rejects(sender.send({ connect() { connected = true; } }, {}));
   assert.equal(connected, false); sender.provider.destroy();
 });
+
+test("balance requests validate checksum input and send the canonical lowercase RPC address", async () => {
+  const requests = [];
+  const network = new CanonicalAccountNetwork({ fetchImpl: async (_url, options) => {
+    const request = JSON.parse(options.body); requests.push(request);
+    return new Response(JSON.stringify({ jsonrpc: "2.0", id: 1, result: request.method === "eth_chainId" ? "0x1917" : "0x0" }));
+  } });
+  assert.equal(await network.balance(recipient), "0x0");
+  assert.deepEqual(requests[1].params, [recipient.toLowerCase(), "latest"]);
+});

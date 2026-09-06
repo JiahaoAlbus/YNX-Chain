@@ -25,7 +25,7 @@ export class CanonicalAccountNetwork {
   }
   async balance(account) {
     await this.verifyChain();
-    const value = await this.request("eth_getBalance", [getAddress(account), "latest"]);
+    const value = await this.request("eth_getBalance", [getAddress(account).toLowerCase(), "latest"]);
     if (!quantity(value)) throw providerError(4900, "RPC_INVALID_BALANCE", "The network returned an invalid balance");
     return value;
   }
@@ -52,7 +52,7 @@ export class NativeWalletService {
   async prepareTransfer({ to, amount } = {}) {
     let recipient, value;
     try {
-      recipient = getAddress(to);
+      recipient = getAddress(to).toLowerCase();
       if (recipient === "0x0000000000000000000000000000000000000000" || typeof amount !== "string" || !/^(?:0|[1-9][0-9]*)(?:\.[0-9]{1,18})?$/.test(amount) || amount.length > 80) throw new Error();
       value = parseEther(amount);
       if (value <= 0n) throw new Error();
