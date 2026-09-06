@@ -326,7 +326,7 @@ function ConnectedApps({visible,account,cancelRef}:{visible:boolean;account:Wall
     </>}
   </View>
 }
-function sessionReason(locale:WalletLocale,reason:string){return ({"session-revoked":walletCopy(locale,"Session revoked"),"device-revoked":walletCopy(locale,"Device revoked"),"account-revoked":walletCopy(locale,"Account access revoked"),expired:walletCopy(locale,"Expired"),"issued-in-future":walletCopy(locale,"Not yet active")} as Record<string,string>)[reason]??reason}
+function sessionReason(locale:WalletLocale,reason:string){return ({"session-revoked":walletCopy(locale,"Session revoked"),"device-revoked":walletCopy(locale,"Device revoked"),"device-logout":walletCopy(locale,"Device sessions signed out"),"account-revoked":walletCopy(locale,"Account access revoked"),expired:walletCopy(locale,"Expired"),"issued-in-future":walletCopy(locale,"Not yet active")} as Record<string,string>)[reason]??reason}
 
 function WalletControlCenter({visible,locale,close}:{visible:boolean;locale:WalletLocale;close:()=>void}){
   const runtime=(globalThis as any).__YNX_WALLET_CONTROL_RUNTIME__ as {snapshot?:unknown}|undefined;

@@ -164,6 +164,7 @@ const DETAIL_MESSAGES={
   "Refresh Connected Apps":["刷新已连接应用","تحديث التطبيقات المتصلة"],
   "Show Connected Apps":["查看已连接应用","إظهار التطبيقات المتصلة"],
   "Device revoked":["设备已撤销","تم إلغاء الجهاز"],
+  "Device sessions signed out":["设备会话已退出","تم تسجيل الخروج من جلسات الجهاز"],
   "Account access revoked":["账户访问已撤销","تم إلغاء الوصول إلى الحساب"],
   "Expired":["已到期","منتهية الصلاحية"],
   "Not yet active":["尚未生效","لم تصبح نشطة بعد"],

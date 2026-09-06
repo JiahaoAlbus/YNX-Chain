@@ -21,7 +21,7 @@ export type WalletSessionControlDependencies = Readonly<{
 const INVENTORY_PATH = "/v2/product-sessions/wallet/sessions";
 const REVOKE_PATH = "/v2/product-sessions/wallet/sessions/revoke";
 const MAX_RESPONSE_BYTES = 1_048_576;
-const INACTIVE_REASONS = new Set(["session-revoked", "device-revoked", "account-revoked", "expired", "issued-in-future"]);
+const INACTIVE_REASONS = new Set(["session-revoked", "device-revoked", "device-logout", "account-revoked", "expired", "issued-in-future"]);
 
 export class WalletSessionRevocationUnknown extends Error {
   readonly code = "REVOCATION_UNKNOWN";

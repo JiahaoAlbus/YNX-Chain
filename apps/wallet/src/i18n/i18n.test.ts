@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";import{test}from"node:test";
 import{allMessages,detectLocale,formatDateTime,formatYNXT,isRTL,loadLocale,localizeError,localizeProductSessionError,LOCALE_PREFERENCE_KEY,plural,saveLocale,SUPPORTED_LOCALES,translate}from"./i18n";
 import type{SecureStorageAdapter}from"../storage/walletRepository";
+import{readFileSync}from"node:fs";
+import{walletCopy}from"./i18n";
 import{WalletSecretRecoveryRequired}from"../storage/walletRepository";
 import{needsOfflineKeyRecovery}from"../state/recoveryReview";
 class MemoryStorage implements SecureStorageAdapter{values=new Map<string,string>();async getItem(k:string){return this.values.get(k)??null}async setItem(k:string,v:string){this.values.set(k,v)}async deleteItem(k:string){this.values.delete(k)}}
@@ -42,4 +44,18 @@ test("a signed return or non-approval action never suggests approving again",()=
     assert.equal(localizeProductSessionError("en",androidUserCancel,action,true),localizeError("en",androidUserCancel));
     if(action!=="approve")assert.equal(localizeProductSessionError("en",androidUserCancel,action,false),localizeError("en",androidUserCancel));
   }
+});
+
+test("Connected Apps renders the exact device logout reason distinctly from permanent device revocation",()=>{
+  const source=readFileSync(new URL("../../App.tsx",import.meta.url),"utf8");
+  const typed=source.split("\n").find(line=>line.startsWith("function sessionReason("));
+  assert.ok(typed,"Actual Connected Apps status formatter must remain connected");
+  const js=typed.replace("locale:WalletLocale,reason:string","locale,reason").replace(" as Record<string,string>","");
+  const render=new Function("walletCopy",`${js};return sessionReason`)(walletCopy) as (locale:typeof SUPPORTED_LOCALES[number],reason:string)=>string;
+  for(const [locale,expected] of [["en","Device sessions signed out"],["zh-Hans","设备会话已退出"],["ar","تم تسجيل الخروج من جلسات الجهاز"]] as const){
+    assert.equal(render(locale,"device-logout"),expected);
+    assert.equal(render(locale,"device-revoked"),walletCopy(locale,"Device revoked"));
+    assert.notEqual(render(locale,"device-logout"),render(locale,"device-revoked"));
+  }
+  for(const locale of SUPPORTED_LOCALES)assert.notEqual(render(locale,"device-logout"),"device-logout");
 });

@@ -16,6 +16,11 @@ const OTHER = walletIdentity("2".padStart(64, "0"));
 const NOW = "2026-07-26T08:00:00.000Z";
 const SESSION = "a".repeat(64), DEVICE = "c".repeat(64);
 const INVENTORY = "/v2/product-sessions/wallet/sessions", REVOKE = `${INVENTORY}/revoke`;
+// Literal output from immutable Auth 744d017ef77237c070f25936b976d553bfa0e0c2:
+// local HTTP device logout persisted, host cold-restarted, then owner inventory.
+// Public fixture secrets 1/2 only; the foreign owner is excluded and another
+// device remains active. This is not a production account or public request.
+const AUTH_744_DEVICE_LOGOUT_INVENTORY = {"account":"ynx10e0525sfrf53yh2aljmm3sn9jq5njk7llqhn80","asOf":"2026-09-06T10:00:00.020Z","sessions":[{"active":false,"applicationId":"com.ynxweb4.creator-studio.web","callback":"https://creator.ynxweb4.com/wallet-auth/callback","clientId":"ynx-creator-studio-web-v1","deviceBinding":"281af14b48612bd793d5271701538d2feb5757760e2e45b59cfc96695b664ef9","deviceId":"control-v3-shared-device","displayName":"YNX Creator Studio","expiresAt":"2026-09-06T10:04:00.000Z","inactiveReasons":["session-revoked","device-logout"],"issuedAt":"2026-09-06T10:00:00.000Z","origin":"https://creator.ynxweb4.com","platform":"web","productId":"creator-studio","scopes":["creator:account"],"sessionBinding":"66135ba277b89cfa93e2314c61f56321af590a31dabc7fec7bb7ccc0565e5f91"},{"active":true,"applicationId":"com.ynxweb4.creator-studio.web","callback":"https://creator.ynxweb4.com/wallet-auth/callback","clientId":"ynx-creator-studio-web-v1","deviceBinding":"df02c89fdcdb84386a82828275b930185c73cb2fd42ef4fd2593cdc09cbc4819","deviceId":"different-fixture-device","displayName":"YNX Creator Studio","expiresAt":"2026-09-06T10:04:00.000Z","inactiveReasons":[],"issuedAt":"2026-09-06T10:00:00.000Z","origin":"https://creator.ynxweb4.com","platform":"web","productId":"creator-studio","scopes":["creator:account"],"sessionBinding":"9745066f56ff8aa7f3a48d7f991b22998eb50713c79c42486d918e3a4b10a9d1"}]};
 function inventory() {
   return { account: ACCOUNT.account, asOf: NOW, sessions: [{ sessionBinding: SESSION, productId: "ynx-creator-studio", clientId: "ynx-creator-studio-web", displayName: "YNX Creator Studio", platform: "web", applicationId: "com.ynxweb4.creator.web", origin: "https://creator.ynxweb4.com", callback: "https://creator.ynxweb4.com/wallet-auth/callback", deviceId: "fixture-browser-device", deviceBinding: DEVICE, scopes: ["profile:read"], issuedAt: "2026-07-26T07:55:00.000Z", expiresAt: "2026-07-26T09:00:00.000Z", active: true, inactiveReasons: [] as string[] }] };
 }
@@ -91,6 +96,31 @@ test("legal native app origins and scheme callbacks remain visible alongside Web
   assert.equal(result.sessions.length, 6);
   assert.equal(result.sessions[0]?.origin, "app://android/com.ynxweb4.creator");
   assert.equal(result.sessions[1]?.callback, "ynxcreator://wallet-auth/callback");
+});
+
+test("Auth 744 durable device logout inventory remains readable after the host restarts", async () => {
+  const value = AUTH_744_DEVICE_LOGOUT_INVENTORY, { scope } = unlocked();
+  const f = fixture({ clock: value.asOf, result: (_, id) => response(value, id) });
+  const result = await useLease(scope, lease => f.client.load(ACCOUNT, lease));
+  assert.deepEqual(result, value);
+  assert.deepEqual(result.sessions[0]?.inactiveReasons, ["session-revoked", "device-logout"]);
+  assert.equal(result.sessions[0]?.active, false); assert.equal(result.sessions[1]?.active, true);
+  assert.equal(result.account, ACCOUNT.account); assert.equal(result.sessions.length, 2);
+});
+
+test("device cutoff compatibility still rejects unknown reasons and contradictory active status", async () => {
+  for (const changed of [
+    { inactiveReasons: ["device-logout-unknown"] },
+    { inactiveReasons: ["Device-logout"] },
+    { inactiveReasons: ["device-logout", "future-reason"] },
+    { inactiveReasons: ["device-logout", "device-logout"] },
+    { inactiveReasons: ["device-logout"], active: true },
+  ]) {
+    const original = AUTH_744_DEVICE_LOGOUT_INVENTORY;
+    const value = { ...original, sessions: [{ ...original.sessions[0]!, ...changed }, original.sessions[1]!] };
+    const { scope } = unlocked(), f = fixture({ clock: value.asOf, result: (_, id) => response(value, id) });
+    await assert.rejects(useLease(scope, lease => f.client.load(ACCOUNT, lease)));
+  }
 });
 
 test("empty inventory is returned only after an authenticated, verified authoritative response", async () => {
