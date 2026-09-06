@@ -1,3 +1,4 @@
+import { fixtureKeyAuthorization } from "./fixture-key-authorization.mjs";
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import os from "node:os";
@@ -15,7 +16,7 @@ const secureStorage = { isEncryptionAvailable: () => true, encryptString: text =
 async function vaultFixture() {
   const directory = await mkdtemp(path.join(os.tmpdir(), "ynx-native-wallet-test-"));
   const filePath = path.join(directory, "vault.json");
-  return { filePath, vault: new DesktopWalletVault({ filePath, safeStorage: secureStorage, randomSecret: () => secret }) };
+  return { filePath, vault: new DesktopWalletVault({ authorization: fixtureKeyAuthorization, filePath, safeStorage: secureStorage, randomSecret: () => secret }) };
 }
 async function serviceFixture() {
   const { vault } = await vaultFixture(); await vault.createAccount();
@@ -38,7 +39,7 @@ test("imported account is encrypted, deduplicated and retained after restarting"
   assert.equal(imported.account, new Wallet(`0x${secret}`).address.toLowerCase());
   assert.doesNotMatch(await readFile(filePath, "utf8"), new RegExp(secret));
   await assert.rejects(vault.importAccount({ kind: "private-key", value: secret }), error => error.data.code === "DUPLICATE_ACCOUNT");
-  const restarted = new DesktopWalletVault({ filePath, safeStorage: secureStorage });
+  const restarted = new DesktopWalletVault({ authorization: fixtureKeyAuthorization, filePath, safeStorage: secureStorage });
   assert.equal((await restarted.status()).account, imported.account);
   assert.equal(await restarted.withSecret(value => value === secret), true);
 });
@@ -58,7 +59,7 @@ test("concurrent imports preserve both accounts and cleartext key stores are rej
   await Promise.all([vault.importAccount({ kind: "private-key", value: secret }), vault.importAccount({ kind: "private-key", value: secondSecret })]);
   assert.equal((await vault.status()).accounts.length, 2);
   const { filePath } = await vaultFixture();
-  const insecure = new DesktopWalletVault({ filePath, safeStorage: { ...secureStorage, getSelectedStorageBackend: () => "basic_text" } });
+  const insecure = new DesktopWalletVault({ authorization: fixtureKeyAuthorization, filePath, safeStorage: { ...secureStorage, getSelectedStorageBackend: () => "basic_text" } });
   await assert.rejects(insecure.createAccount(), error => error.data.code === "SECURE_STORAGE_UNAVAILABLE");
 });
 

@@ -76,6 +76,7 @@ export class NativeWalletService {
     if ((await this.vault.status()).account !== status.account) throw providerError(4100, "ACCOUNT_CHANGED", "The selected account changed. Prepare the transfer again.");
     const maximumFee = BigInt(snapshot.gasLimit) * BigInt(snapshot.gasPrice ?? snapshot.maxFeePerGas);
     if (balance < value + maximumFee) throw providerError(-32000, "INSUFFICIENT_FUNDS", "Insufficient YNXT to cover the amount and network fee");
+    this.vault.authorization?.current().assert();
     const id = this.requestId(), createdAt = this.clock();
     const record = Object.freeze({ id, account: status.account, transaction: snapshot, createdAt });
     this.pending.clear();
@@ -92,9 +93,9 @@ export class NativeWalletService {
     const status = await this.vault.status();
     if (status.account !== request.account) throw providerError(4100, "ACCOUNT_CHANGED", "The selected account changed. Review the transfer again.");
     await this.network.verifyChain();
-    const hash = await this.vault.withSecret(async (secret, identity) => {
+    const hash = await this.vault.withSecret(async (secret, identity, guard) => {
       if (identity.account !== request.account) throw providerError(4100, "ACCOUNT_CHANGED", "The selected account changed");
-      return this.sender.send(new Wallet(`0x${secret}`), request.transaction);
+      return this.sender.send(new Wallet(`0x${secret}`), request.transaction, guard);
     });
     return { hash, status: "submitted", confirmed: false, account: request.account, to: request.transaction.to, amount: formatEther(request.transaction.value) };
   }

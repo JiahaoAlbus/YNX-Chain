@@ -5,6 +5,7 @@ export class ApprovalReviewQueue {
     this.now = now;
     this.onChange = onChange;
   }
+  clear() { this.#items = []; this.#inFlight = null; this.onChange(); }
   get current() { return this.#inFlight ?? this.#items[0] ?? null; }
   get busy() { return this.#inFlight !== null; }
   get count() { return this.#items.length; }

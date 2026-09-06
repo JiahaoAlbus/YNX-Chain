@@ -213,3 +213,26 @@ test("Windows capture verification proves approved and rejected v2 returns witho
   assert.equal(rejection.result, "rejected");
   assert.throws(() => verifyWindowsCallbackCapture(rejected, deepLink, "approved", account, now), /did not match/);
 });
+
+test("OS callback launch that locks Wallet is recorded as emitted, without claiming callback receipt", async () => {
+  const { DesktopKeyLifecycle } = await import("../src/key-lifecycle.mjs");
+  const life = new DesktopKeyLifecycle({ authorizer: { available: () => true, authenticate: async () => {}, method: "explicit-test-fixture" } });
+  life.setFocused(true); await life.unlock();
+  const { controller, state } = controllerFixture();
+  life.subscribe(status => { if (status.locked) controller.cancel(); });
+  controller.openExternal = url => life.current().deliver(async () => { state.opened.push(url); life.setFocused(false); });
+  const review = await controller.receive(deepLink);
+  const result = await life.run(() => controller.act(boundAction(review, "approve")));
+  assert.equal(result.callbackEmitted, true); assert.equal(result.callbackReceivedProved, false);
+  assert.equal(result.productSessionCreated, false); assert.equal(state.opened.length, 1); assert.equal(controller.pending, null);
+});
+
+test("lock during a pending authorization signer cannot launch a stale callback", async () => {
+  const { controller, state } = controllerFixture();
+  let finish, entered; const ready = new Promise(resolve => { entered = resolve; });
+  const original = controller.authority.approveCanonicalAuthorization;
+  controller.authority.approveCanonicalAuthorization = async (...args) => { const callback = await original(...args); entered(); await new Promise(resolve => { finish = resolve; }); return callback; };
+  const review = await controller.receive(deepLink), pending = controller.act(boundAction(review, "approve"));
+  await ready; controller.cancel(); finish();
+  await assert.rejects(pending, { code: "WALLET_OPERATION_CANCELLED" }); assert.equal(state.opened.length, 0);
+});

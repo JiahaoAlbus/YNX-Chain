@@ -1,3 +1,4 @@
+import { keyAccessError } from "./key-lifecycle.mjs";
 import { randomBytes } from "node:crypto";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -5,13 +6,14 @@ import { Wallet } from "ethers";
 import { evmAddressFromYNX, walletIdentity } from "@ynx-chain/wallet-auth";
 
 export class DesktopWalletVault {
-  constructor({ filePath, legacyFilePath = null, safeStorage, randomSecret = validRandomSecret }) {
+  constructor({ filePath, legacyFilePath = null, safeStorage, randomSecret = validRandomSecret, authorization = { current() { throw keyAccessError(); } } }) {
     if (!filePath || !safeStorage) throw new Error("Wallet vault requires a path and OS safe storage");
     this.filePath = filePath;
     this.legacyFilePath = legacyFilePath;
     this.safeStorage = safeStorage;
     this.randomSecret = randomSecret;
     this.mutations = Promise.resolve();
+    this.authorization = authorization;
   }
 
   async status() {
@@ -28,35 +30,41 @@ export class DesktopWalletVault {
   }
 
   async createAccount() {
+    const guard = this.authorization.current();
     return this.#mutate(async () => {
-      if (!await this.#read()) await this.#write(await this.#newVault());
+      guard.assert();
+      if (!await guard.step(() => this.#read())) await this.#write(await this.#newVault(guard), guard);
       return this.status();
     });
   }
 
   async addAccountAndSelect() {
+    const guard = this.authorization.current();
     return this.#mutate(async () => {
-    const vault = await this.#read();
-    if (!vault) { await this.#write(await this.#newVault()); return this.status(); }
+    guard.assert();
+    const vault = await guard.step(() => this.#read());
+    if (!vault) { await this.#write(await this.#newVault(guard), guard); return this.status(); }
     if (vault.accounts.length >= 32) throw providerError(4200, "ACCOUNT_LIMIT", "This Wallet supports up to 32 accounts");
-    const next = await this.#newRecord();
+    const next = await this.#newRecord(undefined, guard);
     if (vault.accounts.some(item => item.account === next.account)) throw providerError(4200, "DUPLICATE_ACCOUNT", "Generated Wallet account already exists");
-    await this.#write({ schemaVersion: 2, activeAccount: next.account, accounts: [...vault.accounts, next] });
+    await this.#write({ schemaVersion: 2, activeAccount: next.account, accounts: [...vault.accounts, next] }, guard);
     return this.status();
     });
   }
 
   async selectAccount(account) {
+    const guard = this.authorization.current();
     return this.#mutate(async () => {
-    const vault = await this.#read();
+    const vault = await guard.step(() => this.#read());
     const normalized = typeof account === "string" ? account.toLowerCase() : "";
     if (!vault?.accounts.some(item => item.account === normalized)) throw providerError(4100, "UNKNOWN_WALLET_ACCOUNT", "Selected Wallet account does not exist");
-    await this.#write({ ...vault, activeAccount: normalized });
+    await this.#write({ ...vault, activeAccount: normalized }, guard);
     return this.status();
     });
   }
 
   async importAccount({ kind, value, password = "" } = {}) {
+    const guard = this.authorization.current();
     if (typeof value !== "string" || value.length < 1 || value.length > 100_000) throw providerError(-32602, "INVALID_IMPORT", "Enter a valid Wallet import");
     let secret;
     try {
@@ -66,13 +74,14 @@ export class DesktopWalletVault {
       else throw new Error("Unsupported import");
     } catch { throw providerError(-32602, "INVALID_IMPORT", "Wallet import is invalid or the backup password is incorrect"); }
     try {
+      guard.assert();
       return await this.#mutate(async () => {
-        const vault = await this.#read();
+        const vault = await guard.step(() => this.#read());
         const account = evmAddressFromYNX(walletIdentity(secret).account);
         if (vault?.accounts.some(item => item.account === account)) throw providerError(4200, "DUPLICATE_ACCOUNT", "This account is already in the Wallet");
         if ((vault?.accounts.length ?? 0) >= 32) throw providerError(4200, "ACCOUNT_LIMIT", "This Wallet supports up to 32 accounts");
-        const record = await this.#newRecord(secret);
-        await this.#write({ schemaVersion: 2, activeAccount: record.account, accounts: [...(vault?.accounts ?? []), record] });
+        const record = await this.#newRecord(secret, guard);
+        await this.#write({ schemaVersion: 2, activeAccount: record.account, accounts: [...(vault?.accounts ?? []), record] }, guard);
         return this.status();
       });
     } finally { secret = null; }
@@ -93,16 +102,17 @@ export class DesktopWalletVault {
     if (!this.safeStorage.isEncryptionAvailable() || this.safeStorage.getSelectedStorageBackend?.() === "basic_text") throw providerError(4200, "SECURE_STORAGE_UNAVAILABLE", "OS secure storage is unavailable");
   }
 
-  async #newVault() {
-    const record = await this.#newRecord();
+  async #newVault(guard) {
+    const record = await this.#newRecord(undefined, guard);
     return { schemaVersion: 2, activeAccount: record.account, accounts: [record] };
   }
 
-  async #newRecord(secret = this.randomSecret()) {
+  async #newRecord(secret = this.randomSecret(), guard) {
+    guard.assert();
     this.#assertSecureStorage();
     const identity = walletIdentity(secret);
     const account = evmAddressFromYNX(identity.account);
-    const encryptedSecret = (await this.#encrypt(secret)).toString("base64");
+    const encryptedSecret = (await guard.step(() => this.#encrypt(secret))).toString("base64");
     return {
       account,
       ynxAccount: identity.account,
@@ -113,15 +123,19 @@ export class DesktopWalletVault {
   }
 
   async withSecret(action) {
-    const record = activeRecord(await this.#read());
+    const guard = this.authorization.current();
+    const record = activeRecord(await guard.step(() => this.#read()));
     if (!record) throw providerError(4100, "ACCOUNT_NOT_CREATED", "Create a Wallet account before approving this request");
+    if (guard.account !== undefined && guard.account !== record.account) throw keyAccessError("WALLET_OPERATION_CANCELLED");
     this.#assertSecureStorage();
     let secret;
     try {
-      secret = await this.#decrypt(Buffer.from(record.encryptedSecret, "base64"));
+      secret = await guard.step(() => this.#decrypt(Buffer.from(record.encryptedSecret, "base64")));
+      const current = activeRecord(await guard.step(() => this.#read()));
+      if (current?.account !== record.account || current?.publicKey !== record.publicKey) throw keyAccessError("WALLET_OPERATION_CANCELLED");
       const identity = walletIdentity(secret);
       if (evmAddressFromYNX(identity.account) !== record.account || identity.account !== record.ynxAccount || identity.accountPublicKey !== record.publicKey) throw providerError(4100, "WALLET_IDENTITY_MISMATCH", "Encrypted key does not match the selected account");
-      return await action(secret, Object.freeze({ account: record.account, ynxAccount: record.ynxAccount, publicKey: record.publicKey }));
+      return await guard.step(() => action(secret, Object.freeze({ account: record.account, ynxAccount: record.ynxAccount, publicKey: record.publicKey }), guard));
     } finally {
       secret = null;
     }
@@ -134,13 +148,9 @@ export class DesktopWalletVault {
 
   async #decrypt(encrypted) {
     if (typeof this.safeStorage.decryptStringAsync === "function") {
-      try {
-        const value = await this.safeStorage.decryptStringAsync(encrypted);
-        if (typeof value?.result !== "string") throw new Error("OS async secure storage returned no plaintext");
-        return value.result;
-      } catch (error) {
-        if (typeof this.safeStorage.decryptString !== "function") throw error;
-      }
+      const value = await this.safeStorage.decryptStringAsync(encrypted);
+      if (typeof value?.result !== "string") throw new Error("OS async secure storage returned no plaintext");
+      return value.result;
     }
     return this.safeStorage.decryptString(encrypted);
   }
@@ -158,11 +168,11 @@ export class DesktopWalletVault {
     }
   }
 
-  async #write(record) {
-    await mkdir(path.dirname(this.filePath), { recursive: true, mode: 0o700 });
+  async #write(record, guard) {
+    await guard.step(() => mkdir(path.dirname(this.filePath), { recursive: true, mode: 0o700 }));
     const temporary = `${this.filePath}.tmp`;
-    await writeFile(temporary, `${JSON.stringify(record, null, 2)}\n`, { mode: 0o600 });
-    await rename(temporary, this.filePath);
+    await guard.step(() => writeFile(temporary, `${JSON.stringify(record, null, 2)}\n`, { mode: 0o600 }));
+    await guard.step(() => rename(temporary, this.filePath));
   }
 }
 

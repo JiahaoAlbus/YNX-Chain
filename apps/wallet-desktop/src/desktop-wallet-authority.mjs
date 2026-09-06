@@ -27,6 +27,7 @@ export class DesktopWalletAuthority {
     this.pending = new Map();
   }
 
+  cancelAll() { this.pending.clear(); }
   async accountStatus() { return this.vault.status(); }
   async createAccount() { return this.vault.createAccount(); }
   async importAccount(input) { this.pending.clear(); await this.permissions.revokeAll(); return this.vault.importAccount(input); }
@@ -43,10 +44,15 @@ export class DesktopWalletAuthority {
   }
   async approveOrigin(originInput, expectedAccount = null) {
     const origin = exactHttpsOrigin(originInput);
+    const guard = this.vault.authorization?.current();
     const status = await this.vault.status();
+    guard?.assert();
     if (!status.initialized) throw providerError(4100, "ACCOUNT_NOT_CREATED", "Create a Wallet account before connecting a DApp");
     if (expectedAccount !== null) assertReviewedAccount(status.account, expectedAccount);
-    await this.permissions.grantAccount(origin, status.account, this.clock().toISOString());
+    const existing = await this.permissions.hasAccount(origin, status.account);
+    guard?.assert();
+    try { await this.permissions.grantAccount(origin, status.account, this.clock().toISOString()); guard?.assert(); }
+    catch (error) { if (!existing) await this.permissions.revoke(origin); throw error; }
     return Object.freeze({ origin, account: status.account });
   }
   async revokeOrigin(originInput) { const origin = exactHttpsOrigin(originInput); await this.permissions.revoke(origin); this.#clearOriginPending(origin); return Object.freeze({ origin, revoked: true }); }
@@ -86,6 +92,7 @@ export class DesktopWalletAuthority {
     if (this.pending.size >= MAX_PENDING_REQUESTS || [...this.pending.values()].filter(item => item.origin === origin).length >= MAX_PENDING_REQUESTS_PER_ORIGIN) {
       throw providerError(4200, "PENDING_REQUEST_LIMIT", "Too many Wallet requests are awaiting review");
     }
+    this.vault.authorization?.current().assert();
     const id = this.requestId();
     const pending = deepFreeze({ id, origin, method, params: normalized.params, review: normalized.review, createdAt: this.clock().toISOString() });
     this.pending.set(id, pending);
@@ -93,8 +100,10 @@ export class DesktopWalletAuthority {
   }
 
   async approve(id) {
+    const guard = this.vault.authorization?.current();
     const pending = this.#take(id);
     const status = await this.vault.status();
+    guard?.assert();
     if (!status.initialized) throw providerError(4100, "ACCOUNT_NOT_CREATED", "Wallet account is unavailable");
     if (pending.review.account !== status.account) throw providerError(4100, "ACCOUNT_CHANGED", "The selected account changed. Review the request again.");
     if (["personal_sign", "eth_signTypedData_v4", "eth_sendTransaction"].includes(pending.method) && !(await this.permissions.hasAccount(pending.origin, status.account))) {
@@ -103,7 +112,11 @@ export class DesktopWalletAuthority {
     switch (pending.method) {
       case "eth_requestAccounts":
       case "wallet_requestPermissions":
-        await this.permissions.grantAccount(pending.origin, status.account, this.clock().toISOString());
+        { const existing = await this.permissions.hasAccount(pending.origin, status.account);
+          guard?.assert();
+          try { await this.permissions.grantAccount(pending.origin, status.account, this.clock().toISOString()); guard?.assert(); }
+          catch (error) { if (!existing) await this.permissions.revoke(pending.origin); throw error; }
+        }
         return success(pending.method === "eth_requestAccounts" ? [status.account] : [{ parentCapability: "eth_accounts" }]);
       case "personal_sign":
         return this.vault.withSecret(async (secret, identity) => {
@@ -120,9 +133,9 @@ export class DesktopWalletAuthority {
         });
       case "eth_sendTransaction":
         if (!this.transactionSender) throw providerError(4200, "TRANSACTION_TRANSPORT_UNAVAILABLE", "Canonical transaction transport is unavailable");
-        return this.vault.withSecret(async (secret, identity) => {
+        return this.vault.withSecret(async (secret, identity, guard) => {
           assertReviewedAccount(identity.account, pending.review.account);
-          return success(await this.transactionSender.send(walletForSecret(secret), pending.params[0]));
+          return success(await this.transactionSender.send(walletForSecret(secret), pending.params[0], guard));
         });
       default:
         throw providerError(4200, "UNSUPPORTED_PROVIDER_METHOD", "Provider method is not implemented");

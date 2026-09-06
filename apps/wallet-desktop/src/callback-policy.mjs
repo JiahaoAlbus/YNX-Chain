@@ -36,7 +36,7 @@ export function evaluateWalletCallback(rawValue, { now = new Date() } = {}) {
 export class DesktopAuthorizationController {
   constructor({ authority, openExternal, clock = () => new Date(), requestId = randomUUID }) {
     this.authority = authority; this.openExternal = openExternal; this.clock = clock; this.requestId = requestId;
-    this.pending = null; this.inFlight = false; this.prepared = null;
+    this.pending = null; this.inFlight = false; this.prepared = null; this.generation = 0;
   }
   async receive(url) {
     if (!this.inFlight && this.pending && Date.parse(this.pending.expiresAt) <= this.clock().getTime()) this.invalidate();
@@ -68,6 +68,7 @@ export class DesktopAuthorizationController {
     this.pending = Object.freeze({ ...review, account: status.account, ynxAccount: status.ynxAccount, loadingAccount: false });
     return this.pending;
   }
+  cancel() { const hadPending = Boolean(this.pending); this.generation++; this.pending = null; this.prepared = null; return hadPending; }
   invalidate() {
     if (this.inFlight) throw authError("AUTHORIZATION_ACTION_IN_PROGRESS");
     const hadPending = Boolean(this.pending);
@@ -84,6 +85,8 @@ export class DesktopAuthorizationController {
     if (this.prepared && this.prepared.action !== action) throw authError("AUTHORIZATION_RESULT_ALREADY_PREPARED");
     if (action === "approve" && !review.account) throw authError("ACCOUNT_NOT_CREATED");
     this.inFlight = true;
+    const generation = this.generation;
+    const assertCurrent = () => { if (generation !== this.generation || this.pending?.id !== review.id) throw authError("WALLET_OPERATION_CANCELLED"); };
     let stage = "CANONICAL_AUTHORIZATION_SIGN_FAILED";
     try {
       const now = this.clock();
@@ -92,11 +95,15 @@ export class DesktopAuthorizationController {
         const callback = action === "approve"
           ? await this.authority.approveCanonicalAuthorization(review.request, now.toISOString(), review.account)
           : { callbackUrl: createProductSessionReturnURL(PRODUCT_SESSION_REGISTRY, review.request, { result: "rejected", reason: "user_rejected" }, now) };
+        assertCurrent();
         this.prepared = Object.freeze({ action, callbackUrl: callback.callbackUrl });
       }
       stage = "CANONICAL_CALLBACK_LAUNCH_FAILED";
+      assertCurrent();
       await this.openExternal(this.prepared.callbackUrl);
-      this.pending = null; this.prepared = null;
+      // Opening the destination normally blurs and locks Wallet. A completed
+      // external launch remains a launch, even when that invalidated the review.
+      if (this.pending?.id === review.id) { this.pending = null; this.prepared = null; }
       return Object.freeze({
         acceptedForReview: true, requestId: review.id, action,
         code: action === "approve" ? CANONICAL_AUTHORIZATION_APPROVED : "USER_REJECTED",

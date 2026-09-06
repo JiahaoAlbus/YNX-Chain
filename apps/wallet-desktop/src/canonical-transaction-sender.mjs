@@ -42,22 +42,35 @@ export class CanonicalTransactionSender {
       return snapshot;
     } catch (error) { throw normalizeFailure(error, "TRANSACTION_PREPARATION_FAILED", "The network could not prepare a complete transaction for review. Nothing was signed."); }
   }
-  async send(wallet, transaction) {
+  async send(wallet, transaction, guard) {
     try {
+      guard?.assert();
       if (!transaction || !this.#prepared.has(transaction)) fail("UNREVIEWED_TRANSACTION", "Prepare and review a complete transaction before signing");
       this.#prepared.delete(transaction);
       if (wallet.address?.toLowerCase() !== transaction.from) fail("ACCOUNT_CHANGED", "The selected account changed. Review the transaction again.");
       await this.network.verifyChain();
+      guard?.assert();
       const nonce = rpcQuantity(await this.provider.send("eth_getTransactionCount", [transaction.from, "pending"]), "nonce");
+      guard?.assert();
       if (nonce !== transaction.nonce) fail("TRANSACTION_NONCE_CHANGED", "The account nonce changed after review. Prepare the transaction again.");
       const fields = signingFields(transaction), expectedUnsigned = Transaction.from(fields).unsignedSerialized;
       // signTransaction never populates network fields; the exact reviewed bytes are broadcast directly.
+      guard?.assert();
       const signed = await wallet.signTransaction(fields);
+      guard?.assert();
       const decoded = Transaction.from(signed);
       if (decoded.unsignedSerialized !== expectedUnsigned || decoded.from?.toLowerCase() !== transaction.from) fail("TRANSACTION_SNAPSHOT_MISMATCH", "Signed transaction does not match the approved snapshot");
-      const hash = await this.provider.send("eth_sendRawTransaction", [signed]);
-      if (typeof hash !== "string" || !/^0x[0-9a-f]{64}$/i.test(hash) || hash.toLowerCase() !== decoded.hash) fail("TRANSACTION_HASH_MISMATCH", "The network returned a hash that does not match the signed transaction");
-      return hash.toLowerCase();
+      guard?.assert();
+      const broadcast = async () => {
+        const hash = await this.provider.send("eth_sendRawTransaction", [signed]);
+        if (typeof hash !== "string" || !/^0x[0-9a-f]{64}$/i.test(hash) || hash.toLowerCase() !== decoded.hash) fail("TRANSACTION_HASH_MISMATCH", "The network returned a hash that does not match the signed transaction");
+        return hash.toLowerCase();
+      };
+      try { return guard?.submit ? await guard.submit(broadcast) : await broadcast(); }
+      catch (error) {
+        if (error?.data?.outcomeUnknown) error.data = { ...error.data, transactionHash: decoded.hash };
+        throw error;
+      }
     } catch (error) {
       throw normalizeFailure(error, "TRANSACTION_SUBMISSION_FAILED", "Canonical YNX Testnet transaction submission failed closed");
     }

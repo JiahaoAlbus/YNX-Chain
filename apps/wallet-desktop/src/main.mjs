@@ -1,4 +1,5 @@
-import { app, BrowserWindow, dialog, ipcMain, nativeImage, net, safeStorage, shell } from "electron";
+import { DesktopKeyLifecycle, nativeDesktopAuthorizer } from "./key-lifecycle.mjs";
+import { app, BrowserWindow, dialog, ipcMain, nativeImage, net, powerMonitor, safeStorage, shell, systemPreferences } from "electron";
 import { createHash } from "node:crypto";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -31,6 +32,15 @@ let lastCallback = null;
 let walletAuthority;
 let nativeWallet;
 let walletConnect;
+const keyAccess = new DesktopKeyLifecycle({ authorizer: nativeDesktopAuthorizer({ systemPreferences }), focused: () => mainWindow?.isFocused() === true });
+keyAccess.subscribe(state => {
+  if (state.locked && !state.authenticating) {
+    authorizationController?.cancel(); walletAuthority?.cancelAll(); nativeWallet?.clear();
+    walletConnectRequests.clear(); walletConnectProposalAccounts.clear();
+  }
+  mainWindow?.webContents.send("wallet:security-state", state);
+});
+const sensitiveIPC = action => safeIPC(() => keyAccess.run(action));
 const walletConnectRequests = new Map();
 const walletConnectProposalAccounts = new Map();
 const walletConnectProposalActions = new Set();
@@ -75,7 +85,8 @@ async function recordEvidence(status, window, { launch = false } = {}) {
     accountCreated: false,
     balanceClaimed: false,
     transactionCreated: false,
-    signingEnabled: authority.initialized,
+    signingEnabled: authority.initialized && !keyAccess.status().locked,
+    keySecurity: keyAccess.status(),
     callback: lastCallback ?? prior.callback ?? {
       received: false,
       acceptedForReview: false,
@@ -89,11 +100,14 @@ async function recordEvidence(status, window, { launch = false } = {}) {
 }
 
 ipcMain.handle("wallet:status", rpcStatus);
+ipcMain.handle("wallet:security-status", () => keyAccess.status());
+ipcMain.handle("wallet:unlock", () => safeIPC(() => keyAccess.unlock()));
+ipcMain.handle("wallet:lock", () => { keyAccess.lock(); return keyAccess.status(); });
 ipcMain.handle("wallet:authorization-action", async (_event, input) => {
   const action = typeof input === "string" ? input : input?.action;
   try {
     if (accountChangeInProgress) throw Object.assign(new Error("The selected account is changing"), { code: "ACCOUNT_CHANGED" });
-    const result = await authorizationController.act(input);
+    const result = await keyAccess.run(() => authorizationController.act(input));
     lastCallback = { ...(lastCallback ?? {}), action, result, callbackEmitted: result.callbackEmitted, callbackReceivedProved: false, authorityGranted: result.authorityGranted, productSessionCreated: false };
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.setTitle("YNX Wallet");
@@ -107,8 +121,9 @@ ipcMain.handle("wallet:authorization-action", async (_event, input) => {
 
 async function authorizationFailure(stageCode, action, error) {
   const underlyingCode = safeCode(error);
-  const result = { acceptedForReview: Boolean(authorizationController?.pending), action, code: stageCode, underlyingCode, failureClass: safeErrorClass(error), failureCategory: safeFailureCategory(error), callbackEmitted: false, callbackReceivedProved: false, authorityGranted: false, productSessionCreated: false };
-  lastCallback = { ...(lastCallback ?? {}), action, result, callbackEmitted: false, callbackReceivedProved: false, authorityGranted: false, productSessionCreated: false };
+  const outcomeUnknown = error?.data?.outcomeUnknown === true;
+  const result = { acceptedForReview: Boolean(authorizationController?.pending), action, code: stageCode, underlyingCode, failureClass: safeErrorClass(error), failureCategory: safeFailureCategory(error), callbackEmitted: outcomeUnknown ? null : false, callbackOutcomeUnknown: outcomeUnknown, callbackReceivedProved: false, authorityGranted: false, productSessionCreated: false };
+  lastCallback = { ...(lastCallback ?? {}), action, result, callbackEmitted: result.callbackEmitted, callbackOutcomeUnknown: outcomeUnknown, callbackReceivedProved: false, authorityGranted: false, productSessionCreated: false };
   if (mainWindow && !mainWindow.isDestroyed()) await recordEvidence(await rpcStatus(), mainWindow);
   return result;
 }
@@ -116,20 +131,21 @@ async function authorizationFailure(stageCode, action, error) {
 ipcMain.handle("wallet:account-status", () => safeIPC(() => walletAuthority.accountStatus()));
 ipcMain.handle("wallet:import-account", (_event, input) => safeIPC(() => changeActiveAccount(() => walletAuthority.importAccount(input))));
 ipcMain.handle("wallet:balance", () => safeIPC(() => nativeWallet.balance()));
-ipcMain.handle("wallet:prepare-transfer", (_event, input) => safeIPC(() => nativeWallet.prepareTransfer(input)));
-ipcMain.handle("wallet:transfer-action", (_event, id, action) => safeIPC(() => nativeWallet.transferAction(id, action)));
-ipcMain.handle("wallet:save-backup", (_event, password) => safeIPC(async () => {
+ipcMain.handle("wallet:prepare-transfer", (_event, input) => sensitiveIPC(() => nativeWallet.prepareTransfer(input)));
+ipcMain.handle("wallet:transfer-action", (_event, id, action) => sensitiveIPC(() => nativeWallet.transferAction(id, action)));
+ipcMain.handle("wallet:save-backup", (_event, password) => sensitiveIPC(async () => {
   const status = await walletAuthority.accountStatus();
   if (!status.initialized) throw new Error("Create or import an account first");
   const encrypted = await walletAuthority.vault.encryptedBackup(password);
-  const selected = await dialog.showSaveDialog(mainWindow, { title: "Save encrypted Wallet backup", defaultPath: `ynx-wallet-${status.account.slice(2, 10)}.json`, filters: [{ name: "Encrypted JSON wallet", extensions: ["json"] }] });
+  const selected = await keyAccess.withOwnedDialog(() => dialog.showSaveDialog(mainWindow, { title: "Save encrypted Wallet backup", defaultPath: `ynx-wallet-${status.account.slice(2, 10)}.json`, filters: [{ name: "Encrypted JSON wallet", extensions: ["json"] }] }));
   if (selected.canceled || !selected.filePath) return { saved: false };
-  await writeFile(selected.filePath, encrypted, { mode: 0o600, flag: "wx" });
+  await keyAccess.current().step(() => writeFile(selected.filePath, encrypted, { mode: 0o600, flag: "wx" }));
   return { saved: true, account: status.account };
 }));
 ipcMain.handle("wallet:create-account", () => safeIPC(async () => {
   if (authorizationController.inFlight) throw Object.assign(new Error("Finish the current authorization first"), { code: "AUTHORIZATION_ACTION_IN_PROGRESS" });
-  const result = await walletAuthority.createAccount();
+  const result = await keyAccess.run(() => walletAuthority.createAccount());
+  keyAccess.setAccount(result.account);
   mainWindow?.webContents.send("wallet:account-status-result", result);
   const review = await authorizationController.refreshAccount();
   if (review?.acceptedForReview) mainWindow?.webContents.send("wallet:authorization-request", review);
@@ -155,7 +171,7 @@ ipcMain.handle("wallet:walletconnect-disconnect", (_event, topic) => safeIPC(asy
   mainWindow?.webContents.send("wallet:walletconnect-session-changed", { type: "disconnected", topic, origin });
   return { ...result, localPermissionRevoked: true };
 }));
-ipcMain.handle("wallet:walletconnect-proposal-action", (_event, id, action, expectedAccount) => safeIPC(async () => {
+ipcMain.handle("wallet:walletconnect-proposal-action", (_event, id, action, expectedAccount) => sensitiveIPC(async () => {
   const key = String(id);
   if (!["approve", "reject"].includes(action)) throw Object.assign(new Error("Invalid proposal action"), { code: "INVALID_PROPOSAL_ACTION" });
   if (accountChangeInProgress || !walletConnectProposalAccounts.has(key)) throw Object.assign(new Error("The proposal account changed. Connect again from the app."), { code: "ACCOUNT_CHANGED" });
@@ -169,7 +185,7 @@ ipcMain.handle("wallet:walletconnect-proposal-action", (_event, id, action, expe
     const origin = walletConnect.proposalOrigin(id);
     await walletAuthority.approveOrigin(origin, expectedAccount);
     try {
-      const session = await walletConnect.approveSession(id, expectedAccount);
+      const session = await keyAccess.current().deliver(() => walletConnect.approveSession(id, expectedAccount));
       walletConnectProposalAccounts.delete(key);
       mainWindow?.webContents.send("wallet:walletconnect-session-changed", { type: "approved", topic: session.topic, origin });
       return { approved: true, topic: session.topic, origin, account: expectedAccount };
@@ -180,20 +196,25 @@ ipcMain.handle("wallet:walletconnect-proposal-action", (_event, id, action, expe
   } finally { walletConnectProposalActions.delete(key); }
 }));
 
-ipcMain.handle("wallet:provider-action", (_event, id, action) => safeIPC(async () => {
+ipcMain.handle("wallet:provider-action", (_event, id, action) => sensitiveIPC(async () => {
+  const lease = keyAccess.current();
   const transport = walletConnectRequests.get(id);
   let response;
   try {
     if (accountChangeInProgress) throw Object.assign(new Error("The selected account changed"), { code: 4100 });
     response = action === "approve" ? await walletAuthority.approve(id) : rejectProviderRequest(id);
   } catch (error) {
-    response = { status: "error", code: Number.isInteger(error?.code) ? error.code : 4001, message: error?.message ?? "Provider request failed" };
+    response = { status: "error", code: Number.isInteger(error?.code) ? error.code : 4001, message: error?.message ?? "Provider request failed", ...(error?.data ? { data: error.data } : {}) };
   }
   if (transport) {
-    await walletConnect.respond(transport.topic, transport.jsonRpcId, response);
+    try { await lease.deliver(() => walletConnect.respond(transport.topic, transport.jsonRpcId, response)); }
+    catch (error) {
+      if (error?.data?.code === "WALLET_OPERATION_CANCELLED") return { ...response, responseDelivered: false, deliveryCode: "WALLET_OPERATION_CANCELLED" };
+      throw error;
+    }
     walletConnectRequests.delete(id);
   }
-  return response;
+  return { ...response, responseDelivered: Boolean(transport) };
 }));
 
 async function handleCallback(rawValue) {
@@ -231,8 +252,10 @@ async function handleCallback(rawValue) {
 
 async function changeActiveAccount(change) {
   if (accountChangeInProgress || walletConnectProposalActions.size) throw Object.assign(new Error("Finish the current account action first"), { code: "ACCOUNT_CHANGE_IN_PROGRESS" });
+  keyAccess.assertUnlocked();
+  keyAccess.cancelOperations();
   const invalidatedAuthorizationId = authorizationController.pending?.id;
-  if (authorizationController.invalidate()) mainWindow?.webContents.send("wallet:authorization-error", { acceptedForReview: false, code: "ACCOUNT_CHANGED", requestId: invalidatedAuthorizationId, callbackEmitted: false, authorityGranted: false });
+  if (authorizationController.cancel()) mainWindow?.webContents.send("wallet:authorization-error", { acceptedForReview: false, code: "ACCOUNT_CHANGED", requestId: invalidatedAuthorizationId, callbackEmitted: false, authorityGranted: false });
   accountChangeInProgress = true;
   try {
     nativeWallet?.clear();
@@ -250,7 +273,8 @@ async function changeActiveAccount(change) {
     for (const session of sessions) {
       try { await walletConnect.disconnectSession(session.topic); } catch (error) { remoteDisconnectFailures.push({ topic: session.topic, code: safeCode(error) }); }
     }
-    const status = await change();
+    const status = await keyAccess.run(change);
+    keyAccess.setAccount(status.account);
     mainWindow?.webContents.send("wallet:account-status-result", status);
     mainWindow?.webContents.send("wallet:walletconnect-session-changed", { type: "account-switched", cancelledProposalIds: proposals, disconnectedSessions: sessions.length - remoteDisconnectFailures.length, remoteDisconnectFailures });
     if (mainWindow && !mainWindow.isDestroyed()) await recordEvidence(await rpcStatus(), mainWindow);
@@ -284,11 +308,11 @@ if (singleInstanceLock) app.whenReady().then(async () => {
   const userData = app.getPath("userData");
   const accountNetwork = new CanonicalAccountNetwork({ fetchImpl: net.fetch.bind(net) });
   walletAuthority = new DesktopWalletAuthority({
-    vault: new DesktopWalletVault({ filePath: path.join(userData, "wallet-vault-v2.json"), legacyFilePath: path.join(userData, "wallet-vault-v1.json"), safeStorage }),
+    vault: new DesktopWalletVault({ filePath: path.join(userData, "wallet-vault-v2.json"), legacyFilePath: path.join(userData, "wallet-vault-v1.json"), safeStorage, authorization: keyAccess }),
     permissions: new FilePermissionStore(path.join(userData, "wallet-permissions-v1.json")),
     transactionSender: new CanonicalTransactionSender({ network: accountNetwork, fetchImpl: net.fetch.bind(net) })
   });
-  authorizationController = new DesktopAuthorizationController({ authority: walletAuthority, openExternal: url => shell.openExternal(url) });
+  authorizationController = new DesktopAuthorizationController({ authority: walletAuthority, openExternal: url => keyAccess.current().deliver(() => shell.openExternal(url)) });
   nativeWallet = new NativeWalletService({ vault: walletAuthority.vault, sender: walletAuthority.transactionSender, network: accountNetwork });
   walletConnect = new WalletConnectTransport({
     projectId: process.env.YNX_WALLETCONNECT_PROJECT_ID,
@@ -310,6 +334,12 @@ if (singleInstanceLock) app.whenReady().then(async () => {
     }
   });
   mainWindow = window;
+  window.on("blur", () => keyAccess.setFocused(false));
+  window.on("focus", () => keyAccess.setFocused(true));
+  window.on("minimize", () => keyAccess.lock());
+  window.on("close", () => keyAccess.lock());
+  for (const event of ["suspend", "lock-screen"]) powerMonitor.on(event, () => keyAccess.lock());
+  keyAccess.setAccount((await walletAuthority.accountStatus()).account);
   window.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
   window.webContents.on("will-navigate", (event, url) => {
     if (url !== pathToFileURL(path.join(directory, "index.html")).href) event.preventDefault();
@@ -351,12 +381,16 @@ async function handleWalletConnectRequest(event) {
   const { topic, id } = event;
   try {
     if (accountChangeInProgress) throw Object.assign(new Error("The selected account is changing"), { code: 4100 });
-    const selected = await walletAuthority.accountStatus();
-    const authorized = walletConnect.authorizeRequest(event, selected.account);
-    const response = await walletAuthority.request({ origin: authorized.origin, method: authorized.method, params: authorized.params });
-    if (response.status === "success") return walletConnect.respond(topic, id, response);
-    walletConnectRequests.set(response.request.id, { topic: authorized.topic, jsonRpcId: authorized.jsonRpcId });
-    mainWindow?.webContents.send("wallet:provider-request", response.request);
+    await keyAccess.run(async lease => {
+      const selected = await walletAuthority.accountStatus();
+      lease.assert();
+      const authorized = walletConnect.authorizeRequest(event, selected.account);
+      const response = await walletAuthority.request({ origin: authorized.origin, method: authorized.method, params: authorized.params });
+      lease.assert();
+      if (response.status === "success") { await lease.deliver(() => walletConnect.respond(topic, id, response)); return; }
+      walletConnectRequests.set(response.request.id, { topic: authorized.topic, jsonRpcId: authorized.jsonRpcId });
+      mainWindow?.webContents.send("wallet:provider-request", response.request);
+    });
   } catch (error) {
     await walletConnect.respond(topic, id, { status: "error", code: Number.isInteger(error?.code) ? error.code : 4200, message: error?.message ?? "Provider request failed" });
   }
@@ -389,7 +423,7 @@ function protocolActivationFingerprint(value) {
   try { const url = new URL(text); route = { scheme: url.protocol, host: url.hostname, pathname: url.pathname, queryKeys: [...url.searchParams.keys()], hasHash: Boolean(url.hash) }; } catch {}
   return Object.freeze({ bytes: Buffer.byteLength(text), sha256: createHash("sha256").update(text).digest("hex"), ...route });
 }
-async function safeIPC(action) { try { return { ok: true, value: await action() }; } catch (error) { return { ok: false, error: { code: safeCode(error), message: error?.message ?? "Wallet request failed" } }; } }
+async function safeIPC(action) { try { return { ok: true, value: await action() }; } catch (error) { return { ok: false, error: { code: safeCode(error), message: error?.message ?? "Wallet request failed", ...(error?.data?.outcomeUnknown ? { outcomeUnknown: true, transactionHash: error.data.transactionHash ?? null } : {}) } }; } }
 function safeCode(error) { return error?.data?.code ?? error?.code ?? "WALLET_REQUEST_FAILED"; }
 function safeErrorClass(error) { return typeof error?.name === "string" && /^[A-Za-z][A-Za-z0-9]{0,63}$/.test(error.name) ? error.name : "Error"; }
 function safeFailureCategory(error) {

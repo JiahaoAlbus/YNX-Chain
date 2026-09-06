@@ -1,12 +1,12 @@
 import { readFileSync } from "node:fs";
 import { parseProductSessionRegistry, YNX_EVM_CHAIN_ID as SHARED_EVM_CHAIN_ID, YNX_TESTNET_CHAIN_QUANTITY as SHARED_CHAIN_QUANTITY } from "@ynx-chain/wallet-auth";
 
-// Desktop consumes the same Product Session v2 authority as the public Gateway.
+// Exact Product Session v2 source bundled with this Desktop candidate.
 export const WALLET_AUTH_PROTOCOL_SOURCE = Object.freeze({
   package: "@ynx-chain/wallet-auth",
-  sourceCommit: "776b9ca8642f2e014d79dfad25a504f8ce9985f7",
+  sourceCommit: "d817dfcf992d5383ae9acf793f0617df0bcf8d9c",
   sourcePath: "packages/wallet-auth/src/product-session-v2.js",
-  sourceSha256: "71f787fafc9544b28c4113d6704190e73ee99666bef6ff805219ee3725bd205e",
+  sourceSha256: "7c4fb6bba0628c91feb704c1dd837db41a1a8f80b2972987817d57966e50ba75",
   protocol: "product-session-v2"
 });
 

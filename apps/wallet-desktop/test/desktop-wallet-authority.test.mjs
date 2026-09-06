@@ -1,3 +1,4 @@
+import { fixtureKeyAuthorization } from "./fixture-key-authorization.mjs";
 import assert from "node:assert/strict";
 import { createECDH } from "node:crypto";
 import { mkdtemp, readFile, writeFile } from "node:fs/promises";
@@ -115,7 +116,7 @@ test("vault encrypts the secret and the permission store persists only public au
   };
   const vaultPath = path.join(directory, "vault.json");
   const permissionsPath = path.join(directory, "permissions.json");
-  const vault = new DesktopWalletVault({ filePath: vaultPath, safeStorage, randomSecret: () => SECRET });
+  const vault = new DesktopWalletVault({ authorization: fixtureKeyAuthorization, filePath: vaultPath, safeStorage, randomSecret: () => SECRET });
   const status = await vault.createAccount();
   assert.match(status.account, /^0x[0-9a-f]{40}$/);
   assert.doesNotMatch(await readFile(vaultPath, "utf8"), new RegExp(SECRET));
@@ -137,9 +138,9 @@ test("vault prefers async OS encryption and decrypts after a fresh vault instanc
     decryptString: () => { throw new Error("sync decryption must not be used"); }
   };
   const filePath = path.join(directory, "vault.json");
-  const created = await new DesktopWalletVault({ filePath, safeStorage, randomSecret: () => SECRET }).createAccount();
+  const created = await new DesktopWalletVault({ authorization: fixtureKeyAuthorization, filePath, safeStorage, randomSecret: () => SECRET }).createAccount();
   let observedSecret;
-  const restarted = new DesktopWalletVault({ filePath, safeStorage, randomSecret: () => SECOND_SECRET });
+  const restarted = new DesktopWalletVault({ authorization: fixtureKeyAuthorization, filePath, safeStorage, randomSecret: () => SECOND_SECRET });
   await restarted.withSecret(secret => { observedSecret = secret; });
   assert.equal(observedSecret, SECRET);
   assert.equal((await restarted.status()).account, created.account);
@@ -156,7 +157,7 @@ test("account switching persists both encrypted accounts and revokes every DApp 
   const secrets = [SECRET, SECOND_SECRET];
   const vaultPath = path.join(directory, "vault.json");
   const permissions = new FilePermissionStore(path.join(directory, "permissions.json"));
-  const vault = new DesktopWalletVault({ filePath: vaultPath, safeStorage, randomSecret: () => secrets.shift() });
+  const vault = new DesktopWalletVault({ authorization: fixtureKeyAuthorization, filePath: vaultPath, safeStorage, randomSecret: () => secrets.shift() });
   const first = await vault.createAccount();
   const authority = new DesktopWalletAuthority({ vault, permissions, requestId: () => "pending-before-switch", clock: () => new Date("2026-08-22T00:00:00Z") });
   await authority.approveOrigin(ORIGIN);
@@ -195,7 +196,7 @@ test("multi-account vault migrates from a read-only v1 fallback without breaking
     encryptString: value => Buffer.from(`encrypted:${value}`, "utf8"),
     decryptString: value => value.toString("utf8").slice("encrypted:".length)
   };
-  const vault = new DesktopWalletVault({ filePath: currentPath, legacyFilePath: legacyPath, safeStorage, randomSecret: () => SECOND_SECRET });
+  const vault = new DesktopWalletVault({ authorization: fixtureKeyAuthorization, filePath: currentPath, legacyFilePath: legacyPath, safeStorage, randomSecret: () => SECOND_SECRET });
   assert.equal((await vault.status()).account, legacy.account);
   const added = await vault.addAccountAndSelect();
   assert.equal(added.accounts.length, 2);
@@ -215,7 +216,7 @@ test("pending approvals expire, are bounded, and cannot survive permission revoc
     encryptString: value => Buffer.from(`encrypted:${value}`, "utf8"),
     decryptString: value => value.toString("utf8").slice("encrypted:".length)
   };
-  const vault = new DesktopWalletVault({ filePath: path.join(directory, "vault.json"), safeStorage, randomSecret: () => SECRET });
+  const vault = new DesktopWalletVault({ authorization: fixtureKeyAuthorization, filePath: path.join(directory, "vault.json"), safeStorage, randomSecret: () => SECRET });
   await vault.createAccount();
   const authority = new DesktopWalletAuthority({ vault, permissions: new MemoryPermissionStore(), requestId: () => `bounded-${++id}`, clock: () => now });
   const account = (await authority.accountStatus()).account;
@@ -386,7 +387,7 @@ async function fixture(transactionSender = null) {
     encryptString: value => Buffer.from(`encrypted:${value}`, "utf8"),
     decryptString: value => value.toString("utf8").slice("encrypted:".length)
   };
-  const vault = new DesktopWalletVault({ filePath: path.join(directory, "vault.json"), safeStorage, randomSecret: () => SECRET });
+  const vault = new DesktopWalletVault({ authorization: fixtureKeyAuthorization, filePath: path.join(directory, "vault.json"), safeStorage, randomSecret: () => SECRET });
   const status = await vault.createAccount();
   const authority = new DesktopWalletAuthority({ vault, permissions: new MemoryPermissionStore(), transactionSender, requestId: (() => { let id = 0; return () => `request-${++id}`; })(), clock: () => new Date("2026-08-22T00:00:00Z") });
   return { authority, status };
