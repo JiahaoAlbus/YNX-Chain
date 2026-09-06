@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 1,
+  "campaignId": "P0-WALLET-CONNECTIVITY-2026-08",
+  "taskId": "P0-173",
+  "owner": "wallet-desktop",
+  "asOf": "2026-08-22T07:38:00.000Z",
+  "centralAuthority": {
+    "commit": "97a20044e640d57a658897d533da15e9270700cc",
+    "tree": "85d6d86cf3c103d5156b3bc020d6e5e615cddeeb",
+    "decision": "METAMASK_LEVEL_REAL_INTEROPERABILITY_HIGHEST_PRIORITY_DISPATCHED_NO_EXECUTION_LEASE"
+  },
+  "protocolExecutionPlan": {
+    "commit": "875be208e8a7ddb60345d55b93fc299949664e5c",
+    "tree": "3499ddfbe2a4bb08cbbcaef8c71b911aca51dde4",
+    "verifier": "packages/wallet-auth/scripts/verify-standard-wallet-e2e-execution-plan.mjs",
+    "result": "passed for 12 registered products",
+    "countsAsProductCompletion": false
+  },
+  "latestDirectNativeCandidate": {
+    "sourceCommit": "433008b5428edea418ad7be4360323820fd2839a",
+    "workflowRunId": 32559773097,
+    "workflowConclusion": "success",
+    "filename": "ynx-wallet-desktop-0.5.0-x64.exe",
+    "format": "nsis-exe",
+    "architecture": "x64",
+    "bytes": 114231255,
+    "sha256": "18e6c177a98f518da594788862299aeeb1df0671cf0552f2a20cb031ccfb94d1",
+    "minimumOS": "Windows Server 2025 x64 runner directly tested; consumer Windows minimum not separately evidenced",
+    "signingClass": "unsigned_windows_nsis_testnet_candidate",
+    "authenticodeStatus": "NotSigned",
+    "signerCertificate": null,
+    "nativeLifecyclePassed": true,
+    "canonicalAuthorizeApproveRejectAndCallbackSignaturePassed": true,
+    "countsTowardInstalledProviderParity": false
+  },
+  "singleExecutableBlocker": {
+    "code": "WINDOWS_AUTHENTICODE_SIGNING_IDENTITY_UNAVAILABLE",
+    "description": "No authorized Windows Authenticode certificate or signing secret is available to produce the signed installable provider artifact required before direct installed first-party and three-external-DApp execution.",
+    "repositoryActionsSecretCount": 0,
+    "repositoryActionsVariableCount": 0,
+    "requiredExternalInput": "Provide an authorized Windows Authenticode code-signing identity through the approved signing mechanism, then issue a path-scoped execution lease for the exact signed EXE SHA-256 and eligible Windows target."
+  },
+  "controlPlane": {
+    "heavyOwner": null,
+    "executionLeaseIssued": false,
+    "productionLeaseIssued": false,
+    "arm64RunCancelledAfterNoLeaseDispatch": 32560001640,
+    "artifactOnlyDownloadStopped": true
+  },
+  "truth": {
+    "signedInstallableProviderArtifact": false,
+    "installedProviderComplete": false,
+    "firstPartyDappsComplete": 0,
+    "externalDappsComplete": 0,
+    "walletConnectRuntimeComplete": false,
+    "ethRequestAccountsComplete": false,
+    "personalSignComplete": false,
+    "typedDataComplete": false,
+    "testnetTransactionComplete": false,
+    "eventsRestoreDisconnectComplete": false,
+    "parityComplete": false,
+    "productionSigned": false,
+    "deployedPublic": false
+  }
+}

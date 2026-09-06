@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "owner": "Wallet Desktop/CLI/SDK",
+  "capturedAt": "2026-08-22T05:46:00Z",
+  "releaseChannel": "testnet-preview",
+  "source": {
+    "implementationCommit": "471f37d943f4d79abbd09399da23b5de5db0b612",
+    "sharedProviderSourceCommit": "98c6d5d784d212df8981a53b17118a511e246ad2",
+    "walletConnectSDK": "@reown/walletkit@1.5.6",
+    "walletConnectCore": "@walletconnect/core@2.23.10"
+  },
+  "nativeGate": {
+    "hostOS": "macOS 27.0 arm64",
+    "electronVersion": "42.8.0",
+    "inputFormat": "PNG 244x244 RGBA",
+    "inputBytes": 3666,
+    "inputSha256": "0216591b664053e05a5bd59b90efbaf4e196e8db627dbd1e9d454cf5c783f945",
+    "barcodeDetectorAvailable": true,
+    "qrCodeFormatAvailable": true,
+    "qrDecodedLocally": true,
+    "decodedProtocol": "wc",
+    "decodedVersion": 2,
+    "decodedValueMatchedExactInput": true,
+    "fileSelectionClearedAfterDecode": true,
+    "uploadPerformed": false,
+    "pairingPerformed": false
+  },
+  "securityBoundary": {
+    "acceptedImageTypes": ["image/png", "image/jpeg", "image/webp"],
+    "maximumImageBytes": 10485760,
+    "exactlyOneQrRequired": true,
+    "walletConnectV2Only": true,
+    "maximumUriBytes": 8192,
+    "missingDecoderFailsClosed": true,
+    "invalidQrFailsClosed": true,
+    "localOnlyNoticeVisible": true
+  },
+  "verification": {
+    "desktopTests": {"passed": 20, "failed": 0},
+    "productionDependencyAudit": {"vulnerabilities": 0},
+    "nativeGateCommand": "node apps/wallet-desktop/scripts/walletconnect-qr-ui-gate.mjs <targets.json> <qr.png> <expected-wc-v2-uri>",
+    "nativeGateExitCode": 0
+  },
+  "releaseTruth": {
+    "walletConnectQrImportProvedNative": true,
+    "walletConnectProjectIdConfigured": false,
+    "walletConnectRelayConnected": false,
+    "walletConnectPairingProved": false,
+    "walletConnectSessionApprovedLive": false,
+    "firstPartyDappConnected": false,
+    "externalStandardEvmDappConnected": false,
+    "accountExposedToDapp": false,
+    "signingRequestDeliveredLive": false,
+    "transactionBroadcastProved": false,
+    "installedLocal": false,
+    "downloadHosted": false,
+    "deployedPublic": false
+  }
+}

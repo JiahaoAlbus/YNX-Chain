@@ -1,0 +1,310 @@
+name: Wallet desktop Windows arm64
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [codex/wallet-desktop-cli-sdk-20260813]
+    paths:
+      - apps/wallet-desktop/**
+      - packages/wallet-auth/**
+      - .github/workflows/wallet-desktop-windows-arm64.yml
+
+permissions:
+  contents: read
+
+jobs:
+  windows-arm64-native:
+    runs-on: windows-11-arm
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24.18.0
+          cache: npm
+          cache-dependency-path: apps/wallet-desktop/package-lock.json
+      - name: Install dependencies and test frozen contract boundary
+        shell: pwsh
+        run: |
+          if ($env:PROCESSOR_ARCHITECTURE -ne 'ARM64') { throw "expected native ARM64 runner, got $env:PROCESSOR_ARCHITECTURE" }
+          npm ci --ignore-scripts --prefix packages/wallet-auth
+          npm ci --prefix apps/wallet-desktop
+          npm test --prefix apps/wallet-desktop
+      - name: Build preflight and current NSIS installers
+        shell: pwsh
+        run: |
+          Push-Location apps/wallet-desktop
+          npx electron-builder --win nsis --arm64 --publish never --config.directories.output=dist-preflight --config.extraMetadata.version=0.0.9
+          Pop-Location
+          Push-Location apps/wallet-desktop
+          npx electron-builder --win nsis --arm64 --publish never
+          Pop-Location
+          Get-ChildItem apps/wallet-desktop/dist-preflight/*.exe,apps/wallet-desktop/dist/*.exe | Select-Object FullName,Length
+      - name: Install, upgrade, cold launch, second launch, fail closed and uninstall
+        shell: pwsh
+        env:
+          EVIDENCE: ${{ runner.temp }}\wallet-desktop-lifecycle.json
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $preflight = (Get-ChildItem 'apps/wallet-desktop/dist-preflight/*.exe' | Select-Object -First 1).FullName
+          $current = (Get-ChildItem 'apps/wallet-desktop/dist/*.exe' | Where-Object Name -NotLike '*blockmap*' | Select-Object -First 1).FullName
+          Start-Process -FilePath $preflight -ArgumentList '/S' -Wait
+          $appExe = (Get-ChildItem $env:LOCALAPPDATA -Filter 'YNX Wallet.exe' -File -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1).FullName
+          if (-not $appExe -or -not (Test-Path $appExe)) { throw 'preflight installer did not install the application' }
+          $installRoot = Split-Path $appExe -Parent
+          $preflightVersion = (Get-Item $appExe).VersionInfo.ProductVersion
+          Start-Process -FilePath $current -ArgumentList '/S' -Wait
+          if (-not (Test-Path $appExe)) { throw 'current installer did not preserve the application' }
+          $currentVersion = (Get-Item $appExe).VersionInfo.ProductVersion
+          if ($preflightVersion -eq $currentVersion) { throw 'upgrade did not change installed version' }
+
+          $env:YNX_WALLET_EVIDENCE_PATH = $env:EVIDENCE
+          $cold = Start-Process -FilePath $appExe -ArgumentList '--remote-debugging-port=9334' -PassThru
+          for ($i=0; $i -lt 30 -and -not (Test-Path $env:EVIDENCE); $i++) { Start-Sleep 1 }
+          if (-not (Test-Path $env:EVIDENCE)) { throw 'cold launch did not write evidence' }
+          $coldEvidence = Get-Content $env:EVIDENCE -Raw | ConvertFrom-Json
+          if ($coldEvidence.launches -ne 1 -or -not $coldEvidence.visibleShellReady -or -not $coldEvidence.rpc.available -or $coldEvidence.rpc.chainId -ne '0x1917' -or $coldEvidence.providerAuthority.accountCreated -or $coldEvidence.signingEnabled -or $coldEvidence.balanceClaimed -or $coldEvidence.transactionCreated) { throw 'fresh cold launch evidence failed' }
+          $cold.Refresh()
+          if ($cold.HasExited) { throw 'cold launch process exited' }
+          $coldTitle = (Get-Process | Where-Object MainWindowTitle -eq 'YNX Wallet' | Select-Object -First 1).MainWindowTitle
+          $targets = Join-Path $env:RUNNER_TEMP 'wallet-desktop-targets.json'
+          for ($i=0; $i -lt 30; $i++) {
+            try { Invoke-RestMethod 'http://127.0.0.1:9334/json/list' | ConvertTo-Json -Depth 8 | Set-Content $targets; break } catch { Start-Sleep 1 }
+          }
+          if (-not (Test-Path $targets)) { throw 'cold launch DevTools target was unavailable' }
+          $createGate = Join-Path $env:RUNNER_TEMP 'wallet-desktop-create-gate.json'
+          node apps/wallet-desktop/scripts/provider-authority-ui-gate.mjs $targets create | Set-Content $createGate
+          $created = Get-Content $createGate -Raw | ConvertFrom-Json
+          for ($i=0; $i -lt 30; $i++) {
+            $coldEvidence = Get-Content $env:EVIDENCE -Raw | ConvertFrom-Json
+            if ($coldEvidence.providerAuthority.accountCreated -and $coldEvidence.providerAuthority.approvedAccount -eq $created.account -and $coldEvidence.signingEnabled) { break }
+            Start-Sleep -Milliseconds 500
+          }
+          if (-not $created.visibleAuthority -or -not $created.osEncryptedCustodyVisible -or -not $created.walletConnectFailClosedVisible -or $created.walletConnectConfigured -or -not $coldEvidence.providerAuthority.accountCreated -or $coldEvidence.providerAuthority.approvedAccount -ne $created.account -or -not $coldEvidence.signingEnabled) {
+            throw "provider authority creation gate failed: ui=$($created | ConvertTo-Json -Compress -Depth 8) evidence=$($coldEvidence | ConvertTo-Json -Compress -Depth 8)"
+          }
+          if (-not $cold.CloseMainWindow()) { throw 'cold launch window refused graceful close' }
+          if (-not $cold.WaitForExit(15000)) { throw 'cold launch did not exit gracefully' }
+
+          Remove-Item $targets -ErrorAction SilentlyContinue
+          $second = Start-Process -FilePath $appExe -ArgumentList '--remote-debugging-port=9334' -PassThru
+          for ($i=0; $i -lt 30; $i++) {
+            Start-Sleep 1
+            $secondEvidence = Get-Content $env:EVIDENCE -Raw | ConvertFrom-Json
+            if ($secondEvidence.launches -eq 2) { break }
+          }
+          if ($secondEvidence.launches -ne 2 -or -not $secondEvidence.rpc.available -or $secondEvidence.rpc.chainId -ne '0x1917' -or -not $secondEvidence.providerAuthority.accountCreated -or $secondEvidence.providerAuthority.approvedAccount -ne $created.account -or -not $secondEvidence.signingEnabled) { throw 'second launch evidence failed' }
+          $second.Refresh()
+          if ($second.HasExited) { throw 'second launch process exited' }
+          $secondTitle = (Get-Process | Where-Object MainWindowTitle -eq 'YNX Wallet' | Select-Object -First 1).MainWindowTitle
+          for ($i=0; $i -lt 30; $i++) {
+            try { Invoke-RestMethod 'http://127.0.0.1:9334/json/list' | ConvertTo-Json -Depth 8 | Set-Content $targets; break } catch { Start-Sleep 1 }
+          }
+          $restoreGate = Join-Path $env:RUNNER_TEMP 'wallet-desktop-restore-gate.json'
+          node apps/wallet-desktop/scripts/provider-authority-ui-gate.mjs $targets restore $created.account | Set-Content $restoreGate
+          $restored = Get-Content $restoreGate -Raw | ConvertFrom-Json
+          if ($restored.account -ne $created.account -or -not $restored.walletConnectFailClosedVisible) { throw 'provider authority restore gate failed' }
+          $switchGate = Join-Path $env:RUNNER_TEMP 'wallet-desktop-switch-gate.json'
+          node apps/wallet-desktop/scripts/provider-authority-ui-gate.mjs $targets switch $created.account | Set-Content $switchGate
+          $switched = Get-Content $switchGate -Raw | ConvertFrom-Json
+          if ($switched.switched.restoredAccount -ne $created.account -or $switched.switched.visibleAccountCount -ne 2) { throw 'native account switch and restore gate failed' }
+          $registeredProtocol = Get-Item 'Registry::HKEY_CURRENT_USER\Software\Classes\ynxwallet\shell\open\command' -ErrorAction Stop
+          if (-not $registeredProtocol.GetValue('')) { throw 'installed ynxwallet protocol command is missing' }
+          $callbackCapture = Join-Path $env:RUNNER_TEMP 'ynx-social-callback.txt'
+          $captureScript = Join-Path $env:RUNNER_TEMP 'capture-ynx-social.ps1'
+          @'
+          param([string]$Url, [string]$Path)
+          Set-Content -LiteralPath $Path -Value $Url
+          '@ | Set-Content $captureScript
+          $callbackProtocol = 'Registry::HKEY_CURRENT_USER\Software\Classes\ynx-social'
+          New-Item -Path $callbackProtocol -Force | Out-Null
+          Set-Item -Path $callbackProtocol -Value 'URL:YNX Social test callback'
+          New-ItemProperty -Path $callbackProtocol -Name 'URL Protocol' -Value '' -PropertyType String -Force | Out-Null
+          $callbackCommand = Join-Path $callbackProtocol 'shell\open\command'
+          New-Item -Path $callbackCommand -Force | Out-Null
+          $pwsh = (Get-Command pwsh).Source
+          Set-Item -Path $callbackCommand -Value ('"{0}" -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "{1}" "%1" "{2}"' -f $pwsh,$captureScript,$callbackCapture)
+          Start-Process 'ynx-social://com.ynx.social?response=registration-probe'
+          for ($i=0; $i -lt 20 -and -not (Test-Path $callbackCapture); $i++) { Start-Sleep -Milliseconds 250 }
+          if (-not (Test-Path $callbackCapture)) { throw 'isolated product callback protocol handler preflight failed' }
+          $callbackPreflight = (Get-Content $callbackCapture -Raw).Trim()
+          if (-not $callbackPreflight.Contains('response=registration-probe')) { throw 'isolated product callback protocol handler captured the wrong URL' }
+          Move-Item $callbackCapture ($callbackCapture + '.preflight')
+          $callbackUrls = node apps/wallet-desktop/scripts/generate-callback-gate-urls.mjs | ConvertFrom-Json
+          $priorActivation = (Get-Content $env:EVIDENCE -Raw | ConvertFrom-Json).callback.activation.sha256
+          Start-Process $callbackUrls.reject
+          for ($i=0; $i -lt 30; $i++) {
+            Start-Sleep -Milliseconds 500
+            $callbackActivation = (Get-Content $env:EVIDENCE -Raw | ConvertFrom-Json).callback
+            if ($callbackActivation.acceptedForReview -and $callbackActivation.activation.sha256 -and $callbackActivation.activation.sha256 -ne $priorActivation) { break }
+          }
+          if (-not $callbackActivation.acceptedForReview) { throw "native reject activation failed: $($callbackActivation | ConvertTo-Json -Compress -Depth 6)" }
+          $rejectActivation = $callbackActivation.activation.sha256
+          $rejectGate = Join-Path $env:RUNNER_TEMP 'wallet-callback-reject-gate.json'
+          node apps/wallet-desktop/scripts/callback-ui-gate.mjs $targets reject | Set-Content $rejectGate
+          if (Test-Path $callbackCapture) { throw 'rejected authorization emitted a callback' }
+          Start-Process $callbackUrls.approve
+          for ($i=0; $i -lt 30; $i++) {
+            Start-Sleep -Milliseconds 500
+            $callbackActivation = (Get-Content $env:EVIDENCE -Raw | ConvertFrom-Json).callback
+            if ($callbackActivation.acceptedForReview -and $callbackActivation.activation.sha256 -and $callbackActivation.activation.sha256 -ne $rejectActivation) { break }
+          }
+          if (-not $callbackActivation.acceptedForReview -or $callbackActivation.activation.sha256 -eq $rejectActivation) { throw "native approve activation failed: $($callbackActivation | ConvertTo-Json -Compress -Depth 6)" }
+          $approveGate = Join-Path $env:RUNNER_TEMP 'wallet-callback-approve-gate.json'
+          node apps/wallet-desktop/scripts/callback-ui-gate.mjs $targets approve | Set-Content $approveGate
+          for ($i=0; $i -lt 30 -and -not (Test-Path $callbackCapture); $i++) { Start-Sleep -Milliseconds 500 }
+          if (-not (Test-Path $callbackCapture)) { throw 'approved authorization callback was not received by the registered product protocol' }
+          $callbackVerificationPath = Join-Path $env:RUNNER_TEMP 'wallet-callback-verification.json'
+          node apps/wallet-desktop/scripts/verify-windows-callback-capture.mjs $callbackCapture $callbackUrls.approve | Set-Content $callbackVerificationPath
+          $callbackVerification = Get-Content $callbackVerificationPath -Raw | ConvertFrom-Json
+          if (-not $callbackVerification.signatureVerified -or -not $callbackVerification.windowsSlashNormalized -or $callbackVerification.protocol -ne 'ynx-social:' -or $callbackVerification.host -ne 'com.ynx.social') { throw 'approved authorization callback failed exact Windows route and signature verification' }
+          $walletConnectUri = 'wc:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@2?relay-protocol=irn&symKey=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
+          $qrImage = Join-Path $env:RUNNER_TEMP 'walletconnect-v2.png'
+          npm exec --yes --package=qrcode@1.5.4 -- qrcode --output $qrImage $walletConnectUri
+          $qrGate = Join-Path $env:RUNNER_TEMP 'walletconnect-qr-gate.json'
+          node apps/wallet-desktop/scripts/walletconnect-qr-ui-gate.mjs $targets $qrImage $walletConnectUri | Set-Content $qrGate
+          $qr = Get-Content $qrGate -Raw | ConvertFrom-Json
+          if (-not $qr.qrDecodedLocally -or -not $qr.exactWalletConnectV2URI -or $qr.pairingPerformed -or $qr.walletConnectRelayProved) { throw 'native WalletConnect QR gate failed' }
+          if (-not $second.CloseMainWindow()) { throw 'second launch window refused graceful close' }
+          if (-not $second.WaitForExit(15000)) { throw 'second launch did not exit gracefully' }
+
+          $env:YNX_WALLET_RPC_URL = 'http://127.0.0.1:1'
+          $failed = Start-Process -FilePath $appExe -PassThru
+          for ($i=0; $i -lt 30; $i++) {
+            Start-Sleep 1
+            $failedEvidence = Get-Content $env:EVIDENCE -Raw | ConvertFrom-Json
+            if ($failedEvidence.launches -eq 3) { break }
+          }
+          if ($failedEvidence.launches -ne 3 -or $failedEvidence.rpc.available -or $failedEvidence.rpc.chainId -or -not $failedEvidence.providerAuthority.accountCreated -or $failedEvidence.transactionCreated) { throw 'RPC failure did not fail closed' }
+          if (-not $failed.CloseMainWindow()) { throw 'fail-closed launch window refused graceful close' }
+          if (-not $failed.WaitForExit(15000)) { throw 'fail-closed launch did not exit gracefully' }
+
+          $uninstaller = Join-Path $installRoot 'Uninstall YNX Wallet.exe'
+          if (-not (Test-Path $uninstaller)) { throw 'uninstaller missing' }
+          Start-Process -FilePath $uninstaller -ArgumentList '/S' -Wait
+          for ($i=0; $i -lt 30 -and (Test-Path $appExe); $i++) { Start-Sleep 1 }
+          if (Test-Path $appExe) { throw 'application executable remains after uninstall' }
+
+          $final = [ordered]@{
+            schemaVersion = 1
+            architecture = 'arm64'
+            installed = $true
+            upgraded = $true
+            preflightVersion = $preflightVersion
+            currentVersion = $currentVersion
+            coldLaunch = $true
+            secondLaunch = $true
+            processEvidence = $true
+            coldWindowTitleObserved = [bool]$coldTitle
+            secondWindowTitleObserved = [bool]$secondTitle
+            appReportedWindowVisible = [bool]$secondEvidence.window.visible
+            appReportedWindowTitle = $secondEvidence.window.title
+            chainId = $secondEvidence.rpc.chainId
+            rpcFailureClosed = $true
+            providerAuthorityAccount = $created.account
+            osEncryptedCustodyVisible = $true
+            accountRestoredOnSecondLaunch = $true
+            accountSwitchProved = $true
+            visibleAccountCount = 2
+            walletConnectQrDecodedLocally = $true
+            walletConnectConfigured = $false
+            walletConnectFailClosedVisible = $true
+            canonicalAuthorizeProtocolRegistered = $true
+            canonicalAuthorizeRejectProved = $true
+            canonicalAuthorizeApproveProved = $true
+          canonicalAuthorizeCallbackReceived = $true
+          canonicalAuthorizeCallbackSignatureVerified = $true
+            signingEnabled = $true
+            accountCreated = $true
+            balanceClaimed = $false
+            transactionCreated = $false
+            uninstalled = $true
+            productionSigned = $false
+          }
+          $final | ConvertTo-Json -Depth 5 | Set-Content $env:EVIDENCE
+      - name: Record installer evidence
+        shell: pwsh
+        env:
+          EVIDENCE: ${{ runner.temp }}\wallet-desktop-lifecycle.json
+        run: |
+          New-Item -ItemType Directory -Force apps/wallet-desktop/evidence/windows-arm64 | Out-Null
+          Copy-Item $env:EVIDENCE apps/wallet-desktop/evidence/windows-arm64/lifecycle.json
+          $installer = Get-ChildItem 'apps/wallet-desktop/dist/*.exe' | Where-Object Name -NotLike '*blockmap*' | Select-Object -First 1
+          $sha256 = (Get-FileHash $installer.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          $sha256 | Set-Content apps/wallet-desktop/evidence/windows-arm64/SHA256.txt
+          "{0} {1}" -f $installer.Name,$installer.Length | Set-Content apps/wallet-desktop/evidence/windows-arm64/BYTES.txt
+          $signature = Get-AuthenticodeSignature $installer.FullName
+          $signature | Select-Object Status,StatusMessage,SignerCertificate | ConvertTo-Json -Depth 4 | Set-Content apps/wallet-desktop/evidence/windows-arm64/AUTHENTICODE.json
+          if ($signature.Status -ne 'NotSigned') { throw "unexpected installer signing status: $($signature.Status)" }
+          $lifecycle = Get-Content $env:EVIDENCE -Raw | ConvertFrom-Json
+          $manifest = [ordered]@{
+            schemaVersion = 1
+            productId = 'wallet-desktop'
+            version = $lifecycle.currentVersion
+            sourceCommit = $env:GITHUB_SHA
+            workflowRunId = [long]$env:GITHUB_RUN_ID
+            artifact = [ordered]@{
+              filename = $installer.Name
+              format = 'nsis-exe'
+              architecture = 'arm64'
+              bytes = $installer.Length
+              sha256 = $sha256
+              minimumOS = 'Windows 11 arm64 directly tested; earlier Windows arm64 not evidenced'
+              signingClass = 'unsigned_windows_nsis_testnet_candidate'
+              authenticodeStatus = $signature.Status.ToString()
+              productionSigned = $false
+              installedOnNativeRunner = $true
+            }
+            lifecycle = $lifecycle
+          }
+          $manifest | ConvertTo-Json -Depth 8 | Set-Content apps/wallet-desktop/evidence/windows-arm64/artifact-manifest.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ynx-wallet-desktop-windows-arm64
+          path: |
+            apps/wallet-desktop/dist/*.exe
+            apps/wallet-desktop/evidence/windows-arm64/**
+          if-no-files-found: error
+
+  verify-uploaded-artifact:
+    needs: windows-arm64-native
+    runs-on: windows-11-arm
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: ynx-wallet-desktop-windows-arm64
+          path: downloaded
+      - name: Require manifest and verify downloaded installer
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ($env:PROCESSOR_ARCHITECTURE -ne 'ARM64') { throw 'download verification runner is not native ARM64' }
+          $installer = Get-ChildItem downloaded -Filter '*.exe' -File -Recurse | Where-Object Name -NotLike '*blockmap*' | Select-Object -First 1
+          $manifestFile = Get-ChildItem downloaded -Filter 'artifact-manifest.json' -File -Recurse | Select-Object -First 1
+          $lifecycleFile = Get-ChildItem downloaded -Filter 'lifecycle.json' -File -Recurse | Select-Object -First 1
+          if (-not $installer -or -not $manifestFile -or -not $lifecycleFile) { throw 'downloaded artifact is incomplete' }
+          $manifest = Get-Content $manifestFile.FullName -Raw | ConvertFrom-Json
+          $lifecycle = Get-Content $lifecycleFile.FullName -Raw | ConvertFrom-Json
+          $actualSha256 = (Get-FileHash $installer.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($manifest.sourceCommit -ne $env:GITHUB_SHA -or $manifest.artifact.sha256 -ne $actualSha256 -or $manifest.artifact.bytes -ne $installer.Length) { throw 'downloaded installer hash or size mismatch' }
+          if ($manifest.artifact.minimumOS -ne 'Windows 11 arm64 directly tested; earlier Windows arm64 not evidenced' -or $manifest.artifact.signingClass -ne 'unsigned_windows_nsis_testnet_candidate' -or $manifest.artifact.authenticodeStatus -ne 'NotSigned' -or $manifest.artifact.productionSigned -or -not $manifest.artifact.installedOnNativeRunner) { throw 'manifest release boundary mismatch' }
+          if (-not $lifecycle.installed -or -not $lifecycle.upgraded -or -not $lifecycle.coldLaunch -or -not $lifecycle.secondLaunch -or -not $lifecycle.processEvidence -or $lifecycle.chainId -ne '0x1917' -or -not $lifecycle.rpcFailureClosed -or -not $lifecycle.signingEnabled -or -not $lifecycle.accountCreated -or -not $lifecycle.osEncryptedCustodyVisible -or -not $lifecycle.accountRestoredOnSecondLaunch -or -not $lifecycle.accountSwitchProved -or $lifecycle.visibleAccountCount -ne 2 -or -not $lifecycle.walletConnectQrDecodedLocally -or $lifecycle.walletConnectConfigured -or -not $lifecycle.walletConnectFailClosedVisible -or $lifecycle.balanceClaimed -or $lifecycle.transactionCreated -or -not $lifecycle.uninstalled -or $lifecycle.productionSigned) { throw 'lifecycle release boundary mismatch' }
+          New-Item -ItemType Directory -Force downloaded-verification | Out-Null
+          [ordered]@{
+            schemaVersion = 1
+            sourceCommit = $env:GITHUB_SHA
+            workflowRunId = [long]$env:GITHUB_RUN_ID
+            uploadArtifactDownloaded = $true
+            manifestPresent = $true
+            lifecyclePresent = $true
+            sha256Verified = $true
+            bytesVerified = $true
+            sha256 = $actualSha256
+            bytes = $installer.Length
+          } | ConvertTo-Json -Depth 4 | Set-Content downloaded-verification/downloaded-verification.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ynx-wallet-desktop-windows-arm64-download-verification
+          path: downloaded-verification/downloaded-verification.json
+          if-no-files-found: error

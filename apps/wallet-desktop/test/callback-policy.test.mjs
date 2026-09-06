@@ -1,0 +1,79 @@
+import assert from "node:assert/strict";
+import { createECDH } from "node:crypto";
+import { test } from "node:test";
+import { encodeRequestDeepLink } from "@ynx-chain/wallet-auth";
+import { CANONICAL_AUTH_BRIDGE_UNAVAILABLE, CALLBACK_PROTOCOL_SOURCE, evaluateWalletCallback } from "../src/callback-policy.mjs";
+import { canonicalizeWindowsProductCallbackUrl, canonicalizeWindowsYNXWalletProtocolUrl, extractYNXWalletProtocolUrl } from "../src/protocol-activation.mjs";
+
+const now = new Date("2026-08-21T08:00:00.000Z");
+const productDevice = createECDH("prime256v1");
+productDevice.setPrivateKey(Buffer.alloc(32, 0x42));
+const request = {
+  version: "1",
+  nonce: "nonce_abcdefghijklmnopqrstuvwxyz12",
+  chainId: "ynx_6423-1",
+  requestingProduct: "social",
+  productClientId: "ynx-social-v1",
+  bundleId: "com.ynx.social",
+  productDeviceAlgorithm: "p256-sha256",
+  productDeviceKey: productDevice.getPublicKey(null, "compressed").toString("base64url"),
+  callback: "ynx-social://com.ynx.social",
+  scopes: ["account:read", "profile:link"],
+  purpose: "Link this YNX account to the selected Social profile on this device.",
+  issuedAt: "2026-08-21T07:59:00.000Z",
+  expiresAt: "2026-08-21T08:04:00.000Z"
+};
+
+test("macOS consumes the exact frozen callback route and identity", () => {
+  const review = evaluateWalletCallback(encodeRequestDeepLink(request), { now });
+  assert.equal(CALLBACK_PROTOCOL_SOURCE.protocolCommit, "a9dea929c42d0f59162be5872be9ae41ad2875d4");
+  assert.equal(CALLBACK_PROTOCOL_SOURCE.bundleIdentifier, "com.ynxweb4.wallet.macos");
+  assert.equal(CALLBACK_PROTOCOL_SOURCE.associatedDomainsAuthorized, false);
+  assert.equal(review.acceptedForReview, true);
+  assert.equal(review.code, CANONICAL_AUTH_BRIDGE_UNAVAILABLE);
+  assert.equal(review.displayName, "YNX Social");
+  assert.equal(review.callbackEmitted, false);
+  assert.equal(review.authorityGranted, false);
+});
+
+test("missing, malformed, expired and substituted routes fail closed", () => {
+  for (const url of [
+    "ynxwallet://authorize",
+    "ynxwallet://authorize?request=%25",
+    encodeRequestDeepLink({ ...request, expiresAt: "2026-08-21T07:59:30.000Z" }),
+    encodeRequestDeepLink(request).replace("authorize", "approve")
+  ]) {
+    const result = evaluateWalletCallback(url, { now });
+    assert.equal(result.acceptedForReview, false);
+    assert.equal(result.callbackEmitted, false);
+    assert.equal(result.authorityGranted, false);
+  }
+});
+
+test("Windows command-line activation extracts only a bounded ynxwallet URL", () => {
+  const deepLink = encodeRequestDeepLink(request);
+  assert.equal(extractYNXWalletProtocolUrl(["C:\\Program Files\\YNX Wallet\\YNX Wallet.exe", deepLink]), deepLink);
+  assert.equal(extractYNXWalletProtocolUrl(["YNX Wallet.exe", "https://example.com", "--flag"]), null);
+  assert.equal(extractYNXWalletProtocolUrl(["YNX Wallet.exe", `ynxwallet://authorize?request=${"a".repeat(70 * 1024)}`]), null);
+  assert.equal(extractYNXWalletProtocolUrl("ynxwallet://authorize"), null);
+});
+
+test("Windows-only slash normalization maps one exact OS activation back to the frozen route", () => {
+  const deepLink = encodeRequestDeepLink(request);
+  const windowsNormalized = deepLink.replace("ynxwallet://authorize?", "ynxwallet://authorize/?");
+  assert.equal(canonicalizeWindowsYNXWalletProtocolUrl(windowsNormalized, "win32"), deepLink);
+  assert.equal(canonicalizeWindowsYNXWalletProtocolUrl(windowsNormalized, "darwin"), windowsNormalized);
+  assert.equal(canonicalizeWindowsYNXWalletProtocolUrl(`${windowsNormalized}&extra=1`, "win32"), `${windowsNormalized}&extra=1`);
+  assert.equal(canonicalizeWindowsYNXWalletProtocolUrl(windowsNormalized.replace("authorize/", "approve/"), "win32"), windowsNormalized.replace("authorize/", "approve/"));
+});
+
+test("Windows product callback normalization permits only the OS-added slash", () => {
+  const expected = "ynx-social://com.ynx.social";
+  assert.equal(canonicalizeWindowsProductCallbackUrl("ynx-social://com.ynx.social/?response=abc%2B123", expected, "win32"), `${expected}?response=abc%2B123`);
+  for (const value of [
+    "ynx-social://evil.example/?response=abc",
+    "ynx-social://com.ynx.social/path?response=abc",
+    "ynx-social://com.ynx.social/?response=abc&extra=1",
+    "ynx-social://com.ynx.social/?response=abc#fragment"
+  ]) assert.equal(canonicalizeWindowsProductCallbackUrl(value, expected, "win32"), value);
+});
