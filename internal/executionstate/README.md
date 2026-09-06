@@ -237,3 +237,22 @@ payloads are omitted. A mismatch against the be9 formula is a blocker requiring
 historical algorithm lineage review; it is not automatically evidence that an
 old block was corrupted. The original header/hash is never rewritten or silently
 accepted under a guessed legacy formula.
+
+## Native ledger category diagnostics
+
+The exact-be9 streaming path also emits `nativeLedger`: fixed transaction-type
+counts and stored amount/fee/lot-flow sums, fixed account-role category totals,
+and per-lot conservation across account holdings plus native DEX pool backing.
+It never emits addresses, lot IDs, action payloads, or arbitrary transaction
+types. Unknown types are counted as `other`. Resource delegation, rental and
+income records use the existing bounded module capture budget; additional lot
+indexes are charged to that budget. Per-lot positive and negative differences
+are checked separately so offsetting corruption cannot hide in a net zero.
+
+Genesis liquid balances without lots, staking without lot segregation, ordinary
+transfer fees without lot movement and DEX escrow are different storage
+categories in be9. `lotMinusLiquid` is therefore a diagnostic, not a missing
+funds figure. Metadata issuance versus account-plus-pool lot holdings is checked
+separately. Counts and arithmetic do not establish historical execution,
+ownership mapping, provenance, finality or a safe migration. No balance or lot
+is created, deleted, or assigned by this tool; all existing blockers remain.

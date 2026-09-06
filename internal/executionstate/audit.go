@@ -72,6 +72,7 @@ type Report struct {
 	ContentTreeSHA256     string                `json:"contentTreeSha256,omitempty"`
 	ModuleDigestAlgorithm string                `json:"moduleDigestAlgorithm,omitempty"`
 	Streaming             *StreamEvidence       `json:"streaming,omitempty"`
+	NativeLedger          *NativeLedgerEvidence `json:"nativeLedger,omitempty"`
 	AccountStateSHA256    string                `json:"accountStateSha256,omitempty"`
 	ObservedHeight        string                `json:"observedHeight,omitempty"`
 	Amounts               map[string]string     `json:"amounts"`

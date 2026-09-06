@@ -399,7 +399,7 @@ func (a *streamAudit) array(elem, path string, capture bool, depth int) (streamN
 }
 func retainedStreamModule(name string) bool {
 	switch name {
-	case "version", "config", "savedAt", "stateIntegrity", "accounts", "lots", "dexAssets", "dexBalances", "dexPools", "validators", "resourceMarketPolicy":
+	case "version", "config", "savedAt", "stateIntegrity", "accounts", "lots", "dexAssets", "dexBalances", "dexPools", "validators", "resourceMarketPolicy", "resourceDelegations", "resourceRentals", "resourceIncome":
 		return true
 	}
 	return false
@@ -448,6 +448,7 @@ func (a *streamAudit) block(b map[string]any) {
 	}
 	for _, v := range arr(b["transactions"]) {
 		tx := obj(v)
+		a.r.ledgerTransaction(tx)
 		if str(tx["blockHash"]) != h || num(tx["blockNumber"]).Cmp(num(b["height"])) != 0 {
 			a.r.issue("TRANSACTION_BLOCK_IDENTITY_MISMATCH", "blocks")
 		}
@@ -558,6 +559,9 @@ func AuditNativeStream(input io.Reader, o Options, limits StreamLimits) Report {
 	r.issue("STREAM_EXECUTION_AND_NONCE_REPLAY_NOT_IMPLEMENTED", "blocks")
 	r.accounts(m, true)
 	r.dex(m, true)
+	if err := a.ledgerState(); err != nil {
+		r.issue(err.Error(), "accounts")
+	}
 	r.nativePolicyAndValidators(m, c)
 	safe := map[string]bool{"version": true, "savedAt": true, "stateIntegrity": true, "config": true, "accounts": true, "lots": true, "blocks": true, "pending": true, "validators": true, "resourceMarketPolicy": true}
 	for i := range r.Modules {
