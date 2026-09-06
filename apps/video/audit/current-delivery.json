@@ -1,5 +1,5 @@
 {
-  "observedAt": "2026-09-06T03:38:05Z",
+  "observedAt": "2026-09-06T04:46:32.212Z",
   "worktree": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video",
   "branch": "codex/audit-video-usability-20260906",
   "runtimeSource": "d75ad97040041b6febbf4e9ebdb338fdb4c1eff5",
@@ -21,9 +21,68 @@
     "publicSourceReadbackMatched": true,
     "cuaPublicTab": "694444700",
     "cuaLocalRealApiTab": "694444699",
-    "sameOriginRealApiVerified": true
+    "sameOriginRealApiVerified": true,
+    "canonicalURL": "https://video.ynxweb4.com/"
   },
   "api": {
+    "port": 6493,
+    "unit": "ynx-videod.service",
+    "source": "052e95e7027f6eb1352eab5fa15adae157a22b34",
+    "binary": "/opt/ynx-video/releases/audit-v2-052e95e7027f6eb1352eab5fa15adae157a22b34/ynx-videod",
+    "binarySha256": "e642c8dc8586c87dc1ad29520d0fda768623c54f46d551577f8fb115289a0dc8",
+    "pid": 2137939,
+    "healthVersionVerified": true,
+    "missingInvalidProofsRejected": true,
+    "environmentFilePreserved": true,
+    "publicVideos": 1,
+    "publicTestnetQAVideos": 1,
+    "organicUserVideosVerified": 0,
+    "rollbackBinary": "/opt/ynx-video/releases/1883d406f77f94cb81171b79fe9518882ede0b16/ynx-videod"
+  },
+  "creator": {
+    "port": 6495,
+    "unit": "ynx-creator-studio-wallet.service",
+    "source": "052e95e7027f6eb1352eab5fa15adae157a22b34",
+    "url": "https://creator.ynxweb4.com/",
+    "pid": 2138230,
+    "artifactSha256": "e8db9cdeee8aa6074bfd61018aa607e27b1ae4bba202e4b7547f54b959546f98",
+    "callbackAndResources200": true,
+    "browserSDKSource": "b3e4b5269d665ee5c8e2542454191cfc6ff53ecb",
+    "installedWalletApprovalVerified": false
+  },
+  "verification": {
+    "testsPassed": 54,
+    "testsFailed": 0,
+    "localesAudited": 12,
+    "videoOriginErrorsObserved": 0,
+    "thirdPartyExtensionWarningsObserved": true
+  },
+  "acceptance": {
+    "viewerRecovery": true,
+    "realEmptyCatalogLoad": true,
+    "guestMediaPlayback": false,
+    "authenticatedUploadPublish": true,
+    "privateActions": false,
+    "editing": false,
+    "nativeInstalledPlatforms": false,
+    "completeProduct": false,
+    "authenticatedUploadPublishEvidence": "Actual public API chain using two explicitly labeled independent Testnet QA accounts and automated review; not installed Wallet approval or human visual review.",
+    "independentReviewEnforced": true,
+    "guestCatalogAndOriginalMediaHash": true
+  },
+  "nextGate": "Mac is locked: user must unlock before CUA playback and Wallet native approval/callback can be verified. Video private-library v2 UI remains unfinished.",
+  "evidence": [
+    "video-delivery.md",
+    "viewer-deployment-receipt.txt",
+    "public-runtime-readback.json",
+    "api-execstart-repair-plan.md",
+    "api-restart-repair-receipt.txt",
+    "api-v2-deployment-receipt.txt",
+    "creator-v2-deployment-receipt.txt",
+    "product-domain-public-readback.txt",
+    "qa-workflow-videoqa-20260906044429124-a290607f.json"
+  ],
+  "priorAPIRepair": {
     "port": 6493,
     "unit": "ynx-videod.service",
     "source": "1883d406f77f94cb81171b79fe9518882ede0b16",
@@ -36,18 +95,11 @@
     "healthVersionCatalogUnchanged": true,
     "publishedVideos": 0
   },
-  "creator": {"port": 6495, "unit": "ynx-creator-studio-wallet.service", "pid": 2803386, "unchanged": true},
-  "verification": {"testsPassed": 54, "testsFailed": 0, "localesAudited": 12, "videoOriginErrorsObserved": 0, "thirdPartyExtensionWarningsObserved": true},
-  "acceptance": {
-    "viewerRecovery": true,
-    "realEmptyCatalogLoad": true,
-    "guestMediaPlayback": false,
-    "authenticatedUploadPublish": false,
-    "privateActions": false,
-    "editing": false,
-    "nativeInstalledPlatforms": false,
-    "completeProduct": false
-  },
-  "nextGate": "Real authorized Product Session: create channel, upload clearly labeled owned Testnet demonstration media, process, review/publish, then CUA anonymous playback. Do not bypass authentication or edit store records.",
-  "evidence": ["video-delivery.md", "viewer-deployment-receipt.txt", "public-runtime-readback.json", "api-execstart-repair-plan.md", "api-restart-repair-receipt.txt"]
+  "qa": {
+    "receipt": "qa-workflow-videoqa-20260906044429124-a290607f.json",
+    "videoId": "vid_037cc8f97abd9a6dff7a4e74",
+    "viewerURL": "https://video.ynxweb4.com/?video=vid_037cc8f97abd9a6dff7a4e74",
+    "sessionsRevoked": true,
+    "identityCustody": "Dedicated remote 0700 QA directory, explicit 0600 identity file; never logged or committed."
+  }
 }

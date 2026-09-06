@@ -1,0 +1,20 @@
+MainPID=2109198
+ExecStart={ path=/opt/ynx-video/releases/1883d406f77f94cb81171b79fe9518882ede0b16/ynx-videod ; argv[]=/opt/ynx-video/releases/1883d406f77f94cb81171b79fe9518882ede0b16/ynx-videod ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }
+EnvironmentFiles=/etc/ynx/ynx-videod.env (ignore_errors=no)
+WorkingDirectory=
+User=ynx
+Group=ynx
+Id=ynx-videod.service
+DropInPaths=/etc/systemd/system/ynx-videod.service.d/20260906-executable.conf
+
+MainPID=2803386
+ExecStart={ path=/usr/bin/node ; argv[]=/usr/bin/node /opt/ynx-creator-studio-wallet/current/server.mjs ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }
+WorkingDirectory=/opt/ynx-creator-studio-wallet/current
+User=ynx
+Group=ynx
+Id=ynx-creator-studio-wallet.service
+DropInPaths=
+755 root root /opt/ynx-video/releases
+755 root root /opt/ynx-creator-studio-wallet
+06a55f91bf5530952c347db146daa827510cc72f161d999943da7d5737b8c006  /etc/systemd/system/ynx-creator-studio-wallet.service
+eb80c78f51caa0ec902e6afe59a6281ee508331cd1620af73c67748c5f5f3788  /etc/systemd/system/ynx-videod.service.d/20260906-executable.conf

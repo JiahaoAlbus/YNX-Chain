@@ -1,0 +1,41 @@
+MODE=api
+SOURCE=052e95e7027f6eb1352eab5fa15adae157a22b34
+ARTIFACT_SHA256=e642c8dc8586c87dc1ad29520d0fda768623c54f46d551577f8fb115289a0dc8
+OLD_PID=2109198
+NEIGHBORS_BEFORE
+MainPID=2106183
+ExecMainStartTimestampMonotonic=11459797616092
+Id=ynx-video-viewer.service
+ActiveState=active
+
+MainPID=2803386
+ExecMainStartTimestampMonotonic=10947829292129
+Id=ynx-creator-studio-wallet.service
+ActiveState=active
+/etc/systemd/system/tat_agent.service:7: PIDFile= references a path below legacy directory /var/run/, updating /var/run/tat_agent.pid → /run/tat_agent.pid; please update the unit file accordingly.
+{"build": {"commit": "052e95e7027f6eb1352eab5fa15adae157a22b34", "release": "video-audit-v2-052e95e70", "buildTime": "2026-09-06T04:36:00Z"}, "service": "ynx-video"}
+{"build":{"commit":"052e95e7027f6eb1352eab5fa15adae157a22b34","release":"video-audit-v2-052e95e70","buildTime":"2026-09-06T04:36:00Z"},"centralContractIntegrated":true,"centralDeploymentVerified":false,"dependencies":[],"ok":true,"service":"ynx-video","truth":"no synthetic metrics"}
+[]
+MISSING_AND_INVALID_PROOFS_REJECTED=true
+
+NEIGHBORS_AFTER
+MainPID=2106183
+ExecMainStartTimestampMonotonic=11459797616092
+Id=ynx-video-viewer.service
+ActiveState=active
+
+MainPID=2803386
+ExecMainStartTimestampMonotonic=10947829292129
+Id=ynx-creator-studio-wallet.service
+ActiveState=active
+MainPID=2137939
+NRestarts=0
+ExecStart={ path=/opt/ynx-video/releases/audit-v2-052e95e7027f6eb1352eab5fa15adae157a22b34/ynx-videod ; argv[]=/opt/ynx-video/releases/audit-v2-052e95e7027f6eb1352eab5fa15adae157a22b34/ynx-videod ; ignore_errors=no ; start_time=[Sun 2026-09-06 12:40:55 CST] ; stop_time=[n/a] ; pid=2137939 ; code=(null) ; status=0/0 }
+EnvironmentFiles=/etc/ynx/ynx-videod.env (ignore_errors=no)
+WorkingDirectory=
+Id=ynx-videod.service
+ActiveState=active
+DropInPaths=/etc/systemd/system/ynx-videod.service.d/20260906-executable.conf /etc/systemd/system/ynx-videod.service.d/20260906-v2-consumer.conf
+6aa732ad280b9e637eb4cee5a0bc662e3d1ccbd15391ab2ef7f4861370ff911a  /etc/systemd/system/ynx-videod.service.d/20260906-v2-consumer.conf
+COMPLETED_AT=2026-09-06T04:40:56Z
+V2_CONSUMER_DEPLOYED=true

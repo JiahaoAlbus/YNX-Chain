@@ -72,3 +72,13 @@ The public browser requests `${location.origin}/video/api/v1/...` and `${locatio
 On loopback the browser uses `http://127.0.0.1:8423`; the owned local Viewer test intentionally had no API there. The artifact does not supply a media store, ingestion/transcoding workers, published videos, Product Session authentication or the backend service. Private actions still require the canonical Product Session integration and must not be enabled by a local fallback.
 
 The coordinator still needs exact public byte readback, real API/catalog and guest media playback, private lifecycle acceptance where available, and current-source Android/iOS/desktop builds and installations. No production signing, store release, payment, settlement or complete cross-product flow was tested here.
+
+### 2026-09-06 04:45Z actual business delivery
+
+API and Creator are now deployed at source `052e95e7027f6eb1352eab5fa15adae157a22b34`, preserving their previous immutable rollback versions and existing ENV/data. API port 6493 PID 2137939; Creator port 6495 PID 2138230; Viewer port 6494 PID 2106183 remained unchanged. Both separate public domains resolve normally and have valid ACME HTTPS. Exact artifacts, scripts, service readback and hashes are in the adjacent deployment receipts.
+
+A real public API run created a dedicated Testnet QA channel, invited/accepted an independent moderator account, uploaded repository-owned 320×180/1s blue test media, completed real processing (3 variants), declared source-bound rights, submitted and independently reviewed publication, then made it public. The anonymous catalog/detail and original-media SHA-256 matched. Both issued QA sessions were revoked. This is explicitly automated QA signing/review, not installed Wallet UI, human visual review or organic usage.
+
+Public video: https://video.ynxweb4.com/?video=vid_037cc8f97abd9a6dff7a4e74
+
+Still unaccepted: CUA guest playback and installed native Wallet callback (Mac is locked); Video private-library v2 login/callback; full editing/media-asset/monetization/AI workflows; native platform installations. The current record must not be interpreted as complete-product acceptance.

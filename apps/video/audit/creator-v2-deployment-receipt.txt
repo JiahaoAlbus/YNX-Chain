@@ -1,0 +1,60 @@
+MODE=creator
+SOURCE=052e95e7027f6eb1352eab5fa15adae157a22b34
+ARTIFACT_SHA256=e8db9cdeee8aa6074bfd61018aa607e27b1ae4bba202e4b7547f54b959546f98
+OLD_PID=2803386
+NEIGHBORS_BEFORE
+MainPID=2106183
+ExecMainStartTimestampMonotonic=11459797616092
+Id=ynx-video-viewer.service
+ActiveState=active
+
+MainPID=2137939
+ExecMainStartTimestampMonotonic=11463882897283
+Id=ynx-videod.service
+ActiveState=active
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+tar: Ignoring unknown extended header keyword 'LIBARCHIVE.xattr.com.apple.provenance'
+CREATOR_MANIFEST_FILES_VERIFIED=18
+/etc/systemd/system/tat_agent.service:7: PIDFile= references a path below legacy directory /var/run/, updating /var/run/tat_agent.pid → /run/tat_agent.pid; please update the unit file accordingly.
+CREATOR_RUNTIME_SOURCE=052e95e7027f6eb1352eab5fa15adae157a22b34
+
+NEIGHBORS_AFTER
+MainPID=2106183
+ExecMainStartTimestampMonotonic=11459797616092
+Id=ynx-video-viewer.service
+ActiveState=active
+
+MainPID=2137939
+ExecMainStartTimestampMonotonic=11463882897283
+Id=ynx-videod.service
+ActiveState=active
+MainPID=2138230
+NRestarts=0
+ExecStart={ path=/usr/bin/node ; argv[]=/usr/bin/node /opt/ynx-creator-studio-wallet/releases/audit-v2-052e95e7027f6eb1352eab5fa15adae157a22b34/server.mjs ; ignore_errors=no ; start_time=[Sun 2026-09-06 12:41:13 CST] ; stop_time=[n/a] ; pid=2138230 ; code=(null) ; status=0/0 }
+WorkingDirectory=/opt/ynx-creator-studio-wallet/releases/audit-v2-052e95e7027f6eb1352eab5fa15adae157a22b34
+Id=ynx-creator-studio-wallet.service
+ActiveState=active
+DropInPaths=/etc/systemd/system/ynx-creator-studio-wallet.service.d/20260906-v2-consumer.conf
+07a65496a21a81a367d65e9e18e9db4d1703b794c3f1608e0f2de92c66b75ccd  /etc/systemd/system/ynx-creator-studio-wallet.service.d/20260906-v2-consumer.conf
+COMPLETED_AT=2026-09-06T04:41:14Z
+V2_CONSUMER_DEPLOYED=true
