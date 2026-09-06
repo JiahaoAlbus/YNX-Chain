@@ -109,6 +109,12 @@ test("connection navigation cannot persist permission or send account events",as
   });
 });
 
+test("navigation while revoking retains revocation but sends no event to the new document",async t=>{
+  const f=await fixture(t);f.state.afterGet=async key=>{if(key===PROVIDER_PERMISSIONS_KEY)f.state.tabUpdated(1,{status:"loading"})};
+  assert.equal((await f.request("wallet_revokePermissions",[{eth_accounts:{}}]).result).error.code,"DOCUMENT_CHANGED");
+  assert.equal(f.localState[PROVIDER_PERMISSIONS_KEY][ORIGIN],undefined);assert.equal(f.state.events.length,0);
+});
+
 for(const method of["personal_sign","eth_sendTransaction"])test(`DApp document navigation cancels the old ${method} approval`,async t=>{
   for(const navigation of["reload","away-and-back","removed-and-reused"])await t.test(navigation,async t=>{
     const f=await fixture(t),params=method==="personal_sign"?["0x01",ACCOUNT]:[{from:ACCOUNT,to:TO,value:toQuantity(10n**18n)}],request=f.request(method,params);await f.nextWindow();

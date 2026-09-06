@@ -138,10 +138,10 @@ async function handleProviderMethod({tabId,origin,requestId,deadlineAt,method,pa
   if(method==="wallet_getPermissions"){const state=await approvedState(origin);return eip2255Permissions(state?.permission||null)}
   if(method==="wallet_requestPermissions"){exactPermissionParams(method,params);const accounts=await requestAccountApproval(tabId,origin,requestId,deadlineAt,documentLease);const state=await approvedState(origin);authorizationGuard.assertCurrent(documentLease);if(state?.permission?.account!==accounts[0])throw Object.assign(new Error("Wallet permission did not persist."),{code:"PERMISSION_NOT_PERSISTED"});return eip2255Permissions(state.permission)}
   if(method==="wallet_revokePermissions"||method==="ynx_disconnect"){
-    if(method==="wallet_revokePermissions")exactPermissionParams(method,params);await removePermission(origin);await emitToTab(tabId,origin,"accountsChanged",[]);await emitToTab(tabId,origin,"disconnect",{code:4900,message:"YNX Wallet disconnected from this site."});return null
+    if(method==="wallet_revokePermissions")exactPermissionParams(method,params);await removePermission(origin);await emitToTab(tabId,origin,"accountsChanged",[],documentLease);await emitToTab(tabId,origin,"disconnect",{code:4900,message:"YNX Wallet disconnected from this site."},documentLease);return null
   }
   if(method==="wallet_addEthereumChain"||method==="wallet_switchEthereumChain"){
-    exactMutationInput(method,params);requireLiveDeadline(deadlineAt);await emitToTab(tabId,origin,"chainChanged",CHAIN_ID);return null
+    exactMutationInput(method,params);requireLiveDeadline(deadlineAt);await emitToTab(tabId,origin,"chainChanged",CHAIN_ID,documentLease);return null
   }
   if(["personal_sign","eth_signTypedData_v4","eth_sendTransaction"].includes(method)){
     const state=await approvedState(origin);if(!state?.permission)throw Object.assign(new Error("This site is not approved for the YNX Wallet account."),{code:4100});
