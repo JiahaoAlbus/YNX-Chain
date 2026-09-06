@@ -3,7 +3,7 @@ import { FormEvent, useEffect, useMemo, useState } from "react";
 import { can, login, request, type Session } from "./api";
 import { discoverWalletProviders, providerErrorCode, selectedAccount, type EIP1193Provider, type WalletProvider } from "./eip1193";
 import { localeNames, locales, type Locale, useI18n } from "./i18n";
-import ynxLogo from "../../../assets/brand/ynx-logo.png";
+const ynxLogo = "/ynx-icon-96.png?v=brand-20260906-v2";
 // The generated SDK helper is the canonical bounded EIP-3085/EIP-1193 chain
 // switcher. It never requests accounts, signatures, or transactions by itself.
 // @ts-expect-error The source-bound SDK has no declaration file.

@@ -1,1 +1,23 @@
-{"name":"YNX Monitor","short_name":"YNX Monitor","description":"Authenticated YNX operations evidence companion","start_url":"/","display":"standalone","background_color":"#ffffff","theme_color":"#002FA7","icons":[{"src":"/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}
+{
+  "name": "YNX Monitor",
+  "short_name": "YNX Monitor",
+  "description": "Authenticated YNX operations evidence companion",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#002fa7",
+  "icons": [
+    {
+      "src": "/ynx-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/ynx-icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
