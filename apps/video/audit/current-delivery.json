@@ -1,0 +1,53 @@
+{
+  "observedAt": "2026-09-06T03:38:05Z",
+  "worktree": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video",
+  "branch": "codex/audit-video-usability-20260906",
+  "runtimeSource": "d75ad97040041b6febbf4e9ebdb338fdb4c1eff5",
+  "artifact": {
+    "path": "apps/video/audit/artifacts/ynx-video-d75ad9704-runtime.tar.gz",
+    "bytes": 27622,
+    "sha256": "25748a1764e985a8abcd64cac53e25ecbefb7fbc20027142da555ac38fa314f5",
+    "verifiedManifestFiles": 17,
+    "nativeInstaller": false,
+    "backendIncluded": false
+  },
+  "viewer": {
+    "url": "https://web4.ynxweb4.com/video/",
+    "port": 6494,
+    "unit": "ynx-video-viewer.service",
+    "pid": 2106183,
+    "release": "/opt/ynx-video-viewer-wallet/releases/ynx-video-d75ad97040041b6febbf4e9ebdb338fdb4c1eff5",
+    "override": "/etc/systemd/system/ynx-video-viewer.service.d/20260906-audit.conf",
+    "publicSourceReadbackMatched": true,
+    "cuaPublicTab": "694444700",
+    "cuaLocalRealApiTab": "694444699",
+    "sameOriginRealApiVerified": true
+  },
+  "api": {
+    "port": 6493,
+    "unit": "ynx-videod.service",
+    "source": "1883d406f77f94cb81171b79fe9518882ede0b16",
+    "binary": "/opt/ynx-video/releases/1883d406f77f94cb81171b79fe9518882ede0b16/ynx-videod",
+    "binarySha256": "6fb91e9030a00a7b0ea88a11629f1442a6f6e4d8dea8720f64fd997e98b7831d",
+    "pidBefore": 3108210,
+    "pidAfter": 2109198,
+    "sameBinaryRestartVerified": true,
+    "environmentFilePreserved": true,
+    "healthVersionCatalogUnchanged": true,
+    "publishedVideos": 0
+  },
+  "creator": {"port": 6495, "unit": "ynx-creator-studio-wallet.service", "pid": 2803386, "unchanged": true},
+  "verification": {"testsPassed": 54, "testsFailed": 0, "localesAudited": 12, "videoOriginErrorsObserved": 0, "thirdPartyExtensionWarningsObserved": true},
+  "acceptance": {
+    "viewerRecovery": true,
+    "realEmptyCatalogLoad": true,
+    "guestMediaPlayback": false,
+    "authenticatedUploadPublish": false,
+    "privateActions": false,
+    "editing": false,
+    "nativeInstalledPlatforms": false,
+    "completeProduct": false
+  },
+  "nextGate": "Real authorized Product Session: create channel, upload clearly labeled owned Testnet demonstration media, process, review/publish, then CUA anonymous playback. Do not bypass authentication or edit store records.",
+  "evidence": ["video-delivery.md", "viewer-deployment-receipt.txt", "public-runtime-readback.json", "api-execstart-repair-plan.md", "api-restart-repair-receipt.txt"]
+}

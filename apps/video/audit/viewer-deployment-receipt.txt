@@ -1,0 +1,57 @@
+SOURCE=d75ad97040041b6febbf4e9ebdb338fdb4c1eff5
+CARRIER_SHA256=25748a1764e985a8abcd64cac53e25ecbefb7fbc20027142da555ac38fa314f5
+BEFORE
+MainPID=3108210
+ExecMainStartTimestampMonotonic=9268598214132
+Id=ynx-videod.service
+ActiveState=active
+
+MainPID=2803386
+ExecMainStartTimestampMonotonic=10947829292129
+Id=ynx-creator-studio-wallet.service
+ActiveState=active
+d86450cae478510c94b0b7af9d78fb4241ebd691a41e3864ca296eefe16a2e4f  /etc/systemd/system/ynx-videod.service
+06a55f91bf5530952c347db146daa827510cc72f161d999943da7d5737b8c006  /etc/systemd/system/ynx-creator-studio-wallet.service
+c0518f813134f2879382cc3f7c999f8abf9b4660c513bc2651487a6fe9ed29c9  /etc/systemd/system/ynx-video-viewer.service
+077fe80ea9aab24a32d64ba1fab3584e8aab10304e200e58d976d2c33edfb39f  /etc/caddy/Caddyfile
+15a722a950e4ec07583da1affb938c08522b5565c8da29adf27afaccb2335867  /etc/caddy/ynx-chain.caddy
+/opt/ynx-video/releases/p0205-creator-studio-0e1a53c5
+b14684492820350504ee7a06247e0b4670416bff721678bb39645b6808972384  -
+dffdf161c67cec481eafc8601ca0087908adce8a6cf40920a24df357cb003fb8  -
+b37f78205f2c5443b2103ee42e98d6ecde65238c107733088e63893a3c1de697  -
+5fd27ac55d9ea70b8e15aac0565324a9ce7b18706bd75cd5b430eaa4843de86f  -
+4c86e3e1cdeac6d9c4570891d70bab4c3486c6a4429dd33fd1029f046ca9ecff  -
+MANIFEST_FILES_VERIFIED=17
+[]
+{"build":{"commit":"1883d406f77f94cb81171b79fe9518882ede0b16","release":"ynx-video-1883d406","buildTime":"2026-08-12T16:10:00Z"},"centralContractIntegrated":true,"centralDeploymentVerified":false,"dependencies":[],"ok":true,"service":"ynx-video","truth":"no synthetic metrics"}
+
+AFTER
+MainPID=3108210
+ExecMainStartTimestampMonotonic=9268598214132
+Id=ynx-videod.service
+ActiveState=active
+
+MainPID=2803386
+ExecMainStartTimestampMonotonic=10947829292129
+Id=ynx-creator-studio-wallet.service
+ActiveState=active
+d86450cae478510c94b0b7af9d78fb4241ebd691a41e3864ca296eefe16a2e4f  /etc/systemd/system/ynx-videod.service
+06a55f91bf5530952c347db146daa827510cc72f161d999943da7d5737b8c006  /etc/systemd/system/ynx-creator-studio-wallet.service
+c0518f813134f2879382cc3f7c999f8abf9b4660c513bc2651487a6fe9ed29c9  /etc/systemd/system/ynx-video-viewer.service
+077fe80ea9aab24a32d64ba1fab3584e8aab10304e200e58d976d2c33edfb39f  /etc/caddy/Caddyfile
+15a722a950e4ec07583da1affb938c08522b5565c8da29adf27afaccb2335867  /etc/caddy/ynx-chain.caddy
+/opt/ynx-video/releases/p0205-creator-studio-0e1a53c5
+b14684492820350504ee7a06247e0b4670416bff721678bb39645b6808972384  -
+dffdf161c67cec481eafc8601ca0087908adce8a6cf40920a24df357cb003fb8  -
+b37f78205f2c5443b2103ee42e98d6ecde65238c107733088e63893a3c1de697  -
+5fd27ac55d9ea70b8e15aac0565324a9ce7b18706bd75cd5b430eaa4843de86f  -
+4c86e3e1cdeac6d9c4570891d70bab4c3486c6a4429dd33fd1029f046ca9ecff  -
+VIEWER_DEPLOYED=d75ad97040041b6febbf4e9ebdb338fdb4c1eff5
+API_CREATOR_CADDY_SHARED_UNCHANGED=true
+MainPID=2106183
+ExecStart={ path=/usr/bin/node ; argv[]=/usr/bin/node /opt/ynx-video-viewer-wallet/releases/ynx-video-d75ad97040041b6febbf4e9ebdb338fdb4c1eff5/server.mjs ; ignore_errors=no ; start_time=[Sun 2026-09-06 11:32:50 CST] ; stop_time=[n/a] ; pid=2106183 ; code=(null) ; status=0/0 }
+Environment=PORT=6494 YNX_VIDEO_API_ORIGIN=http://127.0.0.1:6493
+WorkingDirectory=/opt/ynx-video-viewer-wallet/releases/ynx-video-d75ad97040041b6febbf4e9ebdb338fdb4c1eff5
+DropInPaths=/etc/systemd/system/ynx-video-viewer.service.d/20260906-audit.conf
+197e6d7ada5dc4a38d2df7e61ff597ea644b1aa47bf4e38c1d390961c9a0dbac  /etc/systemd/system/ynx-video-viewer.service.d/20260906-audit.conf
+COMPLETED_AT=2026-09-06T03:32:50Z

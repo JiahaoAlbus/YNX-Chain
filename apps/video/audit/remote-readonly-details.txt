@@ -1,0 +1,22 @@
+  ynx-creator-studio-wallet.service              loaded    active   running YNX Creator Studio Wallet
+  ynx-video-viewer.service                       loaded    active   running YNX Video Testnet Preview Web Viewer
+  ynx-videod.service                             loaded    active   running YNX Video Testnet Preview API
+LISTEN 0      511                  127.0.0.1:6494       0.0.0.0:*    users:(("node",pid=2159536,fd=21))                        
+LISTEN 0      511                  127.0.0.1:6495       0.0.0.0:*    users:(("node",pid=2803386,fd=21))                        
+LISTEN 0      4096                 127.0.0.1:6493       0.0.0.0:*    users:(("ynx-videod",pid=3108210,fd=4))                   
+/opt/ynx-video/releases/1883d406f77f94cb81171b79fe9518882ede0b16/ynx-videod
+6fb91e9030a00a7b0ea88a11629f1442a6f6e4d8dea8720f64fd997e98b7831d  /proc/3108210/exe
+Caddy line 28 import /etc/caddy/conf.d/*.caddy
+Caddy line 55 import /etc/caddy/ynx-chain.caddy
+
+API health
+{"build":{"commit":"1883d406f77f94cb81171b79fe9518882ede0b16","release":"ynx-video-1883d406","buildTime":"2026-08-12T16:10:00Z"},"centralContractIntegrated":true,"centralDeploymentVerified":false,"dependencies":[],"ok":true,"service":"ynx-video","truth":"no synthetic metrics"}
+
+API version
+{"build":{"commit":"1883d406f77f94cb81171b79fe9518882ede0b16","release":"ynx-video-1883d406","buildTime":"2026-08-12T16:10:00Z"},"service":"ynx-video"}
+
+API guest catalog
+[]
+
+Creator root digest
+b37f78205f2c5443b2103ee42e98d6ecde65238c107733088e63893a3c1de697  -

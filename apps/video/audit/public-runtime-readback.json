@@ -1,0 +1,56 @@
+{
+  "observedAt": "2026-09-06T03:33:49.620240+00:00",
+  "vantage": "primary server via public HTTPS hostname",
+  "items": {
+    "": {
+      "status": 200,
+      "bytes": 3943,
+      "sha256": "50d571a3c8a099e5d6193dde1b2cf7f7f1d0482d0f2f7d895df6f77814c1cfcf",
+      "contentType": "text/html; charset=utf-8"
+    },
+    "app.js": {
+      "status": 200,
+      "bytes": 20342,
+      "sha256": "5d2c10fe5ff1f7916b0659cd22dd3ec0b19fac91b41122b179e3c4864ef8b016",
+      "contentType": "text/javascript; charset=utf-8"
+    },
+    "server.mjs": {
+      "status": 200,
+      "bytes": 3715,
+      "sha256": "82cd0cbd1bc0e8d0e5c46ffe80f0a5645def1f249fcc1e2aba6567fe3b153737",
+      "contentType": "application/octet-stream"
+    },
+    "i18n/catalog.json": {
+      "status": 200,
+      "bytes": 14125,
+      "sha256": "e5d61e1c1b562c767b0593f221559f7cc52c00ca0d75514e8dce93e6bcb36dd2",
+      "contentType": "application/json; charset=utf-8"
+    },
+    "assets/ynx-logo.svg": {
+      "status": 200,
+      "bytes": 235,
+      "sha256": "edf0827602e70b2e20e5db0a27e2b19a89b3d0901c0e15497ea876d0510bd223",
+      "contentType": "image/svg+xml"
+    },
+    "runtime-manifest.json": {
+      "status": 200,
+      "bytes": 2761,
+      "sha256": "619fbe8e151d42361e5ec75cff7aed73e00ba027882837986af10f35eeea77f5",
+      "contentType": "application/json; charset=utf-8",
+      "sourceCommit": "d75ad97040041b6febbf4e9ebdb338fdb4c1eff5"
+    },
+    "api/health": {
+      "status": 200,
+      "bytes": 278,
+      "sha256": "b14684492820350504ee7a06247e0b4670416bff721678bb39645b6808972384",
+      "contentType": "application/json"
+    },
+    "api/v1/videos": {
+      "status": 200,
+      "bytes": 3,
+      "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+      "contentType": "application/json",
+      "publishedCount": 0
+    }
+  }
+}

@@ -1,0 +1,7 @@
+HTTP/1.1 200 OK
+Cache-Control: no-store
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+Date: Sun, 06 Sep 2026 03:24:37 GMT
+Content-Length: 3
+

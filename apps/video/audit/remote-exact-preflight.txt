@@ -1,0 +1,55 @@
+NRestarts=0
+ExecStart={ path=/usr/bin/node ; argv[]=/usr/bin/node /opt/ynx-video/current/apps/video/server.mjs ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }
+WorkingDirectory=
+User=ynx
+Group=ynx
+Id=ynx-video-viewer.service
+FragmentPath=/etc/systemd/system/ynx-video-viewer.service
+DropInPaths=
+UnitFileState=enabled
+
+NRestarts=0
+ExecStart={ path=/opt/ynx-video/current/ynx-videod ; argv[]=/opt/ynx-video/current/ynx-videod ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }
+EnvironmentFiles=/etc/ynx/ynx-videod.env (ignore_errors=no)
+WorkingDirectory=
+User=ynx
+Group=ynx
+Id=ynx-videod.service
+FragmentPath=/etc/systemd/system/ynx-videod.service
+DropInPaths=
+UnitFileState=enabled
+
+NRestarts=0
+ExecStart={ path=/usr/bin/node ; argv[]=/usr/bin/node /opt/ynx-creator-studio-wallet/current/server.mjs ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }
+WorkingDirectory=/opt/ynx-creator-studio-wallet/current
+User=ynx
+Group=ynx
+Id=ynx-creator-studio-wallet.service
+FragmentPath=/etc/systemd/system/ynx-creator-studio-wallet.service
+DropInPaths=
+UnitFileState=enabled
+[Unit]
+Description=YNX Video Testnet Preview Web Viewer
+After=network-online.target
+
+[Service]
+User=ynx
+Group=ynx
+Environment=PORT=6494
+ExecStart=/usr/bin/node /opt/ynx-video/current/apps/video/server.mjs
+Restart=on-failure
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target
+dedicated-root-exists False
+viewer-drop-in-dir-exists False
+API User=ynx
+API Group=ynx
+API EnvironmentFile=/etc/ynx/ynx-videod.env
+API ExecStart=/opt/ynx-video/current/ynx-videod
+15a722a950e4ec07583da1affb938c08522b5565c8da29adf27afaccb2335867  /etc/caddy/ynx-chain.caddy
+077fe80ea9aab24a32d64ba1fab3584e8aab10304e200e58d976d2c33edfb39f  /etc/caddy/Caddyfile

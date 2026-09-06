@@ -1,6 +1,32 @@
 # Video delivery checkpoint — 2026-09-06
 
-Status: bounded source repair and runtime artifact complete; no deployment, account request, signature or transaction performed. Full Video product usability is not accepted.
+Status: Viewer deployed and verified at 2026-09-06T03:32:50Z. Same-origin local access reaches the real API. The public catalog is empty, so guest playback and complete Video usability remain unaccepted. No account request, signature or transaction was performed.
+
+## Current public delivery
+
+- Runtime source: `d75ad97040041b6febbf4e9ebdb338fdb4c1eff5`.
+- Carrier: `apps/video/audit/artifacts/ynx-video-d75ad9704-runtime.tar.gz`, 27,622 bytes, SHA-256 `25748a1764e985a8abcd64cac53e25ecbefb7fbc20027142da555ac38fa314f5`.
+- All 17 manifest files individually verified on the remote host. New immutable release: `/opt/ynx-video-viewer-wallet/releases/ynx-video-d75ad97040041b6febbf4e9ebdb338fdb4c1eff5`.
+- Existing `ynx-video-viewer.service` still owns 6494 with a single new override `/etc/systemd/system/ynx-video-viewer.service.d/20260906-audit.conf`; user/group `ynx:ynx`, original settings retained, API origin explicitly set to loopback 6493.
+- Only Viewer restarted for this deployment. API PID 3108210 and Creator PID 2803386, start times, unit hashes, Caddy, shared-current target, API health/version and three Creator response digests were identical before and after. See `viewer-deployment-receipt.txt`.
+- Viewer rollback: remove only this new override, daemon-reload, then restart only `ynx-video-viewer.service`. The old Viewer subtree remains intact.
+- Fresh mapping: `/etc/caddy/ynx-chain.caddy` strips `/video/studio/* → 6495`, `/video/api/* → 6493`, `/video/* → 6494`. API source is `1883d406f77f94cb81171b79fe9518882ede0b16`. No Caddy or shared-current change was made.
+
+## Real backend verification
+
+Tunneling local 8423 to the real 6493 API was insufficient: the API allows CORS only from localhost ports 4173/4174, so the actual browser on 4878 still reported `Failed to fetch`. The repaired frontend defaults to same-origin `/video/api`; the Viewer streams this path to a configured loopback HTTP API. Queries, status and media Range headers are preserved; failed upstream returns 503. Arbitrary remote upstream origins are rejected. Existing public Caddy API routing remains unchanged.
+
+`npm run check --prefix apps/video` passed **54/54 tests**, including proxy queries, partial media responses and unavailable upstream, plus the 12-language audit. These are code tests, not media playback proof.
+
+CUA Chrome tab `694444699`, using actual source on port 4880 and the real 8423→6493 SSH tunnel, changed from unavailable to `No published videos yet` after Retry. A screenshot confirmed blue/white navigation and the readable empty state. Chrome's automatic translation changed some visible strings, so that mixed-language screenshot is not localization-parity evidence.
+
+CUA separately opened `https://web4.ynxweb4.com/video/?audit=d75ad9704&lang=en` in tab `694444700`: the logo, 12 locale choices and navigation rendered; the old literal `empty` and blank locale selector disappeared. Public HTTPS readback from the primary host bound the manifest to `d75ad9704` and app.js to 20,342 bytes / SHA-256 `5d2c10fe5ff1f7916b0659cd22dd3ec0b19fac91b41122b179e3c4864ef8b016`. See `public-runtime-readback.json` for endpoint records and vantage.
+
+The anonymous real catalog returns `[]` (3 bytes). No published media URL exists to play. The repository-owned processing clip and authenticated upload requirements are documented in `api-execstart-repair-plan.md`. No direct data-store edits or authentication bypass were used. Upload, processing/publishing, permissions, editing, private workflows, native installations and store releases remain unaccepted. The broader responsive and language-quality pass requested by the user remains separate from this bounded recovery.
+
+## Earlier bounded repair checkpoint (historical)
+
+The later API repair was separately authorized and completed at `2026-09-06T03:38:05Z`, after Viewer publication. It changed only the API ExecStart override to its existing absolute binary and restarted API once. PID `3108210 → 2109198`, with identical health/version/catalog and unchanged Viewer/Creator. See `api-execstart-repair-plan.md` and `api-restart-repair-receipt.txt`.
 
 - Isolated worktree: `/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260906-video`
 - Branch: `codex/audit-video-usability-20260906`

@@ -1,0 +1,30 @@
+MainPID=2159536
+ExecStart={ path=/usr/bin/node ; argv[]=/usr/bin/node /opt/ynx-video/current/apps/video/server.mjs ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }
+WorkingDirectory=
+Id=ynx-video-viewer.service
+ActiveState=active
+SubState=running
+FragmentPath=/etc/systemd/system/ynx-video-viewer.service
+
+MainPID=0
+WorkingDirectory=
+Id=ynx-video-viewer-wallet.service
+ActiveState=inactive
+SubState=dead
+FragmentPath=
+
+MainPID=3108210
+ExecStart={ path=/opt/ynx-video/current/ynx-videod ; argv[]=/opt/ynx-video/current/ynx-videod ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }
+WorkingDirectory=
+Id=ynx-videod.service
+ActiveState=active
+SubState=running
+FragmentPath=/etc/systemd/system/ynx-videod.service
+
+MainPID=0
+WorkingDirectory=
+Id=ynx-creator-studio.service
+ActiveState=inactive
+SubState=dead
+FragmentPath=
+/opt/ynx-video/releases/p0205-creator-studio-0e1a53c5

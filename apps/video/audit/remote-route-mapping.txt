@@ -1,0 +1,77 @@
+/etc/caddy/ynx-chain.caddy:169
+		reverse_proxy 127.0.0.1:6440
+	}
+	handle_path /video/studio/* {
+		reverse_proxy 127.0.0.1:6495
+	}
+	handle_path /video/api/* {
+		reverse_proxy 127.0.0.1:6493
+	}
+	handle_path /video/* {
+/etc/caddy/ynx-chain.caddy:170
+	}
+	handle_path /video/studio/* {
+		reverse_proxy 127.0.0.1:6495
+	}
+	handle_path /video/api/* {
+		reverse_proxy 127.0.0.1:6493
+	}
+	handle_path /video/* {
+		reverse_proxy 127.0.0.1:6494
+/etc/caddy/ynx-chain.caddy:172
+		reverse_proxy 127.0.0.1:6495
+	}
+	handle_path /video/api/* {
+		reverse_proxy 127.0.0.1:6493
+	}
+	handle_path /video/* {
+		reverse_proxy 127.0.0.1:6494
+	}
+	handle {
+/etc/caddy/ynx-chain.caddy:173
+	}
+	handle_path /video/api/* {
+		reverse_proxy 127.0.0.1:6493
+	}
+	handle_path /video/* {
+		reverse_proxy 127.0.0.1:6494
+	}
+	handle {
+		redir https://www.ynxweb4.com{uri} 302
+/etc/caddy/ynx-chain.caddy:175
+		reverse_proxy 127.0.0.1:6493
+	}
+	handle_path /video/* {
+		reverse_proxy 127.0.0.1:6494
+	}
+	handle {
+		redir https://www.ynxweb4.com{uri} 302
+	}
+}
+/etc/caddy/ynx-chain.caddy:176
+	}
+	handle_path /video/* {
+		reverse_proxy 127.0.0.1:6494
+	}
+	handle {
+		redir https://www.ynxweb4.com{uri} 302
+	}
+}
+
+MainPID=2803386
+ExecStart={ path=/usr/bin/node ; argv[]=/usr/bin/node /opt/ynx-creator-studio-wallet/current/server.mjs ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }
+FragmentPath=/etc/systemd/system/ynx-creator-studio-wallet.service
+c0518f813134f2879382cc3f7c999f8abf9b4660c513bc2651487a6fe9ed29c9  /etc/systemd/system/ynx-video-viewer.service
+d86450cae478510c94b0b7af9d78fb4241ebd691a41e3864ca296eefe16a2e4f  /etc/systemd/system/ynx-videod.service
+06a55f91bf5530952c347db146daa827510cc72f161d999943da7d5737b8c006  /etc/systemd/system/ynx-creator-studio-wallet.service
+
+API CORS headers
+HTTP/1.1 401 Unauthorized
+Cache-Control: no-store
+Content-Type: application/json
+X-Content-Type-Options: nosniff
+Date: Sun, 06 Sep 2026 03:24:15 GMT
+Content-Length: 67
+
+
+Media directory names only

@@ -1,0 +1,9 @@
+{
+  "requestedBy": "root coordinator",
+  "vantage": "existing primary host SSH, public HTTPS read only",
+  "url": "https://wallet-web-jiahaoalbus-projects.vercel.app/core-auth-binding.js",
+  "http": 200,
+  "bytes": 880,
+  "sha256": "8e34a8f66c43b90516770be334379357265e4ea9e87417b98b1fb090646e98bf",
+  "expectedMatched": true
+}
