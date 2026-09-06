@@ -1,5 +1,7 @@
 # Windows hosted workspace client
 
+Ordinary installations accept later hosted source commits while the mounted workspace keeps the `ynx-desktop-host/v1` contract and a valid source identity. Each native file command also verifies its response contract. The strict embedded source checkpoint is an acceptance requirement, so routine compatible website updates do not disable installed File/Edit commands. Unknown command contracts still require a compatible installer.
+
 The .NET 8 WPF / WebView2 shell loads `https://developer.ynxweb4.com/`. It has no bundled Node server and no web-to-OS message or host-object bridge. Native-initiated scripts require the exact HTTPS origin, default port, approved main-document path and unchanged navigation generation. The main page cannot navigate elsewhere; sandboxed runtime preview iframes retain their existing browser-only behavior. External new windows are blocked in this shell.
 
 File New File, Open Project, Save and Export call the mounted Workbench UI contract. Imports use the existing bounded JSON validation and confirmation; cancellation retains the current dirty model. Save awaits `saveProject` and reports durable local-profile and remote acknowledgements separately. Closing pauses if an available workspace does not acknowledge save. Reload also requires save. RecoveryGate remains in front of Workbench; corrupt saved data never becomes a successful editor-ready receipt.

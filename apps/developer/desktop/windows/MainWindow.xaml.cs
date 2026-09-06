@@ -112,8 +112,13 @@ public partial class MainWindow : Window
                 if (state.TryGetProperty("state", out var value) && value.GetProperty("workspaceReady").GetBoolean() && (acceptance == null || value.GetProperty("editorReady").GetBoolean()))
                 {
                     var identity = await Evaluate("(async()=>{const r=await fetch('/healthz',{cache:'no-store'});if(!r.ok)throw Error('Runtime identity unavailable');return await r.json()})()", expected);
-                    if (identity.GetProperty("sourceCommit").GetString() != HostPolicy.RuntimeCheckpoint()) throw new IOException("Hosted runtime differs from this installer’s verified checkpoint. Update the installer before continuing.");
-                    ready = true; Status.Text = "Workspace ready · " + HostPolicy.RuntimeCheckpoint()[..12];
+                    var source = identity.GetProperty("sourceCommit").GetString();
+                    var schema = state.TryGetProperty("schema", out var contract) ? contract.GetString() : null;
+                    // Ordinary installs follow compatible hosted updates. Only acceptance binds
+                    // one exact source; otherwise every web release would disable installed File/Edit.
+                    if (!HostPolicy.CompatibleWorkspace(schema, source, HostPolicy.RuntimeCheckpoint(), acceptance != null))
+                        throw new IOException(acceptance != null ? "Acceptance runtime or workspace contract differs from the packaged checkpoint." : "The hosted workspace contract is incompatible. Update the installer to continue.");
+                    ready = true; Status.Text = "Workspace ready · " + source![..12];
                     CommandManager.InvalidateRequerySuggested();
                     if (acceptance != null) { await NativeAcceptance.Run(this, acceptance); await FinishAcceptance(null); }
                     return;
@@ -152,6 +157,7 @@ public partial class MainWindow : Window
     }
     internal static void RequireHandled(JsonElement value)
     {
+        if (!value.TryGetProperty("schema", out var schema) || schema.GetString() != HostPolicy.WorkspaceSchema) throw new IOException("Workspace command contract is incompatible.");
         if (value.GetProperty("status").GetString() != "handled") throw new IOException("Workspace did not accept the command: " + value.GetRawText()[..Math.Min(512, value.GetRawText().Length)]);
     }
     internal async Task<JsonElement> FileCommand(string command, string? path = null, string? content = null)
