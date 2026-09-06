@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import {readFile} from "node:fs/promises";
 import test from "node:test";
+import {runInNewContext} from "node:vm";
+import {loadPreferences, savePreferences} from "../src/preferences.js";
 
 test("fallback contract always offers YNX download and MetaMask when YNX is absent", async () => {
   const source = await readFile(new URL("../public/app.js", import.meta.url), "utf8");
@@ -28,7 +30,7 @@ test("fallback contract always offers YNX download and MetaMask when YNX is abse
   assert.doesNotMatch(source, /state\.provider\s*=\s*\{.*request/s);
 });
 
-test("390px RTL dark and large-text preview contracts remain buildable", async () => {
+test("390px RTL blue-white and large-text preview contracts remain buildable", async () => {
   const [app,styles,accessibility,index] = await Promise.all([
     readFile(new URL("../public/app.js",import.meta.url),"utf8"),
     readFile(new URL("../public/styles.css",import.meta.url),"utf8"),
@@ -51,6 +53,39 @@ test("390px RTL dark and large-text preview contracts remain buildable", async (
   assert.match(accessibility,/font-size: 125%/);
   assert.match(accessibility,/\.wallets a/);
   assert.match(accessibility,/min-height: 44px/);
+  assert.doesNotMatch(app, /id="theme"|darkTheme|requestedTheme|prefers-color-scheme/);
+  assert.doesNotMatch(styles, /color-scheme:dark|prefers-color-scheme|data-theme="dark"/);
+  assert.match(accessibility, /forced-colors: active/);
+});
+
+test("legacy dark preference retains locale and custody records while the actual renderer stays light", async () => {
+  const values = new Map([["unrelated-vault", "ciphertext-fixture"], ["unrelated-session", "session-fixture"]]);
+  const storage = {getItem:key=>values.get(key)??null, setItem:(key,value)=>values.set(key,value), removeItem:key=>values.delete(key)};
+  savePreferences(storage, {revision:0,locale:"en",theme:"system"}, {locale:"ar",theme:"dark"});
+  const before = JSON.stringify([...values]), loaded = loadPreferences(storage);
+  assert.equal(loaded.record.locale, "ar"); assert.equal(loaded.record.theme, "dark");
+  const source = await readFile(new URL("../public/app.js", import.meta.url), "utf8");
+  const render = source.slice(source.indexOf("function render() {"), source.indexOf("\nfunction formError("));
+  const document = {documentElement:{dataset:{}}}, app = {innerHTML:""};
+  const environment = {document,app,state:{locale:loaded.record.locale,theme:loaded.record.theme,epoch:0,connectState:{chooserOpen:true},form:{},providers:{}},
+    requestedText:"large",isRTL:locale=>locale==="ar",text:key=>key,options:()=>"",escape:value=>String(value??""),unavailablePlatforms:()=>"",statusContent:()=>"",
+    YNX_DOWNLOAD_URL:"https://wallet.example",METAMASK_DOWNLOAD_URL:"https://metamask.io/download",WALLET_DOWNLOAD_MATRIX:{android:{url:"https://wallet.example/qa.apk",bytes:1}},
+    bind(){},applyActionGates(){},presentAvailability(){}};
+  runInNewContext(render+"\nrender();",environment);
+  assert.equal(document.documentElement.lang,"ar");assert.equal(document.documentElement.dir,"rtl");
+  assert.equal(document.documentElement.dataset.theme,"light");assert.equal(document.documentElement.dataset.text,"large");
+  assert.doesNotMatch(app.innerHTML,/id="theme"/);assert.equal(JSON.stringify([...values]),before);
+});
+
+test("all auxiliary extension pages use white canvases and preserve keyboard and forced-colors access",async()=>{
+  for(const file of ["vault.css","approval.css","signer.css"]){
+    const css=await readFile(new URL(`../extension/${file}`,import.meta.url),"utf8");
+    assert.doesNotMatch(css,/prefers-color-scheme|color-scheme:light dark/);
+    if(file!=="signer.css"){
+      assert.match(css,/:root\{color-scheme:light;[^}]*background:#fff/);
+      assert.match(css,/#002fa7/);assert.match(css,/focus-visible/);assert.match(css,/forced-colors:active/);
+    }else assert.match(css,/@import "\.\/approval.css"/);
+  }
 });
 
 test("PWA manifest declares exact standalone identity and real-logo icon sizes", async () => {

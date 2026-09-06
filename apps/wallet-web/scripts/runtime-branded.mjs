@@ -71,7 +71,7 @@ async function testBrowser(browser){
     } catch(error){result.dappBridge={fixtureUrl,mainWorldInjection:"manifest content script plus origin-bound page bridge",contentScriptRegistered:true,activeTab,tested:false,error:{name:error?.name||"Error",message:error?.message||String(error)}};result.ynxPriority={passed:false};result.bridgeLifecycle={passed:false};await stage("content-bridge-error",result.dappBridge.error)}
     const popup=await context.newPage();await bounded(popup.goto(`${extensionOrigin}/index.html`,{waitUntil:"domcontentloaded",timeout:5000}),6000,"popup navigation");
     await stage("popup-open",{url:popup.url()});
-    result.popup={url:popup.url(),opened:true};await popup.locator("#theme").click();await popup.getByLabel("Language").selectOption("ar");
+    result.popup={url:popup.url(),opened:true};if(await popup.locator("#theme").count())throw new Error("Obsolete theme switch is present");await popup.getByLabel("Language").selectOption("ar");
     result.rpcFailClosed=await popup.evaluate(async()=>{
       const {YNX_CHAIN,verifyTestnetRpc}=await import(chrome.runtime.getURL("provider.js"));
       try{return {requestedUrl:YNX_CHAIN.rpcUrls[0],requestedChainId:YNX_CHAIN.chainId,proof:await verifyTestnetRpc(),chainChangeSucceeded:true}}

@@ -25,20 +25,17 @@ const mobileBrowser = !isExtension && isMobileWalletBrowser(navigator);
 const preview = new URLSearchParams(location.search);
 const companionLifecycle=createWalletWebCompanionLifecycle({binding:CORE_WALLET_AUTH_BINDING});
 const requestedLocale = preview.get("lang");
-const requestedTheme = preview.get("theme");
 const requestedText = preview.get("text");
 const loadedPreferences=loadPreferences(localStorage);
 const initialConnectState=reduceStandardWalletConnectState(createStandardWalletConnectState(),{type:"OPEN_CHOOSER"});
 const state = {
   locale: LOCALES.some(([locale]) => locale === requestedLocale) ? requestedLocale : loadedPreferences.record.locale,
-  theme: ["light", "dark"].includes(requestedTheme) ? requestedTheme : loadedPreferences.record.theme,
   preferences: loadedPreferences.record,
   provider: null, wallet: null, account: null, chainId: null, rpcVerified: false, unsubscribeProvider: null,
   providers:Object.freeze({ynx:false,metamask:false}),connectState:initialConnectState,errorCode:null,
   form:{recipient:"",amount:"",value:"0x0",data:"0x",message:"",useHex:false},review:null,epoch:0,busy:false,discoveryReady:false,
 };
 
-function darkTheme() { return state.theme === "dark" || (state.theme === "system" && matchMedia("(prefers-color-scheme: dark)").matches); }
 function text(key) { return catalog(state.locale)[key] || key; }
 function options() { return LOCALES.map(([value, label]) => `<option value="${value}" ${value === state.locale ? "selected" : ""}>${label}</option>`).join(""); }
 function escape(value) { const node = document.createElement("span"); node.textContent = String(value); return node.innerHTML.replaceAll('"', "&quot;").replaceAll("'", "&#39;"); }
@@ -52,11 +49,11 @@ function render() {
   const providerChooserVisible = state.connectState.chooserOpen && !connectionDetails;
   document.documentElement.lang = state.locale;
   document.documentElement.dir = isRTL(state.locale) ? "rtl" : "ltr";
-  document.documentElement.dataset.theme = state.theme === "system" ? "" : state.theme;
+  document.documentElement.dataset.theme = "light";
   document.documentElement.dataset.text = requestedText === "large" ? "large" : "";
   app.innerHTML = `<div class="shell">
     <header><div class="brand"><img src="./ynx-logo.png" alt="YNX"><span>Wallet <span class="brand-subtitle">Companion</span></span></div>
-      <div class="controls"><label><span class="sr-only">${text("language")}</span><select id="locale" aria-label="${text("language")}">${options()}</select></label><button id="theme" type="button">${darkTheme() ? text("light") : text("dark")}</button></div></header>
+      <div class="controls"><label><span class="sr-only">${text("language")}</span><select id="locale" aria-label="${text("language")}">${options()}</select></label></div></header>
     <section class="intro-section" aria-labelledby="title"><p class="network-label">YNX Testnet <span>6423</span></p><h1 id="title">${state.account?text("readyTitle"):text("title")}</h1><p class="intro">${text("intro")}</p></section>
     <div class="workspace ${state.account?"is-connected":""}">
     <section class="card connection-card" aria-label="${text("walletConnection")}">
@@ -214,7 +211,6 @@ async function connect(wallet) {
 
 function bind() {
   document.querySelector("#locale").addEventListener("change", (event) => {state.locale = event.target.value; state.preferences=savePreferences(localStorage,state.preferences,{locale:state.locale}); render(); document.querySelector("#locale").focus(); detect({preserveConnection:true}).catch(setError);});
-  document.querySelector("#theme").addEventListener("click", () => {state.theme = darkTheme() ? "light" : "dark"; state.preferences=savePreferences(localStorage,state.preferences,{theme:state.theme}); render(); document.querySelector("#theme").focus(); detect({preserveConnection:true}).catch(setError);});
   document.querySelector("#ynx").addEventListener("click", async () => {
     if (state.providers?.ynx) return connect("ynx");
     const result=await companionLifecycle.begin();
@@ -283,7 +279,7 @@ render(); detect().then(()=>{if(loadedPreferences.status==="rejected")setError({
 if(!isExtension&&`${location.origin}${location.pathname}`===companionLifecycle.callback&&location.search){
   companionLifecycle.handleReturn(location.href).then((result)=>setStatus(`${result.code||result.status}: ${result.authoritative?text("connected"):text("requestFailed")}`,result.authoritative?"info":"error"));
 }
-addEventListener("storage",(event)=>{if(event.key!==PREFERENCES_KEY)return;try{const next=acceptPreferenceUpdate(state.preferences,event.newValue);state.preferences=next;state.locale=next.locale;state.theme=next.theme;render();detect({preserveConnection:true}).catch(setError)}catch(error){setError(error)}});
+addEventListener("storage",(event)=>{if(event.key!==PREFERENCES_KEY)return;try{const next=acceptPreferenceUpdate(state.preferences,event.newValue);state.preferences=next;state.locale=next.locale;render();detect({preserveConnection:true}).catch(setError)}catch(error){setError(error)}});
 addEventListener("focus",()=>{if(!state.account)detect({preserveConnection:false}).catch(setError)});
 const wait=(milliseconds)=>new Promise(resolve=>setTimeout(resolve,milliseconds));
 let pwaReloadStarted=false;
