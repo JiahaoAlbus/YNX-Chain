@@ -83,6 +83,16 @@ export function localizeProductSessionError(locale:WalletLocale,value:unknown,ac
 // Expanded account/session UI coverage is currently translated for these two
 // locales. Other locales retain their existing English fallback explicitly.
 const DETAIL_MESSAGES={
+  "Paste address or receiving link":["粘贴地址或收款链接","لصق العنوان أو رابط الاستلام"],
+  "Reading clipboard…":["正在读取剪贴板…","جارٍ قراءة الحافظة…"],
+  "Copy a receiving link from a QR code, then paste it here.":["复制收款二维码中的链接，然后粘贴到这里。","انسخ رابط الاستلام من رمز QR ثم الصقه هنا."],
+  "Recipient added. Enter an amount and review the transfer.":["已填入收款地址。请输入金额并检查转账信息。","أُضيف عنوان المستلم. أدخل المبلغ ثم راجع التحويل."],
+  "Use a valid native ynx1 address or YNX Testnet receiving link.":["请使用有效的原生 ynx1 地址或 YNX 测试网收款链接。","استخدم عنوان ynx1 أصليًا صالحًا أو رابط استلام لشبكة YNX التجريبية."],
+  "This receiving link is for a different network or asset.":["此收款链接使用了其他网络或资产。","رابط الاستلام هذا لشبكة أو أصل مختلف."],
+  "Clipboard could not be read. Paste the native address manually.":["无法读取剪贴板。请手动粘贴原生地址。","تعذرت قراءة الحافظة. الصق العنوان الأصلي يدويًا."],
+  "Recipient ynx1 address":["收款人的 ynx1 地址","عنوان المستلم ynx1"],
+  "Whole YNXT amount":["YNXT 整数金额","مبلغ YNXT بعدد صحيح"],
+  "Review transfer":["检查转账","مراجعة التحويل"],
   "This account is already stored in Wallet":["此账户已保存在钱包中","هذا الحساب محفوظ في المحفظة بالفعل"],
   "Confirm below to restore key protection for this exact existing account. Its label, account list and app sessions will not be replaced.":["请在下方确认，为此已有账户恢复密钥保护。其名称、账户列表和应用会话不会被替换。","أكد أدناه لاستعادة حماية المفتاح لهذا الحساب الموجود تحديدًا. لن يُستبدل اسمه أو قائمة الحسابات أو جلسات التطبيقات."],
   "Ordinary import cannot replace this account's protected key. Open account recovery and enter the offline key again to review an explicit restoration.":["普通导入不能替换此账户的受保护密钥。请打开账户恢复，重新输入离线密钥，检查并确认恢复操作。","لا يمكن للاستيراد العادي استبدال المفتاح المحمي لهذا الحساب. افتح استرداد الحساب وأدخل المفتاح المحفوظ دون اتصال مجددًا لمراجعة الاسترداد وتأكيده."],

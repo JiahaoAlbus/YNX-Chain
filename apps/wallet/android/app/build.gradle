@@ -105,8 +105,8 @@ android {
         applicationId 'com.ynxweb4.wallet'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 8
-        versionName "1.0.7-testnet-preview"
+        versionCode 9
+        versionName "1.0.8-testnet-preview"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }
