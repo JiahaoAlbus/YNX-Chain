@@ -2,6 +2,11 @@ name: wallet-ios
 
 on:
   workflow_dispatch:
+    inputs:
+      source_commit:
+        description: Exact immutable 40-character source commit to build
+        required: true
+        type: string
   push:
     branches: [main, codex/ecosystem-wallet-auth, codex/final-wallet-auth]
     paths: ["apps/wallet/**", "packages/wallet-auth/**", ".github/workflows/wallet-ios.yml"]
@@ -11,9 +16,15 @@ on:
 jobs:
   simulator-build:
     runs-on: macos-15
-    timeout-minutes: 45
+    timeout-minutes: 60
+    env:
+      YNX_IOS_EXPECTED_SOURCE_COMMIT: ${{ inputs.source_commit || github.sha }}
+      YNX_IOS_QA_DIR: ${{ runner.temp }}/ynx-wallet-ios-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.source_commit || github.sha }}
+          persist-credentials: false
       - uses: maxim-lobanov/setup-xcode@ed7a3b1fda3918c0306d1b724322adc0b8cc0a90 # v1.7.0
         with:
           xcode-version: "26.3"
@@ -26,6 +37,8 @@ jobs:
             apps/wallet/package-lock.json
       - name: Verify immutable GitHub Actions pins
         run: node scripts/verify/github-actions-pins-check.mjs
+      - name: Bind iOS build to immutable source and toolchain
+        run: node apps/wallet/scripts/ios-simulator-qa.mjs prepare
       - name: Use the release-locked npm
         run: npm install --global npm@11.5.1
       - run: npm ci
@@ -40,35 +53,23 @@ jobs:
         working-directory: apps/wallet
       - name: Build unsigned iOS Simulator app
         working-directory: apps/wallet
-        run: >-
-          xcodebuild -workspace ios/YNXWallet.xcworkspace -scheme YNXWallet
-          -configuration Release -sdk iphonesimulator
-          -destination 'generic/platform=iOS Simulator'
-          CODE_SIGNING_ALLOWED=NO clean build
-      - name: Install, cold launch and verify Wallet deep link
-        timeout-minutes: 10
-        working-directory: apps/wallet
         run: |
           set -euo pipefail
-          APP="$(find "$HOME/Library/Developer/Xcode/DerivedData" -path '*/Build/Products/Release-iphonesimulator/YNXWallet.app' -print -quit)"
-          DEVICE="$(xcrun simctl list devices available | awk -F '[()]' '/iPhone/{print $2; exit}')"
-          test -n "$APP"
-          test -n "$DEVICE"
-          mkdir -p proof/ci-ios
-          xcrun simctl shutdown "$DEVICE" 2>/dev/null || true
-          xcrun simctl erase "$DEVICE"
-          xcrun simctl boot "$DEVICE"
-          xcrun simctl bootstatus "$DEVICE" -b
-          xcrun simctl install "$DEVICE" "$APP"
-          xcrun simctl terminate "$DEVICE" com.ynxweb4.wallet 2>/dev/null || true
-          xcrun simctl launch "$DEVICE" com.ynxweb4.wallet | tee proof/ci-ios/cold-launch.txt
-          xcrun simctl get_app_container "$DEVICE" com.ynxweb4.wallet | tee proof/ci-ios/app-container.txt
-          xcrun simctl openurl "$DEVICE" 'ynxwallet://authorize?request=invalid' | tee proof/ci-ios/deep-link.txt
-          xcrun simctl io "$DEVICE" screenshot proof/ci-ios/wallet-deep-link-rejection.png
+          xcodebuild -workspace ios/YNXWallet.xcworkspace -scheme YNXWallet \
+            -configuration Release -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$YNX_IOS_QA_DIR/DerivedData" \
+            CODE_SIGNING_ALLOWED=NO clean build 2>&1 | tee "$YNX_IOS_QA_DIR/proof/xcodebuild.log"
+      - name: Freeze the actual Simulator app and installable ZIP
+        run: node apps/wallet/scripts/ios-simulator-qa.mjs artifact
+      - name: Install and exercise an isolated iPhone Simulator
+        timeout-minutes: 12
+        run: node apps/wallet/scripts/ios-simulator-qa.mjs run
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: always()
         with:
-          name: ynx-wallet-ios-simulator
+          name: ynx-wallet-ios-simulator-${{ inputs.source_commit || github.sha }}
           path: |
-            ~/Library/Developer/Xcode/DerivedData/**/Build/Products/Release-iphonesimulator/YNXWallet.app
-            apps/wallet/proof/ci-ios
+            ${{ env.YNX_IOS_QA_DIR }}/proof
+            ${{ env.YNX_IOS_QA_DIR }}/*.zip
           if-no-files-found: error

@@ -49,8 +49,10 @@ export type WalletManifest = Readonly<{
 }>;
 
 export type LoadResult = Readonly<{ manifest: WalletManifest; migrated: boolean }>;
+export type CorruptWalletResetReview = Readonly<{kind:"corrupt-wallet-reset"}>;
 
 export class WalletRepository {
+  private readonly resetReviews = new WeakMap<CorruptWalletResetReview,string>();
   constructor(private readonly storage: SecureStorageAdapter) {}
 
   async load(): Promise<LoadResult> {
@@ -206,21 +208,36 @@ export class WalletRepository {
     });
   }
 
-  async resetCorruptStorage(assertCurrent?: OperationGuard): Promise<void> {
-    assertCurrent?.();
-    const raw = await this.storage.getItem(MANIFEST_KEY);
-    assertCurrent?.();
-    if (raw) {
-      let parsed: {accounts?: Array<{account?:string}>} | undefined;
-      try {
-        parsed = JSON.parse(raw);
-      } catch { /* unreadable manifest has no trusted account identifiers */ }
-      for (const item of parsed?.accounts ?? []) if (typeof item.account === "string" && /^ynx1[023456789acdefghjklmnpqrstuvwxyz]{38}$/.test(item.account)) await this.deleteAccountMaterial(item.account, assertCurrent);
-    }
-    assertCurrent?.();
-    await this.storage.deleteItem(MANIFEST_KEY);
-    assertCurrent?.();
-    await this.storage.deleteItem(LEGACY_IDENTITY_KEY);
+  async reviewCorruptStorageReset(assertCurrent:OperationGuard): Promise<CorruptWalletResetReview> {
+    if(typeof assertCurrent!=="function")throw new Error("Wallet reset requires a current authorization");
+    return this.mutate(async()=>{
+      assertCurrent();const raw=await this.storage.getItem(MANIFEST_KEY);assertCurrent();
+      if(raw===null)throw new Error("Wallet storage is readable. Reload it instead of resetting.");
+      let readable=false;try{this.decodeManifest(raw);readable=true}catch{/* Capture only an unreadable manifest. */}
+      if(readable)throw new Error("Wallet storage is readable. Reload it instead of resetting.");
+      const review=Object.freeze({kind:"corrupt-wallet-reset" as const});this.resetReviews.set(review,raw);return review;
+    });
+  }
+
+  discardCorruptStorageReset(review:CorruptWalletResetReview):void {this.resetReviews.delete(review)}
+
+  async resetCorruptStorage(review:CorruptWalletResetReview,assertCurrent:OperationGuard): Promise<void> {
+    if(typeof assertCurrent!=="function")throw new Error("Wallet reset requires a current authorization");
+    return this.mutate(async()=>{
+      assertCurrent();const raw=this.resetReviews.get(review);
+      if(raw===undefined)throw new Error("Review this unreadable Wallet again before resetting.");
+      this.resetReviews.delete(review);
+      const unchanged=async()=>{assertCurrent();const current=await this.storage.getItem(MANIFEST_KEY);assertCurrent();if(current!==raw)throw new Error("Wallet storage changed. Reload and review it again before resetting.")};
+      await unchanged();
+      let parsed:{accounts?:unknown}|undefined;try{parsed=JSON.parse(raw)}catch{/* No identifiers can be trusted in unreadable JSON. */}
+      const accounts=Array.isArray(parsed?.accounts)?parsed.accounts:[];
+      if(accounts.length>20)throw new Error("Unreadable Wallet contains too many account records to reset safely.");
+      // Only identity-verified public entries may select protected records for deletion.
+      const targets=accounts.map((item,index)=>decodeAccount(item,index));
+      for(const account of targets){await unchanged();await this.deleteAccountMaterial(account.account,assertCurrent,account.accountPublicKey);assertCurrent()}
+      await unchanged();await this.storage.deleteItem(MANIFEST_KEY);assertCurrent();
+      await this.storage.deleteItem(LEGACY_IDENTITY_KEY);assertCurrent();
+    });
   }
 
   async migrateLegacyIdentity(assertCurrent?: OperationGuard): Promise<LoadResult> {

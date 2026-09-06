@@ -24,6 +24,7 @@ import { SCOPE_EXPLANATIONS } from "./src/protocol/registry";
 import { WalletSessionInventoryClient, WalletSessionRevocationUnknown, type SessionInventoryItem, type WalletSessionInventory } from "./src/protocol/sessionInventory";
 import { assertStrongBiometrics, authorizeLocalKeyUse } from "./src/security/localAuthorization";
 import { createProductSessionKeyAccess } from "./src/security/productSessionKeyAccess";
+import { CorruptWalletResetController } from "./src/security/corruptWalletReset";
 import { RECOVERY_DISPLAY_MS, WalletOperationLifecycle, type WalletOperationLease } from "./src/security/operationLifecycle";
 import { copyPublicValueWithExpiry } from "./src/security/clipboardPrivacy";
 import { initialLockState, reduceLockState } from "./src/state/lockState";
@@ -76,8 +77,10 @@ function WalletApp(){
   const selected=useMemo(()=>manifest?.accounts.find((item)=>item.account===manifest.selectedAccountId)??null,[manifest]);
   const selectedRef=useRef<WalletAccount|null>(null);selectedRef.current=selected;
   const operations=useMemo(()=>new WalletOperationLifecycle(),[]),rootScope=useMemo(()=>operations.scope(),[operations]);
+  const corruptReset=useMemo(()=>new CorruptWalletResetController(repository,operations,()=>authorizeLocalKeyUse("wallet-reset")),[operations]);
   const loadRevision=useRef(0);
   useEffect(()=>operations.subscribe(()=>rootScope.cancel()),[operations,rootScope]);
+  useEffect(()=>{const unsubscribe=operations.subscribe(()=>corruptReset.cancel());return()=>{unsubscribe();corruptReset.cancel()}},[operations,corruptReset]);
   const readyRef=useRef(false);readyRef.current=!loading&&manifest!==null&&AppState.currentState==="active";
   const queuedLink=useRef<string|null>(null),initialLinkRead=useRef(false);
   const productSessions=useMemo(()=>new ProductSessionController({platform:Platform.OS==="ios"?"ios":"android",storage:platformSecureStorage,selectedAccount:()=>selectedRef.current,withAccountSecret:createProductSessionKeyAccess({operations,repository,checkBiometrics:assertStrongBiometrics,authorizeLegacyMigration:()=>authorizeLocalKeyUse("wallet-authorization")}),openURL:(url)=>Linking.openURL(url),audit:(review,action,at)=>authorizationAudit.appendProductSession(review,{action,account:review.account.account,at:at.toISOString()})}),[operations]);
@@ -116,10 +119,24 @@ function WalletApp(){
   const restoreLegacy=async()=>{let lease:WalletOperationLease|undefined;setBusy(true);setError(null);try{lease=rootScope.begin({requireUnlocked:false});await lease.step(()=>authorizeLocalKeyUse("account-import"));const result=await lease.step(()=>repository.migrateLegacyIdentity(lease!.assert));if(result.migrated)saved(result.manifest);else setNotice("No previous Wallet identity is stored on this device.")}catch(caught){if(!lease||lease.ownsScope())await recoverAfterMutation(localizeError(locale,caught))}finally{if(!lease||lease.ownsScope())setBusy(false);lease?.finish()}};
   const recoverAfterMutation=async(text:string)=>{lock();await load();setError(text)};
   const select=async(account:string)=>{operations.invalidate();rootScope.cancel();cancelAuthorization();let lease:WalletOperationLease|undefined;try{lease=rootScope.begin();const next=await lease.step(()=>repository.selectAccount(account));updateManifest(next);dispatchLock({type:"switch",account})}catch(caught){if(!lease||lease.ownsScope())setError(localizeError(locale,caught))}finally{lease?.finish()}};
+  const reviewReset=async()=>{
+    if(busy||corruptReset.active())return;const generation=operations.capture();setBusy(true);
+    try{
+      const review=await corruptReset.prepare();
+      if(!corruptReset.isCurrent(review))return;
+      const cancel=()=>{if(corruptReset.owns(review)){corruptReset.cancel(review);setBusy(false)}};
+      const confirm=async()=>{
+        if(!corruptReset.isCurrent(review)){if(corruptReset.owns(review)){cancel();void load()}return}
+        try{await corruptReset.confirm(review)}catch(caught){if(corruptReset.owns(review))setNotice(localizeError(locale,caught))}
+        finally{if(corruptReset.owns(review)){corruptReset.cancel(review);setBusy(false);void load()}}
+      };
+      Alert.alert("Reset local Wallet?","This deletes the unreadable Wallet you just reviewed. Continue only if every account has an offline recovery key. System authentication is required.",[{text:"Cancel",style:"cancel",onPress:cancel},{text:"Reset",style:"destructive",onPress:()=>void confirm()}],{cancelable:false});
+    }catch(caught){if(generation===operations.capture()){setBusy(false);setError(localizeError(locale,caught))}}
+  };
 
   if(!privacyState.ready)return privacyState.error?<Screen><Text style={styles.title}>Wallet privacy protection is required</Text><Text style={styles.error}>{privacyState.error}</Text><Button label="Retry screenshot protection" onPress={()=>setPrivacyAttempt((value)=>value+1)}/></Screen>:<Screen><ActivityIndicator color={ACTIVE_COLORS.blue}/><Text style={styles.muted}>Protecting Wallet screens</Text></Screen>;
   if(loading)return <Screen><ActivityIndicator color={ACTIVE_COLORS.blue}/><Text style={styles.muted}>Verifying secure Wallet storage</Text></Screen>;
-  if(error&&manifest===null)return <Screen><Text style={styles.title}>Wallet storage needs attention</Text><Text style={styles.error}>{error}</Text><Button label="Retry secure storage" onPress={()=>void load()}/><DangerButton label="Reset unreadable local Wallet" onPress={()=>Alert.alert("Reset local Wallet?","Only continue if every account has an offline recovery key.",[{text:"Cancel",style:"cancel"},{text:"Reset",style:"destructive",onPress:()=>void repository.resetCorruptStorage().then(load)}])}/></Screen>;
+  if(error&&manifest===null)return <Screen><Text style={styles.title}>Wallet storage needs attention</Text><Text style={styles.error}>{error}</Text><Button label="Retry secure storage" disabled={busy} onPress={()=>void load()}/><DangerButton label="Reset unreadable local Wallet" disabled={busy} onPress={()=>void reviewReset()}/></Screen>;
 
   return <WalletOperationsContext.Provider value={operations}><WalletLocaleContext.Provider value={locale}><WalletRecoveryContext.Provider value={()=>{lock();setError(null);setSetup("recover")}}><SafeAreaView edges={["top","left","right"]} style={[styles.safe,isRTL(locale)&&styles.rtl]}>
     <StatusBar style="dark"/>
