@@ -1,0 +1,5 @@
+MainPID=436597
+ExecStart={ path=/usr/bin/env ; argv[]=/usr/bin/env node /opt/ynx-chain/wallet-releases/ynx-wallet-gateway-c6ac582c8d49/wallet-auth/scripts/ynx-wallet-gatewayd.mjs ; ignore_errors=no ; start_time=[n/a] ; stop_time=[n/a] ; pid=0 ; code=(null) ; status=0/0 }
+EnvironmentFiles=/etc/ynx/ynx-wallet-gatewayd.env (ignore_errors=no)
+WorkingDirectory=
+FragmentPath=/etc/systemd/system/ynx-wallet-gatewayd.service

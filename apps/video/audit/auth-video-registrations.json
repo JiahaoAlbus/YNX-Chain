@@ -1,0 +1,114 @@
+[
+  {
+    "path": "/etc/ynx/wallet/central-registry-ae156b31.json",
+    "sha256": "ae156b317b9a97bfd42397cca634021deefe10ffb009102899e24276d8721e31",
+    "schemaVersion": null,
+    "matches": [
+      {
+        "schemaVersion": 4,
+        "productId": "creator-studio",
+        "displayName": "YNX Creator Studio",
+        "reviewState": "pending-review",
+        "enabled": false,
+        "productClientId": "ynx-creator-studio-web-v1",
+        "requestingProduct": "creator-studio",
+        "bundleId": "com.ynxweb4.creator-studio.web",
+        "callbacks": [
+          "ynxcreator://wallet-auth/callback"
+        ],
+        "scopes": [
+          "creator:account",
+          "creator:publish",
+          "creator:revenue"
+        ],
+        "maxScopes": 3,
+        "productDeviceAlgorithms": [
+          "p256-sha256"
+        ],
+        "sessionDurationSeconds": 240,
+        "revocationPolicy": {
+          "session": true,
+          "approval": true,
+          "device": true,
+          "accountAllDevices": true
+        },
+        "webOrigins": []
+      },
+      {
+        "schemaVersion": 4,
+        "productId": "video",
+        "displayName": "YNX Video",
+        "reviewState": "pending-review",
+        "enabled": false,
+        "productClientId": "ynx-video-mobile-v1",
+        "requestingProduct": "video",
+        "bundleId": "com.ynxweb4.video",
+        "callbacks": [
+          "ynxvideo://wallet-auth/callback"
+        ],
+        "scopes": [
+          "video:account",
+          "video:library",
+          "video:playback"
+        ],
+        "maxScopes": 3,
+        "productDeviceAlgorithms": [
+          "p256-sha256"
+        ],
+        "sessionDurationSeconds": 300,
+        "revocationPolicy": {
+          "session": true,
+          "approval": true,
+          "device": true,
+          "accountAllDevices": true
+        },
+        "webOrigins": []
+      }
+    ]
+  },
+  {
+    "path": "/etc/ynx/wallet/product-session-registry-6cf3ef84.json",
+    "sha256": "d2826eb419abca4444ccb50d79537fa7f6a3643948d82ed9b52914b7169c107b",
+    "schemaVersion": 2,
+    "matches": [
+      {
+        "productId": "creator-studio",
+        "clientId": "ynx-creator-studio-web-v1",
+        "displayName": "YNX Creator Studio",
+        "applicationId": "com.ynxweb4.creator-studio.web",
+        "webOrigin": "https://creator.ynxweb4.com",
+        "nativeCallback": "ynxcreator://wallet-auth/callback",
+        "legacyCallbacks": [
+          "ynxcreator",
+          "ynxcreator://wallet-auth/callback"
+        ],
+        "scopes": [
+          "creator:account",
+          "creator:publish",
+          "creator:revenue"
+        ],
+        "evmCompatible": false,
+        "sessionDurationSeconds": 240
+      },
+      {
+        "productId": "video",
+        "clientId": "ynx-video-mobile-v1",
+        "displayName": "YNX Video",
+        "applicationId": "com.ynxweb4.video",
+        "webOrigin": "https://video.ynxweb4.com",
+        "nativeCallback": "ynxvideo://wallet-auth/callback",
+        "legacyCallbacks": [
+          "ynxvideo",
+          "ynxvideo://wallet-auth/callback"
+        ],
+        "scopes": [
+          "video:account",
+          "video:library",
+          "video:playback"
+        ],
+        "evmCompatible": false,
+        "sessionDurationSeconds": 300
+      }
+    ]
+  }
+]

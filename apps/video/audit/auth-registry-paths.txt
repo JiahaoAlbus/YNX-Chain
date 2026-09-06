@@ -1,0 +1,13 @@
+/etc/ynx/wallet/central-registry-ae156b31.json
+/etc/ynx/wallet/product-session-registry-6cf3ef84.json
+/opt/ynx-chain/wallet-releases/ynx-wallet-gateway-c52469baeb20/wallet-auth/product-session-registry.json
+/opt/ynx-chain/wallet-releases/ynx-wallet-gateway-c52469baeb20/wallet-auth/central-registry.json
+/opt/ynx-chain/wallet-releases/ynx-wallet-gateway-4cb9cba1dcb4/wallet-auth/product-session-registry.json
+/opt/ynx-chain/wallet-releases/ynx-wallet-gateway-4cb9cba1dcb4/wallet-auth/central-registry.json
+/opt/ynx-chain/wallet-releases/ynx-wallet-gateway-d7881869103b/wallet-auth/central-registry.json
+/opt/ynx-chain/wallet-releases/ynx-wallet-gateway-c6ac582c8d49/wallet-auth/central-registry.json
+/opt/ynx-chain/wallet-releases/ynx-wallet-gateway-ed2b2acf8e16/wallet-auth/product-session-registry.json
+/opt/ynx-chain/wallet-releases/ynx-wallet-gateway-ed2b2acf8e16/wallet-auth/central-registry.json
+/opt/ynx-chain/wallet-releases/ynx-wallet-gateway-1666738a0f5a/wallet-auth/central-registry.json
+/opt/ynx-chain/wallet-releases/ynx-wallet-gateway-476cdcc6bf35/wallet-auth/central-registry.json
+/opt/ynx-chain/wallet-releases/ynx-wallet-gateway-f6b66594eecd/wallet-auth/central-registry.json
