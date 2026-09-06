@@ -100,7 +100,7 @@ if (phase === "prepare") {
   const name = `YNX Wallet UI ${qaSource.slice(0, 8)} CI ${env.GITHUB_RUN_ID}`;
   const device = command("xcrun", ["simctl", "create", name, template.type, template.runtime]); assert.match(device, /^[0-9A-F-]{36}$/i);
   save("owned-simulator.json", { device, name, ...template });
-  const result = { qaSource, appSource, artifactRun, device, simulatorOnly: true, installed: false, uiTestsPassed: false, emptyWalletOnly: true, authenticatedUnlockVerified: false, biometricEnrollmentVerified: false, singleProtectedPromptVerified: false, originalApprovedRequestRetryVerified: false, validCallbackVerified: false, physicalDeviceVerified: false, cleanedUp: false };
+  const result = { qaSource, appSource, artifactRun, device, simulatorOnly: true, installed: false, uiTestsPassed: false, emptyWalletOnly: true, authenticatedUnlockVerified: false, biometricEnrollmentVerified: false, singleProtectedPromptVerified: false, originalApprovedRequestRetryVerified: false, validCallbackVerified: false, physicalDeviceVerified: false, attachmentsExported: false, cleanedUp: false };
   try {
     command("xcrun", ["simctl", "boot", device]); command("xcrun", ["simctl", "bootstatus", device, "-b"], 300_000);
     command("/usr/bin/open", ["-a", "Simulator", "--args", "-CurrentDeviceUDID", device]);
@@ -120,6 +120,18 @@ if (phase === "prepare") {
   }
   finally {
     try {
+      // Export the test's existing empty-wallet screenshots for independent
+      // visual review. This reads its result bundle; it does not alter the app
+      // or disable capture protection. Export failure never changes the UI result.
+      try {
+        const bundle = join(proof, "InstalledUI.xcresult"), output = join(proof, "ui-attachments");
+        assert(existsSync(bundle), "No XCTest result bundle was produced");
+        command("xcrun", ["xcresulttool", "export", "attachments", "--path", bundle, "--output-path", output], 60_000);
+        const exported = fileGraph(output);
+        assert(exported.some(file => file.type === "file" && file.path === "manifest.json"));
+        assert(exported.some(file => file.type === "file" && file.path.endsWith(".png") && file.bytes > 0));
+        result.attachmentFiles = exported; result.attachmentsExported = true;
+      } catch (error) { result.attachmentExportError = error.message; }
       // Only an empty Wallet on this newly created Simulator is exercised. Limit
       // diagnostics to its Wallet/SpringBoard processes, not other profiles.
       save("wallet-springboard.log", command("xcrun", ["simctl", "spawn", device, "log", "show", "--last", "5m", "--style", "compact", "--predicate", 'process == "YNXWallet" OR process == "SpringBoard"'], 30_000, true));
