@@ -72,3 +72,7 @@ export function installDesktopEditBridge(window: Window, document: Document) {
     }
   };
 }
+
+export function desktopEditorReady() {
+  return [...targets].some(({ editor }) => editor.getDomNode()?.isConnected && editor.getModel() !== null);
+}

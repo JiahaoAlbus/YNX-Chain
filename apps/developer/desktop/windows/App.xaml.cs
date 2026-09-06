@@ -17,7 +17,17 @@ public partial class App : Application
             return;
         }
 
-        MainWindow = new MainWindow();
+        AcceptanceOptions? acceptance = null;
+        if (e.Args.Length > 0)
+        {
+            try
+            {
+                if (e.Args.Length != 4 || e.Args[0] != "--ui-acceptance") throw new ArgumentException("Unknown startup arguments.");
+                acceptance = new AcceptanceOptions(e.Args[1], e.Args[2], e.Args[3]);
+            }
+            catch { Shutdown(6); return; }
+        }
+        MainWindow = new MainWindow(acceptance);
         MainWindow.Show();
     }
 
@@ -25,6 +35,8 @@ public partial class App : Application
     {
         try
         {
+            HostPolicy.SelfTest();
+            System.Threading.Tasks.Task.Run(NativeStorageTests.Run).GetAwaiter().GetResult();
             var provenance = Path.Combine(resources, "build-provenance.json");
             var sbom = Path.Combine(resources, "sbom.cdx.json");
             if (!File.Exists(provenance) || !File.Exists(sbom)) return 2;
@@ -48,6 +60,9 @@ public partial class App : Application
                 runtime = ".NET 8 WPF + WebView2 hosted workspace client",
                 workspaceUrl = YNXDeveloper.MainWindow.WorkspaceUrl,
                 resourcesVerified = true,
+                nativePolicySelfTest = true,
+                nativeStorageSelfTest = true,
+                installedEditorVerified = false,
                 signingClass = "unsigned-no-authenticode",
                 sourceCommit,
                 runtimeCheckpoint,

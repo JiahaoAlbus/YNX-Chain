@@ -1,27 +1,17 @@
-# Windows Testnet Preview source
+# Windows hosted workspace client
 
-This WPF/WebView2 project is an independent `com.ynxweb4.developer.testnetpreview`
-desktop source package with native menus and shortcuts, open/export integration,
-window restoration, least-privilege `asInvoker` manifest, loopback-only product
-server, bundled `Resources/runtime/node.exe` contract and an update boundary that
-refuses unsigned automatic updates. Copy the built Web output, `desktop/server.mjs`
-and a reviewed portable Windows Node runtime under `Resources/` before building.
+The .NET 8 WPF / WebView2 shell loads `https://developer.ynxweb4.com/`. It has no bundled Node server and no web-to-OS message or host-object bridge. Native-initiated scripts require the exact HTTPS origin, default port, approved main-document path and unchanged navigation generation. The main page cannot navigate elsewhere; sandboxed runtime preview iframes retain their existing browser-only behavior. External new windows are blocked in this shell.
 
-`npm run desktop:windows-source-check` validates the project identity, WPF and
-WebView2 configuration, `asInvoker` manifest, bounded loopback startup, bundled
-runtime contract, native menu actions, window recovery and unsigned-update
-refusal. It remains only a macOS structural check.
+File New File, Open Project, Save and Export call the mounted Workbench UI contract. Imports use the existing bounded JSON validation and confirmation; cancellation retains the current dirty model. Save awaits `saveProject` and reports durable local-profile and remote acknowledgements separately. Closing pauses if an available workspace does not acknowledge save. Reload also requires save. RecoveryGate remains in front of Workbench; corrupt saved data never becomes a successful editor-ready receipt.
 
-The separate `Developer Windows package proof` workflow performs the required
-real-host boundary. Run `29658166198` at commit
-`c6b4affc03b3255100516c34483096f445c46753` compiled the self-contained x64 App,
-bundled Node `22.17.0` and the Web output, produced the unsigned portable ZIP,
-extracted it, ran the packaged resource self-test, cold-launched the WPF App,
-observed its bundled `node.exe`/`server.mjs` child, closed the main window and
-verified child cleanup. ZIP SHA-256 is
-`2899026250ecbbb28fc853cba291565bf792902b301f24280858cf4eb9098991`; size is
-`106319108` bytes. The CI artifact has a 14-day retention and is not classified
-as a public immutable download.
+Edit Select All / Undo / Redo route to the actual focused Monaco model. Cut / Copy / Paste and ordinary text inputs receive one WebView keyboard chord when the focused-editor router explicitly returns `native`. Read-only editors and unsupported focus are blocked; there is no global keyboard injection or second fallback. Split/diff/read-only focus routing is covered by model-level tests; physical Windows split/diff/menu/picker UI remains a separate acceptance item.
 
-No Authenticode signature, MSIX/installer signature, public hosting or
-production release is claimed.
+Normal profile: `%LOCALAPPDATA%\YNXDeveloper\WebView2`, independent of executable path/version. On first adoption of this directory, the user explicitly chooses to copy an existing closed `.WebView2` directory, start a new empty profile, or cancel. A previous portable UDF can be selected from any prior installation. Copy requires a recognizable `EBWebView/Local State`, refuses links, locks every source file, bounds migration to 20,000 files and 4 GiB, verifies bytes and the file inventory, then publishes via a same-volume rename. Original data is retained at the old path. Failure retains the original and any incomplete staging directory; it does not activate an empty fallback. An existing stable profile is never overwritten or automatically merged. A per-profile process mutex prevents concurrent shell instances from sharing this profile. This is a single-window local client limitation, not a multi-user server guarantee.
+
+Window geometry is independent of project data. Reads run off the UI thread, are limited to 4 KiB and tolerate invalid/locked content. Finite dimensions are clamped to the work area. Writes use a unique temporary file, durable flush and atomic replacement; write failure does not prevent project-safe close.
+
+`npm run desktop:windows-source-check` checks structure on any platform. `--self-test` additionally runs compiled native URL/path policy, locked-profile migration, original-byte retention and atomic geometry failure fixtures; this flag does not claim installed editor use.
+
+The Windows verifier launches the exact packaged executable twice with `--ui-acceptance <unique-token> write|reopen <new-evidence-file>`. The app can access only its marked `%LOCALAPPDATA%\YNXDeveloper\QA\<token>` profile. It waits for the actual top WebView, mounted Workbench, hydration and Monaco editor, and obtains `/healthz` identity from that same page. The source must equal the package's embedded `runtimeCheckpoint`. Native command paths import a fixture, select/replace/undo/redo/copy/cut/paste multiline content, cancel a dirty import, reject an unsafe import, create a file, save, then reopen the same project. Model comparisons use the existing project export contract. This is application-driven command QA; it does not claim physical menu clicks, native picker interaction, Start menu activation or installed split/diff UI. Independent PowerShell C++ compilation remains labeled as a separate HTTP client proof.
+
+Build and publication order: deploy and verify the new shared frontend first, update reviewed public-runtime metadata, then package from clean exact source and run Windows verification. A stale hosted source or missing editor bridge fails acceptance. Do not use an HWND, package build or HTTP 200 as a substitute. Old 595 public metadata and old candidate evidence are not rewritten by this source change. Root coordinates CI, package hashes, download publication and final platform acceptance. Authenticode, production signing and production release remain false until separate evidence exists.

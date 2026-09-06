@@ -36,26 +36,9 @@ if (!$package) { throw "MSIX was not installed" }
 $appId = "$($package.PackageFamilyName)!YNXDeveloper"
 $installedExecutable = Join-Path $package.InstallLocation "YNXDeveloper.TestnetPreview.exe"
 if (!(Test-Path $installedExecutable)) { throw "Installed MSIX executable is missing" }
-function Test-Launch([string]$label) {
-  Start-Process -FilePath "$env:WINDIR\explorer.exe" -ArgumentList "shell:AppsFolder\\$appId"
-  for ($attempt = 0; $attempt -lt 20; $attempt++) {
-    $process = Get-Process "YNXDeveloper.TestnetPreview" -ErrorAction SilentlyContinue | Select-Object -First 1
-    if ($process -and $process.MainWindowHandle -ne 0) { if (!$process.CloseMainWindow()) { throw "MSIX app window was not closable during $label" }; if (!$process.WaitForExit(10000)) { $process.Kill($true); throw "MSIX app did not close during $label" }; return }
-    Start-Sleep -Milliseconds 250
-  }
-  # Hosted runners do not expose an interactive Start menu. This is still the
-  # installed MSIX payload, not the portable build used by the prior gate.
-  Write-Host "AppsFolder did not surface a window; launching installed MSIX payload for $label."
-  Start-Process -FilePath $installedExecutable
-  for ($attempt = 0; $attempt -lt 120; $attempt++) {
-    $process = Get-Process "YNXDeveloper.TestnetPreview" -ErrorAction SilentlyContinue | Select-Object -First 1
-    if ($process -and $process.MainWindowHandle -ne 0) { if (!$process.CloseMainWindow()) { throw "MSIX app window was not closable during $label" }; if (!$process.WaitForExit(10000)) { $process.Kill($true); throw "MSIX app did not close during $label" }; return }
-    Start-Sleep -Milliseconds 250
-  }
-  throw "MSIX app did not cold launch during $label"
-}
-Test-Launch "cold launch"
-Test-Launch "second launch"
+. (Join-Path $PSScriptRoot "verify-windows-ui.ps1")
+# This verifies the actual installed MSIX payload. Start menu activation is a separate unverified surface.
+$ui = Invoke-YNXWindowsUIAcceptance $installedExecutable $outRoot "msix" $record.runtimeCheckpoint
 Remove-AppxPackage -Package $package.PackageFullName
 Get-ChildItem $trustedPeopleStore | Where-Object { $_.Thumbprint -eq $record.signerThumbprint } | Remove-Item -Force
 $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
@@ -75,6 +58,12 @@ $evidence = [ordered]@{
   certificateImported = $true
   packageSignatureValidatedByAddAppxPackage = $true
   installedPayloadVerified = $true
+  startMenuActivation = $false
+  hostedWorkspaceConnected = $ui.write.hostedWorkspaceConnected
+  nativeMenuModelCommands = $ui.write.nativeCommandPipeline
+  sameProfileProjectRestored = $ui.reopen.sameProfileProjectRestored
+  physicalMenuPickerUI = $false
+  splitDiffInstalledUI = $false
   coldLaunch = $true
   secondLaunch = $true
   uninstall = $true

@@ -1,3 +1,5 @@
+import { installHostCommands } from "../desktop/host-commands";
+import { desktopEditorReady } from "../editor/native-edit";
 import * as Dialog from "@radix-ui/react-dialog";
 import { Braces, Bug, ChevronRight, CircleAlert, Cloud, Files, GitBranch, History, Info, Link2, ListTree, PackagePlus, Play, Save, Search, Settings, Sparkles, SplitSquareHorizontal, TerminalSquare, TestTube2, TriangleAlert, Users, X } from "lucide-react";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -245,35 +247,22 @@ export function Workbench() {
         if (cancelled) return;
         if (remote) {
           const remoteKey = JSON.stringify({ name: remote.name, folders: remote.folders, files: remote.files, open: remote.open, active: remote.active });
-          // A native snapshot may contain edits saved while the runtime was
-          // offline. Retain them; the existing revision check protects the
-          // server copy if another writer has advanced it in the meantime.
-          if (window.ynxDesktopWorkspace?.initialProject && remoteKey !== workspaceKey) {
+          // Any restored browser or native profile can contain offline edits.
+          // Compare the current model, including edits made while loading, and
+          // retain differences. The existing revision check protects the server.
+          if (remoteKey !== workspaceKeyRef.current) {
             lastSynced.current = remoteKey;
-            setDirty(new Set(Object.keys(project.files)));
+            setDirty((current) => new Set([...current, ...Object.keys(project.files)]));
             setRuntime(remote.revision === project.remoteRevision ? "Recovered local changes" : "save conflict");
             setConnectionBusy(false);
             setHydrated(true);
             return;
           }
-          const value = {
-            ...project,
-            name: remote.name,
-            folders: remote.folders,
-            files: remote.files,
-            open: remote.open,
-            active: remote.active,
-            revision: project.revision + 1,
-            remoteRevision: remote.revision,
-          };
-          lastSynced.current = JSON.stringify({
-            name: value.name,
-            folders: value.folders,
-            files: value.files,
-            open: value.open,
-            active: value.active,
+          lastSynced.current = remoteKey;
+          setProject((current) => {
+            const currentKey = JSON.stringify({ name: current.name, folders: current.folders, files: current.files, open: current.open, active: current.active });
+            return currentKey === remoteKey ? { ...current, remoteRevision: remote.revision } : current;
           });
-          setProject(value);
         } else {
           const saved = await saveWorkspace(project.id, 0, workspace);
           if (cancelled) return;
@@ -379,8 +368,8 @@ export function Workbench() {
   };
   const save = async () => {
     try { await saveProject(project); }
-    catch { setRuntime("Workspace recovery could not be saved"); return; }
-    if (workspaceKeyRef.current !== workspaceKey) return;
+    catch { setRuntime("Workspace recovery could not be saved"); return { saved: false, localSaved: false, remoteSaved: false }; }
+    if (workspaceKeyRef.current !== workspaceKey) return { saved: false, localSaved: true, remoteSaved: false };
     const clearActiveDirty = () =>
       setDirty((current) => {
         const next = new Set(current);
@@ -388,16 +377,17 @@ export function Workbench() {
         return next;
       });
     if (!editorPreferences.autoSave && hydrated && !collaborationSession && workspaceKey !== lastSynced.current) {
-      saveWorkspace(project.id, project.remoteRevision, workspace)
-        .then((saved) => {
-          lastSynced.current = workspaceKey;
-          setProject((current) => ({ ...current, remoteRevision: saved.revision }));
-          if (workspaceKeyRef.current === workspaceKey) clearActiveDirty();
-        })
-        .catch((error) => setRuntime(error?.code === "revision_conflict" ? "save conflict" : "save unavailable"));
-      return;
+      try {
+        const saved = await saveWorkspace(project.id, project.remoteRevision, workspace);
+        lastSynced.current = workspaceKey;
+        setProject((current) => ({ ...current, remoteRevision: saved.revision }));
+        const unchanged = workspaceKeyRef.current === workspaceKey;
+        if (unchanged) clearActiveDirty();
+        return { saved: unchanged, localSaved: true, remoteSaved: true };
+      } catch (error) { setRuntime((error as {code?:string})?.code === "revision_conflict" ? "save conflict" : "save unavailable"); return { saved: false, localSaved: true, remoteSaved: false }; }
     }
     clearActiveDirty();
+    return { saved: true, localSaved: true, remoteSaved: workspaceKey === lastSynced.current };
   };
   const create = (path: string, kind: "file" | "folder") => {
     if (collaborationReadOnly) return "Your collaboration role is read-only.";
@@ -429,7 +419,7 @@ export function Workbench() {
     );
     return null;
   };
-  const applyImportedProject = (candidate: ImportedProject) => {
+  const applyImportedProject = (candidate: ImportedProject, outcome?: (accepted: boolean) => void) => {
     if (collaborationReadOnly) return "Your collaboration role is read-only.";
     let imported: ImportedProject;
     try {
@@ -437,7 +427,8 @@ export function Workbench() {
     } catch (error) {
       return error instanceof Error ? error.message : String(error);
     }
-    if (!window.confirm(`Replace the current project with ${Object.keys(imported.files).length} imported UTF-8 text files? The import becomes recoverable in Workspace History after save.`)) return null;
+    if (!window.confirm(`Replace the current project with ${Object.keys(imported.files).length} imported UTF-8 text files? The import becomes recoverable in Workspace History after save.`)) { outcome?.(false); return null; }
+    outcome?.(true);
     const paths = Object.keys(imported.files).sort(),
       active = paths[0] || "";
     setProject((current) => ({
@@ -452,10 +443,10 @@ export function Workbench() {
     setDirty(new Set(paths));
     return null;
   };
-  const importProject = async (file: File) => {
+  const importProject = async (file: File, outcome?: (accepted: boolean) => void) => {
     if (file.size > PROJECT_BYTE_LIMIT + 256 * 1024) return "Project JSON exceeds its bounded import envelope.";
     try {
-      return applyImportedProject(validateImportedProject(JSON.parse(await file.text())));
+      return applyImportedProject(validateImportedProject(JSON.parse(await file.text())), outcome);
     } catch (error) {
       return error instanceof Error ? error.message : String(error);
     }
@@ -752,6 +743,47 @@ export function Workbench() {
     }));
     setDirty((current) => new Set([...current, ...changed]));
   };
+  const hostStateRef = useRef({ project, dirty, collaborationReadOnly, hydrated });
+  hostStateRef.current = { project, dirty, collaborationReadOnly, hydrated };
+  const hostActionsRef = useRef({ save, create, importProject });
+  hostActionsRef.current = { save, create, importProject };
+  useEffect(() => {
+    const waitForRevision = async (revision: number, matches: () => boolean) => {
+      for (let attempt = 0; attempt < 100; attempt++) {
+        if (hostStateRef.current.project.revision !== revision && matches()) return;
+        await new Promise(resolve => setTimeout(resolve, 20));
+      }
+      throw new Error("The editor did not acknowledge the workspace change.");
+    };
+    return installHostCommands(window, {
+      state: () => {
+        const value = hostStateRef.current;
+        return { projectId: value.project.id, revision: value.project.revision, activePath: value.project.active,
+          dirtyPaths: [...value.dirty], editorReady: desktopEditorReady(), workspaceReady: value.hydrated, readOnly: value.collaborationReadOnly };
+      },
+      save: () => hostActionsRef.current.save(),
+      newFile: async (path) => {
+        const revision = hostStateRef.current.project.revision;
+        const error = hostActionsRef.current.create(path, "file");
+        if (!error) await waitForRevision(revision, () => Object.hasOwn(hostStateRef.current.project.files, path));
+        return error;
+      },
+      importProject: async (filename, content) => {
+        const revision = hostStateRef.current.project.revision;
+        let accepted: boolean | undefined;
+        const error = await hostActionsRef.current.importProject(new File([content], filename, { type: "application/json" }), (value) => { accepted = value; });
+        if (!error && accepted) {
+          const expected = JSON.parse(content).files;
+          await waitForRevision(revision, () => JSON.stringify(hostStateRef.current.project.files) === JSON.stringify(expected));
+        }
+        return { cancelled: accepted === false, error };
+      },
+      exportProject: () => {
+        const value = hostStateRef.current.project;
+        return { filename: `${value.name.replace(/[^A-Za-z0-9._-]+/g, "-") || "ynx-project"}.ynx-code.json`, content: projectExportJSON(value.name, value.files) };
+      },
+    });
+  }, []);
   useEffect(() => {
     const nativeCommand = (event: Event) => {
       if (!window.ynxDesktopWorkspace) return;

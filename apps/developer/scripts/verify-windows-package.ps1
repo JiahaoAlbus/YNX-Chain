@@ -109,7 +109,7 @@ if (Test-Path -LiteralPath $nativeEvidence) { throw "Refusing to overwrite exist
 $selfTest = Start-Process $exe -ArgumentList @("--self-test", "`"$resources`"", "`"$nativeEvidence`"") -Wait -PassThru
 if ($selfTest.ExitCode -ne 0 -or !(Test-Path $nativeEvidence)) { throw "Packaged self-test failed with exit $($selfTest.ExitCode)" }
 $nativeRecord = Get-Content $nativeEvidence -Raw | ConvertFrom-Json
-if (!$nativeRecord.resourcesVerified) { throw "Native self-test did not verify resources" }
+if (!$nativeRecord.resourcesVerified -or !$nativeRecord.nativePolicySelfTest -or !$nativeRecord.nativeStorageSelfTest) { throw "Native self-test did not verify resources" }
 Assert-Equal $nativeRecord.signingClass "unsigned-no-authenticode" "native self-test signingClass"
 Assert-Equal $nativeRecord.sourceCommit $expectedSourceCommit "native self-test sourceCommit"
 Assert-Equal $nativeRecord.runtimeCheckpoint $expectedRuntimeCheckpoint "native self-test runtimeCheckpoint"
@@ -132,24 +132,8 @@ if (!$compile.ok -or $compile.language -ne "cpp" -or $compile.output -notmatch "
   throw "Hosted YNX Code C++ compilation failed: $($compile | ConvertTo-Json -Depth 8 -Compress)"
 }
 
-function Test-ColdLaunch([string]$label) {
-  $desktop = Start-Process $exe -PassThru
-  try {
-    for ($attempt = 0; $attempt -lt 120; $attempt++) {
-      if ($desktop.HasExited) { throw "Windows App exited during $label" }
-      $desktop.Refresh()
-      if ($desktop.MainWindowHandle -ne 0) { break }
-      Start-Sleep -Milliseconds 250
-    }
-    if ($desktop.MainWindowHandle -eq 0) { throw "Windows App did not expose a main window during $label" }
-    if (!$desktop.CloseMainWindow()) { throw "Windows App did not expose a closable main window during $label" }
-    if (!$desktop.WaitForExit(10000)) { $desktop.Kill($true); throw "Windows App did not close cleanly during $label" }
-  } finally {
-    if (!$desktop.HasExited) { $desktop.Kill($true) }
-  }
-}
-Test-ColdLaunch "cold launch"
-Test-ColdLaunch "second launch"
+. (Join-Path $PSScriptRoot "verify-windows-ui.ps1")
+$ui = Invoke-YNXWindowsUIAcceptance $exe $outRoot "portable" $expectedRuntimeCheckpoint
 
 $finalEvidence = [ordered]@{
   schemaVersion = 1
@@ -169,8 +153,13 @@ $finalEvidence = [ordered]@{
   coldLaunch = $true
   deliveryMode = "hosted-workspace-client"
   workspaceUrl = $workspaceUrl
-  hostedWorkspaceConnected = $true
+  hostedWorkspaceConnected = $ui.write.hostedWorkspaceConnected
   realCppCompile = $true
+  cppCompileProofSurface = "independent-powershell-http-client"
+  nativeMenuModelCommands = $ui.write.nativeCommandPipeline
+  sameProfileProjectRestored = $ui.reopen.sameProfileProjectRestored
+  physicalMenuPickerUI = $false
+  splitDiffInstalledUI = $false
   secondLaunch = $true
   hosted = $false
   productionSigned = $false
@@ -179,5 +168,5 @@ $finalEvidence = [ordered]@{
 }
 $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
 [System.IO.File]::WriteAllText($evidence, (($finalEvidence | ConvertTo-Json -Depth 8) + [Environment]::NewLine), $utf8NoBom)
-Write-Host "Windows hosted-workspace client extraction, embedded provenance, Authenticode classification, real remote C++ compile, cold launch and second launch passed."
+Write-Host "Windows hosted-workspace client extraction, embedded provenance, Authenticode classification, real remote C++ compile, actual WebView/editor native command pipeline and same-profile restoration passed."
 Write-Host "Verified source $expectedSourceCommit, tree $expectedSourceTree, artifact $actualZipHash ($actualZipBytes bytes) and SBOM $actualSbomHash."

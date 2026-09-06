@@ -1,32 +1,21 @@
-import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
-
-const read = (path) => readFile(new URL(`../desktop/windows/${path}`, import.meta.url), "utf8");
-const [project, manifest, xaml, source, app, appSource] = await Promise.all([
-  read("YNXDeveloper.TestnetPreview.csproj"), read("app.manifest"), read("MainWindow.xaml"), read("MainWindow.xaml.cs"), read("App.xaml"), read("App.xaml.cs"),
-]);
-
-assert.match(project, /<TargetFramework>net8\.0-windows<\/TargetFramework>/);
-assert.match(project, /<UseWPF>true<\/UseWPF>/);
-assert.match(project, /Microsoft\.Web\.WebView2/);
-assert.match(manifest, /name="com\.ynxweb4\.developer\.testnetpreview"/);
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+const read = path => readFile(new URL(`../desktop/windows/${path}`, import.meta.url), 'utf8');
+const [project,manifest,xaml,source,app,appSource,policy,profile,acceptance] = await Promise.all(['YNXDeveloper.TestnetPreview.csproj','app.manifest','MainWindow.xaml','MainWindow.xaml.cs','App.xaml','App.xaml.cs','HostPolicy.cs','ProfileStorage.cs','NativeAcceptance.cs'].map(read));
+assert.match(project, /<TargetFramework>net8\.0-windows<\/TargetFramework>/); assert.match(project, /<UseWPF>true<\/UseWPF>/);
 assert.match(manifest, /requestedExecutionLevel level="asInvoker" uiAccess="false"/);
-assert.match(app, /ShutdownMode="OnMainWindowClose"/);
-assert.match(app, /Startup="OnStartup"/);
-assert.match(appSource, /--self-test/);
-assert.match(appSource, /Path\.Combine\(resources, "runtime", "node\.exe"\)/);
-assert.match(appSource, /build-provenance\.json/);
-assert.match(appSource, /sbom\.cdx\.json/);
-assert.match(appSource, /unsigned-no-authenticode/);
-assert.match(appSource, /resourcesVerified = true/);
-for (const action of ["NewProject", "OpenProject", "Save", "ExportProject", "Reload", "CheckUpdates"]) assert.match(xaml, new RegExp(`Click="${action}"`));
-assert.match(source, /Path\.Combine\(resources, "runtime", "node\.exe"\)/);
-assert.match(source, /new TcpListener\(IPAddress\.Loopback, 0\)/);
-assert.match(source, /http:\/\/127\.0\.0\.1:/);
-assert.match(source, /WaitForServer/);
-assert.match(source, /AreDevToolsEnabled = false/);
-assert.match(source, /server\.Kill\(true\)/);
-assert.match(source, /owner-signed manifest and package/);
-assert.doesNotMatch(project + manifest + xaml + source + app + appSource, /OPENAI_API_KEY|privateKey|mnemonic|seed phrase|production release is signed/i);
-
-console.log("Windows WPF/WebView2 source boundary check passed; no Windows build or cold launch is claimed on this macOS host.");
+assert.match(app, /ShutdownMode="OnMainWindowClose"/); assert.match(appSource, /--ui-acceptance/);
+for (const action of ['NewFile','OpenProject','Save','ExportProject','Reload','CheckUpdates','Edit']) assert.match(xaml,new RegExp(`Click="${action}"`));
+for (const command of ['selectAll','undo','redo','cut','copy','paste']) assert.ok(xaml.includes(`Tag="${command}"`));
+assert.match(source, /CoreWebView2Environment\.CreateAsync\(null, profilePath\)/);
+assert.match(source, /IsWebMessageEnabled = false/); assert.match(source, /AreHostObjectsAllowed = false/);
+assert.match(source, /NavigationStarting/); assert.match(source, /HostPolicy\.TrustedDocument\(args.Uri\)/);
+assert.match(source, /window.top!==window.self/); assert.match(source, /awaitPromise = true/);
+assert.match(source, /Input.dispatchKeyEvent/); assert.match(source, /AssertDocument\(expected\)/);
+assert.match(policy, /uri.Port == 443/); assert.match(policy, /uri.UserInfo == ""/);
+assert.match(profile, /LocalApplicationData/); assert.match(profile, /FileShare.None/); assert.match(profile, /SHA256.HashData/); assert.match(profile, /Directory.Move\(stage, destination\)/); assert.match(profile, /File.Move\(temporary, path, true\)/);
+assert.match(source, /sourceCommit/); assert.match(source, /editorReady/); assert.match(source, /workspaceReady/);
+assert.match(acceptance, /sameProfileProjectRestored/); assert.match(acceptance, /nativeCopyPasteMultiline/); assert.match(acceptance, /cancelPreservesDirtyModel/);
+assert.doesNotMatch(source, /#create-project|#import-project|#export-project|#editor/);
+assert.doesNotMatch(source, /WebMessageReceived|AddHostObjectToScript/);
+console.log('Windows hosted-client structural checks passed. Native compilation, clipboard and installed UI require the actual Windows acceptance run.');
