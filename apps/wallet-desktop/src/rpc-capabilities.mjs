@@ -1,4 +1,5 @@
 import { formatEther } from "ethers";
+import { parseDurabilityModel } from "./transaction-durability.mjs";
 
 export function capabilityError(code, message) { return Object.assign(new Error(message), { code: 4900, data: { code } }); }
 export function parseFeeModel(value) {
@@ -6,14 +7,21 @@ export function parseFeeModel(value) {
   if (!value || typeof value !== "object" || Array.isArray(value) || typeof value.enabled !== "boolean" || Object.entries(expected).some(([key, expectedValue]) => value[key] !== expectedValue)) {
     throw capabilityError("RPC_CAPABILITIES_UNKNOWN", "The network's amount units and transaction capabilities could not be verified. No balance conversion or signing is available.");
   }
-  return Object.freeze({ ...expected, enabled: value.enabled, unit: value.enabled ? "wei" : "whole-YNXT", maxGasLimit: "0x1c9c380" });
+  return Object.freeze({ ...expected, enabled: value.enabled, unit: value.enabled ? "wei" : "whole-YNXT", maxGasLimit: "0x1c9c380", ...(Object.hasOwn(value, "durability") ? { durability: parseDurabilityModel(value.durability) } : {}) });
 }
-export function capabilityFingerprint(model) { return JSON.stringify(Object.fromEntries(Object.keys(model).sort().map(key => [key, model[key]]))); }
+const canonical = value => Array.isArray(value) ? value.map(canonical) : value && typeof value === "object" ? Object.fromEntries(Object.keys(value).sort().map(key => [key, canonical(value[key])])) : value;
+export function capabilityFingerprint(model) { return JSON.stringify(canonical(model)); }
 export function assertSameCapabilities(before, after) {
   if (capabilityFingerprint(before) !== capabilityFingerprint(after)) throw capabilityError("RPC_CAPABILITIES_CHANGED", "The network's amount units or transaction capabilities changed. Refresh and review again.");
 }
+export function assertCompatibleIntentCapabilities(before, after) {
+  const { durability: _before, ...original } = before, { durability: _after, ...current } = after;
+  assertSameCapabilities(original, current);
+  parseDurabilityModel(after.durability);
+}
 export function requireTransactionCapabilities(model) {
   if (model?.enabled !== true || model.unit !== "wei") throw capabilityError("RPC_TRANSFERS_DISABLED", "This network currently uses legacy whole-unit balances. Ethereum transaction submission is not enabled.");
+  if (model.fullEVM !== true) parseDurabilityModel(model.durability);
 }
 export function validateTransactionCapabilities(transaction, model) {
   requireTransactionCapabilities(model);

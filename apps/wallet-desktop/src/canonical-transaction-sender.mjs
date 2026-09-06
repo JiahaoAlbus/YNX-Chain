@@ -48,6 +48,7 @@ export class CanonicalTransactionSender {
       // Validate serialization before showing approval; no key is needed for this check.
       Transaction.from(signingFields(transaction)).unsignedSerialized;
       assertSameCapabilities(capabilities, await this.#capabilities());
+      await this.network.verifyChain();
       const snapshot = deepFreeze(transaction);
       this.#prepared.add(snapshot);
       this.#quotes.set(snapshot, capabilities);
@@ -78,6 +79,7 @@ export class CanonicalTransactionSender {
       const nonce = rpcQuantity(await this.provider.send("eth_getTransactionCount", [transaction.from, "pending"]), "nonce");
       guard?.assert();
       assertSameCapabilities(this.#quotes.get(transaction), await this.#capabilities());
+      await this.network.verifyChain();
       guard?.assert();
       if (nonce !== transaction.nonce) fail("TRANSACTION_NONCE_CHANGED", "The account nonce changed after review. Prepare the transaction again.");
       const fields = signingFields(transaction), expectedUnsigned = Transaction.from(fields).unsignedSerialized;
@@ -86,6 +88,7 @@ export class CanonicalTransactionSender {
       const signed = await wallet.signTransaction(fields);
       guard?.assert();
       assertSameCapabilities(this.#quotes.get(transaction), await this.#capabilities());
+      await this.network.verifyChain();
       guard?.assert();
       const decoded = Transaction.from(signed);
       if (decoded.unsignedSerialized !== expectedUnsigned || decoded.from?.toLowerCase() !== transaction.from) fail("TRANSACTION_SNAPSHOT_MISMATCH", "Signed transaction does not match the approved snapshot");
@@ -146,8 +149,10 @@ export class CanonicalJsonRpcProvider extends JsonRpcProvider {
   async _send(payload) {
     if (Array.isArray(payload)) throw new Error("Canonical RPC batching is not supported");
     const response = await this.fetchImpl(CANONICAL_RPC_URL, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(payload), redirect: "error", signal: AbortSignal.timeout(15_000) });
+    if (response.redirected || response.url && response.url !== CANONICAL_RPC_URL) throw capabilityError("RPC_INVALID_RESPONSE", "The RPC response origin changed.");
     const result = await response.json();
     if (result?.jsonrpc !== "2.0" || result.id !== payload.id || (Object.hasOwn(result, "result") === Object.hasOwn(result, "error"))) throw capabilityError("RPC_INVALID_RESPONSE", "The network returned an invalid RPC response.");
+    if (Object.hasOwn(result, "error") && (!result.error || typeof result.error !== "object" || Array.isArray(result.error) || !Number.isSafeInteger(result.error.code) || typeof result.error.message !== "string")) throw capabilityError("RPC_INVALID_RESPONSE", "The network returned an invalid RPC error.");
     if (!response.ok && !result.error) throw new Error("Canonical RPC is unavailable");
     if (response.ok) this.#httpSuccess.add(result);
     return [result];

@@ -359,14 +359,14 @@ async function refreshTransactions() {
           try {
             const response = await (retry ? window.ynxWallet.retryTransaction(record.hash) : window.ynxWallet.transactionStatus(record.hash));
             if (account !== activeAccount) return;
-            document.querySelector("#transaction-resolution-result").textContent = !response.ok ? errorText(response) : response.value.confirmed ? `Transaction ${response.value.successful ? "confirmed" : "failed on chain"}. Actual fee: ${response.value.actualFee} YNXT.` : "No confirmed receipt yet. This account remains blocked from creating a new transfer.";
+            document.querySelector("#transaction-resolution-result").textContent = !response.ok ? errorText(response) : response.value.confirmed ? `Transaction ${response.value.successful ? "mined successfully" : "failed"} in the node's completed local snapshot. Actual fee: ${response.value.actualFee} YNXT. Consensus finality is not established by this proof.` : response.value.durabilityStatus === "pending_durable" ? "The node saved this transaction, but it has not been mined. This account remains blocked from creating a new transfer." : "A complete durable mined receipt is still unavailable. This account remains blocked from creating a new transfer.";
             if (response.ok && response.value.confirmed) void refreshAssets();
           } catch { if (account === activeAccount) document.querySelector("#transaction-resolution-result").textContent = "The transaction outcome could not be checked. Keep its hash and try checking again."; }
           finally { void refreshTransactions(); }
         });
         row.append(button);
       }
-      if (!record.canRetryExact) { const note = document.createElement("p"); note.textContent = "The original signed bytes are not available in this session. Check the saved hash; do not recreate the transaction."; row.append(note); }
+      if (!record.canRetryExact) { const note = document.createElement("p"); note.textContent = "This older journal has no original signed bytes. Check the saved hash; do not recreate the transaction."; row.append(note); }
       list.append(row);
     }
   } catch { if (revision === transactionRevision) { panel.hidden = false; document.querySelector("#transaction-resolution-result").textContent = "The local transaction journal is unavailable. New transfers remain blocked."; } }

@@ -123,7 +123,7 @@ test("balance requests validate checksum input and send the canonical lowercase 
   const requests = [];
   const network = new CanonicalAccountNetwork({ fetchImpl: async (_url, options) => {
     const request = JSON.parse(options.body); requests.push(request);
-    return new Response(JSON.stringify({ jsonrpc: "2.0", id: 1, result: request.method === "eth_chainId" ? "0x1917" : "0x0" }));
+    return new Response(JSON.stringify({ jsonrpc: "2.0", id: request.id, result: request.method === "eth_chainId" ? "0x1917" : "0x0" }));
   } });
   network.capabilities = async () => fixtureEVMCapabilities;
   assert.equal(await network.balance(recipient), "0x0");
@@ -158,9 +158,9 @@ test("insufficient balance is reported before requesting a fee or opening a revi
 test("an unimplemented fee method stops review without inventing a network fee", async () => {
   const { service, state } = await serviceFixture();
   service.network = new CanonicalAccountNetwork({ fetchImpl: async (_url, options) => {
-    const { method } = JSON.parse(options.body);
+    const { method, id } = JSON.parse(options.body);
     const payload = method === "eth_gasPrice" ? { error: { code: -32601, message: "method unavailable" } } : { result: method === "eth_chainId" ? "0x1917" : method === "eth_getBalance" ? "0xde0b6b3a7640000" : "0x5208" };
-    return new Response(JSON.stringify({ jsonrpc: "2.0", id: 1, ...payload }));
+    return new Response(JSON.stringify({ jsonrpc: "2.0", id, ...payload }));
   } });
   service.network.capabilities = async () => fixtureEVMCapabilities;
   await assert.rejects(service.prepareTransfer({ to: recipient, amount: "0.1" }), error => error.data.code === "RPC_FEE_UNAVAILABLE");

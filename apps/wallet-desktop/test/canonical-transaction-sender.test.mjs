@@ -43,7 +43,10 @@ test("real signing broadcasts only the complete immutable transaction approved b
   assert.equal(hash, state.signed.hash);
   assert.equal(state.signed.unsignedSerialized, reviewedUnsigned);
   assert.equal(state.signed.from.toLowerCase(), account);
-  assert.deepEqual(state.calls.map(call => call.method), ["eth_chainId", "eth_getTransactionCount", "eth_chainId", "eth_sendRawTransaction"]);
+  const methods = state.calls.map(call => call.method);
+  assert.deepEqual(methods.filter(method => method !== "eth_chainId"), ["eth_getTransactionCount", "eth_sendRawTransaction"]);
+  assert.equal(methods[0], "eth_chainId");
+  assert.equal(methods.at(-2), "eth_chainId", "actual chain is rechecked before original-byte dispatch");
   assert.equal(state.signs, 1);
   await assert.rejects(sender.send(signer, snapshot), error => error.data.code === "UNREVIEWED_TRANSACTION");
   assert.equal(state.signs, 1);

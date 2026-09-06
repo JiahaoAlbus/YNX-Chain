@@ -9,9 +9,10 @@ import { CanonicalAccountNetwork, NativeWalletService } from "../src/native-wall
 import { DesktopKeyLifecycle } from "../src/key-lifecycle.mjs";
 import { parseFeeModel } from "../src/rpc-capabilities.mjs";
 import { FileTransactionIntentStore } from "../src/transaction-intent-store.mjs";
+import { DURABILITY_MODEL } from "../src/transaction-durability.mjs";
 
 const W = 10n ** 18n, SECRET = "1".padStart(64, "0"), wallet = new Wallet(`0x${SECRET}`), account = wallet.address.toLowerCase(), recipient = `0x${"22".repeat(20)}`;
-const MODEL = Object.freeze({ version: "ynx-ethereum-native-v1", enabled: true, chainId: "0x1917", transactionType: "0x0", feeYNXT: "1", feeWei: toQuantity(W), gas: "0x61a8", gasPrice: "0x246139ca8000", decimals: 18, amountQuantumWei: toQuantity(W), scope: "whole-YNXT plain native transfers", fullEVM: false, eip1559: false });
+const MODEL = Object.freeze({ version: "ynx-ethereum-native-v1", enabled: true, chainId: "0x1917", transactionType: "0x0", feeYNXT: "1", feeWei: toQuantity(W), gas: "0x61a8", gasPrice: "0x246139ca8000", decimals: 18, amountQuantumWei: toQuantity(W), scope: "whole-YNXT plain native transfers", fullEVM: false, eip1559: false, durability: DURABILITY_MODEL });
 const code = expected => error => error?.data?.code === expected;
 const input = changes => ({ from: account, to: recipient, value: toQuantity(2n * W), ...changes });
 const gate = () => { let resolve; return { promise: new Promise(r => { resolve = r; }), resolve: value => resolve(value) }; };
@@ -20,7 +21,7 @@ async function fixture(t, overrides = {}) {
   const filePath = join(directory, "transaction-intents-v1.json"), state = { model: MODEL, balance: toQuantity(4n * W), nonce: "0x0", broadcast: "ack", receipt: null, requests: [], raw: [], signs: 0, ...overrides };
   const fetchImpl = async (_url, options) => {
     const request = JSON.parse(options.body); state.requests.push(request); state.onRequest?.(request);
-    let result = { eth_chainId: "0x1917", ynx_getFeeModel: state.model, eth_getBalance: state.balance, eth_getTransactionCount: state.nonce, eth_gasPrice: MODEL.gasPrice, eth_estimateGas: MODEL.gas, eth_getTransactionReceipt: state.receipt }[request.method];
+    let result = { eth_chainId: "0x1917", ynx_getFeeModel: state.model, ynx_getDurabilityModel: DURABILITY_MODEL, ynx_getTransactionDurability: { version: DURABILITY_MODEL.version, scope: DURABILITY_MODEL.scope, status: "not_found", transactionHash: request.params[0] }, eth_getBalance: state.balance, eth_getTransactionCount: state.nonce, eth_gasPrice: MODEL.gasPrice, eth_estimateGas: MODEL.gas, eth_getTransactionReceipt: state.receipt }[request.method];
     let error;
     if (request.method === "ynx_getFeeModel" && state.missingModel) error = { code: -32601, message: "unknown method" };
     if (request.method === "eth_estimateGas" && state.estimateError) error = state.estimateError;
@@ -36,7 +37,7 @@ async function fixture(t, overrides = {}) {
   const store = new FileTransactionIntentStore({ filePath }), sender = new CanonicalTransactionSender({ fetchImpl, intentStore: store }); t.after(() => sender.provider.destroy());
   const life = new DesktopKeyLifecycle({ authorizer: { available: () => true, authenticate: async () => {}, method: "test-only" } }); life.setFocused(true); life.setAccount(account); await life.unlock();
   const signer = { address: wallet.address, signTransaction: async fields => { state.signs++; return wallet.signTransaction(fields); } };
-  const receipt = () => ({ transactionHash: state.hash, from: account, to: recipient, blockHash: `0x${"bb".repeat(32)}`, blockNumber: "0x12", contractAddress: null, status: "0x1", type: "0x0", gasUsed: MODEL.gas, effectiveGasPrice: MODEL.gasPrice, ynxFeeWei: MODEL.feeWei });
+  const receipt = () => ({ transactionHash: state.hash, from: account, to: recipient, blockHash: `0x${"bb".repeat(32)}`, blockNumber: "0x12", contractAddress: null, status: "0x1", type: "0x0", gasUsed: MODEL.gas, effectiveGasPrice: MODEL.gasPrice, ynxFeeWei: MODEL.feeWei, ynxNativeTransaction: { type: "transfer", amountYNXT: "2", feeYNXT: "1", nonce: "0x1" }, ynxDurability: { version: DURABILITY_MODEL.version, scope: DURABILITY_MODEL.scope, status: "durable", transactionHash: state.hash, blockNumber: "0x12", blockHash: `0x${"bb".repeat(32)}`, checkpointBlockNumber: "0x12", checkpointBlockHash: `0x${"bb".repeat(32)}`, snapshotIntegrity: `0x${"cc".repeat(32)}` } });
   const restart = () => { const next = new CanonicalTransactionSender({ fetchImpl, intentStore: new FileTransactionIntentStore({ filePath }) }); t.after(() => next.provider.destroy()); return next; };
   return { state, sender, signer, life, store, filePath, receipt, restart, fetchImpl };
 }
@@ -83,10 +84,10 @@ test("durability uncertainty survives restart and only a matching actual-fee rec
   const f = await fixture(t, { broadcast: "uncertain" }), snapshot = await f.sender.prepare(account, input());
   await assert.rejects(f.life.run(lease => f.sender.send(f.signer, snapshot, lease)), error => error.data?.code === "TRANSACTION_DURABILITY_UNCERTAIN" && error.data.rpcCode === -32002 && error.data.transactionHash === f.state.hash);
   assert.equal((await fs.stat(f.filePath)).mode & 0o777, 0o600);
-  const persisted = await fs.readFile(f.filePath, "utf8"); assert.equal(persisted.includes(f.state.raw[0]), false); assert.equal(persisted.includes(SECRET), false);
+  const persisted = await fs.readFile(f.filePath, "utf8"); assert.equal(JSON.parse(persisted).records[0].raw, f.state.raw[0]); assert.equal(persisted.includes(SECRET), false);
   const resumed = f.restart(); await assert.rejects(resumed.prepare(account, input()), code("TRANSACTION_RESOLUTION_REQUIRED"));
   assert.equal((await resumed.submissions.check(f.state.hash, account)).confirmed, false);
-  await assert.rejects(f.life.run(lease => resumed.submissions.retry(f.state.hash, account, lease)), code("EXACT_RETRY_UNAVAILABLE"));
+  assert.equal((await resumed.submissions.list(account))[0].canRetryExact, true);
   f.state.receipt = { ...f.receipt(), ynxFeeWei: "0x1" };
   await assert.rejects(resumed.submissions.check(f.state.hash, account), code("RPC_RECEIPT_INVALID")); assert.equal((await f.store.snapshot()).length, 1);
   f.state.receipt = f.receipt(); const confirmed = await resumed.submissions.check(f.state.hash, account);
@@ -115,7 +116,7 @@ test("first matching -32003 is durably audited as rejected; it does not poison t
 
 test("journal admission failure prevents every broadcast and preserves an existing unrelated intent", async t => {
   const f = await fixture(t);
-  await f.store.add({ account: `0x${"44".repeat(20)}`, chainId: "0x1917", nonce: "0x0", hash: `0x${"33".repeat(32)}`, to: recipient, value: toQuantity(W), capabilities: parseFeeModel(MODEL) });
+  await fs.writeFile(f.filePath, JSON.stringify({ schemaVersion: 1, rejections: [], records: [{ account: `0x${"44".repeat(20)}`, chainId: "0x1917", nonce: "0x0", hash: `0x${"33".repeat(32)}`, to: recipient, value: toQuantity(W), capabilities: parseFeeModel(MODEL), attempts: 1 }] }), { mode: 0o600 });
   const before = await f.store.snapshot();
   const broken = new FileTransactionIntentStore({ filePath: f.filePath, io: { ...fs, rename: async () => { throw new Error("fixture disk failure"); } } });
   const sender = new CanonicalTransactionSender({ fetchImpl: f.fetchImpl, intentStore: broken }); t.after(() => sender.provider.destroy());
