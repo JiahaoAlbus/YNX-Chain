@@ -73,6 +73,7 @@ test("native menu actions reach current Workbench handlers and expose import/exp
   }
   assert.doesNotMatch(native, /#create-project|#import-project|#export-project|#editor/);
   for (const method of ["runOpenPanelWithParameters", "runJavaScriptConfirmPanelWithMessage", "runJavaScriptTextInputPanelWithPrompt", "NSSavePanel", "@selector(paste:)"]) assert.ok(native.includes(method));
-  assert.match(native, /message\.frameInfo\.mainFrame/);
-  assert.match(native, /origin\.port!=_port/);
+  assert.match(native, /YNXTrustedMessage\(message,_webView,_port\)/);
+  assert.match(native, /frame\.mainFrame/);
+  assert.match(native, /origin\.port==port/);
 });

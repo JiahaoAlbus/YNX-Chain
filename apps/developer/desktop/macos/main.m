@@ -9,6 +9,29 @@ static NSString *YNXJSON(id value) {
     return [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
 }
 
+static NSString *YNXOrigin(NSInteger port) { return [NSString stringWithFormat:@"http://127.0.0.1:%ld",(long)port]; }
+static BOOL YNXTrustedFrame(WKFrameInfo *frame, NSInteger port) {
+    WKSecurityOrigin *origin=frame.securityOrigin;
+    return port>0 && port<=65535 && frame.mainFrame && [origin.protocol isEqualToString:@"http"] && [origin.host isEqualToString:@"127.0.0.1"] && origin.port==port;
+}
+static BOOL YNXTrustedMessage(WKScriptMessage *message, WKWebView *webView, NSInteger port) {
+    return webView && message.webView==webView && YNXTrustedFrame(message.frameInfo,port);
+}
+static NSString *YNXOriginBoundScript(NSString *source, NSInteger port) {
+    return [NSString stringWithFormat:@"if(location.origin===%@){%@}",YNXJSON(YNXOrigin(port)),source];
+}
+static void YNXEvaluateTrustedScript(WKWebView *webView, NSInteger port, NSString *source) {
+    // A delayed Keychain/command reply cannot expose data after navigation.
+    [webView evaluateJavaScript:YNXOriginBoundScript(source,port) completionHandler:nil];
+}
+typedef NS_ENUM(NSInteger, YNXNavigationDisposition) { YNXNavigationAllow, YNXNavigationCancel, YNXNavigationOpenExternal };
+static YNXNavigationDisposition YNXMainNavigation(NSURL *url, NSInteger port, WKNavigationType type) {
+    if([url.absoluteString isEqualToString:@"about:blank"])return YNXNavigationAllow;
+    if(port>0 && [url.scheme isEqualToString:@"http"] && [url.host isEqualToString:@"127.0.0.1"] && url.port.integerValue==port)return YNXNavigationAllow;
+    if(type==WKNavigationTypeLinkActivated && ([@"https" isEqualToString:url.scheme] || [@"http" isEqualToString:url.scheme]))return YNXNavigationOpenExternal;
+    return YNXNavigationCancel;
+}
+
 static SEL YNXEditSelector(NSString *command) {
     if([command isEqualToString:@"selectAll"])return @selector(selectAll:);
     if([command isEqualToString:@"undo"])return @selector(undo:);
@@ -153,11 +176,10 @@ typedef NSDictionary *(^YNXSnapshotReader)(NSError **error);
 }
 - (void)reply:(NSString *)job error:(NSError *)error {
     NSDictionary *event=error ? @{@"id":job,@"error":@"Workspace recovery or export could not be saved. Check available disk space and file permissions."} : @{@"id":job};
-    [_webView evaluateJavaScript:[NSString stringWithFormat:@"window.__ynxWorkspaceResult(%@)",YNXJSON(event)] completionHandler:nil];
+    YNXEvaluateTrustedScript(_webView,_port,[NSString stringWithFormat:@"window.__ynxWorkspaceResult(%@)",YNXJSON(event)]);
 }
 - (void)userContentController:(WKUserContentController *)controller didReceiveScriptMessage:(WKScriptMessage *)message {
-    WKSecurityOrigin *origin=message.frameInfo.securityOrigin;
-    if(!message.frameInfo.mainFrame || ![origin.protocol isEqualToString:@"http"] || ![origin.host isEqualToString:@"127.0.0.1"] || origin.port!=_port)return;
+    if(!YNXTrustedMessage(message,_webView,_port) || ![message.name isEqualToString:@"workspace"])return;
     NSDictionary *body=[message.body isKindOfClass:NSDictionary.class]?message.body:nil;
     NSString *job=body[@"id"], *action=body[@"action"];
     if(![job isKindOfClass:NSString.class] || job.length>80 || ![action isKindOfClass:NSString.class])return;
@@ -179,6 +201,7 @@ typedef NSDictionary *(^YNXSnapshotReader)(NSError **error);
 @property(nonatomic,strong) NSURL *nodeURL;
 @property(nonatomic,strong) NSMutableDictionary<NSString *,NSTask *> *processes;
 @property(nonatomic,strong) NSLock *lock;
+@property(nonatomic) NSInteger port;
 - (instancetype)initWithWebView:(WKWebView *)webView nodeURL:(NSURL *)nodeURL;
 @end
 
@@ -186,7 +209,7 @@ typedef NSDictionary *(^YNXSnapshotReader)(NSError **error);
 - (instancetype)initWithWebView:(WKWebView *)webView nodeURL:(NSURL *)nodeURL { if ((self=[super init])) { _webView=webView; _nodeURL=nodeURL; _processes=[NSMutableDictionary dictionary]; _lock=[NSLock new]; } return self; }
 - (void)walletStorageReply:(NSString *)job ok:(BOOL)ok value:(id)value error:(NSString *)error {
     NSMutableDictionary *event=[@{ @"id":job, @"ok":@(ok) } mutableCopy]; if(value) event[@"value"]=value; if(error) event[@"error"]=error;
-    NSString *json=YNXJSON(event); if(json)[_webView evaluateJavaScript:[NSString stringWithFormat:@"window.__ynxWalletStorageResult(%@)",json] completionHandler:nil];
+    NSString *json=YNXJSON(event); if(json)YNXEvaluateTrustedScript(_webView,_port,[NSString stringWithFormat:@"window.__ynxWalletStorageResult(%@)",json]);
 }
 - (void)handleWalletStorage:(NSDictionary *)body action:(NSString *)action job:(NSString *)job {
     NSString *key=[body[@"key"] isKindOfClass:NSString.class]?body[@"key"]:nil, *value=[body[@"value"] isKindOfClass:NSString.class]?body[@"value"]:nil;
@@ -204,11 +227,13 @@ typedef NSDictionary *(^YNXSnapshotReader)(NSError **error);
     [self walletStorageReply:job ok:status==errSecSuccess value:nil error:status==errSecSuccess?nil:@"Wallet secure storage could not protect the session."];
 }
 - (void)userContentController:(WKUserContentController *)controller didReceiveScriptMessage:(WKScriptMessage *)message {
-    NSDictionary *body=[message.body isKindOfClass:NSDictionary.class]?message.body:nil; NSString *action=body[@"action"], *job=body[@"id"];
-    if (!action.length || !job.length) return;
+    if(!YNXTrustedMessage(message,_webView,_port) || ![@[@"wallet",@"command"] containsObject:message.name])return;
+    NSDictionary *body=[message.body isKindOfClass:NSDictionary.class]?message.body:nil;
+    NSString *action=[body[@"action"] isKindOfClass:NSString.class]?body[@"action"]:nil, *job=[body[@"id"] isKindOfClass:NSString.class]?body[@"id"]:nil;
+    if (!action.length || !job.length || job.length>80) return;
     if ([message.name isEqualToString:@"wallet"]) {
         if([@[@"storage-get",@"storage-set",@"storage-remove"] containsObject:action]) { [self handleWalletStorage:body action:action job:job]; return; }
-        if([action isEqualToString:@"wallet-availability"]) { NSDictionary *availability=YNXWalletAvailability(); NSString *event=YNXJSON(@{ @"id":job,@"ok":@YES,@"installed":availability[@"installed"],@"schemeRegistered":availability[@"schemeRegistered"] }); [_webView evaluateJavaScript:[NSString stringWithFormat:@"window.__ynxWalletAvailabilityResult(%@)",event?:@"{}"] completionHandler:nil]; return; }
+        if([action isEqualToString:@"wallet-availability"]) { NSDictionary *availability=YNXWalletAvailability(); NSString *event=YNXJSON(@{ @"id":job,@"ok":@YES,@"installed":availability[@"installed"],@"schemeRegistered":availability[@"schemeRegistered"] }); YNXEvaluateTrustedScript(_webView,_port,[NSString stringWithFormat:@"window.__ynxWalletAvailabilityResult(%@)",event?:@"{}"]); return; }
         if(![action isEqualToString:@"open-authorization"]) return;
         NSString *value=[body[@"url"] isKindOfClass:NSString.class]?body[@"url"]:nil; NSURLComponents *parts=value.length?[NSURLComponents componentsWithString:value]:nil; NSArray<NSURLQueryItem *> *items=parts.queryItems;
         BOOL reviewedHost=[parts.host isEqualToString:@"authorize"]||[parts.host isEqualToString:@"developer-deploy"];
@@ -218,7 +243,7 @@ typedef NSDictionary *(^YNXSnapshotReader)(NSError **error);
         BOOL exact=parts && [parts.scheme isEqualToString:@"ynxwallet"] && reviewedHost && parts.path.length==0 && !parts.fragment.length && populatedRequest;
         NSURL *resolved=exact?[NSWorkspace.sharedWorkspace URLForApplicationToOpenURL:parts.URL]:nil;
         BOOL opened=resolved!=nil && [NSWorkspace.sharedWorkspace openURL:parts.URL]; NSString *event=YNXJSON(@{@"id":job,@"ok":@(opened),@"message":opened?@"YNX Wallet review opened.":@"YNX Wallet is not installed or rejected the exact authorization route."});
-        [_webView evaluateJavaScript:[NSString stringWithFormat:@"window.__ynxWalletOpenResult(%@)",event?:@"{}"] completionHandler:nil]; return;
+        YNXEvaluateTrustedScript(_webView,_port,[NSString stringWithFormat:@"window.__ynxWalletOpenResult(%@)",event?:@"{}"]); return;
     }
     if ([action isEqualToString:@"cancel"]) { [_lock lock]; NSTask *task=_processes[job]; [_lock unlock]; [task terminate]; return; }
     NSDictionary *payload=[body[@"payload"] isKindOfClass:NSDictionary.class]?body[@"payload"]:nil;
@@ -227,7 +252,7 @@ typedef NSDictionary *(^YNXSnapshotReader)(NSError **error);
 }
 - (BOOL)validPath:(NSString *)path { return path.length>0 && path.length<=240 && ![path hasPrefix:@"/"] && [path rangeOfString:@"\\"].location==NSNotFound && ![[path pathComponents] containsObject:@".."];
 }
-- (void)emit:(NSDictionary *)event { NSString *json=YNXJSON(event); if (!json) return; dispatch_async(dispatch_get_main_queue(), ^{ [self.webView evaluateJavaScript:[NSString stringWithFormat:@"window.__ynxDesktopEvent(%@)",json] completionHandler:nil]; }); }
+- (void)emit:(NSDictionary *)event { NSString *json=YNXJSON(event); if (!json) return; dispatch_async(dispatch_get_main_queue(), ^{ YNXEvaluateTrustedScript(self.webView,self.port,[NSString stringWithFormat:@"window.__ynxDesktopEvent(%@)",json]); }); }
 - (void)run:(NSString *)job payload:(NSDictionary *)payload {
     @try {
         NSString *task=payload[@"task"], *projectID=payload[@"projectId"]; NSDictionary *files=[payload[@"files"] isKindOfClass:NSDictionary.class]?payload[@"files"]:nil;
@@ -252,7 +277,7 @@ typedef NSDictionary *(^YNXSnapshotReader)(NSError **error);
 }
 @end
 
-@interface YNXAppDelegate : NSObject <NSApplicationDelegate, WKUIDelegate>
+@interface YNXAppDelegate : NSObject <NSApplicationDelegate, WKUIDelegate, WKNavigationDelegate>
 @property(nonatomic,strong) NSWindow *window; @property(nonatomic,strong) WKWebView *webView; @property(nonatomic,strong) YNXCommandBridge *bridge; @property(nonatomic,strong) NSTask *server; @property(nonatomic,strong) NSFileHandle *serverLog; @property(nonatomic) NSInteger port;
 @property(nonatomic,strong) YNXWorkspaceBridge *workspaceBridge;
 @property(nonatomic) BOOL nativeEditPending;
@@ -268,11 +293,11 @@ typedef NSDictionary *(^YNXSnapshotReader)(NSError **error);
     [self installMenus]; WKWebViewConfiguration *configuration=[WKWebViewConfiguration new]; WKUserContentController *controller=[WKUserContentController new];
     NSString *script=@"(()=>{const jobs=new Map(),walletJobs=new Map(),storageJobs=new Map();window.__ynxDesktopEvent=e=>{const j=jobs.get(e.id);if(!j)return;if(e.type==='chunk')j.onChunk(e.text);if(e.type==='done'){jobs.delete(e.id);j.resolve({code:e.code});}if(e.type==='error'){jobs.delete(e.id);j.reject(new Error(e.message));}};window.__ynxWalletOpenResult=e=>{const j=walletJobs.get(e.id);if(!j)return;walletJobs.delete(e.id);e.ok?j.resolve():j.reject(new Error(e.message));};window.__ynxWalletStorageResult=e=>{const j=storageJobs.get(e.id);if(!j)return;storageJobs.delete(e.id);e.ok?j.resolve(Object.hasOwn(e,'value')?e.value:null):j.reject(new Error(e.error||'Wallet secure storage failed.'));};const storage=(action,key,value)=>new Promise((resolve,reject)=>{const id=crypto.randomUUID();storageJobs.set(id,{resolve,reject});window.webkit.messageHandlers.wallet.postMessage({action,id,key,...(value===undefined?{}:{value})});});globalThis.ynxDesktop={executeApprovedCommand(payload,options={}){return new Promise((resolve,reject)=>{const id=crypto.randomUUID();jobs.set(id,{resolve,reject,onChunk:options.onChunk||(()=>{})});options.signal?.addEventListener('abort',()=>window.webkit.messageHandlers.command.postMessage({action:'cancel',id}),{once:true});window.webkit.messageHandlers.command.postMessage({action:'run',id,payload});});}};globalThis.ynxDesktopWallet={openAuthorization(url){return new Promise((resolve,reject)=>{const id=crypto.randomUUID();walletJobs.set(id,{resolve,reject});window.webkit.messageHandlers.wallet.postMessage({action:'open-authorization',id,url});});},protectedStorage:{securityLevel:'os-protected',get:key=>storage('storage-get',key),set:(key,value)=>storage('storage-set',key,value),remove:key=>storage('storage-remove',key)}}})();";
     NSString *availabilityScript=@"(()=>{const jobs=new Map();window.__ynxWalletAvailabilityResult=e=>{const j=jobs.get(e.id);if(!j)return;jobs.delete(e.id);e.ok?j.resolve({walletInstalled:e.installed===true,schemeRegistered:e.schemeRegistered===true}):j.reject(new Error('Wallet availability check failed.'));};globalThis.ynxDesktopWallet.walletAvailability=()=>new Promise((resolve,reject)=>{const id=crypto.randomUUID();jobs.set(id,{resolve,reject});window.webkit.messageHandlers.wallet.postMessage({action:'wallet-availability',id});});})();";
-    [controller addUserScript:[[WKUserScript alloc]initWithSource:script injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
-    [controller addUserScript:[[WKUserScript alloc]initWithSource:availabilityScript injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
-    configuration.userContentController=controller; _webView=[[WKWebView alloc]initWithFrame:NSZeroRect configuration:configuration]; _bridge=[[YNXCommandBridge alloc]initWithWebView:_webView nodeURL:self.nodeURL]; [controller addScriptMessageHandler:_bridge name:@"command"]; [controller addScriptMessageHandler:_bridge name:@"wallet"];
+    [controller addUserScript:[[WKUserScript alloc]initWithSource:YNXOriginBoundScript(script,_port) injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
+    [controller addUserScript:[[WKUserScript alloc]initWithSource:YNXOriginBoundScript(availabilityScript,_port) injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
+    configuration.userContentController=controller; _webView=[[WKWebView alloc]initWithFrame:NSZeroRect configuration:configuration]; _bridge=[[YNXCommandBridge alloc]initWithWebView:_webView nodeURL:self.nodeURL]; _bridge.port=_port; [controller addScriptMessageHandler:_bridge name:@"command"]; [controller addScriptMessageHandler:_bridge name:@"wallet"];
     _window=[[NSWindow alloc]initWithContentRect:NSMakeRect(0,0,1440,900) styleMask:NSWindowStyleMaskTitled|NSWindowStyleMaskClosable|NSWindowStyleMaskMiniaturizable|NSWindowStyleMaskResizable backing:NSBackingStoreBuffered defer:NO]; _window.title=@"YNX Developer — Testnet Preview (unsigned)"; _window.contentView=_webView; if(![_window setFrameUsingName:@"YNXDeveloperTestnetPreviewMainWindow"])[_window center]; [_window setFrameAutosaveName:@"YNXDeveloperTestnetPreviewMainWindow"]; _window.restorable=YES; [_window makeKeyAndOrderFront:nil];
-    _webView.UIDelegate=self; _workspaceBridge.webView=_webView; _workspaceBridge.window=_window; [controller addScriptMessageHandler:_workspaceBridge name:@"workspace"];
+    _webView.UIDelegate=self; _webView.navigationDelegate=self; _workspaceBridge.webView=_webView; _workspaceBridge.window=_window; [controller addScriptMessageHandler:_workspaceBridge name:@"workspace"];
     [self beginWorkspaceRestore];
 }
 - (void)beginWorkspaceRestore {
@@ -306,7 +331,7 @@ typedef NSDictionary *(^YNXSnapshotReader)(NSError **error);
     // Only a completed read (including a confirmed absent file) may initialize
     // Workbench. It never mounts and auto-saves a starter while recovery waits.
     NSString *workspaceScript=[NSString stringWithFormat:@"(()=>{if(location.origin!=='http://127.0.0.1:%ld')return;const jobs=new Map();window.__ynxWorkspaceResult=e=>{const job=jobs.get(e.id);if(!job)return;jobs.delete(e.id);e.error?job.reject(new Error(e.error)):job.resolve();};const request=(action,payload)=>new Promise((resolve,reject)=>{const id=crypto.randomUUID();jobs.set(id,{resolve,reject});window.webkit.messageHandlers.workspace.postMessage({id,action,...payload});});window.ynxDesktopWorkspace={initialProject:%@,saveProject:project=>request('save-project',{project}),exportProject:(filename,content)=>request('export-project',{filename,content})};})();",(long)_port,YNXJSON(_workspaceBridge.initialProject?:[NSNull null])];
-    [_webView.configuration.userContentController addUserScript:[[WKUserScript alloc]initWithSource:workspaceScript injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
+    [_webView.configuration.userContentController addUserScript:[[WKUserScript alloc]initWithSource:YNXOriginBoundScript(workspaceScript,_port) injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES]];
     if([self launchServer]) [self loadWhenReady:0]; else [self showFailure:@"The bundled local runtime could not start."];
 }
 - (BOOL)launchServer {
@@ -316,14 +341,14 @@ typedef NSDictionary *(^YNXSnapshotReader)(NSError **error);
 }
 - (void)loadWhenReady:(NSInteger)attempt { if(attempt>=60){[self showFailure:@"Local server did not become ready. Log: ~/Library/Logs/YNXDeveloper/desktop-server.log"];return;} NSURL *url=[NSURL URLWithString:[NSString stringWithFormat:@"http://127.0.0.1:%ld",(long)_port]]; NSMutableURLRequest *request=[NSMutableURLRequest requestWithURL:url cachePolicy:NSURLRequestReloadIgnoringLocalCacheData timeoutInterval:1]; [[[NSURLSession sharedSession]dataTaskWithRequest:request completionHandler:^(NSData *data,NSURLResponse *response,NSError *error){dispatch_async(dispatch_get_main_queue(),^{if([(NSHTTPURLResponse*)response statusCode]==200)[self.webView loadRequest:[NSURLRequest requestWithURL:url]];else dispatch_after(dispatch_time(DISPATCH_TIME_NOW,150*NSEC_PER_MSEC),dispatch_get_main_queue(),^{[self loadWhenReady:attempt+1];});});}]resume]; }
 - (void)showFailure:(NSString *)message { NSString *html=[NSString stringWithFormat:@"<meta charset=utf-8><style>body{font:16px -apple-system;padding:48px;color:#111827}h1{color:#002FA7}button{padding:10px}</style><h1>YNX Developer Testnet Preview</h1><p>%@</p><p>No project, Wallet key, or deployment was changed.</p>",message]; [_webView loadHTMLString:html baseURL:nil]; }
-- (void)application:(NSApplication *)application openURLs:(NSArray<NSURL *> *)urls { for(NSURL *url in urls){NSURLComponents *parts=[NSURLComponents componentsWithURL:url resolvingAgainstBaseURL:NO];NSArray<NSURLQueryItem *> *items=parts.queryItems;BOOL walletAuth=[parts.host isEqualToString:@"wallet-auth"]&&[parts.path isEqualToString:@"/callback"],deployment=[parts.host isEqualToString:@"deployment"]&&[parts.path isEqualToString:@"/callback"];BOOL exact=[parts.scheme isEqualToString:@"ynxdeveloper"]&&(walletAuth||deployment)&&!parts.fragment.length&&items.count==1&&[items.firstObject.name isEqualToString:@"response"]&&items.firstObject.value.length>32;if(!exact)continue;NSString *encoded=YNXJSON(url.absoluteString),*event=deployment?@"ynx-deployment-callback":@"ynx-wallet-callback";[_webView evaluateJavaScript:[NSString stringWithFormat:@"window.dispatchEvent(new CustomEvent('%@',{detail:%@}))",event,encoded?:@"null"] completionHandler:nil];} }
-- (void)click:(NSString *)selector { [_webView evaluateJavaScript:[NSString stringWithFormat:@"document.querySelector('%@')?.click()",selector] completionHandler:nil]; }
+- (void)application:(NSApplication *)application openURLs:(NSArray<NSURL *> *)urls { for(NSURL *url in urls){NSURLComponents *parts=[NSURLComponents componentsWithURL:url resolvingAgainstBaseURL:NO];NSArray<NSURLQueryItem *> *items=parts.queryItems;BOOL walletAuth=[parts.host isEqualToString:@"wallet-auth"]&&[parts.path isEqualToString:@"/callback"],deployment=[parts.host isEqualToString:@"deployment"]&&[parts.path isEqualToString:@"/callback"];BOOL exact=[parts.scheme isEqualToString:@"ynxdeveloper"]&&(walletAuth||deployment)&&!parts.fragment.length&&items.count==1&&[items.firstObject.name isEqualToString:@"response"]&&items.firstObject.value.length>32;if(!exact)continue;NSString *encoded=YNXJSON(url.absoluteString),*event=deployment?@"ynx-deployment-callback":@"ynx-wallet-callback";YNXEvaluateTrustedScript(_webView,_port,[NSString stringWithFormat:@"window.dispatchEvent(new CustomEvent('%@',{detail:%@}))",event,encoded?:@"null"]);} }
+- (void)click:(NSString *)selector { YNXEvaluateTrustedScript(_webView,_port,[NSString stringWithFormat:@"document.querySelector('%@')?.click()",selector]); }
 - (NSMenuItem *)editItem:(NSMenu *)menu title:(NSString *)title command:(NSString *)command key:(NSString *)key {
     NSMenuItem *item=[menu addItemWithTitle:title action:@selector(desktopEdit:) keyEquivalent:key];
     item.target=self; item.representedObject=command; return item;
 }
 - (void)installMenus { NSMenu *main=[NSMenu new]; NSApp.mainMenu=main; NSMenuItem *appItem=[NSMenuItem new];[main addItem:appItem];NSMenu *app=[NSMenu new];appItem.submenu=app;[app addItemWithTitle:@"About YNX Developer Testnet Preview" action:@selector(showAbout:) keyEquivalent:@""];[app addItem:[NSMenuItem separatorItem]];[app addItemWithTitle:@"Check for Updates…" action:@selector(checkUpdates:) keyEquivalent:@""];[app addItem:[NSMenuItem separatorItem]];[app addItemWithTitle:@"Quit YNX Developer" action:@selector(terminate:) keyEquivalent:@"q"]; NSMenuItem *fileItem=[NSMenuItem new];[main addItem:fileItem];NSMenu *file=[[NSMenu alloc]initWithTitle:@"File"];fileItem.submenu=file;[file addItemWithTitle:@"New File…" action:@selector(newProject:) keyEquivalent:@"n"];[file addItemWithTitle:@"Open Project…" action:@selector(openProject:) keyEquivalent:@"o"];[file addItemWithTitle:@"Save" action:@selector(save:) keyEquivalent:@"s"];NSMenuItem *export=[file addItemWithTitle:@"Export Project…" action:@selector(exportProject:) keyEquivalent:@"s"];export.keyEquivalentModifierMask=NSEventModifierFlagCommand|NSEventModifierFlagShift; NSMenuItem *editItem=[NSMenuItem new];[main addItem:editItem];NSMenu *edit=[[NSMenu alloc]initWithTitle:@"Edit"];editItem.submenu=edit;[self editItem:edit title:@"Undo" command:@"undo" key:@"z"];NSMenuItem *redo=[self editItem:edit title:@"Redo" command:@"redo" key:@"z"];redo.keyEquivalentModifierMask=NSEventModifierFlagCommand|NSEventModifierFlagShift;[edit addItem:[NSMenuItem separatorItem]];[self editItem:edit title:@"Cut" command:@"cut" key:@"x"];[self editItem:edit title:@"Copy" command:@"copy" key:@"c"];[self editItem:edit title:@"Paste" command:@"paste" key:@"v"];[self editItem:edit title:@"Select All" command:@"selectAll" key:@"a"]; NSMenuItem *windowItem=[NSMenuItem new];[main addItem:windowItem];NSMenu *windows=[[NSMenu alloc]initWithTitle:@"Window"];windowItem.submenu=windows;[windows addItemWithTitle:@"Minimize" action:@selector(performMiniaturize:) keyEquivalent:@"m"];[windows addItemWithTitle:@"Bring All to Front" action:@selector(arrangeInFront:) keyEquivalent:@""]; }
-- (void)dispatchWorkbenchCommand:(NSDictionary *)detail { [_webView evaluateJavaScript:[NSString stringWithFormat:@"window.dispatchEvent(new CustomEvent('ynx-desktop-command',{detail:%@}))",YNXJSON(detail)] completionHandler:nil]; }
+- (void)dispatchWorkbenchCommand:(NSDictionary *)detail { YNXEvaluateTrustedScript(_webView,_port,[NSString stringWithFormat:@"window.dispatchEvent(new CustomEvent('ynx-desktop-command',{detail:%@}))",YNXJSON(detail)]); }
 - (BOOL)validateMenuItem:(NSMenuItem *)item {
     if(item.action==@selector(desktopEdit:))return !_nativeEditPending && NSApp.keyWindow.firstResponder!=nil;
     if(item.action==@selector(newProject:) || item.action==@selector(openProject:) || item.action==@selector(save:) || item.action==@selector(exportProject:))return _workspaceBridge.restoreComplete;
@@ -370,23 +395,30 @@ typedef NSDictionary *(^YNXSnapshotReader)(NSError **error);
 }
 - (void)save:(id)sender { [self dispatchWorkbenchCommand:@{@"command":@"save"}]; }
 - (void)exportProject:(id)sender { [self dispatchWorkbenchCommand:@{@"command":@"export-project"}]; }
-- (BOOL)trustedFrame:(WKFrameInfo *)frame { WKSecurityOrigin *origin=frame.securityOrigin; return frame.mainFrame && [origin.protocol isEqualToString:@"http"] && [origin.host isEqualToString:@"127.0.0.1"] && origin.port==_port; }
+- (BOOL)trustedFrame:(WKFrameInfo *)frame { return YNXTrustedFrame(frame,_port); }
+- (void)webView:(WKWebView *)view decidePolicyForNavigationAction:(WKNavigationAction *)action decisionHandler:(void (^)(WKNavigationActionPolicy))decisionHandler {
+    if(view!=_webView){decisionHandler(WKNavigationActionPolicyCancel);return;}
+    if(action.targetFrame && !action.targetFrame.mainFrame){decisionHandler(WKNavigationActionPolicyAllow);return;}
+    YNXNavigationDisposition disposition=YNXMainNavigation(action.request.URL,_port,action.navigationType);
+    decisionHandler(disposition==YNXNavigationAllow?WKNavigationActionPolicyAllow:WKNavigationActionPolicyCancel);
+    if(disposition==YNXNavigationOpenExternal)[NSWorkspace.sharedWorkspace openURL:action.request.URL];
+}
 - (void)webView:(WKWebView *)view runOpenPanelWithParameters:(WKOpenPanelParameters *)parameters initiatedByFrame:(WKFrameInfo *)frame completionHandler:(void (^)(NSArray<NSURL *> *))completionHandler {
-    if(![self trustedFrame:frame]){completionHandler(nil);return;}
+    if(view!=_webView || ![self trustedFrame:frame]){completionHandler(nil);return;}
     NSOpenPanel *panel=[NSOpenPanel openPanel];panel.canChooseFiles=YES;panel.canChooseDirectories=parameters.allowsDirectories;panel.allowsMultipleSelection=parameters.allowsMultipleSelection;
     [panel beginSheetModalForWindow:_window completionHandler:^(NSModalResponse result){completionHandler(result==NSModalResponseOK?panel.URLs:nil);}];
 }
 - (void)webView:(WKWebView *)view runJavaScriptAlertPanelWithMessage:(NSString *)message initiatedByFrame:(WKFrameInfo *)frame completionHandler:(void (^)(void))completionHandler {
-    if(![self trustedFrame:frame]){completionHandler();return;}
+    if(view!=_webView || ![self trustedFrame:frame]){completionHandler();return;}
     NSAlert *alert=[NSAlert new];alert.messageText=@"YNX Developer";alert.informativeText=message;[alert beginSheetModalForWindow:_window completionHandler:^(NSModalResponse result){completionHandler();}];
 }
 - (void)webView:(WKWebView *)view runJavaScriptConfirmPanelWithMessage:(NSString *)message initiatedByFrame:(WKFrameInfo *)frame completionHandler:(void (^)(BOOL))completionHandler {
-    if(![self trustedFrame:frame]){completionHandler(NO);return;}
+    if(view!=_webView || ![self trustedFrame:frame]){completionHandler(NO);return;}
     NSAlert *alert=[NSAlert new];alert.messageText=@"YNX Developer";alert.informativeText=message;[alert addButtonWithTitle:@"Continue"];[alert addButtonWithTitle:@"Cancel"];
     [alert beginSheetModalForWindow:_window completionHandler:^(NSModalResponse result){completionHandler(result==NSAlertFirstButtonReturn);}];
 }
 - (void)webView:(WKWebView *)view runJavaScriptTextInputPanelWithPrompt:(NSString *)prompt defaultText:(NSString *)defaultText initiatedByFrame:(WKFrameInfo *)frame completionHandler:(void (^)(NSString *))completionHandler {
-    if(![self trustedFrame:frame]){completionHandler(nil);return;}
+    if(view!=_webView || ![self trustedFrame:frame]){completionHandler(nil);return;}
     NSAlert *alert=[NSAlert new];alert.messageText=@"YNX Developer";alert.informativeText=prompt;[alert addButtonWithTitle:@"Create"];[alert addButtonWithTitle:@"Cancel"];
     NSTextField *field=[[NSTextField alloc]initWithFrame:NSMakeRect(0,0,360,24)];field.stringValue=defaultText?:@"";alert.accessoryView=field;
     [alert beginSheetModalForWindow:_window completionHandler:^(NSModalResponse result){completionHandler(result==NSAlertFirstButtonReturn?field.stringValue:nil);}];
@@ -396,7 +428,7 @@ typedef NSDictionary *(^YNXSnapshotReader)(NSError **error);
     if(!_webView || !_workspaceBridge || !_workspaceBridge.restoreComplete)return NSTerminateNow;
     // Wait for the real Workbench's current snapshot and native disk ACK. A
     // random-port relaunch must not race the final edited character at quit.
-    [_webView callAsyncJavaScript:@"if (typeof window.__ynxFlushWorkspace === 'function') await window.__ynxFlushWorkspace();" arguments:@{} inFrame:nil inContentWorld:WKContentWorld.pageWorld completionHandler:^(id result, NSError *error){
+    [_webView callAsyncJavaScript:@"if(location.origin!==origin)throw new Error('Workspace origin changed');if (typeof window.__ynxFlushWorkspace === 'function') await window.__ynxFlushWorkspace();" arguments:@{@"origin":YNXOrigin(_port)} inFrame:nil inContentWorld:WKContentWorld.pageWorld completionHandler:^(id result, NSError *error){
         if(!error){[sender replyToApplicationShouldTerminate:YES];return;}
         NSAlert *alert=[NSAlert new];alert.messageText=@"Workspace recovery could not be saved";alert.informativeText=@"Keep editing to retry Save, or quit without saving the latest changes.";[alert addButtonWithTitle:@"Keep Editing"];[alert addButtonWithTitle:@"Quit Without Saving"];
         [sender replyToApplicationShouldTerminate:[alert runModal]==NSAlertSecondButtonReturn];
