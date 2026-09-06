@@ -10,7 +10,7 @@ export const REQUEST_METHODS = Object.freeze([
   "eth_chainId", "eth_accounts", "eth_requestAccounts", "wallet_getPermissions", "wallet_requestPermissions",
   "wallet_addEthereumChain", "wallet_switchEthereumChain", "wallet_revokePermissions", "personal_sign",
   "eth_signTypedData_v4", "eth_sendTransaction", "ynx_disconnect",
-  "eth_blockNumber","eth_call","eth_estimateGas","eth_gasPrice","eth_getBalance","eth_getBlockByHash","eth_getBlockByNumber","eth_getCode","eth_getLogs","eth_getStorageAt","eth_getTransactionByHash","eth_getTransactionCount","eth_getTransactionReceipt","eth_maxPriorityFeePerGas","net_version","web3_clientVersion",
+  "ynx_getFeeModel","ynx_getBalanceDetails","eth_blockNumber","eth_call","eth_estimateGas","eth_gasPrice","eth_getBalance","eth_getBlockByHash","eth_getBlockByNumber","eth_getCode","eth_getLogs","eth_getStorageAt","eth_getTransactionByHash","eth_getTransactionCount","eth_getTransactionReceipt","eth_maxPriorityFeePerGas","net_version","web3_clientVersion",
 ]);
 export const PROVIDER_EVENTS = Object.freeze(["connect","accountsChanged", "chainChanged", "disconnect"]);
 
@@ -37,5 +37,15 @@ export function validateRuntimeRequest(message, senderUrl) {
 export function publicBridgeError(error) {
   const code = typeof error?.code === "number" || typeof error?.code === "string" ? error.code : "PROVIDER_REQUEST_FAILED";
   const message = typeof error?.message === "string" && error.message.length <= 240 ? error.message : "Wallet request failed closed.";
-  return Object.freeze({code, message});
+  // Only public recovery fields cross the page boundary; never raw signed bytes.
+  const data=error?.data,publicData={};
+  if(typeof data?.status==="string"&&/^[a-z_]{1,64}$/u.test(data.status))publicData.status=data.status;
+  if(typeof data?.transactionHash==="string"&&/^0x[0-9a-fA-F]{64}$/u.test(data.transactionHash))publicData.transactionHash=data.transactionHash.toLowerCase();
+  if(code===-32004&&data?.status==="native_block_projection_unsupported"){
+    for(const key of["blockNumber","feeEquivalentGas","projectionGasLimit"])if(typeof data[key]==="string"&&/^0x(?:0|[1-9a-fA-F][0-9a-fA-F]{0,63})$/u.test(data[key]))publicData[key]=data[key];
+    if(typeof data.blockHash==="string"&&/^0x[0-9a-fA-F]{64}$/u.test(data.blockHash))publicData.blockHash=data.blockHash;
+    if(data.gasSemantics==="native fixed-fee accounting; no EVM block gas scheduling")publicData.gasSemantics=data.gasSemantics;
+    if(typeof data.nativeBlockPath==="string"&&/^\/blocks\/(?:0|[1-9][0-9]{0,19})$/u.test(data.nativeBlockPath))publicData.nativeBlockPath=data.nativeBlockPath;
+  }
+  return Object.freeze({code,message,...(Object.keys(publicData).length?{data:Object.freeze(publicData)}:{})});
 }

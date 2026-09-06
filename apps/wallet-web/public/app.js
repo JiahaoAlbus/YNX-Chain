@@ -1,4 +1,5 @@
 import {LOCALES, catalog, isRTL} from "./i18n.js";
+import {readFeeModel,validateNativeTransferInput} from "./extension-fee-model.js";
 import {decimalYNXTToWei, prepareTransaction, reviewMatchesSession} from "./transaction-input.js";
 import {PREFERENCES_KEY,acceptPreferenceUpdate,loadPreferences,savePreferences} from "./preferences.js";
 import {
@@ -42,7 +43,7 @@ function text(key) { return catalog(state.locale)[key] || key; }
 function options() { return LOCALES.map(([value, label]) => `<option value="${value}" ${value === state.locale ? "selected" : ""}>${label}</option>`).join(""); }
 function escape(value) { const node = document.createElement("span"); node.textContent = String(value); return node.innerHTML.replaceAll('"', "&quot;").replaceAll("'", "&#39;"); }
 function unavailablePlatforms(){return Object.values(WALLET_DOWNLOAD_MATRIX).filter(item=>item.hosted!==true).map(item=>`<button type="button" disabled aria-disabled="true" data-permanent-disabled="true">${escape(item.label)} · ${text("otherDownloads")}</button>`).join("")}
-function statusContent(){if(state.errorCode)return`${escape(state.errorCode)}: ${text("requestFailed")}`;return state.account?`${text("connected")} · <span class="mono">${escape(state.account)}</span>`:text("disconnected")}
+function statusContent(){if(state.errorCode)return`${escape(state.errorCode)}: ${text("requestFailed")}${state.uncertainHash?`<p>The original transaction needs confirmation. Open the extension account vault and check its status. Do not send a replacement.</p><p class="mono address">${escape(state.uncertainHash)}</p>`:""}`;return state.account?`${text("connected")} · <span class="mono">${escape(state.account)}</span>`:text("disconnected")}
 
 function render() {
   state.review = null;
@@ -87,7 +88,7 @@ function render() {
 function formError(error) {
   const labels = {INVALID_AMOUNT:"invalidAmount",AMOUNT_TOO_LARGE:"amountTooLarge",INVALID_RECIPIENT:"invalidAddress",INVALID_CALLDATA:"invalidData",INVALID_HEX_VALUE:"invalidHex"};
   const node = document.querySelector("#form-error");
-  node.textContent = text(labels[error.code] || "requestFailed");
+  node.textContent = ["RPC_CAPABILITY_UNAVAILABLE","NATIVE_TRANSFER_DISABLED","UNSUPPORTED_NATIVE_TRANSFER"].includes(error.code)?error.message:text(labels[error.code] || "requestFailed");
   node.classList.remove("hidden");
   if (["value","data"].includes(error.field)) document.querySelector("#advanced").open = true;
   const input = document.getElementById(error.field);
@@ -101,16 +102,21 @@ function closeReview() {
   document.querySelector("#send")?.focus();
 }
 
-function openReview() {
-  if (state.busy || !walletActionGates(state.provider,state.account,state.chainId).canSendTransaction) return;
+async function openReview() {
+  if (state.busy || state.preparing || !walletActionGates(state.provider,state.account,state.chainId).canSendTransaction) return;
+  state.preparing=true;
+  const session={provider:state.provider,wallet:state.wallet,account:state.account,chainId:state.chainId,epoch:state.epoch};
   try {
     const transaction = prepareTransaction({from:state.account,to:state.form.recipient,...state.form});
+    const model=await readFeeModel((method,params)=>session.provider.request({method,params}));
+    validateNativeTransferInput(transaction,model);
+    if(!reviewMatchesSession(session,state))return;
     state.review = Object.freeze({transaction,provider:state.provider,wallet:state.wallet,account:state.account,chainId:state.chainId,epoch:state.epoch});
-    const rows = [[text("wallet"),state.wallet==="ynx"?"YNX Wallet":"MetaMask"],[text("network"),"YNX Testnet · 6423"],[text("sender"),transaction.from],[text("recipient"),transaction.to],[text("amount"),transaction.displayAmount+" YNXT"],[text("fees"),text("feesWallet")]];
+    const rows = [[text("wallet"),state.wallet==="ynx"?"YNX Wallet":"MetaMask"],[text("network"),"YNX Testnet · 6423"],[text("sender"),transaction.from],[text("recipient"),transaction.to],[text("amount"),transaction.displayAmount+" YNXT"],[text("fees"),"1 YNXT · whole-YNXT plain native transfer; full EVM unavailable"]];
     document.querySelector("#review-content").innerHTML = `<dl class="review-facts">${rows.map(([label,value])=>`<div><dt>${escape(label)}</dt><dd>${escape(value)}</dd></div>`).join("")}</dl>${transaction.data!=="0x"?`<details open><summary>${text("data")}</summary><p class="mono address">${escape(transaction.data)}</p></details>`:""}`;
     document.querySelector("#review-dialog").showModal();
     document.querySelector("#review-cancel").focus();
-  } catch (error) { formError(error); }
+  } catch (error) { formError(error); } finally {state.preparing=false;}
 }
 
 async function confirmReview() {
@@ -121,8 +127,8 @@ async function confirmReview() {
   await act(() => sendTransaction(reviewed.provider,reviewed.transaction), (value) => reviewMatchesSession(reviewed,state)?`${text("txHash")}: ${value}`:text("sessionChanged"));
 }
 
-function setStatus(message, kind = "info") { state.errorCode=null;const node = document.querySelector("#status"); node.classList.remove("hidden"); node.dataset.kind = kind; node.innerHTML = `<strong>${text("status")}:</strong> ${escape(message)}`; }
-function setError(error){state.errorCode=String(error?.code||"REQUEST_FAILED");const node=document.querySelector("#status");node.classList.remove("hidden");node.dataset.kind="error";node.innerHTML=`<strong>${text("status")}:</strong> ${statusContent()}`}
+function setStatus(message, kind = "info") { state.errorCode=null;state.uncertainHash=null;const node = document.querySelector("#status"); node.classList.remove("hidden"); node.dataset.kind = kind; node.innerHTML = `<strong>${text("status")}:</strong> ${escape(message)}`; }
+function setError(error){state.uncertainHash=["transaction_durability_uncertain","transaction_confirmation_pending"].includes(error?.data?.status)&&/^0x[0-9a-fA-F]{64}$/.test(error?.data?.transactionHash||"")?error.data.transactionHash:null;state.errorCode=String(error?.code||"REQUEST_FAILED");const node=document.querySelector("#status");node.classList.remove("hidden");node.dataset.kind="error";node.innerHTML=`<strong>${text("status")}:</strong> ${statusContent()}`}
 function localizedError(error) { const code=typeof error?.code==="string"||typeof error?.code==="number"?String(error.code):"REQUEST_FAILED"; return `${code}: ${text("requestFailed")}`; }
 async function act(work, success) {
   if (state.busy) return null;

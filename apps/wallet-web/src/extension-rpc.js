@@ -1,9 +1,10 @@
+import {readNativeBalance,readFeeModel} from "./extension-fee-model.js";
 export const YNX_RPC_URL = "https://evm.ynxweb4.com";
 export const YNX_CHAIN_ID = "0x1917";
 export const RPC_TIMEOUT_MS = 12000;
 export const RPC_REQUEST_ID = 6423;
 export const READ_ONLY_RPC_METHODS=Object.freeze([
-  "eth_blockNumber","eth_call","eth_estimateGas","eth_gasPrice","eth_getBalance","eth_getBlockByHash","eth_getBlockByNumber","eth_getCode","eth_getLogs","eth_getStorageAt","eth_getTransactionByHash","eth_getTransactionCount","eth_getTransactionReceipt","eth_maxPriorityFeePerGas","net_version","web3_clientVersion",
+  "ynx_getFeeModel","ynx_getBalanceDetails","eth_blockNumber","eth_call","eth_estimateGas","eth_gasPrice","eth_getBalance","eth_getBlockByHash","eth_getBlockByNumber","eth_getCode","eth_getLogs","eth_getStorageAt","eth_getTransactionByHash","eth_getTransactionCount","eth_getTransactionReceipt","eth_maxPriorityFeePerGas","net_version","web3_clientVersion",
 ]);
 const RPC_BODY_LIMIT=2*1024*1024,PARAMS_LIMIT=64*1024;
 
@@ -19,6 +20,13 @@ export async function verifyExtensionRpc(fetcher = globalThis.fetch, url = YNX_R
 
 export async function forwardExtensionRpc(method,params=[],fetcher=globalThis.fetch,url=YNX_RPC_URL){
   if(typeof method!=="string"||!(method==="eth_chainId"||READ_ONLY_RPC_METHODS.includes(method)))rpcFailure(4200,"Unsupported YNX Wallet RPC method.");
+  if(method==="ynx_getFeeModel")return readFeeModel((name,args)=>exactRpcRequest(name,args,fetcher,url));
+  if(method==="ynx_getBalanceDetails"||method==="eth_getBalance"){
+    const details=await readNativeBalance((name,args)=>exactRpcRequest(name,args,fetcher,url),params);
+    if(method==="ynx_getBalanceDetails")return details;
+    if(!details.ethereumNativeTransferEnabled)rpcFailure("LEGACY_BALANCE_UNITS","This RPC uses whole-YNXT balance units. Use ynx_getBalanceDetails for an explicitly labelled balance.");
+    return details.rawBalance;
+  }
   return exactRpcRequest(method,params,fetcher,url);
 }
 
@@ -32,28 +40,29 @@ async function exactRpcRequest(method,params=[],fetcher=globalThis.fetch,url=YNX
   if(!Array.isArray(params)||JSON.stringify(params).length>PARAMS_LIMIT)rpcFailure("INVALID_RPC_PARAMS","YNX Wallet RPC parameters are invalid.");
   if (typeof fetcher !== "function" || url !== YNX_RPC_URL) rpcFailure("RPC_UNAVAILABLE", "YNX Testnet RPC is unavailable.");
   const controller = new AbortController();
-  let response, timer;
-  try {
-    const request = fetcher(url, {
-      method: "POST",
-      headers: {"content-type": "application/json", accept: "application/json"},
-      body: JSON.stringify({jsonrpc: "2.0", id: RPC_REQUEST_ID, method, params}),
-      signal: controller.signal,
-      cache: "no-store",
-      credentials: "omit",
-    });
-    const deadline = new Promise((_, reject) => { timer = setTimeout(() => { controller.abort(); reject(Object.assign(new Error("RPC deadline exceeded."), {name:"TimeoutError"})); }, RPC_TIMEOUT_MS); });
-    response = await Promise.race([request, deadline]);
-  } catch (error) {
-    rpcFailure(error?.name === "TimeoutError" ? "RPC_TIMEOUT" : "RPC_UNAVAILABLE", "YNX Testnet RPC is unavailable.", error);
-  } finally { clearTimeout(timer); }
-  if (!response?.ok) rpcFailure("RPC_UNAVAILABLE", `YNX Testnet RPC failed closed (${response?.status ?? "no status"}).`);
-  let body=null;
-  if(typeof response.text==="function"){
-    const text=await response.text().catch(()=>null);if(typeof text!=="string"||text.length>RPC_BODY_LIMIT)rpcFailure("INVALID_RPC_RESPONSE","RPC returned an invalid JSON-RPC envelope.");
-    try{body=JSON.parse(text)}catch{}
-  }else body=await response.json().catch(() => null);
-  if (!body || body.jsonrpc !== "2.0" || body.id !== RPC_REQUEST_ID || Object.hasOwn(body, "error")) rpcFailure("INVALID_RPC_RESPONSE", "RPC returned an invalid JSON-RPC envelope.");
-  if(!Object.hasOwn(body,"result"))rpcFailure("INVALID_RPC_RESPONSE","RPC returned an invalid JSON-RPC envelope.");
-  return body.result;
+  let timer;
+  try{
+    const request=(async()=>{
+      const response=await fetcher(url,{method:"POST",headers:{"content-type":"application/json",accept:"application/json"},body:JSON.stringify({jsonrpc:"2.0",id:RPC_REQUEST_ID,method,params}),signal:controller.signal,cache:"no-store",credentials:"omit"});
+      if(!response)rpcFailure("RPC_UNAVAILABLE","YNX Testnet RPC returned no response.");
+      let body;
+      if(typeof response.text==="function"){
+        const text=await response.text();if(typeof text!=="string"||text.length>RPC_BODY_LIMIT)rpcFailure("INVALID_RPC_RESPONSE","RPC returned an invalid JSON-RPC envelope.");
+        try{body=JSON.parse(text)}catch{rpcFailure("INVALID_RPC_RESPONSE","RPC returned invalid JSON.")}
+      }else{body=await response.json();if(JSON.stringify(body)?.length>RPC_BODY_LIMIT)rpcFailure("INVALID_RPC_RESPONSE","RPC response exceeds its limit.")}
+      if(!body||body.jsonrpc!=="2.0"||body.id!==RPC_REQUEST_ID)rpcFailure(response.ok?"INVALID_RPC_RESPONSE":"RPC_UNAVAILABLE","RPC returned an invalid JSON-RPC envelope.");
+      if(Object.hasOwn(body,"error")){
+        if(Object.hasOwn(body,"result")||!Number.isInteger(body.error?.code)||typeof body.error?.message!=="string")rpcFailure("INVALID_RPC_RESPONSE","RPC returned an invalid JSON-RPC error.");
+        throw Object.assign(new Error(body.error.message.slice(0,240)),{code:body.error.code,rpcResponseValidated:response.ok===true,...(Object.hasOwn(body.error,"data")?{data:body.error.data}:{})});
+      }
+      if(!response.ok)rpcFailure("RPC_UNAVAILABLE",`YNX Testnet RPC failed closed (${response.status ?? "no status"}).`);
+      if(!Object.hasOwn(body,"result"))rpcFailure("INVALID_RPC_RESPONSE","RPC returned an invalid JSON-RPC envelope.");
+      return body.result;
+    })();
+    const deadline=new Promise((_,reject)=>{timer=setTimeout(()=>{controller.abort();reject(Object.assign(new Error("YNX Testnet RPC response timed out."),{code:"RPC_TIMEOUT"}))},RPC_TIMEOUT_MS)});
+    return await Promise.race([request,deadline]);
+  }catch(error){
+    if(error?.code!==undefined)throw error;
+    rpcFailure("RPC_UNAVAILABLE","YNX Testnet RPC is unavailable.",error);
+  }finally{clearTimeout(timer)}
 }

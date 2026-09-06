@@ -124,7 +124,7 @@ export function createExtensionProvider(preference, runtime = globalThis.browser
     preference,
     async request(input) {
       const response = await runtime.sendMessage({type: "YNX_WALLET_REQUEST", preference, input});
-      if (!response?.ok) fail(response?.error?.code || "PROVIDER_REQUEST_FAILED", response?.error?.message || "The active-tab wallet request failed closed.");
+      if (!response?.ok) throw Object.assign(new Error(response?.error?.message || "The active-tab wallet request failed closed."),{code:response?.error?.code || "PROVIDER_REQUEST_FAILED",data:response?.error?.data});
       return response.result;
     },
   });

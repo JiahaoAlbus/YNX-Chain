@@ -159,3 +159,45 @@ the same exact source commit in `build-identity.json`; there is no
 
 Build outputs are unsigned engineering artifacts. They are not installed,
 production-signed, store-released, or publicly hosted by this package.
+
+### Core native-transfer adapter candidate (2026-09-06)
+
+Full EVM interoperability remains the product goal. This candidate only prepares
+positive whole-YNXT plain native transfers when both chain `0x1917` and the exact
+`ynx-ethereum-native-v1` fee model are proven and `enabled=true`. It rejects zero,
+fractional amounts, self transfers, calldata, contract creation, access lists and
+EIP-1559 transactions before the signer review; Core estimate also checks the
+recipient. The fixed charge is 1 YNXT: gas 25000 and gas price 40000000000000 wei.
+No 120% gas buffer is added. Explicit larger gas is preserved and its full maximum
+budget is checked separately from the fixed charge. Approval never permits
+silently replacing supplied fee parameters.
+
+`ynx_getFeeModel` is available across every bridge layer. The additional read-only
+`ynx_getBalanceDetails` returns `rawBalance`, `rawUnit`, `amountYNXT` and the proven
+capability. Under the known model with `enabled=false`, `0x64` means 100 whole
+YNXT. Standard `eth_getBalance` is rejected in that mode to avoid presenting that
+integer as wei. With `enabled=true`, balances use wei. Missing or unknown fee
+models fail closed; chain ID alone does not prove amount units.
+
+Before broadcasting, the extension writes and reads back the exact signed raw
+transaction and hash in its local recovery journal. These signed bytes are
+broadcast-capable public transaction data, not a recovery key; they remain in the
+extension profile and are never exposed to a DApp. A pending account cannot open
+another transaction review after an uncertain response or worker restart. Even a
+successful RPC ACK remains pending until an explicit receipt check, covering a
+lost response between the worker and its caller. The account vault displays the
+original hash and offers a read-only check. A missing/malformed receipt does not
+release the pending account, and neither checking nor reopening resubmits bytes.
+Receipt confirmation means that the configured RPC returned the exact mined
+hash, block, status, sender, recipient, type and fixed actual fee; it does not prove
+disk durability. Identical-byte replay,
+dropped-transaction resolution, journal export and broader recovery UI remain
+future work. The first exact, validated Core -32003 rejection is retained as a
+rejected journal record and does not block another reviewed attempt. Once any
+unknown outcome exists, later read errors cannot clear it. Historical records
+remain keyed by transaction hash; quota exhaustion blocks before broadcast.
+Removing/importing a vault does not discard unresolved journal data.
+
+Validation here is source candidate plus local signer/RPC/browser-API fixtures.
+It is not a public Core deployment, installed extension E2E, full EVM support,
+store release, or authorization to send a public transaction.

@@ -1,5 +1,6 @@
-import {Transaction,TypedDataEncoder,Wallet,accessListify,formatEther,getAddress,getBytes,toQuantity} from "ethers";
+import {Transaction,TypedDataEncoder,Wallet,formatEther,getAddress,getBytes,toQuantity} from "ethers";
 import {extensionIdentity} from "./extension-vault.js";
+import {NATIVE_FEE_MODEL,readFeeModel,requireNativeTransfer,validateNativeTransferInput} from "./extension-fee-model.js";
 
 const CHAIN_ID=6423,CHAIN_HEX="0x1917",QUANTITY=/^0x(?:0|[1-9a-fA-F][0-9a-fA-F]*)$/u,HEX=/^0x(?:[0-9a-fA-F]{2})*$/u;
 const preparedRequests=new WeakSet(),TX_FIELDS=new Set(["from","to","value","data","chainId","nonce","gas","gasLimit","gasPrice","maxFeePerGas","maxPriorityFeePerGas","type","accessList"]);
@@ -8,37 +9,31 @@ function freeze(value){for(const child of Object.values(value))if(child&&typeof 
 function quantity(value,label,{zero=true}={}){if(typeof value!=="string"||!QUANTITY.test(value)||!zero&&BigInt(value)===0n)fail("INVALID_TRANSACTION_FIELDS",`${label} must be a valid hexadecimal quantity.`);return toQuantity(BigInt(value))}
 function address(value){try{return getAddress(value).toLowerCase()}catch{fail("INVALID_SIGNER_ACCOUNT","The transaction account or recipient is invalid.")}}
 function signingFields(transaction){const{from,...fields}=transaction;return{...fields,nonce:Number(BigInt(fields.nonce))}}
-async function verifyChain(rpc){if(await rpc("eth_chainId",[])!==CHAIN_HEX)fail("WRONG_NETWORK","Provider RPC did not prove YNX Testnet 0x1917.")}
-async function feeRpc(rpc,method,params){try{return await rpc(method,params)}catch{fail("RPC_FEE_UNAVAILABLE","YNX Testnet cannot provide a complete network fee. Nothing was signed.")}}
+async function feeRpc(rpc,method,params){try{return await rpc(method,params)}catch(error){if(error?.code!==undefined)throw error;fail("RPC_FEE_UNAVAILABLE","YNX Testnet cannot provide a complete network fee. Nothing was signed.")}}
 
 async function prepareTransaction(expectedAccount,input,rpc){
   if(!input||typeof input!=="object"||Array.isArray(input)||Object.keys(input).some(key=>!TX_FIELDS.has(key)))fail("INVALID_TRANSACTION","The transaction contains unsupported fields.");
   const from=address(input.from),to=input.to===null||input.to===undefined?null:address(input.to);
   if(from!==expectedAccount||input.chainId!==undefined&&![CHAIN_ID,String(CHAIN_ID),CHAIN_HEX].includes(input.chainId))fail("INVALID_TRANSACTION","Transaction account or chain does not match the reviewed account.");
   if(input.gas!==undefined&&input.gasLimit!==undefined&&input.gas!==input.gasLimit)fail("INVALID_TRANSACTION","Conflicting gas and gasLimit values are not allowed.");
-  if(input.type!==undefined&&![0,1,2,"0x0","0x1","0x2"].includes(input.type))fail("INVALID_TRANSACTION","Unsupported transaction type.");
-  const dynamic=input.maxFeePerGas!==undefined||input.maxPriorityFeePerGas!==undefined,type=input.type===undefined?(dynamic?2:input.accessList!==undefined?1:0):Number(input.type);
-  if(type!==2&&dynamic||type===2&&input.gasPrice!==undefined||type===0&&input.accessList!==undefined)fail("INVALID_TRANSACTION","Transaction type, access list and fee fields are inconsistent.");
-  const data=input.data??"0x";
-  if(typeof data!=="string"||!HEX.test(data)||data.length>16386||to===null&&data==="0x")fail("INVALID_TRANSACTION","Transaction data is invalid or contract creation has no bytecode.");
-  const tx={from,to,value:quantity(input.value??"0x0","Value"),data:data.toLowerCase(),chainId:CHAIN_HEX,type};
-  for(const key of["nonce","gasPrice","maxFeePerGas","maxPriorityFeePerGas"])if(input[key]!==undefined)tx[key]=quantity(input[key],key,{zero:["nonce","maxPriorityFeePerGas"].includes(key)});
-  if(input.gas!==undefined||input.gasLimit!==undefined)tx.gasLimit=quantity(input.gasLimit??input.gas,"Gas limit",{zero:false});
-  if(type!==0){try{tx.accessList=accessListify(input.accessList??[])}catch{fail("INVALID_TRANSACTION","Transaction access list is invalid.")}}
-  await verifyChain(rpc);
+  const model=await readFeeModel(rpc),value=quantity(input.value??"0x0","Value");
+  validateNativeTransferInput({...input,from,to,value},model);
+  const tx={from,to,value,data:"0x",chainId:CHAIN_HEX,type:0};
   const nonce=quantity(await rpc("eth_getTransactionCount",[from,"pending"]),"Pending nonce");
-  if(tx.nonce!==undefined&&tx.nonce!==nonce)fail("TRANSACTION_NONCE_CHANGED","The requested nonce differs from the pending nonce. Review a new transaction.");
+  if(input.nonce!==undefined&&quantity(input.nonce,"Nonce")!==nonce)fail("TRANSACTION_NONCE_CHANGED","The requested nonce differs from the pending nonce. Review a new transaction.");
   if(BigInt(nonce)>BigInt(Number.MAX_SAFE_INTEGER))fail("INVALID_TRANSACTION","The nonce exceeds the supported range.");tx.nonce=nonce;
-  if(type===2){
-    const block=await feeRpc(rpc,"eth_getBlockByNumber",["latest",false]),baseFee=BigInt(quantity(block?.baseFeePerGas,"Base fee"));
-    tx.maxPriorityFeePerGas??=quantity(await feeRpc(rpc,"eth_maxPriorityFeePerGas",[]),"Priority fee");tx.maxFeePerGas??=toQuantity(baseFee*2n+BigInt(tx.maxPriorityFeePerGas));
-    if(BigInt(tx.maxFeePerGas)<baseFee+BigInt(tx.maxPriorityFeePerGas))fail("INVALID_TRANSACTION_FEE","Maximum fee does not cover the current base and priority fees.");
-  }else tx.gasPrice??=quantity(await feeRpc(rpc,"eth_gasPrice",[]),"Gas price",{zero:false});
-  const estimateInput={...tx,type:toQuantity(type)};delete estimateInput.gasLimit;
-  const estimate=BigInt(quantity(await feeRpc(rpc,"eth_estimateGas",[estimateInput]),"Gas estimate",{zero:false}));
-  if(estimate<21000n||tx.gasLimit!==undefined&&BigInt(tx.gasLimit)<estimate)fail("INVALID_TRANSACTION_GAS","The gas limit is below the network estimate.");tx.gasLimit??=toQuantity((estimate*120n+99n)/100n);
-  const balance=BigInt(quantity(await rpc("eth_getBalance",[from,"pending"]),"Balance")),maximumFee=BigInt(tx.gasLimit)*BigInt(tx.gasPrice??tx.maxFeePerGas);
-  if(balance<BigInt(tx.value)+maximumFee)fail("INSUFFICIENT_FUNDS","Insufficient YNXT to cover the amount and maximum network fee.");Transaction.from(signingFields(tx)).unsignedSerialized;return freeze(tx);
+  const price=quantity(await feeRpc(rpc,"eth_gasPrice",[]),"Gas price",{zero:false});
+  if(price!==model.gasPrice||input.gasPrice!==undefined&&quantity(input.gasPrice,"Gas price")!==price)fail("INVALID_TRANSACTION_FEE","Gas price must equal the proven fixed YNX native fee model. Supplied fees were not changed.");
+  tx.gasPrice=price;
+  tx.gasLimit=quantity(input.gasLimit??input.gas??model.gas,"Gas limit",{zero:false});
+  if(BigInt(tx.gasLimit)<BigInt(model.gas)||BigInt(tx.gasLimit)>30000000n)fail("INVALID_TRANSACTION_GAS","Gas limit is outside the proven native transfer range.");
+  const {gasLimit,...estimateInput}=tx;
+  const estimate=quantity(await feeRpc(rpc,"eth_estimateGas",[{...estimateInput,gas:gasLimit,type:"0x0"}]),"Gas estimate",{zero:false});
+  if(estimate!==model.gas)fail("RPC_CAPABILITY_CHANGED","Gas estimate no longer matches the proven fixed fee model.");
+  const balance=BigInt(quantity(await rpc("eth_getBalance",[from,"pending"]),"Balance")),maximumFee=BigInt(tx.gasLimit)*BigInt(tx.gasPrice);
+  requireNativeTransfer(await readFeeModel(rpc));
+  if(balance<BigInt(tx.value)+maximumFee)fail("INSUFFICIENT_FUNDS","Insufficient YNXT to cover the amount and maximum network fee budget.");
+  Transaction.from(signingFields(tx)).unsignedSerialized;return freeze(tx);
 }
 
 export async function prepareExtensionRequest({expectedAccount,method,params,rpc}){
@@ -60,7 +55,7 @@ export async function prepareExtensionRequest({expectedAccount,method,params,rpc
   }else if(method==="eth_sendTransaction"){
     if(typeof rpc!=="function"||!Array.isArray(params)||params.length!==1)fail("RPC_UNAVAILABLE","Transaction preparation requires YNX Testnet RPC.");
     const tx=await prepareTransaction(account,params[0],rpc),maximumFee=BigInt(tx.gasLimit)*BigInt(tx.gasPrice??tx.maxFeePerGas);
-    normalized=[tx];review={account,...tx,amount:formatEther(tx.value),maximumFee:formatEther(maximumFee),total:formatEther(BigInt(tx.value)+maximumFee),symbol:"YNXT",warning:"This exact transaction will be signed and broadcast. Contract calls may transfer assets or grant permissions beyond the displayed native amount."};
+    normalized=[tx];review={account,...tx,amount:formatEther(tx.value),maximumFee:formatEther(maximumFee),total:formatEther(BigInt(tx.value)+maximumFee),symbol:"YNXT",networkFee:formatEther(NATIVE_FEE_MODEL.feeWei),capability:NATIVE_FEE_MODEL.scope,fullEVM:false,warning:"Current capability: positive whole-YNXT plain native transfer only. Fixed charged fee: 1 YNXT. The maximum gas budget must be available; supplied gas is preserved exactly. Full EVM calls are not enabled."};
   }else fail(4200,"Unsupported signer method.");
   const prepared=freeze({account,method,params:normalized,review});preparedRequests.add(prepared);return prepared;
 }
@@ -71,7 +66,7 @@ export async function signExtensionRequest({secretHex,expectedAccount,prepared,r
   if(prepared.account!==expectedAccount?.toLowerCase()||extensionIdentity(secretHex).account!==prepared.account)fail("SIGNER_ACCOUNT_MISMATCH","Unlocked vault does not match the approved account.");
   await assertAuthorized();const{method,params}=prepared,wallet=new Wallet(`0x${secretHex}`);let result;
   if(method==="eth_sendTransaction"){
-    if(typeof rpc!=="function")fail("RPC_UNAVAILABLE","YNX Testnet RPC is unavailable.");await verifyChain(rpc);
+    if(typeof rpc!=="function")fail("RPC_UNAVAILABLE","YNX Testnet RPC is unavailable.");requireNativeTransfer(await readFeeModel(rpc));
     if(quantity(await rpc("eth_getTransactionCount",[prepared.account,"pending"]),"Pending nonce")!==params[0].nonce)fail("TRANSACTION_NONCE_CHANGED","The pending nonce changed after review. Prepare and review again.");
     await assertAuthorized();const fields=signingFields(params[0]),expected=Transaction.from(fields).unsignedSerialized,rawTransaction=await wallet.signTransaction(fields),parsed=Transaction.from(rawTransaction);
     if(parsed.from?.toLowerCase()!==prepared.account||parsed.unsignedSerialized!==expected)fail("SIGNED_TRANSACTION_MISMATCH","Signed transaction does not match the approved snapshot.");result=Object.freeze({rawTransaction,transactionHash:parsed.hash});

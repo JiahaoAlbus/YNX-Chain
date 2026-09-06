@@ -12,6 +12,7 @@
     <p class="eyebrow">TESTNET ACCOUNT VAULT</p><h1>Own your YNX account</h1>
     <p class="intro">The encrypted recovery key stays in this browser profile. Sites receive only the approved 0x account. Product Session is separate.</p>
     <section id="current" class="card" aria-label="Current account"><strong>Current account</strong><p id="account" class="mono">Loading…</p></section>
+    <section id="transaction" class="card hidden" aria-label="Transaction recovery"><h2>Transaction status</h2><p id="transaction-status"></p><p id="transaction-hash" class="mono"></p><button id="transaction-check" type="button">Check original transaction</button><p>Checking only reads the original hash. It never signs or resends. A missing receipt keeps new sends blocked.</p></section>
     <section class="card" aria-labelledby="setup-title"><h2 id="setup-title">Create or import</h2>
       <label for="password">Vault password · 12 characters minimum</label><input id="password" type="password" minlength="12" maxlength="256" autocomplete="new-password">
       <label for="secret">Recovery key · leave empty to create</label><textarea id="secret" maxlength="64" spellcheck="false" autocomplete="off"></textarea>

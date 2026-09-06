@@ -1,11 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {verifyMessage,verifyTypedData,Transaction,toQuantity} from "ethers";
+import {NATIVE_FEE_MODEL} from "../src/extension-fee-model.js";
 import {extensionIdentity} from "../src/extension-vault.js";
 import {extensionReviewText,prepareExtensionRequest,signExtensionRequest} from "../src/extension-signer.js";
 
 const SECRET=`${"00".repeat(31)}01`,ACCOUNT=extensionIdentity(SECRET).account,TO=`0x${"2".repeat(40)}`;
-const rpc=async(method)=>({eth_chainId:"0x1917",eth_getTransactionCount:"0x1",eth_estimateGas:"0x5208",eth_gasPrice:"0x3b9aca00",eth_getBalance:toQuantity(2n*10n**18n),eth_getBlockByNumber:{baseFeePerGas:"0x3b9aca00"},eth_maxPriorityFeePerGas:"0x5f5e100"})[method];
+const rpc=async(method)=>({eth_chainId:"0x1917",ynx_getFeeModel:{...NATIVE_FEE_MODEL,enabled:true},eth_getTransactionCount:"0x1",eth_estimateGas:"0x61a8",eth_gasPrice:NATIVE_FEE_MODEL.gasPrice,eth_getBalance:toQuantity(3n*10n**18n)})[method];
 const prepare=(method,params,network=rpc)=>prepareExtensionRequest({expectedAccount:ACCOUNT,method,params,rpc:network});
 const sign=(prepared,options={})=>signExtensionRequest({secretHex:SECRET,expectedAccount:ACCOUNT,prepared,rpc,assertAuthorized:async()=>{},...options});
 
@@ -17,9 +18,9 @@ test("vault signer produces recoverable personal and exact 0x1917 typed-data sig
 });
 
 test("vault signer binds and signs one canonical legacy transaction for chain 6423",async()=>{
-  const prepared=await prepare("eth_sendTransaction",[{from:ACCOUNT,to:TO,value:"0x0",data:"0x"}]),result=await sign(prepared),tx=Transaction.from(result.rawTransaction);
-  assert.equal(tx.from.toLowerCase(),ACCOUNT);assert.equal(tx.chainId,6423n);assert.equal(tx.to.toLowerCase(),TO);assert.equal(tx.nonce,1);assert.equal(tx.gasLimit,25200n);assert.equal(tx.gasPrice,1000000000n);assert.equal(tx.hash,result.transactionHash);
-  await assert.rejects(()=>prepare("eth_sendTransaction",[{from:ACCOUNT,to:TO,value:"0x0",data:"0x"}],async(method)=>method==="eth_chainId"?"0x1":rpc(method)),error=>error.code==="WRONG_NETWORK");
+  const prepared=await prepare("eth_sendTransaction",[{from:ACCOUNT,to:TO,value:toQuantity(2n*10n**18n),data:"0x"}]),result=await sign(prepared),tx=Transaction.from(result.rawTransaction);
+  assert.equal(tx.from.toLowerCase(),ACCOUNT);assert.equal(tx.chainId,6423n);assert.equal(tx.to.toLowerCase(),TO);assert.equal(tx.nonce,1);assert.equal(tx.value,2n*10n**18n);assert.equal(tx.gasLimit,25000n);assert.equal(tx.gasPrice,40000000000000n);assert.equal(prepared.review.networkFee,"1.0");assert.equal(prepared.review.total,"3.0");assert.equal(tx.hash,result.transactionHash);
+  await assert.rejects(()=>prepare("eth_sendTransaction",[{from:ACCOUNT,to:TO,value:toQuantity(2n*10n**18n),data:"0x"}],async(method)=>method==="eth_chainId"?"0x1":rpc(method)),error=>error.code==="WRONG_NETWORK");
 });
 
 test("complete message and typed-data review preserves tails, all types and exact bytes",async()=>{
@@ -33,17 +34,25 @@ test("complete message and typed-data review preserves tails, all types and exac
   for(const invalid of[{...typed,primaryType:"Harmless"},{...typed,types:{...typed.types,EIP712Domain:[]}},{...typed,domain:{chainId:1}}])await assert.rejects(prepare("eth_signTypedData_v4",[ACCOUNT,JSON.stringify(invalid)]));
 });
 
-test("preparation freezes fees, nonce and access list before approval; signing does not fill fields",async()=>{
-  const transaction={from:ACCOUNT,to:TO,value:"0x1",data:"0x1234",gas:"0x7000",type:"0x2",accessList:[{address:TO,storageKeys:[`0x${"00".repeat(32)}`]}]},prepared=await prepare("eth_sendTransaction",[transaction]);
-  assert.equal(prepared.params[0].gasLimit,"0x7000");assert.equal("gas" in prepared.params[0],false);assert.equal(prepared.params[0].maxFeePerGas,toQuantity(2100000000n));assert.equal(prepared.review.maximumFee,"0.0000602112");
-  transaction.data="0x";transaction.accessList[0].storageKeys[0]=`0x${"ff".repeat(32)}`;assert.throws(()=>prepared.params[0].nonce="0x2");
+test("preparation preserves supplied gas and exact maximum budget; signing only revalidates capability and nonce",async()=>{
+  const transaction={from:ACCOUNT,to:TO,value:toQuantity(10n**18n),data:"0x",gas:"0x7530"},prepared=await prepare("eth_sendTransaction",[transaction]);
+  assert.equal(prepared.params[0].gasLimit,"0x7530");assert.equal("gas" in prepared.params[0],false);assert.equal(prepared.review.maximumFee,"1.2");assert.equal(prepared.review.networkFee,"1.0");
+  transaction.value="0x0";assert.throws(()=>prepared.params[0].nonce="0x2");
   const calls=[],result=await sign(prepared,{rpc:async(method,params)=>{calls.push(method);return rpc(method,params)}}),signed=Transaction.from(result.rawTransaction);
-  assert.deepEqual(calls,["eth_chainId","eth_getTransactionCount"]);assert.equal(signed.unsignedSerialized,Transaction.from({...prepared.params[0],from:undefined,nonce:1}).unsignedSerialized);
+  assert.deepEqual(calls,["eth_chainId","ynx_getFeeModel","eth_getTransactionCount"]);assert.equal(signed.unsignedSerialized,Transaction.from({...prepared.params[0],from:undefined,nonce:1}).unsignedSerialized);
   await assert.rejects(sign(prepared),error=>error.code==="UNREVIEWED_REQUEST");
 });
 
+test("strict Core capability rejects unknown, legacy, fractional and full-EVM input before review",async()=>{
+  const params={from:ACCOUNT,to:TO,value:toQuantity(2n*10n**18n),data:"0x"};
+  for(const change of[{value:"0x0"},{value:"0x1"},{data:"0x1234"},{to:null},{to:ACCOUNT},{type:1},{type:2},{accessList:[]},{maxFeePerGas:"0x1"},{gasPrice:"0x1"},{gas:"0x5208"}])await assert.rejects(prepare("eth_sendTransaction",[{...params,...change}]));
+  for(const model of[undefined,{...NATIVE_FEE_MODEL,enabled:false},{...NATIVE_FEE_MODEL,enabled:true,decimals:6},{...NATIVE_FEE_MODEL,enabled:true,fullEVM:true}])await assert.rejects(prepare("eth_sendTransaction",[params],async method=>method==="ynx_getFeeModel"?model:rpc(method)));
+  await assert.rejects(prepare("eth_sendTransaction",[{...params,gas:"0x7530"}]),{code:"INSUFFICIENT_FUNDS"});
+  const prepared=await prepare("eth_sendTransaction",[params]);await assert.rejects(sign(prepared,{rpc:async method=>method==="ynx_getFeeModel"?{...NATIVE_FEE_MODEL,enabled:false}:rpc(method)}),{code:"NATIVE_TRANSFER_DISABLED"});
+});
+
 test("missing fees, funds, changed nonce and revoked authorization fail without returning signatures",async()=>{
-  const params=[{from:ACCOUNT,to:TO,value:"0x1",data:"0x"}];
+  const params=[{from:ACCOUNT,to:TO,value:toQuantity(10n**18n),data:"0x"}];
   for(const method of["eth_gasPrice","eth_estimateGas","eth_getTransactionCount","eth_getBalance"])await assert.rejects(prepare("eth_sendTransaction",params,async(name)=>name===method?undefined:rpc(name)));
   await assert.rejects(prepare("eth_sendTransaction",params,async(name)=>name==="eth_getBalance"?"0x0":rpc(name)),error=>error.code==="INSUFFICIENT_FUNDS");
   for(const change of[{gasPrice:"0x1",maxFeePerGas:"0x2"},{gas:"0x5208",gasLimit:"0x6270"},{type:3},{nonce:"0x2"}])await assert.rejects(prepare("eth_sendTransaction",[{...params[0],...change}]));

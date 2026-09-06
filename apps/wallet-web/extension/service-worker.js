@@ -5,11 +5,13 @@ import {activeTabInjectionPlans,requireActiveDappTab} from "./active-tab-policy.
 import {runExtensionMigration} from "./extension-migration.js";
 import {PROVIDER_ACCOUNT_KEY,PROVIDER_PENDING_PREFIX,PROVIDER_PERMISSIONS_KEY,createPendingApproval,eip2255Permissions,grantPermission,loadProviderState,parseApprovalDecision,parsePermissionStore,parseProviderAccount,revokePermission} from "./extension-provider-permissions.js";
 import {EXTENSION_VAULT_KEY,parseEncryptedVault,providerAccountFromVault,unlockEncryptedVault} from "./extension-vault.js";
+import {ExtensionBroadcastJournal} from "./extension-broadcast-journal.js";
 import {extensionReviewText,prepareExtensionRequest,signExtensionRequest} from "./extension-signer.js";
 
 const extensionApi=globalThis.browser||globalThis.chrome,CHAIN_ID=YNX_CHAIN_ID;
 const approvalWaiters=new Map();
 const signerWaiters=new Map();
+const broadcastJournal=new ExtensionBroadcastJournal(extensionApi.storage.local);
 const authorizationGuard=new SensitiveAuthorizationGuard({getTab:id=>extensionApi.tabs.get(id),getAccount:()=>configuredAccount(),getPermission:async origin=>(await approvedState(origin))?.permission});
 let authorityMutation=Promise.resolve();
 function mutateAuthority(action){const operation=authorityMutation.then(action);authorityMutation=operation.catch(()=>{});return operation}
@@ -59,7 +61,7 @@ async function configuredAccount(){const stored=await extensionApi.storage.local
 function requireExtensionPage(sender,page){let actual,expected;try{actual=new URL(sender?.url);expected=new URL(extensionApi.runtime.getURL(page))}catch{throw Object.assign(new Error("Extension page identity is invalid."),{code:"EXTENSION_CALLER_REJECTED"})}if(sender?.id!==extensionApi.runtime.id||actual.origin!==expected.origin||actual.pathname!==expected.pathname)throw Object.assign(new Error("Rejected message from outside the expected extension page."),{code:"EXTENSION_CALLER_REJECTED"})}
 function requireVaultPage(sender){requireExtensionPage(sender,"vault.html")}
 function requireReviewPage(sender,page,requestId){requireExtensionPage(sender,page);if(new URL(sender.url).searchParams.get("requestId")!==requestId)throw Object.assign(new Error("Review window does not match this request."),{code:"EXTENSION_CALLER_REJECTED"})}
-async function vaultStatus(){const stored=await extensionApi.storage.local.get(EXTENSION_VAULT_KEY);if(stored?.[EXTENSION_VAULT_KEY]===undefined)return{configured:false};const vault=parseEncryptedVault(stored[EXTENSION_VAULT_KEY]);return{configured:true,account:vault.account,createdAt:vault.createdAt}}
+async function vaultStatus(){const stored=await extensionApi.storage.local.get(EXTENSION_VAULT_KEY);if(stored?.[EXTENSION_VAULT_KEY]===undefined)return{configured:false};const vault=parseEncryptedVault(stored[EXTENSION_VAULT_KEY]);return{configured:true,account:vault.account,createdAt:vault.createdAt,transaction:await broadcastJournal.status(vault.account)}}
 async function storeVault(vaultValue){const vault=parseEncryptedVault(vaultValue),account=providerAccountFromVault(vault);authorizationGuard.invalidateAll();invalidateWaiters("PROVIDER_ACCOUNT_CHANGED","Wallet account changed during approval.");await mutateAuthority(()=>extensionApi.storage.local.set({[EXTENSION_VAULT_KEY]:vault,[PROVIDER_ACCOUNT_KEY]:account,[PROVIDER_PERMISSIONS_KEY]:{}}));return account}
 async function removeVault(){authorizationGuard.invalidateAll();invalidateWaiters("PROVIDER_ACCOUNT_CHANGED","Wallet was removed during approval.");await mutateAuthority(()=>extensionApi.storage.local.remove([EXTENSION_VAULT_KEY,PROVIDER_ACCOUNT_KEY,PROVIDER_PERMISSIONS_KEY]));return true}
 async function approvedState(origin){
@@ -113,11 +115,15 @@ async function handleProviderMethod({tabId,origin,requestId,deadlineAt,method,pa
     const state=await approvedState(origin);if(!state?.permission)throw Object.assign(new Error("This site is not approved for the YNX Wallet account."),{code:4100});
     const sensitive=parseSensitiveRequest({requestId,deadlineAt,method,params});if(sensitive?.expectedAccount!==state.permission.account)throw Object.assign(new Error("Sensitive request account does not match the approved account."),{code:4100});
     const lease=authorizationGuard.capture({tabId,origin,account:state.permission.account,grantedAt:state.permission.grantedAt,deadlineAt}),assertAuthorized=()=>authorizationGuard.assert(lease),rpc=(rpcMethod,rpcParams)=>forwardExtensionRpc(rpcMethod,rpcParams);
+    const perform=async()=>{
     await assertAuthorized();const prepared=await prepareExtensionRequest({expectedAccount:lease.account,method,params,rpc});await assertAuthorized();
     const password=await requestSignerReview(tabId,origin,requestId,deadlineAt,prepared,lease);await assertAuthorized();
     const stored=await extensionApi.storage.local.get(EXTENSION_VAULT_KEY),unlocked=await unlockEncryptedVault(stored?.[EXTENSION_VAULT_KEY],password);await assertAuthorized();
     const result=await signExtensionRequest({secretHex:unlocked.secretHex,expectedAccount:lease.account,prepared,rpc,assertAuthorized});await assertAuthorized();
-    if(method!=="eth_sendTransaction")return result;const broadcast=await broadcastExtensionTransaction(result.rawTransaction);if(broadcast!==result.transactionHash)throw Object.assign(new Error("Broadcast hash does not match the reviewed signed transaction."),{code:"TRANSACTION_HASH_MISMATCH"});return broadcast;
+    if(method!=="eth_sendTransaction")return result;
+    return broadcastJournal.broadcast({account:lease.account,origin,signed:result,broadcast:broadcastExtensionTransaction,assertAuthorized});
+    };
+    return method==="eth_sendTransaction"?broadcastJournal.run(lease.account,perform):perform();
   }
   throw Object.assign(new Error("Unsupported wallet method."),{code:4200});
 }
@@ -139,9 +145,10 @@ async function activeProviderRequest(preference,input){
 }
 
 extensionApi.runtime.onMessage.addListener((message,sender,sendResponse)=>{
-  if(message?.type==="YNX_VAULT_STATUS_V1"||message?.type==="YNX_VAULT_STORE_V1"||message?.type==="YNX_VAULT_REMOVE_V1"){
+  if(message?.type==="YNX_VAULT_STATUS_V1"||message?.type==="YNX_VAULT_STORE_V1"||message?.type==="YNX_VAULT_REMOVE_V1"||message?.type==="YNX_VAULT_TRANSACTION_CHECK_V1"){
     Promise.resolve().then(()=>requireVaultPage(sender)).then(async()=>{
       if(message.type==="YNX_VAULT_STATUS_V1")return vaultStatus();
+      if(message.type==="YNX_VAULT_TRANSACTION_CHECK_V1"){const account=await configuredAccount();return{transaction:await broadcastJournal.status(account.account,{rpc:forwardExtensionRpc,refresh:true})}}
       if(message.type==="YNX_VAULT_STORE_V1")return{account:(await storeVault(message.vault)).account};
       await removeVault();return{removed:true};
     }).then(result=>sendResponse({ok:true,...result})).catch(error=>sendResponse({ok:false,error:publicBridgeError(error)}));return true;
