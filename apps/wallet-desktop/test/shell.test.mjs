@@ -1,15 +1,18 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import test from "node:test";
-import { createStandardWalletConnectState, reduceStandardWalletConnectState, YNX_TESTNET_CHAIN_QUANTITY } from "@ynx-chain/wallet-auth";
+import { StandardWalletConnection, YNX_TESTNET_CHAIN_QUANTITY } from "@ynx-chain/wallet-auth";
 import { CANONICAL_RPC_URL, probeYNXTestnetRPC } from "../src/rpc.mjs";
 import { WALLET_AUTH_PROTOCOL_SOURCE, YNX_EVM_CHAIN_ID, YNX_TESTNET_CHAIN_QUANTITY as packagedChainId } from "../src/wallet-auth-contract.mjs";
 
-test("desktop shell consumes frozen Wallet Auth chain constant", () => {
+test("desktop shell consumes the authoritative Product Session v2 contract and chain", async () => {
   assert.equal(YNX_TESTNET_CHAIN_QUANTITY, "0x1917");
   assert.equal(packagedChainId, YNX_TESTNET_CHAIN_QUANTITY);
   assert.equal(YNX_EVM_CHAIN_ID, 6423);
-  assert.equal(WALLET_AUTH_PROTOCOL_SOURCE.sourceSha256, "b5f7bebaeacd7f128f5d2aaabc46dfc5dfd3a1359fe46eaecb7be28f7e91776a");
+  const source = await readFile(new URL("../src/product-session-v2.js", import.meta.resolve("@ynx-chain/wallet-auth")));
+  assert.equal(WALLET_AUTH_PROTOCOL_SOURCE.sourceSha256, createHash("sha256").update(source).digest("hex"));
+  assert.equal(WALLET_AUTH_PROTOCOL_SOURCE.protocol, "product-session-v2");
 });
 
 test("desktop packaging exposes real platform installer formats", async () => {
@@ -26,7 +29,7 @@ test("desktop packaging exposes real platform installer formats", async () => {
   assert.equal(packageJson.build.win.executableName, "YNX Wallet");
   assert.equal(packageJson.build.afterPack, "scripts/after-pack.mjs");
   assert.doesNotMatch(packageJson.scripts["dist:mac"], /zip/);
-  assert.equal(packageJson.version, "0.6.2");
+  assert.equal(packageJson.version, "0.6.3");
   assert.equal(packageJson.build.appId, "com.ynxweb4.wallet.macos");
   assert.equal(packageJson.build.mac.minimumSystemVersion, "13.0");
   assert.deepEqual(packageJson.build.protocols[0].schemes, ["ynxwallet"]);
@@ -51,10 +54,15 @@ test("native Windows lifecycle drives visible provider authority and preserves m
   const x64Workflow = await readFile(new URL("../../../.github/workflows/wallet-desktop-windows.yml", import.meta.url), "utf8");
   const arm64Workflow = await readFile(new URL("../../../.github/workflows/wallet-desktop-windows-arm64.yml", import.meta.url), "utf8");
   assert.match(gate, /#create-account/);
-  assert.match(gate, /Secure Testnet account ready/);
-  assert.match(gate, /WALLETCONNECT_PROJECT_ID_UNAVAILABLE/);
-  assert.match(callbackGateGenerator, /encodeRequestDeepLink/);
-  assert.match(callbackGateGenerator, /ynx-social:\/\/com\.ynx\.social/);
+  assert.match(gate, /window\.ynxWallet\.accountStatus\(\)/);
+  assert.match(gate, /window\.ynxWallet\.walletConnectStatus\(\)/);
+  assert.match(gate, /native\.custody === "os-encrypted-local"/);
+  assert.match(gate, /state\.selectedAccount === account/);
+  assert.match(gate, /native\.code === "WALLETCONNECT_PROJECT_ID_UNAVAILABLE"/);
+  assert.match(gate, /secretDecryptionProved: false/);
+  assert.doesNotMatch(gate, /Secure Testnet account ready|OS-encrypted local custody|WalletConnect not configured/);
+  assert.match(callbackGateGenerator, /encodeProductSessionWalletURL/);
+  assert.match(callbackGateGenerator, /createProductSessionRequest/);
   for (const workflow of [x64Workflow, arm64Workflow]) {
     assert.match(workflow, /provider-authority-ui-gate\.mjs .* create/);
     assert.match(workflow, /provider-authority-ui-gate\.mjs .* restore/);
@@ -81,7 +89,7 @@ test("shell is explicit and fail closed", async () => {
   const rpc = await readFile(new URL("../src/rpc.mjs", import.meta.url), "utf8");
   assert.match(html, /Create secure Testnet account/);
   assert.match(html, /WALLETCONNECT/);
-  assert.match(html, /PROVIDER REQUEST/);
+  assert.match(html, /id="provider-request"/);
   assert.match(html, /Approve request/);
   assert.match(html, /Reject request/);
   assert.match(html, /Every message, typed-data and transaction request requires visible approval/);
@@ -100,7 +108,7 @@ test("shell is explicit and fail closed", async () => {
   assert.match(main, /app\.isDefaultProtocolClient\("ynxwallet"\)/);
   assert.match(main, /callbackEmitted: false/);
   assert.match(main, /CANONICAL_AUTHORIZATION_SIGN_FAILED/);
-  assert.match(main, /CANONICAL_CALLBACK_LAUNCH_FAILED/);
+  assert.match(await readFile(new URL("../src/callback-policy.mjs", import.meta.url), "utf8"), /CANONICAL_CALLBACK_LAUNCH_FAILED/);
   assert.match(main, /OS_SECRET_DECRYPT_FAILED/);
   assert.match(main, /AUTHORIZATION_TIME_INVALID/);
   assert.match(await readFile(new URL("../src/renderer.js", import.meta.url), "utf8"), /underlyingCode/);
@@ -108,17 +116,15 @@ test("shell is explicit and fail closed", async () => {
   assert.match(main, /window\.getTitle\(\)/);
 });
 
-test("shared Provider baseline keeps Standard Wallet connected when Product Session degrades", () => {
-  let state = createStandardWalletConnectState();
-  state = reduceStandardWalletConnectState(state, { type: "BEGIN", pendingIntent: "desktop_connect_1234567890" });
-  state = reduceStandardWalletConnectState(state, { type: "PROVIDER_SELECTED", providerKind: "ynx-wallet" });
-  state = reduceStandardWalletConnectState(state, { type: "ACCOUNT_APPROVED", account: "0x1234567890abcdef1234567890abcdef12345678" });
-  state = reduceStandardWalletConnectState(state, { type: "CHAIN_CONFIRMED", chainId: "0x1917" });
-  state = reduceStandardWalletConnectState(state, { type: "PRIVATE_SESSION_CONNECTING" });
-  state = reduceStandardWalletConnectState(state, { type: "PRIVATE_SESSION_DEGRADED", code: "GATEWAY_UNAVAILABLE" });
-  assert.equal(state.status, "connected");
-  assert.equal(state.privateService, "degraded");
-  assert.equal(state.account, "0x1234567890abcdef1234567890abcdef12345678");
+test("private Product Session methods cannot alter the independent standard Provider connection", async () => {
+  const provider = { async request({ method }) { return method === "eth_requestAccounts" ? ["0x1234567890abcdef1234567890abcdef12345678"] : "0x1917"; } };
+  const client = new StandardWalletConnection({ provider, origin: "https://example.test", metadata: { name: "Standard DApp", url: "https://example.test" } });
+  const connected = await client.connect();
+  await assert.rejects(client.request({ method: "ynx_productSession" }), error => error.code === 4200);
+  assert.equal(client.current, connected);
+  assert.equal(client.current.connected, true);
+  assert.equal(client.current.selectedChain, "0x1917");
+  assert.equal(client.current.selectedAccount, "0x1234567890abcdef1234567890abcdef12345678");
 });
 
 test("RPC probe uses canonical HTTPS, proves 0x1917, and classifies failures", async () => {

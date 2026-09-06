@@ -25,7 +25,10 @@ async function serviceFixture() {
     async balance() { return "0xde0b6b3a7640000"; },
     async estimate() { return { gasLimit: "0x6270", gasPrice: "0x3b9aca00" }; }
   };
-  const service = new NativeWalletService({ vault, network, clock: () => state.now, sender: { async send(wallet, transaction) { state.sends++; state.sent = { account: wallet.address.toLowerCase(), transaction }; return `0x${"ab".repeat(32)}`; } } });
+  const service = new NativeWalletService({ vault, network, clock: () => state.now, sender: {
+    async prepare(account, transaction) { state.prepared = Object.freeze({ ...transaction, from: account, data: "0x", nonce: "0x0", type: 0, ...await service.network.estimate(transaction) }); return state.prepared; },
+    async send(wallet, transaction) { assert.equal(transaction, state.prepared); state.sends++; state.sent = { account: wallet.address.toLowerCase(), transaction }; return `0x${"ab".repeat(32)}`; }
+  } });
   return { vault, service, state };
 }
 
@@ -74,6 +77,10 @@ test("transfer review never sends, cancellation consumes it, and confirmation is
   const first = await service.prepareTransfer({ to: recipient, amount: "0.1" });
   assert.equal(state.sends, 0);
   assert.equal(first.total, "0.1000252");
+  assert.equal(first.transaction, state.prepared);
+  assert.equal(first.transaction.nonce, "0x0");
+  assert.equal(first.transaction.type, 0);
+  assert.equal(Object.isFrozen(first.transaction), true);
   assert.equal((await service.transferAction(first.id, "reject")).transactionCreated, false);
   await assert.rejects(service.transferAction(first.id, "approve"));
   const next = await service.prepareTransfer({ to: recipient, amount: "0.1" });

@@ -1,3 +1,6 @@
+import { ApprovalReviewQueue } from "./approval-review-queue.mjs";
+import { formatApprovalReview } from "./approval-review-display.mjs";
+
 const network = document.querySelector("#network");
 const detail = document.querySelector("#detail");
 const chain = document.querySelector("#chain");
@@ -8,8 +11,8 @@ function render(status) {
   network.textContent = status.available ? "Connected to YNX Testnet" : "YNX Testnet unavailable";
   chain.textContent = status.available ? status.chainId : "Unavailable";
   detail.textContent = status.available
-    ? `Verified eth_chainId ${status.chainId}. DApp permissions and signing remain separate and require visible approval.`
-    : "Network verification failed. Local account creation, import and backup remain available; balances and transfers require YNX Testnet.";
+    ? "Your wallet is connected. You review every app connection and transaction."
+    : "The network is unavailable. Your accounts and backups remain accessible. Try again to refresh balances or send.";
 }
 
 document.querySelector("#retry").addEventListener("click", async () => render(await window.ynxWallet.status()));
@@ -18,32 +21,112 @@ window.ynxWallet.status().then(render);
 
 const authorization = document.querySelector("#authorization");
 const authResult = document.querySelector("#auth-result");
+const approvalQueue = new ApprovalReviewQueue({ onChange: () => queueMicrotask(presentApproval) });
+const authorizationChoices = new Map();
+let creatingAuthorizationAccount = false;
+setInterval(() => approvalQueue.sweep(), 1000);
 window.ynxWallet.onAuthorizationRequest(review => {
-  authorization.hidden = false;
-  if (!authorization.open) authorization.showModal();
-  document.querySelector("#auth-product").textContent = `Authorization request from ${review.displayName}`;
-  document.querySelector("#auth-purpose").textContent = review.request.purpose;
-  document.querySelector("#auth-scopes").textContent = review.request.scopes.join(", ");
-  authResult.textContent = `${review.code}: no account, scope, signature or callback is granted until you approve this exact request.`;
+  if (!approvalQueue.refreshAuthorization(review)) approvalQueue.enqueue("authorization", review);
 });
 window.ynxWallet.onAuthorizationError(result => {
-  authorization.hidden = false;
-  if (!authorization.open) authorization.showModal();
-  document.querySelector("#auth-product").textContent = "Authorization request rejected";
-  document.querySelector("#auth-purpose").textContent = "The link did not contain a valid frozen Wallet Auth request.";
-  document.querySelector("#auth-scopes").textContent = "None";
-  authResult.textContent = `${result.code}: callbackEmitted=false; authorityGranted=false`;
+  if (result.requestId && ["ACCOUNT_CHANGED", "SESSION_EXPIRED"].includes(result.code)) approvalQueue.remove("authorization", result.requestId);
+  document.querySelector("#connection-result").textContent = authorizationErrorText(result);
 });
 
 async function act(action) {
-  const result = await window.ynxWallet.authorizationAction(action);
-  const diagnostic = result.underlyingCode ? `; underlyingCode=${result.underlyingCode}; failureClass=${result.failureClass ?? "Error"}; failureCategory=${result.failureCategory ?? "UNCLASSIFIED"}` : "";
-  authResult.textContent = `${result.code}: callbackEmitted=${result.callbackEmitted}; callbackReceivedProved=${result.callbackReceivedProved ?? false}; authorityGranted=${result.authorityGranted}; productSessionCreated=${result.productSessionCreated ?? false}${diagnostic}`;
-  if (action === "reject" || result.callbackEmitted) { authorization.close(); authorization.hidden = true; }
+  if (approvalQueue.current?.type !== "authorization") return;
+  const item = approvalQueue.begin(approvalQueue.current.key);
+  if (!item) return;
+  let remove = false;
+  try {
+    const result = await window.ynxWallet.authorizationAction({ id: item.review.id, account: item.review.account, action });
+    authorization.dataset.resultCode = result.code ?? "UNKNOWN";
+    authorization.dataset.callbackEmitted = String(result.callbackEmitted === true);
+    authorization.dataset.authorityGranted = String(result.authorityGranted === true);
+    authorization.dataset.productSessionCreated = String(result.productSessionCreated === true);
+    authorization.dataset.requestId = result.requestId ?? item.review.id;
+    if (result.callbackEmitted) {
+      remove = true;
+      document.querySelector("#connection-result").textContent = action === "approve" ? `Returning to ${item.review.displayName}. The app will verify your sign-in.` : `Connection to ${item.review.displayName} declined.`;
+    } else {
+      authResult.textContent = authorizationErrorText(result);
+      const code = result.underlyingCode ?? result.code;
+      if (code === "CANONICAL_CALLBACK_LAUNCH_FAILED" || result.code === "CANONICAL_CALLBACK_LAUNCH_FAILED") authorizationChoices.set(item.key, action);
+      remove = ["ACCOUNT_CHANGED", "SESSION_EXPIRED", "NO_PENDING_AUTHORIZATION", "AUTHORIZATION_REVIEW_MISMATCH"].includes(code);
+    }
+  } catch { authResult.textContent = "The response was interrupted. Try returning to the app again."; }
+  finally { if (remove) authorizationChoices.delete(item.key); approvalQueue.finish(item.key, { remove }); }
 }
+
+function authorizationErrorText(result) {
+  const code = result?.underlyingCode ?? result?.code;
+  return ({ ACCOUNT_CHANGED: "Your selected account changed. Connect again from the app.", ACCOUNT_NOT_CREATED: "Create or import an account before connecting.", SESSION_EXPIRED: "This request expired. Connect again from the app.", AUTHORIZATION_ACTION_IN_PROGRESS: "Your previous response is still being processed.", AUTHORIZATION_REVIEW_MISMATCH: "This request changed. Review a new connection from the app.", CANONICAL_CALLBACK_LAUNCH_FAILED: "The return link could not be opened. Retry to return to the app.", AUTHORIZATION_REQUEST_IN_PROGRESS: "Another connection is waiting for your review." })[code] ?? "This connection request could not be verified. Open the app and connect again.";
+}
+
+function presentApproval() {
+  const item = approvalQueue.current;
+  const panels = { authorization, proposal: document.querySelector("#walletconnect-proposal"), provider: document.querySelector("#provider-request") };
+  for (const [type, panel] of Object.entries(panels)) if (!item || type !== item.type) { if (panel.open) panel.close(); panel.hidden = true; }
+  if (!item) return;
+  const { type, review } = item, panel = panels[type];
+  const otherDialog = document.querySelector("dialog[open]");
+  if (otherDialog && otherDialog !== panel) return;
+  const newlyShown = !panel.open;
+  panel.hidden = false;
+  if (type === "authorization") {
+    if (authorization.dataset.reviewId !== String(review.id)) {
+      authorization.dataset.reviewId = String(review.id);
+      authorization.dataset.resultCode = "AWAITING_APPROVAL";
+      authorization.dataset.callbackEmitted = "false";
+      authorization.dataset.authorityGranted = "false";
+      authorization.dataset.productSessionCreated = "false";
+      authorization.dataset.requestId = String(review.id);
+    }
+    document.querySelector("#auth-product").textContent = `Connect to ${review.displayName}`;
+    document.querySelector("#auth-origin").textContent = review.origin;
+    document.querySelector("#auth-account").textContent = review.ynxAccount ?? review.account ?? "Create or import an account first";
+    document.querySelector("#auth-purpose").textContent = review.purpose ?? review.request.purpose;
+    document.querySelector("#auth-scopes").textContent = review.scopes.map(scopeLabel).join(" · ");
+    document.querySelector("#auth-expiry").textContent = `Valid until ${new Date(review.expiresAt).toLocaleTimeString()}`;
+    if (newlyShown) authResult.textContent = "Share this account with the app. Connecting does not send any assets.";
+    const choice = authorizationChoices.get(item.key);
+    document.querySelector("#auth-create-account").hidden = Boolean(review.account);
+    document.querySelector("#auth-create-account").disabled = creatingAuthorizationAccount || approvalQueue.busy;
+    document.querySelector("#approve-auth").disabled = creatingAuthorizationAccount || approvalQueue.busy || !review.account || choice === "reject";
+    document.querySelector("#reject-auth").disabled = creatingAuthorizationAccount || approvalQueue.busy || choice === "approve";
+  } else if (type === "proposal") {
+    document.querySelector("#proposal-name").textContent = `Connect to ${review.name}`;
+    document.querySelector("#proposal-origin").textContent = review.url ?? "No verified app address was provided.";
+    document.querySelector("#proposal-account").textContent = review.account ?? activeAccount ?? "Create an account first";
+    document.querySelector("#proposal-permissions").textContent = (review.methods ?? review.permissions?.methods ?? []).map(methodLabel).join(" · ") || "Share your account on YNX Testnet";
+    for (const button of panel.querySelectorAll("button")) button.disabled = approvalQueue.busy;
+    document.querySelector("#approve-proposal").disabled = approvalQueue.busy || !review.account;
+  } else {
+    document.querySelector("#provider-title").textContent = review.review.title;
+    document.querySelector("#provider-origin").textContent = review.origin;
+    document.querySelector("#provider-detail").textContent = readableProviderReview(review);
+    for (const button of panel.querySelectorAll("button")) button.disabled = approvalQueue.busy;
+  }
+  panel.querySelector(".queue-count").textContent = approvalQueue.count > 1 ? `${approvalQueue.count - 1} more request${approvalQueue.count > 2 ? "s" : ""} waiting` : "";
+  if (newlyShown) panel.showModal();
+}
+function scopeLabel(scope) { return ({ "creator:account": "View your creator account", "creator:publish": "Publish your videos", "creator:revenue": "View creator revenue", "video:account": "View your account", "video:library": "Manage your library", "video:playback": "Play videos", "account:read": "View your account", "profile:link": "Link your profile" })[scope] ?? scope; }
+function methodLabel(method) { return ({ eth_requestAccounts: "Share account", personal_sign: "Request message signatures", eth_signTypedData_v4: "Request structured signatures", eth_sendTransaction: "Request transactions" })[method] ?? method; }
+function readableProviderReview(request) { return formatApprovalReview(request.review); }
 
 document.querySelector("#reject-auth").addEventListener("click", () => act("reject"));
 document.querySelector("#approve-auth").addEventListener("click", () => act("approve"));
+document.querySelector("#auth-create-account").addEventListener("click", async () => {
+  if (creatingAuthorizationAccount || approvalQueue.busy || approvalQueue.current?.type !== "authorization" || approvalQueue.current.review.account) return;
+  creatingAuthorizationAccount = true;
+  presentApproval();
+  try {
+    const result = await window.ynxWallet.createAccount();
+    if (result.ok) renderAccount(result);
+    else authResult.textContent = "Your account could not be created. Try again or return to the app.";
+  } catch { authResult.textContent = "Your account could not be created. Try again or return to the app."; }
+  finally { creatingAuthorizationAccount = false; presentApproval(); }
+});
 
 const accountTitle = document.querySelector("#account-title");
 const accountDetail = document.querySelector("#account-detail");
@@ -76,8 +159,8 @@ function renderAccount(payload) {
     accountList.replaceChildren();
     return;
   }
-  accountTitle.textContent = "Secure Testnet account ready";
-  accountDetail.textContent = `${status.account} · ${status.ynxAccount} · OS-encrypted local custody`;
+  accountTitle.textContent = "Your account";
+  accountDetail.textContent = `${status.account} · ${status.ynxAccount}`;
   accountShort.textContent = `${status.account.slice(0, 8)}…${status.account.slice(-6)}`;
   signingShort.textContent = "Approval required";
   createAccount.hidden = true;
@@ -125,10 +208,10 @@ const sessionsPanel = document.querySelector("#walletconnect-sessions");
 function renderWalletConnect(payload) {
   const status = payload?.ok === true ? payload.value : payload;
   const startupFailed = status?.configured && status?.code && status.code !== "WALLETCONNECT_RELAY_CONNECTION_NOT_PROVED";
-  walletConnectTitle.textContent = startupFailed ? "WalletConnect startup failed" : status?.relayConnected ? "WalletConnect relay connected" : status?.started ? "WalletConnect SDK ready — relay not proved" : status?.configured ? "WalletConnect startup failed" : "WalletConnect not configured";
+  walletConnectTitle.textContent = startupFailed ? "WalletConnect unavailable" : status?.relayConnected ? "Ready to connect an app" : status?.started ? "Connecting to WalletConnect…" : status?.configured ? "WalletConnect unavailable" : "Cross-device connections are coming";
   walletConnectDetail.textContent = status?.relayConnected && !startupFailed
-    ? `${status.activeSessionCount} active session(s). Every connection and signing request requires visible approval.`
-    : `${status?.code ?? "WALLETCONNECT_UNAVAILABLE"}: no relay, session or account success is claimed.`;
+    ? `${status.activeSessionCount} connected app${status.activeSessionCount === 1 ? "" : "s"}. You review every signature and transaction.`
+    : status?.configured ? "The connection service is unavailable. Your wallet and accounts remain accessible." : "WalletConnect is not enabled in this build. You can still connect directly from supported YNX apps.";
   pairButton.disabled = !status?.started || startupFailed;
 }
 async function refreshWalletConnectSessions() {
@@ -159,7 +242,13 @@ async function refreshWalletConnectSessions() {
   }
 }
 window.ynxWallet.onWalletConnectStatus(renderWalletConnect);
-window.ynxWallet.onWalletConnectSessionChanged(() => refreshWalletConnectSessions());
+window.ynxWallet.onWalletConnectSessionChanged(event => {
+  if (event?.type === "account-switched") {
+    for (const id of event.cancelledProposalIds ?? []) approvalQueue.remove("proposal", id);
+    document.querySelector("#connection-result").textContent = "Your account changed. Connect again from the app to share the new account.";
+  }
+  void refreshWalletConnectSessions();
+});
 window.ynxWallet.walletConnectStatus().then(payload => { renderWalletConnect(payload); return refreshWalletConnectSessions(); });
 pairButton.addEventListener("click", async () => {
   const uri = walletConnectURI.value.trim();
@@ -188,48 +277,43 @@ walletConnectQR.addEventListener("change", async () => {
   }
 });
 
-let activeProposal = null;
 const proposalPanel = document.querySelector("#walletconnect-proposal");
 window.ynxWallet.onWalletConnectProposal(proposal => {
-  activeProposal = proposal;
-  proposalPanel.hidden = false;
-  if (!proposalPanel.open) proposalPanel.showModal();
-  document.querySelector("#proposal-name").textContent = `${proposal.name} requests a connection`;
-  document.querySelector("#proposal-origin").textContent = proposal.url ?? "The DApp did not provide an origin.";
+  approvalQueue.enqueue("proposal", proposal);
 });
 async function proposalAction(action) {
-  if (!activeProposal) return;
-  const result = await window.ynxWallet.walletConnectProposalAction(activeProposal.id, action);
-  walletConnectDetail.textContent = result.ok ? (action === "approve" ? "Session approved for the selected account." : "Session rejected.") : `${result.error.code}: ${result.error.message}`;
-  if (result.ok) { activeProposal = null; proposalPanel.close(); proposalPanel.hidden = true; await refreshWalletConnectSessions(); }
+  if (approvalQueue.current?.type !== "proposal") return;
+  const item = approvalQueue.begin(approvalQueue.current.key);
+  if (!item) return;
+  let remove = false;
+  try {
+    const result = await window.ynxWallet.walletConnectProposalAction(item.review.id, action, item.review.account);
+    walletConnectDetail.textContent = result.ok ? (action === "approve" ? "App connected to the selected account." : "Connection declined.") : errorText(result);
+    remove = result.ok || ["PROPOSAL_NOT_FOUND", "PROPOSAL_EXPIRED", "ACCOUNT_CHANGED"].includes(result.error?.code);
+    if (result.ok) await refreshWalletConnectSessions();
+  } catch { walletConnectDetail.textContent = "The app did not receive your response. Check the connection and try again."; }
+  finally { approvalQueue.finish(item.key, { remove }); }
 }
 document.querySelector("#reject-proposal").addEventListener("click", () => proposalAction("reject"));
 document.querySelector("#approve-proposal").addEventListener("click", () => proposalAction("approve"));
 
-let activeProviderRequest = null;
 const providerPanel = document.querySelector("#provider-request");
 window.ynxWallet.onProviderRequest(request => {
-  activeProviderRequest = request;
-  providerPanel.hidden = false;
-  if (!providerPanel.open) providerPanel.showModal();
-  document.querySelector("#provider-title").textContent = request.review.title;
-  document.querySelector("#provider-origin").textContent = request.origin;
-  document.querySelector("#provider-detail").textContent = JSON.stringify(request.review, null, 2);
+  approvalQueue.enqueue("provider", request);
 });
 window.ynxWallet.onProviderRequestExpired(event => {
-  if (activeProviderRequest?.id !== event.id) return;
-  activeProviderRequest = null;
-  providerPanel.hidden = true;
-  providerPanel.close();
-  walletConnectDetail.textContent = `${event.code}: the DApp request expired without approval or signing.`;
+  approvalQueue.remove("provider", event.id);
+  walletConnectDetail.textContent = "The app request expired. Request it again from the app.";
 });
 async function providerAction(action) {
-  if (!activeProviderRequest) return;
-  const result = await window.ynxWallet.providerAction(activeProviderRequest.id, action);
-  walletConnectDetail.textContent = result.ok ? (result.value?.status === "success" ? "Request response delivered." : "Request rejected.") : `${result.error.code}: ${result.error.message}`;
-  activeProviderRequest = null;
-  providerPanel.hidden = true;
-  providerPanel.close();
+  if (approvalQueue.current?.type !== "provider") return;
+  const item = approvalQueue.begin(approvalQueue.current.key);
+  if (!item) return;
+  try {
+    const result = await window.ynxWallet.providerAction(item.review.id, action);
+    walletConnectDetail.textContent = result.ok ? (result.value?.status === "success" ? "Your response was delivered to the app." : "Request declined.") : errorText(result);
+  } catch { walletConnectDetail.textContent = "The response was interrupted. Check the app before requesting another signature."; }
+  finally { approvalQueue.finish(item.key); }
 }
 document.querySelector("#reject-provider").addEventListener("click", () => providerAction("reject"));
 document.querySelector("#approve-provider").addEventListener("click", () => providerAction("approve"));
@@ -316,6 +400,7 @@ document.querySelector("#transfer-form").addEventListener("submit", async event 
     for (const [label, value] of [["From", transferReview.account], ["To", transferReview.to], ["Amount", `${transferReview.amount} YNXT`], ["Maximum fee", `${transferReview.maximumFee} YNXT`], ["Maximum total", `${transferReview.total} YNXT`], ["Network", "YNX Testnet · 6423"]]) {
       const term = document.createElement("dt"), description = document.createElement("dd"); term.textContent = label; description.textContent = value; summary.append(term, description);
     }
+    document.querySelector("#transfer-transaction").textContent = formatApprovalReview(transferReview.transaction ?? {});
     document.querySelector("#transfer-review").hidden = false;
     document.querySelector("#send-sheet").close();
     document.querySelector("#transfer-review").showModal();
@@ -353,6 +438,7 @@ function setView(name) {
 }
 for (const button of document.querySelectorAll("[data-view]")) button.addEventListener("click", () => setView(button.dataset.view));
 for (const button of document.querySelectorAll("[data-close]")) button.addEventListener("click", () => document.getElementById(button.dataset.close).close());
+for (const dialog of document.querySelectorAll("dialog")) dialog.addEventListener("close", () => queueMicrotask(presentApproval));
 document.querySelector("#open-send").addEventListener("click", () => { document.querySelector("#send-sheet").showModal(); document.querySelector("#transfer-to").focus(); });
 document.querySelector("#open-receive").addEventListener("click", () => { document.querySelector("#receive-sheet").showModal(); document.querySelector("#copy-address").focus(); });
 document.querySelector("#transfer-review").addEventListener("cancel", event => { event.preventDefault(); void actOnTransfer("reject"); });

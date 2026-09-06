@@ -58,6 +58,7 @@ export class NativeWalletService {
     return { account: status.account, wei, formatted: formatEther(wei), symbol: "YNXT", chainId: CHAIN_ID, checkedAt: new Date(this.clock()).toISOString() };
   }
   async prepareTransfer({ to, amount } = {}) {
+    this.pending.clear();
     let recipient, value;
     try {
       recipient = getAddress(to).toLowerCase();
@@ -70,14 +71,16 @@ export class NativeWalletService {
     const tx = { from: status.account, to: recipient, value: toQuantity(value), chainId: CHAIN_ID };
     const balance = BigInt(await this.network.balance(status.account));
     if (balance < value) throw providerError(-32000, "INSUFFICIENT_FUNDS", "Insufficient YNXT for this amount. Add Testnet funds before sending.");
-    const fee = await this.network.estimate(tx);
-    const maximumFee = BigInt(fee.gasLimit) * BigInt(fee.gasPrice);
+    if (typeof this.sender?.prepare !== "function") throw providerError(4200, "TRANSACTION_TRANSPORT_UNAVAILABLE", "Canonical transaction preparation is unavailable");
+    const snapshot = await this.sender.prepare(status.account, tx);
+    if ((await this.vault.status()).account !== status.account) throw providerError(4100, "ACCOUNT_CHANGED", "The selected account changed. Prepare the transfer again.");
+    const maximumFee = BigInt(snapshot.gasLimit) * BigInt(snapshot.gasPrice ?? snapshot.maxFeePerGas);
     if (balance < value + maximumFee) throw providerError(-32000, "INSUFFICIENT_FUNDS", "Insufficient YNXT to cover the amount and network fee");
     const id = this.requestId(), createdAt = this.clock();
-    const record = { id, account: status.account, transaction: { ...tx, ...fee }, createdAt };
+    const record = Object.freeze({ id, account: status.account, transaction: snapshot, createdAt });
     this.pending.clear();
     this.pending.set(id, record);
-    return { id, account: status.account, to: recipient, amount: formatEther(value), maximumFee: formatEther(maximumFee), total: formatEther(value + maximumFee), symbol: "YNXT", chainId: CHAIN_ID, expiresAt: new Date(createdAt + REVIEW_TTL).toISOString() };
+    return { id, account: status.account, to: recipient, amount: formatEther(value), maximumFee: formatEther(maximumFee), total: formatEther(value + maximumFee), symbol: "YNXT", chainId: CHAIN_ID, transaction: snapshot, expiresAt: new Date(createdAt + REVIEW_TTL).toISOString() };
   }
   async transferAction(id, action) {
     if (!["approve", "reject"].includes(action)) throw providerError(-32602, "INVALID_TRANSFER_ACTION", "Choose approve or reject");

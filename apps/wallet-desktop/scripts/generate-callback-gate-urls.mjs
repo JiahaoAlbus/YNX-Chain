@@ -1,25 +1,18 @@
-import { createECDH } from "node:crypto";
-import { encodeRequestDeepLink } from "@ynx-chain/wallet-auth";
+import { createECDH, randomBytes } from "node:crypto";
+import { createProductSessionRequest, encodeProductSessionWalletURL } from "@ynx-chain/wallet-auth";
+import { PRODUCT_SESSION_REGISTRY } from "../src/wallet-auth-contract.mjs";
 
+const platform = process.argv[2] ?? ({ darwin: "macos", win32: "windows", linux: "linux" }[process.platform]);
+if (!["macos", "windows", "linux"].includes(platform)) throw new Error("Choose a supported Desktop platform");
 const now = new Date();
+// Dedicated public test device fixture. This script has no Wallet signing key.
 const device = createECDH("prime256v1");
 device.setPrivateKey(Buffer.alloc(32, 0x42));
-const base = {
-  version: "1",
-  chainId: "ynx_6423-1",
-  requestingProduct: "social",
-  productClientId: "ynx-social-v1",
-  bundleId: "com.ynx.social",
-  productDeviceAlgorithm: "p256-sha256",
-  productDeviceKey: device.getPublicKey(null, "compressed").toString("base64url"),
-  callback: "ynx-social://com.ynx.social",
-  scopes: ["account:read", "profile:link"],
-  purpose: "Verify native YNX Wallet approval and rejection on this isolated test device.",
-  issuedAt: new Date(now.getTime() - 30_000).toISOString(),
-  expiresAt: new Date(now.getTime() + 240_000).toISOString()
-};
-const url = nonce => encodeRequestDeepLink({ ...base, nonce });
-console.log(JSON.stringify({
-  reject: url("native_reject_abcdefghijklmnopqrstuvwxyz12"),
-  approve: url("native_approve_abcdefghijklmnopqrstuvwxyz1")
-}));
+const product = PRODUCT_SESSION_REGISTRY.products.find(item => item.productId === "social");
+const url = () => encodeProductSessionWalletURL(PRODUCT_SESSION_REGISTRY, createProductSessionRequest(PRODUCT_SESSION_REGISTRY, {
+  productId: product.productId, platform, deviceId: "desktop-installed-callback-test",
+  deviceKey: device.getPublicKey(null, "compressed").toString("base64url"),
+  scopes: product.scopes, purpose: "Verify approval and rejection on this isolated test device.",
+  nonce: randomBytes(32).toString("base64url"), state: randomBytes(32).toString("base64url"),
+}, now), now);
+console.log(JSON.stringify({ reject: url(), approve: url(), callback: product.nativeCallback, protocol: "product-session-v2", platform }));

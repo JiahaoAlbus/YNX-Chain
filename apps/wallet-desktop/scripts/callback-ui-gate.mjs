@@ -30,30 +30,33 @@ async function evaluate(expression) {
 const before = JSON.parse(await evaluate(`JSON.stringify({
   hidden: document.querySelector("#authorization").hidden,
   product: document.querySelector("#auth-product").textContent,
+  origin: document.querySelector("#auth-origin").textContent,
+  account: document.querySelector("#auth-account").textContent,
+  lastResultRequestId: document.querySelector("#authorization").dataset.requestId ?? null,
   purpose: document.querySelector("#auth-purpose").textContent,
   scopes: document.querySelector("#auth-scopes").textContent,
   result: document.querySelector("#auth-result").textContent
 })`));
-if (before.hidden || (action !== "invalid" && !before.product.startsWith("Authorization request from "))) throw new Error(`authorization UI was not visible: ${JSON.stringify(before)}`);
+if (action !== "invalid" && (before.hidden || !before.product.startsWith("Connect to ") || !before.origin || !/^(ynx1|0x)/.test(before.account))) throw new Error(`authorization consent identity was not visible: ${JSON.stringify(before)}`);
 if (action === "invalid") {
-  if (before.product !== "Authorization request rejected" || before.scopes !== "None" || !before.result.includes("callbackEmitted=false") || !before.result.includes("authorityGranted=false")) {
-    throw new Error(`invalid request did not fail closed visibly: ${JSON.stringify(before)}`);
-  }
+  const state = JSON.parse(await evaluate(`JSON.stringify({ visibleApproval: document.querySelector("#authorization").open, error: document.querySelector("#connection-result").textContent })`));
+  if (state.visibleApproval || !state.error) throw new Error("Invalid request did not fail closed visibly");
   socket.close();
   console.log(JSON.stringify({ action, before, callbackEmitted: false, authorityGranted: false }, null, 2));
   process.exit(0);
 }
+
 await evaluate(`document.querySelector("#${action}-auth").click(); true`);
 const expected = action === "reject" ? "USER_REJECTED" : "CANONICAL_AUTHORIZATION_APPROVED";
-const expectedCallback = action === "approve";
+const expectedCallback = true;
 const expectedAuthority = action === "approve";
 let after;
 for (let attempt = 0; attempt < 30; attempt += 1) {
-  after = JSON.parse(await evaluate(`JSON.stringify({ result: document.querySelector("#auth-result").textContent })`));
-  if (after.result.includes(`callbackEmitted=${expectedCallback}`)) break;
+  after = JSON.parse(await evaluate(`JSON.stringify({ ...document.querySelector("#authorization").dataset })`));
+  if (after.resultCode === expected && after.callbackEmitted === String(expectedCallback) && after.requestId !== before.lastResultRequestId) break;
   await new Promise(resolve => setTimeout(resolve, 500));
 }
-if (!after.result.includes(expected) || !after.result.includes(`callbackEmitted=${expectedCallback}`) || !after.result.includes(`authorityGranted=${expectedAuthority}`) || !after.result.includes("productSessionCreated=false")) {
+if (after.resultCode !== expected || after.callbackEmitted !== String(expectedCallback) || after.authorityGranted !== String(expectedAuthority) || after.productSessionCreated !== "false" || !after.requestId || after.requestId === before.lastResultRequestId) {
   throw new Error(`fail-closed action result mismatch: ${JSON.stringify(after)}`);
 }
 socket.close();

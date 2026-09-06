@@ -89,7 +89,7 @@ jobs:
           }
 
           run_phase 1 https://rpc.ynxweb4.com/evm cold
-          node -e "const e=require(process.env.EVIDENCE);if(e.launches!==1||!e.visibleShellReady||!e.window.visible||e.window.title!=='YNX Wallet'||!e.rpc.available||e.rpc.chainId!=='0x1917'||e.signingEnabled||e.accountCreated||e.balanceClaimed||e.transactionCreated)process.exit(1)"
+          node -e "const e=require(process.env.EVIDENCE);if(e.walletAuthContract.protocol!=='product-session-v2'||e.launches!==1||!e.visibleShellReady||!e.window.visible||e.window.title!=='YNX Wallet'||!e.rpc.available||e.rpc.chainId!=='0x1917'||e.signingEnabled||e.accountCreated||e.balanceClaimed||e.transactionCreated)process.exit(1)"
           run_phase 2 https://rpc.ynxweb4.com/evm second
           node -e "const e=require(process.env.EVIDENCE);if(e.launches!==2||!e.rpc.available||e.rpc.chainId!=='0x1917'||e.signingEnabled)process.exit(1)"
           run_phase 3 http://127.0.0.1:1 failed-rpc
@@ -120,6 +120,10 @@ jobs:
             rpcFailureClosed: !evidence.rpc.available && evidence.rpc.chainId === null,
             signingEnabled: false,
             accountCreated: false,
+            walletAuthProtocol: 'product-session-v2',
+            canonicalAuthorizeCallbackReceived: false,
+            productSessionCreated: false,
+            privateApiVerified: false,
             balanceClaimed: false,
             transactionCreated: false,
             uninstallVerified: true,

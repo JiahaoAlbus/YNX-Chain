@@ -63,6 +63,7 @@ jobs:
           for ($i=0; $i -lt 30 -and -not (Test-Path $env:EVIDENCE); $i++) { Start-Sleep 1 }
           if (-not (Test-Path $env:EVIDENCE)) { throw 'cold launch did not write evidence' }
           $coldEvidence = Get-Content $env:EVIDENCE -Raw | ConvertFrom-Json
+          if ($coldEvidence.walletAuthContract.protocol -ne 'product-session-v2') { throw 'installed Wallet did not load Product Session v2' }
           if ($coldEvidence.launches -ne 1 -or -not $coldEvidence.visibleShellReady -or -not $coldEvidence.rpc.available -or $coldEvidence.rpc.chainId -ne '0x1917' -or $coldEvidence.providerAuthority.accountCreated -or $coldEvidence.signingEnabled -or $coldEvidence.balanceClaimed -or $coldEvidence.transactionCreated) { throw 'fresh cold launch evidence failed' }
           $cold.Refresh()
           if ($cold.HasExited) { throw 'cold launch process exited' }
@@ -142,7 +143,13 @@ jobs:
           $rejectActivation = $callbackActivation.activation.sha256
           $rejectGate = Join-Path $env:RUNNER_TEMP 'wallet-callback-reject-gate.json'
           node apps/wallet-desktop/scripts/callback-ui-gate.mjs $targets reject | Set-Content $rejectGate
-          if (Test-Path $callbackCapture) { throw 'rejected authorization emitted a callback' }
+          for ($i=0; $i -lt 30 -and -not (Test-Path $callbackCapture); $i++) { Start-Sleep -Milliseconds 500 }
+          if (-not (Test-Path $callbackCapture)) { throw 'rejected v2 authorization did not return to the product' }
+          $rejectVerificationPath = Join-Path $env:RUNNER_TEMP 'wallet-callback-reject-verification.json'
+          node apps/wallet-desktop/scripts/verify-windows-callback-capture.mjs $callbackCapture $callbackUrls.reject rejected | Set-Content $rejectVerificationPath
+          $rejectVerification = Get-Content $rejectVerificationPath -Raw | ConvertFrom-Json
+          if ($rejectVerification.result -ne 'rejected' -or -not $rejectVerification.nonceVerified -or -not $rejectVerification.stateVerified -or $rejectVerification.signatureVerified -or $rejectVerification.productSessionCreated) { throw 'v2 rejection return was not exact or claimed authority' }
+          Move-Item $callbackCapture ($callbackCapture + '.rejected')
           Start-Process $callbackUrls.approve
           for ($i=0; $i -lt 30; $i++) {
             Start-Sleep -Milliseconds 500
@@ -155,9 +162,9 @@ jobs:
           for ($i=0; $i -lt 30 -and -not (Test-Path $callbackCapture); $i++) { Start-Sleep -Milliseconds 500 }
           if (-not (Test-Path $callbackCapture)) { throw 'approved authorization callback was not received by the registered product protocol' }
           $callbackVerificationPath = Join-Path $env:RUNNER_TEMP 'wallet-callback-verification.json'
-          node apps/wallet-desktop/scripts/verify-windows-callback-capture.mjs $callbackCapture $callbackUrls.approve | Set-Content $callbackVerificationPath
+          node apps/wallet-desktop/scripts/verify-windows-callback-capture.mjs $callbackCapture $callbackUrls.approve approved $created.account | Set-Content $callbackVerificationPath
           $callbackVerification = Get-Content $callbackVerificationPath -Raw | ConvertFrom-Json
-          if (-not $callbackVerification.signatureVerified -or -not $callbackVerification.windowsSlashNormalized -or $callbackVerification.protocol -ne 'ynx-social:' -or $callbackVerification.host -ne 'com.ynx.social') { throw 'approved authorization callback failed exact Windows route and signature verification' }
+          if (-not $callbackVerification.signatureVerified -or -not $callbackVerification.windowsRouteVerified -or -not $callbackVerification.nonceVerified -or -not $callbackVerification.stateVerified -or $callbackVerification.productSessionProtocol -ne '2' -or $callbackVerification.productSessionCreated -or $callbackVerification.protocol -ne 'ynx-social:' -or $callbackVerification.host -ne 'com.ynx.social') { throw 'approved authorization callback failed exact Windows route and signature verification' }
           $walletConnectUri = 'wc:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa@2?relay-protocol=irn&symKey=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'
           $qrImage = Join-Path $env:RUNNER_TEMP 'walletconnect-v2.png'
           npm exec --yes --package=qrcode@1.5.4 -- qrcode --output $qrImage $walletConnectUri
@@ -212,8 +219,11 @@ jobs:
             canonicalAuthorizeProtocolRegistered = $true
             canonicalAuthorizeRejectProved = $true
             canonicalAuthorizeApproveProved = $true
-          canonicalAuthorizeCallbackReceived = $true
-          canonicalAuthorizeCallbackSignatureVerified = $true
+            canonicalAuthorizeCallbackReceived = $true
+            canonicalAuthorizeCallbackSignatureVerified = $true
+            productSessionProtocol = '2'
+            productSessionCreated = $false
+            privateApiVerified = $false
             signingEnabled = $true
             accountCreated = $true
             balanceClaimed = $false

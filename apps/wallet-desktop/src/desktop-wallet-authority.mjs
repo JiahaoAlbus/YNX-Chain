@@ -1,10 +1,11 @@
 import { randomUUID } from "node:crypto";
-import { Wallet, getBytes, isAddress, isHexString } from "ethers";
-import { createCallbackURL, signAuthorization, STANDARD_WALLET_CHAIN_ID } from "@ynx-chain/wallet-auth";
+import { Wallet, TypedDataEncoder, formatEther, getBytes, isAddress, isHexString } from "ethers";
+import { createProductSessionReturnURL, signProductSessionApproval } from "@ynx-chain/wallet-auth";
 import { providerError } from "./desktop-wallet-vault.mjs";
+import { PRODUCT_SESSION_REGISTRY, YNX_TESTNET_CHAIN_QUANTITY } from "./wallet-auth-contract.mjs";
 
 export const YNX_EIP155_CHAIN = "eip155:6423";
-export const YNX_EVM_CHAIN_ID = STANDARD_WALLET_CHAIN_ID;
+export const YNX_EVM_CHAIN_ID = YNX_TESTNET_CHAIN_QUANTITY;
 export const APPROVAL_TTL_MS = 5 * 60 * 1000;
 const MAX_PENDING_REQUESTS = 64;
 const MAX_PENDING_REQUESTS_PER_ORIGIN = 8;
@@ -31,16 +32,20 @@ export class DesktopWalletAuthority {
   async importAccount(input) { this.pending.clear(); await this.permissions.revokeAll(); return this.vault.importAccount(input); }
   async addAccountAndSelect() { this.pending.clear(); await this.permissions.revokeAll(); return this.vault.addAccountAndSelect(); }
   async selectAccount(account) { this.pending.clear(); await this.permissions.revokeAll(); return this.vault.selectAccount(account); }
-  async approveCanonicalAuthorization(request, issuedAt) {
-    return this.vault.withSecret(secret => {
-      const response = signAuthorization(request, { accountSecret: secret, issuedAt });
-      return Object.freeze({ response, callbackUrl: createCallbackURL(response) });
+  async approveCanonicalAuthorization(request, issuedAt, expectedAccount) {
+    if (!/^0x[0-9a-f]{40}$/.test(expectedAccount ?? "")) throw providerError(4100, "ACCOUNT_REVIEW_REQUIRED", "Review the selected account before approving");
+    return this.vault.withSecret((secret, identity) => {
+      if (identity.account !== expectedAccount) throw providerError(4100, "ACCOUNT_CHANGED", "The selected account changed. Review the request again.");
+      const at = new Date(issuedAt);
+      const approval = signProductSessionApproval(PRODUCT_SESSION_REGISTRY, request, { accountSecret: secret, scopes: request.scopes, expiresAt: request.expiresAt }, at);
+      return Object.freeze({ approval, callbackUrl: createProductSessionReturnURL(PRODUCT_SESSION_REGISTRY, request, { result: "approved", approval }, at) });
     });
   }
-  async approveOrigin(originInput) {
+  async approveOrigin(originInput, expectedAccount = null) {
     const origin = exactHttpsOrigin(originInput);
     const status = await this.vault.status();
     if (!status.initialized) throw providerError(4100, "ACCOUNT_NOT_CREATED", "Create a Wallet account before connecting a DApp");
+    if (expectedAccount !== null) assertReviewedAccount(status.account, expectedAccount);
     await this.permissions.grantAccount(origin, status.account, this.clock().toISOString());
     return Object.freeze({ origin, account: status.account });
   }
@@ -67,12 +72,22 @@ export class DesktopWalletAuthority {
       throw providerError(4100, "ACCOUNT_PERMISSION_REQUIRED", "The DApp has not been approved for this account");
     }
     const normalized = normalizeApproval(method, params, status.account);
+    if (method === "eth_sendTransaction") {
+      if (typeof this.transactionSender?.prepare !== "function") throw providerError(4200, "TRANSACTION_TRANSPORT_UNAVAILABLE", "Canonical transaction preparation is unavailable");
+      const snapshot = await this.transactionSender.prepare(status.account, normalized.params[0]);
+      const current = await this.vault.status();
+      assertReviewedAccount(current.account, status.account);
+      if (!(await this.permissions.hasAccount(origin, status.account))) throw providerError(4100, "ACCOUNT_PERMISSION_REVOKED", "The DApp account permission was revoked while preparing the transaction");
+      const maximumFee = BigInt(snapshot.gasLimit) * BigInt(snapshot.gasPrice ?? snapshot.maxFeePerGas);
+      normalized.params = [snapshot];
+      normalized.review = { title: "Send transaction", account: status.account, ...snapshot, amount: formatEther(snapshot.value), maximumFee: formatEther(maximumFee), total: formatEther(BigInt(snapshot.value) + maximumFee), symbol: "YNXT", warning: "This exact transaction will be signed and broadcast. Contract calls may transfer assets or grant permissions beyond the displayed native amount." };
+    }
     this.#pruneExpired();
     if (this.pending.size >= MAX_PENDING_REQUESTS || [...this.pending.values()].filter(item => item.origin === origin).length >= MAX_PENDING_REQUESTS_PER_ORIGIN) {
       throw providerError(4200, "PENDING_REQUEST_LIMIT", "Too many Wallet requests are awaiting review");
     }
     const id = this.requestId();
-    const pending = Object.freeze({ id, origin, method, params: normalized.params, review: normalized.review, createdAt: this.clock().toISOString() });
+    const pending = deepFreeze({ id, origin, method, params: normalized.params, review: normalized.review, createdAt: this.clock().toISOString() });
     this.pending.set(id, pending);
     return Object.freeze({ status: "approval-required", request: pending });
   }
@@ -81,6 +96,7 @@ export class DesktopWalletAuthority {
     const pending = this.#take(id);
     const status = await this.vault.status();
     if (!status.initialized) throw providerError(4100, "ACCOUNT_NOT_CREATED", "Wallet account is unavailable");
+    if (pending.review.account !== status.account) throw providerError(4100, "ACCOUNT_CHANGED", "The selected account changed. Review the request again.");
     if (["personal_sign", "eth_signTypedData_v4", "eth_sendTransaction"].includes(pending.method) && !(await this.permissions.hasAccount(pending.origin, status.account))) {
       throw providerError(4100, "ACCOUNT_PERMISSION_REVOKED", "The DApp account permission was revoked before approval");
     }
@@ -90,9 +106,13 @@ export class DesktopWalletAuthority {
         await this.permissions.grantAccount(pending.origin, status.account, this.clock().toISOString());
         return success(pending.method === "eth_requestAccounts" ? [status.account] : [{ parentCapability: "eth_accounts" }]);
       case "personal_sign":
-        return this.vault.withSecret(async secret => success(await walletForSecret(secret).signMessage(getBytes(pending.params[0]))));
+        return this.vault.withSecret(async (secret, identity) => {
+          assertReviewedAccount(identity.account, pending.review.account);
+          return success(await walletForSecret(secret).signMessage(getBytes(pending.params[0])));
+        });
       case "eth_signTypedData_v4":
-        return this.vault.withSecret(async secret => {
+        return this.vault.withSecret(async (secret, identity) => {
+          assertReviewedAccount(identity.account, pending.review.account);
           const typed = JSON.parse(pending.params[1]);
           const types = { ...typed.types };
           delete types.EIP712Domain;
@@ -100,7 +120,10 @@ export class DesktopWalletAuthority {
         });
       case "eth_sendTransaction":
         if (!this.transactionSender) throw providerError(4200, "TRANSACTION_TRANSPORT_UNAVAILABLE", "Canonical transaction transport is unavailable");
-        return this.vault.withSecret(async secret => success(await this.transactionSender.send(walletForSecret(secret), pending.params[0])));
+        return this.vault.withSecret(async (secret, identity) => {
+          assertReviewedAccount(identity.account, pending.review.account);
+          return success(await this.transactionSender.send(walletForSecret(secret), pending.params[0]));
+        });
       default:
         throw providerError(4200, "UNSUPPORTED_PROVIDER_METHOD", "Provider method is not implemented");
     }
@@ -147,7 +170,7 @@ function normalizeApproval(method, params, activeAccount) {
     return { params, review: { title: "Grant account permission", account: activeAccount, permissions: ["eth_accounts"] } };
   }
   if (method === "personal_sign") {
-    if (params.length !== 2 || !isHexString(params[0]) || normalizeAccount(params[1]) !== activeAccount) invalidParams("personal_sign requires hex data and the active approved account");
+    if (params.length !== 2 || !isHexString(params[0], true) || normalizeAccount(params[1]) !== activeAccount) invalidParams("personal_sign requires hex data and the active approved account");
     return { params: [params[0], activeAccount], review: { title: "Sign message", account: activeAccount, message: params[0], warning: "This signature may authorize an external action." } };
   }
   if (method === "eth_signTypedData_v4") {
@@ -156,7 +179,15 @@ function normalizeApproval(method, params, activeAccount) {
     try { typed = JSON.parse(params[1]); } catch { invalidParams("Typed data is not valid JSON"); }
     if (!typed?.domain || !typed?.types || !typed?.primaryType || !typed?.message) invalidParams("Typed data is incomplete");
     if (typed.domain.chainId !== undefined && Number(typed.domain.chainId) !== 6423) invalidParams("Typed data targets a different chain");
-    return { params: [activeAccount, JSON.stringify(typed)], review: { title: "Sign typed data", account: activeAccount, domain: typed.domain, primaryType: typed.primaryType, message: typed.message } };
+    try {
+      const types = { ...typed.types }; delete types.EIP712Domain;
+      if (TypedDataEncoder.from(types).primaryType !== typed.primaryType) invalidParams("Typed data primaryType does not match the signed type");
+      TypedDataEncoder.hash(typed.domain, types, typed.message);
+      const actualDomainType = TypedDataEncoder.getPayload(typed.domain, types, typed.message).types.EIP712Domain;
+      if (typed.types.EIP712Domain !== undefined && (!Array.isArray(typed.types.EIP712Domain) || typed.types.EIP712Domain.length !== actualDomainType.length || actualDomainType.some((field, index) => typed.types.EIP712Domain[index]?.name !== field.name || typed.types.EIP712Domain[index]?.type !== field.type))) invalidParams("Typed data domain types differ from the signed domain");
+      typed.types.EIP712Domain = actualDomainType;
+    } catch { invalidParams("Typed data cannot be signed exactly as displayed"); }
+    return { params: [activeAccount, JSON.stringify(typed)], review: { title: "Sign typed data", account: activeAccount, domain: typed.domain, types: typed.types, primaryType: typed.primaryType, message: typed.message, warning: "This signature may authorize transfers, spending permissions, or other external actions. Review every domain, type and message field." } };
   }
   if (method === "eth_sendTransaction") {
     if (params.length !== 1 || typeof params[0] !== "object" || params[0] === null) invalidParams("eth_sendTransaction requires one transaction object");
@@ -181,3 +212,5 @@ function normalizeAccount(value) { if (typeof value !== "string" || !/^0x[0-9a-f
 function invalidParams(message) { throw providerError(-32602, "INVALID_PROVIDER_PARAMS", message); }
 function success(result) { return Object.freeze({ status: "success", result }); }
 function walletForSecret(secret) { return new Wallet(secret.startsWith("0x") ? secret : `0x${secret}`); }
+function assertReviewedAccount(actual, expected) { if (actual !== expected) throw providerError(4100, "ACCOUNT_CHANGED", "The selected account changed. Review the request again."); }
+function deepFreeze(value) { for (const child of Object.values(value)) if (child && typeof child === "object") deepFreeze(child); return Object.freeze(value); }

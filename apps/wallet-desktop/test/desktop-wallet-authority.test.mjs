@@ -5,7 +5,8 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { verifyMessage, verifyTypedData, Wallet } from "ethers";
-import { parseCallbackURL, requestDigest, verifyAuthorization, walletIdentity } from "@ynx-chain/wallet-auth";
+import { createProductSessionRequest, parseProductSessionReturnURL, walletIdentity } from "@ynx-chain/wallet-auth";
+import { PRODUCT_SESSION_REGISTRY } from "../src/wallet-auth-contract.mjs";
 import { APPROVAL_TTL_MS, DesktopWalletAuthority, MemoryPermissionStore, YNX_EIP155_CHAIN, YNX_EVM_CHAIN_ID } from "../src/desktop-wallet-authority.mjs";
 import { FilePermissionStore } from "../src/desktop-permission-store.mjs";
 import { DesktopWalletVault } from "../src/desktop-wallet-vault.mjs";
@@ -21,6 +22,8 @@ test("desktop Wallet exposes no account before explicit origin approval", async 
   assert.equal(YNX_EVM_CHAIN_ID, "0x1917");
   assert.equal(YNX_EIP155_CHAIN, "eip155:6423");
   assert.equal((await authority.request({ origin: ORIGIN, method: "eth_chainId" })).result, "0x1917");
+  assert.deepEqual((await authority.request({ origin: ORIGIN, method: "eth_accounts" })).result, []);
+  await assert.rejects(authority.approveOrigin(ORIGIN, "0x" + "22".repeat(20)), error => error.data.code === "ACCOUNT_CHANGED");
   assert.deepEqual((await authority.request({ origin: ORIGIN, method: "eth_accounts" })).result, []);
   const pending = await authority.request({ origin: ORIGIN, method: "eth_requestAccounts" });
   assert.equal(pending.status, "approval-required");
@@ -50,44 +53,49 @@ test("approved personal_sign and EIP-712 signatures recover only the approved ac
   const typed = {
     domain: { name: "YNX DApp", version: "1", chainId: 6423 },
     primaryType: "Action",
-    types: { EIP712Domain: [], Action: [{ name: "purpose", type: "string" }] },
+    types: { EIP712Domain: [{ name: "name", type: "string" }, { name: "version", type: "string" }, { name: "chainId", type: "uint256" }], Action: [{ name: "purpose", type: "string" }] },
     message: { purpose: "First-party approval test" }
   };
   const request = await authority.request({ origin: ORIGIN, method: "eth_signTypedData_v4", params: [status.account, JSON.stringify(typed)] });
+  assert.deepEqual(request.request.review.types, typed.types);
+  assert.deepEqual(request.request.review.domain, typed.domain);
+  assert.deepEqual(request.request.review.message, typed.message);
+  assert.match(request.request.review.warning, /transfers/);
+  assert.equal(Object.isFrozen(request.request.review.types.Action[0]), true);
   const signature = (await authority.approve(request.request.id)).result;
   assert.equal(verifyTypedData(typed.domain, { Action: typed.types.Action }, typed.message, signature).toLowerCase(), status.account);
 });
 
-test("canonical authorize approval signs and returns only the registered callback payload", async () => {
+test("canonical v2 approval signs only the reviewed account and exact registered callback", async () => {
   const { authority, status } = await fixture();
   const productDeviceKey = createECDH("prime256v1");
   productDeviceKey.setPrivateKey(Buffer.alloc(32, 0x42));
-  const authorization = {
-    version: "1",
-    nonce: "nonce_abcdefghijklmnopqrstuvwxyz12",
-    chainId: "ynx_6423-1",
-    requestingProduct: "social",
-    productClientId: "ynx-social-v1",
-    bundleId: "com.ynx.social",
-    productDeviceAlgorithm: "p256-sha256",
-    productDeviceKey: productDeviceKey.getPublicKey(null, "compressed").toString("base64url"),
-    callback: "ynx-social://com.ynx.social",
-    scopes: ["account:read", "profile:link"],
-    purpose: "Link this YNX account to the selected Social profile on this device.",
-    issuedAt: "2026-08-22T00:00:00.000Z",
-    expiresAt: "2026-08-22T00:05:00.000Z"
-  };
-  const approved = await authority.approveCanonicalAuthorization(authorization, "2026-08-22T00:01:00.000Z");
-  const response = parseCallbackURL(approved.callbackUrl, authorization.callback);
-  const verified = verifyAuthorization(response, { ...authorization, requestDigest: requestDigest(authorization), now: new Date("2026-08-22T00:01:00.000Z") });
-  assert.equal(verified.account, status.ynxAccount);
-  assert.deepEqual(verified.grantedScopes, authorization.scopes);
-  assert.match(approved.callbackUrl, /^ynx-social:\/\/com\.ynx\.social\?response=/);
+  const now = new Date("2026-08-22T00:00:00.000Z");
+  const authorization = createProductSessionRequest(PRODUCT_SESSION_REGISTRY, {
+    productId: "creator-studio", platform: "web", deviceId: "desktop-authority-test",
+    deviceKey: productDeviceKey.getPublicKey(null, "compressed").toString("base64url"),
+    nonce: "nonce_abcdefghijklmnopqrstuvwxyz12", state: "state_abcdefghijklmnopqrstuvwxyz12",
+    scopes: ["creator:account", "creator:publish"], purpose: "Sign in to Creator Studio.",
+  }, now);
+  const issuedAt = "2026-08-22T00:01:00.000Z";
+  await assert.rejects(authority.approveCanonicalAuthorization(authorization, issuedAt), error => error.data.code === "ACCOUNT_REVIEW_REQUIRED");
+  await assert.rejects(authority.approveCanonicalAuthorization(authorization, issuedAt, "0x" + "22".repeat(20)), error => error.data.code === "ACCOUNT_CHANGED");
+  const approved = await authority.approveCanonicalAuthorization(authorization, issuedAt, status.account);
+  const verified = parseProductSessionReturnURL(PRODUCT_SESSION_REGISTRY, authorization, approved.callbackUrl, new Date(issuedAt));
+  assert.equal(verified.status, "ready");
+  assert.equal(verified.approval.account, status.ynxAccount);
+  assert.equal(verified.approval.origin, "https://creator.ynxweb4.com");
+  assert.deepEqual(verified.approval.scopes, authorization.scopes);
+  assert.match(approved.callbackUrl, /^https:\/\/creator\.ynxweb4\.com\/wallet-auth\/callback\?result=approved&approval=/);
+  assert.equal(new URL(approved.callbackUrl).searchParams.get("nonce"), authorization.nonce);
+  assert.equal(new URL(approved.callbackUrl).searchParams.get("state"), authorization.state);
+  await assert.rejects(authority.approveCanonicalAuthorization(authorization, authorization.expiresAt, status.account), { code: "SESSION_EXPIRED" });
+  await assert.rejects(authority.approveCanonicalAuthorization({ ...authorization, origin: "https://attacker.example" }, issuedAt, status.account), { code: "SESSION_BINDING_MISMATCH" });
 });
 
 test("transaction review binds account, chain and exact values before transport", async () => {
   let observed = null;
-  const transactionSender = { async send(wallet, transaction) { observed = { account: wallet.address.toLowerCase(), transaction }; return `0x${"ab".repeat(32)}`; } };
+  const transactionSender = { prepare: prepareFixtureTransaction, async send(wallet, transaction) { observed = { account: wallet.address.toLowerCase(), transaction }; return `0x${"ab".repeat(32)}`; } };
   const { authority, status } = await fixture(transactionSender);
   await approveAccount(authority);
   const pending = await authority.request({ origin: ORIGIN, method: "eth_sendTransaction", params: [{ from: status.account, to: "0x0000000000000000000000000000000000000002", value: "0x1", chainId: "0x1917" }] });
@@ -345,7 +353,7 @@ test("WalletConnect restores exact sessions, emits standard events and disconnec
   assert.deepEqual(transport.status(), { configured: true, started: true, relayConnected: true, activeSessionCount: 1, code: null });
   assert.deepEqual(restored, [{ topic: "restored-session", origin: "https://card.ynxweb4.com", name: "First-party DApp", url: "https://card.ynxweb4.com/path", expiry: 2000000000 }]);
   assert.deepEqual(transport.sessions(), restored);
-  const authorized = transport.authorizeRequest({ topic: restoredSession.topic, id: 41, params: { chainId: "eip155:6423", request: { method: "personal_sign", params: ["0x01", "0x1234567890abcdef1234567890abcdef12345678"] } } });
+  const authorized = transport.authorizeRequest({ topic: restoredSession.topic, id: 41, params: { chainId: "eip155:6423", request: { method: "personal_sign", params: ["0x01", "0x1234567890abcdef1234567890abcdef12345678"] } } }, "0x1234567890abcdef1234567890abcdef12345678");
   assert.deepEqual(authorized, { topic: restoredSession.topic, jsonRpcId: 41, origin: "https://card.ynxweb4.com", method: "personal_sign", params: ["0x01", "0x1234567890abcdef1234567890abcdef12345678"] });
   assert.throws(() => transport.authorizeRequest({ topic: restoredSession.topic, id: 42, params: { chainId: "eip155:1", request: { method: "personal_sign", params: [] } } }), error => error.code === "UNSUPPORTED_WALLETCONNECT_CHAIN");
   assert.throws(() => transport.authorizeRequest({ topic: restoredSession.topic, id: 43, params: { chainId: "eip155:6423", request: { method: "eth_signTypedData_v4", params: [] } } }), error => error.code === "UNAUTHORIZED_WALLETCONNECT_METHOD");
@@ -384,3 +392,66 @@ async function fixture(transactionSender = null) {
   return { authority, status };
 }
 async function approveAccount(authority) { const request = await authority.request({ origin: ORIGIN, method: "eth_requestAccounts" }); await authority.approve(request.request.id); }
+async function prepareFixtureTransaction(account, transaction) { return Object.freeze({ ...transaction, from: account, data: transaction.data ?? "0x", chainId: "0x1917", nonce: "0x0", type: 0, gasLimit: "0x6270", gasPrice: "0x3b9aca00" }); }
+
+test("transaction review contains the exact immutable RPC snapshot and never signs during preparation", async () => {
+  let snapshot, sent;
+  const { authority, status } = await fixture({
+    async prepare(account, transaction) { snapshot = await prepareFixtureTransaction(account, transaction); return snapshot; },
+    async send(_wallet, transaction) { sent = transaction; return `0x${"ab".repeat(32)}`; }
+  });
+  await approveAccount(authority);
+  const transaction = { from: status.account, to: `0x${"22".repeat(20)}`, value: "0x1", data: `0x${"a1".repeat(400)}` };
+  const pending = (await authority.request({ origin: ORIGIN, method: "eth_sendTransaction", params: [transaction] })).request;
+  assert.equal(sent, undefined); assert.equal(pending.params[0], snapshot);
+  for (const [key, value] of Object.entries(snapshot)) assert.deepEqual(pending.review[key], value);
+  assert.equal(pending.review.amount, "0.000000000000000001");
+  assert.equal(pending.review.maximumFee, "0.0000252");
+  assert.equal(pending.review.total, "0.000025200000000001");
+  assert.equal(pending.review.symbol, "YNXT");
+  assert.equal(Object.isFrozen(pending.params), true);
+  assert.equal(Object.isFrozen(pending.review), true);
+  transaction.data = "0x"; transaction.to = status.account;
+  await authority.approve(pending.id);
+  assert.equal(sent, snapshot); assert.equal(sent.data.length, 802);
+});
+
+test("preparation failure and account or permission changes during RPC never produce approval", async () => {
+  for (const mutation of ["failure", "account", "permission"]) {
+    let authority;
+    const sender = { async prepare(account, transaction) {
+      if (mutation === "failure") throw Object.assign(new Error("missing RPC fee"), { data: { code: "RPC_FEE_UNAVAILABLE" } });
+      if (mutation === "account") await authority.vault.importAccount({ kind: "private-key", value: SECOND_SECRET });
+      if (mutation === "permission") await authority.revokeOrigin(ORIGIN);
+      return prepareFixtureTransaction(account, transaction);
+    }, async send() { assert.fail("must never sign"); } };
+    const setup = await fixture(sender); authority = setup.authority;
+    await approveAccount(authority);
+    await assert.rejects(authority.request({ origin: ORIGIN, method: "eth_sendTransaction", params: [{ from: setup.status.account, to: `0x${"22".repeat(20)}`, value: "0x1" }] }), error => error.data.code === { failure: "RPC_FEE_UNAVAILABLE", account: "ACCOUNT_CHANGED", permission: "ACCOUNT_PERMISSION_REVOKED" }[mutation]);
+    assert.equal(authority.pendingRequests().length, 0);
+  }
+});
+
+test("typed data cannot mislabel the actual signed primary type or domain field schema", async () => {
+  const { authority, status } = await fixture(); await approveAccount(authority);
+  const typed = { domain: { name: "Test", chainId: 6423 }, primaryType: "Action", types: { Action: [{ name: "amount", type: "uint256" }] }, message: { amount: "1" } };
+  for (const invalid of [{ ...typed, primaryType: "HarmlessMessage" }, { ...typed, types: { ...typed.types, EIP712Domain: [] } }, { ...typed, message: { amount: "not-an-integer" } }]) await assert.rejects(authority.request({ origin: ORIGIN, method: "eth_signTypedData_v4", params: [status.account, JSON.stringify(invalid)] }), error => error.code === -32602);
+  assert.equal(authority.pendingRequests().length, 0);
+  const pending = (await authority.request({ origin: ORIGIN, method: "eth_signTypedData_v4", params: [status.account, JSON.stringify(typed)] })).request;
+  assert.deepEqual(pending.review.types.EIP712Domain, [{ name: "name", type: "string" }, { name: "chainId", type: "uint256" }]);
+});
+
+
+test("a key switch after provider permission checks cannot sign the previously reviewed account request", async () => {
+  for (const method of ["personal_sign", "eth_signTypedData_v4", "eth_sendTransaction"]) {
+    let sent = false;
+    const { authority, status } = await fixture({ prepare: prepareFixtureTransaction, async send() { sent = true; return `0x${"ab".repeat(32)}`; } });
+    await approveAccount(authority);
+    const typed = { domain: { name: "Account-bound test", chainId: 6423 }, primaryType: "Action", types: { Action: [{ name: "value", type: "uint256" }] }, message: { value: "1" } };
+    const params = method === "personal_sign" ? ["0x01", status.account] : method === "eth_signTypedData_v4" ? [status.account, JSON.stringify(typed)] : [{ from: status.account, to: "0x" + "22".repeat(20), value: "0x1" }];
+    const pending = await authority.request({ origin: ORIGIN, method, params });
+    authority.vault.withSecret = action => action(SECOND_SECRET, { account: new Wallet(`0x${SECOND_SECRET}`).address.toLowerCase() });
+    await assert.rejects(authority.approve(pending.request.id), error => error.data.code === "ACCOUNT_CHANGED");
+    assert.equal(sent, false);
+  }
+});
