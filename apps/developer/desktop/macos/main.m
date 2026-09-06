@@ -47,7 +47,30 @@ static BOOL YNXShouldForwardNativeEdit(id route, NSError *error, BOOL sameWindow
 
 static NSString *const YNXWalletStorageService = @"com.ynxweb4.developer.product-session-v2";
 static BOOL YNXWalletStorageKey(NSString *key) {
-    return key.length > 24 && key.length <= 256 && [key hasPrefix:@"ynx.product-session.v2:developer:macos:com.ynxweb4.developer.testnetpreview"];
+    return [key isKindOfClass:NSString.class] && key.length > 24 && key.length <= 256 && [key hasPrefix:@"ynx.product-session.v2:developer:macos:com.ynxweb4.developer.testnetpreview"];
+}
+static BOOL YNXWalletStorageBody(NSDictionary *body, NSString *action) {
+    if(!YNXWalletStorageKey(body[@"key"]))return NO;
+    if(![action isEqualToString:@"storage-set"])return YES;
+    id value=body[@"value"];
+    return [value isKindOfClass:NSString.class] && [value length]<=32768 && [value dataUsingEncoding:NSUTF8StringEncoding]!=nil;
+}
+static BOOL YNXCommandPath(id path) {
+    return [path isKindOfClass:NSString.class] && [path length]>0 && [path length]<=240 && ![path hasPrefix:@"/"] && [path rangeOfString:@"\\"].location==NSNotFound && ![[path pathComponents] containsObject:@".."];
+}
+static NSDictionary *YNXCommandPayload(id value) {
+    if(![value isKindOfClass:NSDictionary.class])return nil;
+    NSDictionary *payload=value; id task=payload[@"task"],identifier=payload[@"projectId"],files=payload[@"files"];
+    if(![task isKindOfClass:NSString.class] || ![@[@"test",@"check"] containsObject:task] || ![identifier isKindOfClass:NSString.class] || ![identifier length] || [identifier length]>160 || ![files isKindOfClass:NSDictionary.class] || [files count]<1 || [files count]>500)return nil;
+    NSCharacterSet *unsafe=[[NSCharacterSet characterSetWithCharactersInString:@"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_-"] invertedSet];
+    if([identifier rangeOfCharacterFromSet:unsafe].location!=NSNotFound)return nil;
+    NSUInteger total=0;
+    for(id path in files){
+        id content=files[path]; if(!YNXCommandPath(path) || ![content isKindOfClass:NSString.class])return nil;
+        NSData *data=[content dataUsingEncoding:NSUTF8StringEncoding];if(!data || data.length>524288)return nil;
+        total+=data.length;if(total>5242880)return nil;
+    }
+    return payload;
 }
 static NSDictionary *YNXWalletAvailability(void) {
     // Native availability cannot safely probe a bare or synthetic authorization
@@ -180,11 +203,12 @@ typedef NSDictionary *(^YNXSnapshotReader)(NSError **error);
 }
 - (void)userContentController:(WKUserContentController *)controller didReceiveScriptMessage:(WKScriptMessage *)message {
     if(!YNXTrustedMessage(message,_webView,_port) || ![message.name isEqualToString:@"workspace"])return;
-    NSDictionary *body=[message.body isKindOfClass:NSDictionary.class]?message.body:nil;
+    id rawBody=message.body; NSDictionary *body=[rawBody isKindOfClass:NSDictionary.class]?rawBody:nil;
     NSString *job=body[@"id"], *action=body[@"action"];
-    if(![job isKindOfClass:NSString.class] || job.length>80 || ![action isKindOfClass:NSString.class])return;
+    if(![job isKindOfClass:NSString.class] || !job.length || job.length>80 || ![action isKindOfClass:NSString.class] || !action.length || action.length>32)return;
     if([action isEqualToString:@"save-project"]) {
-        [self saveProject:body[@"project"] completion:^(NSError *error){[self reply:job error:error];}]; return;
+        NSDictionary *project=YNXWorkspaceProject(body[@"project"]);if(!project)return;
+        [self saveProject:project completion:^(NSError *error){[self reply:job error:error];}]; return;
     }
     if([action isEqualToString:@"export-project"]) {
         NSString *content=body[@"content"], *filename=body[@"filename"];
@@ -228,11 +252,11 @@ typedef NSDictionary *(^YNXSnapshotReader)(NSError **error);
 }
 - (void)userContentController:(WKUserContentController *)controller didReceiveScriptMessage:(WKScriptMessage *)message {
     if(!YNXTrustedMessage(message,_webView,_port) || ![@[@"wallet",@"command"] containsObject:message.name])return;
-    NSDictionary *body=[message.body isKindOfClass:NSDictionary.class]?message.body:nil;
+    id rawBody=message.body; NSDictionary *body=[rawBody isKindOfClass:NSDictionary.class]?rawBody:nil;
     NSString *action=[body[@"action"] isKindOfClass:NSString.class]?body[@"action"]:nil, *job=[body[@"id"] isKindOfClass:NSString.class]?body[@"id"]:nil;
-    if (!action.length || !job.length || job.length>80) return;
+    if (!action.length || action.length>32 || !job.length || job.length>80) return;
     if ([message.name isEqualToString:@"wallet"]) {
-        if([@[@"storage-get",@"storage-set",@"storage-remove"] containsObject:action]) { [self handleWalletStorage:body action:action job:job]; return; }
+        if([@[@"storage-get",@"storage-set",@"storage-remove"] containsObject:action]) { if(YNXWalletStorageBody(body,action))[self handleWalletStorage:body action:action job:job]; return; }
         if([action isEqualToString:@"wallet-availability"]) { NSDictionary *availability=YNXWalletAvailability(); NSString *event=YNXJSON(@{ @"id":job,@"ok":@YES,@"installed":availability[@"installed"],@"schemeRegistered":availability[@"schemeRegistered"] }); YNXEvaluateTrustedScript(_webView,_port,[NSString stringWithFormat:@"window.__ynxWalletAvailabilityResult(%@)",event?:@"{}"]); return; }
         if(![action isEqualToString:@"open-authorization"]) return;
         NSString *value=[body[@"url"] isKindOfClass:NSString.class]?body[@"url"]:nil; NSURLComponents *parts=value.length?[NSURLComponents componentsWithString:value]:nil; NSArray<NSURLQueryItem *> *items=parts.queryItems;
@@ -246,11 +270,11 @@ typedef NSDictionary *(^YNXSnapshotReader)(NSError **error);
         YNXEvaluateTrustedScript(_webView,_port,[NSString stringWithFormat:@"window.__ynxWalletOpenResult(%@)",event?:@"{}"]); return;
     }
     if ([action isEqualToString:@"cancel"]) { [_lock lock]; NSTask *task=_processes[job]; [_lock unlock]; [task terminate]; return; }
-    NSDictionary *payload=[body[@"payload"] isKindOfClass:NSDictionary.class]?body[@"payload"]:nil;
+    NSDictionary *payload=YNXCommandPayload(body[@"payload"]);
     if (![action isEqualToString:@"run"] || !payload) return;
     dispatch_async(dispatch_get_global_queue(QOS_CLASS_USER_INITIATED,0), ^{ [self run:job payload:payload]; });
 }
-- (BOOL)validPath:(NSString *)path { return path.length>0 && path.length<=240 && ![path hasPrefix:@"/"] && [path rangeOfString:@"\\"].location==NSNotFound && ![[path pathComponents] containsObject:@".."];
+- (BOOL)validPath:(NSString *)path { return YNXCommandPath(path);
 }
 - (void)emit:(NSDictionary *)event { NSString *json=YNXJSON(event); if (!json) return; dispatch_async(dispatch_get_main_queue(), ^{ YNXEvaluateTrustedScript(self.webView,self.port,[NSString stringWithFormat:@"window.__ynxDesktopEvent(%@)",json]); }); }
 - (void)run:(NSString *)job payload:(NSDictionary *)payload {

@@ -27,6 +27,7 @@ test("compiled native handlers reject foreign messages before payload/OS access 
   await exec("/usr/bin/clang", ["-fobjc-arc", "-mmacosx-version-min=13.5", "-Werror=unguarded-availability", "-Werror=unguarded-availability-new", `-fmodules-cache-path=${root}/module-cache`, fileURLToPath(new URL("./fixtures/macos-native-origin.m", import.meta.url)), "-o", binary, "-framework", "Cocoa", "-framework", "Security", "-framework", "WebKit"], { timeout: 45000 });
   const { stdout } = await exec(binary, [], { timeout: 8000 });
   assert.match(stdout, /Rejected 72 foreign-origin\/frame\/view\/name messages before payload access/);
+  assert.match(stdout, /Rejected 138 malformed body\/action\/job\/payload messages before native effects/);
   const script = stdout.match(/^BOUND_SCRIPT:(.+)$/m)?.[1];assert.ok(script);
   for (const origin of ["https://foreign.example", "http://127.0.0.1:4178", "null"]) {
     const sandbox = { location: { origin } };runInNewContext(script, sandbox);assert.equal(sandbox.delivered, undefined);
