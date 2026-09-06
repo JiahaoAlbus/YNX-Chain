@@ -33,6 +33,11 @@ const (
 
 var transactionHashPattern = regexp.MustCompile(`^0x[0-9a-fA-F]{64}$`)
 
+// ErrSnapshotDurabilityUncertain means the snapshot was replaced, but a later
+// durability step failed. The transaction may survive a restart; callers must
+// reconcile its hash rather than assume it was rolled back or submit a new one.
+var ErrSnapshotDurabilityUncertain = errors.New("snapshot replaced but durability was not fully confirmed")
+
 var requestValidityRules = []RequestValidityRule{
 	{ID: "protect-private-secrets", Name: "Protect private secrets", Classification: RequestIllegalOrAbusive, Description: "Requests for private keys, seed phrases, or mnemonics are illegal or abusive under YNX Chain Law.", RequiresUserNotice: true, Keywords: []string{"private key", "seed phrase", "mnemonic"}},
 	{ID: "no-signature-bypass", Name: "No signature bypass", Classification: RequestIllegalOrAbusive, Description: "Requests cannot bypass user signatures or custody authorization.", RequiresUserNotice: true, Keywords: []string{"bypass signature", "without signature", "skip signature"}},
@@ -99,6 +104,7 @@ type Devnet struct {
 	dexEvents                []NativeDexEvent
 	dataDir                  string
 	lastPersistenceError     string
+	uncertainTransfers       map[string]struct{}
 	replicationDurableHeight uint64
 }
 
@@ -945,25 +951,33 @@ func (d *Devnet) Transfer(from, to string, amount int64) (Transaction, error) {
 	}
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	sender, receiver := d.account(from), d.account(to)
+	sender, receiver := d.accountReadOnly(from), d.accountReadOnly(to)
 	const fee int64 = 1
-	if sender.Balance < amount+fee {
+	if amount > math.MaxInt64-fee || sender.Balance < amount+fee {
 		return Transaction{}, errors.New("insufficient balance")
 	}
-	flows, err := d.moveLotsLocked(sender, receiver, amount)
+	if sender.Nonce == math.MaxUint64 || sender.ResourceUsage.BandwidthUsed == math.MaxInt64 {
+		return Transaction{}, errors.New("sender nonce or bandwidth usage is exhausted")
+	}
+	validator := d.nextValidatorAddressLocked()
+	if err := d.validateTransferCreditsLocked(from, to, validator, amount, fee); err != nil {
+		return Transaction{}, err
+	}
+	flows, err := d.planLotMovementLocked(sender, receiver, amount)
 	if err != nil {
 		return Transaction{}, err
 	}
+	undo := d.transferUndoLocked(from, to, validator, flows)
+	receiver = d.account(to)
+	d.applyLotFlowsLocked(sender, receiver, flows)
 	sender.Balance -= amount + fee
 	sender.Nonce++
 	sender.ResourceUsage.BandwidthUsed++
 	receiver.Balance += amount
-	d.account(d.nextValidatorAddressLocked()).Balance += fee
+	d.account(validator).Balance += fee
 	tx := d.newTxLocked("transfer", from, to, amount, fee, flows, "native transfer")
 	d.pending = append(d.pending, tx)
-	err = d.persistSnapshotLocked()
-	d.recordPersistenceErrorLocked(err)
-	return tx, err
+	return d.persistTransferLocked(tx, undo)
 }
 
 func (d *Devnet) SubmitSignedTransfer(input SignedTransferInput) (Transaction, bool, error) {
@@ -1008,6 +1022,11 @@ func (d *Devnet) SubmitSignedTransfer(input SignedTransferInput) (Transaction, b
 		if existing.Type != "transfer" || existing.From != input.From || existing.To != input.To || existing.Amount != input.Amount || existing.Fee != input.Fee || existing.Nonce != input.Nonce {
 			return Transaction{}, false, errors.New("signed transaction hash conflicts with existing transaction")
 		}
+		if _, uncertain := d.uncertainTransfers[input.Hash]; uncertain {
+			if err := d.confirmTransferPersistenceLocked(); err != nil {
+				return existing, false, err
+			}
+		}
 		return existing, true, nil
 	}
 	sender, ok := d.accounts[input.From]
@@ -1031,31 +1050,27 @@ func (d *Devnet) SubmitSignedTransfer(input SignedTransferInput) (Transaction, b
 		if ethnative.Wei(sender.Balance).Cmp(budget) < 0 {
 			return Transaction{}, false, errors.New("insufficient funds for value plus gas budget")
 		}
-		credits := map[string]int64{input.To: input.Amount}
-		validator := d.nextValidatorAddressLocked()
-		if credits[validator] > math.MaxInt64-input.Fee {
-			return Transaction{}, false, errors.New("native credit exceeds ledger range")
-		}
-		credits[validator] += input.Fee
-		for address, credit := range credits {
-			if account, exists := d.accounts[address]; exists && account.Balance > math.MaxInt64-credit {
-				return Transaction{}, false, errors.New("native recipient balance would overflow")
-			}
-		}
 	}
 	if sender.ResourceUsage.BandwidthUsed == math.MaxInt64 {
 		return Transaction{}, false, errors.New("sender bandwidth usage is exhausted")
 	}
-	receiver := d.account(input.To)
-	flows, err := d.moveLotsLocked(sender, receiver, input.Amount)
+	validator := d.nextValidatorAddressLocked()
+	if err := d.validateTransferCreditsLocked(input.From, input.To, validator, input.Amount, input.Fee); err != nil {
+		return Transaction{}, false, err
+	}
+	receiver := d.accountReadOnly(input.To)
+	flows, err := d.planLotMovementLocked(sender, receiver, input.Amount)
 	if err != nil {
 		return Transaction{}, false, err
 	}
+	undo := d.transferUndoLocked(input.From, input.To, validator, flows)
+	receiver = d.account(input.To)
+	d.applyLotFlowsLocked(sender, receiver, flows)
 	sender.Balance -= input.Amount + input.Fee
 	sender.Nonce = input.Nonce
 	sender.ResourceUsage.BandwidthUsed++
 	receiver.Balance += input.Amount
-	d.account(d.nextValidatorAddressLocked()).Balance += input.Fee
+	d.account(validator).Balance += input.Fee
 	tx := Transaction{
 		Hash: input.Hash, Type: "transfer", From: input.From, To: input.To,
 		Amount: input.Amount, Fee: input.Fee, Nonce: input.Nonce,
@@ -1065,9 +1080,134 @@ func (d *Devnet) SubmitSignedTransfer(input SignedTransferInput) (Transaction, b
 		tx.Memo = ethnative.MemoPrefix + hex.EncodeToString(input.EthereumRaw)
 	}
 	d.pending = append(d.pending, tx)
-	err = d.persistSnapshotLocked()
-	d.recordPersistenceErrorLocked(err)
+	tx, err = d.persistTransferLocked(tx, undo)
 	return tx, false, err
+}
+
+func (d *Devnet) validateTransferCreditsLocked(from, to, validator string, amount, fee int64) error {
+	credits := map[string]int64{to: amount}
+	if credits[validator] > math.MaxInt64-fee {
+		return errors.New("native credit exceeds ledger range")
+	}
+	credits[validator] += fee
+	for address, credit := range credits {
+		balance := d.accountReadOnly(address).Balance
+		if address == from {
+			balance -= amount + fee
+		}
+		if balance > math.MaxInt64-credit {
+			return errors.New("native recipient balance would overflow")
+		}
+	}
+	return nil
+}
+
+type transferLotBalanceUndo struct {
+	amount  int64
+	present bool
+}
+
+type transferAccountUndo struct {
+	account *Account
+	state   Account // Lots is intentionally shallow; only moved entries are saved.
+	lots    map[string]transferLotBalanceUndo
+}
+
+type transferTraceUndo struct {
+	lot     TrustTraceLot
+	present bool
+}
+
+type transferUndo struct {
+	accounts map[string]transferAccountUndo
+	lots     map[string]transferTraceUndo
+	pending  []Transaction
+}
+
+// Capture only the three affected accounts and moved lot entries. Copying a
+// complete snapshot here would duplicate the follower's entire block history.
+func (d *Devnet) transferUndoLocked(from, to, validator string, flows []LotFlow) transferUndo {
+	undo := transferUndo{accounts: map[string]transferAccountUndo{}, lots: map[string]transferTraceUndo{}, pending: d.pending}
+	for _, address := range []string{from, to, validator} {
+		if _, saved := undo.accounts[address]; saved {
+			continue
+		}
+		entry := transferAccountUndo{account: d.accounts[address]}
+		if entry.account != nil {
+			entry.state = *entry.account
+			if address == from || address == to {
+				entry.lots = make(map[string]transferLotBalanceUndo, len(flows))
+				for _, flow := range flows {
+					amount, present := entry.account.Lots[flow.LotID]
+					entry.lots[flow.LotID] = transferLotBalanceUndo{amount, present}
+				}
+			}
+		}
+		undo.accounts[address] = entry
+	}
+	for _, flow := range flows {
+		lot, present := d.lots[flow.LotID]
+		undo.lots[flow.LotID] = transferTraceUndo{lot, present}
+	}
+	return undo
+}
+
+func (d *Devnet) rollbackTransferLocked(undo transferUndo) {
+	for address, entry := range undo.accounts {
+		if entry.account == nil {
+			delete(d.accounts, address)
+			continue
+		}
+		*entry.account = entry.state
+		for lotID, lot := range entry.lots {
+			if lot.present {
+				entry.account.Lots[lotID] = lot.amount
+			} else {
+				delete(entry.account.Lots, lotID)
+			}
+		}
+	}
+	for lotID, entry := range undo.lots {
+		if entry.present {
+			d.lots[lotID] = entry.lot
+		} else {
+			delete(d.lots, lotID)
+		}
+	}
+	clear(d.pending[len(undo.pending):])
+	d.pending = undo.pending
+}
+
+func (d *Devnet) persistTransferLocked(tx Transaction, undo transferUndo) (Transaction, error) {
+	err := d.persistSnapshotLocked()
+	d.recordPersistenceErrorLocked(err)
+	if err != nil {
+		if errors.Is(err, ErrSnapshotDurabilityUncertain) {
+			// Rename has exposed this state to readers and restart. Rolling back
+			// only memory would disagree with the snapshot now on disk.
+			if d.uncertainTransfers == nil {
+				d.uncertainTransfers = map[string]struct{}{}
+			}
+			d.uncertainTransfers[tx.Hash] = struct{}{}
+			return tx, err
+		}
+		d.rollbackTransferLocked(undo)
+		return Transaction{}, err
+	}
+	d.uncertainTransfers = nil
+	return tx, nil
+}
+
+func (d *Devnet) confirmTransferPersistenceLocked() error {
+	err := d.persistSnapshotLocked()
+	if err != nil {
+		// Even a pre-rename retry failure cannot undo the earlier replacement.
+		err = fmt.Errorf("%w: retry checkpoint: %w", ErrSnapshotDurabilityUncertain, err)
+	} else {
+		d.uncertainTransfers = nil
+	}
+	d.recordPersistenceErrorLocked(err)
+	return err
 }
 
 func (d *Devnet) Stake(address string, amount int64) (Transaction, ResourceBalance, error) {
@@ -3284,12 +3424,16 @@ func (d *Devnet) persistSnapshotLocked() error {
 		return err
 	}
 	if err := writeDurableSnapshot(d.snapshotIntegrityMarkerPath(), []byte("2\n")); err != nil {
-		return fmt.Errorf("persist devnet snapshot integrity marker: %w", err)
+		return fmt.Errorf("%w: persist devnet snapshot integrity marker: %w", ErrSnapshotDurabilityUncertain, err)
 	}
 	return nil
 }
 
-func writeDurableSnapshotJSON(path string, value any) (err error) {
+func writeDurableSnapshotJSON(path string, value any) error {
+	return writeDurableSnapshotJSONWithDirectorySync(path, value, syncSnapshotDirectory)
+}
+
+func writeDurableSnapshotJSONWithDirectorySync(path string, value any, syncDirectory func(string) error) (err error) {
 	tmpPath := path + ".tmp"
 	file, err := os.OpenFile(tmpPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
 	if err != nil {
@@ -3323,13 +3467,8 @@ func writeDurableSnapshotJSON(path string, value any) (err error) {
 	if err = os.Rename(tmpPath, path); err != nil {
 		return fmt.Errorf("replace devnet snapshot: %w", err)
 	}
-	directory, openErr := os.Open(filepath.Dir(path))
-	if openErr != nil {
-		return fmt.Errorf("open devnet snapshot directory: %w", openErr)
-	}
-	defer directory.Close()
-	if err = directory.Sync(); err != nil {
-		return fmt.Errorf("sync devnet snapshot directory: %w", err)
+	if err = syncDirectory(filepath.Dir(path)); err != nil {
+		return fmt.Errorf("%w: %w", ErrSnapshotDurabilityUncertain, err)
 	}
 	return nil
 }
@@ -3379,12 +3518,19 @@ func writeDurableSnapshot(path string, payload []byte) (err error) {
 	if err = os.Rename(tmpPath, path); err != nil {
 		return fmt.Errorf("replace devnet snapshot: %w", err)
 	}
-	directory, openErr := os.Open(filepath.Dir(path))
-	if openErr != nil {
-		return fmt.Errorf("open devnet snapshot directory: %w", openErr)
+	if err = syncSnapshotDirectory(filepath.Dir(path)); err != nil {
+		return fmt.Errorf("%w: %w", ErrSnapshotDurabilityUncertain, err)
+	}
+	return nil
+}
+
+func syncSnapshotDirectory(path string) error {
+	directory, err := os.Open(path)
+	if err != nil {
+		return fmt.Errorf("open devnet snapshot directory: %w", err)
 	}
 	defer directory.Close()
-	if err = directory.Sync(); err != nil {
+	if err := directory.Sync(); err != nil {
 		return fmt.Errorf("sync devnet snapshot directory: %w", err)
 	}
 	return nil
@@ -3582,6 +3728,18 @@ func (d *Devnet) newTxLocked(kind, from, to string, amount, fee int64, lots []Lo
 }
 
 func (d *Devnet) moveLotsLocked(sender, receiver *Account, amount int64) ([]LotFlow, error) {
+	flows, err := d.planLotMovementLocked(sender, receiver, amount)
+	if err != nil {
+		return nil, err
+	}
+	d.applyLotFlowsLocked(sender, receiver, flows)
+	return flows, nil
+}
+
+func (d *Devnet) planLotMovementLocked(sender, receiver *Account, amount int64) ([]LotFlow, error) {
+	if amount <= 0 {
+		return nil, errors.New("lot movement amount must be positive")
+	}
 	remaining := amount
 	flows := []LotFlow{}
 	keys := make([]string, 0, len(sender.Lots))
@@ -3601,11 +3759,9 @@ func (d *Devnet) moveLotsLocked(sender, receiver *Account, amount int64) ([]LotF
 		if move > remaining {
 			move = remaining
 		}
-		sender.Lots[lotID] -= move
-		receiver.Lots[lotID] += move
-		lot := d.lots[lotID]
-		lot.LastInbound = receiver.Address
-		d.lots[lotID] = lot
+		if sender != receiver && receiver.Lots[lotID] > math.MaxInt64-move {
+			return nil, errors.New("recipient traceable lot balance would overflow")
+		}
 		flows = append(flows, LotFlow{LotID: lotID, Amount: move, From: sender.Address, To: receiver.Address})
 		remaining -= move
 	}
@@ -3613,6 +3769,19 @@ func (d *Devnet) moveLotsLocked(sender, receiver *Account, amount int64) ([]LotF
 		return nil, errors.New("insufficient traceable lot balance")
 	}
 	return flows, nil
+}
+
+func (d *Devnet) applyLotFlowsLocked(sender, receiver *Account, flows []LotFlow) {
+	if receiver.Lots == nil {
+		receiver.Lots = map[string]int64{}
+	}
+	for _, flow := range flows {
+		sender.Lots[flow.LotID] -= flow.Amount
+		receiver.Lots[flow.LotID] += flow.Amount
+		lot := d.lots[flow.LotID]
+		lot.LastInbound = receiver.Address
+		d.lots[flow.LotID] = lot
+	}
 }
 
 func (d *Devnet) activeDelegatedYNXTLocked(provider string) int64 {
