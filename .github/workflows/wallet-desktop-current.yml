@@ -81,8 +81,32 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $installer = @(Get-ChildItem apps/wallet-desktop/dist/*.exe)
           if ($installer.Count -ne 1) { throw 'Expected one exact installer' }
-          $install = Start-Process $installer[0].FullName -ArgumentList '/S' -Wait -PassThru
-          if ($install.ExitCode -ne 0) { throw 'Installation failed' }
+          $installResult = [ordered]@{ sourceCommit=$env:GITHUB_SHA; installerPath=$installer[0].FullName; arguments=@('/S'); installAttemptCount=1; startedAt=(Get-Date).ToUniversalTime().ToString('o'); osArchitecture=[string][Runtime.InteropServices.RuntimeInformation]::OSArchitecture; processArchitecture=[string][Runtime.InteropServices.RuntimeInformation]::ProcessArchitecture; exited=$false; exitCode=$null; exitCodeType=$null; successfulExit=$false; failure=$null }
+          $install = [Diagnostics.Process]::new()
+          try {
+            # Retain the native process handle, as verified by the immutable ARM64 QA.
+            # One normal /S invocation; no automatic retry or weakened exit-code gate.
+            $install.StartInfo.FileName = $installer[0].FullName
+            $install.StartInfo.ArgumentList.Add('/S')
+            $install.StartInfo.UseShellExecute = $false
+            if (-not $install.Start()) { throw 'Installer process did not start' }
+            $installResult.installerPid = $install.Id
+            $installResult.exited = $install.WaitForExit(180000)
+            $install.Refresh()
+            if ($installResult.exited) {
+              $installResult.exitCode = $install.ExitCode
+              if ($null -ne $installResult.exitCode) { $installResult.exitCodeType = $installResult.exitCode.GetType().FullName }
+            }
+            if (-not $installResult.exited -or $null -eq $installResult.exitCode -or $installResult.exitCode -ne 0) { throw 'Installer did not return a verified successful exit code' }
+            $installResult.successfulExit = $true
+          } catch {
+            $installResult.failure = $_.Exception.Message
+            throw
+          } finally {
+            $installResult.completedAt = (Get-Date).ToUniversalTime().ToString('o')
+            $installResult | ConvertTo-Json -Depth 5 | Set-Content 'apps/wallet-desktop/dist/windows-installer-result.json'
+            $install.Dispose()
+          }
           $exe = Join-Path $env:LOCALAPPDATA 'Programs\@ynx-chain\wallet-desktop\YNX Wallet.exe'
           if (-not (Test-Path $exe)) {
             $matches = @(Get-ChildItem $env:LOCALAPPDATA -Filter 'YNX Wallet.exe' -File -Recurse -ErrorAction SilentlyContinue)
@@ -152,4 +176,5 @@ jobs:
             apps/wallet-desktop/dist/*.AppImage
             apps/wallet-desktop/dist/release-manifest.json
             apps/wallet-desktop/dist/installed-smoke.json
+            apps/wallet-desktop/dist/windows-installer-result.json
             ${{ runner.temp }}/wallet-current-launch-*.log
