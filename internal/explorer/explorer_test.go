@@ -62,6 +62,10 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	ynxContractAddress, err := accountaddress.Encode(contract.Address)
+	if err != nil {
+		t.Fatal(err)
+	}
 	devnet.ProduceBlock()
 
 	const resourceUpstreamKey = "explorer-resource-upstream-key"
@@ -239,8 +243,10 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 	}{
 		{path: "/block/1", name: "block"},
 		{path: "/address/" + ynxAddress, name: "YNX address"},
+		{path: "/address/" + canonicalAddress, name: "EVM address"},
 		{path: "/token/YNXT", name: "native token"},
 		{path: "/contract/" + contract.Address, name: "contract"},
+		{path: "/contract/" + ynxContractAddress, name: "YNX contract"},
 	} {
 		response, err := http.Get(server.URL + testCase.path)
 		if err != nil {
@@ -266,10 +272,12 @@ func TestExplorerServesRPCAndIndexerBackedData(t *testing.T) {
 		}
 	}
 	for query, wantDeepLink := range map[string]string{
-		"1":              "/block/1",
-		ynxAddress:       "/address/" + canonicalAddress,
-		"YNXT":           "/token/YNXT",
-		contract.Address: "/contract/" + contract.Address,
+		"1":                "/block/1",
+		ynxAddress:         "/address/" + ynxAddress,
+		canonicalAddress:   "/address/" + ynxAddress,
+		"YNXT":             "/token/YNXT",
+		contract.Address:   "/contract/" + ynxContractAddress,
+		ynxContractAddress: "/contract/" + ynxContractAddress,
 	} {
 		response, err := http.Get(server.URL + "/api/search?q=" + query)
 		if err != nil {

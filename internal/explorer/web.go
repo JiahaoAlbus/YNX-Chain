@@ -5,21 +5,25 @@ import _ "embed"
 //go:embed assets/ynx-logo.png
 var logoPNG []byte
 
+//go:embed assets/ynx-icon.png
+var iconPNG []byte
+
 const indexHTML = `<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#f5f5f7">
-  <link rel="icon" href="/assets/ynx-logo.png" type="image/png">
-  <link rel="apple-touch-icon" href="/assets/ynx-logo.png">
+  <meta name="theme-color" content="#002FA7">
+  <link rel="icon" href="/favicon.ico?v=brand-20260906-v2" sizes="48x48" type="image/vnd.microsoft.icon">
+  <link rel="icon" href="/ynx-tab-icon.png?v=brand-20260906-v2" sizes="96x96" type="image/png">
+  <link rel="apple-touch-icon" href="/assets/ynx-icon.png?v=brand-20260906-v2" sizes="512x512">
   <title>YNX Chain Explorer</title>
   <style>
     :root {
       color-scheme: light;
-      --page:#f5f5f7; --surface:#fff; --surface-alt:#fbfbfd; --ink:#1d1d1f;
+      --page:#fff; --surface:#fff; --surface-alt:#fff; --ink:#002fa7;
       --muted:#6e6e73; --faint:#86868b; --line:#d2d2d7; --line-soft:#e8e8ed;
-      --blue:#0071e3; --blue-dark:#0058b0; --blue-soft:#eaf4ff; --green:#248a3d;
+      --blue:#002fa7; --blue-dark:#002fa7; --blue-soft:#f1f5ff; --green:#248a3d;
       --green-soft:#e8f7ec; --amber:#9a6700; --amber-soft:#fff7df; --red:#d70015;
       --shadow:0 2px 8px rgba(0,0,0,.04),0 16px 40px rgba(0,0,0,.06);
     }
@@ -122,7 +126,7 @@ const indexHTML = `<!doctype html>
     .block-live-row.empty-block-row .row-icon { width:30px; height:30px; font-size:10px; }
     .tx-live-row { grid-template-columns:44px minmax(0,1fr) auto; }
     .row-icon { display:grid; place-items:center; width:40px; height:40px; border-radius:8px; color:var(--blue); background:var(--blue-soft); font-size:12px; font-weight:700; }
-    .row-icon.tx { color:#6b45c6; background:#f1edff; }
+    .row-icon.tx { color:var(--blue); background:var(--blue-soft); }
     .row-title { display:flex; align-items:center; gap:8px; min-width:0; font-size:13px; font-weight:600; }
     .row-subtitle { display:flex; gap:8px; margin-top:5px; min-width:0; color:var(--muted); font-size:12px; }
     .transfer-flow { display:flex; align-items:center; gap:8px; min-width:0; }
@@ -167,8 +171,9 @@ const indexHTML = `<!doctype html>
 	.flow-meter span { display:block; height:100%; border-radius:inherit; background:var(--blue); }
 	.flow-line.out .flow-meter span { background:var(--amber); }
 	.detail-notice { margin:18px 24px 0; padding:13px 15px; border-left:3px solid var(--blue); border-radius:5px; color:var(--muted); background:var(--blue-soft); font-size:12px; line-height:1.55; }
-    .copy-button { width:30px; height:30px; border:0; border-radius:6px; color:var(--blue); background:var(--blue-soft); font-size:11px; }
-    .toast { position:fixed; left:50%; bottom:24px; z-index:60; padding:10px 14px; border-radius:8px; color:#fff; background:rgba(29,29,31,.92); box-shadow:var(--shadow); font-size:13px; opacity:0; transform:translate(-50%,12px); pointer-events:none; transition:opacity .2s,transform .2s; }
+    .copy-button { min-width:44px; min-height:44px; padding:10px 12px; border:0; border-radius:6px; color:var(--blue); background:var(--blue-soft); font-size:16px; line-height:1.4; font-weight:600; }
+    .copy-button:focus-visible { outline:2px solid var(--blue); outline-offset:3px; }
+    .toast { position:fixed; left:50%; bottom:24px; z-index:60; padding:10px 14px; border-radius:8px; color:#fff; background:#002fa7; box-shadow:var(--shadow); font-size:13px; opacity:0; transform:translate(-50%,12px); pointer-events:none; transition:opacity .2s,transform .2s; }
     .toast.visible { opacity:1; transform:translate(-50%,0); }
 
     .intelligence { margin:42px 0; }
@@ -187,11 +192,12 @@ const indexHTML = `<!doctype html>
     .policy-line { display:flex; flex-wrap:wrap; gap:9px 22px; margin-top:10px; padding:16px 18px; border:1px solid var(--line-soft); border-radius:8px; background:var(--surface); color:var(--muted); font-size:12px; }
     .policy-line strong { color:var(--ink); font-weight:600; }
 
-    .wallet-band { margin-top:44px; padding:30px; display:flex; align-items:center; justify-content:space-between; gap:24px; border-radius:8px; color:#fff; background:#1d1d1f; }
+    .wallet-band { margin-top:44px; padding:30px; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:24px; border:1px solid var(--line); border-radius:8px; color:var(--blue); background:#fff; }
     .wallet-band h2 { margin:0 0 7px; font-size:22px; }
-    .wallet-band p { margin:0; color:#a1a1a6; font-size:14px; }
-    .wallet-button { flex:none; height:44px; padding:0 18px; border:0; border-radius:7px; color:#fff; background:var(--blue); font-weight:600; }
-    .wallet-button:hover { background:#1685f8; }
+    .wallet-band p { margin:0; color:#5b6476; font-size:14px; }
+    .wallet-button { flex:none; min-height:44px; padding:10px 18px; border:0; border-radius:7px; color:#fff; background:var(--blue); font-weight:600; }
+    .wallet-button:hover { background:#002fa7; text-decoration:underline; }
+    #metamaskButton { color:var(--blue);background:#fff;border:1px solid var(--line);font-weight:400; }
 
     .result-panel { display:none; margin-top:24px; border:1px solid var(--line-soft); border-radius:8px; background:var(--surface); box-shadow:var(--shadow); overflow:hidden; }
     .result-panel.visible { display:block; }
@@ -265,7 +271,10 @@ const indexHTML = `<!doctype html>
       .overview .panel-head p { white-space:normal; }
       .footer-inner { flex-direction:column; }
       .detail-summary { grid-template-columns:1fr 1fr; }
-      .detail-row { grid-template-columns:100px minmax(0,1fr) auto; }
+      .detail-row { grid-template-columns:minmax(0,1fr) auto; gap:8px 12px; }
+      .detail-row dt { grid-column:1; overflow-wrap:anywhere; }
+      .detail-row dd { grid-column:1; grid-row:2; }
+      .detail-row .copy-button { grid-column:2; grid-row:1 / span 2; align-self:center; }
     }
     @media (prefers-reduced-motion:reduce) { html { scroll-behavior:auto; } * { animation:none!important; transition:none!important; } }
   </style>
@@ -291,6 +300,7 @@ const indexHTML = `<!doctype html>
         <input id="searchInput" aria-label="Search block, transaction, ynx1 or 0x address, YNXT, or contract" data-i18n-aria="searchPlaceholder" data-i18n-placeholder="searchPlaceholder" placeholder="Search ynx1 address, transaction, block, or EVM compatibility address" autocomplete="off" spellcheck="false">
         <button type="submit" data-i18n="search">Search</button>
       </form>
+      <p style="margin:12px 0 0"><a href="/address" data-i18n="addressConverter" style="color:var(--blue);text-decoration:underline;text-underline-offset:4px">YNX ↔ EVM address converter</a></p>
       <div class="hero-meta"><span><span class="pulse"></span><span data-i18n="rpcIndexerVerified">RPC + indexer verified</span></span><span id="lastUpdated" data-i18n="connectingNetwork">Connecting to the network</span><span id="heroHeight" data-i18n="waitingLatest">Waiting for the latest block</span></div>
       <section class="result-panel" id="resultPanel" aria-live="polite">
         <div class="panel-head"><div><h2 id="resultTitle" data-i18n="searchResult">Search result</h2><p id="resultSubtitle"></p></div><button class="result-close" id="resultClose" type="button" data-i18n="close">Close</button></div>
@@ -358,7 +368,8 @@ const indexHTML = `<!doctype html>
       </section>
 
       <section class="wallet-band">
-        <div><h2 data-i18n="identityTitle">YNX-native identity comes first.</h2><p data-i18n="identityCopy">YNX native address (default) and EVM compatibility address are distinct. An installed EIP-1193 wallet, including MetaMask when it announces itself, is optional EVM compatibility only; search and detail reads never require it.</p></div>
+        <div><h2 data-i18n="identityTitle">YNX-native identity comes first.</h2><p data-i18n="identityCopy">YNX native address (default) and EVM compatibility address are two formats for the same account. An installed EIP-1193 wallet, including MetaMask when it announces itself, is optional EVM compatibility only; search and detail reads never require it.</p></div>
+        <a class="wallet-button" href="https://wallet.ynxweb4.com" data-i18n="openWallet">Open YNX Wallet</a>
         <button id="metamaskButton" class="wallet-button" type="button">Connect EVM compatibility wallet</button>
       </section>
     </div>
@@ -374,6 +385,7 @@ const indexHTML = `<!doctype html>
   </div>
   <div class="toast" id="toast" role="status" aria-live="polite" data-i18n="copied">Copied</div>
 
+  <script src="/assets/ynx-address.js"></script>
   <script>
     const api = '';
     let walletConfig = null;
@@ -520,6 +532,7 @@ const indexHTML = `<!doctype html>
 	  en:'No event for ', 'zh-CN':'已无事件 ', 'zh-TW':'已無事件 ', ja:'イベントなし: ', ko:'이벤트 없음: ', es:'Sin eventos durante ', fr:'Aucun événement depuis ', de:'Kein Ereignis seit ', pt:'Sem evento há ', ru:'Нет событий в течение ', ar:'لا أحداث منذ ', id:'Tidak ada peristiwa selama '
 	};
 	function staleStreamMessage(age) { return (staleStreamPrefixes[language] || staleStreamPrefixes.en) + age + 's'; }
+Object.entries({en:['YNX ↔ EVM address converter','Open YNX Wallet','Copy'],'zh-CN':['YNX ↔ EVM 地址转换器','打开 YNX Wallet','复制'],'zh-TW':['YNX ↔ EVM 地址轉換器','開啟 YNX Wallet','複製'],ja:['YNX ↔ EVM アドレス変換','YNX Wallet を開く','コピー'],ko:['YNX ↔ EVM 주소 변환기','YNX Wallet 열기','복사'],es:['Conversor YNX ↔ EVM','Abrir YNX Wallet','Copiar'],fr:['Convertisseur YNX ↔ EVM','Ouvrir YNX Wallet','Copier'],de:['YNX ↔ EVM Adresskonverter','YNX Wallet öffnen','Kopieren'],pt:['Conversor YNX ↔ EVM','Abrir YNX Wallet','Copiar'],ru:['Конвертер адресов YNX ↔ EVM','Открыть YNX Wallet','Копировать'],ar:['محوّل عناوين YNX ↔ EVM','فتح YNX Wallet','نسخ'],id:['Konverter alamat YNX ↔ EVM','Buka YNX Wallet','Salin']}).forEach(([locale, values]) => Object.assign(messages[locale], {addressConverter:values[0],openWallet:values[1],copyAddress:values[2]}));
     function applyLanguage(nextLanguage) {
       language = messages[nextLanguage] ? nextLanguage : 'en';
       localStorage.setItem('ynx-explorer-language',language);
@@ -533,7 +546,8 @@ const indexHTML = `<!doctype html>
 	  renderTransactions();
     }
     const escapeHTML = (value) => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-    const compact = (value, start = 10, end = 7) => { const text = String(value ?? ''); return text.length > start + end + 3 ? text.slice(0,start) + '...' + text.slice(-end) : text || '--'; };
+    const nativeAddress = value => { try { return YNXAddress.toYNXAddress(value); } catch (_) { return value; } };
+    const compact = (value, start = 10, end = 7) => { const text = String(nativeAddress(value) ?? ''); return text.length > start + end + 3 ? text.slice(0,start) + '...' + text.slice(-end) : text || '--'; };
 	const number = (value) => new Intl.NumberFormat(language).format(Number(value || 0));
     const relativeTime = (value) => {
       const seconds = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 1000));
@@ -630,7 +644,7 @@ const indexHTML = `<!doctype html>
     function txRow(tx,index = 0) {
       const isNew = index === 0 && previousTxHash && tx.hash !== previousTxHash;
       const destination = tx.sponsor || tx.to;
-      const route = '<span class="transfer-flow"><span class="mono address-chip" data-account="' + escapeHTML(tx.from) + '" title="' + escapeHTML(t('from')) + ' ' + escapeHTML(tx.from) + '">' + escapeHTML(compact(tx.from,8,6)) + '</span><span class="flow-arrow" aria-label="' + escapeHTML(t('sentTo')) + '"></span><span class="mono address-chip" data-account="' + escapeHTML(destination) + '" title="' + escapeHTML(t('to')) + ' ' + escapeHTML(destination) + '">' + escapeHTML(compact(destination,8,6)) + '</span></span>';
+      const route = '<span class="transfer-flow"><span class="mono address-chip" data-account="' + escapeHTML(nativeAddress(tx.from)) + '" title="' + escapeHTML(t('from')) + ' ' + escapeHTML(nativeAddress(tx.from)) + '">' + escapeHTML(compact(tx.from,8,6)) + '</span><span class="flow-arrow" aria-label="' + escapeHTML(t('sentTo')) + '"></span><span class="mono address-chip" data-account="' + escapeHTML(nativeAddress(destination)) + '" title="' + escapeHTML(t('to')) + ' ' + escapeHTML(nativeAddress(destination)) + '">' + escapeHTML(compact(destination,8,6)) + '</span></span>';
       const value = tx.resourceConsumed ? escapeHTML(number(tx.resourceConsumed)) + ' ' + escapeHTML(String(tx.resourceType || 'resource').replaceAll('_',' ')) : escapeHTML(number(tx.amount)) + ' YNXT';
       const cost = tx.sponsor ? escapeHTML(t('pool')) + ' ' + escapeHTML(compact(tx.sponsorPoolId,8,5)) : escapeHTML(t('fee')) + ' ' + escapeHTML(number(tx.fee));
       return '<button class="live-row tx-live-row' + (isNew ? ' new-row' : '') + '" type="button" data-query="' + escapeHTML(tx.hash) + '"><span class="row-icon tx">TX</span><span><span class="row-title"><span class="link mono hash" title="' + escapeHTML(tx.hash) + '">' + escapeHTML(compact(tx.hash,12,8)) + '</span><span class="type-tag">' + escapeHTML(tx.type || 'transaction') + '</span></span><span class="row-subtitle">' + route + '</span></span><span class="row-side"><strong>' + value + '</strong><span>' + cost + '</span></span></button>';
@@ -646,7 +660,7 @@ const indexHTML = `<!doctype html>
     function renderTransactions() {
       const filter = $('txFilter').value;
       const query = String($('txQuickFind').value || '').trim().toLowerCase();
-      const filtered = latestTransactions.filter(tx => (filter === 'all' || (filter === 'resource' ? String(tx.type).includes('resource') : tx.type === filter)) && (!query || [tx.hash,tx.from,tx.to,tx.type,tx.amount,tx.fee,tx.blockNumber].some(value => String(value ?? '').toLowerCase().includes(query))));
+      const filtered = latestTransactions.filter(tx => (filter === 'all' || (filter === 'resource' ? String(tx.type).includes('resource') : tx.type === filter)) && (!query || [tx.hash,tx.from,tx.to,nativeAddress(tx.from),nativeAddress(tx.to),tx.type,tx.amount,tx.fee,tx.blockNumber].some(value => String(value ?? '').toLowerCase().includes(query))));
 	  $('txsBody').innerHTML = filtered.length ? filtered.slice(0,transactionDisplayLimit).map(txRow).join('') : '<div class="empty">' + escapeHTML(t('noMatching')) + '</div>';
 	  $('olderTransactions').hidden = !transactionCursor;
       bindQueries();
@@ -664,7 +678,7 @@ const indexHTML = `<!doctype html>
       $('validatorsBody').innerHTML = validators.length ? validators.map(validator => {
         const ready = Boolean(validator.peerReady || validator.active);
         const status = validator.peerStatus || (ready ? 'active' : 'not ready');
-        return '<tr><td><strong>' + escapeHTML(validator.moniker || compact(validator.address)) + '</strong><span class="mono hash muted" title="' + escapeHTML(validator.address) + '">' + escapeHTML(compact(validator.address,12,7)) + '</span></td><td>' + escapeHTML(validator.role || 'validator') + '</td><td><span class="validator-state' + (ready ? '' : ' offline') + '">' + escapeHTML(status) + '</span></td><td class="mono">' + escapeHTML(number(validator.votingPower)) + '</td><td class="mono">' + escapeHTML(number(validator.latestHeight)) + '</td></tr>';
+        return '<tr><td><strong>' + escapeHTML(validator.moniker || compact(validator.address)) + '</strong><span class="mono hash muted" title="' + escapeHTML(nativeAddress(validator.address)) + '">' + escapeHTML(compact(validator.address,12,7)) + '</span></td><td>' + escapeHTML(validator.role || 'validator') + '</td><td><span class="validator-state' + (ready ? '' : ' offline') + '">' + escapeHTML(status) + '</span></td><td class="mono">' + escapeHTML(number(validator.votingPower)) + '</td><td class="mono">' + escapeHTML(number(validator.latestHeight)) + '</td></tr>';
 	  }).join('') : '<tr><td colspan="5" class="empty">' + escapeHTML(t('unavailable')) + '</td></tr>';
       if (!resources || typeof resources !== 'object' || !Object.keys(resources).length) {
 		$('resourceMetrics').innerHTML = '<article class="resource-item"><small>' + escapeHTML(t('unavailable')) + '</small></article>';
@@ -691,7 +705,7 @@ const indexHTML = `<!doctype html>
 	  const candidates = Number(leaderboard?.candidateCount || leaderboard?.total || accounts.length);
 	  const indexedHeight = Number(leaderboard?.lastIndexedHeight || 0);
 	  $('accountTotal').textContent = number(accounts.length) + ' ' + t(observed ? 'observedAccounts' : 'publicAccounts') + ' / ' + number(candidates) + ' ' + t('observedAccounts') + (indexedHeight ? ' · ' + t('throughBlock') + ' #' + number(indexedHeight) : '') + (leaderboard?.degraded ? ' · ' + t('degraded') + ' ' + number(leaderboard?.unresolvedCount) : '') + ' · ' + exactTime(leaderboard?.checkedAt);
-	  $('accountsBody').innerHTML = accounts.length ? accounts.map((account,index) => '<tr data-query="' + escapeHTML(account.address) + '"><td><strong>#' + (index + 1) + '</strong></td><td><span class="link mono hash" title="' + escapeHTML(account.address) + '">' + escapeHTML(account.address) + '</span></td><td class="amount">' + escapeHTML(number(account.balance)) + ' YNXT</td><td>' + escapeHTML(number(account.staked)) + ' YNXT</td><td class="mono">' + escapeHTML(number(account.nonce)) + '</td></tr>').join('') : '<tr><td colspan="5" class="empty">' + escapeHTML(t('noBalances')) + '</td></tr>';
+	  $('accountsBody').innerHTML = accounts.length ? accounts.map((account,index) => '<tr data-query="' + escapeHTML(nativeAddress(account.address)) + '"><td><strong>#' + (index + 1) + '</strong></td><td><span class="link mono hash" title="' + escapeHTML(nativeAddress(account.address)) + '">' + escapeHTML(nativeAddress(account.address)) + '</span></td><td class="amount">' + escapeHTML(number(account.balance)) + ' YNXT</td><td>' + escapeHTML(number(account.staked)) + ' YNXT</td><td class="mono">' + escapeHTML(number(account.nonce)) + '</td></tr>').join('') : '<tr><td colspan="5" class="empty">' + escapeHTML(t('noBalances')) + '</td></tr>';
       bindQueries();
     }
     function mergeLiveRows(incoming, accumulated, identity) {
@@ -806,11 +820,22 @@ const indexHTML = `<!doctype html>
         startFallbackPolling();
       };
     }
+    const accountFields = new Set(['address','deployer','from','to','owner','payer','sponsor','validator','beneficiary','recipient','sender','provider','treasury','account','contractaddress']);
+    const opaqueFields = new Set(['memo','raw','data','input','bytecode','source','signature','signatures','topics']);
+    const displayField = (key, value) => accountFields.has(String(key).toLowerCase()) && typeof value === 'string' ? nativeAddress(value) : value;
+    function displayObject(value, key = '') {
+      if (opaqueFields.has(String(key).toLowerCase())) return value;
+      if (Array.isArray(value)) return value.map(item => displayObject(item, key));
+      if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([field,item]) => [field,displayObject(item,field)]));
+      return displayField(key, value);
+    }
     function flatten(value, prefix = '', rows = []) {
       if (value === null || value === undefined) { rows.push([prefix || 'Value','unavailable']); return rows; }
-      if (Array.isArray(value)) { rows.push([prefix || 'Items',value.length ? value.map(item => typeof item === 'object' ? JSON.stringify(item) : item).join(', ') : 'None']); return rows; }
+      const field = prefix.split(' / ').pop();
+      if (opaqueFields.has(String(field).toLowerCase()) && typeof value === 'object') { rows.push([prefix,JSON.stringify(value)]); return rows; }
+      if (Array.isArray(value)) { rows.push([prefix || 'Items',value.length ? value.map(item => typeof item === 'object' ? JSON.stringify(displayObject(item, field)) : displayField(field, item)).join(', ') : 'None']); return rows; }
       if (typeof value === 'object') { Object.entries(value).forEach(([key,item]) => flatten(item,prefix ? prefix + ' / ' + key : key,rows)); return rows; }
-      rows.push([prefix,value]); return rows;
+      rows.push([prefix,displayField(prefix.split(' / ').pop(), value)]); return rows;
     }
     function detailStats(type,detail) {
 	  if (type === 'block') return [[t('observedHeight'),'#' + number(detail.height)],[t('latestTransactions'),(detail.transactions || []).length],[t('validator'),compact(detail.validator,10,7)]];
@@ -822,12 +847,12 @@ const indexHTML = `<!doctype html>
       return [];
     }
     function detailRows(type,detail) {
-	  if (type === 'transaction') return [[t('status'),detail.status],[t('from'),detail.from || t('unavailable')],[t('to'),detail.to || t('unavailable')],[t('amount'),number(detail.amount) + ' YNXT'],[t('fee'),number(detail.gas?.feeYnxt ?? detail.fee) + ' YNXT'],[t('latestBlock'),'#' + number(detail.blockNumber)],[t('hash'),detail.blockHash],[t('time'),exactTime(detail.timestamp)],[t('nonce'),number(detail.nonce)],[t('events'),(detail.events || []).length ? JSON.stringify(detail.events) : t('none')],[t('type'),detail.type]];
-	  if (type === 'block') return [[t('observedHeight'),'#' + number(detail.height)],[t('hash'),detail.hash],[t('parentHash'),detail.parentHash],[t('validator'),detail.validator],[t('time'),exactTime(detail.time)],[t('latestTransactions'),(detail.transactions || []).length]];
-	  if (type === 'contract') return [[t('address'),detail.address],[t('deployer'),detail.deployer],[t('name'),detail.name],[t('sourceHash'),detail.sourceHash],[t('bytecodeHash'),detail.deployedBytecodeHash],[t('compiler'),detail.compiler?.version || detail.compilerMode],[t('verified'),detail.verified ? t('yes') : t('no')],[t('functions'),(detail.functions || []).length],[t('events'),(detail.events || []).length],[t('deployedAt'),exactTime(detail.deployedAt)]];
+	  if (type === 'transaction') return [[t('status'),detail.status],[t('from'),nativeAddress(detail.from) || t('unavailable')],[t('to'),nativeAddress(detail.to) || t('unavailable')],[t('amount'),number(detail.amount) + ' YNXT'],[t('fee'),number(detail.gas?.feeYnxt ?? detail.fee) + ' YNXT'],[t('latestBlock'),'#' + number(detail.blockNumber)],[t('hash'),detail.blockHash],[t('time'),exactTime(detail.timestamp)],[t('nonce'),number(detail.nonce)],[t('events'),(detail.events || []).length ? JSON.stringify(detail.events) : t('none')],[t('type'),detail.type]];
+	  if (type === 'block') return [[t('observedHeight'),'#' + number(detail.height)],[t('hash'),detail.hash],[t('parentHash'),detail.parentHash],[t('validator'),nativeAddress(detail.validator)],[t('time'),exactTime(detail.time)],[t('latestTransactions'),(detail.transactions || []).length]];
+	  if (type === 'contract') return [[t('address'),nativeAddress(detail.address)],[t('deployer'),nativeAddress(detail.deployer)],[t('name'),detail.name],[t('sourceHash'),detail.sourceHash],[t('bytecodeHash'),detail.deployedBytecodeHash],[t('compiler'),detail.compiler?.version || detail.compilerMode],[t('verified'),detail.verified ? t('yes') : t('no')],[t('functions'),(detail.functions || []).length],[t('events'),(detail.events || []).length],[t('deployedAt'),exactTime(detail.deployedAt)]];
 	  if (type === 'token') return [[t('symbol'),detail.symbol],[t('name'),detail.name],[t('type'),detail.type],[t('decimals'),detail.decimals],[t('networkDetails'),detail.network?.name],[t('usage'),(detail.usage || []).join(', ')],[t('sourceStatus'),detail.truthfulStatus]];
 	  if (type !== 'account') return flatten(detail);
-	  return [[t('address'),detail.addressFormats?.ynxAddress || detail.account?.address || t('unavailable')],[t('evmAddress'),detail.addressFormats?.evmAddress || detail.account?.address || t('unavailable')],[t('liquidBalance'),number(detail.account?.balance) + ' YNXT'],[t('staked'),number(detail.account?.staked) + ' YNXT'],[t('nonce'),number(detail.account?.nonce)],[t('indexedCoverage'),t('throughBlock') + ' #' + number(detail.activity?.lastIndexedHeight)],[t('indexedActivity'),(detail.activity?.transactions || []).map(tx => tx.hash + ' / ' + tx.type + ' / ' + number(tx.amount) + ' YNXT').join('\n') || t('none')],[t('contractActivity'),number(detail.activity?.contractActivityCount)],[t('dataCheckedAt'),exactTime(detail.activity?.checkedAt)]];
+	  return [[t('address'),detail.addressFormats?.ynxAddress || detail.account?.address || t('unavailable')],[t('liquidBalance'),number(detail.account?.balance) + ' YNXT'],[t('staked'),number(detail.account?.staked) + ' YNXT'],[t('nonce'),number(detail.account?.nonce)],[t('indexedCoverage'),t('throughBlock') + ' #' + number(detail.activity?.lastIndexedHeight)],[t('indexedActivity'),(detail.activity?.transactions || []).map(tx => tx.hash + ' / ' + tx.type + ' / ' + number(tx.amount) + ' YNXT').join('\n') || t('none')],[t('contractActivity'),number(detail.activity?.contractActivityCount)],[t('dataCheckedAt'),exactTime(detail.activity?.checkedAt)]];
     }
 	function detailExtra(type,detail) {
 	  let html = '';
@@ -851,10 +876,32 @@ const indexHTML = `<!doctype html>
       const summary = stats.length ? '<div class="detail-summary">' + stats.map(([label,value]) => '<div class="detail-stat"><span>' + escapeHTML(label) + '</span><strong class="mono">' + escapeHTML(value) + '</strong></div>').join('') + '</div>' : '';
       const rows = detailRows(type,detail).map(([key,value]) => {
         const text = String(value ?? '');
-		const copy = text.length > 10 ? '<button class="copy-button" type="button" data-copy="' + encodeURIComponent(text) + '" aria-label="' + escapeHTML(t('copied')) + '">' + escapeHTML(t('copied')) + '</button>' : '';
+		const copy = text.length > 10 ? '<button class="copy-button" type="button" data-copy="' + encodeURIComponent(text) + '" aria-label="' + escapeHTML(t('copyAddress')) + '">' + escapeHTML(t('copyAddress')) + '</button>' : '';
         return '<div class="detail-row"><dt>' + escapeHTML(key) + '</dt><dd class="mono">' + escapeHTML(text) + '</dd>' + copy + '</div>';
       }).join('');
 	  $('detailContent').innerHTML = summary + detailExtra(type,detail) + '<dl class="detail-body">' + rows + '</dl>';
+      if (type === 'account') {
+        const converter = document.createElement('a');
+        converter.href = '/address?address=' + encodeURIComponent(detail.addressFormats?.ynxAddress || query) + '&lang=' + language;
+        converter.textContent = t('addressConverter');
+        converter.style.cssText = 'display:inline-flex;align-items:center;min-height:44px;margin:16px 24px;text-decoration:underline';
+        $('detailContent').appendChild(converter);
+        if (detail.addressFormats?.evmAddress) {
+          const compatibility = document.createElement('details');
+          compatibility.style.cssText = 'margin:0 24px 24px;overflow-wrap:anywhere';
+          const label = document.createElement('summary');
+          label.textContent = t('evmAddress');
+          const value = document.createElement('code');
+          value.textContent = detail.addressFormats.evmAddress;
+          const copy = document.createElement('button');
+          copy.type = 'button'; copy.className = 'copy-button';
+          copy.textContent = t('copyAddress');
+          copy.dataset.copy = encodeURIComponent(detail.addressFormats.evmAddress);
+          compatibility.append(label, value, copy);
+          $('detailContent').appendChild(compatibility);
+        }
+      }
+
       $('detailBackdrop').classList.add('visible');
       $('detailBackdrop').setAttribute('aria-hidden','false');
       document.body.style.overflow = 'hidden';
@@ -988,6 +1035,8 @@ const indexHTML = `<!doctype html>
     document.addEventListener('visibilitychange',() => { if (!document.hidden) load().catch(showLoadError); });
 	window.addEventListener('popstate',() => openDeepLink());
 	async function openDeepLink() {
+      const linkedAddress = new URLSearchParams(location.search).get('address');
+      if (location.pathname === '/' && linkedAddress && linkedAddress.length <= 90) { await search(linkedAddress,false); return; }
 	  const canonicalTransaction = transactionHashFromPath();
 	  if (canonicalTransaction) { await search(canonicalTransaction,false); return; }
 	  const match = location.pathname.match(/^\/(block|tx|address|token|contract)\/(.+)$/);

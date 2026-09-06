@@ -82,6 +82,13 @@ func (s *Server) Handler() http.Handler {
 
 func (s *Server) routes() {
 	s.mux.HandleFunc("GET /", s.handleWeb)
+	s.mux.HandleFunc("GET /address", accountaddress.ConverterHandler)
+	s.mux.HandleFunc("GET /api/address", accountaddress.ResolveHandler)
+	s.mux.HandleFunc("GET /assets/ynx-address.js", accountaddress.BrowserHandler)
+	s.mux.HandleFunc("GET /assets/ynx-address-converter.js", accountaddress.ConverterScriptHandler)
+	s.mux.HandleFunc("GET /favicon.ico", accountaddress.FaviconHandler)
+	s.mux.HandleFunc("GET /ynx-tab-icon.png", accountaddress.TabIconHandler)
+	s.mux.HandleFunc("GET /assets/ynx-icon.png", s.handleIcon)
 	s.mux.HandleFunc("GET /tx/{hash}", s.handleTransactionWeb)
 	s.mux.HandleFunc("GET /block/{height}", s.handleBlockWeb)
 	s.mux.HandleFunc("GET /address/{address}", s.handleAddressWeb)
@@ -609,4 +616,11 @@ func prometheusLabel(value string) string {
 	value = strings.ReplaceAll(value, "\r", "")
 	value = strings.ReplaceAll(value, `"`, `\"`)
 	return value
+}
+
+func (s *Server) handleIcon(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "image/png")
+	w.Header().Set("Cache-Control", "public, max-age=0, must-revalidate")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
+	_, _ = w.Write(iconPNG)
 }

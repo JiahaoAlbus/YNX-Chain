@@ -711,16 +711,26 @@ func (s *Service) Search(ctx context.Context, query string) (SearchResult, error
 		return SearchResult{}, fmt.Errorf("%w: invalid account or contract address", errLookupNotFound)
 	}
 	if contract, err := s.Contract(ctx, normalized); err == nil {
-		return SearchResult{Query: query, Type: "contract", Path: "/api/contracts/" + url.PathEscape(contract.Address), DeepLink: "/contract/" + url.PathEscape(contract.Address), NormalizedAddress: contract.Address, TruthfulStatus: "resolved-from-rpc-contract-record"}, nil
+		return SearchResult{Query: query, Type: "contract", Path: "/api/contracts/" + url.PathEscape(contract.Address), DeepLink: "/contract/" + url.PathEscape(nativeExplorerAddress(contract.Address)), NormalizedAddress: contract.Address, TruthfulStatus: "resolved-from-rpc-contract-record"}, nil
 	} else if !isLookupNotFound(err) {
 		return SearchResult{}, err
 	}
 	if _, err := s.Account(ctx, normalized); err == nil {
-		return SearchResult{Query: query, Type: "account", Path: "/api/accounts/" + url.PathEscape(normalized), DeepLink: "/address/" + url.PathEscape(normalized), NormalizedAddress: normalized, TruthfulStatus: "resolved-from-rpc"}, nil
+		return SearchResult{Query: query, Type: "account", Path: "/api/accounts/" + url.PathEscape(normalized), DeepLink: "/address/" + url.PathEscape(nativeExplorerAddress(normalized)), NormalizedAddress: normalized, TruthfulStatus: "resolved-from-rpc"}, nil
 	} else if !isLookupNotFound(err) {
 		return SearchResult{}, err
 	}
 	return SearchResult{}, errLookupNotFound
+}
+
+// Human-facing links use the native representation. RPC paths and returned
+// canonical account identities keep their existing encoding, including legacy
+// development accounts that cannot be represented as a 20-byte address.
+func nativeExplorerAddress(value string) string {
+	if native, err := accountaddress.Encode(value); err == nil {
+		return native
+	}
+	return value
 }
 
 func normalizeExplorerAddress(value string) (string, error) {
