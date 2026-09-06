@@ -8,6 +8,7 @@ import { walletIdentity, evmAddressFromYNX } from "@ynx-chain/wallet-auth";
 import { DesktopKeyLifecycle } from "../src/key-lifecycle.mjs";
 import { PasswordWalletVault } from "../src/password-wallet-vault.mjs";
 import { PasswordVaultFile } from "../src/password-vault-file.mjs";
+import { PrivateFilePolicy } from "../src/platform-private-file.mjs";
 import { createPasswordVault, decryptPasswordVaultRecord, unlockPasswordVault, closePasswordVaultSession } from "../src/password-vault-crypto.mjs";
 
 const PASSWORD = "independent fixture password 2026", NEXT_PASSWORD = "independent next password 2026";
@@ -34,8 +35,10 @@ async function writeLegacy(f, secrets = [SECRET, SECOND], old = THIRD) {
   if (old) await fs.writeFile(f.v1, JSON.stringify({ schemaVersion: 1, ...legacyRecord(old) }), { mode: 0o600 });
 }
 
-for (const platform of ["linux", "win32", "darwin"]) test(`${platform} actual password AEAD unlock works without OS authentication or an OS encryption backend`, async t => {
-  const f = await fixture(t, { platform }); f.safeStorage.isEncryptionAvailable = () => false;
+// Run the real host filesystem. Pretending a Windows inode is POSIX does not
+// exercise another OS and incorrectly treats Windows mode bits as permissions.
+test(`${process.platform} actual password AEAD unlock works without OS authentication or an OS encryption backend`, async t => {
+  const f = await fixture(t); f.safeStorage.isEncryptionAvailable = () => false;
   const status = await create(f); assert.equal(status.custody, "password-encrypted-local");
   const actual = await f.life.run(() => f.vault.withSecret(secret => new Wallet(`0x${secret}`).address.toLowerCase())); assert.equal(actual, accountFor(SECRET));
   f.life.lock(); assert.equal((await f.vault.status()).account, actual); assert.equal(f.calls.decrypt, 0);
@@ -79,7 +82,7 @@ test("explicit migration includes both V2 and the leftover V1 account, verifies 
   const disk = JSON.parse(await fs.readFile(f.filePath, "utf8")), session = await unlockPasswordVault(disk, PASSWORD);
   for (const secret of [SECRET, SECOND, THIRD]) assert.equal(await decryptPasswordVaultRecord(disk, accountFor(secret), session), secret);
   closePasswordVaultSession(session);
-  assert.equal((await fs.stat(f.filePath)).mode & 0o777, 0o600);
+  assert.equal((await new PrivateFilePolicy().assertPrivate(f.filePath)).private, true);
   assert.equal((await fs.readFile(f.filePath, "utf8")).includes(SECRET), false);
 });
 
@@ -96,7 +99,7 @@ for (const fault of ["cancel", "wrong-key", "OS-failure", "write-failure", "read
     }
     return result;
   };
-  if (fault === "write-failure") io.rename = async () => { throw new Error("fixture disk full"); };
+  if (fault === "write-failure") f.store.filePolicy.replace = async () => { throw new Error("fixture disk full"); };
   if (fault === "readback-tamper") { const original = f.store.read.bind(f.store); f.store.read = async (...args) => { const result = await original(...args); return args[0]?.endsWith(".tmp") && result ? { ...result, text: result.text.replace('"schemaVersion":3', '"schemaVersion":4') } : result; }; }
   await assert.rejects(f.life.custody(guard => f.vault.setup({ password: PASSWORD, confirmation: PASSWORD, migrateLegacy: true }, guard)));
   assert.deepEqual(await Promise.all([fs.readFile(f.v2), fs.readFile(f.v1)]), before);
@@ -106,10 +109,11 @@ for (const fault of ["cancel", "wrong-key", "OS-failure", "write-failure", "read
 
 test("cancel after rename preserves the committed encrypted V3, stays locked, and restart resumes by password without deleting legacy", async t => {
   const io = { ...fs }, f = await fixture(t, { io }); await writeLegacy(f);
-  io.rename = async (...args) => { await fs.rename(...args); f.life.lock(); };
+  const replace = f.store.filePolicy.replace.bind(f.store.filePolicy);
+  f.store.filePolicy.replace = async (...args) => { await replace(...args); f.life.lock(); };
   await assert.rejects(f.life.custody(guard => f.vault.setup({ password: PASSWORD, confirmation: PASSWORD, migrateLegacy: true }, guard)), cancelled);
   assert.equal(f.life.status().locked, true); assert.equal((await f.vault.status()).accounts.length, 3);
-  io.rename = fs.rename; f.life.setAccount(accountFor(SECRET)); await unlock(f);
+  f.store.filePolicy.replace = replace; f.life.setAccount(accountFor(SECRET)); await unlock(f);
   assert.equal(await f.life.run(() => f.vault.withSecret(secret => accountFor(secret))), accountFor(SECRET));
   assert.equal(f.calls.decrypt, 3); assert.equal(await f.store.exists(f.v1), true); assert.equal(await f.store.exists(f.v2), true);
 });
@@ -237,18 +241,19 @@ test("repository-only recovery cancellation invalidates a pending prepare before
 
 test("an ambiguous rename completion of an account mutation closes the app key gate and fresh status reports committed encrypted state", async t => {
   const io = { ...fs }, f = await fixture(t, { io }); await create(f);
-  io.rename = async (...args) => { await fs.rename(...args); throw new Error("fixture rename ACK loss"); };
+  const replace = f.store.filePolicy.replace.bind(f.store.filePolicy);
+  f.store.filePolicy.replace = async (...args) => { await replace(...args); throw new Error("fixture rename ACK loss"); };
   await assert.rejects(f.life.run(() => f.vault.importAccount({ kind: "private-key", value: SECOND })), error => error.data.code === "PASSWORD_VAULT_STORAGE_FAILED");
   assert.equal(f.life.status().locked, true); assert.equal((await f.vault.status()).account, accountFor(SECOND));
   await unlock(f); assert.equal(f.life.status().account, accountFor(SECOND));
   assert.equal(await f.life.run(() => f.vault.withSecret(secret => accountFor(secret))), accountFor(SECOND));
 });
 
-test("archive fsync failure followed by retry must sync the existing matching archive before replacing a password", async t => {
+test("archive fsync failure followed by retry republishes verified bytes through the commit barrier", async t => {
   const io = { ...fs }, f = await fixture(t, { io }); await create(f); f.life.lock(); let syncs = 0, failOnce = true;
   io.open = async (file, ...args) => {
     const handle = await fs.open(file, ...args);
-    if (String(file).includes('wallet-recovery-history') && String(file).endsWith('.json')) return new Proxy(handle, { get(target, key) { if (key === 'sync') return async () => { syncs++; if (failOnce) { failOnce = false; throw new Error('fixture first archive sync failure'); } return target.sync(); }; const value = Reflect.get(target, key); return typeof value === 'function' ? value.bind(target) : value; } });
+    if (String(file).includes('wallet-recovery-history') && String(file).endsWith('.tmp')) return new Proxy(handle, { get(target, key) { if (key === 'sync') return async () => { syncs++; if (failOnce) { failOnce = false; throw new Error('fixture first archive sync failure'); } return target.sync(); }; const value = Reflect.get(target, key); return typeof value === 'function' ? value.bind(target) : value; } });
     return handle;
   };
   const input = { account: accountFor(SECRET), kind: "private-key", value: SECRET, resetPassword: true, newPassword: NEXT_PASSWORD, confirmation: NEXT_PASSWORD };

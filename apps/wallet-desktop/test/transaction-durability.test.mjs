@@ -7,6 +7,7 @@ import { Wallet, Transaction, toQuantity } from "ethers";
 import { parseDurabilityModel, parseDurabilityProof, parseNativeTransaction, validateDurableReceipt, uint64 } from "../src/transaction-durability.mjs";
 import { parseFeeModel } from "../src/rpc-capabilities.mjs";
 import { FileTransactionIntentStore } from "../src/transaction-intent-store.mjs";
+import { PrivateFilePolicy } from "../src/platform-private-file.mjs";
 import { CanonicalTransactionSender } from "../src/canonical-transaction-sender.mjs";
 import { CanonicalAccountNetwork } from "../src/native-wallet-service.mjs";
 import { DesktopKeyLifecycle } from "../src/key-lifecycle.mjs";
@@ -116,7 +117,7 @@ for (const change of ["old-fee-model", "missing-method", "malformed-method", "ma
 
 test("restart resumes exact persisted raw without a key or new nonce; later rejection cannot erase an unknown attempt", async t => {
   const f = await fixture(t); await assert.rejects(f.send()); const original = f.state.raw[0], resumed = f.restart();
-  assert.equal((await fs.stat(f.filePath)).mode & 0o777, 0o600); assert.equal((await resumed.sender.submissions.list(account))[0].canRetryExact, true);
+  assert.equal((await new PrivateFilePolicy().assertPrivate(f.filePath)).private, true); assert.equal((await resumed.sender.submissions.list(account))[0].canRetryExact, true);
   f.state.nonce = "0xff"; f.state.mode = "reject";
   await assert.rejects(f.life.run(guard => resumed.sender.submissions.retry(f.state.hash, account, guard)), error => error.data.outcomeUnknown === true && error.data.rpcCode === -32003);
   assert.equal(f.state.raw[1], original); assert.equal(f.state.signs, 1); assert.equal((await resumed.store.snapshot())[0].attempts, 2);

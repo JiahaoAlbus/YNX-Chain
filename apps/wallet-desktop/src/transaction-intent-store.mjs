@@ -2,6 +2,7 @@ import * as filesystem from "node:fs/promises";
 import { constants } from "node:fs";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
+import { PrivateFilePolicy } from "./platform-private-file.mjs";
 import { Transaction, toQuantity } from "ethers";
 import { parseFeeModel, capabilityFingerprint, capabilityError, assertCompatibleIntentCapabilities } from "./rpc-capabilities.mjs";
 import { validateDurableReceipt, uint64, UINT64_MAX } from "./transaction-durability.mjs";
@@ -60,15 +61,17 @@ const empty = () => ({ schemaVersion: 2, records: [], rejections: [], resolution
 
 export class FileTransactionIntentStore {
   #mutations = Promise.resolve();
-  constructor({ filePath, io = filesystem }) { if (!path.isAbsolute(filePath ?? "")) throw new Error("Transaction journal requires an absolute path"); this.filePath = filePath; this.io = io; }
+  constructor({ filePath, io = filesystem, filePolicy = new PrivateFilePolicy({ io }) }) { if (!path.isAbsolute(filePath ?? "")) throw new Error("Transaction journal requires an absolute path"); this.filePath = filePath; this.io = io; this.filePolicy = filePolicy; }
   async snapshot() { return (await this.#read()).records; }
   async resolutions() { return (await this.#read()).resolutions; }
   async #read(filePath = this.filePath) {
     let handle;
     try {
+      await this.filePolicy.available(filePath);
       handle = await this.io.open(filePath, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
       const stat = await handle.stat();
-      if (!stat.isFile() || stat.size > 1024 * 1024 || process.platform !== "win32" && (stat.mode & 0o077) !== 0) throw invalid();
+      if (!stat.isFile() || stat.size > 1024 * 1024) throw invalid();
+      await this.filePolicy.assertPrivate(filePath, stat);
       return structuredClone(parseState(JSON.parse(await handle.readFile("utf8"))));
     } catch (error) { if (error?.code === "ENOENT" && filePath === this.filePath) return empty(); throw invalid(); }
     finally { await handle?.close(); }
@@ -108,19 +111,19 @@ export class FileTransactionIntentStore {
   #mutate(action) { const result = this.#mutations.then(action); this.#mutations = result.catch(() => {}); return result; }
   async #write(state) {
     const directory = path.dirname(this.filePath), temporary = `${this.filePath}.${randomUUID()}.tmp`;
-    let file, dir;
+    let file;
     try {
       parseState(state); const encoded = `${JSON.stringify(state)}\n`;
       if (Buffer.byteLength(encoded) > 1024 * 1024) throw invalid();
-      await this.io.mkdir(directory, { recursive: true, mode: 0o700 });
+      await this.filePolicy.directory(directory);
       file = await this.io.open(temporary, constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL, 0o600);
+      await this.filePolicy.protect(temporary);
       await file.writeFile(encoded, "utf8"); await file.sync(); await file.close(); file = null;
       if (capabilityFingerprint(await this.#read(temporary)) !== capabilityFingerprint(state)) throw invalid();
-      await this.io.rename(temporary, this.filePath);
-      if (process.platform !== "win32") { dir = await this.io.open(directory, constants.O_RDONLY); await dir.sync(); }
+      await this.filePolicy.replace(temporary, this.filePath);
       if (capabilityFingerprint(await this.#read()) !== capabilityFingerprint(state)) throw invalid();
     } catch {
       throw capabilityError("TRANSACTION_JOURNAL_WRITE_FAILED", "The transaction journal could not be saved durably. No new broadcast may start; preserve any existing unresolved entry.");
-    } finally { await file?.close(); await dir?.close(); await this.io.unlink(temporary).catch(() => {}); }
+    } finally { await file?.close(); await this.io.unlink(temporary).catch(() => {}); }
   }
 }

@@ -9,7 +9,7 @@ import { createRequire } from "node:module";
 import { desktopReleaseIdentity, verifyDesktopPackage } from "../scripts/release-provenance.mjs";
 
 const actualProject = fileURLToPath(new URL("..", import.meta.url));
-const asar = createRequire(path.join(actualProject, "package.json"))("@electron/asar");
+const asarCLI = createRequire(path.join(actualProject, "package.json")).resolve("@electron/asar/bin/asar.js");
 
 async function fixture(t) {
   const root = await mkdtemp(path.join(tmpdir(), "ynx-desktop-provenance-"));
@@ -36,7 +36,10 @@ async function fixture(t) {
   t.after(() => { if (savedSHA === undefined) delete process.env.GITHUB_SHA; else process.env.GITHUB_SHA = savedSHA; });
   const identity = desktopReleaseIdentity(project, "0.6.4");
   await writeFile(path.join(resources, "ynx-wallet-build-identity.json"), JSON.stringify(identity));
-  const pack = () => asar.createPackage(stage, path.join(resources, "app.asar"));
+  // This pinned ASAR version resolves createPackage before its write stream's
+  // final flush. Waiting for the packaging process to exit matches release use
+  // and prevents a concurrent test from reading a half-written archive.
+  const pack = () => execFileSync(process.execPath, [asarCLI, "pack", stage, path.join(resources, "app.asar")], { stdio: "pipe" });
   await pack(); return { root, project, stage, resources, identity, pack };
 }
 

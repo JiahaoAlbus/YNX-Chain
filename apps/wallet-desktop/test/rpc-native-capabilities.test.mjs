@@ -10,6 +10,7 @@ import { DesktopKeyLifecycle } from "../src/key-lifecycle.mjs";
 import { parseFeeModel } from "../src/rpc-capabilities.mjs";
 import { FileTransactionIntentStore } from "../src/transaction-intent-store.mjs";
 import { DURABILITY_MODEL } from "../src/transaction-durability.mjs";
+import { PrivateFilePolicy } from "../src/platform-private-file.mjs";
 
 const W = 10n ** 18n, SECRET = "1".padStart(64, "0"), wallet = new Wallet(`0x${SECRET}`), account = wallet.address.toLowerCase(), recipient = `0x${"22".repeat(20)}`;
 const MODEL = Object.freeze({ version: "ynx-ethereum-native-v1", enabled: true, chainId: "0x1917", transactionType: "0x0", feeYNXT: "1", feeWei: toQuantity(W), gas: "0x61a8", gasPrice: "0x246139ca8000", decimals: 18, amountQuantumWei: toQuantity(W), scope: "whole-YNXT plain native transfers", fullEVM: false, eip1559: false, durability: DURABILITY_MODEL });
@@ -83,7 +84,7 @@ test("capability rollout after review invalidates the snapshot before secret sig
 test("durability uncertainty survives restart and only a matching actual-fee receipt clears the account block", async t => {
   const f = await fixture(t, { broadcast: "uncertain" }), snapshot = await f.sender.prepare(account, input());
   await assert.rejects(f.life.run(lease => f.sender.send(f.signer, snapshot, lease)), error => error.data?.code === "TRANSACTION_DURABILITY_UNCERTAIN" && error.data.rpcCode === -32002 && error.data.transactionHash === f.state.hash);
-  assert.equal((await fs.stat(f.filePath)).mode & 0o777, 0o600);
+  assert.equal((await new PrivateFilePolicy().assertPrivate(f.filePath)).private, true);
   const persisted = await fs.readFile(f.filePath, "utf8"); assert.equal(JSON.parse(persisted).records[0].raw, f.state.raw[0]); assert.equal(persisted.includes(SECRET), false);
   const resumed = f.restart(); await assert.rejects(resumed.prepare(account, input()), code("TRANSACTION_RESOLUTION_REQUIRED"));
   assert.equal((await resumed.submissions.check(f.state.hash, account)).confirmed, false);
@@ -118,7 +119,8 @@ test("journal admission failure prevents every broadcast and preserves an existi
   const f = await fixture(t);
   await fs.writeFile(f.filePath, JSON.stringify({ schemaVersion: 1, rejections: [], records: [{ account: `0x${"44".repeat(20)}`, chainId: "0x1917", nonce: "0x0", hash: `0x${"33".repeat(32)}`, to: recipient, value: toQuantity(W), capabilities: parseFeeModel(MODEL), attempts: 1 }] }), { mode: 0o600 });
   const before = await f.store.snapshot();
-  const broken = new FileTransactionIntentStore({ filePath: f.filePath, io: { ...fs, rename: async () => { throw new Error("fixture disk failure"); } } });
+  const broken = new FileTransactionIntentStore({ filePath: f.filePath });
+  broken.filePolicy.replace = async () => { throw new Error("fixture disk failure"); };
   const sender = new CanonicalTransactionSender({ fetchImpl: f.fetchImpl, intentStore: broken }); t.after(() => sender.provider.destroy());
   const snapshot = await sender.prepare(account, input());
   await assert.rejects(f.life.run(lease => sender.send(f.signer, snapshot, lease)), code("TRANSACTION_JOURNAL_WRITE_FAILED")); assert.equal(f.state.raw.length, 0);
@@ -156,27 +158,29 @@ for (const response of [{ httpStatus: 503 }, { wrongId: true }]) test(`untrusted
   assert.equal(JSON.parse(await fs.readFile(f.filePath, "utf8")).rejections.length, 0);
 });
 
-for (const stage of ["file-sync", "directory-sync"]) test(`${stage} failure cannot start a broadcast`, async t => {
+for (const stage of ["file-sync", "publication-barrier"]) test(`${stage} failure cannot start a broadcast`, async t => {
   const f = await fixture(t), base = fs.open;
   const io = { ...fs, open: async (...args) => {
     const handle = await base(...args), target = String(args[0]);
-    const fail = stage === "file-sync" ? target.endsWith(".tmp") : target === join(f.filePath, "..");
+    const fail = stage === "file-sync" && target.endsWith(".tmp");
     return new Proxy(handle, { get(object, name) { if (name === "sync" && fail) return async () => { throw new Error("fixture sync failure"); }; const value = Reflect.get(object, name); return typeof value === "function" ? value.bind(object) : value; } });
   } };
   const store = new FileTransactionIntentStore({ filePath: f.filePath, io }), sender = new CanonicalTransactionSender({ fetchImpl: f.fetchImpl, intentStore: store }); t.after(() => sender.provider.destroy());
+  if (stage === "publication-barrier") { const replace = store.filePolicy.replace.bind(store.filePolicy); store.filePolicy.replace = async (...args) => { await replace(...args); throw new Error("fixture native publication ACK failure"); }; }
   const snapshot = await sender.prepare(account, input());
   await assert.rejects(f.life.run(lease => sender.send(f.signer, snapshot, lease)), code("TRANSACTION_JOURNAL_WRITE_FAILED")); assert.equal(f.state.raw.length, 0);
-  if (stage === "directory-sync") await assert.rejects(f.restart().prepare(account, input()), code("TRANSACTION_RESOLUTION_REQUIRED"));
+  if (stage === "publication-barrier") await assert.rejects(f.restart().prepare(account, input()), code("TRANSACTION_RESOLUTION_REQUIRED"));
 });
 
 test("receipt cleanup write failure retains the exact unresolved account and permits a later read-only recovery", async t => {
   const f = await fixture(t, { broadcast: "uncertain" }), snapshot = await f.sender.prepare(account, input());
   await assert.rejects(f.life.run(lease => f.sender.send(f.signer, snapshot, lease)));
   f.state.receipt = f.receipt(); const before = await f.store.snapshot();
-  f.store.io = { ...fs, rename: async () => { throw new Error("fixture cleanup failure"); } };
+  const replace = f.store.filePolicy.replace.bind(f.store.filePolicy);
+  f.store.filePolicy.replace = async () => { throw new Error("fixture cleanup failure"); };
   await assert.rejects(f.sender.submissions.check(f.state.hash, account), code("TRANSACTION_JOURNAL_WRITE_FAILED")); assert.deepEqual(await f.store.snapshot(), before);
   await assert.rejects(f.restart().prepare(account, input()), code("TRANSACTION_RESOLUTION_REQUIRED"));
-  f.store.io = fs; assert.equal((await f.sender.submissions.check(f.state.hash, account)).confirmed, true); assert.equal(f.state.raw.length, 1);
+  f.store.filePolicy.replace = replace; assert.equal((await f.sender.submissions.check(f.state.hash, account)).confirmed, true); assert.equal(f.state.raw.length, 1);
 });
 
 test("fee-model change around a balance response cannot produce a mixed-generation amount", async t => {
@@ -187,6 +191,13 @@ test("fee-model change around a balance response cannot produce a mixed-generati
 test("a missing durable journal adapter is not an implicit in-memory signing fallback", async t => {
   const f = await fixture(t), sender = new CanonicalTransactionSender({ fetchImpl: f.fetchImpl }); t.after(() => sender.provider.destroy());
   await assert.rejects(sender.prepare(account, input()), code("TRANSACTION_JOURNAL_UNAVAILABLE")); assert.equal(f.state.raw.length, 0);
+});
+
+test("unavailable Windows native private storage stops preparation before signing or broadcasting", async t => {
+  const f = await fixture(t);
+  f.store.filePolicy = new PrivateFilePolicy({ platform: "win32", windows: async () => { throw new Error("fixture unavailable native barrier"); } });
+  await assert.rejects(f.sender.prepare(account, input()));
+  assert.equal(f.state.signs, 0); assert.equal(f.state.raw.length, 0);
 });
 
 test("native UI prepares a 3 YNXT balance sending 2 with the exact verified 1 YNXT fixed fee", async t => {

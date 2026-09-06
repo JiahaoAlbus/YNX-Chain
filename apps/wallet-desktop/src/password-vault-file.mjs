@@ -2,6 +2,7 @@ import * as fs from "node:fs/promises";
 import { constants } from "node:fs";
 import { createHash, randomUUID } from "node:crypto";
 import path from "node:path";
+import { PrivateFilePolicy } from "./platform-private-file.mjs";
 
 export const vaultFileDigest = value => value === null ? null : createHash("sha256").update(value).digest("hex");
 export function vaultStorageError(code = "PASSWORD_VAULT_STORAGE_FAILED") {
@@ -16,7 +17,7 @@ export function vaultStorageError(code = "PASSWORD_VAULT_STORAGE_FAILED") {
 
 /** V3 writes are durable before publication. This store never touches the transaction journal. */
 export class PasswordVaultFile {
-  constructor(filePath, { io = fs, platform = process.platform } = {}) { this.filePath = filePath; this.io = io; this.platform = platform; }
+  constructor(filePath, { io = fs, platform = process.platform, filePolicy = new PrivateFilePolicy({ io, platform }) } = {}) { this.filePath = filePath; this.io = io; this.platform = platform; this.filePolicy = filePolicy; }
   async exists(filePath) {
     try { await this.io.lstat(filePath); return true; }
     catch (error) { if (error?.code === "ENOENT") return false; throw vaultStorageError(); }
@@ -24,9 +25,11 @@ export class PasswordVaultFile {
   async read(filePath = this.filePath, { legacy = false } = {}) {
     let handle;
     try {
+      await this.filePolicy.available(filePath);
       handle = await this.io.open(filePath, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0));
       const stat = await handle.stat();
-      if (!stat.isFile() || stat.size > 1_048_576 || !legacy && this.platform !== "win32" && (stat.mode & 0o077) !== 0) throw vaultStorageError("PASSWORD_VAULT_FILE_INVALID");
+      if (!stat.isFile() || stat.size > 1_048_576) throw vaultStorageError("PASSWORD_VAULT_FILE_INVALID");
+      if (!legacy) await this.filePolicy.assertPrivate(filePath, stat);
       const text = await handle.readFile("utf8");
       if (Buffer.byteLength(text) > 1_048_576) throw vaultStorageError("PASSWORD_VAULT_FILE_INVALID");
       return Object.freeze({ text, digest: vaultFileDigest(text) });
@@ -45,8 +48,9 @@ export class PasswordVaultFile {
     const temporary = `${this.filePath}.${randomUUID()}.tmp`;
     let handle, renamed = false;
     try {
-      guard.assert(); await this.io.mkdir(path.dirname(this.filePath), { recursive: true, mode: 0o700 }); guard.assert();
+      guard.assert(); await this.filePolicy.directory(path.dirname(this.filePath)); guard.assert();
       handle = await this.io.open(temporary, "wx", 0o600);
+      await this.filePolicy.protect(temporary); guard.assert();
       await handle.writeFile(text, "utf8"); await handle.sync(); await handle.close(); handle = null;
       guard.assert();
       const readback = await this.read(temporary);
@@ -56,8 +60,7 @@ export class PasswordVaultFile {
       if (beforeCommit) { await beforeCommit(); guard.assert(); await this.assertCurrent(expected, guard); }
       // Once rename starts it may have committed despite cancellation. Never delete
       // the target or report an old session as usable in that case.
-      await this.io.rename(temporary, this.filePath); renamed = true;
-      await this.syncDirectory(path.dirname(this.filePath));
+      await this.filePolicy.replace(temporary, this.filePath); renamed = true;
       const stored = await this.read();
       if (stored?.text !== text) throw vaultStorageError();
       guard.assert(); return stored.digest;
@@ -73,28 +76,30 @@ export class PasswordVaultFile {
     if (!snapshot) return null;
     const directory = path.join(path.dirname(this.filePath), "wallet-recovery-history");
     const target = path.join(directory, `${snapshot.digest}.json`);
+    const temporary = `${target}.${randomUUID()}.tmp`;
     let handle;
     try {
-      guard.assert(); await this.io.mkdir(directory, { recursive: true, mode: 0o700 }); guard.assert();
+      guard.assert(); await this.filePolicy.directory(directory); guard.assert();
       const generations = await this.history(); guard.assert();
       if (generations.length >= 64 && !generations.includes(snapshot.digest)) throw vaultStorageError("PASSWORD_VAULT_HISTORY_LIMIT");
-      try {
-        handle = await this.io.open(target, "wx", 0o600); await handle.writeFile(snapshot.text, "utf8"); await handle.sync(); await handle.close(); handle = null;
-      } catch (error) {
-        if (error?.code !== "EEXIST") throw error;
-        // A previous write may have succeeded before fsync failed. Reusing matching
-        // bytes is safe only after synchronizing that existing file as well.
-        handle = await this.io.open(target, constants.O_RDWR | (constants.O_NOFOLLOW ?? 0));
-        const stat = await handle.stat();
-        if (!stat.isFile() || stat.size > 1_048_576 || this.platform !== "win32" && (stat.mode & 0o077) !== 0) throw vaultStorageError("PASSWORD_VAULT_FILE_INVALID");
-        await handle.sync(); await handle.close(); handle = null;
-      }
+      const previous = await this.read(target); guard.assert();
+      if (previous && previous.digest !== snapshot.digest) throw vaultStorageError();
+      // Even an existing matching archive is republished through the native
+      // commit barrier. An earlier failed fsync must never be assumed durable.
+      handle = await this.io.open(temporary, "wx", 0o600);
+      await this.filePolicy.protect(temporary); guard.assert();
+      await handle.writeFile(snapshot.text, "utf8"); await handle.sync(); await handle.close(); handle = null;
+      guard.assert();
+      const candidate = await this.read(temporary); guard.assert();
+      if (candidate?.digest !== snapshot.digest) throw vaultStorageError();
+      await this.filePolicy.replace(temporary, target);
       const readback = await this.read(target);
       if (readback?.digest !== snapshot.digest) throw vaultStorageError();
-      await this.syncDirectory(directory); await this.syncDirectory(path.dirname(directory)); guard.assert();
+      if (this.platform !== "win32") await this.syncDirectory(path.dirname(directory));
+      guard.assert();
       return snapshot.digest;
     } catch (error) { if (error?.data?.code) throw error; throw vaultStorageError(); }
-    finally { await handle?.close().catch(() => {}); }
+    finally { await handle?.close().catch(() => {}); await this.io.unlink(temporary).catch(() => {}); }
   }
   async history() {
     const directory = path.join(path.dirname(this.filePath), "wallet-recovery-history");
@@ -108,9 +113,9 @@ export class PasswordVaultFile {
     return snapshot;
   }
   async syncDirectory(directory) {
-    // Windows does not expose POSIX directory fsync through Node; file FlushFileBuffers
-    // and atomic replacement still run. Do not claim POSIX power-loss proof there.
-    if (this.platform === "win32") return;
+    // Windows callers must use PrivateFilePolicy.replace's verified native
+    // write-through operation; a missing POSIX API is never a successful barrier.
+    if (this.platform === "win32") throw vaultStorageError();
     const handle = await this.io.open(directory, "r");
     try { await handle.sync(); } finally { await handle.close(); }
   }
