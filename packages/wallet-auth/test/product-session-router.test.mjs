@@ -3,9 +3,9 @@ import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import { p256 } from "@noble/curves/nist.js";
 import {
-  canonicalReturnTarget, createProductSessionRequest, createProductSessionReturnURL,
+  canonicalReturnTarget, createProductSessionRequest, createProductSessionReturnURL, encodeProductSessionWalletURL,
   migrateLegacyCallback, migrateLegacyProductSessionRequest, migrateProductSessionRegistryV1, parseProductSessionRegistry, parseProductSessionReturnURL,
-  prepareWalletOpen, walletConnectionChoices, WalletAuthError, WALLET_ROUTE_STATUS,
+  parseProductSessionWalletURL, prepareWalletOpen, walletConnectionChoices, WalletAuthError, WALLET_ROUTE_STATUS,
 } from "../src/index.js";
 
 const registrySource = JSON.parse(readFileSync(new URL("../product-session-registry.json", import.meta.url), "utf8"));
@@ -109,6 +109,20 @@ test("router returns actionable unavailable states and never opens an unregister
   assert.equal(prepareWalletOpen(registry, pending, { networkAvailable: true, walletInstalled: false, schemeRegistered: true }, NOW).status, WALLET_ROUTE_STATUS.WALLET_NOT_INSTALLED);
   assert.equal(prepareWalletOpen(registry, pending, { networkAvailable: true, walletInstalled: true, schemeRegistered: false }, NOW).status, WALLET_ROUTE_STATUS.SCHEME_NOT_REGISTERED);
   assert.match(prepareWalletOpen(registry, pending, { networkAvailable: true, walletInstalled: true, schemeRegistered: true }, NOW).url, /^ynxwallet:\/\/authorize\?request=/);
+});
+
+test("Wallet authorization URL matches the registered host including its port", () => {
+  for (const platform of ["web", "macos", "windows", "android", "ios"]) {
+    const pending = request("social", platform);
+    const valid = encodeProductSessionWalletURL(registry, pending, NOW);
+    assert.deepEqual(parseProductSessionWalletURL(registry, valid, NOW), pending);
+    for (const port of [1, 443, 65535]) {
+      const widened = new URL(valid);
+      widened.port = String(port);
+      assert.equal(widened.port, String(port));
+      assert.throws(() => parseProductSessionWalletURL(registry, widened.toString(), NOW), code("SCHEME_NOT_REGISTERED"));
+    }
+  }
 });
 
 test("return router binds route, nonce and state and reports rejection without creating a session", () => {

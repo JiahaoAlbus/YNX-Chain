@@ -48,7 +48,7 @@ export function parseProductSessionWalletURL(registryInput, url, at = new Date()
   const parsed = safeURL(url, "SCHEME_NOT_REGISTERED", "Wallet URL is invalid");
   const expected = new URL(registry.wallet.authorizeCallback);
   const keys = [...parsed.searchParams.keys()];
-  if (parsed.protocol !== expected.protocol || parsed.hostname !== expected.hostname || parsed.pathname !== expected.pathname || parsed.hash || parsed.username || parsed.password || keys.length !== 1 || keys[0] !== "request") fail("SCHEME_NOT_REGISTERED", "Wallet scheme, route or parameters are not registered");
+  if (parsed.protocol !== expected.protocol || parsed.host !== expected.host || parsed.pathname !== expected.pathname || parsed.hash || parsed.username || parsed.password || keys.length !== 1 || keys[0] !== "request") fail("SCHEME_NOT_REGISTERED", "Wallet scheme, route or parameters are not registered");
   const raw = decodeJSON(parsed.searchParams.get("request"), "Wallet request");
   return parseProductSessionRequest(registry, raw, at);
 }
