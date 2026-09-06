@@ -1,7 +1,7 @@
 import {createHash} from "node:crypto";
 import {execFileSync} from "node:child_process";
-import {cp, mkdir, readFile, rm, writeFile} from "node:fs/promises";
-import {dirname, join, resolve} from "node:path";
+import {cp, mkdir, readFile, readdir, realpath, rm, stat, writeFile} from "node:fs/promises";
+import {dirname, join, resolve, sep} from "node:path";
 import {fileURLToPath} from "node:url";
 import {build as bundle} from "esbuild";
 import {chromiumManifest, firefoxManifest} from "../src/extension-manifest.js";
@@ -27,10 +27,39 @@ export function compilePwaShell(inputFiles, workerTemplate) {
   return {buildId, files, assetIntegrity};
 }
 
+// Validate the shipped directory, including imports below every JS entry point.
+// Resolving against source node_modules would hide bare imports that browsers cannot load.
+export async function validateExtensionModuleGraph(directory) {
+  const root = await realpath(resolve(directory)), manifest = JSON.parse(await readFile(join(root, "manifest.json"), "utf8"));
+  const localPath = (reference, base = root) => {
+    if (typeof reference !== "string" || !reference || /^[a-z]+:|^[\\/]/iu.test(reference)) throw new Error(`Invalid extension artifact reference: ${reference}`);
+    const path = resolve(base, reference);
+    if (!path.startsWith(`${root}${sep}`)) throw new Error(`Extension artifact reference escapes package: ${reference}`);
+    return path;
+  };
+  const references = [manifest.action?.default_popup, manifest.options_ui?.page, manifest.background?.service_worker,
+    ...(manifest.background?.scripts ?? []), ...Object.values(manifest.icons ?? {}),
+    ...(manifest.content_scripts ?? []).flatMap(script => [...(script.js ?? []), ...(script.css ?? [])])].filter(value => value !== undefined);
+  const files = await readdir(root, {recursive: true});
+  for (const file of files.filter(name => name.endsWith(".html"))) {
+    const html = await readFile(join(root, file), "utf8");
+    for (const match of html.matchAll(/<script\b[^>]*\bsrc\s*=\s*["']([^"']+)["']/giu)) references.push(join(dirname(file), match[1]));
+  }
+  for (const reference of references) if (!(await stat(localPath(reference))).isFile()) throw new Error(`Missing extension artifact file: ${reference}`);
+  const result = await bundle({entryPoints: files.filter(name => name.endsWith(".js")).map(name => join(root, name)),
+    outdir: join(root, ".module-graph-validation"), bundle: true, write: false, metafile: true, platform: "browser", format: "esm", logLevel: "silent",
+    plugins: [{name: "artifact-local-imports", setup(build) {build.onResolve({filter: /.*/}, args => {
+      if (args.kind === "entry-point") return;
+      if (!args.path.startsWith(".")) throw new Error(`Extension artifact import must be relative: ${args.path}`);
+      localPath(args.path, dirname(args.importer));
+    });}}]});
+  return {entryPoints: files.filter(name => name.endsWith(".js")).length, modules: Object.keys(result.metafile.inputs).length, references: references.length};
+}
+
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await buildAll();
-async function buildAll() {
+export async function buildAll({dist: outputDirectory} = {}) {
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const dist = join(root, "dist");
+const dist = outputDirectory === undefined ? join(root, "dist") : resolve(outputDirectory);
 const repository=resolve(root,"..","..");
 const centralMobileCommit="d0f89797d13c7667cc187b0c64d5c9e1cb1d8f59";
 const centralMobileContracts=[
@@ -109,6 +138,7 @@ for (const [name, manifest] of variants) {
   for (const file of ["index.html", "styles.css", "accessibility.css", "app.js"]) await cp(join(root, "public", file), join(target, file));
   for (const file of ["approval.html","approval.css","approval.js","vault.html","vault.css","vault.js","signer.html","signer.css","signer.js"]) await cp(join(root,"extension",file),join(target,file));
   for (const file of ["provider.js", "extension-fee-model.js", "extension-durability.js", "transaction-input.js", "i18n.js", "preferences.js", "mobile-wallet-routing.js", "wallet-web-companion-lifecycle.js", "standard-wallet-connect-state.js"]) await cp(join(root, "src", file), join(target, file));
+  await cp(join(root, "src", "service-worker-policy.js"), join(target, "service-worker-policy.js"));
   for (const file of ["service-worker.js", "content-script.js", "page-provider.js"]) await cp(join(root, "extension", file), join(target, file));
   await cp(join(root, "src", "extension-bridge.js"), join(target, "extension-bridge.js"));
   await cp(join(root, "src", "extension-rpc.js"), join(target, "extension-rpc.js"));
@@ -129,6 +159,7 @@ for (const [name, manifest] of variants) {
   const html = (await readFile(join(target, "index.html"), "utf8")).replace('<link rel="manifest" href="./manifest.webmanifest">', "");
   await writeFile(join(target, "index.html"), html);
   await writeFile(join(target, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
+  await validateExtensionModuleGraph(target);
 }
 console.log("Built PWA plus unsigned Chromium (Chrome/Edge) and Firefox extension directories.");
 }
