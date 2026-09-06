@@ -195,7 +195,7 @@ export declare function verifyProductSessionProofV2(proof:unknown,session:Produc
 export declare function productSessionProofV2SignBytes(input:unknown):string;
 export declare function productSessionProofV2Digest(input:unknown):string;
 export declare const PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION:2;
-export declare class ProductSessionGatewayKernel{constructor(registry:unknown,tokenFactory:()=>string,snapshot?:unknown);dispatch(input:Readonly<{requestId:string;method:string;path:string;body:Readonly<Record<string,unknown>>;proof:Readonly<Record<string,unknown>>|null;networkAvailable:boolean}>,at?:Date):Readonly<{status:number;headers:Readonly<Record<string,string>>;body:string}>;snapshot():Readonly<Record<string,unknown>>;}
+export declare class ProductSessionGatewayKernel{constructor(registry:unknown,tokenFactory:()=>string,snapshot?:unknown);dispatch(input:Readonly<{requestId:string;method:string;path:string;body:Readonly<Record<string,unknown>>;proof:Readonly<Record<string,unknown>>|null;walletControlProof?:WalletSessionControlProof|null;networkAvailable:boolean}>,at?:Date):Readonly<{status:number;headers:Readonly<Record<string,string>>;body:string}>;snapshot():Readonly<Record<string,unknown>>;}
 export declare function parseProductSessionGatewaySnapshot(input:unknown):Readonly<Record<string,unknown>>;
 export declare function migrateProductSessionGatewaySnapshotV1(input:unknown):Readonly<Record<string,unknown>>;
 export declare const PRODUCT_SESSION_GATEWAY_PROOF_HEADER_V2:"x-ynx-product-session-proof-v2";
@@ -203,7 +203,7 @@ export declare class ProductSessionGatewayFetchAdapter{constructor(config:Readon
 export declare function decodeProductSessionGatewayProofHeaderV2(value:unknown):Readonly<Record<string,unknown>>;
 export declare function encodeProductSessionGatewayProofHeaderV2(value:unknown):string;
 export declare const PRODUCT_SESSION_GATEWAY_HTTP_MAX_BODY_BYTES:1048576;
-export declare class ProductSessionGatewayHttpHandler{constructor(registry:unknown,tokenFactory:()=>string,snapshot?:unknown);handle(input:Readonly<{requestId:string;method:string;path:string;contentType:string;body:string;proofHeader:string|null;networkAvailable:boolean}>,at?:Date):Readonly<{status:number;headers:Readonly<Record<string,string>>;body:string}>;snapshot():Readonly<Record<string,unknown>>;}
+export declare class ProductSessionGatewayHttpHandler{constructor(registry:unknown,tokenFactory:()=>string,snapshot?:unknown);handle(input:Readonly<{requestId:string;method:string;path:string;contentType:string;body:string;proofHeader:string|null;walletControlProofHeader?:string|null;networkAvailable:boolean}>,at?:Date):Readonly<{status:number;headers:Readonly<Record<string,string>>;body:string}>;snapshot():Readonly<Record<string,unknown>>;}
 export declare function createSignedIntent(input:Readonly<Record<string,unknown>&{accountSecret:string}>):Readonly<Record<string,unknown>>;
 export declare function parseSignedIntent(input:unknown):Readonly<Record<string,unknown>>;
 export declare function signedIntentDigest(input:unknown):string;
@@ -237,3 +237,20 @@ export type CanonicalGatewayHttpInput=Readonly<{method:string;path:string;conten
 export type CanonicalGatewayHttpResponse=Readonly<{status:number;headers:Readonly<Record<string,string>>;body:string;mutated:boolean}>;
 export declare class CanonicalWalletGatewayHttpKernel{constructor(registry:unknown,snapshot?:unknown);dispatch(input:CanonicalGatewayHttpInput,at?:Date):CanonicalGatewayHttpResponse;snapshot():Readonly<Record<string,unknown>>;}
 export declare function gatewayStateDigest(snapshot:unknown):string;
+
+export type WalletSessionControlPath="/v2/product-sessions/wallet/sessions"|"/v2/product-sessions/wallet/sessions/revoke";
+export type WalletSessionControlProof=Readonly<{version:"2";chainId:"ynx_6423-1";audience:"https://wallet-auth.ynxweb4.com";account:string;accountPublicKey:string;method:"POST";path:WalletSessionControlPath;bodyDigest:string;nonce:string;issuedAt:string;expiresAt:string;signature:string}>;
+export type WalletControlledSession=Readonly<{sessionBinding:string;productId:string;clientId:string;displayName:string;platform:string;applicationId:string;origin:string;callback:string;deviceId:string;deviceBinding:string;scopes:readonly string[];issuedAt:string;expiresAt:string;active:boolean;inactiveReasons:readonly string[]}>;
+export type WalletSessionControlInventory=Readonly<{account:string;asOf:string;sessions:readonly WalletControlledSession[]}>;
+export type WalletSessionControlRevocation=Readonly<{account:string;sessionBinding:string;revoked:true;alreadyRevoked:boolean;asOf:string}>;
+export declare const WALLET_SESSION_CONTROL_PROOF_HEADER:"x-ynx-wallet-control-proof-v2";
+export declare const WALLET_SESSION_CONTROL_AUDIENCE:"https://wallet-auth.ynxweb4.com";
+export declare const WALLET_SESSION_CONTROL_PATHS:readonly WalletSessionControlPath[];
+export declare function createWalletSessionControlProof(input:Readonly<{accountSecret:string;method:"POST";path:WalletSessionControlPath;bodyDigest:string;nonce:string;issuedAt:string;expiresAt:string}>):WalletSessionControlProof;
+export declare function parseWalletSessionControlProof(input:unknown):WalletSessionControlProof;
+export declare function verifyWalletSessionControlProof(proof:unknown,expected:Readonly<{method:"POST";path:WalletSessionControlPath;bodyDigest:string}>,at?:Date):WalletSessionControlProof;
+export declare function walletSessionControlReplayKey(proof:unknown):string;
+export declare function encodeWalletSessionControlProofHeader(proof:unknown):string;
+export declare function decodeWalletSessionControlProofHeader(value:unknown):WalletSessionControlProof;
+export declare const WALLET_SESSION_CONTROL_REPLAY_PREFIX:"f9c24e16a803b572";
+export declare function walletSessionControlReplayExpiry(value:unknown):number|null;

@@ -1,6 +1,7 @@
 import { canonicalJSON, exactFields, WalletAuthError } from "./canonical.js";
 import { decodeProductSessionGatewayProofHeaderV2 } from "./product-session-gateway-client.js";
 import { PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION, ProductSessionGatewayKernel } from "./product-session-gateway.js";
+import { decodeWalletSessionControlProofHeader } from "./wallet-session-control.js";
 
 export const PRODUCT_SESSION_GATEWAY_HTTP_MAX_BODY_BYTES = 1_048_576;
 const INPUT_FIELDS = ["requestId", "method", "path", "contentType", "body", "proofHeader", "networkAvailable"];
@@ -12,7 +13,7 @@ export class ProductSessionGatewayHttpHandler {
   handle(input, at = new Date()) {
     let requestId = validRequestId(input?.requestId) ? input.requestId : "req_invalid_request_000";
     try {
-      exactFields(input, INPUT_FIELDS, "Product Session Gateway HTTP request");
+      exactFields(input, input && Object.hasOwn(input, "walletControlProofHeader") ? [...INPUT_FIELDS, "walletControlProofHeader"] : INPUT_FIELDS, "Product Session Gateway HTTP request");
       requestId = requestIdValue(input.requestId);
       if (input.contentType !== "application/json") fail("UNSUPPORTED_MEDIA_TYPE", "Product Session Gateway requires application/json");
       if (typeof input.body !== "string") fail("INVALID_BODY", "Product Session Gateway body must be a canonical JSON string");
@@ -20,8 +21,11 @@ export class ProductSessionGatewayHttpHandler {
       let body; try { body = JSON.parse(input.body); } catch { fail("INVALID_BODY", "Product Session Gateway body is not JSON"); }
       if (canonicalJSON(body) !== input.body) fail("NON_CANONICAL_BODY", "Product Session Gateway body must be canonical JSON");
       if (input.proofHeader !== null && typeof input.proofHeader !== "string") fail("INVALID_PROOF_HEADER", "Product Session proof header must be a string or null");
+      if (input.walletControlProofHeader != null && typeof input.walletControlProofHeader !== "string") fail("INVALID_PROOF_HEADER", "Wallet account owner proof header must be a string or null");
+      if (input.proofHeader !== null && input.walletControlProofHeader != null) fail("UNEXPECTED_PROOF", "Wallet owner and product device proof headers cannot be combined");
       const proof = input.proofHeader === null ? null : decodeProductSessionGatewayProofHeaderV2(input.proofHeader);
-      return this.#kernel.dispatch({ requestId, method: input.method, path: input.path, body, proof, networkAvailable: input.networkAvailable }, at);
+      const walletControlProof = input.walletControlProofHeader == null ? null : decodeWalletSessionControlProofHeader(input.walletControlProofHeader);
+      return this.#kernel.dispatch({ requestId, method: input.method, path: input.path, body, proof, walletControlProof, networkAvailable: input.networkAvailable }, at);
     } catch (error) {
       const normalized = normalize(error);
       return response(normalized.status, requestId, { ok: false, error: { code: normalized.code, message: normalized.message } });

@@ -9,12 +9,15 @@ import { decodeProductSessionGatewayProofHeaderV2, PRODUCT_SESSION_GATEWAY_PROOF
 import { ProductSessionGatewayHttpHandler } from "./product-session-gateway-http.js";
 import { PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION } from "./product-session-gateway.js";
 import { parseProductSessionRegistry } from "./product-session-registry.js";
+import { WALLET_SESSION_CONTROL_PATHS, WALLET_SESSION_CONTROL_PROOF_HEADER, walletSessionControlClockFloor } from "./wallet-session-control.js";
 
 export const PRODUCT_SESSION_GATEWAY_NODE_STATE_SCHEMA_VERSION = 1;
 const STATE_FIELDS = ["schemaVersion", "snapshotDigest", "snapshot"];
 const TIME_ROUTE = "/v2/product-sessions/time";
+const WALLET_ORIGIN = "https://wallet.ynxweb4.com";
 const ROUTES = new Set([
   TIME_ROUTE,
+  ...WALLET_SESSION_CONTROL_PATHS,
   "/v2/product-sessions/challenge",
   "/v2/product-sessions/complete",
   "/v2/product-sessions/introspect",
@@ -22,6 +25,7 @@ const ROUTES = new Set([
   "/v2/product-sessions/devices/revoke",
 ]);
 const CORS_ALLOWED_HEADERS = "content-type, x-request-id, x-ynx-product-session-proof-v2";
+const WALLET_CORS_ALLOWED_HEADERS = `content-type, x-request-id, ${WALLET_SESSION_CONTROL_PROOF_HEADER}`;
 const MAX_STATE_BYTES = 32 * 1024 * 1024;
 
 export class ProductSessionGatewayNodeHost {
@@ -46,19 +50,21 @@ export class ProductSessionGatewayNodeHost {
       let corsHeaders = {};
       try {
         this.#assertStateIdentity();
-        corsHeaders = this.#corsHeaders(request.headers.origin);
+        const route = pathname(request.url);
+        corsHeaders = this.#corsHeaders(request.headers.origin, route);
         if (request.method === "OPTIONS") {
           const method = this.#preflight(request, corsHeaders);
-          response.writeHead(204, { ...corsHeaders, "access-control-allow-headers": CORS_ALLOWED_HEADERS, "access-control-allow-methods": method, "access-control-max-age": "300", "cache-control": "no-store" });
+          response.writeHead(204, { ...corsHeaders, "access-control-allow-headers": allowedHeaders(route), "access-control-allow-methods": method, "access-control-max-age": "300", "cache-control": "no-store" });
           response.end(); return;
         }
-        const route = pathname(request.url);
         if (!ROUTES.has(route)) fail("ROUTE_NOT_FOUND", "Product Session Gateway route is not registered");
         if (route === TIME_ROUTE) {
           if (request.method !== "GET") fail("METHOD_NOT_ALLOWED", "Product Session Gateway time accepts GET only");
           if (!validRequestId(request.headers["x-request-id"])) fail("INVALID_REQUEST_ID", "Product Session Gateway time requires a valid request ID");
           const now = this.#now();
           if (!(now instanceof Date) || !Number.isFinite(now.getTime())) fail("INVALID_TIME", "Product Session Gateway time is unavailable");
+          const lastSeen = walletSessionControlClockFloor(this.#handler.snapshot());
+          if (now.getTime() < lastSeen) fail("CLOCK_UNAVAILABLE", "Product Session authority clock moved behind its durable history");
           // Clock reads never enter the authority kernel or alter its durable audit/state.
           response.writeHead(200, { "cache-control": "no-store", "content-type": "application/json; charset=utf-8", "x-request-id": requestId, ...corsHeaders });
           response.end(canonicalJSON({ ok: true, requestId, result: { serverTime: now.toISOString() }, schemaVersion: PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION }));
@@ -68,9 +74,10 @@ export class ProductSessionGatewayNodeHost {
         const body = await boundedBody(request);
         this.#assertStateIdentity();
         const proofHeader = nullableHeader(request.headers[PRODUCT_SESSION_GATEWAY_PROOF_HEADER_V2]);
+        const walletControlProofHeader = nullableHeader(request.headers[WALLET_SESSION_CONTROL_PROOF_HEADER]);
         this.#assertOriginBinding(request.headers.origin, route, body, proofHeader);
         const candidate = new ProductSessionGatewayHttpHandler(this.#registry, this.#tokens, this.#handler.snapshot());
-        const result = candidate.handle({ requestId, method: request.method, path: route, contentType: singleHeader(request.headers["content-type"]), body, proofHeader, networkAvailable: true }, this.#now());
+        const result = candidate.handle({ requestId, method: request.method, path: route, contentType: singleHeader(request.headers["content-type"]), body, proofHeader, walletControlProofHeader, networkAvailable: true }, this.#now());
         const before = snapshotDigest(this.#handler.snapshot()), after = snapshotDigest(candidate.snapshot());
         if (after !== before) this.#persist(candidate.snapshot());
         this.#handler = candidate;
@@ -85,15 +92,17 @@ export class ProductSessionGatewayNodeHost {
 
   snapshot() { return this.#handler.snapshot(); }
 
-  #corsHeaders(value) {
+  #corsHeaders(value, route) {
     if (value === undefined) return {};
     const origin = canonicalOrigin(value);
-    if (!this.#origins.has(origin)) fail("ORIGIN_NOT_ALLOWED", "Product Session Gateway origin is not registered");
+    const allowed = WALLET_SESSION_CONTROL_PATHS.includes(route) ? origin === WALLET_ORIGIN : this.#origins.has(origin) || route === TIME_ROUTE && origin === WALLET_ORIGIN;
+    if (!allowed) fail("ORIGIN_NOT_ALLOWED", "Product Session Gateway origin is not registered for this route");
     return { "access-control-allow-origin": origin, "access-control-expose-headers": "x-request-id", vary: "origin" };
   }
 
   #assertOriginBinding(origin, route, body, proofHeader) {
     if (origin === undefined) return; // Native clients and server proxies do not send a browser Origin.
+    if (WALLET_SESSION_CONTROL_PATHS.includes(route)) return; // The Wallet-only origin policy was already checked; the owning account signature grants authority.
     let boundOrigin;
     if (route === "/v2/product-sessions/challenge" || route === "/v2/product-sessions/complete") {
       let input; try { input = JSON.parse(body); } catch { fail("INVALID_BODY", "Product Session Gateway body is not JSON"); }
@@ -113,7 +122,7 @@ export class ProductSessionGatewayNodeHost {
     if (request.headers["access-control-request-method"] !== method) fail("METHOD_NOT_ALLOWED", `Product Session Gateway preflight requires ${method}`);
     const supplied = singleHeader(request.headers["access-control-request-headers"]);
     const headers = supplied.split(",").map((item) => item.trim().toLowerCase());
-    const allowed = new Set(CORS_ALLOWED_HEADERS.split(", "));
+    const allowed = new Set(allowedHeaders(route).split(", "));
     if (headers.length === 0 || new Set(headers).size !== headers.length || headers.some((item) => !allowed.has(item))) fail("INVALID_CORS_REQUEST", "Product Session Gateway requested headers are not allowed");
     return method;
   }
@@ -172,9 +181,10 @@ function pathname(value) { try { const parsed = new URL(value, "http://127.0.0.1
 function canonicalOrigin(value) { if (Array.isArray(value) || typeof value !== "string" || value.length > 255 || value.trim() !== value) fail("ORIGIN_NOT_ALLOWED", "Product Session Gateway origin is not registered"); let parsed; try { parsed = new URL(value); } catch { fail("ORIGIN_NOT_ALLOWED", "Product Session Gateway origin is not registered"); } if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.pathname !== "/" || parsed.search || parsed.hash || parsed.origin !== value) fail("ORIGIN_NOT_ALLOWED", "Product Session Gateway origin is not registered"); return parsed.origin; }
 function validRequestId(value) { return typeof value === "string" && /^req_[A-Za-z0-9_-]{12,80}$/.test(value); }
 function singleHeader(value) { return typeof value === "string" ? value : ""; }
+function allowedHeaders(route) { return WALLET_SESSION_CONTROL_PATHS.includes(route) ? WALLET_CORS_ALLOWED_HEADERS : CORS_ALLOWED_HEADERS; }
 function nullableHeader(value) { return value === undefined ? null : Array.isArray(value) ? "" : value; }
 function noFollow() { return constants.O_NOFOLLOW ?? 0; }
 function ownedByProcess(stat) { return typeof process.getuid !== "function" || stat.uid === process.getuid(); }
 async function boundedBody(request) { const chunks = []; let size = 0; for await (const chunk of request) { size += chunk.length; if (size > 1_048_576) fail("BODY_TOO_LARGE", "Product Session Gateway body exceeds policy"); chunks.push(chunk); } return Buffer.concat(chunks).toString("utf8"); }
-function hostError(error) { if (!(error instanceof WalletAuthError)) return { status: 500, code: "INTERNAL", message: "Product Session Gateway host failed closed" }; const status = error.code === "ORIGIN_NOT_ALLOWED" ? 403 : error.code === "ROUTE_NOT_FOUND" ? 404 : error.code === "METHOD_NOT_ALLOWED" ? 405 : error.code === "BODY_TOO_LARGE" ? 413 : error.code.startsWith("STATE_") ? 500 : 400; return { status, code: error.code, message: error.message }; }
+function hostError(error) { if (!(error instanceof WalletAuthError)) return { status: 500, code: "INTERNAL", message: "Product Session Gateway host failed closed" }; const status = error.code === "CLOCK_UNAVAILABLE" ? 503 : error.code === "ORIGIN_NOT_ALLOWED" ? 403 : error.code === "ROUTE_NOT_FOUND" ? 404 : error.code === "METHOD_NOT_ALLOWED" ? 405 : error.code === "BODY_TOO_LARGE" ? 413 : error.code.startsWith("STATE_") ? 500 : 400; return { status, code: error.code, message: error.message }; }
 function fail(code, message) { throw new WalletAuthError(code, message); }
