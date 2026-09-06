@@ -149,7 +149,7 @@ if (phase === "prepare") {
   const device = command("xcrun", ["simctl", "create", name, template.type, template.runtime]);
   assert.match(device, /^[0-9A-F-]{36}$/i, "simctl must return the newly created device UUID");
   save("owned-simulator.json", { device, name, ...template, sourceCommit: expected });
-  const result = { sourceCommit: expected, device, name, simulatorOnly: true, installed: false, coldLaunch: false, secondColdLaunch: false, screenshots: [], invalidDeepLinkDelivered: false, visuallyReviewed: false, biometricEnrollmentVerified: false, authenticatedKeyAccessVerified: false, singlePromptVerified: false, originalRequestRetryVerified: false, validCallbackVerified: false, physicalDeviceVerified: false, cleanedUp: false };
+  const result = { sourceCommit: expected, device, name, simulatorOnly: true, installed: false, coldLaunch: false, secondColdLaunch: false, screenshots: [], invalidDeepLinkRequested: false, invalidDeepLinkDelivered: false, visuallyReviewed: false, biometricEnrollmentVerified: false, authenticatedKeyAccessVerified: false, singlePromptVerified: false, originalRequestRetryVerified: false, validCallbackVerified: false, physicalDeviceVerified: false, cleanedUp: false };
   const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
   const screenshot = label => { const path = `${label}.png`; command("xcrun", ["simctl", "io", device, "screenshot", join(proof, path)]); result.screenshots.push(path); };
   async function coldLaunch() {
@@ -168,7 +168,9 @@ if (phase === "prepare") {
     result.installed = true; result.firstPID = await coldLaunch(); result.coldLaunch = true; screenshot("01-cold-launch-light");
     command("xcrun", ["simctl", "ui", device, "appearance", "dark"]); await wait(2000); screenshot("02-system-dark-app-light");
     command("xcrun", ["simctl", "ui", device, "appearance", "light"]);
-    command("xcrun", ["simctl", "openurl", device, "ynxwallet://authorize?request=invalid"]); result.invalidDeepLinkDelivered = true;
+    // simctl can return success while iOS is still asking the user to Open the
+    // link. Only the separate installed UI test can prove application handling.
+    command("xcrun", ["simctl", "openurl", device, "ynxwallet://authorize?request=invalid"]); result.invalidDeepLinkRequested = true;
     await wait(2000); screenshot("03-invalid-deep-link");
     result.secondPID = await coldLaunch(); result.secondColdLaunch = true; screenshot("04-second-cold-launch-light");
   } catch (error) { result.error = error.message; throw error; }
