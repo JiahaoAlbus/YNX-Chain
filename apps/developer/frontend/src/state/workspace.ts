@@ -6,6 +6,28 @@ type DesktopWorkspace = {
 };
 declare global { interface Window { ynxDesktopWorkspace?: DesktopWorkspace; __ynxFlushWorkspace?: () => Promise<void> } }
 const KEY="ynx-code-project-v1";
+export type WorkspaceRecoveryProblem = { kind: "invalid"; raw: string } | { kind: "unreadable"; raw: null };
+export function workspaceRecoveryProblem(): WorkspaceRecoveryProblem | null {
+  let raw: string | null;
+  try { raw = localStorage.getItem(KEY); } catch {
+    // The native host has already completed its independent durable restore.
+    // Preserve its existing ability to work when WebKit storage is unavailable.
+    if (typeof window !== "undefined" && window.ynxDesktopWorkspace) return null;
+    return { kind: "unreadable", raw: null };
+  }
+  if (raw === null) return null;
+  try { if (restoreProject(JSON.parse(raw))) return null; } catch { /* Preserve the original bytes for recovery. */ }
+  return { kind: "invalid", raw };
+}
+export function backupRecoveryAndStartNew(expectedRaw: string): void {
+  // Re-read so another tab's newer edits cannot be discarded by an old dialog.
+  if (localStorage.getItem(KEY) !== expectedRaw) throw new Error("Saved data changed. Retry recovery before starting a new workspace.");
+  const backupKey = `ynx-code-recovery-backup-v1:${crypto.randomUUID()}`;
+  localStorage.setItem(backupKey, expectedRaw);
+  if (localStorage.getItem(backupKey) !== expectedRaw) throw new Error("The recovery backup could not be verified. Original data is unchanged.");
+  if (localStorage.getItem(KEY) !== expectedRaw) throw new Error("Saved data changed. Both the recovery backup and newer data have been kept.");
+  localStorage.removeItem(KEY);
+}
 const initial:ProjectState={id:crypto.randomUUID(),name:"YNX C++ Starter",revision:1,remoteRevision:0,open:["src/main.cpp"],active:"src/main.cpp",folders:["src"],files:{"src/main.cpp":"#include <iostream>\n\nint main() {\n  std::cout << \"Hello from YNX Code\" << std::endl;\n  return 0;\n}\n","README.md":"# YNX C++ Starter\n\nRun the active C++ file through an isolated YNX Code workspace runtime.\n"}};
 
 // The native host uses an ephemeral loopback port. Its private, app-scoped
@@ -37,6 +59,7 @@ export function loadProject(): ProjectState {
   return local || initial;
 }
 export async function saveProject(project: ProjectState): Promise<void> {
+  if (workspaceRecoveryProblem()) throw new Error("Saved workspace data needs recovery before it can be replaced.");
   const snapshot = restoreProject(project);
   if (!snapshot) throw new Error("Workspace exceeds its safe recovery limits.");
   const native = typeof window !== "undefined" ? window.ynxDesktopWorkspace : undefined;
