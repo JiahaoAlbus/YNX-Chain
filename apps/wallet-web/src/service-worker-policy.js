@@ -1,14 +1,19 @@
-export const PWA_CACHE_PREFIX = "ynx-wallet-web-v";
-export const PWA_CACHE = `${PWA_CACHE_PREFIX}11`;
+// This namespace deliberately does not match the v8-v11 workers' delete prefix.
+export const PWA_CACHE_PREFIX = "ynx-wallet-shell-build-";
+export const PWA_BUILD_ID = "__YNX_PWA_BUILD_ID__";
+export const PWA_CACHE = `${PWA_CACHE_PREFIX}${PWA_BUILD_ID}`;
+export const LEGACY_PWA_CACHE_PREFIX = "ynx-wallet-web-v";
 export const PWA_RECOVERY_PARAM = "ynx-sw-recovery";
 export const PWA_UPGRADE_PARAM = "ynx-sw-upgrade";
 
 export function obsoletePwaCaches(keys) {
-  return (Array.isArray(keys) ? keys : []).filter((key) => typeof key === "string" && key.startsWith(PWA_CACHE_PREFIX) && key !== PWA_CACHE);
+  // Other content-addressed builds may still be installing or serving an open
+  // page. A worker must never delete those caches merely because their ID differs.
+  return (Array.isArray(keys) ? keys : []).filter((key) => typeof key === "string" && /^ynx-wallet-web-v\d+$/u.test(key));
 }
 
 export function allPwaCaches(keys) {
-  return (Array.isArray(keys) ? keys : []).filter((key) => typeof key === "string" && key.startsWith(PWA_CACHE_PREFIX));
+  return (Array.isArray(keys) ? keys : []).filter((key) => typeof key === "string" && (key.startsWith(PWA_CACHE_PREFIX) || /^ynx-wallet-web-v\d+$/u.test(key)));
 }
 
 function markedNavigationUrl(requestUrl, parameter, value) {

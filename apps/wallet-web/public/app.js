@@ -280,21 +280,46 @@ if(!isExtension&&`${location.origin}${location.pathname}`===companionLifecycle.c
 addEventListener("storage",(event)=>{if(event.key!==PREFERENCES_KEY)return;try{const next=acceptPreferenceUpdate(state.preferences,event.newValue);state.preferences=next;state.locale=next.locale;state.theme=next.theme;render();detect({preserveConnection:true}).catch(setError)}catch(error){setError(error)}});
 addEventListener("focus",()=>{if(!state.account)detect({preserveConnection:false}).catch(setError)});
 const wait=(milliseconds)=>new Promise(resolve=>setTimeout(resolve,milliseconds));
-function workerVersion(worker){return new Promise(resolve=>{if(!worker){resolve(null);return}const channel=new MessageChannel(),timer=setTimeout(()=>resolve(null),500);channel.port1.onmessage=event=>{clearTimeout(timer);resolve(event.data?.cache||null)};try{worker.postMessage({type:"YNX_WALLET_PWA_VERSION"},[channel.port2])}catch{clearTimeout(timer);resolve(null)}})}
-async function waitForV11Worker(registration,timeout=12000){
+let pwaReloadStarted=false;
+function workerMessage(worker,type,timeout=500){return new Promise(resolve=>{if(!worker){resolve(null);return}const channel=new MessageChannel();let timer;const finish=value=>{clearTimeout(timer);channel.port1.close();channel.port2.close();resolve(value)};timer=setTimeout(()=>finish(null),timeout);channel.port1.onmessage=event=>finish(event.data??null);try{worker.postMessage({type},[channel.port2])}catch{finish(null)}})}
+async function workerVersion(worker){return (await workerMessage(worker,"YNX_WALLET_PWA_VERSION"))?.cache??null}
+async function verifiedControlledShell(){
+  const controller=navigator.serviceWorker.controller;
+  if(!controller||await workerVersion(controller)!==PWA_CACHE)return false;
+  const registration=await navigator.serviceWorker.getRegistration();
+  const active=registration?.active;
+  if(active?.state!=="activated"||await workerVersion(active)!==PWA_CACHE)return false;
+  const proof=await workerMessage(controller,"YNX_WALLET_PWA_VERIFY_CACHE",5000);
+  return proof?.cache===PWA_CACHE&&proof.complete===true&&navigator.serviceWorker.controller===controller&&registration.active===active;
+}
+function reloadForPwaBuild(cache){
+  if(pwaReloadStarted)return true;
+  if(!/^ynx-wallet-(?:shell-build-[0-9a-f]{64}|web-v\d+)$/u.test(cache||""))return false;
+  const reloadUrl=upgradeNavigationUrl(initialPwaNavigationUrl,cache);
+  if(!reloadUrl)return false;
+  pwaReloadStarted=true;
+  document.documentElement.dataset.pwa="updating";
+  document.documentElement.inert=true;
+  location.replace(reloadUrl);
+  return true;
+}
+async function waitForActivatedWorker(registration,timeout=12000){
   const deadline=Date.now()+timeout;
   while(Date.now()<deadline){
-    for(const worker of [registration.installing,registration.waiting,registration.active])if(worker?.state==="activated"&&await workerVersion(worker)===PWA_CACHE)return worker;
+    if(!registration.installing&&!registration.waiting&&registration.active?.state==="activated"){
+      const cache=await workerVersion(registration.active);
+      if(cache)return {worker:registration.active,cache};
+    }
     await wait(100);
   }
   throw Object.assign(new Error("YNX Wallet service worker did not activate"),{code:"PWA_SERVICE_WORKER_ACTIVATION_FAILED"});
 }
-async function waitForV11Controller(timeout=2500){
+async function waitForBuildController(timeout=2500){
   const deadline=Date.now()+timeout;
   while(Date.now()<deadline){if(await workerVersion(navigator.serviceWorker.controller)===PWA_CACHE)return true;await wait(100)}
   return false;
 }
-async function waitForV11Cache(timeout=5000){
+async function waitForBuildCache(timeout=5000){
   const deadline=Date.now()+timeout;
   let stableSince=null;
   while(Date.now()<deadline){
@@ -306,16 +331,33 @@ async function waitForV11Cache(timeout=5000){
 }
 async function convergePwaServiceWorker(){
   const startingControllerVersion=await workerVersion(navigator.serviceWorker.controller);
-  const registration=await navigator.serviceWorker.register("./sw.js",{type:"module",scope:"./"});
-  await registration.update();
-  await waitForV11Worker(registration);
-  const reloadUrl=upgradeNavigationUrl(initialPwaNavigationUrl);
-  if(startingControllerVersion!==PWA_CACHE&&reloadUrl){
-    location.replace(reloadUrl);
+  let registration;
+  try{
+    registration=await navigator.serviceWorker.register("./sw.js",{type:"module",scope:"./"});
+    await registration.update();
+  }catch(error){
+    if(await verifiedControlledShell())return {reloading:false,updateDeferred:true};
+    throw error;
+  }
+  const active=await waitForActivatedWorker(registration);
+  if(active.cache!==PWA_CACHE){
+    if(!reloadForPwaBuild(active.cache))throw Object.assign(new Error("YNX Wallet page and active worker builds differ after one reload"),{code:"PWA_SERVICE_WORKER_BUILD_MISMATCH"});
     return {reloading:true};
   }
-  if(!await waitForV11Controller())throw Object.assign(new Error("YNX Wallet service worker could not control the page after one reload"),{code:"PWA_SERVICE_WORKER_CONTROL_FAILED"});
-  if(!await waitForV11Cache())throw Object.assign(new Error("YNX Wallet service worker left an obsolete cache after activation"),{code:"PWA_SERVICE_WORKER_CACHE_CONVERGENCE_FAILED"});
+  if(startingControllerVersion!==PWA_CACHE&&reloadForPwaBuild(PWA_CACHE))return {reloading:true};
+  if(!await waitForBuildController())throw Object.assign(new Error("YNX Wallet service worker could not control the page after one reload"),{code:"PWA_SERVICE_WORKER_CONTROL_FAILED"});
+  if(!await waitForBuildCache())throw Object.assign(new Error("YNX Wallet service worker left an obsolete cache after activation"),{code:"PWA_SERVICE_WORKER_CACHE_CONVERGENCE_FAILED"});
   return {reloading:false};
 }
-if(!isExtension&&"serviceWorker" in navigator)convergePwaServiceWorker().then(result=>{if(!result.reloading)document.documentElement.dataset.pwa="ready"}).catch(error=>{document.documentElement.dataset.pwa="failed";setError(error)});
+if(!isExtension&&"serviceWorker" in navigator){
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{
+    workerVersion(navigator.serviceWorker.controller).then(cache=>{
+      if(cache&&cache!==PWA_CACHE&&!reloadForPwaBuild(cache)){
+        document.documentElement.dataset.pwa="failed";
+        document.documentElement.inert=true;
+        setError({code:"PWA_SERVICE_WORKER_BUILD_MISMATCH"});
+      }
+    });
+  });
+  convergePwaServiceWorker().then(result=>{if(!result.reloading&&!pwaReloadStarted){document.documentElement.dataset.pwa="ready";document.documentElement.dataset.pwaUpdate=result.updateDeferred?"deferred":"current"}}).catch(error=>{if(!pwaReloadStarted){document.documentElement.dataset.pwa="failed";if(error.code==="PWA_SERVICE_WORKER_BUILD_MISMATCH")document.documentElement.inert=true;setError(error)}});
+}

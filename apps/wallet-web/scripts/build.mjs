@@ -7,6 +7,28 @@ import {build as bundle} from "esbuild";
 import {chromiumManifest, firefoxManifest} from "../src/extension-manifest.js";
 import {deriveWalletWebCompanionBinding} from "../src/core-auth-consumer.js";
 
+export function compilePwaShell(inputFiles, workerTemplate) {
+  const files = Object.fromEntries(Object.entries(inputFiles).map(([name, bytes]) => [name, Buffer.from(bytes)]));
+  const digest = bytes => createHash("sha256").update(bytes).digest("hex");
+  // Hash the unresolved policy and unversioned HTML exactly once. The resulting
+  // ID is substituted before final integrity hashes; it never hashes itself.
+  const inputs = Object.entries({...files, "sw.js": Buffer.from(workerTemplate)}).sort(([a], [b]) => a.localeCompare(b));
+  const buildId = digest(JSON.stringify(inputs.map(([name, bytes]) => [name, digest(bytes)])));
+  const policy = files["service-worker-policy.js"]?.toString("utf8") ?? "";
+  if (policy.split("__YNX_PWA_BUILD_ID__").length !== 2) throw new Error("PWA policy build identity placeholder is missing or duplicated");
+  files["service-worker-policy.js"] = Buffer.from(policy.replace("__YNX_PWA_BUILD_ID__", buildId));
+  const html = files["index.html"]?.toString("utf8") ?? "";
+  if (!html.includes("</head>")) throw new Error("PWA navigation document is missing its head");
+  files["index.html"] = Buffer.from(html.replace("</head>", `<meta name="ynx-wallet-shell" content="${buildId}">\n</head>`));
+  const assetIntegrity = Object.fromEntries(Object.keys(files).sort().map(name => [`./${name}`, digest(files[name])]));
+  assetIntegrity["./"] = assetIntegrity["./index.html"];
+  files["asset-integrity.js"] = Buffer.from(`export const ASSET_INTEGRITY=Object.freeze(${JSON.stringify(assetIntegrity)});\n`);
+  files["sw.js"] = Buffer.from(`${workerTemplate}\n// verified-shell-sha256: ${digest(JSON.stringify(assetIntegrity))}\n`);
+  return {buildId, files, assetIntegrity};
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await buildAll();
+async function buildAll() {
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const dist = join(root, "dist");
 const repository=resolve(root,"..","..");
@@ -60,7 +82,8 @@ const coreAuthBinding=deriveWalletWebCompanionBinding(JSON.parse(coreContractByt
   coreCommit,coreContractBlob:coreContracts[0].blob,centralCallerCommit,centralCallerBlob:centralCallerContract.blob,
   publicGatewayRegistryReady:false,trustedRuntimeAvailable:false,
 });
-await rm(dist, {recursive: true, force: true});
+const pwaOnly = process.argv.includes("--pwa-only");
+await rm(pwaOnly ? join(dist,"pwa") : dist, {recursive: true, force: true});
 await mkdir(join(dist, "pwa"), {recursive: true});
 const sourceCommit=process.env.YNX_WALLET_WEB_SOURCE_COMMIT||"uncommitted-source-tree";
 const buildIdentity={schemaVersion:1,product:"YNX Wallet Companion",sourceCommit,providerAuthorityCommit,providerEvidenceCommit:"d3831c300560507f64a50e73117bab7b85926d9a",chainId:"0x1917"};
@@ -71,24 +94,11 @@ await cp(join(root,"public","vercel.json"),join(dist,"pwa","vercel.json"));
 for (const file of ["provider.js", "transaction-input.js", "i18n.js", "preferences.js", "mobile-wallet-routing.js", "core-auth-consumer.js", "wallet-web-companion-lifecycle.js", "standard-wallet-connect-state.js"]) await cp(join(root, "src", file), join(dist, "pwa", file));
 await cp(join(root, "src", "service-worker-policy.js"), join(dist, "pwa", "service-worker-policy.js"));
 for(const icon of ["ynx-logo.png","ynx-icon-192.png","ynx-icon-512.png","ynx-icon-maskable-512.png"])await cp(join(root,"public",icon),join(dist,"pwa",icon));
-const pwaIntegrityFiles=["index.html","styles.css","accessibility.css","app.js","provider.js","transaction-input.js","i18n.js","preferences.js","mobile-wallet-routing.js","core-auth-consumer.js","wallet-web-companion-lifecycle.js","standard-wallet-connect-state.js","core-auth-binding.js","service-worker-policy.js","build-identity.json","ynx-logo.png","ynx-icon-192.png","ynx-icon-512.png","ynx-icon-maskable-512.png","manifest.webmanifest"],assetIntegrity={};
-for(const file of pwaIntegrityFiles)assetIntegrity[`./${file}`]=createHash("sha256").update(await readFile(join(dist,"pwa",file))).digest("hex");
-// Older installed workers validate the navigation document before serving their
-// cached modules. Stamp that document with its shell version so an asset-only
-// release activates the existing verified recovery path on the next navigation.
-const navigationShellDigest=createHash("sha256").update(JSON.stringify(assetIntegrity)).digest("hex");
-const navigationTemplate=await readFile(join(dist,"pwa","index.html"),"utf8");
-if(!navigationTemplate.includes("</head>"))throw new Error("PWA navigation document is missing its head");
-const versionedNavigation=navigationTemplate.replace("</head>",`<meta name="ynx-wallet-shell" content="${navigationShellDigest}">\n</head>`);
-await writeFile(join(dist,"pwa","index.html"),versionedNavigation);
-assetIntegrity["./index.html"]=createHash("sha256").update(versionedNavigation).digest("hex");
-assetIntegrity["./"]=assetIntegrity["./index.html"];
-await writeFile(join(dist,"pwa","asset-integrity.js"),`export const ASSET_INTEGRITY=Object.freeze(${JSON.stringify(assetIntegrity)});\n`);
-// The worker entry must change when its verified shell changes, even when the
-// cache protocol version stays the same. Otherwise an installed PWA can retain
-// a previous module graph after a UI-only deployment.
-const assetSetDigest=createHash("sha256").update(JSON.stringify(assetIntegrity)).digest("hex");
-await writeFile(join(dist,"pwa","sw.js"),`${await readFile(join(root,"public","sw.js"),"utf8")}\n// verified-shell-sha256: ${assetSetDigest}\n`);
+const pwaIntegrityFiles=["index.html","styles.css","accessibility.css","app.js","provider.js","transaction-input.js","i18n.js","preferences.js","mobile-wallet-routing.js","core-auth-consumer.js","wallet-web-companion-lifecycle.js","standard-wallet-connect-state.js","core-auth-binding.js","service-worker-policy.js","build-identity.json","ynx-logo.png","ynx-icon-192.png","ynx-icon-512.png","ynx-icon-maskable-512.png","manifest.webmanifest"];
+const pwaInputs=Object.fromEntries(await Promise.all(pwaIntegrityFiles.map(async file=>[file,await readFile(join(dist,"pwa",file))])));
+const compiled=compilePwaShell(pwaInputs,await readFile(join(root,"public","sw.js"),"utf8"));
+for(const [file,bytes] of Object.entries(compiled.files))await writeFile(join(dist,"pwa",file),bytes);
+if(pwaOnly){console.log(`Built PWA shell ${compiled.buildId}`);return;}
 
 const variants = [
   ["chromium", chromiumManifest],
@@ -120,3 +130,4 @@ for (const [name, manifest] of variants) {
   await writeFile(join(target, "manifest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
 }
 console.log("Built PWA plus unsigned Chromium (Chrome/Edge) and Firefox extension directories.");
+}

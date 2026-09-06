@@ -22,7 +22,7 @@ const testFiles = (await readdir(join(root, "test")))
   .sort()
   .map(name => `test/${name}`);
 execFileSync(process.execPath, ["--test", ...testFiles], {cwd:root, stdio:"inherit"});
-await import("./build.mjs");
+execFileSync(process.execPath, ["scripts/build.mjs"], {cwd:root, stdio:"inherit"});
 await mkdir(artifacts, {recursive: true});
 const reproducibleTime = new Date("2000-01-01T00:00:00.000Z");
 async function normalizeMtime(path) {
