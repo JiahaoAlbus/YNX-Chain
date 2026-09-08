@@ -1,6 +1,6 @@
 {
   "name": "@ynx-chain/wallet-desktop",
-  "version": "0.6.6",
+  "version": "0.6.7",
   "description": "YNX Testnet Wallet for desktop",
   "homepage": "https://www.ynxweb4.com/wallet",
   "author": {
@@ -11,7 +11,7 @@
   "type": "module",
   "main": "src/main.mjs",
   "engines": {
-    "node": ">=22"
+    "node": ">=22.12.0"
   },
   "scripts": {
     "test": "node --test test/*.test.mjs",
@@ -33,7 +33,12 @@
   },
   "devDependencies": {
     "electron": "42.8.0",
-    "electron-builder": "26.0.12"
+    "electron-builder": "26.15.3"
+  },
+  "overrides": {
+    "plist@3.1.0": {
+      "@xmldom/xmldom": "0.8.15"
+    }
   },
   "build": {
     "appId": "com.ynxweb4.wallet.macos",
