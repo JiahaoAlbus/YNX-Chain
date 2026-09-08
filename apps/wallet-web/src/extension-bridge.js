@@ -24,8 +24,22 @@ export function validHttpOrigin(origin) {
 }
 export function validRequestId(requestId) { return typeof requestId === "string" && REQUEST_ID.test(requestId); }
 export function validDocumentNonce(value) { return typeof value === "string" && /^[0-9a-f]{64}$/u.test(value); }
-export function validBrowserDocumentId(value) { return typeof value === "string" && /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/u.test(value); }
-export function documentMessageTarget(lease) { return {frameId:0,...(validBrowserDocumentId(lease.documentId)?{documentId:lease.documentId}:{})}; }
+export function validBrowserDocumentId(value,{firefox=false}={}) {
+  // Chromium serializes an UnguessableToken as 32 hex characters. Firefox 153+
+  // formats its keyed document identifier as a 36-character bracketless UUID.
+  // Keep the browser-owned bytes unchanged; neither format authenticates a page.
+  return typeof value === "string" && (firefox
+    ? /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/iu.test(value)
+    : /^[0-9a-f]{32}$/iu.test(value) && value !== "0".repeat(32));
+}
+export function documentMessageTarget(lease) {
+  const firefox=lease.browserContext?.startsWith("firefox-")===true;
+  // Firefox 140 has no documentId. Its frame-0 activation still needs the exact
+  // fresh content nonce. An invalid supplied ID must never become frame-only.
+  if(firefox&&lease.documentId===undefined)return {frameId:0};
+  if(!validBrowserDocumentId(lease.documentId,{firefox}))throw Object.assign(new Error("The requesting browser document identity is invalid."),{code:"DOCUMENT_CHANGED"});
+  return {frameId:0,documentId:lease.documentId};
+}
 export async function readCurrentDappDocument(api,lease,{cryptoImpl=globalThis.crypto,timeoutMs=2000}={}) {
   const fail=()=>Object.assign(new Error("The requesting page is no longer active. Reload the DApp and start a new request."),{code:"DOCUMENT_CHANGED"});
   if(!Number.isInteger(lease.tabId)||lease.tabId<0||!validHttpOrigin(lease.origin))throw fail();

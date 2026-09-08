@@ -56,7 +56,7 @@ async function ensureActiveTabBridge(capture=authorizationGuard.capturePending()
   const[tab]=await extensionApi.tabs.query({active:true,currentWindow:true});
   const context={...requireActiveDappTab(tab),browserContext:browserContextForTab(tab)};let documentLease=capture({...context,deadlineAt});await authorizationGuard.assertContext(documentLease);
   try{
-    for(const plan of activeTabInjectionPlans(context.tabId)){const results=await extensionApi.scripting.executeScript(plan);await authorizationGuard.assertContext(documentLease);const documentId=results?.find(item=>item.frameId===0)?.documentId;if(documentId!==undefined){if(!validBrowserDocumentId(documentId)||documentLease.documentId&&documentLease.documentId!==documentId)throw Object.assign(new Error("The requesting DApp document changed."),{code:"DOCUMENT_CHANGED"});documentLease=Object.freeze({...documentLease,documentId})}}
+    for(const plan of activeTabInjectionPlans(context.tabId)){const results=await extensionApi.scripting.executeScript(plan);await authorizationGuard.assertContext(documentLease);const documentId=results?.find(item=>item.frameId===0)?.documentId;if(documentId!==undefined||!firefoxContext){if(!validBrowserDocumentId(documentId,{firefox:firefoxContext})||documentLease.documentId&&documentLease.documentId!==documentId)throw Object.assign(new Error("The requesting DApp document changed."),{code:"DOCUMENT_CHANGED"});documentLease=Object.freeze({...documentLease,documentId})}}
   }catch(error){if(error?.code==="DOCUMENT_CHANGED"||error?.code==="ORIGIN_CHANGED")throw error;throw Object.assign(new Error("The DApp bridge requires a current user-granted activeTab permission."),{code:"ACTIVE_TAB_REQUIRED",cause:error})}
   documentLease=authorizationGuard.bindDocument(documentLease,await readCurrentDappDocument(extensionApi,documentLease));await authorizationGuard.assertDocument(documentLease);
   return{...context,documentLease};
@@ -168,7 +168,7 @@ async function handleDappRequest(message,sender){
   const senderUrl=sender?.url||sender?.tab?.url;
   if(!validDocumentNonce(message?.documentNonce))throw Object.assign(new Error("Reload the DApp to activate the current Wallet bridge, then start a new request."),{code:"DOCUMENT_BRIDGE_RELOAD_REQUIRED"});
   if(!Number.isInteger(sender?.tab?.id)||sender?.frameId!==0||!validateRuntimeRequest(message,senderUrl))throw Object.assign(new Error("Rejected invalid DApp bridge request."),{code:"INVALID_BRIDGE_REQUEST"});
-  if(sender.documentLifecycle!==undefined&&sender.documentLifecycle!=="active"||sender.documentId!==undefined&&!validBrowserDocumentId(sender.documentId)||!firefoxContext&&!validBrowserDocumentId(sender.documentId))throw Object.assign(new Error("The requesting DApp document is not active. Start a new request."),{code:"DOCUMENT_CHANGED"});
+  if(sender.documentLifecycle!==undefined&&sender.documentLifecycle!=="active"||sender.documentId!==undefined&&!validBrowserDocumentId(sender.documentId,{firefox:firefoxContext})||!firefoxContext&&!validBrowserDocumentId(sender.documentId))throw Object.assign(new Error("The requesting DApp document is not active. Start a new request."),{code:"DOCUMENT_CHANGED"});
   const tabId=sender.tab.id,origin=message.origin,documentLease=authorizationGuard.capture({tabId,origin,deadlineAt:message.deadlineAt,documentId:sender.documentId,documentNonce:message.documentNonce,browserContext:browserContextForTab(sender.tab)});
   const sensitive=parseSensitiveRequest(message);
   await requireMigrationReady();await authorizationGuard.assertDocument(documentLease);

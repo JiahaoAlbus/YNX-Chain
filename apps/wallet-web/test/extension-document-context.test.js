@@ -3,10 +3,25 @@ import {readFile} from "node:fs/promises";
 import {webcrypto} from "node:crypto";
 import vm from "node:vm";
 import test from "node:test";
-import {readCurrentDappDocument,RUNTIME_DOCUMENT_PROBE} from "../src/extension-bridge.js";
+import {documentMessageTarget,readCurrentDappDocument,RUNTIME_DOCUMENT_PROBE,validBrowserDocumentId} from "../src/extension-bridge.js";
 import {SensitiveAuthorizationGuard} from "../src/extension-sensitive-policy.js";
 
-const ORIGIN="https://dapp.example",ID="ynx-aaaaaaaa-1111-4111-8111-111111111111",DOC="11111111-1111-4111-8111-111111111111",NONCE="a".repeat(64),source=await readFile(new URL("../extension/content-script.js",import.meta.url),"utf8");
+const ORIGIN="https://dapp.example",ID="ynx-aaaaaaaa-1111-4111-8111-111111111111",DOC="FF2F212A00379D284FE8558A23819E2D",NONCE="a".repeat(64),source=await readFile(new URL("../extension/content-script.js",import.meta.url),"utf8");
+test("browser document formats match Chromium's observed token and Firefox's explicit UUID contract",()=>{
+  // Literal browser-owned InjectionResult.documentId from the fbf installed QA.
+  assert.equal(validBrowserDocumentId(DOC),true);
+  assert.deepEqual(documentMessageTarget({documentId:DOC}),{frameId:0,documentId:DOC});
+  const firefox="11111111-2222-3333-4444-555555555555";
+  assert.equal(validBrowserDocumentId(firefox),false);
+  assert.equal(validBrowserDocumentId(firefox,{firefox:true}),true);
+  assert.equal(validBrowserDocumentId(DOC,{firefox:true}),false);
+  assert.deepEqual(documentMessageTarget({browserContext:"firefox-container-1",documentId:firefox}),{frameId:0,documentId:firefox});
+  assert.deepEqual(documentMessageTarget({browserContext:"firefox-default"}),{frameId:0});
+  for(const invalid of[undefined,null,"",DOC.slice(1),DOC+"A","0".repeat(32),"G".repeat(32)," "+DOC,`{${firefox}}`,firefox])assert.equal(validBrowserDocumentId(invalid),false);
+  for(const invalid of["",DOC,firefox+"x",`{${firefox}}`])assert.equal(validBrowserDocumentId(invalid,{firefox:true}),false);
+  assert.throws(()=>documentMessageTarget({documentId:firefox}),{code:"DOCUMENT_CHANGED"});
+  assert.throws(()=>documentMessageTarget({}),{code:"DOCUMENT_CHANGED"});
+});
 function content(t,{send=async()=>({ok:true,result:[]})}={}){
   const listeners={},packets=[],replies=[],timers=new Set();let receiver;
   const window={addEventListener:(name,fn)=>{listeners[name]=fn},postMessage:data=>replies.push(data)};window.top=window;
