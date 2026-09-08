@@ -88,7 +88,7 @@ export class FaucetAdmissionController {
   /** Explicit original-ID retry only. There is no timer, replacement ID or reset.
    * Once dispatch may have started, a late result is archived to its original scope
    * before checking the UI lease. A cancelled screen never receives that result. */
-  submit(requestId: string, assertCurrent: Guard): Promise<FaucetAdmissionEntry> {
+  submit(requestId: string, assertCurrent: Guard, beforeDispatch?: () => Promise<void>): Promise<FaucetAdmissionEntry> {
     faucetAdmissionHash(requestId);
     return this.serial(async () => {
       assertCurrent(); let loaded = await this.load(); assertCurrent();
@@ -100,6 +100,10 @@ export class FaucetAdmissionController {
       loaded = await this.replace(loaded, entry); assertCurrent();
       let next = entry;
       try {
+        // A coordinator may need fresh node capabilities AFTER the original
+        // dispatch marker is durably read back. Failure retains that same ID.
+        if (beforeDispatch) await beforeDispatch();
+        assertCurrent();
         const response = await this.options.transport(Object.freeze({ url: this.url, method: "POST", body: entry.body, requestId }));
         next = this.observe(entry, response);
       } catch { next = parseEntry({ ...entry, lastResult: "transport-unknown" }, this.scope); }
