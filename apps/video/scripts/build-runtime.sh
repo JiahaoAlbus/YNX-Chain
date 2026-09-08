@@ -59,6 +59,11 @@ if git cat-file -e "${source_commit}:apps/video/product-session.js" 2>/dev/null;
     video-api.js watch-progress.js wallet-callback.js wallet-callback.html callback.css)
 fi
 
+if git cat-file -e "${source_commit}:apps/video/wallet-downloads.js" 2>/dev/null; then
+  files+=(wallet-downloads.js wallet-download-ui.js wallet-download-manifest.json wallet-download-preview.json
+    favicon.ico ynx-favicon.svg ynx-favicon-48.png ynx-icon-96.png ynx-icon-192.png ynx-icon-512.png ynx-icon-maskable-512.png ynx-tab-icon.png)
+fi
+
 for file in "${files[@]}"; do
   git show "${source_commit}:apps/video/${file}" > "$stage/runtime/$file"
 done

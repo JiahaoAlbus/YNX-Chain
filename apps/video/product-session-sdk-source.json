@@ -15,8 +15,8 @@
   "files": [
     {
       "path": "product-session-sdk.js",
-      "bytes": 119091,
-      "sha256": "723a2740aca03411580d1cb394d1d99fde8e3a021bae1135ee1890751f2aae5f"
+      "bytes": 505801,
+      "sha256": "b210d85f57a96cf15a64cc8a5f8444b33126f27dc11bbe01085b986b2948dff9"
     },
     {
       "path": "product-session-registry.json",
@@ -27,5 +27,19 @@
   "securityLevel": "webcrypto-nonextractable",
   "osProtected": false,
   "hardwareBacked": false,
-  "installedWalletApprovalVerified": false
+  "installedWalletApprovalVerified": false,
+  "sdkSourceMode": "baseline-plus-reviewed-additive",
+  "sdkBaseSourceCommit": "529471f3822d2bac43ea47a1ab8004fa2ae79885",
+  "sdkAdditiveCommit": "5d468432d75b261684523810a9f5c775a306c330",
+  "sdkPackageTreeIsBaseline": true,
+  "authPublicSourceIsHistorical": true,
+  "authServiceModified": false,
+  "browserBundleMinified": false,
+  "sourceAssembly": "Complete baseline SDK529 package plus exact four-file additive 5d patch; whole public index bundled. No one-module minified patch and no Auth service deployment.",
+  "compositeSourceManifestSHA256": "543e32faf88a018a3a3cc8b82eb4cd397561f9046a90ae9cb5b8c9a7b003b2db",
+  "sourceArchiveIsHistoricalBaseline": true,
+  "compositeSourceArchive": {
+    "bytes": 1699840,
+    "sha256": "35bed4b1fa4b20e613c69377624b3a0568a929f9dafb49987e4302ec7becfba6"
+  }
 }

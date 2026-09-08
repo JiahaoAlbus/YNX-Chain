@@ -62,7 +62,7 @@ test("viewer exposes complete truthful interaction paths",async()=>{
   assert.doesNotMatch(js,/walletAuthorizationURL|ynx-video-web-v1|chain_id=6423|authorize\\?client=/);
   assert.doesNotMatch(js,/Math\\.random|fake views/i);
   assert.match(html,/href="\.\//);
-  assert.match(html,/assets\/ynx-logo\.svg/);
+  assert.match(html,/ynx-icon-96\.png\?v=brand-20260906-v2/);
   assert.doesNotMatch(html,/ynxwallet:\/\/|ynxvideo:\/\//i);
 });
 

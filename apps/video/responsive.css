@@ -1,31 +1,31 @@
-@media(max-width:760px){.topbar{height:auto;min-height:116px;padding:12px 16px;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"brand actions" "search search";gap:10px}
-.brand{grid-column:auto}
-.header-actions{grid-column:auto;display:flex;align-items:center;gap:5px}
-.header-actions select{width:64px;padding:8px 4px;font-size:.74rem}
-.topbar #product-signin{padding:8px 7px;font-size:.72rem;max-width:116px}
-.topbar #search{grid-column:auto;grid-row:auto}
-.shell{display:block;padding-bottom:64px}
-nav{position:fixed;z-index:6;bottom:0;left:0;right:0;height:64px;padding:6px 8px max(6px,env(safe-area-inset-bottom));border:0;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(5,1fr);gap:2px}
-nav button{padding:8px 3px;text-align:center;font-size:.72rem;white-space:nowrap}
-nav .privacy-action{margin:0;font-size:.72rem}
-main{padding:24px 16px 40px}
-.page-heading{display:block;padding-bottom:20px}
-.page-heading h1{font-size:2rem}
-.lede{font-size:.93rem}
-.session{margin-top:18px;max-width:none}
-.grid{grid-template-columns:1fr;gap:24px}
-.empty{min-height:230px;padding:24px}
-dialog{padding:14px}
-.actions button{flex:1 1 42%}
+@media(max-width:1000px){
+ .topbar{height:auto;min-height:120px;padding:16px 24px;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"brand actions" "search search";gap:12px 20px}
+ html[dir="rtl"] .topbar{grid-template-areas:"actions brand" "search search"}
+ .shell{display:block;padding-bottom:0}
+ nav{position:static;padding:16px 24px;display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;border-inline-end:0;border-bottom:1px solid var(--line)}
+ nav button,nav .privacy-action{margin:0;padding:12px 10px;text-align:center;font-size:16px;min-height:48px;white-space:normal}
+ main{padding:28px 24px 48px}
+ .page-heading{display:block}.creator-link{margin-top:12px}
+ .session{max-width:none}
 }
-@media(max-width:760px){html[dir="rtl"] .topbar{grid-template-areas:"actions brand" "search search"}}
-@media(min-width:761px) and (max-width:1000px){.topbar{grid-template-columns:150px minmax(220px,1fr) 170px;gap:14px}
-.shell{grid-template-columns:185px 1fr}
-.page-heading{display:block}
-.session{margin-top:18px}
+@media(max-width:600px){
+ .topbar{position:relative;padding:16px;grid-template-columns:minmax(0,1fr);grid-template-areas:"brand" "actions" "search";gap:14px}
+ html[dir="rtl"] .topbar{grid-template-areas:"brand" "actions" "search"}
+ .header-actions{justify-self:stretch;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+ .header-actions label,.header-actions select{width:100%;min-width:0}
+ .header-actions select,.topbar #product-signin{font-size:16px;min-height:48px;max-width:100%;padding:12px}
+ #search{min-width:0}#search button{max-width:48%;padding:10px}
+ nav{padding:12px 16px;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+ nav button:last-child{grid-column:1/-1}
+ main{padding:24px 16px 40px}
+ .page-heading{padding-bottom:20px}.page-heading h1{font-size:2rem}
+ .grid{grid-template-columns:1fr;gap:24px}.empty{min-height:230px;padding:24px}
+ dialog{padding:16px;max-height:calc(100dvh - 32px)}
+ .dialog-bar{align-items:flex-start}.dialog-bar button{flex-shrink:0}
+ .actions button{flex:1 1 42%}
+ .library-row{align-items:flex-start;flex-direction:column;gap:12px}.row-actions{width:100%}.row-actions button{flex:1}
+ .account-actions{align-items:stretch;gap:12px}.account-actions>*{max-width:100%}
+ .account-panel{padding:20px 0}.library-heading{gap:12px}.library-create>div{flex-wrap:wrap}.library-create input{min-width:0;width:100%}
+ .evm-section .session{margin-top:12px}
 }
-@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}
-.skeleton{animation:none}
-}
-
-@media(max-width:760px){.library-row{align-items:flex-start;flex-direction:column;gap:10px}.row-actions{width:100%}.row-actions button{flex:1}.account-actions{gap:9px 12px}.creator-link{display:inline-block;margin-top:12px}.account-panel{padding:16px 0}.library-heading{gap:12px}.library-create>div{flex-wrap:wrap}.library-create input{min-width:150px}nav{height:70px}.shell{padding-bottom:70px}.evm-section .session{margin-top:12px}}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}.skeleton{animation:none}}

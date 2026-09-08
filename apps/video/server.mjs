@@ -10,9 +10,13 @@ const types = {
   ".js": "text/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
   ".svg": "image/svg+xml",
+  ".png": "image/png",
+  ".ico": "image/vnd.microsoft.icon",
 };
 const csp = "default-src 'self'; connect-src 'self' https://wallet-auth.ynxweb4.com; media-src 'self' blob:; img-src 'self' data:; style-src 'self'; script-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'";
 const publicFiles = new Set([
+  "wallet-downloads.js", "wallet-download-ui.js", "wallet-download-manifest.json", "wallet-download-preview.json",
+  "ynx-favicon.svg", "favicon.ico", "ynx-favicon-48.png", "ynx-icon-96.png", "ynx-icon-192.png", "ynx-icon-512.png", "ynx-icon-maskable-512.png", "ynx-tab-icon.png",
   "index.html", "app.js", "video-api.js", "watch-progress.js", "styles.css", "responsive.css", "i18n.js", "i18n/catalog.json", "assets/ynx-logo.svg",
   "wallet-connection.js", "product-session.js", "product-session-sdk.js", "product-session-registry.json", "product-session-sdk-source.json",
   "wallet-callback.html", "wallet-callback.js", "callback.css", "runtime-manifest.json",

@@ -1,14 +1,14 @@
-:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#16181d;background:#f8f9fb;--surface:#fff;--surface-2:#f1f3f6;--line:#dfe3e9;--muted:#626a76;--blue:#002fa7;--danger:#a12636;color-scheme:light}
+:root{font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#002fa7;background:#fff;--surface:#fff;--surface-2:#fff;--line:#d8e2f8;--muted:#566b92;--blue:#002fa7;--danger:#002fa7;color-scheme:light}
 *{box-sizing:border-box}
 html{min-width:320px}
-body{margin:0;background:var(--surface-2);color:#16181d}
-button,input,textarea{font:inherit}
+body{margin:0;background:#fff;color:var(--blue)}
+button,input,select,textarea{font:inherit;font-size:16px}
 .sr-only,.skip{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
 .skip:focus{width:auto;height:auto;clip:auto;left:12px;top:12px;background:var(--surface);padding:10px 14px;z-index:20}
 .topbar{height:68px;padding:0 28px;display:grid;grid-template-columns:180px minmax(240px,640px) minmax(240px,1fr);grid-template-areas:"brand search actions";direction:ltr;align-items:center;gap:24px;background:var(--surface);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
 .brand{grid-area:brand;display:flex;align-items:center;gap:8px;color:inherit;text-decoration:none;letter-spacing:-.02em}
-.brand-mark{display:grid;place-items:center;width:32px;height:32px;padding:5px;border-radius:9px;background:var(--blue)}
-.brand-mark img{display:block;width:100%;height:100%}
+.brand-mark{display:grid;place-items:center;width:44px;height:44px;padding:0;border-radius:0;background:#fff;flex:0 0 44px}
+.brand-mark img{display:block;width:100%;height:100%;object-fit:contain}
 .brand strong{color:var(--blue);font-size:1.08rem}
 .brand span{font-weight:650}
 .header-actions{grid-area:actions;justify-self:end;display:flex;align-items:center;gap:8px}
@@ -24,7 +24,7 @@ html[dir="rtl"] .topbar{grid-template-areas:"actions search brand"}
 html[dir="rtl"] .topbar>*{direction:rtl}
 .shell{display:grid;grid-template-columns:218px minmax(0,1fr);min-height:calc(100vh - 68px)}
 nav{padding:22px 14px;background:var(--surface);border-inline-end:1px solid var(--line);display:flex;flex-direction:column;gap:4px}
-nav button{border-color:transparent;background:transparent;color:#3b4350;text-align:start;width:100%}
+nav button{border-color:transparent;background:transparent;color:var(--blue);text-align:start;width:100%}
 nav button.active{background:#e9eefb;color:var(--blue)}
 nav .privacy-action{margin-top:auto;color:var(--muted);font-size:.86rem}
 main{min-width:0;padding:36px clamp(22px,4vw,64px) 72px}
@@ -39,7 +39,7 @@ main{min-width:0;padding:36px clamp(22px,4vw,64px) 72px}
 #notice{min-height:48px;padding:16px 2px;color:var(--muted);font-size:.88rem}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,270px),1fr));gap:24px}
 .card{min-width:0}
-.card-open{display:block;width:100%;padding:0;border:0;background:transparent;color:inherit;text-align:left}
+.card-open{display:block;width:100%;padding:0;border:0;background:transparent;color:inherit;text-align:start}
 .thumb{width:100%;aspect-ratio:16/9;border-radius:12px;background:#e5e8ed;border:1px solid var(--line);object-fit:cover;display:grid;place-items:center;color:var(--muted);font-size:.78rem}
 .thumb-fallback{padding:18px;text-align:center}
 .card h2{font-size:1rem;line-height:1.35;margin:12px 0 5px}
@@ -53,7 +53,7 @@ main{min-width:0;padding:36px clamp(22px,4vw,64px) 72px}
 @keyframes shimmer{to{background-position:-200% 0}
 }
 dialog{border:1px solid var(--line);border-radius:16px;width:min(920px,calc(100vw - 32px));max-height:calc(100vh - 32px);padding:20px;background:var(--surface);color:inherit}
-dialog::backdrop{background:#10131acc}
+dialog::backdrop{background:#002fa733}
 .dialog-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
 .dialog-bar p{margin:0;color:var(--muted);font-size:.82rem}
 dialog video{width:100%;aspect-ratio:16/9;background:#080b10;border-radius:10px}
@@ -68,8 +68,8 @@ textarea{display:block;width:100%;min-height:90px;margin:8px 0;border:1px solid 
 #wallet-choices{display:grid;gap:10px;margin:12px 0 16px}
 .wallet-choice{display:flex;align-items:center;gap:10px;background:var(--surface);color:inherit;border:1px solid #bfc7d2}
 .wallet-choice-logo{width:22px;height:22px;border-radius:5px;overflow:hidden;display:inline-flex;align-items:center;justify-content:center}
-.wallet-choice-logo.ynx{background:#061f8f}
-.wallet-choice-logo.metamask{background:#f6851b}
+.wallet-choice-logo.ynx{background:#fff}
+.wallet-choice-logo.metamask{background:#fff}
 .wallet-choice-logo img{width:100%;height:100%;object-fit:contain}
 #wallet-chooser-close{justify-self:end}
 
@@ -82,3 +82,34 @@ button:disabled{opacity:.55;cursor:default}a{color:var(--blue)}
 .library-row{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px 0;border-bottom:1px solid var(--line)}.library-row h2,.library-row h3{font-size:1.03rem;margin:0 0 8px}.library-row p{margin:5px 0;overflow-wrap:anywhere}.row-actions{display:flex;gap:8px;flex-wrap:wrap}.row-actions button,.library-row>button{font-size:.83rem}.library-row>div:first-child{min-width:0}
 .library-create,.library-heading,.settings-panel{grid-column:1/-1}.library-create>div{display:flex;gap:10px;margin-top:10px;max-width:560px}.library-create input{flex:1;min-width:0}.library-heading{display:flex;align-items:center;gap:20px;flex-wrap:wrap}.settings-panel{max-width:670px}.settings-panel p{line-height:1.6;color:var(--muted)}
 input,select{font:inherit}input:not([type=search]),#playlist-choice{border:1px solid #b8c0cc;border-radius:7px;background:white;color:inherit;padding:10px}#playlist-picker{max-width:520px}#playlist-save-form{display:grid;gap:12px}#playlist-save-form label{font-size:.86rem}#playlist-save-form p{color:var(--danger);font-size:.86rem}#playlist-save{justify-self:start}
+
+/* Readable controls and a consistent white canvas across Viewer states. */
+button,input,select,summary,.button-link,.creator-link,.account-actions>a,.wallet-install a{font-size:16px;min-height:48px;min-width:44px}
+button,input,select,textarea{max-width:100%}
+select{font-family:inherit}
+button,.button-link,.creator-link,.account-actions>a,.wallet-install a{line-height:1.45;overflow-wrap:anywhere}
+button{white-space:normal}
+a:not(.skip){min-height:44px}
+.brand,.creator-link,.account-actions>a,.wallet-install a{display:inline-flex;align-items:center}
+.header-actions select{width:104px;min-height:48px;font-size:16px}
+.header-actions{min-width:0}
+.header-actions button{min-height:48px;font-size:16px}
+nav .privacy-action,.wallet-controls button,.account-actions button,.account-actions>a:not(.button-link),.row-actions button,.library-row>button{font-size:16px;min-height:48px}
+nav button{line-height:1.45;overflow-wrap:anywhere}
+.evm-section summary{padding:12px 0;line-height:1.5;color:var(--blue);cursor:pointer}
+.page-heading>div,.dialog-bar>*{min-width:0}
+.dialog-bar{gap:16px}
+.dialog-bar h2{overflow-wrap:anywhere}
+.creator-link{white-space:normal;max-width:100%;font-size:16px;text-underline-offset:4px}
+#playlist-save-form label{font-size:16px}
+.wallet-install{font-size:16px}
+
+.wallet-downloads{margin-top:24px;padding:24px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line);max-width:860px}
+.wallet-downloads h2{font-size:20px;line-height:1.4;margin:0 0 10px}
+.wallet-downloads p{font-size:16px;line-height:1.6;color:var(--muted);overflow-wrap:anywhere}
+.wallet-download-fields{display:flex;align-items:flex-end;flex-wrap:wrap;gap:16px;margin:20px 0}
+.wallet-download-fields label{display:grid;gap:8px;min-width:0;flex:1 1 280px;font-size:16px}
+.wallet-download-fields select{width:100%;min-width:0;padding:12px;border:1px solid #b8c0cc;border-radius:9px;background:#fff;color:var(--blue);min-height:48px;font-size:16px}
+.wallet-download-fields .button-link{display:inline-flex;align-items:center;justify-content:center;font-size:16px;min-height:48px;max-width:100%}
+.button-link[aria-disabled="true"]{background:#fff;color:var(--muted);border-color:var(--line);cursor:default}
+@media(max-width:600px){.wallet-download-fields{display:grid;grid-template-columns:minmax(0,1fr)}.wallet-download-fields label{width:100%}.wallet-download-fields .button-link{width:100%}}

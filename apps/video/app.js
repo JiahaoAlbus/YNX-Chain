@@ -48,10 +48,9 @@ function clearLegacySession() {
 
 function showInstallOptions(show) {
   const box = $("#wallet-install");
-  const ynx = `<a href="${WALLET_INSTALLATION_OPTIONS.ynxWallet}">Download YNX Wallet</a>`;
-  const meta = `<a href="${WALLET_INSTALLATION_OPTIONS.metaMask}">Download MetaMask</a>`;
+  const ynx = `<a href="#wallet-downloads" data-wallet-download-shortcut>Download YNX Wallet</a>`;
   box.hidden = !show;
-  box.innerHTML = show ? `<span>No compatible Wallet detected.</span><br/>${ynx} · ${meta}` : "";
+  box.innerHTML = show ? `<span>No compatible Wallet detected.</span><br/>${ynx}` : "";
 }
 
 function getWalletName(state) {
