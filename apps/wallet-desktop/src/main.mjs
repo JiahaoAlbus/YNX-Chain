@@ -20,6 +20,16 @@ import { createReceiveCode } from "./receive-code.mjs";
 import { parsePaymentRecipient, decodePaymentRecipientQR } from "./payment-recipient.mjs";
 import { canonicalizeWindowsYNXWalletProtocolUrl, extractYNXWalletProtocolUrl } from "./protocol-activation.mjs";
 
+// AppImage launchers may add --no-sandbox on hosts without user namespaces.
+// Electron documents that this disables OS sandboxing even with sandbox:true.
+// Stop before profile selection, key lifecycle, IPC or any Wallet window exists.
+if (app.commandLine.hasSwitch("no-sandbox")) {
+  console.error("YNX_WALLET_SANDBOX_REQUIRED: YNX Wallet cannot run with --no-sandbox. Use the native installer on a system with sandbox support.");
+  app.exit(78);
+  throw new Error("YNX_WALLET_SANDBOX_REQUIRED");
+}
+app.enableSandbox();
+
 const directory = path.dirname(fileURLToPath(import.meta.url));
 function handleWalletIPC(channel, handler) {
   ipcMain.handle(channel, async (event, ...args) => {

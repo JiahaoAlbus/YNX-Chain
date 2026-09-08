@@ -107,14 +107,32 @@ jobs:
             $installResult | ConvertTo-Json -Depth 5 | Set-Content 'apps/wallet-desktop/dist/windows-installer-result.json'
             $install.Dispose()
           }
-          $exe = Join-Path $env:LOCALAPPDATA 'Programs\@ynx-chain\wallet-desktop\YNX Wallet.exe'
-          if (-not (Test-Path $exe)) {
-            $matches = @(Get-ChildItem $env:LOCALAPPDATA -Filter 'YNX Wallet.exe' -File -Recurse -ErrorAction SilentlyContinue)
-            if ($matches.Count -ne 1) { throw 'Installed executable is ambiguous or missing' }
-            $exe = $matches[0].FullName
+          # Preserve the ordinary /S install. Resolve its exact current-user
+          # registration instead of guessing a Known Folder or finding a temp copy.
+          $walletGuid = node --input-type=commonjs -e 'const {UUID}=require("./apps/wallet-desktop/node_modules/builder-util-runtime");const p=require("./apps/wallet-desktop/package.json");process.stdout.write(p.build.nsis.guid||UUID.v5(p.build.appId,UUID.parse("50e065bc-3134-11e6-9bab-38c9862bdaf3")))'
+          if ($LASTEXITCODE -ne 0 -or $walletGuid -notmatch '^[0-9a-f-]{36}$') { throw 'Unable to resolve the exact installer registration key' }
+          $walletInstallRows = @()
+          foreach ($walletRegistryView in @([Microsoft.Win32.RegistryView]::Registry64, [Microsoft.Win32.RegistryView]::Registry32)) {
+            $walletRegistry = [Microsoft.Win32.RegistryKey]::OpenBaseKey([Microsoft.Win32.RegistryHive]::CurrentUser, $walletRegistryView)
+            $walletInstallKey = $null
+            try {
+              $walletInstallKey = $walletRegistry.OpenSubKey("Software\$walletGuid", $false)
+              $walletLocation = if ($null -ne $walletInstallKey) { [string]$walletInstallKey.GetValue('InstallLocation') } else { '' }
+              $walletInstallRows += [ordered]@{ view=[string]$walletRegistryView; registryKey="HKCU\Software\$walletGuid"; installLocation=$walletLocation }
+            } finally {
+              if ($null -ne $walletInstallKey) { $walletInstallKey.Dispose() }
+              $walletRegistry.Dispose()
+            }
           }
+          $walletInstallRows | ConvertTo-Json -Depth 5 | Set-Content 'apps/wallet-desktop/dist/windows-install-location.json'
+          $walletLocations = @($walletInstallRows | ForEach-Object { $_.installLocation } | Where-Object { $_ -and [IO.Path]::IsPathFullyQualified($_) } | Sort-Object -Unique)
+          if ($walletLocations.Count -ne 1) { throw 'A unique registered current-user Wallet installation is required' }
+          $exe = Join-Path $walletLocations[0] 'YNX Wallet.exe'
+          if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) { throw 'The registered Wallet executable is missing' }
           node apps/wallet-desktop/scripts/release-provenance.mjs (Join-Path (Split-Path $exe) 'resources') apps/wallet-desktop/dist
           if ($LASTEXITCODE -ne 0) { throw 'Installed source verification failed' }
+          node apps/wallet-desktop/scripts/verify-sandbox-rejection.mjs $exe apps/wallet-desktop/dist/sandbox-refusal.json
+          if ($LASTEXITCODE -ne 0) { throw 'Installed Wallet did not explicitly reject disabled sandboxing' }
           $env:YNX_WALLET_PROFILE_PATH = Join-Path $env:RUNNER_TEMP 'wallet-current-qa-profile'
           $env:YNX_WALLET_EVIDENCE_PATH = Join-Path $env:GITHUB_WORKSPACE 'apps\wallet-desktop\dist\installed-smoke.json'
           $expectedVersion = (Get-Content 'apps/wallet-desktop/package.json' -Raw | ConvertFrom-Json).version
@@ -141,8 +159,22 @@ jobs:
           mapfile -t packages < <(find apps/wallet-desktop/dist -maxdepth 1 -name '*.deb')
           test "${#packages[@]}" = 1
           sudo apt-get update
-          sudo apt-get install -y xvfb xdotool "$(realpath "${packages[0]}")"
+          sudo apt-get install -y xvfb xdotool squashfs-tools "$(realpath "${packages[0]}")"
           node apps/wallet-desktop/scripts/release-provenance.mjs "/opt/YNX Wallet/resources" apps/wallet-desktop/dist
+          mapfile -t appimages < <(find apps/wallet-desktop/dist -maxdepth 1 -name '*.AppImage')
+          test "${#appimages[@]}" = 1
+          node apps/wallet-desktop/scripts/verify-appimage-launcher.mjs "${appimages[0]}" apps/wallet-desktop/dist
+          wallet_appimage_offset="$(node --input-type=commonjs -e 'const r=require(process.argv[1]);if(!Number.isSafeInteger(r.squashfs.offset)||r.squashfs.offset<0)process.exit(1);process.stdout.write(String(r.squashfs.offset))' "$(realpath "${appimages[0]}.launcher.json")")"
+          export YNX_APPIMAGE_SOURCE_DIR="$RUNNER_TEMP/wallet-appimage-source-proof"
+          unsquashfs -no-progress -d "$YNX_APPIMAGE_SOURCE_DIR" -o "$wallet_appimage_offset" "${appimages[0]}" resources/app.asar resources/ynx-wallet-build-identity.json
+          node --input-type=module - "${appimages[0]}.launcher.json" <<'JS'
+          import {readFileSync,writeFileSync} from 'node:fs';
+          import {verifyDesktopPackage} from './apps/wallet-desktop/scripts/release-provenance.mjs';
+          const launcher=JSON.parse(readFileSync(process.argv[2],'utf8'));
+          const proof=verifyDesktopPackage(process.env.YNX_APPIMAGE_SOURCE_DIR+'/resources');
+          writeFileSync('apps/wallet-desktop/dist/appimage-source-verification.json',JSON.stringify({...proof,imageSHA256:launcher.imageSHA256,extractedWithoutExecution:true,installedAppImageRuntimeVerified:false},null,2)+'\n');
+          JS
+          node apps/wallet-desktop/scripts/verify-sandbox-rejection.mjs "/opt/YNX Wallet/ynx-wallet-desktop" apps/wallet-desktop/dist/sandbox-refusal.json
           export YNX_WALLET_PROFILE_PATH="$RUNNER_TEMP/wallet-current-qa-profile"
           export YNX_WALLET_EVIDENCE_PATH="$GITHUB_WORKSPACE/apps/wallet-desktop/dist/installed-smoke.json"
           export YNX_WALLET_EXPECTED_VERSION="$(node -p 'require("./apps/wallet-desktop/package.json").version')"
@@ -165,7 +197,8 @@ jobs:
               trap - EXIT
             ' _ "$phase"
           done
-          # AppImage is packaged and hashed; this step installs and launches DEB only.
+          # AppImage launcher bytes are inspected without execution. Installed
+          # native refusal and two ordinary cold starts are DEB evidence only.
       - name: Upload exact artifacts and available evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
@@ -179,4 +212,9 @@ jobs:
             apps/wallet-desktop/dist/release-manifest.json
             apps/wallet-desktop/dist/installed-smoke.json
             apps/wallet-desktop/dist/windows-installer-result.json
+            apps/wallet-desktop/dist/windows-install-location.json
+            apps/wallet-desktop/dist/sandbox-refusal.json
+            apps/wallet-desktop/dist/*.launcher.json
+            apps/wallet-desktop/dist/*.AppRun.txt
+            apps/wallet-desktop/dist/appimage-source-verification.json
             ${{ runner.temp }}/wallet-current-launch-*.log
