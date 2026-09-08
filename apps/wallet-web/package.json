@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=20"
+    "node": ">=20.19.0"
   },
   "scripts": {
     "test": "node --test test/*.test.js",
@@ -38,12 +38,15 @@
   "devDependencies": {
     "esbuild": "0.25.10",
     "playwright": "1.62.1",
-    "sharp": "0.33.5",
+    "sharp": "0.35.4",
     "web-ext": "10.6.0"
   },
   "dependencies": {
     "@noble/curves": "2.2.0",
     "@noble/hashes": "2.2.0",
     "ethers": "6.17.0"
+  },
+  "overrides": {
+    "fast-uri": "3.1.7"
   }
 }
