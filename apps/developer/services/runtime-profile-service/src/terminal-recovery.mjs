@@ -15,7 +15,8 @@ export function createTerminalRecoveryJournal(db) {
   const identity = (owner, runtimeId) => JSON.stringify([owner, runtimeId]);
   db.exec("CREATE TABLE IF NOT EXISTS terminal_recovery(owner_id TEXT NOT NULL,runtime_id TEXT NOT NULL,project_id TEXT NOT NULL,token TEXT NOT NULL,opened_at TEXT NOT NULL,PRIMARY KEY(owner_id,runtime_id))");
   if (!db.prepare("PRAGMA table_info(terminal_recovery)").all().some(column => column.name === "workspace_id")) db.exec("ALTER TABLE terminal_recovery ADD COLUMN workspace_id TEXT");
-  const read = db.prepare("SELECT project_id,token,workspace_id FROM terminal_recovery WHERE owner_id=? AND runtime_id=?");
+  const read = db.prepare("SELECT project_id,token,workspace_id,opened_at FROM terminal_recovery WHERE owner_id=? AND runtime_id=?");
+  const list = db.prepare("SELECT runtime_id,project_id,token,workspace_id,opened_at FROM terminal_recovery WHERE owner_id=? ORDER BY opened_at DESC");
   const insert = db.prepare("INSERT INTO terminal_recovery(owner_id,runtime_id,project_id,token,opened_at,workspace_id) VALUES(?,?,?,?,?,?)");
   const remove = db.prepare("DELETE FROM terminal_recovery WHERE owner_id=? AND runtime_id=? AND token=?");
   const count = db.prepare("SELECT COUNT(*) AS count FROM terminal_recovery");
@@ -25,6 +26,8 @@ export function createTerminalRecoveryJournal(db) {
     });
   }
   return {
+    get: (owner, runtimeId) => read.get(owner, runtimeId),
+    list: owner => list.all(owner),
     count: () => Number(count.get().count),
     requireRecovery: (owner, runtimeId) => failed.add(identity(owner, runtimeId)),
     recovering: (owner, runtimeId) => failed.has(identity(owner, runtimeId)),

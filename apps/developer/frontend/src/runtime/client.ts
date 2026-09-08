@@ -234,6 +234,7 @@ export type RuntimeProfiles = {
     image: string;
     status: string;
     createdAt: string;
+    recoveryRequired?: boolean;
   }>;
   sshProfiles: Array<{
     profileId: string;
@@ -243,6 +244,7 @@ export type RuntimeProfiles = {
     user: string;
     fingerprint: string;
     createdAt: string;
+    recoveryRequired?: boolean;
   }>;
 };
 export type EnvironmentEntry = { key: string; kind: "literal"; value: string } | { key: string; kind: "secret-reference"; reference: string };
@@ -294,6 +296,45 @@ async function profileFetch(path: string, options: RequestInit = {}) {
 }
 export function loadRuntimeProfiles(): Promise<RuntimeProfiles> {
   return profileFetch("/runtime/profiles");
+}
+export type RecoveryCopy = {
+  copyId: string;
+  projectId: string;
+  runtimeId: string;
+  recoveryId: string;
+  createdAt: string;
+  sha256: string;
+  fileCount: number;
+  bytes: number;
+  consistency: "unverified-live-copy";
+};
+export type RuntimeRecovery = {
+  runtimeId: string;
+  projectId: string;
+  recoveryId: string;
+  openedAt: string;
+  status: "active" | "protected";
+  stopProof: "unavailable";
+  copies: RecoveryCopy[];
+  previousCopies: RecoveryCopy[];
+};
+export async function loadRuntimeRecoveries(): Promise<RuntimeRecovery[]> {
+  return (await profileFetch("/runtime/profiles/recovery")).entries;
+}
+export async function collectRuntimeRecovery(entry: RuntimeRecovery): Promise<RecoveryCopy> {
+  const value = await profileFetch(`/runtime/profiles/recovery/${encodeURIComponent(entry.runtimeId)}/copies`, {
+    method: "POST",
+    body: JSON.stringify({ protocolVersion: "ynx-code-recovery/v1", approval: "collect-recovery-copy-once", recoveryId: entry.recoveryId }),
+  });
+  return value.copy;
+}
+export async function downloadRuntimeRecovery(runtimeId: string, copy: RecoveryCopy): Promise<Blob> {
+  const value = await profileFetch(`/runtime/profiles/recovery/${encodeURIComponent(runtimeId)}/copies/${encodeURIComponent(copy.copyId)}`);
+  const serialized = JSON.stringify(value);
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(serialized));
+  const sha256 = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("");
+  if (sha256 !== copy.sha256 || value.copyId !== copy.copyId || value.runtimeId !== runtimeId || value.projectId !== copy.projectId || value.recoveryId !== copy.recoveryId) throw new Error("The recovery download did not match its saved receipt. Reload the list and try again.");
+  return new Blob([serialized], { type: "application/json" });
 }
 export async function loadProjectEnvironment(projectId: string): Promise<ProjectEnvironment> {
   const value = await profileFetch(`/runtime/projects/${encodeURIComponent(projectId)}/environment`);

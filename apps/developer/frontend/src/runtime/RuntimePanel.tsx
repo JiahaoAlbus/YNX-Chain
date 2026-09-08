@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "../components/ui/button";
+import { RecoveryPanel } from "./RecoveryPanel";
 import { createContainerLease, inspectSshTarget, loadProjectEnvironment, loadRuntimeProfiles, loadTaskActivities, loadTerminalSessions, removeContainerLease, removeSshProfile, saveSshProfile, saveProjectEnvironment, stopTaskActivity, stopTerminalSession, type EnvironmentEntry, type ProjectEnvironment, type RuntimeProfiles, type TaskActivity, type TerminalSession } from "./client";
 
 export function RuntimePanel({ projectId, selected, onSelect }: { projectId: string; selected?: string; onSelect: (runtimeId: string | undefined) => void }) {
@@ -71,11 +72,12 @@ export function RuntimePanel({ projectId, selected, onSelect }: { projectId: str
               </small>
             </span>
             <div>
-              <Button variant={selected === item.runtimeId ? "default" : "secondary"} onClick={() => onSelect(selected === item.runtimeId ? undefined : item.runtimeId)}>
-                {selected === item.runtimeId ? "Using" : "Use"}
+              <Button disabled={busy || item.recoveryRequired} variant={selected === item.runtimeId ? "default" : "secondary"} onClick={() => onSelect(selected === item.runtimeId ? undefined : item.runtimeId)}>
+                {item.recoveryRequired ? "Recovery needed" : selected === item.runtimeId ? "Using" : "Use"}
               </Button>
               <Button
                 variant="ghost"
+                disabled={busy || item.recoveryRequired}
                 onClick={() =>
                   action(async () => {
                     if (selected === item.runtimeId) onSelect(undefined);
@@ -90,6 +92,7 @@ export function RuntimePanel({ projectId, selected, onSelect }: { projectId: str
         ))}
       </div>
       <EnvironmentAndProcesses projectId={projectId} />
+      <RecoveryPanel projectId={projectId} />
       <div className="runtime-block">
         <strong>REMOTE SSH</strong>
         <p>Public hosts only. Review the host fingerprint before the private key is encrypted and tested. Opening a profile synchronizes this project into its own remote workspace.</p>
@@ -147,11 +150,12 @@ export function RuntimePanel({ projectId, selected, onSelect }: { projectId: str
                 </small>
               </span>
               <div>
-                <Button variant={selected === runtimeId ? "default" : "secondary"} onClick={() => onSelect(selected === runtimeId ? undefined : runtimeId)}>
-                  {selected === runtimeId ? "Open" : "Use"}
+                <Button disabled={busy || item.recoveryRequired} variant={selected === runtimeId ? "default" : "secondary"} onClick={() => onSelect(selected === runtimeId ? undefined : runtimeId)}>
+                  {item.recoveryRequired ? "Recovery needed" : selected === runtimeId ? "Open" : "Use"}
                 </Button>
                 <Button
                   variant="ghost"
+                  disabled={busy || item.recoveryRequired}
                   onClick={() =>
                     action(async () => {
                       if (selected === runtimeId) onSelect(undefined);
