@@ -34,7 +34,8 @@
     "downloadMac": "Ad-hoc signature, not notarized: macOS Gatekeeper may block opening. Full installed sign-in and transfers remain unverified; sending stays disabled when amount-unit verification is unavailable.",
     "downloadExtension": "Unzip the file, enable Developer mode on the Chrome or Edge extensions page, then choose Load unpacked. This preview is not a browser-store release; installed permissions and transfers remain unverified.",
     "downloadAndroid": "QA-signed test build. Only a limited ARM64 emulator upgrade and unlock check has passed. Other architectures, real devices, complete sign-in and transfers remain unverified.",
-    "downloadAppImage": "Build and file checksum verified only. This AppImage has not been installed or launched; complete sign-in and transfers remain unverified."
+    "downloadAppImage": "Build and file checksum verified only. This AppImage has not been installed or launched; complete sign-in and transfers remain unverified.",
+    "downloadSecurityHold": "AppImage downloads are paused because of a packaging security issue. Other available packages remain test previews with their stated limitations."
   },
   "zh-CN": {
     "language": "语言",
@@ -71,7 +72,8 @@
     "downloadMac": "临时签名且未公证，macOS Gatekeeper 可能阻止打开。完整登录和转账尚未验证；金额单位未验证时发送保持禁用。",
     "downloadExtension": "解压文件，在 Chrome 或 Edge 扩展页启用开发者模式，选择“加载已解压的扩展程序”。此预览尚未上架商店，安装后的权限和转账仍待验证。",
     "downloadAndroid": "QA 签名测试版。仅通过有限的 ARM64 模拟器升级与解锁检查；其他架构、真机、完整登录及转账尚未验证。",
-    "downloadAppImage": "仅验证构建和文件校验值。此 AppImage 尚未安装或启动，完整登录及转账尚未验证。"
+    "downloadAppImage": "仅验证构建和文件校验值。此 AppImage 尚未安装或启动，完整登录及转账尚未验证。",
+    "downloadSecurityHold": "AppImage 因打包安全问题暂停下载。其他可选安装包仍是测试预览版，原有使用限制继续适用。"
   },
   "zh-TW": {
     "language": "語言",
@@ -108,7 +110,8 @@
     "downloadMac": "臨時簽署且未公證，macOS Gatekeeper 可能阻止開啟。完整登入與轉帳尚未驗證；金額單位未驗證時，傳送保持停用。",
     "downloadExtension": "解壓縮檔案，在 Chrome 或 Edge 擴充功能頁啟用開發人員模式，再選擇載入未封裝項目。此預覽尚未上架商店，安裝後的權限與轉帳仍待驗證。",
     "downloadAndroid": "QA 簽章測試版。僅通過有限的 ARM64 模擬器升級與解鎖檢查；其他架構、實機、完整登入及轉帳尚未驗證。",
-    "downloadAppImage": "僅驗證建置和檔案校驗值。此 AppImage 尚未安裝或啟動，完整登入及轉帳尚未驗證。"
+    "downloadAppImage": "僅驗證建置和檔案校驗值。此 AppImage 尚未安裝或啟動，完整登入及轉帳尚未驗證。",
+    "downloadSecurityHold": "AppImage 因封裝安全問題暫停下載。其他可選安裝套件仍是測試預覽版，原有使用限制繼續適用。"
   },
   "ja": {
     "language": "言語",
@@ -145,7 +148,8 @@
     "downloadMac": "アドホック署名で未公証のため、macOS Gatekeeper が起動を拒否する場合があります。ログインと送金全体は未検証です。金額単位を確認できない場合、送信は無効のままです。",
     "downloadExtension": "ZIP を展開し、Chrome または Edge の拡張機能ページでデベロッパーモードを有効にして、展開した拡張機能を読み込んでください。ストア未公開で、権限と送金の実機検証は未完了です。",
     "downloadAndroid": "QA 署名のテスト版です。ARM64 エミュレーターで限定的な更新とロック解除のみ確認済みです。他のアーキテクチャ、実機、完全なログインと送金は未検証です。",
-    "downloadAppImage": "ビルドとファイルのチェックサムのみ確認済みです。この AppImage はインストール・起動未確認で、完全なログインと送金も未検証です。"
+    "downloadAppImage": "ビルドとファイルのチェックサムのみ確認済みです。この AppImage はインストール・起動未確認で、完全なログインと送金も未検証です。",
+    "downloadSecurityHold": "パッケージ化のセキュリティ問題により、AppImage のダウンロードを停止しています。他の配布パッケージもテスト版であり、記載された制限が引き続き適用されます。"
   },
   "ko": {
     "language": "언어",
@@ -182,7 +186,8 @@
     "downloadMac": "임시 서명이며 공증되지 않아 macOS Gatekeeper가 실행을 차단할 수 있습니다. 전체 로그인과 송금은 아직 검증되지 않았으며 금액 단위를 확인할 수 없으면 전송이 비활성화됩니다.",
     "downloadExtension": "압축을 풀고 Chrome 또는 Edge 확장 프로그램 페이지에서 개발자 모드를 켠 뒤 압축 해제된 확장 프로그램을 로드하세요. 스토어 미출시 버전이며 설치 후 권한과 송금은 검증 중입니다.",
     "downloadAndroid": "QA 서명 테스트 빌드입니다. ARM64 에뮬레이터에서 제한적인 업데이트와 잠금 해제만 확인했습니다. 다른 아키텍처, 실제 기기, 전체 로그인 및 전송은 검증되지 않았습니다.",
-    "downloadAppImage": "빌드와 파일 체크섬만 확인했습니다. 이 AppImage는 설치하거나 실행하지 않았으며 전체 로그인 및 전송은 검증되지 않았습니다."
+    "downloadAppImage": "빌드와 파일 체크섬만 확인했습니다. 이 AppImage는 설치하거나 실행하지 않았으며 전체 로그인 및 전송은 검증되지 않았습니다.",
+    "downloadSecurityHold": "패키징 보안 문제로 AppImage 다운로드를 중단했습니다. 다른 설치 파일도 테스트 미리보기이며 기존에 안내한 제한이 계속 적용됩니다."
   },
   "es": {
     "language": "Idioma",
@@ -219,7 +224,8 @@
     "downloadMac": "Firma ad hoc sin notarización: Gatekeeper de macOS puede impedir abrir la app. El inicio de sesión y las transferencias siguen sin verificar; el envío se desactiva si no se verifica la unidad del importe.",
     "downloadExtension": "Descomprime el archivo, activa el modo de desarrollador en las extensiones de Chrome o Edge y elige Cargar descomprimida. No está publicada en la tienda; los permisos y las transferencias tras instalar siguen sin verificar.",
     "downloadAndroid": "Versión de prueba firmada para QA. Solo se verificaron una actualización y un desbloqueo limitados en un emulador ARM64. Otras arquitecturas, dispositivos reales, el inicio de sesión completo y las transferencias siguen sin verificar.",
-    "downloadAppImage": "Solo se verificaron la compilación y la suma de comprobación. Este AppImage no se ha instalado ni iniciado; el inicio de sesión completo y las transferencias siguen sin verificar."
+    "downloadAppImage": "Solo se verificaron la compilación y la suma de comprobación. Este AppImage no se ha instalado ni iniciado; el inicio de sesión completo y las transferencias siguen sin verificar.",
+    "downloadSecurityHold": "Las descargas de AppImage están pausadas por un problema de seguridad del empaquetado. Los demás paquetes disponibles siguen siendo versiones de prueba con las limitaciones indicadas."
   },
   "fr": {
     "language": "Langue",
@@ -256,7 +262,8 @@
     "downloadMac": "Signature ad hoc sans notarisation : Gatekeeper peut bloquer l’ouverture sur macOS. Connexion et transferts restent à vérifier ; l’envoi reste désactivé si l’unité du montant ne peut pas être vérifiée.",
     "downloadExtension": "Décompressez le fichier, activez le mode développeur dans les extensions de Chrome ou Edge, puis chargez l’extension non empaquetée. Cet aperçu n’est pas en boutique ; les autorisations et transferts installés restent à vérifier.",
     "downloadAndroid": "Version de test signée pour la QA. Seuls une mise à niveau et un déverrouillage limités sur émulateur ARM64 ont été vérifiés. Les autres architectures, les appareils réels, la connexion complète et les transferts restent non vérifiés.",
-    "downloadAppImage": "Seuls la compilation et le contrôle du fichier sont vérifiés. Cet AppImage n’a pas été installé ni lancé ; la connexion complète et les transferts restent non vérifiés."
+    "downloadAppImage": "Seuls la compilation et le contrôle du fichier sont vérifiés. Cet AppImage n’a pas été installé ni lancé ; la connexion complète et les transferts restent non vérifiés.",
+    "downloadSecurityHold": "Les téléchargements AppImage sont suspendus en raison d’un problème de sécurité de l’empaquetage. Les autres paquets restent des versions de test soumises aux limites indiquées."
   },
   "de": {
     "language": "Sprache",
@@ -293,7 +300,8 @@
     "downloadMac": "Ad-hoc-Signatur ohne Notarisierung: macOS Gatekeeper kann das Öffnen verhindern. Anmeldung und Überweisungen sind noch ungeprüft; ohne verifizierte Betrageinheit bleibt das Senden deaktiviert.",
     "downloadExtension": "Entpacke die Datei, aktiviere den Entwicklermodus auf der Erweiterungsseite von Chrome oder Edge und wähle Entpackte Erweiterung laden. Keine Store-Version; installierte Berechtigungen und Überweisungen sind noch ungeprüft.",
     "downloadAndroid": "QA-signierte Testversion. Nur ein begrenztes Upgrade und Entsperren im ARM64-Emulator wurden geprüft. Andere Architekturen, echte Geräte, vollständige Anmeldung und Überweisungen sind ungeprüft.",
-    "downloadAppImage": "Nur Build und Dateiprüfsumme wurden geprüft. Dieses AppImage wurde weder installiert noch gestartet; vollständige Anmeldung und Überweisungen sind ungeprüft."
+    "downloadAppImage": "Nur Build und Dateiprüfsumme wurden geprüft. Dieses AppImage wurde weder installiert noch gestartet; vollständige Anmeldung und Überweisungen sind ungeprüft.",
+    "downloadSecurityHold": "AppImage-Downloads sind wegen eines Sicherheitsproblems bei der Paketierung ausgesetzt. Die übrigen Pakete bleiben Testversionen mit den angegebenen Einschränkungen."
   },
   "pt": {
     "language": "Idioma",
@@ -330,7 +338,8 @@
     "downloadMac": "Assinatura ad hoc sem notarização: o Gatekeeper do macOS pode bloquear a abertura. Login e transferências ainda não foram verificados; o envio fica desativado sem verificação da unidade do valor.",
     "downloadExtension": "Descompacte o arquivo, ative o modo de desenvolvedor nas extensões do Chrome ou Edge e carregue a extensão descompactada. Esta prévia não está na loja; permissões e transferências instaladas ainda estão em verificação.",
     "downloadAndroid": "Versão de teste assinada para QA. Apenas uma atualização e um desbloqueio limitados num emulador ARM64 foram verificados. Outras arquiteturas, dispositivos reais, o início de sessão completo e as transferências continuam por verificar.",
-    "downloadAppImage": "Apenas a compilação e a soma de verificação do ficheiro foram verificadas. Este AppImage não foi instalado nem iniciado; o início de sessão completo e as transferências continuam por verificar."
+    "downloadAppImage": "Apenas a compilação e a soma de verificação do ficheiro foram verificadas. Este AppImage não foi instalado nem iniciado; o início de sessão completo e as transferências continuam por verificar.",
+    "downloadSecurityHold": "Os downloads de AppImage estão suspensos devido a um problema de segurança no empacotamento. Os outros pacotes disponíveis continuam a ser versões de teste com as limitações indicadas."
   },
   "ru": {
     "language": "Язык",
@@ -367,7 +376,8 @@
     "downloadMac": "Подпись ad hoc без нотариального заверения: Gatekeeper macOS может заблокировать запуск. Вход и переводы ещё не проверены; отправка отключена, если единица суммы не подтверждена.",
     "downloadExtension": "Распакуйте файл, включите режим разработчика на странице расширений Chrome или Edge и загрузите распакованное расширение. Версия не опубликована в магазине; разрешения и переводы после установки ещё проверяются.",
     "downloadAndroid": "Тестовая сборка с подписью QA. Проверены только ограниченное обновление и разблокировка в эмуляторе ARM64. Другие архитектуры, реальные устройства, полный вход и переводы не проверены.",
-    "downloadAppImage": "Проверены только сборка и контрольная сумма файла. Этот AppImage не устанавливался и не запускался; полный вход и переводы не проверены."
+    "downloadAppImage": "Проверены только сборка и контрольная сумма файла. Этот AppImage не устанавливался и не запускался; полный вход и переводы не проверены.",
+    "downloadSecurityHold": "Загрузка AppImage приостановлена из-за проблемы безопасности упаковки. Остальные пакеты остаются тестовыми версиями с указанными ограничениями."
   },
   "ar": {
     "language": "اللغة",
@@ -404,7 +414,8 @@
     "downloadMac": "توقيع مؤقت بلا توثيق من Apple؛ قد يمنع Gatekeeper فتح التطبيق على macOS. لم يكتمل التحقق من الدخول والتحويلات؛ يبقى الإرسال معطلاً إن تعذر التحقق من وحدة المبلغ.",
     "downloadExtension": "فك ضغط الملف وفعّل وضع المطوّر في صفحة إضافات Chrome أو Edge، ثم حمّل الإضافة غير المضغوطة. هذه النسخة ليست في المتجر؛ التحقق من الأذونات والتحويلات بعد التثبيت لم يكتمل.",
     "downloadAndroid": "نسخة اختبار موقعة لضمان الجودة. تم التحقق فقط من ترقية وفتح قفل محدودين على محاكي ARM64. لم يتم التحقق من البنى الأخرى أو الأجهزة الحقيقية أو تسجيل الدخول الكامل والتحويلات.",
-    "downloadAppImage": "تم التحقق من البناء وبصمة الملف فقط. لم يتم تثبيت ملف AppImage هذا أو تشغيله؛ ولم يتم التحقق من تسجيل الدخول الكامل والتحويلات."
+    "downloadAppImage": "تم التحقق من البناء وبصمة الملف فقط. لم يتم تثبيت ملف AppImage هذا أو تشغيله؛ ولم يتم التحقق من تسجيل الدخول الكامل والتحويلات.",
+    "downloadSecurityHold": "تم تعليق تنزيلات AppImage بسبب مشكلة أمنية في إعداد الحزمة. تظل الحزم الأخرى المتاحة نسخًا تجريبية وتبقى القيود المذكورة سارية."
   },
   "id": {
     "language": "Bahasa",
@@ -441,6 +452,7 @@
     "downloadMac": "Tanda tangan ad hoc tanpa notarisasi: Gatekeeper macOS dapat memblokir aplikasi. Proses masuk dan transfer belum terverifikasi; pengiriman tetap nonaktif jika satuan jumlah tidak dapat diverifikasi.",
     "downloadExtension": "Ekstrak berkas, aktifkan mode pengembang di halaman ekstensi Chrome atau Edge, lalu muat ekstensi yang diekstrak. Pratinjau ini belum ada di toko; izin dan transfer setelah pemasangan masih diverifikasi.",
     "downloadAndroid": "Versi uji bertanda tangan QA. Hanya peningkatan dan pembukaan kunci terbatas pada emulator ARM64 yang telah diperiksa. Arsitektur lain, perangkat nyata, proses masuk lengkap, dan transfer belum diverifikasi.",
-    "downloadAppImage": "Hanya build dan checksum berkas yang telah diverifikasi. AppImage ini belum dipasang atau dijalankan; proses masuk lengkap dan transfer belum diverifikasi."
+    "downloadAppImage": "Hanya build dan checksum berkas yang telah diverifikasi. AppImage ini belum dipasang atau dijalankan; proses masuk lengkap dan transfer belum diverifikasi.",
+    "downloadSecurityHold": "Unduhan AppImage dihentikan sementara karena masalah keamanan pengemasan. Paket lain yang tersedia tetap merupakan versi uji dengan batasan yang telah dijelaskan."
   }
 }

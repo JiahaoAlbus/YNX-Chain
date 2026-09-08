@@ -7,6 +7,35 @@ const manifest = JSON.parse(manifestText);
 const preview = JSON.parse(await readFile(new URL('./wallet-download-preview.json', import.meta.url), 'utf8'));
 const clone = value => JSON.parse(JSON.stringify(value));
 
+// These exact historical 0.6.4/0.6.5 AppImages are under publisher security hold.
+// A stale, otherwise internally consistent catalog must not restore their links.
+for (const sha256 of [
+  'dcaf1372b29e6d3cb58f9a37d3db3b6fcb45aa9e13feff1c7c247bf283cd9893',
+  '5664be113dea0e06862fcc8e6d1918de86a60197d7ca1906bbb30e8e5b3c4183',
+  '3ba16d0372021471e13733425eaa39b155c122175e5bdcbc0e39b2554c199b00',
+  '66dde56c9f8da969e9916d72c8929add581b1a0ea0695cd70a2e9fcb3c960a72',
+]) test(`security-held AppImage ${sha256} stays unavailable even with matching published evidence`, () => {
+  const row = {...manifest.artifacts.find(item => item.platform === 'linux'),
+    id:'appimage-held-fixture', installation:'appimage', mimeType:'application/octet-stream',
+    filename:'ynx-wallet-test.AppImage', sha256,
+    url:`https://downloads.ynxweb4.com/wallet/sha256-${sha256}/ynx-wallet-test.AppImage`};
+  assert.deepEqual(verifiedWalletDownloads({...manifest,artifacts:[row]}, {...preview,artifacts:[{...row,published:true,publicDownloadVerified:true}]}), []);
+});
+test('an explicit publisher security hold removes only its matching artifact', () => {
+  const input = clone(preview), row = input.artifacts.find(item => item.id === manifest.artifacts[0].id);
+  row.securityHold = true;
+  assert(!verifiedWalletDownloads(manifest, input).some(item => item.id === row.id));
+});
+test('the security hold does not categorically ban future separately reviewed AppImages', () => {
+  const sha256 = '1'.repeat(64);
+  const row = {...manifest.artifacts.find(item => item.platform === 'linux'),
+    id:'appimage-future-fixture', installation:'appimage', mimeType:'application/octet-stream',
+    filename:'ynx-wallet-future-fixture.AppImage', sha256,
+    url:`https://downloads.ynxweb4.com/wallet/sha256-${sha256}/ynx-wallet-future-fixture.AppImage`};
+  const result = verifiedWalletDownloads({...manifest,artifacts:[row]}, {...preview,artifacts:[{...row,published:true,publicDownloadVerified:true}]});
+  assert.equal(result[0]?.id, row.id);
+});
+
 test('every publisher-approved SDK artifact is selected exactly; PWA archives never become installs', () => {
   const artifacts = verifiedWalletDownloads(manifestText, preview);
   assert.equal(artifacts.length, manifest.artifacts.length);
