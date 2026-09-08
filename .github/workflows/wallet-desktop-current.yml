@@ -50,11 +50,19 @@ jobs:
         env:
           TARGET_ARCH: ${{ matrix.arch }}
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          # Modern 7za's automatic BCJ2/ARM64 filters are not decodable by
+          # the bundled install-time Nsis7z plugin (upstream issue #9983).
+          ELECTRON_BUILDER_7Z_FILTER: BCJ
         run: |
           $ErrorActionPreference = 'Stop'
           Set-Location apps/wallet-desktop
           node node_modules/electron-builder/cli.js --win nsis "--$env:TARGET_ARCH" --publish never
           if ($LASTEXITCODE -ne 0) { throw 'Installer build failed' }
+          $walletBuiltInstallers = @(Get-ChildItem dist/*.exe)
+          if ($walletBuiltInstallers.Count -ne 1) { throw 'Expected one exact installer archive' }
+          $walletUnpacked = if ($env:TARGET_ARCH -eq 'arm64') { 'dist/win-arm64-unpacked' } else { 'dist/win-unpacked' }
+          node scripts/verify-windows-package.mjs archive $walletBuiltInstallers[0].FullName $walletUnpacked dist/windows-archive-verification.json
+          if ($LASTEXITCODE -ne 0) { throw 'Embedded NSIS payload is not install-time decodable' }
       - name: Build Linux packages
         if: matrix.platform == 'linux'
         shell: bash
@@ -77,6 +85,8 @@ jobs:
       - name: Install Windows and verify two locked cold starts
         if: matrix.platform == 'windows'
         shell: pwsh
+        env:
+          UNPACKED: ${{ matrix.unpacked }}
         run: |
           $ErrorActionPreference = 'Stop'
           $installer = @(Get-ChildItem apps/wallet-desktop/dist/*.exe)
@@ -128,6 +138,8 @@ jobs:
           $walletLocations = @($walletInstallRows | ForEach-Object { $_.installLocation } | Where-Object { $_ -and [IO.Path]::IsPathFullyQualified($_) } | Sort-Object -Unique)
           if ($walletLocations.Count -ne 1) { throw 'A unique registered current-user Wallet installation is required' }
           $exe = Join-Path $walletLocations[0] 'YNX Wallet.exe'
+          node apps/wallet-desktop/scripts/verify-windows-package.mjs installed "apps/wallet-desktop/dist/$env:UNPACKED" $walletLocations[0] apps/wallet-desktop/dist/windows-pe-verification.json
+          if ($LASTEXITCODE -ne 0) { throw 'Installed executable and native PE files differ from the unpacked package' }
           if (-not (Test-Path -LiteralPath $exe -PathType Leaf)) { throw 'The registered Wallet executable is missing' }
           node apps/wallet-desktop/scripts/release-provenance.mjs (Join-Path (Split-Path $exe) 'resources') apps/wallet-desktop/dist
           if ($LASTEXITCODE -ne 0) { throw 'Installed source verification failed' }
@@ -213,6 +225,9 @@ jobs:
             apps/wallet-desktop/dist/installed-smoke.json
             apps/wallet-desktop/dist/windows-installer-result.json
             apps/wallet-desktop/dist/windows-install-location.json
+            apps/wallet-desktop/dist/windows-archive-verification.json
+            apps/wallet-desktop/dist/windows-archive-verification.json.listing.txt
+            apps/wallet-desktop/dist/windows-pe-verification.json
             apps/wallet-desktop/dist/sandbox-refusal.json
             apps/wallet-desktop/dist/*.launcher.json
             apps/wallet-desktop/dist/*.AppRun.txt
