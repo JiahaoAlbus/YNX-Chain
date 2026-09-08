@@ -31,7 +31,7 @@ import { RECOVERY_DISPLAY_MS, WalletOperationLifecycle, type WalletOperationLeas
 import { copyPublicValueWithExpiry } from "./src/security/clipboardPrivacy";
 import { initialLockState, reduceLockState } from "./src/state/lockState";
 import { needsOfflineKeyRecovery, reviewRecoveryKey } from "./src/state/recoveryReview";
-import { assertSecureStorageAvailable, platformSecureStorage } from "./src/storage/secureStorage";
+import { assertSecureStorageAvailable, platformSecureStorage, platformStorageHealth } from "./src/storage/secureStorage";
 import { type WalletAccount, type WalletManifest, WalletRepository } from "./src/storage/walletRepository";
 import { COLORS, HIGH_CONTRAST_LIGHT } from "./src/theme";
 
@@ -65,6 +65,7 @@ function WalletApp(){
   const [manifest,setManifest]=useState<WalletManifest|null>(null);
   const [loading,setLoading]=useState(true);
   const [error,setError]=useState<string|null>(null);
+  const [storageRestartRequired,setStorageRestartRequired]=useState(()=>platformStorageHealth.requiresRestart);
   const [notice,setNotice]=useState<string|null>(null);
   const [lockState,dispatchLock]=useReducer(reduceLockState,undefined,initialLockState);
   const [setup,setSetup]=useState<"closed"|"create"|"import"|"recover">("closed");
@@ -83,29 +84,42 @@ function WalletApp(){
   const loadRevision=useRef(0);
   useEffect(()=>operations.subscribe(()=>rootScope.cancel()),[operations,rootScope]);
   useEffect(()=>{const unsubscribe=operations.subscribe(()=>corruptReset.cancel());return()=>{unsubscribe();corruptReset.cancel()}},[operations,corruptReset]);
-  const readyRef=useRef(false);readyRef.current=!loading&&manifest!==null&&AppState.currentState==="active";
+  const readyRef=useRef(false);readyRef.current=!loading&&manifest!==null&&!storageRestartRequired&&!platformStorageHealth.requiresRestart&&AppState.currentState==="active";
   const queuedLink=useRef<string|null>(null),initialLinkRead=useRef(false);
   const productSessions=useMemo(()=>new ProductSessionController({platform:Platform.OS==="ios"?"ios":"android",storage:platformSecureStorage,selectedAccount:()=>selectedRef.current,withAccountSecret:createProductSessionKeyAccess({operations,repository,checkBiometrics:assertStrongBiometrics,authorizeLegacyMigration:()=>authorizeLocalKeyUse("wallet-authorization")}),openURL:(url)=>Linking.openURL(url),audit:(review,action,at)=>authorizationAudit.appendProductSession(review,{action,account:review.account.account,at:at.toISOString()})}),[operations]);
   const cancelAuthorization=useCallback(()=>{productSessions.cancel();setAuthorization(null)},[productSessions]);
   const lock=()=>{operations.lock();rootScope.cancel();cancelAuthorization();setPendingRecovery(null);setSetup("closed");setBusy(false);dispatchLock({type:"lock",reason:"user"})};
   const updateManifest=useCallback((next:WalletManifest)=>{operations.invalidate();operations.setAccount(next.selectedAccountId);selectedRef.current=next.accounts.find(item=>item.account===next.selectedAccountId)??null;cancelAuthorization();setManifest(next)},[operations,cancelAuthorization]);
 
+  useEffect(()=>platformStorageHealth.subscribe(()=>{
+    // Cancel scopes immediately, before React renders the restart page. Keep
+    // the durable account/outbox records; an interrupted send can be unknown.
+    ++loadRevision.current;readyRef.current=false;queuedLink.current=null;
+    operations.lock();rootScope.cancel();corruptReset.cancel();cancelAuthorization();
+    setPendingRecovery(null);setSetup("closed");setSettings(false);setBusy(false);
+    setNotice(null);setLoading(false);setStorageRestartRequired(true);
+    dispatchLock({type:"lock",reason:"user"});
+  }),[operations,rootScope,corruptReset,cancelAuthorization]);
+
   const load=useCallback(async()=>{
+    if(platformStorageHealth.requiresRestart)return false;
     const revision=++loadRevision.current,generation=operations.capture();readyRef.current=false;setLoading(true);setError(null);
-    try{await assertSecureStorageAvailable();if(revision!==loadRevision.current||generation!==operations.capture())return;const [result,savedLocale]=await Promise.all([repository.load(),loadLocale(platformSecureStorage)]);if(revision!==loadRevision.current||generation!==operations.capture())return;setLocale(savedLocale);updateManifest(result.manifest);}
+    try{await assertSecureStorageAvailable();if(revision!==loadRevision.current||generation!==operations.capture())return false;const [result,savedLocale]=await Promise.all([repository.load(),loadLocale(platformSecureStorage)]);if(revision!==loadRevision.current||generation!==operations.capture()||platformStorageHealth.requiresRestart)return false;setLocale(savedLocale);updateManifest(result.manifest);return true;}
     catch(caught){if(revision===loadRevision.current&&generation===operations.capture())setError(localizeError(locale,caught));}
     finally{if(revision===loadRevision.current)setLoading(false)}
+    return false;
   },[locale,updateManifest,operations]);
 
   const loadHandler=useRef(load);loadHandler.current=load;
   const handleLink=useCallback((url:string)=>{
+    if(platformStorageHealth.requiresRestart)return;
     if(!readyRef.current||AppState.currentState!=="active"){queuedLink.current=url;return}
     void productSessions.receive(url).then((review)=>{if(productSessions.current?.id===review.id){setAuthorization(review);setAuthorizationError(null)}}).catch((caught)=>{setAuthorization(productSessions.current);setAuthorizationError(localizeError(locale,caught))});
   },[locale,productSessions]);
 
   useEffect(()=>{void load()},[load]);
   useEffect(()=>{if(!initialLinkRead.current){initialLinkRead.current=true;void Linking.getInitialURL().then((url)=>{if(url)handleLink(url)})}const sub=Linking.addEventListener("url",({url})=>handleLink(url));return()=>sub.remove()},[handleLink]);
-  useEffect(()=>{if(!loading&&manifest&&queuedLink.current){const url=queuedLink.current;queuedLink.current=null;handleLink(url)}},[loading,manifest,handleLink]);
+  useEffect(()=>{if(!storageRestartRequired&&!loading&&manifest&&queuedLink.current){const url=queuedLink.current;queuedLink.current=null;handleLink(url)}},[storageRestartRequired,loading,manifest,handleLink]);
   useEffect(()=>{operations.setAppState(AppState.currentState);let reloadOnActive=AppState.currentState==="background";const sub=AppState.addEventListener("change",(next)=>{operations.setAppState(next);if(next==="background"){reloadOnActive=true;rootScope.cancel();dispatchLock({type:"lock",reason:"background"});cancelAuthorization();setPendingRecovery(null);setSetup("closed");setBusy(false)}else if(next==="active"&&reloadOnActive){reloadOnActive=false;void loadHandler.current()}});return()=>{operations.lock();rootScope.cancel();sub.remove()}},[cancelAuthorization,operations,rootScope]);
   useEffect(()=>{if(!pendingRecovery)return;const timer=setTimeout(()=>{rootScope.cancel();operations.invalidate();setPendingRecovery(null);setSetup("closed");setBusy(false);setNotice("Recovery display expired. Generate a new account if it was not saved.")},RECOVERY_DISPLAY_MS);return()=>clearTimeout(timer)},[pendingRecovery,operations,rootScope]);
   useEffect(()=>{void AccessibilityInfo.isReduceMotionEnabled().then(setReducedMotion);void AccessibilityInfo.isHighTextContrastEnabled().then(setHighContrast);const sub=AccessibilityInfo.addEventListener("reduceMotionChanged",setReducedMotion);return()=>sub.remove()},[]);
@@ -119,7 +133,7 @@ function WalletApp(){
   const create=async()=>{let lease:WalletOperationLease|undefined,bytes:Uint8Array|undefined;try{lease=rootScope.begin({requireUnlocked:false});bytes=await getRandomBytesAsync(32);lease.assert();setPendingRecovery({secretHex:bytesToHex(bytes),label:`Account ${(manifest?.accounts.length??0)+1}`});setSetup("create")}catch(caught){if(!lease||lease.ownsScope())setError(localizeError(locale,caught))}finally{bytes?.fill(0);lease?.finish()}};
   const saved=(next:WalletManifest)=>{setError(null);updateManifest(next);operations.lock();setSetup("closed");setPendingRecovery(null);setBusy(false);dispatchLock({type:"lock",reason:"user"});setNotice("Account saved. Unlock with system biometrics to continue.")};
   const restoreLegacy=async()=>{let lease:WalletOperationLease|undefined;setBusy(true);setError(null);try{lease=rootScope.begin({requireUnlocked:false});await lease.step(()=>authorizeLocalKeyUse("account-import"));const result=await lease.step(()=>repository.migrateLegacyIdentity(lease!.assert));if(result.migrated)saved(result.manifest);else setNotice("No previous Wallet identity is stored on this device.")}catch(caught){if(!lease||lease.ownsScope())await recoverAfterMutation(localizeError(locale,caught))}finally{if(!lease||lease.ownsScope())setBusy(false);lease?.finish()}};
-  const recoverAfterMutation=async(text:string)=>{lock();await load();setError(text)};
+  const recoverAfterMutation=async(text:string)=>{lock();if(await load()&&!platformStorageHealth.requiresRestart)setError(text)};
   const select=async(account:string)=>{operations.invalidate();rootScope.cancel();cancelAuthorization();let lease:WalletOperationLease|undefined;try{lease=rootScope.begin();const next=await lease.step(()=>repository.selectAccount(account));updateManifest(next);dispatchLock({type:"switch",account})}catch(caught){if(!lease||lease.ownsScope())setError(localizeError(locale,caught))}finally{lease?.finish()}};
   const reviewReset=async()=>{
     if(busy||corruptReset.active())return;const generation=operations.capture();setBusy(true);
@@ -137,6 +151,7 @@ function WalletApp(){
   };
 
   if(!privacyState.ready)return privacyState.error?<Screen><Text style={styles.title}>Wallet privacy protection is required</Text><Text style={styles.error}>{privacyState.error}</Text><Button label="Retry screenshot protection" onPress={()=>setPrivacyAttempt((value)=>value+1)}/></Screen>:<Screen><ActivityIndicator color={ACTIVE_COLORS.blue}/><Text style={styles.muted}>Protecting Wallet screens</Text></Screen>;
+  if(storageRestartRequired)return <SafeAreaView style={[styles.safe,isRTL(locale)&&styles.rtl]}><StatusBar style="dark"/><ScrollView contentContainerStyle={{flexGrow:1,paddingHorizontal:28,paddingVertical:32,alignItems:"center",justifyContent:"center"}}><View style={styles.heroIcon}><Lock color={ACTIVE_COLORS.blue} size={34}/></View><Text style={styles.title}>{walletCopy(locale,"Close and reopen Wallet")}</Text><Text accessibilityRole="alert" style={styles.centerText}>{walletCopy(locale,Platform.OS==="android"?"Wallet could not confirm a secure storage write. Open system app settings, force stop Wallet, then reopen it to check the saved account state.":"Wallet could not confirm a secure storage write. Fully close the app from recent apps, then reopen it to check the saved account state.")}</Text><Text style={styles.footnote}>{walletCopy(locale,"Do not clear app data or reinstall. Keep your offline recovery key. The last change may not have been saved.")}</Text>{Platform.OS==="android"?<Button label={walletCopy(locale,"Open system app settings")} onPress={()=>void Linking.openSettings().catch(()=>Alert.alert(walletCopy(locale,"Open system app settings"),walletCopy(locale,"Open Settings, choose Apps, then YNX Wallet and Force stop. Reopen Wallet afterward.")))}/>:null}</ScrollView></SafeAreaView>;
   if(loading)return <Screen><ActivityIndicator color={ACTIVE_COLORS.blue}/><Text style={styles.muted}>Verifying secure Wallet storage</Text></Screen>;
   if(error&&manifest===null)return <Screen><Text style={styles.title}>Wallet storage needs attention</Text><Text style={styles.error}>{error}</Text><Button label="Retry secure storage" disabled={busy} onPress={()=>void load()}/><DangerButton label="Reset unreadable local Wallet" disabled={busy} onPress={()=>void reviewReset()}/></Screen>;
 
@@ -151,7 +166,7 @@ function WalletApp(){
     {!manifest?.accounts.length?<SecondaryButton label="Restore previous Wallet identity" disabled={busy} onPress={()=>void restoreLegacy()}/>:null}
     <SetupModal mode={setup} accounts={manifest?.accounts??EMPTY_WALLET_ACCOUNTS} pending={pendingRecovery} close={()=>{setSetup("closed");setPendingRecovery(null);setBusy(false)}} saved={saved} busy={busy} setBusy={setBusy} setError={(value)=>{if(value)void recoverAfterMutation(value)}}/>
     {authorization&&manifest&&selected?<AuthorizationModal locale={locale} key={authorization.id} review={authorization} controller={productSessions} close={cancelAuthorization} onReturned={()=>setAuthorization(null)}/>:null}
-    <LocaleSettings visible={settings} locale={locale} close={()=>setSettings(false)} select={(next)=>void saveLocale(platformSecureStorage,next).then(()=>setLocale(next))}/>
+    <LocaleSettings visible={settings} locale={locale} close={()=>setSettings(false)} select={(next)=>void saveLocale(platformSecureStorage,next).then(()=>{if(!platformStorageHealth.requiresRestart)setLocale(next)}).catch(caught=>{if(!platformStorageHealth.requiresRestart)setError(localizeError(locale,caught))})}/>
   </SafeAreaView></WalletRecoveryContext.Provider></WalletLocaleContext.Provider></WalletOperationsContext.Provider>;
 }
 
