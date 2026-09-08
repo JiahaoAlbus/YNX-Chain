@@ -13,6 +13,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/api"
@@ -164,7 +165,7 @@ func runNode(cfg nodeRuntimeConfig, out io.Writer) error {
 		Build:             currentBuildInfo(),
 	})
 
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	if cfg.BlockProduction {
 		go devnet.StartWithPause(ctx, cfg.BlockInterval, func() bool {
@@ -187,18 +188,9 @@ func runNode(cfg nodeRuntimeConfig, out io.Writer) error {
 		ReadOnlyReplica:            cfg.ReplicationSource != "",
 	})
 	srv := &http.Server{Addr: cfg.HTTPAddr, Handler: mutationfreeze.FromEnv(handler), ReadHeaderTimeout: 5 * time.Second}
-	go func() {
-		<-ctx.Done()
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		_ = srv.Shutdown(shutdownCtx)
-	}()
 
 	log.Printf("YNX Chain %s listening on http://%s with native coin YNXT", inputs.NetworkConfig.Name, cfg.HTTPAddr)
-	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		return err
-	}
-	return nil
+	return serveHTTPUntilShutdown(ctx, srv, 5*time.Second)
 }
 
 func blockProductionPaused(marker string) bool {
