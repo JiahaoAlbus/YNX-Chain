@@ -10526,8 +10526,8 @@
     {
       "type": "library",
       "name": "expo-secure-store",
-      "version": "57.0.0",
-      "bom-ref": "@ynx-chain/wallet-app@1.0.0|expo-secure-store@57.0.0",
+      "version": "57.0.3",
+      "bom-ref": "@ynx-chain/wallet-app@1.0.0|expo-secure-store@57.0.3",
       "author": "650 Industries, Inc.",
       "description": "Provides a way to encrypt and securely store key-value pairs locally on the device.",
       "licenses": [
@@ -10538,10 +10538,10 @@
           }
         }
       ],
-      "purl": "pkg:npm/expo-secure-store@57.0.0",
+      "purl": "pkg:npm/expo-secure-store@57.0.3",
       "externalReferences": [
         {
-          "url": "https://registry.npmjs.org/expo-secure-store/-/expo-secure-store-57.0.0.tgz",
+          "url": "https://registry.npmjs.org/expo-secure-store/-/expo-secure-store-57.0.3.tgz",
           "type": "distribution",
           "comment": "as detected from npm-ls property \"resolved\""
         },
@@ -10565,8 +10565,29 @@
         {
           "name": "cdx:npm:package:path",
           "value": "node_modules/expo-secure-store"
+        },
+        {
+          "name": "ynx:android-native-patch:manifest-sha256",
+          "value": "594e5f2c6828bac294b638b4fcf981df90c90dd296386b71ea38d8c94bbffddf"
+        },
+        {
+          "name": "ynx:android-native-patch:upstream-source-sha256",
+          "value": "72c670b538732977ef132759ce810c5719943ce6082195a58ad5a432d4ac1075"
+        },
+        {
+          "name": "ynx:android-native-patch:compiled-source-sha256",
+          "value": "9d5ba89067e9c72f2c9607c73d5747e1a10a81918ddd04ac4fb2023123955524"
+        },
+        {
+          "name": "ynx:android-native-patch:barrier-sha256",
+          "value": "ea2af95d0863f96ee668a1ab5b79a8145bfe793222797625055463c3fb948082"
+        },
+        {
+          "name": "ynx:android-native-patch:build",
+          "value": "source; prebuilt upstream AAR forbidden"
         }
-      ]
+      ],
+      "modified": true
     },
     {
       "type": "library",
@@ -22623,7 +22644,7 @@
         "@ynx-chain/wallet-app@1.0.0|expo-crypto@57.0.0",
         "@ynx-chain/wallet-app@1.0.0|expo-local-authentication@57.0.0",
         "@ynx-chain/wallet-app@1.0.0|expo-screen-capture@57.0.0",
-        "@ynx-chain/wallet-app@1.0.0|expo-secure-store@57.0.0",
+        "@ynx-chain/wallet-app@1.0.0|expo-secure-store@57.0.3",
         "@ynx-chain/wallet-app@1.0.0|expo-status-bar@57.0.0",
         "@ynx-chain/wallet-app@1.0.0|expo@57.0.4",
         "@ynx-chain/wallet-app@1.0.0|lucide-react-native@1.24.0",
@@ -24078,7 +24099,7 @@
       ]
     },
     {
-      "ref": "@ynx-chain/wallet-app@1.0.0|expo-secure-store@57.0.0",
+      "ref": "@ynx-chain/wallet-app@1.0.0|expo-secure-store@57.0.3",
       "dependsOn": [
         "@ynx-chain/wallet-app@1.0.0|expo@57.0.4"
       ]

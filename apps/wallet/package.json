@@ -19,7 +19,11 @@
     "release-content:check": "node scripts/release-content-check.mjs",
     "goal-coverage:check": "node scripts/full-goal-coverage-check.mjs",
     "product-check": "node scripts/product-check.mjs",
-    "check": "npm run typecheck && npm test && npm run product-check && npm run release-content:check && npm run goal-coverage:check && npm run sbom:check && npm run bundle"
+    "check": "npm run native-patch:check && npm run native-patch:test && npm run typecheck && npm test && npm run product-check && npm run release-content:check && npm run goal-coverage:check && npm run sbom:check && npm run bundle",
+    "postinstall": "node scripts/secure-store-native-patch.mjs",
+    "native-patch:apply": "node scripts/secure-store-native-patch.mjs",
+    "native-patch:check": "node scripts/secure-store-native-patch.mjs --check",
+    "native-patch:test": "node --test scripts/secure-store-native-patch.test.mjs"
   },
   "dependencies": {
     "@noble/curves": "2.2.0",
@@ -30,7 +34,7 @@
     "expo-crypto": "~57.0.0",
     "expo-local-authentication": "~57.0.0",
     "expo-screen-capture": "57.0.0",
-    "expo-secure-store": "~57.0.0",
+    "expo-secure-store": "57.0.3",
     "expo-status-bar": "~57.0.0",
     "lucide-react-native": "1.24.0",
     "react": "19.2.3",
@@ -56,5 +60,14 @@
     "chalk": "4.1.2",
     "expo-server": "57.0.0",
     "uuid": "11.1.1"
+  },
+  "expo": {
+    "autolinking": {
+      "android": {
+        "buildFromSource": [
+          "expo-secure-store"
+        ]
+      }
+    }
   }
 }
