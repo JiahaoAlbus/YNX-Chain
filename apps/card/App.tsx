@@ -76,7 +76,7 @@ export default function App(){
     if(productWallet.current)return productWallet.current;
     if(productWalletPromise.current)return await productWalletPromise.current;
     const generation=nativeWalletGeneration.current;
-    const created=createRuntimeCardProductWalletConnection({canLaunch:()=>mounted.current&&nativeWalletGeneration.current===generation&&!nativeWalletCallbackBlocked.current}).then(connection=>{
+    const created=createRuntimeCardProductWalletConnection({canLaunch:()=>mounted.current&&!nativeWalletCallbackBlocked.current}).then(connection=>{
       if(nativeWalletGeneration.current!==generation||nativeWalletCallbackBlocked.current)throw new Error("The native Wallet request was cancelled before a controller was ready.");
       productWallet.current=connection;
       return connection;
@@ -173,7 +173,7 @@ export default function App(){
   const replaceRecord=(records:readonly SimulationAuditRecord[],entry:SimulationAuditRecord)=>Object.freeze(records.map(item=>item.id===entry.id?entry:item));
 
   const openWalletChooser=async()=>{setWalletError("");setStandardWalletState(current=>reduceStandardWalletConnectState(current,{type:"OPEN_CHOOSER"}));};
-  const closeWalletChooser=()=>{nativeWalletGeneration.current+=1;nativeWalletCallbackBlocked.current=true;setPending(false);setWalletBusy(false);setStandardWalletState(current=>reduceStandardWalletConnectState(current,{type:"CLOSE_CHOOSER"}));};
+  const closeWalletChooser=()=>{nativeWalletGeneration.current+=1;nativeWalletCallbackBlocked.current=true;setPending(false);setBusy(false);setWalletBusy(false);setStandardWalletState(current=>reduceStandardWalletConnectState(current,{type:"CLOSE_CHOOSER"}));};
   const connectSelectedWallet=async(kind:WalletProviderKind):Promise<boolean>=>{
     setWalletBusy(true);
     setWalletError("");
@@ -414,6 +414,20 @@ export default function App(){
     nativeWalletOperation.current=operation;
     try{return await operation}finally{if(nativeWalletOperation.current===operation)nativeWalletOperation.current=null;}
   };
+  const retryNativeWalletAuthorization=async()=>{
+    if(Platform.OS==="web"||nativeWalletOperation.current)return;
+    const generation=++nativeWalletGeneration.current;nativeWalletCallbackBlocked.current=false;setBusy(true);setWalletBusy(true);setWalletError("");
+    try{const outcome=await (await getNativeProductWallet()).retryYNX();if(mounted.current&&generation===nativeWalletGeneration.current&&!nativeWalletCallbackBlocked.current){const runtime=productRuntime(outcome);setPrivateSession(productRuntimeState(outcome)==="disconnected"?null:runtime);setPending(productRuntimeState(outcome)==="connecting");}}
+    catch(e){if(mounted.current&&generation===nativeWalletGeneration.current){const classified=classifyCardWalletError(e);setPrivateSession({state:"PRIVATE_SERVICE_DEGRADED",...classified,actions:["retry"]});setWalletError(classified.safeMessage);}}
+    finally{if(mounted.current&&generation===nativeWalletGeneration.current){setBusy(false);setWalletBusy(false);}}
+  };
+  const disconnectNativeWalletIdentity=async()=>{
+    if(Platform.OS==="web"||nativeWalletOperation.current||!productWallet.current)return;
+    const generation=++nativeWalletGeneration.current;nativeWalletCallbackBlocked.current=true;setBusy(true);setWalletBusy(true);setWalletError("");
+    try{const outcome=await productWallet.current.disconnect();if(mounted.current&&generation===nativeWalletGeneration.current){setPrivateSession(productRuntimeState(outcome)==="disconnected"?null:productRuntime(outcome));setPending(false);}}
+    catch(e){if(mounted.current&&generation===nativeWalletGeneration.current){const classified=classifyCardWalletError(e);setPrivateSession({state:"PRIVATE_SERVICE_DEGRADED",...classified,actions:["retry"],revocationPending:true});setWalletError(classified.safeMessage);}}
+    finally{if(mounted.current&&generation===nativeWalletGeneration.current){setBusy(false);setWalletBusy(false);}}
+  };
 
   const signIn=async()=>{
     if(Platform.OS==="web"&&!walletSession){setError(tr("connectWalletFirst"));return;}
@@ -458,7 +472,7 @@ export default function App(){
     </View>
 
     {!session?
-      <GuestExperience locale={locale} connectWallet={openWalletChooser} connectMetaMaskWallet={connectMetaMask} connectYNXWallet={beginYNXWalletAuthorization} enablePrivateServices={signIn} walletSession={walletSession} walletBusy={walletBusy} walletError={walletError} privateSession={privateSession} standardWalletState={standardWalletState} selectedWalletKind={walletProviderKind.current} closeWalletChooser={closeWalletChooser} disconnectWallet={disconnectWallet} switchWalletAccount={switchWalletAccount}/>
+      <GuestExperience locale={locale} connectWallet={openWalletChooser} connectMetaMaskWallet={connectMetaMask} connectYNXWallet={beginYNXWalletAuthorization} enablePrivateServices={signIn} retryNativeWallet={retryNativeWalletAuthorization} disconnectNativeWallet={disconnectNativeWalletIdentity} walletSession={walletSession} walletBusy={walletBusy} walletError={walletError} privateSession={privateSession} standardWalletState={standardWalletState} selectedWalletKind={walletProviderKind.current} closeWalletChooser={closeWalletChooser} disconnectWallet={disconnectWallet} switchWalletAccount={switchWalletAccount}/>
     :
       <>
         <View style={s.stage}>

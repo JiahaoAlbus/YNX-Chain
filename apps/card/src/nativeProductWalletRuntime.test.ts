@@ -14,6 +14,9 @@ test("Card native identity maps every Product Session storage key through the in
   assert.match(secureStore,/\/\^\[\\w.\-\]\+\$\/\.test\(key\)/);
   assert.match(runtime,/mappedStorageKey\(platform,key\)/);
   assert.match(runtime,/Existing Card native identity storage is invalid; it was not replaced/);
+  assert.match(runtime,/let nativeIdentityStorageUncertain=false/);
+  assert.match(runtime,/if\(nativeIdentityStorageUncertain\)throw/);
+  assert.match(runtime,/nativeIdentityStorageUncertain=true/);
 });
 
 test("Card native controller is single-flight, serializes SDK mutations, and cancels stale callbacks",()=>{

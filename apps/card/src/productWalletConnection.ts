@@ -19,6 +19,8 @@ export function createCardProductWalletConnection(capabilities:CardProductWallet
 }
 function serializedCoordinator(coordinator:WalletConnectionCoordinator):CardProductWalletConnection{
   let tail:Promise<void>=Promise.resolve();
+  let activeBegin:ProductSessionResult|null=null;
   const serial=(operation:()=>Promise<Readonly<Record<string,unknown>>>)=>{const run=tail.then(operation,operation);tail=run.then(()=>undefined,()=>undefined);return run;};
-  return Object.freeze({get current(){return coordinator.current},get storageKey(){return coordinator.storageKey},get connectionBinding(){return coordinator.connectionBinding},options:async()=>await coordinator.options(),beginYNX:async()=>await serial(()=>coordinator.beginYNX()),retryYNX:async()=>await serial(()=>coordinator.retryYNX()),handleReturn:async(url)=>await serial(()=>coordinator.handleReturn(url)),disconnect:async()=>await serial(()=>coordinator.disconnect()),setNetworkAvailable:available=>coordinator.setNetworkAvailable(available),enterGuest:()=>coordinator.enterGuest()});
+  const beginYNX=()=>{if(activeBegin)return activeBegin;const run=serial(()=>coordinator.beginYNX());activeBegin=run;void run.finally(()=>{if(activeBegin===run)activeBegin=null;});return run;};
+  return Object.freeze({get current(){return coordinator.current},get storageKey(){return coordinator.storageKey},get connectionBinding(){return coordinator.connectionBinding},options:async()=>await coordinator.options(),beginYNX,retryYNX:async()=>await serial(()=>coordinator.retryYNX()),handleReturn:async(url)=>await serial(()=>coordinator.handleReturn(url)),disconnect:async()=>await serial(()=>coordinator.disconnect()),setNetworkAvailable:available=>coordinator.setNetworkAvailable(available),enterGuest:()=>coordinator.enterGuest()});
 }
