@@ -112,6 +112,17 @@ runtime availability. Direct engine pause/resume calls do not establish that
 the OS delivered the adapter's lifecycle callbacks. Server request-ID
 idempotency is still required.
 
+The separate [Android HTTPS runtime test APK](android/tls-runtime-test/README.md)
+uses the same engine and the default Android/OkHttp client trust and hostname
+checks. Only that test application trusts its public test CA for `127.0.0.1`.
+Its seven cases cover fixture and policy checks, a valid TLS request, untrusted,
+wrong-host and expired certificates, and HTTPS redirects including a downgrade
+target. It does not install a system CA or modify the Wallet's trust settings.
+These checks establish local Android TLS behavior with synthetic certificates,
+not trust in a production endpoint, certificate pinning, or Expo lifecycle
+delivery. Run it separately from the HTTP suite; both packages contain only
+the original engine and their own test harness.
+
 ## iOS bridge candidate and measured boundary
 
 `YnxFaucetTransportModule.swift` contains a Foundation bridge core plus the actual
