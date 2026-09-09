@@ -21,9 +21,12 @@ test("Card native identity maps every Product Session storage key through the in
   assert.match(runtime,/if\(nativeIdentityStorageUncertain\)throw/);
   assert.match(runtime,/nativeIdentityStorageUncertain=true/);
   assert.match(runtime,/let protectedDeviceInitialization:Promise/);
-  assert.match(runtime,/if\(protectedDeviceInitialization\)return protectedDeviceInitialization/);
+  assert.match(runtime,/if\(protectedDeviceInitialization\)\{if\(existingDeviceOnly&&protectedDeviceInitializationPending&&protectedDeviceInitializationCreates\)throw/);
   assert.match(runtime,/Native identity storage became uncertain during initialization/);
   assert.match(runtime,/Native identity storage became uncertain before publication/);
+  assert.match(runtime,/existingDeviceOnly/);
+  assert.match(runtime,/No existing Card native identity is available for cold Wallet callback recovery/);
+  assert.match(runtime,/protectedDeviceInitializationPending/);
 });
 
 test("Card native controller is single-flight, serializes SDK mutations, and cancels stale callbacks",()=>{
@@ -40,6 +43,13 @@ test("Card native controller is single-flight, serializes SDK mutations, and can
   assert.match(runtime,/expectedLaunchLease/);
   assert.match(runtime,/launchLease\(\)!==expectedLaunchLease/);
   assert.match(app,/nativeProductWalletLease/);
+  assert.match(app,/recoverNativeProductWalletForCallback/);
+  assert.match(app,/const recoveryLease=\+\+nativeWalletLaunchLease\.current/);
+  assert.match(app,/connection=await recoverNativeProductWalletForCallback\(\)/);
+  assert.match(app,/getNativeProductWallet\(recoveryLease,true\)/);
+  assert.doesNotMatch(app.slice(app.indexOf("const recoverNativeProductWalletForCallback"),app.indexOf("const persistSimulationLedger")),/\.beginYNX\(|\.retryYNX\(|\.restore\(/);
+  assert.match(app,/const handleURLRef=useRef\(handleURL\),refreshRef=useRef\(refresh\)/);
+  assert.match(app,/Linking\.getInitialURL\(\)\.then\(url=>\{if\(url\)void handleURLRef\.current\(url\);\}\)/);
   assert.match(app,/getNativeProductWallet\(lease\)/);
   assert.match(app,/nativeWalletLaunchLease\.current!==lease/);
   assert.match(app,/productWallet\.current=null;productWalletPromise\.current=null/);

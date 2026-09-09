@@ -74,19 +74,27 @@ export default function App(){
   const walletProvider=useRef<Eip1193Provider|null>(null);
   const walletProviderKind=useRef<WalletProviderKind|null>(null);
   const pendingAuthorization=useRef<PendingAuthorizationRequest|null>(null);
-  const getNativeProductWallet=async(lease:number):Promise<CardProductWalletConnection>=>{
+  const getNativeProductWallet=async(lease:number,existingDeviceOnly=false):Promise<CardProductWalletConnection>=>{
     if(Platform.OS==="web")throw new Error("Native Product Session is unavailable in a browser.");
     const active=()=>mounted.current&&!nativeWalletCallbackBlocked.current&&nativeWalletLaunchLease.current===lease;
     if(!active())throw new Error("The native Wallet request lease expired before a controller was ready.");
     if(productWallet.current&&nativeProductWalletLease.current===lease)return productWallet.current;
     if(productWalletPromise.current&&nativeProductWalletPromiseLease.current===lease)return await productWalletPromise.current;
-    const created=createRuntimeCardProductWalletConnection({expectedLaunchLease:lease,launchLease:()=>active()?lease:0}).then(connection=>{
+    const created=createRuntimeCardProductWalletConnection({expectedLaunchLease:lease,existingDeviceOnly,launchLease:()=>active()?lease:0}).then(connection=>{
       if(!active())throw new Error("The native Wallet request lease expired before a controller was ready.");
       productWallet.current=connection;nativeProductWalletLease.current=lease;
       return connection;
     });
     productWalletPromise.current=created;nativeProductWalletPromiseLease.current=lease;
     try{return await created}finally{if(productWalletPromise.current===created){productWalletPromise.current=null;nativeProductWalletPromiseLease.current=0;}}
+  };
+  const recoverNativeProductWalletForCallback=async():Promise<CardProductWalletConnection|null>=>{
+    if(Platform.OS==="web")return null;
+    if(productWallet.current)return productWallet.current;
+    if(nativeWalletOperation.current){try{await nativeWalletOperation.current;}catch{}if(productWallet.current)return productWallet.current;}
+    if(nativeWalletCallbackBlocked.current)return null;
+    const recoveryLease=++nativeWalletLaunchLease.current;
+    return await getNativeProductWallet(recoveryLease,true);
   };
   useEffect(()=>{
     if(Platform.OS!=="web")return;
@@ -130,8 +138,12 @@ export default function App(){
     }
     const callbackGeneration=nativeWalletGeneration.current;
     if(Platform.OS!=="web"&&nativeWalletCallbackBlocked.current){if(mounted.current){setPending(false);setWalletError("The native Wallet request was closed. Start a new request before accepting a callback.");}return;}
-    const connection=productWallet.current;
-    if(!connection&&Platform.OS!=="web"){if(mounted.current){setPending(false);setWalletError("No active native Wallet request matches this callback.");}return;}
+    let connection=productWallet.current;
+    if(!connection&&Platform.OS!=="web"){
+      try{connection=await recoverNativeProductWalletForCallback();}
+      catch(e){if(mounted.current){const classified=classifyCardWalletError(e);setPrivateSession({state:"PRIVATE_SERVICE_DEGRADED",...classified});setPending(false);setWalletError(classified.safeMessage);}return;}
+      if(!mounted.current||callbackGeneration!==nativeWalletGeneration.current||nativeWalletCallbackBlocked.current)return;
+    }
     if(!connection)return;
     setBusy(true);
     setError("");
@@ -145,6 +157,8 @@ export default function App(){
     }
   },[refresh,tr,walletSession]);
 
+  const handleURLRef=useRef(handleURL),refreshRef=useRef(refresh);
+  handleURLRef.current=handleURL;refreshRef.current=refresh;
   useEffect(()=>{
     mounted.current=true;
     void(async()=>{
@@ -159,12 +173,12 @@ export default function App(){
       setSession(savedSession);
       setSimulationLedger(savedLedger);
       pendingAuthorization.current=savedAuthorization;
-      if(savedSession)await refresh(savedSession);
+      if(savedSession)await refreshRef.current(savedSession);
     })();
-    const sub=Linking.addEventListener("url",event=>void handleURL(event.url));
-    void Linking.getInitialURL().then(url=>{if(url)void handleURL(url);});
+    const sub=Linking.addEventListener("url",event=>void handleURLRef.current(event.url));
+    void Linking.getInitialURL().then(url=>{if(url)void handleURLRef.current(url);});
     return()=>{nativeWalletGeneration.current+=1;nativeWalletLaunchLease.current+=1;nativeWalletCallbackBlocked.current=true;nativeWalletOperation.current=null;productWallet.current=null;productWalletPromise.current=null;nativeProductWalletLease.current=0;nativeProductWalletPromiseLease.current=0;mounted.current=false;sub.remove();};
-  },[handleURL,refresh]);
+  },[]);
 
   const parseAmount=(value:string)=>{
     const parsed=Number(value);

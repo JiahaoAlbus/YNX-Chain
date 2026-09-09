@@ -13,7 +13,7 @@ export type VerifiedProductSessionStorage=Readonly<{
 
 let sharedNativeStorageTail:Promise<void>=Promise.resolve();
 export class NativeStorageOwnerExpiredError extends Error{readonly code="NATIVE_STORAGE_OWNER_EXPIRED";constructor(){super("Native Product Session storage operation lease expired.");}}
-export function isNativeStorageOwnerExpiredError(value:unknown):value is NativeStorageOwnerExpiredError{return value instanceof NativeStorageOwnerExpiredError||(typeof value==="object"&&value!==null&&(value as {code?:unknown}).code==="NATIVE_STORAGE_OWNER_EXPIRED");}
+export function isNativeStorageOwnerExpiredError(value:unknown):value is NativeStorageOwnerExpiredError{return value instanceof NativeStorageOwnerExpiredError;}
 
 export function createVerifiedProductSessionStorage(input:Readonly<{
   store:SecureStringStore;

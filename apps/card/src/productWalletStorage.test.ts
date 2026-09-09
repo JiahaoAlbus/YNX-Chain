@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import {createVerifiedProductSessionStorage} from "./productWalletStorage";
+import {createVerifiedProductSessionStorage,isNativeStorageOwnerExpiredError} from "./productWalletStorage";
 
 function fixture(input:Readonly<{dropSet?:boolean;dropDelete?:boolean}>={}){
   const records=new Map<string,string>();let uncertain=false;
@@ -40,4 +40,8 @@ test("Card shares native storage serialization across controllers and rejects st
   const newPending=fresh.set("pending","new-pending");releaseDelete?.();await assert.rejects(()=>oldRemove,/lease expired/);await newPending;
   await assert.rejects(()=>old.set("pending","old-pending"),/lease expired/);
   assert.equal(await fresh.get("pending"),"new-pending");
+});
+
+test("Card never classifies an arbitrary storage error code as an owner cancellation",()=>{
+  assert.equal(isNativeStorageOwnerExpiredError(Object.assign(new Error("native storage failed"),{code:"NATIVE_STORAGE_OWNER_EXPIRED"})),false);
 });
