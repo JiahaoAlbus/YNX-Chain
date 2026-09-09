@@ -11,7 +11,7 @@
     "generate-sbom": "node scripts/generate-sbom.mjs",
     "security-check": "node scripts/security-check.mjs",
     "typecheck": "node --stack_size=8192 ./node_modules/typescript/bin/tsc --noEmit",
-    "test": "tsx --test src/**/*.test.ts",
+    "test": "tsx --test src/**/*.test.ts && node --test test/card-native-callback.test.cjs",
     "bundle-check": "expo export --platform android --platform ios --output-dir dist",
     "check": "npm run security-check && npm run typecheck && npm test && npm run bundle-check"
   },
