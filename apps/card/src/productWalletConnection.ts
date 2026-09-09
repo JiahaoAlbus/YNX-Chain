@@ -4,7 +4,8 @@ import registry from "../vendor/product-session-registry-943a1693.json";
 export const CARD_PRODUCT_SESSION_V2_ORIGIN="https://wallet-auth.ynxweb4.com";
 export const CARD_PRODUCT_SESSION_V2_ROUTES=Object.freeze(["/v2/product-sessions/time","/v2/product-sessions/challenge","/v2/product-sessions/complete","/v2/product-sessions/introspect","/v2/product-sessions/revoke"] as const);
 export const CARD_NATIVE_IDENTITY_SCOPES=Object.freeze(["account:read"] as const);
-export type CardProductWalletConnection=WalletConnectionCoordinator;
+type ProductSessionResult=Promise<Readonly<Record<string,unknown>>>;
+export type CardProductWalletConnection=Readonly<{readonly current:Readonly<Record<string,unknown>>;readonly storageKey:string;readonly connectionBinding:Readonly<{productId:string;platform:string;applicationId:string}>;options:()=>ProductSessionResult;beginYNX:()=>ProductSessionResult;retryYNX:()=>ProductSessionResult;handleReturn:(url:string)=>ProductSessionResult;disconnect:()=>ProductSessionResult;setNetworkAvailable:(available:boolean)=>Readonly<Record<string,unknown>>;enterGuest:()=>Readonly<Record<string,unknown>>;}>;
 
 type Device=Readonly<{id:string;key:string;sign:(input:Readonly<{purpose:"challenge"|"http-proof";algorithm:"p256-sha256";deviceKey:string;payload:string}>)=>Promise<string>}>
 type ProtectedStorage=Readonly<{securityLevel:"os-protected";get:(key:string)=>Promise<string|null>;set:(key:string,value:string)=>Promise<void>;remove:(key:string)=>Promise<void>}>;
@@ -14,5 +15,10 @@ export type CardProductWalletCapabilities=Readonly<{platform:"ios"|"android";wal
 export function createCardProductWalletConnection(capabilities:CardProductWalletCapabilities):CardProductWalletConnection{
   const gateway=new ProductSessionGatewayFetchAdapter({endpoint:CARD_PRODUCT_SESSION_V2_ORIGIN,fetch:capabilities.fetch,walletInstalled:capabilities.walletInstalled,schemeRegistered:capabilities.schemeRegistered,timeoutMs:10_000});
   const sessionClient=new RecoverableProductSessionClient({registry,productId:"card",platform:capabilities.platform,storage:capabilities.storage,gateway,device:{...capabilities.device,scopes:CARD_NATIVE_IDENTITY_SCOPES,purpose:"Read the YNX Wallet identity for YNX Card Testnet simulation. This does not create a card, funding authority, or payment authority."},tokenFactory:capabilities.tokenFactory,clock:capabilities.clock});
-  return new WalletConnectionCoordinator({registry,productId:"card",sessionClient,scope:globalThis,discoveryWaitMs:0,openWallet:capabilities.openWallet,openTimeoutMs:10_000});
+  return serializedCoordinator(new WalletConnectionCoordinator({registry,productId:"card",sessionClient,scope:globalThis,discoveryWaitMs:0,openWallet:capabilities.openWallet,openTimeoutMs:10_000}));
+}
+function serializedCoordinator(coordinator:WalletConnectionCoordinator):CardProductWalletConnection{
+  let tail:Promise<void>=Promise.resolve();
+  const serial=(operation:()=>Promise<Readonly<Record<string,unknown>>>)=>{const run=tail.then(operation,operation);tail=run.then(()=>undefined,()=>undefined);return run;};
+  return Object.freeze({get current(){return coordinator.current},get storageKey(){return coordinator.storageKey},get connectionBinding(){return coordinator.connectionBinding},options:async()=>await coordinator.options(),beginYNX:async()=>await serial(()=>coordinator.beginYNX()),retryYNX:async()=>await serial(()=>coordinator.retryYNX()),handleReturn:async(url)=>await serial(()=>coordinator.handleReturn(url)),disconnect:async()=>await serial(()=>coordinator.disconnect()),setNetworkAvailable:available=>coordinator.setNetworkAvailable(available),enterGuest:()=>coordinator.enterGuest()});
 }

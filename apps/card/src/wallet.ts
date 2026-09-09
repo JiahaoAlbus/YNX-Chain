@@ -42,7 +42,7 @@ export type PendingAuthorizationRequest=Readonly<{request:AuthorizationRequest}>
 export type CardSession=Readonly<{token:string;sessionBinding:string;requestDigest:string;account:string;productClientId:"ynx-card-v1";bundleId:"com.ynxweb4.card";scopes:readonly string[];issuedAt:string;expiresAt:string;deviceId:string}>;
 export type Eip1193WalletSession=Readonly<{address:string;chainId:string;connectedAt:string;provider:"eip1193"}>;
 export type CardWalletError=Readonly<{code:string;retryable:boolean;safeMessage:string;monitoringClass:string;userAction:string;requestId?:string;traceId?:string;errorId?:string}>;
-export type ProductSessionRuntime=Readonly<{state:"PRODUCT_SESSION_READY";session:CardSession}>|Readonly<{state:"PRIVATE_SESSION_V2_CONNECTED_SOURCE_ONLY";sessionBinding:string;expiresAt:string;account:string}>|Readonly<{state:"PRIVATE_SERVICE_DEGRADED"}&CardWalletError>;
+export type ProductSessionRuntime=Readonly<{state:"PRODUCT_SESSION_READY";session:CardSession}>|Readonly<{state:"PRIVATE_SESSION_V2_CONNECTED_SOURCE_ONLY";sessionBinding:string;expiresAt:string;account:string}>|Readonly<{state:"PRIVATE_SERVICE_DEGRADED";actions?:readonly string[];revocationPending?:boolean}&CardWalletError>;
 export type TestnetTopupIntent=Readonly<{id:string;chainId:string;recipient:string;amountWei:string;minConfirmations:number;expiresAt:string}>;
 export type TopupEvidence=Readonly<{chainId:string;txHash:string;blockNumber:string;blockHash:string;from:string;to:string;valueWei:string;confirmations:number}>;
 
@@ -87,7 +87,7 @@ export async function enhanceCardProductSession(standard:Eip1193WalletSession,co
   return Object.freeze({state:"PRIVATE_SERVICE_DEGRADED",...classifyCardWalletError({code:outcome.code??"PRODUCT_SESSION_GATEWAY_UNREACHABLE",requestId:outcome.requestId,traceId:outcome.traceId,errorId:outcome.errorId})});
 }
 
-const ERROR_ALIASES:Readonly<Record<string,string>>=Object.freeze({WALLET_USER_REJECTED:"USER_REJECTED",WALLET_UNAUTHORIZED:"UNAUTHORIZED",WALLET_UNSUPPORTED_METHOD:"UNSUPPORTED_METHOD",WALLET_DISCONNECTED:"PROVIDER_DISCONNECTED",WALLET_CHAIN_DISCONNECTED:"CHAIN_DISCONNECTED",WRONG_CHAIN:"UNKNOWN_CHAIN",ACCOUNT_REQUIRED:"UNAUTHORIZED",PRODUCT_SESSION_GATEWAY_UNREACHABLE:"GATEWAY_UNAVAILABLE",PRODUCT_SESSION_DEVICE_PROOF_REJECTED:"INVALID_DEVICE_PROOF",PRODUCT_SESSION_EXPIRED_OR_CLOCK_SKEW:"PRODUCT_SESSION_EXPIRED",CALLBACK_PENDING_MISSING:"CALLBACK_MISMATCH",CALLBACK_MISMATCH:"CALLBACK_MISMATCH",CALLBACK_REPLAY:"REPLAY",CALLBACK_EXPIRED:"PRODUCT_SESSION_EXPIRED"});
+const ERROR_ALIASES:Readonly<Record<string,string>>=Object.freeze({WALLET_USER_REJECTED:"USER_REJECTED",WALLET_UNAUTHORIZED:"UNAUTHORIZED",WALLET_UNSUPPORTED_METHOD:"UNSUPPORTED_METHOD",WALLET_DISCONNECTED:"PROVIDER_DISCONNECTED",WALLET_CHAIN_DISCONNECTED:"CHAIN_DISCONNECTED",WRONG_CHAIN:"UNKNOWN_CHAIN",ACCOUNT_REQUIRED:"UNAUTHORIZED",PRODUCT_SESSION_GATEWAY_UNREACHABLE:"GATEWAY_UNAVAILABLE",PRODUCT_SESSION_DEVICE_PROOF_REJECTED:"INVALID_DEVICE_PROOF",PRODUCT_SESSION_EXPIRED_OR_CLOCK_SKEW:"PRODUCT_SESSION_EXPIRED",CLOCK_UNAVAILABLE:"GATEWAY_UNAVAILABLE",NETWORK_UNAVAILABLE:"GATEWAY_UNAVAILABLE",REVOCATION_PENDING:"GATEWAY_UNAVAILABLE",CALLBACK_PENDING_MISSING:"CALLBACK_MISMATCH",CALLBACK_MISMATCH:"CALLBACK_MISMATCH",CALLBACK_REPLAY:"REPLAY",CALLBACK_EXPIRED:"PRODUCT_SESSION_EXPIRED"});
 
 export function classifyCardWalletError(input:unknown):CardWalletError{
   const source=object(input)?input:{};
