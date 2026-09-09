@@ -59,3 +59,92 @@ test("Connected Apps renders the exact device logout reason distinctly from perm
   }
   for(const locale of SUPPORTED_LOCALES)assert.notEqual(render(locale,"device-logout"),"device-logout");
 });
+
+const faucetDetailCopy = [
+  "Test YNXT",
+  "Test YNXT requests are not available in this version.",
+  "View saved request",
+  "Reading saved request…",
+  "Saved request unavailable. Sending is paused.",
+  "Review test YNXT request",
+  "Recipient account",
+  "Requested amount",
+  "Not sent",
+  "Submit this request",
+  "Sending this request…",
+  "Result not confirmed",
+  "This request may already have been processed. Keep its original ID and amount.",
+  "Review and retry original request",
+  "Too many requests. Retry the original request manually later.",
+  "Request received",
+  "The request was received. Your balance has not been verified.",
+  "Check block receipt",
+  "Saved receipt copy — check again",
+  "The node saved the pending request. No block receipt has been verified yet.",
+  "Block receipt checked",
+  "The node's local snapshot covers this transaction. Balance and consensus finality have not been verified.",
+  "Confirm receipt reviewed",
+  "Close and keep request",
+  "The original request does not match the service record. Keep it for review.",
+  "The service cannot verify the original receipt yet. Keep this request.",
+  "Request ID",
+  "Transaction hash",
+  "Request nonce",
+  "Block number",
+  "Block hash",
+  "Snapshot block number",
+  "Snapshot block hash",
+  "Snapshot integrity",
+  "RPC origin",
+  "Receipt details",
+  "No saved request",
+  "Request amount will be shown when this service becomes available.",
+  "Receipt review saved.",
+  "This is a testnet request. Test YNXT has no monetary value.",
+  "No block receipt has been verified yet.",
+  "This request is still pending verification.",
+  "Network",
+  "Network fee",
+  "Close and reopen this request to continue.",
+  "The request could not be checked. Keep the original request and try again manually.",
+  "Preparing request…",
+  "Checking block receipt…",
+  "Saving receipt review…",
+] as const;
+
+test("every Faucet flow message and receipt label has explicit Chinese and Arabic copy",()=>{
+  assert.equal(faucetDetailCopy.length,49);
+  for(const key of faucetDetailCopy){
+    assert.equal(walletCopy("en",key),key);
+    for(const locale of ["zh-Hans","ar"] as const){
+      const text=walletCopy(locale,key);
+      assert.notEqual(text,key,`${locale}: ${key} must not fall back to English`);
+      assert.match(text,locale==="ar"?/\p{Script=Arabic}/u:/\p{Script=Han}/u);
+      assert.doesNotMatch(text,/[\u202a-\u202e\u2066-\u2069]/u);
+      if(key.includes("YNXT"))assert.ok(text.includes("YNXT"),`${locale}: preserve the asset identifier`);
+    }
+  }
+});
+
+test("Faucet unsent, unknown, received, checked and review-saved states stay distinct",()=>{
+  const states=["Not sent","Result not confirmed","Request received","Block receipt checked","Receipt review saved.","No saved request","Saved request unavailable. Sending is paused.","Preparing request…","Checking block receipt…","Saving receipt review…"] as const;
+  for(const locale of ["en","zh-Hans","ar"] as const){
+    assert.equal(new Set(states.map(key=>walletCopy(locale,key))).size,states.length);
+  }
+  assert.match(walletCopy("zh-Hans","Receipt review saved."),/查看记录/);
+  assert.match(walletCopy("ar","Receipt review saved."),/سجل مراجعة/);
+});
+
+test("Faucet availability and receipt copy retain the unknown amount and limited truth claims",()=>{
+  const amount="Request amount will be shown when this service becomes available.";
+  for(const locale of ["en","zh-Hans","ar"] as const){
+    assert.doesNotMatch(walletCopy(locale,amount),/[0-9\u0660-\u0669\u06f0-\u06f9]/u);
+    assert.notEqual(walletCopy(locale,"No block receipt has been verified yet."),walletCopy(locale,"Block receipt checked"));
+  }
+  assert.match(walletCopy("zh-Hans","The request was received. Your balance has not been verified."),/余额尚未核对/);
+  assert.match(walletCopy("ar","The request was received. Your balance has not been verified."),/لم يتم التحقق من رصيدك/);
+  assert.match(walletCopy("zh-Hans","The node's local snapshot covers this transaction. Balance and consensus finality have not been verified."),/余额和共识最终性尚未核验/);
+  assert.match(walletCopy("ar","The node's local snapshot covers this transaction. Balance and consensus finality have not been verified."),/لم يُتحقق من الرصيد أو نهائية الإجماع/);
+  assert.match(walletCopy("zh-Hans","This is a testnet request. Test YNXT has no monetary value."),/没有货币价值/);
+  assert.match(walletCopy("ar","This is a testnet request. Test YNXT has no monetary value."),/لا توجد قيمة مالية/);
+});

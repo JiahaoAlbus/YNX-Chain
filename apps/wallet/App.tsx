@@ -16,6 +16,7 @@ import { NativeChainClient, loadNativeChainState, type NativeChainState } from "
 import { NativeTransferOutbox, type NativeTransferOutboxEntry } from "./src/chain/nativeTransferOutbox";
 import { createPaymentURI, PaymentRequestError } from "./src/chain/paymentRequest";
 import { PaymentRecipientInput, type PaymentRecipientInputAttempt } from "./src/state/paymentRecipientInput";
+import { FaucetFlow, faucetStatusCopy, productionFaucetConfiguration, type FaucetAction } from "./src/state/faucetFlow";
 import { EvmSimulationClient, type EvmSimulationResult } from "./src/chain/evmSimulation";
 import { buildWalletControlView, type CapitalReview } from "./src/control/controlSurface";
 import { controlCopy } from "./src/control/controlCopy";
@@ -175,6 +176,7 @@ function EmptyWallet({locale,create,importAccount,recover}:{locale:WalletLocale;
 function Locked({locale,account,busy,unlock,recovery}:{locale:WalletLocale;account:WalletAccount;busy:boolean;unlock:()=>void;recovery:()=>void}){return <Screen><View style={styles.heroIcon}><Lock color={ACTIVE_COLORS.blue} size={32}/></View><Text style={styles.eyebrow}>{translate(locale,"walletLocked")}</Text><Text style={styles.title}>{account.label}</Text><Text style={styles.address}>{short(account.account)}</Text><Button label={busy?translate(locale,"checkingBiometrics"):translate(locale,"unlock")} disabled={busy} onPress={unlock} icon={<Fingerprint color={ACTIVE_COLORS.white} size={19}/>}/><SecondaryButton label={translate(locale,"lostDeviceRecovery")} onPress={recovery}/><Text style={styles.footnote}>{translate(locale,"recovery")}</Text></Screen>}
 
 function Dashboard({locale,manifest,selected,select,add,create,lock,onManifest,onMutationError}:{locale:WalletLocale;manifest:WalletManifest;selected:WalletAccount;select:(v:string)=>void;add:()=>void;create:()=>void;lock:()=>void;onManifest:(v:WalletManifest)=>void;onMutationError:(text:string)=>void}){
+  const [faucet,setFaucet]=useState(false);
   const [accountsOpen,setAccountsOpen]=useState(false),[copied,setCopied]=useState(false),[qr,setQR]=useState(false),[send,setSend]=useState(false),[evm,setEvm]=useState(false),[center,setCenter]=useState(false),[controls,setControls]=useState(false),[remove,setRemove]=useState(false),[rename,setRename]=useState(false),[recovery,setRecovery]=useState(false),[auditOpen,setAuditOpen]=useState(false),[records,setRecords]=useState<readonly AuthorizationAuditRecord[]>([]),[auditError,setAuditError]=useState<string|null>(null);
   const cancelClipboardClear=useRef<null|(()=>void)>(null);
   const [chainState,setChainState]=useState<NativeChainState>({phase:"loading",activityPhase:"loading",activity:[]});
@@ -195,6 +197,7 @@ function Dashboard({locale,manifest,selected,select,add,create,lock,onManifest,o
     {accountsOpen?<View style={styles.accountMenu}>{manifest.accounts.map((item)=><Pressable accessibilityRole="radio" accessibilityState={{checked:item.account===selected.account}} accessibilityLabel={`${translate(locale,"account")} ${item.label}`} key={item.account} onPress={()=>{select(item.account);setAccountsOpen(false)}} style={styles.accountRow}><View><Text style={styles.accountLabel}>{item.label}</Text><Text style={styles.smallAddress}>{short(item.account)}</Text></View>{item.account===selected.account?<Check color={ACTIVE_COLORS.blue}/>:null}</Pressable>)}<Pressable accessibilityLabel={translate(locale,"createAnother")} onPress={create} style={styles.accountRow}><Plus color={ACTIVE_COLORS.blue}/><Text style={styles.link}>{translate(locale,"createAnother")}</Text></Pressable><Pressable accessibilityLabel={translate(locale,"importAnother")} onPress={add} style={styles.accountRow}><KeyRound color={ACTIVE_COLORS.blue}/><Text style={styles.link}>{translate(locale,"importAnother")}</Text></Pressable></View>:null}
     <View style={styles.balanceCard}><Text style={styles.balanceLabel}>Native asset · authoritative testnet</Text><Text style={styles.balance}>{chainState.account?formatYNXT(locale,chainState.account.balance):"— YNXT"}</Text><Text style={styles.balanceMeta}>{chainState.phase==="loading"?"Loading balance and nonce from rpc.ynxweb4.com…":chainState.phase==="unrecorded"?"No on-chain account record yet. Receive testnet YNXT to get started. Sending becomes available after balance and nonce are confirmed.":chainState.phase==="failed"?`Balance unavailable: ${chainState.error}`:`Nonce ${chainState.account?.nonce} · ${chainState.activityPhase==="ready"?`${chainState.activity.length} matching transactions in the latest 25 chain transactions`:"Activity unavailable"}`}</Text></View>
     <View style={styles.quickRow}><Quick icon={<ArrowUpRight color={ACTIVE_COLORS.blue}/>} label={translate(locale,"send")} onPress={()=>setSend(true)}/><Quick icon={<QrCode color={ACTIVE_COLORS.blue}/>} label={translate(locale,"receive")} onPress={()=>setQR(true)}/><Quick icon={<History color={ACTIVE_COLORS.blue}/>} label={translate(locale,"activity")} onPress={()=>setCenter(true)}/></View>
+    <SecondaryButton label={walletCopy(locale,"Test YNXT")} onPress={()=>setFaucet(true)}/>
     <InfoCard title={translate(locale,"accountSafety")} body={selected.backupConfirmed?"Offline backup confirmed. System biometrics protect unlock, authorization, recovery viewing and deletion.":"Backup is not confirmed. Do not receive assets until the recovery key is stored offline."}/>
     <SecondaryButton label={copied?"Native ynx1 address copied":"Copy native ynx1 address"} onPress={()=>void copy()}/>
     <SecondaryButton label="Rename account" onPress={()=>setRename(true)}/>
@@ -208,6 +211,7 @@ function Dashboard({locale,manifest,selected,select,add,create,lock,onManifest,o
     <DangerButton label="Remove account from this device" onPress={()=>setRemove(true)}/>
     <Modal visible={qr} transparent animationType={MODAL_ANIMATION} onRequestClose={()=>setQR(false)}><Sheet title="Receive YNXT" close={()=>setQR(false)}><View style={styles.qr}><QRCodeView value={createPaymentURI(selected.account)} size={210} color={ACTIVE_COLORS.ink} backgroundColor={ACTIVE_COLORS.white}/></View><Text selectable style={styles.fullAddress}>{selected.account}</Text><Text style={styles.footnote}>Native network ynx_6423-1 · EVM chain ID 6423. An 0x address is shown only inside an explicit EVM compatibility view.</Text></Sheet></Modal>
     <SendModal visible={send} account={selected} close={()=>setSend(false)} onSent={()=>void refreshChain()}/>
+    {faucet?<FaucetModal account={selected} close={()=>setFaucet(false)}/>:null}
     <EvmCompatibilityModal visible={evm} account={selected} close={()=>setEvm(false)}/>
     <WalletCenter visible={center} account={selected} chainState={chainState} close={()=>setCenter(false)} openAudit={()=>void openAudit()} retry={()=>void refreshChain()}/>
     <WalletControlCenter visible={controls} locale={locale} close={()=>setControls(false)}/>
@@ -237,6 +241,87 @@ function SetupModal({mode,accounts,pending,close,saved,busy,setBusy,setError}:{m
     finally{if(!lease||lease.ownsScope()){setSecret("");setRestoring(null);setBusy(false)}lease?.finish()}
   };
   return <Modal visible={mode!=="closed"} transparent animationType={MODAL_ANIMATION} onRequestClose={dismiss}>{mode==="create"&&pending?<RecoverySheet pending={pending} confirmation={confirmation} setConfirmation={setConfirmation} busy={busy} save={()=>void persistCreate()} close={dismiss}/>:<Sheet title={walletCopy(locale,mode==="recover"?"Recover Wallet":"Import account")} close={dismiss}><Text style={styles.sheetText}>{walletCopy(locale,mode==="recover"?"Replacement-device recovery restores only the native account. Connected Apps, sessions, device approvals and audit history must be re-created.":"Enter a 64-character YNX recovery key. Import requires system biometrics and does not restore product device sessions.")}</Text>{existing?<><ReviewRow label={translate(locale,"account")} value={`${existing.label}\n${existing.account}`}/><InfoCard title={walletCopy(locale,"This account is already stored in Wallet")} body={walletCopy(locale,mode==="recover"?"Confirm below to restore key protection for this exact existing account. Its label, account list and app sessions will not be replaced.":"Ordinary import cannot replace this account's protected key. Open account recovery and enter the offline key again to review an explicit restoration.")}/></>:<Field label={walletCopy(locale,"Account label")} value={label} onChangeText={setLabel}/>}<Field label={walletCopy(locale,"Recovery key")} value={secret} onChangeText={setSecret} secure multiline/>{mode==="recover"&&existing?<Button label={walletCopy(locale,"Restore key protection for this existing account")} disabled={busy||review.kind!=="existing"} onPress={()=>void persistRestore()}/>:existing?<SecondaryButton label={walletCopy(locale,"Open account recovery")} disabled={busy} onPress={()=>{dismiss();requestRecovery()}}/>:<Button label={walletCopy(locale,mode==="recover"?"Recover into secure storage":"Import into secure storage")} disabled={busy||review.kind!=="new"} onPress={()=>void persistImport()}/>}</Sheet>}</Modal>
+}
+
+function FaucetModal({account,close}:{account:WalletAccount;close:()=>void}){
+  const locale=useContext(WalletLocaleContext),operations=useWalletOperations();
+  const flow=useMemo(()=>new FaucetFlow({account:account.account,operations,storage:platformSecureStorage,
+    health:platformStorageHealth,randomBytesAsync:getRandomBytesAsync,configuration:productionFaucetConfiguration()}),[account.account,operations]);
+  const [,setRender]=useState(0),[details,setDetails]=useState(false);
+  // Replacing a context invalidates the old owner during render, before effects.
+  // Usually the Dashboard account key and synchronous operations event do this.
+  const renderedFlow=useRef(flow);
+  if(renderedFlow.current!==flow){renderedFlow.current.cancel();renderedFlow.current=flow}
+  useEffect(()=>{
+    const unsubscribe=flow.subscribe(()=>setRender(value=>value+1));
+    const detach=flow.attach();
+    const appState=AppState.addEventListener("change",next=>{if(next!=="active")flow.cancel()});
+    if(AppState.currentState==="active")void flow.load();else flow.cancel();
+    return()=>{unsubscribe();appState.remove();detach()};
+  },[flow]);
+  const state=flow.snapshot(),view=state.view,entry=view?.entry,status=view?faucetStatusCopy(view):null;
+  const dismiss=()=>{flow.cancel();close()};
+  const act=(action:FaucetAction)=>{void flow.act(action)};
+  const textDirection={textAlign:isRTL(locale)?"right" as const:"left" as const,writingDirection:isRTL(locale)?"rtl" as const:"ltr" as const};
+  const busyText=state.busy==="review"?"Preparing request…":state.busy==="submit"?"Sending this request…":state.busy==="check"?"Checking block receipt…":state.busy==="complete"?"Saving receipt review…":"Reading saved request…";
+  const amount=entry?.amount??flow.amount();
+  // These are already parser-validated controller fields. Only render complete
+  // public values; neither balances nor an unbound hash can supply receipt data.
+  const receipt=view?.evidence?.receipt as Readonly<Record<string,unknown>>|undefined;
+  const proof=receipt?.ynxDurability as Readonly<Record<string,unknown>>|undefined;
+  return <Modal visible transparent animationType={MODAL_ANIMATION} onRequestClose={dismiss}>
+    <Sheet title={walletCopy(locale,"Test YNXT")} close={dismiss}>
+      <View style={{direction:isRTL(locale)?"rtl":"ltr",gap:14}}>
+        <Text style={[styles.sheetText,textDirection]}>{walletCopy(locale,"This is a testnet request. Test YNXT has no monetary value.")}</Text>
+        {!state.available?<Text accessibilityRole="alert" style={[styles.sheetText,textDirection]}>{walletCopy(locale,"Test YNXT requests are not available in this version.")}</Text>:null}
+        <FaucetDetail label="Recipient account" value={account.account}/>
+        <FaucetDetail label="Network" value="YNX Testnet · ynx_6423-1"/>
+        {amount!==null?<FaucetDetail label="Requested amount" value={formatYNXT(locale,amount)}/>:<Text style={[styles.muted,textDirection]}>{walletCopy(locale,"Request amount will be shown when this service becomes available.")}</Text>}
+        {state.busy?<View accessibilityState={{busy:true}}><ActivityIndicator color={ACTIVE_COLORS.blue}/><Text accessibilityLiveRegion="polite" style={[styles.sheetText,textDirection]}>{walletCopy(locale,busyText)}</Text></View>:null}
+        {state.phase==="paused"?<Text accessibilityRole="alert" style={[styles.sheetText,textDirection]}>{walletCopy(locale,"Close and reopen this request to continue.")}</Text>:null}
+        {state.error?<Text accessibilityRole="alert" style={[styles.error,textDirection]}>{walletCopy(locale,state.error==="unavailable"?"Test YNXT requests are not available in this version.":state.error==="read"||state.error==="storage"?"Saved request unavailable. Sending is paused.":"The request could not be checked. Keep the original request and try again manually.")}</Text>:null}
+        {status?<View style={{gap:6}}><Text accessibilityLiveRegion="polite" style={[styles.infoTitle,textDirection]}>{walletCopy(locale,status.title)}</Text><Text style={[styles.sheetText,textDirection]}>{walletCopy(locale,status.body)}</Text></View>:null}
+        {entry?<>
+          <FaucetDetail label="Request ID" value={entry.requestId}/>
+          <FaucetDetail label="Transaction hash" value={entry.transactionHash}/>
+          {entry.acknowledgement?<>
+            <FaucetDetail label="Request nonce" value={String(entry.acknowledgement.transaction.nonce)}/>
+            <FaucetDetail label="Network fee" value={formatYNXT(locale,entry.acknowledgement.transaction.fee)}/>
+            <FaucetButton label={walletCopy(locale,"Check block receipt")} disabled={!flow.allowed("check")} onPress={()=>act("check")}/>
+            {view?.verification==="fresh-read"?<FaucetButton label={walletCopy(locale,"Confirm receipt reviewed")} disabled={!flow.allowed("complete")} onPress={()=>act("complete")}/>:null}
+          </>:<FaucetButton label={walletCopy(locale,entry.phase==="prepared"&&entry.attempts===0?"Submit this request":"Review and retry original request")} disabled={!flow.allowed("submit")} onPress={()=>act("submit")}/>}
+          {receipt&&proof?<>
+            <Pressable accessibilityRole="button" accessibilityLabel={walletCopy(locale,"Receipt details")} accessibilityState={{expanded:details}} onPress={()=>setDetails(value=>!value)} style={styles.secondaryButton}><Text style={[styles.secondaryText,{flexShrink:1},textDirection]}>{walletCopy(locale,"Receipt details")}</Text></Pressable>
+            {details?<View style={{gap:12}}>
+              {view?.verification!=="fresh-read"?<Text style={[styles.sheetText,textDirection]}>{walletCopy(locale,"Saved receipt copy — check again")}</Text>:null}
+              <FaucetDetail label="Block number" value={String(receipt.blockNumber)}/>
+              <FaucetDetail label="Block hash" value={String(receipt.blockHash)}/>
+              <FaucetDetail label="Snapshot block number" value={String(proof.checkpointBlockNumber)}/>
+              <FaucetDetail label="Snapshot block hash" value={String(proof.checkpointBlockHash)}/>
+              <FaucetDetail label="Snapshot integrity" value={String(proof.snapshotIntegrity)}/>
+              <FaucetDetail label="RPC origin" value={String(view?.evidence?.origin)}/>
+            </View>:null}
+          </>:null}
+        </>:<FaucetButton label={walletCopy(locale,"Review test YNXT request")} disabled={!flow.allowed("review")} onPress={()=>act("review")}/>}
+        <FaucetButton secondary label={walletCopy(locale,"Close and keep request")} onPress={dismiss}/>
+      </View>
+    </Sheet>
+  </Modal>;
+}
+
+function FaucetButton({label,onPress,disabled=false,secondary=false}:{label:string;onPress:()=>void;disabled?:boolean;secondary?:boolean}){
+  return <Pressable accessibilityRole="button" accessibilityLabel={label} accessibilityState={{disabled}} disabled={disabled} onPress={onPress}
+    style={({pressed})=>[secondary?styles.secondaryButton:styles.button,pressed&&styles.pressed,disabled&&styles.disabled]}>
+    <Text style={[secondary?styles.secondaryText:styles.buttonText,{flexShrink:1,textAlign:"center"}]}>{label}</Text>
+  </Pressable>;
+}
+
+function FaucetDetail({label,value}:{label:Parameters<typeof walletCopy>[1];value:string}){
+  const locale=useContext(WalletLocaleContext);
+  return <View style={{gap:5,width:"100%"}}>
+    <Text style={[styles.reviewLabel,{width:"100%",textAlign:isRTL(locale)?"right":"left",writingDirection:isRTL(locale)?"rtl":"ltr"}]}>{walletCopy(locale,label)}</Text>
+    <Text selectable style={[styles.reviewValue,{width:"100%",flex:0,textAlign:"left",writingDirection:"ltr"}]}>{value}</Text>
+  </View>;
 }
 
 function SendModal({visible,account,close,onSent}:{visible:boolean;account:WalletAccount;close:()=>void;onSent:()=>void}){
