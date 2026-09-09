@@ -40,10 +40,10 @@ export function verifyChainlistCandidate({candidateDir, sourceRoot, submission =
   if (manifest.schema !== CHAINLIST_CANDIDATE_SCHEMA || !/^[0-9a-f]{40}$/.test(manifest.gitCommit)) throw new Error("Chainlist manifest schema or Git commit is invalid");
   const currentCommit = execFileSync("git", ["rev-parse", "HEAD"], {cwd: sources.root, encoding: "utf8"}).trim();
   if (manifest.gitCommit !== currentCommit) throw new Error("Chainlist manifest Git commit differs from source checkout");
-  if (canonicalJSON(manifest.status) !== canonicalJSON(buildCandidateStatus())) throw new Error("Chainlist candidate status makes an unsupported claim");
+  if (canonicalJSON(manifest.status) !== canonicalJSON(buildCandidateStatus(sources.collision.value, sources.metadata.value))) throw new Error("Chainlist candidate status makes an unsupported claim");
 
   const expectedBodies = new Map([
-    ["candidate-status.json", Buffer.from(canonicalJSON(buildCandidateStatus()))],
+    ["candidate-status.json", Buffer.from(canonicalJSON(buildCandidateStatus(sources.collision.value, sources.metadata.value)))],
     ["collision-evidence.json", sources.collision.body],
     ["eip155-6423.json", sources.metadata.body],
     ["wallet-add-ethereum-chain.json", Buffer.from(canonicalJSON(buildWalletAddEthereumChain(sources.metadata.value)))],

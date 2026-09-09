@@ -11,7 +11,7 @@
     "properties": [
       {
         "name": "ynx:sourceCommit",
-        "value": "49917c05931978842062eccbd21d3d3b7125c31c"
+        "value": "230989b778606ffd4df7fe3cb1e18ab07fd4a152"
       },
       {
         "name": "ynx:coverage",
@@ -7107,8 +7107,8 @@
     {
       "type": "library",
       "name": "@xmldom/xmldom",
-      "version": "0.8.13",
-      "purl": "pkg:npm/%40xmldom%2Fxmldom@0.8.13",
+      "version": "0.8.15",
+      "purl": "pkg:npm/%40xmldom%2Fxmldom@0.8.15",
       "properties": [
         {
           "name": "ynx:source",
@@ -7116,7 +7116,7 @@
         },
         {
           "name": "pnpm:integrity",
-          "value": "sha512-KRYzxepc14G/CEpEGc3Yn+JKaAeT63smlDr+vjB8jRfgTBBI9wRj/nkQEO+ucV8p8I9bfKLWp37uHgFrbntPvw=="
+          "value": "sha512-/5NV/vDALVFDXgLmfsy9TRCBlKwO2LNBFzpzvb9iIj+jR+eSc6DLYYvVOdivT/jm7MtU6TebYuRmzEOI7w40UA=="
         },
         {
           "name": "ynx:source",
@@ -7127,8 +7127,8 @@
     {
       "type": "library",
       "name": "@xmldom/xmldom",
-      "version": "0.9.10",
-      "purl": "pkg:npm/%40xmldom%2Fxmldom@0.9.10",
+      "version": "0.9.12",
+      "purl": "pkg:npm/%40xmldom%2Fxmldom@0.9.12",
       "properties": [
         {
           "name": "ynx:source",
@@ -7136,7 +7136,7 @@
         },
         {
           "name": "pnpm:integrity",
-          "value": "sha512-A9gOqLdi6cV4ibazAjcQufGj0B1y/vDqYrcuP6d/6x8P27gRS8643Dj9o1dEKtB6O7fwxb2FgBmJS2mX7gpvdw=="
+          "value": "sha512-5AXjrcMClTryPe9LgZrygpB1lj7s0S9E0+W+AHaVKAVyHanafK86iPSvG5xHVSp/jC+VH1UXu0TAEmY279xH7A=="
         },
         {
           "name": "ynx:source",
