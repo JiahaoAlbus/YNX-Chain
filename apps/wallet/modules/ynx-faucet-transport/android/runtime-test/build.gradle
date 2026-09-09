@@ -1,0 +1,46 @@
+// Standalone, self-instrumenting QA APK. This project is NOT included by Expo
+// autolinking or the Wallet settings.gradle and cannot change the Wallet APK.
+plugins {
+  id 'com.android.application' version '8.12.0'
+  id 'org.jetbrains.kotlin.android' version '2.1.20'
+}
+
+android {
+  namespace 'com.ynxweb4.faucettransport.runtimeqa'
+  compileSdk 36
+  defaultConfig {
+    applicationId 'com.ynxweb4.faucettransport.runtimeqa'
+    minSdk 26
+    targetSdk 36
+    versionCode 1
+    versionName '1-runtime-qa'
+  }
+  compileOptions {
+    sourceCompatibility JavaVersion.VERSION_17
+    targetCompatibility JavaVersion.VERSION_17
+  }
+  kotlinOptions { jvmTarget = '17' }
+  sourceSets {
+    main {
+      manifest.srcFile '../src/androidTest/AndroidManifest.xml'
+      res.srcDirs = ['../src/androidTest/res']
+      java {
+        srcDirs = []
+      }
+    }
+  }
+  buildTypes { debug { minifyEnabled false } }
+}
+
+// Kotlin source filters must be applied to Kotlin, not Android's Java set.
+kotlin.sourceSets.main.kotlin {
+  setSrcDirs(['../src/main/java', '../src/androidTest/java'])
+  include '**/BoundedHttpEngine.kt'
+  include '**/BoundedHttpRuntimeInstrumentation.kt'
+}
+
+dependencies {
+  implementation 'com.squareup.okhttp3:okhttp:4.9.2'
+  implementation 'com.squareup.okio:okio:3.16.0'
+  implementation 'org.jetbrains.kotlin:kotlin-stdlib:2.2.20'
+}
