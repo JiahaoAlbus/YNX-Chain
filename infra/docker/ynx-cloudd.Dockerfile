@@ -16,7 +16,9 @@ RUN CGO_ENABLED=0 go build \
 
 FROM alpine:3.22
 
-RUN apk add --no-cache ca-certificates \
+# Require the OpenSSL fix even when the base image contains older libraries.
+RUN apk add --no-cache --upgrade ca-certificates \
+      'libcrypto3>=3.5.8-r0' 'libssl3>=3.5.8-r0' \
     && addgroup -S -g 10001 ynx \
     && adduser -S -D -H -u 10001 -G ynx ynx \
     && mkdir -p /var/lib/ynx-cloud /opt/ynx/cloud-web /opt/ynx/docs-web \
