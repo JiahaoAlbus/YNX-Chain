@@ -13,6 +13,8 @@ test("Card native identity maps every Product Session storage key through the in
   assert.doesNotMatch(key,/:/);
   assert.match(secureStore,/\/\^\[\\w.\-\]\+\$\/\.test\(key\)/);
   assert.match(runtime,/mappedStorageKey\(platform,key\)/);
+  assert.match(runtime,/createVerifiedProductSessionStorage/);
+  assert.match(runtime,/markUncertain:\(\)=>\{nativeIdentityStorageUncertain=true;\}/);
   assert.match(runtime,/Existing Card native identity storage is invalid; it was not replaced/);
   assert.match(runtime,/let nativeIdentityStorageUncertain=false/);
   assert.match(runtime,/if\(nativeIdentityStorageUncertain\)throw/);
@@ -29,6 +31,11 @@ test("Card native controller is single-flight, serializes SDK mutations, and can
   assert.match(app,/nativeWalletOperation/);
   assert.match(app,/nativeWalletGeneration/);
   assert.match(app,/nativeWalletCallbackBlocked/);
+  assert.match(app,/nativeWalletLaunchLease/);
+  assert.match(app,/nativeWalletLaunchLease\.current\+=1;nativeWalletCallbackBlocked\.current=true/);
+  assert.match(app,/if\(nativeWalletOperation\.current\)\{await nativeWalletOperation\.current;return;\}/);
+  assert.match(runtime,/const lease=launchLease\(\)/);
+  assert.match(runtime,/if\(launchLease\(\)!==lease\)/);
   assert.match(app,/callbackGeneration===nativeWalletGeneration\.current&&!nativeWalletCallbackBlocked\.current\)setBusy\(false\)/);
   assert.match(connection,/const serial=/);
   assert.match(connection,/retryYNX:async\(\)=>await serial/);

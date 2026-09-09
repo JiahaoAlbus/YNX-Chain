@@ -4,6 +4,7 @@ import {getRandomValues} from "expo-crypto";
 import * as SecureStore from "expo-secure-store";
 import {Linking,Platform} from "react-native";
 import {createCardProductWalletConnection,type CardProductWalletConnection} from "./productWalletConnection";
+import {createVerifiedProductSessionStorage} from "./productWalletStorage";
 
 const {decodeBase64url,encodeBase64url}=WalletAuth as unknown as {decodeBase64url:(value:string)=>Uint8Array;encodeBase64url:(value:Uint8Array)=>string};
 export const CARD_PRODUCT_SESSION_DEVICE_STORE_KEY="ynx-card-product-session-v2-device";
@@ -13,17 +14,17 @@ let protectedDeviceInitialization:Promise<Readonly<{id:string;key:string;sign:(i
 
 export type {CardProductWalletConnection} from "./productWalletConnection";
 
-export async function createRuntimeCardProductWalletConnection(input:Readonly<{canLaunch?:()=>boolean}>={}):Promise<CardProductWalletConnection>{
+export async function createRuntimeCardProductWalletConnection(input:Readonly<{launchLease?:()=>number}>={}):Promise<CardProductWalletConnection>{
   const platform=runtimePlatform();
   if(!await SecureStore.isAvailableAsync())throw new Error("Secure device storage is unavailable; a Product Session was not created.");
   const fetcher=globalThis.fetch;
   if(typeof fetcher!=="function")throw new Error("Network transport is unavailable; a Product Session was not created.");
-  const canLaunch=input.canLaunch??(()=>true);
-  return createCardProductWalletConnection({platform,walletInstalled:async()=>await Linking.canOpenURL("ynxwallet://authorize").catch(()=>false),schemeRegistered:async()=>await Linking.canOpenURL("ynxwallet://authorize").catch(()=>false),storage:protectedStorage(platform),device:await protectedDevice(),openWallet:createNativeWalletOpener(canLaunch),fetch:async(url,init)=>await fetcher(url,init as RequestInit),tokenFactory:()=>encodeBase64url(randomBytes(32)),clock:()=>new Date()});
+  const launchLease=input.launchLease??(()=>1);
+  return createCardProductWalletConnection({platform,walletInstalled:async()=>await Linking.canOpenURL("ynxwallet://authorize").catch(()=>false),schemeRegistered:async()=>await Linking.canOpenURL("ynxwallet://authorize").catch(()=>false),storage:protectedStorage(platform),device:await protectedDevice(),openWallet:createNativeWalletOpener(launchLease),fetch:async(url,init)=>await fetcher(url,init as RequestInit),tokenFactory:()=>encodeBase64url(randomBytes(32)),clock:()=>new Date()});
 }
 
 function runtimePlatform():"ios"|"android"{if(Platform.OS==="ios"||Platform.OS==="android")return Platform.OS;throw new Error("Product Session native identity is unavailable on web; use a Standard EIP-1193 Wallet instead.");}
-function protectedStorage(platform:"ios"|"android"){return Object.freeze({securityLevel:"os-protected" as const,get:(key:string)=>SecureStore.getItemAsync(mappedStorageKey(platform,key)),set:async(key:string,value:string)=>{await SecureStore.setItemAsync(mappedStorageKey(platform,key),value);},remove:async(key:string)=>{await SecureStore.deleteItemAsync(mappedStorageKey(platform,key));}})}
+function protectedStorage(platform:"ios"|"android"){return createVerifiedProductSessionStorage({store:SecureStore,mapKey:key=>mappedStorageKey(platform,key),isUncertain:()=>nativeIdentityStorageUncertain,markUncertain:()=>{nativeIdentityStorageUncertain=true;}})}
 function mappedStorageKey(platform:"ios"|"android",key:string):string{const base=`ynx.product-session.v2:card:${platform}:com.ynxweb4.card`,suffix=key.startsWith(base)?key.slice(base.length):null;if(suffix===null||!["",":pending",":return",":completion",":revoke"].includes(suffix))throw new Error("Product Session attempted to access an unrecognized Card secure-storage key.");return `${CARD_PRODUCT_SESSION_STORAGE_PREFIX}${platform}-${encodeBase64url(new TextEncoder().encode(key))}`;}
 function protectedDevice(){if(nativeIdentityStorageUncertain)throw new Error("Native identity storage is uncertain; restart after secure storage is repaired.");if(protectedDeviceInitialization)return protectedDeviceInitialization;const initializing=initializeProtectedDevice();protectedDeviceInitialization=initializing;void initializing.then(()=>undefined,()=>{if(protectedDeviceInitialization===initializing)protectedDeviceInitialization=null;});return initializing;}
 async function initializeProtectedDevice(){
@@ -37,11 +38,11 @@ async function initializeProtectedDevice(){
   if(nativeIdentityStorageUncertain)throw new Error("Native identity storage became uncertain before publication.");
   return Object.freeze({id:raw.id,key:publicKey,sign:async(input:{payload:string})=>encodeBase64url(p256.sign(decodeBase64url(input.payload),secret,{format:"der"}))});
 }
-function createNativeWalletOpener(canLaunch:()=>boolean){return async(input:Readonly<{url:string}>):Promise<Readonly<{opened:true}|{opened:false;code:string}>>=>{
-  if(!canLaunch())return Object.freeze({opened:false,code:"USER_REJECTED"} as const);
+function createNativeWalletOpener(launchLease:()=>number){return async(input:Readonly<{url:string}>):Promise<Readonly<{opened:true}|{opened:false;code:string}>>=>{
+  const lease=launchLease();if(lease<1)return Object.freeze({opened:false,code:"USER_REJECTED"} as const);
   if(!isCanonicalNativeAuthorizeURL(input.url))return Object.freeze({opened:false,code:"SCHEME_NOT_REGISTERED"} as const);
   if(!await Linking.canOpenURL(input.url).catch(()=>false))return Object.freeze({opened:false,code:"WALLET_NOT_INSTALLED"} as const);
-  if(!canLaunch())return Object.freeze({opened:false,code:"USER_REJECTED"} as const);
+  if(launchLease()!==lease)return Object.freeze({opened:false,code:"USER_REJECTED"} as const);
   try{await Linking.openURL(input.url);return Object.freeze({opened:true} as const)}catch{return Object.freeze({opened:false,code:"SCHEME_NOT_REGISTERED"} as const)}
 };}
 function isCanonicalNativeAuthorizeURL(value:string):boolean{try{const url=new URL(value),request=url.searchParams.get("request");return url.protocol==="ynxwallet:"&&url.hostname==="authorize"&&url.pathname===""&&url.username===""&&url.password===""&&url.hash===""&&[...url.searchParams.keys()].length===1&&typeof request==="string"&&request.length>32}catch{return false}}
