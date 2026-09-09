@@ -141,7 +141,7 @@ export default function App(){
     let connection=productWallet.current;
     if(!connection&&Platform.OS!=="web"){
       try{connection=await recoverNativeProductWalletForCallback();}
-      catch(e){if(mounted.current){const classified=classifyCardWalletError(e);setPrivateSession({state:"PRIVATE_SERVICE_DEGRADED",...classified});setPending(false);setWalletError(classified.safeMessage);}return;}
+      catch(e){if(mounted.current&&callbackGeneration===nativeWalletGeneration.current&&!nativeWalletCallbackBlocked.current){const classified=classifyCardWalletError(e);setPrivateSession({state:"PRIVATE_SERVICE_DEGRADED",...classified});setPending(false);setWalletError(classified.safeMessage);}return;}
       if(!mounted.current||callbackGeneration!==nativeWalletGeneration.current||nativeWalletCallbackBlocked.current)return;
     }
     if(!connection)return;
