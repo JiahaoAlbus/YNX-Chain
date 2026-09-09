@@ -137,11 +137,10 @@ export default function App(){
       finally{if(mounted.current)setPending(false);}
       return;
     }
-    const callbackGeneration=nativeWalletGeneration.current;
+    const callbackGeneration=nativeWalletGeneration.current,callbackSequence=Platform.OS!=="web"?++nativeWalletRecoverySequence.current:nativeWalletRecoverySequence.current;
     if(Platform.OS!=="web"&&nativeWalletCallbackBlocked.current){if(mounted.current){setPending(false);setWalletError("The native Wallet request was closed. Start a new request before accepting a callback.");}return;}
-    let connection=productWallet.current,recoverySequence=nativeWalletRecoverySequence.current;
+    let connection=productWallet.current,recoverySequence=callbackSequence;
     if(!connection&&Platform.OS!=="web"){
-      recoverySequence=++nativeWalletRecoverySequence.current;
       try{connection=await recoverNativeProductWalletForCallback();}
       catch(e){if(mounted.current&&callbackGeneration===nativeWalletGeneration.current&&recoverySequence===nativeWalletRecoverySequence.current&&!nativeWalletCallbackBlocked.current){const classified=classifyCardWalletError(e);setPrivateSession({state:"PRIVATE_SERVICE_DEGRADED",...classified});setPending(false);setWalletError(classified.safeMessage);}return;}
       if(!mounted.current||callbackGeneration!==nativeWalletGeneration.current||recoverySequence!==nativeWalletRecoverySequence.current||nativeWalletCallbackBlocked.current)return;

@@ -47,7 +47,8 @@ test("Card native controller is single-flight, serializes SDK mutations, and can
   assert.match(app,/recoverNativeProductWalletForCallback/);
   assert.match(app,/const recoveryLease=\+\+nativeWalletLaunchLease\.current/);
   assert.match(app,/connection=await recoverNativeProductWalletForCallback\(\)/);
-  assert.match(app,/recoverySequence=\+\+nativeWalletRecoverySequence\.current/);
+  assert.match(app,/callbackSequence=Platform\.OS!=="web"\?\+\+nativeWalletRecoverySequence\.current:nativeWalletRecoverySequence\.current/);
+  assert.match(app,/let connection=productWallet\.current,recoverySequence=callbackSequence/);
   assert.match(app,/catch\(e\)\{if\(mounted\.current&&callbackGeneration===nativeWalletGeneration\.current&&recoverySequence===nativeWalletRecoverySequence\.current&&!nativeWalletCallbackBlocked\.current\)\{const classified=classifyCardWalletError\(e\);setPrivateSession/);
   assert.match(app,/getNativeProductWallet\(recoveryLease,true\)/);
   assert.doesNotMatch(app.slice(app.indexOf("const recoverNativeProductWalletForCallback"),app.indexOf("const persistSimulationLedger")),/\.beginYNX\(|\.retryYNX\(|\.restore\(/);
