@@ -98,10 +98,19 @@ background/activity destruction cancels reservations and blocks new work until
 a real resumed event. Cancelled scheduled futures are removed immediately, so
 rapid reserve/cancel does not retain an unbounded 15-second timer queue.
 
-The loopback tests execute the real engine/OkHttp/Okio using a local JVM socket
-server. They prove the tested native-library behavior, not Android device TLS,
-OS lifecycle delivery, all wire-level exactly-once behavior, or public runtime
-availability. Server request-ID idempotency is still required.
+The JVM loopback tests execute the real engine/OkHttp/Okio using a local socket
+server. The separate [Android runtime test APK](android/runtime-test/README.md)
+also compiles the original engine directly and exercises it on Android ART,
+including elapsed deadlines, bounded response decoding, cancellation and
+single-use request bodies. It targets its own test package and does not contain
+the Wallet, Expo adapter or account storage. Its installation and cleanup must
+follow that project's device and package checks.
+
+These HTTP loopback tests do not verify Android TLS, delivery of real Expo
+Activity lifecycle events, all wire-level exactly-once behavior, or public
+runtime availability. Direct engine pause/resume calls do not establish that
+the OS delivered the adapter's lifecycle callbacks. Server request-ID
+idempotency is still required.
 
 ## iOS bridge candidate and measured boundary
 
@@ -179,5 +188,7 @@ From the repository root, Node 24 can run:
 node --test apps/wallet/modules/ynx-faucet-transport/test/production-off.test.mjs
 ```
 
-No test includes a wallet secret, public account request, public POST, or device
-mutation. Build outputs are excluded from source control.
+The commands above do not include a wallet secret, public account request,
+public POST, or device mutation. The separately documented Android runtime
+procedure installs and removes only its own test APK on an explicitly permitted
+emulator. Build outputs are excluded from source control.
