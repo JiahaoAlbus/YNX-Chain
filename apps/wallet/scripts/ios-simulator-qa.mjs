@@ -97,6 +97,7 @@ if (phase === "prepare") {
   const info = plist(join(root, "apps/wallet/ios/YNXWallet/Info.plist"));
   assert.equal(info.CFBundleShortVersionString, config.version, "Committed iOS and Expo versions disagree");
   assert.match(info.CFBundleVersion, /^[1-9][0-9]*$/);
+  assert.equal(info.CFBundleVersion, config.ios.buildNumber, "Committed iOS and Expo build numbers disagree");
   assert.equal(info.UIUserInterfaceStyle, "Light");
   const tracked = command("git", ["ls-files", "-z", "apps/wallet", "packages/wallet-auth", ".github/workflows/wallet-ios.yml"]).split("\0").filter(Boolean);
   save("source.json", { sourceCommit: expected, sourceTree: command("git", ["rev-parse", "HEAD^{tree}"]), sourceFiles: tracked.map(path => ({ path, sha256: sha(readFileSync(join(root, path))) })), xcode: command("xcodebuild", ["-version"]), sdks: command("xcodebuild", ["-showsdks"]), version: info.CFBundleShortVersionString, build: info.CFBundleVersion, simulatorOnly: true });
@@ -128,6 +129,22 @@ if (phase === "prepare") {
   assert(changed.every(path => path === "apps/wallet/ios/YNXWallet.xcodeproj/project.pbxproj"), `Unexpected source mutation before packaging: ${changed.join(", ")}`);
   save("pods-project.diff", command("git", ["diff", "--", "apps/wallet/ios/YNXWallet.xcodeproj/project.pbxproj"]));
   save("Podfile.lock", readFileSync(join(root, "apps/wallet/ios/Podfile.lock"), "utf8"));
+  // This local module is new in build 11. A JS export or standalone macOS
+  // Foundation harness does not prove that the iOS app compiled/autolinked it.
+  const nativeModule = JSON.parse(readFileSync(join(root, "apps/wallet/modules/ynx-faucet-transport/package.json")));
+  const podLock = readFileSync(join(root, "apps/wallet/ios/Podfile.lock"), "utf8");
+  assert(podLock.includes(`- YnxFaucetTransport (${nativeModule.version}):`), "The resolved iOS dependency graph lacks the exact local Faucet pod");
+  const providerPath = "apps/wallet/ios/Pods/Target Support Files/Pods-YNXWallet/ExpoModulesProvider.swift";
+  const provider = readFileSync(join(root, providerPath), "utf8");
+  assert(/\bimport YnxFaucetTransport\b/.test(provider) && /\bYnxFaucetTransportModule\.self\b/.test(provider), "The installed app must register the actual native Faucet module");
+  const buildLog = readFileSync(join(proof, "xcodebuild.log"), "utf8");
+  for (const file of ["YnxFaucetTransportModule.swift", "BoundedFaucetHttpEngine.swift"])
+    assert(buildLog.includes(file), `The iOS build did not report compiling ${file}`);
+  save("ExpoModulesProvider.swift", provider);
+  save("faucet-native-integration.json", { sourceCommit: expected, pod: "YnxFaucetTransport", version: nativeModule.version,
+    providerPath, providerSha256: sha(provider), buildLogSha256: sha(buildLog), sdkName: info.DTSDKName,
+    platform: info.DTPlatformName, architectures, registeredInProvider: true, nativeAppBuildPassed: true,
+    productionEnabled: false, nativeHttpExecuted: false, faucetInstalledUIVerified: false, physicalDeviceVerified: false });
   const artifactFiles = files(app), zip = join(qa, `YNXWallet-iOS-Simulator-${expected.slice(0, 12)}.zip`);
   command("/usr/bin/ditto", ["-c", "-k", "--sequesterRsrc", "--keepParent", app, zip]);
   const bytes = readFileSync(zip);

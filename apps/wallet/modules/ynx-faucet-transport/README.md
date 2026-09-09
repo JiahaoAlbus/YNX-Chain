@@ -1,11 +1,14 @@
 # Bounded Faucet transport candidate
 
 Production is disabled. `createProductionFaucetTransport()` returns `null`, the
-Android Expo adapter has a compiled `PRODUCTION_ENABLED = false`, and the iOS
-Expo adapter always rejects reservation/request with `YNX_HTTP_UNAVAILABLE`.
+Android and iOS Expo adapters have an immutable compiled
+`PRODUCTION_ENABLED = false`. The iOS bridge core is connected to its Foundation
+engine, but its production constructor still rejects reservation/request with
+`YNX_HTTP_UNAVAILABLE` without constructing an engine.
 Neither adapter offers a caller-controlled activation flag, endpoint, headers,
-credentials, client injection, or Fetch fallback. This module is not connected to
-App, the Faucet admission journal, a wallet account, signing, or balance updates.
+credentials, client injection, or Fetch fallback. The App may show the read-only Faucet flow, but its production session/transport
+factories remain null. No production request, signing, or balance-update path is
+enabled by this module.
 
 ## Bridge API
 
@@ -100,22 +103,62 @@ server. They prove the tested native-library behavior, not Android device TLS,
 OS lifecycle delivery, all wire-level exactly-once behavior, or public runtime
 availability. Server request-ID idempotency is still required.
 
-## iOS status
+## iOS bridge candidate and measured boundary
 
-The iOS Expo bridge is an explicit unavailable stub. Its separate Foundation
-engine is developed/tested independently; macOS Foundation compilation or
-loopback behavior does not constitute iOS SDK, Expo bridge, or device acceptance.
-The disabled bridge must remain disabled until those gates pass.
+`YnxFaucetTransportModule.swift` contains a Foundation bridge core plus the actual
+Expo/UIKit adapter under `canImport(ExpoModulesCore) && canImport(UIKit)`. The
+module exports only `reserveTask`, `request`, and `cancel`. Its immutable
+production gate is false; no JavaScript argument, caller URL or compilation flag
+changes that constant. Host tests use a separate compilation-only constructor,
+which creates the same real bounded Foundation engine at a loopback endpoint.
+The production-off test exercises the actual production constructor through
+native lifecycle events and verifies zero engine creations.
 
-The intended engine uses `uploadTask(withStreamedRequest:)`, one task-bound
-initial `needNewBodyStream` supply, and `nil` plus cancel for replacement streams.
-Every delegate completion, including an unknown/cancelled task, must be called
-once. This can reject Foundation-requested body replacement; it cannot prove
-every underlying wire write is exactly once. A serial delegate executor must
-enforce a 16-KiB cumulative buffer before append, strict UTF-8, no redirects,
-identity encoding, finite native deadlines, and one terminal transition. A Data
-chunk is already allocated by Foundation when delivered: the application byte
-budget must never be described as a total Foundation/OS allocation limit.
+One bridge owns at most one engine and eight in-flight completion tickets. The
+engine remains the authority for opaque reservations, purpose, lifetime and
+single-use request-body streams. `request` cannot construct an engine or invent
+a reservation. The serial bridge gate handles synchronous reservation,
+cancellation and lifecycle changes. Engine completion only enqueues onto this
+gate, avoiding an engine-lock/bridge-lock inversion. Ticket identity is removed
+before external callback delivery, and queue-specific reentry permits a callback
+to cancel or close without deadlock. An already observed POST can still have been
+processed; cancellation does not assert otherwise.
+
+The bridge starts paused. Module creation registers synchronous NotificationCenter
+observers before scheduling a main-queue `UIApplication.applicationState` sample
+for a lazily created module. A lifecycle revision prevents a delayed initial
+sample from overriding newer resign/background/destroy events. `willResignActive`
+and background synchronously pause/cancel; `willEnterForeground` also remains
+paused until `didBecomeActive`. The local Expo 57 factories do not provide a
+resign-active hook, so this observer is explicit. Module and AppContext destruction
+close the engine, retire every ticket, and remove observers. Storage quarantine
+is propagated by the JS Flow's abort/cancel path; this transport does not claim
+an independent native SecureStore-quarantine notification before `cancel` arrives.
+
+The engine uses `uploadTask(withStreamedRequest:)`, a task-bound initial body
+stream, and nil plus cancellation for replacement/nonzero-offset streams. Its
+response cap bounds only the application's accumulated bytes, not all buffers
+inside Foundation. Darwin Foundation can expose wire chunked transfer encoding
+as `Identity`; the engine validates that normalized representation and cannot
+claim complete raw-header visibility or universal wire-exactly-once behavior.
+
+The host harness compiles the actual bridge core and unchanged engine with the
+macOS Foundation SDK and uses an isolated loopback HTTP server. Its synthetic
+NotificationCenter events are not actual UIKit/Expo lifecycle acceptance.
+`canImport` excludes the Expo/UIKit adapter on this host; root's separate iOS SDK
+build must compile and validate that adapter. Production remains disabled pending
+that native acceptance and a separately authorized endpoint/runtime release.
+
+From the repository root, with a fresh audit output directory:
+
+```sh
+python3 apps/wallet/modules/ynx-faucet-transport/ios/Tests/run-macos-bridge-tests.py --output /absolute/new/audit-directory
+```
+
+This invokes Swift in language mode 5, the real bridge/engine, and a loopback-only
+outer seatbelt. It does not build an iOS app, run UIKit/Expo, touch an existing
+wallet, or use public Faucet/RPC endpoints. The nested CLI harness is not an
+XCTest or a Pod test target.
 
 ## Reproduction
 

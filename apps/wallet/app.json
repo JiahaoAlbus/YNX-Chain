@@ -2,14 +2,14 @@
   "expo": {
     "name": "YNX Wallet",
     "slug": "ynx-wallet",
-    "version": "1.0.9",
+    "version": "1.0.10",
     "orientation": "portrait",
     "scheme": "ynxwallet",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "buildNumber": "10",
+      "buildNumber": "11",
       "bundleIdentifier": "com.ynxweb4.wallet",
       "infoPlist": {
         "NSFaceIDUsageDescription": "YNX Wallet uses Face ID to unlock local account keys and approve exact requests.",
@@ -18,8 +18,14 @@
     },
     "android": {
       "package": "com.ynxweb4.wallet",
-      "versionCode": 10,
+      "versionCode": 11,
       "permissions": ["USE_BIOMETRIC"],
+      "blockedPermissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ],
       "intentFilters": [{
         "action": "VIEW",
         "autoVerify": false,
