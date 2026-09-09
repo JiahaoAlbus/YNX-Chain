@@ -140,7 +140,7 @@ export default function App(){
     }catch(e){
       if(mounted.current&&callbackGeneration===nativeWalletGeneration.current&&!nativeWalletCallbackBlocked.current){const classified=classifyCardWalletError(e);if(Platform.OS!=="web"||walletSession)setPrivateSession({state:"PRIVATE_SERVICE_DEGRADED",...classified});setPending(false);setError(classified.safeMessage);}
     }finally{
-      if(mounted.current)setBusy(false);
+      if(mounted.current&&callbackGeneration===nativeWalletGeneration.current&&!nativeWalletCallbackBlocked.current)setBusy(false);
     }
   },[refresh,tr,walletSession]);
 

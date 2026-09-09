@@ -25,6 +25,7 @@ test("Card native controller is single-flight, serializes SDK mutations, and can
   assert.match(app,/nativeWalletOperation/);
   assert.match(app,/nativeWalletGeneration/);
   assert.match(app,/nativeWalletCallbackBlocked/);
+  assert.match(app,/callbackGeneration===nativeWalletGeneration\.current&&!nativeWalletCallbackBlocked\.current\)setBusy\(false\)/);
   assert.match(connection,/const serial=/);
   assert.match(connection,/retryYNX:async\(\)=>await serial/);
   assert.match(connection,/handleReturn:async\(url\)=>await serial/);
