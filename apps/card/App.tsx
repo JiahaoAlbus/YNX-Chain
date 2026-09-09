@@ -70,6 +70,7 @@ export default function App(){
   const nativeWalletOperation=useRef<Promise<"wallet-opened"|"wallet-unavailable"|"wallet-open-failed"|void>|null>(null);
   const nativeWalletGeneration=useRef(0);
   const nativeWalletLaunchLease=useRef(0);
+  const nativeWalletRecoverySequence=useRef(0);
   const nativeWalletCallbackBlocked=useRef(false);
   const walletProvider=useRef<Eip1193Provider|null>(null);
   const walletProviderKind=useRef<WalletProviderKind|null>(null);
@@ -138,22 +139,23 @@ export default function App(){
     }
     const callbackGeneration=nativeWalletGeneration.current;
     if(Platform.OS!=="web"&&nativeWalletCallbackBlocked.current){if(mounted.current){setPending(false);setWalletError("The native Wallet request was closed. Start a new request before accepting a callback.");}return;}
-    let connection=productWallet.current;
+    let connection=productWallet.current,recoverySequence=nativeWalletRecoverySequence.current;
     if(!connection&&Platform.OS!=="web"){
+      recoverySequence=++nativeWalletRecoverySequence.current;
       try{connection=await recoverNativeProductWalletForCallback();}
-      catch(e){if(mounted.current&&callbackGeneration===nativeWalletGeneration.current&&!nativeWalletCallbackBlocked.current){const classified=classifyCardWalletError(e);setPrivateSession({state:"PRIVATE_SERVICE_DEGRADED",...classified});setPending(false);setWalletError(classified.safeMessage);}return;}
-      if(!mounted.current||callbackGeneration!==nativeWalletGeneration.current||nativeWalletCallbackBlocked.current)return;
+      catch(e){if(mounted.current&&callbackGeneration===nativeWalletGeneration.current&&recoverySequence===nativeWalletRecoverySequence.current&&!nativeWalletCallbackBlocked.current){const classified=classifyCardWalletError(e);setPrivateSession({state:"PRIVATE_SERVICE_DEGRADED",...classified});setPending(false);setWalletError(classified.safeMessage);}return;}
+      if(!mounted.current||callbackGeneration!==nativeWalletGeneration.current||recoverySequence!==nativeWalletRecoverySequence.current||nativeWalletCallbackBlocked.current)return;
     }
     if(!connection)return;
     setBusy(true);
     setError("");
     try{
       const outcome=await connection.handleReturn(url);
-      if(mounted.current&&callbackGeneration===nativeWalletGeneration.current&&!nativeWalletCallbackBlocked.current){setPrivateSession(productRuntime(outcome));setPending(false);setStandardWalletState(current=>reduceStandardWalletConnectState(current,{type:"CLOSE_CHOOSER"}));}
+      if(mounted.current&&callbackGeneration===nativeWalletGeneration.current&&recoverySequence===nativeWalletRecoverySequence.current&&!nativeWalletCallbackBlocked.current){setPrivateSession(productRuntime(outcome));setPending(false);setStandardWalletState(current=>reduceStandardWalletConnectState(current,{type:"CLOSE_CHOOSER"}));}
     }catch(e){
-      if(mounted.current&&callbackGeneration===nativeWalletGeneration.current&&!nativeWalletCallbackBlocked.current){const classified=classifyCardWalletError(e);if(Platform.OS!=="web"||walletSession)setPrivateSession({state:"PRIVATE_SERVICE_DEGRADED",...classified});setPending(false);setError(classified.safeMessage);}
+      if(mounted.current&&callbackGeneration===nativeWalletGeneration.current&&recoverySequence===nativeWalletRecoverySequence.current&&!nativeWalletCallbackBlocked.current){const classified=classifyCardWalletError(e);if(Platform.OS!=="web"||walletSession)setPrivateSession({state:"PRIVATE_SERVICE_DEGRADED",...classified});setPending(false);setError(classified.safeMessage);}
     }finally{
-      if(mounted.current&&callbackGeneration===nativeWalletGeneration.current&&!nativeWalletCallbackBlocked.current)setBusy(false);
+      if(mounted.current&&callbackGeneration===nativeWalletGeneration.current&&recoverySequence===nativeWalletRecoverySequence.current&&!nativeWalletCallbackBlocked.current)setBusy(false);
     }
   },[refresh,tr,walletSession]);
 
@@ -177,7 +179,7 @@ export default function App(){
     })();
     const sub=Linking.addEventListener("url",event=>void handleURLRef.current(event.url));
     void Linking.getInitialURL().then(url=>{if(url)void handleURLRef.current(url);});
-    return()=>{nativeWalletGeneration.current+=1;nativeWalletLaunchLease.current+=1;nativeWalletCallbackBlocked.current=true;nativeWalletOperation.current=null;productWallet.current=null;productWalletPromise.current=null;nativeProductWalletLease.current=0;nativeProductWalletPromiseLease.current=0;mounted.current=false;sub.remove();};
+    return()=>{nativeWalletGeneration.current+=1;nativeWalletLaunchLease.current+=1;nativeWalletRecoverySequence.current+=1;nativeWalletCallbackBlocked.current=true;nativeWalletOperation.current=null;productWallet.current=null;productWalletPromise.current=null;nativeProductWalletLease.current=0;nativeProductWalletPromiseLease.current=0;mounted.current=false;sub.remove();};
   },[]);
 
   const parseAmount=(value:string)=>{
@@ -188,7 +190,7 @@ export default function App(){
   const replaceRecord=(records:readonly SimulationAuditRecord[],entry:SimulationAuditRecord)=>Object.freeze(records.map(item=>item.id===entry.id?entry:item));
 
   const openWalletChooser=async()=>{setWalletError("");setStandardWalletState(current=>reduceStandardWalletConnectState(current,{type:"OPEN_CHOOSER"}));};
-  const closeWalletChooser=()=>{nativeWalletGeneration.current+=1;nativeWalletLaunchLease.current+=1;nativeWalletCallbackBlocked.current=true;nativeWalletOperation.current=null;productWallet.current=null;productWalletPromise.current=null;nativeProductWalletLease.current=0;nativeProductWalletPromiseLease.current=0;setPending(false);setBusy(false);setWalletBusy(false);setStandardWalletState(current=>reduceStandardWalletConnectState(current,{type:"CLOSE_CHOOSER"}));};
+  const closeWalletChooser=()=>{nativeWalletGeneration.current+=1;nativeWalletLaunchLease.current+=1;nativeWalletRecoverySequence.current+=1;nativeWalletCallbackBlocked.current=true;nativeWalletOperation.current=null;productWallet.current=null;productWalletPromise.current=null;nativeProductWalletLease.current=0;nativeProductWalletPromiseLease.current=0;setPending(false);setBusy(false);setWalletBusy(false);setStandardWalletState(current=>reduceStandardWalletConnectState(current,{type:"CLOSE_CHOOSER"}));};
   const connectSelectedWallet=async(kind:WalletProviderKind):Promise<boolean>=>{
     setWalletBusy(true);
     setWalletError("");

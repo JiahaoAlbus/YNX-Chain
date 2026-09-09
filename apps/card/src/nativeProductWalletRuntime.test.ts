@@ -43,10 +43,12 @@ test("Card native controller is single-flight, serializes SDK mutations, and can
   assert.match(runtime,/expectedLaunchLease/);
   assert.match(runtime,/launchLease\(\)!==expectedLaunchLease/);
   assert.match(app,/nativeProductWalletLease/);
+  assert.match(app,/nativeWalletRecoverySequence/);
   assert.match(app,/recoverNativeProductWalletForCallback/);
   assert.match(app,/const recoveryLease=\+\+nativeWalletLaunchLease\.current/);
   assert.match(app,/connection=await recoverNativeProductWalletForCallback\(\)/);
-  assert.match(app,/catch\(e\)\{if\(mounted\.current&&callbackGeneration===nativeWalletGeneration\.current&&!nativeWalletCallbackBlocked\.current\)\{const classified=classifyCardWalletError\(e\);setPrivateSession/);
+  assert.match(app,/recoverySequence=\+\+nativeWalletRecoverySequence\.current/);
+  assert.match(app,/catch\(e\)\{if\(mounted\.current&&callbackGeneration===nativeWalletGeneration\.current&&recoverySequence===nativeWalletRecoverySequence\.current&&!nativeWalletCallbackBlocked\.current\)\{const classified=classifyCardWalletError\(e\);setPrivateSession/);
   assert.match(app,/getNativeProductWallet\(recoveryLease,true\)/);
   assert.doesNotMatch(app.slice(app.indexOf("const recoverNativeProductWalletForCallback"),app.indexOf("const persistSimulationLedger")),/\.beginYNX\(|\.retryYNX\(|\.restore\(/);
   assert.match(app,/const handleURLRef=useRef\(handleURL\),refreshRef=useRef\(refresh\)/);
@@ -58,7 +60,7 @@ test("Card native controller is single-flight, serializes SDK mutations, and can
   assert.match(readFileSync(new URL("productWalletStorage.ts",root),"utf8"),/NativeStorageOwnerExpiredError/);
   assert.match(connection,/isNativeStorageOwnerExpiredError/);
   assert.match(connection,/status:"wallet-open-failed",code:"USER_REJECTED"/);
-  assert.match(app,/callbackGeneration===nativeWalletGeneration\.current&&!nativeWalletCallbackBlocked\.current\)setBusy\(false\)/);
+  assert.match(app,/callbackGeneration===nativeWalletGeneration\.current&&recoverySequence===nativeWalletRecoverySequence\.current&&!nativeWalletCallbackBlocked\.current\)setBusy\(false\)/);
   assert.match(connection,/const serial=/);
   assert.match(connection,/retryYNX:async\(\)=>await serial/);
   assert.match(connection,/handleReturn:async\(url\)=>await serial/);
