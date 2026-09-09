@@ -65,6 +65,8 @@ export default function App(){
   const mounted=useRef(true);
   const productWallet=useRef<CardProductWalletConnection|null>(null);
   const productWalletPromise=useRef<Promise<CardProductWalletConnection>|null>(null);
+  const nativeProductWalletLease=useRef(0);
+  const nativeProductWalletPromiseLease=useRef(0);
   const nativeWalletOperation=useRef<Promise<"wallet-opened"|"wallet-unavailable"|"wallet-open-failed"|void>|null>(null);
   const nativeWalletGeneration=useRef(0);
   const nativeWalletLaunchLease=useRef(0);
@@ -72,18 +74,19 @@ export default function App(){
   const walletProvider=useRef<Eip1193Provider|null>(null);
   const walletProviderKind=useRef<WalletProviderKind|null>(null);
   const pendingAuthorization=useRef<PendingAuthorizationRequest|null>(null);
-  const getNativeProductWallet=async():Promise<CardProductWalletConnection>=>{
+  const getNativeProductWallet=async(lease:number):Promise<CardProductWalletConnection>=>{
     if(Platform.OS==="web")throw new Error("Native Product Session is unavailable in a browser.");
-    if(productWallet.current)return productWallet.current;
-    if(productWalletPromise.current)return await productWalletPromise.current;
-    const generation=nativeWalletGeneration.current;
-    const created=createRuntimeCardProductWalletConnection({launchLease:()=>mounted.current&&!nativeWalletCallbackBlocked.current?nativeWalletLaunchLease.current:0}).then(connection=>{
-      if(nativeWalletGeneration.current!==generation||nativeWalletCallbackBlocked.current)throw new Error("The native Wallet request was cancelled before a controller was ready.");
-      productWallet.current=connection;
+    const active=()=>mounted.current&&!nativeWalletCallbackBlocked.current&&nativeWalletLaunchLease.current===lease;
+    if(!active())throw new Error("The native Wallet request lease expired before a controller was ready.");
+    if(productWallet.current&&nativeProductWalletLease.current===lease)return productWallet.current;
+    if(productWalletPromise.current&&nativeProductWalletPromiseLease.current===lease)return await productWalletPromise.current;
+    const created=createRuntimeCardProductWalletConnection({expectedLaunchLease:lease,launchLease:()=>active()?lease:0}).then(connection=>{
+      if(!active())throw new Error("The native Wallet request lease expired before a controller was ready.");
+      productWallet.current=connection;nativeProductWalletLease.current=lease;
       return connection;
     });
-    productWalletPromise.current=created;
-    try{return await created}finally{if(productWalletPromise.current===created)productWalletPromise.current=null;}
+    productWalletPromise.current=created;nativeProductWalletPromiseLease.current=lease;
+    try{return await created}finally{if(productWalletPromise.current===created){productWalletPromise.current=null;nativeProductWalletPromiseLease.current=0;}}
   };
   useEffect(()=>{
     if(Platform.OS!=="web")return;
@@ -127,11 +130,8 @@ export default function App(){
     }
     const callbackGeneration=nativeWalletGeneration.current;
     if(Platform.OS!=="web"&&nativeWalletCallbackBlocked.current){if(mounted.current){setPending(false);setWalletError("The native Wallet request was closed. Start a new request before accepting a callback.");}return;}
-    let connection=productWallet.current;
-    if(!connection&&Platform.OS!=="web"){
-      try{connection=await getNativeProductWallet();}
-      catch(e){if(mounted.current){const classified=classifyCardWalletError(e);setPrivateSession({state:"PRIVATE_SERVICE_DEGRADED",...classified});setPending(false);setWalletError(classified.safeMessage);}return;}
-    }
+    const connection=productWallet.current;
+    if(!connection&&Platform.OS!=="web"){if(mounted.current){setPending(false);setWalletError("No active native Wallet request matches this callback.");}return;}
     if(!connection)return;
     setBusy(true);
     setError("");
@@ -163,7 +163,7 @@ export default function App(){
     })();
     const sub=Linking.addEventListener("url",event=>void handleURL(event.url));
     void Linking.getInitialURL().then(url=>{if(url)void handleURL(url);});
-    return()=>{nativeWalletGeneration.current+=1;nativeWalletLaunchLease.current+=1;nativeWalletCallbackBlocked.current=true;nativeWalletOperation.current=null;mounted.current=false;sub.remove();};
+    return()=>{nativeWalletGeneration.current+=1;nativeWalletLaunchLease.current+=1;nativeWalletCallbackBlocked.current=true;nativeWalletOperation.current=null;productWallet.current=null;productWalletPromise.current=null;nativeProductWalletLease.current=0;nativeProductWalletPromiseLease.current=0;mounted.current=false;sub.remove();};
   },[handleURL,refresh]);
 
   const parseAmount=(value:string)=>{
@@ -174,7 +174,7 @@ export default function App(){
   const replaceRecord=(records:readonly SimulationAuditRecord[],entry:SimulationAuditRecord)=>Object.freeze(records.map(item=>item.id===entry.id?entry:item));
 
   const openWalletChooser=async()=>{setWalletError("");setStandardWalletState(current=>reduceStandardWalletConnectState(current,{type:"OPEN_CHOOSER"}));};
-  const closeWalletChooser=()=>{nativeWalletGeneration.current+=1;nativeWalletLaunchLease.current+=1;nativeWalletCallbackBlocked.current=true;nativeWalletOperation.current=null;setPending(false);setBusy(false);setWalletBusy(false);setStandardWalletState(current=>reduceStandardWalletConnectState(current,{type:"CLOSE_CHOOSER"}));};
+  const closeWalletChooser=()=>{nativeWalletGeneration.current+=1;nativeWalletLaunchLease.current+=1;nativeWalletCallbackBlocked.current=true;nativeWalletOperation.current=null;productWallet.current=null;productWalletPromise.current=null;nativeProductWalletLease.current=0;nativeProductWalletPromiseLease.current=0;setPending(false);setBusy(false);setWalletBusy(false);setStandardWalletState(current=>reduceStandardWalletConnectState(current,{type:"CLOSE_CHOOSER"}));};
   const connectSelectedWallet=async(kind:WalletProviderKind):Promise<boolean>=>{
     setWalletBusy(true);
     setWalletError("");
@@ -403,12 +403,15 @@ export default function App(){
     operation=(async()=>{
       const generation=++nativeWalletGeneration.current;
       nativeWalletLaunchLease.current+=1;
+      const lease=nativeWalletLaunchLease.current;
       nativeWalletCallbackBlocked.current=false;
       setBusy(true);setWalletBusy(true);setWalletError("");
       try{
-        const connection=await getNativeProductWallet(),outcome=await connection.beginYNX(),runtime=productRuntime(outcome);
-        if(!mounted.current||generation!==nativeWalletGeneration.current||nativeWalletCallbackBlocked.current)return "wallet-unavailable";
-        setPrivateSession(runtime);setPending(productRuntimeState(outcome)==="connecting");setStandardWalletState(current=>reduceStandardWalletConnectState(reduceStandardWalletConnectState(current,{type:"CLOSE_CHOOSER"}),runtime.state==="PRIVATE_SERVICE_DEGRADED"?{type:"PRIVATE_SESSION_DEGRADED",code:runtime.code}:{type:"PRIVATE_SESSION_READY"}));
+        const connection=await getNativeProductWallet(lease);
+        if(!mounted.current||generation!==nativeWalletGeneration.current||nativeWalletCallbackBlocked.current||nativeWalletLaunchLease.current!==lease)return "wallet-unavailable";
+        const outcome=await connection.beginYNX(),runtime=productRuntime(outcome),connecting=productRuntimeState(outcome)==="connecting";
+        if(!mounted.current||generation!==nativeWalletGeneration.current||nativeWalletCallbackBlocked.current||nativeWalletLaunchLease.current!==lease)return "wallet-unavailable";
+        setPrivateSession(connecting?null:runtime);setPending(connecting);setStandardWalletState(current=>reduceStandardWalletConnectState(reduceStandardWalletConnectState(current,{type:"CLOSE_CHOOSER"}),connecting?{type:"PRIVATE_SESSION_CONNECTING"}:runtime.state==="PRIVATE_SERVICE_DEGRADED"?{type:"PRIVATE_SESSION_DEGRADED",code:runtime.code}:{type:"PRIVATE_SESSION_READY"}));
         return (outcome as {status?:string}).status==="wallet-opened"?"wallet-opened":"wallet-unavailable";
       }catch(e){const classified=classifyCardWalletError(e);if(mounted.current&&generation===nativeWalletGeneration.current&&!nativeWalletCallbackBlocked.current){setPrivateSession({state:"PRIVATE_SERVICE_DEGRADED",...classified});setStandardWalletState(current=>reduceStandardWalletConnectState(current,{type:"PRIVATE_SESSION_DEGRADED",code:classified.code}));setWalletError(classified.safeMessage);}return "wallet-open-failed";}
       finally{if(mounted.current&&generation===nativeWalletGeneration.current){setBusy(false);setWalletBusy(false);}}
@@ -420,9 +423,9 @@ export default function App(){
     if(Platform.OS==="web")return;
     if(nativeWalletOperation.current){await nativeWalletOperation.current;return;}
     const generation=++nativeWalletGeneration.current;nativeWalletCallbackBlocked.current=false;setBusy(true);setWalletBusy(true);setWalletError("");
-    nativeWalletLaunchLease.current+=1;
+    nativeWalletLaunchLease.current+=1;const lease=nativeWalletLaunchLease.current;
     let operation:Promise<void>;
-    operation=(async()=>{try{const outcome=await (await getNativeProductWallet()).retryYNX();if(mounted.current&&generation===nativeWalletGeneration.current&&!nativeWalletCallbackBlocked.current){const runtime=productRuntime(outcome);setPrivateSession(productRuntimeState(outcome)==="disconnected"?null:runtime);setPending(productRuntimeState(outcome)==="connecting");}}
+    operation=(async()=>{try{const connection=await getNativeProductWallet(lease);if(!mounted.current||generation!==nativeWalletGeneration.current||nativeWalletCallbackBlocked.current||nativeWalletLaunchLease.current!==lease)return;const outcome=await connection.retryYNX(),connecting=productRuntimeState(outcome)==="connecting";if(mounted.current&&generation===nativeWalletGeneration.current&&!nativeWalletCallbackBlocked.current&&nativeWalletLaunchLease.current===lease){const runtime=productRuntime(outcome);setPrivateSession(productRuntimeState(outcome)==="disconnected"||connecting?null:runtime);setPending(connecting);}}
     catch(e){if(mounted.current&&generation===nativeWalletGeneration.current){const classified=classifyCardWalletError(e);setPrivateSession({state:"PRIVATE_SERVICE_DEGRADED",...classified,actions:["retry"]});setWalletError(classified.safeMessage);}}
     finally{if(mounted.current&&generation===nativeWalletGeneration.current){setBusy(false);setWalletBusy(false);}}})();
     nativeWalletOperation.current=operation;try{await operation}finally{if(nativeWalletOperation.current===operation)nativeWalletOperation.current=null;}
