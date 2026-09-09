@@ -1,5 +1,6 @@
 import {ProductSessionGatewayFetchAdapter,RecoverableProductSessionClient,WalletConnectionCoordinator} from "@ynx-chain/wallet-auth-product-session-943";
 import registry from "../vendor/product-session-registry-943a1693.json";
+import {isNativeStorageOwnerExpiredError} from "./productWalletStorage";
 
 export const CARD_PRODUCT_SESSION_V2_ORIGIN="https://wallet-auth.ynxweb4.com";
 export const CARD_PRODUCT_SESSION_V2_ROUTES=Object.freeze(["/v2/product-sessions/time","/v2/product-sessions/challenge","/v2/product-sessions/complete","/v2/product-sessions/introspect","/v2/product-sessions/revoke"] as const);
@@ -21,6 +22,8 @@ function serializedCoordinator(coordinator:WalletConnectionCoordinator):CardProd
   let tail:Promise<void>=Promise.resolve();
   let activeBegin:ProductSessionResult|null=null;
   const serial=(operation:()=>Promise<Readonly<Record<string,unknown>>>)=>{const run=tail.then(operation,operation);tail=run.then(()=>undefined,()=>undefined);return run;};
-  const beginYNX=()=>{if(activeBegin)return activeBegin;const run=serial(()=>coordinator.beginYNX());activeBegin=run;void run.then(()=>{if(activeBegin===run)activeBegin=null;},()=>{if(activeBegin===run)activeBegin=null;});return run;};
-  return Object.freeze({get current(){return coordinator.current},get storageKey(){return coordinator.storageKey},get connectionBinding(){return coordinator.connectionBinding},options:async()=>await coordinator.options(),beginYNX,retryYNX:async()=>await serial(()=>coordinator.retryYNX()),handleReturn:async(url)=>await serial(()=>coordinator.handleReturn(url)),disconnect:async()=>await serial(()=>coordinator.disconnect()),setNetworkAvailable:available=>coordinator.setNetworkAvailable(available),enterGuest:()=>coordinator.enterGuest()});
+  const cancelled=():Readonly<Record<string,unknown>>=>Object.freeze({status:"wallet-open-failed",code:"USER_REJECTED",sessionState:(coordinator.current as Readonly<Record<string,unknown>>).sessionState});
+  const cancellable=async(operation:()=>Promise<Readonly<Record<string,unknown>>>)=>{try{return await operation();}catch(error){if(isNativeStorageOwnerExpiredError(error))return cancelled();throw error;}};
+  const beginYNX=()=>{if(activeBegin)return activeBegin;const run=serial(async()=>await cancellable(()=>coordinator.beginYNX()));activeBegin=run;void run.then(()=>{if(activeBegin===run)activeBegin=null;},()=>{if(activeBegin===run)activeBegin=null;});return run;};
+  return Object.freeze({get current(){return coordinator.current},get storageKey(){return coordinator.storageKey},get connectionBinding(){return coordinator.connectionBinding},options:async()=>await coordinator.options(),beginYNX,retryYNX:async()=>await serial(async()=>await cancellable(()=>coordinator.retryYNX())),handleReturn:async(url)=>await serial(async()=>await cancellable(()=>coordinator.handleReturn(url))),disconnect:async()=>await serial(async()=>await cancellable(()=>coordinator.disconnect())),setNetworkAvailable:available=>coordinator.setNetworkAvailable(available),enterGuest:()=>coordinator.enterGuest()});
 }

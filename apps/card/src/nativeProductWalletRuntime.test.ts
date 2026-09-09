@@ -14,6 +14,7 @@ test("Card native identity maps every Product Session storage key through the in
   assert.match(secureStore,/\/\^\[\\w.\-\]\+\$\/\.test\(key\)/);
   assert.match(runtime,/mappedStorageKey\(platform,key\)/);
   assert.match(runtime,/createVerifiedProductSessionStorage/);
+  assert.match(runtime,/storage:protectedStorage\(platform,\(\)=>launchLease\(\)===expectedLaunchLease\)/);
   assert.match(runtime,/markUncertain:\(\)=>\{nativeIdentityStorageUncertain=true;\}/);
   assert.match(runtime,/Existing Card native identity storage is invalid; it was not replaced/);
   assert.match(runtime,/let nativeIdentityStorageUncertain=false/);
@@ -42,6 +43,10 @@ test("Card native controller is single-flight, serializes SDK mutations, and can
   assert.match(app,/getNativeProductWallet\(lease\)/);
   assert.match(app,/nativeWalletLaunchLease\.current!==lease/);
   assert.match(app,/productWallet\.current=null;productWalletPromise\.current=null/);
+  assert.match(readFileSync(new URL("productWalletStorage.ts",root),"utf8"),/let sharedNativeStorageTail:Promise<void>=Promise\.resolve\(\)/);
+  assert.match(readFileSync(new URL("productWalletStorage.ts",root),"utf8"),/NativeStorageOwnerExpiredError/);
+  assert.match(connection,/isNativeStorageOwnerExpiredError/);
+  assert.match(connection,/status:"wallet-open-failed",code:"USER_REJECTED"/);
   assert.match(app,/callbackGeneration===nativeWalletGeneration\.current&&!nativeWalletCallbackBlocked\.current\)setBusy\(false\)/);
   assert.match(connection,/const serial=/);
   assert.match(connection,/retryYNX:async\(\)=>await serial/);

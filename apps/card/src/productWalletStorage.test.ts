@@ -29,3 +29,15 @@ test("Card confirms a revoke marker by exact readback and serializes concurrent 
   const value=fixture();await Promise.all([value.storage.set("revoke","revoke-marker"),value.storage.set("completion","completion-marker")]);
   assert.equal(await value.storage.get("revoke"),"revoke-marker");assert.equal(await value.storage.get("completion"),"completion-marker");assert.equal(value.uncertain(),false);
 });
+
+test("Card shares native storage serialization across controllers and rejects stale lease mutations after the new pending record commits",async()=>{
+  const records=new Map<string,string>([["mapped:pending","old-pending"]]);let oldActive=true,releaseDelete:(()=>void)|null=null,enteredDelete:(()=>void)|null=null;
+  const deleting=new Promise<void>(resolve=>{releaseDelete=resolve}),entered=new Promise<void>(resolve=>{enteredDelete=resolve});
+  const store={getItemAsync:async(key:string)=>records.get(key)??null,setItemAsync:async(key:string,value:string)=>{records.set(key,value);},deleteItemAsync:async(key:string)=>{enteredDelete?.();await deleting;records.delete(key);}};
+  const old=createVerifiedProductSessionStorage({store,mapKey:key=>`mapped:${key}`,isUncertain:()=>false,markUncertain:()=>{},isOwnerActive:()=>oldActive});
+  const fresh=createVerifiedProductSessionStorage({store,mapKey:key=>`mapped:${key}`,isUncertain:()=>false,markUncertain:()=>{},isOwnerActive:()=>true});
+  const oldRemove=old.remove("pending");await entered;oldActive=false;
+  const newPending=fresh.set("pending","new-pending");releaseDelete?.();await assert.rejects(()=>oldRemove,/lease expired/);await newPending;
+  await assert.rejects(()=>old.set("pending","old-pending"),/lease expired/);
+  assert.equal(await fresh.get("pending"),"new-pending");
+});

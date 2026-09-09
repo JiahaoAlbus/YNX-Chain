@@ -11,22 +11,26 @@ export type VerifiedProductSessionStorage=Readonly<{
   remove:(key:string)=>Promise<void>;
 }>;
 
+let sharedNativeStorageTail:Promise<void>=Promise.resolve();
+export class NativeStorageOwnerExpiredError extends Error{readonly code="NATIVE_STORAGE_OWNER_EXPIRED";constructor(){super("Native Product Session storage operation lease expired.");}}
+export function isNativeStorageOwnerExpiredError(value:unknown):value is NativeStorageOwnerExpiredError{return value instanceof NativeStorageOwnerExpiredError||(typeof value==="object"&&value!==null&&(value as {code?:unknown}).code==="NATIVE_STORAGE_OWNER_EXPIRED");}
+
 export function createVerifiedProductSessionStorage(input:Readonly<{
   store:SecureStringStore;
   mapKey:(key:string)=>string;
   isUncertain:()=>boolean;
   markUncertain:()=>void;
+  isOwnerActive?:()=>boolean;
 }>):VerifiedProductSessionStorage{
-  let tail:Promise<void>=Promise.resolve();
-  const guard=()=>{if(input.isUncertain())throw new Error("Native identity storage is uncertain; restart after secure storage is repaired.");};
+  const guard=()=>{if(input.isUncertain())throw new Error("Native identity storage is uncertain; restart after secure storage is repaired.");if(input.isOwnerActive&&!input.isOwnerActive())throw new NativeStorageOwnerExpiredError();};
   const serial=<T>(operation:()=>Promise<T>):Promise<T>=>{
-    const run=tail.then(operation,operation);
-    tail=run.then(()=>undefined,()=>undefined);
+    const run=sharedNativeStorageTail.then(operation,operation);
+    sharedNativeStorageTail=run.then(()=>undefined,()=>undefined);
     return run;
   };
   const protectedOperation=<T>(operation:()=>Promise<T>):Promise<T>=>serial(async()=>{
     try{guard();const result=await operation();guard();return result;}
-    catch(error){input.markUncertain();throw error;}
+    catch(error){if(!(error instanceof NativeStorageOwnerExpiredError))input.markUncertain();throw error;}
   });
   return Object.freeze({
     securityLevel:"os-protected" as const,
