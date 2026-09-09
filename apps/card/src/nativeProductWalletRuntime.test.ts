@@ -17,6 +17,10 @@ test("Card native identity maps every Product Session storage key through the in
   assert.match(runtime,/let nativeIdentityStorageUncertain=false/);
   assert.match(runtime,/if\(nativeIdentityStorageUncertain\)throw/);
   assert.match(runtime,/nativeIdentityStorageUncertain=true/);
+  assert.match(runtime,/let protectedDeviceInitialization:Promise/);
+  assert.match(runtime,/if\(protectedDeviceInitialization\)return protectedDeviceInitialization/);
+  assert.match(runtime,/Native identity storage became uncertain during initialization/);
+  assert.match(runtime,/Native identity storage became uncertain before publication/);
 });
 
 test("Card native controller is single-flight, serializes SDK mutations, and cancels stale callbacks",()=>{
@@ -30,5 +34,6 @@ test("Card native controller is single-flight, serializes SDK mutations, and can
   assert.match(connection,/retryYNX:async\(\)=>await serial/);
   assert.match(connection,/handleReturn:async\(url\)=>await serial/);
   assert.match(connection,/disconnect:async\(\)=>await serial/);
+  assert.match(connection,/void run\.then\(\(\)=>\{if\(activeBegin===run\)activeBegin=null;\},\(\)=>\{if\(activeBegin===run\)activeBegin=null;\}\)/);
   assert.doesNotMatch(app,/ynxwallet:\/\/authorize|Linking\.openURL/);
 });
