@@ -42,7 +42,7 @@ export type PendingAuthorizationRequest=Readonly<{request:AuthorizationRequest}>
 export type CardSession=Readonly<{token:string;sessionBinding:string;requestDigest:string;account:string;productClientId:"ynx-card-v1";bundleId:"com.ynxweb4.card";scopes:readonly string[];issuedAt:string;expiresAt:string;deviceId:string}>;
 export type Eip1193WalletSession=Readonly<{address:string;chainId:string;connectedAt:string;provider:"eip1193"}>;
 export type CardWalletError=Readonly<{code:string;retryable:boolean;safeMessage:string;monitoringClass:string;userAction:string;requestId?:string;traceId?:string;errorId?:string}>;
-export type ProductSessionRuntime=Readonly<{state:"PRODUCT_SESSION_READY";session:CardSession}>|Readonly<{state:"PRIVATE_SESSION_V2_CONNECTED_SOURCE_ONLY";sessionBinding:string;expiresAt:string}>|Readonly<{state:"PRIVATE_SERVICE_DEGRADED"}&CardWalletError>;
+export type ProductSessionRuntime=Readonly<{state:"PRODUCT_SESSION_READY";session:CardSession}>|Readonly<{state:"PRIVATE_SESSION_V2_CONNECTED_SOURCE_ONLY";sessionBinding:string;expiresAt:string;account:string}>|Readonly<{state:"PRIVATE_SERVICE_DEGRADED"}&CardWalletError>;
 export type TestnetTopupIntent=Readonly<{id:string;chainId:string;recipient:string;amountWei:string;minConfirmations:number;expiresAt:string}>;
 export type TopupEvidence=Readonly<{chainId:string;txHash:string;blockNumber:string;blockHash:string;from:string;to:string;valueWei:string;confirmations:number}>;
 

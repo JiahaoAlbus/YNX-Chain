@@ -107,7 +107,11 @@ export default function App(){
       finally{if(mounted.current)setPending(false);}
       return;
     }
-    const connection=productWallet.current;
+    let connection=productWallet.current;
+    if(!connection&&Platform.OS!=="web"){
+      try{connection=await createRuntimeCardProductWalletConnection();productWallet.current=connection;}
+      catch(e){if(mounted.current){const classified=classifyCardWalletError(e);setPrivateSession({state:"PRIVATE_SERVICE_DEGRADED",...classified});setPending(false);setWalletError(classified.safeMessage);}return;}
+    }
     if(!connection)return;
     setBusy(true);
     setError("");
@@ -373,12 +377,19 @@ export default function App(){
   };
 
   const beginYNXWalletAuthorization=async():Promise<"wallet-opened"|"wallet-unavailable"|"wallet-open-failed">=>{
-    if(Platform.OS!=="web"){setWalletError("YNX Wallet app handoff is unavailable until a verified Universal Link or WalletConnect route is accepted.");return "wallet-unavailable";}
-    return await connectSelectedWallet("ynx-wallet")?"wallet-opened":"wallet-unavailable";
+    if(Platform.OS==="web")return await connectSelectedWallet("ynx-wallet")?"wallet-opened":"wallet-unavailable";
+    setBusy(true);setWalletError("");
+    try{
+      const connection=productWallet.current??await createRuntimeCardProductWalletConnection();productWallet.current=connection;
+      const outcome=await connection.beginYNX(),runtime=productRuntime(outcome);
+      if(mounted.current){setPrivateSession(runtime);setPending(productRuntimeState(outcome)==="connecting");setStandardWalletState(current=>reduceStandardWalletConnectState(current,runtime.state==="PRIVATE_SERVICE_DEGRADED"?{type:"PRIVATE_SESSION_DEGRADED",code:runtime.code}:{type:"PRIVATE_SESSION_READY"}));}
+      return (outcome as {status?:string}).status==="wallet-opened"?"wallet-opened":"wallet-unavailable";
+    }catch(e){const classified=classifyCardWalletError(e);if(mounted.current){setPrivateSession({state:"PRIVATE_SERVICE_DEGRADED",...classified});setStandardWalletState(current=>reduceStandardWalletConnectState(current,{type:"PRIVATE_SESSION_DEGRADED",code:classified.code}));setWalletError(classified.safeMessage);}return "wallet-open-failed";}
+    finally{if(mounted.current)setBusy(false)}
   };
 
   const signIn=async()=>{
-    if(!walletSession){setError(tr("connectWalletFirst"));return;}
+    if(Platform.OS==="web"&&!walletSession){setError(tr("connectWalletFirst"));return;}
     setBusy(true);
     setError("");
     setStandardWalletState(current=>reduceStandardWalletConnectState(current,{type:"PRIVATE_SESSION_CONNECTING"}));
@@ -388,10 +399,7 @@ export default function App(){
         setStandardWalletState(current=>reduceStandardWalletConnectState(current,{type:"PRIVATE_SESSION_DEGRADED",code:"GATEWAY_UNAVAILABLE"}));
         return;
       }
-      const connection=await createRuntimeCardProductWalletConnection();
-      productWallet.current=connection;
-      const outcome=await connection.beginYNX();
-      if(mounted.current){const runtime=productRuntime(outcome);setPrivateSession(runtime);setPending(productRuntimeState(outcome)==="connecting");setStandardWalletState(current=>reduceStandardWalletConnectState(current,runtime.state==="PRIVATE_SERVICE_DEGRADED"?{type:"PRIVATE_SESSION_DEGRADED",code:runtime.code}:{type:"PRIVATE_SESSION_READY"}));}
+      await beginYNXWalletAuthorization();
     }catch(e){
       setPending(false);
       const classified=classifyCardWalletError(e);setPrivateSession({state:"PRIVATE_SERVICE_DEGRADED",...classified});setStandardWalletState(current=>reduceStandardWalletConnectState(current,{type:"PRIVATE_SESSION_DEGRADED",code:classified.code}));setError(classified.safeMessage);
@@ -474,7 +482,7 @@ export default function App(){
 
 function productRuntime(value:unknown):ProductSessionRuntime{
   const result=record(value),state=record(result?.sessionState),session=record(state?.session);
-  if(state?.status==="connected"&&typeof session?.sessionBinding==="string"&&typeof session?.expiresAt==="string")return{state:"PRIVATE_SESSION_V2_CONNECTED_SOURCE_ONLY",sessionBinding:session.sessionBinding,expiresAt:session.expiresAt};
+  if(state?.status==="connected"&&typeof session?.sessionBinding==="string"&&typeof session?.expiresAt==="string"&&typeof session?.account==="string"&&/^ynx1[a-z0-9]{20,128}$/i.test(session.account))return{state:"PRIVATE_SESSION_V2_CONNECTED_SOURCE_ONLY",sessionBinding:session.sessionBinding,expiresAt:session.expiresAt,account:session.account};
   return{state:"PRIVATE_SERVICE_DEGRADED",...classifyCardWalletError({code:productRuntimeState(value)==="disconnected"?"USER_REJECTED":"PRODUCT_SESSION_GATEWAY_UNREACHABLE"})};
 }
 function productRuntimeState(value:unknown):string|undefined{return record(record(value)?.sessionState)?.status as string|undefined}
@@ -490,7 +498,7 @@ function SignedOut({c,tr,busy,pending,error,signIn,walletSession,walletBusy,wall
     <View style={[s.truth,{backgroundColor:c.surface,borderColor:c.separator}]}><Text style={[s.truthText,{color:c.secondary}]}>{tr("unavailableTruth")}</Text></View>
     {walletSession?<View style={[s.truth,{backgroundColor:c.surface,borderColor:c.separator}]}><Text style={[s.truthText,{color:c.secondary}]}>{tr("standardConnected")} · {walletSession.address.slice(0,6)}...{walletSession.address.slice(-4)} · {walletSession.chainId}</Text></View>:null}
     {privateSession?.state==="PRIVATE_SERVICE_DEGRADED"?<View style={[s.truth,{backgroundColor:c.surface,borderColor:c.separator}]}><Text accessibilityRole="alert" style={[s.truthText,{color:ORANGE}]}>{tr("privateServiceDegraded")} · {privateSession.safeMessage} · {privateSession.userAction} · {privateSession.code}{privateSession.requestId?` · ${privateSession.requestId}`:""}</Text></View>:null}
-    {privateSession?.state==="PRIVATE_SESSION_V2_CONNECTED_SOURCE_ONLY"?<View style={[s.truth,{backgroundColor:c.surface,borderColor:c.separator}]}><Text accessibilityRole="alert" style={[s.truthText,{color:ORANGE}]}>Private Product Session v2 source-only · Card migration remains disabled · {privateSession.sessionBinding.slice(0,12)}...</Text></View>:null}
+    {privateSession?.state==="PRIVATE_SESSION_V2_CONNECTED_SOURCE_ONLY"?<View style={[s.truth,{backgroundColor:c.surface,borderColor:c.separator}]}><Text accessibilityRole="alert" style={[s.truthText,{color:ORANGE}]}>Verified YNX Wallet identity · {privateSession.account} · Private Product Session v2 source-only · Card migration remains disabled · no card, funding, or payment authority.</Text></View>:null}
     {walletError?<Text accessibilityRole="alert" style={s.error}>{walletError}</Text>:null}
     {error?<Text accessibilityRole="alert" style={s.error}>{error}</Text>:null}
     <Pressable accessibilityRole="button" disabled={walletBusy||Boolean(walletSession)} onPress={()=>void connectWallet()} style={[s.secondary,(walletBusy||Boolean(walletSession))&&s.disabled]}>{walletBusy?<ActivityIndicator color={BLUE}/>:<Text style={s.secondaryText}>{walletSession?tr("standardConnected"):tr("walletConnect")}</Text>}</Pressable>
