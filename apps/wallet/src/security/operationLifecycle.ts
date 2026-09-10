@@ -14,6 +14,7 @@ export class WalletOperationLifecycle {
   constructor(private readonly now: () => number = Date.now) {}
   selectedAccount(): string | null { return this.account; }
   isUnlocked(): boolean { return this.unlocked; }
+  isActive(): boolean { return this.active; }
   scope(): WalletOperationScope { return new WalletOperationScope(this, this.now); }
   subscribe(listener: () => void): () => void { this.listeners.add(listener); return () => { this.listeners.delete(listener); }; }
   invalidate(): void { this.generation++; for (const listener of this.listeners) listener(); }

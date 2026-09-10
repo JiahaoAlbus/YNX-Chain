@@ -186,6 +186,102 @@ test("read failure disables all actions and cannot appear as an empty history", 
   for (const action of actions) { assert.equal(f.flow.allowed(action), false); await f.flow.act(action); }
   assert.equal(f.counts.set, 0); assert.equal(f.counts.session, 0); assert.equal(f.counts.entropy, 0);
 });
+test("explicit local reload recovers a paused original request without retrying a dispatched POST", { timeout: 5000 }, async t => {
+  const f = fixture(t), posted = deferred<void>(), response = deferred<ReturnType<typeof accepted>>();
+  await f.flow.load(); await f.flow.act("review");
+  const original = f.flow.snapshot().view!.entry!;
+  f.hooks.post = input => { posted.resolve(); return response.promise; };
+  const sending = f.flow.act("submit"); await posted.promise;
+  f.flow.cancel(); f.operations.setAppState("inactive");
+  const before = { ...f.counts };
+  assert.equal(f.flow.canReload(), false); await f.flow.reload();
+  assert.deepEqual(f.counts, before);
+  f.operations.setAppState("active");
+  assert.equal(f.flow.snapshot().phase, "paused"); assert.equal(f.flow.canReload(), true);
+  // Becoming active alone has no read, replay, or receipt-verification effect.
+  assert.deepEqual(f.counts, before);
+  const reading = f.flow.reload();
+  assert.equal(f.flow.snapshot().busy, "read");
+  assert.equal(f.posts.length, 1);
+  // The controller serializes journal access behind the older operation. It
+  // archives a valid late ACK to the original ID, then rejects the old UI lease.
+  response.resolve(accepted(f.posts[0]!)); await Promise.all([sending, reading]);
+  const restored = f.flow.snapshot().view!;
+  assert.equal(restored.entry!.requestId, original.requestId);
+  assert.equal(restored.entry!.body, original.body);
+  assert.equal(restored.entry!.phase, "admission-acknowledged");
+  assert.equal(restored.entry!.attempts, 1);
+  assert.equal(restored.entry!.acknowledgement!.requestId, original.requestId);
+  assert.equal(restored.verification, "unverified"); assert.equal(restored.observedStatus, null);
+  assert.equal(restored.balanceVerified, false); assert.equal(f.flow.allowed("complete"), false);
+  // The single outcome write belongs to the original dispatch; reload itself
+  // only reads, and never creates another HTTP request or a new random ID.
+  assert.deepEqual({ ...f.counts, get: before.get }, { ...before, set: before.set + 1 });
+  assert.equal(f.posts.length, 1);
+  assert.equal(f.flow.snapshot().view, restored);
+});
+test("local read failure can be retried once without enabling production or replacing saved identity", { timeout: 5000 }, async t => {
+  const f = fixture(t, false), original = (await f.local.prepare(100, () => {})).entry!;
+  f.hooks.get = async () => { throw Error("synthetic transient read failure"); };
+  await f.flow.load(); assert.equal(f.flow.canReload(), true);
+  const before = { ...f.counts }, bytes = [...f.rows], entered = deferred<void>(), pending = deferred<void>();
+  f.hooks.get = async () => { entered.resolve(); await pending.promise; };
+  const reading = f.flow.reload(); await entered.promise;
+  const reads = f.counts.get; assert.equal(f.flow.canReload(), false); await f.flow.reload();
+  assert.equal(f.counts.get, reads);
+  pending.resolve(); await reading;
+  assert.equal(f.flow.snapshot().phase, "ready"); assert.equal(f.flow.snapshot().available, false);
+  assert.deepEqual(f.flow.snapshot().view!.entry, original);
+  assert.deepEqual({ ...f.counts, get: before.get }, before);
+  assert.deepEqual([...f.rows], bytes); assert.equal(f.posts.length, 0);
+});
+for (const reason of ["locked", "different-account", "quarantined", "inactive"] as const) {
+  test(`local reload remains blocked when ${reason}`, async t => {
+    const f = fixture(t); await f.flow.load(); f.flow.cancel();
+    if (reason === "locked") f.operations.lock();
+    if (reason === "different-account") f.operations.setAccount(ynxAddressFromEVM("0x" + "30".repeat(20)));
+    if (reason === "quarantined") f.health.observe({ code: STORAGE_WRITE_UNCERTAIN });
+    if (reason === "inactive") f.operations.setAppState("inactive");
+    const before = { ...f.counts };
+    assert.equal(f.flow.canReload(), false); await f.flow.reload();
+    assert.deepEqual(f.counts, before); assert.equal(f.posts.length, 0);
+    assert.equal(f.flow.snapshot().view, null);
+  });
+}
+test("reloading a saved receipt cannot restore fresh evidence or authorize completion", async t => {
+  const f = fixture(t); await f.flow.load(); await f.flow.act("review"); await f.flow.act("submit"); await f.flow.act("check");
+  assert.equal(f.flow.allowed("complete"), true); f.flow.cancel();
+  const before = { ...f.counts }, bytes = [...f.rows]; await f.flow.reload();
+  assert.equal(f.flow.snapshot().view!.verification, "stored-snapshot");
+  assert.equal(f.flow.snapshot().view!.observedStatus, null);
+  assert.equal(f.flow.allowed("complete"), false);
+  assert.deepEqual({ ...f.counts, get: before.get }, before); assert.deepEqual([...f.rows], bytes);
+});
+test("local recovery does not clear a write failure even without a quarantine notification", async t => {
+  const f = fixture(t); await f.flow.load();
+  f.hooks.set = async () => { throw Error("synthetic disk fault"); };
+  await f.flow.act("review");
+  assert.equal(f.flow.snapshot().error, "storage"); assert.equal(f.health.requiresRestart, false);
+  const before = { ...f.counts }; assert.equal(f.flow.canReload(), false); await f.flow.reload();
+  assert.deepEqual(f.counts, before); assert.equal(f.flow.snapshot().view, null);
+  f.flow.cancel(); f.operations.setAppState("inactive"); f.operations.setAppState("active");
+  await f.flow.reload(); await f.flow.load(); await f.flow.act("review");
+  assert.equal(f.flow.canReload(), false); assert.equal(f.flow.allowed("review"), false);
+  assert.equal(f.flow.snapshot().error, "storage"); assert.deepEqual(f.counts, before);
+});
+test("a late storage failure fences a newer reload after the old action was cancelled", { timeout: 5000 }, async t => {
+  const f = fixture(t), entered = deferred<void>(), release = deferred<void>();
+  await f.flow.load();
+  f.hooks.set = async () => { entered.resolve(); await release.promise; throw Error("synthetic late disk fault"); };
+  const old = f.flow.act("review"); await entered.promise;
+  f.flow.cancel(); const reading = f.flow.reload();
+  assert.equal(f.flow.snapshot().busy, "read");
+  release.resolve(); await Promise.all([old, reading]);
+  assert.equal(f.health.requiresRestart, false); assert.equal(f.flow.snapshot().error, "storage");
+  assert.equal(f.flow.snapshot().view, null); assert.equal(f.flow.canReload(), false);
+  const before = { ...f.counts }; await f.flow.load(); await f.flow.reload(); await f.flow.act("review");
+  assert.deepEqual(f.counts, before); assert.equal(f.posts.length, 0); assert.equal(f.counts.delete, 0);
+});
 test("persistence failure never restores an earlier UI or re-reads under quarantine", async t => {
   for (const quarantine of [false, true]) {
     const f = fixture(t); await f.flow.load(); let atFailure = 0;

@@ -40,6 +40,7 @@ export class FaucetFlow {
   private readonly configuration: FaucetConfiguration | null;
   private readonly listeners = new Set<() => void>();
   private current: Attempt | null = null;
+  private persistenceFailed = false;
   private attached = false;
   private detachListeners: (() => void) | null = null;
   private state: FaucetFlowState;
@@ -81,7 +82,7 @@ export class FaucetFlow {
     this.current = null;
     this.scope.cancel();
     if (previous) { clearTimeout(previous.timer); previous.lease.finish(); }
-    this.publish({ phase: "paused", busy: null, view: null, error: null });
+    this.publish({ phase: "paused", busy: null, view: null, error: this.persistenceFailed ? "storage" : null });
     // Abort listeners can run synchronously. Never overwrite a newer action
     // they may start after this owner was already invalidated.
     previous?.abort.abort();
@@ -100,8 +101,21 @@ export class FaucetFlow {
     finally { this.finish(attempt); }
   }
 
+  /** Explicit local recovery only. A foreground event never submits or checks
+   * the saved request, and a write failure cannot be cleared through this path. */
+  canReload(): boolean {
+    return this.attached && !this.current && !this.persistenceFailed && !this.dependencies.health.requiresRestart &&
+      this.dependencies.operations.isActive() && this.dependencies.operations.isUnlocked() &&
+      this.dependencies.operations.selectedAccount() === this.dependencies.account &&
+      (this.state.phase === "paused" || this.state.phase === "failed" && this.state.error === "read");
+  }
+
+  async reload(): Promise<void> {
+    if (this.canReload()) await this.load();
+  }
+
   allowed(action: FaucetAction): boolean {
-    if (!this.attached || this.current || this.state.phase !== "ready" || !this.state.available || !this.configuration ||
+    if (!this.attached || this.current || this.persistenceFailed || this.state.phase !== "ready" || !this.state.available || !this.configuration ||
         this.dependencies.health.requiresRestart || !this.dependencies.operations.isUnlocked() ||
         this.dependencies.operations.selectedAccount() !== this.dependencies.account) return false;
     const view = this.state.view, entry = view?.entry;
@@ -149,13 +163,16 @@ export class FaucetFlow {
       this.guard(attempt);
       this.publish({ phase: "ready", view });
     } catch (error) {
-      if (!this.owns(attempt)) return;
       const code = error && typeof error === "object" && "code" in error ? error.code : null;
       // A failed persistence/readback can already have changed disk. Disable
-      // actions; never restore the previous journal or assume there is no entry.
+      // this flow even if its old UI lease was cancelled before failure arrived.
+      // Cancellation or a newer local read cannot clear that storage boundary.
       if (code === "FAUCET_CLAIM_STORAGE" || code === "FAUCET_ADMISSION_STORAGE") {
-        this.publish({ phase: "failed", view: null, error: "storage" });
+        this.persistenceFailed = true;
+        this.cancel();
+        this.publish({ phase: this.dependencies.health.requiresRestart ? "paused" : "failed", view: null, error: "storage" });
       } else {
+        if (!this.owns(attempt)) return;
         try {
           this.guard(attempt);
           const view = await this.local.read(); this.guard(attempt);
@@ -171,7 +188,7 @@ export class FaucetFlow {
       NATIVE_FAUCET_CHAIN_ORIGIN, { rpc: session?.rpc, transport: session?.transport, randomBytes });
   }
   private begin(busy: NonNullable<FaucetFlowState["busy"]>): Attempt | null {
-    if (!this.attached || this.current || this.dependencies.health.requiresRestart) return null;
+    if (!this.attached || this.current || this.persistenceFailed || this.dependencies.health.requiresRestart) return null;
     let attempt: Attempt | null = null;
     try {
       const lease = this.scope.begin({ account: this.dependencies.account, ttlMs: ACTION_TTL_MS });
@@ -187,7 +204,7 @@ export class FaucetFlow {
   }
   private guard(attempt: Attempt): void {
     this.dependencies.health.assertHealthy();
-    if (!this.attached || this.current !== attempt || attempt.abort.signal.aborted) throw new WalletOperationCancelled();
+    if (!this.attached || this.persistenceFailed || this.current !== attempt || attempt.abort.signal.aborted) throw new WalletOperationCancelled();
     attempt.lease.assert();
   }
   private owns(attempt: Attempt): boolean { try { this.guard(attempt); return true; } catch { return false; } }

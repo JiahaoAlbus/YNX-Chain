@@ -17,6 +17,7 @@ import { NativeTransferOutbox, type NativeTransferOutboxEntry } from "./src/chai
 import { createPaymentURI, PaymentRequestError } from "./src/chain/paymentRequest";
 import { PaymentRecipientInput, type PaymentRecipientInputAttempt } from "./src/state/paymentRecipientInput";
 import { FaucetFlow, faucetStatusCopy, productionFaucetConfiguration, type FaucetAction } from "./src/state/faucetFlow";
+import { faucetRecoveryCopy } from "./src/i18n/faucetRecoveryCopy";
 import { EvmSimulationClient, type EvmSimulationResult } from "./src/chain/evmSimulation";
 import { buildWalletControlView, type CapitalReview } from "./src/control/controlSurface";
 import { controlCopy } from "./src/control/controlCopy";
@@ -256,7 +257,7 @@ function FaucetModal({account,close}:{account:WalletAccount;close:()=>void}){
   useEffect(()=>{
     const unsubscribe=flow.subscribe(()=>setRender(value=>value+1));
     const detach=flow.attach();
-    const appState=AppState.addEventListener("change",next=>{if(next!=="active")flow.cancel()});
+    const appState=AppState.addEventListener("change",next=>{if(next!=="active")flow.cancel();else setRender(value=>value+1)});
     if(AppState.currentState==="active")void flow.load();else flow.cancel();
     return()=>{unsubscribe();appState.remove();detach()};
   },[flow]);
@@ -279,8 +280,9 @@ function FaucetModal({account,close}:{account:WalletAccount;close:()=>void}){
         <FaucetDetail label="Network" value="YNX Testnet · ynx_6423-1"/>
         {amount!==null?<FaucetDetail label="Requested amount" value={formatYNXT(locale,amount)}/>:<Text style={[styles.muted,textDirection]}>{walletCopy(locale,"Request amount will be shown when this service becomes available.")}</Text>}
         {state.busy?<View accessibilityState={{busy:true}}><ActivityIndicator color={ACTIVE_COLORS.blue}/><Text accessibilityLiveRegion="polite" style={[styles.sheetText,textDirection]}>{walletCopy(locale,busyText)}</Text></View>:null}
-        {state.phase==="paused"?<Text accessibilityRole="alert" style={[styles.sheetText,textDirection]}>{walletCopy(locale,"Close and reopen this request to continue.")}</Text>:null}
+        {state.phase==="paused"&&state.error!=="storage"?<Text accessibilityRole="alert" style={[styles.sheetText,textDirection]}>{faucetRecoveryCopy(locale).paused}</Text>:null}
         {state.error?<Text accessibilityRole="alert" style={[styles.error,textDirection]}>{walletCopy(locale,state.error==="unavailable"?"Test YNXT requests are not available in this version.":state.error==="read"||state.error==="storage"?"Saved request unavailable. Sending is paused.":"The request could not be checked. Keep the original request and try again manually.")}</Text>:null}
+        {state.phase==="paused"&&state.error!=="storage"||state.phase==="failed"&&state.error==="read"?<FaucetButton secondary label={faucetRecoveryCopy(locale).reload} disabled={!flow.canReload()} onPress={()=>void flow.reload()}/>:null}
         {status?<View style={{gap:6}}><Text accessibilityLiveRegion="polite" style={[styles.infoTitle,textDirection]}>{walletCopy(locale,status.title)}</Text><Text style={[styles.sheetText,textDirection]}>{walletCopy(locale,status.body)}</Text></View>:null}
         {entry?<>
           <FaucetDetail label="Request ID" value={entry.requestId}/>
