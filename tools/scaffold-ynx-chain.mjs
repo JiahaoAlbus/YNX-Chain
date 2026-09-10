@@ -16,7 +16,7 @@ ${lines.join("\n\n")}
 
 write("go.mod", `module github.com/JiahaoAlbus/YNX-Chain
 
-go 1.25.0
+go 1.26.8
 `);
 
 write("internal/chain/types.go", `package chain
@@ -1333,7 +1333,7 @@ write("infra/docker/docker-compose.yml", `services:
     ports:
       - "6420:6420"
 `);
-write("infra/docker/ynx-chaind.Dockerfile", `FROM golang:1.25-alpine AS build
+write("infra/docker/ynx-chaind.Dockerfile", `FROM golang:1.26.8-alpine AS build
 WORKDIR /src
 COPY . .
 RUN go build -o /out/ynx-chaind ./cmd/ynx-chaind
@@ -1379,10 +1379,10 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
-          go-version: "1.25"
+          go-version-file: go.mod
       - run: make env-check
       - run: make no-placeholder-check
       - run: make secret-scan

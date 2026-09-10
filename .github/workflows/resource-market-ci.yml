@@ -3,6 +3,8 @@ name: Resource Market Candidate Gates
 on:
   pull_request:
     paths:
+      - 'go.mod'
+      - 'go.sum'
       - 'apps/resource-market/**'
       - 'internal/resourcemarket/**'
       - 'internal/resourceproduct/**'
@@ -26,7 +28,7 @@ jobs:
       - name: Install patched Go toolchain
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
         with:
-          go-version: '1.25.12'
+          go-version-file: go.mod
           check-latest: false
           cache: true
       - name: Record toolchains
@@ -41,7 +43,7 @@ jobs:
           go test -count=1 ./internal/resourcemarket ./internal/resourceproduct ./internal/productstore ./internal/canonicalwallet ./apps/resource-market
           go test -race -count=1 ./internal/resourcemarket ./internal/resourceproduct
       - name: Go vulnerability gate
-        run: go run golang.org/x/vuln/cmd/govulncheck@v1.1.4 ./internal/resourcemarket ./internal/resourceproduct ./internal/productstore ./internal/canonicalwallet ./apps/resource-market
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.6.0 ./internal/resourcemarket ./internal/resourceproduct ./internal/productstore ./internal/canonicalwallet ./apps/resource-market
       - name: Locked browser dependencies and audit
         working-directory: apps/resource-market
         run: |
