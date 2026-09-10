@@ -1,0 +1,49 @@
+{
+  "text": {
+    "title": "Testnet-Card-Antrag erstellen",
+    "disclaimer": "Eine Card wird niemals als bereits erstellt vorausgesetzt. Dieser an die Wallet gebundene Ablauf gilt nur für das Testnet und kann keine echte Karte, PAN, CVV, Guthaben, Fiat-Einzahlung oder Händlerzahlung bereitstellen.",
+    "nativeUnavailable": "Card-Anträge in der nativen App sind noch nicht verfügbar",
+    "nativeDetails": "Card-Anträge sind in dieser nativen App noch nicht angebunden. Hier kann kein Antrag gestartet werden.",
+    "nativeAuthority": "Die Autorisierung durch YNX Wallet bestätigt nur die Identität. Sie erstellt keinen Card-Antrag und erteilt keine Berechtigung zur Einzahlung.",
+    "connectRequired": "Verbinde eine Standard-Wallet, bevor du im Web einen Testnet-Card-Antrag startest.",
+    "draftCreated": "Ein an die Wallet gebundener Testnet-Antragsentwurf wurde erstellt.",
+    "invalidApplication": "Der Antrag konnte nicht aktualisiert werden. Prüfe die Angaben und versuche es erneut.",
+    "approvalPrepared": "Der Antrag ist vorbereitet. Eine echte Wallet-Signatur und ein akzeptierter Beleg des Sandbox-Backends sind weiterhin erforderlich.",
+    "cannotApprove": "Die Wallet-Freigabe konnte nicht vorbereitet werden. Prüfe den Antrag und versuche es erneut.",
+    "backendDegraded": "Der Antrag ist pausiert, bis ein akzeptierter Backend-Beleg vorliegt. Es wurden keine Signatur, kein Konto, keine aktive Karte, kein Guthaben und keine Aufladeabsicht erstellt.",
+    "cannotSubmit": "Die Sandbox-Bereitschaft konnte nicht geprüft werden. Versuche es später erneut.",
+    "start": "Antrag starten",
+    "nickname": "Karten-Spitzname",
+    "useCase": "Testnet-Verwendungszweck",
+    "useCasePlaceholder": "Was möchtest du üben?",
+    "limit": "YNXT-Testnet-Ausgabenlimit",
+    "limitPlaceholder": "YNXT-Ausgabenlimit",
+    "risk": "Ich akzeptiere die Testnet-Risiken und verstehe, dass dies ausschließlich eine Simulation ist.",
+    "acceptTerms": "Testnet-Bedingungen akzeptieren",
+    "prepareApproval": "Wallet-Freigabe vorbereiten",
+    "submit": "Sandbox-Bereitschaft prüfen",
+    "cancel": "Antrag abbrechen",
+    "standardRequired": "Anträge im Web erfordern eine Standard-EVM-Wallet.",
+    "draftOnly": "Nur Anträge im Entwurfsstatus können bearbeitet werden.",
+    "completeDetails": "Gib einen Spitznamen mit 2–48 Zeichen, einen Verwendungszweck mit 4–160 Zeichen und ein Limit von mindestens 1 YNXT mit höchstens 6 Vorkomma- und 6 Nachkommastellen ein.",
+    "acceptDetails": "Vervollständige die Antragsdaten und akzeptiere die Testnet-Bedingungen, bevor du die Freigabe vorbereitest.",
+    "notAwaiting": "Dieser Antrag wartet nicht auf eine Freigabe.",
+    "activeCannotCancel": "Ein aktiver Antrag kann hier nicht abgebrochen werden.",
+    "storageLoadFailure": "Der gespeicherte Antrag konnte nicht geladen werden. Versuche es später erneut.",
+    "storageSaveFailure": "Der Antrag konnte nicht gespeichert werden. Änderungen können beim Verlassen dieser Ansicht verloren gehen.",
+    "cannotCancel": "Der Antrag konnte nicht abgebrochen werden. Versuche es später erneut."
+  },
+  "statuses": {
+    "DRAFT": "Entwurf",
+    "SUBMITTED": "Eingereicht",
+    "APPROVAL_REQUIRED": "Freigabe erforderlich",
+    "ACTIVE": "Aktiv",
+    "REJECTED": "Abgelehnt",
+    "CANCELLED": "Abgebrochen",
+    "DEGRADED": "Dienst nicht verfügbar"
+  },
+  "templates": {
+    "status": "Antragsstatus: {status}",
+    "audit": "Prüfprotokolle: {count}. Nur ein verifizierter Sandbox-Beleg kann eine Card aktivieren; andernfalls bleibt das Aufladen gesperrt."
+  }
+}

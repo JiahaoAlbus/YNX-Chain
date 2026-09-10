@@ -1,0 +1,49 @@
+{
+  "text": {
+    "title": "Create a Testnet Card application",
+    "disclaimer": "A Card is never assumed. This wallet-bound flow is Testnet-only and cannot issue a real card, PAN, CVV, balance, fiat funding, or merchant payment.",
+    "nativeUnavailable": "Native Card applications are not available yet",
+    "nativeDetails": "Card applications are not connected in this native app yet. No application can be started here.",
+    "nativeAuthority": "YNX Wallet authorization verifies identity only. It does not create a Card application or authorize funding.",
+    "connectRequired": "Connect a Standard Wallet before starting a Testnet Card application on the web.",
+    "draftCreated": "Wallet-bound Testnet application draft created.",
+    "invalidApplication": "The application could not be updated. Review the details and try again.",
+    "approvalPrepared": "Application prepared. A real wallet signature and an accepted sandbox backend receipt are still required.",
+    "cannotApprove": "Wallet approval could not be prepared. Review the application and try again.",
+    "backendDegraded": "The application is paused until an accepted backend receipt is available. No signature, account, active card, balance, or top-up intent was created.",
+    "cannotSubmit": "Sandbox readiness could not be checked. Try again later.",
+    "start": "Start application",
+    "nickname": "Card nickname",
+    "useCase": "Testnet use case",
+    "useCasePlaceholder": "What will you practice?",
+    "limit": "YNXT Testnet spending limit",
+    "limitPlaceholder": "YNXT spending limit",
+    "risk": "I accept Testnet risk and understand this is simulation only.",
+    "acceptTerms": "Accept Testnet terms",
+    "prepareApproval": "Prepare wallet approval",
+    "submit": "Check sandbox readiness",
+    "cancel": "Cancel application",
+    "standardRequired": "A Standard EVM wallet is required for web applications.",
+    "draftOnly": "Only draft applications can be edited.",
+    "completeDetails": "Enter a nickname of 2–48 characters, a use case of 4–160 characters, and a YNXT limit of at least 1, with up to 6 whole and 6 decimal digits.",
+    "acceptDetails": "Complete the application details and accept the Testnet terms before preparing approval.",
+    "notAwaiting": "This application is not awaiting approval.",
+    "activeCannotCancel": "An active application cannot be cancelled here.",
+    "storageLoadFailure": "The saved application could not be loaded. Try again later.",
+    "storageSaveFailure": "The application could not be saved. Changes may be lost when you leave this screen.",
+    "cannotCancel": "The application could not be cancelled. Try again later."
+  },
+  "statuses": {
+    "DRAFT": "Draft",
+    "SUBMITTED": "Submitted",
+    "APPROVAL_REQUIRED": "Approval required",
+    "ACTIVE": "Active",
+    "REJECTED": "Rejected",
+    "CANCELLED": "Cancelled",
+    "DEGRADED": "Service unavailable"
+  },
+  "templates": {
+    "status": "Application status: {status}",
+    "audit": "Audit records: {count}. Only a verified sandbox receipt can activate a Card; top-up stays locked otherwise."
+  }
+}

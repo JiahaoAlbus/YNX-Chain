@@ -1,0 +1,49 @@
+{
+  "text": {
+    "title": "Criar uma solicitação de Card na Testnet",
+    "disclaimer": "Uma Card nunca é considerada criada automaticamente. Este fluxo vinculado à carteira é exclusivo da Testnet e não pode emitir um cartão real, PAN, CVV, saldo, financiamento em moeda fiduciária ou pagamento a comerciantes.",
+    "nativeUnavailable": "As solicitações de Card no aplicativo nativo ainda não estão disponíveis",
+    "nativeDetails": "As solicitações de Card ainda não foram conectadas a este aplicativo nativo. Nenhuma solicitação pode ser iniciada aqui.",
+    "nativeAuthority": "A autorização da YNX Wallet verifica apenas a identidade. Ela não cria uma solicitação de Card nem autoriza financiamento.",
+    "connectRequired": "Conecte uma carteira padrão antes de iniciar uma solicitação de Card da Testnet na web.",
+    "draftCreated": "Foi criado um rascunho de solicitação da Testnet vinculado à carteira.",
+    "invalidApplication": "Não foi possível atualizar a solicitação. Confira os dados e tente novamente.",
+    "approvalPrepared": "Solicitação preparada. Ainda são necessários uma assinatura real da carteira e um comprovante aceito do servidor do ambiente de testes.",
+    "cannotApprove": "Não foi possível preparar a aprovação da carteira. Confira a solicitação e tente novamente.",
+    "backendDegraded": "A solicitação está pausada até que haja um comprovante aceito do servidor. Nenhuma assinatura, conta, cartão ativo, saldo ou intenção de recarga foi criada.",
+    "cannotSubmit": "Não foi possível verificar a disponibilidade do ambiente de testes. Tente novamente mais tarde.",
+    "start": "Iniciar solicitação",
+    "nickname": "Apelido do cartão",
+    "useCase": "Finalidade de uso na Testnet",
+    "useCasePlaceholder": "O que você quer praticar?",
+    "limit": "Limite de gastos YNXT da Testnet",
+    "limitPlaceholder": "Limite de gastos YNXT",
+    "risk": "Aceito os riscos da Testnet e entendo que isto é apenas uma simulação.",
+    "acceptTerms": "Aceitar os termos da Testnet",
+    "prepareApproval": "Preparar aprovação da carteira",
+    "submit": "Verificar o ambiente de testes",
+    "cancel": "Cancelar solicitação",
+    "standardRequired": "As solicitações na web exigem uma carteira EVM padrão.",
+    "draftOnly": "Somente solicitações em rascunho podem ser editadas.",
+    "completeDetails": "Informe um apelido de 2–48 caracteres, uma finalidade de uso de 4–160 caracteres e um limite de pelo menos 1 YNXT com até 6 dígitos inteiros e 6 casas decimais.",
+    "acceptDetails": "Preencha os dados da solicitação e aceite os termos da Testnet antes de preparar a aprovação.",
+    "notAwaiting": "Esta solicitação não está aguardando aprovação.",
+    "activeCannotCancel": "Uma solicitação ativa não pode ser cancelada aqui.",
+    "storageLoadFailure": "Não foi possível carregar a solicitação salva. Tente novamente mais tarde.",
+    "storageSaveFailure": "Não foi possível salvar a solicitação. As alterações podem ser perdidas ao sair desta tela.",
+    "cannotCancel": "Não foi possível cancelar a solicitação. Tente novamente mais tarde."
+  },
+  "statuses": {
+    "DRAFT": "Rascunho",
+    "SUBMITTED": "Enviada",
+    "APPROVAL_REQUIRED": "Aprovação necessária",
+    "ACTIVE": "Ativa",
+    "REJECTED": "Rejeitada",
+    "CANCELLED": "Cancelada",
+    "DEGRADED": "Serviço indisponível"
+  },
+  "templates": {
+    "status": "Status da solicitação: {status}",
+    "audit": "Registros de auditoria: {count}. Somente um comprovante verificado do ambiente de testes pode ativar uma Card; caso contrário, a recarga permanece bloqueada."
+  }
+}

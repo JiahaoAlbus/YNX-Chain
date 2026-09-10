@@ -1,0 +1,49 @@
+{
+  "text": {
+    "title": "테스트넷 Card 신청 만들기",
+    "disclaimer": "Card는 자동으로 생성되지 않습니다. 지갑에 연결된 이 절차는 테스트넷 전용이며 실제 카드, PAN, CVV, 잔액, 법정화폐 충전 또는 가맹점 결제를 제공할 수 없습니다.",
+    "nativeUnavailable": "네이티브 Card 신청은 아직 이용할 수 없습니다",
+    "nativeDetails": "이 네이티브 앱에는 아직 Card 신청 기능이 연결되지 않았습니다. 여기서는 신청을 시작할 수 없습니다.",
+    "nativeAuthority": "YNX Wallet 승인은 신원만 확인합니다. Card 신청을 만들거나 충전 권한을 부여하지 않습니다.",
+    "connectRequired": "웹에서 테스트넷 Card 신청을 시작하기 전에 표준 지갑을 연결하세요.",
+    "draftCreated": "지갑에 연결된 테스트넷 신청 초안을 만들었습니다.",
+    "invalidApplication": "신청을 수정할 수 없습니다. 내용을 확인한 후 다시 시도하세요.",
+    "approvalPrepared": "신청 준비가 완료되었습니다. 실제 지갑 서명과 수락된 샌드박스 백엔드 수신 확인이 여전히 필요합니다.",
+    "cannotApprove": "지갑 승인을 준비할 수 없습니다. 신청 내용을 확인한 후 다시 시도하세요.",
+    "backendDegraded": "수락된 백엔드 수신 확인을 받을 때까지 신청이 일시 중지됩니다. 서명, 계정, 활성 카드, 잔액 또는 충전 의도가 생성되지 않았습니다.",
+    "cannotSubmit": "샌드박스 준비 상태를 확인할 수 없습니다. 나중에 다시 시도하세요.",
+    "start": "신청 시작",
+    "nickname": "카드 별칭",
+    "useCase": "테스트넷 사용 목적",
+    "useCasePlaceholder": "무엇을 연습할 건가요?",
+    "limit": "YNXT 테스트넷 지출 한도",
+    "limitPlaceholder": "YNXT 지출 한도",
+    "risk": "테스트넷 위험에 동의하며 시뮬레이션 전용임을 이해합니다.",
+    "acceptTerms": "테스트넷 약관 동의",
+    "prepareApproval": "지갑 승인 준비",
+    "submit": "샌드박스 준비 상태 확인",
+    "cancel": "신청 취소",
+    "standardRequired": "웹 신청에는 표준 EVM 지갑이 필요합니다.",
+    "draftOnly": "초안 상태의 신청만 수정할 수 있습니다.",
+    "completeDetails": "2~48자의 별칭, 4~160자의 사용 목적, 정수부와 소수부가 각각 최대 6자리이며 1 YNXT 이상인 한도를 입력하세요.",
+    "acceptDetails": "승인을 준비하기 전에 신청 내용을 작성하고 테스트넷 약관에 동의하세요.",
+    "notAwaiting": "이 신청은 승인 대기 상태가 아닙니다.",
+    "activeCannotCancel": "활성 상태의 신청은 여기서 취소할 수 없습니다.",
+    "storageLoadFailure": "저장된 신청을 불러올 수 없습니다. 나중에 다시 시도하세요.",
+    "storageSaveFailure": "신청을 저장할 수 없습니다. 이 화면을 나가면 변경 사항이 사라질 수 있습니다.",
+    "cannotCancel": "신청을 취소할 수 없습니다. 나중에 다시 시도하세요."
+  },
+  "statuses": {
+    "DRAFT": "초안",
+    "SUBMITTED": "제출됨",
+    "APPROVAL_REQUIRED": "승인 필요",
+    "ACTIVE": "활성",
+    "REJECTED": "거절됨",
+    "CANCELLED": "취소됨",
+    "DEGRADED": "서비스 이용 불가"
+  },
+  "templates": {
+    "status": "신청 상태: {status}",
+    "audit": "감사 기록: {count}건. 검증된 샌드박스 수신 확인이 있어야 Card를 활성화할 수 있으며, 그 외에는 충전 기능이 잠긴 상태로 유지됩니다."
+  }
+}
