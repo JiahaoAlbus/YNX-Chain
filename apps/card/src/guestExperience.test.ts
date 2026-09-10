@@ -71,17 +71,45 @@ test("compact Arabic shares one scroll viewport for chrome, six tabs, safety bou
   assert.equal(viewport.findAll((node:any)=>node.type==="ScrollView").length,1);
 });
 
-test("compact navigation waits for measured content then returns to the section start, including Help and repeated tabs",async t=>{
-  const app=await mountGuest({locale:"ar",width:412,fontScale:2});t.after(()=>app.unmount());
+test("compact navigation measures current content then returns to the section start, including Help and repeated tabs",async t=>{
+  const app=await mountGuest({locale:"ar",width:412,fontScale:2,layoutOptions:{ready:false}});t.after(()=>app.unmount());
   await app.tab(guestText("ar","Top up with YNXT"));assert.equal(app.calls.scroll.length,0,"No unmeasured navigation to the tall header");
   await app.layoutSection(820);assert.equal(app.calls.scroll.at(-1).y,820);
   await app.press(app.buttons(guestText("ar","Read safety requirements"))[0]);assert.equal(app.calls.scroll.at(-1).y,820);
   assert.ok(app.text().includes(guestText("ar","YNX Card is currently a Testnet simulation environment for learning and product evaluation.")));
   await app.tab(guestText("ar","Overview"));assert.equal(app.calls.scroll.at(-1).y,820);
   const count=app.calls.scroll.length;await app.tab(guestText("ar","Overview"));assert.equal(app.calls.scroll.length,count+1);assert.equal(app.calls.scroll.at(-1).y,820);
-  await app.resize({fontScale:1.3});const before=app.calls.scroll.length;await app.tab(guestText("ar","Virtual Card"));assert.equal(app.calls.scroll.length,before,"Old large-font offset must not be reused before layout");
-  await app.layoutSection(510);assert.equal(app.calls.scroll.at(-1).y,510);
+  app.setMeasurement({y:510});await app.resize({fontScale:1.3});const before=app.calls.scroll.length;await app.tab(guestText("ar","Virtual Card"));assert.equal(app.calls.scroll.length,before+1);
+  assert.equal(app.calls.scroll.at(-1).y,510,"Fresh host measurement replaces the old large-font offset even without onLayout");
   assert.equal(app.calls.native,0);assert.equal(app.calls.metamask,0);assert.equal(app.calls.chooser,0);assert.equal(app.calls.reads,0);assert.equal(app.calls.writes,0);
+});
+
+test("locale change with no onLayout still navigates using a fresh synchronous host measurement",async t=>{
+  const app=await mountGuest({width:412,fontScale:2});t.after(()=>app.unmount());await app.layoutSection(820);await app.tab("Top up with YNXT");
+  await app.update({locale:"zh-CN"});await app.tab(guestText("zh-CN","Virtual Card"));assert.equal(app.calls.scroll.length,2);assert.equal(app.calls.scroll.at(-1).y,820);
+  app.setMeasurement({y:960});await app.update({locale:"ar"});await app.tab(guestText("ar","Security & Help"));assert.equal(app.calls.scroll.at(-1).y,960);
+  assert.ok(app.calls.measure.every((call:any)=>call.parentMatches));assert.equal(app.calls.reads,0);assert.equal(app.calls.writes,0);
+});
+
+test("late measurement callbacks cannot override newer locale, navigation or onLayout requests",async t=>{
+  const app=await mountGuest({layoutOptions:{defer:true,y:820}});t.after(()=>app.unmount());await app.tab("Top up with YNXT");
+  app.setMeasurement({y:940});await app.update({locale:"zh-CN"});await app.tab(guestText("zh-CN","Virtual Card"));
+  const latest=app.calls.measure.length-1;for(let i=0;i<latest;i++)await app.resolveMeasurement(i);assert.equal(app.calls.scroll.length,0);
+  await app.resolveMeasurement(latest);assert.equal(app.calls.scroll.at(-1).y,940);
+  await app.tab(guestText("zh-CN","Security & Help"));const old=app.calls.measure.length-1;await app.layoutSection(1020);const current=app.calls.measure.length-1;
+  const before=app.calls.scroll.length;await app.resolveMeasurement(old);assert.equal(app.calls.scroll.length,before);await app.resolveMeasurement(current);assert.equal(app.calls.scroll.at(-1).y,1020);
+});
+
+for(const mode of ["silent","throwMeasure","fail"] as const)test(`${mode}: missing or failed measure callbacks never block a fresh tab request`,async t=>{
+  const app=await mountGuest({layoutOptions:{y:600,silent:mode==="silent",throwMeasure:mode==="throwMeasure",ready:mode!=="fail"}});t.after(()=>app.unmount());
+  await app.tab("Top up with YNXT");assert.equal(app.calls.scroll.length,0);
+  app.setMeasurement({y:650,silent:false,throwMeasure:false,ready:true});await app.tab("Virtual Card");assert.equal(app.calls.scroll.at(-1).y,650);
+});
+
+test("invalid measured positions and late callbacks after unmount never scroll",async()=>{
+  const app=await mountGuest();
+  for(const y of [NaN,Infinity,-1]){app.setMeasurement({y});await app.tab("Virtual Card");assert.equal(app.calls.scroll.length,0);}
+  app.setMeasurement({defer:true,y:600});await app.tab("Security & Help");await app.unmount();await app.resolveMeasurement(0);assert.equal(app.calls.scroll.length,0);
 });
 
 test("desktop keeps chrome outside its content viewport and navigation starts at content zero",async t=>{

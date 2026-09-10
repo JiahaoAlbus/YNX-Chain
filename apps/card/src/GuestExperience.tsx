@@ -1,5 +1,5 @@
 import React,{createContext,useContext,useEffect,useMemo,useRef,useState}from"react";
-import{Image,Linking,Platform,Pressable,ScrollView,StyleSheet,Switch,Text as NativeText,useWindowDimensions,View,type ImageStyle,type LayoutChangeEvent,type TextProps}from"react-native";
+import{Image,Linking,Platform,Pressable,ScrollView,StyleSheet,Switch,Text as NativeText,useWindowDimensions,View,type ImageStyle,type TextProps}from"react-native";
 import{Activity,ArrowRight,BadgeCheck,CircleHelp,CreditCard,Download,ExternalLink,LockKeyhole,RefreshCw,ShieldCheck,SlidersHorizontal,Snowflake,WalletCards}from"lucide-react-native";
 import{METAMASK_CARD_DEEP_LINK,METAMASK_INSTALL_URL,type Eip1193WalletSession,type ProductSessionRuntime}from"./wallet";
 import{isRTL,type Locale}from"./i18n";
@@ -19,15 +19,25 @@ function Text({children,style,...props}:TextProps){const locale=useContext(Guest
 
 export function GuestExperience({locale,connectWallet,connectMetaMaskWallet,connectYNXWallet,enablePrivateServices,retryNativeWallet,disconnectNativeWallet,nativeAuthorizationPending,walletSession,walletBusy,walletError,privateSession,standardWalletState,selectedWalletKind,closeWalletChooser,disconnectWallet,switchWalletAccount}:{locale:Locale;connectWallet:()=>Promise<void>;connectMetaMaskWallet:()=>Promise<void>;connectYNXWallet:()=>Promise<"wallet-opened"|"wallet-unavailable"|"wallet-open-failed">;enablePrivateServices:()=>Promise<void>;retryNativeWallet:()=>Promise<void>;disconnectNativeWallet:()=>Promise<void>;nativeAuthorizationPending:boolean;walletSession:Eip1193WalletSession|null;walletBusy:boolean;walletError:string;privateSession:ProductSessionRuntime|null;standardWalletState:StandardWalletState;selectedWalletKind:"metamask"|"ynx-wallet"|null;closeWalletChooser:()=>void;disconnectWallet:()=>Promise<void>;switchWalletAccount:()=>Promise<void>}){
   const{width,fontScale}=useWindowDimensions(),compact=width<700;
-  const rtl=isRTL(locale),contentRef=useRef<ScrollView>(null),contentTop=useRef<number|null>(null),pendingNavigation=useRef(false);
+  const rtl=isRTL(locale),contentRef=useRef<ScrollView>(null),scrollBodyRef=useRef<View>(null),sectionRef=useRef<View>(null),pendingNavigation=useRef(false),measurementAttempt=useRef(0),navigationEpoch=useRef(0),mounted=useRef(true);
   const layoutKey=`${width}:${fontScale}:${locale}`,measuredLayout=useRef(layoutKey);
-  if(measuredLayout.current!==layoutKey){contentTop.current=null;measuredLayout.current=layoutKey}
+  if(measuredLayout.current!==layoutKey){measurementAttempt.current++;measuredLayout.current=layoutKey}
   const[navigationRevision,setNavigationRevision]=useState(0);
   const[section,setSection]=useState<Section>("overview"),[frozen,setFrozen]=useState(false),[online,setOnline]=useState(true),[international,setInternational]=useState(false),[events,setEvents]=useState<readonly DemoEvent[]>([]),[notice,setNotice]=useState(""),[ynxWalletFallback,setYNXWalletFallback]=useState(false);
-  const showSectionStart=()=>{const target=compact?contentTop.current:0;if(!pendingNavigation.current||target===null||!contentRef.current)return;contentRef.current.scrollTo({y:target,animated:false});pendingNavigation.current=false};
-  const navigateTo=(next:Section)=>{pendingNavigation.current=true;setSection(next);setNavigationRevision(value=>value+1)};
-  const measureSectionStart=(event:LayoutChangeEvent)=>{contentTop.current=event.nativeEvent.layout.y;showSectionStart()};
-  useEffect(()=>{const frame=requestAnimationFrame(showSectionStart);return()=>cancelAnimationFrame(frame)},[section,navigationRevision,compact]);
+  const showSectionStart=()=>{
+    const scroll=contentRef.current,content=sectionRef.current,parent=scrollBodyRef.current,nav=navigationEpoch.current;
+    if(!mounted.current||!pendingNavigation.current||!scroll||measuredLayout.current!==layoutKey)return;
+    const attempt=++measurementAttempt.current;
+    if(!compact){scroll.scrollTo({y:0,animated:false});pendingNavigation.current=false;return}
+    if(!content||!parent)return;
+    try{content.measureLayout(parent,(_x,y)=>{
+      if(!mounted.current||!pendingNavigation.current||nav!==navigationEpoch.current||attempt!==measurementAttempt.current||measuredLayout.current!==layoutKey||contentRef.current!==scroll||sectionRef.current!==content||scrollBodyRef.current!==parent||!Number.isFinite(y)||y<0)return;
+      scroll.scrollTo({y,animated:false});pendingNavigation.current=false;
+    },()=>{})}catch{}
+  };
+  const navigateTo=(next:Section)=>{navigationEpoch.current++;measurementAttempt.current++;pendingNavigation.current=true;setSection(next);setNavigationRevision(value=>value+1)};
+  useEffect(()=>{mounted.current=true;return()=>{mounted.current=false;pendingNavigation.current=false;measurementAttempt.current++}},[]);
+  useEffect(()=>{const frame=requestAnimationFrame(showSectionStart);return()=>{cancelAnimationFrame(frame);measurementAttempt.current++}},[section,navigationRevision,compact,layoutKey]);
   const walletLabel=walletSession?guestTemplate(locale,"walletConnected",{address:`${walletSession.address.slice(0,6)}...${walletSession.address.slice(-4)}`}):guestText(locale,"Wallet optional for guest simulation");
   const runDemo=(label:string,detail:string)=>{setEvents(previous=>[{id:Date.now(),label,detail},...previous]);setNotice(guestTemplate(locale,"demoRecorded",{label:guestText(locale,label)}));navigateTo("activity")};
   const openYNXWallet=async()=>{
@@ -62,8 +72,10 @@ export function GuestExperience({locale,connectWallet,connectMetaMaskWallet,conn
     <View style={g.body}>
       {!compact&&sidebar}
       <ScrollView ref={contentRef} style={g.scroll} contentContainerStyle={g.scrollContent}>
+        <View ref={scrollBodyRef} collapsable={false} testID="guest-scroll-content" style={g.scrollContent}>
         {compact&&topbar}{compact&&sidebar}
-        <View testID="guest-section-content" onLayout={measureSectionStart} style={[g.content,compact&&g.contentCompact]}>{content}</View>
+        <View ref={sectionRef} collapsable={false} testID="guest-section-content" onLayout={showSectionStart} style={[g.content,compact&&g.contentCompact]}>{content}</View>
+        </View>
       </ScrollView>
     </View>
   </View></GuestLocaleContext.Provider>
