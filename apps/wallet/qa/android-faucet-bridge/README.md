@@ -15,12 +15,15 @@ The original transport sources and production gates must be byte-identical.
 
 Use a new absolute evidence directory with `python3 prepare.py --output PATH`.
 Install the release-locked dependencies separately, check the SecureStore patch
-and SBOM, then build a fresh Hermes release bundle and x86_64 Android APK. Sign
+and SBOM. Read `ro.product.cpu.abilist` from the selected emulator before choosing
+`reactNativeArchitectures`, then build a fresh Hermes release bundle and matching
+Android APK. Never assume the emulator uses the host's common desktop ABI. Sign
 only with the existing local test certificate. Clear production signing variables
 before running Gradle. Recheck `prepared-source.json` hashes before and after
 building. The actual merged APK must have package
 `com.ynxweb4.wallet.faucetbridgeqa`, no INTERNET permission, no production Wallet
-deep-link handler and no production signature.
+deep-link handler and no production signature. Its actual packaged native ABI
+must match the device readback before attempting installation.
 
 Only install on an explicitly selected isolated emulator after checking no app
 with this QA package is already present. Preserve the Wallet app and its data.
