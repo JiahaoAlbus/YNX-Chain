@@ -4,6 +4,8 @@ import {createRequire} from "node:module";
 import {locales} from "./i18n";
 import {guestText,guestResources,guestInvariantText} from "./guestCopy";
 import {registrationResources} from "./registrationCopy";
+import {registrationText} from "./registrationCopy";
+import {createDraft} from "./registration";
 const require=createRequire(import.meta.url);
 const {mountGuest,flattenStyle,textOf}=require("../test/guest-experience-fixture.cjs");
 const escape=(value:string)=>value.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
@@ -34,6 +36,7 @@ test("web keeps its separate standard-wallet chooser and explicit MetaMask actio
 
 for(const locale of locales)test(`${locale}: all six native sections render localized fixed text and local demo notices`,async t=>{
   const app=await mountGuest({locale});t.after(()=>app.unmount());
+  await app.layoutSection(900);
   const sections=["Overview","Virtual Card","Top up with YNXT","Activity","Spending Controls","Security & Help"];
   for(const section of sections){
     await app.tab(guestText(locale,section));
@@ -46,7 +49,7 @@ for(const locale of locales)test(`${locale}: all six native sections render loca
   await app.tab(guestText(locale,"Virtual Card"));await app.press(app.buttons(guestText(locale,"Simulate authorization"))[0]);
   assert.match(app.text(),new RegExp(guestText(locale,"Authorization decision prepared locally").replace(/[.*+?^${}()|[\]\\]/g,"\\$&")));
   assert.equal(app.calls.native,0);assert.equal(app.calls.metamask,0);assert.equal(app.calls.chooser,0);assert.equal(app.calls.reads,0);assert.equal(app.calls.writes,0);
-  assert.ok(app.calls.scroll.every((call:any)=>call.y===0));
+  assert.ok(app.calls.scroll.length>=8);assert.ok(app.calls.scroll.every((call:any)=>call.y===900));
 });
 
 test("Arabic compact header retains column layout without limiting text scaling",async t=>{
@@ -55,4 +58,47 @@ test("Arabic compact header retains column layout without limiting text scaling"
   assert.equal(flattenStyle(header.props.style).flexDirection,"column");
   const wide=await mountGuest({locale:"ar",width:1000});t.after(()=>wide.unmount());
   const wideHeader=wide.renderer.root.findAll((n:any)=>n.type==="View"&&flattenStyle(n.props.style).minHeight===74)[0];assert.equal(flattenStyle(wideHeader.props.style).flexDirection,"row-reverse");
+});
+
+test("compact Arabic shares one scroll viewport for chrome, six tabs, safety boundary and real content",async t=>{
+  const app=await mountGuest({locale:"ar",width:412,fontScale:2});t.after(()=>app.unmount());
+  const scrolls=app.renderer.root.findAll((node:any)=>node.type==="ScrollView");assert.equal(scrolls.length,1);
+  const viewport=scrolls[0];
+  assert.equal(viewport.findAll((node:any)=>node.type==="Pressable"&&node.props.accessibilityRole==="tab").length,6);
+  const text=textOf(viewport);
+  for(const key of ["Explore as guest","TESTNET SANDBOX","No real funds, cards, merchants, settlement, PAN, CVV, or personal data.","Understand card flows before they touch the real world."])assert.ok(text.includes(guestText("ar",key)),key);
+  assert.equal(viewport.findAll((node:any)=>node.props.testID==="guest-section-content").length,1);
+  assert.equal(viewport.findAll((node:any)=>node.type==="ScrollView").length,1);
+});
+
+test("compact navigation waits for measured content then returns to the section start, including Help and repeated tabs",async t=>{
+  const app=await mountGuest({locale:"ar",width:412,fontScale:2});t.after(()=>app.unmount());
+  await app.tab(guestText("ar","Top up with YNXT"));assert.equal(app.calls.scroll.length,0,"No unmeasured navigation to the tall header");
+  await app.layoutSection(820);assert.equal(app.calls.scroll.at(-1).y,820);
+  await app.press(app.buttons(guestText("ar","Read safety requirements"))[0]);assert.equal(app.calls.scroll.at(-1).y,820);
+  assert.ok(app.text().includes(guestText("ar","YNX Card is currently a Testnet simulation environment for learning and product evaluation.")));
+  await app.tab(guestText("ar","Overview"));assert.equal(app.calls.scroll.at(-1).y,820);
+  const count=app.calls.scroll.length;await app.tab(guestText("ar","Overview"));assert.equal(app.calls.scroll.length,count+1);assert.equal(app.calls.scroll.at(-1).y,820);
+  await app.resize({fontScale:1.3});const before=app.calls.scroll.length;await app.tab(guestText("ar","Virtual Card"));assert.equal(app.calls.scroll.length,before,"Old large-font offset must not be reused before layout");
+  await app.layoutSection(510);assert.equal(app.calls.scroll.at(-1).y,510);
+  assert.equal(app.calls.native,0);assert.equal(app.calls.metamask,0);assert.equal(app.calls.chooser,0);assert.equal(app.calls.reads,0);assert.equal(app.calls.writes,0);
+});
+
+test("desktop keeps chrome outside its content viewport and navigation starts at content zero",async t=>{
+  const app=await mountGuest({platform:"web",width:1100});t.after(()=>app.unmount());
+  const viewport=app.renderer.root.find((node:any)=>node.type==="ScrollView");
+  assert.equal(viewport.findAll((node:any)=>node.type==="Pressable"&&node.props.accessibilityRole==="tab").length,0);
+  assert.ok(!textOf(viewport).includes(guestText("en","No real funds, cards, merchants, settlement, PAN, CVV, or personal data.")));
+  await app.tab("Security & Help");assert.equal(app.calls.scroll.at(-1).y,0);
+});
+
+test("crossing the compact breakpoint preserves the current owner's unsaved registration form",async t=>{
+  const wallet={address:"0x1111111111111111111111111111111111111111",chainId:6423};
+  const app=await mountGuest({platform:"web",width:1000,props:{walletSession:wallet},storageOptions:{record:createDraft(wallet.address)}});t.after(()=>app.unmount());
+  await app.change(registrationText("en","nickname"),"Unsubmitted responsive draft");
+  const readCount=app.calls.reads;
+  for(const width of [412,1000,412]){
+    await app.resize({width});const input=app.renderer.root.find((node:any)=>node.type==="TextInput"&&node.props.accessibilityLabel===registrationText("en","nickname"));
+    assert.equal(input.props.value,"Unsubmitted responsive draft");assert.equal(app.calls.reads,readCount);assert.equal(app.calls.writes,0);
+  }
 });

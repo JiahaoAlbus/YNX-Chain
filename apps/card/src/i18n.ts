@@ -98,6 +98,7 @@ const en={
   simulationAudit:"Simulation audit",
   topupRequired:"Testnet top-up evidence required",
   noAuditRecords:"No simulation audit yet.",
+  refresh:"Refresh",
 };
 
 type Key=keyof typeof en;
@@ -175,6 +176,10 @@ const zhCN:Catalog={
   simulationAudit:"模拟审计账本",
   topupRequired:"请先补充充值凭证",
   noAuditRecords:"暂无模拟审计记录。",
+  refresh:"刷新",
+  settings:"语言",
+  done:"完成",
+  retry:"重试",
 };
 
 const zhTW:Catalog={
@@ -204,6 +209,10 @@ const zhTW:Catalog={
   explain:"解釋拒絕原因",
   settings:"語言",
   done:"完成",
+  refresh:"重新整理",
+  retry:"重試",
+  controls:"控制",
+  simulation:"模擬",
 };
 
 const ja:Catalog={
@@ -267,6 +276,8 @@ const ja:Catalog={
   simulateCapture:"清算をシミュレート",
   simulateReversal:"取り消しをシミュレート",
   simulateRefund:"返金をシミュレート",
+  refresh:"更新",
+  simulation:"シミュレーション",
 };
 
 const ko:Catalog={
@@ -327,6 +338,9 @@ const ko:Catalog={
   simulateCapture:"청구 시뮬레이션",
   simulateReversal:"취소 시뮬레이션",
   simulateRefund:"환불 시뮬레이션",
+  refresh:"새로고침",
+  sandbox:"테스트넷 / 샌드박스",
+  simulation:"시뮬레이션",
 };
 
 const es:Catalog={
@@ -388,6 +402,9 @@ const es:Catalog={
   simulateCapture:"Simular liquidación",
   simulateReversal:"Simular reversa",
   simulateRefund:"Simular reembolso",
+  refresh:"Actualizar",
+  sandbox:"RED DE PRUEBAS / ENTORNO DE PRUEBAS",
+  simulation:"Simulación",
 };
 
 const fr:Catalog={
@@ -449,6 +466,9 @@ const fr:Catalog={
   simulateCapture:"Simuler compensation",
   simulateReversal:"Simuler annulation",
   simulateRefund:"Simuler remboursement",
+  refresh:"Actualiser",
+  sandbox:"RÉSEAU DE TEST / BAC À SABLE",
+  simulation:"Simulation",
 };
 
 const de:Catalog={
@@ -508,6 +528,11 @@ const de:Catalog={
   simulateCapture:"Einzug simulieren",
   simulateReversal:"Stornierung simulieren",
   simulateRefund:"Rückerstattung simulieren",
+  refresh:"Aktualisieren",
+  app:"YNX Card",
+  sandbox:"TESTNETZ / SANDBOX",
+  activity:"Aktivität",
+  simulation:"Simulation",
 };
 
 const pt:Catalog={
@@ -568,6 +593,10 @@ const pt:Catalog={
   simulateCapture:"Simular liquidação",
   simulateReversal:"Simular estorno",
   simulateRefund:"Simular reembolso",
+  refresh:"Atualizar",
+  sandbox:"REDE DE TESTE / AMBIENTE DE TESTES",
+  activity:"Atividade",
+  simulation:"Simulação",
 };
 
 const ru:Catalog={
@@ -628,6 +657,10 @@ const ru:Catalog={
   simulateCapture:"Симулировать проведение",
   simulateReversal:"Симулировать отмену",
   simulateRefund:"Симулировать возврат",
+  refresh:"Обновить",
+  app:"YNX Card",
+  sandbox:"ТЕСТОВАЯ СЕТЬ / ПЕСОЧНИЦА",
+  simulation:"Симуляция",
 };
 
 const ar:Catalog={
@@ -691,6 +724,8 @@ const ar:Catalog={
   simulateCapture:"محاكاة التحصيل",
   simulateReversal:"محاكاة الإلغاء",
   simulateRefund:"محاكاة الاسترداد",
+  refresh:"تحديث",
+  simulation:"المحاكاة",
 };
 
 const id:Catalog={
@@ -752,6 +787,9 @@ const id:Catalog={
   simulateCapture:"Simulasi penagihan",
   simulateReversal:"Simulasi pembatalan",
   simulateRefund:"Simulasi pengembalian",
+  refresh:"Segarkan",
+  sandbox:"JARINGAN UJI / SANDBOX",
+  simulation:"Simulasi",
 };
 
 export const catalogs = {

@@ -495,7 +495,7 @@ export default function App(){
       </View>
       <View style={[s.headerActions,rtl&&s.rowRTL]}>
         <Pressable accessibilityRole="button" accessibilityLabel={tr("settings")} onPress={()=>setSettings(true)} style={[s.round,{backgroundColor:c.surface}]}> <Globe2 color={BLUE} size={19}/></Pressable>
-        {session?<Pressable accessibilityRole="button" accessibilityLabel={tr("retry")} onPress={()=>void refresh()} style={[s.round,{backgroundColor:c.surface}]}> {busy?<ActivityIndicator size="small" color={BLUE}/>:<RefreshCw color={BLUE} size={19}/>} </Pressable>:null}
+        {session?<Pressable accessibilityRole="button" accessibilityLabel={tr("refresh")} onPress={()=>void refresh()} style={[s.round,{backgroundColor:c.surface}]}> {busy?<ActivityIndicator size="small" color={BLUE}/>:<RefreshCw color={BLUE} size={19}/>} </Pressable>:null}
       </View>
     </View>
 
@@ -756,7 +756,7 @@ function TabBar({tab,setTab,c,tr}:{tab:Tab;setTab:(v:Tab)=>void;c:Colors;tr:T}){
 }
 
 function Language({locale,setLocale,close,c,tr}:{locale:Locale;setLocale:(v:Locale)=>Promise<void>;close:()=>void;c:Colors;tr:T}){
-  return <SafeAreaView style={[s.safe,{backgroundColor:c.canvas}]}><View style={[s.header,{borderBottomColor:c.separator}]}><Text style={[s.sectionTitle,{color:c.text}]}>{tr("settings")}</Text><Pressable onPress={close}><Text style={s.link}>{tr("done")}</Text></Pressable></View><FlatList data={locales} keyExtractor={v=>v} renderItem={({item})=><Pressable accessibilityRole="radio" accessibilityState={{checked:item===locale}} onPress={()=>void setLocale(item)} style={[s.locale,{borderBottomColor:c.separator}]}><Text style={[s.rowValue,{color:c.text}]}>{localeNames[item]}</Text>{item===locale?<Text style={s.link}>✓</Text>:null}</Pressable>}/></SafeAreaView>
+  return <SafeAreaView style={[s.safe,{backgroundColor:c.canvas}]}><View style={[s.header,{borderBottomColor:c.separator}]}><Text style={[s.sectionTitle,{color:c.text}]}>{tr("settings")}</Text><Pressable accessibilityRole="button" accessibilityLabel={tr("done")} onPress={close}><Text style={s.link}>{tr("done")}</Text></Pressable></View><FlatList data={locales} keyExtractor={v=>v} renderItem={({item})=><Pressable accessibilityRole="radio" accessibilityLabel={localeNames[item]} accessibilityState={{checked:item===locale}} onPress={()=>void setLocale(item)} style={[s.locale,{borderBottomColor:c.separator}]}><Text style={[s.rowValue,{color:c.text}]}>{localeNames[item]}</Text>{item===locale?<Text accessible={false} importantForAccessibility="no" style={s.link}>✓</Text>:null}</Pressable>}/></SafeAreaView>
 }
 
 function Action({icon,label,onPress,c}:{icon:React.ReactNode;label:string;onPress:()=>void;c:Colors}){return <Pressable accessibilityRole="button" onPress={onPress} style={s.action}><View style={[s.actionIcon,{backgroundColor:c.surface}]}>{icon}</View><Text style={[s.actionText,{color:c.text}]}>{label}</Text></Pressable>}
