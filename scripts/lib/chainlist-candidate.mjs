@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import {createHash} from "node:crypto";
 import path from "node:path";
 import {canonicalJSON, sha256} from "./sdk-release.mjs";
 
@@ -80,36 +81,131 @@ export function validateMainnetDraft(metadata) {
   return metadata;
 }
 
+export const UNASSIGNED_REGISTRY_STATUS = "unassigned-at-observation; refresh-before-submission";
+export const REGISTERED_REGISTRY_STATUS = "registered-same-network-observed; candidate-not-submitted";
+export const REGISTERED_ENTRY_MAX_BYTES = 64 * 1024;
+
 export function validateCollisionEvidence(evidence, metadata, {now = new Date(), maximumAgeMs = 30 * 24 * 60 * 60 * 1000} = {}) {
-  assertExactKeys(evidence, ["aggregate", "candidate", "matches", "registry", "status"], "collision evidence");
+  validateTestnetMetadata(metadata);
+  const registered = evidence?.status === REGISTERED_REGISTRY_STATUS;
+  assertExactKeys(evidence, ["aggregate", "candidate", "matches", "registry", "status", ...(registered ? ["registeredEntry"] : [])], "collision evidence");
   assertExactKeys(evidence.aggregate, ["bytes", "chainCount", "fetchedAt", "sha256", "url"], "collision aggregate");
   assertExactKeys(evidence.candidate, ["chainId", "name", "shortName"], "collision candidate");
   assertExactKeys(evidence.matches, ["chainId", "name", "shortName"], "collision matches");
   assertExactKeys(evidence.registry, ["commit", "repository", "targetFile", "targetFilePresent"], "collision registry");
-  if (evidence.aggregate.url !== "https://chainid.network/chains.json" || !Number.isSafeInteger(evidence.aggregate.bytes) || evidence.aggregate.bytes <= 0 || evidence.aggregate.bytes > 16 * 1024 * 1024) {
-    throw new Error("collision aggregate source or byte count is invalid");
+  if (evidence.aggregate.url !== "https://chainid.network/chains.json" || !Number.isSafeInteger(evidence.aggregate.bytes) || evidence.aggregate.bytes <= 0 || evidence.aggregate.bytes > 16 * 1024 * 1024) throw new Error("collision aggregate source or byte count is invalid");
+  if (!Number.isSafeInteger(evidence.aggregate.chainCount) || evidence.aggregate.chainCount < 1 || !/^[0-9a-f]{64}$/.test(evidence.aggregate.sha256)) throw new Error("collision aggregate count or digest is invalid");
+  const aggregateTime = validateRegistryObservationTime(evidence.aggregate.fetchedAt, {now, maximumAgeMs});
+  if (evidence.candidate.chainId !== metadata.chainId || evidence.candidate.name !== metadata.name || evidence.candidate.shortName !== metadata.shortName) throw new Error("collision candidate does not match testnet metadata");
+  if (evidence.registry.repository !== "https://github.com/ethereum-lists/chains.git" || !/^[0-9a-f]{40}$/.test(evidence.registry.commit)) throw new Error("collision registry source or commit is invalid");
+  if (evidence.registry.targetFile !== "_data/chains/eip155-6423.json" || evidence.registry.targetFilePresent !== registered) throw new Error("collision registry target file is present or mismatched");
+  if (!registered) {
+    for (const field of ["chainId", "name", "shortName"]) if (!Array.isArray(evidence.matches[field]) || evidence.matches[field].length !== 0) throw new Error(`collision evidence reports a ${field} conflict`);
+    if (evidence.status !== UNASSIGNED_REGISTRY_STATUS) throw new Error("collision evidence status is not fail-closed");
+    return evidence;
   }
-  if (!Number.isSafeInteger(evidence.aggregate.chainCount) || evidence.aggregate.chainCount < 1 || !/^[0-9a-f]{64}$/.test(evidence.aggregate.sha256)) {
-    throw new Error("collision aggregate count or digest is invalid");
-  }
-  const fetchedAt = new Date(evidence.aggregate.fetchedAt);
-  if (!Number.isFinite(fetchedAt.getTime()) || fetchedAt.toISOString().replace(".000Z", "Z") !== evidence.aggregate.fetchedAt) throw new Error("collision evidence timestamp is invalid");
-  const age = now.getTime() - fetchedAt.getTime();
-  if (age < -5 * 60 * 1000 || age > maximumAgeMs) throw new Error("collision evidence is stale or from the future");
-  if (evidence.candidate.chainId !== metadata.chainId || evidence.candidate.name !== metadata.name || evidence.candidate.shortName !== metadata.shortName) {
-    throw new Error("collision candidate does not match testnet metadata");
-  }
+  const record = evidence.registeredEntry;
+  assertExactKeys(record, ["url", "body", "bytes", "sha256", "gitBlobSha1", "observedAt", "candidateExactMatch", "metadataDifferences", "registeredShortNameMatches"], "registered entry");
+  if (record.url !== registeredEntryURL(evidence.registry.commit)) throw new Error("registered entry URL/ref/path mismatch");
+  const body = registryEntryBytes(record.body);
+  if (record.bytes !== body.length || !/^[0-9a-f]{64}$/.test(record.sha256) || record.sha256 !== sha256(body) || record.gitBlobSha1 !== registryEntryGitBlob(body)) throw new Error("registered entry raw bytes or digest mismatch");
+  const entryTime = validateRegistryObservationTime(record.observedAt, {now, maximumAgeMs});
+  if (entryTime < aggregateTime || entryTime - aggregateTime > 120000) throw new Error("registered entry observation window mismatch");
+  const entry = parseRegisteredNetworkEntry(record.body, metadata);
+  const own = projectRegistryMatch(entry);
   for (const field of ["chainId", "name", "shortName"]) {
-    if (!Array.isArray(evidence.matches[field]) || evidence.matches[field].length !== 0) throw new Error(`collision evidence reports a ${field} conflict`);
+    const expected = field === "shortName" && entry.shortName.toLowerCase() !== metadata.shortName.toLowerCase() ? [] : [own];
+    if (canonicalJSON(evidence.matches[field]) !== canonicalJSON(expected)) throw new Error(`collision evidence reports a ${field} conflict or duplicate`);
   }
-  if (evidence.registry.repository !== "https://github.com/ethereum-lists/chains.git" || !/^[0-9a-f]{40}$/.test(evidence.registry.commit)) {
-    throw new Error("collision registry source or commit is invalid");
-  }
-  if (evidence.registry.targetFile !== "_data/chains/eip155-6423.json" || evidence.registry.targetFilePresent !== false) {
-    throw new Error("collision registry target file is present or mismatched");
-  }
-  if (evidence.status !== "unassigned-at-observation; refresh-before-submission") throw new Error("collision evidence status is not fail-closed");
+  if (canonicalJSON(record.registeredShortNameMatches) !== canonicalJSON([own])) throw new Error("registered shortName conflict or duplicate");
+  const differences = registeredMetadataDifferences(entry, metadata);
+  if (record.candidateExactMatch !== (differences.length === 0) || canonicalJSON(record.metadataDifferences) !== canonicalJSON(differences)) throw new Error("registered entry candidate comparison mismatch");
   return evidence;
+}
+
+export function registeredEntryURL(commit) {
+  if (!/^[0-9a-f]{40}$/.test(commit)) throw new Error("registered entry commit is invalid");
+  return `https://raw.githubusercontent.com/ethereum-lists/chains/${commit}/_data/chains/eip155-6423.json`;
+}
+
+export function registryEntryGitBlob(body) {
+  return createHash("sha1").update(`blob ${body.length}\0`).update(body).digest("hex");
+}
+
+function registryEntryBytes(raw) {
+  if (typeof raw !== "string") throw new Error("registered entry body must be UTF-8 text");
+  const body = Buffer.from(raw, "utf8");
+  if (!body.length || body.length > REGISTERED_ENTRY_MAX_BYTES || body.toString("utf8") !== raw) throw new Error("registered entry body size or UTF-8 is invalid");
+  return body;
+}
+
+export function parseRegisteredNetworkEntry(raw, metadata) {
+  validateTestnetMetadata(metadata);
+  registryEntryBytes(raw);
+  const entry = parseRegistryJSON(raw);
+  const required = ["chain", "chainId", "explorers", "faucets", "infoURL", "name", "nativeCurrency", "networkId", "rpc", "shortName"];
+  const optional = ["icon", "slip44", "features", "status"];
+  if (!entry || Array.isArray(entry) || typeof entry !== "object" || required.some((key) => !Object.hasOwn(entry, key)) || Object.keys(entry).some((key) => !required.includes(key) && !optional.includes(key))) throw new Error("registered entry fields mismatch");
+  for (const field of ["chain", "chainId", "networkId", "name", "nativeCurrency", "rpc", "explorers"]) if (canonicalJSON(entry[field]) !== canonicalJSON(metadata[field])) throw new Error(`registered network identity ${field} mismatch`);
+  const allowedMetadata = {shortName: [metadata.shortName, "ynxtest"], faucets: [metadata.faucets, ["https://www.ynxweb4.com/dapp/faucet"]], infoURL: [metadata.infoURL, "https://ynxweb4.com"]};
+  for (const [field, allowed] of Object.entries(allowedMetadata)) if (!allowed.some((value) => canonicalJSON(value) === canonicalJSON(entry[field]))) throw new Error(`unreviewed registered metadata ${field}`);
+  const exact = canonicalJSON(entry) === canonicalJSON(metadata);
+  // The update branch permits only the observed presence pattern. Removing a
+  // registered capability is not a display-only change. A wholly identical
+  // entry is an explicit observation mode, not permission to mix patterns.
+  if (!exact) for (const field of optional) if (Object.hasOwn(entry, field) !== (field !== "status")) throw new Error(`unreviewed registered metadata presence ${field}`);
+  const allowedOptional = {icon: "ynx", slip44: 60, features: [{name: "EIP155"}], status: metadata.status};
+  for (const field of optional) if (Object.hasOwn(entry, field) && canonicalJSON(entry[field]) !== canonicalJSON(allowedOptional[field])) throw new Error(`unreviewed registered metadata ${field}`);
+  return entry;
+}
+
+// Keep one token of lookahead instead of retaining a token array for the full
+// aggregate. JSON.parse validates syntax; this second pass rejects ambiguous
+// duplicate keys (including escaped equivalents) at every object depth.
+export function parseRegistryJSON(raw) {
+  const parsed = JSON.parse(raw);
+  const pattern = /\s*("(?:\\.|[^"\\])*"|[{}\[\],:]|-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?|true|false|null)/y;
+  const next = () => pattern.exec(raw)?.[1];
+  let token = next();
+  function take() { const previous = token; token = next(); return previous; }
+  function value(depth) {
+    if (depth > 32) throw new Error("registry JSON nesting is too deep");
+    const current = take();
+    if (current === "{") {
+      const keys = new Set();
+      if (token !== "}") while (true) {
+        const key = JSON.parse(take());
+        if (keys.has(key)) throw new Error("registry duplicate JSON key");
+        keys.add(key); take(); value(depth + 1);
+        if (token !== ",") break;
+        take();
+      }
+      take();
+    } else if (current === "[") {
+      if (token !== "]") while (true) { value(depth + 1); if (token !== ",") break; take(); }
+      take();
+    }
+  }
+  value(0);
+  if (token !== undefined) throw new Error("registry JSON token mismatch");
+  return parsed;
+}
+
+export function projectRegistryMatch(entry) {
+  return {chainId: entry.chainId, name: entry.name, shortName: entry.shortName};
+}
+
+export function registeredMetadataDifferences(entry, metadata) {
+  return [...new Set([...Object.keys(entry), ...Object.keys(metadata)])].sort().filter((field) => !Object.hasOwn(entry, field) || !Object.hasOwn(metadata, field) || canonicalJSON(entry[field]) !== canonicalJSON(metadata[field])).map((field) => ({field, candidatePresent: Object.hasOwn(metadata, field), candidateValue: metadata[field] ?? null, registeredPresent: Object.hasOwn(entry, field), registeredValue: entry[field] ?? null}));
+}
+
+function validateRegistryObservationTime(value, {now, maximumAgeMs}) {
+  if (!(now instanceof Date) || !Number.isFinite(now.getTime()) || !Number.isSafeInteger(maximumAgeMs) || maximumAgeMs <= 0 || maximumAgeMs > 30 * 24 * 60 * 60 * 1000) throw new Error("registry freshness context is invalid");
+  const time = new Date(value);
+  if (typeof value !== "string" || !Number.isFinite(time.getTime()) || time.toISOString().replace(".000Z", "Z") !== value) throw new Error("collision evidence timestamp is invalid");
+  const age = now.getTime() - time.getTime();
+  if (age < -5 * 60 * 1000 || age > maximumAgeMs) throw new Error("collision evidence is stale or from the future");
+  return time.getTime();
 }
 
 export function validateVerificationConfig(config) {
@@ -141,13 +237,19 @@ export function buildSDKNetworkModule(metadata) {
   return `// Generated from chain-metadata/ynx-testnet.json; verify with make chainlist-candidate-check.\nexport const ynxTestnet = Object.freeze({\n  chainId: ${JSON.stringify(payload.chainId)},\n  chainIdDecimal: ${metadata.chainId},\n  chainName: ${JSON.stringify(payload.chainName)},\n  nativeCurrency: Object.freeze(${JSON.stringify(payload.nativeCurrency)}),\n  rpcUrls: Object.freeze(${JSON.stringify(payload.rpcUrls)}),\n  restUrls: Object.freeze([\"https://rpc.ynxweb4.com\"]),\n  blockExplorerUrls: Object.freeze(${JSON.stringify(payload.blockExplorerUrls)}),\n  faucetUrls: Object.freeze(${JSON.stringify(metadata.faucets)}),\n  infoUrl: ${JSON.stringify(metadata.infoURL)},\n});\n`;
 }
 
-export function buildCandidateStatus() {
+export function buildCandidateStatus(evidence, metadata) {
+  if (evidence) validateCollisionEvidence(evidence, metadata);
+  const registered = evidence?.status === REGISTERED_REGISTRY_STATUS;
+  const exact = registered ? evidence.registeredEntry.candidateExactMatch : null;
   return {
     chainlistAccepted: false,
     chainlistSubmitted: false,
+    candidateKind: !registered ? "new-entry" : exact ? "registered-exact-observation" : "registered-metadata-update",
+    candidateExactMatch: exact,
+    registeredEntryObserved: registered,
     endpointProof: "operator-controlled-live-read-only-check-required-before-submission",
     mainnetIncluded: false,
-    truthfulStatus: "testnet-candidate-only",
+    truthfulStatus: registered ? "registered-network-candidate-not-submitted-or-accepted" : "testnet-candidate-only",
     walletDefaultSupported: false,
   };
 }

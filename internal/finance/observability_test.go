@@ -44,7 +44,14 @@ func TestObservabilityCorrelatesRequestsAndProtectsMetrics(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ts := httptest.NewServer(server.Handler())
+	// Response bytes can arrive before observe finishes the metrics and log.
+	// Buffer the completion so small responses can flush when this handler returns.
+	handlerDone := make(chan struct{}, 1)
+	handler := server.Handler()
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		handler.ServeHTTP(w, r)
+		handlerDone <- struct{}{}
+	}))
 	defer ts.Close()
 
 	clientRequestID := "finance-client-request-0001"
@@ -59,6 +66,7 @@ func TestObservabilityCorrelatesRequestsAndProtectsMetrics(t *testing.T) {
 		t.Fatal(err)
 	}
 	resp.Body.Close()
+	<-handlerDone
 	if resp.StatusCode != http.StatusOK || resp.Header.Get(requestIDHeader) != clientRequestID {
 		t.Fatalf("request ID was not propagated: status=%d requestId=%q", resp.StatusCode, resp.Header.Get(requestIDHeader))
 	}
@@ -77,6 +85,7 @@ func TestObservabilityCorrelatesRequestsAndProtectsMetrics(t *testing.T) {
 	if err := json.NewDecoder(unauthorizedResponse.Body).Decode(&errorPayload); err != nil {
 		t.Fatal(err)
 	}
+	<-handlerDone
 	generatedRequestID := unauthorizedResponse.Header.Get(requestIDHeader)
 	if unauthorizedResponse.StatusCode != http.StatusUnauthorized || !strings.HasPrefix(generatedRequestID, "fin_") {
 		t.Fatalf("invalid request ID did not fail over safely: status=%d requestId=%q", unauthorizedResponse.StatusCode, generatedRequestID)
@@ -90,6 +99,7 @@ func TestObservabilityCorrelatesRequestsAndProtectsMetrics(t *testing.T) {
 		t.Fatal(err)
 	}
 	metricsWithoutKey.Body.Close()
+	<-handlerDone
 	if metricsWithoutKey.StatusCode != http.StatusUnauthorized || metricsWithoutKey.Header.Get(errorIDHeader) != "YNX-FIN-OPERATIONS-AUTH-REJECTED" {
 		t.Fatalf("metrics endpoint did not fail closed: status=%d errorId=%q", metricsWithoutKey.StatusCode, metricsWithoutKey.Header.Get(errorIDHeader))
 	}
@@ -108,6 +118,7 @@ func TestObservabilityCorrelatesRequestsAndProtectsMetrics(t *testing.T) {
 	if err := json.NewDecoder(metricsResponse.Body).Decode(&snapshot); err != nil {
 		t.Fatal(err)
 	}
+	<-handlerDone
 	if metricsResponse.StatusCode != http.StatusOK || snapshot.SchemaVersion != metricsPayloadVersion || snapshot.ObservabilityVersion != observabilityVersion {
 		t.Fatalf("metrics contract is invalid: status=%d snapshot=%+v", metricsResponse.StatusCode, snapshot)
 	}

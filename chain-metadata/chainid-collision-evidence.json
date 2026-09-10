@@ -1,9 +1,9 @@
 {
   "aggregate": {
-    "bytes": 1136659,
-    "chainCount": 2664,
-    "fetchedAt": "2026-07-28T09:58:49Z",
-    "sha256": "695cca33f857124850b13937e2e10c9355bcbc7fb1b4dd47751d8d4e808a5866",
+    "bytes": 1173862,
+    "chainCount": 2755,
+    "fetchedAt": "2026-09-09T06:46:52Z",
+    "sha256": "c959a659ebbd9cb0ddaff857bc8d0a3edd6317168a3964dbf42e885f82d403ac",
     "url": "https://chainid.network/chains.json"
   },
   "candidate": {
@@ -12,15 +12,102 @@
     "shortName": "ynxt"
   },
   "matches": {
-    "chainId": [],
-    "name": [],
+    "chainId": [
+      {
+        "chainId": 6423,
+        "name": "YNX Testnet",
+        "shortName": "ynxtest"
+      }
+    ],
+    "name": [
+      {
+        "chainId": 6423,
+        "name": "YNX Testnet",
+        "shortName": "ynxtest"
+      }
+    ],
     "shortName": []
   },
+  "registeredEntry": {
+    "body": "{\n  \"name\": \"YNX Testnet\",\n  \"chain\": \"YNX\",\n  \"icon\": \"ynx\",\n  \"rpc\": [\"https://evm.ynxweb4.com\"],\n  \"faucets\": [\"https://www.ynxweb4.com/dapp/faucet\"],\n  \"nativeCurrency\": {\n    \"name\": \"YNXT\",\n    \"symbol\": \"YNXT\",\n    \"decimals\": 18\n  },\n  \"infoURL\": \"https://ynxweb4.com\",\n  \"shortName\": \"ynxtest\",\n  \"chainId\": 6423,\n  \"networkId\": 6423,\n  \"slip44\": 60,\n  \"explorers\": [\n    {\n      \"name\": \"YNX Explorer\",\n      \"url\": \"https://explorer.ynxweb4.com\",\n      \"standard\": \"EIP3091\"\n    }\n  ],\n  \"features\": [\n    {\n      \"name\": \"EIP155\"\n    }\n  ]\n}\n",
+    "bytes": 554,
+    "candidateExactMatch": false,
+    "gitBlobSha1": "e61418fe7e15968d1463baa6ae7242f0de1d44f1",
+    "metadataDifferences": [
+      {
+        "candidatePresent": true,
+        "candidateValue": [
+          "https://faucet.ynxweb4.com"
+        ],
+        "field": "faucets",
+        "registeredPresent": true,
+        "registeredValue": [
+          "https://www.ynxweb4.com/dapp/faucet"
+        ]
+      },
+      {
+        "candidatePresent": false,
+        "candidateValue": null,
+        "field": "features",
+        "registeredPresent": true,
+        "registeredValue": [
+          {
+            "name": "EIP155"
+          }
+        ]
+      },
+      {
+        "candidatePresent": false,
+        "candidateValue": null,
+        "field": "icon",
+        "registeredPresent": true,
+        "registeredValue": "ynx"
+      },
+      {
+        "candidatePresent": true,
+        "candidateValue": "https://www.ynxweb4.com",
+        "field": "infoURL",
+        "registeredPresent": true,
+        "registeredValue": "https://ynxweb4.com"
+      },
+      {
+        "candidatePresent": true,
+        "candidateValue": "ynxt",
+        "field": "shortName",
+        "registeredPresent": true,
+        "registeredValue": "ynxtest"
+      },
+      {
+        "candidatePresent": false,
+        "candidateValue": null,
+        "field": "slip44",
+        "registeredPresent": true,
+        "registeredValue": 60
+      },
+      {
+        "candidatePresent": true,
+        "candidateValue": "active",
+        "field": "status",
+        "registeredPresent": false,
+        "registeredValue": null
+      }
+    ],
+    "observedAt": "2026-09-09T06:46:53Z",
+    "registeredShortNameMatches": [
+      {
+        "chainId": 6423,
+        "name": "YNX Testnet",
+        "shortName": "ynxtest"
+      }
+    ],
+    "sha256": "1a9437d667a39f4fd12313a9875072cf057052f0e69639fa08cb360658eeb70a",
+    "url": "https://raw.githubusercontent.com/ethereum-lists/chains/e5efc60b3088a1800d7cb201a5d738a358c5a19a/_data/chains/eip155-6423.json"
+  },
   "registry": {
-    "commit": "06c01af06080802e7e3c352fc2d1e92ceffa435a",
+    "commit": "e5efc60b3088a1800d7cb201a5d738a358c5a19a",
     "repository": "https://github.com/ethereum-lists/chains.git",
     "targetFile": "_data/chains/eip155-6423.json",
-    "targetFilePresent": false
+    "targetFilePresent": true
   },
-  "status": "unassigned-at-observation; refresh-before-submission"
+  "status": "registered-same-network-observed; candidate-not-submitted"
 }

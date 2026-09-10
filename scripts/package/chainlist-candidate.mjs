@@ -24,7 +24,7 @@ export function buildChainlistCandidate({rootDir, outputDir}) {
   if (sdkModule !== buildSDKNetworkModule(sources.metadata.value)) throw new Error("generated SDK network module differs from testnet metadata");
 
   const candidateFiles = new Map([
-    ["candidate-status.json", Buffer.from(canonicalJSON(buildCandidateStatus()))],
+    ["candidate-status.json", Buffer.from(canonicalJSON(buildCandidateStatus(sources.collision.value, sources.metadata.value)))],
     ["collision-evidence.json", sources.collision.body],
     ["eip155-6423.json", sources.metadata.body],
     ["wallet-add-ethereum-chain.json", Buffer.from(canonicalJSON(buildWalletAddEthereumChain(sources.metadata.value)))],
@@ -34,7 +34,7 @@ export function buildChainlistCandidate({rootDir, outputDir}) {
     files: [...candidateFiles.entries()].map(([file, body]) => digestRecord(file, body)).sort((left, right) => left.file.localeCompare(right.file)),
     gitCommit,
     schema: CHAINLIST_CANDIDATE_SCHEMA,
-    status: buildCandidateStatus(),
+    status: buildCandidateStatus(sources.collision.value, sources.metadata.value),
   };
 
   fs.rmSync(output, {recursive: true, force: true});

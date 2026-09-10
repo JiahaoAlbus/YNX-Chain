@@ -3,13 +3,17 @@ import { readFile } from 'node:fs/promises'
 import test from 'node:test'
 
 const dockerfilePath = new URL('../../../infra/docker/ynx-cloudd.Dockerfile', import.meta.url)
+const goModPath = new URL('../../../go.mod', import.meta.url)
 const composePath = new URL('../../../infra/docker/cloud-compose.yml', import.meta.url)
 const ignorePath = new URL('../../../infra/docker/ynx-cloudd.Dockerfile.dockerignore', import.meta.url)
 
 test('Cloud container is bounded, non-root, and health checked', async () => {
   const dockerfile = await readFile(dockerfilePath, 'utf8')
+  const goMod = await readFile(goModPath, 'utf8')
+  const goVersion = /^go (\d+\.\d+\.\d+)$/m.exec(goMod)?.[1]
 
-  assert.match(dockerfile, /FROM golang:1\.25-alpine AS build/)
+  assert.ok(goVersion, 'go.mod must select an exact patched Go toolchain')
+  assert.equal(dockerfile.split('\n')[0], `FROM golang:${goVersion}-alpine AS build`)
   assert.match(dockerfile, /CGO_ENABLED=0 go build/)
   assert.match(dockerfile, /USER 10001:10001/)
   assert.match(dockerfile, /VOLUME \["\/var\/lib\/ynx-cloud"\]/)
