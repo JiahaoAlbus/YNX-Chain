@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "product": "dex",
+  "observedDate": "2026-09-12",
+  "reportingTask": {
+    "title": "接续测试网生态审计工作",
+    "threadId": "01a094cc-0ba3-7901-bcd5-56fce8330c0d",
+    "basis": "User explicitly redirected current and future issue reports on 2026-09-12."
+  },
+  "source": {
+    "commit": "99e263e901469122391c8618a210a2a85a33274b",
+    "tree": "6844b8b5e757a56f6ee19d6efc81a03ce80b2693",
+    "base": "e752a9cc190fcbd5e4bd7f3799dc9b2645a1154f",
+    "branch": "codex/dex-wallet-restore-choice-20260912",
+    "scope": "apps/dex/**",
+    "sharedSdkChanged": false
+  },
+  "behavior": [
+    "Save only the selected provider kind after approved account and chain validation; never save accounts, sessions, signatures or tokens.",
+    "On reload use eth_accounts and eth_chainId only for the previously selected provider; no provider preference means guest mode.",
+    "If the preferred provider is absent, never substitute the other wallet.",
+    "Explicit disconnect and switch clear the preference and cancel pending discovery/restore/connect continuations.",
+    "Unmount and superseded intents prevent subsequent provider methods or stale state updates.",
+    "Continue consuming the existing shared discovery and connect-state reducer. Private session availability remains independent."
+  ],
+  "verification": {
+    "dependencyInstall": "npm ci --ignore-scripts --no-audit --registry=https://registry.npmjs.org: exit 0",
+    "testCommand": "npm test",
+    "testFiles": 8,
+    "testsPassed": 46,
+    "testsFailed": 0,
+    "buildCommand": "npm run build",
+    "buildExit": 0,
+    "canonicalAuthorizeScan": "PASS: 15 source files",
+    "legacyRouteQuarantineScan": "PASS",
+    "diffCheck": "PASS",
+    "testProviderEvidenceOnly": true,
+    "actualWalletAccountRequested": false
+  },
+  "localBrowser": {
+    "tool": "Computer Use / Codex In-app Browser",
+    "url": "http://127.0.0.1:4198/",
+    "loadedScript": "/assets/index-Bc9ShIHE.js",
+    "desktopChooserObserved": true,
+    "mobileViewport": {"width": 390, "height": 844},
+    "mobileDocumentWidth": 375,
+    "documentLanguage": "en",
+    "ynxAndMetaMaskButtonsVisible": true,
+    "officialDownloadVisible": "https://www.ynxweb4.com/dapp/download",
+    "chooserOpenUrlUnchanged": true,
+    "screenshots": "Desktop and mobile tool images retained in the owner task conversation; no repository screenshot file claimed.",
+    "dataStatus": "Native snapshot unavailable HTTP 500 because this local preview has no authoritative data service.",
+    "providerButtonsInvoked": false,
+    "viewportResetAndLocalTabClosed": true
+  },
+  "buildFiles": [
+    {"path":"dist/index.html","bytes":931,"sha256":"2229a2854d657925d84032179f6ffa18cd494edf9658f8ce30a253163ac4034c"},
+    {"path":"dist/assets/index-ApUVdDTU.css","bytes":24670,"sha256":"59f658b729701e80ab3f35a09fbe7d09eb6a8913e23d8a73ba2ff4daa145ff5c"},
+    {"path":"dist/assets/index-Bc9ShIHE.js","bytes":335310,"sha256":"af8f1f8b9645d3977a90453001c5a057604a83c72d54919616059d7256811820"},
+    {"path":"dist/assets/index-Bc9ShIHE.js.map","bytes":1534286,"sha256":"0d3fe0605fd6c15348a272f06692e3622d401fb0f4ab1a3e36386f2a145fc984"}
+  ],
+  "remaining": [
+    "Public Computer Use rejected https://dex.ynxweb4.com because of a saved user permission setting. No alternate browser, HTTP or CDP workaround attempted.",
+    "Current source-bound public runtime and rollback baseline require fresh authorized verification and separate release coordination; no expired P0 command was used.",
+    "Real provider approval/rejection, chain changes, refresh/disconnect, callback, Product Session, swap/liquidity and installed lifecycle remain unproved.",
+    "Local storage unavailable means provider preference persistence is unavailable; current-page connection remains in memory.",
+    "Existing chooser lacks a distinct per-provider logo and an explicit official MetaMask install link; outside this restore/cancellation change."
+  ],
+  "truth": {
+    "implementedLocal": true,
+    "testedLocal": true,
+    "localBrowserOpen": true,
+    "integratedCentral": false,
+    "deployedPublic": false,
+    "publicBrowserVerified": false,
+    "installedLocal": false,
+    "walletApprovalVerified": false,
+    "productSessionVerified": false,
+    "transactionVerified": false,
+    "migratedV2": false,
+    "productionSigned": false,
+    "storeReleased": false
+  },
+  "rollback": {
+    "source": "Revert source commit 99e263e901469122391c8618a210a2a85a33274b on the selected owner branch.",
+    "runtime": "No runtime deployed or mutated in this slice.",
+    "storage": "Preference contains only an enum; no database migration. Older clients do not implement the new preference semantics."
+  }
+}
