@@ -1,0 +1,193 @@
+{
+  "schema": "ynx.exchange.schema10-release-evidence/v1",
+  "source": {
+    "deployed": "d736a87831fe83249ce7adfeae7a21efbc283b3e",
+    "deployedTree": "2e26db6a13597fde7e35642e1c9515a06d761b1c",
+    "hotfix": "62f6109c163fcf98ca7a3cc58e40bd8cb91467c2",
+    "hotfixTree": "e0391a7cf30b5999b2f2057b2a5cfdf05a5e6102",
+    "reviewedOps": "6a56138adfc599bd056af1b599e16d5301ab5ce5",
+    "diagnosticHelper": "d215a3630f2b0dd7ae7b270b7741fda834db4152"
+  },
+  "publicURL": "https://exchange.ynxweb4.com/",
+  "sequence": [
+    {
+      "step": "d736-isolated-linux",
+      "status": "PASS",
+      "launches": 3,
+      "actualServiceUser": "ynx",
+      "productionStateCopy": true,
+      "productionStateUnchanged": true
+    },
+    {
+      "step": "d736-deployment",
+      "status": "DEPLOYED_SOURCE_BOUND_PUBLIC",
+      "pid": 1696915,
+      "nRestarts": 0,
+      "deployCount": 1,
+      "automaticRollbackCount": 0
+    },
+    {
+      "step": "real-warm-chrome",
+      "status": "CACHE_MIXED_SOURCE_FAILURE",
+      "htmlSource": "d736a87831fe83249ce7adfeae7a21efbc283b3e",
+      "scriptSource": "OLD_UNVERSIONED_BYTES_EXACT_HASHES_ATTACHED",
+      "accountRequested": false
+    },
+    {
+      "step": "hotfix-placement-initial",
+      "status": "FAILED_BEFORE_PREFLIGHT_OR_DEPLOY",
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "underlyingSpawnFailureCause": "NOT_CAPTURED_DO_NOT_INFER_TIMEOUT",
+      "subsequentReadOnly": "archiveAbsent/releaseAbsent/d736PID1696915-running"
+    },
+    {
+      "step": "fresh-baseline-after-coordinator-transport-recovery",
+      "status": "PASS",
+      "archiveAbsent": true,
+      "releaseAbsent": true,
+      "dropinAbsent": true,
+      "productionUnchanged": true
+    },
+    {
+      "step": "hotfix-placement-recovered",
+      "status": "FAILED_CLOSED",
+      "processExitStatus": 255,
+      "errorCode": "ETIMEDOUT",
+      "attemptCount": 1,
+      "timeoutMs": 120000,
+      "stdoutBytes": 0,
+      "stderrBytes": 0,
+      "preflightInvocationCount": 0,
+      "deployInvocationCount": 0,
+      "remoteArchiveAfterAttempt": "UNKNOWN_PENDING_READ_ONLY",
+      "retryAttempted": false,
+      "transportRestriction": "Do not reuse short-command shared master for large transfer; no further connection without coordinator sequencing"
+    }
+  ],
+  "truth": {
+    "schema10ProductionRuntimeDeployed": true,
+    "d736PublicBytesSourceBound": true,
+    "hotfixPublicDeployed": false,
+    "hotfixLinuxPreflightExecuted": false,
+    "hotfixWarmCacheVisibleFixed": false,
+    "realBrowserOpened": true,
+    "nonSensitiveChooserOpened": true,
+    "realProviderApproval": false,
+    "realProviderReject": false,
+    "realPrivateSessionCallback": false,
+    "realNativeActionSigned": false,
+    "realTransactionSubmitted": false,
+    "windowsInstaller": false,
+    "androidInstaller": false,
+    "macosInstaller": false,
+    "aggregateProductComplete": false
+  },
+  "tests": {
+    "unit": {
+      "pass": 53,
+      "fail": 0
+    },
+    "localChrome": {
+      "pass": 8,
+      "fail": 0,
+      "evidenceKind": "automated-local-fixture-not-real-wallet"
+    },
+    "releaseBoundaryFixture": {
+      "pass": 3,
+      "fail": 0,
+      "evidenceKind": "actual-Python-deploy-function-with-local-boundary-stubs"
+    },
+    "releaseScanner": {
+      "pass": true,
+      "runtimeFiles": 123,
+      "productDocuments": 11
+    },
+    "goRaceAndVet": {
+      "packages": [
+        "./internal/exchangeproduct",
+        "./internal/productsessionv2",
+        "./apps/exchange/server"
+      ],
+      "pass": true
+    }
+  },
+  "localRawReceiptInventory": [
+    {
+      "path": "/tmp/ynx-exchange-schema10-runtime-20260912.S33fLQ/linux-preflight.stdout",
+      "bytes": 11143,
+      "sha256": "ddab755b44ef100a784cdd72587f9c51cc13c369c147da72e405177adb03dd1a"
+    },
+    {
+      "path": "/tmp/ynx-exchange-schema10-runtime-20260912.S33fLQ/linux-preflight.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/tmp/ynx-exchange-schema10-runtime-20260912.S33fLQ/production-deploy.stdout",
+      "bytes": 6165,
+      "sha256": "fdeccbcc8ac93322211d8951f985c72e7bab08c4ec0502e1f5630e77ea61329f"
+    },
+    {
+      "path": "/tmp/ynx-exchange-schema10-runtime-20260912.S33fLQ/production-deploy.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/tmp/ynx-exchange-schema10-runtime-20260912.S33fLQ/cache-hotfix-placement.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/tmp/ynx-exchange-schema10-runtime-20260912.S33fLQ/cache-hotfix-placement.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/tmp/ynx-exchange-schema10-runtime-20260912.S33fLQ/recovered-cache-hotfix-baseline.stdout",
+      "bytes": 3190,
+      "sha256": "3d7ad485253b5ae9c610e1ffb970b2b32c3a2f5ac4b99753a9d2ee9c0a8399ef"
+    },
+    {
+      "path": "/tmp/ynx-exchange-schema10-runtime-20260912.S33fLQ/recovered-cache-hotfix-baseline.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/tmp/ynx-exchange-schema10-runtime-20260912.S33fLQ/recovered-cache-hotfix-baseline.receipt.json",
+      "bytes": 489,
+      "sha256": "e2f3e1e9fb6d2c1a3ef7cb375a5f11018ec299fd225bd185238b10dad2276852"
+    },
+    {
+      "path": "/tmp/ynx-exchange-schema10-runtime-20260912.S33fLQ/recovered-cache-hotfix-placement.stdout",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/tmp/ynx-exchange-schema10-runtime-20260912.S33fLQ/recovered-cache-hotfix-placement.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "/tmp/ynx-exchange-schema10-runtime-20260912.S33fLQ/recovered-cache-hotfix-placement.receipt.json",
+      "bytes": 514,
+      "sha256": "d4bde1061c7a11ce6e65ad5b14156921ed6b099204f0dc62e2c0cccf6d95c106"
+    },
+    {
+      "path": "/tmp/ynx-exchange-schema10-runtime-20260912.S33fLQ/public-warm-cache-before-hotfix.png",
+      "bytes": 106014,
+      "sha256": "f4afc7b3b670c5fcf4998a4f7c1a7af7e0810820161893a4fb42f6cccc69cf94"
+    },
+    {
+      "path": "/tmp/ynx-exchange-schema10-runtime-20260912.S33fLQ/public-warm-cache-observation.json",
+      "bytes": 3303,
+      "sha256": "c9adf7d76ff1962b003cd6d7b2a04c85bb7782d49f0fcdd7d71fca6e32dd9ce0"
+    },
+    {
+      "path": "/tmp/ynx-exchange-schema10-runtime-20260912.S33fLQ/public-warm-cache-loaded-script-hashes.json",
+      "bytes": 395,
+      "sha256": "03b01470566324af499f51e86c1e25dbf80a474be92eb545e36038b8a156bc61"
+    }
+  ],
+  "remainingBlocker": "Fresh read-only archive/current check and a coordinator-serialized independent large-file transport are required before the unchanged 62f cache-hotfix preflight/deploy; do not repeat the uncertain upload or use source tests as public evidence."
+}

@@ -1,0 +1,14 @@
+[
+  {
+    "url": "https://exchange.ynxweb4.com/app.js",
+    "bytes": 28242,
+    "sha256": "883c4a8dbf7cf011c3a8d242e6067878faf7a619053c0500a261bce6e3c96964",
+    "lastModified": 1786772770
+  },
+  {
+    "url": "https://exchange.ynxweb4.com/wallet-auth.js",
+    "bytes": 74683,
+    "sha256": "8a6a898d27d100b05fe535bf1d864bacda30150cf6d5ee1c81c16cc6910b4f99",
+    "lastModified": 1786772770
+  }
+]

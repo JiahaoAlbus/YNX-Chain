@@ -1,0 +1,108 @@
+{
+  "capturedAt": "2026-09-12T11:46:22.292Z",
+  "kind": "real-chrome-existing-page-read-only",
+  "tree": {
+    "frameTree": {
+      "childFrames": [
+        {
+          "frame": {
+            "adFrameStatus": {
+              "adFrameType": "none",
+              "explanations": []
+            },
+            "crossOriginIsolatedContextType": "NotIsolated",
+            "domainAndRegistry": "",
+            "gatedAPIFeatures": [],
+            "id": "116964693C321FBC76AA29644CE41E72",
+            "loaderId": "BC950A730D8A795A611B0AF5444220D2",
+            "mimeType": "text/html",
+            "name": "votingFrame",
+            "parentId": "F151EB1B12216466378C1C00AC6887E9",
+            "secureContextType": "Secure",
+            "securityOrigin": "://",
+            "securityOriginDetails": {
+              "isLocalhost": false
+            },
+            "url": "about:blank"
+          },
+          "resources": []
+        }
+      ],
+      "frame": {
+        "adFrameStatus": {
+          "adFrameType": "none"
+        },
+        "crossOriginIsolatedContextType": "NotIsolated",
+        "domainAndRegistry": "ynxweb4.com",
+        "gatedAPIFeatures": [],
+        "id": "F151EB1B12216466378C1C00AC6887E9",
+        "loaderId": "9C0886C94B86C59311D319ED0B4F92FB",
+        "mimeType": "text/html",
+        "secureContextType": "Secure",
+        "securityOrigin": "https://exchange.ynxweb4.com",
+        "securityOriginDetails": {
+          "isLocalhost": false
+        },
+        "url": "https://exchange.ynxweb4.com/"
+      },
+      "resources": [
+        {
+          "contentSize": 28242,
+          "lastModified": 1786772770,
+          "mimeType": "text/javascript",
+          "type": "Script",
+          "url": "https://exchange.ynxweb4.com/app.js"
+        },
+        {
+          "contentSize": 74683,
+          "lastModified": 1786772770,
+          "mimeType": "text/javascript",
+          "type": "Script",
+          "url": "https://exchange.ynxweb4.com/wallet-auth.js"
+        },
+        {
+          "contentSize": 6225,
+          "lastModified": 1650464663,
+          "mimeType": "image/svg+xml",
+          "type": "Image",
+          "url": "https://fonts.gstatic.com/s/i/productlogos/translate/v14/24px.svg"
+        },
+        {
+          "contentSize": 1843,
+          "lastModified": 1788552009,
+          "mimeType": "image/png",
+          "type": "Image",
+          "url": "chrome-extension://hehggadaopoacecdllhhajmbjkdcmajg/images/cursor-chat.png"
+        }
+      ]
+    }
+  },
+  "dom": {
+    "lang": "zh-CN",
+    "links": [
+      {
+        "href": "https://www.ynxweb4.com/downloads/ynx-wallet-1.0.1-testnet-preview-dc31c9a8-test-signed.apk",
+        "text": "下载 YNX 钱包"
+      },
+      {
+        "href": "https://metamask.io/download/",
+        "text": "安装 MetaMask — 官方网站"
+      },
+      {
+        "href": "https://www.ynxweb4.com/dapp/wallet",
+        "text": "版本、签名和安装详情"
+      }
+    ],
+    "scripts": [
+      "https://exchange.ynxweb4.com/wallet-auth.js",
+      "https://exchange.ynxweb4.com/app.js"
+    ],
+    "url": "https://exchange.ynxweb4.com/"
+  },
+  "screenshot": {
+    "bytes": 106014,
+    "sha256": "f4afc7b3b670c5fcf4998a4f7c1a7af7e0810820161893a4fb42f6cccc69cf94"
+  },
+  "providerButtonsClicked": false,
+  "accountRequested": false
+}

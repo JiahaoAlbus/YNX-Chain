@@ -1,0 +1,18 @@
+{
+  "schema": "ynx.exchange.local-transport-result/v1",
+  "attemptCount": 1,
+  "processExitStatus": 0,
+  "processSignal": null,
+  "processErrorCode": null,
+  "stdout": {
+    "bytes": 3190,
+    "sha256": "3d7ad485253b5ae9c610e1ffb970b2b32c3a2f5ac4b99753a9d2ee9c0a8399ef"
+  },
+  "stderr": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "terminalReceiptValidated": true,
+  "outcome": "RECEIPT_VALIDATED",
+  "retryAttempted": false
+}

@@ -1,0 +1,18 @@
+{
+  "schema": "ynx.exchange.local-transport-result/v1",
+  "attemptCount": 1,
+  "processExitStatus": 255,
+  "processSignal": null,
+  "processErrorCode": "ETIMEDOUT",
+  "stdout": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "stderr": {
+    "bytes": 0,
+    "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "terminalReceiptValidated": false,
+  "outcome": "FAILED_CLOSED_REMOTE_STATE_UNPROVEN",
+  "retryAttempted": false
+}
