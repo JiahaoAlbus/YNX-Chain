@@ -131,6 +131,16 @@ export declare function parseSignedCardApplicationApproval(input:unknown):Signed
 export declare function verifySignedCardApplicationApproval(input:unknown,expected:Readonly<{challenge:CardApplicationChallenge;details:CardApplicationDetails;account:string}>,at?:Date):SignedCardApplicationApproval;
 export declare function cardApplicationDetailsHash(details:CardApplicationDetails):string;
 export declare function cardApplicationApprovalId(input:unknown):string;
+export type CardApplicationApprovalRequest = Readonly<{version:"1";chainId:"ynx_6423-1";productId:"card";platform:ProductSessionPlatform;applicationId:string;origin:string;callback:string;account:string;challenge:CardApplicationChallenge;details:CardApplicationDetails;requestId:string;state:string;issuedAt:string;expiresAt:string}>;
+export type CardApplicationApprovalDecision = Readonly<{status:"approved";approval:SignedCardApplicationApproval}|{status:"rejected";reason:"USER_REJECTED"}>;
+export type CardApplicationApprovalResult = CardApplicationApprovalDecision & Readonly<{kind:"card-application-approval";version:"1";requestDigest:string;state:string}>;
+export declare function createCardApplicationApprovalRequest(registry:unknown,input:Readonly<{productId:"card";platform:ProductSessionPlatform;account:string;challenge:CardApplicationChallenge;details:CardApplicationDetails;requestId:string;state:string}>,at?:Date):CardApplicationApprovalRequest;
+export declare function parseCardApplicationApprovalRequest(registry:unknown,input:unknown,at?:Date):CardApplicationApprovalRequest;
+export declare function cardApplicationApprovalRequestDigest(request:CardApplicationApprovalRequest):string;
+export declare function encodeCardApplicationApprovalWalletURL(registry:unknown,request:CardApplicationApprovalRequest,at?:Date):string;
+export declare function parseCardApplicationApprovalWalletURL(registry:unknown,url:string,at?:Date):CardApplicationApprovalRequest;
+export declare function createCardApplicationApprovalReturnURL(registry:unknown,request:CardApplicationApprovalRequest,decision:CardApplicationApprovalDecision,at?:Date):string;
+export declare function parseCardApplicationApprovalReturnURL(registry:unknown,url:string,request:CardApplicationApprovalRequest,at?:Date):CardApplicationApprovalResult;
 export declare function nativeTransferSignJSON(transaction:Omit<SignedNativeTransfer,"signature">|SignedNativeTransfer):string;
 export declare function nativeTransferHash(payload:string):string;
 export type SmartAccountCall=Readonly<{target:string;selector:string;value:number;dataDigest:string}>;
