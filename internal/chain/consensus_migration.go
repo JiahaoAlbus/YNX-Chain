@@ -13,27 +13,29 @@ import (
 )
 
 const ConsensusMigrationVersion = 1
+const FullConsensusMigrationVersion = 2
 
 const ConsensusPubKeyTypeEd25519 = "tendermint/PubKeyEd25519"
 
 // ConsensusMigrationState is the deterministic application-state boundary used
 // to move the current runtime into a BFT engine without hashing peer operations.
 type ConsensusMigrationState struct {
-	Version          int                  `json:"version"`
-	SourceFormat     string               `json:"sourceFormat"`
-	Network          NetworkConfig        `json:"network"`
-	Height           uint64               `json:"height"`
-	LastBlockHash    string               `json:"lastBlockHash"`
-	Accounts         []ConsensusAccount   `json:"accounts"`
-	Validators       []ConsensusValidator `json:"validators"`
-	DexAssets        []NativeDexAsset     `json:"dexAssets,omitempty"`
-	DexBalances      []NativeDexBalance   `json:"dexBalances,omitempty"`
-	DexPools         []NativeDexPool      `json:"dexPools,omitempty"`
-	DexEvents        []NativeDexEvent     `json:"dexEvents,omitempty"`
-	ResourcePolicy   ResourceMarketPolicy `json:"resourcePolicy"`
-	LiquidSupplyYNXT int64                `json:"liquidSupplyYnxt"`
-	StakedSupplyYNXT int64                `json:"stakedSupplyYnxt"`
-	StateHash        string               `json:"stateHash"`
+	Version           int                  `json:"version"`
+	SourceFormat      string               `json:"sourceFormat"`
+	Network           NetworkConfig        `json:"network"`
+	Height            uint64               `json:"height"`
+	LastBlockHash     string               `json:"lastBlockHash"`
+	Accounts          []ConsensusAccount   `json:"accounts"`
+	Validators        []ConsensusValidator `json:"validators"`
+	DexAssets         []NativeDexAsset     `json:"dexAssets,omitempty"`
+	DexBalances       []NativeDexBalance   `json:"dexBalances,omitempty"`
+	DexPools          []NativeDexPool      `json:"dexPools,omitempty"`
+	DexEvents         []NativeDexEvent     `json:"dexEvents,omitempty"`
+	ResourcePolicy    ResourceMarketPolicy `json:"resourcePolicy"`
+	LiquidSupplyYNXT  int64                `json:"liquidSupplyYnxt"`
+	StakedSupplyYNXT  int64                `json:"stakedSupplyYnxt"`
+	StateHash         string               `json:"stateHash"`
+	SourceArchiveRoot string               `json:"sourceArchiveRoot,omitempty"`
 }
 
 type ConsensusAccount struct {
@@ -65,6 +67,10 @@ type ConsensusValidatorKeyBinding struct {
 func (d *Devnet) ExportConsensusMigrationState() (ConsensusMigrationState, error) {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
+	return d.exportConsensusMigrationStateLocked()
+}
+
+func (d *Devnet) exportConsensusMigrationStateLocked() (ConsensusMigrationState, error) {
 	if len(d.blocks) == 0 {
 		return ConsensusMigrationState{}, errors.New("cannot export consensus state without a committed block")
 	}
@@ -170,11 +176,19 @@ func (d *Devnet) ExportConsensusMigrationState() (ConsensusMigrationState, error
 }
 
 func (s ConsensusMigrationState) Validate() error {
-	if s.Version != ConsensusMigrationVersion {
+	if s.Version != ConsensusMigrationVersion && s.Version != FullConsensusMigrationVersion {
 		return fmt.Errorf("unsupported consensus migration version %d", s.Version)
 	}
-	if s.SourceFormat != "ynx-devnet-state-v1" {
+	if (s.Version == ConsensusMigrationVersion && s.SourceFormat != "ynx-devnet-state-v1") || (s.Version == FullConsensusMigrationVersion && s.SourceFormat != "ynx-devnet-state-v2") {
 		return fmt.Errorf("unsupported consensus source format %q", s.SourceFormat)
+	}
+	if s.Version == FullConsensusMigrationVersion {
+		root, err := hex.DecodeString(s.SourceArchiveRoot)
+		if err != nil || len(root) != sha256.Size || hex.EncodeToString(root) != s.SourceArchiveRoot {
+			return errors.New("full consensus migration requires a canonical source archive root")
+		}
+	} else if s.SourceArchiveRoot != "" {
+		return errors.New("legacy migration cannot claim a full source archive")
 	}
 	if s.Network.ChainID <= 0 || strings.TrimSpace(s.Network.Slug) == "" {
 		return errors.New("consensus migration network identity is incomplete")

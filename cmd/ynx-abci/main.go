@@ -19,6 +19,7 @@ func main() {
 	listen := flag.String("listen", "tcp://127.0.0.1:26658", "ABCI listen address")
 	transport := flag.String("transport", "socket", "ABCI transport: socket or grpc")
 	migrationPath := flag.String("migration-state", "", "validated YNX consensus migration JSON path")
+	originPath := flag.String("native-origin", "", "immutable native source archive path, required for migration v2")
 	statePath := flag.String("state", "", "durable ABCI committed state path (default: <migration-state>.abci-state.json)")
 	flag.Parse()
 	if *migrationPath == "" {
@@ -27,12 +28,12 @@ func main() {
 	if *statePath == "" {
 		*statePath = *migrationPath + ".abci-state.json"
 	}
-	if err := run(*listen, *transport, *migrationPath, *statePath); err != nil {
+	if err := run(*listen, *transport, *migrationPath, *statePath, *originPath); err != nil {
 		log.Fatal(err)
 	}
 }
 
-func run(listen, transport, migrationPath, statePath string) error {
+func run(listen, transport, migrationPath, statePath, originPath string) error {
 	payload, err := os.ReadFile(migrationPath)
 	if err != nil {
 		return fmt.Errorf("read migration state: %w", err)
@@ -41,7 +42,14 @@ func run(listen, transport, migrationPath, statePath string) error {
 	if err := json.Unmarshal(payload, &state); err != nil {
 		return fmt.Errorf("decode migration state: %w", err)
 	}
-	app, err := consensus.NewPersistentApplication(state, statePath)
+	var origin *chain.NativeMigrationArchive
+	if originPath != "" {
+		origin, err = chain.LoadNativeMigrationArchive(originPath, state)
+		if err != nil {
+			return err
+		}
+	}
+	app, err := consensus.NewPersistentApplicationWithNativeOrigin(state, statePath, origin)
 	if err != nil {
 		return err
 	}

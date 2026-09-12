@@ -30,6 +30,7 @@ type Application struct {
 	abcitypes.BaseApplication
 	mu              sync.RWMutex
 	migration       chain.ConsensusMigrationState
+	nativeOrigin    *chain.NativeMigrationArchive
 	committed       CommittedState
 	pending         *CommittedState
 	statePath       string
@@ -130,6 +131,13 @@ func NewApplication(state chain.ConsensusMigrationState) (*Application, error) {
 }
 
 func NewPersistentApplication(state chain.ConsensusMigrationState, statePath string) (*Application, error) {
+	return NewPersistentApplicationWithNativeOrigin(state, statePath, nil)
+}
+
+func NewPersistentApplicationWithNativeOrigin(state chain.ConsensusMigrationState, statePath string, origin *chain.NativeMigrationArchive) (*Application, error) {
+	if (state.Version == chain.FullConsensusMigrationVersion || origin != nil) && !origin.MatchesMigration(state) {
+		return nil, errors.New("full native migration requires its verified immutable source archive")
+	}
 	if err := state.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid YNX consensus migration state: %w", err)
 	}
@@ -157,6 +165,7 @@ func NewPersistentApplication(state chain.ConsensusMigrationState, statePath str
 	}
 	return &Application{
 		migration:    migration,
+		nativeOrigin: origin,
 		committed:    committed,
 		statePath:    strings.TrimSpace(statePath),
 		feeRecipient: feeRecipient,
@@ -220,6 +229,19 @@ func (a *Application) Query(_ context.Context, req *abcitypes.RequestQuery) (*ab
 	defer a.mu.RUnlock()
 	response := &abcitypes.ResponseQuery{Code: abcitypes.CodeTypeOK, Height: a.committed.Height}
 	switch {
+	case strings.HasPrefix(req.Path, "/native-origin/"):
+		parts := strings.SplitN(strings.TrimPrefix(req.Path, "/native-origin/"), "/", 2)
+		if len(parts) != 2 {
+			response.Code, response.Log = 1, "native origin requires module and record ID"
+			return response, nil
+		}
+		record, err := a.nativeOrigin.Record(parts[0], parts[1])
+		if err != nil {
+			response.Code, response.Log = 1, err.Error()
+			return response, nil
+		}
+		response.Value, err = json.Marshal(record)
+		return response, err
 	case req.Path == "/migration":
 		payload, err := a.migration.CanonicalJSON()
 		if err != nil {
