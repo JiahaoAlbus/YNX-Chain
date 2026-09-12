@@ -12,7 +12,7 @@ The exact standalone Standard Wallet ESM is consumed without rewriting its provi
 - Wallet source: `c97f85e9ae4d4580b99860c51738e6040ca9ca18`, tree `28a660bbe1451f0d5e20d6eb08da17eef0970d77`.
 - Vendored artifact: `apps/finance/web/vendor/standard-wallet-browser-c97f85e9.mjs`, 22417 bytes, SHA256 `b8a900ef2a5ece693cb2808a47ed0072d97c425236deb80c39497886f1535e43`.
 - Built `apps/finance/web/wallet-auth.js`: 16961 bytes, SHA256 `7a686fa60c9a5df0d24e72660bf590e9e295007eae88993cce00fac956c2cab7`.
-- Build: `npm ci --ignore-scripts --no-audit --no-fund && npm run build` in `apps/finance/web`.
+- Build: `npm ci --ignore-scripts --no-audit --no-fund && npm run build:wallet` in `apps/finance/web`.
 
 ## Product behavior
 

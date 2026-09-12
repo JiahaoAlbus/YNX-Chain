@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2"
 )
 
 const maxBodyBytes = 64 << 10
@@ -135,6 +136,10 @@ func (s *Server) walletSessionRevoke(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) proxyWalletGateway(w http.ResponseWriter, r *http.Request, path string, requireProof bool) {
+	if s.auth.v2 != nil {
+		writeError(w, http.StatusGone, "legacy_authority_isolated", "Legacy sessions require their original authority; use the separate browser v2 SDK")
+		return
+	}
 	if s.cfg.WalletGatewayURL == "" {
 		writeError(w, http.StatusServiceUnavailable, "wallet_gateway_unavailable", "Canonical Wallet Gateway is unavailable")
 		return
@@ -227,8 +232,13 @@ func (s *Server) protected(scope string, next handler) http.HandlerFunc {
 			writeError(w, http.StatusForbidden, "origin_not_allowed", "Request origin is not registered")
 			return
 		}
-		session, err := s.auth.Verify(r.Header.Get("X-YNX-Product-Session-Proof"), scope)
+		session, err := s.auth.VerifyRequest(r, scope)
 		if err != nil {
+			var protocolError *productsessionv2.Error
+			if errors.As(err, &protocolError) {
+				writeError(w, protocolError.Status, protocolError.Code, "Private Finance authorization is unavailable or rejected; Standard Wallet is unchanged")
+				return
+			}
 			writeError(w, http.StatusUnauthorized, "session_rejected", err.Error())
 			return
 		}
@@ -267,6 +277,10 @@ func (s *Server) allow(token, method string) bool {
 }
 
 func (s *Server) logout(w http.ResponseWriter, r *http.Request, _ Session) {
+	if s.auth.v2 != nil {
+		writeError(w, http.StatusConflict, "wallet_revoke_required", "Use the browser Product Session SDK revocation and confirmed readback; this API cannot revoke Wallet access")
+		return
+	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -767,7 +781,7 @@ func writeError(w http.ResponseWriter, status int, code, message string) {
 }
 func securityHeaders(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Security-Policy", "default-src 'self'; connect-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; connect-src 'self' https://wallet-auth.ynxweb4.com; img-src 'self' data:; style-src 'self'; script-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=()")

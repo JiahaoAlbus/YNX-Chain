@@ -26,7 +26,9 @@
         <div id="wallet-choice" class="wallet-choice"><button id="connect-ynx" class="primary connect" type="button">Connect YNX Wallet</button><button id="connect-metamask" class="ghost" type="button">Connect MetaMask</button><a id="install-wallet" class="button ghost" href="https://www.ynxweb4.com/dapp/download">Download YNX Wallet</a><a id="install-metamask" class="button ghost" href="https://metamask.io/download/">Install MetaMask</a></div>
         <div class="wallet-choice"><button id="wallet-details" type="button" hidden>Wallet details</button><button id="wallet-disconnect" type="button" hidden>Disconnect wallet</button><button id="wallet-switch" type="button" hidden>Switch wallet</button><button id="wallet-revoke" type="button" hidden>Revoke wallet access</button></div>
         <p id="wallet-state" role="status" aria-live="polite">Standard Wallet is independent of private Finance access.</p>
-        <p id="private-state" role="status">Private Finance is unavailable until separate Product Session v2 approval. Existing legacy records are isolated and have not been migrated or deleted.</p>
+        <p id="private-state" role="status" aria-live="polite">Private Finance is separate from Standard Wallet. Legacy sessions remain isolated with their original authority.</p>
+        <p>Private approval permits owned portfolio and Pay reads, planning changes, and explicitly requested AI drafts. It never authorizes an asset transaction.</p>
+        <div class="wallet-choice"><button id="private-begin" type="button">Authorize private Finance</button><a id="private-open" hidden rel="noreferrer">Open YNX Wallet — installation unverified</a><button id="private-retry" type="button">Retry private connection</button><button id="private-revoke" type="button">Revoke private Finance access</button><button id="private-guest" type="button">Continue as guest</button></div>
       </section>
       <div id="notice" class="notice hidden" role="status" aria-live="polite"></div>
 

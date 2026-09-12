@@ -1,4 +1,5 @@
 import {StandardWalletConnection,discoverWalletProviders} from './vendor/standard-wallet-browser-c97f85e9.mjs';
+import {privateFinance,bindPrivateFinanceUI} from './private-wallet-entry.js';
 
 const ORIGIN='https://finance.ynxweb4.com';
 const PROVIDER_KEY='ynx.finance.standard-wallet.provider.v2';
@@ -11,13 +12,12 @@ const ready=new Promise(resolve=>document.readyState==='loading'?document.addEve
 window.YNXFinanceWallet=Object.freeze({
   ready,connect:()=>connect('ynx-wallet'),connectMetaMask:()=>connect('metamask'),
   restoreStandardWallet,disconnectStandardWallet,revokeStandardWallet,
-  getStandardWalletState:()=>standard,getRevision:()=>revision,
-  connected:()=>false,session:()=>null,requireProof:privateUnavailable,
-  disconnect:disconnectPrivate,reportPrivateFailure,
+  getStandardWalletState:()=>standard,getRevision:()=>revision+privateFinance.revision(),
+  connected:privateFinance.connected,session:privateFinance.session,requireProof:privateFinance.proof,
+  disconnect:privateFinance.disconnect,reportPrivateFailure:privateFinance.reportFailure,
+  beginPrivate:privateFinance.begin,retryPrivate:privateFinance.retry,restorePrivate:privateFinance.restore,
+  guestPrivate:privateFinance.guest,getPrivateState:privateFinance.state,
 });
-function privateUnavailable(){throw new Error('PRIVATE_SERVICE_DEGRADED: Private Finance requires its separate Product Session v2 approval. Standard Wallet and public information remain available.');}
-async function disconnectPrivate(){reportPrivateFailure();return {status:'unavailable',revoked:false};}
-function reportPrivateFailure(){window.dispatchEvent(new CustomEvent('ynx-finance-private-state',{detail:{status:'degraded',session:null}}));}
 function preference(value){try{if(value===undefined){const saved=localStorage.getItem(PROVIDER_KEY);return ['ynx-wallet','metamask'].includes(saved)?saved:null;}if(value)localStorage.setItem(PROVIDER_KEY,value);else localStorage.removeItem(PROVIDER_KEY);}catch{}return null;}
 function isCurrent(value,selected=connection){if(value!==intent||selected!==connection)throw new Error('WALLET_REQUEST_SUPERSEDED');}
 function detach(){unsubscribe();unsubscribe=()=>{};const old=connection;connection=null;old?.disconnect();}
@@ -100,6 +100,7 @@ async function boot(){
   document.querySelector('#install-wallet')?.setAttribute('href',DOWNLOAD);
   document.querySelector('#install-metamask')?.setAttribute('href',METAMASK);
   await restoreStandardWallet();
+  bindPrivateFinanceUI();
 }
 window.addEventListener('pagehide',()=>{intent++;detach();});
 window.addEventListener('pageshow',event=>{if(event.persisted)restoreStandardWallet();});
