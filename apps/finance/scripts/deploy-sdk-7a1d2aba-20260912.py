@@ -211,7 +211,9 @@ def deploy():
             'cd "$1" && test -x ./ynx-finance && test -r ./web/index.html && test -r ./web/wallet-auth.js',
             'finance-access', str(RELEASE)], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         phase = 'ISOLATED_LINUX_START'
-        isolated = STAGE / 'isolated'
+        # Stage's retained parent is root-only; place the temporary isolated
+        # state under the already proven ynx-traversable candidate release.
+        isolated = RELEASE / '.isolated-preflight'
         isolated.mkdir(mode=0o700)
         os.chown(isolated, 995, 986)
         with socket.socket() as sock:
