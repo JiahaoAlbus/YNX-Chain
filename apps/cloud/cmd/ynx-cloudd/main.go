@@ -178,6 +178,25 @@ func main() {
 	}()
 	api := cloud.NewServerWithLimits(service, cloud.ServerLimits{MaxConcurrent: *maxConcurrent, RequestsPerMinute: *requestsPerMinute}).Handler()
 	mux := http.NewServeMux()
+	socialObjects, err := cloud.NewSocialAttachmentStore(cloud.SocialAttachmentConfig{Root: filepath.Join(*data, "social-ciphertext"), Authorizer: cloud.RemoteSocialObjectAuthorizer{BaseURL: os.Getenv("YNX_SOCIAL_AUTHORITY_URL"), Token: os.Getenv("YNX_SOCIAL_AUTHORITY_TOKEN")}})
+	if err != nil {
+		log.Fatal(err)
+	}
+	mux.Handle("/api/v1/social-attachments/", socialObjects.Handler())
+	go func() {
+		ticker := time.NewTicker(time.Minute)
+		defer ticker.Stop()
+		for {
+			if err := socialObjects.Sweep(); err != nil {
+				log.Printf("Social ciphertext cleanup pending: %v", err)
+			}
+			select {
+			case <-workerCtx.Done():
+				return
+			case <-ticker.C:
+			}
+		}
+	}()
 	mux.Handle("/api/", api)
 	mux.Handle("/health", api)
 	mux.Handle("/health/", api)
