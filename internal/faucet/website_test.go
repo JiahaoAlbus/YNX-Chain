@@ -14,7 +14,7 @@ import (
 
 func TestWebsitePolicyAllowsSameOriginClaimAndExternalAssets(t *testing.T) {
 	d := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
-	up := httptest.NewServer(api.NewServer(d))
+	up := httptest.NewServer(api.NewServerWithConfig(d, api.ServerConfig{FaucetCoreAuthToken: faucetTestCoreToken}))
 	defer up.Close()
 	s := openTestFaucet(t, admissionTestConfig(t, up.URL))
 	h := NewServer(s).Handler()
@@ -60,7 +60,7 @@ func TestCoreAuthorityTokenPrivateFile(t *testing.T) {
 }
 func TestHealthClearsHistoricalUpstreamFailureAndRejectsWrongNetwork(t *testing.T) {
 	d := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
-	up := httptest.NewServer(api.NewServer(d))
+	up := httptest.NewServer(api.NewServerWithConfig(d, api.ServerConfig{FaucetCoreAuthToken: faucetTestCoreToken}))
 	defer up.Close()
 	s := openTestFaucet(t, admissionTestConfig(t, up.URL))
 	s.lastError = "historical outage"
@@ -79,4 +79,20 @@ func TestClientIdentityIgnoresUntrustedProxyHeader(t *testing.T) {
 	if requestClientIdentity(r) != r.RemoteAddr {
 		t.Fatal("untrusted caller controlled quota identity")
 	}
+}
+
+const faucetTestCoreToken = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+
+func testCoreTokenFile(t *testing.T) string {
+	t.Helper()
+	p := filepath.Join(t.TempDir(), "core-token")
+	if err := os.WriteFile(p, []byte(faucetTestCoreToken+"\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	return p
+}
+func newAuthorizedFaucet(t *testing.T, cfg Config) (*Service, error) {
+	t.Helper()
+	cfg.CoreAuthTokenPath = testCoreTokenFile(t)
+	return New(cfg)
 }

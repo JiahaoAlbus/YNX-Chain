@@ -22,7 +22,7 @@ const admissionTestID = "req_0123456789abcdef0123456789abcdef"
 
 func admissionTestConfig(t *testing.T, url string) Config {
 	t.Helper()
-	return Config{RPCURL: url, FaucetKey: "local-fixture-only", RequestLog: filepath.Join(t.TempDir(), "requests.jsonl"), DefaultAmount: 100, MaxAmount: 101, MaxRequests: 1, Window: time.Hour, ChainID: 6423}
+	return Config{CoreAuthTokenPath: testCoreTokenFile(t), RPCURL: url, FaucetKey: "local-fixture-only", RequestLog: filepath.Join(t.TempDir(), "requests.jsonl"), DefaultAmount: 100, MaxAmount: 101, MaxRequests: 1, Window: time.Hour, ChainID: 6423}
 }
 
 func openTestFaucet(t *testing.T, cfg Config) *Service {
@@ -40,7 +40,7 @@ func TestDurableFaucetLostACKAndColdReplayChargeOnce(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	core := api.NewServer(d)
+	core := api.NewServerWithConfig(d, api.ServerConfig{FaucetCoreAuthToken: faucetTestCoreToken})
 	var posts atomic.Int32
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/faucet/requests" && posts.Add(1) == 1 {
@@ -96,7 +96,7 @@ func TestDurableFaucetLostACKAndColdReplayChargeOnce(t *testing.T) {
 
 func TestDurableFaucetConcurrentRetriesAndCapacity(t *testing.T) {
 	d := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
-	upstream := httptest.NewServer(api.NewServer(d))
+	upstream := httptest.NewServer(api.NewServerWithConfig(d, api.ServerConfig{FaucetCoreAuthToken: faucetTestCoreToken}))
 	defer upstream.Close()
 	cfg := admissionTestConfig(t, upstream.URL)
 	cfg.MaxAdmissions = 1
@@ -126,7 +126,7 @@ func TestDurableFaucetConcurrentRetriesAndCapacity(t *testing.T) {
 
 func TestDurableFaucetReceiptStoreFailureRetainsOriginalAdmission(t *testing.T) {
 	d := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
-	core := api.NewServer(d)
+	core := api.NewServerWithConfig(d, api.ServerConfig{FaucetCoreAuthToken: faucetTestCoreToken})
 	var s *Service
 	var closeOnce sync.Once
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -155,7 +155,7 @@ func TestDurableFaucetReceiptStoreFailureRetainsOriginalAdmission(t *testing.T) 
 
 func TestDurableFaucetUnavailableStoreNeverCallsMutation(t *testing.T) {
 	d := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
-	core := api.NewServer(d)
+	core := api.NewServerWithConfig(d, api.ServerConfig{FaucetCoreAuthToken: faucetTestCoreToken})
 	var posts atomic.Int32
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/faucet/requests" {
@@ -182,7 +182,7 @@ func TestDurableFaucetOldRouteAndRedirectFailClosed(t *testing.T) {
 	for _, redirect := range []bool{false, true} {
 		t.Run(fmt.Sprint(redirect), func(t *testing.T) {
 			d := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
-			core := api.NewServer(d)
+			core := api.NewServerWithConfig(d, api.ServerConfig{FaucetCoreAuthToken: faucetTestCoreToken})
 			var legacy atomic.Int32
 			upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				if r.URL.Path == "/faucet" {
@@ -220,7 +220,7 @@ func TestDurableFaucetOldRouteAndRedirectFailClosed(t *testing.T) {
 
 func TestDurableFaucetRejectsForgedReceiptAndExposesRetryIdentity(t *testing.T) {
 	d := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
-	core := api.NewServer(d)
+	core := api.NewServerWithConfig(d, api.ServerConfig{FaucetCoreAuthToken: faucetTestCoreToken})
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/faucet/requests" {
 			core.ServeHTTP(w, r)
@@ -243,7 +243,7 @@ func TestDurableFaucetRejectsForgedReceiptAndExposesRetryIdentity(t *testing.T) 
 
 func TestDurableFaucetImportsLegacyQuotaAndRejectsCorruptLog(t *testing.T) {
 	d := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
-	upstream := httptest.NewServer(api.NewServer(d))
+	upstream := httptest.NewServer(api.NewServerWithConfig(d, api.ServerConfig{FaucetCoreAuthToken: faucetTestCoreToken}))
 	defer upstream.Close()
 	cfg := admissionTestConfig(t, upstream.URL)
 	entry, _ := json.Marshal(LogEntry{RequestID: "legacy", Status: "sent", Address: "ynx_prior_recipient", IP: "192.0.2.1", Amount: 100, At: time.Now()})
@@ -265,9 +265,11 @@ func TestDurableFaucetImportsLegacyQuotaAndRejectsCorruptLog(t *testing.T) {
 
 func TestDurableCoreRouteRequiresRequestID(t *testing.T) {
 	d := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
-	core := api.NewServer(d)
+	core := api.NewServerWithConfig(d, api.ServerConfig{FaucetCoreAuthToken: faucetTestCoreToken})
 	w := httptest.NewRecorder()
-	core.ServeHTTP(w, httptest.NewRequest("POST", "/faucet/requests", strings.NewReader(`{"address":"ynx_missing_request","amount":100}`)))
+	request := httptest.NewRequest("POST", "/faucet/requests", strings.NewReader(`{"address":"ynx_missing_request","amount":100}`))
+	request.Header.Set("X-YNX-Faucet-Auth", faucetTestCoreToken)
+	core.ServeHTTP(w, request)
 	if w.Code != 400 {
 		t.Fatalf("missing ID accepted: %d", w.Code)
 	}
@@ -278,7 +280,7 @@ func TestDurableCoreRouteRequiresRequestID(t *testing.T) {
 
 func TestDurableFaucetRetryRetainsAdmittedAmountAcrossConfigChange(t *testing.T) {
 	d := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
-	core := api.NewServer(d)
+	core := api.NewServerWithConfig(d, api.ServerConfig{FaucetCoreAuthToken: faucetTestCoreToken})
 	var posts atomic.Int32
 	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/faucet/requests" && posts.Add(1) == 1 {
@@ -315,7 +317,7 @@ func TestDurableFaucetRetryRetainsAdmittedAmountAcrossConfigChange(t *testing.T)
 
 func TestDurableFaucetManyIndependentUsers(t *testing.T) {
 	d := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
-	upstream := httptest.NewServer(api.NewServer(d))
+	upstream := httptest.NewServer(api.NewServerWithConfig(d, api.ServerConfig{FaucetCoreAuthToken: faucetTestCoreToken}))
 	defer upstream.Close()
 	s := openTestFaucet(t, admissionTestConfig(t, upstream.URL))
 	var wg sync.WaitGroup

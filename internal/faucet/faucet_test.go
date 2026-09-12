@@ -25,11 +25,11 @@ import (
 
 func TestFaucetServiceRequestsAndRateLimits(t *testing.T) {
 	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
-	rpc := httptest.NewServer(api.NewServer(devnet))
+	rpc := httptest.NewServer(api.NewServerWithConfig(devnet, api.ServerConfig{FaucetCoreAuthToken: faucetTestCoreToken}))
 	defer rpc.Close()
 
 	logPath := t.TempDir() + "/requests.jsonl"
-	service, err := New(Config{RPCURL: rpc.URL, FaucetKey: "local-test-key", DefaultAmount: 50, MaxAmount: 100, Window: time.Hour, MaxRequests: 1, RequestLog: logPath})
+	service, err := newAuthorizedFaucet(t, Config{RPCURL: rpc.URL, FaucetKey: "local-test-key", DefaultAmount: 50, MaxAmount: 100, Window: time.Hour, MaxRequests: 1, RequestLog: logPath})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,9 +55,9 @@ func TestFaucetServiceRequestsAndRateLimits(t *testing.T) {
 
 func TestAuthoritativeFaucetNormalizesYNXAliasAndSharesRateLimitIdentity(t *testing.T) {
 	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
-	rpc := httptest.NewServer(api.NewServer(devnet))
+	rpc := httptest.NewServer(api.NewServerWithConfig(devnet, api.ServerConfig{FaucetCoreAuthToken: faucetTestCoreToken}))
 	defer rpc.Close()
-	service, err := New(Config{RPCURL: rpc.URL, FaucetKey: "local-test-key", DefaultAmount: 100, MaxAmount: 100, Window: time.Hour, MaxRequests: 1, RequestLog: t.TempDir() + "/requests.jsonl"})
+	service, err := newAuthorizedFaucet(t, Config{RPCURL: rpc.URL, FaucetKey: "local-test-key", DefaultAmount: 100, MaxAmount: 100, Window: time.Hour, MaxRequests: 1, RequestLog: t.TempDir() + "/requests.jsonl"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,9 +80,9 @@ func TestAuthoritativeFaucetNormalizesYNXAliasAndSharesRateLimitIdentity(t *test
 
 func TestFaucetServerEndpoints(t *testing.T) {
 	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
-	rpc := httptest.NewServer(api.NewServer(devnet))
+	rpc := httptest.NewServer(api.NewServerWithConfig(devnet, api.ServerConfig{FaucetCoreAuthToken: faucetTestCoreToken}))
 	defer rpc.Close()
-	service, err := New(Config{RPCURL: rpc.URL, FaucetKey: "local-test-key", DefaultAmount: 25, MaxAmount: 25, Window: time.Second, MaxRequests: 2, RequestLog: t.TempDir() + "/requests.jsonl"})
+	service, err := newAuthorizedFaucet(t, Config{RPCURL: rpc.URL, FaucetKey: "local-test-key", DefaultAmount: 25, MaxAmount: 25, Window: time.Second, MaxRequests: 2, RequestLog: t.TempDir() + "/requests.jsonl"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -365,9 +365,9 @@ func TestBFTFaucetRejectsUpstreamFailureAndUnsafeCustody(t *testing.T) {
 
 func TestFaucetServerRejectsOversizedAndUnknownBodies(t *testing.T) {
 	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
-	rpc := httptest.NewServer(api.NewServer(devnet))
+	rpc := httptest.NewServer(api.NewServerWithConfig(devnet, api.ServerConfig{FaucetCoreAuthToken: faucetTestCoreToken}))
 	defer rpc.Close()
-	service, err := New(Config{RPCURL: rpc.URL, FaucetKey: "local-test-key", DefaultAmount: 25, MaxAmount: 25, MaxRequests: 1, RequestLog: t.TempDir() + "/requests.jsonl"})
+	service, err := newAuthorizedFaucet(t, Config{RPCURL: rpc.URL, FaucetKey: "local-test-key", DefaultAmount: 25, MaxAmount: 25, MaxRequests: 1, RequestLog: t.TempDir() + "/requests.jsonl"})
 	if err != nil {
 		t.Fatal(err)
 	}
