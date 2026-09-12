@@ -62,7 +62,7 @@
       <dl class="review" id="order-preview-values"></dl>
       <p class="state-box">Not submitted. Funds and execution permission are unverified. Standard Wallet connection alone cannot authorize an Exchange order. Exchange account proof and a separately confirmed order signature are required.</p>
       <p>Limit buys cannot fill above the selected price; limit sells cannot fill below it. Fills may be partial or never occur. This is not a live executable quote or a liquidity guarantee.</p>
-      <p>Fees round up per fill. Single-fill estimates are not a maximum for fragmented fills. The engine’s dust and fragmented-fee reservation guards need verification before submission can be enabled.</p>
+      <p>Fees round up per fill. Single-fill estimates are not a maximum for fragmented fills. If a fill would exceed this order’s initial reservation, the entire new order request fails without saving any of its fills. No extra funds are taken from your available balance or another order. Dust fills below 0.000001 YUSD_TEST are not executed; unfilled remainders remain cancellable.</p>
       <p>YNXT is a testnet asset. YUSD_TEST is non-withdrawable venue credit, not a stablecoin or an on-chain token. Matching is venue-ledger settlement, not a chain transaction.</p>
       <button class="secondary wide">Return to edit</button>
     </form>

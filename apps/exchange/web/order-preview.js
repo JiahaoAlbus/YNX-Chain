@@ -11,10 +11,10 @@ export function parseMicro(value) {
   return BigInt(whole) * SCALE + BigInt(fraction.padEnd(6, '0'));
 }
 export function validateTradingRules(rules) {
-  if (rules?.schemaVersion !== 'exchange-limit-rules-v1' || rules.market !== 'YNXT-YUSD_TEST' || rules.scale !== '1000000' ||
+  if (rules?.schemaVersion !== 'exchange-limit-rules-v2' || rules.market !== 'YNXT-YUSD_TEST' || rules.scale !== '1000000' ||
       !Array.isArray(rules.orderTypes) || rules.orderTypes.length !== 1 || rules.orderTypes[0] !== 'limit' ||
       rules.notionalRounding !== 'floor_micro' || rules.feeRounding !== 'ceil_micro_per_fill' ||
-      rules.quoteAssetType !== 'venue_only_test_credit_not_token' || rules.admissionMinimumQuote !== 'not_enforced_by_engine' ||
+      rules.quoteAssetType !== 'venue_only_test_credit_not_token' || rules.admissionMinimumQuote !== 'one_micro_credit' || rules.reservationShortfall !== 'atomic_order_request_rejection' ||
       !Number.isInteger(rules.makerFeeBps) || !Number.isInteger(rules.takerFeeBps) || rules.makerFeeBps < 0 || rules.takerFeeBps < rules.makerFeeBps || rules.takerFeeBps > 1000)
     fail('RULES_INVALID', 'Verified venue trading rules are unavailable. Reconnect market data.');
   for (const name of ['minPriceMicro', 'maxPriceMicro', 'minAmountMicro', 'maxAmountMicro', 'maxOrderNotionalMicro']) {
@@ -40,9 +40,7 @@ export function buildOrderPreview({price, amount, side, rules, source, marketPha
   if (priceMicro < BigInt(rules.minPriceMicro) || priceMicro > BigInt(rules.maxPriceMicro)) fail('PRICE_LIMIT', 'Price must be between 0.000001 and 1,000,000 YUSD_TEST.');
   if (amountMicro < BigInt(rules.minAmountMicro) || amountMicro > BigInt(rules.maxAmountMicro)) fail('AMOUNT_LIMIT', 'Amount must be between 0.000001 and 1,000,000 YNXT.');
   const notionalMicro = amountMicro * priceMicro / SCALE;
-  // Additional fail-closed UI guard, explicitly not advertised as an existing
-  // engine minimum: a sub-micro quote must not look like a free purchase.
-  if (notionalMicro === 0n) fail('ZERO_QUOTE_UNSAFE', 'This order rounds to zero quote credits. Safe preview refuses it; the engine minimum-quote guard still needs review.');
+  if (notionalMicro === 0n) fail('ZERO_QUOTE_UNSAFE', 'This order rounds to zero quote credits. The venue requires at least 0.000001 YUSD_TEST of notional.');
   if (notionalMicro > BigInt(rules.maxOrderNotionalMicro)) fail('NOTIONAL_LIMIT', 'Order notional exceeds this venue’s configured maximum.');
   const makerFeeMicro = feeMicro(notionalMicro, rules.makerFeeBps), takerFeeMicro = feeMicro(notionalMicro, rules.takerFeeBps);
   return Object.freeze({market: rules.market, type: 'limit', side, priceMicro, amountMicro, notionalMicro, makerFeeMicro, takerFeeMicro,

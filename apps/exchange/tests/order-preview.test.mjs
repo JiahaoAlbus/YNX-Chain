@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {parseMicro, feeMicro, validateTradingRules, buildOrderPreview, MAX_RULE_AGE_MS} from '../web/order-preview.js';
 
-const rules = {schemaVersion:'exchange-limit-rules-v1', market:'YNXT-YUSD_TEST', orderTypes:['limit'], scale:'1000000', minPriceMicro:'1', maxPriceMicro:'1000000000000', minAmountMicro:'1', maxAmountMicro:'1000000000000', maxOrderNotionalMicro:'100000000000', makerFeeBps:17, takerFeeBps:43, notionalRounding:'floor_micro', feeRounding:'ceil_micro_per_fill', quoteAssetType:'venue_only_test_credit_not_token', admissionMinimumQuote:'not_enforced_by_engine'};
+const rules = {schemaVersion:'exchange-limit-rules-v2', market:'YNXT-YUSD_TEST', orderTypes:['limit'], scale:'1000000', minPriceMicro:'1', maxPriceMicro:'1000000000000', minAmountMicro:'1', maxAmountMicro:'1000000000000', maxOrderNotionalMicro:'100000000000', makerFeeBps:17, takerFeeBps:43, notionalRounding:'floor_micro', feeRounding:'ceil_micro_per_fill', quoteAssetType:'venue_only_test_credit_not_token', admissionMinimumQuote:'one_micro_credit', reservationShortfall:'atomic_order_request_rejection'};
 const now = Date.parse('2026-09-12T12:00:00Z');
 const source = {asOf:new Date(now).toISOString(), authority:'YNX-owned deterministic order state', classification:'testnet', status:'degraded_single_host'};
 const input = (changes={}) => ({price:'2.000001', amount:'3.000001', side:'buy', rules, source, marketPhase:'live', now, ...changes});
@@ -34,10 +34,11 @@ test('fee arithmetic stays exact beyond Number safe integer multiplication', () 
   assert.equal(feeMicro(10n, 0), 0n);
   for (const bps of [-1,1001,1.1,NaN]) assert.throws(() => feeMicro(10n,bps), {code:'FEE_INVALID'});
 });
-test('venue bounds and UI zero-quote guard fail closed; no invented engine minimum', () => {
+test('venue bounds and declared engine zero-quote guard fail closed', () => {
   for (const [changes,code] of [[{price:'0'},'PRICE_LIMIT'],[{amount:'0'},'AMOUNT_LIMIT'],[{price:'1000000.000001'},'PRICE_LIMIT'],[{amount:'1000000.000001'},'AMOUNT_LIMIT'],[{price:'1000000',amount:'1000000'},'NOTIONAL_LIMIT'],[{price:'0.000001',amount:'0.000001'},'ZERO_QUOTE_UNSAFE'],[{side:'market'},'SIDE_INVALID']]) assert.throws(() => buildOrderPreview(input(changes)), {code});
   assert.equal(buildOrderPreview(input({price:'100',amount:'1000'})).notionalMicro,100000000000n);
-  assert.equal(rules.admissionMinimumQuote,'not_enforced_by_engine');
+  assert.equal(rules.admissionMinimumQuote,'one_micro_credit');
+  assert.equal(rules.reservationShortfall,'atomic_order_request_rejection');
 });
 test('preview requires recent verified rules and cannot execute from stale cached data', () => {
   for (const phase of ['offline','reconnecting','unavailable','loading']) assert.throws(() => buildOrderPreview(input({marketPhase:phase})), {code:'RULES_STALE'});

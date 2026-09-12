@@ -21,16 +21,18 @@ type TradingRules struct {
 	FeeRounding           string   `json:"feeRounding"`
 	QuoteAssetType        string   `json:"quoteAssetType"`
 	AdmissionMinimumQuote string   `json:"admissionMinimumQuote"`
+	ReservationShortfall  string   `json:"reservationShortfall"`
 }
 
 func (s *Service) TradingRules() TradingRules {
 	return TradingRules{
-		SchemaVersion: "exchange-limit-rules-v1", Market: DefaultMarket, OrderTypes: []string{"limit"},
+		SchemaVersion: "exchange-limit-rules-v2", Market: DefaultMarket, OrderTypes: []string{"limit"},
 		Scale: strconv.FormatInt(AmountScale, 10), MinPriceMicro: "1", MinAmountMicro: "1",
 		MaxPriceMicro: strconv.FormatInt(1_000_000*AmountScale, 10), MaxAmountMicro: strconv.FormatInt(1_000_000*AmountScale, 10),
 		MaxOrderNotionalMicro: strconv.FormatInt(s.cfg.MaxOrderNotionalMicro, 10),
 		MakerFeeBPS:           s.cfg.MakerFeeBPS, TakerFeeBPS: s.cfg.TakerFeeBPS,
 		NotionalRounding: "floor_micro", FeeRounding: "ceil_micro_per_fill",
-		QuoteAssetType: "venue_only_test_credit_not_token", AdmissionMinimumQuote: "not_enforced_by_engine",
+		QuoteAssetType: "venue_only_test_credit_not_token", AdmissionMinimumQuote: "one_micro_credit",
+		ReservationShortfall: "atomic_order_request_rejection",
 	}
 }

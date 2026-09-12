@@ -21,7 +21,7 @@ func TestGuestPreviewConsumesActualConfiguredEngineRulesOverHTTP(t *testing.T) {
 	server := httptest.NewServer(NewServer(service))
 	defer server.Close()
 	rules := service.TradingRules()
-	if rules.MaxOrderNotionalMicro != strconv.FormatInt(service.cfg.MaxOrderNotionalMicro, 10) || rules.AdmissionMinimumQuote != "not_enforced_by_engine" {
+	if rules.MaxOrderNotionalMicro != strconv.FormatInt(service.cfg.MaxOrderNotionalMicro, 10) || rules.AdmissionMinimumQuote != "one_micro_credit" || rules.ReservationShortfall != "atomic_order_request_rejection" {
 		t.Fatal("rules do not describe current engine")
 	}
 	before := digest(service.state)
