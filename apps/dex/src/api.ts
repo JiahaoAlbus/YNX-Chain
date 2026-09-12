@@ -3,7 +3,6 @@ import type {
   ChainEvent,
   FeeSummary,
   Pool,
-  Position,
   SpotPrice,
   SnapshotProvenance,
   Token,
@@ -374,18 +373,4 @@ export async function broadcastDexAction(
 
 export const dexApi = {
   snapshot: loadDexSnapshot,
-  positions: async (
-    account: string,
-    _sessionBinding: string,
-    signal?: AbortSignal,
-  ) => {
-    const response = await requestCollection<NativePool>(
-      "/dex/pools",
-      "pools",
-      signal,
-    );
-    const items: Position[] = response.items.flatMap((item) => []);
-    void account;
-    return { items };
-  },
 };

@@ -142,6 +142,20 @@ describe("DEX selected-provider restore and disconnect lifecycle", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
+  it("keeps the selected Standard Wallet connected when the native portfolio service is unavailable", async () => {
+    localStorage.setItem(PREFERENCE_KEY, "metamask");
+    const metaMask=provider("metamask",META_ACCOUNT);
+    vi.stubGlobal("ethereum",{providers:[metaMask]});
+    render(<App/>);
+    await settleDiscovery();
+    metaMask.request.mockClear();
+    await act(async()=>{fireEvent.click(screen.getAllByRole("button",{name:"My Positions"})[0]);});
+    expect(screen.getByRole("alert")).toHaveTextContent("Balances are unknown, not zero");
+    expect(standardWalletDetails()).toMatchObject({status:"connected",account:META_ACCOUNT,providerKind:"metamask"});
+    expect(metaMask.request).not.toHaveBeenCalled();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
   it.each(["discovery", "network-switch"] as const)(
     "cancels a newer Wallet connection when disconnected during %s",
     async (phase) => {

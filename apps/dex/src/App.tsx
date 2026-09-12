@@ -10,6 +10,8 @@ import {
 } from "./riskAssistant";
 import type { AuditAction, RiskContext } from "./riskAssistant";
 import { useDexData } from "./useDexData";
+import { PortfolioPanel } from "./PortfolioPanel";
+import { nativeSigningUnavailable } from "./portfolio-i18n";
 import { aggregateCandles, type Candle } from "./candles";
 import type { ChainEvent, Locale, Pool, Token } from "./types";
 import {
@@ -316,6 +318,12 @@ export default function App() {
     quote: DexQuote,
   ) => {
     if (!walletSession) {
+      if(walletAccount){
+        // A connected EVM provider is not a native-action signer. Reopening
+        // the chooser cannot grant that missing capability.
+        setTransactionState({busy:false,error:nativeSigningUnavailable[locale],receipt:""});
+        return;
+      }
       setWallet(true);
       setWalletError(
         "Connect YNX Wallet to review and sign this exact transaction. The quote remains available without login.",
@@ -471,13 +479,7 @@ export default function App() {
             />
           )}
           {page === "positions" && (
-            <EmptyPage
-              icon="positions"
-              title={t.emptyPositions}
-              detail={t.centralPending}
-              action={t.connect}
-              onAction={() => setWallet(true)}
-            />
+            <PortfolioPanel account={walletAccount} locale={locale} onConnect={() => setWallet(true)} />
           )}
           {page === "explore" && (
             <ExplorePage

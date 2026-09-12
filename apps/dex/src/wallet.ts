@@ -128,6 +128,6 @@ export async function completeWalletCallback(url:string):Promise<DexWalletSessio
   try{const value=await pending();if(!value)return null;const response=parseAuthorizationCallbackURL(url,value);await requireCapabilities().storage.remove(CANONICAL_AUTHORIZATION_PENDING_KEY);if('decision'in response)return null;return {session:{account:response.account,expiresAt:response.expiresAt}};}catch(error){throw error instanceof WalletRequestError?error:privateError(error)}
 }
 export async function restoreWalletSession():Promise<DexWalletSession|null>{if(!privateCapabilities)return null;await pending();return null;}
-export async function beginDexAction(_input:{action:DexActionName;payload:DexActionPayload;quote:DexQuote;accountNonce:number}):Promise<{url:string}>{throw unavailable();}
+export async function beginDexAction(_input:{action:DexActionName;payload:DexActionPayload;quote:DexQuote;accountNonce:number}):Promise<{url:string}>{throw new WalletRequestError('NATIVE_ACTION_SIGNER_UNAVAILABLE','No installed native DEX action signer has been integrated. A Standard Wallet connection or Product Session alone does not authorize a native transaction.');}
 export function consumeDexActionCallback(_url:string):DexActionResponse|null{return null;}
 export function dexProductSessionGatewayOrigin(){return null;}
