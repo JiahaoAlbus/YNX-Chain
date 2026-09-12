@@ -12,7 +12,8 @@ import {
   createSignedNativeTransfer, evmAddressFromYNX, walletIdentity, ynxAddressFromEVM,
 } from "@ynx-chain/wallet-auth";
 import { GatewaySecurityReviewProvider, SecurityReviewController, type ReviewSnapshot } from "./src/ai/securityReview";
-import { NativeChainClient, loadNativeChainState, type NativeChainState } from "./src/chain/nativeTransfer";
+import { NativeChainClient, loadNativeChainState, isNativeReadCancelled, type NativeChainState } from "./src/chain/nativeTransfer";
+import { networkRecoveryCopy } from "./src/i18n/networkRecoveryCopy";
 import { NativeTransferOutbox, type NativeTransferOutboxEntry } from "./src/chain/nativeTransferOutbox";
 import { createPaymentURI, PaymentRequestError } from "./src/chain/paymentRequest";
 import { PaymentRecipientInput, type PaymentRecipientInputAttempt } from "./src/state/paymentRecipientInput";
@@ -199,21 +200,29 @@ function Dashboard({locale,manifest,selected,select,add,create,lock,onManifest,o
   const cancelClipboardClear=useRef<null|(()=>void)>(null);
   const [chainState,setChainState]=useState<NativeChainState>({phase:"loading",activityPhase:"loading",activity:[]});
   const chainRefreshGeneration=useRef(0),chainMounted=useRef(false);
+  const chainReadAbort=useRef<AbortController|null>(null);
   const refreshChain=useCallback(async()=>{
-    if(!chainMounted.current)return;
+    if(!chainMounted.current||AppState.currentState!=="active")return;
+    chainReadAbort.current?.abort();
+    const controller=new AbortController();chainReadAbort.current=controller;
     const generation=++chainRefreshGeneration.current;
     setChainState({phase:"loading",activityPhase:"loading",activity:[]});
-    try{const next=await loadNativeChainState(chainClient(),selected.account);if(chainMounted.current&&generation===chainRefreshGeneration.current)setChainState(next)}
-    catch(caught){if(chainMounted.current&&generation===chainRefreshGeneration.current)setChainState({phase:"failed",error:message(caught),activityPhase:"failed",activityError:message(caught),activity:[]})}
+    try{const next=await loadNativeChainState(chainClient(),selected.account,controller.signal);if(chainMounted.current&&!controller.signal.aborted&&generation===chainRefreshGeneration.current)setChainState(next)}
+    catch(caught){if(!isNativeReadCancelled(caught)&&chainMounted.current&&!controller.signal.aborted&&generation===chainRefreshGeneration.current)setChainState({phase:"failed",error:message(caught),activityPhase:"failed",activityError:message(caught),activity:[]})}
+    finally{if(chainReadAbort.current===controller)chainReadAbort.current=null}
   },[selected.account]);
-  useEffect(()=>{chainMounted.current=true;void refreshChain();return()=>{chainMounted.current=false;chainRefreshGeneration.current++}},[refreshChain]);
+  useEffect(()=>{
+    chainMounted.current=true;void refreshChain();
+    const sub=AppState.addEventListener("change",state=>{if(state!=="active"){chainRefreshGeneration.current++;chainReadAbort.current?.abort()}else void refreshChain()});
+    return()=>{chainMounted.current=false;chainRefreshGeneration.current++;chainReadAbort.current?.abort();sub.remove()};
+  },[refreshChain]);
   const copy=async()=>{cancelClipboardClear.current?.();cancelClipboardClear.current=await copyPublicValueWithExpiry(Clipboard,selected.account);setCopied(true);setTimeout(()=>setCopied(false),1500)};
   const openAudit=async()=>{setAuditError(null);try{setRecords(await authorizationAudit.load());setAuditOpen(true)}catch(caught){setAuditError(localizeError(locale,caught));setAuditOpen(true)}};
   return <ScrollView contentContainerStyle={styles.dashboard}>
     <Text style={styles.eyebrow}>{translate(locale,"nativeAccount")}</Text>
     <Pressable accessibilityLabel={walletCopy(locale,"Switch Wallet account")} accessibilityState={{expanded:accountsOpen}} onPress={()=>setAccountsOpen(!accountsOpen)} style={styles.accountPicker}><View><Text style={styles.accountLabel}>{selected.label}</Text><Text style={styles.address}>{short(selected.account)}</Text></View><ChevronDown color={ACTIVE_COLORS.ink}/></Pressable>
     {accountsOpen?<View style={styles.accountMenu}>{manifest.accounts.map((item)=><Pressable accessibilityRole="radio" accessibilityState={{checked:item.account===selected.account}} accessibilityLabel={`${translate(locale,"account")} ${item.label}`} key={item.account} onPress={()=>{select(item.account);setAccountsOpen(false)}} style={styles.accountRow}><View><Text style={styles.accountLabel}>{item.label}</Text><Text style={styles.smallAddress}>{short(item.account)}</Text></View>{item.account===selected.account?<Check color={ACTIVE_COLORS.blue}/>:null}</Pressable>)}<Pressable accessibilityLabel={translate(locale,"createAnother")} onPress={create} style={styles.accountRow}><Plus color={ACTIVE_COLORS.blue}/><Text style={styles.link}>{translate(locale,"createAnother")}</Text></Pressable><Pressable accessibilityLabel={translate(locale,"importAnother")} onPress={add} style={styles.accountRow}><KeyRound color={ACTIVE_COLORS.blue}/><Text style={styles.link}>{translate(locale,"importAnother")}</Text></Pressable></View>:null}
-    <View style={styles.balanceCard}><Text style={styles.balanceLabel}>{walletCopy(locale,"Native asset · authoritative testnet")}</Text><Text style={styles.balance}>{chainState.account?formatYNXT(locale,chainState.account.balance):"— YNXT"}</Text><Text style={styles.balanceMeta}>{chainState.phase==="loading"?walletCopy(locale,"Loading balance and nonce…"):chainState.phase==="unrecorded"?`${walletCopy(locale,"This address has no on-chain account record yet. Receive testnet YNXT to get started. Balance and nonce are not available yet.")} ${walletCopy(locale,"Sending becomes available after balance and nonce are confirmed.")}`:chainState.phase==="failed"?`${walletCopy(locale,"Balance unavailable")}: ${chainState.error}`:`${walletCopy(locale,"Nonce {nonce}",{nonce:chainState.account?chainState.account.nonce:"—"})} · ${chainState.activityPhase==="ready"?walletCopy(locale,"{count} matching transactions in the latest 25 chain transactions",{count:chainState.activity.length}):walletCopy(locale,"Activity · unavailable")}`}</Text></View>
+    <View style={styles.balanceCard}><Text style={styles.balanceLabel}>{walletCopy(locale,"Native asset · authoritative testnet")}</Text><Text style={styles.balance}>{chainState.account?formatYNXT(locale,chainState.account.balance):"— YNXT"}</Text><Text style={styles.balanceMeta}>{chainState.phase==="loading"?walletCopy(locale,"Loading balance and nonce…"):chainState.phase==="unrecorded"?`${walletCopy(locale,"This address has no on-chain account record yet. Receive testnet YNXT to get started. Balance and nonce are not available yet.")} ${walletCopy(locale,"Sending becomes available after balance and nonce are confirmed.")}`:chainState.phase==="failed"?`${walletCopy(locale,"Balance unavailable")}: ${networkRecoveryCopy(locale,chainState.error??"")}`:`${walletCopy(locale,"Nonce {nonce}",{nonce:chainState.account?chainState.account.nonce:"—"})} · ${chainState.activityPhase==="ready"?walletCopy(locale,"{count} matching transactions in the latest 25 chain transactions",{count:chainState.activity.length}):walletCopy(locale,"Activity · unavailable")}`}</Text></View>
     <View style={styles.quickRow}><Quick icon={<ArrowUpRight color={ACTIVE_COLORS.blue}/>} label={translate(locale,"send")} onPress={()=>setSend(true)}/><Quick icon={<QrCode color={ACTIVE_COLORS.blue}/>} label={translate(locale,"receive")} onPress={()=>setQR(true)}/><Quick icon={<History color={ACTIVE_COLORS.blue}/>} label={translate(locale,"activity")} onPress={()=>setCenter(true)}/></View>
     <SecondaryButton label={walletCopy(locale,"Test YNXT")} onPress={()=>setFaucet(true)}/>
     <InfoCard title={translate(locale,"accountSafety")} body={walletCopy(locale,selected.backupConfirmed?"Offline backup confirmed. System biometrics protect unlock, authorization, recovery viewing and deletion.":"Backup is not confirmed. Do not receive assets until the recovery key is stored offline.")}/>
@@ -395,7 +404,7 @@ function SendModal({visible,account,close,onSent}:{visible:boolean;account:Walle
     }catch(caught){if(lease?.isCurrent()||!lease){setError(message(caught));try{const value=await nativeOutbox.read(request.account);if(lease?.isCurrent()||!lease){setStored(value?.phase==="done"?null:value);setLoaded(true)}}catch{if(lease?.isCurrent()||!lease)setLoaded(false)}}}
     finally{if(!lease||lease.ownsScope())setBusy(false);lease?.finish()}
   };
-  const problem=error?<><Text style={styles.error}>{needsOfflineKeyRecovery(error)?walletCopy(locale,"Key protection needs recovery"):error}</Text><RecoveryRequiredNotice error={error}/></>:null;
+  const problem=error?<><Text style={styles.error}>{needsOfflineKeyRecovery(error)?walletCopy(locale,"Key protection needs recovery"):networkRecoveryCopy(locale,error)}</Text><RecoveryRequiredNotice error={error}/></>:null;
   const title=stored?walletCopy(locale,stored.phase==="accepted"?"Transfer durably confirmed":"Stored transfer needs confirmation"):review?"Send Review":"Send YNXT";
   return <Modal visible={visible} transparent animationType={MODAL_ANIMATION} onRequestClose={dismiss}><Sheet title={title} close={dismiss}>{!loaded?<><Text style={styles.sheetText}>{walletCopy(locale,"Checking the stored transfer before allowing a new signature.")}</Text>{problem}<SecondaryButton label={walletCopy(locale,"Reload stored transfer")} disabled={busy} onPress={()=>setReload(value=>value+1)}/></>:stored?<>
     <ReviewRow label={translate(locale,"account")} value={stored.account}/><ReviewRow label="To" value={ynxAddressFromEVM(stored.transaction.to)}/><ReviewRow label="Amount" value={`${stored.transaction.amount} YNXT`}/><ReviewRow label="Network fee" value={`${stored.transaction.fee} YNXT`}/><ReviewRow label="Nonce" value={String(stored.transaction.nonce)}/><ReviewRow label="Transaction" value={stored.hash}/><ReviewRow label="RPC" value={stored.origin}/>

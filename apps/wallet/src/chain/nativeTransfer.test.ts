@@ -60,7 +60,7 @@ test("missing account and activity failures remain independent, and a later real
   const client=new NativeChainClient("https://rpc.ynxweb4.com",async(url)=>url.includes("/accounts/")?recorded?response({account:{address:signed.transaction.from,balance:100,nonce:6}}):response({error:"account not found"},404):activityAvailable?response({transactions:[]}):response({error:"history unavailable"},503));
   const unavailableActivity=await loadNativeChainState(client,account);
   assert.equal(unavailableActivity.phase,"unrecorded");assert.equal(unavailableActivity.account,undefined);
-  assert.equal(unavailableActivity.activityPhase,"failed");assert.match(unavailableActivity.activityError??"",/503.*history unavailable/);
+  assert.equal(unavailableActivity.activityPhase,"failed");assert.match(unavailableActivity.activityError??"",/temporarily unavailable.*503/);assert.doesNotMatch(unavailableActivity.activityError??"",/history unavailable/);
   activityAvailable=true;
   const emptyActivity=await loadNativeChainState(client,account);
   assert.equal(emptyActivity.phase,"unrecorded");assert.equal(emptyActivity.account,undefined);

@@ -13,13 +13,26 @@ export class NativeBroadcastUnknown extends Error {
 export type NativeChainState=Readonly<{phase:"loading"|"ready"|"unrecorded"|"failed";account?:ChainAccount;error?:string;activityPhase:"loading"|"ready"|"failed";activity:readonly ChainActivity[];activityError?:string}>;
 type FetchLike=(input:string,init?:RequestInit)=>Promise<Response>;
 
+export class NativeReadCancelled extends Error{
+  readonly code="NATIVE_READ_CANCELLED";
+  constructor(){super("The balance refresh was cancelled.");this.name="NativeReadCancelled"}
+}
+export function isNativeReadCancelled(value:unknown):value is NativeReadCancelled{return value instanceof NativeReadCancelled}
+export class NativeReadError extends Error{
+  constructor(readonly code:"NATIVE_READ_TIMEOUT"|"NATIVE_READ_UNAVAILABLE"|"NATIVE_READ_HTTP"|"NATIVE_READ_INVALID_RESPONSE",message:string,readonly retryable=false,readonly httpStatus?:number){super(message);this.name="NativeReadError"}
+}
+const READ_TIMEOUT_MS=15_000,READ_RETRY_DELAY_MS=250;
+const RETRYABLE_READ_STATUS=new Set([408,429,500,502,503,504]);
+
 export class AccountNotRecordedError extends Error{
   readonly account:string;
   constructor(account:string){super("This address has no on-chain account record yet. Receive testnet YNXT to get started.");this.name="AccountNotRecordedError";this.account=account}
 }
 
-export async function loadNativeChainState(client:NativeChainClient,selectedAccount:string):Promise<NativeChainState>{
-  const [account,activity]=await Promise.allSettled([client.account(selectedAccount),client.activity(selectedAccount)]);
+export async function loadNativeChainState(client:NativeChainClient,selectedAccount:string,signal?:AbortSignal):Promise<NativeChainState>{
+  assertReadActive(signal);
+  const [account,activity]=await Promise.allSettled([client.account(selectedAccount,signal),client.activity(selectedAccount,signal)]);
+  assertReadActive(signal);
   const accountState=account.status==="fulfilled"?{phase:"ready" as const,account:account.value}:account.reason instanceof AccountNotRecordedError&&account.reason.account===selectedAccount?{phase:"unrecorded" as const}:{phase:"failed" as const,error:failureMessage(account.reason)};
   const activityState=activity.status==="fulfilled"?{activityPhase:"ready" as const,activity:activity.value}:{activityPhase:"failed" as const,activity:Object.freeze([]),activityError:failureMessage(activity.reason)};
   return Object.freeze({...accountState,...activityState});
@@ -38,20 +51,75 @@ export class NativeChainClient{
     if(await this.#rpc("eth_chainId",[])!=="0x1917")throw new NativeDurabilityInvalid();
   }
 
-  async account(account:string):Promise<ChainAccount>{
+  async account(account:string,signal?:AbortSignal):Promise<ChainAccount>{
+    assertReadActive(signal);
     const address=evmAddressFromYNX(account);
-    const value=await this.#json(`/accounts/${encodeURIComponent(account)}`,{method:"GET"},account);
+    const value=await this.#readJSON(`/accounts/${encodeURIComponent(account)}`,signal,account);
+    assertReadActive(signal);
     const record=object(value)&&object(value.account)?value.account:null;
     if(!record||typeof record.address!=="string"||!/^0x[0-9a-f]{40}$/.test(record.address)||!Number.isSafeInteger(record.balance)||record.balance<0||!Number.isSafeInteger(record.nonce)||record.nonce<0)throw new Error("Authoritative account response is invalid");
     if(record.address!==address)throw new Error("Authoritative account identity does not match the selected ynx1 account");
     return Object.freeze({address:record.address,balance:record.balance,nonce:record.nonce});
   }
 
-  async activity(account:string):Promise<readonly ChainActivity[]>{
-    const value=await this.#json("/txs?limit=25",{method:"GET"});
-    if(!object(value)||!Array.isArray(value.transactions))throw new Error("Authoritative activity response is invalid");
+  async activity(account:string,signal?:AbortSignal):Promise<readonly ChainActivity[]>{
+    assertReadActive(signal);
     const address=evmAddressFromYNX(account);
+    const value=await this.#readJSON("/txs?limit=25",signal);
+    assertReadActive(signal);
+    if(!object(value)||!Array.isArray(value.transactions))throw new Error("Authoritative activity response is invalid");
     return Object.freeze(value.transactions.filter((item)=>object(item)&&(item.from===address||item.to===address)).map(parseActivity));
+  }
+
+  // Only these two GET routes use recovery. RPC and transaction POSTs retain
+  // their original single-attempt transport and outbox semantics below.
+  async #readJSON(path:string,signal?:AbortSignal,requestedAccount?:string):Promise<unknown>{
+    for(let attempt=0;attempt<2;attempt++){
+      assertReadActive(signal);
+      try{return await this.#readAttempt(path,signal,requestedAccount)}
+      catch(error){
+        assertReadActive(signal);
+        if(attempt===1||!(error instanceof NativeReadError)||!error.retryable)throw error;
+        await readRetryDelay(signal);
+      }
+    }
+    throw new NativeReadError("NATIVE_READ_UNAVAILABLE","The network is unavailable. Please refresh again.");
+  }
+
+  async #readAttempt(path:string,signal?:AbortSignal,requestedAccount?:string):Promise<unknown>{
+    assertReadActive(signal);
+    const controller=new AbortController();let rejectStopped!:(error:Error)=>void,stopReason:Error|undefined;
+    const stopped=new Promise<never>((_,reject)=>{rejectStopped=reject});
+    // Settle our typed result before notifying native fetch. Its raw CANCEL
+    // rejection must not turn a caller cancellation or deadline into node text.
+    const stop=(reason:Error)=>{stopReason??=reason;rejectStopped(stopReason);controller.abort()};
+    const assertAttemptActive=()=>{assertReadActive(signal);if(stopReason)throw stopReason};
+    const cancel=()=>stop(new NativeReadCancelled());
+    signal?.addEventListener("abort",cancel,{once:true});
+    const timeout=setTimeout(()=>stop(new NativeReadError("NATIVE_READ_TIMEOUT","The network request timed out. Please refresh again.",true)),READ_TIMEOUT_MS);
+    try{
+      assertAttemptActive();
+      return await Promise.race([(async()=>{
+        const url=`${this.#baseURL}${path}`;
+        const response=await this.#fetch(url,{method:"GET",redirect:"error",signal:controller.signal,headers:{Accept:"application/json"}});
+        assertAttemptActive();
+        if(response.redirected||response.url&&response.url!==url)throw new NativeReadError("NATIVE_READ_INVALID_RESPONSE","YNX chain response origin changed");
+        if(!response.ok&&RETRYABLE_READ_STATUS.has(response.status))throw new NativeReadError("NATIVE_READ_HTTP",`The YNX node is temporarily unavailable (${response.status}). Please refresh again.`,true,response.status);
+        const text=await response.text();assertAttemptActive();
+        if(text.length>262144)throw new NativeReadError("NATIVE_READ_INVALID_RESPONSE","YNX chain response exceeds the supported size");
+        let value:unknown;
+        try{value=JSON.parse(text)}catch{throw new NativeReadError("NATIVE_READ_INVALID_RESPONSE",`YNX chain returned non-JSON (${response.status})`)}
+        if(!response.ok){
+          if(requestedAccount!==undefined&&response.status===404&&object(value)&&Object.keys(value).length===1&&value.error==="account not found")throw new AccountNotRecordedError(requestedAccount);
+          throw new NativeReadError("NATIVE_READ_HTTP",`The YNX node could not complete this read (${response.status}). Please refresh again.`,false,response.status);
+        }
+        return value;
+      })(),stopped]);
+    }catch(error){
+      assertReadActive(signal);
+      if(error instanceof NativeReadError||error instanceof AccountNotRecordedError)throw error;
+      throw new NativeReadError("NATIVE_READ_UNAVAILABLE","The network connection was interrupted. Please refresh again.",true);
+    }finally{clearTimeout(timeout);signal?.removeEventListener("abort",cancel);controller.abort()}
   }
 
   async broadcast(payload:string,expected:SignedNativeTransfer,expectedHash:string):Promise<BroadcastResult>{
@@ -126,3 +194,17 @@ function base(value:string){if(typeof value!=="string")throw new Error("YNX chai
 function object(value:unknown):value is Record<string,any>{return typeof value==="object"&&value!==null&&!Array.isArray(value)}
 function errorMessage(value:unknown){return object(value)&&typeof value.error==="string"?value.error:"unknown error"}
 function failureMessage(value:unknown){return value instanceof Error?value.message:String(value)}
+function assertReadActive(signal?:AbortSignal):void{if(signal?.aborted)throw new NativeReadCancelled()}
+async function readRetryDelay(signal?:AbortSignal):Promise<void>{
+  assertReadActive(signal);
+  let timer:ReturnType<typeof setTimeout>|undefined,cancel=()=>{};
+  try{
+    await new Promise<void>((resolve,reject)=>{
+      cancel=()=>reject(new NativeReadCancelled());
+      signal?.addEventListener("abort",cancel,{once:true});
+      if(signal?.aborted){cancel();return}
+      timer=setTimeout(resolve,READ_RETRY_DELAY_MS);
+    });
+    assertReadActive(signal);
+  }finally{clearTimeout(timer);signal?.removeEventListener("abort",cancel)}
+}
