@@ -73,6 +73,11 @@ func (s *Server) authorizeProductRead(w http.ResponseWriter, r *http.Request, ne
 	read := r.Method == http.MethodGet && (r.Pattern == "GET /api/v1/objects" || r.Pattern == "GET /api/v1/objects/{id}" || r.Pattern == "GET /api/v1/objects/{id}/content" || r.Pattern == "GET /api/v1/objects/{id}/versions")
 	write := (r.Method == http.MethodPost && (r.Pattern == "POST /api/v1/objects" || r.Pattern == "POST /api/v1/objects/{id}/trash" || r.Pattern == "POST /api/v1/objects/{id}/restore" || r.Pattern == "POST /api/v1/objects/{id}/versions/{version}/restore")) || (r.Method == http.MethodPut && r.Pattern == "PUT /api/v1/objects/{id}/document")
 	write = write || (r.Method == http.MethodPatch && r.Pattern == "PATCH /api/v1/objects/{id}")
+	read = read || (r.Method == http.MethodGet && r.Pattern == "GET /api/v1/objects/{id}/comments")
+	commentWrite := r.Method == http.MethodPost && (r.Pattern == "POST /api/v1/objects/{id}/comments" || r.Pattern == "POST /api/v1/objects/{id}/comments/{thread}/resolve")
+	write = write || commentWrite
+	duplicate := r.Method == http.MethodPost && r.Pattern == "POST /api/v1/objects/{id}/duplicate"
+	write = write || duplicate
 	if !read && !write {
 		productReadFailure(w, 403, "V2_ROUTE_NOT_ENABLED")
 		return
@@ -91,6 +96,12 @@ func (s *Server) authorizeProductRead(w http.ResponseWriter, r *http.Request, ne
 		scopes = []string{"files.write"}
 		if product == "docs" {
 			scopes = []string{"docs.write", "files.write"}
+		}
+	}
+	if duplicate {
+		scopes = []string{"files.read", "files.write"}
+		if product == "docs" {
+			scopes = []string{"docs.read", "docs.write", "files.read", "files.write"}
 		}
 	}
 	identity, err := client.Authorize(r.Context(), r, scopes)
@@ -122,6 +133,9 @@ func (s *Server) authorizeProductRead(w http.ResponseWriter, r *http.Request, ne
 		// serialize this request-local compatibility actor as a stored session.
 		if write {
 			actor.Scopes = append(actor.Scopes, "documents.write")
+			if commentWrite {
+				actor.Scopes = append(actor.Scopes, "comments.write")
+			}
 		} else {
 			actor.Scopes = append(actor.Scopes, "documents.read")
 		}

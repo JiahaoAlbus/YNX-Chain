@@ -265,14 +265,24 @@ type AccessRequest struct {
 }
 
 type Comment struct {
-	ID         string     `json:"id"`
-	ObjectID   string     `json:"objectId"`
-	Version    int        `json:"version"`
-	Author     string     `json:"author"`
-	Body       string     `json:"body"`
-	Mentions   []string   `json:"mentions"`
-	CreatedAt  time.Time  `json:"createdAt"`
-	ResolvedAt *time.Time `json:"resolvedAt,omitempty"`
+	ThreadID   string         `json:"threadId,omitempty"`
+	ParentID   string         `json:"parentId,omitempty"`
+	Anchor     *CommentAnchor `json:"anchor,omitempty"`
+	ResolvedBy string         `json:"resolvedBy,omitempty"`
+	ID         string         `json:"id"`
+	ObjectID   string         `json:"objectId"`
+	Version    int            `json:"version"`
+	Author     string         `json:"author"`
+	Body       string         `json:"body"`
+	Mentions   []string       `json:"mentions"`
+	CreatedAt  time.Time      `json:"createdAt"`
+	ResolvedAt *time.Time     `json:"resolvedAt,omitempty"`
+}
+
+type CommentAnchor struct {
+	Start int    `json:"start"`
+	End   int    `json:"end"`
+	Quote string `json:"quote"`
 }
 
 type Presence struct {
