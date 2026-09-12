@@ -114,5 +114,6 @@ func (d *Devnet) NativeFinanceSnapshot(address string) (map[string]any, error) {
 	hash := sha256.Sum256(content)
 	result["snapshotId"] = "sha256:" + hex.EncodeToString(hash[:])
 	result["updatedAt"] = time.Now().UTC().Format(time.RFC3339Nano)
+	result["asOf"] = result["updatedAt"]
 	return result, nil
 }

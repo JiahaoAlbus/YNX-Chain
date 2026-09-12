@@ -33,11 +33,13 @@ is optional for market-only reads. Unknown or repeated query parameters fail.
   the response to one current ledger generation. `blockHeight`/`blockHash` are
   the observed chain tip. Several current-state generations can share that tip.
 - `snapshotId` is `sha256:` plus SHA-256 of the canonical Go JSON projection
-  excluding snapshotId/updatedAt. It identifies the projection content only.
+  excluding snapshotId/updatedAt/asOf. It identifies the projection content only.
   `appHash:null` and `consensusFinality:false` are intentional: this is not a
   consensus state root. `durableCheckpoint` describes the last completed local
   checkpoint independently and must not be treated as proof that every current
   account/pool field has persisted.
+- `asOf` equals `updatedAt`: the RFC3339Nano UTC observation time captured while
+  holding the same read lock. It is neither a block timestamp nor finality time.
 - `coverage.complete:true` describes all requested collections. For a market
   read without account, `coverage.balances:false` makes the unrequested scope
   explicit. Separate legacy REST reads remain separate observations.
