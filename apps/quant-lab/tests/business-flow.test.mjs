@@ -8,7 +8,7 @@ const [source, html, i18n] = await Promise.all(['app.js', 'index.html', 'i18n.js
 const accountA = `0x${'a'.repeat(40)}`, accountB = `0x${'b'.repeat(40)}`;
 const connected = account => ({status: 'connected', providerKind: 'metamask', chainId: '0x1917', account});
 const receipt = (account, balance = '1000000000000000000') => ({...connected(account), asset: 'YNXT', decimals: 18, balanceBaseUnits: balance, blockNumber: '42', source: 'selected-wallet-provider', asOf: '2026-09-12T00:00:00.000Z'});
-const deferred = () => {let resolve; const promise = new Promise(done => {resolve = done;}); return {promise, resolve};};
+const deferred = () => {let resolve, reject; const promise = new Promise((done, fail) => {resolve = done; reject = fail;}); return {promise, resolve, reject};};
 const settle = async () => {for (let i = 0; i < 8; i++) await Promise.resolve();};
 
 // Execute the shipped app with a small DOM/HTTP boundary. Provider lifecycles are
@@ -30,7 +30,7 @@ class Element {
   append(...elements) {this.children.push(...elements);}
   replaceChildren(...elements) {this.children = elements;}
 }
-function harness({snapshot = {}, portfolioRead, apiResponse} = {}) {
+function harness({snapshot = {}, portfolioRead, apiResponse, savedStorage} = {}) {
   const ids = new Map(), elements = [];
   for (const [, tag, attrs] of html.matchAll(/<([a-z]+)\b([^>]*?)>/g)) {
     const element = new Element(tag, attrs); elements.push(element); if (element.id) ids.set(element.id, element);
@@ -46,15 +46,15 @@ function harness({snapshot = {}, portfolioRead, apiResponse} = {}) {
     if (selector.startsWith('#testnet-order-form')) return formInputs('testnet-order-form').filter(element => element.id !== 'order-signature');
     throw new Error(`Unmodelled DOM selector: ${selector}`);
   }};
-  const storage = new Map(), calls = [], events = new Map(); let current = {status: 'disconnected'}, reads = 0, proofs = 0;
+  const storage = new Map(savedStorage || []), calls = [], events = new Map(); let current = {status: 'disconnected'}, reads = 0, proofs = 0;
   const window = {addEventListener: (name, listener) => events.set(name, listener), YNXQuantWallet: {
     getStandardWalletState: () => current,
     readPortfolio: () => {reads++; return portfolioRead ? portfolioRead(current) : Promise.resolve(receipt(current.account));},
     requireProof: async () => {proofs++; throw new Error('PRIVATE_SERVICE_DEGRADED');},
   }};
   const context = vm.createContext({window, document, console, crypto: webcrypto, Intl, Date, BigInt, setTimeout: () => 1, clearTimeout: () => {}, confirm: () => false,
-    localStorage: {getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value)},
-    fetch: async (url, options) => {calls.push({url, options}); const body = apiResponse ? await apiResponse(url, options) : url.endsWith('/snapshot') ? snapshot : {payload: 'exact-fixture-payload', digest: 'f'.repeat(64)}; return {ok: true, json: async () => body};},
+    localStorage: {getItem: key => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value), removeItem: key => storage.delete(key)},
+    fetch: async (url, options) => {calls.push({url, options}); const body = apiResponse ? await apiResponse(url, options) : url.endsWith('/snapshot') ? snapshot : url.endsWith('/paper/orders') ? {ID: 'paper-000001', ...JSON.parse(options.body)} : {payload: 'exact-fixture-payload', digest: 'f'.repeat(64)}; return {ok: true, json: async () => body};},
   });
   vm.runInContext(i18n, context);
   context.QuantI18n = window.QuantI18n;
@@ -91,6 +91,62 @@ test('Paper submits the selected saved strategy, preserves selection on refresh 
   app.ids.get('paper-strategy').value = 'e'.repeat(64);
   await app.submit('paper-order');
   assert.equal(app.calls.filter(call => call.url.endsWith('/paper/orders')).length, 1);
+});
+
+test('Paper preserves one intent across double clicks, unknown network outcome and reload retry', async () => {
+  const strategyHash = 'd'.repeat(64), snapshot = {strategies: {one: {Name: 'Saved strategy', StrategyHash: strategyHash}}};
+  const late = deferred(), app = harness({snapshot, apiResponse: url => url.endsWith('/snapshot') ? snapshot : late.promise});
+  await settle();
+  app.ids.get('paper-strategy').value = strategyHash;
+  app.ids.get('paper-strategy').onchange();
+  app.ids.get('side').value = 'buy'; app.ids.get('paper-amount').value = '100';
+  const first = app.submit('paper-order');
+  await app.submit('paper-order');
+  assert.equal(app.ids.get('paper-submit').disabled, true);
+  const requests = app.calls.filter(call => call.url.endsWith('/paper/orders'));
+  assert.equal(requests.length, 1);
+  const original = JSON.parse(requests[0].options.body);
+  assert.match(original.IdempotencyKey, /^quant-paper-[0-9a-f-]{36}$/);
+  late.reject(new Error('Connection lost after request was sent')); await first;
+  const key = [...app.storage.keys()].find(value => value.startsWith('ynx.quant.paper.pending.v1:'));
+  assert.equal(JSON.parse(app.storage.get(key)).IdempotencyKey, original.IdempotencyKey);
+  app.wallet(connected(accountB)); await settle();
+  assert.equal(JSON.parse(app.storage.get(key)).IdempotencyKey, original.IdempotencyKey);
+  app.ids.get('paper-amount').value = '101';
+  await app.submit('paper-order');
+  assert.equal(app.calls.filter(call => call.url.endsWith('/paper/orders')).length, 1);
+  assert.match(app.ids.get('toast').textContent, /unknown outcome/);
+  const restored = harness({snapshot, savedStorage: app.storage}); await settle();
+  assert.equal(restored.ids.get('paper-strategy').value, strategyHash);
+  assert.equal(restored.ids.get('paper-amount').value, '100');
+  await restored.submit('paper-order');
+  const retried = JSON.parse(restored.calls.find(call => call.url.endsWith('/paper/orders')).options.body);
+  assert.deepEqual(retried, original);
+  assert.equal(restored.storage.has(key), false);
+  assert.equal(restored.proofs(), 0);
+});
+
+test('Paper refuses unsafe numeric amounts before creating an intent or making a request', async () => {
+  const hash = 'd'.repeat(64), app = harness({snapshot: {strategies: {one: {Name: 'Saved', StrategyHash: hash}}}}); await settle();
+  app.ids.get('paper-strategy').value = hash; app.ids.get('side').value = 'buy';
+  for (const amount of ['9007199254740992', '0', '-1', '1.5']) {
+    app.ids.get('paper-amount').value = amount;
+    await app.submit('paper-order');
+  }
+  assert.equal(app.calls.filter(call => call.url.endsWith('/paper/orders')).length, 0);
+  assert.equal([...app.storage.keys()].some(key => key.startsWith('ynx.quant.paper.pending.v1:')), false);
+});
+
+test('Paper does not acknowledge or forget an intent when the service returns an unbound result', async () => {
+  const hash = 'd'.repeat(64), snapshot = {strategies: {one: {Name: 'Saved', StrategyHash: hash}}};
+  for (const mismatch of [{}, {IdempotencyKey: 'wrong-key'}, {StrategyHash: 'e'.repeat(64)}, {Amount: 101}]) {
+    const app = harness({snapshot, apiResponse: (url, options) => url.endsWith('/snapshot') ? snapshot : Object.keys(mismatch).length ? {ID: 'paper-000001', ...JSON.parse(options.body), ...mismatch} : {}});
+    await settle();
+    app.ids.get('paper-strategy').value = hash; app.ids.get('side').value = 'buy'; app.ids.get('paper-amount').value = '100';
+    await app.submit('paper-order');
+    assert.match(app.ids.get('toast').textContent, /unknown outcome/);
+    assert.equal([...app.storage.keys()].some(key => key.startsWith('ynx.quant.paper.pending.v1:')), true);
+  }
 });
 
 test('portfolio uses exact provider data without floating point loss and rejects malformed account/source receipts', async () => {

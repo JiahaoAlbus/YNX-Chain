@@ -286,14 +286,15 @@ func (s *Server) revokeMandate(w http.ResponseWriter, r *http.Request) {
 }
 func (s *Server) paper(w http.ResponseWriter, r *http.Request) {
 	var q struct {
-		StrategyHash string `json:"strategyHash"`
-		Side         string `json:"side"`
-		Amount       int64  `json:"amount"`
+		StrategyHash   string `json:"strategyHash"`
+		Side           string `json:"side"`
+		Amount         int64  `json:"amount"`
+		IdempotencyKey string `json:"idempotencyKey"`
 	}
 	if !decode(w, r, &q) {
 		return
 	}
-	v, e := s.service.ApplyPaperSignalFromMarket(q.StrategyHash, q.Side, q.Amount)
+	v, e := s.service.SubmitPaperSignalFromMarket(q.StrategyHash, q.Side, q.Amount, q.IdempotencyKey)
 	respond(w, r, v, e, 201)
 }
 func (s *Server) reconcile(w http.ResponseWriter, r *http.Request) {

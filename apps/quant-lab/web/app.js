@@ -14,6 +14,16 @@ if (!/^[0-9a-f]{64}$/.test(tenantId || "")) {
   tenantId = [...crypto.getRandomValues(new Uint8Array(32))].map((value) => value.toString(16).padStart(2, "0")).join("");
   localStorage.setItem(tenantKey, tenantId);
 }
+const paperPendingKey = `ynx.quant.paper.pending.v1:${tenantId}`;
+let paperSubmitting = false, pendingPaperIntent = readPendingPaperIntent();
+function readPendingPaperIntent() {
+  try {
+    const value = JSON.parse(localStorage.getItem(paperPendingKey) || "null");
+    if (value && /^quant-paper-[0-9a-f-]{36}$/.test(value.IdempotencyKey) && /^[0-9a-f]{64}$/.test(value.StrategyHash) && ["buy", "sell"].includes(value.Side) && Number.isSafeInteger(value.Amount) && value.Amount > 0) return value;
+  } catch {}
+  localStorage.removeItem(paperPendingKey);
+  return null;
+}
 const supportedLocales = QuantI18n.locales;
 let locale = localStorage.getItem("ynx.quant.locale") || "en";
 if (!supportedLocales.includes(locale)) locale = "en";
@@ -103,6 +113,21 @@ const businessCopy = {
     connectForPortfolio: "Hubungkan YNX Wallet atau MetaMask untuk membaca saldo Testnet. Riset dan simulasi tetap tersedia.", readingPortfolio: "Membaca dompet yang dipilih pada blok tetap…", portfolioUnavailable: "Saldo dompet tidak tersedia. Coba lagi dengan Segarkan; tidak ada saldo pengganti.", portfolioReady: "Saldo baca-saja dari dompet yang dipilih. Tidak ada permintaan tanda tangan atau transaksi.",
   },
 };
+const paperSafetyCopy = {
+  en: ["Enter a positive whole-number Paper amount.", "A previous Paper signal has an unknown outcome. Reload to restore its saved inputs and retry it before starting another signal."],
+  "zh-CN": ["请输入正整数模拟数量。", "之前的模拟信号结果尚未确认。请重新加载以恢复已保存参数并重试，再开始新的信号。"],
+  "zh-TW": ["請輸入正整數模擬數量。", "先前的模擬訊號結果尚未確認。請重新載入以恢復儲存參數並重試，再開始新的訊號。"],
+  ja: ["正の整数でペーパー数量を入力してください。", "前のペーパーシグナルの結果が不明です。再読み込みで保存済み入力を復元し、再試行してから新しいシグナルを開始してください。"],
+  ko: ["양의 정수로 모의 수량을 입력하세요.", "이전 모의 신호의 결과가 확인되지 않았습니다. 새로고침하여 저장된 입력을 복원하고 재시도한 후 새 신호를 시작하세요."],
+  es: ["Introduce una cantidad simulada entera positiva.", "El resultado de una señal anterior es desconocido. Recarga para restaurar sus datos y reinténtala antes de iniciar otra."],
+  fr: ["Saisissez une quantité simulée entière positive.", "Le résultat d'un signal précédent est inconnu. Rechargez pour restaurer ses données et réessayez avant de créer un autre signal."],
+  de: ["Gib eine positive ganze simulierte Menge ein.", "Das Ergebnis eines früheren Signals ist unbekannt. Lade neu, stelle die gespeicherten Eingaben wieder her und versuche es erneut, bevor du ein neues Signal startest."],
+  pt: ["Insira uma quantidade simulada inteira positiva.", "O resultado de um sinal anterior é desconhecido. Recarregue para restaurar os dados e tente novamente antes de iniciar outro sinal."],
+  ru: ["Введите положительное целое количество для симуляции.", "Результат предыдущего сигнала неизвестен. Перезагрузите страницу, восстановите сохранённые параметры и повторите запрос до создания нового сигнала."],
+  ar: ["أدخل كمية محاكاة صحيحة موجبة.", "نتيجة إشارة محاكاة سابقة غير مؤكدة. أعد تحميل الصفحة لاستعادة المدخلات المحفوظة وأعد المحاولة قبل بدء إشارة أخرى."],
+  id: ["Masukkan jumlah simulasi berupa bilangan bulat positif.", "Hasil sinyal sebelumnya belum diketahui. Muat ulang untuk memulihkan input tersimpan dan coba lagi sebelum memulai sinyal baru."],
+};
+for (const [language, [paperInvalidAmount, paperPendingMismatch]] of Object.entries(paperSafetyCopy)) Object.assign(businessCopy[language], {paperInvalidAmount, paperPendingMismatch});
 const t = (key) => businessCopy[locale]?.[key] ?? businessCopy.en[key] ?? QuantI18n.t(locale, key);
 const localDate = (value) => new Intl.DateTimeFormat(locale, {dateStyle:"medium",timeStyle:"medium"}).format(new Date(value));
 function applyLocale() {
@@ -125,7 +150,7 @@ const api = async (path, opt = {}) => {
     },
   });
   const b = await r.json();
-  if (!r.ok) throw new Error(b.error || `HTTP ${r.status}`);
+  if (!r.ok) throw Object.assign(new Error(b.error || `HTTP ${r.status}`), {status: r.status});
   return b;
 };
 const toast = (m) => {
@@ -214,9 +239,14 @@ function renderPaperStrategies(strategies) {
     option.textContent = `${strategy.Name} · ${strategy.StrategyHash.slice(0, 12)}…`;
     selection.append(option);
   }
-  selection.value = available.some(strategy => strategy.StrategyHash === previous) ? previous : "";
+  const preferred = previous || pendingPaperIntent?.StrategyHash || "";
+  selection.value = available.some(strategy => strategy.StrategyHash === preferred) ? preferred : "";
   selection.disabled = available.length === 0;
-  $("#paper-submit").disabled = !selection.value;
+  $("#paper-submit").disabled = paperSubmitting || !selection.value;
+  if (pendingPaperIntent && !previous) {
+    $("#side").value = pendingPaperIntent.Side;
+    $("#paper-amount").value = String(pendingPaperIntent.Amount);
+  }
   $("#paper-strategy-status").textContent = available.length ? "" : t("strategyMissing");
 }
 function render() {
@@ -272,7 +302,7 @@ $$("nav button").forEach(
 );
 $("#refresh").onclick = () => Promise.all([refresh(), refreshPortfolio()]).catch((e) => toast(e.message));
 $("#wallet-portfolio-refresh").onclick = refreshPortfolio;
-$("#paper-strategy").onchange = () => { $("#paper-submit").disabled = !$("#paper-strategy").value; };
+$("#paper-strategy").onchange = () => { $("#paper-submit").disabled = paperSubmitting || !$("#paper-strategy").value; };
 $("#locale").onchange = (e) => {
   locale = e.target.value;
   localStorage.setItem("ynx.quant.locale", locale);
@@ -312,21 +342,39 @@ $("#backtest").onsubmit = async (e) => {
 };
 $("#paper-order").onsubmit = async (e) => {
   e.preventDefault();
+  if (paperSubmitting) return;
   try {
     const strategyHash = $("#paper-strategy").value;
     if (!Object.values(snapshot.strategies || {}).some(strategy => strategy.StrategyHash === strategyHash) || !/^[0-9a-f]{64}$/.test(strategyHash)) throw new Error(t("strategyMissing"));
-    await api("/v1/paper/orders", {
+    const Side = $("#side").value, Amount = +$("#paper-amount").value;
+    if (!["buy", "sell"].includes(Side) || !Number.isSafeInteger(Amount) || Amount <= 0) throw new Error(t("paperInvalidAmount"));
+    const sameIntent = pendingPaperIntent?.StrategyHash === strategyHash && pendingPaperIntent.Side === Side && pendingPaperIntent.Amount === Amount;
+    if (pendingPaperIntent && !sameIntent) throw new Error(t("paperPendingMismatch"));
+    if (!pendingPaperIntent) {
+      pendingPaperIntent = {StrategyHash: strategyHash, Side, Amount, IdempotencyKey: `quant-paper-${crypto.randomUUID()}`};
+    }
+    localStorage.setItem(paperPendingKey, JSON.stringify(pendingPaperIntent));
+    paperSubmitting = true;
+    $("#paper-submit").disabled = true;
+    const submitted = pendingPaperIntent;
+    const order = await api("/v1/paper/orders", {
       method: "POST",
-      body: JSON.stringify({
-        StrategyHash: strategyHash,
-        Side: $("#side").value,
-        Amount: +$("#paper-amount").value,
-      }),
+      body: JSON.stringify(submitted),
     });
+    if (!/^paper-[0-9]+$/.test(order?.ID) || order.IdempotencyKey !== submitted.IdempotencyKey || order.StrategyHash !== submitted.StrategyHash || order.Side !== submitted.Side || order.Amount !== submitted.Amount) throw new Error(t("paperPendingMismatch"));
+    pendingPaperIntent = null;
+    localStorage.removeItem(paperPendingKey);
     toast("Simulated order recorded");
     await refresh();
   } catch (e) {
+    if (e.status >= 400 && e.status < 500 && e.status !== 408 && e.status !== 409 && e.status !== 429) {
+      pendingPaperIntent = null;
+      localStorage.removeItem(paperPendingKey);
+    }
     toast(e.message);
+  } finally {
+    paperSubmitting = false;
+    $("#paper-submit").disabled = !$("#paper-strategy").value;
   }
 };
 function quantDeviceId() {

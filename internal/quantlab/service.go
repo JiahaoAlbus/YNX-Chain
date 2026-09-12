@@ -237,6 +237,8 @@ type PaperOrder struct {
 	ID, StrategyHash, Side, Status, Source string
 	Price, Amount, Filled                  int64
 	CreatedAt                              time.Time
+	// Omit legacy empty keys so existing persisted orders keep their integrity hash.
+	IdempotencyKey string `json:"IdempotencyKey,omitempty"`
 }
 type PaperState struct {
 	Cash, Position, RealizedPnL int64
@@ -994,6 +996,11 @@ func (s *Service) ApplyPaperSignal(strategyHash, side string, price, amount, vol
 		return PaperOrder{}, lockErr
 	}
 	defer release()
+	return s.applyPaperSignalLocked(strategyHash, side, price, amount, volume, "")
+}
+
+// applyPaperSignalLocked runs with both the service and durable state locks held.
+func (s *Service) applyPaperSignalLocked(strategyHash, side string, price, amount, volume int64, key string) (PaperOrder, error) {
 	if s.state.Paper.KillSwitch {
 		return PaperOrder{}, ErrForbidden
 	}
@@ -1020,7 +1027,7 @@ func (s *Service) ApplyPaperSignal(strategyHash, side string, price, amount, vol
 		return PaperOrder{}, ErrForbidden
 	}
 	s.state.Sequence++
-	o := PaperOrder{ID: fmt.Sprintf("paper-%06d", s.state.Sequence), StrategyHash: strategyHash, Side: side, Price: price, Amount: amount, Filled: fill, Status: "open", Source: "authoritative_market_adapter", CreatedAt: s.cfg.Now()}
+	o := PaperOrder{ID: fmt.Sprintf("paper-%06d", s.state.Sequence), StrategyHash: strategyHash, Side: side, Price: price, Amount: amount, Filled: fill, Status: "open", Source: "authoritative_market_adapter", CreatedAt: s.cfg.Now(), IdempotencyKey: key}
 	if fill == amount {
 		o.Status = "filled"
 	} else if fill > 0 {
@@ -1044,6 +1051,75 @@ func (s *Service) ApplyPaperSignalFromMarket(strategyHash, side string, amount i
 		return PaperOrder{}, ErrUnavailable
 	}
 	return s.ApplyPaperSignal(strategyHash, side, tick.Price, amount, tick.Volume)
+}
+
+// SubmitPaperSignalFromMarket is the browser-local Paper HTTP boundary. Unlike
+// the lower-level execution adapter, it requires a saved strategy in this tenant
+// and a durable request key. It never grants native Testnet execution authority.
+func (s *Service) SubmitPaperSignalFromMarket(strategyHash, side string, amount int64, key string) (PaperOrder, error) {
+	decoded, err := hex.DecodeString(strategyHash)
+	if err != nil || len(decoded) != sha256.Size || strategyHash != strings.ToLower(strategyHash) ||
+		(side != "buy" && side != "sell") || amount <= 0 || len(key) < 8 || len(key) > 128 {
+		return PaperOrder{}, ErrInvalid
+	}
+	for _, ch := range key {
+		if !(ch >= 'a' && ch <= 'z' || ch >= 'A' && ch <= 'Z' || ch >= '0' && ch <= '9' || strings.ContainsRune("._:-", ch)) {
+			return PaperOrder{}, ErrInvalid
+		}
+	}
+	// Replays return the original receipt even when the market feed is offline.
+	check := func() (PaperOrder, bool, error) {
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		release, err := s.lockAndReload()
+		if err != nil {
+			return PaperOrder{}, false, err
+		}
+		defer release()
+		return s.paperSubmissionLocked(strategyHash, side, amount, key)
+	}
+	if order, found, err := check(); found || err != nil {
+		return order, err
+	}
+	if s.cfg.MarketData == nil {
+		return PaperOrder{}, ErrUnavailable
+	}
+	tick, err := s.cfg.MarketData.Latest("YNXT-YUSD_TEST")
+	if err != nil || tick.Price <= 0 || tick.Volume <= 0 || tick.Source == "" {
+		return PaperOrder{}, ErrUnavailable
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	release, err := s.lockAndReload()
+	if err != nil {
+		return PaperOrder{}, err
+	}
+	defer release()
+	// Another process may have committed this key or replaced the saved strategy
+	// while the market request was in flight. Recheck under the durable write lock.
+	if order, found, err := s.paperSubmissionLocked(strategyHash, side, amount, key); found || err != nil {
+		return order, err
+	}
+	return s.applyPaperSignalLocked(strategyHash, side, tick.Price, amount, tick.Volume, key)
+}
+
+func (s *Service) paperSubmissionLocked(strategyHash, side string, amount int64, key string) (PaperOrder, bool, error) {
+	// Paper orders are retained (and capped at 100). Their keys are independent
+	// from the Testnet idempotency namespace and persist in the same atomic state.
+	for _, order := range s.state.Paper.Orders {
+		if order.IdempotencyKey == key {
+			if order.StrategyHash != strategyHash || order.Side != side || order.Amount != amount {
+				return PaperOrder{}, false, ErrConflict
+			}
+			return order, true, nil
+		}
+	}
+	for _, strategy := range s.state.Strategies {
+		if strategy.StrategyHash == strategyHash {
+			return PaperOrder{}, false, nil
+		}
+	}
+	return PaperOrder{}, false, ErrForbidden
 }
 
 func (s *Service) Reconcile(authoritativeCash, authoritativePosition int64) (PaperState, error) {
