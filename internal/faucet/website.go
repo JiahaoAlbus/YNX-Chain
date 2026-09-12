@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-//go:embed web/index.html web/style.css web/app.js web/client.js
+//go:embed web/index.html web/style.css web/app.js web/client.js web/legacy-receipts.json
 var website embed.FS
 
 const websiteCSP = "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
