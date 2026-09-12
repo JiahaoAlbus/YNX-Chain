@@ -39,9 +39,11 @@ select {
   top: 10px;
 }
 header {
-  height: 82px;
-  padding: 0 26px;
+  min-height: 82px;
+  padding: 16px 26px;
   display: flex;
+  flex-wrap: wrap;
+  gap: 14px 24px;
   align-items: center;
   justify-content: space-between;
   background: var(--surface);
@@ -70,10 +72,10 @@ h1 {
   border-radius: 50%;
   margin-right: 7px;
 }
-.wallet-controls { display: grid; grid-template-columns: auto auto; align-items: center; gap: 6px 12px; margin-left: auto; }
+.wallet-controls { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: center; gap: 6px 12px; margin-inline-start: auto; min-width: 0; }
 .wallet-controls button { min-height: 38px; }
-.wallet-controls a { color: var(--accent); font-weight: 700; text-decoration: none; }
-.wallet-controls small { grid-column: 1 / -1; color: var(--muted); max-width: 360px; }
+.wallet-controls a { color: var(--blue); font-weight: 700; text-decoration: none; }
+.wallet-controls small { grid-column: 1 / -1; color: var(--muted); max-width: 360px; overflow-wrap: anywhere; }
 .private-session-controls { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 26px; border-bottom: 1px solid var(--line); background: var(--surface); min-width: 0; }
 .private-session-controls button, .private-session-controls a { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
 .private-session-controls small { flex-basis: 100%; color: var(--muted); overflow-wrap: anywhere; }
@@ -345,8 +347,13 @@ th {
 }
 @media (max-width: 760px) {
   header {
-    padding: 0 14px;
+    padding: 16px 14px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 14px;
   }
+  .wallet-controls { grid-column: 1 / -1; grid-row: 2; width: 100%; margin: 0; }
+  .wallet-controls small { max-width: none; }
   .mode {
     max-width: 120px;
     text-align: right;

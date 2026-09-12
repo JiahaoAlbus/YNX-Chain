@@ -46,8 +46,10 @@ test('private controls and dynamic failures follow every locale without signing 
     assert.deepEqual(privateSessionLocales,await f.page.evaluate(()=>window.QuantI18n.locales));
     assert.equal(await f.page.locator('#locale').inputValue(),'en');
     for(const locale of privateSessionLocales){
-      const copy=privateSessionCopy(locale);await f.page.selectOption('#locale',locale);
+      const copy=privateSessionCopy(locale);await f.page.setViewportSize({width:390,height:844});await f.page.selectOption('#locale',locale);
       assert.equal(await f.page.locator('#private-sign-in').textContent(),copy.signIn);
+      const layout=await f.page.evaluate(()=>{const h=document.querySelector('header').getBoundingClientRect(),p=document.querySelector('.private-session-controls').getBoundingClientRect(),buttons=[...document.querySelectorAll('.wallet-controls button')].filter(b=>!b.hidden).map(b=>b.getBoundingClientRect());return {contained:buttons.every(b=>b.top>=h.top&&b.bottom<=h.bottom&&b.left>=h.left&&b.right<=h.right),separate:p.top>=h.bottom,noOverflow:document.documentElement.scrollWidth===document.documentElement.clientWidth};});
+      assert.deepEqual(layout,{contained:true,separate:true,noOverflow:true},locale);
       await f.page.locator('#private-account').click();
       assert.ok((await f.page.locator('#private-session-status').textContent()).startsWith(copy.unavailable));
       assert.equal(await f.page.locator('#private-session-status').getAttribute('data-code'),'PRIVATE_SIGN_IN_REQUIRED');

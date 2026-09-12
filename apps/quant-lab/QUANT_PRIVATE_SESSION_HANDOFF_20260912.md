@@ -35,7 +35,7 @@ The read-only result exposes verified native account, session binding, expiry an
 
 ## Evidence limits and publication prerequisite
 
-Private controls, status and dynamic failure explanations follow all twelve existing locales with English default; canonical error codes remain available as DOM data, not untranslated English messages. Guest account verification fails before creating a key/session or an HTTP authorization request. Private UI copy is product-owned, not a replacement protocol.
+Private controls, status and dynamic failure explanations follow all twelve existing locales with English default; canonical error codes remain available as DOM data, not untranslated English messages. Guest account verification fails before creating a key/session or an HTTP authorization request. Private UI copy is product-owned, not a replacement protocol. The fixed-height Standard Wallet header previously clipped mobile/RTL buttons; responsive sizing now keeps every visible wallet action inside the header and above the separate private strip, asserted in actual Chrome for all twelve locales.
 
 Focused verification at this source: `npm test` 18/18; `npm run test:wallet-flow` 16/16; `npm run test:private-session` 6/6; `npm run test:private-protocol` 3/3; `npm run test:browser` 4/4; `npm run test:tenant-flow` 1/1 (two tenants, two processes, 12 concurrent duplicate requests, conflicting-body 409 and restart replay); `go test -race -count=1 ./internal/productsessionv2 ./internal/quantlab ./apps/quant-lab/server` PASS; source scanner, Node syntax and `git diff --check` PASS. `YNX_QUANT_POSTGRES_TEST_URL` is absent, so PostgreSQL integration remains unproved.
 
