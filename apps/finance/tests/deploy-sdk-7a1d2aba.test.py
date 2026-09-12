@@ -14,6 +14,12 @@ spec.loader.exec_module(deploy)
 
 
 class GuardTests(unittest.TestCase):
+    def test_actual_finance_asset_route_contract(self):
+        self.assertEqual(deploy.asset_route('web/index.html'), '/')
+        self.assertEqual(deploy.asset_route('web/wallet-auth.js'), '/wallet-auth.js')
+        with self.assertRaises(AssertionError):
+            deploy.asset_route('ynx-finance')
+
     def test_env_exact_replacement_preserves_other_bytes_and_no_output(self):
         before = b'# retained\nSECRET=disposable-local-fixture\nYNX_FINANCE_WEB_DIR=' + (deploy.OLD + '/web').encode() + b'\nOTHER=unchanged\n'
         output = io.StringIO()

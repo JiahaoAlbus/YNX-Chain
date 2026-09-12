@@ -19,9 +19,9 @@ import time
 import urllib.error
 import urllib.request
 
-RUN = 'finance-sdk-7a1d2aba-20260912T104700Z'
+RUN = 'finance-sdk-7a1d2aba-20260912T104700Z-r2'
 SOURCE = '7a1d2aba6e72e5567931f451a9f069a544f58783'
-ARCHIVE = Path('/tmp/' + RUN + '.tar.gz')
+ARCHIVE = Path('/tmp/finance-sdk-7a1d2aba-20260912T104700Z.tar.gz')
 ARCHIVE_SHA = '60e9703135f6a46f1f563d7ff5b2ae8419fae65c664f176d6fda0b8ca0b570fc'
 BINARY_SHA = 'd0cc204f851afa0aace9bba06c3048a0bd1dc623b686eac56cab8ae6e0046c77'
 STAGE = Path('/opt/ynx/stage/finance') / RUN
@@ -121,6 +121,12 @@ def http(url, status=200, sha=None, expected_source=None):
 
 def health(base, source):
     return [http(base + '/version', expected_source=source), http(base + '/health'), http(base + '/ready')]
+
+
+def asset_route(path):
+    assert path.startswith('web/')
+    # Finance intentionally serves the document at /, not /index.html.
+    return '/' if path == 'web/index.html' else '/' + path[4:]
 
 
 def env_candidate(raw):
@@ -230,7 +236,7 @@ def deploy():
         evidence['isolatedLinux'] = health('http://127.0.0.1:' + str(port), SOURCE)
         for item in manifest['files']:
             if item['path'].startswith('web/'):
-                evidence['isolatedLinux'].append(http('http://127.0.0.1:' + str(port) + '/' + item['path'][4:], sha=item['sha256']))
+                evidence['isolatedLinux'].append(http('http://127.0.0.1:' + str(port) + asset_route(item['path']), sha=item['sha256']))
         proc.terminate()
         proc.wait(timeout=10)
         proc = None
@@ -273,7 +279,7 @@ def deploy():
             after_http.append(http(base + '/', sha=next(x['sha256'] for x in manifest['files'] if x['path'] == 'web/index.html')))
             for item in manifest['files']:
                 if item['path'].startswith('web/'):
-                    after_http.append(http(base + '/' + item['path'][4:], sha=item['sha256']))
+                    after_http.append(http(base + asset_route(item['path']), sha=item['sha256']))
         regular(UNIT, EXPECTED_UNIT)
         regular(CADDY, EXPECTED_CADDY)
         assert regular(DROPIN) == original_dropin
