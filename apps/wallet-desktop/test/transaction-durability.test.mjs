@@ -106,6 +106,16 @@ test("native transfer binding compares exact signed amount, fee and wire nonce p
   assert.equal(validateDurableReceipt(intent, { ...receipt, futureOuterReceiptField: "ignored" }, parseFeeModel(model)).transactionHash, intent.hash);
 });
 
+test("versioned identity metadata accepts only the signed non-system transfer and retains the stable ledger fields", () => {
+  const receipt=structuredClone(ethereum.recoveredReceipt), intent=coreIntent(receipt);
+  const original=receipt.ynxNativeTransaction;
+  receipt.ynxNativeTransaction={...original,from:receipt.from,to:receipt.to,identityProjection:{version:"ynx-native-identity-projection-v1",fromSystemIdentity:false,toSystemIdentity:false,systemAddressDomain:"YNX_NATIVE_IDENTITY_PROJECTION_V1",systemAddressScheme:"last-20-bytes-sha256-nul-domain-exact-native-identity",systemAddressesAreDisplayOnly:true}};
+  assert.deepEqual(validateDurableReceipt(intent,receipt,parseFeeModel(model)).ynxNativeTransaction,original);
+  for(const mutate of [n=>{n.from=receipt.to},n=>{n.to=receipt.from},n=>{n.identityProjection.fromSystemIdentity=true},n=>{n.identityProjection.toSystemIdentity=true},n=>{n.identityProjection.version="future"},n=>{n.identityProjection.systemAddressDomain="wrong"},n=>{n.identityProjection.systemAddressScheme="wrong"},n=>{n.identityProjection.systemAddressesAreDisplayOnly=false},n=>{n.identityProjection.extra=true},n=>{delete n.identityProjection},n=>{n.extra=true}]){
+    const bad=structuredClone(receipt);mutate(bad.ynxNativeTransaction);assert.throws(()=>validateDurableReceipt(intent,bad,parseFeeModel(model)));
+  }
+});
+
 for (const change of ["old-fee-model", "missing-method", "malformed-method", "malformed-nested"]) test(`${change} cannot reach signing even when old fee units are known`, async t => {
   const f = await fixture(t);
   if (change === "old-fee-model") { f.state.model = { ...model }; delete f.state.model.durability; }

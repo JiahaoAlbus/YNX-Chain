@@ -13,6 +13,19 @@ const origin="https://rpc.ynxweb4.com";
 const hash="0x"+"f".repeat(64);
 const state=(status:string)=>({version:NATIVE_DURABILITY_MODEL.version,scope:"local-snapshot",status,transactionHash:txHash});
 
+test("public September 12 receipt with identity projection confirms the original ten-YNXT intent",()=>{
+  const receipt=JSON.parse(readFileSync(new URL("./testdata/native-receipt-identity-projection-v1.json",import.meta.url),"utf8"));
+  const expected={...intent,from:receipt.from,to:receipt.to,amount:10,nonce:1};
+  const evidence=createNativeDurabilityEvidence(origin,fixture.capability,receipt,expected,receipt.transactionHash);
+  assert.equal(verifyNativeDurability(evidence,expected,receipt.transactionHash,origin),true);
+  for(const change of [
+    (n:any)=>{n.from=receipt.to},(n:any)=>{n.to=receipt.from},
+    (n:any)=>{n.identityProjection.fromSystemIdentity=true},(n:any)=>{n.identityProjection.toSystemIdentity=true},
+    (n:any)=>{n.identityProjection.version="future"},(n:any)=>{n.identityProjection.systemAddressesAreDisplayOnly=false},
+    (n:any)=>{n.identityProjection.extra=true},(n:any)=>{delete n.identityProjection},(n:any)=>{n.extra=true},
+  ]){const bad=clone(receipt);change(bad.ynxNativeTransaction);assert.throws(()=>parseNativeDurableReceipt(bad,expected,receipt.transactionHash),NativeDurabilityInvalid)}
+});
+
 test("Core native JSON receipt works with adapter-disabled legacy gas, including a cold snapshot integrity change",()=>{
   assert.deepEqual(parseNativeDurabilityModel(fixture.capability),NATIVE_DURABILITY_MODEL);
   for(const proof of [fixture.durableReceipt.ynxDurability,fixture.coldProof]){

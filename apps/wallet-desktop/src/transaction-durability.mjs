@@ -41,8 +41,15 @@ export function parseDurabilityProof(value, expectedHash) {
   }
   return Object.freeze(Object.fromEntries(keys.map(key => [key, value[key]])));
 }
-export function parseNativeTransaction(value) {
-  exact(value, ["type", "amountYNXT", "feeYNXT", "nonce"]);
+export function parseNativeTransaction(value, expectedIdentity) {
+  const fields = ["type", "amountYNXT", "feeYNXT", "nonce"];
+  const extended = object(value) && ["from", "to", "identityProjection"].some(key => Object.hasOwn(value, key));
+  exact(value, extended ? [...fields, "from", "to", "identityProjection"] : fields);
+  if (extended) {
+    const identity = { version: "ynx-native-identity-projection-v1", fromSystemIdentity: false, toSystemIdentity: false, systemAddressDomain: "YNX_NATIVE_IDENTITY_PROJECTION_V1", systemAddressScheme: "last-20-bytes-sha256-nul-domain-exact-native-identity", systemAddressesAreDisplayOnly: true };
+    exact(value.identityProjection, Object.keys(identity));
+    if (!expectedIdentity || value.from !== expectedIdentity.from || value.to !== expectedIdentity.to || Object.entries(identity).some(([key, expected]) => value.identityProjection[key] !== expected)) invalid();
+  }
   if (typeof value.type !== "string" || value.type.length < 1 || value.type.length > 128) invalid();
   int64(value.amountYNXT); int64(value.feeYNXT); uint64(value.nonce);
   return Object.freeze({ type: value.type, amountYNXT: value.amountYNXT, feeYNXT: value.feeYNXT, nonce: value.nonce });
@@ -51,7 +58,7 @@ export function parseNativeTransaction(value) {
 export function validateDurableReceipt(intent, receipt, capabilities) {
   parseDurabilityModel(capabilities?.durability);
   if (!object(receipt) || !intent || receipt.transactionHash !== intent.hash || typeof receipt.from !== "string" || !ADDRESS.test(receipt.from) || receipt.from.toLowerCase() !== intent.account || typeof receipt.to !== "string" || !ADDRESS.test(receipt.to) || receipt.to.toLowerCase() !== intent.to || receipt.contractAddress !== null || receipt.status !== "0x1" || receipt.type !== "0x0") invalid();
-  const proof = parseDurabilityProof(receipt.ynxDurability, intent.hash), native = parseNativeTransaction(receipt.ynxNativeTransaction);
+  const proof = parseDurabilityProof(receipt.ynxDurability, intent.hash), native = parseNativeTransaction(receipt.ynxNativeTransaction, { from: receipt.from, to: receipt.to });
   if (proof.status !== "durable" || receipt.blockNumber !== proof.blockNumber || receipt.blockHash !== proof.blockHash) invalid();
   uint64(receipt.gasUsed); uint64(receipt.effectiveGasPrice); uint64(receipt.ynxFeeWei);
   if (receipt.gasUsed !== capabilities.gas || receipt.effectiveGasPrice !== capabilities.gasPrice || receipt.ynxFeeWei !== capabilities.feeWei || BigInt(receipt.gasUsed) * BigInt(receipt.effectiveGasPrice) !== BigInt(capabilities.feeWei)) invalid();

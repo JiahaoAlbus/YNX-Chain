@@ -89,6 +89,26 @@ test("confirmed result requires explicit Done before any new signature, includin
   let signedAgain=false;await restarted.sendNew(account,remote,noGuard,async()=>{signedAgain=true;return signed});assert.equal(signedAgain,true);
 });
 
+test("identity-extended receipt recovers a saved transfer, survives restart, and Done releases the next preparation without rebroadcast",async()=>{
+  const storage=new MemoryStorage(),outbox=fixtureOutbox(storage);
+  await outbox.sendNew(account,client(async()=>{throw new Error("lost ACK")}),noGuard,async()=>signed);
+  const original=await outbox.read(account);let broadcasts=0;
+  const r={...receipt(),ynxNativeTransaction:{...receipt().ynxNativeTransaction,from:signed.transaction.from,to:signed.transaction.to,identityProjection:{version:"ynx-native-identity-projection-v1",fromSystemIdentity:false,toSystemIdentity:false,systemAddressDomain:"YNX_NATIVE_IDENTITY_PROJECTION_V1",systemAddressScheme:"last-20-bytes-sha256-nul-domain-exact-native-identity",systemAddressesAreDisplayOnly:true}}};
+  const remote=client(async(url,init)=>{
+    if(!url.endsWith("/evm")){broadcasts++;throw new Error("unexpected broadcast")}
+    const {id,method}=JSON.parse(String(init?.body));
+    const values:Record<string,unknown>={eth_chainId:"0x1917",ynx_getDurabilityModel:NATIVE_DURABILITY_MODEL,ynx_getTransactionDurability:r.ynxDurability,eth_getTransactionReceipt:r};
+    assert.ok(Object.hasOwn(values,method));return response({jsonrpc:"2.0",id,result:values[method]});
+  },false,true);
+  const recovered=await fixtureOutbox(storage).checkStatus(account,signed.hash,remote,noGuard);
+  assert.equal(recovered.phase,"accepted");assert.equal(recovered.payload,original?.payload);assert.equal(recovered.attempts,1);
+  const restarted=fixtureOutbox(storage);assert.equal((await restarted.read(account))?.phase,"accepted");
+  assert.equal((await restarted.acknowledge(account,signed.hash,noGuard)).phase,"done");
+  let preparations=0;const stop=new Error("stop at next preparation; do not sign or send");
+  await assert.rejects(()=>fixtureOutbox(storage).sendNew(account,remote,noGuard,async()=>{preparations++;throw stop}),error=>error===stop);
+  assert.equal(preparations,1);assert.equal(broadcasts,0);assert.equal((await restarted.read(account))?.hash,signed.hash);
+});
+
 test("persisted accepted/done bits without a presently verified proof never release the account",async()=>{
   const storage=new MemoryStorage(),outbox=fixtureOutbox(storage),remote=client(async()=>response({...success(),fixtureDurabilityProof:"verified-test-checkpoint"}),true);
   await outbox.sendNew(account,remote,noGuard,async()=>signed);

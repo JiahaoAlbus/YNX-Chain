@@ -10,6 +10,19 @@ function exact(value:unknown,fields:readonly string[]):Record<string,any>{if(!va
 function record(value:unknown):Record<string,any>{if(!value||typeof value!=="object"||Array.isArray(value))invalid();return value as Record<string,any>}
 export function nativeQuantity(value:unknown,positive=false):bigint{if(typeof value!=="string"||!/^0x(?:0|[1-9a-f][0-9a-f]*)$/.test(value)||value.length>18)invalid();const parsed=BigInt(value as string);if(parsed>0xffffffffffffffffn||positive&&parsed===0n)invalid();return parsed}
 function decimal(value:unknown):bigint{if(typeof value!=="string"||! /^(?:0|[1-9][0-9]*|-[1-9][0-9]*)$/.test(value)||value.length>20)invalid();const parsed=BigInt(value as string);if(parsed<-(1n<<63n)||parsed>=(1n<<63n))invalid();return parsed}
+function nativeTransferFields(value:unknown,expected:SignedNativeTransfer):Record<string,any>{
+  const fields=["type","amountYNXT","feeYNXT","nonce"], candidate=record(value);
+  const extended=["from","to","identityProjection"].some(key=>Object.hasOwn(candidate,key));
+  exact(candidate,extended?[...fields,"from","to","identityProjection"]:fields);
+  if(extended){
+    const identity={version:"ynx-native-identity-projection-v1",fromSystemIdentity:false,toSystemIdentity:false,systemAddressDomain:"YNX_NATIVE_IDENTITY_PROJECTION_V1",systemAddressScheme:"last-20-bytes-sha256-nul-domain-exact-native-identity",systemAddressesAreDisplayOnly:true};
+    const projection=exact(candidate.identityProjection,Object.keys(identity));
+    if(candidate.from!==expected.from||candidate.to!==expected.to||Object.entries(identity).some(([key,value])=>projection[key]!==value))invalid();
+  }
+  // Save the stable ledger contract after validating optional identity metadata.
+  // System display identities must never stand in for a signed transfer address.
+  return Object.fromEntries(fields.map(key=>[key,candidate[key]]));
+}
 export function parseNativeDurabilityModel(value:unknown):typeof NATIVE_DURABILITY_MODEL{const parsed=exact(value,Object.keys(NATIVE_DURABILITY_MODEL));for(const [key,expected] of Object.entries(NATIVE_DURABILITY_MODEL))if(parsed[key]!==expected)invalid();return NATIVE_DURABILITY_MODEL}
 export function parseNativeDurabilityState(value:unknown,expectedHash:string):Readonly<Record<string,any>>{
   hash(expectedHash);const parsed=record(value),status=parsed.status as NativeDurabilityStatus;
@@ -33,7 +46,7 @@ export function parseNativeDurableReceipt(value:unknown,expected:SignedNativeTra
   const receipt=record(value),proof=parseNativeDurabilityState(receipt.ynxDurability,expectedHash);
   if(proof.status!=="durable"||receipt.status!=="0x1"||receipt.transactionHash!==expectedHash||receipt.from!==expected.from||receipt.to!==expected.to||receipt.contractAddress!==null||receipt.blockNumber!==proof.blockNumber||receipt.blockHash!==proof.blockHash)invalid();
   nativeQuantity(receipt.transactionIndex);
-  const native=exact(receipt.ynxNativeTransaction,["type","amountYNXT","feeYNXT","nonce"]);
+  const native=nativeTransferFields(receipt.ynxNativeTransaction,expected);
   if(!Number.isSafeInteger(expected.amount)||expected.amount<=0||expected.fee!==1||!Number.isSafeInteger(expected.nonce)||expected.nonce<1||expected.type!=="transfer"||expected.chainId!==6423||native.type!=="transfer"||decimal(native.amountYNXT)!==BigInt(expected.amount)||decimal(native.feeYNXT)!==1n||nativeQuantity(native.nonce,true)!==BigInt(expected.nonce))invalid();
   // Legacy adapter-disabled gas is only an Ethereum projection. Native JSON
   // amounts, fee and nonce are proven by these exact ledger fields, not gas/wei.
