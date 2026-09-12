@@ -66,6 +66,15 @@ export function prepareWalletOpen(registryInput, requestInput, environment, at =
   return Object.freeze({ status: WALLET_ROUTE_STATUS.READY, url: encodeProductSessionWalletURL(registryInput, request, at), request, actions: Object.freeze([]) });
 }
 
+// A user may attempt a native URL even when browsers cannot detect its handler.
+// This validates the request and return binding; it does not prove installation
+// and does not open a URL or schedule an automatic attempt.
+export function prepareWalletAttempt(registryInput, requestInput, at = new Date()) {
+  const request = parseProductSessionRequest(registryInput, requestInput, at);
+  return Object.freeze({ status: WALLET_ROUTE_STATUS.READY, url: encodeProductSessionWalletURL(registryInput, request, at), request,
+    installation: "unverified", automatic: false, actions: Object.freeze([]) });
+}
+
 export function createProductSessionReturnURL(registryInput, requestInput, result, at = new Date()) {
   const request = parseProductSessionRequest(registryInput, requestInput, at);
   exactFields(result, result.result === "approved" ? ["result", "approval"] : ["result", "reason"], "Product Session return result");

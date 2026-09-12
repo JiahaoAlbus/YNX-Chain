@@ -57,6 +57,45 @@ adapter.close(); // Closes this tab's IndexedDB handle; does not delete/revoke.
 
 Treat these snippets as lifecycle entry points, not a sequence to run on every page load. Installation/scheme detection and `openYNXWallet` remain product responsibilities; the adapter does not invent their availability or trigger an approval automatically. `device.sign` can also be supplied to the existing protocol proof helpers. `createIntrospectionProof` returns `{proof, proofHeader, requestId, body}`; `body` is the canonical Auth introspection body, not the product business request body. A successfully consumed proof cannot be reused after a network retry. The product API must bind Origin and exact product identity, choose required scopes, enforce business permissions, and use the official v2 introspection contract.
 
+## Browsers with unknown native installation
+
+A browser generally cannot reliably discover whether an OS URL handler is
+installed. Do not hard-code successful installation probes or infer native
+installation from an injected EVM provider. For an explicit user request to try
+opening YNX Wallet, use the official client entry instead:
+
+```js
+// Called by an explicit Connect / Open YNX Wallet UI action.
+const pending = await adapter.client.beginExplicit();
+if (pending.status === "connecting" && pending.route?.status === "ready") {
+  // Expose this exact SDK URL as an explicit user-click link/button. This is
+  // especially useful when an async time/storage operation loses user activation.
+  showOpenWalletLink(pending.route.url);
+}
+```
+
+This method uses the actual Gateway clock, persists the exact pending request,
+and returns `automatic: false` and `installation: "unverified"`. A ready route
+means its request and registered URI are ready to try; it does not prove a
+native application was installed or opened. The method neither probes the OS
+nor navigates automatically. `prepareWalletAttempt` is the lower-level pure
+route builder; products should use `beginExplicit` to preserve callback state.
+
+Keep a download/return option available if opening fails. Browser blur, a timer,
+or a user's statement that Wallet is installed is not login evidence. Continue
+through `handleReturn` and the real Gateway challenge/completion/introspection
+before rendering a private session as connected. Keep the exact pending state
+until that callback or an explicit new attempt, sign-out, expiry or rejection.
+`restore()` retains its existing controlled detected-reconnect behavior and
+does not silently call this explicit-open path. New attempts, Guest and
+disconnect invalidate stale work rather than reopening an old request.
+
+For Social, the registry's allowed scopes now additionally include
+`social.contacts`, `social.messaging`, and `social.profile`. The ordinary
+identity login still requests `['account:read', 'profile:link']`; requesting a
+communication subset is a separate explicit approval. Registry `scopes` is an
+allowlist, not an instruction to request every available permission.
+
 The adapter runs only in a secure context whose exact `location.origin` matches the product registry's Web origin. Its fixed IndexedDB database contains separate device/state records keyed by chain, origin, product, client, application, callback and the exact sorted scope subset. Different scopes use different keys and session records; adding scopes requires a new explicit Wallet approval. Storage access only accepts this client's session, pending-request and callback keys.
 
 The private key is generated with `extractable: false`; it is never exported as raw bytes or JWK. Only the public key is exported to produce the protocol's compressed P-256 identity. Initialization reads the structured-cloned key back, checks attributes, and verifies a fresh signature with the stored public key. Signing rechecks the persisted identity. Concurrent tabs atomically reuse the first committed identity. A missing key with surviving state, mismatched key pair, extractable replacement, wrong product binding or unusable IndexedDB fails closed; there is no plaintext or in-memory fallback. Clearing all site storage removes both keys and sessions and requires a new login. IndexedDB quota eviction/private-browsing policies may also remove data.

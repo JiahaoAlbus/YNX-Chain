@@ -99,6 +99,38 @@ export declare function retirementMatchesAuthorization(record:ClientRetirementRe
 export declare function retirementRecord(input:CentralProductRegistration|ClientRetirementRecord):ClientRetirementRecord;
 export declare function createSignedNativeTransfer(input:Readonly<{accountSecret:string;to:string;amount:number;nonce:number}>):Readonly<{transaction:SignedNativeTransfer;payload:string;hash:string}>;
 export declare function parseSignedNativeTransfer(input:string|unknown):SignedNativeTransfer;
+export type ApplicationActionName = "dex_swap_exact_input"|"dex_swap_exact_output"|"dex_liquidity_add"|"dex_liquidity_remove";
+export type ApplicationActionPayload = Readonly<Record<string,string|number>>;
+export type SignedApplicationAction = Readonly<{version:1;chainId:6423;type:"application_action";signer:string;nonce:number;action:ApplicationActionName;payload:ApplicationActionPayload;payloadHash:string;fee:1;aiUnits:0;payUnits:0;publicKey:string;signature:string}>;
+export declare const APPLICATION_ACTION_DOMAIN:"YNX_APPLICATION_ACTION_V1";
+export declare const APPLICATION_ACTION_CHAIN_ID:6423;
+export declare const APPLICATION_ACTION_FEE_YNXT:1;
+export declare function createSignedApplicationAction(input:Readonly<{accountSecret:string;action:ApplicationActionName;payload:ApplicationActionPayload;nonce:number}>):Readonly<{transaction:SignedApplicationAction;payload:string;hash:string}>;
+export declare function parseSignedApplicationAction(input:unknown):SignedApplicationAction;
+export declare function applicationActionHash(input:unknown):string;
+export declare function applicationActionSignJSON(input:Omit<SignedApplicationAction,"signature">|SignedApplicationAction):string;
+export declare function applicationActionPayloadHash(action:ApplicationActionName,payload:ApplicationActionPayload):string;
+export declare function verifySignedApplicationAction(input:unknown,expected:Readonly<{account:string;action:ApplicationActionName;payload:ApplicationActionPayload;nonce:number}>):SignedApplicationAction;
+export type ApplicationActionRequest = Readonly<{version:"1";chainId:"ynx_6423-1";productId:string;platform:ProductSessionPlatform;applicationId:string;origin:string;callback:string;account:string;action:ApplicationActionName;payload:ApplicationActionPayload;nonce:number;requestId:string;state:string;issuedAt:string;expiresAt:string}>;
+export type ApplicationActionDecision = Readonly<{status:"approved";signed:string}|{status:"rejected";reason:"USER_REJECTED"}>;
+export type ApplicationActionResult = ApplicationActionDecision & Readonly<{kind:"application-action";version:"1";requestDigest:string;state:string}>;
+export declare function createApplicationActionRequest(registry:unknown,input:Readonly<{productId:string;platform:ProductSessionPlatform;account:string;action:ApplicationActionName;payload:ApplicationActionPayload;nonce:number;requestId:string;state:string}>,at?:Date):ApplicationActionRequest;
+export declare function parseApplicationActionRequest(registry:unknown,input:unknown,at?:Date):ApplicationActionRequest;
+export declare function applicationActionRequestDigest(request:ApplicationActionRequest):string;
+export declare function encodeApplicationActionWalletURL(registry:unknown,request:ApplicationActionRequest,at?:Date):string;
+export declare function parseApplicationActionWalletURL(registry:unknown,url:string,at?:Date):ApplicationActionRequest;
+export declare function createApplicationActionReturnURL(registry:unknown,request:ApplicationActionRequest,decision:ApplicationActionDecision,at?:Date):string;
+export declare function parseApplicationActionReturnURL(registry:unknown,url:string,request:ApplicationActionRequest,at?:Date):ApplicationActionResult;
+export type CardApplicationDetails = Readonly<{nickname:string;useCase:string;limitWei:string;riskAccepted:true;termsVersion:"card-testnet-v1"}>;
+export type CardApplicationChallenge = Readonly<{id:string;applicationId:string;owner:string;chainId:"0x1917";purpose:"create-testnet-card";payloadHash:string;nonce:string;issuedAt:string;expiresAt:string}>;
+export type SignedCardApplicationApproval = Readonly<{version:"1";productId:"card";challenge:CardApplicationChallenge;details:CardApplicationDetails;account:string;accountPublicKey:string;issuedAt:string;expiresAt:string;signature:string}>;
+export declare const CARD_APPLICATION_APPROVAL_DOMAIN:"YNX_CARD_APPLICATION_APPROVAL_V1";
+export declare function createSignedCardApplicationApproval(input:Readonly<{accountSecret:string;challenge:CardApplicationChallenge;details:CardApplicationDetails}>,at?:Date):SignedCardApplicationApproval;
+export declare function parseSignedCardApplicationApproval(input:unknown):SignedCardApplicationApproval;
+/** The expected account must come from the authenticated session; challenge and details are current server records. */
+export declare function verifySignedCardApplicationApproval(input:unknown,expected:Readonly<{challenge:CardApplicationChallenge;details:CardApplicationDetails;account:string}>,at?:Date):SignedCardApplicationApproval;
+export declare function cardApplicationDetailsHash(details:CardApplicationDetails):string;
+export declare function cardApplicationApprovalId(input:unknown):string;
 export declare function nativeTransferSignJSON(transaction:Omit<SignedNativeTransfer,"signature">|SignedNativeTransfer):string;
 export declare function nativeTransferHash(payload:string):string;
 export type SmartAccountCall=Readonly<{target:string;selector:string;value:number;dataDigest:string}>;
@@ -183,6 +215,8 @@ export declare function walletAvailabilityFromDiscovery(discovery:WalletProvider
 export declare function encodeProductSessionWalletURL(registry:unknown,request:unknown,at?:Date):string;
 export declare function parseProductSessionWalletURL(registry:unknown,url:string,at?:Date):Readonly<Record<string,unknown>>;
 export declare function prepareWalletOpen(registry:unknown,request:unknown,environment:{networkAvailable:boolean;walletInstalled:boolean;schemeRegistered:boolean},at?:Date):Readonly<Record<string,unknown>>;
+export declare function prepareWalletAttempt(registry:unknown,request:unknown,at?:Date):Readonly<Record<string,unknown>>;
+export interface RecoverableProductSessionClient { beginExplicit():Promise<Readonly<Record<string,unknown>>>; }
 export declare function createProductSessionReturnURL(registry:unknown,request:unknown,result:Readonly<Record<string,unknown>>,at?:Date):string;
 export declare function parseProductSessionReturnURL(registry:unknown,request:unknown,url:string,at?:Date):Readonly<Record<string,unknown>>;
 export declare function canonicalReturnTarget(registry:unknown,productId:string,platform:ProductSessionPlatform):Readonly<Record<string,unknown>>;

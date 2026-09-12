@@ -24,8 +24,10 @@ import { controlCopy } from "./src/control/controlCopy";
 import { formatDateTime, formatYNXT, isRTL, loadLocale, localizeError, localizeProductSessionError, saveLocale, SUPPORTED_LOCALES, translate, walletAccessibilitySummary, walletCopy, walletDetailError, type WalletLocale } from "./src/i18n/i18n";
 import { AuthorizationAuditStore, type AuthorizationAuditRecord } from "./src/protocol/authorizationAudit";
 import { ProductSessionController, type ProductSessionReview, type MobileProductSessionRequest } from "./src/protocol/productSessionController";
+import { ApplicationActionController, type ApplicationActionReview } from "./src/protocol/applicationActionController";
 import { scopeExplanation } from "./src/i18n/scopeCopy";
 import { authorizationCopy } from "./src/i18n/authorizationCopy";
+import { applicationActionCopy } from "./src/i18n/applicationActionCopy";
 import { WalletSessionInventoryClient, WalletSessionRevocationUnknown, type SessionInventoryItem, type WalletSessionInventory } from "./src/protocol/sessionInventory";
 import { assertStrongBiometrics, authorizeLocalKeyUse } from "./src/security/localAuthorization";
 import { createProductSessionKeyAccess } from "./src/security/productSessionKeyAccess";
@@ -74,6 +76,7 @@ function WalletApp(){
   const [setup,setSetup]=useState<"closed"|"create"|"import"|"recover">("closed");
   const [pendingRecovery,setPendingRecovery]=useState<{secretHex:string;label:string}|null>(null);
   const [authorization,setAuthorization]=useState<ProductSessionReview|null>(null);
+  const [applicationAction,setApplicationAction]=useState<ApplicationActionReview|null>(null);
   const [authorizationError,setAuthorizationError]=useState<string|null>(null);
   const [busy,setBusy]=useState(false);
   const [locale,setLocale]=useState<WalletLocale>("en");
@@ -89,8 +92,10 @@ function WalletApp(){
   useEffect(()=>{const unsubscribe=operations.subscribe(()=>corruptReset.cancel());return()=>{unsubscribe();corruptReset.cancel()}},[operations,corruptReset]);
   const readyRef=useRef(false);readyRef.current=!loading&&manifest!==null&&!storageRestartRequired&&!platformStorageHealth.requiresRestart&&AppState.currentState==="active";
   const queuedLink=useRef<string|null>(null),initialLinkRead=useRef(false);
+  const linkIntake=useRef(false),linkRevision=useRef(0);
   const productSessions=useMemo(()=>new ProductSessionController({platform:Platform.OS==="ios"?"ios":"android",storage:platformSecureStorage,selectedAccount:()=>selectedRef.current,withAccountSecret:createProductSessionKeyAccess({operations,repository,checkBiometrics:assertStrongBiometrics,authorizeLegacyMigration:()=>authorizeLocalKeyUse("wallet-authorization")}),openURL:(url)=>Linking.openURL(url),audit:(review,action,at)=>authorizationAudit.appendProductSession(review,{action,account:review.account.account,at:at.toISOString()})}),[operations]);
-  const cancelAuthorization=useCallback(()=>{productSessions.cancel();setAuthorization(null)},[productSessions]);
+  const applicationActions=useMemo(()=>new ApplicationActionController({platform:Platform.OS==="ios"?"ios":"android",storage:platformSecureStorage,selectedAccount:()=>selectedRef.current,withAccountSecret:createProductSessionKeyAccess({operations,repository,checkBiometrics:assertStrongBiometrics,authorizeLegacyMigration:()=>authorizeLocalKeyUse("wallet-authorization")}),openURL:(url)=>Linking.openURL(url)}),[operations]);
+  const cancelAuthorization=useCallback(()=>{++linkRevision.current;productSessions.cancel();applicationActions.cancel();setAuthorization(null);setApplicationAction(null)},[productSessions,applicationActions]);
   const lock=()=>{operations.lock();rootScope.cancel();cancelAuthorization();setPendingRecovery(null);setSetup("closed");setBusy(false);dispatchLock({type:"lock",reason:"user"})};
   const updateManifest=useCallback((next:WalletManifest)=>{operations.invalidate();operations.setAccount(next.selectedAccountId);selectedRef.current=next.accounts.find(item=>item.account===next.selectedAccountId)??null;cancelAuthorization();setManifest(next)},[operations,cancelAuthorization]);
 
@@ -117,8 +122,13 @@ function WalletApp(){
   const handleLink=useCallback((url:string)=>{
     if(platformStorageHealth.requiresRestart)return;
     if(!readyRef.current||AppState.currentState!=="active"){queuedLink.current=url;return}
-    void productSessions.receive(url).then((review)=>{if(productSessions.current?.id===review.id){setAuthorization(review);setAuthorizationError(null)}}).catch((caught)=>{setAuthorization(productSessions.current);setAuthorizationError(localizeError(locale,caught))});
-  },[locale,productSessions]);
+    if(linkIntake.current||productSessions.current||applicationActions.current){setAuthorizationError(localizeError(locale,new Error("Finish or reject the current Wallet request before opening another")));return}
+    let actionRoute=false;
+    try{const target=new URL(url);actionRoute=target.protocol==="ynxwallet:"&&target.hostname==="application-action"}catch{}
+    const revision=++linkRevision.current;linkIntake.current=true;
+    const pending=actionRoute?applicationActions.receive(url).then(review=>{if(revision===linkRevision.current&&applicationActions.current?.id===review.id){setApplicationAction(review);setAuthorizationError(null)}}):productSessions.receive(url).then(review=>{if(revision===linkRevision.current&&productSessions.current?.id===review.id){setAuthorization(review);setAuthorizationError(null)}});
+    void pending.catch(caught=>{if(revision===linkRevision.current)setAuthorizationError(localizeError(locale,caught))}).finally(()=>{linkIntake.current=false});
+  },[locale,productSessions,applicationActions]);
 
   useEffect(()=>{void load()},[load]);
   useEffect(()=>{if(!initialLinkRead.current){initialLinkRead.current=true;void Linking.getInitialURL().then((url)=>{if(url)handleLink(url)})}const sub=Linking.addEventListener("url",({url})=>handleLink(url));return()=>sub.remove()},[handleLink]);
@@ -169,6 +179,7 @@ function WalletApp(){
     {!manifest?.accounts.length?<SecondaryButton label="Restore previous Wallet identity" disabled={busy} onPress={()=>void restoreLegacy()}/>:null}
     <SetupModal mode={setup} accounts={manifest?.accounts??EMPTY_WALLET_ACCOUNTS} pending={pendingRecovery} close={()=>{setSetup("closed");setPendingRecovery(null);setBusy(false)}} saved={saved} busy={busy} setBusy={setBusy} setError={(value)=>{if(value)void recoverAfterMutation(value)}}/>
     {authorization&&manifest&&selected?<AuthorizationModal locale={locale} key={authorization.id} review={authorization} controller={productSessions} close={cancelAuthorization} onReturned={()=>setAuthorization(null)}/>:null}
+    {applicationAction&&manifest&&selected?<ApplicationActionModal locale={locale} key={applicationAction.id} review={applicationAction} controller={applicationActions} close={cancelAuthorization} onReturned={()=>setApplicationAction(null)}/>:null}
     <LocaleSettings visible={settings} locale={locale} close={()=>setSettings(false)} select={(next)=>void saveLocale(platformSecureStorage,next).then(()=>{if(!platformStorageHealth.requiresRestart)setLocale(next)}).catch(caught=>{if(!platformStorageHealth.requiresRestart)setError(localizeError(locale,caught))})}/>
   </SafeAreaView></WalletRecoveryContext.Provider></WalletLocaleContext.Provider></WalletOperationsContext.Provider>;
 }
@@ -507,6 +518,39 @@ function DeleteModal({visible,account,close,deleted,failed}:{visible:boolean;acc
   useEffect(()=>{scope.cancel();setConfirm("");setBusy(false)},[scope,visible,account.account]);
   const remove=async()=>{let lease:WalletOperationLease|undefined;setBusy(true);try{lease=scope.begin({account:account.account});await lease.step(()=>authorizeLocalKeyUse("account-delete"));const next=await lease.step(()=>repository.deleteAccount(account.account,lease!.assert));deleted(next)}catch(caught){if(!lease||lease.ownsScope())failed(message(caught))}finally{if(!lease||lease.ownsScope())setBusy(false);lease?.finish()}};
   return <Modal visible={visible} transparent animationType={MODAL_ANIMATION} onRequestClose={dismiss}><Sheet title={translate(locale,"removeAccountTitle")} close={dismiss}><Text style={styles.sheetText}>{translate(locale,"removeAccountWarning")}</Text><Field label={translate(locale,"typeAccountLabelToConfirm").replace("{label}",()=>account.label)} value={confirm} onChangeText={setConfirm}/><DangerButton label={translate(locale,"removeLocalAccount")} disabled={busy||confirm!==account.label} onPress={()=>void remove()}/></Sheet></Modal>}
+
+function ApplicationActionModal({locale,review,controller,close,onReturned}:{locale:WalletLocale;review:ApplicationActionReview;controller:ApplicationActionController;close:()=>void;onReturned:()=>void}){
+  const {request,account:selected}=review;
+  const scope=useOperationScope(true,selected.account);
+  const [busy,setBusy]=useState(false),[error,setError]=useState<string|null>(null),[returnReady,setReturnReady]=useState(()=>controller.hasReturn(review.id));
+  const decide=async(action:"approve"|"reject"|"retryReturn")=>{
+    if(busy||controller.current?.id!==review.id)return;
+    let lease:WalletOperationLease;try{lease=scope.begin({account:selected.account,requireUnlocked:false})}catch{return}
+    setBusy(true);setError(null);
+    try{await controller[action](review.id);if(lease.ownsScope())onReturned()}
+    catch(caught){if(lease.ownsScope()){setReturnReady(controller.hasReturn(review.id));setError(localizeError(locale,caught))}}
+    finally{if(lease.ownsScope())setBusy(false);lease.finish()}
+  };
+  const dismiss=()=>{if(!busy){if(returnReady)close();else void decide("reject")}};
+  const actionLabel=({dex_swap_exact_input:"swapInput",dex_swap_exact_output:"swapOutput",dex_liquidity_add:"addLiquidity",dex_liquidity_remove:"removeLiquidity"} as const)[request.action];
+  return <Modal visible transparent animationType={MODAL_ANIMATION} onRequestClose={dismiss}><Sheet title={applicationActionCopy(locale,"title")} close={dismiss}>
+    <Text style={styles.authorizationLead}>{applicationActionCopy(locale,"signOnly")}</Text>
+    <ReviewRow label={translate(locale,"requestingApp")} value={request.productId}/>
+    <ReviewRow label={authorizationCopy(locale,"origin")} value={request.origin}/>
+    <Text style={styles.scopeExplain}>{applicationActionCopy(locale,"unverifiedOrigin")}</Text>
+    <ReviewRow label={applicationActionCopy(locale,"action")} value={applicationActionCopy(locale,actionLabel)+"\n"+request.action}/>
+    <ReviewRow label={translate(locale,"network")} value="YNX Testnet · 6423 · 0x1917"/>
+    <ReviewRow label={translate(locale,"account")} value={selected.label+"\n"+selected.account}/>
+    <ReviewRow label={applicationActionCopy(locale,"fee")} value="1 YNXT"/>
+    <ReviewRow label={applicationActionCopy(locale,"nonce")} value={String(request.nonce)}/>
+    <Text style={styles.sheetText}>{applicationActionCopy(locale,"units")}</Text>
+    {Object.entries(request.payload).map(([name,value])=><ReviewRow key={name} label={name} value={String(value)}/>)}
+    <ReviewRow label={translate(locale,"expires")} value={formatDateTime(locale,request.expiresAt)}/>
+    <ReviewRow label={authorizationCopy(locale,"callback")} value={request.callback}/>
+    {error?<><Text style={styles.error}>{error}</Text><RecoveryRequiredNotice error={error}/><SecondaryButton label={authorizationCopy(locale,"closeRequest")} disabled={busy} onPress={close}/></>:null}
+    {returnReady?<Button label={authorizationCopy(locale,"retryReturn")} disabled={busy} onPress={()=>void decide("retryReturn")}/>:<View style={styles.approvalButtons}><SecondaryButton label={translate(locale,"reject")} disabled={busy} onPress={()=>void decide("reject")}/><Button label={applicationActionCopy(locale,"sign")} disabled={busy} onPress={()=>void decide("approve")}/></View>}
+  </Sheet></Modal>
+}
 
 function AuthorizationModal({locale,review,controller,close,onReturned}:{locale:WalletLocale;review:ProductSessionReview;controller:ProductSessionController;close:()=>void;onReturned:()=>void}){
   const {request,account:selected}=review;
