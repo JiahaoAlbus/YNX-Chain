@@ -1,0 +1,334 @@
+{
+  "schemaVersion": 1,
+  "product": "ynx-quant-lab",
+  "kind": "OWNER_LOCAL_TEST_REPRODUCIBLE_RUNTIME_CANDIDATE",
+  "sourceCommit": "9dfe780964b79af2209de0fff0c76c6a497c5bf6",
+  "sourceTree": "c676e4ca454d533c905363336057d4beedb5590e",
+  "branch": "codex/quant-financial-flow-20260912",
+  "shared": {
+    "standard": {
+      "source": "c97f85e9ae4d4580b99860c51738e6040ca9ca18",
+      "tree": "28a660bbe1451f0d5e20d6eb08da17eef0970d77",
+      "bytes": 22417,
+      "sha256": "b8a900ef2a5ece693cb2808a47ed0072d97c425236deb80c39497886f1535e43"
+    },
+    "privateBrowser": {
+      "source": "9840ef871165eb523c4e7a3d48964dd25f8dee8e",
+      "tree": "4b3d86ea4bf98481a9448c694eb022b33cd36679",
+      "bytes": 214746,
+      "sha256": "5dc94d97925e4c0271c8c45255e0e409f257258e4e621f71fda26c4e2407a6e0"
+    },
+    "registry": {
+      "bytes": 7546,
+      "sha256": "85c6995eddfbc175efaac01dbad31a4f5ef8878aab91613da2d689ef79921ab3"
+    },
+    "goVerifier": {
+      "source": "0b3761f903ffd5dee6367e49c613cfd8752d7562",
+      "inherited": "ea7dbca209c9f9e2f0d79b70d3bd9946fa57d89c",
+      "fiveFilesUnmodified": true
+    },
+    "offlineKernel": {
+      "source": "9840ef871165eb523c4e7a3d48964dd25f8dee8e",
+      "blob": "38b048d383335fe84353dd16e655644d6bb04533",
+      "bytes": 119170,
+      "sha256": "5f711edad9a4ade05d3bc2353ac989ae4c1465cfb79b50e4bc600f1af4f70bd1",
+      "testOnly": true
+    }
+  },
+  "tests": {
+    "nodeUnit": 18,
+    "standardBrowserInjectedProviders": 16,
+    "privateBrowserActualSDKIDBWebCrypto": 6,
+    "officialOfflineKernelBrowserLifecycle": 3,
+    "localGoBrowser": 4,
+    "tenantPersistence": 1,
+    "tenantCounts": {
+      "tenants": 2,
+      "processes": 2,
+      "concurrentDuplicates": 12,
+      "restartReuse": true,
+      "conflictingBody409": true
+    },
+    "goRace": {
+      "passed": true,
+      "packages": [
+        "./internal/productsessionv2",
+        "./internal/quantlab",
+        "./apps/quant-lab/server"
+      ]
+    },
+    "scanner": true,
+    "nodeSyntax": true,
+    "diffCheck": true,
+    "privateLocales": 12,
+    "mobileWalletButtonsContainedAllLocales": true,
+    "postgresIntegration": false
+  },
+  "evidenceBoundary": {
+    "allPrivateHTTPIntercepted": true,
+    "offlineDisposableApprovalFixtures": true,
+    "productHTTPBoundaryInProtocolBrowserTests": "test-wrapper-around-official-kernel",
+    "goOwnerTests": "named-authority-test-double-plus-unmodified-shared-SDK-vector",
+    "explicitNativeOpenLinkNotClicked": true
+  },
+  "artifact": {
+    "path": "/tmp/ynx-quant-lab-9dfe780964b7-linux-amd64-private-session.tar.gz",
+    "bytes": 3400594,
+    "sha256": "3911f3534a5e7fad9dffbe53d082b3396955db74fa93dc731412ed89d39cb486",
+    "repeatPath": "/tmp/ynx-quant-lab-9dfe780964b7-linux-amd64-private-session-repeat.tar.gz",
+    "format": "server-runtime-tar-gzip-not-user-installer",
+    "linuxExecuted": false,
+    "manifest": {
+      "schemaVersion": 1,
+      "productId": "ynx-quant-lab",
+      "sourceCommit": "9dfe780964b79af2209de0fff0c76c6a497c5bf6",
+      "sourceTree": "c676e4ca454d533c905363336057d4beedb5590e",
+      "release": "ynx-quant-lab-9dfe780964b7",
+      "build": {
+        "goos": "linux",
+        "goarch": "amd64",
+        "cgoEnabled": false,
+        "trimpath": true,
+        "buildVCS": false,
+        "buildTime": "2026-09-12T18:36:56+08:00"
+      },
+      "entries": [
+        {
+          "path": "ynx-quant-lab-9dfe780964b7/apps/quant-lab/web/app.js",
+          "bytes": 42072,
+          "sha256": "8922e5d06cb9b869974f50810ef28a3931a574ba9aa4f5a8b5e1ef6b1e90209b",
+          "mode": "644"
+        },
+        {
+          "path": "ynx-quant-lab-9dfe780964b7/apps/quant-lab/web/i18n.js",
+          "bytes": 25372,
+          "sha256": "f8ff2d755c5f77984c8024632bdb572056014cf7b0fafac6c89330e3b9e39cca",
+          "mode": "644"
+        },
+        {
+          "path": "ynx-quant-lab-9dfe780964b7/apps/quant-lab/web/index.html",
+          "bytes": 19657,
+          "sha256": "6af9831aad0c1a7942ea1069ea6623af8e26eb0420107eb90ffb877f6b88817f",
+          "mode": "644"
+        },
+        {
+          "path": "ynx-quant-lab-9dfe780964b7/apps/quant-lab/web/private-session-copy.js",
+          "bytes": 8222,
+          "sha256": "a12593e420585e6e7d8435aea481258cee02534d4bfed5a22b37b05830e7da72",
+          "mode": "644"
+        },
+        {
+          "path": "ynx-quant-lab-9dfe780964b7/apps/quant-lab/web/private-session.js",
+          "bytes": 9583,
+          "sha256": "13d09991ac597201240c02d1a08a3d636855f6d69f483420e50c417443313fc1",
+          "mode": "644"
+        },
+        {
+          "path": "ynx-quant-lab-9dfe780964b7/apps/quant-lab/web/product-session-registry.js",
+          "bytes": 612,
+          "sha256": "5dcded3a4cef068ccf7a57b36b7820ad5fc187d4cbe7f05936cac3d0d0f9119a",
+          "mode": "644"
+        },
+        {
+          "path": "ynx-quant-lab-9dfe780964b7/apps/quant-lab/web/styles.css",
+          "bytes": 7863,
+          "sha256": "e391e05f0fbc7577a703e81bf96e31313eda76030af231cbef168dc95885f36b",
+          "mode": "644"
+        },
+        {
+          "path": "ynx-quant-lab-9dfe780964b7/apps/quant-lab/web/wallet-auth-entry.js",
+          "bytes": 14104,
+          "sha256": "edb30e331aa4d3e4640e803c6336d08f36169fe7b440244dce39cef70544df0e",
+          "mode": "644"
+        },
+        {
+          "path": "ynx-quant-lab-9dfe780964b7/apps/quant-lab/web/wallet-auth.js",
+          "bytes": 174147,
+          "sha256": "fbc4837c7bfad08d64512a5ddf0db31f7f84398322172daa4745e3ce61c9c717",
+          "mode": "644"
+        },
+        {
+          "path": "ynx-quant-lab-9dfe780964b7/apps/quant-lab/web/wallet-provider-lifecycle.js",
+          "bytes": 734,
+          "sha256": "e667cbd139609067f36497f826935f1432acc6b95d6da3b1dc6d1ce2a5d6e91f",
+          "mode": "644"
+        },
+        {
+          "path": "ynx-quant-lab-9dfe780964b7/apps/quant-lab/web/ynx-testnet.js",
+          "bytes": 1152,
+          "sha256": "ae172b99c50e4b3328c6de6541dfd3f08ffcbb430c54d23672acd0401ee7c2ec",
+          "mode": "644"
+        },
+        {
+          "path": "ynx-quant-lab-9dfe780964b7/ynx-quantd",
+          "bytes": 7950520,
+          "sha256": "839fd81abd77bf953bfce625979fd5e5739ec36e8e064814faa9a80c6c1057f6",
+          "mode": "755"
+        }
+      ]
+    },
+    "inventoryVerified": true,
+    "checksumsExactSet": true,
+    "regularEntries": 14,
+    "twoBuildsByteIdentical": true,
+    "elf": "ELF64 little-endian x86-64",
+    "screenshots": [
+      {
+        "path": "tmp/quant-lab-evidence/desktop-dark.png",
+        "bytes": 73782,
+        "sha256": "4ff2a5c658367642befaf4b3e26efdac27dcceb32a3e73ad0e97beb3f7a1e989",
+        "kind": "LOCAL_GO_HEADLESS_CHROME_NOT_PUBLIC_NOT_COMPUTERCONTROL"
+      },
+      {
+        "path": "tmp/quant-lab-evidence/desktop-light.png",
+        "bytes": 75829,
+        "sha256": "c66a4802b7cd7c79e193e41bb2194a439c740bf236aef2cba3845b763da21baf",
+        "kind": "LOCAL_GO_HEADLESS_CHROME_NOT_PUBLIC_NOT_COMPUTERCONTROL"
+      },
+      {
+        "path": "tmp/quant-lab-evidence/mobile-arabic-rtl.png",
+        "bytes": 92624,
+        "sha256": "7d6d85dea6ea65487d6276d1ddb451554aaf97b4dcaf03cd8cda27e2f03b9869",
+        "kind": "LOCAL_GO_HEADLESS_CHROME_NOT_PUBLIC_NOT_COMPUTERCONTROL"
+      },
+      {
+        "path": "tmp/quant-lab-evidence/paper-kill-switch.png",
+        "bytes": 109899,
+        "sha256": "d1ebaf6c1031d810bd2f4c73aaa7465e9df96e25b9c3e3e65097e2e620c32fb8",
+        "kind": "LOCAL_GO_HEADLESS_CHROME_NOT_PUBLIC_NOT_COMPUTERCONTROL"
+      },
+      {
+        "path": "tmp/quant-lab-evidence/wallet-fallback-browser-visible.png",
+        "bytes": 98350,
+        "sha256": "85a551930fb8062b90fff33d731698c90db1a6c24bb90735593ebb63de704dea",
+        "kind": "LOCAL_GO_HEADLESS_CHROME_NOT_PUBLIC_NOT_COMPUTERCONTROL"
+      }
+    ],
+    "entries": [
+      {
+        "path": "ynx-quant-lab-9dfe780964b7/apps/quant-lab/web/app.js",
+        "bytes": 42072,
+        "sha256": "8922e5d06cb9b869974f50810ef28a3931a574ba9aa4f5a8b5e1ef6b1e90209b",
+        "mode": "644"
+      },
+      {
+        "path": "ynx-quant-lab-9dfe780964b7/apps/quant-lab/web/i18n.js",
+        "bytes": 25372,
+        "sha256": "f8ff2d755c5f77984c8024632bdb572056014cf7b0fafac6c89330e3b9e39cca",
+        "mode": "644"
+      },
+      {
+        "path": "ynx-quant-lab-9dfe780964b7/apps/quant-lab/web/index.html",
+        "bytes": 19657,
+        "sha256": "6af9831aad0c1a7942ea1069ea6623af8e26eb0420107eb90ffb877f6b88817f",
+        "mode": "644"
+      },
+      {
+        "path": "ynx-quant-lab-9dfe780964b7/apps/quant-lab/web/private-session-copy.js",
+        "bytes": 8222,
+        "sha256": "a12593e420585e6e7d8435aea481258cee02534d4bfed5a22b37b05830e7da72",
+        "mode": "644"
+      },
+      {
+        "path": "ynx-quant-lab-9dfe780964b7/apps/quant-lab/web/private-session.js",
+        "bytes": 9583,
+        "sha256": "13d09991ac597201240c02d1a08a3d636855f6d69f483420e50c417443313fc1",
+        "mode": "644"
+      },
+      {
+        "path": "ynx-quant-lab-9dfe780964b7/apps/quant-lab/web/product-session-registry.js",
+        "bytes": 612,
+        "sha256": "5dcded3a4cef068ccf7a57b36b7820ad5fc187d4cbe7f05936cac3d0d0f9119a",
+        "mode": "644"
+      },
+      {
+        "path": "ynx-quant-lab-9dfe780964b7/apps/quant-lab/web/styles.css",
+        "bytes": 7863,
+        "sha256": "e391e05f0fbc7577a703e81bf96e31313eda76030af231cbef168dc95885f36b",
+        "mode": "644"
+      },
+      {
+        "path": "ynx-quant-lab-9dfe780964b7/apps/quant-lab/web/wallet-auth-entry.js",
+        "bytes": 14104,
+        "sha256": "edb30e331aa4d3e4640e803c6336d08f36169fe7b440244dce39cef70544df0e",
+        "mode": "644"
+      },
+      {
+        "path": "ynx-quant-lab-9dfe780964b7/apps/quant-lab/web/wallet-auth.js",
+        "bytes": 174147,
+        "sha256": "fbc4837c7bfad08d64512a5ddf0db31f7f84398322172daa4745e3ce61c9c717",
+        "mode": "644"
+      },
+      {
+        "path": "ynx-quant-lab-9dfe780964b7/apps/quant-lab/web/wallet-provider-lifecycle.js",
+        "bytes": 734,
+        "sha256": "e667cbd139609067f36497f826935f1432acc6b95d6da3b1dc6d1ce2a5d6e91f",
+        "mode": "644"
+      },
+      {
+        "path": "ynx-quant-lab-9dfe780964b7/apps/quant-lab/web/ynx-testnet.js",
+        "bytes": 1152,
+        "sha256": "ae172b99c50e4b3328c6de6541dfd3f08ffcbb430c54d23672acd0401ee7c2ec",
+        "mode": "644"
+      },
+      {
+        "path": "ynx-quant-lab-9dfe780964b7/BUNDLE_MANIFEST.json",
+        "bytes": 3017,
+        "sha256": "f47a8e30f09247bdea7dc36abb69e9d51f7bfa88b93bd1b5b7a6a146a25971f2",
+        "mode": "644"
+      },
+      {
+        "path": "ynx-quant-lab-9dfe780964b7/SHA256SUMS",
+        "bytes": 1287,
+        "sha256": "d762fd554249f3e4baed3f7545a1bd8f7fb5bcc717dc6b9b6e111ab6a7412612",
+        "mode": "644"
+      },
+      {
+        "path": "ynx-quant-lab-9dfe780964b7/ynx-quantd",
+        "bytes": 7950520,
+        "sha256": "839fd81abd77bf953bfce625979fd5e5739ec36e8e064814faa9a80c6c1057f6",
+        "mode": "755"
+      }
+    ]
+  },
+  "runtimeTarget": {
+    "canonicalURL": "https://quant.ynxweb4.com/",
+    "currentBindingFreshlyRead": false,
+    "requiredNext": "Fresh read-only Quant-specific service/host/current/config/state/public/rollback identification; preserve current durable writes and sole-writer semantics before independent release."
+  },
+  "truth": {
+    "sourceImplemented": true,
+    "localTestsPassed": true,
+    "candidateBuilt": true,
+    "reproducibleBuild": true,
+    "publicDeployed": false,
+    "publicSourceBound": false,
+    "installed": false,
+    "realProviderApproval": false,
+    "realPrivateApproval": false,
+    "realNativeCallback": false,
+    "confirmedPublicRevoke": false,
+    "nativeExecution": false,
+    "transactionSent": false,
+    "computerControl": false,
+    "migratedV2": false,
+    "productionSigned": false
+  },
+  "businessExecutionBoundary": {
+    "nativeWalletExactActionSignature": false,
+    "exchangeAcceptedV2MandateOrderAdapter": false,
+    "paperMoneyIsNativeBalance": false,
+    "privateAccountGrantsPaperOwnership": false
+  },
+  "prohibited": [
+    "No cross-product/shared mutations",
+    "No live Wallet account/sign/transaction actions",
+    "No old snapshot restore over active tenant writes",
+    "No systemwide restart or Caddy rewrite"
+  ],
+  "rollback": {
+    "target": null,
+    "freshBindingRequired": true,
+    "policy": "Capture immutable old release/config/state identity and an application-consistent backup under a stopped sole-writer boundary. Restore only exact authorized prior state and reverify old health/version/assets; preserve unrelated services. No guessed old target."
+  }
+}
