@@ -51,6 +51,8 @@ its previously unpushed commit were preserved; the latter also has recovery bund
   no guest access to `/v1/account` PASS.
 - `go vet ./internal/exchangeproduct ./apps/exchange/server`, Wallet source
   verifier, Wallet bundle, JS syntax and `git diff --check`: PASS.
+- The actual Go static-file handler serves `market-data.js` with JavaScript MIME
+  and byte-exact content (focused handler test PASS).
 - PostgreSQL integration tests were not exercised without their opt-in database
   URL. The production server still requires PostgreSQL. Browser/ComputerControl
   was not used; the recorded site-access denial was not bypassed. The historical

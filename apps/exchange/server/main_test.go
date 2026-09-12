@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
@@ -11,6 +12,18 @@ import (
 	"testing"
 	"time"
 )
+
+func TestGuestMarketModuleIsServedWithJavaScriptMIMEAndExactBytes(t *testing.T) {
+	expected, err := os.ReadFile("../web/market-data.js")
+	if err != nil {
+		t.Fatal(err)
+	}
+	res := httptest.NewRecorder()
+	spa(http.Dir("../web")).ServeHTTP(res, httptest.NewRequest(http.MethodGet, "/market-data.js", nil))
+	if res.Code != http.StatusOK || !strings.Contains(res.Header().Get("Content-Type"), "javascript") || !bytes.Equal(res.Body.Bytes(), expected) {
+		t.Fatalf("module was not served exactly: status=%d mime=%s", res.Code, res.Header().Get("Content-Type"))
+	}
+}
 
 func TestAdmissionRateLimitAndTrustedForwardedClient(t *testing.T) {
 	gate := newAdmission(2, 2, time.Minute)
