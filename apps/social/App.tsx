@@ -1273,7 +1273,7 @@ function MessageThread({
     return new File(Paths.document, `${id}${request ? ".request.json" : ".bin"}`);
   };
   const cloud = () => {
-    const base = process.env.EXPO_PUBLIC_YNX_SOCIAL_CLOUD_BASE;
+    const base = process.env.EXPO_PUBLIC_YNX_SOCIAL_CLOUD_BASE ?? "https://web4.ynxweb4.com";
     if (!base) throw new Error("Cloud attachment service is not configured for this build");
     return new SocialCloudAttachments(api, base);
   };

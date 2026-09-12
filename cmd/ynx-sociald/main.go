@@ -40,6 +40,10 @@ func main() {
 		log.Fatal("YNX_SOCIAL_RATE_LIMIT_WINDOW must be a positive Go duration")
 	}
 	serviceKey := strings.TrimSpace(os.Getenv("YNX_SOCIAL_INTERNAL_API_KEY"))
+	cloudAuthorityToken := os.Getenv("YNX_SOCIAL_CLOUD_AUTHORITY_TOKEN")
+	if cloudAuthorityToken != "" && (len(cloudAuthorityToken) < 32 || strings.TrimSpace(cloudAuthorityToken) != cloudAuthorityToken) {
+		log.Fatal("YNX_SOCIAL_CLOUD_AUTHORITY_TOKEN must contain at least 32 characters without surrounding whitespace")
+	}
 	if len(serviceKey) < 16 || strings.TrimSpace(*stateDir) == "" || rateMax <= 0 || rateMax > 10000 {
 		log.Fatal("Social state directory, internal API key (at least 16 characters), and bounded rate limit are required")
 	}
@@ -65,7 +69,18 @@ func main() {
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()
-	server := &http.Server{Addr: *httpAddr, Handler: mutationfreeze.FromEnv(social.NewServer(socialService, socialService).Handler()), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 45 * time.Second, WriteTimeout: 45 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 32 * 1024}
+	socialServer := social.NewServer(socialService, socialService)
+	if cloudAuthorityToken != "" {
+		authority, err := social.NewCloudObjectAuthority(socialService, cloudAuthorityToken)
+		if err != nil {
+			log.Fatal(err)
+		}
+		socialServer, err = social.NewServerWithCloudObjects(socialService, socialService, authority)
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+	server := &http.Server{Addr: *httpAddr, Handler: mutationfreeze.FromEnv(socialServer.Handler()), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 45 * time.Second, WriteTimeout: 45 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 32 * 1024}
 	go func() {
 		<-ctx.Done()
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 8*time.Second)
