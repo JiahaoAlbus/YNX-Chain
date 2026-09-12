@@ -6,6 +6,11 @@
   "description": "Strict Sign in with YNX Wallet request, approval, and product-session binding protocol",
   "type": "module",
   "exports": {
+    "./application-action-launcher": {
+      "types": "./src/application-action-launcher.d.ts",
+      "import": "./src/application-action-launcher.js",
+      "default": "./src/application-action-launcher.js"
+    },
     ".": {
       "types": "./src/index.d.ts",
       "import": "./src/index.js",

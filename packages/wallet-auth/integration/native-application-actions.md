@@ -156,3 +156,16 @@ The launcher does not establish an installed Wallet version or a successful
 four-action device round trip. Those require the actual installed handler and
 user-approved platform tests; source and browser transport tests alone cannot
 close them.
+
+### Explicit SDK import
+
+Use `import { createApplicationActionLauncher } from "@ynx-chain/wallet-auth/application-action-launcher"`
+for the Web action transport. The same function and the `ApplicationActionLauncher` /
+`ApplicationActionLaunchTarget` types are also exported by the SDK root. The dedicated
+browser consumer bundle is `application-action-launcher.mjs`; it is separate from
+`product-session-browser.mjs` and does not change the private sign-in lifecycle.
+
+Importing either SDK entry does not navigate. Call `prepare()` to read the committed
+request, render its `requestDigest`, then call `open(event.nativeEvent, requestDigest)`
+synchronously from the React click handler. Preserve the product journal's existing
+atomic `acceptReturn` path; `handleReturn` is not a replacement or an additional gate.

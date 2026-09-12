@@ -334,3 +334,5 @@ export declare const WALLET_DOWNLOAD_MANIFEST_SCHEMA_VERSION:1;
 /** Structural validation of a trusted publisher manifest; not network/installation attestation. */
 export declare function parseWalletDownloadManifest(input:unknown):WalletDownloadManifest;
 export declare function selectWalletDownload(manifest:unknown,selector?:WalletDownloadSelector):WalletDownloadSelection;
+export { createApplicationActionLauncher } from "./application-action-launcher.js";
+export type { ApplicationActionLauncher, ApplicationActionLaunchTarget } from "./application-action-launcher.js";

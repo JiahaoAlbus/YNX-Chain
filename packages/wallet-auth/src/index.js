@@ -11,6 +11,7 @@ export * from "./lifecycle.js";
 export * from "./native-transfer.js";
 export * from "./application-action.js";
 export * from "./application-action-request.js";
+export * from "./application-action-launcher.js";
 export * from "./card-application-approval.js";
 export * from "./card-application-approval-request.js";
 export * from "./smart-account.js";
