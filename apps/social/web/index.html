@@ -2,6 +2,7 @@
 <html lang="en" translate="no" class="notranslate">
   <head>
     <meta charset="utf-8" />
+    <base href="/" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="google" content="notranslate" />
     <meta name="description" content="YNX Social is a private, wallet-connected Social experience on YNX Testnet. Explore safely as a guest before connecting a wallet." />
@@ -39,6 +40,15 @@
       <section id="downloads" class="section downloads"><div><span class="eyebrow">Get the app</span><h2>Continue on mobile.</h2><p>The public Web surface is for discovery and standard wallet connection. Private conversations remain in the installed Social client.</p></div><div class="download-actions"><a class="button button-primary" href="https://www.ynxweb4.com/dapp/download">Download YNX apps</a><span>Android Testnet preview · other platforms require verified releases</span></div></section>
 
       <section id="connected-panel" class="connected" hidden><div class="connected-title"><img id="connected-logo" class="wallet-icon" alt="" /><div><span id="connected-wallet-name">Connected wallet</span><strong id="connected-account"></strong></div></div><p id="connected-chain">YNX Testnet · 0x1917</p><p id="private-session-state">Standard connection only. A private Social Product Session has not been created.</p><p id="connected-wallet-status" role="status" aria-live="polite"></p><div class="connected-actions"><button id="wallet-switch-network" type="button">Switch to YNX Testnet</button><button id="wallet-switch-account" type="button">Switch account</button><button id="wallet-revoke" type="button">Revoke permission</button><button id="wallet-disconnect" type="button">Disconnect</button></div></section>
+      <section id="private-auth-panel" class="section" aria-labelledby="private-auth-title">
+        <h2 id="private-auth-title">Private Social identity</h2>
+        <p>This separate YNX Product Session can link your identity. It does not authorize messages, attachments or payments, and does not replace your standard wallet connection.</p>
+        <p id="private-auth-account">No confirmed private identity link.</p>
+        <p id="private-auth-status" role="status" aria-live="polite">Private identity has not been checked. Guest browsing sends no private authorization request.</p>
+        <div class="connected-actions"><button id="private-auth-begin" type="button">Link Social identity</button><button id="private-auth-restore" type="button">Restore / Retry private session</button><button id="private-auth-disconnect" type="button">Revoke private session</button></div>
+        <a id="private-auth-open" hidden>Open YNX Wallet</a>
+        <p><a href="https://www.ynxweb4.com/dapp/download" rel="noreferrer">Install or update YNX Wallet</a>. Installation alone does not prove the browser can open the Wallet link.</p>
+      </section>
     </main>
 
     <dialog id="wallet-dialog" class="wallet-dialog">
@@ -50,5 +60,6 @@
       <button id="retry-wallet-discovery" class="install-link" type="button" hidden>Retry wallet detection</button>
     </dialog>
     <script type="module" src="./app.js"></script>
+    <script type="module" src="./private-session-ui.js"></script>
   </body>
 </html>
