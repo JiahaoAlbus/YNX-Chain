@@ -1,0 +1,13 @@
+export type NativeAction = 'dex_swap_exact_input'|'dex_swap_exact_output'|'dex_liquidity_add'|'dex_liquidity_remove';
+export type NativePayload = Readonly<Record<string, string|number> & {poolId:string;deadlineUnix:number}>;
+export type NativeRequest = Readonly<{version:'1';chainId:'ynx_6423-1';productId:'dex';platform:'web';applicationId:string;origin:string;callback:string;account:string;action:NativeAction;payload:NativePayload;nonce:number;requestId:string;state:string;issuedAt:string;expiresAt:string}>;
+export type NativeDecision = Readonly<{kind:'application-action';version:'1';requestDigest:string;state:string} & ({status:'approved';signed:string}|{status:'rejected';reason:'USER_REJECTED'})>;
+export function createApplicationActionRequest(registry:unknown,input:{productId:'dex';platform:'web';account:string;action:NativeAction;payload:NativePayload;nonce:number;requestId:string;state:string},at?:Date):NativeRequest;
+export function parseApplicationActionRequest(registry:unknown,input:unknown,at?:Date):NativeRequest;
+export function applicationActionRequestDigest(request:NativeRequest):string;
+export function encodeApplicationActionWalletURL(registry:unknown,request:NativeRequest,at?:Date):string;
+export function parseApplicationActionWalletURL(registry:unknown,url:string,at?:Date):NativeRequest;
+export function parseApplicationActionReturnURL(registry:unknown,url:string,request:NativeRequest,at?:Date):NativeDecision;
+export function createApplicationActionReturnURL(registry:unknown,request:NativeRequest,decision:{status:'approved';signed:string}|{status:'rejected';reason:'USER_REJECTED'},at?:Date):string;
+export function verifySignedApplicationAction(signed:string,expected:{account:string;action:NativeAction;payload:NativePayload;nonce:number}):Readonly<Record<string,unknown>>;
+export function applicationActionHash(signed:string):string;

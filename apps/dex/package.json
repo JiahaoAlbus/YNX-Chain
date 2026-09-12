@@ -8,6 +8,8 @@
     "build": "tsc --noEmit && vite build",
     "verify:canonical-authorize": "node scripts/verify-canonical-authorize.mjs",
     "verify:legacy-route-quarantine": "node scripts/verify-legacy-route-quarantine.mjs",
+    "verify:native-action-journal": "node scripts/verify-native-action-journal.mjs",
+    "test:native-action-storage": "node --test scripts/native-action-storage.test.mjs",
     "test": "vitest run",
     "test:e2e": "npm run build && playwright test",
     "package:pwa": "npm run build && node ../../scripts/dex/package-web.mjs",

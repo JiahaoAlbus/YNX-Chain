@@ -12,7 +12,11 @@ import type { AuditAction, RiskContext } from "./riskAssistant";
 import { useDexData } from "./useDexData";
 import { PortfolioPanel } from "./PortfolioPanel";
 import { NativeReceiptPanel } from "./NativeReceiptPanel";
-import { nativeSigningUnavailable, portfolioCopy } from "./portfolio-i18n";
+import { NativeDraftPanel, draftAccount } from './NativeDraftPanel';
+import { createNativeActionJournal, openNativeActionStore } from './native-action-journal';
+import { loadNativeSnapshotDocument } from './native-snapshot';
+import { nativeDraftCopy } from './native-draft-i18n';
+import { portfolioCopy } from "./portfolio-i18n";
 import { walletRevocationCopy } from './wallet-revocation-i18n';
 import { aggregateCandles, type Candle } from "./candles";
 import type { ChainEvent, Locale, Pool, Token } from "./types";
@@ -21,9 +25,7 @@ import {
   quoteNativeExactOutput,
   type NativeQuote,
 } from "./routing";
-import { loadAccountNonce } from "./api";
 import {
-  beginDexAction,
   beginWalletAuthorization,
   completeWalletCallback,
   connectStandardWallet,
@@ -119,6 +121,7 @@ export default function App() {
   const [wallet, setWallet] = useState(false);
   const [mobileMenu, setMobileMenu] = useState(false);
   const [walletAccount, setWalletAccount] = useState("");
+  const [draftRevision,setDraftRevision]=useState(0);
   const [walletSession, setWalletSession] = useState<DexWalletSession | null>(
     null,
   );
@@ -127,6 +130,7 @@ export default function App() {
   const [metamaskAccount, setMetamaskAccount] = useState("");
   const standardWalletCleanup = useRef<(() => void) | null>(null);
   const standardWalletIntent = useRef(0);
+  const nativeDraftIntent = useRef(0);
   const [transactionState, setTransactionState] = useState<{
     busy: boolean;
     error: string;
@@ -202,11 +206,14 @@ export default function App() {
   }, [retry]);
   useEffect(() => () => {
     standardWalletIntent.current++;
+    nativeDraftIntent.current++;
     standardWalletCleanup.current?.();
   }, []);
   const bindStandardWallet = (provider: Parameters<typeof observeStandardWallet>[0]) => {
     standardWalletCleanup.current?.();
     standardWalletCleanup.current = observeStandardWallet(provider, (state) => {
+      nativeDraftIntent.current++;
+      setTransactionState({busy:false,error:'',receipt:''});
       setWalletAccount(state.account || "");
       setMetamaskAccount(state.status === "connected" && state.providerKind === "metamask" ? state.account || "" : "");
       setWalletError(state.status === "connected" ? "" : "Standard Wallet disconnected. Read-only DEX remains available.");
@@ -233,12 +240,14 @@ export default function App() {
   }, []);
   const disconnectWallet = () => {
     standardWalletIntent.current++;
+    nativeDraftIntent.current++;
     standardWalletCleanup.current?.();
     standardWalletCleanup.current = null;
     disconnectStandardWallet();
     setWalletAccount("");
     setMetamaskAccount("");
     setWalletBusy(false);
+    setTransactionState({busy:false,error:'',receipt:''});
   };
   const connectWallet = async () => {
     if(walletBusy)return;
@@ -302,33 +311,36 @@ export default function App() {
     payload: DexActionPayload,
     quote: DexQuote,
   ) => {
-    if (!walletSession) {
-      if(walletAccount){
-        // A connected EVM provider is not a native-action signer. Reopening
-        // the chooser cannot grant that missing capability.
-        setTransactionState({busy:false,error:nativeSigningUnavailable[locale],receipt:""});
-        return;
-      }
+    if (!walletAccount) {
       setWallet(true);
-      setWalletError(
-        "Connect YNX Wallet to review and sign this exact transaction. The quote remains available without login.",
-      );
+      setWalletError('Select a Wallet to save this reviewed request. The quote remains available without login. No signature or transaction is requested.');
       return;
     }
+    // Explicit local review only. Standard identity maps an address; it grants
+    // no native key access, signature, private-session or submission permission.
+    const intent=++nativeDraftIntent.current,selection=standardWalletIntent.current,selected=walletAccount;
+    const isCurrent=()=>intent===nativeDraftIntent.current&&selection===standardWalletIntent.current;
     setTransactionState({ busy: true, error: "", receipt: "" });
+    let store:Awaited<ReturnType<typeof openNativeActionStore>>|undefined;
     try {
-      const accountNonce = await loadAccountNonce(walletSession.session.account);
-      await beginDexAction({ action, payload, quote, accountNonce });
-    } catch (reason) {
+      const account=draftAccount(selected),{document,snapshot}=await loadNativeSnapshotDocument(account);
+      if(!isCurrent())return;
+      const pool=snapshot.pools.find(pool=>pool.id===payload.poolId);
+      if(!pool||pool.id!==quote.poolId||pool.asset0!==quote.asset0||pool.asset1!==quote.asset1||pool.reserve0!==String(quote.reserve0)||pool.reserve1!==String(quote.reserve1)||pool.blockHeight!==String(quote.poolBlockHeight)||pool.feeBps!==quote.feeBps)throw new Error('NATIVE_REVIEW_CHANGED');
+      store=await openNativeActionStore();
+      if(!isCurrent())return;
+      await createNativeActionJournal(store).prepare({account,action,payload,snapshot:document});
+      if(!isCurrent())return;
+      setDraftRevision(value=>value+1);
+      setTransactionState({busy:false,error:'',receipt:'NATIVE_DRAFT_SAVED'});
+    } catch {
+      if(!isCurrent())return;
       setTransactionState({
         busy: false,
-        error:
-          reason instanceof Error
-            ? reason.message
-            : "DEX transaction request failed closed.",
+        error:'NATIVE_REVIEW_UNAVAILABLE',
         receipt: "",
       });
-    }
+    } finally {store?.close();if(isCurrent())setTransactionState(value=>({...value,busy:false}));}
   };
   const navigate = (next: Page) => {
     location.hash = next;
@@ -428,16 +440,17 @@ export default function App() {
         {transactionState.receipt && (
           <div className="offline-banner" role="status">
             <Icon name="security" />
-            {transactionState.receipt}
+            {transactionState.receipt==='NATIVE_DRAFT_SAVED'?nativeDraftCopy[locale][5]:transactionState.receipt}
           </div>
         )}
         {transactionState.error && (
           <div className="offline-banner" role="alert">
             <Icon name="warning" />
-            {transactionState.error}
+            {transactionState.error==='NATIVE_REVIEW_UNAVAILABLE'?nativeDraftCopy[locale][7]:transactionState.error}
           </div>
         )}
         <main id="main" tabIndex={-1}>
+          <NativeDraftPanel account={walletAccount} locale={locale} revision={draftRevision}/>
           {page === "swap" && (
             <SwapPage
               pools={pools}
@@ -449,6 +462,7 @@ export default function App() {
               walletAccount={walletAccount}
               actionBusy={transactionState.busy}
               action={requestAction}
+              draftLabels={nativeDraftCopy[locale]}
             />
           )}
           {page === "pools" && (
@@ -461,6 +475,7 @@ export default function App() {
               walletAccount={walletAccount}
               actionBusy={transactionState.busy}
               action={requestAction}
+              draftLabels={nativeDraftCopy[locale]}
             />
           )}
           {page === "positions" && (
@@ -689,6 +704,7 @@ function SwapPage({
   walletAccount,
   actionBusy,
   action,
+  draftLabels,
 }: {
   pools: Pool[];
   tokens: Token[];
@@ -698,6 +714,7 @@ function SwapPage({
   t: typeof catalogs.en;
   walletAccount: string;
   actionBusy: boolean;
+  draftLabels: readonly string[];
   action: (
     name: DexActionName,
     payload: DexActionPayload,
@@ -1114,6 +1131,7 @@ function SwapPage({
                 before signing.
               </p>
             </div>
+            <p>{draftLabels[9]}</p>
             {quoteState.quote.execution !== "direct" && (
               <p className="review-blocker">
                 This multi-hop result is a read-only quote from current reserves.
@@ -1127,17 +1145,15 @@ function SwapPage({
               onClick={() => void continueInWallet()}
             >
               {actionBusy
-                ? "Checking Product Session…"
+                ? draftLabels[2]
                 : quoteState.quote.execution !== "direct"
                   ? "Multi-hop execution unavailable"
                 : walletAccount
-                  ? t.confirmWallet
+                  ? draftLabels[1]
                   : "Connect Wallet to continue"}
             </button>
             <p className="review-blocker">
-              Wallet returns a signed transaction only. DEX broadcasts unchanged
-              bytes and reports matching pool and chain-event evidence; any mismatch
-              fails closed.
+              {draftLabels[5]}
             </p>
           </div>
         </Modal>
@@ -1493,6 +1509,7 @@ function PoolsPage({
   walletAccount,
   actionBusy,
   action,
+  draftLabels,
 }: {
   pools: Pool[];
   tokens: Token[];
@@ -1501,6 +1518,7 @@ function PoolsPage({
   t: typeof catalogs.en;
   walletAccount: string;
   actionBusy: boolean;
+  draftLabels: readonly string[];
   action: (
     name: DexActionName,
     payload: DexActionPayload,
@@ -1785,9 +1803,9 @@ function PoolsPage({
                   onClick={() => void submitAdd()}
                 >
                   {actionBusy
-                    ? "Checking Product Session…"
+                    ? draftLabels[2]
                     : walletAccount
-                      ? "Review add liquidity"
+                      ? draftLabels[1]
                       : "Connect Wallet to add"}
                 </button>
               </div>
@@ -1815,9 +1833,9 @@ function PoolsPage({
                   onClick={() => void submitRemove()}
                 >
                   {actionBusy
-                    ? "Checking Product Session…"
+                    ? draftLabels[2]
                     : walletAccount
-                      ? "Review remove liquidity"
+                      ? draftLabels[1]
                       : "Connect Wallet to remove"}
                 </button>
               </div>

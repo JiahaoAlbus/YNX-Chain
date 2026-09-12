@@ -184,7 +184,7 @@ describe("DEX selected-provider restore and disconnect lifecycle", () => {
     metaMask.request.mockClear();
     vi.stubGlobal('fetch',vi.fn().mockResolvedValue(new Response('{}',{status:503})));
     await act(async()=>{fireEvent.click(screen.getAllByRole("button",{name:"My Positions"})[0]);});
-    expect(screen.getByRole("alert")).toHaveTextContent("Balances are unknown, not zero");
+    expect(screen.getAllByRole("alert").some(node=>node.textContent?.includes("Balances are unknown, not zero"))).toBe(true);
     expect(standardWalletDetails()).toMatchObject({status:"connected",account:META_ACCOUNT,providerKind:"metamask"});
     expect(metaMask.request).not.toHaveBeenCalled();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();

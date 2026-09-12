@@ -121,11 +121,15 @@ export function parseNativeSnapshot(raw:unknown,requestedAccount?:string,now=Dat
 }
 export type NativeSnapshot=ReturnType<typeof parseNativeSnapshot>;
 export async function loadNativeSnapshot(account?:string,signal?:AbortSignal):Promise<NativeSnapshot>{
+  return (await loadNativeSnapshotDocument(account,signal)).snapshot;
+}
+/** Validated original document retained for exact native-intent review. */
+export async function loadNativeSnapshotDocument(account?:string,signal?:AbortSignal):Promise<{document:unknown;snapshot:NativeSnapshot}>{
   const owner=account?nativeLedgerAddress(account):undefined;
   let response:Response;
   try{response=await fetch(`${BASE}/v1/native-snapshot${owner?`?account=${owner}`:''}`,{signal,credentials:'omit',cache:'no-store',headers:{Accept:'application/json'}});}
   catch(error){if(signal?.aborted)throw error;throw new NativeSnapshotError('UNAVAILABLE');}
   if(!response.ok)throw new NativeSnapshotError('UNAVAILABLE');
   let body:unknown;try{body=await response.json();}catch{throw new NativeSnapshotError('INVALID_RESPONSE');}
-  return parseNativeSnapshot(body,owner);
+  return {document:body,snapshot:parseNativeSnapshot(body,owner)};
 }

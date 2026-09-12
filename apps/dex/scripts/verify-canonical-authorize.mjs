@@ -27,6 +27,15 @@ if(packageJSON.dependencies?.['@ynx-chain/wallet-auth']!=='file:vendor/ynx-chain
 if(/fetch\s*\(\s*['"]https:\/\/rpc\.ynxweb4\.com\/evm/.test(joined))throw new Error('Direct browser RPC must not be a Standard connection prerequisite');
 if(/\b9102\b|0x238e/i.test(joined))throw new Error('Forbidden legacy chain reference');
 for(const [file,value] of sources) {
-  if(/ynxwallet:\/\/authorize|(?:window\.open|<iframe|document\.location\s*=|location\.href\s*=)\s*\(?\s*['"]ynxwallet/.test(value))throw new Error('Forbidden Web Wallet authorization route in '+file);
+  let executable=value;
+  if(file===join(root,'vendor/application-actions-browser.mjs')){
+    // The exact shared native-action bundle contains this registry validator
+    // diagnostic, not a Web launch. Exempt only that one exact diagnostic after
+    // byte identity verification; all other code remains scanned unchanged.
+    const bytes=Buffer.from(value),diagnostic='fail("INVALID_ROUTER_REGISTRY", "Wallet authorize callback must be ynxwallet://authorize");';
+    if(bytes.length!==110477||createHash('sha256').update(bytes).digest('hex')!=='627d7c57e15bfc3a92c77fb58d11c2bdb0e54f8f20c5989d51091163b71f5d0f'||value.split(diagnostic).length!==2)throw new Error('Native SDK diagnostic exception requires exact Wallet-owner bytes');
+    executable=value.replace(diagnostic,'');
+  }
+  if(/ynxwallet:\/\/authorize|(?:window\.open|<iframe|document\.location\s*=|location\.href\s*=)\s*\(?\s*['"]ynxwallet/.test(executable))throw new Error('Forbidden Web Wallet authorization route in '+file);
 }
 console.log('canonical-authorize: '+files.length+' source files; fixed c97f85e9 SDK bytes/7-input closure, provider-only connect/restore/revoke, 6423 add/switch and private-service separation gates PASS (source-only)');
