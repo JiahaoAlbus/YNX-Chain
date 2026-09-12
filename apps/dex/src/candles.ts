@@ -41,7 +41,7 @@ export function aggregateCandles(
   for (const item of [...events].sort(
     (a, b) => Date.parse(a.timestamp) - Date.parse(b.timestamp),
   )) {
-    if (!item.type.startsWith("dex_swap_") || item.pool !== pool.address)
+    if (!item.type.startsWith("dex_swap_") || item.pool !== pool.address || item.stage === 'pending')
       continue;
     const asset0 = item.asset0?.toLowerCase();
     const asset1 = item.asset1?.toLowerCase();

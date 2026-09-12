@@ -8,10 +8,8 @@ import type {
   Token,
   TWAP,
 } from "./types";
-import {
-  evmAddressFromYNX,
-} from "@ynx-chain/wallet-auth/src/crypto.js";
 import type { DexActionResponse } from "@ynx-chain/wallet-auth";
+import { loadNativeSnapshot } from './native-snapshot';
 
 const BASE = (
   import.meta.env.VITE_DEX_GATEWAY_URL ||
@@ -20,21 +18,7 @@ const BASE = (
 ).replace(/\/$/, "");
 const EXPECTED_VERSION = "abci-state-v13";
 const AUTHORITATIVE_SOURCE = "authoritative chain-native YNX Testnet state";
-const AUTHORITATIVE_VERSION = "native-dex-schema-v1";
 
-type NativeAsset = {
-  id: string;
-  symbol: string;
-  name: string;
-  decimals: number;
-  issuer?: string;
-  maxSupply?: number;
-  totalSupply?: number;
-  blockHeight?: number;
-  txHash?: string;
-  transactionHash?: string;
-  auditHash?: string;
-};
 type NativePool = {
   id: string;
   kind: string;
@@ -66,60 +50,11 @@ type NativeEvent = {
   auditHash: string;
 };
 
-type Collection<T> = { source: string; version: string; items: T[] };
-
 const record = (value: unknown): Record<string, unknown> | null =>
   value !== null && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : null;
 
-async function requestCollection<T>(
-  path: string,
-  field: "assets" | "pools" | "events",
-  signal?: AbortSignal,
-): Promise<Collection<T>> {
-  const response = await fetch(`${BASE}${path}`, {
-    signal,
-    headers: { Accept: "application/json" },
-    credentials: "omit",
-  });
-  const body = record(await response.json().catch(() => null));
-  if (!response.ok || !body || body.failure === true)
-    throw new Error(
-      (typeof body?.error === "string" && body.error) ||
-        `DEX state gateway returned ${response.status}.`,
-    );
-  if (
-    body.source === "ynx-consensus-abci" &&
-    body.version === EXPECTED_VERSION &&
-    body.failure === false &&
-    Array.isArray(body[field])
-  )
-    return { source: body.source, version: body.version, items: body[field] as T[] };
-  if (body.source === AUTHORITATIVE_SOURCE && Array.isArray(body.items))
-    return {
-      source: body.source,
-      version: AUTHORITATIVE_VERSION,
-      items: body.items as T[],
-    };
-  throw new Error("DEX gateway returned an unsupported or non-authoritative state envelope.");
-}
-
-const ynxt: Token = {
-  chainId: 6423,
-  address: "YNXT",
-  symbol: "YNXT",
-  name: "YNX Testnet",
-  decimals: 0,
-  standard: "YNX-consensus-asset",
-  reviewStatus: "consensus-committed-testnet",
-  issuer: "protocol",
-  totalSupply: "",
-  maxSupply: "",
-  updatedBlock: 0,
-  txHash: "",
-  auditHash: "",
-};
 function safeInteger(
   value: unknown,
   label: string,
@@ -135,30 +70,6 @@ function safeInteger(
   return Number(value);
 }
 
-const token = (asset: NativeAsset): Token => ({
-  chainId: 6423,
-  address: asset.id,
-  symbol: asset.symbol,
-  name: asset.name,
-  decimals: safeInteger(asset.decimals, "Asset decimals", 0, 18),
-  standard: "YNX-consensus-asset",
-  reviewStatus: "consensus-committed-testnet",
-  issuer: asset.issuer || "protocol",
-  totalSupply:
-    asset.totalSupply === undefined
-      ? ""
-      : String(safeInteger(asset.totalSupply, "Asset total supply")),
-  maxSupply:
-    asset.maxSupply === undefined
-      ? ""
-      : String(safeInteger(asset.maxSupply, "Asset maximum supply")),
-  updatedBlock:
-    asset.blockHeight === undefined
-      ? 0
-      : safeInteger(asset.blockHeight, "Asset block height"),
-  txHash: asset.txHash || asset.transactionHash || "",
-  auditHash: asset.auditHash || "",
-});
 const pool = (value: NativePool): Pool => ({
   address: value.id,
   token0: value.asset0,
@@ -193,118 +104,58 @@ const event = (value: NativeEvent): ChainEvent => ({
       ? 0
       : safeInteger(value.amount1, "DEX event amount 1"),
   ),
-  fee0: "0",
-  fee1: "0",
+  fee0: null,
+  fee1: null,
   blockNumber: safeInteger(value.blockHeight, "DEX event block height", 1),
   txHash: value.txHash || value.transactionHash || "",
   timestamp: value.occurredAt,
   auditHash: value.auditHash,
 });
 
+/** A single current-state generation. Inclusion, local durability and finality stay distinct. */
 export async function loadDexSnapshot(signal?: AbortSignal) {
-  const response = await fetch(`${BASE}/v1/native-snapshot`, {
-      signal,
-      headers: { Accept: "application/json" },
-      credentials: "omit",
-    }),
-    body = record(await response.json().catch(() => null));
-  if (
-    !response.ok ||
-    !body ||
-    body.source !== AUTHORITATIVE_SOURCE ||
-    typeof body.updatedAt !== "string" ||
-    !Array.isArray(body.assets) ||
-    !Array.isArray(body.pools) ||
-    !Array.isArray(body.events)
-  )
-    throw new Error(
-      (typeof body?.error === "string" && body.error) ||
-        `Authoritative DEX snapshot is unavailable (${response.status}).`,
-    );
-  const updatedAt = Date.parse(body.updatedAt);
-  if (!Number.isFinite(updatedAt) || Date.now() - updatedAt > 15 * 60_000)
-    throw new Error("Authoritative DEX snapshot is stale.");
-  const tokens = [ynxt, ...(body.assets as NativeAsset[]).map(token)];
-  const pools = (body.pools as NativePool[]).map((value) => ({
-    ...pool(value),
-    contractVersion: "ynx-native-dex-cpmm-v1" as const,
+  const snapshot=await loadNativeSnapshot(undefined,signal);
+  const height=(v:string)=>safeInteger(Number(v),"Block height (display)",0);
+  const tokens:Token[]=snapshot.assets.map(a=>({
+    chainId:6423,address:a.id,symbol:a.symbol,name:a.name,decimals:a.decimals,
+    standard:"YNX-consensus-asset",reviewStatus:"authoritative-current-testnet",
+    issuer:a.issuer??"protocol",totalSupply:a.totalSupply??"",maxSupply:a.maxSupply??"",
+    updatedBlock:a.blockHeight===undefined?0:height(a.blockHeight),txHash:a.txHash??"",auditHash:a.auditHash??"",
   }));
-  const events = (body.events as NativeEvent[])
-    .map(event)
-    .sort((a, b) => b.blockNumber - a.blockNumber);
-  const latestBlock = Math.max(
-    0,
-    ...pools.map((item) => item.updatedBlock),
-    ...events.map((item) => item.blockNumber),
-    ...tokens.map((item) => item.updatedBlock),
-  );
-  const analytics: Analytics = {
-    source: AUTHORITATIVE_SOURCE,
-    version: AUTHORITATIVE_VERSION,
-    indexedEvents: events.length,
-    pools: pools.length,
-    swaps: events.filter((item) => item.type.startsWith("dex_swap_")).length,
-    liquidityEvents: events.filter((item) =>
-      item.type.startsWith("dex_liquidity_"),
-    ).length,
-    latestBlock,
-  };
-  const provenance: SnapshotProvenance = Object.freeze({
-    source: AUTHORITATIVE_SOURCE,
-    asOf: new Date(updatedAt).toISOString(),
-    version: AUTHORITATIVE_VERSION,
-    classification: "testnet",
-    status: "live",
-    coverage: "native-snapshot-assets-pools-events",
-    latestBlock,
+  const pools:Pool[]=snapshot.pools.map(p=>({
+    address:p.id,token0:p.asset0,token1:p.asset1,reserve0:p.reserve0,reserve1:p.reserve1,
+    contractVersion:"ynx-native-dex-cpmm-v1",feeBps:p.feeBps,totalShares:p.totalShares,
+    updatedBlock:height(p.blockHeight),updatedAt:snapshot.asOf,txHash:p.txHash,auditHash:p.auditHash,
+  }));
+  const events:ChainEvent[]=snapshot.events.map(e=>({
+    id:e.id,type:e.type,pool:e.poolId,account:e.signer,asset0:e.asset0,asset1:e.asset1,
+    amount0:e.amount0,amount1:e.amount1,fee0:null,fee1:null,feesKnown:false,
+    blockNumber:height(e.blockHeight),txHash:e.txHash,timestamp:e.occurredAt,auditHash:e.auditHash,stage:e.stage,
+  })).sort((a,b)=>b.blockNumber-a.blockNumber||b.timestamp.localeCompare(a.timestamp));
+  const latestBlock=height(snapshot.blockHeight);
+  const analytics:Analytics={source:snapshot.source,version:snapshot.schemaVersion,indexedEvents:events.length,pools:pools.length,
+    swaps:events.filter(e=>e.type.startsWith("dex_swap_")).length,
+    liquidityEvents:events.filter(e=>e.type.startsWith("dex_liquidity_")).length,latestBlock};
+  const provenance:SnapshotProvenance=Object.freeze({
+    source:snapshot.source,asOf:snapshot.asOf,version:snapshot.schemaVersion,
+    classification:"testnet",status:"current-including-pending",coverage:"native-snapshot-assets-pools-events",
+    latestBlock,atomic:true,consensusFinality:false,snapshotId:snapshot.snapshotId,
+    pendingTransactionCount:snapshot.pendingTransactionCount,durableCheckpoint:snapshot.durableCheckpoint,
   });
-  const prices: SpotPrice[] = pools
-    .filter((item) => BigInt(item.reserve0) > 0n && BigInt(item.reserve1) > 0n)
-    .map((item) => ({
-      pool: item.address,
-      token0: item.token0,
-      token1: item.token1,
-      price0Numerator: item.reserve1,
-      price0Denominator: item.reserve0,
-      price1Numerator: item.reserve0,
-      price1Denominator: item.reserve1,
-      updatedBlock: item.updatedBlock,
-    }));
-  return {
-    pools,
-    tokens,
-    events,
-    analytics,
-    provenance,
-    prices,
-    twap: [] as TWAP[],
-    fees: [] as FeeSummary[],
-  };
+  const prices:SpotPrice[]=pools.filter(p=>BigInt(p.reserve0)>0n&&BigInt(p.reserve1)>0n).map(p=>({
+    pool:p.address,token0:p.token0,token1:p.token1,price0Numerator:p.reserve1,price0Denominator:p.reserve0,
+    price1Numerator:p.reserve0,price1Denominator:p.reserve1,updatedBlock:p.updatedBlock,
+  }));
+  return {tokens,pools,events,analytics,provenance,prices,twap:[] as TWAP[],fees:[] as FeeSummary[]};
 }
 
-export async function loadAccountNonce(account: string, signal?: AbortSignal) {
-  const address = evmAddressFromYNX(account),
-    response = await fetch(`${BASE}/accounts/${address}`, {
-      signal,
-      headers: { Accept: "application/json" },
-      credentials: "omit",
-    }),
-    body = (await response.json().catch(() => null)) as {
-      address?: string;
-      nonce?: number;
-      error?: string;
-    } | null;
-  if (
-    !response.ok ||
-    !body ||
-    body.address !== address ||
-    !Number.isSafeInteger(body.nonce) ||
-    Number(body.nonce) < 0
-  )
-    throw new Error(
-      body?.error || "Authoritative DEX account nonce is unavailable.",
-    );
-  return Number(body.nonce);
+export async function loadAccountNonce(account:string,signal?:AbortSignal) {
+  const snapshot=await loadNativeSnapshot(account,signal);
+  // Legacy signer accepts JSON numbers: never round a uint64 nonce into a signature.
+  const nonce=Number(snapshot.account!.nonce);
+  if(!Number.isSafeInteger(nonce)||snapshot.account!.nextNonce===null||!Number.isSafeInteger(nonce+1))
+    throw new Error("Native action nonce exceeds the supported signing range.");
+  return nonce;
 }
 
 export async function broadcastDexAction(
@@ -359,10 +210,10 @@ export async function broadcastDexAction(
     !poolValue ||
     (raw && transaction?.hash !== response.transactionHash)
   )
-    throw new Error("DEX transaction response lacks authoritative committed evidence.");
+    throw new Error("DEX transaction response lacks authoritative mutation evidence.");
   if (committedHash !== response.transactionHash || poolValue.id !== poolId)
     throw new Error(
-      "Committed DEX evidence does not match the Wallet-signed transaction.",
+      "DEX mutation evidence does not match the Wallet-signed transaction.",
     );
   return Object.freeze({
     event: event(eventValue),

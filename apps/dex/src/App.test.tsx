@@ -8,6 +8,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
+import { nativeFixture,GOLDEN_ACCOUNT } from './fixtures/native-fixture';
 
 const json = (value: unknown) =>
   Promise.resolve({
@@ -22,14 +23,18 @@ const nativeFetch = (
 ) =>
   vi.fn((input: RequestInfo | URL) => {
     const path = String(input);
-    if (path.includes("/v1/native-snapshot"))
-      return json({
-        source: "authoritative chain-native YNX Testnet state",
-        updatedAt: new Date().toISOString(),
-        assets,
-        pools,
-        events,
-      });
+    if (path.includes("/v1/native-snapshot")) {
+      const snapshot=nativeFixture(null);
+      const anchor=(raw:Record<string,any>)=>{
+        const txHash=String(raw.txHash??raw.transactionHash??'e'.repeat(64)).replace(/^0x/,'');
+        return {blockHeight:String(raw.blockHeight??1),blockHash:'f'.repeat(64),txHash:'0x'+txHash,transactionHash:'0x'+txHash,auditHash:raw.auditHash??'d'.repeat(64)};
+      };
+      snapshot.blockHeight='20';
+      snapshot.assets=[snapshot.assets[0],...assets.map(raw=>{const a=raw as Record<string,any>;return {...a,issuer:GOLDEN_ACCOUNT,maxSupply:String(a.maxSupply??1000000),totalSupply:String(a.totalSupply??100000),...anchor(a)};})];
+      snapshot.pools=pools.map(raw=>{const p=raw as Record<string,any>;return {...p,kind:'ynx-cpmm-v1',reserve0:String(p.reserve0),reserve1:String(p.reserve1),totalShares:String(p.totalShares),shares:[{account:GOLDEN_ACCOUNT,shares:String(p.totalShares)}],...anchor(p)};});
+      snapshot.events=events.map(raw=>{const e=raw as Record<string,any>;return {...e,signer:GOLDEN_ACCOUNT,amount0:String(e.amount0??0),amount1:String(e.amount1??0),shares:'0',stage:'included',...anchor(e)};});
+      return json(snapshot);
+    }
     throw new Error(`unexpected request ${path}`);
   });
 
@@ -74,13 +79,13 @@ describe("YNX DEX consensus product shell", () => {
       .mockImplementation(nativeFetch());
     vi.stubGlobal("fetch", reconnectFetch);
     render(<App />);
-    expect(await screen.findByText(/network unavailable/)).toBeInTheDocument();
+    expect(await screen.findByText(/Ledger unavailable/)).toBeInTheDocument();
     window.dispatchEvent(new Event("online"));
     await waitFor(() => expect(reconnectFetch).toHaveBeenCalledTimes(2));
     await waitFor(() =>
       expect(screen.getByText("No executable route")).toBeInTheDocument(),
     );
-    expect(screen.queryByText(/network unavailable/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Ledger unavailable/)).not.toBeInTheDocument();
   });
   it("offers YNX Wallet, its official download and MetaMask while native signing remains separately gated", async () => {
     render(<App />);
@@ -149,10 +154,10 @@ describe("YNX DEX consensus product shell", () => {
     fireEvent.click(within(primary).getByRole("button", { name: "Analytics" }));
     expect(
       await screen.findByLabelText(
-        "YNXT/ynx-usd-test confirmed swap candles",
+        "YNXT/ynx-usd-test included swap candles",
       ),
     ).toBeInTheDocument();
-    expect(screen.getByText(/confirmed chain swaps/)).toBeInTheDocument();
+    expect(screen.getByText(/included chain swaps/)).toBeInTheDocument();
     expect(screen.getByText(/coverage native-snapshot-assets-pools-events/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "1m" })).toHaveAttribute(
       "aria-pressed",

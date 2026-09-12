@@ -11,7 +11,7 @@ import {
 import type { AuditAction, RiskContext } from "./riskAssistant";
 import { useDexData } from "./useDexData";
 import { PortfolioPanel } from "./PortfolioPanel";
-import { nativeSigningUnavailable } from "./portfolio-i18n";
+import { nativeSigningUnavailable, portfolioCopy } from "./portfolio-i18n";
 import { aggregateCandles, type Candle } from "./candles";
 import type { ChainEvent, Locale, Pool, Token } from "./types";
 import {
@@ -130,7 +130,7 @@ export default function App() {
     error: string;
     receipt: string;
   }>({ busy: false, error: "", receipt: "" });
-  const { data, retry } = useDexData();
+  const { data, retry } = useDexData(locale);
   const t = catalogs[locale];
   const rtl = locale === "ar";
   useEffect(() => {
@@ -182,7 +182,7 @@ export default function App() {
             setTransactionState({
               busy: false,
               error: "",
-              receipt: `Committed ${receipt.transactionHash} at block ${receipt.event.blockNumber}`,
+              receipt: `Received ${receipt.transactionHash}; mutation evidence at block ${receipt.event.blockNumber}. Durability and finality are unverified.`,
             });
             history.replaceState({}, "", location.origin + "/");
             retry();
@@ -437,7 +437,7 @@ export default function App() {
           <Icon name="warning" />
           <div>
             <strong>{t.runtimeTitle}</strong>
-            <span>{t.runtimeDetail}</span>
+            <span>{portfolioCopy[locale].boundary}</span>
           </div>
         </div>
         {transactionState.receipt && (
@@ -497,8 +497,8 @@ export default function App() {
               text={t.governanceText}
               rows={[
                 ["Pool model", CPMM_VERSION],
-                ["State version", "native-dex-schema-v1"],
-                [t.status, "Authoritative public Testnet state"],
+                ["State version", "ynx-native-finance-snapshot-v1"],
+                [t.status, "Current ledger including pending changes; not BFT finality"],
                 [t.security, "Wallet-signed action + chain transaction evidence"],
               ]}
             />
@@ -933,7 +933,7 @@ function SwapPage({
                   {stale
                     ? "Refresh the amount or token selection before review."
                     : quoteState.quote?.execution === "multi_hop_quote_only"
-                      ? "Each hop is quoted from committed reserves. Execution stays disabled until the chain-native router is attested."
+                      ? "Each hop is quoted from current reserves. Execution stays disabled until the chain-native router is attested."
                     : highImpact
                       ? "Price impact is 5% or higher. Review size and route."
                     : quoteState.quote
@@ -1114,7 +1114,7 @@ function SwapPage({
             </div>
             {quoteState.quote.execution !== "direct" && (
               <p className="review-blocker">
-                This multi-hop result is a read-only quote from committed reserves.
+                This multi-hop result is a read-only quote from current reserves.
                 DEX will not request a Wallet signature until a chain-native router
                 binds the complete route and minimum output.
               </p>
@@ -1545,7 +1545,7 @@ function PoolsPage({
         totalShares <= 0n
       )
         throw new Error(
-          "Enter positive amounts for an initialized committed pool.",
+          "Enter positive amounts for an initialized current pool.",
         );
       const expected =
           (amount0 * totalShares) / reserve0 <
@@ -1775,7 +1775,7 @@ function PoolsPage({
                 </label>
                 <p>
                   Wallet reviews the exact token ratio, minimum shares,
-                  committed pool snapshot, nonce and deadline before signing.
+                  current pool snapshot, nonce and deadline before signing.
                 </p>
                 <button
                   className="primary"
@@ -1805,7 +1805,7 @@ function PoolsPage({
                 </label>
                 <p>
                   Wallet reviews exact owned shares and minimum token outputs
-                  against committed pool state.
+                  against current pool state.
                 </p>
                 <button
                   className="primary"
@@ -1827,7 +1827,7 @@ function PoolsPage({
             )}
             <p className="review-blocker">
               Each signature authorizes one exact chain-native action only; DEX must
-              return matching committed pool and event evidence.
+              return matching pool and event evidence; inclusion alone is not BFT finality.
             </p>
           </div>
         </Modal>
@@ -1903,8 +1903,8 @@ function ExplorePage({
         visibleTokens.length === 0 ? (
           <EmptyPage
             icon="explore"
-            title="No owner-reviewed Testnet tokens"
-            detail="Tokens appear only after owner review and strict API validation."
+            title="No registered Testnet assets"
+            detail="Tokens appear only from the validated native asset registry; registration does not imply safety or endorsement."
           />
         ) : (
           <div className="token-list">
@@ -1917,7 +1917,7 @@ function ExplorePage({
                 <code>{token.address}</code>
                 <span className="status-pill">
                   <i />
-                  Owner reviewed
+                  Testnet registered
                 </span>
               </article>
             ))}
@@ -2039,9 +2039,9 @@ function AnalyticsPage({
         <div className="chart-empty">
           <div className="axis-lines" />
           <Icon name="analytics" />
-          <strong>Confirmed swap history unavailable</strong>
+          <strong>Included swap history unavailable</strong>
           <p>
-            Candles appear only after real swaps are committed for this pool.
+            Candles use included swap events, not pending events or BFT-finality claims.
             No synthetic prices or volume are inserted.
           </p>
         </div>
@@ -2051,7 +2051,8 @@ function AnalyticsPage({
         {t.source}: {data.data.provenance.source}; {data.data.provenance.classification}
         · {data.data.provenance.status} · schema {data.data.provenance.version}
         · as of {data.data.provenance.asOf} · coverage {data.data.provenance.coverage}
-        · confirmed cumulative-price deltas and raw token amounts only.
+        · included event prices and raw token amounts only; not BFT finality.
+        <br/><code>{data.data.provenance.snapshotId}</code>
       </p>
     </PageFrame>
   );
@@ -2073,11 +2074,11 @@ function CandleChart({ candles, pair }: { candles: Candle[]; pair: string }) {
   const bodyWidth = Math.max(5, Math.min(18, step * 0.55));
   const latest = candles[candles.length - 1];
   return (
-    <figure className="candle-chart" aria-label={`${pair} confirmed swap candles`}>
+    <figure className="candle-chart" aria-label={`${pair} included swap candles`}>
       <figcaption>
         <div>
           <strong>{pair}</strong>
-          <span>Token 1 per Token 0 · confirmed chain swaps</span>
+          <span>Token 1 per Token 0 · included chain swaps, not BFT finality</span>
         </div>
         <div>
           <strong>{latest.close.toLocaleString(undefined, { maximumFractionDigits: 9 })}</strong>

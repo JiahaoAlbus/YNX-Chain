@@ -30,7 +30,10 @@ const event = (input: Partial<ChainEvent>): ChainEvent =>
     ...input,
   }) as ChainEvent;
 
-describe("confirmed native swap candles", () => {
+describe("included native swap candles, not a finality claim", () => {
+  it('does not insert pending swap changes into included-history candles',()=>{
+    expect(aggregateCandles([event({stage:'pending',blockNumber:0})],pool,tokens,60)).toEqual([]);
+  });
   it("normalizes both swap directions into token1-per-token0 OHLC", () => {
     const candles = aggregateCandles(
       [

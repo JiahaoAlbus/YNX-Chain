@@ -1,13 +1,13 @@
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { PortfolioPanel } from './PortfolioPanel';
+import { nativeFixture } from './fixtures/native-fixture';
 
 const A=`0x${'a'.repeat(40)}`,B=`0x${'b'.repeat(40)}`;
 function responder(){
   return vi.fn(async(path:RequestInfo|URL)=>{
     const p=String(path),address=p.endsWith(B)?B:A;
-    const collection=(key:string)=>({source:'ynx-consensus-abci',version:'abci-state-v13',failure:false,coverage:{complete:true},[key]:[]});
-    const value=p.includes('/accounts/')?{address,balance:address===A?123:456,staked:0,nonce:2}:p.includes('/balances/')?{...collection('balances'),address}:p==='/dex/assets'?collection('assets'):collection('pools');
+    const value=nativeFixture(address);value.account.balance=address===A?'123':'456';value.balances[0].amount=value.account.balance;
     return new Response(JSON.stringify(value),{status:200});
   });
 }
@@ -42,7 +42,7 @@ describe('wallet account to native portfolio UI',()=>{
     expect(await screen.findByRole('alert')).toHaveTextContent('余额未知');
     fetch.mockImplementation(responder());fireEvent.click(screen.getByText('刷新账本'));
     expect(await screen.findByText('123')).toBeInTheDocument();const before=fetch.mock.calls.length;
-    fireEvent(window,new Event('online'));await waitFor(()=>expect(fetch.mock.calls.length).toBe(before+4));
+    fireEvent(window,new Event('online'));await waitFor(()=>expect(fetch.mock.calls.length).toBe(before+1));
   });
   it('ends a hung ledger request with a bounded unavailable state without disconnecting anything',async()=>{
     vi.useFakeTimers();
@@ -52,6 +52,6 @@ describe('wallet account to native portfolio UI',()=>{
     render(<PortfolioPanel account={A} locale="en" onConnect={()=>{}}/>);
     await act(async()=>{await vi.advanceTimersByTimeAsync(8001);});
     expect(screen.getByRole('alert')).toHaveTextContent('Balances are unknown');
-    expect(screen.queryByText('Reading committed ledger…')).not.toBeInTheDocument();
+    expect(screen.queryByText('Reading current ledger…')).not.toBeInTheDocument();
   });
 });

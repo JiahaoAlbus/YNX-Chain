@@ -19,7 +19,7 @@ export type Token = {
   name:string;
   decimals:number;
   standard:"YNX-consensus-asset";
-  reviewStatus:"consensus-committed-testnet";
+  reviewStatus:"consensus-committed-testnet"|"authoritative-current-testnet";
   issuer:string;
   totalSupply:string;
   maxSupply:string;
@@ -28,7 +28,7 @@ export type Token = {
   auditHash:string;
 };
 export type Position = { account:string; pool:string; netLpAmount:string; addedToken0:string; addedToken1:string; removedToken0:string; removedToken1:string };
-export type ChainEvent = { id:string; type:string; pool:string; account:string; asset0?:string; asset1?:string; amount0:string; amount1:string; fee0:string; fee1:string; blockNumber:number; txHash:string; timestamp:string; auditHash:string };
+export type ChainEvent = { id:string; type:string; pool:string; account:string; asset0?:string; asset1?:string; amount0:string; amount1:string; fee0:string|null; fee1:string|null; feesKnown?:boolean; stage?:'pending'|'included'; blockNumber:number; txHash:string; timestamp:string; auditHash:string };
 export type Analytics = { source:string; version:string; indexedEvents:number; pools:number; swaps:number; liquidityEvents:number; latestBlock:number };
 export type SpotPrice = { pool:string;token0:string;token1:string;price0Numerator:string;price0Denominator:string;price1Numerator:string;price1Denominator:string;updatedBlock:number };
 export type TWAP = { pool:string;token0:string;token1:string;price0AverageX112:string;price1AverageX112:string;intervalSeconds:number;fromBlock:number;toBlock:number };
@@ -39,9 +39,14 @@ export type SnapshotProvenance = {
   asOf:string;
   version:string;
   classification:"testnet";
-  status:"live";
+  status:"live"|"current-including-pending";
   coverage:"native-snapshot-assets-pools-events";
   latestBlock:number;
+  atomic?:true;
+  consensusFinality?:false;
+  snapshotId?:string;
+  pendingTransactionCount?:number;
+  durableCheckpoint?:{height:string;blockHash:string;snapshotIntegrity:string;scope:'local-snapshot'}|null;
 };
 export type Loadable<T> = { state:"loading" } | { state:"ready"; data:T; stale:boolean } | { state:"error"; message:string };
 export type Locale = "en"|"zh-CN"|"zh-TW"|"ja"|"ko"|"es"|"fr"|"de"|"pt"|"ru"|"ar"|"id";

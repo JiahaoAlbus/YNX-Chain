@@ -1,0 +1,51 @@
+{
+  "consensusFinality": false,
+  "durability": {
+    "checkpointHash": "90508f1cf1f1309f0365c2dfee699cbd133eefd65898f7c0ceae80b97e109c9e",
+    "checkpointHeight": "1",
+    "scope": "local-snapshot",
+    "snapshotIntegrity": "232d7cf312cdc67e70aa8e62706d29a3adba05d0fdecdd170800eaeca2121ab4",
+    "version": "ynx-local-durability-v1"
+  },
+  "integerEncoding": "decimal-string",
+  "schemaVersion": "ynx-native-finance-transaction-v1",
+  "source": "authoritative chain-native YNX Testnet state",
+  "status": "durable",
+  "transaction": {
+    "blockHash": "90508f1cf1f1309f0365c2dfee699cbd133eefd65898f7c0ceae80b97e109c9e",
+    "blockNumber": "1",
+    "fee": "1",
+    "from": "0x7a601ffa997cede6435aeabf4fa2091f09e149ec",
+    "hash": "0x7d2402e099efae6340bdcbf3240b9c4a3535b5fb4d1536bde1055d6626bb2917",
+    "logs": [
+      {
+        "address": "0x50c3bc4dae0b65e5e6c9cd609bb2f69cc9d5aa53",
+        "blockHash": "0x90508f1cf1f1309f0365c2dfee699cbd133eefd65898f7c0ceae80b97e109c9e",
+        "blockNumber": "1",
+        "data": "0x0000000000000000000000000000000000000000000000000000000000000000",
+        "logIndex": "3",
+        "removed": false,
+        "topics": [
+          "0x609ff62e164c38d8ddbb18b22c2af6aca3e0718596c12529b803edbfad8e2027",
+          "0xd13064ba1a147c93f092f0c93c02b25d493f182a8fe58afeaa312327dd911427",
+          "0x51875b6faa8a9464989f64e7cce92116ada7dcb3a8da9334710aad23497ccd1a"
+        ],
+        "transactionHash": "0x7d2402e099efae6340bdcbf3240b9c4a3535b5fb4d1536bde1055d6626bb2917",
+        "transactionIndex": "3"
+      }
+    ],
+    "lotFlows": [
+      {
+        "amount": "1",
+        "from": "0x7a601ffa997cede6435aeabf4fa2091f09e149ec",
+        "lotId": "e0a9982fd647f3f71a33f72184c37f06cacf449ef94fce5a22f5e8cd0601cd96",
+        "to": "ynx_validator_0"
+      }
+    ],
+    "memo": "signed chain-native DEX action",
+    "nonce": "3",
+    "timestamp": "2026-09-12T09:19:46.649683Z",
+    "to": "dex_ynxt_yusdt",
+    "type": "dex_liquidity_add"
+  }
+}

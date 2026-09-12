@@ -1,0 +1,156 @@
+{
+  "account": {
+    "address": "0x7a601ffa997cede6435aeabf4fa2091f09e149ec",
+    "balance": "899997",
+    "exists": true,
+    "nextNonce": "4",
+    "nonce": "3",
+    "staked": "0"
+  },
+  "appHash": null,
+  "asOf": "2026-09-12T09:19:46.712699Z",
+  "assets": [
+    {
+      "decimals": 0,
+      "id": "YNXT",
+      "name": "YNX Testnet",
+      "native": true,
+      "symbol": "YNXT"
+    },
+    {
+      "auditHash": "eaa9b8176cebffaee4b83852215b0532ef1adb04ed56dab2240b52a3b13fce71",
+      "blockHash": "90508f1cf1f1309f0365c2dfee699cbd133eefd65898f7c0ceae80b97e109c9e",
+      "blockHeight": "1",
+      "decimals": 6,
+      "id": "ynx-usd-test",
+      "issuer": "0x7a601ffa997cede6435aeabf4fa2091f09e149ec",
+      "maxSupply": "10000000",
+      "name": "YNX USD Test Asset",
+      "symbol": "YUSDT",
+      "totalSupply": "2000000",
+      "transactionHash": "0x87079ac498bedf539d69bd8a98bee34382ea14d886f52d4d88293c5bfa288987",
+      "txHash": "0x87079ac498bedf539d69bd8a98bee34382ea14d886f52d4d88293c5bfa288987"
+    }
+  ],
+  "atomic": true,
+  "balances": [
+    {
+      "account": "0x7a601ffa997cede6435aeabf4fa2091f09e149ec",
+      "amount": "899997",
+      "assetId": "YNXT"
+    },
+    {
+      "account": "0x7a601ffa997cede6435aeabf4fa2091f09e149ec",
+      "amount": "1800000",
+      "assetId": "ynx-usd-test"
+    }
+  ],
+  "blockHash": "90508f1cf1f1309f0365c2dfee699cbd133eefd65898f7c0ceae80b97e109c9e",
+  "blockHeight": "1",
+  "chainId": "6423",
+  "consensusFinality": false,
+  "coverage": {
+    "assets": true,
+    "balances": true,
+    "complete": true,
+    "events": true,
+    "lpShares": true
+  },
+  "durableCheckpoint": {
+    "blockHash": "90508f1cf1f1309f0365c2dfee699cbd133eefd65898f7c0ceae80b97e109c9e",
+    "height": "1",
+    "scope": "local-snapshot",
+    "snapshotIntegrity": "232d7cf312cdc67e70aa8e62706d29a3adba05d0fdecdd170800eaeca2121ab4"
+  },
+  "events": [
+    {
+      "amount0": "2000000",
+      "amount1": "0",
+      "asset0": "ynx-usd-test",
+      "asset1": "",
+      "auditHash": "6633e98e7e695a1003e46c2c1dc6e52bfc49100640a3b4f0ba48e71e25a17fc9",
+      "blockHash": "90508f1cf1f1309f0365c2dfee699cbd133eefd65898f7c0ceae80b97e109c9e",
+      "blockHeight": "1",
+      "id": "0b97f7151645795060653ef2",
+      "occurredAt": "2026-09-12T09:19:46.61194Z",
+      "poolId": "",
+      "shares": "0",
+      "signer": "0x7a601ffa997cede6435aeabf4fa2091f09e149ec",
+      "stage": "included",
+      "transactionHash": "0x87079ac498bedf539d69bd8a98bee34382ea14d886f52d4d88293c5bfa288987",
+      "txHash": "0x87079ac498bedf539d69bd8a98bee34382ea14d886f52d4d88293c5bfa288987",
+      "type": "dex_asset_create"
+    },
+    {
+      "amount0": "0",
+      "amount1": "0",
+      "asset0": "YNXT",
+      "asset1": "ynx-usd-test",
+      "auditHash": "be68295dadabf8a87001d42fd0b6cd744094e53dc6b22d0cf64539f6e97267ea",
+      "blockHash": "90508f1cf1f1309f0365c2dfee699cbd133eefd65898f7c0ceae80b97e109c9e",
+      "blockHeight": "1",
+      "id": "805399077723b955f2ed1ad2",
+      "occurredAt": "2026-09-12T09:19:46.627526Z",
+      "poolId": "dex_ynxt_yusdt",
+      "shares": "0",
+      "signer": "0x7a601ffa997cede6435aeabf4fa2091f09e149ec",
+      "stage": "included",
+      "transactionHash": "0x0b136f6a70167994e7503c46b62f86f7e1baf37a4d0d36cca67674f2edba0960",
+      "txHash": "0x0b136f6a70167994e7503c46b62f86f7e1baf37a4d0d36cca67674f2edba0960",
+      "type": "dex_pool_create"
+    },
+    {
+      "amount0": "100000",
+      "amount1": "200000",
+      "asset0": "YNXT",
+      "asset1": "ynx-usd-test",
+      "auditHash": "c8bc65034189f79eabed61dedbd23ae631d42374feb19b85a5868f877d6d90c8",
+      "blockHash": "90508f1cf1f1309f0365c2dfee699cbd133eefd65898f7c0ceae80b97e109c9e",
+      "blockHeight": "1",
+      "id": "529ff07344c11b3ef94a9451",
+      "occurredAt": "2026-09-12T09:19:46.649683Z",
+      "poolId": "dex_ynxt_yusdt",
+      "shares": "141421",
+      "signer": "0x7a601ffa997cede6435aeabf4fa2091f09e149ec",
+      "stage": "included",
+      "transactionHash": "0x7d2402e099efae6340bdcbf3240b9c4a3535b5fb4d1536bde1055d6626bb2917",
+      "txHash": "0x7d2402e099efae6340bdcbf3240b9c4a3535b5fb4d1536bde1055d6626bb2917",
+      "type": "dex_liquidity_add"
+    }
+  ],
+  "evmWeiPerYNXT": "1000000000000000000",
+  "integerEncoding": "decimal-string",
+  "nativeUnit": "whole-YNXT",
+  "nonceRule": "current-plus-one",
+  "pendingTransactionCount": 0,
+  "pools": [
+    {
+      "asset0": "YNXT",
+      "asset1": "ynx-usd-test",
+      "auditHash": "925e082c28b82c0983695a1b2906a556d9a070ae525a6d233bd19511de672924",
+      "blockHash": "90508f1cf1f1309f0365c2dfee699cbd133eefd65898f7c0ceae80b97e109c9e",
+      "blockHeight": "1",
+      "feeBps": 30,
+      "id": "dex_ynxt_yusdt",
+      "kind": "ynx-cpmm-v1",
+      "reserve0": "100000",
+      "reserve1": "200000",
+      "shares": [
+        {
+          "account": "0x7a601ffa997cede6435aeabf4fa2091f09e149ec",
+          "shares": "141421"
+        }
+      ],
+      "totalShares": "141421",
+      "transactionHash": "0x7d2402e099efae6340bdcbf3240b9c4a3535b5fb4d1536bde1055d6626bb2917",
+      "txHash": "0x7d2402e099efae6340bdcbf3240b9c4a3535b5fb4d1536bde1055d6626bb2917"
+    }
+  ],
+  "schemaVersion": "ynx-native-finance-snapshot-v1",
+  "signedActionCurve": "secp256k1",
+  "snapshotId": "sha256:866cab4e502156c4ded41ff15308ac83047e877b6ca6372d9a53476e7af454fa",
+  "source": "authoritative chain-native YNX Testnet state",
+  "stateScope": "authoritative-current-including-pending",
+  "transactionStatusPath": "/v1/native-transactions/{hash}",
+  "updatedAt": "2026-09-12T09:19:46.712699Z"
+}
