@@ -1,6 +1,7 @@
 import { p256 } from "@noble/curves/nist.js";
 import * as WalletAuth from "@ynx-chain/wallet-auth";
-import {StandardWalletConnection,enhanceWithProductSession} from "@ynx/dapp-connect-sdk";
+import {enhanceWithProductSession} from "@ynx/dapp-connect-sdk";
+import {beginStandardWalletOperation,discoverWalletProviders,isSharedWalletProvider,standardWalletConnection} from "./standardWalletSdk";
 import {walletErrorResponse} from "@ynx-chain/wallet-auth";
 import {acceptedCardGatewayEndpoint} from "./publicEndpointManifest";
 import {
@@ -21,7 +22,6 @@ type WalletRequestResult = {error?:{code?:number;message?:string}};
 type ProviderListener=(...args:readonly unknown[])=>void;
 type EIP1193Provider = Readonly<{request:(args:WalletRequest)=>Promise<unknown>;isMetaMask?:unknown;isYNXWallet?:unknown;providers?:readonly unknown[];on?:(event:string,listener:ProviderListener)=>void;removeListener?:(event:string,listener:ProviderListener)=>void}>;
 export type Eip1193Provider=EIP1193Provider;
-type ProviderAnnouncement=Readonly<{info?:Readonly<{rdns?:unknown}>;provider?:unknown}>;
 type DiscoveryTarget=Readonly<{ethereum?:unknown;addEventListener?:(event:string,listener:(event:unknown)=>void)=>void;removeEventListener?:(event:string,listener:(event:unknown)=>void)=>void;dispatchEvent?:(event:unknown)=>void;CustomEvent?:new(type:string,init?:Readonly<{detail?:unknown}>)=>unknown}>;
 export type WalletProviderKind="metamask"|"ynx-wallet";
 export type WalletProviderEvents=Readonly<{accountsChanged:(accounts:readonly string[])=>void;chainChanged:(chainId:string)=>void;disconnect:()=>void}>;
@@ -114,42 +114,20 @@ export function resolveEip1193Provider():Eip1193Provider|null{
   return null;
 }
 
-function strictMetaMaskProvider(value:unknown):value is Eip1193Provider{return object(value)&&typeof value.request==="function"&&value.isMetaMask===true}
-function strictYNXProvider(value:unknown):value is Eip1193Provider{return object(value)&&typeof value.request==="function"&&value.isYNXWallet===true}
+function strictMetaMaskProvider(value:unknown):value is Eip1193Provider{return isSharedWalletProvider(value,"metamask")}
+function strictYNXProvider(value:unknown):value is Eip1193Provider{return isSharedWalletProvider(value,"ynx-wallet")}
 export function isExpectedWalletProvider(value:unknown,kind:WalletProviderKind):value is Eip1193Provider{return kind==="metamask"?strictMetaMaskProvider(value):strictYNXProvider(value)}
-function uniqueMetaMask(candidates:readonly unknown[]):Eip1193Provider|null{const values=candidates.filter(strictMetaMaskProvider);return values.length===1?values[0]??null:null}
-function uniqueYNX(candidates:readonly unknown[]):Eip1193Provider|null{const values=candidates.filter(strictYNXProvider);return values.length===1?values[0]??null:null}
-function announcedMetaMask(event:unknown):Eip1193Provider|null{const detail=object(event)?event.detail:undefined;if(!object(detail))return null;const announcement=detail as ProviderAnnouncement;return announcement.info?.rdns==="io.metamask"&&strictMetaMaskProvider(announcement.provider)?announcement.provider:null}
-function announcedYNX(event:unknown):Eip1193Provider|null{const detail=object(event)?event.detail:undefined;if(!object(detail))return null;const announcement=detail as ProviderAnnouncement;return ["com.ynx.wallet","com.ynxwallet","io.ynx.wallet"].includes(String(announcement.info?.rdns))&&object(announcement.provider)&&typeof announcement.provider.request==="function"?announcement.provider as Eip1193Provider:null}
-function requestProviderEvent(target:DiscoveryTarget):unknown{const Constructor=target.CustomEvent??(globalThis as {CustomEvent?:DiscoveryTarget["CustomEvent"]}).CustomEvent;return Constructor?new Constructor("eip6963:requestProvider"):Object.freeze({type:"eip6963:requestProvider"})}
 
 export async function resolveMetaMaskEip1193Provider(target:DiscoveryTarget=globalThis as DiscoveryTarget,waitMs=160):Promise<Eip1193Provider|null>{
-  const announcements:Eip1193Provider[]=[];
-  const onAnnouncement=(event:unknown)=>{const provider=announcedMetaMask(event);if(provider&&!announcements.includes(provider))announcements.push(provider);};
-  target.addEventListener?.("eip6963:announceProvider",onAnnouncement);
-  try{target.dispatchEvent?.(requestProviderEvent(target));if(waitMs>0)await new Promise<void>(resolve=>setTimeout(resolve,waitMs));}
-  finally{target.removeEventListener?.("eip6963:announceProvider",onAnnouncement);}
-  const announced=uniqueMetaMask(announcements);
-  if(announced)return announced;
-  const ethereum=target.ethereum;
-  if(!object(ethereum))return null;
-  return uniqueMetaMask(Array.isArray(ethereum.providers)?ethereum.providers:[ethereum]);
+  return (await discoverWalletProviders(target,waitMs)).metamask?.provider as Eip1193Provider??null;
 }
 
 export async function resolveYNXEip1193Provider(target:DiscoveryTarget=globalThis as DiscoveryTarget,waitMs=160):Promise<Eip1193Provider|null>{
-  const announcements:Eip1193Provider[]=[];
-  const onAnnouncement=(event:unknown)=>{const provider=announcedYNX(event);if(provider&&!announcements.includes(provider))announcements.push(provider);};
-  target.addEventListener?.("eip6963:announceProvider",onAnnouncement);
-  try{target.dispatchEvent?.(requestProviderEvent(target));if(waitMs>0)await new Promise<void>(resolve=>setTimeout(resolve,waitMs));}
-  finally{target.removeEventListener?.("eip6963:announceProvider",onAnnouncement);}
-  const announced=announcements.length===1?announcements[0]??null:null;
-  if(announced)return announced;
-  const ethereum=target.ethereum;
-  return object(ethereum)?uniqueYNX(Array.isArray(ethereum.providers)?ethereum.providers:[ethereum]):null;
+  return (await discoverWalletProviders(target,waitMs)).ynx?.provider as Eip1193Provider??null;
 }
 
-async function ensureMetaMaskYNXTestnet(provider:Eip1193Provider):Promise<void>{
-  const current=String(await provider.request({method:"eth_chainId",params:[]})??"").toLowerCase();
+export async function ensureEip1193YNXTestnet(provider:Eip1193Provider,knownChain?:string):Promise<void>{
+  const current=knownChain??String(await provider.request({method:"eth_chainId",params:[]})??"").toLowerCase();
   if(current===YNX_TESTNET_CHAIN_ID)return;
   try{await provider.request({method:"wallet_switchEthereumChain",params:[{chainId:YNX_TESTNET_CHAIN_ID}]});}
   catch(error){
@@ -158,73 +136,79 @@ async function ensureMetaMaskYNXTestnet(provider:Eip1193Provider):Promise<void>{
     await provider.request({method:"wallet_switchEthereumChain",params:[{chainId:YNX_TESTNET_CHAIN_ID}]});
   }
   const switched=String(await provider.request({method:"eth_chainId",params:[]})??"").toLowerCase();
-  if(switched!==YNX_TESTNET_CHAIN_ID)throw new Error("MetaMask is not connected to YNX Testnet");
+  if(switched!==YNX_TESTNET_CHAIN_ID)throw Object.assign(new Error("Wallet is not connected to YNX Testnet"),{code:4901});
 }
-function connectedMetaMaskAccount(value:unknown):string{if(!Array.isArray(value)||!address(value[0]))throw new Error("MetaMask did not provide an account");return value[0].toLowerCase()}
 
 export async function connectMetaMaskWallet(now=new Date(),provider?:Eip1193Provider|null):Promise<Eip1193WalletSession>{
   const selected=provider??await resolveMetaMaskEip1193Provider();
   if(!strictMetaMaskProvider(selected))throw new Error("MetaMask is not installed or could not be uniquely identified");
-  const account=connectedMetaMaskAccount(await selected.request({method:"eth_requestAccounts",params:[]}));
-  await ensureMetaMaskYNXTestnet(selected);
-  return Object.freeze({address:account,chainId:YNX_TESTNET_CHAIN_ID,connectedAt:now.toISOString(),provider:"eip1193"});
+  return await connectEip1193Wallet(selected,now);
 }
 
 export async function restoreMetaMaskWallet(now=new Date(),provider?:Eip1193Provider|null):Promise<Eip1193WalletSession|null>{
   const selected=provider??await resolveMetaMaskEip1193Provider();
-  if(!strictMetaMaskProvider(selected))return null;
-  const accounts=await selected.request({method:"eth_accounts",params:[]});
-  if(!Array.isArray(accounts)||!address(accounts[0]))return null;
-  const chainId=String(await selected.request({method:"eth_chainId",params:[]})??"").toLowerCase();
-  return chainId===YNX_TESTNET_CHAIN_ID?Object.freeze({address:accounts[0].toLowerCase(),chainId,connectedAt:now.toISOString(),provider:"eip1193"}):null;
+  return await restoreEip1193Wallet(selected,"metamask",now);
 }
 
 export async function restoreEip1193Wallet(provider:Eip1193Provider|null,kind:WalletProviderKind,now=new Date()):Promise<Eip1193WalletSession|null>{
   if(!isExpectedWalletProvider(provider,kind))return null;
-  const accounts=await provider.request({method:"eth_accounts",params:[]});
-  if(!Array.isArray(accounts)||!address(accounts[0]))return null;
-  const chainId=String(await provider.request({method:"eth_chainId",params:[]})??"").toLowerCase();
-  return chainId===YNX_TESTNET_CHAIN_ID?Object.freeze({address:accounts[0].toLowerCase(),chainId,connectedAt:now.toISOString(),provider:"eip1193"}):null;
+  const current=beginStandardWalletOperation(provider);
+  const session=await standardWalletConnection(provider).restore();
+  return current()?cardStandardSession(session,now):null;
+}
+
+function cardStandardSession(session:Readonly<Record<string,unknown>>|null,now:Date):Eip1193WalletSession|null{
+  if(!session||!address(session.selectedAccount)||session.selectedChain!==YNX_TESTNET_CHAIN_ID||session.connected!==true)return null;
+  return Object.freeze({address:session.selectedAccount.toLowerCase(),chainId:YNX_TESTNET_CHAIN_ID,connectedAt:now.toISOString(),provider:"eip1193"});
 }
 
 export function watchEip1193Provider(provider:Eip1193Provider|null,kind:WalletProviderKind,events:WalletProviderEvents):()=>void{
   if(!isExpectedWalletProvider(provider,kind)||typeof provider.on!=="function")return()=>{};
-  const accounts=(value:unknown)=>events.accountsChanged(Array.isArray(value)?value.filter(address).map(value=>value.toLowerCase()):[]);
-  const chain=(value:unknown)=>events.chainChanged(typeof value==="string"?value.toLowerCase():"");
-  const disconnect=()=>events.disconnect();
-  provider.on("accountsChanged",accounts);provider.on("chainChanged",chain);provider.on("disconnect",disconnect);
-  return()=>{provider.removeListener?.("accountsChanged",accounts);provider.removeListener?.("chainChanged",chain);provider.removeListener?.("disconnect",disconnect);};
+  const stop=standardWalletConnection(provider).subscribe(({event,value})=>{
+    if(event==="accountsChanged")events.accountsChanged(Array.isArray(value)?value.filter(address).map(account=>account.toLowerCase()):[]);
+    if(event==="chainChanged")events.chainChanged(typeof value==="string"?value.toLowerCase():"");
+    if(event==="disconnect")events.disconnect();
+  });
+  return()=>{stop();};
 }
 
 export function watchMetaMaskProvider(provider:Eip1193Provider|null,events:WalletProviderEvents):()=>void{return watchEip1193Provider(provider,"metamask",events)}
 
 export async function disconnectEip1193Wallet(provider:Eip1193Provider|null,kind:WalletProviderKind):Promise<"revoked"|"local-only">{
   if(!isExpectedWalletProvider(provider,kind))throw new Error("Selected wallet provider is no longer available");
-  try{
-    await provider.request({method:"wallet_revokePermissions",params:[{eth_accounts:{}}]});
-    const accounts=await provider.request({method:"eth_accounts",params:[]});
-    if(!Array.isArray(accounts))throw new Error("Wallet did not return an account list after permission revocation");
-    return accounts.some(address)?"local-only":"revoked";
-  }
-  catch(error){const code=object(error)?error.code:undefined;if(code===4200||code===-32601)return "local-only";throw error;}
+  const current=beginStandardWalletOperation(provider);
+  const connection=standardWalletConnection(provider),result=await connection.revoke();
+  if(!current())throw Object.assign(new Error("Wallet operation was superseded"),{code:4100});
+  if(result.status==="rejected"||result.status==="superseded")throw Object.assign(new Error(result.error?.message??"Wallet operation was superseded"),{code:result.error?.code??4100});
+  if(result.permissionRevoked)return "revoked";
+  connection.disconnect();
+  return "local-only";
 }
 
 export async function switchEip1193WalletAccount(provider:Eip1193Provider|null,kind:WalletProviderKind):Promise<readonly string[]>{
   if(!isExpectedWalletProvider(provider,kind))throw new Error("Selected wallet provider is no longer available");
+  const current=beginStandardWalletOperation(provider);
   await provider.request({method:"wallet_requestPermissions",params:[{eth_accounts:{}}]});
+  if(!current())throw Object.assign(new Error("Wallet operation was superseded"),{code:4100});
   const accounts=await provider.request({method:"eth_requestAccounts",params:[]});
+  if(!current())throw Object.assign(new Error("Wallet operation was superseded"),{code:4100});
   if(!Array.isArray(accounts)||!address(accounts[0]))throw new Error("Wallet did not provide an approved account");
   return Object.freeze(accounts.filter(address).map(value=>value.toLowerCase()));
 }
 
 export async function connectEip1193Wallet(provider:Eip1193Provider|null=resolveEip1193Provider(),now=new Date()):Promise<Eip1193WalletSession>{
   if(!provider) throw new Error("EIP-1193 wallet provider is not available");
-  const connection=new StandardWalletConnection(provider);
+  const current=beginStandardWalletOperation(provider);
+  const active=()=>{if(!current())throw Object.assign(new Error("Wallet operation was superseded"),{code:4100});};
+  const connection=standardWalletConnection(provider);
   const standard=await connection.connect();
-  await connection.ensureYNXTestnet({addChain:ynxChainParameters});
-  const chainId=String(await provider.request({method:"eth_chainId",params:[]})??"").toLowerCase();
-  if(chainId!==YNX_TESTNET_CHAIN_ID)throw new Error("Wallet is not connected to YNX Testnet");
-  return Object.freeze({address:standard.account.toLowerCase(),chainId,connectedAt:now.toISOString(),provider:"eip1193"});
+  active();
+  await ensureEip1193YNXTestnet(provider,String(standard.selectedChain));
+  active();
+  const session=cardStandardSession(await connection.restore(),now);
+  active();
+  if(!session)throw Object.assign(new Error("Wallet did not retain an approved account on YNX Testnet"),{code:4100});
+  return session;
 }
 
 export function parseYnxtAmountToWei(value:string):string{

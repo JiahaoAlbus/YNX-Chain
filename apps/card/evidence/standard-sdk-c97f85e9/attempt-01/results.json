@@ -1,0 +1,14 @@
+{
+  "at": "2026-09-12T09:40:31.347Z",
+  "sdkSource": "c97f85e9ae4d4580b99860c51738e6040ca9ca18",
+  "testsExit": 0,
+  "typecheckExit": 0,
+  "logs": {
+    "tests.log": "c4ed1ddf3e0ba3b5e9b330772dabb4a39a62a20acb1bf197b0f490e61665f3aa",
+    "typecheck.log": "28452eecae54a204214ff127677eb25e57f3b60d392d68d17cbb5a111843d600"
+  },
+  "fixtureOnly": true,
+  "publicDeployed": false,
+  "realApproval": false,
+  "realTransaction": false
+}

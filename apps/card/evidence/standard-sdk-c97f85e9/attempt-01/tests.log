@@ -1,0 +1,36 @@
+✔ Card consumes the shared standard-wallet reducer and closes its chooser only after account plus 0x1917 (0.616791ms)
+✔ Card consumes the shared EIP-6963 discovery and keeps MetaMask identity exact (2.308166ms)
+✔ Card consumes shared discovery without a browser RPC fetch prerequisite (0.45925ms)
+✔ Card renders distinct provider identities and a complete connection lifecycle without blank tabs (0.676958ms)
+✔ Card consumes the exact self-contained Wallet Owner artifact (0.438959ms)
+✔ late EIP-6963 announcement and injected providers preserve distinct identities without account requests (5.302083ms)
+✔ shared discovery rejects ambiguous MetaMask and a dual-brand provider (0.194792ms)
+✔ both selected providers restore without prompts and deliver SDK account/chain/disconnect events (1.647417ms)
+✔ permission revoke needs empty-account readback and is not a local-only success (0.343709ms)
+✔ a rejected connection retains the exact provider error and creates no account (0.359416ms)
+✔ Card binds the only accepted YNX Testnet identities (0.486916ms)
+✔ Card uses exact canonical Wallet registry identity (26.169208ms)
+✔ canonical Wallet callback verifies every Card binding (17.0505ms)
+✔ Card root callback parser binds an approval or rejection to the same persisted request (0.828292ms)
+✔ Card submits an exact intent-bound YNXT wallet transaction and verifies confirmations (0.367417ms)
+✔ Card rejects failed, redirected, or under-confirmed Testnet top-ups (0.209834ms)
+✔ Card consumes the Standard Wallet SDK and retains CONNECTED state when private service degrades (0.622667ms)
+✔ Card discovers only MetaMask through EIP-6963 or an exact injected MetaMask provider (2.033792ms)
+✔ Card MetaMask requests accounts then switches or adds only YNX Testnet (0.305042ms)
+✔ Card MetaMask restores only verified accounts and reacts to account, chain, and disconnect events (0.273792ms)
+✔ Card restores and watches the explicitly selected YNX provider without MetaMask substitution (0.174875ms)
+✔ Card disconnects with truthful revoke verification and switches accounts only from an explicit action (0.349167ms)
+✔ Card MetaMask mobile and desktop links are official and isolated from YNX Wallet authorization (0.231167ms)
+✔ legacy Card private routes remain blocked and are not v2 evidence (1.974042ms)
+✔ Card preserves provider identity and fails closed on unknown Wallet errors (0.319ms)
+✔ Card makes an ambiguous read-only Wallet restore chooser-driven without requesting accounts (0.828708ms)
+✔ Card discovers only an explicit YNX EIP-6963 or injected provider (4.836875ms)
+✔ Web YNX button cannot construct a custom-scheme request without a provider (0.384166ms)
+ℹ tests 28
+ℹ suites 0
+ℹ pass 28
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 436.586416
