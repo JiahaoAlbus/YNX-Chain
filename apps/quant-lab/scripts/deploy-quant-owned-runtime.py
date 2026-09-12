@@ -27,12 +27,15 @@ ARCHIVE_BYTES = 3461756
 RELEASE_NAME = 'ynx-quant-lab-e022589fbd11'
 RELEASE = Path('/opt/ynx-quant/releases') / RELEASE_NAME
 DROP_DIR = Path('/etc/systemd/system/ynx-quant.service.d')
-DROP_FILE = DROP_DIR / '90-quant-e022589fbd11.conf'
+DROP_FILE = DROP_DIR / '90-quant-e022589fbd11-http-ready.conf'
 VALIDATION = Path('/var/lib/ynx-quant/validation-e022589fbd11')
 STATE = Path('/var/lib/ynx-quant/quant.json')
 CURRENT = Path('/opt/ynx-quant/current')
 RELEASE_PARENT_ID = (64770,1331062,0,0,0o755,7)
 EXPECTED_STATE_SHA = 'cbe3948ec8cbf93ccd07224dac779dd9ccacd8c9a596fcfe0ba917ebc3b3cb60'
+EXPECTED_OLD_PID = '1685153'
+RETAINED_RELEASE_ID = (64770,2535943,0,0,0o755)
+RELEASE_OWNER = (0,0)
 OLD_CURRENT = '/opt/ynx/releases/financial-owner-reads/ynx-financial-owner-reads-443286487e05/quant'
 FIXED_FILES = {
  '/etc/systemd/system/ynx-quant.service': 'ecf68b38cd1e14fc900e21d9bf86823c99b538382081585e2005a2a925709dd1',
@@ -127,6 +130,37 @@ def candidate_http(base, manifest):
   receipts.append(receipt)
  return receipts
 
+def wait_candidate_http():
+ # systemd Type=simple becomes active before Go ListenAndServe binds. Read-only
+ # bounded polling proves actual source readiness before asset verification.
+ deadline=time.monotonic()+8
+ while True:
+  try:
+   receipt,body=http('http://127.0.0.1:18444/api/version')
+   if receipt['status']==200 and json.loads(body).get('commit')==SOURCE:return
+  except (urllib.error.URLError,OSError,ValueError):pass
+  if time.monotonic()>=deadline:raise RuntimeError('CANDIDATE_HTTP_SOURCE_READINESS_TIMEOUT')
+  time.sleep(0.1)
+
+def verify_retained_release(entries):
+ require(identity(RELEASE)[:5]==RETAINED_RELEASE_ID and not RELEASE.is_symlink(), 'RETAINED_RELEASE_IDENTITY')
+ expected_files={str(PurePosixPath(name).relative_to(RELEASE_NAME)) for name in entries}
+ actual_files=set()
+ expected_dirs=set()
+ for relative in expected_files:
+  p=PurePosixPath(relative).parent
+  while str(p)!='.':expected_dirs.add(str(p));p=p.parent
+ actual_dirs=set()
+ for parent,dirs,files in os.walk(RELEASE,followlinks=False):
+  for name in dirs:
+   p=Path(parent)/name;require(not p.is_symlink() and (p.lstat().st_uid,p.lstat().st_gid)==RELEASE_OWNER and stat.S_IMODE(p.lstat().st_mode)==0o755,'RETAINED_DIRECTORY')
+   actual_dirs.add(str(p.relative_to(RELEASE)))
+  for name in files:actual_files.add(str((Path(parent)/name).relative_to(RELEASE)))
+ require(actual_files==expected_files and actual_dirs==expected_dirs,'RETAINED_INVENTORY_SET')
+ for full,(body,mode) in entries.items():
+  p=RELEASE/PurePosixPath(full).relative_to(RELEASE_NAME)
+  require(identity(p)[2:5]==RELEASE_OWNER+(mode,) and regular(p)==body,'RETAINED_FILE_CHANGED')
+
 def isolated_start(manifest, uid, gid):
  absent(VALIDATION)
  VALIDATION.mkdir(mode=0o700)
@@ -167,26 +201,21 @@ def isolated_start(manifest, uid, gid):
 
 def main():
  require(os.geteuid()==0, 'ROOT_REQUIRED')
- require(len(sys.argv)==2 and sys.argv[1]=='--deploy-owned-quant-e022589fbd11', 'EXPLICIT_COMMAND_REQUIRED')
+ require(len(sys.argv)==2 and sys.argv[1]=='--activate-owned-quant-e022589fbd11-http-ready', 'EXPLICIT_COMMAND_REQUIRED')
  data=sys.stdin.buffer.read(ARCHIVE_BYTES+1)
  require(len(data)==ARCHIVE_BYTES and digest(data)==ARCHIVE_SHA, 'ARCHIVE_TRANSPORT_MISMATCH')
  entries,manifest=validate_archive(data)
- require(identity(RELEASE.parent)==RELEASE_PARENT_ID, 'RELEASE_PARENT_DRIFT')
- for p in (RELEASE,DROP_DIR,VALIDATION): absent(p)
+ require(identity(RELEASE.parent)[:5]==RELEASE_PARENT_ID[:5] and not RELEASE.parent.is_symlink(), 'RELEASE_PARENT_DRIFT')
+ verify_retained_release(entries)
+ for p in (DROP_DIR,VALIDATION): absent(p)
  unchanged()
- old=service(); require(old=={'MainPID':'877070','NRestarts':'0','ActiveState':'active','SubState':'running'}, 'OLD_SERVICE_DRIFT')
+ old=service(); require(old=={'MainPID':EXPECTED_OLD_PID,'NRestarts':'0','ActiveState':'active','SubState':'running'}, 'OLD_SERVICE_DRIFT')
  sibling=service('ynx-quant-exchange.service')
  require(sibling['MainPID']=='2275763' and sibling['NRestarts']=='0', 'SIBLING_SERVICE_DRIFT')
  baseline=old_http()
  before_state=digest(regular(STATE))
  require(before_state==EXPECTED_STATE_SHA, 'STATE_DRIFT')
  user=pwd.getpwnam('ynx'); require((user.pw_uid,user.pw_gid)==(995,986), 'SERVICE_USER_DRIFT')
- RELEASE.mkdir(mode=0o755)
- for full,(body,mode) in entries.items():
-  target=RELEASE/PurePosixPath(full).relative_to(RELEASE_NAME)
-  target.parent.mkdir(mode=0o755,parents=True,exist_ok=True)
-  with target.open('xb') as out: out.write(body); out.flush(); os.fsync(out.fileno())
-  target.chmod(mode)
  isolated=isolated_start(manifest,user.pw_uid,user.pw_gid)
  unchanged(); require(digest(regular(STATE))==before_state and service()==old, 'PRE_SWITCH_DRIFT')
  drop_bytes=f'[Service]\nExecStart=\nExecStart={RELEASE}/ynx-quantd\nWorkingDirectory={RELEASE}\nEnvironment=YNX_QUANT_PRIVATE_SESSION_V2_ENABLED=1\n'.encode()
@@ -204,6 +233,7 @@ def main():
    if current['ActiveState']=='active' and current['SubState']=='running' and int(current['MainPID'])>0: break
    time.sleep(0.2)
   require(current['MainPID']!=old['MainPID'] and current['NRestarts']=='0', 'CANDIDATE_SERVICE')
+  wait_candidate_http()
   receipts=[]
   for base in BASES: receipts.extend(candidate_http(base,manifest))
   unchanged()

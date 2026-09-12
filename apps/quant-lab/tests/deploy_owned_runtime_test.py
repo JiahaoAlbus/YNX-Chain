@@ -14,6 +14,7 @@ import tarfile
 import tempfile
 import types
 import unittest
+import urllib.error
 from unittest.mock import patch
 
 SCRIPT=Path(__file__).resolve().parents[1]/'scripts/deploy-quant-owned-runtime.py'
@@ -58,6 +59,13 @@ class QuantDeploymentTest(unittest.TestCase):
    running=dict(original);sibling={'MainPID':'2275763','NRestarts':'0','ActiveState':'active','SubState':'running'}
    calls=[];checks=[]
    m.RELEASE=releases/m.RELEASE_NAME;m.RELEASE_PARENT_ID=m.identity(releases)
+   m.RELEASE.mkdir(mode=0o755)
+   entries,_=m.validate_archive(raw)
+   for full,(body,mode) in entries.items():
+    target=m.RELEASE/Path(full).relative_to(m.RELEASE_NAME)
+    target.parent.mkdir(mode=0o755,parents=True,exist_ok=True)
+    target.write_bytes(body);target.chmod(mode)
+   m.RETAINED_RELEASE_ID=m.identity(m.RELEASE)[:5];m.RELEASE_OWNER=(os.getuid(),os.getgid());m.EXPECTED_OLD_PID='877070'
    m.CURRENT=current;m.OLD_CURRENT=str(old);m.STATE=state;m.EXPECTED_STATE_SHA=m.digest(state.read_bytes())
    m.FIXED_FILES={str(p):m.digest(p.read_bytes()) for p in [old_binary,unit,env]}
    m.DROP_DIR=drop_dir;m.DROP_FILE=drop_dir/'90-fixture.conf';m.VALIDATION=root/'validation'
@@ -78,7 +86,7 @@ class QuantDeploymentTest(unittest.TestCase):
     self.assertEqual(state.read_bytes(),b'{"user":"fixture-only","preserve":true}')
     return [{'isolatedStart':'mock boundary, not Linux evidence'}]
    out=io.StringIO()
-   with patch.object(m.os,'geteuid',return_value=0),patch.object(m.pwd,'getpwnam',return_value=types.SimpleNamespace(pw_uid=995,pw_gid=986)),patch.object(m,'service',side_effect=lambda name='ynx-quant.service':dict(sibling if name!='ynx-quant.service' else running)),patch.object(m,'run',side_effect=fake_run),patch.object(m,'old_http',side_effect=old_http),patch.object(m,'candidate_http',side_effect=candidate_http),patch.object(m,'isolated_start',side_effect=isolated),patch.object(m.sys,'stdin',types.SimpleNamespace(buffer=io.BytesIO(raw))),patch.object(m.sys,'argv',['executor','--deploy-owned-quant-e022589fbd11']),contextlib.redirect_stdout(out):
+   with patch.object(m.os,'geteuid',return_value=0),patch.object(m.pwd,'getpwnam',return_value=types.SimpleNamespace(pw_uid=995,pw_gid=986)),patch.object(m,'service',side_effect=lambda name='ynx-quant.service':dict(sibling if name!='ynx-quant.service' else running)),patch.object(m,'run',side_effect=fake_run),patch.object(m,'old_http',side_effect=old_http),patch.object(m,'candidate_http',side_effect=candidate_http),patch.object(m,'wait_candidate_http'),patch.object(m,'isolated_start',side_effect=isolated),patch.object(m.sys,'stdin',types.SimpleNamespace(buffer=io.BytesIO(raw))),patch.object(m.sys,'argv',['executor','--activate-owned-quant-e022589fbd11-http-ready']),contextlib.redirect_stdout(out):
     if failure=='existing-child':
      with self.assertRaisesRegex(RuntimeError,'NEW_PATH_ALREADY_EXISTS'):m.main()
     elif failure:
@@ -91,7 +99,7 @@ class QuantDeploymentTest(unittest.TestCase):
    self.assertNotIn('PRIVATE_VALUE',out.getvalue())
    self.assertTrue(all('ynx-quant-exchange.service' not in argv for argv in calls))
    if failure=='existing-child':
-    self.assertEqual(calls,[]);self.assertEqual(m.DROP_FILE.read_bytes(),b'foreign');self.assertFalse(m.RELEASE.exists())
+    self.assertEqual(calls,[]);self.assertEqual(m.DROP_FILE.read_bytes(),b'foreign');m.verify_retained_release(entries)
    elif failure:
     self.assertFalse(drop_dir.exists());self.assertEqual(running['MainPID'],'900002')
     self.assertEqual(checks,['old','candidate','old'])
@@ -104,5 +112,10 @@ class QuantDeploymentTest(unittest.TestCase):
  def test_success_keeps_candidate_and_rollback_pointer(self):self.flow()
  def test_asset_failure_restores_only_own_unit_not_old_state(self):self.flow('public-mismatch')
  def test_existing_control_refused_before_writes(self):self.flow('existing-child')
+ def test_active_service_waits_for_source_bound_http_listening(self):
+  m=load()
+  with patch.object(m,'http',side_effect=[urllib.error.URLError('fixture connection refused'),urllib.error.URLError('fixture connection refused'),({'status':200},json.dumps({'commit':m.SOURCE}).encode())]) as get,patch.object(m.time,'sleep'):
+   m.wait_candidate_http()
+   self.assertEqual(get.call_count,3)
 
 if __name__=='__main__':unittest.main()

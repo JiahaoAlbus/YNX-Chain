@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "product": "quant",
+  "source": "e022589fbd11024d7df075091a21de9f01565bf9",
+  "executorCommit": "cd6064ad5a561d9b5193241be3741d7141f6d92c",
+  "terminal": {
+    "attempts": 1,
+    "localExitStatus": 1,
+    "signal": null,
+    "error": null,
+    "stdoutBytes": 238,
+    "stdoutSha256": "52c2d286c7b3b51fc52c47196c6ff7bb4ff5707976cc6c24830ee080ec9cd5a0",
+    "stdout": "{\"result\": \"QUANT_DEPLOY_FAILED\", \"failureClass\": \"URLError\", \"code\": \"UNEXPECTED_FAILURE_NO_DETAILS\", \"automaticRollbackVerified\": true, \"releaseRetained\": \"/opt/ynx-quant/releases/ynx-quant-lab-e022589fbd11\", \"stateOverwritten\": false}\n",
+    "stderrBytes": 0,
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "postRead": "MainPID=1685153\nNRestarts=0\nActiveState=active\nSubState=running\nDropInPaths=\nMainPID=2275763\nNRestarts=0\n/opt/ynx/releases/financial-owner-reads/ynx-financial-owner-reads-443286487e05/quant\nd65a972203f51c8d78e789dfd010708310d47a93445c7bc9315bae40d856257e  /etc/ynx/ynx-quant.env\necf68b38cd1e14fc900e21d9bf86823c99b538382081585e2005a2a925709dd1  /etc/systemd/system/ynx-quant.service\nfe86b1178f5f27b2fe225aaee1704e3ca8b083a30f1f6b25fbaf999b4b68ddb9  /etc/caddy/conf.d/ynx-quant.caddy\ncbe3948ec8cbf93ccd07224dac779dd9ccacd8c9a596fcfe0ba917ebc3b3cb60  /var/lib/ynx-quant/quant.json\n/etc/systemd/system/ynx-quant.service.d absent\n/var/lib/ynx-quant/validation-e022589fbd11 absent\n/opt/ynx-quant/releases/ynx-quant-lab-e022589fbd11 64770:2535943:0:0:755:3:4096:directory\n{\"time\": \"1789211520796359\", \"pid\": \"877070\", \"class\": \"OTHER\", \"bytes\": 302, \"sha256\": \"2b6e2029035c9542bf738a6b937afb0a18f3851ca8f22238e455875408153d7a\"}\n{\"time\": \"1789211520797441\", \"pid\": \"877070\", \"class\": \"OTHER\", \"bytes\": 302, \"sha256\": \"69ef23e26df0a64cf06296f2ef436b51f914206e5c1b8a90189b3c8ac3d77133\"}\n{\"time\": \"1789211520870172\", \"pid\": \"877070\", \"class\": \"OTHER\", \"bytes\": 303, \"sha256\": \"0059030bab8a9b96e5639c6594d0f9277993416284c501578ea5c89338601b1c\"}\n{\"time\": \"1789211520880831\", \"pid\": \"877070\", \"class\": \"OTHER\", \"bytes\": 302, \"sha256\": \"f79a3859c4364a4e7bacff518a16a2deb5f22cb08c6f9d5192ade71387706fb7\"}\n{\"time\": \"1789211521366395\", \"pid\": \"1\", \"class\": \"Stopping\", \"bytes\": 84, \"sha256\": \"9d322721afafc674db6f973b9af9805c084ad1aa1dbc9a37aa77ee8094e27589\"}\n{\"time\": \"1789211521369165\", \"pid\": \"1\", \"class\": \"Deactivated successfully\", \"bytes\": 44, \"sha256\": \"5d293eb6534275695ab53f404accb400f30053c9192a28e6c7cdd8b85b86b11a\"}\n{\"time\": \"1789211521369460\", \"pid\": \"1\", \"class\": \"Stopped\", \"bytes\": 81, \"sha256\": \"46a38f4380fc3d98f69e2dd5048d2e8c5364b5199edfb72c3727941a8219a7f9\"}\n{\"time\": \"1789211521369540\", \"pid\": \"1\", \"class\": \"OTHER\", \"bytes\": 94, \"sha256\": \"f61356fed4d1da30e128d4c532d965cb3a3437a5f585b469d2b1ca64b932cc71\"}\n{\"time\": \"1789211521385511\", \"pid\": \"1\", \"class\": \"Started\", \"bytes\": 81, \"sha256\": \"847ea1241ec91a37e47f14828fe31451bc8591f53beb7aecb763c65ea000d8b2\"}\n{\"time\": \"1789211521396674\", \"pid\": \"1685037\", \"class\": \"YNX Quant Lab simulated/testnet preview\", \"bytes\": 78, \"sha256\": \"bc1752642a21c7712bf0220f91355de82c69546a831d36a7db5bd02c2ae437fe\"}\n{\"time\": \"1789211521720824\", \"pid\": \"1\", \"class\": \"Stopping\", \"bytes\": 84, \"sha256\": \"9d322721afafc674db6f973b9af9805c084ad1aa1dbc9a37aa77ee8094e27589\"}\n{\"time\": \"1789211521722195\", \"pid\": \"1\", \"class\": \"Deactivated successfully\", \"bytes\": 44, \"sha256\": \"5d293eb6534275695ab53f404accb400f30053c9192a28e6c7cdd8b85b86b11a\"}\n{\"time\": \"1789211521722405\", \"pid\": \"1\", \"class\": \"Stopped\", \"bytes\": 81, \"sha256\": \"46a38f4380fc3d98f69e2dd5048d2e8c5364b5199edfb72c3727941a8219a7f9\"}\n{\"time\": \"1789211521736233\", \"pid\": \"1\", \"class\": \"Started\", \"bytes\": 81, \"sha256\": \"847ea1241ec91a37e47f14828fe31451bc8591f53beb7aecb763c65ea000d8b2\"}\n{\"time\": \"1789211521746482\", \"pid\": \"1685153\", \"class\": \"YNX Quant Lab simulated/testnet preview\", \"bytes\": 78, \"sha256\": \"bc1752642a21c7712bf0220f91355de82c69546a831d36a7db5bd02c2ae437fe\"}\n{\"time\": \"1789211521940348\", \"pid\": \"1685153\", \"class\": \"OTHER\", \"bytes\": 303, \"sha256\": \"24987a9984e9c01b0b32db3eb7dafbfd346dcfc2cfef6588f225710d63d462e3\"}\n{\"time\": \"1789211521941584\", \"pid\": \"1685153\", \"class\": \"OTHER\", \"bytes\": 302, \"sha256\": \"bcea9a877e4f4a1f709c0f6c0386e3a7ad05ce3b476690a99f922456b826efa9\"}\n{\"time\": \"1789211521961693\", \"pid\": \"1685153\", \"class\": \"OTHER\", \"bytes\": 303, \"sha256\": \"1fe00d3ebaa123c6447917135a490a2404282efc07e87b7333bcffcb71529300\"}\n{\"time\": \"1789211522013106\", \"pid\": \"1685153\", \"class\": \"OTHER\", \"bytes\": 302, \"sha256\": \"3f7ee44c7008161183a8a2c3a14c21872798f1ea6fc8c176255a8bb6b5d1e95c\"}\n",
+  "conclusion": "Actual Linux isolated candidate start and archive inventory passed. Type=simple systemd active check raced Go HTTP listener; immediate version GET raised URLError. Candidate startup journal exists; no candidate HTTP handling before rollback. Automatic rollback old HTTP verified. Base state/env/unit/Caddy/shared current unchanged; old service restarted PID1685153. No retry of the frozen command.",
+  "successor": "Same exact immutable candidate is revalidated byte-for-byte; new Quant-only drop-in name, fresh old PID, explicit source-bound bounded HTTP readiness poll before asset checks; exact source/fixtures frozen separately.",
+  "truth": {
+    "publishedNew": false,
+    "rollbackVerified": true,
+    "stateOverwritten": false,
+    "account": false,
+    "sign": false,
+    "transactions": false,
+    "installed": false
+  }
+}
