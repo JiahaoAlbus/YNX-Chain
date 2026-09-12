@@ -32,7 +32,7 @@ export async function loadDocsBrowserSession({environment = globalThis, walletIn
   if (!configResponse.ok) throw new Error('Docs session configuration is unavailable');
   const config = await configResponse.json();
   if (config.enabled !== true) throw new Error('Docs Product Session v2 is not enabled on this deployment');
-  if (access === 'edit' && config.apiWriteEnabled !== true) throw new Error('Docs editing authorization is not enabled on this deployment');
+  if (access === 'edit' && config.editingAuthorizationEnabled !== true) throw new Error('Docs editing authorization is not enabled on this deployment');
   if (config.authority !== docsSessionBinding.authority) throw new Error('Docs session authority does not match the configured deployment');
   const registryResponse = await environment.fetch('/vendor/product-session-registry.json', {cache: 'no-store', credentials: 'omit', redirect: 'error'});
   if (!registryResponse.ok) throw new Error('Docs Product Session registry is unavailable');

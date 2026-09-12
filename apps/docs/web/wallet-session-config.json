@@ -1,5 +1,6 @@
 {
   "enabled": true,
+  "editingAuthorizationEnabled": true,
   "apiReadEnabled": false,
   "apiWriteEnabled": false,
   "apiWriteBackendCommit": "dd04f6109bb4b56ef572171e8081a9ee4b06a7e6",

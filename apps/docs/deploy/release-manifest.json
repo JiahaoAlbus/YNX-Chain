@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "productId": "docs",
   "status": "local-candidate",
-  "generatedAt": "2026-09-12T11:00:51.756Z",
+  "generatedAt": "2026-09-12T11:11:32.612Z",
   "source": {
-    "baseCommit": "f6309fb761c1e43edbea593485f910dbf0b86757",
+    "baseCommit": "51d83cb5466d43bf2fa002f0de80210c08155cb4",
     "branch": "codex/final-docs",
-    "webTree": "0d26c18aceeb49e6d13cf8deae3d214a3d3e232b",
+    "webTree": "518d8c0709cd667c3b41efc0e657f2a7f452bac3",
     "webRoot": "apps/docs/web",
     "entry": "index.html",
     "entryScript": "app-secure.js"
@@ -31,6 +31,7 @@
     ],
     "configuration": {
       "enabled": true,
+      "editingAuthorizationEnabled": true,
       "apiReadEnabled": false,
       "apiWriteEnabled": false,
       "apiWriteBackendCommit": "dd04f6109bb4b56ef572171e8081a9ee4b06a7e6",
@@ -38,9 +39,9 @@
       "authority": "https://wallet-auth.ynxweb4.com"
     },
     "authorityReadiness": {
-      "status": "coordinator-confirmed-deployed",
-      "sourceCommit": "9840ef871165eb523c4e7a3d48964dd25f8dee8e",
-      "evidence": "release/wallet-gateway-9840ef87-run01/public-acceptance.json",
+      "status": "coordinator-and-release-intake-confirmed-deployed",
+      "sourceCommit": "a7dad7ec1bc7c06577978bdd5fea8dc9c7a248a9",
+      "reportedPublicChecks": 33,
       "independentlyRecheckedByDocs": false,
       "productLoginAccepted": false
     },
@@ -50,7 +51,7 @@
       "files.read",
       "files.write"
     ],
-    "authorityUpgradeRequiredForWrites": true
+    "authorityUpgradeRequiredForWrites": false
   },
   "implementation": {
     "standardProviderLifecycle": true,
@@ -66,13 +67,26 @@
     "v2SessionCreateSaveIntegration": true,
     "v2MainEditorCreateSave": true,
     "v2MainEditorPaginatedRead": true,
-    "v2MainEditorRemainingMutations": false
+    "v2MainEditorRemainingMutations": false,
+    "v2MainEditorLocalSavedVersionExport": true
   },
   "localTestEvidence": {
     "command": "node --test apps/docs/tests/*.test.mjs",
     "lastObservedPassed": 43,
     "lastObservedFailed": 0,
-    "scope": "Local tests only; no public/installed product acceptance"
+    "scope": "Local tests only; no public/installed product acceptance",
+    "latestTargeted": [
+      {
+        "command": "node --test apps/docs/tests/document-export.test.mjs apps/docs/tests/product-session-client.test.mjs apps/docs/tests/client.test.mjs",
+        "passed": 8,
+        "failed": 0
+      },
+      {
+        "command": "node --test apps/docs/tests/product-session-client.test.mjs",
+        "passed": 4,
+        "failed": 0
+      }
+    ]
   },
   "releaseStatus": {
     "deployedPublic": false,
@@ -91,8 +105,8 @@
   "files": [
     {
       "path": "app-secure.js",
-      "bytes": 39878,
-      "sha256": "53f2208d7c7437165e7facdef4d259fd1bf75c675cf8c843dc2e369fd405cde7"
+      "bytes": 40847,
+      "sha256": "36ab49265879e373478ab2cfcedf1326ef963cd1fcbe1f66e15dc1d6c237af62"
     },
     {
       "path": "app.js",
@@ -100,9 +114,14 @@
       "sha256": "75aec379857e250e070b3923a07741625cf54d047f76f05abfb303fb75709c5a"
     },
     {
+      "path": "document-export.js",
+      "bytes": 1366,
+      "sha256": "66487d0e14e7c98a07bfe745b59dbb0cea42f2c3a4868543729fef364a504e75"
+    },
+    {
       "path": "editor-session-bridge.js",
-      "bytes": 5929,
-      "sha256": "f9e8ee76222eeef5b116bce54c4e99080acdbb0e5cb5259512a0458ecd4ab0a9"
+      "bytes": 5989,
+      "sha256": "11ba1f0dca5c61f6d9557b255f6a3fe3e6d3cbc82b94417517d666300dee2c8e"
     },
     {
       "path": "guide-translations.js",
@@ -126,8 +145,8 @@
     },
     {
       "path": "product-session-client.js",
-      "bytes": 2895,
-      "sha256": "e036cb72f147966d8e13da0873b4cd955c6b1599ef7115b6659fa8ea2417b98b"
+      "bytes": 2907,
+      "sha256": "4ec3dca7e2bd3598a3cb145699f55f793acdf29a482d5427a657855ddcd96c55"
     },
     {
       "path": "product-session-read-client.js",
@@ -196,8 +215,8 @@
     },
     {
       "path": "wallet-session-config.json",
-      "bytes": 268,
-      "sha256": "883b26dc2fb67afefeda0c5bf60c7a65a01e9000a6aa3ba6d3f5fb3ebdfc9b0e"
+      "bytes": 307,
+      "sha256": "7092170d2227ad6275e3decc4d7b1d4f92aee92e8c0d9908753645da26d0863d"
     },
     {
       "path": "wallet-session-page.js",

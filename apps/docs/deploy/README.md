@@ -123,3 +123,16 @@ state or bind the old web4 deployment to the new source. On the independent v2
 origin, rename/move/duplicate/trash/export/history/comments/AI/presence are disabled
 until their actual backend contracts are implemented. Read-only scopes cannot
 edit document text. The core migration is not full feature or runtime acceptance.
+
+## Authority readiness and local export
+
+The coordinator and release_intake have confirmed public a7 Gateway deployment.
+`editingAuthorizationEnabled: true` now permits an explicit editing-scope request
+independently from backend availability. `apiReadEnabled` and `apiWriteEnabled`
+remain false until Cloud's real existing-state deployment is confirmed. An
+allowlist is permission to request scopes, not evidence of user approval.
+
+Main-editor export is now available locally for an already authorized, saved
+version: text, Markdown, escaped HTML and JSON. It excludes newer unsaved edits,
+labels the saved version, and does not call an unsupported backend export route.
+Other unimplemented v2 toolbar actions remain disabled.

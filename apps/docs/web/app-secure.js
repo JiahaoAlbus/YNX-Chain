@@ -1,4 +1,4 @@
-import {loadDocsEditorBridge} from './editor-session-bridge.js';
+import {loadDocsEditorBridge, createDocsLocalExport} from './editor-session-bridge.js';
 const $ = (query) => document.querySelector(query);
 const editorV2Mode = window.location?.origin === 'https://docs.ynxweb4.com';
 let editorV2 = null;
@@ -117,7 +117,12 @@ function setStatus(text, error = false) {
 }
 
 function enableDocumentActions(enabled) {
-  if (editorV2Mode) enabled = false;
+  if (editorV2Mode) {
+    for (const id of ['duplicate', 'move', 'trash', 'history', 'comments', 'ai']) $(`#${id}`).disabled = true;
+    $('#export').disabled = !enabled;
+    $('#export-format').disabled = !enabled;
+    return;
+  }
   for (const id of ['export', 'duplicate', 'move', 'trash', 'history', 'comments', 'ai']) {
     $(`#${id}`).disabled = !enabled;
   }
@@ -994,6 +999,19 @@ async function runAI() {
 }
 
 async function exportDocument() {
+  if (editorV2Mode) {
+    if (!state.current || !docsIdentity()) return;
+    try {
+      const result = createDocsLocalExport({id: state.current.id, name: state.current.name, version: state.baseVersion, content: state.content}, $('#export-format').value);
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(new Blob([result.body], {type: result.type}));
+      link.download = result.filename;
+      document.body.append(link); link.click(); link.remove();
+      setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+      setStatus(`Exported saved version ${state.baseVersion}${state.dirty ? '; newer unsaved draft was not included' : ''}`);
+    } catch (error) { setStatus(error.message, true); }
+    return;
+  }
   if (!state.current) return;
   const format = $('#export-format').value;
   try {

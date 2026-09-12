@@ -1,6 +1,7 @@
 import {loadDocsBrowserSession, docsSessionBinding} from './product-session-client.js';
 import {createDocsSessionTransport} from './product-session-transport.js';
 import {createDocsWriteClient} from './product-session-write-client.js';
+export {createDocsLocalExport} from './document-export.js';
 
 export function createDocsEditorBridge({adapter, configuration, environment = globalThis}) {
   const transport = createDocsSessionTransport({adapter, origin: docsSessionBinding.origin, fetchImpl: environment.fetch.bind(environment)});
