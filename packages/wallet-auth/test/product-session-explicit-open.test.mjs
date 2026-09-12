@@ -211,16 +211,18 @@ test("a late detected probe cannot overwrite a newer explicit request or pending
   assert.equal(setup.storage.values.get(setup.pendingKey), bytes);
 });
 
-test("detected false probes still show installation guidance and restore stays a single automatic attempt", options, async () => {
+test("detected false probes still show guidance while later restore preserves the original pending request", options, async () => {
   const setup = harness(); let probes = 0;
   setup.gateway.walletInstalled = async () => { probes++; return false; };
   setup.gateway.schemeRegistered = async () => false;
   const detected = await setup.client.beginDetected();
   assert.equal(detected.status, "retry-required"); assert.equal(detected.route.status, "wallet-not-installed");
   assert.equal(detected.automatic, false); assert.ok(detected.actions.includes("download"));
-  const automatic = await setup.client.restore(true);
-  assert.equal(automatic.status, "retry-required"); assert.equal(automatic.route.status, "wallet-not-installed"); assert.equal(automatic.automatic, true);
-  const count = probes;
+  const count = probes, raw = setup.storage.values.get(setup.pendingKey);
+  const restored = await setup.client.restore(true);
+  assert.equal(restored.status, "connecting"); assert.equal(restored.route.status, "ready"); assert.equal(restored.automatic, false);
+  assert.equal(restored.installation, "unverified"); assert.equal(probes, count);
+  assert.equal(setup.storage.values.get(setup.pendingKey), raw);
   const again = await setup.client.restore(true);
-  assert.equal(again.status, "retry-required"); assert.equal(probes, count);
+  assert.deepEqual(again, restored); assert.equal(probes, count);
 });

@@ -93,16 +93,21 @@ test("an expired revocation proof retains the unexpired session for Retry instea
   assert.equal(s.authority.snapshot().revokedSessions.length, 0);
 });
 
-test("revoked stored session fails closed and starts only one controlled reconnect before explicit Retry", async () => {
+test("revoked stored session starts one controlled reconnect and then preserves its pending request", async () => {
   const first = harness(); const connecting = await first.client.begin({ walletInstalled: true, schemeRegistered: true });
   const approval = signProductSessionApproval(registry, connecting.request, { accountSecret, scopes: connecting.request.scopes, expiresAt: "2026-08-14T01:03:00.000Z" }, NOW);
   const callback = createProductSessionReturnURL(registry, connecting.request, { result: "approved", approval }, NOW);
   const connected = await first.client.handleReturn(callback); first.authority.revokeSession(connected.session.sessionBinding);
+  first.gateway.currentTime = async () => NOW;
   const second = new RecoverableProductSessionClient({ registry, productId: "social", platform: "android", storage: first.storage, gateway: first.gateway, device, tokenFactory: (() => { let i = 0; return () => token(`controlled-${i++}`); })(), clock: () => NOW });
   assert.equal((await second.restore(true)).status, PRODUCT_SESSION_CLIENT_STATE.CONNECTING);
   assert.equal(second.current.automatic, true);
-  assert.equal((await second.restore(true)).status, PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED);
+  const pending = await first.storage.get(`${second.storageKey}:pending`);
+  assert.equal((await second.restore(true)).status, PRODUCT_SESSION_CLIENT_STATE.CONNECTING);
+  assert.equal(second.current.automatic, false);
+  assert.equal(await first.storage.get(`${second.storageKey}:pending`), pending);
   assert.equal((await second.retry({ walletInstalled: true, schemeRegistered: true })).automatic, false);
+  assert.equal(await first.storage.get(`${second.storageKey}:pending`), pending);
 });
 
 test("network loss, rejection and Guest mode never synthesize identity, balance, transaction or Chain state", async () => {

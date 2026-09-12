@@ -87,6 +87,9 @@ export class RecoverableProductSessionClient {
     const pendingReturn = await this.#storage.get(`${this.storageKey}:return`);
     if (epoch !== this.#beginEpoch) return this.current;
     if (pendingReturn !== null) return this.handleReturn(pendingReturn);
+    const pending = await this.#restorePendingRequest(epoch);
+    if (epoch !== this.#beginEpoch) return this.current;
+    if (pending !== null) return pending;
     if (!this.#autoReconnectAttempted) {
       this.#autoReconnectAttempted = true;
       return this.beginDetected(true);
@@ -98,6 +101,58 @@ export class RecoverableProductSessionClient {
   async begin(environment, automatic = false) {
     exactFields(environment, ["walletInstalled", "schemeRegistered"], "Product Session connection environment");
     return this.#begin(environment, automatic, false, ++this.#beginEpoch);
+  }
+  async #restorePendingRequest(epoch) {
+    // A pending write whose ACK is late must settle before recovery decides
+    // whether there is an original request to preserve.
+    await this.#beginMutation;
+    if (epoch !== this.#beginEpoch) return this.current;
+    const key = `${this.storageKey}:pending`, raw = await this.#storage.get(key);
+    if (epoch !== this.#beginEpoch) return this.current;
+    if (raw === null) return null;
+    if (this.#revocationRequested) return this.#pendingRevocation();
+    if (!this.#networkAvailable) return this.#offline();
+    const networkEpoch = this.#networkEpoch;
+    const retained = message => {
+      this.#state = state(PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED, message, { actions: ["retry", "guest"] });
+      return this.#state;
+    };
+    let request;
+    try {
+      if (typeof raw !== "string" || raw.length > 16_384) fail("INVALID_SESSION_STORE", "Pending Wallet request exceeds policy");
+      const input = JSON.parse(raw);
+      // Validate historical shape before any time lookup. The second parse
+      // below requires fresh authority time before offering the original URL.
+      request = parseProductSessionRequest(this.#registry, input, new Date(input?.issuedAt));
+      for (const field of ["chainId", "productId", "clientId", "platform", "applicationId", "bundleId", "packageId", "origin", "callback"]) {
+        if (request[field] !== this.#binding[field]) fail("SESSION_BINDING_MISMATCH", "Pending Wallet request belongs to another product binding");
+      }
+      if (request.deviceId !== this.#device.id || request.deviceKey !== this.#device.key || canonicalJSON(request.scopes) !== canonicalJSON(this.#device.scopes)) fail("SESSION_BINDING_MISMATCH", "Pending Wallet request belongs to another device or scope selection");
+    } catch {
+      return retained("The saved Wallet request is invalid or belongs to another binding; it was retained. Start a new explicit request to replace it.");
+    }
+    let now;
+    try {
+      if (typeof this.#gateway.currentTime !== "function") fail("CLOCK_UNAVAILABLE", "Pending request recovery requires authority time");
+      now = await this.#now();
+    } catch {
+      if (epoch !== this.#beginEpoch) return this.current;
+      return this.#offline("Authority time is unavailable; the original Wallet request was retained for Retry");
+    }
+    if (epoch !== this.#beginEpoch) return this.current;
+    if (networkEpoch !== this.#networkEpoch || !this.#networkAvailable) return this.#networkTransition("Network changed while checking the original Wallet request; it was retained for Retry");
+    try { request = parseProductSessionRequest(this.#registry, request, now); }
+    catch { return retained("The saved Wallet request expired or is invalid; it was retained. Start a new explicit request to replace it."); }
+    const revoking = await this.#loadRevocationIntent();
+    if (epoch !== this.#beginEpoch) return this.current;
+    if (revoking) return this.#pendingRevocation();
+    const readback = await this.#storage.get(key);
+    if (epoch !== this.#beginEpoch) return this.current;
+    if (networkEpoch !== this.#networkEpoch || !this.#networkAvailable) return this.#networkTransition("Network changed while reading the original Wallet request; explicit Retry is required");
+    if (readback !== raw) return retained("The saved Wallet request changed during recovery; no replacement request was created");
+    const route = prepareWalletAttempt(this.#registry, request, now);
+    this.#state = state(PRODUCT_SESSION_CLIENT_STATE.CONNECTING, "The original Wallet approval is still pending; explicitly open the same request", { request, route, automatic: false, installation: "unverified" });
+    return this.#state;
   }
   async #begin(environment, automatic, explicit, epoch) {
     try { return await this.#beginRequest(environment, automatic, explicit, epoch); }
@@ -274,6 +329,9 @@ export class RecoverableProductSessionClient {
     const pendingReturn = await this.#storage.get(`${this.storageKey}:return`);
     if (epoch !== this.#beginEpoch) return this.current;
     if (pendingReturn !== null) return this.handleReturn(pendingReturn);
+    const pending = await this.#restorePendingRequest(epoch);
+    if (epoch !== this.#beginEpoch) return this.current;
+    if (pending !== null) return pending;
     this.#autoReconnectAttempted = false;
     return this.begin(environment, false);
   }
