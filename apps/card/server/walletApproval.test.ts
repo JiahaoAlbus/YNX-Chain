@@ -11,7 +11,7 @@ import {unavailableCore,type Principal,type WalletAuthority} from './contracts.t
 import * as shared from './vendor/wallet-card-ff5b7d49/card-application-verifier.mjs';
 
 // Wallet Owner's publicly signed synthetic fixture. It contains no private key.
-const vector=JSON.parse(readFileSync(new URL('./test-fixtures/card-approval-public-fixture.json',import.meta.url),'utf8'));
+const vector=JSON.parse(readFileSync(join(__dirname,'test-fixtures/card-approval-public-fixture.json'),'utf8'));
 const at=()=>new Date(vector.clock);
 const principal=():Principal=>({owner:vector.authenticatedAccount,chainId:'ynx_6423-1',expiresAt:'2026-09-13T00:00:00.000Z',scopes:['account:read','card:application:write','card:topup:write']});
 const verifier=()=>withCardApplicationVerifier({authenticate:async()=>principal()},at);
@@ -20,7 +20,7 @@ test('Card consumes the exact verification-only artifact and public signed fixtu
   for(const [path,bytes,sha]of [
     ['./vendor/wallet-card-ff5b7d49/card-application-verifier.mjs',91073,'c07e6b1f0beab127187e60a9b7178c03850ac19eb45a2c068746c7be92ac7232'],
     ['./test-fixtures/card-approval-public-fixture.json',2330,'8db36d9e90bf2b48c66880295ba99e3a74f9afa645df7d7c5428878f3b5183c7'],
-  ]as const){const input=readFileSync(new URL(path,import.meta.url));assert.equal(input.length,bytes);assert.equal(createHash('sha256').update(input).digest('hex'),sha);}
+  ]as const){const input=readFileSync(join(__dirname,path));assert.equal(input.length,bytes);assert.equal(createHash('sha256').update(input).digest('hex'),sha);}
   assert.equal('createSignedCardApplicationApproval' in shared,false);
   assert.equal(shared.CARD_APPLICATION_APPROVAL_DOMAIN,'YNX_CARD_APPLICATION_APPROVAL_V1');
 });

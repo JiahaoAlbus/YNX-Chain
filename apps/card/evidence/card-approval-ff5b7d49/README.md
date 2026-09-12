@@ -24,8 +24,10 @@ idempotent backend card creation, SQLite recovery, persisted derived sender,
 and no credit when Core is unavailable. The production API has no fixture-state
 injection route.
 
-`attempt-01/results.json` records 39 passing backend tests and combined
-client/server typecheck, with raw log hashes. This is source/local development
+`attempt-01/results.json` records 39 passing backend tests and a failing
+typecheck (TS1470 in the test fixture loader), with raw log hashes. The follow-up
+attempt-02 records the CommonJS-compatible fixture-loading correction without
+changing the verifier or overwriting the first failure. This is local development
 evidence. It is not browser/device E2E, accepted live Session verification,
 deployment, real user approval, real ACTIVE card, or real YNXT funding evidence.
 
