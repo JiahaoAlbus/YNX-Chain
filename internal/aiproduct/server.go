@@ -19,24 +19,27 @@ import (
 	"time"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/buildinfo"
+	"github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2"
 )
 
 type Config struct {
-	GatewayURL              string
-	GatewayKey              string
-	ExactWalletCallback     string
-	TrustURL                string
-	ProviderName            string
-	InputUSDPerMillion      float64
-	OutputUSDPerMillion     float64
-	ResourceUnitsPerKTokens int64
-	GenerationTimeout       time.Duration
-	Build                   buildinfo.Info
-	AllowLocalFixtureAuth   bool
-	Logger                  *slog.Logger
+	CanonicalWalletGatewayOrigin string
+	GatewayURL                   string
+	GatewayKey                   string
+	ExactWalletCallback          string
+	TrustURL                     string
+	ProviderName                 string
+	InputUSDPerMillion           float64
+	OutputUSDPerMillion          float64
+	ResourceUnitsPerKTokens      int64
+	GenerationTimeout            time.Duration
+	Build                        buildinfo.Info
+	AllowLocalFixtureAuth        bool
+	Logger                       *slog.Logger
 }
 
 type Server struct {
+	wallet      canonicalSessionAuthorizer
 	cfg         Config
 	store       *Store
 	client      *http.Client
@@ -83,6 +86,15 @@ func NewServer(cfg Config, store *Store, static fs.FS) (*Server, error) {
 		return nil, err
 	}
 	s := &Server{cfg: cfg, store: store, client: &http.Client{Timeout: cfg.GenerationTimeout + 5*time.Second}, mux: http.NewServeMux(), static: static, registry: registry, logger: normalizedLogger(cfg.Logger), metrics: &requestMetrics{}, generations: map[string]activeGeneration{}, visitors: map[string][]time.Time{}}
+	if cfg.CanonicalWalletGatewayOrigin != "" {
+		if cfg.AllowLocalFixtureAuth {
+			return nil, errors.New("canonical Wallet and fixture authentication cannot be enabled together")
+		}
+		s.wallet, err = productsessionv2.NewClient(cfg.CanonicalWalletGatewayOrigin, aiWalletPolicy(), nil)
+		if err != nil {
+			return nil, err
+		}
+	}
 	s.routes()
 	return s, nil
 }
@@ -94,6 +106,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /readyz", s.handleReady)
 	s.mux.HandleFunc("GET /metrics", s.handleMetrics)
 	s.mux.HandleFunc("GET /api/meta", s.handleMeta)
+	s.mux.HandleFunc("GET /api/wallet/config", s.handleWalletConfig)
 	s.mux.HandleFunc("GET /api/public-status", s.handlePublicStatus)
 	s.mux.HandleFunc("GET /api/product-ai-registry", s.handleProductAIRegistry)
 	if s.cfg.AllowLocalFixtureAuth {
@@ -154,15 +167,9 @@ type authedHandler func(http.ResponseWriter, *http.Request, ProductSession)
 
 func (s *Server) authed(scope string, next authedHandler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// Persisted fixture sessions must not become production credentials when
-		// fixture mode is disabled. Allow their revocation, but no product access.
-		if !s.cfg.AllowLocalFixtureAuth && r.URL.Path != "/api/auth/revoke" {
-			writeError(w, http.StatusServiceUnavailable, "canonical Wallet session integration is unavailable")
-			return
-		}
-		session, err := s.store.Authenticate(r.Header.Get("Authorization"), r.Header.Get("X-YNX-Device-ID"))
+		session, err := s.authenticateRequest(r, scope)
 		if err != nil {
-			writeError(w, http.StatusUnauthorized, err.Error())
+			writeSessionAuthError(w, err)
 			return
 		}
 		if scope != "" && !hasScope(session.Scopes, scope) {
@@ -322,14 +329,22 @@ func (s *Server) handleFormalWalletSession(w http.ResponseWriter, r *http.Reques
 }
 func (s *Server) handleSessionReadback(w http.ResponseWriter, r *http.Request, session ProductSession) {
 	// This readback neither issues credentials nor extends the session lifetime.
+	authority := session.AuthAuthority
+	if authority == "" {
+		authority = "local-fixture"
+	}
 	writeJSON(w, http.StatusOK, map[string]any{
 		"sessionId": session.ID, "account": session.Account, "deviceId": session.DeviceID,
 		"scopes": session.Scopes, "expiresAt": session.ExpiresAt,
-		"authority": "local-fixture", "integratedCentral": false,
+		"authority": authority, "integratedCentral": false,
 	})
 }
 
 func (s *Server) handleRevoke(w http.ResponseWriter, r *http.Request, session ProductSession) {
+	if session.AuthAuthority == "canonical-wallet-v2" {
+		writeJSON(w, http.StatusConflict, map[string]any{"error": "Revoke this session through the Wallet SDK; AI does not issue a local canonical token", "code": "WALLET_REVOCATION_REQUIRED"})
+		return
+	}
 	if err := s.store.RevokeSession(r.Header.Get("Authorization"), r.Header.Get("X-YNX-Device-ID")); err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return

@@ -168,6 +168,7 @@ type WalletSignDocument struct {
 }
 
 type ProductSession struct {
+	AuthAuthority   string    `json:"-"`
 	ID              string    `json:"id"`
 	TokenHash       string    `json:"tokenHash"`
 	Account         string    `json:"account"`
