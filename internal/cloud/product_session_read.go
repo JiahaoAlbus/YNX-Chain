@@ -19,9 +19,9 @@ type productReadAuthority interface {
 func (s *Server) EnableProductSessionV2(endpoint string) error {
 	policies := []productsessionv2.Policy{
 		{ProductID: "cloud", ClientID: "ynx-cloud-web-v1", ApplicationID: "com.ynxweb4.cloud.web", Platform: "web",
-			Origin: "https://web4.ynxweb4.com", Callback: "https://web4.ynxweb4.com/wallet-auth/callback", AllowedScopes: []string{"files.read"}},
+			Origin: "https://web4.ynxweb4.com", Callback: "https://web4.ynxweb4.com/wallet-auth/callback", AllowedScopes: []string{"files.read", "files.write"}},
 		{ProductID: "docs", ClientID: "ynx-docs-mobile-v1", ApplicationID: "com.ynxweb4.docs.web", Platform: "web",
-			Origin: "https://docs.ynxweb4.com", Callback: "https://docs.ynxweb4.com/wallet-auth/callback", AllowedScopes: []string{"docs.read", "files.read"}},
+			Origin: "https://docs.ynxweb4.com", Callback: "https://docs.ynxweb4.com/wallet-auth/callback", AllowedScopes: []string{"docs.read", "docs.write", "files.read", "files.write"}},
 	}
 	clients := make(map[string]productReadAuthority, len(policies))
 	for _, policy := range policies {
@@ -31,6 +31,11 @@ func (s *Server) EnableProductSessionV2(endpoint string) error {
 		}
 		clients[policy.Origin] = client
 	}
+	journal, err := newProductWriteJournal(s.service.cfg.StatePath + ".v2-idempotency")
+	if err != nil {
+		return err
+	}
+	s.v2Writes = journal
 	s.v2 = clients
 	return nil
 }
@@ -65,7 +70,9 @@ func (s *Server) authorizeProductRead(w http.ResponseWriter, r *http.Request, ne
 		productReadFailure(w, 403, "ORIGIN_MISMATCH")
 		return
 	}
-	if r.Method != http.MethodGet || (r.Pattern != "GET /api/v1/objects" && r.Pattern != "GET /api/v1/objects/{id}" && r.Pattern != "GET /api/v1/objects/{id}/content") {
+	read := r.Method == http.MethodGet && (r.Pattern == "GET /api/v1/objects" || r.Pattern == "GET /api/v1/objects/{id}" || r.Pattern == "GET /api/v1/objects/{id}/content")
+	write := (r.Method == http.MethodPost && r.Pattern == "POST /api/v1/objects") || (r.Method == http.MethodPut && r.Pattern == "PUT /api/v1/objects/{id}/document")
+	if !read && !write {
 		productReadFailure(w, 403, "V2_ROUTE_NOT_ENABLED")
 		return
 	}
@@ -74,6 +81,12 @@ func (s *Server) authorizeProductRead(w http.ResponseWriter, r *http.Request, ne
 	if origin == "https://docs.ynxweb4.com" {
 		product = "docs"
 		scopes = []string{"docs.read", "files.read"}
+	}
+	if write {
+		scopes = []string{"files.write"}
+		if product == "docs" {
+			scopes = []string{"docs.write", "files.write"}
+		}
 	}
 	identity, err := client.Authorize(r.Context(), r, scopes)
 	if err != nil {
@@ -102,7 +115,11 @@ func (s *Server) authorizeProductRead(w http.ResponseWriter, r *http.Request, ne
 	if product == "docs" {
 		// Internal read-handler vocabulary only: never grant write scopes or
 		// serialize this request-local compatibility actor as a stored session.
-		actor.Scopes = append(actor.Scopes, "documents.read")
+		if write {
+			actor.Scopes = append(actor.Scopes, "documents.write")
+		} else {
+			actor.Scopes = append(actor.Scopes, "documents.read")
+		}
 	}
 	id := r.PathValue("id")
 	if id == "" {
@@ -113,6 +130,10 @@ func (s *Server) authorizeProductRead(w http.ResponseWriter, r *http.Request, ne
 			productReadFailure(w, 403, "OBJECT_PRODUCT_DENIED")
 			return
 		}
+	}
+	if write {
+		s.v2Writes.serve(w, r, actor, next)
+		return
 	}
 	next(w, r, actor)
 }

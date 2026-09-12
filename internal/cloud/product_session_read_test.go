@@ -78,7 +78,7 @@ func TestProductSessionReadRoutes(t *testing.T) {
 		}
 	}
 	before := fixture.calls
-	if w := request("POST", "/api/v1/objects", "https://docs.ynxweb4.com", "fixture"); w.Code != 403 {
+	if w := request("DELETE", "/api/v1/objects/missing", "https://docs.ynxweb4.com", "fixture"); w.Code != 403 {
 		t.Fatalf("write: %d", w.Code)
 	}
 	if fixture.calls != before {

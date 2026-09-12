@@ -17,6 +17,7 @@ import (
 
 type Server struct {
 	v2            map[string]productReadAuthority
+	v2Writes      *productWriteJournal
 	service       *Service
 	mu            sync.Mutex
 	startedAt     time.Time
