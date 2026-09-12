@@ -15,11 +15,6 @@ function text(value) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-function providerId(detail, index) {
-  const info = detail?.info ?? {};
-  return text(info.uuid) || text(info.rdns) || text(info.name) || `provider-${index}`;
-}
-
 export function classifyProvider(detail) {
   const info = detail?.info ?? {};
   const provider = detail?.provider;
@@ -35,7 +30,7 @@ export function classifyProvider(detail) {
 export function selectProvider(details, wallet) {
   const matches = details.filter((detail) => classifyProvider(detail)[wallet === "ynx" ? "isYNX" : "isMetaMask"]);
   if (matches.length === 0) return Object.freeze({ ok: false, code: wallet === "ynx" ? "YNX_WALLET_NOT_FOUND" : "METAMASK_NOT_FOUND" });
-  const unique = new Map(matches.map((detail, index) => [providerId(detail, index), detail]));
+  const unique = new Map(matches.map((detail) => [detail.provider, detail]));
   if (unique.size !== 1) return Object.freeze({ ok: false, code: "AMBIGUOUS_WALLET_PROVIDER" });
   return Object.freeze({ ok: true, detail: [...unique.values()][0] });
 }
@@ -50,7 +45,7 @@ function announceLegacyProviders(target, found) {
     const name = provider.isYNXWallet ? "YNX Wallet" : provider.isMetaMask ? "MetaMask" : "Injected wallet";
     const rdns = provider.isYNXWallet ? "com.ynx.wallet" : provider.isMetaMask ? "io.metamask" : "legacy.injected";
     const detail = { info: { uuid: `legacy-${rdns}-${index}`, name, rdns }, provider, source: providers.includes(provider) ? "window.ethereum.providers" : "window.ethereum" };
-    found.set(providerId(detail, found.size), detail);
+    if (!found.has(provider)) found.set(provider, detail);
   }
 }
 
@@ -59,7 +54,7 @@ export async function discoverProviders(target = window, waitMs = 1500) {
   const listener = (event) => {
     const detail = event?.detail;
     if (!detail?.provider || typeof detail.provider.request !== "function") return;
-    found.set(providerId(detail, found.size), detail);
+    found.set(detail.provider, detail);
   };
   target.addEventListener("eip6963:announceProvider", listener);
   const request = () => {
@@ -145,9 +140,5 @@ export async function switchWalletAccount(provider) {
 }
 
 export async function revokeWallet(provider) {
-  try {
-    await provider.request({ method: "wallet_revokePermissions", params: [{ eth_accounts: {} }] });
-  } catch (error) {
-    if (![4100, 4200, -32601].includes(Number(error?.code))) throw error;
-  }
+  await provider.request({ method: "wallet_revokePermissions", params: [{ eth_accounts: {} }] });
 }

@@ -156,15 +156,57 @@ test("account switching keeps the existing provider and reconfirms only 0x1917",
   assert.deepEqual(calls, ["wallet_requestPermissions", "eth_accounts", "eth_chainId"]);
 });
 
-test("permission revocation is explicit and provider capability fallbacks are harmless", async () => {
+test("unsupported permission revocation cannot report success", async () => {
   const calls = [];
-  await revokeWallet({
+  await assert.rejects(revokeWallet({
     async request({ method, params }) {
       calls.push([method, params]);
       throw Object.assign(new Error("unsupported"), { code: 4200 });
     },
-  });
+  }), { code: 4200 });
   assert.deepEqual(calls, [["wallet_revokePermissions", [{ eth_accounts: {} }]]]);
+});
+
+test("the same provider across EIP-6963, root and legacy arrays is selected once", async () => {
+  const calls = [];
+  const provider = { isMetaMask: true, async request({ method }) {
+    calls.push(method);
+    if (method === "eth_requestAccounts") return ["0x6666666666666666666666666666666666666666"];
+    if (method === "eth_chainId") return "0x1917";
+    throw new Error(method);
+  } };
+  provider.providers = [provider];
+  const detail = { info: { uuid: "mm", name: "MetaMask", rdns: "io.metamask" }, provider };
+  const scope = { ...target([detail]), ethereum: provider };
+  assert.equal((await discoverProviders(scope)).length, 1);
+  assert.equal((await connectWallet("metamask", scope)).ok, true);
+  assert.deepEqual(calls, ["eth_requestAccounts", "eth_chainId"]);
+});
+
+test("distinct providers sharing announcement metadata remain ambiguous", async () => {
+  const calls = [];
+  const info = { uuid: "same-id", name: "MetaMask", rdns: "io.metamask" };
+  const makeProvider = () => ({ isMetaMask: true, async request(input) { calls.push(input); return []; } });
+  const result = await connectWallet("metamask", target([
+    { info, provider: makeProvider() }, { info, provider: makeProvider() },
+  ]));
+  assert.deepEqual(result, { ok: false, code: "AMBIGUOUS_WALLET_PROVIDER" });
+  assert.deepEqual(calls, []);
+});
+
+test("revocation preserves provider errors and accepts only a resolved request", async () => {
+  for (const code of [4001, 4100, -32601]) {
+    await assert.rejects(revokeWallet({ async request() {
+      throw Object.assign(new Error("revocation failed"), { code });
+    } }), { code });
+  }
+  let requested = false;
+  await revokeWallet({ async request({ method }) {
+    assert.equal(method, "wallet_revokePermissions");
+    requested = true;
+    return null;
+  } });
+  assert.equal(requested, true);
 });
 
 test("web flow uses distinct logos and forbids custom-scheme or blank-tab launch", async () => {
