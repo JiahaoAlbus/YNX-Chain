@@ -12,6 +12,7 @@ import type { AuditAction, RiskContext } from "./riskAssistant";
 import { useDexData } from "./useDexData";
 import { PortfolioPanel } from "./PortfolioPanel";
 import { nativeSigningUnavailable, portfolioCopy } from "./portfolio-i18n";
+import { walletRevocationCopy } from './wallet-revocation-i18n';
 import { aggregateCandles, type Candle } from "./candles";
 import type { ChainEvent, Locale, Pool, Token } from "./types";
 import {
@@ -31,6 +32,7 @@ import {
   restoreStandardWallet,
   readStandardWalletProviderPreference,
   disconnectStandardWallet,
+  revokeStandardWallet,
   observeStandardWallet,
   standardWalletDetails,
   WALLET_INSTALL_URL,
@@ -258,6 +260,7 @@ export default function App() {
     setWalletBusy(false);
   };
   const connectWallet = async () => {
+    if(walletBusy)return;
     const intent = ++standardWalletIntent.current;
     const isCurrent = () => intent === standardWalletIntent.current;
     setWalletBusy(true);
@@ -286,6 +289,7 @@ export default function App() {
     }
   };
   const connectEvm = async () => {
+    if(walletBusy)return;
     const intent = ++standardWalletIntent.current;
     const isCurrent = () => intent === standardWalletIntent.current;
     setWalletBusy(true);
@@ -624,7 +628,7 @@ export default function App() {
             </dl>
             {walletError && (
               <p className="review-blocker" role="alert">
-                {walletError}
+                {walletError === 'ACCOUNT_REVOKE_CONFIRMED' ? walletRevocationCopy[locale][1] : walletError === 'ACCOUNT_REVOKE_UNCONFIRMED' ? walletRevocationCopy[locale][2] : walletError}
               </p>
             )}
             <div className="wallet-options">
@@ -634,7 +638,7 @@ export default function App() {
                 onClick={() => void connectWallet()}
               >
                 {walletBusy
-                  ? "Preparing protected device…"
+                  ? "Waiting for selected Wallet…"
                   : walletSession
                     ? "Reconnect YNX Wallet"
                     : t.confirmWallet}
@@ -649,6 +653,9 @@ export default function App() {
               >
                 Connect MetaMask
               </button>
+              <a className="secondary" href="https://metamask.io/download/">
+                Official MetaMask installation
+              </a>
               {walletAccount && (
                 <button className="secondary" onClick={() => {disconnectWallet();setWalletError("Standard Wallet disconnected. Read-only DEX remains available.");}}>
                   Disconnect wallet
@@ -658,6 +665,17 @@ export default function App() {
                 <button className="secondary" onClick={() => {disconnectWallet();setWalletError("Choose YNX Wallet or MetaMask to switch providers. No account request was sent.");}}>
                   Switch wallet
                 </button>
+              )}
+              {walletAccount && (
+                <button className="secondary" disabled={walletBusy} onClick={async()=>{
+                  const intent=++standardWalletIntent.current;setWalletBusy(true);setWalletError('');
+                  try{
+                    const outcome=await revokeStandardWallet();
+                    if(intent!==standardWalletIntent.current)return;
+                    if(outcome.permissionRevoked||standardWalletDetails().status==='disconnected'){setWalletAccount('');setMetamaskAccount('');}
+                    setWalletError(outcome.permissionRevoked?'ACCOUNT_REVOKE_CONFIRMED':'ACCOUNT_REVOKE_UNCONFIRMED');
+                  }finally{if(intent===standardWalletIntent.current)setWalletBusy(false);}
+                }}>{walletRevocationCopy[locale][0]}</button>
               )}
             </div>
             <a className="wallet-product-link" href={WALLET_PRODUCT_URL}>

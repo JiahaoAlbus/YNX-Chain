@@ -1,0 +1,128 @@
+{
+  "inputs": {
+    "packages/wallet-auth/node_modules/@noble/hashes/utils.js": {
+      "bytes": 20182,
+      "imports": [],
+      "format": "esm"
+    },
+    "packages/wallet-auth/node_modules/@noble/hashes/_md.js": {
+      "bytes": 8372,
+      "imports": [
+        {
+          "path": "packages/wallet-auth/node_modules/@noble/hashes/utils.js",
+          "kind": "import-statement",
+          "original": "./utils.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "packages/wallet-auth/node_modules/@noble/hashes/_u64.js": {
+      "bytes": 4972,
+      "imports": [],
+      "format": "esm"
+    },
+    "packages/wallet-auth/node_modules/@noble/hashes/sha2.js": {
+      "bytes": 19112,
+      "imports": [
+        {
+          "path": "packages/wallet-auth/node_modules/@noble/hashes/_md.js",
+          "kind": "import-statement",
+          "original": "./_md.js"
+        },
+        {
+          "path": "packages/wallet-auth/node_modules/@noble/hashes/_u64.js",
+          "kind": "import-statement",
+          "original": "./_u64.js"
+        },
+        {
+          "path": "packages/wallet-auth/node_modules/@noble/hashes/utils.js",
+          "kind": "import-statement",
+          "original": "./utils.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "packages/wallet-auth/src/canonical.js": {
+      "bytes": 1638,
+      "imports": [
+        {
+          "path": "packages/wallet-auth/node_modules/@noble/hashes/sha2.js",
+          "kind": "import-statement",
+          "original": "@noble/hashes/sha2.js"
+        },
+        {
+          "path": "packages/wallet-auth/node_modules/@noble/hashes/utils.js",
+          "kind": "import-statement",
+          "original": "@noble/hashes/utils.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "packages/wallet-auth/src/standard-wallet-connection.js": {
+      "bytes": 12967,
+      "imports": [
+        {
+          "path": "packages/wallet-auth/src/canonical.js",
+          "kind": "import-statement",
+          "original": "./canonical.js"
+        }
+      ],
+      "format": "esm"
+    },
+    "packages/wallet-auth/src/wallet-provider-discovery.js": {
+      "bytes": 8674,
+      "imports": [],
+      "format": "esm"
+    },
+    "standard-wallet-browser-entry.js": {
+      "bytes": 146,
+      "imports": [
+        {
+          "path": "packages/wallet-auth/src/standard-wallet-connection.js",
+          "kind": "import-statement",
+          "original": "./packages/wallet-auth/src/standard-wallet-connection.js"
+        },
+        {
+          "path": "packages/wallet-auth/src/wallet-provider-discovery.js",
+          "kind": "import-statement",
+          "original": "./packages/wallet-auth/src/wallet-provider-discovery.js"
+        }
+      ],
+      "format": "esm"
+    }
+  },
+  "outputs": {
+    "../../../../Desktop/YNX Project Audit 2026-09-06/continuation-01a075bd/wallet-sdk-c97f85e9/standard-wallet-browser.mjs": {
+      "imports": [],
+      "exports": [
+        "EIP1193_PROVIDER_CODE",
+        "Eip1193ProviderError",
+        "STANDARD_WALLET_METHODS",
+        "StandardWalletConnection",
+        "WALLET_PROVIDER_DISCOVERY_AUTHORITY",
+        "WALLET_PROVIDER_KIND",
+        "discoverEip6963WalletProviders",
+        "discoverInjectedWalletProviders",
+        "discoverWalletProviders",
+        "selectWalletProviderCandidates",
+        "walletAvailabilityFromDiscovery"
+      ],
+      "entryPoint": "standard-wallet-browser-entry.js",
+      "inputs": {
+        "packages/wallet-auth/src/canonical.js": {
+          "bytesInOutput": 718
+        },
+        "packages/wallet-auth/src/standard-wallet-connection.js": {
+          "bytesInOutput": 12592
+        },
+        "standard-wallet-browser-entry.js": {
+          "bytesInOutput": 0
+        },
+        "packages/wallet-auth/src/wallet-provider-discovery.js": {
+          "bytesInOutput": 8606
+        }
+      },
+      "bytes": 22417
+    }
+  }
+}

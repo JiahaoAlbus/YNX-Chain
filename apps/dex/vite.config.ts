@@ -32,7 +32,7 @@ export default defineConfig({
   build: { sourcemap: true, target: "es2022" },
   test: {
     environment: "jsdom",
-    environmentOptions: { jsdom: { url: "http://localhost/" } },
+    environmentOptions: { jsdom: { url: "https://dex.ynxweb4.com/" } },
     setupFiles: "./src/test-setup.ts",
     include: ["src/**/*.test.{ts,tsx}"],
   },

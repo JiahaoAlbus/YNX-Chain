@@ -85,7 +85,7 @@ describe("DEX selected-provider restore and disconnect lifecycle", () => {
     fireEvent.click(screen.getByRole("button", { name: "Connect Wallet" }));
     fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Connect MetaMask" }));
     await settleDiscovery();
-    expect(methods(metaMask)).toEqual(["wallet_switchEthereumChain", "eth_chainId", "eth_requestAccounts"]);
+    expect(methods(metaMask)).toEqual(["wallet_switchEthereumChain", "eth_chainId", "eth_requestAccounts", "eth_chainId"]);
     expect(ynx.request).not.toHaveBeenCalled();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(readStandardWalletProviderPreference()).toBe("metamask");
@@ -140,6 +140,27 @@ describe("DEX selected-provider restore and disconnect lifecycle", () => {
     expect(screen.getByRole("button", { name: "Connect Wallet" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Swap" })).toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("requires actual revoke acknowledgement and empty account readback from the selected Wallet details action", async () => {
+    localStorage.setItem(PREFERENCE_KEY,"metamask");
+    const meta=provider('metamask',META_ACCOUNT);
+    vi.stubGlobal('ethereum',{providers:[meta]});
+    const view=render(<App/>);await settleDiscovery();
+    meta.request.mockClear();
+    meta.request.mockImplementation(async({method})=>{
+      if(method==='wallet_revokePermissions')return null;
+      if(method==='eth_accounts')return [];
+      throw new Error('Unexpected request during revoke fixture');
+    });
+    fireEvent.click(screen.getByRole('button',{name:'0xaaaa…aaaa'}));
+    await act(async()=>{fireEvent.click(within(screen.getByRole('dialog')).getByRole('button',{name:'Revoke account access'}));});
+    expect(methods(meta)).toEqual(['wallet_revokePermissions','eth_accounts']);
+    expect(within(screen.getByRole('dialog')).getByRole('alert')).toHaveTextContent('Wallet acknowledged revocation and returned no exposed accounts');
+    expect(screen.getByRole('button',{name:'Connect Wallet'})).toBeInTheDocument();
+    expect(readStandardWalletProviderPreference()).toBeNull();
+    view.unmount();meta.request.mockClear();render(<App/>);await settleDiscovery();
+    expect(meta.request).not.toHaveBeenCalled();
   });
 
   it("keeps the selected Standard Wallet connected when the native portfolio service is unavailable", async () => {
