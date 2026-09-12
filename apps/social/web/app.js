@@ -1,7 +1,10 @@
-import { WALLET_LINKS, attachWalletLifecycle, connectWallet, discoverProviders, restoreWallet, revokeWallet, selectProvider, switchWalletAccount } from "./wallet-provider.js";
+import { WALLET_LINKS, attachWalletLifecycle, connectWallet, discoverProviders, ensureYNXChain, restoreWallet, revokeWallet, selectProvider, switchWalletAccount } from "./wallet-provider.js";
 
 const byId = (id) => document.getElementById(id);
 const state = { provider: null, account: null, chainId: null, wallet: null, detach: () => {} };
+// UI intent ordering; provider sessions remain owned by the Wallet transport.
+let connectionAttempt = 0;
+const disconnectedKey = "ynx.social.standard-wallet.disconnected";
 
 function shortAccount(value) {
   return value ? `${value.slice(0, 6)}…${value.slice(-4)}` : "";
@@ -11,6 +14,9 @@ function showStatus(message, tone = "neutral") {
   const region = byId("wallet-status");
   region.textContent = message;
   region.dataset.tone = tone;
+  const connectedRegion = byId("connected-wallet-status");
+  connectedRegion.textContent = message;
+  connectedRegion.dataset.tone = tone;
 }
 
 function setConnected(result) {
@@ -48,6 +54,7 @@ function setConnected(result) {
 }
 
 function disconnect(message = "Wallet disconnected locally.") {
+  connectionAttempt += 1;
   state.detach();
   state.provider = null;
   state.account = null;
@@ -110,17 +117,21 @@ async function refreshWalletGuidance() {
 }
 
 async function connect(wallet, button) {
+  const attempt = ++connectionAttempt;
+  sessionStorage.removeItem(disconnectedKey);
   button.disabled = true;
   button.setAttribute("aria-busy", "true");
   byId("install-wallet").hidden = true;
   byId("retry-wallet-discovery").hidden = true;
   try {
     const result = await connectWallet(wallet);
+    if (attempt !== connectionAttempt) return;
     if (result.ok) setConnected(result);
     else if (result.code === "YNX_WALLET_NOT_FOUND" || result.code === "METAMASK_NOT_FOUND") notFound(wallet);
     else if (result.code === "AMBIGUOUS_WALLET_PROVIDER") ambiguous(wallet);
     else showStatus(`${result.code}: Select one wallet provider and try again.`, "warning");
   } catch (error) {
+    if (attempt !== connectionAttempt) return;
     const rejected = Number(error?.code) === 4001;
     showStatus(rejected ? "Connection request was rejected. No Social session was created." : "Wallet connection failed. No account or Social session was saved.", "error");
   } finally {
@@ -137,34 +148,80 @@ byId("connect-wallet").addEventListener("click", () => {
     return;
   }
   byId("wallet-dialog").showModal();
+  sessionStorage.removeItem(disconnectedKey);
 });
-byId("hero-connect-wallet").addEventListener("click", () => byId("wallet-dialog").showModal());
+byId("hero-connect-wallet").addEventListener("click", () => {
+  sessionStorage.removeItem(disconnectedKey);
+  byId("wallet-dialog").showModal();
+});
 byId("close-wallet-dialog").addEventListener("click", () => byId("wallet-dialog").close());
 byId("connect-ynx").addEventListener("click", (event) => void connect("ynx", event.currentTarget));
 byId("connect-metamask").addEventListener("click", (event) => void connect("metamask", event.currentTarget));
 byId("retry-wallet-discovery").addEventListener("click", () => void refreshWalletGuidance());
-byId("wallet-disconnect").addEventListener("click", () => disconnect("Wallet disconnected by user."));
+byId("wallet-disconnect").addEventListener("click", () => {
+  sessionStorage.setItem(disconnectedKey, "true");
+  disconnect("Wallet disconnected locally. Wallet permissions were not revoked.");
+});
+byId("wallet-switch-network").addEventListener("click", async () => {
+  const provider = state.provider;
+  const attempt = connectionAttempt;
+  if (!provider) return;
+  const button = byId("wallet-switch-network");
+  if (button.disabled) return;
+  button.disabled = true;
+  button.setAttribute("aria-busy", "true");
+  try {
+    const chainId = await ensureYNXChain(provider);
+    if (state.provider !== provider || attempt !== connectionAttempt) return;
+    state.chainId = chainId;
+    byId("connected-chain").textContent = `YNX Testnet · ${chainId}`;
+    showStatus("YNX Testnet confirmed by wallet readback.", "success");
+  } catch (error) {
+    if (state.provider !== provider || attempt !== connectionAttempt) return;
+    showStatus(Number(error?.code) === 4001 ? "Network switch was rejected. Existing wallet connection was kept." : "Network switch could not be confirmed. Check the network in your wallet and retry.", "warning");
+  } finally {
+    button.disabled = false;
+    button.removeAttribute("aria-busy");
+  }
+});
 byId("wallet-revoke").addEventListener("click", async () => {
   if (!state.provider) return;
-  try { await revokeWallet(state.provider); disconnect("Wallet permission revoked."); }
-  catch (error) { showStatus(Number(error?.code) === 4001 ? "Permission revocation was rejected." : "Permission revocation failed.", "error"); }
+  const provider = state.provider, attempt = connectionAttempt;
+  try {
+    await revokeWallet(provider);
+    if (state.provider !== provider || attempt !== connectionAttempt) return;
+    sessionStorage.setItem(disconnectedKey, "true");
+    disconnect("Wallet permission revoked.");
+  } catch (error) {
+    if (state.provider !== provider || attempt !== connectionAttempt) return;
+    const code = Number(error?.code);
+    showStatus(code === 4001 ? "Permission revocation was rejected." : [4200, -32601].includes(code) ? "This wallet cannot revoke permission here. Remove this site's access in your wallet, or use Disconnect to disconnect locally." : "Permission revocation failed. Check site permissions in your wallet.", "error");
+  }
 });
 byId("wallet-switch-account").addEventListener("click", async () => {
   if (!state.provider) return;
+  const provider = state.provider, wallet = state.wallet, attempt = ++connectionAttempt;
   try {
-    const changed = await switchWalletAccount(state.provider);
-    setConnected({ provider: state.provider, wallet: state.wallet, account: changed.account, chainId: changed.chainId });
+    const changed = await switchWalletAccount(provider);
+    if (attempt !== connectionAttempt || state.provider !== provider) return;
+    setConnected({ provider, wallet, account: changed.account, chainId: changed.chainId });
     showStatus("Account switch approved and YNX Testnet reconfirmed.", "success");
-  } catch (error) { showStatus(Number(error?.code) === 4001 ? "Account switch was rejected. Existing connection was kept." : "Account switch failed. Existing connection was kept.", "error"); }
+  } catch (error) {
+    if (attempt !== connectionAttempt || state.provider !== provider) return;
+    showStatus(Number(error?.code) === 4001 ? "Account switch was rejected. Existing connection was kept." : "Account switch failed. Existing connection was kept.", "error");
+  }
 });
 
 async function restoreConnection() {
+  if (sessionStorage.getItem(disconnectedKey) === "true") return;
+  const attempt = connectionAttempt;
   const preferred = sessionStorage.getItem("ynx.social.standard-wallet.kind");
   for (const wallet of [preferred, "ynx", "metamask"].filter((value, index, values) => value && values.indexOf(value) === index)) {
     try {
       const result = await restoreWallet(wallet);
+      if (attempt !== connectionAttempt || sessionStorage.getItem(disconnectedKey) === "true") return;
       if (result.ok) { setConnected(result); showStatus("Standard wallet connection restored after refresh.", "success"); return; }
-    } catch {}
+    } catch { if (attempt !== connectionAttempt) return; }
   }
 }
 
