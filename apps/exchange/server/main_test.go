@@ -14,7 +14,7 @@ import (
 )
 
 func TestGuestMarketModuleIsServedWithJavaScriptMIMEAndExactBytes(t *testing.T) {
-	for _, module := range []string{"market-data.js", "order-preview.js"} {
+	for _, module := range []string{"market-data.js", "order-preview.js", "wallet-connect.js"} {
 		expected, err := os.ReadFile("../web/" + module)
 		if err != nil {
 			t.Fatal(err)
