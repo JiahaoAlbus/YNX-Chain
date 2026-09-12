@@ -491,6 +491,8 @@ const indexHTML = `<!doctype html>
 	  id:{emptyBlock:'Blok kosong',finalized:'Final',txUnit:'transaksi',blockUnit:'blok',observedAccounts:'akun teramati',publicAccounts:'akun publik',noBalances:'Belum ada saldo akun terindeks yang dapat diverifikasi.'}
 	};
 	Object.entries(rowMessages).forEach(([locale,values]) => Object.assign(messages[locale],values));
+	const transactionDetailLabels = {"en":["Transaction","Transaction hash","Block hash","Included in indexed block","No indexed block yet","Included block"],"zh-CN":["交易详情","交易哈希","区块哈希","已收录于索引区块","尚未收录于索引区块","所在区块"],"zh-TW":["交易詳情","交易雜湊","區塊雜湊","已收錄於索引區塊","尚未收錄於索引區塊","所在區塊"],"ja":["取引","取引ハッシュ","ブロックハッシュ","インデックス済みブロックに収録","収録ブロックは未確認","収録ブロック"],"ko":["거래","거래 해시","블록 해시","인덱싱된 블록에 포함됨","아직 인덱싱된 블록 없음","포함된 블록"],"es":["Transacción","Hash de transacción","Hash de bloque","Incluida en bloque indexado","Sin bloque indexado todavía","Bloque de inclusión"],"fr":["Transaction","Hash de transaction","Hash du bloc","Incluse dans un bloc indexé","Aucun bloc indexé pour le moment","Bloc contenant la transaction"],"de":["Transaktion","Transaktionshash","Blockhash","In indexiertem Block enthalten","Noch kein indexierter Block","Enthaltender Block"],"pt":["Transação","Hash da transação","Hash do bloco","Incluída em bloco indexado","Ainda sem bloco indexado","Bloco de inclusão"],"ru":["Транзакция","Хеш транзакции","Хеш блока","Включена в индексированный блок","Индексированный блок ещё не найден","Блок включения"],"ar":["المعاملة","تجزئة المعاملة","تجزئة الكتلة","مدرجة في كتلة مفهرسة","لا توجد كتلة مفهرسة بعد","كتلة الإدراج"],"id":["Transaksi","Hash transaksi","Hash blok","Termasuk dalam blok terindeks","Belum ada blok terindeks","Blok penyertaan"]};
+	Object.entries(transactionDetailLabels).forEach(([locale,values]) => { ['transactionDetail','transactionHash','blockHash','indexedInBlock','notIndexedInBlock','includedBlock'].forEach((key,index) => { messages[locale][key] = values[index]; }); });
 	const fieldKeys = ['delegatedYnxt','rentalVolume','providerIncome','protocolFees','policy','activeDelegations','rentals','evidence','amount','fee','from','to','time','events','address','deployer','verified','functions','deployedAt','usage','sourceStatus','liquidBalance','indexedCoverage','indexedActivity','contractActivity','dataCheckedAt','throughBlock','loadOlderActivity','yes','no','none','contract','name','evmAddress','sentTo','sponsor','pool','symbol','decimals','runtime','hash','parentHash','type','sourceHash','bytecodeHash','compiler','units'];
 	const fieldValues = {
 	  en:['Delegated YNXT','Rental volume','Provider income','Protocol fees','Policy','Active delegations','Rentals','Evidence','Amount','Fee','From','To','Time','Events','Address','Deployer','Verified','Functions','Deployed at','Usage','Source status','Liquid balance','Indexed history coverage','Indexed activity','Contract activity','Data checked at','Through block','Load older indexed activity','Yes','No','None','Contract','Name','EVM compatibility address','sent to','Sponsor','Pool','Symbol','Decimals','Runtime','Hash','Parent hash','Type','Source hash','Bytecode hash','Compiler','units'],
@@ -745,7 +747,7 @@ Object.entries({en:['YNX ↔ EVM address converter','Open YNX Wallet','Copy'],'z
       $('truthState').textContent = summary.truthfulStatus === 'rpc-and-indexer-backed' ? 'RPC + Indexer' : summary.truthfulStatus;
 	  $('lastUpdated').textContent = new Date(summary.lastCheckedAt).toLocaleTimeString(language, {hour:'2-digit',minute:'2-digit',second:'2-digit'});
 	  $('heroHeight').textContent = t('latestBlock') + ' #' + number(summary.rpcHeight) + ' / ' + t('indexerSync') + ' ' + number(summary.syncLagBlocks) + ' ' + t('blockUnit');
-      document.title = 'Block ' + number(summary.rpcHeight) + ' | YNX Chain Explorer';
+      if (!$('detailBackdrop').classList.contains('visible')) document.title = 'Block ' + number(summary.rpcHeight) + ' | YNX Chain Explorer';
 	  $('blocksBody').innerHTML = blocks.length ? blocks.slice(0,blockDisplayLimit).map(blockRow).join('') : '<div class="empty">' + escapeHTML(t('unavailable')) + '</div>';
 	  $('olderBlocks').hidden = !blockCursor;
       renderTransactions();
@@ -841,14 +843,14 @@ Object.entries({en:['YNX ↔ EVM address converter','Open YNX Wallet','Copy'],'z
     function detailStats(type,detail) {
 	  if (type === 'block') return [[t('observedHeight'),'#' + number(detail.height)],[t('latestTransactions'),(detail.transactions || []).length],[t('validator'),compact(detail.validator,10,7)]];
 	  if (type === 'transaction' && detail.sponsor) return [[t('navResources'),number(detail.resourceConsumed) + ' ' + String(detail.resourceType || t('units')).replaceAll('_',' ')],[t('sponsor'),compact(detail.sponsor,10,7)],[t('pool'),compact(detail.sponsorPoolId,10,7)]];
-	  if (type === 'transaction') return [[t('amount'),number(detail.amount) + ' YNXT'],[t('fee'),number(detail.fee) + ' YNXT'],[t('latestBlock'),'#' + number(detail.blockNumber)]];
+	  if (type === 'transaction') return [[t('amount'),number(detail.amount) + ' YNXT'],[t('fee'),number(detail.fee) + ' YNXT'],[t('includedBlock'),detail.blockNumber ? '#' + number(detail.blockNumber) : t('unavailable')]];
 	  if (type === 'account') return [[t('address'),compact(detail.addressFormats?.ynxAddress || detail.account?.address,14,10)],[t('balance'),number(detail.account?.balance) + ' YNXT'],[t('staked'),number(detail.account?.staked) + ' YNXT'],[t('nonce'),number(detail.account?.nonce)]];
 	  if (type === 'token') return [[t('symbol'),detail.symbol],[t('decimals'),number(detail.decimals)],[t('networkDetails'),detail.network?.name || '--']];
 	  if (type === 'contract') return [[t('name'),detail.name || '--'],[t('verified'),detail.verified ? t('yes') : t('no')],[t('runtime'),detail.runtimeMode || '--']];
       return [];
     }
     function detailRows(type,detail) {
-	  if (type === 'transaction') return [[t('status'),detail.status],[t('from'),nativeAddress(detail.from) || t('unavailable')],[t('to'),nativeAddress(detail.to) || t('unavailable')],[t('amount'),number(detail.amount) + ' YNXT'],[t('fee'),number(detail.gas?.feeYnxt ?? detail.fee) + ' YNXT'],[t('latestBlock'),'#' + number(detail.blockNumber)],[t('hash'),detail.blockHash],[t('time'),exactTime(detail.timestamp)],[t('nonce'),number(detail.nonce)],[t('events'),(detail.events || []).length ? JSON.stringify(detail.events) : t('none')],[t('type'),detail.type]];
+	  if (type === 'transaction') return [[t('status'),detail.blockNumber && detail.blockHash ? t('indexedInBlock') : t('notIndexedInBlock')],[t('transactionHash'),detail.hash],[t('from'),nativeAddress(detail.from) || t('unavailable')],[t('to'),nativeAddress(detail.to) || t('unavailable')],[t('amount'),number(detail.amount) + ' YNXT'],[t('fee'),number(detail.gas?.feeYnxt ?? detail.fee) + ' YNXT'],[t('includedBlock'),detail.blockNumber ? '#' + number(detail.blockNumber) : t('unavailable')],[t('blockHash'),detail.blockHash || t('unavailable')],[t('time'),exactTime(detail.timestamp)],[t('nonce'),number(detail.nonce)],[t('events'),(detail.logs || detail.events || []).length ? JSON.stringify(detail.logs || detail.events) : t('none')],[t('type'),detail.type]];
 	  if (type === 'block') return [[t('observedHeight'),'#' + number(detail.height)],[t('hash'),detail.hash],[t('parentHash'),detail.parentHash],[t('validator'),nativeAddress(detail.validator)],[t('time'),exactTime(detail.time)],[t('latestTransactions'),(detail.transactions || []).length]];
 	  if (type === 'contract') return [[t('address'),nativeAddress(detail.address)],[t('deployer'),nativeAddress(detail.deployer)],[t('name'),detail.name],[t('sourceHash'),detail.sourceHash],[t('bytecodeHash'),detail.deployedBytecodeHash],[t('compiler'),detail.compiler?.version || detail.compilerMode],[t('verified'),detail.verified ? t('yes') : t('no')],[t('functions'),(detail.functions || []).length],[t('events'),(detail.events || []).length],[t('deployedAt'),exactTime(detail.deployedAt)]];
 	  if (type === 'token') return [[t('symbol'),detail.symbol],[t('name'),detail.name],[t('type'),detail.type],[t('decimals'),detail.decimals],[t('networkDetails'),detail.network?.name],[t('usage'),(detail.usage || []).join(', ')],[t('sourceStatus'),detail.truthfulStatus]];
@@ -869,8 +871,9 @@ Object.entries({en:['YNX ↔ EVM address converter','Open YNX Wallet','Copy'],'z
 	}
     function showDrawer(type,query,detail) {
 	  currentDetailType = type; currentDetailQuery = query; currentDetail = detail;
+	  if (type === 'transaction') document.title = t('transactionDetail') + ' ' + (detail.hash || query) + ' | YNX Chain Explorer';
       const title = type.charAt(0).toUpperCase() + type.slice(1);
-	  const typeLabels = {block:t('latestBlock'),transaction:t('latestTransactions'),account:t('navAccounts'),token:t('nativeCoin'),contract:t('contract')};
+	  const typeLabels = {block:t('latestBlock'),transaction:t('transactionDetail'),account:t('navAccounts'),token:t('nativeCoin'),contract:t('contract')};
 	  $('detailKicker').textContent = t('live') + ' · ' + (typeLabels[type] || title);
 	  $('detailTitle').textContent = type === 'account' ? compact(detail.addressFormats?.ynxAddress || query,18,12) : (typeLabels[type] || title);
       const stats = detailStats(type,detail);
@@ -934,7 +937,8 @@ Object.entries({en:['YNX ↔ EVM address converter','Open YNX Wallet','Copy'],'z
       $('detailBackdrop').setAttribute('aria-hidden','false');
       document.body.style.overflow = 'hidden';
       try {
-        const resolved = await get('/api/search?q=' + encodeURIComponent(q));
+        const transactionHash = /^0x[0-9a-f]{64}$/i.test(q) ? q.toLowerCase() : '';
+        const resolved = transactionHash ? {type:'transaction',path:'/api/txs/' + transactionHash,deepLink:'/tx/' + transactionHash} : await get('/api/search?q=' + encodeURIComponent(q));
         const detail = await get(resolved.path);
         showDrawer(resolved.type,q,detail);
 		if (updateHistory && resolved.deepLink) history.pushState({query:q},'',resolved.deepLink);
@@ -1023,9 +1027,13 @@ Object.entries({en:['YNX ↔ EVM address converter','Open YNX Wallet','Copy'],'z
 	$('metamaskButton').onclick = chooseWallet;
 	$('resultBody').onclick = event => { const button = event.target.closest('[data-wallet-provider]'); if (button) void connectWallet(button.dataset.walletProvider); };
 	function showLoadError() { $('statusText').textContent = t('degraded'); $('statusDetail').textContent = t('unavailable'); $('status').className = 'status-bar warn'; $('refreshButton').disabled = false; removeSkeletons(); }
-    applyLanguage(language);
-    load().catch(showLoadError).finally(openDeepLink);
-    connectLiveStream();
+    function startExplorer() {
+      applyLanguage(language);
+      void openDeepLink();
+      load().catch(showLoadError);
+      connectLiveStream();
+    }
+    startExplorer();
     window.setInterval(() => {
       if (!lastStreamAt) return;
       const age = Math.floor((Date.now() - lastStreamAt) / 1000);
