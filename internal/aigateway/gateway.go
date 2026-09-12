@@ -320,6 +320,8 @@ type providerResponse struct {
 
 type ProviderHTTPError struct {
 	StatusCode int
+	Category   string
+	RetryAfter string
 }
 
 func (e *ProviderHTTPError) Error() string {
@@ -369,7 +371,7 @@ func (s *Service) completeWithProvider(ctx context.Context, session, query, requ
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		return "", &ProviderHTTPError{StatusCode: resp.StatusCode}
+		return "", classifyProviderHTTPError(resp)
 	}
 	var result providerResponse
 	if err := json.NewDecoder(io.LimitReader(resp.Body, maxBodyBytes)).Decode(&result); err != nil {

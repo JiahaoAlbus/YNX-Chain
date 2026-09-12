@@ -148,6 +148,11 @@ func (s *Server) handleStream(w http.ResponseWriter, r *http.Request) {
 		var providerError *ProviderHTTPError
 		if errors.As(err, &providerError) && providerError.StatusCode == http.StatusTooManyRequests {
 			status, code, message = http.StatusTooManyRequests, "provider_rate_limited", "AI provider rate limit exceeded"
+			if providerError.Category == "quota_exhausted" {
+				code, message = "provider_quota_exhausted", "AI provider quota or spending limit is exhausted; retrying does not restore access"
+			} else if providerError.Category == "rate_limited" && providerError.RetryAfter != "" {
+				w.Header().Set("Retry-After", providerError.RetryAfter)
+			}
 		}
 		s.service.FinishRequest(status)
 		s.audit(r, requestID, session, promptHash, status, code, input)

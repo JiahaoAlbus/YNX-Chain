@@ -249,7 +249,7 @@ func (s *Server) handlePublicStatus(w http.ResponseWriter, r *http.Request) {
 				gatewayReady = health.OK && providerConfigured && upstreamReachable && model != ""
 				if gatewayReady {
 					status = http.StatusOK
-					detail = "The Gateway and configured model endpoint are reachable. Successful generation is not implied and still requires current provider quota plus an accepted YNX Wallet product session."
+					detail = "The Gateway and chain upstream are reachable, and a model is configured. This health check does not verify model availability, quota, or successful generation. Private generation also requires an accepted YNX Wallet product session."
 				}
 			}
 		}
@@ -259,7 +259,7 @@ func (s *Server) handlePublicStatus(w http.ResponseWriter, r *http.Request) {
 		"ok": gatewayReady, "gatewayReady": gatewayReady, "providerAvailable": false, "providerConfigured": providerConfigured,
 		"upstreamReachable": upstreamReachable, "provider": s.cfg.ProviderName, "model": model,
 		"quota": "not reported by provider", "walletAccess": "canonical product-session acceptance pending",
-		"generationLive": false, "providerGenerationEvidence": "latest bounded provider run returned 429; no substitute answer", "status": detail, "asOf": time.Now().UTC().Format(time.RFC3339),
+		"generationLive": false, "generationEvidenceKnown": false, "providerGenerationEvidence": "No current generation result is available from this health projection; no substitute answer", "status": detail, "asOf": time.Now().UTC().Format(time.RFC3339),
 		"source": "ynx-ai-gatewayd health projection", "version": "ynx.ai.public-status.v1",
 	})
 }
