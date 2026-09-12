@@ -1,6 +1,10 @@
 import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "./App";
+import * as nativeJournal from './native-action-journal';
+import * as wallet from './wallet';
+import { draftAccount } from './NativeDraftPanel';
+import { nativeSubmitCopy } from './native-submit-i18n';
 import {
   disconnectStandardWallet,
   readStandardWalletProviderPreference,
@@ -84,6 +88,25 @@ describe("DEX selected-provider restore and disconnect lifecycle", () => {
       expect(vi.mocked(fetch).mock.calls.every(([,init])=>init?.method===undefined||init.method==='GET')).toBe(true);
     },
   );
+
+  it('committed native return clears the callback route before a second App startup can enter private completion',async()=>{
+    // Local journal decision double only; App routing and provider restore are real.
+    const draft={version:1,status:'pending',digest:'d'.repeat(64),snapshotId:'sha256:'+'e'.repeat(64),signed:null,transactionHash:null,request:{account:draftAccount(META_ACCOUNT),chainId:'ynx_6423-1',action:'dex_swap_exact_input',nonce:4,expiresAt:'2099-01-01T00:00:00.000Z',payload:{poolId:'local-fixture',deadlineUnix:4102444800}}};
+    const make=nativeJournal.createNativeActionJournal;
+    const open=vi.spyOn(nativeJournal,'openNativeActionStore').mockResolvedValue({close:vi.fn(),update:async(_key,change)=>change(null)});
+    const journal=vi.spyOn(nativeJournal,'createNativeActionJournal').mockImplementation(store=>({...make(store),read:async()=>draft as unknown as nativeJournal.NativeDraft,acceptReturn:async()=>({...draft,status:'rejected'}) as unknown as nativeJournal.NativeDraft}));
+    const privateComplete=vi.spyOn(wallet,'completeWalletCallback');
+    try{
+      history.replaceState({},'','/wallet-auth/callback?applicationActionResult=LOCAL_REJECTED_FIXTURE');
+      localStorage.setItem(PREFERENCE_KEY,'metamask');const meta=provider('metamask',META_ACCOUNT);vi.stubGlobal('ethereum',{providers:[meta]});
+      const first=render(<App/>);await settleDiscovery();
+      await act(async()=>{fireEvent.click(screen.getByRole('button',{name:nativeSubmitCopy.en.verifyReturn}));});
+      expect(location.pathname).toBe('/');expect(location.search).toBe('');expect(privateComplete).not.toHaveBeenCalled();
+      first.unmount();render(<App/>);await settleDiscovery();expect(privateComplete).not.toHaveBeenCalled();
+      expect(screen.queryByRole('button',{name:nativeSubmitCopy.en.verifyReturn})).not.toBeInTheDocument();
+      expect(vi.mocked(fetch).mock.calls.every(([,init])=>init?.method===undefined||init.method==='GET')).toBe(true);
+    }finally{open.mockRestore();journal.mockRestore();privateComplete.mockRestore();}
+  });
 
   it("restores the explicitly chosen MetaMask on remount even when YNX Wallet is also present", async () => {
     const ynx = provider("ynx-wallet", YNX_ACCOUNT);

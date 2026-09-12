@@ -16,6 +16,7 @@ import { NativeDraftPanel, draftAccount } from './NativeDraftPanel';
 import { createNativeActionJournal, openNativeActionStore } from './native-action-journal';
 import { loadNativeSnapshotDocument } from './native-snapshot';
 import { nativeDraftCopy } from './native-draft-i18n';
+import { nativeSubmitCopy } from './native-submit-i18n';
 import { portfolioCopy } from "./portfolio-i18n";
 import { walletRevocationCopy } from './wallet-revocation-i18n';
 import { aggregateCandles, type Candle } from "./candles";
@@ -161,10 +162,10 @@ export default function App() {
     void (async () => {
       try {
         if (location.pathname === '/wallet-action/callback' || new URL(location.href).searchParams.has('applicationActionResult')) {
-          // A callback is never submission authority. The next native action
-          // integration must validate its persisted request and render a
-          // separate user-confirmed submit review; never POST from this effect.
-          throw new Error('Native action return requires its matching request and explicit submission review. No transaction was sent.');
+          // Do not feed a native action callback to private-session completion.
+          // The selected account panel offers explicit local verification only.
+          if(active)setTransactionState({busy:false,error:'NATIVE_RETURN_REVIEW_REQUIRED',receipt:''});
+          return;
         } else if (
           location.pathname ===
           new URL("https://dex.ynxweb4.com/wallet-auth/callback").pathname
@@ -213,8 +214,9 @@ export default function App() {
     standardWalletCleanup.current?.();
     standardWalletCleanup.current = observeStandardWallet(provider, (state) => {
       nativeDraftIntent.current++;
+      setDraftRevision(value=>value+1);
       setTransactionState({busy:false,error:'',receipt:''});
-      setWalletAccount(state.account || "");
+      setWalletAccount(state.status === 'connected' ? state.account || '' : '');
       setMetamaskAccount(state.status === "connected" && state.providerKind === "metamask" ? state.account || "" : "");
       setWalletError(state.status === "connected" ? "" : "Standard Wallet disconnected. Read-only DEX remains available.");
     });
@@ -440,13 +442,13 @@ export default function App() {
         {transactionState.receipt && (
           <div className="offline-banner" role="status">
             <Icon name="security" />
-            {transactionState.receipt==='NATIVE_DRAFT_SAVED'?nativeDraftCopy[locale][5]:transactionState.receipt}
+            {transactionState.receipt==='NATIVE_DRAFT_SAVED'?nativeSubmitCopy[locale].boundary:transactionState.receipt}
           </div>
         )}
         {transactionState.error && (
           <div className="offline-banner" role="alert">
             <Icon name="warning" />
-            {transactionState.error==='NATIVE_REVIEW_UNAVAILABLE'?nativeDraftCopy[locale][7]:transactionState.error}
+            {transactionState.error==='NATIVE_REVIEW_UNAVAILABLE'?nativeDraftCopy[locale][7]:transactionState.error==='NATIVE_RETURN_REVIEW_REQUIRED'?nativeSubmitCopy[locale].returnReview:transactionState.error}
           </div>
         )}
         <main id="main" tabIndex={-1}>
