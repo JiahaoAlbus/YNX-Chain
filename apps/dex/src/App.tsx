@@ -27,6 +27,7 @@ import {
   consumeDexActionCallback,
   restoreWalletSession,
   restoreStandardWallet,
+  readStandardWalletProviderPreference,
   disconnectStandardWallet,
   observeStandardWallet,
   standardWalletDetails,
@@ -121,6 +122,7 @@ export default function App() {
   const [walletError, setWalletError] = useState("");
   const [metamaskAccount, setMetamaskAccount] = useState("");
   const standardWalletCleanup = useRef<(() => void) | null>(null);
+  const standardWalletIntent = useRef(0);
   const [transactionState, setTransactionState] = useState<{
     busy: boolean;
     error: string;
@@ -213,72 +215,99 @@ export default function App() {
       active = false;
     };
   }, [retry]);
-  useEffect(() => () => standardWalletCleanup.current?.(), []);
+  useEffect(() => () => {
+    standardWalletIntent.current++;
+    standardWalletCleanup.current?.();
+  }, []);
   const bindStandardWallet = (provider: Parameters<typeof observeStandardWallet>[0]) => {
     standardWalletCleanup.current?.();
     standardWalletCleanup.current = observeStandardWallet(provider, (state) => {
       setWalletAccount(state.account || "");
-      if (state.status !== "connected") setMetamaskAccount("");
+      setMetamaskAccount(state.status === "connected" && state.providerKind === "metamask" ? state.account || "" : "");
       setWalletError(state.status === "connected" ? "" : "Standard Wallet disconnected. Read-only DEX remains available.");
     });
   };
   useEffect(() => {
     let active = true;
+    const intent = standardWalletIntent.current;
+    const isCurrent = () => active && intent === standardWalletIntent.current;
     void (async () => {
+      const providerKind = readStandardWalletProviderPreference();
+      if (!providerKind) return;
       const launch = await beginWalletAuthorization();
-      const provider = launch.providers.ynxWallet || launch.providers.metaMask;
-      const providerKind = launch.providers.ynxWallet ? "ynx-wallet" : launch.providers.metaMask ? "metamask" : undefined;
-      if (!provider || !providerKind) return;
-      const account = await restoreStandardWallet(provider, providerKind);
-      if (!active || !account) return;
+      if (!isCurrent()) return;
+      const provider = providerKind === "ynx-wallet" ? launch.providers.ynxWallet : launch.providers.metaMask;
+      if (!provider) return;
+      const account = await restoreStandardWallet(provider, providerKind, isCurrent);
+      if (!isCurrent() || !account) return;
       bindStandardWallet(provider);
       setWalletAccount(account);
       if (providerKind === "metamask") setMetamaskAccount(account);
     })().catch(() => undefined);
     return () => { active = false; };
   }, []);
+  const disconnectWallet = () => {
+    standardWalletIntent.current++;
+    standardWalletCleanup.current?.();
+    standardWalletCleanup.current = null;
+    disconnectStandardWallet();
+    setWalletAccount("");
+    setMetamaskAccount("");
+    setWalletBusy(false);
+  };
   const connectWallet = async () => {
+    const intent = ++standardWalletIntent.current;
+    const isCurrent = () => intent === standardWalletIntent.current;
     setWalletBusy(true);
     setWalletError("");
     try {
       const launch = await beginWalletAuthorization();
+      if (!isCurrent()) return;
       const provider=launch.providers.ynxWallet;
       if (launch.status === "provider-ready" && provider) {
-        const account=await connectStandardWallet(provider,"ynx-wallet");
+        const account=await connectStandardWallet(provider,"ynx-wallet",isCurrent);
+        if (!isCurrent()) return;
         bindStandardWallet(provider);
         setWalletAccount(account);
+        setMetamaskAccount("");
         setWalletError("Standard Wallet connected on YNX Testnet. Product Session, approval, swap, liquidity and token approval remain separate.");
         setWallet(false);
       } else
         setWalletError("YNX Wallet is unavailable in this browser. DEX remains open; use the official download or MetaMask options below.");
     } catch (reason) {
+      if (!isCurrent()) return;
       setWalletError(
         reason instanceof Error ? reason.message : "Unable to open YNX Wallet.",
       );
     } finally {
-      setWalletBusy(false);
+      if (isCurrent()) setWalletBusy(false);
     }
   };
   const connectEvm = async () => {
+    const intent = ++standardWalletIntent.current;
+    const isCurrent = () => intent === standardWalletIntent.current;
     setWalletBusy(true);
     setWalletError("");
     try {
       const launch=await beginWalletAuthorization();
+      if (!isCurrent()) return;
       const provider=launch.providers.metaMask;
       if(!provider)throw new Error("MetaMask is unavailable in this browser. Install or unlock MetaMask, then retry.");
-      const account=await connectMetaMask(provider);
+      const account=await connectMetaMask(provider,isCurrent);
+      if (!isCurrent()) return;
       bindStandardWallet(provider);
       setMetamaskAccount(account);
       setWalletAccount(account);
       setWallet(false);
     } catch (reason) {
+      if (!isCurrent()) return;
       setWalletError(
         reason instanceof Error
           ? reason.message
           : "Unable to connect MetaMask.",
       );
     } finally {
-      setWalletBusy(false);
+      if (isCurrent()) setWalletBusy(false);
     }
   };
   const requestAction = async (
@@ -619,12 +648,12 @@ export default function App() {
                 Connect MetaMask
               </button>
               {walletAccount && (
-                <button className="secondary" onClick={() => {standardWalletCleanup.current?.();standardWalletCleanup.current=null;disconnectStandardWallet();setWalletAccount("");setMetamaskAccount("");setWalletError("Standard Wallet disconnected. Read-only DEX remains available.");}}>
+                <button className="secondary" onClick={() => {disconnectWallet();setWalletError("Standard Wallet disconnected. Read-only DEX remains available.");}}>
                   Disconnect wallet
                 </button>
               )}
               {walletAccount && (
-                <button className="secondary" onClick={() => {standardWalletCleanup.current?.();standardWalletCleanup.current=null;disconnectStandardWallet();setWalletAccount("");setMetamaskAccount("");setWalletError("Choose YNX Wallet or MetaMask to switch providers. No account request was sent.");}}>
+                <button className="secondary" onClick={() => {disconnectWallet();setWalletError("Choose YNX Wallet or MetaMask to switch providers. No account request was sent.");}}>
                   Switch wallet
                 </button>
               )}

@@ -21,7 +21,23 @@ export type DexPrivateCapabilities=Readonly<{device:Readonly<{key:string}>;stora
 export type DexAuthorizationLaunch=Readonly<{status:AuthorizationLaunchResult['status'];fallbackActions:AuthorizationLaunchResult['fallbackActions'];provider?:Eip1193Provider;providerKind?:StandardWalletProviderKind;providers:Readonly<{ynxWallet?:Eip1193Provider;metaMask?:Eip1193Provider}>}>;
 let privateCapabilities:DexPrivateCapabilities|null=null;
 let standardWalletState=createStandardWalletConnectState();
+let standardWalletRevision=0;
+const STANDARD_WALLET_PROVIDER_KEY='ynx.dex.standard-wallet.v1.provider';
 const CANONICAL_AUTHORIZATION_PENDING_KEY='ynx.dex.wallet-authorize.v1.pending';
+
+/** A UI preference, never an account, permission, token or connection proof. */
+export function readStandardWalletProviderPreference():StandardWalletProviderKind|null {
+  try {
+    const value=globalThis.localStorage.getItem(STANDARD_WALLET_PROVIDER_KEY);
+    return value==='ynx-wallet'||value==='metamask'?value:null;
+  } catch { return null; }
+}
+function rememberStandardWalletProvider(providerKind:StandardWalletProviderKind|null) {
+  try {
+    if(providerKind)globalThis.localStorage.setItem(STANDARD_WALLET_PROVIDER_KEY,providerKind);
+    else globalThis.localStorage.removeItem(STANDARD_WALLET_PROVIDER_KEY);
+  } catch { /* Storage may be unavailable; the current connection remains in memory. */ }
+}
 
 export class WalletRequestError extends Error{constructor(public code:string,message:string){super(message)}}
 function unavailable(){return new WalletRequestError('PRODUCT_SESSION_UNAVAILABLE','DEX canonical Wallet authorization requires a platform-proven protected device key and storage adapter. Read-only DEX and Standard EIP-1193 Wallet connection remain available.');}
@@ -33,16 +49,54 @@ function standardTransition(event:Record<string,unknown>){standardWalletState=re
 function providerCandidate(value:unknown,kind:StandardWalletProviderKind):Eip1193Provider|undefined{const candidate=value as {kind?:unknown;provider?:unknown}|null;return candidate?.kind===kind&&candidate.provider&&typeof (candidate.provider as Eip1193Provider).request==='function'?candidate.provider as Eip1193Provider:undefined}
 
 /** Standard EIP-1193/MetaMask stays independent of YNX Wallet authorization. */
-export async function connectStandardWallet(provider:Eip1193Provider,providerKind:StandardWalletProviderKind='ynx-wallet'):Promise<string>{
+export async function connectStandardWallet(provider:Eip1193Provider,providerKind:StandardWalletProviderKind='ynx-wallet',isCurrent:()=>boolean=()=>true):Promise<string>{
   if(!provider)throw new WalletRequestError('WALLET_NOT_FOUND','No EIP-1193 provider was detected. Download YNX Wallet or install MetaMask, then retry.');
-  try{standardTransition({type:'BEGIN',pendingIntent:nonce()});standardTransition({type:'PROVIDER_SELECTED',providerKind});try{await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:YNX_EVM_CHAIN.chainId}]});}catch(reason){if((reason as {code?:number})?.code!==4902)throw reason;await provider.request({method:'wallet_addEthereumChain',params:[YNX_EVM_CHAIN]});await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:YNX_EVM_CHAIN.chainId}]});}const chainId=await provider.request({method:'eth_chainId'});if(chainId!==YNX_EVM_CHAIN.chainId)throw new WalletRequestError('WRONG_NETWORK','Selected Wallet did not switch to YNX Testnet (chain 6423).');const accounts=await provider.request({method:'eth_requestAccounts'});if(!Array.isArray(accounts)||typeof accounts[0]!=='string'||!/^0x[0-9a-fA-F]{40}$/.test(accounts[0]))throw new WalletRequestError('INVALID_ACCOUNT','Selected Wallet did not return a valid EVM account.');standardTransition({type:'ACCOUNT_APPROVED',account:accounts[0]});const completed=standardTransition({type:'CHAIN_CONFIRMED',chainId});if(completed.status!==STANDARD_WALLET_CONNECT_STATUS.CONNECTED)throw new WalletRequestError('WRONG_NETWORK','Selected Wallet did not confirm YNX Testnet.');return completed.account!;}catch(error){try{standardTransition({type:'FAIL',code:standardCode(error)})}catch{}throw error}
+  const revision=++standardWalletRevision;
+  const assertCurrent=()=>{if(revision!==standardWalletRevision||!isCurrent())throw new WalletRequestError('WALLET_REQUEST_SUPERSEDED','A newer Wallet choice replaced this request.');};
+  try {
+    assertCurrent();
+    standardTransition({type:'BEGIN',pendingIntent:nonce()});
+    standardTransition({type:'PROVIDER_SELECTED',providerKind});
+    try { await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:YNX_EVM_CHAIN.chainId}]}); }
+    catch(reason) {
+      assertCurrent();
+      if((reason as {code?:number})?.code!==4902)throw reason;
+      await provider.request({method:'wallet_addEthereumChain',params:[YNX_EVM_CHAIN]});
+      assertCurrent();
+      await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:YNX_EVM_CHAIN.chainId}]});
+    }
+    assertCurrent();
+    const chainId=await provider.request({method:'eth_chainId'});
+    assertCurrent();
+    if(chainId!==YNX_EVM_CHAIN.chainId)throw new WalletRequestError('WRONG_NETWORK','Selected Wallet did not switch to YNX Testnet (chain 6423).');
+    const accounts=await provider.request({method:'eth_requestAccounts'});
+    assertCurrent();
+    if(!Array.isArray(accounts)||typeof accounts[0]!=='string'||!/^0x[0-9a-fA-F]{40}$/.test(accounts[0]))throw new WalletRequestError('INVALID_ACCOUNT','Selected Wallet did not return a valid EVM account.');
+    standardTransition({type:'ACCOUNT_APPROVED',account:accounts[0]});
+    const completed=standardTransition({type:'CHAIN_CONFIRMED',chainId});
+    if(completed.status!==STANDARD_WALLET_CONNECT_STATUS.CONNECTED)throw new WalletRequestError('WRONG_NETWORK','Selected Wallet did not confirm YNX Testnet.');
+    rememberStandardWalletProvider(providerKind);
+    return completed.account!;
+  } catch(error) {
+    if(revision===standardWalletRevision)try{standardTransition({type:'FAIL',code:standardCode(error)})}catch{}
+    throw error;
+  }
 }
 /** MetaMask remains an independent explicit EIP-1193 route. */
-export async function connectMetaMask(provider:Eip1193Provider|undefined=(globalThis as typeof globalThis&{ethereum?:Eip1193Provider}).ethereum):Promise<string>{return connectStandardWallet(provider as Eip1193Provider,'metamask')}
-export async function restoreStandardWallet(provider:Eip1193Provider|undefined,providerKind:StandardWalletProviderKind):Promise<string|null>{if(!provider)return null;try{const [accounts,chainId]=await Promise.all([provider.request({method:'eth_accounts'}),provider.request({method:'eth_chainId'})]);const restored=standardTransition({type:'RESTORE',providerKind,accounts,chainId});return restored.status===STANDARD_WALLET_CONNECT_STATUS.CONNECTED?restored.account:null}catch{return null}}
+export async function connectMetaMask(provider:Eip1193Provider|undefined=(globalThis as typeof globalThis&{ethereum?:Eip1193Provider}).ethereum,isCurrent:()=>boolean=()=>true):Promise<string>{return connectStandardWallet(provider as Eip1193Provider,'metamask',isCurrent)}
+export async function restoreStandardWallet(provider:Eip1193Provider|undefined,providerKind:StandardWalletProviderKind,isCurrent:()=>boolean=()=>true):Promise<string|null>{
+  if(!provider||!isCurrent())return null;
+  const revision=standardWalletRevision;
+  try {
+    const [accounts,chainId]=await Promise.all([provider.request({method:'eth_accounts'}),provider.request({method:'eth_chainId'})]);
+    if(revision!==standardWalletRevision||!isCurrent())return null;
+    const restored=standardTransition({type:'RESTORE',providerKind,accounts,chainId});
+    return restored.status===STANDARD_WALLET_CONNECT_STATUS.CONNECTED?restored.account:null;
+  } catch { return null; }
+}
 export function reportDexRpcProbe(status:'ready'|'degraded',code='RPC_UNAVAILABLE'){return standardTransition({type:status==='ready'?'RPC_PROBE_READY':'RPC_PROBE_DEGRADED',probeTransport:STANDARD_WALLET_RPC_PROBE_TRANSPORT,...(status==='ready'?{}:{code})})}
 export function standardWalletDetails(){return standardWalletState}
-export function disconnectStandardWallet(){return standardTransition({type:'DISCONNECT'})}
+export function disconnectStandardWallet(){standardWalletRevision++;rememberStandardWalletProvider(null);return standardTransition({type:'DISCONNECT'})}
 export function observeStandardWallet(provider:Eip1193Provider,onChange:(state:ReturnType<typeof standardWalletDetails>)=>void){
   const notify=()=>onChange(standardWalletState);
   const accounts=(value?:unknown)=>{try{standardTransition({type:'ACCOUNTS_CHANGED',accounts:Array.isArray(value)?value:[]});notify()}catch{disconnectStandardWallet();notify()}};
