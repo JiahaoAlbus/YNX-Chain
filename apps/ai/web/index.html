@@ -30,6 +30,12 @@
       </section>
       </div>
       <div class="auth-access">
+      <section id="session-recovery" class="notice hidden" aria-labelledby="session-recovery-title">
+        <h2 id="session-recovery-title">Restore your AI session</h2>
+        <p id="session-recovery-status" role="status">Checking your existing session.</p>
+        <button id="session-retry" class="primary small" type="button">Retry session check</button>
+        <button id="session-signout" class="text-button" type="button">Sign out on this device</button>
+      </section>
       <p class="notice"><strong>Canonical integration status:</strong> production sign-in stays fail-closed until the shared Wallet verifier and AI registry entry are deployed. The fields below are available only when a developer explicitly starts local fixture mode.</p>
       <form id="challenge-form" class="auth-grid">
         <label>Native account <input id="account" required placeholder="ynx1…" autocomplete="off"></label>

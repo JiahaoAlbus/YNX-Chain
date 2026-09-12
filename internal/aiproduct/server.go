@@ -103,6 +103,7 @@ func (s *Server) routes() {
 		s.mux.HandleFunc("POST /api/auth/wallet/approvals", s.handleFormalWalletApproval)
 		s.mux.HandleFunc("POST /api/auth/wallet/sessions", s.handleFormalWalletSession)
 	}
+	s.mux.HandleFunc("GET /api/auth/session", s.authed("", s.handleSessionReadback))
 	s.mux.HandleFunc("POST /api/auth/revoke", s.authed("", s.handleRevoke))
 	s.mux.HandleFunc("GET /api/provider", s.authed("ai:generate", s.handleProvider))
 	s.mux.HandleFunc("GET /api/usage", s.authed("ai:data-control", s.handleUsage))
@@ -138,6 +139,12 @@ type authedHandler func(http.ResponseWriter, *http.Request, ProductSession)
 
 func (s *Server) authed(scope string, next authedHandler) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// Persisted fixture sessions must not become production credentials when
+		// fixture mode is disabled. Allow their revocation, but no product access.
+		if !s.cfg.AllowLocalFixtureAuth && r.URL.Path != "/api/auth/revoke" {
+			writeError(w, http.StatusServiceUnavailable, "canonical Wallet session integration is unavailable")
+			return
+		}
 		session, err := s.store.Authenticate(r.Header.Get("Authorization"), r.Header.Get("X-YNX-Device-ID"))
 		if err != nil {
 			writeError(w, http.StatusUnauthorized, err.Error())
@@ -298,6 +305,15 @@ func (s *Server) handleFormalWalletSession(w http.ResponseWriter, r *http.Reques
 	}
 	writeJSON(w, http.StatusCreated, out)
 }
+func (s *Server) handleSessionReadback(w http.ResponseWriter, r *http.Request, session ProductSession) {
+	// This readback neither issues credentials nor extends the session lifetime.
+	writeJSON(w, http.StatusOK, map[string]any{
+		"sessionId": session.ID, "account": session.Account, "deviceId": session.DeviceID,
+		"scopes": session.Scopes, "expiresAt": session.ExpiresAt,
+		"authority": "local-fixture", "integratedCentral": false,
+	})
+}
+
 func (s *Server) handleRevoke(w http.ResponseWriter, r *http.Request, session ProductSession) {
 	if err := s.store.RevokeSession(r.Header.Get("Authorization"), r.Header.Get("X-YNX-Device-ID")); err != nil {
 		writeError(w, http.StatusBadRequest, err.Error())

@@ -1,15 +1,62 @@
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-const state={token:sessionStorage.getItem('ynx-ai-token')||'',deviceId:sessionStorage.getItem('ynx-ai-device')||'',account:sessionStorage.getItem('ynx-ai-account')||'',challengeId:'',conversationId:'',conversationArchived:false,conversations:[],generationId:'',abort:null,lastPrompt:'',archived:false,provider:null};
+const state={token:sessionStorage.getItem('ynx-ai-token')||'',deviceId:sessionStorage.getItem('ynx-ai-device')||'',account:sessionStorage.getItem('ynx-ai-account')||'',challengeId:'',conversationId:'',conversationArchived:false,conversations:[],generationId:'',abort:null,lastPrompt:'',archived:false,provider:null,signingOut:false};
+const signoutNoticeKey='ynx-ai-signout-status';
+function clearAISession(){for(const key of ['ynx-ai-token','ynx-ai-account','ynx-ai-device'])sessionStorage.removeItem(key);state.token='';state.account='';state.deviceId='';state.challengeId='';state.conversationId='';state.conversations=[];state.lastPrompt='';state.provider=null;state.abort?.abort();state.abort=null;state.generationId=''}
+function showSignoutNotice(){const status=sessionStorage.getItem(signoutNoticeKey);if(status)$('#auth-error').textContent=status==='expired'?'Your AI session is no longer valid. Sign in again to continue.':status==='revoked'?'Signed out on this device. The server confirmed revocation of this AI session.':'Signed out on this device. Server revocation is not confirmed; this AI session may still be active on the server.'}
 const scopes=['ai:conversations','ai:generate','ai:permissions','ai:data-control'];
-async function api(path,options={}){const headers={...(options.body?{'Content-Type':'application/json'}:{}),...(state.token?{Authorization:`Bearer ${state.token}`,'X-YNX-Device-ID':state.deviceId}:{})};const response=await fetch(path,{...options,headers:{...headers,...options.headers}});if(response.status===204)return null;const data=await response.json().catch(()=>({error:`HTTP ${response.status}`}));if(!response.ok)throw new Error(data.error||`HTTP ${response.status}`);return data}
+async function api(path,options={}){if(state.signingOut)throw new Error('The AI session has ended.');const headers={...(options.body?{'Content-Type':'application/json'}:{}),...(state.token?{Authorization:`Bearer ${state.token}`,'X-YNX-Device-ID':state.deviceId}:{})};const response=await fetch(path,{...options,headers:{...headers,...options.headers}});if(state.signingOut)throw new Error('The AI session has ended.');if(response.status===204)return null;const data=await response.json().catch(()=>({error:`HTTP ${response.status}`}));if(state.signingOut)throw new Error('The AI session has ended.');if(!response.ok){const error=new Error(data.error||`HTTP ${response.status}`);error.status=response.status;throw error}return data}
 async function loadPublicStatus(){const badge=$('#public-status-badge');try{const response=await fetch('/api/public-status',{headers:{Accept:'application/json'}});const data=await response.json();if(!response.ok||!data.gatewayReady)throw new Error(data.status||'Gateway unavailable');badge.textContent='Gateway ready';badge.className='runtime-badge available';$('#public-gateway').textContent='Operational';$('#public-provider').textContent=`${data.provider} · ${data.model}`;$('#public-status-detail').textContent=`${data.status} ${data.providerGenerationEvidence}.`;badge.title=`Source: ${data.source} · ${data.asOf}`}catch(error){badge.textContent='Unavailable';badge.className='runtime-badge unavailable';$('#public-gateway').textContent='Unavailable';$('#public-provider').textContent='No substitute model';$('#public-status-detail').textContent=error.message}}
 function toast(message){const node=$('#toast');node.textContent=message;node.classList.add('show');setTimeout(()=>node.classList.remove('show'),2200)}
 function escapeHTML(value=''){return value.replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
 
-$('#challenge-form').addEventListener('submit',async event=>{event.preventDefault();$('#auth-error').textContent='';try{const meta=await api('/api/meta');if(!meta.localFixtureAuthEnabled)throw new Error('Canonical YNX Wallet integration is not deployed. Sign-in is fail-closed; no local session was created.');const out=await api('/api/auth/challenges',{method:'POST',body:JSON.stringify({account:$('#account').value,deviceId:$('#device-id').value,deviceSigningPublicKey:$('#device-public').value,callback:meta.walletCallback,scopes})});state.challengeId=out.challengeId;state.deviceId=$('#device-id').value;$('#wallet-link').href=out.walletUrl;$('#proof-step').classList.remove('hidden')}catch(error){$('#auth-error').textContent=error.message}});
-$('#verify-form').addEventListener('submit',async event=>{event.preventDefault();$('#auth-error').textContent='';try{const out=await api(`/api/auth/challenges/${encodeURIComponent(state.challengeId)}/verify`,{method:'POST',body:JSON.stringify({accountPublicKey:$('#account-public').value,accountSignature:$('#account-signature').value,deviceSignature:$('#device-signature').value})});state.token=out.token;state.account=out.account;state.deviceId=out.deviceId;sessionStorage.setItem('ynx-ai-token',out.token);sessionStorage.setItem('ynx-ai-account',out.account);sessionStorage.setItem('ynx-ai-device',out.deviceId);await enterApp()}catch(error){$('#auth-error').textContent=error.message}});
-async function enterApp(){$('#signin').classList.add('hidden');$('#app').classList.remove('hidden');$('#account-label').textContent=state.account;await Promise.all([loadConversations(),loadProvider(),loadPrivacy()])}
-$('#signout').addEventListener('click',async()=>{try{await api('/api/auth/revoke',{method:'POST'})}catch{}sessionStorage.clear();location.reload()});
+$('#challenge-form').addEventListener('submit',async event=>{event.preventDefault();if(state.signingOut)return;$('#auth-error').textContent='';try{const meta=await api('/api/meta');if(!meta.localFixtureAuthEnabled)throw new Error('Canonical YNX Wallet integration is not deployed. Sign-in is fail-closed; no local session was created.');const out=await api('/api/auth/challenges',{method:'POST',body:JSON.stringify({account:$('#account').value,deviceId:$('#device-id').value,deviceSigningPublicKey:$('#device-public').value,callback:meta.walletCallback,scopes})});if(state.signingOut)return;state.challengeId=out.challengeId;state.deviceId=$('#device-id').value;$('#wallet-link').href=out.walletUrl;$('#proof-step').classList.remove('hidden')}catch(error){if(!state.signingOut)$('#auth-error').textContent=error.message}});
+$('#verify-form').addEventListener('submit',async event=>{event.preventDefault();if(state.signingOut)return;$('#auth-error').textContent='';try{const out=await api(`/api/auth/challenges/${encodeURIComponent(state.challengeId)}/verify`,{method:'POST',body:JSON.stringify({accountPublicKey:$('#account-public').value,accountSignature:$('#account-signature').value,deviceSignature:$('#device-signature').value})});if(state.signingOut)return;state.token=out.token;state.account=out.account;state.deviceId=out.deviceId;sessionStorage.setItem('ynx-ai-token',out.token);sessionStorage.setItem('ynx-ai-account',out.account);sessionStorage.setItem('ynx-ai-device',out.deviceId);sessionStorage.removeItem(signoutNoticeKey);await enterApp()}catch(error){if(!state.signingOut)$('#auth-error').textContent=error.message}});
+let restoreTask=null;
+function enterApp(){if(state.signingOut||!state.token)return Promise.resolve();if(!restoreTask)restoreTask=restoreSession().finally(()=>{restoreTask=null});return restoreTask}
+async function restoreSession(){
+ $('#app').classList.add('hidden');$('#signin').classList.remove('hidden');
+ $('#challenge-form').classList.add('hidden');$('#proof-step').classList.add('hidden');
+ $('#session-recovery').classList.remove('hidden');$('#session-retry').disabled=true;
+ $('#session-recovery-status').textContent='Checking your existing session. No new wallet authorization is requested.';
+ try{
+  const session=await api('/api/auth/session');
+  if(state.signingOut)return;
+  if(session.account!==state.account||session.deviceId!==state.deviceId){const error=new Error('AI session identity changed.');error.status=401;throw error}
+  $('#session-recovery').classList.add('hidden');$('#signin').classList.add('hidden');$('#app').classList.remove('hidden');
+  $('#account-label').textContent=session.account;
+  const results=await Promise.allSettled([loadConversations(),loadProvider(),loadPrivacy()]);
+  if(!state.signingOut&&results.some(result=>result.status==='rejected'))toast('Your session is active. Some workspace data could not be loaded; retry without signing in again.');
+ }catch(error){
+  if(state.signingOut)return;
+  if(error.status===401){clearAISession();sessionStorage.setItem(signoutNoticeKey,'expired');showSignoutNotice();$('#session-recovery').classList.add('hidden');$('#challenge-form').classList.remove('hidden')}
+  else $('#session-recovery-status').textContent='Your session could not be checked. Retry when the service is available; your saved session has been kept. No new wallet authorization was requested.';
+ }finally{if(!state.signingOut)$('#session-retry').disabled=false}
+}
+$('#session-retry').addEventListener('click',()=>enterApp());
+async function signOut(){
+ if(state.signingOut)return;
+ state.signingOut=true;
+ const token=state.token,deviceId=state.deviceId;
+ sessionStorage.setItem(signoutNoticeKey,'unconfirmed');
+ clearAISession();
+ $('#signout').disabled=true;
+ $('#session-signout').disabled=true;
+ $('#session-recovery').classList.add('hidden');
+ $('#app').classList.add('hidden');
+ $('#signin').classList.remove('hidden');
+ $('#challenge-form').inert=true;
+ $('#verify-form').inert=true;
+ if($('#modal').open)$('#modal').close();
+ showSignoutNotice();
+ const controller=new AbortController();
+ const timer=setTimeout(()=>controller.abort(),8000);
+ try{
+  if(token){const response=await fetch('/api/auth/revoke',{method:'POST',signal:controller.signal,redirect:'error',headers:{Authorization:`Bearer ${token}`,'X-YNX-Device-ID':deviceId}});if(response.status===204)sessionStorage.setItem(signoutNoticeKey,'revoked')}
+ }catch{/* Local sign-out is complete; the server result remains unconfirmed. */}
+ finally{clearTimeout(timer);clearAISession();showSignoutNotice();location.reload()}
+}
+$('#signout').addEventListener('click',signOut);
+$('#session-signout').addEventListener('click',signOut);
 
 async function loadConversations(){const query=$('#conversation-search')?.value?.trim()||'';const data=await api(`/api/conversations?archived=${state.archived}&q=${encodeURIComponent(query)}`);state.conversations=data.conversations;renderConversationList();if(!state.conversationId&&state.conversations.length)await selectConversation(state.conversations[0].id)}
 $('#conversation-search').addEventListener('input',()=>{void loadConversations().catch(error=>toast(error.message))});
@@ -31,7 +78,7 @@ $('#context-details').onclick=()=>$('#exclusion-row').classList.toggle('hidden')
 $('#composer').addEventListener('submit',event=>{event.preventDefault();sendPrompt($('#prompt').value)});
 async function sendPrompt(prompt,retryOf='',continueFrom=''){prompt=prompt.trim();if((!prompt&&!continueFrom)||state.generationId)return;if(!state.conversationId){const c=await api('/api/conversations',{method:'POST',body:JSON.stringify({title:prompt.slice(0,64)})});state.conversationId=c.id}
  if(prompt)state.lastPrompt=prompt;state.generationId=crypto.randomUUID();state.abort=new AbortController();$('#cancel-generation').classList.remove('hidden');$('#prompt').value='';$('#empty-state').classList.add('hidden');const messages=$('#messages');messages.insertAdjacentHTML('beforeend',(prompt?messageHTML({id:'local-user',role:'user',content:prompt,cost:{}}):'')+`<article id="streaming-message" class="message streaming"><div class="message-head"><strong>YNX AI</strong><span class="cost-line">provider-backed stream pending</span></div><div class="message-body"></div></article>`);messages.scrollTop=messages.scrollHeight;
- const included=$$('.context-strip input:checked').map(n=>n.value);const excluded=$$('.exclusion-row input:checked').map(n=>n.value);try{const response=await fetch(`/api/conversations/${encodeURIComponent(state.conversationId)}/generate`,{method:'POST',signal:state.abort.signal,headers:{'Content-Type':'application/json',Authorization:`Bearer ${state.token}`,'X-YNX-Device-ID':state.deviceId},body:JSON.stringify({generationId:state.generationId,prompt,continueFrom,provider:state.provider?.provider||'',model:state.provider?.model||'',includedContext:included,excludedContext:excluded,retryOf})});if(!response.ok){const data=await response.json();throw new Error(data.error||'Generation failed')};await consumeSSE(response.body)}catch(error){const body=$('#streaming-message .message-body');if(body)body.textContent=error.name==='AbortError'?'Generation cancelled. You can retry safely.':error.message;toast('No provider answer was substituted')}finally{state.generationId='';state.abort=null;$('#cancel-generation').classList.add('hidden');$('#streaming-message')?.classList.remove('streaming');await loadConversations();if(state.conversationId)await selectConversation(state.conversationId)}}
+ const included=$$('.context-strip input:checked').map(n=>n.value);const excluded=$$('.exclusion-row input:checked').map(n=>n.value);try{const response=await fetch(`/api/conversations/${encodeURIComponent(state.conversationId)}/generate`,{method:'POST',signal:state.abort.signal,headers:{'Content-Type':'application/json',Authorization:`Bearer ${state.token}`,'X-YNX-Device-ID':state.deviceId},body:JSON.stringify({generationId:state.generationId,prompt,continueFrom,provider:state.provider?.provider||'',model:state.provider?.model||'',includedContext:included,excludedContext:excluded,retryOf})});if(!response.ok){const data=await response.json();throw new Error(data.error||'Generation failed')};await consumeSSE(response.body)}catch(error){const body=$('#streaming-message .message-body');if(body)body.textContent=error.name==='AbortError'?'Generation cancelled. You can retry safely.':error.message;toast('No provider answer was substituted')}finally{state.generationId='';state.abort=null;$('#cancel-generation').classList.add('hidden');$('#streaming-message')?.classList.remove('streaming');if(!state.signingOut){await loadConversations();if(state.conversationId)await selectConversation(state.conversationId)}}}
 async function consumeSSE(body){const reader=body.getReader(),decoder=new TextDecoder();let buffer='',terminal=false;const deliver=block=>{let event='',data='';for(const line of block.split(/\r?\n/)){if(line.startsWith('event:'))event=line.slice(6).trim();if(line.startsWith('data:'))data+=(data?'\n':'')+line.slice(5).trimStart()}if(!data||terminal)return;const payload=JSON.parse(data);if(event==='token'){const node=$('#streaming-message .message-body');if(node)node.textContent+=payload.text;$('#messages').scrollTop=$('#messages').scrollHeight}if(event==='error'){terminal=true;throw new Error(payload.error)}if(event==='done'){terminal=true;toast('Provider-backed response stored with encrypted policy')}};while(true){const {done,value}=await reader.read();if(done)break;buffer+=decoder.decode(value,{stream:true});let match=buffer.match(/\r?\n\r?\n/);while(match&&match.index!==undefined){deliver(buffer.slice(0,match.index));buffer=buffer.slice(match.index+match[0].length);match=buffer.match(/\r?\n\r?\n/)}}buffer+=decoder.decode();if(buffer.trim())deliver(buffer);if(!terminal)throw new Error('Provider stream ended without a terminal event; no completion was claimed.')}
 $('#cancel-generation').onclick=async()=>{if(!state.generationId)return;try{await api(`/api/generations/${encodeURIComponent(state.generationId)}/cancel`,{method:'POST'})}catch{}state.abort?.abort()};
 
@@ -51,5 +98,5 @@ $('#new-appeal').onclick=()=>openModal('Submit Trust appeal','<label>Reason<text
 
 function openModal(title,body,onSubmit){$('#modal-title').textContent=title;$('#modal-body').innerHTML=body;$('#modal-error').textContent='';const modal=$('#modal');const form=$('#modal-form');form.onsubmit=async event=>{event.preventDefault();if(event.submitter?.value==='cancel'){modal.close();return}const data=Object.fromEntries(new FormData(form));try{await onSubmit(data);modal.close()}catch(error){$('#modal-error').textContent=error.message}};modal.showModal()}
 
-if(state.token)enterApp().catch(()=>{sessionStorage.clear();location.reload()});
-else loadPublicStatus();
+if(state.token)enterApp();
+else {showSignoutNotice();loadPublicStatus()}
