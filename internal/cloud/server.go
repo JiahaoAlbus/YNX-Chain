@@ -16,6 +16,7 @@ import (
 )
 
 type Server struct {
+	v2            map[string]productReadAuthority
 	service       *Service
 	mu            sync.Mutex
 	startedAt     time.Time
@@ -326,6 +327,10 @@ type authed func(http.ResponseWriter, *http.Request, Session)
 
 func (s *Server) auth(next authed) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if s.useProductSessionV2(r) {
+			s.authorizeProductRead(w, r, next)
+			return
+		}
 		raw := strings.TrimSpace(strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer "))
 		if raw == "" {
 			writeError(w, 401, "Sign in with YNX Wallet session required")

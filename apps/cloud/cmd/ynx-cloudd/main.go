@@ -176,7 +176,13 @@ func main() {
 			}
 		}
 	}()
-	api := cloud.NewServerWithLimits(service, cloud.ServerLimits{MaxConcurrent: *maxConcurrent, RequestsPerMinute: *requestsPerMinute}).Handler()
+	apiServer := cloud.NewServerWithLimits(service, cloud.ServerLimits{MaxConcurrent: *maxConcurrent, RequestsPerMinute: *requestsPerMinute})
+	if authority := os.Getenv("YNX_PRODUCT_SESSION_V2_AUTHORITY"); authority != "" {
+		if err := apiServer.EnableProductSessionV2(authority); err != nil {
+			log.Fatal(err)
+		}
+	}
+	api := apiServer.Handler()
 	mux := http.NewServeMux()
 	socialObjects, err := cloud.NewSocialAttachmentStore(cloud.SocialAttachmentConfig{Root: filepath.Join(*data, "social-ciphertext"), Authorizer: cloud.RemoteSocialObjectAuthorizer{BaseURL: os.Getenv("YNX_SOCIAL_AUTHORITY_URL"), Token: os.Getenv("YNX_SOCIAL_AUTHORITY_TOKEN")}})
 	if err != nil {
