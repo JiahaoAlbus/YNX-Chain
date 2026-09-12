@@ -8,7 +8,9 @@ export type OutboxRecord=Readonly<{event:CardDataFabricEvent;attempts:number;las
 export function mapProcessorEvent(event:ProcessorEvent):readonly CardDataFabricEvent[]{
   const base={occurredAt:event.occurredAt,cardId:event.cardId,sourceEventId:event.id,idempotencyKey:event.idempotencyKey,testnetSimulation:true as const};
   const create=(suffix:string,name:CardDataFabricEventName,status:"completed"|"declined",extra:Partial<CardDataFabricEvent>={})=>Object.freeze({id:`${event.id}:${suffix}`,name,status,...base,...extra}) as CardDataFabricEvent;
-  if(event.kind==="funding")return event.status==="accepted"&&event.reasonCode==="TESTNET_FUNDING_CONFIRMED"&&validTransactionHash(event.relatedId)?Object.freeze([create("funded","card.funded","completed",{amountMinor:event.amountMinor,asset:event.currency,chainEvidence:{chainId:"0x1917",txHash:event.relatedId}})]):Object.freeze([]);
+  // Processor funding is synthetic local input, never authenticated chain evidence.
+  // Real card.funded requires a separately accepted backend receipt adapter.
+  if(event.kind==="funding")return Object.freeze([]);
   if(event.kind==="authorization")return event.status==="accepted"?Object.freeze([create("requested","card.authorization.requested","completed",{amountMinor:event.amountMinor,asset:event.currency}),create("approved","card.authorization.approved","completed",{amountMinor:event.amountMinor,asset:event.currency})]):Object.freeze([create("requested","card.authorization.requested","completed",{amountMinor:event.amountMinor,asset:event.currency}),create("declined","card.authorization.declined","declined",{amountMinor:event.amountMinor,asset:event.currency,reasonCode:event.reasonCode})]);
   if(event.kind==="capture"&&event.status==="accepted")return Object.freeze([create("capture","card.capture.completed","completed",{amountMinor:event.amountMinor,asset:event.currency})]);
   if(event.kind==="reversal"&&event.status==="accepted")return Object.freeze([create("reversal","card.authorization.reversed","completed",{amountMinor:event.amountMinor,asset:event.currency})]);
@@ -21,9 +23,12 @@ export function mapProcessorEvent(event:ProcessorEvent):readonly CardDataFabricE
 
 export class CardDataFabricOutbox{
   private readonly records=new Map<string,OutboxRecord>();
-  enqueue(events:readonly CardDataFabricEvent[]):readonly OutboxRecord[]{for(const event of events)if(!this.records.has(event.id))this.records.set(event.id,Object.freeze({event,attempts:0}));return this.pending()}
+  enqueue(events:readonly CardDataFabricEvent[]):readonly OutboxRecord[]{
+    // Reject the complete batch before mutation. A caller-created event cannot
+    // bypass the synthetic boundary by supplying a plausible transaction hash.
+    if(events.some(event=>event.name==="card.funded"))throw new Error("Verified Card funding receipt adapter is unavailable; funding events cannot be queued");
+    for(const event of events)if(!this.records.has(event.id))this.records.set(event.id,Object.freeze({event,attempts:0}));return this.pending();
+  }
   pending():readonly OutboxRecord[]{return Object.freeze([...this.records.values()])}
   async flush(transport:DataFabricTransport):Promise<readonly OutboxRecord[]>{for(const[id,record]of this.records){try{await transport.publish(record.event);this.records.delete(id)}catch(error){this.records.set(id,Object.freeze({...record,attempts:record.attempts+1,lastError:error instanceof Error?error.message:"Data Fabric publish failed"}))}}return this.pending()}
 }
-
-function validTransactionHash(value:unknown):value is string{return typeof value==="string"&&/^0x[0-9a-fA-F]{64}$/.test(value)}
