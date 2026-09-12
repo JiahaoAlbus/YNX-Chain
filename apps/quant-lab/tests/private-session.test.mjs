@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {chromium} from 'playwright';
+import {privateSessionCopy,privateSessionLocales} from '../web/private-session-copy.js';
 
 // Actual Chromium/WebCrypto/IndexedDB + unchanged bundled SDK. HTTPS requests
 // are intercepted in-process. No public service, installed Wallet or approval.
@@ -39,6 +40,26 @@ async function records(page){return page.evaluate(async()=>{
 });}
 async function begin(page){await page.locator('#private-sign-in').click();await page.waitForFunction(()=>['connecting','retry-required','degraded','network-unavailable'].includes(window.YNXQuantWallet.getPrivateSessionState().status));}
 const pending=data=>JSON.parse(Object.entries(data.values).find(([key])=>key.endsWith(':pending'))?.[1]||'null');
+
+test('private controls and dynamic failures follow every locale without signing in a guest',async()=>{
+  const f=await setup();try{
+    assert.deepEqual(privateSessionLocales,await f.page.evaluate(()=>window.QuantI18n.locales));
+    assert.equal(await f.page.locator('#locale').inputValue(),'en');
+    for(const locale of privateSessionLocales){
+      const copy=privateSessionCopy(locale);await f.page.selectOption('#locale',locale);
+      assert.equal(await f.page.locator('#private-sign-in').textContent(),copy.signIn);
+      await f.page.locator('#private-account').click();
+      assert.ok((await f.page.locator('#private-session-status').textContent()).startsWith(copy.unavailable));
+      assert.equal(await f.page.locator('#private-session-status').getAttribute('data-code'),'PRIVATE_SIGN_IN_REQUIRED');
+    }
+    assert.equal(await records(f.page),null);assert.deepEqual(f.calls,[]);
+    f.offline(true);await f.page.selectOption('#locale','fr');await begin(f.page);
+    assert.ok((await f.page.locator('#private-session-status').textContent()).startsWith(privateSessionCopy('fr').unavailable));
+    await f.page.selectOption('#locale','ar');
+    assert.ok((await f.page.locator('#private-session-status').textContent()).startsWith(privateSessionCopy('ar').unavailable));
+    assert.equal(f.context.pages().length,1);
+  }finally{await f.context.close();}
+});
 
 test('guest creates no private key/session or account request; explicit Sign in persists canonical pending and never launches a tab',async()=>{
   const f=await setup();try{

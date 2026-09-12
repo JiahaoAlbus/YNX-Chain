@@ -1,5 +1,6 @@
 import {createBrowserProductSessionClient,ProductSessionGatewayFetchAdapter} from '../vendor/product-session-browser-9840ef87.mjs';
 import registry from '../vendor/product-session-registry-9840ef87.json';
+import {privateSessionCopy} from './private-session-copy.js';
 
 export const QUANT_PRIVATE_AUTHORITY='https://wallet-auth.ynxweb4.com';
 const ORIGIN='https://quant.ynxweb4.com',STARTED_KEY='ynx.quant.private-session.9840ef87.started';
@@ -37,7 +38,13 @@ export function getPrivateSessionState(){return state;}
 export async function beginPrivateSession(){localStorage.setItem(STARTED_KEY,'true');return operation(a=>a.client.beginExplicit());}
 export async function retryPrivateSession(){return operation(a=>a.client.retryDetected());}
 export async function revokePrivateSession(){return operation(a=>a.client.disconnect());}
-export async function handlePrivateReturn(url){return operation(a=>a.client.handleReturn(url));}
+export async function handlePrivateReturn(url){
+  const result=await operation(a=>a.client.handleReturn(url));
+  // A processed callback is not a reusable login token. Keep it out of refresh,
+  // history, referrers and the address bar; never navigate/open a new page.
+  if(url===location.href&&['connected','disconnected'].includes(result.status))history.replaceState(null,'','/');
+  return result;
+}
 export async function restorePrivateSession(){
   // Fresh visitors do not create keys, pending requests or automatic sign-in.
   if(localStorage.getItem(STARTED_KEY)!=='true')return state;
@@ -54,6 +61,7 @@ export async function restorePrivateSession(){
 export async function privateAccount(tenantId){
   if(!/^[0-9a-f]{64}$/.test(tenantId||''))fail('TENANT_BINDING_REQUIRED');
   if(busy)fail('PRIVATE_OPERATION_PENDING');
+  if(state.status!=='connected')fail('PRIVATE_SIGN_IN_REQUIRED');
   const intent=revision,a=await getAdapter();
   if(intent!==revision)fail('PRIVATE_OPERATION_SUPERSEDED');
   // No cached bearer/proof: SDK rechecks the persisted session and revocation
@@ -75,13 +83,23 @@ export async function privateAccount(tenantId){
 export async function requireNativeExecutionProof(){fail('NATIVE_MANDATE_SIGNATURE_AND_EXCHANGE_V2_ADAPTER_REQUIRED');}
 export function mountPrivateSession(){
   const status=document.querySelector('#private-session-status');
-  const render=()=>{if(status)status.textContent=`Private sign-in: ${state.code}${state.account?` · ${state.account}`:''}. Installation unverified. Standard Wallet and Paper remain independent.`;const link=document.querySelector('#private-open-wallet');if(link){link.hidden=!state.openURL;if(state.openURL)link.setAttribute('href',state.openURL);else link.removeAttribute('href');}};
-  window.addEventListener('ynx:quant-private-state',render);
+  let verifiedAccount=null,accountError=null;
+  const copy=()=>privateSessionCopy(localStorage.getItem('ynx.quant.locale')||'en');
+  const render=()=>{
+    const text=copy();
+    for(const [id,key] of [['private-sign-in','signIn'],['private-open-wallet','open'],['private-retry','retry'],['private-account','verify'],['private-sign-out','signOut']]){const el=document.getElementById(id);if(el)el.textContent=text[key];}
+    const message=accountError?text.unavailable:verifiedAccount?text.verified:state.status==='connected'?text.connected:['connecting','awaiting-return'].includes(state.status)?text.pending:state.status==='disconnected'?text.disconnected:state.status==='guest'?text.guest:text.unavailable;
+    if(status){status.textContent=`${message} ${verifiedAccount||state.account||''} ${text.boundary}`;status.dataset.code=accountError||state.code;}
+    const link=document.querySelector('#private-open-wallet');if(link){link.hidden=!state.openURL;if(state.openURL)link.setAttribute('href',state.openURL);else link.removeAttribute('href');}
+  };
+  window.addEventListener('ynx:quant-private-state',()=>{verifiedAccount=null;accountError=null;render();});
+  document.querySelector('#locale')?.addEventListener('change',()=>queueMicrotask(render));
+  window.addEventListener('storage',event=>{if(event.key==='ynx.quant.locale')render();});
   const run=fn=>fn().catch(()=>render());
   document.querySelector('#private-sign-in')?.addEventListener('click',()=>run(beginPrivateSession));
   document.querySelector('#private-retry')?.addEventListener('click',()=>run(retryPrivateSession));
   document.querySelector('#private-sign-out')?.addEventListener('click',()=>run(revokePrivateSession));
-  document.querySelector('#private-account')?.addEventListener('click',()=>run(async()=>{const result=await privateAccount(localStorage.getItem('ynx.quant.tenant.v1'));if(status)status.textContent=`Private account ${result.account}; session verified by ${result.authority}. No native execution or Paper ownership was granted.`;}));
+  document.querySelector('#private-account')?.addEventListener('click',()=>run(async()=>{try{const result=await privateAccount(localStorage.getItem('ynx.quant.tenant.v1'));verifiedAccount=result.account;accountError=null;}catch(error){verifiedAccount=null;accountError=error.code||'PRIVATE_ACCOUNT_UNAVAILABLE';}render();}));
   window.addEventListener('offline',()=>{revision++;busy=false;if(adapter)publish(adapter.client.setNetworkAvailable(false));});
   window.addEventListener('online',()=>{if(adapter)publish(adapter.client.setNetworkAvailable(true));});
   window.addEventListener('focus',()=>{if(!busy&&state.status==='connected')run(restorePrivateSession);});
@@ -89,6 +107,6 @@ export function mountPrivateSession(){
   window.addEventListener('pageshow',event=>{if(event.persisted)run(restorePrivateSession);});
   // Root/callback route passes the entire URL to the shared parser. No token
   // extraction, legacy migration, or supplied callback/origin is accepted.
-  if(location.pathname==='/wallet-auth/callback')run(()=>handlePrivateReturn(location.href));else run(restorePrivateSession);
+  if(location.pathname==='/wallet-auth/callback'&&location.search)run(()=>handlePrivateReturn(location.href));else run(restorePrivateSession);
   render();
 }
