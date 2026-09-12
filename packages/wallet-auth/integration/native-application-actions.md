@@ -81,3 +81,78 @@ MetaMask cannot sign these native application actions through its standard
 deployed Core capability. This SDK implementation and native source entry do
 not establish that a user's installed Wallet already contains this feature;
 release and installed-client checks remain separate.
+
+## Explicit Web launcher
+
+`src/application-action-launcher.js` provides `createApplicationActionLauncher`
+for the existing four DEX actions. It consumes the product's existing durable
+pending journal; it does not introduce a second journal, sign a new request,
+request provider permissions, or submit a transaction. Card uses its separate
+application-approval protocol and must not be passed into this DEX launcher.
+
+```js
+const launcher = createApplicationActionLauncher(registry, {
+  productId: "dex",
+  // Resolve only after the journal's commit has completed. Reuse exactly the
+  // original saved request; do not recreate its state, nonce or expiry here.
+  loadPendingRequest: async () => {
+    const account = selectedNativeAccount; // canonical ynx1, not an EVM 0x value
+    const draft = await journal.read(account);
+    return draft?.status === "pending" ? draft.request : null;
+  },
+  getActiveAccount: () => selectedNativeAccount,
+});
+
+// Run after the explicit review has saved the request, or to restore its UI.
+// This reads storage only. It never automatically opens the Wallet.
+const target = await launcher.prepare();
+if (target.status === "ready") {
+  openButton.disabled = false;
+  downloadLink.href = target.downloadURL;
+  openButton.onclick = event => {
+    try { launcher.open(event, target.requestDigest); }
+    catch (error) { showActionError(error); }
+  };
+} else {
+  openButton.disabled = true;
+  openButton.onclick = null;
+}
+
+// DEX already verifies AND consumes callbacks atomically in its journal. Use it
+// directly, including for exact repeated returns after the request has expired.
+const result = await journal.acceptReturn(selectedNativeAccount, location.href);
+// Only now remove the callback query and show a separate explicit Submit step.
+// An approved Wallet result is still not chain admission or a completed swap.
+```
+
+The synchronous `open` method requires a trusted, unmodified primary click and
+active browser user activation while the native MouseEvent is being dispatched.
+React consumers pass `event.nativeEvent` synchronously, never the synthetic
+wrapper or an event saved for later. Pass the digest of the request displayed
+in the current review; a later preparation cannot silently change that intent.
+It rechecks the current registered Web origin, selected native account and
+request expiry, then dispatches the canonical
+`ynxwallet://application-action` URI with `Location.assign`. A fulfilled call
+means only `launch-attempted`, with `installation: unknown`. No popup, iframe,
+visibility timer, blur event, or injected EVM provider is installation proof.
+Expose the official download link when the user cannot open the Wallet, while
+retaining the original request. Do not automatically fall back or re-sign it.
+
+Call `invalidate()` immediately on journal changes (including cross-tab
+notifications), selected account/network changes, lock, disconnect, or abandoned
+review. It cancels outstanding journal reads and prepared launch UI without
+deleting durable state. Page hiding does the same automatically. Call
+`dispose()` when unmounting. On return, the launcher reloads the current durable
+request in its optional `handleReturn` helper and verifies a first, still-live
+return. This helper does not persist or consume the result. DEX must not use it
+as a gate before `journal.acceptReturn`: the journal correctly handles already
+consumed identical results after expiry while rejecting expired first returns.
+Bind journal commit notifications (including cross-tab broadcasts) to
+`invalidate`; approved/rejected records must never be returned by the launch
+request reader. The product retains responsibility for atomic journal writes,
+multi-tab ownership, signature-result persistence and explicit chain submission.
+
+The launcher does not establish an installed Wallet version or a successful
+four-action device round trip. Those require the actual installed handler and
+user-approved platform tests; source and browser transport tests alone cannot
+close them.
