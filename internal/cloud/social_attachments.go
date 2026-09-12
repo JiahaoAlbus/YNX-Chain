@@ -371,7 +371,7 @@ func (s *SocialAttachmentStore) loadUpload(w http.ResponseWriter, r *http.Reques
 		socialFailure(w, 500, "upload state unavailable")
 		return m, dir, false
 	}
-	if m.ObjectID != g.ObjectID || m.ConversationID != g.ConversationID || m.Subject != g.Subject {
+	if m.UploadID != u || m.UploadID != g.UploadID || m.ObjectID != g.ObjectID || m.ConversationID != g.ConversationID || m.Subject != g.Subject {
 		socialFailure(w, 403, "upload capability mismatch")
 		return m, dir, false
 	}
@@ -552,7 +552,7 @@ func (s *SocialAttachmentStore) object(w http.ResponseWriter, r *http.Request, o
 		socialFailure(w, 500, "object state unavailable")
 		return m, dir, false
 	}
-	if m.ConversationID != g.ConversationID || (g.UploadID != "" && m.UploadID != g.UploadID) {
+	if m.ObjectID != id || m.ObjectID != g.ObjectID || m.ConversationID != g.ConversationID || (g.UploadID != "" && m.UploadID != g.UploadID) {
 		socialFailure(w, 403, "object capability mismatch")
 		return m, dir, false
 	}
