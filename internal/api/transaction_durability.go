@@ -34,7 +34,7 @@ func (s *Server) transactionDurabilityResult(params []any) (any, error) {
 		return nil, rpcInvalidParams("ynx_getTransactionDurability requires one 32-byte transaction hash")
 	}
 	hash := fmt.Sprint(params[0])
-	tx, state, _ := s.devnet.TransactionWithDurability(hash)
+	tx, state, _ := s.devnet.RPCTransactionWithDurability(hash)
 	return transactionDurabilityRPC(hash, tx, state), nil
 }
 
@@ -43,7 +43,7 @@ func (s *Server) transactionReceiptResult(params []any, nativeFees bool) (any, e
 		return nil, rpcInvalidParams("eth_getTransactionReceipt requires one 32-byte transaction hash")
 	}
 	hash := fmt.Sprint(params[0])
-	tx, state, found := s.devnet.TransactionWithDurability(hash)
+	tx, state, found := s.devnet.RPCTransactionWithDurability(hash)
 	if !found || tx.BlockNum == 0 || tx.BlockHash == "" {
 		return nil, nil
 	}

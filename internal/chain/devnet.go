@@ -67,7 +67,7 @@ type Devnet struct {
 	mu                       sync.RWMutex
 	persistenceMu            sync.Mutex
 	durableCheckpoint        atomic.Pointer[transactionCheckpoint]
-	ethereumNativeTransfers  bool
+	ethereumNativeTransfers  atomic.Bool
 	cfg                      NetworkConfig
 	blocks                   []Block
 	pending                  []Transaction
@@ -659,6 +659,10 @@ func (d *Devnet) Transaction(hash string) (Transaction, bool) {
 func (d *Devnet) TransactionLocation(hash string) (Transaction, uint64, bool) {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
+	return d.transactionLocationLocked(hash)
+}
+
+func (d *Devnet) transactionLocationLocked(hash string) (Transaction, uint64, bool) {
 	for _, tx := range d.pending {
 		if tx.Hash == hash {
 			return tx, 0, true
@@ -1067,7 +1071,7 @@ func (d *Devnet) SubmitSignedTransfer(input SignedTransferInput) (Transaction, b
 
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	if len(input.EthereumRaw) > 0 && !d.ethereumNativeTransfers {
+	if len(input.EthereumRaw) > 0 && !d.ethereumNativeTransfers.Load() {
 		return Transaction{}, false, errors.New("Ethereum native transfer adapter is disabled")
 	}
 	if existing, ok := d.transactionLocked(input.Hash); ok {

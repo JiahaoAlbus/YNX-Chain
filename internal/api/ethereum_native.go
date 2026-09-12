@@ -49,7 +49,13 @@ func (s *Server) ethereumNativeResult(method string, params []any) (any, bool, e
 			}
 			return respond(nil, rpcUnsupported("contract has no Ethereum runtime bytecode representation"))
 		}
-		acct, ok := s.devnet.Account(addr)
+		var acct chain.Account
+		var ok bool
+		if method == "eth_getBalance" {
+			acct, ok = s.devnet.RPCBalanceAccount(addr)
+		} else {
+			acct, ok = s.devnet.Account(addr)
+		}
 		if !ok {
 			return respond("0x0", nil)
 		}
@@ -98,7 +104,7 @@ func (s *Server) ethereumNativeResult(method string, params []any) (any, bool, e
 		if len(params) != 1 || !isCanonicalData(fmt.Sprint(params[0]), 32) {
 			return respond(nil, rpcInvalidParams("eth_getTransactionByHash requires one 32-byte transaction hash"))
 		}
-		tx, index, found := s.devnet.TransactionLocation(fmt.Sprint(params[0]))
+		tx, index, found := s.devnet.RPCTransactionLocation(fmt.Sprint(params[0]))
 		if !found {
 			return respond(nil, nil)
 		}

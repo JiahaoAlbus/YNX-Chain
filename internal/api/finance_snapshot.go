@@ -71,7 +71,7 @@ func (s *Server) handleNativeFinanceTransaction(w http.ResponseWriter, r *http.R
 		writeError(w, 400, "canonical transaction hash required")
 		return
 	}
-	tx, proof, found := s.devnet.TransactionWithDurability(hash)
+	tx, proof, found := s.devnet.RPCTransactionWithDurability(hash)
 	if !found {
 		writeJSON(w, 404, map[string]any{"status": "not_found", "transactionHash": hash})
 		return

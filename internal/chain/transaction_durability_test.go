@@ -253,3 +253,74 @@ func TestRetainedCheckpointRejectsReplacementAndChangedEvidence(t *testing.T) {
 		})
 	}
 }
+
+func TestRPCDurableReadViewDoesNotWaitForWriterOrExposeStagedFunds(t *testing.T) {
+	d, err := NewPersistentDevnet(DefaultNetworkConfig("testnet"), t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	address := "0x1234567890123456789012345678901234567890"
+	old, err := d.Faucet(address, 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	d.ProduceBlock()
+	if err = d.SetEthereumNativeTransfers(true); err != nil {
+		t.Fatal(err)
+	}
+	d.mu.Lock()
+	staged, undo, err := d.stageFaucetLocked(address, 100, "new-staged-hash")
+	if err != nil {
+		d.mu.Unlock()
+		t.Fatal(err)
+	}
+	done := make(chan error, 1)
+	go func() {
+		if !d.EthereumNativeTransfersEnabled() {
+			done <- errors.New("atomic runtime flag unavailable")
+			return
+		}
+		account, found := d.RPCBalanceAccount(address)
+		if !found || account.Balance != 100 {
+			done <- fmt.Errorf("staged funds exposed: %+v", account)
+			return
+		}
+		tx, proof, found := d.RPCTransactionWithDurability(old.Hash)
+		if !found || proof.Status != "durable" || tx.Hash != old.Hash {
+			done <- fmt.Errorf("old receipt unavailable: %+v", proof)
+			return
+		}
+		if _, _, found = d.RPCTransactionWithDurability(staged.Hash); found {
+			done <- errors.New("unpersisted admission visible in durable fallback")
+			return
+		}
+		if tx, index, found := d.RPCTransactionLocation(old.Hash); !found || tx.Hash != old.Hash || index != 0 {
+			done <- errors.New("checkpoint transaction location mismatch")
+			return
+		}
+		// Returned nested fields must not mutate the immutable checkpoint.
+		account.Lots["mutated-caller-copy"] = 1
+		tx.Logs[0].Topics[0] = "mutated-caller-copy"
+		fresh, _, _ := d.RPCTransactionWithDurability(old.Hash)
+		if fresh.Logs[0].Topics[0] == "mutated-caller-copy" {
+			done <- errors.New("checkpoint transaction alias leaked")
+			return
+		}
+		if again, _ := d.RPCBalanceAccount(address); again.Lots["mutated-caller-copy"] != 0 {
+			done <- errors.New("checkpoint account alias leaked")
+			return
+		}
+		done <- nil
+	}()
+	var failure error
+	select {
+	case failure = <-done:
+	case <-time.After(time.Second):
+		failure = errors.New("durable RPC reads waited for ledger writer")
+	}
+	d.rollbackTransferLocked(undo)
+	d.mu.Unlock()
+	if failure != nil {
+		t.Fatal(failure)
+	}
+}

@@ -1782,7 +1782,7 @@ func (s *Server) evmResult(method string, params []any) (any, error) {
 }
 
 func (s *Server) legacyEVMResult(method string, params []any) (any, error) {
-	cfg, latest := s.devnet.Config(), s.devnet.LatestBlock()
+	cfg := s.networkConfig
 	switch method {
 	case "eth_chainId":
 		if len(params) != 0 {
@@ -1798,7 +1798,7 @@ func (s *Server) legacyEVMResult(method string, params []any) (any, error) {
 		if len(params) != 0 {
 			return nil, rpcInvalidParams("eth_blockNumber accepts no parameters")
 		}
-		return hexQuantity(latest.Height), nil
+		return hexQuantity(s.devnet.LatestBlock().Height), nil
 	case "eth_getBalance", "eth_getTransactionCount":
 		if len(params) < 1 || len(params) > 2 {
 			return nil, rpcInvalidParams(method + " requires an address and optional latest/pending block tag")
@@ -1922,7 +1922,7 @@ func (s *Server) legacyEVMResult(method string, params []any) (any, error) {
 		}
 		return "0x", nil
 	case "eth_getLogs":
-		filter, err := parseEVMLogFilter(params, latest.Height)
+		filter, err := parseEVMLogFilter(params, s.devnet.LatestBlock().Height)
 		if err != nil {
 			return nil, rpcInvalidParams(err.Error())
 		}

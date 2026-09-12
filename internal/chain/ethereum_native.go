@@ -15,14 +15,12 @@ func (d *Devnet) SetEthereumNativeTransfers(enabled bool) error {
 	if enabled && (d.cfg.Decimals != 18 || d.cfg.Slug == "mainnet") {
 		return errors.New("Ethereum native adapter is limited to 18-decimal testnet/devnet")
 	}
-	d.ethereumNativeTransfers = enabled
+	d.ethereumNativeTransfers.Store(enabled)
 	return nil
 }
 
 func (d *Devnet) EthereumNativeTransfersEnabled() bool {
-	d.mu.RLock()
-	defer d.mu.RUnlock()
-	return d.ethereumNativeTransfers
+	return d.ethereumNativeTransfers.Load()
 }
 
 func validateEthereumTransaction(tx Transaction, chainID int64) error {
