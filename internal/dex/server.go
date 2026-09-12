@@ -107,6 +107,12 @@ func NewServer(store *Store, info buildinfo.Info, ingestionKey string, authorize
 }
 
 func (server *Server) Handler() http.Handler {
+	return server.HandlerWithNativeReads(nil)
+}
+
+// HandlerWithNativeReads installs only the two public, fixed-Core GET routes.
+// Native reads have no access to ingestion or Wallet session credentials.
+func (server *Server) HandlerWithNativeReads(native *NativeReadProxy) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", server.health)
 	mux.HandleFunc("GET /version", server.version)
@@ -128,6 +134,10 @@ func (server *Server) Handler() http.Handler {
 		response.Header().Set("Content-Type", "application/json")
 		response.Header().Set("Cache-Control", "no-store")
 		response.Header().Set("X-Content-Type-Options", "nosniff")
+		if isNativeReadPath(request.URL.Path) {
+			native.ServeHTTP(response, request)
+			return
+		}
 		mux.ServeHTTP(response, request)
 	})
 }
