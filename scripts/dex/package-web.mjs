@@ -1,27 +1,22 @@
 import { createHash } from "node:crypto";
-import { mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { gzipSync } from "node:zlib";
 import path from "node:path";
 import process from "node:process";
 import { resolveSourceBaseCommit } from "./source-base.mjs";
+import { readReleaseFiles } from "./release-files.mjs";
 
 const root=path.resolve(import.meta.dirname,"../..");
 const app=path.join(root,"apps/dex");
 const dist=path.join(app,"dist");
 const release=path.join(root,"release/dex");
 const packageJSON=JSON.parse(await readFile(path.join(app,"package.json"),"utf8"));
-const manifest=JSON.parse(await readFile(path.join(dist,"manifest.webmanifest"),"utf8"));
+const files=await readReleaseFiles(dist);
+const manifestFile=files.find(file=>file.relative==="manifest.webmanifest");
+if(!manifestFile)throw new Error("PWA build is missing its manifest");
+const manifest=JSON.parse(manifestFile.data.toString("utf8"));
 if(manifest.id!=="com.ynxweb4.dex.web"||manifest.name!=="YNX DEX Testnet Preview"||manifest.icons?.length<2)throw new Error("built PWA manifest identity or icons are incomplete");
 
-const files=[];
-async function walk(directory,prefix=""){
- for(const name of (await readdir(directory)).sort()){
-  const absolute=path.join(directory,name);const relative=path.posix.join(prefix,name);const info=await stat(absolute);
-  if(info.isSymbolicLink())throw new Error(`symlink forbidden in release: ${relative}`);
-  if(info.isDirectory())await walk(absolute,relative);else if(info.isFile())files.push({absolute,relative,data:await readFile(absolute)});else throw new Error(`unsupported release entry: ${relative}`);
- }
-}
-await walk(dist);
 if(!files.some(file=>file.relative==="index.html")||!files.some(file=>file.relative==="sw.js"))throw new Error("PWA build is missing index or service worker");
 
 const blocks=[];
