@@ -21,6 +21,14 @@ func main() {
 	var mandateVerifier quantlab.MandateVerifier
 	var testnetBroker quantlab.TestnetBroker
 	var sessionCompleter quantlab.WalletSessionCompleter
+	var privateSession quantlab.ProductSessionAuthorizer
+	if os.Getenv("YNX_QUANT_PRIVATE_SESSION_V2_ENABLED") == "1" {
+		client, err := quantlab.NewQuantPrivateSessionClient()
+		if err != nil {
+			log.Fatal("invalid fixed Quant private session policy")
+		}
+		privateSession = client
+	}
 	if endpoint := strings.TrimSpace(os.Getenv("YNX_QUANT_EXCHANGE_URL")); endpoint != "" {
 		marketData = quantlab.HTTPExchangeMarketData{BaseURL: endpoint, Client: &http.Client{Timeout: 5 * time.Second}}
 		adapter := quantlab.HTTPExchangeAdapter{BaseURL: endpoint, Client: &http.Client{Timeout: 8 * time.Second}}
@@ -28,7 +36,7 @@ func main() {
 		testnetBroker = adapter
 		sessionCompleter = adapter
 	}
-	s, e := quantlab.NewTenantServer(quantlab.Config{StatePath: state, DatabaseURL: databaseURL, StateNamespace: stateNamespace, MarketData: marketData, MandateVerifier: mandateVerifier, TestnetBroker: testnetBroker, SessionCompleter: sessionCompleter}, "all")
+	s, e := quantlab.NewTenantServer(quantlab.Config{StatePath: state, DatabaseURL: databaseURL, StateNamespace: stateNamespace, MarketData: marketData, MandateVerifier: mandateVerifier, TestnetBroker: testnetBroker, SessionCompleter: sessionCompleter, PrivateSession: privateSession}, "all")
 	if e != nil {
 		log.Fatal(e)
 	}
@@ -49,7 +57,7 @@ func env(k, v string) string {
 }
 func headers(n http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Security-Policy", "default-src 'self'; connect-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; frame-ancestors 'none'; base-uri 'none'")
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; connect-src 'self' https://wallet-auth.ynxweb4.com; img-src 'self' data:; style-src 'self'; script-src 'self'; frame-src 'none'; frame-ancestors 'none'; base-uri 'none'")
 		w.Header().Set("Referrer-Policy", "no-referrer")
 		n.ServeHTTP(w, r)
 	})

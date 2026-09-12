@@ -74,6 +74,10 @@ h1 {
 .wallet-controls button { min-height: 38px; }
 .wallet-controls a { color: var(--accent); font-weight: 700; text-decoration: none; }
 .wallet-controls small { grid-column: 1 / -1; color: var(--muted); max-width: 360px; }
+.private-session-controls { display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 26px; border-bottom: 1px solid var(--line); background: var(--surface); min-width: 0; }
+.private-session-controls button, .private-session-controls a { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+.private-session-controls small { flex-basis: 100%; color: var(--muted); overflow-wrap: anywhere; }
+.private-session-controls [hidden] { display: none; }
 .shell {
   display: grid;
   grid-template-columns: 210px minmax(0, 1fr);

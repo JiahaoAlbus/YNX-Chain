@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="color-scheme" content="light dark" />
     <title>YNX Quant Lab</title>
-    <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <a class="skip" href="#workspace" data-i18n="research">Research</a>
@@ -17,6 +17,7 @@
       <div class="wallet-controls"><button id="connect-wallet" type="button">Connect YNX Wallet</button><button id="connect-metamask" type="button">Use MetaMask</button><button id="wallet-details" type="button" hidden>Wallet details</button><button id="wallet-disconnect" type="button" hidden>Disconnect wallet</button><button id="wallet-switch" type="button" hidden>Switch wallet</button><button id="wallet-revoke" type="button" hidden>Revoke wallet access</button><a id="install-wallet" href="https://www.ynxweb4.com/dapp/download">Download YNX Wallet</a><a id="install-metamask" href="https://metamask.io/download/">Download MetaMask</a><small id="wallet-status" role="status" aria-live="polite">Wallet not connected — Research and Paper are still available</small><small id="wallet-details-text" hidden></small></div>
       <div class="mode"><span></span><b data-i18n="mode">SIMULATED / TESTNET ONLY</b></div>
     </header>
+      <div class="private-session-controls"><button id="private-sign-in" type="button">Sign in to private Quant account</button><a id="private-open-wallet" hidden rel="noopener noreferrer">Open YNX Wallet — installation unverified</a><button id="private-retry" type="button">Retry private session</button><button id="private-account" type="button">Verify private account</button><button id="private-sign-out" type="button">Sign out private session</button><small id="private-session-status" role="status" aria-live="polite">Private sign-in is optional. No native Wallet handler has been verified; Standard Wallet and Paper remain independent.</small></div>
     <div class="shell">
       <aside>
         <nav aria-label="Quant Lab">
@@ -320,8 +321,8 @@
         <div id="toast" role="status" aria-live="polite"></div>
       </main>
     </div>
-    <script src="wallet-auth.js"></script>
-    <script src="i18n.js"></script>
-    <script src="app.js"></script>
+    <script src="/wallet-auth.js"></script>
+    <script src="/i18n.js"></script>
+    <script src="/app.js"></script>
   </body>
 </html>

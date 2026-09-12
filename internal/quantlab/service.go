@@ -54,6 +54,7 @@ type Config struct {
 	MandateVerifier  MandateVerifier
 	TestnetBroker    TestnetBroker
 	SessionCompleter WalletSessionCompleter
+	PrivateSession   ProductSessionAuthorizer
 	MarketData       MarketData
 }
 

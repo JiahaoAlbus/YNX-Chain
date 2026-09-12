@@ -130,7 +130,10 @@ func (s *Server) observe(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-YNX-Request-ID", requestID(r))
 	w.Header().Set("X-YNX-Trace-ID", traceID(r))
 	observed := &observedWriter{ResponseWriter: w}
-	if r.Method != http.MethodGet && !localPreviewRequest(r) {
+	// This one POST is a read-only account lookup with its own exact shared V2
+	// proof/Origin/scope check. It never mutates Paper or grants native execution.
+	privateAccountRead := r.Method == http.MethodPost && r.URL.Path == "/v1/wallet/private-account"
+	if r.Method != http.MethodGet && !privateAccountRead && !localPreviewRequest(r) {
 		writeProblem(observed, r, http.StatusForbidden, "local_write_boundary_rejected")
 	} else {
 		s.mux.ServeHTTP(observed, r)

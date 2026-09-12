@@ -57,6 +57,7 @@ func NewObservedRoleServer(s *Service, role string, logWriter io.Writer) *Server
 	v.mux.HandleFunc("GET /v1/stream", v.stream)
 	v.mux.HandleFunc("GET /metrics", v.metricsHandler)
 	v.mux.HandleFunc("POST /v1/wallet/sessions/complete", v.completeWalletSession)
+	v.mux.HandleFunc("POST /v1/wallet/private-account", v.privateAccount)
 	if role == "all" || role == "research" {
 		v.mux.HandleFunc("POST /v1/datasets", v.dataset)
 		v.mux.HandleFunc("POST /v1/backtests", v.backtest)
@@ -316,6 +317,9 @@ func (s *Server) kill(w http.ResponseWriter, r *http.Request) {
 	respond(w, r, v, e, 200)
 }
 func (s *Server) mandate(w http.ResponseWriter, r *http.Request) {
+	if rejectV2NativeBridge(w, r) {
+		return
+	}
 	var q Mandate
 	if !decode(w, r, &q) {
 		return
@@ -350,6 +354,9 @@ func (s *Server) orderSigningPayload(w http.ResponseWriter, r *http.Request) {
 	write(w, http.StatusOK, map[string]string{"domain": "ynx-exchange-order-v1", "payload": string(payload), "digest": hashBytes(payload)})
 }
 func (s *Server) testnet(w http.ResponseWriter, r *http.Request) {
+	if rejectV2NativeBridge(w, r) {
+		return
+	}
 	var q struct {
 		MandateDigest   string                 `json:"mandateDigest"`
 		Side            string                 `json:"side"`
