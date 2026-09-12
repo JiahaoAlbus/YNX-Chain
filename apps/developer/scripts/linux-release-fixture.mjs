@@ -37,12 +37,19 @@ async function start(directory) {
   }
   throw new Error('Gateway startup timeout: ' + logs);
 }
-async function stop(directory) {
+async function stop(directory, protectedRecovery = false) {
   child.kill('SIGTERM');
   const timer = setTimeout(() => child.kill('SIGKILL'), 65000);
-  try { assert.deepEqual(await exited, { code: 0, signal: null }, logs); } finally { clearTimeout(timer); }
+  try { assert.deepEqual(await exited, { code: protectedRecovery ? 1 : 0, signal: null }, logs); } finally { clearTimeout(timer); }
   const receipt = JSON.parse(await readFile(join(directory, 'maintenance.json'), 'utf8'));
-  assert.equal(receipt.cleanShutdown, true);
+  assert.equal(receipt.cleanShutdown, !protectedRecovery);
+  if (protectedRecovery) {
+    assert.equal(receipt.reason, 'runtime_recovery_required');
+    assert.equal(receipt.forcedCancellation, false);
+    assert.equal(receipt.activity.requests.total, 0);
+    assert.equal(receipt.activity.operations.total, 0);
+    assert.equal(receipt.activity.services.remoteRecovery.recoveryRequired, 1);
+  }
 }
 const headers = () => ({ cookie, 'content-type': 'application/json' });
 try {
@@ -92,7 +99,7 @@ try {
   assert.equal(saved.status, 200); assert.match(await saved.text(), /saved source survives a release cold load/);
   const otherCookie = (await fetch(base + '/runtime/health')).headers.get('set-cookie').split(';')[0];
   assert.equal((await fetch(base + path + '/' + copied.copy.copyId, { headers: { cookie: otherCookie } })).status, 404);
-  await stop(coldState);
+  await stop(coldState, true);
   const coldDb = new DatabaseSync(join(coldState, 'runtime-profiles.sqlite'));
   assert.equal(JSON.stringify(coldDb.prepare('SELECT * FROM terminal_recovery').all()), before);
   assert.equal(JSON.stringify(coldDb.prepare('SELECT * FROM recovery_copies').all()), copyBefore);
@@ -100,8 +107,11 @@ try {
   assert.throws(() => coldJournal.assertAvailable(owner, runtimeId), { code: 'terminal_recovery_required' }); coldDb.close();
   console.log(JSON.stringify({ sourceCommit: manifest.sourceCommit, staticFilesVerified: manifest.staticFiles.length,
     realGatewayColdStart: true, persistentWorkspaceReadback: true, recoveryCopyBytesPreserved: true,
-    ownerIsolation: true, protectionRetained: true, cleanShutdowns: 2,
+    ownerIsolation: true, protectionRetained: true, cleanShutdowns: 1, recoveryRequiredExitCode: 1,
     syntheticStateOnly: true, externalSSHOrLXDProven: false, publicDeployment: false }));
 } finally {
-  if (child && child.exitCode === null && child.signalCode === null) { child.kill('SIGTERM'); await exited; }
+  if (child && child.exitCode === null && child.signalCode === null) {
+    child.kill('SIGTERM'); const timer = setTimeout(() => child.kill('SIGKILL'), 65000);
+    try { await exited; } finally { clearTimeout(timer); }
+  }
 }
