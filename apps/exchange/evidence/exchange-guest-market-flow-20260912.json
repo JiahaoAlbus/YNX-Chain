@@ -1,0 +1,50 @@
+{
+  "schemaVersion": "exchange-owner-evidence-v1",
+  "sourceCommit": "9cf3bae254e2a65cef9c379f0eeb553b51249c60",
+  "sourceTree": "a9d346be3044116096cfe5624e488fa9cc2f1f64",
+  "parent": "ee1d2a30c0f6df2b1b475a7c4bad41ec106d2beb",
+  "branch": "codex/exchange-financial-flow-20260912",
+  "coordinatorThread": "01a094cc-0ba3-7901-bcd5-56fce8330c0d",
+  "scope": ["apps/exchange/**", "internal/exchangeproduct/**"],
+  "tests": {
+    "nodeTests": {"passed": 24, "failed": 0},
+    "goRace": "PASS: ./internal/exchangeproduct ./apps/exchange/server",
+    "goVet": "PASS: ./internal/exchangeproduct ./apps/exchange/server",
+    "realHttpSseGuestReaders": 2,
+    "matchingAndChainInputs": "isolated test identities and chain fixture driving actual venue engine",
+    "restartReadback": true,
+    "guestPrivateFieldsExcluded": true,
+    "postgresqlIntegrationExecuted": false,
+    "browserExecuted": false,
+    "walletSourceVerifier": "PASS",
+    "walletBundle": "PASS",
+    "archiveChecksumEntriesPassed": 7
+  },
+  "artifact": {
+    "path": "/tmp/ynx-exchange-9cf3bae254e2-20260912-linux-amd64.tar.gz",
+    "bytes": 3699869,
+    "sha256": "dd169661d8127dc5f0b19f08c52bd6e8c2910456c8f81a2bafc573d79bbe3463",
+    "binaryBytes": 8302776,
+    "binarySha256": "2f8bc6cbabdf6cb96c23abbc625211de31227d5ac18c6db4c43e2f2730ab77b9",
+    "binaryFormat": "static Linux x86-64 ELF",
+    "servedAssets": 5,
+    "checksumManifestSha256": "df6b344657c8a37d12b87ebe3b117cd25525a8e1e233273122ac862e8dbf695c",
+    "bundleManifestSha256": "d24326503c1b0aa589fbc77f31e5738fc214e72e6377702da93a5760973cd9ee"
+  },
+  "truth": {
+    "guestMarketImplementedLocal": true,
+    "guestMarketTestedLocal": true,
+    "publicRuntimeVerified": false,
+    "deployedPublic": false,
+    "installedLocal": false,
+    "downloadHosted": false,
+    "productionSigned": false,
+    "storeReleased": false,
+    "integratedCentral": false,
+    "computerControl": false,
+    "realWalletApproval": false,
+    "productSession": false,
+    "realOrderOrChainTransaction": false
+  },
+  "nextDependency": "Accepted Exchange Product Session proof and reviewed action signature contract from shared Wallet owner; standard provider connection alone does not grant account/order access."
+}
