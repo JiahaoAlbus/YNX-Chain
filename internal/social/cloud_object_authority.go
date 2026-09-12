@@ -41,6 +41,7 @@ type cloudCapability struct {
 // Capabilities deliberately fail closed after restart. This component does not
 // expose a client mint endpoint or accept Social bearer tokens from Cloud.
 type CloudObjectAuthority struct {
+	registryMu    sync.Mutex
 	service       *Service
 	machineDigest [32]byte
 	mu            sync.Mutex
@@ -130,6 +131,22 @@ func (a *CloudObjectAuthority) Issue(actor Session, binding CloudObjectBinding) 
 	return token, grant, nil
 }
 
+func matchesCloudRequest(grant CloudObjectGrant, operation, objectID, uploadID string) bool {
+	if operation != grant.Operation || (objectID != "" && objectID != grant.ObjectID) || (uploadID != "" && uploadID != grant.UploadID) {
+		return false
+	}
+	switch operation {
+	case "upload.create":
+		return objectID != "" && uploadID != ""
+	case "upload.status", "upload.part", "upload.complete", "upload.cancel":
+		return uploadID != ""
+	case "object.read", "object.delete":
+		return objectID != ""
+	default:
+		return false
+	}
+}
+
 func (a *CloudObjectAuthority) authorize(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		writeError(w, 405, "method not allowed")
@@ -161,7 +178,7 @@ func (a *CloudObjectAuthority) authorize(w http.ResponseWriter, r *http.Request)
 	a.mu.Lock()
 	entry, ok := a.grants[sha256.Sum256([]byte(in.Capability))]
 	a.mu.Unlock()
-	if !ok || !entry.grant.ExpiresAt.After(a.service.cfg.Now()) || entry.grant.Operation != in.Operation || entry.grant.ObjectID != in.ObjectID || entry.grant.UploadID != in.UploadID {
+	if !ok || !entry.grant.ExpiresAt.After(a.service.cfg.Now()) || !matchesCloudRequest(entry.grant, in.Operation, in.ObjectID, in.UploadID) {
 		writeError(w, 403, "invalid cloud capability")
 		return
 	}

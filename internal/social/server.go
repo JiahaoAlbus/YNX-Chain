@@ -45,6 +45,8 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/social/v1/", s.social)
 	if s.cloudObjects != nil {
 		mux.HandleFunc("/internal/cloud-objects/authorize", s.cloudObjects.authorize)
+		mux.HandleFunc("/social/v1/cloud-objects", s.cloudObjects.registerObject)
+		mux.HandleFunc("/social/v1/cloud-objects/", s.cloudObjects.objectCapability)
 	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Content-Type-Options", "nosniff")
