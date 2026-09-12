@@ -210,23 +210,7 @@ func (s *Service) BudgetProgress(account string, portfolio Portfolio, at time.Ti
 	state := s.Store.Account(account)
 	result := make([]map[string]any, 0, len(state.Budgets))
 	for _, budget := range state.Budgets {
-		from := budget.StartsAt
-		if budget.Period == "monthly" {
-			from = time.Date(at.Year(), at.Month(), 1, 0, 0, 0, 0, time.UTC)
-		} else {
-			from = at.AddDate(0, 0, -int(at.Weekday()+6)%7)
-		}
-		spent := int64(0)
-		for _, item := range portfolio.Activity {
-			if item.Direction == "outgoing" && item.Category == budget.CategoryID && !item.Timestamp.Before(from) && !item.Timestamp.After(at) {
-				spent += item.Amount + item.Fee
-			}
-		}
-		remaining := budget.LimitYNXT - spent
-		if remaining < 0 {
-			remaining = 0
-		}
-		result = append(result, map[string]any{"budgetId": budget.ID, "spentYnxt": spent, "remainingYnxt": remaining, "limitYnxt": budget.LimitYNXT, "periodStart": from, "asOf": at, "source": "owned Explorer activity plus user-reviewed categories"})
+		result = append(result, budgetObservation(budget, portfolio, at))
 	}
 	return result
 }

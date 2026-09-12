@@ -575,23 +575,17 @@ func (s *Server) monthlyReview(w http.ResponseWriter, r *http.Request, session S
 	to := from.AddDate(0, 1, 0)
 	state := s.service.Store.Account(session.Account)
 	p := s.observedPortfolio(r.Context(), session.Account, state.Classifications)
-	incoming, outgoing, fees := int64(0), int64(0), int64(0)
-	count := 0
-	byCategory := map[string]int64{}
-	for _, item := range p.Activity {
-		if item.Timestamp.Before(from) || !item.Timestamp.Before(to) {
-			continue
-		}
-		count++
-		fees += item.Fee
-		if item.Direction == "incoming" {
-			incoming += item.Amount
-		} else {
-			outgoing += item.Amount
-			byCategory[item.Category] += item.Amount + item.Fee
-		}
+	result := monthlyActivityObservation(p, from, to)
+	asOf := to.Add(-time.Nanosecond)
+	if now.Before(asOf) {
+		asOf = now
 	}
-	writeJSON(w, 200, map[string]any{"period": from.Format("2006-01"), "from": from, "toExclusive": to, "network": ChainID, "symbol": "YNXT", "activityCount": count, "totals": map[string]int64{"incomingYnxt": incoming, "outgoingYnxt": outgoing, "feesYnxt": fees}, "categorySpendYnxt": byCategory, "budgetProgress": s.service.BudgetProgress(session.Account, p, to.Add(-time.Nanosecond)), "sourceStatus": map[string]SourceStatus{"explorer": p.ExplorerStatus, "pay": p.PayStatus}, "legal": "Source-bounded personal review; not a bank statement, fiat valuation, tax advice, or investment advice."})
+	result["period"], result["from"], result["toExclusive"] = from.Format("2006-01"), from, to
+	result["network"], result["symbol"] = ChainID, "YNXT"
+	result["budgetProgress"] = s.service.BudgetProgress(session.Account, p, asOf)
+	result["sourceStatus"] = map[string]SourceStatus{"explorer": p.ExplorerStatus, "pay": p.PayStatus}
+	result["legal"] = "Returned-record observations only; full-period totals are unknown. Not a bank statement, fiat valuation, tax advice, or investment advice."
+	writeJSON(w, 200, result)
 }
 
 func (s *Server) export(w http.ResponseWriter, r *http.Request, session Session) {

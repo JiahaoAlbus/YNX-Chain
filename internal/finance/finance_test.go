@@ -258,6 +258,9 @@ func TestOverviewPersistenceExportAndAIReview(t *testing.T) {
 	if monthly["symbol"] != "YNXT" || monthly["legal"] == "" {
 		t.Fatalf("monthly review lacks amount/legal semantics: %#v", monthly)
 	}
+	if monthly["coverageComplete"] != false || monthly["calculationStatus"] != "partial" || monthly["totals"].(map[string]any)["outgoingYnxt"] != nil || monthly["observedTotals"] == nil {
+		t.Fatalf("monthly HTTP response promoted bounded data to complete totals: %#v", monthly)
+	}
 	requestJSON(t, ts.URL+"/api/activity/tx-owned/category", http.MethodPut, map[string]any{"categoryId": category.ID, "idempotencyKey": "classification-key-0001"}, session.Token, "https://finance.example", 200, &map[string]any{})
 	requestJSON(t, ts.URL+"/api/privacy", http.MethodPut, map[string]any{"includePayInStatements": true, "allowAiActivityContext": true, "alertsEnabled": true}, session.Token, "https://finance.example", 200, &map[string]any{})
 	var job AIJob

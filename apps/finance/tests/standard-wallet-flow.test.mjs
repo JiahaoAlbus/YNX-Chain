@@ -38,6 +38,20 @@ async function fixture({saved=null,missing=false,revoke='success',deferSwitch=fa
 async function connect(page,id='#connect-metamask'){await page.locator(id).click();try{await page.waitForFunction(()=>window.YNXFinanceWallet.getStandardWalletState().status==='connected',{},{timeout:3000});}catch(error){throw new Error(JSON.stringify({errors:page.financeErrors,state:await page.evaluate(()=>window.YNXFinanceWallet.getStandardWalletState()),calls:await calls(page)}),{cause:error});}}
 const calls=page=>page.evaluate(()=>window.__financeFixture.calls);
 
+test('local Chrome planning view shows fixture observations, not false complete budget totals',async()=>{
+  const page=await fixture();try{
+    await page.evaluate(()=>{
+      location.hash='#planning';
+      render({portfolio:{account:'LOCAL_RENDER_FIXTURE_NOT_AUTHORIZATION',activity:[],payReceipts:[],explorerStatus:{available:false,error:'Local fixture'},payStatus:{available:false,error:'Local fixture'}},profile:{categories:[],budgets:[{id:'budget-fixture',name:'Local rendering fixture',period:'weekly',limitYnxt:100}],reminders:[],privacy:{}},budgetProgress:[{budgetId:'budget-fixture',spentYnxt:null,remainingYnxt:null,observedSpentYnxt:12,coverageComplete:false,calculationStatus:'partial',periodTimezone:'UTC',periodStart:'2026-09-07T00:00:00Z',effectiveFrom:'2026-09-07T00:00:00Z',coverage:'Latest 100 global records only'}],alerts:[],support:{}});
+    });
+    assert.equal(await page.locator('#planning').isVisible(),true);
+    const text=await page.locator('#budgets').innerText();
+    assert.match(text,/Observed spending: 12 YNXT/);assert.match(text,/Full-period spending: Unknown/);assert.match(text,/Remaining budget: Unknown/);
+    assert.match(text,/2026-09-07T00:00:00Z/);assert.doesNotMatch(text,/88 YNXT|12%/);
+    assert.deepEqual(await calls(page),[]);assert.deepEqual(page.financeErrors,[]);
+  }finally{await page.close();}
+});
+
 test('SDK artifact is exact, and Finance source no longer creates or transports a legacy device secret',async()=>{
   const sdk=await readFile(new URL('vendor/standard-wallet-browser-c97f85e9.mjs',web));
   assert.equal(sdk.length,22417);assert.equal(createHash('sha256').update(sdk).digest('hex'),'b8a900ef2a5ece693cb2808a47ed0072d97c425236deb80c39497886f1535e43');
