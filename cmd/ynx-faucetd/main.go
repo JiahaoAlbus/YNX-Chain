@@ -40,7 +40,7 @@ func runFaucet() (result error) {
 	defaultAmount := flag.Int64("default-amount", envInt64OrDefault("YNX_FAUCET_DEFAULT_AMOUNT", 100), "default faucet amount")
 	maxAmount := flag.Int64("max-amount", envInt64OrDefault("YNX_FAUCET_MAX_AMOUNT", 100), "max faucet amount")
 	window := flag.Duration("rate-window", envDurationOrDefault("YNX_FAUCET_RATE_LIMIT_WINDOW", time.Hour), "rate limit window")
-	maxRequests := flag.Int("rate-max", envIntOrDefault("YNX_FAUCET_RATE_LIMIT_MAX", 1), "max requests per IP/address in window")
+	maxRequests := flag.Int("rate-max", envIntOrDefault("YNX_FAUCET_RATE_LIMIT_MAX", 1), "max requests per receiving address in window")
 	flag.Parse()
 
 	coreTokenPath := strings.TrimSpace(os.Getenv("YNX_FAUCET_CORE_AUTH_TOKEN_FILE"))
@@ -60,6 +60,8 @@ func runFaucet() (result error) {
 		MaxAmount:         *maxAmount,
 		Window:            *window,
 		MaxRequests:       *maxRequests,
+		IPMaxRequests:     envIntOrDefault("YNX_FAUCET_IP_RATE_LIMIT_MAX", 100),
+		IPWindow:          envDurationOrDefault("YNX_FAUCET_IP_RATE_LIMIT_WINDOW", time.Minute),
 		RequestLog:        *requestLog,
 		AdmissionPath:     *admissionPath,
 		MaxAdmissions:     *maxAdmissions,

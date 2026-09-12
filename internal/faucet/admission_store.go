@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/accountaddress"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	bolt "go.etcd.io/bbolt"
 )
@@ -19,6 +20,8 @@ var errAdmissionCapacity = errors.New("faucet admission capacity reached; retain
 
 var admissionBucket = []byte("requests-v1")
 var quotaBucket = []byte("quota-v1")
+var addressQuotaBucket = []byte("address-quota-v2")
+var ipQuotaBucket = []byte("ip-quota-v2")
 var admissionMeta = []byte("metadata-v1")
 
 type admissionRecord struct {
@@ -57,7 +60,7 @@ func openAdmissionStore(cfg Config) (*admissionStore, error) {
 			if string(meta.Get([]byte("chainId"))) != strconv.FormatInt(cfg.ChainID, 10) || string(meta.Get([]byte("version"))) != chain.FaucetRequestVersion || tx.Bucket(admissionBucket) == nil || tx.Bucket(quotaBucket) == nil {
 				return errors.New("admission database identity does not match faucet")
 			}
-			return nil
+			return store.migrateQuotaV2(tx)
 		}
 		if tx.Bucket(admissionBucket) != nil || tx.Bucket(quotaBucket) != nil {
 			return errors.New("incomplete admission schema")
@@ -74,7 +77,10 @@ func openAdmissionStore(cfg Config) (*admissionStore, error) {
 		if err := meta.Put([]byte("version"), []byte(chain.FaucetRequestVersion)); err != nil {
 			return err
 		}
-		return store.importLegacyQuota(tx)
+		if err := store.importLegacyQuota(tx); err != nil {
+			return err
+		}
+		return store.migrateQuotaV2(tx)
 	})
 	if err == nil {
 		err = syncAdmissionDirectory(filepath.Dir(cfg.AdmissionPath))
@@ -186,30 +192,36 @@ func (s *admissionStore) admit(id, address, ip string, amount int64, now time.Ti
 		if requests.Stats().KeyN >= s.cfg.MaxAdmissions {
 			return errAdmissionCapacity
 		}
-		quotas := tx.Bucket(quotaBucket)
-		key := quotaKey(ip, address)
-		var times []time.Time
-		if data := quotas.Get(key); data != nil {
-			if err := json.Unmarshal(data, &times); err != nil {
+		for _, q := range []struct {
+			bucket []byte
+			key    string
+			window time.Duration
+			max    int
+		}{{addressQuotaBucket, address, s.cfg.Window, s.cfg.MaxRequests}, {ipQuotaBucket, ip, s.cfg.IPWindow, s.cfg.IPMaxRequests}} {
+			var times []time.Time
+			bucket := tx.Bucket(q.bucket)
+			if data := bucket.Get([]byte(q.key)); data != nil {
+				if err := json.Unmarshal(data, &times); err != nil {
+					return err
+				}
+			}
+			kept := times[:0]
+			for _, at := range times {
+				if at.After(now.Add(-q.window)) {
+					kept = append(kept, at)
+				}
+			}
+			if len(kept) >= q.max {
+				return errAdmissionRate
+			}
+			data, _ := json.Marshal(append(kept, now))
+			if err := bucket.Put([]byte(q.key), data); err != nil {
 				return err
 			}
 		}
-		cutoff := now.Add(-s.cfg.Window)
-		kept := times[:0]
-		for _, at := range times {
-			if at.After(cutoff) {
-				kept = append(kept, at)
-			}
-		}
-		if len(kept) >= s.cfg.MaxRequests {
-			return errAdmissionRate
-		}
-		data, _ := json.Marshal(append(kept, now))
-		if err := quotas.Put(key, data); err != nil {
-			return err
-		}
+
 		record = admissionRecord{RequestID: id, Address: address, Amount: amount, At: now}
-		data, _ = json.Marshal(record)
+		data, _ := json.Marshal(record)
 		return requests.Put([]byte(id), data)
 	})
 	return record, replayed, err
@@ -253,4 +265,55 @@ func (s *admissionStore) lookup(id string) (admissionRecord, bool, error) {
 		return nil
 	})
 	return record, found, err
+}
+
+// Migrate historical pair quotas once, retaining every charged admission. Address
+// quota survives IP changes; the independent wider IP budget allows shared NATs.
+func (s *admissionStore) migrateQuotaV2(tx *bolt.Tx) error {
+	if string(tx.Bucket(admissionMeta).Get([]byte("quotaVersion"))) == "2" {
+		if tx.Bucket(addressQuotaBucket) == nil || tx.Bucket(ipQuotaBucket) == nil {
+			return errors.New("incomplete v2 quota schema")
+		}
+		return nil
+	}
+	for _, name := range [][]byte{addressQuotaBucket, ipQuotaBucket} {
+		if tx.Bucket(name) != nil {
+			return errors.New("unmarked v2 quota bucket")
+		}
+		if _, err := tx.CreateBucket(name); err != nil {
+			return err
+		}
+	}
+	err := tx.Bucket(quotaBucket).ForEach(func(k, v []byte) error {
+		var pair []string
+		var times []time.Time
+		if json.Unmarshal(k, &pair) != nil || len(pair) != 2 || json.Unmarshal(v, &times) != nil {
+			return errors.New("invalid legacy quota record")
+		}
+		address := pair[1]
+		if canonical, err := accountaddress.Normalize(address); err == nil {
+			address = canonical
+		}
+		for _, q := range []struct {
+			bucket []byte
+			key    string
+		}{{addressQuotaBucket, address}, {ipQuotaBucket, pair[0]}} {
+			b := tx.Bucket(q.bucket)
+			var existing []time.Time
+			if data := b.Get([]byte(q.key)); data != nil {
+				if err := json.Unmarshal(data, &existing); err != nil {
+					return err
+				}
+			}
+			data, _ := json.Marshal(append(existing, times...))
+			if err := b.Put([]byte(q.key), data); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	return tx.Bucket(admissionMeta).Put([]byte("quotaVersion"), []byte("2"))
 }
