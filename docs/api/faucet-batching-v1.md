@@ -1,0 +1,11 @@
+# Bounded durable Faucet batches
+
+The v1 authenticated `/faucet/requests` endpoint retains its request ID/hash, payload binding, 201 newly persisted / 200 replay, and uncertain-result semantics. Concurrent requests are collected for 25ms and processed in batches of at most64. Each batch uses one full native snapshot checkpoint, rather than serializing the entire retained history once per recipient. Recipient balances, provenance lots and pending transactions remain in the same ledger and snapshot format.
+
+A maximum128 requests may wait behind the active batch. Overflow returns503, Retry-After2, status `faucet_queue_full`, accepted=false and the deterministic request hash. Keep the same request ID when retrying. The in-memory queue is not a durable admission: a request receives success only after its shared checkpoint completes. Faucet service retains its own durable client admission before calling Core; after disconnection or restart, reconcile the exact same ID/hash before retrying. The HTTP handler remains alive while admitted work finishes, so graceful shutdown drains it.
+
+Before-rename persistence failure restores every staged account/lot/pending mutation in reverse order. An after-rename durability uncertainty preserves the exposed state and returns the same hash with uncertain status; retry or restart cannot credit twice. Conflicting duplicate IDs are rejected independently without changing the other valid requests in the batch. A completed checkpoint confirms all requests represented in it.
+
+GET `/v1/native-transactions/{hash}` returns exact decimal-string transaction fields plus top-level status `pending_durable`, `durable`, `uncertain` or `memory_only`. Only the first two attest local persistence; none imply BFT finality. A404 means not_found, including work not yet applied from the volatile queue. The older `/txs/{hash}` is a native observation and must not be used as a durable acceptance assertion.
+
+Writes still checkpoint the complete history and hold the native write lock through durability. Batching bounds amplification for simultaneous users; it does not turn the native full-snapshot store into an incremental database. Capacity and latency measurements must state the snapshot size, batch size and resource profile.

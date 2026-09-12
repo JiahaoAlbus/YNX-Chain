@@ -34,6 +34,9 @@ type Server struct {
 	trustGatewayUpstreamKey    string
 	resourceGatewayUpstreamKey string
 	replicationKey             string
+	faucetBatchMu              sync.Mutex
+	faucetBatchQueue           []*faucetBatchJob
+	faucetBatchRunning         bool
 	faucetCoreAuthToken        string
 	readOnlyReplica            bool
 	replicationCacheMu         sync.Mutex
@@ -582,12 +585,18 @@ func (s *Server) handleFaucet(w http.ResponseWriter, r *http.Request) {
 	var tx chain.Transaction
 	var replayed bool
 	if req.RequestID != "" {
-		tx, replayed, err = s.devnet.FaucetWithRequest(address, req.Amount, req.RequestID)
+		tx, replayed, err = s.submitFaucetRequest(chain.FaucetRequestInput{Address: address, Amount: req.Amount, RequestID: req.RequestID})
 		w.Header().Set("X-YNX-Faucet-Idempotency", chain.FaucetRequestVersion)
 	} else {
 		tx, err = s.devnet.Faucet(address, req.Amount)
 	}
 	if err != nil {
+		if errors.Is(err, errFaucetQueueFull) {
+			w.Header().Set("Retry-After", "2")
+			hash, _ := chain.FaucetRequestHash(s.networkConfig.ChainID, req.RequestID)
+			writeJSON(w, http.StatusServiceUnavailable, map[string]any{"status": "faucet_queue_full", "error": "retain this request ID and retry after backoff", "requestId": req.RequestID, "transactionHash": hash, "accepted": false})
+			return
+		}
 		if errors.Is(err, chain.ErrSnapshotDurabilityUncertain) {
 			writeJSON(w, http.StatusServiceUnavailable, map[string]any{
 				"error":  "faucet result needs confirmation; retain this request ID and query its transaction hash",
@@ -1847,6 +1856,7 @@ func (s *Server) legacyEVMResult(method string, params []any) (any, error) {
 			"idempotencyScope":      "retained-chain-transaction-history", "legacyRequestSafeRetry": false,
 			"consensusFinality": false, "durability": durabilityModel(),
 			"authority": s.faucetAuthorityModel(),
+			"batching":  map[string]any{"maxBatchSize": chain.MaxFaucetBatchSize, "maxQueuedRequests": faucetQueueCapacity, "collectionWindowMs": 25, "acceptance": "after-durable-shared-checkpoint", "statusPath": "/v1/native-transactions/{hash}"},
 		}, nil
 	case "ynx_getDurabilityModel":
 		if len(params) != 0 {

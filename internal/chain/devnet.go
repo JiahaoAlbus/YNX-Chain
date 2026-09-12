@@ -949,12 +949,23 @@ func (d *Devnet) faucet(address string, amount int64, requestHash string) (Trans
 			return existing, true, nil
 		}
 	}
+	tx, undo, err := d.stageFaucetLocked(address, amount, requestHash)
+	if err != nil {
+		return Transaction{}, false, err
+	}
+	tx, err = d.persistTransferLocked(tx, undo)
+	return tx, false, err
+}
+
+// stageFaucetLocked mutates only the account/lot/pending state. Its caller must
+// retain the write lock through one durable checkpoint or restore this undo.
+func (d *Devnet) stageFaucetLocked(address string, amount int64, requestHash string) (Transaction, transferUndo, error) {
 	account, faucet := d.accountReadOnly(address), d.accountReadOnly(FaucetAddress)
 	if faucet.Balance < amount {
-		return Transaction{}, false, errors.New("faucet balance exhausted")
+		return Transaction{}, transferUndo{}, errors.New("faucet balance exhausted")
 	}
 	if account.Balance > math.MaxInt64-amount {
-		return Transaction{}, false, errors.New("recipient balance would overflow")
+		return Transaction{}, transferUndo{}, errors.New("recipient balance would overflow")
 	}
 	lotID := hashParts("lot", address, fmt.Sprint(time.Now().UnixNano()), fmt.Sprint(amount))
 	if requestHash != "" {
@@ -972,8 +983,7 @@ func (d *Devnet) faucet(address string, amount int64, requestHash string) (Trans
 		tx.Hash = requestHash
 	}
 	d.pending = append(d.pending, tx)
-	tx, err := d.persistTransferLocked(tx, undo)
-	return tx, false, err
+	return tx, undo, nil
 }
 
 func (d *Devnet) Transfer(from, to string, amount int64) (Transaction, error) {
