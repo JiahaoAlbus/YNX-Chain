@@ -631,6 +631,7 @@ func (s *Server) handleGenerate(w http.ResponseWriter, r *http.Request, session 
 		return
 	}
 	status := map[string]any{}
+	providerName := s.cfg.ProviderName
 	var selectedCredential ProviderCredentialMetadata
 	var selectedKey string
 	if in.CredentialProvider != "" {
@@ -645,6 +646,7 @@ func (s *Server) handleGenerate(w http.ResponseWriter, r *http.Request, session 
 			return
 		}
 		status["available"], status["model"] = true, selectedCredential.Model
+		providerName = "BYOK: " + selectedCredential.Provider
 	} else {
 		status = s.providerStatus(r.Context())
 	}
@@ -715,7 +717,7 @@ func (s *Server) handleGenerate(w http.ResponseWriter, r *http.Request, session 
 		writeError(w, http.StatusInternalServerError, "streaming unsupported")
 		return
 	}
-	writeSSE(w, "metadata", map[string]any{"generationId": in.GenerationID, "provider": s.cfg.ProviderName, "model": model, "actualUsageReported": false})
+	writeSSE(w, "metadata", map[string]any{"generationId": in.GenerationID, "provider": providerName, "model": model, "actualUsageReported": false})
 	flusher.Flush()
 	answer := strings.Builder{}
 	stream, streamErr := consumeProviderSSE(resp.Body, func(text string) {
@@ -732,7 +734,7 @@ func (s *Server) handleGenerate(w http.ResponseWriter, r *http.Request, session 
 		return
 	}
 	cost := s.estimateCost(in.Prompt, answer.String())
-	assistant := Message{Role: "assistant", Content: answer.String(), Status: "complete", Provider: s.cfg.ProviderName, Model: model, RequestID: stream.RequestID, RetryOf: in.RetryOf, IncludedContext: cleanList(in.IncludedContext), ExcludedContext: cleanList(in.ExcludedContext), Cost: cost}
+	assistant := Message{Role: "assistant", Content: answer.String(), Status: "complete", Provider: providerName, Model: model, RequestID: stream.RequestID, RetryOf: in.RetryOf, IncludedContext: cleanList(in.IncludedContext), ExcludedContext: cleanList(in.ExcludedContext), Cost: cost}
 	saved, err := s.store.AddMessage(session.Account, conversationID, assistant)
 	if err != nil {
 		s.streamFailureAfterStart(w, flusher, "Response arrived but encrypted persistence failed.", in.GenerationID)

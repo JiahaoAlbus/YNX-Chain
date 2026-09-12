@@ -325,7 +325,8 @@ func newProviderServer(t *testing.T) *httptest.Server {
 		sessionContext := input.Messages[len(input.Messages)-2].Content
 		response := providerResponse{}
 		response.Choices = append(response.Choices, struct {
-			Message providerMessage `json:"message"`
+			Message      providerMessage `json:"message"`
+			FinishReason string          `json:"finish_reason"`
 		}{Message: providerMessage{Role: "assistant", Content: "provider answer for " + user + " using " + sessionContext}})
 		_ = json.NewEncoder(w).Encode(response)
 	}))

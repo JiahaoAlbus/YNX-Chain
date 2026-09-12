@@ -473,6 +473,9 @@ func (s *Store) AddMessage(account, conversationID string, m Message) (Message, 
 		return Message{}, err
 	}
 	m.Content = ""
+	previousConversation := c
+	previousMessages, hadMessages := s.state.Messages[conversationID]
+	previousAudits, previousSequence := s.state.Audits, s.state.AuditSequence
 	s.state.Messages[conversationID] = append(s.state.Messages[conversationID], storedMessage{Message: m, Nonce: nonce, Cipher: cipherText})
 	c.MessageCount++
 	c.UpdatedAt = m.CreatedAt
@@ -484,7 +487,17 @@ func (s *Store) AddMessage(account, conversationID string, m Message) (Message, 
 	s.state.Conversations[conversationID] = c
 	s.auditLocked(account, "message_stored", m.ID, "bounded encrypted content policy applied")
 	m.Content = content
-	return m, s.saveLocked()
+	if err := s.saveLocked(); err != nil {
+		s.state.Conversations[conversationID] = previousConversation
+		if hadMessages {
+			s.state.Messages[conversationID] = previousMessages
+		} else {
+			delete(s.state.Messages, conversationID)
+		}
+		s.state.Audits, s.state.AuditSequence = previousAudits, previousSequence
+		return Message{}, err
+	}
+	return m, nil
 }
 
 func (s *Store) Policy(account string) DataPolicy {

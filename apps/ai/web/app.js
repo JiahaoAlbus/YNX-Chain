@@ -160,7 +160,7 @@ async function consumeSSE(body,visible=()=>true){
   if(!terminal)throw new Error('Provider stream ended without a terminal event; no completion was claimed.');
  }finally{try{await reader.cancel()}catch{}reader.releaseLock()}
 }
-$('#cancel-generation').onclick=async()=>{if(!state.generationId)return;try{await api(`/api/generations/${encodeURIComponent(state.generationId)}/cancel`,{method:'POST'})}catch{}state.abort?.abort()};
+$('#cancel-generation').onclick=async()=>{const generationId=state.generationId,controller=state.abort;if(!generationId)return;controller?.abort();try{await api(`/api/generations/${encodeURIComponent(generationId)}/cancel`,{method:'POST'})}catch{}};
 
 async function loadProvider(){try{state.provider=await api('/api/provider');$('#provider-dot').classList.remove('offline');$('#provider-label').textContent=state.provider.provider||'Provider available';$('#model-label').textContent=`${state.provider.model||'configured model'} · quota unknown`}catch(error){state.provider={available:false};$('#provider-dot').classList.add('offline');$('#provider-label').textContent='Provider unavailable';$('#model-label').textContent='No substitute answers';}}
 

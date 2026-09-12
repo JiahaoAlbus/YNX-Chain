@@ -42,6 +42,18 @@ function client(overrides={}){
  return {calls,node,eval:code=>vm.runInContext(code,ctx)};
 }
 
+test('cancel aborts immediately and cannot abort a newer generation after its response',async()=>{
+ let finish;
+ const c=client({'/api/generations/old/cancel':()=>new Promise(resolve=>{finish=resolve})});
+ c.eval("state.generationId='old';state.abort=new AbortController();globalThis.oldAbort=state.abort");
+ const pending=c.node('#cancel-generation').onclick();
+ assert.equal(c.eval('oldAbort.signal.aborted'),true);
+ c.eval("state.generationId='new';state.abort=new AbortController()");
+ finish(ok({}));await pending;
+ assert.equal(c.eval('state.abort.signal.aborted'),false);
+ assert.equal(c.calls.filter(r=>r.path.endsWith('/cancel'))[0].path,'/api/generations/old/cancel');
+});
+
 test('double submit reserves generation before asynchronous conversation creation',async()=>{
  let create;
  const c=client({'/api/conversations':()=>new Promise(resolve=>{create=resolve})});
