@@ -3,7 +3,8 @@
 
 Arguments: fresh-output-dir source-freeze.json source.tar.gz dependency-runtime.tar.gz
 The freeze lists each Git source file, its digest/size, and the dependency digest.
-Only the three dependency roots are reused. No running state is read or packaged.
+Only node_modules (including workspace-local dependencies), .ynx-debugpy and
+.ynx-js-debug are reused. No running state is read or packaged.
 """
 from pathlib import Path, PurePosixPath
 import hashlib, json, os, subprocess, sys, tarfile, time
@@ -18,13 +19,12 @@ def digest(path):
         for chunk in iter(lambda: stream.read(1048576), b''): h.update(chunk)
     return h.hexdigest()
 def extract(archive, root, deps=False):
-    allowed = ['apps/developer/node_modules', 'apps/developer/.ynx-debugpy', 'apps/developer/.ynx-js-debug']
     with tarfile.open(archive, 'r:gz') as tar:
         members = []
         for member in tar.getmembers():
             p = PurePosixPath(member.name)
             normalized = str(p)
-            if deps and not any(normalized == x or normalized.startswith(x + '/') for x in allowed): continue
+            if deps and not (p.parts[:2] == ('apps', 'developer') and any(part in {'node_modules', '.ynx-debugpy', '.ynx-js-debug'} for part in p.parts[2:])): continue
             assert not p.is_absolute() and '..' not in p.parts
             assert member.isfile() or member.isdir() or member.issym() or member.islnk()
             if member.issym() or member.islnk():
