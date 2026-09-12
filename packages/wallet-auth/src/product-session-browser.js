@@ -167,7 +167,12 @@ export async function createBrowserProductSessionClient(config) {
       });
     }
     async function createIntrospectionProof(requiredScopes) {
-      validateScopes(requiredScopes, approvedScopes);
+      const count = Array.isArray(requiredScopes) ? requiredScopes.length : 0;
+      if (!Number.isInteger(count) || count < 1 || count > 8) fail("SCOPE_WIDENING", "Browser Product Session scopes must be an exact sorted registered subset");
+      // Validate the exact bounded snapshot that will be signed, not a caller
+      // array whose getters or later edits can change values during the awaits.
+      const selectedScopes = Object.freeze(Array.from({ length: count }, (_, index) => requiredScopes[index]));
+      validateScopes(selectedScopes, approvedScopes);
       const state = client.current;
       if (state.status !== "connected" || !state.session) fail("SESSION_INACTIVE", "Connect and verify a Product Session before signing an API proof");
       await assertAPIActive(state);
@@ -177,7 +182,7 @@ export async function createBrowserProductSessionClient(config) {
       if (client.current !== state) fail("SESSION_INACTIVE", "Product Session changed while reading authority time");
       await assertAPIActive(state);
       if (!(now instanceof Date) || !Number.isFinite(now.getTime()) || Date.parse(session.expiresAt) <= now.getTime()) fail("SESSION_EXPIRED", "Product Session expired before API authorization");
-      const body = canonicalJSON({ requiredScopes: [...requiredScopes] });
+      const body = canonicalJSON({ requiredScopes: selectedScopes });
       const proof = await createProductSessionProofV2With(session, { method: "POST", path: "/v2/product-sessions/introspect", bodyDigest: httpBodyDigest(body), nonce: randomToken(), issuedAt: now.toISOString(), expiresAt: new Date(Math.min(now.getTime() + 30_000, Date.parse(session.expiresAt))).toISOString() }, sign);
       if (client.current !== state) fail("SESSION_INACTIVE", "Product Session changed during API proof signing");
       await assertAPIActive(state);

@@ -1,13 +1,17 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
-import { WalletAuthError } from "../src/canonical.js";
+import { canonicalJSON, WalletAuthError } from "../src/canonical.js";
 import { migrateLegacyCallback, parseProductSessionRegistry, productPlatformBinding } from "../src/product-session-registry.js";
-import { createProductSessionRequest, parseProductSessionRequest } from "../src/product-session-v2.js";
+import { createProductSessionRequest, parseProductSessionRequest, signProductSessionApproval, signProductSessionChallenge } from "../src/product-session-v2.js";
+import { ProductSessionGatewayKernel } from "../src/product-session-gateway.js";
+import { createProductSessionProofV2 } from "../src/product-session-proof-v2.js";
+import { httpBodyDigest } from "../src/session-proof.js";
 
 const registry = parseProductSessionRegistry(JSON.parse(readFileSync(new URL("../product-session-registry.json", import.meta.url), "utf8")));
 const NOW = new Date("2026-09-12T00:00:00.000Z");
-// Public P-256 generator point; these registration tests do not sign approvals.
+// Public P-256 generator point used by the registration requests below.
 const deviceKey = Buffer.from("036b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296", "hex").toString("base64url");
 const platforms = ["android", "ios", "linux", "macos", "web", "windows"];
 const expectedProducts = [
@@ -21,12 +25,12 @@ const expectedProducts = [
   {
     productId: "cloud", clientId: "ynx-cloud-web-v1", displayName: "YNX Cloud", applicationId: "com.ynxweb4.cloud",
     webOrigin: "https://web4.ynxweb4.com", platforms: ["web"], nativeCallback: null, legacyCallbacks: [],
-    scopes: ["files.read"], evmCompatible: false, sessionDurationSeconds: 300,
+    scopes: ["files.read", "files.write"], evmCompatible: false, sessionDurationSeconds: 300,
   },
   {
     productId: "docs", clientId: "ynx-docs-mobile-v1", displayName: "YNX Docs", applicationId: "com.ynxweb4.docs",
     webOrigin: "https://docs.ynxweb4.com", nativeCallback: "ynxdocs://wallet-auth/callback",
-    legacyCallbacks: ["ynxdocs://wallet-auth/callback"], scopes: ["docs.read", "files.read"],
+    legacyCallbacks: ["ynxdocs://wallet-auth/callback"], scopes: ["docs.read", "docs.write", "files.read", "files.write"],
     evmCompatible: false, sessionDurationSeconds: 300,
   },
 ];
@@ -110,12 +114,60 @@ test("explicit Web-only registrations cannot acquire native bindings or ambiguou
 
 test("Cloud and Docs do not inherit broader legacy service permissions or the old callback paths", () => {
   for (const [productId, scopes, callback] of [
-    ["cloud", ["ai.use", "audit.read", "data.delete", "files.write", "permissions.manage"], "https://web4.ynxweb4.com/cloud/auth/callback"],
-    ["docs", ["ai.use", "audit.read", "docs.comment", "docs.edit", "files.write", "permissions.manage"], "https://docs.ynxweb4.com/docs/auth/callback"],
+    ["cloud", ["ai.use", "audit.read", "data.delete", "files.delete", "files.share", "pay", "permissions.manage"], "https://web4.ynxweb4.com/cloud/auth/callback"],
+    ["docs", ["ai.use", "audit.read", "docs.comment", "docs.delete", "docs.edit", "docs.share", "files.delete", "files.share", "pay", "permissions.manage"], "https://docs.ynxweb4.com/docs/auth/callback"],
   ]) {
     const product = expectedProducts.find((entry) => entry.productId === productId);
     for (const scope of scopes) assert.throws(() => request(product, "web", [scope]), code("SCOPE_WIDENING"));
     const pending = request(product, "web");
     assert.throws(() => parseProductSessionRequest(registry, { ...pending, callback }, NOW), code("SESSION_BINDING_MISMATCH"));
   }
+});
+
+// Fixed test keys and an in-memory Gateway only: no real account, service or
+// product operation is used. This proves scope authority, not a product route's
+// create/save policy; routes must still reject delete/share/payment operations.
+for (const [productId, readScopes, writeScopes] of [
+  ["cloud", ["files.read"], ["files.write"]],
+  ["docs", ["docs.read", "files.read"], ["docs.write", "files.write"]],
+]) test(`${productId} read grants cannot authorize writes and a fresh explicit approval is required`, () => {
+  let counter = 0;
+  const next = () => createHash("sha256").update(`scope-boundary-${productId}-${counter++}`).digest("base64url");
+  const secret = "1".padStart(64, "0"), deviceSecret = Buffer.from(secret, "hex").toString("base64url");
+  const gateway = new ProductSessionGatewayKernel(registry, next);
+  const dispatch = (path, body, proof = null) => gateway.dispatch({ requestId: `req_scope_${next()}`, method: "POST", path, body, proof, networkAvailable: true }, NOW);
+  const makeRequest = granted => createProductSessionRequest(registry, {
+    productId, platform: "web", scopes: granted, deviceId: "registry-write-fixture", deviceKey,
+    purpose: "Review and explicitly approve this exact scope fixture.", nonce: next(), state: next(),
+  }, NOW);
+  const approve = pending => signProductSessionApproval(registry, pending, { accountSecret: secret, scopes: pending.scopes, expiresAt: pending.expiresAt }, NOW);
+  const complete = (pending, approval) => {
+    const issued = dispatch("/v2/product-sessions/challenge", { request: pending, approval });
+    assert.equal(issued.status, 200, issued.body);
+    const completion = signProductSessionChallenge(JSON.parse(issued.body).result, deviceSecret);
+    const response = dispatch("/v2/product-sessions/complete", { request: pending, approval, completion });
+    assert.equal(response.status, 200, response.body); return JSON.parse(response.body).result;
+  };
+  const introspect = (session, requiredScopes) => {
+    const body = { requiredScopes }, path = "/v2/product-sessions/introspect";
+    const proof = createProductSessionProofV2(session, { method: "POST", path, bodyDigest: httpBodyDigest(canonicalJSON(body)), nonce: next(), issuedAt: NOW.toISOString(), expiresAt: new Date(NOW.getTime() + 30_000).toISOString() }, deviceSecret);
+    return dispatch(path, body, proof);
+  };
+  const initialRequest = makeRequest(readScopes), readApproval = approve(initialRequest);
+  const initial = complete(initialRequest, readApproval);
+  assert.deepEqual(initial.scopes, readScopes);
+  assert.equal(introspect(initial, readScopes).status, 200);
+  for (const scope of writeScopes) {
+    const denied = introspect(initial, [scope]);
+    assert.equal(denied.status, 403); assert.equal(JSON.parse(denied.body).error.code, "SCOPE_WIDENING");
+  }
+  const writeRequest = makeRequest([...readScopes, ...writeScopes].sort());
+  assert.notEqual(writeRequest.nonce, initialRequest.nonce); assert.notEqual(writeRequest.state, initialRequest.state);
+  const reused = dispatch("/v2/product-sessions/challenge", { request: writeRequest, approval: readApproval });
+  assert.equal(reused.status, 400); assert.equal(JSON.parse(reused.body).error.code, "SESSION_BINDING_MISMATCH");
+  const explicit = complete(writeRequest, approve(writeRequest));
+  assert.notEqual(explicit.sessionBinding, initial.sessionBinding);
+  assert.deepEqual(explicit.scopes, writeRequest.scopes);
+  for (const scope of writeScopes) assert.equal(introspect(explicit, [scope]).status, 200);
+  assert.deepEqual(gateway.snapshot().authority.sessions.find(session => session.sessionBinding === initial.sessionBinding).scopes, readScopes);
 });

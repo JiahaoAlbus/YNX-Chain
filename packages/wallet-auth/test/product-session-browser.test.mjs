@@ -689,3 +689,33 @@ function fakeIndexedDB() {
   } };
   return api;
 }
+
+test("browser wrapper snapshots a scope getter before validation and never signs its later ungranted value", { timeout: 3000 }, async t => {
+  const s = setup(), browser = await createBrowserProductSessionClient(s.config); t.after(() => browser.close());
+  assert.equal((await connect(browser, s.config)).status, "connected");
+  const required = new Array(1); let reads = 0;
+  Object.defineProperty(required, 0, { enumerable: true, get() { return ++reads === 1 ? "creator:account" : "card:application:write"; } });
+  const before = canonicalJSON(s.handler.snapshot());
+  const outcome = await browser.createIntrospectionProof(required).then(result => ({ result }), error => ({ error }));
+  assert.ok(reads >= 1); assert.equal(canonicalJSON(s.handler.snapshot()), before);
+  if (outcome.error) assert.equal(outcome.error.code, "SCOPE_WIDENING");
+  else {
+    const result = outcome.result;
+    assert.equal(result.body, canonicalJSON({ requiredScopes: ["creator:account"] }));
+    assert.equal((await s.gateway.introspect({ requestId: result.requestId, sessionBinding: result.proof.sessionBinding, requiredScopes: ["creator:account"], proof: result.proof })).active, true);
+  }
+});
+
+test("browser wrapper retains the original plain scopes while its authority clock is pending", { timeout: 3000 }, async t => {
+  const s = setup(), browser = await createBrowserProductSessionClient(s.config); t.after(() => browser.close());
+  assert.equal((await connect(browser, s.config)).status, "connected");
+  let enteredClock, releaseClock;
+  const entered = new Promise(resolve => { enteredClock = resolve; });
+  s.gateway.currentTime = async () => { enteredClock(); return new Promise(resolve => { releaseClock = resolve; }); };
+  t.after(() => releaseClock?.(NOW));
+  const required = ["creator:account"], pending = browser.createIntrospectionProof(required); await entered;
+  required[0] = "card:application:write"; required.push("creator:publish");
+  releaseClock(NOW); const result = await pending;
+  assert.equal(result.body, canonicalJSON({ requiredScopes: ["creator:account"] }));
+  assert.equal((await s.gateway.introspect({ requestId: result.requestId, sessionBinding: result.proof.sessionBinding, requiredScopes: ["creator:account"], proof: result.proof })).active, true);
+});
