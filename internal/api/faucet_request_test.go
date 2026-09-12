@@ -21,11 +21,13 @@ func TestFaucetHTTPRetainsIntentAcrossUncertainResult(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	s := newServerWithConfig(d, ServerConfig{})
+	token := strings.Repeat("a", 64)
+	s := newServerWithConfig(d, ServerConfig{FaucetCoreAuthToken: token})
 	id := "req_abcdef0123456789abcdef0123456789"
 	request := func(amount int64) *httptest.ResponseRecorder {
 		payload, _ := json.Marshal(map[string]any{"address": "ynx_http_faucet_retry", "amount": amount, "requestId": id})
 		r := httptest.NewRequest(http.MethodPost, "/faucet", bytes.NewReader(payload))
+		r.Header.Set(FaucetCoreAuthorityHeader, token)
 		w := httptest.NewRecorder()
 		s.handleFaucet(w, r)
 		return w
@@ -51,7 +53,7 @@ func TestFaucetHTTPRetainsIntentAcrossUncertainResult(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	s = newServerWithConfig(d, ServerConfig{})
+	s = newServerWithConfig(d, ServerConfig{FaucetCoreAuthToken: token})
 	w = request(100)
 	var tx chain.Transaction
 	if err := json.Unmarshal(w.Body.Bytes(), &tx); err != nil {

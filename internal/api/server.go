@@ -34,6 +34,7 @@ type Server struct {
 	trustGatewayUpstreamKey    string
 	resourceGatewayUpstreamKey string
 	replicationKey             string
+	faucetCoreAuthToken        string
 	readOnlyReplica            bool
 	replicationCacheMu         sync.Mutex
 	replicationCache           replicationResponseCache
@@ -69,6 +70,7 @@ type ServerConfig struct {
 	TrustGatewayUpstreamKey    string
 	ResourceGatewayUpstreamKey string
 	ReplicationKey             string
+	FaucetCoreAuthToken        string
 	ReadOnlyReplica            bool
 }
 
@@ -89,6 +91,7 @@ func newServerWithConfig(devnet *chain.Devnet, cfg ServerConfig) *Server {
 		trustGatewayUpstreamKey:    strings.TrimSpace(cfg.TrustGatewayUpstreamKey),
 		resourceGatewayUpstreamKey: strings.TrimSpace(cfg.ResourceGatewayUpstreamKey),
 		replicationKey:             strings.TrimSpace(cfg.ReplicationKey),
+		faucetCoreAuthToken:        cfg.FaucetCoreAuthToken,
 		readOnlyReplica:            cfg.ReadOnlyReplica,
 	}
 	// Seed the cache before the server accepts requests. Subsequent refreshes are
@@ -185,6 +188,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("POST /dex/pools/{id}/swaps/exact-input", s.handleNativeDexMutation)
 	s.mux.HandleFunc("POST /dex/pools/{id}/swaps/exact-output", s.handleNativeDexMutation)
 	s.mux.HandleFunc("GET /dex/events", s.handleNativeDexEvents)
+	s.mux.HandleFunc("GET /v1/native-snapshot", s.handleNativeFinanceSnapshot)
+	s.mux.HandleFunc("GET /v1/native-transactions/{hash}", s.handleNativeFinanceTransaction)
 	s.aiRoute("GET /ai/stream", s.handleAIStream)
 	s.aiRoute("POST /ai/permissions", s.handleAIPermission)
 	s.aiRoute("GET /ai/permissions", s.handleAIPermissions)
@@ -554,6 +559,9 @@ func (s *Server) handleExplorerSummary(w http.ResponseWriter, r *http.Request) {
 }
 func (s *Server) handleFaucet(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Cache-Control", "no-store")
+	if !s.authorizeFaucet(w, r) {
+		return
+	}
 	var req struct {
 		Address   string `json:"address"`
 		Amount    int64  `json:"amount"`
@@ -1838,6 +1846,7 @@ func (s *Server) legacyEVMResult(method string, params []any) (any, error) {
 			"transactionHashScheme": "sha256-nul-domain-decimal-chain-id-request-id",
 			"idempotencyScope":      "retained-chain-transaction-history", "legacyRequestSafeRetry": false,
 			"consensusFinality": false, "durability": durabilityModel(),
+			"authority": s.faucetAuthorityModel(),
 		}, nil
 	case "ynx_getDurabilityModel":
 		if len(params) != 0 {
