@@ -5,6 +5,14 @@ import { PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION } from "./product-session-gatewa
 
 export const PRODUCT_SESSION_GATEWAY_PROOF_HEADER_V2 = "x-ynx-product-session-proof-v2";
 const MAX_RESPONSE_BYTES = 1_048_576;
+// Only this constructor can associate an adapter with its actual private endpoint.
+// A public property or duck-typed transport must not choose a persisted authority.
+const gatewayAuthorities = new WeakMap();
+
+export function productSessionGatewayAuthority(adapter) {
+  if (!gatewayAuthorities.has(adapter)) fail("INVALID_GATEWAY", "Browser storage requires an authority-bound Product Session Gateway fetch adapter");
+  return gatewayAuthorities.get(adapter);
+}
 
 export class ProductSessionGatewayFetchAdapter {
   #endpoint; #fetch; #walletInstalled; #schemeRegistered; #timeoutMs;
@@ -14,6 +22,7 @@ export class ProductSessionGatewayFetchAdapter {
     if (typeof config.fetch !== "function" || typeof config.walletInstalled !== "function" || typeof config.schemeRegistered !== "function") fail("INVALID_GATEWAY", "Product Session Gateway fetch adapter dependencies are invalid");
     if (!Number.isInteger(config.timeoutMs) || config.timeoutMs < 1_000 || config.timeoutMs > 30_000) fail("INVALID_GATEWAY", "Product Session Gateway timeout must be between one and thirty seconds");
     this.#fetch = config.fetch; this.#walletInstalled = config.walletInstalled; this.#schemeRegistered = config.schemeRegistered; this.#timeoutMs = config.timeoutMs;
+    gatewayAuthorities.set(this, this.#endpoint);
   }
 
   async walletInstalled() { return capability(await this.#walletInstalled(), "Wallet installation detection"); }

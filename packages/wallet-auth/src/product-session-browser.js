@@ -4,7 +4,7 @@ import { productPlatformBinding } from "./product-session-registry.js";
 import { parseProductSession } from "./product-session-v2.js";
 import { RecoverableProductSessionClient } from "./product-session-recovery.js";
 import { createProductSessionProofV2With } from "./product-session-proof-v2.js";
-import { encodeProductSessionGatewayProofHeaderV2 } from "./product-session-gateway-client.js";
+import { encodeProductSessionGatewayProofHeaderV2, productSessionGatewayAuthority } from "./product-session-gateway-client.js";
 import { httpBodyDigest } from "./session-proof.js";
 import { createRevocationIntent, parseRevocationIntent, revocationSessionMatches } from "./product-session-revocation-intent.js";
 import { parseCompletionRecord } from "./product-session-completion-record.js";
@@ -18,13 +18,16 @@ export async function createBrowserProductSessionClient(config) {
   const { registry, productId, scopes, purpose, gateway, environment = globalThis, clock = () => new Date() } = config ?? {};
   if (!config || Object.keys(config).some(key => !["registry", "productId", "scopes", "purpose", "gateway", "environment", "clock"].includes(key))) fail("INVALID_DEVICE", "Browser Product Session configuration is invalid");
   const binding = productPlatformBinding(registry, productId, "web");
+  const authority = productSessionGatewayAuthority(gateway);
   if (environment?.isSecureContext !== true || environment.location?.origin !== binding.origin) fail("ORIGIN_NOT_ALLOWED", "Browser Product Sessions require the registered product HTTPS origin");
   const crypto = environment.crypto;
   if (!crypto?.subtle || typeof crypto.getRandomValues !== "function" || typeof environment.indexedDB?.open !== "function") fail("INSECURE_STORAGE", "This browser cannot persist a non-extractable WebCrypto device key");
   validateScopes(scopes, binding.scopes);
   if (typeof purpose !== "string" || purpose.length < 1 || purpose.length > 180 || purpose.trim() !== purpose || typeof clock !== "function") fail("INVALID_DEVICE", "Browser Product Session purpose or clock is invalid");
   const approvedScopes = Object.freeze([...scopes]);
-  const namespace = canonicalJSON({ chainId: binding.chainId, productId, clientId: binding.clientId, applicationId: binding.applicationId, origin: binding.origin, callback: binding.callback, scopes: approvedScopes });
+  // Old namespaces lack authority and remain untouched. No endpoint can claim
+  // those records; upgrading requires a fresh Wallet approval with a new device.
+  const namespace = canonicalJSON({ authority, chainId: binding.chainId, productId, clientId: binding.clientId, applicationId: binding.applicationId, origin: binding.origin, callback: binding.callback, scopes: approvedScopes });
   const storageKey = `ynx.product-session.v2:${productId}:web:${binding.applicationId}`;
   const revocationKey = `${storageKey}:revoke`;
   const allowedKeys = new Set([storageKey, `${storageKey}:pending`, `${storageKey}:return`, `${storageKey}:completion`, revocationKey]);
@@ -36,19 +39,19 @@ export async function createBrowserProductSessionClient(config) {
   try {
     let record = await transact(db, "readonly", namespace, ({ device, state }) => {
       if (device === undefined && state === undefined) return null;
-      assertRecord(device, state, namespace, allowedKeys);
+      assertRecord(device, state, namespace, allowedKeys, authority);
       return device;
     });
     if (record === null) {
       let pair;
       try { pair = await crypto.subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, false, ["sign", "verify"]); }
       catch { fail("INSECURE_STORAGE", "Browser WebCrypto device key generation failed"); }
-      const candidate = { version: 1, namespace, deviceId: `web_${randomToken()}`, deviceKey: await publicDeviceKey(crypto, pair.publicKey), privateKey: pair.privateKey, publicKey: pair.publicKey };
+      const candidate = { version: 2, authority, namespace, deviceId: `web_${randomToken()}`, deviceKey: await publicDeviceKey(crypto, pair.publicKey), privateKey: pair.privateKey, publicKey: pair.publicKey };
       record = await transact(db, "readwrite", namespace, ({ device, state, devices, states }) => {
         // A second tab may have initialized the device while WebCrypto was generating our candidate.
-        if (device !== undefined || state !== undefined) { assertRecord(device, state, namespace, allowedKeys); return device; }
-        const initial = { version: 1, deviceId: candidate.deviceId, deviceKey: candidate.deviceKey, values: {} };
-        assertRecord(candidate, initial, namespace, allowedKeys);
+        if (device !== undefined || state !== undefined) { assertRecord(device, state, namespace, allowedKeys, authority); return device; }
+        const initial = { version: 2, authority, deviceId: candidate.deviceId, deviceKey: candidate.deviceKey, values: {} };
+        assertRecord(candidate, initial, namespace, allowedKeys, authority);
         devices.add(candidate, namespace); states.add(initial, namespace); return candidate;
       });
     }
@@ -118,7 +121,7 @@ export async function createBrowserProductSessionClient(config) {
     function stateOperation(mode, callback) {
       if (closed || environment.location?.origin !== binding.origin) fail("INSECURE_STORAGE", "Browser Product Session storage is no longer available at this origin");
       return transact(db, mode, namespace, context => {
-        assertRecord(context.device, context.state, namespace, allowedKeys);
+        assertRecord(context.device, context.state, namespace, allowedKeys, authority);
         if (context.device.deviceId !== record.deviceId || context.device.deviceKey !== record.deviceKey) fail("DEVICE_CHANGED", "Persisted browser device changed; start a new explicit connection");
         return callback(context);
       });
@@ -183,11 +186,11 @@ export async function createBrowserProductSessionClient(config) {
   } catch (error) { close(); throw error; }
 }
 
-function assertRecord(device, state, namespace, allowedKeys) {
+function assertRecord(device, state, namespace, allowedKeys, authority) {
   if (!device || !state) fail("DEVICE_CHANGED", "Browser device or session storage is missing; automatic key replacement is forbidden");
-  exactFields(device, ["version", "namespace", "deviceId", "deviceKey", "privateKey", "publicKey"], "Persisted browser device");
-  exactFields(state, ["version", "deviceId", "deviceKey", "values"], "Persisted browser session state");
-  if (device.version !== 1 || device.namespace !== namespace || !/^web_[A-Za-z0-9_-]{43}$/.test(device.deviceId) || !/^[A-Za-z0-9_-]{44}$/.test(device.deviceKey) || state.version !== 1 || state.deviceId !== device.deviceId || state.deviceKey !== device.deviceKey) fail("DEVICE_CHANGED", "Persisted browser device binding is invalid");
+  exactFields(device, ["version", "authority", "namespace", "deviceId", "deviceKey", "privateKey", "publicKey"], "Persisted browser device");
+  exactFields(state, ["version", "authority", "deviceId", "deviceKey", "values"], "Persisted browser session state");
+  if (device.version !== 2 || device.authority !== authority || state.authority !== authority || device.namespace !== namespace || !/^web_[A-Za-z0-9_-]{43}$/.test(device.deviceId) || !/^[A-Za-z0-9_-]{44}$/.test(device.deviceKey) || state.version !== 2 || state.deviceId !== device.deviceId || state.deviceKey !== device.deviceKey) fail("DEVICE_CHANGED", "Persisted browser device binding is invalid");
   for (const [key, type, usage] of [[device.privateKey, "private", "sign"], [device.publicKey, "public", "verify"]]) {
     if (!key || key.type !== type || key.algorithm?.name !== "ECDSA" || key.algorithm.namedCurve !== "P-256" || key.usages?.length !== 1 || key.usages[0] !== usage || (type === "private" && key.extractable !== false)) fail("INSECURE_STORAGE", "Persisted browser key must be a non-extractable P-256 signing key");
   }

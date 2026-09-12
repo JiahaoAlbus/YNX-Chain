@@ -34,7 +34,7 @@ export { WALLET_DOWNLOAD_MANIFEST_SCHEMA_VERSION, parseWalletDownloadManifest, s
 export * from "./product-session-recovery.js";
 export * from "./product-session-proof-v2.js";
 export * from "./product-session-gateway.js";
-export * from "./product-session-gateway-client.js";
+export { PRODUCT_SESSION_GATEWAY_PROOF_HEADER_V2, ProductSessionGatewayFetchAdapter, decodeProductSessionGatewayProofHeaderV2, encodeProductSessionGatewayProofHeaderV2 } from "./product-session-gateway-client.js";
 export * from "./product-session-gateway-http.js";
 export * from "./product-session-browser.js";
 export { createWalletSessionControlProof, parseWalletSessionControlProof, verifyWalletSessionControlProof, encodeWalletSessionControlProofHeader, decodeWalletSessionControlProofHeader, walletSessionControlReplayKey, walletSessionControlReplayExpiry, WALLET_SESSION_CONTROL_PROOF_HEADER, WALLET_SESSION_CONTROL_AUDIENCE, WALLET_SESSION_CONTROL_PATHS, WALLET_SESSION_CONTROL_INTENT_PATHS, WALLET_SESSION_CONTROL_REPLAY_PREFIX } from "./wallet-session-control.js";

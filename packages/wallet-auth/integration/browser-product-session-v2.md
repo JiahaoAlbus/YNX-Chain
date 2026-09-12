@@ -96,7 +96,27 @@ identity login still requests `['account:read', 'profile:link']`; requesting a
 communication subset is a separate explicit approval. Registry `scopes` is an
 allowlist, not an instruction to request every available permission.
 
-The adapter runs only in a secure context whose exact `location.origin` matches the product registry's Web origin. Its fixed IndexedDB database contains separate device/state records keyed by chain, origin, product, client, application, callback and the exact sorted scope subset. Different scopes use different keys and session records; adding scopes requires a new explicit Wallet approval. Storage access only accepts this client's session, pending-request and callback keys.
+The adapter runs only in a secure context whose exact `location.origin` matches the product registry's Web origin. Its fixed IndexedDB database contains separate device/state records keyed by the actual Gateway authority, chain, origin, product, client, application, callback and the exact sorted scope subset. Different authorities or scopes use different keys and session records; changing either requires a new explicit Wallet approval. Storage access only accepts this client's session, pending-request and callback keys.
+
+The `gateway` must be an actual `ProductSessionGatewayFetchAdapter` from the same
+SDK module instance. The SDK obtains the endpoint from internal adapter metadata,
+not a caller-supplied authority string or an object that imitates its methods.
+Endpoints are exact canonical HTTPS origins; paths, queries, fragments, explicit
+ports and aliases are rejected instead of being truncated. Both version-two
+device and state records bind the same authority as their namespace.
+
+An authority change never introspects, completes, revokes or migrates an old
+authority's stored session. Returning to the original authority can restore its
+own version-two records. Legacy records without authority binding are preserved
+but are not read, copied or deleted by this adapter. The upgrade therefore needs
+a new explicit approval even at an unchanged endpoint when only legacy records
+exist. Keep old-authority revocation/reconciliation with the original client;
+do not route it through a redirect, combine independent Gateway state files, or
+delete old keys to simulate a migration. Standard EVM connections are unaffected.
+
+This storage boundary assumes the configured adapter and injected fetch
+transport are trusted. It does not protect against a hostile same-origin script
+that replaces methods, controls transport or invokes the signer itself.
 
 The private key is generated with `extractable: false`; it is never exported as raw bytes or JWK. Only the public key is exported to produce the protocol's compressed P-256 identity. Initialization reads the structured-cloned key back, checks attributes, and verifies a fresh signature with the stored public key. Signing rechecks the persisted identity. Concurrent tabs atomically reuse the first committed identity. A missing key with surviving state, mismatched key pair, extractable replacement, wrong product binding or unusable IndexedDB fails closed; there is no plaintext or in-memory fallback. Clearing all site storage removes both keys and sessions and requires a new login. IndexedDB quota eviction/private-browsing policies may also remove data.
 

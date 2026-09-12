@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { webcrypto, createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
+import { productSessionGatewayAuthority } from "../src/product-session-gateway-client.js";
 import {
   canonicalJSON, createBrowserProductSessionClient, createProductSessionReturnURL,
   ProductSessionGatewayFetchAdapter, ProductSessionGatewayHttpHandler,
@@ -14,8 +15,7 @@ const NOW = new Date("2026-09-06T12:00:00.000Z");
 const scopes = ["creator:account", "creator:publish", "creator:revenue"];
 const token = label => createHash("sha256").update(label).digest("base64url");
 
-function setup({ localOffsetMs = 0 } = {}) {
-  const indexedDB = fakeIndexedDB();
+function setup({ localOffsetMs = 0, indexedDB = fakeIndexedDB(), endpoint = "https://wallet-auth.ynxweb4.com" } = {}) {
   const exports = [], generated = [], seen = [];
   const crypto = { getRandomValues: values => webcrypto.getRandomValues(values), subtle: new Proxy(webcrypto.subtle, { get(target, key) {
     if (key === "exportKey") return (format, value) => { exports.push({ format, type: value.type }); assert.equal(value.type, "public", "adapter must never attempt to export a private key"); return target.exportKey(format, value); };
@@ -26,7 +26,7 @@ function setup({ localOffsetMs = 0 } = {}) {
   let sequence = 0;
   const authority = { now: NOW, unavailable: false, malformed: false };
   const handler = new ProductSessionGatewayHttpHandler(registry, () => token(`browser-challenge-${sequence++}`));
-  const gateway = new ProductSessionGatewayFetchAdapter({ endpoint: "https://wallet-auth.ynxweb4.com", walletInstalled: async () => true, schemeRegistered: async () => true, timeoutMs: 1000,
+  const gateway = new ProductSessionGatewayFetchAdapter({ endpoint, walletInstalled: async () => true, schemeRegistered: async () => true, timeoutMs: 1000,
     async fetch(url, input) {
       seen.push({ url, headers: input.headers, body: input.body });
       if (new URL(url).pathname === "/v2/product-sessions/time") {
@@ -520,11 +520,120 @@ test("uncommitted completion logout stays unconfirmed on 404 and ends only at ve
   restarted.close();
 });
 
+
+// Endpoint labels below identify independent synthetic authorities; fetch is an
+// injected local handler and never performs any network I/O.
+test("switching Gateway authority never sends an old session proof to the new endpoint or deletes old state", async () => {
+  const a = setup({ endpoint: "https://legacy-auth.example" });
+  const first = await createBrowserProductSessionClient(a.config);
+  assert.equal((await connect(first, a.config)).status, "connected");
+  const previous = structuredClone([...a.indexedDB.records("state")]);
+  first.close();
+  const b = setup({ indexedDB: a.indexedDB, endpoint: "https://replacement-auth.example" });
+  const next = await createBrowserProductSessionClient(b.config);
+  try {
+    await next.client.restore();
+    assert.equal(b.seen.filter(item => new URL(item.url).pathname !== "/v2/product-sessions/time").length, 0, "old proof/completion/revoke must never be sent to the new authority");
+    assert.notEqual(next.device.id, first.device.id);
+    assert.equal(await next.storage.get(next.client.storageKey), null);
+    for (const [key, value] of previous) assert.deepEqual(a.indexedDB.records("state").get(key), value);
+  } finally { next.close(); }
+  const original = await createBrowserProductSessionClient(a.config);
+  try { assert.equal(original.device.id, first.device.id); assert.equal((await original.client.restore()).status, "connected"); }
+  finally { original.close(); }
+});
+
+test("pending request and durable sign-out remain isolated under their exact authority", async () => {
+  const a = setup({ endpoint: "https://legacy-auth.example" });
+  const first = await createBrowserProductSessionClient(a.config);
+  const prepared = await first.client.beginExplicit();
+  const pending = await first.storage.get(first.client.storageKey + ":pending");
+  const b = setup({ indexedDB: a.indexedDB, endpoint: "https://replacement-auth.example" });
+  const next = await createBrowserProductSessionClient(b.config);
+  try {
+    assert.equal(await next.storage.get(next.client.storageKey + ":pending"), null);
+    assert.notEqual(next.device.id, first.device.id);
+    const other = await next.client.beginExplicit();
+    assert.notEqual(other.request.nonce, prepared.request.nonce);
+    assert.equal(await first.storage.get(first.client.storageKey + ":pending"), pending);
+    assert.equal((await connect(first, a.config)).status, "connected");
+    a.authority.unavailable = true;
+    assert.equal((await first.client.disconnect()).status, "network-unavailable");
+    const oldIntent = await first.storage.get(first.client.storageKey + ":revoke");
+    assert.ok(oldIntent);
+    assert.equal(await next.storage.get(next.client.storageKey + ":revoke"), null);
+    await next.client.disconnect();
+    assert.equal(await first.storage.get(first.client.storageKey + ":revoke"), oldIntent);
+    assert.equal(b.seen.some(item => new URL(item.url).pathname.endsWith("/revoke")), false);
+  } finally { first.close(); next.close(); }
+});
+
+test("unbound legacy device and all old records stay untouched and require a new approval", async () => {
+  const s = setup({ endpoint: "https://legacy-auth.example" });
+  const first = await createBrowserProductSessionClient(s.config);
+  assert.equal((await connect(first, s.config)).status, "connected");
+  await first.client.beginExplicit();
+  await first.storage.set(first.client.storageKey + ":return", "legacy-callback-preserved");
+  first.close();
+  const [boundNamespace, boundDevice] = [...s.indexedDB.records("devices")][0];
+  const oldBinding = JSON.parse(boundNamespace); delete oldBinding.authority;
+  const legacyNamespace = canonicalJSON(oldBinding);
+  const legacyDevice = { ...boundDevice, version: 1, namespace: legacyNamespace }; delete legacyDevice.authority;
+  const legacyState = { ...s.indexedDB.records("state").get(boundNamespace), version: 1 }; delete legacyState.authority;
+  s.indexedDB.records("devices").delete(boundNamespace); s.indexedDB.records("state").delete(boundNamespace);
+  s.indexedDB.records("devices").set(legacyNamespace, legacyDevice); s.indexedDB.records("state").set(legacyNamespace, legacyState);
+  const previousState = structuredClone(legacyState), generatedBefore = s.generated.length;
+  const readsBefore = s.indexedDB.reads.length, seenBefore = s.seen.length;
+  const next = await createBrowserProductSessionClient(s.config);
+  try {
+    assert.notEqual(next.device.id, legacyDevice.deviceId);
+    assert.equal(s.generated.length, generatedBefore + 1);
+    assert.equal(await next.storage.get(next.client.storageKey), null);
+    assert.equal(await next.storage.get(next.client.storageKey + ":pending"), null);
+    await next.client.restore();
+    assert.equal(s.seen.slice(seenBefore).some(item => new URL(item.url).pathname !== "/v2/product-sessions/time"), false);
+    assert.equal(s.indexedDB.reads.slice(readsBefore).some(item => item.key === legacyNamespace), false, "old unbound records are never read or assigned a guessed authority");
+    assert.deepEqual(s.indexedDB.records("state").get(legacyNamespace), previousState);
+    const kept = s.indexedDB.records("devices").get(legacyNamespace);
+    assert.equal(kept.deviceId, legacyDevice.deviceId); assert.equal(kept.deviceKey, legacyDevice.deviceKey); assert.equal(kept.privateKey.extractable, false);
+    const bytes = new Uint8Array([1, 2, 3]), signature = await webcrypto.subtle.sign({ name: "ECDSA", hash: "SHA-256" }, kept.privateKey, bytes);
+    assert.equal(await webcrypto.subtle.verify({ name: "ECDSA", hash: "SHA-256" }, kept.publicKey, signature, bytes), true, "legacy key remains usable; no deletion or migration occurred");
+  } finally { next.close(); }
+});
+
+test("authority metadata comes from the real constructor, not a property, prototype copy, duck type or Proxy", async () => {
+  const s = setup({ endpoint: "https://legacy-auth.example" });
+  assert.equal(productSessionGatewayAuthority(s.gateway), "https://legacy-auth.example");
+  s.gateway.authority = "https://replacement-auth.example";
+  assert.equal(productSessionGatewayAuthority(s.gateway), "https://legacy-auth.example");
+  for (const candidate of [Object.create(ProductSessionGatewayFetchAdapter.prototype), new Proxy(s.gateway, {}), { authority: "https://legacy-auth.example", currentTime: s.gateway.currentTime.bind(s.gateway) }]) {
+    assert.throws(() => productSessionGatewayAuthority(candidate), { code: "INVALID_GATEWAY" });
+    await assert.rejects(createBrowserProductSessionClient({ ...s.config, gateway: candidate }), { code: "INVALID_GATEWAY" });
+  }
+  assert.equal(s.indexedDB.records("devices").size, 0); assert.equal(s.generated.length, 0); assert.equal(s.seen.length, 0);
+  for (const endpoint of ["https://legacy-auth.example/ide6441", "https://legacy-auth.example/", "https://legacy-auth.example:443", "https://legacy-auth.example?authority=b", "https://LEGACY-auth.example"]) {
+    assert.throws(() => new ProductSessionGatewayFetchAdapter({ endpoint, fetch: async () => assert.fail("not dispatched"), walletInstalled: async () => true, schemeRegistered: async () => true, timeoutMs: 1000 }), { code: "INVALID_GATEWAY" });
+  }
+});
+
+for (const storeName of ["devices", "state"]) test(`changed ${storeName} authority fails closed in the same namespace without replacement`, async () => {
+  const s = setup(), first = await createBrowserProductSessionClient(s.config);
+  const [namespace, record] = [...s.indexedDB.records(storeName)][0];
+  assert.equal(record.version, 2); assert.equal(record.authority, "https://wallet-auth.ynxweb4.com");
+  record.authority = "https://foreign-auth.example";
+  const before = structuredClone(record);
+  await assert.rejects(first.storage.get(first.client.storageKey), { code: "DEVICE_CHANGED" });
+  first.close();
+  await assert.rejects(createBrowserProductSessionClient(s.config), { code: "DEVICE_CHANGED" });
+  assert.deepEqual(s.indexedDB.records(storeName).get(namespace), before);
+  assert.equal(s.generated.length, 1); assert.equal(s.seen.length, 0);
+});
+
 // A narrow IndexedDB transaction fake: request callbacks, structured-cloned values,
 // serialized transactions and atomic commit/abort. Cryptography above is real WebCrypto.
 function fakeIndexedDB() {
   const databases = new Map();
-  const api = { failWrites: false, records(name) { return databases.values().next().value?.stores.get(name) ?? new Map(); }, open(name) {
+  const api = { failWrites: false, reads: [], records(name) { return databases.values().next().value?.stores.get(name) ?? new Map(); }, open(name) {
     const request = {};
     setImmediate(() => {
       let database = databases.get(name), created = false;
@@ -545,7 +654,7 @@ function fakeIndexedDB() {
                 requests.push(() => {
                   try {
                     const values = stores.get(name);
-                    if (operation === "get") req.result = structuredClone(values.get(key));
+                    if (operation === "get") { api.reads.push({ store: name, key }); req.result = structuredClone(values.get(key)); }
                     else {
                       if (mode !== "readwrite" || api.failWrites) throw new Error("write rejected");
                       if (operation === "add" && values.has(key)) throw new Error("duplicate key");
