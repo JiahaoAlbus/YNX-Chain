@@ -9,6 +9,8 @@ import { nativeLedgerAddress, parseNativeSnapshot } from './native-snapshot';
 const ORIGIN='https://dex.ynxweb4.com';
 const SDK='ff5b7d49dd515d31d567c352dd049ac7b79d4139';
 const DB='ynx.dex.native-action.ff5b7d49.v1';
+const COMMIT_EVENT='ynx-dex-native-intent-committed-v1';
+const COMMIT_CHANNEL='ynx.dex.native-action.commit.v1';
 export type NativeDraft={version:1;sdk:typeof SDK;request:NativeRequest;digest:string;snapshotId:string;status:'pending'|'approved'|'rejected';signed:string|null;transactionHash:string|null};
 type Draft=NativeDraft;
 export interface NativeJournalStore {
@@ -38,6 +40,28 @@ function unpack(raw:string,account:string):Draft {
   return {...value,request};
 }
 function readonlyDraft(draft:Draft){return Object.freeze({...draft,request:Object.freeze({...draft.request,payload:Object.freeze({...draft.request.payload})})});}
+
+/** Invalidates prepared launch views only. Messages contain no account, intent,
+ * signature or nonce and confer no authorization. Callers must still re-read
+ * the committed journal. No cross-tab notification capability means no safe
+ * cached launch capability, so subscription fails closed instead of polling. */
+export function subscribeNativeActionCommits(onCommit:()=>void):()=>void {
+  if(typeof globalThis.BroadcastChannel!=='function'||typeof globalThis.addEventListener!=='function')fail('NATIVE_COMMIT_NOTIFICATIONS_UNAVAILABLE');
+  let channel:BroadcastChannel;
+  try{channel=new BroadcastChannel(COMMIT_CHANNEL);}catch{fail('NATIVE_COMMIT_NOTIFICATIONS_UNAVAILABLE');}
+  const invalidate=()=>onCommit();
+  globalThis.addEventListener(COMMIT_EVENT,invalidate);
+  channel.onmessage=invalidate;
+  channel.onmessageerror=invalidate;
+  return()=>{globalThis.removeEventListener(COMMIT_EVENT,invalidate);channel.close();};
+}
+
+function notifyCommit(){
+  // Persistence has already committed. Notification failures never erase or
+  // reconstruct that record and no secret-bearing error is logged.
+  try{globalThis.dispatchEvent(new Event(COMMIT_EVENT));}catch{ /* non-browser storage fixture */ }
+  try{const channel=new BroadcastChannel(COMMIT_CHANNEL);channel.postMessage('committed');channel.close();}catch{ /* launcher subscription separately fails closed */ }
+}
 
 /** Product intent journal, not a signer, session, broadcaster or second SDK.
  * No fetch, provider request, navigation, key access, or automatic submission.
@@ -124,7 +148,7 @@ export function openNativeActionStore():Promise<NativeJournalStore & {close():vo
     opening.onsuccess=()=>{
       const db=opening.result;if(blocked){db.close();return;}db.onversionchange=()=>db.close();
       resolve({close:()=>db.close(),update:(entry,change)=>new Promise((done,failed)=>{
-        let result:string|null=null,cause:unknown;
+        let result:string|null=null,cause:unknown,changed=false;
         const tx=db.transaction('intents','readwrite',{durability:'strict'}),objects=tx.objectStore('intents'),get=objects.get(entry);
         get.onsuccess=()=>{
           try{
@@ -132,10 +156,10 @@ export function openNativeActionStore():Promise<NativeJournalStore & {close():vo
             if(current!==null&&typeof current!=='string')fail('NATIVE_DRAFT_INVALID');
             result=change(current);
             if(result!==null&&(typeof result!=='string'||result.length>48*1024))fail('NATIVE_DRAFT_INVALID');
-            if(result!==current){if(result===null)objects.delete(entry);else objects.put(result,entry);}
+            if(result!==current){changed=true;if(result===null)objects.delete(entry);else objects.put(result,entry);}
           }catch(error){cause=error;tx.abort();}
         };
-        tx.oncomplete=()=>done(result);
+        tx.oncomplete=()=>{if(changed)notifyCommit();done(result);};
         tx.onerror=tx.onabort=()=>failed(cause??new NativeActionJournalError('NATIVE_DRAFT_PERSISTENCE_FAILED'));
       })});
     };

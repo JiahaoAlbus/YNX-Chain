@@ -28,12 +28,21 @@ test('actual local Chrome IDB: concurrent tabs, second process, abort, legacy qu
   };
   const prepare=async(page)=>{
     await page.goto(origin);
-    await page.evaluate(async()=>{window.journalModule=await import('/journal.mjs');window.store=await window.journalModule.openNativeActionStore();});
+    await page.evaluate(async()=>{window.journalModule=await import('/journal.mjs');window.store=await window.journalModule.openNativeActionStore();window.commitNotices=0;window.unsubscribe=window.journalModule.subscribeNativeActionCommits(()=>window.commitNotices++);});
   };
   try{
     context=await launch();const a=context.pages()[0]??await context.newPage();await prepare(a);
     await a.evaluate(()=>{localStorage.setItem('ynx.dex.legacy-private-key','TEST_SENTINEL_NOT_A_KEY');localStorage.setItem('ynx.dex.wallet-authorize.v1.pending','TEST_LEGACY_SENTINEL');});
     const b=await context.newPage();await prepare(b);
+    await a.evaluate(()=>window.store.update('synthetic-notification',()=> 'committed'));
+    // Local Event and BroadcastChannel invalidate the preparing page; the
+    // other real tab receives the cross-tab notification after IDB commit.
+    await a.waitForFunction(()=>window.commitNotices===2);
+    await b.waitForFunction(()=>window.commitNotices===1);
+    assert.equal(await b.evaluate(()=>window.store.update('synthetic-notification',value=>value)),'committed');
+    await a.evaluate(async()=>{try{await window.store.update('synthetic-notification',()=>{throw Error('EXPECTED_ABORT');});}catch{/* expected */}});
+    assert.equal(await a.evaluate(()=>window.commitNotices),2);
+    assert.equal(await b.evaluate(()=>window.commitNotices),1);
     const changes=Array.from({length:24},(_,i)=>(i%2?a:b).evaluate(async()=>window.store.update('synthetic-counter',old=>String(Number(old??'0')+1))));
     await Promise.all(changes);
     assert.equal(await a.evaluate(()=>window.store.update('synthetic-counter',old=>old)),'24');
