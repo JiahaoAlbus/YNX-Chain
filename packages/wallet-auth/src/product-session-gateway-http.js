@@ -8,7 +8,7 @@ const INPUT_FIELDS = ["requestId", "method", "path", "contentType", "body", "pro
 
 export class ProductSessionGatewayHttpHandler {
   #kernel;
-  constructor(registry, tokenFactory, snapshot) { this.#kernel = new ProductSessionGatewayKernel(registry, tokenFactory, snapshot); }
+  constructor(registry, tokenFactory, snapshot, capacityPolicy) { this.#kernel = new ProductSessionGatewayKernel(registry, tokenFactory, snapshot, capacityPolicy); }
 
   handle(input, at = new Date()) {
     let requestId = validRequestId(input?.requestId) ? input.requestId : "req_invalid_request_000";

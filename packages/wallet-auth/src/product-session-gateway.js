@@ -3,6 +3,7 @@ export { PRODUCT_SESSION_GATEWAY_SCHEMA_VERSION, parseProductSessionGatewaySnaps
 import { assertProductSessionControlApprovalAllowed, assertProductSessionControlPlanBase, assertProductSessionControlSessionAllowed, parseProductSessionControlIntent, parseProductSessionControlSnapshot, prepareProductSessionControlIntent, productSessionControlClockFloor, projectProductSessionControlSnapshotV2 } from "./product-session-control-intent.js";
 import { canonicalJSON, digestHex, exactFields, WalletAuthError } from "./canonical.js";
 import { httpBodyDigest } from "./session-proof.js";
+import { assertProductSessionControlOwnerAdmission, parseProductSessionControlCapacityPolicy } from "./product-session-control-capacity.js";
 import { parseProductSessionRegistry } from "./product-session-registry.js";
 import { deviceBinding, parseProductSession, parseProductSessionApproval, parseProductSessionChallenge, ProductSessionAuthority, parseProductSessionAuthoritySnapshot } from "./product-session-v2.js";
 import { productSessionProofV2Digest, verifyProductSessionProofV2 } from "./product-session-proof-v2.js";
@@ -12,8 +13,9 @@ const INPUT_FIELDS = ["requestId", "method", "path", "body", "proof", "networkAv
 const IDEMPOTENT_PATHS = new Set(["/v2/product-sessions/challenge", "/v2/product-sessions/complete"]);
 
 export class ProductSessionGatewayKernel {
-  #registry; #authority; #tokens; #proofs; #idempotency; #audit; #controlIntents; #deviceScopes;
-  constructor(registryInput, tokenFactory, snapshot) {
+  #registry; #authority; #tokens; #proofs; #idempotency; #audit; #controlIntents; #deviceScopes; #capacityPolicy;
+  constructor(registryInput, tokenFactory, snapshot, capacityPolicy) {
+    this.#capacityPolicy = parseProductSessionControlCapacityPolicy(capacityPolicy);
     this.#registry = parseProductSessionRegistry(registryInput);
     if (typeof tokenFactory !== "function") fail("INVALID_RANDOM_SOURCE", "Product Session Gateway requires a cryptographic challenge source");
     this.#tokens = () => { const value = tokenFactory(); if (typeof value !== "string" || !/^[A-Za-z0-9_-]{32,64}$/.test(value)) fail("INVALID_RANDOM_SOURCE", "Gateway challenge source returned an invalid token"); return value; };
@@ -133,7 +135,11 @@ export class ProductSessionGatewayKernel {
     if (request.path === "/v2/product-sessions/challenge") {
       if (request.proof !== null) fail("UNEXPECTED_PROOF", "Challenge issuance does not accept a Product Session proof");
       exactFields(request.body, ["request", "approval"], "Product Session Gateway challenge body");
-      if (this.#controlIntents !== null) assertProductSessionControlApprovalAllowed(this.snapshot(), this.#registry, request.body.request, request.body.approval, at);
+      if (this.#controlIntents !== null) {
+        const snapshot = this.snapshot();
+        const approval = assertProductSessionControlApprovalAllowed(snapshot, this.#registry, request.body.request, request.body.approval, at);
+        assertProductSessionControlOwnerAdmission(snapshot, approval.account, this.#capacityPolicy);
+      }
       return this.#authority.issueChallenge({ request: request.body.request, approval: request.body.approval, challenge: this.#tokens() }, at);
     }
     if (request.path === "/v2/product-sessions/complete") {
@@ -172,8 +178,8 @@ export class ProductSessionGatewayKernel {
     if (this.#controlIntents === null) fail("CONTROL_STORE_REQUIRED", "Wallet batch logout requires an explicitly migrated version-three store");
     const { proof, replayKey, needsAnchor } = this.#verifyOwner(request, at);
     const intent = parseProductSessionControlIntent({ account: proof.account, operation: request.path.endsWith("/revoke-all") ? "account-logout" : "device-logout", body: request.body });
-    const before = this.snapshot(), prepared = prepareProductSessionControlIntent(before, intent, at);
-    const candidate = assertProductSessionControlPlanBase(prepared, before);
+    const before = this.snapshot(), prepared = prepareProductSessionControlIntent(before, intent, at, undefined, this.#capacityPolicy);
+    const candidate = assertProductSessionControlPlanBase(prepared, before, this.#capacityPolicy);
     this.#authority = new ProductSessionAuthority(this.#registry, projectProductSessionControlSnapshotV2(candidate).authority);
     this.#deviceScopes = [...candidate.authority.revokedDeviceScopes];
     this.#controlIntents = [...candidate.controlIntents];
