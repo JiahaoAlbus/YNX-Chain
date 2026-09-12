@@ -6,10 +6,46 @@ import { dirname, isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
-const phase = process.argv[2], env = process.env;
+
+export function createCommandRunner({ cwd = root, run = spawnSync, record = () => {} } = {}) {
+  return function command(binary, args, timeout = 120_000, allowFailure = false) {
+    const started = Date.now();
+    const result = run(binary, args, { cwd, encoding: "utf8", timeout, maxBuffer: 32 * 1024 * 1024 });
+    record({ binary, args, timeoutMs: timeout, elapsedMs: Date.now() - started, status: result.status, signal: result.signal, stdout: result.stdout, stderr: result.stderr, errorCode: result.error?.code ?? null, error: result.error?.message ?? null });
+    if (binary === "xcodebuild" && result.status !== 0) console.error(result.stdout?.slice(-16_000) ?? "");
+    if (!allowFailure && (result.error || result.status !== 0)) {
+      const error = new Error(`${binary} ${args.join(" ")} failed: ${result.error?.message ?? result.stderr}`);
+      error.code = result.error?.code ?? null;
+      throw error;
+    }
+    return result.stdout?.trim() ?? "";
+  };
+}
+
+// Retry only this read-only query after a timed-out CoreSimulator response.
+// Neither device creation nor installation is repeated; two original 120s
+// budgets bound the lookup, and both outcomes remain in the evidence.
+export function readInstalledAppContainer(command, device, bundleIdentifier, onAttempt = () => {}) {
+  assert.match(device, /^[0-9A-F-]{36}$/i);
+  const args = ["simctl", "get_app_container", device, bundleIdentifier, "app"];
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    let path, error;
+    try {
+      path = command("xcrun", args, 120_000);
+      if (!isAbsolute(path) || /[\r\n\0]/.test(path)) throw new Error("Simulator returned an invalid installed app container path");
+    } catch (failure) { error = failure; }
+    const willRetry = error?.code === "ETIMEDOUT" && attempt < 2;
+    onAttempt({ attempt, timeoutMs: 120_000, status: error ? "failed" : "success", errorCode: error?.code ?? null, error: error?.message ?? null, willRetry });
+    if (!error) return path;
+    if (!willRetry) throw error;
+  }
+}
+
+export function runIOSInstalledUIQA({ argv = process.argv, env = process.env, platform = process.platform, run = spawnSync } = {}) {
+const phase = argv[2];
 assert(["prepare", "run"].includes(phase));
 assert.equal(env.GITHUB_ACTIONS, "true", "Use only an isolated macOS CI runner");
-assert.equal(process.platform, "darwin");
+assert.equal(platform, "darwin");
 const qaSource = env.YNX_IOS_QA_SOURCE_COMMIT, appSource = env.YNX_IOS_APP_SOURCE_COMMIT, artifactRun = env.YNX_IOS_ARTIFACT_RUN;
 assert.match(qaSource ?? "", /^[0-9a-f]{40}$/); assert.match(appSource ?? "", /^[0-9a-f]{40}$/); assert.match(artifactRun ?? "", /^[1-9][0-9]*$/);
 const runnerTemp = realpathSync(env.RUNNER_TEMP), qa = env.YNX_IOS_UI_QA_DIR;
@@ -17,14 +53,10 @@ assert(qa && isAbsolute(qa) && dirname(qa) === runnerTemp && /^ynx-wallet-ios-ui
 const proof = join(qa, "proof"), incoming = join(qa, "incoming"), commands = [];
 const hash = bytes => createHash("sha256").update(bytes).digest("hex");
 const save = (name, value) => writeFileSync(join(proof, name), typeof value === "string" ? value : JSON.stringify(value, null, 2) + "\n");
-function command(binary, args, timeout = 120_000, allowFailure = false) {
-  const result = spawnSync(binary, args, { cwd: root, encoding: "utf8", timeout, maxBuffer: 32 * 1024 * 1024 });
-  commands.push({ binary, args, status: result.status, signal: result.signal, stdout: result.stdout, stderr: result.stderr, error: result.error?.message ?? null });
+const command = createCommandRunner({ run, record(entry) {
+  commands.push(entry);
   if (existsSync(proof)) save(`${phase}-commands.json`, commands);
-  if (binary === "xcodebuild" && result.status !== 0) console.error(result.stdout?.slice(-16_000) ?? "");
-  if (!allowFailure && (result.error || result.status !== 0)) throw new Error(`${binary} ${args.join(" ")} failed: ${result.error?.message ?? result.stderr}`);
-  return result.stdout?.trim() ?? "";
-}
+} });
 const json = path => JSON.parse(readFileSync(path, "utf8"));
 const plist = path => JSON.parse(command("/usr/bin/plutil", ["-convert", "json", "-o", "-", path]));
 function fileGraph(directory) {
@@ -100,13 +132,16 @@ if (phase === "prepare") {
   const name = `YNX Wallet UI ${qaSource.slice(0, 8)} CI ${env.GITHUB_RUN_ID}`;
   const device = command("xcrun", ["simctl", "create", name, template.type, template.runtime]); assert.match(device, /^[0-9A-F-]{36}$/i);
   save("owned-simulator.json", { device, name, ...template });
-  const result = { qaSource, appSource, artifactRun, device, simulatorOnly: true, installed: false, uiTestsPassed: false, emptyWalletOnly: true, authenticatedUnlockVerified: false, biometricEnrollmentVerified: false, singleProtectedPromptVerified: false, originalApprovedRequestRetryVerified: false, validCallbackVerified: false, physicalDeviceVerified: false, attachmentsExported: false, cleanedUp: false };
+  const result = { qaSource, appSource, artifactRun, device, simulatorOnly: true, installed: false, uiTestsPassed: false, emptyWalletOnly: true, authenticatedUnlockVerified: false, biometricEnrollmentVerified: false, singleProtectedPromptVerified: false, originalApprovedRequestRetryVerified: false, validCallbackVerified: false, physicalDeviceVerified: false, attachmentsExported: false, cleanedUp: false, containerLookupAttempts: [] };
   try {
     command("xcrun", ["simctl", "boot", device]); command("xcrun", ["simctl", "bootstatus", device, "-b"], 300_000);
     command("/usr/bin/open", ["-a", "Simulator", "--args", "-CurrentDeviceUDID", device]);
     command("xcrun", ["simctl", "ui", device, "appearance", "light"]);
     command("xcrun", ["simctl", "install", device, app]);
-    const installed = command("xcrun", ["simctl", "get_app_container", device, "com.ynxweb4.wallet", "app"]);
+    const installed = readInstalledAppContainer(command, device, "com.ynxweb4.wallet", attempt => {
+      result.containerLookupAttempts.push(attempt);
+      save("container-lookup.json", result.containerLookupAttempts);
+    });
     for (const file of artifact.files.filter(item => item.type === "file")) assert.equal(hash(readFileSync(join(installed, file.path))), file.sha256);
     result.installed = true;
     command("xcodebuild", ["-project", "apps/wallet/qa/ios/YNXWalletInstalledQA.xcodeproj", "-scheme", "YNXWalletInstalledQA", "-configuration", "Release", "-sdk", "iphonesimulator", "-destination", `platform=iOS Simulator,id=${device}`, "-derivedDataPath", join(qa, "UITestDerivedData"), "-resultBundlePath", join(proof, "InstalledUI.xcresult"), "-parallel-testing-enabled", "NO", "CODE_SIGNING_ALLOWED=NO", "test"], 900_000);
@@ -141,3 +176,6 @@ if (phase === "prepare") {
     } finally { save("ui-result.json", result); console.log(JSON.stringify(result)); }
   }
 }
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) runIOSInstalledUIQA();
