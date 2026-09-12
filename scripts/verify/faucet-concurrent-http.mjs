@@ -45,7 +45,7 @@ export async function exerciseFaucet({ endpoint, coreEndpoint, count = 10, publi
     const coreHealth = await http(core, '/health');
     assert.equal(coreHealth.status, 200, 'Core health');
     assert.equal(coreHealth.body?.network?.chainId, 6423, 'Core must be the same testnet');
-    const runID = randomBytes(12).toString('hex');
+    const runID = randomBytes(16).toString('hex');
     record.amountPerRecipient = amount;
     record.maximumNewFunding = amount * count;
     for (let index = 0; index < count; index++) record.recipients.push({ address: '0x' + randomBytes(20).toString('hex'), requestId: `faucet_http_${runID}_${String(index).padStart(4, '0')}` });
@@ -53,7 +53,7 @@ export async function exerciseFaucet({ endpoint, coreEndpoint, count = 10, publi
     // can be reconciled using these same IDs without inventing new funding.
     for (const recipient of record.recipients) {
       const before = await http(core, `/accounts/${recipient.address}`);
-      assert.ok(before.status === 404 || before.status === 200 && BigInt(before.body.balance) === 0n, 'Recipient must be unused');
+      assert.ok(before.status === 404 || before.status === 200 && BigInt(before.body.account.balance) === 0n, 'Recipient must be unused');
     }
     save();
     const started = performance.now();
@@ -84,8 +84,8 @@ export async function exerciseFaucet({ endpoint, coreEndpoint, count = 10, publi
       recipient.transactionHash = recovered.transactionHash;
       const after = await http(core, `/accounts/${recipient.address}`);
       assert.equal(after.status, 200);
-      assert.equal(BigInt(after.body.balance), BigInt(amount), 'Duplicate requests must fund once');
-      recipient.balance = String(after.body.balance);
+      assert.equal(BigInt(after.body.account.balance), BigInt(amount), 'Duplicate requests must fund once');
+      recipient.balance = String(after.body.account.balance);
       recipient.elapsedMs = performance.now() - began;
     }));
     record.elapsedMs = performance.now() - started;
@@ -99,7 +99,7 @@ export async function exerciseFaucet({ endpoint, coreEndpoint, count = 10, publi
     assert.equal(blocked.status, 429, 'Address quota survives other users and duplicate requests');
     const unchanged = await http(core, `/accounts/${first.address}`);
     assert.equal(unchanged.status, 200);
-    assert.equal(BigInt(unchanged.body.balance), BigInt(amount));
+    assert.equal(BigInt(unchanged.body.account.balance), BigInt(amount));
     const latencies = record.recipients.map(item => item.elapsedMs).sort((a, b) => a - b);
     const percentile = p => latencies[Math.max(0, Math.ceil(latencies.length * p) - 1)];
     record.latencyMs = { p50: percentile(0.5), p95: percentile(0.95), max: latencies.at(-1) };
