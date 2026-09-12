@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "product": "dex",
+  "status": "LOCAL_SOURCE_BOUND_WEB_AND_SERVER_CANDIDATES",
+  "sourceCommit": "7aa0c23ac13297906dc947df5b632063ba04d88f",
+  "sourceTree": "10bebb6e22fb52cc7889996483a14c5bab1c0b47",
+  "nativeReaderSource": "ce629b890446924dda93ccbd3b1136e4735e732e",
+  "nativeReaderHandoff": "internal/dex/DEX_NATIVE_CORE_READ_PROXY_HANDOFF_20260912.md",
+  "nativeReaderHandoffCheckpoint": "28f9095cbc0ef8f07939c81f3232fe086b61f5ab",
+  "artifactDirectory": "/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/coordination-01a094cc/dex-native-read-20260912",
+  "artifacts": [
+    {"file": "ynx-dex-web-pwa-0.1.0-testnet-preview.1.tar.gz", "kind": "web-pwa-upload-bundle-not-installer", "bytes": 636667, "sha256": "0495836e509cf17d1e2db4a69ee65759f456a5cc6b8fcda24affcf53f2eb214e"},
+    {"file": "web-pwa-artifact.json", "kind": "ten-file-content-inventory", "bytes": 2521, "sha256": "0a09a139df9b563de0e27582025e9c0c31555e154f26cdf84d789507768cf3f3"},
+    {"file": "ynx-dex-indexerd-linux-amd64", "kind": "server-executable-not-desktop-installer", "bytes": 6979732, "sha256": "2c39c2d1b8313050de56e1405f4fa7520087a63ad6a59df9d7ae3184f602fbd1", "format": "ELF64 little-endian machine 62 x86-64"}
+  ],
+  "tests": {
+    "webUnit": "135/135 PASS across 14 files",
+    "typecheckAndViteBuild": "PASS",
+    "canonicalAndLegacyRouteScans": "PASS",
+    "releaseSymlinkAndExplicitSourceTests": "13/13 PASS",
+    "goRace": "go test -race ./internal/dex ./cmd/ynx-dex-indexerd PASS",
+    "goVet": "go vet ./internal/dex ./cmd/ynx-dex-indexerd PASS",
+    "independentArchiveReadback": "10 entries match exact inventory path, byte length and SHA256",
+    "binarySourceIdentity": "embedded commit and ELF machine verified; Linux binary not executed here"
+  },
+  "readProtocol": {
+    "operatorConfiguration": "YNX_DEX_NATIVE_CORE_URL",
+    "unconfiguredBehavior": "503 unknown; never synthesize markets or disconnect a standard wallet",
+    "routes": ["GET /v1/native-snapshot", "GET /v1/native-transactions/{canonicalHash}"],
+    "authority": "single fixed operator origin; no user endpoint override, redirect, incoming credentials or automatic retry",
+    "receiptChainField": "Core receipt has no chainId field; do not manufacture one. Bind fixed origin and exact source/schema/hash.",
+    "writes": "none; receipt uncertainty never authorizes resubmission"
+  },
+  "remainingBlocker": "DEX public tool access was denied. No alternate browser, curl or SSH route has been used to bypass it. New public deployment and visible verification require resolution of that specific access boundary.",
+  "truth": {"deployedPublic": false, "downloadHosted": false, "installed": false, "walletApproval": false, "signature": false, "swap": false, "liquidity": false, "mainnet": false, "productionSigned": false},
+  "reportToThread": "01a094cc-0ba3-7901-bcd5-56fce8330c0d"
+}
