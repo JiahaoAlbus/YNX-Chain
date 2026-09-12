@@ -11,6 +11,7 @@ import {
 import type { AuditAction, RiskContext } from "./riskAssistant";
 import { useDexData } from "./useDexData";
 import { PortfolioPanel } from "./PortfolioPanel";
+import { NativeReceiptPanel } from "./NativeReceiptPanel";
 import { nativeSigningUnavailable, portfolioCopy } from "./portfolio-i18n";
 import { walletRevocationCopy } from './wallet-revocation-i18n';
 import { aggregateCandles, type Candle } from "./candles";
@@ -486,6 +487,8 @@ export default function App() {
             <PortfolioPanel account={walletAccount} locale={locale} onConnect={() => setWallet(true)} />
           )}
           {page === "explore" && (
+            <>
+            <NativeReceiptPanel locale={locale}/>
             <ExplorePage
               events={events}
               tokens={tokens}
@@ -493,6 +496,7 @@ export default function App() {
               retry={retry}
               t={t}
             />
+            </>
           )}
           {page === "analytics" && <AnalyticsPage data={data} t={t} />}
           {page === "governance" && (
