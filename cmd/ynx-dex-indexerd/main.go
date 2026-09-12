@@ -46,6 +46,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	nativeReads, err := dex.NewNativeReadProxy(os.Getenv("YNX_DEX_NATIVE_CORE_URL"))
+	if err != nil {
+		log.Fatal(err)
+	}
 	if factory := strings.TrimSpace(os.Getenv("DEX_FACTORY_ADDRESS")); factory != "" {
 		startBlock, err := envUint("DEX_INDEXER_START_BLOCK", 0)
 		if err != nil || startBlock == 0 {
@@ -77,7 +81,7 @@ func main() {
 			}
 		}()
 	}
-	httpServer := &http.Server{Addr: env("YNX_DEX_HTTP_ADDR", "127.0.0.1:6436"), Handler: newAdmission(128, 600, time.Minute).wrap(server.Handler()), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 16 << 10}
+	httpServer := &http.Server{Addr: env("YNX_DEX_HTTP_ADDR", "127.0.0.1:6436"), Handler: newAdmission(128, 600, time.Minute).wrap(server.HandlerWithNativeReads(nativeReads)), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 16 << 10}
 	go func() {
 		<-ctx.Done()
 		shutdown, cancel := context.WithTimeout(context.Background(), 5*time.Second)
