@@ -106,6 +106,7 @@ import {
 import { I18nProvider, useI18n } from "./src/i18nProvider";
 import { queueMessage, acknowledgeQueued, pendingFor, assertPendingRecipients } from "./src/messageOutbox";
 import { DurableOutbox } from "./src/durableOutbox";
+import { SocialCloudAttachments, type CloudObjectRecord } from "./src/cloudAttachments";
 
 const BLUE = "#002FA7",
   INK = "#101828",
@@ -1260,8 +1261,23 @@ function MessageThread({
     [sending, setSending] = useState(false),
     [pending, setPending] = useState<SendMessageRequest | null>(null),
     [error, setError] = useState<string | null>(null);
+  const [attachmentPending, setAttachmentPending] = useState(false);
+  const [attachmentProgress, setAttachmentProgress] = useState("");
+  const [attachmentPreview, setAttachmentPreview] = useState<{name:string;uri:string}|null>(null);
   const account = session.session.account,
     deviceId = session.session.deviceId;
+  const uploadKey = `ynx.social.upload.${account}.${deviceId}.${conversation.id}`;
+  type UploadJob = { id: string; payload: AttachmentPayload; record?: CloudObjectRecord };
+  const uploadFile = (id: string, request = false) => {
+    if (!/^attachment_[a-f0-9]{24}$/.test(id)) throw new Error("Pending attachment identity is invalid");
+    return new File(Paths.document, `${id}${request ? ".request.json" : ".bin"}`);
+  };
+  const cloud = () => {
+    const base = process.env.EXPO_PUBLIC_YNX_SOCIAL_CLOUD_BASE;
+    if (!base) throw new Error("Cloud attachment service is not configured for this build");
+    return new SocialCloudAttachments(api, base);
+  };
+  useEffect(() => { setAttachmentPreview(null); void SecureStore.getItemAsync(uploadKey).then(raw => setAttachmentPending(Boolean(raw))); }, [uploadKey]);
   const load = useCallback(async () => {
     setLoading(true);
     try {
@@ -1329,8 +1345,7 @@ function MessageThread({
       setSending(false);
     }
   };
-  const sendPlaintext = async (plaintext: string) => {
-    try {
+  const prepareMessage = async (plaintext: string) => {
       const [keyRaw, devices, entropy] = await Promise.all([
         SecureStore.getItemAsync(DEVICE_KEY),
         api.conversationDevices(conversation.id),
@@ -1354,6 +1369,11 @@ function MessageThread({
           devices: devices.devices,
           entropy,
         });
+      return request;
+  };
+  const sendPlaintext = async (plaintext: string) => {
+    try {
+      const request = await prepareMessage(plaintext);
       messageOutbox.update((entries) => queueMessage(entries, { account, deviceId, conversationId: conversation.id, request }));
       setPending(request);
       await transmit(request);
@@ -1361,8 +1381,46 @@ function MessageThread({
       setError(message(caught));
     }
   };
+  const resumeAttachment = async () => {
+    setSending(true);
+    try {
+      const raw = await SecureStore.getItemAsync(uploadKey);
+      if (!raw) { setAttachmentPending(false); return; }
+      const job = JSON.parse(raw) as UploadJob;
+      const requestFile = uploadFile(job.id, true);
+      let request: SendMessageRequest;
+      if (requestFile.exists) {
+        request = JSON.parse(requestFile.textSync()) as SendMessageRequest;
+      } else {
+        const ciphertext = await uploadFile(job.id).bytes();
+        const transport = cloud();
+        if (!job.record) {
+          job.record = await transport.register(conversation.id, job.id, ciphertext);
+          await SecureStore.setItemAsync(uploadKey, JSON.stringify(job));
+        }
+        await transport.upload(job.record, ciphertext, (sent,total) => setAttachmentProgress(`Uploading encrypted attachment: ${Math.round(sent/total*100)}%`));
+        job.payload = {...job.payload, mediaId:job.record.objectId, storage:"cloud-v1",ciphertextHash:job.record.sha256,ciphertextBytes:job.record.totalCiphertextBytes};
+        request = await prepareMessage(`${ATTACHMENT_PREFIX}${JSON.stringify(job.payload)}`);
+        // Persist the exact signed ciphertext before enqueuing. Retrying cleanup
+        // cannot generate another message ID or a different envelope set.
+        requestFile.write(JSON.stringify(request));
+      }
+      messageOutbox.update(entries => queueMessage(entries, {account,deviceId,conversationId:conversation.id,request}));
+      setPending(request);
+      await SecureStore.deleteItemAsync(uploadKey);
+      setAttachmentPending(false);
+      const ciphertextFile = uploadFile(job.id);
+      if (ciphertextFile.exists) ciphertextFile.delete();
+      if (requestFile.exists) requestFile.delete();
+      setAttachmentProgress("");
+      await transmit(request);
+    } catch (caught) { setError(message(caught)); }
+    finally { setSending(false); }
+  };
   const pickAttachment = async () => {
     try {
+      cloud();
+      if (await SecureStore.getItemAsync(uploadKey)) throw new Error("Resume the pending encrypted attachment before choosing another");
       const permission =
         await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!permission.granted)
@@ -1398,33 +1456,29 @@ function MessageThread({
           name,
           mimeType,
         });
-      const uploaded = await api.uploadMedia({
-          idempotencyKey: `attachment-${Date.now()}`,
-          purpose: "message",
-          conversationId: conversation.id,
-          mimeType,
-          sha256: encrypted.sha256,
-          data: encodeRawBase64(encrypted.ciphertext),
-        }),
-        payload: AttachmentPayload = {
+      const payload: AttachmentPayload = {
           type: "attachment",
           name,
           mimeType,
           sizeBytes: bytes.length,
-          mediaId: uploaded.record.id,
+          mediaId: "",
           key: encodeRawBase64(key),
           nonce: encodeRawBase64(nonce),
         };
+      const id = `attachment_${Array.from(nonce.slice(0,12),byte=>byte.toString(16).padStart(2,"0")).join("")}`;
+      uploadFile(id).write(encrypted.ciphertext);
+      await SecureStore.setItemAsync(uploadKey, JSON.stringify({id,payload} satisfies UploadJob));
+      setAttachmentPending(true);
       bytes.fill(0);
       key.fill(0);
-      await sendPlaintext(`${ATTACHMENT_PREFIX}${JSON.stringify(payload)}`);
+      await resumeAttachment();
     } catch (caught) {
       setError(message(caught));
     }
   };
   const openAttachment = async (value: AttachmentPayload) => {
     try {
-      const ciphertext = await api.downloadMedia(value.mediaId),
+      const ciphertext = value.storage === "cloud-v1" ? await cloud().download(value.mediaId, value.ciphertextHash ?? "", value.ciphertextBytes ?? 0) : await api.downloadMedia(value.mediaId),
         bytes = decryptAttachment({
           ciphertext,
           key: decodeRawBase64(value.key, "attachment key"),
@@ -1435,10 +1489,9 @@ function MessageThread({
         });
       if (bytes.length !== value.sizeBytes)
         throw new Error("Attachment size does not match signed metadata");
-      Alert.alert(
-        "Attachment verified",
-        `${value.name} · ${formatNumber(Math.ceil(value.sizeBytes / 1024))} KB\nAuthenticated end-to-end on this device.`,
-      );
+      if (!["image/jpeg","image/png","image/webp"].includes(value.mimeType)) throw new Error("This verified attachment format is not supported by the image viewer");
+      const encoded = encodeRawBase64(bytes);
+      setAttachmentPreview({name:value.name,uri:`data:${value.mimeType};base64,${encoded.padEnd(Math.ceil(encoded.length/4)*4,"=")}`});
       bytes.fill(0);
     } catch (caught) {
       setError(message(caught));
@@ -1457,6 +1510,15 @@ function MessageThread({
   );
   return (
     <View style={styles.screen}>
+      <Modal visible={attachmentPreview !== null} onRequestClose={() => setAttachmentPreview(null)} animationType="fade">
+        <View style={{flex:1,backgroundColor:"#101828",padding:24,paddingTop:60}}>
+          <Pressable accessibilityLabel="Close decrypted attachment" onPress={() => setAttachmentPreview(null)}><Text style={{color:"#FFFFFF",padding:16}}>Close attachment</Text></Pressable>
+          <Text style={{color:"#FFFFFF"}}>{attachmentPreview?.name}</Text>
+          {attachmentPreview ? <Image accessibilityLabel={attachmentPreview.name} source={{uri:attachmentPreview.uri}} resizeMode="contain" style={{flex:1,width:"100%"}} /> : null}
+        </View>
+      </Modal>
+      {attachmentPending ? <Pressable disabled={sending} onPress={() => void resumeAttachment()}><Text style={styles.inlineError}>Resume encrypted attachment upload</Text></Pressable> : null}
+      {attachmentProgress ? <Text>{attachmentProgress}</Text> : null}
       <View style={styles.threadHeader}>
         <Pressable
           accessibilityLabel="Back to messages"
