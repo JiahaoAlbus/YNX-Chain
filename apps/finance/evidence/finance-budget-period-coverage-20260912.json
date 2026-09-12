@@ -1,0 +1,232 @@
+{
+  "schemaVersion": "finance-budget-period-coverage-local-v1",
+  "date": "2026-09-12",
+  "worktree": "/Users/huangjiahao/Desktop/YNX Final Worktrees/24-finance-flow-20260912",
+  "branch": "codex/finance-wallet-flow-20260912",
+  "sourceCommit": "607b912746ae0e6cfd0ce7a54a7848a289f4694b",
+  "sourceTree": "dc18f9c180e17e6a5429b21dd72cbb8e3ff4afe2",
+  "predecessor": "954bf974f1683247ee9309eb2fd0ffad7cd9d589",
+  "objects": [
+    {
+      "path": "apps/finance/mobile/App.tsx",
+      "blob": "e33d5d43d946e0ae19ffda00c17155c64e4eb24f",
+      "bytes": 36006,
+      "sha256": "db208bf3fbaf7fffb7c1bbf0a5bb75fb2e17da627639efe47d256c3598430531"
+    },
+    {
+      "path": "apps/finance/mobile/src/api.ts",
+      "blob": "dedb5dbc4997a5ae6ad05fd8cb5cda0ebeea7d2b",
+      "bytes": 4903,
+      "sha256": "d08dd648e7cfae5401d3b83a6c8859c997a5bec76cf6bdd43c3dbcdae9802487"
+    },
+    {
+      "path": "apps/finance/tests/budget-progress.test.mjs",
+      "blob": "25af5eceb400c993d89c4f0fdffc8e0c23732a05",
+      "bytes": 5471,
+      "sha256": "1ad5fd4061b54303edea47c8f04d2077e66e46a091f621d3f51a118ca198da27"
+    },
+    {
+      "path": "apps/finance/tests/standard-wallet-flow.test.mjs",
+      "blob": "f02c3626d5ba624099ad767ab5a03eb9b17328a1",
+      "bytes": 14140,
+      "sha256": "5b3b6f54720dc5e5c58191b5d6e3b6dc7fa6c2c25a02d5f76692284b07831d23"
+    },
+    {
+      "path": "apps/finance/web/app.js",
+      "blob": "a7c07f2505e957487d4058ff43db6336125a2c81",
+      "bytes": 19833,
+      "sha256": "fde2318d9d0869be0a940f38c8b0d9e1ed85be60781294c3d013ece7cc58a22e"
+    },
+    {
+      "path": "internal/finance/budget_progress.go",
+      "blob": "7931f7dd1b7f2b04a6562d3fec6e683d3a5f461a",
+      "bytes": 4582,
+      "sha256": "f99deff33d1f1a1303358f4c5d3a34ed4654a2edd3bda121aa517591b6292d63"
+    },
+    {
+      "path": "internal/finance/budget_progress_test.go",
+      "blob": "e3318ad3a46bde6d0e42ce251272783df26b393a",
+      "bytes": 7845,
+      "sha256": "af963dba95a89543946b99d3bb71fe73216df42e3328dcfa998c06ef3d85c72b"
+    },
+    {
+      "path": "internal/finance/finance_test.go",
+      "blob": "552e89f2980d9eea91aeab83626237f0b2ea9deb",
+      "bytes": 26440,
+      "sha256": "8514c40c74811b153294915f60ee926312ec964791ff9874ca43537cf7c77135"
+    },
+    {
+      "path": "internal/finance/server.go",
+      "blob": "61ce8df7bac45daa1474fe6f83ac74ddf2ddfd5a",
+      "bytes": 32366,
+      "sha256": "c524c789b23e3043726a7c934932e1ed5a036deeb2059e3d324ca4c4d26fdc24"
+    },
+    {
+      "path": "internal/finance/service.go",
+      "blob": "944076a8329ca4052aad07388dbddd151389f8fa",
+      "bytes": 9491,
+      "sha256": "c770988db697808e4443cd94bbbf5f9a801c46bb5a7ed406ca0b2a4548ad51ae"
+    }
+  ],
+  "scope": {
+    "ownerOnly": [
+      "apps/finance/**",
+      "internal/finance/**"
+    ],
+    "productionActions": 0,
+    "newBuildArchives": 0,
+    "sharedProtocolChanges": 0,
+    "persistedSchemaChanges": 0
+  },
+  "provenDefects": [
+    "Weekly AddDate retained time-of-day, excluding valid Monday-morning observations.",
+    "Period selection used caller local calendar fields before constructing UTC boundaries.",
+    "Budget startsAt was discarded after period calculation.",
+    "Latest 100 global indexed transactions plus available/synced status do not prove full weekly/monthly account history.",
+    "Web overview discarded server budgetProgress; native budget view coerced missing progress into zero spending/zero percent.",
+    "Unchecked observed-amount additions could wrap int64; missing timestamps cannot establish a budget interval."
+  ],
+  "responseContract": {
+    "budgetProgress": {
+      "retainedKeys": [
+        "budgetId",
+        "limitYnxt",
+        "periodStart",
+        "asOf",
+        "source",
+        "spentYnxt",
+        "remainingYnxt"
+      ],
+      "nullableFullTotals": [
+        "spentYnxt",
+        "remainingYnxt"
+      ],
+      "observationKeys": [
+        "observedSpentYnxt",
+        "observedActivityCount",
+        "calculationStatus",
+        "reason",
+        "coverage",
+        "coverageComplete",
+        "effectiveFrom",
+        "periodTimezone"
+      ],
+      "period": "UTC Monday 00:00 weekly; UTC first day 00:00 monthly; effectiveFrom=max(periodStart,startsAt)",
+      "calculation": "Outflows in the selected user-reviewed category, effectiveFrom <= timestamp <= asOf; amount plus fee with checked nonnegative int64 addition",
+      "completeHistory": false,
+      "unknown": "Source unavailable, invalid budget, missing timestamp, or invalid/overflowing amount gives null observations; future budget is not-started.",
+      "partial": "Available bounded records give observed values only. An empty observation may be zero, but full-period spending/remaining stay null. No 100-page-size or sync-health completeness inference."
+    },
+    "monthlyReview": {
+      "nullableFullTotals": [
+        "totals.incomingYnxt",
+        "totals.outgoingYnxt",
+        "totals.feesYnxt",
+        "categorySpendYnxt"
+      ],
+      "observationKeys": [
+        "observedTotals",
+        "observedCategorySpendYnxt",
+        "activityCount",
+        "calculationStatus",
+        "reason",
+        "coverage",
+        "coverageComplete"
+      ],
+      "interval": "UTC [from,toExclusive); unavailable sums/count unknown; checked returned-record sums only; budget asOf never exceeds current time"
+    },
+    "clientCompatibility": "Web and Finance native consumer types/rendering updated together. Legacy cached progress without explicit partial coverage remains Unknown. Nullable full totals are a deliberate wire-semantic correction; future publication must notify any external consumer."
+  },
+  "tests": {
+    "npm": {
+      "command": "npm test",
+      "cwd": "apps/finance",
+      "passed": 47,
+      "failed": 0,
+      "skipped": 0
+    },
+    "security": {
+      "command": "npm run security",
+      "passed": true,
+      "filesAtSourceRun": 343
+    },
+    "goRace": {
+      "command": "go test -race ./internal/productsessionv2 ./internal/finance ./apps/finance/cmd/... -count=1",
+      "passed": true,
+      "testPassCount": 75,
+      "skippedTests": [
+        {
+          "name": "TestFinancePostgresRepositoryBootstrapAndCAS",
+          "reason": "YNX_FINANCE_TEST_DATABASE_URL not configured; no live PostgreSQL claim"
+        }
+      ],
+      "serverPackage": "compiles; no test files"
+    },
+    "budgetGoCases": [
+      "UTC weekly Monday midnight inclusive/Sunday exclusive",
+      "non-UTC caller monthly rollover",
+      "startsAt effective and future not-started",
+      "partial empty vs unavailable vs full unknown",
+      "negative/overflow amount and missing timestamp rejection",
+      "monthly exclusive upper boundary/checked category sums",
+      "two independently opened stores, two account/category/budget identities, 32 concurrent reads, reopened store same result and persisted bytes unchanged"
+    ],
+    "webBudget": {
+      "vm": "exact app.js executes actual render(data) with explicit local fixtures",
+      "browser": "actual local Chrome loads Finance JS and renders labelled local budget fixture without calling any provider request",
+      "checks": [
+        "server progress consumed",
+        "observed vs unknown full totals",
+        "no fabricated percentage/remaining",
+        "future/legacy/foreign-budget response handling",
+        "unsafe browser integer unknown, not rounded",
+        "escaped names/coverage",
+        "next account view clears previous observation"
+      ]
+    },
+    "native": {
+      "nullableTypeAndRenderingSourceCheck": true,
+      "tsxAndTypeSyntaxTransformInMemory": true,
+      "fullTypecheck": false,
+      "reason": "mobile node_modules/typescript/react-native dependencies not installed in this worktree; no install or bundle operation requested",
+      "installed": false
+    },
+    "diffCheck": true
+  },
+  "invariants": {
+    "typesGoSha256": "b5e574c4573d7169d9752515c642a865732821b7de78c71abd9ac33d35bf2ebd",
+    "storeGoSha256": "c660c0085edcd07ff734be29902db268bceb57ab5327645f394283c3f99f0eda",
+    "stateRepositoryGoSha256": "61335f840b37fe8bde45dde7f6696d39ff1f6028380e620cd9a82f4a1d5ea82f",
+    "storedBudgets": "unchanged schema; read-only calculations; no state migration",
+    "standardAndPrivateSDK": "unchanged exact artifacts and separated connection state",
+    "historicalReleaseEvidence": "untouched; earlier public release/coldrestore candidate do not prove this budget source is public",
+    "prohibitedPublicVersionAccess": "no retry of previously blocked public /version via any channel"
+  },
+  "truth": {
+    "sourceImplemented": true,
+    "localTests": true,
+    "localBrowserFixture": true,
+    "newArtifact": false,
+    "deployedPublic": false,
+    "publicBudgetVerified": false,
+    "installed": false,
+    "realAccountApproval": false,
+    "realSigning": false,
+    "realTransactions": false,
+    "postgresMultiInstanceVerified": false,
+    "fullPeriodCoverage": false
+  },
+  "remaining": [
+    "Explorer requires an accepted account-scoped complete-period/pagination coverage contract before full spent/remaining can be computed.",
+    "0x/ynx raw equality in upstream transaction filtering can omit address aliases; not changed in this period/coverage slice.",
+    "Pay receipt firstInt64 ignores parse errors and allows unsafe float conversion; no Pay or parser changes in this slice.",
+    "General Web fmt(Number(value||0)), browser input precision and raw-Web versus /1e6-native amount scale remain a separate explicit monetary-unit contract issue; only new budget display rejects unsafe numeric values.",
+    "Statement endpoint still exposes source-bounded sums under legacy totals; not promoted to complete financial statements by this task.",
+    "Native full build/install not performed; broader Web/mobile localization remains incomplete.",
+    "No source-bound new deployment or real wallet/business lifecycle is claimed."
+  ],
+  "rollback": {
+    "source": "Reviewed normal revert of source commit 607b912746ae0e6cfd0ce7a54a7848a289f4694b; no reset/force push.",
+    "runtime": "No runtime changed; no production rollback or state restore necessary."
+  }
+}
