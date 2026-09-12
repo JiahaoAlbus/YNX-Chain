@@ -1,0 +1,26 @@
+{
+  "at": "2026-09-12T11:17:56.178Z",
+  "url": "https://rpc.ynxweb4.com",
+  "method": "eth_chainId",
+  "readOnly": true,
+  "status": 200,
+  "bytes": 69,
+  "sha256": "ecc6dc4ce2bf09de81103996247e25cd8ac2cf08b40220359c268790d8e32414",
+  "headers": {
+    "alt-svc": "h3=\":443\"; ma=2592000",
+    "content-length": "69",
+    "content-type": "application/json",
+    "date": "Sat, 12 Sep 2026 11:17:56 GMT",
+    "server": "Caddy",
+    "x-ynx-network": "testnet",
+    "x-ynx-truthful-status": "ynx-testnet-node"
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "id": "card-readonly-chain-probe",
+    "result": "0x1917"
+  },
+  "expectedChainId": "0x1917",
+  "chainMatched": true,
+  "realFunding": false
+}

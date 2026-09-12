@@ -1,0 +1,1 @@
+{"service":"ynx-card-business-backend","port":40947,"environment":"YNX_TESTNET_CARD_PAYMENT_SIMULATION","productionRealPayments":false}

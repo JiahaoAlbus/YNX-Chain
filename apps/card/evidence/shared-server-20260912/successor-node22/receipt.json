@@ -1,0 +1,130 @@
+{
+  "sourceCommit": "88378ba45917eb817dfed9847c0a9a21e4026ea8",
+  "sourceTree": "22a68fd94dfd6c2774ae50385124a7df2e323a89",
+  "sdkSource": "6f332753baae5deaf6b05c8276b20a02cc4887c5",
+  "host": "43.153.202.237",
+  "node": "v22.23.1",
+  "tests": 32,
+  "passed": 32,
+  "testsExit": 0,
+  "archive": {
+    "bytes": 155695,
+    "sha256": "379265dda56bdddb1c7fa8e69b16c6eb35e72d04b3747c71512e8e7fb69655fe",
+    "local": "/private/tmp/ynx-card-node22-6f-7FxZCg/card-server.tar.gz",
+    "remote": "/tmp/ynx-card-node22-6f-C41sdd/card-server.tar.gz"
+  },
+  "runtime": {
+    "sourceCommit": "88378ba45917eb817dfed9847c0a9a21e4026ea8",
+    "node": "v22.23.1",
+    "platform": "linux",
+    "architecture": "x64",
+    "at": "2026-09-12T11:17:14.465Z",
+    "localLoopbackOnly": true,
+    "productionServiceInstalled": false,
+    "publicDeployed": false,
+    "realSession": false,
+    "realApproval": false,
+    "realFunding": false,
+    "productionRealPayments": false,
+    "passed": true,
+    "exit": {
+      "code": 0,
+      "signal": null
+    },
+    "failure": null,
+    "resources": [
+      {
+        "path": "/api/card/v1/version",
+        "status": 200,
+        "bytes": 256,
+        "sha256": "82bc846f702b19eb5852eebc0f08b6dfdce6f574e49f632a039a29352a905efc",
+        "headers": {
+          "cache-control": "no-store",
+          "connection": "keep-alive",
+          "content-length": "256",
+          "content-type": "application/json; charset=utf-8",
+          "date": "Sat, 12 Sep 2026 11:17:14 GMT",
+          "keep-alive": "timeout=5",
+          "x-content-type-options": "nosniff"
+        }
+      },
+      {
+        "path": "/api/card/v1/state",
+        "status": 401,
+        "bytes": 157,
+        "sha256": "b67f6037d7e76eb9e30adc4cc97c05c8fcf9f453be9dd13184647bf949c267fe",
+        "headers": {
+          "cache-control": "no-store",
+          "connection": "keep-alive",
+          "content-length": "157",
+          "content-type": "application/json; charset=utf-8",
+          "date": "Sat, 12 Sep 2026 11:17:14 GMT",
+          "keep-alive": "timeout=5",
+          "x-content-type-options": "nosniff"
+        }
+      }
+    ]
+  },
+  "core": {
+    "at": "2026-09-12T11:17:56.178Z",
+    "url": "https://rpc.ynxweb4.com",
+    "method": "eth_chainId",
+    "readOnly": true,
+    "status": 200,
+    "bytes": 69,
+    "sha256": "ecc6dc4ce2bf09de81103996247e25cd8ac2cf08b40220359c268790d8e32414",
+    "headers": {
+      "alt-svc": "h3=\":443\"; ma=2592000",
+      "content-length": "69",
+      "content-type": "application/json",
+      "date": "Sat, 12 Sep 2026 11:17:56 GMT",
+      "server": "Caddy",
+      "x-ynx-network": "testnet",
+      "x-ynx-truthful-status": "ynx-testnet-node"
+    },
+    "response": {
+      "jsonrpc": "2.0",
+      "id": "card-readonly-chain-probe",
+      "result": "0x1917"
+    },
+    "expectedChainId": "0x1917",
+    "chainMatched": true,
+    "realFunding": false
+  },
+  "hashes": {
+    "node22-tests.log": {
+      "bytes": 7848,
+      "sha256": "18282b6a7e46bdc1eb4a7553abad66b625643eced205ca391797cf15bcf82e62"
+    },
+    "core-chain-readback.json": {
+      "bytes": 696,
+      "sha256": "ad61380c943847c506cd772124f4e1656d70092a537f326bda7e9e352878044a"
+    },
+    "runtime/results.json": {
+      "bytes": 1473,
+      "sha256": "2dbea22862d8faaa05e56d5dfb530dca7c92ff9650382b35c1395250b8286d40"
+    },
+    "runtime/version.json": {
+      "bytes": 256,
+      "sha256": "82bc846f702b19eb5852eebc0f08b6dfdce6f574e49f632a039a29352a905efc"
+    },
+    "runtime/unauthenticated-state.json": {
+      "bytes": 157,
+      "sha256": "b67f6037d7e76eb9e30adc4cc97c05c8fcf9f453be9dd13184647bf949c267fe"
+    },
+    "runtime/stdout.log": {
+      "bytes": 136,
+      "sha256": "129b15d97ac8b569217dcd4f86120c50e0453a9096425705328b0644b77a593a"
+    },
+    "runtime/stderr.log": {
+      "bytes": 171,
+      "sha256": "4a04a516cb5e50f6a9f98ec298ed5908816c399245a44cb83510c34206be516e"
+    }
+  },
+  "publicDeployed": false,
+  "productionServiceInstalled": false,
+  "realSession": false,
+  "realApproval": false,
+  "realFunding": false,
+  "productionRealPayments": false
+}
