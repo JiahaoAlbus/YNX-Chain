@@ -22,10 +22,11 @@ import (
 const EphemeralNetworkVersion = 1
 
 type EphemeralNetworkOptions struct {
-	RootDir  string
-	BaseP2P  int
-	BaseRPC  int
-	BaseABCI int
+	RootDir         string
+	BaseP2P         int
+	BaseRPC         int
+	BaseABCI        int
+	ConsensusMaxGas int64
 }
 
 type EphemeralNetworkManifest struct {
@@ -35,6 +36,7 @@ type EphemeralNetworkManifest struct {
 	MigrationPath      string                 `json:"migrationPath"`
 	MigrationStateHash string                 `json:"migrationStateHash"`
 	GenesisHash        string                 `json:"genesisHash"`
+	ConsensusMaxGas    int64                  `json:"consensusMaxGas"`
 	Nodes              []EphemeralNetworkNode `json:"nodes"`
 }
 
@@ -72,6 +74,9 @@ func GenerateEphemeralNetwork(migration chain.ConsensusMigrationState, options E
 	}
 	if err := validatePortRanges(options, len(migration.Validators)); err != nil {
 		return EphemeralNetworkManifest{}, err
+	}
+	if options.ConsensusMaxGas < 0 {
+		return EphemeralNetworkManifest{}, errors.New("ephemeral consensus max gas must be zero or positive")
 	}
 	if _, err := os.Stat(root); !errors.Is(err, os.ErrNotExist) {
 		if err == nil {
@@ -151,6 +156,12 @@ func GenerateEphemeralNetwork(migration chain.ConsensusMigrationState, options E
 	if err != nil {
 		return manifest, err
 	}
+	if options.ConsensusMaxGas > 0 {
+		genesis.ConsensusParams.Block.MaxGas = options.ConsensusMaxGas
+		if err := genesis.ValidateAndComplete(); err != nil {
+			return manifest, fmt.Errorf("validate configured ephemeral consensus max gas: %w", err)
+		}
+	}
 	for index := range nodes {
 		peers := make([]string, 0, len(nodes)-1)
 		for peerIndex, peer := range nodes {
@@ -199,6 +210,7 @@ func GenerateEphemeralNetwork(migration chain.ConsensusMigrationState, options E
 		MigrationPath:      migrationPath,
 		MigrationStateHash: boundMigration.StateHash,
 		GenesisHash:        hex.EncodeToString(genesisSum[:]),
+		ConsensusMaxGas:    genesis.ConsensusParams.Block.MaxGas,
 		Nodes:              nodes,
 	}
 	manifestPayload, err := json.MarshalIndent(manifest, "", "  ")

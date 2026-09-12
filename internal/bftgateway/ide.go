@@ -49,7 +49,7 @@ func (g *Gateway) handleIDEMutation(w http.ResponseWriter, r *http.Request) {
 	}
 	hash := consensus.ApplicationActionHash(raw)
 	var receipt consensus.BFTEVMReceipt
-	if err := g.queryABCIJSON(r.Context(), "/evm/receipts/"+hash, &receipt); err != nil || receipt.TxHash != hash || receipt.From != tx.Signer || receipt.Action != expected {
+	if err := g.queryABCIJSON(r.Context(), "/evm/receipts/"+hash, &receipt); err != nil || consensus.ValidateBFTEVMReceipt(receipt) != nil || receipt.TxHash != hash || receipt.From != tx.Signer || receipt.Action != expected {
 		writeJSON(w, http.StatusBadGateway, map[string]string{"error": "committed IDE receipt evidence mismatch"})
 		return
 	}

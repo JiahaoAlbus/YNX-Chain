@@ -1,11 +1,13 @@
 package consensus
 
 import (
+	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"math"
 	"os"
 	"path/filepath"
@@ -13,10 +15,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/JiahaoAlbus/YNX-Chain/internal/assetauth"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 )
 
-const CommittedStateVersion = 14
+const CommittedStateVersion = 15
 
 type BFTNativeTransfer struct {
 	TransactionHash string    `json:"transactionHash"`
@@ -40,6 +43,14 @@ type CommittedState struct {
 	Accounts                   []chain.ConsensusAccount        `json:"accounts"`
 	FeeEvents                  []BFTFeeEvent                   `json:"feeEvents"`
 	NativeTransfers            []BFTNativeTransfer             `json:"nativeTransfers,omitempty"`
+	StrategyMandates           []assetauth.StrategyMandate     `json:"strategyMandates"`
+	StrategyVaults             []assetauth.StrategyVault       `json:"strategyVaults"`
+	AssetAuditEvents           []BFTAssetAuditEvent            `json:"assetAuditEvents"`
+	SmartAccounts              []assetauth.SmartAccount        `json:"smartAccounts"`
+	Paymasters                 []BFTPaymaster                  `json:"paymasters"`
+	UserOperationEvents        []BFTUserOperationEvent         `json:"userOperationEvents"`
+	StakeDelegations           []BFTStakeDelegation            `json:"stakeDelegations"`
+	Unbondings                 []BFTUnbondingEntry             `json:"unbondings"`
 	AIPermissions              []BFTAIPermission               `json:"aiPermissions"`
 	AIActions                  []BFTAIAction                   `json:"aiActions"`
 	AIAuditEvents              []BFTAIAuditEvent               `json:"aiAuditEvents"`
@@ -89,6 +100,14 @@ type committedStateHashDocument struct {
 	Accounts                   []chain.ConsensusAccount        `json:"accounts"`
 	FeeEvents                  []BFTFeeEvent                   `json:"feeEvents,omitempty"`
 	NativeTransfers            []BFTNativeTransfer             `json:"nativeTransfers,omitempty"`
+	StrategyMandates           []assetauth.StrategyMandate     `json:"strategyMandates,omitempty"`
+	StrategyVaults             []assetauth.StrategyVault       `json:"strategyVaults,omitempty"`
+	AssetAuditEvents           []BFTAssetAuditEvent            `json:"assetAuditEvents,omitempty"`
+	SmartAccounts              []assetauth.SmartAccount        `json:"smartAccounts,omitempty"`
+	Paymasters                 []BFTPaymaster                  `json:"paymasters,omitempty"`
+	UserOperationEvents        []BFTUserOperationEvent         `json:"userOperationEvents,omitempty"`
+	StakeDelegations           []BFTStakeDelegation            `json:"stakeDelegations,omitempty"`
+	Unbondings                 []BFTUnbondingEntry             `json:"unbondings,omitempty"`
 	AIPermissions              []BFTAIPermission               `json:"aiPermissions"`
 	AIActions                  []BFTAIAction                   `json:"aiActions"`
 	AIAuditEvents              []BFTAIAuditEvent               `json:"aiAuditEvents"`
@@ -121,8 +140,8 @@ type committedStateHashDocument struct {
 	EVMReceipts                []BFTEVMReceipt                 `json:"evmReceipts"`
 	EVMLogs                    []BFTEVMLog                     `json:"evmLogs"`
 	IDEIdempotency             []BFTIDEIdempotency             `json:"ideIdempotency"`
-	GovernanceExecutions       []BFTGovernanceExecution        `json:"governanceExecutions"`
-	GovernanceExecutionAudit   []BFTGovernanceExecutionAudit   `json:"governanceExecutionAudit"`
+	GovernanceExecutions       []BFTGovernanceExecution        `json:"governanceExecutions,omitempty"`
+	GovernanceExecutionAudit   []BFTGovernanceExecutionAudit   `json:"governanceExecutionAudit,omitempty"`
 	DexAssets                  []BFTDexAsset                   `json:"dexAssets,omitempty"`
 	DexBalances                []BFTDexBalance                 `json:"dexBalances,omitempty"`
 	DexPools                   []BFTDexPool                    `json:"dexPools,omitempty"`
@@ -140,6 +159,14 @@ func initialCommittedState(migration chain.ConsensusMigrationState) CommittedSta
 		Accounts:                   cloneAccounts(migration.Accounts),
 		FeeEvents:                  []BFTFeeEvent{},
 		NativeTransfers:            []BFTNativeTransfer{},
+		StrategyMandates:           []assetauth.StrategyMandate{},
+		StrategyVaults:             []assetauth.StrategyVault{},
+		AssetAuditEvents:           []BFTAssetAuditEvent{},
+		SmartAccounts:              []assetauth.SmartAccount{},
+		Paymasters:                 []BFTPaymaster{},
+		UserOperationEvents:        []BFTUserOperationEvent{},
+		StakeDelegations:           []BFTStakeDelegation{},
+		Unbondings:                 []BFTUnbondingEntry{},
 		AIPermissions:              []BFTAIPermission{},
 		AIActions:                  []BFTAIAction{},
 		AIAuditEvents:              []BFTAIAuditEvent{},
@@ -192,6 +219,14 @@ func sealCommittedState(migration chain.ConsensusMigrationState, height int64, e
 		Accounts:                   cloneAccounts(execution.accounts),
 		FeeEvents:                  append([]BFTFeeEvent(nil), execution.feeEvents...),
 		NativeTransfers:            append([]BFTNativeTransfer(nil), execution.nativeTransfers...),
+		StrategyMandates:           cloneStrategyMandates(execution.strategyMandates),
+		StrategyVaults:             cloneStrategyVaults(execution.strategyVaults),
+		AssetAuditEvents:           append([]BFTAssetAuditEvent(nil), execution.assetAuditEvents...),
+		SmartAccounts:              cloneSmartAccounts(execution.smartAccounts),
+		Paymasters:                 clonePaymasters(execution.paymasters),
+		UserOperationEvents:        append([]BFTUserOperationEvent(nil), execution.userOperationEvents...),
+		StakeDelegations:           append([]BFTStakeDelegation(nil), execution.stakeDelegations...),
+		Unbondings:                 cloneUnbondings(execution.unbondings),
 		AIPermissions:              cloneAIPermissions(execution.permissions),
 		AIActions:                  cloneAIActions(execution.actions),
 		AIAuditEvents:              append([]BFTAIAuditEvent(nil), execution.auditEvents...),
@@ -345,10 +380,44 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 	if err != nil {
 		return err
 	}
-	if liquid > math.MaxInt64-staked || liquid+staked > math.MaxInt64-dexNativeEscrow || migration.LiquidSupplyYNXT > math.MaxInt64-migration.StakedSupplyYNXT {
+	if err := validateFeeEvents(s.FeeEvents); err != nil {
+		return err
+	}
+	if err := validateAssetAuthorizationState(s.StrategyMandates, s.StrategyVaults, s.AssetAuditEvents); err != nil {
+		return err
+	}
+	paymasterLocked, err := validateAccountAbstractionState(s.SmartAccounts, s.Paymasters, s.UserOperationEvents, s.FeeEvents)
+	if err != nil {
+		return err
+	}
+	for _, account := range s.SmartAccounts {
+		if _, exists := accountIndex(s.Accounts, account.Address); !exists {
+			return errors.New("smart account does not have a chain account")
+		}
+	}
+	for _, paymaster := range s.Paymasters {
+		if _, exists := accountIndex(s.Accounts, paymaster.Policy.Sponsor); !exists {
+			return errors.New("paymaster sponsor does not have a chain account")
+		}
+	}
+	var vaultLiquid int64
+	for _, vault := range s.StrategyVaults {
+		if vault.BalanceYNXT > math.MaxInt64 || vaultLiquid > math.MaxInt64-int64(vault.BalanceYNXT) {
+			return errors.New("strategy vault YNXT total overflows int64")
+		}
+		vaultLiquid += int64(vault.BalanceYNXT)
+	}
+	if err := validateStakingState(s, migration); err != nil {
+		return err
+	}
+	unbonding, err := pendingUnbondingSupply(s.Unbondings)
+	if err != nil {
+		return err
+	}
+	if paymasterLocked > math.MaxInt64 || liquid > math.MaxInt64-staked || liquid+staked > math.MaxInt64-vaultLiquid || liquid+staked+vaultLiquid > math.MaxInt64-unbonding || liquid+staked+vaultLiquid+unbonding > math.MaxInt64-int64(paymasterLocked) || liquid+staked+vaultLiquid+unbonding+int64(paymasterLocked) > math.MaxInt64-dexNativeEscrow || migration.LiquidSupplyYNXT > math.MaxInt64-migration.StakedSupplyYNXT {
 		return errors.New("committed or migration total YNXT supply overflows int64")
 	}
-	if liquid+staked+dexNativeEscrow != migration.LiquidSupplyYNXT+migration.StakedSupplyYNXT {
+	if liquid+staked+vaultLiquid+unbonding+int64(paymasterLocked)+dexNativeEscrow != migration.LiquidSupplyYNXT+migration.StakedSupplyYNXT {
 		return errors.New("committed state changed total liquid plus staked YNXT supply")
 	}
 	expected := migration.StateHash
@@ -366,7 +435,7 @@ func (s CommittedState) Validate(migration chain.ConsensusMigrationState) error 
 }
 
 func (s CommittedState) calculateHash() (string, error) {
-	return s.calculateHashFor("YNX_ABCI_STATE_V14", CommittedStateVersion)
+	return s.calculateHashFor("YNX_ABCI_STATE_V15", CommittedStateVersion)
 }
 
 func (s CommittedState) calculateHashFor(domain string, version int) (string, error) {
@@ -378,6 +447,14 @@ func (s CommittedState) calculateHashFor(domain string, version int) (string, er
 		Accounts:                   s.Accounts,
 		FeeEvents:                  s.FeeEvents,
 		NativeTransfers:            s.NativeTransfers,
+		StrategyMandates:           s.StrategyMandates,
+		StrategyVaults:             s.StrategyVaults,
+		AssetAuditEvents:           s.AssetAuditEvents,
+		SmartAccounts:              s.SmartAccounts,
+		Paymasters:                 s.Paymasters,
+		UserOperationEvents:        s.UserOperationEvents,
+		StakeDelegations:           s.StakeDelegations,
+		Unbondings:                 s.Unbondings,
 		AIPermissions:              s.AIPermissions,
 		AIActions:                  s.AIActions,
 		AIAuditEvents:              s.AIAuditEvents,
@@ -426,7 +503,7 @@ func (s CommittedState) calculateHashFor(domain string, version int) (string, er
 }
 
 func (s CommittedState) hasApplicationRecords() bool {
-	return len(s.FeeEvents)+len(s.NativeTransfers)+len(s.AIPermissions)+len(s.AIActions)+len(s.AIAuditEvents)+len(s.PayIntents)+len(s.PayInvoices)+len(s.PaySettlements)+len(s.PayRefunds)+len(s.PayWebhooks)+len(s.PayEvents)+len(s.PayIdempotency)+len(s.ResourceQuotes)+len(s.ResourceDelegations)+len(s.ResourceRentals)+len(s.ResourceIncome)+len(s.ResourceEvents)+len(s.ResourceIdempotency)+len(s.ResourcePools)+len(s.ResourceSponsorships)+len(s.ResourceSponsorIdempotency)+len(s.ResourceSponsorActionRefs)+len(s.ResourceSponsorAudit)+len(s.GovernanceRequests)+len(s.TrustAppeals)+len(s.TrustCorrections)+len(s.TrustLabels)+len(s.TrustEvidence)+len(s.TrackingReviews)+len(s.Transparency)+len(s.Contracts)+len(s.EVMReceipts)+len(s.EVMLogs)+len(s.IDEIdempotency)+len(s.GovernanceExecutions)+len(s.GovernanceExecutionAudit)+len(s.DexAssets)+len(s.DexBalances)+len(s.DexPools)+len(s.DexEvents) != 0
+	return len(s.StrategyMandates)+len(s.StrategyVaults)+len(s.AssetAuditEvents)+len(s.SmartAccounts)+len(s.Paymasters)+len(s.UserOperationEvents)+len(s.StakeDelegations)+len(s.Unbondings)+len(s.FeeEvents)+len(s.NativeTransfers)+len(s.AIPermissions)+len(s.AIActions)+len(s.AIAuditEvents)+len(s.PayIntents)+len(s.PayInvoices)+len(s.PaySettlements)+len(s.PayRefunds)+len(s.PayWebhooks)+len(s.PayEvents)+len(s.PayIdempotency)+len(s.ResourceQuotes)+len(s.ResourceDelegations)+len(s.ResourceRentals)+len(s.ResourceIncome)+len(s.ResourceEvents)+len(s.ResourceIdempotency)+len(s.ResourcePools)+len(s.ResourceSponsorships)+len(s.ResourceSponsorIdempotency)+len(s.ResourceSponsorActionRefs)+len(s.ResourceSponsorAudit)+len(s.GovernanceRequests)+len(s.TrustAppeals)+len(s.TrustCorrections)+len(s.TrustLabels)+len(s.TrustEvidence)+len(s.TrackingReviews)+len(s.Transparency)+len(s.Contracts)+len(s.EVMReceipts)+len(s.EVMLogs)+len(s.IDEIdempotency)+len(s.GovernanceExecutions)+len(s.GovernanceExecutionAudit)+len(s.DexAssets)+len(s.DexBalances)+len(s.DexPools)+len(s.DexEvents) != 0
 }
 
 func (s CommittedState) hasNonMigrationApplicationRecords() bool {
@@ -438,7 +515,12 @@ func (s CommittedState) hasNonMigrationApplicationRecords() bool {
 func validateFeeEvents(events []BFTFeeEvent) error {
 	seen := make(map[string]struct{}, len(events))
 	for _, event := range events {
-		if event.ID == "" || event.PolicyVersion != FeePolicyVersion || event.TxHash == "" || event.TransactionType == "" || !IsNativeAddress(event.Payer) || strings.TrimSpace(event.Recipient) == "" || event.GrossFeeYNXT <= 0 || event.BurnYNXT < 0 || event.ValidatorYNXT < 0 || event.ProviderYNXT < 0 || event.ProtocolYNXT < 0 || event.TreasuryYNXT < 0 || event.Source != FixedFeeSource || event.BlockHeight <= 0 || event.RecordedAt.IsZero() || event.AuditHash != feeEventAuditHash(event) {
+		isEthereumType := event.TransactionType == EthereumLegacyTransferType || event.TransactionType == EthereumAccessListTransferType || event.TransactionType == EthereumDynamicFeeTransferType
+		sourceValid := (event.TransactionType == EthereumLegacyTransferType && event.Source == EthereumLegacyGasFeeSource) ||
+			(event.TransactionType == EthereumAccessListTransferType && event.Source == EthereumAccessListGasFeeSource) ||
+			(event.TransactionType == EthereumDynamicFeeTransferType && event.Source == EthereumDynamicFeeGasFeeSource) ||
+			(!isEthereumType && event.Source == FixedFeeSource)
+		if event.ID == "" || event.PolicyVersion != FeePolicyVersion || event.TxHash == "" || event.TransactionType == "" || !IsNativeAddress(event.Payer) || strings.TrimSpace(event.Recipient) == "" || event.GrossFeeYNXT <= 0 || event.BurnYNXT < 0 || event.ValidatorYNXT < 0 || event.ProviderYNXT < 0 || event.ProtocolYNXT < 0 || event.TreasuryYNXT < 0 || !sourceValid || event.BlockHeight <= 0 || event.RecordedAt.IsZero() || event.AuditHash != feeEventAuditHash(event) {
 			return errors.New("committed fee events must be complete and audit-bound")
 		}
 		if event.BurnYNXT+event.ValidatorYNXT+event.ProviderYNXT+event.ProtocolYNXT+event.TreasuryYNXT != event.GrossFeeYNXT {
@@ -595,52 +677,17 @@ func loadCommittedState(path string, migration chain.ConsensusMigrationState) (C
 		return CommittedState{}, fmt.Errorf("read committed state: %w", err)
 	}
 	var state CommittedState
-	if err := json.Unmarshal(payload, &state); err != nil {
+	decoder := json.NewDecoder(bytes.NewReader(payload))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&state); err != nil {
 		return CommittedState{}, fmt.Errorf("decode committed state: %w", err)
 	}
-	if state.Version == 13 {
-		expected := migration.StateHash
-		if !accountsEqual(state.Accounts, migration.Accounts) || state.hasApplicationRecords() {
-			expected, err = state.calculateHashFor("YNX_ABCI_STATE_V13", 13)
-			if err != nil {
-				return CommittedState{}, fmt.Errorf("calculate v13 committed state hash: %w", err)
-			}
-		}
-		if !strings.EqualFold(state.AppHash, expected) {
-			return CommittedState{}, errors.New("v13 committed state app hash is invalid")
-		}
-		state.Version = CommittedStateVersion
-		state.FeeEvents = []BFTFeeEvent{}
-		if !accountsEqual(state.Accounts, migration.Accounts) || state.hasApplicationRecords() {
-			state.AppHash, err = state.calculateHash()
-			if err != nil {
-				return CommittedState{}, fmt.Errorf("migrate v13 committed state hash: %w", err)
-			}
-		}
+	if err := decoder.Decode(new(any)); err != io.EOF {
+		return CommittedState{}, errors.New("committed state has trailing data")
 	}
-	if state.Version == 8 {
-		expected := migration.StateHash
-		if !accountsEqual(state.Accounts, migration.Accounts) || state.hasApplicationRecords() {
-			expected, err = state.calculateHashFor("YNX_ABCI_STATE_V8", 8)
-			if err != nil {
-				return CommittedState{}, fmt.Errorf("calculate v8 committed state hash: %w", err)
-			}
-		}
-		if !strings.EqualFold(state.AppHash, expected) {
-			return CommittedState{}, errors.New("v8 committed state app hash is invalid")
-		}
-		state.Version = CommittedStateVersion
-		state.FeeEvents = []BFTFeeEvent{}
-		state.DexAssets = []BFTDexAsset{}
-		state.DexBalances = []BFTDexBalance{}
-		state.DexPools = []BFTDexPool{}
-		state.DexEvents = []BFTDexEvent{}
-		if !accountsEqual(state.Accounts, migration.Accounts) || state.hasApplicationRecords() {
-			state.AppHash, err = state.calculateHash()
-			if err != nil {
-				return CommittedState{}, fmt.Errorf("migrate v8 committed state hash: %w", err)
-			}
-		}
+	state, err = upgradeLegacyCommittedState(state, migration)
+	if err != nil {
+		return CommittedState{}, err
 	}
 	if err := state.Validate(migration); err != nil {
 		return CommittedState{}, fmt.Errorf("validate committed state: %w", err)
@@ -713,6 +760,17 @@ func cloneAccounts(accounts []chain.ConsensusAccount) []chain.ConsensusAccount {
 
 func cloneAIPermissions(permissions []BFTAIPermission) []BFTAIPermission {
 	return append([]BFTAIPermission(nil), permissions...)
+}
+
+func cloneUnbondings(values []BFTUnbondingEntry) []BFTUnbondingEntry {
+	out := append([]BFTUnbondingEntry(nil), values...)
+	for i := range out {
+		if out[i].WithdrawnAt != nil {
+			value := *out[i].WithdrawnAt
+			out[i].WithdrawnAt = &value
+		}
+	}
+	return out
 }
 
 func cloneAIActions(actions []BFTAIAction) []BFTAIAction {

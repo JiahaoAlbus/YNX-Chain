@@ -10,7 +10,6 @@ import (
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	abcitypes "github.com/cometbft/cometbft/abci/types"
-	"github.com/decred/dcrd/dcrec/secp256k1/v4"
 )
 
 func TestDEXAssetPoolSwapAndLiquidityLifecycleCommitsRealState(t *testing.T) {
@@ -184,15 +183,37 @@ func TestCommittedStateMigratesVersion8WithoutInventingDEXRecords(t *testing.T) 
 	}
 }
 
-func signedAssetAction(t *testing.T, key *secp256k1.PrivateKey, action string, payload any, nonce uint64) []byte {
-	t.Helper()
-	tx, err := NewSignedApplicationAction(key, 6423, action, payload, nonce)
+func TestCommittedStateMigratesVersion12WithoutInventingDEXRecords(t *testing.T) {
+	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
+	owner := mustNativeAddress(t, deterministicPrivateKey(223))
+	if _, err := devnet.Faucet(owner, 100); err != nil {
+		t.Fatal(err)
+	}
+	devnet.ProduceBlock()
+	migration, err := devnet.ExportConsensusMigrationState()
 	if err != nil {
 		t.Fatal(err)
 	}
-	encoded, err := EncodeSignedApplicationAction(tx)
+	legacy := initialCommittedState(migration)
+	legacy.Version = 12
+	legacy.DexAssets, legacy.DexBalances, legacy.DexPools, legacy.DexEvents = nil, nil, nil, nil
+	legacy.Initialized = true
+	legacy.Height = int64(migration.Height) + 1
+	legacy.FeeEvents = []BFTFeeEvent{newCurrentFeeEvent("0xv12", "transfer", owner, migration.Validators[0].Address, 1, legacy.Height, time.Unix(12, 0).UTC())}
+	legacy.AppHash, err = legacy.calculateLegacyFullHash("YNX_ABCI_STATE_V12", 12)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return encoded
+	payload, _ := json.Marshal(legacy)
+	path := filepath.Join(t.TempDir(), "state-v12.json")
+	if err := os.WriteFile(path, payload, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	migrated, err := loadCommittedState(path, migration)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if migrated.Version != CommittedStateVersion || len(migrated.FeeEvents) != 1 || len(migrated.DexAssets)+len(migrated.DexBalances)+len(migrated.DexPools)+len(migrated.DexEvents) != 0 {
+		t.Fatalf("v12 migration changed history or invented DEX state: %+v", migrated)
+	}
 }
