@@ -104,6 +104,7 @@ import {
   translate,
 } from "./src/i18n";
 import { I18nProvider, useI18n } from "./src/i18nProvider";
+import { readOutbox, queueMessage, acknowledgeQueued, pendingFor } from "./src/messageOutbox";
 
 const BLUE = "#002FA7",
   INK = "#101828",
@@ -1257,12 +1258,12 @@ function MessageThread({
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const file = outboxFile(),
-        [keyRaw, deviceResult, messageResult, outboxRaw] = await Promise.all([
+      const file = outboxFile();
+      setPending(pendingFor(readOutbox(file.exists ? file.textSync() : null), account, deviceId, conversation.id));
+      const [keyRaw, deviceResult, messageResult] = await Promise.all([
           SecureStore.getItemAsync(DEVICE_KEY),
           api.conversationDevices(conversation.id),
           api.messages(conversation.id),
-          file.exists ? file.text() : Promise.resolve(null),
         ]);
       if (!keyRaw)
         throw new Error("This device no longer has its Social encryption key");
@@ -1290,19 +1291,6 @@ function MessageThread({
           await api.acknowledge(conversation.id, record.id, "read");
       }
       setItems(visible);
-      setPending(null);
-      if (outboxRaw) {
-        const stored = JSON.parse(outboxRaw) as {
-          account: string;
-          conversationId: string;
-          request: SendMessageRequest;
-        };
-        if (
-          stored.account === account &&
-          stored.conversationId === conversation.id
-        )
-          setPending(stored.request);
-      }
       setError(null);
     } catch (caught) {
       setError(message(caught));
@@ -1323,8 +1311,9 @@ function MessageThread({
     try {
       await api.sendMessage(conversation.id, request);
       const file = outboxFile();
-      if (file.exists) file.delete();
-      setPending(null);
+      const remaining = acknowledgeQueued(readOutbox(file.exists ? file.textSync() : null), { account, deviceId, conversationId: conversation.id, request });
+      file.write(JSON.stringify(remaining));
+      setPending(pendingFor(remaining, account, deviceId, conversation.id));
       setDraft("");
       await load();
     } catch (caught) {
@@ -1359,9 +1348,8 @@ function MessageThread({
           devices: devices.devices,
           entropy,
         });
-      outboxFile().write(
-        JSON.stringify({ account, conversationId: conversation.id, request }),
-      );
+      const file = outboxFile();
+      file.write(JSON.stringify(queueMessage(readOutbox(file.exists ? file.textSync() : null), { account, deviceId, conversationId: conversation.id, request })));
       setPending(request);
       await transmit(request);
     } catch (caught) {
