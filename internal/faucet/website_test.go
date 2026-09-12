@@ -72,3 +72,11 @@ func TestHealthClearsHistoricalUpstreamFailureAndRejectsWrongNetwork(t *testing.
 		t.Fatal("wrong chain accepted")
 	}
 }
+func TestClientIdentityIgnoresUntrustedProxyHeader(t *testing.T) {
+	r := httptest.NewRequest("POST", "/request", nil)
+	r.RemoteAddr = "198.51.100.9:1234"
+	r.Header.Set("X-Real-IP", "203.0.113.1")
+	if requestClientIdentity(r) != r.RemoteAddr {
+		t.Fatal("untrusted caller controlled quota identity")
+	}
+}

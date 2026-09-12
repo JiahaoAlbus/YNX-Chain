@@ -132,6 +132,10 @@ func (s *Server) allowedWebsiteOrigin(origin string) bool {
 }
 
 func requestClientIdentity(r *http.Request) string {
+	peer, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil || net.ParseIP(peer) == nil || !net.ParseIP(peer).IsLoopback() {
+		return r.RemoteAddr
+	}
 	realIP := strings.TrimSpace(r.Header.Get("X-Real-IP"))
 	if parsed := net.ParseIP(realIP); parsed != nil {
 		return parsed.String()

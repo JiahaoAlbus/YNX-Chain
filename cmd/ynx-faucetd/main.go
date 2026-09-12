@@ -44,7 +44,7 @@ func runFaucet() (result error) {
 	flag.Parse()
 
 	coreTokenPath := strings.TrimSpace(os.Getenv("YNX_FAUCET_CORE_AUTH_TOKEN_FILE"))
-	if *upstreamMode == faucet.UpstreamAuthoritative && coreTokenPath == "" {
+	if strings.EqualFold(strings.TrimSpace(*upstreamMode), faucet.UpstreamAuthoritative) && coreTokenPath == "" {
 		return errors.New("YNX_FAUCET_CORE_AUTH_TOKEN_FILE is required for the authoritative Faucet")
 	}
 	service, err := faucet.New(faucet.Config{
