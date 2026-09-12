@@ -226,7 +226,12 @@ export declare function encodeProductSessionWalletURL(registry:unknown,request:u
 export declare function parseProductSessionWalletURL(registry:unknown,url:string,at?:Date):Readonly<Record<string,unknown>>;
 export declare function prepareWalletOpen(registry:unknown,request:unknown,environment:{networkAvailable:boolean;walletInstalled:boolean;schemeRegistered:boolean},at?:Date):Readonly<Record<string,unknown>>;
 export declare function prepareWalletAttempt(registry:unknown,request:unknown,at?:Date):Readonly<Record<string,unknown>>;
-export interface RecoverableProductSessionClient { beginExplicit():Promise<Readonly<Record<string,unknown>>>; }
+export type ProductSessionIntrospectionProof=Readonly<{proof:Readonly<Record<string,unknown>>;proofHeader:string;requestId:string;body:string}>;
+export interface RecoverableProductSessionClient { beginExplicit():Promise<Readonly<Record<string,unknown>>>; createIntrospectionProof(requiredScopes:readonly string[]):Promise<ProductSessionIntrospectionProof>; }
+export declare class ProductSessionServerAuthorizer {
+  constructor(config:Readonly<{registry:unknown;productId:string;platform:ProductSessionPlatform;endpoint:string;fetch:(url:string,init:Readonly<Record<string,unknown>>)=>Promise<unknown>;timeoutMs:number;clock?:()=>Date}>);
+  authorize(input:Readonly<{proofHeader:string;origin:string|null;method:"GET"|"POST"|"PUT"|"PATCH"|"DELETE";path:string;requiredScopes:readonly string[]}>):Promise<ProductSessionV2>;
+}
 export declare function createProductSessionReturnURL(registry:unknown,request:unknown,result:Readonly<Record<string,unknown>>,at?:Date):string;
 export declare function parseProductSessionReturnURL(registry:unknown,request:unknown,url:string,at?:Date):Readonly<Record<string,unknown>>;
 export declare function canonicalReturnTarget(registry:unknown,productId:string,platform:ProductSessionPlatform):Readonly<Record<string,unknown>>;

@@ -33,6 +33,7 @@ export * from "./wallet-provider-discovery.js";
 export * from "./wallet-connection-coordinator.js";
 export { WALLET_DOWNLOAD_MANIFEST_SCHEMA_VERSION, parseWalletDownloadManifest, selectWalletDownload } from "./wallet-downloads.js";
 export * from "./product-session-recovery.js";
+export { ProductSessionServerAuthorizer } from "./product-session-server.js";
 export * from "./product-session-proof-v2.js";
 export * from "./product-session-gateway.js";
 export { PRODUCT_SESSION_GATEWAY_PROOF_HEADER_V2, ProductSessionGatewayFetchAdapter, decodeProductSessionGatewayProofHeaderV2, encodeProductSessionGatewayProofHeaderV2 } from "./product-session-gateway-client.js";

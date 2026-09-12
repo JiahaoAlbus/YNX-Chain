@@ -6,6 +6,7 @@ import { parseProductSessionRegistry, productPlatformBinding } from "./product-s
 import { parseProductSessionReturnURL, prepareWalletAttempt, prepareWalletOpen, walletConnectionChoices, WALLET_ROUTE_STATUS } from "./product-session-router.js";
 import { createRevocationIntent, parseRevocationIntent, revocationSessionMatches } from "./product-session-revocation-intent.js";
 import { deriveCompletionTarget, parseCompletionRecord } from "./product-session-completion-record.js";
+import { encodeProductSessionGatewayProofHeaderV2 } from "./product-session-gateway-client.js";
 
 export const PRODUCT_SESSION_CLIENT_STATE = Object.freeze({
   DISCONNECTED: "disconnected", CONNECTING: "connecting", CONNECTED: "connected", GUEST: "guest", EXPIRED: "expired",
@@ -403,6 +404,64 @@ export class RecoverableProductSessionClient {
     return this.#state;
   }
 
+  async createIntrospectionProof(requiredScopes) {
+    const expected = this.current, epoch = this.#beginEpoch, networkEpoch = this.#networkEpoch;
+    const active = () => {
+      if (this.#revocationRequested || this.#disconnectPromise !== null) fail("REVOCATION_PENDING", "Pending sign-out blocks Product Session API proofs");
+      if (!this.#networkAvailable || networkEpoch !== this.#networkEpoch) fail("NETWORK_UNAVAILABLE", "Network changed during Product Session API authorization");
+      if (this.current !== expected || epoch !== this.#beginEpoch || expected.status !== PRODUCT_SESSION_CLIENT_STATE.CONNECTED || !expected.session) fail("SESSION_INACTIVE", "Connect and verify the same Product Session before signing an API proof");
+    };
+    active();
+    const session = parseProductSession(expected.session);
+    for (const field of ["chainId", "productId", "clientId", "platform", "applicationId", "bundleId", "packageId", "origin", "callback"]) {
+      if (session[field] !== this.#binding[field]) fail("SESSION_BINDING_MISMATCH", "API proof session belongs to another product binding");
+    }
+    if (session.deviceId !== this.#device.id || session.deviceKey !== this.#device.key) fail("SESSION_BINDING_MISMATCH", "API proof session belongs to another product device");
+    const scopeCount = Array.isArray(requiredScopes) ? requiredScopes.length : 0;
+    if (!Number.isInteger(scopeCount) || scopeCount < 1 || scopeCount > 8) fail("SCOPE_WIDENING", "API proof scopes must be a nonempty sorted unique subset of the granted session");
+    // Capture each indexed value once, with a bounded length, before validation.
+    // A caller's getters, iterator or later array edits cannot change the body.
+    const scopes = Object.freeze(Array.from({ length: scopeCount }, (_, index) => requiredScopes[index]));
+    if (scopes.some(scope => typeof scope !== "string" || !session.scopes.includes(scope) || !this.#device.scopes.includes(scope) || !this.#binding.scopes.includes(scope)) || new Set(scopes).size !== scopes.length || [...scopes].sort().join("\n") !== scopes.join("\n")) fail("SCOPE_WIDENING", "API proof scopes must be a nonempty sorted unique subset of the granted session");
+    const body = Object.freeze({ requiredScopes: scopes });
+    let originalRaw;
+    const readback = async () => {
+      active();
+      if (await this.#loadRevocationIntent()) fail("REVOCATION_PENDING", "Pending sign-out blocks Product Session API proofs");
+      active();
+      const raw = await this.#storage.get(this.storageKey);
+      active();
+      let stored;
+      try {
+        if (typeof raw !== "string" || raw.length > 16_384) fail("SESSION_INACTIVE", "Stored Product Session is unavailable");
+        stored = parseProductSession(JSON.parse(raw));
+      } catch { fail("SESSION_INACTIVE", "Stored Product Session is invalid; no API proof was released"); }
+      if (canonicalJSON(stored) !== canonicalJSON(session) || originalRaw !== undefined && raw !== originalRaw) fail("SESSION_INACTIVE", "Stored Product Session changed during API authorization");
+      originalRaw = raw;
+      // Check again after the storage await so a different client starting
+      // sign-out during that read cannot release an API proof from this one.
+      if (await this.#loadRevocationIntent()) fail("REVOCATION_PENDING", "Sign-out started during Product Session API authorization");
+      active();
+    };
+    await readback(); active();
+    if (typeof this.#gateway.currentTime !== "function") fail("CLOCK_UNAVAILABLE", "Product Session API proofs require authority time");
+    let now;
+    try { now = new Date((await this.#now()).getTime()); }
+    catch (error) {
+      active();
+      if (isNetworkUnavailable(error)) throw error;
+      fail("CLOCK_UNAVAILABLE", "Product Session authority time is unavailable");
+    }
+    active();
+    if (now.toISOString() < session.issuedAt || now.toISOString() >= session.expiresAt) fail("SESSION_EXPIRED", "Product Session is outside its authority-time validity window");
+    const proof = await this.#proof(session, "/v2/product-sessions/introspect", body, now, { active, readback });
+    const result = Object.freeze({ proof, proofHeader: encodeProductSessionGatewayProofHeaderV2(proof), requestId: gatewayRequestId("i", this.#tokens()), body: canonicalJSON(body) });
+    await readback(); active();
+    // This proof remains unused. The consumer sends the exact returned body
+    // and header once; calling Gateway introspect here would consume it early.
+    return result;
+  }
+
   async #introspect(session) {
     if (await this.#loadRevocationIntent()) fail("REVOCATION_PENDING", "Pending sign-out blocks Product Session authorization");
     const networkEpoch = this.#networkEpoch;
@@ -415,7 +474,7 @@ export class RecoverableProductSessionClient {
     if (result?.active !== true || canonicalJSON(parseProductSession(result.session)) !== canonicalJSON(session)) fail("SESSION_INACTIVE", "Gateway did not confirm the exact Product Session");
     return result;
   }
-  async #proof(session, path, body, authorityTime) {
+  async #proof(session, path, body, authorityTime, guard = null) {
     if (path !== "/v2/product-sessions/revoke" && await this.#loadRevocationIntent()) fail("REVOCATION_PENDING", "Pending sign-out blocks Product Session authorization");
     const networkEpoch = this.#networkEpoch;
     const now = authorityTime ?? await this.#now();
@@ -426,9 +485,12 @@ export class RecoverableProductSessionClient {
       method: "POST", path, bodyDigest: httpBodyDigest(canonicalJSON(body)),
       nonce: this.#tokens(), issuedAt: now.toISOString(), expiresAt,
     };
-    return this.#device.sign
-      ? createProductSessionProofV2With(session, input, this.#device.sign)
+    if (guard !== null) { await guard.readback(); guard.active(); }
+    const proof = this.#device.sign
+      ? await createProductSessionProofV2With(session, input, this.#device.sign)
       : createProductSessionProofV2(session, input, this.#device.secret);
+    if (guard !== null) { await guard.readback(); guard.active(); }
+    return proof;
   }
   async #now() {
     const value = typeof this.#gateway.currentTime === "function"

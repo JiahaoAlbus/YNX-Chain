@@ -1,0 +1,11 @@
+# Native product API session authentication
+
+After explicit Wallet authorization, retain the actual `RecoverableProductSessionClient` in the native product factory. Call `await client.createIntrospectionProof(requiredScopes)` immediately before each product API request. Send its `proofHeader` as `x-ynx-product-session-proof-v2`. This API signs the canonical Gateway introspection body and does not contact the introspection endpoint or consume the nonce. The device signer remains in the product's protected storage adapter.
+
+Scopes must be a nonempty sorted unique subset of the explicit device policy and active granted session. Each call obtains fresh authority time and checks the stored session and revocation records before and after signing. Guest, changed accounts, disconnect, network changes, expiry, or failed readback reject the request. A lost response needs a new proof; retain the same separately managed business idempotency key.
+
+On the server, instantiate `ProductSessionServerAuthorizer` once with the canonical registry, fixed product/platform, HTTPS Gateway endpoint, trusted fetch, timeout and server clock. For each protected route, call `authorize({proofHeader, origin, method, path, requiredScopes})`. Read the route and scopes from server policy. Reject duplicate proof and Origin headers before calling. Native requests may omit Origin (`null`); web requests must send their exact registered Origin.
+
+The authorizer uses the official proof decoder and one live Gateway introspection. It checks the returned account/device/product tuple, scopes, chain, platform and lifetime, including expiry during the HTTP request. Gateway failures are not cached or retried. No caller URL, cookies, role, account claim or bearer token is forwarded upstream.
+
+The returned session authenticates its account and granted scopes. It does **not** approve the business request body, a payment or a Card application. Enforce resource ownership and route policy separately. Card application creation must additionally verify the Wallet Card approval against the server's stored challenge and exact five application details, then apply durable challenge consumption and business idempotency. Do not reinterpret the session proof as an EVM transaction signature.
