@@ -20,6 +20,15 @@
   <div class="disclosure" role="note"><strong>TESTNET ONLY</strong> Not an exchange listing or production custody venue. No third-party price, liquidity, public volume, users or counterparties are represented.</div>
 
   <main id="main" tabindex="-1">
+    <section id="private-account" class="panel private-account" aria-labelledby="private-title">
+      <header><h2 id="private-title">Exchange private account</h2><span>Read-only · separate from standard Wallet</span></header>
+      <p id="private-status" class="state-box" role="status" aria-live="polite">Guest mode. Public market data does not require private account approval.</p>
+      <div class="private-actions"><button id="private-begin" type="button">Prepare read-only Wallet sign-in</button><a id="private-open" hidden rel="noreferrer">Open YNX Wallet to review read-only access</a><button id="private-retry" type="button" class="secondary">Retry private account</button><button id="private-refresh" type="button" class="secondary" hidden>Refresh account data</button><button id="private-guest" type="button" class="secondary">Hide private data · Guest</button><button id="private-disconnect" type="button" class="secondary">Revoke private session…</button></div>
+      <p>Only <code>exchange:read</code> is requested. Native YNX account balances below are venue ledger balances, not an EVM Wallet balance or a transaction authorization. Guest hides local data without claiming server revocation.</p>
+      <div id="private-details" hidden><p>Native account: <code id="private-native-account">—</code></p><p>Session expires: <span id="private-expiry">—</span></p></div>
+      <p id="private-source" class="source-note">No verified account snapshot.</p>
+      <p><a href="https://www.ynxweb4.com/dapp/download" rel="noreferrer">Download YNX Wallet</a> · <button id="private-standard-wallet" type="button" class="text-button">YNX / MetaMask standard Wallet options</button>. MetaMask does not issue YNX native Product Sessions.</p>
+    </section>
     <section id="market" class="view active" aria-labelledby="market-title">
       <div class="market-strip">
         <div><p class="eyebrow">MARKET</p><h1 id="market-title">YNXT / YUSD_TEST</h1><p>Native testnet asset · venue-only quote credits</p></div>

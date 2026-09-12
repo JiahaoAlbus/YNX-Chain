@@ -14,7 +14,7 @@ import (
 )
 
 func TestGuestMarketModuleIsServedWithJavaScriptMIMEAndExactBytes(t *testing.T) {
-	for _, module := range []string{"market-data.js", "order-preview.js", "wallet-connect.js"} {
+	for _, module := range []string{"market-data.js", "order-preview.js", "wallet-connect.js", "private-session.js"} {
 		expected, err := os.ReadFile("../web/" + module)
 		if err != nil {
 			t.Fatal(err)
@@ -24,6 +24,15 @@ func TestGuestMarketModuleIsServedWithJavaScriptMIMEAndExactBytes(t *testing.T) 
 		if res.Code != http.StatusOK || !strings.Contains(res.Header().Get("Content-Type"), "javascript") || !bytes.Equal(res.Body.Bytes(), expected) {
 			t.Fatalf("module was not served exactly: status=%d mime=%s", res.Code, res.Header().Get("Content-Type"))
 		}
+	}
+}
+
+func TestPrivateSessionCSPOnlyAddsFixedCanonicalAuthority(t *testing.T) {
+	w := httptest.NewRecorder()
+	securityHeaders(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) { w.WriteHeader(http.StatusOK) })).ServeHTTP(w, httptest.NewRequest("GET", "/", nil))
+	csp := w.Header().Get("Content-Security-Policy")
+	if !strings.Contains(csp, "connect-src 'self' https://wallet-auth.ynxweb4.com;") || strings.Contains(csp, "rpc.ynxweb4.com") || strings.Contains(csp, "*") || w.Header().Get("Referrer-Policy") != "no-referrer" {
+		t.Fatalf("unexpected private authority CSP: %s", csp)
 	}
 }
 
