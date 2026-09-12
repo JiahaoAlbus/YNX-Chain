@@ -20,12 +20,18 @@ function startMarketStream(){
 }
 async function api(path,options={},scope=''){
   const method=String(options.method||'GET').toUpperCase(),readOnly=method==='GET',attempts=readOnly?READ_RETRY_DELAYS.length:1;
+  if(!readOnly)throw Object.assign(new Error('Private writes require a separately verified native action signature and route permission. Nothing was submitted.'),{nonRetryable:true});
+  if(scope){
+    if(scope!=='exchange:read'||!window.YNXExchangeWallet?.read)throw Object.assign(new Error('Only read-only private Exchange access is available.'),{nonRetryable:true});
+    try{return await window.YNXExchangeWallet.read(path)}catch(error){error.nonRetryable=true;throw error}
+  }
   for(let attempt=0;attempt<attempts;attempt++){
     if(attempt){setNetworkStatus(`Reconnecting ${attempt}/${attempts-1}…`,'retrying');await wait(READ_RETRY_DELAYS[attempt])}
     try{
       const headers={'content-type':'application/json',...(options.headers||{})};
-      if(scope){const wallet=window.YNXExchangeWallet;if(!wallet)throw Object.assign(new Error('YNX Wallet integration is unavailable.'),{nonRetryable:true});try{headers['X-YNX-Product-Session-Proof']=await wallet.requireProof(scope)}catch(error){error.nonRetryable=true;throw error}}
-      const response=await fetch(`/api${path}`,{...options,method,headers,signal:AbortSignal.timeout(10_000)});let body={};try{body=await response.json()}catch{}
+      const response=await fetch(`/api${path}`,{...options,method,headers,credentials:'omit',redirect:'error',cache:'no-store',signal:AbortSignal.timeout(10_000)});
+      if(!/^application\/json(?:;|$)/i.test(response.headers.get('content-type')||'')||Number(response.headers.get('content-length'))>2*1024*1024)throw Object.assign(new Error('Exchange API returned an invalid response; HTML fallback is not market data.'),{nonRetryable:true});
+      const text=await response.text();if(text.length>2*1024*1024)throw Object.assign(new Error('Exchange API response exceeds the read limit.'),{nonRetryable:true});let body;try{body=JSON.parse(text)}catch{throw Object.assign(new Error('Exchange API returned invalid JSON.'),{nonRetryable:true})}
       if(!response.ok){const error=new Error(body.error||`Request failed (${response.status})`);error.status=response.status;if(!readOnly||![502,503,504].includes(response.status)||attempt===attempts-1)throw error;continue}
       setNetworkStatus(marketSocket?.readyState===WebSocket.OPEN?'YNX Testnet live stream connected':'YNX Testnet connected','live');return body
     }catch(error){if(!readOnly||error?.status||error?.nonRetryable||attempt===attempts-1){if(!error?.nonRetryable&&(!error?.status||[502,503,504].includes(error.status)))setNetworkStatus('Connection unavailable · Retry','offline');throw error}}
@@ -33,10 +39,11 @@ async function api(path,options={},scope=''){
   throw new Error('Read connection retry exhausted.')
 }
 function idempotency(prefix){return `${prefix}-${Date.now()}-${crypto.getRandomValues(new Uint32Array(1))[0]}`}
-function requireCentralSession(){if(window.YNXExchangeWallet?.connected())return true;$('#wallet-dialog').showModal();return false}
+function requireCentralSession(){if(window.YNXExchangeWallet?.connected())return true;$('#private-title').scrollIntoView({block:'center'});toast('Private venue reads require the separate read-only sign-in. Trading additionally requires a native Wallet action signature.');return false}
 
 async function boot(){bind();window.addEventListener('ynx-exchange-wallet-error',event=>toast(event.detail));try{await window.YNXExchangeWallet?.ready;const action=window.YNXExchangeWallet?.consumeActionResult();if(action)toast(`${evidenceLabel(action.kind)} accepted${action.record?.status?`: ${action.record.status}`:''}`);[state.config,state.solvency]=await Promise.all([api('/v1/config'),api('/v1/solvency')]);$('#custody-address').textContent=state.config.custodyAddress||'Not configured — deposits and withdrawals disabled';$('#withdraw-fee').textContent=`${display(withdrawFee())} YNXT`;renderSolvency();await Promise.all([refreshBook(),refreshPerpetual()]);startMarketStream()}catch(e){toast(e.message)}if(window.YNXExchangeWallet?.connected())await refreshAccount()}
 function bind(){
+  window.addEventListener('ynx-exchange-private-account-state',event=>{const privateState=event.detail;if(privateState.phase==='connected'){state.snapshot=privateState.snapshot;state.account=privateState.account;renderAccount()}else clearPrivateViews()});
   $$('.topbar nav button').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.view)));
   $('#connect').addEventListener('click',()=>$('#wallet-dialog').showModal());
   $('#buy-tab').addEventListener('click',()=>setSide('buy'));$('#sell-tab').addEventListener('click',()=>setSide('sell'));
@@ -61,7 +68,8 @@ function withdrawEstimate(){const a=micro($('#withdraw-amount').value||0),fee=wi
 async function refreshAll(){await Promise.all([refreshBook(),refreshPerpetual(),refreshAccount()])}
 async function refreshBook(){try{const interval=$('#spot-interval').value,[book,tape,candles]=await Promise.all([api('/v1/orderbook'),api('/v1/market-data/trades'),api(`/v1/market-data/candles?market=YNXT-YUSD_TEST&interval=${interval}&limit=120`)]);state.book=book;state.publicTrades=tape.trades||[];state.spotCandles=candles.candles||[];renderBook();renderPublicMarket();renderCandles('#chart-svg','#chart-empty',state.spotCandles,'Spot')}catch(e){toast(e.message)}}
 async function refreshPerpetual(){try{const interval=$('#perp-interval').value,[risk,book,candles]=await Promise.all([api('/v1/risk'),api('/v1/perpetual/orderbook'),api(`/v1/market-data/candles?market=YNXT-YUSD_TEST-PERP&interval=${interval}&limit=120`)]);state.risk=risk;state.perpBook=book;state.perpCandles=candles.candles||[];renderPerpetualPublic();renderCandles('#perp-chart-svg','#perp-chart-empty',state.perpCandles,'Perpetual')}catch(e){toast(e.message)}}
-async function refreshAccount(){if(!window.YNXExchangeWallet?.connected())return;try{state.snapshot=await api('/v1/account',{},'exchange:read');state.account=window.YNXExchangeWallet.session()?.account||state.snapshot.balances[0]?.account;$('#connect').textContent=state.account?`${state.account.slice(0,8)}…${state.account.slice(-4)}`:'Wallet session';renderAccount()}catch(e){$('#connect').textContent='Sign in with YNX Wallet';toast(e.message)}}
+async function refreshAccount(){if(!window.YNXExchangeWallet?.connected())return;try{await window.YNXExchangeWallet.refresh()}catch(e){clearPrivateViews();toast(e.message)}}
+function clearPrivateViews(){state.snapshot=null;state.account=null;$('#owned-volume').textContent='—';for(const id of ['orders','perp-positions','perp-orders','activity-body']){const root=$('#'+id),row=document.createElement('tr'),cell=document.createElement('td');cell.colSpan=id==='perp-orders'?7:6;cell.className='empty-cell';cell.textContent='Private data hidden. Sign in with a verified read-only session to load owned records.';row.append(cell);root.replaceChildren(row)}$('#balances').textContent='No private balances loaded.';$('#margin-summary').textContent='No private margin account loaded.';$('#liability-proof').textContent='No private liability proof loaded.';$('#activity-head').replaceChildren();$('#withdraw-lock').checked=false;$('#session-ttl').value='480'}
 function renderBook(){renderRows('#asks',(state.book?.asks||[]).slice(0,7).reverse());renderRows('#bids',(state.book?.bids||[]).slice(0,7));const all=[...(state.book?.asks||[]),...(state.book?.bids||[])];$('#spread').textContent=all.length?'Owned venue open orders':'No public market depth'}
 function renderRows(selector,rows){const root=$(selector);root.replaceChildren();if(!rows.length){const div=document.createElement('div');div.innerHTML='<span>—</span><span>—</span><span>—</span>';root.append(div);return}rows.forEach(o=>{const div=document.createElement('div');[display(o.priceMicro),display(o.amountMicro-o.filledMicro),display(Math.floor((o.amountMicro-o.filledMicro)*o.priceMicro/1e6))].forEach(v=>{const span=document.createElement('span');span.textContent=v;div.append(span)});root.append(div)})}
 function renderAccount(){renderOrders();renderBalances();renderActivity();renderMargin();const s=state.snapshot.security;$('#withdraw-lock').checked=!!s.withdrawalLock;$('#session-ttl').value=String(s.sessionTtlMinutes||480);const volume=(state.snapshot.trades||[]).reduce((n,t)=>n+t.amountMicro,0);$('#owned-volume').textContent=volume?`${display(volume)} YNXT`:'—'}
@@ -82,10 +90,11 @@ async function reviewPerpetualOrder(event){event.preventDefault();if(!requireCen
 async function reviewMarginTransfer(event){if(!requireCentralSession())return;const amountMicro=micro($('#margin-amount').value),direction=event.currentTarget.id==='margin-deposit'?'deposit':'withdraw';if(!Number.isSafeInteger(amountMicro)||amountMicro<=0){toast('Enter a positive YUSD_TEST margin transfer amount.');return}try{await window.YNXExchangeWallet.transferMargin({direction,amountMicro,idempotencyKey:idempotency(`margin-${direction}`)})}catch(e){toast(e.message)}}
 async function cancelOrder(order){if(!requireCentralSession())return;try{await window.YNXExchangeWallet.cancelSpotOrder(order.id,idempotency('spot-cancel'))}catch(e){toast(e.message)}}
 async function cancelPerpetualOrder(order){if(!requireCentralSession())return;try{await window.YNXExchangeWallet.cancelPerpetualOrder(order.id,idempotency('perpetual-cancel'))}catch(e){toast(e.message)}}
-async function observeDeposit(event){event.preventDefault();if(!requireCentralSession())return}
-function reviewWithdrawal(event){event.preventDefault();requireCentralSession()}
-async function saveSecurity(event){event.preventDefault();requireCentralSession()}
-async function openSupport(event){event.preventDefault();requireCentralSession()}
-async function requestAI(){requireCentralSession()}
+async function unavailableWrite(kind){try{await window.YNXExchangeWallet.unsupportedWrite(kind)}catch(error){toast(error.message)}}
+async function observeDeposit(event){event.preventDefault();await unavailableWrite('deposit')}
+function reviewWithdrawal(event){event.preventDefault();return unavailableWrite('withdrawal')}
+async function saveSecurity(event){event.preventDefault();await unavailableWrite('security')}
+async function openSupport(event){event.preventDefault();await unavailableWrite('support')}
+async function requestAI(){await unavailableWrite('ai')}
 function renderAIState(r){const root=$('#ai-result');root.replaceChildren();const message=document.createElement('p');message.textContent=r.status==='permission_required'?'Permission is required before selected context can be sent.':`Provider unavailable: ${r.providerStatus}. Streaming did not start and no generated or canned result was substituted.`;root.append(message);for(const action of ['retry','cancel','reject','delete']){const button=document.createElement('button');button.className='text-button';button.textContent=action[0].toUpperCase()+action.slice(1);button.addEventListener('click',async()=>{try{const next=await api(`/v1/ai/drafts/${encodeURIComponent(r.id)}/actions`,{method:'POST',body:JSON.stringify({action})});renderAIState(next);await refreshAccount()}catch(e){toast(e.message)}});root.append(button)}}
 boot();
