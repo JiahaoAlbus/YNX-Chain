@@ -1,7 +1,7 @@
 import {CardError,type CardScope,type Principal} from './contracts.ts';
 
-// The two new scopes are proposed to the Wallet registry, not silently mapped
-// from application/controls permission. A current session lacking them is denied.
+// The two new scopes exist in Wallet source ff5b7d49, not necessarily a live
+// registry. They are never mapped from application/controls permission.
 const routeScopes:readonly [string,RegExp,CardScope][]=[
   ['GET',/^\/api\/card\/v1\/state$/,'account:read'],
   ['GET',/^\/api\/card\/v1\/cards\/[^/]+\/(statement|reconciliation)$/,'account:read'],

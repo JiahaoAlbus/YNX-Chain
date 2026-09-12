@@ -1,12 +1,12 @@
 export const CHAIN='0x1917' as const;
 export const ENVIRONMENT='YNX_TESTNET_CARD_PAYMENT_SIMULATION' as const;
 export class CardError extends Error {code:string;status:number;constructor(code:string,status=409){super(code);this.code=code;this.status=status}}
-export type Principal={owner:string;chainId:typeof CHAIN|'ynx_6423-1';expiresAt:string;scopes:readonly string[];evmAddress?:string};
+export type Principal={owner:string;chainId:typeof CHAIN|'ynx_6423-1';expiresAt:string;scopes:readonly string[]};
 export type CardScope='account:read'|'card:application:write'|'card:controls:write'|'card:dispute:write'|'card:topup:write'|'card:simulation:write';
 export type AuthenticationRequest={proofHeader:string;origin?:string;operation:'read'|'write';method:string;path:string;requiredScopes:readonly CardScope[]};
 export type ApplicationDetails={nickname:string;useCase:string;limitWei:string;riskAccepted:boolean;termsVersion:string};
 export type BusinessChallenge={id:string;applicationId:string;owner:string;chainId:typeof CHAIN;purpose:'create-testnet-card';payloadHash:string;nonce:string;issuedAt:string;expiresAt:string};
-export type Approval={approved:boolean;approvalId:string;challengeId:string;owner:string;payloadHash:string;expiresAt:string};
+export type Approval={approved:boolean;approvalId:string;challengeId:string;owner:string;payloadHash:string;expiresAt:string;evmAddress?:string};
 /** Supplied by the accepted Wallet owner adapter. Card does not implement Wallet
  * DeviceProof, signature recovery or Product Session completion. */
 export interface WalletAuthority {authenticate(request:AuthenticationRequest):Promise<Principal>;approve(principal:Principal,expected:BusinessChallenge,proof:unknown,details:ApplicationDetails):Promise<Approval>}

@@ -1,0 +1,51 @@
+
+> @ynx-chain/card@1.0.0 test:backend
+> node --import tsx --test server/*.test.ts
+
+✔ Core adapter verifies exact wei, canonical block and confirmation readback without sending transactions (11.804584ms)
+✔ Core transport does not follow authority redirects (1.759084ms)
+✔ wrong chain is rejected before transaction inspection (0.406334ms)
+✔ missing and failed receipts cannot be credited (0.362666ms)
+✔ wrong sender, recipient and exact amount are rejected (0.416417ms)
+✔ insufficient confirmations and changed canonical block reject (0.386166ms)
+✔ reorg during verification cannot be accepted (0.269041ms)
+✔ transaction outside the accepted intent time is rejected (0.214ms)
+✔ Core endpoint rejects credentials, query, fragment and non-HTTPS configuration (0.1215ms)
+✔ each Card route binds one minimum scope without legacy escalation (0.853458ms)
+✔ internal mutation operations also enforce exact permission before cache use (0.196083ms)
+✔ persistent drafts are isolated, idempotent and encrypted on disk (15.273334ms)
+✔ missing approval verifier persists DEGRADED without a card (4.091ms)
+✔ an explicit rejection is durable and never creates a card (4.517666ms)
+✔ expired or mismatched approval cannot activate a card (3.136291ms)
+✔ active application submission retries do not request a second approval (2.966417ms)
+✔ cached approval still requires current identity, ownership, scope and identical input (2.568667ms)
+✔ pending submissions do not replay the external approval call (2.425458ms)
+✔ verified fixture funding, partial settlement, restart and duplicate credit conserve wei (6.398792ms)
+✔ mismatched Core evidence never reaches the ledger (2.457833ms)
+✔ frozen and insufficient-balance authorizations decline and survive restart (3.894042ms)
+✔ real HTTP boundary exposes preview identity but denies private requests without verifier (27.20425ms)
+✔ coarse legacy scopes cannot read, mutate or recover cached application results (1.953041ms)
+✔ application-only permission cannot control, fund or simulate, including before resource lookup (2.510375ms)
+✔ controls, funding and simulation scopes grant only their own operations (5.527458ms)
+✔ application approval receives the exact persisted five details, not unsigned controls (3.684625ms)
+✔ native YNX subjects can apply but have no inferred EVM funding authorization (3.165834ms)
+✔ internal outbox retries preserve stable event ids across restart (4.926292ms)
+✔ HTTP selects exact proof scopes before authentication and denies mismatched grants (12.527833ms)
+✔ simulation fee is conserved, idempotent and reconciled after restart (4.975542ms)
+✔ reconciliation finds inconsistent snapshots instead of claiming ledger success (3.282708ms)
+✔ a transaction cannot fund a second intent and the failed claim is atomic (4.903084ms)
+✔ Card consumes the exact verification-only artifact and public signed fixture (0.536ms)
+✔ the accepted signed fixture maps to an approval and public-key-bound sender (20.416917ms)
+✔ changed signature, unsigned sender, high-S signature and unsigned rejection grant no approval (0.849583ms)
+✔ current challenge, complete persisted details and live authenticated owner must match (3.125875ms)
+✔ historical signature parsing cannot bypass current proof expiry (2.783542ms)
+✔ a configured authentication adapter cannot override Card business approval (0.112792ms)
+✔ verified fixture activates once, persists sender binding and does not credit any funding (14.257834ms)
+ℹ tests 39
+ℹ suites 0
+ℹ pass 39
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 266.782041

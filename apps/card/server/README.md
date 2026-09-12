@@ -12,7 +12,7 @@ Required deployment configuration (never put values containing secrets into evid
 
 - `YNX_CARD_STATE_KEY_BASE64`: independently generated 32-byte AES key, base64 encoded. Not a Wallet/private key. Back it up separately; losing it makes existing state unreadable.
 - `YNX_CARD_DATA_DIR`: persistent single-host volume for `card.sqlite`, WAL and SQLite files. Ephemeral function filesystems are not supported.
-- `YNX_CARD_AUTH_ADAPTER_MODULE`: trusted server-side module exporting `createWalletAuthority({origin})`. The only supplied authority origin is `https://wallet-auth.ynxweb4.com`. The Wallet owner must supply/confirm the adapter. It authenticates Card audience, owner, chain, route-specific scope, expiry and revocation and validates explicit application approvals. No permissive production adapter is supplied.
+- `YNX_CARD_AUTH_ADAPTER_MODULE`: trusted server-side module exporting `createWalletAuthority({origin})`. The only supplied authority origin is `https://wallet-auth.ynxweb4.com`. The Wallet owner must supply/confirm the adapter. It authenticates Card audience, owner, chain, route-specific scope, expiry and revocation. Its business approval function, if any, is ignored; Card uses the fixed shared verifier described below. No permissive production authentication adapter is supplied.
 - `YNX_CARD_CORE_RPC_URL`: fixed accepted HTTPS Core RPC, server-side reads only.
 - `YNX_CARD_TESTNET_FUNDING_ADDRESS`: exact operator-controlled Testnet funding address. There is no embedded default address.
 - `YNX_CARD_MIN_CONFIRMATIONS`: minimum accepted confirmations (default 2).
@@ -26,8 +26,8 @@ conversion to broad `card.read`/`card.write` authority. Read uses `account:read`
 application actions use `card:application:write`, and controls/lifecycle use
 `card:controls:write`. Funding intent/receipt routes require `card:topup:write`;
 simulated merchant actions require `card:simulation:write`. These last two scopes
-were requested from the Wallet Owner for its next registry checkpoint; they are
-not a claim that c97f85e9 or a live registry currently grants them. A session
+are included in Wallet source ff5b7d49; they are not a claim that c97f85e9 or a
+live registry currently grants them. A session
 without either scope is denied, not automatically upgraded.
 
 Authentication uses only `X-YNX-Product-Session-Proof-V2`. Legacy proof and bearer
@@ -80,3 +80,20 @@ State is persisted in SQLite WAL transactions; owner business snapshots are AES-
 Business events and delivery attempts persist with the ledger. `flushEvents(owner, transport)` is a trusted server-worker seam, not an end-user HTTP endpoint or Wallet scope. Its owner and transport are never client-selected through this server. Receivers must deduplicate stable event IDs after ambiguous delivery. An accepted Data Fabric transport and actual reconciliation evidence are still required; test fixture events are not public funding evidence.
 
 This development service is not yet bound to a public deployment or to the native/Web UI. The existing tested APK is unchanged. Fixture approval/Core adapters appear only in tests. No real account, signature, transaction, or Card funding is asserted by those tests.
+
+## Consumed Card application verifier
+
+`walletApproval.ts` consumes the verification-only Wallet Owner ff5b7d49
+artifact with its original source manifest. It calls
+`verifySignedCardApplicationApproval` against the current persisted challenge,
+all five details, authenticated subject and current time. Only then is the
+verified account mapped to EVM and persisted as `card.fundingSender`.
+Top-up intents ignore any EVM address claimed by a client or private-session
+object. Existing native cards without verified sender binding remain unable to
+create a funding intent.
+
+The shared proof means approved only. An unsigned rejection does not verify as
+an approval. Historical parsing cannot replace time-bound verification. The
+Card API's default authentication remains unavailable until the accepted
+session verifier is configured. The native review/return flow and a compatible
+MetaMask business-approval scheme are not established by consuming this helper.

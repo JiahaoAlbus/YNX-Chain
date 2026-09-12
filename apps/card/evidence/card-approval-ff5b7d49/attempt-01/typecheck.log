@@ -1,0 +1,6 @@
+
+> @ynx-chain/card@1.0.0 typecheck
+> node --stack_size=8192 ./node_modules/typescript/bin/tsc --noEmit && node ./node_modules/typescript/bin/tsc --project server/tsconfig.json
+
+server/walletApproval.test.ts(14,98): error TS1470: The 'import.meta' meta-property is not allowed in files which will build into CommonJS output.
+server/walletApproval.test.ts(23,52): error TS1470: The 'import.meta' meta-property is not allowed in files which will build into CommonJS output.
