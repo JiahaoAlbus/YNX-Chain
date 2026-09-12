@@ -48,7 +48,9 @@ func requireDurability(t *testing.T, s *Server, hash, want string) map[string]an
 			if !reflect.DeepEqual(receipt["ynxDurability"], proof) || receipt["blockHash"] != proof["blockHash"] || receipt["blockNumber"] != proof["blockNumber"] || receipt["transactionHash"] != proof["transactionHash"] {
 				t.Fatalf("receipt proof mismatch: %v", receipt)
 			}
-			if !reflect.DeepEqual(receipt["ynxNativeTransaction"], map[string]any{"type": "transfer", "amountYNXT": "2", "feeYNXT": "1", "nonce": "0x1"}) {
+			native := receipt["ynxNativeTransaction"].(map[string]any)
+			transaction, _ := s.devnet.Transaction(hash)
+			if native["type"] != "transfer" || native["amountYNXT"] != "2" || native["feeYNXT"] != "1" || native["nonce"] != "0x1" || native["from"] != transaction.From || native["to"] != transaction.To {
 				t.Fatalf("native tx binding: %v", receipt["ynxNativeTransaction"])
 			}
 		} else if _, ok := proof["blockNumber"]; ok {
