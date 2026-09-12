@@ -1,0 +1,4 @@
+/* Author display rules must not override the unavailable Wallet-open state. */
+#private-open-wallet[hidden] {
+  display: none !important;
+}
