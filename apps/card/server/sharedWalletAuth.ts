@@ -1,10 +1,10 @@
-import {ProductSessionServerAuthorizer} from './vendor/wallet-session-a7dad7ec/product-session-server.mjs';
-import {registry} from './vendor/wallet-session-a7dad7ec/registry.mjs';
+import {ProductSessionServerAuthorizer} from './vendor/wallet-session-6f332753/product-session-server.mjs';
+import {registry} from './vendor/wallet-session-6f332753/registry.mjs';
 import {CardError,subject,type WalletAuthority} from './contracts.ts';
 import {scopeForRoute} from './permissions.ts';
 
 export const CARD_SESSION_AUTHORITY='https://wallet-auth.ynxweb4.com';
-export const CARD_SESSION_SDK_SOURCE='a7dad7ec1bc7c06577978bdd5fea8dc9c7a248a9';
+export const CARD_SESSION_SDK_SOURCE='6f332753baae5deaf6b05c8276b20a02cc4887c5';
 
 /** Only trusted bootstrap/test code may inject transport/time. The HTTP caller
  * never supplies an authority URL, registry, authorizer or identity claim. */
@@ -25,7 +25,7 @@ export function createWalletAuthority(dependencies:{fetch?:typeof fetch;clock?:(
     }catch(error){
       const code=typeof error==='object'&&error!==null&&'code'in error?String(error.code):'';
       if(['ORIGIN_MISMATCH','CROSS_PRODUCT_SESSION','HTTP_BINDING_MISMATCH','SESSION_BINDING_MISMATCH','SCOPE_WIDENING','INVALID_ROUTE_POLICY'].includes(code))throw new CardError(code,403);
-      if(['SESSION_EXPIRED','SESSION_INACTIVE','REPLAY','INVALID_PROOF','INVALID_REQUEST','INVALID_BASE64URL','INVALID_SIGNATURE'].includes(code))throw new CardError(code,401);
+      if(['SESSION_EXPIRED','SESSION_INACTIVE','REPLAY','INVALID_PROOF','INVALID_PROOF_HEADER','INVALID_REQUEST','INVALID_BASE64URL','INVALID_SIGNATURE'].includes(code))throw new CardError(code,401);
       throw new CardError('PRIVATE_SERVICE_DEGRADED',503);
     }
   }};

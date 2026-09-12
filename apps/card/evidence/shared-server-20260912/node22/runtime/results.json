@@ -1,0 +1,52 @@
+{
+  "sourceCommit": "4b358064f63bd9f5b69ed31d54d721b602cfc3dc",
+  "node": "v22.23.1",
+  "platform": "linux",
+  "architecture": "x64",
+  "at": "2026-09-12T11:07:03.469Z",
+  "localLoopbackOnly": true,
+  "productionServiceInstalled": false,
+  "publicDeployed": false,
+  "realSession": false,
+  "realApproval": false,
+  "realFunding": false,
+  "productionRealPayments": false,
+  "passed": true,
+  "exit": {
+    "code": 0,
+    "signal": null
+  },
+  "failure": null,
+  "resources": [
+    {
+      "path": "/api/card/v1/version",
+      "status": 200,
+      "bytes": 256,
+      "sha256": "701460473f3259acb8dec6f6a16e756274de3724bc5ff645d5afdad76148ec5f",
+      "headers": {
+        "cache-control": "no-store",
+        "connection": "keep-alive",
+        "content-length": "256",
+        "content-type": "application/json; charset=utf-8",
+        "date": "Sat, 12 Sep 2026 11:07:03 GMT",
+        "keep-alive": "timeout=5",
+        "x-content-type-options": "nosniff"
+      }
+    },
+    {
+      "path": "/api/card/v1/state",
+      "status": 503,
+      "bytes": 165,
+      "sha256": "b7cead2ef0478fb8cb3b6e467b1cc6bb8469d62d5578e6760f8bddb058c7c321",
+      "headers": {
+        "cache-control": "no-store",
+        "connection": "keep-alive",
+        "content-length": "165",
+        "content-type": "application/json; charset=utf-8",
+        "date": "Sat, 12 Sep 2026 11:07:03 GMT",
+        "keep-alive": "timeout=5",
+        "x-content-type-options": "nosniff"
+      }
+    }
+  ]
+}

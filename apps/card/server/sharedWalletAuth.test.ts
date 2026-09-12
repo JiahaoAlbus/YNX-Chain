@@ -36,7 +36,7 @@ test('exact unchanged Wallet fixture and server artifact hashes remain bound',()
   assert.equal(read.syntheticOnly,true);assert.equal(write.syntheticOnly,true);
   assert.equal(createHash('sha256').update(readBytes).digest('hex'),'02bf3fd878d1a48457e22bfd985b11d39c10ebde6a0daa69e43ffabc02364e63');
   assert.equal(createHash('sha256').update(writeBytes).digest('hex'),'f939b85fa1fa4b0d2718df027c091e058279378fe1200b9b538f4c493f8ab3c8');
-  assert.equal(createHash('sha256').update(readFileSync('server/vendor/wallet-session-a7dad7ec/product-session-server.mjs')).digest('hex'),'d456d7baff7a27eec840f4e8f4d853c4268b79027fa4451704823259d13bcc19');
+  assert.equal(createHash('sha256').update(readFileSync('server/vendor/wallet-session-6f332753/product-session-server.mjs')).digest('hex'),'a7107b35fc4ea27e0aad4a67f8cabc388d2551e9cc09970ca90a573b7042a520');
 });
 test('Card consumes the shared live-introspection interface at one fixed URL and maps only its returned principal',async()=>{
   const f=harness(),principal=await f.authority.authenticate(request);
@@ -60,6 +60,10 @@ test('route-required scope cannot be replaced by a caller claim or a differently
   await assert.rejects(()=>f.authority.authenticate({...request,requiredScopes:['card:application:write']}),{code:'CARD_ROUTE_SCOPE_MISMATCH'});
   await assert.rejects(()=>f.authority.authenticate({...request,proofHeader:write.proofHeader}),{code:'HTTP_BINDING_MISMATCH'});
   await assert.rejects(()=>f.authority.authenticate({...writeRequest,proofHeader:read.proofHeader}),{code:'HTTP_BINDING_MISMATCH'});
+  assert.equal(f.calls.length,0);
+});
+test('missing or malformed proof is an authentication error, not a claimed authority outage',async()=>{
+  const f=harness();for(const proofHeader of ['', 'not-json'])await assert.rejects(()=>f.authority.authenticate({...request,proofHeader}),{code:'INVALID_PROOF_HEADER',status:401});
   assert.equal(f.calls.length,0);
 });
 for(const field of ['account','deviceId','platform','callback','chainId','scopes'])test(`changed authority ${field} cannot authenticate a Card user`,async()=>{

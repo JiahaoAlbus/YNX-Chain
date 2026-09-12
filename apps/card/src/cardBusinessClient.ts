@@ -15,6 +15,7 @@ export class CardBusinessError extends Error {
 }
 type Capabilities=Readonly<{
   expectedSourceCommit:string;
+  platform?:'web'|'ios'|'android';
   identity:()=>CardPrivateIdentity|null;
   // Supply the accepted SDK's createIntrospectionProof method. Card never signs or decodes DeviceProof.
   createIntrospectionProof:(requiredScopes:readonly string[])=>Promise<Readonly<{proofHeader:string}>>;
@@ -75,9 +76,12 @@ export class CardBusinessClient {
   private flights=new Set<AbortController>();
   private transport:typeof fetch;
   private timeout:number;
+  private platform:'web'|'ios'|'android';
   constructor(private capabilities:Capabilities){
     if(!/^[0-9a-f]{40}$/.test(capabilities.expectedSourceCommit))throw new CardBusinessError('CARD_API_SOURCE_NOT_CONFIGURED','configuration');
-    this.transport=capabilities.fetch??globalThis.fetch;
+    this.platform=capabilities.platform??'web';
+    if(!['web','ios','android'].includes(this.platform))throw new CardBusinessError('INVALID_CARD_PLATFORM','configuration');
+    this.transport=capabilities.fetch??globalThis.fetch?.bind(globalThis);
     this.timeout=capabilities.timeoutMs??10000;
     if(typeof this.transport!=='function'||!Number.isSafeInteger(this.timeout)||this.timeout<1||this.timeout>10000)throw new CardBusinessError('CARD_API_TRANSPORT_UNAVAILABLE','configuration');
   }
@@ -105,7 +109,8 @@ export class CardBusinessClient {
       const proof=await bounded(this.capabilities.createIntrospectionProof([scope]));active();
       if(!proof||typeof proof.proofHeader!=='string'||! /^[A-Za-z0-9_-]{1,16384}$/.test(proof.proofHeader))throw new CardBusinessError('INVALID_PRIVATE_SESSION_PROOF','product-session');
       phase='card-api';
-      const response=await bounded(this.transport(CARD_BUSINESS_ORIGIN+path,{method,redirect:'error',credentials:'omit',cache:'no-store',signal:controller.signal,headers:{Accept:'application/json','X-YNX-Product-Session-Proof-V2':proof.proofHeader,...(method==='GET'?{}:{'Content-Type':'application/json','Idempotency-Key':key!})},...(input===undefined?{}:{body:JSON.stringify(input)})}));active();
+      const transport=this.transport;
+      const response=await bounded(transport(CARD_BUSINESS_ORIGIN+path,{method,redirect:'error',credentials:'omit',cache:'no-store',signal:controller.signal,headers:{Accept:'application/json','X-YNX-Card-Platform':this.platform,'X-YNX-Product-Session-Proof-V2':proof.proofHeader,...(method==='GET'?{}:{'Content-Type':'application/json','Idempotency-Key':key!})},...(input===undefined?{}:{body:JSON.stringify(input)})}));active();
       const text=await bounded(response.text());active();
       if(new TextEncoder().encode(text).length>1048576||!/^application\/json(?:;|$)/i.test(response.headers.get('content-type')??''))throw invalid();
       let value:unknown;try{value=JSON.parse(text);}catch{throw invalid();}

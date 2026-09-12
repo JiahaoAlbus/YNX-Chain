@@ -1,0 +1,147 @@
+{
+  "sourceCommit": "6f332753baae5deaf6b05c8276b20a02cc4887c5",
+  "sourceTree": "b961071c6d335f30eb9a97a6ce166af2415681f0",
+  "artifact": "product-session-server.mjs",
+  "bytes": 132173,
+  "sha256": "a7107b35fc4ea27e0aad4a67f8cabc388d2551e9cc09970ca90a573b7042a520",
+  "imports": [],
+  "inputs": [
+    {
+      "path": "packages/wallet-auth/node_modules/@noble/hashes/utils.js",
+      "sha256": "e2adfc13c846487feff0410bd5508a1d66f5ebadc3188f3a40a6b55449981e2f"
+    },
+    {
+      "path": "packages/wallet-auth/node_modules/@noble/hashes/_md.js",
+      "sha256": "8227b9b5cabf078a9d7f7317f7a1ace6e46627539aa9364667aec724e1636f14"
+    },
+    {
+      "path": "packages/wallet-auth/node_modules/@noble/hashes/_u64.js",
+      "sha256": "766b91a693a798f9d3cde97b25db4a6d0cef66b2ca21153d3d42424d37878870"
+    },
+    {
+      "path": "packages/wallet-auth/node_modules/@noble/hashes/sha2.js",
+      "sha256": "0fb8e3c3f2c73a890be2524ac5d2542aaed4decff69e561231a86131203b3973"
+    },
+    {
+      "path": "packages/wallet-auth/src/canonical.js",
+      "sha256": "9f7ccc58b8bd1fadbb2dffa88a7512a8e3be0f4a9f2983800654ee5fe5d10119"
+    },
+    {
+      "path": "packages/wallet-auth/src/product-session-registry.js",
+      "sha256": "0ccceaeedb48b3e90e988e3f6b32985da3d76680ca1f8669b0f92fe006c417ae"
+    },
+    {
+      "path": "packages/wallet-auth/node_modules/@noble/curves/utils.js",
+      "sha256": "b4847e39fbb4a93e2a3e9f3945e41eabf6d58da5898cddaf45f7ed768f0e3758"
+    },
+    {
+      "path": "packages/wallet-auth/node_modules/@noble/curves/abstract/modular.js",
+      "sha256": "3af2a1f790880bcffb7730f53b4a91ab87c32701be8f1848a236cfae83b1101b"
+    },
+    {
+      "path": "packages/wallet-auth/node_modules/@noble/curves/abstract/curve.js",
+      "sha256": "fa597b90ed89a5c9fc659231b2af94679c290724d2db419fee0c3e3902902fb3"
+    },
+    {
+      "path": "packages/wallet-auth/node_modules/@noble/curves/abstract/fft.js",
+      "sha256": "b3ad080004e7d6db3839fef60de78ec12847ff508bd6a44c7e58c4658e5202b3"
+    },
+    {
+      "path": "packages/wallet-auth/node_modules/@noble/curves/abstract/hash-to-curve.js",
+      "sha256": "5ea9542031ac4c9c94e6817de1384d52b68fcfde9724fe06a06f3ab613a74c3f"
+    },
+    {
+      "path": "packages/wallet-auth/node_modules/@noble/curves/abstract/frost.js",
+      "sha256": "30ea2d4cb60117b06ea74cd06d1ee1a1270d2df728407fa437c7d5e382946591"
+    },
+    {
+      "path": "packages/wallet-auth/node_modules/@noble/curves/abstract/oprf.js",
+      "sha256": "26105837d73772874441a0b77c1bc292c35385cb46bdbd076c70dc59fb0ff0fa"
+    },
+    {
+      "path": "packages/wallet-auth/node_modules/@noble/hashes/hmac.js",
+      "sha256": "137ed94227806b351a55b09801287a4dba72d2a35d3838730becf641271bc3dd"
+    },
+    {
+      "path": "packages/wallet-auth/node_modules/@noble/curves/abstract/weierstrass.js",
+      "sha256": "188310386593be023ffadfd2fefc69b5efa79a63e0362bb8c9c11f0d5f4e673b"
+    },
+    {
+      "path": "packages/wallet-auth/node_modules/@noble/curves/nist.js",
+      "sha256": "1e577b2c76b769a585b402ca166614f1ae3c75116406889acddebba12c72c62d"
+    },
+    {
+      "path": "packages/wallet-auth/node_modules/@noble/curves/secp256k1.js",
+      "sha256": "ebd20b0ca873941f2186ddb0dbffeed25dda749d182298fe5f0d58fb2c6bb486"
+    },
+    {
+      "path": "packages/wallet-auth/src/base64url.js",
+      "sha256": "bc7707f4d9f6b67b4f8d6eda9eb61bc00cd56263d06d5821e7469f088f312fbf"
+    },
+    {
+      "path": "packages/wallet-auth/node_modules/@noble/hashes/sha3.js",
+      "sha256": "55b453d0a65c657aa408ec86d4ea8dd8f96740cd68963ea9ef180db4004f878f"
+    },
+    {
+      "path": "packages/wallet-auth/src/protocol.js",
+      "sha256": "8222d384dc70a807714ed05edaa5f7175a1415183e9e07f40fc443d877360001"
+    },
+    {
+      "path": "packages/wallet-auth/src/crypto.js",
+      "sha256": "a62f070025755718bff126c07bc43827db42e89234d6a20f5cd1488bced60560"
+    },
+    {
+      "path": "packages/wallet-auth/src/product-session-v2.js",
+      "sha256": "7435a65bedac4fc6abd7d36a07cb8ab4c4ab957841475a36819a43b442b67130"
+    },
+    {
+      "path": "packages/wallet-auth/src/product-session-proof-v2.js",
+      "sha256": "a9eea429f4dc69bbf84053f1a6fa24d48c3bf39b6c23dad3bd9abe82336e8818"
+    },
+    {
+      "path": "packages/wallet-auth/src/product-session-gateway-snapshot-v2.js",
+      "sha256": "279e4e22974ae9da272b2db055c3eb80b8a4b5a0b81289c53e380bd94995187a"
+    },
+    {
+      "path": "packages/wallet-auth/src/wallet-session-control.js",
+      "sha256": "7f5eac01bd0e5103c84834893548b42c120543a51f1e5a0412214c88985f408d"
+    },
+    {
+      "path": "packages/wallet-auth/src/product-session-control-capacity.js",
+      "sha256": "6c8dc075abd4760345b6da23a08fe3db8d89d40c8b880b945ff37bca89b3b53b"
+    },
+    {
+      "path": "packages/wallet-auth/src/product-session-control-intent.js",
+      "sha256": "60d5e41a962fdf9de167dad4106c2eff59e39ce69df986b6129ee6bda1879b37"
+    },
+    {
+      "path": "packages/wallet-auth/src/session.js",
+      "sha256": "7f348fa6ca544230a77874791605cff819144228802291daf2a523c04607ec39"
+    },
+    {
+      "path": "packages/wallet-auth/src/integration.js",
+      "sha256": "9aac73b3eb041d572deb1a07e8d06164639d7fa8de3790691006af5878c3277a"
+    },
+    {
+      "path": "packages/wallet-auth/src/session-proof.js",
+      "sha256": "42f8b475fb55be115c515ff04b4344678b10320dcbbdc820feb03324d95f9c6d"
+    },
+    {
+      "path": "packages/wallet-auth/src/product-session-gateway.js",
+      "sha256": "e022945a229dacec33b64c62fecafa851280312f0c7fc8eed3cead17ff4dfe5f"
+    },
+    {
+      "path": "packages/wallet-auth/src/product-session-gateway-client.js",
+      "sha256": "f6238233734830053e5133f8aa9f8bf39e2e497da60bcb603f51b0b8585b7141"
+    },
+    {
+      "path": "packages/wallet-auth/src/product-session-server.js",
+      "sha256": "95f2997253fee5e6b6d8cf80aff47ff4ed14ac3fea33d20a4983fc542398d7c7"
+    },
+    {
+      "path": "packages/wallet-auth/src/card-application-approval.js",
+      "sha256": "f566d0a18f2a81d59e642ac45e8688a96860ae89f5e31a8bb1d221e5fb5dcc1c"
+    }
+  ],
+  "publicDeployment": false
+}

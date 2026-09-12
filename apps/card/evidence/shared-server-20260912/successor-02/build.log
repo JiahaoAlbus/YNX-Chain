@@ -1,0 +1,21 @@
+
+> @ynx-chain/card@1.0.0 build:web
+> node scripts/build-web.mjs
+
+Starting Metro Bundler
+
+Web Bundled 370ms index.ts (2182 modules)
+
+› Assets (2):
+assets/icon.ac64b115433cc62063b01bbab973bec7.png (863KB)
+assets/metamask-fox.024a98855742a7b85946088532e2d4c1.png (3.7KB)
+
+› web bundles (1):
+_expo/static/js/web/index-29d282bf0eee053258148275c7ac5de0.js (3.6MB)
+
+› Files (3):
+favicon.ico (15KB)
+index.html (1.2KB)
+metadata.json (49B)
+
+Exported: dist-web

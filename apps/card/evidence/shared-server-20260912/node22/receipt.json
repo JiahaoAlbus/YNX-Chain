@@ -1,0 +1,100 @@
+{
+  "sourceCommit": "4b358064f63bd9f5b69ed31d54d721b602cfc3dc",
+  "sourceTree": "03432bbd749779e2bdeb6a5824212a342f454146",
+  "sdkSource": "a7dad7ec1bc7c06577978bdd5fea8dc9c7a248a9",
+  "archive": {
+    "bytes": 111640,
+    "sha256": "1f70be6198819b799e1530c0b8f8d1485d66c3c5291052b327a54bc9984ea25c",
+    "local": "/private/tmp/ynx-card-node22-authorizer-Nkq8aD/card-server.tar.gz",
+    "remote": "/tmp/ynx-card-node22-authorizer-sucHwG/card-server.tar.gz"
+  },
+  "host": "43.153.202.237",
+  "node": "v22.23.1",
+  "tests": 26,
+  "passed": 26,
+  "testsExit": 0,
+  "runtime": {
+    "sourceCommit": "4b358064f63bd9f5b69ed31d54d721b602cfc3dc",
+    "node": "v22.23.1",
+    "platform": "linux",
+    "architecture": "x64",
+    "at": "2026-09-12T11:07:03.469Z",
+    "localLoopbackOnly": true,
+    "productionServiceInstalled": false,
+    "publicDeployed": false,
+    "realSession": false,
+    "realApproval": false,
+    "realFunding": false,
+    "productionRealPayments": false,
+    "passed": true,
+    "exit": {
+      "code": 0,
+      "signal": null
+    },
+    "failure": null,
+    "resources": [
+      {
+        "path": "/api/card/v1/version",
+        "status": 200,
+        "bytes": 256,
+        "sha256": "701460473f3259acb8dec6f6a16e756274de3724bc5ff645d5afdad76148ec5f",
+        "headers": {
+          "cache-control": "no-store",
+          "connection": "keep-alive",
+          "content-length": "256",
+          "content-type": "application/json; charset=utf-8",
+          "date": "Sat, 12 Sep 2026 11:07:03 GMT",
+          "keep-alive": "timeout=5",
+          "x-content-type-options": "nosniff"
+        }
+      },
+      {
+        "path": "/api/card/v1/state",
+        "status": 503,
+        "bytes": 165,
+        "sha256": "b7cead2ef0478fb8cb3b6e467b1cc6bb8469d62d5578e6760f8bddb058c7c321",
+        "headers": {
+          "cache-control": "no-store",
+          "connection": "keep-alive",
+          "content-length": "165",
+          "content-type": "application/json; charset=utf-8",
+          "date": "Sat, 12 Sep 2026 11:07:03 GMT",
+          "keep-alive": "timeout=5",
+          "x-content-type-options": "nosniff"
+        }
+      }
+    ]
+  },
+  "hashes": {
+    "tests.log": {
+      "bytes": 6319,
+      "sha256": "9df8c0f334ccd4bf199be8e68abd94b708758015172854002b8dc682e3590c99"
+    },
+    "runtime/results.json": {
+      "bytes": 1473,
+      "sha256": "fb096ecb9214ed1a8f6751c2e42f287a7eb43c32b2aeef931d9e6996e93ddccb"
+    },
+    "runtime/version.json": {
+      "bytes": 256,
+      "sha256": "701460473f3259acb8dec6f6a16e756274de3724bc5ff645d5afdad76148ec5f"
+    },
+    "runtime/unauthenticated-state.json": {
+      "bytes": 165,
+      "sha256": "b7cead2ef0478fb8cb3b6e467b1cc6bb8469d62d5578e6760f8bddb058c7c321"
+    },
+    "runtime/stdout.log": {
+      "bytes": 136,
+      "sha256": "b2aeb5adc365b1a3888b1d07e5c790fd2b57b2df14aa1c2fad83f861f6309720"
+    },
+    "runtime/stderr.log": {
+      "bytes": 171,
+      "sha256": "93565377c48581c0c95aef48e588f79f57282e7643a027c3119bb0d9335b0e1f"
+    }
+  },
+  "publicRouteEnabled": false,
+  "serviceInstalled": false,
+  "realSession": false,
+  "realApproval": false,
+  "realFunding": false,
+  "productionRealPayments": false
+}
