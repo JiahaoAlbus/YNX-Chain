@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "productId": "docs",
   "status": "local-candidate",
-  "generatedAt": "2026-09-12T10:53:27.751Z",
+  "generatedAt": "2026-09-12T11:00:51.756Z",
   "source": {
-    "baseCommit": "9031151c471f81701c0c8f3eb959c84058de9539",
+    "baseCommit": "f6309fb761c1e43edbea593485f910dbf0b86757",
     "branch": "codex/final-docs",
-    "webTree": "4b8cc78e5d3104b7bfcb15bcdfa1f839fd413c06",
+    "webTree": "0d26c18aceeb49e6d13cf8deae3d214a3d3e232b",
     "webRoot": "apps/docs/web",
     "entry": "index.html",
     "entryScript": "app-secure.js"
@@ -63,13 +63,16 @@
     "arabicGuideRTL": true,
     "completeEditorLocalization": false,
     "v2EditorWriteIntegration": false,
-    "v2SessionCreateSaveIntegration": true
+    "v2SessionCreateSaveIntegration": true,
+    "v2MainEditorCreateSave": true,
+    "v2MainEditorPaginatedRead": true,
+    "v2MainEditorRemainingMutations": false
   },
   "localTestEvidence": {
     "command": "node --test apps/docs/tests/*.test.mjs",
-    "lastObservedPassed": 38,
+    "lastObservedPassed": 43,
     "lastObservedFailed": 0,
-    "scope": "Local unit/contract tests, not browser or public acceptance"
+    "scope": "Local tests only; no public/installed product acceptance"
   },
   "releaseStatus": {
     "deployedPublic": false,
@@ -88,13 +91,18 @@
   "files": [
     {
       "path": "app-secure.js",
-      "bytes": 36630,
-      "sha256": "ab12c48a1a8d196c9194182f7fae9d6293b3c8e7112299168447159d071d7dd6"
+      "bytes": 39878,
+      "sha256": "53f2208d7c7437165e7facdef4d259fd1bf75c675cf8c843dc2e369fd405cde7"
     },
     {
       "path": "app.js",
       "bytes": 105,
       "sha256": "75aec379857e250e070b3923a07741625cf54d047f76f05abfb303fb75709c5a"
+    },
+    {
+      "path": "editor-session-bridge.js",
+      "bytes": 5929,
+      "sha256": "f9e8ee76222eeef5b116bce54c4e99080acdbb0e5cb5259512a0458ecd4ab0a9"
     },
     {
       "path": "guide-translations.js",

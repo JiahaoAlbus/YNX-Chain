@@ -23,7 +23,7 @@ function harness() {
     clearTimeout: (id) => timers.delete(id), clearInterval: (id) => timers.delete(id),
     fetch: async () => ({status: 401, ok: false, headers: {get: () => 'application/json'}, json: async () => ({error: 'expired'})}),
   });
-  vm.runInContext(source, context);
+  vm.runInContext(source.replace(/^import .*;\n/, ''), context);
   vm.runInContext("state.credential = 'fixture'; state.current = {id: 'a', version: 1}; state.baseVersion = 1; state.dirty = true; loadObjects = async () => {};", context);
   return {node, drafts, timers, context, run: (code) => vm.runInContext(code, context)};
 }

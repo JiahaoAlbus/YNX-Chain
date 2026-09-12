@@ -108,3 +108,18 @@ with state backups and rollback. Do not delete it to resolve a pending request.
 `apiWriteEnabled` remains false until the write-capable Gateway registry and Cloud
 backend are actually deployed. `apiReadEnabled` remains separately gated. Neither
 SDK allowlist additions nor local tests establish successful public writes.
+
+## Main editor core migration
+
+The independent Docs origin now routes the main `app-secure.js` editor through
+`editor-session-bridge.js`. It restores the official v2 session, uses paginated
+reads, and sends create/save through the fixed fresh-proof/idempotency contract.
+It never reads or sends the old Docs bearer credential on that origin. Version
+conflicts require fresh content readback and an explicit recovery choice. Pending
+uncertain operations remain available for reconciliation on the session page.
+
+Other origins retain their existing legacy code path; this does not migrate old
+state or bind the old web4 deployment to the new source. On the independent v2
+origin, rename/move/duplicate/trash/export/history/comments/AI/presence are disabled
+until their actual backend contracts are implemented. Read-only scopes cannot
+edit document text. The core migration is not full feature or runtime acceptance.

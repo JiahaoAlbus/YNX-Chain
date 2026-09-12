@@ -20,7 +20,7 @@ function harness(bridge, reply = {token: 'docs-session'}) {
     document: {querySelector: node}, clearTimeout, clearInterval,
     fetch: async () => { calls++; return {status: 200, ok: true, headers: {get: () => 'application/json'}, json: async () => reply}; },
   });
-  vm.runInContext(source, context);
+  vm.runInContext(source.replace(/^import .*;\n/, ''), context);
   vm.runInContext('loadObjects = async () => {};', context);
   return {node, storage, calls: () => calls, run: (code) => vm.runInContext(code, context)};
 }
