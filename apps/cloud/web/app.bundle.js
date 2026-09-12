@@ -16,7 +16,7 @@
     ar: ["\u0633\u062D\u0627\u0628\u0629 YNX", "\u0627\u0628\u062D\u062B \u0641\u064A \u0645\u0644\u0641\u0627\u062A\u0643 \u0627\u0644\u0645\u0635\u0631\u0651\u062D \u0628\u0647\u0627", "\u062A\u0633\u062C\u064A\u0644 \u0627\u0644\u062F\u062E\u0648\u0644 \u0628\u0645\u062D\u0641\u0638\u0629 YNX", "\u0645\u062C\u0644\u062F \u062C\u062F\u064A\u062F", "\u0631\u0641\u0639", "\u0627\u0644\u0645\u0644\u0641\u0627\u062A", "\u0627\u0644\u0623\u062E\u064A\u0631\u0629", "\u0627\u0644\u0645\u0645\u064A\u0632\u0629", "\u0627\u0644\u0623\u0630\u0648\u0646\u0627\u062A", "\u0627\u0644\u0645\u0647\u0645\u0644\u0627\u062A", "\u0627\u0644\u062A\u062F\u0642\u064A\u0642", "\u0645\u0633\u0627\u062D\u0629 \u0639\u0645\u0644 \u062E\u0627\u0635\u0629", "\u062A\u0638\u0647\u0631 \u0641\u0642\u0637 \u0627\u0644\u0639\u0646\u0627\u0635\u0631 \u0627\u0644\u0645\u0635\u0631\u0651\u062D \u0644\u0647\u0648\u064A\u0629 YNX \u0627\u0644\u062D\u0627\u0644\u064A\u0629 \u0628\u0627\u0644\u0648\u0635\u0648\u0644 \u0625\u0644\u064A\u0647\u0627.", "\u0627\u0644\u0645\u0632\u0627\u0645\u0646\u0629 \u0627\u0644\u0622\u0646", "\u0645\u0633\u0627\u062D\u0629 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A", "\u0644\u0627 \u062A\u0648\u062C\u062F \u0645\u0644\u0641\u0627\u062A", "\u0627\u0631\u0641\u0639 \u0645\u0644\u0641\u064B\u0627 \u0636\u0645\u0646 \u0627\u0644\u062D\u062F \u0623\u0648 \u0623\u0646\u0634\u0626 \u0645\u062C\u0644\u062F\u064B\u0627. \u062A\u0628\u0642\u0649 \u0645\u062D\u062A\u0648\u064A\u0627\u062A \u0627\u0644\u0645\u0644\u0641\u0627\u062A \u062E\u0627\u0631\u062C \u0627\u0644\u0633\u0644\u0633\u0644\u0629.", "\u0627\u0644\u062A\u062E\u0632\u064A\u0646 \u0645\u062D\u062F\u062F \u0628\u062D\u0635\u0629 \u0648\u0644\u064A\u0633 \u063A\u064A\u0631 \u0645\u062D\u062F\u0648\u062F."],
     id: ["YNX Cloud", "Cari file yang diizinkan", "Masuk dengan YNX Wallet", "Folder baru", "Unggah", "File", "Terbaru", "Berbintang", "Izin", "Sampah", "Audit", "Ruang kerja privat", "Hanya item yang diizinkan untuk identitas YNX saat ini yang ditampilkan.", "Sinkronkan", "Ruang kerja AI", "Tidak ada file", "Unggah file terbatas atau buat folder. Isi file tetap di luar rantai.", "Penyimpanan memiliki kuota, bukan tanpa batas."]
   };
-  var t = (locale, key) => rows[locale]?.[keys.indexOf(key)] ?? rows.en[keys.indexOf(key)];
+  var t = (locale2, key) => rows[locale2]?.[keys.indexOf(key)] ?? rows.en[keys.indexOf(key)];
   var erasure = {
     en: { open: "Delete Cloud data", title: "Delete all Cloud data", intro: "Download your export first. A separate Wallet approval is required. Legal holds or active retention stop the entire deletion. Provider failures remain pending and are not reported as erased.", export: "Download verified export", authorize: "Authorize data deletion", confirm: "Type DELETE CLOUD DATA", erase: "Delete Cloud data", receipts: "Recover deletion receipts", complete: "Known provider deletions completed.", pending: "Logical deletion completed; provider deletion is still pending.", purpose: "Delete my YNX Cloud product data after exact confirmation." },
     "zh-CN": { open: "\u5220\u9664\u4E91\u76D8\u6570\u636E", title: "\u5220\u9664\u5168\u90E8\u4E91\u76D8\u6570\u636E", intro: "\u8BF7\u5148\u4E0B\u8F7D\u5BFC\u51FA\u6587\u4EF6\u3002\u6B64\u64CD\u4F5C\u9700\u8981\u5355\u72EC\u7684\u94B1\u5305\u6388\u6743\u3002\u6CD5\u5F8B\u4FDD\u7559\u6216\u6709\u6548\u4FDD\u7559\u671F\u4F1A\u963B\u6B62\u6574\u4E2A\u5220\u9664\u3002\u63D0\u4F9B\u5546\u5931\u8D25\u53EA\u4F1A\u6807\u4E3A\u5F85\u5904\u7406\u3002", export: "\u4E0B\u8F7D\u5DF2\u9A8C\u8BC1\u5BFC\u51FA", authorize: "\u6388\u6743\u5220\u9664\u6570\u636E", confirm: "\u8F93\u5165 DELETE CLOUD DATA", erase: "\u5220\u9664\u4E91\u76D8\u6570\u636E", receipts: "\u6062\u590D\u5220\u9664\u56DE\u6267", complete: "\u5DF2\u5B8C\u6210\u5DF2\u77E5\u63D0\u4F9B\u5546\u5220\u9664\u3002", pending: "\u903B\u8F91\u5220\u9664\u5DF2\u5B8C\u6210\uFF1B\u63D0\u4F9B\u5546\u5220\u9664\u4ECD\u5F85\u5904\u7406\u3002", purpose: "\u5728\u7CBE\u786E\u786E\u8BA4\u540E\u5220\u9664\u6211\u7684 YNX \u4E91\u76D8\u4EA7\u54C1\u6570\u636E\u3002" },
@@ -31,35 +31,165 @@
     ar: { open: "\u062D\u0630\u0641 \u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0633\u062D\u0627\u0628\u0629", title: "\u062D\u0630\u0641 \u062C\u0645\u064A\u0639 \u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0633\u062D\u0627\u0628\u0629", intro: "\u0646\u0632\u0651\u0644 \u0646\u0633\u062E\u0629 \u0627\u0644\u062A\u0635\u062F\u064A\u0631 \u0623\u0648\u0644\u0627\u064B. \u064A\u0644\u0632\u0645 \u062A\u0641\u0648\u064A\u0636 \u0645\u0646\u0641\u0635\u0644 \u0645\u0646 \u0627\u0644\u0645\u062D\u0641\u0638\u0629. \u064A\u0645\u0646\u0639 \u0627\u0644\u062D\u062C\u0632 \u0627\u0644\u0642\u0627\u0646\u0648\u0646\u064A \u0623\u0648 \u0627\u0644\u0627\u062D\u062A\u0641\u0627\u0638 \u0627\u0644\u0633\u0627\u0631\u064A \u0639\u0645\u0644\u064A\u0629 \u0627\u0644\u062D\u0630\u0641 \u0643\u0627\u0645\u0644\u0629. \u062A\u0628\u0642\u0649 \u0625\u062E\u0641\u0627\u0642\u0627\u062A \u0627\u0644\u0645\u0632\u0648\u062F \u0645\u0639\u0644\u0651\u0642\u0629.", export: "\u062A\u0646\u0632\u064A\u0644 \u0627\u0644\u062A\u0635\u062F\u064A\u0631 \u0627\u0644\u0645\u062A\u062D\u0642\u0642", authorize: "\u062A\u0641\u0648\u064A\u0636 \u062D\u0630\u0641 \u0627\u0644\u0628\u064A\u0627\u0646\u0627\u062A", confirm: "\u0627\u0643\u062A\u0628 DELETE CLOUD DATA", erase: "\u062D\u0630\u0641 \u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0633\u062D\u0627\u0628\u0629", receipts: "\u0627\u0633\u062A\u0639\u0627\u062F\u0629 \u0625\u064A\u0635\u0627\u0644\u0627\u062A \u0627\u0644\u062D\u0630\u0641", complete: "\u0627\u0643\u062A\u0645\u0644\u062A \u0639\u0645\u0644\u064A\u0627\u062A \u062D\u0630\u0641 \u0627\u0644\u0645\u0632\u0648\u062F \u0627\u0644\u0645\u0639\u0631\u0648\u0641\u0629.", pending: "\u0627\u0643\u062A\u0645\u0644 \u0627\u0644\u062D\u0630\u0641 \u0627\u0644\u0645\u0646\u0637\u0642\u064A\u061B \u062D\u0630\u0641 \u0627\u0644\u0645\u0632\u0648\u062F \u0645\u0627 \u0632\u0627\u0644 \u0645\u0639\u0644\u0642\u064B\u0627.", purpose: "\u062D\u0630\u0641 \u0628\u064A\u0627\u0646\u0627\u062A \u0645\u0646\u062A\u062C YNX Cloud \u0628\u0639\u062F \u0627\u0644\u062A\u0623\u0643\u064A\u062F \u0627\u0644\u062F\u0642\u064A\u0642." },
     id: { open: "Hapus data Cloud", title: "Hapus semua data Cloud", intro: "Unduh ekspor terlebih dahulu. Otorisasi Wallet terpisah diperlukan. Penahanan hukum atau retensi aktif memblokir seluruh penghapusan. Kegagalan penyedia tetap berstatus tertunda.", export: "Unduh ekspor terverifikasi", authorize: "Izinkan penghapusan", confirm: "Ketik DELETE CLOUD DATA", erase: "Hapus data Cloud", receipts: "Pulihkan tanda terima", complete: "Penghapusan penyedia yang diketahui selesai.", pending: "Penghapusan logis selesai; penghapusan penyedia masih tertunda.", purpose: "Hapus data produk YNX Cloud saya setelah konfirmasi tepat." }
   };
-  var erasureT = (locale, key) => erasure[locale]?.[key] ?? erasure.en[key];
+  var erasureT = (locale2, key) => erasure[locale2]?.[key] ?? erasure.en[key];
   function selectedLocale() {
     const requested = new URLSearchParams(location.search).get("locale") || localStorage.getItem("ynx.cloud.locale") || navigator.language;
     return locales.includes(requested) ? requested : requested.startsWith("zh-TW") ? "zh-TW" : requested.startsWith("zh") ? "zh-CN" : locales.find((x) => requested.startsWith(x)) || "en";
   }
-  function applyLocale(locale) {
-    localStorage.setItem("ynx.cloud.locale", locale);
-    document.documentElement.lang = locale;
-    document.documentElement.dir = locale === "ar" ? "rtl" : "ltr";
+  function applyLocale(locale2) {
+    localStorage.setItem("ynx.cloud.locale", locale2);
+    document.documentElement.lang = locale2;
+    document.documentElement.dir = locale2 === "ar" ? "rtl" : "ltr";
     const selectors = { app: ".brand span", search: "#search", signin: "#wallet", newFolder: "#new-folder", upload: ".upload", files: '[data-view="files"]', recent: '[data-view="recent"]', starred: '[data-view="starred"]', permissions: '[data-view="shared"]', trash: '[data-view="trash"]', audit: '[data-view="audit"]', private: ".workspace-head .eyebrow", subtitle: "#view-subtitle", sync: "#sync", ai: "#ai-open", empty: "#empty h2", emptyDetail: "#empty p", quota: ".quota small", viewTitle: "#view-title" };
     for (const [key, selector] of Object.entries(selectors)) {
       const node = document.querySelector(selector);
       if (!node) continue;
-      if (key === "search") node.placeholder = t(locale, key);
+      if (key === "search") node.placeholder = t(locale2, key);
       else if (key === "signin") {
-        if (node.dataset.connected !== "true") node.textContent = t(locale, key);
-      } else if (key === "viewTitle") node.textContent = t(locale, "files");
+        if (node.dataset.connected !== "true") node.textContent = t(locale2, key);
+      } else if (key === "viewTitle") node.textContent = t(locale2, "files");
       else if (key === "upload") {
         const input = node.querySelector("input");
-        node.textContent = t(locale, key);
+        node.textContent = t(locale2, key);
         node.append(input);
-      } else node.textContent = t(locale, key);
+      } else node.textContent = t(locale2, key);
     }
     for (const [id, key] of Object.entries({ "erase-open": "open", "erase-title": "title", "erase-intro": "intro", "erase-export": "export", "erase-authorize": "authorize", "erase-confirm-label": "confirm", "erase-submit": "erase", "erase-receipts": "receipts" })) {
       const node = document.getElementById(id);
-      if (node) node.textContent = erasureT(locale, key);
+      if (node) node.textContent = erasureT(locale2, key);
     }
     const select = document.querySelector("#locale");
-    if (select) select.value = locale;
+    if (select) select.value = locale2;
+  }
+
+  // web/auth-i18n.js
+  var authMessages = {
+    en: {
+      eyebrow: "WALLET CONNECTION",
+      title: "Connect a Wallet",
+      description: "Use YNX Wallet for your YNX identity. MetaMask supports a separate basic connection to YNX Testnet (0x1917). Private Cloud files require a separately verified session; a connected address does not grant access.",
+      ynx: "Connect YNX Wallet",
+      metamask: "Connect MetaMask (basic)",
+      download: "Download YNX Wallet",
+      install: "Install MetaMask",
+      close: "Close",
+      cancel: "Cancel and continue browsing",
+      export: "Export my data",
+      ready: "Choose a wallet. Private Cloud service is currently unavailable.",
+      waiting: "Review the request in the selected wallet. Closing this dialog does not cancel a request already shown in the wallet.",
+      connected: "Standard Wallet connected on 0x1917. Private Cloud files remain unavailable. No local or canned session was created.",
+      privateUnavailable: "Private Cloud service is unavailable. An existing standard wallet connection remains valid.",
+      guest: "Sign in to access private files. Public previews remain available.",
+      cancelled: "Cloud connection cancelled. No further wallet steps will start. Dismiss any pending request in your wallet.",
+      missingYNX: "YNX Wallet is unavailable. Install or open it, then retry. Cloud will not request another wallet.",
+      missingMetaMask: "MetaMask is unavailable. Install or open it, then retry. Cloud will not request YNX Wallet instead.",
+      rejected: "Wallet request rejected. No new Cloud session was created.",
+      unsupported: "The selected wallet does not support this action. No other wallet was requested.",
+      failed: "The selected wallet could not connect to YNX Testnet. Retry when ready; Cloud will not switch wallets."
+    },
+    "zh-CN": {
+      eyebrow: "\u94B1\u5305\u8FDE\u63A5",
+      title: "\u8FDE\u63A5\u94B1\u5305",
+      description: "\u4F7F\u7528 YNX Wallet \u83B7\u53D6 YNX \u8EAB\u4EFD\u3002MetaMask \u63D0\u4F9B\u72EC\u7ACB\u7684 YNX \u6D4B\u8BD5\u7F51\uFF080x1917\uFF09\u57FA\u7840\u8FDE\u63A5\u3002\u79C1\u6709\u4E91\u76D8\u6587\u4EF6\u9700\u8981\u53E6\u884C\u9A8C\u8BC1\u7684\u4F1A\u8BDD\uFF0C\u8FDE\u63A5\u5730\u5740\u4E0D\u4EE3\u8868\u83B7\u5F97\u6587\u4EF6\u6743\u9650\u3002",
+      ynx: "\u8FDE\u63A5 YNX Wallet",
+      metamask: "\u8FDE\u63A5 MetaMask\uFF08\u57FA\u7840\u529F\u80FD\uFF09",
+      download: "\u4E0B\u8F7D YNX Wallet",
+      install: "\u5B89\u88C5 MetaMask",
+      close: "\u5173\u95ED",
+      cancel: "\u53D6\u6D88\u5E76\u7EE7\u7EED\u6D4F\u89C8",
+      export: "\u5BFC\u51FA\u6211\u7684\u6570\u636E",
+      ready: "\u8BF7\u9009\u62E9\u94B1\u5305\u3002\u79C1\u6709\u4E91\u76D8\u670D\u52A1\u76EE\u524D\u4E0D\u53EF\u7528\u3002",
+      waiting: "\u8BF7\u5728\u6240\u9009\u94B1\u5305\u4E2D\u590D\u6838\u8BF7\u6C42\u3002\u5173\u95ED\u6B64\u5F39\u7A97\u4E0D\u4F1A\u53D6\u6D88\u94B1\u5305\u4E2D\u5DF2\u7ECF\u663E\u793A\u7684\u8BF7\u6C42\u3002",
+      connected: "\u5DF2\u8FDE\u63A5 YNX \u6D4B\u8BD5\u7F51\uFF080x1917\uFF09\u3002\u79C1\u6709\u4E91\u76D8\u6587\u4EF6\u4ECD\u4E0D\u53EF\u7528\uFF0C\u672A\u521B\u5EFA\u672C\u5730\u6216\u6A21\u62DF\u4F1A\u8BDD\u3002",
+      privateUnavailable: "\u79C1\u6709\u4E91\u76D8\u670D\u52A1\u4E0D\u53EF\u7528\uFF0C\u5DF2\u6709\u7684\u6807\u51C6\u94B1\u5305\u8FDE\u63A5\u4FDD\u6301\u6709\u6548\u3002",
+      guest: "\u767B\u5F55\u540E\u624D\u80FD\u8BBF\u95EE\u79C1\u6709\u6587\u4EF6\uFF0C\u516C\u5F00\u9884\u89C8\u4ECD\u53EF\u6D4F\u89C8\u3002",
+      cancelled: "\u5DF2\u53D6\u6D88\u4E91\u76D8\u8FDE\u63A5\uFF0C\u4E0D\u4F1A\u7EE7\u7EED\u53D1\u8D77\u94B1\u5305\u64CD\u4F5C\u3002\u8BF7\u5728\u94B1\u5305\u4E2D\u5173\u95ED\u5C1A\u672A\u5904\u7406\u7684\u8BF7\u6C42\u3002",
+      missingYNX: "\u672A\u627E\u5230 YNX Wallet\u3002\u8BF7\u5B89\u88C5\u6216\u6253\u5F00\u540E\u91CD\u8BD5\uFF0C\u4E91\u76D8\u4E0D\u4F1A\u6539\u4E3A\u8BF7\u6C42\u5176\u4ED6\u94B1\u5305\u3002",
+      missingMetaMask: "\u672A\u627E\u5230 MetaMask\u3002\u8BF7\u5B89\u88C5\u6216\u6253\u5F00\u540E\u91CD\u8BD5\uFF0C\u4E91\u76D8\u4E0D\u4F1A\u6539\u4E3A\u8BF7\u6C42 YNX Wallet\u3002",
+      rejected: "\u5DF2\u62D2\u7EDD\u94B1\u5305\u8BF7\u6C42\uFF0C\u672A\u521B\u5EFA\u65B0\u7684\u4E91\u76D8\u4F1A\u8BDD\u3002",
+      unsupported: "\u6240\u9009\u94B1\u5305\u4E0D\u652F\u6301\u6B64\u64CD\u4F5C\uFF0C\u672A\u5411\u5176\u4ED6\u94B1\u5305\u53D1\u8D77\u8BF7\u6C42\u3002",
+      failed: "\u6240\u9009\u94B1\u5305\u672A\u80FD\u8FDE\u63A5 YNX \u6D4B\u8BD5\u7F51\u3002\u51C6\u5907\u597D\u540E\u53EF\u91CD\u8BD5\uFF0C\u4E91\u76D8\u4E0D\u4F1A\u5207\u6362\u5230\u5176\u4ED6\u94B1\u5305\u3002"
+    },
+    "zh-TW": {
+      eyebrow: "\u9322\u5305\u9023\u7DDA",
+      title: "\u9023\u63A5\u9322\u5305",
+      description: "\u4F7F\u7528 YNX Wallet \u53D6\u5F97 YNX \u8EAB\u5206\u3002MetaMask \u63D0\u4F9B\u7368\u7ACB\u7684 YNX \u6E2C\u8A66\u7DB2\uFF080x1917\uFF09\u57FA\u672C\u9023\u7DDA\u3002\u79C1\u4EBA\u96F2\u7AEF\u6A94\u6848\u9700\u8981\u53E6\u5916\u9A57\u8B49\u7684\u5DE5\u4F5C\u968E\u6BB5\uFF0C\u9023\u63A5\u5730\u5740\u4E0D\u4EE3\u8868\u53D6\u5F97\u6A94\u6848\u6B0A\u9650\u3002",
+      ynx: "\u9023\u63A5 YNX Wallet",
+      metamask: "\u9023\u63A5 MetaMask\uFF08\u57FA\u672C\u529F\u80FD\uFF09",
+      download: "\u4E0B\u8F09 YNX Wallet",
+      install: "\u5B89\u88DD MetaMask",
+      close: "\u95DC\u9589",
+      cancel: "\u53D6\u6D88\u4E26\u7E7C\u7E8C\u700F\u89BD",
+      export: "\u532F\u51FA\u6211\u7684\u8CC7\u6599",
+      ready: "\u8ACB\u9078\u64C7\u9322\u5305\u3002\u79C1\u4EBA\u96F2\u7AEF\u670D\u52D9\u76EE\u524D\u7121\u6CD5\u4F7F\u7528\u3002",
+      waiting: "\u8ACB\u5728\u6240\u9078\u9322\u5305\u4E2D\u6AA2\u67E5\u8ACB\u6C42\u3002\u95DC\u9589\u6B64\u8996\u7A97\u4E0D\u6703\u53D6\u6D88\u9322\u5305\u4E2D\u5DF2\u986F\u793A\u7684\u8ACB\u6C42\u3002",
+      connected: "\u5DF2\u9023\u63A5 YNX \u6E2C\u8A66\u7DB2\uFF080x1917\uFF09\u3002\u79C1\u4EBA\u96F2\u7AEF\u6A94\u6848\u4ECD\u7121\u6CD5\u4F7F\u7528\uFF0C\u672A\u5EFA\u7ACB\u672C\u6A5F\u6216\u6A21\u64EC\u5DE5\u4F5C\u968E\u6BB5\u3002",
+      privateUnavailable: "\u79C1\u4EBA\u96F2\u7AEF\u670D\u52D9\u7121\u6CD5\u4F7F\u7528\uFF0C\u65E2\u6709\u7684\u6A19\u6E96\u9322\u5305\u9023\u7DDA\u7DAD\u6301\u6709\u6548\u3002",
+      guest: "\u767B\u5165\u5F8C\u624D\u80FD\u5B58\u53D6\u79C1\u4EBA\u6A94\u6848\uFF0C\u516C\u958B\u9810\u89BD\u4ECD\u53EF\u700F\u89BD\u3002",
+      cancelled: "\u5DF2\u53D6\u6D88\u96F2\u7AEF\u9023\u7DDA\uFF0C\u4E0D\u6703\u7E7C\u7E8C\u767C\u8D77\u9322\u5305\u64CD\u4F5C\u3002\u8ACB\u5728\u9322\u5305\u4E2D\u95DC\u9589\u5C1A\u672A\u8655\u7406\u7684\u8ACB\u6C42\u3002",
+      missingYNX: "\u627E\u4E0D\u5230 YNX Wallet\u3002\u8ACB\u5B89\u88DD\u6216\u958B\u555F\u5F8C\u91CD\u8A66\uFF0C\u96F2\u7AEF\u4E0D\u6703\u6539\u70BA\u8ACB\u6C42\u5176\u4ED6\u9322\u5305\u3002",
+      missingMetaMask: "\u627E\u4E0D\u5230 MetaMask\u3002\u8ACB\u5B89\u88DD\u6216\u958B\u555F\u5F8C\u91CD\u8A66\uFF0C\u96F2\u7AEF\u4E0D\u6703\u6539\u70BA\u8ACB\u6C42 YNX Wallet\u3002",
+      rejected: "\u5DF2\u62D2\u7D55\u9322\u5305\u8ACB\u6C42\uFF0C\u672A\u5EFA\u7ACB\u65B0\u7684\u96F2\u7AEF\u5DE5\u4F5C\u968E\u6BB5\u3002",
+      unsupported: "\u6240\u9078\u9322\u5305\u4E0D\u652F\u63F4\u6B64\u64CD\u4F5C\uFF0C\u672A\u5411\u5176\u4ED6\u9322\u5305\u767C\u8D77\u8ACB\u6C42\u3002",
+      failed: "\u6240\u9078\u9322\u5305\u672A\u80FD\u9023\u63A5 YNX \u6E2C\u8A66\u7DB2\u3002\u6E96\u5099\u597D\u5F8C\u53EF\u91CD\u8A66\uFF0C\u96F2\u7AEF\u4E0D\u6703\u5207\u63DB\u81F3\u5176\u4ED6\u9322\u5305\u3002"
+    }
+  };
+  function authT(locale2, key) {
+    return (authMessages[locale2] ?? authMessages.en)[key];
+  }
+  function applyAuthLocale(locale2, root = document) {
+    for (const node of root.querySelectorAll("[data-auth-copy]")) node.textContent = authT(locale2, node.dataset.authCopy);
+    for (const node of root.querySelectorAll("[data-auth-label]")) node.setAttribute("aria-label", authT(locale2, node.dataset.authLabel));
+  }
+
+  // web/wallet-login.js
+  function selectCloudWallet(entries, kind) {
+    return entries.find(({ info, provider }) => {
+      if (!provider || typeof provider.request !== "function") return false;
+      const ynx = info?.rdns === "com.ynx.wallet" || provider.isYNXWallet === true;
+      const metamask = info?.rdns === "io.metamask" || provider.isMetaMask === true;
+      return kind === "metamask" ? metamask && !ynx : kind === "ynx" && ynx && !metamask;
+    });
+  }
+  function createCloudLogin({ discover, createConnection, addChain, connected, message, busy }) {
+    let generation = 0;
+    let pending = false;
+    return {
+      cancel() {
+        generation += 1;
+        message("cancelled");
+      },
+      async start(kind) {
+        if (pending) return;
+        pending = true;
+        const attempt = ++generation;
+        const current = () => attempt === generation;
+        busy(true);
+        message("waiting");
+        try {
+          const selected = selectCloudWallet(await discover(), kind);
+          if (!current()) return;
+          if (!selected) {
+            message(kind === "metamask" ? "missingMetaMask" : "missingYNX", true);
+            return;
+          }
+          const connection = createConnection(selected.provider);
+          const result = await connection.connect();
+          if (!current()) return;
+          await connection.ensureYNXTestnet({ addChain });
+          if (!current()) return;
+          connected(connection, result, kind);
+          message("connected");
+        } catch (error) {
+          if (!current()) return;
+          const key = ["4001", "WALLET_USER_REJECTED"].includes(String(error?.code)) ? "rejected" : ["4200", "WALLET_UNSUPPORTED_METHOD"].includes(String(error?.code)) ? "unsupported" : "failed";
+          message(key, true);
+        } finally {
+          pending = false;
+          busy(false);
+        }
+      }
+    };
   }
 
   // ../../packages/dapp-connect-sdk/src/constants.js
@@ -214,6 +344,85 @@
   var $$ = (q) => [...document.querySelectorAll(q)];
   var state = { token: "", erasureToken: "", authMode: "normal", standardWallet: null, objects: [], selected: /* @__PURE__ */ new Set(), current: null, view: "files", parentId: "" };
   var apiBase = YNX_CLOUD_RUNTIME.apiBase;
+  var authKey = "ready";
+  var authError = false;
+  var connectionCleanup = [];
+  var privateEpoch = 0;
+  var locale = () => document.documentElement.lang || selectedLocale();
+  function authMessage(key, error = false) {
+    authKey = key;
+    authError = error;
+    $("#auth-state").textContent = authT(locale(), key);
+    $("#auth-state").classList.toggle("danger", error);
+  }
+  function clearPrivateView() {
+    privateEpoch += 1;
+    state.token = "";
+    state.erasureToken = "";
+    state.objects = [];
+    state.selected.clear();
+    state.current = null;
+    state.parentId = "";
+    $("#files").replaceChildren();
+    $("#empty").hidden = false;
+    $("#details").hidden = true;
+    $("#preview").textContent = "";
+    $("#detail-panel").replaceChildren();
+    $("#grant-list").replaceChildren();
+    $("#ai-result").textContent = "";
+    $("#ai-context").textContent = "";
+    $("#quota-used").textContent = "0 B";
+    $("#quota-bar").value = 0;
+    $("#erase-submit").disabled = true;
+    $("#erase-receipts").disabled = true;
+  }
+  function walletLabel() {
+    const wallet = state.standardWallet;
+    if (wallet?.account) {
+      $("#wallet").dataset.connected = "true";
+      $("#wallet").textContent = (wallet.cloudWalletKind === "metamask" ? "MetaMask" : "YNX Wallet") + " \xB7 " + wallet.account.slice(0, 8) + "\u2026" + wallet.account.slice(-6);
+    } else {
+      delete $("#wallet").dataset.connected;
+      applyLocale(locale());
+    }
+  }
+  function acceptConnection(connection, result, kind) {
+    connection.cloudWalletKind = kind;
+    connectionCleanup.forEach((off) => off());
+    connectionCleanup = [];
+    clearPrivateView();
+    state.standardWallet = connection;
+    walletLabel();
+    status(authT(locale(), "privateUnavailable"));
+    const reset = () => {
+      clearPrivateView();
+      state.standardWallet = null;
+      connectionCleanup.forEach((off) => off());
+      connectionCleanup = [];
+      walletLabel();
+      authMessage("ready");
+      status(authT(locale(), "guest"));
+    };
+    if (typeof connection.provider.on === "function" && typeof connection.provider.removeListener === "function") {
+      connectionCleanup.push(connection.on("accountsChanged", (accounts) => {
+        if (!Array.isArray(accounts) || !/^0x[0-9a-fA-F]{40}$/.test(accounts[0] || "")) {
+          reset();
+          return;
+        }
+        clearPrivateView();
+        connection.account = accounts[0];
+        walletLabel();
+        status(authT(locale(), "privateUnavailable"));
+      }));
+      connectionCleanup.push(connection.on("chainChanged", (chain) => {
+        if (String(chain).toLowerCase() !== "0x1917") reset();
+      }));
+      connectionCleanup.push(connection.on("disconnect", reset));
+    }
+  }
+  var login = createCloudLogin({ discover: walletProviders, createConnection: (provider) => new StandardWalletConnection(provider, { chain: YNX_TESTNET }), addChain: { chainId: "0x1917", chainName: "YNX Testnet", nativeCurrency: { name: "YNX Testnet", symbol: "YNXT", decimals: 18 }, rpcUrls: [YNX_CLOUD_RUNTIME.evmRpc], blockExplorerUrls: [YNX_CLOUD_RUNTIME.explorer] }, connected: acceptConnection, message: authMessage, busy: (value) => {
+    for (const id of ["auth-start", "auth-metamask"]) $("#" + id).disabled = value;
+  } });
   function status(message, error = false) {
     $("#status").textContent = message;
     $("#status").classList.toggle("danger", error);
@@ -224,13 +433,18 @@
     return `${(n / 1048576).toFixed(1)} MB`;
   }
   async function api(path, options = {}) {
-    const { token = state.token, ...request } = options, headers = { ...request.headers || {} };
+    const { token = state.token, ...request } = options;
+    if (!token) throw Object.assign(new Error(authT(locale(), "privateUnavailable")), { status: 401 });
+    const headers = { ...request.headers || {} };
     if (token) headers.Authorization = `Bearer ${token}`;
     if (request.body && !(request.body instanceof FormData)) headers["Content-Type"] = "application/json";
+    const epoch = privateEpoch;
     const response = await fetch(`${apiBase}${path}`, { ...request, headers });
     const type = response.headers.get("content-type") || "";
     const body = type.includes("json") ? await response.json() : await response.blob();
+    if (epoch !== privateEpoch) throw Object.assign(new Error(authT(locale(), "privateUnavailable")), { code: "PRIVATE_CONTEXT_CHANGED" });
     if (!response.ok) {
+      if (response.status === 401) clearPrivateView();
       const e = new Error(body.error || `Request failed: ${response.status}`);
       e.status = response.status;
       e.body = body;
@@ -239,35 +453,21 @@
     return body;
   }
   async function signIn(mode = "normal") {
-    state.authMode = mode;
+    state.authMode = typeof mode === "string" ? mode : "normal";
+    authMessage(state.standardWallet ? "privateUnavailable" : "ready");
     $("#auth-dialog").showModal();
-    $("#auth-state").textContent = state.standardWallet ? "Standard Wallet remains connected. Private Cloud Product Session v2 is unavailable; no local session was created." : mode === "erasure" ? erasureT(selectedLocale(), "authorize") : "Connect a standard EVM Wallet. Private Cloud files remain closed until a separate Product Session v2 is available.";
   }
   async function walletProviders() {
     const providers = await discoverEIP6963(window, { timeoutMs: 220 });
-    if (window.ethereum?.request && !providers.some((entry) => entry.provider === window.ethereum)) providers.push({ info: { uuid: "legacy-injected", name: window.ethereum.isMetaMask ? "MetaMask" : "Injected wallet" }, provider: window.ethereum });
+    if (window.ethereum?.request && !providers.some((entry) => entry.provider === window.ethereum)) providers.push({ info: { uuid: "legacy-injected" }, provider: window.ethereum });
     return providers;
   }
   async function startWallet(metaMaskOnly = false) {
-    const auth = $("#auth-state");
-    try {
-      const providers = await walletProviders(), selected = (metaMaskOnly ? providers.find((entry) => /metamask/i.test(entry.info?.name || "")) : providers.find((entry) => /ynx/i.test(entry.info?.name || ""))) || providers[0];
-      if (!selected) throw new Error("No compatible Wallet detected. Download YNX Wallet or install MetaMask.");
-      const connection = new StandardWalletConnection(selected.provider, { chain: YNX_TESTNET }), connected = await connection.connect();
-      await connection.ensureYNXTestnet({ addChain: { chainId: "0x1917", chainName: "YNX Testnet", nativeCurrency: { name: "YNX Testnet", symbol: "YNXT", decimals: 18 }, rpcUrls: [YNX_CLOUD_RUNTIME.evmRpc], blockExplorerUrls: [YNX_CLOUD_RUNTIME.explorer] } });
-      state.standardWallet = connection;
-      $("#wallet").dataset.connected = "true";
-      $("#wallet").textContent = `${connected.account.slice(0, 8)}\u2026${connected.account.slice(-6)}`;
-      auth.textContent = "Standard Wallet connected on 0x1917. Private Cloud files, uploads, sharing and deletion remain unavailable until Product Session v2 is active. No local or canned session was created.";
-      status("Standard Wallet connected. Public Cloud information remains available; private service is degraded.");
-    } catch (e) {
-      auth.textContent = e.message;
-      auth.classList.add("danger");
-    }
+    return login.start(metaMaskOnly ? "metamask" : "ynx");
   }
   async function load() {
     if (!state.token) {
-      status("Sign in to load your authorized workspace.");
+      status(authT(locale(), state.standardWallet ? "privateUnavailable" : "guest"));
       $("#empty").hidden = false;
       return;
     }
@@ -292,9 +492,8 @@
       status(`${state.objects.length} authorized item${state.objects.length === 1 ? "" : "s"}${page.nextCursor ? " \xB7 More available through paged API" : ""} \xB7 Synced ${(/* @__PURE__ */ new Date()).toLocaleTimeString()}`);
     } catch (e) {
       if (e.status === 401) {
-        state.token = "";
-        delete $("#wallet").dataset.connected;
-        $("#wallet").textContent = "Sign in with YNX Wallet";
+        clearPrivateView();
+        walletLabel();
       }
       status(e.message, true);
     }
@@ -440,6 +639,7 @@
     }
   }
   async function upload(files) {
+    if (!state.token) return signIn();
     for (const file of files) {
       if (file.size > 67108864) {
         status(`${file.name} exceeds this browser client's 64 MB verified-upload limit. Use the API/SDK after a production provider is configured.`, true);
@@ -577,8 +777,7 @@
       state.objects = [];
       state.selected.clear();
       render();
-      delete $("#wallet").dataset.connected;
-      $("#wallet").textContent = erasureT(selectedLocale(), "complete");
+      walletLabel();
       $("#erase-submit").disabled = true;
       $("#erase-receipts").disabled = true;
       $("#erase-result").textContent = `${receipt.pendingBlobs ? erasureT(selectedLocale(), "pending") : erasureT(selectedLocale(), "complete")} ${receipt.id}`;
@@ -687,8 +886,15 @@ Citations: ${job.citations.join(", ")}` : `${job.status}: ${job.error}`));
     $("#view-title").textContent = button.textContent;
     load();
   }
-  applyLocale(selectedLocale());
-  $("#locale").onchange = (e) => applyLocale(e.target.value);
+  function changeLocale(value) {
+    applyLocale(value);
+    applyAuthLocale(value);
+    authMessage(authKey, authError);
+    if (!state.token) status(authT(value, state.standardWallet ? "privateUnavailable" : "guest"));
+  }
+  changeLocale(selectedLocale());
+  $("#locale").onchange = (e) => changeLocale(e.target.value);
+  $("#auth-dialog").addEventListener("close", () => login.cancel());
   $("#erase-open").onclick = openErasure;
   $("#erase-export").onclick = exportData;
   $("#erase-authorize").onclick = () => {

@@ -28,6 +28,7 @@ async function waitForServer() {
 }
 function installProvider({reject}) {
   const provider = {
+    isYNXWallet: true, isMetaMask: false,
     request: async ({method}) => {
       if (method === 'eth_requestAccounts') {
         if (reject) throw Object.assign(new Error('User rejected the request'), {code: 4001});
@@ -36,7 +37,7 @@ function installProvider({reject}) {
       if (method === 'eth_chainId') return '0x1917';
       throw Object.assign(new Error('unsupported'), {code: 4200});
     },
-    on() {},
+    on() {}, removeListener() {},
   };
   addEventListener('eip6963:requestProvider', () => {
     dispatchEvent(new CustomEvent('eip6963:announceProvider', {
@@ -71,7 +72,7 @@ try {
     } else {
       await page.locator('#wallet').filter({hasText: '0x111111'}).waitFor();
       await page.locator('#auth-state').filter({hasText: 'Private Cloud files'}).waitFor();
-      await page.locator('#status').filter({hasText: 'private service is degraded'}).waitFor();
+      await page.locator('#status').filter({hasText: 'Private Cloud service is unavailable'}).waitFor();
     }
     if (!(await page.locator('#empty').isVisible())) throw new Error('Guest Cloud empty state is not visible');
     if (privateRequests.length) throw new Error(`private API requested before Product Session: ${privateRequests.join(', ')}`);

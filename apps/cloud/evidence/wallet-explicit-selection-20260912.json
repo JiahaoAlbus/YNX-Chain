@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-09-12T09:04:26.973Z",
+  "baseline": "a427075261aebc2fcb493205840de0bc9f0bc87e",
+  "owner": "01a02a01-32bb-7e11-888d-b24dd352df02",
+  "sha256": {
+    "web/app.js": "df4172f3e3e11d90654d1755f2ede769a4e41aa6f21badd20d1ec7ef61443b51",
+    "web/app.bundle.js": "e7004ee1415264ee6c26cd438d818d7705f971d899b9e0bcaca9a1257d7b8cea",
+    "web/index.html": "1d79c6c1ca479a9163d40451f2dec67e5c82224156ccaca37484957001725fa5",
+    "web/wallet-login.js": "b93802ba1576c72a38d5ef8604976feba920bc9063d3eed81fa85b8f7a612fea",
+    "web/auth-i18n.js": "f4fbe3a50d2407306969cb4a56bd9c6103abe31935f372fe538b838f52487edf",
+    "tests/wallet-login.test.mjs": "99853b0cad2040a8a123e4cde517e46b0fccebaf6d8145b9dfc862f0c541ffb5",
+    "tests/client.test.mjs": "44d6e8d54496faa873d8a6657831dd55249f046d6d0187147169484d79739bf0",
+    "tests/wallet-visible-proof.mjs": "95c5237f272a4131d292881c175ac9f16358314ffb06d186131f326b0a1601a9",
+    "scripts/check.mjs": "ad48326837a52b4e5193cbee638fb54eb9af069093a5d216bf82885c1507b7e3"
+  },
+  "changes": [
+    "explicit wallet selection without fallback",
+    "single flight and cancel invalidation",
+    "private 401 and account-change state isolation",
+    "late private responses rejected",
+    "distinct selected-wallet labels",
+    "English and Simplified/Traditional Chinese login messages"
+  ],
+  "validation": {
+    "initialCloudSuite": "34/34 passed",
+    "finalTargetedWalletSuite": "21/21 passed",
+    "webBundle": "built",
+    "staticChecks": "passed before final label/epoch delta",
+    "localBrowser": "zh-CN guest, dialog, distinct choice and cancel observed before final label/epoch delta",
+    "injectedProviderEvidence": "unit fixtures only; not installed Wallet"
+  },
+  "boundaries": {
+    "deployedPublic": false,
+    "installedWallet": false,
+    "realAccountApproval": false,
+    "signing": false,
+    "transaction": false,
+    "privateProductSession": false,
+    "all12Languages": false
+  },
+  "next": [
+    "consume fixed Wallet SDK contract",
+    "merge Cloud/Docs backend features without tree overwrite",
+    "verified private session adapter and revocation",
+    "Social encrypted-object access contract"
+  ]
+}
