@@ -1,4 +1,4 @@
-import { createBrowserProductSessionClient, ProductSessionGatewayFetchAdapter } from './vendor/wallet-sdk-9840ef87/product-session-browser.mjs';
+import { createBrowserProductSessionClient, ProductSessionGatewayFetchAdapter } from './vendor/wallet-sdk-a7dad7ec/product-session-browser.mjs';
 
 const $ = (id) => document.getElementById(id);
 const scopes = ['files.read'];
@@ -132,7 +132,7 @@ $('more').addEventListener('click', () => list(page.parentId, page.cursor));
 window.addEventListener('pagehide', () => { invalidate(); adapter?.close(); });
 
 try {
-  const response = await fetch('/cloud/vendor/wallet-sdk-9840ef87/product-session-registry.json', { cache: 'no-store', credentials: 'omit' });
+  const response = await fetch('/cloud/vendor/wallet-sdk-a7dad7ec/product-session-registry.json', { cache: 'no-store', credentials: 'omit' });
   if (!response.ok) throw new Error('注册表无法读取');
   const registry = await response.json();
   const gateway = new ProductSessionGatewayFetchAdapter({ endpoint: 'https://wallet-auth.ynxweb4.com', fetch: globalThis.fetch.bind(globalThis), timeoutMs: 10000 });
