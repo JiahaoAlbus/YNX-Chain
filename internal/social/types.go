@@ -53,7 +53,7 @@ type WalletAuthorizationRequest struct {
 	BundleID               string   `json:"bundleId"`
 	ProductDeviceAlgorithm string   `json:"productDeviceAlgorithm"`
 	ProductDeviceKey       string   `json:"productDeviceKey"`
-	Origin                 string   `json:"origin"`
+	Origin                 string   `json:"origin,omitempty"`
 	Callback               string   `json:"callback"`
 	Scopes                 []string `json:"scopes"`
 	Purpose                string   `json:"purpose"`
@@ -71,7 +71,7 @@ type WalletApproval struct {
 	BundleID               string   `json:"bundleId"`
 	ProductDeviceAlgorithm string   `json:"productDeviceAlgorithm"`
 	ProductDeviceKey       string   `json:"productDeviceKey"`
-	Origin                 string   `json:"origin"`
+	Origin                 string   `json:"origin,omitempty"`
 	Callback               string   `json:"callback"`
 	Account                string   `json:"account"`
 	AccountPublicKey       string   `json:"accountPublicKey"`
@@ -95,7 +95,7 @@ type ProductSessionChallenge struct {
 	BundleID               string   `json:"bundleId"`
 	ProductDeviceAlgorithm string   `json:"productDeviceAlgorithm"`
 	ProductDeviceKey       string   `json:"productDeviceKey"`
-	Origin                 string   `json:"origin"`
+	Origin                 string   `json:"origin,omitempty"`
 	Account                string   `json:"account"`
 	Scopes                 []string `json:"scopes"`
 	IssuedAt               string   `json:"issuedAt"`
