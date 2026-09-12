@@ -39,9 +39,9 @@ test('responsive and accessibility contracts exist',()=>{
   assert.ok(css.includes('#002FA7'));
 });
 
-test('Web Wallet preserves the current separate YNX Product Session and MetaMask compatibility controls',()=>{
-  for(const marker of ['encodeRequestDeepLink','parseCallbackURL','createProductSessionProof','eth_requestAccounts','eth_chainId','wallet_switchEthereumChain','wallet_addEthereumChain','0x1917'])assert.ok(webWallet.includes(marker),marker);
-  for(const forbidden of ['iframe','window.open'])assert.equal(webWallet.includes(forbidden),false,forbidden);
+test('Web Wallet consumes the pinned Standard SDK and isolates unavailable legacy private authorization',()=>{
+  for(const marker of ['StandardWalletConnection','discoverWalletProviders','selected.connect()','selected.restore()','selected.revoke()','eth_chainId','wallet_switchEthereumChain','wallet_addEthereumChain','0x1917'])assert.ok(webWallet.includes(marker),marker);
+  for(const forbidden of ['iframe','window.open','location.href=','createProductDeviceIdentity','productDeviceSecret','createGatewayChallenge','signGatewayChallenge'])assert.equal(webWallet.includes(forbidden),false,forbidden);
   assert.equal(/fetch\s*\(\s*[`'"]https:\/\/rpc\.ynxweb4\.com\/evm/.test(webWallet),false,'direct browser RPC probing cannot gate provider connection');
   assert.ok(html.includes('wallet-choice'));
   assert.ok(html.includes('Download YNX Wallet'));

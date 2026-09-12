@@ -9,5 +9,6 @@
     "supply-chain": "node scripts/generate-supply-chain-evidence.mjs",
     "verify:release-evidence": "node scripts/verify-p0-release-evidence.mjs",
     "probe:connectivity": "node scripts/probe-accepted-connectivity.mjs"
-  }
+  },
+  "devDependencies": {"playwright":"1.58.2"}
 }

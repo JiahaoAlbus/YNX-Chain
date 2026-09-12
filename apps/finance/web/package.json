@@ -3,7 +3,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build:wallet": "esbuild wallet-connect-entry.js --bundle --minify --platform=browser --target=es2022 --outfile=wallet-connect.js",
+    "build:wallet": "esbuild wallet-auth-entry.js --bundle --minify --platform=browser --target=es2022 --outfile=wallet-auth.js",
     "verify:wallet": "node verify-wallet-connect.mjs",
     "verify:migration-evidence": "node verify-product-wallet-migration-evidence.mjs"
   },
