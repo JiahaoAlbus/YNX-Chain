@@ -41,7 +41,13 @@ export class WalletConnectionCoordinator {
     return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.OPTIONS_READY, discovery, environment, availability, choices });
   }
 
-  async restore(networkAvailable = true) { return this.#openIfConnecting(await this.#client.restore(networkAvailable)); }
+  async restore(networkAvailable = true) {
+    const sessionState = await this.#client.restore(networkAvailable);
+    // A retained pending request is connecting but explicitly not an automatic
+    // open. Only a newly detected automatic attempt may launch from restore.
+    if (sessionState.automatic !== true) return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.SESSION_STATE, sessionState });
+    return this.#openIfConnecting(sessionState);
+  }
   async beginYNX() { this.#evmGeneration += 1; return this.#openIfConnecting(await this.#client.beginDetected(false)); }
   async retryYNX() { this.#evmGeneration += 1; return this.#openIfConnecting(await this.#client.retryDetected()); }
   async handleReturn(url) { return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.SESSION_STATE, sessionState: await this.#client.handleReturn(url) }); }

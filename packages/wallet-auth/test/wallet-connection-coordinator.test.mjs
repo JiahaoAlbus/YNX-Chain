@@ -43,15 +43,28 @@ test("begin uses detected YNX environment and opens only the canonical registere
 });
 
 test("second-launch controlled reconnect opens at most once before explicit Retry", async () => {
-  let opens=0; const value=coordinator({scope:{ethereum:ynxProvider()},openWallet:async()=>{opens+=1;return{opened:true}}});
+  const storage=memory(),sessionClient=client("social",gateway({async currentTime(){return NOW}}),storage);
+  let opens=0; const value=coordinator({sessionClient,scope:{ethereum:ynxProvider()},openWallet:async()=>{opens+=1;return{opened:true}}});
   const first=await value.restore(true);
   assert.equal(first.status,WALLET_CONNECTION_COORDINATOR_STATUS.WALLET_OPENED);
   assert.equal(first.automatic,true);
   assert.equal(opens,1);
+  const original=storage.values.get(sessionClient.storageKey+":pending");
   const second=await value.restore(true);
   assert.equal(second.status,WALLET_CONNECTION_COORDINATOR_STATUS.SESSION_STATE);
-  assert.equal(second.sessionState.status,PRODUCT_SESSION_CLIENT_STATE.RETRY_REQUIRED);
+  assert.equal(second.sessionState.status,PRODUCT_SESSION_CLIENT_STATE.CONNECTING);
+  assert.equal(second.sessionState.automatic,false);
+  assert.equal(storage.values.get(sessionClient.storageKey+":pending"),original);
   assert.equal(opens,1);
+});
+
+test("pending reconnect without authority time retains bytes and never reopens Wallet",async()=>{
+  const storage=memory(),sessionClient=client("social",gateway(),storage);let opens=0;
+  const value=coordinator({sessionClient,openWallet:async()=>{opens++;return{opened:true}}});
+  await value.restore(true);const original=storage.values.get(sessionClient.storageKey+":pending");
+  const second=await value.restore(true);
+  assert.equal(second.sessionState.status,PRODUCT_SESSION_CLIENT_STATE.NETWORK_UNAVAILABLE);
+  assert.equal(storage.values.get(sessionClient.storageKey+":pending"),original);assert.equal(opens,1);
 });
 
 test("platform opener failures become actionable states without a fake session", async () => {
