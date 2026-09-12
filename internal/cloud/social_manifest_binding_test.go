@@ -24,6 +24,9 @@ func TestSocialManifestBinding(t *testing.T) {
 		t.Run(category, func(t *testing.T) {
 			now := time.Now()
 			root := t.TempDir()
+			if err := os.Chmod(root, 0700); err != nil {
+				t.Fatal(err)
+			}
 			store, err := NewSocialAttachmentStore(SocialAttachmentConfig{
 				Root: root, Authorizer: manifestBindingAuthority{now}, Now: func() time.Time { return now },
 			})
