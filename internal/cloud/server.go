@@ -230,6 +230,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/v1/direct-uploads/{upload}/complete", s.auth(s.completeDirectUpload))
 	mux.HandleFunc("DELETE /api/v1/direct-uploads/{upload}", s.auth(s.cancelDirectUpload))
 	mux.HandleFunc("GET /api/v1/objects/{id}", s.auth(s.get))
+	mux.HandleFunc("PATCH /api/v1/objects/{id}", s.auth(s.updateObject))
 	mux.HandleFunc("DELETE /api/v1/objects/{id}", s.auth(s.deleteObject))
 	mux.HandleFunc("GET /api/v1/objects/{id}/content", s.auth(s.content))
 	mux.HandleFunc("PUT /api/v1/objects/{id}/document", s.auth(s.saveDocument))

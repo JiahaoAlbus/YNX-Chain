@@ -42,6 +42,13 @@ func TestProductSessionReadRoutes(t *testing.T) {
 		t.Fatal(err)
 	}
 	handler := server.Handler()
+	missingOrigin := httptest.NewRequest("POST", "https://docs.ynxweb4.com/api/v1/objects", nil)
+	missingOrigin.Header.Set(productsessionv2.ProofHeader, "must-not-consume")
+	missingOriginResponse := httptest.NewRecorder()
+	handler.ServeHTTP(missingOriginResponse, missingOrigin)
+	if missingOriginResponse.Code != 403 || missingOriginResponse.Body.String() != "{\"code\":\"ORIGIN_REQUIRED\",\"error\":\"ORIGIN_REQUIRED\"}\n" {
+		t.Fatalf("missing write Origin: %d %s", missingOriginResponse.Code, missingOriginResponse.Body.String())
+	}
 	request := func(method, path, origin, proof string) *httptest.ResponseRecorder {
 		r := httptest.NewRequest(method, path, nil)
 		r.Header.Set("Origin", origin)

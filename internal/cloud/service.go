@@ -297,7 +297,7 @@ func normalizeObjectProduct(product string, kind ObjectKind) (string, error) {
 	if product == "cloud" && (kind == KindFile || kind == KindFolder) {
 		return product, nil
 	}
-	if product == "docs" && kind == KindDoc {
+	if product == "docs" && (kind == KindDoc || kind == KindFolder) {
 		return product, nil
 	}
 	return "", ErrInvalid
@@ -343,7 +343,7 @@ func (s *Service) Create(ctx context.Context, actor string, req CreateObjectRequ
 	defer s.mu.Unlock()
 	if req.ParentID != "" {
 		parent, err := s.require(actor, req.ParentID, 2)
-		if err != nil || parent.Kind != KindFolder || parent.TrashedAt != nil {
+		if err != nil || parent.Kind != KindFolder || parent.TrashedAt != nil || parent.Product != req.Product {
 			return Object{}, ErrDenied
 		}
 	}

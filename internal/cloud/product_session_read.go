@@ -70,10 +70,15 @@ func (s *Server) authorizeProductRead(w http.ResponseWriter, r *http.Request, ne
 		productReadFailure(w, 403, "ORIGIN_MISMATCH")
 		return
 	}
-	read := r.Method == http.MethodGet && (r.Pattern == "GET /api/v1/objects" || r.Pattern == "GET /api/v1/objects/{id}" || r.Pattern == "GET /api/v1/objects/{id}/content")
-	write := (r.Method == http.MethodPost && r.Pattern == "POST /api/v1/objects") || (r.Method == http.MethodPut && r.Pattern == "PUT /api/v1/objects/{id}/document")
+	read := r.Method == http.MethodGet && (r.Pattern == "GET /api/v1/objects" || r.Pattern == "GET /api/v1/objects/{id}" || r.Pattern == "GET /api/v1/objects/{id}/content" || r.Pattern == "GET /api/v1/objects/{id}/versions")
+	write := (r.Method == http.MethodPost && (r.Pattern == "POST /api/v1/objects" || r.Pattern == "POST /api/v1/objects/{id}/trash" || r.Pattern == "POST /api/v1/objects/{id}/restore" || r.Pattern == "POST /api/v1/objects/{id}/versions/{version}/restore")) || (r.Method == http.MethodPut && r.Pattern == "PUT /api/v1/objects/{id}/document")
+	write = write || (r.Method == http.MethodPatch && r.Pattern == "PATCH /api/v1/objects/{id}")
 	if !read && !write {
 		productReadFailure(w, 403, "V2_ROUTE_NOT_ENABLED")
+		return
+	}
+	if write && r.Header.Get("Origin") == "" {
+		productReadFailure(w, 403, "ORIGIN_REQUIRED")
 		return
 	}
 	product := "cloud"
