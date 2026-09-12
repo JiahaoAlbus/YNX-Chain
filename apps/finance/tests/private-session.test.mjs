@@ -13,12 +13,13 @@ let browser;
 test.before(async()=>{browser=await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});});
 test.after(async()=>{await browser.close();});
 async function setup(){
-  const context=await browser.newContext();const calls=[];let time=Date.now(),clockOffline=false;
+  const context=await browser.newContext();const calls=[];let time=Date.now(),clockOffline=false,clockGate=null;
   await context.route('**/*',async route=>{
     const request=route.request(),url=new URL(request.url());
     if(url.origin===AUTH){
       calls.push({url:request.url(),method:request.method()});
       if(clockOffline)return route.abort('failed');
+      if(clockGate){const pending=clockGate;clockGate=null;pending.onEnter();await pending;}
       assert.equal(url.pathname,'/v2/product-sessions/time');
       const cors={'access-control-allow-origin':ORIGIN,'access-control-allow-methods':'GET, POST, OPTIONS','access-control-allow-headers':'x-request-id, content-type, x-ynx-product-session-proof-v2','access-control-expose-headers':'x-request-id, cache-control'};
       if(request.method()==='OPTIONS')return route.fulfill({status:204,headers:cors,body:''});
@@ -33,7 +34,7 @@ async function setup(){
   });
   const page=await context.newPage();await page.goto(ORIGIN);
   await page.waitForFunction(()=>!!window.YNXFinanceWallet);
-  return {context,page,calls,advance:ms=>{time+=ms;},offline:value=>{clockOffline=value;}};
+  return {context,page,calls,advance:ms=>{time+=ms;},offline:value=>{clockOffline=value;},holdClock:()=>{let release,onEnter;const entered=new Promise(resolve=>{onEnter=resolve;});clockGate=new Promise(resolve=>{release=resolve;});clockGate.onEnter=onEnter;release.entered=entered;return release;}};
 }
 async function records(page){return page.evaluate(async()=>{
   if(!(await indexedDB.databases()).some(db=>db.name==='ynx-product-session-web-v2'))return null;
@@ -59,7 +60,7 @@ test('guest creates no private key/session or account request; explicit Sign in 
 test('two actual tabs reuse nonextractable device; complete rejected callback is bound and late replay grants nothing',async()=>{
   const f=await setup();try{
     await begin(f.page);const a=await records(f.page),old=pending(a);
-    const second=await f.context.newPage();await second.goto(ORIGIN);await second.waitForFunction(()=>window.YNXFinanceWallet?.getPrivateState().status==='awaiting-return');
+    const second=await f.context.newPage();await second.goto(ORIGIN);await second.waitForFunction(()=>window.YNXFinanceWallet?.getPrivateState().status==='connecting');
     const b=await records(second);assert.equal(a.deviceId,b.deviceId);assert.equal(b.privateExtractable,false);
     assert.equal(pending(b).nonce,old.nonce);
     const request=pending(b),callback=new URL(ORIGIN+'/wallet-auth/callback');for(const [key,value] of Object.entries({result:'rejected',reason:'user_rejected',nonce:request.nonce,state:request.state}))callback.searchParams.set(key,value);
@@ -70,6 +71,58 @@ test('two actual tabs reuse nonextractable device; complete rejected callback is
     assert.equal((await f.page.evaluate(()=>window.YNXFinanceWallet.getPrivateState())).session,null);
     assert.equal(f.calls.some(x=>/challenge|complete/.test(x.url)),false);
   }finally{await f.context.close();}
+});
+test('cold pending restore uses the fixed SDK and preserves exact original URI, nonce, state and device',async()=>{
+  const f=await setup();try{
+    await begin(f.page);const before=await records(f.page),request=pending(before),href=await f.page.locator('#private-open').getAttribute('href');
+    await f.page.reload();await f.page.waitForFunction(()=>window.YNXFinanceWallet?.getPrivateState().status==='connecting');
+    const after=await records(f.page);assert.deepEqual(pending(after),request);assert.equal(after.deviceId,before.deviceId);assert.equal(after.privateExtractable,false);
+    assert.equal(await f.page.locator('#private-open').getAttribute('href'),href);
+    assert.equal((await f.page.evaluate(()=>window.YNXFinanceWallet.getPrivateState())).installation,'unverified');
+    assert.equal(await f.page.evaluate(()=>window.YNXFinanceWallet.connected()),false);assert.equal(f.page.url(),ORIGIN+'/');assert.equal(f.context.pages().length,1);
+    assert.equal(f.calls.filter(x=>x.method==='GET'&&x.url===AUTH+'/v2/product-sessions/time').length,2);
+  }finally{await f.context.close();}
+});
+test('pending cold restore during clock outage retains the request; explicit Retry offers the same URL',async()=>{
+  const f=await setup();try{
+    await begin(f.page);const before=await records(f.page),href=await f.page.locator('#private-open').getAttribute('href');
+    f.offline(true);await f.page.reload();await f.page.waitForFunction(()=>window.YNXFinanceWallet?.getPrivateState().status==='network-unavailable');
+    assert.deepEqual(pending(await records(f.page)),pending(before));assert.equal(await f.page.locator('#private-open').isVisible(),false);
+    f.offline(false);await f.page.locator('#private-retry').click();await f.page.waitForFunction(()=>window.YNXFinanceWallet.getPrivateState().status==='connecting');
+    assert.equal(await f.page.locator('#private-open').getAttribute('href'),href);assert.deepEqual(pending(await records(f.page)),pending(before));
+    assert.equal(await f.page.evaluate(()=>window.YNXFinanceWallet.connected()),false);assert.equal(f.context.pages().length,1);
+  }finally{await f.context.close();}
+});
+test('expired pending cold restore keeps exact request but never offers a stale approval URL or new request',async()=>{
+  const f=await setup();try{
+    await begin(f.page);const before=await records(f.page);f.advance(10*60*1000);
+    await f.page.reload();await f.page.waitForFunction(()=>window.YNXFinanceWallet?.getPrivateState().status==='retry-required');
+    assert.deepEqual(pending(await records(f.page)),pending(before));assert.equal(await f.page.locator('#private-open').isVisible(),false);
+    assert.equal(await f.page.evaluate(()=>window.YNXFinanceWallet.connected()),false);assert.equal(f.context.pages().length,1);
+  }finally{await f.context.close();}
+});
+test('foreign binding in pending cold restore is retained and rejected before any new authority lookup',async()=>{
+  const f=await setup();try{
+    await begin(f.page);
+    await f.page.evaluate(()=>new Promise(resolve=>{const q=indexedDB.open('ynx-product-session-web-v2');q.onsuccess=()=>{const db=q.result,tx=db.transaction('state','readwrite'),cursor=tx.objectStore('state').openCursor();cursor.onsuccess=()=>{const row=cursor.result;if(!row)return;if(row.value.authority==='https://wallet-auth.ynxweb4.com'){const value=row.value,key=Object.keys(value.values).find(k=>k.endsWith(':pending')),request=JSON.parse(value.values[key]);request.origin='https://foreign.example';value.values[key]=JSON.stringify(request);row.update(value);}else row.continue();};tx.oncomplete=()=>{db.close();resolve();};};}));
+    const tampered=pending(await records(f.page)),beforeCalls=f.calls.length;
+    await f.page.reload();await f.page.waitForFunction(()=>['retry-required','degraded'].includes(window.YNXFinanceWallet?.getPrivateState().status));
+    // The browser storage validator may reject the foreign record before the
+    // recoverable client is constructed; that shared fail-closed error is
+    // rendered as private degraded, never converted into a new request.
+    assert.deepEqual(pending(await records(f.page)),tampered);assert.equal(f.calls.length,beforeCalls);
+    assert.equal(await f.page.locator('#private-open').isVisible(),false);assert.equal(await f.page.evaluate(()=>window.YNXFinanceWallet.connected()),false);
+  }finally{await f.context.close();}
+});
+test('late authority clock response after explicit Guest cannot reopen the saved request',async()=>{
+  const f=await setup();let release;try{
+    await begin(f.page);const calls=f.calls.length;release=f.holdClock();
+    await f.page.reload();await f.page.waitForFunction(()=>window.YNXFinanceWallet?.getPrivateState().status==='checking');await release.entered;
+    await f.page.locator('#private-guest').click();release();release=null;
+    await f.page.waitForFunction(()=>window.YNXFinanceWallet.getPrivateState().status==='guest');await f.page.waitForTimeout(100);
+    assert.equal(await f.page.locator('#private-open').isVisible(),false);assert.equal(await f.page.evaluate(()=>window.YNXFinanceWallet.connected()),false);
+    assert.equal(f.context.pages().length,1);assert.equal(f.page.url(),ORIGIN+'/');assert.ok(f.calls.length>=calls);
+  }finally{release?.();await f.context.close();}
 });
 test('expired pending callback, network loss and retry never create private authority',async()=>{
   const f=await setup();try{

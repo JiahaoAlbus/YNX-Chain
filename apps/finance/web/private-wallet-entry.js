@@ -1,5 +1,5 @@
-import {createBrowserProductSessionClient,ProductSessionGatewayFetchAdapter} from './vendor/product-session-browser-9840ef87.mjs';
-import registry from './vendor/product-session-registry-9840ef87.json';
+import {createBrowserProductSessionClient,ProductSessionGatewayFetchAdapter} from './vendor/product-session-browser-a7dad7ec.mjs';
+import registry from './vendor/product-session-registry-a7dad7ec.json';
 const AUTHORITY='https://wallet-auth.ynxweb4.com';
 const ATTEMPT_KEY='ynx.finance.browser-private.9840ef87.wallet-auth.attempted';
 const SCOPES=Object.freeze(['finance.ai.draft','finance.pay.read','finance.portfolio.read','finance.profile.write']);
@@ -29,13 +29,9 @@ async function restore(){
   if(!callback&&!attempted){publish({status:'guest',session:null});return current;}
   return operation(async selected=>{
   // Pass the complete callback intact to the shared parser; never extract a token.
-  const key=selected.client.storageKey;
-  const [session,pending,returned,revoking]=await Promise.all([selected.storage.get(key),selected.storage.get(key+':pending'),selected.storage.get(key+':return'),selected.storage.get(key+':revoke')]);
-  if(!callback&&!session&&!returned&&!revoking){
-    // Preserve the SDK's exact pending request across tabs/reload. Calling its
-    // detected-reconnect path here would deliberately begin a different attempt.
-    return {status:pending?'awaiting-return':'guest',session:null};
-  }
+  // The fixed shared SDK owns cold pending validation, fresh authority time,
+  // original URL restoration and cancellation. Do not reconstruct a second
+  // product-local pending state or replace a saved request on cold start.
   const result=callback?await selected.client.handleReturn(location.href):await selected.client.restore(navigator.onLine);
   if(callback&&['connected','disconnected'].includes(result.status))history.replaceState(null,'',location.pathname);
   return result;

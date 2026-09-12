@@ -123,7 +123,8 @@ for (const file of files) {
   const text = readFileSync(file, 'utf8');
   // Two non-visible TODO comments belong to the immutable SDK's bundled noble
   // math implementation. Never edit upstream bytes; all secret rules still run.
-  const exactPrivateSDK=rel==='apps/finance/web/vendor/product-session-browser-9840ef87.mjs'&&createHash('sha256').update(text).digest('hex')==='5dc94d97925e4c0271c8c45255e0e409f257258e4e621f71fda26c4e2407a6e0';
+  const privateSDKHashes={'apps/finance/web/vendor/product-session-browser-9840ef87.mjs':'5dc94d97925e4c0271c8c45255e0e409f257258e4e621f71fda26c4e2407a6e0','apps/finance/web/vendor/product-session-browser-a7dad7ec.mjs':'16b0d677ec21e84b5ce425138f175c37e1ac6d319db7fe5a85926b276dccd336'};
+  const exactPrivateSDK=privateSDKHashes[rel]===createHash('sha256').update(text).digest('hex');
   for (const rule of rules) {
     if(rule.id==='runtime-placeholder'&&exactPrivateSDK)continue;
     if (rule.runtimeOnly && !runtimeRoots.some((prefix) => rel === prefix || rel.startsWith(`${prefix}/`))) continue;

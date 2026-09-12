@@ -9,7 +9,7 @@ import {ProductSessionGatewayHttpHandler,signProductSessionApproval,createProduc
 // Gateway kernel. Disposable scalar 1/2 accounts are local test fixtures. No
 // network, installed Wallet, user key, public approval or transaction is used.
 const ORIGIN='https://finance.ynxweb4.com',AUTH='https://wallet-auth.ynxweb4.com';
-const registry=JSON.parse(await readFile(new URL('../web/vendor/product-session-registry-9840ef87.json',import.meta.url),'utf8'));
+const registry=JSON.parse(await readFile(new URL('../web/vendor/product-session-registry-a7dad7ec.json',import.meta.url),'utf8'));
 let browser;
 test.before(async()=>{browser=await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});});
 test.after(async()=>browser.close());
@@ -53,7 +53,7 @@ async function approve(f,secret='1'){
 }
 
 test('offline test kernel and browser SDK are exact source artifacts',async()=>{
-  for(const [path,bytes,hash] of [['fixtures/wallet-test-kernel-9840ef87.mjs',119170,'5f711edad9a4ade05d3bc2353ac989ae4c1465cfb79b50e4bc600f1af4f70bd1'],['../web/vendor/product-session-browser-9840ef87.mjs',214746,'5dc94d97925e4c0271c8c45255e0e409f257258e4e621f71fda26c4e2407a6e0']]){const data=await readFile(new URL(path,import.meta.url));assert.equal(data.length,bytes);assert.equal(createHash('sha256').update(data).digest('hex'),hash);}
+  for(const [path,bytes,hash] of [['fixtures/wallet-test-kernel-9840ef87.mjs',119170,'5f711edad9a4ade05d3bc2353ac989ae4c1465cfb79b50e4bc600f1af4f70bd1'],['../web/vendor/product-session-browser-a7dad7ec.mjs',223235,'16b0d677ec21e84b5ce425138f175c37e1ac6d319db7fe5a85926b276dccd336']]){const data=await readFile(new URL(path,import.meta.url));assert.equal(data.length,bytes);assert.equal(createHash('sha256').update(data).digest('hex'),hash);}
 });
 test('official local approval completes exact callback, fresh API proof, replay rejection, refresh and revocation retry',async()=>{
   const f=await setup();try{
