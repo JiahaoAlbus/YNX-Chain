@@ -18,12 +18,22 @@ type DiscoveryResolver interface {
 	ResolveDiscovery(source, value string) (string, error)
 }
 type Server struct {
-	service  *Service
-	resolver DiscoveryResolver
+	service      *Service
+	resolver     DiscoveryResolver
+	cloudObjects *CloudObjectAuthority
 }
 
 func NewServer(service *Service, resolver DiscoveryResolver) *Server {
 	return &Server{service: service, resolver: resolver}
+}
+
+// NewServerWithCloudObjects explicitly enables the machine-only authority route.
+// Normal server construction leaves it unavailable; no client mint route exists.
+func NewServerWithCloudObjects(service *Service, resolver DiscoveryResolver, authority *CloudObjectAuthority) (*Server, error) {
+	if authority == nil || authority.service != service {
+		return nil, ErrInvalid
+	}
+	return &Server{service: service, resolver: resolver, cloudObjects: authority}, nil
 }
 
 func (s *Server) Handler() http.Handler {
@@ -33,6 +43,9 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/social/v1/wallet/challenge", s.walletChallenge)
 	mux.HandleFunc("/social/v1/wallet/login", s.login)
 	mux.HandleFunc("/social/v1/", s.social)
+	if s.cloudObjects != nil {
+		mux.HandleFunc("/internal/cloud-objects/authorize", s.cloudObjects.authorize)
+	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("X-Content-Type-Options", "nosniff")
 		w.Header().Set("X-Frame-Options", "DENY")
