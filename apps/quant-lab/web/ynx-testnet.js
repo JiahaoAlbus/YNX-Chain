@@ -4,4 +4,19 @@ export const YNX_EVM_CHAIN=Object.freeze({chainId:'0x1917',chainName:'YNX Testne
  * Bring an explicitly selected EIP-1193 provider to YNX Testnet and verify it
  * before the caller requests account permission.
  */
-export async function ensureYNXTestnet(provider){try{await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:YNX_EVM_CHAIN.chainId}]});}catch(error){if(error?.code!==4902)throw error;await provider.request({method:'wallet_addEthereumChain',params:[YNX_EVM_CHAIN]});await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:YNX_EVM_CHAIN.chainId}]});}const chainId=await provider.request({method:'eth_chainId'});if(chainId!==YNX_EVM_CHAIN.chainId)throw new Error('WRONG_NETWORK: Wallet did not switch to YNX Testnet.');return chainId;}
+export async function ensureYNXTestnet(provider, assertCurrent = () => {}) {
+  assertCurrent();
+  try { await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:YNX_EVM_CHAIN.chainId}]}); }
+  catch(error) {
+    assertCurrent();
+    if(error?.code!==4902)throw error;
+    await provider.request({method:'wallet_addEthereumChain',params:[YNX_EVM_CHAIN]});
+    assertCurrent();
+    await provider.request({method:'wallet_switchEthereumChain',params:[{chainId:YNX_EVM_CHAIN.chainId}]});
+  }
+  assertCurrent();
+  const chainId=await provider.request({method:'eth_chainId'});
+  assertCurrent();
+  if(chainId!==YNX_EVM_CHAIN.chainId)throw new Error('WRONG_NETWORK: Wallet did not switch to YNX Testnet.');
+  return chainId;
+}

@@ -23,6 +23,7 @@
           <button class="active" data-view="research" data-i18n="research">Research</button
           ><button data-view="strategies" data-i18n="strategies">Strategies</button
           ><button data-view="experiments" data-i18n="experiments">Experiments</button
+          ><button data-view="portfolio" data-business-i18n="portfolio">Portfolio</button
           ><button data-view="paper" data-i18n="paper">Paper</button
           ><button data-view="testnet" data-i18n="testnet">Testnet</button
           ><button data-view="risk" data-i18n="risk">Risk</button
@@ -182,6 +183,24 @@
             </table>
           </div>
         </section>
+        <section id="portfolio" class="view">
+          <h2 data-business-i18n="portfolio">Portfolio</h2>
+          <p class="lead" data-business-i18n="portfolioLead">YNX Testnet native balance reported by your selected wallet at a specific block. Exchange balances, strategy positions and Paper funds are not included.</p>
+          <p id="wallet-portfolio-status" role="status" aria-live="polite"></p>
+          <button id="wallet-portfolio-refresh" type="button" class="secondary" data-i18n="refresh">Refresh</button>
+          <div class="table-wrap">
+            <table>
+              <tbody>
+                <tr><th scope="row" data-business-i18n="account">Account</th><td id="wallet-portfolio-account">—</td></tr>
+                <tr><th scope="row" data-business-i18n="provider">Wallet provider</th><td id="wallet-portfolio-provider">—</td></tr>
+                <tr><th scope="row" data-business-i18n="balance">Native balance</th><td id="wallet-portfolio-balance">—</td></tr>
+                <tr><th scope="row" data-business-i18n="block">Block</th><td id="wallet-portfolio-block">—</td></tr>
+                <tr><th scope="row" data-business-i18n="observed">Observed</th><td id="wallet-portfolio-observed">—</td></tr>
+                <tr><th scope="row" data-business-i18n="source">Source</th><td id="wallet-portfolio-source">—</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
         <section id="paper" class="view">
           <div class="split">
             <div>
@@ -190,8 +209,10 @@
                 Simulated balance with volume participation and partial-fill
                 assumptions. No order reaches the Exchange API.
               </p>
+              <p class="lead" data-business-i18n="paperWorkspaceLead">This browser's Paper workspace is stored by the Quant service. It is independent of the connected wallet; changing wallets does not change or transfer its simulated funds.</p>
               <form id="paper-order">
                 <div class="fields">
+                  <label><span data-business-i18n="strategy">Saved strategy</span><select id="paper-strategy" required></select></label>
                   <label
                     >Side<select id="side">
                       <option>buy</option>
@@ -204,8 +225,9 @@
                       value="2000000" /></label
                   >
                 </div>
-                <button class="primary" data-i18n="paperAction">Submit simulated signal</button>
+                <button id="paper-submit" class="primary" data-i18n="paperAction">Submit simulated signal</button>
               </form>
+              <p id="paper-strategy-status" role="status" aria-live="polite"></p>
             </div>
             <aside class="inspector" id="paper-state"></aside>
           </div>
@@ -220,13 +242,14 @@
               requires a separate Wallet signature and a fresh one-time Quant
               Product Session proof. Real-money auto-trading is structurally disabled.
             </p>
+            <p id="testnet-execution-boundary" data-business-i18n="executionUnavailable">Testnet execution is unavailable: a Standard Wallet connection does not provide the native YNX mandate signature or a one-time Quant Product Session proof. Preview is read-only; no account authority is inferred.</p>
           </div>
           <div class="split testnet-workspace">
             <form id="mandate-form">
               <h3>1 · Authorize a bounded strategy</h3>
               <p class="lead">Connect YNX Wallet, preview the exact Exchange mandate, sign it in Wallet, then register it with a fresh one-time Quant Product Session proof. The proof is never saved.</p>
               <div class="fields">
-                <label>YNX account<input id="mandate-account" autocomplete="off" required /></label>
+                <label>YNX account<input id="mandate-account" placeholder="ynx1…" autocomplete="off" required /></label>
                 <label>Strategy SHA-256<input id="mandate-strategy" minlength="64" maxlength="64" autocomplete="off" required /></label>
                 <label>Max order notional<input id="mandate-notional" type="number" value="2000000" min="1" required /></label>
                 <label>Aggregate capital / position<input id="mandate-position" type="number" value="2000000" min="1" required /></label>

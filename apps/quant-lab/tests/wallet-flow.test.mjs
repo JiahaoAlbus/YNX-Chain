@@ -1,0 +1,197 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createServer} from 'node:http';
+import {readFile} from 'node:fs/promises';
+import {chromium} from 'playwright';
+
+// Local browser fixtures only: injected providers return test accounts and
+// balances. Shared Wallet discovery/reducer and the built Quant UI execute
+// unchanged. No installed wallet, signature, order or network is exercised.
+let server,browser,base;
+const web=new URL('../web/',import.meta.url);
+test.before(async()=>{
+  server=createServer(async(req,res)=>{
+    if(req.url==='/api/v1/snapshot'){
+      res.writeHead(200,{'content-type':'application/json'});
+      return res.end(JSON.stringify({paper:{Cash:100,Position:2,ReconciliationDelta:0},strategies:{},experiments:{},audit:[]}));
+    }
+    const file=req.url==='/'?'index.html':String(req.url).slice(1);
+    if(!/^[a-z0-9.-]+$/.test(file)){res.writeHead(404);return res.end();}
+    try{const bytes=await readFile(new URL(file,web));res.writeHead(200,{'content-type':file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':'text/html'});res.end(bytes);}
+    catch{res.writeHead(404);res.end();}
+  });
+  await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
+  base=`http://127.0.0.1:${server.address().port}`;
+  browser=await chromium.launch({headless:true,executablePath:'/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'});
+});
+test.after(async()=>{await browser?.close();await new Promise(resolve=>server?.close(resolve));});
+
+async function pageWithProviders({onlyYNX=false,saved=null,deferSwitch=false,chainAfterApproval=null}={}){
+  const page=await browser.newPage();
+  await page.addInitScript(({onlyYNX,saved,deferSwitch,chainAfterApproval})=>{
+    if(saved)localStorage.setItem('ynx.quant.standard-wallet.v1.provider',saved);
+    const fixture={calls:[],deferSwitch,pendingSwitch:null,deferBalance:false,pendingBalance:null};
+    const make=(kind,address)=>{
+      const listeners=new Map();
+      const provider={
+        isYNXWallet:kind==='ynx-wallet',isMetaMask:kind==='metamask',
+        providerInfo:{rdns:kind==='ynx-wallet'?'com.ynx.wallet':'io.metamask'},
+        account:address,chain:'0x1917',
+        on(event,fn){if(!listeners.has(event))listeners.set(event,new Set());listeners.get(event).add(fn);},
+        removeListener(event,fn){listeners.get(event)?.delete(fn);},
+        emit(event,value){if(event==='accountsChanged')this.account=value[0];if(event==='chainChanged')this.chain=value;for(const fn of listeners.get(event)||[])fn(value);},
+        async request({method,params}){
+          fixture.calls.push({kind,method,params});
+          if(method==='wallet_switchEthereumChain'){
+            if(fixture.deferSwitch)return new Promise(resolve=>{fixture.pendingSwitch=()=>{fixture.deferSwitch=false;this.chain='0x1917';resolve(null);};});
+            this.chain='0x1917';return null;
+          }
+          if(method==='wallet_addEthereumChain')return null;
+          if(method==='eth_chainId')return this.chain;
+          if(method==='eth_requestAccounts'&&chainAfterApproval)this.chain=chainAfterApproval;
+          if(method==='eth_requestAccounts'||method==='eth_accounts')return this.account?[this.account]:[];
+          if(method==='eth_blockNumber')return '0x2a';
+          if(method==='eth_getBalance'){
+            const balance=params[0]===`0x${'b'.repeat(40)}`?'0x1bc16d674ec80000':'0xde0b6b3a7640000';
+            if(fixture.deferBalance)return new Promise(resolve=>{fixture.pendingBalance=()=>{fixture.deferBalance=false;resolve(balance);};});
+            return balance;
+          }
+          throw new Error(`Unapproved provider method in local fixture: ${method}`);
+        },
+      };
+      return provider;
+    };
+    fixture.ynx=make('ynx-wallet',`0x${'c'.repeat(40)}`);
+    fixture.metamask=make('metamask',`0x${'a'.repeat(40)}`);
+    window.__quantWalletFixture=fixture;
+    window.ethereum={providers:onlyYNX?[fixture.ynx]:[fixture.ynx,fixture.metamask]};
+  },{onlyYNX,saved,deferSwitch,chainAfterApproval});
+  await page.goto(base);
+  return page;
+}
+async function connectMetaMask(page){
+  await page.locator('#connect-metamask').click();
+  await page.waitForFunction(()=>window.YNXQuantWallet.getStandardWalletState().status==='connected');
+  assert.equal(await page.evaluate(()=>window.YNXQuantWallet.getStandardWalletState().providerKind),'metamask');
+}
+async function calls(page){return page.evaluate(()=>window.__quantWalletFixture.calls);}
+
+test('explicit MetaMask selection restores only MetaMask and exposes block-bound wallet assets separately from Paper',async()=>{
+  const page=await pageWithProviders();
+  try{
+    await page.waitForTimeout(1700);
+    assert.deepEqual(await calls(page),[]);
+    await connectMetaMask(page);
+    await page.getByRole('button',{name:'Portfolio',exact:true}).click();
+    await page.waitForFunction(()=>document.querySelector('#wallet-portfolio-balance')?.textContent.includes('1 YNXT'));
+    assert.match(await page.locator('#wallet-portfolio-account').textContent(),/0x[a]{40}/);
+    assert.match(await page.locator('#wallet-portfolio-block').textContent(),/42/);
+    const first=await calls(page);
+    assert.deepEqual(first.filter(x=>x.method==='eth_requestAccounts').map(x=>x.kind),['metamask']);
+    assert.equal(first.filter(x=>x.kind==='ynx-wallet').length,0);
+    assert.deepEqual(first.find(x=>x.method==='eth_getBalance').params,[`0x${'a'.repeat(40)}`,'0x2a']);
+    const degraded=await page.evaluate(async()=>{
+      window.YNXQuantWallet.reportRpcProbe({ready:false,code:'RPC_UNAVAILABLE'});
+      let privateError='';
+      try{await window.YNXQuantWallet.requireProof('quant:mandate:create');}catch(error){privateError=error.message;}
+      return {privateError,state:window.YNXQuantWallet.getStandardWalletState()};
+    });
+    assert.match(degraded.privateError,/PRIVATE_SERVICE_DEGRADED/);
+    assert.equal(degraded.state.status,'connected');
+    assert.equal(degraded.state.account,`0x${'a'.repeat(40)}`);
+    await page.reload();
+    await page.waitForFunction(()=>window.YNXQuantWallet.getStandardWalletState().status==='connected');
+    const restored=await calls(page);
+    assert.equal(restored.filter(x=>x.method==='eth_requestAccounts').length,0);
+    assert.equal(restored.filter(x=>x.kind==='ynx-wallet').length,0);
+    assert.equal(await page.evaluate(()=>window.YNXQuantWallet.getStandardWalletState().providerKind),'metamask');
+  }finally{await page.close();}
+});
+
+test('disconnect persists across reload and stale provider events cannot repopulate portfolio',async()=>{
+  const page=await pageWithProviders();
+  try{
+    await connectMetaMask(page);
+    await page.locator('#wallet-disconnect').click();
+    await page.evaluate(()=>window.__quantWalletFixture.metamask.emit('accountsChanged',[`0x${'b'.repeat(40)}`]));
+    assert.equal(await page.evaluate(()=>window.YNXQuantWallet.getStandardWalletState().status),'disconnected');
+    assert.equal(await page.evaluate(()=>localStorage.getItem('ynx.quant.standard-wallet.v1.provider')),null);
+    await page.reload();await page.waitForTimeout(1700);
+    assert.deepEqual(await calls(page),[]);
+    assert.notEqual(await page.evaluate(()=>window.YNXQuantWallet.getStandardWalletState().status),'connected');
+    assert.equal(await page.locator('#backtest').isVisible(),true);
+  }finally{await page.close();}
+});
+
+test('missing saved MetaMask does not fall back to the available YNX provider',async()=>{
+  const page=await pageWithProviders({onlyYNX:true,saved:'metamask'});
+  try{await page.waitForTimeout(1800);assert.deepEqual(await calls(page),[]);assert.notEqual(await page.evaluate(()=>window.YNXQuantWallet.getStandardWalletState().status),'connected');}
+  finally{await page.close();}
+});
+
+test('cancel during discovery prevents account and chain requests',async()=>{
+  const page=await pageWithProviders();
+  try{
+    await page.locator('#connect-metamask').click();
+    await page.locator('#wallet-disconnect').click();
+    await page.waitForTimeout(1800);
+    assert.deepEqual(await calls(page),[]);
+    assert.equal(await page.evaluate(()=>localStorage.getItem('ynx.quant.standard-wallet.v1.provider')),null);
+  }finally{await page.close();}
+});
+
+test('cancel during chain switch prevents later account permission and persistence',async()=>{
+  const page=await pageWithProviders({deferSwitch:true});
+  try{
+    await page.locator('#connect-metamask').click();
+    await page.waitForFunction(()=>typeof window.__quantWalletFixture.pendingSwitch==='function');
+    await page.locator('#wallet-disconnect').click();
+    await page.evaluate(()=>window.__quantWalletFixture.pendingSwitch());
+    await page.waitForTimeout(100);
+    assert.deepEqual((await calls(page)).map(x=>x.method),['wallet_switchEthereumChain']);
+    assert.equal(await page.evaluate(()=>localStorage.getItem('ynx.quant.standard-wallet.v1.provider')),null);
+  }finally{await page.close();}
+});
+
+test('chain is reverified after account approval and wrong-chain state is never persisted as connected',async()=>{
+  const page=await pageWithProviders({chainAfterApproval:'0x1'});
+  try{
+    await page.locator('#connect-metamask').click();
+    await page.waitForFunction(()=>window.__quantWalletFixture.calls.some(call=>call.method==='eth_requestAccounts'));
+    await page.waitForFunction(()=>!document.querySelector('#connect-metamask').disabled);
+    assert.notEqual(await page.evaluate(()=>window.YNXQuantWallet.getStandardWalletState().status),'connected');
+    assert.equal(await page.evaluate(()=>localStorage.getItem('ynx.quant.standard-wallet.v1.provider')),null);
+    assert.equal((await calls(page)).filter(call=>call.method==='eth_getBalance').length,0);
+    assert.deepEqual((await calls(page)).slice(-2).map(call=>call.method),['eth_requestAccounts','eth_chainId']);
+  }finally{await page.close();}
+});
+
+test('account changes invalidate signing drafts and delayed old-account balance results',async()=>{
+  const page=await pageWithProviders();
+  try{
+    await connectMetaMask(page);
+    await page.getByRole('button',{name:'Portfolio',exact:true}).click();
+    await page.waitForFunction(()=>document.querySelector('#wallet-portfolio-balance')?.textContent.includes('1 YNXT'));
+    await page.evaluate(()=>{
+      document.querySelector('#mandate-signature').value='fixture-old-signature';
+      document.querySelector('#order-signature').value='fixture-old-order-signature';
+      window.__quantWalletFixture.deferBalance=true;
+    });
+    await page.locator('#wallet-portfolio-refresh').click();
+    await page.waitForFunction(()=>typeof window.__quantWalletFixture.pendingBalance==='function');
+    await page.evaluate(()=>{
+      window.__quantWalletFixture.deferBalance=false;
+      window.__quantWalletFixture.metamask.emit('accountsChanged',[`0x${'b'.repeat(40)}`]);
+    });
+    await page.waitForFunction(()=>document.querySelector('#wallet-portfolio-balance')?.textContent.includes('2 YNXT'));
+    await page.evaluate(()=>window.__quantWalletFixture.pendingBalance());
+    await page.waitForTimeout(100);
+    assert.match(await page.locator('#wallet-portfolio-account').textContent(),/0x[b]{40}/);
+    assert.match(await page.locator('#wallet-portfolio-balance').textContent(),/2 YNXT/);
+    assert.equal(await page.locator('#mandate-signature').inputValue(),'');
+    assert.equal(await page.locator('#order-signature').inputValue(),'');
+    await page.evaluate(()=>window.__quantWalletFixture.metamask.emit('chainChanged','0x1'));
+    await page.waitForFunction(()=>window.YNXQuantWallet.getStandardWalletState().status!=='connected');
+    assert.doesNotMatch(await page.locator('#wallet-portfolio-balance').textContent(),/2 YNXT/);
+  }finally{await page.close();}
+});
