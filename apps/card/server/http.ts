@@ -39,7 +39,7 @@ export function createCardServer(options:{service:CardService;wallet:WalletAutho
         else if(settlement&&request.method==='POST'&&((settlement[1]==='captures'&&settlement[3]==='refund')||(settlement[1]==='authorizations'&&settlement[3]!=='refund')))result=service.settle(principal,settlement[2]!,settlement[3] as 'capture'|'reverse'|'refund',input,key);
         else throw new CardError('CARD_ROUTE_NOT_FOUND',404);
       }
-      send(200,{schemaVersion:1,environment:ENVIRONMENT,productionRealPayments:false,data:result});
+      send(200,{schemaVersion:1,sourceCommit:options.sourceCommit,sessionOwner:principal.owner,environment:ENVIRONMENT,productionRealPayments:false,data:result});
     }catch(error){const known=error instanceof CardError;send(known?error.status:503,{error:{code:known?error.code:'PRIVATE_SERVICE_DEGRADED',message:known?error.code:'Card private service is unavailable'},environment:ENVIRONMENT,productionRealPayments:false})}
   });
 }
