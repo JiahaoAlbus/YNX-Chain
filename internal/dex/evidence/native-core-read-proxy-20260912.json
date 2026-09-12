@@ -1,0 +1,90 @@
+{
+  "schema": "ynx-dex-native-core-read-proxy-evidence-v1",
+  "classification": "SOURCE_AND_LOCAL_ISOLATED_HTTP_AND_BINARY_TESTS_ONLY",
+  "branch": "codex/dex-native-core-read-proxy-20260912",
+  "baselineCommit": "804554e9a8377d8a0ea35528048df049e0e4f835",
+  "baselineTree": "c678d2779b27ea06bb795a00d9f716015a051634",
+  "sourceCommit": "ce629b890446924dda93ccbd3b1136e4735e732e",
+  "sourceTree": "c14c1390eb54fada8341359f7208d53713c9ca24",
+  "coreContractCommit": "28d30b4b9ac983811f1e6a87f7620ec3bf3f8316",
+  "coreContractPath": "docs/api/native-finance-snapshot-v1.md",
+  "objects": [
+    {"path":"cmd/ynx-dex-indexerd/main.go","blob":"ea8a1fa8454febefdc493287a6de8e6275980522","bytes":6896,"sha256":"aad6ba2b75e703b062efb6dd0a27e7b758960b902362131737ed4a3bbc7b31e0"},
+    {"path":"internal/dex/server.go","blob":"347a1ffb6d270662cbf84a958c3955aa0f725a0a","bytes":14293,"sha256":"f798bd3d03f59a64a961929550f575b06a098a81dc14d1f797c2945afe769dae"},
+    {"path":"internal/dex/native_read_proxy.go","blob":"3879d90eb4139832c14f96891284f7c961b4a5b4","bytes":10360,"sha256":"33f8316d9a74ac2c5ea25344ec2912e2be22b4af5a163087e602ff6a5622dda6"},
+    {"path":"internal/dex/native_read_proxy_test.go","blob":"a6af17622e873f4bae353a238c7449bef94cf7b6","bytes":19871,"sha256":"28137bd9233bd34c53b1c4893f9a67db9e1878f5d7369eb392159298ab49d95b"}
+  ],
+  "contract": {
+    "configuration":"YNX_DEX_NATIVE_CORE_URL",
+    "operatorOriginOnly":true,
+    "httpsOrLiteralLoopbackHttp":true,
+    "snapshotChainId":"6423",
+    "receiptIndependentChainIdField":false,
+    "receiptNetworkBinding":"operator-pinned origin plus accepted source/schema and exact transaction hash; Core Transaction has no chainId field",
+    "routes":["GET /v1/native-snapshot[?account=<canonical address>]","GET /v1/native-transactions/<canonical 0x lowercase 32-byte hash>"],
+    "upstreamTimeoutMs":5000,
+    "snapshotMaxBytes":4194304,
+    "receiptMaxBytes":1048576,
+    "upstreamHeaderMaxBytes":16384,
+    "concurrentReadsPerProcess":16,
+    "automaticRetries":0,
+    "redirectsFollowed":0,
+    "authOrSessionHeadersForwarded":false,
+    "cacheOrSecondLedger":false,
+    "unknownIsWalletOffline":false,
+    "rawDecimalAndDurabilityBytesPreserved":true
+  },
+  "tests": {
+    "goVersion":"go1.25.7 darwin/arm64",
+    "commands":[
+      {"argv":["go","test","-race","-count=1","./internal/dex","./cmd/ynx-dex-indexerd"],"exit":0},
+      {"argv":["go","vet","./internal/dex","./cmd/ynx-dex-indexerd"],"exit":0},
+      {"argv":["go","test","-run","^TestNative","-count=3","./internal/dex"],"exit":0},
+      {"argv":["git","diff","--check"],"exit":0}
+    ],
+    "nativeTopLevelTests":12,
+    "coreGoldenSnapshotSha256":"5d7a0c321eb82bd7c81ee832f69232e8dc14163dbd02cc9001498ebcc3b3e5bf",
+    "coreGoldenReceiptSha256":"7a754deb1a613b635c672b73f6f5e06be31de7f90a9449a4e06165cf3f25e14d",
+    "productionShapedHTTP":["golden raw snapshot and receipt","canonical YNX alias normalization","two users concurrent isolated responses","fresh handler/store reopen after restart","fixed-origin rejection matrix","query/path/absolute-form/body/method injection rejection","ServeMux canonical redirect bypass rejection","unconfigured unknown 503 with indexer still usable","memory_only/uncertain/pending_durable/durable/not_found preservation","redirect/HTML/trailing JSON/duplicate-key/UTF8/network/subject/status/oversize/header/compression rejection","outbound and response header allowlists","timeout/cancellation/concurrency slot recovery","lost connection one call then explicit new read recovery"],
+    "mainBinarySmoke": {
+      "scriptPath":"/tmp/ynx-dex-native-core-read-20260912.FWIU2F/local-main-smoke.mjs",
+      "scriptBytes":3715,
+      "scriptSha256":"43465df1add7277ad473e8421fe4f1c6fb9e44aa95fd1a41d4e928787949b29a",
+      "argv":["/opt/homebrew/bin/node","/tmp/ynx-dex-native-core-read-20260912.FWIU2F/local-main-smoke.mjs"],
+      "exit":0,
+      "classification":"LOCAL_SYNTHETIC_CORE_MAIN_BINARY_SMOKE_ONLY",
+      "launches":[
+        {"launch":1,"configured":false,"health":200,"versionCommit":"ce629b890446924dda93ccbd3b1136e4735e732e","nativeStatus":503,"exit":0},
+        {"launch":2,"configured":true,"health":200,"versionCommit":"ce629b890446924dda93ccbd3b1136e4735e732e","nativeStatus":200,"rawGolden":true,"exit":0},
+        {"launch":3,"configured":true,"health":200,"versionCommit":"ce629b890446924dda93ccbd3b1136e4735e732e","nativeStatus":200,"rawGolden":true,"exit":0}
+      ],
+      "upstreamReads":2,
+      "secondaryLedgerCreated":false
+    }
+  },
+  "build": {
+    "buildTime":"2026-09-12T10:48:44Z",
+    "release":"ynx-dex-native-core-read-ce629b890446",
+    "flags":["CGO_ENABLED=0","-trimpath","-buildvcs=false","-ldflags=-s -w -X main.buildCommit=ce629b890446924dda93ccbd3b1136e4735e732e -X main.buildRelease=ynx-dex-native-core-read-ce629b890446 -X main.buildTime=2026-09-12T10:48:44Z"],
+    "artifacts":[
+      {"path":"/tmp/ynx-dex-native-core-read-20260912.FWIU2F/ynx-dex-indexerd-linux-amd64","bytes":6979768,"sha256":"c13fd5974c5fc55ed371cb1a56c5b2d4a24ed18489a0ea9cb29869839d631968","format":"ELF64 x86-64 static","executed":false},
+      {"path":"/tmp/ynx-dex-native-core-read-20260912.FWIU2F/ynx-dex-indexerd-darwin-arm64","bytes":6659874,"sha256":"49f60d6aa60f10b27ffe390b32c6f033e363812664e7bd1f524624d20b94b89a","format":"Mach-O arm64","localIsolatedExecuted":true}
+    ]
+  },
+  "truth": {
+    "sourceImplemented":true,
+    "focusedTestsPassed":true,
+    "localBinaryColdStartPassed":true,
+    "publicDeployed":false,
+    "publicRuntimeVerified":false,
+    "installedAppVerified":false,
+    "realCoreRuntimeVerified":false,
+    "walletApproval":false,
+    "walletSignature":false,
+    "transactionSubmission":false,
+    "swapOrLiquiditySuccess":false,
+    "productSessionMigration":false,
+    "computerControl":false
+  },
+  "nextIntegrationBoundary":"Merge product source into the current DEX owner, freeze combined Web/indexer artifacts, bind the operator Core origin to the authoritative native Testnet service and obtain source-bound runtime evidence; this backend-only candidate is not a public release."
+}
