@@ -58,7 +58,7 @@
         <button id="session-retry" class="primary small" type="button">Retry session check</button>
         <button id="session-signout" class="text-button" type="button">Sign out on this device</button>
       </section>
-      <p class="notice"><strong>Canonical integration status:</strong> production sign-in stays fail-closed until the shared Wallet verifier and AI registry entry are deployed. The fields below are available only when a developer explicitly starts local fixture mode.</p>
+      <p class="notice"><strong>Private session boundary:</strong> the session status above reports the current connection result. Gateway availability does not mean you are signed in. Private access requires Wallet approval and a verified session; standard wallet connection alone is not enough. Developer fixture fields remain hidden unless local fixture mode is explicitly enabled.</p>
       <form id="challenge-form" class="auth-grid hidden">
         <label>Native account <input id="account" required placeholder="ynx1…" autocomplete="off"></label>
         <label>Device ID <input id="device-id" required value="ynx-ai-browser" autocomplete="off"></label>
