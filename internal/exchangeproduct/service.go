@@ -228,6 +228,7 @@ func New(cfg Config) (*Service, error) {
 func (s *Service) Integrations() IntegrationStatus {
 	status := IntegrationStatus{Gateway: "unavailable", GatewayReason: "Central Gateway route and Exchange scope registration are not configured", WalletRegistry: "pending_registration", QuantRegistry: "pending_registration", Custody: "unavailable", Indexer: "unavailable", CrossChain: "unavailable"}
 	if s.cfg.GatewayURL != "" && s.cfg.GatewayClientID != "" {
+		// This legacy attestation never promotes the independent v2 read route.
 		status.Gateway = "configured_not_attested"
 		status.GatewayReason = "Configuration is not evidence of central route acceptance"
 		if s.cfg.WalletSessionAttested {
@@ -244,6 +245,10 @@ func (s *Service) Integrations() IntegrationStatus {
 	}
 	if s.cfg.Chain != nil && s.cfg.IndexerURL != "" {
 		status.Indexer = "configured"
+	}
+	status.ProductSessionV2 = "unconfigured"
+	if s.cfg.SessionV2 != nil {
+		status.ProductSessionV2 = "configured_read_only_not_attested"
 	}
 	return status
 }

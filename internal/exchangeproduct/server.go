@@ -160,6 +160,10 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if strings.HasPrefix(r.URL.Path, "/v1/ws/") {
+		if len(r.Header.Values("X-YNX-Product-Session-Proof-V2")) != 0 {
+			writeError(w, http.StatusForbidden, "v2_route_unavailable", "Product Session v2 does not authorize this stream")
+			return
+		}
 		if err := s.service.refreshState(); err != nil {
 			writeError(w, http.StatusServiceUnavailable, "state_refresh_failed", "authoritative exchange state is temporarily unavailable")
 			return
@@ -171,6 +175,12 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.inFlight.Add(1)
 	started := time.Now()
 	recorder := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+	var authorized bool
+	r, authorized = s.authorizeBrowserReadV2(recorder, r)
+	if !authorized {
+		s.inFlight.Add(-1)
+		return
+	}
 	if err := s.service.refreshState(); err != nil {
 		writeError(recorder, http.StatusServiceUnavailable, "state_refresh_failed", "authoritative exchange state is temporarily unavailable")
 		s.inFlight.Add(-1)
@@ -544,7 +554,18 @@ func (s *Server) account(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
-	writeJSON(w, 200, s.service.Snapshot(session.Account))
+	// Observation metadata belongs to the HTTP envelope, not the persisted
+	// domain snapshot used by integrity, backup and risk comparisons.
+	snapshot := s.service.Snapshot(session.Account)
+	source := AccountReadSource{Authority: "YNX-owned deterministic order state", Version: "exchange-public-state-v1", Classification: "testnet", Coverage: "account-ledger-orders-trades-fees-audit", AsOf: s.service.cfg.Now().UTC().Format(time.RFC3339Nano), StateBackend: s.service.stateRepository.Mode(), Status: "degraded_single_host"}
+	if source.StateBackend == "postgres-cas-multi-instance" {
+		source.Status = "live"
+		source.MultiInstance = true
+	}
+	writeJSON(w, 200, struct {
+		AccountSnapshot
+		SourceMetadata AccountReadSource `json:"sourceMetadata"`
+	}{snapshot, source})
 }
 func (s *Server) marginAccount(w http.ResponseWriter, r *http.Request) {
 	session, ok := s.auth(w, r, "exchange:read")
@@ -1181,6 +1202,13 @@ func (s *Server) runPerpetualLiquidations(w http.ResponseWriter, r *http.Request
 	respond(w, v, err, http.StatusOK)
 }
 func (s *Server) auth(w http.ResponseWriter, r *http.Request, scope string) (WalletSession, bool) {
+	if auth, ok := r.Context().Value(exchangeSessionV2ContextKey{}).(WalletSession); ok {
+		if scope != "exchange:read" || !time.Now().Before(auth.ExpiresAt) {
+			writeError(w, http.StatusUnauthorized, "session_expired_or_scope_unavailable", "Read permission is unavailable")
+			return WalletSession{}, false
+		}
+		return auth, true
+	}
 	v, err := s.service.Authenticate(r.Header.Get("X-YNX-Product-Session-Proof"), scope)
 	if err != nil {
 		respond(w, nil, err, 200)

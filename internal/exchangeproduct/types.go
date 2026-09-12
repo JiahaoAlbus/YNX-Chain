@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"errors"
 	"time"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2"
 )
 
 var (
@@ -48,11 +50,13 @@ type Config struct {
 	QuantGatewayClientID   string
 	QuantGatewayBundleID   string
 	Gateway                GatewayAuthorizer
-	WalletSessionAttested  bool
-	IndexerURL             string
-	MaxOrderNotionalMicro  int64
-	MaxWithdrawalMicro     int64
-	DeployedPublic         bool
+	// Read-only browser v2 authority; never an order-signing key or legacy token.
+	SessionV2             *productsessionv2.Client
+	WalletSessionAttested bool
+	IndexerURL            string
+	MaxOrderNotionalMicro int64
+	MaxWithdrawalMicro    int64
+	DeployedPublic        bool
 	// StrategyVaultExecutionEvidence is a product-owned release gate. Public
 	// routing stays read-only until the Exchange has evidence for Chain Core
 	// v1.35 custody invariants; it is never implied by DeployedPublic.
@@ -73,13 +77,14 @@ type GatewayAuthorizer interface {
 }
 
 type IntegrationStatus struct {
-	Gateway        string `json:"gateway"`
-	GatewayReason  string `json:"gatewayReason,omitempty"`
-	WalletRegistry string `json:"walletRegistry"`
-	QuantRegistry  string `json:"quantRegistry"`
-	Custody        string `json:"custody"`
-	Indexer        string `json:"indexer"`
-	CrossChain     string `json:"crossChain"`
+	ProductSessionV2 string `json:"productSessionV2"`
+	Gateway          string `json:"gateway"`
+	GatewayReason    string `json:"gatewayReason,omitempty"`
+	WalletRegistry   string `json:"walletRegistry"`
+	QuantRegistry    string `json:"quantRegistry"`
+	Custody          string `json:"custody"`
+	Indexer          string `json:"indexer"`
+	CrossChain       string `json:"crossChain"`
 }
 
 type ChainTransfer struct {
