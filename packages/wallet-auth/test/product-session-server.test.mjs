@@ -25,7 +25,7 @@ function deferred() { let resolve, reject; const promise = new Promise((yes, no)
 
 // Real local protocol, signatures and Gateway parser with fixed test keys only.
 // The protected Map and fetch are synthetic: no OS/device/public service is used.
-function harness() {
+function harness(platform="android") {
   const values = new Map(), calls = [], hooks = {}, time = { now: NOW };
   let sequence = 0;
   const storage = {
@@ -52,11 +52,11 @@ function harness() {
       return Buffer.from(p256.sign(Buffer.from(input.payload, "base64url"), deviceSecret, { format: "der" })).toString("base64url");
     },
   };
-  const client = new RecoverableProductSessionClient({ registry, productId: "social", platform: "android", storage, gateway, device, tokenFactory: () => token(`introspection-client-${sequence++}`), clock: () => { calls.push(["local-clock"]); return new Date("2040-01-01T00:00:00.000Z"); } });
+  const client = new RecoverableProductSessionClient({ registry, productId: "social", platform, storage, gateway, device, tokenFactory: () => token(`introspection-client-${sequence++}`), clock: () => { calls.push(["local-clock"]); return new Date("2040-01-01T00:00:00.000Z"); } });
   return { client, storage, values, calls, hooks, handler, gateway, device, time, key: client.storageKey };
 }
-async function connected() {
-  const setup = harness(), pending = await setup.client.beginExplicit();
+async function connected(platform="android") {
+  const setup = harness(platform), pending = await setup.client.beginExplicit();
   const approval = signProductSessionApproval(registry, pending.request, { accountSecret, scopes, expiresAt: pending.request.expiresAt }, NOW);
   const state = await setup.client.handleReturn(createProductSessionReturnURL(registry, pending.request, { result: "approved", approval }, NOW));
   assert.equal(state.status, "connected");
@@ -65,7 +65,7 @@ async function connected() {
 }
 
 async function serverFixture(options={}) {
-  const setup=await connected(), requests=[];
+  const setup=await connected(options.sessionPlatform??"android"), requests=[];
   const config={registry,productId:"social",platform:"android",endpoint:"https://wallet-auth.ynxweb4.com",timeoutMs:1000,clock:()=>setup.time.now,...options};
   config.fetch=async(url,input)=>{
     requests.push({url,input});
@@ -75,7 +75,7 @@ async function serverFixture(options={}) {
     if(options.after)options.after(setup);
     return new Response(JSON.stringify(body),{status:result.status,headers:result.headers});
   };
-  delete config.failure;delete config.mutate;delete config.after;
+  delete config.failure;delete config.mutate;delete config.after;delete config.sessionPlatform;
   const authorizer=new ProductSessionServerAuthorizer(config), issued=await setup.client.createIntrospectionProof(["account:read"]);
   const input={proofHeader:issued.proofHeader,origin:null,method:"POST",path:"/api/profile",requiredScopes:["account:read"]};
   return {...setup,requests,authorizer,input,issued};
@@ -106,6 +106,17 @@ test("wrong server product never consumes the supplied proof",async()=>{
 test("web routes reject a missing Origin",async()=>{
   const f=await serverFixture({platform:"web"});
   await assert.rejects(()=>f.authorizer.authorize(f.input),{code:"ORIGIN_MISMATCH"});assert.equal(f.requests.length,0);
+});
+
+test("web GET may omit Origin but still needs the exact signed web session and an unconsumed proof",async()=>{
+  const f=await serverFixture({platform:"web",sessionPlatform:"web"});
+  for(const patch of [{method:"GET",origin:"https://attacker.example"},{method:"GET",proofHeader:""},{method:"POST"},{method:"PUT"}])await assert.rejects(()=>f.authorizer.authorize({...f.input,...patch}));
+  assert.equal(f.requests.length,0);
+  const input={...f.input,method:"GET"};
+  assert.deepEqual(await f.authorizer.authorize(input),f.session);
+  await assert.rejects(()=>f.authorizer.authorize(input),{code:"REPLAY"});
+  const native=await serverFixture({platform:"web"});
+  await assert.rejects(()=>native.authorizer.authorize({...native.input,method:"GET"}),{code:"CROSS_PRODUCT_SESSION"});assert.equal(native.requests.length,0);
 });
 
 test("upstream failure is not retried and never authorizes a business operation",async()=>{

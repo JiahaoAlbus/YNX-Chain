@@ -31,7 +31,10 @@ test("desktop packaging exposes real platform installer formats", async () => {
   assert.equal(packageJson.build.win.executableName, "YNX Wallet");
   assert.equal(packageJson.build.afterPack, "scripts/after-pack.mjs");
   assert.doesNotMatch(packageJson.scripts["dist:mac"], /zip/);
-  assert.equal(packageJson.version, "0.6.7");
+  const lock = JSON.parse(await readFile(new URL("../package-lock.json", import.meta.url), "utf8"));
+  assert.match(packageJson.version, /^\d+\.\d+\.\d+$/);
+  assert.equal(packageJson.version, lock.version);
+  assert.equal(packageJson.version, lock.packages[""].version);
   assert.equal(packageJson.build.appId, "com.ynxweb4.wallet.macos");
   assert.equal(packageJson.build.mac.minimumSystemVersion, "13.0");
   assert.deepEqual(packageJson.build.protocols[0].schemes, ["ynxwallet"]);

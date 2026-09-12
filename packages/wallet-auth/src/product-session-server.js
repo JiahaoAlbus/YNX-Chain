@@ -26,12 +26,15 @@ export class ProductSessionServerAuthorizer {
 
   /** No caching or automatic retries. A lost response requires a fresh client
    * proof, because the original may already have been consumed by the authority.
-   * `origin` may be null only when the incoming native request has no Origin.
+   * `origin` may be null for native requests or a read-only web GET, since
+   * browsers can omit Origin on same-origin GET. The signed proof remains
+   * mandatory; Origin/Fetch-Metadata are never credentials. Web mutation
+   * methods still require the registered Origin. GET routes must be read-only.
    * Caller must reject duplicate proof/Origin headers before creating this input.
    */
   async authorize(input) {
     exactFields(input, ["proofHeader", "origin", "method", "path", "requiredScopes"], "Server Product Session request");
-    if (input.origin !== this.#binding.origin && !(input.origin === null && this.#binding.platform !== "web")) fail("ORIGIN_MISMATCH", "Request origin does not match the configured product");
+    if (input.origin !== this.#binding.origin && !(input.origin === null && (this.#binding.platform !== "web" || input.method === "GET"))) fail("ORIGIN_MISMATCH", "Request origin does not match the configured product");
     if (typeof input.method !== "string" || !/^(GET|POST|PUT|PATCH|DELETE)$/.test(input.method) || typeof input.path !== "string" || !/^\/[A-Za-z0-9._~!$&'()*+,;=:@\/-]{1,255}$/.test(input.path) || input.path.includes("//")) fail("INVALID_ROUTE_POLICY", "Server route metadata is invalid");
     const requiredScopes = scopes(input.requiredScopes, this.#binding.scopes);
     const proof = decodeProductSessionGatewayProofHeaderV2(input.proofHeader);
