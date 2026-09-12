@@ -71,7 +71,19 @@ describe("DEX selected-provider restore and disconnect lifecycle", () => {
     disconnectStandardWallet();
     vi.useRealTimers();
     vi.unstubAllGlobals();
+    history.replaceState({},'', '/');
   });
+
+  it.each(['/wallet-action/callback?result=untrusted','/wallet-auth/callback?applicationActionResult=untrusted'])(
+    'never broadcasts from native callback page %s without a separate submission review',async path=>{
+      history.replaceState({},'',path);
+      const meta=provider('metamask',META_ACCOUNT);vi.stubGlobal('ethereum',{providers:[meta]});
+      render(<App/>);await settleDiscovery();
+      expect(screen.getAllByText('Native action return requires its matching request and explicit submission review. No transaction was sent.').length).toBeGreaterThan(0);
+      expect(meta.request).not.toHaveBeenCalled();
+      expect(vi.mocked(fetch).mock.calls.every(([,init])=>init?.method===undefined||init.method==='GET')).toBe(true);
+    },
+  );
 
   it("restores the explicitly chosen MetaMask on remount even when YNX Wallet is also present", async () => {
     const ynx = provider("ynx-wallet", YNX_ACCOUNT);

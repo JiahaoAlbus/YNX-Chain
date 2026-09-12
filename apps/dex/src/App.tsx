@@ -21,14 +21,13 @@ import {
   quoteNativeExactOutput,
   type NativeQuote,
 } from "./routing";
-import { broadcastDexAction, loadAccountNonce } from "./api";
+import { loadAccountNonce } from "./api";
 import {
   beginDexAction,
   beginWalletAuthorization,
   completeWalletCallback,
   connectStandardWallet,
   connectMetaMask,
-  consumeDexActionCallback,
   restoreWalletSession,
   restoreStandardWallet,
   readStandardWalletProviderPreference,
@@ -157,44 +156,25 @@ export default function App() {
     let active = true;
     void (async () => {
       try {
-        if (
+        if (location.pathname === '/wallet-action/callback' || new URL(location.href).searchParams.has('applicationActionResult')) {
+          // A callback is never submission authority. The next native action
+          // integration must validate its persisted request and render a
+          // separate user-confirmed submit review; never POST from this effect.
+          throw new Error('Native action return requires its matching request and explicit submission review. No transaction was sent.');
+        } else if (
           location.pathname ===
           new URL("https://dex.ynxweb4.com/wallet-auth/callback").pathname
         ) {
           const current = await completeWalletCallback(location.href);
           if (current && active) {
             setWalletSession(current);
-            setWalletAccount(current.session.account);
             setWallet(true);
             history.replaceState({}, "", location.origin + "/");
-          }
-        } else if (
-          location.pathname ===
-          new URL("https://dex.ynxweb4.com/wallet-action/callback").pathname
-        ) {
-          const signed = consumeDexActionCallback(location.href);
-          if (!signed)
-            throw new Error(
-              "DEX Wallet action callback is missing its signed response.",
-            );
-          const receipt = await broadcastDexAction(signed);
-          if (active) {
-            const current = await restoreWalletSession();
-            setWalletSession(current);
-            setWalletAccount(current?.session.account || signed.account);
-            setTransactionState({
-              busy: false,
-              error: "",
-              receipt: `Received ${receipt.transactionHash}; mutation evidence at block ${receipt.event.blockNumber}. Durability and finality are unverified.`,
-            });
-            history.replaceState({}, "", location.origin + "/");
-            retry();
           }
         } else {
           const current = await restoreWalletSession();
           if (current && active) {
             setWalletSession(current);
-            setWalletAccount(current.session.account);
           }
         }
       } catch (reason) {
