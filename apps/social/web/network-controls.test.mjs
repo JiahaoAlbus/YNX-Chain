@@ -20,7 +20,12 @@ function app(overrides = {}) {
   };
   const storage = overrides.storage ?? new Map();
   const context = vm.createContext({
-    ...wallet, ...overrides, document: { getElementById: get },
+    ...wallet,
+    // These tests isolate UI intent ordering. SDK behavior has separate tests;
+    // tests that exercise the actual SDK override these lifecycle seams below.
+    attachWalletLifecycle: () => () => {}, disconnectWallet: () => {},
+    window: { location: { origin: "https://social.ynxweb4.com" } },
+    ...overrides, document: { getElementById: get },
     sessionStorage: { getItem: (key) => storage.get(key) ?? null, setItem: (key, value) => storage.set(key, value), removeItem: (key) => storage.delete(key) },
     restoreWallet: overrides.restoreWallet ?? (async () => ({ ok: false })),
   });
@@ -108,7 +113,7 @@ test("manual disconnect persists on reload until explicit Connect", async () => 
 
 test("late startup restore cannot undo a manual disconnect", async () => {
   const pending = deferred();
-  const ui = app({ restoreWallet: () => pending.promise });
+  const ui = app({ storage: new Map([["ynx.social.standard-wallet.kind", "ynx"]]), restoreWallet: () => pending.promise });
   await ui.click("wallet-disconnect");
   pending.resolve({ ok: true, provider: { request() {} }, account: address, chainId: "0x1917", wallet: "ynx" });
   await Promise.resolve();
@@ -117,9 +122,31 @@ test("late startup restore cannot undo a manual disconnect", async () => {
 });
 
 test("unsupported revoke shows manual guidance and keeps local connection", async () => {
-  const ui = app({ revokeWallet: async () => { throw Object.assign(new Error("unsupported"), { code: 4200 }); } });
+  const ui = app({ revokeWallet: async () => ({ status: "unsupported", permissionRevoked: false, locallyDisconnected: false }) });
   ui.connect({ request() {} });
   await ui.click("wallet-revoke");
   assert.equal(ui.get("connected-panel").hidden, false);
   assert.match(ui.get("connected-wallet-status").textContent, /Remove this site's access in your wallet/);
+});
+
+test("actual SDK revoke events cannot hide confirmed UI outcome", async () => {
+  const listeners = new Map();
+  let accounts = [address];
+  const provider = {
+    isMetaMask: true,
+    on(event, fn) { listeners.set(event, fn); },
+    removeListener(event) { listeners.delete(event); },
+    async request({method}) {
+      if (method === "eth_requestAccounts" || method === "eth_accounts") return accounts;
+      if (method === "eth_chainId") return "0x1917";
+      if (method === "wallet_revokePermissions") { accounts = []; listeners.get("accountsChanged")?.([]); return null; }
+      throw new Error(method);
+    },
+  };
+  const ui = app({window: { ethereum: provider, location: { origin: "https://social.ynxweb4.com" } }, attachWalletLifecycle: wallet.attachWalletLifecycle, disconnectWallet: wallet.disconnectWallet});
+  await vm.runInContext('connect("metamask", byId("connect-metamask"))', ui.context);
+  assert.equal(ui.get("connected-panel").hidden, false);
+  await ui.click("wallet-revoke");
+  assert.equal(ui.get("connected-panel").hidden, true);
+  assert.match(ui.get("connected-wallet-status").textContent, /empty accounts confirmed/);
 });
