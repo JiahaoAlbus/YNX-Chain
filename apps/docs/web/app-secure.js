@@ -3,8 +3,12 @@ const storageKey = ['ynx', 'docs', 'session'].join('.');
 const headerName = ['Author', 'ization'].join('');
 const authScheme = ['Bear', 'er'].join('');
 
+function savedCredential() {
+  try { return window.sessionStorage.getItem(storageKey) || ''; } catch { return ''; }
+}
+
 const state = {
-  credential: window.sessionStorage.getItem(storageKey) || '',
+  credential: savedCredential(),
   objects: [],
   folders: [],
   parentId: '',
@@ -32,11 +36,40 @@ const scopes = [
   'ai.use',
 ];
 
+let authAttempt = 0;
+let documentAttempt = 0;
+let authPending = false;
+let sessionStatus = state.credential ? 'Checking saved Docs session' : 'Docs authorization required';
+
+function renderAuth() {
+  $('#wallet').textContent = sessionStatus;
+  if (!$('#provider-state').dataset?.standardManaged) $('#provider-state').textContent = 'Wallet connection: not verified';
+  $('#session-state').textContent = sessionStatus;
+  $('#auth-start').disabled = authPending;
+  $('#auth-end').disabled = authPending || !state.credential;
+  $('#auth-start').textContent = authPending ? 'Waiting for authorization...' : 'Authorize Docs with YNX Wallet';
+}
+
+function clearDocsSession() {
+  documentAttempt += 1;
+  state.credential = '';
+  try { window.sessionStorage.removeItem(storageKey); } catch {}
+  clearTimeout(state.saveTimer);
+  clearInterval(state.heartbeatTimer);
+  $('#title').disabled = true;
+  $('#editor').disabled = true;
+  enableDocumentActions(false);
+  sessionStatus = 'Docs authorization required';
+  renderAuth();
+}
+
 async function request(path, options = {}) {
+  const credential = state.credential;
   const headers = {...(options.headers || {})};
   if (state.credential) headers[headerName] = `${authScheme} ${state.credential}`;
   if (options.body) headers['Content-Type'] = 'application/json';
   const response = await fetch(`/api/v1${path}`, {...options, headers});
+  if (response.status === 401 && path !== '/session' && credential === state.credential) clearDocsSession();
   if (response.status === 204) return null;
   const type = response.headers.get('content-type') || '';
   const body = type.includes('json') ? await response.json() : await response.blob();
@@ -89,14 +122,20 @@ function notice(text) {
 }
 
 function showSignIn() {
+  renderAuth();
   $('#auth-dialog').showModal();
 }
 
 async function connectWallet() {
+  if (authPending) return;
+  const attempt = ++authAttempt;
+  authPending = true;
+  renderAuth();
   const output = $('#auth-state');
+  output.textContent = 'Waiting for explicit Docs authorization in YNX Wallet.';
   try {
-    if (!window.ynxWallet?.requestSession) {
-      throw new Error('YNX Wallet bridge is unavailable. Docs does not accept recovery keys or substitute login credentials.');
+    if (typeof window.ynxWallet?.requestSession !== 'function') {
+      throw new Error('YNX Wallet authorization bridge is unavailable. Enable YNX Wallet, then retry. A MetaMask provider alone cannot authorize this Docs session. Docs does not accept recovery keys or substitute login credentials.');
     }
     const assertion = await window.ynxWallet.requestSession({
       version: 1,
@@ -109,19 +148,66 @@ async function connectWallet() {
       purpose: 'Edit only explicitly authorized YNX Docs',
       expiresInSeconds: 300,
     });
+    if (attempt !== authAttempt) return;
+    if (!assertion || typeof assertion !== 'object') throw new Error('Wallet returned no Docs authorization. Retry when ready.');
     const result = await request('/session', {method: 'POST', body: JSON.stringify(assertion)});
-    state.credential = result[['to', 'ken'].join('')];
-    window.sessionStorage.setItem(storageKey, state.credential);
-    $('#auth-dialog').close();
-    $('#wallet').textContent = 'Wallet connected';
+    if (attempt !== authAttempt) return;
+    const credential = result?.[['to', 'ken'].join('')];
+    if (typeof credential !== 'string' || !credential.trim()) throw new Error('Docs service returned no valid session. Retry authorization.');
+    window.sessionStorage.setItem(storageKey, credential);
+    state.credential = credential;
+    sessionStatus = 'Docs session authorized';
+    output.textContent = 'Docs session authorized. Standard wallet connection has not been verified.';
+    renderAuth();
     await loadObjects();
   } catch (error) {
-    output.textContent = error.message;
+    if (attempt !== authAttempt) return;
+    output.textContent = Number(error?.code) === 4001 || error?.name === 'AbortError'
+      ? 'Authorization declined or cancelled. You can retry when ready.'
+      : (error?.message || 'Docs authorization failed. Please retry.');
+  } finally {
+    if (attempt === authAttempt) {
+      authPending = false;
+      renderAuth();
+    }
+  }
+}
+
+function cancelAuthorization() {
+  authAttempt += 1;
+  authPending = false;
+  $('#auth-state').textContent = 'Authorization dialog closed. Pending results will not activate a Docs session.';
+  renderAuth();
+}
+
+async function endDocsSession() {
+  if (!state.credential || authPending) return;
+  if (!confirm('End this Docs session? Unsaved text stays on this screen. This does not disconnect your wallet.')) return;
+  const credential = state.credential;
+  authPending = true;
+  renderAuth();
+  try {
+    await request('/session', {method: 'DELETE'});
+    if (state.credential !== credential) return;
+    clearDocsSession();
+    $('#auth-state').textContent = 'Docs session revoked. Unsaved text remains read-only on this screen. Wallet connection was not changed.';
+  } catch (error) {
+    if (state.credential !== credential) return;
+    if (error.status === 401) {
+      clearDocsSession();
+      $('#auth-state').textContent = 'Docs session has already expired or been revoked.';
+    } else {
+      $('#auth-state').textContent = 'Could not confirm session revocation. Retry when the service is available.';
+    }
+  } finally {
+    authPending = false;
+    renderAuth();
   }
 }
 
 async function loadObjects() {
   if (!state.credential) return;
+  const credential = state.credential;
   try {
     const query = encodeURIComponent($('#search').value.trim());
     const parentId = encodeURIComponent(state.parentId);
@@ -129,17 +215,22 @@ async function loadObjects() {
       request(`/objects?parentId=${parentId}&q=${query}`),
       request('/objects?view=recent'),
     ]);
+    if (credential !== state.credential) return;
+    sessionStatus = 'Docs session authorized';
+    renderAuth();
     state.objects = visible.filter((object) => object.kind === 'doc' || object.kind === 'folder');
     state.folders = recent.filter((object) => object.kind === 'folder' && !object.trashedAt);
     state.currentFolder = state.parentId ? state.folders.find((folder) => folder.id === state.parentId) || null : null;
     renderNavigation();
     renderObjects();
-    setStatus(state.current ? `Version ${state.baseVersion}` : 'Synced');
+    if (!state.dirty && !state.conflict) setStatus(state.current ? `Version ${state.baseVersion}` : 'Synced');
   } catch (error) {
+    if (credential !== state.credential) return;
     if (error.status === 401) {
-      state.credential = '';
-      window.sessionStorage.removeItem(storageKey);
-      $('#wallet').textContent = 'Sign in with YNX Wallet';
+      clearDocsSession();
+    } else if (sessionStatus === 'Checking saved Docs session') {
+      sessionStatus = 'Saved Docs session not verified';
+      renderAuth();
     }
     setStatus(error.message, true);
   }
@@ -233,19 +324,25 @@ async function createFolder() {
 
 async function openDocument(document) {
   if (state.dirty && !confirm('This document has unsaved local edits. Switch without saving?')) return;
+  const attempt = ++documentAttempt;
+  const credential = state.credential;
   try {
     const [metadata, blob] = await Promise.all([
       request(`/objects/${document.id}`),
       request(`/objects/${document.id}/content`),
     ]);
+    const content = await blob.text();
+    if (attempt !== documentAttempt || !credential || credential !== state.credential) return;
     state.current = metadata;
-    state.content = await blob.text();
+    state.content = content;
     state.baseVersion = metadata.version;
     state.dirty = false;
     state.commentAnchor = null;
+    state.conflict = null;
     $('#title').value = metadata.name;
     $('#title').disabled = false;
     $('#editor').value = state.content;
+    $('#editor').disabled = false;
     $('#welcome').hidden = true;
     $('#editor-shell').hidden = false;
     enableDocumentActions(true);
@@ -255,17 +352,20 @@ async function openDocument(document) {
     sendPresence();
     setStatus(`Version ${metadata.version}`);
   } catch (error) {
+    if (attempt !== documentAttempt || credential !== state.credential) return;
     setStatus(error.message, true);
   }
 }
 
 function clearDocument() {
+  documentAttempt += 1;
   clearTimeout(state.heartbeatTimer);
   state.current = null;
   state.content = '';
   state.baseVersion = 0;
   state.dirty = false;
   state.commentAnchor = null;
+  state.conflict = null;
   $('#title').value = 'Untitled document';
   $('#title').disabled = true;
   $('#editor').value = '';
@@ -370,32 +470,55 @@ function editDocument() {
   state.dirty = true;
   setStatus(navigator.onLine ? 'Unsaved changes' : 'Offline draft saved on this device');
   updateWordCount();
-  window.localStorage.setItem(`ynx.docs.draft.${state.current.id}`, JSON.stringify({
+  persistDraft();
+  clearTimeout(state.saveTimer);
+  if (navigator.onLine && state.credential && !state.conflict) state.saveTimer = setTimeout(saveDocument, 900);
+}
+
+function persistDraft() {
+  try {
+    window.localStorage.setItem(`ynx.docs.draft.${state.current.id}`, JSON.stringify({
     baseVersion: state.baseVersion,
     content: $('#editor').value,
     at: new Date().toISOString(),
-  }));
-  clearTimeout(state.saveTimer);
-  if (navigator.onLine) state.saveTimer = setTimeout(saveDocument, 900);
+    }));
+    return true;
+  } catch {
+    setStatus('Local draft storage is unavailable. Keep this page open and copy unsaved text before leaving.', true);
+    return false;
+  }
 }
 
 async function saveDocument() {
-  if (!state.current || !state.dirty || state.saving || !navigator.onLine) return;
+  if (!state.current || !state.credential || !state.dirty || state.saving || state.conflict || !navigator.onLine) return;
+  const id = state.current.id;
+  const credential = state.credential;
+  const content = $('#editor').value;
+  const baseVersion = state.baseVersion;
+  let saved = false;
   state.saving = true;
   setStatus('Saving…');
   try {
-    const document = await request(`/objects/${state.current.id}/document`, {
+    const document = await request(`/objects/${id}/document`, {
       method: 'PUT',
-      body: JSON.stringify({baseVersion: state.baseVersion, content: encodeText($('#editor').value)}),
+      body: JSON.stringify({baseVersion, content: encodeText(content)}),
     });
+    if (state.current?.id !== id || credential !== state.credential) return;
     state.current = document;
     state.baseVersion = document.version;
-    state.content = $('#editor').value;
-    state.dirty = false;
-    window.localStorage.removeItem(`ynx.docs.draft.${document.id}`);
-    setStatus(`Saved · version ${document.version}`);
+    state.content = content;
+    state.dirty = $('#editor').value !== content;
+    saved = true;
+    if (state.dirty) {
+      setStatus('Newer edits are still unsaved');
+      persistDraft();
+    } else {
+      try { window.localStorage.removeItem(`ynx.docs.draft.${id}`); } catch {}
+      setStatus(`Saved · version ${document.version}`);
+    }
     await loadObjects();
   } catch (error) {
+    if (state.current?.id !== id || credential !== state.credential) return;
     if (error.status===409) {
       await showConflict(error.body.current);
     } else {
@@ -403,12 +526,19 @@ async function saveDocument() {
     }
   } finally {
     state.saving = false;
+    if ((saved || state.current?.id !== id) && credential === state.credential && state.dirty && !state.conflict) {
+      clearTimeout(state.saveTimer);
+      state.saveTimer = setTimeout(saveDocument, 900);
+    }
   }
 }
 
 async function showConflict(current) {
+  if (!current || current.id !== state.current?.id) return;
   clearTimeout(state.saveTimer);
+  state.conflict = current;
   const latest = await request(`/objects/${current.id}/content?version=${current.version}`);
+  if (current.id !== state.current?.id || !state.credential) return;
   $('#local-conflict').value = $('#editor').value;
   $('#server-conflict').value = await latest.text();
   state.conflict = current;
@@ -446,6 +576,7 @@ async function useServerVersion() {
     state.baseVersion = current.version;
     state.content = $('#editor').value;
     state.dirty = false;
+    state.conflict = null;
     window.localStorage.removeItem(`ynx.docs.draft.${current.id}`);
     $('#conflict-dialog').close();
     updateWordCount();
@@ -457,13 +588,21 @@ async function useServerVersion() {
 
 function recoverOfflineDraft() {
   const key = `ynx.docs.draft.${state.current.id}`;
-  const raw = window.localStorage.getItem(key);
+  let raw;
+  try { raw = window.localStorage.getItem(key); } catch {
+    setStatus('Local draft storage is unavailable. Keep this page open while editing.', true);
+    return;
+  }
   if (!raw) return;
   let draft;
   try {
     draft = JSON.parse(raw);
   } catch {
-    window.localStorage.removeItem(key);
+    setStatus('The stored draft could not be read. It has been preserved on this device.', true);
+    return;
+  }
+  if (!draft || typeof draft.content !== 'string' || !Number.isInteger(draft.baseVersion) || !Number.isFinite(Date.parse(draft.at))) {
+    setStatus('The stored draft is invalid. It has been preserved on this device.', true);
     return;
   }
   if (draft.content === state.content) return;
@@ -479,18 +618,22 @@ function recoverOfflineDraft() {
 }
 
 async function sendPresence() {
-  if (!state.current) return;
+  if (!state.current || !state.credential) return;
+  const id = state.current.id;
+  const credential = state.credential;
   try {
     const presence = await request(`/objects/${state.current.id}/presence`, {
       method: 'POST',
       body: JSON.stringify({label: 'Editing'}),
     });
+    if (state.current?.id !== id || state.credential !== credential) return;
     $('#presence').textContent = presence.length === 1 ? 'Only you are active' : `${presence.length} bounded collaborators active`;
   } catch (error) {
+    if (state.current?.id !== id || state.credential !== credential) return;
     $('#presence').textContent = `Presence unavailable · ${error.message}`;
   }
   clearTimeout(state.heartbeatTimer);
-  state.heartbeatTimer = setTimeout(sendPresence, 20000);
+  if (state.current?.id === id && state.credential === credential) state.heartbeatTimer = setTimeout(sendPresence, 20000);
 }
 
 async function showHistory() {
@@ -828,6 +971,9 @@ function updateWordCount() {
 
 $('#wallet').onclick = showSignIn;
 $('#auth-start').onclick = connectWallet;
+$('#auth-end').onclick = endDocsSession;
+$('#auth-dialog').addEventListener('close', cancelAuthorization);
+$('#auth-dialog').addEventListener('cancel', cancelAuthorization);
 $('#new-doc').onclick = createDocument;
 $('#new-folder').onclick = createFolder;
 $('#folder-up').onclick = openParentFolder;
@@ -866,4 +1012,5 @@ window.addEventListener('beforeunload', (event) => {
 });
 
 enableDocumentActions(false);
+renderAuth();
 loadObjects();

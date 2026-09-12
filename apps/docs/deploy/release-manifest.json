@@ -1,0 +1,172 @@
+{
+  "schemaVersion": 1,
+  "productId": "docs",
+  "status": "local-candidate",
+  "generatedAt": "2026-09-12T10:16:25.826Z",
+  "source": {
+    "baseCommit": "ba8afbbdbbb1cf63a73aeff14cc910ccc7a689e6",
+    "branch": "codex/final-docs",
+    "webTree": "7013b405a2a4bc7f3d2e4beb4fa43b71c54c6be4",
+    "webRoot": "apps/docs/web",
+    "entry": "index.html",
+    "entryScript": "app-secure.js"
+  },
+  "deployment": {
+    "origin": "https://docs.ynxweb4.com",
+    "callback": "https://docs.ynxweb4.com/wallet-auth/callback",
+    "callbackFile": "wallet-auth/callback/index.html",
+    "server": "existing-coordinator-owned-caddy",
+    "apiPath": "/api/v1/",
+    "upstream": "shared-local-service:6496",
+    "upstreamIsLogicalDescription": true
+  },
+  "wallet": {
+    "sdkCommit": "9840ef871165eb523c4e7a3d48964dd25f8dee8e",
+    "authority": "https://wallet-auth.ynxweb4.com",
+    "clientId": "ynx-docs-mobile-v1",
+    "webApplicationId": "com.ynxweb4.docs.web",
+    "scopes": [
+      "docs.read",
+      "files.read"
+    ],
+    "configuration": {
+      "enabled": false,
+      "apiReadEnabled": false,
+      "authority": "https://wallet-auth.ynxweb4.com"
+    }
+  },
+  "implementation": {
+    "standardProviderLifecycle": true,
+    "officialBeginExplicit": true,
+    "officialCallbackCompletion": true,
+    "readOnlyV2Client": true,
+    "legacyEditorCRUDRetained": true,
+    "saveConflictRecovery": true,
+    "guideLanguageCount": 12,
+    "arabicGuideRTL": true,
+    "completeEditorLocalization": false,
+    "v2EditorWriteIntegration": false
+  },
+  "localTestEvidence": {
+    "command": "node --test apps/docs/tests/*.test.mjs",
+    "lastObservedPassed": 30,
+    "lastObservedFailed": 0,
+    "scope": "local tests from this development session; not public or installed acceptance"
+  },
+  "releaseStatus": {
+    "deployedPublic": false,
+    "installedLocal": false,
+    "publiclyProbed": false,
+    "privateLoginAccepted": false,
+    "businessLifecycleAccepted": false
+  },
+  "outstanding": [
+    "Coordinator domain/TLS/Caddy deployment and active Wallet authority",
+    "Cloud fixed v2 read-route implementation before apiReadEnabled",
+    "Cloud write scopes/idempotency and full editor v2 API integration",
+    "Source-bound real Wallet return and document business acceptance",
+    "Complete editor localization and authoritative whitepaper publication"
+  ],
+  "files": [
+    {
+      "path": "app-secure.js",
+      "bytes": 36630,
+      "sha256": "ab12c48a1a8d196c9194182f7fae9d6293b3c8e7112299168447159d071d7dd6"
+    },
+    {
+      "path": "app.js",
+      "bytes": 105,
+      "sha256": "75aec379857e250e070b3923a07741625cf54d047f76f05abfb303fb75709c5a"
+    },
+    {
+      "path": "guide-translations.js",
+      "bytes": 19221,
+      "sha256": "304987a57ae2be9c3831f23e7bec440550a00f473c1bdea81c355ae996157ce2"
+    },
+    {
+      "path": "help.html",
+      "bytes": 11369,
+      "sha256": "f63db5a1f68a5062146100d413cc06f3928d1235892229d5d5b58deea4d616b6"
+    },
+    {
+      "path": "help.js",
+      "bytes": 2558,
+      "sha256": "5fe74d851a2d3c2ee0d15f42d3560b71733efabebb0d2b5df77167e9344b5c32"
+    },
+    {
+      "path": "index.html",
+      "bytes": 5108,
+      "sha256": "b586b82cf7d305913db85d69186d4f44338500b99212c6267d0330bc40b77198"
+    },
+    {
+      "path": "product-session-client.js",
+      "bytes": 2378,
+      "sha256": "cad71cd903dec216e891e69576b4068093efeaf7cbf4ed91a41dc05abc089fda"
+    },
+    {
+      "path": "product-session-read-client.js",
+      "bytes": 2095,
+      "sha256": "109b857f430c45bc641fc9b261173b5269725c9fe7673761bf26dd0fbd9b8a9e"
+    },
+    {
+      "path": "product-session-transport.js",
+      "bytes": 3016,
+      "sha256": "983650e6f6bdde036511fe420fb4555435b2703b71f6c5bac8fd244e61d1ff9e"
+    },
+    {
+      "path": "session.css",
+      "bytes": 570,
+      "sha256": "54c7310865de1379083c889313f45a18817a13ec65de312c9117eedb8d96b6f9"
+    },
+    {
+      "path": "session.html",
+      "bytes": 918,
+      "sha256": "55222b5ad0e443c23060ba15b3233fdf3d2b83251cfc11a8bea909a8f1c77099"
+    },
+    {
+      "path": "standard-wallet.js",
+      "bytes": 4574,
+      "sha256": "d6dba113798e96836195d2c4ed5af1532e1b49d62336e67187a67615979dcc30"
+    },
+    {
+      "path": "styles.css",
+      "bytes": 6255,
+      "sha256": "381657e0750b35478764672332f5f10f62bcaef23d9830eb933c07944655e476"
+    },
+    {
+      "path": "vendor/product-session-registry.json",
+      "bytes": 7546,
+      "sha256": "85c6995eddfbc175efaac01dbad31a4f5ef8878aab91613da2d689ef79921ab3"
+    },
+    {
+      "path": "vendor/source-manifest.json",
+      "bytes": 679,
+      "sha256": "11bc261c4356f88974ea6740a364e5d9890850ffe05a7ce087f0ee23db920fe3"
+    },
+    {
+      "path": "vendor/standard-wallet-browser.mjs",
+      "bytes": 22417,
+      "sha256": "b8a900ef2a5ece693cb2808a47ed0072d97c425236deb80c39497886f1535e43"
+    },
+    {
+      "path": "vendor/wallet-session-sdk.js",
+      "bytes": 214746,
+      "sha256": "5dc94d97925e4c0271c8c45255e0e409f257258e4e621f71fda26c4e2407a6e0"
+    },
+    {
+      "path": "wallet-auth/callback/index.html",
+      "bytes": 1151,
+      "sha256": "fa6c8662f6a218251b2aa8c7c36edc9a2cddecc45793ee8807f805488c848499"
+    },
+    {
+      "path": "wallet-session-config.json",
+      "bytes": 100,
+      "sha256": "5ad720c3011a7a95a09264f14c2c5e47296a27a871d930a196d83040b4b28d71"
+    },
+    {
+      "path": "wallet-session-page.js",
+      "bytes": 7165,
+      "sha256": "c2ec3ed9ee908931e36c962c4a57e88d58d24c7f2926f465868c1d151d6d7e39"
+    }
+  ]
+}

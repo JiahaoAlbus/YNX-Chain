@@ -1,0 +1,39 @@
+# Historical alternative only. Current deployment uses existing Caddy.
+# Do not create an nginx service. See README.md for the coordinator's routing.
+server {
+    listen 443 ssl;
+    server_name docs.ynxweb4.com;
+    ssl_certificate ${DOCS_TLS_CERTIFICATE};
+    ssl_certificate_key ${DOCS_TLS_CERTIFICATE_KEY};
+    root ${DOCS_WEB_ROOT};
+    index index.html;
+    client_max_body_size 12m;
+
+    add_header X-Content-Type-Options nosniff always;
+    add_header Referrer-Policy no-referrer always;
+
+    location = /wallet-auth/callback {
+        access_log off;
+        add_header Cache-Control no-store always;
+        add_header Referrer-Policy no-referrer always;
+        add_header X-Content-Type-Options nosniff always;
+        add_header Content-Security-Policy "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self' https://wallet-auth.ynxweb4.com; base-uri 'none'; form-action 'none'; frame-ancestors 'none'" always;
+        try_files /wallet-auth/callback/index.html =404;
+    }
+
+    location /api/v1/ {
+        proxy_pass http://${DOCS_API_UPSTREAM};
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header Authorization $http_authorization;
+        proxy_set_header X-YNX-Product-Session-Proof-V2 $http_x_ynx_product_session_proof_v2;
+        proxy_set_header Idempotency-Key $http_idempotency_key;
+        proxy_next_upstream off;
+        proxy_read_timeout 30s;
+        add_header Cache-Control no-store always;
+    }
+
+    location = /docs/ { return 308 /; }
+    location / { try_files $uri $uri/ =404; }
+}
