@@ -532,9 +532,10 @@ func (d *Devnet) persistPreparedSnapshot(snapshot devnetSnapshot) error {
 	// No code holding persistenceMu acquires d.mu, avoiding lock inversion.
 	d.persistenceMu.Lock()
 	defer d.persistenceMu.Unlock()
-	// Replacements/rebases can remove an earlier transaction. Conservatively
-	// withdraw all old evidence before disk I/O, including failed attempts.
-	d.durableCheckpoint.Store(nil)
+	// Preserve exact prior fsync evidence for the unchanged ancestor history.
+	// Withdraw entries removed/changed by a replacement and never attest a new
+	// admission or pending-to-mined transition before its own checkpoint.
+	d.durableCheckpoint.Store(retainedCheckpoint(d.durableCheckpoint.Load(), checkpoint, snapshot))
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return fmt.Errorf("create devnet data dir: %w", err)
 	}

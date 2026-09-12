@@ -651,19 +651,27 @@ func (d *Devnet) BlockByHash(hash string) (Block, bool) {
 func (d *Devnet) Transaction(hash string) (Transaction, bool) {
 	d.mu.RLock()
 	defer d.mu.RUnlock()
-	for _, block := range d.blocks {
-		for _, tx := range block.Transactions {
+	return d.transactionLocked(hash)
+}
+
+// TransactionLocation returns one coherent observation without repeated read
+// locks or rescanning the complete block history for an RPC transaction index.
+func (d *Devnet) TransactionLocation(hash string) (Transaction, uint64, bool) {
+	d.mu.RLock()
+	defer d.mu.RUnlock()
+	for _, tx := range d.pending {
+		if tx.Hash == hash {
+			return tx, 0, true
+		}
+	}
+	for i := len(d.blocks) - 1; i >= 0; i-- {
+		for j, tx := range d.blocks[i].Transactions {
 			if tx.Hash == hash {
-				return tx, true
+				return tx, uint64(j), true
 			}
 		}
 	}
-	for _, tx := range d.pending {
-		if tx.Hash == hash {
-			return tx, true
-		}
-	}
-	return Transaction{}, false
+	return Transaction{}, 0, false
 }
 
 func (d *Devnet) EVMLogs(filter EVMLogFilter) []EVMLog {

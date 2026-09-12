@@ -95,12 +95,14 @@ func (s *Server) ethereumNativeResult(method string, params []any) (any, bool, e
 		result, err := s.transactionReceiptResult(params, true)
 		return respond(result, err)
 	case "eth_getTransactionByHash":
-		original, err := s.legacyEVMResult(method, params)
-		if err != nil || original == nil {
-			return respond(original, err)
+		if len(params) != 1 || !isCanonicalData(fmt.Sprint(params[0]), 32) {
+			return respond(nil, rpcInvalidParams("eth_getTransactionByHash requires one 32-byte transaction hash"))
 		}
-		tx, _ := s.devnet.Transaction(params[0].(string))
-		result, err := s.ethereumTransaction(tx)
+		tx, index, found := s.devnet.TransactionLocation(fmt.Sprint(params[0]))
+		if !found {
+			return respond(nil, nil)
+		}
+		result, err := s.ethereumTransactionAt(tx, index)
 		return respond(result, err)
 	case "eth_getBlockByNumber", "eth_getBlockByHash":
 		var block chain.Block
@@ -308,11 +310,14 @@ func nativeLogsBloom(logs []chain.EVMLog) (string, error) {
 }
 
 func (s *Server) ethereumTransaction(tx chain.Transaction) (map[string]any, error) {
+	return s.ethereumTransactionAt(tx, transactionIndex(s.devnet, tx))
+}
+func (s *Server) ethereumTransactionAt(tx chain.Transaction, index uint64) (map[string]any, error) {
 	result := evmTx(tx)
 	result["value"], result["gas"], result["gasPrice"], result["type"] = ethnative.Quantity(ethnative.Wei(tx.Amount)), ethnative.Quantity(nativeFeeGas(tx.Fee)), ethnative.Quantity(big.NewInt(ethnative.GasPriceWei)), "0x0"
 	result["transactionIndex"] = nil
 	if tx.BlockNum > 0 {
-		result["transactionIndex"] = hexQuantity(transactionIndex(s.devnet, tx))
+		result["transactionIndex"] = hexQuantity(index)
 	}
 	eth, present, err := ethnative.FromMemo(tx.Memo, s.networkConfig.ChainID)
 	if err != nil {

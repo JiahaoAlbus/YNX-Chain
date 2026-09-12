@@ -28,7 +28,7 @@ func TestNativeIdentityProjectionPreservesAccountsAndSeparatesSystems(t *testing
 	if projected["from"] != faucet || projected["to"] != address {
 		t.Fatal("transaction identity mapping disagrees")
 	}
-	native := projected["ynxNativeTransaction"].(map[string]any)
+	native := projected["ynxNativeIdentity"].(map[string]any)
 	if native["from"] != "ynx_faucet" || native["to"] != alias || tx.To != alias {
 		t.Fatal("native identity was lost or mutated")
 	}
@@ -61,7 +61,11 @@ func TestNativeFaucetReceiptAndFullBlockUseSameIdentityProjection(t *testing.T) 
 	if !accountaddress.IsCanonical(r["from"].(string)) || r["from"] != nativeEVMIdentity(tx.From) || r["to"] != address {
 		t.Fatal("invalid receipt addresses")
 	}
-	native := r["ynxNativeTransaction"].(map[string]any)
+	legacy := r["ynxNativeTransaction"].(map[string]any)
+	if len(legacy) != 4 || legacy["amountYNXT"] != "100" || legacy["feeYNXT"] != "0" || legacy["nonce"] == nil || legacy["type"] == nil {
+		t.Fatalf("legacy exact four-field receipt changed: %+v", legacy)
+	}
+	native := r["ynxNativeIdentity"].(map[string]any)
 	if native["from"] != tx.From {
 		t.Fatal("system identity missing")
 	}

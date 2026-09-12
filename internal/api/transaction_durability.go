@@ -62,7 +62,7 @@ func (s *Server) transactionReceiptResult(params []any, nativeFees bool) (any, e
 		"from": nativeEVMIdentity(tx.From), "to": nativeEVMRecipient(tx.To), "contractAddress": nil,
 		"gasUsed": hexQuantity(21_000), "cumulativeGasUsed": hexQuantity((index + 1) * 21_000),
 		"logs": evmLogs(tx.Logs), "ynxDurability": proof,
-		"ynxNativeTransaction": nativeTransactionProjection(tx),
+		"ynxNativeTransaction": nativeTransactionProjection(tx), "ynxNativeIdentity": nativeIdentityProjection(tx),
 	}
 	if nativeFees {
 		cumulative := new(big.Int)

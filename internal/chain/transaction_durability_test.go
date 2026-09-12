@@ -3,6 +3,7 @@ package chain
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"sync"
 	"testing"
@@ -154,6 +155,100 @@ func TestModuleReplayConfirmsMinedCheckpoint(t *testing.T) {
 			_, proof, _ := d.TransactionWithDurability(tx.Hash)
 			if proof.Status != "durable" {
 				t.Fatalf("recovered proof: %+v", proof)
+			}
+		})
+	}
+}
+
+func TestCheckpointRetainsOldReceiptAcrossFailedNewWrites(t *testing.T) {
+	for _, markerFailure := range []bool{false, true} {
+		t.Run(fmt.Sprint(markerFailure), func(t *testing.T) {
+			d, err := NewPersistentDevnet(DefaultNetworkConfig("testnet"), t.TempDir())
+			if err != nil {
+				t.Fatal(err)
+			}
+			old, err := d.Faucet("0x1234567890123456789012345678901234567890", 100)
+			if err != nil {
+				t.Fatal(err)
+			}
+			d.ProduceBlock()
+			_, prior, _ := d.TransactionWithDurability(old.Hash)
+			if prior.Status != "durable" {
+				t.Fatal(prior)
+			}
+			next, err := d.Faucet("0x2234567890123456789012345678901234567890", 100)
+			if err != nil {
+				t.Fatal(err)
+			}
+			path := d.snapshotPath() + ".tmp"
+			if markerFailure {
+				path = d.snapshotIntegrityMarkerPath() + ".tmp"
+			}
+			clear := blockSnapshotWrite(t, path)
+			d.ProduceBlock()
+			_, retained, _ := d.TransactionWithDurability(old.Hash)
+			if retained.Status != "durable" {
+				t.Fatalf("old receipt lost: %+v", retained)
+			}
+			_, unconfirmed, _ := d.TransactionWithDurability(next.Hash)
+			if unconfirmed.Status != "uncertain" {
+				t.Fatalf("new inclusion got old proof: %+v", unconfirmed)
+			}
+			clear()
+			if err = d.persistSnapshot(); err != nil {
+				t.Fatal(err)
+			}
+			_, confirmed, _ := d.TransactionWithDurability(next.Hash)
+			if confirmed.Status != "durable" {
+				t.Fatal(confirmed)
+			}
+		})
+	}
+}
+
+func TestRetainedCheckpointRejectsReplacementAndChangedEvidence(t *testing.T) {
+	d, err := NewPersistentDevnet(DefaultNetworkConfig("testnet"), t.TempDir())
+	if err != nil {
+		t.Fatal(err)
+	}
+	tx, err := d.Faucet("0x1234567890123456789012345678901234567890", 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	d.ProduceBlock()
+	prior := d.durableCheckpoint.Load()
+	d.mu.RLock()
+	original := d.snapshotLocked()
+	d.mu.RUnlock()
+	for _, variant := range []string{"unchanged", "tip", "amount", "fee", "removed"} {
+		t.Run(variant, func(t *testing.T) {
+			raw, _ := json.Marshal(original)
+			var snapshot devnetSnapshot
+			if err := json.Unmarshal(raw, &snapshot); err != nil {
+				t.Fatal(err)
+			}
+			b := &snapshot.Blocks[len(snapshot.Blocks)-1]
+			switch variant {
+			case "tip":
+				b.Hash = "different"
+				for i := range b.Transactions {
+					b.Transactions[i].BlockHash = b.Hash
+				}
+			case "amount":
+				b.Transactions[0].Amount++
+			case "fee":
+				b.Transactions[0].Fee++
+			case "removed":
+				b.Transactions = nil
+			}
+			next, err := checkpointForSnapshot(snapshot)
+			if err != nil {
+				t.Fatal(err)
+			}
+			retained := retainedCheckpoint(prior, next, snapshot)
+			old, _, _ := d.TransactionWithDurability(tx.Hash)
+			if checkpointCovers(retained, old) != (variant == "unchanged") {
+				t.Fatalf("incorrect retention for %s", variant)
 			}
 		})
 	}

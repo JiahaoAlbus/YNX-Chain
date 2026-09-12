@@ -30,11 +30,14 @@ func nativeEVMRecipient(identity string) any {
 }
 
 func nativeTransactionProjection(tx chain.Transaction) map[string]any {
+	return map[string]any{"type": tx.Type, "amountYNXT": strconv.FormatInt(tx.Amount, 10), "feeYNXT": strconv.FormatInt(tx.Fee, 10), "nonce": hexQuantity(tx.Nonce)}
+}
+
+func nativeIdentityProjection(tx chain.Transaction) map[string]any {
 	_, fromErr := accountaddress.Normalize(tx.From)
 	_, toErr := accountaddress.Normalize(tx.To)
 	return map[string]any{
-		"type": tx.Type, "from": tx.From, "to": tx.To,
-		"amountYNXT": strconv.FormatInt(tx.Amount, 10), "feeYNXT": strconv.FormatInt(tx.Fee, 10), "nonce": hexQuantity(tx.Nonce),
+		"from": tx.From, "to": tx.To,
 		"identityProjection": map[string]any{
 			"version":             nativeIdentityProjectionVersion,
 			"systemAddressScheme": "last-20-bytes-sha256-nul-domain-exact-native-identity",

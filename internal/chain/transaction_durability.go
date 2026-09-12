@@ -117,3 +117,38 @@ func (d *Devnet) TransactionWithDurability(hash string) (Transaction, Transactio
 	}
 	return tx, status, true
 }
+
+// retainedCheckpoint keeps only prior, already-fsynced transaction evidence
+// whose exact fingerprint/inclusion also occurs in the proposed replacement.
+// New admissions and pending-to-mined transitions gain no evidence here.
+func retainedCheckpoint(prior, next *transactionCheckpoint, snapshot devnetSnapshot) *transactionCheckpoint {
+	if prior == nil || next == nil || prior.integrity == "" {
+		return nil
+	}
+	tipRetained := false
+	if prior.height < uint64(len(snapshot.Blocks)) {
+		b := snapshot.Blocks[prior.height]
+		tipRetained = b.Height == prior.height && b.Hash == prior.hash
+	}
+	if !tipRetained {
+		return nil
+	}
+	for height, fees := range prior.blockFees {
+		other := next.blockFees[height]
+		if len(other) != len(fees) {
+			return nil
+		}
+		for i, fee := range fees {
+			if fee != other[i] {
+				return nil
+			}
+		}
+	}
+	retained := &transactionCheckpoint{height: prior.height, hash: prior.hash, integrity: prior.integrity, transactions: make(map[string]checkpointTransaction), blockFees: prior.blockFees}
+	for hash, entry := range prior.transactions {
+		if candidate, ok := next.transactions[hash]; ok && candidate == entry {
+			retained.transactions[hash] = entry
+		}
+	}
+	return retained
+}

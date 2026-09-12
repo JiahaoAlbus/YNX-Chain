@@ -1992,7 +1992,7 @@ func evmBlock(block chain.Block, full bool) map[string]any {
 	}
 }
 func evmTx(tx chain.Transaction) map[string]any {
-	result := map[string]any{"hash": tx.Hash, "from": nativeEVMIdentity(tx.From), "to": nativeEVMRecipient(tx.To), "ynxNativeTransaction": nativeTransactionProjection(tx), "value": hexQuantity(uint64(tx.Amount)), "nonce": hexQuantity(tx.Nonce), "gas": "0x5208", "gasPrice": "0x1", "input": "0x"}
+	result := map[string]any{"hash": tx.Hash, "from": nativeEVMIdentity(tx.From), "to": nativeEVMRecipient(tx.To), "ynxNativeTransaction": nativeTransactionProjection(tx), "ynxNativeIdentity": nativeIdentityProjection(tx), "value": hexQuantity(uint64(tx.Amount)), "nonce": hexQuantity(tx.Nonce), "gas": "0x5208", "gasPrice": "0x1", "input": "0x"}
 	if tx.BlockNum == 0 || tx.BlockHash == "" {
 		result["blockHash"] = nil
 		result["blockNumber"] = nil

@@ -50,7 +50,8 @@ func requireDurability(t *testing.T, s *Server, hash, want string) map[string]an
 			}
 			native := receipt["ynxNativeTransaction"].(map[string]any)
 			transaction, _ := s.devnet.Transaction(hash)
-			if native["type"] != "transfer" || native["amountYNXT"] != "2" || native["feeYNXT"] != "1" || native["nonce"] != "0x1" || native["from"] != transaction.From || native["to"] != transaction.To {
+			identity := receipt["ynxNativeIdentity"].(map[string]any)
+			if native["type"] != "transfer" || native["amountYNXT"] != "2" || native["feeYNXT"] != "1" || native["nonce"] != "0x1" || len(native) != 4 || identity["from"] != transaction.From || identity["to"] != transaction.To {
 				t.Fatalf("native tx binding: %v", receipt["ynxNativeTransaction"])
 			}
 		} else if _, ok := proof["blockNumber"]; ok {

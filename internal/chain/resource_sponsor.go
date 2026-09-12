@@ -698,7 +698,8 @@ func (d *Devnet) transactionLocked(hash string) (Transaction, bool) {
 			return tx, true
 		}
 	}
-	for _, block := range d.blocks {
+	for i := len(d.blocks) - 1; i >= 0; i-- {
+		block := d.blocks[i]
 		for _, tx := range block.Transactions {
 			if tx.Hash == hash {
 				return tx, true
