@@ -31,15 +31,15 @@ var (
 )
 
 func walletRequestValue(r WalletAuthorizationRequest) map[string]any {
-	return map[string]any{"version": r.Version, "nonce": r.Nonce, "chainId": r.ChainID, "requestingProduct": r.RequestingProduct, "productClientId": r.ProductClientID, "bundleId": r.BundleID, "productDeviceAlgorithm": r.ProductDeviceAlgorithm, "productDeviceKey": r.ProductDeviceKey, "callback": r.Callback, "scopes": r.Scopes, "purpose": r.Purpose, "issuedAt": r.IssuedAt, "expiresAt": r.ExpiresAt}
+	return map[string]any{"version": r.Version, "nonce": r.Nonce, "chainId": r.ChainID, "requestingProduct": r.RequestingProduct, "productClientId": r.ProductClientID, "bundleId": r.BundleID, "productDeviceAlgorithm": r.ProductDeviceAlgorithm, "productDeviceKey": r.ProductDeviceKey, "origin": r.Origin, "callback": r.Callback, "scopes": r.Scopes, "purpose": r.Purpose, "issuedAt": r.IssuedAt, "expiresAt": r.ExpiresAt}
 }
 
 func walletApprovalValue(a WalletApproval) map[string]any {
-	return map[string]any{"version": a.Version, "requestDigest": a.RequestDigest, "nonce": a.Nonce, "chainId": a.ChainID, "requestingProduct": a.RequestingProduct, "productClientId": a.ProductClientID, "bundleId": a.BundleID, "productDeviceAlgorithm": a.ProductDeviceAlgorithm, "productDeviceKey": a.ProductDeviceKey, "callback": a.Callback, "account": a.Account, "accountPublicKey": a.AccountPublicKey, "grantedScopes": a.GrantedScopes, "purpose": a.Purpose, "issuedAt": a.IssuedAt, "expiresAt": a.ExpiresAt}
+	return map[string]any{"version": a.Version, "requestDigest": a.RequestDigest, "nonce": a.Nonce, "chainId": a.ChainID, "requestingProduct": a.RequestingProduct, "productClientId": a.ProductClientID, "bundleId": a.BundleID, "productDeviceAlgorithm": a.ProductDeviceAlgorithm, "productDeviceKey": a.ProductDeviceKey, "origin": a.Origin, "callback": a.Callback, "account": a.Account, "accountPublicKey": a.AccountPublicKey, "grantedScopes": a.GrantedScopes, "purpose": a.Purpose, "issuedAt": a.IssuedAt, "expiresAt": a.ExpiresAt}
 }
 
 func walletChallengeValue(c ProductSessionChallenge) map[string]any {
-	return map[string]any{"version": c.Version, "challenge": c.Challenge, "requestDigest": c.RequestDigest, "productClientId": c.ProductClientID, "bundleId": c.BundleID, "productDeviceAlgorithm": c.ProductDeviceAlgorithm, "productDeviceKey": c.ProductDeviceKey, "account": c.Account, "scopes": c.Scopes, "issuedAt": c.IssuedAt, "expiresAt": c.ExpiresAt}
+	return map[string]any{"version": c.Version, "challenge": c.Challenge, "requestDigest": c.RequestDigest, "productClientId": c.ProductClientID, "bundleId": c.BundleID, "productDeviceAlgorithm": c.ProductDeviceAlgorithm, "productDeviceKey": c.ProductDeviceKey, "origin": c.Origin, "account": c.Account, "scopes": c.Scopes, "issuedAt": c.IssuedAt, "expiresAt": c.ExpiresAt}
 }
 
 func canonicalJSON(value any) ([]byte, error) {
@@ -101,7 +101,7 @@ func domainDigest(domain string, value map[string]any) ([32]byte, error) {
 }
 
 func WalletRequestDigest(r WalletAuthorizationRequest) (string, error) {
-	digest, err := domainDigest("YNX_WALLET_AUTH_REQUEST_V1", walletRequestValue(r))
+	digest, err := domainDigest("YNX_WALLET_AUTH_REQUEST_V2", walletRequestValue(r))
 	return hex.EncodeToString(digest[:]), err
 }
 
@@ -110,7 +110,7 @@ func WalletApprovalSignBytes(a WalletApproval) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return append([]byte("YNX_WALLET_AUTH_APPROVAL_V1\n"), canonical...), nil
+	return append([]byte("YNX_WALLET_AUTH_APPROVAL_V2\n"), canonical...), nil
 }
 
 func GatewayChallengeSignBytes(c ProductSessionChallenge) ([]byte, error) {
@@ -118,7 +118,7 @@ func GatewayChallengeSignBytes(c ProductSessionChallenge) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return append([]byte("YNX_PRODUCT_SESSION_CHALLENGE_V1\n"), canonical...), nil
+	return append([]byte("YNX_PRODUCT_SESSION_CHALLENGE_V2\n"), canonical...), nil
 }
 
 func parseProtocolTime(value string) (time.Time, error) {
@@ -145,7 +145,7 @@ func validProductDeviceKey(value string) bool {
 }
 
 func validateWalletRequest(r WalletAuthorizationRequest, now time.Time) (time.Time, error) {
-	if r.Version != "1" || r.ChainID != "ynx_6423-1" || r.RequestingProduct != RequestingProduct || r.ProductClientID != ProductClientID || r.BundleID != BundleID || r.ProductDeviceAlgorithm != ProductDeviceAlgorithm || r.Callback != Callback {
+	if r.Version != "2" || r.ChainID != "ynx_6423-1" || r.RequestingProduct != RequestingProduct || r.ProductClientID != ProductClientID || r.BundleID != BundleID || r.ProductDeviceAlgorithm != ProductDeviceAlgorithm || r.Origin != Origin || r.Callback != Callback {
 		return time.Time{}, fmt.Errorf("%w: wallet product binding", ErrInvalid)
 	}
 	if !walletNoncePattern.MatchString(r.Nonce) || !validProductDeviceKey(r.ProductDeviceKey) || len(r.Purpose) < 1 || len(r.Purpose) > 180 || strings.TrimSpace(r.Purpose) != r.Purpose || strings.Join(r.Scopes, "\n") != strings.Join(walletScopes, "\n") {
@@ -174,7 +174,7 @@ func verifyWalletApproval(r WalletAuthorizationRequest, a WalletApproval, now ti
 	if err != nil {
 		return time.Time{}, err
 	}
-	if a.Version != "1" || a.RequestDigest != digest || a.Nonce != r.Nonce || a.ChainID != r.ChainID || a.RequestingProduct != r.RequestingProduct || a.ProductClientID != r.ProductClientID || a.BundleID != r.BundleID || a.ProductDeviceAlgorithm != r.ProductDeviceAlgorithm || a.ProductDeviceKey != r.ProductDeviceKey || a.Callback != r.Callback || a.Purpose != r.Purpose || strings.Join(a.GrantedScopes, "\n") != strings.Join(r.Scopes, "\n") {
+	if a.Version != "2" || a.RequestDigest != digest || a.Nonce != r.Nonce || a.ChainID != r.ChainID || a.RequestingProduct != r.RequestingProduct || a.ProductClientID != r.ProductClientID || a.BundleID != r.BundleID || a.ProductDeviceAlgorithm != r.ProductDeviceAlgorithm || a.ProductDeviceKey != r.ProductDeviceKey || a.Origin != r.Origin || a.Callback != r.Callback || a.Purpose != r.Purpose || strings.Join(a.GrantedScopes, "\n") != strings.Join(r.Scopes, "\n") {
 		return time.Time{}, fmt.Errorf("%w: wallet approval binding", ErrUnauthorized)
 	}
 	issued, err := parseProtocolTime(a.IssuedAt)

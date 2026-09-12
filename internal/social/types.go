@@ -21,6 +21,7 @@ const (
 	RequestingProduct      = "social"
 	ProductClientID        = "ynx-social-v1"
 	BundleID               = "com.ynx.social"
+	Origin                 = "https://social.ynxweb4.com"
 	Callback               = "ynx-social://com.ynx.social"
 	ProductDeviceAlgorithm = "p256-sha256"
 )
@@ -52,6 +53,7 @@ type WalletAuthorizationRequest struct {
 	BundleID               string   `json:"bundleId"`
 	ProductDeviceAlgorithm string   `json:"productDeviceAlgorithm"`
 	ProductDeviceKey       string   `json:"productDeviceKey"`
+	Origin                 string   `json:"origin"`
 	Callback               string   `json:"callback"`
 	Scopes                 []string `json:"scopes"`
 	Purpose                string   `json:"purpose"`
@@ -69,6 +71,7 @@ type WalletApproval struct {
 	BundleID               string   `json:"bundleId"`
 	ProductDeviceAlgorithm string   `json:"productDeviceAlgorithm"`
 	ProductDeviceKey       string   `json:"productDeviceKey"`
+	Origin                 string   `json:"origin"`
 	Callback               string   `json:"callback"`
 	Account                string   `json:"account"`
 	AccountPublicKey       string   `json:"accountPublicKey"`
@@ -92,6 +95,7 @@ type ProductSessionChallenge struct {
 	BundleID               string   `json:"bundleId"`
 	ProductDeviceAlgorithm string   `json:"productDeviceAlgorithm"`
 	ProductDeviceKey       string   `json:"productDeviceKey"`
+	Origin                 string   `json:"origin"`
 	Account                string   `json:"account"`
 	Scopes                 []string `json:"scopes"`
 	IssuedAt               string   `json:"issuedAt"`
