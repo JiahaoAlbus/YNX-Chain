@@ -50,6 +50,14 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	nativeWritesEnabled, err := nativeWritesOptIn(os.Getenv("YNX_DEX_NATIVE_WRITES_ENABLED"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	nativeWrites, err := dex.NewNativeWriteProxy(nativeReads, nativeWritesEnabled)
+	if err != nil {
+		log.Fatal(err)
+	}
 	if factory := strings.TrimSpace(os.Getenv("DEX_FACTORY_ADDRESS")); factory != "" {
 		startBlock, err := envUint("DEX_INDEXER_START_BLOCK", 0)
 		if err != nil || startBlock == 0 {
@@ -81,7 +89,7 @@ func main() {
 			}
 		}()
 	}
-	httpServer := &http.Server{Addr: env("YNX_DEX_HTTP_ADDR", "127.0.0.1:6436"), Handler: newAdmission(128, 600, time.Minute).wrap(server.HandlerWithNativeReads(nativeReads)), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 16 << 10}
+	httpServer := &http.Server{Addr: env("YNX_DEX_HTTP_ADDR", "127.0.0.1:6436"), Handler: newAdmission(128, 600, time.Minute).wrap(server.HandlerWithNativeCore(nativeReads, nativeWrites)), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, WriteTimeout: 15 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 16 << 10}
 	go func() {
 		<-ctx.Done()
 		shutdown, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -91,6 +99,17 @@ func main() {
 	log.Printf("YNX DEX Indexer API listening on %s", httpServer.Addr)
 	if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatal(err)
+	}
+}
+
+func nativeWritesOptIn(value string) (bool, error) {
+	switch value {
+	case "", "0":
+		return false, nil
+	case "1":
+		return true, nil
+	default:
+		return false, fmt.Errorf("YNX_DEX_NATIVE_WRITES_ENABLED must be exactly 0 or 1")
 	}
 }
 

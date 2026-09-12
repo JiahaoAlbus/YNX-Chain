@@ -34,3 +34,21 @@ func TestRequestClientIgnoresUntrustedForwardedHeader(t *testing.T) {
 		t.Fatalf("got %q", got)
 	}
 }
+
+func TestNativeWritesOperatorOptInIsExplicit(t *testing.T) {
+	for _, value := range []string{"", "0"} {
+		enabled, err := nativeWritesOptIn(value)
+		if err != nil || enabled {
+			t.Fatal("default enabled")
+		}
+	}
+	if enabled, err := nativeWritesOptIn("1"); err != nil || !enabled {
+		t.Fatal("exact opt-in rejected")
+	}
+	for _, value := range []string{"true", "yes", " 1", "1 ", "2", "secret"} {
+		enabled, err := nativeWritesOptIn(value)
+		if err == nil || enabled {
+			t.Fatal("ambiguous opt-in accepted")
+		}
+	}
+}

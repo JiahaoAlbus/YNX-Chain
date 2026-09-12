@@ -113,6 +113,12 @@ func (server *Server) Handler() http.Handler {
 // HandlerWithNativeReads installs only the two public, fixed-Core GET routes.
 // Native reads have no access to ingestion or Wallet session credentials.
 func (server *Server) HandlerWithNativeReads(native *NativeReadProxy) http.Handler {
+	return server.HandlerWithNativeCore(native, nil)
+}
+
+// HandlerWithNativeCore retains independent reads and adds one opt-in signed
+// submission route. The default Handler and read-only constructor remain closed.
+func (server *Server) HandlerWithNativeCore(native *NativeReadProxy, writes *NativeWriteProxy) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", server.health)
 	mux.HandleFunc("GET /version", server.version)
@@ -134,6 +140,10 @@ func (server *Server) HandlerWithNativeReads(native *NativeReadProxy) http.Handl
 		response.Header().Set("Content-Type", "application/json")
 		response.Header().Set("Cache-Control", "no-store")
 		response.Header().Set("X-Content-Type-Options", "nosniff")
+		if request.URL.Path == nativeSubmitPath {
+			writes.ServeHTTP(response, request)
+			return
+		}
 		if isNativeReadPath(request.URL.Path) {
 			native.ServeHTTP(response, request)
 			return
