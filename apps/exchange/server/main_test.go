@@ -14,14 +14,16 @@ import (
 )
 
 func TestGuestMarketModuleIsServedWithJavaScriptMIMEAndExactBytes(t *testing.T) {
-	expected, err := os.ReadFile("../web/market-data.js")
-	if err != nil {
-		t.Fatal(err)
-	}
-	res := httptest.NewRecorder()
-	spa(http.Dir("../web")).ServeHTTP(res, httptest.NewRequest(http.MethodGet, "/market-data.js", nil))
-	if res.Code != http.StatusOK || !strings.Contains(res.Header().Get("Content-Type"), "javascript") || !bytes.Equal(res.Body.Bytes(), expected) {
-		t.Fatalf("module was not served exactly: status=%d mime=%s", res.Code, res.Header().Get("Content-Type"))
+	for _, module := range []string{"market-data.js", "order-preview.js"} {
+		expected, err := os.ReadFile("../web/" + module)
+		if err != nil {
+			t.Fatal(err)
+		}
+		res := httptest.NewRecorder()
+		spa(http.Dir("../web")).ServeHTTP(res, httptest.NewRequest(http.MethodGet, "/"+module, nil))
+		if res.Code != http.StatusOK || !strings.Contains(res.Header().Get("Content-Type"), "javascript") || !bytes.Equal(res.Body.Bytes(), expected) {
+			t.Fatalf("module was not served exactly: status=%d mime=%s", res.Code, res.Header().Get("Content-Type"))
+		}
 	}
 }
 

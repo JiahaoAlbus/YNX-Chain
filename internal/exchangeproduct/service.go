@@ -785,6 +785,7 @@ type MarketDataSnapshot struct {
 	Market         string          `json:"market"`
 	OrderBook      PublicOrderBook `json:"orderBook"`
 	Trades         []PublicTrade   `json:"trades"`
+	TradingRules   TradingRules    `json:"tradingRules"`
 	SourceMetadata SourceMetadata  `json:"sourceMetadata"`
 }
 
@@ -797,6 +798,7 @@ func (s *Service) marketDataSnapshot() (MarketDataSnapshot, string) {
 		Market:         DefaultMarket,
 		OrderBook:      publicBook(s.bookLocked()),
 		Trades:         publicTrades(s.publicTradesLocked(1000)),
+		TradingRules:   s.TradingRules(),
 		SourceMetadata: s.readSource("stream-orderbook-matched-trades"),
 	}, fmt.Sprintf("%d:%s", s.state.Revision, s.state.IntegrityHash)
 }
