@@ -7,6 +7,6 @@ const source=await Promise.all(files.map(async file=>[file,await readFile(resolv
 const prohibited=[/ynxwallet:\/\/authorize(?!\?request=)/, /location\.assign\(/, /location\.href\s*=/, /encodeRequestDeepLink\(/, /createProductWalletConnection/, /PRODUCT_SESSION_PUBLIC_GATEWAY_ORIGIN/];
 for(const [file,text] of source)for(const pattern of prohibited)if(pattern.test(text))throw new Error(`Canonical authorization policy violation in ${file}: ${pattern}`);
 const wallet=source.find(([file])=>file==='web/wallet-auth-entry.js')[1];
-for(const marker of ['launchWebAuthorization','parseAuthorizationCallbackURL','writePending(request)','eth_requestAccounts','eth_accounts','createStandardWalletConnectState','reduceStandardWalletConnectState','STANDARD_WALLET_RPC_PROBE_TRANSPORT'])if(!wallet.includes(marker))throw new Error(`Missing canonical authorization control: ${marker}`);
+for(const marker of ['StandardWalletConnection','discoverWalletProviders','connection.connect()','connection.restore()','connection.revoke()','parseAuthorizationCallbackURL','writePending(request)','createStandardWalletConnectState','reduceStandardWalletConnectState','STANDARD_WALLET_RPC_PROBE_TRANSPORT'])if(!wallet.includes(marker))throw new Error(`Missing canonical authorization control: ${marker}`);
 if(/\bfetch\s*\(/.test(wallet))throw new Error('Browser RPC fetch is not allowed as a Standard Wallet connection precondition');
-console.log(JSON.stringify({status:'pass',files,canonicalLauncher:true,manualUri:false,topLevelSchemeNavigation:false,sharedConnectState:true,noBrowserRpcProbe:true},null,2));
+console.log(JSON.stringify({status:'pass',files,sharedStandardRuntime:true,manualUri:false,topLevelSchemeNavigation:false,sharedConnectState:true,noBrowserRpcProbe:true},null,2));
