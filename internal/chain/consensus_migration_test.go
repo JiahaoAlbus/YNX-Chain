@@ -148,3 +148,41 @@ func TestConsensusMigrationBindsValidatorIdentityToCometBFTKeys(t *testing.T) {
 		t.Fatal("tampered validator consensus address was accepted")
 	}
 }
+
+func TestConsensusMigrationRejectsAppliedPendingBalances(t *testing.T) {
+	devnet := NewDevnet(DefaultNetworkConfig("testnet"))
+	if _, err := devnet.Faucet("ynx_migration_pending_sender", 100); err != nil {
+		t.Fatal(err)
+	}
+	devnet.ProduceBlock()
+	before, err := devnet.ExportConsensusMigrationState()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := devnet.Transfer("ynx_migration_pending_sender", "ynx_migration_pending_recipient", 10); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := devnet.ExportConsensusMigrationState(); err == nil || !strings.Contains(err.Error(), "pending") {
+		t.Fatalf("applied pending balances accepted at old block: %v", err)
+	}
+	devnet.ProduceBlock()
+	after, err := devnet.ExportConsensusMigrationState()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if after.Height <= before.Height || after.LastBlockHash == before.LastBlockHash {
+		t.Fatal("committed transfer did not advance migration boundary")
+	}
+	found := false
+	for _, account := range after.Accounts {
+		if account.Address == "ynx_migration_pending_recipient" {
+			found = true
+			if account.Balance != 10 {
+				t.Fatalf("transfer lost: %+v", account)
+			}
+		}
+	}
+	if !found {
+		t.Fatal("committed recipient lost")
+	}
+}

@@ -69,6 +69,13 @@ func (d *Devnet) ExportConsensusMigrationState() (ConsensusMigrationState, error
 		return ConsensusMigrationState{}, errors.New("cannot export consensus state without a committed block")
 	}
 
+	// Native admission applies balances before block production. Exporting those
+	// balances under the previous block hash would forge the migration boundary.
+	// The caller must drain admitted transactions before freezing production.
+	if len(d.pending) != 0 {
+		return ConsensusMigrationState{}, errors.New("cannot export consensus state while admitted transactions remain pending")
+	}
+
 	accounts := make([]ConsensusAccount, 0, len(d.accounts))
 	var liquidSupply int64
 	var stakedSupply int64
