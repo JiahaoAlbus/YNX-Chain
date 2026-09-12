@@ -1,4 +1,4 @@
-import type { SendMessageRequest } from "./chatCrypto";
+import { verifyMessageSignature, type ChatDevice, type ChatMessage, type SendMessageRequest } from "./chatCrypto";
 
 export type PendingMessage = Readonly<{ account: string; deviceId: string; conversationId: string; request: SendMessageRequest }>;
 export function readOutbox(raw: string | null): PendingMessage[] {
@@ -36,4 +36,29 @@ export function acknowledgeQueued(entries: readonly PendingMessage[], message: P
 }
 export function pendingFor(entries: readonly PendingMessage[], account: string, deviceId: string, conversationId: string) {
   return entries.find((entry) => entry.account === account && entry.deviceId === deviceId && entry.conversationId === conversationId)?.request ?? null;
+}
+
+/** Reject stale recipient sets before retry; the server must also enforce membership atomically. */
+export function assertPendingRecipients(message: PendingMessage, devices: readonly ChatDevice[]): void {
+  const active = devices.filter((device) => device.status === "active");
+  const sender = active.find((device) => device.id === message.deviceId && device.account === message.account);
+  if (!sender) throw new Error("This sending device is no longer active. Pending ciphertext was retained.");
+  const recipientKey = (account: string, deviceId: string) => JSON.stringify([account, deviceId]);
+  const expected = new Set(active.map((device) => recipientKey(device.account, device.id)));
+  const actual = new Set(message.request.envelopes.map((envelope) => recipientKey(envelope.recipientAccount, envelope.recipientDeviceId)));
+  if (active.length < 1 || active.length > 32 || expected.size !== active.length ||
+    actual.size !== message.request.envelopes.length || actual.size !== expected.size ||
+    [...expected].some((key) => !actual.has(key))) {
+    throw new Error("Conversation devices or membership changed. Pending ciphertext was retained; create a new message for the current recipients.");
+  }
+  const record: ChatMessage = {
+    ...message.request, id: message.request.messageId, sender: message.account,
+    senderDeviceId: message.deviceId, conversationId: message.conversationId,
+    protocolVersion: 2, envelopeSetHash: "", createdAt: "",
+  };
+  try {
+    if (!verifyMessageSignature(record, sender)) throw new Error("invalid signature");
+  } catch {
+    throw new Error("Pending message sender verification failed. Nothing was transmitted.");
+  }
 }

@@ -44,7 +44,19 @@ export class SocialAPI {
   updateGroupMembers(id:string,body:GroupMembershipUpdateInput){return this.request<{record:ConversationDetail;replayed:boolean}>(`/social/v1/conversations/${encodeURIComponent(id)}/members`,{method:"POST",body})}
   conversation(id:string){return this.request<{record:ConversationDetail}>(`/social/v1/conversations/${encodeURIComponent(id)}`)}
   conversationDevices(id:string){return this.request<{devices:ChatDevice[]}>(`/social/v1/conversations/${encodeURIComponent(id)}/devices`)}
-  messages(id:string){return this.request<{messages:ChatMessage[]}>(`/social/v1/conversations/${encodeURIComponent(id)}/messages`)}
+  messagePage(id:string,after="",limit=100){return this.request<{messages:ChatMessage[];nextCursor?:string;hasMore?:boolean}>(`/social/v1/conversations/${encodeURIComponent(id)}/messages?limit=${limit}&after=${encodeURIComponent(after)}`)}
+  async messages(id:string){
+    const messages:ChatMessage[]=[];let cursor="";
+    const seen=new Set<string>();
+    for(let page=0;page<100;page++){
+      const result=await this.messagePage(id,cursor);
+      for(const item of result.messages){if(!seen.has(item.id)){seen.add(item.id);messages.push(item)}}
+      if(!result.hasMore)return {messages};
+      if(!result.nextCursor||result.nextCursor===cursor)throw new Error("Message synchronization cursor did not advance");
+      cursor=result.nextCursor;
+    }
+    throw new Error("Message history exceeds this synchronization window");
+  }
   sendMessage(id:string,body:SendMessageRequest){return this.request<{record:ChatMessage;replayed:boolean}>(`/social/v1/conversations/${encodeURIComponent(id)}/messages`,{method:"POST",body})}
   acknowledge(id:string,messageId:string,state:"delivered"|"read"){return this.request<{record:ChatMessage}>(`/social/v1/conversations/${encodeURIComponent(id)}/messages/${encodeURIComponent(messageId)}/${state}`,{method:"POST",body:{}})}
   rotateDevice(replacedDeviceId:string,body:DeviceRotationRequest){return this.request<DeviceRotationResponse>(`/social/v1/devices/${encodeURIComponent(replacedDeviceId)}/rotate`,{method:"POST",body})}

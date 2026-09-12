@@ -633,6 +633,23 @@ func (s *Server) handleConversation(w http.ResponseWriter, r *http.Request, acto
 		records, err := s.service.ConversationMessages(actor, conversationID)
 		*returned = err
 		if err == nil {
+			if r.URL.Query().Has("limit") || r.URL.Query().Has("after") {
+				limit := 100
+				if value := r.URL.Query().Get("limit"); value != "" {
+					parsed, parseErr := strconv.Atoi(value)
+					if parseErr != nil {
+						*returned = ErrInvalid
+						return
+					}
+					limit = parsed
+				}
+				page, pageErr := paginateMessages(records, r.URL.Query().Get("after"), limit)
+				*returned = pageErr
+				if pageErr == nil {
+					writeJSON(w, 200, page)
+				}
+				return
+			}
 			writeJSON(w, 200, map[string]any{"messages": records})
 		}
 	case len(parts) == 3 && parts[2] == "messages" && r.Method == http.MethodPost:

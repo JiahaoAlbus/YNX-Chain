@@ -522,13 +522,33 @@ func (s *Service) Devices(actor Device, account string) ([]Device, error) {
 }
 
 func (s *Service) Messages(actor Device, id string) ([]Message, error) {
-	if _, err := s.Conversation(actor, id); err != nil {
-		return nil, err
-	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	records := s.state.Messages[id]
-	return append(make([]Message, 0, len(records)), records...), nil
+	conversation, ok := s.state.Conversations[id]
+	if !ok {
+		return nil, ErrNotFound
+	}
+	device, ok := s.state.Devices[actor.ID]
+	if !ok || device.Status != "active" || device.Account != actor.Account || !contains(conversation.Members, actor.Account) {
+		return nil, ErrUnauthorized
+	}
+	records := make([]Message, 0)
+	for _, message := range s.state.Messages[id] {
+		if message.ProtocolVersion == messageProtocolVersion {
+			addressed := false
+			for _, envelope := range message.Envelopes {
+				if envelope.RecipientDeviceID == actor.ID && envelope.RecipientAccount == actor.Account {
+					addressed = true
+					break
+				}
+			}
+			if !addressed {
+				continue
+			}
+		}
+		records = append(records, message)
+	}
+	return records, nil
 }
 
 func (s *Service) Health() Health {

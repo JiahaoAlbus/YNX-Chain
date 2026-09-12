@@ -104,7 +104,7 @@ import {
   translate,
 } from "./src/i18n";
 import { I18nProvider, useI18n } from "./src/i18nProvider";
-import { readOutbox, queueMessage, acknowledgeQueued, pendingFor } from "./src/messageOutbox";
+import { readOutbox, queueMessage, acknowledgeQueued, pendingFor, assertPendingRecipients } from "./src/messageOutbox";
 
 const BLUE = "#002FA7",
   INK = "#101828",
@@ -1309,6 +1309,8 @@ function MessageThread({
   const transmit = async (request: SendMessageRequest) => {
     setSending(true);
     try {
+      const currentDevices = await api.conversationDevices(conversation.id);
+      assertPendingRecipients({ account, deviceId, conversationId: conversation.id, request }, currentDevices.devices);
       await api.sendMessage(conversation.id, request);
       const file = outboxFile();
       const remaining = acknowledgeQueued(readOutbox(file.exists ? file.textSync() : null), { account, deviceId, conversationId: conversation.id, request });
