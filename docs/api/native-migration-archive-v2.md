@@ -50,3 +50,7 @@ records. Full General EVM, complete continuation adapters and four-validator
 same-ledger cutover remain implementation/validation requirements. The export
 CLI truthfully reports `legacyExecutionAdaptersComplete: false` and performs no
 production cutover.
+
+`ynx-consensus-migration-bundle -verify <directory>` performs the same full
+integrity/history/boundary verification as cold loading without changing files
+or starting a service. Export flags and verification mode are mutually exclusive.

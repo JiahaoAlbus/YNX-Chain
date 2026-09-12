@@ -10,14 +10,25 @@ import (
 )
 
 func main() {
+	verify := flag.String("verify", "", "verify an existing bundle without changing it")
 	source := flag.String("source-snapshot", "", "private frozen native v2 snapshot path; read only")
 	output := flag.String("output", "", "new private output directory; must not already exist")
 	flag.Parse()
-	if *source == "" || *output == "" {
+	if *verify != "" && (*source != "" || *output != "") {
+		fmt.Fprintln(os.Stderr, "-verify cannot be combined with export flags")
+		os.Exit(2)
+	}
+	if *verify == "" && (*source == "" || *output == "") {
 		fmt.Fprintln(os.Stderr, "-source-snapshot and -output are required")
 		os.Exit(2)
 	}
-	state, err := chain.SaveConsensusMigrationBundleFromSnapshot(*source, *output)
+	var state chain.ConsensusMigrationState
+	var err error
+	if *verify != "" {
+		state, _, err = chain.LoadConsensusMigrationBundle(*verify)
+	} else {
+		state, err = chain.SaveConsensusMigrationBundleFromSnapshot(*source, *output)
+	}
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
