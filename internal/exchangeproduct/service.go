@@ -164,6 +164,10 @@ func (s *Service) readSource(coverage string) SourceMetadata {
 
 func (s *Service) Integrations() IntegrationStatus {
 	status := IntegrationStatus{Gateway: "unavailable", GatewayReason: "Central Gateway route and Exchange scope registration are not configured", WalletRegistry: "pending_registration", Custody: "unavailable", Indexer: "unavailable", CrossChain: "unavailable"}
+	status.ProductSessionV2 = "unconfigured"
+	if s.cfg.SessionV2 != nil {
+		status.ProductSessionV2 = "configured_not_attested"
+	}
 	if s.cfg.GatewayURL != "" && s.cfg.GatewayClientID != "" {
 		status.Gateway = "configured_not_attested"
 		status.GatewayReason = "Configuration is not evidence of central route acceptance"

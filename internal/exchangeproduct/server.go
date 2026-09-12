@@ -17,14 +17,15 @@ import (
 )
 
 type Server struct {
-	service *Service
-	mux     *http.ServeMux
+	service       *Service
+	mux           *http.ServeMux
+	privateScopes map[string]string
 }
 
 var marketDataStreamPollInterval = 5 * time.Second
 
 func NewServer(service *Service) *Server {
-	s := &Server{service: service, mux: http.NewServeMux()}
+	s := &Server{service: service, mux: http.NewServeMux(), privateScopes: make(map[string]string)}
 	s.mux.HandleFunc("GET /health", s.health)
 	s.mux.HandleFunc("GET /ready", s.ready)
 	s.mux.HandleFunc("GET /version", s.version)
@@ -34,17 +35,17 @@ func NewServer(service *Service) *Server {
 	s.mux.HandleFunc("GET /v1/market-data/trades", s.marketTrades)
 	s.mux.HandleFunc("GET /v1/market-data/snapshot", s.marketSnapshot)
 	s.mux.HandleFunc("GET /v1/market-data/stream", s.marketDataStream)
-	s.mux.HandleFunc("GET /v1/account", s.account)
-	s.mux.HandleFunc("POST /v1/deposit-intents", s.depositIntent)
-	s.mux.HandleFunc("POST /v1/deposits", s.deposit)
-	s.mux.HandleFunc("POST /v1/deposits/{id}/refresh", s.refreshDeposit)
-	s.mux.HandleFunc("POST /v1/withdrawals/review", s.withdrawal)
-	s.mux.HandleFunc("POST /v1/orders", s.order)
-	s.mux.HandleFunc("POST /v1/orders/{id}/cancel", s.cancel)
-	s.mux.HandleFunc("PUT /v1/security", s.security)
-	s.mux.HandleFunc("POST /v1/support", s.support)
-	s.mux.HandleFunc("POST /v1/ai/drafts", s.ai)
-	s.mux.HandleFunc("POST /v1/ai/drafts/{id}/actions", s.aiAction)
+	s.handlePrivate("GET /v1/account", "exchange:read", s.account)
+	s.handlePrivate("POST /v1/deposit-intents", "exchange:deposit", s.depositIntent)
+	s.handlePrivate("POST /v1/deposits", "exchange:deposit", s.deposit)
+	s.handlePrivate("POST /v1/deposits/{id}/refresh", "exchange:deposit", s.refreshDeposit)
+	s.handlePrivate("POST /v1/withdrawals/review", "exchange:withdrawal-review", s.withdrawal)
+	s.handlePrivate("POST /v1/orders", "exchange:trade", s.order)
+	s.handlePrivate("POST /v1/orders/{id}/cancel", "exchange:trade", s.cancel)
+	s.handlePrivate("PUT /v1/security", "exchange:read", s.security)
+	s.handlePrivate("POST /v1/support", "exchange:read", s.support)
+	s.handlePrivate("POST /v1/ai/drafts", "exchange:ai", s.ai)
+	s.handlePrivate("POST /v1/ai/drafts/{id}/actions", "exchange:ai", s.aiAction)
 	s.mux.HandleFunc("POST /v1/admin/test-credits", s.testCredits)
 	return s
 }
@@ -52,6 +53,13 @@ func NewServer(service *Service) *Server {
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.Header().Set("Cache-Control", "no-store")
+	// Remote introspection must not hold the persistent venue request lock.
+	// Each private v2 request gets its own fresh authority decision; no cache.
+	var authorized bool
+	r, authorized = s.authorizeSessionV2(w, r)
+	if !authorized {
+		return
+	}
 	// A long-lived stream performs its own bounded durable-state refresh for
 	// every snapshot. Keeping it inside the request-wide mutex would block all
 	// Exchange API calls and deadlock its own refresh loop.
@@ -337,6 +345,17 @@ func (s *Server) testCredits(w http.ResponseWriter, r *http.Request) {
 	respond(w, v, err, 201)
 }
 func (s *Server) auth(w http.ResponseWriter, r *http.Request, scope string) (WalletSession, bool) {
+	if auth, ok := r.Context().Value(exchangeSessionV2ContextKey{}).(exchangeSessionV2Authorization); ok {
+		if !time.Now().Before(auth.session.ExpiresAt) {
+			writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "SESSION_EXPIRED", "privateService": "authorization_required"})
+			return WalletSession{}, false
+		}
+		if auth.scope != scope {
+			respond(w, nil, ErrForbidden, 200)
+			return WalletSession{}, false
+		}
+		return auth.session, true
+	}
 	v, err := s.service.Authenticate(r.Header.Get("X-YNX-Product-Session-Proof"), scope)
 	if err != nil {
 		respond(w, nil, err, 200)

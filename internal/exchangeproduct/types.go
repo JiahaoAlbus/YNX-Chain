@@ -3,6 +3,8 @@ package exchangeproduct
 import (
 	"errors"
 	"time"
+
+	"github.com/JiahaoAlbus/YNX-Chain/internal/productsessionv2"
 )
 
 var (
@@ -47,9 +49,11 @@ type Config struct {
 	GatewayURL             string
 	GatewayClientID        string
 	Gateway                GatewayAuthorizer
-	IndexerURL             string
-	MaxOrderNotionalMicro  int64
-	MaxWithdrawalMicro     int64
+	// SessionV2 consumes the canonical authority independently of legacy sessions.
+	SessionV2             *productsessionv2.Client
+	IndexerURL            string
+	MaxOrderNotionalMicro int64
+	MaxWithdrawalMicro    int64
 }
 
 type GatewayAuthorizer interface {
@@ -57,12 +61,13 @@ type GatewayAuthorizer interface {
 }
 
 type IntegrationStatus struct {
-	Gateway        string `json:"gateway"`
-	GatewayReason  string `json:"gatewayReason,omitempty"`
-	WalletRegistry string `json:"walletRegistry"`
-	Custody        string `json:"custody"`
-	Indexer        string `json:"indexer"`
-	CrossChain     string `json:"crossChain"`
+	ProductSessionV2 string `json:"productSessionV2"`
+	Gateway          string `json:"gateway"`
+	GatewayReason    string `json:"gatewayReason,omitempty"`
+	WalletRegistry   string `json:"walletRegistry"`
+	Custody          string `json:"custody"`
+	Indexer          string `json:"indexer"`
+	CrossChain       string `json:"crossChain"`
 }
 
 type ChainTransfer struct {
