@@ -76,10 +76,79 @@ $('#export-conversation').onclick=async()=>{const response=await fetch(`/api/con
 $('#prompt').addEventListener('input',event=>{event.target.style.height='auto';event.target.style.height=Math.min(event.target.scrollHeight,180)+'px';const tokens=Math.ceil([...event.target.value].length/4);$('#estimate').textContent=`~${tokens} input tokens · ~${Math.ceil(tokens/1000)} resource · money/quota unknown`});
 $('#context-details').onclick=()=>$('#exclusion-row').classList.toggle('hidden');
 $('#composer').addEventListener('submit',event=>{event.preventDefault();sendPrompt($('#prompt').value)});
-async function sendPrompt(prompt,retryOf='',continueFrom=''){prompt=prompt.trim();if((!prompt&&!continueFrom)||state.generationId)return;if(!state.conversationId){const c=await api('/api/conversations',{method:'POST',body:JSON.stringify({title:prompt.slice(0,64)})});state.conversationId=c.id}
- if(prompt)state.lastPrompt=prompt;state.generationId=crypto.randomUUID();state.abort=new AbortController();$('#cancel-generation').classList.remove('hidden');$('#prompt').value='';$('#empty-state').classList.add('hidden');const messages=$('#messages');messages.insertAdjacentHTML('beforeend',(prompt?messageHTML({id:'local-user',role:'user',content:prompt,cost:{}}):'')+`<article id="streaming-message" class="message streaming"><div class="message-head"><strong>YNX AI</strong><span class="cost-line">provider-backed stream pending</span></div><div class="message-body"></div></article>`);messages.scrollTop=messages.scrollHeight;
- const included=$$('.context-strip input:checked').map(n=>n.value);const excluded=$$('.exclusion-row input:checked').map(n=>n.value);try{const response=await fetch(`/api/conversations/${encodeURIComponent(state.conversationId)}/generate`,{method:'POST',signal:state.abort.signal,headers:{'Content-Type':'application/json',Authorization:`Bearer ${state.token}`,'X-YNX-Device-ID':state.deviceId},body:JSON.stringify({generationId:state.generationId,prompt,continueFrom,provider:state.provider?.provider||'',model:state.provider?.model||'',includedContext:included,excludedContext:excluded,retryOf})});if(!response.ok){const data=await response.json();throw new Error(data.error||'Generation failed')};await consumeSSE(response.body)}catch(error){const body=$('#streaming-message .message-body');if(body)body.textContent=error.name==='AbortError'?'Generation cancelled. You can retry safely.':error.message;toast('No provider answer was substituted')}finally{state.generationId='';state.abort=null;$('#cancel-generation').classList.add('hidden');$('#streaming-message')?.classList.remove('streaming');if(!state.signingOut){await loadConversations();if(state.conversationId)await selectConversation(state.conversationId)}}}
-async function consumeSSE(body){const reader=body.getReader(),decoder=new TextDecoder();let buffer='',terminal=false;const deliver=block=>{let event='',data='';for(const line of block.split(/\r?\n/)){if(line.startsWith('event:'))event=line.slice(6).trim();if(line.startsWith('data:'))data+=(data?'\n':'')+line.slice(5).trimStart()}if(!data||terminal)return;const payload=JSON.parse(data);if(event==='token'){const node=$('#streaming-message .message-body');if(node)node.textContent+=payload.text;$('#messages').scrollTop=$('#messages').scrollHeight}if(event==='error'){terminal=true;throw new Error(payload.error)}if(event==='done'){terminal=true;toast('Provider-backed response stored with encrypted policy')}};while(true){const {done,value}=await reader.read();if(done)break;buffer+=decoder.decode(value,{stream:true});let match=buffer.match(/\r?\n\r?\n/);while(match&&match.index!==undefined){deliver(buffer.slice(0,match.index));buffer=buffer.slice(match.index+match[0].length);match=buffer.match(/\r?\n\r?\n/)}}buffer+=decoder.decode();if(buffer.trim())deliver(buffer);if(!terminal)throw new Error('Provider stream ended without a terminal event; no completion was claimed.')}
+async function sendPrompt(prompt,retryOf='',continueFrom=''){
+ prompt=prompt.trim();
+ if(state.signingOut||!state.token||(!prompt&&!continueFrom)||state.generationId)return;
+ const generationId=crypto.randomUUID(),controller=new AbortController();
+ let conversationId=state.conversationId;
+ const included=$$('.context-strip input:checked').map(n=>n.value),excluded=$$('.exclusion-row input:checked').map(n=>n.value);
+ const provider=state.provider?.provider||'',model=state.provider?.model||'';
+ state.generationId=generationId;state.abort=controller;
+ $('#cancel-generation').classList.remove('hidden');
+ try{
+  if(!conversationId){
+   const conversation=await api('/api/conversations',{method:'POST',signal:controller.signal,body:JSON.stringify({title:prompt.slice(0,64)})});
+   if(controller.signal.aborted||state.signingOut)return;
+   conversationId=conversation.id;
+   if(!state.conversationId)state.conversationId=conversationId;
+  }
+  if(controller.signal.aborted||state.signingOut)return;
+  if(prompt)state.lastPrompt=prompt;
+  if($('#prompt').value.trim()===prompt)$('#prompt').value='';
+  if(state.conversationId===conversationId){
+   $('#empty-state').classList.add('hidden');
+   const messages=$('#messages');
+   messages.insertAdjacentHTML('beforeend',(prompt?messageHTML({id:'local-user',role:'user',content:prompt,cost:{}}):'')+'<article id="streaming-message" class="message streaming"><div class="message-head"><strong>YNX AI</strong><span class="cost-line">provider-backed stream pending</span></div><div class="message-body"></div></article>');
+   messages.scrollTop=messages.scrollHeight;
+  }
+  const response=await fetch('/api/conversations/'+encodeURIComponent(conversationId)+'/generate',{method:'POST',signal:controller.signal,headers:{'Content-Type':'application/json',Authorization:'Bearer '+state.token,'X-YNX-Device-ID':state.deviceId},body:JSON.stringify({generationId,prompt,continueFrom,provider,model,includedContext:included,excludedContext:excluded,retryOf})});
+  if(controller.signal.aborted||state.signingOut)return;
+  if(!response.ok){const data=await response.json();throw new Error(data.error||'Generation failed')}
+  await consumeSSE(response.body,()=>!state.signingOut&&state.generationId===generationId&&state.conversationId===conversationId);
+ }catch(error){
+  if(!state.signingOut&&state.conversationId===conversationId){
+   const body=$('#streaming-message .message-body');
+   if(body)body.textContent=controller.signal.aborted?'Generation cancelled. You can retry safely.':error.message;
+   if(!$('#prompt').value&&prompt)$('#prompt').value=prompt;
+   toast(controller.signal.aborted?'Generation cancelled.':'Generation did not complete. Your prompt is available to retry.');
+  }
+ }finally{
+  if(state.generationId===generationId){state.generationId='';state.abort=null}
+  $('#cancel-generation').classList.add('hidden');
+  if(!state.signingOut){
+   $('#streaming-message')?.classList.remove('streaming');
+   try{await loadConversations();if(conversationId&&state.conversationId===conversationId)await selectConversation(conversationId)}catch{toast('Could not refresh the conversation. Your session is still available.')}
+  }
+ }
+}
+async function consumeSSE(body,visible=()=>true){
+ if(!body)throw new Error('Provider response had no stream; no completion was claimed.');
+ const reader=body.getReader(),decoder=new TextDecoder();
+ let buffer='',terminal=false;
+ const deliver=block=>{
+  let event='',data='';
+  for(const line of block.split(/\r?\n/)){if(line.startsWith('event:'))event=line.slice(6).trim();if(line.startsWith('data:'))data+=(data?'\n':'')+line.slice(5).trimStart()}
+  if(!data||terminal)return;
+  const payload=JSON.parse(data);
+  if(event==='token'){
+   if(typeof payload.text!=='string')throw new Error('Provider stream contained an invalid token.');
+   if(visible()){const node=$('#streaming-message .message-body');if(node)node.textContent+=payload.text;$('#messages').scrollTop=$('#messages').scrollHeight}
+  }
+  if(event==='error'){terminal=true;throw new Error(payload.error||'Provider generation failed.')}
+  if(event==='done'){terminal=true;if(visible())toast('Provider-backed response stored with encrypted policy')}
+ };
+ try{
+  while(!terminal){
+   const {done,value}=await reader.read();
+   buffer+=done?decoder.decode():decoder.decode(value,{stream:true});
+   let match=buffer.match(/\r?\n\r?\n/);
+   while(match&&match.index!==undefined&&!terminal){deliver(buffer.slice(0,match.index));buffer=buffer.slice(match.index+match[0].length);match=buffer.match(/\r?\n\r?\n/)}
+   if(buffer.length>1048576)throw new Error('Provider stream event exceeded the size limit.');
+   if(done){if(buffer.trim()&&!terminal)deliver(buffer);break}
+  }
+  if(!terminal)throw new Error('Provider stream ended without a terminal event; no completion was claimed.');
+ }finally{try{await reader.cancel()}catch{}reader.releaseLock()}
+}
 $('#cancel-generation').onclick=async()=>{if(!state.generationId)return;try{await api(`/api/generations/${encodeURIComponent(state.generationId)}/cancel`,{method:'POST'})}catch{}state.abort?.abort()};
 
 async function loadProvider(){try{state.provider=await api('/api/provider');$('#provider-dot').classList.remove('offline');$('#provider-label').textContent=state.provider.provider||'Provider available';$('#model-label').textContent=`${state.provider.model||'configured model'} · quota unknown`}catch(error){state.provider={available:false};$('#provider-dot').classList.add('offline');$('#provider-label').textContent='Provider unavailable';$('#model-label').textContent='No substitute answers';}}
