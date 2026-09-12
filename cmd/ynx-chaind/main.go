@@ -138,6 +138,10 @@ func checkNodeRuntimeConfig(cfg nodeRuntimeConfig, out io.Writer) error {
 }
 
 func runNode(cfg nodeRuntimeConfig, out io.Writer) error {
+	faucetCoreToken, err := loadFaucetCoreToken(os.Getenv("YNX_FAUCET_CORE_AUTH_TOKEN_FILE"))
+	if err != nil {
+		return err
+	}
 	inputs, err := loadNodeStartupInputs(cfg)
 	if err != nil {
 		return err
@@ -185,6 +189,7 @@ func runNode(cfg nodeRuntimeConfig, out io.Writer) error {
 		TrustGatewayUpstreamKey:    os.Getenv("YNX_TRUST_GATEWAY_UPSTREAM_KEY"),
 		ResourceGatewayUpstreamKey: os.Getenv("YNX_RESOURCE_GATEWAY_UPSTREAM_KEY"),
 		ReplicationKey:             cfg.ReplicationKey,
+		FaucetCoreAuthToken:        faucetCoreToken,
 		ReadOnlyReplica:            cfg.ReplicationSource != "",
 	})
 	srv := &http.Server{Addr: cfg.HTTPAddr, Handler: mutationfreeze.FromEnv(handler), ReadHeaderTimeout: 5 * time.Second}

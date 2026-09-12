@@ -665,7 +665,9 @@ func TestPrometheusMetrics(t *testing.T) {
 	devnet := chain.NewDevnet(chain.DefaultNetworkConfig("testnet"))
 	server := httptest.NewServer(NewServer(devnet))
 	defer server.Close()
-	doJSON(t, http.MethodPost, server.URL+"/faucet", map[string]any{"address": "ynx_metrics", "amount": 1000}, http.StatusCreated, nil)
+	if _, err := devnet.Faucet("ynx_metrics", 1000); err != nil {
+		t.Fatal(err)
+	}
 	devnet.ProduceBlock()
 
 	resp, err := http.Get(server.URL + "/metrics")

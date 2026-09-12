@@ -48,8 +48,12 @@ func TestAuthoritativeNativeDEXSignedLifecycleAndPersistence(t *testing.T) {
 	issuer, _ := consensus.NativeAddress(issuerKey.PubKey().SerializeCompressed())
 	trader, _ := consensus.NativeAddress(traderKey.PubKey().SerializeCompressed())
 	var response map[string]any
-	doJSON(t, http.MethodPost, server.URL+"/faucet", map[string]any{"address": issuer, "amount": 1_000_000}, http.StatusCreated, &response)
-	doJSON(t, http.MethodPost, server.URL+"/faucet", map[string]any{"address": trader, "amount": 100_000}, http.StatusCreated, &response)
+	if _, err := devnet.Faucet(issuer, 1_000_000); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := devnet.Faucet(trader, 100_000); err != nil {
+		t.Fatal(err)
+	}
 	devnet.ProduceBlock()
 	deadline := time.Now().Add(time.Hour).Unix()
 
