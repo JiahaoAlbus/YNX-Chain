@@ -1,5 +1,6 @@
 {
   "enabled": false,
   "apiReadEnabled": false,
+  "apiReadBackendCommit": "6d1479eead327025be106ec83f233f98a1f242a8",
   "authority": "https://wallet-auth.ynxweb4.com"
 }

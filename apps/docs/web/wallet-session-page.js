@@ -67,7 +67,7 @@ async function run(operation) {
   }
 }
 
-async function readDocuments(parentId = '') {
+async function readDocuments(parentId = '', cursor = '', previous = []) {
   if (busy || adapter?.client.current?.status !== 'connected') return;
   readAbort?.abort();
   readAbort = new AbortController();
@@ -90,7 +90,8 @@ async function readDocuments(parentId = '') {
     }
     const reader = createDocsReadClient({adapter, origin: docsSessionBinding.origin});
     readStatus.textContent = 'Loading authorized documents...';
-    const objects = await reader.list({parentId, signal});
+    const page = await reader.list({parentId, cursor, signal});
+    const objects = page.items;
     if (!current()) return;
     if (parentId) {
       const root = document.createElement('button');
@@ -118,7 +119,19 @@ async function readDocuments(parentId = '') {
       };
       documentList.append(button);
     }
-    readStatus.textContent = objects.length ? 'Choose a document or folder.' : 'No authorized documents in this folder.';
+    if (previous.length) {
+      const back = document.createElement('button');
+      back.textContent = 'Previous page';
+      back.onclick = () => readDocuments(parentId, previous.at(-1), previous.slice(0, -1));
+      documentList.append(back);
+    }
+    if (page.nextCursor) {
+      const next = document.createElement('button');
+      next.textContent = 'Next page';
+      next.onclick = () => readDocuments(parentId, page.nextCursor, [...previous, cursor]);
+      documentList.append(next);
+    }
+    readStatus.textContent = objects.length ? 'Choose a document or folder.' : page.nextCursor ? 'No documents on this page. More results may be available on the next page.' : 'No authorized documents on this page.';
   } catch (error) {
     if (current()) readStatus.textContent = error.message || 'Docs read failed. Retry when ready.';
   } finally {

@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "productId": "docs",
   "status": "local-candidate",
-  "generatedAt": "2026-09-12T10:16:25.826Z",
+  "generatedAt": "2026-09-12T10:20:34.181Z",
   "source": {
-    "baseCommit": "ba8afbbdbbb1cf63a73aeff14cc910ccc7a689e6",
+    "baseCommit": "0c832cdab1ca2f0fdebe30470feb6edc9090cf22",
     "branch": "codex/final-docs",
-    "webTree": "7013b405a2a4bc7f3d2e4beb4fa43b71c54c6be4",
+    "webTree": "bcb87c3c803ddc323e2edfe88585cdc20b44cc95",
     "webRoot": "apps/docs/web",
     "entry": "index.html",
     "entryScript": "app-secure.js"
@@ -32,6 +32,7 @@
     "configuration": {
       "enabled": false,
       "apiReadEnabled": false,
+      "apiReadBackendCommit": "6d1479eead327025be106ec83f233f98a1f242a8",
       "authority": "https://wallet-auth.ynxweb4.com"
     }
   },
@@ -51,7 +52,12 @@
     "command": "node --test apps/docs/tests/*.test.mjs",
     "lastObservedPassed": 30,
     "lastObservedFailed": 0,
-    "scope": "local tests from this development session; not public or installed acceptance"
+    "scope": "local tests from this development session; not public or installed acceptance",
+    "latestTargeted": {
+      "command": "node --test apps/docs/tests/product-session-read-client.test.mjs",
+      "passed": 6,
+      "failed": 0
+    }
   },
   "releaseStatus": {
     "deployedPublic": false,
@@ -62,7 +68,7 @@
   },
   "outstanding": [
     "Coordinator domain/TLS/Caddy deployment and active Wallet authority",
-    "Cloud fixed v2 read-route implementation before apiReadEnabled",
+    "Cloud fixed v2 read backend deployment before apiReadEnabled",
     "Cloud write scopes/idempotency and full editor v2 API integration",
     "Source-bound real Wallet return and document business acceptance",
     "Complete editor localization and authoritative whitepaper publication"
@@ -105,8 +111,8 @@
     },
     {
       "path": "product-session-read-client.js",
-      "bytes": 2095,
-      "sha256": "109b857f430c45bc641fc9b261173b5269725c9fe7673761bf26dd0fbd9b8a9e"
+      "bytes": 2715,
+      "sha256": "1636dff3491166f0835a7f5e6016a3c2a58b2d2e7a4031aa94d60c86a4cf9303"
     },
     {
       "path": "product-session-transport.js",
@@ -160,13 +166,14 @@
     },
     {
       "path": "wallet-session-config.json",
-      "bytes": 100,
-      "sha256": "5ad720c3011a7a95a09264f14c2c5e47296a27a871d930a196d83040b4b28d71"
+      "bytes": 170,
+      "sha256": "de115f736ed7907bbdb7cdf069fe8d8f5b986c6aa3c4abd45847ab76b8162f4a"
     },
     {
       "path": "wallet-session-page.js",
-      "bytes": 7165,
-      "sha256": "c2ec3ed9ee908931e36c962c4a57e88d58d24c7f2926f465868c1d151d6d7e39"
+      "bytes": 7827,
+      "sha256": "b503d1a318fae546d80e6b16e6b76a2b09445bdcae85466864768ff2b1e6bc30"
     }
-  ]
+  ],
+  "backendReadCommit": "6d1479eead327025be106ec83f233f98a1f242a8"
 }

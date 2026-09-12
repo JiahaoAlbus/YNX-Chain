@@ -13,13 +13,29 @@ function harness(responses) {
 }
 
 test('list uses exact candidate read scopes and URL-encoded query fields', async () => {
-  const h = harness([Response.json([{id: 'doc-1', name: 'One', kind: 'doc'}])]);
+  const h = harness([Response.json({items: [{id: 'doc-1', name: 'One', kind: 'doc'}], nextCursor: 'next', limit: 50, scanned: 1})]);
   const result = await h.client.list({parentId: 'folder-1', query: 'a&b'});
-  assert.equal(result.length, 1);
+  assert.equal(result.items.length, 1);
+  assert.equal(result.nextCursor, 'next');
+  assert.equal(result.scanned, 1);
   const url = new URL(h.calls[0].url);
   assert.equal(url.searchParams.get('q'), 'a&b');
   assert.deepEqual(h.scopes, [['docs.read', 'files.read']]);
   assert.equal(h.calls[0].options.headers.has('Authorization'), false);
+});
+
+test('cursor is passed unchanged as a query value and an empty page can retain continuation', async () => {
+  const h = harness([Response.json({items: [], nextCursor: 'more', limit: 50, scanned: 50})]);
+  const page = await h.client.list({cursor: 'opaque+/='});
+  assert.equal(new URL(h.calls[0].url).searchParams.get('cursor'), 'opaque+/=');
+  assert.equal(page.items.length, 0);
+  assert.equal(page.nextCursor, 'more');
+});
+
+test('authority failure retains the fixed backend code without retry or bearer fallback', async () => {
+  const h = harness([Response.json({error: 'PRODUCT_SESSION_V2_DISABLED', code: 'PRODUCT_SESSION_V2_DISABLED'}, {status: 503})]);
+  await assert.rejects(h.client.list(), {status: 503, code: 'PRODUCT_SESSION_V2_DISABLED'});
+  assert.equal(h.calls.length, 1);
 });
 
 test('metadata and content use separate fresh proofs', async () => {
