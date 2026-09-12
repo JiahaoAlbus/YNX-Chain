@@ -1,0 +1,20 @@
+{
+  "at": "2026-09-12T11:05:00.004Z",
+  "sourceCommit": "d609d061fe8a343c2a155f335b518db96a393d87",
+  "sourceTree": "b71512b6f046fc8980c64b4504aa6d8b28ae57e7",
+  "host": "43.153.202.237",
+  "node": "v22.23.1",
+  "archiveBytes": 60424,
+  "archiveSha256": "1e2cf191b23c67efb3b2bb67d77a17b3fcaae522450d534e22caf9060f41d80c",
+  "remotePrivateDirectory": "/tmp/ynx-card-node22-storage-PuGbxc",
+  "command": "/usr/bin/node --test server/storage.test.ts",
+  "exitCode": 0,
+  "tests": 6,
+  "passed": 6,
+  "logSha256": "601b38934d2e729ae4977b6fdd12eb9b04d8660c4f6a84537b7637c30e4bcaf7",
+  "serviceInstalled": false,
+  "publicDeployed": false,
+  "realSession": false,
+  "realApproval": false,
+  "realFunding": false
+}

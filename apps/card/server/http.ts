@@ -9,14 +9,17 @@ export function createCardServer(options:{service:CardService;wallet:WalletAutho
     response.setHeader('Cache-Control','no-store');response.setHeader('X-Content-Type-Options','nosniff');response.setHeader('Content-Type','application/json; charset=utf-8');
     const send=(status:number,value:unknown)=>{response.statusCode=status;response.end(JSON.stringify(value))};
     try{
+      const counts=new Map<string,number>();for(let i=0;i<request.rawHeaders.length;i+=2){const name=request.rawHeaders[i]!.toLowerCase();counts.set(name,(counts.get(name)??0)+1)}
+      if(['origin','x-ynx-product-session-proof-v2','x-ynx-card-platform','idempotency-key'].some(name=>(counts.get(name)??0)>1))throw new CardError('DUPLICATE_CARD_SECURITY_HEADER',400);
       const origin=request.headers.origin;if(origin&&origin!==options.allowedOrigin)throw new CardError('CARD_ORIGIN_NOT_ALLOWED',403);if(origin){response.setHeader('Access-Control-Allow-Origin',origin);response.setHeader('Vary','Origin')}
-      if(request.method==='OPTIONS'){response.setHeader('Access-Control-Allow-Headers','X-YNX-Product-Session-Proof-V2, Content-Type, Idempotency-Key');response.setHeader('Access-Control-Allow-Methods','GET, POST, PUT, PATCH, OPTIONS');response.statusCode=204;response.end();return}
+      if(request.method==='OPTIONS'){response.setHeader('Access-Control-Allow-Headers','X-YNX-Product-Session-Proof-V2, X-YNX-Card-Platform, Content-Type, Idempotency-Key');response.setHeader('Access-Control-Allow-Methods','GET, POST, PUT, PATCH, OPTIONS');response.statusCode=204;response.end();return}
       const path=new URL(request.url??'/','http://card-backend.invalid').pathname;
-      if(request.method==='GET'&&(path==='/healthz'||path==='/version')){send(200,{service:'ynx-card-business-backend',schemaVersion:1,sourceCommit:options.sourceCommit,environment:ENVIRONMENT,configurationReady:options.configurationReady,runtimeFundingVerified:false,productionRealPayments:false});return}
+      if(request.method==='GET'&&(path==='/healthz'||path==='/version'||path==='/api/card/v1/version')){send(200,{service:'ynx-card-business-backend',schemaVersion:1,sourceCommit:options.sourceCommit,environment:ENVIRONMENT,configurationReady:options.configurationReady,runtimeFundingVerified:false,productionRealPayments:false});return}
       const method=request.method??'',requiredScope=scopeForRoute(method,path);
       if(request.headers.authorization||request.headers['x-ynx-product-session-proof'])throw new CardError('LEGACY_CARD_AUTH_NOT_SUPPORTED',401);
       const proof=request.headers['x-ynx-product-session-proof-v2'];if(Array.isArray(proof))throw new CardError('INVALID_SESSION_PROOF',401);
-      const principal=await options.wallet.authenticate({proofHeader:proof??'',...(origin?{origin}:{}),operation:method==='GET'?'read':'write',method,path,requiredScopes:[requiredScope]});requireScope(principal,requiredScope);const input=await body(request);rejectSensitive(input);
+      const platform=request.headers['x-ynx-card-platform'];if(platform!==undefined&&platform!=='web'&&platform!=='ios'&&platform!=='android')throw new CardError('INVALID_CARD_PLATFORM',400);
+      const principal=await options.wallet.authenticate({proofHeader:proof??'',...(origin?{origin}:{}),...(platform?{platform}:{}),operation:method==='GET'?'read':'write',method,path,requiredScopes:[requiredScope]});requireScope(principal,requiredScope);const input=await body(request);rejectSensitive(input);
       const key=String(request.headers['idempotency-key']??'');const service=options.service;let result:unknown;
       if(request.method==='GET'&&path==='/api/card/v1/state')result=service.getState(principal);
       else if(request.method==='POST'&&path==='/api/card/v1/applications')result=service.createApplication(principal,input,key);

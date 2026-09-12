@@ -1,0 +1,37 @@
+[Unit]
+Description=YNX Card Testnet business service (no real-world payments)
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=60
+StartLimitBurst=3
+
+[Service]
+Type=simple
+User=ynx
+WorkingDirectory=/opt/ynx-card/current/apps/card
+EnvironmentFile=/etc/ynx-card/runtime.env
+Environment=YNX_CARD_HOST=127.0.0.1
+Environment=YNX_CARD_PORT=18740
+Environment=YNX_CARD_DATA_DIR=/var/lib/ynx-card
+Environment=YNX_CARD_ALLOWED_ORIGIN=https://card.ynxweb4.com
+ExecStartPre=/usr/bin/node /opt/ynx-card/current/apps/card/server/deployment/preflight.mjs
+ExecStart=/usr/bin/node /opt/ynx-card/current/apps/card/server/main.ts
+StateDirectory=ynx-card
+StateDirectoryMode=0700
+UMask=0077
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+ReadWritePaths=/var/lib/ynx-card
+
+[Install]
+WantedBy=multi-user.target

@@ -1,6 +1,6 @@
 import {CardError,CHAIN,type WalletAuthority} from './contracts.ts';
 import {requireScope} from './permissions.ts';
-import {cardApplicationApprovalId,evmAddressFromYNX,verifySignedCardApplicationApproval} from './vendor/wallet-card-ff5b7d49/card-application-verifier.mjs';
+import {cardApplicationApprovalId,evmAddressFromYNX,verifySignedCardApplicationApproval} from './vendor/wallet-session-a7dad7ec/product-session-server.mjs';
 
 /** Authentication is a separately accepted, fresh Product Session verifier.
  * No external adapter can substitute its own unverified application approval.
