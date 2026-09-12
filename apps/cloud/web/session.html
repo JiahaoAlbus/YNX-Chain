@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>YNX Cloud | Private session</title>
+  <link rel="stylesheet" href="/cloud/session.css">
+  <script type="module" src="/cloud/session.js"></script>
+</head>
+<body>
+  <main>
+    <a href="/cloud/">YNX CLOUD / 返回文件空间</a>
+    <p class="eyebrow">PRIVATE WORKSPACE</p>
+    <h1>你的文件，<br>你的授权。</h1>
+    <p>此处登录私有文件会话，不改变主页面的标准钱包连接。默认仅申请文件读取权限。</p>
+    <section aria-label="私有会话">
+      <p id="session-status" role="status" aria-live="polite">正在准备安全会话存储…</p>
+      <p id="account"></p>
+      <div class="actions">
+        <button id="connect" disabled>授权 YNX Cloud</button>
+        <button id="restore" disabled>恢复会话</button>
+        <button id="disconnect" disabled>撤销私有会话</button>
+      </div>
+      <a id="open-wallet" hidden>点击打开 YNX Wallet</a>
+      <p>浏览器不能确认原生钱包是否安装。只有钱包批准并成功返回后，才显示登录成功。</p>
+      <a href="https://wallet.ynxweb4.com/" target="_blank" rel="noopener noreferrer">打开钱包网站 / 安装与返回</a>
+    </section>
+    <section aria-label="授权文件">
+      <div class="actions"><button id="load" disabled>读取根目录</button><button id="more" hidden>下一页</button></div>
+      <p id="files-status" role="status" aria-live="polite"></p>
+      <ul id="files"></ul>
+      <pre id="content"></pre>
+    </section>
+  </main>
+</body>
+</html>

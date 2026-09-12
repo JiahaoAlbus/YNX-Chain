@@ -1,0 +1,21 @@
+:root { color-scheme: light; --ink: #122557; --blue: #123de7; --line: #d3ddf7; }
+* { box-sizing: border-box; }
+body { margin: 0; color: var(--ink); background: radial-gradient(ellipse at 90% 0, #dce9ff, transparent 65%), #f5f8ff; font-family: "Avenir Next", "PingFang SC", sans-serif; }
+main { max-width: 900px; margin: auto; padding: 44px 24px 80px; }
+a { color: var(--blue); text-underline-offset: 4px; }
+.eyebrow { margin-top: 64px; letter-spacing: .22em; font-size: 12px; }
+h1 { font-family: "Songti SC", Georgia, serif; font-size: clamp(40px, 8vw, 72px); line-height: 1.1; font-weight: 500; }
+p { line-height: 1.75; overflow-wrap: anywhere; }
+section { margin-top: 32px; padding: 24px; border: 1px solid var(--line); background: #ffffffd9; border-radius: 16px; }
+.actions { display: flex; gap: 12px; flex-wrap: wrap; }
+button { font: inherit; padding: 11px 17px; border: 1px solid var(--line); border-radius: 8px; background: white; color: var(--ink); cursor: pointer; }
+#connect { background: var(--blue); color: white; }
+button:disabled { opacity: .5; cursor: default; }
+button:focus-visible, a:focus-visible { outline: 3px solid #7b9dff; outline-offset: 4px; }
+#open-wallet { display: inline-block; margin-top: 20px; font-weight: bold; }
+[hidden] { display: none !important; }
+ul { list-style: none; padding: 0; }
+li { border-top: 1px solid var(--line); padding: 12px 0; }
+li button { max-width: 100%; overflow-wrap: anywhere; text-align: left; }
+pre { max-height: 480px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+@media (max-width: 480px) { main { padding: 24px 16px; } section { padding: 18px; } }

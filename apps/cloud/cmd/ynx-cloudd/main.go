@@ -207,6 +207,11 @@ func main() {
 	mux.Handle("/health", api)
 	mux.Handle("/health/", api)
 	mux.Handle("/cloud/", http.StripPrefix("/cloud/", http.FileServer(http.Dir(*cloudUI))))
+	mux.HandleFunc("GET /wallet-auth/callback", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-store")
+		w.Header().Set("Referrer-Policy", "no-referrer")
+		http.ServeFile(w, r, filepath.Join(*cloudUI, "session.html"))
+	})
 	mux.Handle("/docs/", http.StripPrefix("/docs/", http.FileServer(http.Dir(*docsUI))))
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/cloud/", http.StatusTemporaryRedirect)
