@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "productId": "docs",
   "status": "local-candidate",
-  "generatedAt": "2026-09-12T10:20:34.181Z",
+  "generatedAt": "2026-09-12T10:25:37.640Z",
   "source": {
-    "baseCommit": "0c832cdab1ca2f0fdebe30470feb6edc9090cf22",
+    "baseCommit": "6d64d35f730cd3a2558129382393e3808c88bc83",
     "branch": "codex/final-docs",
-    "webTree": "bcb87c3c803ddc323e2edfe88585cdc20b44cc95",
+    "webTree": "22fb41a5163fc05a52dc5f431563f69c17716a44",
     "webRoot": "apps/docs/web",
     "entry": "index.html",
     "entryScript": "app-secure.js"
@@ -30,10 +30,17 @@
       "files.read"
     ],
     "configuration": {
-      "enabled": false,
+      "enabled": true,
       "apiReadEnabled": false,
       "apiReadBackendCommit": "6d1479eead327025be106ec83f233f98a1f242a8",
       "authority": "https://wallet-auth.ynxweb4.com"
+    },
+    "authorityReadiness": {
+      "status": "coordinator-confirmed-deployed",
+      "sourceCommit": "9840ef871165eb523c4e7a3d48964dd25f8dee8e",
+      "evidence": "release/wallet-gateway-9840ef87-run01/public-acceptance.json",
+      "independentlyRecheckedByDocs": false,
+      "productLoginAccepted": false
     }
   },
   "implementation": {
@@ -67,7 +74,7 @@
     "businessLifecycleAccepted": false
   },
   "outstanding": [
-    "Coordinator domain/TLS/Caddy deployment and active Wallet authority",
+    "Coordinator Docs domain/TLS/Caddy deployment and source-bound product login",
     "Cloud fixed v2 read backend deployment before apiReadEnabled",
     "Cloud write scopes/idempotency and full editor v2 API integration",
     "Source-bound real Wallet return and document business acceptance",
@@ -166,8 +173,8 @@
     },
     {
       "path": "wallet-session-config.json",
-      "bytes": 170,
-      "sha256": "de115f736ed7907bbdb7cdf069fe8d8f5b986c6aa3c4abd45847ab76b8162f4a"
+      "bytes": 169,
+      "sha256": "bd35c1b859fb15a98833d2d896c4b34d7662cce53a515c29e6327bd46c603984"
     },
     {
       "path": "wallet-session-page.js",

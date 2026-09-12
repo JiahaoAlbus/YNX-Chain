@@ -37,9 +37,11 @@ separately chooses the SDK-generated Open Wallet link. Restore never opens
 Wallet automatically. A pending or failed revocation is not reported as success.
 
 The callback now contains real SDK completion logic, not a placeholder. Its
-static deployment configuration `wallet-session-config.json` defaults to
-`enabled: false` until the coordinator activates the matching authority and
-registry. Flip that deployment setting only when the new authority is ready.
+static deployment configuration `wallet-session-config.json` now sets
+`enabled: true` after the coordinator confirmed the matching 9840 authority and
+registry deployment. This enables the Docs session code path, not a claim that a
+real user has completed Docs login. `apiReadEnabled` remains independently gated
+on actual Cloud backend deployment.
 The authority is fixed to `https://wallet-auth.ynxweb4.com`; callback input cannot
 supply an authority, SDK URL, registry URL, or legacy session. Both SDK constructors
 come from the same private bundle. Its authority-bound device/state namespace does
