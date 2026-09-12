@@ -1,5 +1,6 @@
 import {loadDocsBrowserSession, docsSessionBinding} from './product-session-client.js';
 import {createDocsReadClient} from './product-session-read-client.js';
+import {mountDocsWritePanel} from './product-session-write-panel.js';
 
 const status = document.querySelector('#session-status');
 const begin = document.querySelector('#session-begin');
@@ -10,6 +11,14 @@ const callback = location.pathname === '/wallet-auth/callback';
 let adapter;
 let busy = false;
 let completed = false;
+const accessKey = `ynx.docs.v2.access.${docsSessionBinding.authority}`;
+const accessPicker = document.createElement('select');
+accessPicker.setAttribute('aria-label', 'Docs authorization scope');
+for (const [value, label] of [['read', 'Read-only access'], ['edit', 'Read and edit access (requires explicit approval)']]) {
+  const option = document.createElement('option'); option.value = value; option.textContent = label; accessPicker.append(option);
+}
+try { accessPicker.value = localStorage.getItem(accessKey) === 'edit' ? 'edit' : 'read'; } catch {}
+document.querySelector('main').append(accessPicker);
 let readGeneration = 0;
 let readAbort;
 const documents = document.createElement('section');
@@ -24,6 +33,7 @@ preview.style.whiteSpace = 'pre-wrap';
 preview.style.overflowWrap = 'anywhere';
 documents.append(listButton, readStatus, documentList, preview);
 document.querySelector('main').append(documents);
+const writePanel = mountDocsWritePanel({root: document.querySelector('main'), getAdapter: () => adapter, origin: docsSessionBinding.origin});
 
 function clearReads() {
   readGeneration++;
@@ -39,7 +49,7 @@ function render(state) {
   launch.hidden = true;
   launch.removeAttribute('href');
   status.textContent = state?.status === 'connected'
-    ? 'Read-only Docs Product Session verified. Standard wallet connection and document API access are separate.'
+    ? `Docs ${accessPicker.value === 'edit' ? 'editing' : 'read-only'} Product Session verified. Standard wallet connection and API availability are separate.`
     : 'Docs Product Session is not connected. You can explicitly start authorization or retry recovery.';
   end.disabled = state?.status !== 'connected';
   if (state?.status === 'connected') {
@@ -52,6 +62,7 @@ function render(state) {
 async function run(operation) {
   if (busy) return;
   busy = true;
+  accessPicker.disabled = true;
   clearReads();
   begin.disabled = end.disabled = retry.disabled = true;
   launch.hidden = true;
@@ -60,6 +71,7 @@ async function run(operation) {
     status.textContent = 'Docs authorization could not be confirmed. Check deployment availability and retry. No legacy session was imported or substituted.';
   } finally {
     busy = false;
+    accessPicker.disabled = false;
     begin.disabled = !adapter || callback;
     end.disabled = !adapter || adapter.client.current?.status !== 'connected';
     retry.disabled = false;
@@ -112,6 +124,7 @@ async function readDocuments(parentId = '', cursor = '', previous = []) {
           const result = await reader.open(object.id, {signal});
           if (!selected()) return;
           preview.textContent = result.content;
+          writePanel.selectDocument(result);
           readStatus.textContent = `${result.metadata.name}: read-only content loaded.`;
         } catch (error) {
           if (selected()) readStatus.textContent = error.message || 'Document read failed.';
@@ -141,7 +154,7 @@ async function readDocuments(parentId = '', cursor = '', previous = []) {
 listButton.addEventListener('click', () => readDocuments());
 
 async function recover() {
-  if (!adapter) adapter = await loadDocsBrowserSession();
+  if (!adapter) adapter = await loadDocsBrowserSession({access: accessPicker.value});
   const state = callback && !completed
     ? await adapter.client.handleReturn(location.href)
     : await adapter.client.restore();
@@ -149,6 +162,7 @@ async function recover() {
 }
 
 begin.addEventListener('click', () => run(async () => {
+  localStorage.setItem(accessKey, accessPicker.value);
   const pending = await adapter.client.beginExplicit();
   render(pending);
   if (pending.route?.status === 'ready') {
@@ -156,7 +170,7 @@ begin.addEventListener('click', () => run(async () => {
     if (url.protocol !== 'ynxwallet:') throw new Error('Unsupported Wallet handoff');
     launch.href = url.href;
     launch.hidden = false;
-    status.textContent = 'Request prepared; Wallet installation is unverified. Choose Open YNX Wallet to attempt opening it, then review and approve the read-only scopes only if you agree. Opening a link does not confirm authorization.';
+    status.textContent = `Request prepared for ${accessPicker.value === 'edit' ? 'reading and editing' : 'read-only access'}; Wallet installation is unverified. Choose Open YNX Wallet, then review the requested scopes before approval. Opening the link does not confirm authorization.`;
   } else {
     status.textContent = 'A Wallet handoff could not be prepared. Retry when the authorization service is available. No installation or authorization was confirmed.';
   }
@@ -169,6 +183,10 @@ end.addEventListener('click', () => run(async () => {
     : 'Docs Product Session revocation is not confirmed. Retry recovery to reconcile the pending sign-out.';
 }));
 retry.addEventListener('click', () => run(recover));
+accessPicker.addEventListener('change', () => run(async () => {
+  adapter?.close(); adapter = undefined;
+  await recover();
+}));
 window.addEventListener('pagehide', () => adapter?.close());
 window.addEventListener('pageshow', (event) => {
   if (event.persisted) { adapter = undefined; run(recover); }

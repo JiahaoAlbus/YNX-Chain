@@ -19,7 +19,7 @@ export function createDocsSessionTransport({adapter, origin, fetchImpl = globalT
     }
     const method = (options.method || 'GET').toUpperCase();
     if (!['GET', 'HEAD', ...writeMethods].includes(method)) throw new TypeError('Unsupported Docs request method');
-    if (writeMethods.has(method) && (typeof idempotencyKey !== 'string' || !/^[A-Za-z0-9._:-]{16,128}$/.test(idempotencyKey))) {
+    if (writeMethods.has(method) && (typeof idempotencyKey !== 'string' || !/^[A-Za-z0-9_-]{16,128}$/.test(idempotencyKey))) {
       throw new TypeError('A separate business idempotency key is required for writes');
     }
     const headers = new Headers(options.headers);

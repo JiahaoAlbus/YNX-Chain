@@ -1,20 +1,19 @@
 {
-  "commit": "9840ef871165eb523c4e7a3d48964dd25f8dee8e",
-  "tree": "4b3d86ea4bf98481a9448c694eb022b33cd36679",
+  "commit": "a7dad7ec1bc7c06577978bdd5fea8dc9c7a248a9",
+  "tree": "acf17fed8866d00a3c0876ec51af020da0c9e506",
   "files": [
     {
       "file": "standard-wallet-browser.mjs",
       "sha256": "b8a900ef2a5ece693cb2808a47ed0072d97c425236deb80c39497886f1535e43",
-      "sourceCommit": "c97f85e9ae4d4580b99860c51738e6040ca9ca18",
       "unchangedInCurrentSDK": true
     },
     {
       "file": "wallet-session-sdk.js",
-      "sha256": "5dc94d97925e4c0271c8c45255e0e409f257258e4e621f71fda26c4e2407a6e0"
+      "sha256": "16b0d677ec21e84b5ce425138f175c37e1ac6d319db7fe5a85926b276dccd336"
     },
     {
       "file": "product-session-registry.json",
-      "sha256": "85c6995eddfbc175efaac01dbad31a4f5ef8878aab91613da2d689ef79921ab3"
+      "sha256": "e74e1668e631dd623a4364cc9580951a9fe96fcef0c66c5910d84c774f4fdc08"
     }
   ],
   "publicVerified": false

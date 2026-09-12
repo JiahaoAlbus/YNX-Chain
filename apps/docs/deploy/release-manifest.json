@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "productId": "docs",
   "status": "local-candidate",
-  "generatedAt": "2026-09-12T10:25:37.640Z",
+  "generatedAt": "2026-09-12T10:53:27.751Z",
   "source": {
-    "baseCommit": "6d64d35f730cd3a2558129382393e3808c88bc83",
+    "baseCommit": "9031151c471f81701c0c8f3eb959c84058de9539",
     "branch": "codex/final-docs",
-    "webTree": "22fb41a5163fc05a52dc5f431563f69c17716a44",
+    "webTree": "4b8cc78e5d3104b7bfcb15bcdfa1f839fd413c06",
     "webRoot": "apps/docs/web",
     "entry": "index.html",
     "entryScript": "app-secure.js"
@@ -21,7 +21,7 @@
     "upstreamIsLogicalDescription": true
   },
   "wallet": {
-    "sdkCommit": "9840ef871165eb523c4e7a3d48964dd25f8dee8e",
+    "sdkCommit": "a7dad7ec1bc7c06577978bdd5fea8dc9c7a248a9",
     "authority": "https://wallet-auth.ynxweb4.com",
     "clientId": "ynx-docs-mobile-v1",
     "webApplicationId": "com.ynxweb4.docs.web",
@@ -32,6 +32,8 @@
     "configuration": {
       "enabled": true,
       "apiReadEnabled": false,
+      "apiWriteEnabled": false,
+      "apiWriteBackendCommit": "dd04f6109bb4b56ef572171e8081a9ee4b06a7e6",
       "apiReadBackendCommit": "6d1479eead327025be106ec83f233f98a1f242a8",
       "authority": "https://wallet-auth.ynxweb4.com"
     },
@@ -41,7 +43,14 @@
       "evidence": "release/wallet-gateway-9840ef87-run01/public-acceptance.json",
       "independentlyRecheckedByDocs": false,
       "productLoginAccepted": false
-    }
+    },
+    "editingScopes": [
+      "docs.read",
+      "docs.write",
+      "files.read",
+      "files.write"
+    ],
+    "authorityUpgradeRequiredForWrites": true
   },
   "implementation": {
     "standardProviderLifecycle": true,
@@ -53,18 +62,14 @@
     "guideLanguageCount": 12,
     "arabicGuideRTL": true,
     "completeEditorLocalization": false,
-    "v2EditorWriteIntegration": false
+    "v2EditorWriteIntegration": false,
+    "v2SessionCreateSaveIntegration": true
   },
   "localTestEvidence": {
     "command": "node --test apps/docs/tests/*.test.mjs",
-    "lastObservedPassed": 30,
+    "lastObservedPassed": 38,
     "lastObservedFailed": 0,
-    "scope": "local tests from this development session; not public or installed acceptance",
-    "latestTargeted": {
-      "command": "node --test apps/docs/tests/product-session-read-client.test.mjs",
-      "passed": 6,
-      "failed": 0
-    }
+    "scope": "Local unit/contract tests, not browser or public acceptance"
   },
   "releaseStatus": {
     "deployedPublic": false,
@@ -76,7 +81,7 @@
   "outstanding": [
     "Coordinator Docs domain/TLS/Caddy deployment and source-bound product login",
     "Cloud fixed v2 read backend deployment before apiReadEnabled",
-    "Cloud write scopes/idempotency and full editor v2 API integration",
+    "Deploy write-enabled Gateway/Cloud, integrate remaining editor mutations and validate real create/save/reconciliation",
     "Source-bound real Wallet return and document business acceptance",
     "Complete editor localization and authoritative whitepaper publication"
   ],
@@ -113,8 +118,8 @@
     },
     {
       "path": "product-session-client.js",
-      "bytes": 2378,
-      "sha256": "cad71cd903dec216e891e69576b4068093efeaf7cbf4ed91a41dc05abc089fda"
+      "bytes": 2895,
+      "sha256": "e036cb72f147966d8e13da0873b4cd955c6b1599ef7115b6659fa8ea2417b98b"
     },
     {
       "path": "product-session-read-client.js",
@@ -123,8 +128,18 @@
     },
     {
       "path": "product-session-transport.js",
-      "bytes": 3016,
-      "sha256": "983650e6f6bdde036511fe420fb4555435b2703b71f6c5bac8fd244e61d1ff9e"
+      "bytes": 3014,
+      "sha256": "13e55b7c3ffce6f2611c558d1d7337fbb2f65a4bf6bb0b0a50b949f4c7d2c735"
+    },
+    {
+      "path": "product-session-write-client.js",
+      "bytes": 4968,
+      "sha256": "c661c8cf15377883d743d683e1240d3a58a77ddf0919770ef85fae8ff945fc33"
+    },
+    {
+      "path": "product-session-write-panel.js",
+      "bytes": 8193,
+      "sha256": "87a32a7b28c6bc4ecd3838c2e2bd8d5e655ba35a23b0955ee4a4c2d0b682736b"
     },
     {
       "path": "session.css",
@@ -133,8 +148,8 @@
     },
     {
       "path": "session.html",
-      "bytes": 918,
-      "sha256": "55222b5ad0e443c23060ba15b3233fdf3d2b83251cfc11a8bea909a8f1c77099"
+      "bytes": 944,
+      "sha256": "c8ad4f6a8621b26094938eab88e43f8bc65d5fbb0fe5100003c3e2c2c16be711"
     },
     {
       "path": "standard-wallet.js",
@@ -148,13 +163,13 @@
     },
     {
       "path": "vendor/product-session-registry.json",
-      "bytes": 7546,
-      "sha256": "85c6995eddfbc175efaac01dbad31a4f5ef8878aab91613da2d689ef79921ab3"
+      "bytes": 7590,
+      "sha256": "e74e1668e631dd623a4364cc9580951a9fe96fcef0c66c5910d84c774f4fdc08"
     },
     {
       "path": "vendor/source-manifest.json",
-      "bytes": 679,
-      "sha256": "11bc261c4356f88974ea6740a364e5d9890850ffe05a7ce087f0ee23db920fe3"
+      "bytes": 613,
+      "sha256": "2aaf79d49f22dd6e5d1334aacb04116c4adf858695079f50cb2feb5120b917c6"
     },
     {
       "path": "vendor/standard-wallet-browser.mjs",
@@ -163,8 +178,8 @@
     },
     {
       "path": "vendor/wallet-session-sdk.js",
-      "bytes": 214746,
-      "sha256": "5dc94d97925e4c0271c8c45255e0e409f257258e4e621f71fda26c4e2407a6e0"
+      "bytes": 223235,
+      "sha256": "16b0d677ec21e84b5ce425138f175c37e1ac6d319db7fe5a85926b276dccd336"
     },
     {
       "path": "wallet-auth/callback/index.html",
@@ -173,14 +188,15 @@
     },
     {
       "path": "wallet-session-config.json",
-      "bytes": 169,
-      "sha256": "bd35c1b859fb15a98833d2d896c4b34d7662cce53a515c29e6327bd46c603984"
+      "bytes": 268,
+      "sha256": "883b26dc2fb67afefeda0c5bf60c7a65a01e9000a6aa3ba6d3f5fb3ebdfc9b0e"
     },
     {
       "path": "wallet-session-page.js",
-      "bytes": 7827,
-      "sha256": "b503d1a318fae546d80e6b16e6b76a2b09445bdcae85466864768ff2b1e6bc30"
+      "bytes": 9064,
+      "sha256": "ec3a418473fdd695bf0cb82757a189517b97bac4adad7a7b96c76961e2c2e54e"
     }
   ],
-  "backendReadCommit": "6d1479eead327025be106ec83f233f98a1f242a8"
+  "backendReadCommit": "6d1479eead327025be106ec83f233f98a1f242a8",
+  "backendWriteCommit": "dd04f6109bb4b56ef572171e8081a9ee4b06a7e6"
 }

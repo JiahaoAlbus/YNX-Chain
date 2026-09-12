@@ -87,3 +87,24 @@ Remaining runtime dependencies: domain/hosting/TLS confirmation, upgraded active
 Wallet authority, Cloud route scopes and write-idempotency semantics, editor API
 integration, and real browser/installed Wallet lifecycle acceptance. Local source,
 bundle integrity and tests do not establish public login or business completion.
+
+## Create/save follow-up
+
+The current bundled private SDK/registry is now
+`a7dad7ec1bc7c06577978bdd5fea8dc9c7a248a9`; see the vendor manifest for hashes.
+Cloud fixed write source is `dd04f6109bb4b56ef572171e8081a9ee4b06a7e6`.
+The v2 session page now offers a separate editing profile requesting the sorted
+subset `docs.read`, `docs.write`, `files.read`, `files.write`. Its creation/save
+panel uses POST objects and PUT objects/{id}/document with exact write-route
+scopes `docs.write`, `files.write`. The original editor's remaining mutation
+features are still on the old flow and have not all been migrated.
+
+Prepared write bodies and idempotency keys are retained locally before submission.
+An explicit retry uses the identical request with a fresh proof. Unknown outcomes
+and version conflicts preserve the draft and require server readback and review
+before a new write. The server's `<StatePath>.v2-idempotency` sidecar must be kept
+with state backups and rollback. Do not delete it to resolve a pending request.
+
+`apiWriteEnabled` remains false until the write-capable Gateway registry and Cloud
+backend are actually deployed. `apiReadEnabled` remains separately gated. Neither
+SDK allowlist additions nor local tests establish successful public writes.
