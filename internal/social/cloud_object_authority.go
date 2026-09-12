@@ -106,7 +106,7 @@ func (a *CloudObjectAuthority) Issue(actor Session, binding CloudObjectBinding) 
 		return "", CloudObjectGrant{}, err
 	}
 	now := a.service.cfg.Now().UTC()
-	expires := now.Add(2 * time.Minute)
+	expires := now.Add(90 * time.Second)
 	if actor.ExpiresAt.Before(expires) {
 		expires = actor.ExpiresAt
 	}

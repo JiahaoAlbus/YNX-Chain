@@ -33,6 +33,9 @@ func TestCloudAuthorityLiveRevocationAndExactBinding(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if !grant.ExpiresAt.Equal(now.Add(90 * time.Second)) {
+		t.Fatalf("Cloud requires a 90-second maximum capability TTL: %s", grant.ExpiresAt)
+	}
 	if grant.Audience != cloudObjectAudience || grant.UploadID != "" || strings.Contains(token, login.Session.Account) {
 		t.Fatal("invalid grant boundary")
 	}
