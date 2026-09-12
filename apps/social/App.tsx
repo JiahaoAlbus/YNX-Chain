@@ -104,7 +104,8 @@ import {
   translate,
 } from "./src/i18n";
 import { I18nProvider, useI18n } from "./src/i18nProvider";
-import { readOutbox, queueMessage, acknowledgeQueued, pendingFor, assertPendingRecipients } from "./src/messageOutbox";
+import { queueMessage, acknowledgeQueued, pendingFor, assertPendingRecipients } from "./src/messageOutbox";
+import { DurableOutbox } from "./src/durableOutbox";
 
 const BLUE = "#002FA7",
   INK = "#101828",
@@ -163,6 +164,12 @@ const SESSION_KEY = "ynx.social.session.v1",
 const OUTBOX_KEY = "ynx.social.outbox.v1",
   ROTATION_KEY = "ynx.social.rotation.v1";
 const outboxFile = () => new File(Paths.document, `${OUTBOX_KEY}.json`);
+const outboxSlot = (slot: string) => slot === "legacy" ? outboxFile() : new File(Paths.document, `${OUTBOX_KEY}.${slot}.json`);
+const messageOutbox = new DurableOutbox({
+  read(slot) { const file = outboxSlot(slot); return file.exists ? file.textSync() : null; },
+  write(slot, value) { outboxSlot(slot).write(value); },
+  remove(slot) { const file = outboxSlot(slot); if (file.exists) file.delete(); },
+});
 type Tab = "contacts" | "messages" | "moments" | "alerts" | "profile";
 
 export default function App() {
@@ -1258,8 +1265,7 @@ function MessageThread({
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const file = outboxFile();
-      setPending(pendingFor(readOutbox(file.exists ? file.textSync() : null), account, deviceId, conversation.id));
+      setPending(pendingFor(messageOutbox.read(), account, deviceId, conversation.id));
       const [keyRaw, deviceResult, messageResult] = await Promise.all([
           SecureStore.getItemAsync(DEVICE_KEY),
           api.conversationDevices(conversation.id),
@@ -1312,9 +1318,7 @@ function MessageThread({
       const currentDevices = await api.conversationDevices(conversation.id);
       assertPendingRecipients({ account, deviceId, conversationId: conversation.id, request }, currentDevices.devices);
       await api.sendMessage(conversation.id, request);
-      const file = outboxFile();
-      const remaining = acknowledgeQueued(readOutbox(file.exists ? file.textSync() : null), { account, deviceId, conversationId: conversation.id, request });
-      file.write(JSON.stringify(remaining));
+      const remaining = messageOutbox.update((entries) => acknowledgeQueued(entries, { account, deviceId, conversationId: conversation.id, request }));
       setPending(pendingFor(remaining, account, deviceId, conversation.id));
       setDraft("");
       await load();
@@ -1350,8 +1354,7 @@ function MessageThread({
           devices: devices.devices,
           entropy,
         });
-      const file = outboxFile();
-      file.write(JSON.stringify(queueMessage(readOutbox(file.exists ? file.textSync() : null), { account, deviceId, conversationId: conversation.id, request })));
+      messageOutbox.update((entries) => queueMessage(entries, { account, deviceId, conversationId: conversation.id, request }));
       setPending(request);
       await transmit(request);
     } catch (caught) {
@@ -2388,8 +2391,7 @@ function Profile({
           SecureStore.deleteItemAsync(key),
         ),
       );
-      const file = outboxFile();
-      if (file.exists) file.delete();
+      messageOutbox.clear();
       api.setToken(null);
       onSessionChange(null);
     } catch (caught) {
