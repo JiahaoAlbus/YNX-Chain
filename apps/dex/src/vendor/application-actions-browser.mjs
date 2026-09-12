@@ -493,6 +493,187 @@ var WalletAuthError = class extends Error {
   }
 };
 
+// packages/wallet-auth/src/product-session-registry.js
+var PRODUCT_SESSION_REGISTRY_VERSION = 2;
+var PRODUCT_SESSION_PLATFORMS = Object.freeze(["android", "ios", "linux", "macos", "web", "windows"]);
+var DOCUMENT_FIELDS = ["schemaVersion", "chainId", "wallet", "products"];
+var WALLET_FIELDS = ["authorizeCallback", "downloadUrl", "metaMaskDownloadUrl"];
+var PRODUCT_FIELDS = [
+  "productId",
+  "clientId",
+  "displayName",
+  "applicationId",
+  "webOrigin",
+  "nativeCallback",
+  "legacyCallbacks",
+  "scopes",
+  "evmCompatible",
+  "sessionDurationSeconds"
+];
+var FORBIDDEN_CALLBACK_SCHEMES = /* @__PURE__ */ new Set(["data:", "file:", "http:", "javascript:"]);
+function parseProductSessionRegistry(input) {
+  exactFields(input, DOCUMENT_FIELDS, "Product Session router registry");
+  if (input.schemaVersion !== PRODUCT_SESSION_REGISTRY_VERSION || input.chainId !== "ynx_6423-1") {
+    fail("INVALID_ROUTER_REGISTRY", "Product Session router registry version or chain is unsupported");
+  }
+  exactFields(input.wallet, WALLET_FIELDS, "Product Session Wallet registration");
+  const authorizeCallback = callback(input.wallet.authorizeCallback, "wallet authorize callback", { allowHttps: false });
+  const authorize = new URL(authorizeCallback);
+  if (authorize.protocol !== "ynxwallet:" || authorize.hostname !== "authorize" || authorize.pathname !== "") {
+    fail("INVALID_ROUTER_REGISTRY", "Wallet authorize callback must be ynxwallet://authorize");
+  }
+  const downloadUrl = httpsURL(input.wallet.downloadUrl, "Wallet download URL", false);
+  const metaMaskDownloadUrl = httpsURL(input.wallet.metaMaskDownloadUrl, "MetaMask download URL", false);
+  if (downloadUrl !== "https://www.ynxweb4.com/dapp/download" || metaMaskDownloadUrl !== "https://metamask.io/download") {
+    fail("INVALID_ROUTER_REGISTRY", "Wallet download routes must match the approved official allowlist");
+  }
+  if (!Array.isArray(input.products) || input.products.length < 1 || input.products.length > 64) {
+    fail("INVALID_ROUTER_REGISTRY", "Product Session registry product count is invalid");
+  }
+  const products = input.products.map(parseProduct);
+  uniqueSorted(products.map((item) => item.productId), "productId");
+  unique(products.map((item) => item.clientId), "clientId");
+  unique(products.map((item) => item.applicationId), "applicationId");
+  unique(products.map((item) => item.webOrigin), "webOrigin");
+  unique(products.filter((item) => item.nativeCallback !== null).map((item) => new URL(item.nativeCallback).protocol), "native callback scheme");
+  const legacy = products.flatMap((item) => item.legacyCallbacks.map((value) => `${value}
+${item.productId}`));
+  const legacyNames = legacy.map((value) => value.split("\n", 1)[0]);
+  unique(legacyNames, "legacy callback");
+  return Object.freeze({
+    schemaVersion: PRODUCT_SESSION_REGISTRY_VERSION,
+    chainId: input.chainId,
+    wallet: Object.freeze({ authorizeCallback, downloadUrl, metaMaskDownloadUrl }),
+    products: Object.freeze(products)
+  });
+}
+function productPlatformBinding(registryInput, productId, platform) {
+  const registry = parseProductSessionRegistry(registryInput);
+  if (!PRODUCT_SESSION_PLATFORMS.includes(platform)) fail("INVALID_PLATFORM", "Product Session platform is unsupported");
+  const product = registry.products.find((item) => item.productId === productId);
+  if (!product) fail("UNKNOWN_PRODUCT", "Product is not registered for Product Sessions");
+  if (product.platforms && !product.platforms.includes(platform)) fail("INVALID_PLATFORM", "Product Session platform is not registered for this product");
+  const web = platform === "web";
+  return Object.freeze({
+    chainId: registry.chainId,
+    productId: product.productId,
+    clientId: product.clientId,
+    displayName: product.displayName,
+    platform,
+    applicationId: web ? `${product.applicationId}.web` : product.applicationId,
+    bundleId: ["ios", "macos"].includes(platform) ? product.applicationId : null,
+    packageId: ["android", "linux", "windows"].includes(platform) ? product.applicationId : null,
+    origin: web ? product.webOrigin : `app://${platform}/${product.applicationId}`,
+    callback: web ? `${product.webOrigin}/wallet-auth/callback` : product.nativeCallback,
+    scopes: product.scopes,
+    evmCompatible: product.evmCompatible,
+    sessionDurationSeconds: product.sessionDurationSeconds,
+    walletAuthorizeCallback: registry.wallet.authorizeCallback,
+    walletDownloadUrl: registry.wallet.downloadUrl,
+    metaMaskDownloadUrl: registry.wallet.metaMaskDownloadUrl
+  });
+}
+function parseProduct(input) {
+  const hasPlatforms = input !== null && typeof input === "object" && Object.hasOwn(input, "platforms");
+  exactFields(input, hasPlatforms ? [...PRODUCT_FIELDS, "platforms"] : PRODUCT_FIELDS, "Product Session product registration");
+  if (hasPlatforms && (!Array.isArray(input.platforms) || input.platforms.length !== 1 || input.platforms[0] !== "web")) {
+    fail("INVALID_ROUTER_REGISTRY", "Explicit Product Session platforms must be exactly [web]");
+  }
+  const productId = pattern(input.productId, "productId", /^[a-z][a-z0-9-]{1,31}$/);
+  const clientId = pattern(input.clientId, "clientId", /^[a-z][a-z0-9._-]{2,63}$/);
+  const displayName = text(input.displayName, "displayName", 2, 64);
+  const applicationId = pattern(input.applicationId, "applicationId", /^[A-Za-z][A-Za-z0-9.-]{2,127}$/);
+  const webOrigin = httpsURL(input.webOrigin, "webOrigin", true);
+  let nativeCallback, legacyCallbacks;
+  if (hasPlatforms) {
+    if (input.nativeCallback !== null || !Array.isArray(input.legacyCallbacks) || input.legacyCallbacks.length !== 0) {
+      fail("INVALID_ROUTER_REGISTRY", "Web-only products cannot register native or legacy callbacks");
+    }
+    nativeCallback = null;
+    legacyCallbacks = [];
+  } else {
+    nativeCallback = callback(input.nativeCallback, "nativeCallback", { allowHttps: false });
+    const native = new URL(nativeCallback);
+    if (native.search || native.hash || native.username || native.password || !native.hostname) {
+      fail("INVALID_ROUTER_REGISTRY", "Native callback must contain an exact host/path without query or fragment");
+    }
+    legacyCallbacks = stringList(input.legacyCallbacks, "legacyCallbacks", 1, 8, (value) => text(value, "legacy callback", 3, 512));
+    if (!legacyCallbacks.includes(nativeCallback)) fail("INVALID_ROUTER_REGISTRY", "Legacy callback list must include the canonical native callback");
+  }
+  const scopes = stringList(input.scopes, "scopes", 1, 8, (value) => pattern(value, "scope", /^[a-z][a-z0-9._:-]{1,63}$/));
+  if (scopes.some((scope) => scope.includes("*"))) fail("INVALID_ROUTER_REGISTRY", "Wildcard Product Session scope is forbidden");
+  if (typeof input.evmCompatible !== "boolean") fail("INVALID_ROUTER_REGISTRY", "evmCompatible must be boolean");
+  if (!Number.isInteger(input.sessionDurationSeconds) || input.sessionDurationSeconds < 60 || input.sessionDurationSeconds > 300) {
+    fail("INVALID_ROUTER_REGISTRY", "Product Session duration must be between 60 and 300 seconds");
+  }
+  return Object.freeze({
+    productId,
+    clientId,
+    displayName,
+    applicationId,
+    webOrigin,
+    nativeCallback,
+    ...hasPlatforms ? { platforms: Object.freeze(["web"]) } : {},
+    legacyCallbacks: Object.freeze(legacyCallbacks),
+    scopes: Object.freeze(scopes),
+    evmCompatible: input.evmCompatible,
+    sessionDurationSeconds: input.sessionDurationSeconds
+  });
+}
+function callback(value, label, options) {
+  const normalized = text(value, label, 3, 512);
+  let parsed;
+  try {
+    parsed = new URL(normalized);
+  } catch {
+    fail("INVALID_ROUTER_REGISTRY", `${label} is not a URL with ://`);
+  }
+  if (parsed.toString() !== normalized || parsed.username || parsed.password || parsed.hash || FORBIDDEN_CALLBACK_SCHEMES.has(parsed.protocol)) {
+    fail("INVALID_ROUTER_REGISTRY", `${label} is not canonical or uses a forbidden scheme`);
+  }
+  if (parsed.protocol === "https:" && !options.allowHttps) fail("INVALID_ROUTER_REGISTRY", `${label} must use its registered application scheme`);
+  if (parsed.protocol !== "https:" && !/^[a-z][a-z0-9+.-]*:$/.test(parsed.protocol)) fail("INVALID_ROUTER_REGISTRY", `${label} scheme is invalid`);
+  return normalized;
+}
+function httpsURL(value, label, originOnly) {
+  const normalized = text(value, label, 8, 512);
+  let parsed;
+  try {
+    parsed = new URL(normalized);
+  } catch {
+    fail("INVALID_ROUTER_REGISTRY", `${label} is invalid`);
+  }
+  if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.hash || parsed.port || !parsed.hostname || originOnly && (parsed.pathname !== "/" || parsed.search)) {
+    fail("INVALID_ROUTER_REGISTRY", `${label} must be a canonical HTTPS ${originOnly ? "origin" : "URL"}`);
+  }
+  return originOnly ? parsed.origin : parsed.toString().replace(/\/$/, "");
+}
+function stringList(value, label, minimum, maximum, normalize) {
+  if (!Array.isArray(value) || value.length < minimum || value.length > maximum) fail("INVALID_ROUTER_REGISTRY", `${label} item count is invalid`);
+  const result = value.map(normalize);
+  uniqueSorted(result, label);
+  return result;
+}
+function uniqueSorted(values, label) {
+  unique(values, label);
+  if ([...values].sort().join("\n") !== values.join("\n")) fail("INVALID_ROUTER_REGISTRY", `${label} must be sorted`);
+}
+function unique(values, label) {
+  if (new Set(values).size !== values.length) fail("INVALID_ROUTER_REGISTRY", `${label} must be globally unique`);
+}
+function pattern(value, label, regex) {
+  const result = text(value, label, 1, 512);
+  if (!regex.test(result)) fail("INVALID_ROUTER_REGISTRY", `${label} is invalid`);
+  return result;
+}
+function text(value, label, minimum, maximum) {
+  if (typeof value !== "string" || value.length < minimum || value.length > maximum || value.trim() !== value) fail("INVALID_ROUTER_REGISTRY", `${label} is invalid`);
+  return value;
+}
+function fail(code, message) {
+  throw new WalletAuthError(code, message);
+}
+
 // packages/wallet-auth/src/base64url.js
 var ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 function encodeBase64url(bytes) {
@@ -2625,187 +2806,6 @@ function polymod(values) {
   return checksum >>> 0;
 }
 
-// packages/wallet-auth/src/product-session-registry.js
-var PRODUCT_SESSION_REGISTRY_VERSION = 2;
-var PRODUCT_SESSION_PLATFORMS = Object.freeze(["android", "ios", "linux", "macos", "web", "windows"]);
-var DOCUMENT_FIELDS = ["schemaVersion", "chainId", "wallet", "products"];
-var WALLET_FIELDS = ["authorizeCallback", "downloadUrl", "metaMaskDownloadUrl"];
-var PRODUCT_FIELDS = [
-  "productId",
-  "clientId",
-  "displayName",
-  "applicationId",
-  "webOrigin",
-  "nativeCallback",
-  "legacyCallbacks",
-  "scopes",
-  "evmCompatible",
-  "sessionDurationSeconds"
-];
-var FORBIDDEN_CALLBACK_SCHEMES = /* @__PURE__ */ new Set(["data:", "file:", "http:", "javascript:"]);
-function parseProductSessionRegistry(input) {
-  exactFields(input, DOCUMENT_FIELDS, "Product Session router registry");
-  if (input.schemaVersion !== PRODUCT_SESSION_REGISTRY_VERSION || input.chainId !== "ynx_6423-1") {
-    fail("INVALID_ROUTER_REGISTRY", "Product Session router registry version or chain is unsupported");
-  }
-  exactFields(input.wallet, WALLET_FIELDS, "Product Session Wallet registration");
-  const authorizeCallback = callback(input.wallet.authorizeCallback, "wallet authorize callback", { allowHttps: false });
-  const authorize = new URL(authorizeCallback);
-  if (authorize.protocol !== "ynxwallet:" || authorize.hostname !== "authorize" || authorize.pathname !== "") {
-    fail("INVALID_ROUTER_REGISTRY", "Wallet authorize callback must be ynxwallet://authorize");
-  }
-  const downloadUrl = httpsURL(input.wallet.downloadUrl, "Wallet download URL", false);
-  const metaMaskDownloadUrl = httpsURL(input.wallet.metaMaskDownloadUrl, "MetaMask download URL", false);
-  if (downloadUrl !== "https://www.ynxweb4.com/dapp/download" || metaMaskDownloadUrl !== "https://metamask.io/download") {
-    fail("INVALID_ROUTER_REGISTRY", "Wallet download routes must match the approved official allowlist");
-  }
-  if (!Array.isArray(input.products) || input.products.length < 1 || input.products.length > 64) {
-    fail("INVALID_ROUTER_REGISTRY", "Product Session registry product count is invalid");
-  }
-  const products = input.products.map(parseProduct);
-  uniqueSorted(products.map((item) => item.productId), "productId");
-  unique(products.map((item) => item.clientId), "clientId");
-  unique(products.map((item) => item.applicationId), "applicationId");
-  unique(products.map((item) => item.webOrigin), "webOrigin");
-  unique(products.filter((item) => item.nativeCallback !== null).map((item) => new URL(item.nativeCallback).protocol), "native callback scheme");
-  const legacy = products.flatMap((item) => item.legacyCallbacks.map((value) => `${value}
-${item.productId}`));
-  const legacyNames = legacy.map((value) => value.split("\n", 1)[0]);
-  unique(legacyNames, "legacy callback");
-  return Object.freeze({
-    schemaVersion: PRODUCT_SESSION_REGISTRY_VERSION,
-    chainId: input.chainId,
-    wallet: Object.freeze({ authorizeCallback, downloadUrl, metaMaskDownloadUrl }),
-    products: Object.freeze(products)
-  });
-}
-function productPlatformBinding(registryInput, productId, platform) {
-  const registry = parseProductSessionRegistry(registryInput);
-  if (!PRODUCT_SESSION_PLATFORMS.includes(platform)) fail("INVALID_PLATFORM", "Product Session platform is unsupported");
-  const product = registry.products.find((item) => item.productId === productId);
-  if (!product) fail("UNKNOWN_PRODUCT", "Product is not registered for Product Sessions");
-  if (product.platforms && !product.platforms.includes(platform)) fail("INVALID_PLATFORM", "Product Session platform is not registered for this product");
-  const web = platform === "web";
-  return Object.freeze({
-    chainId: registry.chainId,
-    productId: product.productId,
-    clientId: product.clientId,
-    displayName: product.displayName,
-    platform,
-    applicationId: web ? `${product.applicationId}.web` : product.applicationId,
-    bundleId: ["ios", "macos"].includes(platform) ? product.applicationId : null,
-    packageId: ["android", "linux", "windows"].includes(platform) ? product.applicationId : null,
-    origin: web ? product.webOrigin : `app://${platform}/${product.applicationId}`,
-    callback: web ? `${product.webOrigin}/wallet-auth/callback` : product.nativeCallback,
-    scopes: product.scopes,
-    evmCompatible: product.evmCompatible,
-    sessionDurationSeconds: product.sessionDurationSeconds,
-    walletAuthorizeCallback: registry.wallet.authorizeCallback,
-    walletDownloadUrl: registry.wallet.downloadUrl,
-    metaMaskDownloadUrl: registry.wallet.metaMaskDownloadUrl
-  });
-}
-function parseProduct(input) {
-  const hasPlatforms = input !== null && typeof input === "object" && Object.hasOwn(input, "platforms");
-  exactFields(input, hasPlatforms ? [...PRODUCT_FIELDS, "platforms"] : PRODUCT_FIELDS, "Product Session product registration");
-  if (hasPlatforms && (!Array.isArray(input.platforms) || input.platforms.length !== 1 || input.platforms[0] !== "web")) {
-    fail("INVALID_ROUTER_REGISTRY", "Explicit Product Session platforms must be exactly [web]");
-  }
-  const productId = pattern(input.productId, "productId", /^[a-z][a-z0-9-]{1,31}$/);
-  const clientId = pattern(input.clientId, "clientId", /^[a-z][a-z0-9._-]{2,63}$/);
-  const displayName = text(input.displayName, "displayName", 2, 64);
-  const applicationId = pattern(input.applicationId, "applicationId", /^[A-Za-z][A-Za-z0-9.-]{2,127}$/);
-  const webOrigin = httpsURL(input.webOrigin, "webOrigin", true);
-  let nativeCallback, legacyCallbacks;
-  if (hasPlatforms) {
-    if (input.nativeCallback !== null || !Array.isArray(input.legacyCallbacks) || input.legacyCallbacks.length !== 0) {
-      fail("INVALID_ROUTER_REGISTRY", "Web-only products cannot register native or legacy callbacks");
-    }
-    nativeCallback = null;
-    legacyCallbacks = [];
-  } else {
-    nativeCallback = callback(input.nativeCallback, "nativeCallback", { allowHttps: false });
-    const native = new URL(nativeCallback);
-    if (native.search || native.hash || native.username || native.password || !native.hostname) {
-      fail("INVALID_ROUTER_REGISTRY", "Native callback must contain an exact host/path without query or fragment");
-    }
-    legacyCallbacks = stringList(input.legacyCallbacks, "legacyCallbacks", 1, 8, (value) => text(value, "legacy callback", 3, 512));
-    if (!legacyCallbacks.includes(nativeCallback)) fail("INVALID_ROUTER_REGISTRY", "Legacy callback list must include the canonical native callback");
-  }
-  const scopes = stringList(input.scopes, "scopes", 1, 8, (value) => pattern(value, "scope", /^[a-z][a-z0-9._:-]{1,63}$/));
-  if (scopes.some((scope) => scope.includes("*"))) fail("INVALID_ROUTER_REGISTRY", "Wildcard Product Session scope is forbidden");
-  if (typeof input.evmCompatible !== "boolean") fail("INVALID_ROUTER_REGISTRY", "evmCompatible must be boolean");
-  if (!Number.isInteger(input.sessionDurationSeconds) || input.sessionDurationSeconds < 60 || input.sessionDurationSeconds > 300) {
-    fail("INVALID_ROUTER_REGISTRY", "Product Session duration must be between 60 and 300 seconds");
-  }
-  return Object.freeze({
-    productId,
-    clientId,
-    displayName,
-    applicationId,
-    webOrigin,
-    nativeCallback,
-    ...hasPlatforms ? { platforms: Object.freeze(["web"]) } : {},
-    legacyCallbacks: Object.freeze(legacyCallbacks),
-    scopes: Object.freeze(scopes),
-    evmCompatible: input.evmCompatible,
-    sessionDurationSeconds: input.sessionDurationSeconds
-  });
-}
-function callback(value, label, options) {
-  const normalized = text(value, label, 3, 512);
-  let parsed;
-  try {
-    parsed = new URL(normalized);
-  } catch {
-    fail("INVALID_ROUTER_REGISTRY", `${label} is not a URL with ://`);
-  }
-  if (parsed.toString() !== normalized || parsed.username || parsed.password || parsed.hash || FORBIDDEN_CALLBACK_SCHEMES.has(parsed.protocol)) {
-    fail("INVALID_ROUTER_REGISTRY", `${label} is not canonical or uses a forbidden scheme`);
-  }
-  if (parsed.protocol === "https:" && !options.allowHttps) fail("INVALID_ROUTER_REGISTRY", `${label} must use its registered application scheme`);
-  if (parsed.protocol !== "https:" && !/^[a-z][a-z0-9+.-]*:$/.test(parsed.protocol)) fail("INVALID_ROUTER_REGISTRY", `${label} scheme is invalid`);
-  return normalized;
-}
-function httpsURL(value, label, originOnly) {
-  const normalized = text(value, label, 8, 512);
-  let parsed;
-  try {
-    parsed = new URL(normalized);
-  } catch {
-    fail("INVALID_ROUTER_REGISTRY", `${label} is invalid`);
-  }
-  if (parsed.protocol !== "https:" || parsed.username || parsed.password || parsed.hash || parsed.port || !parsed.hostname || originOnly && (parsed.pathname !== "/" || parsed.search)) {
-    fail("INVALID_ROUTER_REGISTRY", `${label} must be a canonical HTTPS ${originOnly ? "origin" : "URL"}`);
-  }
-  return originOnly ? parsed.origin : parsed.toString().replace(/\/$/, "");
-}
-function stringList(value, label, minimum, maximum, normalize) {
-  if (!Array.isArray(value) || value.length < minimum || value.length > maximum) fail("INVALID_ROUTER_REGISTRY", `${label} item count is invalid`);
-  const result = value.map(normalize);
-  uniqueSorted(result, label);
-  return result;
-}
-function uniqueSorted(values, label) {
-  unique(values, label);
-  if ([...values].sort().join("\n") !== values.join("\n")) fail("INVALID_ROUTER_REGISTRY", `${label} must be sorted`);
-}
-function unique(values, label) {
-  if (new Set(values).size !== values.length) fail("INVALID_ROUTER_REGISTRY", `${label} must be globally unique`);
-}
-function pattern(value, label, regex) {
-  const result = text(value, label, 1, 512);
-  if (!regex.test(result)) fail("INVALID_ROUTER_REGISTRY", `${label} is invalid`);
-  return result;
-}
-function text(value, label, minimum, maximum) {
-  if (typeof value !== "string" || value.length < minimum || value.length > maximum || value.trim() !== value) fail("INVALID_ROUTER_REGISTRY", `${label} is invalid`);
-  return value;
-}
-function fail(code, message) {
-  throw new WalletAuthError(code, message);
-}
-
 // packages/wallet-auth/src/application-action.js
 var APPLICATION_ACTION_DOMAIN = "YNX_APPLICATION_ACTION_V1";
 var APPLICATION_ACTION_CHAIN_ID = 6423;
@@ -3082,10 +3082,126 @@ function decodeRoute(value, target, key, limit) {
 function fail2(code, message) {
   throw new WalletAuthError(code, message);
 }
+
+// packages/wallet-auth/src/application-action-launcher.js
+function createApplicationActionLauncher(registryInput, options) {
+  const registry = parseProductSessionRegistry(registryInput);
+  const { productId, loadPendingRequest, getActiveAccount, now = () => /* @__PURE__ */ new Date(), environment = globalThis.window } = options || {};
+  if (productId !== "dex" || typeof loadPendingRequest !== "function" || typeof getActiveAccount !== "function" || typeof now !== "function") {
+    fail3("INVALID_LAUNCHER_OPTIONS", "DEX launcher requires durable pending-request and active-account readers");
+  }
+  const binding = productPlatformBinding(registry, productId, "web");
+  if (!environment?.location || typeof environment.location.assign !== "function") {
+    fail3("BROWSER_UNAVAILABLE", "Application action launch requires a browser location");
+  }
+  let epoch = 0, disposed = false, prepared = null;
+  const invalidate = () => {
+    epoch++;
+    prepared = null;
+  };
+  const visibilityChanged = () => {
+    if (environment.document?.visibilityState === "hidden") invalidate();
+  };
+  environment.addEventListener?.("pagehide", invalidate);
+  environment.document?.addEventListener?.("visibilitychange", visibilityChanged);
+  function assertContext(request) {
+    if (disposed) fail3("LAUNCHER_DISPOSED", "Application action launcher is disposed");
+    if (environment.location.origin !== binding.origin) fail3("BINDING_MISMATCH", "Current page must match the registered product origin");
+    if (request && (request.productId !== productId || request.platform !== "web" || request.account !== getActiveAccount())) {
+      fail3("BINDING_MISMATCH", "Pending action must match this Web product and the currently selected native account");
+    }
+  }
+  function checkEpoch(expected) {
+    assertContext();
+    if (epoch !== expected) fail3("APPLICATION_ACTION_CANCELLED", "Pending action changed while reading its saved request");
+  }
+  async function readRequest(expected) {
+    assertContext();
+    const value = await loadPendingRequest();
+    checkEpoch(expected);
+    if (value === null || value === void 0) return null;
+    const request = parseApplicationActionRequest(registry, value, now());
+    assertContext(request);
+    return request;
+  }
+  return Object.freeze({
+    /** Read an already committed request. No request creation, renewal, storage
+     * write, URI launch, account access or provider permission happens here. */
+    async prepare() {
+      invalidate();
+      const expected = epoch;
+      const request = await readRequest(expected);
+      checkEpoch(expected);
+      if (!request) return Object.freeze({ status: "no-pending-request", installation: "unknown", automatic: false });
+      const target = Object.freeze({
+        status: "ready",
+        installation: "unknown",
+        automatic: false,
+        requestDigest: applicationActionRequestDigest(request),
+        walletURL: encodeApplicationActionWalletURL(registry, request, now()),
+        callback: request.callback,
+        downloadURL: binding.walletDownloadUrl,
+        expiresAt: request.expiresAt
+      });
+      prepared = { request, target, epoch: expected };
+      return target;
+    },
+    /** Call synchronously from the user's Open button click after prepare.
+     * No timers, hidden frames, popup probes or install-detection inference. */
+    open(event, expectedRequestDigest) {
+      assertContext();
+      if (!prepared || prepared.epoch !== epoch) fail3("APPLICATION_ACTION_NOT_PREPARED", "Read the saved request before opening Wallet");
+      if (expectedRequestDigest !== prepared.target.requestDigest) fail3("BINDING_MISMATCH", "Open must refer to the exact request shown in the current review");
+      if (typeof environment.MouseEvent !== "function" || !(event instanceof environment.MouseEvent) || event.type !== "click" || event.isTrusted !== true || event.defaultPrevented === true || !event.currentTarget || ![1, 2, 3].includes(event.eventPhase) || environment.navigator?.userActivation?.isActive !== true) {
+        fail3("USER_ACTIVATION_REQUIRED", "Open Wallet must be a current explicit user click");
+      }
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || typeof event.button === "number" && event.button !== 0) {
+        fail3("USER_ACTIVATION_REQUIRED", "Open Wallet requires an unmodified primary click");
+      }
+      const request = parseApplicationActionRequest(registry, prepared.request, now());
+      assertContext(request);
+      const url = encodeApplicationActionWalletURL(registry, request, now());
+      if (url !== prepared.target.walletURL) fail3("BINDING_MISMATCH", "The prepared request changed");
+      const requestDigest = prepared.target.requestDigest;
+      event.preventDefault();
+      environment.location.assign(url);
+      return Object.freeze({ status: "launch-attempted", installation: "unknown", automatic: false, requestDigest });
+    },
+    /** First, still-live return verification only; this does not atomically
+     * consume or persist a result. DEX already has journal.acceptReturn and
+     * must use that as its sole callback consumer, including exact historical
+     * duplicate recovery. Do not put this helper in front of that journal. */
+    async handleReturn(url) {
+      invalidate();
+      const expected = epoch;
+      const request = await readRequest(expected);
+      checkEpoch(expected);
+      if (!request) fail3("APPLICATION_ACTION_NOT_FOUND", "No saved application action matches this return");
+      const result = parseApplicationActionReturnURL(registry, url, request, now());
+      checkEpoch(expected);
+      assertContext(request);
+      invalidate();
+      return result;
+    },
+    /** Call immediately on journal/account/network changes, lock, disconnect
+     * or abandonment. This invalidates only transient launch UI, never storage. */
+    invalidate,
+    dispose() {
+      invalidate();
+      disposed = true;
+      environment.removeEventListener?.("pagehide", invalidate);
+      environment.document?.removeEventListener?.("visibilitychange", visibilityChanged);
+    }
+  });
+}
+function fail3(code, message) {
+  throw new WalletAuthError(code, message);
+}
 export {
   applicationActionHash,
   applicationActionPayloadHash,
   applicationActionRequestDigest,
+  createApplicationActionLauncher,
   createApplicationActionRequest,
   createApplicationActionReturnURL,
   encodeApplicationActionWalletURL,

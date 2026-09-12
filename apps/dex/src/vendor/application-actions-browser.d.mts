@@ -11,3 +11,13 @@ export function parseApplicationActionReturnURL(registry:unknown,url:string,requ
 export function createApplicationActionReturnURL(registry:unknown,request:NativeRequest,decision:{status:'approved';signed:string}|{status:'rejected';reason:'USER_REJECTED'},at?:Date):string;
 export function verifySignedApplicationAction(signed:string,expected:{account:string;action:NativeAction;payload:NativePayload;nonce:number}):Readonly<Record<string,unknown>>;
 export function applicationActionHash(signed:string):string;
+// Additive Wallet 3720cd63 declaration; original ff5 request types are unchanged.
+export type ApplicationActionLaunchTarget = Readonly<{status:'ready';installation:'unknown';automatic:false;requestDigest:string;walletURL:string;callback:string;downloadURL:string;expiresAt:string}>;
+export type ApplicationActionLauncher = Readonly<{
+  prepare():Promise<ApplicationActionLaunchTarget|Readonly<{status:'no-pending-request';installation:'unknown';automatic:false}>>;
+  open(event:MouseEvent,expectedRequestDigest:string):Readonly<{status:'launch-attempted';installation:'unknown';automatic:false;requestDigest:string}>;
+  handleReturn(url:string):Promise<NativeDecision>;
+  invalidate():void;
+  dispose():void;
+}>;
+export function createApplicationActionLauncher(registry:unknown,options:{productId:'dex';loadPendingRequest():Promise<NativeRequest|null>;getActiveAccount():string|null;now?():Date;environment?:Window}):ApplicationActionLauncher;

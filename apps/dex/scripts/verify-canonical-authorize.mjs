@@ -33,7 +33,8 @@ for(const [file,value] of sources) {
     // diagnostic, not a Web launch. Exempt only that one exact diagnostic after
     // byte identity verification; all other code remains scanned unchanged.
     const bytes=Buffer.from(value),diagnostic='fail("INVALID_ROUTER_REGISTRY", "Wallet authorize callback must be ynxwallet://authorize");';
-    if(bytes.length!==110477||createHash('sha256').update(bytes).digest('hex')!=='627d7c57e15bfc3a92c77fb58d11c2bdb0e54f8f20c5989d51091163b71f5d0f'||value.split(diagnostic).length!==2)throw new Error('Native SDK diagnostic exception requires exact Wallet-owner bytes');
+    const expected=[116695,'8e2db1a041dca2a9b61c081a9bb4d0da12d50b55e45008ab3b69e7d3b7c36d17'];
+    if(bytes.length!==expected[0]||createHash('sha256').update(bytes).digest('hex')!==expected[1]||value.split(diagnostic).length!==2)throw new Error('Native SDK diagnostic exception requires exact Wallet-owner bytes');
     executable=value.replace(diagnostic,'');
   }
   if(/ynxwallet:\/\/authorize|(?:window\.open|<iframe|document\.location\s*=|location\.href\s*=)\s*\(?\s*['"]ynxwallet/.test(executable))throw new Error('Forbidden Web Wallet authorization route in '+file);
