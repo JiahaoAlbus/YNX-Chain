@@ -1,0 +1,175 @@
+{
+  "schemaVersion": 1,
+  "product": "YNX Quant",
+  "classification": "LOCAL_REPRODUCIBLE_LINUX_AMD64_RUNTIME_CANDIDATE",
+  "ownerBranch": "codex/quant-financial-flow-20260912",
+  "sourceCommit": "7751882774636db6bdeee059faf66eac40cd1383",
+  "sourceTree": "49ceaf7622fe77eea78675decf25cc436eccfcb2",
+  "sharedRuntime": {
+    "sourceCommit": "c97f85e9ae4d4580b99860c51738e6040ca9ca18",
+    "sourceTree": "28a660bbe1451f0d5e20d6eb08da17eef0970d77",
+    "artifactPath": "apps/quant-lab/vendor/standard-wallet-browser-c97f85e9.mjs",
+    "bytes": 22417,
+    "sha256": "b8a900ef2a5ece693cb2808a47ed0072d97c425236deb80c39497886f1535e43"
+  },
+  "archive": {
+    "path": "/tmp/ynx-quant-lab-775188277463-linux-amd64-wallet-paper.tar.gz",
+    "bytes": 3352196,
+    "sha256": "2d07347f1fe99f75cf30a0afd731dedd1da7e3f56204e8a70b487a34a3637189",
+    "repeatPath": "/tmp/ynx-quant-lab-775188277463-linux-amd64-wallet-paper-repeat.tar.gz",
+    "repeatBytes": 3352196,
+    "repeatSha256": "2d07347f1fe99f75cf30a0afd731dedd1da7e3f56204e8a70b487a34a3637189"
+  },
+  "build": {
+    "environment": {
+      "CGO_ENABLED": "0",
+      "GOOS": "linux",
+      "GOARCH": "amd64"
+    },
+    "argv": [
+      "node",
+      "apps/quant-lab/scripts/package-runtime-candidate.mjs",
+      "--commit",
+      "7751882774636db6bdeee059faf66eac40cd1383",
+      "--output",
+      "<new local archive path>"
+    ],
+    "repeatedArchiveByteExact": true
+  },
+  "manifest": {
+    "schemaVersion": 1,
+    "productId": "ynx-quant-lab",
+    "sourceCommit": "7751882774636db6bdeee059faf66eac40cd1383",
+    "sourceTree": "49ceaf7622fe77eea78675decf25cc436eccfcb2",
+    "release": "ynx-quant-lab-775188277463",
+    "build": {
+      "goos": "linux",
+      "goarch": "amd64",
+      "cgoEnabled": false,
+      "trimpath": true,
+      "buildVCS": false,
+      "buildTime": "2026-09-12T17:36:27+08:00"
+    },
+    "entries": [
+      {
+        "path": "ynx-quant-lab-775188277463/apps/quant-lab/web/app.js",
+        "bytes": 42072,
+        "sha256": "8922e5d06cb9b869974f50810ef28a3931a574ba9aa4f5a8b5e1ef6b1e90209b",
+        "mode": "644"
+      },
+      {
+        "path": "ynx-quant-lab-775188277463/apps/quant-lab/web/i18n.js",
+        "bytes": 25372,
+        "sha256": "f8ff2d755c5f77984c8024632bdb572056014cf7b0fafac6c89330e3b9e39cca",
+        "mode": "644"
+      },
+      {
+        "path": "ynx-quant-lab-775188277463/apps/quant-lab/web/index.html",
+        "bytes": 18994,
+        "sha256": "6745d2bb3c4b69b3f5931284068e58e1a1e03b8f9196405415c77072bbc2e2d0",
+        "mode": "644"
+      },
+      {
+        "path": "ynx-quant-lab-775188277463/apps/quant-lab/web/product-session-registry.js",
+        "bytes": 612,
+        "sha256": "5dcded3a4cef068ccf7a57b36b7820ad5fc187d4cbe7f05936cac3d0d0f9119a",
+        "mode": "644"
+      },
+      {
+        "path": "ynx-quant-lab-775188277463/apps/quant-lab/web/styles.css",
+        "bytes": 7098,
+        "sha256": "27fb41f98bd41342218881032c8d886a479bfb9d1bb21f422659210dc6ea7a4a",
+        "mode": "644"
+      },
+      {
+        "path": "ynx-quant-lab-775188277463/apps/quant-lab/web/wallet-auth-entry.js",
+        "bytes": 17168,
+        "sha256": "e9eb7769b41ac42ad1b5c9a37105caba933906b7bbe13ffc464cc5a7d8e40800",
+        "mode": "644"
+      },
+      {
+        "path": "ynx-quant-lab-775188277463/apps/quant-lab/web/wallet-auth.js",
+        "bytes": 80342,
+        "sha256": "55d9975cdd5cd1b6c22bf6649f11d49cc6e48c02d58fb284d0b8955086badd58",
+        "mode": "644"
+      },
+      {
+        "path": "ynx-quant-lab-775188277463/apps/quant-lab/web/wallet-provider-lifecycle.js",
+        "bytes": 734,
+        "sha256": "e667cbd139609067f36497f826935f1432acc6b95d6da3b1dc6d1ce2a5d6e91f",
+        "mode": "644"
+      },
+      {
+        "path": "ynx-quant-lab-775188277463/apps/quant-lab/web/ynx-testnet.js",
+        "bytes": 1152,
+        "sha256": "ae172b99c50e4b3328c6de6541dfd3f08ffcbb430c54d23672acd0401ee7c2ec",
+        "mode": "644"
+      },
+      {
+        "path": "ynx-quant-lab-775188277463/ynx-quantd",
+        "bytes": 7909560,
+        "sha256": "d03c353b896ca6a5468e797a0a729ae454c8a945df045247f44d59471c7ba8c3",
+        "mode": "755"
+      }
+    ]
+  },
+  "tests": {
+    "unitAndSource": {
+      "command": "npm test",
+      "passed": 18
+    },
+    "walletBrowser": {
+      "command": "npm run test:wallet-flow",
+      "passed": 16,
+      "browser": "local headless Google Chrome",
+      "providers": "explicit local test doubles; shared runtime is unmodified"
+    },
+    "localServiceBrowser": {
+      "command": "npm run test:browser",
+      "passed": 4
+    },
+    "tenantPersistence": {
+      "command": "npm run test:tenant-flow",
+      "passed": 1,
+      "tenants": 2,
+      "concurrentGoProcesses": 2,
+      "duplicateRequests": 12,
+      "duplicateResult": "one persisted simulated order per tenant",
+      "conflictingConcurrentBody": "one success, one HTTP 409",
+      "staleOrOtherTenantStrategy": "HTTP 403",
+      "restartAndOfflineFeedReplay": true,
+      "market": "explicit synthetic loopback fixtures"
+    },
+    "goRace": {
+      "command": "go test -race -count=1 ./internal/quantlab ./apps/quant-lab/server",
+      "passed": true,
+      "postgresIntegrationExecuted": false
+    },
+    "authorizationScan": {
+      "command": "npm run verify:canonical-authorize",
+      "passed": true
+    }
+  },
+  "truth": {
+    "sourceImplemented": true,
+    "localTests": true,
+    "localRuntimeArchiveBuilt": true,
+    "linuxRuntimeExecuted": false,
+    "installed": false,
+    "sourceBoundPublic": false,
+    "realWalletApproval": false,
+    "realPermissionRevocation": false,
+    "realSignature": false,
+    "testnetTransaction": false,
+    "productSession": false,
+    "walletConnect": false,
+    "migratedV2": false,
+    "production": false
+  },
+  "remaining": [
+    "No source-bound public or installed lifecycle evidence. This archive is not a user installer.",
+    "A Standard EVM account does not grant a native ynx1 mandate; native signature and one-time Quant Product Session proof remain unavailable.",
+    "PostgreSQL multi-instance readiness must be proved against an authorized database; local filesystem tests do not prove it.",
+    "After new keyed Paper orders are written, rollback must preserve the IdempotencyKey field/integrity; no legacy binary rollback is authorized."
+  ]
+}

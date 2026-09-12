@@ -44,3 +44,11 @@
 ## Rollback
 
 Revert this product checkpoint or restore its predecessor via a new non-destructive owner commit. Do not reset the original worktree, overwrite shared package authority, or deploy a rollback without its separate authorization. No runtime/database migration was performed by this checkpoint.
+
+## Frozen source-bound runtime candidate
+
+The final shared-runtime consumer source is `7751882774636db6bdeee059faf66eac40cd1383`, tree `49ceaf7622fe77eea78675decf25cc436eccfcb2`. Evidence is `apps/quant-lab/evidence/wallet-paper-flow-77518827-runtime-candidate-20260912.json` and is intentionally a later evidence-only commit.
+
+Two independent local builds produced byte-identical Linux/amd64 archives: `/tmp/ynx-quant-lab-775188277463-linux-amd64-wallet-paper.tar.gz`, 3,352,196 bytes, SHA-256 `2d07347f1fe99f75cf30a0afd731dedd1da7e3f56204e8a70b487a34a3637189`. The contained `ynx-quantd` was inspected as ELF64 little-endian x86-64, 7,909,560 bytes, SHA-256 `d03c353b896ca6a5468e797a0a729ae454c8a945df045247f44d59471c7ba8c3`. Embedded manifest and SHA256SUMS cover the binary and all nine Web assets.
+
+This is an offline server runtime candidate, not a macOS/Windows/Android installer and not executed Linux/public evidence. It has not been uploaded or deployed. Existing public runtime and rollback bindings must be freshly obtained before a separate release decision. Native actions still require Wallet-owned authorization; this source does not grant them.
