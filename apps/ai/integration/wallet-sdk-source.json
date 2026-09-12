@@ -1,0 +1,16 @@
+{
+  "authority": "673522fe126b5b87f91c6790ca7bea0eb574f2e8",
+  "package": "@ynx-chain/wallet-auth",
+  "exports": [
+    "StandardWalletConnection",
+    "discoverWalletProviders"
+  ],
+  "esbuild": "0.25.4",
+  "files": {
+    "packages/wallet-auth/src/wallet-provider-discovery.js": "892ecc612ff0b9f4966c040f31fb13f0108775ad92a695a697bcb103053cfcd5",
+    "packages/wallet-auth/src/standard-wallet-connection.js": "443302e3924026576c465a1698b0140119aaf0a8d6db068ecb186d60ba47bfa7",
+    "packages/wallet-auth/src/canonical.js": "9f7ccc58b8bd1fadbb2dffa88a7512a8e3be0f4a9f2983800654ee5fe5d10119"
+  },
+  "bundleSHA256": "02001b7bfb09fc904ac5db3fe04f408a9d4e48546484cb9fc03917363b63ec1c",
+  "boundary": "Standard EIP-1193 connection only. No AI private session or canonical registry acceptance."
+}

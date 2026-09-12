@@ -30,6 +30,16 @@
       </section>
       </div>
       <div class="auth-access">
+      <section class="notice" aria-labelledby="standard-wallet-title">
+        <h2 id="standard-wallet-title">Choose your wallet</h2>
+        <p>Connect YNX Wallet or MetaMask explicitly. Standard account access does not grant access to private AI conversations or generation.</p>
+        <button id="standard-wallet-ynx" class="primary small" type="button">YNX Wallet</button>
+        <button id="standard-wallet-metamask" class="primary small" type="button">MetaMask</button>
+        <button id="standard-wallet-refresh" class="text-button" type="button">Refresh wallets</button>
+        <button id="standard-wallet-disconnect" class="text-button" type="button">Disconnect here</button>
+        <button id="standard-wallet-network" class="text-button" type="button" hidden>Switch to YNX Testnet</button>
+        <p id="standard-wallet-status" role="status">Checking available wallets without requesting accounts.</p>
+      </section>
       <section id="session-recovery" class="notice hidden" aria-labelledby="session-recovery-title">
         <h2 id="session-recovery-title">Restore your AI session</h2>
         <p id="session-recovery-status" role="status">Checking your existing session.</p>
@@ -150,5 +160,6 @@
   <dialog id="modal"><form method="dialog" id="modal-form"><header><p class="eyebrow" id="modal-kicker">Review</p><h2 id="modal-title">Action review</h2></header><div id="modal-body"></div><p id="modal-error" class="error"></p><footer><button value="cancel">Cancel</button><button id="modal-submit" class="primary" value="default">Continue</button></footer></form></dialog>
   <div id="toast" class="toast" role="status"></div>
   <script src="/app.js" defer></script>
+  <script type="module" src="/wallet-panel.mjs"></script>
 </body>
 </html>

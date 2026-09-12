@@ -131,8 +131,23 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/appeals", s.authed("ai:data-control", s.handleAppealList))
 	s.mux.HandleFunc("POST /api/appeals", s.authed("ai:data-control", s.handleAppealCreate))
 	if s.static != nil {
+		s.mux.HandleFunc("GET /wallet-auth/callback", s.handleWalletCallbackPage)
 		s.mux.Handle("/", http.FileServer(http.FS(s.static)))
 	}
+}
+
+func (s *Server) handleWalletCallbackPage(w http.ResponseWriter, r *http.Request) {
+	// The SDK consumes the exact callback in the browser. Serving the shell
+	// alone must not mint an AI session or reflect callback query material.
+	page, err := fs.ReadFile(s.static, "index.html")
+	if err != nil {
+		http.Error(w, "AI callback page is unavailable", http.StatusServiceUnavailable)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("Referrer-Policy", "no-referrer")
+	_, _ = w.Write(page)
 }
 
 type authedHandler func(http.ResponseWriter, *http.Request, ProductSession)

@@ -1,0 +1,19 @@
+{
+  "productId": "ai",
+  "clientId": "ynx-ai-v1",
+  "displayName": "YNX AI",
+  "applicationId": "com.ynxweb4.ai",
+  "webOrigin": "https://assistant.ynxweb4.com",
+  "nativeCallback": "ynxai://wallet-auth/callback",
+  "legacyCallbacks": ["ynxai://wallet-auth/callback"],
+  "scopes": [
+    "ai:actions",
+    "ai:attachments",
+    "ai:conversations",
+    "ai:data-control",
+    "ai:generate",
+    "ai:permissions"
+  ],
+  "evmCompatible": false,
+  "sessionDurationSeconds": 240
+}

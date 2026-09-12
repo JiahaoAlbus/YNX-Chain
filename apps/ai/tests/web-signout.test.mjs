@@ -164,3 +164,14 @@ test('workspace loading failure does not erase a verified session',async()=>{
  assert.match(p.node('#toast').textContent,/Some workspace data could not be loaded/);
  assert.equal(p.reloads,0);
 });
+
+test('provider identity changes clear private AI credentials and discard pending readback',async()=>{
+ let finish;
+ const p=page({storage:credentials(),requests:{'/api/auth/session':()=>new Promise(resolve=>{finish=resolve})}});
+ p.eval('invalidateWalletSession()');
+ finish(response(200,{account:'test-account',deviceId:'test-device'}));await tick();
+ locallySignedOut(p);
+ assert.equal(p.storage.get('ynx-ai-signout-status'),'wallet-changed');
+ assert.match(p.node('#auth-error').textContent,/remote revocation is not confirmed/);
+ assert.equal(p.calls.length,1);
+});

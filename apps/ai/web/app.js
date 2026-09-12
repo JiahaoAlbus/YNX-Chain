@@ -1,10 +1,10 @@
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
-const state={token:sessionStorage.getItem('ynx-ai-token')||'',deviceId:sessionStorage.getItem('ynx-ai-device')||'',account:sessionStorage.getItem('ynx-ai-account')||'',challengeId:'',conversationId:'',conversationArchived:false,conversations:[],generationId:'',abort:null,lastPrompt:'',archived:false,provider:null,signingOut:false};
+const state={token:sessionStorage.getItem('ynx-ai-token')||'',deviceId:sessionStorage.getItem('ynx-ai-device')||'',account:sessionStorage.getItem('ynx-ai-account')||'',challengeId:'',conversationId:'',conversationArchived:false,conversations:[],generationId:'',abort:null,lastPrompt:'',archived:false,provider:null,signingOut:false,sessionEpoch:0};
 const signoutNoticeKey='ynx-ai-signout-status';
-function clearAISession(){for(const key of ['ynx-ai-token','ynx-ai-account','ynx-ai-device'])sessionStorage.removeItem(key);state.token='';state.account='';state.deviceId='';state.challengeId='';state.conversationId='';state.conversations=[];state.lastPrompt='';state.provider=null;state.abort?.abort();state.abort=null;state.generationId=''}
-function showSignoutNotice(){const status=sessionStorage.getItem(signoutNoticeKey);if(status)$('#auth-error').textContent=status==='expired'?'Your AI session is no longer valid. Sign in again to continue.':status==='revoked'?'Signed out on this device. The server confirmed revocation of this AI session.':'Signed out on this device. Server revocation is not confirmed; this AI session may still be active on the server.'}
+function clearAISession(){state.sessionEpoch+=1;for(const key of ['ynx-ai-token','ynx-ai-account','ynx-ai-device'])sessionStorage.removeItem(key);state.token='';state.account='';state.deviceId='';state.challengeId='';state.conversationId='';state.conversations=[];state.lastPrompt='';state.provider=null;state.abort?.abort();state.abort=null;state.generationId=''}
+function showSignoutNotice(){const status=sessionStorage.getItem(signoutNoticeKey);if(status)$('#auth-error').textContent=status==='wallet-changed'?'Wallet identity changed. The local AI session was cleared; remote revocation is not confirmed.':status==='expired'?'Your AI session is no longer valid. Sign in again to continue.':status==='revoked'?'Signed out on this device. The server confirmed revocation of this AI session.':'Signed out on this device. Server revocation is not confirmed; this AI session may still be active on the server.'}
 const scopes=['ai:conversations','ai:generate','ai:permissions','ai:data-control'];
-async function api(path,options={}){if(state.signingOut)throw new Error('The AI session has ended.');const headers={...(options.body?{'Content-Type':'application/json'}:{}),...(state.token?{Authorization:`Bearer ${state.token}`,'X-YNX-Device-ID':state.deviceId}:{})};const response=await fetch(path,{...options,headers:{...headers,...options.headers}});if(state.signingOut)throw new Error('The AI session has ended.');if(response.status===204)return null;const data=await response.json().catch(()=>({error:`HTTP ${response.status}`}));if(state.signingOut)throw new Error('The AI session has ended.');if(!response.ok){const error=new Error(data.error||`HTTP ${response.status}`);error.status=response.status;throw error}return data}
+async function api(path,options={}){const epoch=state.sessionEpoch;if(state.signingOut)throw new Error('The AI session has ended.');const headers={...(options.body?{'Content-Type':'application/json'}:{}),...(state.token?{Authorization:`Bearer ${state.token}`,'X-YNX-Device-ID':state.deviceId}:{})};const response=await fetch(path,{...options,headers:{...headers,...options.headers}});if(state.signingOut||epoch!==state.sessionEpoch)throw new Error('The AI session has ended.');if(response.status===204)return null;const data=await response.json().catch(()=>({error:`HTTP ${response.status}`}));if(state.signingOut||epoch!==state.sessionEpoch)throw new Error('The AI session has ended.');if(!response.ok){const error=new Error(data.error||`HTTP ${response.status}`);error.status=response.status;throw error}return data}
 async function loadPublicStatus(){const badge=$('#public-status-badge');try{const response=await fetch('/api/public-status',{headers:{Accept:'application/json'}});const data=await response.json();if(!response.ok||!data.gatewayReady)throw new Error(data.status||'Gateway unavailable');badge.textContent='Gateway ready';badge.className='runtime-badge available';$('#public-gateway').textContent='Operational';$('#public-provider').textContent=`${data.provider} · ${data.model}`;$('#public-status-detail').textContent=`${data.status} ${data.providerGenerationEvidence}.`;badge.title=`Source: ${data.source} · ${data.asOf}`}catch(error){badge.textContent='Unavailable';badge.className='runtime-badge unavailable';$('#public-gateway').textContent='Unavailable';$('#public-provider').textContent='No substitute model';$('#public-status-detail').textContent=error.message}}
 function toast(message){const node=$('#toast');node.textContent=message;node.classList.add('show');setTimeout(()=>node.classList.remove('show'),2200)}
 function escapeHTML(value=''){return value.replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
@@ -14,6 +14,7 @@ $('#verify-form').addEventListener('submit',async event=>{event.preventDefault()
 let restoreTask=null;
 function enterApp(){if(state.signingOut||!state.token)return Promise.resolve();if(!restoreTask)restoreTask=restoreSession().finally(()=>{restoreTask=null});return restoreTask}
 async function restoreSession(){
+ const epoch=state.sessionEpoch;
  $('#app').classList.add('hidden');$('#signin').classList.remove('hidden');
  $('#challenge-form').classList.add('hidden');$('#proof-step').classList.add('hidden');
  $('#session-recovery').classList.remove('hidden');$('#session-retry').disabled=true;
@@ -27,7 +28,7 @@ async function restoreSession(){
   const results=await Promise.allSettled([loadConversations(),loadProvider(),loadPrivacy()]);
   if(!state.signingOut&&results.some(result=>result.status==='rejected'))toast('Your session is active. Some workspace data could not be loaded; retry without signing in again.');
  }catch(error){
-  if(state.signingOut)return;
+  if(state.signingOut||epoch!==state.sessionEpoch)return;
   if(error.status===401){clearAISession();sessionStorage.setItem(signoutNoticeKey,'expired');showSignoutNotice();$('#session-recovery').classList.add('hidden');$('#challenge-form').classList.remove('hidden')}
   else $('#session-recovery-status').textContent='Your session could not be checked. Retry when the service is available; your saved session has been kept. No new wallet authorization was requested.';
  }finally{if(!state.signingOut)$('#session-retry').disabled=false}
@@ -169,3 +170,12 @@ function openModal(title,body,onSubmit){$('#modal-title').textContent=title;$('#
 
 if(state.token)enterApp();
 else {showSignoutNotice();loadPublicStatus()}
+
+function invalidateWalletSession(){
+ if(!state.token&&!state.generationId)return;
+ clearAISession();sessionStorage.setItem(signoutNoticeKey,'wallet-changed');
+ $('#app').classList.add('hidden');$('#signin').classList.remove('hidden');
+ $('#session-recovery').classList.add('hidden');$('#challenge-form').classList.remove('hidden');
+ $('#proof-step').classList.add('hidden');showSignoutNotice();
+}
+globalThis.addEventListener?.('ynx-ai-wallet-invalidated',invalidateWalletSession);
