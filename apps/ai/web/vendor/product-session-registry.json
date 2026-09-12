@@ -52,7 +52,7 @@
       "platforms": ["web"],
       "nativeCallback": null,
       "legacyCallbacks": [],
-      "scopes": ["files.read"],
+      "scopes": ["files.read", "files.write"],
       "evmCompatible": false,
       "sessionDurationSeconds": 300
     },
@@ -100,7 +100,7 @@
       "webOrigin": "https://docs.ynxweb4.com",
       "nativeCallback": "ynxdocs://wallet-auth/callback",
       "legacyCallbacks": ["ynxdocs://wallet-auth/callback"],
-      "scopes": ["docs.read", "files.read"],
+      "scopes": ["docs.read", "docs.write", "files.read", "files.write"],
       "evmCompatible": false,
       "sessionDurationSeconds": 300
     },
