@@ -78,7 +78,10 @@ export class ProductSessionGatewayFetchAdapter {
     const timeout = setTimeout(() => controller.abort(), this.#timeoutMs);
     let response;
     try {
-      response = await this.#fetch(`${this.#endpoint}${path}`, { method, headers, body: encodedBody, cache: "no-store", credentials: "omit", redirect: "error", signal: controller.signal });
+      // Native Window.fetch rejects a Gateway instance as its receiver. Invoke
+      // the injected function directly; explicitly bound adapters keep theirs.
+      const fetch = this.#fetch;
+      response = await fetch(`${this.#endpoint}${path}`, { method, headers, body: encodedBody, cache: "no-store", credentials: "omit", redirect: "error", signal: controller.signal });
     } catch {
       clearTimeout(timeout);
       fail("NETWORK_UNAVAILABLE", "Product Session Gateway is unavailable; no local response was substituted");

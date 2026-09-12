@@ -69,6 +69,32 @@ test("fetch adapter rejects unsafe origins, malformed responses and network fall
 
 function code(expected) { return (error) => error instanceof WalletAuthError && error.code === expected; }
 
+test("authority time and POST call injected browser fetch without a foreign receiver", async () => {
+  const calls = [];
+  // Native Window.fetch rejects an arbitrary receiver before network I/O.
+  // Node's fetch and arrow-function fixtures do not enforce that browser rule.
+  async function browserFetch(url, init) {
+    assert.equal(this, undefined, "Gateway must not become the native fetch receiver");
+    calls.push({ url, init });
+    const requestId = init.headers["x-request-id"];
+    const result = init.method === "GET" ? { serverTime: NOW.toISOString() } : { fixture: "challenge-response" };
+    return new Response(canonicalJSON({ ok: true, requestId, result, schemaVersion: 2 }), { headers: { "content-type": "application/json", "cache-control": "no-store", "x-request-id": requestId } });
+  }
+  const adapter = new ProductSessionGatewayFetchAdapter({ endpoint: "https://gateway.test", fetch: browserFetch, walletInstalled: () => false, schemeRegistered: () => false, timeoutMs: 1000 });
+  const requestId = `req_ps_t_${token("actual-browser-time-length")}`;
+  assert.equal(requestId.length, 52);
+  assert.deepEqual(await adapter.currentTime({ requestId }), NOW);
+  assert.deepEqual(await adapter.challenge({ requestId: "req_browser_fetch_challenge_1", request: { fixture: "request" }, approval: { fixture: "approval" } }), { fixture: "challenge-response" });
+  assert.equal(calls.length, 2);
+  assert.deepEqual(calls.map(call => call.url), ["https://gateway.test/v2/product-sessions/time", "https://gateway.test/v2/product-sessions/challenge"]);
+  assert.equal(calls[0].init.body, undefined);
+  assert.equal(calls[1].init.body, canonicalJSON({ request: { fixture: "request" }, approval: { fixture: "approval" } }));
+  for (const { init } of calls) {
+    assert.equal(init.redirect, "error"); assert.equal(init.credentials, "omit"); assert.equal(init.cache, "no-store");
+    assert.ok(init.signal instanceof AbortSignal);
+  }
+});
+
 for (const [label, modify] of [
   ["missing time route", response => ({ ...response, status: 404 })],
   ["stale response request ID", response => ({ ...response, headers: { ...response.headers, "x-request-id": "req_time_from_another_request" } })],
