@@ -3504,7 +3504,6 @@ func writeDurableSnapshotJSONWithDirectorySync(path string, value any, syncDirec
 	}()
 	stream := jsonBodyWriter{target: file}
 	encoder := json.NewEncoder(&stream)
-	encoder.SetIndent("", "  ")
 	if err = encoder.Encode(value); err != nil {
 		return fmt.Errorf("encode devnet snapshot: %w", err)
 	}

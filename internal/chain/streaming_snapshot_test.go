@@ -39,7 +39,7 @@ func TestStreamingSnapshotEncodingPreservesCanonicalBytesAndIntegrity(t *testing
 	if err != nil {
 		t.Fatal(err)
 	}
-	expectedFile, err := json.MarshalIndent(sealed, "", "  ")
+	expectedFile, err := json.Marshal(sealed)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -52,6 +52,22 @@ func TestStreamingSnapshotEncodingPreservesCanonicalBytesAndIntegrity(t *testing
 		t.Fatal(err)
 	}
 	if string(actualFile) != string(expectedFile) {
-		t.Fatal("streamed durable JSON differs from the prior canonical indented encoding")
+		t.Fatal("streamed durable JSON differs from canonical compact encoding")
+	}
+	legacyFile, err := json.MarshalIndent(sealed, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, payload := range [][]byte{actualFile, legacyFile} {
+		var cold devnetSnapshot
+		if err = json.Unmarshal(payload, &cold); err != nil {
+			t.Fatal(err)
+		}
+		if err = validateDevnetSnapshotIntegrity(cold); err != nil {
+			t.Fatal(err)
+		}
+		if cold.Accounts["ynx1streamingtest"].Balance != 17 || cold.StateIntegrity != sealed.StateIntegrity {
+			t.Fatal("compact/legacy cold interpretation differs")
+		}
 	}
 }

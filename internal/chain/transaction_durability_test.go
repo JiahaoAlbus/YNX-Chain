@@ -324,3 +324,53 @@ func TestRPCDurableReadViewDoesNotWaitForWriterOrExposeStagedFunds(t *testing.T)
 		t.Fatal(failure)
 	}
 }
+
+func TestRPCBalanceViewSurvivesFailedReplacementAtSameTip(t *testing.T) {
+	for _, markerFailure := range []bool{false, true} {
+		t.Run(fmt.Sprint(markerFailure), func(t *testing.T) {
+			d, err := NewPersistentDevnet(DefaultNetworkConfig("testnet"), t.TempDir())
+			if err != nil {
+				t.Fatal(err)
+			}
+			address := "0x1234567890123456789012345678901234567890"
+			if _, err = d.Faucet(address, 100); err != nil {
+				t.Fatal(err)
+			}
+			d.ProduceBlock()
+			prior := d.durableCheckpoint.Load()
+			path := d.snapshotPath() + ".tmp"
+			if markerFailure {
+				path = d.snapshotIntegrityMarkerPath() + ".tmp"
+			}
+			clear := blockSnapshotWrite(t, path)
+			results := d.FaucetRequestsBatch([]FaucetRequestInput{{Address: address, Amount: 100, RequestID: "balance_view_failure_0123456789abcdef0123456789"}})
+			if results[0].Err == nil {
+				t.Fatal("write obstruction did not fail")
+			}
+			cp := d.durableCheckpoint.Load()
+			if cp == nil || cp.height != prior.height || cp.hash != prior.hash {
+				t.Fatal("same-tip ancestor checkpoint was lost")
+			}
+			d.mu.Lock()
+			account, found := d.RPCBalanceAccount(address)
+			d.mu.Unlock()
+			if !found || account.Balance != 100 {
+				t.Fatalf("uncompleted replacement balance leaked: %+v", account)
+			}
+			clear()
+			if err = d.persistSnapshot(); err != nil {
+				t.Fatal(err)
+			}
+			want := int64(100)
+			if markerFailure {
+				want = 200
+			}
+			d.mu.Lock()
+			account, found = d.RPCBalanceAccount(address)
+			d.mu.Unlock()
+			if !found || account.Balance != want {
+				t.Fatalf("new completed balance not published: %+v", account)
+			}
+		})
+	}
+}

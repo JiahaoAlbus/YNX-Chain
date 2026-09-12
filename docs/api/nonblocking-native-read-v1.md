@@ -23,3 +23,9 @@ Nonce allocation and mutation validation always use current locked state.
 The atomic `/v1/native-snapshot` contract remains a current complete observation
 under a single read lock. This change does not alter the disk format, acknowledgement
 boundary, transaction identities, or legacy four-field `ynxNativeTransaction`.
+
+Checkpoint files now omit presentation whitespace. Both old indented snapshots
+and new compact snapshots decode to the same versioned state and use the same
+canonical integrity algorithm. File byte hashes and sizes change; account,
+transaction, block and module values do not. Temporary-file fsync, atomic rename,
+directory fsync and integrity marker ordering remain unchanged.

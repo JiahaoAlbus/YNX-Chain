@@ -320,7 +320,8 @@ func TestDurableSnapshotJSONDirectorySyncFailureIsUncertain(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if string(data) != "{\n  \"new\": 1\n}" {
+	var replacement map[string]int
+	if err := json.Unmarshal(data, &replacement); err != nil || len(replacement) != 1 || replacement["new"] != 1 {
 		t.Fatalf("replacement should already be visible: %s", data)
 	}
 	if _, err := os.Stat(path + ".tmp"); !errors.Is(err, os.ErrNotExist) {
