@@ -3,7 +3,6 @@ package api
 import (
 	"fmt"
 	"math/big"
-	"strconv"
 
 	"github.com/JiahaoAlbus/YNX-Chain/internal/chain"
 	"github.com/JiahaoAlbus/YNX-Chain/internal/ethnative"
@@ -60,10 +59,10 @@ func (s *Server) transactionReceiptResult(params []any, nativeFees bool) (any, e
 	result := map[string]any{
 		"transactionHash": tx.Hash, "transactionIndex": hexQuantity(index), "status": "0x1",
 		"blockHash": evmHash(tx.BlockHash), "blockNumber": hexQuantity(tx.BlockNum),
-		"from": tx.From, "to": tx.To, "contractAddress": nil,
+		"from": nativeEVMIdentity(tx.From), "to": nativeEVMRecipient(tx.To), "contractAddress": nil,
 		"gasUsed": hexQuantity(21_000), "cumulativeGasUsed": hexQuantity((index + 1) * 21_000),
 		"logs": evmLogs(tx.Logs), "ynxDurability": proof,
-		"ynxNativeTransaction": map[string]any{"type": tx.Type, "amountYNXT": strconv.FormatInt(tx.Amount, 10), "feeYNXT": strconv.FormatInt(tx.Fee, 10), "nonce": hexQuantity(tx.Nonce)},
+		"ynxNativeTransaction": nativeTransactionProjection(tx),
 	}
 	if nativeFees {
 		cumulative := new(big.Int)
