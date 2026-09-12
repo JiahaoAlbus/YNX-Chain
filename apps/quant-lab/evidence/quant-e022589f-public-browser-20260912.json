@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "kind": "DIRECT_CUA_PUBLIC_GUEST_BUSINESS_FLOW",
+  "observedAt": "2026-09-12",
+  "url": "https://quant.ynxweb4.com/",
+  "sourceCommit": "e022589fbd11024d7df075091a21de9f01565bf9",
+  "runtimeEvidence": "apps/quant-lab/evidence/quant-e022589f-public-deployment-20260912.json",
+  "browser": "Chrome through Computer Control",
+  "usedMockProviders": false,
+  "usedRequestInterception": false,
+  "actualActions": [
+    "Opened canonical public Quant page",
+    "Clicked public stateless Run out-of-sample backtest using existing default parameters",
+    "Observed metrics and plotted strategy/benchmark equity curves",
+    "Navigated Paper without submitting an order",
+    "Navigated Portfolio at 390x844; reset viewport afterward",
+    "Reloaded canonical guest page and observed English UI"
+  ],
+  "observations": {
+    "research": {
+      "completed": true,
+      "outOfSampleReturnBps": 0,
+      "buyHoldReturnBps": -50,
+      "maximumDrawdownBps": 0,
+      "sharpeVisible": "0.440",
+      "volatilityBps": 0,
+      "equityCurvesRendered": true,
+      "statelessNoticeVisible": true,
+      "savedStrategy": false,
+      "fundedAccount": false,
+      "realOrder": false
+    },
+    "guest": {
+      "walletNotConnected": true,
+      "accountRequested": false,
+      "portfolioNoInventedBalance": true,
+      "paperSubmitDisabled": true
+    },
+    "navigation": {
+      "urlStable": true,
+      "createdCount": 0,
+      "tabsInTaskBefore": 1,
+      "tabsInTaskAfter": 1,
+      "blankTabsObserved": false
+    },
+    "mobile": {
+      "viewportWidth": 390,
+      "viewportHeight": 844,
+      "documentScrollWidth": 375,
+      "horizontalOverflow": false
+    },
+    "walletEntrypoints": {
+      "ynxButton": "Connect YNX Wallet",
+      "metaMaskButton": "Use MetaMask",
+      "ynxDownload": "https://www.ynxweb4.com/dapp/download",
+      "metaMaskDownload": "https://metamask.io/download/",
+      "clickedConnect": false,
+      "installedAvailabilityNotInferred": true
+    },
+    "language": {
+      "sourceDefault": "en",
+      "reloadHtmlLang": "en",
+      "reloadLocaleValue": "en",
+      "reloadHtmlClass": "",
+      "reloadEnglishVisible": true,
+      "initialResearchAndMobileScreenshotsBrowserTranslated": true,
+      "initialBrowserTranslationClass": "translated-ltr",
+      "browserProfileSettingsChanged": false
+    },
+    "console": {
+      "queriedLevels": [
+        "warn",
+        "error"
+      ],
+      "warningsObserved": 12,
+      "productErrorsObserved": 0,
+      "warningSource": "MetaMask extension content script",
+      "warningClasses": [
+        "MaxListenersExceededWarning close/end",
+        "ObjectMultiplex orphaned app-init-liveness/background-liveness"
+      ],
+      "globalConsoleZero": false
+    }
+  },
+  "screenshots": [
+    {
+      "path": "apps/quant-lab/evidence/public-e022589f-20260912/desktop-public-guest-reload.png",
+      "bytes": 105317,
+      "sha256": "2022e6d3e732214e1972075dcbb6188c5fe96cdb396740a3832b322feaed139e",
+      "description": "Actual canonical guest reload, English visible"
+    },
+    {
+      "path": "apps/quant-lab/evidence/public-e022589f-20260912/desktop-real-public-research.png",
+      "bytes": 126721,
+      "sha256": "b68f3811cd5f70e6bdf21afd1b549bfca018551499722a36462af74239122413",
+      "description": "Actual public backtest result; browser automatic translation visible"
+    },
+    {
+      "path": "apps/quant-lab/evidence/public-e022589f-20260912/mobile-public-portfolio-guest.png",
+      "bytes": 56292,
+      "sha256": "9c11ad6e02595631cae175bc80d82ac71539f8f1c6b8ae4c23b6282f0c8e2414",
+      "description": "Actual mobile-size public guest Portfolio; browser automatic translation visible"
+    }
+  ],
+  "falseGates": {
+    "walletAccountApproval": false,
+    "providerConnected": false,
+    "approveRejectRoundTrip": false,
+    "privateSessionLifecycle": false,
+    "signature": false,
+    "eip712": false,
+    "testnetSend": false,
+    "walletConnectRelay": false,
+    "desktopInstaller": false,
+    "mobileInstaller": false,
+    "fullyComplete": false
+  }
+}

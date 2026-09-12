@@ -1,0 +1,404 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-09-12",
+  "kind": "DIRECT_OWNER_PUBLIC_DEPLOYMENT",
+  "source": {
+    "commit": "e022589fbd11024d7df075091a21de9f01565bf9",
+    "tree": "699f9085b591b9f299e9d0ce5e27648c716ea1c1"
+  },
+  "executorCheckpoint": "2d103152c2315e94a31cb9a89a4fcc57c73a3da9",
+  "artifact": {
+    "path": "/tmp/ynx-quant-lab-e022589fbd11-linux-amd64.tar.gz",
+    "bytes": 3461756,
+    "sha256": "d354386dfc4bb7631ecb415a042044f1eac038ace82792eca9342697392924e5",
+    "binary": {
+      "name": "ynx-quantd",
+      "bytes": 8093880,
+      "sha256": "d2ddb00eeb6eee4b2d92261c8fddb9cdf7985e07b942c058f65ffe665cd92c16"
+    },
+    "secondBuildByteIdentical": true
+  },
+  "terminal": {
+    "attempts": 1,
+    "localExitStatus": 0,
+    "signal": null,
+    "error": null,
+    "stdoutBytes": 9570,
+    "stdoutSha256": "3af75500ec9f7e2d41c6e5e38dab5505faee2f57e82f7bc7e455c6ac8f71507b",
+    "stdout": "{\"result\": \"QUANT_OWNED_RUNTIME_DEPLOYED\", \"source\": \"e022589fbd11024d7df075091a21de9f01565bf9\", \"tree\": \"699f9085b591b9f299e9d0ce5e27648c716ea1c1\", \"archiveSha256\": \"d354386dfc4bb7631ecb415a042044f1eac038ace82792eca9342697392924e5\", \"release\": \"/opt/ynx-quant/releases/ynx-quant-lab-e022589fbd11\", \"dropIn\": \"/etc/systemd/system/ynx-quant.service.d/90-quant-e022589fbd11-http-ready.conf\", \"dropInTuple\": [64770, 4633072, 0, 0, 420, 1], \"dropInSha256\": \"f122f7ef0b43d0d0de4aaef2340ff8675774ad610045cbe09c93dfb5f97d12ac\", \"service\": {\"MainPID\": \"1687645\", \"NRestarts\": \"0\", \"ActiveState\": \"active\", \"SubState\": \"running\"}, \"previousService\": {\"MainPID\": \"1685153\", \"NRestarts\": \"0\", \"ActiveState\": \"active\", \"SubState\": \"running\"}, \"publicAndLoopback\": [{\"url\": \"http://127.0.0.1:18444/api/version\", \"status\": 200, \"bytes\": 274, \"sha256\": \"b38435ee3251e3120010ff77230f8f15ae3f53a5b5fae3f57a17ba25ed226bc5\", \"mime\": \"application/json; charset=utf-8\"}, {\"url\": \"http://127.0.0.1:18444/api/health\", \"status\": 200, \"bytes\": 462, \"sha256\": \"a5b4a75d212603ec1f2fccbdca57ed854f5b25910e2c3972337c183e590acf8f\", \"mime\": \"application/json; charset=utf-8\"}, {\"url\": \"http://127.0.0.1:18444/api/ready\", \"status\": 503, \"bytes\": 283, \"sha256\": \"4592a6896439bfde9243868675ccb91625e3701a2389a895e2d693de36520655\", \"mime\": \"application/json; charset=utf-8\"}, {\"url\": \"http://127.0.0.1:18444/app.js\", \"status\": 200, \"bytes\": 46133, \"sha256\": \"21d33863bbe8c3f49db5dcb6c3f97f774f96e438c3806bdd36b141363ddf40bc\", \"mime\": \"text/javascript; charset=utf-8\"}, {\"url\": \"http://127.0.0.1:18444/i18n.js\", \"status\": 200, \"bytes\": 25372, \"sha256\": \"f8ff2d755c5f77984c8024632bdb572056014cf7b0fafac6c89330e3b9e39cca\", \"mime\": \"text/javascript; charset=utf-8\"}, {\"url\": \"http://127.0.0.1:18444/\", \"status\": 200, \"bytes\": 21379, \"sha256\": \"8982f22084815a2bed90039bbee7abe568b9823386a6c9f7d378736976beb59b\", \"mime\": \"text/html; charset=utf-8\"}, {\"url\": \"http://127.0.0.1:18444/private-session-copy.js\", \"status\": 200, \"bytes\": 8222, \"sha256\": \"a12593e420585e6e7d8435aea481258cee02534d4bfed5a22b37b05830e7da72\", \"mime\": \"text/javascript; charset=utf-8\"}, {\"url\": \"http://127.0.0.1:18444/private-session.js\", \"status\": 200, \"bytes\": 9195, \"sha256\": \"0406f82826a9de05b449046a193f5bda7b5c967ca881217c44e0b316b23a82d3\", \"mime\": \"text/javascript; charset=utf-8\"}, {\"url\": \"http://127.0.0.1:18444/product-session-registry.js\", \"status\": 200, \"bytes\": 612, \"sha256\": \"5dcded3a4cef068ccf7a57b36b7820ad5fc187d4cbe7f05936cac3d0d0f9119a\", \"mime\": \"text/javascript; charset=utf-8\"}, {\"url\": \"http://127.0.0.1:18444/styles.css\", \"status\": 200, \"bytes\": 8146, \"sha256\": \"37f0de0c0d9fadd3b28bca3974be4d56b08a9e9881698baa822bee1b9eced1d5\", \"mime\": \"text/css; charset=utf-8\"}, {\"url\": \"http://127.0.0.1:18444/wallet-auth-entry.js\", \"status\": 200, \"bytes\": 14104, \"sha256\": \"edb30e331aa4d3e4640e803c6336d08f36169fe7b440244dce39cef70544df0e\", \"mime\": \"text/javascript; charset=utf-8\"}, {\"url\": \"http://127.0.0.1:18444/wallet-auth.js\", \"status\": 200, \"bytes\": 179258, \"sha256\": \"3fab39f5883ef162d566b6712a06fa6d96125749b06a334b6dcf1aa1438e9056\", \"mime\": \"text/javascript; charset=utf-8\"}, {\"url\": \"http://127.0.0.1:18444/wallet-provider-lifecycle.js\", \"status\": 200, \"bytes\": 734, \"sha256\": \"e667cbd139609067f36497f826935f1432acc6b95d6da3b1dc6d1ce2a5d6e91f\", \"mime\": \"text/javascript; charset=utf-8\"}, {\"url\": \"http://127.0.0.1:18444/ynx-testnet.js\", \"status\": 200, \"bytes\": 1152, \"sha256\": \"ae172b99c50e4b3328c6de6541dfd3f08ffcbb430c54d23672acd0401ee7c2ec\", \"mime\": \"text/javascript; charset=utf-8\"}, {\"url\": \"https://quant.ynxweb4.com/api/version\", \"status\": 200, \"bytes\": 274, \"sha256\": \"b38435ee3251e3120010ff77230f8f15ae3f53a5b5fae3f57a17ba25ed226bc5\", \"mime\": \"application/json; charset=utf-8\"}, {\"url\": \"https://quant.ynxweb4.com/api/health\", \"status\": 200, \"bytes\": 462, \"sha256\": \"a5b4a75d212603ec1f2fccbdca57ed854f5b25910e2c3972337c183e590acf8f\", \"mime\": \"application/json; charset=utf-8\"}, {\"url\": \"https://quant.ynxweb4.com/api/ready\", \"status\": 503, \"bytes\": 283, \"sha256\": \"4592a6896439bfde9243868675ccb91625e3701a2389a895e2d693de36520655\", \"mime\": \"application/json; charset=utf-8\"}, {\"url\": \"https://quant.ynxweb4.com/app.js\", \"status\": 200, \"bytes\": 46133, \"sha256\": \"21d33863bbe8c3f49db5dcb6c3f97f774f96e438c3806bdd36b141363ddf40bc\", \"mime\": \"text/javascript; charset=utf-8\"}, {\"url\": \"https://quant.ynxweb4.com/i18n.js\", \"status\": 200, \"bytes\": 25372, \"sha256\": \"f8ff2d755c5f77984c8024632bdb572056014cf7b0fafac6c89330e3b9e39cca\", \"mime\": \"text/javascript; charset=utf-8\"}, {\"url\": \"https://quant.ynxweb4.com/\", \"status\": 200, \"bytes\": 21379, \"sha256\": \"8982f22084815a2bed90039bbee7abe568b9823386a6c9f7d378736976beb59b\", \"mime\": \"text/html; charset=utf-8\"}, {\"url\": \"https://quant.ynxweb4.com/private-session-copy.js\", \"status\": 200, \"bytes\": 8222, \"sha256\": \"a12593e420585e6e7d8435aea481258cee02534d4bfed5a22b37b05830e7da72\", \"mime\": \"text/javascript; charset=utf-8\"}, {\"url\": \"https://quant.ynxweb4.com/private-session.js\", \"status\": 200, \"bytes\": 9195, \"sha256\": \"0406f82826a9de05b449046a193f5bda7b5c967ca881217c44e0b316b23a82d3\", \"mime\": \"text/javascript; charset=utf-8\"}, {\"url\": \"https://quant.ynxweb4.com/product-session-registry.js\", \"status\": 200, \"bytes\": 612, \"sha256\": \"5dcded3a4cef068ccf7a57b36b7820ad5fc187d4cbe7f05936cac3d0d0f9119a\", \"mime\": \"text/javascript; charset=utf-8\"}, {\"url\": \"https://quant.ynxweb4.com/styles.css\", \"status\": 200, \"bytes\": 8146, \"sha256\": \"37f0de0c0d9fadd3b28bca3974be4d56b08a9e9881698baa822bee1b9eced1d5\", \"mime\": \"text/css; charset=utf-8\"}, {\"url\": \"https://quant.ynxweb4.com/wallet-auth-entry.js\", \"status\": 200, \"bytes\": 14104, \"sha256\": \"edb30e331aa4d3e4640e803c6336d08f36169fe7b440244dce39cef70544df0e\", \"mime\": \"text/javascript; charset=utf-8\"}, {\"url\": \"https://quant.ynxweb4.com/wallet-auth.js\", \"status\": 200, \"bytes\": 179258, \"sha256\": \"3fab39f5883ef162d566b6712a06fa6d96125749b06a334b6dcf1aa1438e9056\", \"mime\": \"text/javascript; charset=utf-8\"}, {\"url\": \"https://quant.ynxweb4.com/wallet-provider-lifecycle.js\", \"status\": 200, \"bytes\": 734, \"sha256\": \"e667cbd139609067f36497f826935f1432acc6b95d6da3b1dc6d1ce2a5d6e91f\", \"mime\": \"text/javascript; charset=utf-8\"}, {\"url\": \"https://quant.ynxweb4.com/ynx-testnet.js\", \"status\": 200, \"bytes\": 1152, \"sha256\": \"ae172b99c50e4b3328c6de6541dfd3f08ffcbb430c54d23672acd0401ee7c2ec\", \"mime\": \"text/javascript; charset=utf-8\"}], \"isolatedLinuxStart\": [{\"url\": \"http://127.0.0.1:34079/api/version\", \"status\": 200, \"bytes\": 274, \"sha256\": \"b38435ee3251e3120010ff77230f8f15ae3f53a5b5fae3f57a17ba25ed226bc5\", \"mime\": \"application/json; charset=utf-8\"}, {\"url\": \"http://127.0.0.1:34079/api/health\", \"status\": 200, \"bytes\": 462, \"sha256\": \"a5b4a75d212603ec1f2fccbdca57ed854f5b25910e2c3972337c183e590acf8f\", \"mime\": \"application/json; charset=utf-8\"}, {\"url\": \"http://127.0.0.1:34079/api/ready\", \"status\": 503, \"bytes\": 283, \"sha256\": \"4592a6896439bfde9243868675ccb91625e3701a2389a895e2d693de36520655\", \"mime\": \"application/json; charset=utf-8\"}, {\"url\": \"http://127.0.0.1:34079/app.js\", \"status\": 200, \"bytes\": 46133, \"sha256\": \"21d33863bbe8c3f49db5dcb6c3f97f774f96e438c3806bdd36b141363ddf40bc\", \"mime\": \"text/javascript; charset=utf-8\"}, {\"url\": \"http://127.0.0.1:34079/i18n.js\", \"status\": 200, \"bytes\": 25372, \"sha256\": \"f8ff2d755c5f77984c8024632bdb572056014cf7b0fafac6c89330e3b9e39cca\", \"mime\": \"text/javascript; charset=utf-8\"}, {\"url\": \"http://127.0.0.1:34079/\", \"status\": 200, \"bytes\": 21379, \"sha256\": \"8982f22084815a2bed90039bbee7abe568b9823386a6c9f7d378736976beb59b\", \"mime\": \"text/html; charset=utf-8\"}, {\"url\": \"http://127.0.0.1:34079/private-session-copy.js\", \"status\": 200, \"bytes\": 8222, \"sha256\": \"a12593e420585e6e7d8435aea481258cee02534d4bfed5a22b37b05830e7da72\", \"mime\": \"text/javascript; charset=utf-8\"}, {\"url\": \"http://127.0.0.1:34079/private-session.js\", \"status\": 200, \"bytes\": 9195, \"sha256\": \"0406f82826a9de05b449046a193f5bda7b5c967ca881217c44e0b316b23a82d3\", \"mime\": \"text/javascript; charset=utf-8\"}, {\"url\": \"http://127.0.0.1:34079/product-session-registry.js\", \"status\": 200, \"bytes\": 612, \"sha256\": \"5dcded3a4cef068ccf7a57b36b7820ad5fc187d4cbe7f05936cac3d0d0f9119a\", \"mime\": \"text/javascript; charset=utf-8\"}, {\"url\": \"http://127.0.0.1:34079/styles.css\", \"status\": 200, \"bytes\": 8146, \"sha256\": \"37f0de0c0d9fadd3b28bca3974be4d56b08a9e9881698baa822bee1b9eced1d5\", \"mime\": \"text/css; charset=utf-8\"}, {\"url\": \"http://127.0.0.1:34079/wallet-auth-entry.js\", \"status\": 200, \"bytes\": 14104, \"sha256\": \"edb30e331aa4d3e4640e803c6336d08f36169fe7b440244dce39cef70544df0e\", \"mime\": \"text/javascript; charset=utf-8\"}, {\"url\": \"http://127.0.0.1:34079/wallet-auth.js\", \"status\": 200, \"bytes\": 179258, \"sha256\": \"3fab39f5883ef162d566b6712a06fa6d96125749b06a334b6dcf1aa1438e9056\", \"mime\": \"text/javascript; charset=utf-8\"}, {\"url\": \"http://127.0.0.1:34079/wallet-provider-lifecycle.js\", \"status\": 200, \"bytes\": 734, \"sha256\": \"e667cbd139609067f36497f826935f1432acc6b95d6da3b1dc6d1ce2a5d6e91f\", \"mime\": \"text/javascript; charset=utf-8\"}, {\"url\": \"http://127.0.0.1:34079/ynx-testnet.js\", \"status\": 200, \"bytes\": 1152, \"sha256\": \"ae172b99c50e4b3328c6de6541dfd3f08ffcbb430c54d23672acd0401ee7c2ec\", \"mime\": \"text/javascript; charset=utf-8\"}], \"baseStateSha256\": \"cbe3948ec8cbf93ccd07224dac779dd9ccacd8c9a596fcfe0ba917ebc3b3cb60\", \"baseStateUnchanged\": true, \"sharedCurrentUnchanged\": true, \"siblingServiceUnchanged\": true, \"automaticRollback\": false, \"privateApproval\": false, \"sign\": false, \"transactions\": false, \"installed\": false, \"readiness\": \"503 filesystem single-writer; not PostgreSQL/multi-instance ready\"}\n",
+    "stderrBytes": 0,
+    "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "parsedReceipt": {
+    "result": "QUANT_OWNED_RUNTIME_DEPLOYED",
+    "source": "e022589fbd11024d7df075091a21de9f01565bf9",
+    "tree": "699f9085b591b9f299e9d0ce5e27648c716ea1c1",
+    "archiveSha256": "d354386dfc4bb7631ecb415a042044f1eac038ace82792eca9342697392924e5",
+    "release": "/opt/ynx-quant/releases/ynx-quant-lab-e022589fbd11",
+    "dropIn": "/etc/systemd/system/ynx-quant.service.d/90-quant-e022589fbd11-http-ready.conf",
+    "dropInTuple": [
+      64770,
+      4633072,
+      0,
+      0,
+      420,
+      1
+    ],
+    "dropInSha256": "f122f7ef0b43d0d0de4aaef2340ff8675774ad610045cbe09c93dfb5f97d12ac",
+    "service": {
+      "MainPID": "1687645",
+      "NRestarts": "0",
+      "ActiveState": "active",
+      "SubState": "running"
+    },
+    "previousService": {
+      "MainPID": "1685153",
+      "NRestarts": "0",
+      "ActiveState": "active",
+      "SubState": "running"
+    },
+    "publicAndLoopback": [
+      {
+        "url": "http://127.0.0.1:18444/api/version",
+        "status": 200,
+        "bytes": 274,
+        "sha256": "b38435ee3251e3120010ff77230f8f15ae3f53a5b5fae3f57a17ba25ed226bc5",
+        "mime": "application/json; charset=utf-8"
+      },
+      {
+        "url": "http://127.0.0.1:18444/api/health",
+        "status": 200,
+        "bytes": 462,
+        "sha256": "a5b4a75d212603ec1f2fccbdca57ed854f5b25910e2c3972337c183e590acf8f",
+        "mime": "application/json; charset=utf-8"
+      },
+      {
+        "url": "http://127.0.0.1:18444/api/ready",
+        "status": 503,
+        "bytes": 283,
+        "sha256": "4592a6896439bfde9243868675ccb91625e3701a2389a895e2d693de36520655",
+        "mime": "application/json; charset=utf-8"
+      },
+      {
+        "url": "http://127.0.0.1:18444/app.js",
+        "status": 200,
+        "bytes": 46133,
+        "sha256": "21d33863bbe8c3f49db5dcb6c3f97f774f96e438c3806bdd36b141363ddf40bc",
+        "mime": "text/javascript; charset=utf-8"
+      },
+      {
+        "url": "http://127.0.0.1:18444/i18n.js",
+        "status": 200,
+        "bytes": 25372,
+        "sha256": "f8ff2d755c5f77984c8024632bdb572056014cf7b0fafac6c89330e3b9e39cca",
+        "mime": "text/javascript; charset=utf-8"
+      },
+      {
+        "url": "http://127.0.0.1:18444/",
+        "status": 200,
+        "bytes": 21379,
+        "sha256": "8982f22084815a2bed90039bbee7abe568b9823386a6c9f7d378736976beb59b",
+        "mime": "text/html; charset=utf-8"
+      },
+      {
+        "url": "http://127.0.0.1:18444/private-session-copy.js",
+        "status": 200,
+        "bytes": 8222,
+        "sha256": "a12593e420585e6e7d8435aea481258cee02534d4bfed5a22b37b05830e7da72",
+        "mime": "text/javascript; charset=utf-8"
+      },
+      {
+        "url": "http://127.0.0.1:18444/private-session.js",
+        "status": 200,
+        "bytes": 9195,
+        "sha256": "0406f82826a9de05b449046a193f5bda7b5c967ca881217c44e0b316b23a82d3",
+        "mime": "text/javascript; charset=utf-8"
+      },
+      {
+        "url": "http://127.0.0.1:18444/product-session-registry.js",
+        "status": 200,
+        "bytes": 612,
+        "sha256": "5dcded3a4cef068ccf7a57b36b7820ad5fc187d4cbe7f05936cac3d0d0f9119a",
+        "mime": "text/javascript; charset=utf-8"
+      },
+      {
+        "url": "http://127.0.0.1:18444/styles.css",
+        "status": 200,
+        "bytes": 8146,
+        "sha256": "37f0de0c0d9fadd3b28bca3974be4d56b08a9e9881698baa822bee1b9eced1d5",
+        "mime": "text/css; charset=utf-8"
+      },
+      {
+        "url": "http://127.0.0.1:18444/wallet-auth-entry.js",
+        "status": 200,
+        "bytes": 14104,
+        "sha256": "edb30e331aa4d3e4640e803c6336d08f36169fe7b440244dce39cef70544df0e",
+        "mime": "text/javascript; charset=utf-8"
+      },
+      {
+        "url": "http://127.0.0.1:18444/wallet-auth.js",
+        "status": 200,
+        "bytes": 179258,
+        "sha256": "3fab39f5883ef162d566b6712a06fa6d96125749b06a334b6dcf1aa1438e9056",
+        "mime": "text/javascript; charset=utf-8"
+      },
+      {
+        "url": "http://127.0.0.1:18444/wallet-provider-lifecycle.js",
+        "status": 200,
+        "bytes": 734,
+        "sha256": "e667cbd139609067f36497f826935f1432acc6b95d6da3b1dc6d1ce2a5d6e91f",
+        "mime": "text/javascript; charset=utf-8"
+      },
+      {
+        "url": "http://127.0.0.1:18444/ynx-testnet.js",
+        "status": 200,
+        "bytes": 1152,
+        "sha256": "ae172b99c50e4b3328c6de6541dfd3f08ffcbb430c54d23672acd0401ee7c2ec",
+        "mime": "text/javascript; charset=utf-8"
+      },
+      {
+        "url": "https://quant.ynxweb4.com/api/version",
+        "status": 200,
+        "bytes": 274,
+        "sha256": "b38435ee3251e3120010ff77230f8f15ae3f53a5b5fae3f57a17ba25ed226bc5",
+        "mime": "application/json; charset=utf-8"
+      },
+      {
+        "url": "https://quant.ynxweb4.com/api/health",
+        "status": 200,
+        "bytes": 462,
+        "sha256": "a5b4a75d212603ec1f2fccbdca57ed854f5b25910e2c3972337c183e590acf8f",
+        "mime": "application/json; charset=utf-8"
+      },
+      {
+        "url": "https://quant.ynxweb4.com/api/ready",
+        "status": 503,
+        "bytes": 283,
+        "sha256": "4592a6896439bfde9243868675ccb91625e3701a2389a895e2d693de36520655",
+        "mime": "application/json; charset=utf-8"
+      },
+      {
+        "url": "https://quant.ynxweb4.com/app.js",
+        "status": 200,
+        "bytes": 46133,
+        "sha256": "21d33863bbe8c3f49db5dcb6c3f97f774f96e438c3806bdd36b141363ddf40bc",
+        "mime": "text/javascript; charset=utf-8"
+      },
+      {
+        "url": "https://quant.ynxweb4.com/i18n.js",
+        "status": 200,
+        "bytes": 25372,
+        "sha256": "f8ff2d755c5f77984c8024632bdb572056014cf7b0fafac6c89330e3b9e39cca",
+        "mime": "text/javascript; charset=utf-8"
+      },
+      {
+        "url": "https://quant.ynxweb4.com/",
+        "status": 200,
+        "bytes": 21379,
+        "sha256": "8982f22084815a2bed90039bbee7abe568b9823386a6c9f7d378736976beb59b",
+        "mime": "text/html; charset=utf-8"
+      },
+      {
+        "url": "https://quant.ynxweb4.com/private-session-copy.js",
+        "status": 200,
+        "bytes": 8222,
+        "sha256": "a12593e420585e6e7d8435aea481258cee02534d4bfed5a22b37b05830e7da72",
+        "mime": "text/javascript; charset=utf-8"
+      },
+      {
+        "url": "https://quant.ynxweb4.com/private-session.js",
+        "status": 200,
+        "bytes": 9195,
+        "sha256": "0406f82826a9de05b449046a193f5bda7b5c967ca881217c44e0b316b23a82d3",
+        "mime": "text/javascript; charset=utf-8"
+      },
+      {
+        "url": "https://quant.ynxweb4.com/product-session-registry.js",
+        "status": 200,
+        "bytes": 612,
+        "sha256": "5dcded3a4cef068ccf7a57b36b7820ad5fc187d4cbe7f05936cac3d0d0f9119a",
+        "mime": "text/javascript; charset=utf-8"
+      },
+      {
+        "url": "https://quant.ynxweb4.com/styles.css",
+        "status": 200,
+        "bytes": 8146,
+        "sha256": "37f0de0c0d9fadd3b28bca3974be4d56b08a9e9881698baa822bee1b9eced1d5",
+        "mime": "text/css; charset=utf-8"
+      },
+      {
+        "url": "https://quant.ynxweb4.com/wallet-auth-entry.js",
+        "status": 200,
+        "bytes": 14104,
+        "sha256": "edb30e331aa4d3e4640e803c6336d08f36169fe7b440244dce39cef70544df0e",
+        "mime": "text/javascript; charset=utf-8"
+      },
+      {
+        "url": "https://quant.ynxweb4.com/wallet-auth.js",
+        "status": 200,
+        "bytes": 179258,
+        "sha256": "3fab39f5883ef162d566b6712a06fa6d96125749b06a334b6dcf1aa1438e9056",
+        "mime": "text/javascript; charset=utf-8"
+      },
+      {
+        "url": "https://quant.ynxweb4.com/wallet-provider-lifecycle.js",
+        "status": 200,
+        "bytes": 734,
+        "sha256": "e667cbd139609067f36497f826935f1432acc6b95d6da3b1dc6d1ce2a5d6e91f",
+        "mime": "text/javascript; charset=utf-8"
+      },
+      {
+        "url": "https://quant.ynxweb4.com/ynx-testnet.js",
+        "status": 200,
+        "bytes": 1152,
+        "sha256": "ae172b99c50e4b3328c6de6541dfd3f08ffcbb430c54d23672acd0401ee7c2ec",
+        "mime": "text/javascript; charset=utf-8"
+      }
+    ],
+    "isolatedLinuxStart": [
+      {
+        "url": "http://127.0.0.1:34079/api/version",
+        "status": 200,
+        "bytes": 274,
+        "sha256": "b38435ee3251e3120010ff77230f8f15ae3f53a5b5fae3f57a17ba25ed226bc5",
+        "mime": "application/json; charset=utf-8"
+      },
+      {
+        "url": "http://127.0.0.1:34079/api/health",
+        "status": 200,
+        "bytes": 462,
+        "sha256": "a5b4a75d212603ec1f2fccbdca57ed854f5b25910e2c3972337c183e590acf8f",
+        "mime": "application/json; charset=utf-8"
+      },
+      {
+        "url": "http://127.0.0.1:34079/api/ready",
+        "status": 503,
+        "bytes": 283,
+        "sha256": "4592a6896439bfde9243868675ccb91625e3701a2389a895e2d693de36520655",
+        "mime": "application/json; charset=utf-8"
+      },
+      {
+        "url": "http://127.0.0.1:34079/app.js",
+        "status": 200,
+        "bytes": 46133,
+        "sha256": "21d33863bbe8c3f49db5dcb6c3f97f774f96e438c3806bdd36b141363ddf40bc",
+        "mime": "text/javascript; charset=utf-8"
+      },
+      {
+        "url": "http://127.0.0.1:34079/i18n.js",
+        "status": 200,
+        "bytes": 25372,
+        "sha256": "f8ff2d755c5f77984c8024632bdb572056014cf7b0fafac6c89330e3b9e39cca",
+        "mime": "text/javascript; charset=utf-8"
+      },
+      {
+        "url": "http://127.0.0.1:34079/",
+        "status": 200,
+        "bytes": 21379,
+        "sha256": "8982f22084815a2bed90039bbee7abe568b9823386a6c9f7d378736976beb59b",
+        "mime": "text/html; charset=utf-8"
+      },
+      {
+        "url": "http://127.0.0.1:34079/private-session-copy.js",
+        "status": 200,
+        "bytes": 8222,
+        "sha256": "a12593e420585e6e7d8435aea481258cee02534d4bfed5a22b37b05830e7da72",
+        "mime": "text/javascript; charset=utf-8"
+      },
+      {
+        "url": "http://127.0.0.1:34079/private-session.js",
+        "status": 200,
+        "bytes": 9195,
+        "sha256": "0406f82826a9de05b449046a193f5bda7b5c967ca881217c44e0b316b23a82d3",
+        "mime": "text/javascript; charset=utf-8"
+      },
+      {
+        "url": "http://127.0.0.1:34079/product-session-registry.js",
+        "status": 200,
+        "bytes": 612,
+        "sha256": "5dcded3a4cef068ccf7a57b36b7820ad5fc187d4cbe7f05936cac3d0d0f9119a",
+        "mime": "text/javascript; charset=utf-8"
+      },
+      {
+        "url": "http://127.0.0.1:34079/styles.css",
+        "status": 200,
+        "bytes": 8146,
+        "sha256": "37f0de0c0d9fadd3b28bca3974be4d56b08a9e9881698baa822bee1b9eced1d5",
+        "mime": "text/css; charset=utf-8"
+      },
+      {
+        "url": "http://127.0.0.1:34079/wallet-auth-entry.js",
+        "status": 200,
+        "bytes": 14104,
+        "sha256": "edb30e331aa4d3e4640e803c6336d08f36169fe7b440244dce39cef70544df0e",
+        "mime": "text/javascript; charset=utf-8"
+      },
+      {
+        "url": "http://127.0.0.1:34079/wallet-auth.js",
+        "status": 200,
+        "bytes": 179258,
+        "sha256": "3fab39f5883ef162d566b6712a06fa6d96125749b06a334b6dcf1aa1438e9056",
+        "mime": "text/javascript; charset=utf-8"
+      },
+      {
+        "url": "http://127.0.0.1:34079/wallet-provider-lifecycle.js",
+        "status": 200,
+        "bytes": 734,
+        "sha256": "e667cbd139609067f36497f826935f1432acc6b95d6da3b1dc6d1ce2a5d6e91f",
+        "mime": "text/javascript; charset=utf-8"
+      },
+      {
+        "url": "http://127.0.0.1:34079/ynx-testnet.js",
+        "status": 200,
+        "bytes": 1152,
+        "sha256": "ae172b99c50e4b3328c6de6541dfd3f08ffcbb430c54d23672acd0401ee7c2ec",
+        "mime": "text/javascript; charset=utf-8"
+      }
+    ],
+    "baseStateSha256": "cbe3948ec8cbf93ccd07224dac779dd9ccacd8c9a596fcfe0ba917ebc3b3cb60",
+    "baseStateUnchanged": true,
+    "sharedCurrentUnchanged": true,
+    "siblingServiceUnchanged": true,
+    "automaticRollback": false,
+    "privateApproval": false,
+    "sign": false,
+    "transactions": false,
+    "installed": false,
+    "readiness": "503 filesystem single-writer; not PostgreSQL/multi-instance ready"
+  },
+  "firstAttempt": {
+    "evidencePath": "apps/quant-lab/evidence/quant-e022589f-first-attempt-auto-rollback-20260912.json",
+    "checkpoint": "2d103152c2315e94a31cb9a89a4fcc57c73a3da9",
+    "failed": true,
+    "automaticRollbackVerified": true,
+    "reason": "systemd Type=simple active preceded HTTP listener readiness; corrected successor waits for exact candidate HTTP source"
+  },
+  "preserved": {
+    "sharedCurrent": "/opt/ynx/releases/financial-owner-reads/ynx-financial-owner-reads-443286487e05/quant",
+    "statePath": "/var/lib/ynx-quant/quant.json",
+    "stateBytes": 7159,
+    "stateSha256": "cbe3948ec8cbf93ccd07224dac779dd9ccacd8c9a596fcfe0ba917ebc3b3cb60",
+    "unitSha256": "ecf68b38cd1e14fc900e21d9bf86823c99b538382081585e2005a2a925709dd1",
+    "envSha256": "d65a972203f51c8d78e789dfd010708310d47a93445c7bc9315bae40d856257e",
+    "caddySha256": "fe86b1178f5f27b2fe225aaee1704e3ca8b083a30f1f6b25fbaf999b4b68ddb9",
+    "siblingService": "ynx-quant-exchange.service",
+    "siblingPID": 2275763,
+    "siblingNRestarts": 0,
+    "stateSnapshotRestored": false
+  },
+  "truth": {
+    "publicSourceBound": true,
+    "linuxServerRuntime": true,
+    "desktopInstalled": false,
+    "mobileInstalled": false,
+    "productionSigned": false,
+    "storePublished": false,
+    "realWalletApproved": false,
+    "privateSessionApproved": false,
+    "accountRequested": false,
+    "signed": false,
+    "transactions": false,
+    "fullyComplete": false,
+    "multiInstanceReady": false
+  }
+}
