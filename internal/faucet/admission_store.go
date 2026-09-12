@@ -15,6 +15,7 @@ import (
 	bolt "go.etcd.io/bbolt"
 )
 
+var errAdmissionIPRate = errors.New("shared network request rate exceeded; retry the same request shortly")
 var errAdmissionRate = errors.New("faucet rate limit exceeded")
 var errAdmissionCapacity = errors.New("faucet admission capacity reached; retain existing request IDs")
 
@@ -212,6 +213,9 @@ func (s *admissionStore) admit(id, address, ip string, amount int64, now time.Ti
 				}
 			}
 			if len(kept) >= q.max {
+				if string(q.bucket) == string(ipQuotaBucket) {
+					return errAdmissionIPRate
+				}
 				return errAdmissionRate
 			}
 			data, _ := json.Marshal(append(kept, now))

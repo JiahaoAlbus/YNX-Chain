@@ -104,9 +104,12 @@ func (s *Service) requestAuthoritative(ctx context.Context, req Request, remote 
 			result.Status = "request_id_conflict"
 			result.RetrySameRequest = false
 		}
-		if errors.Is(err, errAdmissionRate) {
+		if errors.Is(err, errAdmissionRate) || errors.Is(err, errAdmissionIPRate) {
 			status = 429
 			result.Status = "rate_limited"
+			if errors.Is(err, errAdmissionIPRate) {
+				result.Status = "ip_rate_limited"
+			}
 			entry.Status = "rate_limited"
 			entry.Error = err.Error()
 			_ = s.appendLog(entry)
@@ -197,6 +200,7 @@ func (s *Service) requireFaucetCapability(ctx context.Context) error {
 			LegacySafe bool            `json:"legacyRequestSafeRetry"`
 			Consensus  bool            `json:"consensusFinality"`
 			Durability json.RawMessage `json:"durability"`
+			Batching   json.RawMessage `json:"batching,omitempty"`
 		} `json:"result"`
 		Error json.RawMessage `json:"error,omitempty"`
 	}
