@@ -107,6 +107,7 @@ import { I18nProvider, useI18n } from "./src/i18nProvider";
 import { queueMessage, acknowledgeQueued, pendingFor, assertPendingRecipients } from "./src/messageOutbox";
 import { DurableOutbox } from "./src/durableOutbox";
 import { SocialCloudAttachments, type CloudObjectRecord } from "./src/cloudAttachments";
+import { NativeSessionPanel } from "./src/NativeSessionPanel";
 
 const BLUE = "#002FA7",
   INK = "#101828",
@@ -232,6 +233,8 @@ function SocialApp() {
           }
         }
         api?.setToken(parsed.token);
+        if (!api) throw new Error("Social API is unavailable");
+        await api.profile();
         setSession(parsed);
       } catch (caught) {
         setError(message(caught));
@@ -326,16 +329,8 @@ function SocialApp() {
     },
     [api],
   );
-  useEffect(() => {
-    const subscription = Linking.addEventListener(
-      "url",
-      ({ url }) => void handleURL(url),
-    );
-    void Linking.getInitialURL().then((url) => {
-      if (url) void handleURL(url);
-    });
-    return () => subscription.remove();
-  }, [handleURL]);
+  // Official v2 callback ownership lives in NativeSessionPanel. Legacy protected
+  // records are retained, but the retired v1 parser cannot consume v2 returns.
   const signIn = async () => {
     try {
       const hex = (value: Uint8Array) =>
@@ -454,15 +449,7 @@ function SocialApp() {
             {t(error)}
           </Text>
         ) : null}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t("Sign in with YNX Wallet")}
-          onPress={() => void signIn()}
-          style={styles.primary}
-        >
-          <KeyRound color="#FFFFFF" size={19} />
-          <Text style={styles.primaryText}>{t("Sign in with YNX Wallet")}</Text>
-        </Pressable>
+        <NativeSessionPanel />
         <Text style={styles.securityNote}>
           {t("Social never creates, imports, or receives your recovery key.")}
         </Text>
