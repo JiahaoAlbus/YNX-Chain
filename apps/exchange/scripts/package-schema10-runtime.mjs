@@ -25,6 +25,8 @@ function add(file,relative,mode){const stat=lstatSync(file);if(!stat.isFile()||s
 add(binary,'ynx-exchanged',0o755);
 for(const name of ['index.html','styles.css','app.js'])add(path.join(root,'apps/exchange/web',name),'apps/exchange/web/'+name,0o644);
 add(wallet,'apps/exchange/web/wallet-auth.js',0o644);
+const document=files.find(f=>f.path.endsWith('/index.html')).data.toString();
+for(const name of ['app.js','styles.css','wallet-auth.js'])if(!document.includes('/'+name+'?sha256='+sha(files.find(f=>f.path.endsWith('/'+name)).data)))throw Error('document asset identity mismatch: '+name);
 files.sort((a,b)=>a.path.localeCompare(b.path));
 const entries=files.map(f=>({path:f.path.slice(release.length+1),mode:f.mode.toString(8),bytes:f.data.length,sha256:sha(f.data)}));
 const manifest={schemaVersion:1,product:'YNX Exchange',sourceCommit:commit,sourceTree,stateSchema:10,release,kind:'offline-linux-server-carrier-not-installer',build:{goos:'linux',goarch:'amd64',cgo:false,trimpath:true,buildVCS:false,goVersion:execFileSync('go',['version'],{encoding:'utf8'}).trim(),nodeVersion:process.version,esbuildVersion:execFileSync(path.join(root,'apps/exchange/node_modules/esbuild/bin/esbuild'),['--version'],{encoding:'utf8'}).trim()},sdk:{standard:'c97f85e9ae4d4580b99860c51738e6040ca9ca18',private:'a7dad7ec1bc7c06577978bdd5fea8dc9c7a248a9',reducer:'98c6d5d784d212df8981a53b17118a511e246ad2'},entries,truth:{publicDeployed:false,installed:false,realProviderApproval:false,privateSessionVerified:false,nativeActionSigned:false,transactionSubmitted:false}};

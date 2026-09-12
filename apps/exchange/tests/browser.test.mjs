@@ -55,7 +55,7 @@ test('read requests recover after two transport failures while unsigned POST nev
 });
 
 test('real local HTTP serves the exact wallet bundle as JavaScript with fixed private CSP authority',async()=>{
-  const response=await fetch(base+'/wallet-auth.js'),bytes=Buffer.from(await response.arrayBuffer());assert.equal(response.status,200);assert.match(response.headers.get('content-type'),/javascript/);assert.deepEqual(bytes,readFileSync(path.join(repo,'apps/exchange/web/wallet-auth.js')));
+  const response=await fetch(base+'/wallet-auth.js'),bytes=Buffer.from(await response.arrayBuffer());assert.equal(response.status,200);assert.match(response.headers.get('content-type'),/javascript/);assert.equal(response.headers.get('cache-control'),'no-cache, must-revalidate');assert.deepEqual(bytes,readFileSync(path.join(repo,'apps/exchange/web/wallet-auth.js')));
   const root=await fetch(base+'/');assert.match(root.headers.get('content-security-policy'),/connect-src 'self' https:\/\/wallet-auth\.ynxweb4\.com;/);assert.doesNotMatch(root.headers.get('content-security-policy'),/rpc\.ynxweb4/);
   assert.equal(createHash('sha256').update(bytes).digest('hex').length,64);
 });

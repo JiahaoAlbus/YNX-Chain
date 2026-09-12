@@ -232,6 +232,9 @@ func securityHeaders(next http.Handler) http.Handler {
 }
 func spa(root http.FileSystem) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Legacy unversioned URLs must revalidate; the document also binds
+		// content hashes so already-fresh browser caches cannot replay old UI.
+		w.Header().Set("Cache-Control", "no-cache, must-revalidate")
 		f, err := root.Open(r.URL.Path)
 		if err == nil {
 			if info, e := f.Stat(); e == nil && !info.IsDir() {
