@@ -25,8 +25,18 @@ function request(productId = "social", platform = "android") {
 
 test("registry defines exact Web, macOS, Windows, Android and iOS return targets for the migration set", () => {
   assert.equal(registry.schemaVersion, 2);
-  assert.equal(registry.products.length, 12);
+  assert.deepEqual(registry.products.map(product => product.productId), ["ai", "calendar", "card", "cloud", "creator-studio", "developer", "dex", "docs", "exchange", "finance", "pay", "quant", "shop", "social", "video"]);
   for (const product of registry.products) {
+    if (product.platforms?.length === 1 && product.platforms[0] === "web") {
+      const target = canonicalReturnTarget(registry, product.productId, "web");
+      assert.equal(target.callback, `${product.webOrigin}/wallet-auth/callback`);
+      assert.equal(target.bundleId, null);
+      assert.equal(target.packageId, null);
+      for (const platform of ["macos", "windows", "android", "ios", "linux"]) {
+        assert.throws(() => canonicalReturnTarget(registry, product.productId, platform), code("INVALID_PLATFORM"));
+      }
+      continue;
+    }
     const targets = ["web", "macos", "windows", "android", "ios"].map((platform) => canonicalReturnTarget(registry, product.productId, platform));
     assert.equal(targets[0].callback, `${product.webOrigin}/wallet-auth/callback`);
     assert.equal(new Set(targets.slice(1).map((item) => item.callback)).size, 1);
@@ -66,6 +76,7 @@ test("known v1 requests migrate into fully bound v2 requests while callback inje
 });
 
 test("Wallet selection prefers installed YNX Wallet and only offers MetaMask for compatible EVM products", () => {
+  assert.deepEqual(walletConnectionChoices(registry, "dex", { ynxWalletInstalled: true, metaMaskAvailable: true }).map((item) => item.id), ["ynx-wallet", "metamask", "guest"]);
   assert.deepEqual(walletConnectionChoices(registry, "social", { ynxWalletInstalled: true, metaMaskAvailable: true }).map((item) => item.id), ["ynx-wallet", "guest"]);
   const socialMissing = walletConnectionChoices(registry, "social", { ynxWalletInstalled: false, metaMaskAvailable: true });
   assert.deepEqual(socialMissing.map((item) => item.id), ["download-ynx-wallet", "guest"]);

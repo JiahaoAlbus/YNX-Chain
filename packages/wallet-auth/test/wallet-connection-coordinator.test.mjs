@@ -76,7 +76,7 @@ test("detected environment rejects malformed or failed platform probes", async (
   await assert.rejects(()=>failed.detectWalletEnvironment(),code("WALLET_UNAVAILABLE"));
 });
 
-test("MetaMask connects through central discovery only when YNX is absent and product is EVM compatible", async () => {
+test("explicit MetaMask connects for EVM compatible products", async () => {
   const calls=[];const metamask=metaMaskProvider(calls);const value=coordinator({productId:"dex",sessionClient:noYNXClient("dex"),scope:{ethereum:metamask}});
   const result=await value.connectMetaMask();
   assert.equal(result.status,WALLET_CONNECTION_COORDINATOR_STATUS.EVM_CONNECTED);
@@ -106,35 +106,45 @@ test("coordinator does not restore MetaMask success after disconnect or Guest wh
 });
 
 test("coordinator cancellation during provider discovery avoids requesting account approval", async () => {
-  const detected = Promise.withResolvers(), probing = Promise.withResolvers(), calls = [];
-  const sessionClient = client("dex", gateway({ async walletInstalled() { probing.resolve(); return detected.promise; }, async schemeRegistered() { return false; } }));
-  const value = coordinator({ productId: "dex", sessionClient, scope: { ethereum: metaMaskProvider(calls) } });
+  const calls = [];
+  const value = coordinator({ productId: "dex", scope: { ethereum: metaMaskProvider(calls) } });
   const connecting = value.connectMetaMask();
-  await probing.promise; value.enterGuest(); detected.resolve(false);
+  value.enterGuest();
   assert.equal((await connecting).code, "WALLET_CONNECTION_CANCELLED");
   assert.deepEqual(calls, []);
 });
 
-test("native platform detection is merged with injected discovery and preserves YNX priority", async () => {
+test("options order YNX first while preserving explicit MetaMask selection", async () => {
   const calls=[];const value=coordinator({productId:"dex",sessionClient:client("dex"),scope:{ethereum:metaMaskProvider(calls)}});
   const options=await value.options();
   assert.deepEqual(options.environment,{walletInstalled:true,schemeRegistered:true});
   assert.deepEqual(options.availability,{ynxWalletInstalled:true,metaMaskAvailable:true});
-  assert.deepEqual(options.choices.map(({id})=>id),["ynx-wallet","guest"]);
-  assert.equal((await value.connectMetaMask()).status,WALLET_CONNECTION_COORDINATOR_STATUS.YNX_WALLET_PREFERRED);
-  assert.equal(calls.length,0);
+  assert.deepEqual(options.choices.map(({id})=>id),["ynx-wallet","metamask","guest"]);
+  assert.equal((await value.connectMetaMask()).status,WALLET_CONNECTION_COORDINATOR_STATUS.EVM_CONNECTED);
+  assert.equal(calls.length,3);
 });
 
-test("YNX priority, ambiguous MetaMask, missing MetaMask and non-EVM products all fail closed", async () => {
+test("coinstalled YNX cannot replace MetaMask; ambiguous, missing and non-EVM choices fail closed", async () => {
   const calls=[];const metamask=metaMaskProvider(calls);
   const preferred=coordinator({productId:"dex",sessionClient:noYNXClient("dex"),scope:{ethereum:{providers:[metamask,ynxProvider()]}}});
-  assert.equal((await preferred.connectMetaMask()).status,WALLET_CONNECTION_COORDINATOR_STATUS.YNX_WALLET_PREFERRED);assert.equal(calls.length,0);
+  assert.equal((await preferred.connectMetaMask()).status,WALLET_CONNECTION_COORDINATOR_STATUS.EVM_CONNECTED);assert.equal(calls.length,3);
   const ambiguous=coordinator({productId:"dex",sessionClient:noYNXClient("dex"),scope:{ethereum:{providers:[metaMaskProvider(),metaMaskProvider()]}}});
   const ambiguousResult=await ambiguous.connectMetaMask();assert.equal(ambiguousResult.code,"AMBIGUOUS_WALLET_PROVIDER");assert.equal(ambiguousResult.status,WALLET_CONNECTION_COORDINATOR_STATUS.EVM_UNAVAILABLE);
   const missing=await coordinator({productId:"dex",sessionClient:noYNXClient("dex")}).connectMetaMask();
   assert.equal(missing.code,"METAMASK_NOT_INSTALLED");assert.equal(new URL(missing.downloadUrl).hostname,"metamask.io");
   const nonEvm=await coordinator({sessionClient:noYNXClient("social"),scope:{ethereum:metaMaskProvider()}}).connectMetaMask();
   assert.equal(nonEvm.code,"EVM_NOT_SUPPORTED");assert.equal(nonEvm.status,WALLET_CONNECTION_COORDINATOR_STATUS.EVM_UNAVAILABLE);
+});
+
+test("explicit MetaMask works without probing the private Gateway", async () => {
+  let probes = 0;
+  const sessionClient = client("dex", gateway({ async walletInstalled() { probes++; throw new Error("private service offline"); } }));
+  const value = coordinator({ productId: "dex", sessionClient, scope: { ethereum: metaMaskProvider() } });
+  const result = await value.connectMetaMask();
+  assert.equal(result.status, WALLET_CONNECTION_COORDINATOR_STATUS.EVM_CONNECTED);
+  assert.equal(result.environment, null);
+  assert.equal(result.connection.ynxProductSession, false);
+  assert.equal(probes, 0);
 });
 
 test("coordinator rejects cross-product clients, fake clients and invalid platform adapters", () => {

@@ -48,6 +48,11 @@ function issue(authority, input) {
 
 test("every registered Linux product retains its native package, origin and exact return callback", () => {
   for (const product of registry.products) {
+    if (product.platforms && !product.platforms.includes("linux")) {
+      assert.throws(() => productPlatformBinding(registry, product.productId, "linux"), code("INVALID_PLATFORM"));
+      assert.throws(() => fixture(product.productId), code("INVALID_PLATFORM"));
+      continue;
+    }
     const binding = productPlatformBinding(registry, product.productId, "linux");
     assert.equal(binding.applicationId, product.applicationId);
     assert.equal(binding.packageId, product.applicationId);

@@ -36,7 +36,7 @@ export function parseProductSessionRegistry(input) {
   unique(products.map((item) => item.clientId), "clientId");
   unique(products.map((item) => item.applicationId), "applicationId");
   unique(products.map((item) => item.webOrigin), "webOrigin");
-  unique(products.map((item) => new URL(item.nativeCallback).protocol), "native callback scheme");
+  unique(products.filter((item) => item.nativeCallback !== null).map((item) => new URL(item.nativeCallback).protocol), "native callback scheme");
   const legacy = products.flatMap((item) => item.legacyCallbacks.map((value) => `${value}\n${item.productId}`));
   const legacyNames = legacy.map((value) => value.split("\n", 1)[0]);
   unique(legacyNames, "legacy callback");
@@ -64,6 +64,7 @@ export function productPlatformBinding(registryInput, productId, platform) {
   if (!PRODUCT_SESSION_PLATFORMS.includes(platform)) fail("INVALID_PLATFORM", "Product Session platform is unsupported");
   const product = registry.products.find((item) => item.productId === productId);
   if (!product) fail("UNKNOWN_PRODUCT", "Product is not registered for Product Sessions");
+  if (product.platforms && !product.platforms.includes(platform)) fail("INVALID_PLATFORM", "Product Session platform is not registered for this product");
   const web = platform === "web";
   return Object.freeze({
     chainId: registry.chainId,
@@ -110,19 +111,34 @@ export function migrateLegacyCallback(registryInput, legacyValue, context) {
 }
 
 function parseProduct(input) {
-  exactFields(input, PRODUCT_FIELDS, "Product Session product registration");
+  const hasPlatforms = input !== null && typeof input === "object" && Object.hasOwn(input, "platforms");
+  exactFields(input, hasPlatforms ? [...PRODUCT_FIELDS, "platforms"] : PRODUCT_FIELDS, "Product Session product registration");
+  // Omission preserves the existing six-platform contract. The explicit form is
+  // currently limited to Web-only products with no registered native client.
+  if (hasPlatforms && (!Array.isArray(input.platforms) || input.platforms.length !== 1 || input.platforms[0] !== "web")) {
+    fail("INVALID_ROUTER_REGISTRY", "Explicit Product Session platforms must be exactly [web]");
+  }
   const productId = pattern(input.productId, "productId", /^[a-z][a-z0-9-]{1,31}$/);
   const clientId = pattern(input.clientId, "clientId", /^[a-z][a-z0-9._-]{2,63}$/);
   const displayName = text(input.displayName, "displayName", 2, 64);
   const applicationId = pattern(input.applicationId, "applicationId", /^[A-Za-z][A-Za-z0-9.-]{2,127}$/);
   const webOrigin = httpsURL(input.webOrigin, "webOrigin", true);
-  const nativeCallback = callback(input.nativeCallback, "nativeCallback", { allowHttps: false });
-  const native = new URL(nativeCallback);
-  if (native.search || native.hash || native.username || native.password || !native.hostname) {
-    fail("INVALID_ROUTER_REGISTRY", "Native callback must contain an exact host/path without query or fragment");
+  let nativeCallback, legacyCallbacks;
+  if (hasPlatforms) {
+    if (input.nativeCallback !== null || !Array.isArray(input.legacyCallbacks) || input.legacyCallbacks.length !== 0) {
+      fail("INVALID_ROUTER_REGISTRY", "Web-only products cannot register native or legacy callbacks");
+    }
+    nativeCallback = null;
+    legacyCallbacks = [];
+  } else {
+    nativeCallback = callback(input.nativeCallback, "nativeCallback", { allowHttps: false });
+    const native = new URL(nativeCallback);
+    if (native.search || native.hash || native.username || native.password || !native.hostname) {
+      fail("INVALID_ROUTER_REGISTRY", "Native callback must contain an exact host/path without query or fragment");
+    }
+    legacyCallbacks = stringList(input.legacyCallbacks, "legacyCallbacks", 1, 8, (value) => text(value, "legacy callback", 3, 512));
+    if (!legacyCallbacks.includes(nativeCallback)) fail("INVALID_ROUTER_REGISTRY", "Legacy callback list must include the canonical native callback");
   }
-  const legacyCallbacks = stringList(input.legacyCallbacks, "legacyCallbacks", 1, 8, (value) => text(value, "legacy callback", 3, 512));
-  if (!legacyCallbacks.includes(nativeCallback)) fail("INVALID_ROUTER_REGISTRY", "Legacy callback list must include the canonical native callback");
   const scopes = stringList(input.scopes, "scopes", 1, 8, (value) => pattern(value, "scope", /^[a-z][a-z0-9._:-]{1,63}$/));
   if (scopes.some((scope) => scope.includes("*"))) fail("INVALID_ROUTER_REGISTRY", "Wildcard Product Session scope is forbidden");
   if (typeof input.evmCompatible !== "boolean") fail("INVALID_ROUTER_REGISTRY", "evmCompatible must be boolean");
@@ -131,6 +147,7 @@ function parseProduct(input) {
   }
   return Object.freeze({
     productId, clientId, displayName, applicationId, webOrigin, nativeCallback,
+    ...(hasPlatforms ? { platforms: Object.freeze(["web"]) } : {}),
     legacyCallbacks: Object.freeze(legacyCallbacks), scopes: Object.freeze(scopes),
     evmCompatible: input.evmCompatible, sessionDurationSeconds: input.sessionDurationSeconds,
   });

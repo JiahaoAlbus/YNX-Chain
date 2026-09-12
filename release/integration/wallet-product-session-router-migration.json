@@ -14,11 +14,14 @@
     "migrated-v2": "Product runtime imports and executes WalletConnectionCoordinator over the v2 recovery client with platform evidence. No product currently meets this state."
   },
   "products": [
+    {"productId":"ai","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["packages/wallet-auth/product-session-registry.json","packages/wallet-auth/test/product-session-ecosystem-registry.test.mjs"]},
     {"productId":"calendar","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["packages/wallet-auth/product-session-registry.json"]},
     {"productId":"card","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["packages/wallet-auth/product-session-registry.json"]},
+    {"productId":"cloud","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["packages/wallet-auth/product-session-registry.json","packages/wallet-auth/test/product-session-ecosystem-registry.test.mjs"]},
     {"productId":"creator-studio","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["packages/wallet-auth/product-session-registry.json"]},
     {"productId":"developer","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["packages/wallet-auth/product-session-registry.json"]},
     {"productId":"dex","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["packages/wallet-auth/product-session-registry.json"]},
+    {"productId":"docs","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["packages/wallet-auth/product-session-registry.json","packages/wallet-auth/test/product-session-ecosystem-registry.test.mjs"]},
     {"productId":"exchange","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["packages/wallet-auth/product-session-registry.json"]},
     {"productId":"finance","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["packages/wallet-auth/product-session-registry.json"]},
     {"productId":"pay","registry":"registry-ready","consumer":"contract-only","migrated":false,"evidence":["packages/wallet-auth/product-session-registry.json"]},

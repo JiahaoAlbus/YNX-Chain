@@ -8,6 +8,18 @@
   },
   "products": [
     {
+      "productId": "ai",
+      "clientId": "ynx-ai-v1",
+      "displayName": "YNX AI",
+      "applicationId": "com.ynxweb4.ai",
+      "webOrigin": "https://assistant.ynxweb4.com",
+      "nativeCallback": "ynxai://wallet-auth/callback",
+      "legacyCallbacks": ["ynxai://wallet-auth/callback"],
+      "scopes": ["ai:actions", "ai:attachments", "ai:conversations", "ai:data-control", "ai:generate", "ai:permissions"],
+      "evmCompatible": false,
+      "sessionDurationSeconds": 240
+    },
+    {
       "productId": "calendar",
       "clientId": "ynx-calendar-v1",
       "displayName": "YNX Calendar",
@@ -30,6 +42,19 @@
       "scopes": ["account:read", "card:application:write", "card:controls:write", "card:dispute:write"],
       "evmCompatible": true,
       "sessionDurationSeconds": 180
+    },
+    {
+      "productId": "cloud",
+      "clientId": "ynx-cloud-web-v1",
+      "displayName": "YNX Cloud",
+      "applicationId": "com.ynxweb4.cloud",
+      "webOrigin": "https://web4.ynxweb4.com",
+      "platforms": ["web"],
+      "nativeCallback": null,
+      "legacyCallbacks": [],
+      "scopes": ["files.read"],
+      "evmCompatible": false,
+      "sessionDurationSeconds": 300
     },
     {
       "productId": "creator-studio",
@@ -66,6 +91,18 @@
       "scopes": ["dex:account", "dex:orders", "dex:trade"],
       "evmCompatible": true,
       "sessionDurationSeconds": 180
+    },
+    {
+      "productId": "docs",
+      "clientId": "ynx-docs-mobile-v1",
+      "displayName": "YNX Docs",
+      "applicationId": "com.ynxweb4.docs",
+      "webOrigin": "https://docs.ynxweb4.com",
+      "nativeCallback": "ynxdocs://wallet-auth/callback",
+      "legacyCallbacks": ["ynxdocs://wallet-auth/callback"],
+      "scopes": ["docs.read", "files.read"],
+      "evmCompatible": false,
+      "sessionDurationSeconds": 300
     },
     {
       "productId": "exchange",

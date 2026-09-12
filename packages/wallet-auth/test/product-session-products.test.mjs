@@ -17,7 +17,8 @@ const platforms = ["web", "macos", "windows", "android", "ios"];
 for (const [index, product] of registry.products.entries()) {
   test(`${product.displayName} registry contract covers install, approval, rejection, timeout, revoke, restart, network loss and Retry`, () => {
     const secret = Buffer.alloc(32); secret.writeUInt32BE(index + 21, 28);
-    const request = createProductSessionRequest(registry, { productId: product.productId, platform: platforms[index % platforms.length], deviceId: `matrix-device-${String(index).padStart(3, "0")}`, deviceKey: Buffer.from(p256.getPublicKey(secret, true)).toString("base64url"), scopes: product.scopes, purpose: `Connect ${product.displayName} through the shared Product Session SDK.`, nonce: token(`matrix-nonce-${index}`), state: token(`matrix-state-${index}`) }, NOW);
+    const registeredPlatforms = product.platforms ?? platforms;
+    const request = createProductSessionRequest(registry, { productId: product.productId, platform: registeredPlatforms[index % registeredPlatforms.length], deviceId: `matrix-device-${String(index).padStart(3, "0")}`, deviceKey: Buffer.from(p256.getPublicKey(secret, true)).toString("base64url"), scopes: product.scopes, purpose: `Connect ${product.displayName} through the shared Product Session SDK.`, nonce: token(`matrix-nonce-${index}`), state: token(`matrix-state-${index}`) }, NOW);
     const missing = walletConnectionChoices(registry, product.productId, { ynxWalletInstalled: false, metaMaskAvailable: true });
     assert.equal(missing[0].id, "download-ynx-wallet");
     assert.equal(missing.some((item) => item.id === "metamask"), product.evmCompatible);

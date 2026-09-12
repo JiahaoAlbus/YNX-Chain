@@ -51,9 +51,11 @@ export class WalletConnectionCoordinator {
 
   async connectMetaMask() {
     const generation = ++this.#evmGeneration;
-    const optionState = await this.options(), { discovery, environment, choices } = optionState;
+    // Explicit EVM selection does not depend on private YNX Gateway detection.
+    const discovery = await discoverWalletProviders(this.#scope, this.#waitMs);
+    const environment = null;
+    const choices = this.#client.connectionChoices(walletAvailabilityFromDiscovery(discovery));
     if (generation !== this.#evmGeneration) return cancelledEvmConnection();
-    if (environment.walletInstalled || discovery.ynx !== null) return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.YNX_WALLET_PREFERRED, code: "YNX_WALLET_PREFERRED", message: "YNX Wallet is available and remains the preferred Wallet", actions: ["open-ynx-wallet", "guest", "return-to-product"], discovery, environment, choices });
     if (discovery.metamask === null) {
       const ambiguous = discovery.ambiguities.includes("metamask"), download = choices.find((item) => item.id === "metamask" && item.action === "download-evm-wallet");
       return frozen({ status: WALLET_CONNECTION_COORDINATOR_STATUS.EVM_UNAVAILABLE, code: ambiguous ? "AMBIGUOUS_WALLET_PROVIDER" : "METAMASK_NOT_INSTALLED", message: ambiguous ? "Multiple MetaMask providers require an explicit platform chooser" : "MetaMask is not installed", actions: ambiguous ? ["retry", "guest", "return-to-product"] : ["download-metamask", "guest", "return-to-product"], ...(download ? { downloadUrl: download.url } : {}), discovery, environment, choices });

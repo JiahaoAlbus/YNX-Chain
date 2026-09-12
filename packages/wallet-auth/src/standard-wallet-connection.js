@@ -10,7 +10,7 @@ export const EIP1193_PROVIDER_CODE = Object.freeze({
 });
 
 export const STANDARD_WALLET_METHODS = Object.freeze([
-  "wallet_addEthereumChain", "wallet_switchEthereumChain", "wallet_requestPermissions", "wallet_getPermissions", "wallet_watchAsset",
+  "wallet_addEthereumChain", "wallet_switchEthereumChain", "wallet_requestPermissions", "wallet_getPermissions", "wallet_revokePermissions", "wallet_watchAsset",
   "eth_requestAccounts", "eth_accounts", "eth_chainId", "personal_sign", "eth_signTypedData_v4", "eth_sendTransaction",
 ]);
 
@@ -28,6 +28,9 @@ export class StandardWalletConnection {
   #provider; #origin; #metadata; #listeners = new Set(); #session = null;
   #generation = 0; #accountsVersion = 0; #chainVersion = 0; #lastAccounts; #lastChain;
   #providerHandlers = new Map(); #active = true;
+  // Access-loss events cancel reads; only explicit intents supersede revocation,
+  // whose expected effects include accountsChanged([]) and disconnect events.
+  #intent = 0; #revocation = null;
 
   constructor(config) {
     exactFields(config, ["provider", "origin", "metadata"], "Standard Wallet connection configuration");
@@ -40,25 +43,100 @@ export class StandardWalletConnection {
 
   get current() { return this.#session; }
 
-  async connect() {
+  connect() { return this.#establish("eth_requestAccounts", false); }
+
+  /** Silently query only the constructor-selected provider; never request a grant. */
+  restore() { return this.#establish("eth_accounts", true); }
+
+  async #establish(method, allowEmpty) {
+    this.#intent += 1;
     const generation = ++this.#generation, accountsVersion = this.#accountsVersion;
     this.#active = true;
     this.#bindProviderEvents();
-    const accounts = await this.request({ method: "eth_requestAccounts" });
+    const accounts = await this.#requestForAttempt({ method }, generation);
     this.#assertCurrentAttempt(generation);
+    const observedAccounts = this.#accountsVersion === accountsVersion ? accounts : this.#lastAccounts;
+    if (allowEmpty && Array.isArray(observedAccounts) && observedAccounts.length === 0) {
+      this.#session = null;
+      return null;
+    }
+    firstAccount(observedAccounts);
     const chainVersion = this.#chainVersion;
-    const chainResponse = await this.request({ method: "eth_chainId" });
+    const chainResponse = await this.#requestForAttempt({ method: "eth_chainId" }, generation);
     this.#assertCurrentAttempt(generation);
     const account = firstAccount(this.#accountsVersion === accountsVersion ? accounts : this.#lastAccounts);
     const chainId = this.#chainVersion === chainVersion ? chainResponse : this.#lastChain;
     if (!canonicalChain(chainId)) throw providerError(EIP1193_PROVIDER_CODE.CHAIN_DISCONNECTED, "Wallet returned an invalid chain ID");
     this.#session = Object.freeze({
       version: "1.0.0", transport: "eip1193", origin: this.#origin, dappMetadata: this.#metadata,
+      // Legacy capability fields do not assert that all listed methods are granted.
       selectedAccount: account, selectedChain: chainId.toLowerCase(), approvedMethods: Object.freeze([...STANDARD_WALLET_METHODS]),
       approvedEvents: Object.freeze(["accountsChanged", "chainChanged", "connect", "disconnect", "message"]),
       connected: true,
     });
     return this.#session;
+  }
+
+  async #requestForAttempt(input, generation) {
+    this.#assertCurrentAttempt(generation);
+    try { return await this.request(input); }
+    catch (error) { this.#assertCurrentAttempt(generation); throw error; }
+  }
+
+  /**
+   * Explicitly revoke eth_accounts, then confirm account exposure is empty.
+   * permissionRevoked=false means unconfirmed, not that a remote grant remains.
+   * disconnect() is a separate local action. Neither revokes token approvals.
+   */
+  revoke() {
+    if (this.#revocation?.intent === this.#intent) return this.#revocation.promise;
+    const operation = { intent: ++this.#intent, promise: null };
+    this.#generation += 1;
+    this.#revocation = operation;
+    // Publish the single-flight token before calling the provider, which may reenter.
+    operation.promise = Promise.resolve().then(() => this.#revoke(operation)).finally(() => {
+      if (this.#revocation === operation) this.#revocation = null;
+    });
+    return operation.promise;
+  }
+
+  async #revoke(operation) {
+    let stage = "revoke";
+    try {
+      this.#assertRevocation(operation);
+      const response = await this.request({ method: "wallet_revokePermissions", params: [{ eth_accounts: {} }] });
+      this.#assertRevocation(operation);
+      if (!revokeAcknowledged(response)) throw providerError(EIP1193_PROVIDER_CODE.PROVIDER_DISCONNECTED, "Wallet returned an invalid revocation acknowledgement");
+      stage = "readback";
+      const accountsVersion = this.#accountsVersion;
+      const accounts = await this.request({ method: "eth_accounts" });
+      this.#assertRevocation(operation);
+      if (!Array.isArray(accounts) || accounts.length !== 0 ||
+        (accountsVersion !== this.#accountsVersion && (!Array.isArray(this.#lastAccounts) || this.#lastAccounts.length !== 0))) {
+        throw providerError(EIP1193_PROVIDER_CODE.UNAUTHORIZED, "Wallet account revocation was not confirmed");
+      }
+      // Empty accounts/disconnect events during revocation are expected. Only a
+      // newer explicit intent supersedes it; no old completion clears that intent.
+      this.#revocation = null;
+      this.disconnect();
+      return this.#revokeResult("revoked", true);
+    } catch (error) {
+      if (operation.intent !== this.#intent) return this.#revokeResult("superseded", false,
+        providerError(EIP1193_PROVIDER_CODE.UNAUTHORIZED, "Wallet revocation was superseded by a newer connection intent"));
+      const normalized = normalizeProviderError(error);
+      const status = stage === "revoke" && normalized.code === EIP1193_PROVIDER_CODE.UNSUPPORTED_METHOD ? "unsupported"
+        : stage === "revoke" && normalized.code === EIP1193_PROVIDER_CODE.USER_REJECTED ? "rejected" : "failed";
+      return this.#revokeResult(status, false, normalized);
+    }
+  }
+
+  #assertRevocation(operation) {
+    if (operation.intent !== this.#intent) throw providerError(EIP1193_PROVIDER_CODE.UNAUTHORIZED, "Wallet revocation was superseded");
+  }
+
+  #revokeResult(status, permissionRevoked, error) {
+    return Object.freeze({ status, permissionRevoked, locallyDisconnected: this.#session === null,
+      ...(error ? { error: Object.freeze({ code: error.code, message: error.message }) } : {}) });
   }
 
   async request(input) {
@@ -73,6 +151,7 @@ export class StandardWalletConnection {
   }
 
   disconnect() {
+    this.#intent += 1;
     this.#generation += 1;
     this.#session = null;
     this.#active = false;
@@ -90,7 +169,7 @@ export class StandardWalletConnection {
     for (const event of ["accountsChanged", "chainChanged", "connect", "disconnect", "message"]) {
       if (this.#providerHandlers.has(event)) continue;
       const handler = (value) => {
-        if (!this.#active) return;
+        if (!this.#active || this.#providerHandlers.get(event) !== handler) return;
         if (event === "accountsChanged") {
           this.#accountsVersion += 1;
           this.#lastAccounts = Array.isArray(value) ? [...value] : value;
@@ -115,8 +194,8 @@ export class StandardWalletConnection {
         }
         this.#emit(event, value);
       };
-      this.#provider.on(event, handler);
       this.#providerHandlers.set(event, handler);
+      this.#provider.on(event, handler);
     }
   }
   #unbindProviderEvents() {
@@ -135,9 +214,11 @@ function canonicalHttpsOrigin(value) { try { const url = new URL(value); return 
 function metadata(value) { return typeof value === "object" && value !== null && !Array.isArray(value) && Object.keys(value).sort().join("\n") === ["name", "url"].join("\n") && typeof value.name === "string" && value.name.trim() === value.name && value.name.length >= 1 && value.name.length <= 128 && canonicalHttpsOrigin(value.url); }
 function canonicalChain(value) { return typeof value === "string" && /^0x(?:0|[1-9a-fA-F][0-9a-fA-F]*)$/.test(value); }
 function firstAccount(value) { if (!Array.isArray(value) || value.length < 1 || value.length > 1024 || typeof value[0] !== "string" || !/^0x[0-9a-fA-F]{40}$/.test(value[0])) throw providerError(EIP1193_PROVIDER_CODE.UNAUTHORIZED, "Wallet did not approve a valid EVM account"); return value[0].toLowerCase(); }
+function revokeAcknowledged(value) { return value === null || (typeof value === "object" && value !== null && !Array.isArray(value) && (Object.getPrototypeOf(value) === Object.prototype || Object.getPrototypeOf(value) === null) && Object.keys(value).length === 0); }
 function providerError(code, message) { return new Eip1193ProviderError(code, message); }
 function normalizeProviderError(error) {
   const code = (() => { try { return Number(error?.code); } catch { return NaN; } })();
+  if (code === -32601) return providerError(EIP1193_PROVIDER_CODE.UNSUPPORTED_METHOD, "EIP-1193 method is not supported by this provider");
   if (Object.values(EIP1193_PROVIDER_CODE).includes(code)) return providerError(code, safeMessage(error?.message));
   return providerError(EIP1193_PROVIDER_CODE.PROVIDER_DISCONNECTED, "EIP-1193 provider request failed");
 }

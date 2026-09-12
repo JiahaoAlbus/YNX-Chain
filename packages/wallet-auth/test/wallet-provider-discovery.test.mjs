@@ -88,7 +88,7 @@ test("central discovery feeds the canonical chooser with YNX priority and honest
   const ynx = provider({ isYNXWallet: true, providerInfo: { rdns: "com.ynx.wallet.companion" } });
   const metamask = provider({ isMetaMask: true, providerInfo: { rdns: "io.metamask" } });
   const both = discoverInjectedWalletProviders({ ethereum: { providers: [metamask, ynx] } });
-  assert.deepEqual(walletConnectionChoices(registry, "dex", walletAvailabilityFromDiscovery(both)).map(({id}) => id), ["ynx-wallet", "guest"]);
+  assert.deepEqual(walletConnectionChoices(registry, "dex", walletAvailabilityFromDiscovery(both)).map(({id}) => id), ["ynx-wallet", "metamask", "guest"]);
   const evmOnly = discoverInjectedWalletProviders({ ethereum: metamask });
   const choices = walletConnectionChoices(registry, "dex", walletAvailabilityFromDiscovery(evmOnly));
   assert.deepEqual(choices.map(({id, action}) => [id, action]), [["download-ynx-wallet", "download"], ["metamask", "open-evm"], ["guest", "guest"]]);
