@@ -137,7 +137,7 @@ def deploy():
   # old and new against one file-CAS state. A state backup is never restored.
   ctl('stop');stopped=True;assert service()['MainPID']=='0';assert regular(STATE)==before['state']
   save(RELEASE/'state-before-switch.json',STATE.read_bytes(),0o600)
-  phase='DROPIN_INSTALL';placed=save(DROPIN,drop_bytes,0o644,0,0)
+  phase='DROPIN_INSTALL';assert receipt(DROPIN.parent)==parent and set(p.name for p in DROPIN.parent.iterdir())==old_names;placed=save(DROPIN,drop_bytes,0o644,0,0)
   subprocess.run(['/usr/bin/systemctl','daemon-reload'],check=True,timeout=30,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
   phase='START_READY';ctl('start');base='http://127.0.0.1:18446';ready(base,SOURCE)
   candidate=service();assert candidate['ActiveState']=='active' and candidate['SubState']=='running' and int(candidate['MainPID'])>0 and candidate['MainPID']!=before['service']['MainPID'] and candidate['NRestarts']=='0' and candidate['WorkingDirectory']==str(RELEASE)
@@ -159,7 +159,7 @@ def deploy():
    if placed:remove_exact(DROPIN,placed)
    subprocess.run(['/usr/bin/systemctl','daemon-reload'],check=True,timeout=30,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL);ctl('start');ready('http://127.0.0.1:18446',OLD)
    for p,d in HASHES.items():regular(p,d)
-   for base in ['http://127.0.0.1:18446','https://exchange.ynxweb4.com']:http(base+'/api/version',OLD);http(base+'/',digest='64c5b7862099eb06a316fbc6d1c665e81355f427fa27b26584bbf586ac4eacde')
+   for base in ['http://127.0.0.1:18446','https://exchange.ynxweb4.com']:http(base+'/api/version',OLD);http(base+'/api/health',digest='bcf22421b76c03b9da4fa401c56405b123a6f8b7eaa49d942391dfec25ee3ee8');http(base+'/',digest='64c5b7862099eb06a316fbc6d1c665e81355f427fa27b26584bbf586ac4eacde')
    restored=service();assert restored['ActiveState']=='active' and restored['SubState']=='running' and int(restored['MainPID'])>0 and restored['NRestarts']=='0';original_links()
    assert service('ynx-quant-exchange.service')==before['quant'];rollback=True
   print(json.dumps({'status':'FAILED_CLOSED','phase':phase,'errorClass':type(error).__name__,'automaticRollback':rollback,'stateSnapshotRestored':False,'service':service(),'state':receipt(STATE),'retainedRelease':str(RELEASE)}),flush=True);raise SystemExit(1)
