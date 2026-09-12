@@ -11,7 +11,7 @@ import { desktopReleaseIdentity, verifyDesktopPackage } from "../scripts/release
 const actualProject = fileURLToPath(new URL("..", import.meta.url));
 const asarCLI = createRequire(path.join(actualProject, "package.json")).resolve("@electron/asar/bin/asar.js");
 
-async function fixture(t) {
+async function fixture(t, { includeRegistry = true } = {}) {
   const root = await mkdtemp(path.join(tmpdir(), "ynx-desktop-provenance-"));
   t.after(() => rm(root, { recursive: true, force: true }));
   const project = path.join(root, "apps/wallet-desktop"), stage = path.join(root, "package"), resources = path.join(root, "resources");
@@ -19,8 +19,10 @@ async function fixture(t) {
     "apps/wallet-desktop/src/main.mjs": "export const fixture = true;\n",
     "packages/wallet-auth/package.json": '{"name":"@ynx-chain/wallet-auth","version":"1.1.0"}',
     "packages/wallet-auth/src/index.js": "export const fixture = 1;\n",
+    "packages/wallet-auth/product-session-registry.json": '{"fixture":"registered-products"}\n',
     "packages/wallet-auth/src/runtime.json": '{"fixture":true}\n',
     "packages/wallet-auth/src/index.d.ts": "export declare const fixture: number;\n" };
+  if (!includeRegistry) delete files["packages/wallet-auth/product-session-registry.json"];
   for (const [name, content] of Object.entries(files)) { await mkdir(path.dirname(path.join(root, name)), { recursive: true }); await writeFile(path.join(root, name), content); }
   const git = args => execFileSync("git", args, { cwd: root, stdio: "pipe" });
   git(["init"]); git(["add", "apps", "packages"]); git(["-c", "user.name=YNX synthetic test", "-c", "user.email=fixture@example.invalid", "commit", "-m", "synthetic fixture"]);
@@ -45,7 +47,7 @@ async function fixture(t) {
 
 test("every runtime Wallet and SDK byte matches the exact commit, with excluded declarations explicit", async t => {
   const f = await fixture(t), result = verifyDesktopPackage(f.resources, f.project);
-  assert.equal(result.files.length, 4); assert.equal(result.packagedSourceVerified, true);
+  assert.equal(result.files.length, 5); assert.equal(result.packagedSourceVerified, true);
   assert.deepEqual(result.excludedTypeDeclarations, ["packages/wallet-auth/src/index.d.ts"]);
   assert.equal(result.sourceVerificationScope, "every runtime Wallet and SDK source");
   assert.equal(result.sourceCommit, f.identity.sourceCommit); assert.equal(result.installedRuntimeVerified, false);
@@ -75,4 +77,22 @@ test("dirty tracked source and a different CI commit cannot acquire release iden
   process.env.GITHUB_SHA = f.identity.sourceCommit;
   await writeFile(path.join(f.project, "src/main.mjs"), "export const changed = true;\n");
   assert.throws(() => desktopReleaseIdentity(f.project, "0.6.4"));
+});
+
+
+test("SDK root registry is mandatory in the packaged archive", async t => {
+  const f = await fixture(t);
+  await rm(path.join(f.stage, "node_modules/@ynx-chain/wallet-auth/product-session-registry.json")); await f.pack();
+  assert.throws(() => verifyDesktopPackage(f.resources, f.project), /was not found in this archive/);
+});
+
+test("SDK root registry tampering is rejected even when src bytes match", async t => {
+  const f = await fixture(t);
+  await writeFile(path.join(f.stage, "node_modules/@ynx-chain/wallet-auth/product-session-registry.json"), '{"fixture":"other-products"}\n'); await f.pack();
+  assert.throws(() => verifyDesktopPackage(f.resources, f.project), /Packaged source differs: packages\/wallet-auth\/product-session-registry\.json/);
+});
+
+test("SDK root registry must exist in the selected source commit", async t => {
+  const f = await fixture(t, { includeRegistry: false });
+  assert.throws(() => verifyDesktopPackage(f.resources, f.project), /Required runtime asset is missing from the selected commit: packages\/wallet-auth\/product-session-registry\.json/);
 });

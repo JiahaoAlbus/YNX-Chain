@@ -36,7 +36,14 @@ export function verifyDesktopPackage(resources, cwd = projectDir) {
   const actual = JSON.parse(readFileSync(path.join(resources, "ynx-wallet-build-identity.json"), "utf8"));
   if (JSON.stringify(actual) !== JSON.stringify(expected)) throw new Error("Embedded build identity does not match the checkout");
   const root = git(cwd, "rev-parse", "--show-toplevel");
-  const names = git(root, "ls-tree", "-r", "--name-only", expected.sourceCommit, "apps/wallet-desktop/src", "packages/wallet-auth/src", "packages/wallet-auth/package.json").split("\n");
+  // wallet-auth-contract.mjs reads this registry from the SDK root at runtime.
+  // Require it in the commit as well as the archive: ls-tree alone can silently
+  // omit a named path that no longer exists in the selected commit.
+  const requiredRuntimeAssets = ["packages/wallet-auth/package.json", "packages/wallet-auth/product-session-registry.json"];
+  const names = git(root, "ls-tree", "-r", "--name-only", expected.sourceCommit, "apps/wallet-desktop/src", "packages/wallet-auth/src", ...requiredRuntimeAssets).split("\n");
+  for (const name of requiredRuntimeAssets) {
+    if (!names.includes(name)) throw new Error(`Required runtime asset is missing from the selected commit: ${name}`);
+  }
   // electron-builder excludes TypeScript declarations from an executable package.
   // Keep that exclusion explicit; every JavaScript/JSON/runtime source still binds
   // byte-for-byte to the selected checkout.
