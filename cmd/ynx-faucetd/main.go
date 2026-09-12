@@ -43,21 +43,26 @@ func runFaucet() (result error) {
 	maxRequests := flag.Int("rate-max", envIntOrDefault("YNX_FAUCET_RATE_LIMIT_MAX", 1), "max requests per IP/address in window")
 	flag.Parse()
 
+	coreTokenPath := strings.TrimSpace(os.Getenv("YNX_FAUCET_CORE_AUTH_TOKEN_FILE"))
+	if *upstreamMode == faucet.UpstreamAuthoritative && coreTokenPath == "" {
+		return errors.New("YNX_FAUCET_CORE_AUTH_TOKEN_FILE is required for the authoritative Faucet")
+	}
 	service, err := faucet.New(faucet.Config{
-		RPCURL:        *rpcURL,
-		HTTPAddr:      *httpAddr,
-		UpstreamMode:  *upstreamMode,
-		FaucetKey:     os.Getenv("FAUCET_PRIVATE_KEY"),
-		FaucetKeyPath: os.Getenv("YNX_FAUCET_PRIVATE_KEY_FILE"),
-		FaucetAddress: os.Getenv("YNX_FAUCET_ADDRESS"),
-		ChainID:       envInt64OrDefault("YNX_FAUCET_CHAIN_ID", 6423),
-		DefaultAmount: *defaultAmount,
-		MaxAmount:     *maxAmount,
-		Window:        *window,
-		MaxRequests:   *maxRequests,
-		RequestLog:    *requestLog,
-		AdmissionPath: *admissionPath,
-		MaxAdmissions: *maxAdmissions,
+		CoreAuthTokenPath: coreTokenPath,
+		RPCURL:            *rpcURL,
+		HTTPAddr:          *httpAddr,
+		UpstreamMode:      *upstreamMode,
+		FaucetKey:         os.Getenv("FAUCET_PRIVATE_KEY"),
+		FaucetKeyPath:     os.Getenv("YNX_FAUCET_PRIVATE_KEY_FILE"),
+		FaucetAddress:     os.Getenv("YNX_FAUCET_ADDRESS"),
+		ChainID:           envInt64OrDefault("YNX_FAUCET_CHAIN_ID", 6423),
+		DefaultAmount:     *defaultAmount,
+		MaxAmount:         *maxAmount,
+		Window:            *window,
+		MaxRequests:       *maxRequests,
+		RequestLog:        *requestLog,
+		AdmissionPath:     *admissionPath,
+		MaxAdmissions:     *maxAdmissions,
 	})
 	if err != nil {
 		return err

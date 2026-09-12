@@ -36,20 +36,21 @@ var (
 )
 
 type Config struct {
-	RPCURL        string
-	HTTPAddr      string
-	UpstreamMode  string
-	FaucetKey     string
-	FaucetKeyPath string
-	FaucetAddress string
-	ChainID       int64
-	DefaultAmount int64
-	MaxAmount     int64
-	Window        time.Duration
-	MaxRequests   int
-	RequestLog    string
-	AdmissionPath string
-	MaxAdmissions int
+	CoreAuthTokenPath string
+	RPCURL            string
+	HTTPAddr          string
+	UpstreamMode      string
+	FaucetKey         string
+	FaucetKeyPath     string
+	FaucetAddress     string
+	ChainID           int64
+	DefaultAmount     int64
+	MaxAmount         int64
+	Window            time.Duration
+	MaxRequests       int
+	RequestLog        string
+	AdmissionPath     string
+	MaxAdmissions     int
 }
 
 func (c Config) normalized() (Config, error) {
@@ -63,7 +64,7 @@ func (c Config) normalized() (Config, error) {
 	if c.UpstreamMode != UpstreamAuthoritative && c.UpstreamMode != UpstreamBFT {
 		return Config{}, fmt.Errorf("faucet upstream mode must be %q or %q", UpstreamAuthoritative, UpstreamBFT)
 	}
-	if strings.TrimSpace(c.FaucetKey) == "" && strings.TrimSpace(c.FaucetKeyPath) == "" {
+	if strings.TrimSpace(c.FaucetKey) == "" && strings.TrimSpace(c.FaucetKeyPath) == "" && !(c.UpstreamMode == UpstreamAuthoritative && c.CoreAuthTokenPath != "") {
 		return Config{}, fmt.Errorf("FAUCET_PRIVATE_KEY or YNX_FAUCET_PRIVATE_KEY_FILE is required for ynx-faucetd")
 	}
 	if c.UpstreamMode == UpstreamBFT {
@@ -114,20 +115,21 @@ func (c Config) normalized() (Config, error) {
 }
 
 type Service struct {
-	admissions *admissionStore
-	cfg        Config
-	httpClient *http.Client
-	signer     *secp256k1.PrivateKey
-	signerAddr string
-	mu         sync.Mutex
-	fundMu     sync.Mutex
-	logMu      sync.Mutex
-	seen       map[string][]time.Time
-	requests   int64
-	successes  int64
-	denied     int64
-	lastHash   string
-	lastError  string
+	coreAuthToken string
+	admissions    *admissionStore
+	cfg           Config
+	httpClient    *http.Client
+	signer        *secp256k1.PrivateKey
+	signerAddr    string
+	mu            sync.Mutex
+	fundMu        sync.Mutex
+	logMu         sync.Mutex
+	seen          map[string][]time.Time
+	requests      int64
+	successes     int64
+	denied        int64
+	lastHash      string
+	lastError     string
 }
 
 func New(cfg Config) (*Service, error) {
@@ -146,6 +148,10 @@ func New(cfg Config) (*Service, error) {
 		service.cfg.FaucetKey = ""
 	}
 	if normalized.UpstreamMode == UpstreamAuthoritative {
+		service.coreAuthToken, err = loadCoreAuthToken(normalized.CoreAuthTokenPath)
+		if err != nil {
+			return nil, err
+		}
 		store, err := openAdmissionStore(normalized)
 		if err != nil {
 			return nil, fmt.Errorf("open durable faucet admission: %w", err)
@@ -478,48 +484,57 @@ func (s *Service) recordDenied(reason string) {
 }
 
 type Health struct {
-	OK             bool           `json:"ok"`
-	Service        string         `json:"service"`
-	RPCURL         string         `json:"rpcUrl"`
-	UpstreamMode   string         `json:"upstreamMode"`
-	FaucetAddress  string         `json:"faucetAddress,omitempty"`
-	UpstreamOK     bool           `json:"upstreamOk"`
-	ChainID        int64          `json:"chainId,omitempty"`
-	Height         uint64         `json:"height,omitempty"`
-	NativeSymbol   string         `json:"nativeSymbol"`
-	DefaultAmount  int64          `json:"defaultAmount"`
-	MaxAmount      int64          `json:"maxAmount"`
-	RateLimit      string         `json:"rateLimit"`
-	RequestLog     string         `json:"requestLog"`
-	Requests       int64          `json:"requests"`
-	Successes      int64          `json:"successes"`
-	Denied         int64          `json:"denied"`
-	LastTxHash     string         `json:"lastTxHash,omitempty"`
-	LastError      string         `json:"lastError,omitempty"`
-	Build          buildinfo.Info `json:"build"`
-	TruthfulStatus string         `json:"truthfulStatus"`
+	IdempotentRequests     bool           `json:"idempotentRequests"`
+	FundingReady           bool           `json:"fundingReady"`
+	RequestPath            string         `json:"requestPath"`
+	RateLimitMax           int            `json:"rateLimitMax"`
+	RateLimitWindowSeconds int64          `json:"rateLimitWindowSeconds"`
+	OK                     bool           `json:"ok"`
+	Service                string         `json:"service"`
+	RPCURL                 string         `json:"rpcUrl"`
+	UpstreamMode           string         `json:"upstreamMode"`
+	FaucetAddress          string         `json:"faucetAddress,omitempty"`
+	UpstreamOK             bool           `json:"upstreamOk"`
+	ChainID                int64          `json:"chainId,omitempty"`
+	Height                 uint64         `json:"height,omitempty"`
+	NativeSymbol           string         `json:"nativeSymbol"`
+	DefaultAmount          int64          `json:"defaultAmount"`
+	MaxAmount              int64          `json:"maxAmount"`
+	RateLimit              string         `json:"rateLimit"`
+	RequestLog             string         `json:"requestLog"`
+	Requests               int64          `json:"requests"`
+	Successes              int64          `json:"successes"`
+	Denied                 int64          `json:"denied"`
+	LastTxHash             string         `json:"lastTxHash,omitempty"`
+	LastError              string         `json:"lastError,omitempty"`
+	Build                  buildinfo.Info `json:"build"`
+	TruthfulStatus         string         `json:"truthfulStatus"`
 }
 
 func (s *Service) Health() Health {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return Health{
-		OK:             s.lastError == "",
-		Service:        "ynx-faucetd",
-		RPCURL:         s.cfg.RPCURL,
-		UpstreamMode:   s.cfg.UpstreamMode,
-		FaucetAddress:  s.signerAddr,
-		NativeSymbol:   "YNXT",
-		DefaultAmount:  s.cfg.DefaultAmount,
-		MaxAmount:      s.cfg.MaxAmount,
-		RateLimit:      fmt.Sprintf("%d per %s per ip/address", s.cfg.MaxRequests, s.cfg.Window),
-		RequestLog:     s.cfg.RequestLog,
-		Requests:       s.requests,
-		Successes:      s.successes,
-		Denied:         s.denied,
-		LastTxHash:     s.lastHash,
-		LastError:      s.lastError,
-		TruthfulStatus: s.truthfulStatus(),
+		OK:                     s.lastError == "",
+		Service:                "ynx-faucetd",
+		RequestPath:            "/request",
+		IdempotentRequests:     s.cfg.UpstreamMode == UpstreamAuthoritative,
+		RateLimitMax:           s.cfg.MaxRequests,
+		RateLimitWindowSeconds: int64(s.cfg.Window.Seconds()),
+		RPCURL:                 s.cfg.RPCURL,
+		UpstreamMode:           s.cfg.UpstreamMode,
+		FaucetAddress:          s.signerAddr,
+		NativeSymbol:           "YNXT",
+		DefaultAmount:          s.cfg.DefaultAmount,
+		MaxAmount:              s.cfg.MaxAmount,
+		RateLimit:              fmt.Sprintf("%d per %s per ip/address", s.cfg.MaxRequests, s.cfg.Window),
+		RequestLog:             s.cfg.RequestLog,
+		Requests:               s.requests,
+		Successes:              s.successes,
+		Denied:                 s.denied,
+		LastTxHash:             s.lastHash,
+		LastError:              s.lastError,
+		TruthfulStatus:         s.truthfulStatus(),
 	}
 }
 
@@ -555,13 +570,24 @@ func (s *Service) CheckHealth(ctx context.Context) Health {
 		health.LastError = err.Error()
 		return health
 	}
-	health.UpstreamOK = status.NativeCurrencySymbol == "YNXT"
+	health.UpstreamOK = status.NativeCurrencySymbol == "YNXT" && status.ChainID == s.cfg.ChainID
 	health.ChainID = status.ChainID
 	health.Height = status.Height
 	if !health.UpstreamOK {
 		health.OK = false
-		health.LastError = "RPC native symbol is not YNXT"
+		health.LastError = "RPC network identity does not match the Faucet"
 	}
+	if health.UpstreamOK {
+		health.OK = true
+		health.LastError = ""
+		if s.cfg.UpstreamMode == UpstreamAuthoritative {
+			if err := s.requireFaucetCapability(ctx); err != nil {
+				health.OK = false
+				health.LastError = err.Error()
+			}
+		}
+	}
+	health.FundingReady = health.OK && health.UpstreamOK
 	return health
 }
 

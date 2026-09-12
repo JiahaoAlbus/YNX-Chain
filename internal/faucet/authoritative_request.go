@@ -183,6 +183,12 @@ func (s *Service) requireFaucetCapability(ctx context.Context) error {
 		JSONRPC string `json:"jsonrpc"`
 		ID      int    `json:"id"`
 		Result  struct {
+			Authority struct {
+				Version    string `json:"version"`
+				Header     string `json:"header"`
+				Required   bool   `json:"required"`
+				Configured bool   `json:"configured"`
+			} `json:"authority"`
 			Version    string          `json:"version"`
 			ChainID    string          `json:"chainId"`
 			Pattern    string          `json:"requestIdPattern"`
@@ -197,6 +203,11 @@ func (s *Service) requireFaucetCapability(ctx context.Context) error {
 	if resp.StatusCode != 200 || decodeBoundedJSON(resp.Body, &result) != nil || result.JSONRPC != "2.0" || result.ID != 1 || len(result.Error) != 0 || result.Result.Version != chain.FaucetRequestVersion || result.Result.ChainID != "0x"+strconv.FormatInt(s.cfg.ChainID, 16) || result.Result.Pattern != "^[A-Za-z0-9_-]{32,128}$" || result.Result.HashScheme != "sha256-nul-domain-decimal-chain-id-request-id" || result.Result.Scope != "retained-chain-transaction-history" {
 		return errors.New("upstream does not expose the required chain-bound durable faucet model")
 	}
+	if a := result.Result.Authority; a.Required || s.coreAuthToken != "" {
+		if a.Version != "ynx-faucet-core-token-v1" || a.Header != "X-YNX-Faucet-Auth" || !a.Required || !a.Configured || s.coreAuthToken == "" {
+			return errors.New("Core Faucet authority is not configured")
+		}
+	}
 	return nil
 }
 
@@ -207,7 +218,9 @@ func (s *Service) sendDurableFaucetRequest(ctx context.Context, record admission
 		return chain.Transaction{}, 503, err
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-YNX-Faucet-Auth", "configured")
+	if s.coreAuthToken != "" {
+		req.Header.Set("X-YNX-Faucet-Auth", s.coreAuthToken)
+	}
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
 		return chain.Transaction{}, 503, errors.New("faucet result needs confirmation; retain the same request ID")
