@@ -3,6 +3,7 @@ import {createCipheriv,createDecipheriv,randomBytes} from 'node:crypto';
 import {dirname} from 'node:path';
 import {chmodSync,mkdirSync} from 'node:fs';
 import {CardError} from './contracts.ts';
+import {migrateCardDatabase} from './storageSchema.ts';
 
 /** Single-host durable business state. Encryption key is deployment configuration,
  * never a Wallet key. Database backups must preserve this key separately. */
@@ -13,8 +14,11 @@ export class CardStore {
     if(key.byteLength!==32)throw Error('YNX_CARD_STATE_KEY_BASE64 must decode to 32 bytes');
     this.key=Buffer.from(key);mkdirSync(dirname(path),{recursive:true,mode:0o700});
     this.db=new DatabaseSync(path);
-    if(path!==':memory:')chmodSync(path,0o600);
-    this.db.exec('PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA busy_timeout=5000; CREATE TABLE IF NOT EXISTS owners(owner TEXT PRIMARY KEY, body TEXT NOT NULL); CREATE TABLE IF NOT EXISTS funding_claims(chain TEXT NOT NULL, hash TEXT NOT NULL, owner TEXT NOT NULL, intent TEXT NOT NULL, PRIMARY KEY(chain,hash));');
+    try{
+      migrateCardDatabase(this.db);
+      if(path!==':memory:')chmodSync(path,0o600);
+      this.db.exec('PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA busy_timeout=5000;');
+    }catch(error){this.db.close();this.key.fill(0);throw error}
   }
   private seal(owner:string,value:unknown):string{const iv=randomBytes(12),cipher=createCipheriv('aes-256-gcm',this.key,iv);cipher.setAAD(Buffer.from('ynx-card-business-v1:'+owner));const body=Buffer.concat([cipher.update(JSON.stringify(value),'utf8'),cipher.final()]);return JSON.stringify({v:1,iv:iv.toString('base64'),tag:cipher.getAuthTag().toString('base64'),body:body.toString('base64')})}
   private open(owner:string,raw:string):unknown{const value=JSON.parse(raw);if(value.v!==1)throw Error('Unsupported Card storage version');const cipher=createDecipheriv('aes-256-gcm',this.key,Buffer.from(value.iv,'base64'));cipher.setAAD(Buffer.from('ynx-card-business-v1:'+owner));cipher.setAuthTag(Buffer.from(value.tag,'base64'));return JSON.parse(Buffer.concat([cipher.update(Buffer.from(value.body,'base64')),cipher.final()]).toString('utf8'))}
