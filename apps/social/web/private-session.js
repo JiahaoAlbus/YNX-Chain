@@ -35,11 +35,12 @@ export function createSocialPrivateSession({ environment = globalThis, detectWal
     return next;
   }
   return Object.freeze({
-    begin: () => run(async ({ client }) => {
-      const availability = await detectWalletEnvironment();
-      return client.begin(availability);
+    begin: () => run(({ client }) => client.beginExplicit()),
+    restore: () => run(async ({ client, storage }) => {
+      const pending = await storage.get(`${client.storageKey}:pending`);
+      if (pending !== null) return {status:"connecting",automatic:false,message:"A Wallet approval request is pending. Return from Wallet to finish it, or explicitly start a new identity link. Retry has not replaced the request."};
+      return client.restore(environment.navigator?.onLine !== false);
     }),
-    restore: () => run(({ client }) => client.restore(environment.navigator?.onLine !== false)),
     handleReturn: (url) => run(({ client }) => {
       const parsed = new URL(url);
       if (parsed.origin !== "https://social.ynxweb4.com" || parsed.pathname !== "/wallet-auth/callback") throw new Error("Unexpected Social Wallet callback origin or path.");

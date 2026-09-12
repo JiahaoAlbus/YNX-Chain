@@ -39,7 +39,7 @@
       "webOrigin": "https://card.ynxweb4.com",
       "nativeCallback": "ynxcard://wallet-auth/callback",
       "legacyCallbacks": ["ynxcard", "ynxcard://wallet-auth/callback"],
-      "scopes": ["account:read", "card:application:write", "card:controls:write", "card:dispute:write"],
+      "scopes": ["account:read", "card:application:write", "card:controls:write", "card:dispute:write", "card:simulation:write", "card:topup:write"],
       "evmCompatible": true,
       "sessionDurationSeconds": 180
     },
@@ -172,7 +172,7 @@
       "webOrigin": "https://social.ynxweb4.com",
       "nativeCallback": "ynx-social://com.ynx.social",
       "legacyCallbacks": ["ynx-social", "ynx-social://com.ynx.social"],
-      "scopes": ["account:read", "profile:link"],
+      "scopes": ["account:read", "profile:link", "social.contacts", "social.messaging", "social.profile"],
       "evmCompatible": false,
       "sessionDurationSeconds": 240
     },
