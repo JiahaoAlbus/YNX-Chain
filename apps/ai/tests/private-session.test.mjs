@@ -99,3 +99,12 @@ test('close releases storage without claiming remote revocation',async()=>{
  await assert.rejects(f.session.request('/api/conversations','ai:conversations'),/connected AI private session is required/);
  assert.equal(f.proofs.length,0);
 });
+
+test('begin uses the official explicit-open API without inferring installed status',async()=>{
+ const f=fixture();let explicit=0;
+ f.client.beginExplicit=async()=>{explicit++;return {status:'connecting',automatic:false,route:{status:'ready',url:'ynxwallet://authorize?request=test',installation:'unverified'}}};
+ f.client.beginDetected=()=>assert.fail('Explicit user login must not depend on installation probes');
+ const result=await f.session.begin();
+ assert.equal(explicit,1);assert.equal(result.automatic,false);
+ assert.equal(result.route.installation,'unverified');assert.equal(f.calls.length,0);
+});

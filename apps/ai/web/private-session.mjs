@@ -91,7 +91,7 @@ export class AIPrivateSession {
 
   // A connecting return is not permission to automatically open Wallet.
   restore() { return this.#lifecycle(() => this.#adapter.client.restore()); }
-  begin() { return this.#lifecycle(() => this.#adapter.client.beginDetected()); }
+  begin() { return this.#lifecycle(() => this.#adapter.client.beginExplicit()); }
   handleReturn(url) {
     return this.#lifecycle(() => this.#adapter.client.handleReturn(url));
   }

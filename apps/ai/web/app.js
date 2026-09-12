@@ -256,6 +256,7 @@ async function initializePrivateLogin(loadPrivateModule=()=>import('./private-se
  async function run(action){
   const epoch=privateLoginEpoch;
   const guard=()=>{if(epoch!==privateLoginEpoch||state.signingOut)throw new Error('The AI login attempt has ended.');};
+  resetPrivateOpenLink();
   begin.disabled=true;restore.disabled=true;
   try{
    const client=await initialize();
@@ -270,6 +271,12 @@ async function initializePrivateLogin(loadPrivateModule=()=>import('./private-se
     await enterApp();
    }else{
     clearAISession();$('#app').classList.add('hidden');$('#signin').classList.remove('hidden');
+    if(result.route?.status==='ready'&&result.automatic===false){
+     const link=$('#private-open-wallet');
+     link.href=result.route.url;link.hidden=false;
+     link.onclick=event=>{if(epoch!==privateLoginEpoch||state.signingOut){event.preventDefault();resetPrivateOpenLink()}};
+     status.textContent='Request prepared. Click Open YNX Wallet to ask your browser to open it. Installation is unverified; only a verified Wallet return can sign you in.';
+    }
     if(result.route?.status==='wallet-not-installed'||result.route?.status==='scheme-not-registered')status.textContent+=' This browser cannot verify native installation or scheme registration. An injected EVM provider is not proof of either.';
    }
   }catch(error){if(epoch===privateLoginEpoch&&!state.signingOut)status.textContent=error.message}
@@ -283,11 +290,15 @@ async function initializePrivateLogin(loadPrivateModule=()=>import('./private-se
 }
 
 function resetBYOKUI(){
+ resetPrivateOpenLink();
  byokCatalog=[];byokCredentials=[];
  if($('#byok-key'))$('#byok-key').value='';
  if($('#byok-confirm'))$('#byok-confirm').checked=false;
  if($('#generation-provider')){$('#generation-provider').innerHTML='<option value="">Hosted default</option>';$('#generation-provider').value=''}
  if($('#byok-list'))$('#byok-list').textContent='';
+}
+function resetPrivateOpenLink(){
+ const link=$('#private-open-wallet');if(link){link.hidden=true;link.href='';link.onclick=event=>event.preventDefault()}
 }
 function renderBYOKModels(){
  const provider=byokCatalog.find(item=>item.id===$('#byok-provider').value);

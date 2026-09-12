@@ -299,3 +299,22 @@ test('failed BYOK save does not restore the key into the page or browser storage
  assert.match(p.node('#byok-status').textContent,/Re-enter the key to retry/);
  assert.equal([...p.storage.values()].some(value=>String(value).includes('test-failing-secret')),false);
 });
+
+test('explicit login renders an official Wallet link but never opens it automatically',async()=>{
+ const p=page();await tick();
+ p.context.fetch=async()=>response(200,{canonicalConfigured:true,localFixtureAuthEnabled:false});
+ p.context.loadModule=async()=>({createAIPrivateSession:async()=>({
+  current:{status:'disconnected'},close(){},begin:async()=>({status:'connecting',automatic:false,route:{status:'ready',url:'ynxwallet://authorize?request=official',installation:'unverified'}}),
+ })});
+ await p.eval('initializePrivateLogin(loadModule)');
+ await p.node('#private-begin').onclick();
+ assert.equal(p.node('#private-open-wallet').href,'ynxwallet://authorize?request=official');
+ assert.equal(p.node('#private-open-wallet').hidden,false);
+ assert.match(p.node('#private-status').textContent,/Installation is unverified/);
+ assert.equal(p.context.location.href,undefined);
+ assert.equal(p.node('#app').classList.contains('hidden'),true);
+ p.eval('invalidateWalletSession()');
+ assert.equal(p.node('#private-open-wallet').hidden,true);
+ let prevented=false;p.node('#private-open-wallet').onclick({preventDefault(){prevented=true}});
+ assert.equal(prevented,true);
+});
