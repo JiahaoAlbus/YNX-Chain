@@ -37,8 +37,18 @@
         <button id="standard-wallet-metamask" class="primary small" type="button">MetaMask</button>
         <button id="standard-wallet-refresh" class="text-button" type="button">Refresh wallets</button>
         <button id="standard-wallet-disconnect" class="text-button" type="button">Disconnect here</button>
+        <button id="standard-wallet-revoke" class="text-button" type="button">Revoke wallet permissions</button>
         <button id="standard-wallet-network" class="text-button" type="button" hidden>Switch to YNX Testnet</button>
         <p id="standard-wallet-status" role="status">Checking available wallets without requesting accounts.</p>
+      </section>
+      <section class="notice" aria-labelledby="private-title">
+        <h2 id="private-title">Private YNX AI session</h2>
+        <p>Separate Wallet approval is required for private conversations. MetaMask account access does not create this session.</p>
+        <button id="private-begin" class="primary small" type="button">Begin private login</button>
+        <button id="private-restore" class="text-button" type="button">Restore private session</button>
+        <button id="private-revoke" class="text-button" type="button">Revoke / retry sign-out</button>
+        <a class="text-button" href="https://www.ynxweb4.com/dapp/download" target="_blank" rel="noreferrer">Install or repair YNX Wallet</a>
+        <p id="private-status" role="status">Reading canonical Wallet configuration.</p>
       </section>
       <section id="session-recovery" class="notice hidden" aria-labelledby="session-recovery-title">
         <h2 id="session-recovery-title">Restore your AI session</h2>
@@ -47,7 +57,7 @@
         <button id="session-signout" class="text-button" type="button">Sign out on this device</button>
       </section>
       <p class="notice"><strong>Canonical integration status:</strong> production sign-in stays fail-closed until the shared Wallet verifier and AI registry entry are deployed. The fields below are available only when a developer explicitly starts local fixture mode.</p>
-      <form id="challenge-form" class="auth-grid">
+      <form id="challenge-form" class="auth-grid hidden">
         <label>Native account <input id="account" required placeholder="ynx1…" autocomplete="off"></label>
         <label>Device ID <input id="device-id" required value="ynx-ai-browser" autocomplete="off"></label>
         <label>Device Ed25519 public key <input id="device-public" required placeholder="base64url public key" autocomplete="off"></label>
@@ -100,6 +110,7 @@
         <div class="topbar-actions">
           <div id="conversation-actions" class="conversation-actions hidden"><button id="rename-conversation" class="text-button">Rename</button><button id="branch-conversation" class="text-button">Branch</button><button id="archive-conversation" class="text-button">Archive</button><button id="export-conversation" class="text-button">Export</button><button id="delete-conversation" class="text-button danger-text">Delete</button></div>
           <div class="provider-pill"><span id="provider-dot" class="status-dot"></span><div><strong id="provider-label">Checking provider</strong><small id="model-label">Quota unknown</small></div></div>
+          <button id="provider-retry" class="text-button" type="button">Recheck model status</button>
         </div>
       </header>
 
@@ -114,9 +125,26 @@
         <div class="composer-wrap">
           <div class="context-strip">
             <span>CONTEXT</span>
+            <label>Model source<select id="generation-provider"><option value="">Hosted default</option></select></label>
             <label><input type="checkbox" value="conversation" checked> Conversation</label>
             <label><input type="checkbox" value="selected_chain_records"> Selected chain records</label>
             <button id="context-details" class="text-button">Exclusions</button>
+            <label>Output language
+              <select id="output-language" aria-label="AI response language">
+                <option value="en">English</option>
+                <option value="zh-CN">简体中文</option>
+                <option value="zh-TW">繁體中文</option>
+                <option value="ja">日本語</option>
+                <option value="ko">한국어</option>
+                <option value="es">Español</option>
+                <option value="fr">Français</option>
+                <option value="de">Deutsch</option>
+                <option value="pt">Português</option>
+                <option value="ru">Русский</option>
+                <option value="ar">العربية</option>
+                <option value="id">Bahasa Indonesia</option>
+              </select>
+            </label>
           </div>
           <div id="exclusion-row" class="exclusion-row hidden">
             <label><input type="checkbox" value="selected_files"> Exclude files</label>
@@ -139,13 +167,27 @@
 
       <section id="control-panel" class="panel management-panel">
         <div class="panel-heading"><div><p class="eyebrow">Bounded encrypted storage</p><h2>Privacy & retention</h2></div></div>
+        <section class="settings-card" aria-labelledby="byok-title">
+          <h3 id="byok-title">Your model provider</h3>
+          <p>Optional: store a provider API key encrypted on the AI server. Requests using it are billed by your provider. A saved key is not proof of a successful generation.</p>
+          <form id="byok-form" autocomplete="off">
+            <label>Provider<select id="byok-provider" required><option value="">Load provider catalog</option></select></label>
+            <label>Model<select id="byok-model" required></select></label>
+            <label>API key<input id="byok-key" type="password" minlength="8" maxlength="4096" autocomplete="new-password" spellcheck="false" required></label>
+            <label><input id="byok-confirm" type="checkbox" required> Store this key on the AI server for my account. Sending with it may incur provider charges.</label>
+            <button id="byok-save" class="primary small" type="submit">Save encrypted key</button>
+          </form>
+          <button id="byok-refresh" class="text-button" type="button">Refresh provider settings</button>
+          <p id="byok-status" role="status">No provider key is stored in this browser.</p>
+          <div id="byok-list"></div>
+        </section>
         <form id="privacy-form" class="settings-card">
           <label>Retention window <select id="retention"><option value="7">7 days</option><option value="30">30 days</option><option value="90">90 days</option></select></label>
           <label class="switch-row"><span><strong>Retain encrypted message bodies</strong><small>When off, new content is replaced by a non-retained marker after generation.</small></span><input id="save-body" type="checkbox"></label>
           <fieldset><legend>Context types this product may offer</legend><label><input class="policy-context" value="conversation" type="checkbox"> Conversation</label><label><input class="policy-context" value="selected_chain_records" type="checkbox"> Selected chain records</label><label><input class="policy-context" value="selected_files" type="checkbox"> Selected files</label><label><input class="policy-context" value="selected_trust_records" type="checkbox"> Selected Trust records</label></fieldset>
           <button class="primary small" type="submit">Save data policy</button>
         </form>
-        <div class="danger-card"><div><strong>Delete all YNX AI data</strong><p>Removes conversation metadata, encrypted content, local permission/action records, appeals, and policy state. Gateway audit retention remains a separate truthful boundary.</p></div><button id="delete-all" class="danger">Delete all</button></div>
+        <div class="danger-card"><div><strong>Delete all YNX AI data</strong><p>Removes conversation metadata, encrypted content, saved provider API keys, local permission/action records, appeals, and policy state. Existing encrypted backups and Gateway audit retention are separate. Removing a stored API key does not revoke it at its provider.</p></div><button id="delete-all" class="danger">Delete all</button></div>
       </section>
 
       <section id="audit-panel" class="panel management-panel">

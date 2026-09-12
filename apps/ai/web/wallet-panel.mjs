@@ -13,6 +13,7 @@ document.querySelector('#standard-wallet-ynx').onclick=()=>client.connect('ynx-w
 document.querySelector('#standard-wallet-metamask').onclick=()=>client.connect('metamask');
 document.querySelector('#standard-wallet-refresh').onclick=()=>client.scan().catch(()=>{status.textContent='Wallet discovery failed. Retry when your wallet is available.'});
 document.querySelector('#standard-wallet-disconnect').onclick=()=>client.disconnect();
+document.querySelector('#standard-wallet-revoke').onclick=()=>client.revoke();
 document.querySelector('#standard-wallet-network').onclick=()=>client.switchNetwork();
 window.addEventListener('pagehide',()=>client.dispose());
 window.addEventListener('pageshow',event=>{if(event.persisted)void client.restore()});

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"flag"
 	"log"
 	"net/http"
@@ -33,8 +34,15 @@ func main() {
 	upstreamMode := flag.String("upstream-mode", envOrDefault("YNX_AI_GATEWAY_UPSTREAM_MODE", aigateway.UpstreamAuthoritative), "chain upstream mode: authoritative or bft")
 	chainID := flag.Int64("chain-id", envInt64OrDefault("YNX_CHAIN_ID", 6423), "YNX BFT chain ID")
 	flag.Parse()
+	var providers map[string]aigateway.BYOKProvider
+	if raw := os.Getenv("YNX_AI_BYOK_PROVIDERS_JSON"); raw != "" {
+		if err := json.Unmarshal([]byte(raw), &providers); err != nil {
+			log.Fatal("YNX_AI_BYOK_PROVIDERS_JSON is invalid")
+		}
+	}
 
 	service, err := aigateway.New(aigateway.Config{
+		BYOKProviders: providers, BYOKAccessAPIKey: os.Getenv("YNX_AI_BYOK_ACCESS_KEY"),
 		ChainURL:       *chainURL,
 		ProviderURL:    *providerURL,
 		ProviderAPIKey: os.Getenv("OPENAI_API_KEY"),

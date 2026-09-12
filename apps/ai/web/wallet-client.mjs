@@ -1,4 +1,4 @@
-import {StandardWalletConnection,discoverWalletProviders} from './wallet-sdk.mjs';
+import {StandardWalletConnection,discoverWalletProviders} from './vendor/standard-wallet-browser.mjs';
 
 const choiceKey='ynx-ai-wallet-choice',disconnectKey='ynx-ai-wallet-disconnected';
 const names={'ynx-wallet':'YNX Wallet',metamask:'MetaMask'};
@@ -14,6 +14,7 @@ export class AIWalletClient {
   const connection=new StandardWalletConnection({provider:candidate.provider,origin:this.scope.location.origin,metadata:{name:'YNX AI',url:this.scope.location.origin}});
   this.connection=connection;
   this.unsubscribe=connection.subscribe(({event})=>{
+   if(this.revoking===connection)return;
    if(event==='disconnect'){this.disconnect('The wallet disconnected. Provider permissions have not been revoked by this page.');return}
    if(event==='accountsChanged'||event==='chainChanged'){
     this.onInvalidated();
@@ -51,17 +52,40 @@ export class AIWalletClient {
  async refresh(connection,version){
   const read=++this.readVersion;
   try{
-   const accounts=await connection.request({method:'eth_accounts'}),chain=await connection.request({method:'eth_chainId'});
+   const restored=await connection.restore();
    if(version!==this.version||read!==this.readVersion)return;
-   if(!Array.isArray(accounts)||!accounts.length){this.disconnect('Account access is unavailable. Choose a wallet explicitly to reconnect.');return}
-   if(typeof accounts[0]!=='string'||!/^0x[0-9a-fA-F]{40}$/.test(accounts[0])||typeof chain!=='string'||!/^0x(?:0|[1-9a-fA-F][0-9a-fA-F]*)$/.test(chain))throw new Error('The wallet returned an invalid account or chain.');
-   this.publish({status:chain.toLowerCase()==='0x1917'?'connected':'wrong-network',account:accounts[0].toLowerCase(),chainId:chain.toLowerCase(),message:'Existing account access read without requesting new permission. AI private access is separate.'});
+   if(!restored){this.disconnect('Account access is unavailable. Choose a wallet explicitly to reconnect.');return}
+   this.publish({status:restored.selectedChain==='0x1917'?'connected':'wrong-network',account:restored.selectedAccount,chainId:restored.selectedChain,message:'Existing account access read without requesting new permission. AI private access is separate.'});
   }catch(error){if(version===this.version&&read===this.readVersion){this.onInvalidated();this.publish({status:'unavailable',account:null,chainId:null,message:error.message})}}
  }
  async switchNetwork(){
   const connection=this.connection,version=this.version;if(!connection)return;
   try{await connection.request({method:'wallet_switchEthereumChain',params:[{chainId:'0x1917'}]});if(version===this.version)await this.refresh(connection,version)}
   catch(error){if(version===this.version)this.publish({message:error.code===4902?'Add YNX Testnet in your wallet, then retry the network switch.':error.code===4001?'Network switch declined. Your wallet choice has been kept.':error.message})}
+ }
+ async revoke(){
+  const connection=this.connection;
+  if(!connection||this.revoking)return;
+  const version=++this.version;++this.readVersion;
+  this.revoking=connection;this.onInvalidated();
+  this.storage.setItem(disconnectKey,'1');
+  this.publish({status:'revoking',account:null,chainId:null,message:'Review permission revocation in your selected wallet. AI private-session revocation is separate.'});
+  try{
+   const result=await connection.revoke();
+   if(version!==this.version||connection!==this.connection)return;
+   const messages={
+    revoked:'The wallet acknowledged revocation and returned no permitted accounts.',
+    unsupported:'This wallet does not support permission revocation. Remove this site in wallet settings.',
+    rejected:'Permission revocation was declined. Remove this site in wallet settings or reconnect and retry.',
+    failed:'Wallet permission revocation was not confirmed. Check this site in wallet settings.',
+    superseded:'The wallet changed during revocation. No permission-revocation confirmation is claimed.',
+   };
+   this.release();
+   const confirmed=result.status==='revoked'&&result.permissionRevoked===true;
+   this.publish({status:confirmed?'permissions-revoked':'disconnected',account:null,chainId:null,message:(confirmed?messages.revoked:messages[result.status==='revoked'?'failed':result.status]||messages.failed)+' This page is disconnected; remote AI private sessions are not revoked by this action.'});
+  }catch(error){
+   if(version===this.version){this.release();this.publish({status:'disconnected',account:null,chainId:null,message:'Disconnected locally. Wallet permission revocation was not confirmed: '+error.message})}
+  }finally{if(this.revoking===connection)this.revoking=null}
  }
  disconnect(message='Disconnected on this page. Wallet permissions and remote AI sessions are not revoked by this action.'){
   ++this.version;++this.readVersion;this.release();this.storage.setItem(disconnectKey,'1');this.onInvalidated();

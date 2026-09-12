@@ -28,6 +28,7 @@ function page({storage=new Map(),revoke=async()=>response(204),requests={}}={}){
    calls.push({path,options});
    if(path==='/api/auth/revoke')return revoke(options);
    if(requests[path])return requests[path](options);
+   if(path==='/api/wallet/config')return response(200,{localFixtureAuthEnabled:true,canonicalConfigured:false});
    if(path==='/api/auth/session')return response(200,{account:storage.get('ynx-ai-account'),deviceId:storage.get('ynx-ai-device')});
    if(path==='/api/public-status')return response(200,{gatewayReady:true});
    if(path.startsWith('/api/conversations?'))return response(200,{conversations:[]});
@@ -76,7 +77,7 @@ test('204 confirms only this AI session; local data is cleared before the respon
  assert.equal(p.timers.size,0);
  const reloaded=page({storage:p.storage});await tick();
  assert.match(reloaded.node('#auth-error').textContent,/server confirmed revocation of this AI session/);
- assert.deepEqual(reloaded.calls.map(c=>c.path),['/api/public-status']);
+ assert.deepEqual(reloaded.calls.map(c=>c.path),['/api/public-status','/api/wallet/config']);
  await p.logout();assert.equal(p.reloads,1);
 });
 
@@ -108,6 +109,7 @@ test('timeout aborts the revoke request and cannot leave logout waiting forever'
 test('late restore failure cannot clear other storage or race the logout reload',async()=>{
  let finishRestore,finishRevoke;
  const p=page({storage:credentials(),requests:{'/api/auth/session':()=>new Promise(resolve=>{finishRestore=resolve})},revoke:()=>new Promise(resolve=>{finishRevoke=resolve})});
+ await tick();
  const pending=p.logout();
  finishRestore(response(500));await tick();
  locallySignedOut(p);assert.equal(p.reloads,0);
@@ -134,7 +136,7 @@ test('401 readback removes only the expired AI session without an authorization 
  assert.equal(p.storage.get('wallet-sdk-state'),'keep-sdk');
  assert.equal(p.reloads,0);
  assert.equal(p.storage.get('ynx-ai-signout-status'),'expired');
- assert.deepEqual(p.calls.map(c=>c.path),['/api/auth/session']);
+ assert.deepEqual(p.calls.map(c=>c.path),['/api/public-status','/api/wallet/config','/api/auth/session']);
 });
 
 test('temporary readback failure keeps credentials, hides private UI and permits a single-flight retry',async()=>{
@@ -154,7 +156,7 @@ test('temporary readback failure keeps credentials, hides private UI and permits
 test('readback identity substitution is not silently adopted',async()=>{
  const p=page({storage:credentials(),requests:{'/api/auth/session':async()=>response(200,{account:'other-account',deviceId:'test-device'})}});await tick();
  locallySignedOut(p);assert.equal(p.storage.get('ynx-ai-signout-status'),'expired');
- assert.equal(p.calls.length,1);
+ assert.equal(p.calls.filter(c=>c.path==='/api/auth/session').length,1);
 });
 
 test('workspace loading failure does not erase a verified session',async()=>{
@@ -168,10 +170,132 @@ test('workspace loading failure does not erase a verified session',async()=>{
 test('provider identity changes clear private AI credentials and discard pending readback',async()=>{
  let finish;
  const p=page({storage:credentials(),requests:{'/api/auth/session':()=>new Promise(resolve=>{finish=resolve})}});
+ await tick();
  p.eval('invalidateWalletSession()');
  finish(response(200,{account:'test-account',deviceId:'test-device'}));await tick();
  locallySignedOut(p);
  assert.equal(p.storage.get('ynx-ai-signout-status'),'wallet-changed');
  assert.match(p.node('#auth-error').textContent,/remote revocation is not confirmed/);
- assert.equal(p.calls.length,1);
+ assert.equal(p.calls.filter(c=>c.path==='/api/auth/session').length,1);
+});
+
+test('logout while configuration is pending cannot start session restoration',async()=>{
+ let finish;
+ const p=page({storage:credentials(),requests:{'/api/wallet/config':()=>new Promise(resolve=>{finish=resolve})}});
+ await p.logout();
+ finish(response(200,{localFixtureAuthEnabled:true}));await tick();
+ locallySignedOut(p);
+ assert.equal(p.calls.some(c=>c.path==='/api/auth/session'),false);
+ assert.equal(p.reloads,1);
+});
+
+test('provider change cancels pending configuration before fixture restoration',async()=>{
+ let finish;
+ const p=page({storage:credentials(),requests:{'/api/wallet/config':()=>new Promise(resolve=>{finish=resolve})}});
+ p.eval('invalidateWalletSession()');
+ finish(response(200,{localFixtureAuthEnabled:true}));await tick();
+ locallySignedOut(p);
+ assert.equal(p.calls.some(c=>c.path==='/api/auth/session'),false);
+});
+
+test('late canonical client construction is closed after Wallet identity changes',async()=>{
+ const p=page();await tick();
+ let finish,closed=0;
+ p.context.fetch=async()=>response(200,{canonicalConfigured:true,localFixtureAuthEnabled:false});
+ p.context.loadModule=async()=>({createAIPrivateSession:()=>new Promise(resolve=>{finish=resolve})});
+ const pending=p.eval('initializePrivateLogin(loadModule)');await tick();
+ p.eval('invalidateWalletSession()');
+ finish({close(){closed++},current:{status:'disconnected'}});
+ await pending;
+ assert.equal(closed,1);
+ assert.equal(p.eval('privateSession'),null);
+ assert.equal(p.eval('state.account'), '');
+});
+
+test('late successful callback cannot reopen private workspace after invalidation',async()=>{
+ const p=page();await tick();
+ let finish;
+ p.context.location.pathname='/wallet-auth/callback';
+ p.context.location.href='https://assistant.ynxweb4.com/wallet-auth/callback?result=approved';
+ p.context.fetch=async()=>response(200,{canonicalConfigured:true,localFixtureAuthEnabled:false});
+ p.context.loadModule=async()=>({createAIPrivateSession:async()=>({
+  current:{status:'disconnected'},close(){},handleReturn:()=>new Promise(resolve=>{finish=resolve}),
+ })});
+ const pending=p.eval('initializePrivateLogin(loadModule)');await tick();
+ p.eval('invalidateWalletSession()');
+ finish({status:'connected',session:{account:'late-account',deviceId:'late-device'}});
+ await pending;
+ assert.equal(p.eval('privateSession'),null);
+ assert.equal(p.eval('state.account'),'');
+ assert.equal(p.node('#app').classList.contains('hidden'),true);
+});
+
+test('BYOK form submits only the selected profile and clears its key immediately',async()=>{
+ let finishSave;
+ const p=page({storage:credentials(),requests:{
+  '/api/provider-catalog':async()=>response(200,{providers:[{id:'example',models:['model-one']}]}),
+  '/api/provider-credentials':async()=>response(200,{credentials:[]}),
+  '/api/provider-credentials/example':()=>new Promise(resolve=>{finishSave=resolve}),
+ }});
+ await tick();
+ p.node('#byok-provider').value='example';p.node('#byok-model').value='model-one';
+ p.node('#byok-key').value='test-byok-key-not-real';p.node('#byok-confirm').checked=true;
+ const pending=p.submit('#byok-form');
+ assert.equal(p.node('#byok-key').value,'');
+ assert.equal(p.node('#byok-confirm').checked,false);
+ assert.equal(p.node('#byok-save').disabled,true);
+ const call=p.calls.find(c=>c.path==='/api/provider-credentials/example');
+ assert.equal(call.options.method,'PUT');
+ assert.deepEqual(JSON.parse(call.options.body),{model:'model-one',apiKey:'test-byok-key-not-real',confirmation:'store-provider-key'});
+ assert.equal([...p.storage.values()].some(value=>String(value).includes('test-byok-key-not-real')),false);
+ finishSave(response(200,{provider:'example',model:'model-one'}));await pending;
+ assert.match(p.node('#byok-status').textContent,/generation has not been verified/);
+ assert.equal(p.node('#byok-key').value,'');
+});
+
+test('BYOK save requires confirmation and a provider-model pair from the catalog',async()=>{
+ const p=page({storage:credentials(),requests:{
+  '/api/provider-catalog':async()=>response(200,{providers:[{id:'example',models:['model-one']}]}),
+  '/api/provider-credentials':async()=>response(200,{credentials:[]}),
+ }});await tick();
+ p.node('#byok-provider').value='example';p.node('#byok-model').value='model-one';
+ p.node('#byok-key').value='test-key-not-real';p.node('#byok-confirm').checked=false;
+ await p.submit('#byok-form');
+ p.node('#byok-confirm').checked=true;p.node('#byok-model').value='unlisted-model';
+ await p.submit('#byok-form');
+ assert.equal(p.calls.some(c=>c.options.method==='PUT'),false);
+});
+
+test('logout clears BYOK input and ignores a late successful credential save',async()=>{
+ let finishSave;
+ const p=page({storage:credentials(),requests:{
+  '/api/provider-catalog':async()=>response(200,{providers:[{id:'example',models:['model-one']}]}),
+  '/api/provider-credentials':async()=>response(200,{credentials:[]}),
+  '/api/provider-credentials/example':()=>new Promise(resolve=>{finishSave=resolve}),
+ }});await tick();
+ p.node('#byok-provider').value='example';p.node('#byok-model').value='model-one';
+ p.node('#byok-key').value='test-byok-key';p.node('#byok-confirm').checked=true;
+ const pending=p.submit('#byok-form');
+ await p.logout();
+ const status=p.node('#byok-status').textContent;
+ finishSave(response(200,{provider:'example',model:'model-one'}));await pending;
+ locallySignedOut(p);
+ assert.equal(p.node('#byok-status').textContent,status);
+ assert.equal(p.node('#byok-key').value,'');
+ assert.equal(p.eval('byokCredentials.length+byokCatalog.length'),0);
+ assert.equal(p.node('#generation-provider').value,'');
+});
+
+test('failed BYOK save does not restore the key into the page or browser storage',async()=>{
+ const p=page({storage:credentials(),requests:{
+  '/api/provider-catalog':async()=>response(200,{providers:[{id:'example',models:['model-one']}]}),
+  '/api/provider-credentials':async()=>response(200,{credentials:[]}),
+  '/api/provider-credentials/example':async()=>response(503,{error:'Storage unavailable'}),
+ }});await tick();
+ p.node('#byok-provider').value='example';p.node('#byok-model').value='model-one';
+ p.node('#byok-key').value='test-failing-secret';p.node('#byok-confirm').checked=true;
+ await p.submit('#byok-form');
+ assert.equal(p.node('#byok-key').value,'');
+ assert.match(p.node('#byok-status').textContent,/Re-enter the key to retry/);
+ assert.equal([...p.storage.values()].some(value=>String(value).includes('test-failing-secret')),false);
 });

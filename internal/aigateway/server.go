@@ -36,6 +36,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /health", s.handleHealth)
 	s.mux.HandleFunc("GET /metrics", s.handleMetrics)
 	s.mux.HandleFunc("POST /ai/stream", s.handleStream)
+	s.mux.HandleFunc("POST /ai/byok/stream", s.handleStream)
+	s.mux.HandleFunc("GET /ai/byok/providers", s.handleBYOKProviders)
 	s.mux.HandleFunc("POST /ai/permissions", s.handleProxy)
 	s.mux.HandleFunc("GET /ai/permissions", s.handleProxy)
 	s.mux.HandleFunc("GET /ai/permissions/{id}", s.handleProxy)
@@ -71,6 +73,11 @@ func (s *Server) handleStream(w http.ResponseWriter, r *http.Request) {
 	if !ok {
 		return
 	}
+	byok := r.URL.Path == "/ai/byok/stream"
+	if byok && (s.service.cfg.BYOKAccessAPIKey == "" || !equalHash(r.Header.Get("X-YNX-AI-BYOK-Key"), s.service.cfg.BYOKAccessAPIKey)) {
+		writeError(w, http.StatusUnauthorized, requestID, "byok_unauthorized", "BYOK product access is required")
+		return
+	}
 	if r.URL.RawQuery != "" {
 		s.service.RejectRequest()
 		s.finish(w, r, requestID, "", "", http.StatusBadRequest, "invalid_request", "query parameters are not allowed on the AI stream endpoint")
@@ -97,6 +104,16 @@ func (s *Server) handleStream(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	session, prompt := strings.TrimSpace(input.Session), strings.TrimSpace(input.Prompt)
+	if byok {
+		if err := s.service.validateProviderSelection(input.ProviderSelection); err != nil {
+			writeError(w, http.StatusBadRequest, requestID, "invalid_provider", err.Error())
+			return
+		}
+		defer func() { input.ProviderSelection.APIKey = "" }()
+	} else if input.ProviderSelection != nil {
+		writeError(w, http.StatusBadRequest, requestID, "invalid_request", "provider selection requires the dedicated BYOK endpoint")
+		return
+	}
 	if finding := guardGenerationContent(input); finding.Code != "" {
 		s.service.RejectRequest()
 		s.finish(w, r, requestID, session, PromptHash(prompt), http.StatusBadRequest, finding.Code, "restricted credential material or indirect prompt injection was rejected")
@@ -125,7 +142,7 @@ func (s *Server) handleStream(w http.ResponseWriter, r *http.Request) {
 	}
 	query := completionQuery(prompt, input.OutputLanguage, input.Attachments, input.ProductContexts)
 	s.service.StartRequest()
-	answer, err := s.service.Complete(r.Context(), session, query, requestID)
+	answer, err := s.service.completeWithProvider(r.Context(), session, query, requestID, input.ProviderSelection)
 	if err != nil {
 		status, code, message := http.StatusBadGateway, "upstream_error", "AI provider is unavailable"
 		var providerError *ProviderHTTPError
@@ -158,15 +175,16 @@ func (s *Server) handleStream(w http.ResponseWriter, r *http.Request) {
 }
 
 type generationInput struct {
-	Session         string                    `json:"session"`
-	AccountHash     string                    `json:"accountHash"`
-	Prompt          string                    `json:"prompt"`
-	OutputLanguage  string                    `json:"outputLanguage"`
-	IncludedContext []string                  `json:"includedContext"`
-	ExcludedContext []string                  `json:"excludedContext"`
-	Attachments     []attachmentContext       `json:"attachments"`
-	ProductContexts []productContextReference `json:"productContexts"`
-	ContinueFrom    string                    `json:"continueFrom"`
+	ProviderSelection *ProviderSelection        `json:"providerSelection,omitempty"`
+	Session           string                    `json:"session"`
+	AccountHash       string                    `json:"accountHash"`
+	Prompt            string                    `json:"prompt"`
+	OutputLanguage    string                    `json:"outputLanguage"`
+	IncludedContext   []string                  `json:"includedContext"`
+	ExcludedContext   []string                  `json:"excludedContext"`
+	Attachments       []attachmentContext       `json:"attachments"`
+	ProductContexts   []productContextReference `json:"productContexts"`
+	ContinueFrom      string                    `json:"continueFrom"`
 }
 
 type attachmentContext struct {

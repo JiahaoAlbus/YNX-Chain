@@ -51,6 +51,19 @@ func normalizePersistentState(state *persistentState) error {
 	if state.Attachments == nil {
 		state.Attachments = map[string][]storedAttachment{}
 	}
+	if state.ProviderCredentials == nil {
+		state.ProviderCredentials = map[string]map[string]storedProviderCredential{}
+	}
+	for account, records := range state.ProviderCredentials {
+		if account == "" || len(records) > 16 {
+			return errors.New("AI provider credential state is invalid")
+		}
+		for provider, record := range records {
+			if !providerIDPattern.MatchString(provider) || record.Provider != provider || !providerModelPattern.MatchString(record.Model) || record.Nonce == "" || record.Cipher == "" || record.UpdatedAt.IsZero() {
+				return errors.New("AI provider credential state is invalid")
+			}
+		}
+	}
 	if state.FormalRequests == nil {
 		state.FormalRequests = map[string]FormalWalletRequestRecord{}
 	}

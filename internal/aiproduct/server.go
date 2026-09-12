@@ -26,6 +26,7 @@ type Config struct {
 	CanonicalWalletGatewayOrigin string
 	GatewayURL                   string
 	GatewayKey                   string
+	BYOKGatewayKey               string
 	ExactWalletCallback          string
 	TrustURL                     string
 	ProviderName                 string
@@ -119,6 +120,10 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /api/auth/session", s.authed("", s.handleSessionReadback))
 	s.mux.HandleFunc("POST /api/auth/revoke", s.authed("", s.handleRevoke))
 	s.mux.HandleFunc("GET /api/provider", s.authed("ai:generate", s.handleProvider))
+	s.mux.HandleFunc("GET /api/provider-credentials", s.authed("ai:data-control", s.handleProviderCredentials))
+	s.mux.HandleFunc("GET /api/provider-catalog", s.authed("ai:data-control", s.handleProviderCatalog))
+	s.mux.HandleFunc("PUT /api/provider-credentials/{provider}", s.authed("ai:data-control", s.handleSaveProviderCredential))
+	s.mux.HandleFunc("DELETE /api/provider-credentials/{provider}", s.authed("ai:data-control", s.handleDeleteProviderCredential))
 	s.mux.HandleFunc("GET /api/usage", s.authed("ai:data-control", s.handleUsage))
 	s.mux.HandleFunc("GET /api/conversations", s.authed("ai:conversations", s.handleConversationList))
 	s.mux.HandleFunc("POST /api/conversations", s.authed("ai:conversations", s.handleConversationCreate))
@@ -366,10 +371,22 @@ func (s *Server) gatewayRequest(ctx context.Context, method, path string, body a
 		return nil, err
 	}
 	req.Header.Set("X-YNX-AI-Key", s.cfg.GatewayKey)
+	if strings.HasPrefix(path, "/ai/byok/") {
+		if s.cfg.BYOKGatewayKey == "" {
+			return nil, errors.New("BYOK Gateway access is not configured")
+		}
+		target, err := url.Parse(s.cfg.GatewayURL)
+		if err != nil || (target.Scheme != "https" && target.Hostname() != "127.0.0.1" && target.Hostname() != "localhost" && target.Hostname() != "::1") {
+			return nil, errors.New("BYOK requires HTTPS or loopback Gateway transport")
+		}
+		req.Header.Set("X-YNX-AI-BYOK-Key", s.cfg.BYOKGatewayKey)
+	}
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
 	}
-	return s.client.Do(req)
+	client := *s.client
+	client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+	return client.Do(req)
 }
 
 func (s *Server) providerStatus(ctx context.Context) map[string]any {
@@ -541,17 +558,18 @@ func (s *Server) handleAttachmentDelete(w http.ResponseWriter, r *http.Request, 
 }
 
 type generationInput struct {
-	GenerationID    string                    `json:"generationId"`
-	Prompt          string                    `json:"prompt"`
-	Provider        string                    `json:"provider"`
-	Model           string                    `json:"model"`
-	IncludedContext []string                  `json:"includedContext"`
-	ExcludedContext []string                  `json:"excludedContext"`
-	ProductContexts []ProductContextSelection `json:"productContexts,omitempty"`
-	RetryOf         string                    `json:"retryOf"`
-	OutputLanguage  string                    `json:"outputLanguage"`
-	AttachmentIDs   []string                  `json:"attachmentIds,omitempty"`
-	ContinueFrom    string                    `json:"continueFrom,omitempty"`
+	GenerationID       string                    `json:"generationId"`
+	Prompt             string                    `json:"prompt"`
+	Provider           string                    `json:"provider"`
+	Model              string                    `json:"model"`
+	IncludedContext    []string                  `json:"includedContext"`
+	ExcludedContext    []string                  `json:"excludedContext"`
+	ProductContexts    []ProductContextSelection `json:"productContexts,omitempty"`
+	RetryOf            string                    `json:"retryOf"`
+	OutputLanguage     string                    `json:"outputLanguage"`
+	AttachmentIDs      []string                  `json:"attachmentIds,omitempty"`
+	CredentialProvider string                    `json:"credentialProvider,omitempty"`
+	ContinueFrom       string                    `json:"continueFrom,omitempty"`
 }
 
 func (s *Server) handleGenerate(w http.ResponseWriter, r *http.Request, session ProductSession) {
@@ -612,7 +630,24 @@ func (s *Server) handleGenerate(w http.ResponseWriter, r *http.Request, session 
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
-	status := s.providerStatus(r.Context())
+	status := map[string]any{}
+	var selectedCredential ProviderCredentialMetadata
+	var selectedKey string
+	if in.CredentialProvider != "" {
+		var err error
+		selectedCredential, selectedKey, err = s.store.providerCredential(session.Account, in.CredentialProvider)
+		if err != nil {
+			writeError(w, http.StatusBadRequest, "selected provider credential is unavailable")
+			return
+		}
+		if s.cfg.BYOKGatewayKey == "" {
+			writeError(w, http.StatusServiceUnavailable, "BYOK Gateway is not configured")
+			return
+		}
+		status["available"], status["model"] = true, selectedCredential.Model
+	} else {
+		status = s.providerStatus(r.Context())
+	}
 	if status["available"] != true {
 		if status["status"] == "rate_limited" {
 			writeError(w, http.StatusTooManyRequests, "AI provider quota reached (429); no substitute answer was generated")
@@ -646,7 +681,14 @@ func (s *Server) handleGenerate(w http.ResponseWriter, r *http.Request, session 
 	if len(resolvedProductContexts) > 0 {
 		payload["accountHash"] = hashProductAccount(session.Account, conversationID)
 	}
-	resp, err := s.gatewayRequest(ctx, http.MethodPost, "/ai/stream", payload)
+	gatewayPath := "/ai/stream"
+	if in.CredentialProvider != "" {
+		gatewayPath = "/ai/byok/stream"
+		payload["providerSelection"] = map[string]string{"provider": selectedCredential.Provider, "model": selectedCredential.Model, "apiKey": selectedKey}
+	}
+	resp, err := s.gatewayRequest(ctx, http.MethodPost, gatewayPath, payload)
+	delete(payload, "providerSelection")
+	selectedKey = ""
 	if err != nil {
 		s.streamFailure(w, "timeout_or_gateway_unavailable", in.GenerationID)
 		return

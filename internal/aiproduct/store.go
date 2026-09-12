@@ -33,21 +33,22 @@ type storedAttachment struct {
 }
 
 type persistentState struct {
-	Version          int                                     `json:"version"`
-	Conversations    map[string]Conversation                 `json:"conversations"`
-	Messages         map[string][]storedMessage              `json:"messages"`
-	Attachments      map[string][]storedAttachment           `json:"attachments"`
-	Policies         map[string]DataPolicy                   `json:"policies"`
-	Permissions      map[string]PermissionRecord             `json:"permissions"`
-	Actions          map[string]ActionRecord                 `json:"actions"`
-	Appeals          map[string]Appeal                       `json:"appeals"`
-	Audits           []AuditRecord                           `json:"audits"`
-	AuditSequence    uint64                                  `json:"auditSequence"`
-	Challenges       map[string]WalletChallenge              `json:"walletChallenges"`
-	Sessions         map[string]ProductSession               `json:"sessions"`
-	FormalRequests   map[string]FormalWalletRequestRecord    `json:"formalWalletRequests"`
-	FormalChallenges map[string]FormalGatewayChallengeRecord `json:"formalGatewayChallenges"`
-	AppliedBackups   map[string]time.Time                    `json:"appliedBackups,omitempty"`
+	ProviderCredentials map[string]map[string]storedProviderCredential `json:"providerCredentials,omitempty"`
+	Version             int                                            `json:"version"`
+	Conversations       map[string]Conversation                        `json:"conversations"`
+	Messages            map[string][]storedMessage                     `json:"messages"`
+	Attachments         map[string][]storedAttachment                  `json:"attachments"`
+	Policies            map[string]DataPolicy                          `json:"policies"`
+	Permissions         map[string]PermissionRecord                    `json:"permissions"`
+	Actions             map[string]ActionRecord                        `json:"actions"`
+	Appeals             map[string]Appeal                              `json:"appeals"`
+	Audits              []AuditRecord                                  `json:"audits"`
+	AuditSequence       uint64                                         `json:"auditSequence"`
+	Challenges          map[string]WalletChallenge                     `json:"walletChallenges"`
+	Sessions            map[string]ProductSession                      `json:"sessions"`
+	FormalRequests      map[string]FormalWalletRequestRecord           `json:"formalWalletRequests"`
+	FormalChallenges    map[string]FormalGatewayChallengeRecord        `json:"formalGatewayChallenges"`
+	AppliedBackups      map[string]time.Time                           `json:"appliedBackups,omitempty"`
 }
 
 type Store struct {
@@ -668,6 +669,7 @@ func (s *Store) DeleteAccount(account string) error {
 		}
 	}
 	delete(s.state.Policies, account)
+	delete(s.state.ProviderCredentials, account)
 	now := s.now().UTC()
 	for id, session := range s.state.Sessions {
 		if session.Account == account {
@@ -681,7 +683,7 @@ func (s *Store) DeleteAccount(account string) error {
 			delete(s.state.Challenges, id)
 		}
 	}
-	s.auditLocked(account, "account_data_deleted", account, "conversation data, controls, permissions and appeals removed")
+	s.auditLocked(account, "account_data_deleted", account, "conversation data, controls, permissions, appeals and provider credentials removed")
 	return s.saveLocked()
 }
 
