@@ -760,29 +760,43 @@ func (s *Service) bookLocked() OrderBook {
 			}
 		}
 	}
-	sort.Slice(book.Bids, func(i, j int) bool { return book.Bids[i].PriceMicro > book.Bids[j].PriceMicro })
-	sort.Slice(book.Asks, func(i, j int) bool { return book.Asks[i].PriceMicro < book.Asks[j].PriceMicro })
+	priority := func(a, b Order, bids bool) bool {
+		if a.PriceMicro != b.PriceMicro {
+			if bids {
+				return a.PriceMicro > b.PriceMicro
+			}
+			return a.PriceMicro < b.PriceMicro
+		}
+		if !a.CreatedAt.Equal(b.CreatedAt) {
+			return a.CreatedAt.Before(b.CreatedAt)
+		}
+		return a.ID < b.ID
+	}
+	sort.Slice(book.Bids, func(i, j int) bool { return priority(book.Bids[i], book.Bids[j], true) })
+	sort.Slice(book.Asks, func(i, j int) bool { return priority(book.Asks[i], book.Asks[j], false) })
 	return book
 }
 
 // MarketDataSnapshot is a read-only point-in-time view used by the public
 // SSE feed. Revision is the durable-store revision, not an in-memory counter.
 type MarketDataSnapshot struct {
-	Revision       int64          `json:"revision"`
-	Market         string         `json:"market"`
-	OrderBook      OrderBook      `json:"orderBook"`
-	Trades         []Trade        `json:"trades"`
-	SourceMetadata SourceMetadata `json:"sourceMetadata"`
+	SchemaVersion  string          `json:"schemaVersion"`
+	Revision       int64           `json:"revision"`
+	Market         string          `json:"market"`
+	OrderBook      PublicOrderBook `json:"orderBook"`
+	Trades         []PublicTrade   `json:"trades"`
+	SourceMetadata SourceMetadata  `json:"sourceMetadata"`
 }
 
 func (s *Service) marketDataSnapshot() (MarketDataSnapshot, string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return MarketDataSnapshot{
+		SchemaVersion:  "exchange-public-market-v1",
 		Revision:       s.state.Revision,
 		Market:         DefaultMarket,
-		OrderBook:      s.bookLocked(),
-		Trades:         s.publicTradesLocked(1000),
+		OrderBook:      publicBook(s.bookLocked()),
+		Trades:         publicTrades(s.publicTradesLocked(1000)),
 		SourceMetadata: s.readSource("stream-orderbook-matched-trades"),
 	}, fmt.Sprintf("%d:%s", s.state.Revision, s.state.IntegrityHash)
 }

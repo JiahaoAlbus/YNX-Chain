@@ -32,6 +32,7 @@ func NewServer(service *Service) *Server {
 	s.mux.HandleFunc("GET /v1/markets", s.markets)
 	s.mux.HandleFunc("GET /v1/orderbook", s.book)
 	s.mux.HandleFunc("GET /v1/market-data/trades", s.marketTrades)
+	s.mux.HandleFunc("GET /v1/market-data/snapshot", s.marketSnapshot)
 	s.mux.HandleFunc("GET /v1/market-data/stream", s.marketDataStream)
 	s.mux.HandleFunc("GET /v1/account", s.account)
 	s.mux.HandleFunc("POST /v1/deposit-intents", s.depositIntent)
@@ -93,9 +94,15 @@ func (s *Server) config(w http.ResponseWriter, r *http.Request) {
 func (s *Server) markets(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, map[string]any{"markets": Markets(), "source": "YNX-owned deterministic order state only", "sourceMetadata": s.service.readSource("market-catalog")})
 }
-func (s *Server) book(w http.ResponseWriter, r *http.Request) { writeJSON(w, 200, s.service.Book()) }
+func (s *Server) book(w http.ResponseWriter, r *http.Request) {
+	writeJSON(w, 200, publicBook(s.service.Book()))
+}
 func (s *Server) marketTrades(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, 200, map[string]any{"market": DefaultMarket, "source": "YNX-owned deterministic matched trades only", "sourceMetadata": s.service.readSource("matched-trades"), "externalPrice": false, "trades": s.service.PublicTrades(1000)})
+	writeJSON(w, 200, map[string]any{"market": DefaultMarket, "source": "YNX-owned deterministic matched trades only", "sourceMetadata": s.service.readSource("matched-trades"), "externalPrice": false, "trades": publicTrades(s.service.PublicTrades(1000))})
+}
+func (s *Server) marketSnapshot(w http.ResponseWriter, r *http.Request) {
+	snapshot, _ := s.service.marketDataSnapshot()
+	writeJSON(w, http.StatusOK, snapshot)
 }
 
 // marketDataStream is a product-owned, read-only SSE feed. Each subscriber
@@ -127,7 +134,11 @@ func (s *Server) marketDataStream(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("X-Accel-Buffering", "no")
 	lastFingerprint := ""
+	controller := http.NewResponseController(w)
 	emit := func(event string, stream streamSnapshot) error {
+		// The server's ordinary response deadline must not expire a healthy SSE
+		// subscription. Each write still has a bounded deadline for slow clients.
+		_ = controller.SetWriteDeadline(time.Now().Add(10 * time.Second))
 		value := stream.value
 		payload, err := json.Marshal(value)
 		if err != nil {
@@ -162,7 +173,10 @@ func (s *Server) marketDataStream(w http.ResponseWriter, r *http.Request) {
 				}
 				continue
 			}
-			_, _ = fmt.Fprint(w, ": keepalive\n\n")
+			_ = controller.SetWriteDeadline(time.Now().Add(10 * time.Second))
+			if _, err := fmt.Fprintf(w, "event: heartbeat\ndata: {\"revision\":%d}\n\n", snapshot.value.Revision); err != nil {
+				return
+			}
 			flusher.Flush()
 		}
 	}

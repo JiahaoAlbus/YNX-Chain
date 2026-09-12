@@ -23,7 +23,7 @@ const files=[];
 const sha256=value=>createHash("sha256").update(value).digest("hex");
 const add=async(absolute,relative,mode)=>{const info=await stat(absolute);if(!info.isFile()||info.isSymbolicLink())throw new Error(`required regular file missing: ${relative}`);files.push({relative,data:await readFile(absolute),mode});};
 await add(binary,`${release}/ynx-exchanged`,0o755);
-for(const name of ["app.js","index.html","styles.css"])await add(path.join(root,"apps/exchange/web",name),`${release}/apps/exchange/web/${name}`,0o644);
+for(const name of ["app.js","market-data.js","index.html","styles.css"])await add(path.join(root,"apps/exchange/web",name),`${release}/apps/exchange/web/${name}`,0o644);
 await add(walletBundle,`${release}/apps/exchange/web/wallet-connect.js`,0o644);
 files.sort((a,b)=>a.relative.localeCompare(b.relative));
 const inventory=files.map(file=>({path:file.relative,sha256:sha256(file.data),bytes:file.data.length,mode:file.mode.toString(8)}));
