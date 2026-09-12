@@ -1,0 +1,207 @@
+{
+  "schemaVersion": 1,
+  "product": "finance",
+  "kind": "SDK-source-local-candidate",
+  "source": {
+    "commit": "7a1d2aba6e72e5567931f451a9f069a544f58783",
+    "tree": "2a802bdc2ac0963bf6babe728bf0355012b3a0a6",
+    "branch": "codex/finance-wallet-flow-20260912"
+  },
+  "archive": {
+    "path": "/Users/huangjiahao/Desktop/YNX Project Audit 2026-09-06/continuation-01a075bd/finance-sdk-7a1d2aba6e72/ynx-finance-sdk-7a1d2aba-linux-amd64.tar.gz",
+    "bytes": 3996021,
+    "sha256": "60e9703135f6a46f1f563d7ff5b2ae8419fae65c664f176d6fda0b8ca0b570fc",
+    "kind": "Linux server runtime, not a desktop installer"
+  },
+  "inventory": [
+    {
+      "path": "ynx-finance",
+      "bytes": 8626360,
+      "sha256": "d0cc204f851afa0aace9bba06c3048a0bd1dc623b686eac56cab8ae6e0046c77",
+      "mode": "755"
+    },
+    {
+      "path": "web/index.html",
+      "bytes": 12649,
+      "sha256": "06eafa1ce886d1b89ae00b728210c2dc3a51e6acb59cb4a1f34a44058cd236f8",
+      "mode": "644"
+    },
+    {
+      "path": "web/app.js",
+      "bytes": 18489,
+      "sha256": "f795c2d97d450252eae1119926b4484c32c7f8a00a3b31e539360ab8f45c3da3",
+      "mode": "644"
+    },
+    {
+      "path": "web/wallet-auth.js",
+      "bytes": 149577,
+      "sha256": "bfeeade2946dbc1f9f51b8752cc83a465eceb9b3a8690583e27f56caa91e2048",
+      "mode": "644"
+    },
+    {
+      "path": "web/read-sources.js",
+      "bytes": 10920,
+      "sha256": "e19b7b266c14b181a4d88b10c6e1975398bdafb77660272f37ba22b48fc18c70",
+      "mode": "644"
+    },
+    {
+      "path": "web/styles.css",
+      "bytes": 13935,
+      "sha256": "bd01b920fee3693204a63aed364c27becf4c9c84f3ee1ed9dd3e2d35a39b5d9f",
+      "mode": "644"
+    },
+    {
+      "path": "web/manifest.webmanifest",
+      "bytes": 241,
+      "sha256": "3f7bec35f54aad6a095151e9d4d553e7ea10cbbbcc9e16f0f3fe7abd242b6d05",
+      "mode": "644"
+    },
+    {
+      "path": "web/ynx-logo.png",
+      "bytes": 104171,
+      "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+      "mode": "644"
+    }
+  ],
+  "build": {
+    "command": "CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -buildvcs=false -ldflags '-s -w -X main.buildCommit=7a1d2aba6e72e5567931f451a9f069a544f58783 -X main.buildRelease=finance-sdk-7a1d2aba6e72-linux-amd64 -X main.buildTime=2026-09-12T10:26:47Z' -o <candidate>/ynx-finance ./apps/finance/cmd/server",
+    "sourceTimestampUsed": true,
+    "repeatBinaryHashIdentical": true,
+    "archiveReextractedAndExactInventoryVerified": true
+  },
+  "tests": {
+    "node": 35,
+    "passed": 35,
+    "failed": 0,
+    "skipped": 0,
+    "goRace": "PASS shared ProductSessionv2, Finance, Finance cmd",
+    "security": "PASS 330 text files",
+    "nodeSyntax": "PASS",
+    "diffCheck": "PASS",
+    "localExecutable": {
+      "kind": "local-darwin-executable-only",
+      "source": "7a1d2aba6e72e5567931f451a9f069a544f58783",
+      "coldStart": true,
+      "secondLaunch": true,
+      "missingProofRejected": true,
+      "legacyIsolated": true,
+      "public": false,
+      "linuxExecuted": false,
+      "receipts": [
+        {
+          "launch": 1,
+          "path": "/version",
+          "status": 200,
+          "bytes": 139,
+          "sha256": "6291e7e11fc80040d0f839dd0b3c657a2b6ed68d493a92a992a78218939d23e4",
+          "mime": "application/json; charset=utf-8"
+        },
+        {
+          "launch": 1,
+          "path": "/health",
+          "status": 200,
+          "bytes": 470,
+          "sha256": "342837de701449febd3804f2dae4d57256dda3a5607fd61cfa83c51fc9a663b8",
+          "mime": "application/json; charset=utf-8"
+        },
+        {
+          "launch": 1,
+          "path": "/ready",
+          "status": 200,
+          "bytes": 99,
+          "sha256": "0b79c7355df523247dd9c738c43aa7250c3d1b62a653c29bace83fe753dc5e01",
+          "mime": "application/json; charset=utf-8"
+        },
+        {
+          "launch": 1,
+          "path": "/",
+          "status": 200,
+          "bytes": 12649,
+          "sha256": "06eafa1ce886d1b89ae00b728210c2dc3a51e6acb59cb4a1f34a44058cd236f8",
+          "mime": "text/html; charset=utf-8"
+        },
+        {
+          "launch": 1,
+          "path": "/wallet-auth.js",
+          "status": 200,
+          "bytes": 149577,
+          "sha256": "bfeeade2946dbc1f9f51b8752cc83a465eceb9b3a8690583e27f56caa91e2048",
+          "mime": "text/javascript; charset=utf-8"
+        },
+        {
+          "launch": 1,
+          "path": "/api/profile",
+          "status": 401,
+          "bytes": 209,
+          "sha256": "e4f94e789a47ab9b8dbb5b84963e3a646ff575181c2b135be61a4ed776ac988e",
+          "mime": "application/json; charset=utf-8"
+        },
+        {
+          "launch": 2,
+          "path": "/version",
+          "status": 200,
+          "bytes": 139,
+          "sha256": "6291e7e11fc80040d0f839dd0b3c657a2b6ed68d493a92a992a78218939d23e4",
+          "mime": "application/json; charset=utf-8"
+        },
+        {
+          "launch": 2,
+          "path": "/health",
+          "status": 200,
+          "bytes": 470,
+          "sha256": "342837de701449febd3804f2dae4d57256dda3a5607fd61cfa83c51fc9a663b8",
+          "mime": "application/json; charset=utf-8"
+        },
+        {
+          "launch": 2,
+          "path": "/ready",
+          "status": 200,
+          "bytes": 99,
+          "sha256": "0b79c7355df523247dd9c738c43aa7250c3d1b62a653c29bace83fe753dc5e01",
+          "mime": "application/json; charset=utf-8"
+        },
+        {
+          "launch": 2,
+          "path": "/",
+          "status": 200,
+          "bytes": 12649,
+          "sha256": "06eafa1ce886d1b89ae00b728210c2dc3a51e6acb59cb4a1f34a44058cd236f8",
+          "mime": "text/html; charset=utf-8"
+        },
+        {
+          "launch": 2,
+          "path": "/wallet-auth.js",
+          "status": 200,
+          "bytes": 149577,
+          "sha256": "bfeeade2946dbc1f9f51b8752cc83a465eceb9b3a8690583e27f56caa91e2048",
+          "mime": "text/javascript; charset=utf-8"
+        },
+        {
+          "launch": 2,
+          "path": "/api/profile",
+          "status": 401,
+          "bytes": 209,
+          "sha256": "aade533ed8c12211f5ea55a0ddeb41a05c01faef9c46edaed137dc65a5759d8a",
+          "mime": "application/json; charset=utf-8"
+        }
+      ]
+    }
+  },
+  "truth": {
+    "sourceConsumed": true,
+    "localBrowserFixtures": true,
+    "publicDeployed": false,
+    "linuxExecuted": false,
+    "installedWallet": false,
+    "realAccountApproval": false,
+    "realSignature": false,
+    "transaction": false,
+    "productSessionPublicVerified": false
+  },
+  "remaining": [
+    "public deployment requires a fresh Central lease and exact new v2 authority/config/rollback binding",
+    "native install, real selected-provider and Wallet return evidence",
+    "Web localization and safe monetary precision / budgetProgress display are separate next business slice"
+  ],
+  "rollback": "No production changed. Only normal reviewed source revert; no old production lease is reusable."
+}
