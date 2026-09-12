@@ -1,0 +1,172 @@
+{
+  "sourceCommit": "d736a87831fe83249ce7adfeae7a21efbc283b3e",
+  "sourceTree": "2e26db6a13597fde7e35642e1c9515a06d761b1c",
+  "localOnly": true,
+  "platform": "darwin-arm64",
+  "binary": {
+    "path": "/tmp/ynx-exchange-schema10-runtime-20260912.S33fLQ/ynx-exchanged-darwin-arm64",
+    "bytes": 9166594,
+    "sha256": "9c40081dc043d7a8f26d25defe09ba7abc55777cbdde8cc366e647e382dfa77a"
+  },
+  "launches": [
+    {
+      "launch": 1,
+      "http": [
+        {
+          "path": "/api/version",
+          "status": 200,
+          "bytes": 107,
+          "sha256": "3c0bbc64dc5c2b46bf022341e332595c0a4a95cf12a2befa73ac2820d249a0d0",
+          "mime": "application/json; charset=utf-8"
+        },
+        {
+          "path": "/api/health",
+          "status": 200,
+          "bytes": 307,
+          "sha256": "f7b2947c118b79fb9c2d6f6609a73e8d8bc6c9eca2b47d37ac6789af3c89557b",
+          "mime": "application/json; charset=utf-8"
+        },
+        {
+          "path": "/",
+          "status": 200,
+          "bytes": 20878,
+          "sha256": "6b0dc758aa3ff2b9414d2c22e398c86d507d0cb5f1e6318a4735d6c0456503bb",
+          "mime": "text/html; charset=utf-8"
+        },
+        {
+          "path": "/app.js",
+          "status": 200,
+          "bytes": 30100,
+          "sha256": "83f2e39e6a16e7e54f932f2128f1306a1862e4614e641c501ebe58e11d2251d2",
+          "mime": "text/javascript; charset=utf-8"
+        },
+        {
+          "path": "/styles.css",
+          "status": 200,
+          "bytes": 11299,
+          "sha256": "1e86f5d4bdcb19a528bf7aa552e71669dd59caec83c16b06c26fb0af0581c61a",
+          "mime": "text/css; charset=utf-8"
+        },
+        {
+          "path": "/wallet-auth.js",
+          "status": 200,
+          "bytes": 169796,
+          "sha256": "005fec11a8e3838a5c0e7246e2e4d98c7791e8adc25ac07a391166d5bf0840cd",
+          "mime": "text/javascript; charset=utf-8"
+        }
+      ],
+      "unsignedAccountReadStatus": 401,
+      "state": {
+        "bytes": 954,
+        "sha256": "9681e6434340d24b7466ac16ecb6066ebb797bfd7225f9267f06484731789436"
+      }
+    },
+    {
+      "launch": 2,
+      "http": [
+        {
+          "path": "/api/version",
+          "status": 200,
+          "bytes": 107,
+          "sha256": "3c0bbc64dc5c2b46bf022341e332595c0a4a95cf12a2befa73ac2820d249a0d0",
+          "mime": "application/json; charset=utf-8"
+        },
+        {
+          "path": "/api/health",
+          "status": 200,
+          "bytes": 307,
+          "sha256": "f7b2947c118b79fb9c2d6f6609a73e8d8bc6c9eca2b47d37ac6789af3c89557b",
+          "mime": "application/json; charset=utf-8"
+        },
+        {
+          "path": "/",
+          "status": 200,
+          "bytes": 20878,
+          "sha256": "6b0dc758aa3ff2b9414d2c22e398c86d507d0cb5f1e6318a4735d6c0456503bb",
+          "mime": "text/html; charset=utf-8"
+        },
+        {
+          "path": "/app.js",
+          "status": 200,
+          "bytes": 30100,
+          "sha256": "83f2e39e6a16e7e54f932f2128f1306a1862e4614e641c501ebe58e11d2251d2",
+          "mime": "text/javascript; charset=utf-8"
+        },
+        {
+          "path": "/styles.css",
+          "status": 200,
+          "bytes": 11299,
+          "sha256": "1e86f5d4bdcb19a528bf7aa552e71669dd59caec83c16b06c26fb0af0581c61a",
+          "mime": "text/css; charset=utf-8"
+        },
+        {
+          "path": "/wallet-auth.js",
+          "status": 200,
+          "bytes": 169796,
+          "sha256": "005fec11a8e3838a5c0e7246e2e4d98c7791e8adc25ac07a391166d5bf0840cd",
+          "mime": "text/javascript; charset=utf-8"
+        }
+      ],
+      "unsignedAccountReadStatus": 401,
+      "state": {
+        "bytes": 954,
+        "sha256": "9681e6434340d24b7466ac16ecb6066ebb797bfd7225f9267f06484731789436"
+      }
+    },
+    {
+      "launch": 3,
+      "http": [
+        {
+          "path": "/api/version",
+          "status": 200,
+          "bytes": 107,
+          "sha256": "3c0bbc64dc5c2b46bf022341e332595c0a4a95cf12a2befa73ac2820d249a0d0",
+          "mime": "application/json; charset=utf-8"
+        },
+        {
+          "path": "/api/health",
+          "status": 200,
+          "bytes": 307,
+          "sha256": "f7b2947c118b79fb9c2d6f6609a73e8d8bc6c9eca2b47d37ac6789af3c89557b",
+          "mime": "application/json; charset=utf-8"
+        },
+        {
+          "path": "/",
+          "status": 200,
+          "bytes": 20878,
+          "sha256": "6b0dc758aa3ff2b9414d2c22e398c86d507d0cb5f1e6318a4735d6c0456503bb",
+          "mime": "text/html; charset=utf-8"
+        },
+        {
+          "path": "/app.js",
+          "status": 200,
+          "bytes": 30100,
+          "sha256": "83f2e39e6a16e7e54f932f2128f1306a1862e4614e641c501ebe58e11d2251d2",
+          "mime": "text/javascript; charset=utf-8"
+        },
+        {
+          "path": "/styles.css",
+          "status": 200,
+          "bytes": 11299,
+          "sha256": "1e86f5d4bdcb19a528bf7aa552e71669dd59caec83c16b06c26fb0af0581c61a",
+          "mime": "text/css; charset=utf-8"
+        },
+        {
+          "path": "/wallet-auth.js",
+          "status": 200,
+          "bytes": 169796,
+          "sha256": "005fec11a8e3838a5c0e7246e2e4d98c7791e8adc25ac07a391166d5bf0840cd",
+          "mime": "text/javascript; charset=utf-8"
+        }
+      ],
+      "unsignedAccountReadStatus": 401,
+      "state": {
+        "bytes": 954,
+        "sha256": "9681e6434340d24b7466ac16ecb6066ebb797bfd7225f9267f06484731789436"
+      }
+    }
+  ],
+  "archiveOverwriteRejected": true,
+  "publicDeployed": false,
+  "realApproval": false
+}

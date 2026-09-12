@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "product": "YNX Exchange",
+  "sourceCommit": "d736a87831fe83249ce7adfeae7a21efbc283b3e",
+  "sourceTree": "2e26db6a13597fde7e35642e1c9515a06d761b1c",
+  "stateSchema": 10,
+  "release": "ynx-exchange-schema10-d736a87831fe",
+  "kind": "offline-linux-server-carrier-not-installer",
+  "build": {
+    "goos": "linux",
+    "goarch": "amd64",
+    "cgo": false,
+    "trimpath": true,
+    "buildVCS": false,
+    "goVersion": "go version go1.25.7 darwin/arm64",
+    "nodeVersion": "v26.7.0",
+    "esbuildVersion": "0.25.9"
+  },
+  "sdk": {
+    "standard": "c97f85e9ae4d4580b99860c51738e6040ca9ca18",
+    "private": "a7dad7ec1bc7c06577978bdd5fea8dc9c7a248a9",
+    "reducer": "98c6d5d784d212df8981a53b17118a511e246ad2"
+  },
+  "entries": [
+    {
+      "path": "apps/exchange/web/app.js",
+      "mode": "644",
+      "bytes": 30100,
+      "sha256": "83f2e39e6a16e7e54f932f2128f1306a1862e4614e641c501ebe58e11d2251d2"
+    },
+    {
+      "path": "apps/exchange/web/index.html",
+      "mode": "644",
+      "bytes": 20878,
+      "sha256": "6b0dc758aa3ff2b9414d2c22e398c86d507d0cb5f1e6318a4735d6c0456503bb"
+    },
+    {
+      "path": "apps/exchange/web/styles.css",
+      "mode": "644",
+      "bytes": 11299,
+      "sha256": "1e86f5d4bdcb19a528bf7aa552e71669dd59caec83c16b06c26fb0af0581c61a"
+    },
+    {
+      "path": "apps/exchange/web/wallet-auth.js",
+      "mode": "644",
+      "bytes": 169796,
+      "sha256": "005fec11a8e3838a5c0e7246e2e4d98c7791e8adc25ac07a391166d5bf0840cd"
+    },
+    {
+      "path": "ynx-exchanged",
+      "mode": "755",
+      "bytes": 9568440,
+      "sha256": "01b9398202aec44dc1f9872378728720a6158216f264a07e738f17a8781f3918"
+    }
+  ],
+  "truth": {
+    "publicDeployed": false,
+    "installed": false,
+    "realProviderApproval": false,
+    "privateSessionVerified": false,
+    "nativeActionSigned": false,
+    "transactionSubmitted": false
+  },
+  "archive": {
+    "path": "/tmp/ynx-exchange-schema10-runtime-20260912.S33fLQ/ynx-exchange-schema10-d736a87831fe-linux-amd64.tar.gz",
+    "bytes": 4231210,
+    "sha256": "d3e2d89c70f86793a1842dee0cde9864142f03238bfa458e0366c325ee045a40"
+  },
+  "allFiles": [
+    {
+      "path": "ynx-exchange-schema10-d736a87831fe/apps/exchange/web/app.js",
+      "bytes": 30100,
+      "sha256": "83f2e39e6a16e7e54f932f2128f1306a1862e4614e641c501ebe58e11d2251d2",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-schema10-d736a87831fe/apps/exchange/web/index.html",
+      "bytes": 20878,
+      "sha256": "6b0dc758aa3ff2b9414d2c22e398c86d507d0cb5f1e6318a4735d6c0456503bb",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-schema10-d736a87831fe/apps/exchange/web/styles.css",
+      "bytes": 11299,
+      "sha256": "1e86f5d4bdcb19a528bf7aa552e71669dd59caec83c16b06c26fb0af0581c61a",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-schema10-d736a87831fe/apps/exchange/web/wallet-auth.js",
+      "bytes": 169796,
+      "sha256": "005fec11a8e3838a5c0e7246e2e4d98c7791e8adc25ac07a391166d5bf0840cd",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-schema10-d736a87831fe/BUNDLE_MANIFEST.json",
+      "bytes": 1878,
+      "sha256": "23d3dc70adf10f1f88735cf21d561bf07a004b7e300043da313dcbd058b26aea",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-schema10-d736a87831fe/SHA256SUMS",
+      "bytes": 547,
+      "sha256": "cc833e61fcaaf973b97d01c0de2303ff198ed7364359cce1b3a0eb6f2f2a01e2",
+      "mode": "644"
+    },
+    {
+      "path": "ynx-exchange-schema10-d736a87831fe/ynx-exchanged",
+      "bytes": 9568440,
+      "sha256": "01b9398202aec44dc1f9872378728720a6158216f264a07e738f17a8781f3918",
+      "mode": "755"
+    }
+  ]
+}
