@@ -485,6 +485,7 @@ document.querySelector("#backup-form").addEventListener("submit", async event =>
 });
 document.querySelector("#transfer-form").addEventListener("submit", async event => {
   event.preventDefault();
+  if (keyState.locked || keyState.authenticating) return;
   invalidatePaymentInput();
   const button = document.querySelector("#prepare-transfer"), output = document.querySelector("#transfer-result");
   const revision = keyState.revision;
@@ -511,6 +512,7 @@ document.querySelector("#transfer-form").addEventListener("submit", async event 
   finally { button.disabled = keyState.locked; }
 });
 async function actOnTransfer(action) {
+  if (action === "approve" && (keyState.locked || keyState.authenticating)) return;
   if (transferInFlight) { if (action === "reject") await window.ynxWallet.lock(); return; }
   if (!transferReview) return;
   transferInFlight = true;
@@ -552,7 +554,15 @@ function setView(name) {
 for (const button of document.querySelectorAll("[data-view]")) button.addEventListener("click", () => setView(button.dataset.view));
 for (const button of document.querySelectorAll("[data-close]")) button.addEventListener("click", () => document.getElementById(button.dataset.close).close());
 for (const dialog of document.querySelectorAll("dialog")) dialog.addEventListener("close", () => queueMicrotask(presentApproval));
-document.querySelector("#open-send").addEventListener("click", () => { document.querySelector("#send-sheet").showModal(); document.querySelector("#transfer-to").focus(); });
+document.querySelector("#open-send").addEventListener("click", () => {
+  if (!accountState?.initialized || keyState.authenticating) return;
+  if (keyState.locked) {
+    if (keyState.unlockAvailable) document.querySelector("#unlock-wallet").click();
+    return;
+  }
+  document.querySelector("#send-sheet").showModal();
+  document.querySelector("#transfer-to").focus();
+});
 document.querySelector("#send-sheet").addEventListener("close", invalidatePaymentInput);
 document.querySelector("#send-sheet").addEventListener("cancel", invalidatePaymentInput);
 for (const id of ["transfer-to", "transfer-amount"]) document.getElementById(id).addEventListener("input", () => {
@@ -585,6 +595,9 @@ document.addEventListener("keydown", event => {
 
 function renderKeyDetail() {
   const detail = document.querySelector("#key-security-detail"), state = keyState;
+  const send = document.querySelector("#open-send");
+  send.textContent = state.authenticating ? "Unlocking…" : state.locked ? "Unlock to send" : "Send YNXT";
+  send.disabled = !accountState?.initialized || state.authenticating || state.locked && !state.unlockAvailable;
   detail.textContent = !accountState ? "Checking local Wallet protection…" : !accountState.passwordConfigured ? accountState.initialized ? "Existing accounts use OS protection. Set a local password to explicitly migrate all accounts." : "Set a local password to encrypt your Wallet before creating or importing accounts." : accountState.recoveryRequired ? "This account needs its offline backup. Public accounts remain visible; their previous keys are not silently replaced." : state.locked ? "Your local password encrypts this Wallet. Leaving the app, locking the screen or switching accounts cancels pending key operations." : "Review each request before approving. Wallet locks after two minutes or when it loses focus.";
 }
 function renderKeyState(state) {
@@ -598,7 +611,7 @@ function renderKeyState(state) {
   unlock.disabled = !state.unlockAvailable || state.authenticating;
   document.querySelector("#lock-wallet").disabled = state.locked && !state.authenticating;
   signingShort.textContent = state.locked ? "Locked" : "Approval required";
-  for (const element of document.querySelectorAll("#create-account,#add-account,#open-send,#prepare-transfer,#paste-recipient,#confirm-transfer,#account-list button,#import-form input,#import-form select,#import-form button,#backup-form input,#backup-form button")) element.disabled = state.locked || element.dataset.account === activeAccount;
+  for (const element of document.querySelectorAll("#create-account,#add-account,#prepare-transfer,#paste-recipient,#confirm-transfer,#account-list button,#import-form input,#import-form select,#import-form button,#backup-form input,#backup-form button")) element.disabled = state.locked || element.dataset.account === activeAccount;
   for (const button of document.querySelectorAll("[data-retry-transaction]")) button.disabled = state.locked;
   if (state.locked) {
     if (invalidated) {

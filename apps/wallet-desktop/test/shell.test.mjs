@@ -6,6 +6,7 @@ import test from "node:test";
 import { StandardWalletConnection, YNX_TESTNET_CHAIN_QUANTITY } from "@ynx-chain/wallet-auth";
 import { CANONICAL_RPC_URL, probeYNXTestnetRPC } from "../src/rpc.mjs";
 import { WALLET_AUTH_PROTOCOL_SOURCE, YNX_EVM_CHAIN_ID, YNX_TESTNET_CHAIN_QUANTITY as packagedChainId } from "../src/wallet-auth-contract.mjs";
+import { createPasswordVaultUI } from "../src/password-vault-ui.mjs";
 
 test("desktop shell consumes the authoritative Product Session v2 contract and chain", async () => {
   assert.equal(YNX_TESTNET_CHAIN_QUANTITY, "0x1917");
@@ -140,6 +141,121 @@ test("security invalidation clears old unlock success while an unchanged locked 
     assert.equal(document.querySelector("#unlock-result").textContent, fixture.expected);
     assert.equal(invalidatedInputs, fixture.before.revision !== fixture.after.revision || fixture.before.locked !== fixture.after.locked ? 1 : 0);
   }
+});
+
+async function sendEntryHarness() {
+  const source = await readFile(new URL("../src/renderer.js", import.meta.url), "utf8");
+  const nodes = new Map(), calls = [];
+  let focused = null;
+  const get = selector => {
+    if (!nodes.has(selector)) {
+      const listeners = new Map();
+      const node = { value: "", textContent: "", hidden: false, disabled: false, open: false, dataset: {},
+        addEventListener(type, listener) { if (!listeners.has(type)) listeners.set(type, []); listeners.get(type).push(listener); },
+        async emit(type) { for (const listener of listeners.get(type) ?? []) await listener({ preventDefault() {} }); },
+        click() { return this.disabled ? Promise.resolve() : this.emit("click"); },
+        showModal() { this.open = true; }, close() { this.open = false; }, focus() { focused = selector; }
+      };
+      nodes.set(selector, node);
+    }
+    return nodes.get(selector);
+  };
+  const document = { querySelector: get, querySelectorAll(selector) {
+    if (selector === "dialog[open]") return [...nodes].filter(([key, node]) => /sheet|review/.test(key) && node.open).map(([, node]) => node);
+    if (selector.includes("input[type=") || selector === "#password-sheet input,#recovery-sheet input") return [get("#local-password"), get("#local-confirm")];
+    if (selector === "[data-custody-cancel]") return [get("#custody-cancel")];
+    return selector.split(",").map(get);
+  } };
+  const html = await readFile(new URL("../src/index.html", import.meta.url), "utf8");
+  const sendMarkup = html.match(/<button[^>]*id="open-send"[^>]*>([^<]+)<\/button>/);
+  assert.ok(sendMarkup, "Actual Send entry markup is required");
+  get("#open-send").textContent = sendMarkup[1];
+  const account = { initialized: true, passwordConfigured: true, account: "qa-public-account", accounts: [], balance: "111" };
+  const api = {
+    async unlock(input) { calls.push(["unlock", input]); return { ok: false, error: { message: "Fixture password rejected" } }; },
+    async setupPassword() { calls.push(["setup"]); throw new Error("Unexpected setup"); },
+    async lock() { calls.push(["lock"]); return context.keyState; },
+    async accountStatus() { return { ok: true, value: account }; },
+    async prepareTransfer() { calls.push(["prepare"]); return { ok: false, error: { message: "Fixture refuses transfer" } }; },
+    async transferAction() { calls.push(["send"]); throw new Error("Unexpected transaction submission"); },
+  };
+  const context = { document, window: { ynxWallet: api }, keyState: { locked: true, unlockAvailable: true, authenticating: false, revision: 1 }, accountState: account,
+    signingShort: {}, activeAccount: account.account, approvalQueue: { clear() {} }, authorizationChoices: new Map(), transferReview: null, transferInFlight: false,
+    paymentDraftRevision: 0, presentApproval() {}, renderAccount() {}, refreshTransactions() {}, errorText: result => result.error.message,
+    invalidatePaymentInput() { context.paymentDraftRevision++; },
+  };
+  const extract = (startText, endText) => {
+    const start = source.indexOf(startText), end = source.indexOf(endText, start);
+    assert.ok(start >= 0 && end > start, `Actual renderer fragment missing: ${startText}`);
+    return source.slice(start, end);
+  };
+  runInNewContext([
+    extract("function renderKeyDetail()", "\npasswordUI = createPasswordVaultUI"),
+    extract('document.querySelector("#open-send").addEventListener', '\ndocument.querySelector("#send-sheet").addEventListener'),
+    extract('document.querySelector("#transfer-form").addEventListener', "\nfunction setView(name)"),
+  ].join("\n"), context);
+  context.passwordUI = createPasswordVaultUI({ api, document, getKeyState: () => context.keyState, getAccountStatus: () => account, renderAccount() {} });
+  const render = patch => { context.renderKeyState({ ...context.keyState, ...patch }); };
+  render({});
+  return { context, get, calls, api, render, account, focused: () => focused };
+}
+
+test("locked Send opens the existing password form without unlocking or preparing a transaction", async () => {
+  const h = await sendEntryHarness();
+  for (const balance of ["111", "0"]) {
+    h.account.balance = balance; h.render({});
+    assert.equal(h.get("#open-send").textContent, "Unlock to send");
+    assert.equal(h.get("#open-send").disabled, false);
+    await h.get("#open-send").click();
+    assert.equal(h.get("#password-sheet").open, true);
+    assert.equal(h.get("#password-title").textContent, "Unlock Wallet");
+    assert.equal(h.focused(), "#local-password");
+    assert.equal(h.get("#send-sheet").open, false);
+    assert.deepEqual(h.calls, []);
+    h.context.passwordUI.cancel();
+  }
+});
+
+test("Send cannot bypass unavailable or in-progress unlock, including direct handler invocation", async () => {
+  for (const patch of [{ unlockAvailable: false }, { authenticating: true }]) {
+    const h = await sendEntryHarness(); h.render(patch);
+    assert.equal(h.get("#open-send").disabled, true);
+    await h.get("#open-send").emit("click");
+    assert.equal(h.get("#password-sheet").open, false); assert.equal(h.get("#send-sheet").open, false);
+    await h.get("#transfer-form").emit("submit");
+    h.context.transferReview = { id: "old-review" };
+    await h.context.actOnTransfer("approve");
+    assert.deepEqual(h.calls, []);
+  }
+});
+
+test("password failure and cancellation preserve locked Send and do not prepare or submit", async () => {
+  const h = await sendEntryHarness(); await h.get("#open-send").click();
+  h.get("#local-password").value = "local-fixture-password";
+  await h.get("#password-form").emit("submit");
+  assert.equal(h.calls.length, 1); assert.equal(h.calls[0][0], "unlock");
+  assert.equal(h.get("#password-result").textContent, "Fixture password rejected");
+  assert.equal(h.context.keyState.locked, true); assert.equal(h.get("#send-sheet").open, false);
+  await h.get("#custody-cancel").click();
+  assert.equal(h.get("#password-sheet").open, false); assert.equal(h.get("#local-password").value, "");
+  assert.equal(h.get("#open-send").textContent, "Unlock to send");
+  assert.equal(h.calls.some(([kind]) => ["prepare", "send"].includes(kind)), false);
+});
+
+test("a successful explicit unlock still needs a new Send click and subsequent lock closes the draft", async () => {
+  const h = await sendEntryHarness();
+  h.api.unlock = async input => { h.calls.push(["unlock", input]); h.render({ locked: false, revision: 2 }); return { ok: true }; };
+  await h.get("#open-send").click(); h.get("#local-password").value = "local-fixture-password";
+  await h.get("#password-form").emit("submit");
+  assert.equal(h.get("#send-sheet").open, false); assert.equal(h.get("#open-send").textContent, "Send YNXT");
+  await h.get("#open-send").click();
+  assert.equal(h.get("#send-sheet").open, true); assert.equal(h.focused(), "#transfer-to");
+  assert.equal(h.calls.some(([kind]) => ["prepare", "send"].includes(kind)), false);
+  h.render({ locked: true, revision: 3 });
+  assert.equal(h.get("#send-sheet").open, false); assert.equal(h.get("#open-send").textContent, "Unlock to send");
+  assert.equal(h.get("#prepare-transfer").disabled, true); assert.equal(h.get("#confirm-transfer").disabled, true);
+  await h.get("#transfer-form").emit("submit");
+  assert.equal(h.calls.some(([kind]) => ["prepare", "send"].includes(kind)), false);
 });
 
 test("private Product Session methods cannot alter the independent standard Provider connection", async () => {
