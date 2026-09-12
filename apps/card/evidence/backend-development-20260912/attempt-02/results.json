@@ -1,0 +1,38 @@
+{
+  "node": "v26.7.0",
+  "records": [
+    {
+      "name": "backend-tests",
+      "argv": [
+        "/opt/homebrew/Cellar/node/26.7.0/bin/node",
+        "--import",
+        "./node_modules/tsx/dist/loader.mjs",
+        "--test",
+        "server/service.test.ts"
+      ],
+      "startedAt": "2026-09-12T09:20:30.032Z",
+      "completedAt": "2026-09-12T09:20:30.253Z",
+      "exitCode": 0,
+      "stdoutSha256": "a6f7215cff9324e2ca66e86d4f3f620dc30e87edb49211ec9eaff7e78b68fe04",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "typecheck",
+      "argv": [
+        "npm",
+        "run",
+        "typecheck"
+      ],
+      "startedAt": "2026-09-12T09:20:30.254Z",
+      "completedAt": "2026-09-12T09:20:31.759Z",
+      "exitCode": 0,
+      "stdoutSha256": "28452eecae54a204214ff127677eb25e57f3b60d392d68d17cbb5a111843d600",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "fixtureOnly": true,
+  "realWalletApproval": false,
+  "realChainTransaction": false,
+  "publicDeployment": false,
+  "productionRealPayments": false
+}

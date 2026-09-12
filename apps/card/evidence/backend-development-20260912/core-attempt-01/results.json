@@ -1,0 +1,15 @@
+{
+  "argv": [
+    "/opt/homebrew/Cellar/node/26.7.0/bin/node",
+    "--import",
+    "./node_modules/tsx/dist/loader.mjs",
+    "--test",
+    "server/core.test.ts"
+  ],
+  "startedAt": "2026-09-12T09:24:43.203Z",
+  "completedAt": "2026-09-12T09:24:43.390Z",
+  "exitCode": 1,
+  "fixtureOnly": true,
+  "realNetworkCalls": false,
+  "realTransaction": false
+}

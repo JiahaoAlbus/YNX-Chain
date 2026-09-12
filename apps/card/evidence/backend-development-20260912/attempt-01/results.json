@@ -1,0 +1,42 @@
+{
+  "baseSource": "ebd03ff46af402bf8580fff5ca636d6d9ebdab34",
+  "node": "v26.7.0",
+  "records": [
+    {
+      "name": "backend-tests",
+      "argv": [
+        "/opt/homebrew/Cellar/node/26.7.0/bin/node",
+        "--import",
+        "./node_modules/tsx/dist/loader.mjs",
+        "--test",
+        "server/service.test.ts"
+      ],
+      "cwd": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260912-card-funding-boundary/apps/card",
+      "startedAt": "2026-09-12T09:16:59.069Z",
+      "completedAt": "2026-09-12T09:16:59.388Z",
+      "exitCode": 1,
+      "stdoutSha256": "1a980df5c0c8761388ff4482998cd467379f9ee22d170878c6b05894685a620c",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "typecheck",
+      "argv": [
+        "/opt/homebrew/Cellar/node/26.7.0/bin/node",
+        "--stack_size=8192",
+        "./node_modules/typescript/bin/tsc",
+        "--noEmit"
+      ],
+      "cwd": "/Users/huangjiahao/Desktop/YNX Audit Worktrees/20260912-card-funding-boundary/apps/card",
+      "startedAt": "2026-09-12T09:16:59.390Z",
+      "completedAt": "2026-09-12T09:17:00.581Z",
+      "exitCode": 2,
+      "stdoutSha256": "5cace77883efabf420e71c336e1c475b263947a2882223787db153166a7c8818",
+      "stderrSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "fixtureOnly": true,
+  "realWalletApproval": false,
+  "realChainTransaction": false,
+  "publicDeployment": false,
+  "productionRealPayments": false
+}

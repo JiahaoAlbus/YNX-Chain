@@ -10,7 +10,9 @@
     "verify:deployment-envelope": "node scripts/verify-deployment-envelope.mjs",
     "generate-sbom": "node scripts/generate-sbom.mjs",
     "security-check": "node scripts/security-check.mjs",
-    "typecheck": "node --stack_size=8192 ./node_modules/typescript/bin/tsc --noEmit",
+    "typecheck": "node --stack_size=8192 ./node_modules/typescript/bin/tsc --noEmit && node ./node_modules/typescript/bin/tsc --project server/tsconfig.json",
+    "serve:backend": "node --import tsx server/main.ts",
+    "test:backend": "node --import tsx --test server/*.test.ts",
     "test": "tsx --test src/**/*.test.ts && node --test test/card-native-callback.test.cjs && npm run native-patch:test",
     "bundle-check": "expo export --platform android --platform ios --output-dir dist",
     "check": "npm run security-check && npm run native-patch:check && npm run native-patch:test && npm run typecheck && npm test && npm run bundle-check",
@@ -42,6 +44,7 @@
     "react-native-web": "^0.21.2"
   },
   "devDependencies": {
+    "@types/node": "26.1.1",
     "@types/react": "~19.2.2",
     "react-test-renderer": "19.2.3",
     "tsx": "4.23.1",
