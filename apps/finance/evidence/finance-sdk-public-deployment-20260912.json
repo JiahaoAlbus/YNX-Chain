@@ -1,0 +1,534 @@
+{
+  "schemaVersion": 1,
+  "executorCommit": "50feecb9ac962c9914b14f89c1eebacd2c78bbf0",
+  "executorTree": "a096b0049ac99a0439607e6ffa90505179c8c319",
+  "executorBlob": "a45803c634f296cacf6893839ba42c15f0811dd1",
+  "executorSha256": "b7f6e1f529c9fc547071a40f141bc8bbb8851b5160daee0b54bc4d701bc418cf",
+  "evidenceFrozenAt": "2026-09-12T10:49:11Z",
+  "terminalExitCode": 0,
+  "firstProtectedAttempt": {
+    "exitCode": 1,
+    "receipt": {
+      "status": "FAILED_CLOSED",
+      "phase": "ISOLATED_LINUX_START",
+      "errorClass": "AssertionError",
+      "automaticRollback": false,
+      "current": {
+        "path": "/opt/ynx/finance-current",
+        "device": 64770,
+        "inode": 1330149,
+        "uid": 0,
+        "gid": 0,
+        "mode": "0o777",
+        "nlink": 1,
+        "bytes": 50,
+        "type": "symlink",
+        "target": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a"
+      },
+      "service": {
+        "MainPID": "2818779",
+        "NRestarts": "0",
+        "WorkingDirectory": "/opt/ynx/finance-current",
+        "User": "ynx",
+        "Group": "ynx",
+        "ActiveState": "active",
+        "SubState": "running"
+      },
+      "state": {
+        "path": "/var/lib/ynx/finance/state.json",
+        "absent": true
+      },
+      "retained": [
+        "/opt/ynx/stage/finance/finance-sdk-7a1d2aba-20260912T104700Z",
+        "/opt/ynx/releases/finance/finance-sdk-7a1d2aba-20260912T104700Z",
+        "/tmp/finance-sdk-7a1d2aba-20260912T104700Z.tar.gz"
+      ],
+      "stateSnapshotRestored": false
+    },
+    "diagnosedCause": "verifier used /index.html instead of the Finance document route /; candidate startup and assets separately passed; no production mutation"
+  },
+  "receipt": {
+    "run": "finance-sdk-7a1d2aba-20260912T104700Z-r2",
+    "source": "7a1d2aba6e72e5567931f451a9f069a544f58783",
+    "before": {
+      "service": {
+        "MainPID": "2818779",
+        "NRestarts": "0",
+        "WorkingDirectory": "/opt/ynx/finance-current",
+        "User": "ynx",
+        "Group": "ynx",
+        "ActiveState": "active",
+        "SubState": "running"
+      },
+      "env": {
+        "path": "/etc/ynx/finance.env",
+        "device": 64770,
+        "inode": 1312291,
+        "uid": 0,
+        "gid": 986,
+        "mode": "0o640",
+        "nlink": 1,
+        "bytes": 1545,
+        "type": "file",
+        "sha256": "854e7f1077e8fa4d5a4741918e25d04b0c1a109f2eb9c716b72dae918aa5f252"
+      },
+      "unit": {
+        "path": "/etc/systemd/system/ynx-finance.service",
+        "device": 64770,
+        "inode": 161304,
+        "uid": 0,
+        "gid": 0,
+        "mode": "0o644",
+        "nlink": 1,
+        "bytes": 515,
+        "type": "file",
+        "sha256": "2e72cdad422a3a714c46d074ea97b725233576cf726dbbfd43e82e99c2c2975b"
+      },
+      "dropin": {
+        "path": "/etc/systemd/system/ynx-finance.service.d/actions.conf",
+        "device": 64770,
+        "inode": 1599658,
+        "uid": 0,
+        "gid": 0,
+        "mode": "0o644",
+        "nlink": 1,
+        "bytes": 222,
+        "type": "file",
+        "sha256": "ae13bc19e87b97f55a0bc4c1a8b59bdfe217deda18213003142a796b1307c397"
+      },
+      "caddy": {
+        "path": "/etc/caddy/Caddyfile",
+        "device": 64770,
+        "inode": 1051746,
+        "uid": 0,
+        "gid": 0,
+        "mode": "0o644",
+        "nlink": 1,
+        "bytes": 928,
+        "type": "file",
+        "sha256": "077fe80ea9aab24a32d64ba1fab3584e8aab10304e200e58d976d2c33edfb39f"
+      },
+      "state": {
+        "path": "/var/lib/ynx/finance/state.json",
+        "absent": true
+      },
+      "current": {
+        "path": "/opt/ynx/finance-current",
+        "device": 64770,
+        "inode": 1330149,
+        "uid": 0,
+        "gid": 0,
+        "mode": "0o777",
+        "nlink": 1,
+        "bytes": 50,
+        "type": "symlink",
+        "target": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a"
+      },
+      "http": [
+        {
+          "url": "http://127.0.0.1:6483/version",
+          "status": 200,
+          "bytes": 130,
+          "sha256": "39789776da47e60b7a7df845789e02ebba16707ad8951eb6f27c84c1b40bb226",
+          "mime": "application/json; charset=utf-8",
+          "cacheControl": null
+        },
+        {
+          "url": "http://127.0.0.1:6483/health",
+          "status": 200,
+          "bytes": 485,
+          "sha256": "d1e97a4314acd1ecccf94629d15bd598cb58ff78136b3622ac26d583a82e45c1",
+          "mime": "application/json; charset=utf-8",
+          "cacheControl": null
+        },
+        {
+          "url": "http://127.0.0.1:6483/ready",
+          "status": 200,
+          "bytes": 99,
+          "sha256": "0b79c7355df523247dd9c738c43aa7250c3d1b62a653c29bace83fe753dc5e01",
+          "mime": "application/json; charset=utf-8",
+          "cacheControl": null
+        },
+        {
+          "url": "http://127.0.0.1:6483/",
+          "status": 200,
+          "bytes": 11427,
+          "sha256": "c1fc45eecd7f88de6fc3e049d15161b8d4e9878e31f20c977fc52b383a18ed53",
+          "mime": "text/html; charset=utf-8",
+          "cacheControl": null
+        },
+        {
+          "url": "https://finance.ynxweb4.com/version",
+          "status": 200,
+          "bytes": 130,
+          "sha256": "39789776da47e60b7a7df845789e02ebba16707ad8951eb6f27c84c1b40bb226",
+          "mime": "application/json; charset=utf-8",
+          "cacheControl": null
+        },
+        {
+          "url": "https://finance.ynxweb4.com/health",
+          "status": 200,
+          "bytes": 485,
+          "sha256": "d1e97a4314acd1ecccf94629d15bd598cb58ff78136b3622ac26d583a82e45c1",
+          "mime": "application/json; charset=utf-8",
+          "cacheControl": null
+        },
+        {
+          "url": "https://finance.ynxweb4.com/ready",
+          "status": 200,
+          "bytes": 99,
+          "sha256": "0b79c7355df523247dd9c738c43aa7250c3d1b62a653c29bace83fe753dc5e01",
+          "mime": "application/json; charset=utf-8",
+          "cacheControl": null
+        },
+        {
+          "url": "https://finance.ynxweb4.com/",
+          "status": 200,
+          "bytes": 11427,
+          "sha256": "c1fc45eecd7f88de6fc3e049d15161b8d4e9878e31f20c977fc52b383a18ed53",
+          "mime": "text/html; charset=utf-8",
+          "cacheControl": null
+        }
+      ]
+    },
+    "statePolicy": "preserve newest state; identical old/new codecs; never restore snapshot",
+    "isolatedLinux": [
+      {
+        "url": "http://127.0.0.1:35373/version",
+        "status": 200,
+        "bytes": 138,
+        "sha256": "386276d214105035883b4fbb94fcec52a9794b9b5a73611fb3349abe72e882ee",
+        "mime": "application/json; charset=utf-8",
+        "cacheControl": null
+      },
+      {
+        "url": "http://127.0.0.1:35373/health",
+        "status": 200,
+        "bytes": 493,
+        "sha256": "f78efc4e15c6a83a2cf4da17ce0c9ea7a16afae6d45a2560ac6820f6aac4bf0d",
+        "mime": "application/json; charset=utf-8",
+        "cacheControl": null
+      },
+      {
+        "url": "http://127.0.0.1:35373/ready",
+        "status": 200,
+        "bytes": 99,
+        "sha256": "0b79c7355df523247dd9c738c43aa7250c3d1b62a653c29bace83fe753dc5e01",
+        "mime": "application/json; charset=utf-8",
+        "cacheControl": null
+      },
+      {
+        "url": "http://127.0.0.1:35373/",
+        "status": 200,
+        "bytes": 12649,
+        "sha256": "06eafa1ce886d1b89ae00b728210c2dc3a51e6acb59cb4a1f34a44058cd236f8",
+        "mime": "text/html; charset=utf-8",
+        "cacheControl": null
+      },
+      {
+        "url": "http://127.0.0.1:35373/app.js",
+        "status": 200,
+        "bytes": 18489,
+        "sha256": "f795c2d97d450252eae1119926b4484c32c7f8a00a3b31e539360ab8f45c3da3",
+        "mime": "text/javascript; charset=utf-8",
+        "cacheControl": null
+      },
+      {
+        "url": "http://127.0.0.1:35373/wallet-auth.js",
+        "status": 200,
+        "bytes": 149577,
+        "sha256": "bfeeade2946dbc1f9f51b8752cc83a465eceb9b3a8690583e27f56caa91e2048",
+        "mime": "text/javascript; charset=utf-8",
+        "cacheControl": null
+      },
+      {
+        "url": "http://127.0.0.1:35373/read-sources.js",
+        "status": 200,
+        "bytes": 10920,
+        "sha256": "e19b7b266c14b181a4d88b10c6e1975398bdafb77660272f37ba22b48fc18c70",
+        "mime": "text/javascript; charset=utf-8",
+        "cacheControl": null
+      },
+      {
+        "url": "http://127.0.0.1:35373/styles.css",
+        "status": 200,
+        "bytes": 13935,
+        "sha256": "bd01b920fee3693204a63aed364c27becf4c9c84f3ee1ed9dd3e2d35a39b5d9f",
+        "mime": "text/css; charset=utf-8",
+        "cacheControl": null
+      },
+      {
+        "url": "http://127.0.0.1:35373/manifest.webmanifest",
+        "status": 200,
+        "bytes": 241,
+        "sha256": "3f7bec35f54aad6a095151e9d4d553e7ea10cbbbcc9e16f0f3fe7abd242b6d05",
+        "mime": "text/plain; charset=utf-8",
+        "cacheControl": null
+      },
+      {
+        "url": "http://127.0.0.1:35373/ynx-logo.png",
+        "status": 200,
+        "bytes": 104171,
+        "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+        "mime": "image/png",
+        "cacheControl": null
+      }
+    ],
+    "stoppedState": {
+      "path": "/var/lib/ynx/finance/state.json",
+      "absent": true
+    },
+    "status": "DEPLOYED_SOURCE_BOUND_PUBLIC",
+    "deployCount": 1,
+    "automaticRollbackCount": 0,
+    "after": {
+      "service": {
+        "MainPID": "1664408",
+        "NRestarts": "0",
+        "WorkingDirectory": "/opt/ynx/finance-current",
+        "User": "ynx",
+        "Group": "ynx",
+        "ActiveState": "active",
+        "SubState": "running"
+      },
+      "current": {
+        "path": "/opt/ynx/finance-current",
+        "device": 64770,
+        "inode": 1312291,
+        "uid": 0,
+        "gid": 0,
+        "mode": "0o777",
+        "nlink": 1,
+        "bytes": 66,
+        "type": "symlink",
+        "target": "/opt/ynx/releases/finance/finance-sdk-7a1d2aba-20260912T104700Z-r2"
+      },
+      "env": {
+        "path": "/etc/ynx/finance.env",
+        "device": 64770,
+        "inode": 1354401,
+        "uid": 0,
+        "gid": 986,
+        "mode": "0o640",
+        "nlink": 1,
+        "bytes": 1602,
+        "type": "file",
+        "sha256": "000ef2feed4a35b1b0f17cf9955433ea354e786bdd65a724f8204d0a1c66fd7a"
+      },
+      "binary": {
+        "path": "/opt/ynx/releases/finance/finance-sdk-7a1d2aba-20260912T104700Z-r2/ynx-finance",
+        "device": 64770,
+        "inode": 4370235,
+        "uid": 0,
+        "gid": 986,
+        "mode": "0o755",
+        "nlink": 1,
+        "bytes": 8626360,
+        "type": "file",
+        "sha256": "d0cc204f851afa0aace9bba06c3048a0bd1dc623b686eac56cab8ae6e0046c77"
+      },
+      "state": {
+        "path": "/var/lib/ynx/finance/state.json",
+        "absent": true
+      },
+      "http": [
+        {
+          "url": "http://127.0.0.1:6483/version",
+          "status": 200,
+          "bytes": 138,
+          "sha256": "386276d214105035883b4fbb94fcec52a9794b9b5a73611fb3349abe72e882ee",
+          "mime": "application/json; charset=utf-8",
+          "cacheControl": null
+        },
+        {
+          "url": "http://127.0.0.1:6483/health",
+          "status": 200,
+          "bytes": 493,
+          "sha256": "f78efc4e15c6a83a2cf4da17ce0c9ea7a16afae6d45a2560ac6820f6aac4bf0d",
+          "mime": "application/json; charset=utf-8",
+          "cacheControl": null
+        },
+        {
+          "url": "http://127.0.0.1:6483/ready",
+          "status": 200,
+          "bytes": 99,
+          "sha256": "0b79c7355df523247dd9c738c43aa7250c3d1b62a653c29bace83fe753dc5e01",
+          "mime": "application/json; charset=utf-8",
+          "cacheControl": null
+        },
+        {
+          "url": "http://127.0.0.1:6483/",
+          "status": 200,
+          "bytes": 12649,
+          "sha256": "06eafa1ce886d1b89ae00b728210c2dc3a51e6acb59cb4a1f34a44058cd236f8",
+          "mime": "text/html; charset=utf-8",
+          "cacheControl": null
+        },
+        {
+          "url": "http://127.0.0.1:6483/",
+          "status": 200,
+          "bytes": 12649,
+          "sha256": "06eafa1ce886d1b89ae00b728210c2dc3a51e6acb59cb4a1f34a44058cd236f8",
+          "mime": "text/html; charset=utf-8",
+          "cacheControl": null
+        },
+        {
+          "url": "http://127.0.0.1:6483/app.js",
+          "status": 200,
+          "bytes": 18489,
+          "sha256": "f795c2d97d450252eae1119926b4484c32c7f8a00a3b31e539360ab8f45c3da3",
+          "mime": "text/javascript; charset=utf-8",
+          "cacheControl": null
+        },
+        {
+          "url": "http://127.0.0.1:6483/wallet-auth.js",
+          "status": 200,
+          "bytes": 149577,
+          "sha256": "bfeeade2946dbc1f9f51b8752cc83a465eceb9b3a8690583e27f56caa91e2048",
+          "mime": "text/javascript; charset=utf-8",
+          "cacheControl": null
+        },
+        {
+          "url": "http://127.0.0.1:6483/read-sources.js",
+          "status": 200,
+          "bytes": 10920,
+          "sha256": "e19b7b266c14b181a4d88b10c6e1975398bdafb77660272f37ba22b48fc18c70",
+          "mime": "text/javascript; charset=utf-8",
+          "cacheControl": null
+        },
+        {
+          "url": "http://127.0.0.1:6483/styles.css",
+          "status": 200,
+          "bytes": 13935,
+          "sha256": "bd01b920fee3693204a63aed364c27becf4c9c84f3ee1ed9dd3e2d35a39b5d9f",
+          "mime": "text/css; charset=utf-8",
+          "cacheControl": null
+        },
+        {
+          "url": "http://127.0.0.1:6483/manifest.webmanifest",
+          "status": 200,
+          "bytes": 241,
+          "sha256": "3f7bec35f54aad6a095151e9d4d553e7ea10cbbbcc9e16f0f3fe7abd242b6d05",
+          "mime": "text/plain; charset=utf-8",
+          "cacheControl": null
+        },
+        {
+          "url": "http://127.0.0.1:6483/ynx-logo.png",
+          "status": 200,
+          "bytes": 104171,
+          "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+          "mime": "image/png",
+          "cacheControl": null
+        },
+        {
+          "url": "https://finance.ynxweb4.com/version",
+          "status": 200,
+          "bytes": 138,
+          "sha256": "386276d214105035883b4fbb94fcec52a9794b9b5a73611fb3349abe72e882ee",
+          "mime": "application/json; charset=utf-8",
+          "cacheControl": null
+        },
+        {
+          "url": "https://finance.ynxweb4.com/health",
+          "status": 200,
+          "bytes": 493,
+          "sha256": "f78efc4e15c6a83a2cf4da17ce0c9ea7a16afae6d45a2560ac6820f6aac4bf0d",
+          "mime": "application/json; charset=utf-8",
+          "cacheControl": null
+        },
+        {
+          "url": "https://finance.ynxweb4.com/ready",
+          "status": 200,
+          "bytes": 99,
+          "sha256": "0b79c7355df523247dd9c738c43aa7250c3d1b62a653c29bace83fe753dc5e01",
+          "mime": "application/json; charset=utf-8",
+          "cacheControl": null
+        },
+        {
+          "url": "https://finance.ynxweb4.com/",
+          "status": 200,
+          "bytes": 12649,
+          "sha256": "06eafa1ce886d1b89ae00b728210c2dc3a51e6acb59cb4a1f34a44058cd236f8",
+          "mime": "text/html; charset=utf-8",
+          "cacheControl": null
+        },
+        {
+          "url": "https://finance.ynxweb4.com/",
+          "status": 200,
+          "bytes": 12649,
+          "sha256": "06eafa1ce886d1b89ae00b728210c2dc3a51e6acb59cb4a1f34a44058cd236f8",
+          "mime": "text/html; charset=utf-8",
+          "cacheControl": null
+        },
+        {
+          "url": "https://finance.ynxweb4.com/app.js",
+          "status": 200,
+          "bytes": 18489,
+          "sha256": "f795c2d97d450252eae1119926b4484c32c7f8a00a3b31e539360ab8f45c3da3",
+          "mime": "text/javascript; charset=utf-8",
+          "cacheControl": null
+        },
+        {
+          "url": "https://finance.ynxweb4.com/wallet-auth.js",
+          "status": 200,
+          "bytes": 149577,
+          "sha256": "bfeeade2946dbc1f9f51b8752cc83a465eceb9b3a8690583e27f56caa91e2048",
+          "mime": "text/javascript; charset=utf-8",
+          "cacheControl": null
+        },
+        {
+          "url": "https://finance.ynxweb4.com/read-sources.js",
+          "status": 200,
+          "bytes": 10920,
+          "sha256": "e19b7b266c14b181a4d88b10c6e1975398bdafb77660272f37ba22b48fc18c70",
+          "mime": "text/javascript; charset=utf-8",
+          "cacheControl": null
+        },
+        {
+          "url": "https://finance.ynxweb4.com/styles.css",
+          "status": 200,
+          "bytes": 13935,
+          "sha256": "bd01b920fee3693204a63aed364c27becf4c9c84f3ee1ed9dd3e2d35a39b5d9f",
+          "mime": "text/css; charset=utf-8",
+          "cacheControl": null
+        },
+        {
+          "url": "https://finance.ynxweb4.com/manifest.webmanifest",
+          "status": 200,
+          "bytes": 241,
+          "sha256": "3f7bec35f54aad6a095151e9d4d553e7ea10cbbbcc9e16f0f3fe7abd242b6d05",
+          "mime": "text/plain; charset=utf-8",
+          "cacheControl": null
+        },
+        {
+          "url": "https://finance.ynxweb4.com/ynx-logo.png",
+          "status": 200,
+          "bytes": 104171,
+          "sha256": "df071f540f21d54e92286fd709df5293187c269058850820adb11e7c5087c12d",
+          "mime": "image/png",
+          "cacheControl": null
+        }
+      ]
+    },
+    "rollback": {
+      "release": "/opt/ynx/releases/finance/ynx-finance-3b2383f5c18a",
+      "environmentBackup": "/opt/ynx/stage/finance/finance-sdk-7a1d2aba-20260912T104700Z-r2/rollback/finance.env",
+      "stateRestore": false
+    },
+    "forbiddenMutations": {
+      "caddy": false,
+      "unit": false,
+      "otherServices": false,
+      "wallet": false
+    },
+    "retained": {
+      "release": "/opt/ynx/releases/finance/finance-sdk-7a1d2aba-20260912T104700Z-r2",
+      "rollback": "/opt/ynx/stage/finance/finance-sdk-7a1d2aba-20260912T104700Z-r2/rollback",
+      "archive": "/tmp/finance-sdk-7a1d2aba-20260912T104700Z.tar.gz"
+    },
+    "installed": false,
+    "realAccountApproval": false,
+    "realSigning": false,
+    "realTransaction": false
+  }
+}

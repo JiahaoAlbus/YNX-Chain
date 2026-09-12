@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "product": "finance",
+  "sourceCommit": "7a1d2aba6e72e5567931f451a9f069a544f58783",
+  "sourceTree": "2a802bdc2ac0963bf6babe728bf0355012b3a0a6",
+  "url": "https://finance.ynxweb4.com/",
+  "browser": "real Codex in-app browser via Computer Use; no injected providers or intercepted HTTP",
+  "publicGuestVisible": true,
+  "language": "en",
+  "observations": {
+    "title": "YNX Finance",
+    "heading": "Your money, with its evidence attached.",
+    "standardState": "Standard Wallet not connected. Choose YNX Wallet or MetaMask; public information remains available.",
+    "privateState": "Private Finance: guest. Public information and Standard Wallet remain available. Legacy sessions stay isolated with their original authority.",
+    "separateYNXAndMetaMaskButtonsVisible": true,
+    "ynxDownload": "https://www.ynxweb4.com/dapp/download",
+    "metamaskInstall": "https://metamask.io/download/",
+    "ethereumGlobal": "undefined",
+    "ynxWalletGlobal": "undefined",
+    "continueAsGuestClicked": true,
+    "reloadPreservedGuestAndStandardDisconnected": true,
+    "urlStayedFinanceRootDuringGuestAndReload": true,
+    "tabCountAfterGuestReloadMobile": 1,
+    "blankTabCreated": false,
+    "consoleErrorCount": 0,
+    "consoleWarningCount": 0,
+    "mobileViewport": {"width": 390, "height": 844, "documentScrollWidth": 375, "horizontalOverflow": false},
+    "temporaryViewportReset": true,
+    "scriptSources": ["https://finance.ynxweb4.com/wallet-auth.js", "https://finance.ynxweb4.com/app.js", "https://finance.ynxweb4.com/read-sources.js"]
+  },
+  "screenshots": {
+    "desktopCapturedAndEmittedByComputerUse": true,
+    "mobileCapturedAndEmittedByComputerUse": true,
+    "durableLocalScreenshotFile": false,
+    "location": "direct Computer Use tool image outputs in owner task transcript; in-app content export unsupported"
+  },
+  "versionBrowserNavigation": {
+    "attempted": true,
+    "passed": false,
+    "error": "net::ERR_BLOCKED_BY_CLIENT",
+    "bypassOrAlternateTransportAfterDenial": false,
+    "priorAuthorizedDeploymentHttpVersionProofRetained": true,
+    "priorVersionSha256": "386276d214105035883b4fbb94fcec52a9794b9b5a73611fb3349abe72e882ee"
+  },
+  "truth": {
+    "publicRuntimeSourceBound": true,
+    "publicGuestVisible": true,
+    "installedProduct": false,
+    "realProviderSelectionAndApproval": false,
+    "realProviderRejection": false,
+    "realAccountOrChainEvents": false,
+    "realPrivateApprovalAndCallback": false,
+    "realPrivateSessionConnected": false,
+    "realSignature": false,
+    "realTransaction": false,
+    "completeProduct": false
+  },
+  "boundary": "No Connect/Authorize/Revoke button clicked; no account request, signing, private key collection, payment or transaction. Earlier local fixture results remain separate from direct public guest evidence."
+}
